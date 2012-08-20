@@ -695,10 +695,6 @@ STM32F4Discovery-specific Configuration Options
 
        CONFIG_DRAM_START=0x20000000
 
-    CONFIG_DRAM_END - Last address+1 of installed RAM
-
-       CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
-
     CONFIG_STM32_CCMEXCLUDE - Exclude CCM SRAM from the HEAP
 
     In addition to internal SRAM, SRAM may also be available through the FSMC.

@@ -50,7 +50,6 @@
 # CONFIG_BOARD_LOOPSPERMSEC - for delay loops
 # CONFIG_ENDIAN_BIG - define if big endian (default is little endian)
 # CONFIG_ROM_VECTORS - unique to c5471
-# CONFIG_DRAM_END - the size of installed DRAM.
 #   Unique to c5471
 # CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to c5471.
 # CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
@@ -68,10 +67,12 @@ CONFIG_ARCH_BOARD=c5471evm
 CONFIG_ARCH_BOARD_C5471EVM=y
 CONFIG_BOARD_LOOPSPERMSEC=1250
 CONFIG_ROM_VECTORS=n
-CONFIG_DRAM_END=0x11000000
 CONFIG_ARCH_LEDS=y
 CONFIG_ARCH_INTERRUPTSTACK=0
 CONFIG_ARCH_STACKDUMP=y
+
+CONFIG_DRAM_START=0
+CONFIG_DRAM_SIZE=0x11000000
 
 #
 # C5471 specific device driver settings

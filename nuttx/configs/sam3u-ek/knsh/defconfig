@@ -51,7 +51,6 @@
 # CONFIG_BOARD_LOOPSPERMSEC - for delay loops
 # CONFIG_DRAM_SIZE - Describes the installed DRAM.
 # CONFIG_DRAM_START - The start address of DRAM (physical)
-# CONFIG_DRAM_END - Last address+1 of installed RAM
 # CONFIG_ARCH_IRQPRIO - The ST32F103Z supports interrupt prioritization
 # CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
 #   stack. If defined, this symbol is the size of the interrupt
@@ -79,7 +78,6 @@ CONFIG_ARCH_BOARD_SAM3UEK=y
 CONFIG_BOARD_LOOPSPERMSEC=4768
 CONFIG_DRAM_SIZE=0x00008000
 CONFIG_DRAM_START=0x20000000
-CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
 CONFIG_ARCH_IRQPRIO=y
 CONFIG_ARCH_INTERRUPTSTACK=n
 CONFIG_ARCH_STACKDUMP=y

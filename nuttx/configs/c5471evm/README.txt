@@ -73,8 +73,6 @@ ARM/C5471-specific Configuration Options
 	CONFIG_ROM_VECTORS - should be defined for the C5471 because the
 	   interrupt vectors are in ROM
 
-	CONFIG_DRAM_END - the size of installed DRAM. Unique to c5471
-
 	CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
 	   have LEDs
 

@@ -233,10 +233,6 @@ SAM3U-EK-specific Configuration Options
 
 	   CONFIG_DRAM_START=0x20000000
 
-	CONFIG_DRAM_END - Last address+1 of installed RAM
-
-	   CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
-
 	CONFIG_ARCH_IRQPRIO - The SAM3UF103Z supports interrupt prioritization
 
 	   CONFIG_ARCH_IRQPRIO=y

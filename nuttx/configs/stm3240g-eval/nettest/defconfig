@@ -51,7 +51,6 @@
 # CONFIG_BOARD_LOOPSPERMSEC - for delay loops
 # CONFIG_DRAM_SIZE - Describes the installed DRAM.
 # CONFIG_DRAM_START - The start address of DRAM (physical)
-# CONFIG_DRAM_END - Last address+1 of installed RAM
 # CONFIG_ARCH_IRQPRIO - The STM3240xxx supports interrupt prioritization
 # CONFIG_ARCH_FPU - The STM3240xxx supports a floating point unit (FPU)
 #   (But, unfortunately, GCC does not support it).
@@ -81,7 +80,6 @@ CONFIG_ARCH_BOARD_STM3240G_EVAL=y
 CONFIG_BOARD_LOOPSPERMSEC=16717
 CONFIG_DRAM_SIZE=0x00030000
 CONFIG_DRAM_START=0x20000000
-CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
 CONFIG_ARCH_IRQPRIO=y
 CONFIG_ARCH_FPU=n
 CONFIG_ARCH_INTERRUPTSTACK=n

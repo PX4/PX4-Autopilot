@@ -52,7 +52,6 @@
 # CONFIG_BOARD_LOOPSPERMSEC - for delay loops
 # CONFIG_DRAM_SIZE - Describes the installed DRAM.
 # CONFIG_DRAM_START - The start address of DRAM (physical)
-# CONFIG_DRAM_END - Last address+1 of installed RAM
 # CONFIG_ARCH_NOINTC - define if the architecture does not
 #   support an interrupt controller or otherwise cannot support
 #   APIs like up_enable_irq() and up_disable_irq().
@@ -92,7 +91,6 @@ CONFIG_ARCH_BOARD_UBW32=y
 CONFIG_BOARD_LOOPSPERMSEC=8079
 CONFIG_DRAM_SIZE=(32*1024)
 CONFIG_DRAM_START=0xa0000000
-CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
 CONFIG_ARCH_NOINTC=n
 CONFIG_ARCH_VECNOTIRQ=y
 CONFIG_ARCH_IRQPRIO=y

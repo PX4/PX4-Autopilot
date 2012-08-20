@@ -296,8 +296,6 @@ HCS12/DEMO9S12NEC64-specific Configuration Options
 
 	CONFIG_DRAM_START - The start address of installed RAM
 
-	CONFIG_DRAM_END - Should be (CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
-
 	CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
 	   have LEDs
 

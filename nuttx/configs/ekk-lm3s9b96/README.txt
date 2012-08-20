@@ -274,10 +274,6 @@ Stellaris EKK-LM3S9B96 Evaluation Kit Configuration Options
 
        CONFIG_DRAM_START=0x20000000
 
-    CONFIG_DRAM_END - Last address+1 of installed RAM
-
-       CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
-
     CONFIG_ARCH_IRQPRIO - The LM3S6918 supports interrupt prioritization
 
        CONFIG_ARCH_IRQPRIO=y

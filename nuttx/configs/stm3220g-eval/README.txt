@@ -468,10 +468,6 @@ STM3220G-EVAL-specific Configuration Options
 
        CONFIG_DRAM_START=0x20000000
 
-    CONFIG_DRAM_END - Last address+1 of installed RAM
-
-       CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
-
     In addition to internal SRAM, SRAM may also be available through the FSMC.
     In order to use FSMC SRAM, the following additional things need to be
     present in the NuttX configuration file:

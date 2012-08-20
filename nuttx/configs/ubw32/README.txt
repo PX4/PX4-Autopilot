@@ -429,10 +429,6 @@ PIC32MX Configuration Options
 
        CONFIG_DRAM_START=0xa0000000
 
-    CONFIG_DRAM_END - Last address+1 of installed RAM
-
-       CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
-
     CONFIG_ARCH_IRQPRIO - The PIC32MXx supports interrupt prioritization
 
        CONFIG_ARCH_IRQPRIO=y

@@ -53,7 +53,6 @@
 # CONFIG_BOARD_LOOPSPERMSEC - for delay loops
 # CONFIG_DRAM_SIZE - Describes the internal SRAM.
 # CONFIG_DRAM_START - The start address of internal SRAM
-# CONFIG_DRAM_END - The end+1 address of internal SRAM
 # CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
 #   stack. If defined, this symbol is the size of the interrupt
 #   stack in bytes.  If not defined, the user task stacks will be
@@ -73,7 +72,6 @@ CONFIG_ARCH_NOINTC=y
 CONFIG_ENDIAN_BIG=y
 CONFIG_DRAM_SIZE=0x00800
 CONFIG_DRAM_START=0x00400
-CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
 CONFIG_BOARD_LOOPSPERMSEC=16945
 CONFIG_ARCH_INTERRUPTSTACK=128
 CONFIG_ARCH_STACKDUMP=y

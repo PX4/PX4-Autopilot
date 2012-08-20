@@ -321,10 +321,6 @@ Nucleus 2G Configuration Options
 
 	   CONFIG_DRAM_START=0x10000000
 
-	CONFIG_DRAM_END - Last address+1 of installed RAM
-
-	   CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
-
 	CONFIG_ARCH_IRQPRIO - The LPC17xx supports interrupt prioritization
 
 	   CONFIG_ARCH_IRQPRIO=y
