@@ -217,7 +217,7 @@ mixer_load_multirotor(Mixer::ControlCallback control_cb, uintptr_t cb_handle, co
 	char geomname[8];
 	int s[4];
 
-	if (sscanf(buf, "R: %7s %d %d %d %d", geomname, &s[0], &s[1], &s[2], &s[3]) != 5) {
+	if (sscanf(buf, "R: %s %d %d %d %d", geomname, &s[0], &s[1], &s[2], &s[3]) != 5) {
 		debug("multirotor parse failed on '%s'", buf);
 		return nullptr;
 	}
