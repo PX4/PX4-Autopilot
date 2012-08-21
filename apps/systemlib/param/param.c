@@ -35,6 +35,10 @@
  * @file param.c
  *
  * Global parameter store.
+ *
+ * Note that it might make sense to convert this into a driver.  That would
+ * offer some interesting options regarding state for e.g. ORB advertisements
+ * and background parameter saving.
  */
 
 #include <debug.h>
@@ -46,9 +50,14 @@
 
 #include <sys/stat.h>
 
+#include <arch/board/up_hrt.h>
+
 #include "systemlib/param/param.h"
 #include "systemlib/uthash/utarray.h"
 #include "systemlib/bson/tinybson.h"
+
+#include "uORB/uORB.h"
+#include "uORB/topics/parameters.h"
 
 #if 1
 # define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
@@ -78,6 +87,9 @@ UT_array	*param_values;
 
 /** array info for the modified parameters array */
 UT_icd		param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
+
+/** parameter update topic */
+ORB_DEFINE(parameter_update, struct parameter_update_s);
 
 /** lock the parameter store */
 static void
@@ -369,6 +381,24 @@ param_set(param_t param, const void *val)
 
 out:
 	param_unlock();
+
+	/*
+	 * If we set something, now that we have unlocked, go ahead and advertise that
+	 * a thing has been set.
+	 */
+	if (result != 0) {
+		struct parameter_update_s pup = { .timestamp = hrt_absolute_time() };
+
+		/*
+		 * Because we're a library, we can't keep a persistent advertisement
+		 * around, so if we succeed in updating the topic, we have to toss
+		 * the descriptor straight away.
+		 */
+		int param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
+		if (param_topic != -1)
+			close(param_topic);
+	}
+
 	return result;
 }
 
@@ -407,6 +437,7 @@ param_export(int fd, bool only_unsaved)
 		switch (param_type(s->param)) {
 		case PARAM_TYPE_INT32:
 			param_get(s->param, &i);
+
 			if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
 				goto out;
@@ -416,6 +447,7 @@ param_export(int fd, bool only_unsaved)
 
 		case PARAM_TYPE_FLOAT:
 			param_get(s->param, &f);
+
 			if (bson_encoder_append_double(&encoder, param_name(s->param), f)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
 				goto out;
@@ -424,7 +456,7 @@ param_export(int fd, bool only_unsaved)
 			break;
 
 		case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
-			if (bson_encoder_append_binary(&encoder, 
+			if (bson_encoder_append_binary(&encoder,
 						       param_name(s->param),
 						       BSON_BIN_BINARY,
 						       param_size(s->param),
@@ -474,6 +506,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 	 * ignore the node.
 	 */
 	param_t param = param_find(node->name);
+
 	if (param == PARAM_INVALID)
 		return 0;
 
@@ -487,6 +520,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 			debug("unexpected type for '%s", node->name);
 			goto out;
 		}
+
 		i = node->i;
 		v = &i;
 		break;
@@ -496,6 +530,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 			debug("unexpected type for '%s", node->name);
 			goto out;
 		}
+
 		f = node->d;
 		v = &f;
 		break;
@@ -505,22 +540,28 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 			debug("unexpected subtype for '%s", node->name);
 			goto out;
 		}
+
 		if (bson_decoder_data_pending(decoder) != param_size(param)) {
 			debug("bad size for '%s'", node->name);
 			goto out;
 		}
+
 		/* XXX check actual file data size? */
 		tmp = malloc(param_size(param));
+
 		if (tmp == NULL) {
 			debug("failed allocating for '%s'", node->name);
 			goto out;
 		}
+
 		if (bson_decoder_copy_data(decoder, tmp)) {
 			debug("failed copying data for '%s'", node->name);
 			goto out;
 		}
+
 		v = tmp;
 		break;
+
 	default:
 		debug("unrecognised node type");
 		goto out;
@@ -530,6 +571,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		debug("error setting value for '%s'", node->name);
 		goto out;
 	}
+
 	if (tmp != NULL) {
 		free(tmp);
 		tmp = NULL;
@@ -538,8 +580,10 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 	result = 0;
 
 out:
+
 	if (tmp != NULL)
 		free(tmp);
+
 	return result;
 }
 
@@ -559,6 +603,7 @@ param_import(int fd)
 
 	while (!done) {
 		result = bson_decoder_next(&decoder);
+
 		if (result != 0) {
 			debug("error during BSON decode");
 			break;
