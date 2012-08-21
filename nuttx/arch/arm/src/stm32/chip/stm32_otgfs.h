@@ -205,6 +205,10 @@
 #define STM32_OTGFS_DOEPTSIZ2_OFFSET    0x00b50 /* Device OUT endpoint-2 transfer size register */
 #define STM32_OTGFS_DOEPTSIZ3_OFFSET    0x00b70 /* Device OUT endpoint-3 transfer size register */
 
+/* Power and clock gating registers */
+
+#define STM32_OTGFS_PCGCCTL_OFFSET      0x0e00 /* Power and clock gating control register */
+
 /* Data FIFO (DFIFO) access registers */
 
 #define STM32_OTGFS_DFIFO_DEP_OFFSET(n) (0x1000 + ((n) << 12))
@@ -216,15 +220,11 @@
 #define STM32_OTGFS_DFIFO_DEP1_OFFSET   0x2000 /* 0x2000-0x2ffc Device IN/OUT Endpoint 1 DFIFO Write/Read Access */
 #define STM32_OTGFS_DFIFO_HCH1_OFFSET   0x2000 /* 0x2000-0x2ffc Host OUT/IN Channel 1 DFIFO Read/Write Access */
 
-#define STM32_OTGFS_DFIFO_DEP2_OFFSET   0x3000 /* 0x3000-0x3ffc Device IN/OUT Endpoint 1 DFIFO Write/Read Access */
-#define STM32_OTGFS_DFIFO_HCH2_OFFSET   0x3000 /* 0x3000-0x3ffc Host OUT/IN Channel 1 DFIFO Read/Write Access */
+#define STM32_OTGFS_DFIFO_DEP2_OFFSET   0x3000 /* 0x3000-0x3ffc Device IN/OUT Endpoint 2 DFIFO Write/Read Access */
+#define STM32_OTGFS_DFIFO_HCH2_OFFSET   0x3000 /* 0x3000-0x3ffc Host OUT/IN Channel 2 DFIFO Read/Write Access */
 
-#define STM32_OTGFS_DFIFO_DEP3_OFFSET   0x4000 /* 0x4000-0x4ffc Device IN/OUT Endpoint 1 DFIFO Write/Read Access */
-#define STM32_OTGFS_DFIFO_HCH3_OFFSET   0x4000 /* 0x4000-0x4ffc Host OUT/IN Channel 1 DFIFO Read/Write Access */
-
-/* Power and clock gating registers */
-
-#define STM32_OTGFS_PCGCCTL_OFFSET      0x0e00 /* Power and clock gating control register */
+#define STM32_OTGFS_DFIFO_DEP3_OFFSET   0x4000 /* 0x4000-0x4ffc Device IN/OUT Endpoint 3 DFIFO Write/Read Access */
+#define STM32_OTGFS_DFIFO_HCH3_OFFSET   0x4000 /* 0x4000-0x4ffc Host OUT/IN Channel 3 DFIFO Read/Write Access */
 
 /* Register Addresses *******************************************************************************/
 
@@ -361,6 +361,10 @@
 #define STM32_OTGFS_DOEPTSIZ2           (STM32_OTGFS_BASE+STM32_OTGFS_DOEPTSIZ2_OFFSET)
 #define STM32_OTGFS_DOEPTSIZ3           (STM32_OTGFS_BASE+STM32_OTGFS_DOEPTSIZ3_OFFSET)
 
+/* Power and clock gating registers */
+
+#define STM32_OTGFS_PCGCCTL             (STM32_OTGFS_BASE+STM32_OTGFS_PCGCCTL_OFFSET)
+
 /* Data FIFO (DFIFO) access registers */
 
 #define STM32_OTGFS_DFIFO_DEP(n)        (STM32_OTGFS_BASE+STM32_OTGFS_DFIFO_DEP_OFFSET(n))
@@ -377,10 +381,6 @@
 
 #define STM32_OTGFS_DFIFO_DEP3          (STM32_OTGFS_BASE+STM32_OTGFS_DFIFO_DEP3_OFFSET)
 #define STM32_OTGFS_DFIFO_HCH3          (STM32_OTGFS_BASE+STM32_OTGFS_DFIFO_HCH3_OFFSET)
-
-/* Power and clock gating registers */
-
-#define STM32_OTGFS_PCGCCTL             (STM32_OTGFS_BASE+STM32_OTGFS_PCGCCTL_OFFSET)
 
 /* Register Bitfield Definitions ********************************************************************/
 /* Core global control and status registers */
@@ -1006,8 +1006,6 @@
 #  define OTGFS_DOEPTSIZ_RXDPID_DATA1   (2 << OTGFS_DOEPTSIZ_RXDPID_SHIFT)
 #  define OTGFS_DOEPTSIZ_RXDPID_MDATA   (3 << OTGFS_DOEPTSIZ_RXDPID_SHIFT)
                                                   /* Bit 31: Reserved, must be kept at reset value */
-/* Power and clock gating registers */
-
 /* Power and clock gating control register */
 
 #define OTGFS_PCGCCTL_STPPCLK           (1 << 0)  /* Bit 0: Stop PHY clock */
