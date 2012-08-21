@@ -905,7 +905,9 @@ STM32F4Discovery-specific Configuration Options
      want to do that?
    CONFIG_STM32_USBHOST_REGDEBUG - Enable very low-level register access
      debug.  Depends on CONFIG_DEBUG.
- 
+    CONFIG_STM32_USBHOST_PKTDUMP - Dump all incoming and outgoing USB
+     packets. Depends on CONFIG_DEBUG.
+
 Configurations
 ==============
 

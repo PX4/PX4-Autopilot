@@ -49,6 +49,7 @@
 #include <debug.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/kmalloc.h>
 #include <nuttx/usb/usb.h>
 #include <nuttx/usb/usbhost.h>
 
@@ -89,6 +90,8 @@
  *    want to do that?
  *  CONFIG_STM32_USBHOST_REGDEBUG - Enable very low-level register access
  *    debug.  Depends on CONFIG_DEBUG.
+ *  CONFIG_STM32_USBHOST_PKTDUMP - Dump all incoming and outgoing USB
+ *    packets. Depends on CONFIG_DEBUG.
  */
 
 /* Pre-requistites (partial) */
@@ -119,6 +122,7 @@
 
 #ifndef CONFIG_DEBUG
 #  undef CONFIG_STM32_USBHOST_REGDEBUG
+#  undef CONFIG_STM32_USBHOST_PKTDUMP
 #endif
 
 /* HCD Setup *******************************************************************/
@@ -252,6 +256,12 @@ static void stm32_putreg(uint32_t addr, uint32_t value);
 
 static inline void stm32_modifyreg(uint32_t addr, uint32_t clrbits,
                                    uint32_t setbits);
+
+#ifdef CONFIG_STM32_USBHOST_PKTDUMP
+#  define stm32_pktdump(m,b,n) lib_dumpbuffer(m,b,n)
+#else
+#  define stm32_pktdump(m,b,n)
+#endif
 
 /* Semaphores ******************************************************************/
 
@@ -1298,6 +1308,8 @@ static void stm32_gint_wrpacket(FAR struct stm32_usbhost_s *priv,
   uint32_t fifo;
   int buflen32;
 
+  stm32_pktdump("Sending", buffer, buflen);
+
   /* Get the number of 32-byte words associated with this byte size */
 
   buflen32 = (buflen + 3) >> 2;
@@ -1957,6 +1969,8 @@ static inline void stm32_gint_rxflvlisr(FAR struct stm32_usbhost_s *priv)
               {
                 *dest++ = stm32_getreg(fifo);
               }
+
+            stm32_pktdump("Received", priv->chan[chidx].buffer, bcnt);
 
             /* Manage multiple packet transfers */
 
@@ -2924,7 +2938,7 @@ static int stm32_epfree(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep)
  *   Some hardware supports special memory in which request and descriptor data can
  *   be accessed more efficiently.  This method provides a mechanism to allocate
  *   the request/descriptor memory.  If the underlying hardware does not support
- *   such "special" memory, this functions may simply map to malloc.
+ *   such "special" memory, this functions may simply map to kmalloc.
  *
  *   This interface was optimized under a particular assumption.  It was assumed
  *   that the driver maintains a pool of small, pre-allocated buffers for descriptor
@@ -2958,12 +2972,15 @@ static int stm32_alloc(FAR struct usbhost_driver_s *drvr,
 
   /* There is no special memory requirement */
 
-  alloc = (FAR uint8_t *)malloc(*maxlen);
+  alloc = (FAR uint8_t *)kmalloc(*maxlen);
   if (!alloc)
     {
       return -ENOMEM;
     }
 
+  /* Return the allocated buffer */
+
+  *buffer = alloc;
   return OK;
 }
 
@@ -2974,7 +2991,7 @@ static int stm32_alloc(FAR struct usbhost_driver_s *drvr,
  *   Some hardware supports special memory in which request and descriptor data can
  *   be accessed more efficiently.  This method provides a mechanism to free that
  *   request/descriptor memory.  If the underlying hardware does not support
- *   such "special" memory, this functions may simply map to free().
+ *   such "special" memory, this functions may simply map to kfree().
  *
  * Input Parameters:
  *   drvr - The USB host driver instance obtained as a parameter from the call to
@@ -2995,7 +3012,7 @@ static int stm32_free(FAR struct usbhost_driver_s *drvr, FAR uint8_t *buffer)
   /* There is no special memory requirement */
 
   DEBUGASSERT(drvr && buffer);
-  free(buffer);
+  kfree(buffer);
   return OK;
 }
 
@@ -3006,7 +3023,7 @@ static int stm32_free(FAR struct usbhost_driver_s *drvr, FAR uint8_t *buffer)
  *   Some hardware supports special memory in which larger IO buffers can
  *   be accessed more efficiently.  This method provides a mechanism to allocate
  *   the request/descriptor memory.  If the underlying hardware does not support
- *   such "special" memory, this functions may simply map to malloc.
+ *   such "special" memory, this functions may simply map to kmalloc.
  *
  *   This interface differs from DRVR_ALLOC in that the buffers are variable-sized.
  *
@@ -3035,12 +3052,15 @@ static int stm32_ioalloc(FAR struct usbhost_driver_s *drvr,
 
   /* There is no special memory requirement */
 
-  alloc = (FAR uint8_t *)malloc(buflen);
+  alloc = (FAR uint8_t *)kmalloc(buflen);
   if (!alloc)
     {
       return -ENOMEM;
     }
 
+  /* Return the allocated buffer */
+
+  *buffer = alloc;
   return OK;
 }
 
@@ -3051,7 +3071,7 @@ static int stm32_ioalloc(FAR struct usbhost_driver_s *drvr,
  *   Some hardware supports special memory in which IO data can  be accessed more
  *   efficiently.  This method provides a mechanism to free that IO buffer
  *   memory.  If the underlying hardware does not support such "special" memory,
- *   this functions may simply map to free().
+ *   this functions may simply map to kfree().
  *
  * Input Parameters:
  *   drvr - The USB host driver instance obtained as a parameter from the call to
@@ -3072,7 +3092,7 @@ static int stm32_iofree(FAR struct usbhost_driver_s *drvr, FAR uint8_t *buffer)
   /* There is no special memory requirement */
 
   DEBUGASSERT(drvr && buffer);
-  free(buffer);
+  kfree(buffer);
   return OK;
 }
 
@@ -3161,7 +3181,7 @@ static int stm32_ctrlin(FAR struct usbhost_driver_s *drvr,
       /* Handle the status OUT phase */
 
       priv->chan[priv->ep0out].outdata1 ^= true;
-      ret = stm32_ctrl_senddata(priv, buffer, buflen);
+      ret = stm32_ctrl_senddata(priv, NULL, 0);
       if (ret == OK)
         {
           break;
