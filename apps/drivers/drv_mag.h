@@ -76,7 +76,7 @@ ORB_DECLARE(sensor_mag);
  */
 
 #define _MAGIOCBASE		(0x2300)
-#define _MAGIOC(_n)		(_IOC(_MAGIOBASE, _n))
+#define _MAGIOC(_n)		(_IOC(_MAGIOCBASE, _n))
 
 /** set the driver polling rate to (arg) Hz, or one of the MAG_POLLRATE constants */
 #define MAGIOCSPOLLRATE		_MAGIOC(0)

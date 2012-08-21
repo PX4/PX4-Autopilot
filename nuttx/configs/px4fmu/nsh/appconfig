@@ -85,6 +85,7 @@ CONFIGURED_APPS += attitude_estimator_ekf
 # Communication and Drivers
 CONFIGURED_APPS	+= drivers/device
 CONFIGURED_APPS += drivers/ms5611
+CONFIGURED_APPS += drivers/hmc5883
 CONFIGURED_APPS += drivers/mpu6000
 CONFIGURED_APPS	+= px4/px4io/driver
 CONFIGURED_APPS += px4/fmu
