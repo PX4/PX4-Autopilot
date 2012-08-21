@@ -87,14 +87,25 @@ int attitude_estimator_bm_update(struct sensor_combined_s *raw, float_vect3 *eul
 	gyro_values.z =  raw->gyro_rad_s[2];
 
 	float_vect3 accel_values;
-	accel_values.x = raw->accelerometer_m_s2[0] * 9.81f * 9.0f;
-	accel_values.y = raw->accelerometer_m_s2[1] * 9.81f * 9.0f;
-	accel_values.z = raw->accelerometer_m_s2[2] * 9.81f * 9.0f;
+	accel_values.x = (raw->accelerometer_m_s2[0] / 9.81f) * 100;
+	accel_values.y = (raw->accelerometer_m_s2[1] / 9.81f) * 100;
+	accel_values.z = (raw->accelerometer_m_s2[2] / 9.81f) * 100;
 
 	float_vect3 mag_values;
-	mag_values.x = raw->magnetometer_ga[0]*510.0f;
-	mag_values.y = raw->magnetometer_ga[1]*510.0f;
-	mag_values.z = raw->magnetometer_ga[2]*510.0f;
+	mag_values.x = raw->magnetometer_ga[0]*456.0f;
+	mag_values.y = raw->magnetometer_ga[1]*456.0f;
+	mag_values.z = raw->magnetometer_ga[2]*456.0f;
+
+	static int i = 0;
+
+	if (i == 500) {
+		printf("gyro: %8.4f\t%8.4f\t%8.4f\t accel: %8.4f\t%8.4f\t%8.4f\t mag: %8.4f\t%8.4f\t%8.4f\t\n",
+			gyro_values.x, gyro_values.y, gyro_values.z,
+			accel_values.x, accel_values.y, accel_values.z,
+			mag_values.x, mag_values.y, mag_values.z);
+		i = 0;
+	}
+	i++;
 
 	attitude_blackmagic(&accel_values, &mag_values, &gyro_values);
 
