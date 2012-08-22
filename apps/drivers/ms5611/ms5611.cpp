@@ -125,7 +125,7 @@ private:
 	int32_t			_dT;
 	int64_t			_temp64;
 
-	int			_baro_topic;
+	orb_advert_t		_baro_topic;
 
 	unsigned		_reads;
 	unsigned		_measure_errors;

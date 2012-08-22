@@ -89,7 +89,7 @@ private:
 	int		_task;
 	int		_t_actuators;
 	int		_t_armed;
-	int		_t_outputs;
+	orb_advert_t	_t_outputs;
 	unsigned	_num_outputs;
 
 	volatile bool	_task_should_exit;
@@ -566,14 +566,12 @@ fake(int argc, char *argv[])
 
 	ac.control[3] = strtol(argv[4], 0, 0) / 100.0f;
 
-	int handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
+	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
 
 	if (handle < 0) {
 		puts("advertise failed");
 		exit(1);
 	}
-
-	close(handle);
 
 	exit(0);
 }

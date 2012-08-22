@@ -154,7 +154,7 @@ int attitude_estimator_bm_main(int argc, char *argv[])
 	bool publishing = false;
 
 	/* advertise attitude */
-	int pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
+	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
 	publishing = true;
 
 	struct pollfd fds[] = {

@@ -176,7 +176,7 @@ void *nmea_loop(void *arg)
 	/* advertise GPS topic */
 	struct vehicle_gps_position_s nmea_gps_d = {0};
 	nmea_gps = &nmea_gps_d;
-	int gps_handle = orb_advertise(ORB_ID(vehicle_gps_position), nmea_gps);
+	orb_advert_t gps_handle = orb_advertise(ORB_ID(vehicle_gps_position), nmea_gps);
 
 	while (1) {
 		/* Parse a message from the gps receiver */

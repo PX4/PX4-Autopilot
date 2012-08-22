@@ -147,7 +147,7 @@ private:
 	mag_scale		_scale;
 	bool			_collect_phase;
 
-	int			_mag_topic;
+	orb_advert_t		_mag_topic;
 
 	unsigned		_reads;
 	unsigned		_measure_errors;

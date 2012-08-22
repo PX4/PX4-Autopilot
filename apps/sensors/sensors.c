@@ -124,8 +124,8 @@ extern unsigned ppm_decoded_channels;
 extern uint64_t ppm_last_valid_decode;
 #endif
 
-/* file handle that will be used for subscribing */
-static int sensor_pub;
+/* ORB topic publishing our results */
+static orb_advert_t sensor_pub;
 
 /**
  * Sensor readout and publishing.
@@ -404,7 +404,7 @@ int sensors_thread_main(int argc, char *argv[])
 						   .yaw = 0.0f,
 						   .throttle = 0.0f };
 
-	int manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
+	orb_advert_t manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
 
 	if (manual_control_pub < 0) {
 		fprintf(stderr, "[sensors] ERROR: orb_advertise for topic manual_control_setpoint failed.\n");
@@ -413,7 +413,7 @@ int sensors_thread_main(int argc, char *argv[])
 	/* advertise the rc topic */
 	struct rc_channels_s rc;
 	memset(&rc, 0, sizeof(rc));
-	int rc_pub = orb_advertise(ORB_ID(rc_channels), &rc);
+	orb_advert_t rc_pub = orb_advertise(ORB_ID(rc_channels), &rc);
 
 	if (rc_pub < 0) {
 		fprintf(stderr, "[sensors] ERROR: orb_advertise for topic rc_channels failed.\n");
@@ -466,7 +466,6 @@ int sensors_thread_main(int argc, char *argv[])
 				if (vstatus.flag_hil_enabled && !hil_enabled) {
 					hil_enabled = true;
 					publishing = false;
-					int ret = close(sensor_pub);
 					printf("[sensors] Closing sensor pub: %i \n", ret);
 
 					/* switching from HIL to non-HIL mode */

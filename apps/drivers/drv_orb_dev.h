@@ -81,4 +81,7 @@
 /** Set the minimum interval at which the topic can be seen to be updated for this subscription */
 #define ORBIOCSETINTERVAL	_ORBIOC(12)
 
+/** Get the global advertiser handle for the topic */
+#define ORBIOCGADVERTISER	_ORBIOC(13)
+
 #endif /* _DRV_UORB_H */

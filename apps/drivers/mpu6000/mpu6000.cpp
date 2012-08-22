@@ -181,12 +181,12 @@ private:
 	struct accel_report	_accel_report;
 	struct accel_scale	_accel_scale;
 	float			_accel_range_scale;
-	int			_accel_topic;
+	orb_advert_t		_accel_topic;
 
 	struct gyro_report	_gyro_report;
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
-	int			_gyro_topic;
+	orb_advert_t		_gyro_topic;
 
 	unsigned		_reads;
 	perf_counter_t		_sample_perf;

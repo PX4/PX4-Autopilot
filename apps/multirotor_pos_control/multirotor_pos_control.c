@@ -89,7 +89,7 @@ mpc_thread_main(int argc, char *argv[])
 	int local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 
 	/* publish attitude setpoint */
-	int att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 
 	while (1) {
 		/* get a local copy of the vehicle state */
