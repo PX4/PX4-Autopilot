@@ -296,6 +296,7 @@ HMC5883::init()
 
 	/* do I2C init (and probe) first */
 	ret = I2C::init();
+
 	if (ret != OK)
 		goto out;
 
@@ -344,7 +345,7 @@ HMC5883::probe()
 	    read_reg(ADDR_ID_C, data[2]))
 		debug("read_reg fail");
 
-	if ((data[0] != ID_A_WHO_AM_I) || 
+	if ((data[0] != ID_A_WHO_AM_I) ||
 	    (data[1] != ID_B_WHO_AM_I) ||
 	    (data[2] != ID_C_WHO_AM_I)) {
 		debug("ID byte mismatch (%02x,%02x,%02x)", data[0], data[1], data[2]);
@@ -545,8 +546,8 @@ HMC5883::cycle_trampoline(void *arg)
 void
 HMC5883::cycle()
 {
-	/* 
-	 * We have to publish the mag topic in the context of the workq 
+	/*
+	 * We have to publish the mag topic in the context of the workq
 	 * in order to ensure that the descriptor is valid when we go to publish.
 	 *
 	 * @bug	We can't really ever be torn down and restarted, since this
@@ -617,6 +618,7 @@ HMC5883::measure()
 	 * Send the command to begin a measurement.
 	 */
 	ret = write_reg(ADDR_MODE, MODE_REG_SINGLE_MODE);
+
 	if (OK != ret)
 		_measure_errors++;
 
@@ -648,13 +650,14 @@ HMC5883::collect()
 	/*
 	 * @note  We could read the status register here, which could tell us that
 	 *        we were too early and that the output registers are still being
-	 *        written.  In the common case that would just slow us down, and 
+	 *        written.  In the common case that would just slow us down, and
 	 *        we're better off just never being early.
 	 */
 
 	/* get measurements from the device */
 	cmd = ADDR_DATA_OUT_X_MSB;
 	ret = transfer(&cmd, 1, (uint8_t *)&hmc_report, sizeof(hmc_report));
+
 	if (ret != OK) {
 		debug("data/status read error");
 		goto out;
@@ -665,8 +668,8 @@ HMC5883::collect()
 	report.y = ((int16_t)hmc_report.y[0] << 8) + hmc_report.y[1];
 	report.z = ((int16_t)hmc_report.z[0] << 8) + hmc_report.z[1];
 
-	/* 
-	 * If any of the values are -4096, there was an internal math error in the sensor. 
+	/*
+	 * If any of the values are -4096, there was an internal math error in the sensor.
 	 * Generalise this to a simple range check that will also catch some bit errors.
 	 */
 	if ((abs(report.x) > 2048) ||

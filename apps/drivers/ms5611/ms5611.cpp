@@ -527,8 +527,8 @@ MS5611::cycle_trampoline(void *arg)
 void
 MS5611::cycle()
 {
-	/* 
-	 * We have to publish the baro topic in the context of the workq 
+	/*
+	 * We have to publish the baro topic in the context of the workq
 	 * in order to ensure that the descriptor is valid when we go to publish.
 	 *
 	 * @bug	We can't really ever be torn down and restarted, since this
