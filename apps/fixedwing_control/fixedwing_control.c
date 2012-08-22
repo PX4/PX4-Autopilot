@@ -60,10 +60,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/fixedwing_control.h>
-
-#ifndef F_M_PI
-#define F_M_PI ((float)M_PI)
-#endif
+#include <systemlib/param/param.h>
 
 __EXPORT int fixedwing_control_main(int argc, char *argv[]);
 
@@ -291,6 +288,18 @@ static float pid(float error, float error_deriv, uint16_t dt, float scale, float
 	return output;
 }
 
+PARAM_DEFINE_FLOAT(FW_ATT_ROLL_P, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ATT_ROLL_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ATT_ROLL_D, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ATT_ROLL_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ATT_ROLL_LIM, 0.0f);
+
+PARAM_DEFINE_FLOAT(FW_ATT_PITCH_P, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ATT_PITCH_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ATT_PITCH_D, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ATT_PITCH_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ATT_PITCH_LIM, 0.0f);
+
 /**
  * Load parameters from global storage.
  *
@@ -299,7 +308,6 @@ static float pid(float error, float error_deriv, uint16_t dt, float scale, float
  * Fetches the current parameters from the global parameter storage and writes them
  * to the plane_data structure
  */
-
 static void get_parameters(plane_data_t * plane_data)
 {
 	plane_data->Kp_att = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_P];
@@ -395,10 +403,10 @@ static void calc_rotation_matrix(float roll, float pitch, float yaw, float x, fl
  */
 static float calc_bearing()
 {
-	float bearing = F_M_PI/2.0f + (float)atan2(-(plane_data.wp_y - plane_data.lat), (plane_data.wp_x - plane_data.lon));
+	float bearing = M_PI_F/2.0f + (float)atan2(-(plane_data.wp_y - plane_data.lat), (plane_data.wp_x - plane_data.lon));
 
 	if (bearing < 0.0f) {
-		bearing += 2*F_M_PI;
+		bearing += 2*M_PI_F;
 	}
 
 	return bearing;
@@ -543,11 +551,11 @@ static float calc_roll_setpoint()
 	} else {
 		setpoint = calc_bearing() - plane_data.yaw;
 
-		if (setpoint < (-35.0f/180.0f)*F_M_PI)
-			return (-35.0f/180.0f)*F_M_PI;
+		if (setpoint < (-35.0f/180.0f)*M_PI_F)
+			return (-35.0f/180.0f)*M_PI_F;
 
-		if (setpoint > (35/180.0f)*F_M_PI)
-			return (-35.0f/180.0f)*F_M_PI;
+		if (setpoint > (35/180.0f)*M_PI_F)
+			return (-35.0f/180.0f)*M_PI_F;
 	}
 
 	return setpoint;
@@ -568,16 +576,16 @@ static float calc_pitch_setpoint()
 	float setpoint = 0.0f;
 
 	if (plane_data.mode == TAKEOFF) {
-		setpoint = ((35/180.0f)*F_M_PI);
+		setpoint = ((35/180.0f)*M_PI_F);
 
 	} else {
 		setpoint = atanf((plane_data.wp_z - plane_data.alt) / calc_wp_distance());
 
-		if (setpoint < (-35.0f/180.0f)*F_M_PI)
-			return (-35.0f/180.0f)*F_M_PI;
+		if (setpoint < (-35.0f/180.0f)*M_PI_F)
+			return (-35.0f/180.0f)*M_PI_F;
 
-		if (setpoint > (35/180.0f)*F_M_PI)
-			return (-35.0f/180.0f)*F_M_PI;
+		if (setpoint > (35/180.0f)*M_PI_F)
+			return (-35.0f/180.0f)*M_PI_F;
 	}
 
 	return setpoint;
@@ -797,8 +805,8 @@ int fixedwing_control_main(int argc, char *argv[])
 	//		printf("Current Altitude: %i\n\n", (int)plane_data.alt);
 
 			printf("\nAttitude values: \n R:%i \n P: %i \n Y: %i \n\n RS: %i \n PS: %i \n YS: %i \n ",
-					(int)(180.0f * plane_data.roll/F_M_PI), (int)(180.0f * plane_data.pitch/F_M_PI), (int)(180.0f * plane_data.yaw/F_M_PI),
-					(int)(180.0f * plane_data.rollspeed/F_M_PI), (int)(180.0f * plane_data.pitchspeed/F_M_PI), (int)(180.0f * plane_data.yawspeed)/F_M_PI);
+					(int)(180.0f * plane_data.roll/M_PI_F), (int)(180.0f * plane_data.pitch/M_PI_F), (int)(180.0f * plane_data.yaw/M_PI_F),
+					(int)(180.0f * plane_data.rollspeed/M_PI_F), (int)(180.0f * plane_data.pitchspeed/M_PI_F), (int)(180.0f * plane_data.yawspeed)/M_PI_F);
 
 	//		printf("\nBody Rates: \n P: %i \n Q: %i \n R: %i \n",
 	//				(int)(10000 * plane_data.p), (int)(10000 * plane_data.q), (int)(10000 * plane_data.r));

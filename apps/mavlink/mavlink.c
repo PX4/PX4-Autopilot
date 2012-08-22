@@ -1447,7 +1447,7 @@ int mavlink_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		mavlink_task = task_create("mavlink", SCHED_PRIORITY_DEFAULT, 4096, mavlink_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		mavlink_task = task_create("mavlink", SCHED_PRIORITY_DEFAULT, 4400, mavlink_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
 	}

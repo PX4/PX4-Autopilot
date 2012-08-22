@@ -51,7 +51,26 @@
 #include <float.h>
 #include <math.h>
 #include <systemlib/pid/pid.h>
+#include <systemlib/param/param.h>
 #include <arch/board/up_hrt.h>
+
+PARAM_DEFINE_FLOAT(MC_YAWPOS_P, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWPOS_I, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWPOS_D, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWPOS_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWPOS_LIM, 0.0f);
+
+PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_LIM, 0.0f);
+
+PARAM_DEFINE_FLOAT(MC_ATT_P, 0.0f);
+PARAM_DEFINE_FLOAT(MC_ATT_I, 0.0f);
+PARAM_DEFINE_FLOAT(MC_ATT_D, 0.0f);
+PARAM_DEFINE_FLOAT(MC_ATT_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(MC_ATT_LIM, 0.0f);
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
 	const struct vehicle_attitude_s *att, const struct vehicle_status_s *status,

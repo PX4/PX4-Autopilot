@@ -43,6 +43,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <stdbool.h>
 #include <string.h>
 #include <systemlib/param/param.h>
@@ -145,39 +146,54 @@ int mavlink_pm_send_param(param_t param)
 	return mavlink_missionlib_send_message(&tx_msg);
 }
 
+static const char *mavlink_parameter_file = "/eeprom/parameters";
+/**
+ * @return 0 on success, -1 if device open failed, -2 if writing parameters failed
+ */
 static int
 mavlink_pm_save_eeprom()
 {
-	const char* name = "/eeprom";
-	int fd = open("/eeprom", O_WRONLY | O_CREAT | O_EXCL);
+	unlink(mavlink_parameter_file);
 
-	if (fd < 0)
-		warn(1, "opening '%s' failed", name);
+	int fd = open(mavlink_parameter_file, O_WRONLY | O_CREAT | O_EXCL);
+
+	if (fd < 0) {
+		warn("opening '%s' failed", mavlink_parameter_file);
+		return -1;
+	}
 
 	int result = param_export(fd, false);
 	close(fd);
 
 	if (result < 0) {
-		warn(1, "error exporting to '%s'", name);
+		unlink(mavlink_parameter_file);
+		warn("error exporting to '%s'", mavlink_parameter_file);
+		return -2;
 	}
 
 	return 0;
 }
 
+/**
+ * @return 0 on success, -1 if device open failed, -2 if writing parameters failed
+ */
 static int
 mavlink_pm_load_eeprom()
 {
-	const char* name = "/eeprom";
-	int fd = open(name, O_RDONLY);
+	int fd = open(mavlink_parameter_file, O_RDONLY);
 
-	if (fd < 0)
-		warn(1, "open '%s' failed", name);
+	if (fd < 0) {
+		warn("open '%s' failed", mavlink_parameter_file);
+		return -1;
+	}
 
 	int result = param_import(fd);
 	close(fd);
 
-	if (result < 0)
-		warn(1, "error importing from '%s'", name);
+	if (result < 0) {
+		warn("error importing from '%s'", mavlink_parameter_file);
+		return -2;
+	}
 
 	return 0;
 }
@@ -258,35 +274,42 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 
 					if (((int)(cmd_mavlink.param1)) == 0)	{
 
-						if (OK == mavlink_pm_load_eeprom()) {
+						/* read all parameters from EEPROM to RAM */
+						int read_ret = mavlink_pm_load_eeprom();
+						if (read_ret == OK) {
 							//printf("[mavlink pm] Loaded EEPROM params in RAM\n");
-							mavlink_missionlib_send_gcs_string("[mavlink pm] CMD Loaded EEPROM params in RAM");
+							mavlink_missionlib_send_gcs_string("[mavlink pm] OK loaded EEPROM params");
 							result = MAV_RESULT_ACCEPTED;
 
 						} else {
-							//fprintf(stderr, "[mavlink pm] ERROR loading EEPROM params in RAM\n");
-							mavlink_missionlib_send_gcs_string("[mavlink pm] ERROR loading EEPROM params in RAM");
+							if (read_ret < -1) {
+								mavlink_missionlib_send_gcs_string("[mavlink pm] ERR loading params from EEPROM");
+							} else {
+								mavlink_missionlib_send_gcs_string("[mavlink pm] ERR loading params, no EEPROM found");
+							}
 							result = MAV_RESULT_FAILED;
 						}
 
-						/* Write all parameters from RAM to EEPROM */
-
 					} else if (((int)(cmd_mavlink.param1)) == 1)	{
 
-						if (OK == mavlink_pm_save_eeprom()) {
-							//printf("[mavlink pm] RAM params written to EEPROM\n");
-							mavlink_missionlib_send_gcs_string("[mavlink pm] RAM params written to EEPROM");
+						/* write all parameters from RAM to EEPROM */
+						int write_ret = mavlink_pm_save_eeprom();
+						if (write_ret == OK) {
+							mavlink_missionlib_send_gcs_string("[mavlink pm] OK params written to EEPROM");
 							result = MAV_RESULT_ACCEPTED;
 
 						} else {
-							//fprintf(stderr, "[mavlink pm] ERROR writing RAM params to EEPROM\n");
-							mavlink_missionlib_send_gcs_string("[mavlink pm] ERROR writing RAM params to EEPROM");
+							if (write_ret < -1) {
+								mavlink_missionlib_send_gcs_string("[mavlink pm] ERR writing params to EEPROM");
+							} else {
+								mavlink_missionlib_send_gcs_string("[mavlink pm] ERR writing params, no EEPROM found");
+							}
 							result = MAV_RESULT_FAILED;
 						}
 
 					} else {
 						//fprintf(stderr, "[mavlink pm] refusing unsupported storage request\n");
-						mavlink_missionlib_send_gcs_string("[mavlink pm] refusing unsupported storage request");
+						mavlink_missionlib_send_gcs_string("[mavlink pm] refusing unsupported STOR request");
 						result = MAV_RESULT_UNSUPPORTED;
 					}
 				}
