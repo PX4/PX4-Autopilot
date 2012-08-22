@@ -113,7 +113,7 @@ static struct vehicle_status_s v_status;
 static struct rc_channels_s rc;
 
 /* HIL publishers */
-static int pub_hil_attitude = -1;
+static orb_advert_t pub_hil_attitude = -1;
 
 /** HIL attitude */
 static struct vehicle_attitude_s hil_attitude;
@@ -126,16 +126,16 @@ static struct ardrone_motors_setpoint_s ardrone_motors;
 
 static struct vehicle_command_s vcmd;
 
-static int pub_hil_global_pos = -1;
-static int ardrone_motors_pub = -1;
-static int cmd_pub = -1;
+static orb_advert_t pub_hil_global_pos = -1;
+static orb_advert_t ardrone_motors_pub = -1;
+static orb_advert_t cmd_pub = -1;
 static int sensor_sub = -1;
 static int att_sub = -1;
 static int global_pos_sub = -1;
 static int local_pos_sub = -1;
-static int flow_pub = -1;
-static int global_position_setpoint_pub = -1;
-static int local_position_setpoint_pub = -1;
+static orb_advert_t flow_pub = -1;
+static orb_advert_t global_position_setpoint_pub = -1;
+static orb_advert_t local_position_setpoint_pub = -1;
 static bool mavlink_hil_enabled = false;
 
 static char mavlink_message_string[51] = {0};

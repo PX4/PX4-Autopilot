@@ -675,7 +675,7 @@ int fixedwing_control_main(int argc, char *argv[])
 
 	/* Set up to publish fixed wing control messages */
 	struct fixedwing_control_s control;
-	int fixedwing_control_pub = orb_advertise(ORB_ID(fixedwing_control), &control);
+	orb_advert_t fixedwing_control_pub = orb_advertise(ORB_ID(fixedwing_control), &control);
 
 	/* Subscribe to global position, attitude and rc */
 	struct vehicle_global_position_s global_pos;

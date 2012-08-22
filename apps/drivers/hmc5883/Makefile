@@ -32,11 +32,11 @@
 ############################################################################
 
 #
-# Makefile to build uORB
+# HMC5883 driver
 #
 
-APPNAME		 = uorb
+APPNAME		 = hmc5883
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 4096
+STACKSIZE	 = 2048
 
 include $(APPDIR)/mk/app.mk

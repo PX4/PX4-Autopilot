@@ -842,7 +842,7 @@ void *ubx_loop(void *arg)
 
 	ubx_gps = &ubx_gps_d;
 
-	int gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &ubx_gps);
+	orb_advert_t gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &ubx_gps);
 
 	while (1) {
 		/* Parse a message from the gps receiver */

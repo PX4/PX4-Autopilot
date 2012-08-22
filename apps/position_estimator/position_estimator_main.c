@@ -297,7 +297,7 @@ int position_estimator_main(int argc, char *argv[])
 		.lon = lon_current * 1e7,
 		.alt = gps.alt
 	};
-	int global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
+	orb_advert_t global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
 
 	printf("[multirotor position estimator] initialized projection with: lat: %.10f,  lon:%.10f\n", lat_current, lon_current);
 

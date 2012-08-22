@@ -18,7 +18,7 @@
 # can change this to prevent automatic startup of the flight script.
 #
 set MODE autostart
-set USB no
+set USB autoconnect
 
 #
 # Try to mount the microSD card.
@@ -46,11 +46,16 @@ fi
 #
 # Check for USB host
 #
-if sercon
+if [ $USB != autoconnect ]
 then
-	echo "[init] USB interface connected"
+	echo "[init] not connecting USB"
 else
-	echo "[init] No USB connected"
+	if sercon
+	then
+		echo "[init] USB interface connected"
+	else
+		echo "[init] No USB connected"
+	fi
 fi
 
 #

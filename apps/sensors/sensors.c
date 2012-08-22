@@ -124,8 +124,8 @@ extern unsigned ppm_decoded_channels;
 extern uint64_t ppm_last_valid_decode;
 #endif
 
-/* file handle that will be used for subscribing */
-static int sensor_pub;
+/* ORB topic publishing our results */
+static orb_advert_t sensor_pub;
 
 /**
  * Sensor readout and publishing.
@@ -404,7 +404,7 @@ int sensors_thread_main(int argc, char *argv[])
 						   .yaw = 0.0f,
 						   .throttle = 0.0f };
 
-	int manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
+	orb_advert_t manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
 
 	if (manual_control_pub < 0) {
 		fprintf(stderr, "[sensors] ERROR: orb_advertise for topic manual_control_setpoint failed.\n");
@@ -413,7 +413,7 @@ int sensors_thread_main(int argc, char *argv[])
 	/* advertise the rc topic */
 	struct rc_channels_s rc;
 	memset(&rc, 0, sizeof(rc));
-	int rc_pub = orb_advertise(ORB_ID(rc_channels), &rc);
+	orb_advert_t rc_pub = orb_advertise(ORB_ID(rc_channels), &rc);
 
 	if (rc_pub < 0) {
 		fprintf(stderr, "[sensors] ERROR: orb_advertise for topic rc_channels failed.\n");
@@ -466,7 +466,6 @@ int sensors_thread_main(int argc, char *argv[])
 				if (vstatus.flag_hil_enabled && !hil_enabled) {
 					hil_enabled = true;
 					publishing = false;
-					int ret = close(sensor_pub);
 					printf("[sensors] Closing sensor pub: %i \n", ret);
 
 					/* switching from HIL to non-HIL mode */
@@ -513,6 +512,7 @@ int sensors_thread_main(int argc, char *argv[])
 				mag_offset[0] = global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_XOFFSET];
 				mag_offset[1] = global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_YOFFSET];
 				mag_offset[2] = global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_ZOFFSET];
+
 
 				paramcounter = 0;
 			}
@@ -565,7 +565,7 @@ int sensors_thread_main(int argc, char *argv[])
 			if (ret_accelerometer != sizeof(buf_accelerometer)) {
 				acc_fail_count++;
 
-				if (acc_fail_count & 0b1000 || (acc_fail_count > 20 && acc_fail_count < 100)) {
+				if (acc_fail_count & 0b111 || (acc_fail_count > 20 && acc_fail_count < 100)) {
 					fprintf(stderr, "[sensors] BMA180 ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 				}
 
@@ -618,7 +618,7 @@ int sensors_thread_main(int argc, char *argv[])
 				if (ret_magnetometer != sizeof(buf_magnetometer)) {
 					mag_fail_count++;
 
-					if (mag_fail_count & 0b1000 || (mag_fail_count > 20 && mag_fail_count < 100)) {
+					if (mag_fail_count & 0b111 || (mag_fail_count > 20 && mag_fail_count < 100)) {
 						fprintf(stderr, "[sensors] HMC5883L ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 					}
 

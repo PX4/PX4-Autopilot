@@ -106,10 +106,25 @@ struct orb_metadata {
 __BEGIN_DECLS
 
 /**
+ * ORB topic advertiser handle.
+ *
+ * Advertiser handles are global; once obtained they can be shared freely
+ * and do not need to be closed or released.
+ *
+ * This permits publication from interrupt context and other contexts where
+ * a file-descriptor-based handle would not otherwise be in scope for the
+ * publisher.
+ */
+typedef intptr_t	orb_advert_t;
+
+/**
  * Advertise as the publisher of a topic.
  *
  * This performs the initial advertisement of a topic; it creates the topic
  * node in /obj if required and publishes the initial data.
+ *
+ * Any number of advertisers may publish to a topic; publications are atomic
+ * but co-ordination between publishers is not provided by the ORB. 
  *
  * @param meta		The uORB metadata (usually from the ORB_ID() macro)
  *			for the topic.
@@ -122,7 +137,7 @@ __BEGIN_DECLS
  *			ORB_DEFINE with no corresponding ORB_DECLARE)
  *			this function will return -1 and set errno to ENOENT.
  */
-extern int	orb_advertise(const struct orb_metadata *meta, const void *data) __EXPORT;
+extern orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data) __EXPORT;
 
 /**
  * Publish new data to a topic.
@@ -131,13 +146,13 @@ extern int	orb_advertise(const struct orb_metadata *meta, const void *data) __EX
  * will be notified.  Subscribers that are not waiting can check the topic
  * for updates using orb_check and/or orb_stat.
  *
- * @handle		The handle returned from orb_advertise.
  * @param meta		The uORB metadata (usually from the ORB_ID() macro)
  *			for the topic.
+ * @handle		The handle returned from orb_advertise.
  * @param data		A pointer to the data to be published.
  * @return		OK on success, ERROR otherwise with errno set accordingly.
  */
-extern int	orb_publish(const struct orb_metadata *meta, int handle, const void *data) __EXPORT;
+extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data) __EXPORT;
 
 /**
  * Subscribe to a topic.

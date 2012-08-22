@@ -32,8 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file ms5611.cpp
- * Driver for the MS5611 barometric pressure sensor connected via I2C.
+ * @file hmc5883.cpp
+ *
+ * Driver for the HMC5883 magnetometer connected via I2C.
  */
 
 #include <nuttx/config.h>
@@ -42,6 +43,7 @@
 
 #include <sys/types.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <semaphore.h>
 #include <string.h>
@@ -60,37 +62,63 @@
 
 #include <systemlib/perf_counter.h>
 
-#include <drivers/drv_baro.h>
+#include <drivers/drv_mag.h>
 
-/**
- * Calibration PROM as reported by the device.
+/*
+ * HMC5883 internal constants and data structures.
  */
-#pragma pack(push,1)
-struct ms5611_prom_s {
-	uint16_t factory_setup;
-	uint16_t c1_pressure_sens;
-	uint16_t c2_pressure_offset;
-	uint16_t c3_temp_coeff_pres_sens;
-	uint16_t c4_temp_coeff_pres_offset;
-	uint16_t c5_reference_temp;
-	uint16_t c6_temp_coeff_temp;
-	uint16_t serial_and_crc;
-};
 
-/**
- * Grody hack for crc4()
- */
-union ms5611_prom_u {
-	uint16_t c[8];
-	struct ms5611_prom_s s;
-};
-#pragma pack(pop)
+/* Max measurement rate is 160Hz */
+#define HMC5883_CONVERSION_INTERVAL	(1000000 / 160)	/* microseconds */
 
-class MS5611 : public device::I2C
+#define ADDR_CONF_A			0x00
+#define ADDR_CONF_B			0x01
+#define ADDR_MODE			0x02
+#define ADDR_DATA_OUT_X_MSB		0x03
+#define ADDR_DATA_OUT_X_LSB		0x04
+#define ADDR_DATA_OUT_Z_MSB		0x05
+#define ADDR_DATA_OUT_Z_LSB		0x06
+#define ADDR_DATA_OUT_Y_MSB		0x07
+#define ADDR_DATA_OUT_Y_LSB		0x08
+#define ADDR_STATUS			0x09
+#define ADDR_ID_A			0x0a
+#define ADDR_ID_B			0x0b
+#define ADDR_ID_C			0x0c
+
+#define HMC5883L_ADDRESS		0x1E
+
+/* modes not changeable outside of driver */
+#define HMC5883L_MODE_NORMAL		(0 << 0)  /* default */
+#define HMC5883L_MODE_POSITIVE_BIAS	(1 << 0)  /* positive bias */
+#define HMC5883L_MODE_NEGATIVE_BIAS	(1 << 1)  /* negative bias */
+
+#define HMC5883L_AVERAGING_1		(0 << 5) /* conf a register */
+#define HMC5883L_AVERAGING_2		(1 << 5)
+#define HMC5883L_AVERAGING_4		(2 << 5)
+#define HMC5883L_AVERAGING_8		(3 << 5)
+
+#define MODE_REG_CONTINOUS_MODE		(0 << 0)
+#define MODE_REG_SINGLE_MODE		(1 << 0) /* default */
+
+#define STATUS_REG_DATA_OUT_LOCK	(1 << 1) /* page 16: set if data is only partially read, read device to reset */
+#define STATUS_REG_DATA_READY		(1 << 0) /* page 16: set if all axes have valid measurements */
+
+#define ID_A_WHO_AM_I			'H'
+#define ID_B_WHO_AM_I			'4'
+#define ID_C_WHO_AM_I			'3'
+
+
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
+
+class HMC5883 : public device::I2C
 {
 public:
-	MS5611(int bus);
-	~MS5611();
+	HMC5883(int bus);
+	~HMC5883();
 
 	virtual int		init();
 
@@ -109,23 +137,17 @@ protected:
 	virtual int		probe();
 
 private:
-	union ms5611_prom_u	_prom;
-
-	struct work_s		_work;
+	work_s			_work;
 	unsigned		_measure_ticks;
 
 	unsigned		_num_reports;
 	volatile unsigned	_next_report;
 	volatile unsigned	_oldest_report;
-	struct baro_report	*_reports;
-
+	mag_report		*_reports;
+	mag_scale		_scale;
 	bool			_collect_phase;
-	unsigned		_measure_phase;
 
-	int32_t			_dT;
-	int64_t			_temp64;
-
-	orb_advert_t		_baro_topic;
+	orb_advert_t		_mag_topic;
 
 	unsigned		_reads;
 	unsigned		_measure_errors;
@@ -180,7 +202,25 @@ private:
 	static void		cycle_trampoline(void *arg);
 
 	/**
-	 * Issue a measurement command for the current state.
+	 * Write a register.
+	 *
+	 * @param reg		The register to write.
+	 * @param val		The value to write.
+	 * @return		OK on write success.
+	 */
+	int			write_reg(uint8_t reg, uint8_t val);
+
+	/**
+	 * Read a register.
+	 *
+	 * @param reg		The register to read.
+	 * @param val		The value read.
+	 * @return		OK on read success.
+	 */
+	int			read_reg(uint8_t reg, uint8_t &val);
+
+	/**
+	 * Issue a measurement command.
 	 *
 	 * @return		OK if the measurement command was successful.
 	 */
@@ -192,19 +232,12 @@ private:
 	int			collect();
 
 	/**
-	 * Read the MS5611 PROM
+	 * Convert a big-endian signed 16-bit value to a float.
 	 *
-	 * @return		OK if the PROM reads successfully.
+	 * @param in		A signed 16-bit big-endian value.
+	 * @return		The floating-point representation of the value.
 	 */
-	int			read_prom();
-
-	/**
-	 * PROM CRC routine ported from MS5611 application note
-	 *
-	 * @param n_prom	Pointer to words read from PROM.
-	 * @return		True if the CRC matches.
-	 */
-	bool			crc4(uint16_t *n_prom);
+	float			meas_to_float(uint8_t in[2]);
 
 };
 
@@ -212,55 +245,41 @@ private:
 #define INCREMENT(_x, _lim)	do { _x++; if (_x >= _lim) _x = 0; } while(0)
 
 /*
- * MS5611 internal constants and data structures.
- */
-
-/* internal conversion time: 9.17 ms, so should not be read at rates higher than 100 Hz */
-#define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
-#define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
-
-#define MS5611_ADDRESS_1		0x76    /* address select pins pulled high (PX4FMU series v1.6+) */
-#define MS5611_ADDRESS_2		0x77    /* address select pins pulled low (PX4FMU prototypes) */
-
-#define ADDR_RESET_CMD			0x1E /* read from this address to reset chip (0b0011110 on bus) */
-#define ADDR_CMD_CONVERT_D1		0x48 /* 4096 samples to this address to start conversion (0b01001000 on bus) */
-#define ADDR_CMD_CONVERT_D2		0x58 /* 4096 samples */
-#define ADDR_DATA				0x00 /* address of 3 bytes / 32bit pressure data */
-#define ADDR_PROM_SETUP			0xA0 /* address of 8x 2 bytes factory and calibration data */
-#define ADDR_PROM_C1			0xA2 /* address of 6x 2 bytes calibration data */
-
-/*
  * Driver 'main' command.
  */
-extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
+extern "C" __EXPORT int hmc5883_main(int argc, char *argv[]);
 
 
-MS5611::MS5611(int bus) :
-	I2C("MS5611", BARO_DEVICE_PATH, bus, 0, 400000),
+HMC5883::HMC5883(int bus) :
+	I2C("HMC5883", MAG_DEVICE_PATH, bus, HMC5883L_ADDRESS, 400000),
 	_measure_ticks(0),
 	_num_reports(0),
 	_next_report(0),
 	_oldest_report(0),
 	_reports(nullptr),
-	_collect_phase(false),
-	_measure_phase(0),
-	_dT(0),
-	_temp64(0),
-	_baro_topic(-1),
+	_mag_topic(-1),
 	_reads(0),
 	_measure_errors(0),
 	_read_errors(0),
 	_buf_overflows(0),
-	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read"))
+	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read"))
 {
 	// enable debug() calls
 	_debug_enabled = true;
+
+	// default scaling
+	_scale.x_offset = 0;
+	_scale.x_scale = 1.0f / 1090.0f;	/* default range scale from counts to gauss */
+	_scale.y_offset = 0;
+	_scale.y_scale = 1.0f / 1090.0f;	/* default range scale from counts to gauss */
+	_scale.z_offset = 0;
+	_scale.z_scale = 1.0f / 1090.0f;	/* default range scale from counts to gauss */
 
 	// work_cancel in the dtor will explode if we don't do this...
 	_work.worker = nullptr;
 }
 
-MS5611::~MS5611()
+HMC5883::~HMC5883()
 {
 	/* make sure we are truly inactive */
 	stop();
@@ -271,32 +290,36 @@ MS5611::~MS5611()
 }
 
 int
-MS5611::init()
+HMC5883::init()
 {
-	int ret;
+	int ret = ERROR;
 
 	/* do I2C init (and probe) first */
 	ret = I2C::init();
 
+	if (ret != OK)
+		goto out;
+
+out:
 	return ret;
 }
 
 int
-MS5611::open_first(struct file *filp)
+HMC5883::open_first(struct file *filp)
 {
 	/* reset to manual-poll mode */
 	_measure_ticks = 0;
 
 	/* allocate basic report buffers */
 	_num_reports = 2;
-	_reports = new struct baro_report[_num_reports];
+	_reports = new struct mag_report[_num_reports];
 	_oldest_report = _next_report = 0;
 
 	return OK;
 }
 
 int
-MS5611::close_last(struct file *filp)
+HMC5883::close_last(struct file *filp)
 {
 	/* stop measurement */
 	stop();
@@ -313,43 +336,29 @@ MS5611::close_last(struct file *filp)
 }
 
 int
-MS5611::probe()
+HMC5883::probe()
 {
-	if (OK == probe_address(MS5611_ADDRESS_1))
-		return OK;
+	uint8_t data[3];
 
-	if (OK == probe_address(MS5611_ADDRESS_2))
-		return OK;
+	if (read_reg(ADDR_ID_A, data[0]) ||
+	    read_reg(ADDR_ID_B, data[1]) ||
+	    read_reg(ADDR_ID_C, data[2]))
+		debug("read_reg fail");
 
-	return -EIO;
-}
-
-int
-MS5611::probe_address(uint8_t address)
-{
-	uint8_t cmd = ADDR_RESET_CMD;
-
-	/* select the address we are going to try */
-	set_address(address);
-
-	/* send reset command */
-	if (OK != transfer(&cmd, 1, nullptr, 0))
+	if ((data[0] != ID_A_WHO_AM_I) ||
+	    (data[1] != ID_B_WHO_AM_I) ||
+	    (data[2] != ID_C_WHO_AM_I)) {
+		debug("ID byte mismatch (%02x,%02x,%02x)", data[0], data[1], data[2]);
 		return -EIO;
-
-	/* wait for PROM contents to be in the device (2.8 ms) */
-	usleep(3000);
-
-	/* read PROM */
-	if (OK != read_prom())
-		return -EIO;
+	}
 
 	return OK;
 }
 
 ssize_t
-MS5611::read(struct file *filp, char *buffer, size_t buflen)
+HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct baro_report);
+	unsigned count = buflen / sizeof(struct mag_report);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -381,30 +390,18 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 	/* manual measurement - run one conversion */
 	/* XXX really it'd be nice to lock against other readers here */
 	do {
-		_measure_phase = 0;
 		_oldest_report = _next_report = 0;
 
-		/* do temperature first */
+		/* trigger a measurement */
 		if (OK != measure()) {
 			ret = -EIO;
 			break;
 		}
 
-		usleep(MS5611_CONVERSION_INTERVAL);
+		/* wait for it to complete */
+		usleep(HMC5883_CONVERSION_INTERVAL);
 
-		if (OK != collect()) {
-			ret = -EIO;
-			break;
-		}
-
-		/* now do a pressure measurement */
-		if (OK != measure()) {
-			ret = -EIO;
-			break;
-		}
-
-		usleep(MS5611_CONVERSION_INTERVAL);
-
+		/* run the collection phase */
 		if (OK != collect()) {
 			ret = -EIO;
 			break;
@@ -421,21 +418,21 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
+HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-	case BAROIOCSPOLLRATE: {
+	case MAGIOCSPOLLRATE: {
 			switch (arg) {
 
 				/* switching to manual polling */
-			case BARO_POLLRATE_MANUAL:
+			case MAG_POLLRATE_MANUAL:
 				stop();
 				_measure_ticks = 0;
 				return OK;
 
-				/* external signalling not supported */
-			case BARO_POLLRATE_EXTERNAL:
+				/* external signalling (DRDY) not supported */
+			case MAG_POLLRATE_EXTERNAL:
 
 				/* zero would be bad */
 			case 0:
@@ -450,7 +447,7 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(MS5611_CONVERSION_INTERVAL))
+					if (ticks < USEC2TICK(HMC5883_CONVERSION_INTERVAL))
 						return -EINVAL;
 
 					/* update interval for next measurement */
@@ -465,13 +462,13 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case BAROIOCSQUEUEDEPTH: {
+	case MAGIOCSQUEUEDEPTH: {
 			/* lower bound is mandatory, upper bound is a sanity check */
 			if ((arg < 2) || (arg > 100))
 				return -EINVAL;
 
 			/* allocate new buffer */
-			struct baro_report *buf = new struct baro_report[arg];
+			struct mag_report *buf = new struct mag_report[arg];
 
 			if (nullptr == buf)
 				return -ENOMEM;
@@ -486,7 +483,30 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case BAROIOCSREPORTFORMAT:
+	case MAGIOCSSCALE:
+		/* set new scale factors */
+		memcpy(&_scale, (mag_scale *)arg, sizeof(_scale));
+		return 0;
+
+	case MAGIOCGSCALE:
+		/* copy out scale factors */
+		memcpy((mag_scale *)arg, &_scale, sizeof(_scale));
+		return 0;
+
+	case MAGIOCCALIBRATE:
+		/* XXX perform auto-calibration */
+		return -EINVAL;
+
+	case MAGIOCSSAMPLERATE:
+		/* not supported, always 1 sample per poll */
+		return -EINVAL;
+
+	case MAGIOCSLOWPASS:
+		/* not supported, no internal filtering */
+		return -EINVAL;
+
+	case MAGIOCSREPORTFORMAT:
+		/* not supported, no custom report format */
 		return -EINVAL;
 
 	default:
@@ -496,54 +516,53 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 void
-MS5611::start()
+HMC5883::start()
 {
 	/* make sure we are stopped first */
 	stop();
 
 	/* reset the report ring and state machine */
 	_collect_phase = false;
-	_measure_phase = 0;
 	_oldest_report = _next_report = 0;
 
 	/* schedule a cycle to start things */
-	work_queue(&_work, (worker_t)&MS5611::cycle_trampoline, this, 1);
+	work_queue(&_work, (worker_t)&HMC5883::cycle_trampoline, this, 1);
 }
 
 void
-MS5611::stop()
+HMC5883::stop()
 {
 	work_cancel(&_work);
 }
 
 void
-MS5611::cycle_trampoline(void *arg)
+HMC5883::cycle_trampoline(void *arg)
 {
-	MS5611 *dev = (MS5611 *)arg;
+	HMC5883 *dev = (HMC5883 *)arg;
 
 	dev->cycle();
 }
 
 void
-MS5611::cycle()
+HMC5883::cycle()
 {
 	/*
-	 * We have to publish the baro topic in the context of the workq
+	 * We have to publish the mag topic in the context of the workq
 	 * in order to ensure that the descriptor is valid when we go to publish.
 	 *
 	 * @bug	We can't really ever be torn down and restarted, since this
 	 *      descriptor will never be closed and on the restart we will be
 	 *      unable to re-advertise.
 	 */
-	if (_baro_topic == -1) {
-		struct baro_report b;
+	if (_mag_topic == -1) {
+		struct mag_report m;
 
 		/* if this fails (e.g. no object in the system) we will cope */
-		memset(&b, 0, sizeof(b));
-		_baro_topic = orb_advertise(ORB_ID(sensor_baro), &b);
+		memset(&m, 0, sizeof(m));
+		_mag_topic = orb_advertise(ORB_ID(sensor_mag), &m);
 
-		if (_baro_topic < 0)
-			debug("failed to create sensor_baro object");
+		if (_mag_topic < 0)
+			debug("failed to create sensor_mag object");
 	}
 
 	/* collection phase? */
@@ -561,17 +580,14 @@ MS5611::cycle()
 
 		/*
 		 * Is there a collect->measure gap?
-		 * Don't inject one after temperature measurements, so we can keep
-		 * doing pressure measurements at something close to the desired rate.
 		 */
-		if ((_measure_phase != 0) &&
-		    (_measure_ticks > USEC2TICK(MS5611_CONVERSION_INTERVAL))) {
+		if (_measure_ticks > USEC2TICK(HMC5883_CONVERSION_INTERVAL)) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
 			work_queue(&_work,
-				   (worker_t)&MS5611::cycle_trampoline,
+				   (worker_t)&HMC5883::cycle_trampoline,
 				   this,
-				   _measure_ticks - USEC2TICK(MS5611_CONVERSION_INTERVAL));
+				   _measure_ticks - USEC2TICK(HMC5883_CONVERSION_INTERVAL));
 
 			return;
 		}
@@ -588,25 +604,20 @@ MS5611::cycle()
 
 	/* schedule a fresh cycle call when the measurement is done */
 	work_queue(&_work,
-		   (worker_t)&MS5611::cycle_trampoline,
+		   (worker_t)&HMC5883::cycle_trampoline,
 		   this,
-		   USEC2TICK(MS5611_CONVERSION_INTERVAL));
+		   USEC2TICK(HMC5883_CONVERSION_INTERVAL));
 }
 
 int
-MS5611::measure()
+HMC5883::measure()
 {
 	int ret;
 
 	/*
-	 * In phase zero, request temperature; in other phases, request pressure.
+	 * Send the command to begin a measurement.
 	 */
-	uint8_t	cmd_data = (_measure_phase == 0) ? ADDR_CMD_CONVERT_D2 : ADDR_CMD_CONVERT_D1;
-
-	/*
-	 * Send the command to begin measuring.
-	 */
-	ret = transfer(&cmd_data, 1, nullptr, 0);
+	ret = write_reg(ADDR_MODE, MODE_REG_SINGLE_MODE);
 
 	if (OK != ret)
 		_measure_errors++;
@@ -615,150 +626,114 @@ MS5611::measure()
 }
 
 int
-MS5611::collect()
+HMC5883::collect()
 {
-	uint8_t cmd;
-	uint8_t data[3];
+#pragma pack(push, 1)
+	struct { /* status register and data as read back from the device */
+		uint8_t		x[2];
+		uint8_t		y[2];
+		uint8_t		z[2];
+	}	hmc_report;
+#pragma pack(pop)
+	struct {
+		int16_t		x, y, z;
+	} report;
+	int	ret = -EIO;
+	uint8_t	cmd;
 
-	/* read the most recent measurement */
-	cmd = 0;
 
 	perf_begin(_sample_perf);
 
-	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
+	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	_reports[_next_report].timestamp = hrt_absolute_time();
 
-	if (OK != transfer(&cmd, 1, &data[0], 3)) {
-		_read_errors++;
-		return -EIO;
+	/*
+	 * @note  We could read the status register here, which could tell us that
+	 *        we were too early and that the output registers are still being
+	 *        written.  In the common case that would just slow us down, and
+	 *        we're better off just never being early.
+	 */
+
+	/* get measurements from the device */
+	cmd = ADDR_DATA_OUT_X_MSB;
+	ret = transfer(&cmd, 1, (uint8_t *)&hmc_report, sizeof(hmc_report));
+
+	if (ret != OK) {
+		debug("data/status read error");
+		goto out;
 	}
 
-	/* fetch the raw value */
-	uint32_t raw = (((uint32_t)data[0]) << 16) | (((uint32_t)data[1]) << 8) | ((uint32_t)data[2]);
+	/* swap the data we just received */
+	report.x = ((int16_t)hmc_report.x[0] << 8) + hmc_report.x[1];
+	report.y = ((int16_t)hmc_report.y[0] << 8) + hmc_report.y[1];
+	report.z = ((int16_t)hmc_report.z[0] << 8) + hmc_report.z[1];
 
-	/* handle a measurement */
-	if (_measure_phase == 0) {
+	/*
+	 * If any of the values are -4096, there was an internal math error in the sensor.
+	 * Generalise this to a simple range check that will also catch some bit errors.
+	 */
+	if ((abs(report.x) > 2048) ||
+	    (abs(report.y) > 2048) ||
+	    (abs(report.z) > 2048))
+		goto out;
 
-		/* temperature calculation */
-		_dT = raw - (((int32_t)_prom.s.c5_reference_temp) * 256);
-		_temp64 = 2000 + (((int64_t)_dT) * _prom.s.c6_temp_coeff_temp) / 8388608;
+	/* scale values for output */
+	_reports[_next_report].x = report.x * _scale.x_scale + _scale.x_offset;
+	_reports[_next_report].y = report.y * _scale.y_scale + _scale.y_offset;
+	_reports[_next_report].z = report.z * _scale.z_scale + _scale.z_offset;
 
-	} else {
+	/* publish it */
+	orb_publish(ORB_ID(sensor_mag), _mag_topic, &_reports[_next_report]);
 
-		/* pressure calculation */
-		int64_t offset = (int64_t)_prom.s.c2_pressure_offset * 65536 + ((int64_t)_dT * _prom.s.c4_temp_coeff_pres_offset) / 128;
-		int64_t sens = (int64_t)_prom.s.c1_pressure_sens * 32768 + ((int64_t)_dT * _prom.s.c3_temp_coeff_pres_sens) / 256;
+	/* post a report to the ring - note, not locked */
+	INCREMENT(_next_report, _num_reports);
 
-		/* it's pretty cold, second order temperature compensation needed */
-		if (_temp64 < 2000) {
-			/* second order temperature compensation */
-			int64_t temp2 = (((int64_t)_dT) * _dT) >> 31;
-			int64_t tmp_64 = (_temp64 - 2000) * (_temp64 - 2000);
-			int64_t offset2 = (5 * tmp_64) >> 1;
-			int64_t sens2 = (5 * tmp_64) >> 2;
-			_temp64 = _temp64 - temp2;
-			offset = offset - offset2;
-			sens = sens - sens2;
-		}
-
-		int64_t press_int64 = (((raw * sens) / 2097152 - offset) / 32768);
-
-		/* generate a new report */
-		_reports[_next_report].temperature = _temp64 / 100.0f;
-		_reports[_next_report].pressure = press_int64 / 100.0f;
-		/* convert as double for max. precision, store as float (more than enough precision) */
-		_reports[_next_report].altitude = (44330.0 * (1.0 - pow((press_int64 / 101325.0), 0.190295)));
-
-		/* publish it */
-		orb_publish(ORB_ID(sensor_baro), _baro_topic, &_reports[_next_report]);
-
-		/* post a report to the ring - note, not locked */
-		INCREMENT(_next_report, _num_reports);
-
-		/* if we are running up against the oldest report, toss it */
-		if (_next_report == _oldest_report) {
-			_buf_overflows++;
-			INCREMENT(_oldest_report, _num_reports);
-		}
-
-		/* notify anyone waiting for data */
-		poll_notify(POLLIN);
+	/* if we are running up against the oldest report, toss it */
+	if (_next_report == _oldest_report) {
+		_buf_overflows++;
+		INCREMENT(_oldest_report, _num_reports);
 	}
 
-	/* update the measurement state machine */
-	INCREMENT(_measure_phase, MS5611_MEASUREMENT_RATIO + 1);
+	/* notify anyone waiting for data */
+	poll_notify(POLLIN);
 
+	ret = OK;
+
+out:
 	perf_end(_sample_perf);
-
-	return OK;
+	return ret;
 }
 
 int
-MS5611::read_prom()
+HMC5883::write_reg(uint8_t reg, uint8_t val)
 {
-	/* read PROM data */
-	uint8_t prom_buf[2] = {255, 255};
+	uint8_t cmd[] = { reg, val };
 
-	for (int i = 0; i < 8; i++) {
-		uint8_t cmd = ADDR_PROM_SETUP + (i * 2);
-
-		if (OK != transfer(&cmd, 1, &prom_buf[0], 2))
-			break;
-
-		/* assemble 16 bit value and convert from big endian (sensor) to little endian (MCU) */
-		_prom.c[i] = (((uint16_t)prom_buf[0]) << 8) | ((uint16_t)prom_buf[1]);
-
-	}
-
-	/* calculate CRC and return false */
-	return crc4(&_prom.c[0]) ? OK : -EIO;
+	return transfer(&cmd[0], 2, nullptr, 0);
 }
 
-bool
-MS5611::crc4(uint16_t *n_prom)
+int
+HMC5883::read_reg(uint8_t reg, uint8_t &val)
 {
-	int16_t cnt;
-	uint16_t n_rem;
-	uint16_t crc_read;
-	uint8_t n_bit;
+	return transfer(&reg, 1, &val, 1);
+}
 
-	n_rem = 0x00;
+float
+HMC5883::meas_to_float(uint8_t in[2])
+{
+	union {
+		uint8_t	b[2];
+		int16_t	w;
+	} u;
 
-	/* save the read crc */
-	crc_read = n_prom[7];
+	u.b[0] = in[1];
+	u.b[1] = in[0];
 
-	/* remove CRC byte */
-	n_prom[7] = (0xFF00 & (n_prom[7]));
-
-	for (cnt = 0; cnt < 16; cnt++) {
-		/* uneven bytes */
-		if (cnt & 1) {
-			n_rem ^= (uint8_t)((n_prom[cnt >> 1]) & 0x00FF);
-
-		} else {
-			n_rem ^= (uint8_t)(n_prom[cnt >> 1] >> 8);
-		}
-
-		for (n_bit = 8; n_bit > 0; n_bit--) {
-			if (n_rem & 0x8000) {
-				n_rem = (n_rem << 1) ^ 0x3000;
-
-			} else {
-				n_rem = (n_rem << 1);
-			}
-		}
-	}
-
-	/* final 4 bit remainder is CRC value */
-	n_rem = (0x000F & (n_rem >> 12));
-	n_prom[7] = crc_read;
-
-	/* return true if CRCs match */
-	return (0x000F & crc_read) == (n_rem ^ 0x00);
+	return (float) u.w;
 }
 
 void
-MS5611::print_info()
+HMC5883::print_info()
 {
 	printf("reads:          %u\n", _reads);
 	printf("measure errors: %u\n", _measure_errors);
@@ -767,7 +742,6 @@ MS5611::print_info()
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	printf("report queue:   %u (%u/%u @ %p)\n",
 	       _num_reports, _oldest_report, _next_report, _reports);
-	printf("dT/temp64:      %d/%lld\n", _dT, _temp64);
 }
 
 /**
@@ -782,7 +756,7 @@ namespace
 #endif
 const int ERROR = -1;
 
-MS5611	*g_dev;
+HMC5883	*g_dev;
 
 /*
  * XXX this should just be part of the generic sensors test...
@@ -827,7 +801,7 @@ test_note(const char *fmt, ...)
 int
 test(int fd)
 {
-	struct baro_report report;
+	struct mag_report report;
 	ssize_t sz;
 	int ret;
 
@@ -839,18 +813,16 @@ test(int fd)
 		return test_fail("immediate read failed: %d", errno);
 
 	test_note("single read");
-	test_note("pressure:    %u", (unsigned)report.pressure);
-	test_note("altitude:    %u", (unsigned)report.altitude);
-	test_note("temperature: %u", (unsigned)report.temperature);
+	test_note("measurement: %.6f  %.6f  %.6f", report.x, report.y, report.z);
 	test_note("time:        %lld", report.timestamp);
 	usleep(1000000);
 
 	/* set the queue depth to 10 */
-	if (OK != ioctl(fd, BAROIOCSQUEUEDEPTH, 10))
+	if (OK != ioctl(fd, MAGIOCSQUEUEDEPTH, 10))
 		return test_fail("failed to set queue depth");
 
 	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, BAROIOCSPOLLRATE, 2))
+	if (OK != ioctl(fd, MAGIOCSPOLLRATE, 2))
 		return test_fail("failed to set 2Hz poll rate");
 
 	/* read the sensor 5x and report each value */
@@ -872,9 +844,7 @@ test(int fd)
 			return test_fail("periodic read failed: %d", errno);
 
 		test_note("periodic read %u", i);
-		test_note("pressure:    %u", (unsigned)report.pressure);
-		test_note("altitude:    %u", (unsigned)report.altitude);
-		test_note("temperature: %u", (unsigned)report.temperature);
+		test_note("measurement: %.6f  %.6f  %.6f", report.x, report.y, report.z);
 		test_note("time:        %lld", report.timestamp);
 	}
 
@@ -886,7 +856,7 @@ int
 info()
 {
 	if (g_dev == nullptr) {
-		fprintf(stderr, "MS5611: driver not running\n");
+		fprintf(stderr, "HMC5883: driver not running\n");
 		return -ENOENT;
 	}
 
@@ -900,7 +870,7 @@ info()
 } // namespace
 
 int
-ms5611_main(int argc, char *argv[])
+hmc5883_main(int argc, char *argv[])
 {
 	/*
 	 * Start/load the driver.
@@ -910,21 +880,21 @@ ms5611_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (g_dev != nullptr) {
-			fprintf(stderr, "MS5611: already loaded\n");
+			fprintf(stderr, "HMC5883: already loaded\n");
 			return -EBUSY;
 		}
 
 		/* create the driver */
 		/* XXX HORRIBLE hack - the bus number should not come from here */
-		g_dev = new MS5611(2);
+		g_dev = new HMC5883(2);
 
 		if (g_dev == nullptr) {
-			fprintf(stderr, "MS5611: driver alloc failed\n");
+			fprintf(stderr, "HMC5883: driver alloc failed\n");
 			return -ENOMEM;
 		}
 
 		if (OK != g_dev->init()) {
-			fprintf(stderr, "MS5611: driver init failed\n");
+			fprintf(stderr, "HMC5883: driver init failed\n");
 			usleep(100000);
 			delete g_dev;
 			g_dev = nullptr;
@@ -940,7 +910,7 @@ ms5611_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "test")) {
 		int fd, ret;
 
-		fd = open(BARO_DEVICE_PATH, O_RDONLY);
+		fd = open(MAG_DEVICE_PATH, O_RDONLY);
 
 		if (fd < 0)
 			return test_fail("driver open failed: %d", errno);

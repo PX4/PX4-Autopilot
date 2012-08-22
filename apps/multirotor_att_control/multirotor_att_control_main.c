@@ -119,9 +119,9 @@ mc_thread_main(int argc, char *argv[])
 	/* publish actuator controls */
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
 		actuators.control[i] = 0.0f;
-	int actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
+	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
 	armed.armed = true;
-	int armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
+	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 
 	/* register the perf counter */
 	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "multirotor_att_control");

@@ -64,6 +64,7 @@
 #include <arch/board/up_pwm_servo.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_outputs.h>
 
 
 class FMUServo : public device::CDev
@@ -88,6 +89,7 @@ private:
 	int		_task;
 	int		_t_actuators;
 	int		_t_armed;
+	orb_advert_t	_t_outputs;
 	unsigned	_num_outputs;
 
 	volatile bool	_task_should_exit;
@@ -98,15 +100,12 @@ private:
 	actuator_controls_s _controls;
 
 	static void	task_main_trampoline(int argc, char *argv[]);
-	void		task_main();
+	void		task_main() __attribute__((noreturn));
 
-	static int	control_callback_trampoline(uintptr_t handle,
+	static int	control_callback(uintptr_t handle,
 			uint8_t control_group,
 			uint8_t control_index,
 			float &input);
-	int		control_callback(uint8_t control_group,
-					 uint8_t control_index,
-					 float &input);
 };
 
 namespace
@@ -212,6 +211,11 @@ FMUServo::task_main()
 	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
 	orb_set_interval(_t_armed, 100);		/* 10Hz update rate */
 
+	/* advertise the mixed control outputs */
+	struct actuator_output_s outputs;
+	memset(&outputs, 0, sizeof(outputs));
+	_t_outputs = orb_advertise(ORB_ID_VEHICLE_CONTROLS, &outputs);
+
 	struct pollfd fds[2];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
@@ -237,7 +241,6 @@ FMUServo::task_main()
 
 		/* do we have a control update? */
 		if (fds[0].revents & POLLIN) {
-			float outputs[num_outputs];
 
 			/* get controls - must always do this to avoid spinning */
 			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
@@ -246,14 +249,20 @@ FMUServo::task_main()
 			if (_mixers != nullptr) {
 
 				/* do mixing */
-				_mixers->mix(&outputs[0], num_outputs);
+				_mixers->mix(&outputs.output[0], num_outputs);
 
 				/* iterate actuators */
 				for (unsigned i = 0; i < num_outputs; i++) {
 
 					/* scale for PWM output 900 - 2100us */
-					up_pwm_servo_set(i, 1500 + (600 * outputs[i]));
+					outputs.output[i] = 1500 + (600 * outputs.output[i]);
+
+					/* output to the servo */
+					up_pwm_servo_set(i, outputs.output[i]);
 				}
+
+				/* and publish for anyone that cares to see */
+				orb_publish(ORB_ID_VEHICLE_CONTROLS, _t_outputs, &outputs);
 			}
 		}
 
@@ -264,13 +273,14 @@ FMUServo::task_main()
 			/* get new value */
 			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
 
-			/* update PMW servo armed status */
+			/* update PWM servo armed status */
 			up_pwm_servo_arm(aa.armed);
 		}
 	}
 
 	::close(_t_actuators);
 	::close(_t_armed);
+	::close(_t_outputs);
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
@@ -285,24 +295,14 @@ FMUServo::task_main()
 }
 
 int
-FMUServo::control_callback_trampoline(uintptr_t handle,
+FMUServo::control_callback(uintptr_t handle,
 				      uint8_t control_group,
 				      uint8_t control_index,
 				      float &input)
 {
-	return ((FMUServo *)handle)->control_callback(control_group, control_index, input);
-}
+	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
-int
-FMUServo::control_callback(uint8_t control_group,
-			   uint8_t control_index,
-			   float &input)
-{
-	/* XXX currently only supporting group zero */
-	if ((control_group != 0) || (control_index > NUM_ACTUATOR_CONTROLS))
-		return -1;
-
-	input = _controls.control[control_index];
+	input = controls->control[control_index];
 	return 0;
 }
 
@@ -377,7 +377,8 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MIXERIOCADDSIMPLE: {
 			mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
 
-			SimpleMixer *mixer = new SimpleMixer(control_callback_trampoline, (uintptr_t)this, mixinfo);
+			SimpleMixer *mixer = new SimpleMixer(control_callback,
+							     (uintptr_t)&_controls, mixinfo);
 
 			if (mixer->check()) {
 				delete mixer;
@@ -385,7 +386,8 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 			} else {
 				if (_mixers == nullptr)
-					_mixers = new MixerGroup(control_callback_trampoline, (uintptr_t)this);
+					_mixers = new MixerGroup(control_callback,
+								 (uintptr_t)&_controls);
 
 				_mixers->add_mixer(mixer);
 			}
@@ -406,7 +408,7 @@ FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
 				_mixers = nullptr;
 			}
 
-			_mixers = new MixerGroup(control_callback_trampoline, (uintptr_t)this);
+			_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
 
 			if (_mixers->load_from_file(path) != 0) {
 				delete _mixers;
@@ -564,14 +566,12 @@ fake(int argc, char *argv[])
 
 	ac.control[3] = strtol(argv[4], 0, 0) / 100.0f;
 
-	int handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
+	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
 
 	if (handle < 0) {
 		puts("advertise failed");
 		exit(1);
 	}
-
-	close(handle);
 
 	exit(0);
 }

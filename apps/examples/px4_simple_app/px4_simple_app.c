@@ -59,7 +59,7 @@ int px4_simple_app_main(int argc, char *argv[])
 	/* advertise attitude topic */
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
-	int att_pub_fd = orb_advertise(ORB_ID(vehicle_attitude), &att);
+	orb_advert_t att_pub = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
 	/* one could wait for multiple topics with this technique, just using one here */
 	struct pollfd fds[] = {
@@ -103,7 +103,7 @@ int px4_simple_app_main(int argc, char *argv[])
 				att.roll = raw.accelerometer_m_s2[0];
 				att.pitch = raw.accelerometer_m_s2[1];
 				att.yaw = raw.accelerometer_m_s2[2];
-				orb_publish(ORB_ID(vehicle_attitude), att_pub_fd, &att);
+				orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
 			}
 			/* there could be more file descriptors here, in the form like:
 			 * if (fds[1..n].revents & POLLIN) {}

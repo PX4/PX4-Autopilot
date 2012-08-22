@@ -311,7 +311,7 @@ void *mtk_loop(void *arg)
 	/* advertise GPS topic */
 	struct vehicle_gps_position_s mtk_gps_d;
 	mtk_gps = &mtk_gps_d;
-	int gps_handle = orb_advertise(ORB_ID(vehicle_gps_position), &mtk_gps);
+	orb_advert_t gps_handle = orb_advertise(ORB_ID(vehicle_gps_position), &mtk_gps);
 
 	while (1) {
 		/* Parse a message from the gps receiver */

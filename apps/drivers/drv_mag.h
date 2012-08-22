@@ -48,6 +48,8 @@
 /**
  * mag report structure.  Reads from the device must be in multiples of this
  * structure.
+ *
+ * Output values are in gauss.
  */
 struct mag_report {
 	float x;
@@ -76,7 +78,7 @@ ORB_DECLARE(sensor_mag);
  */
 
 #define _MAGIOCBASE		(0x2300)
-#define _MAGIOC(_n)		(_IOC(_MAGIOBASE, _n))
+#define _MAGIOC(_n)		(_IOC(_MAGIOCBASE, _n))
 
 /** set the driver polling rate to (arg) Hz, or one of the MAG_POLLRATE constants */
 #define MAGIOCSPOLLRATE		_MAGIOC(0)
@@ -98,5 +100,11 @@ ORB_DECLARE(sensor_mag);
 
 /** set the mag scaling constants to the structure pointed to by (arg) */
 #define MAGIOCSSCALE		_MAGIOC(5)
+
+/** copy the mag scaling constants to the structure pointed to by (arg) */
+#define MAGIOCGSCALE		_MAGIOC(6)
+
+/** perform self-calibration, update scale factors to canonical units */
+#define MAGIOCCALIBRATE		_MAGIOC(7)
 
 #endif /* _DRV_MAG_H */
