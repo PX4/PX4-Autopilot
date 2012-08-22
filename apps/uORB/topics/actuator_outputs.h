@@ -52,7 +52,7 @@
 #define NUM_ACTUATOR_OUTPUTS		16
 #define NUM_ACTUATOR_OUTPUT_GROUPS	4	/**< for sanity checking */
 
-struct actuator_output_s {
+struct actuator_outputs_s {
 	float	output[NUM_ACTUATOR_OUTPUTS];
 };
 

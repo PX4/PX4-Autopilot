@@ -73,6 +73,8 @@
 #include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/optical_flow.h>
+#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include "waypoints.h"
 #include "mavlink_log.h"
 
@@ -129,9 +131,6 @@ static struct vehicle_command_s vcmd;
 static orb_advert_t pub_hil_global_pos = -1;
 static orb_advert_t ardrone_motors_pub = -1;
 static orb_advert_t cmd_pub = -1;
-static int sensor_sub = -1;
-static int att_sub = -1;
-static int global_pos_sub = -1;
 static int local_pos_sub = -1;
 static orb_advert_t flow_pub = -1;
 static orb_advert_t global_position_setpoint_pub = -1;
@@ -145,6 +144,30 @@ static enum {
 	MAVLINK_INTERFACE_MODE_OFFBOARD,
 	MAVLINK_INTERFACE_MODE_ONBOARD
 } mavlink_link_mode = MAVLINK_INTERFACE_MODE_OFFBOARD;
+
+static struct mavlink_subscriptions {
+	int sensor_sub;
+	int att_sub;
+	int global_pos_sub;
+	int act_0_sub;
+	int act_1_sub;
+	int act_2_sub;
+	int act_3_sub;
+	int gps_sub;
+	int man_control_sp_sub;
+	bool initialized;
+} mavlink_subs = {
+	.sensor_sub = 0,
+	.att_sub = 0,
+	.global_pos_sub = 0,
+	.act_0_sub = 0,
+	.act_1_sub = 0,
+	.act_2_sub = 0,
+	.act_3_sub = 0,
+	.gps_sub = 0,
+	.man_control_sp_sub = 0,
+	.initialized = false
+};
 
 
 /* 3: Define waypoint helper functions */
@@ -459,23 +482,33 @@ static void *receiveloop(void *arg)
 	return NULL;
 }
 
-static int set_mavlink_interval_limit(int mavlink_msg_id, int min_interval)
+static int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int mavlink_msg_id, int min_interval)
 {
 	int ret = OK;
 
 	switch (mavlink_msg_id) {
 		case MAVLINK_MSG_ID_SCALED_IMU:
 			/* senser sub triggers scaled IMU */
-			orb_set_interval(sensor_sub, min_interval);
+			if (subs->sensor_sub) orb_set_interval(subs->sensor_sub, min_interval);
 			break;
 		case MAVLINK_MSG_ID_RAW_IMU:
 			/* senser sub triggers RAW IMU */
-			orb_set_interval(sensor_sub, min_interval);
+			if (subs->sensor_sub) orb_set_interval(subs->sensor_sub, min_interval);
 			break;
 		case MAVLINK_MSG_ID_ATTITUDE:
 			/* attitude sub triggers attitude */
-			orb_set_interval(att_sub, min_interval);
+			if (subs->att_sub) orb_set_interval(subs->att_sub, min_interval);
 			break;
+		case MAVLINK_MSG_ID_SERVO_OUTPUT_RAW:
+			/* actuator_outputs triggers this message */
+			if (subs->act_0_sub) orb_set_interval(subs->act_0_sub, min_interval);
+			if (subs->act_1_sub) orb_set_interval(subs->act_1_sub, min_interval);
+			if (subs->act_2_sub) orb_set_interval(subs->act_2_sub, min_interval);
+			if (subs->act_3_sub) orb_set_interval(subs->act_3_sub, min_interval);
+			break;
+		case MAVLINK_MSG_ID_MANUAL_CONTROL:
+			/* manual_control_setpoint triggers this message */
+			if (subs->man_control_sp_sub) orb_set_interval(subs->man_control_sp_sub, min_interval);
 		default:
 			/* not found */
 			ret = ERROR;
@@ -494,13 +527,16 @@ static int set_mavlink_interval_limit(int mavlink_msg_id, int min_interval)
  */
 static void *uorb_receiveloop(void *arg)
 {
+	/* obtain reference to task's subscriptions */
+	struct mavlink_subscriptions *subs = (struct mavlink_subscriptions *)arg;
+
 	/* Set thread name */
 	prctl(PR_SET_NAME, "mavlink uORB", getpid());
 
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
 	/* number of messages */
-	const ssize_t fdsc = 15;
+	const ssize_t fdsc = 25;
 	/* Sanity check variable and index */
 	ssize_t fdsc_count = 0;
 	/* file descriptors to wait for */
@@ -515,28 +551,30 @@ static void *uorb_receiveloop(void *arg)
 		struct vehicle_local_position_setpoint_s local_sp;
 		struct vehicle_global_position_setpoint_s global_sp;
 		struct vehicle_attitude_setpoint_s att_sp;
+		struct actuator_outputs_s act_outputs;
+		struct manual_control_setpoint_s man_control;
 	} buf;
 
 	/* --- SENSORS RAW VALUE --- */
 	/* subscribe to ORB for sensors raw */
-	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	fds[fdsc_count].fd = sensor_sub;
+	subs->sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+	fds[fdsc_count].fd = subs->sensor_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- ATTITUDE VALUE --- */
 	/* subscribe to ORB for attitude */
-	att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	orb_set_interval(att_sub, 100);
-	fds[fdsc_count].fd = att_sub;
+	subs->att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	orb_set_interval(subs->att_sub, 100);
+	fds[fdsc_count].fd = subs->att_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- GPS VALUE --- */
 	/* subscribe to ORB for attitude */
-	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	orb_set_interval(gps_sub, 1000);	/* 1Hz updates */
-	fds[fdsc_count].fd = gps_sub;
+	subs->gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	orb_set_interval(subs->gps_sub, 1000);	/* 1Hz updates */
+	fds[fdsc_count].fd = subs->gps_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -577,7 +615,7 @@ static void *uorb_receiveloop(void *arg)
 
 	/* --- GLOBAL POS VALUE --- */
 	/* struct already globally allocated and topic already subscribed */
-	fds[fdsc_count].fd = global_pos_sub;
+	fds[fdsc_count].fd = subs->global_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -608,11 +646,38 @@ static void *uorb_receiveloop(void *arg)
 	/* --- ATTITUDE SETPOINT VALUE --- */
 	/* subscribe to ORB for attitude setpoint */
 	/* struct already allocated */
-	int spa_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+	int spa_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	orb_set_interval(spa_sub, 2000);	/* 0.5 Hz updates */
 	fds[fdsc_count].fd = spa_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
+
+	/** --- ACTUATOR OUTPUTS --- */
+	subs->act_0_sub = orb_subscribe(ORB_ID(actuator_outputs_0));
+	fds[fdsc_count].fd = subs->act_0_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+	subs->act_1_sub = orb_subscribe(ORB_ID(actuator_outputs_1));
+	fds[fdsc_count].fd = subs->act_1_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+	subs->act_2_sub = orb_subscribe(ORB_ID(actuator_outputs_2));
+	fds[fdsc_count].fd = subs->act_2_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+	subs->act_3_sub = orb_subscribe(ORB_ID(actuator_outputs_3));
+	fds[fdsc_count].fd = subs->act_3_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/** --- MAPPED MANUAL CONTROL INPUTS --- */
+	subs->man_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	fds[fdsc_count].fd = subs->man_control_sp_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* all subscriptions initialized, return success */
+	subs->initialized = true;
 
 	unsigned int sensors_raw_counter = 0;
 	unsigned int attitude_counter = 0;
@@ -651,7 +716,7 @@ static void *uorb_receiveloop(void *arg)
 			if (fds[ifds++].revents & POLLIN) {
 
 				/* copy sensors raw data into local buffer */
-				orb_copy(ORB_ID(sensor_combined), sensor_sub, &buf.raw);
+				orb_copy(ORB_ID(sensor_combined), subs->sensor_sub, &buf.raw);
 
 				/* send raw imu data */
 				mavlink_msg_raw_imu_send(MAVLINK_COMM_0, buf.raw.timestamp, buf.raw.accelerometer_raw[0], buf.raw.accelerometer_raw[1], buf.raw.accelerometer_raw[2], buf.raw.gyro_raw[0], buf.raw.gyro_raw[1], buf.raw.gyro_raw[2], buf.raw.magnetometer_raw[0], buf.raw.magnetometer_raw[1], buf.raw.magnetometer_raw[2]);
@@ -667,7 +732,7 @@ static void *uorb_receiveloop(void *arg)
 			if (fds[ifds++].revents & POLLIN) {
 
 				/* copy attitude data into local buffer */
-				orb_copy(ORB_ID(vehicle_attitude), att_sub, &buf.att);
+				orb_copy(ORB_ID(vehicle_attitude), subs->att_sub, &buf.att);
 
 				/* send sensor values */
 				mavlink_msg_attitude_send(MAVLINK_COMM_0, buf.att.timestamp / 1000, buf.att.roll, buf.att.pitch, buf.att.yaw, buf.att.rollspeed, buf.att.pitchspeed, buf.att.yawspeed);
@@ -678,7 +743,7 @@ static void *uorb_receiveloop(void *arg)
 			/* --- GPS VALUE --- */
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy gps data into local buffer */
-				orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &buf.gps);
+				orb_copy(ORB_ID(vehicle_gps_position), subs->gps_sub, &buf.gps);
 				/* GPS position */
 				mavlink_msg_gps_raw_int_send(MAVLINK_COMM_0, buf.gps.timestamp, buf.gps.fix_type, buf.gps.lat, buf.gps.lon, buf.gps.alt, buf.gps.eph, buf.gps.epv, buf.gps.vel, buf.gps.cog, buf.gps.satellites_visible);
 
@@ -801,7 +866,7 @@ static void *uorb_receiveloop(void *arg)
 			/* --- VEHICLE GLOBAL POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy global position data into local buffer */
-				orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
+				orb_copy(ORB_ID(vehicle_global_position), subs->global_pos_sub, &global_pos);
 				uint64_t timestamp = global_pos.timestamp;
 				int32_t lat = global_pos.lat;
 				int32_t lon = global_pos.lon;
@@ -844,6 +909,126 @@ static void *uorb_receiveloop(void *arg)
 				/* copy local position data into local buffer */
 				orb_copy(ORB_ID(vehicle_attitude_setpoint), spa_sub, &buf.att_sp);
 				mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, buf.att_sp.timestamp/1000, buf.att_sp.roll_tait_bryan, buf.att_sp.pitch_tait_bryan, buf.att_sp.yaw_tait_bryan, buf.att_sp.thrust);
+			}
+
+			/* --- ACTUATOR OUTPUTS 0 --- */
+			if (fds[ifds++].revents & POLLIN) {
+				/* copy actuator data into local buffer */
+				orb_copy(ORB_ID(actuator_outputs_0), subs->act_0_sub, &buf.act_outputs);
+				mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+					0 /* port 0 */,
+					buf.act_outputs.output[0],
+					buf.act_outputs.output[1],
+					buf.act_outputs.output[2],
+					buf.act_outputs.output[3],
+					buf.act_outputs.output[4],
+					buf.act_outputs.output[5],
+					buf.act_outputs.output[6],
+					buf.act_outputs.output[7]);
+				// if (NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) {
+				// 	mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+				// 	1 /* port 1 */,
+				// 	buf.act_outputs.output[ 8],
+				// 	buf.act_outputs.output[ 9],
+				// 	buf.act_outputs.output[10],
+				// 	buf.act_outputs.output[11],
+				// 	buf.act_outputs.output[12],
+				// 	buf.act_outputs.output[13],
+				// 	buf.act_outputs.output[14],
+				// 	buf.act_outputs.output[15]);
+				// }
+			}
+
+			/* --- ACTUATOR OUTPUTS 1 --- */
+			if (fds[ifds++].revents & POLLIN) {
+				/* copy actuator data into local buffer */
+				orb_copy(ORB_ID(actuator_outputs_1), subs->act_1_sub, &buf.act_outputs);
+				mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+					(NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) ? 2 : 1 /* port 2 or 1*/,
+					buf.act_outputs.output[0],
+					buf.act_outputs.output[1],
+					buf.act_outputs.output[2],
+					buf.act_outputs.output[3],
+					buf.act_outputs.output[4],
+					buf.act_outputs.output[5],
+					buf.act_outputs.output[6],
+					buf.act_outputs.output[7]);
+				if (NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) {
+					mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+					3 /* port 3 */,
+					buf.act_outputs.output[ 8],
+					buf.act_outputs.output[ 9],
+					buf.act_outputs.output[10],
+					buf.act_outputs.output[11],
+					buf.act_outputs.output[12],
+					buf.act_outputs.output[13],
+					buf.act_outputs.output[14],
+					buf.act_outputs.output[15]);
+				}
+			}
+
+			/* --- ACTUATOR OUTPUTS 2 --- */
+			if (fds[ifds++].revents & POLLIN) {
+				/* copy actuator data into local buffer */
+				orb_copy(ORB_ID(actuator_outputs_2), subs->act_2_sub, &buf.act_outputs);
+				mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+					(NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) ? 4 : 2 /* port 4 or 2 */,
+					buf.act_outputs.output[0],
+					buf.act_outputs.output[1],
+					buf.act_outputs.output[2],
+					buf.act_outputs.output[3],
+					buf.act_outputs.output[4],
+					buf.act_outputs.output[5],
+					buf.act_outputs.output[6],
+					buf.act_outputs.output[7]);
+				if (NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) {
+					mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+					5 /* port 5 */,
+					buf.act_outputs.output[ 8],
+					buf.act_outputs.output[ 9],
+					buf.act_outputs.output[10],
+					buf.act_outputs.output[11],
+					buf.act_outputs.output[12],
+					buf.act_outputs.output[13],
+					buf.act_outputs.output[14],
+					buf.act_outputs.output[15]);
+				}
+			}
+
+			/* --- ACTUATOR OUTPUTS 3 --- */
+			if (fds[ifds++].revents & POLLIN) {
+				/* copy actuator data into local buffer */
+				orb_copy(ORB_ID(actuator_outputs_3), subs->act_3_sub, &buf.act_outputs);
+				mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+					(NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) ? 6 : 3 /* port 6 or 3 */,
+					buf.act_outputs.output[0],
+					buf.act_outputs.output[1],
+					buf.act_outputs.output[2],
+					buf.act_outputs.output[3],
+					buf.act_outputs.output[4],
+					buf.act_outputs.output[5],
+					buf.act_outputs.output[6],
+					buf.act_outputs.output[7]);
+				if (NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) {
+					mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+					7 /* port 7 */,
+					buf.act_outputs.output[ 8],
+					buf.act_outputs.output[ 9],
+					buf.act_outputs.output[10],
+					buf.act_outputs.output[11],
+					buf.act_outputs.output[12],
+					buf.act_outputs.output[13],
+					buf.act_outputs.output[14],
+					buf.act_outputs.output[15]);
+				}
+			}
+
+			/* --- MAPPED MANUAL CONTROL INPUTS --- */
+			if (fds[ifds++].revents & POLLIN) {
+				/* copy local position data into local buffer */
+				orb_copy(ORB_ID(manual_control_setpoint), subs->man_control_sp_sub, &buf.man_control);
+				mavlink_msg_manual_control_send(MAVLINK_COMM_0, mavlink_system.sysid, buf.man_control.roll,
+					buf.man_control.pitch, buf.man_control.yaw, buf.man_control.throttle, 1, 1, 1, 1);
 			}
 		}
 	}
@@ -891,7 +1076,8 @@ void handleMessage(mavlink_message_t *msg)
 		mavlink_command_long_t cmd_mavlink;
 		mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
-		if (cmd_mavlink.target_system == mavlink_system.sysid && ((cmd_mavlink.target_component == mavlink_system.compid) || (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
+		if (cmd_mavlink.target_system == mavlink_system.sysid && ((cmd_mavlink.target_component == mavlink_system.compid)
+			|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
 			//check for MAVLINK terminate command
 			if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 				/* This is the link shutdown command, terminate mavlink */ //TODO: check what happens with global_data buffers that are read by the mavlink app
@@ -1299,8 +1485,8 @@ int mavlink_thread_main(int argc, char *argv[])
 
 	/* topics to subscribe globally */
 	/* subscribe to ORB for global position */
-	global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	orb_set_interval(global_pos_sub, 1000);	/* 1Hz active updates */
+	mavlink_subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	orb_set_interval(mavlink_subs.global_pos_sub, 1000);	/* 1Hz active updates */
 	/* subscribe to ORB for local position */
 	local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	orb_set_interval(local_pos_sub, 1000);	/* 1Hz active updates */
@@ -1315,7 +1501,7 @@ int mavlink_thread_main(int argc, char *argv[])
 	pthread_attr_init(&uorb_attr);
 	/* Set stack size, needs more than 4000 bytes */
 	pthread_attr_setstacksize(&uorb_attr, 4096);
-	pthread_create(&uorb_receive_thread, &uorb_attr, uorb_receiveloop, NULL);
+	pthread_create(&uorb_receive_thread, &uorb_attr, uorb_receiveloop, &mavlink_subs);
 
 	/* initialize waypoint manager */
 	mavlink_wpm_init(wpm);
@@ -1323,27 +1509,52 @@ int mavlink_thread_main(int argc, char *argv[])
 	uint16_t counter = 0;
 	int lowspeed_counter = 0;
 
+	/* make sure all threads have registered their subscriptions */
+	while (!mavlink_subs.initialized) {
+		usleep(500);
+	}
+
 	/* all subscriptions are now active, set up initial guess about rate limits */
 	if (baudrate >= 921600) {
 		/* 500 Hz / 2 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 2);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 2);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 2);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 2);
+		/* 200 Hz / 5 ms */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 5);
+		/* 5 Hz */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 200);
 	} else if (baudrate >= 460800) {
 		/* 250 Hz / 4 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 5);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 5);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 5);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 5);
+		/* 50 Hz / 20 ms */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 20);
+		/* 2 Hz */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
 	} else if (baudrate >= 115200) {
 		/* 50 Hz / 20 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 50);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 50);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 50);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 50);
+		/* 10 Hz / 100 ms */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 100);
+		/* 1 Hz */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 1000);
 	} else if (baudrate >= 57600) {
 		/* 10 Hz / 100 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 100);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 100);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 100);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 100);
+		/* 5 Hz / 200 ms */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 200);
+		/* 0.2 Hz */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 5000);
 	} else {
 		/* very low baud rate, limit to 1 Hz / 1000 ms */
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_SCALED_IMU, 1000);
-		set_mavlink_interval_limit(MAVLINK_MSG_ID_ATTITUDE, 1000);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 1000);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 1000);
+		/* 0.5 Hz */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 2000);
+		/* 0.1 Hz */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 10000);
 	}
 
 	while (!thread_should_exit) {
@@ -1351,7 +1562,7 @@ int mavlink_thread_main(int argc, char *argv[])
 		if (mavlink_exit_requested) break;
 
 		/* get local and global position */
-		orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
+		orb_copy(ORB_ID(vehicle_global_position), mavlink_subs.global_pos_sub, &global_pos);
 		orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
 
 		/* check if waypoint has been reached against the last positions */

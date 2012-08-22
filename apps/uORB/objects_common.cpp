@@ -116,7 +116,7 @@ ORB_DEFINE(actuator_controls_3, struct actuator_controls_s);
 ORB_DEFINE(actuator_armed, struct actuator_armed_s);
 
 #include "topics/actuator_outputs.h"
-ORB_DEFINE(actuator_outputs_0, struct actuator_output_s);
-ORB_DEFINE(actuator_outputs_1, struct actuator_output_s);
-ORB_DEFINE(actuator_outputs_2, struct actuator_output_s);
-ORB_DEFINE(actuator_outputs_3, struct actuator_output_s);
+ORB_DEFINE(actuator_outputs_0, struct actuator_outputs_s);
+ORB_DEFINE(actuator_outputs_1, struct actuator_outputs_s);
+ORB_DEFINE(actuator_outputs_2, struct actuator_outputs_s);
+ORB_DEFINE(actuator_outputs_3, struct actuator_outputs_s);

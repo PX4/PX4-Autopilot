@@ -832,7 +832,7 @@ int sensors_thread_main(int argc, char *argv[])
 					if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
 					
 					/* throttle input */
-					manual_control.throttle = rc.chan[rc.function[THROTTLE]].scaled/2.0f;
+					manual_control.throttle = (rc.chan[rc.function[THROTTLE]].scaled+1.0f)/2.0f;
 					if (manual_control.throttle < 0.0f) manual_control.throttle = 0.0f;
 					if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
 

@@ -212,7 +212,7 @@ FMUServo::task_main()
 	orb_set_interval(_t_armed, 100);		/* 10Hz update rate */
 
 	/* advertise the mixed control outputs */
-	struct actuator_output_s outputs;
+	struct actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
 	_t_outputs = orb_advertise(ORB_ID_VEHICLE_CONTROLS, &outputs);
 
