@@ -901,6 +901,7 @@ STM32F4Discovery-specific Configuration Options
      in 32-bit words.  Default 96 (384 bytes)
    CONFIG_STM32_OTGFS_PTXFIFO_SIZE - Size of the periodic Tx FIFO in 32-bit
      words.  Default 96 (384 bytes)
+   CONFIG_STM32_OTGFS_DESCSIZE - Maximum size of a descriptor.  Default: 128
    CONFIG_STM32_OTGFS_SOFINTR - Enable SOF interrupts.  Why would you ever
      want to do that?
    CONFIG_STM32_USBHOST_REGDEBUG - Enable very low-level register access

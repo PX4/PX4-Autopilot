@@ -86,6 +86,7 @@
  *    in 32-bit words.  Default 96 (384 bytes)
  *  CONFIG_STM32_OTGFS_PTXFIFO_SIZE - Size of the periodic Tx FIFO in 32-bit
  *    words.  Default 96 (384 bytes)
+ *  CONFIG_STM32_OTGFS_DESCSIZE - Maximum size of a descriptor.  Default: 128
  *  CONFIG_STM32_OTGFS_SOFINTR - Enable SOF interrupts.  Why would you ever
  *    want to do that?
  *  CONFIG_STM32_USBHOST_REGDEBUG - Enable very low-level register access
@@ -106,19 +107,25 @@
 #  define CONFIG_STM32_OTGFS_RXFIFO_SIZE 128
 #endif
 
-/* Default host non-periodic transmit FIFO size */
+/* Default host non-periodic Tx FIFO size */
 
 #ifndef CONFIG_STM32_OTGFS_NPTXFIFO_SIZE
 #  define CONFIG_STM32_OTGFS_NPTXFIFO_SIZE 96
 #endif
 
-/* Default the host periodic Tx fifo size register (HPTXFSIZ) */
+/* Default host periodic Tx fifo size register */
 
 #ifndef CONFIG_STM32_OTGFS_PTXFIFO_SIZE
 #  define CONFIG_STM32_OTGFS_PTXFIFO_SIZE 96
 #endif
 
-/* Register debug depends on CONFIG_DEBUG */
+/* Maximum size of a descriptor */
+
+#ifndef CONFIG_STM32_OTGFS_DESCSIZE
+#  define CONFIG_STM32_OTGFS_DESCSIZE 128
+#endif
+
+/* Register/packet debug depends on CONFIG_DEBUG */
 
 #ifndef CONFIG_DEBUG
 #  undef CONFIG_STM32_USBHOST_REGDEBUG
@@ -169,17 +176,19 @@ enum stm32_smstate_e
   SMSTATE_CLASS_BOUND,   /* Enumeration complete, class bound */
 };
 
-/* This enumeration represents the state of one TX channel */
+/* This enumeration provides the reason for the channel halt. */
 
-enum stm32_chstate_e
+enum stm32_chreason_e
 {
-  CHSTATE_IDLE = 0,      /* Inactive (initial state) */
-  CHSTATE_XFRC,          /* Transfer complete */
-  CHSTATE_NAK,           /* NAK received */
-  CHSTATE_NYET,          /* NotYet received */
-  CHSTATE_STALL,         /* Endpoint stalled */
-  CHSTATE_TXERR,         /* Transfer error received */
-  CHSTATE_DTERR          /* Data error received */
+  CHREASON_IDLE = 0,     /* Inactive (initial state) */
+  CHREASON_FREED,        /* Channel is no longer in use */
+  CHREASON_XFRC,         /* Transfer complete */
+  CHREASON_NAK,          /* NAK received */
+  CHREASON_NYET,         /* NotYet received */
+  CHREASON_STALL,        /* Endpoint stalled */
+  CHREASON_TXERR,        /* Transfer error received */
+  CHREASON_DTERR,        /* Data error received */
+  CHREASON_FRMOR         /* Frame overrun */
 };
 
 /* This structure retains the state of one host channel */
@@ -188,7 +197,7 @@ struct stm32_chan_s
 {
   sem_t             waitsem;   /* Channel wait semaphore */
   volatile uint8_t  result;    /* The result of the transfer */
-  volatile uint8_t  chstate;   /* See enum stm32_chstate_e */
+  volatile uint8_t  chreason;  /* Channel halt reason. See enum stm32_chreason_e */
   uint8_t           epno;      /* Device endpoint number (0-127) */
   uint8_t           eptype;    /* See OTGFS_EPTYPE_* definitions */
   uint8_t           pid;       /* Data PID */
@@ -197,7 +206,6 @@ struct stm32_chan_s
   bool              outdata1;  /* OUT data toggle.  True: DATA01 */
   bool              in;        /* True: IN endpoint */
   volatile bool     waiter;    /* True: Thread is waiting for a channel event */
-  volatile uint16_t nerrors;   /* Number of errors detecgted */
   volatile uint16_t xfrd;      /* Number of bytes transferred */
   uint16_t          maxpacket; /* Max packet size */
   uint16_t          buflen;    /* Buffer length (remaining) */
@@ -278,7 +286,8 @@ static int stm32_chan_alloc(FAR struct stm32_usbhost_s *priv);
 static inline void stm32_chan_free(FAR struct stm32_usbhost_s *priv, int chidx);
 static inline void stm32_chan_freeall(FAR struct stm32_usbhost_s *priv);
 static void stm32_chan_configure(FAR struct stm32_usbhost_s *priv, int chidx);
-static void stm32_chan_halt(FAR struct stm32_usbhost_s *priv, int chidx);
+static void stm32_chan_halt(FAR struct stm32_usbhost_s *priv, int chidx,
+                            enum stm32_chreason_e chreason);
 static int stm32_chan_waitsetup(FAR struct stm32_usbhost_s *priv,
                                 FAR struct stm32_chan_s *chan);
 static int stm32_chan_wait(FAR struct stm32_usbhost_s *priv,
@@ -623,7 +632,7 @@ static void stm32_chan_free(FAR struct stm32_usbhost_s *priv, int chidx)
 
   /* Halt the channel */
 
-  stm32_chan_halt(priv, chidx);
+  stm32_chan_halt(priv, chidx, CHREASON_FREED);
 
   /* Mark the channel available */
 
@@ -779,12 +788,19 @@ static void stm32_chan_configure(FAR struct stm32_usbhost_s *priv, int chidx)
  *
  *******************************************************************************/
 
-static void stm32_chan_halt(FAR struct stm32_usbhost_s *priv, int chidx)
+static void stm32_chan_halt(FAR struct stm32_usbhost_s *priv, int chidx,
+                            enum stm32_chreason_e chreason)
 {
   uint32_t hcchar;
   uint32_t intmsk;
   uint32_t eptype;
   unsigned int avail;
+
+  /* Save the recon for the halt.  We need this in the channel halt interrrupt
+   * handling logic to know what to do next.
+   */
+
+  priv->chan[chidx].chreason = (uint8_t)chreason;
 
   /* "The application can disable any channel by programming the OTG_FS_HCCHARx
    *  register with the CHDIS and CHENA bits set to 1. This enables the OTG_FS
@@ -800,7 +816,7 @@ static void stm32_chan_halt(FAR struct stm32_usbhost_s *priv, int chidx)
 
   /* Get the endpoint type from the HCCHAR register */
 
-  eptype = (hcchar & OTGFS_HCCHAR_EPTYP_MASK);
+  eptype = hcchar & OTGFS_HCCHAR_EPTYP_MASK;
 
   /* Check for space in the Tx FIFO to issue the halt.
    *
@@ -953,7 +969,9 @@ static int stm32_chan_wait(FAR struct stm32_usbhost_s *priv,
 static void stm32_chan_wakeup(FAR struct stm32_usbhost_s *priv,
                               FAR struct stm32_chan_s *chan)
 {
-  /* Is there a thread waiting for this transfer to complete? */
+  /* Is the the transfer complete? Is there a thread waiting for this transfer
+   * to complete?
+   */
 
   if (chan->result != EBUSY && chan->waiter)
     {
@@ -1334,15 +1352,24 @@ static void stm32_gint_wrpacket(FAR struct stm32_usbhost_s *priv,
  * Description:
  *   USB OTG FS host IN channels interrupt handler
  *
+ *   One the completion of the transfer, the channel result byte may be set as
+ *   follows:
+ *
+ *     OK     - Transfer completed successfully
+ *     EAGAIN - If devices NAKs the transfer or NYET occurs
+ *     EPERM  - If the endpoint stalls
+ *     EIO    - On a TX or data error
+ *     EPIPE  - Frame overrun
+ *
+ *   EBUSY in the result field indicates that the transfer has not completed.
+ *
  *******************************************************************************/
 
 static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
                                       int chidx)
 {
   FAR struct stm32_chan_s *chan = &priv->chan[chidx];
-  uint32_t hcint;
-  uint32_t hcintmsk;
-  uint32_t hcchar;
+  uint32_t regval;
   uint32_t pending;
   unsigned int eptype;
 
@@ -1350,19 +1377,13 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
    * HCINTMSK register to get the set of enabled HC interrupts.
    */
 
-  hcint    = stm32_getreg(STM32_OTGFS_HCINT(chidx));
-  hcintmsk = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
+  pending  = stm32_getreg(STM32_OTGFS_HCINT(chidx));
+  regval = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
 
   /* AND the two to get the set of enabled, pending HC interrupts */
 
-  pending = hcint & hcintmsk;
-
-  /* Pre-fetch the HCCHAR register and extract the endpoint type.  Those
-   * values are used in several cases.
-   */
-
-  hcchar = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
-  eptype = (hcchar & OTGFS_HCCHAR_EPTYP_MASK) >> OTGFS_HCCHAR_EPTYP_SHIFT;
+  pending &= regval;
+  uvdbg("HCINTMSK%d: %08x pending: %08x\n", chidx, regval, pending);
 
   /* Check for a pending ACK response received/transmitted (ACK) interrupt */
 
@@ -1377,10 +1398,6 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
 
   else if ((pending & OTGFS_HCINT_STALL) != 0)
     {
-      /* Set the stall state */
-
-      chan->chstate = CHSTATE_STALL;
-
       /* Clear the NAK and STALL Conditions. */
 
       stm32_putreg(STM32_OTGFS_HCINT(chidx), (OTGFS_HCINT_NAK | OTGFS_HCINT_STALL));
@@ -1389,9 +1406,9 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
        * received on the channel.
        */
 
-      stm32_chan_halt(priv, chidx);
+      stm32_chan_halt(priv, chidx, CHREASON_STALL);
 
-      /* When there is a STALL, clear any pending NAK so that it is nor
+      /* When there is a STALL, clear any pending NAK so that it is not
        * processed below.
        */
 
@@ -1406,24 +1423,20 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
        * received on the channel.
        */
 
-      stm32_chan_halt(priv, chidx);
+      stm32_chan_halt(priv, chidx, CHREASON_DTERR);
 
       /* Clear the NAK and data toggle error conditions */
 
       stm32_putreg(STM32_OTGFS_HCINT(chidx), (OTGFS_HCINT_NAK | OTGFS_HCINT_DTERR));
-
-      /* Set the Data Toggle ERRor (DTERR) state */
-
-      chan->chstate = CHSTATE_DTERR;
     }
 
   /* Check for a pending FRaMe OverRun (FRMOR) interrupt */
 
   if ((pending & OTGFS_HCINT_FRMOR) != 0)
     {
-      /* Halt the channel (probably not necessary for FRMOR) */
+      /* Halt the channel -- the CHH interrrupt is expected next */
 
-      stm32_chan_halt(priv, chidx);
+      stm32_chan_halt(priv, chidx, CHREASON_FRMOR);
 
       /* Clear the FRaMe OverRun (FRMOR) condition */
 
@@ -1434,21 +1447,25 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
 
   else if ((pending & OTGFS_HCINT_XFRC) != 0)
     {
-      /* Set the transfer complete state and reset the error count */
-
-      chan->chstate = CHSTATE_XFRC;
-      chan->nerrors = 0;
-
       /* Clear the TransFeR Completed (XFRC) condition */
 
       stm32_putreg(STM32_OTGFS_HCINT(chidx), OTGFS_HCINT_XFRC);
 
+      /* Fetch the HCCHAR register and extract the endpoint type.  Those
+       * values are used in several cases.
+       */
+
+      regval = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
+      eptype = regval & OTGFS_HCCHAR_EPTYP_MASK;
+
+      /* Then handle the transfer completion event based on the endpoint type */
+
       if ((eptype == OTGFS_HCCHAR_EPTYP_CTRL) ||
           (eptype == OTGFS_HCCHAR_EPTYP_BULK))
         {
-          /* Halt the channel ( probably not necessary for XFRC) */
+          /* Halt the channel -- the CHH interrrupt is expected next */
 
-          stm32_chan_halt(priv, chidx);
+          stm32_chan_halt(priv, chidx, CHREASON_XFRC);
 
           /* Clear any pending NAK condition */
 
@@ -1462,8 +1479,8 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
         {
           /* Force the next transfer on an ODD frame */
 
-          hcchar |= OTGFS_HCCHAR_ODDFRM;
-          stm32_putreg(STM32_OTGFS_HCCHAR(chidx), hcchar);
+          regval |= OTGFS_HCCHAR_ODDFRM;
+          stm32_putreg(STM32_OTGFS_HCCHAR(chidx), regval);
 
           /* Set the request done state */
 
@@ -1477,38 +1494,47 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
     {
       /* Mask the CHannel Halted (CHH) interrupt */
 
-      hcintmsk  = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
-      hcintmsk &= ~OTGFS_HCINT_CHH;
-      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+      regval  = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
+      regval &= ~OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), regval);
 
       /* Update the request state based on the host state machine state */
 
-      if (chan->chstate == CHSTATE_XFRC)
+      if (chan->chreason == CHREASON_XFRC)
         {
-          /* Set the request done state */
+          /* Set the request done reult */
 
           chan->result = OK;
         }
-      else if (chan->chstate == CHSTATE_STALL)
+      else if (chan->chreason == CHREASON_STALL)
         {
-          /* Set the request stall state */
+          /* Set the request stall result */
 
           chan->result = EPERM;
         }
-      else if ((chan->chstate == CHSTATE_TXERR) ||
-               (chan->chstate == CHSTATE_DTERR))
+      else if ((chan->chreason == CHREASON_TXERR) ||
+               (chan->chreason == CHREASON_DTERR))
         {
-          /* Set the request error state */
+          /* Set the request I/O error result */
 
-          chan->nerrors = 0;
           chan->result = EIO;
 
         }
-      else if (eptype == OTGFS_HCCHAR_EPTYP_INTR)
+      else /* if (chan->chreason == CHREASON_FRMOR) */
         {
-          /* Toggle the IN data toggle */
+          /* Fetch the HCCHAR register and check for an interrupt endpoint. */
 
-          chan->indata1 ^= true;
+          regval = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
+          if ((regval & OTGFS_HCCHAR_EPTYP_MASK) == OTGFS_HCCHAR_EPTYP_INTR)
+            {
+              /* Toggle the IN data toggle */
+
+              chan->indata1 ^= true;
+            }
+
+          /* Set the frame overrun error result */
+
+          chan->result = EPIPE;
         }
 
       /* Clear the CHannel Halted (CHH) condition */
@@ -1520,16 +1546,11 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
 
   else if ((pending & OTGFS_HCINT_TXERR) != 0)
     {
-      /* Increment the error count and set the transaction error state */
-
-      chan->nerrors++;
-      chan->chstate = CHSTATE_TXERR;
-
       /* Halt the channel when a STALL, TXERR, BBERR or DTERR interrupt is
        * received on the channel.
        */
 
-      stm32_chan_halt(priv, chidx);
+      stm32_chan_halt(priv, chidx, CHREASON_TXERR);
 
       /* Clear the Transaction ERror (TXERR) condition */
 
@@ -1540,29 +1561,44 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
 
   else if ((pending & OTGFS_HCINT_NAK) != 0)
     {
-      /* Handle the NAK based on the endpoint type */
+      /* Handle the NAK based on the endpoint type
+       *
+       * Fetch the HCCHAR register and extract the endpoint type.
+       */
+
+      regval = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
+      eptype = regval & OTGFS_HCCHAR_EPTYP_MASK;
+
+      /* Then process the NAK based on the endpoint type */
 
       if (eptype == OTGFS_HCCHAR_EPTYP_INTR)
         {
-          /* Halt the channel (probably not necessary on NAK) */
+          /* Halt the INTR channel  -- the CHH interrrupt is expected next */
 
-          stm32_chan_halt(priv, chidx);
+          stm32_chan_halt(priv, chidx, CHREASON_NAK);
         }
-      else if ((eptype == OTGFS_HCCHAR_EPTYP_CTRL) ||
-               (eptype == OTGFS_HCCHAR_EPTYP_BULK))
+      else
         {
-          /* Re-activate the channel by clearing CHDIS and assuring that
-           * CHENA is set
+          /* Re-activate CGRL and BULK channels */
+
+          if ((eptype == OTGFS_HCCHAR_EPTYP_CTRL) ||
+              (eptype == OTGFS_HCCHAR_EPTYP_BULK))
+            {
+              /* Re-activate the channel by clearing CHDIS and assuring that
+               * CHENA is set
+               */
+
+              regval |= OTGFS_HCCHAR_CHENA;
+              regval &= ~OTGFS_HCCHAR_CHDIS;
+              stm32_putreg(STM32_OTGFS_HCCHAR(chidx), regval);
+            }
+
+          /* Set the result to EAGAIN to wake up any thread wait for the
+           * transfer to complete.
            */
 
-          hcchar |= OTGFS_HCCHAR_CHENA;
-          hcchar &= ~OTGFS_HCCHAR_CHDIS;
-          stm32_putreg(STM32_OTGFS_HCCHAR(chidx), hcchar);
+          chan->result = EAGAIN;
         }
-
-      /* Set the NAK state */
-
-      chan->chstate = CHSTATE_NAK;
 
       /* Clear the NAK condition */
 
@@ -1580,27 +1616,37 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
  * Description:
  *   USB OTG FS host OUT channels interrupt handler
  *
+ *   One the completion of the transfer, the channel result byte may be set as
+ *   follows:
+ *
+ *     OK     - Transfer completed successfully
+ *     EAGAIN - If devices NAKs the transfer or NYET occurs
+ *     EPERM  - If the endpoint stalls
+ *     EIO    - On a TX or data error
+ *     EPIPE  - Frame overrun
+ *
+ *   EBUSY in the result field indicates that the transfer has not completed.
+ *
  *******************************************************************************/
 
 static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
                                        int chidx)
 {
   FAR struct stm32_chan_s *chan = &priv->chan[chidx];
-  uint32_t hcint;
-  uint32_t hcintmsk;
+  uint32_t regval;
   uint32_t pending;
-  uint32_t hcchar;
 
   /* Read the HCINT register to get the pending HC interrupts.  Read the
    * HCINTMSK register to get the set of enabled HC interrupts.
    */
 
-  hcint    = stm32_getreg(STM32_OTGFS_HCINT(chidx));
-  hcintmsk = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
+  pending  = stm32_getreg(STM32_OTGFS_HCINT(chidx));
+  regval = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
 
   /* AND the two to get the set of enabled, pending HC interrupts */
 
-  pending = hcint & hcintmsk;
+  pending &= regval;
+  uvdbg("HCINTMSK%d: %08x pending: %08x\n", chidx, regval, pending);
 
   /* Check for a pending ACK response received/transmitted (ACK) interrupt */
 
@@ -1617,7 +1663,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
     {
       /* Halt the channel (probably not necessary for FRMOR) */
 
-      stm32_chan_halt(priv, chidx);
+      stm32_chan_halt(priv, chidx, CHREASON_FRMOR);
 
       /* Clear the pending the FRaMe OverRun (FRMOR) interrupt */
 
@@ -1628,19 +1674,13 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
 
   else if ((pending & OTGFS_HCINT_XFRC) != 0)
     {
-      chan->nerrors = 0;
+      /* Halt the channel -- the CHH interrrupt is expected next */
 
-      /* Halt the channel (shouldn't be necessary on XFRC) */
-
-      stm32_chan_halt(priv, chidx);
+      stm32_chan_halt(priv, chidx, CHREASON_XFRC);
 
       /* Clear the pending the TransFeR Completed (XFRC) interrupt */
 
       stm32_putreg(STM32_OTGFS_HCINT(chidx), OTGFS_HCINT_XFRC);
-
-      /* Set the transfer completed state */
-
-      chan->chstate = CHSTATE_XFRC;
     }
 
   /* Check for a pending STALL response receive (STALL) interrupt */
@@ -1655,32 +1695,20 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
        * received on the channel.
        */
 
-      stm32_chan_halt(priv, chidx);
-
-      /* Set the stall state */
-
-      chan->chstate = CHSTATE_STALL;
+      stm32_chan_halt(priv, chidx, CHREASON_STALL);
     }
 
   /* Check for a pending NAK response received (NAK) interrupt */
 
   else if ((pending & OTGFS_HCINT_NAK) != 0)
     {
-      /* Clear the error count */
+      /* Halt the channel  -- the CHH interrrupt is expected next */
 
-      chan->nerrors = 0;
-
-      /* Halt the channel (probably not necessary on NAK) */
-
-      stm32_chan_halt(priv, chidx);
+      stm32_chan_halt(priv, chidx, CHREASON_NAK);
 
       /* Clear the pending the NAK response received (NAK) interrupt */
 
       stm32_putreg(STM32_OTGFS_HCINT(chidx), OTGFS_HCINT_NAK);
-
-      /* Set the NAK state */
-
-      chan->chstate = CHSTATE_NAK;
     }
 
   /* Check for a pending Transaction ERror (TXERR) interrupt */
@@ -1691,15 +1719,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
        * received on the channel.
        */
 
-      stm32_chan_halt(priv, chidx);
-
-      /* Increment the number of errors */
-
-      chan->nerrors++;
-
-      /* Set the transaction error state */
-
-      chan->chstate = CHSTATE_TXERR;
+      stm32_chan_halt(priv, chidx, CHREASON_TXERR);
 
       /* Clear the pending the Transaction ERror (TXERR) interrupt */
 
@@ -1711,19 +1731,13 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
 #if 0 /* NYET is a reserved bit in the HCINT register */
   else if ((pending & OTGFS_HCINT_NYET) != 0)
     {
-      chan->nerrors = 0;
-
       /* Halt the channel */
 
-      stm32_chan_halt(priv, chidx);
+      stm32_chan_halt(priv, chidx, CHREASON_NYET);
 
       /* Clear the pending the response received (xxx) interrupt */
 
       stm32_putreg(STM32_OTGFS_HCINT(chidx), OTGFS_HCINT_NYET);
-
-      /* Set the NYET state */
-
-      chan->chstate = CHSTATE_NYET;
     }
 #endif
 
@@ -1735,11 +1749,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
        * received on the channel.
        */
 
-      stm32_chan_halt(priv, chidx);
-
-      /* Set the data toggle error state */
-
-      chan->chstate = CHSTATE_DTERR;
+      stm32_chan_halt(priv, chidx, CHREASON_DTERR);
 
       /* Clear the pending the Data Toggle ERRor (DTERR) and NAK interrupts */
 
@@ -1752,13 +1762,13 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
     {
       /* Mask the CHannel Halted (CHH) interrupt */
 
-      hcintmsk  = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
-      hcintmsk &= ~OTGFS_HCINT_CHH;
-      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), hcintmsk);
+      regval  = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
+      regval &= ~OTGFS_HCINT_CHH;
+      stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), regval);
 
-      if (chan->chstate == CHSTATE_XFRC)
+      if (chan->chreason == CHREASON_XFRC)
         {
-          /* Set the request done state */
+          /* Set the request done result */
 
           chan->result = OK;
 
@@ -1766,39 +1776,42 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
            * the endpoint type.
            */
 
-          hcchar = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
+          regval = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
 
           /* Is it a bulk endpoint */
 
-          if ((hcchar & OTGFS_HCCHAR_EPTYP_MASK) == OTGFS_HCCHAR_EPTYP_BULK)
+          if ((regval & OTGFS_HCCHAR_EPTYP_MASK) == OTGFS_HCCHAR_EPTYP_BULK)
             {
               /* Yes... toggle the data out PID */
 
               chan->outdata1 ^= true;
             }
         }
-      else if (chan->chstate == CHSTATE_NAK ||
-               chan->chstate == CHSTATE_NYET)
+      else if (chan->chreason == CHREASON_NAK ||
+               chan->chreason == CHREASON_NYET)
         {
+          /* Set the try again later result */
+
           chan->result = EAGAIN;
         }
-      else if (chan->chstate == CHSTATE_STALL)
+      else if (chan->chreason == CHREASON_STALL)
         {
-          /* Set the request stall state */
+          /* Set the request stall result */
 
           chan->result = EPERM;
         }
-      else if (chan->chstate == CHSTATE_TXERR)
+      else if ((chan->chreason == CHREASON_TXERR) ||
+               (chan->chreason == CHREASON_DTERR))
         {
-          /* Check the error count */
+          /* Set the I/O failure result */
 
-          if (chan->nerrors == 3)
-            {
-              /* If the error count exceeds a threshold, then set the request error state */
+          chan->result = EIO;
+        }
+      else /* if (chan->chreason == CHREASON_FRMOR) */
+        {
+          /* Set the frame error result */
 
-              chan->result  = EIO;
-              chan->nerrors = 0;
-            }
+          chan->result = EPIPE;
         }
 
       /* Clear the pending the CHannel Halted (CHH) interrupt */
@@ -1939,6 +1952,7 @@ static inline void stm32_gint_rxflvlisr(FAR struct stm32_usbhost_s *priv)
   /* Read and pop the next status from the Rx FIFO */
 
   grxsts = stm32_getreg(STM32_OTGFS_GRXSTSP);
+  uvdbg("GRXSTS: %08x\n", grxsts);
 
   /* Isolate the channel number/index in the status word */
 
@@ -2405,7 +2419,7 @@ static int stm32_gint_isr(int irq, FAR void *context)
     {
       /* Get the unmasked bits in the GINT status */
 
-      pending = stm32_getreg(STM32_OTGFS_GINTSTS);
+      pending  = stm32_getreg(STM32_OTGFS_GINTSTS);
       pending &= stm32_getreg(STM32_OTGFS_GINTMSK);
 
       /* Return from the interrupt when there are no furhter pending
@@ -2968,19 +2982,20 @@ static int stm32_alloc(FAR struct usbhost_driver_s *drvr,
 {
   FAR uint8_t *alloc;
 
-  DEBUGASSERT(drvr && buffer && maxlen && *maxlen > 0);
+  DEBUGASSERT(drvr && buffer && maxlen);
 
-  /* There is no special memory requirement */
+  /* There is no special memory requirement for the STM32. */
 
-  alloc = (FAR uint8_t *)kmalloc(*maxlen);
+  alloc = (FAR uint8_t *)kmalloc(CONFIG_STM32_OTGFS_DESCSIZE);
   if (!alloc)
     {
       return -ENOMEM;
     }
 
-  /* Return the allocated buffer */
+  /* Return the allocated address and size of the descriptor buffer */
 
   *buffer = alloc;
+  *maxlen = CONFIG_STM32_OTGFS_DESCSIZE;
   return OK;
 }
 
@@ -3301,6 +3316,8 @@ static int stm32_transfer(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep,
   unsigned int chidx = (unsigned int)ep;
   int ret;
 
+  uvdbg("chidx: %d buflen: %d\n", (unsigned int)ep, buflen);
+
   DEBUGASSERT(priv && buffer && chidx < STM32_MAX_TX_FIFOS && buflen > 0);
   chan = &priv->chan[chidx];
 
@@ -3367,7 +3384,7 @@ static int stm32_transfer(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep,
 
         if (chan->in)
           {
-            /* Setup the OUT data PID */
+            /* Setup the IN data PID */
 
             chan->pid = chan->indata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
 
