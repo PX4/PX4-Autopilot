@@ -43,6 +43,7 @@
 
 #include <sys/types.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include <semaphore.h>
 #include <string.h>
@@ -62,7 +63,6 @@
 #include <systemlib/perf_counter.h>
 
 #include <drivers/drv_mag.h>
-
 
 /*
  * HMC5883 internal constants and data structures.
@@ -137,14 +137,14 @@ protected:
 	virtual int		probe();
 
 private:
-	struct work_s		_work;
+	work_s			_work;
 	unsigned		_measure_ticks;
 
 	unsigned		_num_reports;
 	volatile unsigned	_next_report;
 	volatile unsigned	_oldest_report;
-	struct mag_report	*_reports;
-
+	mag_report		*_reports;
+	mag_scale		_scale;
 	bool			_collect_phase;
 
 	int			_mag_topic;
@@ -257,6 +257,7 @@ HMC5883::HMC5883(int bus) :
 	_next_report(0),
 	_oldest_report(0),
 	_reports(nullptr),
+	_mag_topic(-1),
 	_reads(0),
 	_measure_errors(0),
 	_read_errors(0),
@@ -265,6 +266,14 @@ HMC5883::HMC5883(int bus) :
 {
 	// enable debug() calls
 	_debug_enabled = true;
+
+	// default scaling
+	_scale.x_offset = 0;
+	_scale.x_scale = 1.0f / 1090.0f;	/* default range scale from counts to gauss */
+	_scale.y_offset = 0;
+	_scale.y_scale = 1.0f / 1090.0f;	/* default range scale from counts to gauss */
+	_scale.z_offset = 0;
+	_scale.z_scale = 1.0f / 1090.0f;	/* default range scale from counts to gauss */
 
 	// work_cancel in the dtor will explode if we don't do this...
 	_work.worker = nullptr;
@@ -290,18 +299,6 @@ HMC5883::init()
 	if (ret != OK)
 		goto out;
 
-	/* assuming we're good, advertise the object */
-	struct mag_report m;
-
-	/* if this fails (e.g. no object in the system) that's OK */
-	memset(&m, 0, sizeof(m));
-	_mag_topic = orb_advertise(ORB_ID(sensor_mag), &m);
-
-	if (_mag_topic < 0) {
-		debug("failed to create sensor_baro object");
-	} else {
-		ret = 0;
-	}
 out:
 	return ret;
 }
@@ -340,7 +337,6 @@ HMC5883::close_last(struct file *filp)
 int
 HMC5883::probe()
 {
-	uint8_t	cmd[] = { ADDR_STATUS };
 	uint8_t data[3];
 
 	if (read_reg(ADDR_ID_A, data[0]) ||
@@ -434,7 +430,7 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 				_measure_ticks = 0;
 				return OK;
 
-				/* external signalling not supported */
+				/* external signalling (DRDY) not supported */
 			case MAG_POLLRATE_EXTERNAL:
 
 				/* zero would be bad */
@@ -486,7 +482,30 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
+	case MAGIOCSSCALE:
+		/* set new scale factors */
+		memcpy(&_scale, (mag_scale *)arg, sizeof(_scale));
+		return 0;
+
+	case MAGIOCGSCALE:
+		/* copy out scale factors */
+		memcpy((mag_scale *)arg, &_scale, sizeof(_scale));
+		return 0;
+
+	case MAGIOCCALIBRATE:
+		/* XXX perform auto-calibration */
+		return -EINVAL;
+
+	case MAGIOCSSAMPLERATE:
+		/* not supported, always 1 sample per poll */
+		return -EINVAL;
+
+	case MAGIOCSLOWPASS:
+		/* not supported, no internal filtering */
+		return -EINVAL;
+
 	case MAGIOCSREPORTFORMAT:
+		/* not supported, no custom report format */
 		return -EINVAL;
 
 	default:
@@ -526,6 +545,25 @@ HMC5883::cycle_trampoline(void *arg)
 void
 HMC5883::cycle()
 {
+	/* 
+	 * We have to publish the mag topic in the context of the workq 
+	 * in order to ensure that the descriptor is valid when we go to publish.
+	 *
+	 * @bug	We can't really ever be torn down and restarted, since this
+	 *      descriptor will never be closed and on the restart we will be
+	 *      unable to re-advertise.
+	 */
+	if (_mag_topic == -1) {
+		struct mag_report m;
+
+		/* if this fails (e.g. no object in the system) we will cope */
+		memset(&m, 0, sizeof(m));
+		_mag_topic = orb_advertise(ORB_ID(sensor_mag), &m);
+
+		if (_mag_topic < 0)
+			debug("failed to create sensor_mag object");
+	}
+
 	/* collection phase? */
 	if (_collect_phase) {
 
@@ -591,33 +629,55 @@ HMC5883::collect()
 #pragma pack(push, 1)
 	struct { /* status register and data as read back from the device */
 		uint8_t		x[2];
-		uint8_t		z[2];
 		uint8_t		y[2];
-		uint8_t		status;
+		uint8_t		z[2];
 	}	hmc_report;
 #pragma pack(pop)
+	struct {
+		int16_t		x, y, z;
+	} report;
 	int	ret = -EIO;
-	uint8_t	cmd[1];
+	uint8_t	cmd;
+
 
 	perf_begin(_sample_perf);
 
 	/* this should be fairly close to the end of the measurement, so the best approximation of the time */
 	_reports[_next_report].timestamp = hrt_absolute_time();
 
+	/*
+	 * @note  We could read the status register here, which could tell us that
+	 *        we were too early and that the output registers are still being
+	 *        written.  In the common case that would just slow us down, and 
+	 *        we're better off just never being early.
+	 */
+
 	/* get measurements from the device */
-	cmd[0] = ADDR_DATA_OUT_X_MSB;
-	ret = transfer(&cmd[0], 1, &hmc_report.x[0], sizeof(hmc_report));
+	cmd = ADDR_DATA_OUT_X_MSB;
+	ret = transfer(&cmd, 1, (uint8_t *)&hmc_report, sizeof(hmc_report));
 	if (ret != OK) {
 		debug("data/status read error");
 		goto out;
 	}
 
-	/* XXX check status? */
+	/* swap the data we just received */
+	report.x = ((int16_t)hmc_report.x[0] << 8) + hmc_report.x[1];
+	report.y = ((int16_t)hmc_report.y[0] << 8) + hmc_report.y[1];
+	report.z = ((int16_t)hmc_report.z[0] << 8) + hmc_report.z[1];
 
-	/* XXX scaling */
-	_reports[_next_report].x = meas_to_float(hmc_report.x);
-	_reports[_next_report].y = meas_to_float(hmc_report.y);
-	_reports[_next_report].z = meas_to_float(hmc_report.z);
+	/* 
+	 * If any of the values are -4096, there was an internal math error in the sensor. 
+	 * Generalise this to a simple range check that will also catch some bit errors.
+	 */
+	if ((abs(report.x) > 2048) ||
+	    (abs(report.y) > 2048) ||
+	    (abs(report.z) > 2048))
+		goto out;
+
+	/* scale values for output */
+	_reports[_next_report].x = report.x * _scale.x_scale + _scale.x_offset;
+	_reports[_next_report].y = report.y * _scale.y_scale + _scale.y_offset;
+	_reports[_next_report].z = report.z * _scale.z_scale + _scale.z_offset;
 
 	/* publish it */
 	orb_publish(ORB_ID(sensor_mag), _mag_topic, &_reports[_next_report]);
