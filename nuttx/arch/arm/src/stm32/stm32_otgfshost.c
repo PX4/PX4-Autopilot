@@ -187,7 +187,7 @@ enum stm32_chreason_e
   CHREASON_NYET,         /* NotYet received */
   CHREASON_STALL,        /* Endpoint stalled */
   CHREASON_TXERR,        /* Transfer error received */
-  CHREASON_DTERR,        /* Data error received */
+  CHREASON_DTERR,        /* Data toggle error received */
   CHREASON_FRMOR         /* Frame overrun */
 };
 
@@ -202,14 +202,13 @@ struct stm32_chan_s
   uint8_t           eptype;    /* See OTGFS_EPTYPE_* definitions */
   uint8_t           pid;       /* Data PID */
   bool              inuse;     /* True: This channel is "in use" */
-  bool              indata1;   /* IN data toggle. True: DATA01  */
-  bool              outdata1;  /* OUT data toggle.  True: DATA01 */
+  volatile bool     indata1;   /* IN data toggle. True: DATA01 (Bulk and INTR only) */
+  volatile bool     outdata1;  /* OUT data toggle.  True: DATA01 */
   bool              in;        /* True: IN endpoint */
   volatile bool     waiter;    /* True: Thread is waiting for a channel event */
-  volatile uint16_t xfrd;      /* Number of bytes transferred */
   uint16_t          maxpacket; /* Max packet size */
-  uint16_t          buflen;    /* Buffer length (remaining) */
-  uint16_t          xfrlen;    /* Number of bytes transferred */
+  volatile uint16_t buflen;    /* Buffer length (remaining) */
+  volatile uint16_t inflight;  /* Number of Tx bytes "in-flight" */
   FAR uint8_t      *buffer;    /* Transfer buffer pointer */
 };
 
@@ -230,7 +229,7 @@ struct stm32_usbhost_s
 
   /* Overall driver status */
 
-  uint8_t           smstate;   /* The state of the USB host state machine */
+  volatile uint8_t  smstate;   /* The state of the USB host state machine */
   uint8_t           devaddr;   /* Device address */
   uint8_t           ep0in;     /* EP0 IN control channel index */
   uint8_t           ep0out;    /* EP0 OUT control channel index */
@@ -998,8 +997,8 @@ static void stm32_transfer_start(FAR struct stm32_usbhost_s *priv, int chidx)
 
   /* Set up the initial state of the transfer */
 
-  priv->chan[chidx].result = EBUSY;
-  priv->chan[chidx].xfrlen = 0;
+  priv->chan[chidx].result   = EBUSY;
+  priv->chan[chidx].inflight = 0;
 
   /* Compute the expected number of packets associated to the transfer.
    * If the transfer length is zero (or less than the size of one maximum
@@ -1059,7 +1058,10 @@ static void stm32_transfer_start(FAR struct stm32_usbhost_s *priv, int chidx)
 
   regval = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
 
-  /* Check for an even frame */
+  /* Set/clear the Odd Frame bit.  Check for an even frame; if so set Odd
+   * Frame. This field is applicable for only periodic (isochronous and
+   * interrupt) channels.
+   */
 
   if ((stm32_getreg(STM32_OTGFS_HFNUM) & 1) == 0)
     {
@@ -1344,6 +1346,10 @@ static void stm32_gint_wrpacket(FAR struct stm32_usbhost_s *priv,
       uint32_t data = *src++;
       stm32_putreg(fifo, data);
     }
+
+  /* Increment the count of bytes "in-flight" in the Tx FIFO */
+
+  priv->chan[chidx].inflight += buflen;
 }
 
 /*******************************************************************************
@@ -1371,7 +1377,6 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
   FAR struct stm32_chan_s *chan = &priv->chan[chidx];
   uint32_t regval;
   uint32_t pending;
-  unsigned int eptype;
 
   /* Read the HCINT register to get the pending HC interrupts.  Read the
    * HCINTMSK register to get the set of enabled HC interrupts.
@@ -1451,31 +1456,22 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
 
       stm32_putreg(STM32_OTGFS_HCINT(chidx), OTGFS_HCINT_XFRC);
 
-      /* Fetch the HCCHAR register and extract the endpoint type.  Those
-       * values are used in several cases.
-       */
-
-      regval = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
-      eptype = regval & OTGFS_HCCHAR_EPTYP_MASK;
-
       /* Then handle the transfer completion event based on the endpoint type */
 
-      if ((eptype == OTGFS_HCCHAR_EPTYP_CTRL) ||
-          (eptype == OTGFS_HCCHAR_EPTYP_BULK))
+      if (chan->eptype == OTGFS_EPTYPE_CTRL || chan->eptype == OTGFS_EPTYPE_BULK)
         {
           /* Halt the channel -- the CHH interrrupt is expected next */
 
           stm32_chan_halt(priv, chidx, CHREASON_XFRC);
 
-          /* Clear any pending NAK condition */
+          /* Clear any pending NAK condition.  The 'indata1' data toggle
+           * should have been appropriately updated by the the RxFIFO
+           * logic as each packet was received.
+           */
 
           stm32_putreg(STM32_OTGFS_HCINT(chidx), OTGFS_HCINT_NAK);
-
-          /* Toggle the IN data state */
-
-          chan->indata1 ^= true;
         }
-      else if (eptype == OTGFS_HCCHAR_EPTYP_INTR)
+      else if (chan->eptype == OTGFS_EPTYPE_INTR)
         {
           /* Force the next transfer on an ODD frame */
 
@@ -1527,7 +1523,7 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
           regval = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
           if ((regval & OTGFS_HCCHAR_EPTYP_MASK) == OTGFS_HCCHAR_EPTYP_INTR)
             {
-              /* Toggle the IN data toggle */
+              /* Toggle the IN data toggle (Used by Bulk and INTR only) */
 
               chan->indata1 ^= true;
             }
@@ -1561,44 +1557,22 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
 
   else if ((pending & OTGFS_HCINT_NAK) != 0)
     {
-      /* Handle the NAK based on the endpoint type
-       *
-       * Fetch the HCCHAR register and extract the endpoint type.
-       */
+      /* Re-activate CTRL and BULK channels */
 
-      regval = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
-      eptype = regval & OTGFS_HCCHAR_EPTYP_MASK;
-
-      /* Then process the NAK based on the endpoint type */
-
-      if (eptype == OTGFS_HCCHAR_EPTYP_INTR)
+      if (chan->eptype == OTGFS_EPTYPE_CTRL || chan->eptype == OTGFS_EPTYPE_BULK)
         {
-          /* Halt the INTR channel  -- the CHH interrrupt is expected next */
-
-          stm32_chan_halt(priv, chidx, CHREASON_NAK);
-        }
-      else
-        {
-          /* Re-activate CGRL and BULK channels */
-
-          if ((eptype == OTGFS_HCCHAR_EPTYP_CTRL) ||
-              (eptype == OTGFS_HCCHAR_EPTYP_BULK))
-            {
-              /* Re-activate the channel by clearing CHDIS and assuring that
-               * CHENA is set
-               */
-
-              regval |= OTGFS_HCCHAR_CHENA;
-              regval &= ~OTGFS_HCCHAR_CHDIS;
-              stm32_putreg(STM32_OTGFS_HCCHAR(chidx), regval);
-            }
-
-          /* Set the result to EAGAIN to wake up any thread wait for the
-           * transfer to complete.
+          /* Re-activate the channel by clearing CHDIS and assuring that
+           * CHENA is set
            */
 
-          chan->result = EAGAIN;
+          regval |= OTGFS_HCCHAR_CHENA;
+          regval &= ~OTGFS_HCCHAR_CHDIS;
+          stm32_putreg(STM32_OTGFS_HCCHAR(chidx), regval);
         }
+
+      /* Halt the channel  -- the CHH interrrupt is expected next */
+
+      stm32_chan_halt(priv, chidx, CHREASON_NAK);
 
       /* Clear the NAK condition */
 
@@ -1674,6 +1648,14 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
 
   else if ((pending & OTGFS_HCINT_XFRC) != 0)
     {
+      /* Decrement the number of bytes remaining by the number of
+       * bytes that were "in-flight".
+       */
+
+      priv->chan[chidx].buffer  += priv->chan[chidx].inflight;
+      priv->chan[chidx].buflen  -= priv->chan[chidx].inflight;
+      priv->chan[chidx].inflight = 0;
+
       /* Halt the channel -- the CHH interrrupt is expected next */
 
       stm32_chan_halt(priv, chidx, CHREASON_XFRC);
@@ -1986,11 +1968,14 @@ static inline void stm32_gint_rxflvlisr(FAR struct stm32_usbhost_s *priv)
 
             stm32_pktdump("Received", priv->chan[chidx].buffer, bcnt);
 
+            /* Toggle the IN data pid (Used by Bulk and INTR only) */
+
+            priv->chan[chidx].indata1 ^= true;
+
             /* Manage multiple packet transfers */
 
             priv->chan[chidx].buffer += bcnt;
-            priv->chan[chidx].xfrlen += bcnt;
-            priv->chan[chidx].xfrd    = priv->chan[chidx].xfrlen;
+            priv->chan[chidx].buflen -= bcnt;
 
             /* Check if more packets are expected */
 
@@ -2090,10 +2075,6 @@ static inline void stm32_gint_nptxfeisr(FAR struct stm32_usbhost_s *priv)
         }
 
       stm32_gint_wrpacket(priv, priv->chan[chidx].buffer, chidx, wrsize);
-
-      priv->chan[chidx].buffer += wrsize;
-      priv->chan[chidx].buflen -= wrsize;
-      priv->chan[chidx].xfrlen += wrsize;
     }
 }
 
@@ -2167,10 +2148,6 @@ static inline void stm32_gint_ptxfeisr(FAR struct stm32_usbhost_s *priv)
         }
 
       stm32_gint_wrpacket(priv, priv->chan[chidx].buffer, chidx, wrsize);
-
-      priv->chan[chidx].buffer += wrsize;
-      priv->chan[chidx].buflen -= wrsize;
-      priv->chan[chidx].xfrlen += wrsize;
     }
 }
 
@@ -3316,7 +3293,7 @@ static int stm32_transfer(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep,
   unsigned int chidx = (unsigned int)ep;
   int ret;
 
-  uvdbg("chidx: %d buflen: %d\n", (unsigned int)ep, buflen);
+  uvdbg("chidx: %d buflen: %d\n",  (unsigned int)ep, buflen);
 
   DEBUGASSERT(priv && buffer && chidx < STM32_MAX_TX_FIFOS && buflen > 0);
   chan = &priv->chan[chidx];
@@ -3325,99 +3302,121 @@ static int stm32_transfer(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep,
 
   stm32_takesem(&priv->exclsem);
 
-  /* Set up for the wait BEFORE starting the transfer */
+  /* Loop until the transfer completes (i.e., buflen is decremented to zero)
+   * or a fatal error occurs (any error other than a simple NAK)
+   */
 
-  ret = stm32_chan_waitsetup(priv, chan);
-  if (ret != OK)
-    {
-      udbg("ERROR: Device disconnected\n");
-      goto errout;
-    }
-
-  /* Set up for the transfer based on the direction and the endpoint type */
-
-  switch (chan->eptype)
-    {
-    default:
-    case OTGFS_EPTYPE_CTRL: /* Control */
-      {
-        /* This kind of transfer on control endpoints other than EP0 are not
-         * currently supported
-         */
-
-        ret = -ENOSYS;
-        goto errout;
-      }
-
-    case OTGFS_EPTYPE_ISOC: /* Isochronous */
-      {
-        /* Set up the IN/OUT data PID */
-
-        chan->pid = OTGFS_PID_DATA0;
-      }
-      break;
-
-    case OTGFS_EPTYPE_BULK: /* Bulk */
-      {
-        /* Handle the bulk transfer based on the direction of the transfer. */
-
-        if (chan->in)
-          {
-            /* Setup the IN data PID */
-
-            chan->pid = chan->indata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
-          }
-        else
-          {
-            /* Setup the OUT data PID */
-
-            chan->pid = chan->outdata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
-          }
-      }
-      break;
-
-    case OTGFS_EPTYPE_INTR: /* Interrupt */
-      {
-        /* Handle the interrupt transfer based on the direction of the
-         * transfer.
-         */
-
-        if (chan->in)
-          {
-            /* Setup the IN data PID */
-
-            chan->pid = chan->indata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
-
-            /* Toggle the IN data PID for the next transfer */
-
-            chan->indata1 ^= true;
-          }
-        else
-          {
-            /* Setup the OUT data PID */
-
-            chan->pid = chan->outdata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
-
-            /* Toggle the OUT data PID for the next transfer */
-
-            chan->outdata1 ^= true;
-          }
-      }
-    }
-
-  /* Start the transfer */
- 
   chan->buffer = buffer;
   chan->buflen = buflen;
 
-  stm32_transfer_start(priv, chidx);
-
-  /* Wait for the transfer to complete and get the result */
-
-  ret = stm32_chan_wait(priv, chan);
-  if (ret < 0)
+  while (chan->buflen > 0)
     {
-      udbg("Transfer failed: %d\n", ret);
+      /* Set up for the wait BEFORE starting the transfer */
+
+      ret = stm32_chan_waitsetup(priv, chan);
+      if (ret != OK)
+        {
+          udbg("ERROR: Device disconnected\n");
+          goto errout;
+        }
+
+      /* Set up for the transfer based on the direction and the endpoint type */
+
+      switch (chan->eptype)
+        {
+        default:
+        case OTGFS_EPTYPE_CTRL: /* Control */
+          {
+            /* This kind of transfer on control endpoints other than EP0 are not
+             * currently supported
+             */
+
+            ret = -ENOSYS;
+            goto errout;
+          }
+
+        case OTGFS_EPTYPE_ISOC: /* Isochronous */
+          {
+            /* Set up the IN/OUT data PID */
+
+            chan->pid = OTGFS_PID_DATA0;
+          }
+          break;
+
+        case OTGFS_EPTYPE_BULK: /* Bulk */
+          {
+            /* Handle the bulk transfer based on the direction of the transfer. */
+
+            if (chan->in)
+              {
+                /* Setup the IN data PID */
+
+                chan->pid = chan->indata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
+              }
+            else
+              {
+                /* Setup the OUT data PID */
+
+                chan->pid = chan->outdata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
+              }
+          }
+          break;
+
+        case OTGFS_EPTYPE_INTR: /* Interrupt */
+          {
+            /* Handle the interrupt transfer based on the direction of the
+             * transfer.
+             */
+
+            if (chan->in)
+              {
+                /* Setup the IN data PID */
+
+                chan->pid = chan->indata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
+
+                /* The indata1 data toggle will be updated in the Rx FIFO
+                 * interrupt handling logic as each packet is received.
+                 */
+              }
+            else
+              {
+                /* Setup the OUT data PID */
+
+                chan->pid = chan->outdata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
+
+                /* Toggle the OUT data PID for the next transfer */
+
+                chan->outdata1 ^= true;
+              }
+          }
+        }
+
+      /* Start the transfer */
+ 
+      stm32_transfer_start(priv, chidx);
+
+      /* Wait for the transfer to complete and get the result */
+
+      ret = stm32_chan_wait(priv, chan);
+
+      /* EGAIN indicates that the device NAKed the transfer and we need
+       * do try again.  Anything else (success or other errors) will
+       * cause use to return
+       */
+
+      if (ret != -EAGAIN)
+        {
+          /* Output some debug info on an error */
+
+          if (ret < 0)
+            {
+              udbg("Transfer failed: %d\n", ret);
+            }
+
+          /* Break out and return this result */
+
+          break;
+        }
     }
 
 errout:
