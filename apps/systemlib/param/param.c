@@ -91,6 +91,9 @@ UT_icd		param_icd = {sizeof(struct param_wbuf_s), NULL, NULL, NULL};
 /** parameter update topic */
 ORB_DEFINE(parameter_update, struct parameter_update_s);
 
+/** parameter update topic handle */
+static orb_advert_t param_topic = -1;
+
 /** lock the parameter store */
 static void
 param_lock(void)
@@ -390,13 +393,15 @@ out:
 		struct parameter_update_s pup = { .timestamp = hrt_absolute_time() };
 
 		/*
-		 * Because we're a library, we can't keep a persistent advertisement
-		 * around, so if we succeed in updating the topic, we have to toss
-		 * the descriptor straight away.
+		 * If we don't have a handle to our topic, create one now; otherwise
+		 * just publish.
 		 */
-		int param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
-		if (param_topic != -1)
-			close(param_topic);
+		if (param_topic == -1) {
+			param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
+		} else {
+			orb_publish(ORB_ID(parameter_update), param_topic, &pup);
+		}
+
 	}
 
 	return result;
