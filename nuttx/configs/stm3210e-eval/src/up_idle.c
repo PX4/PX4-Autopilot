@@ -252,15 +252,47 @@ static void up_idlepm(void)
   enum pm_state_e newstate;
   int ret;
 
-  /* Decide, which power saving level can be obtained */
+  /* The following is logic that is done after the wake-up from PM_STANDBY
+   * state.  It decides whether to go back to the PM_NORMAL or to the deeper
+   * power-saving mode PM_SLEEP:  If the alarm expired with no "normal"
+   * wake-up event, then PM_SLEEP is entered.
+   *
+   * Logically, this code belongs at the end of the PM_STANDBY case below,
+   * does not work in the position for some unkown reason.
+   */
+ 
+  if (oldstate == PM_STANDBY)
+    {
+      /* Were we awakened by the alarm? */
 
-  newstate = pm_checkstate();
+#ifdef CONFIG_RTC_ALARM
+      if (g_alarmwakeup)
+        {
+          /* Yes.. Go to SLEEP mode */
+
+          newstate = PM_SLEEP;
+        }
+      else
+#endif
+        {
+          /* Resume normal operation */
+
+          newstate = PM_NORMAL:
+        }
+    }
+  else
+#endif
+    {
+      /* Let the PM system decide, which power saving level can be obtained */
+
+      newstate = pm_checkstate();
+    }
 
   /* Check for state changes */
 
   if (newstate != oldstate)
     {
-      lldbg("newstate= %d oldstate=%d\n", newstate, oldstate);
+      llvdbg("newstate= %d oldstate=%d\n", newstate, oldstate);
 
       sched_lock();
 
@@ -338,22 +370,11 @@ static void up_idlepm(void)
               {
                 lldbg("Warning: Cancel alarm failed\n");
               }
-
-            /* Were we awakened by the alarm? */
-
-            if (g_alarmwakeup)
-              {
-                /* Yes.. Go to SLEEP mode */
-
-                pm_changestate(PM_SLEEP);
-              }
-            else
 #endif
-              {
-                /* Resume normal operation */
-
-                pm_changestate(PM_NORMAL);
-              }
+            /* Note:  See the additional PM_STANDBY related logic at the
+             * beginning of this function.  That logic is executed after
+             * this point.
+             */
           }
           break;
 
