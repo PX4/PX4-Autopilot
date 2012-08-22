@@ -57,6 +57,7 @@
 #include <arch/board/drv_bma180.h>
 #include <arch/board/drv_l3gd20.h>
 #include <arch/board/drv_hmc5883l.h>
+#include <drivers/drv_accel.h>
 #include <arch/board/up_adc.h>
 
 #include <systemlib/systemlib.h>
@@ -108,14 +109,16 @@ static int sensors_timer_loop_counter = 0;
 
 /* File descriptors for all sensors */
 static int fd_gyro = -1;
-static int fd_accelerometer = -1;
-static int fd_magnetometer = -1;
-static int fd_barometer = -1;
-static int fd_adc = -1;
 
 static bool thread_should_exit = false;
 static bool thread_running = false;
 static int sensors_task;
+
+static int fd_bma180 = -1;
+static int fd_magnetometer = -1;
+static int fd_barometer = -1;
+static int fd_adc = -1;
+static int fd_accelerometer = -1;
 
 /* Private functions declared static */
 static void sensors_timer_loop(void *arg);
@@ -240,30 +243,70 @@ static int sensors_init(void)
 
 	/* open gyro */
 	fd_gyro = open("/dev/l3gd20", O_RDONLY);
+	int errno_gyro = (int)*get_errno_ptr();
 
-	if (fd_gyro < 0) {
-		fprintf(stderr, "[sensors]   L3GD20 open fail (err #%d): %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
-		fflush(stderr);
-		/* this sensor is critical, exit on failed init */
-		errno = ENOSYS;
-		return ERROR;
-
-	} else {
+	if (!(fd_gyro < 0)) {
 		printf("[sensors]   L3GD20 open ok\n");
 	}
 
-	/* open accelerometer */
-	fd_accelerometer = open("/dev/bma180", O_RDONLY);
+	/* open accelerometer, prefer the MPU-6000 */
+	fd_accelerometer = open("/dev/accel", O_RDONLY);
+	int errno_accelerometer = (int)*get_errno_ptr();
 
+	if (!(fd_accelerometer < 0)) {
+		printf("[sensors]   Accelerometer open ok\n");
+	}
+
+
+	/* only attempt to use BMA180 if MPU-6000 is not available */
+	int errno_bma180 = 0;
 	if (fd_accelerometer < 0) {
-		fprintf(stderr, "[sensors]   BMA180: open fail (err #%d): %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
-		fflush(stderr);
-		/* this sensor is critical, exit on failed init */
+		fd_bma180 = open("/dev/bma180", O_RDONLY);
+		errno_bma180 = (int)*get_errno_ptr();
+
+		if (!(fd_bma180 < 0)) {
+			printf("[sensors]   Accelerometer (BMA180) open ok\n");
+		}
+	} else {
+		fd_bma180 = -1;
+	}
+
+	/* fail if no accelerometer is available */
+	if (fd_accelerometer < 0 && fd_bma180 < 0) {
+		/* print error message only if both failed, discard message else at all to not confuse users */
+		if (fd_accelerometer < 0) {
+			fprintf(stderr, "[sensors]   MPU-6000: open fail (err #%d): %s\n", errno_accelerometer, strerror(errno_accelerometer));
+			fflush(stderr);
+			/* this sensor is redundant with BMA180 */
+		}
+		
+		if (fd_bma180 < 0) {
+			fprintf(stderr, "[sensors]   BMA180: open fail (err #%d): %s\n", errno_bma180, strerror(errno_bma180));
+			fflush(stderr);
+			/* this sensor is redundant with MPU-6000 */
+		}
+
 		errno = ENOSYS;
 		return ERROR;
+	}
 
-	} else {
-		printf("[sensors]   BMA180 open ok\n");
+	/* fail if no gyro is available */
+	if (fd_accelerometer < 0 && fd_bma180 < 0) {
+		/* print error message only if both failed, discard message else at all to not confuse users */
+		if (fd_accelerometer < 0) {
+			fprintf(stderr, "[sensors]   MPU-6000: open fail (err #%d): %s\n", errno_accelerometer, strerror(errno_accelerometer));
+			fflush(stderr);
+			/* this sensor is redundant with BMA180 */
+		}
+		
+		if (fd_gyro < 0) {
+			fprintf(stderr, "[sensors]   L3GD20 open fail (err #%d): %s\n", errno_gyro, strerror(errno_gyro));
+			fflush(stderr);
+			/* this sensor is critical, exit on failed init */
+		}
+
+		errno = ENOSYS;
+		return ERROR;
 	}
 
 	/* open adc */
@@ -280,16 +323,18 @@ static int sensors_init(void)
 		printf("[sensors]   ADC open ok\n");
 	}
 
-	/* configure gyro */
-	if (ioctl(fd_gyro, L3GD20_SETRATE, L3GD20_RATE_760HZ_LP_30HZ) || ioctl(fd_gyro, L3GD20_SETRANGE, L3GD20_RANGE_500DPS)) {
-		fprintf(stderr, "[sensors]   L3GD20 configuration (ioctl) fail (err #%d): %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
-		fflush(stderr);
-		/* this sensor is critical, exit on failed init */
-		errno = ENOSYS;
-		return ERROR;
+	/* configure gyro - if its not available and we got here the MPU-6000 is for sure available */
+	if (fd_gyro > 0) {
+		if (ioctl(fd_gyro, L3GD20_SETRATE, L3GD20_RATE_760HZ_LP_30HZ) || ioctl(fd_gyro, L3GD20_SETRANGE, L3GD20_RANGE_500DPS)) {
+			fprintf(stderr, "[sensors]   L3GD20 configuration (ioctl) fail (err #%d): %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
+			fflush(stderr);
+			/* this sensor is critical, exit on failed init */
+			errno = ENOSYS;
+			return ERROR;
 
-	} else {
-		printf("[sensors]   L3GD20 configuration ok\n");
+		} else {
+			printf("[sensors]   L3GD20 configuration ok\n");
+		}
 	}
 
 	/* XXX Add IOCTL configuration of remaining sensors */
@@ -326,7 +371,7 @@ int sensors_thread_main(int argc, char *argv[])
 		fprintf(stderr, "[sensors] ERROR: Failed to initialize all sensors\n");
 		/* Clean up */
 		close(fd_gyro);
-		close(fd_accelerometer);
+		close(fd_bma180);
 		close(fd_magnetometer);
 		close(fd_barometer);
 		close(fd_adc);
@@ -382,6 +427,7 @@ int sensors_thread_main(int argc, char *argv[])
 
 	int16_t buf_gyro[3];
 	int16_t buf_accelerometer[3];
+	struct accel_report buf_accel_report;
 	int16_t buf_magnetometer[7];
 	float	buf_barometer[3];
 
@@ -425,8 +471,9 @@ int sensors_thread_main(int argc, char *argv[])
 
 	/* Empty sensor buffers, avoid junk values */
 	/* Read first two values of each sensor into void */
-	(void)read(fd_gyro, buf_gyro, sizeof(buf_gyro));
-	(void)read(fd_accelerometer, buf_accelerometer, sizeof(buf_accelerometer));
+	if (fd_gyro > 0)(void)read(fd_gyro, buf_gyro, sizeof(buf_gyro));
+	if (fd_bma180 > 0)(void)read(fd_bma180, buf_accelerometer, 6);
+	if (fd_accelerometer > 0)(void)read(fd_accelerometer, buf_accelerometer, 12);
 	(void)read(fd_magnetometer, buf_magnetometer, sizeof(buf_magnetometer));
 
 	if (fd_barometer > 0)(void)read(fd_barometer, buf_barometer, sizeof(buf_barometer));
@@ -528,7 +575,13 @@ int sensors_thread_main(int argc, char *argv[])
 				if (vstatus.flag_hil_enabled && !hil_enabled) {
 					hil_enabled = true;
 					publishing = false;
-					printf("[sensors] Closing sensor pub: %i \n", ret);
+
+					int sens_ret = close(sensor_pub);
+					if (sens_ret == OK) {
+						printf("[sensors] Closing sensor pub OK\n");
+					} else {
+						printf("[sensors] FAILED Closing sensor pub, result: %i \n", sens_ret);
+					}
 
 					/* switching from HIL to non-HIL mode */
 
@@ -581,79 +634,122 @@ int sensors_thread_main(int argc, char *argv[])
 
 			paramcounter++;
 
-			/* try reading gyro */
-			uint64_t start_gyro = hrt_absolute_time();
-			ret_gyro = read(fd_gyro, buf_gyro, sizeof(buf_gyro));
-			int gyrotime = hrt_absolute_time() - start_gyro;
+			if (fd_gyro > 0) {
+				/* try reading gyro */
+				uint64_t start_gyro = hrt_absolute_time();
+				ret_gyro = read(fd_gyro, buf_gyro, sizeof(buf_gyro));
+				int gyrotime = hrt_absolute_time() - start_gyro;
 
-			if (gyrotime > 500) printf("GYRO (pure read): %d us\n", gyrotime);
+				if (gyrotime > 500) printf("GYRO (pure read): %d us\n", gyrotime);
 
-			/* GYROSCOPE */
-			if (ret_gyro != sizeof(buf_gyro)) {
-				gyro_fail_count++;
+				/* GYROSCOPE */
+				if (ret_gyro != sizeof(buf_gyro)) {
+					gyro_fail_count++;
 
-				if ((((gyro_fail_count % 20) == 0) || (gyro_fail_count > 20 && gyro_fail_count < 100)) && (int)*get_errno_ptr() != EAGAIN) {
-					fprintf(stderr, "[sensors] L3GD20 ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
+					if ((((gyro_fail_count % 20) == 0) || (gyro_fail_count > 20 && gyro_fail_count < 100)) && (int)*get_errno_ptr() != EAGAIN) {
+						fprintf(stderr, "[sensors] L3GD20 ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
+					}
+
+					if (gyro_healthy && gyro_fail_count >= GYRO_HEALTH_COUNTER_LIMIT_ERROR) {
+						// global_data_send_subsystem_info(&gyro_present_enabled);
+						gyro_healthy = false;
+						gyro_success_count = 0;
+					}
+
+				} else {
+					gyro_success_count++;
+
+					if (!gyro_healthy && gyro_success_count >= GYRO_HEALTH_COUNTER_LIMIT_OK) {
+						// global_data_send_subsystem_info(&gyro_present_enabled_healthy);
+						gyro_healthy = true;
+						gyro_fail_count = 0;
+
+					}
+
+					gyro_updated = true;
 				}
 
-				if (gyro_healthy && gyro_fail_count >= GYRO_HEALTH_COUNTER_LIMIT_ERROR) {
-					// global_data_send_subsystem_info(&gyro_present_enabled);
-					gyro_healthy = false;
-					gyro_success_count = 0;
-				}
+				gyrotime = hrt_absolute_time() - start_gyro;
 
-			} else {
-				gyro_success_count++;
-
-				if (!gyro_healthy && gyro_success_count >= GYRO_HEALTH_COUNTER_LIMIT_OK) {
-					// global_data_send_subsystem_info(&gyro_present_enabled_healthy);
-					gyro_healthy = true;
-					gyro_fail_count = 0;
-
-				}
-
-				gyro_updated = true;
+				if (gyrotime > 500) printf("GYRO (complete): %d us\n", gyrotime);
 			}
 
-			gyrotime = hrt_absolute_time() - start_gyro;
+			/* read MPU-6000 */
+			if (fd_accelerometer > 0) {
+				/* try reading acc */
+				uint64_t start_acc = hrt_absolute_time();
+				ret_accelerometer = read(fd_accelerometer, &buf_accel_report, sizeof(struct accel_report));
 
-			if (gyrotime > 500) printf("GYRO (complete): %d us\n", gyrotime);
+				/* ACCELEROMETER */
+				if (ret_accelerometer != sizeof(struct accel_report)) {
+					acc_fail_count++;
 
-			/* try reading acc */
-			uint64_t start_acc = hrt_absolute_time();
-			ret_accelerometer = read(fd_accelerometer, buf_accelerometer, sizeof(buf_accelerometer));
+					if ((acc_fail_count % 20) == 0 || (acc_fail_count > 20 && acc_fail_count < 100)) {
+						fprintf(stderr, "[sensors] MPU-6000 ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
+					}
 
-			/* ACCELEROMETER */
-			if (ret_accelerometer != sizeof(buf_accelerometer)) {
-				acc_fail_count++;
 
-				if (acc_fail_count & 0b111 || (acc_fail_count > 20 && acc_fail_count < 100)) {
-					fprintf(stderr, "[sensors] BMA180 ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
+					if (acc_healthy && acc_fail_count >= ACC_HEALTH_COUNTER_LIMIT_ERROR) {
+						// global_data_send_subsystem_info(&acc_present_enabled);
+						gyro_healthy = false;
+						acc_success_count = 0;
+					}
+
+				} else {
+					acc_success_count++;
+
+					if (!acc_healthy && acc_success_count >= ACC_HEALTH_COUNTER_LIMIT_OK) {
+
+						// global_data_send_subsystem_info(&acc_present_enabled_healthy);
+						acc_healthy = true;
+						acc_fail_count = 0;
+
+					}
+
+					acc_updated = true;
 				}
 
-				if (acc_healthy && acc_fail_count >= ACC_HEALTH_COUNTER_LIMIT_ERROR) {
-					// global_data_send_subsystem_info(&acc_present_enabled);
-					gyro_healthy = false;
-					acc_success_count = 0;
-				}
-
-			} else {
-				acc_success_count++;
-
-				if (!acc_healthy && acc_success_count >= ACC_HEALTH_COUNTER_LIMIT_OK) {
-
-					// global_data_send_subsystem_info(&acc_present_enabled_healthy);
-					acc_healthy = true;
-					acc_fail_count = 0;
-
-				}
-
-				acc_updated = true;
+				int acctime = hrt_absolute_time() - start_acc;
+				if (acctime > 500) printf("ACC: %d us\n", acctime);
 			}
 
-			int acctime = hrt_absolute_time() - start_acc;
+			/* read BMA180. If the MPU-6000 is present, the BMA180 file descriptor won't be open */
+			if (fd_bma180 > 0) {
+				/* try reading acc */
+				uint64_t start_acc = hrt_absolute_time();
+				ret_accelerometer = read(fd_bma180, buf_accelerometer, 6);
 
-			if (acctime > 500) printf("ACC: %d us\n", acctime);
+				/* ACCELEROMETER */
+				if (ret_accelerometer != 6) {
+					acc_fail_count++;
+
+					if ((acc_fail_count % 20) == 0 || (acc_fail_count > 20 && acc_fail_count < 100)) {
+						fprintf(stderr, "[sensors] BMA180 ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
+					}
+
+					if (acc_healthy && acc_fail_count >= ACC_HEALTH_COUNTER_LIMIT_ERROR) {
+						// global_data_send_subsystem_info(&acc_present_enabled);
+						gyro_healthy = false;
+						acc_success_count = 0;
+					}
+
+				} else {
+					acc_success_count++;
+
+					if (!acc_healthy && acc_success_count >= ACC_HEALTH_COUNTER_LIMIT_OK) {
+
+						// global_data_send_subsystem_info(&acc_present_enabled_healthy);
+						acc_healthy = true;
+						acc_fail_count = 0;
+
+					}
+
+					acc_updated = true;
+				}
+
+				int acctime = hrt_absolute_time() - start_acc;
+				if (acctime > 500) printf("ACC: %d us\n", acctime);
+			}
 
 			/* MAGNETOMETER */
 			if (magcounter == 4) { /* 120 Hz */
@@ -680,7 +776,8 @@ int sensors_thread_main(int argc, char *argv[])
 				if (ret_magnetometer != sizeof(buf_magnetometer)) {
 					mag_fail_count++;
 
-					if (mag_fail_count & 0b111 || (mag_fail_count > 20 && mag_fail_count < 100)) {
+
+					if ((mag_fail_count % 20) == 0 || (mag_fail_count > 20 && mag_fail_count < 100)) {
 						fprintf(stderr, "[sensors] HMC5883L ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 					}
 
@@ -723,7 +820,7 @@ int sensors_thread_main(int argc, char *argv[])
 				if (ret_barometer != sizeof(buf_barometer)) {
 					baro_fail_count++;
 
-					if ((baro_fail_count & 0b1000 || (baro_fail_count > 20 && baro_fail_count < 100)) && (int)*get_errno_ptr() != EAGAIN) {
+					if (((baro_fail_count % 20) == 0 || (baro_fail_count > 20 && baro_fail_count < 100)) && (int)*get_errno_ptr() != EAGAIN) {
 						fprintf(stderr, "[sensors] MS5611 ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 					}
 
@@ -760,10 +857,10 @@ int sensors_thread_main(int argc, char *argv[])
 				ret_adc = read(fd_adc, &buf_adc, adc_readsize);
 				nsamples_adc = ret_adc / sizeof(struct adc_msg_s);
 
-				if (ret_adc  < 0 || nsamples_adc * sizeof(struct adc_msg_s) != ret_adc) {
+				if (ret_adc  < 0 || ((int)(nsamples_adc * sizeof(struct adc_msg_s))) != ret_adc) {
 					adc_fail_count++;
 
-					if ((adc_fail_count & 0b1000 || adc_fail_count < 10) && (int)*get_errno_ptr() != EAGAIN) {
+					if (((adc_fail_count % 20) == 0 || adc_fail_count < 10) && (int)*get_errno_ptr() != EAGAIN) {
 						fprintf(stderr, "[sensors] ADC ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 					}
 
@@ -803,7 +900,7 @@ int sensors_thread_main(int argc, char *argv[])
 				 */
 				if (ppm_decoded_channels > 1 && (hrt_absolute_time() - ppm_last_valid_decode) < 45000) {
 					/* Read out values from HRT */
-					for (int i = 0; i < ppm_decoded_channels; i++) {
+					for (unsigned int i = 0; i < ppm_decoded_channels; i++) {
 						rc.chan[i].raw = ppm_buffer[i];
 						/* Set the range to +-, then scale up */
 						rc.chan[i].scale = (ppm_buffer[i] - rc.chan[i].mid) * rc.chan[i].scaling_factor * 10000;
@@ -873,19 +970,56 @@ int sensors_thread_main(int argc, char *argv[])
 			if (acc_updated) {
 				/* copy sensor readings to global data and transform coordinates into px4fmu board frame */
 
-				/* assign negated value, except for -SHORT_MAX, as it would wrap there */
-				raw.accelerometer_raw[0] = (buf_accelerometer[1] == -32768) ? 32767 : -buf_accelerometer[1]; // x of the board is -y of the sensor
-				raw.accelerometer_raw[1] = (buf_accelerometer[0] == -32768) ? -32768 : buf_accelerometer[0]; // y on the board is x of the sensor
-				raw.accelerometer_raw[2] = (buf_accelerometer[2] == -32768) ? -32768 : buf_accelerometer[2]; // z of the board is z of the sensor
+				if (fd_accelerometer > 0) {
+					/* MPU-6000 values */
 
-				// XXX read range from sensor
-				float range_g = 4.0f;
-				/* scale from 14 bit to m/s2 */
-				raw.accelerometer_m_s2[0] = (((raw.accelerometer_raw[0] - acc_offset[0]) / 8192.0f) * range_g) * 9.81f;
-				raw.accelerometer_m_s2[1] = (((raw.accelerometer_raw[1] - acc_offset[1]) / 8192.0f) * range_g) * 9.81f;
-				raw.accelerometer_m_s2[2] = (((raw.accelerometer_raw[2] - acc_offset[2]) / 8192.0f) * range_g) * 9.81f;
+					/* scale from 14 bit to m/s2 */
+					raw.accelerometer_m_s2[0] = buf_accel_report.x;
+					raw.accelerometer_m_s2[1] = buf_accel_report.y;
+					raw.accelerometer_m_s2[2] = buf_accel_report.z;
 
-				raw.accelerometer_raw_counter++;
+					/* assign negated value, except for -SHORT_MAX, as it would wrap there */
+					raw.accelerometer_raw[0] = buf_accel_report.x*1000; // x of the board is -y of the sensor
+					raw.accelerometer_raw[1] = buf_accel_report.y*1000; // y on the board is x of the sensor
+					raw.accelerometer_raw[2] = buf_accel_report.z*1000; // z of the board is z of the sensor
+
+					raw.accelerometer_raw_counter++;
+				} else if (fd_bma180 > 0) {
+
+					/* assign negated value, except for -SHORT_MAX, as it would wrap there */
+					raw.accelerometer_raw[0] = (buf_accelerometer[1] == -32768) ? 32767 : -buf_accelerometer[1]; // x of the board is -y of the sensor
+					raw.accelerometer_raw[1] = (buf_accelerometer[0] == -32768) ? -32767 : buf_accelerometer[0]; // y on the board is x of the sensor
+					raw.accelerometer_raw[2] = (buf_accelerometer[2] == -32768) ? -32767 : buf_accelerometer[2]; // z of the board is z of the sensor
+
+
+					// XXX read range from sensor
+					float range_g = 4.0f;
+					/* scale from 14 bit to m/s2 */
+					raw.accelerometer_m_s2[0] = (((raw.accelerometer_raw[0] - acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
+					raw.accelerometer_m_s2[1] = (((raw.accelerometer_raw[1] - acc_offset[1]) * range_g) / 8192.0f) / 9.81f;
+					raw.accelerometer_m_s2[2] = (((raw.accelerometer_raw[2] - acc_offset[2]) * range_g) / 8192.0f) / 9.81f;
+
+					raw.accelerometer_raw_counter++;
+				}
+
+				/* L3GD20 is not available, use MPU-6000 */
+				if (fd_accelerometer > 0 && fd_gyro < 0) {
+					raw.gyro_raw[0] = ((buf_accelerometer[3] == -32768) ? -32767 : buf_accelerometer[3]); // x of the board is y of the sensor
+					/* assign negated value, except for -SHORT_MAX, as it would wrap there */
+					raw.gyro_raw[1] = ((buf_accelerometer[4] == -32768) ? 32767 : -buf_accelerometer[4]); // y on the board is -x of the sensor
+					raw.gyro_raw[2] = ((buf_accelerometer[5] == -32768) ? -32767 : buf_accelerometer[5]); // z of the board is -z of the sensor
+
+					/* scale measurements */
+					// XXX request scaling from driver instead of hardcoding it
+					/* scaling calculated as: raw * (1/(32768*(500/180*PI))) */
+					raw.gyro_rad_s[0] = (raw.gyro_raw[0] - gyro_offset[0]) * 0.000266316109f;
+					raw.gyro_rad_s[1] = (raw.gyro_raw[1] - gyro_offset[1]) * 0.000266316109f;
+					raw.gyro_rad_s[2] = (raw.gyro_raw[2] - gyro_offset[2]) * 0.000266316109f;
+
+					raw.gyro_raw_counter++;
+					/* mark as updated */
+					gyro_updated = true;
+				}
 			}
 
 			/* MAGNETOMETER */
@@ -987,7 +1121,7 @@ int sensors_thread_main(int argc, char *argv[])
 	printf("[sensors] sensor readout stopped\n");
 
 	close(fd_gyro);
-	close(fd_accelerometer);
+	close(fd_bma180);
 	close(fd_magnetometer);
 	close(fd_barometer);
 	close(fd_adc);
