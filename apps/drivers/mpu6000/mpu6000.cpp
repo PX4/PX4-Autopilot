@@ -181,12 +181,12 @@ private:
 	struct accel_report	_accel_report;
 	struct accel_scale	_accel_scale;
 	float			_accel_range_scale;
-	int			_accel_topic;
+	orb_advert_t		_accel_topic;
 
 	struct gyro_report	_gyro_report;
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
-	int			_gyro_topic;
+	orb_advert_t		_gyro_topic;
 
 	unsigned		_reads;
 	perf_counter_t		_sample_perf;
@@ -288,9 +288,9 @@ MPU6000::MPU6000(int bus, spi_dev_e device) :
 	_gyro(new MPU6000_gyro(this)),
 	_product(0),
 	_call_interval(0),
-	_accel_range_scale(1.0f),
+	_accel_range_scale(0.02f),
 	_accel_topic(-1),
-	_gyro_range_scale(1.0f),
+	_gyro_range_scale(0.02f),
 	_gyro_topic(-1),
 	_reads(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read"))
@@ -826,7 +826,7 @@ test()
 		fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
 
 		if (fd < 0) {
-			reason = "can't open driver";
+			reason = "can't open driver, use <mpu6000 start> first";
 			break;
 		}
 
@@ -841,9 +841,10 @@ test()
 		printf("single read\n");
 		fflush(stdout);
 		printf("time:        %lld\n", report.timestamp);
-		printf("x:           %f\n", report.x);
-		printf("y:           %f\n", report.y);
-		printf("z:           %f\n", report.z);
+		printf("x:         %5.2f\n", (double)report.x);
+		printf("y:         %5.2f\n", (double)report.y);
+		printf("z:         %5.2f\n", (double)report.z);
+		printf("test:         %8.4f\n", 1.5);
 
 	} while (0);
 

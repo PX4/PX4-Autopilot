@@ -31,57 +31,38 @@
  *
  ****************************************************************************/
 
-#ifndef _DRV_UORB_H
-#define _DRV_UORB_H
-
 /**
- * @file uORB published object driver.
+ * @file actuator_outputs.h
+ *
+ * Actuator output values.
+ *
+ * Values published to these topics are the outputs of the control mixing
+ * system as sent to the actuators (servos, motors, etc.) that operate
+ * the vehicle.
+ *
+ * Each topic can be published by a single output driver.
  */
 
-#include <sys/types.h>
-#include <sys/ioctl.h>
+#ifndef TOPIC_ACTUATOR_OUTPUTS_H
+#define TOPIC_ACTUATOR_OUTPUTS_H
+
 #include <stdint.h>
+#include "../uORB.h"
 
-/* XXX for ORB_DECLARE used in many drivers */
-#include "../uORB/uORB.h"
+#define NUM_ACTUATOR_OUTPUTS		16
+#define NUM_ACTUATOR_OUTPUT_GROUPS	4	/**< for sanity checking */
 
-/*
- * ioctl() definitions
- */
+struct actuator_outputs_s {
+	float	output[NUM_ACTUATOR_OUTPUTS];
+};
 
-/** path to the uORB control device for pub/sub topics */
-#define TOPIC_MASTER_DEVICE_PATH	"/obj/_obj_"
+/* actuator output sets; this list can be expanded as more drivers emerge */
+ORB_DECLARE(actuator_outputs_0);
+ORB_DECLARE(actuator_outputs_1);
+ORB_DECLARE(actuator_outputs_2);
+ORB_DECLARE(actuator_outputs_3);
 
-/** path to the uORB control device for parameter topics */
-#define PARAM_MASTER_DEVICE_PATH	"/param/_param_"
+/* output sets with pre-defined applications */
+#define ORB_ID_VEHICLE_CONTROLS		ORB_ID(actuator_outputs_0)
 
-/** maximum ogbject name length */
-#define ORB_MAXNAME		32
-
-#define _ORBIOCBASE		(0x2500)
-#define _ORBIOC(_n)		(_IOC(_ORBIOCBASE, _n))
-
-/*
- * IOCTLs for the uORB control device
- */
-
-/** Advertise a new topic described by *(uorb_metadata *)arg */
-#define ORBIOCADVERTISE		_ORBIOC(0)
-
-/*
- * IOCTLs for individual topics.
- */
-
-/** Fetch the time at which the topic was last updated into *(uint64_t *)arg */
-#define ORBIOCLASTUPDATE	_ORBIOC(10)
-
-/** Check whether the topic has been updated since it was last read, sets *(bool *)arg */
-#define ORBIOCUPDATED		_ORBIOC(11)
-
-/** Set the minimum interval at which the topic can be seen to be updated for this subscription */
-#define ORBIOCSETINTERVAL	_ORBIOC(12)
-
-/** Get the global advertiser handle for the topic */
-#define ORBIOCGADVERTISER	_ORBIOC(13)
-
-#endif /* _DRV_UORB_H */
+#endif

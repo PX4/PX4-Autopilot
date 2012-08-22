@@ -96,8 +96,8 @@ static int leds;
 static int buzzer;
 static int mavlink_fd;
 static bool commander_initialized = false;
-static struct vehicle_status_s current_status;	/**< Main state machine */
-static int stat_pub;
+static struct vehicle_status_s current_status; /**< Main state machine */
+static orb_advert_t stat_pub;
 
 static uint16_t nofix_counter = 0;
 static uint16_t gotfix_counter = 0;

@@ -37,7 +37,6 @@
 
 APPNAME		= sensors
 PRIORITY	= SCHED_PRIORITY_MAX-5
-# Reduce to 4096 on next occasion
-STACKSIZE	= 8000
+STACKSIZE	= 4096
 
 include $(APPDIR)/mk/app.mk

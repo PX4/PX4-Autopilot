@@ -239,4 +239,6 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	actuators->control[1] = pitch_control;
 	actuators->control[2] = yaw_rate_control;
 	actuators->control[3] = motor_thrust;
+
+	motor_skip_counter++;
 }

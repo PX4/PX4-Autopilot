@@ -99,7 +99,7 @@ protected:
 	void			set_channels(unsigned count, const servo_position_t *data);
 
 private:
-	int			_publication;
+	orb_advert_t		_publication;
 	struct rc_input_values	_input;
 };
 

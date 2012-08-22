@@ -125,7 +125,7 @@ private:
 	int32_t			_dT;
 	int64_t			_temp64;
 
-	int			_baro_topic;
+	orb_advert_t		_baro_topic;
 
 	unsigned		_reads;
 	unsigned		_measure_errors;
@@ -246,6 +246,7 @@ MS5611::MS5611(int bus) :
 	_measure_phase(0),
 	_dT(0),
 	_temp64(0),
+	_baro_topic(-1),
 	_reads(0),
 	_measure_errors(0),
 	_read_errors(0),
@@ -276,18 +277,6 @@ MS5611::init()
 
 	/* do I2C init (and probe) first */
 	ret = I2C::init();
-
-	/* assuming we're good, advertise the object */
-	if (ret == OK) {
-		struct baro_report b;
-
-		/* if this fails (e.g. no object in the system) that's OK */
-		memset(&b, 0, sizeof(b));
-		_baro_topic = orb_advertise(ORB_ID(sensor_baro), &b);
-
-		if (_baro_topic < 0)
-			debug("failed to create sensor_baro object");
-	}
 
 	return ret;
 }
@@ -538,6 +527,25 @@ MS5611::cycle_trampoline(void *arg)
 void
 MS5611::cycle()
 {
+	/*
+	 * We have to publish the baro topic in the context of the workq
+	 * in order to ensure that the descriptor is valid when we go to publish.
+	 *
+	 * @bug	We can't really ever be torn down and restarted, since this
+	 *      descriptor will never be closed and on the restart we will be
+	 *      unable to re-advertise.
+	 */
+	if (_baro_topic == -1) {
+		struct baro_report b;
+
+		/* if this fails (e.g. no object in the system) we will cope */
+		memset(&b, 0, sizeof(b));
+		_baro_topic = orb_advertise(ORB_ID(sensor_baro), &b);
+
+		if (_baro_topic < 0)
+			debug("failed to create sensor_baro object");
+	}
+
 	/* collection phase? */
 	if (_collect_phase) {
 

@@ -78,13 +78,11 @@ static enum {
 
 static bool thread_should_exit;
 static int mc_task;
+static bool motor_test_mode = false;
 
 static int
 mc_thread_main(int argc, char *argv[])
 {
-	bool motor_test_mode = false;
-
-	/* structures */
 	/* declare and safely initialize all structs */
 	struct vehicle_status_s state;
 	memset(&state, 0, sizeof(state));
@@ -109,7 +107,7 @@ mc_thread_main(int argc, char *argv[])
 	int att_setpoint_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+	//int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	// int setpoint_sub = orb_subscribe(ORB_ID(ardrone_motors_setpoint));
 
 	/* rate-limit the attitude subscription to 200Hz to pace our loop */
@@ -119,9 +117,10 @@ mc_thread_main(int argc, char *argv[])
 	/* publish actuator controls */
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
 		actuators.control[i] = 0.0f;
-	int actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
-	armed.armed = true;
-	int armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
+	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
+	armed.armed = false;
+	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
+	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 
 	/* register the perf counter */
 	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "multirotor_att_control");
@@ -136,6 +135,8 @@ mc_thread_main(int argc, char *argv[])
 
 		perf_begin(mc_loop_perf);
 
+		/* get a local copy of system state */
+		orb_copy(ORB_ID(vehicle_status), state_sub, &state);
 		/* get a local copy of manual setpoint */
 		orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
 		/* get a local copy of attitude */
@@ -150,7 +151,7 @@ mc_thread_main(int argc, char *argv[])
 			att_sp.roll_body = 0.0f;
 			att_sp.pitch_body = 0.0f;
 			att_sp.yaw_body = 0.0f;
-			att_sp.thrust = 0.3f;
+			att_sp.thrust = 0.1f;
 		} else {
 			if (state.state_machine == SYSTEM_STATE_MANUAL ||
 				state.state_machine == SYSTEM_STATE_GROUND_READY ||
@@ -159,28 +160,30 @@ mc_thread_main(int argc, char *argv[])
 				state.state_machine == SYSTEM_STATE_MISSION_ABORT ||
 				state.state_machine == SYSTEM_STATE_EMCY_LANDING) {
 				att_sp.thrust = manual.throttle;
+				armed.armed = true;
 
 			} else if (state.state_machine == SYSTEM_STATE_EMCY_CUTOFF) {
 				/* immediately cut off motors */
-				att_sp.thrust = 0.0f;
+				armed.armed = false;
 
 			} else {
 				/* limit motor throttle to zero for an unknown mode */
-				att_sp.thrust = 0.0f;
+				armed.armed = false;
 			}
 			
 		}
 
 		multirotor_control_attitude(&att_sp, &att, &state, &actuator_controls, motor_test_mode);
-		//ardrone_mixing_and_output(ardrone_write, &actuator_controls, motor_test_mode);
 
 		/* publish the result */
+		orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 		orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+		orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 
 		perf_end(mc_loop_perf);
 	}
 
-	printf("[multirotor att control] stopping.\n");
+	printf("[multirotor att control] stopping, disarming motors.\n");
 
 	/* kill all outputs */
 	armed.armed = false;
@@ -208,8 +211,9 @@ usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: multirotor_att_control [-m <mode>] {start|stop}\n");
+	fprintf(stderr, "usage: multirotor_att_control [-m <mode>] [-t] {start|stop}\n");
 	fprintf(stderr, "    <mode> is 'rates' or 'attitude'\n");
+	fprintf(stderr, "    -t enables motor test mode with 10%% thrust\n");
 	exit(1);
 }
 
@@ -220,7 +224,7 @@ int multirotor_att_control_main(int argc, char *argv[])
 	control_mode = CONTROL_MODE_RATES;
 	unsigned int optioncount = 0;
 
-	while ((ch = getopt(argc, argv, "m:")) != EOF) {
+	while ((ch = getopt(argc, argv, "tm:")) != EOF) {
 		switch (ch) {
 		case 'm':
 			if (!strcmp(optarg, "rates")) {
@@ -231,24 +235,33 @@ int multirotor_att_control_main(int argc, char *argv[])
 				usage("unrecognized -m value");
 			}
 			optioncount += 2;
+			break;
+		case 't':
+			motor_test_mode = true;
+			optioncount += 1;
+			break;
+		case ':':
+			usage("missing parameter");
+			break;
 		default:
+			fprintf(stderr, "option: -%c\n", ch);
 			usage("unrecognized option");
 		}
 	}
 	argc -= optioncount;
-	argv += optioncount;
+	//argv += optioncount;
 
 	if (argc < 1)
 		usage("missing command");
 
-	if (!strcmp(argv[1], "start")) {
+	if (!strcmp(argv[1+optioncount], "start")) {
 
 		thread_should_exit = false;
 		mc_task = task_create("multirotor_att_control", SCHED_PRIORITY_MAX - 15, 2048, mc_thread_main, NULL);
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "stop")) {
+	if (!strcmp(argv[1+optioncount], "stop")) {
 		thread_should_exit = true;
 		exit(0);
 	}

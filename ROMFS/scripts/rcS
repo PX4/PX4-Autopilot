@@ -31,6 +31,8 @@ else
 	echo "[init] no microSD card found"
 fi
 
+usleep 500
+
 #
 # Look for an init script on the microSD card.
 #
@@ -82,6 +84,7 @@ else
 		if [ -f /etc/init.d/rc.PX4IOAR ]
 		then
 			echo "[init] reading /etc/init.d/rc.PX4IOAR"
+			usleep 500
 			sh /etc/init.d/rc.PX4IOAR
 		fi
 	else
@@ -97,6 +100,7 @@ else
 		if [ -f /etc/init.d/rc.PX4IO ]
 		then
 			echo "[init] reading /etc/init.d/rc.PX4IO"
+			usleep 500
 			sh /etc/init.d/rc.PX4IO
 		fi
 	else

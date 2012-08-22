@@ -96,16 +96,16 @@ int attitude_estimator_bm_update(struct sensor_combined_s *raw, float_vect3 *eul
 	mag_values.y = raw->magnetometer_ga[1]*456.0f;
 	mag_values.z = raw->magnetometer_ga[2]*456.0f;
 
-	static int i = 0;
+	// static int i = 0;
 
-	if (i == 500) {
-		printf("gyro: %8.4f\t%8.4f\t%8.4f\t accel: %8.4f\t%8.4f\t%8.4f\t mag: %8.4f\t%8.4f\t%8.4f\t\n",
-			gyro_values.x, gyro_values.y, gyro_values.z,
-			accel_values.x, accel_values.y, accel_values.z,
-			mag_values.x, mag_values.y, mag_values.z);
-		i = 0;
-	}
-	i++;
+	// if (i == 500) {
+	// 	printf("[att estim bm] gyro: %8.4f\t%8.4f\t%8.4f\t accel: %8.4f\t%8.4f\t%8.4f\t mag: %8.4f\t%8.4f\t%8.4f\t\n",
+	// 		gyro_values.x, gyro_values.y, gyro_values.z,
+	// 		accel_values.x, accel_values.y, accel_values.z,
+	// 		mag_values.x, mag_values.y, mag_values.z);
+	// 	i = 0;
+	// }
+	// i++;
 
 	attitude_blackmagic(&accel_values, &mag_values, &gyro_values);
 
@@ -154,7 +154,7 @@ int attitude_estimator_bm_main(int argc, char *argv[])
 	bool publishing = false;
 
 	/* advertise attitude */
-	int pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
+	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
 	publishing = true;
 
 	struct pollfd fds[] = {
