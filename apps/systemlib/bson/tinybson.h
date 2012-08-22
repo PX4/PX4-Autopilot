@@ -34,7 +34,7 @@
  /**
  * @file tinybson.h
  *
- * A simple subset SAX-style BSON parser and generator.
+ * A simple subset SAX-style BSON parser and generator. See http://bsonspec.org
  *
  * Some types and defines taken from the standalone BSON parser/generator 
  * in the Mongo C connector.
