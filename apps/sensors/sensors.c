@@ -46,6 +46,7 @@
 #include <sys/prctl.h>
 #include <nuttx/analog/adc.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -186,11 +187,63 @@ PARAM_DEFINE_FLOAT(RC8_REV, 1.0f);
 
 PARAM_DEFINE_INT32(RC_TYPE, 1); // 1 = FUTABA
 
+PARAM_DEFINE_FLOAT(BAT_V_SCALING, -1.0f);
+
 PARAM_DEFINE_INT32(RC_MAP_ROLL, 1);
 PARAM_DEFINE_INT32(RC_MAP_PITCH, 2);
 PARAM_DEFINE_INT32(RC_MAP_THROTTLE, 3);
 PARAM_DEFINE_INT32(RC_MAP_YAW, 4);
 PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 5);
+
+#define rc_max_chan_count 8
+
+struct sensor_parameters {
+	int min[rc_max_chan_count];
+	int trim[rc_max_chan_count];
+	int max[rc_max_chan_count];
+	int rev[rc_max_chan_count];
+
+	float gyro_offset[3];
+	float mag_offset[3];
+	float acc_offset[3];
+
+	int rc_type;
+
+	int rc_map_roll;
+	int rc_map_pitch;
+	int rc_map_yaw;
+	int rc_map_throttle;
+	int rc_map_mode_sw;
+
+	int battery_voltage_scaling;
+};
+
+struct sensor_parameter_handles {
+	param_t min[rc_max_chan_count];
+	param_t trim[rc_max_chan_count];
+	param_t max[rc_max_chan_count];
+	param_t rev[rc_max_chan_count];
+	param_t rc_type;
+
+	param_t gyro_offset[3];
+	param_t mag_offset[3];
+	param_t acc_offset[3];
+
+	param_t rc_map_roll;
+	param_t rc_map_pitch;
+	param_t rc_map_yaw;
+	param_t rc_map_throttle;
+	param_t rc_map_mode_sw;
+
+	param_t battery_voltage_scaling;
+};
+
+/**
+ * Sensor app start / stop handling function
+ *
+ * @ingroup apps
+ */
+__EXPORT int sensors_main(int argc, char *argv[]);
 
 /**
  * Sensor readout and publishing.
@@ -198,14 +251,151 @@ PARAM_DEFINE_INT32(RC_MAP_MODE_SW, 5);
  * This function reads all onboard sensors and publishes the sensor_combined topic.
  *
  * @see sensor_combined_s
- * @ingroup apps
  */
-__EXPORT int sensors_main(int argc, char *argv[]);
+int sensors_thread_main(int argc, char *argv[]);
 
 /**
  * Print the usage
  */
 static void usage(const char *reason);
+
+/**
+ * Initialize all parameter handles and values
+ *
+ */
+static int parameters_init(struct sensor_parameter_handles *h);
+
+/**
+ * Update all parameters
+ *
+ */
+static int parameters_update(const struct sensor_parameter_handles *h, struct sensor_parameters *p);
+
+
+static int parameters_init(struct sensor_parameter_handles *h)
+{
+	/* min values */
+	h->min[0] = param_find("RC1_MIN");
+	h->min[1] = param_find("RC2_MIN");
+	h->min[2] = param_find("RC3_MIN");
+	h->min[3] = param_find("RC4_MIN");
+	h->min[4] = param_find("RC5_MIN");
+	h->min[5] = param_find("RC6_MIN");
+	h->min[6] = param_find("RC7_MIN");
+	h->min[7] = param_find("RC8_MIN");
+
+	/* trim values */
+	h->trim[0] = param_find("RC1_TRIM");
+	h->trim[1] = param_find("RC2_TRIM");
+	h->trim[2] = param_find("RC3_TRIM");
+	h->trim[3] = param_find("RC4_TRIM");
+	h->trim[4] = param_find("RC5_TRIM");
+	h->trim[5] = param_find("RC6_TRIM");
+	h->trim[6] = param_find("RC7_TRIM");
+	h->trim[7] = param_find("RC8_TRIM");
+
+	/* max values */
+	h->max[0] = param_find("RC1_MAX");
+	h->max[1] = param_find("RC2_MAX");
+	h->max[2] = param_find("RC3_MAX");
+	h->max[3] = param_find("RC4_MAX");
+	h->max[4] = param_find("RC5_MAX");
+	h->max[5] = param_find("RC6_MAX");
+	h->max[6] = param_find("RC7_MAX");
+	h->max[7] = param_find("RC8_MAX");
+
+	/* channel reverse */
+	h->rev[0] = param_find("RC1_REV");
+	h->rev[1] = param_find("RC2_REV");
+	h->rev[2] = param_find("RC3_REV");
+	h->rev[3] = param_find("RC4_REV");
+	h->rev[4] = param_find("RC5_REV");
+	h->rev[5] = param_find("RC6_REV");
+	h->rev[6] = param_find("RC7_REV");
+	h->rev[7] = param_find("RC8_REV");
+
+	h->rc_type = param_find("RC_TYPE");
+
+	h->rc_map_roll 		= param_find("RC_MAP_ROLL");
+	h->rc_map_pitch 	= param_find("RC_MAP_PITCH");
+	h->rc_map_yaw 		= param_find("RC_MAP_YAW");
+	h->rc_map_throttle 	= param_find("RC_MAP_THROTTLE");
+	h->rc_map_mode_sw 	= param_find("RC_MAP_MODE_SW");
+
+	/* gyro offsets */
+	h->gyro_offset[0] = param_find("SENSOR_GYRO_XOFF");
+	h->gyro_offset[1] = param_find("SENSOR_GYRO_YOFF");
+	h->gyro_offset[2] = param_find("SENSOR_GYRO_ZOFF");
+
+	/* accel offsets */
+	h->acc_offset[0] = param_find("SENSOR_ACC_XOFF");
+	h->acc_offset[1] = param_find("SENSOR_ACC_YOFF");
+	h->acc_offset[2] = param_find("SENSOR_ACC_ZOFF");
+
+	/* mag offsets */
+	h->mag_offset[0] = param_find("SENSOR_MAG_XOFF");
+	h->mag_offset[1] = param_find("SENSOR_MAG_YOFF");
+	h->mag_offset[2] = param_find("SENSOR_MAG_ZOFF");
+
+	h->battery_voltage_scaling = param_find("BAT_V_SCALING");
+
+	return OK;
+}
+
+static int parameters_update(const struct sensor_parameter_handles *h, struct sensor_parameters *p)
+{
+	const unsigned int nchans = 8;
+
+	/* min values */
+	for (unsigned int i = 0; i < nchans; i++) {
+		param_get(h->min[i], &(p->min[i]));
+	}
+
+	/* trim values */
+	for (unsigned int i = 0; i < nchans; i++) {
+		param_get(h->trim[i], &(p->trim[i]));
+	}
+
+	/* max values */
+	for (unsigned int i = 0; i < nchans; i++) {
+		param_get(h->max[i], &(p->max[i]));
+	}
+
+	/* channel reverse */
+	for (unsigned int i = 0; i < nchans; i++) {
+		param_get(h->rev[i], &(p->rev[i]));
+	}
+
+	/* remote control type */
+	param_get(h->rc_type, &(p->rc_type));
+
+	/* channel mapping */
+	param_get(h->rc_map_roll, &(p->rc_map_roll));
+	param_get(h->rc_map_pitch, &(p->rc_map_pitch));
+	param_get(h->rc_map_yaw, &(p->rc_map_yaw));
+	param_get(h->rc_map_throttle, &(p->rc_map_throttle));
+	param_get(h->rc_map_mode_sw, &(p->rc_map_mode_sw));
+
+	/* gyro offsets */
+	param_get(h->gyro_offset[0], &(p->gyro_offset[0]));
+	param_get(h->gyro_offset[1], &(p->gyro_offset[1]));
+	param_get(h->gyro_offset[2], &(p->gyro_offset[2]));
+
+	/* accel offsets */
+	param_get(h->acc_offset[0], &(p->acc_offset[0]));
+	param_get(h->acc_offset[1], &(p->acc_offset[1]));
+	param_get(h->acc_offset[2], &(p->acc_offset[2]));
+
+	/* mag offsets */
+	param_get(h->mag_offset[0], &(p->mag_offset[0]));
+	param_get(h->mag_offset[1], &(p->mag_offset[1]));
+	param_get(h->mag_offset[2], &(p->mag_offset[2]));
+
+	/* scaling of ADC ticks to battery voltage */
+	param_get(h->battery_voltage_scaling, &(p->battery_voltage_scaling));
+
+	return OK;
+}
 
 /**
  * Initialize all sensor drivers.
@@ -256,7 +446,6 @@ static int sensors_init(void)
 	if (!(fd_accelerometer < 0)) {
 		printf("[sensors]   Accelerometer open ok\n");
 	}
-
 
 	/* only attempt to use BMA180 if MPU-6000 is not available */
 	int errno_bma180 = 0;
@@ -390,6 +579,12 @@ int sensors_thread_main(int argc, char *argv[])
 		fflush(stdout);
 	}
 
+	/* initialize parameters */
+	struct sensor_parameters rcp;
+	struct sensor_parameter_handles rch;
+	parameters_init(&rch);
+	parameters_update(&rch, &rcp);
+
 	bool gyro_healthy = false;
 	bool acc_healthy = false;
 	bool magn_healthy = false;
@@ -431,10 +626,6 @@ int sensors_thread_main(int argc, char *argv[])
 	int16_t buf_magnetometer[7];
 	float	buf_barometer[3];
 
-	int16_t	mag_offset[3] = {0, 0, 0};
-	int16_t acc_offset[3] = {200, 0, 0};
-	int16_t	gyro_offset[3] = {0, 0, 0};
-
 	bool mag_calibration_enabled = false;
 
 	#pragma pack(push,1)
@@ -454,7 +645,7 @@ int sensors_thread_main(int argc, char *argv[])
 	size_t adc_readsize = 1 * sizeof(struct adc_msg4_s);
 
 	float battery_voltage_conversion;
-	battery_voltage_conversion = global_data_parameter_storage->pm.param_values[PARAM_BATTERYVOLTAGE_CONVERSION];
+	battery_voltage_conversion = rcp.battery_voltage_scaling;
 
 	if (-1 == (int)battery_voltage_conversion) {
 		/* default is conversion factor for the PX4IO / PX4IOAR board, the factor for PX4FMU standalone is different */
@@ -533,7 +724,6 @@ int sensors_thread_main(int argc, char *argv[])
 	memset(&vstatus, 0, sizeof(vstatus));
 	int vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 
-
 	printf("[sensors] rate: %u Hz\n", (unsigned int)(1000000 / SENSOR_INTERVAL_MICROSEC));
 
 	struct hrt_call sensors_hrt_call;
@@ -563,10 +753,9 @@ int sensors_thread_main(int argc, char *argv[])
 			uint64_t current_time = hrt_absolute_time();
 			raw.timestamp = current_time;
 
-			if (paramcounter == 100) {
-				// XXX paramcounter is not a good name, rename / restructure
-				// XXX make counter ticks dependent on update rate of sensor main loop
-
+			/* Update at 5 Hz */
+			if (paramcounter == ((unsigned int)(1000000 / SENSOR_INTERVAL_MICROSEC)/5)) {
+				
 				/* Check HIL state */
 				orb_copy(ORB_ID(vehicle_status), vstatus_sub, &vstatus);
 
@@ -592,46 +781,42 @@ int sensors_thread_main(int argc, char *argv[])
 					publishing = true;
 				}
 
+				/* update parameters */
+				parameters_update(&rch, &rcp);
 
 				/* Update RC scalings and function mappings */
-				rc.chan[0].scaling_factor = (1 / ((global_data_parameter_storage->pm.param_values[PARAM_RC1_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC1_MIN]) / 2)
-							     * global_data_parameter_storage->pm.param_values[PARAM_RC1_REV]);
-				rc.chan[0].mid = (uint16_t)global_data_parameter_storage->pm.param_values[PARAM_RC1_TRIM];
+				rc.chan[0].scaling_factor = (1.0f / ((rcp.max[0] - rcp.min[0]) / 2.0f) * rcp.rev[0]);
+				rc.chan[0].mid = rcp.trim[0];
 
-				rc.chan[1].scaling_factor = (1 / ((global_data_parameter_storage->pm.param_values[PARAM_RC2_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC2_MIN]) / 2)
-							     * global_data_parameter_storage->pm.param_values[PARAM_RC2_REV]);
-				rc.chan[1].mid = (uint16_t)global_data_parameter_storage->pm.param_values[PARAM_RC2_TRIM];
+				rc.chan[1].scaling_factor = (1.0f / ((rcp.max[1] - rcp.min[1]) / 2.0f) * rcp.rev[1]);
+				rc.chan[1].mid = rcp.trim[1];
 
-				rc.chan[2].scaling_factor = (1 / ((global_data_parameter_storage->pm.param_values[PARAM_RC3_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC3_MIN]) / 2)
-							     * global_data_parameter_storage->pm.param_values[PARAM_RC3_REV]);
-				rc.chan[2].mid = (uint16_t)global_data_parameter_storage->pm.param_values[PARAM_RC3_TRIM];
+				rc.chan[2].scaling_factor = (1.0f / ((rcp.max[2] - rcp.min[2]) / 2.0f) * rcp.rev[2]);
+				rc.chan[2].mid = rcp.trim[2];
 
-				rc.chan[3].scaling_factor = (1 / ((global_data_parameter_storage->pm.param_values[PARAM_RC4_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC4_MIN]) / 2)
-							     * global_data_parameter_storage->pm.param_values[PARAM_RC4_REV]);
-				rc.chan[3].mid = (uint16_t)global_data_parameter_storage->pm.param_values[PARAM_RC4_TRIM];
+				rc.chan[3].scaling_factor = (1.0f / ((rcp.max[3] - rcp.min[3]) / 2.0f) * rcp.rev[3]);
+				rc.chan[3].mid = rcp.trim[3];
 
-				rc.chan[4].scaling_factor = (1 / ((global_data_parameter_storage->pm.param_values[PARAM_RC5_MAX] - global_data_parameter_storage->pm.param_values[PARAM_RC5_MIN]) / 2)
-							     * global_data_parameter_storage->pm.param_values[PARAM_RC5_REV]);
-				rc.chan[4].mid = (uint16_t)global_data_parameter_storage->pm.param_values[PARAM_RC5_TRIM];
+				rc.chan[4].scaling_factor = (1.0f / ((rcp.max[4] - rcp.min[4]) / 2.0f) * rcp.rev[4]);
+				rc.chan[4].mid = rcp.trim[4];
 
-				rc.function[0] = global_data_parameter_storage->pm.param_values[PARAM_THROTTLE_CHAN] - 1;
-				rc.function[1] = global_data_parameter_storage->pm.param_values[PARAM_ROLL_CHAN] - 1;
-				rc.function[2] = global_data_parameter_storage->pm.param_values[PARAM_PITCH_CHAN] - 1;
-				rc.function[3] = global_data_parameter_storage->pm.param_values[PARAM_YAW_CHAN] - 1;
-				rc.function[4] = global_data_parameter_storage->pm.param_values[PARAM_OVERRIDE_CHAN] - 1;
+				rc.chan[5].scaling_factor = (1.0f / ((rcp.max[5] - rcp.min[5]) / 2.0f) * rcp.rev[5]);
+				rc.chan[5].mid = rcp.trim[5];
 
-				gyro_offset[0] = global_data_parameter_storage->pm.param_values[PARAM_SENSOR_GYRO_XOFFSET];
-				gyro_offset[1] = global_data_parameter_storage->pm.param_values[PARAM_SENSOR_GYRO_YOFFSET];
-				gyro_offset[2] = global_data_parameter_storage->pm.param_values[PARAM_SENSOR_GYRO_ZOFFSET];
+				rc.chan[6].scaling_factor = (1.0f / ((rcp.max[6] - rcp.min[6]) / 2.0f) * rcp.rev[6]);
+				rc.chan[6].mid = rcp.trim[6];
 
-				mag_offset[0] = global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_XOFFSET];
-				mag_offset[1] = global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_YOFFSET];
-				mag_offset[2] = global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_ZOFFSET];
+				rc.chan[7].scaling_factor = (1.0f / ((rcp.max[7] - rcp.min[7]) / 2.0f) * rcp.rev[7]);
+				rc.chan[7].mid = rcp.trim[7];
 
+				rc.function[0] = rcp.rc_map_throttle - 1;
+				rc.function[1] = rcp.rc_map_roll - 1;
+				rc.function[2] = rcp.rc_map_pitch - 1;
+				rc.function[3] = rcp.rc_map_yaw - 1;
+				rc.function[4] = rcp.rc_map_mode_sw - 1;
 
 				paramcounter = 0;
 			}
-
 			paramcounter++;
 
 			if (fd_gyro > 0) {
@@ -959,9 +1144,9 @@ int sensors_thread_main(int argc, char *argv[])
 				/* scale measurements */
 				// XXX request scaling from driver instead of hardcoding it
 				/* scaling calculated as: raw * (1/(32768*(500/180*PI))) */
-				raw.gyro_rad_s[0] = (raw.gyro_raw[0] - gyro_offset[0]) * 0.000266316109f;
-				raw.gyro_rad_s[1] = (raw.gyro_raw[1] - gyro_offset[1]) * 0.000266316109f;
-				raw.gyro_rad_s[2] = (raw.gyro_raw[2] - gyro_offset[2]) * 0.000266316109f;
+				raw.gyro_rad_s[0] = (raw.gyro_raw[0] - rcp.gyro_offset[0]) * 0.000266316109f;
+				raw.gyro_rad_s[1] = (raw.gyro_raw[1] - rcp.gyro_offset[1]) * 0.000266316109f;
+				raw.gyro_rad_s[2] = (raw.gyro_raw[2] - rcp.gyro_offset[2]) * 0.000266316109f;
 
 				raw.gyro_raw_counter++;
 			}
@@ -974,14 +1159,14 @@ int sensors_thread_main(int argc, char *argv[])
 					/* MPU-6000 values */
 
 					/* scale from 14 bit to m/s2 */
-					raw.accelerometer_m_s2[0] = buf_accel_report.x;
-					raw.accelerometer_m_s2[1] = buf_accel_report.y;
-					raw.accelerometer_m_s2[2] = buf_accel_report.z;
+					raw.accelerometer_m_s2[0] = buf_accel_report.x - rcp.acc_offset[0] / 1000.0f;
+					raw.accelerometer_m_s2[1] = buf_accel_report.y - rcp.acc_offset[1] / 1000.0f;
+					raw.accelerometer_m_s2[2] = buf_accel_report.z - rcp.acc_offset[2] / 1000.0f;
 
 					/* assign negated value, except for -SHORT_MAX, as it would wrap there */
-					raw.accelerometer_raw[0] = buf_accel_report.x*1000; // x of the board is -y of the sensor
-					raw.accelerometer_raw[1] = buf_accel_report.y*1000; // y on the board is x of the sensor
-					raw.accelerometer_raw[2] = buf_accel_report.z*1000; // z of the board is z of the sensor
+					raw.accelerometer_raw[0] = buf_accel_report.x * 1000; // x of the board is -y of the sensor
+					raw.accelerometer_raw[1] = buf_accel_report.y * 1000; // y on the board is x of the sensor
+					raw.accelerometer_raw[2] = buf_accel_report.z * 1000; // z of the board is z of the sensor
 
 					raw.accelerometer_raw_counter++;
 				} else if (fd_bma180 > 0) {
@@ -995,9 +1180,9 @@ int sensors_thread_main(int argc, char *argv[])
 					// XXX read range from sensor
 					float range_g = 4.0f;
 					/* scale from 14 bit to m/s2 */
-					raw.accelerometer_m_s2[0] = (((raw.accelerometer_raw[0] - acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
-					raw.accelerometer_m_s2[1] = (((raw.accelerometer_raw[1] - acc_offset[1]) * range_g) / 8192.0f) / 9.81f;
-					raw.accelerometer_m_s2[2] = (((raw.accelerometer_raw[2] - acc_offset[2]) * range_g) / 8192.0f) / 9.81f;
+					raw.accelerometer_m_s2[0] = (((raw.accelerometer_raw[0] - rcp.acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
+					raw.accelerometer_m_s2[1] = (((raw.accelerometer_raw[1] - rcp.acc_offset[1]) * range_g) / 8192.0f) / 9.81f;
+					raw.accelerometer_m_s2[2] = (((raw.accelerometer_raw[2] - rcp.acc_offset[2]) * range_g) / 8192.0f) / 9.81f;
 
 					raw.accelerometer_raw_counter++;
 				}
@@ -1012,9 +1197,9 @@ int sensors_thread_main(int argc, char *argv[])
 					/* scale measurements */
 					// XXX request scaling from driver instead of hardcoding it
 					/* scaling calculated as: raw * (1/(32768*(500/180*PI))) */
-					raw.gyro_rad_s[0] = (raw.gyro_raw[0] - gyro_offset[0]) * 0.000266316109f;
-					raw.gyro_rad_s[1] = (raw.gyro_raw[1] - gyro_offset[1]) * 0.000266316109f;
-					raw.gyro_rad_s[2] = (raw.gyro_raw[2] - gyro_offset[2]) * 0.000266316109f;
+					raw.gyro_rad_s[0] = (raw.gyro_raw[0] - rcp.gyro_offset[0]) * 0.000266316109f;
+					raw.gyro_rad_s[1] = (raw.gyro_raw[1] - rcp.gyro_offset[1]) * 0.000266316109f;
+					raw.gyro_rad_s[2] = (raw.gyro_raw[2] - rcp.gyro_offset[2]) * 0.000266316109f;
 
 					raw.gyro_raw_counter++;
 					/* mark as updated */
@@ -1032,9 +1217,9 @@ int sensors_thread_main(int argc, char *argv[])
 				raw.magnetometer_raw[2] = (buf_magnetometer[2] == -32768) ? -32768 : buf_magnetometer[2]; // z of the board is z of the sensor
 
 				// XXX Read out mag range via I2C on init, assuming 0.88 Ga and 12 bit res here
-				raw.magnetometer_ga[0] = ((raw.magnetometer_raw[0] - mag_offset[0]) / 4096.0f) * 0.88f;
-				raw.magnetometer_ga[1] = ((raw.magnetometer_raw[1] - mag_offset[1]) / 4096.0f) * 0.88f;
-				raw.magnetometer_ga[2] = ((raw.magnetometer_raw[2] - mag_offset[2]) / 4096.0f) * 0.88f;
+				raw.magnetometer_ga[0] = ((raw.magnetometer_raw[0] - rcp.mag_offset[0]) / 4096.0f) * 0.88f;
+				raw.magnetometer_ga[1] = ((raw.magnetometer_raw[1] - rcp.mag_offset[1]) / 4096.0f) * 0.88f;
+				raw.magnetometer_ga[2] = ((raw.magnetometer_raw[2] - rcp.mag_offset[2]) / 4096.0f) * 0.88f;
 
 				/* store mode */
 				raw.magnetometer_mode = buf_magnetometer[3];
