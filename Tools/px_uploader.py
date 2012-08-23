@@ -111,8 +111,8 @@ class uploader(object):
 	READ_MULTI_MAX	= 60		# protocol max is 255, something overflows with >= 64
 
 	def __init__(self, portname, baudrate):
-		# open the port
-		self.port = serial.Serial(portname, baudrate, timeout=10)
+		# open the port, keep the default timeout short so we can poll quickly
+		self.port = serial.Serial(portname, baudrate, timeout=0.25)
 
 	def close(self):
 		if self.port is not None:
@@ -171,7 +171,11 @@ class uploader(object):
 	def __erase(self):
 		self.__send(uploader.CHIP_ERASE 
 				+ uploader.EOC)
+		# erase is very slow, give it 10s
+		old_timeout = self.port.timeout
+		self.port.timeout = 10
 		self.__getSync()
+		self.port.timeout = old_timeout
 
 	# send a PROG_MULTI command to write a collection of bytes
 	def __program_multi(self, data):
