@@ -196,11 +196,29 @@ struct stm32_trace_s
   uint32_t time;               /* First of event or first status */
 };
 
+/* I2C Device hardware configuration */
+
+struct stm32_i2c_config_s
+{
+  uint32_t    base;        /* I2C base address */
+#ifndef CONFIG_I2C_POLLED
+  int         ( *isr)(int, void *); /* Interrupt handler */
+#endif
+  uint32_t    clk_bit;     /* Clock enable bit */
+  uint32_t    reset_bit;   /* Reset bit */
+  uint32_t    scl_pin;     /* GPIO configuration for SCL as SCL */
+  uint32_t    scl_gpio;    /* GPIO configuration for SCL as a GPIO */
+  uint32_t    sda_pin;     /* GPIO configuration for SDA as SDA */
+  uint32_t    sda_gpio;    /* GPIO configuration for SDA as a GPIO */
+  uint32_t    ev_irq;      /* Event IRQ */
+  uint32_t    er_irq;      /* Error IRQ */
+};
+
 /* I2C Device Private Data */
 
 struct stm32_i2c_priv_s
 {
-  uint32_t    base;        /* I2C base address */
+  const struct stm32_i2c_config_s *config; /* Port configuration */
   int         refs;        /* Referernce count */
   sem_t       sem_excl;    /* Mutual exclusion semaphore */
 #ifndef CONFIG_I2C_POLLED
@@ -311,9 +329,32 @@ static int stm32_i2c_transfer(FAR struct i2c_dev_s *dev, FAR struct i2c_msg_s *m
  ************************************************************************************/
 
 #ifdef CONFIG_STM32_I2C1
-struct stm32_i2c_priv_s stm32_i2c1_priv =
+# ifndef GPIO_I2C1_SCL_GPIO
+#  define  GPIO_I2C1_SCL_GPIO 0
+# endif
+# ifndef GPIO_I2C1_SDA_GPIO
+#  define  GPIO_I2C1_SDA_GPIO 0
+# endif
+
+static const struct stm32_i2c_config_s stm32_i2c1_config = 
 {
   .base       = STM32_I2C1_BASE,
+#ifndef CONFIG_I2C_POLLED
+  .isr        = stm32_i2c1_isr,
+#endif
+  .clk_bit    = RCC_APB1ENR_I2C1EN,
+  .reset_bit  = RCC_APB1RSTR_I2C1RST,
+  .scl_pin    = GPIO_I2C1_SCL,
+  .scl_gpio   = GPIO_I2C1_SCL_GPIO,
+  .sda_pin    = GPIO_I2C1_SDA,
+  .sda_gpio   = GPIO_I2C1_SDA_GPIO,
+  .ev_irq     = STM32_IRQ_I2C1EV,
+  .er_irq     = STM32_IRQ_I2C1ER
+};
+
+struct stm32_i2c_priv_s stm32_i2c1_priv =
+{
+  .config     = &stm32_i2c1_config,
   .refs       = 0,
   .intstate   = INTSTATE_IDLE,
   .msgc       = 0,
@@ -326,9 +367,32 @@ struct stm32_i2c_priv_s stm32_i2c1_priv =
 #endif
 
 #ifdef CONFIG_STM32_I2C2
-struct stm32_i2c_priv_s stm32_i2c2_priv =
+# ifndef GPIO_I2C2_SCL_GPIO
+#  define  GPIO_I2C2_SCL_GPIO 0
+# endif
+# ifndef GPIO_I2C2_SDA_GPIO
+#  define  GPIO_I2C2_SDA_GPIO 0
+# endif
+
+static const struct stm32_i2c_config_s stm32_i2c2_config = 
 {
   .base       = STM32_I2C2_BASE,
+#ifndef CONFIG_I2C_POLLED  
+  .isr        = stm32_i2c2_isr,
+#endif
+  .clk_bit    = RCC_APB1ENR_I2C2EN,
+  .reset_bit  = RCC_APB1RSTR_I2C2RST,
+  .scl_pin    = GPIO_I2C2_SCL,
+  .scl_gpio   = GPIO_I2C2_SCL_GPIO,
+  .sda_pin    = GPIO_I2C2_SDA,
+  .sda_gpio   = GPIO_I2C2_SDA_GPIO,
+  .ev_irq     = STM32_IRQ_I2C2EV,
+  .er_irq     = STM32_IRQ_I2C2ER
+};
+
+struct stm32_i2c_priv_s stm32_i2c2_priv =
+{
+  .config     = &stm32_i2c2_config,
   .refs       = 0,
   .intstate   = INTSTATE_IDLE,
   .msgc       = 0,
@@ -341,9 +405,32 @@ struct stm32_i2c_priv_s stm32_i2c2_priv =
 #endif
 
 #ifdef CONFIG_STM32_I2C3
-struct stm32_i2c_priv_s stm32_i2c3_priv =
+# ifndef GPIO_I2C3_SCL_GPIO
+#  define  GPIO_I2C3_SCL_GPIO 0
+# endif
+# ifndef GPIO_I2C3_SDA_GPIO
+#  define  GPIO_I2C3_SDA_GPIO 0
+# endif
+
+static const struct stm32_i2c_config_s stm32_i2c3_config = 
 {
   .base       = STM32_I2C3_BASE,
+#ifndef CONFIG_I2C_POLLED
+  .isr        = stm32_i2c3_isr,
+#endif
+  .clk_bit    = RCC_APB1ENR_I2C3EN,
+  .reset_bit  = RCC_APB1RSTR_I2C3RST,
+  .scl_pin    = GPIO_I2C3_SCL,
+  .scl_gpio   = GPIO_I2C3_SCL_GPIO,
+  .sda_pin    = GPIO_I2C3_SDA,
+  .sda_gpio   = GPIO_I2C3_SDA_GPIO,
+  .ev_irq     = STM32_IRQ_I2C3EV,
+  .er_irq     = STM32_IRQ_I2C3ER
+};
+
+struct stm32_i2c_priv_s stm32_i2c3_priv =
+{
+  .config     = &stm32_i2c3_config,
   .refs       = 0,
   .intstate   = INTSTATE_IDLE,
   .msgc       = 0,
@@ -354,7 +441,6 @@ struct stm32_i2c_priv_s stm32_i2c3_priv =
   .status     = 0
 };
 #endif
-
 
 /* Device Structures, Instantiation */
 
@@ -391,7 +477,7 @@ struct i2c_ops_s stm32_i2c_ops =
 static inline uint16_t stm32_i2c_getreg(FAR struct stm32_i2c_priv_s *priv,
                                         uint8_t offset)
 {
-  return getreg16(priv->base + offset);
+  return getreg16(priv->config->base + offset);
 }
 
 /************************************************************************************
@@ -405,7 +491,7 @@ static inline uint16_t stm32_i2c_getreg(FAR struct stm32_i2c_priv_s *priv,
 static inline void stm32_i2c_putreg(FAR struct stm32_i2c_priv_s *priv, uint8_t offset,
                                     uint16_t value)
 {
-  putreg16(value, priv->base + offset);
+  putreg16(value, priv->config->base + offset);
 }
 
 /************************************************************************************
@@ -420,7 +506,7 @@ static inline void stm32_i2c_modifyreg(FAR struct stm32_i2c_priv_s *priv,
                                        uint8_t offset, uint16_t clearbits,
                                        uint16_t setbits)
 {
-  modifyreg16(priv->base + offset, clearbits, setbits);
+  modifyreg16(priv->config->base + offset, clearbits, setbits);
 }
 
 /************************************************************************************
@@ -986,7 +1072,7 @@ static inline uint32_t stm32_i2c_disablefsmc(FAR struct stm32_i2c_priv_s *priv)
   /* Is this I2C1 */
 
 #ifdef CONFIG_STM32_I2C2
-  if (priv->base == STM32_I2C1_BASE)
+  if (priv->config->base == STM32_I2C1_BASE)
 #endif
     {
       /* Disable FSMC unconditionally */
@@ -1310,113 +1396,34 @@ static int stm32_i2c_init(FAR struct stm32_i2c_priv_s *priv)
 {
   /* Power-up and configure GPIOs */
 
-  switch (priv->base)
-    {
-#ifdef CONFIG_STM32_I2C1
-      case STM32_I2C1_BASE:
+  /* Enable power and reset the peripheral */
 
-        /* Enable power and reset the peripheral */
+  modifyreg32(STM32_RCC_APB1ENR, 0, priv->config->clk_bit);
 
-        modifyreg32(STM32_RCC_APB1ENR, 0, RCC_APB1ENR_I2C1EN);
+  modifyreg32(STM32_RCC_APB1RSTR, 0, priv->config->reset_bit);
+  modifyreg32(STM32_RCC_APB1RSTR, priv->config->reset_bit, 0);
 
-        modifyreg32(STM32_RCC_APB1RSTR, 0, RCC_APB1RSTR_I2C1RST);
-        modifyreg32(STM32_RCC_APB1RSTR, RCC_APB1RSTR_I2C1RST, 0);
-
-        /* Configure pins */
-            
-        if (stm32_configgpio(GPIO_I2C1_SCL) < 0)
-          {
-            return ERROR;
-          }
-
-        if (stm32_configgpio(GPIO_I2C1_SDA) < 0)
-          {
-            stm32_unconfiggpio(GPIO_I2C1_SCL);
-            return ERROR;
-          }
-
-        /* Attach ISRs */
-            
-#ifndef CONFIG_I2C_POLLED
-        irq_attach(STM32_IRQ_I2C1EV, stm32_i2c1_isr);
-        irq_attach(STM32_IRQ_I2C1ER, stm32_i2c1_isr);
-        up_enable_irq(STM32_IRQ_I2C1EV);
-        up_enable_irq(STM32_IRQ_I2C1ER);
-#endif
-        break;
-#endif
+  /* Configure pins */
       
-#ifdef CONFIG_STM32_I2C2
-      case STM32_I2C2_BASE:
-
-        /* Enable power and reset the peripheral */
-
-        modifyreg32(STM32_RCC_APB1ENR, 0, RCC_APB1ENR_I2C2EN);
-
-        modifyreg32(STM32_RCC_APB1RSTR, 0, RCC_APB1RSTR_I2C2RST);
-        modifyreg32(STM32_RCC_APB1RSTR, RCC_APB1RSTR_I2C2RST, 0);
-
-        /* Configure pins */
-
-        if (stm32_configgpio(GPIO_I2C2_SCL) < 0)
-          {
-            return ERROR;
-          }
-
-        if (stm32_configgpio(GPIO_I2C2_SDA) < 0)
-          {
-            stm32_unconfiggpio(GPIO_I2C2_SCL);
-            return ERROR;
-          }
-
-        /* Attach ISRs */
-
-#ifndef CONFIG_I2C_POLLED
-        irq_attach(STM32_IRQ_I2C2EV, stm32_i2c2_isr);
-        irq_attach(STM32_IRQ_I2C2ER, stm32_i2c2_isr);
-        up_enable_irq(STM32_IRQ_I2C2EV);
-        up_enable_irq(STM32_IRQ_I2C2ER);
-#endif
-        break;
-#endif
-
-#ifdef CONFIG_STM32_I2C3
-      case STM32_I2C3_BASE:
-
-        /* Enable power and reset the peripheral */
-
-        modifyreg32(STM32_RCC_APB1ENR, 0, RCC_APB1ENR_I2C3EN);
-
-        modifyreg32(STM32_RCC_APB1RSTR, 0, RCC_APB1RSTR_I2C3RST);
-        modifyreg32(STM32_RCC_APB1RSTR, RCC_APB1RSTR_I2C3RST, 0);
-
-        /* Configure pins */
-
-        if (stm32_configgpio(GPIO_I2C3_SCL) < 0)
-          {
-            return ERROR;
-          }
-
-        if (stm32_configgpio(GPIO_I2C3_SDA) < 0)
-          {
-            stm32_unconfiggpio(GPIO_I2C3_SCL);
-            return ERROR;
-          }
-
-        /* Attach ISRs */
-
-#ifndef CONFIG_I2C_POLLED
-        irq_attach(STM32_IRQ_I2C3EV, stm32_i2c3_isr);
-        irq_attach(STM32_IRQ_I2C3ER, stm32_i2c3_isr);
-        up_enable_irq(STM32_IRQ_I2C3EV);
-        up_enable_irq(STM32_IRQ_I2C3ER);
-#endif
-        break;
-#endif
-
-      default:
-        return ERROR;
+  if (stm32_configgpio(priv->config->scl_pin) < 0)
+    {
+      return ERROR;
     }
+
+  if (stm32_configgpio(priv->config->sda_pin) < 0)
+    {
+      stm32_unconfiggpio(priv->config->scl_pin);
+      return ERROR;
+    }
+
+  /* Attach ISRs */
+            
+#ifndef CONFIG_I2C_POLLED
+        irq_attach(priv->config->ev_irq, priv->config->isr);
+        irq_attach(priv->config->er_irq, priv->config->isr);
+        up_enable_irq(priv->config->ev_irq);
+        up_enable_irq(priv->config->er_irq);
+#endif
 
   /* Set peripheral frequency, where it must be at least 2 MHz  for 100 kHz
    * or 4 MHz for 400 kHz.  This also disables all I2C interrupts.
@@ -1445,56 +1452,16 @@ static int stm32_i2c_deinit(FAR struct stm32_i2c_priv_s *priv)
 
   stm32_i2c_putreg(priv, STM32_I2C_CR1_OFFSET, 0);
 
-  switch (priv->base)
-    {
-#ifdef CONFIG_STM32_I2C1
-      case STM32_I2C1_BASE:
-        stm32_unconfiggpio(GPIO_I2C1_SCL);
-        stm32_unconfiggpio(GPIO_I2C1_SDA);
+  stm32_unconfiggpio(priv->config->scl_pin);
+  stm32_unconfiggpio(priv->config->sda_pin);
 
 #ifndef CONFIG_I2C_POLLED
-        up_disable_irq(STM32_IRQ_I2C1EV);
-        up_disable_irq(STM32_IRQ_I2C1ER);
-        irq_detach(STM32_IRQ_I2C1EV);
-        irq_detach(STM32_IRQ_I2C1ER);
+  up_disable_irq(priv->config->ev_irq);
+  up_disable_irq(priv->config->er_irq);
+  irq_detach(priv->config->ev_irq);
+  irq_detach(priv->config->er_irq);
 #endif
-        modifyreg32(STM32_RCC_APB1ENR, RCC_APB1ENR_I2C1EN, 0);
-        break;
-#endif
-      
-#ifdef CONFIG_STM32_I2C2
-      case STM32_I2C2_BASE:
-        stm32_unconfiggpio(GPIO_I2C2_SCL);
-        stm32_unconfiggpio(GPIO_I2C2_SDA);
-
-#ifndef CONFIG_I2C_POLLED
-        up_disable_irq(STM32_IRQ_I2C2EV);
-        up_disable_irq(STM32_IRQ_I2C2ER);
-        irq_detach(STM32_IRQ_I2C2EV);
-        irq_detach(STM32_IRQ_I2C2ER);
-#endif
-        modifyreg32(STM32_RCC_APB1ENR, RCC_APB1ENR_I2C2EN, 0);
-        break;
-#endif
-
-#ifdef CONFIG_STM32_I2C3
-      case STM32_I2C3_BASE:
-        stm32_unconfiggpio(GPIO_I2C3_SCL);
-        stm32_unconfiggpio(GPIO_I2C3_SDA);
-
-#ifndef CONFIG_I2C_POLLED
-        up_disable_irq(STM32_IRQ_I2C3EV);
-        up_disable_irq(STM32_IRQ_I2C3ER);
-        irq_detach(STM32_IRQ_I2C3EV);
-        irq_detach(STM32_IRQ_I2C3ER);
-#endif
-        modifyreg32(STM32_RCC_APB1ENR, RCC_APB1ENR_I2C3EN, 0);
-        break;
-#endif
-        
-      default:
-        return ERROR;
-    }
+  modifyreg32(STM32_RCC_APB1ENR, priv->config->clk_bit, 0);
 
   return OK;
 }
@@ -1979,159 +1946,119 @@ int up_i2cuninitialize(FAR struct i2c_dev_s * dev)
 
 int up_i2creset(FAR struct i2c_dev_s * dev)
 {
-  // ASSERT(dev);
-  
-  // stm32_i2c_sem_wait(dev);   /* ensure that address or flags don't change meanwhile */
+  struct stm32_i2c_priv_s * priv;
+  unsigned clock_count;
+  unsigned stretch_count;
+  int ret = ERROR;
+  irqstate_t state;
 
-  // struct stm32_i2c_inst_s     *inst = (struct stm32_i2c_inst_s *)dev;
-  // FAR struct stm32_i2c_priv_s *priv = inst->priv;
-
-  // /* Clear any pending error interrupts */
-
-  // stm32_i2c_putreg(priv, STM32_I2C_SR1_OFFSET, 0);
-
-  // /* "Note: When the STOP, START or PEC bit is set, the software must
-  //  *  not perform any write access to I2C_CR1 before this bit is
-  //  *  cleared by hardware. Otherwise there is a risk of setting a
-  //  *  second STOP, START or PEC request."  However, if the bits are
-  //  *  not cleared by hardware, then we will have to do that from hardware.
-  //  */
-
-  // stm32_i2c_clrstart(priv);
-
-  //   /* Reset peripheral */
-  // uint16_t cr1 = stm32_i2c_getreg(priv, STM32_I2C_CR1_OFFSET);
-  // /* Set reset flag */
-  // cr1 &= I2C_CR1_SWRST;
-  // stm32_i2c_putreg(priv, STM32_I2C_CR1_OFFSET, cr1);
-  // /* Clear CR1 */
-  // stm32_i2c_putreg(priv, STM32_I2C_CR1_OFFSET, 0);
-
-  // switch (priv->base)
-  // {
-  //   case STM32_I2C1_BASE:
-  //     modifyreg32(STM32_RCC_APB1RSTR, 0, RCC_APB1RSTR_I2C1RST);
-  //     modifyreg32(STM32_RCC_APB1RSTR, RCC_APB1RSTR_I2C1RST, 0);
-  //     break;
-  //   case STM32_I2C2_BASE:
-  //     modifyreg32(STM32_RCC_APB1RSTR, 0, RCC_APB1RSTR_I2C2RST);
-  //     modifyreg32(STM32_RCC_APB1RSTR, RCC_APB1RSTR_I2C2RST, 0);
-  //     break;
-  //   case STM32_I2C3_BASE:
-  //     modifyreg32(STM32_RCC_APB1RSTR, 0, RCC_APB1RSTR_I2C3RST);
-  //     modifyreg32(STM32_RCC_APB1RSTR, RCC_APB1RSTR_I2C3RST, 0);
-  //     break;
-  // }
-
-
-
-  // stm32_i2c_putreg(priv, STM32_I2C_CR2_OFFSET, (STM32_PCLK1_FREQUENCY / 1000000));
-  // stm32_i2c_setclock(priv, inst->frequency);
-  // inst->flags = 0;
-        
-  // /* Enable I2C */
-    
-  // stm32_i2c_putreg(priv, STM32_I2C_CR1_OFFSET, I2C_CR1_PE);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  int irqs;
-    
   ASSERT(dev);
-    
-  /* Decrement refs and check for underflow */
-    
-  if (((struct stm32_i2c_inst_s *)dev)->priv->refs == 0) 
-    {
-      return ERROR;
-    }
 
-  irqs = irqsave();
-
-  irqrestore(irqs);
-
-  /* Disable power and other HW resource (GPIO's) */
-
-  //stm32_i2c_deinit( ((struct stm32_i2c_inst_s *)dev)->priv );
-
-  /* Release unused resources */
-
-  //stm32_i2c_sem_destroy( (struct i2c_dev_s *)dev );
-  
-  struct stm32_i2c_priv_s * priv = NULL;  /* private data of device with multiple instances */
-  struct stm32_i2c_inst_s * inst = NULL;  /* device, single instance */
-
-#if STM32_PCLK1_FREQUENCY < 4000000
-#   warning STM32_I2C_INIT: Peripheral clock must be at least 4 MHz to support 400 kHz operation.
-#endif
-
-#if STM32_PCLK1_FREQUENCY < 2000000
-#   warning STM32_I2C_INIT: Peripheral clock must be at least 2 MHz to support 100 kHz operation.
-    return NULL;
-#endif
-    
   /* Get I2C private structure */
 
-    priv = ((struct stm32_i2c_inst_s *)dev)->priv;
+  priv = ((struct stm32_i2c_inst_s *)dev)->priv;
 
-//   switch (port)
-//     {
-// #ifdef CONFIG_STM32_I2C1
-//       case 1:
-//         priv = (struct stm32_i2c_priv_s *)&stm32_i2c1_priv;
-//         break;
-// #endif
-// #ifdef CONFIG_STM32_I2C2
-//       case 2:
-//         priv = (struct stm32_i2c_priv_s *)&stm32_i2c2_priv;
-//         break;
-// #endif
-// #ifdef CONFIG_STM32_I2C3
-//       case 3:
-//         priv = (struct stm32_i2c_priv_s *)&stm32_i2c3_priv;
-//         break;
-// #endif
-//       default:
-//         return NULL;
-//     }
+  /* Our caller must own a ref */
 
-  /* Allocate instance */
-  inst = (struct stm32_i2c_inst_s *)dev;
+  ASSERT(priv->refs > 0);
 
-  /* Initialize instance */
+  /* Lock out other clients */
 
-  inst->ops       = &stm32_i2c_ops;
-  inst->priv      = priv;
-  inst->frequency = 100000;
-  inst->address   = 0;
-  inst->flags     = 0;
+  stm32_i2c_sem_wait(dev);
 
-  /* Init private data for the first time, increment refs count,
-   * power-up hardware and configure GPIOs. 
-   */
-    
-  irqs = irqsave();
-    
-  if ((volatile int)priv->refs++ == 0)
+  /* De-init the port */
+
+  stm32_i2c_deinit(priv);
+
+  /* If possible, use GPIO configuration to un-wedge the bus */
+
+  if ((priv->config->scl_gpio != 0) && (priv->config->sda_gpio != 0))
     {
-      stm32_i2c_sem_init( (struct i2c_dev_s *)inst );
-      stm32_i2c_init( priv );
+      stm32_configgpio(priv->config->scl_gpio);
+      stm32_configgpio(priv->config->sda_gpio);
+
+      /*
+       * Clock the bus until any slaves currently driving it let it go.
+       */
+
+      clock_count = 0;
+      while (!stm32_gpioread(priv->config->sda_gpio)) 
+        {
+
+          /* Give up if we have tried too hard */
+
+          if (clock_count++ > 1000)
+            { 
+              goto out;
+            }
+
+          /*
+           * Sniff to make sure that clock stretching has finished.
+           *
+           * If the bus never relaxes, the reset has failed.
+           */
+
+          stretch_count = 0;
+          while (!stm32_gpioread(priv->config->scl_gpio))
+            { 
+
+              /* Give up if we have tried too hard */
+
+              if (stretch_count++ > 1000)
+                { 
+                  goto out;
+                }
+
+              up_udelay(10);
+
+            }
+
+            /* Drive SCL low */
+
+            stm32_gpiowrite(priv->config->scl_gpio, 0);
+            up_udelay(10);
+
+            /* Drive SCL high again */
+
+            stm32_gpiowrite(priv->config->scl_gpio, 1);
+            up_udelay(10);
+
+        }
+
+      /*
+       * Generate a start followed by a stop to reset slave
+       * state machines.
+       */
+
+      stm32_gpiowrite(priv->config->sda_gpio, 0);
+      up_udelay(10);
+      stm32_gpiowrite(priv->config->scl_gpio, 0);
+      up_udelay(10);
+      stm32_gpiowrite(priv->config->scl_gpio, 1);
+      up_udelay(10);
+      stm32_gpiowrite(priv->config->sda_gpio, 1);
+      up_udelay(10);
+
+      /*
+       * Revert the GPIO configuration.
+       */
+      stm32_unconfiggpio(priv->config->sda_gpio);
+      stm32_unconfiggpio(priv->config->scl_gpio);
+
     }
-    
-  irqrestore(irqs);
-  return OK;
+
+  /* Re-init the port */
+
+  stm32_i2c_init(priv);
+  ret = OK;
+
+out:
+
+  /* release the port for re-use by other clients */
+
+  stm32_i2c_sem_post(dev);
+
+  return ret;
 }
 
-#endif /* defined(CONFIG_STM32_I2C1) && defined(CONFIG_STM32_I2C2) */
+#endif /* defined(CONFIG_STM32_I2C1) || defined(CONFIG_STM32_I2C2) || defined(CONFIG_STM32_I2C3) */

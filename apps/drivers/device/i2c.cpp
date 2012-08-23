@@ -53,6 +53,7 @@ I2C::I2C(const char *name,
 	CDev(name, devname, irq),
 	// public
 	// protected
+	_retries(0),
 	// private
 	_bus(bus),
 	_address(address),
@@ -117,33 +118,44 @@ I2C::transfer(uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len
 	struct i2c_msg_s msgv[2];
 	unsigned msgs;
 	int ret;
+	unsigned tries;
 
-//	debug("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
+	do {
+	//	debug("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
 
-	msgs = 0;
+		msgs = 0;
 
-	if (send_len > 0) {
-		msgv[msgs].addr = _address;
-		msgv[msgs].flags = 0;
-		msgv[msgs].buffer = send;
-		msgv[msgs].length = send_len;
-		msgs++;
-	}
+		if (send_len > 0) {
+			msgv[msgs].addr = _address;
+			msgv[msgs].flags = 0;
+			msgv[msgs].buffer = send;
+			msgv[msgs].length = send_len;
+			msgs++;
+		}
 
-	if (recv_len > 0) {
-		msgv[msgs].addr = _address;
-		msgv[msgs].flags = I2C_M_READ;
-		msgv[msgs].buffer = recv;
-		msgv[msgs].length = recv_len;
-		msgs++;
-	}
+		if (recv_len > 0) {
+			msgv[msgs].addr = _address;
+			msgv[msgs].flags = I2C_M_READ;
+			msgv[msgs].buffer = recv;
+			msgv[msgs].length = recv_len;
+			msgs++;
+		}
 
-	if (msgs == 0)
-		return -EINVAL;
+		if (msgs == 0)
+			return -EINVAL;
 
-	ret = I2C_TRANSFER(_dev, &msgv[0], msgs);
+		ret = I2C_TRANSFER(_dev, &msgv[0], msgs);
+
+		if (ret == OK)
+			break;
+		
+		// reset the I2C bus to unwedge on error
+		up_i2creset(_dev);
+
+	} while (tries++ < _retries);
 
 	return ret;
+
 }
 
 } // namespace device
