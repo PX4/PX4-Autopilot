@@ -75,9 +75,15 @@
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <systemlib/param/param.h>
+
 #include "waypoints.h"
 #include "mavlink_log.h"
 
+/* define MAVLink specific parameters */
+PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
+PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
+PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_GENERIC);
 
 __EXPORT int mavlink_main(int argc, char *argv[]);
 int mavlink_thread_main(int argc, char *argv[]);
@@ -90,8 +96,7 @@ static int mavlink_task;
 static bool mavlink_link_termination_allowed = false;
 static bool mavlink_exit_requested = false;
 
-static int system_type = MAV_TYPE_FIXED_WING;
-mavlink_system_t mavlink_system = {100, 50, 0, 0, 0, 0}; // System ID, 1-255, Component/Subsystem ID, 1-255
+mavlink_system_t mavlink_system = {100, 50, MAV_TYPE_FIXED_WING, 0, 0, 0}; // System ID, 1-255, Component/Subsystem ID, 1-255
 static uint8_t chan = MAVLINK_COMM_0;
 static mavlink_status_t status;
 
@@ -531,7 +536,7 @@ static void *uorb_receiveloop(void *arg)
 	struct mavlink_subscriptions *subs = (struct mavlink_subscriptions *)arg;
 
 	/* Set thread name */
-	prctl(PR_SET_NAME, "mavlink uORB", getpid());
+	prctl(PR_SET_NAME, "mavlink orb rcv", getpid());
 
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
@@ -787,7 +792,7 @@ static void *uorb_receiveloop(void *arg)
 				get_mavlink_mode_and_state(&v_status, &mavlink_state, &mavlink_mode);
 
 				/* send heartbeat */
-				mavlink_msg_heartbeat_send(chan, system_type, MAV_AUTOPILOT_GENERIC, mavlink_mode, v_status.state_machine, mavlink_state);
+				mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.state_machine, mavlink_state);
 			}
 
 			/* --- RC CHANNELS --- */
@@ -1080,7 +1085,7 @@ void handleMessage(mavlink_message_t *msg)
 			|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
 			//check for MAVLINK terminate command
 			if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
-				/* This is the link shutdown command, terminate mavlink */ //TODO: check what happens with global_data buffers that are read by the mavlink app
+				/* This is the link shutdown command, terminate mavlink */
 				printf("[mavlink] Terminating .. \n");
 				fflush(stdout);
 				usleep(50000);
@@ -1250,63 +1255,6 @@ void handleMessage(mavlink_message_t *msg)
 			hil_attitude.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(vehicle_attitude), pub_hil_attitude, &hil_attitude);
 		}
-
-		// 	if (msg->msgid == MAVLINK_MSG_ID_ATTITUDE) {
-		// 		mavlink_attitude_t att;
-		// 		mavlink_msg_attitude_decode(msg, &att);
-		// 		float RAD2DEG = 57.3f;
-
-		// //		printf("\n\n\n ATTITUDE \n\n\n %i \n", (int)(1000*att.rollspeed));
-
-		// 		global_data_lock(&global_data_attitude->access_conf);
-		// 		global_data_attitude->roll = RAD2DEG * att.roll;
-		// 		global_data_attitude->pitch = RAD2DEG * att.pitch;
-		// 		global_data_attitude->yaw = RAD2DEG * att.yaw;
-		// 		global_data_attitude->rollspeed = att.rollspeed;
-		// 		global_data_attitude->pitchspeed = att.pitchspeed;
-		// 		global_data_attitude->yawspeed = att.yawspeed;
-
-		// 		global_data_attitude->counter++;
-		// 		global_data_attitude->timestamp = hrt_absolute_time();
-		// 		global_data_unlock(&global_data_attitude->access_conf);
-		// 		global_data_broadcast(&global_data_attitude->access_conf);
-		// 	}
-
-		// 	if (msg->msgid == MAVLINK_MSG_ID_RAW_IMU) {
-		// 		mavlink_raw_imu_t imu;
-		// 		mavlink_msg_raw_imu_decode(msg, &imu);
-
-		// //		printf("\n\n\n RAW_IMU : %i \n %i \n %i \n %i \n %i \n %i \n\n\n", (int)(1000*imu.xgyro),
-		// //						(int)(1000*imu.ygyro), (int)(1000*imu.zgyro));
-
-		// 		global_data_lock(&global_data_attitude->access_conf);
-		// 		global_data_attitude->rollspeed = 1000 * imu.xgyro;
-		// 		global_data_attitude->pitchspeed = 1000 * imu.ygyro;
-		// 		global_data_attitude->yawspeed = 1000 * imu.zgyro;
-
-		// 		global_data_attitude->counter++;
-		// 		global_data_attitude->timestamp = hrt_absolute_time();
-		// 		global_data_unlock(&global_data_attitude->access_conf);
-		// 		global_data_broadcast(&global_data_attitude->access_conf);
-		// 	}
-
-		// 	if (msg->msgid == MAVLINK_MSG_ID_SCALED_IMU) {
-		// 		mavlink_raw_imu_t imu;
-		// 		mavlink_msg_raw_imu_decode(msg, &imu);
-
-		// //		printf("\n\n\n SCALED_IMU : %i \n %i \n %i \n %i \n %i \n %i \n\n\n", (int)(1000*imu.xgyro),
-		// //				(int)(1000*imu.ygyro), (int)(1000*imu.zgyro));
-
-		// 		global_data_lock(&global_data_attitude->access_conf);
-		// 		global_data_attitude->rollspeed = 1000 * imu.xgyro;
-		// 		global_data_attitude->pitchspeed = 1000 * imu.ygyro;
-		// 		global_data_attitude->yawspeed = 1000 * imu.zgyro;
-
-		// 		global_data_attitude->counter++;
-		// 		global_data_attitude->timestamp = hrt_absolute_time();
-		// 		global_data_unlock(&global_data_attitude->access_conf);
-		// 		global_data_broadcast(&global_data_attitude->access_conf);
-		// 	}
 	}
 }
 
@@ -1483,6 +1431,11 @@ int mavlink_thread_main(int argc, char *argv[])
 	/* Flush UART */
 	fflush(stdout);
 
+	/* Initialize system properties */
+	param_t param_system_id = param_find("MAV_SYS_ID");
+	param_t param_component_id = param_find("MAV_COMP_ID");
+	param_t param_system_type = param_find("MAV_TYPE");
+
 	/* topics to subscribe globally */
 	/* subscribe to ORB for global position */
 	mavlink_subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
@@ -1507,7 +1460,8 @@ int mavlink_thread_main(int argc, char *argv[])
 	mavlink_wpm_init(wpm);
 
 	uint16_t counter = 0;
-	int lowspeed_counter = 0;
+	/* arm counter to go off immediately */
+	int lowspeed_counter = 10;
 
 	/* make sure all threads have registered their subscriptions */
 	while (!mavlink_subs.initialized) {
@@ -1565,21 +1519,34 @@ int mavlink_thread_main(int argc, char *argv[])
 		orb_copy(ORB_ID(vehicle_global_position), mavlink_subs.global_pos_sub, &global_pos);
 		orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
 
-		/* check if waypoint has been reached against the last positions */
-		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
-
-		// sleep
-		usleep(50000);
-
-		// 1 Hz
+		/* 1 Hz */
 		if (lowspeed_counter == 10) {
+			/* update system and component id */
+			int32_t system_id;
+			param_get(param_system_id, &system_id);
+			if (system_id > 0 && system_id < 255) {
+				mavlink_system.sysid = system_id;
+			}
+
+			int32_t component_id;
+			param_get(param_component_id, &component_id);
+			if (component_id > 0 && component_id < 255) {
+				mavlink_system.compid = component_id;
+			}
+			
+			int32_t system_type;
+			param_get(param_system_type, &system_type);
+			if (system_type >= 0 && system_type < MAV_AUTOPILOT_ENUM_END) {
+				mavlink_system.type = system_type;
+			}
+
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
 			uint8_t mavlink_mode = 0;
 			get_mavlink_mode_and_state(&v_status, &mavlink_state, &mavlink_mode);
 
 			/* send heartbeat */
-			mavlink_msg_heartbeat_send(chan, system_type, MAV_AUTOPILOT_GENERIC, mavlink_mode, v_status.state_machine, mavlink_state);
+			mavlink_msg_heartbeat_send(chan, system_type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.state_machine, mavlink_state);
 
 			/* send status (values already copied in the section above) */
 			mavlink_msg_sys_status_send(chan, v_status.onboard_control_sensors_present, v_status.onboard_control_sensors_enabled,
@@ -1595,18 +1562,33 @@ int mavlink_thread_main(int argc, char *argv[])
 
 			lowspeed_counter = 0;
 		}
-
 		lowspeed_counter++;
+
+		/* sleep quarter the time */
+		usleep(25000);
+
+		/* check if waypoint has been reached against the last positions */
+		mavlink_waypoint_eventloop(mavlink_missionlib_get_system_timestamp(), &global_pos, &local_pos);
+
+		/* sleep quarter the time */
+		usleep(25000);
 
 		/* send parameters at 20 Hz (if queued for sending) */
 		mavlink_pm_queued_send();
-		usleep(50000);
+		/* sleep quarter the time */
+		usleep(25000);
 		mavlink_pm_queued_send();
+
+		/* sleep 10 ms */
+		usleep(10000);
 
 		/* send one string at 10 Hz */
 		mavlink_missionlib_send_gcs_string(mavlink_message_string);
 		mavlink_message_string[0] = '\0';
 		counter++;
+
+		/* sleep 15 ms */
+		usleep(15000);
 	}
 
 	/* wait for threads to complete */

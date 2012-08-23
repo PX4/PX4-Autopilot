@@ -248,7 +248,7 @@ static float pid(float error, float error_deriv, uint16_t dt, float scale, float
 			 * discrete low pass filter, cuts out the
 			 * high frequency noise that can drive the controller crazy
 			 */
-			float RC = 1.0 / (2.0f * M_PI * fCut);
+			float RC = 1.0f / (2.0f * M_PI_F * fCut);
 			derivative = lderiv +
 				     (delta_time / (RC + delta_time)) * (derivative - lderiv);
 
@@ -288,17 +288,17 @@ static float pid(float error, float error_deriv, uint16_t dt, float scale, float
 	return output;
 }
 
-PARAM_DEFINE_FLOAT(FW_ATT_ROLL_P, 0.0f);
-PARAM_DEFINE_FLOAT(FW_ATT_ROLL_I, 0.0f);
-PARAM_DEFINE_FLOAT(FW_ATT_ROLL_D, 0.0f);
-PARAM_DEFINE_FLOAT(FW_ATT_ROLL_AWU, 0.0f);
-PARAM_DEFINE_FLOAT(FW_ATT_ROLL_LIM, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ATT_P, 2.0f);
+PARAM_DEFINE_FLOAT(FW_ATT_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ATT_D, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ATT_AWU, 5.0f);
+PARAM_DEFINE_FLOAT(FW_ATT_LIM, 10.0f);
 
-PARAM_DEFINE_FLOAT(FW_ATT_PITCH_P, 0.0f);
-PARAM_DEFINE_FLOAT(FW_ATT_PITCH_I, 0.0f);
-PARAM_DEFINE_FLOAT(FW_ATT_PITCH_D, 0.0f);
-PARAM_DEFINE_FLOAT(FW_ATT_PITCH_AWU, 0.0f);
-PARAM_DEFINE_FLOAT(FW_ATT_PITCH_LIM, 0.0f);
+PARAM_DEFINE_FLOAT(FW_POS_P, 2.0f);
+PARAM_DEFINE_FLOAT(FW_POS_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_POS_D, 0.0f);
+PARAM_DEFINE_FLOAT(FW_POS_AWU, 5.0f);
+PARAM_DEFINE_FLOAT(FW_POS_LIM, 10.0f);
 
 /**
  * Load parameters from global storage.
@@ -308,21 +308,50 @@ PARAM_DEFINE_FLOAT(FW_ATT_PITCH_LIM, 0.0f);
  * Fetches the current parameters from the global parameter storage and writes them
  * to the plane_data structure
  */
-static void get_parameters(plane_data_t * plane_data)
+static void get_parameters(plane_data_t * pdata)
 {
-	plane_data->Kp_att = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_P];
-	plane_data->Ki_att = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_I];
-	plane_data->Kd_att = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_D];
-	plane_data->Kp_pos = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_P];
-	plane_data->Ki_pos = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_I];
-	plane_data->Kd_pos = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_D];
-	plane_data->intmax_att = global_data_parameter_storage->pm.param_values[PARAM_PID_ATT_AWU];
-	plane_data->intmax_pos = global_data_parameter_storage->pm.param_values[PARAM_PID_POS_AWU];
-	plane_data->airspeed =  global_data_parameter_storage->pm.param_values[PARAM_AIRSPEED];
-	plane_data->wp_x =  global_data_parameter_storage->pm.param_values[PARAM_WPLON];
-	plane_data->wp_y =  global_data_parameter_storage->pm.param_values[PARAM_WPLAT];
-	plane_data->wp_z =  global_data_parameter_storage->pm.param_values[PARAM_WPALT];
-	plane_data->mode = global_data_parameter_storage->pm.param_values[PARAM_FLIGHTMODE];
+	static bool initialized = false;
+	static param_t att_p;
+	static param_t att_i;
+	static param_t att_d;
+	static param_t att_awu;
+	static param_t att_lim;
+
+	static param_t pos_p;
+	static param_t pos_i;
+	static param_t pos_d;
+	static param_t pos_awu;
+	static param_t pos_lim;
+
+	if (!initialized) {
+		att_p = param_find("FW_ATT_P");
+		att_i = param_find("FW_ATT_I");
+		att_d = param_find("FW_ATT_D");
+		att_awu = param_find("FW_ATT_AWU");
+		att_lim = param_find("FW_ATT_LIM");
+
+		pos_p = param_find("FW_POS_P");
+		pos_i = param_find("FW_POS_I");
+		pos_d = param_find("FW_POS_D");
+		pos_awu = param_find("FW_POS_AWU");
+		pos_lim = param_find("FW_POS_LIM");
+
+		initialized = true;
+	}
+
+	param_get(att_p, &(pdata->Kp_att));
+	param_get(att_i, &(pdata->Ki_att));
+	param_get(att_d, &(pdata->Kd_att));
+	param_get(pos_p, &(pdata->Kp_pos));
+	param_get(pos_i, &(pdata->Ki_pos));
+	param_get(pos_d, &(pdata->Kd_pos));
+	param_get(att_awu, &(pdata->intmax_att));
+	param_get(pos_awu, &(pdata->intmax_pos));
+	pdata->airspeed = 10;
+	pdata->wp_x =  48;
+	pdata->wp_y =  8;
+	pdata->wp_z =  100;
+	pdata->mode = 1;
 }
 
 /**

@@ -108,6 +108,9 @@ ORB_DEFINE(manual_control_setpoint, struct manual_control_setpoint_s);
 #include "topics/optical_flow.h"
 ORB_DEFINE(optical_flow, struct optical_flow_s);
 
+#include "topics/subsystem_info.h"
+ORB_DEFINE(subsystem_info, struct subsystem_info_s);
+
 #include "topics/actuator_controls.h"
 ORB_DEFINE(actuator_controls_0, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_1, struct actuator_controls_s);

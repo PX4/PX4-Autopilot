@@ -68,6 +68,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/subsystem_info.h>
 #include <mavlink/mavlink_log.h>
  
 #include <systemlib/param/param.h>
@@ -108,7 +109,7 @@ static int deamon_task;				/**< Handle of deamon task / thread */
 
 /* pthread loops */
 static void *command_handling_loop(void *arg);
-// static void *subsystem_info_loop(void *arg);
+static void *orb_receive_loop(void *arg);
 
 __EXPORT int commander_main(int argc, char *argv[]);
 
@@ -136,6 +137,16 @@ int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, u
  * Print the correct usage.
  */
 static void usage(const char *reason);
+
+/**
+ * Sort calibration values.
+ *
+ * Sorts the calibration values with bubble sort.
+ *
+ * @param a 	The array to sort
+ * @param n 	The number of entries in the array
+ */
+static void cal_bsort(int16_t a[], int n);
 
 static int buzzer_init()
 {
@@ -227,7 +238,7 @@ int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, u
 	return 0;
 }
 
-void cal_bsort(int16_t a[], int n)
+static void cal_bsort(int16_t a[], int n)
 {
 	int i,j,t;
 	for(i=0;i<n-1;i++)
@@ -465,9 +476,17 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *current_status
 	gyro_offset[1] = gyro_offset[1] / calibration_count;
 	gyro_offset[2] = gyro_offset[2] / calibration_count;
 
-	global_data_parameter_storage->pm.param_values[PARAM_SENSOR_GYRO_XOFFSET] = gyro_offset[0];
-	global_data_parameter_storage->pm.param_values[PARAM_SENSOR_GYRO_YOFFSET] = gyro_offset[1];
-	global_data_parameter_storage->pm.param_values[PARAM_SENSOR_GYRO_ZOFFSET] = gyro_offset[2];
+	if (param_set(param_find("SENSOR_GYRO_XOFF"), &(gyro_offset[0]))) {
+		mavlink_log_critical(mavlink_fd, "[commander] Setting X gyro offset failed!");
+	}
+	
+	if (param_set(param_find("SENSOR_GYRO_YOFF"), &(gyro_offset[1]))) {
+		mavlink_log_critical(mavlink_fd, "[commander] Setting Y gyro offset failed!");
+	}
+
+	if (param_set(param_find("SENSOR_GYRO_ZOFF"), &(gyro_offset[2]))) {
+		mavlink_log_critical(mavlink_fd, "[commander] Setting Z gyro offset failed!");
+	}
 
 	char offset_output[50];
 	sprintf(offset_output, "[commander] gyro cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
@@ -625,6 +644,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 	/* send any requested ACKs */
 	if (cmd->confirmation > 0) {
 		/* send acknowledge command */
+		// XXX TODO
 	}
 
 }
@@ -641,7 +661,7 @@ static void *command_handling_loop(void *arg)
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	struct vehicle_command_s cmd;
 
-	while (1) {
+	while (!thread_should_exit) {
 		struct pollfd fds[1] = { { .fd = cmd_sub, .events = POLLIN } };
 
 		if (poll(fds, 1, 5000) == 0) {
@@ -655,71 +675,37 @@ static void *command_handling_loop(void *arg)
 		}
 	}
 
+	close(cmd_sub);
+
 	return NULL;
 }
 
-// static void *subsystem_info_loop(void *arg)  //handles status information coming from subsystems (present, enabled, health), these values do not indicate the quality (variance) of the signal
-// {
-// 	/* Set thread name */
-// 	prctl(PR_SET_NAME, "commander subsys", getpid());
+static void *orb_receive_loop(void *arg)  //handles status information coming from subsystems (present, enabled, health), these values do not indicate the quality (variance) of the signal
+{
+	/* Set thread name */
+	prctl(PR_SET_NAME, "commander orb rcv", getpid());
 
-// 	uint8_t current_info_local = SUBSYSTEM_INFO_BUFFER_SIZE;
-// 	uint16_t total_counter = 0;
+	/* Subscribe to command topic */
+	int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
+	struct subsystem_info_s info;
 
-// 	while (1) {
+	while (!thread_should_exit) {
+		struct pollfd fds[1] = { { .fd = subsys_sub, .events = POLLIN } };
 
-// 		if (0 == global_data_wait(&global_data_subsystem_info->access_conf)) {
-// //				printf("got subsystem_info\n");
+		if (poll(fds, 1, 5000) == 0) {
+			/* timeout, but this is no problem, silently ignore */
+		} else {
+			/* got command */
+			orb_copy(ORB_ID(subsystem_info), subsys_sub, &info);
 
-// 			while (current_info_local != global_data_subsystem_info->current_info) {
-// //					printf("current_info_local = %d, current_info = %d \n", current_info_local, global_data_subsystem_info->current_info);
+			printf("Subsys changed: %d\n", (int)info.subsystem_type);
+		}
+	}
 
-// 				current_info_local++;
+	close(subsys_sub);
 
-// 				if (current_info_local >= SUBSYSTEM_INFO_BUFFER_SIZE)
-// 					current_info_local = 0;
-
-// 				/* Handle the new subsystem info and write updated version of global_data_sys_status */
-// 				subsystem_info_t *info = &(global_data_subsystem_info->info[current_info_local]);
-
-// //					printf("Commander got subsystem info: %d %d %d\n", info->present, info->enabled, info->health);
-
-
-// 				if (info->present != 0) {
-// 					update_state_machine_subsystem_present(stat_pub, &current_status, &info->subsystem_type);
-
-// 				} else {
-// 					update_state_machine_subsystem_notpresent(stat_pub, &current_status, &info->subsystem_type);
-// 				}
-
-// 				if (info->enabled != 0) {
-// 					update_state_machine_subsystem_enabled(stat_pub, &current_status, &info->subsystem_type);
-
-// 				} else {
-// 					update_state_machine_subsystem_disabled(stat_pub, &current_status, &info->subsystem_type);
-// 				}
-
-// 				if (info->health != 0) {
-// 					update_state_machine_subsystem_healthy(stat_pub, &current_status, &info->subsystem_type);
-
-// 				} else {
-// 					update_state_machine_subsystem_unhealthy(stat_pub, &current_status, &info->subsystem_type);
-// 				}
-
-// 				total_counter++;
-// 			}
-
-// 			if (global_data_subsystem_info->counter - total_counter > SUBSYSTEM_INFO_BUFFER_SIZE) {
-// 				printf("[commander] Warning: Too many subsystem status updates, subsystem_info buffer full\n"); //TODO: add to error queue
-// 				global_data_subsystem_info->counter = total_counter; //this makes sure we print the warning only once
-// 			}
-
-// 			global_data_unlock(&global_data_subsystem_info->access_conf);
-// 		}
-// 	}
-
-// 	return NULL;
-// }
+	return NULL;
+}
 
 
 
@@ -736,16 +722,31 @@ enum BAT_CHEM {
  */
 float battery_remaining_estimate_voltage(int cells, int chemistry, float voltage);
 
-PARAM_DEFINE_FLOAT(BAT_VOLT_EMPTY, 3.2f);
-PARAM_DEFINE_FLOAT(BAT_VOLT_FULL, 4.05f);
+PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.2f);
+PARAM_DEFINE_FLOAT(BAT_V_FULL, 4.05f);
 
 float battery_remaining_estimate_voltage(int cells, int chemistry, float voltage)
 {
 	float ret = 0;
-	// XXX do this properly
-	// XXX rebase on parameters
-	const float chemistry_voltage_empty[] = {3.2f};
-	const float chemistry_voltage_full[] = {4.05f};
+	static param_t bat_volt_empty;
+	static param_t bat_volt_full;
+	static bool initialized = false;
+	static unsigned int counter = 0;
+
+	if (!initialized) {
+		bat_volt_empty = param_find("BAT_V_EMPTY");
+		bat_volt_full = param_find("BAT_V_FULL");
+		initialized = true;
+	}
+
+	float chemistry_voltage_empty[1];
+	float chemistry_voltage_full[1];
+
+	if (counter % 100 == 0) {
+		param_get(bat_volt_empty, chemistry_voltage_empty+0);
+		param_get(bat_volt_full, chemistry_voltage_full+0);
+	}
+	counter++;
 
 	ret = (voltage - cells * chemistry_voltage_empty[chemistry]) / (cells * (chemistry_voltage_full[chemistry] - chemistry_voltage_empty[chemistry]));
 
@@ -817,9 +818,9 @@ int commander_thread_main(int argc, char *argv[])
 	/* welcome user */
 	printf("[commander] I am in command now!\n");
 
-	/* Pthreads */
+	/* pthreads for command and subsystem info handling */
 	pthread_t command_handling_thread;
-	// pthread_t subsystem_info_thread;
+	pthread_t subsystem_info_thread;
 
 	/* initialize */
 	if (led_init() != 0) {
@@ -853,31 +854,21 @@ int commander_thread_main(int argc, char *argv[])
 
 	mavlink_log_info(mavlink_fd, "[commander] system is running");
 
-	/* load EEPROM parameters */
-	if (OK == get_params_from_eeprom(global_data_parameter_storage)) {
-		printf("[commander] Loaded EEPROM params in RAM\n");
-		mavlink_log_info(mavlink_fd, "[commander] Loaded EEPROM params in RAM");
-
-	} else {
-		fprintf(stderr, "[commander] ERROR loading EEPROM params in RAM\n");
-		mavlink_log_critical(mavlink_fd, "[commander] ERROR loading EEPROM params in RAM");
-	}
-
 	/* create pthreads */
 	pthread_attr_t command_handling_attr;
 	pthread_attr_init(&command_handling_attr);
 	pthread_attr_setstacksize(&command_handling_attr, 4096);
 	pthread_create(&command_handling_thread, &command_handling_attr, command_handling_loop, NULL);
 
-	// pthread_attr_t subsystem_info_attr;
-	// pthread_attr_init(&subsystem_info_attr);
-	// pthread_attr_setstacksize(&subsystem_info_attr, 2048);
-	// pthread_create(&subsystem_info_thread, &subsystem_info_attr, subsystem_info_loop, NULL);
+	pthread_attr_t subsystem_info_attr;
+	pthread_attr_init(&subsystem_info_attr);
+	pthread_attr_setstacksize(&subsystem_info_attr, 2048);
+	pthread_create(&subsystem_info_thread, &subsystem_info_attr, orb_receive_loop, NULL);
 
 	/* Start monitoring loop */
 	uint16_t counter = 0;
 	uint8_t flight_env;
-	// uint8_t fix_type;
+
 	/* Initialize to 3.0V to make sure the low-pass loads below valid threshold */
 	float battery_voltage = VOLTAGE_BATTERY_HIGH_VOLTS;
 	bool battery_voltage_valid = true;
@@ -887,9 +878,6 @@ int commander_thread_main(int argc, char *argv[])
 	uint16_t critical_voltage_counter = 0;
 	int16_t mode_switch_rc_value;
 	float bat_remain = 1.0f;
-
-//	bool arm_done = false;
-//	bool disarm_done = false;
 
 	uint16_t stick_off_counter = 0;
 	uint16_t stick_on_counter = 0;
@@ -919,7 +907,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* now initialized */
 	commander_initialized = true;
 
-	while (1) {
+	while (!thread_should_exit) {
 
 		/* Get current values */
 		orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
@@ -929,8 +917,6 @@ int commander_thread_main(int argc, char *argv[])
 		battery_voltage = sensors.battery_voltage_v;
 		battery_voltage_valid = sensors.battery_voltage_valid;
 		bat_remain = battery_remaining_estimate_voltage(3, BAT_CHEM_LITHIUM_POLYMERE, battery_voltage);
-
-// 		flight_env = (uint8_t)(global_data_parameter_storage->pm.param_values[PARAM_FLIGHT_ENV]);
 
 		/* Slow but important 8 Hz checks */
 		if (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 8) == 0) {
@@ -1186,11 +1172,17 @@ int commander_thread_main(int argc, char *argv[])
 
 	/* wait for threads to complete */
 	pthread_join(command_handling_thread, NULL);
-	// pthread_join(subsystem_info_thread, NULL);
+	pthread_join(subsystem_info_thread, NULL);
 
 	/* close fds */
 	led_deinit();
 	buzzer_deinit();
+	close(rc_sub);
+	close(gps_sub);
+	close(sensor_sub);
+
+	printf("[commander] exiting..\n");
+	fflush(stdout);
 
 	thread_running = false;
 

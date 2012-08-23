@@ -1,9 +1,9 @@
 /****************************************************************************
  *
  *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Nils Wenzler <wenzlern@student.ethz.ch>
- *           @author Ivan Ovinnikov <oivan@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           @author Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,77 +35,58 @@
  ****************************************************************************/
 
 /**
- * @file rc_channels.h
- * Definition of the rc_channels uORB topic.
+ * @file subsystem_info.h
+ * Definition of the subsystem info topic.
  */
 
-#ifndef RC_CHANNELS_H_
-#define RC_CHANNELS_H_
+#ifndef TOPIC_SUBSYSTEM_INFO_H_
+#define TOPIC_SUBSYSTEM_INFO_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "../uORB.h"
 
 /**
  * @addtogroup topics
- * @{
  */
 
-enum RC_CHANNELS_STATUS
+enum SUBSYSTEM_TYPE
 {
-	UNKNOWN = 0,
-	KNOWN = 1,
-	SIGNAL = 2,
-	TIMEOUT = 3
+	SUBSYSTEM_TYPE_GYRO = 1,
+	SUBSYSTEM_TYPE_ACC = 2,
+	SUBSYSTEM_TYPE_MAG = 4,
+	SUBSYSTEM_TYPE_ABSPRESSURE = 8,
+	SUBSYSTEM_TYPE_DIFFPRESSURE = 16,
+	SUBSYSTEM_TYPE_GPS = 32,
+	SUBSYSTEM_TYPE_OPTICALFLOW = 64,
+	SUBSYSTEM_TYPE_CVPOSITION = 128,
+	SUBSYSTEM_TYPE_LASERPOSITION = 256,
+	SUBSYSTEM_TYPE_EXTERNALGROUNDTRUTH = 512,
+	SUBSYSTEM_TYPE_ANGULARRATECONTROL = 1024,
+	SUBSYSTEM_TYPE_ATTITUDESTABILIZATION = 2048,
+	SUBSYSTEM_TYPE_YAWPOSITION = 4096,
+	SUBSYSTEM_TYPE_ALTITUDECONTROL = 16384,
+	SUBSYSTEM_TYPE_POSITIONCONTROL = 32768,
+	SUBSYSTEM_TYPE_MOTORCONTROL = 65536
 };
 
-/** 
- * This defines the mapping of the RC functions.
- * The value assigned to the specific function corresponds to the entry of
- * the channel array chan[].
+/**
+ * State of individual sub systems
  */
-enum RC_CHANNELS_FUNCTION
-{
-  THROTTLE = 0,
-  ROLL     = 1,
-  PITCH    = 2,
-  YAW      = 3,
-  OVERRIDE = 4,
-  FUNC_0   = 5,
-  FUNC_1   = 6,
-  FUNC_2   = 7,
-  FUNC_3   = 8,
-  FUNC_4   = 9,
-  FUNC_5   = 10,
-  FUNC_6   = 11,
-  RC_CHANNELS_FUNCTION_MAX = 12
+struct subsystem_info_s {
+	bool present;
+	bool enabled;
+	bool ok;
+
+	enum SUBSYSTEM_TYPE subsystem_type;
 };
-
-struct rc_channels_s {
-
-	uint64_t timestamp;                 /**< In microseconds since boot time. */
-  uint64_t timestamp_last_valid;      /**< timestamp of last valid RC signal. */
-  struct {
-    uint16_t mid;                     /**< midpoint (0). */
-    float scaling_factor;             /**< scaling factor from raw counts to 0..1 */
-    uint16_t raw;                     /**< current raw value */
-    int16_t scale;
-    float scaled;                     /**< Scaled  */
-    uint16_t override;
-    enum RC_CHANNELS_STATUS status;   /**< status of the channel */
-  } chan[RC_CHANNELS_FUNCTION_MAX];
-  uint8_t chan_count;                 /**< maximum number of valid channels */
-
-  /*String array to store the names of the functions*/
-  const char function_name[RC_CHANNELS_FUNCTION_MAX][20];
-  uint8_t function[RC_CHANNELS_FUNCTION_MAX];
-  uint8_t rssi;                       /**< Overall receive signal strength */
-}; /**< radio control channels. */
 
 /**
  * @}
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(rc_channels);
+ORB_DECLARE(subsystem_info);
 
-#endif
+#endif /* TOPIC_SUBSYSTEM_INFO_H_ */
+

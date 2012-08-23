@@ -207,10 +207,6 @@ void attitude_blackmagic_init(void)
 
 void attitude_blackmagic(const float_vect3 *accel, const float_vect3 *mag, const float_vect3 *gyro)
 {
-	//Transform accelerometer used in all directions
-	//	float_vect3 acc_nav;
-	//body2navi(&global_data.accel_si, &global_data.attitude, &acc_nav);
-
 	// Kalman Filter
 
 	//Calculate new linearized A matrix
