@@ -1538,11 +1538,12 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
           /* Set the request I/O error result */
 
           chan->result = EIO;
-
         }
-      else /* if (chan->chreason == CHREASON_FRMOR) */
+      else if (chan->chreason == CHREASON_NAK)
         {
-          /* Fetch the HCCHAR register and check for an interrupt endpoint. */
+          /* Halt on NAK only happens on an INTR channel.  Fetch the HCCHAR register
+           * and check for an interrupt endpoint.
+           */
 
           regval = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
           if ((regval & OTGFS_HCCHAR_EPTYP_MASK) == OTGFS_HCCHAR_EPTYP_INTR)
@@ -1552,6 +1553,12 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
               chan->indata1 ^= true;
             }
 
+          /* Set the NAK error result */
+
+          chan->result = EAGAIN;
+        }
+      else /* if (chan->chreason == CHREASON_FRMOR) */
+        {
           /* Set the frame overrun error result */
 
           chan->result = EPIPE;
@@ -1581,9 +1588,19 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
 
   else if ((pending & OTGFS_HCINT_NAK) != 0)
     {
+      /* Halt the interrupt channel */
+
+      if (chan->eptype == OTGFS_EPTYPE_CTRL)
+        {
+          /* Halt the channel  -- the CHH interrrupt is expected next */
+
+          stm32_chan_halt(priv, chidx, CHREASON_NAK);
+        }
+
       /* Re-activate CTRL and BULK channels */
 
-      if (chan->eptype == OTGFS_EPTYPE_CTRL || chan->eptype == OTGFS_EPTYPE_BULK)
+      else if (chan->eptype == OTGFS_EPTYPE_CTRL ||
+               chan->eptype == OTGFS_EPTYPE_BULK)
         {
           /* Re-activate the channel by clearing CHDIS and assuring that
            * CHENA is set
@@ -1594,10 +1611,6 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
           regval &= ~OTGFS_HCCHAR_CHDIS;
           stm32_putreg(STM32_OTGFS_HCCHAR(chidx), regval);
         }
-
-      /* Halt the channel  -- the CHH interrrupt is expected next */
-
-      stm32_chan_halt(priv, chidx, CHREASON_NAK);
 
       /* Clear the NAK condition */
 
