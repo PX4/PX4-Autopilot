@@ -132,7 +132,9 @@ int mavlink_pm_send_param(param_t param)
 	 * get param value, since MAVLink encodes float and int params in the same
 	 * space during transmission, copy param onto float val_buf
 	 */
-	if (param_get(param, &val_buf) != OK) return;
+
+	int ret;
+	if ((ret = param_get(param, &val_buf)) != OK) return ret;
 
 	mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
 					  mavlink_system.compid,
@@ -143,7 +145,8 @@ int mavlink_pm_send_param(param_t param)
 					  mavlink_type,
 					  param_count(),
 					  param_get_index(param));
-	return mavlink_missionlib_send_message(&tx_msg);
+	ret = mavlink_missionlib_send_message(&tx_msg);
+	return ret;
 }
 
 static const char *mavlink_parameter_file = "/eeprom/parameters";

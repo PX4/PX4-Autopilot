@@ -406,9 +406,17 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	mag_offset[1] = (max_avg[1] + min_avg[1]) / 2.0f;
 	mag_offset[2] = (max_avg[2] + min_avg[2]) / 2.0f;
 
-	global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_XOFFSET] = mag_offset[0];
-	global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_YOFFSET] = mag_offset[1];
-	global_data_parameter_storage->pm.param_values[PARAM_SENSOR_MAG_ZOFFSET] = mag_offset[2];
+	if (param_set(param_find("SENSOR_MAG_XOFF"), &(mag_offset[0]))) {
+		fprintf(stderr, "[commander] Setting X mag offset failed!\n");
+	}
+	
+	if (param_set(param_find("SENSOR_MAG_YOFF"), &(mag_offset[1]))) {
+		fprintf(stderr, "[commander] Setting Y mag offset failed!\n");
+	}
+
+	if (param_set(param_find("SENSOR_MAG_ZOFF"), &(mag_offset[2]))) {
+		fprintf(stderr, "[commander] Setting Z mag offset failed!\n");
+	}
 
 	free(mag_maxima[0]);
 	free(mag_maxima[1]);
