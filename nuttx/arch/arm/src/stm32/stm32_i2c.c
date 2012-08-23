@@ -1946,16 +1946,25 @@ int up_i2cuninitialize(FAR struct i2c_dev_s * dev)
 
 int up_i2creset(FAR struct i2c_dev_s * dev)
 {
+  struct stm32_i2c_priv_s * priv;
   unsigned clock_count;
   unsigned stretch_count;
+  int ret = ERROR;
+  irqstate_t state;
 
-  // ASSERT(dev);
-  
-  struct stm32_i2c_priv_s * priv = NULL;
+  ASSERT(dev);
 
   /* Get I2C private structure */
 
   priv = ((struct stm32_i2c_inst_s *)dev)->priv;
+
+  /* Our caller must own a ref */
+
+  ASSERT(priv->refs > 0);
+
+  /* Lock out other clients */
+
+  stm32_i2c_sem_wait(dev);
 
   /* De-init the port */
 
@@ -1980,7 +1989,7 @@ int up_i2creset(FAR struct i2c_dev_s * dev)
 
           if (clock_count++ > 1000)
             { 
-              return ERROR;
+              goto out;
             }
 
           /*
@@ -1997,7 +2006,7 @@ int up_i2creset(FAR struct i2c_dev_s * dev)
 
               if (stretch_count++ > 1000)
                 { 
-                  return ERROR;
+                  goto out;
                 }
 
               up_udelay(10);
@@ -2041,8 +2050,15 @@ int up_i2creset(FAR struct i2c_dev_s * dev)
   /* Re-init the port */
 
   stm32_i2c_init(priv);
+  ret = OK;
 
-  return OK;
+out:
+
+  /* release the port for re-use by other clients */
+
+  stm32_i2c_sem_post(dev);
+
+  return ret;
 }
 
 #endif /* defined(CONFIG_STM32_I2C1) || defined(CONFIG_STM32_I2C2) || defined(CONFIG_STM32_I2C3) */
