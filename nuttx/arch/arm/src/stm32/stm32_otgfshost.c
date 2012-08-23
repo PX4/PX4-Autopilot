@@ -234,6 +234,7 @@ struct stm32_usbhost_s
   uint8_t           ep0in;     /* EP0 IN control channel index */
   uint8_t           ep0out;    /* EP0 OUT control channel index */
   uint8_t           ep0size;   /* EP0 max packet size */
+  uint8_t           chidx;     /* ID of channel waiting for space in Tx FIFO */
   bool              lowspeed;  /* True: low speed device */
   volatile bool     connected; /* Connected to device */
   volatile bool     eventwait; /* True: Thread is waiting for a port event */
@@ -339,6 +340,7 @@ static int stm32_gint_isr(int irq, FAR void *context);
 static void stm32_gint_enable(void);
 static void stm32_gint_disable(void);
 static inline void stm32_hostinit_enable(void);
+static void stm32_txfe_enable(FAR struct stm32_usbhost_s *priv, int chidx);
 
 /* USB host controller operations **********************************************/
 
@@ -974,6 +976,7 @@ static void stm32_chan_wakeup(FAR struct stm32_usbhost_s *priv,
 
   if (chan->result != EBUSY && chan->waiter)
     {
+      ullvdbg("Wakeup with result: %d\n", chan->result);
       stm32_givesem(&chan->waitsem);
       chan->waiter = false;
     }
@@ -989,32 +992,38 @@ static void stm32_chan_wakeup(FAR struct stm32_usbhost_s *priv,
 
 static void stm32_transfer_start(FAR struct stm32_usbhost_s *priv, int chidx)
 {
+  FAR struct stm32_chan_s *chan;
   uint32_t regval;
   unsigned int npackets;
   unsigned int maxpacket;
-  unsigned int buflen32;
-  unsigned int avail32;
+  unsigned int avail;
+  unsigned int wrsize;
+  unsigned int minsize;
 
   /* Set up the initial state of the transfer */
 
-  priv->chan[chidx].result   = EBUSY;
-  priv->chan[chidx].inflight = 0;
+  chan           = &priv->chan[chidx];
+  uvdbg("chidx: %d buflen: %d\n", chidx, chan->buflen);
+
+  chan->result   = EBUSY;
+  chan->inflight = 0;
+  priv->chidx    = chidx;
 
   /* Compute the expected number of packets associated to the transfer.
    * If the transfer length is zero (or less than the size of one maximum
    * size packet), then one packet is expected.
    */
 
-  /* If the transfer size is greater than one packet, then xalculate the
+  /* If the transfer size is greater than one packet, then calculate the
    * number of packets that will be received/sent, including any partial
    * final packet.
    */
 
-  maxpacket = priv->chan[chidx].maxpacket;
+  maxpacket = chan->maxpacket;
 
-  if (priv->chan[chidx].buflen > maxpacket)
+  if (chan->buflen > maxpacket)
     {
-      npackets = (priv->chan[chidx].buflen + maxpacket - 1) / maxpacket;
+      npackets = (chan->buflen + maxpacket - 1) / maxpacket;
 
       /* Clip if the buffer length if it exceeds the maximum number of
        * packets that can be transferred (this should not happen).
@@ -1023,7 +1032,8 @@ static void stm32_transfer_start(FAR struct stm32_usbhost_s *priv, int chidx)
       if (npackets > STM32_MAX_PKTCOUNT)
         {
           npackets = STM32_MAX_PKTCOUNT;
-          priv->chan[chidx].buflen = STM32_MAX_PKTCOUNT * maxpacket;
+          chan->buflen = STM32_MAX_PKTCOUNT * maxpacket;
+          ulldbg("CLIP: chidx: %d buflen: %d\n", chidx, chan->buflen);
         }
     }
   else
@@ -1039,19 +1049,19 @@ static void stm32_transfer_start(FAR struct stm32_usbhost_s *priv, int chidx)
    */
 
 #if 0 /* Think about this */
-  if (priv->chan[chidx].in)
+  if (chan->in)
     {
       /* Force the buffer length to an even multiple of maxpacket */
 
-      priv->chan[chidx].buflen = npackets * maxpacket;
+      chan->buflen = npackets * maxpacket;
     }
 #endif
 
   /* Setup the HCTSIZn register */
 
-  regval = ((uint32_t)priv->chan[chidx].buflen << OTGFS_HCTSIZ_XFRSIZ_SHIFT) |
+  regval = ((uint32_t)chan->buflen << OTGFS_HCTSIZ_XFRSIZ_SHIFT) |
            ((uint32_t)npackets << OTGFS_HCTSIZ_PKTCNT_SHIFT) |
-           ((uint32_t)priv->chan[chidx].pid << OTGFS_HCTSIZ_DPID_SHIFT);
+           ((uint32_t)chan->pid << OTGFS_HCTSIZ_DPID_SHIFT);
   stm32_putreg(STM32_OTGFS_HCTSIZ(chidx), regval);
 
   /* Setup the HCCHAR register: Frame oddness and host channel enable */
@@ -1076,63 +1086,76 @@ static void stm32_transfer_start(FAR struct stm32_usbhost_s *priv, int chidx)
    * the outgoing data into the correct TxFIFO.
    */
 
-  if (!priv->chan[chidx].in && priv->chan[chidx].buflen > 0)
+  if (!chan->in && chan->buflen > 0)
     {
       /* Handle non-periodic (CTRL and BULK) OUT transfers differently than
-       * perioci (INTR and ISOC) OUT transfers.
+       * periodic (INTR and ISOC) OUT transfers.
        */
 
-      buflen32 = (priv->chan[chidx].buflen + 3) >> 2;
-      switch (priv->chan[chidx].eptype)
+      minsize = MIN(chan->buflen, chan->maxpacket);
+
+      switch (chan->eptype)
         {
         case OTGFS_EPTYPE_CTRL: /* Non periodic transfer */
         case OTGFS_EPTYPE_BULK:
           {
             /* Read the Non-periodic Tx FIFO status register */
 
-            regval  = stm32_getreg(STM32_OTGFS_HNPTXSTS);
-            avail32 = (regval & OTGFS_HNPTXSTS_NPTXFSAV_MASK) >> OTGFS_HNPTXSTS_NPTXFSAV_SHIFT;
-
-            /* Check if there is enough space available in the Tx FIFO */
-
-            if (buflen32 > avail32)
-              {
-                /* Insufficient space... Enable the Non-periodic Tx FIFO
-                 * interrupt to handle the transfer when the Tx FIFO is empty.
-                 */
-
-                stm32_modifyreg(STM32_OTGFS_GINTMSK, 0, OTGFS_GINT_NPTXFE);
-            }
+            regval = stm32_getreg(STM32_OTGFS_HNPTXSTS);
+            avail  = ((regval & OTGFS_HNPTXSTS_NPTXFSAV_MASK) >> OTGFS_HNPTXSTS_NPTXFSAV_SHIFT) << 2;
           }
           break;
 
-          /* Periodic transfer */
+        /* Periodic transfer */
 
-          case OTGFS_EPTYPE_INTR:
-          case OTGFS_EPTYPE_ISOC:
+        case OTGFS_EPTYPE_INTR:
+        case OTGFS_EPTYPE_ISOC:
+          {
             /* Read the Non-periodic Tx FIFO status register */
 
-            regval  = stm32_getreg(STM32_OTGFS_HPTXSTS);
-            avail32 = (regval & OTGFS_HPTXSTS_PTXFSAVL_MASK) >> OTGFS_HPTXSTS_PTXFSAVL_SHIFT;
-
-            /* Check if there is enough space in FIFO space */
-
-            if (buflen32 > avail32)
-              {
-                /* Need to process data in OTGFS_GINT_PTXFE interrupt */
-
-                stm32_modifyreg(STM32_OTGFS_GINTMSK, 0, OTGFS_GINT_PTXFE);
-              }
-            break;
-
-          default:
-            break;
+            regval = stm32_getreg(STM32_OTGFS_HPTXSTS);
+            avail  = ((regval & OTGFS_HPTXSTS_PTXFSAVL_MASK) >> OTGFS_HPTXSTS_PTXFSAVL_SHIFT) << 2;
           }
+          break;
 
-        /* Write packet into the Tx FIFO. */
+        default:
+          DEBUGASSERT(false);
+          return;
+        }
 
-        stm32_gint_wrpacket(priv, priv->chan[chidx].buffer, chidx,
-                            priv->chan[chidx].buflen);
+      /* Is there space in the TxFIFO to hold the minimum size packet? */
+
+      if (minsize <= avail)
+        {
+          /* Yes.. Get the size of the biggest thing that we can put in the Tx FIFO now */
+
+          wrsize = chan->buflen;
+          if (wrsize > avail)
+            {
+              /* Clip the write size to the number of full, max sized packets
+               * that will fit in the Tx FIFO.
+               */
+
+              unsigned int wrpackets = avail / chan->maxpacket;
+              wrsize = wrpackets * chan->maxpacket;
+            }
+        
+          /* Write packet into the Tx FIFO. */
+
+          stm32_gint_wrpacket(priv, chan->buffer, chidx, wrsize);
+        }
+
+      /* Did we put the entire buffer into the Tx FIFO? */
+
+      if (chan->buflen > avail)
+        {
+          /* No, there was insufficient space to hold the entire transfer ...
+           * Enable the Tx FIFO interrupt to handle the transfer when the Tx
+           * FIFO becomes empty.
+           */
+
+           stm32_txfe_enable(priv, chidx);
+        }
     }
 }
 
@@ -1388,7 +1411,7 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
   /* AND the two to get the set of enabled, pending HC interrupts */
 
   pending &= regval;
-  uvdbg("HCINTMSK%d: %08x pending: %08x\n", chidx, regval, pending);
+  ullvdbg("HCINTMSK%d: %08x pending: %08x\n", chidx, regval, pending);
 
   /* Check for a pending ACK response received/transmitted (ACK) interrupt */
 
@@ -1475,6 +1498,7 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
         {
           /* Force the next transfer on an ODD frame */
 
+          regval = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
           regval |= OTGFS_HCCHAR_ODDFRM;
           stm32_putreg(STM32_OTGFS_HCCHAR(chidx), regval);
 
@@ -1565,6 +1589,7 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
            * CHENA is set
            */
 
+          regval  = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
           regval |= OTGFS_HCCHAR_CHENA;
           regval &= ~OTGFS_HCCHAR_CHDIS;
           stm32_putreg(STM32_OTGFS_HCCHAR(chidx), regval);
@@ -1620,7 +1645,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
   /* AND the two to get the set of enabled, pending HC interrupts */
 
   pending &= regval;
-  uvdbg("HCINTMSK%d: %08x pending: %08x\n", chidx, regval, pending);
+  ullvdbg("HCINTMSK%d: %08x pending: %08x\n", chidx, regval, pending);
 
   /* Check for a pending ACK response received/transmitted (ACK) interrupt */
 
@@ -1708,7 +1733,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
       stm32_putreg(STM32_OTGFS_HCINT(chidx), OTGFS_HCINT_TXERR);
     }
 
-  /* Check for a pending response received (xxx) interrupt */
+  /* Check for a NYET interrupt */
 
 #if 0 /* NYET is a reserved bit in the HCINT register */
   else if ((pending & OTGFS_HCINT_NYET) != 0)
@@ -1717,7 +1742,7 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
 
       stm32_chan_halt(priv, chidx, CHREASON_NYET);
 
-      /* Clear the pending the response received (xxx) interrupt */
+      /* Clear the pending the NYET interrupt */
 
       stm32_putreg(STM32_OTGFS_HCINT(chidx), OTGFS_HCINT_NYET);
     }
@@ -1934,7 +1959,7 @@ static inline void stm32_gint_rxflvlisr(FAR struct stm32_usbhost_s *priv)
   /* Read and pop the next status from the Rx FIFO */
 
   grxsts = stm32_getreg(STM32_OTGFS_GRXSTSP);
-  uvdbg("GRXSTS: %08x\n", grxsts);
+  ullvdbg("GRXSTS: %08x\n", grxsts);
 
   /* Isolate the channel number/index in the status word */
 
@@ -2015,67 +2040,84 @@ static inline void stm32_gint_rxflvlisr(FAR struct stm32_usbhost_s *priv)
 
 static inline void stm32_gint_nptxfeisr(FAR struct stm32_usbhost_s *priv)
 {
+  FAR struct stm32_chan_s *chan;
   uint32_t     regval;
-  unsigned int buflen;
-  unsigned int buflen32;
   unsigned int wrsize;
-  unsigned int avail32;
+  unsigned int minsize;
+  unsigned int avail;
   unsigned int chidx;
 
-  /* Loop while there is data to be sent and where there is space available
-   * in the non-periodic Tx FIFO.
+  /* Recover the index of the channel that is waiting for space in the Tx
+   * FIFO.
    */
 
-  for (;;)
+  chidx = priv->chidx;
+  chan  = &priv->chan[chidx];
+
+  /* Reduce the buffer size by the number of bytes that were previously placed
+   * in the Tx FIFO.
+   */
+
+  chan->buffer  += chan->inflight;
+  chan->buflen  -= chan->inflight;
+  chan->inflight = 0;
+
+  /* If we have now transfered the entire buffer, then this transfer is
+   * complete (this case really should never happen because we disable
+   * the NPTXFE interrupt on the final packet).
+   */
+
+  if (chan->buflen <= 0)
     {
-      /* Read the status from the top of the non-periodic TxFIFO */
+      /* Disable further Tx FIFO empty interrupts and bail. */
 
-      regval   = stm32_getreg(STM32_OTGFS_HNPTXSTS);
-
-      /* Extract the channel number and the number of 32-bit words available in
-       * the non-periodic Tx FIFO.
-       */
-
-      chidx    = (regval & OTGFS_HNPTXSTS_CHNUM_MASK) >> OTGFS_HNPTXSTS_CHNUM_SHIFT;
-      avail32  = (regval & OTGFS_HNPTXSTS_NPTXFSAV_MASK) >> OTGFS_HNPTXSTS_NPTXFSAV_SHIFT;
-
-      /* Get the number of words remaining to be sent */
-
-      buflen   = priv->chan[chidx].buflen;
-      buflen32 = (buflen + 3) >> 2;
-
-      /* Break out of the loop if either (a) there is nothing more to be
-       * sent, or (2) there is insufficent space availabe in the non-periodic
-       * Tx FIFO to hold the next packet.
-       */
-
-      if (buflen == 0 || avail32 <= buflen32)
-        {
-          return;
-        }
- 
-      /* Get the number of bytes available in the non-periodic Tx FIFO. That
-       * is the maximum write size.
-       */
-
-      wrsize = avail32 << 2;
-
-      /* Clip the actual write size to the number of bytes actually available
-       * to be sent.
-       */
-
-      if (wrsize > buflen)
-        {
-          /* This is the last packet to be sent.  Clip to the amount of
-           * data to send in the last packet.
-           */
-
-          wrsize = buflen;
-          stm32_modifyreg(STM32_OTGFS_GINTMSK, OTGFS_GINT_NPTXFE, 0);
-        }
-
-      stm32_gint_wrpacket(priv, priv->chan[chidx].buffer, chidx, wrsize);
+      stm32_modifyreg(STM32_OTGFS_GINTMSK, OTGFS_GINT_NPTXFE, 0);
+      return;
     }
+
+  /* Read the status from the top of the non-periodic TxFIFO */
+
+  regval = stm32_getreg(STM32_OTGFS_HNPTXSTS);
+
+  /* Extract the number of bytes available in the non-periodic Tx FIFO. */
+
+  avail = ((regval & OTGFS_HNPTXSTS_NPTXFSAV_MASK) >> OTGFS_HNPTXSTS_NPTXFSAV_SHIFT) << 2;
+
+  /* Get minimal size packet that can be sent.  Something is serioulsy
+   * configured wrong if one packet will not fit into the empty Tx FIFO.
+   */
+
+  minsize = MIN(chan->buflen, chan->maxpacket);
+  DEBUGASSERT(chan->buflen > 0 && avail >= minsize);
+
+  /* Get the size to put in the Tx FIFO now */
+
+  wrsize = chan->buflen;
+  if (wrsize > avail)
+    {
+      /* Clip the write size to the number of full, max sized packets
+       * that will fit in the Tx FIFO.
+       */
+
+      unsigned int wrpackets = avail / chan->maxpacket;
+      wrsize = wrpackets * chan->maxpacket;
+    }
+ 
+  /* Otherwise, this will be the last packet to be sent in this transaction.
+   * We now need to disable further NPTXFE interrupts.
+   */
+
+  else
+    {
+      stm32_modifyreg(STM32_OTGFS_GINTMSK, OTGFS_GINT_NPTXFE, 0);
+    }
+
+  /* Write the next group of packets into the Tx FIFO */
+
+  ullvdbg("HNPTXSTS: %08x chidx: %d avail: %d buflen: %d wrsize: %d\n",
+           regval, chidx, avail, chan->buflen, wrsize);
+
+  stm32_gint_wrpacket(priv, chan->buffer, chidx, wrsize);
 }
 
 /*******************************************************************************
@@ -2088,67 +2130,84 @@ static inline void stm32_gint_nptxfeisr(FAR struct stm32_usbhost_s *priv)
 
 static inline void stm32_gint_ptxfeisr(FAR struct stm32_usbhost_s *priv)
 {
+  FAR struct stm32_chan_s *chan;
   uint32_t     regval;
-  unsigned int buflen;
-  unsigned int buflen32;
   unsigned int wrsize;
-  unsigned int avail32;
+  unsigned int minsize;
+  unsigned int avail;
   unsigned int chidx;
 
-  /* Loop while there is data to be sent and where there is space available
-   * in the periodic Tx FIFO.
+  /* Recover the index of the channel that is waiting for space in the Tx
+   * FIFO.
    */
 
-  for (;;)
+  chidx = priv->chidx;
+  chan  = &priv->chan[chidx];
+
+  /* Reduce the buffer size by the number of bytes that were previously placed
+   * in the Tx FIFO.
+   */
+
+  chan->buffer  += chan->inflight;
+  chan->buflen  -= chan->inflight;
+  chan->inflight = 0;
+
+  /* If we have now transfered the entire buffer, then this transfer is
+   * complete (this case really should never happen because we disable
+   * the PTXFE interrupt on the final packet).
+   */
+
+  if (chan->buflen <= 0)
     {
-      /* Read the status from the top of the periodic TxFIFO */
+      /* Disable further Tx FIFO empty interrupts and bail. */
 
-      regval   = stm32_getreg(STM32_OTGFS_HPTXSTS);
-
-      /* Extract the channel number and the number of 32-bit words available in
-       * the periodic Tx FIFO.
-       */
-
-      chidx    = (regval & OTGFS_HPTXSTS_CHNUM_MASK) >> OTGFS_HPTXSTS_CHNUM_SHIFT;
-      avail32  = (regval & OTGFS_HPTXSTS_PTXFSAVL_MASK) >> OTGFS_HPTXSTS_PTXFSAVL_SHIFT;
-
-      /* Get the number of words remaining to be sent */
-
-      buflen   = priv->chan[chidx].buflen;
-      buflen32 = (buflen + 3) >> 2;
-
-      /* Break out of the loop if either (a) there is nothing more to be
-       * sent, or (2) there is insufficent space availabe in the periodic
-       * Tx FIFO to hold the next packet.
-       */
-
-      if (buflen == 0 || avail32 <= buflen32)
-        {
-          return;
-        }
- 
-      /* Get the number of bytes available in the periodic Tx FIFO. That is
-       * the maximum write size.
-       */
-
-      wrsize = avail32 << 2;
-
-      /* Clip the actual write size to the number of bytes actually available
-       * to be sent.
-       */
-
-      if (wrsize > buflen)
-        {
-          /* This is the last packet to be sent.  Clip to the amount of
-           * data to send in the last packet.
-           */
-
-          wrsize = buflen;
-          stm32_modifyreg(STM32_OTGFS_GINTMSK, OTGFS_GINT_PTXFE, 0);
-        }
-
-      stm32_gint_wrpacket(priv, priv->chan[chidx].buffer, chidx, wrsize);
+      stm32_modifyreg(STM32_OTGFS_GINTMSK, OTGFS_GINT_PTXFE, 0);
+      return;
     }
+
+  /* Read the status from the top of the periodic TxFIFO */
+
+  regval = stm32_getreg(STM32_OTGFS_HPTXSTS);
+
+  /* Extract the number of bytes available in the periodic Tx FIFO. */
+
+  avail = ((regval & OTGFS_HPTXSTS_PTXFSAVL_MASK) >> OTGFS_HPTXSTS_PTXFSAVL_SHIFT) << 2;
+
+  /* Get minimal size packet that can be sent.  Something is serioulsy
+   * configured wrong if one packet will not fit into the empty Tx FIFO.
+   */
+
+  minsize = MIN(chan->buflen, chan->maxpacket);
+  DEBUGASSERT(chan->buflen > 0 && avail >= minsize);
+
+  /* Get the size to put in the Tx FIFO now */
+
+  wrsize = chan->buflen;
+  if (wrsize > avail)
+    {
+      /* Clip the write size to the number of full, max sized packets
+       * that will fit in the Tx FIFO.
+       */
+
+      unsigned int wrpackets = avail / chan->maxpacket;
+      wrsize = wrpackets * chan->maxpacket;
+    }
+ 
+  /* Otherwise, this will be the last packet to be sent in this transaction.
+   * We now need to disable further PTXFE interrupts.
+   */
+
+  else
+    {
+      stm32_modifyreg(STM32_OTGFS_GINTMSK, OTGFS_GINT_PTXFE, 0);
+    }
+
+  /* Write the next group of packets into the Tx FIFO */
+
+  ullvdbg("HPTXSTS: %08x chidx: %d avail: %d buflen: %d wrsize: %d\n",
+           regval, chidx, avail, chan->buflen, wrsize);
+
+  stm32_gint_wrpacket(priv, chan->buffer, chidx, wrsize);
 }
 
 /*******************************************************************************
@@ -2583,6 +2642,63 @@ static inline void stm32_hostinit_enable(void)
 }
 
 /*******************************************************************************
+ * Name: stm32_txfe_enable
+ *
+ * Description:
+ *   Enable Tx FIFO empty interrupts.  This is necessary when the entire
+ *   transfer will not fit into Tx FIFO.  The transfer will then be completed
+ *   when the Tx FIFO is empty.  NOTE:  The Tx FIFO interrupt is disabled
+ *   the the fifo empty interrupt handler when the transfer is complete.
+ *
+ * Input Parameters:
+ *   priv - Driver state structure reference
+ *   chidx - The channel that requires the Tx FIFO empty interrupt
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *   Called from user task context.  Interrupts must be disabled to assure
+ *   exclusive access to the GINTMSK register.
+ *
+ *******************************************************************************/
+
+static void stm32_txfe_enable(FAR struct stm32_usbhost_s *priv, int chidx)
+{
+  FAR struct stm32_chan_s *chan = &priv->chan[chidx];
+  irqstate_t flags;
+  uint32_t regval;
+
+  /* Disable all interrupts so that we have exclusive access to the GINTMSK
+   * (it would be sufficent just to disable the GINT interrupt).
+   */
+ 
+  flags = irqsave();
+
+  /* Should we enable the periodic or non-peridic Tx FIFO empty interrupts */
+
+  regval = stm32_getreg(STM32_OTGFS_GINTMSK);
+  switch (chan->eptype)
+    {
+    default:
+    case OTGFS_EPTYPE_CTRL: /* Non periodic transfer */
+    case OTGFS_EPTYPE_BULK:
+      regval |= OTGFS_GINT_NPTXFE;
+      break;
+
+    case OTGFS_EPTYPE_INTR: /* Periodic transfer */
+    case OTGFS_EPTYPE_ISOC:
+      regval |= OTGFS_GINT_PTXFE;
+      break;
+    }
+
+  /* Enable interrupts */
+
+  stm32_putreg(STM32_OTGFS_GINTMSK, regval);
+  irqrestore(flags);
+}
+
+/*******************************************************************************
  * USB Host Controller Operations
  *******************************************************************************/
 
@@ -2612,7 +2728,7 @@ static inline void stm32_hostinit_enable(void)
 
 static int stm32_wait(FAR struct usbhost_driver_s *drvr, bool connected)
 {
-  struct stm32_usbhost_s *priv = (struct stm32_usbhost_s *)drvr;
+  FAR struct stm32_usbhost_s *priv = (FAR struct stm32_usbhost_s *)drvr;
   irqstate_t flags;
 
   /* Are we already connected? */
@@ -3291,7 +3407,7 @@ static int stm32_transfer(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep,
   struct stm32_usbhost_s *priv  = (struct stm32_usbhost_s *)drvr;
   FAR struct stm32_chan_s *chan;
   unsigned int chidx = (unsigned int)ep;
-  int ret;
+  int ret = OK;
 
   uvdbg("chidx: %d buflen: %d\n",  (unsigned int)ep, buflen);
 
