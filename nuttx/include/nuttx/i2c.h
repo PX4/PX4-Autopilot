@@ -325,6 +325,23 @@ EXTERN FAR struct i2c_dev_s *up_i2cinitialize(int port);
 
 EXTERN int up_i2cuninitialize(FAR struct i2c_dev_s * dev);
 
+/****************************************************************************
+ * Name: up_i2creset
+ *
+ * Description:
+ *   Reset the port and the associated I2C bus.  Useful when the bus or an
+ *   attached slave has become wedged or unresponsive.
+ *
+ * Input Parameter:
+ *   Device structure as returned by the up_i2cinitalize()
+ *
+ * Returned Value:
+ *   OK on success, ERROR if the bus cannot be unwedged. 
+ *
+ ****************************************************************************/
+
+EXTERN int up_i2creset(FAR struct i2c_dev_s * dev);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }
