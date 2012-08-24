@@ -174,6 +174,9 @@ eeprom_ioctl(unsigned operation)
 static void
 eeprom_save(const char *name)
 {
+	if (!name) 
+		err(1, "missing argument for device name, try '/eeprom'");
+
 	int fd = open(name, O_WRONLY | O_CREAT | O_EXCL);
 
 	if (fd < 0)
@@ -193,6 +196,9 @@ eeprom_save(const char *name)
 static void
 eeprom_load(const char *name)
 {
+	if (!name) 
+		err(1, "missing argument for device name, try '/eeprom'");
+	
 	int fd = open(name, O_RDONLY);
 
 	if (fd < 0)
