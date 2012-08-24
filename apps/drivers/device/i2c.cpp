@@ -73,11 +73,8 @@ I2C::init()
 {
 	int ret = OK;
 
-	// attach to the i2c bus
+	/* attach to the i2c bus */
 	_dev = up_i2cinitialize(_bus);
-	// set the bus speed again to a reasonable number of 400 KHz
-	I2C_SETFREQUENCY(_dev, 400000);
-
 
 	if (_dev == nullptr) {
 		debug("failed to init I2C");
@@ -147,8 +144,12 @@ I2C::transfer(uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len
 		if (msgs == 0)
 			return -EINVAL;
 
-		// set the bus speed again to a reasonable number of 400 KHz
-		I2C_SETFREQUENCY(_dev, 400000);
+		/* 
+		 * I2C architecture means there is an unavoidable race here
+		 * if there are any devices on the bus with a different frequency
+		 * preference.  Really, this is pointless.
+		 */
+		I2C_SETFREQUENCY(_dev, _frequency);
 		ret = I2C_TRANSFER(_dev, &msgv[0], msgs);
 
 		if (ret == OK)
