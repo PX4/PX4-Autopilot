@@ -63,16 +63,16 @@
 #ifndef PX4_I2C_BUS_ONBOARD
 #  error PX4_I2C_BUS_ONBOARD not defined, cannot locate onboard EEPROM
 #endif
-#if !defined(CONFIG_MTD_AT24XX) || !CONFIG_MTD_AT24XX
-#  error CONFIG_MTD_AT24XX not defined, no supported EEPROM available
-#endif
 
 __EXPORT int eeprom_main(int argc, char *argv[]);
 
 static void	eeprom_start(void);
+static void	eeprom_erase(void);
 static void	eeprom_ioctl(unsigned operation);
 static void	eeprom_save(const char *name);
 static void	eeprom_load(const char *name);
+
+static bool started = false;
 
 int eeprom_main(int argc, char *argv[])
 {
@@ -85,6 +85,9 @@ int eeprom_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "load_param"))
 			eeprom_load(argv[2]);
+
+		if (!strcmp(argv[1], "erase"))
+			eeprom_erase();
 
 		if (0) {	/* these actually require a file on the filesystem... */
 
@@ -103,7 +106,6 @@ int eeprom_main(int argc, char *argv[])
 static void
 eeprom_start(void)
 {
-	static bool started = false;
 	int ret;
 
 	if (started)
@@ -135,7 +137,22 @@ eeprom_start(void)
 	if (ret < 0)
 		err(1, "failed to mount EEPROM");
 
+	started = true;
+
 	errx(0, "mounted EEPROM at /eeprom");
+}
+
+extern int at24c_nuke(void);
+
+static void
+eeprom_erase(void)
+{
+	if (!started)
+		errx(1, "must be started first");
+
+	if (at24c_nuke())
+		errx(1, "erase failed");
+	errx(0, "erase done, reboot now");
 }
 
 static void
