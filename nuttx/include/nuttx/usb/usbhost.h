@@ -448,7 +448,13 @@
  *
  * Returned Values:
  *   On success, zero (OK) is returned. On a failure, a negated errno value is
- *   returned indicating the nature of the failure
+ *   returned indicating the nature of the failure:
+ *
+ *     EAGAIN - If devices NAKs the transfer (or NYET or other error where
+ *              it may be appropriate to restart the entire transaction).
+ *     EPERM  - If the endpoint stalls
+ *     EIO    - On a TX or data toggle error
+ *     EPIPE  - Overrun errors
  *
  * Assumptions:
  *   This function will *not* be called from an interrupt handler.

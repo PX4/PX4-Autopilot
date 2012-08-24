@@ -3173,3 +3173,7 @@
 	* arch/arm/src/stm32/stm32_otgfshost.c:  Renamed from stm32_usbhost.c.
 	  This is nearly code complete and, with any luck, will be available
 	  in NuttX-6.22.
+	* configs/*/defconfig:  Update all defconfig files to remove syntax
+	  that is incompatible with the mconf configuration tool.
+	* arch/arm/src/stm32/stm32_otgfshost.c:  This driver now appears to be
+	  functional (although more testing is necesary).

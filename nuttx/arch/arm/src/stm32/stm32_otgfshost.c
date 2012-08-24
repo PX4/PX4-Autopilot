@@ -201,6 +201,7 @@ struct stm32_chan_s
   uint8_t           epno;      /* Device endpoint number (0-127) */
   uint8_t           eptype;    /* See OTGFS_EPTYPE_* definitions */
   uint8_t           pid;       /* Data PID */
+  uint8_t           npackets;  /* Number of packets (for data toggle) */
   bool              inuse;     /* True: This channel is "in use" */
   volatile bool     indata1;   /* IN data toggle. True: DATA01 (Bulk and INTR only) */
   volatile bool     outdata1;  /* OUT data toggle.  True: DATA01 */
@@ -1057,6 +1058,13 @@ static void stm32_transfer_start(FAR struct stm32_usbhost_s *priv, int chidx)
     }
 #endif
 
+  /* Save the number of packets in the transfer.  We will need this in
+   * order to set the next data toggle correctly when the transfer
+   * completes.
+   */
+
+  chan->npackets = (uint8_t)npackets;
+
   /* Setup the HCTSIZn register */
 
   regval = ((uint32_t)chan->buflen << OTGFS_HCTSIZ_XFRSIZ_SHIFT) |
@@ -1387,7 +1395,7 @@ static void stm32_gint_wrpacket(FAR struct stm32_usbhost_s *priv,
  *     OK     - Transfer completed successfully
  *     EAGAIN - If devices NAKs the transfer or NYET occurs
  *     EPERM  - If the endpoint stalls
- *     EIO    - On a TX or data error
+ *     EIO    - On a TX or data toggle error
  *     EPIPE  - Frame overrun
  *
  *   EBUSY in the result field indicates that the transfer has not completed.
@@ -1405,8 +1413,8 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
    * HCINTMSK register to get the set of enabled HC interrupts.
    */
 
-  pending  = stm32_getreg(STM32_OTGFS_HCINT(chidx));
-  regval = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
+  pending = stm32_getreg(STM32_OTGFS_HCINT(chidx));
+  regval  = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
 
   /* AND the two to get the set of enabled, pending HC interrupts */
 
@@ -1588,11 +1596,18 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
 
   else if ((pending & OTGFS_HCINT_NAK) != 0)
     {
+      /* For a BULK tranfer, the hardware is capable of retrying
+       * automatically on a NAK.  However, this is not always
+       * what we need to do.  So we always halt the transfer and
+       * return control to high level logic in the even of a NAK.
+       */
+
+#if 0
       /* Halt the interrupt channel */
 
       if (chan->eptype == OTGFS_EPTYPE_CTRL)
         {
-          /* Halt the channel  -- the CHH interrrupt is expected next */
+          /* Halt the channel -- the CHH interrrupt is expected next */
 
           stm32_chan_halt(priv, chidx, CHREASON_NAK);
         }
@@ -1611,7 +1626,11 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
           regval &= ~OTGFS_HCCHAR_CHDIS;
           stm32_putreg(STM32_OTGFS_HCCHAR(chidx), regval);
         }
+#else
+      /* Halt all transfers on the NAK -- the CHH interrrupt is expected next */
 
+      stm32_chan_halt(priv, chidx, CHREASON_NAK);
+#endif
       /* Clear the NAK condition */
 
       stm32_putreg(STM32_OTGFS_HCINT(chidx), OTGFS_HCINT_NAK);
@@ -1634,7 +1653,7 @@ static inline void stm32_gint_hcinisr(FAR struct stm32_usbhost_s *priv,
  *     OK     - Transfer completed successfully
  *     EAGAIN - If devices NAKs the transfer or NYET occurs
  *     EPERM  - If the endpoint stalls
- *     EIO    - On a TX or data error
+ *     EIO    - On a TX or data toggle error
  *     EPIPE  - Frame overrun
  *
  *   EBUSY in the result field indicates that the transfer has not completed.
@@ -1652,8 +1671,8 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
    * HCINTMSK register to get the set of enabled HC interrupts.
    */
 
-  pending  = stm32_getreg(STM32_OTGFS_HCINT(chidx));
-  regval = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
+  pending = stm32_getreg(STM32_OTGFS_HCINT(chidx));
+  regval  = stm32_getreg(STM32_OTGFS_HCINTMSK(chidx));
 
   /* AND the two to get the set of enabled, pending HC interrupts */
 
@@ -1798,11 +1817,14 @@ static inline void stm32_gint_hcoutisr(FAR struct stm32_usbhost_s *priv,
 
           regval = stm32_getreg(STM32_OTGFS_HCCHAR(chidx));
 
-          /* Is it a bulk endpoint */
+          /* Is it a bulk endpoint?  Were an odd number of packets
+           * transferred?
+           */
 
-          if ((regval & OTGFS_HCCHAR_EPTYP_MASK) == OTGFS_HCCHAR_EPTYP_BULK)
+          if ((regval & OTGFS_HCCHAR_EPTYP_MASK) == OTGFS_HCCHAR_EPTYP_BULK &&
+              (chan->npackets & 1) != 0)
             {
-              /* Yes... toggle the data out PID */
+              /* Yes to both... toggle the data out PID */
 
               chan->outdata1 ^= true;
             }
@@ -3405,7 +3427,13 @@ static int stm32_ctrlout(FAR struct usbhost_driver_s *drvr,
  *
  * Returned Values:
  *   On success, zero (OK) is returned. On a failure, a negated errno value is
- *   returned indicating the nature of the failure
+ *   returned indicating the nature of the failure:
+ *
+ *     EAGAIN - If devices NAKs the transfer (or NYET or other error where
+ *              it may be appropriate to restart the entire transaction).
+ *     EPERM  - If the endpoint stalls
+ *     EIO    - On a TX or data toggle error
+ *     EPIPE  - Overrun errors
  *
  * Assumptions:
  *   - Only a single class bound to a single device is supported.
@@ -3528,22 +3556,14 @@ static int stm32_transfer(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep,
 
       ret = stm32_chan_wait(priv, chan);
 
-      /* EGAIN indicates that the device NAKed the transfer and we need
+      /* EAGAIN indicates that the device NAKed the transfer and we need
        * do try again.  Anything else (success or other errors) will
        * cause use to return
        */
 
-      if (ret != -EAGAIN)
+      if (ret != OK)
         {
-          /* Output some debug info on an error */
-
-          if (ret < 0)
-            {
-              udbg("Transfer failed: %d\n", ret);
-            }
-
-          /* Break out and return this result */
-
+          udbg("Transfer failed: %d\n", ret);
           break;
         }
     }
