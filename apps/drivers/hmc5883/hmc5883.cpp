@@ -807,9 +807,7 @@ test(int fd)
 
 
 	/* do a simple demand read */
-	uint64_t start_mag = hrt_absolute_time();
 	sz = read(fd, &report, sizeof(report));
-	test_note("time for read: %lld (should be below 2000!)", hrt_absolute_time() - start_mag);
 
 	if (sz != sizeof(report))
 		return test_fail("immediate read failed: %d", errno);
