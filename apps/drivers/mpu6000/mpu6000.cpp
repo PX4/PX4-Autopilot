@@ -430,6 +430,8 @@ MPU6000::init()
 	// write_reg(MPUREG_PWR_MGMT_1,MPU_CLK_SEL_PLLGYROZ);
 	usleep(1000);
 
+	/* do CDev init for the gyro device node */
+	ret = _gyro->init();
 
 	return ret;
 }
