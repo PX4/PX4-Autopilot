@@ -45,6 +45,7 @@
 #include <debug.h>
 
 #include <sys/time.h>
+#include <sched.h>
 
 #include <arch/board/board.h>
 #include <arch/board/up_hrt.h>

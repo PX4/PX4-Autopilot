@@ -52,14 +52,15 @@
 #include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
 #include <nuttx/spi.h>
-#include "../mix_and_link/mix_and_link.h" //TODO: add to Makefile
 #include <uORB/uORB.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/fixedwing_control.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/actuator_controls.h>
 #include <systemlib/param/param.h>
 
 __EXPORT int fixedwing_control_main(int argc, char *argv[]);
@@ -710,19 +711,38 @@ int fixedwing_control_main(int argc, char *argv[])
 	/* welcome user */
 	printf("[fixedwing control] started\n");
 
-	/* Set up to publish fixed wing control messages */
-	struct fixedwing_control_s control;
-	orb_advert_t fixedwing_control_pub = orb_advertise(ORB_ID(fixedwing_control), &control);
+	/* output structs */
+	struct actuator_controls_s actuators;
+	struct actuator_armed_s armed;
+	struct vehicle_attitude_setpoint_s att_sp;
+	memset(&att_sp, 0, sizeof(att_sp));
+
+	/* publish actuator controls */
+	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
+		actuators.control[i] = 0.0f;
+	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
+	armed.armed = false;
+	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
+	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 
 	/* Subscribe to global position, attitude and rc */
 	struct vehicle_global_position_s global_pos;
 	int global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	struct vehicle_attitude_s att;
-	int attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	struct rc_channels_s rc;
-	int rc_sub = orb_subscribe(ORB_ID(rc_channels));
 	struct vehicle_global_position_setpoint_s global_setpoint;
 	int global_setpoint_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
+	/* declare and safely initialize all structs */
+	struct vehicle_status_s state;
+	memset(&state, 0, sizeof(state));
+	struct vehicle_attitude_s att;
+	memset(&att_sp, 0, sizeof(att_sp));
+	struct manual_control_setpoint_s manual;
+	memset(&manual, 0, sizeof(manual));
+
+	/* subscribe to attitude, motor setpoints and system state */
+	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	int att_setpoint_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	/* Mainloop setup */
 	unsigned int loopcounter = 0;
@@ -733,44 +753,6 @@ int fixedwing_control_main(int argc, char *argv[])
 	control_outputs.nav_mode = 0;
 
 	/* Servo setup */
-
-	int fd;
-	servo_position_t data[PWM_OUTPUT_MAX_CHANNELS];
-
-	fd = open("/dev/pwm_servo", O_RDWR);
-
-	if (fd < 0) {
-		printf("[fixedwing control] Failed opening /dev/pwm_servo\n");
-	}
-
-	ioctl(fd, PWM_SERVO_ARM, 0);
-
-	int16_t buffer_rc[3];
-	int16_t buffer_servo[3];
-	mixer_data_t mixer_buffer;
-	mixer_buffer.input  = buffer_rc;
-	mixer_buffer.output = buffer_servo;
-
-	mixer_conf_t mixers[3];
-
-	mixers[0].source = PITCH;
-	mixers[0].nr_actuators = 2;
-	mixers[0].dest[0] = AIL_1;
-	mixers[0].dest[1] = AIL_2;
-	mixers[0].dual_rate[0] = 1;
-	mixers[0].dual_rate[1] = 1;
-
-	mixers[1].source = ROLL;
-	mixers[1].nr_actuators = 2;
-	mixers[1].dest[0] = AIL_1;
-	mixers[1].dest[1] = AIL_2;
-	mixers[1].dual_rate[0] = 1;
-	mixers[1].dual_rate[1] = -1;
-
-	mixers[2].source = THROTTLE;
-	mixers[2].nr_actuators = 1;
-	mixers[2].dest[0] = MOT;
-	mixers[2].dual_rate[0] = 1;
 
 	/*
 	 * Main control, navigation and servo routine
@@ -786,8 +768,15 @@ int fixedwing_control_main(int argc, char *argv[])
 		// XXX add error checking
 		orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
 		orb_copy(ORB_ID(vehicle_global_position_setpoint), global_setpoint_sub, &global_setpoint);
-		orb_copy(ORB_ID(vehicle_attitude), attitude_sub, &att);
-		orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
+		
+		/* get a local copy of system state */
+		orb_copy(ORB_ID(vehicle_status), state_sub, &state);
+		/* get a local copy of manual setpoint */
+		orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
+		/* get a local copy of attitude */
+		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
+		/* get a local copy of attitude setpoint */
+		orb_copy(ORB_ID(vehicle_attitude_setpoint), att_setpoint_sub, &att_sp);
 
 		/* scaling factors are defined by the data from the APM Planner
 		 * TODO: ifdef for other parameters (HIL/Real world switch)
@@ -810,20 +799,19 @@ int fixedwing_control_main(int argc, char *argv[])
 		plane_data.yawspeed = att.yawspeed;
 
 		/* parameter values */
-		get_parameters(&plane_data);
+		if (loopcounter % 20 == 0) {
+			get_parameters(&plane_data);
+		}
 
 		/* Attitude control part */
 
 		if (verbose && loopcounter % 20 == 0) {
 			/******************************** DEBUG OUTPUT ************************************************************/
 
-			printf("Parameter: %i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i \n", (int)plane_data.Kp_att, (int)plane_data.Ki_att,
+			printf("Parameter: %i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i,%i\n", (int)plane_data.Kp_att, (int)plane_data.Ki_att,
 					(int)plane_data.Kd_att, (int)plane_data.intmax_att, (int)plane_data.Kp_pos, (int)plane_data.Ki_pos,
 					(int)plane_data.Kd_pos, (int)plane_data.intmax_pos, (int)plane_data.airspeed,
-					(int)plane_data.wp_x, (int)plane_data.wp_y, (int)plane_data.wp_z,
-					(int)global_data_parameter_storage->pm.param_values[PARAM_WPLON],
-					(int)global_data_parameter_storage->pm.param_values[PARAM_WPLAT],
-					(int)global_data_parameter_storage->pm.param_values[PARAM_WPALT]);
+					(int)plane_data.wp_x, (int)plane_data.wp_y, (int)plane_data.wp_z);
 
 			printf("PITCH SETPOINT: %i\n", (int)(100.0f*plane_data.pitch_setpoint));
 			printf("ROLL SETPOINT: %i\n", (int)(100.0f*plane_data.roll_setpoint));
@@ -840,19 +828,12 @@ int fixedwing_control_main(int argc, char *argv[])
 	//		printf("\nBody Rates: \n P: %i \n Q: %i \n R: %i \n",
 	//				(int)(10000 * plane_data.p), (int)(10000 * plane_data.q), (int)(10000 * plane_data.r));
 
-			printf("\nCalculated outputs: \n R: %i\n P: %i\n Y: %i\n T: %i \n",
-					(int)(10000.0f * control_outputs.roll_ailerons), (int)(10000.0f * control_outputs.pitch_elevator),
-					(int)(10000.0f * control_outputs.yaw_rudder), (int)(10000.0f * control_outputs.throttle));
+			printf("\nCalculated outputs: \n R: %8.4f\n P: %8.4f\n Y: %8.4f\n T: %8.4f \n",
+					att_sp.roll_body, att_sp.pitch_body,
+					att_sp.yaw_body, att_sp.thrust);
 
 			/************************************************************************************************************/
 		}
-
-		/*
-		 * Computation section
-		 *
-		 * The function calls to compute the required control values happen
-		 * in this section.
-		 */
 
 		/* Set plane mode */
 		set_plane_mode();
@@ -864,123 +845,37 @@ int fixedwing_control_main(int argc, char *argv[])
 		/* Calculate the body frame angles of the aircraft */
 		//calc_bodyframe_angles(plane_data.roll,plane_data.pitch,plane_data.yaw);
 
-		/* Calculate the output values */
-		control_outputs.roll_ailerons = calc_roll_ail();
-		control_outputs.pitch_elevator = calc_pitch_elev();
-		//control_outputs.yaw_rudder = calc_yaw_rudder();
-		control_outputs.throttle = calc_throttle();
+		// if (manual.override_mode_switch < XXX) {
 
-		if (rc.chan[rc.function[OVERRIDE]].scale < MANUAL) { // if we're flying in automated mode
-
-			/*
-			 * TAKEOFF hack for HIL
-			 */
-			if (plane_data.mode == TAKEOFF) {
-				control.attitude_control_output[ROLL] = 0;
-				control.attitude_control_output[PITCH] = 5000;
-				control.attitude_control_output[THROTTLE] = 10000;
-				//global_data_fixedwing_control->attitude_control_output[YAW] = (int16_t)(control_outputs.yaw_rudder);
-			}
-
-			if (plane_data.mode == CRUISE) {
-				control.attitude_control_output[ROLL] = control_outputs.roll_ailerons;
-				control.attitude_control_output[PITCH] = control_outputs.pitch_elevator;
-				control.attitude_control_output[THROTTLE] = control_outputs.throttle;
-				//control->attitude_control_output[YAW] = (int16_t)(control_outputs.yaw_rudder);
-			}
-
-			control.counter++;
-			control.timestamp = hrt_absolute_time();
-		}
 
 		/* Navigation part */
 
-		// Get GPS Waypoint
+		// Get Waypoint
 
-		//		if(global_data_wait(&global_data_position_setpoint->access_conf) == 0)
-		//		{
-		//			plane_data.wp_x = global_data_position_setpoint->x;
-		//			plane_data.wp_y = global_data_position_setpoint->y;
-		//			plane_data.wp_z = global_data_position_setpoint->z;
-		//		}
-		//		global_data_unlock(&global_data_position_setpoint->access_conf);
+		// XXX FIXME
 
-		if (rc.chan[rc.function[OVERRIDE]].scale < MANUAL) {	// AUTO mode
-			// AUTO/HYBRID switch
+		//else if (manual.override_mode_switch > MANUAL) {	// AUTO mode
+		
+		/* calculate setpoint based on current position and waypoint */
+		att_sp.roll_body = calc_roll_setpoint();
+		att_sp.pitch_body = calc_pitch_setpoint();
+		att_sp.thrust = calc_throttle_setpoint();
 
-			if (rc.chan[rc.function[OVERRIDE]].scale < AUTO) {
-				plane_data.roll_setpoint = calc_roll_setpoint();
-				plane_data.pitch_setpoint = calc_pitch_setpoint();
-				plane_data.throttle_setpoint = calc_throttle_setpoint();
+		/* calculate the control outputs based on roll / pitch / yaw setpoints */
+		actuators.control[0] = calc_roll_ail();
+		actuators.control[1] = calc_pitch_elev();
+		actuators.control[2] = calc_yaw_rudder(att.yaw);
+		actuators.control[3] = calc_throttle();
 
-			} else {
-				plane_data.roll_setpoint = rc.chan[rc.function[ROLL]].scale / 200;
-				plane_data.pitch_setpoint = rc.chan[rc.function[PITCH]].scale / 200;
-				plane_data.throttle_setpoint = rc.chan[rc.function[THROTTLE]].scale / 200;
-			}
+		/* publish attitude setpoint (for MAVLink) */
+		orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 
-			//control_outputs.yaw_rudder = calc_yaw_rudder(plane_data.hdg);
+		/* publish actuator setpoints (for mixer) */
 
-		} else {
-			control.attitude_control_output[ROLL] = rc.chan[rc.function[ROLL]].scale/10000;
-			control.attitude_control_output[PITCH] = rc.chan[rc.function[PITCH]].scale/10000;
-			control.attitude_control_output[THROTTLE] = rc.chan[rc.function[THROTTLE]].scale/10000;
-			// since we don't have a yaw rudder
-			//control->attitude_control_output[3] = global_data_rc_channels->chan[YAW].scale;
-
-			control.counter++;
-			control.timestamp = hrt_absolute_time();
-		}
-
-		/* publish the control data */
-
-		orb_publish(ORB_ID(fixedwing_control), fixedwing_control_pub, &control);
-
-		/* Servo part */
-
-		buffer_rc[ROLL] = (int16_t)(10000*control.attitude_control_output[ROLL]);
-		buffer_rc[PITCH] = (int16_t)(10000*control.attitude_control_output[PITCH]);
-		buffer_rc[THROTTLE] = (int16_t)(10000*control.attitude_control_output[THROTTLE]);
-
-		//mix_and_link(mixers, 3, 2, &mixer_buffer);
-
-		// Scaling and saturation of servo outputs happens here
-
-		data[AIL_1] = buffer_servo[AIL_1] / global_data_parameter_storage->pm.param_values[PARAM_SERVO_SCALE]
-		                                  + global_data_parameter_storage->pm.param_values[PARAM_SERVO1_TRIM];
-
-		if (data[AIL_1] > SERVO_MAX)
-			data[AIL_1] = SERVO_MAX;
-
-		if (data[AIL_1] < SERVO_MIN)
-			data[AIL_1] = SERVO_MIN;
-
-		data[AIL_2] = buffer_servo[AIL_2] / global_data_parameter_storage->pm.param_values[PARAM_SERVO_SCALE]
-		                                  + global_data_parameter_storage->pm.param_values[PARAM_SERVO2_TRIM];
-
-		if (data[AIL_2] > SERVO_MAX)
-			data[AIL_2] = SERVO_MAX;
-
-		if (data[AIL_2] < SERVO_MIN)
-			data[AIL_2] = SERVO_MIN;
-
-		data[MOT] = buffer_servo[MOT] / global_data_parameter_storage->pm.param_values[PARAM_SERVO_SCALE]
-		                              + global_data_parameter_storage->pm.param_values[PARAM_SERVO3_TRIM];
-
-		if (data[MOT] > SERVO_MAX)
-			data[MOT] = SERVO_MAX;
-
-		if (data[MOT] < SERVO_MIN)
-			data[MOT] = SERVO_MIN;
-
-		int result = write(fd, &data, sizeof(data));
-
-		if (result != sizeof(data)) {
-			if (failcounter < 10 || failcounter % 20 == 0) {
-				printf("[fixedwing_control] failed writing servo outputs\n");
-			}
-			failcounter++;
-		}
+		/* arming state depends on commander arming state */
+		armed.armed = state.flag_system_armed;
+		orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
+		orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 		loopcounter++;
 

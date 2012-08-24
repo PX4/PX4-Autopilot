@@ -96,8 +96,6 @@ mc_thread_main(int argc, char *argv[])
 	memset(&raw, 0, sizeof(raw));
 	struct ardrone_motors_setpoint_s setpoint;
 	memset(&setpoint, 0, sizeof(setpoint));
-	struct actuator_controls_s actuator_controls;
-	memset(&actuator_controls, 0, sizeof(actuator_controls));
 
 	struct actuator_controls_s actuators;
 	struct actuator_armed_s armed;
@@ -153,12 +151,7 @@ mc_thread_main(int argc, char *argv[])
 			att_sp.yaw_body = 0.0f;
 			att_sp.thrust = 0.1f;
 		} else {
-			if (state.state_machine == SYSTEM_STATE_MANUAL ||
-				state.state_machine == SYSTEM_STATE_GROUND_READY ||
-				state.state_machine == SYSTEM_STATE_STABILIZED ||
-				state.state_machine == SYSTEM_STATE_AUTO ||
-				state.state_machine == SYSTEM_STATE_MISSION_ABORT ||
-				state.state_machine == SYSTEM_STATE_EMCY_LANDING) {
+			if (state.flag_system_armed) {
 				att_sp.thrust = manual.throttle;
 				armed.armed = true;
 
@@ -173,7 +166,7 @@ mc_thread_main(int argc, char *argv[])
 			
 		}
 
-		multirotor_control_attitude(&att_sp, &att, &state, &actuator_controls, motor_test_mode);
+		multirotor_control_attitude(&att_sp, &att, &state, &actuators, motor_test_mode);
 
 		/* publish the result */
 		orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
