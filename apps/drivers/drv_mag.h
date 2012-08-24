@@ -52,10 +52,16 @@
  * Output values are in gauss.
  */
 struct mag_report {
+	uint64_t timestamp;
 	float x;
 	float y;
 	float z;
-	uint64_t timestamp;
+	float range_ga;
+	float scaling;
+	
+	uint16_t x_raw;
+	uint16_t y_raw;
+	uint16_t z_raw;
 };
 
 /** mag scaling factors; Vout = (Vin * Vscale) + Voffset */

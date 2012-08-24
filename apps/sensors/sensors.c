@@ -54,11 +54,14 @@
 #include <float.h>
 
 #include <arch/board/up_hrt.h>
-#include <arch/board/drv_lis331.h>
 #include <arch/board/drv_bma180.h>
 #include <arch/board/drv_l3gd20.h>
-#include <arch/board/drv_hmc5883l.h>
+
 #include <drivers/drv_accel.h>
+#include <drivers/drv_gyro.h>
+#include <drivers/drv_mag.h>
+#include <drivers/drv_baro.h>
+
 #include <arch/board/up_adc.h>
 
 #include <systemlib/systemlib.h>
@@ -407,28 +410,28 @@ static int sensors_init(void)
 	printf("[sensors] Sensor configuration..\n");
 
 	/* open magnetometer */
-	fd_magnetometer = open("/dev/hmc5883l", O_RDONLY);
+	fd_magnetometer = open("/dev/mag", O_RDONLY);
 
 	if (fd_magnetometer < 0) {
-		fprintf(stderr, "[sensors]   HMC5883L open fail (err #%d): %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
+		fprintf(stderr, "[sensors]   MAG open fail (err #%d): %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 		fflush(stderr);
 		/* this sensor is critical, exit on failed init */
 		errno = ENOSYS;
 		return ERROR;
 
 	} else {
-		printf("[sensors]   HMC5883L open ok\n");
+		printf("[sensors]   MAG open ok\n");
 	}
 
 	/* open barometer */
-	fd_barometer = open("/dev/ms5611", O_RDONLY);
+	fd_barometer = open("/dev/baro", O_RDONLY);
 
 	if (fd_barometer < 0) {
-		fprintf(stderr, "[sensors]   MS5611 open fail (err #%d): %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
+		fprintf(stderr, "[sensors]   BARO open fail (err #%d): %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 		fflush(stderr);
 
 	} else {
-		printf("[sensors]   MS5611 open ok\n");
+		printf("[sensors]   BARO open ok\n");
 	}
 
 	/* open gyro */
@@ -444,7 +447,7 @@ static int sensors_init(void)
 	int errno_accelerometer = (int)*get_errno_ptr();
 
 	if (!(fd_accelerometer < 0)) {
-		printf("[sensors]   Accelerometer open ok\n");
+		printf("[sensors]   ACCEL open ok\n");
 	}
 
 	/* only attempt to use BMA180 if MPU-6000 is not available */
@@ -454,7 +457,7 @@ static int sensors_init(void)
 		errno_bma180 = (int)*get_errno_ptr();
 
 		if (!(fd_bma180 < 0)) {
-			printf("[sensors]   Accelerometer (BMA180) open ok\n");
+			printf("[sensors]   ACCEL (BMA180) open ok\n");
 		}
 	} else {
 		fd_bma180 = -1;
@@ -464,7 +467,7 @@ static int sensors_init(void)
 	if (fd_accelerometer < 0 && fd_bma180 < 0) {
 		/* print error message only if both failed, discard message else at all to not confuse users */
 		if (fd_accelerometer < 0) {
-			fprintf(stderr, "[sensors]   MPU-6000: open fail (err #%d): %s\n", errno_accelerometer, strerror(errno_accelerometer));
+			fprintf(stderr, "[sensors]   ACCEL: MPU-6000: open fail (err #%d): %s\n", errno_accelerometer, strerror(errno_accelerometer));
 			fflush(stderr);
 			/* this sensor is redundant with BMA180 */
 		}
@@ -483,7 +486,7 @@ static int sensors_init(void)
 	if (fd_accelerometer < 0 && fd_bma180 < 0) {
 		/* print error message only if both failed, discard message else at all to not confuse users */
 		if (fd_accelerometer < 0) {
-			fprintf(stderr, "[sensors]   MPU-6000: open fail (err #%d): %s\n", errno_accelerometer, strerror(errno_accelerometer));
+			fprintf(stderr, "[sensors]   GYRO: MPU-6000: open fail (err #%d): %s\n", errno_accelerometer, strerror(errno_accelerometer));
 			fflush(stderr);
 			/* this sensor is redundant with BMA180 */
 		}
@@ -620,11 +623,13 @@ int sensors_thread_main(int argc, char *argv[])
 	ssize_t	ret_adc;
 	int 	nsamples_adc;
 
-	int16_t buf_gyro[3];
+	/* for PX4FMU 1.5 compatibility */
 	int16_t buf_accelerometer[3];
+
+	struct gyro_report buf_gyro;
 	struct accel_report buf_accel_report;
-	int16_t buf_magnetometer[7];
-	float	buf_barometer[3];
+	struct mag_report buf_magnetometer;
+	struct baro_report buf_barometer;
 
 	bool mag_calibration_enabled = false;
 
@@ -662,29 +667,28 @@ int sensors_thread_main(int argc, char *argv[])
 
 	/* Empty sensor buffers, avoid junk values */
 	/* Read first two values of each sensor into void */
-	if (fd_gyro > 0)(void)read(fd_gyro, buf_gyro, sizeof(buf_gyro));
-	if (fd_bma180 > 0)(void)read(fd_bma180, buf_accelerometer, 6);
-	if (fd_accelerometer > 0)(void)read(fd_accelerometer, buf_accelerometer, 12);
-	(void)read(fd_magnetometer, buf_magnetometer, sizeof(buf_magnetometer));
-
-	if (fd_barometer > 0)(void)read(fd_barometer, buf_barometer, sizeof(buf_barometer));
+	if (fd_bma180 > 0)(void)read(fd_bma180, buf_accelerometer, sizeof(buf_accelerometer));
+	if (fd_gyro > 0)(void)read(fd_gyro, &buf_gyro, sizeof(buf_gyro));
+	if (fd_accelerometer > 0)(void)read(fd_accelerometer, &buf_accel_report, sizeof(buf_accel_report));
+	(void)read(fd_magnetometer, &buf_magnetometer, sizeof(buf_magnetometer));
+	if (fd_barometer > 0)(void)read(fd_barometer, &buf_barometer, sizeof(buf_barometer));
 
 	struct sensor_combined_s raw = {
 		.timestamp = hrt_absolute_time(),
-		.gyro_raw = {buf_gyro[0], buf_gyro[1], buf_gyro[2]},
+		.gyro_raw = {buf_gyro.x_raw, buf_gyro.y_raw, buf_gyro.z_raw},
 		.gyro_raw_counter = 0,
-		.gyro_rad_s = {0, 0, 0},
-		.accelerometer_raw = {buf_accelerometer[0], buf_accelerometer[1], buf_accelerometer[2]},
+		.gyro_rad_s = {buf_gyro.x, buf_gyro.y, buf_gyro.z},
+		.accelerometer_raw = {buf_accel_report.x_raw, buf_accel_report.y_raw, buf_accel_report.z_raw},
 		.accelerometer_raw_counter = 0,
-		.accelerometer_m_s2 = {0, 0, 0},
-		.magnetometer_raw = {buf_magnetometer[0], buf_magnetometer[1], buf_magnetometer[2]},
+		.accelerometer_m_s2 = {buf_accel_report.x, buf_accel_report.y, buf_accel_report.z},
+		.magnetometer_raw = {buf_magnetometer.x_raw, buf_magnetometer.y_raw, buf_magnetometer.z_raw},
 		.magnetometer_raw_counter = 0,
-		.baro_pres_mbar = 0,
-		.baro_alt_meter = 0,
-		.baro_temp_celcius = 0,
-		.battery_voltage_v = BAT_VOL_INITIAL,
-		.adc_voltage_v = {0, 0 , 0},
+		.baro_pres_mbar = buf_barometer.pressure,
+		.baro_alt_meter = buf_barometer.altitude,
+		.baro_temp_celcius = buf_barometer.temperature,
 		.baro_raw_counter = 0,
+		.battery_voltage_v = BAT_VOL_INITIAL,
+		.adc_voltage_v = {0, 0, 0},
 		.battery_voltage_counter = 0,
 		.battery_voltage_valid = false,
 	};
@@ -822,7 +826,7 @@ int sensors_thread_main(int argc, char *argv[])
 			if (fd_gyro > 0) {
 				/* try reading gyro */
 				uint64_t start_gyro = hrt_absolute_time();
-				ret_gyro = read(fd_gyro, buf_gyro, sizeof(buf_gyro));
+				ret_gyro = read(fd_gyro, &buf_gyro, sizeof(buf_gyro));
 				int gyrotime = hrt_absolute_time() - start_gyro;
 
 				if (gyrotime > 500) printf("GYRO (pure read): %d us\n", gyrotime);
@@ -832,7 +836,7 @@ int sensors_thread_main(int argc, char *argv[])
 					gyro_fail_count++;
 
 					if ((((gyro_fail_count % 20) == 0) || (gyro_fail_count > 20 && gyro_fail_count < 100)) && (int)*get_errno_ptr() != EAGAIN) {
-						fprintf(stderr, "[sensors] L3GD20 ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
+						fprintf(stderr, "[sensors] GYRO ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 					}
 
 					if (gyro_healthy && gyro_fail_count >= GYRO_HEALTH_COUNTER_LIMIT_ERROR) {
@@ -859,6 +863,46 @@ int sensors_thread_main(int argc, char *argv[])
 				if (gyrotime > 500) printf("GYRO (complete): %d us\n", gyrotime);
 			}
 
+			// if (fd_gyro_l3gd20 > 0) {
+			// 	/* try reading gyro */
+			// 	uint64_t start_gyro = hrt_absolute_time();
+			// 	ret_gyro = read(fd_gyro, buf_gyro_l3gd20, sizeof(buf_gyro_l3gd20));
+			// 	int gyrotime = hrt_absolute_time() - start_gyro;
+
+			// 	if (gyrotime > 500) printf("L3GD20 GYRO (pure read): %d us\n", gyrotime);
+
+			// 	/* GYROSCOPE */
+			// 	if (ret_gyro != sizeof(buf_gyro)) {
+			// 		gyro_fail_count++;
+
+			// 		if ((((gyro_fail_count % 20) == 0) || (gyro_fail_count > 20 && gyro_fail_count < 100)) && (int)*get_errno_ptr() != EAGAIN) {
+			// 			fprintf(stderr, "[sensors] L3GD20 ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
+			// 		}
+
+			// 		if (gyro_healthy && gyro_fail_count >= GYRO_HEALTH_COUNTER_LIMIT_ERROR) {
+			// 			// global_data_send_subsystem_info(&gyro_present_enabled);
+			// 			gyro_healthy = false;
+			// 			gyro_success_count = 0;
+			// 		}
+
+			// 	} else {
+			// 		gyro_success_count++;
+
+			// 		if (!gyro_healthy && gyro_success_count >= GYRO_HEALTH_COUNTER_LIMIT_OK) {
+			// 			// global_data_send_subsystem_info(&gyro_present_enabled_healthy);
+			// 			gyro_healthy = true;
+			// 			gyro_fail_count = 0;
+
+			// 		}
+
+			// 		gyro_updated = true;
+			// 	}
+
+			// 	gyrotime = hrt_absolute_time() - start_gyro;
+
+			// 	if (gyrotime > 500) printf("L3GD20 GYRO (complete): %d us\n", gyrotime);
+			// }
+
 			/* read MPU-6000 */
 			if (fd_accelerometer > 0) {
 				/* try reading acc */
@@ -869,7 +913,7 @@ int sensors_thread_main(int argc, char *argv[])
 				if (ret_accelerometer != sizeof(struct accel_report)) {
 					acc_fail_count++;
 
-					if ((acc_fail_count % 20) == 0 || (acc_fail_count > 20 && acc_fail_count < 100)) {
+					if ((acc_fail_count % 500) == 0 || (acc_fail_count > 20 && acc_fail_count < 40)) {
 						fprintf(stderr, "[sensors] MPU-6000 ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 					}
 
@@ -908,7 +952,7 @@ int sensors_thread_main(int argc, char *argv[])
 				if (ret_accelerometer != 6) {
 					acc_fail_count++;
 
-					if ((acc_fail_count % 20) == 0 || (acc_fail_count > 20 && acc_fail_count < 100)) {
+					if ((acc_fail_count % 500) == 0 || (acc_fail_count > 20 && acc_fail_count < 40)) {
 						fprintf(stderr, "[sensors] BMA180 ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 					}
 
@@ -939,31 +983,31 @@ int sensors_thread_main(int argc, char *argv[])
 			/* MAGNETOMETER */
 			if (magcounter == 4) { /* 120 Hz */
 				uint64_t start_mag = hrt_absolute_time();
-				/* start calibration mode if requested */
-				if (!mag_calibration_enabled && vstatus.preflight_mag_calibration) {
-					ioctl(fd_magnetometer, HMC5883L_CALIBRATION_ON, 0);
-					printf("[sensors] enabling mag calibration mode\n");
-					mag_calibration_enabled = true;
-				} else if (mag_calibration_enabled && !vstatus.preflight_mag_calibration) {
-					ioctl(fd_magnetometer, HMC5883L_CALIBRATION_OFF, 0);
-					printf("[sensors] disabling mag calibration mode\n");
-					mag_calibration_enabled = false;
-				}
+				// /* start calibration mode if requested */
+				// if (!mag_calibration_enabled && vstatus.preflight_mag_calibration) {
+				// 	ioctl(fd_magnetometer, HMC5883L_CALIBRATION_ON, 0);
+				// 	printf("[sensors] enabling mag calibration mode\n");
+				// 	mag_calibration_enabled = true;
+				// } else if (mag_calibration_enabled && !vstatus.preflight_mag_calibration) {
+				// 	ioctl(fd_magnetometer, HMC5883L_CALIBRATION_OFF, 0);
+				// 	printf("[sensors] disabling mag calibration mode\n");
+				// 	mag_calibration_enabled = false;
+				// }
 
-				ret_magnetometer = read(fd_magnetometer, buf_magnetometer, sizeof(buf_magnetometer));
+				ret_magnetometer = read(fd_magnetometer, &buf_magnetometer, sizeof(buf_magnetometer));
 				int errcode_mag = (int) * get_errno_ptr();
 				int magtime = hrt_absolute_time() - start_mag;
 
 				if (magtime > 2000) {
-					printf("MAG (pure read): %d us\n", magtime);
+					printf("[sensors] WARN: MAG (pure read): %d us\n", magtime);
 				}
 
 				if (ret_magnetometer != sizeof(buf_magnetometer)) {
 					mag_fail_count++;
 
 
-					if ((mag_fail_count % 20) == 0 || (mag_fail_count > 20 && mag_fail_count < 100)) {
-						fprintf(stderr, "[sensors] HMC5883L ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
+					if ((mag_fail_count % 200) == 0 || (mag_fail_count > 20 && mag_fail_count < 40)) {
+						fprintf(stderr, "[sensors] MAG ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 					}
 
 					if (magn_healthy && mag_fail_count >= MAGN_HEALTH_COUNTER_LIMIT_ERROR) {
@@ -987,8 +1031,8 @@ int sensors_thread_main(int argc, char *argv[])
 				magtime = hrt_absolute_time() - start_mag;
 
 				if (magtime > 2000) {
-					printf("MAG (overall time): %d us\n", magtime);
-					fprintf(stderr, "[sensors] TIMEOUT HMC5883L ERROR #%d: %s\n", errcode_mag, strerror(errcode_mag));
+					printf("[sensors] WARN: MAG (overall time): %d us\n", magtime);
+					fprintf(stderr, "[sensors] TIMEOUT MAG ERROR #%d: %s\n", errcode_mag, strerror(errcode_mag));
 				}
 
 				magcounter = 0;
@@ -1000,12 +1044,12 @@ int sensors_thread_main(int argc, char *argv[])
 			if (barocounter == 5 && (fd_barometer > 0)) { /* 100 Hz */
 				uint64_t start_baro = hrt_absolute_time();
 				*get_errno_ptr() = 0;
-				ret_barometer = read(fd_barometer, buf_barometer, sizeof(buf_barometer));
+				ret_barometer = read(fd_barometer, &buf_barometer, sizeof(buf_barometer));
 
 				if (ret_barometer != sizeof(buf_barometer)) {
 					baro_fail_count++;
 
-					if (((baro_fail_count % 20) == 0 || (baro_fail_count > 20 && baro_fail_count < 100)) && (int)*get_errno_ptr() != EAGAIN) {
+					if (((baro_fail_count % 200) == 0 || (baro_fail_count > 20 && baro_fail_count < 40)) && (int)*get_errno_ptr() != EAGAIN) {
 						fprintf(stderr, "[sensors] MS5611 ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 					}
 
@@ -1133,20 +1177,39 @@ int sensors_thread_main(int argc, char *argv[])
 			/* Copy values of gyro, acc, magnetometer & barometer */
 
 			/* GYROSCOPE */
-			if (gyro_updated) {
+			// if (gyro_updated) {
+			// 	/* copy sensor readings to global data and transform coordinates into px4fmu board frame */
+
+			// 	raw.gyro_raw[0] = ((buf_gyro[1] == -32768) ? -32768 : buf_gyro[1]); // x of the board is y of the sensor
+			// 	/* assign negated value, except for -SHORT_MAX, as it would wrap there */
+			// 	raw.gyro_raw[1] = ((buf_gyro[0] == -32768) ? 32767 : -buf_gyro[0]); // y on the board is -x of the sensor
+			// 	raw.gyro_raw[2] = ((buf_gyro[2] == -32768) ? -32768 : buf_gyro[2]); // z of the board is z of the sensor
+
+			// 	/* scale measurements */
+			// 	// XXX request scaling from driver instead of hardcoding it
+			// 	/* scaling calculated as: raw * (1/(32768*(500/180*PI))) */
+			// 	raw.gyro_rad_s[0] = (raw.gyro_raw[0] - rcp.gyro_offset[0]) * 0.000266316109f;
+			// 	raw.gyro_rad_s[1] = (raw.gyro_raw[1] - rcp.gyro_offset[1]) * 0.000266316109f;
+			// 	raw.gyro_rad_s[2] = (raw.gyro_raw[2] - rcp.gyro_offset[2]) * 0.000266316109f;
+
+			// 	raw.gyro_raw_counter++;
+			// }
+
+			/* MPU-6000 update */
+			if (gyro_updated && fd_accelerometer > 0) {
 				/* copy sensor readings to global data and transform coordinates into px4fmu board frame */
 
-				raw.gyro_raw[0] = ((buf_gyro[1] == -32768) ? -32768 : buf_gyro[1]); // x of the board is y of the sensor
+				raw.gyro_raw[0] = ((buf_gyro.y_raw == -32768) ? -32768 : buf_gyro.y_raw); // x of the board is y of the sensor
 				/* assign negated value, except for -SHORT_MAX, as it would wrap there */
-				raw.gyro_raw[1] = ((buf_gyro[0] == -32768) ? 32767 : -buf_gyro[0]); // y on the board is -x of the sensor
-				raw.gyro_raw[2] = ((buf_gyro[2] == -32768) ? -32768 : buf_gyro[2]); // z of the board is z of the sensor
+				raw.gyro_raw[1] = ((buf_gyro.x_raw == -32768) ? 32767 : -buf_gyro.x_raw); // y on the board is -x of the sensor
+				raw.gyro_raw[2] = ((buf_gyro.z_raw == -32768) ? -32768 : buf_gyro.z_raw); // z of the board is z of the sensor
 
 				/* scale measurements */
 				// XXX request scaling from driver instead of hardcoding it
 				/* scaling calculated as: raw * (1/(32768*(500/180*PI))) */
-				raw.gyro_rad_s[0] = (raw.gyro_raw[0] - rcp.gyro_offset[0]) * 0.000266316109f;
-				raw.gyro_rad_s[1] = (raw.gyro_raw[1] - rcp.gyro_offset[1]) * 0.000266316109f;
-				raw.gyro_rad_s[2] = (raw.gyro_raw[2] - rcp.gyro_offset[2]) * 0.000266316109f;
+				raw.gyro_rad_s[0] = buf_gyro.y;
+				raw.gyro_rad_s[1] = buf_gyro.x;
+				raw.gyro_rad_s[2] = buf_gyro.z;
 
 				raw.gyro_raw_counter++;
 			}
@@ -1159,14 +1222,13 @@ int sensors_thread_main(int argc, char *argv[])
 					/* MPU-6000 values */
 
 					/* scale from 14 bit to m/s2 */
-					raw.accelerometer_m_s2[0] = buf_accel_report.x - rcp.acc_offset[0] / 1000.0f;
-					raw.accelerometer_m_s2[1] = buf_accel_report.y - rcp.acc_offset[1] / 1000.0f;
-					raw.accelerometer_m_s2[2] = buf_accel_report.z - rcp.acc_offset[2] / 1000.0f;
+					raw.accelerometer_m_s2[0] = buf_accel_report.x - rcp.acc_offset[0] * buf_accel_report.scaling;
+					raw.accelerometer_m_s2[1] = buf_accel_report.y - rcp.acc_offset[1] * buf_accel_report.scaling;
+					raw.accelerometer_m_s2[2] = buf_accel_report.z - rcp.acc_offset[2] * buf_accel_report.scaling;
 
-					/* assign negated value, except for -SHORT_MAX, as it would wrap there */
-					raw.accelerometer_raw[0] = buf_accel_report.x * 1000; // x of the board is -y of the sensor
-					raw.accelerometer_raw[1] = buf_accel_report.y * 1000; // y on the board is x of the sensor
-					raw.accelerometer_raw[2] = buf_accel_report.z * 1000; // z of the board is z of the sensor
+					raw.accelerometer_raw[0] = buf_accel_report.x_raw;
+					raw.accelerometer_raw[1] = buf_accel_report.y_raw;
+					raw.accelerometer_raw[2] = buf_accel_report.z_raw;
 
 					raw.accelerometer_raw_counter++;
 				} else if (fd_bma180 > 0) {
@@ -1187,19 +1249,16 @@ int sensors_thread_main(int argc, char *argv[])
 					raw.accelerometer_raw_counter++;
 				}
 
-				/* L3GD20 is not available, use MPU-6000 */
-				if (fd_accelerometer > 0 && fd_gyro < 0) {
-					raw.gyro_raw[0] = ((buf_accelerometer[3] == -32768) ? -32767 : buf_accelerometer[3]); // x of the board is y of the sensor
-					/* assign negated value, except for -SHORT_MAX, as it would wrap there */
-					raw.gyro_raw[1] = ((buf_accelerometer[4] == -32768) ? 32767 : -buf_accelerometer[4]); // y on the board is -x of the sensor
-					raw.gyro_raw[2] = ((buf_accelerometer[5] == -32768) ? -32767 : buf_accelerometer[5]); // z of the board is -z of the sensor
+				/* Use MPU-6000 */
+				if (fd_accelerometer > 0) {
+					raw.gyro_raw[0] = buf_gyro.x_raw;
+					raw.gyro_raw[1] = buf_gyro.y_raw;
+					raw.gyro_raw[2] = buf_gyro.z_raw;
 
-					/* scale measurements */
-					// XXX request scaling from driver instead of hardcoding it
-					/* scaling calculated as: raw * (1/(32768*(500/180*PI))) */
-					raw.gyro_rad_s[0] = (raw.gyro_raw[0] - rcp.gyro_offset[0]) * 0.000266316109f;
-					raw.gyro_rad_s[1] = (raw.gyro_raw[1] - rcp.gyro_offset[1]) * 0.000266316109f;
-					raw.gyro_rad_s[2] = (raw.gyro_raw[2] - rcp.gyro_offset[2]) * 0.000266316109f;
+					/* scaled measurements */
+					raw.gyro_rad_s[0] = (buf_gyro.x - rcp.gyro_offset[0]) * buf_gyro.scaling;
+					raw.gyro_rad_s[1] = (buf_gyro.y - rcp.gyro_offset[1]) * buf_gyro.scaling;
+					raw.gyro_rad_s[2] = (buf_gyro.z - rcp.gyro_offset[2]) * buf_gyro.scaling;
 
 					raw.gyro_raw_counter++;
 					/* mark as updated */
@@ -1212,17 +1271,17 @@ int sensors_thread_main(int argc, char *argv[])
 				/* copy sensor readings to global data and transform coordinates into px4fmu board frame */
 
 				/* assign negated value, except for -SHORT_MAX, as it would wrap there */
-				raw.magnetometer_raw[0] = (buf_magnetometer[1] == -32768) ? 32767 : buf_magnetometer[1];  // x of the board is y of the sensor
-				raw.magnetometer_raw[1] = (buf_magnetometer[0] == -32768) ? 32767 : -buf_magnetometer[0]; // y on the board is -x of the sensor
-				raw.magnetometer_raw[2] = (buf_magnetometer[2] == -32768) ? -32768 : buf_magnetometer[2]; // z of the board is z of the sensor
+				raw.magnetometer_raw[0] = buf_magnetometer.x_raw;
+				raw.magnetometer_raw[1] = buf_magnetometer.y_raw;
+				raw.magnetometer_raw[2] = buf_magnetometer.z_raw;
 
 				// XXX Read out mag range via I2C on init, assuming 0.88 Ga and 12 bit res here
-				raw.magnetometer_ga[0] = ((raw.magnetometer_raw[0] - rcp.mag_offset[0]) / 4096.0f) * 0.88f;
-				raw.magnetometer_ga[1] = ((raw.magnetometer_raw[1] - rcp.mag_offset[1]) / 4096.0f) * 0.88f;
-				raw.magnetometer_ga[2] = ((raw.magnetometer_raw[2] - rcp.mag_offset[2]) / 4096.0f) * 0.88f;
+				raw.magnetometer_ga[0] = buf_magnetometer.x - rcp.mag_offset[0] * buf_magnetometer.scaling;
+				raw.magnetometer_ga[1] = buf_magnetometer.y - rcp.mag_offset[1] * buf_magnetometer.scaling;
+				raw.magnetometer_ga[2] = buf_magnetometer.z - rcp.mag_offset[2] * buf_magnetometer.scaling;
 
 				/* store mode */
-				raw.magnetometer_mode = buf_magnetometer[3];
+				raw.magnetometer_mode = 0;
 
 				raw.magnetometer_raw_counter++;
 			}
@@ -1231,9 +1290,9 @@ int sensors_thread_main(int argc, char *argv[])
 			if (baro_updated) {
 				/* copy sensor readings to global data and transform coordinates into px4fmu board frame */
 
-				raw.baro_pres_mbar = buf_barometer[0]; // Pressure in mbar
-				raw.baro_alt_meter = buf_barometer[1]; // Altitude in meters
-				raw.baro_temp_celcius = buf_barometer[2]; // Temperature in degrees celcius
+				raw.baro_pres_mbar = buf_barometer.pressure; // Pressure in mbar
+				raw.baro_alt_meter = buf_barometer.altitude; // Altitude in meters
+				raw.baro_temp_celcius = buf_barometer.temperature; // Temperature in degrees celcius
 
 				raw.baro_raw_counter++;
 			}

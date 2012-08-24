@@ -364,11 +364,25 @@ MPU6000::init()
 	write_reg(MPUREG_SMPLRT_DIV, 0x04);     // Sample rate = 200Hz    Fsample= 1Khz/(4+1) = 200Hz
 	usleep(1000);
 
-	// FS & DLPF   FS=2000¼/s, DLPF = 98Hz (low pass filter)
+	// FS & DLPF   FS=2000 deg/s, DLPF = 98Hz (low pass filter)
 	write_reg(MPUREG_CONFIG, BITS_DLPF_CFG_98HZ);
 	usleep(1000);
-	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS); // Gyro scale 2000¼/s
+	// Gyro scale 2000 deg/s ()
+	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
 	usleep(1000);
+
+	// correct gyro scale factors
+	// scale to rad/s in SI units
+	// 2000 deg/s = (2000/180)*PI = 34.906585 rad/s
+	// scaling factor:
+	// 1/(2^15)*(2000/180)*PI
+	_gyro_scale.x_offset = 0;
+	_gyro_scale.x_scale  = 1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
+	_gyro_scale.y_offset = 0;
+	_gyro_scale.y_scale  = 1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
+	_gyro_scale.z_offset = 0;
+	_gyro_scale.z_scale  = 1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
+	_gyro_range_scale = 1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
 
 	// product-specific scaling
 	switch (_product) {
@@ -393,6 +407,16 @@ MPU6000::init()
 		write_reg(MPUREG_ACCEL_CONFIG, 2 << 3);
 		break;
 	}
+
+	// Correct accel scale factors of 4096 LSB/g
+	// scale to m/s^2 ( 1g = 9.81 m/s^2)
+	_accel_scale.x_offset = 0;
+	_accel_scale.x_scale  = 1.0f / (4096.0f / 9.81f);
+	_accel_scale.y_offset = 0;
+	_accel_scale.y_scale  = 1.0f / (4096.0f / 9.81f);
+	_accel_scale.z_offset = 0;
+	_accel_scale.z_scale  = 1.0f / (4096.0f / 9.81f);
+	_accel_range_scale = 1.0f / (4096.0f / 9.81f);
 
 	usleep(1000);
 
@@ -472,7 +496,7 @@ MPU6000::read(struct file *filp, char *buffer, size_t buflen)
 	if (_call_interval == 0)
 		measure();
 
-	/* copy out the latest report */
+	/* copy out the latest reports */
 	memcpy(buffer, &_accel_report, sizeof(_accel_report));
 	ret = sizeof(_accel_report);
 
@@ -746,9 +770,17 @@ MPU6000::measure()
 	 */
 	_gyro_report.timestamp = _accel_report.timestamp = hrt_absolute_time();
 
+	_accel_report.x_raw = report.accel_x;
+	_accel_report.y_raw = report.accel_x;
+	_accel_report.z_raw = report.accel_x;
+
 	_accel_report.x = report.accel_x * _accel_range_scale;
 	_accel_report.y = report.accel_y * _accel_range_scale;
 	_accel_report.z = report.accel_z * _accel_range_scale;
+
+	_gyro_report.x_raw = report.gyro_x;
+	_gyro_report.y_raw = report.gyro_y;
+	_gyro_report.z_raw = report.gyro_z;
 
 	_gyro_report.x = report.gyro_x * _gyro_range_scale;
 	_gyro_report.y = report.gyro_y * _gyro_range_scale;
@@ -816,17 +848,26 @@ int
 test()
 {
 	int fd = -1;
+	int fd_gyro = -1;
 	struct accel_report report;
+	struct gyro_report g_report;
 	ssize_t sz;
 	const char *reason = "test OK";
 
 	do {
-
 		/* get the driver */
 		fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
 
 		if (fd < 0) {
-			reason = "can't open driver, use <mpu6000 start> first";
+			reason = "can't open accel driver, use <mpu6000 start> first";
+			break;
+		}
+
+		/* get the driver */
+		fd_gyro = open(GYRO_DEVICE_PATH, O_RDONLY);
+
+		if (fd_gyro < 0) {
+			reason = "can't open gyro driver, use <mpu6000 start> first";
 			break;
 		}
 
@@ -834,17 +875,32 @@ test()
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			reason = "immediate read failed";
+			reason = "immediate acc read failed";
 			break;
 		}
 
 		printf("single read\n");
 		fflush(stdout);
-		printf("time:        %lld\n", report.timestamp);
-		printf("x:         %5.2f\n", (double)report.x);
-		printf("y:         %5.2f\n", (double)report.y);
-		printf("z:         %5.2f\n", (double)report.z);
-		printf("test:         %8.4f\n", 1.5);
+		printf("time:     %lld\n", report.timestamp);
+		printf("acc  x:   %5.2f m/s^2\n", (double)report.x);
+		printf("acc  y:   %5.2f m/s^2\n", (double)report.y);
+		printf("acc  z:   %5.2f m/s^2\n", (double)report.z);
+		printf("acc range: %4.0f m/s^2 (%3.0f g)\n", (double)report.range_m_s2,
+			(double)(report.range_m_s2 / 9.81f));
+
+		/* do a simple demand read */
+		sz = read(fd, &g_report, sizeof(g_report));
+
+		if (sz != sizeof(g_report)) {
+			reason = "immediate gyro read failed";
+			break;
+		}
+
+		printf("gyro x:   %5.2f rad/s\n", (double)g_report.x);
+		printf("gyro y:   %5.2f rad/s\n", (double)g_report.y);
+		printf("gyro z:   %5.2f rad/s\n", (double)g_report.z);
+		printf("gyro range: %3.0f rad/s (%5.0f deg/s)\n", (double)g_report.range_rad_s,
+			(double)(g_report.range_rad_s / M_PI_F * 180.0f));
 
 	} while (0);
 

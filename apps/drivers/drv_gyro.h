@@ -50,10 +50,16 @@
  * structure.
  */
 struct gyro_report {
+	uint64_t timestamp;
 	float x;
 	float y;
 	float z;
-	uint64_t timestamp;
+	float range_rad_s;
+	float scaling;
+	
+	int16_t x_raw;
+	int16_t y_raw;
+	int16_t z_raw;
 };
 
 /** gyro scaling factors; Vout = (Vin * Vscale) + Voffset */
