@@ -249,7 +249,10 @@ CONFIG_DEBUG_I2C=n
 #
 # Enable the MTD driver for the onboard I2C EEPROM
 #
-CONFIG_MTD_AT24XX=y
+# Note that we are using a private copy of the AT24XX driver that
+# does not require CONFIG_MTD_XT24XX to be set.
+#
+#CONFIG_MTD_AT24XX=y
 CONFIG_AT24XX_ADDR=0x50
 CONFIG_AT24XX_SIZE=128
 CONFIG_AT24XX_MTD_BLOCKSIZE=256
