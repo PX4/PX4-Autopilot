@@ -113,6 +113,7 @@ static int sensors_timer_loop_counter = 0;
 
 /* File descriptors for all sensors */
 static int fd_gyro = -1;
+static int fd_gyro_l3gd20 = -1;
 
 static bool thread_should_exit = false;
 static bool thread_running = false;
@@ -435,11 +436,19 @@ static int sensors_init(void)
 	}
 
 	/* open gyro */
-	fd_gyro = open("/dev/l3gd20", O_RDONLY);
+	fd_gyro_l3gd20  = open("/dev/l3gd20", O_RDONLY);
 	int errno_gyro = (int)*get_errno_ptr();
 
-	if (!(fd_gyro < 0)) {
+	if (!(fd_gyro_l3gd20 < 0)) {
 		printf("[sensors]   L3GD20 open ok\n");
+	}
+
+	/* open gyro */
+	fd_gyro = open("/dev/gyro", O_RDONLY);
+	errno_gyro = (int)*get_errno_ptr();
+
+	if (!(fd_gyro < 0)) {
+		printf("[sensors]   GYRO open ok\n");
 	}
 
 	/* open accelerometer, prefer the MPU-6000 */
@@ -516,8 +525,8 @@ static int sensors_init(void)
 	}
 
 	/* configure gyro - if its not available and we got here the MPU-6000 is for sure available */
-	if (fd_gyro > 0) {
-		if (ioctl(fd_gyro, L3GD20_SETRATE, L3GD20_RATE_760HZ_LP_30HZ) || ioctl(fd_gyro, L3GD20_SETRANGE, L3GD20_RANGE_500DPS)) {
+	if (fd_gyro_l3gd20  > 0) {
+		if (ioctl(fd_gyro_l3gd20 , L3GD20_SETRATE, L3GD20_RATE_760HZ_LP_30HZ) || ioctl(fd_gyro_l3gd20 , L3GD20_SETRANGE, L3GD20_RANGE_500DPS)) {
 			fprintf(stderr, "[sensors]   L3GD20 configuration (ioctl) fail (err #%d): %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 			fflush(stderr);
 			/* this sensor is critical, exit on failed init */
@@ -568,7 +577,7 @@ int sensors_thread_main(int argc, char *argv[])
 		close(fd_barometer);
 		close(fd_adc);
 
-		fprintf(stderr, "[sensors] rebooting system.\n");
+		fprintf(stderr, "[sensors] REBOOTING SYSTEM\n\n");
 		fflush(stderr);
 		fflush(stdout);
 		usleep(100000);
@@ -631,7 +640,7 @@ int sensors_thread_main(int argc, char *argv[])
 	struct mag_report buf_magnetometer;
 	struct baro_report buf_barometer;
 
-	bool mag_calibration_enabled = false;
+	// bool mag_calibration_enabled = false;
 
 	#pragma pack(push,1)
 	struct adc_msg4_s {
@@ -835,7 +844,7 @@ int sensors_thread_main(int argc, char *argv[])
 				if (ret_gyro != sizeof(buf_gyro)) {
 					gyro_fail_count++;
 
-					if ((((gyro_fail_count % 20) == 0) || (gyro_fail_count > 20 && gyro_fail_count < 100)) && (int)*get_errno_ptr() != EAGAIN) {
+					if ((((gyro_fail_count % 500) == 0) || (gyro_fail_count > 20 && gyro_fail_count < 100)) && (int)*get_errno_ptr() != EAGAIN) {
 						fprintf(stderr, "[sensors] GYRO ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
 					}
 
@@ -981,7 +990,7 @@ int sensors_thread_main(int argc, char *argv[])
 			}
 
 			/* MAGNETOMETER */
-			if (magcounter == 4) { /* 120 Hz */
+			if (magcounter == 210) { /* 120 Hz */
 				uint64_t start_mag = hrt_absolute_time();
 				// /* start calibration mode if requested */
 				// if (!mag_calibration_enabled && vstatus.preflight_mag_calibration) {
@@ -993,7 +1002,7 @@ int sensors_thread_main(int argc, char *argv[])
 				// 	printf("[sensors] disabling mag calibration mode\n");
 				// 	mag_calibration_enabled = false;
 				// }
-
+				*get_errno_ptr() = 0;
 				ret_magnetometer = read(fd_magnetometer, &buf_magnetometer, sizeof(buf_magnetometer));
 				int errcode_mag = (int) * get_errno_ptr();
 				int magtime = hrt_absolute_time() - start_mag;
@@ -1007,7 +1016,7 @@ int sensors_thread_main(int argc, char *argv[])
 
 
 					if ((mag_fail_count % 200) == 0 || (mag_fail_count > 20 && mag_fail_count < 40)) {
-						fprintf(stderr, "[sensors] MAG ERROR #%d: %s\n", (int)*get_errno_ptr(), strerror((int)*get_errno_ptr()));
+						fprintf(stderr, "[sensors] MAG ERROR #%d: %s\n", errcode_mag, strerror(errcode_mag));
 					}
 
 					if (magn_healthy && mag_fail_count >= MAGN_HEALTH_COUNTER_LIMIT_ERROR) {
@@ -1030,9 +1039,8 @@ int sensors_thread_main(int argc, char *argv[])
 
 				magtime = hrt_absolute_time() - start_mag;
 
-				if (magtime > 2000) {
-					printf("[sensors] WARN: MAG (overall time): %d us\n", magtime);
-					fprintf(stderr, "[sensors] TIMEOUT MAG ERROR #%d: %s\n", errcode_mag, strerror(errcode_mag));
+				if (magtime > 2000 && (read_loop_counter % 5) == 0) {
+					printf("[sensors] WARN: MAG (overall time): %d us, code:\n", magtime);
 				}
 
 				magcounter = 0;
@@ -1041,7 +1049,7 @@ int sensors_thread_main(int argc, char *argv[])
 			magcounter++;
 
 			/* BAROMETER */
-			if (barocounter == 5 && (fd_barometer > 0)) { /* 100 Hz */
+			if (barocounter == 200 && (fd_barometer > 0)) { /* 100 Hz */
 				uint64_t start_baro = hrt_absolute_time();
 				*get_errno_ptr() = 0;
 				ret_barometer = read(fd_barometer, &buf_barometer, sizeof(buf_barometer));
@@ -1076,7 +1084,7 @@ int sensors_thread_main(int argc, char *argv[])
 				barocounter = 0;
 				int barotime = hrt_absolute_time() - start_baro;
 
-				if (barotime > 2000) printf("BARO: %d us\n", barotime);
+				if (barotime > 2000 && (read_loop_counter % 5) == 0) printf("[sensors] WARN: BARO %d us\n", barotime);
 			}
 
 			barocounter++;

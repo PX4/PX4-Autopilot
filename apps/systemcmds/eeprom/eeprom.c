@@ -99,7 +99,7 @@ int eeprom_main(int argc, char *argv[])
 		}
 	}
 
-	errx(1, "expected a command, try 'start'");
+	errx(1, "expected a command, try 'start'\n\t'save_param /eeprom/params'\n\t'load_param /eeprom/params'\n\t'erase'\n");
 }
 
 

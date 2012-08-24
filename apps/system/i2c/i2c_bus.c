@@ -84,6 +84,8 @@ int i2ccmd_bus(FAR struct i2ctool_s *i2ctool, int argc, char **argv)
   for (i = CONFIG_I2CTOOL_MINBUS; i <= CONFIG_I2CTOOL_MAXBUS; i++)
     {
       dev = up_i2cinitialize(i);
+      // set the bus speed again to a reasonable number of 400 KHz
+      I2C_SETFREQUENCY(_dev, 400000);
       if (dev)
         {
           i2ctool_printf(i2ctool, "Bus %d: YES\n", i);

@@ -75,6 +75,9 @@ I2C::init()
 
 	// attach to the i2c bus
 	_dev = up_i2cinitialize(_bus);
+	// set the bus speed again to a reasonable number of 400 KHz
+	I2C_SETFREQUENCY(_dev, 400000);
+
 
 	if (_dev == nullptr) {
 		debug("failed to init I2C");
@@ -118,7 +121,7 @@ I2C::transfer(uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len
 	struct i2c_msg_s msgv[2];
 	unsigned msgs;
 	int ret;
-	unsigned tries;
+	unsigned tries = 0;
 
 	do {
 	//	debug("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
@@ -144,6 +147,8 @@ I2C::transfer(uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len
 		if (msgs == 0)
 			return -EINVAL;
 
+		// set the bus speed again to a reasonable number of 400 KHz
+		I2C_SETFREQUENCY(_dev, 400000);
 		ret = I2C_TRANSFER(_dev, &msgv[0], msgs);
 
 		if (ret == OK)

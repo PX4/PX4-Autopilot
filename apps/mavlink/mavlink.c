@@ -94,7 +94,6 @@ static int mavlink_task;
 
 /* terminate MAVLink on user request - disabled by default */
 static bool mavlink_link_termination_allowed = false;
-static bool mavlink_exit_requested = false;
 
 mavlink_system_t mavlink_system = {100, 50, MAV_TYPE_FIXED_WING, 0, 0, 0}; // System ID, 1-255, Component/Subsystem ID, 1-255
 static uint8_t chan = MAVLINK_COMM_0;
@@ -459,8 +458,6 @@ static void *receiveloop(void *arg)
 
 	while (!thread_should_exit) {
 
-		if (mavlink_exit_requested) break;
-
 		struct pollfd fds[] = { { .fd = uart_fd, .events = POLLIN } };
 
 		if (poll(fds, 1, timeout) > 0) {
@@ -704,7 +701,6 @@ static void *uorb_receiveloop(void *arg)
 	const int timeout = 1000;
 
 	while (!thread_should_exit) {
-		if (mavlink_exit_requested) break;
 
 		int poll_ret = poll(fds, fdsc_count, timeout);
 
@@ -1090,12 +1086,8 @@ void handleMessage(mavlink_message_t *msg)
 				fflush(stdout);
 				usleep(50000);
 
-				/* terminate other threads */
-				mavlink_exit_requested = true;
-				pthread_cancel(receive_thread);
-				pthread_cancel(uorb_receive_thread);
-
-				pthread_exit(NULL);
+				/* terminate other threads and this thread */
+				thread_should_exit = true;
 
 			} else {
 
@@ -1425,7 +1417,7 @@ int mavlink_thread_main(int argc, char *argv[])
 
 	if (uart < 0) {
 		printf("[mavlink] FAILED to open %s, terminating.\n", uart_name);
-		return ERROR;
+		goto exit_cleanup;
 	}
 
 	/* Flush UART */
@@ -1511,9 +1503,9 @@ int mavlink_thread_main(int argc, char *argv[])
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 10000);
 	}
 
-	while (!thread_should_exit) {
+	thread_running = true;
 
-		if (mavlink_exit_requested) break;
+	while (!thread_should_exit) {
 
 		/* get local and global position */
 		orb_copy(ORB_ID(vehicle_global_position), mavlink_subs.global_pos_sub, &global_pos);
@@ -1606,8 +1598,14 @@ int mavlink_thread_main(int argc, char *argv[])
 		printf("[mavlink] Restored original UART config, exiting..\n");
 	}
 
+exit_cleanup:
+
 	/* close uart */
 	close(uart);
+
+	/* close subscriptions */
+	close(mavlink_subs.global_pos_sub);
+	close(local_pos_sub);
 
 	fflush(stdout);
 	fflush(stderr);
@@ -1641,7 +1639,6 @@ int mavlink_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		mavlink_task = task_create("mavlink", SCHED_PRIORITY_DEFAULT, 4400, mavlink_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
-		thread_running = true;
 		exit(0);
 	}
 

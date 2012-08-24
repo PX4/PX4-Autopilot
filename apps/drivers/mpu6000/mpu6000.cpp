@@ -181,11 +181,13 @@ private:
 	struct accel_report	_accel_report;
 	struct accel_scale	_accel_scale;
 	float			_accel_range_scale;
+	float			_accel_range_m_s2;
 	orb_advert_t		_accel_topic;
 
 	struct gyro_report	_gyro_report;
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
+	float			_gyro_range_rad_s;
 	orb_advert_t		_gyro_topic;
 
 	unsigned		_reads;
@@ -289,8 +291,10 @@ MPU6000::MPU6000(int bus, spi_dev_e device) :
 	_product(0),
 	_call_interval(0),
 	_accel_range_scale(0.02f),
+	_accel_range_m_s2(0.0f),
 	_accel_topic(-1),
 	_gyro_range_scale(0.02f),
+	_gyro_range_rad_s(0.0f),
 	_gyro_topic(-1),
 	_reads(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read"))
@@ -383,6 +387,7 @@ MPU6000::init()
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
 	_gyro_range_scale = 1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
+	_gyro_range_rad_s = (2000.0f / 180.0f) * M_PI_F;
 
 	// product-specific scaling
 	switch (_product) {
@@ -417,6 +422,7 @@ MPU6000::init()
 	_accel_scale.z_offset = 0;
 	_accel_scale.z_scale  = 1.0f / (4096.0f / 9.81f);
 	_accel_range_scale = 1.0f / (4096.0f / 9.81f);
+	_accel_range_m_s2 = 8.0f * 9.81f;
 
 	usleep(1000);
 
@@ -779,6 +785,8 @@ MPU6000::measure()
 	_accel_report.x = report.accel_x * _accel_range_scale;
 	_accel_report.y = report.accel_y * _accel_range_scale;
 	_accel_report.z = report.accel_z * _accel_range_scale;
+	_accel_report.scaling = _accel_range_scale;
+	_accel_report.range_m_s2 = _accel_range_m_s2;
 
 	_gyro_report.x_raw = report.gyro_x;
 	_gyro_report.y_raw = report.gyro_y;
@@ -787,6 +795,8 @@ MPU6000::measure()
 	_gyro_report.x = report.gyro_x * _gyro_range_scale;
 	_gyro_report.y = report.gyro_y * _gyro_range_scale;
 	_gyro_report.z = report.gyro_z * _gyro_range_scale;
+	_gyro_report.scaling = _gyro_range_scale;
+	_gyro_report.range_rad_s = _gyro_range_rad_s;
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -884,25 +894,25 @@ test()
 		printf("single read\n");
 		fflush(stdout);
 		printf("time:     %lld\n", report.timestamp);
-		printf("acc  x:   %5.2f m/s^2\n", (double)report.x);
-		printf("acc  y:   %5.2f m/s^2\n", (double)report.y);
-		printf("acc  z:   %5.2f m/s^2\n", (double)report.z);
-		printf("acc range: %4.0f m/s^2 (%3.0f g)\n", (double)report.range_m_s2,
+		printf("acc  x:  \t% 5.2f\tm/s^2\n", (double)report.x);
+		printf("acc  y:  \t% 5.2f\tm/s^2\n", (double)report.y);
+		printf("acc  z:  \t% 5.2f\tm/s^2\n", (double)report.z);
+		printf("acc range: %6.2f m/s^2 (%6.2f g)\n", (double)report.range_m_s2,
 			(double)(report.range_m_s2 / 9.81f));
 
 		/* do a simple demand read */
-		sz = read(fd, &g_report, sizeof(g_report));
+		sz = read(fd_gyro, &g_report, sizeof(g_report));
 
 		if (sz != sizeof(g_report)) {
 			reason = "immediate gyro read failed";
 			break;
 		}
 
-		printf("gyro x:   %5.2f rad/s\n", (double)g_report.x);
-		printf("gyro y:   %5.2f rad/s\n", (double)g_report.y);
-		printf("gyro z:   %5.2f rad/s\n", (double)g_report.z);
-		printf("gyro range: %3.0f rad/s (%5.0f deg/s)\n", (double)g_report.range_rad_s,
-			(double)(g_report.range_rad_s / M_PI_F * 180.0f));
+		printf("gyro x: \t% 5.2f\trad/s\n", (double)g_report.x);
+		printf("gyro y: \t% 5.2f\trad/s\n", (double)g_report.y);
+		printf("gyro z: \t% 5.2f\trad/s\n", (double)g_report.z);
+		printf("gyro range: %6.3f rad/s (%8.1f deg/s)\n", (double)g_report.range_rad_s,
+			(double)((g_report.range_rad_s / M_PI_F) * 180.0f));
 
 	} while (0);
 
