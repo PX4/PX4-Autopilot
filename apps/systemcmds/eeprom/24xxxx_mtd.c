@@ -66,6 +66,8 @@
 #include <nuttx/i2c.h>
 #include <nuttx/mtd.h>
 
+#include "systemlib/perf_counter.h"
+
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
@@ -133,6 +135,9 @@ struct at24c_dev_s
   uint8_t               addr;     /* I2C address */
   uint16_t              pagesize; /* 32, 63 */
   uint16_t              npages;   /* 128, 256, 512, 1024 */
+
+  perf_counter_t        perf_reads;
+  perf_counter_t        perf_writes;
 };
 
 /************************************************************************************
@@ -219,6 +224,7 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
   FAR struct at24c_dev_s *priv = (FAR struct at24c_dev_s *)dev;
   size_t blocksleft;
   uint8_t addr[2];
+  int ret;
 
   struct i2c_msg_s msgv[2] = 
     {
@@ -262,8 +268,15 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
       addr[0] = (offset >> 8) & 0xff;
       msgv[1].buffer = buffer;
 
-      while (I2C_TRANSFER(priv->dev, &msgv[0], 2) < 0) 
+      for (;;)
         {
+
+          perf_begin(priv->perf_reads);
+          ret = I2C_TRANSFER(priv->dev, &msgv[0], 2);
+          perf_end(priv->perf_reads);
+          if (ret >= 0)
+            break;
+
           /* XXX probably want a bus reset in here and an eventual timeout */
           fvdbg("read stall");
           usleep(1000);
@@ -293,6 +306,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
   FAR struct at24c_dev_s *priv = (FAR struct at24c_dev_s *)dev;
   size_t blocksleft;
   uint8_t buf[AT24XX_PAGESIZE+2];
+  int ret;
 
   struct i2c_msg_s msgv[1] = 
     {
@@ -330,8 +344,16 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
       buf[0] = (offset >> 8) & 0xff;
       memcpy(&buf[2], buffer, priv->pagesize);
 
-      while (I2C_TRANSFER(priv->dev, &msgv[0], 1) < 0) 
+      for (;;) 
         {
+
+          perf_begin(priv->perf_writes);
+          ret = I2C_TRANSFER(priv->dev, &msgv[0], 1);
+          perf_end(priv->perf_writes);
+
+          if (ret >= 0)
+            break;
+
           /* XXX probably want a bus reset in here and an eventual timeout */
           fvdbg("write stall");
           usleep(1000);
@@ -458,6 +480,9 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_dev_s *dev)
       priv->mtd.bwrite = at24c_bwrite;
       priv->mtd.ioctl  = at24c_ioctl;
       priv->dev        = dev;
+
+      priv->perf_reads = perf_alloc(PC_ELAPSED, "EEPROM read");
+      priv->perf_writes = perf_alloc(PC_ELAPSED, "EEPROM write");
     }
 
   /* Return the implementation-specific state structure as the MTD device */
