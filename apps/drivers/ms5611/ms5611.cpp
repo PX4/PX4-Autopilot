@@ -317,11 +317,12 @@ MS5611::close_last(struct file *filp)
 int
 MS5611::probe()
 {
-	if (OK == probe_address(MS5611_ADDRESS_1))
+	_retries = 3;
+	if((OK == probe_address(MS5611_ADDRESS_1)) ||
+	   (OK == probe_address(MS5611_ADDRESS_2))) {
+	   	_retries = 1;
 		return OK;
-
-	if (OK == probe_address(MS5611_ADDRESS_2))
-		return OK;
+	}
 
 	return -EIO;
 }
