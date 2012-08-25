@@ -47,6 +47,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <systemlib/param/param.h>
+#include <systemlib/err.h>
+#include <sys/stat.h>
 
 extern mavlink_system_t mavlink_system;
 
@@ -64,6 +66,20 @@ static unsigned int mavlink_param_queue_index = 0;
  * Callback for param interface.
  */
 void mavlink_pm_callback(void *arg, param_t param);
+
+/**
+ * Save parameters to EEPROM.
+ *
+ * Stores the parameters to /eeprom/parameters
+ */
+static int mavlink_pm_save_eeprom(void);
+
+/**
+ * Load parameters from EEPROM.
+ *
+ * Loads the parameters from /eeprom/parameters
+ */
+static int mavlink_pm_load_eeprom(void);
 
 void mavlink_pm_callback(void *arg, param_t param)
 {
@@ -126,6 +142,8 @@ int mavlink_pm_send_param(param_t param)
 		mavlink_type = MAVLINK_TYPE_INT32_T;
 	} else if (type == PARAM_TYPE_FLOAT) {
 		mavlink_type = MAVLINK_TYPE_FLOAT;
+	} else {
+		mavlink_type = MAVLINK_TYPE_FLOAT;
 	}
 
 	/*
@@ -150,27 +168,28 @@ int mavlink_pm_send_param(param_t param)
 }
 
 static const char *mavlink_parameter_file = "/eeprom/parameters";
+
 /**
  * @return 0 on success, -1 if device open failed, -2 if writing parameters failed
  */
-static int
-mavlink_pm_save_eeprom()
+static int mavlink_pm_save_eeprom()
 {
+	/* delete the file in case it exists */
 	unlink(mavlink_parameter_file);
 
+	/* create the file */
 	int fd = open(mavlink_parameter_file, O_WRONLY | O_CREAT | O_EXCL);
 
-	if (fd < 0) {
-		warn("opening '%s' failed", mavlink_parameter_file);
+	if (fd < 0)
+		warn("opening '%s' for writing failed", mavlink_parameter_file);
 		return -1;
-	}
 
 	int result = param_export(fd, false);
 	close(fd);
 
 	if (result < 0) {
 		unlink(mavlink_parameter_file);
-		warn("error exporting to '%s'", mavlink_parameter_file);
+		warn("error exporting parameters to '%s'", mavlink_parameter_file);
 		return -2;
 	}
 
@@ -178,16 +197,24 @@ mavlink_pm_save_eeprom()
 }
 
 /**
- * @return 0 on success, -1 if device open failed, -2 if writing parameters failed
+ * @return 0 on success, 1 if all params have not yet been stored, -1 if device open failed, -2 if writing parameters failed
  */
 static int
 mavlink_pm_load_eeprom()
 {
+	/* check if eeprom is mounted - if yes and an eeprom open fail is no error */
+	struct stat buffer;
+	int eeprom_stat = stat("/eeprom", &buffer);
+
 	int fd = open(mavlink_parameter_file, O_RDONLY);
 
 	if (fd < 0) {
-		warn("open '%s' failed", mavlink_parameter_file);
-		return -1;
+		if (eeprom_stat == OK) {
+			return 1;
+		} else {
+			warn("open '%s' for reading failed", mavlink_parameter_file);
+			return -1;
+		}
 	}
 
 	int result = param_import(fd);
@@ -266,7 +293,7 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 			mavlink_command_long_t cmd_mavlink;
 			mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
-			uint8_t result;
+			uint8_t result = MAV_RESULT_UNSUPPORTED;
 
 			if (cmd_mavlink.target_system == mavlink_system.sysid &&
 				((cmd_mavlink.target_component == mavlink_system.compid) ||(cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
@@ -283,7 +310,9 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 							//printf("[mavlink pm] Loaded EEPROM params in RAM\n");
 							mavlink_missionlib_send_gcs_string("[mavlink pm] OK loaded EEPROM params");
 							result = MAV_RESULT_ACCEPTED;
-
+						} else if (read_ret == 1) {
+							mavlink_missionlib_send_gcs_string("[mavlink pm] No stored parameters to load");
+							result = MAV_RESULT_ACCEPTED;
 						} else {
 							if (read_ret < -1) {
 								mavlink_missionlib_send_gcs_string("[mavlink pm] ERR loading params from EEPROM");
@@ -317,6 +346,9 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 					}
 				}
 			}
+
+			/* send back command result */
+			// mavlink_message_t tx;
 		} break;
 	}
 }

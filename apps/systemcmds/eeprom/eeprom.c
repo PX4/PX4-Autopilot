@@ -48,6 +48,7 @@
 #include <fcntl.h>
 #include <sys/mount.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 
 #include <nuttx/i2c.h>
 #include <nuttx/mtd.h>
@@ -99,7 +100,7 @@ int eeprom_main(int argc, char *argv[])
 		}
 	}
 
-	errx(1, "expected a command, try 'start'\n\t'save_param /eeprom/params'\n\t'load_param /eeprom/params'\n\t'erase'\n");
+	errx(1, "expected a command, try 'start'\n\t'save_param /eeprom/parameters'\n\t'load_param /eeprom/parameters'\n\t'erase'\n");
 }
 
 
@@ -174,9 +175,16 @@ eeprom_ioctl(unsigned operation)
 static void
 eeprom_save(const char *name)
 {
-	if (!name) 
-		err(1, "missing argument for device name, try '/eeprom'");
+	if (!started)
+		errx(1, "must be started first");
 
+	if (!name) 
+		err(1, "missing argument for device name, try '/eeprom/parameters'");
+
+	/* delete the file in case it exists */
+	unlink(name);
+
+	/* create the file */
 	int fd = open(name, O_WRONLY | O_CREAT | O_EXCL);
 
 	if (fd < 0)
@@ -196,8 +204,11 @@ eeprom_save(const char *name)
 static void
 eeprom_load(const char *name)
 {
+	if (!started)
+		errx(1, "must be started first");
+
 	if (!name) 
-		err(1, "missing argument for device name, try '/eeprom'");
+		err(1, "missing argument for device name, try '/eeprom/parameters'");
 	
 	int fd = open(name, O_RDONLY);
 
