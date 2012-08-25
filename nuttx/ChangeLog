@@ -2280,7 +2280,7 @@
 	  the particular condition that revealed the bug occurred.  My impression is
 	  that this latter bugfix also fixes some STM32 USB performance problems.
 	* configs/hymini-stm32v: A configuration for the HY-Mini STM32v board contributed
-	  by Laurent Latil.  Theses changes also include support for the STM32F103VCT6. 
+	  by Laurent Latil.  These changes also include support for the STM32F103VCT6. 
 	* arch/configs/stm3240g-eval/src/up_pwm.c:  Add hooks needed to use the new
 	  apps/examples/pwm test of the STM32 PWM  driver.
 	* drivers/mtd/mp25x.c:  Add ability to use different SPI modes and different
@@ -2977,7 +2977,7 @@
 	* configs/lpc4330-xplorer/nsh:  Add an NSH configuration for the LPC4330
 	  Xplorer board.
 
-6.21 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.21 2012-08-25 Gregory Nutt <gnutt@nuttx.org>
 
 	* configs/lpc4330-xplorer/up_nsh.c:  Add support for a basic SPIFI block
 	  driver for use by NSH.  Does not work!  Crashes on first SPIFI write.
@@ -3024,7 +3024,7 @@
 	  but the driver still does not work.
 	* arch/arm/src/stm32 and arch/arm/include/stm32: Make name of RTC ALARM interrupt
 	  common on STM32 F1,2,4
-	* arch/arm/src/stm32 and arch/arm/include/stm32: Add add support for the
+	* arch/arm/src/stm32 and arch/arm/include/stm32: Add support for the
 	  STM32F100x "Value Line" devices. This includes changes to stm32F10xx_rcc.c that
 	  add the ability to run the chip off the internal oscillator.  There is no open
 	  board configuration for this part yet (the STM32VLDiscovery would be a candidate).
@@ -3050,7 +3050,7 @@
 	* include/termios.h and lib/termios/*:  Redesigned yet again (this is getting
 	  painful.  NuttX now supports the BOTHER baud setting just as Linux does.  termios
 	  Bxxx definitions are again encoded; cf[set|get][o|i]speed now deal with only the
-	  encoded values.  If the encode baud is set to BOTHER, then the values in the (non-
+	  encoded values.  If the encoded baud is set to BOTHER, then the values in the (non-
 	  standard) c_ispeed and c_ospeed baud values may be accessed directly.
 	* arch/arm/src/stm32/stm32_serial.c:  Add minimal termios support for the STM32
 	  (BOTHER style baud settings only).  Contributed by Mike Smith.
@@ -3063,8 +3063,7 @@
 	* arch/arm/src/stm32/stm32_sdio.c and chip/stm32f20xx_pinmap.h:  STM32 F2 SDIO
 	  fixes from Gary Teravskis and Scott Rondestvedt.
 	* include/termios.h and lib/termios/*:  Replace cfsetispeed and cfsetospeed with
-	  cfsetspeed (with definitions for the input/outputs in termios.h).  Same for
-	  cfgetispeed and cfgetospeed.
+	  cfsetspeed (with definitions for the input/outputs in termios.h).
 	* configs/stm32f4discovery/src and configs/stm32f4discovery/pm:  Add a power
 	  management configuration for the STM32F4Discovery and supporting logic.  This
 	  check-in also includes some fixes for the F4 RTC alarm logic.
@@ -3090,10 +3089,10 @@
 	* arch/mips/src/pic32mx/pic32mx-gpio.c:  Now supports the PIC32MX1/2 ANSEL
 	  IOPORT register.
 	* lib/string/lib_memchr.c:  Add support for memchr() (contributed by Mike Smith)
-	* lib/string/lib_memccpy.c:  Add support for memcpy()
+	* lib/string/lib_memccpy.c:  Add support for memccpy()
 	* arch/arm/src/lpc17xx/lpc17_serial.c:  Now supports ioctl commands to change
 	  the baud using tcsetattr() (contributed by Chris Taglia).
-	* arch/*/src/*_serial.c: Fix ioctl method return values.  Theses methods
+	* arch/*/src/*_serial.c: Fix ioctl method return values.  These methods
 	  should return a negated errno value; they should not set the errno
 	  variable.
 	* sched/on_exit.c, sched/task_exithook.c, and include/nuttx/sched.c:  Add
@@ -3118,7 +3117,7 @@
 	* arch/arm/src/stm32/stm32*_rcc.c and .h:  If CONFIG_PM is defined, add a
 	  function called stm32_clockenable() that can be used by PM logic to re-start
 	  the PLL after re-awakening from deep sleep modes.
-	* fs/fs_foreachinode.c and fs/fs_foreachmountpoint.c:  All logic to traverse
+	* fs/fs_foreachinode.c and fs/fs_foreachmountpoint.c:  Add logic to traverse
 	  inodes and mountpoints in the NuttX pseudo-file system.
 	* fs/fat/fs_fat32.c: Max. filename length reported by statfs() was wrong
 	  if FAT long file names were enabled.
@@ -3137,7 +3136,7 @@
 	  LPC31xx has the same USB IP, but will require some additional initialization
 	  (and lots of testing) before it can be used with the LPC43xx.
 	* nuttx/Documentation/NuttShell.html:  Added a section covering ways to
-	  customize the behavior or NSH.
+	  customize the behavior of NSH.
 	* arch/arm/src/stm32/chip/stm32f1*_pinmap.h: STM32 CAN TX/RX pins reversed;
 	  inconsistent conditional compilation.  Reported by Max Holtzberg.
 	* arch/arm/*/stm32:  Add support for STM32 F107 "Connectivity Line" 
@@ -3166,14 +3165,16 @@
 	  for all 8-bit AVR platforms (Thanks Richard Cochran).
 	* lib/stdio/lib_*stream.c:  Revised to handle new error return values from
 	  serial.c.
-	* arch/arm/src/stm32/stm32_spi.c:  SPI driver can now survice re-
+	* arch/arm/src/stm32/stm32_spi.c:  SPI driver can now service re-
 	  initialization (Mike Smith).
 	* tools/mkconfig.c:  If CONFIG_DRAM_END is not specified, this tool
 	  will provide default definition of (CONFIG_DRAM_START + CONFIG_DRAM_SIZE)
 	* arch/arm/src/stm32/stm32_otgfshost.c:  Renamed from stm32_usbhost.c.
 	  This is nearly code complete and, with any luck, will be available
-	  in NuttX-6.22.
+	  in NuttX-6.21.
 	* configs/*/defconfig:  Update all defconfig files to remove syntax
 	  that is incompatible with the mconf configuration tool.
 	* arch/arm/src/stm32/stm32_otgfshost.c:  This driver now appears to be
 	  functional (although more testing is necesary).
+
+6.22 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

@@ -248,7 +248,7 @@
 	  being set to the priority of the parent thread; losing its configured
 	  priority.  Reported by Mike Smith.
 
-6.21 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.21 2012-08-25 Gregory Nutt <gnutt@nuttx.org>
 
 	* apps/include/: Stylistic clean-up of all header files.
 	* apps/modbus and apps/include/modbus:  A port of freemodbus-v1.5.0
@@ -259,9 +259,9 @@
 	* apps/modbus:  Add CONFIG_MB_TERMIOS.  If the driver doesn't support
 	  termios ioctls, then don't bother trying to configure the baud, parity
 	  etc.
-	* apps/nslib:  If waitpid() is supported, then NSH not catches the
+	* apps/nshlib:  If waitpid() is supported, then NSH now catches the
 	  return value from spawned applications (provided by Mike Smith)
-	* apps/nslib:  Lock the schedule while starting built-in applications
+	* apps/nshlib:  Lock the scheduler while starting built-in applications
 	  in order to eliminate race conditions (also from Mike Smith).
 	* apps/examples/adc, pwm, and qencoder:  Add support for testing
 	  devices with multiple ADC, PWM, and QE devices.
@@ -272,9 +272,11 @@
 	  properties of mounted file systems.
 	* apps/nshlib/nsh_parse.c:  Extend help command options.  'help' with
 	  no arguments outputs a short list of commands.  With -v lists all
-	  command line details.  And command name can be added to just get
+	  command line details.  A command name can be added to just get
 	  help on one command.
 	* system/readline.c:  If character input/output is interrupted by a
 	  signal, then readline() will try the read/write again.
 	* apps/*/Make.defs:  Numerous fixes needed to use the automated
 	  configuration (from Richard Cochran).
+
+6.22 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

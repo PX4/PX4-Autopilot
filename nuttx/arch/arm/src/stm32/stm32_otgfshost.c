@@ -191,7 +191,11 @@ enum stm32_chreason_e
   CHREASON_FRMOR         /* Frame overrun */
 };
 
-/* This structure retains the state of one host channel */
+/* This structure retains the state of one host channel.  NOTE: Since there
+ * is only one channel operation active at a time, some of the fields in
+ * in the structure could be moved in struct stm32_ubhost_s to achieve
+ * some memory savings.
+ */
 
 struct stm32_chan_s
 {

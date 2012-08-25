@@ -1910,3 +1910,56 @@ config STM32_MII_MCO1
 	bool
 	default y if !STM32_MII_MCO2
 	depends on STM32_MII
+
+menu "USB Host Configuration"
+
+config STM32_OTGFS_RXFIFO_SIZE
+	int "Rx Packet Size"
+	default 128
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Size of the RX FIFO in 32-bit words. Default 128 (512 bytes)
+
+config STM32_OTGFS_NPTXFIFO_SIZE
+	int "Non-periodic Tx FIFO Size"
+	default 96
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Size of the non-periodic Tx FIFO in 32-bit words.  Default 96 (384 bytes)
+ 
+config STM32_OTGFS_PTXFIFO_SIZE
+	int "Periodic Tx FIFO size"
+	default 128
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Size of the periodic Tx FIFO in 32-bit words.  Default 96 (384 bytes)
+ 
+config STM32_OTGFS_DESCSIZE
+	int "Descriptor Size"
+	default 128
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Maximum size to allocate for descriptor memory descriptor.  Default: 128
+
+config STM32_OTGFS_SOFINTR
+	bool "Enable SOF interrupts"
+	default n
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Enable SOF interrupts.  Why would you ever want to do that?
+ 
+config STM32_USBHOST_REGDEBUG
+	bool "Register-Level Debug"
+	default n
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Enable very low-level register access debug.  Depends on CONFIG_DEBUG.
+ 
+config STM32_USBHOST_PKTDUMP
+	bool "Packet Dump Debug"
+	default n
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Dump all incoming and outgoing USB packets. Depends on CONFIG_DEBUG.
+
+endmenu

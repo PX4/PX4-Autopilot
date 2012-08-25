@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
-      <p>Last Updated: August 10, 2012</p>
+      <p>Last Updated: August 25, 2012</p>
     </td>
   </tr>
 </table>
@@ -405,6 +405,13 @@
       <li>
         Mount-able volumes.  Bind mountpoint, filesystem, and block device driver.
       </li>
+    </p>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <li>Generic system logging (SYSLOG) support.</li>
     </p>
 </tr>
 <tr>
@@ -967,106 +974,261 @@
   </tr>
 </table>
 
-<h2>NuttX-6.20 Release Notes</h2>
+<h2>NuttX-6.21 Release Notes</h2>
 <p>
-  The 87<sup>th</sup> release of NuttX, Version 6.20, was made on July 12, 2012, and is available for download from the
+  The 88<sup>th</sup> release of NuttX, Version 6.21, was made on August 25, 2012, and is available for download from the
   <a href="http://sourceforge.net/projects/nuttx/files/">SourceForge</a> website.
-  Note that the release consists of two tarballs:  <code>nuttx-6.20.tar.gz</code> and <code>apps-6.20.tar.gz</code>.
+  Note that the release consists of two tarballs:  <code>nuttx-6.21.tar.gz</code> and <code>apps-6.21.tar.gz</code>.
   Both may be needed (see the top-level <code>nuttx/README.txt</code> file for build information)
   The change log associated with the release is available <a href="#currentrelease">here</a>.
   Unreleased changes after this release are available in SVN.
   These unreleased changes are also listed <a href="#pendingchanges">here</a>.
 </p>
 <p>
-  This release corresponds with SVN release number: r4937
+  This release corresponds with SVN release number: r5052
 </p>
 <p>
   <b>Additional new features and extended functionality</b>
 </p>
 <ul>
-  <li><b>Power Management</b>
-    <p>
-      An evolving power management example is being created by Diego Sanchez.
-      This effort currently involves on the STM32 F1 but clearly demonstrates the NuttX power management system which will automatically drive the system to lower power usage states due to lack of use.
+  <li><b>Core</b>
+    <ul>
+      <li>
+        Add support for multiple registered <code>atexit()</code> functions.
+      </li>
+      <li>
+        Syslog extended: 
+        Now any character driver may be used for the debug logging device.
+        Mountpoint traversal logic.
+      </li>
+      </ul>
   </li>
-  <li><b>Drivers</b>
-    <p>
-      Added a driver for the SST 25 SPI-based FLASH parts.
-  </li>
-  <li><b>PIC32</b>
-    <p>
-      Added support for the PIC32MX1 and PIC32MX2 families.
-      Added support for the microchipOpen and Pinguino toolchains.
+  <li><b>Common Drivers</b>
+    <ul>
+      <li>
+        Added support for the TI PGA112-7 amplifier/multiplexor.
+      </li>
+    </ul>
   </li>
   <li><b>NXP LPC43XX</b>
-    <p>
-      Added support for the entire LPC43xx family
+    <ul>
+      <li>
+        Added clock ramp-up logic to run at 204 MHz.
+      </li>
+    </ul>
   </li>
-  <li><b>PIC32 boards</b>
-    <p>
-      Added support for the DTX1-4000L &quot;Mirtoo&quot; module/
-      See the <a href="http://www.dimitech.com/">Dimitech</a> website for further information.
-      (PIC32MX2).
+  <li><b>NXP LPC43XX Drivers</b>
+    <ul>
+      <li>
+        SPIFI block driver
+      </li>
+      <li>
+        RS-485 support
+      </li>
+      <li>
+        Minimal termios support
+      </li>
+      <li>
+        Framework for USB0 device controller driver.
+      </li>
+    </ul>
   </li>
-  <li><b>NXP LPC43XX Boards</b>
-    <p>
-      Added support for <a href="http://www.ngxtech.com/">NGX Technologies</a> LPC4330-Xplorer board.
+  <li><b>NXP LPC17XX Drivers</b>
+    <ul>
+      <li>
+        Minimal termios support
+      </li>
+    </ul>
   </li>
-  <li><b>NXP LPC17XX Boards</b>
-    <p>
-      Added support for <a href="http://www.micromint.com/">Micromint</a> Lincoln60 board (LPC1769).
-  </li>
-  <li><b>LM3S Boards</b>
-    <p>
-      Add a configuration to support the TI/Stellaris EKK-LM3S3B96 development board.
-      Contributed by Jose Pablo Rojas V.
-  </li>
-  <li><b>Library</b>
-    <p>
-      NuttX now supports platform-specific stdarg.h header files.
-  </li>
-</ul>
-
-<p><b>Work in progress</b>.
-  This release includes some partially completed work that is still not ready for prime time.
-</p>
-
-<ul>
-  <li><b>Automated Configuration</b>
-    <p>
-      Automated configuration based on the <code>kconfig-frontends</code> tool is being incorporated into the build system.
-      The configuration is still not complete enough for general use in this release.
-    </p>
+  <li><b>STM32</b>
+    <ul>
+      <li>
+        Support for STM32 F1 &quot;Value Line&quot; (contributed by Mike Smith).
+      </li>
+      <li>
+        Add support for STM32 F107 &quot;Connectivity Line&quot; (contributed by Max Holtzberg).
+      </li>
+      <li>
+        Clock restart logic needed for recovery from low power modes.
+      </li>
+    </ul>
   </li>
   <li><b>STM32 Drivers</b>
-    <p>
-      Added files that will (eventually) hold an STM32 OTG FS host driver.  This is still a work in progress.
-    </p>
+    <ul>
+      <li>
+        RTC alarm support. Usable for wakeup from sleep mode.
+      </li>
+      <li>
+        Minimal serial termios support.
+      </li>
+      <li>
+        USB OTG FS host driver (alpha).
+      </li>
+    </ul>
+  </li>
+  <li><b>STM32 Boards</b>
+    <ul>
+      <li>
+        Add power management hooks for the STM32F4Discovery
+      </li>
+      <li>
+        Add support for the Olimex STM32-P107 (contributed by Max Holtzberg)
+      </li>
+    </ul>
+  </li>
+  <li><b>PIC32</b>
+    <ul>
+      <li>
+        Add support for the Pinguino MIPS toolchain
+      </li>
+    </ul>
+  </li>
+  <li><b>PIC32 Drivers</b>
+    <ul>
+      <li>
+        GPIO driver now supports F1 analog regiaters (ANSEL)
+       </li>
+    </ul>
+  </li>
+  <li><b>PIC32 Boards</b>
+    <ul>
+      <li>
+        Add support for the PGA117 on the Mirtoo module
+      </li>
+    </ul>
+  </li>
+  <li><b>Calypso</b>
+    <ul>
+      <li>
+        Add support for the SSD1783 LCD on the Compal E99
+      </li>
+    </ul>
+  </li>
+
+  <li><b>Library</b>
+    <ul>
+      <li>
+        <code>cfsetispeed()</code>, <code>cfsetospeed()</code>, <code>tcflush()</code>, <code>memchr()</code>, and <code>memccpy()</code>.
+      </li>
+    </ul>
+  </li>
+  <li><b>Applications</b>
+    <ul>
+      <li>
+        Port of freemodbus-v1.5.0.
+      </li>
+      <li>
+        Add support for testing devices with multiple ADC, PWM, and QE devices.  
+      </li>
+      <li>
+        NSH <code>mount</code> command (with no arguments) will now show mounted volumes.
+      </li>
+      <li>
+        Added new NSH <code>df</code> command to show file system usage.
+      </li>
+      <li>
+        Extended NSH 'help' support.
+      </li>
+      <li>
+        NSH now catches the return value from spawned applications (provided by Mike Smith).
+      </li>
+    </ul>
+  </li>
+  <li><b>Build System</b>
+    <ul>
+      <li>
+        <code>mkconfig</code> will not define <code>CONFIG_DRAM_END</code>.
+      </li>
+      <li>
+        A lot of  progress has been made on the automated NuttX configuration logic (Thanks go to Richard Cochran).
+      </li>
+    </ul>
+  </li>
+  <li><b>Documentation</b>
+    <ul>
+      <li>
+       Document ways to customize the behavior of NSH
+      </li>
+    </ul>
   </li>
 </ul>
 
 <p><b>Bugfixes</b> (see the change log for details):</p>
 <ul>
-  <li><b>PIC32</b>
-    <p>
-      GPIO output configuration (critical bug)
-    </p>
+  <li><b>Serial drivers (all)</b>
+    <ul>
+      <li>
+      Fix <code>ioctl()</code> return value.
+      </li>
+      <li>
+      Common &quot;upper half&quot; serial driver will now return with <code>EINTR</code> if a serial wait is interrupted by a signal.
+      </li>
+    </ul>
+  </li>
+  <li><b>FAT</b>
+    <ul>
+      <li>
+        Fix statfs() file name length
+      </li>
+    </ul>
+  </li>
+  <li><b>NXP LPC43xx</b>
+    <ul>
+      <li>
+        Clock configuration
+      </li>
+    </ul>
   </li>
   <li><b>STM32</b>
-    <p>
-      Typos in pin mapping files.
-    </p>
+    <ul>
+      <li>
+      Pinmap fixes
+      </li>
+      <li>
+      SPI driver re-initialization
+      </li>
+    </ul>
   </li>
-  <li><b>LM3S</b>
-    <p>
-      Fixed an optimization related but that caused slow start-up times if optimization was disabled.
-    </p>
+  <li><b>STM32 Boards</b>
+    <ul>
+      <li>
+         Correct and lower SDIO frequency for F2 and f4 boards
+      </li>
+    </ul>
+  </li>
+  <li><b>AVR</b>
+    <ul>
+      <li>
+        C++ build issues
+      </li>
+    </ul>
+  </li>
+  <li><b>Power Management (PM)</b>
+    <ul>
+      <li>
+        Fix a place where interrupts were not be re-enabled
+      </li>
+    </ul>
+  </li>
+  <li><b>Applications</b>
+    <ul>
+      <li>
+        Fix NSH application start-up race condition
+      </li>
+    </ul>
   </li>
   <li><b>Library</b>
-    <p>
-      Fixed signed extension but in all <code>limit.h</code> files(reported by Lorenz Meier).
-      Fixed inet_ntoa compilation failure on with SDCC.
-    </p>
+    <ul>
+      <li>
+        Fieldwidth and justification for <code>%s</code> format.
+      </li>
+      <li>
+        Fixed several issues with presenting floating point numbers.
+      </li>
+      <li>
+        NULL definition for C++
+      </li>
+    </ul>
   </li>
 </ul>
 <p>
@@ -1909,23 +2071,34 @@
       This port uses the STMicro STM3240G-EVAL board featuring the STM32F407IGH6 MCU.
       Refer to the <a href="http://www.st.com/internet/evalboard/product/252216.jsp">STMicro web site</a> for further information about this board.
     </p>
-    <ul>
-      <p>
-        <b>STATUS:</b>
-        As of this writing, the basic port is complete and first appeared in NuttX-6.12.
-        The port passes the NuttX OS test and includes a validated configuration for the NuttShell (NSH, see the
-        <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a>) as well as several other configurations.
-        Additional drivers and configurations were added in NuttX 6.13-6.16.
-        Drivers include an Ethernet driver, ADC driver, DAC driver, PWM driver, CAN driver, F4 RTC driver, Quadrature Encoder, DMA, SDIO with DMA
-        (these should all be compatible with the STM32 F2 family and many should also be compatible with the STM32 F1 family as well).
-        The NuttX6.16 release also includes and logic for saving/restoring F4 FPU registers in context switches.
-        Networking intensions include support for Telnet NSH sessions and new configurations for DHPCD and the networking test (nettest).
-        A more complete port would include support for SDIO and USB OTG which are not available in NuttX 6.13.
-        The USB OTG device controller driver, and LCD driver and a function I2C driver were added in NuttX 6.17.
-        STM32 IWDG and WWDG watchdog timer drivers were added in NuttX 6.18 (should be compatible with F1 and F2).
-        An LCD driver and a touchscreen driver for the STM3240G-EVAL based on the STMPE811 I/O expander were also added in NuttX 6.18.
+    <p>
+      <b>STATUS:</b>
+      <ul>
+        <li><b>NuttX-6.12</b>
+          The basic port is complete and first appeared in NuttX-6.12.
+          The initial port passes the NuttX OS test and includes a validated configuration for the NuttShell (NSH, see the
+          <a href="http://www.nuttx.org/NuttShell.html">NSH User Guide</a>) as well as several other configurations.
+        </li>
+        <li><b>NuttX-6.13-6.16</b>
+          Additional drivers and configurations were added in NuttX 6.13-6.16.
+          Drivers include an Ethernet driver, ADC driver, DAC driver, PWM driver, CAN driver, F4 RTC driver, Quadrature Encoder, DMA, SDIO with DMA
+          (these should all be compatible with the STM32 F2 family and many should also be compatible with the STM32 F1 family as well).
+        </li>
+        <li><b>NuttX-6.16</b>
+          The NuttX 6.16 release also includes and logic for saving/restoring F4 FPU registers in context switches.
+          Networking intensions include support for Telnet NSH sessions and new configurations for DHPCD and the networking test (nettest).
+        </li>
+        <li><b>NuttX-6.17</b>
+          The USB OTG device controller driver, and LCD driver and a function I2C driver were added in NuttX 6.17.
+        </li>
+        <li><b>NuttX-6.18</b>
+          STM32 IWDG and WWDG watchdog timer drivers were added in NuttX 6.18 (should be compatible with F1 and F2).
+          An LCD driver and a touchscreen driver for the STM3240G-EVAL based on the STMPE811 I/O expander were also added in NuttX 6.18.
+        </li>
+        <li><b>NuttX-6.21</b>
+          A USB OTG host controller driver was added in NuttX 6.21.
+        </li>
       </p>
-    </ul>
   </td>
 </tr>
 <tr>
@@ -1944,6 +2117,7 @@
       <p>
         <b>STATUS:</b>
         The basic port for the STM32F4-Discovery was contributed by Mike Smith and was first released in NuttX-6.14.
+        Drivers listed for the STM3240G-EVAL may be usable on this plaform as well.
       </p>
     </ul>
   </td>
@@ -1960,36 +2134,44 @@
       This NuttX port is for the LPC4330-Xplorer board from NGX Technologies featuring the NXP LPC4330FET100 MCU.
       See the <a href="http://shop.ngxtechnologies.com/product_info.php?cPath=21_37&products_id=104">NXG website</a> for further information about this board.
     </p>
+    <p>
+      <b>STATUS:</b>
+    </p>
     <ul>
-      <p>
-        <b>STATUS:</b>
-        The basic port is complete.
-        The OS test configuration and the basic NSH configurations are present and fully verified.
-        This includes verified support for:  SYSTICK system time,  pin and GPIO configuration, and a serial console.
-      </p>
-      <p>
-        Several drivers have been copied from the related LPC17xx port but require integration into the LPC43xx:  ADC, DAC, GPDMA, I2C, SPI, and SSP.
-        The registers for these blocks are the same in both the LPC43xx and the LPC17xx and they should integrate into the LPC43xx very easily by simply adapting the clocking and pin configuration logic.
-      </p>
-      <p>
-        Other LPC17xx drivers were not brought into the LPC43xx port because these peripherals have been completely redesigned:  CAN, Ethernet, USB device, and USB host.
-      </p>
-      <p>
-        So then there is no support for the following LPC43xx peripherals: SD/MMC, EMC, USB0,USB1, Ethernet, LCD, SCT, Timers 0-3, MCPWM, QEI, Alarm timer, WWDT, RTC, Event monitor, and CAN.
-      </p>
-      <p>
-        Some of these can be leveraged from other MCUs that appear to support the same peripheral IP:
-        <ul>
-          <li>
-            The LPC43xx USB0 peripheral appears to be the same as the USB OTG peripheral for the LPC31xx.
-            The LPC31xx USB0 device-side driver has been copied from the LPC31xx port but also integration into the LPC43xx (clocking and pin configuration).
-            It should be possible to complete poriting of this LPC31xx driver with a small porting effort.
-          </li>
-          <li>
-            The Ethernet block looks to be based on the same IP as the STM32 Ethernet and, as a result, it should be possible to leverage the NuttX STM32 Ethernet driver with a little more effort.
-          </li>
-        </ul>
-      </p>
+      <li>
+        <p><b>NuttX-6.20</b>
+          The basic port is complete.
+          The OS test configuration and the basic NSH configurations are present and fully verified.
+          This includes verified support for:  SYSTICK system time,  pin and GPIO configuration, and a serial console.
+        </p>
+        <p>
+          Several drivers have been copied from the related LPC17xx port but require integration into the LPC43xx:  ADC, DAC, GPDMA, I2C, SPI, and SSP.
+          The registers for these blocks are the same in both the LPC43xx and the LPC17xx and they should integrate into the LPC43xx very easily by simply adapting the clocking and pin configuration logic.
+        </p>
+        <p>
+          Other LPC17xx drivers were not brought into the LPC43xx port because these peripherals have been completely redesigned:  CAN, Ethernet, USB device, and USB host.
+        </p>
+        <p>
+          So then there is no support for the following LPC43xx peripherals: SD/MMC, EMC, USB0,USB1, Ethernet, LCD, SCT, Timers 0-3, MCPWM, QEI, Alarm timer, WWDT, RTC, Event monitor, and CAN.
+        </p>
+        <p>
+          Some of these can be leveraged from other MCUs that appear to support the same peripheral IP:
+          <ul>
+            <li>
+              The LPC43xx USB0 peripheral appears to be the same as the USB OTG peripheral for the LPC31xx.
+              The LPC31xx USB0 device-side driver has been copied from the LPC31xx port but also integration into the LPC43xx (clocking and pin configuration).
+              It should be possible to complete poriting of this LPC31xx driver with a small porting effort.
+            </li>
+            <li>
+              The Ethernet block looks to be based on the same IP as the STM32 Ethernet and, as a result, it should be possible to leverage the NuttX STM32 Ethernet driver with a little more effort.
+            </li>
+          </ul>
+        </p>
+      </li>
+      <li>
+        <p><b>NuttX-6.21</b>
+        Added support for a SPIFI block driver and for RS-485 option to the serial driver.
+      </li>
     </ul>
   </td>
 </tr>
@@ -2443,9 +2625,17 @@
   <td>
     <p>
       <b>Development Environment:</b>
-      These ports uses the <i>LITE</i> version of the PIC32MX toolchain available
-      for download from the <a href="http://www.microchip.com">MicroChip</a> website.
+      These ports uses either:
     </p>
+    <ol>
+      <li>
+        The <i>LITE</i> version of the PIC32MX toolchain available
+        for download from the <a href="http://www.microchip.com">MicroChip</a> website, or
+      </li>
+      <li>
+        The Pinguino MIPS ELF toolchain avaiable from the Pinquino <a href="http://code.google.com/p/pinguino32/downloads/list">website</a>.
+      </li>
+    </ol>
   </td>
 </tr>
 <tr>
@@ -3011,86 +3201,236 @@ Other memory:
 </table>
 
 <ul><pre>
-nuttx-6.20 2012-07-12 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+nuttx-6.21 2012-08-25 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
-    * configs/stm3210e-eval/src and arch/arm/src/stm32/: Add beginnings of
-      power management support for the STM32 and the STM3210E-EVAL board, in
-      particular.
-    * Documentation/NfsHowTo.html:  Add a How-To document for the new NFS
-      client feature.
-    * arch/mips/include/pic32mx and arch/mips/src/pic32mx:  Add support for the
-      PIC32MX1 and PIC32MX2 families.
-    * configs/mirtoo:  Add a board configuration to support the DTX1-4000L
-      &quot;Mirtoo&quot; module from http://www.dimitech.com/
-    * tools/pic32mx:  All of the duplicate directories containing the same
-      same PIC32 tools were move to this single location.
-    * configs/mirtoo:  The basic Mirtoo port is now functional.
-    * configs/mirtoo/ostest:  Added support for the microchipOpen toolchain
-      (see http://sourceforge.net/projects/microchipopen/).
-    * configs/mirtoo/nsh:  Added a NuttShell (NSH) configuration for
-      the Mirtoo module.
-    * configs/mirtoo/scripts:  Move all Mirtoo linker scripts to a common
-      directory.
-    * arch/mips/src/pic32mx/pic32mx-gpio.c:  All digital inputs were being
-      configured as outputs.  This is a *critical* bug fix and needs to be
-      incorporated by any PIC32 users.
-    * drivers/mtd/sst25.c:  Added a driver for the SST 25 SPI-based FLASH
-      parts.
-    * configs/mirtoo/src/up_nsh.c:  The Mirtoo NSH configuration can now
-      mount the SST 25 devices so that it can be used for a FAT file system.
-      There are are, however, some NSH memory usage issues if this configuration
-      enabled now.  Some tuning is still needed.
-    * configs/mirtoo/nxffs:  Add an alternative NSH configure for the Mirtoo
-      module for testing the on-module SST 25 chip using the NXFFS file system.
-    * arch/arm/src/lpc43xx and arch/arm/include/lpc43xx:  The NXP LPC43xx port
-      is slowly evolving in these directories.
-    * configs/stm3210e-eval/pm:  Add a new configuration for testing STM32 power
-      management.
-    * configs/stm3210e-eval/scripts:  Moved all of the duplicate ST3210-EVAL 
-      linker scripts into one set of linker scripts at this location.
-    * configs/stm3210e-eval/src/up_buttons.c, up_lcd.c, and up_pm.c:  New logic
-      for testing STM32 power management.
-    * configs/lincoln60:  Add a configuration to support the Micromint Lincoln60
-      board.
-    * configs/ekk-lm3s3b96:  Add a configuration to support the TI/Stellaris
-      EKK-LM3S3B96 development board.  Contributed by Jose Pablo Rojas V.
-    * arch/arm/src/lpc43xx/chip:  Created header files for *all* (really)
-      lpc43xx registers and all bit-fields.
-    * configs/lpc4330-xplorer:  Added a configuration for the NXP LPC43XX
-      Xplorer board.  This is just to facilitate testing of the LPC43xx
-      port but will, with any luck, become proper board support for that
-      board.
-    * arch/arm/src/lm3s/lm3s_syscontrol.c:  Fix an optimization related problem
-      by adding a volatile qualifier to a timing loop.  Oddly, the consequence
-      of the bug is that when debug was off, the LM3S platform too a long time
-      to boot.  It now boots rapidly whether debug is on or off.
-    * arch/*/include/limits.h:  Change all values in all limits.h for all
-      architectures to signed decimal; the hex values were not sign extending
-      appropriate in most uses (reported by Lorenz Meier).
-    * arch/arm/src/stm32/chip/stm32f103/7vc_pinmap:  Fix typographical error in
-      two pinmap definition files.
-    * lib/net/lib_inetntoa.c:  Fix typographical error that cause compilation
-      failure on platforms that do not support passing of structures as
-      parameters.
-    * arch/arm/*/lpc43xx and configs/lpc4330-xplorer and code complete and
-      ready for testing.  Hopefully, verified LPC43xx support will appear
-      in NuttX-6.20.
-    * include/nuttx/stdarg.h:  If CONFIG_ARCH_STDARG_H=y is defined, the top-level
-      makefile will copy the generic (GCC-only) stdarg.h header file from
-      include/nuttx/stdarg.h to include/stdarg.h.  So for the architectures
-      that cannot use their GCC toolchain's stdarg.h file, they can use this
-      alternative by defining CONFIG_ARCH_STDARG_H=y.  If CONFIG_ARCH_STDARG_H,
-      is not defined, then the redirecting stdarg.h header file will stay
-      out-of-the-way in include/nuttx/.
-    * configs/lpc4330-xplorer/nsh:  Add an NSH configuration for the LPC4330
-      Xplorer board.
+    * configs/lpc4330-xplorer/up_nsh.c:  Add support for a basic SPIFI block
+      driver for use by NSH.  Does not work!  Crashes on first SPIFI write.
+    * configs/lpc4330-xplorer/*/defconfig: Calibrate delay loops (this is
+      based on the current &quot;slow&quot; 72MHz M4 clock and will need to be
+      re-calibrated when this is increased).
+    * configs/stm3220g-eval/include/board.h and configs/stm3240g-eval/include/board.h:
+      The SDIOCLK frequency in the F2 and F4 derives for PLL48CLK and not HCLK
+      so that the SDIOCLK input frequency should always be 48MHz.
+    * sched/os_internal.h, sched_setupidlefiles.c, sched_setuptaskfiles.c, and
+      sched_setupidlefiles.c:  Detangle some conditional compilation.  Allow for
+      a perverse configuration that has socket descriptors and streams but no file
+      descriptors (sure, why not?).
+    * sched/: Stylistic clean-up of all files.  Some of these files are pretty old
+      and do not follow current NuttX coding standards in detail.
+    * fs/: More stylistic file clean-up.
+    * mm/: More stylistic file clean-up.
+    * drivers/ and drivers/serial/: More stylistic file clean-up.
+    * arch/arm/src/lpc43xx/lpc43_clockconfig.c:  Fix PLL1 bit manipulation logic.
+      Critical bugfix! This would often cause the LPC43xx to fail to boot.
+    * arch/arm/src/lpc43xx/lpc43_rgu.c:  The soft reset logic called from the
+      beginning of __start seems cause problems.  A magic delay seems to improve
+      the logic some.  But I suspect that real fix is to get rid of all of the
+      soft reset logic.  This would also be a critical bugfix if I believed
+      that it really fixed all of the issues.
+    * arch/arm/src/lpc43xx/chip/lpc43_cgu.h:  Fix a bit mask in the PLL1
+      control register.  Critical bugfix.
+    * arch/arm/src/lpc43xx/lpc43_clockconfig.c and configs/lpc4330-xplorer/include/board.h:
+      Implement PLL1 ramp-up logic; Now the LPC43xx is running at 204MHz.
+    * configs/lpc4330-xplorer/*/defconfig:  Re-calibrated delay loops using
+      the 204MHz clock.  The LPC43xx ripping rips!  This calibration was performed
+      with symbols enabled and all optimization disabled.  It will need to be
+      better recalibrated again down the road.
+    * arch/arm/src/stm32/stm32_exti.c:  Renamed to rch/arm/src/stm32/stm32_exti_gpio.c
+      to make a little room in the file name space.
+    * arch/arm/src/stm32/stm32_exti_alarm.c:  Add initial logic to attached the
+      RTC alarm EXTI interrupt.  This is work be performed mostly by Diego Sanchez.
+    * include/: More stylistic file clean-up.
+    * arch/arm/src/lpc43xx/lpc43_spifi.c, lpc43_spifi.h, and chip/lpc43_spifi.h:  Add
+      logic to configure and initialize the SPIFI device (does not yet work).
+    * configs/lpc4330-xplorer/include/board.h:  Reduce SPI SCLK value.
+    * arch/arm/src/lpc43xx/lpc43_spifi.c, lpc43_spifi.h, and chip/lpc43_spifi.h:
+      Logic completely redesigned.  It now creates an MTD driver to access SPIFI...
+      but the driver still does not work.
+    * arch/arm/src/stm32 and arch/arm/include/stm32: Make name of RTC ALARM interrupt
+      common on STM32 F1,2,4
+    * arch/arm/src/stm32 and arch/arm/include/stm32: Add support for the
+      STM32F100x &quot;Value Line&quot; devices. This includes changes to stm32F10xx_rcc.c that
+      add the ability to run the chip off the internal oscillator.  There is no open
+      board configuration for this part yet (the STM32VLDiscovery would be a candidate).
+      Contributed by Mike Smith.
+    * arch/arm/src/stm32: Fixed typos in conditional compilation in the CAN and DMA
+      and some pin configuration.  This would have caused problems for STM32 F107xx.
+      Typos noted by Mike Smith.
+    * arch/arm/src/lpc43xx/lpc43_serial.c:  Add support for certain RS-485 features
+    * lib/termios/lib_cfsetispeed.c, lib_cfsetospeed.c, lib_tcflush.c:  Add
+      simple implementations of cfsetispeed(), cfsetospeed(), and tcflush().
+    * include/sys/str_tty.h, lib/lib_setspeed.c, lib_getspeed.c, and lib_resetspeed.c:
+      Add APIs to support setting non-standard BAUD values not supported by POSIX
+      termios.  These are non-standard interfaces but have a precedence:  There are
+      similar interfaces in AIX.
+    * include/sys/str_tty.h, lib/lib_setspeed.c, lib_getspeed.c, and lib_resetspeed.c:
+      Sigh... removed.  We don't need any more almost standard interfaces!  (SVN
+      revision 4968 if you want the short-lived code).
+    * include/termios.h and lib/termios/*:  Open the existing, standard termios
+      interfaces to permit some non-standard baud settings.  The new termios definitions
+      still supports the POSIX standard except that it does not strictly enforce
+      baud rate settings, permitting some non-portable, but useful baud rate settings
+      (this is what the short-lived AIX-like interfaces would have accomplished as well).
+    * include/termios.h and lib/termios/*:  Redesigned yet again (this is getting
+      painful.  NuttX now supports the BOTHER baud setting just as Linux does.  termios
+      Bxxx definitions are again encoded; cf[set|get][o|i]speed now deal with only the
+      encoded values.  If the encoded baud is set to BOTHER, then the values in the (non-
+      standard) c_ispeed and c_ospeed baud values may be accessed directly.
+    * arch/arm/src/stm32/stm32_serial.c:  Add minimal termios support for the STM32
+      (BOTHER style baud settings only).  Contributed by Mike Smith.
+    * configs/lpc4343-xplorer/src:  Clean up SPIFI-library based build to that it
+      actually works.
+    * arch/arm/src/lpc43xx/lpc43_spifi.c:  Add support for verification to writes.
+      Add debug option to dump buffers.  Several bugfixes... almost works.
+    * include/termios.h, lib/termios/*, and arch/arm/src/stm32/stm32_serial.c: :
+      BOTHER is gone again.
+    * arch/arm/src/stm32/stm32_sdio.c and chip/stm32f20xx_pinmap.h:  STM32 F2 SDIO
+      fixes from Gary Teravskis and Scott Rondestvedt.
+    * include/termios.h and lib/termios/*:  Replace cfsetispeed and cfsetospeed with
+      cfsetspeed (with definitions for the input/outputs in termios.h).
+    * configs/stm32f4discovery/src and configs/stm32f4discovery/pm:  Add a power
+      management configuration for the STM32F4Discovery and supporting logic.  This
+      check-in also includes some fixes for the F4 RTC alarm logic.
+    * drivers/input/pga11x.c and include/nuttx/input/pga11x.h:  Add support for the
+      TI PGA112/3/6/7 amplifier/multiplexer parts.
+    * configs/mirtoo/README.txt, nsh/defconfig, and nxffs/defconfig:  Add support
+      for the PGA117 on the Mirtoo module.
+    * drivers/analog/pga11x.c and include/nuttx/analog/pga11x.h:  These belong in
+      the analog subdirectories, not input.
+    * configs/compal_e99/src/ssd1783.c and /ssd1783.h:  Drivers for the SSD1783
+      LCD found in the Motorola C155 telephone.  The driver is specific to the C155
+      because it uses the uwire transport.  Contributed by Denis Carilki and
+      Alan Carvalho de Assis.
+    * drivers/power/pm_changestate.c.  Correct a case where interrupts were not
+      being re-enabled.  Found by Diego Sanchez.
+    * configs/mirtoo/nxffs/defconfig:  This Mirtoo NXFFS configuration now uses the
+      open Pinguino toolchain by default.  This is necessary because the free C32
+      toolchain does not support any optimization and the unoptimized NXFFS image
+      hits the PIC32MX2 FLASH size (128K).  There is plenty of room to grow using
+      the Pinguino toolchain with -O2 optimization.
+    * configs/mirtoo/src/up_adc.c.  This is just a stub for now, but this is
+      where Mirtoo ADC logic will eventually need to go.
+    * arch/mips/src/pic32mx/pic32mx-gpio.c:  Now supports the PIC32MX1/2 ANSEL
+      IOPORT register.
+    * lib/string/lib_memchr.c:  Add support for memchr() (contributed by Mike Smith)
+    * lib/string/lib_memccpy.c:  Add support for memccpy()
+    * arch/arm/src/lpc17xx/lpc17_serial.c:  Now supports ioctl commands to change
+      the baud using tcsetattr() (contributed by Chris Taglia).
+    * arch/*/src/*_serial.c: Fix ioctl method return values.  These methods
+      should return a negated errno value; they should not set the errno
+      variable.
+    * sched/on_exit.c, sched/task_exithook.c, and include/nuttx/sched.c:  Add
+      support for multiple registered on_exit() functions if CONFIG_SCHED_ONEXIT_MAX
+      is defined.
+    * drivers/syslog/ramlog.c: Move the RAM SYSLOG device into drivers/syslog
+      so that it will be in the same directory as some new SYSLOGing devices
+      in the works.
+    * include/nuttx/syslog.h and drivers/syslog/ramlog.c:  The SYSLOG putc function
+      now has a common name that is independent of the device that provides the
+      SYSLOG.
+    * include/nuttx/syslog.h and drivers/syslog/syslog.c:  This is a new, generic
+      SYSLOG device that can redirect debug output to any character device or file.
+      So you can log debug output to a file or you can put the console on /dev/ttyS0
+      and the debug output on /dev/ttyS1.
+    * arch/arm/src/lpc43xxl/lpc43_spifi.c: Correct an addressing error in the LPC43
+      SPIFI MTD driver
+    * drivers/syslog/syslog.c and fs/fs_syslog.c:  Moved the generic syslog logic
+      from drivers/syslog to fs/ where is belongs.  Especially after realizing that
+      the syslog logic is going to have to some internal FS operations in order
+      to realize a totally thread-independent SYSLOG interface.
+    * arch/arm/src/stm32/stm32*_rcc.c and .h:  If CONFIG_PM is defined, add a
+      function called stm32_clockenable() that can be used by PM logic to re-start
+      the PLL after re-awakening from deep sleep modes.
+    * fs/fs_foreachinode.c and fs/fs_foreachmountpoint.c:  Add logic to traverse
+      inodes and mountpoints in the NuttX pseudo-file system.
+    * fs/fat/fs_fat32.c: Max. filename length reported by statfs() was wrong
+      if FAT long file names were enabled.
+    * lib/stdio/lib_libvsprintf.c:  Fieldwidth and justification were not
+      supported for the %s format.  As a result, %s, %12s, and %-12s all
+      produced the same output.
+    * lib/stdio/lib_libdtoa.c:  Fix several issues with presenting floating
+      point numbers (conversions are fine, but presentation was bad).  This
+      is a critical bug fix if you use printf or sprintf to deal with floating
+      point numbers.
+    * lib/stdio/lib_libdtoa.c and lib_libvsprintf.c:  Correct some floating
+      point options.
+    * arch/arm/lpc43xx/lpc32_usb0dev.c:  Add framework for development of
+      an USB0, device-side driver for the LPC43XX.  The initial check-in,
+      however, is simply for the LPC31xx driver with name changes.  The
+      LPC31xx has the same USB IP, but will require some additional initialization
+      (and lots of testing) before it can be used with the LPC43xx.
+    * nuttx/Documentation/NuttShell.html:  Added a section covering ways to
+      customize the behavior of NSH.
+    * arch/arm/src/stm32/chip/stm32f1*_pinmap.h: STM32 CAN TX/RX pins reversed;
+      inconsistent conditional compilation.  Reported by Max Holtzberg.
+    * arch/arm/*/stm32:  Add support for STM32 F107 &quot;Connectivity Line&quot; 
+      Ethernet (contributed by Max Holtzberg).
+    * configs/olimex-stm32-p107:  Add board support for the Olimiex STM32-P107
+       board (contributed by Max Holtzberg).
+    * arch/arm/src/stm32/stm32f2xx_dma.c, stm32f4xx_dma.c, stm32_serial.c, and
+      stm32_spic.c:  DMA priority was getting zeroed by STM32 F2/F4 DMA drivers
+      so that all DMAs ran at the lowest priority.
+    * configs/stm3240g-eval/include/board.h and configs/stm3220:  Drop SD card
+      frequency from 24 to 16 MHz.  Apparently 24 MHz is too fast for the board.
+      This (plus the change to the STM32 DMA (above) fixes SDIO DMA on the
+      STM3240G-EVAL (and probably STM3220G-EVAL -- untested).
+    * arch/arm/src/stm32/stm32f2xx_dma.c and stm32f4xx_dma.c: Backed out the
+      DMA priority change just above.  The reduced SD card frequency was
+      necessary and sufficient to resolve the problem.
+    * drivers/serial/serial.c:  open, read, write, and poll methods may now
+      abort return EINTR (or a short transfer size) if a signal is received
+      while waiting to receive or send serial data.  This behavior is required
+      by POSIX.
+    * include/sys/types.h:  Define NULL to be (0) if __cplusplus is defined.
+      (contributed by Mike Smith)
+    * include/ctype.h: Remove a stray semi-colon in a definitions (Thanks
+      Mike Smith).
+    * configs/.../Make.defs.  Fix C++ include path set-up in Make.defs file
+      for all 8-bit AVR platforms (Thanks Richard Cochran).
+    * lib/stdio/lib_*stream.c:  Revised to handle new error return values from
+      serial.c.
+    * arch/arm/src/stm32/stm32_spi.c:  SPI driver can now service re-
+      initialization (Mike Smith).
+    * tools/mkconfig.c:  If CONFIG_DRAM_END is not specified, this tool
+      will provide default definition of (CONFIG_DRAM_START + CONFIG_DRAM_SIZE)
+    * arch/arm/src/stm32/stm32_otgfshost.c:  Renamed from stm32_usbhost.c.
+      This is nearly code complete and, with any luck, will be available
+      in NuttX-6.21.
+    * configs/*/defconfig:  Update all defconfig files to remove syntax
+      that is incompatible with the mconf configuration tool.
+    * arch/arm/src/stm32/stm32_otgfshost.c:  This driver now appears to be
+      functional (although more testing is necesary).
 
-apps-6.19 2012-07-12 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+apps-6.21 2012-08-25 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
-    * namedapp/exec_namedapp.c - Correct an error when round robin scheduling
-      is enabled.  The priority of the new, named application was erroneously
-      being set to the priority of the parent thread; losing its configured
-      priority.  Reported by Mike Smith.
+    * apps/include/: Stylistic clean-up of all header files.
+    * apps/modbus and apps/include/modbus:  A port of freemodbus-v1.5.0
+      has been added to the NuttX apps/ source tree.
+    * apps/examples/modbus:  A port of the freemodbus-v1.5.0 &quot;demo&quot;
+      program that will be used to verify the FreeModBus port
+    * apps/modbus:  Don't use strerror().  It is just too big.
+    * apps/modbus:  Add CONFIG_MB_TERMIOS.  If the driver doesn't support
+      termios ioctls, then don't bother trying to configure the baud, parity
+      etc.
+    * apps/nshlib:  If waitpid() is supported, then NSH now catches the
+      return value from spawned applications (provided by Mike Smith)
+    * apps/nshlib:  Lock the scheduler while starting built-in applications
+      in order to eliminate race conditions (also from Mike Smith).
+    * apps/examples/adc, pwm, and qencoder:  Add support for testing
+      devices with multiple ADC, PWM, and QE devices.
+    * apps/nshlib/nsh_mntcmds.c:  Separated mount-related commands out of
+      nsh_fscmds.c.  Extended to the mount command so that if no arguments
+      are provided, then the current mountpoints are enumerated.
+    * apps/nshlib/nsh_mntcmds.c:  Add an NSH df command to list the
+      properties of mounted file systems.
+    * apps/nshlib/nsh_parse.c:  Extend help command options.  'help' with
+      no arguments outputs a short list of commands.  With -v lists all
+      command line details.  A command name can be added to just get
+      help on one command.
+    * system/readline.c:  If character input/output is interrupted by a
+      signal, then readline() will try the read/write again.
+    * apps/*/Make.defs:  Numerous fixes needed to use the automated
+      configuration (from Richard Cochran).
 
 NxWidgets-1.2 2012-06-15 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
