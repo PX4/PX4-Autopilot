@@ -889,17 +889,14 @@ start()
 	if (OK != g_dev->init())
 		goto fail;
 
-#if 0 /* XXX don't do this for now - the auto-poller is børked */
-
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
 	if (fd < 0)
 		goto fail;
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		goto fail;
-#endif
-	exit(0);
 
+	exit(0);
 fail:
 	if (g_dev != nullptr) {
 		delete g_dev;
