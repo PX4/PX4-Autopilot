@@ -47,9 +47,12 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <sys/types.h>
 
 /** Maximum size of the parameter backing file */
 #define PARAM_FILE_MAXSIZE	4096
+
+__BEGIN_DECLS
 
 /**
  * Parameter types.
@@ -192,6 +195,10 @@ __EXPORT void		param_foreach(void (*func)(void *arg, param_t param), void *arg, 
  * Note that these structures are not known by name; they are
  * collected into a section that is iterated by the parameter
  * code.
+ *
+ * Note that these macros cannot be used in C++ code due to
+ * their use of designated initializers.  They should probably
+ * be refactored to avoid the use of a union for param_value_u.
  */
 
 /** define an int32 parameter */
@@ -199,9 +206,9 @@ __EXPORT void		param_foreach(void (*func)(void *arg, param_t param), void *arg, 
 	static const					\
 	__attribute__((used, section("__param")))	\
 	struct param_info_s __param__##_name = {	\
-		.name = #_name,				\
-			.type = PARAM_TYPE_INT32,	\
-				.val.i = _default	\
+		#_name,					\
+		PARAM_TYPE_INT32,			\
+		.val.i = _default			\
 	}
 
 /** define a float parameter */
@@ -209,9 +216,9 @@ __EXPORT void		param_foreach(void (*func)(void *arg, param_t param), void *arg, 
 	static const					\
 	__attribute__((used, section("__param")))	\
 	struct param_info_s __param__##_name = {	\
-		.name = #_name,				\
-			.type = PARAM_TYPE_FLOAT,	\
-				.val.f = _default	\
+		#_name,					\
+		PARAM_TYPE_FLOAT,			\
+		.val.f = _default			\
 	}
 
 /** define a parameter that points to a structure */
@@ -219,9 +226,9 @@ __EXPORT void		param_foreach(void (*func)(void *arg, param_t param), void *arg, 
 	static const					\
 	__attribute__((used, section("__param")))	\
 	struct param_info_s __param__##_name = {	\
-		.name = #_name,				\
-			.type = PARAM_TYPE_STRUCT + sizeof(_default), \
-				.val.p = &_default;	\
+		#_name,					\
+		PARAM_TYPE_STRUCT + sizeof(_default),	\
+		.val.p = &_default;			\
 	}
 
 /**
@@ -244,5 +251,7 @@ struct param_info_s {
 	param_type_t	type;
 	union param_value_u val;
 };
+
+__END_DECLS
 
 #endif
