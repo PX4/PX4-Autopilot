@@ -41,6 +41,7 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
+#include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
 #define MAG_DEVICE_PATH		"/dev/mag"
@@ -83,34 +84,22 @@ ORB_DECLARE(sensor_mag);
  * ioctl() definitions
  */
 
-#define _MAGIOCBASE		(0x2300)
+#define _MAGIOCBASE		(0x2400)
 #define _MAGIOC(_n)		(_IOC(_MAGIOCBASE, _n))
 
-/** set the driver polling rate to (arg) Hz, or one of the MAG_POLLRATE constants */
-#define MAGIOCSPOLLRATE		_MAGIOC(0)
-
-#define MAG_POLLRATE_MANUAL		1000000	/**< poll when read */
-#define MAG_POLLRATE_EXTERNAL		1000001	/**< poll when device signals ready */
-
-/** set the internal queue depth to (arg) entries, must be at least 1 */
-#define MAGIOCSQUEUEDEPTH	_MAGIOC(1)
-
 /** set the mag internal sample rate to at least (arg) Hz */
-#define MAGIOCSSAMPLERATE	_MAGIOC(2)
+#define MAGIOCSSAMPLERATE	_MAGIOC(0)
 
 /** set the mag internal lowpass filter to no lower than (arg) Hz */
-#define MAGIOCSLOWPASS		_MAGIOC(3)
-
-/** set the report format to (arg); zero is the standard, 1-10 are reserved, all others are driver-specific. */
-#define MAGIOCSREPORTFORMAT	_MAGIOC(4)
+#define MAGIOCSLOWPASS		_MAGIOC(1)
 
 /** set the mag scaling constants to the structure pointed to by (arg) */
-#define MAGIOCSSCALE		_MAGIOC(5)
+#define MAGIOCSSCALE		_MAGIOC(2)
 
 /** copy the mag scaling constants to the structure pointed to by (arg) */
-#define MAGIOCGSCALE		_MAGIOC(6)
+#define MAGIOCGSCALE		_MAGIOC(3)
 
 /** perform self-calibration, update scale factors to canonical units */
-#define MAGIOCCALIBRATE		_MAGIOC(7)
+#define MAGIOCCALIBRATE		_MAGIOC(4)
 
 #endif /* _DRV_MAG_H */

@@ -32,84 +32,56 @@
  ****************************************************************************/
 
 /**
- * @file Accelerometer driver interface.
+ * @file Common sensor API and ioctl definitions.
  */
 
-#ifndef _DRV_ACCEL_H
-#define _DRV_ACCEL_H
+#ifndef _DRV_SENSOR_H
+#define _DRV_SENSOR_H
 
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#define ACCEL_DEVICE_PATH	"/dev/accel"
-
-/**
- * accel report structure.  Reads from the device must be in multiples of this
- * structure.
- */
-struct accel_report {
-	uint64_t timestamp;
-	float x;
-	float y;
-	float z;
-	float range_m_s2;
-	float scaling;
-	uint16_t x_raw;
-	uint16_t y_raw;
-	uint16_t z_raw;
-};
-
-/** accel scaling factors; Vout = (Vin * Vscale) + Voffset */
-struct accel_scale {
-	float	x_offset;
-	float	x_scale;
-	float	y_offset;
-	float	y_scale;
-	float	z_offset;
-	float	z_scale;
-};
-
-/*
- * ObjDev tag for raw accelerometer data.
- */
-ORB_DECLARE(sensor_accel);
-
 /*
  * ioctl() definitions
  *
- * Accelerometer drivers also implement the generic sensor driver 
- * interfaces from drv_sensor.h
+ * Note that a driver may not implement all of these operations, but
+ * if the operation is implemented it should conform to this API.
  */
 
-#define _ACCELIOCBASE		(0x2100)
-#define _ACCELIOC(_n)		(_IOC(_ACCELIOCBASE, _n))
+#define _SENSORIOCBASE		(0x2000)
+#define _SENSORIOC(_n)		(_IOC(_SENSORIOCBASE, _n))
 
+/**
+ * Set the driver polling rate to (arg) Hz, or one of the SENSOR_POLLRATE 
+ * constants
+ */
+#define SENSORIOCSPOLLRATE	_SENSORIOC(0)
 
-/** set the accel internal sample rate to at least (arg) Hz */
-#define ACCELIOCSSAMPLERATE	_ACCELIOC(0)
+/**
+ * Return the driver's approximate polling rate in Hz, or one of the
+ * SENSOR_POLLRATE values.
+ */
+#define SENSORIOCGPOLLRATE	_SENSORIOC(1)
 
-/** return the accel internal sample rate in Hz */
-#define ACCELIOCGSAMPLERATE	_ACCELIOC(1)
+#define SENSOR_POLLRATE_MANUAL		1000000	/**< poll when read */
+#define SENSOR_POLLRATE_EXTERNAL	1000001	/**< poll when device signals ready */
+#define SENSOR_POLLRATE_MAX		1000002	/**< poll at device maximum rate */
+#define SENSOR_POLLRATE_DEFAULT		1000003	/**< poll at driver normal rate */
 
-/** set the accel internal lowpass filter to no lower than (arg) Hz */
-#define ACCELIOCSLOWPASS	_ACCELIOC(2)
+/** 
+ * Set the internal queue depth to (arg) entries, must be at least 1 
+ *
+ * This sets the upper bound on the number of readings that can be
+ * read from the driver.
+ */
+#define SENSORIOCSQUEUEDEPTH	_SENSORIOC(2)
 
-/** return the accel internal lowpass filter in Hz */
-#define ACCELIOCGLOWPASS	_ACCELIOC(3)
+/** return the internal queue depth */
+#define SENSORIOCGQUEUEDEPTH	_SENSORIOC(3)
 
-/** set the accel scaling constants to the structure pointed to by (arg) */
-#define ACCELIOCSSCALE		_ACCELIOC(5)
+/**
+ * Reset the sensor to its default configuration.
+ */
+#define SENSORIOCRESET		_SENSORIOC(4)
 
-/** get the accel scaling constants into the structure pointed to by (arg) */
-#define ACCELIOCGSCALE		_ACCELIOC(6)
-
-/** set the accel measurement range to handle at least (arg) g */
-#define ACCELIOCSRANGE		_ACCELIOC(7)
-
-/** get the current accel measurement range */
-#define ACCELIOCGRANGE		_ACCELIOC(8)
-
-#endif /* _DRV_ACCEL_H */
+#endif /* _DRV_SENSOR_H */
