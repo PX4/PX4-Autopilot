@@ -126,9 +126,6 @@ public:
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
-	virtual int		open_first(struct file *filp);
-	virtual int		close_last(struct file *filp);
-
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
@@ -277,7 +274,7 @@ HMC5883::HMC5883(int bus) :
 	_scale.z_scale = 1.0f / 1090.0f;	/* default range scale from counts to gauss */
 
 	// work_cancel in the dtor will explode if we don't do this...
-	_work.worker = nullptr;
+	memset(&_work, 0, sizeof(_work));
 }
 
 HMC5883::~HMC5883()
@@ -296,44 +293,19 @@ HMC5883::init()
 	int ret = ERROR;
 
 	/* do I2C init (and probe) first */
-	ret = I2C::init();
-
-	if (ret != OK)
+	if (I2C::init() != OK)
 		goto out;
-
-out:
-	return ret;
-}
-
-int
-HMC5883::open_first(struct file *filp)
-{
-	/* reset to manual-poll mode */
-	_measure_ticks = 0;
 
 	/* allocate basic report buffers */
 	_num_reports = 2;
 	_reports = new struct mag_report[_num_reports];
+	if (_reports == nullptr)
+		goto out;
 	_oldest_report = _next_report = 0;
 
-	return OK;
-}
-
-int
-HMC5883::close_last(struct file *filp)
-{
-	/* stop measurement */
-	stop();
-
-	/* free report buffers */
-	if (_reports != nullptr) {
-		delete[] _reports;
-		_num_reports = 0;
-	}
-
-	_measure_ticks = 0;
-
-	return OK;
+	ret = OK;
+out:
+	return ret;
 }
 
 int
