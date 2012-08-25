@@ -420,13 +420,13 @@ static int sensors_init(void)
 
 	} else {
 		printf("[sensors]   MAG open ok\n");
-		/* set the queue depth to 1 */
-		if (OK != ioctl(fd_magnetometer, MAGIOCSQUEUEDEPTH, 1))
-			warn("failed to set queue depth for mag");
+		// /* set the queue depth to 1 */
+		// if (OK != ioctl(fd_magnetometer, MAGIOCSQUEUEDEPTH, 1))
+		// 	warn("failed to set queue depth for mag");
 
 		/* start the sensor polling at 150Hz */
-		if (OK != ioctl(fd_magnetometer, MAGIOCSPOLLRATE, 150))
-			warn("failed to set 150Hz poll rate for mag");
+		if (OK != ioctl(fd_magnetometer, MAGIOCSSAMPLERATE, 150))
+			warn("failed to set minimum 150Hz sample rate for mag");
 	}
 
 	/* open barometer */
@@ -438,13 +438,13 @@ static int sensors_init(void)
 
 	} else {
 		printf("[sensors]   BARO open ok\n");
-		/* set the queue depth to 1 */
-		if (OK != ioctl(fd_barometer, BAROIOCSQUEUEDEPTH, 1))
-			warn("failed to set queue depth for baro");
+		// /* set the queue depth to 1 */
+		// if (OK != ioctl(fd_barometer, BAROIOCSQUEUEDEPTH, 1))
+		// 	warn("failed to set queue depth for baro");
 
-		/* start the sensor polling at 100Hz */
-		if (OK != ioctl(fd_barometer, BAROIOCSPOLLRATE, 100))
-			warn("failed to set 100Hz poll rate for baro");
+		//  start the sensor polling at 100Hz 
+		// if (OK != ioctl(fd_barometer, BAROIOCSPOLLRATE, 100))
+		// 	warn("failed to set 100Hz poll rate for baro");
 	}
 
 	/* open gyro */
@@ -457,12 +457,10 @@ static int sensors_init(void)
 		// if (OK != ioctl(fd_gyro, GYROIOCSQUEUEDEPTH, 1))
 		// 	warn("failed to set queue depth for gyro");
 
-		// /* start the sensor polling at 500Hz */
-		// if (OK != ioctl(fd_gyro, GYROIOCSPOLLRATE, 500))
-		// 	warn("failed to set 500Hz poll rate for gyro");
+		/* start the sensor polling at 500Hz */
+		if (OK != ioctl(fd_gyro, GYROIOCSSAMPLERATE, 500))
+			warn("failed to set minimum 500Hz sample rate for gyro");
 	}
-
-	printf("just before accel\n");
 
 	/* open accelerometer */
 	fd_accelerometer = open("/dev/accel", O_RDONLY);
@@ -474,9 +472,9 @@ static int sensors_init(void)
 		// if (OK != ioctl(fd_accelerometer, ACCELIOCSQUEUEDEPTH, 1))
 		// 	warn("failed to set queue depth for accel");
 
-		// /* start the sensor polling at 500Hz */
-		// if (OK != ioctl(fd_accelerometer, ACCELIOCSPOLLRATE, 500))
-		// 	warn("failed to set 500Hz poll rate for accel");
+		/* start the sensor polling at 500Hz */
+		if (OK != ioctl(fd_accelerometer, ACCELIOCSSAMPLERATE, 500))
+			warn("failed to set minimum 500Hz poll rate for accel");
 	}
 
 	/* only attempt to use BMA180 if main accel is not available */
@@ -852,15 +850,15 @@ int sensors_thread_main(int argc, char *argv[])
 			/* --- ACCEL --- */
 			if (fds[1].revents & POLLIN) {
 
-				orb_copy(ORB_ID(sensor_mag), mag_sub, &mag_report);
+				orb_copy(ORB_ID(sensor_accel), accel_sub, &accel_report);
 
-				raw.accelerometer_m_s2[0] = gyro_report.x;
-				raw.gyro_rad_s[1] = gyro_report.y;
-				raw.gyro_rad_s[2] = gyro_report.z;
+				raw.accelerometer_m_s2[0] = accel_report.x;
+				raw.accelerometer_m_s2[1] = accel_report.y;
+				raw.accelerometer_m_s2[2] = accel_report.z;
 
-				raw.gyro_raw[0] = gyro_report.x_raw;
-				raw.gyro_raw[1] = gyro_report.y_raw;
-				raw.gyro_raw[2] = gyro_report.z_raw;
+				raw.accelerometer_raw[0] = accel_report.x_raw;
+				raw.accelerometer_raw[1] = accel_report.y_raw;
+				raw.accelerometer_raw[2] = accel_report.z_raw;
 
 				raw.accelerometer_raw_counter++;
 			}
