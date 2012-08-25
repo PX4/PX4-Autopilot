@@ -157,9 +157,6 @@ public:
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
-	virtual int		open_first(struct file *filp);
-	virtual int		close_last(struct file *filp);
-
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
@@ -322,6 +319,7 @@ MPU6000::MPU6000(int bus, spi_dev_e device) :
 
 	memset(&_accel_report, 0, sizeof(_accel_report));
 	memset(&_gyro_report, 0, sizeof(_gyro_report));
+	memset(&_call, 0, sizeof(_call));
 }
 
 MPU6000::~MPU6000()
@@ -442,26 +440,6 @@ MPU6000::init()
 	ret = _gyro->init();
 
 	return ret;
-}
-
-int
-MPU6000::open_first(struct file *filp)
-{
-	/* reset to manual-poll mode */
-	_call_interval = 0;
-
-	/* XXX set default sampling/acquisition parameters */
-
-	return OK;
-}
-
-int
-MPU6000::close_last(struct file *filp)
-{
-	/* stop measurement */
-	stop();
-
-	return OK;
 }
 
 int
@@ -911,12 +889,15 @@ start()
 	if (OK != g_dev->init())
 		goto fail;
 
+#if 0 /* XXX don't do this for now - the auto-poller is børked */
+
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
 	if (fd < 0)
 		goto fail;
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		goto fail;
+#endif
 	exit(0);
 
 fail:

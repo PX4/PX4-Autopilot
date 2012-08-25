@@ -64,6 +64,12 @@
 
 #include <drivers/drv_baro.h>
 
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
+
 /**
  * Calibration PROM as reported by the device.
  */
@@ -98,9 +104,6 @@ public:
 
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
-
-	virtual int		open_first(struct file *filp);
-	virtual int		close_last(struct file *filp);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -259,7 +262,7 @@ MS5611::MS5611(int bus) :
 	_debug_enabled = true;
 
 	// work_cancel in the dtor will explode if we don't do this...
-	_work.worker = nullptr;
+	memset(&_work, 0, sizeof(_work));
 }
 
 MS5611::~MS5611()
@@ -275,43 +278,23 @@ MS5611::~MS5611()
 int
 MS5611::init()
 {
-	int ret;
+	int ret = ERROR;
 
 	/* do I2C init (and probe) first */
-	ret = I2C::init();
-
-	return ret;
-}
-
-int
-MS5611::open_first(struct file *filp)
-{
-	/* reset to manual-poll mode */
-	_measure_ticks = 0;
+	if (I2C::init() != OK)
+		goto out;
 
 	/* allocate basic report buffers */
 	_num_reports = 2;
 	_reports = new struct baro_report[_num_reports];
+	if (_reports == nullptr)
+		goto out;
+
 	_oldest_report = _next_report = 0;
 
-	return OK;
-}
-
-int
-MS5611::close_last(struct file *filp)
-{
-	/* stop measurement */
-	stop();
-
-	/* free report buffers */
-	if (_reports != nullptr) {
-		delete[] _reports;
-		_num_reports = 0;
-	}
-
-	_measure_ticks = 0;
-
-	return OK;
+	ret = OK;
+out:
+	return ret;
 }
 
 int
@@ -806,12 +789,6 @@ MS5611::print_info()
  */
 namespace ms5611
 {
-
-/* oddly, ERROR is not defined for c++ */
-#ifdef ERROR
-# undef ERROR
-#endif
-const int ERROR = -1;
 
 MS5611	*g_dev;
 
