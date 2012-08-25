@@ -35,7 +35,15 @@
  * @file Base class for devices connected via SPI.
  *
  * @todo Work out if caching the mode/frequency would save any time.
+ *
+ * @todo A separate bus/device abstraction would allow for mixed interrupt-mode
+ * and non-interrupt-mode clients to arbitrate for the bus.  As things stand,
+ * a bus shared between clients of both kinds is vulnerable to races between
+ * the two, where an interrupt-mode client will ignore the lock held by the
+ * non-interrupt-mode client.
  */
+
+#include <nuttx/arch.h>
 
 #include "spi.h"
 
@@ -124,7 +132,8 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 		return -EINVAL;
 
 	/* do common setup */
-	SPI_LOCK(_dev, true);
+	if (!up_interrupt_context())
+		SPI_LOCK(_dev, true);
 	SPI_SETFREQUENCY(_dev, _frequency);
 	SPI_SETMODE(_dev, _mode);
 	SPI_SETBITS(_dev, 8);
@@ -135,7 +144,8 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 
 	/* and clean up */
 	SPI_SELECT(_dev, _device, false);
-	SPI_LOCK(_dev, false);
+	if (!up_interrupt_context())
+		SPI_LOCK(_dev, false);
 
 	return OK;
 }
