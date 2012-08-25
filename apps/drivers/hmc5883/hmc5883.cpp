@@ -339,12 +339,14 @@ HMC5883::close_last(struct file *filp)
 int
 HMC5883::probe()
 {
-	uint8_t data[3];
+	uint8_t data[3] = {0, 0, 0};
 
+	_retries = 3;
 	if (read_reg(ADDR_ID_A, data[0]) ||
 	    read_reg(ADDR_ID_B, data[1]) ||
 	    read_reg(ADDR_ID_C, data[2]))
 		debug("read_reg fail");
+	_retries = 1;
 
 	if ((data[0] != ID_A_WHO_AM_I) ||
 	    (data[1] != ID_B_WHO_AM_I) ||
