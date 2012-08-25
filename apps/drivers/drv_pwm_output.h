@@ -94,7 +94,7 @@ ORB_DECLARE(output_pwm);
  * Note that ioctls and ObjDev updates should not be mixed, as the
  * behaviour of the system in this case is not defined.
  */
-#define _PWM_SERVO_BASE		0x2600
+#define _PWM_SERVO_BASE		0x2700
 
 /** arm all servo outputs handle by this driver */
 #define PWM_SERVO_ARM		_IOC(_PWM_SERVO_BASE, 0)

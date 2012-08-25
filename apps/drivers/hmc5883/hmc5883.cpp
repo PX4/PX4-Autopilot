@@ -61,6 +61,7 @@
 #include <arch/board/up_hrt.h>
 
 #include <systemlib/perf_counter.h>
+#include <systemlib/err.h>
 
 #include <drivers/drv_mag.h>
 
@@ -422,21 +423,37 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-	case MAGIOCSPOLLRATE: {
+	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
 				/* switching to manual polling */
-			case MAG_POLLRATE_MANUAL:
+			case SENSOR_POLLRATE_MANUAL:
 				stop();
 				_measure_ticks = 0;
 				return OK;
 
 				/* external signalling (DRDY) not supported */
-			case MAG_POLLRATE_EXTERNAL:
+			case SENSOR_POLLRATE_EXTERNAL:
 
 				/* zero would be bad */
 			case 0:
 				return -EINVAL;
+
+				/* set default/max polling rate */
+			case SENSOR_POLLRATE_MAX:
+			case SENSOR_POLLRATE_DEFAULT: {
+					/* do we need to start internal polling? */
+					bool want_start = (_measure_ticks == 0);
+
+					/* set interval for next measurement to minimum legal value */
+					_measure_ticks = USEC2TICK(HMC5883_CONVERSION_INTERVAL);
+
+					/* if we need to start the poll state machine, do it */
+					if (want_start)
+						start();
+
+					return OK;
+				}
 
 				/* adjust to a legal polling interval in Hz */
 			default: {
@@ -462,7 +479,15 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case MAGIOCSQUEUEDEPTH: {
+	case SENSORIOCGPOLLRATE:
+		if (_measure_ticks == 0)
+			return SENSOR_POLLRATE_MANUAL;
+		return (1000 / _measure_ticks);
+
+	case SENSORIOCSQUEUEDEPTH: {
+			/* add one to account for the sentinel in the ring */
+			arg++;
+
 			/* lower bound is mandatory, upper bound is a sanity check */
 			if ((arg < 2) || (arg > 100))
 				return -EINVAL;
@@ -483,6 +508,21 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
+	case SENSORIOCGQUEUEDEPTH:
+		return _num_reports - 1;
+
+	case SENSORIOCRESET:
+		/* XXX implement this */
+		return -EINVAL;
+
+	case MAGIOCSSAMPLERATE:
+		/* not supported, always 1 sample per poll */
+		return -EINVAL;
+
+	case MAGIOCSLOWPASS:
+		/* not supported, no internal filtering */
+		return -EINVAL;
+
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_scale, (mag_scale *)arg, sizeof(_scale));
@@ -495,18 +535,6 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCCALIBRATE:
 		/* XXX perform auto-calibration */
-		return -EINVAL;
-
-	case MAGIOCSSAMPLERATE:
-		/* not supported, always 1 sample per poll */
-		return -EINVAL;
-
-	case MAGIOCSLOWPASS:
-		/* not supported, no internal filtering */
-		return -EINVAL;
-
-	case MAGIOCSREPORTFORMAT:
-		/* not supported, no custom report format */
 		return -EINVAL;
 
 	default:
@@ -747,7 +775,7 @@ HMC5883::print_info()
 /**
  * Local functions in support of the shell command.
  */
-namespace
+namespace hmc5883
 {
 
 /* oddly, ERROR is not defined for c++ */
@@ -758,72 +786,80 @@ const int ERROR = -1;
 
 HMC5883	*g_dev;
 
-/*
- * XXX this should just be part of the generic sensors test...
+void	start();
+void	test();
+void	reset();
+void	info();
+
+/**
+ * Start the driver.
  */
-
-
-int
-test_fail(const char *fmt, ...)
+void
+start()
 {
-	va_list ap;
+	int fd;
 
-	fprintf(stderr, "FAIL: ");
-	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
-	va_end(ap);
-	fprintf(stderr, "\n");
-	fflush(stderr);
-	return ERROR;
-}
+	if (g_dev != nullptr)
+		errx(1, "already started");
 
-int
-test_note(const char *fmt, ...)
-{
-	va_list ap;
+	/* create the driver */
+	/* XXX HORRIBLE hack - the bus number should not come from here */
+	g_dev = new HMC5883(2);
 
-	fprintf(stderr, "note: ");
-	va_start(ap, fmt);
-	vfprintf(stderr, fmt, ap);
-	va_end(ap);
-	fprintf(stderr, "\n");
-	fflush(stderr);
-	return OK;
+	if (g_dev == nullptr)
+		goto fail;
+
+	if (OK != g_dev->init())
+		goto fail;
+
+	/* set the poll rate to default, starts automatic data collection */
+	fd = open(MAG_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		goto fail;
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+		goto fail;
+	exit(0);
+
+fail:
+	if (g_dev != nullptr) {
+		delete g_dev;
+		g_dev = nullptr;
+	}
+	errx(1, "driver start failed");
 }
 
 /**
  * Perform some basic functional tests on the driver;
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
- *
- * @param fd		An open file descriptor on the driver.
  */
-int
-test(int fd)
+void
+test()
 {
 	struct mag_report report;
 	ssize_t sz;
 	int ret;
 
+	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", MAG_DEVICE_PATH);
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
-
 	if (sz != sizeof(report))
-		return test_fail("immediate read failed: %d", errno);
+		err(1, "immediate read failed");
 
-	test_note("single read");
-	test_note("measurement: %.6f  %.6f  %.6f", report.x, report.y, report.z);
-	test_note("time:        %lld", report.timestamp);
-	usleep(1000000);
+	warnx("single read");
+	warnx("measurement: %.6f  %.6f  %.6f", report.x, report.y, report.z);
+	warnx("time:        %lld", report.timestamp);
 
 	/* set the queue depth to 10 */
-	if (OK != ioctl(fd, MAGIOCSQUEUEDEPTH, 10))
-		return test_fail("failed to set queue depth");
+	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10))
+		errx(1, "failed to set queue depth");
 
 	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, MAGIOCSPOLLRATE, 2))
-		return test_fail("failed to set 2Hz poll rate");
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2))
+		errx(1, "failed to set 2Hz poll rate");
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {
@@ -835,37 +871,53 @@ test(int fd)
 		ret = poll(&fds, 1, 2000);
 
 		if (ret != 1)
-			return test_fail("timed out waiting for sensor data");
+			errx(1, "timed out waiting for sensor data");
 
 		/* now go get it */
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report))
-			return test_fail("periodic read failed: %d", errno);
+			err(1, "periodic read failed");
 
-		test_note("periodic read %u", i);
-		test_note("measurement: %.6f  %.6f  %.6f", report.x, report.y, report.z);
-		test_note("time:        %lld", report.timestamp);
+		warnx("periodic read %u", i);
+		warnx("measurement: %.6f  %.6f  %.6f", report.x, report.y, report.z);
+		warnx("time:        %lld", report.timestamp);
 	}
 
-	return test_note("PASS");
-	return OK;
+	errx(0, "PASS");
 }
 
-int
+/**
+ * Reset the driver.
+ */
+void
+reset()
+{
+	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		err(1, "failed ");
+	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
+		err(1, "driver reset failed");
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+		err(1, "driver poll restart failed");
+
+	exit(0);
+}
+
+/**
+ * Print a little info about the driver.
+ */
+void
 info()
 {
-	if (g_dev == nullptr) {
-		fprintf(stderr, "HMC5883: driver not running\n");
-		return -ENOENT;
-	}
+	if (g_dev == nullptr)
+		errx(1, "driver not running");
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
 
-	return OK;
+	exit(0);
 }
-
 
 } // namespace
 
@@ -874,58 +926,27 @@ hmc5883_main(int argc, char *argv[])
 {
 	/*
 	 * Start/load the driver.
-	 *
-	 * XXX it would be nice to have a wrapper for this...
 	 */
-	if (!strcmp(argv[1], "start")) {
-
-		if (g_dev != nullptr) {
-			fprintf(stderr, "HMC5883: already loaded\n");
-			return -EBUSY;
-		}
-
-		/* create the driver */
-		/* XXX HORRIBLE hack - the bus number should not come from here */
-		g_dev = new HMC5883(2);
-
-		if (g_dev == nullptr) {
-			fprintf(stderr, "HMC5883: driver alloc failed\n");
-			return -ENOMEM;
-		}
-
-		if (OK != g_dev->init()) {
-			fprintf(stderr, "HMC5883: driver init failed\n");
-			usleep(100000);
-			delete g_dev;
-			g_dev = nullptr;
-			return -EIO;
-		}
-
-		return OK;
-	}
+	if (!strcmp(argv[1], "start"))
+		hmc5883::start();
 
 	/*
 	 * Test the driver/device.
 	 */
-	if (!strcmp(argv[1], "test")) {
-		int fd, ret;
+	if (!strcmp(argv[1], "test"))
+		hmc5883::test();
 
-		fd = open(MAG_DEVICE_PATH, O_RDONLY);
-
-		if (fd < 0)
-			return test_fail("driver open failed: %d", errno);
-
-		ret = test(fd);
-		close(fd);
-		return ret;
-	}
+	/*
+	 * Reset the driver.
+	 */
+	if (!strcmp(argv[1], "reset"))
+		hmc5883::reset();
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info"))
-		return info();
+		hmc5883::info();
 
-	fprintf(stderr, "unrecognised command, try 'start', 'test' or 'info'\n");
-	return -EINVAL;
+	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
 }

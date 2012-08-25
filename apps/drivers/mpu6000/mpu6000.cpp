@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <semaphore.h>
 #include <string.h>
 #include <fcntl.h>
@@ -53,6 +54,7 @@
 #include <unistd.h>
 
 #include <systemlib/perf_counter.h>
+#include <systemlib/err.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
@@ -536,21 +538,27 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-	case ACCELIOCSPOLLRATE: {
+	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
 				/* switching to manual polling */
-			case ACC_POLLRATE_MANUAL:
+			case SENSOR_POLLRATE_MANUAL:
 				stop();
 				_call_interval = 0;
 				return OK;
 
 				/* external signalling not supported */
-			case ACC_POLLRATE_EXTERNAL:
+			case SENSOR_POLLRATE_EXTERNAL:
 
 				/* zero would be bad */
 			case 0:
 				return -EINVAL;
+
+				/* set default/max polling rate */
+			case SENSOR_POLLRATE_MAX:
+			case SENSOR_POLLRATE_DEFAULT:
+				/* XXX 500Hz is just a wild guess */
+				return ioctl(filp, SENSORIOCSPOLLRATE, 500);
 
 				/* adjust to a legal polling interval in Hz */
 			default: {
@@ -566,7 +574,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call.period = _call_interval;
+					_call.period = _call_interval = ticks;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
@@ -577,20 +585,38 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCSQUEUEDEPTH:
+	case SENSORIOCGPOLLRATE:
+		if (_call_interval == 0)
+			return SENSOR_POLLRATE_MANUAL;
+		return 1000000 / _call_interval;
+
+	case SENSORIOCSQUEUEDEPTH:
+		/* XXX not implemented */
+		return -EINVAL;
+
+	case SENSORIOCGQUEUEDEPTH:
+		/* XXX not implemented */
+		return -EINVAL;
+
+
+	case ACCELIOCSSAMPLERATE:
+	case ACCELIOCGSAMPLERATE:
 		/* XXX not implemented */
 		return -EINVAL;
 
 	case ACCELIOCSLOWPASS:
+	case ACCELIOCGLOWPASS:
 		/* XXX not implemented */
 		return -EINVAL;
 
-	case ACCELIORANGE:
-		/* XXX not implemented really */
-		return set_range(arg);
+	case ACCELIOCSSCALE:
+	case ACCELIOCGSCALE:
+		/* XXX not implemented */
+		return -EINVAL;
 
-	case ACCELIOCSSAMPLERATE:	/* sensor sample rate is not (really) adjustable */
-	case ACCELIOCSREPORTFORMAT:	/* no alternate report formats */
+	case ACCELIOCSRANGE:
+	case ACCELIOCGRANGE:
+		/* XXX not implemented */
 		return -EINVAL;
 
 	default:
@@ -604,24 +630,32 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-	case GYROIOCSPOLLRATE:
-		/* gyro and accel poll rates are shared */
-		return ioctl(filp, ACCELIOCSPOLLRATE, arg);
+		/* these are shared with the accel side */
+	case SENSORIOCSPOLLRATE:
+	case SENSORIOCGPOLLRATE:
+	case SENSORIOCSQUEUEDEPTH:
+	case SENSORIOCGQUEUEDEPTH:
+	case SENSORIOCRESET:
+		return ioctl(filp, cmd, arg);
 
-	case GYROIOCSQUEUEDEPTH:
+	case GYROIOCSSAMPLERATE:
+	case GYROIOCGSAMPLERATE:
 		/* XXX not implemented */
 		return -EINVAL;
 
 	case GYROIOCSLOWPASS:
+	case GYROIOCGLOWPASS:
 		/* XXX not implemented */
 		return -EINVAL;
 
 	case GYROIOCSSCALE:
-		/* XXX not implemented really */
-		return set_range(arg);
+	case GYROIOCGSCALE:
+		/* XXX not implemented */
+		return -EINVAL;
 
-	case GYROIOCSSAMPLERATE:	/* sensor sample rate is not (really) adjustable */
-	case GYROIOCSREPORTFORMAT:	/* no alternate report formats */
+	case GYROIOCSRANGE:
+	case GYROIOCGRANGE:
+		/* XXX not implemented */
 		return -EINVAL;
 
 	default:
@@ -847,16 +881,58 @@ MPU6000_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 /**
  * Local functions in support of the shell command.
  */
-namespace
+namespace mpu6000
 {
 
 MPU6000	*g_dev;
 
-/*
- * XXX this should just be part of the generic sensors test...
- */
+void	start();
+void	test();
+void	reset();
+void	info();
 
-int
+/**
+ * Start the driver.
+ */
+void
+start()
+{
+	int fd;
+
+	if (g_dev != nullptr)
+		errx(1, "already started");
+
+	/* create the driver */
+	g_dev = new MPU6000(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_MPU);
+
+	if (g_dev == nullptr)
+		goto fail;
+
+	if (OK != g_dev->init())
+		goto fail;
+
+	/* set the poll rate to default, starts automatic data collection */
+	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		goto fail;
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+		goto fail;
+	exit(0);
+
+fail:
+	if (g_dev != nullptr) {
+		delete g_dev;
+		g_dev = nullptr;
+	}
+	errx(1, "driver start failed");
+}
+
+/**
+ * Perform some basic functional tests on the driver;
+ * make sure we can collect data from the sensor in polled
+ * and automatic modes.
+ */
+void
 test()
 {
 	int fd = -1;
@@ -864,75 +940,82 @@ test()
 	struct accel_report report;
 	struct gyro_report g_report;
 	ssize_t sz;
-	const char *reason = "test OK";
 
-	do {
-		/* get the driver */
-		fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	/* get the driver */
+	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		err(1, "%s open failed (try 'mpu6000 start' if the driver is not running)", 
+			ACCEL_DEVICE_PATH);
 
-		if (fd < 0) {
-			reason = "can't open accel driver, use <mpu6000 start> first";
-			break;
-		}
+	/* get the driver */
+	fd_gyro = open(GYRO_DEVICE_PATH, O_RDONLY);
+	if (fd_gyro < 0)
+		err(1, "%s open failed", GYRO_DEVICE_PATH);
 
-		/* get the driver */
-		fd_gyro = open(GYRO_DEVICE_PATH, O_RDONLY);
+	/* reset to manual polling */
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
+		err(1, "reset to manual polling");
+	
+	/* do a simple demand read */
+	sz = read(fd, &report, sizeof(report));
+	if (sz != sizeof(report))
+		err(1, "immediate acc read failed");
 
-		if (fd_gyro < 0) {
-			reason = "can't open gyro driver, use <mpu6000 start> first";
-			break;
-		}
+	warnx("single read");
+	warnx("time:     %lld", report.timestamp);
+	warnx("acc  x:  \t% 5.2f\tm/s^2", (double)report.x);
+	warnx("acc  y:  \t% 5.2f\tm/s^2", (double)report.y);
+	warnx("acc  z:  \t% 5.2f\tm/s^2", (double)report.z);
+	warnx("acc range: %6.2f m/s^2 (%6.2f g)", (double)report.range_m_s2,
+		(double)(report.range_m_s2 / 9.81f));
 
-		/* do a simple demand read */
-		sz = read(fd, &report, sizeof(report));
+	/* do a simple demand read */
+	sz = read(fd_gyro, &g_report, sizeof(g_report));
+	if (sz != sizeof(g_report))
+		err(1, "immediate gyro read failed");
 
-		if (sz != sizeof(report)) {
-			reason = "immediate acc read failed";
-			break;
-		}
+	warnx("gyro x: \t% 5.2f\trad/s", (double)g_report.x);
+	warnx("gyro y: \t% 5.2f\trad/s", (double)g_report.y);
+	warnx("gyro z: \t% 5.2f\trad/s", (double)g_report.z);
+	warnx("gyro range: %6.3f rad/s (%8.1f deg/s)", (double)g_report.range_rad_s,
+		(double)((g_report.range_rad_s / M_PI_F) * 180.0f));
 
-		printf("single read\n");
-		fflush(stdout);
-		printf("time:     %lld\n", report.timestamp);
-		printf("acc  x:  \t% 5.2f\tm/s^2\n", (double)report.x);
-		printf("acc  y:  \t% 5.2f\tm/s^2\n", (double)report.y);
-		printf("acc  z:  \t% 5.2f\tm/s^2\n", (double)report.z);
-		printf("acc range: %6.2f m/s^2 (%6.2f g)\n", (double)report.range_m_s2,
-			(double)(report.range_m_s2 / 9.81f));
+	/* XXX add poll-rate tests here too */
 
-		/* do a simple demand read */
-		sz = read(fd_gyro, &g_report, sizeof(g_report));
-
-		if (sz != sizeof(g_report)) {
-			reason = "immediate gyro read failed";
-			break;
-		}
-
-		printf("gyro x: \t% 5.2f\trad/s\n", (double)g_report.x);
-		printf("gyro y: \t% 5.2f\trad/s\n", (double)g_report.y);
-		printf("gyro z: \t% 5.2f\trad/s\n", (double)g_report.z);
-		printf("gyro range: %6.3f rad/s (%8.1f deg/s)\n", (double)g_report.range_rad_s,
-			(double)((g_report.range_rad_s / M_PI_F) * 180.0f));
-
-	} while (0);
-
-	printf("MPU6000: %s\n", reason);
-
-	return OK;
+	reset();
+	errx(0, "PASS");
 }
 
-int
+/**
+ * Reset the driver.
+ */
+void
+reset()
+{
+	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		err(1, "failed ");
+	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
+		err(1, "driver reset failed");
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+		err(1, "driver poll restart failed");
+
+	exit(0);
+}
+
+/**
+ * Print a little info about the driver.
+ */
+void
 info()
 {
-	if (g_dev == nullptr) {
-		fprintf(stderr, "MPU6000: driver not running\n");
-		return -ENOENT;
-	}
+	if (g_dev == nullptr)
+		errx(1, "driver not running");
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
 
-	return OK;
+	exit(0);
 }
 
 
@@ -943,47 +1026,28 @@ mpu6000_main(int argc, char *argv[])
 {
 	/*
 	 * Start/load the driver.
-	 *
-	 * XXX it would be nice to have a wrapper for this...
+
 	 */
-	if (!strcmp(argv[1], "start")) {
-
-		if (g_dev != nullptr) {
-			fprintf(stderr, "MPU6000: already loaded\n");
-			return -EBUSY;
-		}
-
-		/* create the driver */
-		g_dev = new MPU6000(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_MPU);
-
-		if (g_dev == nullptr) {
-			fprintf(stderr, "MPU6000: driver alloc failed\n");
-			return -ENOMEM;
-		}
-
-		if (OK != g_dev->init()) {
-			fprintf(stderr, "MPU6000: driver init failed\n");
-			usleep(100000);
-			delete g_dev;
-			g_dev = nullptr;
-			return -EIO;
-		}
-
-		return OK;
-	}
+	if (!strcmp(argv[1], "start"))
+		mpu6000::start();
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test"))
-		return test();
+		mpu6000::test();
+
+	/*
+	 * Reset the driver.
+	 */
+	if (!strcmp(argv[1], "reset"))
+		mpu6000::reset();
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info"))
-		return info();
+		mpu6000::info();
 
-	fprintf(stderr, "unrecognised command, try 'start', 'test' or 'info'\n");
-	return -EINVAL;
+	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
 }
