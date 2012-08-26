@@ -96,7 +96,7 @@ struct rc_channels_s {
   uint8_t chan_count;                 /**< maximum number of valid channels */
 
   /*String array to store the names of the functions*/
-  const char function_name[RC_CHANNELS_FUNCTION_MAX][20];
+  char function_name[RC_CHANNELS_FUNCTION_MAX][20];
   uint8_t function[RC_CHANNELS_FUNCTION_MAX];
   uint8_t rssi;                       /**< Overall receive signal strength */
 }; /**< radio control channels. */

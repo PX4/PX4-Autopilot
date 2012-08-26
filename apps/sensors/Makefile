@@ -39,4 +39,7 @@ APPNAME		= sensors
 PRIORITY	= SCHED_PRIORITY_MAX-5
 STACKSIZE	= 4096
 
+CXXSRCS		= sensors.cpp
+CSRCS		= sensor_params.c
+
 include $(APPDIR)/mk/app.mk

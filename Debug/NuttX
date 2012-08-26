@@ -95,6 +95,7 @@ end
 document showfiles
 .    showfiles <TCB pointer>
 .        Prints the files opened by a task.
+end
 
 ################################################################################
 # Task display

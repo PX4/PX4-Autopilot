@@ -298,8 +298,8 @@ MPU6000::MPU6000(int bus, spi_dev_e device) :
 	_reads(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read"))
 {
-	// enable debug() calls
-	_debug_enabled = true;
+	// disable debug() calls
+	_debug_enabled = false;
 
 	// default accel scale factors
 	_accel_scale.x_offset = 0;
@@ -463,7 +463,7 @@ MPU6000::probe()
 	case MPU6000_REV_D8:
 	case MPU6000_REV_D9:
 	case MPU6000_REV_D10:
-		log("ID 0x%02x", _product);
+		debug("ID 0x%02x", _product);
 		return OK;
 	}
 

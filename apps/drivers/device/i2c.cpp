@@ -99,7 +99,7 @@ I2C::init()
 	}
 
 	// tell the world where we are
-	log("on bus %d at 0x%02x", _bus, _address);
+	log("on I2C bus %d at 0x%02x", _bus, _address);
 
 out:
 	return ret;
