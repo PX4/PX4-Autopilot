@@ -60,9 +60,9 @@ struct mag_report {
 	float range_ga;
 	float scaling;
 	
-	uint16_t x_raw;
-	uint16_t y_raw;
-	uint16_t z_raw;
+	int16_t x_raw;
+	int16_t y_raw;
+	int16_t z_raw;
 };
 
 /** mag scaling factors; Vout = (Vin * Vscale) + Voffset */

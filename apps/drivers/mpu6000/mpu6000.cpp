@@ -386,7 +386,7 @@ MPU6000::init()
 	_gyro_scale.y_scale  = 1.0f;
 	_gyro_scale.z_offset = 0;
 	_gyro_scale.z_scale  = 1.0f;
-	_gyro_range_scale = 1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
+	_gyro_range_scale = (0.0174532 / 16.4);//1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
 	_gyro_range_rad_s = (2000.0f / 180.0f) * M_PI_F;
 
 	// product-specific scaling
@@ -421,7 +421,7 @@ MPU6000::init()
 	_accel_scale.y_scale  = 1.0f;
 	_accel_scale.z_offset = 0;
 	_accel_scale.z_scale  = 1.0f;
-	_accel_range_scale = 1.0f / (4096.0f / 9.81f);
+	_accel_range_scale = (9.81f / 4096.0f);
 	_accel_range_m_s2 = 8.0f * 9.81f;
 
 	usleep(1000);
@@ -595,6 +595,9 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case ACCELIOCSRANGE:
 	case ACCELIOCGRANGE:
 		/* XXX not implemented */
+		// XXX change these two values on set:
+		// _accel_range_scale = (9.81f / 4096.0f);
+		// _accel_range_rad_s = 8.0f * 9.81f;
 		return -EINVAL;
 
 	default:
@@ -634,6 +637,9 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case GYROIOCSRANGE:
 	case GYROIOCGRANGE:
 		/* XXX not implemented */
+		// XXX change these two values on set:
+		// _gyro_range_scale = xx
+		// _gyro_range_m_s2 = xx
 		return -EINVAL;
 
 	default:
@@ -755,6 +761,20 @@ MPU6000::measure_trampoline(void *arg)
 	dev->measure();
 }
 
+int16_t
+int16_t_from_bytes(uint8_t bytes[])
+{
+    union {
+        uint8_t    b[2];
+        int16_t    w;
+    } u;
+
+    u.b[1] = bytes[0];
+    u.b[0] = bytes[1];
+
+    return u.w;
+}
+
 void
 MPU6000::measure()
 {
@@ -763,18 +783,28 @@ MPU6000::measure()
 	 * Report conversation within the MPU6000, including command byte and
 	 * interrupt status.
 	 */
-	struct Report {
+	struct MPUReport {
 		uint8_t		cmd;
 		uint8_t		status;
-		uint16_t	accel_x;
-		uint16_t	accel_y;
-		uint16_t	accel_z;
-		uint16_t	temp;
-		uint16_t	gyro_x;
-		uint16_t	gyro_y;
-		uint16_t	gyro_z;
-	} report;
+		uint8_t		accel_x[2];
+		uint8_t		accel_y[2];
+		uint8_t		accel_z[2];
+		uint8_t		temp[2];
+		uint8_t		gyro_x[2];
+		uint8_t		gyro_y[2];
+		uint8_t		gyro_z[2];
+	} mpu_report;
 #pragma pack(pop)
+
+	struct Report {
+		int16_t		accel_x;
+		int16_t		accel_y;
+		int16_t		accel_z;
+		int16_t		temp;
+		int16_t		gyro_x;
+		int16_t		gyro_y;
+		int16_t		gyro_z;
+	} report;
 
 	/* start measuring */
 	perf_begin(_sample_perf);
@@ -782,21 +812,51 @@ MPU6000::measure()
 	/*
 	 * Fetch the full set of measurements from the MPU6000 in one pass.
 	 */
-	report.cmd = DIR_READ | MPUREG_INT_STATUS;
-	transfer((uint8_t *)&report, (uint8_t *)&report, sizeof(report));
+	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
+	transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report));
 
 	/*
-	 * Adjust and scale results to mg.
+	 * Convert from big to little endian
+	 */
+	// report.accel_x = ((int16_t)(mpu_report.accel_x[0]) << 8);
+	// report.accel_x |= mpu_report.accel_x[1];
+	// report.accel_y = ((int16_t)(mpu_report.accel_y[0]) << 8);
+	// report.accel_y |= mpu_report.accel_y[1];
+	// report.accel_z = ((int16_t)(mpu_report.accel_z[0]) << 8);
+	// report.accel_z |= mpu_report.accel_z[1];
+
+	report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
+	report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
+	report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
+
+	report.temp = (((int16_t)mpu_report.temp[0]) << 8) | mpu_report.temp[1];
+
+	report.gyro_x = ((int16_t)(mpu_report.gyro_x[0]) << 8) | mpu_report.gyro_x[1];
+	report.gyro_y = ((int16_t)(mpu_report.gyro_y[0]) << 8) | mpu_report.gyro_y[1];
+	report.gyro_z = ((int16_t)(mpu_report.gyro_z[0]) << 8) | mpu_report.gyro_z[1];
+
+	/*
+	 * Swap axes and negate y
+	 */
+	int16_t accel_xt = report.accel_y;
+	int16_t accel_yt = ((report.accel_x == -32768) ? 32767 : -report.accel_x);
+
+	int16_t gyro_xt = report.gyro_y;
+	int16_t gyro_yt = ((report.gyro_x == -32768) ? 32767 : -report.gyro_x);
+
+	/*
+	 * Apply the swap
+	 */
+	report.accel_x = accel_xt;
+	report.accel_y = accel_yt;
+	report.gyro_x = gyro_xt;
+	report.gyro_y = gyro_yt;
+
+	/*
+	 * Adjust and scale results to m/s^2.
 	 */
 	_gyro_report.timestamp = _accel_report.timestamp = hrt_absolute_time();
 
-	/* to align the sensor axes with the board, x and y need to be flipped */
-	_accel_report.x_raw = report.accel_y;
-	_accel_report.y_raw = report.accel_x;
-	/* z remains z and has the right sign */
-	_accel_report.z_raw = report.accel_z;
-
-	/* to align the sensor axes with the board, x and y need to be flipped */
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -812,22 +872,26 @@ MPU6000::measure()
 	 *	 	  the offset is 74 from the origin and subtracting
 	 *		  74 from all measurements centers them around zero.
 	 */
-	_accel_report.x = ((report.accel_y * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-	_accel_report.y = ((report.accel_x * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-	/* z remains z and has the right sign */
+
+
+	/* NOTE: Axes have been swapped to match the board a few lines above. */
+
+	_accel_report.x_raw = report.accel_x;
+	_accel_report.y_raw = report.accel_y;
+	_accel_report.z_raw = report.accel_z;
+
+	_accel_report.x = ((report.accel_x * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	_accel_report.y = ((report.accel_y * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
 	_accel_report.z = ((report.accel_z * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
 	_accel_report.scaling = _accel_range_scale;
 	_accel_report.range_m_s2 = _accel_range_m_s2;
 
-	/* to align the sensor axes with the board, x and y need to be flipped */
-	_gyro_report.x_raw = report.gyro_y;
-	_gyro_report.y_raw = report.gyro_x;
-	/* z remains z and has the right sign */
+	_gyro_report.x_raw = report.gyro_x;
+	_gyro_report.y_raw = report.gyro_y;
 	_gyro_report.z_raw = report.gyro_z;
 
-	_gyro_report.x = ((report.gyro_y * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	_gyro_report.y = ((report.gyro_x * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	/* z remains z and has the right sign */
+	_gyro_report.x = ((report.gyro_x * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+	_gyro_report.y = ((report.gyro_y * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
 	_gyro_report.z = ((report.gyro_z * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 	_gyro_report.scaling = _gyro_range_scale;
 	_gyro_report.range_rad_s = _gyro_range_rad_s;
@@ -963,12 +1027,12 @@ test()
 
 	warnx("single read");
 	warnx("time:     %lld", a_report.timestamp);
-	warnx("acc  x:  \t% 8.4f\tm/s^2", (double)a_report.x);
-	warnx("acc  y:  \t% 8.4f\tm/s^2", (double)a_report.y);
-	warnx("acc  z:  \t% 8.4f\tm/s^2", (double)a_report.z);
-	warnx("acc  x:  \t%d\traw", a_report.x_raw);
-	warnx("acc  y:  \t%d\traw", a_report.y_raw);
-	warnx("acc  z:  \t%d\traw", a_report.z_raw);
+	warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
+	warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
+	warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
+	warnx("acc  x:  \t%d\traw", (int)a_report.x_raw);
+	warnx("acc  y:  \t%d\traw", (int)a_report.y_raw);
+	warnx("acc  z:  \t%d\traw", (int)a_report.z_raw);
 	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
 		(double)(a_report.range_m_s2 / 9.81f));
 
@@ -977,14 +1041,14 @@ test()
 	if (sz != sizeof(g_report))
 		err(1, "immediate gyro read failed");
 
-	warnx("gyro x: \t% 8.4f\trad/s", (double)g_report.x);
-	warnx("gyro y: \t% 8.4f\trad/s", (double)g_report.y);
-	warnx("gyro z: \t% 8.4f\trad/s", (double)g_report.z);
-	warnx("gyro x: \t%d\traw", g_report.x_raw);
-	warnx("gyro y: \t%d\traw", g_report.y_raw);
-	warnx("gyro z: \t%d\traw", g_report.z_raw);
-	warnx("gyro range: %8.4f rad/s (%8.2f deg/s)", (double)g_report.range_rad_s,
-		(double)((g_report.range_rad_s / M_PI_F) * 180.0f));
+	warnx("gyro x: \t% 9.5f\trad/s", (double)g_report.x);
+	warnx("gyro y: \t% 9.5f\trad/s", (double)g_report.y);
+	warnx("gyro z: \t% 9.5f\trad/s", (double)g_report.z);
+	warnx("gyro x: \t%d\traw", (int)g_report.x_raw);
+	warnx("gyro y: \t%d\traw", (int)g_report.y_raw);
+	warnx("gyro z: \t%d\traw", (int)g_report.z_raw);
+	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
+		(int)((g_report.range_rad_s / M_PI_F) * 180.0f+0.5f));
 
 	/* XXX add poll-rate tests here too */
 

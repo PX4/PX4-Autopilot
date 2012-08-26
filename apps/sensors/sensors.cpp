@@ -641,9 +641,9 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 
 		gyro_report.timestamp = hrt_absolute_time();
 
-		gyro_report.x_raw = ((buf[1] == -32768) ? -32768 : buf[1]);
+		gyro_report.x_raw = buf[1];
 		gyro_report.y_raw = ((buf[0] == -32768) ? 32767 : -buf[0]);
-		gyro_report.z_raw = ((buf[2] == -32768) ? -32768 : buf[2]);
+		gyro_report.z_raw = buf[2];
 
 		/* scaling calculated as: raw * (1/(32768*(500/180*PI))) */
 		gyro_report.x = (gyro_report.x_raw - _parameters.gyro_offset[0]) * 0.000266316109f;

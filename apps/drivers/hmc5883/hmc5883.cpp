@@ -649,9 +649,9 @@ HMC5883::collect()
 	}
 
 	/* swap the data we just received */
-	report.x = ((int16_t)hmc_report.x[0] << 8) + hmc_report.x[1];
-	report.y = ((int16_t)hmc_report.y[0] << 8) + hmc_report.y[1];
-	report.z = ((int16_t)hmc_report.z[0] << 8) + hmc_report.z[1];
+	report.x = (((int16_t)hmc_report.x[0]) << 8) + hmc_report.x[1];
+	report.y = (((int16_t)hmc_report.y[0]) << 8) + hmc_report.y[1];
+	report.z = (((int16_t)hmc_report.z[0]) << 8) + hmc_report.z[1];
 
 	/*
 	 * If any of the values are -4096, there was an internal math error in the sensor.
@@ -662,10 +662,14 @@ HMC5883::collect()
 	    (abs(report.z) > 2048))
 		goto out;
 
-	/* raw outputs */
-	/* to align the sensor axes with the board, x and y need to be flipped */
+	/*
+	 * RAW outputs
+	 *
+	 * to align the sensor axes with the board, x and y need to be flipped
+	 * and y needs to be negated
+	 */
 	_reports[_next_report].x_raw = report.y;
-	_reports[_next_report].y_raw = report.x;
+	_reports[_next_report].y_raw = ((report.x == -32768) ? 32767 : -report.x);
 	/* z remains z */
 	_reports[_next_report].z_raw = report.z;
 
@@ -688,7 +692,8 @@ HMC5883::collect()
 
 	/* to align the sensor axes with the board, x and y need to be flipped */
 	_reports[_next_report].x = ((report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
-	_reports[_next_report].y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
+	/* flip axes and negate value for y */
+	_reports[_next_report].y = ((((report.x == -32768) ? 32767 : -report.x) * _range_scale) - _scale.y_offset) * _scale.y_scale;
 	/* z remains z */
 	_reports[_next_report].z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
 

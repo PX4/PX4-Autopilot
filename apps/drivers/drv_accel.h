@@ -57,9 +57,9 @@ struct accel_report {
 	float z;
 	float range_m_s2;
 	float scaling;
-	uint16_t x_raw;
-	uint16_t y_raw;
-	uint16_t z_raw;
+	int16_t x_raw;
+	int16_t y_raw;
+	int16_t z_raw;
 };
 
 /** accel scaling factors; Vout = (Vin * Vscale) + Voffset */
