@@ -280,3 +280,7 @@
 	  configuration (from Richard Cochran).
 
 6.22 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/netutils/thttpd/thttpd_cgi.c:  Missing NULL in argv[]
+	  list (contributed by Kate).
+

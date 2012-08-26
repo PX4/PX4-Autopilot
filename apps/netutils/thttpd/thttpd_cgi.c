@@ -988,7 +988,7 @@ errout:
 int cgi(httpd_conn *hc)
 {
   char arg[16];
-  char *argv[1];
+  char *argv[2];
   pid_t child;
   int   retval = ERROR;
 
@@ -1019,6 +1019,7 @@ int cgi(httpd_conn *hc)
 
       snprintf(arg, 16, "%p", hc); /* task_create doesn't handle binary arguments. */
       argv[0] = arg;
+      argv[1] = NULL;
 
 #ifndef CONFIG_CUSTOM_STACK
       child = task_create("CGI child", CONFIG_THTTPD_CGI_PRIORITY,
