@@ -155,7 +155,7 @@ warn(const char *fmt, ...)
 void
 vwarn(const char *fmt, va_list args) 
 {
-	warnerr_core(NOCODE, fmt, args);
+	warnerr_core(errno, fmt, args);
 }
 
 void
