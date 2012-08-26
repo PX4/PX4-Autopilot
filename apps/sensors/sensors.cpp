@@ -439,7 +439,7 @@ Sensors::accel_init()
 			warn("WARNING: failed to set minimum 500Hz sample rate for accel");
 
 		/* set the driver to poll at 500Hz */
-		if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 50/*0*/))
+		if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 500))
 			warn("WARNING: failed to set 500Hz poll rate for accel");
 
 		warnx("using system accel");
@@ -474,7 +474,7 @@ Sensors::gyro_init()
 			warn("WARNING: failed to set minimum 500Hz sample rate for gyro");
 
 		/* set the driver to poll at 500Hz */
-		if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 50/*0*/))
+		if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 500))
 			warn("WARNING: failed to set 500Hz poll rate for gyro");
 
 		warnx("using system gyro");
