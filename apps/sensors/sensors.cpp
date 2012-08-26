@@ -43,7 +43,6 @@
 #include <nuttx/config.h>
 
 #include <fcntl.h>
-#include <sys/prctl.h>
 #include <poll.h>
 #include <nuttx/analog/adc.h>
 #include <unistd.h>
@@ -52,11 +51,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <errno.h>
-#include <float.h>
 
 #include <arch/board/up_hrt.h>
-#include <arch/board/drv_bma180.h>
-#include <arch/board/drv_l3gd20.h>
 
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
@@ -75,10 +71,6 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
-
-#include "sensors.h"
-
-#define SENSOR_INTERVAL_MICROSEC 2000
 
 #define GYRO_HEALTH_COUNTER_LIMIT_ERROR 20   /* 40 ms downtime at 500 Hz update rate   */
 #define ACC_HEALTH_COUNTER_LIMIT_ERROR  20   /* 40 ms downtime at 500 Hz update rate   */
@@ -124,47 +116,62 @@ extern "C" __EXPORT int sensors_main(int argc, char *argv[]);
 class Sensors
 {
 public:
+	/** 
+	 * Constructor 
+	 */
 	Sensors();
+
+	/**
+	 * Destructor, also kills the sensors task.
+	 */
 	~Sensors();
 
+	/**
+	 * Start the sensors task.
+	 *
+	 * @return		OK on success.
+	 */
 	int		start();
-	void		stop();
 
 private:	
-	static const unsigned _rc_max_chan_count = 8;
+	static const unsigned _rc_max_chan_count = 8;	/**< maximum number of r/c channels we handle */
 
 	/* legacy sensor descriptors */
-	int 		_fd_bma180;
-	int 		_fd_gyro_l3gd20;
+	int 		_fd_bma180;			/**< old accel driver */
+	int 		_fd_gyro_l3gd20;		/**< old gyro driver */
 
 #if CONFIG_HRT_PPM
-	hrt_abstime	_ppm_last_valid;
+	hrt_abstime	_ppm_last_valid;		/**< last time we got a valid ppm signal */
+
+	/**
+	 * Gather and publish PPM input data.
+	 */
 	void		ppm_poll();
 #endif
 
 	/* XXX should not be here - should be own driver */
-	int 		_fd_adc;
-	hrt_abstime	_last_adc;
+	int 		_fd_adc;			/**< ADC driver handle */
+	hrt_abstime	_last_adc;			/**< last time we took input from the ADC */
 
-	bool 		_task_should_exit;
-	int 		_sensors_task;
+	bool 		_task_should_exit;		/**< if true, sensor task should exit */
+	int 		_sensors_task;			/**< task handle for sensor task */
 
-	bool		_hil_enabled;
-	bool		_publishing;
+	bool		_hil_enabled;			/**< if true, HIL is active */
+	bool		_publishing;			/**< if true, we are publishing sensor data */
 
-	int		_gyro_sub;
-	int		_accel_sub;
-	int		_mag_sub;
-	int		_baro_sub;
-	int		_vstatus_sub;
+	int		_gyro_sub;			/**< raw gyro data subscription */
+	int		_accel_sub;			/**< raw accel data subscription */
+	int		_mag_sub;			/**< raw mag data subscription */
+	int		_baro_sub;			/**< raw baro data subscription */
+	int		_vstatus_sub;			/**< vehicle status subscription */
 
-	orb_advert_t	_sensor_pub;
-	orb_advert_t	_manual_control_pub;
-	orb_advert_t	_rc_pub;
+	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
+	orb_advert_t	_manual_control_pub;		/**< manual control signal topic */
+	orb_advert_t	_rc_pub;			/**< raw r/c control topic */
 
-	perf_counter_t	_loop_perf;
+	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	struct rc_channels_s _rc;
+	struct rc_channels_s _rc;			/**< r/c channel data */
 
 	struct {
 		int min[_rc_max_chan_count];
@@ -185,7 +192,7 @@ private:
 		int rc_map_mode_sw;
 
 		float battery_voltage_scaling;
-	}		_parameters;
+	}		_parameters;			/**< local copies of interesting parameters */
 
 	struct {
 		param_t min[_rc_max_chan_count];
@@ -205,28 +212,93 @@ private:
 		param_t rc_map_mode_sw;
 
 		param_t battery_voltage_scaling;
-	}		_parameter_handles;
+	}		_parameter_handles;		/**< handles for interesting parameters */
 
 
+	/**
+	 * Update our local parameter cache.
+	 */
 	int		parameters_update();
 
+	/**
+	 * Do accel-related initialisation.
+	 */
 	void		accel_init();
+
+	/**
+	 * Do gyro-related initialisation.
+	 */
 	void		gyro_init();
+
+	/**
+	 * Do mag-related initialisation.
+	 */
 	void		mag_init();
+
+	/**
+	 * Do baro-related initialisation.
+	 */
 	void		baro_init();
+
+	/**
+	 * Do adc-related initialisation.
+	 */
 	void		adc_init();
 
+	/**
+	 * Poll the accelerometer for updated data.
+	 *
+	 * @param raw			Combined sensor data structure into which
+	 *				data should be returned.
+	 */
 	void		accel_poll(struct sensor_combined_s &raw);
+
+	/**
+	 * Poll the gyro for updated data.
+	 *
+	 * @param raw			Combined sensor data structure into which
+	 *				data should be returned.
+	 */
 	void		gyro_poll(struct sensor_combined_s &raw);
+
+	/**
+	 * Poll the magnetometer for updated data.
+	 *
+	 * @param raw			Combined sensor data structure into which
+	 *				data should be returned.
+	 */
 	void		mag_poll(struct sensor_combined_s &raw);
+
+	/**
+	 * Poll the barometer for updated data.
+	 *
+	 * @param raw			Combined sensor data structure into which
+	 *				data should be returned.
+	 */
 	void		baro_poll(struct sensor_combined_s &raw);
 
+	/**
+	 * Check for changes in vehicle status.
+	 */
 	void		vehicle_status_poll();
+
+	/**
+	 * Poll the ADC and update readings to suit.
+	 *
+	 * @param raw			Combined sensor data structure into which
+	 *				data should be returned.
+	 */
 	void		adc_poll(struct sensor_combined_s &raw);
 
+	/**
+	 * Shim for calling task_main from task_create.
+	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
-	void		task_main() __attribute__((noreturn));
 
+	/**
+	 * Main sensor collection task.
+	 */
+	void		task_main() __attribute__((noreturn));
 };
 
 namespace sensors
@@ -269,45 +341,26 @@ Sensors::Sensors() :
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update"))
 {
-	/* min values */
-	_parameter_handles.min[0] = param_find("RC1_MIN");
-	_parameter_handles.min[1] = param_find("RC2_MIN");
-	_parameter_handles.min[2] = param_find("RC3_MIN");
-	_parameter_handles.min[3] = param_find("RC4_MIN");
-	_parameter_handles.min[4] = param_find("RC5_MIN");
-	_parameter_handles.min[5] = param_find("RC6_MIN");
-	_parameter_handles.min[6] = param_find("RC7_MIN");
-	_parameter_handles.min[7] = param_find("RC8_MIN");
+	/* basic r/c parameters */
+	for (unsigned i = 0; i < _rc_max_chan_count; i++) {
+		char nbuf[16];
 
-	/* trim values */
-	_parameter_handles.trim[0] = param_find("RC1_TRIM");
-	_parameter_handles.trim[1] = param_find("RC2_TRIM");
-	_parameter_handles.trim[2] = param_find("RC3_TRIM");
-	_parameter_handles.trim[3] = param_find("RC4_TRIM");
-	_parameter_handles.trim[4] = param_find("RC5_TRIM");
-	_parameter_handles.trim[5] = param_find("RC6_TRIM");
-	_parameter_handles.trim[6] = param_find("RC7_TRIM");
-	_parameter_handles.trim[7] = param_find("RC8_TRIM");
+		/* min values */
+		sprintf(nbuf, "RC%d_MIN", i + 1);
+		_parameter_handles.min[i] = param_find(nbuf);
 
-	/* max values */
-	_parameter_handles.max[0] = param_find("RC1_MAX");
-	_parameter_handles.max[1] = param_find("RC2_MAX");
-	_parameter_handles.max[2] = param_find("RC3_MAX");
-	_parameter_handles.max[3] = param_find("RC4_MAX");
-	_parameter_handles.max[4] = param_find("RC5_MAX");
-	_parameter_handles.max[5] = param_find("RC6_MAX");
-	_parameter_handles.max[6] = param_find("RC7_MAX");
-	_parameter_handles.max[7] = param_find("RC8_MAX");
+		/* trim values */
+		sprintf(nbuf, "RC%d_TRIM", i + 1);
+		_parameter_handles.trim[i] = param_find(nbuf);
 
-	/* channel reverse */
-	_parameter_handles.rev[0] = param_find("RC1_REV");
-	_parameter_handles.rev[1] = param_find("RC2_REV");
-	_parameter_handles.rev[2] = param_find("RC3_REV");
-	_parameter_handles.rev[3] = param_find("RC4_REV");
-	_parameter_handles.rev[4] = param_find("RC5_REV");
-	_parameter_handles.rev[5] = param_find("RC6_REV");
-	_parameter_handles.rev[6] = param_find("RC7_REV");
-	_parameter_handles.rev[7] = param_find("RC8_REV");
+		/* max values */
+		sprintf(nbuf, "RC%d_MAX", i + 1);
+		_parameter_handles.max[i] = param_find(nbuf);
+
+		/* channel reverse */
+		sprintf(nbuf, "RC%d_REV", i + 1);
+		_parameter_handles.rev[i] = param_find(nbuf);
+	}
 
 	_parameter_handles.rc_type = param_find("RC_TYPE");
 
@@ -345,6 +398,7 @@ Sensors::~Sensors()
 		/* task wakes up every 100ms or so at the longest */
 		_task_should_exit = true;
 
+		/* wait for a second for the task to quit at our request */
 		unsigned i = 0;
 		do {
 			/* wait 20ms */
@@ -934,7 +988,7 @@ Sensors::start()
 	/* start the task */
 	_sensors_task = task_create("sensor_task",
 				    SCHED_PRIORITY_MAX - 5,
-				    4096,
+				    4096,	/* XXX may be excesssive */
 				    (main_t)&Sensors::task_main_trampoline,
 				    nullptr);
 
@@ -959,8 +1013,11 @@ int sensors_main(int argc, char *argv[])
 		if (sensors::g_sensors == nullptr)
 			errx(1, "sensors task alloc failed");
 
-		if (OK != sensors::g_sensors->start())
+		if (OK != sensors::g_sensors->start()) {
+			delete sensors::g_sensors;
+			sensors::g_sensors = nullptr;
 			err(1, "sensors task start failed");
+		}
 		exit(0);
 	}
 
