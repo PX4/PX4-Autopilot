@@ -132,12 +132,9 @@ private:
 
 	orb_advert_t		_baro_topic;
 
-	unsigned		_reads;
-	unsigned		_measure_errors;
-	unsigned		_read_errors;
-	unsigned		_buf_overflows;
-
 	perf_counter_t		_sample_perf;
+	perf_counter_t		_comms_errors;
+	perf_counter_t		_buffer_overflows;
 
 	/**
 	 * Test whether the device supported by the driver is present at a
@@ -252,11 +249,9 @@ MS5611::MS5611(int bus) :
 	_dT(0),
 	_temp64(0),
 	_baro_topic(-1),
-	_reads(0),
-	_measure_errors(0),
-	_read_errors(0),
-	_buf_overflows(0),
-	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read"))
+	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "ms5611_comms_errors")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "ms5611_buffer_overflows"))
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -292,6 +287,12 @@ MS5611::init()
 
 	_oldest_report = _next_report = 0;
 
+	/* get a publish handle on the baro topic */
+	memset(&_reports[0], 0, sizeof(_reports[0]));
+	_baro_topic = orb_advertise(ORB_ID(sensor_baro), &_reports[0]);
+	if (_baro_topic < 0)
+		debug("failed to create sensor_baro object");
+
 	ret = OK;
 out:
 	return ret;
@@ -300,7 +301,7 @@ out:
 int
 MS5611::probe()
 {
-	_retries = 3;
+	_retries = 10;
 	if((OK == probe_address(MS5611_ADDRESS_1)) ||
 	   (OK == probe_address(MS5611_ADDRESS_2))) {
 	   	_retries = 1;
@@ -358,8 +359,6 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 			}
 		}
 
-		_reads++;
-
 		/* if there was no data, warn the caller */
 		return ret ? ret : -EAGAIN;
 	}
@@ -399,7 +398,6 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 		/* state machine will have generated a report, copy it out */
 		memcpy(buffer, _reports, sizeof(*_reports));
 		ret = sizeof(*_reports);
-		_reads++;
 
 	} while (0);
 
@@ -541,24 +539,6 @@ MS5611::cycle_trampoline(void *arg)
 void
 MS5611::cycle()
 {
-	/*
-	 * We have to publish the baro topic in the context of the workq
-	 * in order to ensure that the descriptor is valid when we go to publish.
-	 *
-	 * @bug	We can't really ever be torn down and restarted, since this
-	 *      descriptor will never be closed and on the restart we will be
-	 *      unable to re-advertise.
-	 */
-	if (_baro_topic == -1) {
-		struct baro_report b;
-
-		/* if this fails (e.g. no object in the system) we will cope */
-		memset(&b, 0, sizeof(b));
-		_baro_topic = orb_advertise(ORB_ID(sensor_baro), &b);
-
-		if (_baro_topic < 0)
-			debug("failed to create sensor_baro object");
-	}
 
 	/* collection phase? */
 	if (_collect_phase) {
@@ -622,7 +602,7 @@ MS5611::measure()
 	ret = transfer(&cmd_data, 1, nullptr, 0);
 
 	if (OK != ret)
-		_measure_errors++;
+		perf_count(_comms_errors);
 
 	return ret;
 }
@@ -642,7 +622,7 @@ MS5611::collect()
 	_reports[_next_report].timestamp = hrt_absolute_time();
 
 	if (OK != transfer(&cmd, 1, &data[0], 3)) {
-		_read_errors++;
+		perf_count(_comms_errors);
 		return -EIO;
 	}
 
@@ -690,7 +670,7 @@ MS5611::collect()
 
 		/* if we are running up against the oldest report, toss it */
 		if (_next_report == _oldest_report) {
-			_buf_overflows++;
+			perf_count(_buffer_overflows);
 			INCREMENT(_oldest_report, _num_reports);
 		}
 
@@ -773,10 +753,9 @@ MS5611::crc4(uint16_t *n_prom)
 void
 MS5611::print_info()
 {
-	printf("reads:          %u\n", _reads);
-	printf("measure errors: %u\n", _measure_errors);
-	printf("read errors:    %u\n", _read_errors);
-	printf("read overflows: %u\n", _buf_overflows);
+	perf_print_counter(_sample_perf);
+	perf_print_counter(_comms_errors);
+	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	printf("report queue:   %u (%u/%u @ %p)\n",
 	       _num_reports, _oldest_report, _next_report, _reports);

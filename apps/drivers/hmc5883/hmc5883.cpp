@@ -147,12 +147,9 @@ private:
 
 	orb_advert_t		_mag_topic;
 
-	unsigned		_reads;
-	unsigned		_measure_errors;
-	unsigned		_read_errors;
-	unsigned		_buf_overflows;
-
 	perf_counter_t		_sample_perf;
+	perf_counter_t		_comms_errors;
+	perf_counter_t		_buffer_overflows;
 
 	/**
 	 * Test whether the device supported by the driver is present at a
@@ -256,11 +253,9 @@ HMC5883::HMC5883(int bus) :
 	_oldest_report(0),
 	_reports(nullptr),
 	_mag_topic(-1),
-	_reads(0),
-	_measure_errors(0),
-	_read_errors(0),
-	_buf_overflows(0),
-	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read"))
+	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
+	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
+	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows"))
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -303,6 +298,12 @@ HMC5883::init()
 		goto out;
 	_oldest_report = _next_report = 0;
 
+	/* get a publish handle on the mag topic */
+	memset(&_reports[0], 0, sizeof(_reports[0]));
+	_mag_topic = orb_advertise(ORB_ID(sensor_mag), &_reports[0]);
+	if (_mag_topic < 0)
+		debug("failed to create sensor_mag object");
+
 	ret = OK;
 out:
 	return ret;
@@ -313,7 +314,7 @@ HMC5883::probe()
 {
 	uint8_t data[3] = {0, 0, 0};
 
-	_retries = 3;
+	_retries = 10;
 	if (read_reg(ADDR_ID_A, data[0]) ||
 	    read_reg(ADDR_ID_B, data[1]) ||
 	    read_reg(ADDR_ID_C, data[2]))
@@ -356,8 +357,6 @@ HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 			}
 		}
 
-		_reads++;
-
 		/* if there was no data, warn the caller */
 		return ret ? ret : -EAGAIN;
 	}
@@ -385,7 +384,6 @@ HMC5883::read(struct file *filp, char *buffer, size_t buflen)
 		/* state machine will have generated a report, copy it out */
 		memcpy(buffer, _reports, sizeof(*_reports));
 		ret = sizeof(*_reports);
-		_reads++;
 
 	} while (0);
 
@@ -548,31 +546,13 @@ HMC5883::cycle_trampoline(void *arg)
 void
 HMC5883::cycle()
 {
-	/*
-	 * We have to publish the mag topic in the context of the workq
-	 * in order to ensure that the descriptor is valid when we go to publish.
-	 *
-	 * @bug	We can't really ever be torn down and restarted, since this
-	 *      descriptor will never be closed and on the restart we will be
-	 *      unable to re-advertise.
-	 */
-	if (_mag_topic == -1) {
-		struct mag_report m;
-
-		/* if this fails (e.g. no object in the system) we will cope */
-		memset(&m, 0, sizeof(m));
-		_mag_topic = orb_advertise(ORB_ID(sensor_mag), &m);
-
-		if (_mag_topic < 0)
-			debug("failed to create sensor_mag object");
-	}
-
 	/* collection phase? */
 	if (_collect_phase) {
 
 		/* perform collection */
 		if (OK != collect()) {
-			log("FATAL collection error - restarting\n");
+			log("collection error");
+			/* restart the measurement state machine */
 			start();
 			return;
 		}
@@ -596,10 +576,8 @@ HMC5883::cycle()
 	}
 
 	/* measurement phase */
-	if (OK != measure()) {
-		log("FATAL measure error - restarting\n");
-		start();
-	}
+	if (OK != measure())
+		log("measure error");
 
 	/* next phase is collection */
 	_collect_phase = true;
@@ -622,7 +600,7 @@ HMC5883::measure()
 	ret = write_reg(ADDR_MODE, MODE_REG_SINGLE_MODE);
 
 	if (OK != ret)
-		_measure_errors++;
+		perf_count(_comms_errors);
 
 	return ret;
 }
@@ -661,6 +639,7 @@ HMC5883::collect()
 	ret = transfer(&cmd, 1, (uint8_t *)&hmc_report, sizeof(hmc_report));
 
 	if (ret != OK) {
+		perf_count(_comms_errors);
 		debug("data/status read error");
 		goto out;
 	}
@@ -692,7 +671,7 @@ HMC5883::collect()
 
 	/* if we are running up against the oldest report, toss it */
 	if (_next_report == _oldest_report) {
-		_buf_overflows++;
+		perf_count(_buffer_overflows);
 		INCREMENT(_oldest_report, _num_reports);
 	}
 
@@ -737,10 +716,9 @@ HMC5883::meas_to_float(uint8_t in[2])
 void
 HMC5883::print_info()
 {
-	printf("reads:          %u\n", _reads);
-	printf("measure errors: %u\n", _measure_errors);
-	printf("read errors:    %u\n", _read_errors);
-	printf("read overflows: %u\n", _buf_overflows);
+	perf_print_counter(_sample_perf);
+	perf_print_counter(_comms_errors);
+	perf_print_counter(_buffer_overflows);
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	printf("report queue:   %u (%u/%u @ %p)\n",
 	       _num_reports, _oldest_report, _next_report, _reports);
