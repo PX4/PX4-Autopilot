@@ -618,7 +618,7 @@ static void stm32_stdclockconfig(void)
       /* Set the PLL dividers and multiplers to configure the main PLL */
 
       regval = (STM32_PLLCFG_PLLM | STM32_PLLCFG_PLLN |STM32_PLLCFG_PLLP |
-                RCC_PLLCFG_PLLSRC_HSE | STM32_PLLCFG_PPQ);
+                RCC_PLLCFG_PLLSRC_HSE | STM32_PLLCFG_PLLQ);
       putreg32(regval, STM32_RCC_PLLCFG);
 
       /* Enable the main PLL */

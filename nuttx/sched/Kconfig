@@ -204,7 +204,7 @@ config SCHED_ONEXIT_MAX
 
 config DISABLE_OS_API
 	bool "Disable NuttX interfaces"
-	default n
+	default y
 	---help---
 	The following can be used to disable categories of
 	APIs supported by the OS.  If the compiler supports

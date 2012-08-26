@@ -173,3 +173,42 @@ config LCD_UG9664HSWAG01
 		ug-9664hswag01.c.  OLED Display Module, UG-9664HSWAG01", Univision
 		Technology Inc.  Used with the LPC Xpresso and Embedded Artists
 		base board.
+
+choice
+	prompt "LCD Orientation"
+	default LCD_LANDSCAPE
+	depends on LCD
+	---help---
+		Some LCD drivers may support displays in different orientations.
+		If the LCD driver supports this capability, than these are configuration
+		options to select that display orientation.
+
+config LCD_LANDSCAPE
+	bool "Landscape orientation"
+	---help---
+		Define for "landscape" orientation support.  Landscape mode refers one
+		of two orientations where the the display is wider than it is tall
+		(LCD_RLANDSCAPE is the other).  This is the default orientation.
+
+config LCD_PORTRAIT
+	bool "Portrait orientation"
+	---help---
+		Define for "portrait" orientation support.  Portrait mode refers one
+		of two orientations where the the display is taller than it is wide
+		(LCD_RPORTAIT is the other).
+
+config LCD_RPORTRAIT
+	bool "Reverse portrait display"
+	---help---
+		Define for "reverse portrait" orientation support.  Reverse portrait mode
+		refers one of two orientations where the the display is taller than it is
+		wide (LCD_PORTAIT is the other).
+
+config LCD_RLANDSCAPE
+	bool "Reverse landscape orientation"
+	---help---
+		Define for "reverse landscape" orientation support.  Reverse landscape mode
+		refers one of two orientations where the the display is wider than it is
+		tall (LCD_LANDSCAPE is the other).
+
+endchoice

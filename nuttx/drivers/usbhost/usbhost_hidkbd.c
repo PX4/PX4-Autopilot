@@ -255,7 +255,9 @@ static inline int usbhost_devinit(FAR struct usbhost_state_s *priv);
 static inline uint16_t usbhost_getle16(const uint8_t *val);
 static inline void usbhost_putle16(uint8_t *dest, uint16_t val);
 static inline uint32_t usbhost_getle32(const uint8_t *val);
+#if 0 /* Not used */
 static void usbhost_putle32(uint8_t *dest, uint32_t val);
+#endif
 
 /* Transfer descriptor memory management */
 
@@ -701,7 +703,7 @@ static int usbhost_kbdpoll(int argc, char *argv[])
 #if defined(CONFIG_DEBUG_USB) && defined(CONFIG_DEBUG_VERBOSE)
   unsigned int                npolls = 0;
 #endif
-  unsigned int                nerrors;
+  unsigned int                nerrors = 0;
   int                         ret;
 
   uvdbg("Started\n");
@@ -1381,6 +1383,7 @@ static inline uint32_t usbhost_getle32(const uint8_t *val)
  *
  ****************************************************************************/
 
+#if 0 /* Not used */
 static void usbhost_putle32(uint8_t *dest, uint32_t val)
 {
   /* Little endian means LS halfword first in byte stream */
@@ -1388,6 +1391,7 @@ static void usbhost_putle32(uint8_t *dest, uint32_t val)
   usbhost_putle16(dest, (uint16_t)(val & 0xffff));
   usbhost_putle16(dest+2, (uint16_t)(val >> 16));
 }
+#endif
 
 /****************************************************************************
  * Name: usbhost_tdalloc

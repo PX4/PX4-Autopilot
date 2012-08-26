@@ -1,7 +1,7 @@
 /************************************************************************************
  * include/nuttx/usb/usbhost.h
  *
- *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
@@ -284,7 +284,7 @@
  *   Some hardware supports special memory in which request and descriptor data can
  *   be accessed more efficiently.  This method provides a mechanism to allocate
  *   the request/descriptor memory.  If the underlying hardware does not support
- *   such "special" memory, this functions may simply map to malloc.
+ *   such "special" memory, this functions may simply map to kmalloc.
  *
  *   This interface was optimized under a particular assumption.  It was assumed
  *   that the driver maintains a pool of small, pre-allocated buffers for descriptor
@@ -317,7 +317,7 @@
  *   Some hardware supports special memory in which request and descriptor data can
  *   be accessed more efficiently.  This method provides a mechanism to free that
  *   request/descriptor memory.  If the underlying hardware does not support
- *   such "special" memory, this functions may simply map to free().
+ *   such "special" memory, this functions may simply map to kfree().
  *
  * Input Parameters:
  *   drvr - The USB host driver instance obtained as a parameter from the call to
@@ -342,7 +342,7 @@
  *   Some hardware supports special memory in which larger IO buffers can
  *   be accessed more efficiently.  This method provides a mechanism to allocate
  *   the request/descriptor memory.  If the underlying hardware does not support
- *   such "special" memory, this functions may simply map to malloc.
+ *   such "special" memory, this functions may simply map to kmalloc.
  *
  *   This interface differs from DRVR_ALLOC in that the buffers are variable-sized.
  *
@@ -371,7 +371,7 @@
  *   Some hardware supports special memory in which IO data can  be accessed more
  *   efficiently.  This method provides a mechanism to free that IO buffer
  *   memory.  If the underlying hardware does not support such "special" memory,
- *   this functions may simply map to free().
+ *   this functions may simply map to kfree().
  *
  * Input Parameters:
  *   drvr - The USB host driver instance obtained as a parameter from the call to
@@ -448,7 +448,13 @@
  *
  * Returned Values:
  *   On success, zero (OK) is returned. On a failure, a negated errno value is
- *   returned indicating the nature of the failure
+ *   returned indicating the nature of the failure:
+ *
+ *     EAGAIN - If devices NAKs the transfer (or NYET or other error where
+ *              it may be appropriate to restart the entire transaction).
+ *     EPERM  - If the endpoint stalls
+ *     EIO    - On a TX or data toggle error
+ *     EPIPE  - Overrun errors
  *
  * Assumptions:
  *   This function will *not* be called from an interrupt handler.
@@ -553,7 +559,7 @@ struct usbhost_class_s
 };
 
 /* This structure describes one endpoint.  It is used as an input to the
- * allocep() method.  Most of this information comes from the endpoint
+ * epalloc() method.  Most of this information comes from the endpoint
  * descriptor.
  */
 
@@ -562,12 +568,12 @@ struct usbhost_epdesc_s
   uint8_t  addr;         /* Endpoint address */
   bool     in;           /* Direction: true->IN */
   uint8_t  funcaddr;     /* USB address of function containing endpoint */
-  uint8_t  xfrtype;      /* Transfer type.  See SB_EP_ATTR_XFER_* in usb.h */
+  uint8_t  xfrtype;      /* Transfer type.  See USB_EP_ATTR_XFER_* in usb.h */
   uint8_t  interval;     /* Polling interval */
   uint16_t mxpacketsize; /* Max packetsize */
 };
 
-/* This type represents one endpoint configured by the allocep() method.
+/* This type represents one endpoint configured by the epalloc() method.
  * The actual form is know only internally to the USB host controller
  * (for example, for an OHCI driver, this would probably be a pointer
  * to an endpoint descriptor).
@@ -615,7 +621,7 @@ struct usbhost_driver_s
    * be accessed more efficiently.  The following methods provide a mechanism
    * to allocate and free the transfer descriptor memory.  If the underlying
    * hardware does not support such "special" memory, these functions may
-   * simply map to malloc and free.
+   * simply map to kmalloc and kfree.
    *
    * This interface was optimized under a particular assumption.  It was assumed
    * that the driver maintains a pool of small, pre-allocated buffers for descriptor
@@ -630,7 +636,7 @@ struct usbhost_driver_s
   /*   Some hardware supports special memory in which larger IO buffers can
    *   be accessed more efficiently.  This method provides a mechanism to allocate
    *   the request/descriptor memory.  If the underlying hardware does not support
-   *   such "special" memory, this functions may simply map to malloc.
+   *   such "special" memory, this functions may simply map to kmalloc.
    *
    *   This interface differs from DRVR_ALLOC in that the buffers are variable-sized.
    */

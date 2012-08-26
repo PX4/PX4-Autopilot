@@ -2999,3 +2999,67 @@ Bugfixes (see the change log for details) :
       on Z80.
 
 As well as other, less critical bugs (see the ChangeLog for details)
+
+NuttX-6.21
+^^^^^^^^^^
+
+The 88th release of NuttX, Version 6.21, was made on August 25, 2012,
+and is available for download from the SourceForge website.  Note
+that release consists of two tarballs:  nuttx-6.21.tar.gz and
+apps-6.21.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
+file for build information).
+
+This release corresponds with SVN release number: r5052
+
+Additional new features and extended functionality:
+
+    * Core: Add support for multiple registered atexit() functions.  Syslog
+      extended:  Now any character driver may be used for the debug logging
+      device.  Mountpoint traversal logic.
+    * Drivers: Added support for the TI PGA112-7 amplifier/multiplexor.
+    * LPC43xx:  Added clock ramp-up logic to run at 204 MHz
+    * LPC43xx Drivers:  SPIFI block driver, RS-485 support, Minimal termios
+      support.  Framework for USB0 device controller driver.
+    * LPC17xx Drivers:  Minimal termios support
+    * STM32: Support for STM32 F1 "Value Line" (contributed by Mike Smith).
+      Add support for STM32 F107 "Connectivity Line" (contributed by Max
+      Holtzberg).
+      Clock restart logic needed for recovery from low power modes.
+    * STM32 Drivers:  RTC alarm support.  Usable for wakeup from sleep mode,
+      Minimal serial termios support.  USB OTG FS host driver (alpha).
+    * STM32 Boards: Add power management hooks for the STM32F4Discovery,
+      Add support for the Olimex STM32-P107 (contributed by Max Holtzberg).
+    * PIC32:  Add support for the Pinguino MIPS toolchain.
+    * PIC32 Drivers:  GPIO driver now supports F1 analog regiaters (ANSEL).
+    * PIC32 Boards: Add support for the PGA117 on the Mirtoo module.
+    * Calypso:  Add support for the SSD1783 LCD on the Compal E99.
+    * Library:  cfsetispeed(), cfsetospeed(), tcflush(), memchr(), and
+      memccpy().
+    * Applications:  Port of freemodbus-v1.5.0. Add support for testing
+      devices with multiple ADC, PWM, and QE devices.  
+      NSH: NSH 'mount' command (with no arguments) will now show mounted
+      volumes.  Add new NSH 'df' command.  Extended 'help' support. NSH
+      now catches the return value from spawned applications (provided
+      by Mike Smith).
+    * Build System: mkconfig will not define CONFIG_DRAM_END.  A lot of 
+      progress has been made on the automated NuttX configuration logic
+      (Thanks go to Richard Cochran).
+    * Documentation: Document ways to customize the behavior of NSH.
+
+Bugfixes (see the change log for details) :
+
+    * Serial drivers (all): Fix ioctl return value. Common "upper half"
+      serial driver will now return with EINTR if a serial wait is
+      interrupted by a signal.
+    * FAT: Fix statfs() file name length.
+    * LPC43xx: Clock configuration.
+    * STM32: Pinmap fixes, SPI driver re-initialization
+    * STM32 Boards: Correct and lower SDIO frequency for F2 and f4 boards.
+    * AVR: C++ build issues.
+    * PM: Fix a place where interrupts were not be re-enabled.
+    * Applications: NSH application start-up race conditions.
+    * Library: Fieldwidth and justification for %s format.  Fixed several
+      issues with presenting floating point numbers.  NULL definition
+      for C++
+
+As well as other, less critical bugs (see the ChangeLog for details)
