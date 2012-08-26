@@ -142,8 +142,9 @@ private:
 	void		ppm_poll();
 #endif
 
-	/* XXX should not be here */
+	/* XXX should not be here - should be own driver */
 	int 		_fd_adc;
+	hrt_abstime	_last_adc;
 
 	bool 		_task_should_exit;
 	int 		_sensors_task;
@@ -221,6 +222,7 @@ private:
 	void		baro_poll(struct sensor_combined_s &raw);
 
 	void		vehicle_status_poll();
+	void		adc_poll(struct sensor_combined_s &raw);
 
 	static void	task_main_trampoline(int argc, char *argv[]);
 	void		task_main() __attribute__((noreturn));
@@ -243,6 +245,9 @@ Sensors::Sensors() :
 	_fd_bma180(-1),
 	_fd_gyro_l3gd20(-1),
 	_ppm_last_valid(0),
+
+	_fd_adc(-1),
+	_last_adc(0),
 
 	_task_should_exit(false),
 	_sensors_task(-1),
@@ -697,6 +702,43 @@ Sensors::vehicle_status_poll()
 	}	
 }
 
+void
+Sensors::adc_poll(struct sensor_combined_s &raw)
+{
+	#pragma pack(push,1)
+	struct adc_msg4_s {
+		uint8_t      am_channel1;	/**< The 8-bit ADC Channel 1 */
+		int32_t      am_data1;		/**< ADC convert result 1 (4 bytes) */
+		uint8_t      am_channel2;	/**< The 8-bit ADC Channel 2 */
+		int32_t      am_data2;		/**< ADC convert result 2 (4 bytes) */
+		uint8_t      am_channel3;	/**< The 8-bit ADC Channel 3 */
+		int32_t      am_data3;		/**< ADC convert result 3 (4 bytes) */
+		uint8_t      am_channel4;	/**< The 8-bit ADC Channel 4 */
+		int32_t      am_data4;		/**< ADC convert result 4 (4 bytes) */
+	} buf_adc;
+	#pragma pack(pop)
+
+	if (hrt_absolute_time() - _last_adc >= 10000) {
+		read(_fd_adc, &buf_adc, sizeof(buf_adc));
+
+		if (ADC_BATTERY_VOLATGE_CHANNEL == buf_adc.am_channel1) {
+			/* Voltage in volts */
+			raw.battery_voltage_v = (BAT_VOL_LOWPASS_1 * (raw.battery_voltage_v + BAT_VOL_LOWPASS_2 * (buf_adc.am_data1 * _parameters.battery_voltage_scaling)));
+
+			if ((buf_adc.am_data1 * _parameters.battery_voltage_scaling) < VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
+				raw.battery_voltage_valid = false;
+				raw.battery_voltage_v = 0.f;
+
+			} else {
+				raw.battery_voltage_valid = true;
+			}
+
+			raw.battery_voltage_counter++;
+		}
+		_last_adc = hrt_absolute_time();
+	}
+}
+
 #if CONFIG_HRT_PPM
 void
 Sensors::ppm_poll()
@@ -763,21 +805,6 @@ Sensors::task_main_trampoline(int argc, char *argv[])
 void
 Sensors::task_main()
 {
-	#pragma pack(push,1)
-	struct adc_msg4_s {
-		uint8_t      am_channel1;	/**< The 8-bit ADC Channel 1 */
-		int32_t      am_data1;		/**< ADC convert result 1 (4 bytes) */
-		uint8_t      am_channel2;	/**< The 8-bit ADC Channel 2 */
-		int32_t      am_data2;		/**< ADC convert result 2 (4 bytes) */
-		uint8_t      am_channel3;	/**< The 8-bit ADC Channel 3 */
-		int32_t      am_data3;		/**< ADC convert result 3 (4 bytes) */
-		uint8_t      am_channel4;	/**< The 8-bit ADC Channel 4 */
-		int32_t      am_data4;		/**< ADC convert result 4 (4 bytes) */
-	};
-	#pragma pack(pop)
-
-	struct adc_msg4_s buf_adc;
-	size_t adc_readsize = 1 * sizeof(struct adc_msg4_s);
 
 	/* inform about start */
 	printf("[sensors] Initializing..\n");
@@ -842,7 +869,7 @@ Sensors::task_main()
 		_rc_pub = orb_advertise(ORB_ID(rc_channels), &rc);
 	}
 
-	/* wakeup sources */
+	/* wakeup source(s) */
 	struct pollfd fds[1];
 
 	/* use the gyro to pace output - XXX BROKEN if we are using the L3GD20 */
@@ -879,35 +906,14 @@ Sensors::task_main()
 		baro_poll(raw);
 
 		/* check battery voltage */
-		/* XXX move to function */
-
-		static uint64_t last_adc = 0;
-		/* ADC */
-		if (hrt_absolute_time() - last_adc >= 10000) {
-			read(_fd_adc, &buf_adc, adc_readsize);
-
-			if (ADC_BATTERY_VOLATGE_CHANNEL == buf_adc.am_channel1) {
-				/* Voltage in volts */
-				raw.battery_voltage_v = (BAT_VOL_LOWPASS_1 * (raw.battery_voltage_v + BAT_VOL_LOWPASS_2 * (buf_adc.am_data1 * _parameters.battery_voltage_scaling)));
-
-				if ((buf_adc.am_data1 * _parameters.battery_voltage_scaling) < VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
-					raw.battery_voltage_valid = false;
-					raw.battery_voltage_v = 0.f;
-
-				} else {
-					raw.battery_voltage_valid = true;
-				}
-
-				raw.battery_voltage_counter++;
-			}
-			last_adc = hrt_absolute_time();
-		}
+		adc_poll(raw);
 
 		/* Inform other processes that new data is available to copy */
 		if (_publishing)
 			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
 
 #ifdef CONFIG_HRT_PPM
+		/* Look for new r/c input data */
 		ppm_poll();
 #endif
 
