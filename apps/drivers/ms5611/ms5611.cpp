@@ -834,9 +834,9 @@ test()
 		err(1, "immediate read failed");
 
 	warnx("single read");
-	warnx("pressure:    %u", (unsigned)report.pressure);
-	warnx("altitude:    %u", (unsigned)report.altitude);
-	warnx("temperature: %u", (unsigned)report.temperature);
+	warnx("pressure:    %10.4f", report.pressure);
+	warnx("altitude:    %11.4f", report.altitude);
+	warnx("temperature: %8.4f", report.temperature);
 	warnx("time:        %lld", report.timestamp);
 
 	/* set the queue depth to 10 */

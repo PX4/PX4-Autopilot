@@ -143,6 +143,8 @@ private:
 	volatile unsigned	_oldest_report;
 	mag_report		*_reports;
 	mag_scale		_scale;
+	float 			_range_scale;
+	float 			_range_ga;
 	bool			_collect_phase;
 
 	orb_advert_t		_mag_topic;
@@ -253,6 +255,8 @@ HMC5883::HMC5883(int bus) :
 	_oldest_report(0),
 	_reports(nullptr),
 	_mag_topic(-1),
+	_range_scale(1.0f / 1090.0f), /* default range scale from counts to gauss */
+	_range_ga(0.88f),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows"))
@@ -262,11 +266,11 @@ HMC5883::HMC5883(int bus) :
 
 	// default scaling
 	_scale.x_offset = 0;
-	_scale.x_scale = 1.0f / 1090.0f;	/* default range scale from counts to gauss */
+	_scale.x_scale = 1.0f;
 	_scale.y_offset = 0;
-	_scale.y_scale = 1.0f / 1090.0f;	/* default range scale from counts to gauss */
+	_scale.y_scale = 1.0f;
 	_scale.z_offset = 0;
-	_scale.z_scale = 1.0f / 1090.0f;	/* default range scale from counts to gauss */
+	_scale.z_scale = 1.0f;
 
 	// work_cancel in the dtor will explode if we don't do this...
 	memset(&_work, 0, sizeof(_work));
@@ -666,11 +670,27 @@ HMC5883::collect()
 	_reports[_next_report].z_raw = report.z;
 
 	/* scale values for output */
+
+	/*
+	 * 1) Scale raw value to SI units using scaling from datasheet.
+	 * 2) Subtract static offset (in SI units)
+	 * 3) Scale the statically calibrated values with a linear
+	 *    dynamically obtained factor
+	 *
+	 * Note: the static sensor offset is the number the sensor outputs
+	 * 	 at a nominally 'zero' input. Therefore the offset has to
+	 * 	 be subtracted.
+	 *
+	 *	 Example: A gyro outputs a value of 74 at zero angular rate
+	 *	 	  the offset is 74 from the origin and subtracting
+	 *		  74 from all measurements centers them around zero.
+	 */
+
 	/* to align the sensor axes with the board, x and y need to be flipped */
-	_reports[_next_report].x = report.y * _scale.x_scale + _scale.x_offset;
-	_reports[_next_report].y = report.x * _scale.y_scale + _scale.y_offset;
+	_reports[_next_report].x = ((report.y * _range_scale) - _scale.x_offset) * _scale.x_scale;
+	_reports[_next_report].y = ((report.x * _range_scale) - _scale.y_offset) * _scale.y_scale;
 	/* z remains z */
-	_reports[_next_report].z = report.z * _scale.z_scale + _scale.z_offset;
+	_reports[_next_report].z = ((report.z * _range_scale) - _scale.z_offset) * _scale.z_scale;
 
 	/* publish it */
 	orb_publish(ORB_ID(sensor_mag), _mag_topic, &_reports[_next_report]);
