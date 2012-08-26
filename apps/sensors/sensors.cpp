@@ -247,14 +247,14 @@ Sensors::Sensors() :
 	_task_should_exit(false),
 	_sensors_task(-1),
 	_hil_enabled(false),
-	_publishing(false),
+	_publishing(true),
 
 	/* subscriptions */
-	_gyro_sub(orb_subscribe(ORB_ID(sensor_gyro))),
-	_accel_sub(orb_subscribe(ORB_ID(sensor_accel))),
-	_mag_sub(orb_subscribe(ORB_ID(sensor_mag))),
-	_baro_sub(orb_subscribe(ORB_ID(sensor_baro))),
-	_vstatus_sub(orb_subscribe(ORB_ID(vehicle_status))),
+	_gyro_sub(-1),
+	_accel_sub(-1),
+	_mag_sub(-1),
+	_baro_sub(-1),
+	_vstatus_sub(-1),
 
 	/* publications */
 	_sensor_pub(-1),
@@ -262,7 +262,7 @@ Sensors::Sensors() :
 	_rc_pub(-1),
 
 	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "sensor update"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update"))
 {
 	/* min values */
 	_parameter_handles.min[0] = param_find("RC1_MIN");
@@ -436,11 +436,11 @@ Sensors::accel_init()
 	} else {
 		/* set the accel internal sampling rate up to at leat 500Hz */
 		if (OK != ioctl(fd, ACCELIOCSSAMPLERATE, 500))
-			warn("failed to set minimum 500Hz sample rate for accel");
+			warn("WARNING: failed to set minimum 500Hz sample rate for accel");
 
 		/* set the driver to poll at 500Hz */
-		if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 500))
-			warn("failed to set 500Hz poll rate for accel");
+		if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 50/*0*/))
+			warn("WARNING: failed to set 500Hz poll rate for accel");
 
 		warnx("using system accel");
 		close(fd);
@@ -471,11 +471,11 @@ Sensors::gyro_init()
 	} else {
 		/* set the gyro internal sampling rate up to at leat 500Hz */
 		if (OK != ioctl(fd, GYROIOCSSAMPLERATE, 500))
-			warn("failed to set minimum 500Hz sample rate for gyro");
+			warn("WARNING: failed to set minimum 500Hz sample rate for gyro");
 
 		/* set the driver to poll at 500Hz */
-		if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 500))
-			warn("failed to set 500Hz poll rate for gyro");
+		if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 50/*0*/))
+			warn("WARNING: failed to set 500Hz poll rate for gyro");
 
 		warnx("using system gyro");
 		close(fd);
@@ -495,11 +495,11 @@ Sensors::mag_init()
 
 	/* set the mag internal poll rate to at least 150Hz */
 	if (OK != ioctl(fd, MAGIOCSSAMPLERATE, 150))
-		warn("failed to set minimum 150Hz sample rate for mag");
+		warn("WARNING: failed to set minimum 150Hz sample rate for mag");
 
 	/* set the driver to poll at 150Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 150))
-		warn("failed to set 150Hz poll rate for mag");
+		warn("WARNING: failed to set 150Hz poll rate for mag");
 
 	close(fd);
 }
@@ -517,7 +517,7 @@ Sensors::baro_init()
 
 	/* set the driver to poll at 150Hz */
 	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 150))
-		warn("failed to set 150Hz poll rate for baro");
+		warn("WARNING: failed to set 150Hz poll rate for baro");
 
 	close(fd);
 }
@@ -538,7 +538,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 {
 	struct accel_report	accel_report;
 
-	if (_fd_bma180) {
+	if (_fd_bma180 >= 0) {
 		/* do ORB emulation for BMA180 */
 		int16_t		buf[3];
 
@@ -574,7 +574,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 {
 	struct gyro_report	gyro_report;
 
-	if (_fd_gyro_l3gd20) {
+	if (_fd_gyro_l3gd20 >= 0) {
 		/* do ORB emulation for L3GD20 */
 		int16_t		buf[3];
 
@@ -763,17 +763,6 @@ Sensors::task_main_trampoline(int argc, char *argv[])
 void
 Sensors::task_main()
 {
-	/* inform about start */
-	printf("[sensors] Initializing..\n");
-	fflush(stdout);
-
-	/* start individual sensors */
-	accel_init();
-	gyro_init();
-	mag_init();
-	baro_init();
-	adc_init();
-
 	#pragma pack(push,1)
 	struct adc_msg4_s {
 		uint8_t      am_channel1;	/**< The 8-bit ADC Channel 1 */
@@ -790,6 +779,32 @@ Sensors::task_main()
 	struct adc_msg4_s buf_adc;
 	size_t adc_readsize = 1 * sizeof(struct adc_msg4_s);
 
+	/* inform about start */
+	printf("[sensors] Initializing..\n");
+	fflush(stdout);
+
+	/* start individual sensors */
+	accel_init();
+	gyro_init();
+	mag_init();
+	baro_init();
+	adc_init();
+
+	/*
+	 * do subscriptions
+	 */
+	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro));
+	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
+	_mag_sub = orb_subscribe(ORB_ID(sensor_mag));
+	_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
+	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+
+	/* rate limit vehicle status updates to 5Hz */
+	orb_set_interval(_vstatus_sub, 200);
+
+	/*
+	 * do advertisements
+	 */
 	struct sensor_combined_s raw;
 	raw.timestamp = hrt_absolute_time();
 	raw.battery_voltage_v = BAT_VOL_INITIAL;
@@ -827,9 +842,6 @@ Sensors::task_main()
 		_rc_pub = orb_advertise(ORB_ID(rc_channels), &rc);
 	}
 
-	/* rate limit vehicle status updates to 5Hz */
-	orb_set_interval(_vstatus_sub, 200);
-
 	/* wakeup sources */
 	struct pollfd fds[1];
 
@@ -848,7 +860,7 @@ Sensors::task_main()
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
-			warn("poll error");
+			warn("poll error %d, %d", pret, errno);
 			continue;
 		}
 
@@ -914,7 +926,7 @@ Sensors::start()
 	ASSERT(_sensors_task == -1);
 
 	/* start the task */
-	_sensors_task = task_create("sensors",
+	_sensors_task = task_create("sensor_task",
 				    SCHED_PRIORITY_MAX - 5,
 				    4096,
 				    (main_t)&Sensors::task_main_trampoline,
