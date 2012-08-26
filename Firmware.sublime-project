@@ -10,16 +10,21 @@
 				".built",
 				".context",
 				".depend",
+				".config",
+				".version",
 				"Make.dep",
 				".configured",
 				"*.sublime-project",
 				"*.sublime-workspace",
 				".project",
-				".cproject"
+				".cproject",
+				"cscope.out"
 			],
 			"folder_exclude_patterns":
 			[
-				".settings"
+				".settings",
+				"nuttx/arch/arm/src/board",
+				"nuttx/arch/arm/src/chip"
 			]
 		}
 	],
