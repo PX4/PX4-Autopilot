@@ -2,8 +2,6 @@
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -604,14 +602,16 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		read(_fd_bma180, buf, sizeof(buf));
 
 		accel_report.timestamp = hrt_absolute_time();
-		accel_report.x_raw = buf[0];
-		accel_report.y_raw = buf[1];
-		accel_report.z_raw = buf[2];
 
-		/* XXX scale raw values to readings */
-		accel_report.x = 0;
-		accel_report.y = 0;
-		accel_report.z = 0;
+		accel_report.x_raw = (buf[1] == -32768) ? 32767 : -buf[1];
+		accel_report.y_raw = (buf[0] == -32768) ? -32767 : buf[0];
+		accel_report.z_raw = (buf[2] == -32768) ? -32767 : buf[2];
+
+		const float range_g = 4.0f;
+		/* scale from 14 bit to m/s2 */
+		accel_report.x = (((accel_report.x_raw - _parameters.acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
+		accel_report.y = (((accel_report.y_raw - _parameters.acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
+		accel_report.z = (((accel_report.z_raw - _parameters.acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
 
 	} else {
 		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
@@ -640,14 +640,16 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		read(_fd_gyro_l3gd20, buf, sizeof(buf));
 
 		gyro_report.timestamp = hrt_absolute_time();
-		gyro_report.x_raw = buf[0];
-		gyro_report.y_raw = buf[1];
-		gyro_report.z_raw = buf[2];
 
-		/* XXX scale raw values to readings */
-		gyro_report.x = 0;
-		gyro_report.y = 0;
-		gyro_report.z = 0;
+		gyro_report.x_raw = ((buf[1] == -32768) ? -32768 : buf[1]);
+		gyro_report.y_raw = ((buf[0] == -32768) ? 32767 : -buf[0]);
+		gyro_report.z_raw = ((buf[2] == -32768) ? -32768 : buf[2]);
+
+		/* scaling calculated as: raw * (1/(32768*(500/180*PI))) */
+		gyro_report.x = (gyro_report.x_raw - _parameters.gyro_offset[0]) * 0.000266316109f;
+		gyro_report.y = (gyro_report.y_raw - _parameters.gyro_offset[1]) * 0.000266316109f;
+		gyro_report.z = (gyro_report.z_raw - _parameters.gyro_offset[2]) * 0.000266316109f;
+
 	} else {
 		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 

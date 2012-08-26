@@ -790,22 +790,29 @@ MPU6000::measure()
 	 */
 	_gyro_report.timestamp = _accel_report.timestamp = hrt_absolute_time();
 
-	_accel_report.x_raw = report.accel_x;
+	/* to align the sensor axes with the board, x and y need to be flipped */
+	_accel_report.x_raw = report.accel_y;
 	_accel_report.y_raw = report.accel_x;
-	_accel_report.z_raw = report.accel_x;
+	/* z remains z and has the right sign */
+	_accel_report.z_raw = report.accel_z;
 
-	_accel_report.x = report.accel_x * _accel_range_scale;
-	_accel_report.y = report.accel_y * _accel_range_scale;
+	/* to align the sensor axes with the board, x and y need to be flipped */
+	_accel_report.x = report.accel_y * _accel_range_scale;
+	_accel_report.y = report.accel_x * _accel_range_scale;
+	/* z remains z and has the right sign */
 	_accel_report.z = report.accel_z * _accel_range_scale;
 	_accel_report.scaling = _accel_range_scale;
 	_accel_report.range_m_s2 = _accel_range_m_s2;
 
-	_gyro_report.x_raw = report.gyro_x;
-	_gyro_report.y_raw = report.gyro_y;
+	/* to align the sensor axes with the board, x and y need to be flipped */
+	_gyro_report.x_raw = report.gyro_y;
+	_gyro_report.y_raw = report.gyro_x;
+	/* z remains z and has the right sign */
 	_gyro_report.z_raw = report.gyro_z;
 
-	_gyro_report.x = report.gyro_x * _gyro_range_scale;
-	_gyro_report.y = report.gyro_y * _gyro_range_scale;
+	_gyro_report.x = report.gyro_y * _gyro_range_scale;
+	_gyro_report.y = report.gyro_x * _gyro_range_scale;
+	/* z remains z and has the right sign */
 	_gyro_report.z = report.gyro_z * _gyro_range_scale;
 	_gyro_report.scaling = _gyro_range_scale;
 	_gyro_report.range_rad_s = _gyro_range_rad_s;

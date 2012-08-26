@@ -658,9 +658,18 @@ HMC5883::collect()
 	    (abs(report.z) > 2048))
 		goto out;
 
+	/* raw outputs */
+	/* to align the sensor axes with the board, x and y need to be flipped */
+	_reports[_next_report].x_raw = report.y;
+	_reports[_next_report].y_raw = report.x;
+	/* z remains z */
+	_reports[_next_report].z_raw = report.z;
+
 	/* scale values for output */
-	_reports[_next_report].x = report.x * _scale.x_scale + _scale.x_offset;
-	_reports[_next_report].y = report.y * _scale.y_scale + _scale.y_offset;
+	/* to align the sensor axes with the board, x and y need to be flipped */
+	_reports[_next_report].x = report.y * _scale.x_scale + _scale.x_offset;
+	_reports[_next_report].y = report.x * _scale.y_scale + _scale.y_offset;
+	/* z remains z */
 	_reports[_next_report].z = report.z * _scale.z_scale + _scale.z_offset;
 
 	/* publish it */
