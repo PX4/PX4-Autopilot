@@ -565,7 +565,8 @@ MS5611::cycle()
 
 		/* perform collection */
 		if (OK != collect()) {
-			log("FATAL collection error - restarting\n");
+			log("collection error");
+			/* reset the collection state machine and try again */
 			start();
 			return;
 		}
@@ -592,10 +593,8 @@ MS5611::cycle()
 	}
 
 	/* measurement phase */
-	if (OK != measure()) {
-		log("FATAL measure error - restarting\n");
-		start();
-	}
+	if (OK != measure())
+		log("measure error");
 
 	/* next phase is collection */
 	_collect_phase = true;
