@@ -1023,7 +1023,7 @@ Where <subdir> is one of the following:
 
     8. USB OTG FS Device or Host Support
  
-       CONFIG_USBDEV          - Enable USB device support
+       CONFIG_USBDEV          - Enable USB device support, OR
        CONFIG_USBHOST         - Enable USB host support
        CONFIG_STM32_OTGFS     - Enable the STM32 USB OTG FS block
        CONFIG_STM32_SYSCFG    - Needed
