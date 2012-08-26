@@ -283,4 +283,6 @@
 
 	* apps/netutils/thttpd/thttpd_cgi.c:  Missing NULL in argv[]
 	  list (contributed by Kate).
+	* apps/nshlib/nsh_parse.c: CONFIG_NSH_DISABLE_WGET not CONFIG_NSH_DISABLE_GET
+	  in one location (found by Kate).
 

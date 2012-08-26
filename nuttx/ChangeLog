@@ -3185,3 +3185,11 @@
 	  This list handling was probably causing errors reported by Mike Smith
 	* sched/sched_waitpid.c: Fix a possible issue with logic logic that
 	  should be brought into a critical section (suggested by Mike Smith)
+	* sched/sched_setuptaskfiles.c: Should be 'struct socket' not
+	  'struct sockets'.  How did this compile before? (found by Kate)
+	* syscall/syscall.csv:  Fix prototype for usleep() and prctl() (also
+	  from Kate).
+	* arch/arm/src/lpc17xx/lpc17_ethernet.c:  Conditionally elide setting PHY
+	  speed/duplex.  This does not work for certain PHYs.  Still some unresolved
+	  issues (also from Kate).
+

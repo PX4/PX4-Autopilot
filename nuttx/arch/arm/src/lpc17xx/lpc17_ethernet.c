@@ -2100,9 +2100,29 @@ static inline int lpc17_phyinit(struct lpc17_driver_s *priv)
 
   /* Disable auto-configuration.  Set the fixed speed/duplex mode.
    * (probably more than little redundant).
+   *
+   * REVISIT: Revisit the following CONFIG_PHY_CEMENT_DISABLE work-around:
+   *
+   *  "... I found this using a LPC1768 dev board with a DP83848I PHY. I'm
+   *   using CONFIG_PHY_DP83848C for that ... I found that a static
+   *   configuration for the PHY gave errors. I didn't investigate why.
+   *
+   *  "My problem however was that autonegotiation seemingly failed -
+   *   however on debugging I saw the calls for autonegotation were actually
+   *   successful. I tracked the code down to [the following logic] and
+   *   I saw that after the negotation completes, those negotiated
+   *   parameters are then used to set a fixed speed and duplex, "just
+   *   in case". It was that setting of a static configuration which
+   *   failed for me."
+   *
+   *  "I'm not sure if that's required for other situations or not, so I
+   *   added a #define to optionally elide the call to cement the
+   *   configuration. My PHY appears to be happy with this for the moment."
    */
 
+#ifndef CONFIG_PHY_CEMENT_DISABLE
   ret = lpc17_phymode(phyaddr, priv->lp_mode);
+#endif
   lpc17_showmii(phyaddr, "After final configuration");
   return ret;
 }
