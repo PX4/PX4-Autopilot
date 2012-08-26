@@ -3183,3 +3183,5 @@
 	  Fix some strange (and probably wrong) list handling when
 	  CONFIG_PRIORITY_INHERITANCE and CONFIG_SEM_PREALLOCHOLDERS are defined.
 	  This list handling was probably causing errors reported by Mike Smith
+	* sched/sched_waitpid.c: Fix a possible issue with logic logic that
+	  should be brought into a critical section (suggested by Mike Smith)
