@@ -141,14 +141,15 @@
 #define STM32_EP0_MAX_PACKET_SIZE 64  /* EP0 FS max packet size */
 #define STM32_MAX_TX_FIFOS        15  /* Max number of TX FIFOs */
 #define STM32_MAX_PKTCOUNT        256 /* Max packet count */
-#define STM32_RETRY_COUNT         3   /* Number of retries */
+#define STM32_RETRY_COUNT         3   /* Number of ctrl transfer retries */
 #define STM32_DEF_DEVADDR         0   /* Default device address */
 
 /* Delays **********************************************************************/
 
-#define STM32_READY_DELAY            200000 /* In loop counts */
-#define STM32_FLUSH_DELAY            200000 /* In loop counts */
-#define STM32_NOTREADY_DELAY         5000   /* In frames */
+#define STM32_READY_DELAY         200000 /* In loop counts */
+#define STM32_FLUSH_DELAY         200000 /* In loop counts */
+#define STM32_SETUP_DELAY         5000   /* In frames */
+#define STM32_DATANAK_DELAY       5000   /* In frames */
 
 /* Ever-present MIN/MAX macros */
 
@@ -376,10 +377,11 @@ static void stm32_disconnect(FAR struct usbhost_driver_s *drvr);
 /* Initialization **************************************************************/
 
 static void stm32_portreset(FAR struct stm32_usbhost_s *priv);
-static inline void stm32_flush_txfifos(uint32_t txfnum);
-static inline void stm32_flush_rxfifo(void);
+static void stm32_flush_txfifos(uint32_t txfnum);
+static void stm32_flush_rxfifo(void);
 static void stm32_vbusdrive(FAR struct stm32_usbhost_s *priv, bool state);
 static void stm32_host_initialize(FAR struct stm32_usbhost_s *priv);
+
 static inline void stm32_sw_initialize(FAR struct stm32_usbhost_s *priv);
 static inline int stm32_hw_initialize(FAR struct stm32_usbhost_s *priv);
 
@@ -1196,13 +1198,14 @@ static int stm32_ctrl_sendsetup(FAR struct stm32_usbhost_s *priv,
                                 FAR const struct usb_ctrlreq_s *req)
 {
   FAR struct stm32_chan_s *chan;
-  uint16_t start = stm32_getframe();
+  uint16_t start;
   uint16_t elapsed;
   int ret;
 
-  chan = &priv->chan[priv->ep0out];
-
   /* Loop while the device reports NAK (and a timeout is not exceeded */
+
+  chan  = &priv->chan[priv->ep0out];
+  start = stm32_getframe();
 
   do
     {
@@ -1248,11 +1251,11 @@ static int stm32_ctrl_sendsetup(FAR struct stm32_usbhost_s *priv,
           return ret;
         }
 
-     /* Get the elpased time (in frames) */
+     /* Get the elapsed time (in frames) */
 
      elapsed = stm32_getframe() - start;
     }
-  while (elapsed < STM32_NOTREADY_DELAY);
+  while (elapsed < STM32_SETUP_DELAY);
 
   return -ETIMEDOUT;
 }
@@ -3284,6 +3287,8 @@ static int stm32_ctrlin(FAR struct usbhost_driver_s *drvr,
 {
   struct stm32_usbhost_s *priv = (struct stm32_usbhost_s *)drvr;
   uint16_t buflen;
+  uint16_t start;
+  uint16_t elapsed;
   int retries;
   int ret;
 
@@ -3300,7 +3305,7 @@ static int stm32_ctrlin(FAR struct usbhost_driver_s *drvr,
 
   stm32_takesem(&priv->exclsem);
 
-  /* Loop, retrying until the retry count expires */
+  /* Loop, retrying until the retry time expires */
 
   for (retries = 0; retries < STM32_RETRY_COUNT; retries++)
     {
@@ -3308,38 +3313,55 @@ static int stm32_ctrlin(FAR struct usbhost_driver_s *drvr,
 
       ret = stm32_ctrl_sendsetup(priv, req);
       if (ret < 0)
-        {
+       {
           udbg("stm32_ctrl_sendsetup failed: %d\n", ret);
-          return ret;
+          continue;
         }
 
-      /* Handle the IN data phase (if any) */
+      /* Get the start time.  Loop again until the timeout expires */
 
-      if (buflen > 0)
+      start = stm32_getframe();
+      do
         {
-          ret = stm32_ctrl_recvdata(priv, buffer, buflen);
-          if (ret < 0)
+          /* Handle the IN data phase (if any) */
+
+          if (buflen > 0)
             {
-              udbg("stm32_ctrl_recvdata failed: %d\n", ret);
-              continue;
+              ret = stm32_ctrl_recvdata(priv, buffer, buflen);
+              if (ret < 0)
+                {
+                  udbg("stm32_ctrl_recvdata failed: %d\n", ret);
+                }
             }
+
+          /* Handle the status OUT phase */
+
+          if (ret == OK)
+            {
+              priv->chan[priv->ep0out].outdata1 ^= true;
+              ret = stm32_ctrl_senddata(priv, NULL, 0);
+              if (ret == OK)
+                {
+                  /* All success transactions exit here */
+
+                  stm32_givesem(&priv->exclsem);
+                  return OK;
+                }
+
+              udbg("stm32_ctrl_senddata failed: %d\n", ret);
+            }
+
+          /* Get the elapsed time (in frames) */
+
+          elapsed = stm32_getframe() - start;
         }
-
-      /* Handle the status OUT phase */
-
-      priv->chan[priv->ep0out].outdata1 ^= true;
-      ret = stm32_ctrl_senddata(priv, NULL, 0);
-      if (ret == OK)
-        {
-          break;
-        }
-
-      udbg("stm32_ctrl_senddata failed: %d\n", ret);
-      ret = -ETIMEDOUT;
+      while (elapsed < STM32_DATANAK_DELAY);
     }
 
+  /* All failures exit here after all retries and timeouts have been exhausted */
+
   stm32_givesem(&priv->exclsem);
-  return ret;
+  return -ETIMEDOUT;
 }
 
 static int stm32_ctrlout(FAR struct usbhost_driver_s *drvr,
@@ -3348,6 +3370,8 @@ static int stm32_ctrlout(FAR struct usbhost_driver_s *drvr,
 {
   struct stm32_usbhost_s *priv = (struct stm32_usbhost_s *)drvr;
   uint16_t buflen;
+  uint16_t start;
+  uint16_t elapsed;
   int retries;
   int ret;
 
@@ -3364,10 +3388,12 @@ static int stm32_ctrlout(FAR struct usbhost_driver_s *drvr,
 
   stm32_takesem(&priv->exclsem);
 
-  /* Loop, retrying until the retry count expires */
+  /* Loop, retrying until the retry time expires */
 
   for (retries = 0; retries < STM32_RETRY_COUNT; retries++)
     {
+      /* Send the SETUP request */
+
       /* Send the SETUP request */
 
       ret = stm32_ctrl_sendsetup(priv, req);
@@ -3377,35 +3403,52 @@ static int stm32_ctrlout(FAR struct usbhost_driver_s *drvr,
           continue;
         }
 
-      /* Handle the data OUT phase (if any) */
+      /* Get the start time.  Loop again until the timeout expires */
 
-      if (buflen > 0)
+      start = stm32_getframe();
+      do
         {
-          /* Start DATA out transfer (only one DATA packet) */
+          /* Handle the data OUT phase (if any) */
 
-          priv->chan[priv->ep0out].outdata1 = true;
-          ret = stm32_ctrl_senddata(priv, NULL, 0);
-          if (ret < 0)
+          if (buflen > 0)
             {
-              udbg("stm32_ctrl_senddata failed: %d\n", ret);
-              continue;
+              /* Start DATA out transfer (only one DATA packet) */
+
+              priv->chan[priv->ep0out].outdata1 = true;
+              ret = stm32_ctrl_senddata(priv, NULL, 0);
+              if (ret < 0)
+                {
+                  udbg("stm32_ctrl_senddata failed: %d\n", ret);
+                }
             }
-        }
 
-      /* Handle the status IN phase */
+          /* Handle the status IN phase */
  
-      ret = stm32_ctrl_recvdata(priv, NULL, 0);
-      if (ret == OK)
-        {
-          break;
-        }
+          if (ret == OK)
+            {
+              ret = stm32_ctrl_recvdata(priv, NULL, 0);
+              if (ret == OK)
+                {
+                  /* All success transactins exit here */
 
-      udbg("stm32_ctrl_recvdata failed: %d\n", ret);
-      ret = -ETIMEDOUT;
+                  stm32_givesem(&priv->exclsem);
+                  return OK;
+                }
+
+              udbg("stm32_ctrl_recvdata failed: %d\n", ret);
+            }
+
+          /* Get the elapsed time (in frames) */
+
+          elapsed = stm32_getframe() - start;
+        }
+      while (elapsed < STM32_DATANAK_DELAY);
     }
 
+  /* All failures exit here after all retries and timeouts have been exhausted */
+
   stm32_givesem(&priv->exclsem);
-  return ret;
+  return -ETIMEDOUT;
 }
 
 /*******************************************************************************
@@ -3660,7 +3703,7 @@ static void stm32_portreset(FAR struct stm32_usbhost_s *priv)
  *
  *******************************************************************************/
 
-static inline void stm32_flush_txfifos(uint32_t txfnum)
+static void stm32_flush_txfifos(uint32_t txfnum)
 {
   uint32_t regval;
   uint32_t timeout;
@@ -3700,7 +3743,7 @@ static inline void stm32_flush_txfifos(uint32_t txfnum)
  *
  *******************************************************************************/
 
-static inline void stm32_flush_rxfifo(void)
+static void stm32_flush_rxfifo(void)
 {
   uint32_t regval;
   uint32_t timeout;

@@ -3192,4 +3192,12 @@
 	* arch/arm/src/lpc17xx/lpc17_ethernet.c:  Conditionally elide setting PHY
 	  speed/duplex.  This does not work for certain PHYs.  Still some unresolved
 	  issues (also from Kate).
+	* tools/Config.mk, Makefile, configs/*/Make.defs:  Add a new Makefile
+	  fragement to de-quoate certain strings from the Kconfig logic that
+	  need to be used at path segments (Richard Cochran).
+	* arch/arm/src/stm32/stm32_usbotghost.c:  The STM32 USB host driver only
+	  works with debug turned on.  The problem appears to be that with debug
+	  OFF, there are more NAKs occuring in more places than before and this
+	  reveals a variety of errors.  This check in improves NAK robustness
+	  for control transfers but does not resolve all of the issues.
 
