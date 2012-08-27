@@ -276,8 +276,8 @@ include/stdarg.h:
 endif
 
 # Targets used to build include/nuttx/version.h.  Creation of version.h is
-# part of the overall NuttX configuration sequency.  Notice that the
-# tools/mkversion tool is cuilt and used to create include/nuttx/version.h
+# part of the overall NuttX configuration sequence. Notice that the
+# tools/mkversion tool is built and used to create include/nuttx/version.h
 
 tools/mkversion:
 	@$(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)"  mkversion
@@ -293,8 +293,8 @@ include/nuttx/version.h: $(TOPDIR)/.version tools/mkversion
 	@tools/mkversion $(TOPDIR) > include/nuttx/version.h
 
 # Targets used to build include/nuttx/config.h.  Creation of config.h is
-# part of the overall NuttX configuration sequency.  Notice that the
-# tools/mkconfig tool is cuilt and used to create include/nuttx/config.h
+# part of the overall NuttX configuration sequence. Notice that the
+# tools/mkconfig tool is built and used to create include/nuttx/config.h
 
 tools/mkconfig:
 	@$(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)"  mkconfig

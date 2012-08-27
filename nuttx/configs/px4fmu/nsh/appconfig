@@ -63,10 +63,7 @@ CONFIGURED_APPS += systemcmds/eeprom
 
 CONFIGURED_APPS += uORB
 
-ifeq ($(CONFIG_MAVLINK),y)
 CONFIGURED_APPS += mavlink
-endif
-
 CONFIGURED_APPS += gps
 CONFIGURED_APPS += commander
 #CONFIGURED_APPS += sdlog

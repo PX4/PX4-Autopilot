@@ -118,12 +118,6 @@ config ARCH_CHIP
 	default "stm32"		if ARCH_CHIP_STM32
 	default "str71x"	if ARCH_CHIP_STR71X
 
-config ARCH_STACKDUMP
-	bool "Dump stack on assertions"
-	default n
-	---help---
-		Enable to do stack dumps after assertions
-
 config ARCH_LEDS
 	bool "Use board LEDs to show state"
 	default y

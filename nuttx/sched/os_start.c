@@ -289,6 +289,18 @@ void os_start(void)
   g_idletcb.flags = TCB_FLAG_TTYPE_KERNEL;
   up_initial_state(&g_idletcb);
 
+  /* Initialize the semaphore facility(if in link).  This has to be done
+   * very early because many subsystems depend upon fully functional
+   * semaphores.
+   */
+
+#ifdef CONFIG_HAVE_WEAKFUNCTIONS
+  if (sem_initialize != NULL)
+#endif
+    {
+      sem_initialize();
+    }
+
   /* Initialize the memory manager */
 
 #ifndef CONFIG_HEAP_BASE
@@ -350,15 +362,6 @@ void os_start(void)
       sig_initialize();
     }
 #endif
-
-  /* Initialize the semaphore facility. (if in link) */
-
-#ifdef CONFIG_HAVE_WEAKFUNCTIONS
-  if (sem_initialize != NULL)
-#endif
-    {
-      sem_initialize();
-    }
 
   /* Initialize the named message queue facility (if in link) */
 

@@ -174,6 +174,12 @@ int main(int argc, char **argv, char **envp)
   printf("#ifndef CONFIG_MM_REGIONS\n");
   printf("# define CONFIG_MM_REGIONS 1\n");
   printf("#endif\n\n");
+  printf("/* If the end of RAM is not specified then it is assumed to be the beginning\n");
+  printf(" * of RAM plus the RAM size.\n");
+  printf(" */\n\n");
+  printf("#ifndef CONFIG_DRAM_END\n");
+  printf("# define CONFIG_DRAM_END (CONFIG_DRAM_START+CONFIG_DRAM_SIZE)\n");
+  printf("#endif\n\n");
   printf("/* If no file streams are configured, then make certain that buffered I/O\n");
   printf(" * support is disabled\n");
   printf(" */\n\n");
@@ -256,6 +262,7 @@ int main(int argc, char **argv, char **envp)
   printf("# undef CONFIG_DEBUG_USB\n");
   printf("# undef CONFIG_DEBUG_GRAPHICS\n");
   printf("# undef CONFIG_DEBUG_GPIO\n");
+  printf("# undef CONFIG_DEBUG_SPI\n");
   printf("# undef CONFIG_DEBUG_STACK\n");
   printf("#endif\n\n");
   printf("#endif /* __INCLUDE_NUTTX_CONFIG_H */\n");

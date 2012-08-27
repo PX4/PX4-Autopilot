@@ -19,11 +19,13 @@ config ARCH_ARM
 
 config ARCH_AVR
 	bool "AVR"
+	select ARCH_NOINTC
 	---help---
 		Atmel 8-bit bit AVR and 32-bit AVR32 architectures
 
 config ARCH_HC
 	bool "Freescale HC"
+	select ARCH_NOINTC
 	---help---
 		Freescale HC architectures (M9S12)
 
@@ -39,7 +41,8 @@ config ARCH_RGMP
 		http://rgmp.sourceforge.net/wiki/index.php/Main_Page.
 
 config ARCH_SH
-	bool "Rensas"
+	bool "Renesas"
+	select ARCH_NOINTC
 	---help---
 		Renesas architectures (SH and M16C).
 
@@ -90,3 +93,35 @@ source arch/sim/Kconfig
 source arch/x86/Kconfig
 source arch/z16/Kconfig
 source arch/z80/Kconfig
+
+comment "Architecture Options"
+
+config ARCH_NOINTC
+	bool
+	default n
+
+config ARCH_STACKDUMP
+	bool "Dump stack on assertions"
+	default n
+	---help---
+		Enable to do stack dumps after assertions
+
+comment "Board Settings"
+
+config BOARD_LOOPSPERMSEC
+	int "Loops per millisecond"
+	help
+		Must be calibrated for correct operation of delay loops.
+		You simply use a stop watch to measure the 100 second delay
+		then adjust CONFIG_BOARD_LOOPSPERMSEC until it is actually
+		is 100 seconds.
+
+config DRAM_START
+	hex "DRAM start address"
+	help
+		The physical start address of installed RAM.
+
+config DRAM_SIZE
+	int "DRAM size"
+	help
+		The size in bytes of the installed RAM.
