@@ -522,9 +522,6 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 void
 HMC5883::start()
 {
-	/* make sure we are stopped first */
-	stop();
-
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_oldest_report = _next_report = 0;

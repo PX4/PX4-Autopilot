@@ -831,7 +831,7 @@ MPU6000::measure()
 
 	report.temp = (((int16_t)mpu_report.temp[0]) << 8) | mpu_report.temp[1];
 
-	report.gyro_x = ((int16_t)(mpu_report.gyro_x[0]) << 8) | mpu_report.gyro_x[1];
+	report.gyro_x = int16_t_from_bytes(mpu_report.gyro_x);
 	report.gyro_y = ((int16_t)(mpu_report.gyro_y[0]) << 8) | mpu_report.gyro_y[1];
 	report.gyro_z = ((int16_t)(mpu_report.gyro_z[0]) << 8) | mpu_report.gyro_z[1];
 
@@ -839,7 +839,7 @@ MPU6000::measure()
 	 * Swap axes and negate y
 	 */
 	int16_t accel_xt = report.accel_y;
-	int16_t accel_yt = ((report.accel_x == -32768) ? 32767 : -report.accel_x);
+	int16_t accel_yt = report.accel_x;//((report.accel_x == -32768) ? 32767 : -report.accel_x);
 
 	int16_t gyro_xt = report.gyro_y;
 	int16_t gyro_yt = ((report.gyro_x == -32768) ? 32767 : -report.gyro_x);
@@ -1030,9 +1030,9 @@ test()
 	warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
 	warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
 	warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
-	warnx("acc  x:  \t%d\traw", (int)a_report.x_raw);
-	warnx("acc  y:  \t%d\traw", (int)a_report.y_raw);
-	warnx("acc  z:  \t%d\traw", (int)a_report.z_raw);
+	warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
+	warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
+	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
 	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
 		(double)(a_report.range_m_s2 / 9.81f));
 
