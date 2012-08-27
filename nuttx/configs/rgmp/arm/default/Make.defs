@@ -36,6 +36,7 @@
 ############################################################################
 
 include ${TOPDIR}/.config
+include ${TOPDIR}/tools/Config.mk
 
 RGMPLIBDIR := $(RGMP_INST_DIR)/lib
 RGMPINCDIR := $(RGMP_INST_DIR)/include

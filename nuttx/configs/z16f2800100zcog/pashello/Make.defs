@@ -34,6 +34,7 @@
 ############################################################################
 
 include ${TOPDIR}/.config
+include ${TOPDIR}/tools/Config.mk
 
 # These are the directories where the ZNeo-II toolchain is installed
 

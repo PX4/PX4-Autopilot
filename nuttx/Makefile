@@ -35,6 +35,7 @@
 
 TOPDIR		:= ${shell pwd | sed -e 's/ /\\ /g'}
 -include ${TOPDIR}/.config
+-include ${TOPDIR}/tools/Config.mk
 -include ${TOPDIR}/Make.defs
 
 # Default tools

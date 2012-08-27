@@ -34,6 +34,7 @@
 ############################################################################
 
 include ${TOPDIR}/.config
+include ${TOPDIR}/tools/Config.mk
 
 CROSSDEV		= arm-elf-
 CC			= $(CROSSDEV)gcc

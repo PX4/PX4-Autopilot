@@ -34,6 +34,7 @@
 ##############################################################################
 
 include ${TOPDIR}/.config
+include ${TOPDIR}/tools/Config.mk
 
 # The default value for CROSSDEV can be overridden from the make command line:
 #   make                         -- Will build for the NuttX buildroot toolchain

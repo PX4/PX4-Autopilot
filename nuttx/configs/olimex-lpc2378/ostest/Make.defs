@@ -39,6 +39,7 @@
 ##############################################################################
 
 include ${TOPDIR}/.config
+include ${TOPDIR}/tools/Config.mk
 
 # Setup for the selected toolchain
 

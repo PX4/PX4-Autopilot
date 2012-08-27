@@ -34,6 +34,7 @@
 ############################################################################
 
 include ${TOPDIR}/.config
+include ${TOPDIR}/tools/Config.mk
 
 # These are the directories where the ZDS-II toolchain is installed
 

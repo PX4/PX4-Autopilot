@@ -1,8 +1,8 @@
 ############################################################################
-# configs/z80sim/ostest/Make.defs
+# Config.mk
+# Strip quotes from Kconfig strings.
 #
-#   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <gnutt@nuttx.org>
+#   Author: Richard Cochran
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,68 +33,6 @@
 #
 ############################################################################
 
-include ${TOPDIR}/.config
-include ${TOPDIR}/tools/Config.mk
-
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
-  ARCHOPTIMIZATION	= --debug
-else
-  ARCHOPTIMIZATION	=
-endif
-
-ARCHCPUFLAGS		= -mz80 --stack-auto --int-long-reent --float-reent
-ARCHPICFLAGS		=
-ARCHWARNINGS		=
-ARCHDEFINES		=
-ARCHINCLUDES		= -I. -I$(TOPDIR)/include
-
-CROSSDEV		=
-CC			= sdcc
-CPP			= sdcpp
-LD			= link-z80
-AS			= as-z80
-AR			= sdcclib -a
-
-CFLAGS			= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) \
-			  $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
-CPPFLAGS		= $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
-ASFLAGS			= -x -a -l -o -s
-
-SDCCLIBDIR		= /usr/local/share/sdcc/lib/z80
-SDCCLIB			= z80.lib
-
-ASMEXT			= .asm
-OBJEXT			= .o
-LIBEXT			= .lib
-EXEEXT			= .hex
-
-define PREPROCESS
-	@echo "CPP: $1->$2"
-	@$(CPP) $(CPPFLAGS) $1 -o $2
-endef
-
-define COMPILE
-	@echo "CC: $1"
-	@$(CC) -c $(CFLAGS) $1 -o $2
-endef
-
-define ASSEMBLE
-	@echo "AS: $1"
-	@$(AS) $(ASFLAGS) $2 $1
-endef
-
-define ARCHIVE
-	echo "AR: $2"; \
-	$(AR) $1 $2 || { echo "$(AR) $1 $2 FAILED!" ; exit 1 ; }
-endef
-
-define CLEAN
-	@rm -f *.o *.asm *.rel *.lst *.rst *.sym *.adb *.lnk *.map *.mem *.hex
-endef
-
-MKDEP			= $(TOPDIR)/tools/mkdeps.sh
-
-HOSTCC			= gcc
-HOSTINCLUDES		= -I.
-HOSTCFLAGS		= -Wall -wstrict-prototypes -Wshadow -g -pipe
-HOSTLDFLAGS		=
+CONFIG_ARCH := $(shell echo $(CONFIG_ARCH))
+CONFIG_ARCH_CHIP := $(shell echo $(CONFIG_ARCH_CHIP))
+CONFIG_ARCH_BOARD := $(shell echo $(CONFIG_ARCH_BOARD))
