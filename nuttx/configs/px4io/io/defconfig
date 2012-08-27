@@ -1,7 +1,8 @@
 ############################################################################
 # configs/px4io/nsh/defconfig
 #
-#   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,7 +42,7 @@
 #   particular chip family that the architecture is implemented
 #   in.
 # CONFIG_ARCH_architecture - for use in C code.  This identifies the
-#   specific architecture within the chip familyl.
+#   specific architecture within the chip family.
 # CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 # CONFIG_ARCH_CHIP_name - For use in C code
 # CONFIG_ARCH_BOARD - identifies the configs subdirectory and, hence,
@@ -51,7 +52,6 @@
 # CONFIG_BOARD_LOOPSPERMSEC - for delay loops
 # CONFIG_DRAM_SIZE - Describes the installed DRAM.
 # CONFIG_DRAM_START - The start address of DRAM (physical)
-# CONFIG_DRAM_END - Last address+1 of installed RAM
 # CONFIG_ARCH_IRQPRIO - The ST32F100CB supports interrupt prioritization
 # CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
 #   stack. If defined, this symbol is the size of the interrupt
@@ -69,17 +69,16 @@
 #   the delay actually is 100 seconds.
 # CONFIG_ARCH_DMA - Support DMA initialization
 #
-CONFIG_ARCH=arm
+CONFIG_ARCH="arm"
 CONFIG_ARCH_ARM=y
 CONFIG_ARCH_CORTEXM3=y
-CONFIG_ARCH_CHIP=stm32
+CONFIG_ARCH_CHIP="stm32"
 CONFIG_ARCH_CHIP_STM32F100C8=y
-CONFIG_ARCH_BOARD=px4io
+CONFIG_ARCH_BOARD="px4io"
 CONFIG_ARCH_BOARD_PX4IO=y
 CONFIG_BOARD_LOOPSPERMSEC=2000
 CONFIG_DRAM_SIZE=0x00002000
 CONFIG_DRAM_START=0x20000000
-CONFIG_DRAM_END=(CONFIG_DRAM_START+CONFIG_DRAM_SIZE)
 CONFIG_ARCH_IRQPRIO=y
 CONFIG_ARCH_INTERRUPTSTACK=n
 CONFIG_ARCH_STACKDUMP=y
@@ -109,6 +108,7 @@ CONFIG_STM32_JTAG_SW_ENABLE=n
 
 #
 # Individual subsystems can be enabled:
+#
 # AHB: 
 CONFIG_STM32_DMA1=n
 CONFIG_STM32_DMA2=n
@@ -140,10 +140,6 @@ CONFIG_STM32_TIM8=n
 CONFIG_STM32_USART1=y
 CONFIG_STM32_ADC3=n
 
-#
-# Timer and I2C devices may need to the following to force power to be applied:
-#
-#CONFIG_STM32_FORCEPOWER=y
 
 #
 # STM32F100 specific serial device driver settings
@@ -306,9 +302,6 @@ CONFIG_HAVE_LIBM=n
 # CONFIG_SDCLONE_DISABLE. Disable cloning of all socket
 #   desciptors by task_create() when a new task is started. If
 #   set, all sockets will appear to be closed in the new task.
-# CONFIG_NXFLAT. Enable support for the NXFLAT binary format.
-#  This format will support execution of NuttX binaries located
-#  in a ROMFS filesystem (see examples/nxflat).
 # CONFIG_SCHED_WORKQUEUE.  Create a dedicated "worker" thread to
 #  handle delayed processing from interrupt handlers.  This feature
 #  is required for some drivers but, if there are not complaints,
@@ -327,11 +320,25 @@ CONFIG_HAVE_LIBM=n
 #  thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
 # CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
 #  the worker thread.  Default: 4
+# CONFIG_SCHED_WAITPID - Enable the waitpid() API
+# CONFIG_SCHED_ATEXIT - Enabled the atexit() API
 #
 #CONFIG_APPS_DIR=
 CONFIG_DEBUG=n
 CONFIG_DEBUG_VERBOSE=n
 CONFIG_DEBUG_SYMBOLS=y
+CONFIG_DEBUG_FS=n
+CONFIG_DEBUG_GRAPHICS=n
+CONFIG_DEBUG_LCD=n
+CONFIG_DEBUG_USB=n
+CONFIG_DEBUG_NET=n
+CONFIG_DEBUG_RTC=n
+CONFIG_DEBUG_ANALOG=n
+CONFIG_DEBUG_PWM=n
+CONFIG_DEBUG_CAN=n
+CONFIG_DEBUG_I2C=n
+CONFIG_DEBUG_INPUT=n
+
 CONFIG_HAVE_CXX=n
 CONFIG_HAVE_CXXINITIALIZE=n
 CONFIG_MM_REGIONS=1
@@ -340,9 +347,9 @@ CONFIG_ARCH_LOWPUTC=y
 CONFIG_RR_INTERVAL=200
 CONFIG_SCHED_INSTRUMENTATION=n
 CONFIG_TASK_NAME_SIZE=0
-CONFIG_START_YEAR=2009
-CONFIG_START_MONTH=9
-CONFIG_START_DAY=21
+CONFIG_START_YEAR=1970
+CONFIG_START_MONTH=1
+CONFIG_START_DAY=1
 CONFIG_GREGORIAN_TIME=n
 CONFIG_JULIAN_TIME=n
 CONFIG_DEV_CONSOLE=y
@@ -354,12 +361,13 @@ CONFIG_SEM_NNESTPRIO=0
 CONFIG_FDCLONE_DISABLE=n
 CONFIG_FDCLONE_STDIO=y
 CONFIG_SDCLONE_DISABLE=y
-CONFIG_NXFLAT=n
 CONFIG_SCHED_WORKQUEUE=n
 CONFIG_SCHED_WORKPRIORITY=50
 CONFIG_SCHED_WORKPERIOD=(50*1000)
 CONFIG_SCHED_WORKSTACKSIZE=1024
 CONFIG_SIG_SIGWORK=4
+CONFIG_SCHED_WAITPID=n
+CONFIG_SCHED_ATEXIT=n
 
 #
 # The following can be used to disable categories of
@@ -427,6 +435,14 @@ CONFIG_ARCH_BZERO=n
 # CONFIG_NAME_MAX - The maximum size of a file name.
 # CONFIG_STDIO_BUFFER_SIZE - Size of the buffer to allocate
 #   on fopen. (Only if CONFIG_NFILE_STREAMS > 0)
+# CONFIG_STDIO_LINEBUFFER - If standard C buffered I/O is enabled
+#   (CONFIG_STDIO_BUFFER_SIZE > 0), then this option may be added
+#   to force automatic, line-oriented flushing the output buffer
+#   for putc(), fputc(), putchar(), puts(), fputs(), printf(),
+#   fprintf(), and vfprintf().  When a newline is encountered in
+#   the output string, the output buffer will be flushed.  This
+#   (slightly) increases the NuttX footprint but supports the kind
+#   of behavior that people expect for printf().
 # CONFIG_NUNGET_CHARS - Number of characters that can be
 #   buffered by ungetc() (Only if CONFIG_NFILE_STREAMS > 0)
 # CONFIG_PREALLOC_MQ_MSGS - The number of pre-allocated message
@@ -452,6 +468,7 @@ CONFIG_NFILE_DESCRIPTORS=8
 CONFIG_NFILE_STREAMS=0
 CONFIG_NAME_MAX=32
 CONFIG_STDIO_BUFFER_SIZE=64
+CONFIG_STDIO_LINEBUFFER=n
 CONFIG_NUNGET_CHARS=2
 CONFIG_PREALLOC_MQ_MSGS=4
 CONFIG_MQ_MAXMSGSIZE=32
