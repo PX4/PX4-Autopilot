@@ -221,6 +221,18 @@ void attitude_blackmagic(const float_vect3 *accel, const float_vect3 *mag, const
 	m_elem mask[9] =
 	{ 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 
+	// XXX Hack - stop updating accel if upside down
+
+	if (accel->z > 0) {
+		mask[0] = 0.0f;
+		mask[1] = 0.0f;
+		mask[2] = 0.0f;
+	} else {
+		mask[0] = 1.0f;
+		mask[1] = 1.0f;
+		mask[2] = 1.0f;
+	}
+
 	measurement[0] = accel->x;
 	measurement[1] = accel->y;
 	measurement[2] = accel->z;
