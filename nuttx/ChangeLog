@@ -3200,4 +3200,6 @@
 	  OFF, there are more NAKs occuring in more places than before and this
 	  reveals a variety of errors.  This check in improves NAK robustness
 	  for control transfers but does not resolve all of the issues.
+	* configs/stm3220g-eval/*/defconfig:  Calibrated delay loop.  It had
+	  never been calibrated was was way off.
 

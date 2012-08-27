@@ -48,6 +48,10 @@
 #include <errno.h>
 #include <debug.h>
 
+#if !defined(CONFIG_DEBUG_VERBOSE) && !defined(CONFIG_DEBUG_USB)
+#  include <debug.h>
+#endif
+
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/usb/usb.h>
@@ -1888,7 +1892,7 @@ static void stm32_gint_connected(FAR struct stm32_usbhost_s *priv)
   if (!priv->connected)
     {
       /* Yes.. then now we are connected */
- 
+
       ullvdbg("Connected\n");
       priv->connected = true;
       DEBUGASSERT(priv->smstate == SMSTATE_DETACHED);
@@ -3595,8 +3599,19 @@ static int stm32_transfer(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep,
           }
         }
 
+      /* There is a bug in the code at present.  With debug OFF, this driver
+       * overruns the typical FLASH device and there are many problems with
+       * NAKS sticking a big delay here allows the driver to work but with
+       * very poor performance when debug is off.
+       */
+
+#if !defined(CONFIG_DEBUG_VERBOSE) && !defined(CONFIG_DEBUG_USB)
+#warning "REVISIT this delay"
+      usleep(100*1000);
+#endif
+
       /* Start the transfer */
- 
+
       stm32_transfer_start(priv, chidx);
 
       /* Wait for the transfer to complete and get the result */
@@ -3696,7 +3711,7 @@ static void stm32_portreset(FAR struct stm32_usbhost_s *priv)
  *   Flush the selected Tx FIFO.
  *
  * Input Parameters:
- *   priv -- USB host driver private data structure.
+ *   txfnum -- USB host driver private data structure.
  *
  * Returned Value:
  *   None.
