@@ -818,28 +818,22 @@ MPU6000::measure()
 	/*
 	 * Convert from big to little endian
 	 */
-	// report.accel_x = ((int16_t)(mpu_report.accel_x[0]) << 8);
-	// report.accel_x |= mpu_report.accel_x[1];
-	// report.accel_y = ((int16_t)(mpu_report.accel_y[0]) << 8);
-	// report.accel_y |= mpu_report.accel_y[1];
-	// report.accel_z = ((int16_t)(mpu_report.accel_z[0]) << 8);
-	// report.accel_z |= mpu_report.accel_z[1];
 
 	report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
 	report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
 	report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
 
-	report.temp = (((int16_t)mpu_report.temp[0]) << 8) | mpu_report.temp[1];
+	report.temp = int16_t_from_bytes(mpu_report.temp);
 
 	report.gyro_x = int16_t_from_bytes(mpu_report.gyro_x);
-	report.gyro_y = ((int16_t)(mpu_report.gyro_y[0]) << 8) | mpu_report.gyro_y[1];
-	report.gyro_z = ((int16_t)(mpu_report.gyro_z[0]) << 8) | mpu_report.gyro_z[1];
+	report.gyro_y = int16_t_from_bytes(mpu_report.gyro_y);
+	report.gyro_z = int16_t_from_bytes(mpu_report.gyro_z);
 
 	/*
 	 * Swap axes and negate y
 	 */
 	int16_t accel_xt = report.accel_y;
-	int16_t accel_yt = report.accel_x;//((report.accel_x == -32768) ? 32767 : -report.accel_x);
+	int16_t accel_yt = ((report.accel_x == -32768) ? 32767 : -report.accel_x);
 
 	int16_t gyro_xt = report.gyro_y;
 	int16_t gyro_yt = ((report.gyro_x == -32768) ? 32767 : -report.gyro_x);
