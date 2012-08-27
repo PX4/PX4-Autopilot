@@ -376,7 +376,9 @@ static int parameters_update(const struct sensor_parameter_handles *h, struct se
 	param_get(h->rc_map_pitch, &(p->rc_map_pitch));
 	param_get(h->rc_map_yaw, &(p->rc_map_yaw));
 	param_get(h->rc_map_throttle, &(p->rc_map_throttle));
-	param_get(h->rc_map_mode_sw, &(p->rc_map_mode_sw));
+	if (param_get(h->rc_map_mode_sw, &(p->rc_map_mode_sw)) != OK) {
+		warnx("Loading RC mode sw param failed.");
+	}
 
 	/* gyro offsets */
 	param_get(h->gyro_offset[0], &(p->gyro_offset[0]));
@@ -394,7 +396,9 @@ static int parameters_update(const struct sensor_parameter_handles *h, struct se
 	param_get(h->mag_offset[2], &(p->mag_offset[2]));
 
 	/* scaling of ADC ticks to battery voltage */
-	param_get(h->battery_voltage_scaling, &(p->battery_voltage_scaling));
+	if (param_get(h->battery_voltage_scaling, &(p->battery_voltage_scaling)) != OK) {
+		warnx("Loading voltage scaling param failed.");
+	}
 
 	return OK;
 }

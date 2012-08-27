@@ -464,7 +464,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.mag_offset[2], &(_parameters.mag_offset[2]));
 
 	/* scaling of ADC ticks to battery voltage */
-	param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling));
+	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
+		warnx("Failed updating voltage scaling param");
+	}
 
 	return OK;
 }
@@ -604,8 +606,8 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		accel_report.timestamp = hrt_absolute_time();
 
 		accel_report.x_raw = (buf[1] == -32768) ? 32767 : -buf[1];
-		accel_report.y_raw = (buf[0] == -32768) ? -32767 : buf[0];
-		accel_report.z_raw = (buf[2] == -32768) ? -32767 : buf[2];
+		accel_report.y_raw = buf[0];
+		accel_report.z_raw = buf[2];
 
 		const float range_g = 4.0f;
 		/* scale from 14 bit to m/s2 */
@@ -721,7 +723,10 @@ Sensors::vehicle_status_poll()
 			_hil_enabled = false;
 			_publishing = true;
 		}
+	}
 
+	/* XXX run the param update more often right now */
+	{
 		/* update parameters */
 		parameters_update();
 

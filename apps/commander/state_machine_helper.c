@@ -522,7 +522,7 @@ void update_state_machine_mode_auto(int status_pub, struct vehicle_status_s *cur
 
 uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, uint8_t mode)
 {
-	printf("in update state request\n");
+	printf("[commander] Requested new mode: %d\n", (int)mode);
 	uint8_t ret = 1;
 
 	/* vehicle is disarmed, mode requests arming */
