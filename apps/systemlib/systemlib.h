@@ -34,7 +34,7 @@
 
 /**
  * @file systemlib.h
- * Definition of commonly used low-level system-call like functions
+ * Definition of commonly used low-level system-call like functions.
  */
 
 #ifndef SYSTEMLIB_H_

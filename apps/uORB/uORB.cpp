@@ -32,7 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file A lightweight object broker.
+ * @file uORB.cpp
+ * A lightweight object broker.
  */
 
 #include <nuttx/config.h>

@@ -57,7 +57,7 @@
 #include "systemlib/bson/tinybson.h"
 
 #include "uORB/uORB.h"
-#include "uORB/topics/parameters.h"
+#include "uORB/topics/parameter_update.h"
 
 #if 1
 # define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
@@ -318,6 +318,7 @@ int
 param_set(param_t param, const void *val)
 {
 	int result = -1;
+	bool params_changed = false;
 
 	param_lock();
 
@@ -378,7 +379,7 @@ param_set(param_t param, const void *val)
 		}
 
 		s->unsaved = true;
-
+		params_changed = true;
 		result = 0;
 	}
 
@@ -389,7 +390,7 @@ out:
 	 * If we set something, now that we have unlocked, go ahead and advertise that
 	 * a thing has been set.
 	 */
-	if (result != 0) {
+	if (params_changed) {
 		struct parameter_update_s pup = { .timestamp = hrt_absolute_time() };
 
 		/*

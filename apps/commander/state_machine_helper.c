@@ -39,13 +39,15 @@
  */
 
 #include <stdio.h>
-#include "state_machine_helper.h"
+#include <unistd.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <systemlib/systemlib.h>
 #include <arch/board/up_hrt.h>
 #include <mavlink/mavlink_log.h>
+
+#include "state_machine_helper.h"
 
 static const char* system_state_txt[] = {
 	"SYSTEM_STATE_PREFLIGHT",
@@ -75,14 +77,12 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 	switch (new_state) {
 	case SYSTEM_STATE_MISSION_ABORT: {
 			/* Indoor or outdoor */
-			uint8_t flight_environment_parameter = (uint8_t)(global_data_parameter_storage->pm.param_values[PARAM_FLIGHT_ENV]);
-
-			if (flight_environment_parameter == PX4_FLIGHT_ENVIRONMENT_OUTDOOR) {
+			// if (flight_environment_parameter == PX4_FLIGHT_ENVIRONMENT_OUTDOOR) {
 				ret = do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_EMCY_LANDING);
 
-			} else {
-				ret = do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_EMCY_CUTOFF);
-			}
+			// } else {
+			// 	ret = do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_EMCY_CUTOFF);
+			// }
 		}
 		break;
 
@@ -198,10 +198,13 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 	if (invalid_state == false || old_state != new_state) {
 		current_status->state_machine = new_state;
 		state_machine_publish(status_pub, current_status, mavlink_fd);
+		ret = OK;
 	}
 	if (invalid_state) {
 		mavlink_log_critical(mavlink_fd, "[commander] REJECTING invalid state transition");
+		ret = ERROR;
 	}
+	return ret;
 }
 
 void state_machine_publish(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd) {

@@ -35,14 +35,13 @@
 #define _UORB_UORB_H
 
 /**
- * @file API for the uORB lightweight object broker.
+ * @file uORB.h
+ * API for the uORB lightweight object broker.
  */
 
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
- // Hack until parameter storage is cleaned up
-#include "parameter_storage.h"
 
 // Hack until everything is using this header
 #include <systemlib/visibility.h>

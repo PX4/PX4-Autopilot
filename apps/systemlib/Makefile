@@ -39,7 +39,8 @@ CSRCS		 = err.c \
 		   hx_stream.c \
 		   perf_counter.c \
 		   param/param.c \
-		   bson/tinybson.c
+		   bson/tinybson.c \
+		   conversions.c
 
 #
 # XXX this really should be a CONFIG_* test

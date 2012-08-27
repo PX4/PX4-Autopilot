@@ -125,8 +125,8 @@ static void led_deinit(void);
 static int led_toggle(int led);
 static int led_on(int led);
 static int led_off(int led);
-static void do_gyro_calibration(int status_pub, struct vehicle_status_s *current_status);
-static void do_mag_calibration(int status_pub, struct vehicle_status_s *current_status);
+static void do_gyro_calibration(int status_pub, struct vehicle_status_s *status);
+static void do_mag_calibration(int status_pub, struct vehicle_status_s *status);
 static void handle_command(int status_pub, struct vehicle_status_s *current_status, struct vehicle_command_s *cmd);
 
 int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, uint8_t new_state);
@@ -444,7 +444,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	close(sub_sensor_combined);
 }
 
-void do_gyro_calibration(int status_pub, struct vehicle_status_s *current_status)
+void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 {
 	const int calibration_count = 3000;
 
@@ -942,13 +942,13 @@ int commander_thread_main(int argc, char *argv[])
 				led_toggle(LED_AMBER);
 
 			} else {
-				/* Constant error indication in standby mode without GPS */
-				if (flight_env == PX4_FLIGHT_ENVIRONMENT_OUTDOOR && !current_status.gps_valid) {
-					led_on(LED_AMBER);
+				// /* Constant error indication in standby mode without GPS */
+				// if (!current_status.gps_valid) {
+				// 	led_on(LED_AMBER);
 
-				} else {
-					led_off(LED_AMBER);
-				}
+				// } else {
+				// 	led_off(LED_AMBER);
+				// }
 			}
 
 			if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {

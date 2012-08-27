@@ -575,18 +575,13 @@ static float calc_roll_setpoint()
 {
 	float setpoint = 0;
 
-	if (plane_data.mode == TAKEOFF) {
-		setpoint = 0;
+	setpoint = calc_bearing() - plane_data.yaw;
 
-	} else {
-		setpoint = calc_bearing() - plane_data.yaw;
+	if (setpoint < (-35.0f/180.0f)*M_PI_F)
+		return (-35.0f/180.0f)*M_PI_F;
 
-		if (setpoint < (-35.0f/180.0f)*M_PI_F)
-			return (-35.0f/180.0f)*M_PI_F;
-
-		if (setpoint > (35/180.0f)*M_PI_F)
-			return (-35.0f/180.0f)*M_PI_F;
-	}
+	if (setpoint > (35/180.0f)*M_PI_F)
+		return (-35.0f/180.0f)*M_PI_F;
 
 	return setpoint;
 }
@@ -605,10 +600,10 @@ static float calc_pitch_setpoint()
 {
 	float setpoint = 0.0f;
 
-	if (plane_data.mode == TAKEOFF) {
-		setpoint = ((35/180.0f)*M_PI_F);
+	// if (plane_data.mode == TAKEOFF) {
+	// 	setpoint = ((35/180.0f)*M_PI_F);
 
-	} else {
+	// } else {
 		setpoint = atanf((plane_data.wp_z - plane_data.alt) / calc_wp_distance());
 
 		if (setpoint < (-35.0f/180.0f)*M_PI_F)
@@ -616,7 +611,7 @@ static float calc_pitch_setpoint()
 
 		if (setpoint > (35/180.0f)*M_PI_F)
 			return (-35.0f/180.0f)*M_PI_F;
-	}
+	// }
 
 	return setpoint;
 }
@@ -634,44 +629,22 @@ static float calc_throttle_setpoint()
 {
 	float setpoint = 0;
 
-	// if TAKEOFF full throttle
-	if (plane_data.mode == TAKEOFF) {
-		setpoint = 60.0f;
-	}
+	// // if TAKEOFF full throttle
+	// if (plane_data.mode == TAKEOFF) {
+	// 	setpoint = 60.0f;
+	// }
 
-	// if CRUISE - parameter value
-	if (plane_data.mode == CRUISE) {
+	// // if CRUISE - parameter value
+	// if (plane_data.mode == CRUISE) {
 		setpoint = plane_data.airspeed;
-	}
+	// }
 
-	// if LAND no throttle
-	if (plane_data.mode == LAND) {
-		setpoint = 0.0f;
-	}
+	// // if LAND no throttle
+	// if (plane_data.mode == LAND) {
+	// 	setpoint = 0.0f;
+	// }
 
 	return setpoint;
-}
-
-/**
- * set_plane_mode
- *
- * Sets the plane mode
- * (TAKEOFF, CRUISE, LOITER or LAND)
- *
- */
-
-static void set_plane_mode()
-{
-	if (plane_data.alt < 10.0f) {
-		plane_data.mode = TAKEOFF;
-
-	} else {
-		plane_data.mode = CRUISE;
-		// TODO: if reached waypoint and no further waypoint exists, go to LOITER mode
-	}
-
-	// Debug override - don't need TAKEOFF mode for now
-	plane_data.mode = CRUISE;
 }
 
 /*
@@ -834,9 +807,6 @@ int fixedwing_control_main(int argc, char *argv[])
 
 			/************************************************************************************************************/
 		}
-
-		/* Set plane mode */
-		set_plane_mode();
 
 		/* Calculate the P,Q,R body rates of the aircraft */
 		//calc_body_angular_rates(plane_data.roll, plane_data.pitch, plane_data.yaw,

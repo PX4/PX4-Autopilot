@@ -32,19 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file parameters.h
- *
- * Actuator control topics - mixer inputs.
- *
- * Values published to these topics are the outputs of the vehicle control
- * system, and are expected to be mixed and used to drive the actuators
- * (servos, speed controls, etc.) that operate the vehicle.
- *
- * Each topic can be published by a single controller
+ * @file parameter_update.h
+ * Notification about a parameter update.
  */
 
-#ifndef TOPIC_PARAMETERS_H
-#define TOPIC_PARAMETERS_H
+#ifndef TOPIC_PARAMETER_UPDATE_H
+#define TOPIC_PARAMETER_UPDATE_H
 
 #include <stdint.h>
 #include "../uORB.h"

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file objects_common.h
+ * @file objects_common.cpp
  *
  * Common object definitions without a better home.
  */

@@ -3,7 +3,6 @@
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -35,7 +34,7 @@
 
 /**
  * @file systemlib.c
- * Implementation of commonly used low-level system-call like functions
+ * Implementation of commonly used low-level system-call like functions.
  */
 
 #include <nuttx/config.h>
@@ -47,7 +46,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <arch/board/drv_eeprom.h>
-#include <uORB/parameter_storage.h>
 #include <float.h>
 #include <string.h>
 

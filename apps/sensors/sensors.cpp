@@ -69,6 +69,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/parameter_update.h>
 
 #define GYRO_HEALTH_COUNTER_LIMIT_ERROR 20   /* 40 ms downtime at 500 Hz update rate   */
 #define ACC_HEALTH_COUNTER_LIMIT_ERROR  20   /* 40 ms downtime at 500 Hz update rate   */
@@ -162,6 +163,7 @@ private:
 	int		_mag_sub;			/**< raw mag data subscription */
 	int		_baro_sub;			/**< raw baro data subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
+	int 		_params_sub;			/**< notification of parameter updates */
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_manual_control_pub;		/**< manual control signal topic */
@@ -281,6 +283,11 @@ private:
 	void		vehicle_status_poll();
 
 	/**
+	 * Check for changes in parameters.
+	 */
+	void 		parameter_update_poll();
+
+	/**
 	 * Poll the ADC and update readings to suit.
 	 *
 	 * @param raw			Combined sensor data structure into which
@@ -330,6 +337,7 @@ Sensors::Sensors() :
 	_mag_sub(-1),
 	_baro_sub(-1),
 	_vstatus_sub(-1),
+	_params_sub(-1),
 
 	/* publications */
 	_sensor_pub(-1),
@@ -724,9 +732,21 @@ Sensors::vehicle_status_poll()
 			_publishing = true;
 		}
 	}
+}
 
-	/* XXX run the param update more often right now */
+void
+Sensors::parameter_update_poll()
+{
+	bool param_updated;
+	/* Check if any parameter has changed */
+	orb_check(_params_sub, &param_updated);
+	if (param_updated)
 	{
+		/* read from param to clear updated flag */
+		struct parameter_update_s update;
+		orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+
+		printf("PARAMS UPDATED\n");
 		/* update parameters */
 		parameters_update();
 
@@ -886,6 +906,7 @@ Sensors::task_main()
 	_mag_sub = orb_subscribe(ORB_ID(sensor_mag));
 	_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
+	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
@@ -956,6 +977,9 @@ Sensors::task_main()
 
 		/* check vehicle status for changes to publication state */
 		vehicle_status_poll();
+
+		/* check parameters for updates */
+		parameter_update_poll();
 
 		/* store the time closest to all measurements (this is bogus, sensor timestamps should be propagated...) */
 		raw.timestamp = hrt_absolute_time();
