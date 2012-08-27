@@ -750,7 +750,47 @@ Sensors::parameter_update_poll()
 		/* update parameters */
 		parameters_update();
 
-		/* Update RC scalings and function mappings */
+		/* update sensor offsets */
+		int fd = open(GYRO_DEVICE_PATH, 0);
+		struct gyro_scale gscale = { 
+			_parameters.gyro_offset[0],
+			1.0f,
+			_parameters.gyro_offset[1],
+			1.0f,
+			_parameters.gyro_offset[2],
+			1.0f,
+		};
+		if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale))
+			warn("WARNING: failed to set scale / offsets for gyro");
+		close(fd);
+
+		fd = open(ACCEL_DEVICE_PATH, 0);
+		struct accel_scale ascale = {
+			_parameters.acc_offset[0],
+			1.0f,
+			_parameters.acc_offset[1],
+			1.0f,
+			_parameters.acc_offset[2],
+			1.0f,
+		};
+		if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale))
+			warn("WARNING: failed to set scale / offsets for accel");
+		close(fd);
+
+		fd = open(MAG_DEVICE_PATH, 0);
+		struct mag_scale mscale = {
+			_parameters.mag_offset[0],
+			1.0f,
+			_parameters.mag_offset[1],
+			1.0f,
+			_parameters.mag_offset[2],
+			1.0f,
+		};
+		if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale))
+			warn("WARNING: failed to set scale / offsets for mag");
+		close(fd);
+
+		/* update RC scalings and function mappings */
 		_rc.chan[0].scaling_factor = (1.0f / ((_parameters.max[0] - _parameters.min[0]) / 2.0f) * _parameters.rev[0]);
 		_rc.chan[0].mid = _parameters.trim[0];
 
