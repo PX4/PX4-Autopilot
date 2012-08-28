@@ -809,7 +809,7 @@ static void stm32_chan_halt(FAR struct stm32_usbhost_s *priv, int chidx,
   uint32_t eptype;
   unsigned int avail;
 
-  /* Save the recon for the halt.  We need this in the channel halt interrrupt
+  /* Save the reason for the halt.  We need this in the channel halt interrrupt
    * handling logic to know what to do next.
    */
 
@@ -1474,6 +1474,9 @@ static int stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
                               FAR uint8_t *buffer, size_t buflen)
 {
   FAR struct stm32_chan_s *chan;
+  uint16_t start;
+  uint16_t elapsed;
+  size_t xfrlen;
   int ret = OK;
 
   /* Loop until the transfer completes (i.e., buflen is decremented to zero)
@@ -1481,22 +1484,19 @@ static int stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
    */
 
   chan         = &priv->chan[chidx];
-  chan->buffer = buffer;
-  chan->buflen = buflen;
+  start        = stm32_getframe();
 
-  /* There is a bug in the code at present.  With debug OFF, this driver
-   * overruns the typical FLASH device and there are many problems with
-   * NAKS. Sticking a big delay here allows the device (FLASH drive) to
-   * catch up but sacrifices driver performance.
-   */
-
-#if !defined(CONFIG_DEBUG_VERBOSE) || !defined(CONFIG_DEBUG_USB)
-#warning "REVISIT this delay"
-  usleep(50*1000);
-#endif
-
-  while (chan->buflen > 0)
+  while (buflen > 0)
     {
+      /* Transfer one packet at a time.  The hardware is capable of queueing
+       * multiple OUT packets, but I just haven't figured out how to handle
+       * the case where a single OUT packet in the group is NAKed.
+       */
+
+      xfrlen       = MIN(chan->maxpacket, buflen);
+      chan->buffer = buffer;
+      chan->buflen = xfrlen;
+
       /* Set up for the wait BEFORE starting the transfer */
 
       ret = stm32_chan_waitsetup(priv, chan);
@@ -1556,29 +1556,49 @@ static int stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
 
       ret = stm32_chan_wait(priv, chan);
 
-      /* EAGAIN indicates that the device NAKed the transfer and we need
-       * do try again.  NAK retries are not yet supported for OUT transfers
-       * so any unsuccessful response will cause us to abort the OUT
-       * transfer.
-       */
+      /* Handle transfer failures */
 
       if (ret != OK)
         {
           udbg("Transfer failed: %d\n", ret);
-          break;
+
+          /* Check for a special case:  If (1) the transfer was NAKed and (2)
+           * no Tx FIFO empty or Rx FIFO not-empty event occurred, then we
+           * should be able to just flush the Rx and Tx FIFOs and try again.
+           * We can detect this latter case becasue the then the transfer
+           * buffer pointer and buffer size will be unaltered.
+           */
+
+          elapsed = stm32_getframe() - start;
+          if (ret != -EAGAIN ||                       /* Not a NAK condition OR */
+              elapsed >= STM32_DATANAK_DELAY ||       /* Timeout has elapsed OR */
+              chan->buflen != xfrlen)                 /* Data has been partially transferred */
+            {
+              /* Break out and return the error */
+
+              break;
+            }
+
+          /* Is this flush really necessary? What does the hardware do with the
+           * data in the FIFO when the NAK occurs?  Does it discard it?
+           */
+
+          stm32_flush_txfifos(OTGFS_GRSTCTL_TXFNUM_HALL);
+
+          /* Get the device a little time to catch up.  Then retry the transfer
+           * using the same buffer pointer length.
+           */
+
+          usleep(20*1000);
+        }
+      else
+        {
+          /* Successfully transferred.  Update the buffer pointer and length */
+
+          buffer += xfrlen;
+          buflen -= xfrlen;
         }
     }
-
-  /* There is a bug in the code at present.  With debug OFF, this driver
-   * overruns the typical FLASH device and there are many problems with
-   * NAKS. Sticking a big delay here allows the device (FLASH drive) to
-   * catch up but sacrifices driver performance.
-   */
-
-#if !defined(CONFIG_DEBUG_VERBOSE) || !defined(CONFIG_DEBUG_USB)
-#warning "REVISIT this delay"
-  usleep(50*1000);
-#endif
 
   return ret;
 }

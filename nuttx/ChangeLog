@@ -3211,3 +3211,5 @@
 	  is now required to enabled strerror().  Add an option
 	  CONFIG_LIBC_STRERROR_SHORT that can be used to output shortened
 	  strings by strerror().
+	* arch/arm/src/stm32/stm32_usbotghost.c:  Finally... the USB OTG FS
+	  appears to handle NAKing correctly is complete.
