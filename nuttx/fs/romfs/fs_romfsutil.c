@@ -351,7 +351,7 @@ static inline int romfs_searchdir(struct romfs_mountpt_s *rm,
     }
    while (next != 0);
 
-   /* There is nothing in this directoy with that name */
+   /* There is nothing in this directory with that name */
 
    return -ENOENT;
 }
