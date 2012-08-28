@@ -151,8 +151,6 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
                            size_t nblocks, FAR uint8_t *buf);
 static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
                             size_t nblocks, FAR const uint8_t *buf);
-static ssize_t at24c_read(FAR struct mtd_dev_s *dev, off_t offset,
-                          size_t nbytes,FAR uint8_t *buffer);
 static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
 
 /************************************************************************************
@@ -172,7 +170,6 @@ static struct at24c_dev_s g_at24c;
 static int at24c_eraseall(FAR struct at24c_dev_s *priv)
 {
   int startblock = 0;
-  int ret = OK;
   uint8_t buf[AT24XX_PAGESIZE + 2];
 
   struct i2c_msg_s msgv[1] = 

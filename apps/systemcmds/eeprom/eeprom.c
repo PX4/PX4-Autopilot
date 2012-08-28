@@ -126,20 +126,21 @@ eeprom_start(void)
 	if (mtd == NULL)
 		errx(1, "failed to initialize EEPROM driver");
 
+	/* driver is started, even if NXFFS fails to mount */
+	started = true;
+
 	/* start NXFFS */
 	ret = nxffs_initialize(mtd);
 
 	if (ret < 0)
-		err(1, "failed to initialize NXFFS");
-
+		errx(1, "failed to initialize NXFFS - erase EEPROM to reformat");
+	
 	/* mount the EEPROM */
 	ret = mount(NULL, "/eeprom", "nxffs", 0, NULL);
 
 	if (ret < 0)
-		err(1, "failed to mount EEPROM");
-
-	started = true;
-
+		errx(1, "failed to mount /eeprom - erase EEPROM to reformat");
+	
 	errx(0, "mounted EEPROM at /eeprom");
 }
 
