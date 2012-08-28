@@ -285,7 +285,7 @@ private:
 	/**
 	 * Check for changes in parameters.
 	 */
-	void 		parameter_update_poll();
+	void 		parameter_update_poll(bool forced = false);
 
 	/**
 	 * Poll the ADC and update readings to suit.
@@ -735,12 +735,12 @@ Sensors::vehicle_status_poll()
 }
 
 void
-Sensors::parameter_update_poll()
+Sensors::parameter_update_poll(bool forced)
 {
 	bool param_updated;
 	/* Check if any parameter has changed */
 	orb_check(_params_sub, &param_updated);
-	if (param_updated)
+	if (param_updated || forced)
 	{
 		/* read from param to clear updated flag */
 		struct parameter_update_s update;
@@ -968,6 +968,8 @@ Sensors::task_main()
 	gyro_poll(raw);
 	mag_poll(raw);
 	baro_poll(raw);
+
+	parameter_update_poll(true /* forced */);
 
 	/* advertise the sensor_combined topic and make the initial publication */
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
