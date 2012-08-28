@@ -161,8 +161,8 @@ end
 #
 define _showsemaphore
 	printf "count %d ", $arg0->semcount
-	if $arg0->hlist.holder != 0
-		set $_task = (struct _TCB *)$arg0->hlist.holder
+	if $arg0->holder.htcb != 0
+		set $_task = (struct _TCB *)$arg0->holder.htcb
 		printf "held by %s", $_task->name
 	end
 	printf "\n"
