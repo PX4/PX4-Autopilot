@@ -83,7 +83,7 @@
  * Private Data
  ****************************************************************************/
 
-#ifndef CONFIG_LIBC_PERROR_DEVNAME
+#ifdef CONFIG_LIBC_PERROR_DEVNAME
 static FILE *perror_stream;
 #endif
 

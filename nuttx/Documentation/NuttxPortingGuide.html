@@ -4363,7 +4363,7 @@ build
     <code>CONFIG_LIBC_STRERROR_SHORT</code>:
     If this option is selected, then <code>strerror()</code> will use a shortened string when it decodes the error.
     Specifically, <code>strerror()</code> is simply use the string that is the common name for the error.
-    For example, the <code>errno</code> value of 2 will produce the string &quot;No such file or directory&quot; is <code>CONFIG_LIBC_STRERROR_SHORT</code> is not defined but the string &quot;ENOENT&quot; is <code>CONFIG_LIBC_STRERROR_SHORT</code> is defined.
+    For example, the <code>errno</code> value of 2 will produce the string &quot;No such file or directory&quot; if <code>CONFIG_LIBC_STRERROR_SHORT</code> is not defined but the string &quot;ENOENT&quot; if <code>CONFIG_LIBC_STRERROR_SHORT</code> is defined.
   </li>
   <li>
     <code>CONFIG_LIBC_PERROR_STDOUT</code>:

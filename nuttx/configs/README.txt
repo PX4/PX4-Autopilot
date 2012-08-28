@@ -562,8 +562,8 @@ defconfig -- This is a configuration file similar to the Linux
       will use a shortened string when it decodes the error.  Specifically,
       strerror() is simply use the string that is the common name for the
       error.  For example, the 'errno' value of 2 will produce the string
-      "No such file or directory" is CONFIG_LIBC_STRERROR_SHORT is not
-      defined but the string "ENOENT" is CONFIG_LIBC_STRERROR_SHORT is
+      "No such file or directory" if CONFIG_LIBC_STRERROR_SHORT is not
+      defined but the string "ENOENT" if CONFIG_LIBC_STRERROR_SHORT is
       defined.
     CONFIG_LIBC_PERROR_STDOUT - POSIX requires that perror() provide its output
       on stderr.  This option may be defined, however, to provide perror() output
