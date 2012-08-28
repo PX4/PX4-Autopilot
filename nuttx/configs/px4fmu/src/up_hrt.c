@@ -314,9 +314,9 @@ static void		hrt_call_invoke(void);
  * PPM decoder tuning parameters
  */
 # define PPM_MAX_PULSE_WIDTH	500		/* maximum width of a pulse */
-# define PPM_MIN_CHANNEL_VALUE	750		/* shortest valid channel signal */
-# define PPM_MAX_CHANNEL_VALUE	2400		/* longest valid channel signal */
-# define PPM_MIN_START		5000		/* shortest valid start gap */
+# define PPM_MIN_CHANNEL_VALUE	800		/* shortest valid channel signal */
+# define PPM_MAX_CHANNEL_VALUE	2200		/* longest valid channel signal */
+# define PPM_MIN_START		2500		/* shortest valid start gap */
 
 /* decoded PPM buffer */
 #define PPM_MAX_CHANNELS	12
