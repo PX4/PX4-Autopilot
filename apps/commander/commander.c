@@ -746,12 +746,12 @@ float battery_remaining_estimate_voltage(int cells, int chemistry, float voltage
 		initialized = true;
 	}
 
-	float chemistry_voltage_empty[1];
-	float chemistry_voltage_full[1];
+	float chemistry_voltage_empty[1] = { 3.2f };
+	float chemistry_voltage_full[1] = { 4.05f };
 
 	if (counter % 100 == 0) {
-		param_get(bat_volt_empty, chemistry_voltage_empty+0);
-		param_get(bat_volt_full, chemistry_voltage_full+0);
+		param_get(bat_volt_empty, &(chemistry_voltage_empty[0]));
+		param_get(bat_volt_full, &(chemistry_voltage_full[0]));
 	}
 	counter++;
 

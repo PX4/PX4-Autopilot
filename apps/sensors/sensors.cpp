@@ -428,33 +428,53 @@ Sensors::parameters_update()
 
 	/* min values */
 	for (unsigned int i = 0; i < nchans; i++) {
-		param_get(_parameter_handles.min[i], &(_parameters.min[i]));
+		if (param_get(_parameter_handles.min[i], &(_parameters.min[i])) != OK) {
+			warnx("Failed getting min for chan %d", i);
+		}
 	}
 
 	/* trim values */
 	for (unsigned int i = 0; i < nchans; i++) {
-		param_get(_parameter_handles.trim[i], &(_parameters.trim[i]));
+		if (param_get(_parameter_handles.trim[i], &(_parameters.trim[i])) != OK) {
+			warnx("Failed getting trim for chan %d", i);
+		}
 	}
 
 	/* max values */
 	for (unsigned int i = 0; i < nchans; i++) {
-		param_get(_parameter_handles.max[i], &(_parameters.max[i]));
+		if (param_get(_parameter_handles.max[i], &(_parameters.max[i])) != OK) {
+			warnx("Failed getting max for chan %d", i);
+		}
 	}
 
 	/* channel reverse */
 	for (unsigned int i = 0; i < nchans; i++) {
-		param_get(_parameter_handles.rev[i], &(_parameters.rev[i]));
+		if (param_get(_parameter_handles.rev[i], &(_parameters.rev[i])) != OK) {
+			warnx("Failed getting rev for chan %d", i);
+		}
 	}
 
 	/* remote control type */
-	param_get(_parameter_handles.rc_type, &(_parameters.rc_type));
+	if (param_get(_parameter_handles.rc_type, &(_parameters.rc_type)) != OK) {
+		warnx("Failed getting remote control type");
+	}
 
 	/* channel mapping */
-	param_get(_parameter_handles.rc_map_roll, &(_parameters.rc_map_roll));
-	param_get(_parameter_handles.rc_map_pitch, &(_parameters.rc_map_pitch));
-	param_get(_parameter_handles.rc_map_yaw, &(_parameters.rc_map_yaw));
-	param_get(_parameter_handles.rc_map_throttle, &(_parameters.rc_map_throttle));
-	param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw));
+	if (param_get(_parameter_handles.rc_map_roll, &(_parameters.rc_map_roll)) != OK) {
+		warnx("Failed getting roll chan index");
+	}
+	if (param_get(_parameter_handles.rc_map_pitch, &(_parameters.rc_map_pitch)) != OK) {
+		warnx("Failed getting pitch chan index");
+	}
+	if (param_get(_parameter_handles.rc_map_yaw, &(_parameters.rc_map_yaw)) != OK) {
+		warnx("Failed getting yaw chan index");
+	}
+	if (param_get(_parameter_handles.rc_map_throttle, &(_parameters.rc_map_throttle)) != OK) {
+		warnx("Failed getting throttle chan index");
+	}
+	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
+		warnx("Failed getting mode sw chan index");
+	}
 
 	/* gyro offsets */
 	param_get(_parameter_handles.gyro_offset[0], &(_parameters.gyro_offset[0]));
@@ -820,6 +840,11 @@ Sensors::parameter_update_poll()
 		_rc.function[2] = _parameters.rc_map_pitch - 1;
 		_rc.function[3] = _parameters.rc_map_yaw - 1;
 		_rc.function[4] = _parameters.rc_map_mode_sw - 1;
+
+		printf("RAW S: %8.4f MID: %d R: %d P: %d\n",  _rc.chan[0].scaling_factor, (int)_rc.chan[0].mid, (int)_rc.function[0], (int)_rc.function[1]);
+		printf("RAW MAN: %8.4f %8.4f\n", _rc.chan[0].scaled, _rc.chan[1].scaled);
+		fflush(stdout);
+		usleep(5000);
 	}	
 }
 
@@ -870,7 +895,7 @@ Sensors::ppm_poll()
 	if (_ppm_last_valid == ppm_last_valid_decode)
 		return;
 	/* require at least two chanels to consider the signal valid */
-	if (ppm_decoded_channels < 2)
+	if (ppm_decoded_channels < 4)
 		return;
 
 	/* we are accepting this decode */
