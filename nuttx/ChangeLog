@@ -3202,4 +3202,12 @@
 	  for control transfers but does not resolve all of the issues.
 	* configs/stm3220g-eval/*/defconfig:  Calibrated delay loop.  It had
 	  never been calibrated was was way off.
-
+	* sched/sem_holder.c: Add logic to handler some priority inheritance
+	  cases when sem_post() is called from an interrupt handler.  The
+	  logic is clearly wrong, but it is not known if this is the
+	  cause of any known bugs.
+	* lib/stdio/lib_perror():  Add perror().  Contributed by Kate.
+	* lib/string/lib_strerror():  Add option CONFIG_LIBC_STRERROR that
+	  is now required to enabled strerror().  Add an option
+	  CONFIG_LIBC_STRERROR_SHORT that can be used to output shortened
+	  strings by strerror().

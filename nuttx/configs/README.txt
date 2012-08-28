@@ -331,7 +331,7 @@ defconfig -- This is a configuration file similar to the Linux
       threads (minus 1) than can be waiting for another thread
       to release a count on a semaphore.  This value may be set
       to zero if no more than one thread is expected to wait for
-      a semaphore.    If defined, then this should be a relatively
+      a semaphore.  If defined, then this should be a relatively
       small number because this the number of maximumum of waiters
       on one semaphore (like 4 or 8).
     CONFIG_FDCLONE_DISABLE. Disable cloning of all file descriptors
@@ -546,10 +546,31 @@ defconfig -- This is a configuration file similar to the Linux
 
   Misc libc settings
 
-    CONFIG_NOPRINTF_FIELDWIDTH - sprintf-related logic is a
-       little smaller if we do not support fieldwidthes
-    CONFIG_LIBC_FLOATINGPOINT - By default, floating point
-      support in printf, sscanf, etc. is disabled.
+    CONFIG_NOPRINTF_FIELDWIDTH - sprintf-related logic is a little smaller
+      if we do not support fieldwidthes
+    CONFIG_LIBC_FLOATINGPOINT - By default, floating point support in printf,
+      sscanf, etc. is disabled.
+    CONFIG_LIBC_STRERROR - strerror() is useful because it decodes 'errno'
+      values into a human readable strings.  But it can also require
+      a lot of memory.  If this option is selected, strerror() will still
+      exist in the build but it will not decode error values.  This option
+      should be used by other logic to decide if it should use strerror() or
+      not.  For example, the NSH application will not use strerror() if this
+      option is not selected; perror() will not use strerror() is this option
+      is not selected (see also CONFIG_NSH_STRERROR).
+    CONFIG_LIBC_STRERROR_SHORT - If this option is selected, then strerror()
+      will use a shortened string when it decodes the error.  Specifically,
+      strerror() is simply use the string that is the common name for the
+      error.  For example, the 'errno' value of 2 will produce the string
+      "No such file or directory" is CONFIG_LIBC_STRERROR_SHORT is not
+      defined but the string "ENOENT" is CONFIG_LIBC_STRERROR_SHORT is
+      defined.
+    CONFIG_LIBC_PERROR_STDOUT - POSIX requires that perror() provide its output
+      on stderr.  This option may be defined, however, to provide perror() output
+      that is serialized with other stdout messages.
+    CONFIG_LIBC_PERROR_DEVNAME -  Another non-standard option is to provide
+      perror() output to a logging device or file. CONFIG_LIBC_PERROR_DEVNAME
+      may be defined to be any write-able, character device (or file).
 
   Allow for architecture optimized implementations
 

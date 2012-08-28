@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: July 8, 2012</p>
+      <p>Last Updated: August 28, 2012</p>
     </td>
   </tr>
 </table>
@@ -4349,6 +4349,31 @@ build
   <li>
     <code>CONFIG_LIBC_FLOATINGPOINT</code>: By default, floating point
     support in <code>printf</code>, <code>sscanf</code>, etc. is disabled.
+  </li>
+  <li>
+    <code>CONFIG_LIBC_STRERROR</code>:
+    <code>strerror()</code> is useful because it decodes <code>errno</code>  values into a human readable strings.
+    But it can also require a lot of memory to store the strings.
+    If this option is selected, <code>strerror()</code> will still exist in the build but it will not decode error values.
+    This option should be used by other logic to decide if it should use <code>strerror()</code> or not.
+    For example, the NSH application will not use <code>strerror()</code> if this option is not selected;
+    <code>perror(</code>) will not use strerror() is this option is not selected (see also <code>CONFIG_NSH_STRERROR</code>).
+  </li>
+  <li>
+    <code>CONFIG_LIBC_STRERROR_SHORT</code>:
+    If this option is selected, then <code>strerror()</code> will use a shortened string when it decodes the error.
+    Specifically, <code>strerror()</code> is simply use the string that is the common name for the error.
+    For example, the <code>errno</code> value of 2 will produce the string &quot;No such file or directory&quot; is <code>CONFIG_LIBC_STRERROR_SHORT</code> is not defined but the string &quot;ENOENT&quot; is <code>CONFIG_LIBC_STRERROR_SHORT</code> is defined.
+  </li>
+  <li>
+    <code>CONFIG_LIBC_PERROR_STDOUT</code>:
+    POSIX requires that <code>perror()</code> provide its output on <code>stderr</code>.
+    This option may be defined, however, to provide <code>perror()</code> output that is serialized with other <code>stdout</code> messages.
+  </li>
+  <li>
+    <code>CONFIG_LIBC_PERROR_DEVNAME</code>:
+    Another non-standard option is to provide <code>perror()</code> output to a logging device or file.
+    <code>CONFIG_LIBC_PERROR_DEVNAME<code> may be defined to be any write-able, character device (or file).
   </li>
 </ul>
 

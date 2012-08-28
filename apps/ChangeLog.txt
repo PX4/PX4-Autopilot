@@ -289,5 +289,5 @@
 	  threds to no more than 3 of each priority.  Bad things happen
 	  when the existing logic tried to created several hundred test
 	  treads!
-
-
+	* apps/nshlib/nsh.h:  Both CONFIG_LIBC_STRERROR and CONFIG_NSH_STRERROR
+	  must be defined to use strerror() with NSH.

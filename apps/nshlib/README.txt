@@ -915,7 +915,9 @@ NSH-Specific Configuration Settings
 
   * CONFIG_NSH_STRERROR
       strerror(errno) makes more readable output but strerror() is
-      very large and will not be used unless this setting is 'y'
+      very large and will not be used unless this setting is 'y'.
+      This setting depends upon the strerror() having been enabled
+      with CONFIG_LIBC_STRERROR.
 
   * CONFIG_NSH_LINELEN
       The maximum length of one command line and of one output line.

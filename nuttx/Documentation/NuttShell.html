@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttShell (NSH)</i></font></big></h1>
-      <p>Last Updated: August 7, 2012</p>
+      <p>Last Updated: August 28, 2012</p>
     </td>
   </tr>
 </table>
@@ -2284,8 +2284,9 @@ nsh>
   <tr>
     <td valign="top"><b><code>CONFIG_NSH_STRERROR</code></b></td>
     <td>
-      strerror(errno) makes more readable output but strerror() is
-      very large and will not be used unless this setting is <i>y</i>
+      <code>strerror(errno)</code> makes more readable output but <code>strerror()</code> is
+      very large and will not be used unless this setting is <i>y</i>.
+      This setting depends upon the <code>strerror()</code> having been enabled with <code>CONFIG_LIBC_STRERROR</code>.
     </td>
   </tr>
   <tr>
