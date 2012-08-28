@@ -323,13 +323,17 @@ defconfig -- This is a configuration file similar to the Linux
       set to zero if priority inheritance is disabled OR if you
       are only using semaphores as mutexes (only one holder) OR
       if no more than two threads participate using a counting
-      semaphore.
+      semaphore.  If defined, then this should be a relatively
+      large number because this is the total number of counts on
+      the total number of semaphores (like 64 or 100).
     CONFIG_SEM_NNESTPRIO.  If priority inheritance is enabled,
       then this setting is the maximum number of higher priority
       threads (minus 1) than can be waiting for another thread
       to release a count on a semaphore.  This value may be set
       to zero if no more than one thread is expected to wait for
-      a semaphore.
+      a semaphore.    If defined, then this should be a relatively
+      small number because this the number of maximumum of waiters
+      on one semaphore (like 4 or 8).
     CONFIG_FDCLONE_DISABLE. Disable cloning of all file descriptors
       by task_create() when a new task is started.  If set, all
         files/drivers will appear to be closed in the new task.

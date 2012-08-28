@@ -123,17 +123,21 @@ int sem_post(FAR sem_t *sem)
       sem_releaseholder(sem);
       sem->semcount++;
 
-      /* If the result of of semaphore unlock is non-positive, then
-       * there must be some task waiting for the semaphore.
-       */
-
 #ifdef CONFIG_PRIORITY_INHERITANCE
-      /* Don't let it run until we complete the priority restoration
-       * steps.
+      /* Don't let any unblocked tasks run until we complete any priority
+       * restoration steps.  Interrupts are disabled, but we do not want
+       * the head of the read-to-run list to be modified yet.
+       *
+       * NOTE: If this sched_lock is called from an interrupt handler, it
+       * will do nothing.
        */
 
       sched_lock();
 #endif
+      /* If the result of of semaphore unlock is non-positive, then
+       * there must be some task waiting for the semaphore.
+       */
+
       if (sem->semcount <= 0)
         {
           /* Check if there are any tasks in the waiting for semaphore

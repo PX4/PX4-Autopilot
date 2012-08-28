@@ -59,20 +59,28 @@
 #  define CONFIG_SEM_PREALLOCHOLDERS 0
 #endif
 
+/* If resources were configured for lots of holders, then run 3 low priority
+ * threads.  Otherwise, just one.
+ */
+
 #if CONFIG_SEM_PREALLOCHOLDERS > 3
 #  define NLOWPRI_THREADS 3
 #else
-#  define NLOWPRI_THREADS (CONFIG_SEM_PREALLOCHOLDERS+1)
+#  define NLOWPRI_THREADS 1
 #endif
 
 #ifndef CONFIG_SEM_NNESTPRIO
 #  define CONFIG_SEM_NNESTPRIO 0
 #endif
 
+/* Where resources configured for lots of waiters?  If so then run 3 high
+ * priority threads.  Otherwise, just one.
+ */
+
 #if CONFIG_SEM_NNESTPRIO > 3
 #  define NHIGHPRI_THREADS 3
 #else
-#  define NHIGHPRI_THREADS (CONFIG_SEM_NNESTPRIO+1)
+#  define NHIGHPRI_THREADS 1
 #endif
 
 /****************************************************************************

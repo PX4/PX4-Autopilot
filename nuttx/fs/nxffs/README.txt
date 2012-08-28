@@ -154,7 +154,7 @@ Things to Do
 - The file name is always extracted and held in allocated, variable-length
   memory.  The file name is not used during reading and eliminating the
   file name in the entry structure would improve performance.
-- There is a big inefficient in reading.  On each read, the logic searches
+- There is a big inefficiency in reading.  On each read, the logic searches
   for the read position from the beginning of the file each time.  This
   may be necessary whenever an lseek() is done, but not in general.  Read
   performance could be improved by keeping FLASH offset and read positional
@@ -168,4 +168,13 @@ Things to Do
   FLASH.  As the file system becomes more filled with fixed files at the
   front of the device, the level of wear on the blocks at the end of the
   FLASH increases.
+- When the time comes to reorganization the FLASH, the system may be
+  inavailable for a long time.  That is a bad behavior.  What is needed,
+  I think, is a garbage collection task that runs periodically so that
+  when the big reorganizaiton event occurs, most of the work is already
+  done.  That garbarge collection should search for valid blocks that no
+  longer contain valid data.  It should pre-erase them, put them in
+  a good but empty state... all ready for file system re-organization.
+ 
+
 
