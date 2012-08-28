@@ -174,10 +174,10 @@ private:
 	struct rc_channels_s _rc;			/**< r/c channel data */
 
 	struct {
-		int min[_rc_max_chan_count];
-		int trim[_rc_max_chan_count];
-		int max[_rc_max_chan_count];
-		int rev[_rc_max_chan_count];
+		float min[_rc_max_chan_count];
+		float trim[_rc_max_chan_count];
+		float max[_rc_max_chan_count];
+		float rev[_rc_max_chan_count];
 
 		float gyro_offset[3];
 		float mag_offset[3];
@@ -347,8 +347,13 @@ Sensors::Sensors() :
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update"))
 {
+	_parameter_handles.min[0] = param_find("RC1_MIN");
+	_parameter_handles.max[0] = param_find("RC1_MAX");
+	_parameter_handles.trim[0] = param_find("RC1_TRIM");
+	_parameter_handles.rev[0] = param_find("RC1_REV");
+
 	/* basic r/c parameters */
-	for (unsigned i = 0; i < _rc_max_chan_count; i++) {
+	for (unsigned i = 1; i < _rc_max_chan_count; i++) {
 		char nbuf[16];
 
 		/* min values */
@@ -841,10 +846,13 @@ Sensors::parameter_update_poll(bool forced)
 		_rc.function[3] = _parameters.rc_map_yaw - 1;
 		_rc.function[4] = _parameters.rc_map_mode_sw - 1;
 
-		printf("RAW S: %8.4f MID: %d R: %d P: %d\n",  _rc.chan[0].scaling_factor, (int)_rc.chan[0].mid, (int)_rc.function[0], (int)_rc.function[1]);
-		printf("RAW MAN: %8.4f %8.4f\n", _rc.chan[0].scaled, _rc.chan[1].scaled);
+#if 1
+		printf("CH0: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n",  (int)_parameters.max[0], (int)_parameters.min[0], (int)(_rc.chan[0].scaling_factor*100), (int)(_rc.chan[0].mid*100), (int)_rc.function[0]);
+		printf("CH1: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n",  (int)_parameters.max[1], (int)_parameters.min[1], (int)(_rc.chan[1].scaling_factor*100), (int)(_rc.chan[1].mid*100), (int)_rc.function[1]);
+		printf("MAN: %d %d\n", (int)(_rc.chan[0].scaled*100), (int)(_rc.chan[1].scaled*100));
 		fflush(stdout);
 		usleep(5000);
+#endif
 	}	
 }
 
