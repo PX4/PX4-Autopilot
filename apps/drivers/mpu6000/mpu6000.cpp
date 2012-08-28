@@ -589,9 +589,14 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return -EINVAL;
 
 	case ACCELIOCSSCALE:
+		/* copy scale in */
+		memcpy(&_accel_scale, (struct accel_scale*) arg, sizeof(_accel_scale));
+		return OK;
+
 	case ACCELIOCGSCALE:
-		/* XXX not implemented */
-		return -EINVAL;
+		/* copy scale out */
+		memcpy((struct accel_scale*) arg, &_accel_scale, sizeof(_accel_scale));
+		return OK;
 
 	case ACCELIOCSRANGE:
 	case ACCELIOCGRANGE:
@@ -631,9 +636,14 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		return -EINVAL;
 
 	case GYROIOCSSCALE:
+		/* copy scale in */
+		memcpy(&_gyro_scale, (struct gyro_scale*) arg, sizeof(_gyro_scale));
+		return OK;
+
 	case GYROIOCGSCALE:
-		/* XXX not implemented */
-		return -EINVAL;
+		/* copy scale out */
+		memcpy((struct gyro_scale*) arg, &_gyro_scale, sizeof(_gyro_scale));
+		return OK;
 
 	case GYROIOCSRANGE:
 	case GYROIOCGRANGE:
