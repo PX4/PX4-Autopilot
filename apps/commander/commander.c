@@ -446,6 +446,10 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 
 void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 {
+	/* set to gyro calibration mode */
+	status->preflight_gyro_calibration = true;
+	state_machine_publish(status_pub, status, mavlink_fd);
+
 	const int calibration_count = 3000;
 
 	int sub_sensor_combined = orb_subscribe(ORB_ID(sensor_combined));
@@ -487,6 +491,10 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	if (param_set(param_find("SENSOR_GYRO_ZOFF"), &(gyro_offset[2]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting Z gyro offset failed!");
 	}
+
+	/* exit to gyro calibration mode */
+	status->preflight_gyro_calibration = false;
+	state_machine_publish(status_pub, status, mavlink_fd);
 
 	char offset_output[50];
 	sprintf(offset_output, "[commander] gyro cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
