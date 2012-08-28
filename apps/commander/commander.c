@@ -271,25 +271,25 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	/* Get rid of 10% */
 	const int outlier_margin = (peak_samples) / 10;
 
-	int16_t *mag_maxima[3];
-	mag_maxima[0] = (int16_t*)malloc(peak_samples * sizeof(uint16_t));
-	mag_maxima[1] = (int16_t*)malloc(peak_samples * sizeof(uint16_t));
-	mag_maxima[2] = (int16_t*)malloc(peak_samples * sizeof(uint16_t));
+	float *mag_maxima[3];
+	mag_maxima[0] = (float*)malloc(peak_samples * sizeof(float));
+	mag_maxima[1] = (float*)malloc(peak_samples * sizeof(float));
+	mag_maxima[2] = (float*)malloc(peak_samples * sizeof(float));
 
-	int16_t *mag_minima[3];
-	mag_minima[0] = (int16_t*)malloc(peak_samples * sizeof(uint16_t));
-	mag_minima[1] = (int16_t*)malloc(peak_samples * sizeof(uint16_t));
-	mag_minima[2] = (int16_t*)malloc(peak_samples * sizeof(uint16_t));
+	float *mag_minima[3];
+	mag_minima[0] = (float*)malloc(peak_samples * sizeof(float));
+	mag_minima[1] = (float*)malloc(peak_samples * sizeof(float));
+	mag_minima[2] = (float*)malloc(peak_samples * sizeof(float));
 
 	/* initialize data table */
 	for (int i = 0; i < peak_samples; i++) {
-		mag_maxima[0][i] = INT16_MIN;
-		mag_maxima[1][i] = INT16_MIN;
-		mag_maxima[2][i] = INT16_MIN;
+		mag_maxima[0][i] = FLT_MIN;
+		mag_maxima[1][i] = FLT_MIN;
+		mag_maxima[2][i] = FLT_MIN;
 
-		mag_minima[0][i] = INT16_MAX;
-		mag_minima[1][i] = INT16_MAX;
-		mag_minima[2][i] = INT16_MAX;
+		mag_minima[0][i] = FLT_MAX;
+		mag_minima[1][i] = FLT_MAX;
+		mag_minima[2][i] = FLT_MAX;
 	}
 
 	mavlink_log_info(mavlink_fd, "[commander] Please rotate in all directions.");
@@ -308,23 +308,23 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 			for (int i = 0; i < peak_samples; i++) {
 				/* x minimum */
 				if (raw.magnetometer_raw[0] < mag_minima[0][i])
-					mag_minima[0][i] = raw.magnetometer_raw[0];
+					mag_minima[0][i] = raw.magnetometer_ga[0];
 				/* y minimum */
 				if (raw.magnetometer_raw[1] < mag_minima[1][i])
-					mag_minima[1][i] = raw.magnetometer_raw[1];
+					mag_minima[1][i] = raw.magnetometer_ga[1];
 				/* z minimum */
 				if (raw.magnetometer_raw[2] < mag_minima[2][i])
-					mag_minima[2][i] = raw.magnetometer_raw[2];
+					mag_minima[2][i] = raw.magnetometer_ga[2];
 
 				/* x maximum */
 				if (raw.magnetometer_raw[0] > mag_maxima[0][i])
-					mag_maxima[0][i] = raw.magnetometer_raw[0];
+					mag_maxima[0][i] = raw.magnetometer_ga[0];
 				/* y maximum */
 				if (raw.magnetometer_raw[1] > mag_maxima[1][i])
-					mag_maxima[1][i] = raw.magnetometer_raw[1];
+					mag_maxima[1][i] = raw.magnetometer_ga[1];
 				/* z maximum */
 				if (raw.magnetometer_raw[2] > mag_maxima[2][i])
-					mag_maxima[2][i] = raw.magnetometer_raw[2];
+					mag_maxima[2][i] = raw.magnetometer_ga[2];
 			}
 
 			calibration_counter++;
@@ -354,7 +354,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	printf("start:\n");
 
 	for (int i = 0; i < 10; i++) {
-		printf("mag min: %d\t%d\t%d\tmag max: %d\t%d\t%d\n",
+		printf("mag min: %8.4f\t%8.4f\t%8.4f\tmax: %8.4f\t%8.4f\t%8.4f\n",
 									mag_minima[0][i],
 									mag_minima[1][i],
 									mag_minima[2][i],
@@ -366,7 +366,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	printf("-----\n");
 
 	for (int i = (peak_samples - outlier_margin)-10; i < (peak_samples - outlier_margin); i++) {
-		printf("mag min: %d\t%d\t%d\tmag max: %d\t%d\t%d\n",
+		printf("mag min: %8.4f\t%8.4f\t%8.4f\tmax: %8.4f\t%8.4f\t%8.4f\n",
 									mag_minima[0][i],
 									mag_minima[1][i],
 									mag_minima[2][i],
@@ -397,7 +397,8 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	max_avg[1] /= (peak_samples - outlier_margin);
 	max_avg[2] /= (peak_samples - outlier_margin);
 
-	printf("\nFINAL:\nmag min: %d\t%d\t%d\nmag max: %d\t%d\t%d\n", (int)min_avg[0], (int)min_avg[1], (int)min_avg[2], (int)max_avg[0], (int)max_avg[1], (int)max_avg[2]);
+	printf("\nFINAL:\nmag min: %8.4f\t%8.4f\t%8.4f\nmax: %8.4f\t%8.4f\t%8.4f\n", (double)min_avg[0], 
+		(double)min_avg[1], (double)min_avg[2], (double)max_avg[0], (double)max_avg[1], (double)max_avg[2]);
 
 	float mag_offset[3];
 
@@ -465,9 +466,9 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 
 		if (poll(fds, 1, 1000)) {
 			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
-			gyro_offset[0] += raw.gyro_raw[0];
-			gyro_offset[1] += raw.gyro_raw[1];
-			gyro_offset[2] += raw.gyro_raw[2];
+			gyro_offset[0] += raw.gyro_rad_s[0];
+			gyro_offset[1] += raw.gyro_rad_s[1];
+			gyro_offset[2] += raw.gyro_rad_s[2];
 			calibration_counter++;
 		} else {
 			/* any poll failure for 1s is a reason to abort */
@@ -501,8 +502,6 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	mavlink_log_info(mavlink_fd, offset_output);
 
 	close(sub_sensor_combined);
-
-	// XXX Add a parameter changed broadcast notification
 }
 
 
