@@ -1444,8 +1444,8 @@ int mavlink_thread_main(int argc, char *argv[])
 
 	pthread_attr_t uorb_attr;
 	pthread_attr_init(&uorb_attr);
-	/* Set stack size, needs more than 4000 bytes */
-	pthread_attr_setstacksize(&uorb_attr, 4096);
+	/* Set stack size, needs more than 8000 bytes */
+	pthread_attr_setstacksize(&uorb_attr, 8192);
 	pthread_create(&uorb_receive_thread, &uorb_attr, uorb_receiveloop, &mavlink_subs);
 
 	/* initialize waypoint manager */
