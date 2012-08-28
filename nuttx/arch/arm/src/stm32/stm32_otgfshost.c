@@ -1474,7 +1474,7 @@ static int stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
                               FAR uint8_t *buffer, size_t buflen)
 {
   FAR struct stm32_chan_s *chan;
-  int ret;
+  int ret = OK;
 
   /* Loop until the transfer completes (i.e., buflen is decremented to zero)
    * or a fatal error occurs (any error other than a simple NAK)
@@ -1483,6 +1483,17 @@ static int stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
   chan         = &priv->chan[chidx];
   chan->buffer = buffer;
   chan->buflen = buflen;
+
+  /* There is a bug in the code at present.  With debug OFF, this driver
+   * overruns the typical FLASH device and there are many problems with
+   * NAKS. Sticking a big delay here allows the device (FLASH drive) to
+   * catch up but sacrifices driver performance.
+   */
+
+#if !defined(CONFIG_DEBUG_VERBOSE) || !defined(CONFIG_DEBUG_USB)
+#warning "REVISIT this delay"
+  usleep(50*1000);
+#endif
 
   while (chan->buflen > 0)
     {
@@ -1537,17 +1548,6 @@ static int stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
           }
         }
 
-      /* There is a bug in the code at present.  With debug OFF, this driver
-       * overruns the typical FLASH device and there are many problems with
-       * NAKS sticking a big delay here allows the driver to work but with
-       * very poor performance when debug is off.
-       */
-
-#if !defined(CONFIG_DEBUG_VERBOSE) && !defined(CONFIG_DEBUG_USB)
-#warning "REVISIT this delay"
-      usleep(100*1000);
-#endif
-
       /* Start the transfer */
 
       stm32_transfer_start(priv, chidx);
@@ -1557,18 +1557,30 @@ static int stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
       ret = stm32_chan_wait(priv, chan);
 
       /* EAGAIN indicates that the device NAKed the transfer and we need
-       * do try again.  Anything else (success or other errors) will
-       * cause use to return
+       * do try again.  NAK retries are not yet supported for OUT transfers
+       * so any unsuccessful response will cause us to abort the OUT
+       * transfer.
        */
 
       if (ret != OK)
         {
           udbg("Transfer failed: %d\n", ret);
-          return ret;
+          break;
         }
     }
 
-  return OK;
+  /* There is a bug in the code at present.  With debug OFF, this driver
+   * overruns the typical FLASH device and there are many problems with
+   * NAKS. Sticking a big delay here allows the device (FLASH drive) to
+   * catch up but sacrifices driver performance.
+   */
+
+#if !defined(CONFIG_DEBUG_VERBOSE) || !defined(CONFIG_DEBUG_USB)
+#warning "REVISIT this delay"
+  usleep(50*1000);
+#endif
+
+  return ret;
 }
 
 /*******************************************************************************
@@ -3086,9 +3098,9 @@ static int stm32_enumerate(FAR struct usbhost_driver_s *drvr)
   priv->chan[chidx].indata1   = false;
   priv->chan[chidx].outdata1  = false;
 
-  /* USB 2.0 spec says at least 50ms delay before port reset */
+  /* USB 2.0 spec says at least 50ms delay before port reset.  We wait 100ms. */
 
-  up_mdelay(100);
+  usleep(100*1000);
 
   /* Reset the host port */
 
