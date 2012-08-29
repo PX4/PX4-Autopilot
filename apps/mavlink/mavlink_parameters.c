@@ -46,6 +46,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <string.h>
+#include <errno.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <sys/stat.h>
@@ -180,9 +181,10 @@ static int mavlink_pm_save_eeprom()
 	/* create the file */
 	int fd = open(mavlink_parameter_file, O_WRONLY | O_CREAT | O_EXCL);
 
-	if (fd < 0)
+	if (fd < 0) {
 		warn("opening '%s' for writing failed", mavlink_parameter_file);
 		return -1;
+	}
 
 	int result = param_export(fd, false);
 	close(fd);
@@ -202,19 +204,15 @@ static int mavlink_pm_save_eeprom()
 static int
 mavlink_pm_load_eeprom()
 {
-	/* check if eeprom is mounted - if yes and an eeprom open fail is no error */
-	struct stat buffer;
-	int eeprom_stat = stat("/eeprom", &buffer);
-
 	int fd = open(mavlink_parameter_file, O_RDONLY);
 
 	if (fd < 0) {
-		if (eeprom_stat == OK) {
-			return 1;
-		} else {
+		/* no parameter file is OK, otherwise this is an error */
+		if (errno != ENOENT) {
 			warn("open '%s' for reading failed", mavlink_parameter_file);
 			return -1;
 		}
+		return 1;
 	}
 
 	int result = param_import(fd);
