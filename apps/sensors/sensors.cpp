@@ -49,6 +49,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <errno.h>
+#include <math.h>
 
 #include <arch/board/up_hrt.h>
 
@@ -431,33 +432,38 @@ Sensors::parameters_update()
 {
 	const unsigned int nchans = 8;
 
-	/* min values */
+	/* rc values */
 	for (unsigned int i = 0; i < nchans; i++) {
+
 		if (param_get(_parameter_handles.min[i], &(_parameters.min[i])) != OK) {
 			warnx("Failed getting min for chan %d", i);
 		}
-	}
-
-	/* trim values */
-	for (unsigned int i = 0; i < nchans; i++) {
 		if (param_get(_parameter_handles.trim[i], &(_parameters.trim[i])) != OK) {
 			warnx("Failed getting trim for chan %d", i);
 		}
-	}
-
-	/* max values */
-	for (unsigned int i = 0; i < nchans; i++) {
 		if (param_get(_parameter_handles.max[i], &(_parameters.max[i])) != OK) {
 			warnx("Failed getting max for chan %d", i);
 		}
-	}
-
-	/* channel reverse */
-	for (unsigned int i = 0; i < nchans; i++) {
 		if (param_get(_parameter_handles.rev[i], &(_parameters.rev[i])) != OK) {
 			warnx("Failed getting rev for chan %d", i);
 		}
+
+		_rc.chan[i].scaling_factor = (1.0f / ((_parameters.max[i] - _parameters.min[i]) / 2.0f) * _parameters.rev[i]);
+
+		/* handle blowup in the scaling factor calculation */
+		if (isnan(_rc.chan[i].scaling_factor) || isinf(_rc.chan[i].scaling_factor)) {
+			_rc.chan[i].scaling_factor = 0;
+		}
+
+		_rc.chan[i].mid = _parameters.trim[i];
 	}
+
+	/* update RC function mappings */
+	_rc.function[0] = _parameters.rc_map_throttle - 1;
+	_rc.function[1] = _parameters.rc_map_roll - 1;
+	_rc.function[2] = _parameters.rc_map_pitch - 1;
+	_rc.function[3] = _parameters.rc_map_yaw - 1;
+	_rc.function[4] = _parameters.rc_map_mode_sw - 1;
 
 	/* remote control type */
 	if (param_get(_parameter_handles.rc_type, &(_parameters.rc_type)) != OK) {
@@ -763,8 +769,10 @@ void
 Sensors::parameter_update_poll(bool forced)
 {
 	bool param_updated;
+
 	/* Check if any parameter has changed */
 	orb_check(_params_sub, &param_updated);
+
 	if (param_updated || forced)
 	{
 		/* read from param to clear updated flag */
@@ -772,6 +780,7 @@ Sensors::parameter_update_poll(bool forced)
 		orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
 		printf("PARAMS UPDATED\n");
+
 		/* update parameters */
 		parameters_update();
 
@@ -814,37 +823,6 @@ Sensors::parameter_update_poll(bool forced)
 		if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale))
 			warn("WARNING: failed to set scale / offsets for mag");
 		close(fd);
-
-		/* update RC scalings and function mappings */
-		_rc.chan[0].scaling_factor = (1.0f / ((_parameters.max[0] - _parameters.min[0]) / 2.0f) * _parameters.rev[0]);
-		_rc.chan[0].mid = _parameters.trim[0];
-
-		_rc.chan[1].scaling_factor = (1.0f / ((_parameters.max[1] - _parameters.min[1]) / 2.0f) * _parameters.rev[1]);
-		_rc.chan[1].mid = _parameters.trim[1];
-
-		_rc.chan[2].scaling_factor = (1.0f / ((_parameters.max[2] - _parameters.min[2]) / 2.0f) * _parameters.rev[2]);
-		_rc.chan[2].mid = _parameters.trim[2];
-
-		_rc.chan[3].scaling_factor = (1.0f / ((_parameters.max[3] - _parameters.min[3]) / 2.0f) * _parameters.rev[3]);
-		_rc.chan[3].mid = _parameters.trim[3];
-
-		_rc.chan[4].scaling_factor = (1.0f / ((_parameters.max[4] - _parameters.min[4]) / 2.0f) * _parameters.rev[4]);
-		_rc.chan[4].mid = _parameters.trim[4];
-
-		_rc.chan[5].scaling_factor = (1.0f / ((_parameters.max[5] - _parameters.min[5]) / 2.0f) * _parameters.rev[5]);
-		_rc.chan[5].mid = _parameters.trim[5];
-
-		_rc.chan[6].scaling_factor = (1.0f / ((_parameters.max[6] - _parameters.min[6]) / 2.0f) * _parameters.rev[6]);
-		_rc.chan[6].mid = _parameters.trim[6];
-
-		_rc.chan[7].scaling_factor = (1.0f / ((_parameters.max[7] - _parameters.min[7]) / 2.0f) * _parameters.rev[7]);
-		_rc.chan[7].mid = _parameters.trim[7];
-
-		_rc.function[0] = _parameters.rc_map_throttle - 1;
-		_rc.function[1] = _parameters.rc_map_roll - 1;
-		_rc.function[2] = _parameters.rc_map_pitch - 1;
-		_rc.function[3] = _parameters.rc_map_yaw - 1;
-		_rc.function[4] = _parameters.rc_map_mode_sw - 1;
 
 #if 1
 		printf("CH0: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n",  (int)_parameters.max[0], (int)_parameters.min[0], (int)(_rc.chan[0].scaling_factor*10000), (int)(_rc.chan[0].mid), (int)_rc.function[0]);
