@@ -377,7 +377,9 @@ void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, uint8_t
 
 	switch (c_status->state_machine) {
 	case SYSTEM_STATE_PREFLIGHT:
-		if (c_status->preflight_gyro_calibration || c_status->preflight_mag_calibration) {
+		if (c_status->flag_preflight_gyro_calibration ||
+		    c_status->flag_preflight_mag_calibration ||
+		    c_status->flag_preflight_accel_calibration) {
 			*mavlink_state = MAV_STATE_CALIBRATING;
 			*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
 		} else {

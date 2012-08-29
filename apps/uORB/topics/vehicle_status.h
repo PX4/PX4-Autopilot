@@ -129,8 +129,9 @@ struct vehicle_status_s
 	// bool control_speed_enabled;			/**< true if speed (implies direction) is controlled */
 	// bool control_position_enabled;			/**< true if position is controlled */
 
-	bool preflight_gyro_calibration;		/**< true if gyro calibration is requested */
-	bool preflight_mag_calibration;			/**< true if mag calibration is requested */
+	bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */
+	bool flag_preflight_mag_calibration;			/**< true if mag calibration is requested */
+	bool flag_preflight_accel_calibration;
 
 	bool rc_signal_lost;				/**< true if RC reception is terminally lost */
 	bool rc_signal_cutting_off;			/**< true if RC reception is weak / cutting off */
