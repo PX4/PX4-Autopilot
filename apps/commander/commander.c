@@ -555,7 +555,7 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	/* add the removed length from x / y to z, since we induce a scaling issue else */
 	float total_len = sqrtf(accel_offset[0]*accel_offset[0] + accel_offset[1]*accel_offset[1] + accel_offset[2]*accel_offset[2]);
 
-	accel_offset[2] = -(accel_offset[2] + total_len);
+	accel_offset[2] = accel_offset[2] + total_len;
 
 	if (param_set(param_find("SENSOR_ACC_XOFF"), &(accel_offset[0]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting X accel offset failed!");
