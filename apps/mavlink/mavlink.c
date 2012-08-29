@@ -909,7 +909,7 @@ static void *uorb_receiveloop(void *arg)
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy local position data into local buffer */
 				orb_copy(ORB_ID(vehicle_attitude_setpoint), spa_sub, &buf.att_sp);
-				mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, buf.att_sp.timestamp/1000, buf.att_sp.roll_tait_bryan, buf.att_sp.pitch_tait_bryan, buf.att_sp.yaw_tait_bryan, buf.att_sp.thrust);
+				mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, buf.att_sp.timestamp/1000, buf.att_sp.roll_body, buf.att_sp.pitch_body, buf.att_sp.yaw_body, buf.att_sp.thrust);
 			}
 
 			/* --- ACTUATOR OUTPUTS 0 --- */
