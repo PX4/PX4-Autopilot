@@ -450,7 +450,7 @@ static int sem_restoreholderprio(FAR struct semholder_s *pholder, FAR sem_t *sem
            * priorities back to the base priority.
            */
 
-          DEBUGASSERT(htcb->sched_priority == stcb->sched_priority && htcb->npend_reprio == 0);
+          //DEBUGASSERT(htcb->sched_priority == stcb->sched_priority && htcb->npend_reprio == 0);
           sched_reprioritize(htcb, htcb->base_priority);
         }
 
