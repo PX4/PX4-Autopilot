@@ -88,14 +88,14 @@ typedef uintptr_t	param_t;
  * @param name		The canonical name of the parameter being looked up.
  * @return		A handle to the parameter, or PARAM_INVALID if the parameter does not exist.
  */
-__EXPORT param_t	param_find(const char *name) __attribute__((const));
+__EXPORT param_t	param_find(const char *name);
 
 /**
  * Return the total number of parameters.
  *
  * @return		The number of parameters.
  */
-__EXPORT unsigned	param_count(void) __attribute__((const));
+__EXPORT unsigned	param_count(void);
 
 /**
  * Look up a parameter by index.
@@ -103,7 +103,7 @@ __EXPORT unsigned	param_count(void) __attribute__((const));
  * @param index		An index from 0 to n, where n is param_count()-1.
  * @return		A handle to the parameter, or PARAM_INVALID if the index is out of range.
  */
-__EXPORT param_t	param_for_index(unsigned index) __attribute__((const));
+__EXPORT param_t	param_for_index(unsigned index);
 
 /**
  * Look up the index of a parameter.
@@ -111,7 +111,7 @@ __EXPORT param_t	param_for_index(unsigned index) __attribute__((const));
  * @param param		The parameter to obtain the index for.
  * @return		The index, or -1 if the parameter does not exist.
  */
-__EXPORT int		param_get_index(param_t param) __attribute__((const));
+__EXPORT int		param_get_index(param_t param);
 
 /**
  * Obtain the name of a parameter.
@@ -119,7 +119,7 @@ __EXPORT int		param_get_index(param_t param) __attribute__((const));
  * @param param		A handle returned by param_find or passed by param_foreach.
  * @return		The name assigned to the parameter, or NULL if the handle is invalid.
  */
-__EXPORT const char	*param_name(param_t param) __attribute__((const));
+__EXPORT const char	*param_name(param_t param);
 
 /**
  * Obtain the type of a parameter.
@@ -127,7 +127,7 @@ __EXPORT const char	*param_name(param_t param) __attribute__((const));
  * @param param		A handle returned by param_find or passed by param_foreach.
  * @return		The type assigned to the parameter.
  */
-__EXPORT param_type_t	param_type(param_t param) __attribute__((const));
+__EXPORT param_type_t	param_type(param_t param);
 
 /**
  * Determine the size of a parameter.
@@ -135,7 +135,7 @@ __EXPORT param_type_t	param_type(param_t param) __attribute__((const));
  * @param param		A handle returned by param_find or passed by param_foreach.
  * @return		The size of the parameter's value.
  */
-__EXPORT size_t		param_size(param_t param) __attribute__((const));
+__EXPORT size_t		param_size(param_t param);
 
 /**
  * Copy the value of a parameter.
