@@ -191,6 +191,7 @@ mc_thread_main(int argc, char *argv[])
 	close(manual_sub);
 	close(actuator_pub);
 	close(armed_pub);
+	close(att_sp_pub);
 
 	perf_print_counter(mc_loop_perf);
 	perf_free(mc_loop_perf);

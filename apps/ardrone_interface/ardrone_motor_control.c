@@ -43,6 +43,7 @@
 #include <unistd.h>
 #include <drivers/drv_gpio.h>
 #include <arch/board/up_hrt.h>
+#include <systemlib/err.h>
 
 #include "ardrone_motor_control.h"
 
@@ -106,22 +107,19 @@ int ar_multiplexing_init()
 	fd = open(GPIO_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		printf("GPIO: open fail\n");
+		warn("GPIO: open fail");
 		return fd;
 	}
 
 	/* deactivate all outputs */
-	int ret = 0;
-	ret += ioctl(fd, GPIO_SET, motor_gpios);
-
-	if (ioctl(fd, GPIO_SET_OUTPUT, motor_gpios) != 0) {
-		printf("GPIO: output set fail\n");
+	if (ioctl(fd, GPIO_SET, motor_gpios)) {
+		warn("GPIO: clearing pins fail");
 		close(fd);
 		return -1;
 	}
 
-	if (ret < 0) {
-		printf("GPIO: clearing pins fail\n");
+	if (ioctl(fd, GPIO_SET_OUTPUT, motor_gpios) != 0) {
+		warn("GPIO: output set fail");
 		close(fd);
 		return -1;
 	}

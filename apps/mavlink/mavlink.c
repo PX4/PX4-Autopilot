@@ -1374,7 +1374,7 @@ int mavlink_thread_main(int argc, char *argv[])
 	register_driver(MAVLINK_LOG_DEVICE, &mavlink_fops, 0666, NULL);
 
 	/* default values for arguments */
-	char *uart_name = "/dev/ttyS0";
+	char *uart_name = "/dev/ttyS1";
 	int baudrate = 57600;
 
 	/* read program arguments */
