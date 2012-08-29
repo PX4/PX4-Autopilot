@@ -34,17 +34,19 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_BOARD_BOARD_H
-#define __ARCH_BOARD_BOARD_H
+#ifndef __CONFIG_STM32F4DISCOVERY_INCLUDE_BOARD_H
+#define __CONFIG_STM32F4DISCOVERY_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
+
 #ifndef __ASSEMBLY__
 # include <stdint.h>
 #endif
+
 #include "stm32_rcc.h"
 #include "stm32_sdio.h"
 #include "stm32_internal.h"
@@ -318,4 +320,4 @@ EXTERN xcpt_t up_irqbutton(int id, xcpt_t irqhandler);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* __ARCH_BOARD_BOARD_H */
+#endif  /* __CONFIG_STM32F4DISCOVERY_INCLUDE_BOARD_H */

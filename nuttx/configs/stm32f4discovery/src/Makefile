@@ -56,8 +56,8 @@ ifeq ($(CONFIG_ARCH_BUTTONS),y)
 CSRCS		+=  up_buttons.c
 endif
 
-ifeq ($(CONFIG_USBDEV),y)
-CSRCS		+= up_usbdev.c
+ifeq ($(CONFIG_STM32_OTGFS),y)
+CSRCS		+= up_usb.c
 endif
 
 ifeq ($(CONFIG_PWM),y)
@@ -70,6 +70,10 @@ endif
 
 ifeq ($(CONFIG_WATCHDOG),y)
 CSRCS		+= up_watchdog.c
+endif
+
+ifeq ($(CONFIG_NSH_ARCHINIT),y)
+CSRCS		+= up_nsh.c
 endif
 
 ifeq ($(CONFIG_PM_CUSTOMINIT),y)

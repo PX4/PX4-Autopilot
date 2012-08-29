@@ -861,11 +861,16 @@ Where <subdir> is one of the following:
     8. USB OTG FS Device or Host Support
  
        CONFIG_USBDEV          - Enable USB device support, OR
-       CONFIG_USBHOST         - Enable USB host support
+       CONFIG_USBHOST         - Enable USB host support (but not both)
+
        CONFIG_STM32_OTGFS     - Enable the STM32 USB OTG FS block
-       CONFIG_STM32_SYSCFG    - Needed
-       CONFIG_SCHED_WORKQUEUE - Worker thread support is required
- 
+       CONFIG_STM32_SYSCFG    - Needed for all USB OTF FS support
+
+       CONFIG_SCHED_WORKQUEUE - Worker thread support is required for the mass
+                                storage class (both host and device).
+       CONFIG_NSH_ARCHINIT    - Architecture specific USB initialization
+                                is needed
+
     9. This configuration requires that jumper JP22 be set to enable RS-232 operation.
 
   nsh2:

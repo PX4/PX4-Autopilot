@@ -1586,7 +1586,7 @@ static int stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
           stm32_flush_txfifos(OTGFS_GRSTCTL_TXFNUM_HALL);
 
           /* Get the device a little time to catch up.  Then retry the transfer
-           * using the same buffer pointer length.
+           * using the same buffer pointer and length.
            */
 
           usleep(20*1000);

@@ -2,7 +2,7 @@
  * configs/stm32f4discovery/src/up_boot.c
  * arch/arm/src/board/up_boot.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -82,12 +82,13 @@ void stm32_boardinitialize(void)
     }
 #endif
 
-  /* Initialize USB is 1) USBDEV is selected, 2) the OTG FS controller is not
-   * disabled, and 3) the weak function stm32_usbinitialize() has been brought
-   * into the build.
+  /* Initialize USB if the 1) OTG FS controller is in the configuration and 2)
+   * disabled, and 3) the weak function stm32_usbinitialize() has been brought 
+   * the weak function stm32_usbinitialize() has been brought into the build.
+   * Presumeably either CONFIG_USBDEV or CONFIG_USBHOST is also selected.
    */
 
-#if defined(CONFIG_USBDEV) && defined(CONFIG_STM32_OTGFS)
+#ifdef CONFIG_STM32_OTGFS
   if (stm32_usbinitialize)
     {
       stm32_usbinitialize();

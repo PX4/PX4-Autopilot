@@ -1,6 +1,6 @@
 /************************************************************************************
- * configs/stm3220g-eval/src/up_usb.c
- * arch/arm/src/board/up_usb.c
+ * configs/stm32f4discovery/src/up_usbdev.c
+ * arch/arm/src/board/up_boot.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -53,12 +53,12 @@
 
 #include "up_arch.h"
 #include "stm32_internal.h"
-#include "stm3220g-internal.h"
+#include "stm32f4discovery-internal.h"
 
 #ifdef CONFIG_STM32_OTGFS
 
 /************************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ************************************************************************************/
 
 #if defined(CONFIG_USBDEV) || defined(CONFIG_USBHOST)
@@ -138,17 +138,17 @@ static int usbhost_waiter(int argc, char *argv[])
  *
  * Description:
  *   Called from stm32_usbinitialize very early in inialization to setup USB-related
- *   GPIO pins for the STM3220G-EVAL board.
+ *   GPIO pins for the STM32F4Discovery board.
  *
  ************************************************************************************/
 
 void stm32_usbinitialize(void)
 {
-#ifdef HAVE_USB
   /* The OTG FS has an internal soft pull-up.  No GPIO configuration is required */
 
   /* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
 
+#ifdef CONFIG_STM32_OTGFS
   stm32_configgpio(GPIO_OTGFS_VBUS);
   stm32_configgpio(GPIO_OTGFS_PWRON);
   stm32_configgpio(GPIO_OTGFS_OVER);
@@ -281,12 +281,12 @@ xcpt_t stm32_setup_overcurrent(xcpt_t handler)
  *
  ************************************************************************************/
 
-#ifdef CONFIG_USBDEV
 void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
   ulldbg("resume: %d\n", resume);
 }
-#endif
 
 #endif /* CONFIG_STM32_OTGFS */
+
+
 

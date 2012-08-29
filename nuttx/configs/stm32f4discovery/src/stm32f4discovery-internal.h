@@ -105,7 +105,13 @@
 
 #define GPIO_OTGFS_VBUS (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 #define GPIO_OTGFS_PWRON (GPIO_OUTPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN0)
-#define GPIO_OTGFS_OVER  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTD|GPIO_PIN5)
+
+#ifdef CONFIG_USBHOST
+#  define GPIO_OTGFS_OVER  (GPIO_INPUT|GPIO_EXTI|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTD|GPIO_PIN5)
+
+#else
+#  define GPIO_OTGFS_OVER  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTD|GPIO_PIN5)
+#endif
 
 /****************************************************************************************************
  * Public Types
@@ -131,92 +137,112 @@
 
 void weak_function stm32_spiinitialize(void);
 
-/************************************************************************************
+/****************************************************************************************************
  * Name: stm32_usbinitialize
  *
  * Description:
- *   Called to setup USB-related GPIO pins for the STM3210E-EVAL board.
+ *   Called from stm32_usbinitialize very early in inialization to setup USB-related
+ *   GPIO pins for the STM32F4Discovery board.
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
+#ifdef CONFIG_STM32_OTGFS
 void weak_function stm32_usbinitialize(void);
+#endif
 
-/************************************************************************************
+/****************************************************************************************************
+ * Name: stm32_usbhost_initialize
+ *
+ * Description:
+ *   Called at application startup time to initialize the USB host functionality. This function will
+ *   start a thread that will monitor for device connection/disconnection events.
+ *
+ ****************************************************************************************************/
+
+#if defined(CONFIG_STM32_OTGFS) && defined(CONFIG_USBHOST)
+int stm32_usbhost_initialize(void);
+#endif
+
+/****************************************************************************************************
  * Name: stm32_extmemgpios
  *
  * Description:
  *   Initialize GPIOs for external memory usage
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_extmemgpios(const uint32_t *gpios, int ngpios);
 #endif
 
-/************************************************************************************
+/****************************************************************************************************
  * Name: stm32_extmemaddr
  *
  * Description:
  *   Initialize adress line GPIOs for external memory access
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_extmemaddr(int naddrs);
 #endif
 
-/************************************************************************************
+/****************************************************************************************************
  * Name: stm32_extmemdata
  *
  * Description:
  *   Initialize data line GPIOs for external memory access
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_extmemdata(int ndata);
 #endif
 
-/************************************************************************************
+/****************************************************************************************************
  * Name: stm32_enablefsmc
  *
  * Description:
  *  enable clocking to the FSMC module
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_enablefsmc(void);
 #endif
 
-/************************************************************************************
+/****************************************************************************************************
  * Name: stm32_disablefsmc
  *
  * Description:
  *  enable clocking to the FSMC module
  *
- ************************************************************************************/
+ ****************************************************************************************************/
 
 #ifdef CONFIG_STM32_FSMC
 void stm32_disablefsmc(void);
 #endif
 
-/****************************************************************************
+/****************************************************************************************************
  * Name: up_ledpminitialize
- ****************************************************************************/
+ *
+ * Description:
+ *   Enable logic to use the LEDs on the STM32F4Discovery to support power management testing
+ *
+ ****************************************************************************************************/
 
 #ifdef CONFIG_PM
 void up_ledpminitialize(void);
 #endif
 
-/****************************************************************************
+/****************************************************************************************************
  * Name: up_pmbuttons
  *
  * Description:
  *   Configure the user button of the STM32f4discovery board as EXTI,
  *   so it is able to wakeup the MCU from the PM_STANDBY mode
  *
- ****************************************************************************/
+ ****************************************************************************************************/
 
 #if defined(CONFIG_PM) && defined(CONFIG_IDLE_CUSTOM) && defined(CONFIG_PM_BUTTONS)
 void up_pmbuttons(void);

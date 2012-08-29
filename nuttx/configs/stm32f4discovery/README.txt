@@ -1066,6 +1066,19 @@ Where <subdir> is one of the following:
         you can still use certain kinds of debug output (see include/debug.h, all
         of the interfaces based on lib_lowprintf will work in this configuration).
 
+    8. USB OTG FS Device or Host Support
+ 
+       CONFIG_USBDEV          - Enable USB device support, OR
+       CONFIG_USBHOST         - Enable USB host support (but not both)
+
+       CONFIG_STM32_OTGFS     - Enable the STM32 USB OTG FS block
+       CONFIG_STM32_SYSCFG    - Needed for all USB OTF FS support
+
+       CONFIG_SCHED_WORKQUEUE - Worker thread support is required for the mass
+                                storage class (both host and device).
+       CONFIG_NSH_ARCHINIT    - Architecture specific USB initialization
+                                is needed
+ 
   nxlines:
   ------
     An example using the NuttX graphics system (NX).   This example focuses on

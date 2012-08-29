@@ -831,7 +831,7 @@ CONFIG_RTC_FREQUENCY=n
 CONFIG_RTC_ALARM=n
 
 #
-# USB Device Configuration
+# STM32 USB OTG FS Device Configuration
 #
 # CONFIG_USBDEV
 #   Enables USB device support
@@ -857,6 +857,41 @@ CONFIG_USBDEV_REMOTEWAKEUP=n
 CONFIG_USBDEV_MAXPOWER=100
 CONFIG_USBDEV_TRACE=n
 CONFIG_USBDEV_TRACE_NRECORDS=128
+
+#
+# STM32 USB OTG FS Host Configuration
+#
+# Pre-requisites
+#
+#  CONFIG_USBHOST         - Enable general USB host support
+#  CONFIG_STM32_OTGFS     - Enable the STM32 USB OTG FS block
+#  CONFIG_STM32_SYSCFG    - Needed
+#  CONFIG_SCHED_WORKQUEUE - Worker thread support is required
+#
+# Options:
+#
+#  CONFIG_STM32_OTGFS_RXFIFO_SIZE - Size of the RX FIFO in 32-bit words.
+#    Default 128 (512 bytes)
+#  CONFIG_STM32_OTGFS_NPTXFIFO_SIZE - Size of the non-periodic Tx FIFO
+#    in 32-bit words.  Default 96 (384 bytes)
+#  CONFIG_STM32_OTGFS_PTXFIFO_SIZE - Size of the periodic Tx FIFO in 32-bit
+#    words.  Default 96 (384 bytes)
+#  CONFIG_STM32_OTGFS_DESCSIZE - Maximum size of a descriptor.  Default: 128
+#  CONFIG_STM32_OTGFS_SOFINTR - Enable SOF interrupts.  Why would you ever
+#    want to do that?
+#  CONFIG_STM32_USBHOST_REGDEBUG - Enable very low-level register access
+#    debug.  Depends on CONFIG_DEBUG.
+#  CONFIG_STM32_USBHOST_PKTDUMP - Dump all incoming and outgoing USB
+#   packets. Depends on CONFIG_DEBUG.
+#
+CONFIG_USBHOST=n
+#CONFIG_STM32_OTGFS_RXFIFO_SIZE
+#CONFIG_STM32_OTGFS_NPTXFIFO_SIZE
+#CONFIG_STM32_OTGFS_PTXFIFO_SIZE
+#CONFIG_STM32_OTGFS_DESCSIZE
+CONFIG_STM32_OTGFS_SOFINTR=n
+CONFIG_STM32_USBHOST_REGDEBUG=n
+CONFIG_STM32_USBHOST_PKTDUMP=n
 
 #
 # USB Serial Device Configuration (Prolifics PL2303 emulation)
