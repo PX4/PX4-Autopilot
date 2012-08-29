@@ -3213,5 +3213,5 @@
 	  strings by strerror().
 	* arch/arm/src/stm32/stm32_usbotghost.c:  Finally... the USB OTG FS
 	  appears to handle NAKing correctly is complete.
-	* configs/stm32f4discovery/*:  Add support for USB OTG FS host on the
-	  STM32F4Discovery board.
+	* configs/stm32f4discovery/*:  Added and verifed support for USB OTG FS
+	  host on the STM32F4Discovery board.
