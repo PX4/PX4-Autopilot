@@ -108,21 +108,35 @@ struct bson_decoder_s
 
 /**
  * Initialise the decoder.
+ *
+ * @param decoder		Decoder state structure to be initialised.
+ * @param fd			File to read BSON data from.
+ * @param callback		Callback to be invoked by bson_decoder_next
+ * @param private		Callback private data, stored in node.
+ * @return			Zero on success.
  */
 __EXPORT int bson_decoder_init(bson_decoder_t decoder, int fd, bson_decoder_callback callback, void *private);
 
 /**
  * Process the next node from the stream and invoke the callback.
+ *
+ * @param decoder		Decoder state, must have been initialised with bson_decoder_init.
+ * @return			-1 if parsing encountered an error, 0 if the BSON stream has ended,
+ *				otherwise the return value from the callback.
  */
 __EXPORT int bson_decoder_next(bson_decoder_t decoder);
 
 /**
  * Copy node data.
+ *
+ * @param decoder		Decoder state, must have been initialised with bson_decoder_init.
  */
 __EXPORT int bson_decoder_copy_data(bson_decoder_t decoder, void *buf);
 
 /**
  * Report copyable data size.
+ *
+ * @param decoder		Decoder state, must have been initialised with bson_decoder_init.
  */
 __EXPORT size_t bson_decoder_data_pending(bson_decoder_t decoder);
 

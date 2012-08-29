@@ -479,13 +479,13 @@ param_export(int fd, bool only_unsaved)
 		}
 	}
 
-	if (bson_encoder_fini(&encoder))
-		goto out;
-
 	result = 0;
 
 out:
 	param_unlock();
+
+	if (result == 0)
+		result = bson_encoder_fini(&encoder);
 
 	return result;
 }
@@ -499,7 +499,8 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 	int result = -1;
 
 	/*
-	 * EOO means the end of the parameter object.
+	 * EOO means the end of the parameter object. (Currently not supporting
+	 * nested BSON objects).
 	 */
 	if (node->type == BSON_EOO) {
 		*(bool *)private = true;
@@ -513,8 +514,10 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 	 */
 	param_t param = param_find(node->name);
 
-	if (param == PARAM_INVALID)
-		return 0;
+	if (param == PARAM_INVALID) {
+		debug("ignoring unrecognised parameter '%s'", node->name);
+		return 1;
+	}
 
 	/*
 	 * Handle setting the parameter from the node
@@ -583,7 +586,8 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		tmp = NULL;
 	}
 
-	result = 0;
+	/* don't return zero, that means EOF */
+	result = 1;
 
 out:
 
@@ -607,16 +611,14 @@ param_import(int fd)
 
 	done = false;
 
-	while (!done) {
+	do {
 		result = bson_decoder_next(&decoder);
 
-		if (result != 0) {
-			debug("error during BSON decode");
-			break;
-		}
-	}
+	} while(result > 0);
 
 out:
+	if (result < 0)
+		debug("BSON error decoding parameters");
 	return result;
 }
 

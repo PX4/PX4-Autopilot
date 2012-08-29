@@ -45,13 +45,13 @@
 
 
 #if 1
-# define debug(fmt, args...)		do { warnx("BSON:" fmt, ##args); } while(0)
+# define debug(fmt, args...)		do { warnx("BSON: " fmt, ##args); } while(0)
 #else
 # define debug(fmt, args...)		do { } while(0)
 #endif
 
 #define CODER_CHECK(_c)		do { if (_c->fd == -1) return -1; } while(0)
-#define CODER_KILL(_c, _reason)	do { debug("killed:%s", _reason); _c->fd = -1; return -1; } while(0)
+#define CODER_KILL(_c, _reason)	do { debug("killed: %s", _reason); _c->fd = -1; return -1; } while(0)
 
 static int
 read_int8(bson_decoder_t decoder, int8_t *b)
@@ -105,8 +105,12 @@ bson_decoder_next(bson_decoder_t decoder)
 			decoder->nesting--;
 
 		/* if the nesting level is now zero, the top-level document is done */
-		if (decoder->nesting == 0)
+		if (decoder->nesting == 0) {
 			CODER_KILL(decoder, "nesting is zero, document is done");
+
+			/* return end-of-file to the caller */
+			return 0;
+		}
 	}
 
 	/* if there are unread bytes pending in the stream, discard them */
@@ -247,7 +251,7 @@ bson_encoder_fini(bson_encoder_t encoder)
 {
 	CODER_CHECK(encoder);
 
-	if (write_int8(encoder, 0))
+	if (write_int8(encoder, BSON_EOO))
 		CODER_KILL(encoder, "write error on document terminator");
 
 	return 0;
