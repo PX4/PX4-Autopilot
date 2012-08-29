@@ -215,11 +215,11 @@ mavlink_pm_load_eeprom()
 		return 1;
 	}
 
-	int result = param_import(fd);
+	int result = param_load(fd);
 	close(fd);
 
 	if (result < 0) {
-		warn("error importing from '%s'", mavlink_parameter_file);
+		warn("error reading parameters from '%s'", mavlink_parameter_file);
 		return -2;
 	}
 
