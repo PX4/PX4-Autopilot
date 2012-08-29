@@ -206,25 +206,44 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	memset(&state, 0, sizeof(state));
 	struct actuator_controls_s actuator_controls;
 	memset(&actuator_controls, 0, sizeof(actuator_controls));
+	struct actuator_armed_s armed;
+	armed.armed = false;
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
+	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 	while (!thread_should_exit) {
 
-		/* get a local copy of the vehicle state */
-		orb_copy(ORB_ID(vehicle_status), state_sub, &state);
-		/* get a local copy of the actuator controls */
-		orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
-		// if ..
-			ardrone_mixing_and_output(ardrone_write, &actuator_controls, motor_test_mode);
-		// } else {
-		// 	/* Silently lock down motor speeds to zero */
-		// 	ardrone_write_motor_commands(ardrone_write, 0, 0, 0, 0);
-		// }
+		if (motor_test_mode) {
+			/* set motors to idle speed */
+			ardrone_write_motor_commands(ardrone_write, 10, 0, 0, 0);
+			sleep(2);
+			ardrone_write_motor_commands(ardrone_write, 0, 10, 0, 0);
+			sleep(2);
+			ardrone_write_motor_commands(ardrone_write, 0, 0, 10, 0);
+			sleep(2);
+			ardrone_write_motor_commands(ardrone_write, 0, 0, 0, 10);
+			sleep(2);
+		} else {
+			/* MAIN OPERATION MODE */
 
-		if (counter % 30 == 0) {
+			/* get a local copy of the vehicle state */
+			orb_copy(ORB_ID(vehicle_status), state_sub, &state);
+			/* get a local copy of the actuator controls */
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
+			orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
+			
+			if (armed.armed) {
+				ardrone_mixing_and_output(ardrone_write, &actuator_controls);
+			} else {
+				/* Silently lock down motor speeds to zero */
+				ardrone_write_motor_commands(ardrone_write, 0, 0, 0, 0);
+			}
+		}
+
+		if (counter % 22 == 0) {
 			if (led_counter == 0) ar_set_leds(ardrone_write, 0, 1, 0, 0, 0, 0, 0 , 0);
 
 			if (led_counter == 1) ar_set_leds(ardrone_write, 1, 1, 0, 0, 0, 0, 0 , 0);
@@ -256,13 +275,6 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 
 		/* run at approximately 50 Hz */
 		usleep(20000);
-
-		// This is a hardcore debug code piece to validate
-		// the motor interface
-		// uint8_t motorSpeedBuf[5] = {1, 2, 3, 4, 5};
-		// ar_get_motor_packet(motorSpeedBuf, 20, 20, 20, 20);
-		// write(ardrone_write, motorSpeedBuf, 5);
-		// usleep(15000);
 
 		counter++;
 	}

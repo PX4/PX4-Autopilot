@@ -303,14 +303,12 @@ int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor
 	}
 }
 
-void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls_s *actuators, bool verbose) {
+void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls_s *actuators) {
 
 	float roll_control = actuators->control[0];
 	float pitch_control = actuators->control[1];
 	float yaw_control = actuators->control[2];
 	float motor_thrust = actuators->control[3];
-
-	unsigned int motor_skip_counter = 0;
 
 	const float min_thrust = 0.02f;			/**< 2% minimum thrust */
 	const float max_thrust = 1.0f;			/**< 100% max thrust */
@@ -340,10 +338,6 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 
 	} else if (motor_thrust >= max_thrust - band_factor * startpoint_full_control) {
 		output_band = band_factor * (max_thrust - motor_thrust);
-	}
-
-	if (verbose && motor_skip_counter % 100 == 0) {
-		printf("1: mot1: %3.1f band: %3.1f r: %3.1f n: %3.1f y: %3.1f\n", (double)motor_thrust, (double)output_band, (double)roll_control, (double)pitch_control, (double)yaw_control);
 	}
 
 	//add the yaw, nick and roll components to the basic thrust //TODO:this should be done by the mixer
@@ -380,10 +374,6 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 		motor_calc[3] = motor_thrust + (roll_control / 2 - pitch_control / 2 + yaw_control * yaw_factor);
 	}
 
-	if (verbose && motor_skip_counter % 100 == 0) {
-		printf("2: m1: %3.1f m2: %3.1f m3: %3.1f m4: %3.1f\n", (double)motor_calc[0], (double)motor_calc[1], (double)motor_calc[2], (double)motor_calc[3]);
-	}
-
 	for (int i = 0; i < 4; i++) {
 		//check for limits
 		if (motor_calc[i] < motor_thrust - output_band) {
@@ -395,10 +385,6 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 		}
 	}
 
-	if (verbose && motor_skip_counter % 100 == 0) {
-		printf("3: band lim: m1: %3.1f m2: %3.1f m3: %3.1f m4: %3.1f\n", (double)motor_calc[0], (double)motor_calc[1], (double)motor_calc[2], (double)motor_calc[3]);
-	}
-
 	/* set the motor values */
 
 	/* scale up from 0..1 to 10..512) */
@@ -406,10 +392,6 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 	motor_pwm[1] = (uint16_t) (motor_calc[1] * ((float)max_gas - min_gas) + min_gas);
 	motor_pwm[2] = (uint16_t) (motor_calc[2] * ((float)max_gas - min_gas) + min_gas);
 	motor_pwm[3] = (uint16_t) (motor_calc[3] * ((float)max_gas - min_gas) + min_gas);
-
-	if (verbose && motor_skip_counter % 100 == 0) {
-		printf("4: scaled: m1: %d m2: %d m3: %d m4: %d\n", motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);
-	}
 
 	/* Keep motors spinning while armed and prevent overflows */
 
@@ -426,8 +408,5 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 	motor_pwm[3] = (motor_pwm[3] <= 512) ? motor_pwm[3] : 512;
 
 	/* send motors via UART */
-	if (verbose && motor_skip_counter % 100 == 0) printf("5: mot: %3.1f-%i-%i-%i-%i\n\n", (double)motor_thrust, motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);
 	ardrone_write_motor_commands(ardrone_write, motor_pwm[0], motor_pwm[1], motor_pwm[2], motor_pwm[3]);
-
-	motor_skip_counter++;
 }
