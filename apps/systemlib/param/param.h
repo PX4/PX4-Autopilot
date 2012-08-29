@@ -148,14 +148,30 @@ __EXPORT size_t		param_size(param_t param) __attribute__((const));
 __EXPORT int		param_get(param_t param, void *val);
 
 /**
- * Set the scalar value of a parameter.
+ * Set the value of a parameter.
  *
  * @param param		A handle returned by param_find or passed by param_foreach.
  * @param val		The value to set; assumed to point to a variable of the parameter type.
- *			For structures, the pointer is assumed to point to a copy of the structure.
+ *			For structures, the pointer is assumed to point to a structure to be copied.
  * @return		Zero if the parameter's value could be set from a scalar, nonzero otherwise.
  */
 __EXPORT int		param_set(param_t param, const void *val);
+
+/**
+ * Reset a parameter to its default value.
+ *
+ * This function frees any storage used by struct parameters, but scalar parameters 
+ *
+ * @param param		A handle returned by param_find or passed by param_foreach.
+ */
+__EXPORT void		param_reset(param_t param);
+
+/**
+ * Reset all parameters to their default values.
+ *
+ * This function also releases the storage used by struct parameters.
+ */
+__EXPORT void		param_reset_all(void);
 
 /**
  * Export changed parameters to a file.
@@ -169,11 +185,25 @@ __EXPORT int		param_export(int fd, bool only_unsaved);
 /**
  * Import parameters from a file, discarding any unrecognized parameters.
  *
+ * This function merges the imported parameters with the current parameter set.
+ *
  * @param fd		File descriptor to import from.  (Currently expected to be a file.)
  * @return		Zero on success, nonzero if an error occurred during import.
  *			Note that in the failure case, parameters may be inconsistent.
  */
 __EXPORT int		param_import(int fd);
+
+/**
+ * Load parameters from a file.
+ *
+ * This function resets all parameters to their default values, then loads new
+ * values from a file.
+ *
+ * @param fd		File descriptor to import from.  (Currently expected to be a file.)
+ * @return		Zero on success, nonzero if an error occurred during import.
+ *			Note that in the failure case, parameters may be inconsistent.
+ */
+__EXPORT int		param_load(int fd);
 
 /**
  * Apply a function to each parameter.

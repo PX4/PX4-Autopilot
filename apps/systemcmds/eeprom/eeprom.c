@@ -216,7 +216,7 @@ eeprom_load(const char *name)
 	if (fd < 0)
 		err(1, "open '%s'", name);
 
-	int result = param_import(fd);
+	int result = param_load(fd);
 	close(fd);
 
 	if (result < 0)

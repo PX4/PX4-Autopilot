@@ -178,6 +178,22 @@ param_find_changed(param_t param) {
 	return s;
 }
 
+static void
+param_notify_changes(void)
+{
+	struct parameter_update_s pup = { .timestamp = hrt_absolute_time() };
+
+	/*
+	 * If we don't have a handle to our topic, create one now; otherwise
+	 * just publish.
+	 */
+	if (param_topic == -1) {
+		param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
+	} else {
+		orb_publish(ORB_ID(parameter_update), param_topic, &pup);
+	}
+}
+
 param_t
 param_find(const char *name)
 {
@@ -390,22 +406,48 @@ out:
 	 * If we set something, now that we have unlocked, go ahead and advertise that
 	 * a thing has been set.
 	 */
-	if (params_changed) {
-		struct parameter_update_s pup = { .timestamp = hrt_absolute_time() };
-
-		/*
-		 * If we don't have a handle to our topic, create one now; otherwise
-		 * just publish.
-		 */
-		if (param_topic == -1) {
-			param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
-		} else {
-			orb_publish(ORB_ID(parameter_update), param_topic, &pup);
-		}
-
-	}
+	if (params_changed)
+		param_notify_changes();
 
 	return result;
+}
+
+void
+param_reset(param_t param)
+{
+	struct param_wbuf_s *s = NULL;
+
+	param_lock();
+
+	if (handle_in_range(param)) {
+
+		/* look for a saved value */
+		s = param_find_changed(param);
+
+		/* if we found one, erase it */
+		if (s != NULL) {
+			int pos = utarry_eltidx(param_values, s);
+			utarray_erase(param_values, pos, 1);
+		}
+	}
+	param_unlock();
+
+	if (s != NULL)
+		param_notify_changes();
+}
+
+void
+param_reset_all(void)
+{
+	param_lock();
+
+	if (param_values != NULL) {
+		utarray_free(param_values);
+	}
+
+	param_unlock();
+
+	param_notify_changes();
 }
 
 int
@@ -619,7 +661,15 @@ param_import(int fd)
 out:
 	if (result < 0)
 		debug("BSON error decoding parameters");
+
 	return result;
+}
+
+int
+param_load(int fd)
+{
+	param_reset_all();
+	return param_import(fd);
 }
 
 void
