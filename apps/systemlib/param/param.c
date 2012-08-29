@@ -445,6 +445,9 @@ param_reset_all(void)
 		utarray_free(param_values);
 	}
 
+	/* mark as reset / deleted */
+	param_values = NULL;
+
 	param_unlock();
 
 	param_notify_changes();
