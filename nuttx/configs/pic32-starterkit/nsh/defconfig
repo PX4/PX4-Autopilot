@@ -33,52 +33,7 @@
 #
 ############################################################################
 #
-# architecture selection
-#
-# CONFIG_ARCH - identifies the arch subdirectory and, hence, the
-#   processor architecture.
-# CONFIG_ARCH_family - for use in C code.  This identifies the
-#   particular chip family that the architecture is implemented
-#   in.
-# CONFIG_ARCH_architecture - for use in C code.  This identifies the
-#   specific architecture within the chip family.
-# CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
-# CONFIG_ARCH_CHIP_name - For use in C code
-# CONFIG_ARCH_BOARD - identifies the configs subdirectory and, hence,
-#   the board that supports the particular chip or SoC.
-# CONFIG_ARCH_BOARD_name - for use in C code
-# CONFIG_ENDIAN_BIG - define if big endian (default is little endian)
-#   NOTE: The PIC32MX is always little endian.
-# CONFIG_BOARD_LOOPSPERMSEC.  You simply use a stop watch to measure
-#   the 100 second delay then adjust CONFIG_BOARD_LOOPSPERMSEC until
-#   the delay actually is 100 seconds.
-# CONFIG_DRAM_SIZE - Describes the installed DRAM.
-# CONFIG_DRAM_START - The start address of DRAM (physical)
-# CONFIG_ARCH_NOINTC - define if the architecture does not
-#   support an interrupt controller or otherwise cannot support
-#   APIs like up_enable_irq() and up_disable_irq().
-# CONFIG_ARCH_VECNOTIRQ - Usually the interrupt vector number provided
-#   to interfaces like irq_attach() and irq_detach are the same as IRQ
-#   numbers that are provied to IRQ management functions like
-#   up_enable_irq() and up_disable_irq().  But that is not true for all
-#   interrupt controller implementations.  For example, the PIC32MX
-#   interrupt controller manages interrupt sources that have a many-to-one
-#   relationship to interrupt vectors. In such cases, CONFIG_ARCH_VECNOTIRQ
-#   must defined so that the OS logic will know not to assume it can use
-#   a vector number to enable or disable interrupts.
-# CONFIG_ARCH_IRQPRIO - The PIC32MX supports interrupt prioritization
-# CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
-#   stack. If defined, this symbol is the size of the interrupt
-#   stack in bytes.  If not defined, the user task stacks will be
-#   used during interrupt handling.
-# CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
-# CONFIG_ARCH_BOOTLOADER - Set if you are using a bootloader.
-# CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
-# CONFIG_ARCH_BUTTONS -  Enable support for buttons. Unique to board architecture.
-# CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-#   cause a 100 second delay during boot-up.  This 100 second delay
-#   serves no purpose other than it allows you to calibrate
-# CONFIG_ARCH_DMA - Support DMA initialization
+# Architecture Selection
 #
 CONFIG_ARCH="mips"
 CONFIG_ARCH_MIPS=y
@@ -116,7 +71,7 @@ CONFIG_PIC32MX_MICROCHIPW_LITE=y
 CONFIG_PIC32MX_MICROCHIPL_LITE=n
 
 #
-#  Individual subsystems can be enabled:
+# Individual subsystems can be enabled:
 #
 
 CONFIG_PIC32MX_WDT=n
@@ -175,28 +130,6 @@ CONFIG_PIC32MX_IOPORTG=y
 #
 # PIC32MX Configuration Settings
 #
-# DEVCFG0:
-#   CONFIG_PIC32MX_DEBUGGER - Background Debugger Enable. Default 3 (disabled). The
-#     value 2 enables.
-#   CONFIG_PIC32MX_ICESEL - In-Circuit Emulator/Debugger Communication Channel Select
-#     Default 1 (PG2)
-#   CONFIG_PIC32MX_PROGFLASHWP  - Program FLASH write protect.  Default 0xff (disabled)
-#   CONFIG_PIC32MX_BOOTFLASHWP - Default 1 (disabled)
-#   CONFIG_PIC32MX_CODEWP - Default 1 (disabled)
-# DEVCFG1: (All settings determined by selections in board.h)
-# DEVCFG2: (All settings determined by selections in board.h)
-# DEVCFG3: 
-#  CONFIG_PIC32MX_USBIDO - USB USBID Selection.  Default 1 if USB enabled
-#    (USBID pin is controlled by the USB module), but 0 (GPIO) otherwise.
-#  CONFIG_PIC32MX_VBUSIO - USB VBUSON Selection (Default 1 if USB enabled
-#    (VBUSON pin is controlled by the USB module, but 0 (GPIO) otherwise.
-#  CONFIG_PIC32MX_WDENABLE - Enabled watchdog on power up.  Default 0 (watchdog
-#    can be enabled later by software).
-#  CONFIG_PIC32MX_FETHIO: Ethernet I/O Pin Selection bit.  1 (or undefined)=
-#    Default Ethernet I/O Pins; 0=Alternate Ethernet I/O Pins
-#  CONFIG_PIC32MX_FMIIEN: Ethernet MII Enable bit.  1 (or undefined) = MII
-#    enabled; 0=RMII enabled
-#
 CONFIG_PIC32MX_DEBUGGER=2
 CONFIG_PIC32MX_ICESEL=1
 CONFIG_PIC32MX_FETHIO=0
@@ -204,17 +137,6 @@ CONFIG_PIC32MX_FMIIEN=0
 
 #
 # PIC32MX specific serial device driver settings
-#
-# CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn for the
-#   console and ttys0 (default is the UART1).
-# CONFIG_UARTn_RXBUFSIZE - Characters are buffered as received.
-#   This specific the size of the receive buffer
-# CONFIG_UARTn_TXBUFSIZE - Characters are buffered before
-#   being sent.  This specific the size of the transmit buffer
-# CONFIG_UARTn_BAUD - The configure BAUD of the UART.  Must be
-# CONFIG_UARTn_BITS - The number of bits.  Must be either 7 or 8.
-# CONFIG_UARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
-# CONFIG_UARTn_2STOP - Two stop bits
 #
 CONFIG_UART1_SERIAL_CONSOLE=y
 CONFIG_UART2_SERIAL_CONSOLE=n
@@ -268,35 +190,6 @@ CONFIG_UART6_2STOP=0
 #
 # PIC32MX specific PHY/Ethernet device driver settings
 #
-# CONFIG_PHY_KS8721 - Selects the Micrel KS8721 PHY
-# CONFIG_PHY_DP83848C - Selects the National Semiconduction DP83848C PHY
-# CONFIG_PHY_LAN8720 - Selects the SMSC LAN8720 PHY
-# CONFIG_PHY_AUTONEG - Enable auto-negotion
-# CONFIG_PHY_SPEED100 - Select 100Mbit vs. 10Mbit speed.
-# CONFIG_PHY_FDUPLEX - Select full (vs. half) duplex
-# CONFIG_NET_NTXDESC - Configured number of Tx descriptors. Default: 2
-# CONFIG_NET_NRXDESC - Configured number of Rx descriptors. Default: 4
-# CONFIG_NET_PRIORITY - Ethernet interrupt priority.  The is default is
-#   the higest priority.
-# CONFIG_NET_WOL - Enable Wake-up on Lan (not fully implemented).
-# CONFIG_NET_DUMPPACKET - Dump all received and transmitted packets.
-#   Also needs CONFIG_DEBUG.
-# CONFIG_NET_REGDEBUG - Enabled low level register debug.  Also needs
-#   CONFIG_DEBUG.  Automatically enables CONFIG_NET_DESCDEBUG as well.
-# CONFIG_NET_DESCDEBUG - Enabled low level descriptor debug.  Also needs
-#   CONFIG_DEBUG.
-# CONFIG_NET_DUMPPACKET - Dump all incoming and output packet contents.
-#   Also needs CONFIG_DEBUG.
-# CONFIG_NET_HASH - Enable receipt of near-perfect match frames.
-# CONFIG_NET_MULTICAST - Enable receipt of multicast (and unicast) frames.
-#   Automatically set if CONFIG_NET_IGMP is selected.
-#
-# Related DEVCFG3 Configuration Settings:
-#  CONFIG_PIC32MX_FETHIO: Ethernet I/O Pin Selection bit.  1 (or undefined)=
-#    Default Ethernet I/O Pins; 0=Alternate Ethernet I/O Pins
-#  CONFIG_PIC32MX_FMIIEN: Ethernet MII Enable bit.  1 (or undefined) = MII
-#    enabled; 0=RMII enabled
-#
 CONFIG_PHY_KS8721=n
 CONFIG_PHY_DP83848C=y
 CONFIG_PHY_LAN8720=n
@@ -318,19 +211,6 @@ CONFIG_PIC32MX_USBDEV_BDTDEBUG=n
 #
 # General build options
 #
-# CONFIG_RRLOAD_BINARY - make the rrload binary format used with
-#   BSPs from www.ridgerun.com using the tools/mkimage.sh script
-# CONFIG_INTELHEX_BINARY - make the Intel HEX binary format
-#   used with many different loaders using the GNU objcopy program
-#   Should not be selected if you are not using the GNU toolchain.
-# CONFIG_MOTOROLA_SREC - make the Motorola S-Record binary format
-#   used with many different loaders using the GNU objcopy program
-#   Should not be selected if you are not using the GNU toolchain.
-# CONFIG_RAW_BINARY - make a raw binary format file used with many
-#   different loaders using the GNU objcopy program.  This option
-#   should not be selected if you are not using the GNU toolchain.
-# CONFIG_HAVE_LIBM - toolchain supports libm.a
-#
 CONFIG_RRLOAD_BINARY=n
 CONFIG_INTELHEX_BINARY=y
 CONFIG_MOTOROLA_SREC=n
@@ -340,99 +220,6 @@ CONFIG_HAVE_LIBM=n
 #
 # General OS setup
 #
-# CONFIG_APPS_DIR - Identifies the relative path to the directory
-#   that builds the application to link with NuttX.  Default: ../apps
-# CONFIG_DEBUG - enables built-in debug options
-# CONFIG_DEBUG_VERBOSE - enables verbose debug output
-# CONFIG_DEBUG_SYMBOLS - build without optimization and with
-#   debug symbols (needed for use with a debugger).
-# CONFIG_HAVE_CXX - Enable support for C++
-# CONFIG_HAVE_CXXINITIALIZE - The platform-specific logic includes support
-#   for initialization of static C++ instances for this architecture
-#   and for the selected toolchain (via up_cxxinitialize()).
-# CONFIG_MM_REGIONS - If the architecture includes multiple
-#   regions of memory to allocate from, this specifies the
-#   number of memory regions that the memory manager must
-#   handle and enables the API mm_addregion(start, end);
-# CONFIG_ARCH_LOWPUTC - architecture supports low-level, boot
-#   time console output
-# CONFIG_MSEC_PER_TICK - The default system timer is 100Hz
-#   or MSEC_PER_TICK=10.  This setting may be defined to
-#   inform NuttX that the processor hardware is providing
-#   system timer interrupts at some interrupt interval other
-#   than 10 msec.
-# CONFIG_RR_INTERVAL - The round robin timeslice will be set
-#   this number of milliseconds;  Round robin scheduling can
-#   be disabled by setting this value to zero.
-# CONFIG_SCHED_INSTRUMENTATION - enables instrumentation in 
-#   scheduler to monitor system performance
-# CONFIG_TASK_NAME_SIZE - Spcifies that maximum size of a
-#   task name to save in the TCB.  Useful if scheduler
-#   instrumentation is selected.  Set to zero to disable.
-# CONFIG_START_YEAR, CONFIG_START_MONTH, CONFIG_START_DAY -
-#   Used to initialize the internal time logic.
-# CONFIG_GREGORIAN_TIME - Enables Gregorian time conversions.
-#   You would only need this if you are concerned about accurate
-#   time conversions in the past or in the distant future.
-# CONFIG_JULIAN_TIME - Enables Julian time conversions. You
-#   would only need this if you are concerned about accurate
-#   time conversion in the distand past.  You must also define
-#   CONFIG_GREGORIAN_TIME in order to use Julian time.
-# CONFIG_DEV_CONSOLE - Set if architecture-specific logic
-#   provides /dev/console.  Enables stdout, stderr, stdin.
-# CONFIG_DEV_LOWCONSOLE - Use the simple, low-level serial console
-#   driver (minimul support)
-# CONFIG_MUTEX_TYPES: Set to enable support for recursive and
-#   errorcheck mutexes. Enables pthread_mutexattr_settype().
-# CONFIG_PRIORITY_INHERITANCE : Set to enable support for priority
-#   inheritance on mutexes and semaphores. 
-# CONFIG_SEM_PREALLOCHOLDERS: This setting is only used if priority
-#   inheritance is enabled.  It defines the maximum number of
-#   different threads (minus one) that can take counts on a
-#   semaphore with priority inheritance support.  This may be 
-#   set to zero if priority inheritance is disabled OR if you
-#   are only using semaphores as mutexes (only one holder) OR
-#   if no more than two threads participate using a counting
-#   semaphore.
-# CONFIG_SEM_NNESTPRIO.  If priority inheritance is enabled,
-#   then this setting is the maximum number of higher priority
-#   threads (minus 1) than can be waiting for another thread
-#   to release a count on a semaphore.  This value may be set
-#   to zero if no more than one thread is expected to wait for
-#   a semaphore.
-# CONFIG_FDCLONE_DISABLE. Disable cloning of all file descriptors
-#   by task_create() when a new task is started.  If set, all
-#   files/drivers will appear to be closed in the new task.
-# CONFIG_FDCLONE_STDIO. Disable cloning of all but the first
-#   three file descriptors (stdin, stdout, stderr) by task_create()
-#   when a new task is started. If set, all files/drivers will
-#   appear to be closed in the new task except for stdin, stdout,
-#   and stderr.
-# CONFIG_SDCLONE_DISABLE. Disable cloning of all socket
-#   desciptors by task_create() when a new task is started. If
-#   set, all sockets will appear to be closed in the new task.
-# CONFIG_SCHED_WORKQUEUE.  Create a dedicated "worker" thread to
-#  handle delayed processing from interrupt handlers.  This feature
-#  is required for some drivers but, if there are not complaints,
-#  can be safely disabled.  The worker thread also performs
-#  garbage collection -- completing any delayed memory deallocations
-#  from interrupt handlers.  If the worker thread is disabled,
-#  then that clean will be performed by the IDLE thread instead
-#  (which runs at the lowest of priority and may not be appropriate
-#  if memory reclamation is of high priority).  If CONFIG_SCHED_WORKQUEUE
-#  is enabled, then the following options can also be used:
-# CONFIG_SCHED_WORKPRIORITY - The execution priority of the worker
-#  thread.  Default: 50
-# CONFIG_SCHED_WORKPERIOD - How often the worker thread checks for
-#  work in units of microseconds.  Default: 50000 (50 MS).
-# CONFIG_SCHED_WORKSTACKSIZE - The stack size allocated for the worker
-#  thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
-# CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
-#  the worker thread.  Default: 4
-# CONFIG_SCHED_WAITPID - Enable the waitpid() API
-# CONFIG_SCHED_ATEXIT - Enabled the atexit() API
-#
-#CONFIG_APPS_DIR=
 
 CONFIG_DEBUG=n
 CONFIG_DEBUG_VERBOSE=n
@@ -473,27 +260,6 @@ CONFIG_SCHED_ATEXIT=n
 #
 # System Logging
 #
-# CONFIG_SYSLOG - Enables the System Logging feature.
-# CONFIG_RAMLOG - Enables the RAM logging feature
-# CONFIG_RAMLOG_CONSOLE - Use the RAM logging device as a system console.
-#   If this feature is enabled (along with CONFIG_DEV_CONSOLE), then all
-#   console output will be re-directed to a circular buffer in RAM.  This
-#   is useful, for example, if the only console is a Telnet console.  Then
-#   in that case, console output from non-Telnet threads will go to the
-#   circular buffer and can be viewed using the NSH 'dmesg' command.
-# CONFIG_RAMLOG_SYSLOG - Use the RAM logging device for the syslogging
-#   interface.  If this feature is enabled (along with CONFIG_SYSLOG),
-#   then all debug output (only) will be re-directed to the circular
-#   buffer in RAM.  This RAM log can be view from NSH using the 'dmesg'
-#   command.
-# CONFIG_RAMLOG_NPOLLWAITERS - The number of threads than can be waiting
-#   for this driver on poll().  Default: 4
-#
-# If CONFIG_RAMLOG_CONSOLE or CONFIG_RAMLOG_SYSLOG is selected, then the
-# following may also be provided:
-#
-# CONFIG_RAMLOG_CONSOLE_BUFSIZE - Size of the console RAM log.  Default: 1024
-#
 
 CONFIG_SYSLOG=n
 CONFIG_RAMLOG=n
@@ -504,16 +270,6 @@ CONFIG_RAMLOG_SYSLOG=n
 
 #
 # Settings for NXFLAT
-#
-# CONFIG_NXFLAT. Enable support for the NXFLAT binary format.
-#  This format will support execution of NuttX binaries located
-#  in a ROMFS filesystem (see examples/nxflat).
-# CONFIG_NXFLAT_DUMPBUFFER. Dump a most buffers that NXFFLAT deals
-#  with.  CONFIG_DEBUG, CONFIG_DEBUG_VERBOSE, and
-#  CONFIG_DEBUG_BINFMT have to be defined or
-#  CONFIG_NXFLAT_DUMPBUFFER does nothing.
-# CONFIG_SYMTAB_ORDEREDBYNAME. Select if the system symbol table
-#  is ordered by symbol name
 #
 CONFIG_NXFLAT=n
 CONFIG_NXFLAT_DUMPBUFFER=n
@@ -546,9 +302,6 @@ CONFIG_DISABLE_POLL=y
 #
 # Misc libc settings
 #
-# CONFIG_NOPRINTF_FIELDWIDTH - sprintf-related logic is a
-#   little smaller if we do not support fieldwidthes
-#
 CONFIG_NOPRINTF_FIELDWIDTH=n
 
 #
@@ -570,46 +323,6 @@ CONFIG_ARCH_BZERO=n
 
 #
 # Sizes of configurable things (0 disables)
-#
-# CONFIG_MAX_TASKS - The maximum number of simultaneously
-#   active tasks.  This value must be a power of two.
-# CONFIG_MAX_TASK_ARGS - This controls the maximum number of
-#   of parameters that a task may receive (i.e., maxmum value
-#   of 'argc')
-# CONFIG_NPTHREAD_KEYS - The number of items of thread-
-#   specific data that can be retained
-# CONFIG_NFILE_DESCRIPTORS - The maximum number of file
-#   descriptors (one for each open)
-# CONFIG_NFILE_STREAMS - The maximum number of streams that
-#   can be fopen'ed
-# CONFIG_NAME_MAX - The maximum size of a file name.
-# CONFIG_STDIO_BUFFER_SIZE - Size of the buffer to allocate
-#   on fopen. (Only if CONFIG_NFILE_STREAMS > 0)
-# CONFIG_STDIO_LINEBUFFER - If standard C buffered I/O is enabled
-#   (CONFIG_STDIO_BUFFER_SIZE > 0), then this option may be added
-#   to force automatic, line-oriented flushing the output buffer
-#   for putc(), fputc(), putchar(), puts(), fputs(), printf(),
-#   fprintf(), and vfprintf().  When a newline is encountered in
-#   the output string, the output buffer will be flushed.  This
-#   (slightly) increases the NuttX footprint but supports the kind
-#   of behavior that people expect for printf().
-# CONFIG_NUNGET_CHARS - Number of characters that can be
-#   buffered by ungetc() (Only if CONFIG_NFILE_STREAMS > 0)
-# CONFIG_PREALLOC_MQ_MSGS - The number of pre-allocated message
-#   structures.  The system manages a pool of preallocated
-#   message structures to minimize dynamic allocations
-# CONFIG_MQ_MAXMSGSIZE - Message structures are allocated with
-#   a fixed payload size given by this settin (does not include
-#   other message structure overhead.
-# CONFIG_MAX_WDOGPARMS - Maximum number of parameters that
-#   can be passed to a watchdog handler
-# CONFIG_PREALLOC_WDOGS - The number of pre-allocated watchdog
-#   structures.  The system manages a pool of preallocated
-#   watchdog structures to minimize dynamic allocations
-# CONFIG_PREALLOC_TIMERS - The number of pre-allocated POSIX
-#   timer structures.  The system manages a pool of preallocated
-#   timer structures to minimize dynamic allocations.  Set to
-#   zero for all dynamic allocations.
 #
 CONFIG_MAX_TASKS=16
 CONFIG_MAX_TASK_ARGS=4
@@ -638,46 +351,6 @@ CONFIG_FB_HWCURSORIMAGE=n
 #
 # Filesystem configuration
 #
-# CONFIG_FS_FAT - Enable FAT filesystem support
-# CONFIG_FAT_SECTORSIZE - Max supported sector size
-# CONFIG_FAT_LCNAMES - Enable use of the NT-style upper/lower case 8.3
-#   file name support.
-# CONFIG_FAT_LFN - Enable FAT long file names.  NOTE:  Microsoft claims
-#   patents on FAT long file name technology.  Please read the
-#   disclaimer in the top-level COPYING file and only enable this
-#   feature if you understand these issues.
-# CONFIG_FAT_MAXFNAME - If CONFIG_FAT_LFN is defined, then the
-#   default, maximum long file name is 255 bytes.  This can eat up
-#   a lot of memory (especially stack space).  If you are willing
-#   to live with some non-standard, short long file names, then
-#   define this value.  A good choice would be the same value as
-#   selected for CONFIG_NAME_MAX which will limit the visibility
-#   of longer file names anyway.
-# CONFIG_FS_NXFFS: Enable NuttX FLASH file system (NXFF) support.
-# CONFIG_NXFFS_ERASEDSTATE: The erased state of FLASH.
-#   This must have one of the values of 0xff or 0x00.
-#   Default: 0xff.
-# CONFIG_NXFFS_PACKTHRESHOLD: When packing flash file data,
-#   don't both with file chunks smaller than this number of data bytes.
-# CONFIG_NXFFS_MAXNAMLEN: The maximum size of an NXFFS file name.
-#   Default: 255.
-# CONFIG_NXFFS_PACKTHRESHOLD: When packing flash file data,
-#   don't both with file chunks smaller than this number of data bytes.
-#   Default: 32.
-# CONFIG_NXFFS_TAILTHRESHOLD: clean-up can either mean
-#   packing files together toward the end of the file or, if file are
-#   deleted at the end of the file, clean up can simply mean erasing
-#   the end of FLASH memory so that it can be re-used again.  However,
-#   doing this can also harm the life of the FLASH part because it can
-#   mean that the tail end of the FLASH is re-used too often. This
-#   threshold determines if/when it is worth erased the tail end of FLASH
-#   and making it available for re-use (and possible over-wear).
-#   Default: 8192.
-# CONFIG_FS_ROMFS - Enable ROMFS filesystem support
-# CONFIG_FS_RAMMAP - For file systems that do not support XIP, this
-#   option will enable a limited form of memory mapping that is
-#   implemented by copying whole files into memory.
-#
 CONFIG_FS_FAT=y
 CONFIG_FAT_LCNAMES=y
 CONFIG_FAT_LFN=y
@@ -688,13 +361,6 @@ CONFIG_FS_ROMFS=n
 #
 # SPI-based MMC/SD driver
 #
-# CONFIG_MMCSD_NSLOTS
-#   Number of MMC/SD slots supported by the driver
-# CONFIG_MMCSD_READONLY
-#   Provide read-only access (default is read/write)
-# CONFIG_MMCSD_SPICLOCK - Maximum SPI clock to drive MMC/SD card.
-#   Default is 20MHz.
-#
 CONFIG_MMCSD_NSLOTS=1
 CONFIG_MMCSD_READONLY=n
 CONFIG_MMCSD_SPICLOCK=12500000
@@ -702,23 +368,11 @@ CONFIG_MMCSD_SPICLOCK=12500000
 #
 # Block driver buffering
 #
-# CONFIG_FS_READAHEAD
-#   Enable read-ahead buffering
-# CONFIG_FS_WRITEBUFFER
-#   Enable write buffering
-#
 CONFIG_FS_READAHEAD=n
 CONFIG_FS_WRITEBUFFER=n
 
 #
 # SDIO-based MMC/SD driver
-#
-# CONFIG_SDIO_DMA
-#   SDIO driver supports DMA
-# CONFIG_MMCSD_MMCSUPPORT
-#   Enable support for MMC cards
-# CONFIG_MMCSD_HAVECARDDETECT
-#   SDIO driver card detection is 100% accurate
 #
 CONFIG_SDIO_DMA=n
 CONFIG_MMCSD_MMCSUPPORT=n
@@ -726,41 +380,6 @@ CONFIG_MMCSD_HAVECARDDETECT=n
 
 #
 # TCP/IP and UDP support via uIP
-# CONFIG_NET - Enable or disable all network features
-# CONFIG_NET_NOINTS --  CONFIG_NET_NOINT indicates that uIP not called from
-#   the interrupt level.  If CONFIG_NET_NOINTS is defined, critical sections
-#   will be managed with semaphores; Otherwise, it assumed that uIP will be
-#   called from interrupt level handling and critical sections will be
-#   managed by enabling and disabling interrupts.
-# CONFIG_NET_MULTIBUFFER - Traditionally, uIP has used a single buffer
-#   for all incoming and outgoing traffic.  If this configuration is
-#   selected, then the driver can manage multiple I/O buffers and can,
-#   for example, be filling one input buffer while sending another
-#   output buffer.  Or, as another example, the driver may support
-#   queuing of concurrent input/ouput and output transfers for better
-#   performance.
-# CONFIG_NET_IPv6 - Build in support for IPv6
-# CONFIG_NSOCKET_DESCRIPTORS - Maximum number of socket descriptors per task/thread.
-# CONFIG_NET_SOCKOPTS - Enable or disable support for socket options
-# CONFIG_NET_BUFSIZE - uIP buffer size
-# CONFIG_NET_TCP - TCP support on or off
-# CONFIG_NET_TCP_CONNS - Maximum number of TCP connections (all tasks)
-# CONFIG_NET_TCP_READAHEAD_BUFSIZE - Size of TCP read-ahead buffers
-# CONFIG_NET_NTCP_READAHEAD_BUFFERS - Number of TCP read-ahead buffers (may be zero)
-# CONFIG_NET_TCPBACKLOG - Incoming connections pend in a backlog until
-#   accept() is called. The size of the backlog is selected when listen() is called.
-# CONFIG_NET_MAX_LISTENPORTS - Maximum number of listening TCP ports (all tasks)
-# CONFIG_NET_UDP - UDP support on or off
-# CONFIG_NET_UDP_CHECKSUMS - UDP checksums on or off
-# CONFIG_NET_UDP_CONNS - The maximum amount of concurrent UDP connections
-# CONFIG_NET_ICMP - ICMP ping response support on or off
-# CONFIG_NET_ICMP_PING - ICMP ping request support on or off
-# CONFIG_NET_PINGADDRCONF - Use "ping" packet for setting IP address
-# CONFIG_NET_STATISTICS - uIP statistics on or off
-# CONFIG_NET_RECEIVE_WINDOW - The size of the advertised receiver's window
-# CONFIG_NET_ARPTAB_SIZE - The size of the ARP table
-# CONFIG_NET_BROADCAST - Broadcast support
-# CONFIG_NET_FWCACHE_SIZE - number of packets to remember when looking for duplicates
 #
 CONFIG_NET=n
 CONFIG_NET_NOINTS=n
@@ -791,8 +410,6 @@ CONFIG_NET_MULTICAST=n
 
 #
 # UIP Network Utilities
-# CONFIG_NET_DHCP_LIGHT - Reduces size of DHCP
-# CONFIG_NET_RESOLV_ENTRIES - Number of resolver entries
 #
 CONFIG_NET_DHCP_LIGHT=n
 CONFIG_NET_RESOLV_ENTRIES=4
@@ -800,44 +417,11 @@ CONFIG_NET_RESOLV_ENTRIES=4
 #
 # FTP Server
 #
-# CONFIG_FTPD_VENDORID - The vendor name to use in FTP communications.
-#   Default: "NuttX"
-# CONFIG_FTPD_SERVERID - The server name to use in FTP communications.
-#   Default: "NuttX FTP Server"
-# CONFIG_FTPD_CMDBUFFERSIZE - The maximum size of one command.  Default:
-#   128 bytes.
-# CONFIG_FTPD_DATABUFFERSIZE - The size of the I/O buffer for data
-#   transfers.  Default: 512 bytes.
-# CONFIG_FTPD_WORKERSTACKSIZE - The stacksize to allocate for each
-#   FTP daemon worker thread.  Default:  2048 bytes.
-#
-# Other required configuration settings:  Of course TCP networking support
-# is required.  But here are a couple that are less obvious:
-#
-# CONFIG_DISABLE_PTHREAD - pthread support is required
-# CONFIG_DISABLE_POLL - poll() support is required
-#
 CONFIG_FTPD_CMDBUFFERSIZE=512
 CONFIG_FTPD_DATABUFFERSIZE=2048
 
 #
 # USB Device Configuration
-#
-# CONFIG_USBDEV
-#   Enables USB device support
-# CONFIG_USBDEV_ISOCHRONOUS
-#   Build in extra support for isochronous endpoints
-# CONFIG_USBDEV_DUALSPEED
-#   Hardware handles high and full speed operation (USB 2.0)
-# CONFIG_USBDEV_SELFPOWERED
-#   Will cause USB features to indicate that the device is
-#   self-powered
-# CONFIG_USBDEV_MAXPOWER
-#   Maximum power consumption in mA
-# CONFIG_USBDEV_TRACE
-#   Enables USB tracing for debug
-# CONFIG_USBDEV_TRACE_NRECORDS
-#   Number of trace entries to remember
 #
 CONFIG_USBDEV=n
 CONFIG_USBDEV_ISOCHRONOUS=n
@@ -850,26 +434,6 @@ CONFIG_USBDEV_TRACE_NRECORDS=128
 
 #
 # USB Serial Device Configuration
-#
-# CONFIG_PL2303
-#   Enable compilation of the USB serial driver
-# CONFIG_PL2303_EPINTIN
-#   The logical 7-bit address of a hardware endpoint that supports
-#   interrupt IN operation
-# CONFIG_PL2303_EPBULKOUT
-#   The logical 7-bit address of a hardware endpoint that supports
-#   bulk OUT operation
-# CONFIG_PL2303_EPBULKIN
-#   The logical 7-bit address of a hardware endpoint that supports
-#   bulk IN operation
-# # CONFIG_PL2303_NWRREQS and CONFIG_PL2303_NRDREQS
-#   The number of write/read requests that can be in flight
-# CONFIG_PL2303_VENDORID and CONFIG_PL2303_VENDORSTR
-#   The vendor ID code/string
-# CONFIG_PL2303_PRODUCTID and CONFIG_PL2303_PRODUCTSTR
-#   The product ID code/string
-# CONFIG_PL2303_RXBUFSIZE and CONFIG_PL2303_TXBUFSIZE
-#   Size of the serial receive/transmit buffers
 #
 CONFIG_PL2303=n
 CONFIG_PL2303_EPINTIN=1
@@ -886,54 +450,6 @@ CONFIG_PL2303_TXBUFSIZE=512
 
 #
 # USB serial device class driver (Standard CDC ACM class)
-#
-# CONFIG_CDCACM
-#   Enable compilation of the USB serial driver
-# CONFIG_CDCACM_CONSOLE
-#   Configures the CDC/ACM serial port as the console device.
-# CONFIG_CDCACM_EP0MAXPACKET
-#   Endpoint 0 max packet size. Default 64
-# CONFIG_CDCACM_EPINTIN
-#   The logical 7-bit address of a hardware endpoint that supports
-#   interrupt IN operation.  Default 2.
-# CONFIG_CDCACM_EPINTIN_FSSIZE
-#   Max package size for the interrupt IN endpoint if full speed mode.
-#   Default 64.
-# CONFIG_CDCACM_EPINTIN_HSSIZE
-#   Max package size for the interrupt IN endpoint if high speed mode.
-#   Default 64
-# CONFIG_CDCACM_EPBULKOUT
-#   The logical 7-bit address of a hardware endpoint that supports
-#   bulk OUT operation
-# CONFIG_CDCACM_EPBULKOUT_FSSIZE
-#   Max package size for the bulk OUT endpoint if full speed mode.
-#   Default 64.
-# CONFIG_CDCACM_EPBULKOUT_HSSIZE
-#   Max package size for the bulk OUT  endpoint if high speed mode.
-#   Default 512.
-# CONFIG_CDCACM_EPBULKIN
-#   The logical 7-bit address of a hardware endpoint that supports
-#   bulk IN operation
-# CONFIG_CDCACM_EPBULKIN_FSSIZE
-#   Max package size for the bulk IN endpoint if full speed mode.
-#   Default 64.
-# CONFIG_CDCACM_EPBULKIN_HSSIZE
-#   Max package size for the bulk IN  endpoint if high speed mode.
-#   Default 512.
-# CONFIG_CDCACM_NWRREQS and CONFIG_CDCACM_NRDREQS
-#   The number of write/read requests that can be in flight.
-#   Default 256.
-# CONFIG_CDCACM_VENDORID and CONFIG_CDCACM_VENDORSTR
-#   The vendor ID code/string.  Default 0x0525 and "NuttX"
-#   0x0525 is the Netchip vendor and should not be used in any
-#   products.  This default VID was selected for compatibility with
-#   the Linux CDC ACM default VID.
-# CONFIG_CDCACM_PRODUCTID and CONFIG_CDCACM_PRODUCTSTR
-#   The product ID code/string. Default 0xa4a7 and "CDC/ACM Serial"
-#   0xa4a7 was selected for compatibility with the Linux CDC ACM
-#   default PID.
-# CONFIG_CDCACM_RXBUFSIZE and CONFIG_CDCACM_TXBUFSIZE
-#   Size of the serial receive/transmit buffers. Default 256.
 #
 CONFIG_CDCACM=n
 CONFIG_CDCACM_CONSOLE=n
@@ -959,26 +475,6 @@ CONFIG_CDCACM_CONSOLE=n
 #
 # USB Storage Device Configuration
 #
-# CONFIG_USBMSC
-#   Enable compilation of the USB storage driver
-# CONFIG_USBMSC_EP0MAXPACKET
-#   Max packet size for endpoint 0
-# CONFIG_USBMSC_EPBULKOUT and CONFIG_USBMSC_EPBULKIN
-#   The logical 7-bit address of a hardware endpoints that support
-#   bulk OUT and IN operations
-# CONFIG_USBMSC_NWRREQS and CONFIG_USBMSC_NRDREQS
-#   The number of write/read requests that can be in flight
-# CONFIG_USBMSC_BULKINREQLEN and CONFIG_USBMSC_BULKOUTREQLEN
-#   The size of the buffer in each write/read request.  This
-#   value needs to be at least as large as the endpoint
-#   maxpacket and ideally as large as a block device sector.
-# CONFIG_USBMSC_VENDORID and CONFIG_USBMSC_VENDORSTR
-#   The vendor ID code/string
-# CONFIG_USBMSC_PRODUCTID and CONFIG_USBMSC_PRODUCTSTR
-#   The product ID code/string
-# CONFIG_USBMSC_REMOVABLE
-#   Select if the media is removable
-#
 CONFIG_USBMSC=n
 CONFIG_USBMSC_EP0MAXPACKET=64
 CONFIG_USBMSC_EPBULKOUT=1
@@ -996,112 +492,6 @@ CONFIG_USBMSC_REMOVABLE=y
 
 #
 # Graphics related configuration settings
-#
-# CONFIG_NX
-#   Enables overall support for graphics library and NX
-# CONFIG_NX_MULTIUSER
-#   Configures NX in multi-user mode
-# CONFIG_NX_NPLANES
-#   Some YUV color formats requires support for multiple planes,
-#   one for each color component.  Unless you have such special
-#   hardware, this value should be undefined or set to 1
-# CONFIG_NX_DISABLE_1BPP, CONFIG_NX_DISABLE_2BPP,
-# CONFIG_NX_DISABLE_4BPP, CONFIG_NX_DISABLE_8BPP,
-# CONFIG_NX_DISABLE_16BPP, CONFIG_NX_DISABLE_24BPP, and
-# CONFIG_NX_DISABLE_32BPP
-#   NX supports a variety of pixel depths.  You can save some
-#   memory by disabling support for unused color depths.
-# CONFIG_NX_PACKEDMSFIRST
-#   If a pixel depth of less than 8-bits is used, then NX needs
-#   to know if the pixels pack from the MS to LS or from LS to MS
-# CONFIG_NX_LCDDRIVER
-#   By default, NX builds to use a framebuffer driver (see
-#   include/nuttx/fb.h). If this option is defined, NX will
-#   build to use an LCD driver (see include/nuttx/lcd/lcd.h).
-# CONFIG_LCD_MAXPOWER - The full-on power setting for an LCD device.
-# CONFIG_LCD_MAXCONTRAST - The maximum contrast value for an LCD device.
-# CONFIG_NX_MOUSE
-#   Build in support for mouse input
-# CONFIG_NX_KBD
-#   Build in support of keypad/keyboard input
-# CONFIG_NXTK_BORDERWIDTH
-#   Specifies with with of the border (in pixels) used with
-#   framed windows.  The default is 4.
-# CONFIG_NXTK_BORDERCOLOR1 and CONFIG_NXTK_BORDERCOLOR2
-#   Specify the colors of the border used with framed windows.
-#   CONFIG_NXTK_BORDERCOLOR2 is the shadow side color and so
-#   is normally darker.  The default is medium and dark grey,
-#   respectively
-# CONFIG_NXTK_AUTORAISE
-#   If set, a window will be raised to the top if the mouse position
-#   is over a visible portion of the window.  Default: A mouse
-#   button must be clicked over a visible portion of the window.
-# CONFIG_NXFONTS_CHARBITS
-#   The number of bits in the character set.  Current options are
-#   only 7 and 8.  The default is 7.
-# CONFIG_NXFONT_SANS17X22
-#  This option enables support for a tiny, 17x22 san serif font
-#  (font ID FONTID_SANS17X22 == 14).
-# CONFIG_NXFONT_SANS20X26
-#  This option enables support for a tiny, 20x26 san serif font
-#  (font ID FONTID_SANS20X26 == 15).
-# CONFIG_NXFONT_SANS23X27
-#   This option enables support for a tiny, 23x27 san serif font
-#   (font ID FONTID_SANS23X27 == 1).
-# CONFIG_NXFONT_SANS22X29
-#   This option enables support for a small, 22x29 san serif font
-#   (font ID FONTID_SANS22X29 == 2).
-# CONFIG_NXFONT_SANS28X37
-#   This option enables support for a medium, 28x37 san serif font
-#   (font ID FONTID_SANS28X37 == 3).
-# CONFIG_NXFONT_SANS39X48
-#   This option enables support for a large, 39x48 san serif font
-#   (font ID FONTID_SANS39X48 == 4).
-# CONFIG_NXFONT_SANS17X23B
-#   This option enables support for a tiny, 17x23 san serif bold font
-#   (font ID FONTID_SANS17X23B == 16).
-# CONFIG_NXFONT_SANS20X27B
-#   This option enables support for a tiny, 20x27 san serif bold font
-#   (font ID FONTID_SANS20X27B == 17).
-# CONFIG_NXFONT_SANS22X29B
-#   This option enables support for a small, 22x29 san serif bold font
-#   (font ID FONTID_SANS22X29B == 5).
-# CONFIG_NXFONT_SANS28X37B
-#   This option enables support for a medium, 28x37 san serif bold font
-#   (font ID FONTID_SANS28X37B == 6).
-# CONFIG_NXFONT_SANS40X49B
-#   This option enables support for a large, 40x49 san serif bold font
-#   (font ID FONTID_SANS40X49B == 7).
-# CONFIG_NXFONT_SERIF22X29
-#   This option enables support for a small, 22x29 font (with serifs)
-#   (font ID FONTID_SERIF22X29 == 8).
-# CONFIG_NXFONT_SERIF29X37
-#   This option enables support for a medium, 29x37 font (with serifs)
-#   (font ID FONTID_SERIF29X37 == 9).
-# CONFIG_NXFONT_SERIF38X48
-#   This option enables support for a large, 38x48 font (with serifs)
-#   (font ID FONTID_SERIF38X48 == 10).
-# CONFIG_NXFONT_SERIF22X28B
-#   This option enables support for a small, 27x38 bold font (with serifs)
-#   (font ID FONTID_SERIF22X28B == 11).
-# CONFIG_NXFONT_SERIF27X38B
-#   This option enables support for a medium, 27x38 bold font (with serifs)
-#   (font ID FONTID_SERIF27X38B == 12).
-# CONFIG_NXFONT_SERIF38X49B
-#   This option enables support for a large, 38x49 bold font (with serifs)
-#   (font ID FONTID_SERIF38X49B == 13).
-#
-# NX Multi-user only options:
-#
-# CONFIG_NX_BLOCKING
-#   Open the client message queues in blocking mode.  In this case,
-#   nx_eventhandler()  will not return until a message is received and processed.
-# CONFIG_NX_MXSERVERMSGS and CONFIG_NX_MXCLIENTMSGS
-#   Specifies the maximum number of messages that can fit in
-#   the message queues.  No additional resources are allocated, but
-#   this can be set to prevent flooding of the client or server with
-#   too many messages (CONFIG_PREALLOC_MQ_MSGS controls how many
-#   messages are pre-allocated).
 #
 CONFIG_NX=n
 CONFIG_NX_MULTIUSER=n
@@ -1155,19 +545,6 @@ CONFIG_EXAMPLE_UIP_DHCPC=n
 #
 # Settings for examples/nettest
 #
-# CONFIG_EXAMPLE_NETTEST_SERVER - The target board can act
-#   as either the client side or server side of the test
-# CONFIG_EXAMPLE_NETTEST_PERFORMANCE - If set, then the
-#   client side simply receives messages forever, allowing
-#   measurement of throughput
-# CONFIG_EXAMPLE_NETTEST_NOMAC - Set if the hardware has
-#   no MAC address; one will be assigned
-# CONFIG_EXAMPLE_NETTEST_IPADDR - Target board IP address
-# CONFIG_EXAMPLE_NETTEST_DRIPADDR - Default router address
-# CONFIG_EXAMPLE_NETTEST_NETMASK - Network mask
-# CONFIG_EXAMPLE_NETTEST_CLIENTIP - IP address of the
-#   client side of the test (may be target or host)
-#
 CONFIG_EXAMPLE_NETTEST_SERVER=n
 CONFIG_EXAMPLE_NETTEST_PERFORMANCE=n
 CONFIG_EXAMPLE_NETTEST_NOMAC=y
@@ -1185,39 +562,6 @@ CONFIG_EXAMPLES_OSTEST_NBARRIER_THREADS=3
 
 #
 # Settings for apps/nshlib
-#
-# CONFIG_NSH_BUILTIN_APPS - Support external registered,
-#   "named" applications that can be executed from the NSH
-#   command line (see apps/README.txt for more information).
-# CONFIG_NSH_FILEIOSIZE - Size of a static I/O buffer
-# CONFIG_NSH_STRERROR - Use strerror(errno)
-# CONFIG_NSH_LINELEN - Maximum length of one command line
-# CONFIG_NSH_NESTDEPTH - Max number of nested if-then[-else]-fi
-# CONFIG_NSH_DISABLESCRIPT - Disable scripting support
-# CONFIG_NSH_DISABLEBG - Disable background commands
-# CONFIG_NSH_ROMFSETC - Use startup script in /etc
-# CONFIG_NSH_CONSOLE - Use serial console front end
-# CONFIG_NSH_TELNET - Use telnetd console front end
-# CONFIG_NSH_ARCHINIT - Platform provides architecture
-#   specific initialization (nsh_archinitialize()).
-#
-# If CONFIG_NSH_TELNET is selected:
-# CONFIG_NSH_IOBUFFER_SIZE -- Telnetd I/O buffer size
-# CONFIG_NSH_DHCPC - Obtain address using DHCP
-# CONFIG_NSH_IPADDR - Provides static IP address
-# CONFIG_NSH_DRIPADDR - Provides static router IP address
-# CONFIG_NSH_NETMASK - Provides static network mask
-# CONFIG_NSH_NOMAC - Use a bogus MAC address
-#
-# If CONFIG_NSH_ROMFSETC is selected:
-# CONFIG_NSH_ROMFSMOUNTPT - ROMFS mountpoint
-# CONFIG_NSH_INITSCRIPT - Relative path to init script
-# CONFIG_NSH_ROMFSDEVNO - ROMFS RAM device minor
-# CONFIG_NSH_ROMFSSECTSIZE - ROMF sector size
-# CONFIG_NSH_FATDEVNO - FAT FS RAM device minor
-# CONFIG_NSH_FATSECTSIZE - FAT FS sector size
-# CONFIG_NSH_FATNSECTORS - FAT FS number of sectors
-# CONFIG_NSH_FATMOUNTPT - FAT FS mountpoint
 #
 CONFIG_NSH_BUILTIN_APPS=y
 CONFIG_NSH_FILEIOSIZE=512
@@ -1255,14 +599,6 @@ CONFIG_NSH_MMCSDMINOR=0
 #
 # I2C tool settings
 #
-# CONFIG_I2CTOOL_BUILTIN - Build the tools as an NSH built-in command
-# CONFIG_I2CTOOL_MINBUS - Smallest bus index supported by the hardware (default 0).
-# CONFIG_I2CTOOL_MAXBUS - Largest bus index supported by the hardware (default 3)
-# CONFIG_I2CTOOL_MINADDR - Minium device address (default: 0x03)
-# CONFIG_I2CTOOL_MAXADDR - Largest device address (default: 0x77)
-# CONFIG_I2CTOOL_MAXREGADDR - Largest register address (default: 0xff)
-# CONFIG_I2CTOOL_DEFFREQ - Default frequency (default: 1000000)
-#
 CONFIG_I2CTOOL_BUILTIN=y
 CONFIG_I2CTOOL_MINBUS=1
 CONFIG_I2CTOOL_MAXBUS=4
@@ -1274,44 +610,9 @@ CONFIG_I2CTOOL_DEFFREQ=100000
 #
 # Settings for examples/ftpd
 #
-#  CONFIG_EXAMPLES_FTPD_PRIO - Priority of the FTP daemon.
-#    Default: SCHED_PRIORITY_DEFAULT
-#  CONFIG_EXAMPLES_FTPD_STACKSIZE - Stack size allocated for the
-#    FTP daemon. Default: 2048
-#  CONFIG_EXAMPLES_FTPD_NONETINIT - Define to suppress configuration of the
-#    network by apps/examples/ftpd.  You would need to suppress network
-#    configuration if the network is configuration prior to running the
-#    example.
-#
-# NSH always initializes the network so if CONFIG_NSH_BUILTIN_APPS is
-# defined, so is CONFIG_EXAMPLES_FTPD_NONETINIT (se it does not explicitly
-# need to be defined in that case):
-#
-#  CONFIG_NSH_BUILTIN_APPS - Build the FTPD daemon example test as an
-#    NSH built-in function.  By default the FTPD daemon will be built
-#    as a standalone application.
-#
-# If CONFIG_EXAMPLES_FTPD_NONETINIT is not defined, then the following may
-# be specified to customized the network configuration:
-#
-#  CONFIG_EXAMPLE_FTPD_NOMAC - If the hardware has no MAC address of its
-#    own, define this =y to provide a bogus address for testing.
-#  CONFIG_EXAMPLE_FTPD_IPADDR - The target IP address.  Default 10.0.0.2
-#  CONFIG_EXAMPLE_FTPD_DRIPADDR - The default router address. Default
-#    10.0.0.1
-#  CONFIG_EXAMPLE_FTPD_NETMASK - The network mask.  Default: 255.255.255.0
 
 #
 # Settings for examples/usbserial
-#
-# CONFIG_EXAMPLES_USBSERIAL_INONLY
-#    Only verify IN (device-to-host) data transfers.  Default: both
-# CONFIG_EXAMPLES_USBSERIAL_OUTONLY
-#    Only verify OUT (host-to-device) data transfers.  Default: both
-# CONFIG_EXAMPLES_USBSERIAL_ONLYSMALL
-#    Send only small, single packet messages.  Default: Send large and small.
-# CONFIG_EXAMPLES_USBSERIAL_ONLYBIG
-#    Send only large, multi-packet messages.  Default: Send large and small.
 #
 CONFIG_EXAMPLES_USBSERIAL_INONLY=n
 CONFIG_EXAMPLES_USBSERIAL_OUTONLY=n
@@ -1327,40 +628,6 @@ CONFIG_EXAMPLES_USBSERIAL_TRACEINTERRUPTS=n
 #
 # Settings for examples/usbstorage
 #
-# CONFIG_EXAMPLES_USBMSC_BUILTIN
-#    Build the USBMSC storage example as an NSH built-in application.
-# CONFIG_EXAMPLES_USBMSC_NLUNS
-#    Defines the number of logical units (LUNs) exported by the USB storage
-#    driver.  Each LUN corresponds to one exported block driver (or partition
-#    of a block driver).  May be 1, 2, or 3.  Default is 1.
-# CONFIG_EXAMPLES_USBMSC_DEVMINOR1
-#    The minor device number of the block driver for the first LUN. For
-#    example, N in /dev/mmcsdN.  Used for registering the block driver. Default
-#    is zero.
-# CONFIG_EXAMPLES_USBMSC_DEVPATH1
-#    The full path to the registered block driver.  Default is "/dev/mmcsd0"
-#  CONFIG_EXAMPLES_USBMSC_DEVMINOR2 and CONFIG_EXAMPLES_USBMSC_DEVPATH2
-#    Similar parameters that would have to be provided if CONFIG_EXAMPLES_USBMSC_NLUNS
-#    is 2 or 3.  No defaults.
-#  CONFIG_EXAMPLES_USBMSC_DEVMINOR3 and CONFIG_EXAMPLES_USBMSC_DEVPATH3
-#    Similar parameters that would have to be provided if CONFIG_EXAMPLES_USBMSC_NLUNS
-#    is 3.  No defaults.
-#
-#  If CONFIG_USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB), then
-#  the example code will also manage the USB trace output.  The amount of trace output
-#  can be controlled using:
-#
-#  CONFIG_EXAMPLES_USBMSC_TRACEINIT
-#    Show initialization events
-#  CONFIG_EXAMPLES_USBMSC_TRACECLASS
-#    Show class driver events
-#  CONFIG_EXAMPLES_USBMSC_TRACETRANSFERS
-#    Show data transfer events
-#  CONFIG_EXAMPLES_USBMSC_TRACECONTROLLER
-#    Show controller events
-#  CONFIG_EXAMPLES_USBMSC_TRACEINTERRUPTS
-#    Show interrupt-related events.
-#
 CONFIG_EXAMPLES_USBMSC_BUILTIN=y
 CONFIG_EXAMPLES_USBMSC_NLUNS=1
 CONFIG_EXAMPLES_USBMSC_DEVMINOR1=0
@@ -1373,33 +640,6 @@ CONFIG_EXAMPLES_USBMSC_TRACEINTERRUPTS=n
 
 #
 # Settings for examples/usbterm
-#
-# CONFIG_EXAMPLES_USBTERM_BUILTIN - Build the usbterm example as an NSH
-#   built-in command.  NOTE:  This is not fully functional as of this
-#   writing.. It should work, but there is no mechanism in place yet
-#   to exit the USB terminal program and return to NSH.
-# CONFIG_EXAMPLES_USBTERM_DEVINIT - If defined, then the example will
-#   call a user provided function as part of its initialization:
-#      int usbterm_devinit(void);
-#   And another user provided function at termination:
-#      void usbterm_devuninit(void);
-# CONFIG_EXAMPLES_USBTERM_BUFLEN - The size of the input and output
-#   buffers used for receiving data. Default 256 bytes.
-#
-# If CONFIG_USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB, or
-# CONFIG_USBDEV_TRACE), then the example code will also manage the USB trace
-# output.  The amount of trace output can be controlled using:
-#
-# CONFIG_EXAMPLES_USBTERM_TRACEINIT
-#   Show initialization events
-# CONFIG_EXAMPLES_USBTERM_TRACECLASS
-#   Show class driver events
-# CONFIG_EXAMPLES_USBTERM_TRACETRANSFERS
-#   Show data transfer events
-# CONFIG_EXAMPLES_USBTERM_TRACECONTROLLER
-#   Show controller events
-# CONFIG_EXAMPLES_USBTERM_TRACEINTERRUPTS
-#   Show interrupt-related events.
 #
 CONFIG_EXAMPLES_USBTERM_BUILTIN=y
 CONFIG_EXAMPLES_USBTERM_DEVINIT=y
@@ -1415,25 +655,6 @@ CONFIG_EXAMPLES_USBTERM_TRACEINTERRUPTS=n
 #
 # Configuration prequisites:
 #
-#   CONFIG_USBDEV=y         : USB device support must be enabled
-#   CONFIG_CDCACM=y         : The CDC/ACM driver must be built
-#   CONFIG_NSH_BUILTIN_APPS : NSH built-in application support must be enabled
-#
-# Configuration options specific to this example:
-#
-# CONFIG_EXAMPLES_CDCACM_DEVMINOR
-#  The minor number of the CDC/ACM device.
-# CONFIG_EXAMPLES_CDCACM_TRACEINIT
-#   Show initialization events
-# CONFIG_EXAMPLES_CDCACM_TRACECLASS
-#   Show class driver events
-# CONFIG_EXAMPLES_CDCACM_TRACETRANSFERS
-#   Show data transfer events
-# CONFIG_EXAMPLES_CDCACM_TRACECONTROLLER
-#   Show controller events
-# CONFIG_EXAMPLES_CDCACM_TRACEINTERRUPTS
-#   Show interrupt-related events.
-#
 CONFIG_EXAMPLES_CDCACM_DEVMINOR=0
 CONFIG_EXAMPLES_CDCACM_TRACEINIT=n
 CONFIG_EXAMPLES_CDCACM_TRACECLASS=n
@@ -1443,26 +664,6 @@ CONFIG_EXAMPLES_CDCACM_TRACEINTERRUPTS=n
 
 #
 # Stack and heap information
-#
-# CONFIG_BOOT_RUNFROMFLASH - Some configurations support XIP
-#   operation from FLASH but must copy initialized .data sections to RAM.
-#   (should also be =n for the PIC32MX which always runs from flash)
-# CONFIG_BOOT_COPYTORAM -  Some configurations boot in FLASH
-#   but copy themselves entirely into RAM for better performance.
-# CONFIG_CUSTOM_STACK - The up_ implementation will handle
-#   all stack operations outside of the nuttx model.
-# CONFIG_STACK_POINTER - The initial stack pointer (arm7tdmi only)
-# CONFIG_IDLETHREAD_STACKSIZE - The size of the initial stack.
-#  This is the thread that (1) performs the inital boot of the system up
-#  to the point where user_start() is spawned, and (2) there after is the
-#  IDLE thread that executes only when there is no other thread ready to
-#  run.
-# CONFIG_USERMAIN_STACKSIZE - The size of the stack to allocate
-#  for the main user thread that begins at the user_start() entry point.
-# CONFIG_PTHREAD_STACK_MIN - Minimum pthread stack size
-# CONFIG_PTHREAD_STACK_DEFAULT - Default pthread stack size
-# CONFIG_HEAP_BASE - The beginning of the heap
-# CONFIG_HEAP_SIZE - The size of the heap
 #
 CONFIG_BOOT_RUNFROMFLASH=n
 CONFIG_BOOT_COPYTORAM=n
