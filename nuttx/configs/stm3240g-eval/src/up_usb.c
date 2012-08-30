@@ -1,5 +1,5 @@
 /************************************************************************************
- * configs/stm32f4discovery/src/up_usbdev.c
+ * configs/stm3240g-eval/src/up_usbdev.c
  * arch/arm/src/board/up_boot.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
@@ -53,7 +53,7 @@
 
 #include "up_arch.h"
 #include "stm32_internal.h"
-#include "stm32f4discovery-internal.h"
+#include "stm3240g-internal.h"
 
 #ifdef CONFIG_STM32_OTGFS
 
@@ -138,7 +138,7 @@ static int usbhost_waiter(int argc, char *argv[])
  *
  * Description:
  *   Called from stm32_usbinitialize very early in inialization to setup USB-related
- *   GPIO pins for the STM32F4Discovery board.
+ *   GPIO pins for the STM3240G-EVAL board.
  *
  ************************************************************************************/
 

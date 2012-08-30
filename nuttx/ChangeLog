@@ -3215,3 +3215,9 @@
 	  appears to handle NAKing correctly is complete.
 	* configs/stm32f4discovery/*:  Added and verifed support for USB OTG FS
 	  host on the STM32F4Discovery board.
+	* configs/*/defconfig: Remove configuration documentation from config
+	  files.  It is redundant, error-prone, and difficult to maintain.
+	  Configuration documentation is available in configs/README.txt for
+	  common configurations and in configs/*/README.txt for board and MCU_
+	  specific configurations.
+	* configs/stm3240g-eval: Add USB host support.
