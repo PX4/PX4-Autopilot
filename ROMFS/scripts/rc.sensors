@@ -7,33 +7,22 @@
 # Start sensor drivers here.
 #
 
-if ms5611 start
-then
-else
-	echo "[init] BARO initialization FAILED. REBOOTING"
-	reboot
-fi
-
-if mpu6000 start
-then
-else
-	echo "[init] ACCEL/GYRO initialization FAILED. REBOOTING"
-	reboot
-fi
-
-if hmc5883 start
-then
-else
-	echo "[init] MAG initialization FAILED. REBOOTING"
-	reboot
-fi
+ms5611 start
+mpu6000 start
+hmc5883 start
 
 #
 # Start the sensor collection task.
 #
-if sensors start
-then
-else
-	echo "[init] sensor initialization FAILED. REBOOTING"
-	reboot
-fi
+sensors start
+
+#
+# Test sensor functionality
+#
+# XXX integrate with 'sensors start' ?
+#
+#if sensors quicktest
+#then
+#	echo "[init] sensor initialisation FAILED."
+#	reboot
+#fi
