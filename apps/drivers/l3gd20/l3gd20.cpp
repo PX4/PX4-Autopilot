@@ -76,36 +76,47 @@ static const int ERROR = -1;
 #define ADDR_INCREMENT				(1<<6)
 
 /* register addresses */
-#define ADDR_WHO_AM_I				0x0F
+#define ADDR_WHO_AM_I			0x0F
 #define WHO_I_AM				0xD4
-#define ADDR_CTRL_REG1				0x20
-#define ADDR_CTRL_REG2				0x21
-#define ADDR_CTRL_REG3				0x22
-#define ADDR_CTRL_REG4				0x23
-#define ADDR_CTRL_REG5				0x24
-#define ADDR_REFERENCE				0x25
-#define ADDR_OUT_TEMP				0x26
-#define ADDR_STATUS_REG				0x27
-#define ADDR_OUT_X_L				0x28
-#define ADDR_OUT_X_H				0x29
-#define ADDR_OUT_Y_L				0x2A
-#define ADDR_OUT_Y_H				0x2B
-#define ADDR_OUT_Z_L				0x2C
-#define ADDR_OUT_Z_H				0x2D
-#define ADDR_FIFO_CTRL_REG			0x2E
-#define ADDR_FIFO_SRC_REG			0x2F
-#define ADDR_INT1_CFG				0x30
-#define ADDR_INT1_SRC				0x31
-#define ADDR_INT1_TSH_XH			0x32
-#define ADDR_INT1_TSH_XL			0x33
-#define ADDR_INT1_TSH_YH			0x34
-#define ADDR_INT1_TSH_YL			0x35
-#define ADDR_INT1_TSH_ZH			0x36
-#define ADDR_INT1_TSH_ZL			0x37
-#define ADDR_INT1_DURATION			0x38
 
+#define ADDR_CTRL_REG1			0x20
 #define REG1_RATE_LP_MASK			0xF0 /* Mask to guard partial register update */
+/* keep lowpass low to avoid noise issues */
+#define RATE_95HZ_LP_25HZ		((0<<7) | (0<<6) | (0<<5) | (1<<4))
+#define RATE_190HZ_LP_25HZ		((0<<7) | (1<<6) | (1<<5) | (1<<4))
+#define RATE_380HZ_LP_30HZ		((1<<7) | (0<<6) | (1<<5) | (1<<4))
+#define RATE_760HZ_LP_30HZ		((1<<7) | (1<<6) | (1<<5) | (1<<4))
+
+#define ADDR_CTRL_REG2			0x21
+#define ADDR_CTRL_REG3			0x22
+#define ADDR_CTRL_REG4			0x23
 #define REG4_RANGE_MASK				0x30 /* Mask to guard partial register update */
+#define RANGE_250DPS				(0<<4)
+#define RANGE_500DPS				(1<<4)
+#define RANGE_2000DPS				(3<<4)
+
+#define ADDR_CTRL_REG5			0x24
+#define ADDR_REFERENCE			0x25
+#define ADDR_OUT_TEMP			0x26
+#define ADDR_STATUS_REG			0x27
+#define ADDR_OUT_X_L			0x28
+#define ADDR_OUT_X_H			0x29
+#define ADDR_OUT_Y_L			0x2A
+#define ADDR_OUT_Y_H			0x2B
+#define ADDR_OUT_Z_L			0x2C
+#define ADDR_OUT_Z_H			0x2D
+#define ADDR_FIFO_CTRL_REG		0x2E
+#define ADDR_FIFO_SRC_REG		0x2F
+#define ADDR_INT1_CFG			0x30
+#define ADDR_INT1_SRC			0x31
+#define ADDR_INT1_TSH_XH		0x32
+#define ADDR_INT1_TSH_XL		0x33
+#define ADDR_INT1_TSH_YH		0x34
+#define ADDR_INT1_TSH_YL		0x35
+#define ADDR_INT1_TSH_ZH		0x36
+#define ADDR_INT1_TSH_ZL		0x37
+#define ADDR_INT1_DURATION		0x38
+
 
 /* Internal configuration values */
 #define REG1_POWER_NORMAL			(1<<3)
@@ -135,15 +146,8 @@ static const int ERROR = -1;
 #define FIFO_CTRL_STREAM_TO_FIFO_MODE		(3<<5)
 #define FIFO_CTRL_BYPASS_TO_STREAM_MODE		(1<<7)
 
-#define L3GD20_RANGE_250DPS			(0<<4)
-#define L3GD20_RANGE_500DPS			(1<<4)
-#define L3GD20_RANGE_2000DPS			(3<<4)
 
-/* keep lowpass low to avoid noise issues */
-#define L3GD20_RATE_95HZ_LP_25HZ		((0<<7) | (0<<6) | (0<<5) | (1<<4))
-#define L3GD20_RATE_190HZ_LP_25HZ		((0<<7) | (1<<6) | (1<<5) | (1<<4))
-#define L3GD20_RATE_380HZ_LP_30HZ		((1<<7) | (0<<6) | (1<<5) | (1<<4))
-#define L3GD20_RATE_760HZ_LP_30HZ		((1<<7) | (1<<6) | (1<<5) | (1<<4))
+
 
 extern "C" { __EXPORT int l3gd20_main(int argc, char *argv[]); }
 
@@ -333,7 +337,7 @@ L3GD20::init()
 	write_reg(ADDR_CTRL_REG1, REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
 	write_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
 	write_reg(ADDR_CTRL_REG3, 0);		/* no interrupts - we don't use them */
-	write_reg(ADDR_CTRL_REG4, 0x10);
+	write_reg(ADDR_CTRL_REG4, REG4_BDU);
 	write_reg(ADDR_CTRL_REG5, 0);
 		
 	write_reg(ADDR_CTRL_REG5, REG5_FIFO_ENABLE);	  /* disable wake-on-interrupt */
@@ -442,7 +446,7 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call.period = _call_interval;
+					_call.period = _call_interval = ticks;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
@@ -559,27 +563,27 @@ L3GD20::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 int
 L3GD20::set_range(unsigned max_dps)
 {
-	uint8_t bits;
+	uint8_t bits = REG4_BDU;
 
 	if (max_dps == 0)
 		max_dps = 2000;
 
 	if (max_dps <= 250) {
 		_current_range = 250;
-		bits = L3GD20_RANGE_250DPS;
+		bits |= RANGE_250DPS;
 	} else if (max_dps <= 500) {
 		_current_range = 500;
-		bits = L3GD20_RANGE_500DPS;
+		bits |= RANGE_500DPS;
 	} else if (max_dps <= 2000) {
 		_current_range = 2000;
-		bits = L3GD20_RANGE_2000DPS;
+		bits |= RANGE_2000DPS;
 	} else {
 		return -EINVAL;
 	}
 
 	_gyro_range_rad_s = _current_range / 180.0f * M_PI_F;
 	_gyro_range_scale = _gyro_range_rad_s / 32768.0f;
-	modify_reg(ADDR_CTRL_REG4, REG4_RANGE_MASK, bits);
+	write_reg(ADDR_CTRL_REG4, bits);
 
 	/* XXX update scale factors */
 
@@ -589,28 +593,28 @@ L3GD20::set_range(unsigned max_dps)
 int
 L3GD20::set_samplerate(unsigned frequency)
 {
-	uint8_t bits;
+	uint8_t bits = REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE;
 
 	if (frequency == 0)
 		frequency = 760;
 
 	if (frequency <= 95) {
 		_current_rate = 95;
-		bits = L3GD20_RATE_95HZ_LP_25HZ;
+		bits |= RATE_95HZ_LP_25HZ;
 	} else if (frequency <= 190) {
 		_current_rate = 190;
-		bits = L3GD20_RATE_190HZ_LP_25HZ;
+		bits |= RATE_190HZ_LP_25HZ;
 	} else if (frequency <= 380) {
 		_current_rate = 380;
-		bits = L3GD20_RATE_380HZ_LP_30HZ;
+		bits |= RATE_380HZ_LP_30HZ;
 	} else if (frequency <= 760) {
 		_current_rate = 760;
-		bits = L3GD20_RATE_760HZ_LP_30HZ;
+		bits |= RATE_760HZ_LP_30HZ;
 	} else {
 		return -EINVAL;
 	}
 
-	modify_reg(ADDR_CTRL_REG1, REG1_RATE_LP_MASK, bits);
+	write_reg(ADDR_CTRL_REG1, bits);
 
 	return OK;
 }
