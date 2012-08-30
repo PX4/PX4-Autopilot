@@ -585,8 +585,6 @@ L3GD20::set_range(unsigned max_dps)
 	_gyro_range_scale = _gyro_range_rad_s / 32768.0f;
 	write_reg(ADDR_CTRL_REG4, bits);
 
-	/* XXX update scale factors */
-
 	return OK;
 }
 
@@ -669,7 +667,7 @@ L3GD20::measure()
 
 	/* fetch data from the sensor */
 	raw_report.cmd = ADDR_OUT_TEMP | DIR_READ | ADDR_INCREMENT;
-	transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(&raw_report));
+	transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(raw_report));
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
