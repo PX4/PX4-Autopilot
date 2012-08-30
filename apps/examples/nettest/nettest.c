@@ -53,18 +53,6 @@
  * Definitions
  ****************************************************************************/
 
-/* If CONFIG_NSH_BUILTIN_APPS is defined, then it is assumed that you want
- * to execute the DHCPD daemon as an NSH built-in task.
- */
-
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME nettest_main
-#  define MAIN_NAME_STRING "nettest_main"
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_NAME_STRING "user_start"
-#endif
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -74,10 +62,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * user_start
+ * nettest_main
  ****************************************************************************/
 
-int MAIN_NAME(int argc, char *argv[])
+int nettest_main(int argc, char *argv[])
 {
   struct in_addr addr;
 #ifdef CONFIG_EXAMPLE_NETTEST_NOMAC

@@ -107,16 +107,6 @@
 #  endif
 #endif
 
-/* Is this being built as an NSH built-in application? */
-
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME   ftpd_start
-#  define MAIN_STRING "ftpd_start: "
-#else
-#  define MAIN_NAME   user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
 /****************************************************************************
  * Public Types
  ****************************************************************************/

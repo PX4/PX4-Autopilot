@@ -789,10 +789,10 @@ static int nxffs_directory(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start
+ * Name: nxffs_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int nxffs_main(int argc, char *argv[])
 {
   FAR struct mtd_dev_s *mtd;
   unsigned int i;

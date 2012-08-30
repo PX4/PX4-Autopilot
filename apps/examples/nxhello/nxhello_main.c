@@ -203,18 +203,10 @@ static inline int nxhello_initialize(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start/nxhello_main
+ * Name: nxhello_main
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_NXHELLO_BUILTIN
-#  define MAIN_NAME nxhello_main
-#  define MAIN_NAME_STRING "nxhello_main"
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_NAME_STRING "user_start"
-#endif
-
-int MAIN_NAME(int argc, char *argv[])
+int nxhello_main(int argc, char *argv[])
 {
   nxgl_mxpixel_t color;
   int ret;
@@ -222,10 +214,10 @@ int MAIN_NAME(int argc, char *argv[])
   /* Initialize NX */
 
   ret = nxhello_initialize();
-  message(MAIN_NAME_STRING ": NX handle=%p\n", g_nxhello.hnx);
+  message("nxhello_main: NX handle=%p\n", g_nxhello.hnx);
   if (!g_nxhello.hnx || ret < 0)
     {
-      message(MAIN_NAME_STRING ": Failed to get NX handle: %d\n", errno);
+      message("nxhello_main: Failed to get NX handle: %d\n", errno);
       g_nxhello.code = NXEXIT_NXOPEN;
       goto errout;
     }
@@ -235,21 +227,21 @@ int MAIN_NAME(int argc, char *argv[])
   g_nxhello.hfont = nxf_getfonthandle(CONFIG_EXAMPLES_NXHELLO_FONTID);
   if (!g_nxhello.hfont)
     {
-      message(MAIN_NAME_STRING ": Failed to get font handle: %d\n", errno);
+      message("nxhello_main: Failed to get font handle: %d\n", errno);
       g_nxhello.code = NXEXIT_FONTOPEN;
       goto errout;
     }
 
   /* Set the background to the configured background color */
 
-  message(MAIN_NAME_STRING ": Set background color=%d\n",
+  message("nxhello_main: Set background color=%d\n",
           CONFIG_EXAMPLES_NXHELLO_BGCOLOR);
 
   color = CONFIG_EXAMPLES_NXHELLO_BGCOLOR;
   ret = nx_setbgcolor(g_nxhello.hnx, &color);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nx_setbgcolor failed: %d\n", errno);
+      message("nxhello_main: nx_setbgcolor failed: %d\n", errno);
       g_nxhello.code = NXEXIT_NXSETBGCOLOR;
       goto errout_with_nx;
     }
@@ -259,7 +251,7 @@ int MAIN_NAME(int argc, char *argv[])
   ret = nx_requestbkgd(g_nxhello.hnx, &g_nxhellocb, NULL);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nx_setbgcolor failed: %d\n", errno);
+      message("nxhello_main: nx_setbgcolor failed: %d\n", errno);
       g_nxhello.code = NXEXIT_NXREQUESTBKGD;
       goto errout_with_nx;
     }
@@ -272,7 +264,7 @@ int MAIN_NAME(int argc, char *argv[])
     {
       (void)sem_wait(&g_nxhello.sem);
     }
-  message(MAIN_NAME_STRING ": Screen resolution (%d,%d)\n", g_nxhello.xres, g_nxhello.yres);
+  message("nxhello_main: Screen resolution (%d,%d)\n", g_nxhello.xres, g_nxhello.yres);
 
   /* Now, say hello and exit, sleeping a little before each. */
 
@@ -287,7 +279,7 @@ int MAIN_NAME(int argc, char *argv[])
   /* Close NX */
 
 errout_with_nx:
-  message(MAIN_NAME_STRING ": Close NX\n");
+  message("nxhello_main: Close NX\n");
   nx_close(g_nxhello.hnx);
 errout:
   return g_nxhello.code;

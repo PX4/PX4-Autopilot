@@ -207,10 +207,10 @@ static int nxcon_task(int argc, char **argv)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start
+ * Name: nxcon_main
  ****************************************************************************/
 
-int user_start(int argc, char **argv)
+int nxcon_main(int argc, char **argv)
 {
   nxgl_mxpixel_t color;
   int fd;
@@ -219,7 +219,7 @@ int user_start(int argc, char **argv)
   /* General Initialization *************************************************/
   /* Reset all global data */
 
-  message("user_start: Started\n");
+  message("nxcon_main: Started\n");
   memset(&g_nxcon_vars, 0, sizeof(struct nxcon_state_s));
 
   /* Call all C++ static constructors */
@@ -231,7 +231,7 @@ int user_start(int argc, char **argv)
   /* NSH Initialization *****************************************************/
   /* Initialize the NSH library */
 
-  message("user_start: Initialize NSH\n");
+  message("nxcon_main: Initialize NSH\n");
   nsh_initialize();
 
   /* If the Telnet console is selected as a front-end, then start the
@@ -252,37 +252,37 @@ int user_start(int argc, char **argv)
   /* NX Initialization ******************************************************/
   /* Initialize NX */
 
-  message("user_start: Initialize NX\n");
+  message("nxcon_main: Initialize NX\n");
   ret = nxcon_initialize();
-  message("user_start: NX handle=%p\n", g_nxcon_vars.hnx);
+  message("nxcon_main: NX handle=%p\n", g_nxcon_vars.hnx);
   if (!g_nxcon_vars.hnx || ret < 0)
     {
-      message("user_start: Failed to get NX handle: %d\n", errno);
+      message("nxcon_main: Failed to get NX handle: %d\n", errno);
       goto errout;
     }
 
   /* Set the background to the configured background color */
 
-  message("user_start: Set background color=%d\n", CONFIG_EXAMPLES_NXCON_BGCOLOR);
+  message("nxcon_main: Set background color=%d\n", CONFIG_EXAMPLES_NXCON_BGCOLOR);
   color = CONFIG_EXAMPLES_NXCON_BGCOLOR;
   ret = nx_setbgcolor(g_nxcon_vars.hnx, &color);
   if (ret < 0)
     {
-      message("user_start: nx_setbgcolor failed: %d\n", errno);
+      message("nxcon_main: nx_setbgcolor failed: %d\n", errno);
       goto errout_with_nx;
     }
 
   /* Window Configuration ***************************************************/
   /* Create a window */
 
-  message("user_start: Create window\n");
+  message("nxcon_main: Create window\n");
   g_nxcon_vars.hwnd = nxtk_openwindow(g_nxcon_vars.hnx, &g_nxconcb, NULL);
   if (!g_nxcon_vars.hwnd)
     {
-      message("user_start: nxtk_openwindow failed: %d\n", errno);
+      message("nxcon_main: nxtk_openwindow failed: %d\n", errno);
       goto errout_with_nx;
     }
-  message("user_start: hwnd=%p\n", g_nxcon_vars.hwnd);
+  message("nxcon_main: hwnd=%p\n", g_nxcon_vars.hwnd);
 
   /* Wait until we have the screen resolution.  We'll have this immediately
    * unless we are dealing with the NX server.
@@ -292,7 +292,7 @@ int user_start(int argc, char **argv)
     {
       (void)sem_wait(&g_nxcon_vars.eventsem);
     }
-  message("user_start: Screen resolution (%d,%d)\n", g_nxcon_vars.xres, g_nxcon_vars.yres);
+  message("nxcon_main: Screen resolution (%d,%d)\n", g_nxcon_vars.xres, g_nxcon_vars.yres);
 
   /* Determine the size and position of the window */
 
@@ -304,35 +304,35 @@ int user_start(int argc, char **argv)
 
   /* Set the window position */
 
-  message("user_start: Set window position to (%d,%d)\n",
+  message("nxcon_main: Set window position to (%d,%d)\n",
           g_nxcon_vars.wpos.x, g_nxcon_vars.wpos.y);
 
   ret = nxtk_setposition(g_nxcon_vars.hwnd, &g_nxcon_vars.wpos);
   if (ret < 0)
     {
-      message("user_start: nxtk_setposition failed: %d\n", errno);
+      message("nxcon_main: nxtk_setposition failed: %d\n", errno);
       goto errout_with_hwnd;
     }
 
   /* Set the window size */
 
-  message("user_start: Set window size to (%d,%d)\n",
+  message("nxcon_main: Set window size to (%d,%d)\n",
           g_nxcon_vars.wndo.wsize.w, g_nxcon_vars.wndo.wsize.h);
 
   ret = nxtk_setsize(g_nxcon_vars.hwnd, &g_nxcon_vars.wndo.wsize);
   if (ret < 0)
     {
-      message("user_start: nxtk_setsize failed: %d\n", errno);
+      message("nxcon_main: nxtk_setsize failed: %d\n", errno);
       goto errout_with_hwnd;
     }
 
   /* Open the toolbar */
 
-  message("user_start: Add toolbar to window\n");
+  message("nxcon_main: Add toolbar to window\n");
   ret = nxtk_opentoolbar(g_nxcon_vars.hwnd, CONFIG_EXAMPLES_NXCON_TOOLBAR_HEIGHT, &g_nxtoolcb, NULL);
   if (ret < 0)
     {
-      message("user_start: nxtk_opentoolbar failed: %d\n", errno);
+      message("nxcon_main: nxtk_opentoolbar failed: %d\n", errno);
       goto errout_with_hwnd;
     }
 
@@ -350,7 +350,7 @@ int user_start(int argc, char **argv)
   g_nxcon_vars.hdrvr = nxtk_register(g_nxcon_vars.hwnd, &g_nxcon_vars.wndo, CONFIG_EXAMPLES_NXCON_MINOR);
   if (!g_nxcon_vars.hdrvr)
     {
-      message("user_start: nxtk_register failed: %d\n", errno);
+      message("nxcon_main: nxtk_register failed: %d\n", errno);
       goto errout_with_hwnd;
     }
 
@@ -359,7 +359,7 @@ int user_start(int argc, char **argv)
   fd = open(CONFIG_EXAMPLES_NXCON_DEVNAME, O_WRONLY);
   if (fd < 0)
     {
-      message("user_start: open %s read-only failed: %d\n",
+      message("nxcon_main: open %s read-only failed: %d\n",
               CONFIG_EXAMPLES_NXCON_DEVNAME, errno);
       goto errout_with_driver;
     }
@@ -369,7 +369,7 @@ int user_start(int argc, char **argv)
    * Note that stdin is retained (file descriptor 0, probably the the serial console).
     */
 
-   message("user_start: Starting the console task\n");
+   message("nxcon_main: Starting the console task\n");
    msgflush();
 
   (void)fflush(stdout);

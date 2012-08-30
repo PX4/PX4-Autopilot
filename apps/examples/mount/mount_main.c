@@ -567,10 +567,10 @@ static void succeed_stat(const char *path)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start
+ * Name: mount_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int mount_main(int argc, char *argv[])
 {
   int  ret;
 
@@ -580,18 +580,18 @@ int user_start(int argc, char *argv[])
   ret = create_ramdisk();
   if (ret < 0)
     {
-      printf("user_start: ERROR failed to create RAM disk\n");
+      printf("mount_main: ERROR failed to create RAM disk\n");
       return 1;
     }
 #endif
 
   /* Mount the test file system (see arch/sim/src/up_deviceimage.c */
 
-  printf("user_start: mounting %s filesystem at target=%s with source=%s\n",
+  printf("mount_main: mounting %s filesystem at target=%s with source=%s\n",
          g_filesystemtype, g_target, g_source);
 
   ret = mount(g_source, g_target, g_filesystemtype, 0, NULL);
-  printf("user_start: mount() returned %d\n", ret);
+  printf("mount_main: mount() returned %d\n", ret);
 
   if (ret == 0)
     {
@@ -737,16 +737,16 @@ int user_start(int argc, char *argv[])
 
       /* Unmount the file system */
 
-      printf("user_start: Try unmount(%s)\n", g_target);
+      printf("mount_main: Try unmount(%s)\n", g_target);
 
       ret = umount(g_target);
       if (ret != 0)
         {
-          printf("user_start: ERROR umount() failed, errno %d\n", errno);
+          printf("mount_main: ERROR umount() failed, errno %d\n", errno);
           g_nerrors++;
         }
 
-      printf("user_start: %d errors reported\n", g_nerrors);
+      printf("mount_main: %d errors reported\n", g_nerrors);
     }
 
   fflush(stdout);

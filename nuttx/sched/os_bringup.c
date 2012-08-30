@@ -71,12 +71,6 @@
  * then the default entry point is user_start.
  */
 
-#if defined(CONFIG_NUTTX_KERNEL) && defined(CONFIG_USER_ENTRYPOINT)
-#  define USER_ENTRYPOINT (main_t)CONFIG_USER_ENTRYPOINT
-#else
-#  define USER_ENTRYPOINT user_start
-#endif
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -175,11 +169,11 @@ int os_bringup(void)
   
   init_taskid = exec_namedapp(CONFIG_BUILTIN_APP_START, argv);
 #else
-  /* Start the default application at USER_ENTRYPOINT() */
+  /* Start the default application at CONFIG_USER_ENTRYPOINT() */
 
   init_taskid = TASK_CREATE("init", SCHED_PRIORITY_DEFAULT,
                             CONFIG_USERMAIN_STACKSIZE,
-                            (main_t)USER_ENTRYPOINT, (const char **)NULL);
+                            (main_t)CONFIG_USER_ENTRYPOINT, (const char **)NULL);
 #endif
   ASSERT(init_taskid != ERROR);
   return OK;

@@ -81,16 +81,6 @@
 #  define CONFIG_EXAMPLE_TELNETD_NETMASK 0xffffff00
 #endif
 
-/* Is this being built as an NSH built-in application? */
-
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME   shell_main
-#  define MAIN_STRING "shell_main: "
-#else
-#  define MAIN_NAME   user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
 /* Other definitions ********************************************************/
 
 #define SHELL_PROMPT "uIP 1.0> "

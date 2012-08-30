@@ -177,22 +177,14 @@ FAR void *usbterm_listener(FAR void *parameter)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: term_main/user_start
+ * Name: usbterm_main
  *
  * Description:
  *   Main entry point for the USB serial terminal example.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_USBTERM_BUILTIN
-#  define MAIN_NAME usbterm_main
-#  define MAIN_STRING "usbterm_main: "
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
-int MAIN_NAME(int argc, char *argv[])
+int usbterm_main(int argc, char *argv[])
 {
   pthread_attr_t attr;
   int ret;
@@ -206,18 +198,18 @@ int MAIN_NAME(int argc, char *argv[])
    */
 
 #ifdef CONFIG_EXAMPLES_USBTERM_DEVINIT
-  message(MAIN_STRING "Performing external device initialization\n");
+  message("usbterm_main: Performing external device initialization\n");
   ret = usbterm_devinit();
   if (ret != OK)
     {
-      message(MAIN_STRING "usbterm_devinit failed: %d\n", ret);
+      message("usbterm_main: usbterm_devinit failed: %d\n", ret);
       goto errout;
     }
 #endif
 
   /* Initialize the USB serial driver */
 
-  message(MAIN_STRING "Registering USB serial driver\n");
+  message("usbterm_main: Registering USB serial driver\n");
 #ifdef CONFIG_CDCACM
   ret = cdcacm_initialize(0, NULL);
 #else
@@ -225,10 +217,10 @@ int MAIN_NAME(int argc, char *argv[])
 #endif
   if (ret < 0)
     {
-      message(MAIN_STRING "ERROR: Failed to create the USB serial device: %d\n", -ret);
+      message("usbterm_main: ERROR: Failed to create the USB serial device: %d\n", -ret);
       goto errout_with_devinit;
     }
-  message(MAIN_STRING "Successfully registered the serial driver\n");
+  message("usbterm_main: Successfully registered the serial driver\n");
 
 #if CONFIG_USBDEV_TRACE && CONFIG_USBDEV_TRACE_INITIALIDSET != 0
   /* If USB tracing is enabled and tracing of initial USB events is specified,
@@ -247,20 +239,20 @@ int MAIN_NAME(int argc, char *argv[])
 
   do
     {
-      message(MAIN_STRING "Opening USB serial driver\n");
+      message("usbterm_main: Opening USB serial driver\n");
 
       g_usbterm.outstream = fopen(USBTERM_DEVNAME, "w");
       if (g_usbterm.outstream == NULL)
         {
           int errcode = errno;
-          message(MAIN_STRING "ERROR: Failed to open " USBTERM_DEVNAME " for writing: %d\n",
+          message("usbterm_main: ERROR: Failed to open " USBTERM_DEVNAME " for writing: %d\n",
                   errcode);
 
           /* ENOTCONN means that the USB device is not yet connected */
 
           if (errcode == ENOTCONN)
             {
-              message(MAIN_STRING "       Not connected. Wait and try again.\n");
+              message("usbterm_main:        Not connected. Wait and try again.\n");
               sleep(5);
             }
           else
@@ -284,20 +276,20 @@ int MAIN_NAME(int argc, char *argv[])
   g_usbterm.instream = fopen(USBTERM_DEVNAME, "r");
   if (g_usbterm.instream == NULL)
     {
-      message(MAIN_STRING "ERROR: Failed to open " USBTERM_DEVNAME " for reading: %d\n", errno);
+      message("usbterm_main: ERROR: Failed to open " USBTERM_DEVNAME " for reading: %d\n", errno);
       goto errout_with_outstream;
     }
 
-  message(MAIN_STRING "Successfully opened the serial driver\n");
+  message("usbterm_main: Successfully opened the serial driver\n");
 
   /* Start the USB term listener thread */
 
-  message(MAIN_STRING "Starting the listener thread\n");
+  message("usbterm_main: Starting the listener thread\n");
  
   ret = pthread_attr_init(&attr);
   if (ret != OK)
     {
-      message(MAIN_STRING "pthread_attr_init failed: %d\n", ret);
+      message("usbterm_main: pthread_attr_init failed: %d\n", ret);
       goto errout_with_streams;
     }
 
@@ -305,13 +297,13 @@ int MAIN_NAME(int argc, char *argv[])
                        usbterm_listener, (pthread_addr_t)0);
   if (ret != 0)
     {
-      message(MAIN_STRING "Error in thread creation: %d\n", ret);
+      message("usbterm_main: Error in thread creation: %d\n", ret);
       goto errout_with_streams;
     }
 
   /* Send messages and get responses -- forever */
 
-  message(MAIN_STRING "Waiting for local input\n");
+  message("usbterm_main: Waiting for local input\n");
   for (;;)
     {
       /* Display the prompt string on stdout */
@@ -378,7 +370,7 @@ errout_with_devinit:
   usbterm_devuninit();
 errout:
 #endif
-  message(MAIN_STRING "       Aborting\n");
+  message("usbterm_main:        Aborting\n");
   return 1;
 }
 

@@ -115,6 +115,7 @@ CONFIG_FDCLONE_DISABLE=n
 CONFIG_FDCLONE_STDIO=n
 CONFIG_SDCLONE_DISABLE=y
 CONFIG_NXFLAT=n
+CONFIG_USER_ENTRYPOINT="uip_main"
 
 #
 # The following can be used to disable categories of

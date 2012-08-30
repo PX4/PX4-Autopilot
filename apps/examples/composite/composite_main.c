@@ -662,7 +662,7 @@ void board_cdcuninitialize(FAR struct usbdevclass_driver_s *classdev)
 }
 
 /****************************************************************************
- * user_start/conn_main
+ * conn_main
  *
  * Description:
  *   This is the main program that configures the USB mass storage device
@@ -672,7 +672,7 @@ void board_cdcuninitialize(FAR struct usbdevclass_driver_s *classdev)
  *
  ****************************************************************************/
 
-int MAIN_NAME(int argc, char *argv[])
+int conn_main(int argc, char *argv[])
 {
   int ret;
 
@@ -688,7 +688,7 @@ int MAIN_NAME(int argc, char *argv[])
 
    if (g_composite.cmphandle)
      {
-       message(MAIN_NAME_STRING ": ERROR: Already connected\n");
+       message("conn_main: ERROR: Already connected\n");
        return 1;
      }
 #endif
@@ -705,11 +705,11 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Perform architecture-specific initialization */
 
-  message(MAIN_NAME_STRING ": Performing architecture-specific intialization\n");
+  message("conn_main: Performing architecture-specific intialization\n");
   ret = composite_archinitialize();
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": composite_archinitialize failed: %d\n", -ret);
+      message("conn_main: composite_archinitialize failed: %d\n", -ret);
       return 1;
     }
   check_test_memory_usage("After composite_archinitialize()");
@@ -719,7 +719,7 @@ int MAIN_NAME(int argc, char *argv[])
   g_composite.cmphandle = composite_initialize();
   if (!g_composite.cmphandle)
     {
-      message(MAIN_NAME_STRING ": composite_initialize failed\n");
+      message("conn_main: composite_initialize failed\n");
       return 1;
     }
   check_test_memory_usage("After composite_initialize()");
@@ -774,7 +774,7 @@ int MAIN_NAME(int argc, char *argv[])
       /* Dump trace data */
 
 #  ifdef CONFIG_USBDEV_TRACE
-      message("\n" MAIN_NAME_STRING ": USB TRACE DATA:\n");
+      message("\n" "conn_main: USB TRACE DATA:\n");
       ret = dumptrace();
       if (ret < 0)
         {
@@ -782,18 +782,18 @@ int MAIN_NAME(int argc, char *argv[])
         }
       check_test_memory_usage("After usbtrace_enumerate()");
 #  else
-      message(MAIN_NAME_STRING ": Still alive\n");
+      message("conn_main: Still alive\n");
 #  endif
     }
 #else
 
-   message(MAIN_NAME_STRING ": Connected\n");
+   message("conn_main: Connected\n");
    check_test_memory_usage("After composite device connection");
 #endif
 
    /* Dump debug memory usage */
  
-   message(MAIN_NAME_STRING ": Exiting\n");
+   message("conn_main: Exiting\n");
 #if !defined(CONFIG_NSH_BUILTIN_APPS) && !defined(CONFIG_DISABLE_SIGNALS)
    close(g_composite.infd);
    close(g_composite.outfd);

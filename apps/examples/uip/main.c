@@ -105,10 +105,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * user_start
+ * uip_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int uip_main(int argc, char *argv[])
 {
   struct in_addr addr;
 #if defined(CONFIG_EXAMPLE_UIP_DHCPC) || defined(CONFIG_EXAMPLE_UIP_NOMAC)

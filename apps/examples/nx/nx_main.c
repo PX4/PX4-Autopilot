@@ -614,18 +614,10 @@ static int nxeg_initialize(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start/nx_main
+ * Name: nx_main
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_NX_BUILTIN
-#  define MAIN_NAME nx_main
-#  define MAIN_NAME_STRING "nx_main"
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_NAME_STRING "user_start"
-#endif
-
-int MAIN_NAME(int argc, char *argv[])
+int nx_main(int argc, char *argv[])
 {
   NXEGWINDOW hwnd1;
   NXEGWINDOW hwnd2;
@@ -637,10 +629,10 @@ int MAIN_NAME(int argc, char *argv[])
   /* Initialize */
 
   ret = nxeg_initialize();
-  message(MAIN_NAME_STRING ": NX handle=%p\n", g_hnx);
+  message("nx_main: NX handle=%p\n", g_hnx);
   if (!g_hnx || ret < 0)
     {
-      message(MAIN_NAME_STRING ": Failed to get NX handle: %d\n", errno);
+      message("nx_main: Failed to get NX handle: %d\n", errno);
       g_exitcode = NXEXIT_NXOPEN;
       goto errout;
     }
@@ -650,29 +642,29 @@ int MAIN_NAME(int argc, char *argv[])
   g_fonthandle = nxf_getfonthandle(CONFIG_EXAMPLES_NX_FONTID);
   if (!g_fonthandle)
     {
-      message(MAIN_NAME_STRING ": Failed to get font handle: %d\n", errno);
+      message("nx_main: Failed to get font handle: %d\n", errno);
       g_exitcode = NXEXIT_FONTOPEN;
       goto errout;
     }
 
   /* Set the background to the configured background color */
 
-  message(MAIN_NAME_STRING ": Set background color=%d\n", CONFIG_EXAMPLES_NX_BGCOLOR);
+  message("nx_main: Set background color=%d\n", CONFIG_EXAMPLES_NX_BGCOLOR);
   color = CONFIG_EXAMPLES_NX_BGCOLOR;
   ret = nx_setbgcolor(g_hnx, &color);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nx_setbgcolor failed: %d\n", errno);
+      message("nx_main: nx_setbgcolor failed: %d\n", errno);
       g_exitcode = NXEXIT_NXSETBGCOLOR;
       goto errout_with_nx;
     }
 
   /* Create window #1 */
 
-  message(MAIN_NAME_STRING ": Create window #1\n");
+  message("nx_main: Create window #1\n");
   nxeg_initstate(&g_wstate[0], 1, CONFIG_EXAMPLES_NX_COLOR1);
   hwnd1 = nxeg_openwindow(&g_nxcb, &g_wstate[0]);
-  message(MAIN_NAME_STRING ": hwnd1=%p\n", hwnd1);
+  message("nx_main: hwnd1=%p\n", hwnd1);
   if (!hwnd1)
     {
       goto errout_with_nx;
@@ -684,14 +676,14 @@ int MAIN_NAME(int argc, char *argv[])
     {
       (void)sem_wait(&g_semevent);
     }
-  message(MAIN_NAME_STRING ": Screen resolution (%d,%d)\n", g_xres, g_yres);
+  message("nx_main: Screen resolution (%d,%d)\n", g_xres, g_yres);
 
   /* Set the size of the window 1 */
 
   size.w = g_xres / 2;
   size.h = g_yres / 2;
 
-  message(MAIN_NAME_STRING ": Set window #1 size to (%d,%d)\n", size.w, size.h);
+  message("nx_main: Set window #1 size to (%d,%d)\n", size.w, size.h);
   ret = nxeg_setsize(hwnd1, &size);
   if (ret < 0)
     {
@@ -703,7 +695,7 @@ int MAIN_NAME(int argc, char *argv[])
    * actually do them!
    */
 
-  message(MAIN_NAME_STRING ": Sleeping\n\n");
+  message("nx_main: Sleeping\n\n");
   sleep(1);
 
   /* Set the position of window #1 */
@@ -711,7 +703,7 @@ int MAIN_NAME(int argc, char *argv[])
   pt.x = g_xres / 8;
   pt.y = g_yres / 8;
 
-  message(MAIN_NAME_STRING ": Set window #1 postion to (%d,%d)\n", pt.x, pt.y);
+  message("nx_main: Set window #1 postion to (%d,%d)\n", pt.x, pt.y);
   ret = nxeg_setposition(hwnd1, &pt);
   if (ret < 0)
     {
@@ -720,13 +712,13 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Sleep a bit */
 
-  message(MAIN_NAME_STRING ": Sleeping\n\n");
+  message("nx_main: Sleeping\n\n");
   sleep(1);
 
   /* Open the toolbar */
 
 #ifndef CONFIG_EXAMPLES_NX_RAWWINDOWS
-  message(MAIN_NAME_STRING ": Add toolbar to window #1\n");
+  message("nx_main: Add toolbar to window #1\n");
   ret = nxeq_opentoolbar(hwnd1, CONFIG_EXAMPLES_NX_TOOLBAR_HEIGHT, &g_tbcb, &g_wstate[0]);
   if (ret < 0)
     {
@@ -735,16 +727,16 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Sleep a bit */
 
-  message(MAIN_NAME_STRING ": Sleeping\n\n");
+  message("nx_main: Sleeping\n\n");
   sleep(1);
 #endif
 
   /* Create window #2 */
 
-  message(MAIN_NAME_STRING ": Create window #2\n");
+  message("nx_main: Create window #2\n");
   nxeg_initstate(&g_wstate[1], 2, CONFIG_EXAMPLES_NX_COLOR2);
   hwnd2 = nxeg_openwindow(&g_nxcb, &g_wstate[1]);
-  message(MAIN_NAME_STRING ": hwnd2=%p\n", hwnd2);
+  message("nx_main: hwnd2=%p\n", hwnd2);
   if (!hwnd2)
     {
       goto errout_with_hwnd1;
@@ -752,12 +744,12 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Sleep a bit */
 
-  message(MAIN_NAME_STRING ": Sleeping\n\n");
+  message("nx_main: Sleeping\n\n");
   sleep(1);
 
   /* Set the size of the window 2 == size of window 1*/
 
-  message(MAIN_NAME_STRING ": Set hwnd2 size to (%d,%d)\n", size.w, size.h);
+  message("nx_main: Set hwnd2 size to (%d,%d)\n", size.w, size.h);
   ret = nxeg_setsize(hwnd2, &size);
   if (ret < 0)
     {
@@ -766,7 +758,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Sleep a bit */
 
-  message(MAIN_NAME_STRING ": Sleeping\n\n");
+  message("nx_main: Sleeping\n\n");
   sleep(1);
 
   /* Set the position of window #2 */
@@ -774,7 +766,7 @@ int MAIN_NAME(int argc, char *argv[])
   pt.x = g_xres - size.w - pt.x;
   pt.y = g_yres - size.h - pt.y;
 
-  message(MAIN_NAME_STRING ": Set hwnd2 postion to (%d,%d)\n", pt.x, pt.y);
+  message("nx_main: Set hwnd2 postion to (%d,%d)\n", pt.x, pt.y);
   ret = nxeg_setposition(hwnd2, &pt);
   if (ret < 0)
     {
@@ -783,11 +775,11 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Sleep a bit */
 
-  message(MAIN_NAME_STRING ": Sleeping\n\n");
+  message("nx_main: Sleeping\n\n");
   sleep(1);
 
 #ifndef CONFIG_EXAMPLES_NX_RAWWINDOWS
-  message(MAIN_NAME_STRING ": Add toolbar to window #2\n");
+  message("nx_main: Add toolbar to window #2\n");
   ret = nxeq_opentoolbar(hwnd2, CONFIG_EXAMPLES_NX_TOOLBAR_HEIGHT, &g_tbcb, &g_wstate[1]);
   if (ret < 0)
     {
@@ -796,30 +788,30 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Sleep a bit */
 
-  message(MAIN_NAME_STRING ": Sleeping\n\n");
+  message("nx_main: Sleeping\n\n");
   sleep(1);
 #endif
 
   /* Give keyboard input to the top window -- should be window #2 */
 
 #ifdef CONFIG_NX_KBD
-  message(MAIN_NAME_STRING ": Send keyboard input: %s\n", g_kbdmsg1);
+  message("nx_main: Send keyboard input: %s\n", g_kbdmsg1);
   ret = nx_kbdin(g_hnx, strlen((FAR const char *)g_kbdmsg1), g_kbdmsg1);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nx_kbdin failed: %d\n", errno);
+      message("nx_main: nx_kbdin failed: %d\n", errno);
       goto errout_with_hwnd2;
     }
 
   /* Sleep a bit */
 
-  message(MAIN_NAME_STRING ": Sleeping\n\n");
+  message("nx_main: Sleeping\n\n");
   sleep(1);
 #endif
 
   /* Lower window 2 */
 
-  message(MAIN_NAME_STRING ": Lower window #2\n");
+  message("nx_main: Lower window #2\n");
   ret = nxeg_lower(hwnd2);
   if (ret < 0)
     {
@@ -828,7 +820,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Sleep a bit */
 
-  message(MAIN_NAME_STRING ": Sleeping\n\n");
+  message("nx_main: Sleeping\n\n");
   sleep(1);
 
   /* Put mouse left-button clicks all over the screen and see who responds */
@@ -838,30 +830,30 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Sleep a bit */
 
-  message(MAIN_NAME_STRING ": Sleeping\n\n");
+  message("nx_main: Sleeping\n\n");
   sleep(1);
 #endif
 
   /* Give keyboard input to the top window -- should be window #1 */
 
 #ifdef CONFIG_NX_KBD
-  message(MAIN_NAME_STRING ": Send keyboard input: %s\n", g_kbdmsg2);
+  message("nx_main: Send keyboard input: %s\n", g_kbdmsg2);
   ret = nx_kbdin(g_hnx, strlen((FAR const char *)g_kbdmsg2), g_kbdmsg2);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nx_kbdin failed: %d\n", errno);
+      message("nx_main: nx_kbdin failed: %d\n", errno);
       goto errout_with_hwnd2;
     }
 
   /* Sleep a bit */
 
-  message(MAIN_NAME_STRING ": Sleeping\n\n");
+  message("nx_main: Sleeping\n\n");
   sleep(1);
 #endif
 
   /* Raise window 2 */
 
-  message(MAIN_NAME_STRING ": Raise window #2\n");
+  message("nx_main: Raise window #2\n");
   ret = nxeg_raise(hwnd2);
   if (ret < 0)
     {
@@ -876,31 +868,31 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Sleep a bit */
 
-  message(MAIN_NAME_STRING ": Sleeping\n\n");
+  message("nx_main: Sleeping\n\n");
   sleep(2);
 
   /* Close the window 2 */
 
 errout_with_hwnd2:
-  message(MAIN_NAME_STRING ": Close window #2\n");
+  message("nx_main: Close window #2\n");
   (void)nxeg_closewindow(hwnd2, &g_wstate[1]);
 
   /* Close the window1 */
 
 errout_with_hwnd1:
-  message(MAIN_NAME_STRING ": Close window #1\n");
+  message("nx_main: Close window #1\n");
   (void)nxeg_closewindow(hwnd1, &g_wstate[0]);
 
 errout_with_nx:
 #ifdef CONFIG_NX_MULTIUSER
   /* Disconnect from the server */
 
-  message(MAIN_NAME_STRING ": Disconnect from the server\n");
+  message("nx_main: Disconnect from the server\n");
   nx_disconnect(g_hnx);
 #else
   /* Close the server */
 
-  message(MAIN_NAME_STRING ": Close NX\n");
+  message("nx_main: Close NX\n");
   nx_close(g_hnx);
 #endif
 errout:

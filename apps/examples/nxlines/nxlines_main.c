@@ -199,18 +199,10 @@ static inline int nxlines_initialize(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start/nxlines_main
+ * Name: nxlines_main
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_NXLINES_BUILTIN
-#  define MAIN_NAME nxlines_main
-#  define MAIN_NAME_STRING "nxlines_main"
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_NAME_STRING "user_start"
-#endif
-
-int MAIN_NAME(int argc, char *argv[])
+int nxlines_main(int argc, char *argv[])
 {
   nxgl_mxpixel_t color;
   int ret;
@@ -218,24 +210,24 @@ int MAIN_NAME(int argc, char *argv[])
   /* Initialize NX */
 
   ret = nxlines_initialize();
-  message(MAIN_NAME_STRING ": NX handle=%p\n", g_nxlines.hnx);
+  message("nxlines_main: NX handle=%p\n", g_nxlines.hnx);
   if (!g_nxlines.hnx || ret < 0)
     {
-      message(MAIN_NAME_STRING ": Failed to get NX handle: %d\n", errno);
+      message("nxlines_main: Failed to get NX handle: %d\n", errno);
       g_nxlines.code = NXEXIT_NXOPEN;
       goto errout;
     }
 
   /* Set the background to the configured background color */
 
-  message(MAIN_NAME_STRING ": Set background color=%d\n",
+  message("nxlines_main: Set background color=%d\n",
           CONFIG_EXAMPLES_NXLINES_BGCOLOR);
 
   color = CONFIG_EXAMPLES_NXLINES_BGCOLOR;
   ret = nx_setbgcolor(g_nxlines.hnx, &color);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nx_setbgcolor failed: %d\n", errno);
+      message("nxlines_main: nx_setbgcolor failed: %d\n", errno);
       g_nxlines.code = NXEXIT_NXSETBGCOLOR;
       goto errout_with_nx;
     }
@@ -245,7 +237,7 @@ int MAIN_NAME(int argc, char *argv[])
   ret = nx_requestbkgd(g_nxlines.hnx, &g_nxlinescb, NULL);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nx_setbgcolor failed: %d\n", errno);
+      message("nxlines_main: nx_setbgcolor failed: %d\n", errno);
       g_nxlines.code = NXEXIT_NXREQUESTBKGD;
       goto errout_with_nx;
     }
@@ -258,7 +250,7 @@ int MAIN_NAME(int argc, char *argv[])
     {
       (void)sem_wait(&g_nxlines.sem);
     }
-  message(MAIN_NAME_STRING ": Screen resolution (%d,%d)\n", g_nxlines.xres, g_nxlines.yres);
+  message("nxlines_main: Screen resolution (%d,%d)\n", g_nxlines.xres, g_nxlines.yres);
 
   /* Now, say perform the lines (these test does not return so the remaining
    * logic is cosmetic). 
@@ -273,7 +265,7 @@ int MAIN_NAME(int argc, char *argv[])
   /* Close NX */
 
 errout_with_nx:
-  message(MAIN_NAME_STRING ": Close NX\n");
+  message("nxlines_main: Close NX\n");
   nx_close(g_nxlines.hnx);
 errout:
   return g_nxlines.code;

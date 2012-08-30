@@ -217,10 +217,10 @@ int ftpd_daemon(int s_argc, char **s_argv)
  * Public Functions
  ****************************************************************************/
 /****************************************************************************
- * Name: user_start/ftpd_start
+ * Name: ftpd_main
  ****************************************************************************/
 
-int MAIN_NAME(int s_argc, char **s_argv)
+int ftpd_main(int s_argc, char **s_argv)
 {
   /* Check if we have already initialized the network */
 

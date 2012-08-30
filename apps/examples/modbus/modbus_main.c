@@ -104,14 +104,6 @@
 #  define CONFIG_EXAMPLES_MODBUS_REG_HOLDING_NREGS 130
 #endif
 
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME modbus_main
-#  define MAIN_NAME_STRING "modbus_main: "
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_NAME_STRING "user_start: "
-#endif
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -171,7 +163,7 @@ static inline int modbus_initialize(void)
 
   if (g_modbus.threadstate != STOPPED)
     {
-      fprintf(stderr, MAIN_NAME_STRING
+      fprintf(stderr, "modbus_main: "
               "ERROR: Bad state: %d\n", g_modbus.threadstate);
       return EINVAL;
     }
@@ -181,7 +173,7 @@ static inline int modbus_initialize(void)
   status = pthread_mutex_init(&g_modbus.lock, NULL);
   if (status != 0)
     {
-      fprintf(stderr, MAIN_NAME_STRING
+      fprintf(stderr, "modbus_main: "
               "ERROR: pthread_mutex_init failed: %d\n",  status);
       return status;
     }
@@ -201,7 +193,7 @@ static inline int modbus_initialize(void)
                   CONFIG_EXAMPLES_MODBUS_BAUD, CONFIG_EXAMPLES_MODBUS_PARITY);
   if (mberr != MB_ENOERR)
     {
-      fprintf(stderr, MAIN_NAME_STRING
+      fprintf(stderr, "modbus_main: "
               "ERROR: eMBInit failed: %d\n", mberr);
       goto errout_with_mutex;
     }
@@ -217,7 +209,7 @@ static inline int modbus_initialize(void)
   mberr = eMBSetSlaveID(0x34, true, g_slaveid, 3);
   if (mberr != MB_ENOERR)
     {
-      fprintf(stderr, MAIN_NAME_STRING
+      fprintf(stderr, "modbus_main: "
               "ERROR: eMBSetSlaveID failed: %d\n", mberr);
       goto errout_with_modbus;
     }
@@ -227,7 +219,7 @@ static inline int modbus_initialize(void)
   mberr = eMBEnable();
   if (mberr == MB_ENOERR)
     {
-      fprintf(stderr, MAIN_NAME_STRING
+      fprintf(stderr, "modbus_main: "
               "ERROR: eMBEnable failed: %d\n", mberr);
       goto errout_with_modbus;
     }
@@ -270,7 +262,7 @@ static void *modbus_pollthread(void *pvarg)
   ret = modbus_initialize();
   if (ret != OK)
     {
-      fprintf(stderr, MAIN_NAME_STRING
+      fprintf(stderr, "modbus_main: "
               "ERROR: modbus_initialize failed: %d\n", ret);
       return NULL;
     }
@@ -358,14 +350,14 @@ static void modbus_showusage(FAR const char *progname, int exitcode)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start/modbus_main
+ * Name: modbus_main
  *
  * Description:
  *   This is the main entry point to the demo program
  *
  ****************************************************************************/
 
-int MAIN_NAME(int argc, char *argv[])
+int modbus_main(int argc, char *argv[])
 {
   int option;
   int ret;
@@ -389,7 +381,7 @@ int MAIN_NAME(int argc, char *argv[])
               ret = modbus_create_pollthread();
               if (ret != OK)
                 {
-                  fprintf(stderr, MAIN_NAME_STRING
+                  fprintf(stderr, "modbus_main: "
                           "ERROR: modbus_create_pollthread failed: %d\n", ret);
                   exit(EXIT_FAILURE);
                 }
@@ -400,19 +392,19 @@ int MAIN_NAME(int argc, char *argv[])
             switch (g_modbus.threadstate)
               {
                 case RUNNING:
-                  printf(MAIN_NAME_STRING "Protocol stack is running\n");
+                  printf("modbus_main: Protocol stack is running\n");
                   break;
 
                 case STOPPED:
-                  printf(MAIN_NAME_STRING "Protocol stack is stopped\n");
+                  printf("modbus_main: Protocol stack is stopped\n");
                   break;
 
                 case SHUTDOWN:
-                  printf(MAIN_NAME_STRING "Protocol stack is shutting down\n");
+                  printf("modbus_main: Protocol stack is shutting down\n");
                   break;
 
                 default:
-                  fprintf(stderr, MAIN_NAME_STRING
+                  fprintf(stderr, "modbus_main: "
                           "ERROR: Invalid thread state: %d\n",
                           g_modbus.threadstate);
                   break;
@@ -429,7 +421,7 @@ int MAIN_NAME(int argc, char *argv[])
             break;
 
           default:
-            fprintf(stderr, MAIN_NAME_STRING
+            fprintf(stderr, "modbus_main: "
                     "ERROR: Unrecognized option: '%c'\n", option);
             modbus_showusage(argv[0], EXIT_FAILURE);
             break;

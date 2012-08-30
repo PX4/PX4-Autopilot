@@ -81,18 +81,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start/nxhello_main
+ * Name: tc_main
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_TOUCHSCREEN_BUILTIN
-#  define MAIN_NAME   tc_main
-#  define MAIN_STRING "tc_main: "
-#else
-#  define MAIN_NAME   user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
-int MAIN_NAME(int argc, char *argv[])
+int tc_main(int argc, char *argv[])
 {
   struct touch_sample_s sample;
   ssize_t nbytes;
@@ -113,31 +105,31 @@ int MAIN_NAME(int argc, char *argv[])
     {
       nsamples = strtol(argv[1], NULL, 10);
     }
-  message(MAIN_STRING "nsamples: %d\n", nsamples);
+  message("tc_main: nsamples: %d\n", nsamples);
 #elif defined(CONFIG_EXAMPLES_TOUCHSCREEN_NSAMPLES)
-  message(MAIN_STRING "nsamples: %d\n", CONFIG_EXAMPLES_TOUCHSCREEN_NSAMPLES);
+  message("tc_main: nsamples: %d\n", CONFIG_EXAMPLES_TOUCHSCREEN_NSAMPLES);
 #endif
 
   /* Initialization of the touchscreen hardware is performed by logic
    * external to this test.
    */
 
-  message(MAIN_STRING "Initializing external touchscreen device\n");
+  message("tc_main: Initializing external touchscreen device\n");
   ret = arch_tcinitialize(CONFIG_EXAMPLES_TOUCHSCREEN_MINOR);
   if (ret != OK)
     {
-      message(MAIN_STRING "arch_tcinitialize failed: %d\n", ret);
+      message("tc_main: arch_tcinitialize failed: %d\n", ret);
       errval = 1;
       goto errout;
     }
 
   /* Open the touchscreen device for reading */
 
-  message(MAIN_STRING "Opening %s\n", CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH);
+  message("tc_main: Opening %s\n", CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH);
   fd = open(CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH, O_RDONLY);
   if (fd < 0)
     {
-      message(MAIN_STRING "open %s failed: %d\n",
+      message("tc_main: open %s failed: %d\n",
               CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH, errno);
       errval = 2;
       goto errout_with_tc;
@@ -174,17 +166,17 @@ int MAIN_NAME(int argc, char *argv[])
         errval = errno;
         if (errval != EINTR)
           {
-            message(MAIN_STRING "read %s failed: %d\n",
+            message("tc_main: read %s failed: %d\n",
                     CONFIG_EXAMPLES_TOUCHSCREEN_DEVPATH, errval);
             errval = 3;
             goto errout_with_dev;
           }
 
-        message(MAIN_STRING "Interrupted read...\n");
+        message("tc_main: Interrupted read...\n");
       }
     else if (nbytes != sizeof(struct touch_sample_s))
       {
-        message(MAIN_STRING "Unexpected read size=%d, expected=%d, Ignoring\n",
+        message("tc_main: Unexpected read size=%d, expected=%d, Ignoring\n",
                 nbytes, sizeof(struct touch_sample_s));        
       }
 

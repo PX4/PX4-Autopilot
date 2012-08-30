@@ -301,16 +301,16 @@ int redirection_test(void)
 
   if (close(filedes[0]) != 0)
     {
-      fprintf(stderr, "user_start: close failed: %d\n", errno);
+      fprintf(stderr, "pipe_main: close failed: %d\n", errno);
     }
   if (close(filedes[1]) != 0)
     {
-      fprintf(stderr, "user_start: close failed: %d\n", errno);
+      fprintf(stderr, "pipe_main: close failed: %d\n", errno);
     }
 
   if (ret != 0)
     {
-      fprintf(stderr, "user_start: PIPE test FAILED (%d)\n", ret);
+      fprintf(stderr, "pipe_main: PIPE test FAILED (%d)\n", ret);
       return 6;
     }
 

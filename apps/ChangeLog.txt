@@ -291,3 +291,7 @@
 	  treads!
 	* apps/nshlib/nsh.h:  Both CONFIG_LIBC_STRERROR and CONFIG_NSH_STRERROR
 	  must be defined to use strerror() with NSH.
+	* apps/examples/*/*_main.c, system/i2c/i2c_main.c, and others:  Added
+	  configuration variable CONFIG_USER_ENTRYPOINT that may be used to change
+	  the default entry from user_start to some other symbol.  Contributed by
+	  Kate.

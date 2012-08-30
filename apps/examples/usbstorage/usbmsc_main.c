@@ -379,7 +379,7 @@ static int usbmsc_enumerate(struct usbtrace_s *trace, void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * user_start/msconn_main
+ * msconn_main
  *
  * Description:
  *   This is the main program that configures the USB mass storage device
@@ -389,15 +389,7 @@ static int usbmsc_enumerate(struct usbtrace_s *trace, void *arg)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_USBMSC_BUILTIN
-#  define MAIN_NAME msconn_main
-#  define MAIN_NAME_STRING "msconn"
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_NAME_STRING "user_start"
-#endif
-
-int MAIN_NAME(int argc, char *argv[])
+int msconn_main(int argc, char *argv[])
 {
   FAR void *handle;
   int ret;
@@ -414,7 +406,7 @@ int MAIN_NAME(int argc, char *argv[])
 
    if (g_usbmsc.mshandle)
      {
-       message(MAIN_NAME_STRING ": ERROR: Already connected\n");
+       message("msconn_main: ERROR: Already connected\n");
        return 1;
      }
 #endif
@@ -436,33 +428,33 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Register block drivers (architecture-specific) */
 
-  message(MAIN_NAME_STRING ": Creating block drivers\n");
+  message("msconn_main: Creating block drivers\n");
   ret = usbmsc_archinitialize();
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": usbmsc_archinitialize failed: %d\n", -ret);
+      message("msconn_main: usbmsc_archinitialize failed: %d\n", -ret);
       return 2;
     }
   check_test_memory_usage("After usbmsc_archinitialize()");
 
   /* Then exports the LUN(s) */
 
-  message(MAIN_NAME_STRING ": Configuring with NLUNS=%d\n", CONFIG_EXAMPLES_USBMSC_NLUNS);
+  message("msconn_main: Configuring with NLUNS=%d\n", CONFIG_EXAMPLES_USBMSC_NLUNS);
   ret = usbmsc_configure(CONFIG_EXAMPLES_USBMSC_NLUNS, &handle);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": usbmsc_configure failed: %d\n", -ret);
+      message("msconn_main: usbmsc_configure failed: %d\n", -ret);
       usbmsc_uninitialize(handle);
       return 3;
     }
-  message(MAIN_NAME_STRING ": handle=%p\n", handle);
+  message("msconn_main: handle=%p\n", handle);
   check_test_memory_usage("After usbmsc_configure()");
 
-  message(MAIN_NAME_STRING ": Bind LUN=0 to %s\n", CONFIG_EXAMPLES_USBMSC_DEVPATH1);
+  message("msconn_main: Bind LUN=0 to %s\n", CONFIG_EXAMPLES_USBMSC_DEVPATH1);
   ret = usbmsc_bindlun(handle, CONFIG_EXAMPLES_USBMSC_DEVPATH1, 0, 0, 0, false);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": usbmsc_bindlun failed for LUN 1 using %s: %d\n",
+      message("msconn_main: usbmsc_bindlun failed for LUN 1 using %s: %d\n",
                CONFIG_EXAMPLES_USBMSC_DEVPATH1, -ret);
       usbmsc_uninitialize(handle);
       return 4;
@@ -471,11 +463,11 @@ int MAIN_NAME(int argc, char *argv[])
 
 #if CONFIG_EXAMPLES_USBMSC_NLUNS > 1
 
-  message(MAIN_NAME_STRING ": Bind LUN=1 to %s\n", CONFIG_EXAMPLES_USBMSC_DEVPATH2);
+  message("msconn_main: Bind LUN=1 to %s\n", CONFIG_EXAMPLES_USBMSC_DEVPATH2);
   ret = usbmsc_bindlun(handle, CONFIG_EXAMPLES_USBMSC_DEVPATH2, 1, 0, 0, false);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": usbmsc_bindlun failed for LUN 2 using %s: %d\n",
+      message("msconn_main: usbmsc_bindlun failed for LUN 2 using %s: %d\n",
                CONFIG_EXAMPLES_USBMSC_DEVPATH2, -ret);
       usbmsc_uninitialize(handle);
       return 5;
@@ -484,11 +476,11 @@ int MAIN_NAME(int argc, char *argv[])
 
 #if CONFIG_EXAMPLES_USBMSC_NLUNS > 2
 
-  message(MAIN_NAME_STRING ": Bind LUN=2 to %s\n", CONFIG_EXAMPLES_USBMSC_DEVPATH3);
+  message("msconn_main: Bind LUN=2 to %s\n", CONFIG_EXAMPLES_USBMSC_DEVPATH3);
   ret = usbmsc_bindlun(handle, CONFIG_EXAMPLES_USBMSC_DEVPATH3, 2, 0, 0, false);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": usbmsc_bindlun failed for LUN 3 using %s: %d\n",
+      message("msconn_main: usbmsc_bindlun failed for LUN 3 using %s: %d\n",
                CONFIG_EXAMPLES_USBMSC_DEVPATH3, -ret);
       usbmsc_uninitialize(handle);
       return 6;
@@ -501,7 +493,7 @@ int MAIN_NAME(int argc, char *argv[])
   ret = usbmsc_exportluns(handle);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": usbmsc_exportluns failed: %d\n", -ret);
+      message("msconn_main: usbmsc_exportluns failed: %d\n", -ret);
       usbmsc_uninitialize(handle);
       return 7;
     }
@@ -522,17 +514,17 @@ int MAIN_NAME(int argc, char *argv[])
       sleep(5);
 
 #  ifdef CONFIG_USBDEV_TRACE
-      message("\nuser_start: USB TRACE DATA:\n");
+      message("\nmsconn_main: USB TRACE DATA:\n");
       ret =  usbtrace_enumerate(usbmsc_enumerate, NULL);
       if (ret < 0)
         {
-          message(MAIN_NAME_STRING ": usbtrace_enumerate failed: %d\n", -ret);
+          message("msconn_main: usbtrace_enumerate failed: %d\n", -ret);
           usbmsc_uninitialize(handle);
           return 8;
         }
       check_test_memory_usage("After usbtrace_enumerate()");
 #  else
-      message(MAIN_NAME_STRING ": Still alive\n");
+      message("msconn_main: Still alive\n");
 #  endif
     }
 #elif defined(CONFIG_EXAMPLES_USBMSC_BUILTIN)
@@ -541,7 +533,7 @@ int MAIN_NAME(int argc, char *argv[])
     * command.
     */
 
-   message(MAIN_NAME_STRING ": Connected\n");
+   message("msconn_main: Connected\n");
    g_usbmsc.mshandle = handle;
    check_test_memory_usage("After MS connection");
 
@@ -549,7 +541,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Just exit */
  
-   message(MAIN_NAME_STRING ": Exiting\n");
+   message("msconn_main: Exiting\n");
 
    /* Dump debug memory usage */
  

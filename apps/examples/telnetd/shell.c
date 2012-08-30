@@ -222,14 +222,14 @@ static void shell_netinit(void)
  * Public Functions
  ****************************************************************************/
 
-int MAIN_NAME(int argc, char *argv[])
+int shell_main(int argc, char *argv[])
 {
   struct telnetd_config_s config;
   int ret;
 
   /* Configure the network */
 
-  printf(MAIN_STRING "Initializing the network\n");
+  printf("shell_main: Initializing the network\n");
   shell_netinit();
 
   /* Configure the telnet daemon */
@@ -243,13 +243,13 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Start the telnet daemon */
 
-  printf(MAIN_STRING "Starting the Telnet daemon\n");
+  printf("shell_main: Starting the Telnet daemon\n");
   ret = telnetd_start(&config);
   if (ret < 0)
     {
       printf("Failed to tart the Telnet daemon\n");
     }
 
-  printf(MAIN_STRING "Exiting\n");
+  printf("shell_main: Exiting\n");
   return 0;
 }

@@ -98,20 +98,14 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: tiff_main/user_start
+ * Name: tiff_main
  *
  * Description:
  *   TIFF unit test.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_TIFF_BUILTIN
-#  define MAIN_NAME tiff_main
-#else
-#  define MAIN_NAME user_start
-#endif
-
-int MAIN_NAME(int argc, char *argv[])
+int tiff_main(int argc, char *argv[])
 {
   struct tiff_info_s info;
   uint8_t strip[3*256];

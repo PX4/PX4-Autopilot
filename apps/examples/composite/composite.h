@@ -169,16 +169,6 @@
 #define TRACE_BITSET            (TRACE_INIT_BITS|TRACE_ERROR_BITS|TRACE_CLASS_BITS|\
                                  TRACE_TRANSFER_BITS|TRACE_CONTROLLER_BITS|TRACE_INTERRUPT_BITS)
 
-/* Entry point **************************************************************/
-
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME conn_main
-#  define MAIN_NAME_STRING "conn"
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_NAME_STRING "user_start"
-#endif
-
 /* Debug ********************************************************************/
 
 #ifdef CONFIG_CPP_HAVE_VARARGS

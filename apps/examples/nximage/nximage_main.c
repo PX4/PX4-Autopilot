@@ -207,22 +207,14 @@ static inline int nximage_initialize(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start/nximage_main
+ * Name: nximage_main
  *
  * Description:
  *   Main entry pointer.  Configures the basic display resources.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_NXIMAGE_BUILTIN
-#  define MAIN_NAME nximage_main
-#  define MAIN_NAME_STRING "nximage_main"
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_NAME_STRING "user_start"
-#endif
-
-int MAIN_NAME(int argc, char *argv[])
+int nximage_main(int argc, char *argv[])
 {
   nxgl_mxpixel_t color;
   int ret;
@@ -230,10 +222,10 @@ int MAIN_NAME(int argc, char *argv[])
   /* Initialize NX */
 
   ret = nximage_initialize();
-  message(MAIN_NAME_STRING ": NX handle=%p\n", g_nximage.hnx);
+  message("nximage_main: NX handle=%p\n", g_nximage.hnx);
   if (!g_nximage.hnx || ret < 0)
     {
-      message(MAIN_NAME_STRING ": Failed to get NX handle: %d\n", errno);
+      message("nximage_main: Failed to get NX handle: %d\n", errno);
       g_nximage.code = NXEXIT_NXOPEN;
       goto errout;
     }
@@ -241,12 +233,12 @@ int MAIN_NAME(int argc, char *argv[])
   /* Set the background to the configured background color */
 
   color =  nximage_bgcolor();
-  message(MAIN_NAME_STRING ": Set background color=%d\n", color);
+  message("nximage_main: Set background color=%d\n", color);
 
   ret = nx_setbgcolor(g_nximage.hnx, &color);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nx_setbgcolor failed: %d\n", errno);
+      message("nximage_main: nx_setbgcolor failed: %d\n", errno);
       g_nximage.code = NXEXIT_NXSETBGCOLOR;
       goto errout_with_nx;
     }
@@ -256,7 +248,7 @@ int MAIN_NAME(int argc, char *argv[])
   ret = nx_requestbkgd(g_nximage.hnx, &g_nximagecb, NULL);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nx_setbgcolor failed: %d\n", errno);
+      message("nximage_main: nx_setbgcolor failed: %d\n", errno);
       g_nximage.code = NXEXIT_NXREQUESTBKGD;
       goto errout_with_nx;
     }
@@ -269,7 +261,7 @@ int MAIN_NAME(int argc, char *argv[])
     {
       (void)sem_wait(&g_nximage.sem);
     }
-  message(MAIN_NAME_STRING ": Screen resolution (%d,%d)\n", g_nximage.xres, g_nximage.yres);
+  message("nximage_main: Screen resolution (%d,%d)\n", g_nximage.xres, g_nximage.yres);
 
   /* Now, put up the NuttX logo. */
 
@@ -282,7 +274,7 @@ int MAIN_NAME(int argc, char *argv[])
   /* Close NX */
 
 errout_with_nx:
-  message(MAIN_NAME_STRING ": Close NX\n");
+  message("nximage_main: Close NX\n");
   nx_close(g_nximage.hnx);
 errout:
   return g_nximage.code;

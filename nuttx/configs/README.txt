@@ -268,6 +268,7 @@ defconfig -- This is a configuration file similar to the Linux
       by default)
     CONFIG_DEBUG_GRAPHICS - enable NX graphics debug output
       (disabled by default)
+
     CONFIG_ARCH_LOWPUTC - architecture supports low-level, boot
       time console output
     CONFIG_MM_REGIONS - If the architecture includes multiple
@@ -375,6 +376,10 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_SCHED_ONEXIT_MAX -  By default if CONFIG_SCHED_ONEXIT is selected,
       only a single on_exit() function is supported. That number can be
       increased by defined this setting to the number that you require.
+    CONFIG_USER_ENTRYPOINT - The name of the entry point for user
+      applications.  For the example applications this is of the form 'app_main'
+      where 'app' is the application name. If not defined, CONFIG_USER_ENTRYPOINT
+      defaults to user_start.
 
   System Logging:
     CONFIG_SYSLOG enables general system logging support.

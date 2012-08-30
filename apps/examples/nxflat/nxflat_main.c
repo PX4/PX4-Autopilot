@@ -145,10 +145,10 @@ static inline void testheader(FAR const char *progname)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start
+ * Name: nxflat_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int nxflat_main(int argc, char *argv[])
 {
   struct binary_s bin;
   int ret;

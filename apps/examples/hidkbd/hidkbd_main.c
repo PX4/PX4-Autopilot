@@ -141,10 +141,10 @@ static int hidkbd_waiter(int argc, char *argv[])
 }
 
 /****************************************************************************
- * Name: user_start
+ * Name: hidkbd_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int hidkbd_main(int argc, char *argv[])
 {
   char buffer[256];
   pid_t pid;
@@ -154,22 +154,22 @@ int user_start(int argc, char *argv[])
 
   /* First, register all of the USB host HID keyboard class driver */
 
-  printf("user_start: Register class drivers\n");
+  printf("hidkbd_main: Register class drivers\n");
   ret = usbhost_kbdinit();
   if (ret != OK)
     {
-      printf("user_start: Failed to register the KBD class\n");
+      printf("hidkbd_main: Failed to register the KBD class\n");
     }
 
   /* Then get an instance of the USB host interface */
 
-  printf("user_start: Initialize USB host keyboard driver\n");
+  printf("hidkbd_main: Initialize USB host keyboard driver\n");
   g_drvr = usbhost_initialize(0);
   if (g_drvr)
     {
       /* Start a thread to handle device connection. */
 
-      printf("user_start: Start hidkbd_waiter\n");
+      printf("hidkbd_main: Start hidkbd_waiter\n");
 
 #ifndef CONFIG_CUSTOM_STACK
       pid = task_create("usbhost", CONFIG_EXAMPLES_HIDKBD_DEFPRIO,

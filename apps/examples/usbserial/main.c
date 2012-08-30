@@ -198,10 +198,10 @@ static void dumptrace(void)
  ****************************************************************************/
 
 /****************************************************************************
- * user_start
+ * usbserial_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int usbserial_main(int argc, char *argv[])
 {
 #ifndef CONFIG_EXAMPLES_USBSERIAL_INONLY
   int infd;
@@ -220,7 +220,7 @@ int user_start(int argc, char *argv[])
 
   /* Initialize the USB serial driver */
 
-  message("user_start: Registering USB serial driver\n");
+  message("usbserial_main: Registering USB serial driver\n");
 #ifdef CONFIG_CDCACM
   ret = cdcacm_initialize(0, NULL);
 #else
@@ -228,10 +228,10 @@ int user_start(int argc, char *argv[])
 #endif
   if (ret < 0)
     {
-      message("user_start: ERROR: Failed to create the USB serial device: %d\n", -ret);
+      message("usbserial_main: ERROR: Failed to create the USB serial device: %d\n", -ret);
       return 1;
     }
-  message("user_start: Successfully registered the serial driver\n");
+  message("usbserial_main: Successfully registered the serial driver\n");
 
 #if CONFIG_USBDEV_TRACE && CONFIG_USBDEV_TRACE_INITIALIDSET != 0
   /* If USB tracing is enabled and tracing of initial USB events is specified,
@@ -251,25 +251,25 @@ int user_start(int argc, char *argv[])
 #ifndef CONFIG_EXAMPLES_USBSERIAL_OUTONLY
   do
     {
-      message("user_start: Opening USB serial driver\n");
+      message("usbserial_main: Opening USB serial driver\n");
       outfd = open(USBSER_DEVNAME, O_WRONLY);
       if (outfd < 0)
         {
           int errcode = errno;
-          message("user_start: ERROR: Failed to open " USBSER_DEVNAME " for writing: %d\n", errcode);
+          message("usbserial_main: ERROR: Failed to open " USBSER_DEVNAME " for writing: %d\n", errcode);
 
           /* ENOTCONN means that the USB device is not yet connected */
 
           if (errcode == ENOTCONN)
             {
-              message("user_start:        Not connected. Wait and try again.\n");
+              message("usbserial_main:        Not connected. Wait and try again.\n");
               sleep(5);
             }
           else
             {
               /* Give up on other errors */
 
-              message("user_start:        Aborting\n");
+              message("usbserial_main:        Aborting\n");
               return 2;
             }
         }
@@ -288,7 +288,7 @@ int user_start(int argc, char *argv[])
   infd = open(USBSER_DEVNAME, O_RDONLY|O_NONBLOCK);
   if (infd < 0)
     {
-      message("user_start: ERROR: Failed to open " USBSER_DEVNAME " for reading: %d\n", errno);
+      message("usbserial_main: ERROR: Failed to open " USBSER_DEVNAME " for reading: %d\n", errno);
       close(outfd);
       return 3;
     }
@@ -299,20 +299,20 @@ int user_start(int argc, char *argv[])
       if (infd < 0)
         {
           int errcode = errno;
-          message("user_start: ERROR: Failed to open " USBSER_DEVNAME " for reading: %d\n", errno);
+          message("usbserial_main: ERROR: Failed to open " USBSER_DEVNAME " for reading: %d\n", errno);
 
           /* ENOTCONN means that the USB device is not yet connected */
 
           if (errcode == ENOTCONN)
             {
-              message("user_start:        Not connected. Wait and try again.\n");
+              message("usbserial_main:        Not connected. Wait and try again.\n");
               sleep(5);
             }
           else
             {
               /* Give up on other errors */
 
-              message("user_start:        Aborting\n");
+              message("usbserial_main:        Aborting\n");
               return 3;
             }
         }
@@ -325,7 +325,7 @@ int user_start(int argc, char *argv[])
 #endif
 #endif
 
-  message("user_start: Successfully opened the serial driver\n");
+  message("usbserial_main: Successfully opened the serial driver\n");
 
   /* Send messages and get responses -- forever */
 
@@ -337,21 +337,21 @@ int user_start(int argc, char *argv[])
 #if !defined(CONFIG_EXAMPLES_USBSERIAL_ONLYBIG) && !defined(CONFIG_EXAMPLES_USBSERIAL_ONLYSMALL)
       if (count < 8)
         {
-          message("user_start: Saying hello\n");
+          message("usbserial_main: Saying hello\n");
           nbytes = write(outfd, g_shortmsg, sizeof(g_shortmsg));
           count++;
         }
       else
         {
-          message("user_start: Reciting QEI's speech of 1588\n");
+          message("usbserial_main: Reciting QEI's speech of 1588\n");
           nbytes = write(outfd, g_longmsg, sizeof(g_longmsg));
           count = 0;
         }
 #elif !defined(CONFIG_EXAMPLES_USBSERIAL_ONLYSMALL)
-      message("user_start: Reciting QEI's speech of 1588\n");
+      message("usbserial_main: Reciting QEI's speech of 1588\n");
       nbytes = write(outfd, g_longmsg, sizeof(g_longmsg));
 #else /* !defined(CONFIG_EXAMPLES_USBSERIAL_ONLYBIG) */
-      message("user_start: Saying hello\n");
+      message("usbserial_main: Saying hello\n");
       nbytes = write(outfd, g_shortmsg, sizeof(g_shortmsg));
 #endif
 
@@ -359,14 +359,14 @@ int user_start(int argc, char *argv[])
 
       if (nbytes < 0)
         {
-          message("user_start: ERROR: write failed: %d\n", errno);
+          message("usbserial_main: ERROR: write failed: %d\n", errno);
 #ifndef CONFIG_EXAMPLES_USBSERIAL_INONLY
           close(infd);
 #endif
           close(outfd);
           return 4;
         }
-      message("user_start: %d bytes sent\n", nbytes);
+      message("usbserial_main: %d bytes sent\n", nbytes);
 #endif /* CONFIG_EXAMPLES_USBSERIAL_OUTONLY */
 
       /* Test OUT (host-to-device) messages */
@@ -374,7 +374,7 @@ int user_start(int argc, char *argv[])
 #ifndef CONFIG_EXAMPLES_USBSERIAL_INONLY
       /* Poll for incoming messages */
 
-      message("user_start: Polling for OUT messages\n");
+      message("usbserial_main: Polling for OUT messages\n");
       for (i = 0; i < 5; i++)
         {
           memset(g_iobuffer, 'X', IOBUFFER_SIZE);
@@ -384,7 +384,7 @@ int user_start(int argc, char *argv[])
               int errorcode = errno;
               if (errorcode != EAGAIN)
                 {
-                  message("user_start: ERROR: read failed: %d\n", errno);
+                  message("usbserial_main: ERROR: read failed: %d\n", errno);
                   close(infd);
 #ifndef CONFIG_EXAMPLES_USBSERIAL_OUTONLY
                   close(outfd);
@@ -394,12 +394,12 @@ int user_start(int argc, char *argv[])
             }
           else
             {
-              message("user_start: Received %d bytes:\n", nbytes);
+              message("usbserial_main: Received %d bytes:\n", nbytes);
               if (nbytes > 0)
                 {
                   for (j = 0; j < nbytes; j += 16)
                     {
-                      message("user_start: %03x: ", j);
+                      message("usbserial_main: %03x: ", j);
                       for (k = 0; k < 16; k++)
                         {
                           if (k == 8)
@@ -445,7 +445,7 @@ int user_start(int argc, char *argv[])
           sleep(1);
         }
 #else /* CONFIG_EXAMPLES_USBSERIAL_INONLY */
-      message("user_start: Waiting\n");
+      message("usbserial_main: Waiting\n");
       sleep(5);
 #endif /* CONFIG_EXAMPLES_USBSERIAL_INONLY */
 

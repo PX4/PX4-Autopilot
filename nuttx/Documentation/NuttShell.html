@@ -3066,7 +3066,7 @@ Builtin Apps:
 <p>
   <code><b>apps/examples/hello</code></b>.
    The main routine for apps/examples/hello can be found in <code>apps/examples/hello/main.c</code>.
-   When <code>CONFIG_EXAMPLES_HELLO_BUILTIN</code> is defined, this main routine simplifies to:
+   The main routine is:
 </p>
 <ul><pre>
 int hello_main(int argc, char *argv[])
@@ -3165,10 +3165,8 @@ STACKSIZE       = 2048
    </p>
 <ul><pre>
 .context:
-ifeq ($(CONFIG_EXAMPLES_HELLO_BUILTIN),y)
   $(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
   @touch $@
-endif
 </pre></ul>
 </ol>
 
@@ -3189,7 +3187,7 @@ endif
 CONFIG_BUILTIN_APP_START=&lt;application name&gt;
 </pre></ul>
     <p>
-      that application will be invoked immediately after system starts instead of the normal, default <code>user_start()</code> entry point.
+      that application will be invoked immediately after system starts instead of the default <code>CONFIG_USER_ENTRYPOINT</code>() entry point.
       Note that <code>&lt;application name&gt;</code> must be provided just as it would have been on the NSH command line.
       For example, <code>hello</code> would result in <code>hello_main()</code> being started at power-up.
     </p>
@@ -3276,8 +3274,8 @@ CONFIGURED_APPS += examples/hello
     <p>
       You replace the sample code at <code>apps/examples/nsh/nsh_main.c</code> with whatever start-up logic that you want.
       NSH is a library at <code>apps/nshlib</code>. 
-      <code>apps.examplex/nsh</code> is just a tiny, example start-up function (<code>user_start()</code>) that that runs immediately and illustrates how to start NSH
-      If you want something else to run immediately then you can write your write your own custom <code>user_start()</code> function and then start other tasks from your custom <code>user_start()</code>.
+      <code>apps.examplex/nsh</code> is just a tiny, example start-up function (<code>CONFIG_USER_ENTRYPOINT</code>()) that that runs immediately and illustrates how to start NSH
+      If you want something else to run immediately then you can write your write your own custom <code>CONFIG_USER_ENTRYPOINT</code>() function and then start other tasks from your custom <code>CONFIG_USER_ENTRYPOINT</code>().
     </p>
   <li>
     <p>

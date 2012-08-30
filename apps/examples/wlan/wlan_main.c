@@ -258,32 +258,32 @@ static int wlan_waiter(int argc, char *argv[])
 }
 
 /****************************************************************************
- * Name: user_start
+ * Name: wlan_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int wlan_main(int argc, char *argv[])
 {
   pid_t pid;
   int ret;
 
   /* First, register all of the USB host Wireless LAN drivers */
 
-  printf("user_start: Register drivers\n");
+  printf("wlan_main: Register drivers\n");
   ret = usbhost_wlaninit();
   if (ret != OK)
     {
-      printf("user_start: Failed to register the WLAN driver\n");
+      printf("wlan_main: Failed to register the WLAN driver\n");
     }
 
   /* Then get an instance of the USB host interface */
 
-  printf("user_start: Initialize USB host WLAN driver\n");
+  printf("wlan_main: Initialize USB host WLAN driver\n");
   g_drvr = usbhost_initialize(0);
   if (g_drvr)
     {
       /* Start a thread to handle device connection. */
 
-      printf("user_start: Start wlan_waiter\n");
+      printf("wlan_main: Start wlan_waiter\n");
 
 #ifndef CONFIG_CUSTOM_STACK
       pid = task_create("usbhost", CONFIG_EXAMPLES_WLAN_DEFPRIO,

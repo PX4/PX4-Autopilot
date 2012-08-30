@@ -345,18 +345,10 @@ static int nxtext_initialize(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start/nxtext_main
+ * Name: nxtext_main
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_NXTEXT_BUILTIN
-#  define MAIN_NAME nxtext_main
-#  define MAIN_NAME_STRING "nxtext_main"
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_NAME_STRING "user_start"
-#endif
-
-int MAIN_NAME(int argc, char **argv)
+int nxtext_main(int argc, char **argv)
 {
   FAR struct nxtext_state_s *bgstate;
   NXWINDOW hwnd = NULL;
@@ -368,10 +360,10 @@ int MAIN_NAME(int argc, char **argv)
   /* Initialize NX */
 
   ret = nxtext_initialize();
-  message(MAIN_NAME_STRING ": NX handle=%p\n", g_hnx);
+  message("nxtext_main: NX handle=%p\n", g_hnx);
   if (!g_hnx || ret < 0)
     {
-      message(MAIN_NAME_STRING ": Failed to get NX handle: %d\n", errno);
+      message("nxtext_main: Failed to get NX handle: %d\n", errno);
       g_exitcode = NXEXIT_NXOPEN;
       goto errout;
     }
@@ -381,7 +373,7 @@ int MAIN_NAME(int argc, char **argv)
   g_bghfont = nxf_getfonthandle(CONFIG_EXAMPLES_NXTEXT_BGFONTID);
   if (!g_bghfont)
     {
-      message(MAIN_NAME_STRING ": Failed to get background font handle: %d\n", errno);
+      message("nxtext_main: Failed to get background font handle: %d\n", errno);
       g_exitcode = NXEXIT_FONTOPEN;
       goto errout;
     }
@@ -389,19 +381,19 @@ int MAIN_NAME(int argc, char **argv)
   g_puhfont = nxf_getfonthandle(CONFIG_EXAMPLES_NXTEXT_PUFONTID);
   if (!g_puhfont)
     {
-      message(MAIN_NAME_STRING ": Failed to get pop-up font handle: %d\n", errno);
+      message("nxtext_main: Failed to get pop-up font handle: %d\n", errno);
       g_exitcode = NXEXIT_FONTOPEN;
       goto errout;
     }
 
   /* Set the background to the configured background color */
 
-  message(MAIN_NAME_STRING ": Set background color=%d\n", CONFIG_EXAMPLES_NXTEXT_BGCOLOR);
+  message("nxtext_main: Set background color=%d\n", CONFIG_EXAMPLES_NXTEXT_BGCOLOR);
   color = CONFIG_EXAMPLES_NXTEXT_BGCOLOR;
   ret = nx_setbgcolor(g_hnx, &color);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nx_setbgcolor failed: %d\n", errno);
+      message("nxtext_main: nx_setbgcolor failed: %d\n", errno);
       g_exitcode = NXEXIT_NXSETBGCOLOR;
       goto errout_with_nx;
     }
@@ -412,7 +404,7 @@ int MAIN_NAME(int argc, char **argv)
   ret = nx_requestbkgd(g_hnx, &g_nxtextcb, bgstate);
   if (ret < 0)
     {
-      message(MAIN_NAME_STRING ": nx_setbgcolor failed: %d\n", errno);
+      message("nxtext_main: nx_setbgcolor failed: %d\n", errno);
       g_exitcode = NXEXIT_NXREQUESTBKGD;
       goto errout_with_nx;
     }
@@ -425,7 +417,7 @@ int MAIN_NAME(int argc, char **argv)
     {
       (void)sem_wait(&g_semevent);
     }
-  message(MAIN_NAME_STRING ": Screen resolution (%d,%d)\n", g_xres, g_yres);
+  message("nxtext_main: Screen resolution (%d,%d)\n", g_xres, g_yres);
 
   /* Now loop, adding text to the background and periodically presenting
    * a pop-up window.
@@ -453,11 +445,11 @@ int MAIN_NAME(int argc, char **argv)
           /* Give keyboard input to the top window (which should be the pop-up) */
 
 #ifdef CONFIG_NX_KBD
-          message(MAIN_NAME_STRING ": Send keyboard input: %s\n", g_pumsg);
+          message("nxtext_main: Send keyboard input: %s\n", g_pumsg);
           ret = nx_kbdin(g_hnx, strlen((FAR const char *)g_pumsg), g_pumsg);
           if (ret < 0)
            {
-             message(MAIN_NAME_STRING ": nx_kbdin failed: %d\n", errno);
+             message("nxtext_main: nx_kbdin failed: %d\n", errno);
              goto errout_with_hwnd;
            }
 #endif
@@ -466,7 +458,7 @@ int MAIN_NAME(int argc, char **argv)
         {
           /* Destroy the pop-up window and restart the sequence */
  
-          message(MAIN_NAME_STRING ": Close pop-up\n");
+          message("nxtext_main: Close pop-up\n");
           (void)nxpu_close(hwnd);
           popcnt = 0;
         }
@@ -488,7 +480,7 @@ int MAIN_NAME(int argc, char **argv)
 errout_with_hwnd:
   if (popcnt >= 3)
     {
-      message(MAIN_NAME_STRING ": Close pop-up\n");
+      message("nxtext_main: Close pop-up\n");
      (void)nxpu_close(hwnd);
     }
 
@@ -499,12 +491,12 @@ errout_with_nx:
 #ifdef CONFIG_NX_MULTIUSER
   /* Disconnect from the server */
 
-  message(MAIN_NAME_STRING ": Disconnect from the server\n");
+  message("nxtext_main: Disconnect from the server\n");
   nx_disconnect(g_hnx);
 #else
   /* Close the server */
 
-  message(MAIN_NAME_STRING ": Close NX\n");
+  message("nxtext_main: Close NX\n");
   nx_close(g_hnx);
 #endif
 errout:

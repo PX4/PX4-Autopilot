@@ -59,14 +59,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME   qe_main
-#  define MAIN_STRING "qe_main: "
-#else
-#  define MAIN_NAME   user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -245,10 +237,10 @@ static void parse_args(int argc, FAR char **argv)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start/qe_main
+ * Name: qe_main
  ****************************************************************************/
 
-int MAIN_NAME(int argc, char *argv[])
+int qe_main(int argc, char *argv[])
 {
   int32_t position;
   int fd;
@@ -266,11 +258,11 @@ int MAIN_NAME(int argc, char *argv[])
        * this test.
        */
 
-      message(MAIN_STRING "Initializing external encoder(s)\n");
+      message("qe_main: Initializing external encoder(s)\n");
       ret = qe_devinit();
       if (ret != OK)
         {
-          message(MAIN_STRING "qe_devinit failed: %d\n", ret);
+          message("qe_main: qe_devinit failed: %d\n", ret);
           exitval = EXIT_FAILURE;
           goto errout;
         }
@@ -289,13 +281,13 @@ int MAIN_NAME(int argc, char *argv[])
 
   /* Open the encoder device for reading */
 
-  message(MAIN_STRING "Hardware initialized. Opening the encoder device: %s\n",
+  message("qe_main: Hardware initialized. Opening the encoder device: %s\n",
           g_qeexample.devpath);
 
   fd = open(g_qeexample.devpath, O_RDONLY);
   if (fd < 0)
     {
-      message(MAIN_STRING "open %s failed: %d\n", g_qeexample.devpath, errno);
+      message("qe_main: open %s failed: %d\n", g_qeexample.devpath, errno);
       exitval = EXIT_FAILURE;
       goto errout_with_dev;
     }
@@ -304,11 +296,11 @@ int MAIN_NAME(int argc, char *argv[])
 
   if (g_qeexample.reset)
     {
-      message(MAIN_STRING "Resetting the count...\n");
+      message("qe_main: Resetting the count...\n");
       ret = ioctl(fd, QEIOC_RESET, 0);
       if (ret < 0)
         {
-          message(MAIN_STRING "ioctl(QEIOC_RESET) failed: %d\n", errno);
+          message("qe_main: ioctl(QEIOC_RESET) failed: %d\n", errno);
           exitval = EXIT_FAILURE;
           goto errout_with_dev;
         }
@@ -319,10 +311,10 @@ int MAIN_NAME(int argc, char *argv[])
    */
 
 #if defined(CONFIG_NSH_BUILTIN_APPS)
-  message(MAIN_STRING "Number of samples: %d\n", g_qeexample.nloops);
+  message("qe_main: Number of samples: %d\n", g_qeexample.nloops);
   for (nloops = 0; nloops < g_qeexample.nloops; nloops++)
 #elif defined(CONFIG_EXAMPLES_QENCODER_NSAMPLES)
-  message(MAIN_STRING "Number of samples: %d\n", CONFIG_EXAMPLES_QENCODER_NSAMPLES);
+  message("qe_main: Number of samples: %d\n", CONFIG_EXAMPLES_QENCODER_NSAMPLES);
   for (nloops = 0; nloops < CONFIG_EXAMPLES_QENCODER_NSAMPLES; nloops++)
 #else
   for (;;)
@@ -339,7 +331,7 @@ int MAIN_NAME(int argc, char *argv[])
       ret = ioctl(fd, QEIOC_POSITION, (unsigned long)((uintptr_t)&position));
       if (ret < 0)
         {
-          message(MAIN_STRING "ioctl(QEIOC_POSITION) failed: %d\n", errno);
+          message("qe_main: ioctl(QEIOC_POSITION) failed: %d\n", errno);
           exitval = EXIT_FAILURE;
           goto errout_with_dev;
         }
@@ -348,7 +340,7 @@ int MAIN_NAME(int argc, char *argv[])
 
       else
         {
-          message(MAIN_STRING "%3d. %d\n", nloops+1, position);
+          message("qe_main: %3d. %d\n", nloops+1, position);
         }
 
       /* Delay a little bit */

@@ -166,10 +166,10 @@ int                         g_thttpdnsymbols;
  ****************************************************************************/
 
 /****************************************************************************
- * user_start
+ * thttp_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int thttp_main(int argc, char *argv[])
 {
   struct in_addr addr;
 #ifdef CONFIG_EXAMPLE_THTTPD_NOMAC

@@ -3221,3 +3221,7 @@
 	  common configurations and in configs/*/README.txt for board and MCU_
 	  specific configurations.
 	* configs/stm3240g-eval: Add USB host support.
+	* sched/os_bring.c, configs/*/defconfig, tools/mkconfig.c, and others:  Added
+	  configuration variable CONFIG_USER_ENTRYPOINT that may be used to change
+	  the default entry from user_start to some other symbol.  Contributed by
+	  Kate.

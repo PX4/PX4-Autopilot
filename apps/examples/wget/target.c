@@ -106,10 +106,10 @@ static void callback(FAR char **buffer, int offset, int datend,
  ****************************************************************************/
 
 /****************************************************************************
- * user_start
+ * wget_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int wget_main(int argc, char *argv[])
 {
   struct in_addr addr;
 #if defined(CONFIG_EXAMPLE_WGET_NOMAC)

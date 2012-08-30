@@ -81,27 +81,15 @@
 #  error "You must define CONFIG_NET_BROADCAST"
 #endif
 
-/* If CONFIG_NSH_BUILTIN_APPS is defined, then it is assumed that you want
- * to execute the DHCPD daemon as an NSH built-in task.
- */
-
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME dhcpd_main
-#  define MAIN_NAME_STRING "dhcpd_main"
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_NAME_STRING "user_start"
-#endif
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start/dhcpd_main
+ * Name: dhcpd_main
  ****************************************************************************/
 
-int MAIN_NAME(int argc, char *argv[])
+int dhcpd_main(int argc, char *argv[])
 {
   struct in_addr addr;
 #if defined(CONFIG_EXAMPLE_DHCPD_NOMAC)

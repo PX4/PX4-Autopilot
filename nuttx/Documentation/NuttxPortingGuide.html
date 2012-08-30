@@ -4085,6 +4085,14 @@ build
     <code>CONFIG_SCHED_ONEXIT_MAX</code>:  By default if <code>CONFIG_SCHED_ONEXIT</code> is selected, only a single <code>on_exit()</code> function is supported.
     That number can be increased by defined this setting to the number that you require.
   </li>
+  <li>
+    <code>CONFIG_USER_ENTRYPOINT</code>: The name of the entry point for user
+    applications.
+    For the example applications this is of the form <code>app_main</code>
+    where <code>app</code> is the application name.
+    If not defined, <code>CONFIG_USER_ENTRYPOINT</code> defaults to
+    <code>user_start</code>.
+  </li>
 </ul>
 
 <p>
@@ -5792,13 +5800,14 @@ build
   <li>
     <code>CONFIG_IDLETHREAD_STACKSIZE</code>: The size of the initial stack.
     This is the thread that (1) performs the initial boot of the system up
-    to the point where user_start() is spawned, and (2) there after is the
-    IDLE thread that executes only when there is no other thread ready to
-    run.
+    to the point where <code>CONFIG_USER_ENTRYPOINT</code>() is spawned,
+    and (2) there after is the IDLE thread that executes only when there
+    is no other thread ready to run.
   </li>
   <li>
     <code>CONFIG_USERMAIN_STACKSIZE</code>: The size of the stack to allocate
-    for the main user thread that begins at the user_start() entry point.
+    for the main user thread that begins at the <code>CONFIG_USER_ENTRYPOINT</code>()
+    entry point.
   </li>
   <li>
     <code>CONFIG_PTHREAD_STACK_MIN</code>: Minimum pthread stack size
