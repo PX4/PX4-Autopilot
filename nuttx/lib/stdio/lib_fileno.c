@@ -63,6 +63,7 @@ int fileno(FAR FILE *stream)
       set_errno(EBADF);
       return ERROR;
     }
+
   return ret;
 }
 #endif /* CONFIG_NFILE_STREAMS */

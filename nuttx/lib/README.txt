@@ -45,3 +45,38 @@ directory:
 
  misc       - Nonstandard "glue" logic, debug.h, crc32.h, dirent.h
 
+Library Database
+================
+
+Information about functions available in the NuttX C library information is
+maintained in a database.  That "database" is implemented as a simple comma-
+separated-value file, lib.csv.  Most spreadsheets programs will accept this
+format and can be used to maintain the library database.
+
+This library database will (eventually) be used to generate symbol library
+symbol table information that can be exported to external applications.
+
+The format of the CSV file for each line is:
+
+  Field 1: Function name
+  Field 2: The header file that contains the function prototype
+  Field 3: Condition for compilation
+  Field 4: The type of function return value.
+  Field 5 - N+5: The type of each of the N formal parameters of the function
+
+Each type field has a format as follows:
+
+  type name:
+        For all simpler types
+  formal type | actual type: 
+        For array types where the form of the formal (eg. int parm[2])
+        differs from the type of actual passed parameter (eg. int*).  This
+        is necessary because you cannot do simple casts to array types.
+  formal type | union member actual type | union member fieldname:
+        A similar situation exists for unions.  For example, the formal
+        parameter type union sigval -- You cannot cast a uintptr_t to
+        a union sigval, but you can cast to the type of one of the union
+        member types when passing the actual paramter.  Similarly, we
+        cannot cast a union sigval to a uinptr_t either.  Rather, we need
+        to cast a specific union member fieldname to uintptr_t.
+
