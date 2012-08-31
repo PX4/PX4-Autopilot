@@ -32,7 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file Driver for the Bosch BMA 180 MEMS accelerometer connected via SPI.
+ * @file bma180.cpp
+ * Driver for the Bosch BMA 180 MEMS accelerometer connected via SPI.
  */
 
 #include <nuttx/config.h>
@@ -80,6 +81,9 @@ static const int ERROR = -1;
 #define ADDR_ACC_Y_LSB			0x04
 #define ADDR_ACC_Z_LSB			0x06
 #define ADDR_TEMPERATURE		0x08
+
+#define ADDR_CTRL_REG0			0x0D
+#define REG0_WRITE_ENABLE		0x10
 
 #define ADDR_RESET			0x10
 #define SOFT_RESET				0xB6
@@ -295,8 +299,11 @@ BMA180::init()
 	/* perform soft reset (p48) */
 	write_reg(ADDR_RESET, SOFT_RESET);
 
-	/* wait 10us (p49) */
-	usleep(10);
+	/* wait 10 ms (datasheet incorrectly lists 10 us on page 49) */
+	usleep(10000);
+
+	/* enable writing to chip config */
+	modify_reg(ADDR_CTRL_REG0, 0, REG0_WRITE_ENABLE);
 
 	/* disable I2C interface */
 	modify_reg(ADDR_HIGH_DUR, HIGH_DUR_DIS_I2C, 0);
@@ -310,10 +317,17 @@ BMA180::init()
 	/* disable shadow-disable mode */
 	modify_reg(ADDR_GAIN_Y, GAIN_Y_SHADOW_DIS, 0);
 
-	set_range(2);
-	set_lowpass(75);
+	/* disable writing to chip config */
+	modify_reg(ADDR_CTRL_REG0, REG0_WRITE_ENABLE, 0);
 
-	ret = OK;
+	if (set_range(4)) warnx("Failed setting range");
+	if (set_lowpass(75)) warnx("Failed setting lowpass");
+
+	if (read_reg(ADDR_CHIP_ID) == CHIP_ID) {
+		ret = OK;
+	} else {
+		ret = ERROR;
+	}
 out:
 	return ret;
 }
@@ -538,11 +552,11 @@ BMA180::set_range(unsigned max_g)
 	if (max_g > 16)
 		return -ERANGE;
 
-	if (max_g <= 1) {
-		_current_range = 1;
-		rangebits = OFFSET_LSB1_RANGE_2G;
-	} else if (max_g <= 2) {
+	if (max_g <= 2) {
 		_current_range = 2;
+		rangebits = OFFSET_LSB1_RANGE_2G;
+	} else if (max_g <= 3) {
+		_current_range = 3;
 		rangebits = OFFSET_LSB1_RANGE_3G;
 	} else if (max_g <= 4) {
 		_current_range = 4;
@@ -561,10 +575,18 @@ BMA180::set_range(unsigned max_g)
 	_accel_range_m_s2 = _current_range * 9.80665f;
 	_accel_range_scale = _accel_range_m_s2 / 8192.0f;
 
+	/* enable writing to chip config */
+	modify_reg(ADDR_CTRL_REG0, 0, REG0_WRITE_ENABLE);
+
 	/* adjust sensor configuration */
 	modify_reg(ADDR_OFFSET_LSB1, OFFSET_LSB1_RANGE_MASK, rangebits);
 
-	return OK;
+	/* block writing to chip config */
+	modify_reg(ADDR_CTRL_REG0, REG0_WRITE_ENABLE, 0);
+
+	/* check if wanted value is now in register */
+	return !((read_reg(ADDR_OFFSET_LSB1) & OFFSET_LSB1_RANGE_MASK) ==
+		(OFFSET_LSB1_RANGE_MASK & rangebits));
 }
 
 int
@@ -600,10 +622,18 @@ BMA180::set_lowpass(unsigned frequency)
 		bwbits = BW_TCS_BW_10HZ;
 	}
 
+	/* enable writing to chip config */
+	modify_reg(ADDR_CTRL_REG0, 0, REG0_WRITE_ENABLE);
+
 	/* adjust sensor configuration */
 	modify_reg(ADDR_BW_TCS, BW_TCS_BW_MASK, bwbits);
 
-	return OK;
+	/* block writing to chip config */
+	modify_reg(ADDR_CTRL_REG0, REG0_WRITE_ENABLE, 0);
+
+	/* check if wanted value is now in register */
+	return !((read_reg(ADDR_BW_TCS) & BW_TCS_BW_MASK) ==
+		(BW_TCS_BW_MASK & bwbits));
 }
 
 void
@@ -657,7 +687,7 @@ BMA180::measure()
 	 * starting from the X LSB.
 	 */
 	raw_report.cmd = ADDR_ACC_X_LSB;
-	transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(raw_report));
+	// XXX PX4DEV transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(raw_report));
 
 	/*
 	 * Adjust and scale results to SI units.
@@ -668,10 +698,23 @@ BMA180::measure()
 	 * measurement flow without using the external interrupt.
 	 */
 	_reports[_next_report].timestamp = hrt_absolute_time();
-	/* XXX adjust for sensor alignment to board here */
-	report->x_raw = raw_report.x;
-	report->y_raw = raw_report.y;
-	report->z_raw = raw_report.z;
+	/*
+	 * y of board is x of sensor and x of board is -y of sensor
+	 * perform only the axis assignment here.
+	 * The y axis is inverted four lines down from y to -y
+	 * Two non-value bits are discarded directly
+	 */
+	report->y_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB+1)) << 8) | (read_reg(ADDR_ACC_X_LSB));// XXX PX4DEV raw_report.x;
+	report->x_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB+3)) << 8) | (read_reg(ADDR_ACC_X_LSB+2));// XXX PX4DEV raw_report.y;
+	report->z_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB+5)) << 8) | (read_reg(ADDR_ACC_X_LSB+4));// XXX PX4DEV raw_report.z;
+
+	/* discard two non-value bits in the 16 measurement */
+	report->x_raw = (report->x_raw >> 2);
+	report->y_raw = (report->y_raw >> 2);
+	report->z_raw = (report->z_raw >> 2);
+
+	/* invert y axis, watching the int16 overflow */
+	report->y_raw = (report->y_raw == INT16_MIN) ? INT16_MAX : -report->y_raw;
 
 	report->x = ((report->x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	report->y = ((report->y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
