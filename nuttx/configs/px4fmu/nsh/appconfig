@@ -45,6 +45,7 @@ CONFIGURED_APPS += system/readline
 CONFIGURED_APPS += systemlib
 CONFIGURED_APPS += systemlib/mixer
 
+# System utility commands
 CONFIGURED_APPS += systemcmds/reboot
 CONFIGURED_APPS += systemcmds/perf
 CONFIGURED_APPS += systemcmds/top
@@ -62,6 +63,7 @@ CONFIGURED_APPS += systemcmds/led
 # https://pixhawk.ethz.ch/px4/dev/deamon
 # CONFIGURED_APPS += examples/px4_deamon_app
 
+# Shared object broker; required by many parts of the system.
 CONFIGURED_APPS += uORB
 
 CONFIGURED_APPS += mavlink
@@ -76,6 +78,7 @@ CONFIGURED_APPS += fixedwing_control
 CONFIGURED_APPS += position_estimator
 CONFIGURED_APPS += attitude_estimator_ekf
 
+# Hacking tools
 #CONFIGURED_APPS += system/i2c
 #CONFIGURED_APPS += tools/i2c_dev
 
@@ -84,7 +87,7 @@ CONFIGURED_APPS	+= drivers/device
 CONFIGURED_APPS += drivers/ms5611
 CONFIGURED_APPS += drivers/hmc5883
 CONFIGURED_APPS += drivers/mpu6000
-#CONFIGURED_APPS += drivers/bma180
+CONFIGURED_APPS += drivers/bma180
 CONFIGURED_APPS += drivers/l3gd20
 CONFIGURED_APPS	+= px4/px4io/driver
 CONFIGURED_APPS += px4/fmu
@@ -102,4 +105,3 @@ endif
 CONFIGURED_APPS += examples/cdcacm
 #endif
 #endif
-

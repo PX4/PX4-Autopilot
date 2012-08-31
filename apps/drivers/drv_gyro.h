@@ -103,10 +103,10 @@ ORB_DECLARE(sensor_gyro);
 /** get the gyro scaling constants into (arg) */
 #define GYROIOCGSCALE		_GYROIOC(5)
 
-/** set the gyro measurement range to handle at least (arg) g */
+/** set the gyro measurement range to handle at least (arg) degrees per second */
 #define GYROIOCSRANGE		_GYROIOC(6)
 
-/** get the current gyro measurement range */
+/** get the current gyro measurement range in degrees per second */
 #define GYROIOCGRANGE		_GYROIOC(7)
 
 #endif /* _DRV_GYRO_H */
