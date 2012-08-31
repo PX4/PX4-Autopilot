@@ -146,9 +146,6 @@ static const int ERROR = -1;
 #define FIFO_CTRL_STREAM_TO_FIFO_MODE		(3<<5)
 #define FIFO_CTRL_BYPASS_TO_STREAM_MODE		(1<<7)
 
-
-
-
 extern "C" { __EXPORT int l3gd20_main(int argc, char *argv[]); }
 
 class L3GD20 : public device::SPI
@@ -266,12 +263,6 @@ private:
 
 /* helper macro for handling report buffer indices */
 #define INCREMENT(_x, _lim)	do { _x++; if (_x >= _lim) _x = 0; } while(0)
-
-
-/*
- * Driver 'main' command.
- */
-extern "C" { int l3gd20_main(int argc, char *argv[]); }
 
 
 L3GD20::L3GD20(int bus, spi_dev_e device) :
@@ -689,11 +680,18 @@ L3GD20::measure()
 	report->y_raw = raw_report.y;
 	report->z_raw = raw_report.z;
 
-	report->x = ((raw_report.x * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	report->y = ((raw_report.y * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	report->z = ((raw_report.z * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+	report->x = ((report->x_raw * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+	report->y = ((report->y_raw * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+	report->z = ((report->z_raw * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 	report->scaling = _gyro_range_scale;
 	report->range_rad_s = _gyro_range_rad_s;
+
+	/* post a report to the ring - note, not locked */
+	INCREMENT(_next_report, _num_reports);
+
+	/* if we are running up against the oldest report, fix it */
+	if (_next_report == _oldest_report)
+		INCREMENT(_oldest_report, _num_reports);
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
