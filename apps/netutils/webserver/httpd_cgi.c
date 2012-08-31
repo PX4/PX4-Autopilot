@@ -36,16 +36,9 @@
  * Included Files
  ****************************************************************************/
 
-#include <stdio.h>
 #include <string.h>
-#include <sys/socket.h>
 
-#include <nuttx/compiler.h>
-
-#include <nuttx/net/uip/uip.h>
 #include <apps/netutils/httpd.h>
-
-#include "httpd_cgi.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -55,58 +48,14 @@
  * Private Function Prototypes
  ****************************************************************************/
 
-static void nullfunction(struct httpd_state *pstate, char *ptr);
-#ifdef CONFIG_NETUTILS_HTTPDNETSTATS
-static void net_stats(struct httpd_state *pstate, char *ptr);
-#endif
-
-#ifdef CONFIG_NETUTILS_HTTPDFILESTATS
-static void file_stats(struct httpd_state *pstate, char *ptr);
-#endif
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_NETUTILS_HTTPDFILESTATS
-HTTPD_CGI_CALL(file, "file-stats", file_stats);
-#endif
-#ifdef CONFIG_NETUTILS_HTTPDNETSTATS
-HTTPD_CGI_CALL(net, "net-stats", net_stats);
-#endif
-
-static const struct httpd_cgi_call *calls[] =
-{
-#ifdef CONFIG_NETUTILS_HTTPDFILESTATS
-  &file,
-#endif
-#ifdef CONFIG_NETUTILS_HTTPDNETSTATS
-  &net,
-#endif
-  NULL
-};
-
-static const char closed[] =   /*  "CLOSED",*/
-  {0x43, 0x4c, 0x4f, 0x53, 0x45, 0x44, 0};
-static const char syn_rcvd[] = /*  "SYN-RCVD",*/
-  {0x53, 0x59, 0x4e, 0x2d, 0x52, 0x43, 0x56, 0x44,  0};
-static const char syn_sent[] = /*  "SYN-SENT",*/
-  {0x53, 0x59, 0x4e, 0x2d, 0x53, 0x45, 0x4e, 0x54,  0};
-static const char established[] = /*  "ESTABLISHED",*/
-  {0x45, 0x53, 0x54, 0x41, 0x42, 0x4c, 0x49, 0x53, 0x48, 0x45, 0x44, 0};
-static const char fin_wait_1[] = /*  "FIN-WAIT-1",*/
-  {0x46, 0x49, 0x4e, 0x2d, 0x57, 0x41, 0x49, 0x54, 0x2d, 0x31, 0};
-static const char fin_wait_2[] = /*  "FIN-WAIT-2",*/
-  {0x46, 0x49, 0x4e, 0x2d, 0x57, 0x41, 0x49, 0x54, 0x2d, 0x32, 0};
-static const char closing[] = /*  "CLOSING",*/
-  {0x43, 0x4c, 0x4f, 0x53, 0x49, 0x4e, 0x47, 0};
-static const char time_wait[] = /*  "TIME-WAIT,"*/
-  {0x54, 0x49, 0x4d, 0x45, 0x2d, 0x57, 0x41, 0x49, 0x54, 0};
-static const char last_ack[] = /*  "LAST-ACK"*/
-  {0x4c, 0x41, 0x53, 0x54, 0x2d, 0x41, 0x43, 0x4b, 0};
+struct httpd_cgi_call *cgi_calls = NULL;
 
 /****************************************************************************
- * Private Functions
+ * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
@@ -117,54 +66,31 @@ static void nullfunction(struct httpd_state *pstate, char *ptr)
 {
 }
 
-/****************************************************************************
- * Name: net_stats
- ****************************************************************************/
-
-#ifdef CONFIG_NETUTILS_HTTPDNETSTATS
-static void net_stats(struct httpd_state *pstate, char *ptr)
+void httpd_cgi_register(struct httpd_cgi_call *cgi_call)
 {
-  char buffer[16];
-  int i;
-
-  for (i = 0; i < sizeof(uip_stat) / sizeof(uip_stats_t); i++)
+  if (cgi_calls == NULL) 
     {
-      snprintf(buffer, 16, "%5u\n", ((uip_stats_t *)&uip_stat)[i]);
-      send(pstate->ht_sockfd, buffer, strlen(buffer), 0);
+      cgi_calls = cgi_call;
+    }
+  else
+    {
+      cgi_call->next = cgi_calls;
+      cgi_calls = cgi_call;
     }
 }
-#endif
-
-/****************************************************************************
- * Name: file_stats
- ****************************************************************************/
-
-#ifdef CONFIG_NETUTILS_HTTPDFILESTATS
-static void file_stats(struct httpd_state *pstate, char *ptr)
-{
-  char buffer[16];
-  char *pcount = strchr(ptr, ' ') + 1;
-  snprintf(buffer, 16, "%5u", httpd_fs_count(pcount));
-  (void)send(pstate->ht_sockfd, buffer, strlen(buffer), 0);
-}
-#endif
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
 
 httpd_cgifunction httpd_cgi(char *name)
 {
-  const struct httpd_cgi_call **f;
-
-  /* Find the matching name in the table, return the function. */
-
-  for(f = calls; *f != NULL; ++f)
+  struct httpd_cgi_call *cgi_call = cgi_calls;
+  while (cgi_call != NULL)
     {
-      if(strncmp((*f)->name, name, strlen((*f)->name)) == 0)
+      if (strncmp(cgi_call->name, name, strlen(cgi_call->name)) == 0)
         {
-          return (*f)->function;
+          return cgi_call->function;
         }
+
+      cgi_call = cgi_call->next;
     }
+
   return nullfunction;
 }

@@ -1,8 +1,8 @@
 /****************************************************************************
  * netutils/webserver/httpd_fs.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Based on uIP which also has a BSD style license:
  *
@@ -42,29 +42,23 @@
  ****************************************************************************/
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #include <apps/netutils/httpd.h>
 
 #include "httpd.h"
-#include "httpd_fsdata.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifndef NULL
-#define NULL 0
-#endif /* NULL */
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-#include "httpd_fsdata.c"
-
-#if CONFIG_NETUTILS_HTTPDFSSTATS
-static uint16_t count[HTTPD_FS_NUMFILES];
-#endif /* CONFIG_NETUTILS_HTTPDFSSTATS */
+#ifdef CONFIG_NETUTILS_HTTPDFSSTATS
+static uint16_t *count;
+#endif
 
 /****************************************************************************
  * Private Functions
@@ -97,12 +91,12 @@ static uint8_t httpd_fs_strcmp(const char *str1, const char *str2)
 
 int httpd_fs_open(const char *name, struct httpd_fs_file *file)
 {
-#if CONFIG_NETUTILS_HTTPDFSSTATS
+#ifdef CONFIG_NETUTILS_HTTPDFSSTATS
   uint16_t i = 0;
-#endif /* CONFIG_NETUTILS_HTTPDFSSTATS */
+#endif
   struct httpd_fsdata_file_noconst *f;
 
-  for(f = (struct httpd_fsdata_file_noconst *)HTTPD_FS_ROOT;
+  for(f = (struct httpd_fsdata_file_noconst *)g_httpdfs_root;
       f != NULL;
       f = (struct httpd_fsdata_file_noconst *)f->next)
     {
@@ -110,37 +104,40 @@ int httpd_fs_open(const char *name, struct httpd_fs_file *file)
         {
           file->data = f->data;
           file->len  = f->len;
-#if CONFIG_NETUTILS_HTTPDFSSTATS
+#ifdef CONFIG_NETUTILS_HTTPDFSSTATS
           ++count[i];
-#endif /* CONFIG_NETUTILS_HTTPDFSSTATS */
+#endif
           return 1;
         }
-#if CONFIG_NETUTILS_HTTPDFSSTATS
+#ifdef CONFIG_NETUTILS_HTTPDFSSTATS
       ++i;
-#endif /* CONFIG_NETUTILS_HTTPDFSSTATS */
+#endif
     }
   return 0;
 }
 
 void httpd_fs_init(void)
 {
-#if CONFIG_NETUTILS_HTTPDFSSTATS
+#ifdef CONFIG_NETUTILS_HTTPDFSSTATS
   uint16_t i;
-  for(i = 0; i < HTTPD_FS_NUMFILES; i++)
+
+  count = (uint16_t*)malloc(g_httpd_numfiles * sizeof(uint16_t));
+
+  for(i = 0; i < g_httpd_numfiles; i++)
     {
       count[i] = 0;
     }
-#endif /* CONFIG_NETUTILS_HTTPDFSSTATS */
+#endif
 }
 
-#if CONFIG_NETUTILS_HTTPDFSSTATS
+#ifdef CONFIG_NETUTILS_HTTPDFSSTATS
 uint16_t httpd_fs_count(char *name)
 {
   struct httpd_fsdata_file_noconst *f;
   uint16_t i;
 
   i = 0;
-  for(f = (struct httpd_fsdata_file_noconst *)HTTPD_FS_ROOT;
+  for(f = (struct httpd_fsdata_file_noconst *)g_httpdfs_root;
       f != NULL;
       f = (struct httpd_fsdata_file_noconst *)f->next)
     {
@@ -150,6 +147,7 @@ uint16_t httpd_fs_count(char *name)
         }
       ++i;
     }
+
   return 0;
 }
 #endif /* CONFIG_NETUTILS_HTTPDFSSTATS */

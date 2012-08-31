@@ -370,7 +370,7 @@ There are two version of the FPU support built into the STM32 port.
    CONFIG_ARCH_FPU=y
    CONFIG_ARMV7M_CMNVECTOR=y
 
-   You will probably also changes to the ld.script in if this option is selected.
+   You will probably also changes to the scripts/ld.script in if this option is selected.
    This should work:
 
    -ENTRY(_stext)

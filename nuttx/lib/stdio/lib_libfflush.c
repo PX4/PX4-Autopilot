@@ -109,7 +109,6 @@ ssize_t lib_fflush(FAR FILE *stream, bool bforce)
   FAR const unsigned char *src;
   ssize_t bytes_written;
   ssize_t nbuffer;
-  int ret;
 
   /* Return EBADF if the file is not opened for writing */
 

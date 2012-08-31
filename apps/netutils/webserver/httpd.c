@@ -97,7 +97,7 @@ static const char g_httpextensiongif[]      = ".gif";
 static const char g_httpextensionjpg[]      = ".jpg";
 
 static const char g_http404path[]           = "/404.html";
-static const char g_httpindexpath[]         = "/index.html";
+static const char g_httpindexpath[]         = "/index.shtml";
 
 static const char g_httpcmdget[]            = "GET ";
 
@@ -273,11 +273,27 @@ static int httpd_addchunk(struct httpd_state *pstate, const char *buffer, int le
   return OK;
 }
 
+static int httpd_flush(struct httpd_state *pstate)
+{
+  int ret = 0;
+
+  if (pstate->ht_sndlen > 0)
+    {
+      httpd_dumpbuffer("Outgoing buffer", pstate->ht_buffer, pstate->ht_sndlen);
+      ret = send(pstate->ht_sockfd, pstate->ht_buffer, pstate->ht_sndlen, 0);
+      if (ret >= 0)
+	{
+	  pstate->ht_sndlen = 0;
+	}
+    }
+  return ret;
+}
+
 static int send_headers(struct httpd_state *pstate, const char *statushdr, int len)
 {
   char *ptr;
   int ret;
-
+  nvdbg("HEADER\n");
   ret = httpd_addchunk(pstate, statushdr, len);
   if (ret < 0)
     {
@@ -340,16 +356,23 @@ static int httpd_sendfile(struct httpd_state *pstate)
     {
       if (send_headers(pstate, g_httpheader200, strlen(g_httpheader200)) == OK)
         {
-          ptr = strchr(pstate->ht_filename, ISO_period);
-          if (ptr != NULL &&
-              strncmp(ptr, g_httpextensionshtml, strlen(g_httpextensionshtml)) == 0)
-            {
-              ret = handle_script(pstate);
-            }
-          else
-            {
-              ret = httpd_addchunk(pstate, pstate->ht_file.data, pstate->ht_file.len);
-            }
+	  if (httpd_flush(pstate) < 0)
+	    {
+	      ret = ERROR;
+	    }
+	  else
+	    {
+  	      ptr = strchr(pstate->ht_filename, ISO_period);
+	      if (ptr != NULL &&
+		  strncmp(ptr, g_httpextensionshtml, strlen(g_httpextensionshtml)) == 0)
+		{
+		  ret = handle_script(pstate);
+		}
+	      else
+		{
+		  ret = httpd_addchunk(pstate, pstate->ht_file.data, pstate->ht_file.len);
+		}
+	    }
         }
     }
 
@@ -357,11 +380,10 @@ static int httpd_sendfile(struct httpd_state *pstate)
 
   if (ret == OK && pstate->ht_sndlen > 0)
     {
-      httpd_dumpbuffer("Outgoing buffer", pstate->ht_buffer, pstate->ht_sndlen);
-      if (send(pstate->ht_sockfd, pstate->ht_buffer, pstate->ht_sndlen, 0) < 0)
-        {
-          ret = ERROR;
-        }
+      if (httpd_flush(pstate) < 0)
+	{
+	  ret = ERROR;
+	}
     }
 
   return ret;
@@ -500,4 +522,5 @@ int httpd_listen(void)
 
 void httpd_init(void)
 {
+  httpd_fs_init();
 }

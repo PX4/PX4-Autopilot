@@ -3234,4 +3234,10 @@
 	  exits (thanks Ronen Vainish).  Also, improved some error reporting:
 	  the generic ERROR was being used instead of the specific errno
 	  value; the errno variable was not always set correctly.
-
+	* tools/mkfsdata.pl: The uIP web server CGI image making perl script was
+	  moved from apps/netutils/webserver/makefsdata to nuttx/tools/mkfsdata.pl
+	  (Part of a larger change submitted by Max Holtzberg).
+	* configs/stm3240g-eval/script/ld.script:  All of the identical ld.script
+	  files for the STM3240G-EVAL were replaced by one version in this directory.
+	* configs/stm3240g-eval/webserver:  Configuration submitted by Max Holtzberg
+	  for testing the changes to the uIP web server (see apps/ChangeLog.txt).

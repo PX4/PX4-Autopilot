@@ -1,13 +1,19 @@
-/* httpd_cgi.h
- * Web server script interface header file
- * Author: Adam Dunkels <adam@sics.se>
+/****************************************************************************
+ * netutils/webserver/httpd_cgi.h
  *
- * Copyright (c) 2001, Adam Dunkels.
- * All rights reserved.
+ *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *
+ * Based on uIP which also has a BSD style license:
+ *
+ *   Author: Adam Dunkels <adam@sics.se>
+ *   Copyright (c) 2001-2005, Adam Dunkels.
+ *   All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
+ *
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
@@ -28,42 +34,22 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ *
+ ****************************************************************************/
 
-#ifndef __HTTPD_CGI_H__
-#define __HTTPD_CGI_H__
+#ifndef _NETUTILS_WEBSERVER_HTTPD_CGI_H
+#define _NETUTILS_WEBSERVER_HTTPD_CGI_H
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
 #include <apps/netutils/httpd.h>
 
-#include "httpd.h"
-
-typedef void (*httpd_cgifunction)(struct httpd_state *, char *);
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
 httpd_cgifunction httpd_cgi(char *name);
 
-struct httpd_cgi_call
-{
-  const char *name;
-  httpd_cgifunction function;
-};
-
-/**
- * \brief      HTTPD CGI function declaration
- * \param name The C variable name of the function
- * \param str  The string name of the function, used in the script file
- * \param function A pointer to the function that implements it
- *
- *             This macro is used for declaring a HTTPD CGI
- *             function. This function is then added to the list of
- *             HTTPD CGI functions with the httpd_cgi_add() function.
- *
- * \hideinitializer
- */
-#define HTTPD_CGI_CALL(name, str, function) \
-static void function(struct httpd_state *, char *); \
-static const struct httpd_cgi_call name = {str, function}
-
-void httpd_cgi_init(void);
-#endif /* __HTTPD_CGI_H__ */
-
-/** @} */
+#endif /* _NETUTILS_WEBSERVER_HTTPD_CGI_H */

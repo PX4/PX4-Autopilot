@@ -1,7 +1,7 @@
 /****************************************************************************
  * examples/uip/main.c
  *
- *   Copyright (C) 2007, 2009-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Based on uIP which also has a BSD style license:
@@ -77,6 +77,8 @@
 /* Include uIP webserver definitions */
 
 #include <apps/netutils/httpd.h>
+
+#include "cgi.h"
 
 /****************************************************************************
  * Definitions
@@ -192,6 +194,7 @@ int uip_main(int argc, char *argv[])
 #ifdef CONFIG_NET_TCP
   printf("Starting webserver\n");
   httpd_init();
+  cgi_register();
   httpd_listen();
 #endif
 

@@ -1,7 +1,7 @@
 ############################################################################
-# apps/netutils/webserver/Makefile
+# configs/stm3240g-eval/webserver/appconfig
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,65 +33,6 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config
--include $(TOPDIR)/Make.defs
-include $(APPDIR)/Make.defs
-
-# Web server library
-
-ASRCS		=
-CSRCS		= 
-
-ifeq ($(CONFIG_NET_TCP),y)
-CSRCS		= httpd.c httpd_fs.c httpd_cgi.c
-endif
-
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
-COBJS		= $(CSRCS:.c=$(OBJEXT))
-
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
-
-ifeq ($(WINTOOL),y)
-  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
-else
-  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
-endif
-
-ROOTDEPPATH	= --dep-path .
-
-# Common build
-
-VPATH		= 
-
-all: .built
-.PHONY: context depend clean distclean
-
-$(AOBJS): %$(OBJEXT): %.S
-	$(call ASSEMBLE, $<, $@)
-
-$(COBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-.built: $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $(BIN), $${obj}); \
-	done ; )
-	@touch .built
-
-context:
-
-.depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
-
-depend: .depend
-
-clean:
-	@rm -f *.o *~ .*.swp .built
-	$(call CLEAN)
-
-distclean: clean
-	@rm -f Make.dep .depend
-
--include Make.dep
+CONFIGURED_APPS += examples/uip
+CONFIGURED_APPS += netutils/uiplib
+CONFIGURED_APPS += netutils/webserver

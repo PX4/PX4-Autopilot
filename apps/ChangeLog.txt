@@ -297,4 +297,11 @@
 	  Kate.
 	* apps/netutils/webserver/httpd/c:  Fix a typo that as introduced in
 	  version r4402:  'lese' instead of 'else' (Noted by Max Holtzberg).
-
+	* tools/mkfsdata.pl: The uIP web server CGI image making perl script was
+	  moved from apps/netutils/webserver/makefsdata to nuttx/tools/mkfsdata.pl
+	  (Part of a larger change submitted by Max Holtzberg).
+	* apps/netutils/webserver, apps/examples/uip, and apps/include/netutils/httpd.h:
+	  The "canned" version of the uIP web servers content that was at 
+	  netutils/webserver/httpd_fsdata.c has been replaced with a dynamically
+	  built configuration located at apps/examples/uip (Contributed by
+	  Max Holtzberg).

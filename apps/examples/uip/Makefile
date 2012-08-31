@@ -1,8 +1,8 @@
 ############################################################################
 # apps/examples/uip/Makefile
 #
-#   Copyright (C) 2007-2008, 2010-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2007-2008, 2010-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -40,7 +40,7 @@ include $(APPDIR)/Make.defs
 # uIP very tiny web server example
 
 ASRCS		=
-CSRCS		= main.c
+CSRCS		= main.c cgi.c httpd_fsdata.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))
@@ -75,6 +75,9 @@ $(COBJS): %$(OBJEXT): %.c
 	done ; )
 	@touch .built
 
+httpd_fsdata.c: httpd-fs/*
+	$(TOPDIR)/tools/mkfsdata.pl
+
 context:
 
 .depend: Makefile $(SRCS)
@@ -85,6 +88,7 @@ epend: .depend
 
 clean:
 	@rm -f *.o *~ .*.swp .built
+	@rm -f httpd_fsdata.c
 	$(call CLEAN)
 
 distclean: clean

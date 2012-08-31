@@ -1,19 +1,14 @@
 /****************************************************************************
- * netutils/webserver/httpd.h
+ * apps/examples/uip/cgi.c
+ * Web server script interface
+ * Author: Adam Dunkels <adam@sics.se>
  *
- *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
- * Based on uIP which also has a BSD style license:
- *
- *   Author: Adam Dunkels <adam@sics.se>
- *   Copyright (c) 2001-2005, Adam Dunkels.
- *   All rights reserved.
+ * Copyright (c) 2001-2006, Adam Dunkels.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- *
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
@@ -37,28 +32,77 @@
  *
  ****************************************************************************/
 
-#ifndef _NETUTILS_WEBSERVER_HTTPD_H
-#define _NETUTILS_WEBSERVER_HTTPD_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-#include <stdint.h>
-#include <nuttx/net/uip/uipopt.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+
+#include <apps/netutils/httpd.h>
+
+#include "cgi.h"
 
 /****************************************************************************
- * Public Types
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Function Prototypes
+ * Private Function Prototypes
  ****************************************************************************/
 
-/* file must be allocated by caller and will be filled in by the function. */
+#ifdef CONFIG_NETUTILS_HTTPDFILESTATS
+HTTPD_CGI_CALL(file, "file-stats", file_stats);
+#endif
 
-int  httpd_fs_open(const char *name, struct httpd_fs_file *file);
-void httpd_fs_init(void);
+#ifdef CONFIG_NETUTILS_HTTPDNETSTATS
+HTTPD_CGI_CALL(net, "net-stats", net_stats);
+#endif
 
-#endif /* _NETUTILS_WEBSERVER_HTTPD_H */
+/****************************************************************************
+ * Name: net_stats
+ ****************************************************************************/
+
+#ifdef CONFIG_NETUTILS_HTTPDNETSTATS
+static void net_stats(struct httpd_state *pstate, char *ptr)
+{
+  char buffer[16];
+  int i;
+
+  for (i = 0; i < sizeof(uip_stat) / sizeof(uip_stats_t); i++)
+    {
+      snprintf(buffer, 16, "%5u\n", ((uip_stats_t *)&uip_stat)[i]);
+      send(pstate->ht_sockfd, buffer, strlen(buffer), 0);
+    }
+}
+#endif
+
+/****************************************************************************
+ * Name: file_stats
+ ****************************************************************************/
+
+#ifdef CONFIG_NETUTILS_HTTPDFILESTATS
+static void file_stats(struct httpd_state *pstate, char *ptr)
+{
+  char buffer[16];
+  char *pcount = strchr(ptr, ' ') + 1;
+  snprintf(buffer, 16, "%5u", httpd_fs_count(pcount));
+  send(pstate->ht_sockfd, buffer, strlen(buffer), 0);
+}
+#endif
+
+/****************************************************************************
+ * Name: cgi_register
+ ****************************************************************************/
+
+void cgi_register()
+{
+#ifdef CONFIG_NETUTILS_HTTPDFILESTATS
+  httpd_cgi_register(&file);
+#endif
+
+#ifdef CONFIG_NETUTILS_HTTPDNETSTATS
+  httpd_cgi_register(&net);
+#endif
+}

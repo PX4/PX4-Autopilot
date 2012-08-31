@@ -89,8 +89,6 @@
 int lib_wrflush(FAR FILE *stream)
 {
 #if CONFIG_STDIO_BUFFER_SIZE > 0
-  int ret;
-
   /* Verify that we were passed a valid (i.e., non-NULL) stream */
 
 #ifdef CONFIG_DEBUG

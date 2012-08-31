@@ -1,19 +1,14 @@
 /****************************************************************************
- * netutils/webserver/httpd.h
+ * apps/examples/uip/cgi.c
+ * Web server script interface header file
+ * Author: Adam Dunkels <adam@sics.se>
  *
- *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
- * Based on uIP which also has a BSD style license:
- *
- *   Author: Adam Dunkels <adam@sics.se>
- *   Copyright (c) 2001-2005, Adam Dunkels.
- *   All rights reserved.
+ * Copyright (c) 2001, Adam Dunkels.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- *
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
@@ -34,31 +29,15 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
  ****************************************************************************/
 
-#ifndef _NETUTILS_WEBSERVER_HTTPD_H
-#define _NETUTILS_WEBSERVER_HTTPD_H
-
-/****************************************************************************
- * Included Files
- ****************************************************************************/
-
-#include <nuttx/config.h>
-#include <stdint.h>
-#include <nuttx/net/uip/uipopt.h>
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
+#ifndef __HTTPD_CGI_H__
+#define __HTTPD_CGI_H__
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
-/* file must be allocated by caller and will be filled in by the function. */
+void cgi_register(void);
 
-int  httpd_fs_open(const char *name, struct httpd_fs_file *file);
-void httpd_fs_init(void);
-
-#endif /* _NETUTILS_WEBSERVER_HTTPD_H */
+#endif /* __HTTPD_CGI_H__ */
