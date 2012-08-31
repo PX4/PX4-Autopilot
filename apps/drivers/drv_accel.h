@@ -109,7 +109,7 @@ ORB_DECLARE(sensor_accel);
 /** set the accel measurement range to handle at least (arg) g */
 #define ACCELIOCSRANGE		_ACCELIOC(7)
 
-/** get the current accel measurement range */
+/** get the current accel measurement range in g */
 #define ACCELIOCGRANGE		_ACCELIOC(8)
 
 #endif /* _DRV_ACCEL_H */
