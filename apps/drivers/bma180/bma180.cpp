@@ -708,7 +708,7 @@ BMA180::measure()
 	report->x_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB+3)) << 8) | (read_reg(ADDR_ACC_X_LSB+2));// XXX PX4DEV raw_report.y;
 	report->z_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB+5)) << 8) | (read_reg(ADDR_ACC_X_LSB+4));// XXX PX4DEV raw_report.z;
 
-	/* discard two non-value bits in the 16 measurement */
+	/* discard two non-value bits in the 16 bit measurement */
 	report->x_raw = (report->x_raw >> 2);
 	report->y_raw = (report->y_raw >> 2);
 	report->z_raw = (report->z_raw >> 2);
