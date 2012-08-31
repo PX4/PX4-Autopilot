@@ -668,14 +668,14 @@ void
 BMA180::measure()
 {
 	/* BMA180 measurement registers */
-#pragma pack(push, 1)
-	struct {
-		uint8_t		cmd;
-		uint16_t	x;
-		uint16_t	y;
-		uint16_t	z;
-	} raw_report;
-#pragma pack(pop)
+// #pragma pack(push, 1)
+// 	struct {
+// 		uint8_t		cmd;
+// 		int16_t	x;
+// 		int16_t	y;
+// 		int16_t	z;
+// 	} raw_report;
+// #pragma pack(pop)
 
 	accel_report		*report = &_reports[_next_report];
 
@@ -686,7 +686,7 @@ BMA180::measure()
 	 * Fetch the full set of measurements from the BMA180 in one pass;
 	 * starting from the X LSB.
 	 */
-	raw_report.cmd = ADDR_ACC_X_LSB;
+	//raw_report.cmd = ADDR_ACC_X_LSB;
 	// XXX PX4DEV transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(raw_report));
 
 	/*
@@ -701,7 +701,6 @@ BMA180::measure()
 	/*
 	 * y of board is x of sensor and x of board is -y of sensor
 	 * perform only the axis assignment here.
-	 * The y axis is inverted four lines down from y to -y
 	 * Two non-value bits are discarded directly
 	 */
 	report->y_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB+1)) << 8) | (read_reg(ADDR_ACC_X_LSB));// XXX PX4DEV raw_report.x;
@@ -713,8 +712,8 @@ BMA180::measure()
 	report->y_raw = (report->y_raw >> 2);
 	report->z_raw = (report->z_raw >> 2);
 
-	/* invert y axis, watching the int16 overflow */
-	report->y_raw = (report->y_raw == INT16_MIN) ? INT16_MAX : -report->y_raw;
+	/* invert y axis, due to 14 bit data no overflow can occur in the negation */
+	report->y_raw = -report->y_raw;
 
 	report->x = ((report->x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
 	report->y = ((report->y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
