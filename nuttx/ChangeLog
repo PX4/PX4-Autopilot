@@ -3224,4 +3224,14 @@
 	* sched/os_bring.c, configs/*/defconfig, tools/mkconfig.c, and others:  Added
 	  configuration variable CONFIG_USER_ENTRYPOINT that may be used to change
 	  the default entry from user_start to some other symbol.  Contributed by
-	  Kate.
+	  Kate. NOTE: This change does introduce a minor backward incompatibility.
+	  For example, if your application uses NSH as its start-up program, then your
+	  code will not fail because it will be unable to find "user_start".  The fix
+	  for this link failure is to add the following to your configuration file:
+	  CONFIG_USER_ENTRYPOINT="nsh_main".
+	* libs/stdio/lib_libfread.c and lib_*flush*.c:  Correct a couple of
+	  error cases where the lib semaphore was not be released on error
+	  exits (thanks Ronen Vainish).  Also, improved some error reporting:
+	  the generic ERROR was being used instead of the specific errno
+	  value; the errno variable was not always set correctly.
+

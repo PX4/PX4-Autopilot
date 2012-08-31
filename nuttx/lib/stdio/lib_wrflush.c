@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/stdio/lib_wrflush.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -88,29 +88,49 @@
 
 int lib_wrflush(FAR FILE *stream)
 {
+#if CONFIG_STDIO_BUFFER_SIZE > 0
+  int ret;
+
   /* Verify that we were passed a valid (i.e., non-NULL) stream */
 
-#if CONFIG_STDIO_BUFFER_SIZE > 0
-  if (stream)
+#ifdef CONFIG_DEBUG
+  if (!stream)
     {
-      /* Verify that the stream is opened for writing... lib_fflush will
-       * return an error if it is called for a stream that is not opened for
-       * writing.
+      return -EINVAL;
+    }
+#endif
+
+  /* Verify that the stream is opened for writing... lib_fflush will
+   * return an error if it is called for a stream that is not opened for
+   * writing.  Check that first so that this function will not fail in
+   * that case.
+   */
+
+  if ((stream->fs_oflags & O_WROK) == 0)
+    {
+      /* Report that the success was successful if we attempt to flush a
+       * read-only stream.
        */
 
-      if ((stream->fs_oflags & O_WROK) == 0 ||
-          lib_fflush(stream, true) == 0)
-       {
-         /* Return success if there is no buffered write data -- i.e., that
-          * the stream is not opened for writing or, if it is, that all of
-          * the buffered write data was successfully flushed.
-          */
-
-         return OK;
-       }
+      return OK;
     }
-  return ERROR;
+
+  /* Flush the stream.   Return success if there is no buffered write data
+   * -- i.e., that the stream is opened for writing and  that all of the
+   * buffered write data was successfully flushed by lib_fflush().
+   */
+
+  return lib_fflush(stream, true);
 #else
-  return stream ? OK : ERROR;
+  /* Verify that we were passed a valid (i.e., non-NULL) stream */
+
+#ifdef CONFIG_DEBUG
+  if (!stream)
+    {
+      return -EINVAL;
+    }
+#endif
+
+  return OK;
 #endif
 }

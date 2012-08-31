@@ -380,7 +380,7 @@ static inline int httpd_cmd(struct httpd_state *pstate)
       ndbg("[%d] recv failed: %d\n", pstate->ht_sockfd, errno);
       return ERROR;
     }
-  lese if (recvlen == 0)
+  else if (recvlen == 0)
     {
       ndbg("[%d] connection lost\n", pstate->ht_sockfd);
       return ERROR;

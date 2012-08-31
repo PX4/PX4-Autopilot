@@ -98,8 +98,8 @@
  *  bforce - flush must be complete.
  *
  * Return:
- *  ERROR on failure, otherwise the number of bytes remaining in the buffer.
- *  If bforce is set, then only the values ERROR and 0 will be returned.
+ *  A negated errno value on failure, otherwise the number of bytes remaining
+ *  in the buffer.
  *
  ****************************************************************************/
 
@@ -109,13 +109,13 @@ ssize_t lib_fflush(FAR FILE *stream, bool bforce)
   FAR const unsigned char *src;
   ssize_t bytes_written;
   ssize_t nbuffer;
+  int ret;
 
   /* Return EBADF if the file is not opened for writing */
 
   if (stream->fs_filedes < 0 || (stream->fs_oflags & O_WROK) == 0)
     {
-      set_errno(EBADF);
-      return ERROR;
+      return -EBADF;
     }
 
   /* Make sure that we have exclusive access to the stream */
@@ -132,8 +132,11 @@ ssize_t lib_fflush(FAR FILE *stream, bool bforce)
 
        if (stream->fs_bufread != stream->fs_bufstart)
         {
-          /* The buffer holds read data... just return zero */
+          /* The buffer holds read data... just return zero meaning "no bytes
+           * remaining in the buffer."
+           */
 
+          lib_give_semaphore(stream);
           return 0;
         }
 
@@ -151,8 +154,12 @@ ssize_t lib_fflush(FAR FILE *stream, bool bforce)
           bytes_written = write(stream->fs_filedes, src, nbuffer);
           if (bytes_written < 0)
             {
+              /* Write failed.  The cause of the failure is in 'errno'.
+               * returned the negated errno value.
+               */
+
               lib_give_semaphore(stream);
-              return ERROR;
+              return -get_errno();
             }
 
           /* Handle partial writes.  fflush() must either return with

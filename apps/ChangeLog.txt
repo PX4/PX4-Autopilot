@@ -295,3 +295,6 @@
 	  configuration variable CONFIG_USER_ENTRYPOINT that may be used to change
 	  the default entry from user_start to some other symbol.  Contributed by
 	  Kate.
+	* apps/netutils/webserver/httpd/c:  Fix a typo that as introduced in
+	  version r4402:  'lese' instead of 'else' (Noted by Max Holtzberg).
+
