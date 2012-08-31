@@ -37,12 +37,11 @@
 
 #include <nuttx/config.h>
 
-#include <device/spi.h>
-
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <semaphore.h>
 #include <string.h>
 #include <fcntl.h>
@@ -52,13 +51,70 @@
 #include <math.h>
 #include <unistd.h>
 
+#include <systemlib/perf_counter.h>
+#include <systemlib/err.h>
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
 #include <arch/board/up_hrt.h>
+#include <arch/board/board.h>
 
+#include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
+
+
+/* oddly, ERROR is not defined for c++ */
+#ifdef ERROR
+# undef ERROR
+#endif
+static const int ERROR = -1;
+
+#define DIR_READ			(1<<7)
+#define DIR_WRITE			(0<<7)
+
+#define ADDR_CHIP_ID			0x00
+#define CHIP_ID				0x03
+
+#define ADDR_ACC_X_LSB			0x02
+#define ADDR_ACC_Y_LSB			0x04
+#define ADDR_ACC_Z_LSB			0x06
+#define ADDR_TEMPERATURE		0x08
+
+#define ADDR_RESET			0x10
+#define SOFT_RESET				0xB6
+
+#define ADDR_BW_TCS			0x20
+#define BW_TCS_BW_MASK				(0xf<<4)
+#define BW_TCS_BW_10HZ				(0<<4)
+#define BW_TCS_BW_20HZ				(1<<4)
+#define BW_TCS_BW_40HZ				(2<<4)
+#define BW_TCS_BW_75HZ				(3<<4)
+#define BW_TCS_BW_150HZ				(4<<4)
+#define BW_TCS_BW_300HZ				(5<<4)
+#define BW_TCS_BW_600HZ				(6<<4)
+#define BW_TCS_BW_1200HZ			(7<<4)
+
+#define ADDR_HIGH_DUR			0x27
+#define HIGH_DUR_DIS_I2C			(1<<0)
+
+#define ADDR_TCO_Z			0x30
+#define TCO_Z_MODE_MASK				0x3
+
+#define ADDR_GAIN_Y			0x33
+#define GAIN_Y_SHADOW_DIS			(1<<0)
+
+#define ADDR_OFFSET_LSB1		0x35
+#define OFFSET_LSB1_RANGE_MASK			(7<<1)
+#define OFFSET_LSB1_RANGE_1G			(0<<1)
+#define OFFSET_LSB1_RANGE_2G			(2<<1)
+#define OFFSET_LSB1_RANGE_3G			(3<<1)
+#define OFFSET_LSB1_RANGE_4G			(4<<1)
+#define OFFSET_LSB1_RANGE_8G			(5<<1)
+#define OFFSET_LSB1_RANGE_16G			(6<<1)
+
+#define ADDR_OFFSET_T			0x37
+#define OFFSET_T_READOUT_12BIT			(1<<0)
 
 extern "C" { __EXPORT int bma180_main(int argc, char *argv[]); }
 
@@ -72,9 +128,6 @@ public:
 
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
-
-	virtual int		open_first(struct file *filp);
-	virtual int		close_last(struct file *filp);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -94,10 +147,15 @@ private:
 	volatile unsigned	_oldest_report;
 	struct accel_report	*_reports;
 
-	struct accel_scale	_scale;
-	float			_range_scale;
+	struct accel_scale	_accel_scale;
+	float			_accel_range_scale;
+	float			_accel_range_m_s2;
+	orb_advert_t		_accel_topic;
 
-	unsigned		_reads;
+	unsigned		_current_lowpass;
+	unsigned		_current_range;
+
+	perf_counter_t		_sample_perf;
 
 	/**
 	 * Start automatic measurement.
@@ -161,88 +219,44 @@ private:
 	int			set_range(unsigned max_g);
 
 	/**
-	 * Set the BMA180 lowpass filter.
+	 * Set the BMA180 internal lowpass filter frequency.
 	 *
-	 * @param frequency	Set the lowpass filter cutoff frequency to no less than
-	 *			this frequency.
+	 * @param frequency	The internal lowpass filter frequency is set to a value
+	 *			equal or greater to this.
+	 *			Zero selects the highest frequency supported.
 	 * @return		OK if the value can be supported.
 	 */
-	int			set_bandwidth(unsigned frequency);
+	int			set_lowpass(unsigned frequency);
 };
 
 /* helper macro for handling report buffer indices */
 #define INCREMENT(_x, _lim)	do { _x++; if (_x >= _lim) _x = 0; } while(0)
 
-#define DIR_READ			(1<<7)
-#define DIR_WRITE			(0<<7)
-
-#define ADDR_CHIP_ID			0x00
-#define CHIP_ID				0x03
-
-#define ADDR_ACC_X_LSB			0x02
-#define ADDR_ACC_Y_LSB			0x04
-#define ADDR_ACC_Z_LSB			0x06
-#define ADDR_TEMPERATURE		0x08
-
-#define ADDR_RESET			0x10
-#define SOFT_RESET				0xB6
-
-#define ADDR_BW_TCS			0x20
-#define BW_TCS_BW_MASK				(0xf<<4)
-#define BW_TCS_BW_10HZ				(0<<4)
-#define BW_TCS_BW_20HZ				(1<<4)
-#define BW_TCS_BW_40HZ				(2<<4)
-#define BW_TCS_BW_75HZ				(3<<4)
-#define BW_TCS_BW_150HZ				(4<<4)
-#define BW_TCS_BW_300HZ				(5<<4)
-#define BW_TCS_BW_600HZ				(6<<4)
-#define BW_TCS_BW_1200HZ			(7<<4)
-
-#define ADDR_HIGH_DUR			0x27
-#define HIGH_DUR_DIS_I2C			(1<<0)
-
-#define ADDR_TCO_Z			0x30
-#define TCO_Z_MODE_MASK				0x3
-
-#define ADDR_GAIN_Y			0x33
-#define GAIN_Y_SHADOW_DIS			(1<<0)
-
-#define ADDR_OFFSET_LSB1		0x35
-#define OFFSET_LSB1_RANGE_MASK			(7<<1)
-#define OFFSET_LSB1_RANGE_1G			(0<<1)
-#define OFFSET_LSB1_RANGE_2G			(2<<1)
-#define OFFSET_LSB1_RANGE_3G			(3<<1)
-#define OFFSET_LSB1_RANGE_4G			(4<<1)
-#define OFFSET_LSB1_RANGE_8G			(5<<1)
-#define OFFSET_LSB1_RANGE_16G			(6<<1)
-
-#define ADDR_OFFSET_T			0x37
-#define OFFSET_T_READOUT_12BIT			(1<<0)
-
-/*
- * Driver 'main' command.
- */
-extern "C" { int bma180_main(int argc, char *argv[]); }
-
 
 BMA180::BMA180(int bus, spi_dev_e device) :
 	SPI("BMA180", ACCEL_DEVICE_PATH, bus, device, SPIDEV_MODE3, 8000000),
+	_call_interval(0),
 	_num_reports(0),
 	_next_report(0),
 	_oldest_report(0),
 	_reports(nullptr),
-	_reads(0)
+	_accel_range_scale(0.0f),
+	_accel_range_m_s2(0.0f),
+	_accel_topic(-1),
+	_current_lowpass(0),
+	_current_range(0),
+	_sample_perf(perf_alloc(PC_ELAPSED, "bma180_read"))
 {
 	// enable debug() calls
 	_debug_enabled = true;
 
 	// default scale factors
-	_scale.x_offset = 0;
-	_scale.x_scale  = 1.0f;
-	_scale.y_offset = 0;
-	_scale.y_scale  = 1.0f;
-	_scale.z_offset = 0;
-	_scale.z_scale  = 1.0f;
+	_accel_scale.x_offset = 0;
+	_accel_scale.x_scale  = 1.0f;
+	_accel_scale.y_offset = 0;
+	_accel_scale.y_scale  = 1.0f;
+	_accel_scale.z_offset = 0;
+	_accel_scale.z_scale  = 1.0f;
 }
 
 BMA180::~BMA180()
@@ -253,77 +267,63 @@ BMA180::~BMA180()
 	/* free any existing reports */
 	if (_reports != nullptr)
 		delete[] _reports;
+
+	/* delete the perf counter */
+	perf_free(_sample_perf);
 }
 
 int
 BMA180::init()
 {
-	int ret;
+	int ret = ERROR;
 
 	/* do SPI init (and probe) first */
-	ret = SPI::init();
-
-	/* if probe/setup successful, finish chip init */
-	if (ret == OK) {
-
-		/* perform soft reset (p48) */
-		write_reg(ADDR_RESET, SOFT_RESET);
-
-		/* wait 10us (p49) */
-		usleep(10);
-
-		/* disable I2C interface */
-		modify_reg(ADDR_HIGH_DUR, HIGH_DUR_DIS_I2C, 0);
-
-		/* switch to low-noise mode */
-		modify_reg(ADDR_TCO_Z, TCO_Z_MODE_MASK, 0);
-
-		/* disable 12-bit mode */
-		modify_reg(ADDR_OFFSET_T, OFFSET_T_READOUT_12BIT, 0);
-
-		/* disable shadow-disable mode */
-		modify_reg(ADDR_GAIN_Y, GAIN_Y_SHADOW_DIS, 0);
-	}
-
-	return ret;
-}
-
-int
-BMA180::open_first(struct file *filp)
-{
-	/* reset to manual-poll mode */
-	_call_interval = 0;
+	if (SPI::init() != OK)
+		goto out;
 
 	/* allocate basic report buffers */
 	_num_reports = 2;
-	_reports = new struct accel_report[_num_reports];
 	_oldest_report = _next_report = 0;
+	_reports = new struct accel_report[_num_reports];
+	if (_reports == nullptr)
+		goto out;
 
-	/* set default range and lowpass */
-	set_range(4);		/* 4G */
-	set_bandwidth(600);	/* 600Hz */
+	/* advertise sensor topic */
+	memset(&_reports[0], 0, sizeof(_reports[0]));
+	_accel_topic = orb_advertise(ORB_ID(sensor_accel), &_reports[0]);
 
-	return OK;
-}
+	/* perform soft reset (p48) */
+	write_reg(ADDR_RESET, SOFT_RESET);
 
-int
-BMA180::close_last(struct file *filp)
-{
-	/* stop measurement */
-	stop();
+	/* wait 10us (p49) */
+	usleep(10);
 
-	/* free report buffers */
-	if (_reports != nullptr) {
-		delete[] _reports;
-		_num_reports = 0;
-	}
+	/* disable I2C interface */
+	modify_reg(ADDR_HIGH_DUR, HIGH_DUR_DIS_I2C, 0);
 
-	return OK;
+	/* switch to low-noise mode */
+	modify_reg(ADDR_TCO_Z, TCO_Z_MODE_MASK, 0);
+
+	/* disable 12-bit mode */
+	modify_reg(ADDR_OFFSET_T, OFFSET_T_READOUT_12BIT, 0);
+
+	/* disable shadow-disable mode */
+	modify_reg(ADDR_GAIN_Y, GAIN_Y_SHADOW_DIS, 0);
+
+	set_range(2);
+	set_lowpass(75);
+
+	ret = OK;
+out:
+	return ret;
 }
 
 int
 BMA180::probe()
 {
+	/* dummy read to ensure SPI state machine is sane */
+	read_reg(ADDR_CHIP_ID);
+
 	if (read_reg(ADDR_CHIP_ID) == CHIP_ID)
 		return OK;
 
@@ -356,8 +356,6 @@ BMA180::read(struct file *filp, char *buffer, size_t buflen)
 			}
 		}
 
-		_reads++;
-
 		/* if there was no data, warn the caller */
 		return ret ? ret : -EAGAIN;
 	}
@@ -378,21 +376,28 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-	case ACCELIOCSPOLLRATE: {
+	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
 				/* switching to manual polling */
-			case ACC_POLLRATE_MANUAL:
+			case SENSOR_POLLRATE_MANUAL:
 				stop();
 				_call_interval = 0;
 				return OK;
 
 				/* external signalling not supported */
-			case ACC_POLLRATE_EXTERNAL:
+			case SENSOR_POLLRATE_EXTERNAL:
 
 				/* zero would be bad */
 			case 0:
 				return -EINVAL;
+
+
+				/* set default/max polling rate */
+			case SENSOR_POLLRATE_MAX:
+			case SENSOR_POLLRATE_DEFAULT:
+				/* XXX 500Hz is just a wild guess */
+				return ioctl(filp, SENSORIOCSPOLLRATE, 500);
 
 				/* adjust to a legal polling interval in Hz */
 			default: {
@@ -408,7 +413,7 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call.period = _call_interval;
+					_call.period = _call_interval = ticks;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
@@ -419,7 +424,15 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCSQUEUEDEPTH: {
+	case SENSORIOCGPOLLRATE:
+		if (_call_interval == 0)
+			return SENSOR_POLLRATE_MANUAL;
+		return 1000000 / _call_interval;
+
+	case SENSORIOCSQUEUEDEPTH: {
+			/* account for sentinel in the ring */
+			arg++;
+
 			/* lower bound is mandatory, upper bound is a sanity check */
 			if ((arg < 2) || (arg > 100))
 				return -EINVAL;
@@ -440,15 +453,40 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 			return OK;
 		}
 
-	case ACCELIOCSLOWPASS:
-		return set_bandwidth(arg);
+	case SENSORIOCGQUEUEDEPTH:
+		return _num_reports -1;
 
-	case ACCELIORANGE:
-		return set_range(arg);
+	case SENSORIOCRESET:
+		/* XXX implement */
+		return -EINVAL;
 
 	case ACCELIOCSSAMPLERATE:	/* sensor sample rate is not (really) adjustable */
-	case ACCELIOCSREPORTFORMAT:	/* no alternate report formats */
 		return -EINVAL;
+
+	case ACCELIOCGSAMPLERATE:
+		return 1200;		/* always operating in low-noise mode */
+
+	case ACCELIOCSLOWPASS:
+		return set_lowpass(arg);
+
+	case ACCELIOCGLOWPASS:
+		return _current_lowpass;
+
+	case ACCELIOCSSCALE:
+		/* copy scale in */
+		memcpy(&_accel_scale, (struct accel_scale*) arg, sizeof(_accel_scale));
+		return OK;
+
+	case ACCELIOCGSCALE:
+		/* copy scale out */
+		memcpy((struct accel_scale*) arg, &_accel_scale, sizeof(_accel_scale));
+		return OK;
+
+	case ACCELIOCSRANGE:
+		return set_range(arg);
+
+	case ACCELIOCGRANGE:
+		return _current_range;
 
 	default:
 		/* give it to the superclass */
@@ -494,45 +532,43 @@ int
 BMA180::set_range(unsigned max_g)
 {
 	uint8_t rangebits;
-	float rangescale;
 
-	if (max_g > 16) {
+	if (max_g == 0)
+		max_g = 16;
+	if (max_g > 16)
 		return -ERANGE;
 
-	} else if (max_g > 8) {		/* 16G */
-		rangebits = OFFSET_LSB1_RANGE_16G;
-		rangescale = 1.98;
-
-	} else if (max_g > 4) {		/* 8G */
-		rangebits = OFFSET_LSB1_RANGE_8G;
-		rangescale = 0.99;
-
-	} else if (max_g > 3) {		/* 4G */
-		rangebits = OFFSET_LSB1_RANGE_4G;
-		rangescale = 0.5;
-
-	} else if (max_g > 2) {		/* 3G */
-		rangebits = OFFSET_LSB1_RANGE_3G;
-		rangescale = 0.38;
-
-	} else if (max_g > 1) {		/* 2G */
+	if (max_g <= 1) {
+		_current_range = 1;
 		rangebits = OFFSET_LSB1_RANGE_2G;
-		rangescale = 0.25;
-
-	} else {			/* 1G */
-		rangebits = OFFSET_LSB1_RANGE_1G;
-		rangescale = 0.13;
+	} else if (max_g <= 2) {
+		_current_range = 2;
+		rangebits = OFFSET_LSB1_RANGE_3G;
+	} else if (max_g <= 4) {
+		_current_range = 4;
+		rangebits = OFFSET_LSB1_RANGE_4G;
+	} else if (max_g <= 8) {
+		_current_range = 8;
+		rangebits = OFFSET_LSB1_RANGE_8G;
+	} else if (max_g <= 16) {
+		_current_range = 16;
+		rangebits = OFFSET_LSB1_RANGE_16G;
+	} else {
+		return -EINVAL;
 	}
+
+	/* set new range scaling factor */
+	_accel_range_m_s2 = _current_range * 9.80665f;
+	_accel_range_scale = _accel_range_m_s2 / 8192.0f;
 
 	/* adjust sensor configuration */
 	modify_reg(ADDR_OFFSET_LSB1, OFFSET_LSB1_RANGE_MASK, rangebits);
-	_range_scale = rangescale;
 
 	return OK;
 }
 
 int
-BMA180::set_bandwidth(unsigned frequency)
+BMA180::set_lowpass(unsigned frequency)
 {
 	uint8_t	bwbits;
 
@@ -601,24 +637,30 @@ BMA180::measure_trampoline(void *arg)
 void
 BMA180::measure()
 {
-	/*
-	 * This evil is to deal with the stupid layout of the BMA180
-	 * measurement registers vs. the SPI transaction model.
-	 */
-	union {
-		uint8_t bytes[10];
-		uint16_t words[5];
-	} buf;
+	/* BMA180 measurement registers */
+#pragma pack(push, 1)
+	struct {
+		uint8_t		cmd;
+		uint16_t	x;
+		uint16_t	y;
+		uint16_t	z;
+	} raw_report;
+#pragma pack(pop)
+
+	accel_report		*report = &_reports[_next_report];
+
+	/* start the performance counter */
+	perf_begin(_sample_perf);
 
 	/*
 	 * Fetch the full set of measurements from the BMA180 in one pass;
-	 * 7 bytes starting from the X LSB.
+	 * starting from the X LSB.
 	 */
-	buf.bytes[1] = ADDR_ACC_X_LSB;
-	transfer(&buf.bytes[1], &buf.bytes[1], 8);
+	raw_report.cmd = ADDR_ACC_X_LSB;
+	transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(raw_report));
 
 	/*
-	 * Adjust and scale results to mg.
+	 * Adjust and scale results to SI units.
 	 *
 	 * Note that we ignore the "new data" bits.  At any time we read, each
 	 * of the axis measurements are the "most recent", even if we've seen
@@ -626,13 +668,16 @@ BMA180::measure()
 	 * measurement flow without using the external interrupt.
 	 */
 	_reports[_next_report].timestamp = hrt_absolute_time();
-	_reports[_next_report].x = (buf.words[1] >> 2) * _range_scale;
-	_reports[_next_report].y = (buf.words[2] >> 2) * _range_scale;
-	_reports[_next_report].z = (buf.words[3] >> 2) * _range_scale;
+	/* XXX adjust for sensor alignment to board here */
+	report->x_raw = raw_report.x;
+	report->y_raw = raw_report.y;
+	report->z_raw = raw_report.z;
 
-	/*
-	 * @todo Apply additional scaling / calibration factors here.
-	 */
+	report->x = ((report->x_raw * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	report->y = ((report->y_raw * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+	report->z = ((report->z_raw * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	report->scaling = _accel_range_scale;
+	report->range_m_s2 = _accel_range_m_s2;
 
 	/* post a report to the ring - note, not locked */
 	INCREMENT(_next_report, _num_reports);
@@ -643,12 +688,18 @@ BMA180::measure()
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
+
+	/* publish for subscribers */
+	orb_publish(ORB_ID(sensor_accel), _accel_topic, report);
+
+	/* stop the perf counter */
+	perf_end(_sample_perf);
 }
 
 void
 BMA180::print_info()
 {
-	printf("reads:          %u\n", _reads);
+	perf_print_counter(_sample_perf);
 	printf("report queue:   %u (%u/%u @ %p)\n",
 	       _num_reports, _oldest_report, _next_report, _reports);
 }
@@ -656,67 +707,126 @@ BMA180::print_info()
 /**
  * Local functions in support of the shell command.
  */
-namespace
+namespace bma180
 {
 
 BMA180	*g_dev;
 
-/*
- * XXX this should just be part of the generic sensors test...
- */
+void	start();
+void	test();
+void	reset();
+void	info();
 
-int
+/**
+ * Start the driver.
+ */
+void
+start()
+{
+	int fd;
+
+	if (g_dev != nullptr)
+		errx(1, "already started");
+
+	/* create the driver */
+	g_dev = new BMA180(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_ACCEL);
+
+	if (g_dev == nullptr)
+		goto fail;
+
+	if (OK != g_dev->init())
+		goto fail;
+
+	/* set the poll rate to default, starts automatic data collection */
+	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		goto fail;
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+		goto fail;
+
+	exit(0);
+fail:
+	if (g_dev != nullptr) {
+		delete g_dev;
+		g_dev = nullptr;
+	}
+	errx(1, "driver start failed");
+}
+
+/**
+ * Perform some basic functional tests on the driver;
+ * make sure we can collect data from the sensor in polled
+ * and automatic modes.
+ */
+void
 test()
 {
 	int fd = -1;
-	struct accel_report report;
+	struct accel_report a_report;
 	ssize_t sz;
-	const char *reason = "test OK";
 
-	do {
+	/* get the driver */
+	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		err(1, "%s open failed (try 'bma180 start' if the driver is not running)", 
+			ACCEL_DEVICE_PATH);
 
-		/* get the driver */
-		fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	/* reset to manual polling */
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
+		err(1, "reset to manual polling");
+	
+	/* do a simple demand read */
+	sz = read(fd, &a_report, sizeof(a_report));
+	if (sz != sizeof(a_report))
+		err(1, "immediate acc read failed");
 
-		if (fd < 0) {
-			reason = "can't open driver";
-			break;
-		}
+	warnx("single read");
+	warnx("time:     %lld", a_report.timestamp);
+	warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
+	warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
+	warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
+	warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
+	warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
+	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
+	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
+		(double)(a_report.range_m_s2 / 9.81f));
 
-		/* do a simple demand read */
-		sz = read(fd, &report, sizeof(report));
+	/* XXX add poll-rate tests here too */
 
-		if (sz != sizeof(report)) {
-			reason = "immediate read failed";
-			break;
-		}
-
-		printf("single read\n");
-		fflush(stdout);
-		printf("time:        %lld\n", report.timestamp);
-		printf("x:           %f\n", report.x);
-		printf("y:           %f\n", report.y);
-		printf("z:           %f\n", report.z);
-
-	} while (0);
-
-	printf("BMA180: %s\n", reason);
-
-	return OK;
+	reset();
+	errx(0, "PASS");
 }
 
-int
+/**
+ * Reset the driver.
+ */
+void
+reset()
+{
+	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		err(1, "failed ");
+	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
+		err(1, "driver reset failed");
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+		err(1, "driver poll restart failed");
+
+	exit(0);
+}
+
+/**
+ * Print a little info about the driver.
+ */
+void
 info()
 {
-	if (g_dev == nullptr) {
-		fprintf(stderr, "BMA180: driver not running\n");
-		return -ENOENT;
-	}
+	if (g_dev == nullptr)
+		errx(1, "BMA180: driver not running");
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
 
-	return OK;
+	exit(0);
 }
 
 
@@ -727,48 +837,28 @@ bma180_main(int argc, char *argv[])
 {
 	/*
 	 * Start/load the driver.
-	 *
-	 * XXX it would be nice to have a wrapper for this...
+
 	 */
-	if (!strcmp(argv[1], "start")) {
-
-		if (g_dev != nullptr) {
-			fprintf(stderr, "BMA180: already loaded\n");
-			return -EBUSY;
-		}
-
-		/* create the driver */
-		g_dev = new BMA180(CONFIG_BMA180_SPI_BUS, (spi_dev_e)CONFIG_BMA180_SPI_DEVICE);
-
-		if (g_dev == nullptr) {
-			fprintf(stderr, "BMA180: driver alloc failed\n");
-			return -ENOMEM;
-		}
-
-		if (OK != g_dev->init()) {
-			fprintf(stderr, "BMA180: driver init failed\n");
-			usleep(100000);
-			delete g_dev;
-			g_dev = nullptr;
-			return -EIO;
-		}
-
-		printf("BMA180: driver started\n");
-		return OK;
-	}
+	if (!strcmp(argv[1], "start"))
+		bma180::start();
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test"))
-		return test();
+		bma180::test();
+
+	/*
+	 * Reset the driver.
+	 */
+	if (!strcmp(argv[1], "reset"))
+		bma180::reset();
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info"))
-		return info();
+		bma180::info();
 
-	fprintf(stderr, "unrecognised command, try 'start', 'test' or 'info'\n");
-	return -EINVAL;
+	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
 }
