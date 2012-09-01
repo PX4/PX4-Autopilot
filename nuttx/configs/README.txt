@@ -573,9 +573,6 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_LIBC_PERROR_STDOUT - POSIX requires that perror() provide its output
       on stderr.  This option may be defined, however, to provide perror() output
       that is serialized with other stdout messages.
-    CONFIG_LIBC_PERROR_DEVNAME -  Another non-standard option is to provide
-      perror() output to a logging device or file. CONFIG_LIBC_PERROR_DEVNAME
-      may be defined to be any write-able, character device (or file).
 
   Allow for architecture optimized implementations
 

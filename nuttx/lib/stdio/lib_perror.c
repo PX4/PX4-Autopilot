@@ -53,18 +53,8 @@
  
 #ifdef CONFIG_LIBC_PERROR_STDOUT
 #  define PERROR_STREAM stdout
-#  undef CONFIG_LIBC_PERROR_DEVNAME
-#endif
-
-/* Another non-standard option is to provide perror output to a logging
- * device or file. CONFIG_LIBC_PERROR_DEVNAME may be defined to be any write-
- * able, character device (or file).
- */
-
-#ifndef CONFIG_LIBC_PERROR_DEVNAME
-#  define PERROR_STREAM stderr
 #else
-#  define PERROR_STREAM perror_stream;
+#  define PERROR_STREAM stderr
 #endif
 
 /****************************************************************************
@@ -83,10 +73,6 @@
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_LIBC_PERROR_DEVNAME
-static FILE *perror_stream;
-#endif
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -101,24 +87,6 @@ static FILE *perror_stream;
 
 void perror(FAR const char *s)
 {
-  /* If we are using a custom output device (something other than
-   * /dev/console), then make sure that the device has been opened.
-   */
-
-#ifdef CONFIG_LIBC_PERROR_DEVNAME
-  if (!perror_stream)
-    {
-      /* Not yet.. open it now */
-
-      perror_stream = fopen(CONFIG_LIBC_PERROR_DEVNAME, "w");
-      if (!perror_stream)
-        {
-          /* Oops... we couldn't open the device */
-
-          return;
-        }
-    }
-#endif
 
   /* If strerror() is not enabled, then just print the error number */
 
@@ -128,3 +96,4 @@ void perror(FAR const char *s)
   (void)fprintf(PERROR_STREAM, "%s: Error %d\n", s, errno);
 #endif
 }
+

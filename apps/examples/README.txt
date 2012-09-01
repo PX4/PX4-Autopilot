@@ -1345,10 +1345,14 @@ examples/uip
   file in the configuration driver with instruction to build applications
   like:
 
-  CONFIGURED_APPS += uiplib
-  CONFIGURED_APPS += dhcpc
-  CONFIGURED_APPS += resolv
-  CONFIGURED_APPS += webserver
+    CONFIGURED_APPS += uiplib
+    CONFIGURED_APPS += dhcpc
+    CONFIGURED_APPS += resolv
+    CONFIGURED_APPS += webserver
+
+  NOTE:  This example does depend on the perl script at
+  nuttx/tools/mkfsdata.pl.  You must have perl installed on your
+  development system at /usr/bin/perl.
 
 examples/usbserial
 ^^^^^^^^^^^^^^^^^^

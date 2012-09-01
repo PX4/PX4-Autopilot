@@ -3241,3 +3241,5 @@
 	  files for the STM3240G-EVAL were replaced by one version in this directory.
 	* configs/stm3240g-eval/webserver:  Configuration submitted by Max Holtzberg
 	  for testing the changes to the uIP web server (see apps/ChangeLog.txt).
+	* lib/stdio/lib_perror.c:  Remove CONFIG_LIBC_PERROR_DEVNAME.  What was I
+	  thinking?  Arbitrary streams cannot be shared by different tasks.

@@ -4378,11 +4378,6 @@ build
     POSIX requires that <code>perror()</code> provide its output on <code>stderr</code>.
     This option may be defined, however, to provide <code>perror()</code> output that is serialized with other <code>stdout</code> messages.
   </li>
-  <li>
-    <code>CONFIG_LIBC_PERROR_DEVNAME</code>:
-    Another non-standard option is to provide <code>perror()</code> output to a logging device or file.
-    <code>CONFIG_LIBC_PERROR_DEVNAME<code> may be defined to be any write-able, character device (or file).
-  </li>
 </ul>
 
 <h2>Allow for architecture optimized implementations</h2>

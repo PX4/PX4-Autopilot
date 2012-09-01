@@ -44,6 +44,16 @@ mkexport.sh and Makefile.export
   Makefile.export is used only by the mkexport.sh script to parse out
   options from the top-level Make.defs file.
 
+mkfsdata.pl
+
+  This perl script is used to build the "fake" file system and CGI support
+  as needed for the apps/netutils/webserver.  It is currently used only
+  by the Makefile at apps/examples/uip.  That example serves as an example
+  of how to configure the uIP webserver "fake" file system.
+
+  NOTE:  This perl script comes from uIP and was (probably) written
+  by Adam Dunkels.  uIP has a license that is compatible with NuttX.
+
 mkversion.c, cfgparser.c, and cfgparser.h
 
   This is C file that is used to build mkversion program.  The mkversion
