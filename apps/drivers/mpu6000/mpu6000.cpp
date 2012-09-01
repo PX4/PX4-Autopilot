@@ -877,6 +877,9 @@ MPU6000::measure()
 	_accel_report.scaling = _accel_range_scale;
 	_accel_report.range_m_s2 = _accel_range_m_s2;
 
+	_accel_report.temperature_raw = report.temp;
+	_accel_report.temperature = (report.temp) / 361.0f + 35.0f;
+
 	_gyro_report.x_raw = report.gyro_x;
 	_gyro_report.y_raw = report.gyro_y;
 	_gyro_report.z_raw = report.gyro_z;
@@ -886,6 +889,9 @@ MPU6000::measure()
 	_gyro_report.z = ((report.gyro_z * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 	_gyro_report.scaling = _gyro_range_scale;
 	_gyro_report.range_rad_s = _gyro_range_rad_s;
+
+	_gyro_report.temperature_raw = report.temp;
+	_gyro_report.temperature = (report.temp) / 361.0f + 35.0f;
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -1040,6 +1046,10 @@ test()
 	warnx("gyro z: \t%d\traw", (int)g_report.z_raw);
 	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
 		(int)((g_report.range_rad_s / M_PI_F) * 180.0f+0.5f));
+
+	warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
+	warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
+
 
 	/* XXX add poll-rate tests here too */
 
