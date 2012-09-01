@@ -94,16 +94,19 @@ static bool check_hdrfile(const char *hdrfile)
 
 static void add_hdrfile(const char *hdrfile)
 {
-  if (!check_hdrfile(hdrfile))
+  if (hdrfile && strlen(hdrfile) > 0)
     {
-      if (nhdrfiles > MAX_HEADER_FILES)
+      if (!check_hdrfile(hdrfile))
         {
-          fprintf(stderr, "ERROR:  Too man header files.  Increase MAX_HEADER_FILES\n");
-          exit(EXIT_FAILURE);
-        }
+          if (nhdrfiles > MAX_HEADER_FILES)
+            {
+              fprintf(stderr, "ERROR:  Too man header files.  Increase MAX_HEADER_FILES\n");
+              exit(EXIT_FAILURE);
+            }
 
-      g_hdrfiles[nhdrfiles] = strdup(hdrfile);
-      nhdrfiles++;
+          g_hdrfiles[nhdrfiles] = strdup(hdrfile);
+          nhdrfiles++;
+        }
     }
 }
 
