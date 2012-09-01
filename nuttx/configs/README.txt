@@ -7,6 +7,7 @@ Table of Contents
   o Summary of Files
   o Supported Architectures
   o Configuring NuttX
+  o Building Symbol Tables
 
 Board-Specific Configurations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1805,3 +1806,26 @@ command line like:
   
   cd tools
   ./configure.sh -a <app-dir> <board-name>/<config-dir>
+
+Building Symbol Tables
+^^^^^^^^^^^^^^^^^^^^^^
+
+Symbol tables are needed at several of the binfmt interfaces in order to bind
+a module to the base code.  These symbol tables can be tricky to create and
+will probably have to be tailored for any specific application, balancing
+the number of symbols and the size of the symbol table against the symbols
+required by the applications.
+
+The top-level System.map file is one good source of symbol information
+(which, or course, was just generated from the top-level nuttx file
+using the GNU 'nm' tool).
+
+There are also common-separated value (CSV) values in the source try that
+provide information about symbols.  In particular:
+
+  nuttx/syscall/syscall.csv - Describes the NuttX RTOS interface, and
+  nuttx/lib/lib.csv         - Describes the NuttX C library interface.
+
+There is a tool at nuttx/tools/mksymtab that will use these CSV files as
+input to generate a generic symbol table.  See nuttx/tools/README.txt for
+more information about using the mksymtab tool.

@@ -108,6 +108,10 @@ Each type field has a format as follows:
         cannot cast a union sigval to a uinptr_t either.  Rather, we need
         to cast a specific union member fieldname to uintptr_t.
 
+NOTE: This CSV file is used both to support the generate of trap information,
+but also for the generation of symbol tables.  See nuttx/tools/README.txt
+and nuttx/lib/README.txt for further information.
+
 Auto-Generated Files
 ====================
 

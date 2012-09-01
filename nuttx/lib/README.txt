@@ -80,3 +80,5 @@ Each type field has a format as follows:
         cannot cast a union sigval to a uinptr_t either.  Rather, we need
         to cast a specific union member fieldname to uintptr_t.
 
+NOTE: The tool mksymtab can be used to generate a symbol table from this CSV
+file.  See nuttx/tools/README.txt for further details about the use of mksymtab.

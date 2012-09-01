@@ -3243,3 +3243,7 @@
 	  for testing the changes to the uIP web server (see apps/ChangeLog.txt).
 	* lib/stdio/lib_perror.c:  Remove CONFIG_LIBC_PERROR_DEVNAME.  What was I
 	  thinking?  Arbitrary streams cannot be shared by different tasks.
+	* tools/mksyscall.c, csvparser.c, and csvparser.h: Separate CSV parsing
+	  logic from mksyscall.c into files where it can be shared.
+	* tools/mksymtab.c:  Add a tool that can be used to convert a CSV file
+	  into a NuttX-style symbol table.
