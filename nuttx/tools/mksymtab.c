@@ -51,6 +51,7 @@
  ****************************************************************************/
 
 #define MAX_HEADER_FILES 500
+#define SYMTAB_NAME      "g_symtab"
 
 /****************************************************************************
  * Private Types
@@ -118,7 +119,8 @@ int main(int argc, char **argv, char **envp)
 {
   char *csvpath;
   char *symtab;
-  char *terminator;
+  char *nextterm;
+  char *finalterm;
   char *ptr;
   bool cond;
   FILE *instream;
@@ -231,12 +233,14 @@ int main(int argc, char **argv, char **envp)
 
   /* Now the symbol table itself */
 
-  fprintf(outstream, "\nstruct symtab_s g_symtab[] =\n");
+  fprintf(outstream, "\nstruct symtab_s %s[] =\n", SYMTAB_NAME);
   fprintf(outstream, "{\n");
 
   /* Parse each line in the CVS file */
 
-  terminator = "";
+  nextterm  = "";
+  finalterm = "";
+
   while ((ptr = read_line(instream)) != NULL)
     {
       /* Parse the line from the CVS file */
@@ -253,24 +257,29 @@ int main(int argc, char **argv, char **envp)
       cond = (g_parm[COND_INDEX] && strlen(g_parm[COND_INDEX]) > 0);
       if (cond)
         {
-          fprintf(outstream, "%s#if %s\n", terminator, g_parm[COND_INDEX]);
-          terminator = "";
+          fprintf(outstream, "%s#if %s\n", nextterm, g_parm[COND_INDEX]);
+          nextterm  = "";
         }
 
       /* Output the symbol table entry */
 
       fprintf(outstream, "%s  { \"%s\", (FAR const void *)%s }",
-              terminator, g_parm[NAME_INDEX], g_parm[NAME_INDEX]);
-      terminator = ",\n";
+              nextterm, g_parm[NAME_INDEX], g_parm[NAME_INDEX]);
 
       if (cond)
         {
-          fprintf(outstream, "%s#endif", terminator);
-          terminator = "\n";
+          nextterm  = ",\n#endif\n";
+          finalterm = "\n#endif\n";
+        }
+      else
+        {
+          nextterm  = ",\n";
+          finalterm = "\n";
         }
     }
 
-  fprintf(outstream, "\n};\n");
+  fprintf(outstream, "%s};\n\n", finalterm);
+  fprintf(outstream, "#define NSYMBOLS (sizeof(%s) / sizeof (struct symtab_s))\n", SYMTAB_NAME);
 
   /* Close the CSV and symbol table files and exit */
 
