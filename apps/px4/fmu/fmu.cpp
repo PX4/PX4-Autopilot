@@ -209,7 +209,7 @@ FMUServo::task_main()
 	orb_set_interval(_t_actuators, 20);		/* 50Hz update rate */
 
 	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
-	orb_set_interval(_t_armed, 100);		/* 10Hz update rate */
+	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
 
 	/* advertise the mixed control outputs */
 	struct actuator_outputs_s outputs;
