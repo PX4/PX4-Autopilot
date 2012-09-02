@@ -3247,3 +3247,6 @@
 	  logic from mksyscall.c into files where it can be shared.
 	* tools/mksymtab.c:  Add a tool that can be used to convert a CSV file
 	  into a NuttX-style symbol table.
+	* sched/work_cancel.c:  Fix a bad assertion (reported by Mike Smith)
+	* configs/stm3210e-eval/src/up_idle.c:  Correct some power management
+	  compilation errors (reported by Diego Sanchez).

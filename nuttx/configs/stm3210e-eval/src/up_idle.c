@@ -277,11 +277,10 @@ static void up_idlepm(void)
         {
           /* Resume normal operation */
 
-          newstate = PM_NORMAL:
+          newstate = PM_NORMAL;
         }
     }
   else
-#endif
     {
       /* Let the PM system decide, which power saving level can be obtained */
 
@@ -413,7 +412,7 @@ errout:
 }
 #else
 #  define up_idlepm()
-#endif
+#endif /* CONFIG_PM */
 
 /****************************************************************************
  * Public Functions
