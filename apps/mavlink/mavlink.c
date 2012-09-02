@@ -163,6 +163,7 @@ static struct mavlink_subscriptions {
 	int gps_sub;
 	int man_control_sp_sub;
 	int armed_sub;
+	int actuators_sub;
 	bool initialized;
 } mavlink_subs = {
 	.sensor_sub = 0,
@@ -175,6 +176,7 @@ static struct mavlink_subscriptions {
 	.gps_sub = 0,
 	.man_control_sp_sub = 0,
 	.armed_sub = 0,
+	.actuators_sub = 0,
 	.initialized = false
 };
 
@@ -557,6 +559,7 @@ static void *uorb_receiveloop(void *arg)
 		struct vehicle_attitude_setpoint_s att_sp;
 		struct actuator_outputs_s act_outputs;
 		struct manual_control_setpoint_s man_control;
+		struct actuator_controls_s actuators;
 	} buf;
 
 	/* --- SENSORS RAW VALUE --- */
@@ -684,6 +687,14 @@ static void *uorb_receiveloop(void *arg)
 	/* subscribe to ORB for actuator armed */
 	subs->armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	fds[fdsc_count].fd = subs->armed_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- ACTUATOR CONTROL VALUE --- */
+	/* subscribe to ORB for actuator control */
+	subs->actuators_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	orb_set_interval(subs->actuators_sub, 2000);	/* 0.5 Hz updates */
+	fds[fdsc_count].fd = subs->actuators_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -1040,6 +1051,19 @@ static void *uorb_receiveloop(void *arg)
 				orb_copy(ORB_ID(manual_control_setpoint), subs->man_control_sp_sub, &buf.man_control);
 				mavlink_msg_manual_control_send(MAVLINK_COMM_0, mavlink_system.sysid, buf.man_control.roll,
 					buf.man_control.pitch, buf.man_control.yaw, buf.man_control.throttle, 1, 1, 1, 1);
+			}
+
+			/* --- ACTUATOR ARMED --- */
+			if (fds[ifds++].revents & POLLIN) {
+			}
+
+			/* --- ACTUATOR CONTROL --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs->actuators_sub, &buf.actuators);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl0", buf.actuators.control[0]);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl1", buf.actuators.control[1]);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl2", buf.actuators.control[2]);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl3", buf.actuators.control[3]);
 			}
 		}
 	}

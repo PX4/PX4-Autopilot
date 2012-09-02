@@ -552,7 +552,7 @@ void
 fake(int argc, char *argv[])
 {
 	if (argc < 5) {
-		puts("fmu fake <roll> <pitch> <yaw> <thrust> (values -100 - 100)");
+		puts("fmu fake <roll> <pitch> <yaw> <thrust> (values -100 .. 100)");
 		exit(1);
 	}
 
