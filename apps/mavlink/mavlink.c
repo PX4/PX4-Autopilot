@@ -74,6 +74,7 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <systemlib/param/param.h>
 
@@ -132,6 +133,8 @@ static struct ardrone_motors_setpoint_s ardrone_motors;
 
 static struct vehicle_command_s vcmd;
 
+static struct actuator_armed_s armed;
+
 static orb_advert_t pub_hil_global_pos = -1;
 static orb_advert_t ardrone_motors_pub = -1;
 static orb_advert_t cmd_pub = -1;
@@ -159,6 +162,7 @@ static struct mavlink_subscriptions {
 	int act_3_sub;
 	int gps_sub;
 	int man_control_sp_sub;
+	int armed_sub;
 	bool initialized;
 } mavlink_subs = {
 	.sensor_sub = 0,
@@ -170,6 +174,7 @@ static struct mavlink_subscriptions {
 	.act_3_sub = 0,
 	.gps_sub = 0,
 	.man_control_sp_sub = 0,
+	.armed_sub = 0,
 	.initialized = false
 };
 
@@ -192,7 +197,7 @@ int set_hil_on_off(bool hil_enabled);
 /**
  * Translate the custom state into standard mavlink modes and state.
  */
-void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, uint8_t *mavlink_state, uint8_t *mavlink_mode);
+void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, const struct actuator_armed_s *actuator, uint8_t *mavlink_state, uint8_t *mavlink_mode);
 
 int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 
@@ -365,7 +370,7 @@ int set_hil_on_off(bool hil_enabled)
 	return ret;
 }
 
-void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, uint8_t *mavlink_state, uint8_t *mavlink_mode)
+void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, const struct actuator_armed_s *actuator, uint8_t *mavlink_state, uint8_t *mavlink_mode)
 {
 	/* reset MAVLink mode bitfield */
 	*mavlink_mode = 0;
@@ -376,7 +381,7 @@ void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, uint8_t
 	}
 
 	/* set arming state */
-	if (c_status->flag_system_armed) {
+	if (actuator->armed) {
 		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 	} else {
 		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
@@ -675,6 +680,13 @@ static void *uorb_receiveloop(void *arg)
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
+	/* --- ACTUATOR ARMED VALUE --- */
+	/* subscribe to ORB for actuator armed */
+	subs->armed_sub = orb_subscribe(ORB_ID(actuator_armed));
+	fds[fdsc_count].fd = subs->armed_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
 	/* all subscriptions initialized, return success */
 	subs->initialized = true;
 
@@ -776,13 +788,14 @@ static void *uorb_receiveloop(void *arg)
 			if (fds[ifds++].revents & POLLIN) {
 				/* immediately communicate state changes back to user */
 				orb_copy(ORB_ID(vehicle_status), status_sub, &v_status);
+				orb_copy(ORB_ID(actuator_armed), mavlink_subs.armed_sub, &armed);
 				/* enable or disable HIL */
 				set_hil_on_off(v_status.flag_hil_enabled);
 
 				/* translate the current syste state to mavlink state and mode */
 				uint8_t mavlink_state = 0;
 				uint8_t mavlink_mode = 0;
-				get_mavlink_mode_and_state(&v_status, &mavlink_state, &mavlink_mode);
+				get_mavlink_mode_and_state(&v_status, &armed, &mavlink_state, &mavlink_mode);
 
 				/* send heartbeat */
 				mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.state_machine, mavlink_state);
@@ -1507,6 +1520,7 @@ int mavlink_thread_main(int argc, char *argv[])
 		/* get local and global position */
 		orb_copy(ORB_ID(vehicle_global_position), mavlink_subs.global_pos_sub, &global_pos);
 		orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
+		orb_copy(ORB_ID(actuator_armed), mavlink_subs.armed_sub, &armed);
 
 		/* 1 Hz */
 		if (lowspeed_counter == 10) {
@@ -1532,7 +1546,7 @@ int mavlink_thread_main(int argc, char *argv[])
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
 			uint8_t mavlink_mode = 0;
-			get_mavlink_mode_and_state(&v_status, &mavlink_state, &mavlink_mode);
+			get_mavlink_mode_and_state(&v_status, &armed, &mavlink_state, &mavlink_mode);
 
 			/* send heartbeat */
 			mavlink_msg_heartbeat_send(chan, system_type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.state_machine, mavlink_state);
