@@ -54,8 +54,6 @@
 #include <uORB/topics/actuator_controls.h>
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
-		const struct vehicle_status_s *status, struct actuator_controls_s *actuators, bool verbose);
-
-void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls_s *actuators, bool verbose);
+	struct actuator_controls_s *actuators);
 
 #endif /* MULTIROTOR_ATTITUDE_CONTROL_H_ */

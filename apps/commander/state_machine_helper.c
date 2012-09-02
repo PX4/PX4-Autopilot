@@ -43,6 +43,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_controls.h>
 #include <systemlib/systemlib.h>
 #include <arch/board/up_hrt.h>
 #include <mavlink/mavlink_log.h>
@@ -198,6 +199,10 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 	if (invalid_state == false || old_state != new_state) {
 		current_status->state_machine = new_state;
 		state_machine_publish(status_pub, current_status, mavlink_fd);
+		struct actuator_armed_s armed;
+		armed.armed = current_status->flag_system_armed;
+		orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
+		orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 		ret = OK;
 	}
 	if (invalid_state) {
