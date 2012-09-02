@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/libgen/lib_basename.c
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,7 +78,7 @@ static char g_retchar[2];
  *
  ****************************************************************************/
 
-char *basename(char *path)
+FAR char *basename(FAR char *path)
 {
   char *p;
   int   len;

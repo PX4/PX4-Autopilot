@@ -1,8 +1,8 @@
 /****************************************************************************
  * tools/mksyscall.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,173 +41,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
-#include <ctype.h>
 #include <unistd.h>
-#include <getopt.h>
 #include <errno.h>
+
+#include "csvparser.h"
 
 /****************************************************************************
  * Definitions
  ****************************************************************************/
 
-#define LINESIZE      (PATH_MAX > 256 ? PATH_MAX : 256)
-
-#define MAX_FIELDS    16
-#define MAX_PARMSIZE  128
-#define NAME_INDEX    0
-#define HEADER_INDEX  1
-#define COND_INDEX    2
-#define RETTYPE_INDEX 3
-#define PARM1_INDEX   4
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static bool g_debug;
 static bool g_inline;
-static char g_line[LINESIZE+1];
-static char g_parm[MAX_FIELDS][MAX_PARMSIZE];
 static FILE *g_stubstream;
-static int g_lineno;
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-static char *skip_space(char *ptr)
-{
-  while (*ptr && isspace(*ptr)) ptr++;
-  return ptr;
-}
-
-static char *read_line(FILE *stream)
-{
-  char *ptr;
-
-  for (;;)
-    {
-      g_line[LINESIZE] = '\0';
-      if (!fgets(g_line, LINESIZE, stream))
-        {
-          return NULL;
-        }
-      else
-        {
-          g_lineno++;
-          if (g_debug)
-            {
-              printf("Line: %s\n", g_line);
-            }
-
-          ptr = skip_space(g_line);
-          if (*ptr && *ptr != '#' && *ptr != '\n')
-            {
-              return ptr;
-            }
-        }
-    }
-}
-
-static char *copy_parm(char *src, char *dest)
-{
-  char *start = src;
-  int i;
-
-  for (i = 0; i < MAX_PARMSIZE; i++)
-    {
-      if (*src == '"')
-        {
-          *dest = '\0';
-          return src;
-        }
-      else if (*src == '\n' || *src == '\0')
-        {
-          fprintf(stderr, "%d: Unexpected end of line: \"%s\"\n", g_lineno, start);
-          exit(4);
-        }
-      else
-        {
-          *dest++ = *src++;
-        }
-    }
-
-  fprintf(stderr, "%d: Parameter too long: \"%s\"\n", g_lineno, start);
-  exit(3);
-}
-
-static char *find_parm(char *ptr)
-{
-  char *start = ptr;
-
-  if (*ptr != '"')
-    {
-      fprintf(stderr, "%d: I'm confused: \"%s\"\n", g_lineno, start);
-      exit(5);
-    }
-  ptr++;
-
-  ptr = skip_space(ptr);
-  if (*ptr == '\n' || *ptr == '\0')
-    {
-      return NULL;
-    }
-  else if (*ptr != ',')
-    {
-      fprintf(stderr, "%d: Expected ',': \"%s\"\n", g_lineno, start);
-      exit(6);
-    }
-  ptr++;
-
-  ptr = skip_space(ptr);
-  if (*ptr != '"')
-    {
-      fprintf(stderr, "%d: Expected \": \"%s\"\n", g_lineno, start);
-      exit(7);
-    }
-  ptr++;
-
-  return ptr;
-}
-
-static int parse_csvline(char *ptr)
-{
-  int nparms;
-  int i;
-
-  /* Format "arg1","arg2","arg3",... Spaces will be tolerated outside of the
-   * quotes.  Any initial spaces have already been skipped so the first thing
-   * should be '"'.
-   */
-
-  if (*ptr != '"')
-    {
-      fprintf(stderr, "%d: Bad line: \"%s\"\n", g_lineno, g_line);
-      exit(2);
-    }
-
-  ptr++;
-  nparms = 0;
-
-  do
-    {
-      ptr = copy_parm(ptr, &g_parm[nparms][0]);
-      nparms++;
-      ptr = find_parm(ptr);
-    }
-  while (ptr);
-
-  if (g_debug)
-    {
-      printf("Parameters: %d\n", nparms);
-      for (i = 0; i < nparms; i++)
-        {
-          printf("  Parm%d: \"%s\"\n", i+1, g_parm[i]);
-        }
-    }
-  return nparms;
-}
 
 static bool is_vararg(const char *type, int index, int nparms)
 {
@@ -719,6 +571,7 @@ static void show_usage(const char *progname)
   fprintf(stderr, "\t-p : Generate proxies\n");
   fprintf(stderr, "\t-s : Generate stubs\n");
   fprintf(stderr, "\t-i : Generate proxies as static inline functions\n");
+  fprintf(stderr, "\t-d : Enable debug output\n");
   exit(1);
 }
 

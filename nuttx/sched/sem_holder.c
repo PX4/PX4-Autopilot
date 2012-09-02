@@ -948,10 +948,11 @@ void sem_restorebaseprio(FAR _TCB *stcb, FAR sem_t *sem)
               (sem->semcount <= 0 && stcb != NULL));
 
   /* Handler semaphore counts posed from an interrupt handler differently
-   * from interrupts posted from threads.  The priority difference is that
+   * from interrupts posted from threads.  The primary difference is that
    * if the semaphore is posted from a thread, then the poster thread is
    * a player in the priority inheritance scheme.  The interrupt handler
-   * externally injects the new count without participated itself.
+   * externally injects the new count without otherwise participating
+   * itself.
    */
 
   if (up_interrupt_context())

@@ -128,6 +128,7 @@ EXTERN int    sprintf(FAR char *buf, const char *format, ...);
 EXTERN int    asprintf (FAR char **ptr, const char *fmt, ...);
 EXTERN int    snprintf(FAR char *buf, size_t size, const char *format, ...);
 EXTERN int    sscanf(const char *buf, const char *fmt, ...);
+EXTERN void   perror(FAR const char *s);
 
 EXTERN int    ungetc(int c, FAR FILE *stream);
 EXTERN int    vprintf(FAR const char *format, va_list ap);

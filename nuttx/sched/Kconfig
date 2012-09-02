@@ -202,6 +202,14 @@ config SCHED_ONEXIT_MAX
 		is supported. That number can be increased by defined this setting to the
 		number that you require.
 
+config USER_ENTRYPOINT
+	string "Appliation entry point"
+	default "user_start"
+	---help---
+		The name of the entry point for user applications.  For the example
+		applications this is of the form 'app_main' where 'app' is the application
+		name. If not defined, USER_ENTRYPOINT defaults to "user_start."
+
 config DISABLE_OS_API
 	bool "Disable NuttX interfaces"
 	default y

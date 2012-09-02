@@ -267,10 +267,10 @@ static void do_frees(void **mem, const int *size, const int *seq, int n)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start
+ * Name: mm_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int mm_main(int argc, char *argv[])
 {
   mm_showmallinfo();
 

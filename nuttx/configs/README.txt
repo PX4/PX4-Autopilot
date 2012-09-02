@@ -7,6 +7,7 @@ Table of Contents
   o Summary of Files
   o Supported Architectures
   o Configuring NuttX
+  o Building Symbol Tables
 
 Board-Specific Configurations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -268,6 +269,7 @@ defconfig -- This is a configuration file similar to the Linux
       by default)
     CONFIG_DEBUG_GRAPHICS - enable NX graphics debug output
       (disabled by default)
+
     CONFIG_ARCH_LOWPUTC - architecture supports low-level, boot
       time console output
     CONFIG_MM_REGIONS - If the architecture includes multiple
@@ -331,7 +333,7 @@ defconfig -- This is a configuration file similar to the Linux
       threads (minus 1) than can be waiting for another thread
       to release a count on a semaphore.  This value may be set
       to zero if no more than one thread is expected to wait for
-      a semaphore.    If defined, then this should be a relatively
+      a semaphore.  If defined, then this should be a relatively
       small number because this the number of maximumum of waiters
       on one semaphore (like 4 or 8).
     CONFIG_FDCLONE_DISABLE. Disable cloning of all file descriptors
@@ -375,6 +377,10 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_SCHED_ONEXIT_MAX -  By default if CONFIG_SCHED_ONEXIT is selected,
       only a single on_exit() function is supported. That number can be
       increased by defined this setting to the number that you require.
+    CONFIG_USER_ENTRYPOINT - The name of the entry point for user
+      applications.  For the example applications this is of the form 'app_main'
+      where 'app' is the application name. If not defined, CONFIG_USER_ENTRYPOINT
+      defaults to user_start.
 
   System Logging:
     CONFIG_SYSLOG enables general system logging support.
@@ -546,10 +552,28 @@ defconfig -- This is a configuration file similar to the Linux
 
   Misc libc settings
 
-    CONFIG_NOPRINTF_FIELDWIDTH - sprintf-related logic is a
-       little smaller if we do not support fieldwidthes
-    CONFIG_LIBC_FLOATINGPOINT - By default, floating point
-      support in printf, sscanf, etc. is disabled.
+    CONFIG_NOPRINTF_FIELDWIDTH - sprintf-related logic is a little smaller
+      if we do not support fieldwidthes
+    CONFIG_LIBC_FLOATINGPOINT - By default, floating point support in printf,
+      sscanf, etc. is disabled.
+    CONFIG_LIBC_STRERROR - strerror() is useful because it decodes 'errno'
+      values into a human readable strings.  But it can also require
+      a lot of memory.  If this option is selected, strerror() will still
+      exist in the build but it will not decode error values.  This option
+      should be used by other logic to decide if it should use strerror() or
+      not.  For example, the NSH application will not use strerror() if this
+      option is not selected; perror() will not use strerror() is this option
+      is not selected (see also CONFIG_NSH_STRERROR).
+    CONFIG_LIBC_STRERROR_SHORT - If this option is selected, then strerror()
+      will use a shortened string when it decodes the error.  Specifically,
+      strerror() is simply use the string that is the common name for the
+      error.  For example, the 'errno' value of 2 will produce the string
+      "No such file or directory" if CONFIG_LIBC_STRERROR_SHORT is not
+      defined but the string "ENOENT" if CONFIG_LIBC_STRERROR_SHORT is
+      defined.
+    CONFIG_LIBC_PERROR_STDOUT - POSIX requires that perror() provide its output
+      on stderr.  This option may be defined, however, to provide perror() output
+      that is serialized with other stdout messages.
 
   Allow for architecture optimized implementations
 
@@ -1782,3 +1806,26 @@ command line like:
   
   cd tools
   ./configure.sh -a <app-dir> <board-name>/<config-dir>
+
+Building Symbol Tables
+^^^^^^^^^^^^^^^^^^^^^^
+
+Symbol tables are needed at several of the binfmt interfaces in order to bind
+a module to the base code.  These symbol tables can be tricky to create and
+will probably have to be tailored for any specific application, balancing
+the number of symbols and the size of the symbol table against the symbols
+required by the applications.
+
+The top-level System.map file is one good source of symbol information
+(which, or course, was just generated from the top-level nuttx file
+using the GNU 'nm' tool).
+
+There are also common-separated value (CSV) values in the source try that
+provide information about symbols.  In particular:
+
+  nuttx/syscall/syscall.csv - Describes the NuttX RTOS interface, and
+  nuttx/lib/lib.csv         - Describes the NuttX C library interface.
+
+There is a tool at nuttx/tools/mksymtab that will use these CSV files as
+input to generate a generic symbol table.  See nuttx/tools/README.txt for
+more information about using the mksymtab tool.
