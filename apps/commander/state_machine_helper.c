@@ -121,7 +121,7 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 		if (current_status->state_machine == SYSTEM_STATE_STANDBY
 		 || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
 			/* set system flags according to state */
-			current_status->flag_system_armed = true;
+			current_status->flag_system_armed = false;
 			mavlink_log_critical(mavlink_fd, "[commander] Switched to PREFLIGHT state");
 		} else {
 			invalid_state = true;

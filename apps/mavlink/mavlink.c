@@ -375,70 +375,65 @@ void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, uint8_t
 		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 	}
 
+	/* set arming state */
+	if (c_status->flag_system_armed) {
+		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
+	} else {
+		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
+	}
+
 	switch (c_status->state_machine) {
 	case SYSTEM_STATE_PREFLIGHT:
 		if (c_status->flag_preflight_gyro_calibration ||
 		    c_status->flag_preflight_mag_calibration ||
 		    c_status->flag_preflight_accel_calibration) {
 			*mavlink_state = MAV_STATE_CALIBRATING;
-			*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
 		} else {
 			*mavlink_state = MAV_STATE_UNINIT;
-			*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
 		}
 		break;
 
 	case SYSTEM_STATE_STANDBY:
 		*mavlink_state = MAV_STATE_STANDBY;
-		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
 		break;
 
 	case SYSTEM_STATE_GROUND_READY:
 		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 		break;
 
 	case SYSTEM_STATE_MANUAL:
 		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 		break;
 
 	case SYSTEM_STATE_STABILIZED:
 		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
 		break;
 
 	case SYSTEM_STATE_AUTO:
 		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
 		break;
 
 	case SYSTEM_STATE_MISSION_ABORT:
 		*mavlink_state = MAV_STATE_EMERGENCY;
-		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 		break;
 
 	case SYSTEM_STATE_EMCY_LANDING:
 		*mavlink_state = MAV_STATE_EMERGENCY;
-		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 		break;
 
 	case SYSTEM_STATE_EMCY_CUTOFF:
 		*mavlink_state = MAV_STATE_EMERGENCY;
-		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 		break;
 
 	case SYSTEM_STATE_GROUND_ERROR:
 		*mavlink_state = MAV_STATE_EMERGENCY;
-		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
 		break;
 
 	case SYSTEM_STATE_REBOOT:
 		*mavlink_state = MAV_STATE_POWEROFF;
-		*mavlink_mode &= ~MAV_MODE_FLAG_SAFETY_ARMED;
 		break;
 	}
 
