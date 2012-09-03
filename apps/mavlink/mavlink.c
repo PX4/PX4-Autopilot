@@ -521,6 +521,10 @@ static int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int ma
 			/* senser sub triggers scaled IMU */
 			if (subs->sensor_sub) orb_set_interval(subs->sensor_sub, min_interval);
 			break;
+		case MAVLINK_MSG_ID_HIGHRES_IMU:
+			/* senser sub triggers highres IMU */
+			if (subs->sensor_sub) orb_set_interval(subs->sensor_sub, min_interval);
+			break;
 		case MAVLINK_MSG_ID_RAW_IMU:
 			/* senser sub triggers RAW IMU */
 			if (subs->sensor_sub) orb_set_interval(subs->sensor_sub, min_interval);
@@ -749,9 +753,18 @@ static void *uorb_receiveloop(void *arg)
 				/* send raw imu data */
 				mavlink_msg_raw_imu_send(MAVLINK_COMM_0, buf.raw.timestamp, buf.raw.accelerometer_raw[0], buf.raw.accelerometer_raw[1], buf.raw.accelerometer_raw[2], buf.raw.gyro_raw[0], buf.raw.gyro_raw[1], buf.raw.gyro_raw[2], buf.raw.magnetometer_raw[0], buf.raw.magnetometer_raw[1], buf.raw.magnetometer_raw[2]);
 				/* send scaled imu data (m/s^2 accelerations scaled back to milli-g) */
-				mavlink_msg_scaled_imu_send(MAVLINK_COMM_0, buf.raw.timestamp, buf.raw.accelerometer_m_s2[0] * 101.936799f, buf.raw.accelerometer_m_s2[1] * 101.936799f, buf.raw.accelerometer_m_s2[2] * 101.936799f, buf.raw.gyro_rad_s[0] * 1000, buf.raw.gyro_rad_s[1] * 1000, buf.raw.gyro_rad_s[2] * 1000, buf.raw.magnetometer_ga[0] * 1000, buf.raw.magnetometer_ga[1] * 1000, buf.raw.magnetometer_ga[2] * 1000);
+				//mavlink_msg_scaled_imu_send(MAVLINK_COMM_0, buf.raw.timestamp, buf.raw.accelerometer_m_s2[0] * 101.936799f, buf.raw.accelerometer_m_s2[1] * 101.936799f, buf.raw.accelerometer_m_s2[2] * 101.936799f, buf.raw.gyro_rad_s[0] * 1000, buf.raw.gyro_rad_s[1] * 1000, buf.raw.gyro_rad_s[2] * 1000, buf.raw.magnetometer_ga[0] * 1000, buf.raw.magnetometer_ga[1] * 1000, buf.raw.magnetometer_ga[2] * 1000);
+				/* send scaled imu data */
+				mavlink_msg_highres_imu_send(MAVLINK_COMM_0, buf.raw.timestamp,
+					buf.raw.accelerometer_m_s2[0], buf.raw.accelerometer_m_s2[1],
+					buf.raw.accelerometer_m_s2[2], buf.raw.gyro_rad_s[0],
+					buf.raw.gyro_rad_s[1], buf.raw.gyro_rad_s[2],
+					buf.raw.magnetometer_ga[0],
+					buf.raw.magnetometer_ga[1],buf.raw.magnetometer_ga[2],
+					buf.raw.baro_pres_mbar, 0 /* no diff pressure yet */,
+					buf.raw.baro_alt_meter, buf.raw.baro_temp_celcius);
 				/* send pressure */
-				mavlink_msg_scaled_pressure_send(MAVLINK_COMM_0, buf.raw.timestamp / 1000, buf.raw.baro_pres_mbar, buf.raw.baro_alt_meter, buf.raw.baro_temp_celcius * 100);
+				//mavlink_msg_scaled_pressure_send(MAVLINK_COMM_0, buf.raw.timestamp / 1000, buf.raw.baro_pres_mbar, buf.raw.baro_alt_meter, buf.raw.baro_temp_celcius * 100);
 
 				sensors_raw_counter++;
 			}
@@ -1485,6 +1498,7 @@ int mavlink_thread_main(int argc, char *argv[])
 		/* 500 Hz / 2 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 2);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 2);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 2);
 		/* 200 Hz / 5 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 5);
 		/* 5 Hz */
@@ -1493,6 +1507,7 @@ int mavlink_thread_main(int argc, char *argv[])
 		/* 250 Hz / 4 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 5);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 5);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 5);
 		/* 50 Hz / 20 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 20);
 		/* 2 Hz */
@@ -1501,6 +1516,7 @@ int mavlink_thread_main(int argc, char *argv[])
 		/* 50 Hz / 20 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 50);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 50);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 50);
 		/* 10 Hz / 100 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 100);
 		/* 1 Hz */
@@ -1509,6 +1525,7 @@ int mavlink_thread_main(int argc, char *argv[])
 		/* 10 Hz / 100 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 100);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 100);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 100);
 		/* 5 Hz / 200 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 200);
 		/* 0.2 Hz */
@@ -1517,6 +1534,7 @@ int mavlink_thread_main(int argc, char *argv[])
 		/* very low baud rate, limit to 1 Hz / 1000 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 1000);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 1000);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 1000);
 		/* 0.5 Hz */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 2000);
 		/* 0.1 Hz */
