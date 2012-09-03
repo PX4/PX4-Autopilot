@@ -115,6 +115,18 @@ if [ ! -r "${configpath}/defconfig" ]; then
   exit 6
 fi
 
+# Extract values needed from the defconfig file.  We need:
+# (1) The CONFIG_NUTTX_NEWCONFIG setting to know if this is a "new" style
+#     configuration, and
+# (2) The CONFIG_APPS_DIR to see if there is a configured location for the
+#     application directory.
+
+newconfig=`grep CONFIG_NUTTX_NEWCONFIG= "${configpath}/defconfig" | cut -d'=' -f2`
+
+if [ -z "${appdir}" ]; then
+  appdir=`grep CONFIG_APPS_DIR= "${configpath}/defconfig" | cut -d'=' -f2`
+fi
+
 # Check for the apps/ dir in the usual place if appdir was not provided
 
 if [ -z "${appdir}" ]; then
@@ -150,9 +162,11 @@ chmod 755 "${TOPDIR}/setenv.sh"
 install -C "${configpath}/defconfig" "${TOPDIR}/.configX" || \
   { echo "Failed to copy ${configpath}/defconfig" ; exit 9 ; }
 
-# Copy option appconfig
+# Copy appconfig file.  The appconfig file will be copied to ${appdir}/.config
+# if both (1) ${appdir} is defined and (2) we are not using the new configuration
+# (which does not require a .config file in the appsdir.
 
-if [ ! -z "${appdir}" ]; then
+if [ ! -z "${appdir}" -a "X${newconfig}" != "Xy" ]; then
   if [ ! -r "${configpath}/appconfig" ]; then
     echo "NOTE: No readable appconfig file found in ${configpath}"
   else

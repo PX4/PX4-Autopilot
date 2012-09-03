@@ -67,16 +67,26 @@ int g_lineno;
  * Private Functions
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: skip_space
+ ****************************************************************************/
+
 static char *skip_space(char *ptr)
 {
   while (*ptr && isspace((int)*ptr)) ptr++;
   return ptr;
 }
 
+/****************************************************************************
+ * Name: copy_parm
+ ****************************************************************************/
+
 static char *copy_parm(char *src, char *dest)
 {
   char *start = src;
   int i;
+
+  /* De-quote the parameter and copy it into the parameter array */
 
   for (i = 0; i < MAX_PARMSIZE; i++)
     {
@@ -99,6 +109,10 @@ static char *copy_parm(char *src, char *dest)
   fprintf(stderr, "%d: Parameter too long: \"%s\"\n", g_lineno, start);
   exit(3);
 }
+
+/****************************************************************************
+ * Name: find_parm
+ ****************************************************************************/
 
 static char *find_parm(char *ptr)
 {
@@ -138,6 +152,10 @@ static char *find_parm(char *ptr)
  * Public Functions
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: read_line
+ ****************************************************************************/
+
 char *read_line(FILE *stream)
 {
   char *ptr;
@@ -166,6 +184,10 @@ char *read_line(FILE *stream)
     }
 }
 
+/****************************************************************************
+ * Name: parse_csvline
+ ****************************************************************************/
+
 int parse_csvline(char *ptr)
 {
   int nparms;
@@ -185,6 +207,10 @@ int parse_csvline(char *ptr)
   ptr++;
   nparms = 0;
 
+  /* Copy each comma-separated value in an array (stripping quotes from each
+   * of the values).
+   */
+
   do
     {
       ptr = copy_parm(ptr, &g_parm[nparms][0]);
@@ -192,6 +218,8 @@ int parse_csvline(char *ptr)
       ptr = find_parm(ptr);
     }
   while (ptr);
+
+  /* If debug is enabled, show what we got */
 
   if (g_debug)
     {
@@ -201,5 +229,6 @@ int parse_csvline(char *ptr)
           printf("  Parm%d: \"%s\"\n", i+1, g_parm[i]);
         }
     }
+
   return nparms;
 }
