@@ -62,7 +62,6 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/ardrone_control.h>
-#include <uORB/topics/fixedwing_control.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -127,8 +126,6 @@ static struct vehicle_attitude_s hil_attitude;
 
 static struct vehicle_global_position_s hil_global_pos;
 
-static struct fixedwing_control_s fw_control;
-
 static struct ardrone_motors_setpoint_s ardrone_motors;
 
 static struct vehicle_command_s vcmd;
@@ -138,13 +135,14 @@ static struct actuator_armed_s armed;
 static orb_advert_t pub_hil_global_pos = -1;
 static orb_advert_t ardrone_motors_pub = -1;
 static orb_advert_t cmd_pub = -1;
-static int local_pos_sub = -1;
 static orb_advert_t flow_pub = -1;
 static orb_advert_t global_position_setpoint_pub = -1;
 static orb_advert_t local_position_setpoint_pub = -1;
 static bool mavlink_hil_enabled = false;
 
 static char mavlink_message_string[51] = {0};
+
+static int baudrate = 57600;
 
 /* interface mode */
 static enum {
@@ -164,6 +162,10 @@ static struct mavlink_subscriptions {
 	int man_control_sp_sub;
 	int armed_sub;
 	int actuators_sub;
+	int local_pos_sub;
+	int spa_sub;
+	int spl_sub;
+	int spg_sub;
 	bool initialized;
 } mavlink_subs = {
 	.sensor_sub = 0,
@@ -177,6 +179,10 @@ static struct mavlink_subscriptions {
 	.man_control_sp_sub = 0,
 	.armed_sub = 0,
 	.actuators_sub = 0,
+	.local_pos_sub = 0,
+	.spa_sub = 0,
+	.spl_sub = 0,
+	.spg_sub = 0,
 	.initialized = false
 };
 
@@ -352,16 +358,34 @@ int set_hil_on_off(bool hil_enabled)
 		printf("\n pub_hil_attitude :%i\n", pub_hil_attitude);
 		printf("\n pub_hil_global_pos :%i\n", pub_hil_global_pos);
 
-		if (pub_hil_attitude > 0 && pub_hil_global_pos > 0) {
-			mavlink_hil_enabled = true;
+		mavlink_hil_enabled = true;
 
+		/* ramp up some HIL-related subscriptions */
+		unsigned hil_rate_interval;
+
+		if (baudrate < 19200) {
+			/* 10 Hz */
+			hil_rate_interval = 100;
+		} else if (baudrate < 38400) {
+			/* 10 Hz */
+			hil_rate_interval = 100;
+		} else if (baudrate < 115200) {
+			/* 20 Hz */
+			hil_rate_interval = 50;
+		} else if (baudrate < 460800) {
+			/* 50 Hz */
+			hil_rate_interval = 20;
 		} else {
-			ret = ERROR;
+			/* 100 Hz */
+			hil_rate_interval = 10;
 		}
+
+		orb_set_interval(mavlink_subs.spa_sub, hil_rate_interval);
 	}
 
 	if (!hil_enabled && mavlink_hil_enabled) {
 		mavlink_hil_enabled = false;
+		orb_set_interval(mavlink_subs.spa_sub, 200);
 		(void)close(pub_hil_attitude);
 		(void)close(pub_hil_global_pos);
 
@@ -585,14 +609,6 @@ static void *uorb_receiveloop(void *arg)
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	// /* --- ARDRONE CONTROL --- */
-	// /* subscribe to ORB for AR.Drone controller outputs */
-	// int ar_sub = orb_subscribe(ORB_ID(ardrone_control));
-	// orb_set_interval(ar_sub, 200);		/* 5Hz updates */
-	// fds[fdsc_count].fd = ar_sub;
-	// fds[fdsc_count].events = POLLIN;
-	// fdsc_count++;
-
 	/* --- SYSTEM STATE --- */
 	/* struct already globally allocated */
 	/* subscribe to topic */
@@ -611,15 +627,6 @@ static void *uorb_receiveloop(void *arg)
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
-	/* --- FIXED WING CONTROL VALUE --- */
-	/* struct already globally allocated */
-	/* subscribe to ORB for fixed wing control */
-	int fw_sub = orb_subscribe(ORB_ID(fixedwing_control));
-	orb_set_interval(fw_sub, 50);		/* 20 Hz updates */
-	fds[fdsc_count].fd = fw_sub;
-	fds[fdsc_count].events = POLLIN;
-	fdsc_count++;
-
 	/* --- GLOBAL POS VALUE --- */
 	/* struct already globally allocated and topic already subscribed */
 	fds[fdsc_count].fd = subs->global_pos_sub;
@@ -628,34 +635,34 @@ static void *uorb_receiveloop(void *arg)
 
 	/* --- LOCAL POS VALUE --- */
 	/* struct and topic already globally subscribed */
-	fds[fdsc_count].fd = local_pos_sub;
+	fds[fdsc_count].fd = subs->local_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- GLOBAL SETPOINT VALUE --- */
 	/* subscribe to ORB for local setpoint */
 	/* struct already allocated */
-	int spg_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
-	orb_set_interval(spg_sub, 2000);	/* 0.5 Hz updates */
-	fds[fdsc_count].fd = spg_sub;
+	subs->spg_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
+	orb_set_interval(subs->spg_sub, 2000);	/* 0.5 Hz updates */
+	fds[fdsc_count].fd = subs->spg_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- LOCAL SETPOINT VALUE --- */
 	/* subscribe to ORB for local setpoint */
 	/* struct already allocated */
-	int spl_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
-	orb_set_interval(spl_sub, 2000);	/* 0.5 Hz updates */
-	fds[fdsc_count].fd = spl_sub;
+	subs->spl_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
+	orb_set_interval(subs->spl_sub, 2000);	/* 0.5 Hz updates */
+	fds[fdsc_count].fd = subs->spl_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- ATTITUDE SETPOINT VALUE --- */
 	/* subscribe to ORB for attitude setpoint */
 	/* struct already allocated */
-	int spa_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	orb_set_interval(spa_sub, 2000);	/* 0.5 Hz updates */
-	fds[fdsc_count].fd = spa_sub;
+	subs->spa_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+	orb_set_interval(subs->spa_sub, 2000);	/* 0.5 Hz updates */
+	fds[fdsc_count].fd = subs->spa_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -820,71 +827,6 @@ static void *uorb_receiveloop(void *arg)
 				// TODO decide where to send channels
 			}
 
-			/* --- FIXED WING CONTROL CHANNELS --- */
-			if (fds[ifds++].revents & POLLIN) {
-				/* copy fixed wing control into local buffer */
-				orb_copy(ORB_ID(fixedwing_control), fw_sub, &fw_control);
-				/* send control output via MAVLink */
-				mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, fw_control.timestamp / 1000, fw_control.attitude_control_output[0],
-					fw_control.attitude_control_output[1], fw_control.attitude_control_output[2],
-					fw_control.attitude_control_output[3]);
-
-				/* Only send in HIL mode */
-				if (v_status.flag_hil_enabled) {
-					/* Send the desired attitude from RC or from the autonomous controller */
-					// XXX it should not depend on a RC setting, but on a system_state value
-
-					float roll_ail, pitch_elev, throttle, yaw_rudd;
-
-					if (rc.chan[rc.function[OVERRIDE]].scale < 2000) {
-
-						//orb_copy(ORB_ID(fixedwing_control), fixed_wing_control_sub, &fixed_wing_control);
-						roll_ail = fw_control.attitude_control_output[ROLL];
-						pitch_elev = fw_control.attitude_control_output[PITCH];
-						throttle = fw_control.attitude_control_output[THROTTLE];
-						yaw_rudd = fw_control.attitude_control_output[YAW];
-
-					} else {
-
-						roll_ail = rc.chan[rc.function[ROLL]].scale;
-						pitch_elev = rc.chan[rc.function[PITCH]].scale;
-						throttle = rc.chan[rc.function[THROTTLE]].scale;
-						yaw_rudd = rc.chan[rc.function[YAW]].scale;
-					}
-
-					/* hacked HIL implementation in order for the APM Planner to work
-					 * (correct cmd: mavlink_msg_hil_controls_send())
-					 */
-
-					mavlink_msg_rc_channels_scaled_send(chan,
-									    hrt_absolute_time(),
-									    0, // port 0
-									    roll_ail,
-									    pitch_elev,
-									    throttle,
-									    yaw_rudd,
-									    0,
-									    0,
-									    0,
-									    0,
-									    1 /*rssi=1*/);
-
-					/* correct command duplicate */
-					mavlink_msg_hil_controls_send(chan,
-										hrt_absolute_time(),
-										roll_ail,
-										pitch_elev,
-										yaw_rudd,
-										throttle,
-										0,
-										0,
-										0,
-										0,
-										32,	/* HIL_MODE */
-										0);
-				}
-			}
-
 			/* --- VEHICLE GLOBAL POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy global position data into local buffer */
@@ -900,37 +842,82 @@ static void *uorb_receiveloop(void *arg)
 				/* heading in degrees * 10, from 0 to 36.000) */
 				uint16_t hdg = (global_pos.hdg / M_PI_F) * (180.0f * 10.0f) + (180.0f * 10.0f);
 
-				mavlink_msg_global_position_int_send(MAVLINK_COMM_0, timestamp / 1000, lat, lon, alt, relative_alt, vx, vy, vz, hdg);
+				mavlink_msg_global_position_int_send(MAVLINK_COMM_0, timestamp / 1000, lat, lon, alt,
+					relative_alt, vx, vy, vz, hdg);
 			}
 
 			/* --- VEHICLE LOCAL POSITION --- */
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy local position data into local buffer */
-				orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
-				mavlink_msg_local_position_ned_send(MAVLINK_COMM_0, local_pos.timestamp / 1000, local_pos.x, local_pos.y, local_pos.z, local_pos.vx, local_pos.vy, local_pos.vz);
+				orb_copy(ORB_ID(vehicle_local_position), subs->local_pos_sub, &local_pos);
+				mavlink_msg_local_position_ned_send(MAVLINK_COMM_0, local_pos.timestamp / 1000, local_pos.x,
+					local_pos.y, local_pos.z, local_pos.vx, local_pos.vy, local_pos.vz);
 			}
 
 			/* --- VEHICLE GLOBAL SETPOINT --- */
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy local position data into local buffer */
-				orb_copy(ORB_ID(vehicle_global_position_setpoint), spg_sub, &buf.global_sp);
+				orb_copy(ORB_ID(vehicle_global_position_setpoint), subs->spg_sub, &buf.global_sp);
 				uint8_t coordinate_frame = MAV_FRAME_GLOBAL;
 				if (buf.global_sp.altitude_is_relative) coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
-				mavlink_msg_global_position_setpoint_int_send(MAVLINK_COMM_0, coordinate_frame, buf.global_sp.lat, buf.global_sp.lon, buf.global_sp.altitude, buf.global_sp.yaw);
+				mavlink_msg_global_position_setpoint_int_send(MAVLINK_COMM_0, coordinate_frame, buf.global_sp.lat,
+					buf.global_sp.lon, buf.global_sp.altitude, buf.global_sp.yaw);
 			}
 
 			/* --- VEHICLE LOCAL SETPOINT --- */
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy local position data into local buffer */
-				orb_copy(ORB_ID(vehicle_local_position_setpoint), spl_sub, &buf.local_sp);
-				mavlink_msg_local_position_setpoint_send(MAVLINK_COMM_0, MAV_FRAME_LOCAL_NED, buf.local_sp.x, buf.local_sp.y, buf.local_sp.z, buf.local_sp.yaw);
+				orb_copy(ORB_ID(vehicle_local_position_setpoint), subs->spl_sub, &buf.local_sp);
+				mavlink_msg_local_position_setpoint_send(MAVLINK_COMM_0, MAV_FRAME_LOCAL_NED, buf.local_sp.x,
+					buf.local_sp.y, buf.local_sp.z, buf.local_sp.yaw);
 			}
 
 			/* --- VEHICLE ATTITUDE SETPOINT --- */
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy local position data into local buffer */
-				orb_copy(ORB_ID(vehicle_attitude_setpoint), spa_sub, &buf.att_sp);
-				mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, buf.att_sp.timestamp/1000, buf.att_sp.roll_body, buf.att_sp.pitch_body, buf.att_sp.yaw_body, buf.att_sp.thrust);
+				orb_copy(ORB_ID(vehicle_attitude_setpoint), subs->spa_sub, &buf.att_sp);
+				mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, buf.att_sp.timestamp/1000,
+					buf.att_sp.roll_body, buf.att_sp.pitch_body, buf.att_sp.yaw_body, buf.att_sp.thrust);
+
+				/* Only send in HIL mode */
+				if (mavlink_hil_enabled) {
+
+					/* hacked HIL implementation in order for the APM Planner to work
+					 * (correct cmd: mavlink_msg_hil_controls_send())
+					 */
+
+					mavlink_msg_rc_channels_scaled_send(chan,
+									    hrt_absolute_time(),
+									    0, // port 0
+									    buf.att_sp.roll_body,
+									    buf.att_sp.pitch_body,
+									    buf.att_sp.thrust,
+									    buf.att_sp.yaw_body,
+									    0,
+									    0,
+									    0,
+									    0,
+									    1 /*rssi=1*/);
+
+					/* translate the current syste state to mavlink state and mode */
+					uint8_t mavlink_state = 0;
+					uint8_t mavlink_mode = 0;
+					get_mavlink_mode_and_state(&v_status, &armed, &mavlink_state, &mavlink_mode);
+
+					/* correct HIL message as per MAVLink spec */
+					mavlink_msg_hil_controls_send(chan,
+										hrt_absolute_time(),
+										buf.att_sp.roll_body,
+										buf.att_sp.pitch_body,
+										buf.att_sp.yaw_body,
+										buf.att_sp.thrust,
+										0,
+										0,
+										0,
+										0,
+										mavlink_mode,
+										0);
+				}
 			}
 
 			/* --- ACTUATOR OUTPUTS 0 --- */
@@ -1284,12 +1271,12 @@ void handleMessage(mavlink_message_t *msg)
 	}
 }
 
-int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb)
+int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_config_original, bool *is_usb)
 {
 	/* process baud rate */
 	int speed;
 
-	switch (baudrate) {
+	switch (baud) {
 	case 0:      speed = B0;      break;
 
 	case 50:     speed = B50;     break;
@@ -1333,12 +1320,12 @@ int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_
 	case 921600: speed = B921600; break;
 
 	default:
-		fprintf(stderr, "[mavlink] ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\n\t9600\n19200\n38400\n57600\n115200\n230400\n460800\n921600\n\n", baudrate);
+		fprintf(stderr, "[mavlink] ERROR: Unsupported baudrate: %d\n\tsupported examples:\n\n\t9600\n19200\n38400\n57600\n115200\n230400\n460800\n921600\n\n", baud);
 		return -EINVAL;
 	}
 
 	/* open uart */
-	printf("[mavlink] UART is %s, baudrate is %d\n", uart_name, baudrate);
+	printf("[mavlink] UART is %s, baudrate is %d\n", uart_name, baud);
 	uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	/* Try to set baud rate */
@@ -1395,7 +1382,6 @@ int mavlink_thread_main(int argc, char *argv[])
 	memset(&rc, 0, sizeof(rc));
 	memset(&hil_attitude, 0, sizeof(hil_attitude));
 	memset(&hil_global_pos, 0, sizeof(hil_global_pos));
-	memset(&fw_control, 0, sizeof(fw_control));
 	memset(&ardrone_motors, 0, sizeof(ardrone_motors));
 	memset(&vcmd, 0, sizeof(vcmd));
 
@@ -1407,7 +1393,7 @@ int mavlink_thread_main(int argc, char *argv[])
 
 	/* default values for arguments */
 	char *uart_name = "/dev/ttyS1";
-	int baudrate = 57600;
+	baudrate = 57600;
 
 	/* read program arguments */
 	int i;
@@ -1467,8 +1453,8 @@ int mavlink_thread_main(int argc, char *argv[])
 	mavlink_subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	orb_set_interval(mavlink_subs.global_pos_sub, 1000);	/* 1Hz active updates */
 	/* subscribe to ORB for local position */
-	local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	orb_set_interval(local_pos_sub, 1000);	/* 1Hz active updates */
+	mavlink_subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	orb_set_interval(mavlink_subs.local_pos_sub, 1000);	/* 1Hz active updates */
 
 
 	pthread_attr_t receiveloop_attr;
@@ -1543,7 +1529,7 @@ int mavlink_thread_main(int argc, char *argv[])
 
 		/* get local and global position */
 		orb_copy(ORB_ID(vehicle_global_position), mavlink_subs.global_pos_sub, &global_pos);
-		orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
+		orb_copy(ORB_ID(vehicle_local_position), mavlink_subs.local_pos_sub, &local_pos);
 		orb_copy(ORB_ID(actuator_armed), mavlink_subs.armed_sub, &armed);
 
 		/* 1 Hz */
@@ -1640,7 +1626,7 @@ exit_cleanup:
 
 	/* close subscriptions */
 	close(mavlink_subs.global_pos_sub);
-	close(local_pos_sub);
+	close(mavlink_subs.local_pos_sub);
 
 	fflush(stdout);
 	fflush(stderr);
