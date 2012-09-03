@@ -33,6 +33,9 @@
 #
 ############################################################################
 
-CONFIG_ARCH := $(shell echo $(CONFIG_ARCH))
-CONFIG_ARCH_CHIP := $(shell echo $(CONFIG_ARCH_CHIP))
-CONFIG_ARCH_BOARD := $(shell echo $(CONFIG_ARCH_BOARD))
+# These are configuration variables that are quoted by configuration tool
+# but which must be unquoated when used in the build system.
+
+CONFIG_ARCH       := $(patsubst "%",%,$(strip $(CONFIG_ARCH)))
+CONFIG_ARCH_CHIP  := $(patsubst "%",%,$(strip $(CONFIG_ARCH_CHIP)))
+CONFIG_ARCH_BOARD := $(patsubst "%",%,$(strip $(CONFIG_ARCH_BOARD)))

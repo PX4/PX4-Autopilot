@@ -43,14 +43,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
-
-#if !defined(CONFIG_DEBUG_VERBOSE) && !defined(CONFIG_DEBUG_USB)
-#  include <debug.h>
-#endif
 
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
@@ -315,6 +312,10 @@ static int stm32_ctrl_senddata(FAR struct stm32_usbhost_s *priv,
                                FAR uint8_t *buffer, unsigned int buflen);
 static int stm32_ctrl_recvdata(FAR struct stm32_usbhost_s *priv,
                                FAR uint8_t *buffer, unsigned int buflen);
+static int stm32_in_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
+                             FAR uint8_t *buffer, size_t buflen);
+static int stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
+                              FAR uint8_t *buffer, size_t buflen);
 
 /* Interrupt handling **********************************************************/
 /* Lower level interrupt handlers */
@@ -751,7 +752,7 @@ static void stm32_chan_configure(FAR struct stm32_usbhost_s *priv, int chidx)
   stm32_putreg(STM32_OTGFS_HCINTMSK(chidx), regval);
 
   /* Enable the top level host channel interrupt. */
- 
+
   stm32_modifyreg(STM32_OTGFS_HAINTMSK, 0, OTGFS_HAINT(chidx));
 
   /* Make sure host channel interrupts are enabled. */
@@ -808,7 +809,7 @@ static void stm32_chan_halt(FAR struct stm32_usbhost_s *priv, int chidx,
   uint32_t eptype;
   unsigned int avail;
 
-  /* Save the recon for the halt.  We need this in the channel halt interrrupt
+  /* Save the reason for the halt.  We need this in the channel halt interrrupt
    * handling logic to know what to do next.
    */
 
@@ -1157,7 +1158,7 @@ static void stm32_transfer_start(FAR struct stm32_usbhost_s *priv, int chidx)
               unsigned int wrpackets = avail / chan->maxpacket;
               wrsize = wrpackets * chan->maxpacket;
             }
-        
+
           /* Write packet into the Tx FIFO. */
 
           stm32_gint_wrpacket(priv, chan->buffer, chidx, wrsize);
@@ -1352,6 +1353,254 @@ static int stm32_ctrl_recvdata(FAR struct stm32_usbhost_s *priv,
   /* Wait for the transfer to complete and return the result */
 
   return stm32_chan_wait(priv, chan);
+}
+
+/*******************************************************************************
+ * Name: stm32_in_transfer
+ *
+ * Description:
+ *   Transfer 'buflen' bytes into 'buffer' from an IN channel.
+ *
+ *******************************************************************************/
+
+static int stm32_in_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
+                             FAR uint8_t *buffer, size_t buflen)
+{
+  FAR struct stm32_chan_s *chan;
+  uint16_t start;
+  uint16_t elapsed;
+  int ret = OK;
+
+  /* Loop until the transfer completes (i.e., buflen is decremented to zero)
+   * or a fatal error occurs (any error other than a simple NAK)
+   */
+
+  chan         = &priv->chan[chidx];
+  chan->buffer = buffer;
+  chan->buflen = buflen;
+
+  start = stm32_getframe();
+  while (chan->buflen > 0)
+    {
+      /* Set up for the wait BEFORE starting the transfer */
+
+      ret = stm32_chan_waitsetup(priv, chan);
+      if (ret != OK)
+        {
+          udbg("ERROR: Device disconnected\n");
+          return ret;
+        }
+
+      /* Set up for the transfer based on the direction and the endpoint type */
+
+      switch (chan->eptype)
+        {
+        default:
+        case OTGFS_EPTYPE_CTRL: /* Control */
+          {
+            /* This kind of transfer on control endpoints other than EP0 are not
+             * currently supported
+             */
+
+            return -ENOSYS;
+          }
+
+        case OTGFS_EPTYPE_ISOC: /* Isochronous */
+          {
+            /* Set up the IN data PID */
+
+            chan->pid = OTGFS_PID_DATA0;
+          }
+          break;
+
+        case OTGFS_EPTYPE_BULK: /* Bulk */
+        case OTGFS_EPTYPE_INTR: /* Interrupt */
+          {
+            /* Setup the IN data PID */
+
+            chan->pid = chan->indata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
+          }
+          break;
+        }
+
+      /* Start the transfer */
+
+      stm32_transfer_start(priv, chidx);
+
+      /* Wait for the transfer to complete and get the result */
+
+      ret = stm32_chan_wait(priv, chan);
+
+      /* EAGAIN indicates that the device NAKed the transfer and we need
+       * do try again.  Anything else (success or other errors) will
+       * cause use to return
+       */
+
+      if (ret != OK)
+        {
+          udbg("Transfer failed: %d\n", ret);
+
+          /* Check for a special case:  If (1) the transfer was NAKed and (2)
+           * no Tx FIFO empty or Rx FIFO not-empty event occurred, then we
+           * should be able to just flush the Rx and Tx FIFOs and try again.
+           * We can detect this latter case becasue the then the transfer
+           * buffer pointer and buffer size will be unaltered.
+           */
+
+          elapsed = stm32_getframe() - start;
+          if (ret != -EAGAIN ||                       /* Not a NAK condition OR */
+              elapsed >= STM32_DATANAK_DELAY ||       /* Timeout has elapsed OR */
+              chan->buflen != buflen)                 /* Data has been partially transferred */
+            {
+              /* Break out and return the error */
+
+              break;
+            }
+        }
+    }
+
+  return ret;
+}
+
+/*******************************************************************************
+ * Name: stm32_out_transfer
+ *
+ * Description:
+ *   Transfer the 'buflen' bytes in 'buffer' through an OUT channel.
+ *
+ *******************************************************************************/
+
+static int stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
+                              FAR uint8_t *buffer, size_t buflen)
+{
+  FAR struct stm32_chan_s *chan;
+  uint16_t start;
+  uint16_t elapsed;
+  size_t xfrlen;
+  int ret = OK;
+
+  /* Loop until the transfer completes (i.e., buflen is decremented to zero)
+   * or a fatal error occurs (any error other than a simple NAK)
+   */
+
+  chan         = &priv->chan[chidx];
+  start        = stm32_getframe();
+
+  while (buflen > 0)
+    {
+      /* Transfer one packet at a time.  The hardware is capable of queueing
+       * multiple OUT packets, but I just haven't figured out how to handle
+       * the case where a single OUT packet in the group is NAKed.
+       */
+
+      xfrlen       = MIN(chan->maxpacket, buflen);
+      chan->buffer = buffer;
+      chan->buflen = xfrlen;
+
+      /* Set up for the wait BEFORE starting the transfer */
+
+      ret = stm32_chan_waitsetup(priv, chan);
+      if (ret != OK)
+        {
+          udbg("ERROR: Device disconnected\n");
+          return ret;
+        }
+
+      /* Set up for the transfer based on the direction and the endpoint type */
+
+      switch (chan->eptype)
+        {
+        default:
+        case OTGFS_EPTYPE_CTRL: /* Control */
+          {
+            /* This kind of transfer on control endpoints other than EP0 are not
+             * currently supported
+             */
+
+            return -ENOSYS;
+          }
+
+        case OTGFS_EPTYPE_ISOC: /* Isochronous */
+          {
+            /* Set up the OUT data PID */
+
+            chan->pid = OTGFS_PID_DATA0;
+          }
+          break;
+
+        case OTGFS_EPTYPE_BULK: /* Bulk */
+          {
+            /* Setup the OUT data PID */
+
+            chan->pid = chan->outdata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
+          }
+          break;
+
+        case OTGFS_EPTYPE_INTR: /* Interrupt */
+          {
+            /* Setup the OUT data PID */
+
+            chan->pid = chan->outdata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
+
+            /* Toggle the OUT data PID for the next transfer */
+
+            chan->outdata1 ^= true;
+          }
+        }
+
+      /* Start the transfer */
+
+      stm32_transfer_start(priv, chidx);
+
+      /* Wait for the transfer to complete and get the result */
+
+      ret = stm32_chan_wait(priv, chan);
+
+      /* Handle transfer failures */
+
+      if (ret != OK)
+        {
+          udbg("Transfer failed: %d\n", ret);
+
+          /* Check for a special case:  If (1) the transfer was NAKed and (2)
+           * no Tx FIFO empty or Rx FIFO not-empty event occurred, then we
+           * should be able to just flush the Rx and Tx FIFOs and try again.
+           * We can detect this latter case becasue the then the transfer
+           * buffer pointer and buffer size will be unaltered.
+           */
+
+          elapsed = stm32_getframe() - start;
+          if (ret != -EAGAIN ||                       /* Not a NAK condition OR */
+              elapsed >= STM32_DATANAK_DELAY ||       /* Timeout has elapsed OR */
+              chan->buflen != xfrlen)                 /* Data has been partially transferred */
+            {
+              /* Break out and return the error */
+
+              break;
+            }
+
+          /* Is this flush really necessary? What does the hardware do with the
+           * data in the FIFO when the NAK occurs?  Does it discard it?
+           */
+
+          stm32_flush_txfifos(OTGFS_GRSTCTL_TXFNUM_HALL);
+
+          /* Get the device a little time to catch up.  Then retry the transfer
+           * using the same buffer pointer and length.
+           */
+
+          usleep(20*1000);
+        }
+      else
+        {
+          /* Successfully transferred.  Update the buffer pointer and length */
+
+          buffer += xfrlen;
+          buflen -= xfrlen;
+        }
+    }
+
+  return ret;
 }
 
 /*******************************************************************************
@@ -1923,7 +2172,7 @@ static void stm32_gint_disconnected(FAR struct stm32_usbhost_s *priv)
   if (!priv->connected)
     {
       /* Yes.. then we no longer connected */
- 
+
       ullvdbg("Disconnected\n");
 
       /* Are we bound to a class driver? */
@@ -2148,7 +2397,7 @@ static inline void stm32_gint_nptxfeisr(FAR struct stm32_usbhost_s *priv)
       unsigned int wrpackets = avail / chan->maxpacket;
       wrsize = wrpackets * chan->maxpacket;
     }
- 
+
   /* Otherwise, this will be the last packet to be sent in this transaction.
    * We now need to disable further NPTXFE interrupts.
    */
@@ -2238,7 +2487,7 @@ static inline void stm32_gint_ptxfeisr(FAR struct stm32_usbhost_s *priv)
       unsigned int wrpackets = avail / chan->maxpacket;
       wrsize = wrpackets * chan->maxpacket;
     }
- 
+
   /* Otherwise, this will be the last packet to be sent in this transaction.
    * We now need to disable further PTXFE interrupts.
    */
@@ -2382,7 +2631,7 @@ static inline void stm32_gint_hprtisr(FAR struct stm32_usbhost_s *priv)
               /* Set the Host Frame Interval Register for the 6KHz speed */
 
               stm32_putreg(STM32_OTGFS_HFIR, 6000);
- 
+
               /* Are we switching from FS to LS? */
 
               if ((hcfg & OTGFS_HCFG_FSLSPCS_MASK) != OTGFS_HCFG_FSLSPCS_LS6MHz)
@@ -2459,7 +2708,7 @@ static inline void stm32_gint_iisooxfrisr(FAR struct stm32_usbhost_s *priv)
   /* CHENA : Set to enable the channel
    * CHDIS : Set to stop transmitting/receiving data on a channel
    */
- 
+
   regval = stm32_getreg(STM32_OTGFS_HCCHAR(0));
   regval |= (OTGFS_HCCHAR_CHDIS | OTGFS_HCCHAR_CHENA);
   stm32_putreg(STM32_OTGFS_HCCHAR(0), regval);
@@ -2718,7 +2967,7 @@ static void stm32_txfe_enable(FAR struct stm32_usbhost_s *priv, int chidx)
   /* Disable all interrupts so that we have exclusive access to the GINTMSK
    * (it would be sufficent just to disable the GINT interrupt).
    */
- 
+
   flags = irqsave();
 
   /* Should we enable the periodic or non-peridic Tx FIFO empty interrupts */
@@ -2842,7 +3091,7 @@ static int stm32_enumerate(FAR struct usbhost_driver_s *drvr)
     }
 
   DEBUGASSERT(priv->smstate == SMSTATE_ATTACHED);
- 
+
   /* Allocate and initialize the control OUT channel */
 
   chidx = stm32_chan_alloc(priv);
@@ -2869,9 +3118,9 @@ static int stm32_enumerate(FAR struct usbhost_driver_s *drvr)
   priv->chan[chidx].indata1   = false;
   priv->chan[chidx].outdata1  = false;
 
-  /* USB 2.0 spec says at least 50ms delay before port reset */
+  /* USB 2.0 spec says at least 50ms delay before port reset.  We wait 100ms. */
 
-  up_mdelay(100);
+  usleep(100*1000);
 
   /* Reset the host port */
 
@@ -2956,12 +3205,12 @@ static int stm32_ep0configure(FAR struct usbhost_driver_s *drvr, uint8_t funcadd
 
   priv->chan[priv->ep0out].maxpacket = maxpacketsize;
   stm32_chan_configure(priv, priv->ep0out);
-  
+
   /* Configure the EP0 IN channel */
 
   priv->chan[priv->ep0in].maxpacket = maxpacketsize;
   stm32_chan_configure(priv, priv->ep0in);
-  
+
   stm32_givesem(&priv->exclsem);
   return OK;
 }
@@ -3427,7 +3676,7 @@ static int stm32_ctrlout(FAR struct usbhost_driver_s *drvr,
             }
 
           /* Handle the status IN phase */
- 
+
           if (ret == OK)
             {
               ret = stm32_ctrl_recvdata(priv, NULL, 0);
@@ -3492,145 +3741,33 @@ static int stm32_ctrlout(FAR struct usbhost_driver_s *drvr,
  *   - Never called from an interrupt handler.
  *
  *******************************************************************************/
- 
+
 static int stm32_transfer(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep,
                           FAR uint8_t *buffer, size_t buflen)
 {
-  struct stm32_usbhost_s *priv  = (struct stm32_usbhost_s *)drvr;
-  FAR struct stm32_chan_s *chan;
+  FAR struct stm32_usbhost_s *priv  = (FAR struct stm32_usbhost_s *)drvr;
   unsigned int chidx = (unsigned int)ep;
-  int ret = OK;
+  int ret;
 
   uvdbg("chidx: %d buflen: %d\n",  (unsigned int)ep, buflen);
 
   DEBUGASSERT(priv && buffer && chidx < STM32_MAX_TX_FIFOS && buflen > 0);
-  chan = &priv->chan[chidx];
 
   /* We must have exclusive access to the USB host hardware and state structures */
 
   stm32_takesem(&priv->exclsem);
 
-  /* Loop until the transfer completes (i.e., buflen is decremented to zero)
-   * or a fatal error occurs (any error other than a simple NAK)
-   */
+  /* Handle IN and OUT transfer slightly differently */
 
-  chan->buffer = buffer;
-  chan->buflen = buflen;
-
-  while (chan->buflen > 0)
+  if (priv->chan[chidx].in)
     {
-      /* Set up for the wait BEFORE starting the transfer */
-
-      ret = stm32_chan_waitsetup(priv, chan);
-      if (ret != OK)
-        {
-          udbg("ERROR: Device disconnected\n");
-          goto errout;
-        }
-
-      /* Set up for the transfer based on the direction and the endpoint type */
-
-      switch (chan->eptype)
-        {
-        default:
-        case OTGFS_EPTYPE_CTRL: /* Control */
-          {
-            /* This kind of transfer on control endpoints other than EP0 are not
-             * currently supported
-             */
-
-            ret = -ENOSYS;
-            goto errout;
-          }
-
-        case OTGFS_EPTYPE_ISOC: /* Isochronous */
-          {
-            /* Set up the IN/OUT data PID */
-
-            chan->pid = OTGFS_PID_DATA0;
-          }
-          break;
-
-        case OTGFS_EPTYPE_BULK: /* Bulk */
-          {
-            /* Handle the bulk transfer based on the direction of the transfer. */
-
-            if (chan->in)
-              {
-                /* Setup the IN data PID */
-
-                chan->pid = chan->indata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
-              }
-            else
-              {
-                /* Setup the OUT data PID */
-
-                chan->pid = chan->outdata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
-              }
-          }
-          break;
-
-        case OTGFS_EPTYPE_INTR: /* Interrupt */
-          {
-            /* Handle the interrupt transfer based on the direction of the
-             * transfer.
-             */
-
-            if (chan->in)
-              {
-                /* Setup the IN data PID */
-
-                chan->pid = chan->indata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
-
-                /* The indata1 data toggle will be updated in the Rx FIFO
-                 * interrupt handling logic as each packet is received.
-                 */
-              }
-            else
-              {
-                /* Setup the OUT data PID */
-
-                chan->pid = chan->outdata1 ? OTGFS_PID_DATA1 : OTGFS_PID_DATA0;
-
-                /* Toggle the OUT data PID for the next transfer */
-
-                chan->outdata1 ^= true;
-              }
-          }
-        }
-
-      /* There is a bug in the code at present.  With debug OFF, this driver
-       * overruns the typical FLASH device and there are many problems with
-       * NAKS sticking a big delay here allows the driver to work but with
-       * very poor performance when debug is off.
-       */
-
-#if !defined(CONFIG_DEBUG_VERBOSE) && !defined(CONFIG_DEBUG_USB)
-#warning "REVISIT this delay"
-      usleep(100*1000);
-#endif
-
-      /* Start the transfer */
-
-      stm32_transfer_start(priv, chidx);
-
-      /* Wait for the transfer to complete and get the result */
-
-      ret = stm32_chan_wait(priv, chan);
-
-      /* EAGAIN indicates that the device NAKed the transfer and we need
-       * do try again.  Anything else (success or other errors) will
-       * cause use to return
-       */
-
-      if (ret != OK)
-        {
-          udbg("Transfer failed: %d\n", ret);
-          break;
-        }
+      ret = stm32_in_transfer(priv, chidx, buffer, buflen);
+    }
+  else
+    {
+      ret = stm32_out_transfer(priv, chidx, buffer, buflen);
     }
 
-errout:
   stm32_givesem(&priv->exclsem);
   return ret;
 }
@@ -3663,7 +3800,7 @@ static void stm32_disconnect(FAR struct usbhost_driver_s *drvr)
   struct stm32_usbhost_s *priv = (struct stm32_usbhost_s *)drvr;
   priv->class = NULL;
 }
-  
+
 /*******************************************************************************
  * Initialization
  *******************************************************************************/
@@ -3979,7 +4116,7 @@ static inline int stm32_hw_initialize(FAR struct stm32_usbhost_s *priv)
   /* Set the PHYSEL bit in the GUSBCFG register to select the OTG FS serial
    * transceiver: "This bit is always 1 with write-only access"
    */
-  
+
   regval = stm32_getreg(STM32_OTGFS_GUSBCFG);;
   regval |= OTGFS_GUSBCFG_PHYSEL;
   stm32_putreg(STM32_OTGFS_GUSBCFG, regval);
@@ -4128,7 +4265,7 @@ FAR struct usbhost_driver_s *usbhost_initialize(int controller)
   stm32_configgpio(GPIO_OTGFS_SOF);
 #endif
 
-  /* Initialize the USB OTG FS core */     
+  /* Initialize the USB OTG FS core */
 
   stm32_hw_initialize(priv);
 

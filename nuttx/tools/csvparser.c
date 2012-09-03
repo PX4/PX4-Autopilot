@@ -1,7 +1,7 @@
 /****************************************************************************
- * lib/stdio/lib_fsetpos.c
+ * tools/csvparser.c
  *
- *   Copyright (C) 2008, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,83 +34,172 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Compilation Switches
- ****************************************************************************/
-
-/****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include <sys/types.h>
+#include <stdbool.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 #include <errno.h>
 
-#include "lib_internal.h"
+#include "csvparser.h"
 
 /****************************************************************************
  * Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Private Type Declarations
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Private Function Prototypes
+ * Public Data
  ****************************************************************************/
 
-/****************************************************************************
- * Global Constant Data
- ****************************************************************************/
-
-/****************************************************************************
- * Global Variables
- ****************************************************************************/
-
-/****************************************************************************
- * Private Constant Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Variables
- ****************************************************************************/
+bool g_debug;
+char g_line[LINESIZE+1];
+char g_parm[MAX_FIELDS][MAX_PARMSIZE];
+int g_lineno;
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
+static char *skip_space(char *ptr)
+{
+  while (*ptr && isspace((int)*ptr)) ptr++;
+  return ptr;
+}
+
+static char *copy_parm(char *src, char *dest)
+{
+  char *start = src;
+  int i;
+
+  for (i = 0; i < MAX_PARMSIZE; i++)
+    {
+      if (*src == '"')
+        {
+          *dest = '\0';
+          return src;
+        }
+      else if (*src == '\n' || *src == '\0')
+        {
+          fprintf(stderr, "%d: Unexpected end of line: \"%s\"\n", g_lineno, start);
+          exit(4);
+        }
+      else
+        {
+          *dest++ = *src++;
+        }
+    }
+
+  fprintf(stderr, "%d: Parameter too long: \"%s\"\n", g_lineno, start);
+  exit(3);
+}
+
+static char *find_parm(char *ptr)
+{
+  char *start = ptr;
+
+  if (*ptr != '"')
+    {
+      fprintf(stderr, "%d: I'm confused: \"%s\"\n", g_lineno, start);
+      exit(5);
+    }
+  ptr++;
+
+  ptr = skip_space(ptr);
+  if (*ptr == '\n' || *ptr == '\0')
+    {
+      return NULL;
+    }
+  else if (*ptr != ',')
+    {
+      fprintf(stderr, "%d: Expected ',': \"%s\"\n", g_lineno, start);
+      exit(6);
+    }
+  ptr++;
+
+  ptr = skip_space(ptr);
+  if (*ptr != '"')
+    {
+      fprintf(stderr, "%d: Expected \": \"%s\"\n", g_lineno, start);
+      exit(7);
+    }
+  ptr++;
+
+  return ptr;
+}
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: fsetpos
- *
- * Description:
- *   fsetpos() function is an alternate interfaces equivalent to fseek()
- *   (with whence set to  SEEK_SET).  It sets the current value of the file
- *   offset to value in the location referenced by pos.  On some non-UNIX
- *   systems an fpos_t object may be a complex object and fsetpos may be the
- *   only way to portably reposition a stream.
- *
- * Returned Value:
- *   Zero on succes; -1 on failure with errno set appropriately. 
- *
- ****************************************************************************/
-
-int fsetpos(FAR FILE *stream, FAR fpos_t *pos)
+char *read_line(FILE *stream)
 {
-#if CONFIG_DEBUG
-  if (!stream || !pos)
-    {
-      set_errno(EINVAL);
-      return ERROR;
-    }
-#endif
+  char *ptr;
 
-  return fseek(stream, (FAR off_t)*pos, SEEK_SET);
+  for (;;)
+    {
+      g_line[LINESIZE] = '\0';
+      if (!fgets(g_line, LINESIZE, stream))
+        {
+          return NULL;
+        }
+      else
+        {
+          g_lineno++;
+          if (g_debug)
+            {
+              printf("Line: %s\n", g_line);
+            }
+
+          ptr = skip_space(g_line);
+          if (*ptr && *ptr != '#' && *ptr != '\n')
+            {
+              return ptr;
+            }
+        }
+    }
+}
+
+int parse_csvline(char *ptr)
+{
+  int nparms;
+  int i;
+
+  /* Format "arg1","arg2","arg3",... Spaces will be tolerated outside of the
+   * quotes.  Any initial spaces have already been skipped so the first thing
+   * should be '"'.
+   */
+
+  if (*ptr != '"')
+    {
+      fprintf(stderr, "%d: Bad line: \"%s\"\n", g_lineno, g_line);
+      exit(2);
+    }
+
+  ptr++;
+  nparms = 0;
+
+  do
+    {
+      ptr = copy_parm(ptr, &g_parm[nparms][0]);
+      nparms++;
+      ptr = find_parm(ptr);
+    }
+  while (ptr);
+
+  if (g_debug)
+    {
+      printf("Parameters: %d\n", nparms);
+      for (i = 0; i < nparms; i++)
+        {
+          printf("  Parm%d: \"%s\"\n", i+1, g_parm[i]);
+        }
+    }
+  return nparms;
 }

@@ -44,7 +44,7 @@
 #include "cfgparser.h"
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 #define DEFCONFIG ".config"
@@ -264,6 +264,12 @@ int main(int argc, char **argv, char **envp)
   printf("# undef CONFIG_DEBUG_GPIO\n");
   printf("# undef CONFIG_DEBUG_SPI\n");
   printf("# undef CONFIG_DEBUG_STACK\n");
+  printf("#endif\n\n");
+  printf("/* User entry point. This is provided as a fall-back to keep compatibility\n");
+  printf(" * with existing code, for builds which do not define CONFIG_USER_ENTRYPOINT.\n");
+  printf(" */\n\n");
+  printf("#ifndef CONFIG_USER_ENTRYPOINT\n");
+  printf("# define CONFIG_USER_ENTRYPOINT user_start\n");
   printf("#endif\n\n");
   printf("#endif /* __INCLUDE_NUTTX_CONFIG_H */\n");
   fclose(stream);

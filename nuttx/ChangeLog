@@ -3202,4 +3202,51 @@
 	  for control transfers but does not resolve all of the issues.
 	* configs/stm3220g-eval/*/defconfig:  Calibrated delay loop.  It had
 	  never been calibrated was was way off.
-
+	* sched/sem_holder.c: Add logic to handler some priority inheritance
+	  cases when sem_post() is called from an interrupt handler.  The
+	  logic is clearly wrong, but it is not known if this is the
+	  cause of any known bugs.
+	* lib/stdio/lib_perror():  Add perror().  Contributed by Kate.
+	* lib/string/lib_strerror():  Add option CONFIG_LIBC_STRERROR that
+	  is now required to enabled strerror().  Add an option
+	  CONFIG_LIBC_STRERROR_SHORT that can be used to output shortened
+	  strings by strerror().
+	* arch/arm/src/stm32/stm32_usbotghost.c:  Finally... the USB OTG FS
+	  appears to handle NAKing correctly is complete.
+	* configs/stm32f4discovery/*:  Added and verifed support for USB OTG FS
+	  host on the STM32F4Discovery board.
+	* configs/*/defconfig: Remove configuration documentation from config
+	  files.  It is redundant, error-prone, and difficult to maintain.
+	  Configuration documentation is available in configs/README.txt for
+	  common configurations and in configs/*/README.txt for board and MCU_
+	  specific configurations.
+	* configs/stm3240g-eval: Add USB host support.
+	* sched/os_bring.c, configs/*/defconfig, tools/mkconfig.c, and others:  Added
+	  configuration variable CONFIG_USER_ENTRYPOINT that may be used to change
+	  the default entry from user_start to some other symbol.  Contributed by
+	  Kate. NOTE: This change does introduce a minor backward incompatibility.
+	  For example, if your application uses NSH as its start-up program, then your
+	  code will not fail because it will be unable to find "user_start".  The fix
+	  for this link failure is to add the following to your configuration file:
+	  CONFIG_USER_ENTRYPOINT="nsh_main".
+	* libs/stdio/lib_libfread.c and lib_*flush*.c:  Correct a couple of
+	  error cases where the lib semaphore was not be released on error
+	  exits (thanks Ronen Vainish).  Also, improved some error reporting:
+	  the generic ERROR was being used instead of the specific errno
+	  value; the errno variable was not always set correctly.
+	* tools/mkfsdata.pl: The uIP web server CGI image making perl script was
+	  moved from apps/netutils/webserver/makefsdata to nuttx/tools/mkfsdata.pl
+	  (Part of a larger change submitted by Max Holtzberg).
+	* configs/stm3240g-eval/script/ld.script:  All of the identical ld.script
+	  files for the STM3240G-EVAL were replaced by one version in this directory.
+	* configs/stm3240g-eval/webserver:  Configuration submitted by Max Holtzberg
+	  for testing the changes to the uIP web server (see apps/ChangeLog.txt).
+	* lib/stdio/lib_perror.c:  Remove CONFIG_LIBC_PERROR_DEVNAME.  What was I
+	  thinking?  Arbitrary streams cannot be shared by different tasks.
+	* tools/mksyscall.c, csvparser.c, and csvparser.h: Separate CSV parsing
+	  logic from mksyscall.c into files where it can be shared.
+	* tools/mksymtab.c:  Add a tool that can be used to convert a CSV file
+	  into a NuttX-style symbol table.
+	* sched/work_cancel.c:  Fix a bad assertion (reported by Mike Smith)
+	* configs/stm3210e-eval/src/up_idle.c:  Correct some power management
+	  compilation errors (reported by Diego Sanchez).

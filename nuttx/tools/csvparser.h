@@ -1,7 +1,7 @@
 /****************************************************************************
- * lib/pthread/pthread_attrgetinheritsched.c
+ * tools/csvparser.h
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,79 +33,44 @@
  *
  ****************************************************************************/
 
+#ifndef __TOOLS_CSVPARSER_H
+#define __TOOLS_CSVPARSER_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include <pthread.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
+#include <stdbool.h>
+#include <limits.h>
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
+
+#define LINESIZE      (PATH_MAX > 256 ? PATH_MAX : 256)
+
+#define MAX_FIELDS    16
+#define MAX_PARMSIZE  128
+#define NAME_INDEX    0
+#define HEADER_INDEX  1
+#define COND_INDEX    2
+#define RETTYPE_INDEX 3
+#define PARM1_INDEX   4
 
 /****************************************************************************
- * Private Type Declarations
+ * Public Data
  ****************************************************************************/
+
+extern bool g_debug;
+extern char g_line[LINESIZE+1];
+extern char g_parm[MAX_FIELDS][MAX_PARMSIZE];
+extern int  g_lineno;
 
 /****************************************************************************
- * Global Variables
+ * Public Function Prototypes
  ****************************************************************************/
 
-/****************************************************************************
- * Private Variables
- ****************************************************************************/
+char *read_line(FILE *stream);
+int parse_csvline(char *ptr);
 
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Function:  pthread_attr_getinheritsched
- *
- * Description:
- *   Report whether the scheduling info in the pthread
- *   attributes will be used or if the thread will
- *   inherit the properties of the parent.
- *
- * Parameters:
- *   attr
- *   inheritsched
- *
- * Return Value:
- *   0 if successful.  Otherwise, an error code.
- *
- * Assumptions:
- *
- ****************************************************************************/
-
-int pthread_attr_getinheritsched(FAR const pthread_attr_t *attr,
-                                 FAR int *inheritsched)
-{
-  int ret;
-
-  sdbg("attr=0x%p inheritsched=0x%p\n", attr, inheritsched);
-
-  if (!attr || !inheritsched)
-    {
-      ret = EINVAL;
-    }
-  else
-    {
-      *inheritsched = (int)attr->inheritsched;
-      ret = OK;
-    }
-
-  sdbg("Returning %d\n", ret);
-  return ret;
-}
-
-
+#endif /* __TOOLS_CSVPARSER_H */

@@ -90,7 +90,7 @@
  *
  ****************************************************************************/
 
-char *strtok_r(char *str, const char *delim, char **saveptr)
+FAR char *strtok_r(FAR char *str, FAR const char *delim, FAR char **saveptr)
 {
   char *pbegin;
   char *pend = NULL;

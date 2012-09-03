@@ -289,5 +289,19 @@
 	  threds to no more than 3 of each priority.  Bad things happen
 	  when the existing logic tried to created several hundred test
 	  treads!
-
-
+	* apps/nshlib/nsh.h:  Both CONFIG_LIBC_STRERROR and CONFIG_NSH_STRERROR
+	  must be defined to use strerror() with NSH.
+	* apps/examples/*/*_main.c, system/i2c/i2c_main.c, and others:  Added
+	  configuration variable CONFIG_USER_ENTRYPOINT that may be used to change
+	  the default entry from user_start to some other symbol.  Contributed by
+	  Kate.
+	* apps/netutils/webserver/httpd/c:  Fix a typo that as introduced in
+	  version r4402:  'lese' instead of 'else' (Noted by Max Holtzberg).
+	* tools/mkfsdata.pl: The uIP web server CGI image making perl script was
+	  moved from apps/netutils/webserver/makefsdata to nuttx/tools/mkfsdata.pl
+	  (Part of a larger change submitted by Max Holtzberg).
+	* apps/netutils/webserver, apps/examples/uip, and apps/include/netutils/httpd.h:
+	  The "canned" version of the uIP web servers content that was at 
+	  netutils/webserver/httpd_fsdata.c has been replaced with a dynamically
+	  built configuration located at apps/examples/uip (Contributed by
+	  Max Holtzberg).

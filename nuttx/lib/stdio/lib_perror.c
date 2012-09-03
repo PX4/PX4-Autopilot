@@ -1,7 +1,7 @@
 /****************************************************************************
- * lib/pthread/pthread_attrgetinheritsched.c
+ * lib/stdio/lib_perror.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,25 +39,38 @@
 
 #include <nuttx/config.h>
 
-#include <pthread.h>
-#include <string.h>
-#include <debug.h>
+#include <stdio.h>
 #include <errno.h>
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
+
+/* POSIX requires that perror provide its output on stderr.  This option may
+ * be defined, however, to provide perror output that is serialized with
+ * other stdout messages.
+ */
+ 
+#ifdef CONFIG_LIBC_PERROR_STDOUT
+#  define PERROR_STREAM stdout
+#else
+#  define PERROR_STREAM stderr
+#endif
 
 /****************************************************************************
  * Private Type Declarations
  ****************************************************************************/
 
 /****************************************************************************
- * Global Variables
+ * Private Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Private Variables
+ * Public Data
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
@@ -69,43 +82,18 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  pthread_attr_getinheritsched
- *
- * Description:
- *   Report whether the scheduling info in the pthread
- *   attributes will be used or if the thread will
- *   inherit the properties of the parent.
- *
- * Parameters:
- *   attr
- *   inheritsched
- *
- * Return Value:
- *   0 if successful.  Otherwise, an error code.
- *
- * Assumptions:
- *
+ * Name: perror
  ****************************************************************************/
 
-int pthread_attr_getinheritsched(FAR const pthread_attr_t *attr,
-                                 FAR int *inheritsched)
+void perror(FAR const char *s)
 {
-  int ret;
 
-  sdbg("attr=0x%p inheritsched=0x%p\n", attr, inheritsched);
+  /* If strerror() is not enabled, then just print the error number */
 
-  if (!attr || !inheritsched)
-    {
-      ret = EINVAL;
-    }
-  else
-    {
-      *inheritsched = (int)attr->inheritsched;
-      ret = OK;
-    }
-
-  sdbg("Returning %d\n", ret);
-  return ret;
+#ifdef CONFIG_LIBC_STRERROR
+  (void)fprintf(PERROR_STREAM, "%s: %s\n", s, strerror(errno));
+#else
+  (void)fprintf(PERROR_STREAM, "%s: Error %d\n", s, errno);
+#endif
 }
-
 

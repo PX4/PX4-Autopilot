@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
@@ -724,6 +725,7 @@ static inline int usbhost_testunitready(FAR struct usbhost_state_s *priv)
           usbhost_dumpcsw((FAR struct usbmsc_csw_s *)priv->tbuffer);
         }
     }
+
   return result;
 }
 
@@ -1195,13 +1197,15 @@ static inline int usbhost_initvolume(FAR struct usbhost_state_s *priv)
   uvdbg("Get max LUN\n");
   ret = usbhost_maxlunreq(priv);
 
-  /* Wait for the unit to be ready */
-
-  for (retries = 0; retries < USBHOST_MAX_RETRIES && ret == OK; retries++)
+  for (retries = 0; retries < USBHOST_MAX_RETRIES /* && ret == OK */; retries++)
     {
       uvdbg("Test unit ready, retries=%d\n", retries);
 
-      /* Send TESTUNITREADY to see the unit is ready */
+      /* Wait just a bit */
+
+      usleep(50*1000);
+
+      /* Send TESTUNITREADY to see if the unit is ready */
 
       ret = usbhost_testunitready(priv);
       if (ret == OK)

@@ -217,7 +217,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 			PID_MODE_DERIVATIV_CALC, 155);
 		pid_init(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu,
 			PID_MODE_DERIVATIV_SET, 156);
-		pid_init(&roll_controller, p.att_d, p.att_i, p.att_d, p.att_awu,
+		pid_init(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu,
 			PID_MODE_DERIVATIV_SET, 157);
 
 		initialized = true;

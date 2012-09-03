@@ -69,21 +69,21 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start
+ * Name: pipe_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int pipe_main(int argc, char *argv[])
 {
   int filedes[2];
   int ret;
 
   /* Test FIFO logic */
 
-  printf("\nuser_start: Performing FIFO test\n");
+  printf("\npipe_main: Performing FIFO test\n");
   ret = mkfifo(FIFO_PATH1, 0666);
   if (ret < 0)
     {
-      fprintf(stderr, "user_start: mkfifo failed with errno=%d\n", errno);
+      fprintf(stderr, "pipe_main: mkfifo failed with errno=%d\n", errno);
       return 1;
     }
 
@@ -96,7 +96,7 @@ int user_start(int argc, char *argv[])
   filedes[1] = open(FIFO_PATH1, O_WRONLY);
   if (filedes[1] < 0)
     {
-      fprintf(stderr, "user_start: Failed to open FIFO %s for writing, errno=%d\n",
+      fprintf(stderr, "pipe_main: Failed to open FIFO %s for writing, errno=%d\n",
               FIFO_PATH1, errno);
       return 2;
     }
@@ -104,11 +104,11 @@ int user_start(int argc, char *argv[])
   filedes[0] = open(FIFO_PATH1, O_RDONLY);
   if (filedes[0] < 0)
     {
-      fprintf(stderr, "user_start: Failed to open FIFO %s for reading, errno=%d\n",
+      fprintf(stderr, "pipe_main: Failed to open FIFO %s for reading, errno=%d\n",
               FIFO_PATH1, errno);
       if (close(filedes[1]) != 0)
         {
-          fprintf(stderr, "user_start: close failed: %d\n", errno);
+          fprintf(stderr, "pipe_main: close failed: %d\n", errno);
         }
       return 3;
     }
@@ -118,28 +118,28 @@ int user_start(int argc, char *argv[])
   ret = transfer_test(filedes[0], filedes[1]);
   if (close(filedes[0]) != 0)
     {
-      fprintf(stderr, "user_start: close failed: %d\n", errno);
+      fprintf(stderr, "pipe_main: close failed: %d\n", errno);
     }
   if (close(filedes[1]) != 0)
     {
-      fprintf(stderr, "user_start: close failed: %d\n", errno);
+      fprintf(stderr, "pipe_main: close failed: %d\n", errno);
     }
   /* unlink(FIFO_PATH1); fails */
 
   if (ret != 0)
     {
-      fprintf(stderr, "user_start: FIFO test FAILED (%d)\n", ret);
+      fprintf(stderr, "pipe_main: FIFO test FAILED (%d)\n", ret);
       return 4;
     }
-  printf("user_start: FIFO test PASSED\n");
+  printf("pipe_main: FIFO test PASSED\n");
 
   /* Test PIPE logic */
 
-  printf("\nuser_start: Performing pipe test\n");
+  printf("\npipe_main: Performing pipe test\n");
   ret = pipe(filedes);
   if (ret < 0)
     {
-      fprintf(stderr, "user_start: pipe failed with errno=%d\n", errno);
+      fprintf(stderr, "pipe_main: pipe failed with errno=%d\n", errno);
       return 5;
     }
 
@@ -148,41 +148,41 @@ int user_start(int argc, char *argv[])
   ret = transfer_test(filedes[0], filedes[1]);
   if (close(filedes[0]) != 0)
     {
-      fprintf(stderr, "user_start: close failed: %d\n", errno);
+      fprintf(stderr, "pipe_main: close failed: %d\n", errno);
     }
   if (close(filedes[1]) != 0)
     {
-      fprintf(stderr, "user_start: close failed: %d\n", errno);
+      fprintf(stderr, "pipe_main: close failed: %d\n", errno);
     }
 
   if (ret != 0)
     {
-      fprintf(stderr, "user_start: PIPE test FAILED (%d)\n", ret);
+      fprintf(stderr, "pipe_main: PIPE test FAILED (%d)\n", ret);
       return 6;
     }
-  printf("user_start: PIPE test PASSED\n");
+  printf("pipe_main: PIPE test PASSED\n");
 
   /* Perform the FIFO interlock test */
 
-  printf("\nuser_start: Performing pipe interlock test\n");
+  printf("\npipe_main: Performing pipe interlock test\n");
   ret = interlock_test();
   if (ret != 0)
     {
-      fprintf(stderr, "user_start: FIFO interlock test FAILED (%d)\n", ret);
+      fprintf(stderr, "pipe_main: FIFO interlock test FAILED (%d)\n", ret);
       return 7;
     }
-  printf("user_start: PIPE interlock test PASSED\n");
+  printf("pipe_main: PIPE interlock test PASSED\n");
 
   /* Perform the pipe redirection test */
 
-  printf("\nuser_start: Performing redirection test\n");
+  printf("\npipe_main: Performing redirection test\n");
   ret = redirection_test();
   if (ret != 0)
     {
-      fprintf(stderr, "user_start: FIFO redirection test FAILED (%d)\n", ret);
+      fprintf(stderr, "pipe_main: FIFO redirection test FAILED (%d)\n", ret);
       return 7;
     }
-  printf("user_start: PIPE redirection test PASSED\n");
+  printf("pipe_main: PIPE redirection test PASSED\n");
 
   fflush(stdout);
   return 0;

@@ -124,24 +124,11 @@ static CHelloWorld g_HelloWorld;
 // Public Functions
 //***************************************************************************
 
-//***************************************************************************
-// user_start
-//***************************************************************************
-
 /****************************************************************************
- * Name: user_start/nxhello_main
+ * Name: helloxx_main
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_HELLOXX_BUILTIN
-extern "C" int helloxx_main(int argc, char *argv[]);
-#  define MAIN_NAME   helloxx_main
-#  define MAIN_STRING "helloxx_main: "
-#else
-#  define MAIN_NAME   user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
-int MAIN_NAME(int argc, char *argv[])
+int helloxx_main(int argc, char *argv[])
 {
   // If C++ initialization for static constructors is supported, then do
   // that first
@@ -153,7 +140,7 @@ int MAIN_NAME(int argc, char *argv[])
   // Exercise an explictly instantiated C++ object
 
   CHelloWorld *pHelloWorld = new CHelloWorld;
-  printf(MAIN_STRING "Saying hello from the dynamically constructed instance\n");
+  printf("helloxx_main: Saying hello from the dynamically constructed instance\n");
   pHelloWorld->HelloWorld();
 
   // Exercise an C++ object instantiated on the stack
@@ -161,14 +148,14 @@ int MAIN_NAME(int argc, char *argv[])
 #ifndef CONFIG_EXAMPLES_HELLOXX_NOSTACKCONST
   CHelloWorld HelloWorld;
 
-  printf(MAIN_STRING "Saying hello from the instance constructed on the stack\n");
+  printf("helloxx_main: Saying hello from the instance constructed on the stack\n");
   HelloWorld.HelloWorld();
 #endif
 
   // Exercise an statically constructed C++ object
 
 #ifdef CONFIG_HAVE_CXXINITIALIZE
-  printf(MAIN_STRING "Saying hello from the statically constructed instance\n");
+  printf("helloxx_main: Saying hello from the statically constructed instance\n");
   g_HelloWorld.HelloWorld();
 #endif
 

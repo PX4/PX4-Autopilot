@@ -53,16 +53,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * user_start/hello_main
+ * hello_main
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_HELLO_BUILTIN
-#  define MAIN_NAME hello_main
-#else
-#  define MAIN_NAME user_start
-#endif
-
-int MAIN_NAME(int argc, char *argv[])
+int hello_main(int argc, char *argv[])
 {
   printf("Hello, World!!\n");
   return 0;
