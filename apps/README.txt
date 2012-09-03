@@ -118,7 +118,7 @@ the NuttX configuration file:
   CONFIG_BUILTIN_APP_START=<application name>
   
 that application shall be invoked immediately after system starts
-*instead* of the normal, default "user_start" entry point.
+*instead* of the default "user_start" entry point.
 Note that <application name> must be provided as: "hello", 
 will call:
 

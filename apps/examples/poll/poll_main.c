@@ -74,10 +74,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start
+ * Name: poll_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int poll_main(int argc, char *argv[])
 {
   char buffer[64];
   ssize_t nbytes;
@@ -94,20 +94,20 @@ int user_start(int argc, char *argv[])
 
   /* Open FIFOs */
 
-  message("\nuser_start: Creating FIFO %s\n", FIFO_PATH1);
+  message("\npoll_main: Creating FIFO %s\n", FIFO_PATH1);
   ret = mkfifo(FIFO_PATH1, 0666);
   if (ret < 0)
     {
-      message("user_start: mkfifo failed: %d\n", errno);
+      message("poll_main: mkfifo failed: %d\n", errno);
       exitcode = 1;
       goto errout;
     }
 
-  message("\nuser_start: Creating FIFO %s\n", FIFO_PATH2);
+  message("\npoll_main: Creating FIFO %s\n", FIFO_PATH2);
   ret = mkfifo(FIFO_PATH2, 0666);
   if (ret < 0)
     {
-      message("user_start: mkfifo failed: %d\n", errno);
+      message("poll_main: mkfifo failed: %d\n", errno);
       exitcode = 2;
       goto errout;
     }
@@ -117,7 +117,7 @@ int user_start(int argc, char *argv[])
   fd1 = open(FIFO_PATH1, O_WRONLY);
   if (fd1 < 0)
     {
-      message("user_start: Failed to open FIFO %s for writing, errno=%d\n",
+      message("poll_main: Failed to open FIFO %s for writing, errno=%d\n",
               FIFO_PATH1, errno);
       exitcode = 3;
       goto errout;
@@ -126,7 +126,7 @@ int user_start(int argc, char *argv[])
   fd2 = open(FIFO_PATH2, O_WRONLY);
   if (fd2 < 0)
     {
-      message("user_start: Failed to open FIFO %s for writing, errno=%d\n",
+      message("poll_main: Failed to open FIFO %s for writing, errno=%d\n",
               FIFO_PATH2, errno);
       exitcode = 4;
       goto errout;
@@ -134,39 +134,39 @@ int user_start(int argc, char *argv[])
 
   /* Start the listeners */
 
-  message("user_start: Starting poll_listener thread\n");
+  message("poll_main: Starting poll_listener thread\n");
 
   ret = pthread_create(&tid1, NULL, poll_listener, NULL);
   if (ret != 0)
     {
-      message("user_start: Failed to create poll_listener thread: %d\n", ret);
+      message("poll_main: Failed to create poll_listener thread: %d\n", ret);
       exitcode = 5;
       goto errout;
     }
 
-  message("user_start: Starting select_listener thread\n");
+  message("poll_main: Starting select_listener thread\n");
 
   ret = pthread_create(&tid2, NULL, select_listener, NULL);
   if (ret != 0)
     {
-      message("user_start: Failed to create select_listener thread: %d\n", ret);
+      message("poll_main: Failed to create select_listener thread: %d\n", ret);
       exitcode = 6;
       goto errout;
     }
 
 #ifdef HAVE_NETPOLL
 #ifdef CONFIG_NET_TCPBACKLOG
-  message("user_start: Starting net_listener thread\n");
+  message("poll_main: Starting net_listener thread\n");
 
   ret = pthread_create(&tid3, NULL, net_listener, NULL);
 #else
-  message("user_start: Starting net_reader thread\n");
+  message("poll_main: Starting net_reader thread\n");
 
   ret = pthread_create(&tid3, NULL, net_reader, NULL);
 #endif
   if (ret != 0)
     {
-      message("user_start: Failed to create net_listener thread: %d\n", ret);
+      message("poll_main: Failed to create net_listener thread: %d\n", ret);
     }
 #endif
 
@@ -182,7 +182,7 @@ int user_start(int argc, char *argv[])
       nbytes = write(fd1, buffer, strlen(buffer));
       if (nbytes < 0)
         {
-          message("user_start: Write to fd1 failed: %d\n", errno);
+          message("poll_main: Write to fd1 failed: %d\n", errno);
           exitcode = 7;
           goto errout;
         }
@@ -190,12 +190,12 @@ int user_start(int argc, char *argv[])
       nbytes = write(fd2, buffer, strlen(buffer));
       if (nbytes < 0)
         {
-          message("user_start: Write fd2 failed: %d\n", errno);
+          message("poll_main: Write fd2 failed: %d\n", errno);
           exitcode = 8;
           goto errout;
         }
 
-      message("\nuser_start: Sent '%s' (%d bytes)\n", buffer, nbytes);
+      message("\npoll_main: Sent '%s' (%d bytes)\n", buffer, nbytes);
       msgflush();
 
       /* Wait awhile.  This delay should be long enough that the

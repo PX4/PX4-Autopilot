@@ -68,7 +68,7 @@ extern "C" {
 
 /* This entry point must be supplied by the application */
 
-EXTERN int    user_start(int argc, char *argv[]);
+EXTERN int    CONFIG_USER_ENTRYPOINT(int argc, char *argv[]);
 
 /* Functions contained in os_task.c *****************************************/
 

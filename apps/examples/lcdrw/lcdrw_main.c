@@ -152,16 +152,10 @@ static inline int lcdrw_initialize(FAR struct lcdrw_instance_s *inst)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lcdrw_main/user_start
+ * Name: lcdrw_main
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_LCDRW_BUILTIN
-#  define MAIN_NAME lcdrw_main
-#else
-#  define MAIN_NAME user_start
-#endif
-
-int MAIN_NAME(int argc, char *argv[])
+int lcdrw_main(int argc, char *argv[])
 {
   struct lcdrw_instance_s inst;
   nxgl_coord_t row;

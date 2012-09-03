@@ -3715,6 +3715,75 @@ static void mavlink_test_vicon_position_estimate(uint8_t system_id, uint8_t comp
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 }
 
+static void mavlink_test_highres_imu(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
+{
+	mavlink_message_t msg;
+        uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
+        uint16_t i;
+	mavlink_highres_imu_t packet_in = {
+		93372036854775807ULL,
+	73.0,
+	101.0,
+	129.0,
+	157.0,
+	185.0,
+	213.0,
+	241.0,
+	269.0,
+	297.0,
+	325.0,
+	353.0,
+	381.0,
+	409.0,
+	};
+	mavlink_highres_imu_t packet1, packet2;
+        memset(&packet1, 0, sizeof(packet1));
+        	packet1.time_boot_ms = packet_in.time_boot_ms;
+        	packet1.xacc = packet_in.xacc;
+        	packet1.yacc = packet_in.yacc;
+        	packet1.zacc = packet_in.zacc;
+        	packet1.xgyro = packet_in.xgyro;
+        	packet1.ygyro = packet_in.ygyro;
+        	packet1.zgyro = packet_in.zgyro;
+        	packet1.xmag = packet_in.xmag;
+        	packet1.ymag = packet_in.ymag;
+        	packet1.zmag = packet_in.zmag;
+        	packet1.abs_pressure = packet_in.abs_pressure;
+        	packet1.diff_pressure = packet_in.diff_pressure;
+        	packet1.pressure_alt = packet_in.pressure_alt;
+        	packet1.temperature = packet_in.temperature;
+        
+        
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_highres_imu_encode(system_id, component_id, &msg, &packet1);
+	mavlink_msg_highres_imu_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_highres_imu_pack(system_id, component_id, &msg , packet1.time_boot_ms , packet1.xacc , packet1.yacc , packet1.zacc , packet1.xgyro , packet1.ygyro , packet1.zgyro , packet1.xmag , packet1.ymag , packet1.zmag , packet1.abs_pressure , packet1.diff_pressure , packet1.pressure_alt , packet1.temperature );
+	mavlink_msg_highres_imu_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_highres_imu_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.time_boot_ms , packet1.xacc , packet1.yacc , packet1.zacc , packet1.xgyro , packet1.ygyro , packet1.zgyro , packet1.xmag , packet1.ymag , packet1.zmag , packet1.abs_pressure , packet1.diff_pressure , packet1.pressure_alt , packet1.temperature );
+	mavlink_msg_highres_imu_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+        mavlink_msg_to_send_buffer(buffer, &msg);
+        for (i=0; i<mavlink_msg_get_send_buffer_length(&msg); i++) {
+        	comm_send_ch(MAVLINK_COMM_0, buffer[i]);
+        }
+	mavlink_msg_highres_imu_decode(last_msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+        
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_highres_imu_send(MAVLINK_COMM_1 , packet1.time_boot_ms , packet1.xacc , packet1.yacc , packet1.zacc , packet1.xgyro , packet1.ygyro , packet1.zgyro , packet1.xmag , packet1.ymag , packet1.zmag , packet1.abs_pressure , packet1.diff_pressure , packet1.pressure_alt , packet1.temperature );
+	mavlink_msg_highres_imu_decode(last_msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+}
+
 static void mavlink_test_memory_vect(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
 {
 	mavlink_message_t msg;
@@ -4072,6 +4141,7 @@ static void mavlink_test_common(uint8_t system_id, uint8_t component_id, mavlink
 	mavlink_test_vision_position_estimate(system_id, component_id, last_msg);
 	mavlink_test_vision_speed_estimate(system_id, component_id, last_msg);
 	mavlink_test_vicon_position_estimate(system_id, component_id, last_msg);
+	mavlink_test_highres_imu(system_id, component_id, last_msg);
 	mavlink_test_memory_vect(system_id, component_id, last_msg);
 	mavlink_test_debug_vect(system_id, component_id, last_msg);
 	mavlink_test_named_value_float(system_id, component_id, last_msg);

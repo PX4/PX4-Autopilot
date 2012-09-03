@@ -62,7 +62,7 @@ set octa_plus {
 
 set tables {quad_x quad_plus hex_x hex_plus octa_x octa_plus}
 
-proc factors {a d} { puts [format "\t{ %9.6f, %9.6f, %5.2f }," [rcos [expr $a + 90]] [rcos $a] $d]}
+proc factors {a d} { puts [format "\t{ %9.6f, %9.6f, %5.2f }," [rcos [expr $a + 90]] [rcos $a] [expr -$d]]}
 
 foreach table $tables {
 	puts [format "const MultirotorMixer::Rotor _config_%s\[\] = {" $table]

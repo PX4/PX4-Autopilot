@@ -2,7 +2,7 @@
  * lib/math/lib_fixedmath.c
  *
  *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -165,7 +165,7 @@ ub16_t ub16mulub16(ub16_t m1, ub16_t m2)
 }
 
 /****************************************************************************
- * Name: b16divb16
+ * Name: b16sqr
  **************************************************************************/
 
 b16_t b16sqr(b16_t a)

@@ -58,8 +58,13 @@ mkversion: mkconfig.c cfgparser.c
 
 # mksyscall - Convert a CSV file into syscall stubs and proxies
 
-mksyscall: mksyscall.c
-	@gcc $(CFLAGS) -o mksyscall mksyscall.c
+mksyscall: mksyscall.c csvparser.c
+	@gcc $(CFLAGS) -o mksyscall mksyscall.c csvparser.c
+
+# mksymtab - Convert a CSV file into a symbol table
+
+mksymtab: mksymtab.c csvparser.c
+	@gcc $(CFLAGS) -o mksymtab mksymtab.c csvparser.c
 
 # bdf-converter - Converts a BDF font to the NuttX font format
 

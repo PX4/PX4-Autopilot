@@ -63,7 +63,7 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-EXTERN char *ether_ntoa(const struct ether_addr *addr);
+EXTERN FAR char *ether_ntoa(FAR const struct ether_addr *addr);
 EXTERN struct ether_addr *ether_aton(const char *asc);
 EXTERN int ether_ntohost(char *hostname, const struct ether_addr *addr);
 EXTERN int ether_hostton(const char *hostname, struct ether_addr *addr);

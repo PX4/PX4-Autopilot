@@ -44,6 +44,16 @@ mkexport.sh and Makefile.export
   Makefile.export is used only by the mkexport.sh script to parse out
   options from the top-level Make.defs file.
 
+mkfsdata.pl
+
+  This perl script is used to build the "fake" file system and CGI support
+  as needed for the apps/netutils/webserver.  It is currently used only
+  by the Makefile at apps/examples/uip.  That example serves as an example
+  of how to configure the uIP webserver "fake" file system.
+
+  NOTE:  This perl script comes from uIP and was (probably) written
+  by Adam Dunkels.  uIP has a license that is compatible with NuttX.
+
 mkversion.c, cfgparser.c, and cfgparser.h
 
   This is C file that is used to build mkversion program.  The mkversion
@@ -57,7 +67,7 @@ mkversion.c, cfgparser.c, and cfgparser.h
   .version file in the top level directory into include/nuttx/version.h.
   version.h provides version information that can be included by C files.
 
-mksyscall.c
+mksyscall.c, cvsparser.c, and cvsparser.h
 
   This is a C file that is used to build mksyscall program.  The mksyscall
   program is used during the initial NuttX build by the logic in the top-
@@ -78,6 +88,26 @@ mksyscall.c
   value (CSV) file in the syscall/ directory.  The mksyscall program will
   accept this CVS file as input and generate all of the required proxy or
   stub files as output.  See syscall/README.txt for additonal information.
+
+mksymtab.c, cvsparser.c, and cvsparser.h
+
+  This is a C file that is used to build symbol tables from common-separated
+  value (CSV) files.  This tool is not used during the NuttX build, but
+  can be used as needed to generate files.
+
+  USAGE: ./mksymtab <cvs-file> <symtab-file>
+
+  Where:
+
+    <cvs-file>   : The path to the input CSV file
+    <symtab-file>: The path to the output symbol table file
+    -d           : Enable debug output
+
+  Example:
+
+    cd nuttx/tools
+    cat ../syscall/syscall.csv ../lib/lib.csv | sort >tmp.csv
+    ./mksymtab.exe tmp.csv tmp.c
 
 pic32mx
 

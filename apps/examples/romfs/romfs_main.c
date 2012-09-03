@@ -452,10 +452,10 @@ static void checkdirectories(struct node_s *entry)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start
+ * Name: romfs_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int romfs_main(int argc, char *argv[])
 {
    int  ret;
 

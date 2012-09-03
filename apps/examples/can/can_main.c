@@ -76,14 +76,6 @@
 #  define MAX_ID (1 << 11)
 #endif
 
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME   can_main
-#  define MAIN_STRING "can_main: "
-#else
-#  define MAIN_NAME   user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -109,10 +101,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start/can_main
+ * Name: can_main
  ****************************************************************************/
 
-int MAIN_NAME(int argc, char *argv[])
+int can_main(int argc, char *argv[])
 {
 #ifndef CONFIG_EXAMPLES_CAN_READONLY
   struct can_msg_s txmsg;
@@ -150,31 +142,31 @@ int MAIN_NAME(int argc, char *argv[])
     {
       nmsgs = strtol(argv[1], NULL, 10);
     }
-  message(MAIN_STRING "nmsgs: %d\n", nmsgs);
+  message("can_main: nmsgs: %d\n", nmsgs);
 #elif defined(CONFIG_EXAMPLES_CAN_NMSGS)
-  message(MAIN_STRING "nmsgs: %d\n", CONFIG_EXAMPLES_CAN_NMSGS);
+  message("can_main: nmsgs: %d\n", CONFIG_EXAMPLES_CAN_NMSGS);
 #endif
 
   /* Initialization of the CAN hardware is performed by logic external to
    * this test.
    */
 
-  message(MAIN_STRING "Initializing external CAN device\n");
+  message("can_main: Initializing external CAN device\n");
   ret = can_devinit();
   if (ret != OK)
     {
-      message(MAIN_STRING "can_devinit failed: %d\n", ret);
+      message("can_main: can_devinit failed: %d\n", ret);
       errval = 1;
       goto errout;
     }
 
   /* Open the CAN device for reading */
 
-  message(MAIN_STRING "Hardware initialized. Opening the CAN device\n");
+  message("can_main: Hardware initialized. Opening the CAN device\n");
   fd = open(CONFIG_EXAMPLES_CAN_DEVPATH, CAN_OFLAGS);
   if (fd < 0)
     {
-      message(MAIN_STRING "open %s failed: %d\n",
+      message("can_main: open %s failed: %d\n",
               CONFIG_EXAMPLES_CAN_DEVPATH, errno);
       errval = 2;
       goto errout_with_dev;
