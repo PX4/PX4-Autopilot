@@ -63,11 +63,17 @@ __EXPORT int ardrone_interface_main(int argc, char *argv[]);
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
 static int ardrone_interface_task;		/**< Handle of deamon task / thread */
+static int ardrone_write;			/**< UART to write AR.Drone commands to */
 
 /**
  * Mainloop of ardrone_interface.
  */
 int ardrone_interface_thread_main(int argc, char *argv[]);
+
+/**
+ * Open the UART connected to the motor controllers
+ */
+static int ardrone_open_uart(struct termios *uart_config_original);
 
 /**
  * Print the correct usage.
@@ -128,63 +134,74 @@ int ardrone_interface_main(int argc, char *argv[])
 	exit(1);
 }
 
+static int ardrone_open_uart(struct termios *uart_config_original)
+{
+	/* baud rate */
+	int speed = B115200;
+	int uart;
+	const char* uart_name = "/dev/ttyS1";
+
+	/* open uart */
+	printf("[ardrone_interface] UART is /dev/ttyS1, baud rate is 115200");
+	uart = open(uart_name, O_RDWR | O_NOCTTY);
+
+	/* Try to set baud rate */
+	struct termios uart_config;
+	int termios_state;
+
+	/* Back up the original uart configuration to restore it after exit */
+	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
+		fprintf(stderr, "[ardrone_interface] ERROR getting baudrate / termios config for %s: %d\n", uart_name, termios_state);
+		close(uart);
+		return -1;
+	}
+
+	/* Fill the struct for the new configuration */
+	tcgetattr(uart, &uart_config);
+
+	/* Clear ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag &= ~ONLCR;
+
+	/* Set baud rate */
+	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
+		fprintf(stderr, "[ardrone_interface] ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+		close(uart);
+		return -1;
+	}
+
+
+	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
+		fprintf(stderr, "[ardrone_interface] ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+		close(uart);
+		return -1;
+	}
+
+	return uart;
+}
+
 int ardrone_interface_thread_main(int argc, char *argv[])
 {
 	/* welcome user */
 	printf("[ardrone_interface] Control started, taking over motors\n");
-
-	/* default values for arguments */
-	char *ardrone_uart_name = "/dev/ttyS1";
-
+	
 	/* File descriptors */
-	int ardrone_write;
 	int gpios;
 
-	enum {
-		CONTROL_MODE_RATES = 0,
-		CONTROL_MODE_ATTITUDE = 1,
-	} control_mode = CONTROL_MODE_ATTITUDE;
-
-	char *commandline_usage = "\tusage: ardrone_interface -d ardrone-devicename -m mode\n\tmodes are:\n\t\trates\n\t\tattitude\n";
+	char *commandline_usage = "\tusage: ardrone_interface start|status|stop [-t for motor test (10%% thrust)]\n";
 
 	bool motor_test_mode = false;
 
 	/* read commandline arguments */
 	for (int i = 1; i < argc; i++) {
-		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) { //ardrone set
-			if (argc > i + 1) {
-				ardrone_uart_name = argv[i + 1];
-			} else {
-				printf(commandline_usage);
-				return ERROR;
-			}
-
-		} else if (strcmp(argv[i], "-m") == 0 || strcmp(argv[i], "--mode") == 0) {
-			if (argc > i + 1) {
-				if (strcmp(argv[i + 1], "rates") == 0) {
-					control_mode = CONTROL_MODE_RATES;
-
-				} else if (strcmp(argv[i + 1], "attitude") == 0) {
-					control_mode = CONTROL_MODE_ATTITUDE;
-
-				} else {
-					printf(commandline_usage);
-					return ERROR;
-				}
-
-			} else {
-				printf(commandline_usage);
-				return ERROR;
-			}
-
-		} else if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--test") == 0) {
+		if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--test") == 0) {
 			motor_test_mode = true;
 		}
 	}
 
-	/* open uarts */
-	printf("[ardrone_interface] AR.Drone UART is %s\n", ardrone_uart_name);
-	ardrone_write = open(ardrone_uart_name, O_RDWR | O_NOCTTY | O_NDELAY);
+	struct termios uart_config_original;
+
+	ardrone_write = ardrone_open_uart(&uart_config_original);
+
 	if (ardrone_write < 0) {
 		fprintf(stderr, "[ardrone_interface] Failed opening AR.Drone UART, exiting.\n");
 		exit(ERROR);
@@ -279,11 +296,19 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 		counter++;
 	}
 
+	/* restore old UART config */
+	int termios_state;
+
+	if ((termios_state = tcsetattr(ardrone_write, TCSANOW, &uart_config_original)) < 0) {
+		fprintf(stderr, "[ardrone_interface] ERROR setting baudrate / termios config for (tcsetattr)\n");
+	}
+
+	printf("[ardrone_interface] Restored original UART config, exiting..\n");
+
 	/* close uarts */
 	close(ardrone_write);
 	ar_multiplexing_deinit(gpios);
 
-	printf("[ardrone_interface] ending now...\n\n");
 	fflush(stdout);
 
 	thread_running = false;
