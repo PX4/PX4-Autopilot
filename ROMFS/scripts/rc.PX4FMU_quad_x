@@ -7,7 +7,10 @@ uorb start
 
 echo "[init] eeprom"
 eeprom start
-eeprom load_param /eeprom/parameters
+if [ -f /eeprom/parameters]
+then
+	eeprom load_param /eeprom/parameters
+fi
 
 echo "[init] sensors"
 #bma180 start
