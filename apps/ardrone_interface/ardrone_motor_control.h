@@ -49,8 +49,19 @@ void ar_get_motor_packet(uint8_t *motor_buf, uint16_t motor1, uint16_t motor2, u
 
 /**
  * Select a motor in the multiplexing.
+ *
+ * @param fd GPIO file descriptor
+ * @param motor Motor number, from 1 to 4, 0 selects all
  */
 int ar_select_motor(int fd, uint8_t motor);
+
+/**
+ * Deselect a motor in the multiplexing.
+ *
+ * @param fd GPIO file descriptor
+ * @param motor Motor number, from 1 to 4, 0 deselects all
+ */
+int ar_deselect_motor(int fd, uint8_t motor);
 
 void ar_enable_broadcast(int fd);
 
@@ -69,7 +80,7 @@ int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor
 /**
  * Initialize the motors.
  */
-int ar_init_motors(int ardrone_uart, int *gpios_pin);
+int ar_init_motors(int ardrone_uart, int gpio);
 
 /**
  * Set LED pattern.

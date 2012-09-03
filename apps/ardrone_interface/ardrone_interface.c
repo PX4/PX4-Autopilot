@@ -112,7 +112,6 @@ int ardrone_interface_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		ardrone_interface_task = task_create("ardrone_interface", SCHED_PRIORITY_MAX - 15, 4096, ardrone_interface_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
-		thread_running = true;
 		exit(0);
 	}
 
@@ -142,7 +141,7 @@ static int ardrone_open_uart(struct termios *uart_config_original)
 	const char* uart_name = "/dev/ttyS1";
 
 	/* open uart */
-	printf("[ardrone_interface] UART is /dev/ttyS1, baud rate is 115200");
+	printf("[ardrone_interface] UART is /dev/ttyS1, baud rate is 115200\n");
 	uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	/* Try to set baud rate */
@@ -181,9 +180,11 @@ static int ardrone_open_uart(struct termios *uart_config_original)
 
 int ardrone_interface_thread_main(int argc, char *argv[])
 {
+	thread_running = true;
+
 	/* welcome user */
 	printf("[ardrone_interface] Control started, taking over motors\n");
-	
+
 	/* File descriptors */
 	int gpios;
 
@@ -192,7 +193,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	bool motor_test_mode = false;
 
 	/* read commandline arguments */
-	for (int i = 1; i < argc; i++) {
+	for (int i = 0; i < argc && argv[i]; i++) {
 		if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--test") == 0) {
 			motor_test_mode = true;
 		}
@@ -200,17 +201,27 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 
 	struct termios uart_config_original;
 
+	if (motor_test_mode) {
+		printf("[ardrone_interface] Motor test mode enabled, setting 10 %% thrust.\n");
+	}
+
+	/* initialize multiplexing, deactivate all outputs */
+	gpios = ar_multiplexing_init();
+
+	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
 	ardrone_write = ardrone_open_uart(&uart_config_original);
 
 	if (ardrone_write < 0) {
 		fprintf(stderr, "[ardrone_interface] Failed opening AR.Drone UART, exiting.\n");
+		thread_running = false;
 		exit(ERROR);
 	}
 
 	/* initialize motors */
-	if (OK != ar_init_motors(ardrone_write, &gpios)) {
+	if (OK != ar_init_motors(ardrone_write, gpios)) {
 		close(ardrone_write);
 		fprintf(stderr, "[ardrone_interface] Failed initializing AR.Drone motors, exiting.\n");
+		thread_running = false;
 		exit(ERROR);
 	}
 
@@ -231,18 +242,14 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
+	printf("[ardrone_interface] Motors initialized - ready.\n");
+	fflush(stdout);
+
 	while (!thread_should_exit) {
 
 		if (motor_test_mode) {
 			/* set motors to idle speed */
-			ardrone_write_motor_commands(ardrone_write, 10, 0, 0, 0);
-			sleep(2);
-			ardrone_write_motor_commands(ardrone_write, 0, 10, 0, 0);
-			sleep(2);
-			ardrone_write_motor_commands(ardrone_write, 0, 0, 10, 0);
-			sleep(2);
-			ardrone_write_motor_commands(ardrone_write, 0, 0, 0, 10);
-			sleep(2);
+			ardrone_write_motor_commands(ardrone_write, 10, 10, 10, 10);
 		} else {
 			/* MAIN OPERATION MODE */
 
@@ -290,8 +297,8 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 			if (led_counter == 12) led_counter = 0;
 		}
 
-		/* run at approximately 50 Hz */
-		usleep(20000);
+		/* run at approximately 100 Hz */
+		usleep(1000);
 
 		counter++;
 	}
