@@ -118,6 +118,7 @@ int ar_multiplexing_init()
 		return -1;
 	}
 
+	/* configure all motor select GPIOs as outputs */
 	if (ioctl(fd, GPIO_SET_OUTPUT, motor_gpios) != 0) {
 		warn("GPIO: output set fail");
 		close(fd);
@@ -174,8 +175,6 @@ int ar_select_motor(int fd, uint8_t motor)
 		ret += ioctl(fd, GPIO_CLEAR, motor_gpio[motor - 1]);
 	}
 
-	fsync(fd);
-
 	return ret;
 }
 
@@ -208,14 +207,15 @@ int ar_init_motors(int ardrone_uart, int gpios)
 	uint8_t initbuf[] = {0xE0, 0x91, 0xA1, 0x00, 0x40};
 	uint8_t multicastbuf[] = {0xA0, 0xA0, 0xA0, 0xA0, 0xA0, 0xA0};
 
+	/* deselect all motors */
+	ar_deselect_motor(gpios, 0);
+
 	/* initialize all motors
 	 * - select one motor at a time
 	 * - configure motor
 	 */
 	int i;
 	int errcounter = 0;
-
-	gpios = ar_multiplexing_init();
 
 	for (i = 1; i < 5; ++i) {
 		/* Initialize motors 1-4 */
