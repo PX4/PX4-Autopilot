@@ -127,8 +127,13 @@ private:
 	bool			_collect_phase;
 	unsigned		_measure_phase;
 
-	int32_t			_dT;
-	int64_t			_temp64;
+	/* intermediate temperature values per MS5611 datasheet */
+	int32_t			_TEMP;
+	int64_t			_OFF;
+	int64_t			_SENS;
+
+	/* altitude conversion calibration */
+	unsigned		_msl_pressure;	/* in kPa */
 
 	orb_advert_t		_baro_topic;
 
@@ -194,6 +199,13 @@ private:
 	int			collect();
 
 	/**
+	 * Send a reset command to the MS5611.
+	 *
+	 * This is required after any bus reset.
+	 */
+	int			cmd_reset();
+
+	/**
 	 * Read the MS5611 PROM
 	 *
 	 * @return		OK if the PROM reads successfully.
@@ -213,6 +225,9 @@ private:
 /* helper macro for handling report buffer indices */
 #define INCREMENT(_x, _lim)	do { _x++; if (_x >= _lim) _x = 0; } while(0)
 
+/* helper macro for arithmetic - returns the square of the argument */
+#define POW2(_x)		((_x) * (_x))
+
 /*
  * MS5611 internal constants and data structures.
  */
@@ -224,12 +239,12 @@ private:
 #define MS5611_ADDRESS_1		0x76    /* address select pins pulled high (PX4FMU series v1.6+) */
 #define MS5611_ADDRESS_2		0x77    /* address select pins pulled low (PX4FMU prototypes) */
 
-#define ADDR_RESET_CMD			0x1E /* read from this address to reset chip (0b0011110 on bus) */
-#define ADDR_CMD_CONVERT_D1		0x48 /* 4096 samples to this address to start conversion (0b01001000 on bus) */
-#define ADDR_CMD_CONVERT_D2		0x58 /* 4096 samples */
-#define ADDR_DATA				0x00 /* address of 3 bytes / 32bit pressure data */
-#define ADDR_PROM_SETUP			0xA0 /* address of 8x 2 bytes factory and calibration data */
-#define ADDR_PROM_C1			0xA2 /* address of 6x 2 bytes calibration data */
+#define ADDR_RESET_CMD			0x1E	/* write to this address to reset chip */
+#define ADDR_CMD_CONVERT_D1		0x48	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2		0x58	/* write to this address to start pressure conversion */
+#define ADDR_DATA			0x00	/* address of 3 bytes / 32bit pressure data */
+#define ADDR_PROM_SETUP			0xA0	/* address of 8x 2 bytes factory and calibration data */
+#define ADDR_PROM_C1			0xA2	/* address of 6x 2 bytes calibration data */
 
 /*
  * Driver 'main' command.
@@ -246,8 +261,10 @@ MS5611::MS5611(int bus) :
 	_reports(nullptr),
 	_collect_phase(false),
 	_measure_phase(0),
-	_dT(0),
-	_temp64(0),
+	_TEMP(0),
+	_OFF(0),
+	_SENS(0),
+	_msl_pressure(101325),
 	_baro_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ms5611_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ms5611_comms_errors")),
@@ -314,17 +331,12 @@ MS5611::probe()
 int
 MS5611::probe_address(uint8_t address)
 {
-	uint8_t cmd = ADDR_RESET_CMD;
-
 	/* select the address we are going to try */
 	set_address(address);
 
 	/* send reset command */
-	if (OK != transfer(&cmd, 1, nullptr, 0))
+	if (OK != cmd_reset())
 		return -EIO;
-
-	/* wait for PROM contents to be in the device (2.8 ms) */
-	usleep(3000);
 
 	/* read PROM */
 	if (OK != read_prom())
@@ -501,10 +513,22 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* XXX implement this */
 		return -EINVAL;
 
+	case BAROIOCSMSLPRESSURE:
+		/* range-check for sanity */
+		if ((arg < 80000) || (arg > 120000))
+			return -EINVAL;
+		_msl_pressure = arg;
+		return OK;
+
+	case BAROIOCGMSLPRESSURE:
+		return _msl_pressure;
+
 	default:
-		/* give it to the superclass */
-		return I2C::ioctl(filp, cmd, arg);
+		break;
 	}
+
+	/* give it to the superclass */
+	return I2C::ioctl(filp, cmd, arg);
 }
 
 void
@@ -610,6 +634,10 @@ MS5611::collect()
 {
 	uint8_t cmd;
 	uint8_t data[3];
+	union {
+		uint8_t	b[4];
+		uint32_t w;
+	} cvt;
 
 	/* read the most recent measurement */
 	cmd = 0;
@@ -625,40 +653,112 @@ MS5611::collect()
 	}
 
 	/* fetch the raw value */
-	uint32_t raw = (((uint32_t)data[0]) << 16) | (((uint32_t)data[1]) << 8) | ((uint32_t)data[2]);
+	cvt.b[0] = data[2];
+	cvt.b[1] = data[1];
+	cvt.b[2] = data[0];
+	cvt.b[3] = 0;
+	uint32_t raw = cvt.w;
 
 	/* handle a measurement */
 	if (_measure_phase == 0) {
 
-		/* temperature calculation */
-		_dT = raw - (((int32_t)_prom.s.c5_reference_temp) * 256);
-		_temp64 = 2000 + (((int64_t)_dT) * _prom.s.c6_temp_coeff_temp) / 8388608;
+		/* temperature offset (in ADC units) */
+		int32_t dT = (int32_t)raw - ((int32_t)_prom.s.c5_reference_temp << 8);
 
+		/* absolute temperature in centidegrees - note intermediate value is outside 32-bit range */
+		_TEMP = 2000 + (int32_t)(((int64_t)dT * _prom.s.c6_temp_coeff_temp) >> 23);
+
+		/* base sensor scale/offset values */
+		_SENS = ((int64_t)_prom.s.c1_pressure_sens << 15) + (((int64_t)_prom.s.c3_temp_coeff_pres_sens * dT) >> 8);
+		_OFF  = ((int64_t)_prom.s.c2_pressure_offset << 16) + (((int64_t)_prom.s.c4_temp_coeff_pres_offset * dT) >> 7);
+
+		/* temperature compensation */
+		if (_TEMP < 2000) {
+
+			int32_t T2 = POW2(dT) >> 31;
+
+			int64_t f = POW2((int64_t)_TEMP - 2000);
+			int64_t OFF2 = 5 * f >> 1;
+			int64_t SENS2 = 5 * f >> 2;
+
+			if (_TEMP < -1500) {
+				int64_t f2 = POW2(_TEMP + 1500); 
+				OFF2 += 7 * f2;
+				SENS2 += 11 * f2 >> 1;
+			}
+
+			_TEMP -= T2;
+			_OFF  -= OFF2;
+			_SENS -= SENS2;
+		}
 	} else {
 
-		/* pressure calculation */
-		int64_t offset = (int64_t)_prom.s.c2_pressure_offset * 65536 + ((int64_t)_dT * _prom.s.c4_temp_coeff_pres_offset) / 128;
-		int64_t sens = (int64_t)_prom.s.c1_pressure_sens * 32768 + ((int64_t)_dT * _prom.s.c3_temp_coeff_pres_sens) / 256;
-
-		/* it's pretty cold, second order temperature compensation needed */
-		if (_temp64 < 2000) {
-			/* second order temperature compensation */
-			int64_t temp2 = (((int64_t)_dT) * _dT) >> 31;
-			int64_t tmp_64 = (_temp64 - 2000) * (_temp64 - 2000);
-			int64_t offset2 = (5 * tmp_64) >> 1;
-			int64_t sens2 = (5 * tmp_64) >> 2;
-			_temp64 = _temp64 - temp2;
-			offset = offset - offset2;
-			sens = sens - sens2;
-		}
-
-		int64_t press_int64 = (((raw * sens) / 2097152 - offset) / 32768);
+		/* pressure calculation, result in Pa */
+		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 15;
 
 		/* generate a new report */
-		_reports[_next_report].temperature = _temp64 / 100.0f;
-		_reports[_next_report].pressure = press_int64 / 100.0f;
-		/* convert as double for max. precision, store as float (more than enough precision) */
-		_reports[_next_report].altitude = (44330.0 * (1.0 - pow((press_int64 / 101325.0), 0.190295)));
+		_reports[_next_report].temperature = _TEMP / 100.0f;
+		_reports[_next_report].pressure = P / 100.0f;		/* convert to millibar */
+
+		/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
+
+		/*
+		 * PERFORMANCE HINT:
+		 *
+		 * The single precision calculation is 50 microseconds faster than the double
+		 * precision variant. It is however not obvious if double precision is required.
+		 * Pending more inspection and tests, we'll leave the double precision variant active.
+		 *
+		 * Measurements:
+		 * 	double precision: ms5611_read: 992 events, 258641us elapsed, min 202us max 305us
+		 *	single precision: ms5611_read: 963 events, 208066us elapsed, min 202us max 241us
+		 */
+
+		// /* tropospheric properties (0-11km) for standard atmosphere */
+		// const float T1 = 15.0f + 273.15f;	/* temperature at base height in Kelvin */
+		// const float a  = -6.5f / 1000f;	/* temperature gradient in degrees per metre */
+		// const float g  = 9.80665f;	/* gravity constant in m/s/s */
+		// const float R  = 287.05f;	/* ideal gas constant in J/kg/K */
+
+		// /* current pressure at MSL in kPa */
+		// float p1 = _msl_pressure / 1000.0f;
+
+		// /* measured pressure in kPa */
+		// float p = P / 1000.0f;
+
+		// /*
+		//  * Solve:
+		//  *
+		//  *     /        -(aR / g)     \
+		//  *    | (p / p1)          . T1 | - T1
+		//  *     \                      /
+		//  * h = -------------------------------  + h1
+		//  *                   a
+		//  */
+		// _reports[_next_report].altitude = (((powf((p / p1), (-(a * R) / g))) * T1) - T1) / a;
+
+		/* tropospheric properties (0-11km) for standard atmosphere */
+		const double T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
+		const double a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
+		const double g  = 9.80665;	/* gravity constant in m/s/s */
+		const double R  = 287.05;	/* ideal gas constant in J/kg/K */
+
+		/* current pressure at MSL in kPa */
+		double p1 = _msl_pressure / 1000.0;
+
+		/* measured pressure in kPa */
+		double p = P / 1000.0;
+
+		/*
+		 * Solve:
+		 *
+		 *     /        -(aR / g)     \
+		 *    | (p / p1)          . T1 | - T1
+		 *     \                      /
+		 * h = -------------------------------  + h1
+		 *                   a
+		 */
+		_reports[_next_report].altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
 		/* publish it */
 		orb_publish(ORB_ID(sensor_baro), _baro_topic, &_reports[_next_report]);
@@ -685,11 +785,36 @@ MS5611::collect()
 }
 
 int
+MS5611::cmd_reset()
+{
+	unsigned	old_retrycount = _retries;
+	uint8_t		cmd = ADDR_RESET_CMD;
+	int		result;
+
+	/* bump the retry count */
+	_retries = 10;
+	result = transfer(&cmd, 1, nullptr, 0);
+	_retries = old_retrycount;
+
+	return result;
+}
+
+int
 MS5611::read_prom()
 {
-	/* read PROM data */
-	uint8_t prom_buf[2] = {255, 255};
+	uint8_t		prom_buf[2];
+	union {
+		uint8_t		b[2];
+		uint16_t	w;
+	} cvt;
 
+	/* 
+	 * Wait for PROM contents to be in the device (2.8 ms) in the case we are 
+	 * called immediately after reset.
+	 */
+	usleep(3000);
+
+	/* read and convert PROM words */
 	for (int i = 0; i < 8; i++) {
 		uint8_t cmd = ADDR_PROM_SETUP + (i * 2);
 
@@ -697,11 +822,12 @@ MS5611::read_prom()
 			break;
 
 		/* assemble 16 bit value and convert from big endian (sensor) to little endian (MCU) */
-		_prom.c[i] = (((uint16_t)prom_buf[0]) << 8) | ((uint16_t)prom_buf[1]);
-
+		cvt.b[0] = prom_buf[1];
+		cvt.b[1] = prom_buf[0];
+		_prom.c[i] = cvt.w;
 	}
 
-	/* calculate CRC and return false */
+	/* calculate CRC and return success/failure accordingly */
 	return crc4(&_prom.c[0]) ? OK : -EIO;
 }
 
@@ -757,7 +883,19 @@ MS5611::print_info()
 	printf("poll interval:  %u ticks\n", _measure_ticks);
 	printf("report queue:   %u (%u/%u @ %p)\n",
 	       _num_reports, _oldest_report, _next_report, _reports);
-	printf("dT/temp64:      %d/%lld\n", _dT, _temp64);
+	printf("TEMP:           %d\n", _TEMP);
+	printf("SENS:           %lld\n", _SENS);
+	printf("OFF:            %lld\n", _OFF);
+	printf("MSL pressure:   %10.4f\n", (double)(_msl_pressure / 100.f));
+
+	printf("factory_setup             %u\n", _prom.s.factory_setup);
+	printf("c1_pressure_sens          %u\n", _prom.s.c1_pressure_sens);
+	printf("c2_pressure_offset        %u\n", _prom.s.c2_pressure_offset);
+	printf("c3_temp_coeff_pres_sens   %u\n", _prom.s.c3_temp_coeff_pres_sens);
+	printf("c4_temp_coeff_pres_offset %u\n", _prom.s.c4_temp_coeff_pres_offset);
+	printf("c5_reference_temp         %u\n", _prom.s.c5_reference_temp);
+	printf("c6_temp_coeff_temp        %u\n", _prom.s.c6_temp_coeff_temp);
+	printf("serial_and_crc            %u\n", _prom.s.serial_and_crc);
 }
 
 /**
@@ -772,6 +910,7 @@ void	start();
 void	test();
 void	reset();
 void	info();
+void	calibrate(unsigned altitude);
 
 /**
  * Start the driver.
@@ -824,7 +963,7 @@ test()
 
 	int fd = open(BARO_DEVICE_PATH, O_RDONLY);
 	if (fd < 0)
-		err(1, "%s open failed (try 'ms5611 start' if the driver is not running", BARO_DEVICE_PATH);
+		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", BARO_DEVICE_PATH);
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
@@ -905,6 +1044,68 @@ info()
 	exit(0);
 }
 
+/**
+ * Calculate actual MSL pressure given current altitude
+ */
+void
+calibrate(unsigned altitude)
+{
+	struct baro_report report;
+	float	pressure;
+	float	p1;
+
+	int fd = open(BARO_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", BARO_DEVICE_PATH);
+
+	/* start the sensor polling at max */
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MAX))
+		errx(1, "failed to set poll rate");
+
+	/* average a few measurements */
+	pressure = 0.0f;
+	for (unsigned i = 0; i < 20; i++) {
+		struct pollfd fds;
+		int ret;
+		ssize_t sz;
+
+		/* wait for data to be ready */
+		fds.fd = fd;
+		fds.events = POLLIN;
+		ret = poll(&fds, 1, 1000);
+
+		if (ret != 1)
+			errx(1, "timed out waiting for sensor data");
+
+		/* now go get it */
+		sz = read(fd, &report, sizeof(report));
+
+		if (sz != sizeof(report))
+			err(1, "sensor read failed");
+
+		pressure += report.pressure;
+	}
+	pressure /= 20;		/* average */
+	pressure /= 10;		/* scale from millibar to kPa */
+
+	/* tropospheric properties (0-11km) for standard atmosphere */
+	const float T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
+	const float a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
+	const float g  = 9.80665f;	/* gravity constant in m/s/s */
+	const float R  = 287.05f;	/* ideal gas constant in J/kg/K */
+
+	warnx("averaged pressure %10.4fkPa at %um", pressure, altitude);
+
+	p1 = pressure * (powf(((T1 + (a * (float)altitude)) / T1), (g / (a * R))));
+
+	warnx("calculated MSL pressure %10.4fkPa", p1);
+
+	/* save as integer Pa */
+	p1 *= 1000.0f;
+	if (ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK)
+		err(1, "BAROIOCSMSLPRESSURE");
+	exit(0);
+}
 
 } // namespace
 
@@ -934,6 +1135,18 @@ ms5611_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[1], "info"))
 		ms5611::info();
+
+	/*
+	 * Perform MSL pressure calibration given an altitude in metres
+	 */
+	if (!strcmp(argv[1], "calibrate")) {
+		if (argc < 2)
+			errx(1, "missing altitude");
+
+		long altitude = strtol(argv[2], nullptr, 10);
+		
+		ms5611::calibrate(altitude);
+	}
 
 	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
 }
