@@ -702,17 +702,52 @@ MS5611::collect()
 
 		/* altitude calculations based on http://www.kansasflyer.org/index.asp?nav=Avi&sec=Alti&tab=Theory&pg=1 */
 
+		/*
+		 * PERFORMANCE HINT:
+		 *
+		 * The single precision calculation is 50 microseconds faster than the double
+		 * precision variant. It is however not obvious if double precision is required.
+		 * Pending more inspection and tests, we'll leave the double precision variant active.
+		 *
+		 * Measurements:
+		 * 	double precision: ms5611_read: 992 events, 258641us elapsed, min 202us max 305us
+		 *	single precision: ms5611_read: 963 events, 208066us elapsed, min 202us max 241us
+		 */
+
+		// /* tropospheric properties (0-11km) for standard atmosphere */
+		// const float T1 = 15.0f + 273.15f;	/* temperature at base height in Kelvin */
+		// const float a  = -6.5f / 1000f;	/* temperature gradient in degrees per metre */
+		// const float g  = 9.80665f;	/* gravity constant in m/s/s */
+		// const float R  = 287.05f;	/* ideal gas constant in J/kg/K */
+
+		// /* current pressure at MSL in kPa */
+		// float p1 = _msl_pressure / 1000.0f;
+
+		// /* measured pressure in kPa */
+		// float p = P / 1000.0f;
+
+		// /*
+		//  * Solve:
+		//  *
+		//  *     /        -(aR / g)     \
+		//  *    | (p / p1)          . T1 | - T1
+		//  *     \                      /
+		//  * h = -------------------------------  + h1
+		//  *                   a
+		//  */
+		// _reports[_next_report].altitude = (((powf((p / p1), (-(a * R) / g))) * T1) - T1) / a;
+
 		/* tropospheric properties (0-11km) for standard atmosphere */
-		const float T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
-		const float a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
-		const float g  = 9.80665f;	/* gravity constant in m/s/s */
-		const float R  = 287.05f;	/* ideal gas constant in J/kg/K */
+		const double T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
+		const double a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
+		const double g  = 9.80665;	/* gravity constant in m/s/s */
+		const double R  = 287.05;	/* ideal gas constant in J/kg/K */
 
 		/* current pressure at MSL in kPa */
-		float p1 = _msl_pressure / 1000.0f;
+		double p1 = _msl_pressure / 1000.0;
 
 		/* measured pressure in kPa */
-		float p = P / 1000.0f;
+		double p = P / 1000.0;
 
 		/*
 		 * Solve:
@@ -723,7 +758,7 @@ MS5611::collect()
 		 * h = -------------------------------  + h1
 		 *                   a
 		 */
-		_reports[_next_report].altitude = (((powf((p / p1), (-(a * R) / g))) * T1) - T1) / a;
+		_reports[_next_report].altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
 
 		/* publish it */
 		orb_publish(ORB_ID(sensor_baro), _baro_topic, &_reports[_next_report]);
