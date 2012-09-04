@@ -217,14 +217,6 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 		exit(ERROR);
 	}
 
-	/* initialize motors */
-	if (OK != ar_init_motors(ardrone_write, gpios)) {
-		close(ardrone_write);
-		fprintf(stderr, "[ardrone_interface] Failed initializing AR.Drone motors, exiting.\n");
-		thread_running = false;
-		exit(ERROR);
-	}
-
 	/* Led animation */
 	int counter = 0;
 	int led_counter = 0;
@@ -244,6 +236,44 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 
 	printf("[ardrone_interface] Motors initialized - ready.\n");
 	fflush(stdout);
+
+	/* initialize motors */
+	if (OK != ar_init_motors(ardrone_write, gpios)) {
+		close(ardrone_write);
+		fprintf(stderr, "[ardrone_interface] Failed initializing AR.Drone motors, exiting.\n");
+		thread_running = false;
+		exit(ERROR);
+	}
+
+	ardrone_write_motor_commands(ardrone_write, 0, 0, 0, 0);
+
+
+	// XXX Re-done initialization to make sure it is accepted by the motors
+	// XXX should be removed after more testing, but no harm
+
+	/* close uarts */
+	close(ardrone_write);
+	ar_multiplexing_deinit(gpios);
+
+	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
+	ardrone_write = ardrone_open_uart(&uart_config_original);
+
+	/* initialize multiplexing, deactivate all outputs - must happen after UART open to claim GPIOs on PX4FMU */
+	gpios = ar_multiplexing_init();
+
+	if (ardrone_write < 0) {
+		fprintf(stderr, "[ardrone_interface] Failed opening AR.Drone UART, exiting.\n");
+		thread_running = false;
+		exit(ERROR);
+	}
+
+	/* initialize motors */
+	if (OK != ar_init_motors(ardrone_write, gpios)) {
+		close(ardrone_write);
+		fprintf(stderr, "[ardrone_interface] Failed initializing AR.Drone motors, exiting.\n");
+		thread_running = false;
+		exit(ERROR);
+	}
 
 	while (!thread_should_exit) {
 
@@ -267,7 +297,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 			}
 		}
 
-		if (counter % 22 == 0) {
+		if (counter % 16 == 0) {
 			if (led_counter == 0) ar_set_leds(ardrone_write, 0, 1, 0, 0, 0, 0, 0 , 0);
 
 			if (led_counter == 1) ar_set_leds(ardrone_write, 1, 1, 0, 0, 0, 0, 0 , 0);
@@ -297,8 +327,8 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 			if (led_counter == 12) led_counter = 0;
 		}
 
-		/* run at approximately 100 Hz */
-		usleep(1000);
+		/* run at approximately 200 Hz */
+		usleep(5000);
 
 		counter++;
 	}

@@ -914,7 +914,7 @@ Sensors::ppm_poll()
 	if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
 	
 	/* throttle input */
-	manual_control.throttle = (_rc.chan[_rc.function[THROTTLE]].scaled+1.0f)/2.0f;
+	manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled/2.0f;
 	if (manual_control.throttle < 0.0f) manual_control.throttle = 0.0f;
 	if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
 

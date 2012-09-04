@@ -55,6 +55,8 @@ typedef union {
 	uint8_t bytes[2];
 } motor_union_t;
 
+#define UART_TRANSFER_TIME_BYTE_US (9+50) /**< 9 us per byte at 115200k plus overhead */
+
 /**
  * @brief Generate the 8-byte motor set packet
  *
@@ -217,69 +219,80 @@ int ar_init_motors(int ardrone_uart, int gpios)
 	int i;
 	int errcounter = 0;
 
+
+	/* initial setup run */
 	for (i = 1; i < 5; ++i) {
 		/* Initialize motors 1-4 */
-		initbuf[3] = (uint8_t)i;
 		errcounter += ar_select_motor(gpios, i);
 
-		write(ardrone_uart, &(initbuf[0]), 1);
-
-		/* sleep 5 ms */
-		usleep(5000);
-
-		write(ardrone_uart, &(initbuf[1]), 1);
-		/* wait 50 ms */
-		usleep(5000);
-
-		write(ardrone_uart, &(initbuf[2]), 1);
-		/* wait 50 ms */
-		usleep(50000);
-
 		write(ardrone_uart, &(initbuf[3]), 1);
-		/* wait 50 ms */
-		usleep(50000);
-
-		write(ardrone_uart, &(initbuf[4]), 1);
-		/* wait 50 ms */
-		usleep(50000);
-
-		/* wait 5 ms */
-		usleep(50000);
-
-		/* enforce immediate write */
 		fsync(ardrone_uart);
 
-		ar_deselect_motor(gpios, i);
+		/*
+		 * write 0xE0 - request status
+		 * receive one status byte
+		 */
+		write(ardrone_uart, &(initbuf[0]), 1);
+		fsync(ardrone_uart);
+		usleep(UART_TRANSFER_TIME_BYTE_US*1);
 
-		usleep(500000);
-		/* sleep 500 ms */
+		/*
+		 * write 0x91 - request checksum
+		 * receive 120 status bytes
+		 */
+		write(ardrone_uart, &(initbuf[1]), 1);
+		fsync(ardrone_uart);
+		usleep(UART_TRANSFER_TIME_BYTE_US*120);
+
+		/*
+		 * write 0xA1 - set status OK
+		 * receive one status byte - should be A0
+		 * to confirm status is OK
+		 */
+		write(ardrone_uart, &(initbuf[2]), 1);
+		fsync(ardrone_uart);
+		usleep(UART_TRANSFER_TIME_BYTE_US*1);
+
+		/*
+		 * set as motor i, where i = 1..4
+		 * receive nothing
+		 */
+		initbuf[3] = (uint8_t)i;
+		write(ardrone_uart, &(initbuf[3]), 1);
+		fsync(ardrone_uart);
+
+		/*
+		 * write 0x40 - check version
+		 * receive 11 bytes encoding the version
+		 */
+		write(ardrone_uart, &(initbuf[4]), 1);
+		fsync(ardrone_uart);
+		usleep(UART_TRANSFER_TIME_BYTE_US*11);
+
+		ar_deselect_motor(gpios, i);
+		/* sleep 400 ms */
+		usleep(400000);
 	}
 
 	/* start the multicast part */
 	errcounter += ar_select_motor(gpios, 0);
 
-	/* enable multicast */
-	write(ardrone_uart, &(multicastbuf[0]), 1);
-	/* wait 1 ms */
-	usleep(1000);
+	/*
+	 * write six times A0 - enable broadcast
+	 * receive nothing
+	 */
+	// for (int i = 0; i < sizeof(multicastbuf); i++) {
+	write(ardrone_uart, multicastbuf, 6);
+	fsync(ardrone_uart);
 
-	write(ardrone_uart, &(multicastbuf[1]), 1);
-	/* wait 1 ms */
-	usleep(1000);
+	usleep(200000);
 
-	write(ardrone_uart, &(multicastbuf[2]), 1);
-	/* wait 1 ms */
-	usleep(1000);
+	write(ardrone_uart, multicastbuf, 6);
+	fsync(ardrone_uart);
 
-	write(ardrone_uart, &(multicastbuf[3]), 1);
-	/* wait 1 ms */
-	usleep(1000);
-
-	write(ardrone_uart, &(multicastbuf[4]), 1);
-	/* wait 1 ms */
-	usleep(1000);
-
-	write(ardrone_uart, &(multicastbuf[5]), 1);
+	/* set motors to zero speed */
+	ardrone_write_motor_commands(ardrone_uart, 0, 0, 0, 0);
+	fsync(ardrone_uart);
 
 	if (errcounter != 0) {
 		fprintf(stderr, "[ardrone_interface] init sequence incomplete, failed %d times", -errcounter);
@@ -316,6 +329,7 @@ int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor
 		ar_get_motor_packet(buf, motor1, motor2, motor3, motor4);
 		int ret;
 		ret = write(ardrone_fd, buf, sizeof(buf));
+		fsync(ardrone_fd);
 		if (ret == sizeof(buf)) {
 			return OK;
 		} else {
