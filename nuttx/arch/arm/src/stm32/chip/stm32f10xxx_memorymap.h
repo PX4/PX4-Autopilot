@@ -47,7 +47,7 @@
 #define STM32_SRAMBB_BASE    0x22000000
 #define STM32_PERIPH_BASE    0x40000000
 
-#define STM32_REGION_MASK    0x0fffffff
+#define STM32_REGION_MASK    0xf0000000
 #define STM32_IS_SRAM(a)     ((((uint32_t)(a)) & STM32_REGION_MASK) == STM32_SRAM_BASE)
 
 /* Register Base Address ************************************************************/
