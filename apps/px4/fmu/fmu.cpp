@@ -121,6 +121,8 @@ FMUServo::FMUServo(Mode mode) :
 	_task(-1),
 	_t_actuators(-1),
 	_t_armed(-1),
+	_t_outputs(0),
+	_num_outputs(0),
 	_task_should_exit(false),
 	_armed(false),
 	_mixers(nullptr)
@@ -280,7 +282,6 @@ FMUServo::task_main()
 
 	::close(_t_actuators);
 	::close(_t_armed);
-	::close(_t_outputs);
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
