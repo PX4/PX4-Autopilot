@@ -19,11 +19,11 @@ config NETUTILS_HTTPD_SCRIPT_DISABLE
 	---help---
 		This option, if selected, will elide the %! scripting
 
-config NETUTILS_HTTPD_SERVERHEADER_DISABLE, which elides the Server: header
+config NETUTILS_HTTPD_SERVERHEADER_DISABLE
 	bool "Disabled the SERVER header"
 	default n
 	---help---
-		This option, if selected, will elide the Server: header
+		This option, if selected, will elide the Server\: header
 
 config NETUTILS_HTTPD_MMAP
 	bool "File mmap-ing"
