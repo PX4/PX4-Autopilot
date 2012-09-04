@@ -1786,7 +1786,7 @@ static int usbhost_disconnected(struct usbhost_class_s *class)
 
           uvdbg("Queuing destruction: worker %p->%p\n", priv->work.worker, usbhost_destroy);
           DEBUGASSERT(priv->work.worker == NULL);
-          (void)work_queue(&priv->work, usbhost_destroy, priv, 0);
+          (void)work_queue(HPWORK, &priv->work, usbhost_destroy, priv, 0);
        }
       else
         {

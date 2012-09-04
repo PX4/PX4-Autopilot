@@ -1,7 +1,7 @@
 /****************************************************************************
- * sched/work_queue.c
+ * sched/work_signal.c
  *
- *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,14 +39,9 @@
 
 #include <nuttx/config.h>
 
-#include <stdint.h>
-#include <queue.h>
+#include <signal.h>
 #include <assert.h>
-#include <errno.h>
-#include <debug.h>
 
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
 #include <nuttx/wqueue.h>
 
 #include "work_internal.h"
@@ -76,63 +71,26 @@
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
 /****************************************************************************
- * Name: work_queue
+ * Name: work_signal
  *
  * Description:
- *   Queue work to be performed at a later time.  All queued work will be
- *   performed on the worker thread of of execution (not the caller's).
- *
- *   The work structure is allocated by caller, but completely managed by
- *   the work queue logic.  The caller should never modify the contents of
- *   the work queue structure; the caller should not call work_queue()
- *   again until either (1) the previous work has been performed and removed
- *   from the queue, or (2) work_cancel() has been called to cancel the work
- *   and remove it from the work queue.
+ *   Signal the worker thread to process the work queue now.  This function
+ *   is used internally by the work logic but could also be used by the
+ *   user to force an immediate re-assessment of pending work.
  *
  * Input parameters:
- *   qid    - The work queue ID (index)
- *   work   - The work structure to queue
- *   worker - The worker callback to be invoked.  The callback will invoked
- *            on the worker thread of execution.
- *   arg    - The argument that will be passed to the workder callback when
- *            int is invoked.
- *   delay  - Delay (in clock ticks) from the time queue until the worker
- *            is invoked. Zero means to perform the work immediately.
+ *   qid    - The work queue ID
  *
  * Returned Value:
  *   Zero on success, a negated errno on failure
  *
  ****************************************************************************/
 
-int work_queue(int qid, FAR struct work_s *work, worker_t worker,
-               FAR void *arg, uint32_t delay)
+int work_signal(int qid)
 {
-  FAR struct wqueue_s *wqueue = &g_work[qid];
-  irqstate_t flags;
-
-  DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
-
-  /* First, initialize the work structure */
-
-  work->worker = worker;           /* Work callback */
-  work->arg    = arg;              /* Callback argument */
-  work->delay  = delay;            /* Delay until work performed */
-
-  /* Now, time-tag that entry and put it in the work queue.  This must be
-   * done with interrupts disabled.  This permits this function to be called
-   * from with task logic or interrupt handlers.
-   */
-
-  flags        = irqsave();
-  work->qtime  = clock_systimer(); /* Time work queued */
-
-  dq_addlast((FAR dq_entry_t *)work, &wqueue->q);
-  kill(wqueue->pid, SIGWORK);      /* Wake up the worker thread */
-
-  irqrestore(flags);
-  return OK;
+  DEBUGASSERT((unsigned)qid < NWORKERS);
+  return kill(g_work[qid].pid, SIGWORK);
 }
 
 #endif /* CONFIG_SCHED_WORKQUEUE */

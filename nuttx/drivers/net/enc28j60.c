@@ -1509,7 +1509,7 @@ static int enc_interrupt(int irq, FAR void *context)
    * a good thing to do in any event.
    */
 
-  return work_queue(&priv->work, enc_worker, (FAR void *)priv, 0);
+  return work_queue(HPWORK, &priv->work, enc_worker, (FAR void *)priv, 0);
 #endif
 }
 

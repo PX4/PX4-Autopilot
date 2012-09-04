@@ -3250,3 +3250,5 @@
 	* sched/work_cancel.c:  Fix a bad assertion (reported by Mike Smith)
 	* configs/stm3210e-eval/src/up_idle.c:  Correct some power management
 	  compilation errors (reported by Diego Sanchez).
+	* include/nuttx/wqueue.h, sched/work*, and others:  Added logic to support
+	  a second, lower priority work queue (CONFIG_SCHED_LPWORK).

@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/arm/src/sam3u/sam3u_sdio.c
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -2343,7 +2343,7 @@ static void sam3u_callback(void *arg)
           /* Yes.. queue it */
 
            fvdbg("Queuing callback to %p(%p)\n", priv->callback, priv->cbarg);
-          (void)work_queue(&priv->cbwork, (worker_t)priv->callback, priv->cbarg, 0);
+          (void)work_queue(HPWORK, &priv->cbwork, (worker_t)priv->callback, priv->cbarg, 0);
         }
       else
         {

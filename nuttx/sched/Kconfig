@@ -166,6 +166,39 @@ config SIG_SIGWORK
 		The signal number that will be used to wake-up the worker thread.
 		Default: 4
 
+config SCHED_LPWORK
+	bool "Enable a lower priority worker thread"
+	default n
+	depends on SCHED_WORKQUEUE
+	---help---
+		If SCHED_WORKQUEUE is defined, then a single work queue is created by
+		default.  If SCHED_LPWORK is also defined then an additional, lower-
+		priority work queue will also be created.  This lower priority work
+		queue is better suited for more extended processing (such as file system
+		clean-up operations)
+
+config SCHED_LPWORKPRIORITY
+	int "Lower priority worker thread priority"
+	default 192
+	depends on SCHED_LPWORK
+	---help---
+		The execution priority of the lopwer priority worker thread.  Default: 192
+
+config SCHED_LPWORKPERIOD
+	int "Lower priority worker thread period"
+	default 50000
+	depends on SCHED_LPWORK
+	---help---
+		How often the lower priority worker thread checks for work in units
+		of microseconds. Default: 50*1000 (50 MS).
+
+config SCHED_LPWORKSTACKSIZE
+	int "Lower priority worker thread stack size"
+	default 2048
+	depends on SCHED_LPWORK
+	---help---
+		The stack size allocated for the lower priority worker thread.  Default: 2K.
+
 config SCHED_WAITPID
 	bool "Enable waitpid() API"
 	default n

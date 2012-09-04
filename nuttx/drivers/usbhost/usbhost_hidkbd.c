@@ -1674,7 +1674,7 @@ static int usbhost_disconnected(struct usbhost_class_s *class)
        */
 
       DEBUGASSERT(priv->work.worker == NULL);
-      (void)work_queue(&priv->work, usbhost_destroy, priv, 0);
+      (void)work_queue(HPWORK, &priv->work, usbhost_destroy, priv, 0);
     }
 
   return OK;

@@ -2660,7 +2660,7 @@ static void stm32_callback(void *arg)
           /* Yes.. queue it */
 
            fvdbg("Queuing callback to %p(%p)\n", priv->callback, priv->cbarg);
-          (void)work_queue(&priv->cbwork, (worker_t)priv->callback, priv->cbarg, 0);
+          (void)work_queue(HPWORK, &priv->cbwork, (worker_t)priv->callback, priv->cbarg, 0);
         }
       else
         {

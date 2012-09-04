@@ -972,7 +972,7 @@ static void tc_worker(FAR void *arg)
 
   /* Set up the next sample event */
 
-  ret = work_queue(&priv->work, tc_worker, priv, delay);
+  ret = work_queue(HPWORK, &priv->work, tc_worker, priv, delay);
   ASSERT(ret == 0);
 }
 
@@ -1420,7 +1420,7 @@ int arch_tcinitialize(int minor)
    */
 
   priv->state = TC_READY;
-  ret = work_queue(&priv->work, tc_worker, priv, 0);
+  ret = work_queue(HPWORK, &priv->work, tc_worker, priv, 0);
   if (ret != 0)
     {
       idbg("Failed to queue work: %d\n", ret);

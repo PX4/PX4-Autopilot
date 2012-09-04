@@ -361,13 +361,24 @@ defconfig -- This is a configuration file similar to the Linux
       if memory reclamation is of high priority).  If CONFIG_SCHED_WORKQUEUE
       is enabled, then the following options can also be used:
     CONFIG_SCHED_WORKPRIORITY - The execution priority of the worker
-      thread.  Default: 50
+      thread.  Default: 192
     CONFIG_SCHED_WORKPERIOD - How often the worker thread checks for
       work in units of microseconds.  Default: 50*1000 (50 MS).
     CONFIG_SCHED_WORKSTACKSIZE - The stack size allocated for the worker
       thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
     CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
       the worker thread.  Default: 4
+    CONFIG_SCHED_LPWORK. If CONFIG_SCHED_WORKQUEUE is defined, then a single
+      work queue is created by default.  If CONFIG_SCHED_LPWORK is also defined
+      then an additional, lower-priority work queue will also be created.  This
+      lower priority work queue is better suited for more extended processing
+      (such as file system clean-up operations)
+    CONFIG_SCHED_LPWORKPRIORITY - The execution priority of the lower priority
+      worker thread.  Default: 50
+    CONFIG_SCHED_LPWORKPERIOD - How often the lower priority worker thread
+      checks for work in units of microseconds.  Default: 50*1000 (50 MS).
+    CONFIG_SCHED_LPWORKSTACKSIZE - The stack size allocated for the lower
+      priority worker thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
     CONFIG_SCHED_WAITPID - Enables the waitpid() API
     CONFIG_SCHED_ATEXIT -  Enables the atexit() API
     CONFIG_SCHED_ATEXIT_MAX -  By default if CONFIG_SCHED_ATEXIT is

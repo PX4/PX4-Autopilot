@@ -783,7 +783,7 @@ static void stmpe811_timeout(int argc, uint32_t arg1, ...)
            * action should be required to protect the work queue.
            */
 
-          ret = work_queue(&priv->timeout, stmpe811_timeoutworker, priv, 0);
+          ret = work_queue(HPWORK, &priv->timeout, stmpe811_timeoutworker, priv, 0);
           if (ret != 0)
             {
               illdbg("Failed to queue work: %d\n", ret);

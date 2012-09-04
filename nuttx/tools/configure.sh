@@ -101,17 +101,17 @@ if [ ! -d "${configpath}" ]; then
 fi
 
 if [ ! -r "${configpath}/Make.defs" ]; then
-  echo "File ${configpath}/Make.defs does not exist"
+  echo "File \"${configpath}/Make.defs\" does not exist"
   exit 4
 fi
 
 if [ ! -r "${configpath}/setenv.sh" ]; then
-  echo "File ${configpath}/setenv.sh does not exist"
+  echo "File \"${configpath}/setenv.sh\" does not exist"
   exit 5
 fi
 
 if [ ! -r "${configpath}/defconfig" ]; then
-  echo "File ${configpath}/defconfig does not exist"
+  echo "File \"${configpath}/defconfig\" does not exist"
   exit 6
 fi
 
@@ -127,7 +127,7 @@ if [ -z "${appdir}" ]; then
   appdir=`grep CONFIG_APPS_DIR= "${configpath}/defconfig" | cut -d'=' -f2`
 fi
 
-# Check for the apps/ dir in the usual place if appdir was not provided
+# Check for the apps/ directory in the usual place if appdir was not provided
 
 if [ -z "${appdir}" ]; then
 
@@ -152,7 +152,15 @@ if [ -z "${appdir}" ]; then
   fi
 fi
 
-# Okay... setup the configuration
+# If appsdir was provided (or discovered) then make sure that the apps/
+# directory exists
+
+if [ ! -z "${appdir}" -a ! -d "${TOPDIR}/${appdir}" ]; then
+  echo "Directory \"${TOPDIR}/${appdir}\" does not exist"
+  exit 7
+fi
+
+# Okay... Everything looks good.  Setup the configuration
 
 install -C "${configpath}/Make.defs" "${TOPDIR}/." || \
   { echo "Failed to copy ${configpath}/Make.defs" ; exit 7 ; }
