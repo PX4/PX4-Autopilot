@@ -3254,3 +3254,5 @@
 	  a second, lower priority work queue (CONFIG_SCHED_LPWORK).
 	* arch/arm/src/stm32/stm32_dma.c, chip/stm32*_memorymap.h:  FSMC SRAM is
 	  only 16-bits wide and the SDIO DMA must be set up differently.
+	* arch/arm/src/stm32/stm32_dma.c:  Back out the 16-bit DMA change. It
+	  is incorrect.
