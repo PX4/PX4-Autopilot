@@ -1,5 +1,5 @@
 ############################################################################
-# apps/namedapps/Make.defs
+# apps/vsn/Make.defs
 # Adds selected applications to apps/ build
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
@@ -34,7 +34,18 @@
 #
 ############################################################################
 
-ifeq ($(CONFIG_NAMEDAPP),y)
-CONFIGURED_APPS += namedapp
+ifeq ($(CONFIG_VSN_POWEROFF),y)
+CONFIGURED_APPS += vsn/poweroff
 endif
 
+ifeq ($(CONFIG_VSN_RAMTRON),y)
+CONFIGURED_APPS += vsn/ramtron
+endif
+
+ifeq ($(CONFIG_VSN_SDCARD),y)
+CONFIGURED_APPS += vsn/sdcard
+endif
+
+ifeq ($(CONFIG_VSN_SYSINFO),y)
+CONFIGURED_APPS += vsn/sysinfo
+endif
