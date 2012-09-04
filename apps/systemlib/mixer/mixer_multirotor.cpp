@@ -141,7 +141,7 @@ MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
 	_roll_scale(roll_scale),
 	_pitch_scale(pitch_scale),
 	_yaw_scale(yaw_scale),
-	_deadband(-1.0 + deadband),	/* shift to output range here to avoid runtime calculation */
+	_deadband(-1.0f + deadband),	/* shift to output range here to avoid runtime calculation */
 	_rotor_count(_config_rotor_count[geometry]),
 	_rotors(_config_index[geometry])
 {
@@ -179,7 +179,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 		fixup_scale = 2.0f;
 	}
 	for (unsigned i = 0; i < _rotor_count; i++)
-		outputs[i] = -1.0 + (outputs[i] * fixup_scale);
+		outputs[i] = -1.0f + (outputs[i] * fixup_scale);
 
 	/* ensure outputs are out of the deadband */
 	for (unsigned i = 0; i < _rotor_count; i++)
