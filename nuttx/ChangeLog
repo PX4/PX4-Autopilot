@@ -3256,3 +3256,6 @@
 	  only 16-bits wide and the SDIO DMA must be set up differently.
 	* arch/arm/src/stm32/stm32_dma.c:  Back out the 16-bit DMA change. It
 	  is incorrect.
+	* configs/:  Make use of UART4/5 vs USART4/5 consistent in all places.
+	* Kconfig: Serial 2STOP setting must be integer 0/1, not a boolean.
+

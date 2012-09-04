@@ -56,9 +56,14 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-/* file must be allocated by caller and will be filled in by the function. */
+/* 'file' must be allocated by caller and will be filled in by the function. */
 
 int  httpd_fs_open(const char *name, struct httpd_fs_file *file);
 void httpd_fs_init(void);
+
+#ifdef CONFIG_NETUTILS_HTTPD_MMAP
+int  httpd_mmap_open(const char *name, struct httpd_fs_file *file);
+int  httpd_mmap_close(struct httpd_fs_file *file);
+#endif
 
 #endif /* _NETUTILS_WEBSERVER_HTTPD_H */

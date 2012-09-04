@@ -1,7 +1,7 @@
 ############################################################################
 # apps/netutils/webserver/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,12 @@ ASRCS		=
 CSRCS		= 
 
 ifeq ($(CONFIG_NET_TCP),y)
-CSRCS		= httpd.c httpd_fs.c httpd_cgi.c
+CSRCS		= httpd.c httpd_cgi.c
+ifeq ($(CONFIG_NETUTILS_HTTPD_MMAP),y)
+CSRCS		+= httpd_mmap.c
+else
+CSRCS		+= httpd_fs.c
+endif
 endif
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))

@@ -96,6 +96,9 @@ struct httpd_fs_file
 {
   char *data;
   int len;
+#ifdef CONFIG_NETUTILS_HTTPD_MMAP
+  int fd;
+#endif
 };
 
 struct httpd_state

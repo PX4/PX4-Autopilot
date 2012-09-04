@@ -305,3 +305,6 @@
 	  netutils/webserver/httpd_fsdata.c has been replaced with a dynamically
 	  built configuration located at apps/examples/uip (Contributed by
 	  Max Holtzberg).
+	* apps/netutils/webserver:  Several inenhancements from Kate including the
+	  ability to elide scripting and SERVER headers and the ability to map
+	  files into memory before transferring them.
