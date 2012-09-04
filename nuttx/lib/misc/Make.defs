@@ -37,9 +37,23 @@
 
 CSRCS += lib_init.c lib_filesem.c
 
+# Add C files that depend on file OR socket descriptors
+
 ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
+
+CSRCS += lib_sendfile.c
 ifneq ($(CONFIG_NFILE_STREAMS),0)
 CSRCS += lib_streamsem.c
+endif
+
+else
+ifneq ($(CONFIG_NSOCKET_DESCRIPTORS),0)
+
+CSRCS += lib_sendfile.c
+ifneq ($(CONFIG_NFILE_STREAMS),0)
+CSRCS += lib_streamsem.c
+endif
+
 endif
 endif
 

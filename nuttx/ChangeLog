@@ -3258,4 +3258,6 @@
 	  is incorrect.
 	* configs/:  Make use of UART4/5 vs USART4/5 consistent in all places.
 	* Kconfig: Serial 2STOP setting must be integer 0/1, not a boolean.
+	* lib/misc/sendfile.c and include/sys/sendfile.h:  Add a Linux style
+	  sendfile() (non-standard!)
 

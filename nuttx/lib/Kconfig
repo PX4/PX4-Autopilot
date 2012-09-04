@@ -96,7 +96,13 @@ config ARCH_LOWPUTC
 	default "y"
 	---help---
 	  architecture supports low-level, boot time console output
-	  
+
+config LIB_SENDFILE_BUFSIZE
+	int "sendfile() buffer size"
+	default 512
+	---help---
+	  Size of the I/O buffer to allocate in sendfile().  Default: 512b
+
 config ENABLE_ARCH_OPTIMIZED_FUN
 	bool "Enable arch optimized functions"
 	default n
