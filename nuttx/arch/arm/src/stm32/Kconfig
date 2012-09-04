@@ -1462,10 +1462,10 @@ config USART1_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config USART1_2STOP
-	bool "USART1 two stop bits"
-	default n
+	int "USART1 two stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 config USART1_RXDMA
 	bool "USART1 Rx DMA"
@@ -1518,10 +1518,10 @@ config USART2_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config USART2_2STOP
-	bool "USART2 two stop bits"
-	default n
+	int "USART2 two stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 config USART2_RXDMA
 	bool "USART2 Rx DMA"
@@ -1574,10 +1574,10 @@ config USART3_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config USART3_2STOP
-	bool "USART3 two stop bits"
-	default n
+	int "USART3 two stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 config USART3_RXDMA
 	bool "USART3 Rx DMA"
@@ -1630,10 +1630,10 @@ config UART4_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config UART4_2STOP
-	bool "UART4 two stop bits"
-	default n
+	int "UART4 two stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 config UART4_RXDMA
 	bool "UART4 Rx DMA"
@@ -1686,10 +1686,10 @@ config UART5_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config UART5_2STOP
-	bool "UART5 two stop bits"
-	default n
+	int "UART5 two stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 config UART5_RXDMA
 	bool "UART5 Rx DMA"
@@ -1742,10 +1742,10 @@ config USART6_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config USART6_2STOP
-	bool "USART6 two stop bits"
-	default n
+	int "USART6 two stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 config USART6_RXDMA
 	bool "USART6 Rx DMA"

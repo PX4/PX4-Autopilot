@@ -44,10 +44,10 @@ config 16550_UART0_BITS
 		16550 UART0 number of bits.  Default: 8
 
 config 16550_UART0_2STOP
-	bool "16550 UART0 two stop bits"
-	default n
+	int "16550 UART0 two stop bits"
+	default 0
 	---help---
-		16550 UART0 two stop bits.  Default: 1
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 config 16550_UART0_RXBUFSIZE
 	int "16550 UART0 Rx buffer size"
@@ -94,10 +94,10 @@ config 16550_UART1_BITS
 		16550 UART1 number of bits.  Default: 8
 
 config 16550_UART1_2STOP
-	bool "16550 UART1 two stop bits"
-	default n
+	int "16550 UART1 two stop bits"
+	default 0
 	---help---
-		16550 UART1 two stop bits.  Default: 1
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 config 16550_UART1_RXBUFSIZE
 	int "16550 UART1 Rx buffer size"
@@ -144,10 +144,10 @@ config 16550_UART2_BITS
 		16550 UART2 number of bits.  Default: 8
 
 config 16550_UART2_2STOP
-	bool "16550 UART2 two stop bits"
-	default n
+	int "16550 UART2 two stop bits"
+	default 0
 	---help---
-		16550 UART2 two stop bits.  Default: 1
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 config 16550_UART2_RXBUFSIZE
 	int "16550 UART2 Rx buffer size"
@@ -194,10 +194,10 @@ config 16550_UART3_BITS
 		16550 UART3 number of bits.  Default: 8
 
 config 16550_UART3_2STOP
-	bool "16550 UART3 two stop bits"
-	default n
+	int "16550 UART3 two stop bits"
+	default 0
 	---help---
-		16550 UART3 two stop bits.  Default: 1
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 config 16550_UART3_RXBUFSIZE
 	int "16550 UART3 Rx buffer size"

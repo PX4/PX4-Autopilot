@@ -946,10 +946,10 @@ config UART1_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config UART1_2STOP
-	bool "UART1 2 stop bits"
-	default n
+	int "UART1 2 stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 endmenu
 
@@ -993,10 +993,10 @@ config UART2_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config UART2_2STOP
-	bool "UART2 2 stop bits"
-	default n
+	int "UART2 2 stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 endmenu
 
@@ -1040,10 +1040,10 @@ config UART3_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config UART3_2STOP
-	bool "UART3 2 stop bits"
-	default n
+	int "UART3 2 stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 endmenu
 
@@ -1087,10 +1087,10 @@ config UART4_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config UART4_2STOP
-	bool "UART4 2 stop bits"
-	default n
+	int "UART4 2 stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 endmenu
 
@@ -1134,10 +1134,10 @@ config UART5_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config UART5_2STOP
-	bool "UART5 2 stop bits"
-	default n
+	int "UART5 2 stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 endmenu
 
@@ -1181,10 +1181,10 @@ config UART6_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config UART6_2STOP
-	bool "UART6 2 stop bits"
-	default n
+	int "UART6 2 stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 endmenu
 

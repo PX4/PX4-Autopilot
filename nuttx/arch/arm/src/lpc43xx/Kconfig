@@ -331,10 +331,10 @@ config USART0_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config USART0_2STOP
-	bool "USART0 two stop bits"
-	default n
+	int "USART0 two stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 endmenu
 
@@ -380,10 +380,10 @@ config UART1_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config UART1_2STOP
-	bool "UART1 two stop bits"
-	default n
+	int "UART1 two stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 endmenu
 
@@ -429,10 +429,10 @@ config USART2_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config USART2_2STOP
-	bool "USART2 two stop bits"
-	default n
+	int "USART2 two stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 endmenu
 
@@ -478,10 +478,10 @@ config USART3_PARITY
 		0=no parity, 1=odd parity, 2=even parity
 
 config USART3_2STOP
-	bool "USART3 two stop bits"
-	default n
+	int "USART3 two stop bits"
+	default 0
 	---help---
-		Two stop bits
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 endmenu
 
