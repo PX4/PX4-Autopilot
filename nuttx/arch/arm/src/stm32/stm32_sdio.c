@@ -185,7 +185,11 @@
 #if defined(CONFIG_STM32_STM32F10XX)
 #  define SDIO_RXDMA32_CONFIG    (CONFIG_SDIO_DMAPRIO|DMA_CCR_MSIZE_32BITS|\
                                   DMA_CCR_PSIZE_32BITS|DMA_CCR_MINC)
+#  define SDIO_RXDMA16_CONFIG    (CONFIG_SDIO_DMAPRIO|DMA_CCR_MSIZE_16BITS|\
+                                  DMA_CCR_PSIZE_32BITS|DMA_CCR_MINC)
 #  define SDIO_TXDMA32_CONFIG    (CONFIG_SDIO_DMAPRIO|DMA_CCR_MSIZE_32BITS|\
+                                  DMA_CCR_PSIZE_32BITS|DMA_CCR_MINC|DMA_CCR_DIR)
+#  define SDIO_TXDMA16_CONFIG    (CONFIG_SDIO_DMAPRIO|DMA_CCR_MSIZE_16BITS|\
                                   DMA_CCR_PSIZE_32BITS|DMA_CCR_MINC|DMA_CCR_DIR)
 
 /* STM32 F4 stream configuration register (SCR) settings. */
@@ -195,8 +199,16 @@
                                   DMA_SCR_PSIZE_32BITS|DMA_SCR_MSIZE_32BITS|\
                                   CONFIG_SDIO_DMAPRIO|DMA_SCR_PBURST_INCR4|\
                                   DMA_SCR_MBURST_INCR4)
+#  define SDIO_RXDMA16_CONFIG    (DMA_SCR_PFCTRL|DMA_SCR_DIR_P2M|DMA_SCR_MINC|\
+                                  DMA_SCR_PSIZE_32BITS|DMA_SCR_MSIZE_16BITS|\
+                                  CONFIG_SDIO_DMAPRIO|DMA_SCR_PBURST_INCR4|\
+                                  DMA_SCR_MBURST_INCR4)
 #  define SDIO_TXDMA32_CONFIG    (DMA_SCR_PFCTRL|DMA_SCR_DIR_M2P|DMA_SCR_MINC|\
                                   DMA_SCR_PSIZE_32BITS|DMA_SCR_MSIZE_32BITS|\
+                                  CONFIG_SDIO_DMAPRIO|DMA_SCR_PBURST_INCR4|\
+                                  DMA_SCR_MBURST_INCR4)
+#  define SDIO_TXDMA16_CONFIG    (DMA_SCR_PFCTRL|DMA_SCR_DIR_M2P|DMA_SCR_MINC|\
+                                  DMA_SCR_PSIZE_32BITS|DMA_SCR_MSIZE_16BITS|\
                                   CONFIG_SDIO_DMAPRIO|DMA_SCR_PBURST_INCR4|\
                                   DMA_SCR_MBURST_INCR4)
 #else
@@ -2502,8 +2514,22 @@ static int stm32_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
       stm32_configxfrints(priv, SDIO_DMARECV_MASK);
 
       putreg32(1, SDIO_DCTRL_DMAEN_BB);
-      stm32_dmasetup(priv->dma, STM32_SDIO_FIFO, (uint32_t)buffer,
-                     (buflen + 3) >> 2, SDIO_RXDMA32_CONFIG);
+
+      /* On-chip SRAM is 32-bits wide.  FSMC SRAM is 16-bits wide */
+
+#ifdef CONFIG_STM32_FSMC
+      if (STM32_IS_EXTSRAM(buffer))
+        {
+          stm32_dmasetup(priv->dma, STM32_SDIO_FIFO, (uint32_t)buffer,
+                         (buflen + 1) >> 1, SDIO_RXDMA16_CONFIG);
+        }
+      else
+#endif
+        {
+          DEBUGASSERT(STM32_IS_SRAM(buffer));
+          stm32_dmasetup(priv->dma, STM32_SDIO_FIFO, (uint32_t)buffer,
+                         (buflen + 3) >> 2, SDIO_RXDMA32_CONFIG);
+        }
  
       /* Start the DMA */
 
@@ -2512,6 +2538,7 @@ static int stm32_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
       stm32_sample(priv, SAMPLENDX_AFTER_SETUP);
       ret = OK;
     }
+
   return ret;
 }
 #endif
@@ -2570,8 +2597,21 @@ static int stm32_dmasendsetup(FAR struct sdio_dev_s *dev,
 
       /* Configure the TX DMA */
 
-      stm32_dmasetup(priv->dma, STM32_SDIO_FIFO, (uint32_t)buffer,
-                     (buflen + 3) >> 2, SDIO_TXDMA32_CONFIG);
+      /* On-chip SRAM is 32-bits wide.  FSMC SRAM is 16-bits wide */
+
+#ifdef CONFIG_STM32_FSMC
+      if (STM32_IS_EXTSRAM(buffer))
+        {
+          stm32_dmasetup(priv->dma, STM32_SDIO_FIFO, (uint32_t)buffer,
+                         (buflen + 1) >> 1, SDIO_TXDMA16_CONFIG);
+        }
+      else
+#endif
+        {
+          DEBUGASSERT(STM32_IS_SRAM(buffer));
+          stm32_dmasetup(priv->dma, STM32_SDIO_FIFO, (uint32_t)buffer,
+                         (buflen + 3) >> 2, SDIO_TXDMA32_CONFIG);
+        }
 
       stm32_sample(priv, SAMPLENDX_BEFORE_ENABLE);
       putreg32(1, SDIO_DCTRL_DMAEN_BB);
@@ -2587,6 +2627,7 @@ static int stm32_dmasendsetup(FAR struct sdio_dev_s *dev,
 
       ret = OK;
     }
+
   return ret;
 }
 #endif

@@ -3252,3 +3252,5 @@
 	  compilation errors (reported by Diego Sanchez).
 	* include/nuttx/wqueue.h, sched/work*, and others:  Added logic to support
 	  a second, lower priority work queue (CONFIG_SCHED_LPWORK).
+	* arch/arm/src/stm32/stm32_dma.c, chip/stm32*_memorymap.h:  FSMC SRAM is
+	  only 16-bits wide and the SDIO DMA must be set up differently.

@@ -46,10 +46,18 @@
 #define STM32_SRAM_BASE      0x20000000     /* 0x20000000-0x3fffffff: 512Mb sram block */
 #define STM32_PERIPH_BASE    0x40000000     /* 0x40000000-0x5fffffff: 512Mb peripheral block */
 #define STM32_FSMC_BASE12    0x60000000     /* 0x60000000-0x7fffffff: 512Mb FSMC bank1&2 block */
+#  define STM32_FSMC_BANK1   0x60000000     /* 0x60000000-0x6fffffff: 256Mb NOR/SRAM */
+#  define STM32_FSMC_BANK2   0x70000000     /* 0x70000000-0x7fffffff: 256Mb NAND FLASH */
 #define STM32_FSMC_BASE34    0x80000000     /* 0x80000000-0x8fffffff: 512Mb FSMC bank3&4 block */
+#  define STM32_FSMC_BANK3   0x80000000     /* 0x80000000-0x8fffffff: 256Mb NAND FLASH */
+#  define STM32_FSMC_BANK4   0x90000000     /* 0x90000000-0x9fffffff: 256Mb PC CARD*/
 #define STM32_FSMC_BASE      0xa0000000     /* 0xa0000000-0xbfffffff: 512Mb FSMC register block */
                                             /* 0xc0000000-0xdfffffff: 512Mb (not used) */
 #define STM32_CORTEX_BASE    0xe0000000     /* 0xe0000000-0xffffffff: 512Mb Cortex-M4 block */
+
+#define STM32_REGION_MASK    0x0fffffff
+#define STM32_IS_SRAM(a)     ((((uint32_t)(a)) & STM32_REGION_MASK) == STM32_SRAM_BASE)
+#define STM32_IS_EXTSRAM(a)  ((((uint32_t)(a)) & STM32_REGION_MASK) == STM32_FSMC_BANK1)
 
 /* Code Base Addresses **************************************************************/
 
@@ -185,7 +193,7 @@
 #define STM32_HASH_BASE      0x50060400     /* 0x50060400-0x500607ff: HASH */
 #define STM32_RNG_BASE       0x50060800     /* 0x50060800-0x50060bff: RNG */
 
-/* Cortex-M4 Base Addresses *********************************************************/
+/* Cortex-M3 Base Addresses *********************************************************/
 /* Other registers -- see armv7-m/nvic.h for standard Cortex-M3 registers in this
  * address range
  */
