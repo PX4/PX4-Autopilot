@@ -16,7 +16,7 @@ config NUTTX_NEWCONFIG
 	bool
 	default y
 
-menu "General Setup"
+menu "Build Setup"
 config EXPERIMENTAL
 	bool "Prompt for development and/or incomplete code/drivers"
 
@@ -258,7 +258,7 @@ menu "Board Selection"
 source "configs/Kconfig"
 endmenu
 
-menu "Kernel Features"
+menu "RTOS Features"
 source sched/Kconfig
 endmenu
 

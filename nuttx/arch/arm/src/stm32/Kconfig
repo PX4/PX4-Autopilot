@@ -1591,52 +1591,52 @@ endmenu
 menu "UART4 Configuration"
 	depends on STM32_UART4
 
-config USART4_SERIAL_CONSOLE
+config UART4_SERIAL_CONSOLE
 	bool "UART4 serial console"
 	default y if !STM32_USART1 && !STM32_USART2 && !STM32_USART3
 	---help---
 		Selects the UART4 for the console and ttys0 (default is the USART1).
 
-config USART4_RXBUFSIZE
+config UART4_RXBUFSIZE
 	int "UART4 Rx buffer size"
 	default 256
 	---help---
 		Characters are buffered as received.  This specific the size of the receive
 		buffer.
 
-config USART4_TXBUFSIZE
+config UART4_TXBUFSIZE
 	int "UART4 Tx buffer size"
 	default 256
 	---help---
 		Characters are buffered before being sent.  This specific the size of the
 		transmit buffer
 
-config USART4_BAUD
+config UART4_BAUD
 	int "UART4 BAUD"
 	default 11520
 	---help---
 		The configured BAUD of the UART
 
-config USART4_BITS
+config UART4_BITS
 	int "UART4 number of bits"
 	default 8
 	---help---
 		The number of bits.  Must be either 7 or 8.
 
-config USART4_PARITY
+config UART4_PARITY
 	int "UART4 parity"
 	default 0
 	---help---
 		0=no parity, 1=odd parity, 2=even parity
 
-config USART4_2STOP
+config UART4_2STOP
 	bool "UART4 two stop bits"
 	default n
 	---help---
 		Two stop bits
 
-config USART4_RXDMA
-	bool "USART4 Rx DMA"
+config UART4_RXDMA
+	bool "UART4 Rx DMA"
 	default n
 	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
 	---help---
@@ -1647,52 +1647,52 @@ endmenu
 menu "UART5 Configuration"
 	depends on STM32_UART5
 
-config USART5_SERIAL_CONSOLE
+config UART5_SERIAL_CONSOLE
 	bool "UART5 serial console"
 	default y if !STM32_USART1 && !STM32_USART2 && !STM32_USART3 && !STM32_UART4
 	---help---
 		Selects the UART5 for the console and ttys0 (default is the USART1).
 
-config USART5_RXBUFSIZE
-	int "USART5 Rx buffer size"
+config UART5_RXBUFSIZE
+	int "UART5 Rx buffer size"
 	default 256
 	---help---
 		Characters are buffered as received.  This specific the size of the receive
 		buffer.
 
-config USART5_TXBUFSIZE
+config UART5_TXBUFSIZE
 	int "UART5 Tx buffer size"
 	default 256
 	---help---
 		Characters are buffered before being sent.  This specific the size of the
 		transmit buffer
 
-config USART5_BAUD
+config UART5_BAUD
 	int "UART5 BAUD"
 	default 11520
 	---help---
 		The configured BAUD of the UART
 
-config USART5_BITS
+config UART5_BITS
 	int "UART5 number of bits"
 	default 8
 	---help---
 		The number of bits.  Must be either 7 or 8.
 
-config USART5_PARITY
+config UART5_PARITY
 	int "UART5 parity"
 	default 0
 	---help---
 		0=no parity, 1=odd parity, 2=even parity
 
-config USART5_2STOP
+config UART5_2STOP
 	bool "UART5 two stop bits"
 	default n
 	---help---
 		Two stop bits
 
-config USART5_RXDMA
-	bool "USART5 Rx DMA"
+config UART5_RXDMA
+	bool "UART5 Rx DMA"
 	default n
 	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
 	---help---

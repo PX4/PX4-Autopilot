@@ -179,7 +179,7 @@ config SCHED_LPWORK
 
 config SCHED_LPWORKPRIORITY
 	int "Lower priority worker thread priority"
-	default 192
+	default 50
 	depends on SCHED_LPWORK
 	---help---
 		The execution priority of the lopwer priority worker thread.  Default: 192
@@ -236,7 +236,7 @@ config SCHED_ONEXIT_MAX
 		number that you require.
 
 config USER_ENTRYPOINT
-	string "Appliation entry point"
+	string "Application entry point"
 	default "user_start"
 	---help---
 		The name of the entry point for user applications.  For the example
