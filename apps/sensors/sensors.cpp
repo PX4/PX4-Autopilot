@@ -779,8 +779,6 @@ Sensors::parameter_update_poll(bool forced)
 		struct parameter_update_s update;
 		orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
-		printf("PARAMS UPDATED\n");
-
 		/* update parameters */
 		parameters_update();
 
@@ -824,7 +822,7 @@ Sensors::parameter_update_poll(bool forced)
 			warn("WARNING: failed to set scale / offsets for mag");
 		close(fd);
 
-#if 1
+#if 0
 		printf("CH0: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n",  (int)_parameters.max[0], (int)_parameters.min[0], (int)(_rc.chan[0].scaling_factor*10000), (int)(_rc.chan[0].mid), (int)_rc.function[0]);
 		printf("CH1: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n",  (int)_parameters.max[1], (int)_parameters.min[1], (int)(_rc.chan[1].scaling_factor*10000), (int)(_rc.chan[1].mid), (int)_rc.function[1]);
 		printf("MAN: %d %d\n", (int)(_rc.chan[0].scaled*100), (int)(_rc.chan[1].scaled*100));
