@@ -138,6 +138,10 @@ config LPC17_I2C1
 	bool "I2C1"
 	default n
 
+config LPC17_I2C2
+	bool "I2C2"
+	default n
+
 config LPC17_I2S
 	bool "I2S"
 	default n
@@ -200,6 +204,8 @@ config LPC17_FLASH
 
 endmenu
 
+menu "Serial driver options"
+
 config SERIAL_TERMIOS
 	bool "Serial driver TERMIOS supported"
 	depends on LPC17_UART0 || LPC17_UART1 || LPC17_UART2 || LPC17_UART3
@@ -208,6 +214,62 @@ config SERIAL_TERMIOS
 		Serial driver supports termios.h interfaces (tcsetattr, tcflush, etc.).
 		If this is not defined, then the terminal settings (baud, parity, etc).
 		are not configurable at runtime; serial streams cannot be flushed, etc..
+
+config UART0_FLOWCONTROL
+	bool "UART0 flow control"
+	depends on LPC17_UART0
+	default n
+	---help---
+		Enable UART0 flow control
+
+config UART1_FLOWCONTROL
+	bool "UART1 flow control"
+	depends on LPC17_UART1
+	default n
+	---help---
+		Enable UART1 flow control
+
+config UART1_RINGINDICATOR
+	bool "UART1 ring indicator"
+	depends on LPC17_UART1
+	default n
+	---help---
+		Enable UART1 ring indicator
+
+config UART2_FLOWCONTROL
+	bool "UART0 flow control"
+	depends on LPC17_UART2
+	default n
+	---help---
+		Enable UART2 flow control
+
+config UART3_FLOWCONTROL
+	bool "UART3 flow control"
+	depends on LPC17_UART3
+	default n
+	---help---
+		Enable UART3 flow control
+
+endmenu
+
+menu "ADC driver options"
+
+config ADC0_AVERAGE
+	int "ADC0 average"
+	depends on LPC17_ADC
+	default 200
+
+config ADC0_MASK
+	int "ADC0 mask"
+	depends on LPC17_ADC
+	default 1
+
+config ADC0_SPS
+	int "ADC0 SPS"
+	depends on LPC17_ADC
+	default 1000
+
+endmenu
 
 menu "CAN driver options"
 
@@ -247,18 +309,64 @@ config CAN2_DIVISOR
 		by this number to get the CAN clock). Options = {1,2,4,6}. Default: 4.
 
 config CAN_TSEG1
-	bool "TSEG1 quanta"
+	int "TSEG1 quanta"
 	depends on LPC17_CAN1 || LPC17_CAN2
 	default 6
 	---help---
 		The number of CAN time quanta in segment 1. Default: 6
 
 config CAN_TSEG2
-	bool "TSEG2 quanta"
+	int "TSEG2 quanta"
 	depends on LPC17_CAN1 || LPC17_CAN2
 	default 4
 	---help---
 		The number of CAN time quanta in segment 2. Default: 7
+
+config CAN_SAM
+	bool "CAN sampling"
+	depends on LPC17_CAN1 || LPC17_CAN2
+	default n
+	---help---
+		The bus is sampled 3 times (recommended for low to medium speed buses to spikes on the bus-line).
+
+config CAN_LOOPBACK
+	bool "CAN looopback mode"
+	depends on LPC17_CAN1 || LPC17_CAN2
+	default n
+	---help---
+		Enable CAN loopback mode
+
+config CAN_REGDEBUG
+	bool "Register level debug"
+	depends on LPC17_CAN1 || LPC17_CAN2
+	default n
+	---help---
+		Output detailed register-level CAN debug information.  Requires also DEBUG and DEBUG_CAN.
+
+endmenu
+
+config CONFIG_GPIO_IRQ
+	bool "GPIO interrupt support"
+	default n
+	---help---
+		Enable support for GPIO interrupts
+
+menu "I2C driver options"
+
+config I2C0_FREQ
+	int "I2C0 frequency"
+	depends on LPC17_I2C0
+	default 100000
+
+config I2C1_FREQ
+	int "I2C1 frequency"
+	depends on LPC17_I2C1
+	default 100000
+
+config I2C2_FREQ
+	int "I2C2 frequency"
+	depends on LPC17_I2C2
+	default 100000
 
 endmenu
 
@@ -351,8 +459,15 @@ endmenu
 
 menu "USB device driver options"
 
+config USBDEV_EP0_MAXSIZE
+	int "EP0 Max packet size"
+	depends on LPC17_USBDEV
+	default 64
+	---help---
+		Endpoint 0 maximum packet size.  Default: 64
+
 config LPC17_USBDEV_FRAME_INTERRUPT
-	bool "USB "
+	bool "USB frame interrupt"
 	depends on LPC17_USBDEV
 	default n
 	---help---
@@ -394,6 +509,13 @@ config LPC17_USBDEV_NOLED
 	default n
 	---help---
 		Define if the hardware implementation does not support the LED output
+
+config LPC17_USBDEV_REGDEBUG
+	bool "Register level debug"
+	depends on LPC17_USBDEV && DEBUG
+	default n
+	---help---
+		Output detailed register-level USB device debug information.  Requires also DEBUG.
 
 endmenu
 
@@ -441,5 +563,33 @@ config USBHOST_IOBUFSIZE
 	---help---
 		Size of one end-user I/O buffer.  This can be zero if the application
 		can guarantee that all end-user I/O buffers reside in AHB SRAM.
+
+config USBHOST_BULK_DISABLE
+	bool "Disable bulk EPs"
+	depends on LPC17_USBHOST
+	default n
+	---help---
+		Disable support for bulk endpoints.
+
+config USBHOST_INT_DISABLE
+	bool "Disable interupt EPs"
+	depends on LPC17_USBHOST
+	default n
+	---help---
+		Disable support for interrupt endpoints.
+
+config USBHOST_ISOC_DISABLE
+	bool "Disable isochronous EPs"
+	depends on LPC17_USBHOST
+	default n
+	---help---
+		Disable support for isochronous endpoints.
+
+config LPC17_USBHOST_REGDEBUG
+	bool "Register level debug"
+	depends on LPC17_USBHOST && DEBUG
+	default n
+	---help---
+		Output detailed register-level USB host debug information.  Requires also DEBUG.
 
 endmenu

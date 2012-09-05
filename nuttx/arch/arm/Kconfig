@@ -118,7 +118,16 @@ config ARCH_FPU
 	default y
 	depends on ARCH_CORTEXM4
 	---help---
-		Build in support for the ARM Cortex-M4 FPU.
+		Build in support for the ARM Cortex-M4 Floating Point Unit (FPU).
+		Check your chip specifications first; not all Cortex-M4 chips support the FPU.
+
+config ARMV7M_MPU
+	bool "MPU support"
+	default n
+	depends on ARCH_CORTEXM3 || ARCH_CORTEXM4
+	---help---
+		Build in support for the ARM Cortex-M3/4 Memory Protection Unit (MPU).
+		Check your chip specifications first; not all Cortex-M3/4 chips support the MPU.
 
 config ARCH_FAMILY
 	string

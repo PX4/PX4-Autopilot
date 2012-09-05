@@ -67,19 +67,18 @@
 
 /* The following enable debug output from this file (needs CONFIG_DEBUG too).
  * 
- * CONFIG_SSP_DEBUG - Define to enable basic SSP debug
- * CONFIG_SSP_VERBOSE - Define to enable verbose SSP debug
+ * CONFIG_SPI_DEBUG - Define to enable basic SSP debug
+ * CONFIG_VERBOSE   - Define to enable verbose SSP debug
  */
 
-#ifdef CONFIG_SSP_DEBUG
+#ifdef CONFIG_SPI_DEBUG
 #  define sspdbg  lldbg
-#  ifdef CONFIG_SSP_VERBOSE
+#  ifdef CONFIG_VERBOSE
 #    define spivdbg lldbg
 #  else
 #    define spivdbg(x...)
 #  endif
 #else
-#  undef CONFIG_SSP_VERBOSE
 #  define sspdbg(x...)
 #  define spivdbg(x...)
 #endif
