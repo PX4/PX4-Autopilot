@@ -3,7 +3,7 @@
 #
 #   Copyright (C) 2009-2010, 2012 Gregory Nutt. All rights reserved.
 #   Copyright (c) 2011 Uros Platise. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #           Uros Platise <uros.platise@isotel.eu>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -180,14 +180,6 @@ CONFIG_USART2_2STOP=0
 CONFIG_USART3_2STOP=0
 CONFIG_UART4_2STOP=0
 CONFIG_UART5_2STOP=0
-
-#
-# STM32F103Z specific SSI device driver settings
-#
-CONFIG_SSI0_DISABLE=y
-CONFIG_SSI1_DISABLE=y
-CONFIG_SSI_POLLWAIT=y
-#CONFIG_SSI_TXLIMIT=4
 
 #
 # OS support for I2C

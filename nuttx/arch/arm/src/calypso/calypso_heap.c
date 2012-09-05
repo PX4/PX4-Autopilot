@@ -37,6 +37,10 @@
  *
  ****************************************************************************/
 
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
 #include <nuttx/config.h>
 #include <nuttx/mm.h>
 
@@ -51,6 +55,14 @@
 
 #include "up_arch.h"
 #include "up_internal.h"
+
+/****************************************************************************
+ * Preprocessor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
 
 /****************************************************************************
  * Name: up_addregion
@@ -84,7 +96,7 @@ void up_addregion(void)
   /* Configure the RHEA bridge with some sane default values */
   calypso_rhea_cfg(0, 0, 0xff, 0, 1, 0, 0);
 
-  mm_addregion((FAR void*)CONFIG_HEAP2_START, CONFIG_HEAP2_END-CONFIG_HEAP2_START);
+  mm_addregion((FAR void*)CONFIG_HEAP2_BASE, CONFIG_HEAP2_SIZE);
 
 }
 #endif

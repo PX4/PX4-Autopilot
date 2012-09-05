@@ -111,8 +111,8 @@ void up_addregion(void)
 
   /* Check for any additional memory regions */
 
-#if defined(CONFIG_HEAP2_BASE) && defined(CONFIG_HEAP2_END)
-  mm_addregion((FAR void*)CONFIG_HEAP2_BASE, CONFIG_HEAP2_END - CONFIG_HEAP2_BASE);
+#if defined(CONFIG_HEAP2_BASE) && defined(CONFIG_HEAP2_SIZE)
+  mm_addregion((FAR void*)CONFIG_HEAP2_BASE, CONFIG_HEAP2_SIZE);
 #endif
 }
 #endif

@@ -3,15 +3,6 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-config MM_REGIONS
-	int "Number of memory regions"
-	default 1
-	---help---
-		If the architecture includes multiple, non-contiguous regions of
-		memory to allocate from, this specifies the number of memory regions
-		that the memory manager must handle and enables the API
-		mm_addregion(start, end);
-
 config MM_SMALL
 	bool "Small memory model"
 	default n
@@ -24,3 +15,30 @@ config MM_SMALL
 		have internal SRAM of size less than or equal to 64Kb.  In this case,
 		CONFIG_MM_SMALL can be defined so that those MCUs will also benefit
 		from the smaller, 16-bit-based allocation overhead.
+
+config MM_REGIONS
+	int "Number of memory regions"
+	default 1
+	---help---
+		If the architecture includes multiple, non-contiguous regions of
+		memory to allocate from, this specifies the number of memory regions
+		that the memory manager must handle and enables the API
+		mm_addregion(start, end);
+
+config ARCH_HAVE_HEAP2
+	bool
+
+config HEAP2_BASE
+	hex "Start address of second heap region"
+	default 0x00000000
+	depends on ARCH_HAVE_HEAP2
+	---help---
+		The base address of the second heap region.
+
+config HEAP2_SIZE
+	int "Size of the second heap region"
+	default 0
+	depends on ARCH_HAVE_HEAP2
+	---help---
+		The size of the second heap region.
+

@@ -84,7 +84,42 @@ config STM32_STM32F20XX
 
 config STM32_STM32F40XX
 	bool
-	default y if ARCH_CHIP_STM32F405RG || ARCH_CHIP_STM32F405VG || ARCH_CHIP_STM32F405ZG || ARCH_CHIP_STM32F407VE || ARCH_CHIP_STM32F407VG || ARCH_CHIP_STM32F407ZE || ARCH_CHIP_STM32F407ZG || ARCH_CHIP_STM32F407IE || ARCH_CHIP_STM32F407IE
+	default y if ARCH_CHIP_STM32F405RG || ARCH_CHIP_STM32F405VG || ARCH_CHIP_STM32F405ZG || ARCH_CHIP_STM32F407VE || ARCH_CHIP_STM32F407VG || ARCH_CHIP_STM32F407ZE || ARCH_CHIP_STM32F407ZG || ARCH_CHIP_STM32F407IE || ARCH_CHIP_STM32F407IG
+
+choice
+	prompt "Toolchain Selection"
+	default STM32_CODESOURCERYW
+	depends on ARCH_CHIP_STM32
+
+config STM32_CODESOURCERYW
+	bool "CodeSourcery for Windows"
+
+config STM32_CODESOURCERYL
+	bool "CodeSourcery for Linux"
+
+config STM32_ATOLLIC_LITE
+	bool "Atollic Lite for Windows"
+
+config STM32_ATOLLIC_PRO
+	bool "Atollic Pro for Windows"
+
+config STM32_DEVKITARM
+	bool "DevkitARM (Windows)"
+
+config STM32_RAISONANCE
+	bool "STMicro Raisonance for Windows"
+
+config STM32_BUILDROOT
+	bool "NuttX buildroot (Cygwin or Linux)"
+
+endchoice
+
+config STM32_DFU
+	bool "DFU bootloader"
+	default n
+	---help---
+		Configure and position code for use with the STMicro DFU bootloader.  Do
+		not select this option if you will load code using JTAG/SWM.
 
 menu "STM32 Peripheral Support"
 
@@ -228,7 +263,7 @@ config STM32_SPI4
 
 config STM32_SYSCFG
 	bool "SYSCFG"
-	default n
+	default y
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
 
 config STM32_TIM1
@@ -517,23 +552,10 @@ config STM32_CCMEXCLUDE
 config STM32_FSMC_SRAM
 	bool "External SRAM on FSMC"
 	default n
-	depends on FSMC
+	depends on STM32_FSMC
+	select ARCH_HAVE_HEAP2
 	---help---
 		In addition to internal SRAM, SRAM may also be available through the FSMC.
-
-config HEAP2_BASE
-	hex "FSMC SRAM base address"
-	default 0x00000000
-	depends on STM32_FSMC_SRAM
-	---help---
-		The base address of the SRAM in the FSMC address space.
-
-config HEAP2_END
-	hex "FSMC SRAM end+1 address"
-	default 0x00000000
-	depends on STM32_FSMC_SRAM
-	---help---
-		The end (+1) of the SRAM in the FSMC address space
 
 config STM32_TIM1_PWM
 	bool "TIM1 PWM"
@@ -1536,6 +1558,7 @@ config STM32_PHYADDR
 config STM32_MII
 	bool "Use MII interface"
 	default n
+	depends on STM32_ETHMAC
 	---help---
 		Support Ethernet MII interface.
 
@@ -1549,13 +1572,14 @@ config STM32_MII_MCO2
 config STM32_AUTONEG
 	bool "Use autonegtiation"
 	default y
+	depends on STM32_ETHMAC
 	---help---
 		Use PHY autonegotion to determine speed and mode
 
 config STM32_ETHFD
 	bool "Full duplex"
 	default n
-	depends on !STM32_AUTONEG
+	depends on STM32_ETHMAC && !STM32_AUTONEG
 	---help---
 		If STM32_AUTONEG is not defined, then this may be defined to select full duplex
 		mode. Default: half-duplex
@@ -1563,7 +1587,7 @@ config STM32_ETHFD
 config STM32_ETH100MBPS
 	bool "100 Mbps"
 	default n
-	depends on !STM32_AUTONEG
+	depends on STM32_ETHMAC && !STM32_AUTONEG
 	---help---
 		If STM32_AUTONEG is not defined, then this may be defined to select 100 MBps
 		speed.  Default: 10 Mbps
@@ -1607,6 +1631,7 @@ config STM32_PHYSR_FULLDUPLEX
 config STM32_ETH_PTP
 	bool "Precision Time Protocol (PTP)"
 	default n
+	depends on STM32_ETHMAC
 	---help---
 		Precision Time Protocol (PTP).  Not supported but some hooks are indicated
 		with this condition.
@@ -1616,6 +1641,7 @@ endmenu
 config STM32_RMII
 	bool
 	default y if !STM32_MII
+	depends on STM32_ETHMAC
 
 config STM32_MII_MCO1
 	bool

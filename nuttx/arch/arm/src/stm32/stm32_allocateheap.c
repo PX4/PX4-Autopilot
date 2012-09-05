@@ -73,13 +73,14 @@
  *
  * CONFIG_STM32_FSMC=y        : Enables the FSMC
  * CONFIG_STM32_FSMC_SRAM=y   : Indicates that SRAM is available via the
- *   FSMC (as opposed to an LCD or FLASH).
+ *                              FSMC (as opposed to an LCD or FLASH).
  * CONFIG_HEAP2_BASE          : The base address of the SRAM in the FSMC
- *   address space
- * CONFIG_HEAP2_END           : The end (+1) of the SRAM in the FSMC
- *   address space
+ *                              address space
+ * CONFIG_HEAP2_SIZE          : The size of the SRAM in the FSMC
+ *                              address space
  * CONFIG_MM_REGIONS          : Must be set to a large enough value to
- *   include the FSMC SRAM (as determined by the rules provided below)
+ *                              include the FSMC SRAM (as determined by
+ *                              the rules provided below)
  */
 
 #ifndef CONFIG_STM32_FSMC
@@ -256,12 +257,12 @@
 
 /* If FSMC SRAM is going to be used as heap, then verify that the starting
  * address and size of the external SRAM region has been provided in the
- * configuration (as CONFIG_HEAP2_BASE and CONFIG_HEAP2_END).
+ * configuration (as CONFIG_HEAP2_BASE and CONFIG_HEAP2_SIZE).
  */
 
 #ifdef CONFIG_STM32_FSMC_SRAM
-#  if !defined(CONFIG_HEAP2_BASE) || !defined(CONFIG_HEAP2_END)
-#    error "CONFIG_HEAP2_BASE and CONFIG_HEAP2_END must be provided"
+#  if !defined(CONFIG_HEAP2_BASE) || !defined(CONFIG_HEAP2_SIZE)
+#    error "CONFIG_HEAP2_BASE and CONFIG_HEAP2_SIZE must be provided"
 #    undef CONFIG_STM32_FSMC_SRAM
 #  endif
 #endif
@@ -317,7 +318,7 @@ void up_addregion(void)
    /* Add the external FSMC SRAM heap region. */
 
 #ifdef CONFIG_STM32_FSMC_SRAM
-   mm_addregion((FAR void*)CONFIG_HEAP2_BASE, CONFIG_HEAP2_END - CONFIG_HEAP2_BASE);
+   mm_addregion((FAR void*)CONFIG_HEAP2_BASE, CONFIG_HEAP2_SIZE);
 #endif
 }
 #endif

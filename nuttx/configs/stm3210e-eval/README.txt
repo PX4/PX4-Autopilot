@@ -362,7 +362,7 @@ The on-board SRAM can be configured by setting
   CONFIG_STM32_FSMC=y                         : Enables the FSMC
   CONFIG_STM32_FSMC_SRAM=y                    : Enable external SRAM support
   CONFIG_HEAP2_BASE=0x68000000                : SRAM will be located at 0x680000000
-  CONFIG_HEAP2_END=(0x68000000+(1*1024*1024)) : The size of the SRAM is 1Mbyte
+  CONFIG_HEAP2_SIZE=1048576                   : The size of the SRAM is 1Mbyte
   CONFIG_MM_REGIONS=2                         : There will be two memory regions
                                               : in the heap
 

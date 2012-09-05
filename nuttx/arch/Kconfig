@@ -58,11 +58,13 @@ config ARCH_X86
 
 config ARCH_Z16
 	bool "ZNEO"
+	select ARCH_HAVE_HEAP2
 	---help---
 		ZiLOG ZNEO 16-bit architectures (z16f).
 
 config ARCH_Z80
 	bool "z80"
+	select ARCH_HAVE_HEAP2
 	---help---
 		ZiLOG 8-bit architectures (z80, ez80, z8).
 

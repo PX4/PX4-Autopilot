@@ -17,6 +17,7 @@ config ARCH_CHIP_C5471
 config ARCH_CHIP_CALYPSO
 	bool "Calypso"
 	select ARCH_ARM7TDMI
+	select ARCH_HAVE_HEAP2
 	---help---
 		TI Calypso-based cell phones (ARM7TDMI)
 
@@ -29,6 +30,7 @@ config ARCH_CHIP_DM320
 config ARCH_CHIP_IMX
 	bool "Freescale iMX"
 	select ARCH_ARM920T
+	select ARCH_HAVE_HEAP2
 	---help---
 		Freescale iMX architectures (ARM920T)
 

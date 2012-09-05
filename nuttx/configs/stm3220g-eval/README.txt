@@ -352,7 +352,7 @@ The on-board SRAM can be configured by setting
   CONFIG_STM32_FSMC=y
   CONFIG_STM32_FSMC_SRAM=y
   CONFIG_HEAP2_BASE=0x64000000
-  CONFIG_HEAP2_END=(0x64000000+(2*1024*1024))
+  CONFIG_HEAP2_SIZE=2097152
   CONFIG_MM_REGIONS=2
 
 Configuration Options
@@ -368,7 +368,7 @@ NuttX configuration file:
                                FSMC (as opposed to an LCD or FLASH).
   CONFIG_HEAP2_BASE          : The base address of the SRAM in the FSMC
                                address space
-  CONFIG_HEAP2_END           : The end (+1) of the SRAM in the FSMC
+  CONFIG_HEAP2_SIZE          : The size of the SRAM in the FSMC
                                address space
   CONFIG_MM_REGIONS          : Must be set to a large enough value to
                                include the FSMC SRAM
@@ -475,9 +475,9 @@ STM3220G-EVAL-specific Configuration Options
     CONFIG_STM32_FSMC_SRAM - Indicates that SRAM is available via the
       FSMC (as opposed to an LCD or FLASH).
 
-    CONFIG_HEAP2_BASE - The base address of the SRAM in the FSMC address space
+    CONFIG_HEAP2_BASE - The base address of the SRAM in the FSMC address space (hex)
 
-    CONFIG_HEAP2_END - The end (+1) of the SRAM in the FSMC address space
+    CONFIG_HEAP2_SIZE - The size of the SRAM in the FSMC address space (decimal)
 
     CONFIG_ARCH_IRQPRIO - The STM3220xxx supports interrupt prioritization
 

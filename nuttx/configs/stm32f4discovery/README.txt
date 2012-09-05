@@ -445,13 +445,13 @@ present in the NuttX configuration file:
 
   CONFIG_STM32_FSMC=y        : Enables the FSMC
   CONFIG_STM32_FSMC_SRAM=y   : Indicates that SRAM is available via the
-    FSMC (as opposed to an LCD or FLASH).
+                               FSMC (as opposed to an LCD or FLASH).
   CONFIG_HEAP2_BASE          : The base address of the SRAM in the FSMC
-    address space
-  CONFIG_HEAP2_END           : The end (+1) of the SRAM in the FSMC
-    address space
+                               address space
+  CONFIG_HEAP2_SIZE          : The size of the SRAM in the FSMC
+                               address space
   CONFIG_MM_REGIONS          : Must be set to a large enough value to
-    include the FSMC SRAM 
+                               include the FSMC SRAM 
 
 SRAM Configurations
 -------------------
@@ -704,9 +704,9 @@ STM32F4Discovery-specific Configuration Options
     CONFIG_STM32_FSMC_SRAM - Indicates that SRAM is available via the
       FSMC (as opposed to an LCD or FLASH).
 
-    CONFIG_HEAP2_BASE - The base address of the SRAM in the FSMC address space
+    CONFIG_HEAP2_BASE - The base address of the SRAM in the FSMC address space (hex)
 
-    CONFIG_HEAP2_END - The end (+1) of the SRAM in the FSMC address space
+    CONFIG_HEAP2_SIZE - The size of the SRAM in the FSMC address space (decimal)
 
     CONFIG_ARCH_IRQPRIO - The STM32F4Discovery supports interrupt prioritization
 
