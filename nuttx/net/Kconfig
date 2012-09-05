@@ -26,7 +26,7 @@ config PHY_DP83848C
 	bool "National Semiconduction DP83848C PHY"
 
 config PHY_LAN8720
-	int "SMSC LAN8720 PHY"
+	bool "SMSC LAN8720 PHY"
 
 endchoice
 

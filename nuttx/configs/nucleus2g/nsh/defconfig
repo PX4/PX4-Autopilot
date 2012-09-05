@@ -1,8 +1,8 @@
 ############################################################################
 # configs/nucleus2g/nsh/defconfig
 #
-#   Copyright (C) 2010 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -39,6 +39,7 @@ CONFIG_ARCH="arm"
 CONFIG_ARCH_ARM=y
 CONFIG_ARCH_CORTEXM3=y
 CONFIG_ARCH_CHIP="lpc17xx"
+CONFIG_ARCH_CHIP_LPC17XX=y
 CONFIG_ARCH_CHIP_LPC1768=y
 CONFIG_ARCH_BOARD="nucleus2g"
 CONFIG_ARCH_BOARD_NUCLEUS2G=y
