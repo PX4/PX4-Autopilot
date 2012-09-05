@@ -114,6 +114,7 @@
 ssize_t sendfile(int outfd, int infd, off_t *offset, size_t count)
 {
   FAR uint8_t *iobuffer;
+  FAR uint8_t *wrbuffer;
   off_t startpos = 0;
   ssize_t nbytesread;
   ssize_t nbyteswritten;
@@ -205,18 +206,31 @@ ssize_t sendfile(int outfd, int infd, off_t *offset, size_t count)
            * conclusion.
            */
 
+          wrbuffer = iobuffer;
           do
             {
-              nbyteswritten = write(outfd, iobuffer, nbytesread);
+              nbyteswritten = write(outfd, wrbuffer, nbytesread);
 
-              /* Check for a complete (or parial write) */
+              /* Check for a complete (or parial write).  write() should not
+               * return zero.
+               */
 
               if (nbyteswritten >= 0)
                 {
-                  nbytesread -= nbyteswritten;
+                  /* Advance the buffer pointer and decrement the number of bytes
+                   * remaining in the iobuffer.  Typically, nbytesread will now
+                   * be zero.
+                   */
+
+                  wrbuffer     += nbyteswritten;
+                  nbytesread   -= nbyteswritten;
+
+                  /* Increment the total number of bytes successfully transferred. */
+
+                  ntransferred += nbyteswritten;
                 }
 
-              /* Otherwise an error occurred (write should not return zero) */
+              /* Otherwise an error occurred */
 
               else
                 {
