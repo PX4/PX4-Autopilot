@@ -1120,5 +1120,5 @@ mpu6000_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "info"))
 		mpu6000::info();
 
-	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
+	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
 }

@@ -4,7 +4,7 @@
 
 typedef struct __mavlink_highres_imu_t
 {
- uint64_t time_boot_ms; ///< Timestamp (milliseconds since system boot)
+ uint64_t time_usec; ///< Timestamp (microseconds, synced to UNIX time or since system boot)
  float xacc; ///< X acceleration (m/s^2)
  float yacc; ///< Y acceleration (m/s^2)
  float zacc; ///< Z acceleration (m/s^2)
@@ -14,8 +14,8 @@ typedef struct __mavlink_highres_imu_t
  float xmag; ///< X Magnetic field (Gauss)
  float ymag; ///< Y Magnetic field (Gauss)
  float zmag; ///< Z Magnetic field (Gauss)
- float abs_pressure; ///< Absolute pressure in hectopascal
- float diff_pressure; ///< Differential pressure in hectopascal
+ float abs_pressure; ///< Absolute pressure in millibar
+ float diff_pressure; ///< Differential pressure in millibar
  float pressure_alt; ///< Altitude calculated from pressure
  float temperature; ///< Temperature in degrees celsius
 } mavlink_highres_imu_t;
@@ -28,7 +28,7 @@ typedef struct __mavlink_highres_imu_t
 #define MAVLINK_MESSAGE_INFO_HIGHRES_IMU { \
 	"HIGHRES_IMU", \
 	14, \
-	{  { "time_boot_ms", NULL, MAVLINK_TYPE_UINT64_T, 0, 0, offsetof(mavlink_highres_imu_t, time_boot_ms) }, \
+	{  { "time_usec", NULL, MAVLINK_TYPE_UINT64_T, 0, 0, offsetof(mavlink_highres_imu_t, time_usec) }, \
          { "xacc", NULL, MAVLINK_TYPE_FLOAT, 0, 8, offsetof(mavlink_highres_imu_t, xacc) }, \
          { "yacc", NULL, MAVLINK_TYPE_FLOAT, 0, 12, offsetof(mavlink_highres_imu_t, yacc) }, \
          { "zacc", NULL, MAVLINK_TYPE_FLOAT, 0, 16, offsetof(mavlink_highres_imu_t, zacc) }, \
@@ -52,7 +52,7 @@ typedef struct __mavlink_highres_imu_t
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
+ * @param time_usec Timestamp (microseconds, synced to UNIX time or since system boot)
  * @param xacc X acceleration (m/s^2)
  * @param yacc Y acceleration (m/s^2)
  * @param zacc Z acceleration (m/s^2)
@@ -62,18 +62,18 @@ typedef struct __mavlink_highres_imu_t
  * @param xmag X Magnetic field (Gauss)
  * @param ymag Y Magnetic field (Gauss)
  * @param zmag Z Magnetic field (Gauss)
- * @param abs_pressure Absolute pressure in hectopascal
- * @param diff_pressure Differential pressure in hectopascal
+ * @param abs_pressure Absolute pressure in millibar
+ * @param diff_pressure Differential pressure in millibar
  * @param pressure_alt Altitude calculated from pressure
  * @param temperature Temperature in degrees celsius
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_highres_imu_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
-						       uint64_t time_boot_ms, float xacc, float yacc, float zacc, float xgyro, float ygyro, float zgyro, float xmag, float ymag, float zmag, float abs_pressure, float diff_pressure, float pressure_alt, float temperature)
+						       uint64_t time_usec, float xacc, float yacc, float zacc, float xgyro, float ygyro, float zgyro, float xmag, float ymag, float zmag, float abs_pressure, float diff_pressure, float pressure_alt, float temperature)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[60];
-	_mav_put_uint64_t(buf, 0, time_boot_ms);
+	_mav_put_uint64_t(buf, 0, time_usec);
 	_mav_put_float(buf, 8, xacc);
 	_mav_put_float(buf, 12, yacc);
 	_mav_put_float(buf, 16, zacc);
@@ -91,7 +91,7 @@ static inline uint16_t mavlink_msg_highres_imu_pack(uint8_t system_id, uint8_t c
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 60);
 #else
 	mavlink_highres_imu_t packet;
-	packet.time_boot_ms = time_boot_ms;
+	packet.time_usec = time_usec;
 	packet.xacc = xacc;
 	packet.yacc = yacc;
 	packet.zacc = zacc;
@@ -110,7 +110,7 @@ static inline uint16_t mavlink_msg_highres_imu_pack(uint8_t system_id, uint8_t c
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_HIGHRES_IMU;
-	return mavlink_finalize_message(msg, system_id, component_id, 60, 106);
+	return mavlink_finalize_message(msg, system_id, component_id, 60, 148);
 }
 
 /**
@@ -119,7 +119,7 @@ static inline uint16_t mavlink_msg_highres_imu_pack(uint8_t system_id, uint8_t c
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message was sent over
  * @param msg The MAVLink message to compress the data into
- * @param time_boot_ms Timestamp (milliseconds since system boot)
+ * @param time_usec Timestamp (microseconds, synced to UNIX time or since system boot)
  * @param xacc X acceleration (m/s^2)
  * @param yacc Y acceleration (m/s^2)
  * @param zacc Z acceleration (m/s^2)
@@ -129,19 +129,19 @@ static inline uint16_t mavlink_msg_highres_imu_pack(uint8_t system_id, uint8_t c
  * @param xmag X Magnetic field (Gauss)
  * @param ymag Y Magnetic field (Gauss)
  * @param zmag Z Magnetic field (Gauss)
- * @param abs_pressure Absolute pressure in hectopascal
- * @param diff_pressure Differential pressure in hectopascal
+ * @param abs_pressure Absolute pressure in millibar
+ * @param diff_pressure Differential pressure in millibar
  * @param pressure_alt Altitude calculated from pressure
  * @param temperature Temperature in degrees celsius
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_highres_imu_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
 							   mavlink_message_t* msg,
-						           uint64_t time_boot_ms,float xacc,float yacc,float zacc,float xgyro,float ygyro,float zgyro,float xmag,float ymag,float zmag,float abs_pressure,float diff_pressure,float pressure_alt,float temperature)
+						           uint64_t time_usec,float xacc,float yacc,float zacc,float xgyro,float ygyro,float zgyro,float xmag,float ymag,float zmag,float abs_pressure,float diff_pressure,float pressure_alt,float temperature)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[60];
-	_mav_put_uint64_t(buf, 0, time_boot_ms);
+	_mav_put_uint64_t(buf, 0, time_usec);
 	_mav_put_float(buf, 8, xacc);
 	_mav_put_float(buf, 12, yacc);
 	_mav_put_float(buf, 16, zacc);
@@ -159,7 +159,7 @@ static inline uint16_t mavlink_msg_highres_imu_pack_chan(uint8_t system_id, uint
         memcpy(_MAV_PAYLOAD_NON_CONST(msg), buf, 60);
 #else
 	mavlink_highres_imu_t packet;
-	packet.time_boot_ms = time_boot_ms;
+	packet.time_usec = time_usec;
 	packet.xacc = xacc;
 	packet.yacc = yacc;
 	packet.zacc = zacc;
@@ -178,7 +178,7 @@ static inline uint16_t mavlink_msg_highres_imu_pack_chan(uint8_t system_id, uint
 #endif
 
 	msg->msgid = MAVLINK_MSG_ID_HIGHRES_IMU;
-	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 60, 106);
+	return mavlink_finalize_message_chan(msg, system_id, component_id, chan, 60, 148);
 }
 
 /**
@@ -191,14 +191,14 @@ static inline uint16_t mavlink_msg_highres_imu_pack_chan(uint8_t system_id, uint
  */
 static inline uint16_t mavlink_msg_highres_imu_encode(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg, const mavlink_highres_imu_t* highres_imu)
 {
-	return mavlink_msg_highres_imu_pack(system_id, component_id, msg, highres_imu->time_boot_ms, highres_imu->xacc, highres_imu->yacc, highres_imu->zacc, highres_imu->xgyro, highres_imu->ygyro, highres_imu->zgyro, highres_imu->xmag, highres_imu->ymag, highres_imu->zmag, highres_imu->abs_pressure, highres_imu->diff_pressure, highres_imu->pressure_alt, highres_imu->temperature);
+	return mavlink_msg_highres_imu_pack(system_id, component_id, msg, highres_imu->time_usec, highres_imu->xacc, highres_imu->yacc, highres_imu->zacc, highres_imu->xgyro, highres_imu->ygyro, highres_imu->zgyro, highres_imu->xmag, highres_imu->ymag, highres_imu->zmag, highres_imu->abs_pressure, highres_imu->diff_pressure, highres_imu->pressure_alt, highres_imu->temperature);
 }
 
 /**
  * @brief Send a highres_imu message
  * @param chan MAVLink channel to send the message
  *
- * @param time_boot_ms Timestamp (milliseconds since system boot)
+ * @param time_usec Timestamp (microseconds, synced to UNIX time or since system boot)
  * @param xacc X acceleration (m/s^2)
  * @param yacc Y acceleration (m/s^2)
  * @param zacc Z acceleration (m/s^2)
@@ -208,18 +208,18 @@ static inline uint16_t mavlink_msg_highres_imu_encode(uint8_t system_id, uint8_t
  * @param xmag X Magnetic field (Gauss)
  * @param ymag Y Magnetic field (Gauss)
  * @param zmag Z Magnetic field (Gauss)
- * @param abs_pressure Absolute pressure in hectopascal
- * @param diff_pressure Differential pressure in hectopascal
+ * @param abs_pressure Absolute pressure in millibar
+ * @param diff_pressure Differential pressure in millibar
  * @param pressure_alt Altitude calculated from pressure
  * @param temperature Temperature in degrees celsius
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-static inline void mavlink_msg_highres_imu_send(mavlink_channel_t chan, uint64_t time_boot_ms, float xacc, float yacc, float zacc, float xgyro, float ygyro, float zgyro, float xmag, float ymag, float zmag, float abs_pressure, float diff_pressure, float pressure_alt, float temperature)
+static inline void mavlink_msg_highres_imu_send(mavlink_channel_t chan, uint64_t time_usec, float xacc, float yacc, float zacc, float xgyro, float ygyro, float zgyro, float xmag, float ymag, float zmag, float abs_pressure, float diff_pressure, float pressure_alt, float temperature)
 {
 #if MAVLINK_NEED_BYTE_SWAP || !MAVLINK_ALIGNED_FIELDS
 	char buf[60];
-	_mav_put_uint64_t(buf, 0, time_boot_ms);
+	_mav_put_uint64_t(buf, 0, time_usec);
 	_mav_put_float(buf, 8, xacc);
 	_mav_put_float(buf, 12, yacc);
 	_mav_put_float(buf, 16, zacc);
@@ -234,10 +234,10 @@ static inline void mavlink_msg_highres_imu_send(mavlink_channel_t chan, uint64_t
 	_mav_put_float(buf, 52, pressure_alt);
 	_mav_put_float(buf, 56, temperature);
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_HIGHRES_IMU, buf, 60, 106);
+	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_HIGHRES_IMU, buf, 60, 148);
 #else
 	mavlink_highres_imu_t packet;
-	packet.time_boot_ms = time_boot_ms;
+	packet.time_usec = time_usec;
 	packet.xacc = xacc;
 	packet.yacc = yacc;
 	packet.zacc = zacc;
@@ -252,7 +252,7 @@ static inline void mavlink_msg_highres_imu_send(mavlink_channel_t chan, uint64_t
 	packet.pressure_alt = pressure_alt;
 	packet.temperature = temperature;
 
-	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_HIGHRES_IMU, (const char *)&packet, 60, 106);
+	_mav_finalize_message_chan_send(chan, MAVLINK_MSG_ID_HIGHRES_IMU, (const char *)&packet, 60, 148);
 #endif
 }
 
@@ -262,11 +262,11 @@ static inline void mavlink_msg_highres_imu_send(mavlink_channel_t chan, uint64_t
 
 
 /**
- * @brief Get field time_boot_ms from highres_imu message
+ * @brief Get field time_usec from highres_imu message
  *
- * @return Timestamp (milliseconds since system boot)
+ * @return Timestamp (microseconds, synced to UNIX time or since system boot)
  */
-static inline uint64_t mavlink_msg_highres_imu_get_time_boot_ms(const mavlink_message_t* msg)
+static inline uint64_t mavlink_msg_highres_imu_get_time_usec(const mavlink_message_t* msg)
 {
 	return _MAV_RETURN_uint64_t(msg,  0);
 }
@@ -364,7 +364,7 @@ static inline float mavlink_msg_highres_imu_get_zmag(const mavlink_message_t* ms
 /**
  * @brief Get field abs_pressure from highres_imu message
  *
- * @return Absolute pressure in hectopascal
+ * @return Absolute pressure in millibar
  */
 static inline float mavlink_msg_highres_imu_get_abs_pressure(const mavlink_message_t* msg)
 {
@@ -374,7 +374,7 @@ static inline float mavlink_msg_highres_imu_get_abs_pressure(const mavlink_messa
 /**
  * @brief Get field diff_pressure from highres_imu message
  *
- * @return Differential pressure in hectopascal
+ * @return Differential pressure in millibar
  */
 static inline float mavlink_msg_highres_imu_get_diff_pressure(const mavlink_message_t* msg)
 {
@@ -410,7 +410,7 @@ static inline float mavlink_msg_highres_imu_get_temperature(const mavlink_messag
 static inline void mavlink_msg_highres_imu_decode(const mavlink_message_t* msg, mavlink_highres_imu_t* highres_imu)
 {
 #if MAVLINK_NEED_BYTE_SWAP
-	highres_imu->time_boot_ms = mavlink_msg_highres_imu_get_time_boot_ms(msg);
+	highres_imu->time_usec = mavlink_msg_highres_imu_get_time_usec(msg);
 	highres_imu->xacc = mavlink_msg_highres_imu_get_xacc(msg);
 	highres_imu->yacc = mavlink_msg_highres_imu_get_yacc(msg);
 	highres_imu->zacc = mavlink_msg_highres_imu_get_zacc(msg);

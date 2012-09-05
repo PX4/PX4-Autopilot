@@ -289,7 +289,10 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_controls_sub, &actuator_controls);
 			orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
 			
-			if (armed.armed) {
+			/* for now only spin if armed and immediately shut down
+			 * if in failsafe
+			 */
+			if (armed.armed && !armed.failsafe) {
 				ardrone_mixing_and_output(ardrone_write, &actuator_controls);
 			} else {
 				/* Silently lock down motor speeds to zero */

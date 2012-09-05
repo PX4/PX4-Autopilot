@@ -3738,7 +3738,7 @@ static void mavlink_test_highres_imu(uint8_t system_id, uint8_t component_id, ma
 	};
 	mavlink_highres_imu_t packet1, packet2;
         memset(&packet1, 0, sizeof(packet1));
-        	packet1.time_boot_ms = packet_in.time_boot_ms;
+        	packet1.time_usec = packet_in.time_usec;
         	packet1.xacc = packet_in.xacc;
         	packet1.yacc = packet_in.yacc;
         	packet1.zacc = packet_in.zacc;
@@ -3761,12 +3761,12 @@ static void mavlink_test_highres_imu(uint8_t system_id, uint8_t component_id, ma
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-	mavlink_msg_highres_imu_pack(system_id, component_id, &msg , packet1.time_boot_ms , packet1.xacc , packet1.yacc , packet1.zacc , packet1.xgyro , packet1.ygyro , packet1.zgyro , packet1.xmag , packet1.ymag , packet1.zmag , packet1.abs_pressure , packet1.diff_pressure , packet1.pressure_alt , packet1.temperature );
+	mavlink_msg_highres_imu_pack(system_id, component_id, &msg , packet1.time_usec , packet1.xacc , packet1.yacc , packet1.zacc , packet1.xgyro , packet1.ygyro , packet1.zgyro , packet1.xmag , packet1.ymag , packet1.zmag , packet1.abs_pressure , packet1.diff_pressure , packet1.pressure_alt , packet1.temperature );
 	mavlink_msg_highres_imu_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
         memset(&packet2, 0, sizeof(packet2));
-	mavlink_msg_highres_imu_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.time_boot_ms , packet1.xacc , packet1.yacc , packet1.zacc , packet1.xgyro , packet1.ygyro , packet1.zgyro , packet1.xmag , packet1.ymag , packet1.zmag , packet1.abs_pressure , packet1.diff_pressure , packet1.pressure_alt , packet1.temperature );
+	mavlink_msg_highres_imu_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.time_usec , packet1.xacc , packet1.yacc , packet1.zacc , packet1.xgyro , packet1.ygyro , packet1.zgyro , packet1.xmag , packet1.ymag , packet1.zmag , packet1.abs_pressure , packet1.diff_pressure , packet1.pressure_alt , packet1.temperature );
 	mavlink_msg_highres_imu_decode(&msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 
@@ -3779,7 +3779,7 @@ static void mavlink_test_highres_imu(uint8_t system_id, uint8_t component_id, ma
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
         
         memset(&packet2, 0, sizeof(packet2));
-	mavlink_msg_highres_imu_send(MAVLINK_COMM_1 , packet1.time_boot_ms , packet1.xacc , packet1.yacc , packet1.zacc , packet1.xgyro , packet1.ygyro , packet1.zgyro , packet1.xmag , packet1.ymag , packet1.zmag , packet1.abs_pressure , packet1.diff_pressure , packet1.pressure_alt , packet1.temperature );
+	mavlink_msg_highres_imu_send(MAVLINK_COMM_1 , packet1.time_usec , packet1.xacc , packet1.yacc , packet1.zacc , packet1.xgyro , packet1.ygyro , packet1.zgyro , packet1.xmag , packet1.ymag , packet1.zmag , packet1.abs_pressure , packet1.diff_pressure , packet1.pressure_alt , packet1.temperature );
 	mavlink_msg_highres_imu_decode(last_msg, &packet2);
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 }

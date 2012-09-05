@@ -69,6 +69,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/subsystem_info.h>
+#include <uORB/topics/actuator_controls.h>
 #include <mavlink/mavlink_log.h>
  
 #include <systemlib/param/param.h>
@@ -1174,6 +1175,7 @@ int commander_thread_main(int argc, char *argv[])
 		/* End battery voltage check */
 
 		/* Start RC state check */
+		bool prev_lost = current_status.rc_signal_lost;
 
 		if (rc.chan_count > 4 && (hrt_absolute_time() - rc.timestamp) < 100000) {
 
@@ -1238,8 +1240,16 @@ int commander_thread_main(int argc, char *argv[])
 			/* flag as lost and update interval since when the signal was lost (to initiate RTL after some time) */
 			current_status.rc_signal_cutting_off = true;
 			current_status.rc_signal_lost_interval = hrt_absolute_time() - rc.timestamp;
+
 			/* if the RC signal is gone for a full second, consider it lost */
 			if (current_status.rc_signal_lost_interval > 1000000) current_status.rc_signal_lost = true;
+		}
+
+		/* Check if this is the first loss or first gain*/
+		if ((!prev_lost && current_status.rc_signal_lost) ||
+			prev_lost && !current_status.rc_signal_lost) {
+			/* publish rc lost */
+			publish_armed_status(&current_status);
 		}
 
 		/* End mode switch */
