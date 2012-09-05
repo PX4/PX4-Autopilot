@@ -9,7 +9,26 @@ config NET
 	---help---
 		Enable or disable all network features
 
+config ARCH_HAS_PHY
+	bool
+
 if NET
+
+choice
+	prompt "Board PHY Selection"
+	depends on ARCH_HAS_PHY
+	default PHY_KS8721
+
+config PHY_KS8721
+	bool "Micrel KS8721 PHY"
+
+config PHY_DP83848C
+	bool "National Semiconduction DP83848C PHY"
+
+config PHY_LAN8720
+	int "SMSC LAN8720 PHY"
+
+endchoice
 
 config NET_NOINTS
 	bool "Not interrupt driven"

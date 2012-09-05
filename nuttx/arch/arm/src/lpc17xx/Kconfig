@@ -2,3 +2,452 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+choice
+	prompt "NXP LPC17XX Chip Selection"
+	default ARCH_CHIP_LPC1768
+	depends on ARCH_CHIP_LPC17XX
+
+config ARCH_CHIP_LPC1751
+	bool "LPC1751"
+
+config ARCH_CHIP_LPC1752
+	bool "LPC1752"
+
+config ARCH_CHIP_LPC1754
+	bool "LPC1754"
+
+config ARCH_CHIP_LPC1756
+	bool "LPC1756"
+
+config ARCH_CHIP_LPC1758
+	bool "LPC1758"
+
+config ARCH_CHIP_LPC1759
+	bool "LPC1759"
+
+config ARCH_CHIP_LPC1764
+	bool "LPC1764"
+
+config ARCH_CHIP_LPC1765
+	bool "LPC1765"
+
+config ARCH_CHIP_LPC1766
+	bool "LPC1766"
+
+config ARCH_CHIP_LPC1767
+	bool "LPC1767"
+
+config ARCH_CHIP_LPC1768
+	bool "LPC1768"
+
+config ARCH_CHIP_LPC1769
+	bool "LPC1769"
+
+endchoice
+
+config ARCH_FAMILY_LPC175X
+	bool
+	default y if ARCH_CHIP_LPC1751 || ARCH_CHIP_LPC1752 || ARCH_CHIP_LPC1754 || ARCH_CHIP_LPC1756 || ARCH_CHIP_LPC1758 || ARCH_CHIP_LPC1759
+
+config ARCH_FAMILY_LPC176X
+	bool
+	default y if ARCH_CHIP_LPC1764 || ARCH_CHIP_LPC1765 || ARCH_CHIP_LPC1766 || ARCH_CHIP_LPC1767 || ARCH_CHIP_LPC1768 || ARCH_CHIP_LPC1769
+
+config ARCH_CORTEXM3
+	bool
+	default y if ARCH_CHIP_LPC17XX
+
+config ARCH_CORTEXM4
+	bool
+	default n
+
+menu "LPC17xx Peripheral Support"
+
+config LPC17_MAINOSC
+	bool "Main oscillator"
+	default y
+
+config LPC17_PLL0
+	bool "PLL0"
+	default y
+
+config LPC17_PLL1
+	bool "PLL1"
+	default y
+
+config LPC17_ETHERNET
+	bool "Ethernet"
+	select NET
+	select ARCH_HAS_PHY
+	default n
+
+config LPC17_USBHOST
+	bool "USB host"
+	select USBHOST
+	default n
+
+config LPC17_USBDEV
+	bool "USB Device"
+	select USBDEV
+	default n
+
+config LPC17_USBOTG
+	bool "USB OTG"
+	default n
+	depends on LPC17_USBHOST && LPC17_USBDEV
+
+config LPC17_UART0
+	bool "UART0"
+	select ARCH_HAS_UART0
+	default n
+
+config LPC17_UART1
+	bool "UART1"
+	select ARCH_HAS_UART1
+	default n
+
+config LPC17_UART2
+	bool "UART2"
+	select ARCH_HAS_UART2
+	default n
+
+config LPC17_UART3
+	bool "UART3"
+	select ARCH_HAS_UART3
+	default n
+
+config LPC17_CAN1
+	bool "CAN1"
+	select ARCH_HAS_UART4
+	default n
+
+config LPC17_CAN2
+	bool "CAN2"
+	default n
+
+config LPC17_SPI
+	bool "SPI"
+	default n
+
+config LPC17_SSP0
+	bool "SSP0"
+	default n
+
+config LPC17_SSP1
+	bool "SSP1"
+	default n
+
+config LPC17_I2C0
+	bool "I2C0"
+	default n
+
+config LPC17_I2C1
+	bool "I2C1"
+	default n
+
+config LPC17_I2S
+	bool "I2S"
+	default n
+
+config LPC17_TMR0
+	bool "Timer 0"
+	default n
+
+config LPC17_TMR1
+	bool "Timer 1"
+	default n
+
+config LPC17_TMR2
+	bool "Timer 2"
+	default n
+
+config LPC17_TMR3
+	bool "Timer 3"
+	default n
+
+config LPC17_RIT
+	bool "RIT"
+	default n
+
+config LPC17_PWM
+	bool "PWM"
+	default n
+
+config LPC17_MCPWM
+	bool "MCPWM"
+	default n
+
+config LPC17_QEI
+	bool "QEI"
+	default n
+
+config LPC17_RTC
+	bool "RTC"
+	default n
+
+config LPC17_WDT
+	bool "WDT"
+	default n
+
+config LPC17_ADC
+	bool "ADC"
+	default n
+
+config LPC17_DAC
+	bool "DAC"
+	default n
+
+config LPC17_GPDMA
+	bool "GPDMA"
+	default n
+
+config LPC17_FLASH
+	bool "FLASH"
+	default n
+
+endmenu
+
+config SERIAL_TERMIOS
+	bool "Serial driver TERMIOS supported"
+	depends on LPC17_UART0 || LPC17_UART1 || LPC17_UART2 || LPC17_UART3
+	default n
+	---help---
+		Serial driver supports termios.h interfaces (tcsetattr, tcflush, etc.).
+		If this is not defined, then the terminal settings (baud, parity, etc).
+		are not configurable at runtime; serial streams cannot be flushed, etc..
+
+menu "CAN driver options"
+
+config CAN_EXTID
+	bool "CAN extended IDs"
+	depends on LPC17_CAN1 || LPC17_CAN2
+	default n
+	---help---
+		Enables support for the 29-bit extended ID.  Default Standard 11-bit IDs.
+
+config CAN1_BAUD
+	int "CAN1 BAUD"
+	depends on LPC17_CAN1
+	---help---
+		CAN1 BAUD rate.  Required if LPC17_CAN1 is defined.
+
+config CAN2_BAUD
+	int "CAN2 BAUD"
+	depends on LPC17_CAN2
+	---help---
+		CAN2 BAUD rate.  Required if CONFIG_LPC17_CAN2 is defined.
+
+config CAN1_DIVISOR
+	int "CAN1 CCLK divisor"
+	depends on LPC17_CAN1
+	default 4
+	---help---
+		CAN1 is clocked at CCLK divided by this number. (the CCLK frequency is divided
+		by this number to get the CAN clock). Options = {1,2,4,6}. Default: 4.
+
+config CAN2_DIVISOR
+	int "CAN2 CCLK divisor"
+	depends on LPC17_CAN2
+	default 4
+	---help---
+		CAN2 is clocked at CCLK divided by this number. (the CCLK frequency is divided
+		by this number to get the CAN clock). Options = {1,2,4,6}. Default: 4.
+
+config CAN_TSEG1
+	bool "TSEG1 quanta"
+	depends on LPC17_CAN1 || LPC17_CAN2
+	default 6
+	---help---
+		The number of CAN time quanta in segment 1. Default: 6
+
+config CAN_TSEG2
+	bool "TSEG2 quanta"
+	depends on LPC17_CAN1 || LPC17_CAN2
+	default 4
+	---help---
+		The number of CAN time quanta in segment 2. Default: 7
+
+endmenu
+
+menu "Ethernet driver options"
+
+config PHY_AUTONEG
+	bool "Autonegiation"
+	depends on LPC17_ETHERNET
+	---help---
+		Enable auto-negotion
+
+config PHY_SPEED100
+	bool "100Mbit/Sec"
+	depends on LPC17_ETHERNET && !PHY_AUTONEG
+	---help---
+		Select 100Mbit vs. 10Mbit speed.
+
+config PHY_FDUPLEX
+	bool "Full duplex"
+	depends on LPC17_ETHERNET && !PHY_AUTONEG
+	---help---
+		Select full (vs. half) duplex
+
+config NET_EMACRAM_SIZE
+	int "EMAC RAM Size"
+	depends on LPC17_ETHERNET
+	default 16384
+	---help---
+		Size of EMAC RAM.  Default: 16384 bytes
+
+config NET_NTXDESC
+	int "Number of Tx descriptors"
+	depends on LPC17_ETHERNET
+	default 18
+	---help---
+		Configured number of Tx descriptors. Default: 18
+
+config NET_NRXDESC
+	int "Number of Rx descriptors"
+	depends on LPC17_ETHERNET
+	default 18
+	---help---
+		Configured number of Rx descriptors. Default: 18
+
+config NET_PRIORITY
+	int "Ethernet interrupt priority"
+	depends on LPC17_ETHERNET
+	default 0
+	---help---
+		Ethernet interrupt priority.  The is default is the higest priority (0).
+
+config NET_WOL
+	bool "Wake-up on LAN"
+	depends on LPC17_ETHERNET
+	default n
+	---help---
+		Enable Wake-up on Lan (not fully implemented).
+
+config NET_REGDEBUG
+	bool "Ethernet register-level debug"
+	depends on LPC17_ETHERNET && DEBUG
+	default n
+	---help---
+		Enable low level register debug.  Also needs DEBUG.
+
+config NET_DUMPPACKET
+	bool "Enable packet dumping"
+	depends on LPC17_ETHERNET && DEBUG
+	default n
+	---help---
+		Dump all received and transmitted packets. Also needs DEBUG.
+
+config NET_HASH
+	bool "Hashing"
+	depends on LPC17_ETHERNET
+	default n
+	---help---
+		Enable receipt of near-perfect match frames.
+
+config NET_MULTICAST
+	bool "Multicast"
+	depends on LPC17_ETHERNET
+	default y if NET_IGMP
+	default n if !NET_IGMP
+	---help---
+		Enable receipt of multicast (and unicast) frames. Automatically set
+		if NET_IGMP is selected.
+
+endmenu
+
+menu "USB device driver options"
+
+config LPC17_USBDEV_FRAME_INTERRUPT
+	bool "USB "
+	depends on LPC17_USBDEV
+	default n
+	---help---
+		Handle USB Start-Of-Frame events.  Enable reading SOF from interrupt
+		handler vs. simply reading on demand. Probably a bad idea... Unless
+		there is some issue with sampling the SOF from hardware asynchronously.
+
+config LPC17_USBDEV_EPFAST_INTERRUPT
+	bool "EP fast interrupt handling"
+	depends on LPC17_USBDEV
+	default n
+	---help---
+		Enable high priority interrupts.  I have no idea why you might want to do that
+
+config LPC17_USBDEV_NDMADESCRIPTORS
+	int "Number of DMA descriptors"
+	depends on LPC17_USBDEV
+	default 8
+	---help---
+		Number of DMA descriptors to allocate in SRAM.  Default: 8
+
+config LPC17_USBDEV_DMA
+	bool "Enable USB device DMA"
+	depends on LPC17_USBDEV
+	default n
+	---help---
+		Enable lpc17xx-specific DMA support
+
+config LPC17_USBDEV_NOVBUS
+	bool "Disable VBUS support"
+	depends on LPC17_USBDEV
+	default n
+	---help---
+		Define if the hardware implementation does not support the VBUS signal
+
+config LPC17_USBDEV_NOLED
+	bool "Disable USB device LCD support"
+	depends on LPC17_USBDEV
+	default n
+	---help---
+		Define if the hardware implementation does not support the LED output
+
+endmenu
+
+menu "USB host driver options"
+
+config USBHOST_OHCIRAM_SIZE
+	int "OHCI RAM Size"
+	depends on LPC17_USBHOST
+	default 16384
+	---help---
+		Total size of OHCI RAM (in AHB SRAM Bank 1).  Default: 16384
+
+config USBHOST_NEDS
+	int "Number of Endpoint Descriptors"
+	depends on LPC17_USBHOST
+	default 2
+	---help---
+		Number of endpoint descriptors.  Default: 2
+
+config USBHOST_NTDS
+	int "Number of transfer descriptors"
+	depends on LPC17_USBHOST
+	default 3
+	---help---
+		Number of transfer descriptors. Default: 3
+
+config USBHOST_TDBUFFERS
+	int "Number of descriptor buffers"
+	depends on LPC17_USBHOST
+	default 2
+	---help---
+		Number of transfer descriptor buffers.  Default: 2
+
+config USBHOST_TDBUFSIZE
+	int "Descriptor buffer size"
+	depends on LPC17_USBHOST
+	default 128
+	---help---
+		Size of one transfer descriptor buffer.  Default 128
+
+config USBHOST_IOBUFSIZE
+	int "I/O buffer size"
+	depends on LPC17_USBHOST
+	default 512
+	---help---
+		Size of one end-user I/O buffer.  This can be zero if the application
+		can guarantee that all end-user I/O buffers reside in AHB SRAM.
+
+endmenu

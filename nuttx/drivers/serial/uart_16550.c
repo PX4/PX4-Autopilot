@@ -128,20 +128,20 @@ struct uart_ops_s g_uart_ops =
 /* I/O buffers */
 
 #ifdef CONFIG_16550_UART0
-static char g_uart0rxbuffer[CONFIG_UART0_RXBUFSIZE];
-static char g_uart0txbuffer[CONFIG_UART0_TXBUFSIZE];
+static char g_uart0rxbuffer[CONFIG_16550_UART0_RXBUFSIZE];
+static char g_uart0txbuffer[CONFIG_16550_UART0_TXBUFSIZE];
 #endif
 #ifdef CONFIG_16550_UART1
-static char g_uart1rxbuffer[CONFIG_UART1_RXBUFSIZE];
-static char g_uart1txbuffer[CONFIG_UART1_TXBUFSIZE];
+static char g_uart1rxbuffer[CONFIG_16550_UART1_RXBUFSIZE];
+static char g_uart1txbuffer[CONFIG_16550_UART1_TXBUFSIZE];
 #endif
 #ifdef CONFIG_16550_UART2
-static char g_uart2rxbuffer[CONFIG_UART1_RXBUFSIZE];
-static char g_uart2txbuffer[CONFIG_UART1_TXBUFSIZE];
+static char g_uart2rxbuffer[CONFIG_16550_UART2_RXBUFSIZE];
+static char g_uart2txbuffer[CONFIG_16550_UART2_TXBUFSIZE];
 #endif
 #ifdef CONFIG_16550_UART3
-static char g_uart3rxbuffer[CONFIG_UART1_RXBUFSIZE];
-static char g_uart3txbuffer[CONFIG_UART1_TXBUFSIZE];
+static char g_uart3rxbuffer[CONFIG_16550_UART3_RXBUFSIZE];
+static char g_uart3txbuffer[CONFIG_16550_UART3_TXBUFSIZE];
 #endif
 
 /* This describes the state of the LPC17xx uart0 port. */
@@ -151,16 +151,16 @@ static struct u16550_s g_uart0priv =
 {
   .uartbase       = CONFIG_16550_UART0_BASE,
 #ifndef CONFIG_16550_SUPRESS_CONFIG
-  .baud           = CONFIG_UART0_BAUD,
+  .baud           = CONFIG_16550_UART0_BAUD,
   .uartclk        = CONFIG_16550_UART0_CLOCK,
 #endif
 #ifndef CONFIG_SUPPRESS_SERIAL_INTS
   .irq            = CONFIG_16550_UART0_IRQ,
 #endif
 #ifndef CONFIG_16550_SUPRESS_CONFIG
-  .parity         = CONFIG_UART0_PARITY,
-  .bits           = CONFIG_UART0_BITS,
-  .stopbits2      = CONFIG_UART0_2STOP,
+  .parity         = CONFIG_16550_UART0_PARITY,
+  .bits           = CONFIG_16550_UART0_BITS,
+  .stopbits2      = CONFIG_16550_UART0_2STOP,
 #endif
 };
 
@@ -168,12 +168,12 @@ static uart_dev_t g_uart0port =
 {
   .recv     =
   {
-    .size   = CONFIG_UART0_RXBUFSIZE,
+    .size   = CONFIG_16550_UART0_RXBUFSIZE,
     .buffer = g_uart0rxbuffer,
   },
   .xmit     =
   {
-    .size   = CONFIG_UART0_TXBUFSIZE,
+    .size   = CONFIG_16550_UART0_TXBUFSIZE,
     .buffer = g_uart0txbuffer,
   },
   .ops      = &g_uart_ops,
@@ -188,16 +188,16 @@ static struct u16550_s g_uart1priv =
 {
   .uartbase       = CONFIG_16550_UART1_BASE,
 #ifndef CONFIG_16550_SUPRESS_CONFIG
-  .baud           = CONFIG_UART1_BAUD,
+  .baud           = CONFIG_16550_UART1_BAUD,
   .uartclk        = CONFIG_16550_UART1_CLOCK,
 #endif
 #ifndef CONFIG_SUPPRESS_SERIAL_INTS
   .irq            = CONFIG_16550_UART1_IRQ,
 #endif
 #ifndef CONFIG_16550_SUPRESS_CONFIG
-  .parity         = CONFIG_UART1_PARITY,
-  .bits           = CONFIG_UART1_BITS,
-  .stopbits2      = CONFIG_UART1_2STOP,
+  .parity         = CONFIG_16550_UART1_PARITY,
+  .bits           = CONFIG_16550_UART1_BITS,
+  .stopbits2      = CONFIG_16550_UART1_2STOP,
 #endif
 };
 
@@ -205,12 +205,12 @@ static uart_dev_t g_uart1port =
 {
   .recv     =
   {
-    .size   = CONFIG_UART1_RXBUFSIZE,
+    .size   = CONFIG_16550_UART1_RXBUFSIZE,
     .buffer = g_uart1rxbuffer,
   },
   .xmit     =
   {
-    .size   = CONFIG_UART1_TXBUFSIZE,
+    .size   = CONFIG_16550_UART1_TXBUFSIZE,
     .buffer = g_uart1txbuffer,
    },
   .ops      = &g_uart_ops,
@@ -225,16 +225,16 @@ static struct u16550_s g_uart2priv =
 {
   .uartbase       = CONFIG_16550_UART2_BASE,
 #ifndef CONFIG_16550_SUPRESS_CONFIG
-  .baud           = CONFIG_UART2_BAUD,
+  .baud           = CONFIG_16550_UART2_BAUD,
   .uartclk        = CONFIG_16550_UART2_CLOCK,
 #endif
 #ifndef CONFIG_SUPPRESS_SERIAL_INTS
   .irq            = CONFIG_16550_UART2_IRQ,
 #endif
 #ifndef CONFIG_16550_SUPRESS_CONFIG
-  .parity         = CONFIG_UART2_PARITY,
-  .bits           = CONFIG_UART2_BITS,
-  .stopbits2      = CONFIG_UART2_2STOP,
+  .parity         = CONFIG_16550_UART2_PARITY,
+  .bits           = CONFIG_16550_UART2_BITS,
+  .stopbits2      = CONFIG_16550_UART2_2STOP,
 #endif
 };
 
@@ -242,12 +242,12 @@ static uart_dev_t g_uart2port =
 {
   .recv     =
   {
-    .size   = CONFIG_UART2_RXBUFSIZE,
+    .size   = CONFIG_16550_UART2_RXBUFSIZE,
     .buffer = g_uart2rxbuffer,
   },
   .xmit     =
   {
-    .size   = CONFIG_UART2_TXBUFSIZE,
+    .size   = CONFIG_16550_UART2_TXBUFSIZE,
     .buffer = g_uart2txbuffer,
    },
   .ops      = &g_uart_ops,
@@ -262,16 +262,16 @@ static struct u16550_s g_uart3priv =
 {
   .uartbase       = CONFIG_16550_UART3_BASE,
 #ifndef CONFIG_16550_SUPRESS_CONFIG
-  .baud           = CONFIG_UART3_BAUD,
+  .baud           = CONFIG_16550_UART3_BAUD,
   .uartclk        = CONFIG_16550_UART3_CLOCK,
 #endif
 #ifndef CONFIG_SUPPRESS_SERIAL_INTS
   .irq            = CONFIG_16550_UART3_IRQ,
 #endif
 #ifndef CONFIG_16550_SUPRESS_CONFIG
-  .parity         = CONFIG_UART3_PARITY,
-  .bits           = CONFIG_UART3_BITS,
-  .stopbits2      = CONFIG_UART3_2STOP,
+  .parity         = CONFIG_16550_UART3_PARITY,
+  .bits           = CONFIG_16550_UART3_BITS,
+  .stopbits2      = CONFIG_16550_UART3_2STOP,
 #endif
 };
 
@@ -279,12 +279,12 @@ static uart_dev_t g_uart3port =
 {
   .recv     =
   {
-    .size   = CONFIG_UART3_RXBUFSIZE,
+    .size   = CONFIG_16550_UART3_RXBUFSIZE,
     .buffer = g_uart3rxbuffer,
   },
   .xmit     =
   {
-    .size   = CONFIG_UART3_TXBUFSIZE,
+    .size   = CONFIG_16550_UART3_TXBUFSIZE,
     .buffer = g_uart3txbuffer,
    },
   .ops      = &g_uart_ops,
@@ -294,7 +294,7 @@ static uart_dev_t g_uart3port =
 
 /* Which UART with be tty0/console and which tty1? tty2? tty3? */
 
-#if defined(CONFIG_UART0_SERIAL_CONSOLE)
+#if defined(CONFIG_16550_UART0_SERIAL_CONSOLE)
 #  define CONSOLE_DEV     g_uart0port    /* UART0=console */
 #  define TTYS0_DEV       g_uart0port    /* UART0=ttyS0 */
 #  ifdef CONFIG_16550_UART1
@@ -333,7 +333,7 @@ static uart_dev_t g_uart3port =
 #      undef TTYS3_DEV                   /* No ttyS3 */
 #    endif
 #  endif
-#elif defined(CONFIG_UART1_SERIAL_CONSOLE)
+#elif defined(CONFIG_16550_UART1_SERIAL_CONSOLE)
 #  define CONSOLE_DEV     g_uart1port    /* UART1=console */
 #  define TTYS0_DEV       g_uart1port    /* UART1=ttyS0 */
 #  ifdef CONFIG_16550_UART
@@ -372,7 +372,7 @@ static uart_dev_t g_uart3port =
 #      undef TTYS3_DEV                   /* No ttyS3 */
 #    endif
 #  endif
-#elif defined(CONFIG_UART2_SERIAL_CONSOLE)
+#elif defined(CONFIG_16550_UART2_SERIAL_CONSOLE)
 #  define CONSOLE_DEV     g_uart2port    /* UART2=console */
 #  define TTYS0_DEV       g_uart2port    /* UART2=ttyS0 */
 #  ifdef CONFIG_16550_UART
@@ -411,7 +411,7 @@ static uart_dev_t g_uart3port =
 #      undef TTYS3_DEV                   /* No ttyS3 */
 #    endif
 #  endif
-#elif defined(CONFIG_UART3_SERIAL_CONSOLE)
+#elif defined(CONFIG_16550_UART3_SERIAL_CONSOLE)
 #  define CONSOLE_DEV     g_uart3port    /* UART3=console */
 #  define TTYS0_DEV       g_uart3port    /* UART3=ttyS0 */
 #  ifdef CONFIG_16550_UART
@@ -1161,4 +1161,4 @@ int up_putc(int ch)
 }
 #endif
 
-#endif /* CONFIG_UART_16550 */
+#endif /* CONFIG_16550_UART */

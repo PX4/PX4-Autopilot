@@ -493,26 +493,32 @@ config PIC32MX_SPI4
 config PIC32MX_UART1
 	bool "UART1"
 	default n
+	select ARCH_HAS_UART1
 
 config PIC32MX_UART2
 	bool "UART2"
 	default n
+	select ARCH_HAS_UART1
 
 config PIC32MX_UART3
 	bool "UART3"
 	default n
+	select ARCH_HAS_UART3
 
 config PIC32MX_UART4
 	bool "UART4"
 	default n
+	select ARCH_HAS_UART4
 
 config PIC32MX_UART5
 	bool "UART5"
 	default n
+	select ARCH_HAS_UART5
 
 config PIC32MX_UART6
 	bool "UART6"
 	default n
+	select ARCH_HAS_UART6
 
 config PIC32MX_ADC
 	bool "ADC1"
@@ -561,6 +567,8 @@ config PIC32MX_CAN2
 config PIC32MX_ETHERNET
 	bool "Ethernet"
 	default n
+	select NET
+	select ARCH_HAS_PHY
 
 config PIC32MX_CTMU
 	bool "Charge Time Measurement Unit (CMTU)"
@@ -906,270 +914,6 @@ config PIC32MX_USBPRIO
 
 endmenu
 
-menu "UART1 Configuration"
-	depends on PIC32MX_UART1
-
-config UART1_RXBUFSIZE
-	int "UART1 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive buffer
-
-config UART1_TXBUFSIZE
-	int "UART1 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the transmit buffer.
-
-config UART1_BAUD 
-	int "UART1 BAUD"
-	default 115200
-	---help---
-		The configure BAUD of the UART.
-
-config UART1_BITS
-	int "UART1 bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config UART1_PARITY
-	int "UART1 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config UART1_2STOP
-	int "UART1 2 stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
-
-endmenu
-
-menu "UART2 Configuration"
-	depends on PIC32MX_UART2
-
-config UART2_RXBUFSIZE
-	int "UART2 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive buffer
-
-config UART2_TXBUFSIZE
-	int "UART2 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the transmit buffer.
-
-config UART2_BAUD 
-	int "UART2 BAUD"
-	default 115200
-	---help---
-		The configure BAUD of the UART.
-
-config UART2_BITS
-	int "UART2 bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config UART2_PARITY
-	int "UART2 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config UART2_2STOP
-	int "UART2 2 stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
-
-endmenu
-
-menu "UART3 Configuration"
-	depends on PIC32MX_UART3
-
-config UART3_RXBUFSIZE
-	int "UART3 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive buffer
-
-config UART3_TXBUFSIZE
-	int "UART3 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the transmit buffer.
-
-config UART3_BAUD 
-	int "UART3 BAUD"
-	default 115200
-	---help---
-		The configure BAUD of the UART.
-
-config UART3_BITS
-	int "UART3 bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config UART3_PARITY
-	int "UART3 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config UART3_2STOP
-	int "UART3 2 stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
-
-endmenu
-
-menu "UART4 Configuration"
-	depends on PIC32MX_UART4
-
-config UART4_SERIAL_CONSOLE
-	bool "UART4 serial console"
-	default y if !PIC32MX_UART1 && !PIC32MX_UART2 && !PIC32MX_UART3
-	---help---
-		Selects the UART4 for the console and ttys0.  Default: UART4 (if enabled).
-
-config UART4_RXBUFSIZE
-	int "UART4 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive buffer
-
-config UART4_TXBUFSIZE
-	int "UART4 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the transmit buffer.
-
-config UART4_BAUD 
-	int "UART4 BAUD"
-	default 115200
-	---help---
-		The configure BAUD of the UART.
-
-config UART4_BITS
-	int "UART4 bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config UART4_PARITY
-	int "UART4 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config UART4_2STOP
-	int "UART4 2 stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
-
-endmenu
-
-menu "UART5 Configuration"
-	depends on PIC32MX_UART5
-
-config UART5_SERIAL_CONSOLE
-	bool "UART5 serial console"
-	default y if !PIC32MX_UART1 && !PIC32MX_UART2 && !PIC32MX_UART3 && !PIC32MX_UART4
-	---help---
-		Selects the UART5 for the console and ttys0.  Default: UART5 (if enabled).
-
-config UART5_RXBUFSIZE
-	int "UART5 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive buffer
-
-config UART5_TXBUFSIZE
-	int "UART5 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the transmit buffer.
-
-config UART5_BAUD 
-	int "UART5 BAUD"
-	default 115200
-	---help---
-		The configure BAUD of the UART.
-
-config UART5_BITS
-	int "UART5 bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config UART5_PARITY
-	int "UART5 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config UART5_2STOP
-	int "UART5 2 stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
-
-endmenu
-
-menu "UART6 Configuration"
-	depends on PIC32MX_UART6
-
-config UART6_SERIAL_CONSOLE
-	bool "UART6 serial console"
-	default y if !PIC32MX_UART1 && !PIC32MX_UART2 && !PIC32MX_UART3 && !PIC32MX_UART4 && !PIC32MX_UART5
-	---help---
-		Selects the UART6 for the console and ttys0.  Default: UART6 (if enabled).
-
-config UART6_RXBUFSIZE
-	int "UART6 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive buffer
-
-config UART6_TXBUFSIZE
-	int "UART6 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the transmit buffer.
-
-config UART6_BAUD 
-	int "UART6 BAUD"
-	default 115200
-	---help---
-		The configure BAUD of the UART.
-
-config UART6_BITS
-	int "UART6 bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config UART6_PARITY
-	int "UART6 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config UART6_2STOP
-	int "UART6 2 stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
-
-endmenu
-
 config SERIAL_TERMIOS
 	bool "Serial driver TERMIOS supported"
 	depends on PIC32MX_UART1 || PIC32MX_UART2 || PIC32MX_UART3 || PIC32MX_UART4 || PIC32MX_UART5 || PIC32MX_UART6
@@ -1178,22 +922,6 @@ config SERIAL_TERMIOS
 		Serial driver supports termios.h interfaces (tcsetattr, tcflush, etc.).
 		If this is not defined, then the terminal settings (baud, parity, etc).
 		are not configurable at runtime; serial streams cannot be flushed, etc..
-
-choice
-	prompt "PIC32MX PHY Selection"
-	depends on PIC32MX_ETHERNET
-	default PHY_KS8721
-
-config PHY_KS8721
-	bool "Micrel KS8721 PHY"
-
-config PHY_DP83848C
-	bool "National Semiconduction DP83848C PHY"
-
-config PHY_LAN8720
-	int "SMSC LAN8720 PHY"
-
-endchoice
 
 menu "PIC32MX PHY/Ethernet device driver settings"
 	depends on PIC32MX_ETHERNET

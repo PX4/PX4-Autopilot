@@ -261,6 +261,7 @@ config LPC43_USART0
 
 config LPC43_UART1
 	bool "UART1"
+	select ARCH_HAS_UART1
 	default n
 
 config LPC43_USART2
@@ -289,49 +290,6 @@ config LPC43_USB1_ULPI
 config LPC43_WWDT
 	bool "Windowing Watchdog Timer (WWDT)"
 	default n
-
-endmenu
-
-menu "UART1 Configuration"
-	depends on LPC43_UART1
-
-config UART1_RXBUFSIZE
-	int "UART1 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config UART1_TXBUFSIZE
-	int "UART1 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config UART1_BAUD
-	int "UART1 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config UART1_BITS
-	int "UART1 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config UART1_PARITY
-	int "UART1 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config UART1_2STOP
-	int "UART1 two stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 endmenu
 

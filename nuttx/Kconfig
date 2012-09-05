@@ -152,26 +152,91 @@ config RAW_BINARY
 		should not be selected if you are not using the GNU toolchain.
 endmenu
 
+menu "Customize Header Files"
+
+config ARCH_STDBOOL_H
+	bool "stdbool.h"
+	default n
+	---help---
+		The stdbool.h header file can be found at nuttx/include/stdbool.h.
+		However, that header includes logic to redirect the inclusion of an
+		architecture specific header file like:
+
+		#ifdef CONFIG_ARCH_STDBOOL_H
+		#  include <arch/stdbool.h>
+		#else
+		...
+		#endif
+
+		Recall that that include path, include/arch, is a symbolic link and
+		will refer to a version of stdbool.h at nuttx/arch/<architecture>/include/stdbool.h.
+
+config ARCH_MATH_H
+	bool "math.h"
+	default n
+	---help---
+		There is also a re-directing version of math.h in the source tree.
+		However, it resides out-of-the-way at include/nuttx/math.h because it
+		conflicts too often with the system math.h. If ARCH_MATH_H=y is
+		defined, however, the top-level makefile will copy the redirecting
+ 		math.h header file from include/nuttx/math.h to include/math.h. math.h
+		will then include the architecture-specific version of math.h that you
+		must provide at nuttx/arch/>architecture</include/math.h.
+
+		#ifdef CONFIG_ARCH_MATH_H
+		#  include <arch/math.h>
+		#endif
+
+		So for the architectures that define ARCH_MATH_H=y, include/math.h
+		will be the redirecting math.h header file; for the architectures
+		that don't select ARCH_MATH_H, the redirecting math.h header file
+		will stay out-of-the-way in include/nuttx/.
+
+config ARCH_STDARG_H
+	bool "stdarg.h"
+	default n
+	---help---
+		There is also a redirecting version of stdarg.h in the source tree
+		as well. It also resides out-of-the-way at include/nuttx/stdarg.h.
+		This is because you should normally use your toolchain's stdarg.h
+		file. But sometimes, your toolchain's stdarg.h file may have other
+		header file dependencies and so may not be usable in the NuttX build
+		environment. In those cases, you may have to create a architecture-
+		specific stdarg.h header file at nuttx/arch/<architecture>/include/stdarg.h
+
+		If ARCH_STDARG_H=y is defined, the top-level makefile will copy the
+		re-directing stdarg.h header file from include/nuttx/stdarg.h to
+		include/stdarg.h. So for the architectures that cannot use their
+		toolchain's stdarg.h file, they can use this alternative by defining
+		ARCH_STDARG_H=y and providing. If ARCH_STDARG_H, is not defined, then
+		the stdarg.h header file will stay out-of-the-way in include/nuttx/.
+
+endmenu
+
 menu "Debug Options"
 
 config DEBUG
-	bool "Enable debug output"
+	bool "Enable debug features"
 	default n
 	---help---
-		enables built-in debug options
+		Enables built-in debug features.  Selecting this option will (1) Enable
+		debug assertions in the code, (2) enable extended parameter testing in
+		many functions, and (3) enable support for debug output.  Note that enabling
+		this option by itself does not produce debug output.  Debug output must
+		also be selected on a subsystem-by-subsystem basis.
 
 if DEBUG
 config DEBUG_VERBOSE
 	bool "Enable debug verbose output"
 	default n
 	---help---
-		enables verbose debug output
+		Enables verbose debug output (assuming debug output is enabled)
 
 config DEBUG_ENABLE
 	bool "Enable debug controls"
 	default n
 	---help---
-		Support an interface to enable or disable debug output.
+		Support an interface to dynamically enable or disable debug output.
 
 config DEBUG_SCHED
 	bool "Enable scheduler debug output"

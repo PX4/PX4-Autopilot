@@ -6,6 +6,7 @@
 config NSH_LIBRARY
 	bool "NSH Library"
 	default n
+	select SYSTEM_READLINE
 	---help---
 		Build the NSH support library.  This is used, for example, by examples/nsh
 		in order to implement the full NuttShell (NSH).
