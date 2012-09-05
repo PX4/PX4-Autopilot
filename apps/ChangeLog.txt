@@ -308,3 +308,5 @@
 	* apps/netutils/webserver:  Several inenhancements from Kate including the
 	  ability to elide scripting and SERVER headers and the ability to map
 	  files into memory before transferring them.
+	* apps/netutils/webserver:  Add ability to map a URL to CGI function.
+	  Contributed by Kate.

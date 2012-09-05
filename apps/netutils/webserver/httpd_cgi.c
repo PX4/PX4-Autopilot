@@ -58,14 +58,6 @@ struct httpd_cgi_call *cgi_calls = NULL;
  * Public Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: nullfunction
- ****************************************************************************/
-
-static void nullfunction(struct httpd_state *pstate, char *ptr)
-{
-}
-
 void httpd_cgi_register(struct httpd_cgi_call *cgi_call)
 {
   if (cgi_calls == NULL) 
@@ -92,5 +84,5 @@ httpd_cgifunction httpd_cgi(char *name)
       cgi_call = cgi_call->next;
     }
 
-  return nullfunction;
+  return NULL;
 }

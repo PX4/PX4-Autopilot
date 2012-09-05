@@ -214,7 +214,13 @@ static int handle_script(struct httpd_state *pstate)
             }
           else
             {
-              httpd_cgi(pstate->ht_scriptptr)(pstate, pstate->ht_scriptptr);
+              httpd_cgifunction f;
+
+              f = httpd_cgi(pstate->ht_scriptptr);
+              if (f != NULL)
+                {
+                  f(pstate, pstate->ht_scriptptr);
+                }
             }
           next_scriptstate(pstate);
 
@@ -392,6 +398,21 @@ static int httpd_sendfile(struct httpd_state *pstate)
 
   nvdbg("[%d] sending file '%s'\n", pstate->ht_sockfd, pstate->ht_filename);
 
+#ifdef CONFIG_NETUTILS_HTTPD_CGIPATH
+  {
+    httpd_cgifunction f;
+
+    f = httpd_cgi(pstate->ht_filename);
+    if (f != NULL)
+      {
+        f(pstate, pstate->ht_filename);
+
+        ret = OK;
+        goto done;
+      }
+  }
+#endif
+
   if (httpd_open(pstate->ht_filename, &pstate->ht_file) != OK)
     {
       ndbg("[%d] '%s' not found\n", pstate->ht_sockfd, pstate->ht_filename);
@@ -433,6 +454,8 @@ static int httpd_sendfile(struct httpd_state *pstate)
     }
 
   (void)httpd_close(&pstate->ht_file);
+
+done:
 
   /* Send anything remaining in the buffer */
 

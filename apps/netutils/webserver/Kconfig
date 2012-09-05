@@ -19,6 +19,33 @@ config NETUTILS_HTTPD_SCRIPT_DISABLE
 	---help---
 		This option, if selected, will elide the %! scripting
 
+config NETUTILS_HTTPD_CGIPATH
+	bool "URL/CGI function mapping"
+	default n
+	---help---
+		This option enables mappings from URLs to call CGI functions.  The
+		effect is that the existing httpd_cgi_register() interface can be
+		used thus:
+
+		const static struct httpd_cgi_call a[] = {
+		{ NULL, "/abc", cgi_abc },
+		{ NULL, "/xyz", cgi_xyz }
+		};
+
+		for (i = 0; i < sizeof a / sizeof *a; i++) {
+		httpd_cgi_register(&a[i]);
+		}
+
+		Where (under CONFIG_NETUTILS_HTTPD_CGIPATH) the "/xyz" is a URL path,
+		rather than a %! xyz style call in the existing manner.
+
+		This is useful when CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE is defined.
+
+		In other words, this provides a way to get your CGI functions called
+		without needing the scripting language. I'm using this to provide a
+		REST style interface over HTTP, where my CGI handlers just return a
+		HTTP status code with a content length of 0.
+
 config NETUTILS_HTTPD_SERVERHEADER_DISABLE
 	bool "Disabled the SERVER header"
 	default n
