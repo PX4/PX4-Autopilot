@@ -142,7 +142,7 @@ config ARCH_CHIP
 	default "imx"		if ARCH_CHIP_IMX
 	default "kinetis"	if ARCH_CHIP_KINETIS
 	default "lm3s"		if ARCH_CHIP_LM3S
-	default "lpc17x"	if ARCH_CHIP_LPC17XX
+	default "lpc17xx"	if ARCH_CHIP_LPC17XX
 	default "lpc214x"	if ARCH_CHIP_LPC214X
 	default "lpc2378"	if ARCH_CHIP_LPC2378
 	default "lpc31xx"	if ARCH_CHIP_LPC31XX
@@ -171,7 +171,7 @@ config ARCH_IRQPRIO
 	---help---
 		Select if your board supports interrupt prioritization.
 
-config ARCH_LOOPSPERMSEC
+config BOARD_LOOPSPERMSEC
 	int "Delay loops per millisecond"
 	default 5000
 	---help---
@@ -183,8 +183,8 @@ config ARCH_CALIBRATION
 	---help---
 		Enables some built in instrumentation that causes a 100 second delay
 		during boot-up.  This 100 second delay serves no purpose other than it
-		allows you to calibratre ARCH_LOOPSPERMSEC.  You simply use a stop
-		watch to measure the 100 second delay then adjust ARCH_LOOPSPERMSEC until
+		allows you to calibratre BOARD_LOOPSPERMSEC.  You simply use a stop
+		watch to measure the 100 second delay then adjust BOARD_LOOPSPERMSEC until
 		the delay actually is 100 seconds.
 
 if ARCH_CHIP_C5471

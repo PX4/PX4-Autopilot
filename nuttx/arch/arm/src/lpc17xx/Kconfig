@@ -54,6 +54,31 @@ config ARCH_FAMILY_LPC176X
 	bool
 	default y if ARCH_CHIP_LPC1764 || ARCH_CHIP_LPC1765 || ARCH_CHIP_LPC1766 || ARCH_CHIP_LPC1767 || ARCH_CHIP_LPC1768 || ARCH_CHIP_LPC1769
 
+choice
+	prompt "Toolchain Selection"
+	default LPC17_CODESOURCERYW
+	depends on ARCH_CHIP_LPC17XX
+
+config LPC17_CODESOURCERYW
+	bool "CodeSourcery for Windows"
+
+config LPC17_CODESOURCERYL
+	bool "CodeSourcery for Linux"
+
+config LPC17_DEVKITARM
+	bool "DevkitARM (Windows)"
+
+config LPC17_BUILDROOT
+	bool "NuttX buildroot (Cygwin or Linux)"
+
+config LPC17_CODEREDW
+	bool "CodeRed for Windows"
+
+config LPC17_CODEREDL
+	bool "CodeRed for Windows"
+
+endchoice
+
 menu "LPC17xx Peripheral Support"
 
 config LPC17_MAINOSC
@@ -290,7 +315,7 @@ config CAN2_BAUD
 	int "CAN2 BAUD"
 	depends on LPC17_CAN2
 	---help---
-		CAN2 BAUD rate.  Required if CONFIG_LPC17_CAN2 is defined.
+		CAN2 BAUD rate.  Required if LPC17_CAN2 is defined.
 
 config CAN1_DIVISOR
 	int "CAN1 CCLK divisor"
@@ -345,7 +370,7 @@ config CAN_REGDEBUG
 
 endmenu
 
-config CONFIG_GPIO_IRQ
+config GPIO_IRQ
 	bool "GPIO interrupt support"
 	default n
 	---help---

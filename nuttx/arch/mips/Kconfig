@@ -47,7 +47,7 @@ config ARCH_IRQPRIO
 	---help---
 		Select if your board supports interrupt prioritization.
 
-config ARCH_LOOPSPERMSEC
+config BOARD_LOOPSPERMSEC
 	int "Delay loops per millisecond"
 	default 5000
 	---help---
@@ -59,8 +59,8 @@ config ARCH_CALIBRATION
 	---help---
 		Enables some built in instrumentation that causes a 100 second delay
 		during boot-up.  This 100 second delay serves no purpose other than it
-		allows you to calibratre ARCH_LOOPSPERMSEC.  You simply use a stop
-		watch to measure the 100 second delay then adjust ARCH_LOOPSPERMSEC until
+		allows you to calibratre BOARD_LOOPSPERMSEC.  You simply use a stop
+		watch to measure the 100 second delay then adjust BOARD_LOOPSPERMSEC until
 		the delay actually is 100 seconds.
 
 source arch/mips/src/common/Kconfig

@@ -11,7 +11,7 @@ config DEV_NULL
 
 config DEV_ZERO
 	bool "Enable /dev/zero"
-	default y
+	default n
 
 config LOOP
 	bool "Enable loop device"
@@ -86,7 +86,7 @@ endif
 
 config I2C
 	bool "I2C support"
-	default y
+	default n
 	---help---
 		This selection enables building of the "upper-half" I2C driver.
 		See include/nuttx/i2c.h for further I2C driver information.
@@ -96,7 +96,7 @@ endif
 
 config SPI
 	bool "SPI support"
-	default y
+	default n
 	---help---
 		This selection enables building of the "upper-half" SPI driver.
 		See include/nuttx/spi.h for further SPI driver information.
@@ -128,7 +128,7 @@ endif
 
 config WATCHDOG
 	bool "Watchdog timer support"
-	default y
+	default n
 	---help---
 		This selection enables building of the "upper-half" watchdog timer driver.
 		See include/nuttx/watchdog.h for further watchdog timer driver information.
@@ -164,7 +164,7 @@ endif
 
 menuconfig INPUT
 	bool "Input device support"
-	default y
+	default n
 	---help---
 		This directory holds implementations of input device drivers.
 		This includes such things as touchscreen and keypad drivers.
