@@ -85,21 +85,6 @@ config ARCH_FAMILY_LPC4357
 	bool
 	default y if ARCH_CHIP_LPC4357FET180 || ARCH_CHIP_LPC4357FBD208 || ARCH_CHIP_LPC4357FET256
 
-config ARCH_CORTEXM3
-	bool
-	default n if !ARCH_CHIP_LPC43XX
-
-config ARCH_CORTEXM4
-	bool
-	default y if ARCH_CHIP_LPC43XX
-
-config ARCH_FPU
-	bool "FPU support"
-	default y
-	depends on ARCH_CORTEXM4
-	---help---
-		Build in support for the ARM Cortex-M4 FPU.
-
 choice
 	prompt "LPC43XX Boot Configuration"
 	default CONFIG_BOOT_SRAM

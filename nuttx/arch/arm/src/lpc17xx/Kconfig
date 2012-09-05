@@ -54,14 +54,6 @@ config ARCH_FAMILY_LPC176X
 	bool
 	default y if ARCH_CHIP_LPC1764 || ARCH_CHIP_LPC1765 || ARCH_CHIP_LPC1766 || ARCH_CHIP_LPC1767 || ARCH_CHIP_LPC1768 || ARCH_CHIP_LPC1769
 
-config ARCH_CORTEXM3
-	bool
-	default y if ARCH_CHIP_LPC17XX
-
-config ARCH_CORTEXM4
-	bool
-	default n
-
 menu "LPC17xx Peripheral Support"
 
 config LPC17_MAINOSC

@@ -2,3 +2,74 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+choice
+	prompt "LM3S Chip Selection"
+	default ARCH_CHIP_LM3S6965
+	depends on ARCH_CHIP_LM3S
+
+config ARCH_CHIP_LM3S6918
+	bool "LM3S6918"
+
+config ARCH_CHIP_LM3S9B96
+	bool "LM3S9B96"
+
+config ARCH_CHIP_LM3S6432
+	bool "LM3S6432"
+
+config ARCH_CHIP_LM3S6965
+	bool "LM3S6965"
+
+config ARCH_CHIP_LM3S8962
+	bool "LM3S8962"
+
+endchoice
+
+choice
+        prompt "Toolchain"
+        default LM3S_BUILDROOT
+
+config LM3S_CODESOURCERYW
+	bool "CodeSourcery GNU toolchain under Windows"
+
+config LM3S_CODESOURCERYL
+	bool "CodeSourcery GNU toolchain under Linux"
+
+config LM3S_DEVKITARM
+	bool "devkitARM GNU toolchain"
+
+config LM3S_BUILDROOT
+	bool "Buildroot"
+
+endchoice
+
+config LM3S_DFU
+	bool "DFU"
+	default y
+
+config LM3S_DISABLE_GPIOA_IRQS
+	bool "Disable GPIOA IRQs"
+
+config LM3S_DISABLE_GPIOB_IRQS
+	bool "Disable GPIOB IRQs"
+
+config LM3S_DISABLE_GPIOC_IRQS
+	bool "Disable GPIOC IRQs"
+
+config LM3S_DISABLE_GPIOD_IRQS
+	bool "Disable GPIOD IRQs"
+
+config LM3S_DISABLE_GPIOE_IRQS
+	bool "Disable GPIOE IRQs"
+
+config LM3S_DISABLE_GPIOF_IRQS
+	bool "Disable GPIOF IRQs"
+
+config LM3S_DISABLE_GPIOG_IRQS
+	bool "Disable GPIOG IRQs"
+
+config LM3S_DISABLE_GPIOH_IRQS
+	bool "Disable GPIOH IRQs"
+
+config LM3S_DISABLE_GPIOJ_IRQS
+	bool "Disable GPIOJ IRQs"

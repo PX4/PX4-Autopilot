@@ -3262,3 +3262,5 @@
 	  sendfile() (non-standard!)
 	* Kconfig: Refactor serial settings (moved from chip to drivers/serial).
 	  AVR "teensy" now builds with Kconfig (contributed by Richard Cochran).
+	* Kconfig: Add configuration settings for the LPC17xx
+	* Kconfig: Add configuratino settings for the LM3S (from Richard Cochran).

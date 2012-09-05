@@ -10,48 +10,63 @@ choice
 
 config ARCH_CHIP_STM32F103ZET6
 	bool "STM32F103ZET6"
+	select ARCH_CORTEXM3
 
 config ARCH_CHIP_STM32F103RET6
 	bool "STM32F103RET6"
+	select ARCH_CORTEXM3
 
 config ARCH_CHIP_STM32F103VCT6
 	bool "STM32F103VCT6"
+	select ARCH_CORTEXM3
 
 config ARCH_CHIP_STM32F105VBT7
 	bool "STM32F105VBT7"
+	select ARCH_CORTEXM3
 
 config ARCH_CHIP_STM32F107VC
 	bool "STM32F107VC"
+	select ARCH_CORTEXM3
 
 config ARCH_CHIP_STM32F207IG
 	bool "STM32F207IG"
+	select ARCH_CORTEXM3
 
 config ARCH_CHIP_STM32F405RG
 	bool "STM32F405RG"
+	select ARCH_CORTEXM3
 
 config ARCH_CHIP_STM32F405VG
 	bool "STM32F405VG"
+	select ARCH_CORTEXM3
 
 config ARCH_CHIP_STM32F405ZG
 	bool "STM32F405ZG"
+	select ARCH_CORTEXM3
 
 config ARCH_CHIP_STM32F407VE
 	bool "STM32F407VE"
+	select ARCH_CORTEXM3
 
 config ARCH_CHIP_STM32F407VG
 	bool "STM32F407VG"
+	select ARCH_CORTEXM3
 
 config ARCH_CHIP_STM32F407ZE
 	bool "STM32F407ZE"
+	select ARCH_CORTEXM4
 
 config ARCH_CHIP_STM32F407ZG
 	bool "STM32F407ZG"
+	select ARCH_CORTEXM4
 
 config ARCH_CHIP_STM32F407IE
 	bool "STM32F407IE"
+	select ARCH_CORTEXM4
 
 config ARCH_CHIP_STM32F407IG
 	bool "STM32F407IG"
+	select ARCH_CORTEXM4
 
 endchoice
 
@@ -70,14 +85,6 @@ config STM32_STM32F20XX
 config STM32_STM32F40XX
 	bool
 	default y if ARCH_CHIP_STM32F405RG || ARCH_CHIP_STM32F405VG || ARCH_CHIP_STM32F405ZG || ARCH_CHIP_STM32F407VE || ARCH_CHIP_STM32F407VG || ARCH_CHIP_STM32F407ZE || ARCH_CHIP_STM32F407ZG || ARCH_CHIP_STM32F407IE || ARCH_CHIP_STM32F407IE
-
-config ARCH_CORTEXM3
-	bool
-	default y if !STM32_STM32F40XX
-
-config ARCH_CORTEXM4
-	bool
-	default y if STM32_STM32F40XX
 
 menu "STM32 Peripheral Support"
 
@@ -527,14 +534,6 @@ config HEAP2_END
 	depends on STM32_FSMC_SRAM
 	---help---
 		The end (+1) of the SRAM in the FSMC address space
-
-config ARCH_FPU
-	bool "FPU support"
-	default y
-	depends on ARCH_CORTEXM4
-	---help---
-		Build in support for the ARM Cortex-M4 FPU.  Only the STM3240xxx supports
-		a floating point unit (FPU)
 
 config STM32_TIM1_PWM
 	bool "TIM1 PWM"

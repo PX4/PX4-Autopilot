@@ -10,61 +10,78 @@ choice
 
 config ARCH_CHIP_C5471
 	bool "TMS320 C5471"
+	select ARCH_ARM7TDMI
 	---help---
 		TI TMS320 C5471, A180, or DA180 (ARM7TDMI)
 
 config ARCH_CHIP_CALYPSO
 	bool "Calypso"
+	select ARCH_ARM7TDMI
 	---help---
 		TI Calypso-based cell phones (ARM7TDMI)
 
 config ARCH_CHIP_DM320
 	bool "TMS320 DM320"
+	select ARCH_ARM926EJS
 	---help---
 		TI DMS320 DM320 (ARM926EJS)
 
 config ARCH_CHIP_IMX
 	bool "Freescale iMX"
+	select ARCH_ARM920T
 	---help---
 		Freescale iMX architectures (ARM920T)
 
 config ARCH_CHIP_KINETIS
 	bool "Freescale Kinetis"
+	select ARCH_CORTEXM
+	select ARCH_CORTEXM4
 	---help---
 		Freescale Kinetis Architectures (ARM Cortex-M4)
 
 config ARCH_CHIP_LM3S
 	bool "TI Stellaris"
+	select ARCH_CORTEXM
+	select ARCH_CORTEXM3
 	---help---
 		TI Stellaris LMS3 architecutres (ARM Cortex-M3)
 
 config ARCH_CHIP_LPC17XX
 	bool "NXP LPC17xx"
+	select ARCH_CORTEXM
+	select ARCH_CORTEXM3
 	---help---
 		NXP LPC17xx architectures (ARM Cortex-M3)
 
 config ARCH_CHIP_LPC214X
 	bool "NXP LPC214x"
+	select ARCH_ARM7TDMI
 	---help---
 		NXP LPC2145x architectures (ARM7TDMI)
 
 config ARCH_CHIP_LPC2378
 	bool "NXP LPC2378"
+	select ARCH_ARM7TDMI
 	---help---
 		NXP LPC2145x architectures (ARM7TDMI)
 
 config ARCH_CHIP_LPC31XX
 	bool "NXP LPC31XX"
+	select ARCH_ARM926EJS
 	---help---
 		NPX LPC31XX architectures (ARM926EJS).
 
 config ARCH_CHIP_LPC43XX
 	bool "NXP LPC43XX"
+	select ARCH_CORTEXM
+	select ARCH_CORTEXM4
 	---help---
 		NPX LPC43XX architectures (ARM Cortex-M4).
 
 config ARCH_CHIP_SAM3U
 	bool "Atmel AT91SAM3U"
+	select ARCH_CORTEXM
+	select ARCH_CORTEXM3
 	---help---
 		Atmel AT91SAM3U architectures (ARM Cortex-M3)
 
@@ -75,6 +92,7 @@ config ARCH_CHIP_STM32
 
 config ARCH_CHIP_STR71X
 	bool "STMicro STR71x"
+	select ARCH_ARM7TDMI
 	---help---
 		STMicro STR71x architectures (ARM7TDMI).
 
@@ -82,24 +100,30 @@ endchoice
 
 config ARCH_ARM7TDMI
 	bool
-	default y			if ARCH_CHIP_C5471 || ARCH_CHIP_CALYPSO || ARCH_CHIP_LPC214X || ARCH_CHIP_LPC2378 || ARCH_CHIP_STR71X
 
 config ARCH_ARM926EJS
 	bool
-	default y			if ARCH_CHIP_DM320 || ARCH_CHIP_LPC31XX
 
 config ARCH_ARM920T
 	bool
-	default y			if ARCH_CHIP_IMX
 
-config ARCH_CORTEXM
+config ARCH_CORTEXM3
 	bool
-	default y			if ARCH_CHIP_KINETIS || ARCH_CHIP_LM3S || ARCH_CHIP_LPC17XX || ARCH_CHIP_LPC43XX || ARCH_CHIP_SAM3U || ARCH_CHIP_STM32
+
+config ARCH_CORTEXM4
+	bool
+
+config ARCH_FPU
+	bool "FPU support"
+	default y
+	depends on ARCH_CORTEXM4
+	---help---
+		Build in support for the ARM Cortex-M4 FPU.
 
 config ARCH_FAMILY
 	string
 	default "arm"		if ARCH_ARM7TDMI || ARCH_ARM926EJS || ARCH_ARM920T
-	default "armv7-m"	if ARCH_CORTEXM
+	default "armv7-m"	if ARCH_CORTEXM3 || ARCH_CORTEXM4
 
 config ARCH_CHIP
 	string
@@ -134,7 +158,7 @@ config ARCH_INTERRUPTSTACK
 
 config ARCH_IRQPRIO
 	bool "Interrupt priority"
-	default y		if ARCH_CORTEXM
+	default y		if ARCH_CORTEXM3 || ARCH_CORTEXM4
 	---help---
 		Select if your board supports interrupt prioritization.
 
