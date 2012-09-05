@@ -125,7 +125,7 @@ ssize_t sendfile(int outfd, int infd, off_t *offset, size_t count)
 
   if (offset)
     {
-      /* Use lseek to get the current position */
+      /* Use lseek to get the current file position */
 
       startpos = lseek(infd, 0, SEEK_CUR);
       if (startpos == (off_t)-1)
@@ -133,7 +133,7 @@ ssize_t sendfile(int outfd, int infd, off_t *offset, size_t count)
           return ERROR;
         }
 
-      /* Use lseek again to set the new position */
+      /* Use lseek again to set the new file position */
 
       if (lseek(infd, *offset, SEEK_SET) == (off_t)-1)
         {
@@ -209,9 +209,11 @@ ssize_t sendfile(int outfd, int infd, off_t *offset, size_t count)
           wrbuffer = iobuffer;
           do
             {
+              /* Write the buffer of data to the outfd */
+
               nbyteswritten = write(outfd, wrbuffer, nbytesread);
 
-              /* Check for a complete (or parial write).  write() should not
+              /* Check for a complete (or parial) write.  write() should not
                * return zero.
                */
 
@@ -261,11 +263,11 @@ ssize_t sendfile(int outfd, int infd, off_t *offset, size_t count)
 
   free(iobuffer);
 
-  /* Get the current file position */
+  /* Return the current file position */
 
   if (offset)
     {
-      /* Use lseek to get the current position */
+      /* Use lseek to get the current file position */
 
       off_t curpos = lseek(infd, 0, SEEK_CUR);
       if (curpos == (off_t)-1)
@@ -277,13 +279,17 @@ ssize_t sendfile(int outfd, int infd, off_t *offset, size_t count)
 
       *offset = curpos;
 
-      /* Use lseek again to restore the original position */
+      /* Use lseek again to restore the original file position */
 
       if (lseek(infd, startpos, SEEK_SET) == (off_t)-1)
         {
           return ERROR;
         }
     }
+
+  /* Finally return the number of bytes actually transferred (or ERROR
+   * if any failure occurred).
+   */
 
   return ntransferred;
 }

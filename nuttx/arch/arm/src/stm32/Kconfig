@@ -288,14 +288,17 @@ config STM32_TIM14
 
 config STM32_USART1
 	bool "USART1"
+	select ARCH_HAS_USART1
 	default n
 
 config STM32_USART2
 	bool "USART2"
+	select ARCH_HAS_USART2
 	default n
 
 config STM32_USART3
 	bool "USART3"
+	select ARCH_HAS_USART3
 	default n
 
 config STM32_UART4
@@ -309,6 +312,7 @@ config STM32_UART5
 config STM32_USART6
 	bool "USART6"
 	default n
+	select ARCH_HAS_USART6
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
 
 config STM32_USB
@@ -1420,108 +1424,12 @@ config STM32_TIM14_DAC2
 
 endchoice
 
-menu "USART1 Configuration"
-	depends on STM32_USART1
-
-config USART1_SERIAL_CONSOLE
-	bool "USART1 serial console"
-	default y
-	---help---
-		Selects the USART1 for the console and ttys0 (default is the USART1).
-
-config USART1_RXBUFSIZE
-	int "USART1 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config USART1_TXBUFSIZE
-	int "USART1 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config USART1_BAUD
-	int "USART1 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config USART1_BITS
-	int "USART1 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config USART1_PARITY
-	int "USART1 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config USART1_2STOP
-	int "USART1 two stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
-
 config USART1_RXDMA
 	bool "USART1 Rx DMA"
 	default n
 	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA2
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
-
-endmenu
-
-menu "USART2 Configuration"
-	depends on STM32_USART2
-
-config USART2_SERIAL_CONSOLE
-	bool "USART2 serial console"
-	default y if !STM32_USART1
-	---help---
-		Selects the USART2 for the console and ttys0 (default is the USART2).
-
-config USART2_RXBUFSIZE
-	int "USART2 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config USART2_TXBUFSIZE
-	int "USART2 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config USART2_BAUD
-	int "USART2 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config USART2_BITS
-	int "USART2 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config USART2_PARITY
-	int "USART2 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config USART2_2STOP
-	int "USART2 two stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
 
 config USART2_RXDMA
 	bool "USART2 Rx DMA"
@@ -1530,63 +1438,12 @@ config USART2_RXDMA
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
-endmenu
-
-menu "USART3 Configuration"
-	depends on STM32_USART3
-
-config USART3_SERIAL_CONSOLE
-	bool "USART3 serial console"
-	default y if !STM32_USART1 && !STM32_USART2
-	---help---
-		Selects the USART3 for the console and ttys0 (default is the USART3).
-
-config USART3_RXBUFSIZE
-	int "USART3 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config USART3_TXBUFSIZE
-	int "USART3 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config USART3_BAUD
-	int "USART3 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config USART3_BITS
-	int "USART3 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config USART3_PARITY
-	int "USART3 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config USART3_2STOP
-	int "USART3 two stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
-
 config USART3_RXDMA
 	bool "USART3 Rx DMA"
 	default n
 	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
-
-endmenu
 
 menu "UART4 Configuration"
 	depends on STM32_UART4
@@ -1700,61 +1557,12 @@ config UART5_RXDMA
 
 endmenu
 
-menu "USART6 Configuration"
-	depends on STM32_USART6
-
-config USART6_SERIAL_CONSOLE
-	bool "USART6 serial console"
-	default y if !STM32_USART1 && !STM32_USART2 && !STM32_USART3 && !STM32_UART4 && !STM32_UART5
-	---help---
-		Selects the USART6 for the console and ttys0 (default is the USART6).
-
-config USART6_RXBUFSIZE
-	int "USART6 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config USART6_TXBUFSIZE
-	int "USART6 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config USART6_BAUD
-	int "USART6 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config USART6_BITS
-	int "USART6 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config USART6_PARITY
-	int "USART6 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config USART6_2STOP
-	int "USART6 two stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
-
 config USART6_RXDMA
 	bool "USART6 Rx DMA"
 	default n
 	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA2
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
-
-endmenu
 
 config SERIAL_TERMIOS
 	bool "Serial driver TERMIOS supported"

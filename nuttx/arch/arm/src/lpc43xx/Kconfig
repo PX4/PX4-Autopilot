@@ -256,6 +256,7 @@ config LPC43_TMR3
 
 config LPC43_USART0
 	bool "USART0"
+	select ARCH_HAS_USART0
 	default n
 
 config LPC43_UART1
@@ -264,10 +265,12 @@ config LPC43_UART1
 
 config LPC43_USART2
 	bool "USART2"
+	select ARCH_HAS_USART2
 	default n
 
 config LPC43_USART3
 	bool "USART3"
+	select ARCH_HAS_USART3
 	default n
 
 config LPC43_USB0
@@ -289,63 +292,8 @@ config LPC43_WWDT
 
 endmenu
 
-menu "USART0 Configuration"
-	depends on LPC43_USART0
-
-config USART0_SERIAL_CONSOLE
-	bool "USART0 serial console"
-	default y
-	---help---
-		Selects the USART0 for the console and ttys0 (default is the USART0).
-
-config USART0_RXBUFSIZE
-	int "USART0 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config USART0_TXBUFSIZE
-	int "USART0 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config USART0_BAUD
-	int "USART0 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config USART0_BITS
-	int "USART0 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config USART0_PARITY
-	int "USART0 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config USART0_2STOP
-	int "USART0 two stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
-
-endmenu
-
 menu "UART1 Configuration"
 	depends on LPC43_UART1
-
-config UART1_SERIAL_CONSOLE
-	bool "UART1 serial console"
-	default y if !LPC43_USART0
-	---help---
-		Selects the UART1 for the console and ttys0 (default is the UART1).
 
 config UART1_RXBUFSIZE
 	int "UART1 Rx buffer size"
@@ -381,104 +329,6 @@ config UART1_PARITY
 
 config UART1_2STOP
 	int "UART1 two stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
-
-endmenu
-
-menu "USART2 Configuration"
-	depends on LPC43_USART2
-
-config USART2_SERIAL_CONSOLE
-	bool "USART2 serial console"
-	default y if !LPC43_USART0 && !LPC43_UART1
-	---help---
-		Selects the USART2 for the console and ttys0 (default is the USART2).
-
-config USART2_RXBUFSIZE
-	int "USART2 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config USART2_TXBUFSIZE
-	int "USART2 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config USART2_BAUD
-	int "USART2 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config USART2_BITS
-	int "USART2 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config USART2_PARITY
-	int "USART2 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config USART2_2STOP
-	int "USART2 two stop bits"
-	default 0
-	---help---
-		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
-
-endmenu
-
-menu "USART3 Configuration"
-	depends on LPC43_USART3
-
-config USART3_SERIAL_CONSOLE
-	bool "USART3 serial console"
-	default y if !LPC43_USART0 && !LPC43_UART1 && !LPC43_USART2
-	---help---
-		Selects the USART3 for the console and ttys0 (default is the USART3).
-
-config USART3_RXBUFSIZE
-	int "USART3 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config USART3_TXBUFSIZE
-	int "USART3 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config USART3_BAUD
-	int "USART3 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config USART3_BITS
-	int "USART3 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config USART3_PARITY
-	int "USART3 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config USART3_2STOP
-	int "USART3 two stop bits"
 	default 0
 	---help---
 		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit

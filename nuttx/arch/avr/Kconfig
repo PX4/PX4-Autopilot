@@ -116,4 +116,12 @@ source arch/avr/src/atmega/Kconfig
 source arch/avr/src/avr32/Kconfig
 source arch/avr/src/at32uc3/Kconfig
 
+config AVR_USART0
+	bool "USART0 specific serial device driver settings"
+	select ARCH_HAS_USART0
+
+config AVR_USART1
+	bool "USART1 specific serial device driver settings"
+	select ARCH_HAS_USART1
+
 endif

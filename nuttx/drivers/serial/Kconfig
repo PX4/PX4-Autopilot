@@ -282,4 +282,358 @@ config CONFIG_SERIAL_NPOLLWAITERS
 
 endif
 
+#
+# USARTn_XYZ settings
+#
 
+config ARCH_HAS_USART0
+       bool
+config ARCH_HAS_USART1
+       bool
+config ARCH_HAS_USART2
+       bool
+config ARCH_HAS_USART3
+       bool
+config ARCH_HAS_USART4
+       bool
+config ARCH_HAS_USART5
+       bool
+config ARCH_HAS_USART6
+       bool
+
+choice
+	prompt "Serial console"
+	depends on ARCH_HAS_USART0 || \
+	ARCH_HAS_USART1 || ARCH_HAS_USART2 || ARCH_HAS_USART3 || \
+	ARCH_HAS_USART4 || ARCH_HAS_USART5 || ARCH_HAS_USART6
+
+config USART0_SERIAL_CONSOLE
+	bool "USART0"
+	depends on ARCH_HAS_USART0
+
+config USART1_SERIAL_CONSOLE
+	bool "USART1"
+	depends on ARCH_HAS_USART1
+
+config USART2_SERIAL_CONSOLE
+	bool "USART2"
+	depends on ARCH_HAS_USART2
+
+config USART3_SERIAL_CONSOLE
+	bool "USART3"
+	depends on ARCH_HAS_USART3
+
+config USART4_SERIAL_CONSOLE
+	bool "USART4"
+	depends on ARCH_HAS_USART4
+
+config USART5_SERIAL_CONSOLE
+	bool "USART5"
+	depends on ARCH_HAS_USART5
+
+config USART6_SERIAL_CONSOLE
+	bool "USART6"
+	depends on ARCH_HAS_USART6
+
+endchoice
+
+menu "USART0 Configuration"
+	depends on ARCH_HAS_USART0
+
+config USART0_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART0_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART0_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART0_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART0_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART0_2STOP
+	int "use 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART1 Configuration"
+	depends on ARCH_HAS_USART1
+
+config USART1_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART1_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART1_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART1_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART1_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART1_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART2 Configuration"
+	depends on ARCH_HAS_USART2
+
+config USART2_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART2_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART2_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART2_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART2_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART2_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART3 Configuration"
+	depends on ARCH_HAS_USART3
+
+config USART3_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART3_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART3_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART3_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART3_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART3_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART4 Configuration"
+	depends on ARCH_HAS_USART4
+
+config USART4_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART4_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART4_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART4_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART4_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART4_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART5 Configuration"
+	depends on ARCH_HAS_USART5
+
+config USART5_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART5_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART5_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART5_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART5_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART5_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART6 Configuration"
+	depends on ARCH_HAS_USART6
+
+config USART6_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART6_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART6_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART6_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART6_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART6_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu

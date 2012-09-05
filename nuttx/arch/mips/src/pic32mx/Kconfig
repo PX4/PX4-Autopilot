@@ -909,12 +909,6 @@ endmenu
 menu "UART1 Configuration"
 	depends on PIC32MX_UART1
 
-config UART1_SERIAL_CONSOLE
-	bool "UART1 serial console"
-	default y
-	---help---
-		Selects the UART1 for the console and ttys0.  Default: UART1 (if enabled).
-
 config UART1_RXBUFSIZE
 	int "UART1 Rx buffer size"
 	default 256
@@ -956,12 +950,6 @@ endmenu
 menu "UART2 Configuration"
 	depends on PIC32MX_UART2
 
-config UART2_SERIAL_CONSOLE
-	bool "UART2 serial console"
-	default y if !PIC32MX_UART1
-	---help---
-		Selects the UART2 for the console and ttys0.  Default: UART2 (if enabled).
-
 config UART2_RXBUFSIZE
 	int "UART2 Rx buffer size"
 	default 256
@@ -1002,12 +990,6 @@ endmenu
 
 menu "UART3 Configuration"
 	depends on PIC32MX_UART3
-
-config UART3_SERIAL_CONSOLE
-	bool "UART3 serial console"
-	default y if !PIC32MX_UART1 && !PIC32MX_UART2
-	---help---
-		Selects the UART3 for the console and ttys0.  Default: UART3 (if enabled).
 
 config UART3_RXBUFSIZE
 	int "UART3 Rx buffer size"

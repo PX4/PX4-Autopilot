@@ -3260,4 +3260,5 @@
 	* Kconfig: Serial 2STOP setting must be integer 0/1, not a boolean.
 	* lib/misc/sendfile.c and include/sys/sendfile.h:  Add a Linux style
 	  sendfile() (non-standard!)
-
+	* Kconfig: Refactor serial settings (moved from chip to drivers/serial).
+	  AVR "teensy" now builds with Kconfig (contributed by Richard Cochran).
