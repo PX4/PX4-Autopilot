@@ -82,41 +82,53 @@ config LIBC_PERROR_STDOUT
 		be defined, however, to provide perror() output that is serialized with
 		other stdout messages.
 
-config LIBC_PERROR_DEVNAME
-	string "perror() to device"
-	default "/dev/console"
-	depends on !LIBC_PERROR_STDOUT
-	---help---
-		Another non-standard option is to provide perror() output to a logging device
-		or file. LIBC_PERROR_DEVNAME may be defined to be any write-able,
-		character device (or file).
-
 config ARCH_LOWPUTC
 	bool "Low-level console output"
 	default "y"
 	---help---
-	  architecture supports low-level, boot time console output
+		architecture supports low-level, boot time console output
 
 config LIB_SENDFILE_BUFSIZE
 	int "sendfile() buffer size"
 	default 512
 	---help---
-	  Size of the I/O buffer to allocate in sendfile().  Default: 512b
+		Size of the I/O buffer to allocate in sendfile().  Default: 512b
 
-config ENABLE_ARCH_OPTIMIZED_FUN
+config ARCH_ROMGETC
+	bool "Support for ROM string access"
+	default n
+	---help---
+		In Harvard architectures, data accesses and instruction accesses
+		occur on different busses, perhaps concurrently.  All data accesses
+		are performed on the data bus unless special machine instructions
+		are used to read data from the instruction address space.  Also, in
+		the typical MCU, the available SRAM data memory is much smaller that
+		the non-volatile FLASH instruction memory.  So if the application
+		requires many constant strings, the only practical solution may be
+		to store those constant strings in FLASH memory where they can only
+		be accessed using architecture-specific machine instructions.
+
+		If ARCH_ROMGETC is defined, then the architecture logic must export
+		the function up_romgetc().  up_romgetc() will simply read one byte
+		of data from the instruction space.
+
+		If ARCH_ROMGETC, certain C stdio functions are effected: (1) All
+		format strings in printf, fprintf, sprintf, etc. are assumed to lie
+		in FLASH (string arguments for %s are still assumed to reside in SRAM).
+		And (2), the string argument to puts and fputs is assumed to reside
+		in FLASH.  Clearly, these assumptions may have to modified for the
+		particular needs of your environment.  There is no "one-size-fits-all"
+		solution for this problem.
+
+config ARCH_OPTIMIZED_FUNCTIONS
 	bool "Enable arch optimized functions"
 	default n
 	---help---
-		Allow for architecture optimized implementations
-		
-		The architecture can provide optimized versions of the
-		following to improve system performance
+		Allow for architecture optimized implementations of certain library
+		functions.  Architecture-specific implementations can improve overall
+		system performance.
 
-		The architecture may provide custom versions of certain
-		standard header files:
-		config ARCH_MATH_H, ARCH_STDBOOL_H, ARCH_STDINT_H
-
-if 	ENABLE_ARCH_OPTIMIZED_FUN
+if ARCH_OPTIMIZED_FUNCTIONS
 config ARCH_MEMCPY
 	bool "memcpy"
 	default n
@@ -157,3 +169,71 @@ config ARCH_BZERO
 	bool "bzero"
 	default n
 endif
+
+config ARCH_HEADER_FILES
+	bool "Customize header files"
+	default n
+	---help---
+		The architecture may provide custom versions of certain
+		standard header files
+
+if ARCH_HEADER_FILES
+config ARCH_STDBOOL_H
+	bool "stdbool.h"
+	default n
+	---help---
+		The stdbool.h header file can be found at nuttx/include/stdbool.h.
+		However, that header includes logic to redirect the inclusion of an
+		architecture specific header file like:
+
+		#ifdef CONFIG_ARCH_STDBOOL_H
+		#  include <arch/stdbool.h>
+		#else
+		...
+		#endif
+
+		Recall that that include path, include/arch, is a symbolic link and
+		will refer to a version of stdbool.h at nuttx/arch/<architecture>/include/stdbool.h.
+
+config ARCH_MATH_H
+	bool "math.h"
+	default n
+	---help---
+		There is also a re-directing version of math.h in the source tree.
+		However, it resides out-of-the-way at include/nuttx/math.h because it
+		conflicts too often with the system math.h. If ARCH_MATH_H=y is
+		defined, however, the top-level makefile will copy the redirecting
+ 		math.h header file from include/nuttx/math.h to include/math.h. math.h
+		will then include the architecture-specific version of math.h that you
+		must provide at nuttx/arch/>architecture</include/math.h.
+
+		#ifdef CONFIG_ARCH_MATH_H
+		#  include <arch/math.h>
+		#endif
+
+		So for the architectures that define ARCH_MATH_H=y, include/math.h
+		will be the redirecting math.h header file; for the architectures
+		that don't select ARCH_MATH_H, the redirecting math.h header file
+		will stay out-of-the-way in include/nuttx/.
+
+config ARCH_STDARG_H
+	bool "stdarg.h"
+	default n
+	---help---
+		There is also a redirecting version of stdarg.h in the source tree
+		as well. It also resides out-of-the-way at include/nuttx/stdarg.h.
+		This is because you should normally use your toolchain's stdarg.h
+		file. But sometimes, your toolchain's stdarg.h file may have other
+		header file dependencies and so may not be usable in the NuttX build
+		environment. In those cases, you may have to create a architecture-
+		specific stdarg.h header file at nuttx/arch/<architecture>/include/stdarg.h
+
+		If ARCH_STDARG_H=y is defined, the top-level makefile will copy the
+		re-directing stdarg.h header file from include/nuttx/stdarg.h to
+		include/stdarg.h. So for the architectures that cannot use their
+		toolchain's stdarg.h file, they can use this alternative by defining
+		ARCH_STDARG_H=y and providing. If ARCH_STDARG_H, is not defined, then
+		the stdarg.h header file will stay out-of-the-way in include/nuttx/.
+
+endif
+
