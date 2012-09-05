@@ -973,7 +973,7 @@ int commander_thread_main(int argc, char *argv[])
 	uint8_t flight_env;
 
 	/* Initialize to 3.0V to make sure the low-pass loads below valid threshold */
-	float battery_voltage = VOLTAGE_BATTERY_HIGH_VOLTS;
+	float battery_voltage = 12.0f;
 	bool battery_voltage_valid = true;
 	bool low_battery_voltage_actions_done = false;
 	bool critical_battery_voltage_actions_done = false;
@@ -1010,6 +1010,8 @@ int commander_thread_main(int argc, char *argv[])
 	/* now initialized */
 	commander_initialized = true;
 
+	uint64_t start_time = hrt_absolute_time();
+
 	while (!thread_should_exit) {
 
 		/* Get current values */
@@ -1019,7 +1021,14 @@ int commander_thread_main(int argc, char *argv[])
 
 		battery_voltage = sensors.battery_voltage_v;
 		battery_voltage_valid = sensors.battery_voltage_valid;
-		bat_remain = battery_remaining_estimate_voltage(3, BAT_CHEM_LITHIUM_POLYMERE, battery_voltage);
+
+		/*
+		 * Only update battery voltage estimate if voltage is
+		 * valid and system has been running for half a second
+		 */
+		if (battery_voltage_valid && (hrt_absolute_time() - start_time > 500000)) {
+			bat_remain = battery_remaining_estimate_voltage(3, BAT_CHEM_LITHIUM_POLYMERE, battery_voltage);
+		}
 
 		/* Slow but important 8 Hz checks */
 		if (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 8) == 0) {
@@ -1084,6 +1093,38 @@ int commander_thread_main(int argc, char *argv[])
 			ioctl(buzzer, TONE_SET_ALARM, 0);
 		}
 
+		/* Check battery voltage */
+		/* write to sys_status */
+		current_status.voltage_battery = battery_voltage;
+
+		/* if battery voltage is getting lower, warn using buzzer, etc. */
+		if (battery_voltage_valid && (bat_remain < 0.15f /* XXX MAGIC NUMBER */) && (false == low_battery_voltage_actions_done)) { //TODO: add filter, or call emergency after n measurements < VOLTAGE_BATTERY_MINIMAL_MILLIVOLTS
+
+			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
+				low_battery_voltage_actions_done = true;
+				mavlink_log_critical(mavlink_fd, "[commander] WARNING! LOW BATTERY!");
+			}
+
+			low_voltage_counter++;
+		}
+
+		/* Critical, this is rather an emergency, kill signal to sdlog and change state machine */
+		else if (battery_voltage_valid && (bat_remain < 0.1f /* XXX MAGIC NUMBER */) && (false == critical_battery_voltage_actions_done && true == low_battery_voltage_actions_done)) {
+			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
+				critical_battery_voltage_actions_done = true;
+				mavlink_log_critical(mavlink_fd, "[commander] EMERGENCY! CIRITICAL BATTERY!");
+				state_machine_emergency(stat_pub, &current_status, mavlink_fd);
+			}
+
+			critical_voltage_counter++;
+
+		} else {
+			low_voltage_counter = 0;
+			critical_voltage_counter = 0;
+		}
+
+		/* End battery voltage check */
+
 		/* Check if last transition deserved an audio event */
 #warning This code depends on state that is no longer? maintained
 #if 0
@@ -1142,37 +1183,6 @@ int commander_thread_main(int argc, char *argv[])
 		//update_state_machine_got_position_fix(stat_pub, &current_status, mavlink_fd);
 		/* end: check gps */
 
-		/* Check battery voltage */
-		/* write to sys_status */
-		current_status.voltage_battery = battery_voltage;
-
-		/* if battery voltage is getting lower, warn using buzzer, etc. */
-		if (battery_voltage_valid && (battery_voltage < VOLTAGE_BATTERY_LOW_VOLTS && false == low_battery_voltage_actions_done)) { //TODO: add filter, or call emergency after n measurements < VOLTAGE_BATTERY_MINIMAL_MILLIVOLTS
-
-			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
-				low_battery_voltage_actions_done = true;
-				mavlink_log_critical(mavlink_fd, "[commander] WARNING! LOW BATTERY!");
-			}
-
-			low_voltage_counter++;
-		}
-
-		/* Critical, this is rather an emergency, kill signal to sdlog and change state machine */
-		else if (battery_voltage_valid && (battery_voltage < VOLTAGE_BATTERY_CRITICAL_VOLTS && false == critical_battery_voltage_actions_done && true == low_battery_voltage_actions_done)) {
-			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
-				critical_battery_voltage_actions_done = true;
-				mavlink_log_critical(mavlink_fd, "[commander] EMERGENCY! CIRITICAL BATTERY!");
-				state_machine_emergency(stat_pub, &current_status, mavlink_fd);
-			}
-
-			critical_voltage_counter++;
-
-		} else {
-			low_voltage_counter = 0;
-			critical_voltage_counter = 0;
-		}
-
-		/* End battery voltage check */
 
 		/* Start RC state check */
 		bool prev_lost = current_status.rc_signal_lost;

@@ -542,6 +542,7 @@ static int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int ma
 			if (subs->act_1_sub) orb_set_interval(subs->act_1_sub, min_interval);
 			if (subs->act_2_sub) orb_set_interval(subs->act_2_sub, min_interval);
 			if (subs->act_3_sub) orb_set_interval(subs->act_3_sub, min_interval);
+			if (subs->actuators_sub) orb_set_interval(subs->actuators_sub, min_interval);
 			break;
 		case MAVLINK_MSG_ID_MANUAL_CONTROL:
 			/* manual_control_setpoint triggers this message */
@@ -712,7 +713,6 @@ static void *uorb_receiveloop(void *arg)
 	/* --- ACTUATOR CONTROL VALUE --- */
 	/* subscribe to ORB for actuator control */
 	subs->actuators_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-	orb_set_interval(subs->actuators_sub, 2000);	/* 0.5 Hz updates */
 	fds[fdsc_count].fd = subs->actuators_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
@@ -1518,23 +1518,24 @@ int mavlink_thread_main(int argc, char *argv[])
 	/* all subscriptions are now active, set up initial guess about rate limits */
 	if (baudrate >= 921600) {
 		/* 500 Hz / 2 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 2);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 2);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 2);
 		/* 200 Hz / 5 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 5);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 5);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 5);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 5);
 		/* 5 Hz */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 200);
 	} else if (baudrate >= 460800) {
-		/* 250 Hz / 4 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 5);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 5);
+		/* 200 Hz / 5 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 5);
 		/* 100 Hz / 10 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 10);
-		/* 50 Hz / 20 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 20);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 10);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 10);
+		/* 66 Hz / 15  ms */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 15);
+		/* 20 Hz / 20 ms */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 50);
 		/* 2 Hz */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
 	} else if (baudrate >= 115200) {

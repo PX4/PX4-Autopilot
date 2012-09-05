@@ -855,7 +855,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 			/* Voltage in volts */
 			raw.battery_voltage_v = (BAT_VOL_LOWPASS_1 * (raw.battery_voltage_v + BAT_VOL_LOWPASS_2 * (buf_adc.am_data1 * _parameters.battery_voltage_scaling)));
 
-			if ((buf_adc.am_data1 * _parameters.battery_voltage_scaling) < VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
+			if ((raw.battery_voltage_v) < VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
 				raw.battery_voltage_valid = false;
 				raw.battery_voltage_v = 0.f;
 
