@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LPC43XX_LPC32_USB0DEV_H
-#define __ARCH_ARM_SRC_LPC43XX_LPC32_USB0DEV_H
+#ifndef __ARCH_ARM_SRC_LPC43XX_LPC43_USB0DEV_H
+#define __ARCH_ARM_SRC_LPC43XX_LPC43_USB0DEV_H
 
 /************************************************************************************
  * Included Files
@@ -94,5 +94,5 @@ EXTERN void lpc43_usbsuspend(FAR struct usbdev_s *dev, bool resume);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* __ARCH_ARM_SRC_LPC43XX_LPC32_USB0DEV_H */
+#endif /* __ARCH_ARM_SRC_LPC43XX_LPC43_USB0DEV_H */
 

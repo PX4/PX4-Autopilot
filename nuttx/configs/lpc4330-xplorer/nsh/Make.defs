@@ -38,7 +38,7 @@ include ${TOPDIR}/tools/Config.mk
 
 # Setup for the selected toolchain
 
-ifeq ($(CONFIG_LPC32_CODEREDW),y)
+ifeq ($(CONFIG_LPC43_CODEREDW),y)
   # Code Red RedSuite under Windows
   CROSSDEV = arm-none-eabi-
   ARCROSSDEV = arm-none-eabi-

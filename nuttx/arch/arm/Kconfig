@@ -75,8 +75,8 @@ config ARCH_CHIP_LPC31XX
 
 config ARCH_CHIP_LPC43XX
 	bool "NXP LPC43XX"
-	select ARCH_CORTEXM
 	select ARCH_CORTEXM4
+	select ARMV7M_CMNVECTOR
 	---help---
 		NPX LPC43XX architectures (ARM Cortex-M4).
 
@@ -114,6 +114,10 @@ config ARCH_CORTEXM3
 
 config ARCH_CORTEXM4
 	bool
+
+config ARMV7M_CMNVECTOR
+	bool
+	default n
 
 config ARCH_FPU
 	bool "FPU support"

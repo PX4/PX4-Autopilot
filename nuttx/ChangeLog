@@ -3264,11 +3264,14 @@
 	  AVR "teensy" now builds with Kconfig (contributed by Richard Cochran).
 	* Kconfig: Add configuration settings for the LPC17xx
 	* Kconfig: Add configuration settings for the LM3S (from Richard Cochran).
-	* Kconfig: Verify configuration settings for the STM32.  This include
+	* Kconfig: Verify configuration settings for the STM32.  This includes
 	  changes in the way that the external SRAM is configured:  Define
 	  CONFIG_HEAP2_SIZE (decimal) instead of CONFIG_HEAP2_END (hex).
 	* tools/configure.sh:  Don't append the apps directory path setting
 	  if the correct setting is already in defined in the defconfig file.
 	* fs/fat/fs_utils.c:  Improper constructed bool expression.  This
 	  would cause many unnecessary writes to FLASH (Thanks Ronen Vainish).
+	* Kconfig: Verify configuration settings for the LPC432xx.  This includes
+  some corrections to configuration variable names and defconfig settings.
+
 
