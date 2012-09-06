@@ -666,7 +666,7 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 	raw.accelerometer_raw[1] = accel_report.y_raw;
 	raw.accelerometer_raw[2] = accel_report.z_raw;
 
-	raw.accelerometer_raw_counter++;
+	raw.accelerometer_counter++;
 }
 
 void
@@ -702,7 +702,7 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_raw[1] = gyro_report.y_raw;
 		raw.gyro_raw[2] = gyro_report.z_raw;
 
-		raw.gyro_raw_counter++;		
+		raw.gyro_counter++;		
 	}
 }
 
@@ -721,7 +721,7 @@ Sensors::mag_poll(struct sensor_combined_s &raw)
 	raw.magnetometer_raw[1] = mag_report.y_raw;
 	raw.magnetometer_raw[2] = mag_report.z_raw;
 	
-	raw.magnetometer_raw_counter++;
+	raw.magnetometer_counter++;
 }
 
 void
@@ -735,7 +735,7 @@ Sensors::baro_poll(struct sensor_combined_s &raw)
 	raw.baro_alt_meter = baro_report.altitude; // Altitude in meters
 	raw.baro_temp_celcius = baro_report.temperature; // Temperature in degrees celcius
 
-	raw.baro_raw_counter++;
+	raw.baro_counter++;
 }
 
 void
