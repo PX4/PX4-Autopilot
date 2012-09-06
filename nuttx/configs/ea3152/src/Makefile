@@ -44,13 +44,13 @@ CSRCS		= up_boot.c up_clkinit.c
 ifeq ($(CONFIG_ARCH_BUTTONS),y)
 CSRCS		+= up_buttons.c
 endif
-ifeq ($(CONFIG_LPC31XX_EXTSDRAM),y)
+ifeq ($(CONFIG_LPC31_EXTSDRAM),y)
 CSRCS		+= up_mem.c
 endif
 ifeq ($(CONFIG_ARCH_LEDS),y)
 CSRCS		+= up_leds.c
 endif
-ifeq ($(CONFIG_LPC31XX_SPI),y)
+ifeq ($(CONFIG_LPC31_SPI),y)
 CSRCS		+= up_spi.c
 endif
 ifeq ($(CONFIG_NSH_ARCHINIT),y)

@@ -2,8 +2,8 @@
  * configs/ea3131/src/up_boot.c
  * arch/arm/src/board/up_boot.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009,2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,7 +75,7 @@ void lpc31_boardinitialize(void)
 {
   /* Initialize configured, external memory resources */
 
-#ifdef CONFIG_LPC31XX_EXTSDRAM
+#ifdef CONFIG_LPC31_EXTSDRAM
   lpc31_meminitialize();
 #endif
 
@@ -83,7 +83,7 @@ void lpc31_boardinitialize(void)
    * lpc31_spiinitialize() has been brought into the link.
    */
 
-#if defined(CONFIG_LPC31XX_SPI)
+#if defined(CONFIG_LPC31_SPI)
   if (lpc31_spiinitialize)
     {
       lpc31_spiinitialize();
@@ -95,7 +95,7 @@ void lpc31_boardinitialize(void)
     * into the build.
     */
 
-#if defined(CONFIG_USBDEV) && defined(CONFIG_LPC31XX_USB)
+#if defined(CONFIG_USBDEV) && defined(CONFIG_LPC31_USB)
   if (lpc31_usbinitialize)
     {
       lpc31_usbinitialize();

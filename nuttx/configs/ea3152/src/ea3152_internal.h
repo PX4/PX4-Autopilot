@@ -86,7 +86,7 @@
  *
  ************************************************************************************/
 
-#ifdef CONFIG_LPC31XX_EXTSDRAM
+#ifdef CONFIG_LPC31_EXTSDRAM
 extern void lpc31_meminitialize(void);
 #endif
 

@@ -75,7 +75,7 @@ void lpc31_boardinitialize(void)
 {
   /* Initialize configured, external memory resources */
 
-#ifdef CONFIG_LPC31XX_EXTSDRAM
+#ifdef CONFIG_LPC31_EXTSDRAM
   lpc31_meminitialize();
 #endif
 
@@ -83,7 +83,7 @@ void lpc31_boardinitialize(void)
    * lpc31_spiinitialize() has been brought into the link.
    */
 
-#if defined(CONFIG_LPC31XX_SPI)
+#if defined(CONFIG_LPC31_SPI)
   if (lpc31_spiinitialize)
     {
       lpc31_spiinitialize();
@@ -95,7 +95,7 @@ void lpc31_boardinitialize(void)
     * into the build.
     */
 
-#if defined(CONFIG_USBDEV) && defined(CONFIG_LPC31XX_USB)
+#if defined(CONFIG_USBDEV) && defined(CONFIG_LPC31_USB)
   if (lpc31_usbinitialize)
     {
       lpc31_usbinitialize();

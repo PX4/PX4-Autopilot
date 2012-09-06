@@ -59,7 +59,7 @@
 #include "lpc31_mpmc.h"
 #include "ea3152_internal.h"
 
-#ifdef CONFIG_LPC31XX_EXTSDRAM
+#ifdef CONFIG_LPC31_EXTSDRAM
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -164,8 +164,8 @@ static void lpc31_sdraminitialize(void)
    * replaced with an apriori value.
    */
 
-#ifdef CONFIG_LPC31XX_SDRAMHCLK
-# define HCLK CONFIG_LPC31XX_SDRAMHCLK
+#ifdef CONFIG_LPC31_SDRAMHCLK
+# define HCLK CONFIG_LPC31_SDRAMHCLK
 #else
   uint32_t hclk = lpc31_clkfreq(CLKID_MPMCCFGCLK2, DOMAINID_SYS);
 # define HCLK hclk
@@ -356,4 +356,4 @@ void lpc31_meminitialize(void)
 
   lpc31_sdraminitialize();
 }
-#endif /* CONFIG_LPC31XX_EXTSDRAM */
+#endif /* CONFIG_LPC31_EXTSDRAM */

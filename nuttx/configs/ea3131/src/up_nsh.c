@@ -2,8 +2,8 @@
  * config/ea3131/src/up_nsh.c
  * arch/arm/src/board/up_nsh.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,7 @@
 #include <debug.h>
 #include <errno.h>
 
-#ifdef CONFIG_LPC31XX_MCI
+#ifdef CONFIG_LPC31_MCI
 #  include <nuttx/sdio.h>
 #  include <nuttx/mmcsd.h>
 #endif
@@ -88,7 +88,7 @@
  * is not enabled.
  */
 
-#if defined(CONFIG_DISABLE_MOUNTPOINT) || !defined(CONFIG_LPC31XX_MCI)
+#if defined(CONFIG_DISABLE_MOUNTPOINT) || !defined(CONFIG_LPC31_MCI)
 #  undef CONFIG_NSH_HAVEMMCSD
 #endif
 

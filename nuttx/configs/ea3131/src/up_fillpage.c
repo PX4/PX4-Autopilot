@@ -2,8 +2,8 @@
  * configs/ea3131/src/up_fillpage.c
  * arch/arm/src/board/up_fillpage.c
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2010,2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -122,7 +122,7 @@
     * is not enabled.
     */
 
-#  if defined(CONFIG_DISABLE_MOUNTPOINT) || !defined(CONFIG_LPC31XX_MCI)
+#  if defined(CONFIG_DISABLE_MOUNTPOINT) || !defined(CONFIG_LPC31_MCI)
 #    ifdef CONFIG_PAGING_SDSLOT
 #      error "Mountpoints and/or MCI disabled"
 #    endif
@@ -152,7 +152,7 @@
 
    /* Verify that SPI support is enabld */
 
-#ifndef CONFIG_LPC31XX_SPI
+#ifndef CONFIG_LPC31_SPI
 #  error "SPI support is not enabled"
 #endif
 

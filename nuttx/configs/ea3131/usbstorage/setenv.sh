@@ -32,16 +32,35 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-if [ "$(basename $0)" = "setenv.sh" ] ; then
+if [ "$_" = "$0" ] ; then
   echo "You must source this script, not run it!" 1>&2
   exit 1
 fi
 
-if [ -z "${PATH_ORIG}" ]; then export PATH_ORIG=${PATH}; fi
-
 WD=`pwd`
-export BUILDROOT_BIN="${WD}/../buildroot/build_arm_nofpu/staging_dir/bin"
-export LPCTOOL_DIR="${WD}/configs/ea3131/tools"
-export PATH="${BUILDROOT_BIN}:${LPCTOOL_DIR}:/sbin:/usr/sbin:${PATH_ORIG}"
+if [ ! -x "setenv.sh" ]; then
+  echo "This script must be executed from the top-level NuttX build directory"
+  exit 1
+fi
 
+if [ -z "${PATH_ORIG}" ]; then
+  export PATH_ORIG="${PATH}"
+fi
+
+# This the Cygwin path to the location where I installed the CodeSourcery
+# toolchain under windows.  You will also have to edit this if you install
+# the CodeSourcery toolchain in any other location
+export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/CodeSourcery/Sourcery G++ Lite/bin"
+
+# This the Cygwin path to the location where I build the buildroot
+# toolchain.
+#export TOOLCHAIN_BIN="${WD}/../misc/buildroot/build_arm_nofpu/staging_dir/bin"
+
+# This is the path to the tools subdirectory
+
+export LPCTOOL_DIR="${WD}/configs/ea3152/tools"
+
+# Add the path to the toolchain to the PATH varialble
+
+export PATH="${TOOLCHAIN_BIN}:${LPCTOOL_DIR}:/sbin:/usr/sbin:${PATH_ORIG}"
 echo "PATH : ${PATH}"

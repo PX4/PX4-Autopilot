@@ -2,8 +2,8 @@
 ###########################################################################
 # configs/ea3131/locked/mklocked.sh
 #
-#   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2010-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -117,7 +117,7 @@ echo "EXTERN(up_vectoraddrexcptn)" >>ld-locked.inc
 
 echo "EXTERN(up_timerinit)" >>ld-locked.inc
 
-answer=$(checkconfig CONFIG_LPC31XX_UART)
+answer=$(checkconfig CONFIG_LPC31_UART)
 if [ $answer = y ]; then
 	echo "EXTERN(up_earlyserialinit)" >>ld-locked.inc
 fi

@@ -1,8 +1,8 @@
 ############################################################################
 # configs/ea3131/usbserial/Make.defs
 #
-#   Copyright (C) 2010 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2010,2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -38,23 +38,23 @@ include ${TOPDIR}/tools/Config.mk
 
 # Setup for the selected toolchain
 
-ifeq ($(CONFIG_LPC31XX_CODESOURCERYW),y)
+ifeq ($(CONFIG_LPC31_CODESOURCERYW),y)
   # CodeSourcery under Windows
   CROSSDEV = arm-none-eabi-
   WINTOOL = y
   MAXOPTIMIZATION = -O2
 endif
-ifeq ($(CONFIG_LPC31XX_CODESOURCERYL),y)
+ifeq ($(CONFIG_LPC31_CODESOURCERYL),y)
   # CodeSourcery under Linux
   CROSSDEV = arm-none-eabi-
   MAXOPTIMIZATION = -O2
 endif
-ifeq ($(CONFIG_LPC31XX_DEVKITARM),y)
+ifeq ($(CONFIG_LPC31_DEVKITARM),y)
   # devkitARM under Windows
   CROSSDEV = arm-eabi-
   WINTOOL = y
 endif
-ifeq ($(CONFIG_LPC31XX_BUILDROOT),y)
+ifeq ($(CONFIG_LPC31_BUILDROOT),y)
   # NuttX buildroot under Linux or Cygwin
   CROSSDEV = arm-elf-
   MAXOPTIMIZATION = -Os
@@ -67,13 +67,13 @@ ifeq ($(WINTOOL),y)
   MKDEP = $(TOPDIR)/tools/mknulldeps.sh
   ARCHINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}"
   ARCHXXINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}" -isystem "${shell cygpath -w $(TOPDIR)/include/cxx}"
-  ARCHSCRIPT = -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/usbserial/ld.script}"
+  ARCHSCRIPT = -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/ld.script}"
 else
   # Linux/Cygwin-native toolchain 
   MKDEP = $(TOPDIR)/tools/mkdeps.sh
   ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
   ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
-  ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/usbserial/ld.script
+  ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/ld.script
 endif
 
 CC = $(CROSSDEV)gcc
@@ -122,7 +122,7 @@ OBJEXT = .o
 LIBEXT = .a
 EXEEXT =
 
-ifneq ($(CONFIG_LPC31XX_BUILDROOT),y)
+ifneq ($(CONFIG_LPC31_BUILDROOT),y)
   LDFLAGS += -nostartfiles -nodefaultlibs
 endif
 ifeq ($(CONFIG_DEBUG_SYMBOLS),y)

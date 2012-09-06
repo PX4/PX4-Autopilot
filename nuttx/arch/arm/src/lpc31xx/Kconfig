@@ -68,6 +68,12 @@ config LPC31_EXTSDRAMSIZE
 	---help---
 		Size of the external SDRAM.
 
+config LPC31_SDRAMHCLK
+	int "External SDRAM HCLK"
+	depends on LPC31_EXTSDRAM
+	---help---
+		The SDRAM HCLK may be specified here (if not, it will be calculated).
+
 config LPC31_EXTSRAM0
 	bool "Map external SRAM0"
 	default n
@@ -114,6 +120,18 @@ config LPC31_UART
 	bool "UART"
 	default n
 	select ARCH_HAS_UART
+
+config LPC31_SPI
+	bool "SPI"
+	default n
+
+config LPC31_USB
+	bool "USB"
+	default n
+
+config LPC31_MCI
+	bool "MCI"
+	default n
 
 endmenu
 
@@ -174,8 +192,8 @@ endmenu
 menu "SPI device driver options"
 
 config LPC31_SPI_REGDEBUG
-	bool "Register level debug"
-	depends on DEBUG
+	bool "SPI Register level debug"
+	depends on LPC31_SPI && DEBUG
 	default n
 	---help---
 		Output detailed register-level SPI device debug information.  Requires also DEBUG.

@@ -43,12 +43,12 @@ GNU Toolchain Options
   add one of the following configuration options to your .config (or defconfig)
   file:
 
-    CONFIG_LPC31XX_CODESOURCERYW=y  : CodeSourcery under Windows
-    CONFIG_LPC31XX_CODESOURCERYL=y  : CodeSourcery under Linux
-    CONFIG_LPC31XX_DEVKITARM=y      : devkitARM under Windows
-    CONFIG_LPC31XX_BUILDROOT=y	    : NuttX buildroot under Linux or Cygwin (default)
+    CONFIG_LPC31_CODESOURCERYW=y  : CodeSourcery under Windows
+    CONFIG_LPC31_CODESOURCERYL=y  : CodeSourcery under Linux
+    CONFIG_LPC31_DEVKITARM=y      : devkitARM under Windows
+    CONFIG_LPC31_BUILDROOT=y	    : NuttX buildroot under Linux or Cygwin (default)
 
-  If you are not using CONFIG_LPC31XX_BUILDROOT, then you may also have to modify
+  If you are not using CONFIG_LPC31_BUILDROOT, then you may also have to modify
   the PATH in the setenv.h file if your make cannot find the tools.
 
   NOTE: the CodeSourcery (for Windows), devkitARM, and Raisonance toolchains are
@@ -381,7 +381,7 @@ On-Demand Paging
   configs/ea3131/locked/Makefile to build the first pass object, locked.r.
   This first pass object contains all of the code that must be in the locked
   text region. The Makefile in arch/arm/src/Makefile then includes this 1st
-  pass in build, positioning it as controlled by configs/ea3131/pgnsh/ld.script.
+  pass in build, positioning it as controlled by configs/ea3131/scripts/pg-ld.script.
 
   Finishing the Example:
   ----------------------
@@ -549,27 +549,27 @@ ARM/EA3131-specific Configuration Options
 
   Individual subsystems can be enabled:
 
-	CONFIG_LPC31XX_MCI, CONFIG_LPC31XX_SPI, CONFIG_LPC31XX_UART
+	CONFIG_LPC31_MCI, CONFIG_LPC31_SPI, CONFIG_LPC31_UART
 
   External memory available on the board (see also CONFIG_MM_REGIONS)
 
-	CONFIG_LPC31XX_EXTSRAM0 - Select if external SRAM0 is present
-	CONFIG_LPC31XX_EXTSRAM0HEAP - Select if external SRAM0 should be
+	CONFIG_LPC31_EXTSRAM0 - Select if external SRAM0 is present
+	CONFIG_LPC31_EXTSRAM0HEAP - Select if external SRAM0 should be
 	  configured as part of the NuttX heap.
-	CONFIG_LPC31XX_EXTSRAM0SIZE - Size (in bytes) of the installed
+	CONFIG_LPC31_EXTSRAM0SIZE - Size (in bytes) of the installed
 	  external SRAM0 memory
-	CONFIG_LPC31XX_EXTSRAM1 - Select if external SRAM1 is present
-	CONFIG_LPC31XX_EXTSRAM1HEAP - Select if external SRAM1 should be
+	CONFIG_LPC31_EXTSRAM1 - Select if external SRAM1 is present
+	CONFIG_LPC31_EXTSRAM1HEAP - Select if external SRAM1 should be
 	  configured as part of the NuttX heap.
-	CONFIG_LPC31XX_EXTSRAM1SIZE - Size (in bytes) of the installed
+	CONFIG_LPC31_EXTSRAM1SIZE - Size (in bytes) of the installed
 	  external SRAM1 memory
-	CONFIG_LPC31XX_EXTSDRAM - Select if external SDRAM is present
-	CONFIG_LPC31XX_EXTSDRAMHEAP - Select if external SDRAM should be
+	CONFIG_LPC31_EXTSDRAM - Select if external SDRAM is present
+	CONFIG_LPC31_EXTSDRAMHEAP - Select if external SDRAM should be
 	  configured as part of the NuttX heap.
-	CONFIG_LPC31XX_EXTSDRAMSIZE - Size (in bytes) of the installed
+	CONFIG_LPC31_EXTSDRAMSIZE - Size (in bytes) of the installed
 	  external SDRAM memory
-	CONFIG_LPC31XX_EXTNAND - Select if external NAND is present
-	CONFIG_LPC31XX_EXTSDRAMSIZE - Size (in bytes) of the installed
+	CONFIG_LPC31_EXTNAND - Select if external NAND is present
+	CONFIG_LPC31_EXTSDRAMSIZE - Size (in bytes) of the installed
 	  external NAND memory
 
   LPC313X specific device driver settings

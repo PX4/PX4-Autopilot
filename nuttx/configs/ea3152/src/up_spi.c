@@ -52,7 +52,7 @@
 #include "lpc31_internal.h"
 #include "ea3152_internal.h"
 
-#ifdef CONFIG_LPC31XX_SPI
+#ifdef CONFIG_LPC31_SPI
 #if 0 /* At present, EA3152 specific logic is hard-coded in the file lpc31_spi.c
        * in arch/arm/src/lpc31xx */
 
@@ -138,5 +138,5 @@ uint8_t lpc31_spistatus(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 }
 
 #endif /* 0 */
-#endif /* CONFIG_LPC31XX_SPI  */
+#endif /* CONFIG_LPC31_SPI  */
 

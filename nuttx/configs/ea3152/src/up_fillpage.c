@@ -122,7 +122,7 @@
     * is not enabled.
     */
 
-#  if defined(CONFIG_DISABLE_MOUNTPOINT) || !defined(CONFIG_LPC31XX_MCI)
+#  if defined(CONFIG_DISABLE_MOUNTPOINT) || !defined(CONFIG_LPC31_MCI)
 #    ifdef CONFIG_PAGING_SDSLOT
 #      error "Mountpoints and/or MCI disabled"
 #    endif
@@ -152,7 +152,7 @@
 
    /* Verify that SPI support is enabld */
 
-#ifndef CONFIG_LPC31XX_SPI
+#ifndef CONFIG_LPC31_SPI
 #  error "SPI support is not enabled"
 #endif
 

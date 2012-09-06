@@ -45,7 +45,7 @@
 #include <debug.h>
 #include <errno.h>
 
-#ifdef CONFIG_LPC31XX_MCI
+#ifdef CONFIG_LPC31_MCI
 #  include <nuttx/sdio.h>
 #  include <nuttx/mmcsd.h>
 #endif
@@ -88,7 +88,7 @@
  * is not enabled.
  */
 
-#if defined(CONFIG_DISABLE_MOUNTPOINT) || !defined(CONFIG_LPC31XX_MCI)
+#if defined(CONFIG_DISABLE_MOUNTPOINT) || !defined(CONFIG_LPC31_MCI)
 #  undef CONFIG_NSH_HAVEMMCSD
 #endif
 

@@ -2,8 +2,8 @@
  * configs/ea3131/src/up_mem.c
  * arch/arm/src/board/up_mem.c
  *
- *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009-2010,2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  *   - NXP UM10314 LPC3130/31 User manual Rev. 1.01 — 9 September 2009
@@ -59,7 +59,7 @@
 #include "lpc31_mpmc.h"
 #include "ea3131_internal.h"
 
-#ifdef CONFIG_LPC31XX_EXTSDRAM
+#ifdef CONFIG_LPC31_EXTSDRAM
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -164,8 +164,8 @@ static void lpc31_sdraminitialize(void)
    * replaced with an apriori value.
    */
 
-#ifdef CONFIG_LPC31XX_SDRAMHCLK
-# define HCLK CONFIG_LPC31XX_SDRAMHCLK
+#ifdef CONFIG_LPC31_SDRAMHCLK
+# define HCLK CONFIG_LPC31_SDRAMHCLK
 #else
   uint32_t hclk = lpc31_clkfreq(CLKID_MPMCCFGCLK2, DOMAINID_SYS);
 # define HCLK hclk
@@ -356,4 +356,4 @@ void lpc31_meminitialize(void)
 
   lpc31_sdraminitialize();
 }
-#endif /* CONFIG_LPC31XX_EXTSDRAM */
+#endif /* CONFIG_LPC31_EXTSDRAM */
