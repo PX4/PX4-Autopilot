@@ -100,3 +100,5 @@ CONFIGURED_APPS += examples/cdcacm
 #endif
 #endif
 
+# Simple app test
+CONFIGURED_APPS += px4_simple_app
