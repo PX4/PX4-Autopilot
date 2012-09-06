@@ -217,7 +217,7 @@ static void parse_args(FAR struct wdog_example_s *wdog, int argc, FAR char **arg
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start/wdog_main
+ * Name: wdog_main
  ****************************************************************************/
 
 int wdog_main(int argc, char *argv[])

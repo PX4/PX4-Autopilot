@@ -779,8 +779,6 @@ Sensors::parameter_update_poll(bool forced)
 		struct parameter_update_s update;
 		orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
-		printf("PARAMS UPDATED\n");
-
 		/* update parameters */
 		parameters_update();
 
@@ -824,7 +822,7 @@ Sensors::parameter_update_poll(bool forced)
 			warn("WARNING: failed to set scale / offsets for mag");
 		close(fd);
 
-#if 1
+#if 0
 		printf("CH0: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n",  (int)_parameters.max[0], (int)_parameters.min[0], (int)(_rc.chan[0].scaling_factor*10000), (int)(_rc.chan[0].mid), (int)_rc.function[0]);
 		printf("CH1: RAW MAX: %d MIN %d S: %d MID: %d FUNC: %d\n",  (int)_parameters.max[1], (int)_parameters.min[1], (int)(_rc.chan[1].scaling_factor*10000), (int)(_rc.chan[1].mid), (int)_rc.function[1]);
 		printf("MAN: %d %d\n", (int)(_rc.chan[0].scaled*100), (int)(_rc.chan[1].scaled*100));
@@ -857,7 +855,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 			/* Voltage in volts */
 			raw.battery_voltage_v = (BAT_VOL_LOWPASS_1 * (raw.battery_voltage_v + BAT_VOL_LOWPASS_2 * (buf_adc.am_data1 * _parameters.battery_voltage_scaling)));
 
-			if ((buf_adc.am_data1 * _parameters.battery_voltage_scaling) < VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
+			if ((raw.battery_voltage_v) < VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
 				raw.battery_voltage_valid = false;
 				raw.battery_voltage_v = 0.f;
 
@@ -914,7 +912,7 @@ Sensors::ppm_poll()
 	if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
 	
 	/* throttle input */
-	manual_control.throttle = (_rc.chan[_rc.function[THROTTLE]].scaled+1.0f)/2.0f;
+	manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled/2.0f;
 	if (manual_control.throttle < 0.0f) manual_control.throttle = 0.0f;
 	if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
 

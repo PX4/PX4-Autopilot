@@ -87,9 +87,9 @@ int attitude_estimator_bm_update(struct sensor_combined_s *raw, float_vect3 *eul
 	gyro_values.z =  raw->gyro_rad_s[2];
 
 	float_vect3 accel_values;
-	accel_values.x = (raw->accelerometer_m_s2[0] / 9.81f) * 120;
-	accel_values.y = (raw->accelerometer_m_s2[1] / 9.81f) * 120;
-	accel_values.z = (raw->accelerometer_m_s2[2] / 9.81f) * 120;
+	accel_values.x = (raw->accelerometer_m_s2[0] / 9.81f) * 100;
+	accel_values.y = (raw->accelerometer_m_s2[1] / 9.81f) * 100;
+	accel_values.z = (raw->accelerometer_m_s2[2] / 9.81f) * 100;
 
 	float_vect3 mag_values;
 	mag_values.x = raw->magnetometer_ga[0]*1500.0f;

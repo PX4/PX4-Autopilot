@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/stdio/lib_libflushall.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -91,7 +91,7 @@
 int lib_flushall(FAR struct streamlist *list)
 {
   int lasterrno = OK;
-  int ret = OK;
+  int ret;
 
   /* Make sure that there are streams associated with this thread */
 
@@ -115,25 +115,23 @@ int lib_flushall(FAR struct streamlist *list)
              {
                /* Flush the writable FILE */
 
-               if (lib_fflush(stream, true) != 0)
+               ret = lib_fflush(stream, true);
+               if (ret < 0)
                  {
                    /* An error occurred during the flush AND/OR we were unable
-                    * to flush all of the buffered write data.  Return EOF on failure.
+                    * to flush all of the buffered write data.  Remember the
+                    * last errcode.
                     */
 
-                   lasterrno = get_errno();
-                   ret = ERROR;
+                   lasterrno = ret;
                  }
              }
          }
+
        stream_semgive(list);
     }
 
-  /* If any flush failed, return that last failed flush */
+  /* If any flush failed, return the errorcode of the last failed flush */
 
-  if (ret != OK)
-    {
-      set_errno(lasterrno);
-    }
-  return ret;
+  return lasterrno;
 }

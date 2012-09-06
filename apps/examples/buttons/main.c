@@ -130,16 +130,6 @@
 #define NUM_BUTTONS     (MAX_BUTTON - MIN_BUTTON + 1)
 #define BUTTON_INDEX(b) ((b)-MIN_BUTTON)
 
-/* Is this being built as an NSH built-in application? */
-
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME   buttons_main
-#  define MAIN_STRING "buttons_main: "
-#else
-#  define MAIN_NAME   user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -399,10 +389,10 @@ static int button7_handler(int irq, FAR void *context)
  ****************************************************************************/
 
 /****************************************************************************
- * user_start/buttons_main
+ * buttons_main
  ****************************************************************************/
 
-int MAIN_NAME(int argc, char *argv[])
+int buttons_main(int argc, char *argv[])
 {
   uint8_t newset;
   irqstate_t flags;

@@ -59,7 +59,7 @@
 #include "uORB/uORB.h"
 #include "uORB/topics/parameter_update.h"
 
-#if 1
+#if 0
 # define debug(fmt, args...)		do { warnx(fmt, ##args); } while(0)
 #else
 # define debug(fmt, args...)		do { } while(0)
@@ -444,6 +444,9 @@ param_reset_all(void)
 	if (param_values != NULL) {
 		utarray_free(param_values);
 	}
+
+	/* mark as reset / deleted */
+	param_values = NULL;
 
 	param_unlock();
 

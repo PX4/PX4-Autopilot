@@ -104,10 +104,16 @@ int work_cancel(struct work_s *work)
   flags = irqsave();
   if (work->worker != NULL)
     {
-      DEBUGASSERT(work->dq.flink || (FAR dq_entry_t *)work == g_work.head);
-      DEBUGASSERT(work->dq.blink || (FAR dq_entry_t *)work == g_work.tail);
-      dq_rem((FAR dq_entry_t *)work, &g_work);
+      /* A little test of the integrity of the work queue */
 
+      DEBUGASSERT(work->dq.flink ||(FAR dq_entry_t *)work == g_work.tail);
+      DEBUGASSERT(work->dq.blink ||(FAR dq_entry_t *)work == g_work.head);
+
+      /* Remove the entry from the work queue and make sure that it is
+       * mark as availalbe (i.e., the worker field is nullified).
+       */
+
+      dq_rem((FAR dq_entry_t *)work, &g_work);
       work->worker = NULL;
     }
 

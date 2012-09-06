@@ -1,7 +1,7 @@
 Multirotor mixer for PX4FMU
 ===========================
 
-This file defines a single mixer for a quadrotor in the + configuration, with 10% contribution from 
-roll and pitch and 20% contribution from yaw and no deadband.
+This file defines a single mixer for a quadrotor in the + configuration. All controls
+are mixed 100%.
 
-R: 4+ 1000 1000 2000 0
+R: 4+ 10000 10000 10000 0

@@ -121,6 +121,8 @@ FMUServo::FMUServo(Mode mode) :
 	_task(-1),
 	_t_actuators(-1),
 	_t_armed(-1),
+	_t_outputs(0),
+	_num_outputs(0),
 	_task_should_exit(false),
 	_armed(false),
 	_mixers(nullptr)
@@ -209,7 +211,7 @@ FMUServo::task_main()
 	orb_set_interval(_t_actuators, 20);		/* 50Hz update rate */
 
 	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
-	orb_set_interval(_t_armed, 100);		/* 10Hz update rate */
+	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
 
 	/* advertise the mixed control outputs */
 	struct actuator_outputs_s outputs;
@@ -280,7 +282,6 @@ FMUServo::task_main()
 
 	::close(_t_actuators);
 	::close(_t_armed);
-	::close(_t_outputs);
 
 	/* make sure servos are off */
 	up_pwm_servo_deinit();
@@ -552,7 +553,7 @@ void
 fake(int argc, char *argv[])
 {
 	if (argc < 5) {
-		puts("fmu fake <roll> <pitch> <yaw> <thrust> (values -100 - 100)");
+		puts("fmu fake <roll> <pitch> <yaw> <thrust> (values -100 .. 100)");
 		exit(1);
 	}
 

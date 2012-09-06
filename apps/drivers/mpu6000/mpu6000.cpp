@@ -369,8 +369,10 @@ MPU6000::init()
 	write_reg(MPUREG_SMPLRT_DIV, 0x04);     // Sample rate = 200Hz    Fsample= 1Khz/(4+1) = 200Hz
 	usleep(1000);
 
-	// FS & DLPF   FS=2000 deg/s, DLPF = 98Hz (low pass filter)
-	write_reg(MPUREG_CONFIG, BITS_DLPF_CFG_98HZ);
+	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
+	// was 90 Hz, but this ruins quality and does not improve the
+	// system response
+	write_reg(MPUREG_CONFIG, BITS_DLPF_CFG_20HZ);
 	usleep(1000);
 	// Gyro scale 2000 deg/s ()
 	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
@@ -877,6 +879,9 @@ MPU6000::measure()
 	_accel_report.scaling = _accel_range_scale;
 	_accel_report.range_m_s2 = _accel_range_m_s2;
 
+	_accel_report.temperature_raw = report.temp;
+	_accel_report.temperature = (report.temp) / 361.0f + 35.0f;
+
 	_gyro_report.x_raw = report.gyro_x;
 	_gyro_report.y_raw = report.gyro_y;
 	_gyro_report.z_raw = report.gyro_z;
@@ -886,6 +891,9 @@ MPU6000::measure()
 	_gyro_report.z = ((report.gyro_z * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
 	_gyro_report.scaling = _gyro_range_scale;
 	_gyro_report.range_rad_s = _gyro_range_rad_s;
+
+	_gyro_report.temperature_raw = report.temp;
+	_gyro_report.temperature = (report.temp) / 361.0f + 35.0f;
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -1041,6 +1049,10 @@ test()
 	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
 		(int)((g_report.range_rad_s / M_PI_F) * 180.0f+0.5f));
 
+	warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
+	warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
+
+
 	/* XXX add poll-rate tests here too */
 
 	reset();
@@ -1110,5 +1122,5 @@ mpu6000_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "info"))
 		mpu6000::info();
 
-	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
+	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
 }

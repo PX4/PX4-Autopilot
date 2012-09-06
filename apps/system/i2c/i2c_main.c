@@ -351,15 +351,7 @@ static void i2c_teardown(FAR struct i2ctool_s *i2ctool)
  * Name: i2c_main
  ****************************************************************************/
 
-#ifdef CONFIG_I2CTOOL_BUILTIN
-#  define MAIN_NAME i2c_main
-#  define MAIN_NAME_STRING "i2c_main"
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_NAME_STRING "user_start"
-#endif
-
-int MAIN_NAME(int argc, char *argv[])
+int i2c_main(int argc, char *argv[])
 {
   /* Verify settings */
 

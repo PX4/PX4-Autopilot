@@ -409,7 +409,7 @@ static int user_main(int argc, char *argv[])
       check_test_memory_usage();
 #endif /* CONFIG_PRIORITY_INHERITANCE && !CONFIG_DISABLE_SIGNALS && !CONFIG_DISABLE_PTHREAD */
 
-      /* Compare memory usage at time user_start started until
+      /* Compare memory usage at time ostest_main started until
        * user_main exits.  These should not be identical, but should
        * be similar enough that we can detect any serious OS memory
        * leaks.
@@ -458,18 +458,10 @@ static void stdio_test(void)
  ****************************************************************************/
 
 /****************************************************************************
- * user_start/ostest_main
+ * ostest_main
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLES_OSTEST_BUILTIN
-#  define MAIN_NAME   ostest_main
-#  define MAIN_STRING "ostest_main: "
-#else
-#  define MAIN_NAME   user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
-int MAIN_NAME(int argc, char *argv[])
+int ostest_main(int argc, char *argv[])
 {
   int result;
 
@@ -492,19 +484,19 @@ int MAIN_NAME(int argc, char *argv[])
   /* Set up some environment variables */
 
 #ifndef CONFIG_DISABLE_ENVIRON
-  printf(MAIN_STRING "putenv(%s)\n", g_putenv_value);
+  printf("ostest_main: putenv(%s)\n", g_putenv_value);
   putenv(g_putenv_value);                   /* Varaible1=BadValue3 */
-  printf(MAIN_STRING "setenv(%s, %s, TRUE)\n", g_var1_name, g_var1_value);
+  printf("ostest_main: setenv(%s, %s, TRUE)\n", g_var1_name, g_var1_value);
   setenv(g_var1_name, g_var1_value, TRUE);  /* Variable1=GoodValue1 */
 
-  printf(MAIN_STRING "setenv(%s, %s, FALSE)\n", g_var2_name, g_bad_value1);
+  printf("ostest_main: setenv(%s, %s, FALSE)\n", g_var2_name, g_bad_value1);
   setenv(g_var2_name, g_bad_value1, FALSE); /* Variable2=BadValue1 */
-  printf(MAIN_STRING "setenv(%s, %s, TRUE)\n", g_var2_name, g_var2_value);
+  printf("ostest_main: setenv(%s, %s, TRUE)\n", g_var2_name, g_var2_value);
   setenv(g_var2_name, g_var2_value, TRUE);  /* Variable2=GoodValue2 */
 
-  printf(MAIN_STRING "setenv(%s, %s, FALSE)\n", g_var3_name, g_var3_name);
+  printf("ostest_main: setenv(%s, %s, FALSE)\n", g_var3_name, g_var3_name);
   setenv(g_var3_name, g_var3_value, FALSE); /* Variable3=GoodValue3 */
-  printf(MAIN_STRING "setenv(%s, %s, FALSE)\n", g_var3_name, g_var3_name);
+  printf("ostest_main: setenv(%s, %s, FALSE)\n", g_var3_name, g_var3_name);
   setenv(g_var3_name, g_bad_value2, FALSE); /* Variable3=GoodValue3 */
   show_environment(true, true, true);
 #endif
@@ -518,13 +510,13 @@ int MAIN_NAME(int argc, char *argv[])
 #endif
   if (result == ERROR)
     {
-      printf(MAIN_STRING "ERROR Failed to start user_main\n");
+      printf("ostest_main: ERROR Failed to start user_main\n");
     }
   else
     {
-      printf(MAIN_STRING "Started user_main at PID=%d\n", result);
+      printf("ostest_main: Started user_main at PID=%d\n", result);
     }
 
-  printf(MAIN_STRING "Exitting\n");
+  printf("ostest_main: Exitting\n");
   return 0;
 }

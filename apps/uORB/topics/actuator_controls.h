@@ -67,7 +67,8 @@ ORB_DECLARE(actuator_controls_3);
 
 /** global 'actuator output is live' control. */
 struct actuator_armed_s {
-	bool	armed;
+	bool	armed;		/**< Set to true if system is armed */
+	bool	failsafe;	/**< Set to true if no valid control input is available */
 };
 
 ORB_DECLARE(actuator_armed);

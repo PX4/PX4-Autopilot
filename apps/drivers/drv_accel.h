@@ -52,14 +52,17 @@
  */
 struct accel_report {
 	uint64_t timestamp;
-	float x;
-	float y;
-	float z;
-	float range_m_s2;
+	float x;		/**< acceleration in the NED X board axis in m/s^2 */
+	float y;		/**< acceleration in the NED Y board axis in m/s^2 */
+	float z;		/**< acceleration in the NED Z board axis in m/s^2 */
+	float temperature;	/**< temperature in degrees celsius */
+	float range_m_s2;	/**< range in m/s^2 (+- this value) */
 	float scaling;
+
 	int16_t x_raw;
 	int16_t y_raw;
 	int16_t z_raw;
+	int16_t temperature_raw;
 };
 
 /** accel scaling factors; Vout = (Vin * Vscale) + Voffset */
@@ -109,7 +112,7 @@ ORB_DECLARE(sensor_accel);
 /** set the accel measurement range to handle at least (arg) g */
 #define ACCELIOCSRANGE		_ACCELIOC(7)
 
-/** get the current accel measurement range */
+/** get the current accel measurement range in g */
 #define ACCELIOCGRANGE		_ACCELIOC(8)
 
 #endif /* _DRV_ACCEL_H */

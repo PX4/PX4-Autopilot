@@ -188,6 +188,12 @@ void state_machine_emergency_always_critical(int status_pub, struct vehicle_stat
  */
 void state_machine_emergency(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
+/**
+ * Publish the armed state depending on the current system state
+ *
+ * @param current_status the current system status
+ */
+void publish_armed_status(const struct vehicle_status_s *current_status);
 
 
 

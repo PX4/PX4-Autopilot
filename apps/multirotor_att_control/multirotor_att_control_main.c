@@ -117,7 +117,6 @@ mc_thread_main(int argc, char *argv[])
 		actuators.control[i] = 0.0f;
 	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
 	armed.armed = false;
-	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 
 	/* register the perf counter */
@@ -145,31 +144,20 @@ mc_thread_main(int argc, char *argv[])
 		att_sp.roll_body = -manual.roll * M_PI_F / 8.0f;
 		att_sp.pitch_body = -manual.pitch * M_PI_F / 8.0f;
 		att_sp.yaw_body = -manual.yaw * M_PI_F;
+		att_sp.timestamp = hrt_absolute_time();
 		if (motor_test_mode) {
 			att_sp.roll_body = 0.0f;
 			att_sp.pitch_body = 0.0f;
 			att_sp.yaw_body = 0.0f;
 			att_sp.thrust = 0.1f;
 		} else {
-			if (state.flag_system_armed) {
-				att_sp.thrust = manual.throttle;
-				armed.armed = true;
-
-			} else if (state.state_machine == SYSTEM_STATE_EMCY_CUTOFF) {
-				/* immediately cut off motors */
-				armed.armed = false;
-
-			} else {
-				/* limit motor throttle to zero for an unknown mode */
-				armed.armed = false;
-			}
+			att_sp.thrust = manual.throttle;
 			
 		}
 
-		multirotor_control_attitude(&att_sp, &att, &state, &actuators, motor_test_mode);
+		multirotor_control_attitude(&att_sp, &att, &actuators);
 
 		/* publish the result */
-		orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 		orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 		orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 
@@ -179,8 +167,6 @@ mc_thread_main(int argc, char *argv[])
 	printf("[multirotor att control] stopping, disarming motors.\n");
 
 	/* kill all outputs */
-	armed.armed = false;
-	orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
 		actuators.control[i] = 0.0f;
 	orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
@@ -190,7 +176,7 @@ mc_thread_main(int argc, char *argv[])
 	close(state_sub);
 	close(manual_sub);
 	close(actuator_pub);
-	close(armed_pub);
+	close(att_sp_pub);
 
 	perf_print_counter(mc_loop_perf);
 	perf_free(mc_loop_perf);

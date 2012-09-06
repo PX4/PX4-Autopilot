@@ -1,8 +1,8 @@
 /****************************************************************************
  * lib/stdio/lib_libfread.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -88,6 +88,7 @@ ssize_t lib_fread(FAR void *ptr, size_t count, FAR FILE *stream)
 {
   unsigned char *dest  = (unsigned char*)ptr;
   ssize_t        bytes_read;
+  int            ret;
 
   /* Make sure that reading from this stream is allowed */
 
@@ -127,9 +128,11 @@ ssize_t lib_fread(FAR void *ptr, size_t count, FAR FILE *stream)
        * buffered read/write access.
        */
 
-      if (lib_wrflush(stream) != 0)
+      ret = lib_wrflush(stream);
+      if (ret < 0)
         {
-          return ERROR;
+          lib_give_semaphore(stream);
+          return ret;
         }
 
       /* Now get any other needed chars from the buffer or the file. */
@@ -176,15 +179,17 @@ ssize_t lib_fread(FAR void *ptr, size_t count, FAR FILE *stream)
                   bytes_read = read(stream->fs_filedes, dest, count);
                   if (bytes_read < 0)
                     {
-                      /* An error occurred on the read */
+                      /* An error occurred on the read.  The error code is
+                       * in the 'errno' variable.
+                       */
 
-                      goto err_out;
+                      goto errout_with_errno;
                     }
                   else if (bytes_read == 0)
                     {
                       /* We are at the end of the file */
 
-                      goto short_read;
+                      goto shortread;
                     }
                   else
                     {
@@ -198,7 +203,7 @@ ssize_t lib_fread(FAR void *ptr, size_t count, FAR FILE *stream)
                         {
                           /* No.  We must be at the end of file. */
 
-                          goto short_read;
+                          goto shortread;
                         }
                       else
                         {
@@ -219,15 +224,17 @@ ssize_t lib_fread(FAR void *ptr, size_t count, FAR FILE *stream)
                   bytes_read = read(stream->fs_filedes, stream->fs_bufread, buffer_available);
                   if (bytes_read < 0)
                     {
-                      /* An error occurred on the read */
+                      /* An error occurred on the read.  The error code is
+                       * in the 'errno' variable.
+                       */
 
-                      goto err_out;
+                      goto errout_with_errno;
                     }
                   else if (bytes_read == 0)
                     {
                       /* We are at the end of the file */
 
-                      goto short_read;
+                      goto shortread;
                     }
                   else
                     {
@@ -246,7 +253,11 @@ ssize_t lib_fread(FAR void *ptr, size_t count, FAR FILE *stream)
           bytes_read = read(stream->fs_filedes, dest, count);
           if (bytes_read < 0)
             {
-              goto err_out;
+              /* An error occurred on the read.  The error code is
+               * in the 'errno' variable.
+               */
+
+              goto errout_with_errno;
             }
           else if (bytes_read == 0)
             {
@@ -259,13 +270,21 @@ ssize_t lib_fread(FAR void *ptr, size_t count, FAR FILE *stream)
             }
         }
 #endif
+    /* Here after a successful (but perhaps short) read */
+
 #if CONFIG_STDIO_BUFFER_SIZE > 0
-    short_read:
+    shortread:
 #endif
       bytes_read = dest - (unsigned char*)ptr;
-    err_out:
-      lib_give_semaphore(stream);
     }
-  return bytes_read;
+
+  lib_give_semaphore(stream);
+  return bytes_read;  
+
+/* Error exits */
+
+errout_with_errno:
+  lib_give_semaphore(stream);
+  return -get_errno();  
 }
 

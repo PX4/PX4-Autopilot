@@ -188,8 +188,7 @@ static int parameters_update(const struct mc_att_control_param_handles *h, struc
 }
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
-	const struct vehicle_attitude_s *att, const struct vehicle_status_s *status,
-	struct actuator_controls_s *actuators, bool verbose)
+	const struct vehicle_attitude_s *att, struct actuator_controls_s *actuators)
 {
 	static uint64_t last_run = 0;
 	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
@@ -218,7 +217,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 			PID_MODE_DERIVATIV_CALC, 155);
 		pid_init(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu,
 			PID_MODE_DERIVATIV_SET, 156);
-		pid_init(&roll_controller, p.att_d, p.att_i, p.att_d, p.att_awu,
+		pid_init(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu,
 			PID_MODE_DERIVATIV_SET, 157);
 
 		initialized = true;
@@ -232,7 +231,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		pid_set_parameters(&yaw_pos_controller, p.yaw_p, p.yaw_i, p.yaw_d, p.yaw_awu);
 		pid_set_parameters(&yaw_speed_controller, p.yawrate_p, p.yawrate_d, p.yawrate_i, p.yawrate_awu);
 		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu);
-		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu);
+		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu);
 	}
 
 	/* calculate current control outputs */

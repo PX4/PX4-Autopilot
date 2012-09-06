@@ -52,15 +52,17 @@
  */
 struct gyro_report {
 	uint64_t timestamp;
-	float x;
-	float y;
-	float z;
+	float x;		/**< angular velocity in the NED X board axis in rad/s */
+	float y;		/**< angular velocity in the NED Y board axis in rad/s */
+	float z;		/**< angular velocity in the NED Z board axis in rad/s */
+	float temperature;	/**< temperature in degrees celcius */
 	float range_rad_s;
 	float scaling;
 	
 	int16_t x_raw;
 	int16_t y_raw;
 	int16_t z_raw;
+	int16_t temperature_raw;
 };
 
 /** gyro scaling factors; Vout = (Vin * Vscale) + Voffset */
@@ -103,10 +105,10 @@ ORB_DECLARE(sensor_gyro);
 /** get the gyro scaling constants into (arg) */
 #define GYROIOCGSCALE		_GYROIOC(5)
 
-/** set the gyro measurement range to handle at least (arg) g */
+/** set the gyro measurement range to handle at least (arg) degrees per second */
 #define GYROIOCSRANGE		_GYROIOC(6)
 
-/** get the current gyro measurement range */
+/** get the current gyro measurement range in degrees per second */
 #define GYROIOCGRANGE		_GYROIOC(7)
 
 #endif /* _DRV_GYRO_H */
