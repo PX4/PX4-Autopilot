@@ -3267,4 +3267,8 @@
 	* Kconfig: Verify configuration settings for the STM32.  This include
 	  changes in the way that the external SRAM is configured:  Define
 	  CONFIG_HEAP2_SIZE (decimal) instead of CONFIG_HEAP2_END (hex).
+	* tools/configure.sh:  Don't append the apps directory path setting
+	  if the correct setting is already in defined in the defconfig file.
+	* fs/fat/fs_utils.c:  Improper constructed bool expression.  This
+	  would cause many unnecessary writes to FLASH (Thanks Ronen Vainish).
 

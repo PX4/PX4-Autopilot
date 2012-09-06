@@ -1563,7 +1563,7 @@ int fat_ffcacheflush(struct fat_mountpt_s *fs, struct fat_file_s *ff)
    */
 
   if (ff->ff_cachesector &&
-      ff->ff_bflags && (FFBUFF_DIRTY|FFBUFF_VALID) == (FFBUFF_DIRTY|FFBUFF_VALID))
+      (ff->ff_bflags & (FFBUFF_DIRTY|FFBUFF_VALID)) == (FFBUFF_DIRTY|FFBUFF_VALID))
     {
       /* Write the dirty sector */
 
