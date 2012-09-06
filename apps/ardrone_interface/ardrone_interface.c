@@ -205,18 +205,6 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 		printf("[ardrone_interface] Motor test mode enabled, setting 10 %% thrust.\n");
 	}
 
-	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
-	ardrone_write = ardrone_open_uart(&uart_config_original);
-
-	/* initialize multiplexing, deactivate all outputs - must happen after UART open to claim GPIOs on PX4FMU */
-	gpios = ar_multiplexing_init();
-
-	if (ardrone_write < 0) {
-		fprintf(stderr, "[ardrone_interface] Failed opening AR.Drone UART, exiting.\n");
-		thread_running = false;
-		exit(ERROR);
-	}
-
 	/* Led animation */
 	int counter = 0;
 	int led_counter = 0;
@@ -237,6 +225,18 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	printf("[ardrone_interface] Motors initialized - ready.\n");
 	fflush(stdout);
 
+	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
+	ardrone_write = ardrone_open_uart(&uart_config_original);
+
+	/* initialize multiplexing, deactivate all outputs - must happen after UART open to claim GPIOs on PX4FMU */
+	gpios = ar_multiplexing_init();
+
+	if (ardrone_write < 0) {
+		fprintf(stderr, "[ardrone_interface] Failed opening AR.Drone UART, exiting.\n");
+		thread_running = false;
+		exit(ERROR);
+	}
+
 	/* initialize motors */
 	if (OK != ar_init_motors(ardrone_write, gpios)) {
 		close(ardrone_write);
@@ -253,7 +253,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 
 	/* close uarts */
 	close(ardrone_write);
-	ar_multiplexing_deinit(gpios);
+	//ar_multiplexing_deinit(gpios);
 
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
 	ardrone_write = ardrone_open_uart(&uart_config_original);

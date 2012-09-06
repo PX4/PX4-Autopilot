@@ -226,9 +226,7 @@ int ar_init_motors(int ardrone_uart, int gpios)
 	for (i = 1; i < 5; ++i) {
 		/* Initialize motors 1-4 */
 		errcounter += ar_select_motor(gpios, i);
-
-		write(ardrone_uart, &(initbuf[3]), 1);
-		fsync(ardrone_uart);
+		usleep(200);
 
 		/*
 		 * write 0xE0 - request status
@@ -278,6 +276,7 @@ int ar_init_motors(int ardrone_uart, int gpios)
 
 	/* start the multicast part */
 	errcounter += ar_select_motor(gpios, 0);
+	usleep(200);
 
 	/*
 	 * first round
