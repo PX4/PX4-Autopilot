@@ -119,11 +119,58 @@ config BOARD_LOOPSPERMSEC
 		is 100 seconds.
 
 config DRAM_START
-	hex "DRAM start address"
+	hex "DRAM start physical address"
 	help
-		The physical start address of installed RAM.
+		The physical start address of installed RAM.  Despite the naming,
+		this may be SDRAM or SRAM or any other RAM technology that support
+		program execution.
+
+config DRAM_VSTART
+	hex "DRAM start virtual address"
+	depends on ARCH_HAVE_MMU
+	help
+		The virtual start address of installed RAM.  Despite the naming,
+		this may be SDRAM or SRAM or any other RAM technology that support
+		program execution.
 
 config DRAM_SIZE
 	int "DRAM size"
 	help
-		The size in bytes of the installed RAM.
+		The size in bytes of the installed RAM.  Despite the naming,
+		this may be SDRAM or SRAM or any other RAM technology that support
+		program execution.
+
+comment "Boot options"
+
+choice
+	prompt "LPC31xx Boot Mode"
+	default BOOT_RUNFROMFLASH
+
+config BOOT_RUNFROMEXTSRAM
+	bool "Run from external SRAM"
+	---help---
+		Some configuration support booting and running from external SRAM.
+
+config BOOT_RUNFROMFLASH
+	bool "Boot and run from flash"
+	---help---
+		Most configurations support XIP operation from FLASH but must copy
+		initialized .data sections to RAM. (This is the default).
+
+config BOOT_RUNFROMISRAM
+	bool "Boot and run from internal SRAM"
+	---help---
+		Some configuration support booting and running from internal SRAM.
+
+config BOOT_RUNFROMSDRAM
+	bool "Boot and run from external SDRAM"
+	---help---
+		Some configuration support booting and running from external SDRAM.
+
+config BOOT_COPYTORAM
+	bool "Boot from FLASH but copy to ram"
+	---help---
+		Some configurations boot in FLASH but copy themselves entirely into
+		RAM for better performance.
+
+endchoice

@@ -3271,7 +3271,7 @@
 	  if the correct setting is already in defined in the defconfig file.
 	* fs/fat/fs_utils.c:  Improper constructed bool expression.  This
 	  would cause many unnecessary writes to FLASH (Thanks Ronen Vainish).
-	* Kconfig: Verify configuration settings for the LPC432xx.  This includes
-  some corrections to configuration variable names and defconfig settings.
-
+	* Kconfig: Verify configuration settings for the LPC43xx.  This includes
+	  some corrections to configuration variable names and defconfig settings.
+	* Kconfig: Add and verify configuration settings for the LPC31xx.
 

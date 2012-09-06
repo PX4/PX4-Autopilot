@@ -2,12 +2,15 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
 menuconfig USBDEV_COMPOSITE
 	bool "USB composite device support"
 	default n
 	---help---
 		Enables USB composite device support
+
 if USBDEV_COMPOSITE
+
 #config COMPOSITE_IAD
 #	bool ""
 #	default n
@@ -89,7 +92,9 @@ config USBDEV_BUSPOWERED
 	---help---
 		Will cause USB features to indicate
 		that the device is self-powered
+
 endchoice
+
 config USBDEV_MAXPOWER
 	int "Maximum power consumption in mA"
 	default 100
@@ -115,6 +120,7 @@ menuconfig PL2303
 	default n
 	---help---
 		This logic emulates the Prolific PL2303 serial/USB converter
+
 if PL2303
 config PL2303_EPINTIN
 	int "Logical endpoint numbers"
@@ -178,6 +184,7 @@ menuconfig CDCACM
 	default n
 	---help---
 		Enables USB Modem (CDC ACM) support
+
 if CDCACM
 config CDCACM_COMPOSITE
 	bool "CDCACM composite support"

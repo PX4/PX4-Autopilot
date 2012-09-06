@@ -69,8 +69,8 @@
 
 /* Configuration ***************************************************************/
 
-#ifndef CONFIG_USBDEV_EP0_MAXSIZE
-#  define CONFIG_USBDEV_EP0_MAXSIZE 64
+#ifndef CONFIG_LPC17_USBDEV_EP0_MAXSIZE
+#  define CONFIG_LPC17_USBDEV_EP0_MAXSIZE 64
 #endif
 
 #ifndef  CONFIG_USBDEV_MAXPOWER
@@ -1369,8 +1369,8 @@ static inline void lpc17_ep0configure(struct lpc17_usbdev_s *priv)
 
   /* EndPoint 0 initialization */
 
-  lpc17_eprealize(&priv->eplist[LPC17_CTRLEP_OUT], 0, CONFIG_USBDEV_EP0_MAXSIZE);
-  lpc17_eprealize(&priv->eplist[LPC17_CTRLEP_IN], 1, CONFIG_USBDEV_EP0_MAXSIZE);
+  lpc17_eprealize(&priv->eplist[LPC17_CTRLEP_OUT], 0, CONFIG_LPC17_USBDEV_EP0_MAXSIZE);
+  lpc17_eprealize(&priv->eplist[LPC17_CTRLEP_IN], 1, CONFIG_LPC17_USBDEV_EP0_MAXSIZE);
 
   /* Enable EP0 interrupts (not DMA) */
 
@@ -1930,7 +1930,7 @@ static inline void lpc17_ep0dataoutinterrupt(struct lpc17_usbdev_s *priv)
     case LPC17_EP0SHORTWRITE:
       {
         priv->ep0state = LPC17_EP0STATUSOUT;
-        pktlen = lpc17_epread(LPC17_EP0_OUT, NULL, CONFIG_USBDEV_EP0_MAXSIZE);
+        pktlen = lpc17_epread(LPC17_EP0_OUT, NULL, CONFIG_LPC17_USBDEV_EP0_MAXSIZE);
         if (LPC17_READOVERRUN(pktlen))
           {
             lpc17_ep0setup(priv);
@@ -1941,7 +1941,7 @@ static inline void lpc17_ep0dataoutinterrupt(struct lpc17_usbdev_s *priv)
     case LPC17_EP0SHORTWRSENT:
       {
         priv->ep0state = LPC17_EP0REQUEST;
-        pktlen = lpc17_epread(LPC17_EP0_OUT, NULL, CONFIG_USBDEV_EP0_MAXSIZE);
+        pktlen = lpc17_epread(LPC17_EP0_OUT, NULL, CONFIG_LPC17_USBDEV_EP0_MAXSIZE);
         if (LPC17_READOVERRUN(pktlen))
           {
             lpc17_ep0setup(priv);

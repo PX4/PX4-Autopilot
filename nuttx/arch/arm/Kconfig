@@ -11,6 +11,7 @@ choice
 config ARCH_CHIP_C5471
 	bool "TMS320 C5471"
 	select ARCH_ARM7TDMI
+	select ARCH_HAVE_LOWVECTORS
 	---help---
 		TI TMS320 C5471, A180, or DA180 (ARM7TDMI)
 
@@ -18,12 +19,15 @@ config ARCH_CHIP_CALYPSO
 	bool "Calypso"
 	select ARCH_ARM7TDMI
 	select ARCH_HAVE_HEAP2
+	select ARCH_HAVE_LOWVECTORS
 	---help---
 		TI Calypso-based cell phones (ARM7TDMI)
 
 config ARCH_CHIP_DM320
 	bool "TMS320 DM320"
 	select ARCH_ARM926EJS
+	select ARCH_HAVE_LOWVECTORS
+	select ARCH_HAVE_MMU
 	---help---
 		TI DMS320 DM320 (ARM926EJS)
 
@@ -31,70 +35,81 @@ config ARCH_CHIP_IMX
 	bool "Freescale iMX"
 	select ARCH_ARM920T
 	select ARCH_HAVE_HEAP2
+	select ARCH_HAVE_LOWVECTORS
+	select ARCH_HAVE_MMU
 	---help---
 		Freescale iMX architectures (ARM920T)
 
 config ARCH_CHIP_KINETIS
 	bool "Freescale Kinetis"
-	select ARCH_CORTEXM
 	select ARCH_CORTEXM4
+	select ARCH_HAVE_MPU
 	---help---
 		Freescale Kinetis Architectures (ARM Cortex-M4)
 
 config ARCH_CHIP_LM3S
 	bool "TI Stellaris"
-	select ARCH_CORTEXM
 	select ARCH_CORTEXM3
+	select ARCH_HAVE_MPU
 	---help---
 		TI Stellaris LMS3 architecutres (ARM Cortex-M3)
 
 config ARCH_CHIP_LPC17XX
 	bool "NXP LPC17xx"
-	select ARCH_CORTEXM
 	select ARCH_CORTEXM3
+	select ARCH_HAVE_MPU
 	---help---
 		NXP LPC17xx architectures (ARM Cortex-M3)
 
 config ARCH_CHIP_LPC214X
 	bool "NXP LPC214x"
 	select ARCH_ARM7TDMI
+	select ARCH_HAVE_LOWVECTORS
 	---help---
 		NXP LPC2145x architectures (ARM7TDMI)
 
 config ARCH_CHIP_LPC2378
 	bool "NXP LPC2378"
 	select ARCH_ARM7TDMI
+	select ARCH_HAVE_LOWVECTORS
 	---help---
 		NXP LPC2145x architectures (ARM7TDMI)
 
 config ARCH_CHIP_LPC31XX
 	bool "NXP LPC31XX"
 	select ARCH_ARM926EJS
+	select ARCH_HAVE_LOWVECTORS
+	select ARCH_HAVE_MMU
 	---help---
 		NPX LPC31XX architectures (ARM926EJS).
 
 config ARCH_CHIP_LPC43XX
 	bool "NXP LPC43XX"
 	select ARCH_CORTEXM4
+	select ARCH_HAVE_CMNVECTOR
 	select ARMV7M_CMNVECTOR
+	select ARCH_HAVE_MPU
 	---help---
 		NPX LPC43XX architectures (ARM Cortex-M4).
 
 config ARCH_CHIP_SAM3U
 	bool "Atmel AT91SAM3U"
-	select ARCH_CORTEXM
 	select ARCH_CORTEXM3
+	select ARCH_HAVE_MPU
 	---help---
 		Atmel AT91SAM3U architectures (ARM Cortex-M3)
 
 config ARCH_CHIP_STM32
 	bool "STMicro STM32"
+	select ARCH_HAVE_CMNVECTOR
+	select ARCH_HAVE_MPU
 	---help---
 		STMicro STM32 architectures (ARM Cortex-M3/4).
 
 config ARCH_CHIP_STR71X
 	bool "STMicro STR71x"
 	select ARCH_ARM7TDMI
+	select ARCH_HAVE_LOWVECTORS
 	---help---
 		STMicro STR71x architectures (ARM7TDMI).
 
@@ -114,26 +129,6 @@ config ARCH_CORTEXM3
 
 config ARCH_CORTEXM4
 	bool
-
-config ARMV7M_CMNVECTOR
-	bool
-	default n
-
-config ARCH_FPU
-	bool "FPU support"
-	default y
-	depends on ARCH_CORTEXM4
-	---help---
-		Build in support for the ARM Cortex-M4 Floating Point Unit (FPU).
-		Check your chip specifications first; not all Cortex-M4 chips support the FPU.
-
-config ARMV7M_MPU
-	bool "MPU support"
-	default n
-	depends on ARCH_CORTEXM3 || ARCH_CORTEXM4
-	---help---
-		Build in support for the ARM Cortex-M3/4 Memory Protection Unit (MPU).
-		Check your chip specifications first; not all Cortex-M3/4 chips support the MPU.
 
 config ARCH_FAMILY
 	string
@@ -156,6 +151,70 @@ config ARCH_CHIP
 	default "sam3u"		if ARCH_CHIP_SAM3U
 	default "stm32"		if ARCH_CHIP_STM32
 	default "str71x"	if ARCH_CHIP_STR71X
+
+config ARMV7M_CMNVECTOR
+	bool "Use common ARMv7-M vectors"
+	default n
+	depends on ARCH_HAVE_CMNVECTOR
+	---help---
+		Some architectures use their own, built-in vector logic.  Some use only
+		the common vector logic.  Some can use either their own built-in vector
+		logic or the common vector logic.  This applies only to ARMv7-M
+		architectures.
+
+config ARCH_FPU
+	bool "FPU support"
+	default y
+	depends on ARCH_CORTEXM4
+	---help---
+		Build in support for the ARM Cortex-M4 Floating Point Unit (FPU).
+		Check your chip specifications first; not all Cortex-M4 chips support the FPU.
+
+config ARCH_HAVE_MPU
+	bool
+
+config ARMV7M_MPU
+	bool "MPU support"
+	default n
+	depends on ARCH_HAVE_MPU
+	---help---
+		Build in support for the ARM Cortex-M3/4 Memory Protection Unit (MPU).
+		Check your chip specifications first; not all Cortex-M3/4 chips support the MPU.
+
+config ARCH_HAVE_LOWVECTORS
+	bool
+
+config ARCH_LOWVECTORS
+	bool "Vectors in low memory"
+	default n
+	depends on ARCH_HAVE_LOWVECTORS
+	---help---
+		Support ARM vectors in low memory.
+
+config ARCH_HAVE_MMU
+	bool
+
+config PGTABLE_VADDR
+	hex "Page table virtual address"
+	depends on ARCH_HAVE_MMU
+	---help---
+		Page table virtual address (might be defined in the board.h file).  Not
+		applicable to all architectures.
+
+config ARCH_ROMPGTABLE
+	bool "ROM page table"
+	default n
+	depends on ARCH_HAVE_MMU
+	---help---
+		Support a fixed memory mapping use a (read-only) page table in ROM/FLASH.
+
+config PAGING
+	bool "On-demand paging"
+	default n
+	depends on ARCH_HAVE_MMU && !ARCH_ROMPGTABLE
+	---help---
+		If set =y in your configation file, this setting will enable the on-demand
+		paging feature as described in http://www.nuttx.org/NuttXDemandPaging.html.
 
 config ARCH_LEDS
 	bool "Use board LEDs to show state"

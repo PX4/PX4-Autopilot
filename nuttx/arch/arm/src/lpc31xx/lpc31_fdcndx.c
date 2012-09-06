@@ -2,7 +2,7 @@
  * arch/arm/src/lpc31xx/lpc31_fdcndx.c
  *
  *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  *   - UM10314 LPC3130/31 User manual Rev. 1.01 — 9 September 2009

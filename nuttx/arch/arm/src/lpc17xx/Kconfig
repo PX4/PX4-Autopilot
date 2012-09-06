@@ -484,7 +484,7 @@ endmenu
 
 menu "USB device driver options"
 
-config USBDEV_EP0_MAXSIZE
+config LPC17_USBDEV_EP0_MAXSIZE
 	int "EP0 Max packet size"
 	depends on LPC17_USBDEV
 	default 64

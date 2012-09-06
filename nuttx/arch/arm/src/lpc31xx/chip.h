@@ -2,7 +2,7 @@
  * arch/arm/src/lpc31xx/chip.h
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -59,11 +59,10 @@
 #  define HAVE_INTSRAM1  1               /* 192Kb internal SRAM */
 #  define LPC31_NDMACH   12              /* 12 DMA channels */
 #  undef  HAVE_AESENGINE                 /* No AES engine */
-#elif defined(CONFIG_ARCH_CHIP_LPC3152)
+#elif defined(CONFIG_ARCH_CHIP_LPC3154)
 #  define HAVE_INTSRAM1  1               /* 192Kb internal SRAM */
 #  define LPC31_NDMACH   12              /* 12 DMA channels */
 #  define HAVE_AESENGINE 1               /* AES engine */
-#  undef  HAVE_AESENGINE                 /* No AES engine */
 #else
 #  error "Unsupported LPC31XX architecture"
 #  undef  HAVE_INTSRAM1                  /* No INTSRAM1 */

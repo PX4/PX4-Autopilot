@@ -2,7 +2,7 @@
  * arch/arm/src/lpc31xx/lpc31_usbdev.c
  *
  *   Authors: David Hewson
- *            Gregory Nutt <spudmonkey@racsa.co.cr>
+ *            Gregory Nutt <gnutt@nuttx.org>
  *
  * Part of the NuttX OS and based, in part, on the LPC2148 USB driver:
  *
@@ -74,8 +74,8 @@
 
 /* Configuration ***************************************************************/
 
-#ifndef CONFIG_USBDEV_EP0_MAXSIZE
-#  define CONFIG_USBDEV_EP0_MAXSIZE 64
+#ifndef CONFIG_LPC31_USBDEV_EP0_MAXSIZE
+#  define CONFIG_LPC31_LPC31_USBDEV_EP0_MAXSIZE 64
 #endif
 
 #ifndef  CONFIG_USBDEV_MAXPOWER
@@ -401,7 +401,7 @@ static int  lpc31_epdisable(FAR struct usbdev_ep_s *ep);
 static FAR struct usbdev_req_s *lpc31_epallocreq(FAR struct usbdev_ep_s *ep);
 static void lpc31_epfreereq(FAR struct usbdev_ep_s *ep,
               FAR struct usbdev_req_s *);
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_LPC31_USBDEV_DMA
 static void *lpc31_epallocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes);
 static void lpc31_epfreebuffer(FAR struct usbdev_ep_s *ep, FAR void *buf);
 #endif
@@ -438,7 +438,7 @@ static const struct usbdev_epops_s g_epops =
   .disable     = lpc31_epdisable,
   .allocreq    = lpc31_epallocreq,
   .freereq     = lpc31_epfreereq,
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_LPC31_USBDEV_DMA
   .allocbuffer = lpc31_epallocbuffer,
   .freebuffer  = lpc31_epfreebuffer,
 #endif
@@ -1003,11 +1003,11 @@ static void lpc31_dispatchrequest(struct lpc31_usbdev_s *priv,
 static void lpc31_ep0configure(struct lpc31_usbdev_s *priv)
 {
   /* Enable ep0 IN and ep0 OUT */
-  g_qh[LPC31_EP0_OUT].capability = (DQH_CAPABILITY_MAX_PACKET(CONFIG_USBDEV_EP0_MAXSIZE) |
+  g_qh[LPC31_EP0_OUT].capability = (DQH_CAPABILITY_MAX_PACKET(CONFIG_LPC31_USBDEV_EP0_MAXSIZE) |
                       DQH_CAPABILITY_IOS |
                       DQH_CAPABILITY_ZLT);
 
-  g_qh[LPC31_EP0_IN ].capability = (DQH_CAPABILITY_MAX_PACKET(CONFIG_USBDEV_EP0_MAXSIZE) |
+  g_qh[LPC31_EP0_IN ].capability = (DQH_CAPABILITY_MAX_PACKET(CONFIG_LPC31_USBDEV_EP0_MAXSIZE) |
                       DQH_CAPABILITY_IOS |
                       DQH_CAPABILITY_ZLT);
   
@@ -1955,7 +1955,7 @@ static void lpc31_epfreereq(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s 
  *
  *******************************************************************************/
 
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_LPC31_USBDEV_DMA
 static void *lpc31_epallocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes)
 {
   usbtrace(TRACE_EPALLOCBUFFER, privep->epphy);
@@ -1971,7 +1971,7 @@ static void *lpc31_epallocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes)
  *
  *******************************************************************************/
 
-#ifdef CONFIG_LPC313x_USBDEV_DMA
+#ifdef CONFIG_LPC31_USBDEV_DMA
 static void lpc31_epfreebuffer(FAR struct usbdev_ep_s *ep, FAR void *buf)
 {
   usbtrace(TRACE_EPFREEBUFFER, privep->epphy);

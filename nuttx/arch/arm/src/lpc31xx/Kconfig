@@ -2,3 +2,183 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+choice
+	prompt "LPC31 Chip Selection"
+	default ARCH_CHIP_LPC3131
+	depends on ARCH_CHIP_LPC31XX
+
+config ARCH_CHIP_LPC3130
+	bool "LPC3130"
+
+config ARCH_CHIP_LPC3131
+	bool "LPC3131"
+
+config ARCH_CHIP_LPC3152
+	bool "LPC3152"
+
+config ARCH_CHIP_LPC3154
+	bool "LPC3154"
+
+endchoice
+
+choice
+	prompt "Toolchain Selection"
+	default LPC31_CODESOURCERYW
+	depends on ARCH_CHIP_LPC31XX
+
+config LPC31_CODESOURCERYW
+	bool "CodeSourcery for Windows"
+
+config LPC31_CODESOURCERYL
+	bool "CodeSourcery for Linux"
+
+config LPC31_DEVKITARM
+	bool "DevkitARM (Windows)"
+
+config LPC31_BUILDROOT
+	bool "NuttX buildroot (Cygwin or Linux)"
+
+endchoice
+
+menu "LPC31xx Memory Mapping"
+
+config LPC31_EXTNAND
+	bool "Map external NAND"
+	default n
+	---help---
+		Map external NAND into the memory map.
+
+config LPC31_EXTSDRAM
+	bool "Map external SDRAM"
+	default n
+	---help---
+		Map external SDRAM into the memory map.
+
+config LPC31_EXTSDRAMHEAP
+	bool "Add external SDRAM to the heap"
+	default y
+	depends on LPC31_EXTSDRAM
+	---help---
+		Add external SDRAM into the heap.
+
+config LPC31_EXTSDRAMSIZE
+	int "External SDRAM size"
+	depends on LPC31_EXTSDRAM
+	---help---
+		Size of the external SDRAM.
+
+config LPC31_EXTSRAM0
+	bool "Map external SRAM0"
+	default n
+	---help---
+		Map external SRAM0 into the memory map.
+
+config LPC31_EXTSRAM0HEAP
+	bool "Add external SRAM0 to the heap"
+	default y
+	depends on LPC31_EXTSRAM0
+	---help---
+		Add external SRAM0 into the heap.
+
+config LPC31_EXTSRAM0SIZE
+	int "External SRAM size"
+	depends on LPC31_EXTSRAM0
+	---help---
+		Size of the external SRAM.
+
+config LPC31_EXTSRAM1
+	bool "Map external SRAM0"
+	default n
+	---help---
+		Map external SRAM1 into the memory map.
+
+config LPC31_EXTSRAM1HEAP
+	bool "Add external SRAM1 to the heap"
+	default y
+	depends on LPC31_EXTSRAM1
+	---help---
+		Add external SRAM1 into the heap.
+
+config LPC31_EXTSRAM1SIZE
+	int "External SRAM1 size"
+	depends on LPC31_EXTSRAM1
+	---help---
+		Size of the external SRAM1.
+
+endmenu
+
+menu "LPC31xx Peripheral Support"
+
+config LPC31_UART
+	bool "UART"
+	default n
+	select ARCH_HAS_UART
+
+endmenu
+
+menu "LPC31xx UART Configuration"
+	depends on LPC31_UART
+
+config LPC31_UART_DIVADDVAL
+	int "BAUD pre-scaler divisor"
+	---help---
+		BAUD pre-scaler divisor
+
+config LPC31_UART_DIVISOR
+	int "BAUD divisor"
+	---help---
+		BAUD divisor
+
+config LPC31_UART_MULVAL
+	int "BAUD multiplier"
+	---help---
+		BAUD multiplier
+
+endmenu
+
+menu "USB device driver options"
+
+config LPC31_USBDEV_EP0_MAXSIZE
+	int "EP0 Max packet size"
+	depends on USBDEV
+	default 64
+	---help---
+		Endpoint 0 maximum packet size.  Default: 64
+
+config LPC31_USBDEV_FRAME_INTERRUPT
+	bool "USB frame interrupt"
+	depends on USBDEV
+	default n
+	---help---
+		Handle USB Start-Of-Frame events.  Enable reading SOF from interrupt
+		handler vs. simply reading on demand. Probably a bad idea... Unless
+		there is some issue with sampling the SOF from hardware asynchronously.
+
+config LPC31_USBDEV_DMA
+	bool "Enable USB device DMA"
+	depends on USBDEV
+	default n
+	---help---
+		Enable lpc31xx-specific DMA support
+
+config LPC31_USBDEV_REGDEBUG
+	bool "Register level debug"
+	depends on USBDEV && DEBUG
+	default n
+	---help---
+		Output detailed register-level USB device debug information.  Requires also DEBUG.
+
+endmenu
+
+menu "SPI device driver options"
+
+config LPC31_SPI_REGDEBUG
+	bool "Register level debug"
+	depends on DEBUG
+	default n
+	---help---
+		Output detailed register-level SPI device debug information.  Requires also DEBUG.
+
+endmenu
+

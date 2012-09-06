@@ -1,9 +1,9 @@
 /************************************************************************************
  * arm/arm/src/lpc31xx/lpc31_spi.c
  *
- *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2010, 2012 Gregory Nutt. All rights reserved.
  *   Author: David Hewson, deriving in part from other SPI drivers originally by
- *           Gregory Nutt <spudmonkey@racsa.co.cr>
+ *           Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,14 +62,12 @@
 /* Configuration ********************************************************************/
 
 /* Debug ****************************************************************************/
-/* Define the following to enable extremely detailed register debug */
-
-#undef CONFIG_DEBUG_SPIREGS
-
-/* CONFIG_DEBUG must also be defined */
+/* CONFIG_LPC31_SPI_REGDEBUG enabled very low, register-level debug output.
+ * CONFIG_DEBUG must also be defined
+ */
 
 #ifndef CONFIG_DEBUG
-#  undef CONFIG_DEBUG_SPIREGS
+#  undef CONFIG_LPC31_SPI_REGDEBUG
 #endif
 
 /* FIFOs ****************************************************************************/
@@ -102,7 +100,7 @@ struct lpc31_spidev_s
  * Private Function Prototypes
  ************************************************************************************/
 
-#ifdef CONFIG_DEBUG_SPIREGS
+#ifdef CONFIG_LPC31_SPI_REGDEBUG
 static bool        spi_checkreg(bool wr, uint32_t value, uint32_t address);
 static void        spi_putreg(uint32_t value, uint32_t address);
 static uint32_t    spi_getreg(uint32_t address);
@@ -163,7 +161,7 @@ static struct lpc31_spidev_s g_spidev =
   .spidev            = { &g_spiops },
 };
 
-#ifdef CONFIG_DEBUG_SPIREGS
+#ifdef CONFIG_LPC31_SPI_REGDEBUG
 static bool     g_wrlast;
 static uint32_t g_addresslast;
 static uint32_t g_valuelast;
@@ -194,7 +192,7 @@ static int      g_ntimes;
  *
  ****************************************************************************/
 
-#ifdef CONFIG_DEBUG_SPIREGS
+#ifdef CONFIG_LPC31_SPI_REGDEBUG
 static bool spi_checkreg(bool wr, uint32_t value, uint32_t address)
 {
   if (wr == g_wrlast && value == g_valuelast && address == g_addresslast)
@@ -233,7 +231,7 @@ static bool spi_checkreg(bool wr, uint32_t value, uint32_t address)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_DEBUG_SPIREGS
+#ifdef CONFIG_LPC31_SPI_REGDEBUG
 static void spi_putreg(uint32_t value, uint32_t address)
 {
   if (spi_checkreg(true, value, address))
@@ -258,7 +256,7 @@ static void spi_putreg(uint32_t value, uint32_t address)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_DEBUG_SPIREGS
+#ifdef CONFIG_LPC31_SPI_REGDEBUG
 static uint32_t spi_getreg(uint32_t address)
 {
   uint32_t value = getreg32(address);
@@ -920,7 +918,7 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
    * default to "driven-by-IP" on reset.
    */
 
-#ifdef CONFIG_DEBUG_SPIREGS
+#ifdef CONFIG_LPC31_SPI_REGDEBUG
   lldbg("PINS: %08x MODE0: %08x MODE1: %08x\n",
         spi_getreg(LPC31_IOCONFIG_SPI_PINS),
         spi_getreg(LPC31_IOCONFIG_SPI_MODE0),

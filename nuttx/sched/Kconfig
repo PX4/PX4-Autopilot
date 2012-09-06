@@ -381,20 +381,6 @@ config PREALLOC_TIMERS
 
 comment "Stack and heap information"
 
-config BOOT_RUNFROMFLASH
-	bool "boot run from flash"
-	default n
-	---help---
-		Some configurations support XIP operation from FLASH but must copy
-		initialized .data sections to RAM
-
-config BOOT_COPYTORAM
-	bool "boot copy to ram"
-	default n
-	---help---
-		Some configurations boot in FLASH
-		but copy themselves entirely into RAM for better performance.
-
 config CUSTOM_STACK
 	bool "Enable custom stack"
 	default n
