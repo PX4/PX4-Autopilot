@@ -123,8 +123,12 @@ fi
 
 newconfig=`grep CONFIG_NUTTX_NEWCONFIG= "${configpath}/defconfig" | cut -d'=' -f2`
 
+defappdir=y
 if [ -z "${appdir}" ]; then
   appdir=`grep CONFIG_APPS_DIR= "${configpath}/defconfig" | cut -d'=' -f2`
+  if [ ! -z "${appdir}" ]; then
+    defappdir=n
+  fi
 fi
 
 # Check for the apps/ directory in the usual place if appdir was not provided
@@ -181,10 +185,13 @@ if [ ! -z "${appdir}" -a "X${newconfig}" != "Xy" ]; then
     install -C "${configpath}/appconfig" "${TOPDIR}/${appdir}/.config" || \
       { echo "Failed to copy ${configpath}/appconfig" ; exit 10 ; }
 
-    echo "" >> "${TOPDIR}/.configX"
-    echo "# Application configuration" >> "${TOPDIR}/.configX"
-    echo "" >> "${TOPDIR}/.configX"
-    echo "CONFIG_APPS_DIR=\"$appdir\"" >> "${TOPDIR}/.configX"
+    if [ "X${defappdir}" = "Xy" ]; then
+      sed -i -e "/^CONFIG_APPS_DIR/d" "${TOPDIR}/.configX"
+      echo "" >> "${TOPDIR}/.configX"
+      echo "# Application configuration" >> "${TOPDIR}/.configX"
+      echo "" >> "${TOPDIR}/.configX"
+      echo "CONFIG_APPS_DIR=\"$appdir\"" >> "${TOPDIR}/.configX"
+    fi 
   fi
 fi
 

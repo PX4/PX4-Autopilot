@@ -26,8 +26,8 @@ config ARCH_CHIP_LM3S8962
 endchoice
 
 choice
-        prompt "Toolchain"
-        default LM3S_BUILDROOT
+	prompt "Toolchain"
+	default LM3S_BUILDROOT
 
 config LM3S_CODESOURCERYW
 	bool "CodeSourcery GNU toolchain under Windows"
