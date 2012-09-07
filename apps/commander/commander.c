@@ -426,9 +426,9 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	} else {
 		/* announce and set new offset */
 
-		char offset_output[50];
-		sprintf(offset_output, "[commander] mag cal: %8.4f %8.4f %8.4f", (double)mag_offset[0], (double)mag_offset[1], (double)mag_offset[2]);
-		mavlink_log_info(mavlink_fd, offset_output);
+		// char offset_output[50];
+		// sprintf(offset_output, "[commander] mag cal: %8.4f %8.4f %8.4f", (double)mag_offset[0], (double)mag_offset[1], (double)mag_offset[2]);
+		// mavlink_log_info(mavlink_fd, offset_output);
 
 		if (param_set(param_find("SENSOR_MAG_XOFF"), &(mag_offset[0]))) {
 			fprintf(stderr, "[commander] Setting X mag offset failed!\n");
@@ -506,9 +506,9 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	status->flag_preflight_gyro_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
 
-	char offset_output[50];
-	sprintf(offset_output, "[commander] gyro cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
-	mavlink_log_info(mavlink_fd, offset_output);
+	// char offset_output[50];
+	// sprintf(offset_output, "[commander] gyro cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
+	// mavlink_log_info(mavlink_fd, offset_output);
 
 	close(sub_sensor_combined);
 }
@@ -574,10 +574,10 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	status->flag_preflight_accel_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
 
-	char offset_output[50];
-	sprintf(offset_output, "[commander] accel cal: x:%8.4f y:%8.4f z:%8.4f", (double)accel_offset[0],
-		(double)accel_offset[1], (double)accel_offset[2]);
-	mavlink_log_info(mavlink_fd, offset_output);
+	// char offset_output[50];
+	// sprintf(offset_output, "[commander] accel cal: x:%8.4f y:%8.4f z:%8.4f", (double)accel_offset[0],
+	// 	(double)accel_offset[1], (double)accel_offset[2]);
+	// mavlink_log_info(mavlink_fd, offset_output);
 
 	close(sub_sensor_combined);
 }
@@ -1024,9 +1024,9 @@ int commander_thread_main(int argc, char *argv[])
 
 		/*
 		 * Only update battery voltage estimate if voltage is
-		 * valid and system has been running for half a second
+		 * valid and system has been running for two and a half seconds
 		 */
-		if (battery_voltage_valid && (hrt_absolute_time() - start_time > 500000)) {
+		if (battery_voltage_valid && (hrt_absolute_time() - start_time > 2500000)) {
 			bat_remain = battery_remaining_estimate_voltage(3, BAT_CHEM_LITHIUM_POLYMERE, battery_voltage);
 		}
 

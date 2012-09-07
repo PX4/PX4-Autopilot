@@ -653,9 +653,16 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 		accel_report.x = (((accel_report.x_raw - _parameters.acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
 		accel_report.y = (((accel_report.y_raw - _parameters.acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
 		accel_report.z = (((accel_report.z_raw - _parameters.acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
+		raw.accelerometer_counter++;
 
 	} else {
-		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
+		bool accel_updated;
+		orb_check(_accel_sub, &accel_updated);
+
+		if (accel_updated) {
+			orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
+			raw.accelerometer_counter++;
+		}
 	}
 
 	raw.accelerometer_m_s2[0] = accel_report.x;
@@ -665,8 +672,6 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 	raw.accelerometer_raw[0] = accel_report.x_raw;
 	raw.accelerometer_raw[1] = accel_report.y_raw;
 	raw.accelerometer_raw[2] = accel_report.z_raw;
-
-	raw.accelerometer_raw_counter++;
 }
 
 void
@@ -691,9 +696,6 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		gyro_report.y = (gyro_report.y_raw - _parameters.gyro_offset[1]) * 0.000266316109f;
 		gyro_report.z = (gyro_report.z_raw - _parameters.gyro_offset[2]) * 0.000266316109f;
 
-	} else {
-		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
-
 		raw.gyro_rad_s[0] = gyro_report.x;
 		raw.gyro_rad_s[1] = gyro_report.y;
 		raw.gyro_rad_s[2] = gyro_report.z;
@@ -702,40 +704,69 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_raw[1] = gyro_report.y_raw;
 		raw.gyro_raw[2] = gyro_report.z_raw;
 
-		raw.gyro_raw_counter++;		
+		raw.gyro_counter++;
+
+	} else {
+
+		bool gyro_updated;
+		orb_check(_gyro_sub, &gyro_updated);
+
+		if (gyro_updated) {
+			orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
+
+			raw.gyro_rad_s[0] = gyro_report.x;
+			raw.gyro_rad_s[1] = gyro_report.y;
+			raw.gyro_rad_s[2] = gyro_report.z;
+
+			raw.gyro_raw[0] = gyro_report.x_raw;
+			raw.gyro_raw[1] = gyro_report.y_raw;
+			raw.gyro_raw[2] = gyro_report.z_raw;
+
+			raw.gyro_counter++;
+		}
 	}
 }
 
 void
 Sensors::mag_poll(struct sensor_combined_s &raw)
 {
-	struct mag_report	mag_report;
+	bool mag_updated;
+	orb_check(_mag_sub, &mag_updated);
 
-	orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag_report);
+	if (mag_updated) {
+		struct mag_report	mag_report;
 
-	raw.magnetometer_ga[0] = mag_report.x;
-	raw.magnetometer_ga[1] = mag_report.y;
-	raw.magnetometer_ga[2] = mag_report.z;
+		orb_copy(ORB_ID(sensor_mag), _mag_sub, &mag_report);
 
-	raw.magnetometer_raw[0] = mag_report.x_raw;
-	raw.magnetometer_raw[1] = mag_report.y_raw;
-	raw.magnetometer_raw[2] = mag_report.z_raw;
-	
-	raw.magnetometer_raw_counter++;
+		raw.magnetometer_ga[0] = mag_report.x;
+		raw.magnetometer_ga[1] = mag_report.y;
+		raw.magnetometer_ga[2] = mag_report.z;
+
+		raw.magnetometer_raw[0] = mag_report.x_raw;
+		raw.magnetometer_raw[1] = mag_report.y_raw;
+		raw.magnetometer_raw[2] = mag_report.z_raw;
+		
+		raw.magnetometer_counter++;
+	}
 }
 
 void
 Sensors::baro_poll(struct sensor_combined_s &raw)
 {
-	struct baro_report	baro_report;
+	bool baro_updated;
+	orb_check(_baro_sub, &baro_updated);
 
-	orb_copy(ORB_ID(sensor_baro), _baro_sub, &baro_report);
+	if (baro_updated) {
+		struct baro_report	baro_report;
 
-	raw.baro_pres_mbar = baro_report.pressure; // Pressure in mbar
-	raw.baro_alt_meter = baro_report.altitude; // Altitude in meters
-	raw.baro_temp_celcius = baro_report.temperature; // Temperature in degrees celcius
+		orb_copy(ORB_ID(sensor_baro), _baro_sub, &baro_report);
 
-	raw.baro_raw_counter++;
+		raw.baro_pres_mbar = baro_report.pressure; // Pressure in mbar
+		raw.baro_alt_meter = baro_report.altitude; // Altitude in meters
+		raw.baro_temp_celcius = baro_report.temperature; // Temperature in degrees celcius
+
+		raw.baro_counter++;
+	}
 }
 
 void
