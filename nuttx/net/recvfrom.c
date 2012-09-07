@@ -371,7 +371,7 @@ static int recvfrom_timeout(struct recvfrom_s *pstate)
    * 1) This delay function has been enabled with CONFIG_NET_TCP_RECVDELAY > 0
    * 2) Some data has already been received from the socket.  Since this can
    *    only be true for a TCP/IP socket, this logic applies only to TCP/IP
-   *    sockets, and either
+   *    sockets.  And either
    * 3) There is no configured receive timeout, or
    * 4) The configured receive timeout is greater than than the delay
    */
@@ -598,7 +598,9 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
 
           /* Report an error only if no data has been received */
 
+#if CONFIG_NET_TCP_RECVDELAY > 0
           if (pstate->rf_recvlen == 0)
+#endif
             {
               /* Report the timeout error */
 

@@ -1709,6 +1709,10 @@ configs/sim
   This port does not support interrupts or a real timer (and hence no
   round robin scheduler)  Otherwise, it is complete.
 
+configs/shenzhou
+  This is the port of NuttX to the Shenzhou development board from
+  www.armjishu.com. This board features the STMicro STM32F107VCT MCU.
+
 configs/skp16c26
   Renesas M16C processor on the Renesas SKP16C26 StarterKit.  This port
   uses the GNU m32c toolchain.  STATUS:  The port is complete but untested

@@ -735,6 +735,8 @@ nuttx
  |   |   |- include/README.txt
  |   |   |- src/README.txt
  |   |   `- README.txt
+ |   |- shenzhou/
+ |   |   `- README.txt
  |   |- skp16c26/
  |   |   |- include/README.txt
  |   |   |- src/README.txt

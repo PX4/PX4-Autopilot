@@ -3281,3 +3281,7 @@
 	  after receiving data.  That has historical reasons to be there (it
 	  was needed before read-ahead buffering was added), but kills performance.
 	  (Noted by Max Holtzberg).
+	* configs/shenzhou:  Add beginnings of a board configuration for the
+	  Shenzhou STM32107 board (see www.armjishu.com).  Very little is in
+	  place as of this initial check-in.
+
