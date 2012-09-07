@@ -696,6 +696,16 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		gyro_report.y = (gyro_report.y_raw - _parameters.gyro_offset[1]) * 0.000266316109f;
 		gyro_report.z = (gyro_report.z_raw - _parameters.gyro_offset[2]) * 0.000266316109f;
 
+		raw.gyro_rad_s[0] = gyro_report.x;
+		raw.gyro_rad_s[1] = gyro_report.y;
+		raw.gyro_rad_s[2] = gyro_report.z;
+
+		raw.gyro_raw[0] = gyro_report.x_raw;
+		raw.gyro_raw[1] = gyro_report.y_raw;
+		raw.gyro_raw[2] = gyro_report.z_raw;
+
+		raw.gyro_counter++;
+
 	} else {
 
 		bool gyro_updated;
