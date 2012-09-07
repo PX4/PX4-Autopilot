@@ -943,32 +943,15 @@ static void *uorb_receiveloop(void *arg)
 				/* Only send in HIL mode */
 				if (mavlink_hil_enabled) {
 
-					/* hacked HIL implementation in order for the APM Planner to work
-					 * (correct cmd: mavlink_msg_hil_controls_send())
-					 */
-
-					mavlink_msg_rc_channels_scaled_send(chan,
-									    hrt_absolute_time(),
-									    0, // port 0
-									    buf.att_sp.roll_body,
-									    buf.att_sp.pitch_body,
-									    buf.att_sp.thrust,
-									    buf.att_sp.yaw_body,
-									    0,
-									    0,
-									    0,
-									    0,
-									    1 /*rssi=1*/);
-
 					/* translate the current syste state to mavlink state and mode */
 					uint8_t mavlink_state = 0;
 					uint8_t mavlink_mode = 0;
 					get_mavlink_mode_and_state(&v_status, &armed, &mavlink_state, &mavlink_mode);
 
-					/* correct HIL message as per MAVLink spec */
+					/* HIL message as per MAVLink spec */
 					mavlink_msg_hil_controls_send(chan,
 										hrt_absolute_time(),
-										buf.att_sp.roll_body,
+										buf.att_sp.roll_body, /* this may be replaced by ctrl0 later */
 										buf.att_sp.pitch_body,
 										buf.att_sp.yaw_body,
 										buf.att_sp.thrust,

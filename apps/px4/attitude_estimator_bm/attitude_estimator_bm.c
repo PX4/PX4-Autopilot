@@ -226,7 +226,7 @@ int attitude_estimator_bm_main(int argc, char *argv[])
 			att.timestamp = sensor_combined_s_local.timestamp;
 			att.roll = euler.x;
 			att.pitch = euler.y;
-			att.yaw = euler.z - M_PI_F;
+			att.yaw = euler.z;
 
 			if (att.yaw > M_PI_F) {
 				att.yaw -= 2.0f * M_PI_F;

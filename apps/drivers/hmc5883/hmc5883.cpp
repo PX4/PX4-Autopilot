@@ -612,8 +612,8 @@ HMC5883::collect()
 #pragma pack(push, 1)
 	struct { /* status register and data as read back from the device */
 		uint8_t		x[2];
-		uint8_t		y[2];
 		uint8_t		z[2];
+		uint8_t		y[2];
 	}	hmc_report;
 #pragma pack(pop)
 	struct {
@@ -833,7 +833,7 @@ test()
 		err(1, "immediate read failed");
 
 	warnx("single read");
-	warnx("measurement: %.6f  %.6f  %.6f", report.x, report.y, report.z);
+	warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
 	warnx("time:        %lld", report.timestamp);
 
 	/* set the queue depth to 10 */
@@ -863,7 +863,7 @@ test()
 			err(1, "periodic read failed");
 
 		warnx("periodic read %u", i);
-		warnx("measurement: %.6f  %.6f  %.6f", report.x, report.y, report.z);
+		warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
 		warnx("time:        %lld", report.timestamp);
 	}
 
