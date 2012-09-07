@@ -191,11 +191,25 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	char *commandline_usage = "\tusage: ardrone_interface start|status|stop [-t for motor test (10%% thrust)]\n";
 
 	bool motor_test_mode = false;
+	int test_motor = -1;
 
 	/* read commandline arguments */
 	for (int i = 0; i < argc && argv[i]; i++) {
 		if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--test") == 0) {
 			motor_test_mode = true;
+		}
+
+		if (strcmp(argv[i], "-m") == 0 || strcmp(argv[i], "--motor") == 0) {
+			if (i+1 < argc) {
+				int motor = atoi(argv[i+1]);
+				if (motor > 0 && motor < 5) {
+					test_motor = motor;
+				} else {
+					errx(1, "supply a motor # between 1 and 4. Example: -m 1\n %s", commandline_usage);
+				}
+			} else {
+				errx(1, "missing parameter to -m 1..4\n %s", commandline_usage);
+			}
 		}
 	}
 
@@ -279,7 +293,14 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 
 		if (motor_test_mode) {
 			/* set motors to idle speed */
-			ardrone_write_motor_commands(ardrone_write, 10, 10, 10, 10);
+			if (test_motor > 0 && test_motor < 5) {
+				int motors[4] = {0, 0, 0, 0};
+				motors[test_motor - 1] = 10;
+				ardrone_write_motor_commands(ardrone_write, motors[0], motors[1], motors[2], motors[3]);
+			} else {
+				ardrone_write_motor_commands(ardrone_write, 10, 10, 10, 10);
+			}
+
 		} else {
 			/* MAIN OPERATION MODE */
 
