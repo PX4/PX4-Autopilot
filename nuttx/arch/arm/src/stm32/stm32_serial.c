@@ -1835,6 +1835,13 @@ void up_serialinit(void)
 #if CONSOLE_UART > 0
   (void)uart_register("/dev/console", &uart_devs[CONSOLE_UART - 1]->dev);
   (void)uart_register("/dev/ttyS0",   &uart_devs[CONSOLE_UART - 1]->dev);
+
+  /* If we need to re-initialise the console (e.g. to enable DMA) do that here. */
+
+# if CONFIG_SERIAL_CONSOLE_REINIT
+  uart_devs[CONSOLE_UART - 1]->dev.ops->setup(&uart_devs[CONSOLE_UART - 1]->dev);
+# endif
+
 #endif
 
   /* Register all remaining USARTs */

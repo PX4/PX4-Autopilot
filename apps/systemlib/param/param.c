@@ -479,7 +479,7 @@ param_export(int fd, bool only_unsaved)
 		 * If we are only saving values changed since last save, and this
 		 * one hasn't, then skip it
 		 */
-		if (only_unsaved & !s->unsaved)
+		if (only_unsaved && !s->unsaved)
 			continue;
 
 		s->unsaved = false;
@@ -519,7 +519,7 @@ param_export(int fd, bool only_unsaved)
 			break;
 
 		default:
-			debug("unrecognised parameter type");
+			debug("unrecognized parameter type");
 			goto out;
 		}
 	}

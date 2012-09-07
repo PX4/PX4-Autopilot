@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,45 +33,43 @@
  ****************************************************************************/
 
 /**
- * @file actuator_controls.h
- *
- * Actuator control topics - mixer inputs.
- *
- * Values published to these topics are the outputs of the vehicle control
- * system, and are expected to be mixed and used to drive the actuators
- * (servos, speed controls, etc.) that operate the vehicle.
- *
- * Each topic can be published by a single controller
+ * @file debug_key_value.h
+ * Definition of the debug named value uORB topic. Allows to send a 10-char key
+ * with a float as value.
  */
 
-#ifndef TOPIC_ACTUATOR_CONTROLS_H
-#define TOPIC_ACTUATOR_CONTROLS_H
+#ifndef TOPIC_DEBUG_KEY_VALUE_H_
+#define TOPIC_DEBUG_KEY_VALUE_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "../uORB.h"
 
-#define NUM_ACTUATOR_CONTROLS		8
-#define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
+/**
+ * @addtogroup topics
+ */
 
-struct actuator_controls_s {
-	float	control[NUM_ACTUATOR_CONTROLS];
+/**
+ * Key/value pair for debugging
+ */
+struct debug_key_value_s {
+
+	/*
+	 * Actual data, this is specific to the type of data which is stored in this struct
+	 * A line containing L0GME will be added by the Python logging code generator to the
+	 * logged dataset.
+	 */
+	uint32_t timestamp_ms;		/**< in milliseconds since system start */
+	char key[10];				/**< max. 10 characters as key / name */
+	float value;				/**< the value to send as debug output */
+
 };
 
-/* actuator control sets; this list can be expanded as more controllers emerge */
-ORB_DECLARE(actuator_controls_0);
-ORB_DECLARE(actuator_controls_1);
-ORB_DECLARE(actuator_controls_2);
-ORB_DECLARE(actuator_controls_3);
+/**
+ * @}
+ */
 
-/* control sets with pre-defined applications */
-#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS	ORB_ID(actuator_controls_0)
-
-/** global 'actuator output is live' control. */
-struct actuator_armed_s {
-	bool	armed;		/**< Set to true if system is armed */
-	bool	failsafe;	/**< Set to true if no valid control input is available */
-};
-
-ORB_DECLARE(actuator_armed);
+/* register this as object request broker structure */
+ORB_DECLARE(debug_key_value);
 
 #endif

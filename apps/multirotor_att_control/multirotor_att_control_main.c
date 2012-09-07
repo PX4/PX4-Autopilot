@@ -144,6 +144,7 @@ mc_thread_main(int argc, char *argv[])
 		att_sp.roll_body = -manual.roll * M_PI_F / 8.0f;
 		att_sp.pitch_body = -manual.pitch * M_PI_F / 8.0f;
 		att_sp.yaw_body = -manual.yaw * M_PI_F;
+		att_sp.timestamp = hrt_absolute_time();
 		if (motor_test_mode) {
 			att_sp.roll_body = 0.0f;
 			att_sp.pitch_body = 0.0f;

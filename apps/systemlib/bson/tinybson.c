@@ -44,7 +44,7 @@
 #include "tinybson.h"
 
 
-#if 1
+#if 0
 # define debug(fmt, args...)		do { warnx("BSON: " fmt, ##args); } while(0)
 #else
 # define debug(fmt, args...)		do { } while(0)

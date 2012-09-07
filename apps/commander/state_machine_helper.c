@@ -199,10 +199,7 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 	if (invalid_state == false || old_state != new_state) {
 		current_status->state_machine = new_state;
 		state_machine_publish(status_pub, current_status, mavlink_fd);
-		struct actuator_armed_s armed;
-		armed.armed = current_status->flag_system_armed;
-		orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
-		orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
+		publish_armed_status(current_status);
 		ret = OK;
 	}
 	if (invalid_state) {
@@ -218,6 +215,14 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 	current_status->timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
 	printf("[commander] new state: %s\n", system_state_txt[current_status->state_machine]);
+}
+
+void publish_armed_status(const struct vehicle_status_s *current_status) {
+	struct actuator_armed_s armed;
+	armed.armed = current_status->flag_system_armed;
+	armed.failsafe = current_status->rc_signal_lost;
+	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
+	orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 }
 
 

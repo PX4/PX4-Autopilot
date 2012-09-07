@@ -75,6 +75,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/debug_key_value.h>
 #include <systemlib/param/param.h>
 
 #include "waypoints.h"
@@ -166,6 +167,7 @@ static struct mavlink_subscriptions {
 	int spa_sub;
 	int spl_sub;
 	int spg_sub;
+	int debug_key_value;
 	bool initialized;
 } mavlink_subs = {
 	.sensor_sub = 0,
@@ -183,6 +185,7 @@ static struct mavlink_subscriptions {
 	.spa_sub = 0,
 	.spl_sub = 0,
 	.spg_sub = 0,
+	.debug_key_value = 0,
 	.initialized = false
 };
 
@@ -539,10 +542,15 @@ static int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int ma
 			if (subs->act_1_sub) orb_set_interval(subs->act_1_sub, min_interval);
 			if (subs->act_2_sub) orb_set_interval(subs->act_2_sub, min_interval);
 			if (subs->act_3_sub) orb_set_interval(subs->act_3_sub, min_interval);
+			if (subs->actuators_sub) orb_set_interval(subs->actuators_sub, min_interval);
 			break;
 		case MAVLINK_MSG_ID_MANUAL_CONTROL:
 			/* manual_control_setpoint triggers this message */
 			if (subs->man_control_sp_sub) orb_set_interval(subs->man_control_sp_sub, min_interval);
+			break;
+		case MAVLINK_MSG_ID_NAMED_VALUE_FLOAT:
+			if (subs->debug_key_value) orb_set_interval(subs->debug_key_value, min_interval);
+			break;
 		default:
 			/* not found */
 			ret = ERROR;
@@ -588,6 +596,7 @@ static void *uorb_receiveloop(void *arg)
 		struct actuator_outputs_s act_outputs;
 		struct manual_control_setpoint_s man_control;
 		struct actuator_controls_s actuators;
+		struct debug_key_value_s debug;
 	} buf;
 
 	/* --- SENSORS RAW VALUE --- */
@@ -704,8 +713,14 @@ static void *uorb_receiveloop(void *arg)
 	/* --- ACTUATOR CONTROL VALUE --- */
 	/* subscribe to ORB for actuator control */
 	subs->actuators_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-	orb_set_interval(subs->actuators_sub, 2000);	/* 0.5 Hz updates */
 	fds[fdsc_count].fd = subs->actuators_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- DEBUG VALUE OUTPUT --- */
+	/* subscribe to ORB for debug value outputs */
+	subs->debug_key_value = orb_subscribe(ORB_ID(debug_key_value));
+	fds[fdsc_count].fd = subs->debug_key_value;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -755,6 +770,38 @@ static void *uorb_receiveloop(void *arg)
 				/* send scaled imu data (m/s^2 accelerations scaled back to milli-g) */
 				//mavlink_msg_scaled_imu_send(MAVLINK_COMM_0, buf.raw.timestamp, buf.raw.accelerometer_m_s2[0] * 101.936799f, buf.raw.accelerometer_m_s2[1] * 101.936799f, buf.raw.accelerometer_m_s2[2] * 101.936799f, buf.raw.gyro_rad_s[0] * 1000, buf.raw.gyro_rad_s[1] * 1000, buf.raw.gyro_rad_s[2] * 1000, buf.raw.magnetometer_ga[0] * 1000, buf.raw.magnetometer_ga[1] * 1000, buf.raw.magnetometer_ga[2] * 1000);
 				/* send scaled imu data */
+
+				/* mark individual fields as changed */
+				uint16_t fields_updated = 0;
+				static unsigned accel_counter = 0;
+				static unsigned gyro_counter = 0;
+				static unsigned mag_counter = 0;
+				static unsigned baro_counter = 0;
+
+				if (accel_counter != buf.raw.accelerometer_counter) {
+					/* mark first three dimensions as changed */
+					fields_updated |= (1 << 0) | (1 << 1) | (1 << 2);
+					accel_counter = buf.raw.accelerometer_counter;
+				}
+
+				if (gyro_counter != buf.raw.gyro_counter) {
+					/* mark first three dimensions as changed */
+					fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);
+					gyro_counter = buf.raw.gyro_counter;
+				}
+
+				if (mag_counter != buf.raw.magnetometer_counter) {
+					/* mark first three dimensions as changed */
+					fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
+					mag_counter = buf.raw.magnetometer_counter;
+				}
+
+				if (baro_counter != buf.raw.baro_counter) {
+					/* mark first three dimensions as changed */
+					fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
+					baro_counter = buf.raw.baro_counter;
+				}
+
 				mavlink_msg_highres_imu_send(MAVLINK_COMM_0, buf.raw.timestamp,
 					buf.raw.accelerometer_m_s2[0], buf.raw.accelerometer_m_s2[1],
 					buf.raw.accelerometer_m_s2[2], buf.raw.gyro_rad_s[0],
@@ -762,7 +809,8 @@ static void *uorb_receiveloop(void *arg)
 					buf.raw.magnetometer_ga[0],
 					buf.raw.magnetometer_ga[1],buf.raw.magnetometer_ga[2],
 					buf.raw.baro_pres_mbar, 0 /* no diff pressure yet */,
-					buf.raw.baro_alt_meter, buf.raw.baro_temp_celcius);
+					buf.raw.baro_alt_meter, buf.raw.baro_temp_celcius,
+					fields_updated);
 				/* send pressure */
 				//mavlink_msg_scaled_pressure_send(MAVLINK_COMM_0, buf.raw.timestamp / 1000, buf.raw.baro_pres_mbar, buf.raw.baro_alt_meter, buf.raw.baro_temp_celcius * 100);
 
@@ -895,32 +943,15 @@ static void *uorb_receiveloop(void *arg)
 				/* Only send in HIL mode */
 				if (mavlink_hil_enabled) {
 
-					/* hacked HIL implementation in order for the APM Planner to work
-					 * (correct cmd: mavlink_msg_hil_controls_send())
-					 */
-
-					mavlink_msg_rc_channels_scaled_send(chan,
-									    hrt_absolute_time(),
-									    0, // port 0
-									    buf.att_sp.roll_body,
-									    buf.att_sp.pitch_body,
-									    buf.att_sp.thrust,
-									    buf.att_sp.yaw_body,
-									    0,
-									    0,
-									    0,
-									    0,
-									    1 /*rssi=1*/);
-
 					/* translate the current syste state to mavlink state and mode */
 					uint8_t mavlink_state = 0;
 					uint8_t mavlink_mode = 0;
 					get_mavlink_mode_and_state(&v_status, &armed, &mavlink_state, &mavlink_mode);
 
-					/* correct HIL message as per MAVLink spec */
+					/* HIL message as per MAVLink spec */
 					mavlink_msg_hil_controls_send(chan,
 										hrt_absolute_time(),
-										buf.att_sp.roll_body,
+										buf.att_sp.roll_body, /* this may be replaced by ctrl0 later */
 										buf.att_sp.pitch_body,
 										buf.att_sp.yaw_body,
 										buf.att_sp.thrust,
@@ -1060,10 +1091,17 @@ static void *uorb_receiveloop(void *arg)
 			/* --- ACTUATOR CONTROL --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs->actuators_sub, &buf.actuators);
-				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl0", buf.actuators.control[0]);
-				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl1", buf.actuators.control[1]);
-				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl2", buf.actuators.control[2]);
-				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl3", buf.actuators.control[3]);
+				/* send, add spaces so that string buffer is at least 10 chars long */
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl0     ", buf.actuators.control[0]);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl1     ", buf.actuators.control[1]);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl2     ", buf.actuators.control[2]);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl3     ", buf.actuators.control[3]);
+			}
+
+			/* --- DEBUG KEY/VALUE --- */
+			if (fds[ifds++].revents & POLLIN) {
+				orb_copy(ORB_ID(debug_key_value), subs->debug_key_value, &buf.debug);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, buf.debug.key, buf.debug.value);
 			}
 		}
 	}
@@ -1495,28 +1533,33 @@ int mavlink_thread_main(int argc, char *argv[])
 
 	/* all subscriptions are now active, set up initial guess about rate limits */
 	if (baudrate >= 921600) {
-		/* 500 Hz / 2 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 2);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 2);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 2);
+		/* 200 Hz / 5 ms */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 5);
 		/* 200 Hz / 5 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 5);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 5);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 5);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 5);
 		/* 5 Hz */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 200);
 	} else if (baudrate >= 460800) {
-		/* 250 Hz / 4 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 5);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 5);
+		/* 200 Hz / 5 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 5);
-		/* 50 Hz / 20 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 20);
+		/* 50 Hz / 10 ms */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 20);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 20);
+		/* 20 Hz / 50 ms */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 50);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 50);
 		/* 2 Hz */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
 	} else if (baudrate >= 115200) {
 		/* 50 Hz / 20 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 50);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 50);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 50);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 20);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 20);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 20);
+		/* 20 Hz / 50 ms */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 50);
 		/* 10 Hz / 100 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 100);
 		/* 1 Hz */
@@ -1527,6 +1570,8 @@ int mavlink_thread_main(int argc, char *argv[])
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 100);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 100);
 		/* 5 Hz / 200 ms */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 200);
+		/* 5 Hz / 200 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 200);
 		/* 0.2 Hz */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 5000);
@@ -1535,6 +1580,8 @@ int mavlink_thread_main(int argc, char *argv[])
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SCALED_IMU, 1000);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 1000);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 1000);
+		/* 1 Hz / 1000 ms */
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 1000);
 		/* 0.5 Hz */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 2000);
 		/* 0.1 Hz */

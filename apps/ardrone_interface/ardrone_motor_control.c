@@ -43,6 +43,8 @@
 #include <unistd.h>
 #include <drivers/drv_gpio.h>
 #include <arch/board/up_hrt.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/actuator_outputs.h>
 #include <systemlib/err.h>
 
 #include "ardrone_motor_control.h"
@@ -224,9 +226,7 @@ int ar_init_motors(int ardrone_uart, int gpios)
 	for (i = 1; i < 5; ++i) {
 		/* Initialize motors 1-4 */
 		errcounter += ar_select_motor(gpios, i);
-
-		write(ardrone_uart, &(initbuf[3]), 1);
-		fsync(ardrone_uart);
+		usleep(200);
 
 		/*
 		 * write 0xE0 - request status
@@ -270,29 +270,34 @@ int ar_init_motors(int ardrone_uart, int gpios)
 		usleep(UART_TRANSFER_TIME_BYTE_US*11);
 
 		ar_deselect_motor(gpios, i);
-		/* sleep 400 ms */
-		usleep(400000);
+		/* sleep 200 ms */
+		usleep(200000);
 	}
 
 	/* start the multicast part */
 	errcounter += ar_select_motor(gpios, 0);
+	usleep(200);
 
 	/*
+	 * first round
 	 * write six times A0 - enable broadcast
 	 * receive nothing
 	 */
-	// for (int i = 0; i < sizeof(multicastbuf); i++) {
-	write(ardrone_uart, multicastbuf, 6);
+	write(ardrone_uart, multicastbuf, sizeof(multicastbuf));
 	fsync(ardrone_uart);
+	usleep(UART_TRANSFER_TIME_BYTE_US * sizeof(multicastbuf));
 
-	usleep(200000);
-
-	write(ardrone_uart, multicastbuf, 6);
+	/*
+	 * second round
+	 * write six times A0 - enable broadcast
+	 * receive nothing
+	 */
+	write(ardrone_uart, multicastbuf, sizeof(multicastbuf));
 	fsync(ardrone_uart);
+	usleep(UART_TRANSFER_TIME_BYTE_US * sizeof(multicastbuf));
 
-	/* set motors to zero speed */
+	/* set motors to zero speed (fsync is part of the write command */
 	ardrone_write_motor_commands(ardrone_uart, 0, 0, 0, 0);
-	fsync(ardrone_uart);
 
 	if (errcounter != 0) {
 		fprintf(stderr, "[ardrone_interface] init sequence incomplete, failed %d times", -errcounter);
@@ -324,12 +329,27 @@ void ar_set_leds(int ardrone_uart, uint8_t led1_red, uint8_t led1_green, uint8_t
 int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor2, uint16_t motor3, uint16_t motor4) {
 	const unsigned int min_motor_interval = 4900;
 	static uint64_t last_motor_time = 0;
+
+	static struct actuator_outputs_s outputs;
+	outputs.output[0] = motor1;
+	outputs.output[1] = motor2;
+	outputs.output[2] = motor3;
+	outputs.output[3] = motor4;
+	static orb_advert_t pub = 0;
+	if (pub == 0) {
+		pub = orb_advertise(ORB_ID_VEHICLE_CONTROLS, &outputs);
+	}
+
 	if (hrt_absolute_time() - last_motor_time > min_motor_interval) {
 		uint8_t buf[5] = {0};
 		ar_get_motor_packet(buf, motor1, motor2, motor3, motor4);
 		int ret;
 		ret = write(ardrone_fd, buf, sizeof(buf));
 		fsync(ardrone_fd);
+
+		/* publish just written values */
+		orb_publish(ORB_ID_VEHICLE_CONTROLS, pub, &outputs);
+
 		if (ret == sizeof(buf)) {
 			return OK;
 		} else {
