@@ -1,8 +1,8 @@
 /****************************************************************************
- * config/stm3210e_eval/src/up_nsh.c
+ * config/shenzhou/src/up_nsh.c
  * arch/arm/src/board/up_nsh.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,12 @@
 #  include <nuttx/mmcsd.h>
 #endif
 
+#ifdef CONFIG_STM32_OTGFS
+#  include "stm32_usbhost.h"
+#endif
+
 #include "stm32_internal.h"
+#include "shenzhou-internal.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -67,41 +72,56 @@
 
 #undef CONFIG_STM32_SPI1
 
-/* PORT and SLOT number probably depend on the board configuration */
+/* Assume that we support everything until convinced otherwise */
 
-#ifdef CONFIG_ARCH_BOARD_STM3210E_EVAL
-#  define CONFIG_NSH_HAVEUSBDEV 1
-#  define CONFIG_NSH_HAVEMMCSD  1
-#  if defined(CONFIG_NSH_MMCSDSLOTNO) && CONFIG_NSH_MMCSDSLOTNO != 0
-#    error "Only one MMC/SD slot"
-#    undef CONFIG_NSH_MMCSDSLOTNO
-#  endif
-#  ifndef CONFIG_NSH_MMCSDSLOTNO
-#    define CONFIG_NSH_MMCSDSLOTNO 0
-#  endif
-#else
-   /* Add configuration for new STM32 boards here */
-#  error "Unrecognized STM32 board"
-#  undef CONFIG_NSH_HAVEUSBDEV
-#  undef CONFIG_NSH_HAVEMMCSD
-#endif
-
-/* Can't support USB features if USB is not enabled */
-
-#ifndef CONFIG_USBDEV
-#  undef CONFIG_NSH_HAVEUSBDEV
-#endif
+#define HAVE_MMCSD    1
+#define HAVE_USBDEV   1
+#define HAVE_USBHOST  1
 
 /* Can't support MMC/SD features if mountpoints are disabled or if SDIO support
  * is not enabled.
  */
 
 #if defined(CONFIG_DISABLE_MOUNTPOINT) || !defined(CONFIG_STM32_SDIO)
-#  undef CONFIG_NSH_HAVEMMCSD
+#  undef HAVE_MMCSD
 #endif
 
-#ifndef CONFIG_NSH_MMCSDMINOR
-#  define CONFIG_NSH_MMCSDMINOR 0
+/* Default MMC/SD minor number */
+
+#ifdef HAVE_MMCSD
+#  ifndef CONFIG_NSH_MMCSDMINOR
+#    define CONFIG_NSH_MMCSDMINOR 0
+#  endif
+
+/* Default MMC/SD SLOT number */
+
+#  if defined(CONFIG_NSH_MMCSDSLOTNO) && CONFIG_NSH_MMCSDSLOTNO != 0
+#    error "Only one MMC/SD slot"
+#    undef CONFIG_NSH_MMCSDSLOTNO
+#  endif
+
+#  ifndef CONFIG_NSH_MMCSDSLOTNO
+#    define CONFIG_NSH_MMCSDSLOTNO 0
+#  endif
+#endif
+
+/* Can't support USB host or device features if USB OTG FS is not enabled */
+
+#ifndef CONFIG_STM32_OTGFS
+#  undef HAVE_USBDEV
+#  undef HAVE_USBHOST
+#endif
+
+/* Can't support USB device is USB device is not enabled */
+
+#ifndef CONFIG_USBDEV
+#  undef HAVE_USBDEV
+#endif
+
+/* Can't support USB host is USB host is not enabled */
+
+#ifndef CONFIG_USBHOST
+#  undef HAVE_USBHOST
 #endif
 
 /* Debug ********************************************************************/
@@ -138,50 +158,24 @@ int nsh_archinitialize(void)
   FAR struct spi_dev_s *spi;
   FAR struct mtd_dev_s *mtd;
 #endif
-#ifdef CONFIG_NSH_HAVEMMCSD
+#ifdef HAVE_MMCSD
   FAR struct sdio_dev_s *sdio;
+#endif
+#if defined(HAVE_MMCSD) || defined(HAVE_USBHOST)
   int ret;
 #endif
 
   /* Configure SPI-based devices */
 
 #ifdef CONFIG_STM32_SPI1
-  /* Get the SPI port */
-
-  message("nsh_archinitialize: Initializing SPI port 1\n");
-  spi = up_spiinitialize(1);
-  if (!spi)
-    {
-      message("nsh_archinitialize: Failed to initialize SPI port 0\n");
-      return -ENODEV;
-    }
-  message("nsh_archinitialize: Successfully initialized SPI port 0\n");
-
-  /* Now bind the SPI interface to the M25P64/128 SPI FLASH driver */
-
-  message("nsh_archinitialize: Bind SPI to the SPI flash driver\n");
-  mtd = m25p_initialize(spi);
-  if (!mtd)
-    {
-      message("nsh_archinitialize: Failed to bind SPI port 0 to the SPI FLASH driver\n");
-      return -ENODEV;
-    }
-  message("nsh_archinitialize: Successfully bound SPI port 0 to the SPI FLASH driver\n");
-#warning "Now what are we going to do with this SPI FLASH driver?"
+#  warning "Missing support for the SPI FLASH"
 #endif
-
-  /* Create the SPI FLASH MTD instance */
-  /* The M25Pxx is not a give media to implement a file system..
-   * its block sizes are too large
-   */
 
   /* Mount the SDIO-based MMC/SD block driver */
 
-#ifdef CONFIG_NSH_HAVEMMCSD
+#ifdef HAVE_MMCSD
   /* First, get an instance of the SDIO interface */
 
-  message("nsh_archinitialize: Initializing SDIO slot %d\n",
-          CONFIG_NSH_MMCSDSLOTNO);
   sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
   if (!sdio)
     {
@@ -192,22 +186,33 @@ int nsh_archinitialize(void)
 
   /* Now bind the SDIO interface to the MMC/SD driver */
 
-  message("nsh_archinitialize: Bind SDIO to the MMC/SD driver, minor=%d\n",
-          CONFIG_NSH_MMCSDMINOR);
   ret = mmcsd_slotinitialize(CONFIG_NSH_MMCSDMINOR, sdio);
   if (ret != OK)
     {
       message("nsh_archinitialize: Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
       return ret;
     }
-  message("nsh_archinitialize: Successfully bound SDIO to the MMC/SD driver\n");
   
   /* Then let's guess and say that there is a card in the slot.  I need to check to
-   * see if the STM3210E-EVAL board supports a GPIO to detect if there is a card in
+   * see if the STM3240G-EVAL board supports a GPIO to detect if there is a card in
    * the slot.
    */
 
    sdio_mediachange(sdio, true);
 #endif
+
+#ifdef HAVE_USBHOST
+  /* Initialize USB host operation.  stm32_usbhost_initialize() starts a thread
+   * will monitor for USB connection and disconnection events.
+   */
+
+  ret = stm32_usbhost_initialize();
+  if (ret != OK)
+    {
+      message("nsh_archinitialize: Failed to initialize USB host: %d\n", ret);
+      return ret;
+    }
+#endif
+
   return OK;
 }

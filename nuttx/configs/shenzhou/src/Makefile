@@ -1,7 +1,7 @@
 ############################################################################
-# configs/stm3210e-eval/RIDE/appconfig
+# configs/shenzhou/src/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,90 @@
 #
 ############################################################################
 
-# Path to example in apps/examples containing the user_start entry point
+-include $(TOPDIR)/Make.defs
 
-CONFIGURED_APPS += examples/null
+CFLAGS		+= -I$(TOPDIR)/sched
 
+ASRCS		= 
+AOBJS		= $(ASRCS:.S=$(OBJEXT))
+
+CSRCS		= up_boot.c up_spi.c
+
+ifeq ($(CONFIG_HAVE_CXX),y)
+CSRCS		+= up_cxxinitialize.c
+endif
+
+ifeq ($(CONFIG_ARCH_LEDS),y)
+CSRCS		+= up_autoleds.c
+else
+CSRCS		+= up_userleds.c
+
+ifeq ($(CONFIG_ARCH_BUTTONS),y)
+CSRCS		+=  up_buttons.c
+endif
+
+ifeq ($(CONFIG_STM32_OTGFS),y)
+CSRCS		+= up_usb.c
+endif
+
+ifeq ($(CONFIG_NSH_ARCHINIT),y)
+CSRCS		+= up_nsh.c
+endif
+
+ifeq ($(CONFIG_USBMSC),y)
+CSRCS		+= up_usbmsc.c
+endif
+
+ifeq ($(CONFIG_USBDEV_COMPOSITE),y)
+CSRCS		+= up_composite.c
+endif
+
+ifeq ($(CONFIG_CAN),y)
+CSRCS		+= up_can.c
+endif
+
+ifeq ($(CONFIG_WATCHDOG),y)
+CSRCS		+= up_watchdog.c
+endif
+
+COBJS		= $(CSRCS:.c=$(OBJEXT))
+
+SRCS		= $(ASRCS) $(CSRCS)
+OBJS		= $(AOBJS) $(COBJS)
+
+ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
+ifeq ($(WINTOOL),y)
+  CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
+  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
+  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
+else
+  CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
+endif
+
+all: libboard$(LIBEXT)
+
+$(AOBJS): %$(OBJEXT): %.S
+	$(call ASSEMBLE, $<, $@)
+
+$(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
+	$(call COMPILE, $<, $@)
+
+libboard$(LIBEXT): $(OBJS)
+	@( for obj in $(OBJS) ; do \
+		$(call ARCHIVE, $@, $${obj}); \
+	done ; )
+
+.depend: Makefile $(SRCS)
+	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@touch $@
+
+depend: .depend
+
+clean:
+	@rm -f libboard$(LIBEXT) *~ .*.swp
+	$(call CLEAN)
+
+distclean: clean
+	@rm -f Make.dep .depend
+
+-include Make.dep

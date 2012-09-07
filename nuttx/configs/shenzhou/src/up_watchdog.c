@@ -1,8 +1,8 @@
 /************************************************************************************
- * configs/stm3210e-eval/src/up_extcontext.c
- * arch/arm/src/board/up_extcontext.c
+ * configs/shenzhou/src/up_watchdog.c
+ * arch/arm/src/board/up_watchdog.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,27 +40,65 @@
 
 #include <nuttx/config.h>
 
-#include <sys/types.h>
-#include <assert.h>
+#include <errno.h>
 #include <debug.h>
 
-#include "up_arch.h"
-#include "stm32.h"
-#include "stm3210e-internal.h"
+#include <nuttx/watchdog.h>
+#include <arch/board/board.h>
 
-#ifdef CONFIG_STM32_FSMC
+#include "stm32_wdg.h"
+
+#ifdef CONFIG_WATCHDOG
 
 /************************************************************************************
- * Pre-processor Definitions
+ * Definitions
  ************************************************************************************/
+/* Configuration *******************************************************************/
+/* Wathdog hardware should be enabled */
 
-#if STM32_NGPIO_PORTS < 6
-#  error "Required GPIO ports not enabled"
+#if !defined(CONFIG_STM32_WWDG) && !defined(CONFIG_STM32_IWDG)
+#  warning "One of CONFIG_STM32_WWDG or CONFIG_STM32_IWDG must be defined"
 #endif
 
-/************************************************************************************
- * Private Data
- ************************************************************************************/
+/* Select the path to the registered watchdog timer device */
+
+#ifndef CONFIG_STM32_WDG_DEVPATH
+#  ifdef CONFIG_EXAMPLES_WATCHDOG_DEVPATH
+#    define CONFIG_STM32_WDG_DEVPATH CONFIG_EXAMPLES_WATCHDOG_DEVPATH
+#  else
+#    define CONFIG_STM32_WDG_DEVPATH "/dev/watchdog0"
+#  endif
+#endif
+
+/* Use the un-calibrated LSI frequency if we have nothing better */
+
+#if defined(CONFIG_STM32_IWDG) && !defined(CONFIG_STM32_LSIFREQ)
+#  define CONFIG_STM32_LSIFREQ STM32_LSI_FREQUENCY
+#endif
+
+/* Debug ***************************************************************************/
+/* Non-standard debug that may be enabled just for testing the watchdog timer */
+
+#ifndef CONFIG_DEBUG
+#  undef CONFIG_DEBUG_WATCHDOG
+#endif
+
+#ifdef CONFIG_DEBUG_WATCHDOG
+#  define wdgdbg                 dbg
+#  define wdglldbg               lldbg
+#  ifdef CONFIG_DEBUG_VERBOSE
+#    define wdgvdbg              vdbg
+#    define wdgllvdbg            llvdbg
+#  else
+#    define wdgvdbg(x...)
+#    define wdgllvdbg(x...)
+#  endif
+#else
+#  define wdgdbg(x...)
+#  define wdglldbg(x...)
+#  define wdgvdbg(x...)
+#  define wdgllvdbg(x...)
+#endif
 
 /************************************************************************************
  * Private Functions
@@ -70,48 +108,29 @@
  * Public Functions
  ************************************************************************************/
 
-/************************************************************************************
- * Name: stm32_extcontextsave
+/****************************************************************************
+ * Name: up_wdginitialize()
  *
  * Description:
- *  Save current GPIOs that will used by external memory configurations
+ *   Perform architecuture-specific initialization of the Watchdog hardware.
+ *   This interface must be provided by all configurations using
+ *   apps/examples/watchdog
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-void stm32_extcontextsave(struct extmem_save_s *save)
+int up_wdginitialize(void)
 {
-  DEBUGASSERT(save != NULL);
-  save->gpiod_crl = getreg32(STM32_GPIOE_CRL);
-  save->gpiod_crh = getreg32(STM32_GPIOE_CRH);
-  save->gpioe_crl = getreg32(STM32_GPIOD_CRL);
-  save->gpioe_crh = getreg32(STM32_GPIOD_CRH);
-  save->gpiof_crl = getreg32(STM32_GPIOF_CRL);
-  save->gpiof_crh = getreg32(STM32_GPIOF_CRH);
-  save->gpiog_crl = getreg32(STM32_GPIOG_CRL);
-  save->gpiog_crh = getreg32(STM32_GPIOG_CRH);
+  /* Initialize tha register the watchdog timer device */
+
+#if defined(CONFIG_STM32_WWDG)
+  stm32_wwdginitialize(CONFIG_STM32_WDG_DEVPATH);
+  return OK;
+#elif defined(CONFIG_STM32_IWDG)
+  stm32_iwdginitialize(CONFIG_STM32_WDG_DEVPATH, CONFIG_STM32_LSIFREQ);
+  return OK;
+#else
+  return -ENODEV;
+#endif
 }
 
-/************************************************************************************
- * Name: stm32_extcontextrestore
- *
- * Description:
- *  Restore GPIOs that were used by external memory configurations
- *
- ************************************************************************************/
-
-void stm32_extcontextrestore(struct extmem_save_s *restore)
-{
-  DEBUGASSERT(restore != NULL);
-  putreg32(restore->gpiod_crl, STM32_GPIOE_CRL);
-  putreg32(restore->gpiod_crh, STM32_GPIOE_CRH);
-  putreg32(restore->gpioe_crl, STM32_GPIOD_CRL);
-  putreg32(restore->gpioe_crh, STM32_GPIOD_CRH);
-  putreg32(restore->gpiof_crl, STM32_GPIOF_CRL);
-  putreg32(restore->gpiof_crh, STM32_GPIOF_CRH);
-  putreg32(restore->gpiog_crl, STM32_GPIOG_CRL);
-  putreg32(restore->gpiog_crh, STM32_GPIOG_CRH);
-}
-
-#endif /* CONFIG_STM32_FSMC */
-
-
+#endif /* CONFIG_WATCHDOG */

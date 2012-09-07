@@ -1,8 +1,8 @@
 /************************************************************************************
- * configs/stm3210e-eval/src/up_extcontext.c
- * arch/arm/src/board/up_extcontext.c
+ * configs/shenzhou/src/up_boot.c
+ * arch/arm/src/board/up_boot.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,26 +40,15 @@
 
 #include <nuttx/config.h>
 
-#include <sys/types.h>
-#include <assert.h>
 #include <debug.h>
 
+#include <arch/board/board.h>
+
 #include "up_arch.h"
-#include "stm32.h"
-#include "stm3210e-internal.h"
-
-#ifdef CONFIG_STM32_FSMC
+#include "shenzhou-internal.h"
 
 /************************************************************************************
- * Pre-processor Definitions
- ************************************************************************************/
-
-#if STM32_NGPIO_PORTS < 6
-#  error "Required GPIO ports not enabled"
-#endif
-
-/************************************************************************************
- * Private Data
+ * Definitions
  ************************************************************************************/
 
 /************************************************************************************
@@ -71,47 +60,43 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: stm32_extcontextsave
+ * Name: stm32_boardinitialize
  *
  * Description:
- *  Save current GPIOs that will used by external memory configurations
+ *   All STM32 architectures must provide the following entry point.  This entry point
+ *   is called early in the intitialization -- after all memory has been configured
+ *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
 
-void stm32_extcontextsave(struct extmem_save_s *save)
+void stm32_boardinitialize(void)
 {
-  DEBUGASSERT(save != NULL);
-  save->gpiod_crl = getreg32(STM32_GPIOE_CRL);
-  save->gpiod_crh = getreg32(STM32_GPIOE_CRH);
-  save->gpioe_crl = getreg32(STM32_GPIOD_CRL);
-  save->gpioe_crh = getreg32(STM32_GPIOD_CRH);
-  save->gpiof_crl = getreg32(STM32_GPIOF_CRL);
-  save->gpiof_crh = getreg32(STM32_GPIOF_CRH);
-  save->gpiog_crl = getreg32(STM32_GPIOG_CRL);
-  save->gpiog_crh = getreg32(STM32_GPIOG_CRH);
+  /* Configure SPI chip selects if 1) SPI is not disabled, and 2) the weak function
+   * stm32_spiinitialize() has been brought into the link.
+   */
+
+#if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI3)
+  if (stm32_spiinitialize)
+    {
+      stm32_spiinitialize();
+    }
+#endif
+
+  /* Initialize USB is 1) USBDEV is selected, 2) the USB controller is not
+   * disabled, and 3) the weak function stm32_usbinitialize() has been brought
+   * into the build.
+   */
+
+#if defined(CONFIG_USBDEV) && defined(CONFIG_STM32_USB)
+  if (stm32_usbinitialize)
+    {
+      stm32_usbinitialize();
+    }
+#endif
+
+  /* Configure on-board LEDs if LED support has been selected. */
+
+#ifdef CONFIG_ARCH_LEDS
+  up_ledinit();
+#endif
 }
-
-/************************************************************************************
- * Name: stm32_extcontextrestore
- *
- * Description:
- *  Restore GPIOs that were used by external memory configurations
- *
- ************************************************************************************/
-
-void stm32_extcontextrestore(struct extmem_save_s *restore)
-{
-  DEBUGASSERT(restore != NULL);
-  putreg32(restore->gpiod_crl, STM32_GPIOE_CRL);
-  putreg32(restore->gpiod_crh, STM32_GPIOE_CRH);
-  putreg32(restore->gpioe_crl, STM32_GPIOD_CRL);
-  putreg32(restore->gpioe_crh, STM32_GPIOD_CRH);
-  putreg32(restore->gpiof_crl, STM32_GPIOF_CRL);
-  putreg32(restore->gpiof_crh, STM32_GPIOF_CRH);
-  putreg32(restore->gpiog_crl, STM32_GPIOG_CRL);
-  putreg32(restore->gpiog_crh, STM32_GPIOG_CRH);
-}
-
-#endif /* CONFIG_STM32_FSMC */
-
-

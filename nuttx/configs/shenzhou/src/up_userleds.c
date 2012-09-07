@@ -1,8 +1,8 @@
 /****************************************************************************
- * configs/stm3240g_eval/src/up_userleds.c
+ * configs/shenzhou/src/up_userleds.c
  * arch/arm/src/board/up_userleds.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@
 #include "up_arch.h"
 #include "up_internal.h"
 #include "stm32_internal.h"
-#include "stm3240g-internal.h"
+#include "shenzhou-internal.h"
 
 #ifndef CONFIG_ARCH_LEDS
 

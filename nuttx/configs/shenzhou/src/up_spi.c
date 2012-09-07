@@ -1,5 +1,5 @@
 /************************************************************************************
- * configs/stm3210e_eval/src/up_spi.c
+ * configs/shenzhou/src/up_spi.c
  * arch/arm/src/board/up_spi.c
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
@@ -50,9 +50,9 @@
 #include "up_arch.h"
 #include "chip.h"
 #include "stm32_internal.h"
-#include "stm3210e-internal.h"
+#include "shenzhou-internal.h"
 
-#if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2)
+#if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI3)
 
 /************************************************************************************
  * Definitions
@@ -88,22 +88,30 @@
  * Name: stm32_spiinitialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the STM3210E-EVAL board.
+ *   Called to configure SPI chip select GPIO pins for the Shenzhou board.
  *
  ************************************************************************************/
 
 void weak_function stm32_spiinitialize(void)
 {
-  /* NOTE: Clocking for SPI1 and/or SPI2 was already provided in stm32_rcc.c.
+  /* NOTE: Clocking for SPI1 and/or SPI3 was already provided in stm32_rcc.c.
    *       Configurations of SPI pins is performed in stm32_spi.c.
    *       Here, we only initialize chip select pins unique to the board
    *       architecture.
    */
 
-#ifdef CONFIG_STM32_SPI1
-  /* Configure the SPI-based FLASH CS GPIO */
+  /* SPI1 connects to the SD CARD and to the SPI FLASH */
 
+#ifdef CONFIG_STM32_SPI1
+  stm32_configgpio(GPIO_SD_CS);
   stm32_configgpio(GPIO_FLASH_CS);
+#endif
+
+  /* SPI3 connects to TFT LCD and the RF24L01 2.4G wireless module */
+
+#ifdef CONFIG_STM32_SPI3
+  stm32_configgpio(GPIO_LCD_CS);
+  stm32_configgpio(GPIO_WIRELESS_CS);
 #endif
 }
 
@@ -137,29 +145,32 @@ void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sele
 {
   spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 
-  if (devid == SPIDEV_FLASH)
-  {
-    /* Set the GPIO low to select and high to de-select */
+  /* SPI1 connects to the SD CARD and to the SPI FLASH */
 
-    stm32_gpiowrite(GPIO_FLASH_CS, !selected);
-  }
+  if (devid == SPIDEV_MMCSD)
+    {
+      /* Set the GPIO low to select and high to de-select */
+
+      stm32_gpiowrite(GPIO_SD_CS, !selected);
+    }
+  elseif (devid == SPIDEV_FLASH)
+    {
+      /* Set the GPIO low to select and high to de-select */
+
+      stm32_gpiowrite(GPIO_FLASH_CS, !selected);
+    }
 }
 
 uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-  return SPI_STATUS_PRESENT;
-}
-#endif
-
-#ifdef CONFIG_STM32_SPI2
-void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
-{
-  spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
-}
-
-uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
-{
-  return SPI_STATUS_PRESENT;
+  if (stm32_gpioread(GPIO_SD_CD))
+    {
+      return 0;
+    }
+  else
+    {
+      return SPI_STATUS_PRESENT;
+    }
 }
 #endif
 
@@ -167,12 +178,27 @@ uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 void stm32_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
   spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
+
+  /* SPI3 connects to TFT LCD and the RF24L01 2.4G wireless module */
+
+  if (devid == SPIDEV_TOUCHSCREEN)
+    {
+      /* Set the GPIO low to select and high to de-select */
+
+      stm32_gpiowrite(GPIO_LCD_CS, !selected);
+    }
+  elseif (devid == SPIDEV_WIRELESS)
+    {
+      /* Set the GPIO low to select and high to de-select */
+
+      stm32_gpiowrite(GPIO_WIRELESS_CS, !selected);
+    }
 }
 
 uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-  return SPI_STATUS_PRESENT;
+  return 0;
 }
 #endif
 
-#endif /* CONFIG_STM32_SPI1 || CONFIG_STM32_SPI2 */
+#endif /* CONFIG_STM32_SPI1 || CONFIG_STM32_SPI3 */

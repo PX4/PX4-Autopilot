@@ -2,7 +2,7 @@
  * configs/stm3210e-eval/src/up_composite.c
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Configure and register the STM32 MMC/SD SDIO block driver.
  *

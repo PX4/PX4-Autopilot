@@ -1,8 +1,7 @@
 /************************************************************************************
- * configs/stm3210e-eval/src/up_extcontext.c
- * arch/arm/src/board/up_extcontext.c
+ * configs/shenzhou/src/up_can.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,27 +39,43 @@
 
 #include <nuttx/config.h>
 
-#include <sys/types.h>
-#include <assert.h>
+#include <errno.h>
 #include <debug.h>
 
-#include "up_arch.h"
-#include "stm32.h"
-#include "stm3210e-internal.h"
+#include <nuttx/can.h>
+#include <arch/board/board.h>
 
-#ifdef CONFIG_STM32_FSMC
+#include "chip.h"
+#include "up_arch.h"
+
+#include "stm32.h"
+#include "stm32_can.h"
+#include "shenzhou-internal.h"
+
+#if defined(CONFIG_CAN) && (defined(CONFIG_STM32_CAN1) || defined(CONFIG_STM32_CAN2))
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+/* Configuration ********************************************************************/
+/* The STM32F107VC supports CAN1 and CAN2 */
 
-#if STM32_NGPIO_PORTS < 6
-#  error "Required GPIO ports not enabled"
+#define CAN_PORT 1
+
+/* Debug ***************************************************************************/
+/* Non-standard debug that may be enabled just for testing CAN */
+
+#ifdef CONFIG_DEBUG_CAN
+#  define candbg    dbg
+#  define canvdbg   vdbg
+#  define canlldbg  lldbg
+#  define canllvdbg llvdbg
+#else
+#  define candbg(x...)
+#  define canvdbg(x...)
+#  define canlldbg(x...)
+#  define canllvdbg(x...)
 #endif
-
-/************************************************************************************
- * Private Data
- ************************************************************************************/
 
 /************************************************************************************
  * Private Functions
@@ -71,47 +86,48 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: stm32_extcontextsave
+ * Name: can_devinit
  *
  * Description:
- *  Save current GPIOs that will used by external memory configurations
+ *   All STM32 architectures must provide the following interface to work with
+ *   examples/can.
  *
  ************************************************************************************/
 
-void stm32_extcontextsave(struct extmem_save_s *save)
+int can_devinit(void)
 {
-  DEBUGASSERT(save != NULL);
-  save->gpiod_crl = getreg32(STM32_GPIOE_CRL);
-  save->gpiod_crh = getreg32(STM32_GPIOE_CRH);
-  save->gpioe_crl = getreg32(STM32_GPIOD_CRL);
-  save->gpioe_crh = getreg32(STM32_GPIOD_CRH);
-  save->gpiof_crl = getreg32(STM32_GPIOF_CRL);
-  save->gpiof_crh = getreg32(STM32_GPIOF_CRH);
-  save->gpiog_crl = getreg32(STM32_GPIOG_CRL);
-  save->gpiog_crh = getreg32(STM32_GPIOG_CRH);
+  static bool initialized = false;
+  struct can_dev_s *can;
+  int ret;
+
+  /* Check if we have already initialized */
+
+  if (!initialized)
+    {
+      /* Call stm32_caninitialize() to get an instance of the CAN interface */
+
+      can = stm32_caninitialize(CAN_PORT);
+      if (can == NULL)
+        {
+          candbg("ERROR:  Failed to get CAN interface\n");
+          return -ENODEV;
+        }
+
+      /* Register the CAN driver at "/dev/can0" */
+
+      ret = can_register("/dev/can0", can);
+      if (ret < 0)
+        {
+          candbg("ERROR: can_register failed: %d\n", ret);
+          return ret;
+        }
+
+      /* Now we are initialized */
+
+      initialized = true;
+    }
+
+  return OK;
 }
 
-/************************************************************************************
- * Name: stm32_extcontextrestore
- *
- * Description:
- *  Restore GPIOs that were used by external memory configurations
- *
- ************************************************************************************/
-
-void stm32_extcontextrestore(struct extmem_save_s *restore)
-{
-  DEBUGASSERT(restore != NULL);
-  putreg32(restore->gpiod_crl, STM32_GPIOE_CRL);
-  putreg32(restore->gpiod_crh, STM32_GPIOE_CRH);
-  putreg32(restore->gpioe_crl, STM32_GPIOD_CRL);
-  putreg32(restore->gpioe_crh, STM32_GPIOD_CRH);
-  putreg32(restore->gpiof_crl, STM32_GPIOF_CRL);
-  putreg32(restore->gpiof_crh, STM32_GPIOF_CRH);
-  putreg32(restore->gpiog_crl, STM32_GPIOG_CRL);
-  putreg32(restore->gpiog_crh, STM32_GPIOG_CRH);
-}
-
-#endif /* CONFIG_STM32_FSMC */
-
-
+#endif /* CONFIG_CAN && CONFIG_STM32_CAN1 */

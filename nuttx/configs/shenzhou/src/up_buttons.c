@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/stm3210e-eval/src/up_buttons.c
+ * configs/shenzhou/src/up_buttons.c
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -42,7 +42,7 @@
 #include <stdint.h>
 
 #include <arch/board/board.h>
-#include "stm3210e-internal.h"
+#include "shenzhou-internal.h"
 
 #ifdef CONFIG_ARCH_BUTTONS
 
@@ -53,14 +53,13 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-/* Pin configuration for each STM3210E-EVAL button.  This array is indexed by
- * the BUTTON_* and JOYSTICK_* definitions in board.h
+/* Pin configuration for each Shenzhou button.  This array is indexed by
+ * the BUTTON_* definitions in board.h
  */
 
 static const uint16_t g_buttons[NUM_BUTTONS] =
 {
-  GPIO_BTN_WAKEUP, GPIO_BTN_TAMPER, GPIO_BTN_KEY,   GPIO_JOY_SEL,
-  GPIO_JOY_DOWN,   GPIO_JOY_LEFT,   GPIO_JOY_RIGHT, GPIO_JOY_UP
+  GPIO_BTN_USERKEY2, GPIO_BTN_USERKEY, GPIO_BTN_TAMPER, GPIO_BTN_WAKEUP
 };
 
 /****************************************************************************

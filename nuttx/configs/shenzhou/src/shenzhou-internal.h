@@ -76,7 +76,8 @@
  * 59 PD12 WIRELESS_CS    To the NRF24L01 2.4G wireless module
  */
 
-/* To be provided */
+#define GPIO_WIRELESS_CS  (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                           GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN12)
 
 /* Buttons
  *
@@ -151,7 +152,8 @@
  * 46 PE15 DB15           To TFT LCD (CN13)
  */
 
-/* To be provided */
+#define GPIO_LCD_CS    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN9)
 
 /* RS-485
  *
@@ -171,7 +173,7 @@
  * 95 PB8  USB_PWR        Drives USB VBUS
  */
 
-#define GPIO_USB_PWR      (GPIO_OUTPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTB|GPIO_PIN8)
+#define GPIO_OTGFS_PWRON  (GPIO_OUTPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTB|GPIO_PIN8)
 
 /* Audio DAC
  *

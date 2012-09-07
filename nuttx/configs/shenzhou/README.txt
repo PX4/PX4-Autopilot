@@ -662,19 +662,9 @@ Shenzhou-specific Configuration Options
       For the Shenzhou board, the edge next to the row of buttons
       is used as the top of the display in this orientation.
     CONFIG_LCD_PORTRAIT - Define for 240x320 display "portrait"
-      orientation support.  In this orientation, the STM3210E-EVAL's
-      LCD ribbon cable is at the bottom of the display. Default is
-      320x240 "landscape" orientation.
-      In this orientation, the top of the display is to the left
-      of the buttons (if the board is held so that the buttons are at the
-      botton of the board).
+      orientation support.
     CONFIG_LCD_RPORTRAIT - Define for 240x320 display "reverse
-      portrait" orientation support.  In this orientation, the
-      STM3210E-EVAL's LCD ribbon cable is at the top of the display.
-      Default is 320x240 "landscape" orientation.
-      In this orientation, the top of the display is to the right
-      of the buttons (if the board is held so that the buttons are at the
-      botton of the board).
+      portrait" orientation support.
     CONFIG_LCD_RDSHIFT - When reading 16-bit gram data, there appears
       to be a shift in the returned data.  This value fixes the offset.
       Default 5.

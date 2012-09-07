@@ -3,7 +3,7 @@
  * arch/arm/src/board/up_deselectlcd.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
- *   Authors: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *            Diego Sanchez <dsanchez@nx-engineering.com>
  *
  * Redistribution and use in source and binary forms, with or without
