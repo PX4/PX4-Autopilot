@@ -2659,7 +2659,7 @@ static inline void stm32_ethgpioconfig(FAR struct stm32_ethmac_s *priv)
 
   /* Setup MCO pin for alternative usage */
 
-#if defined(CONFIG_STM32_RMII_MCO)
+#if defined(CONFIG_STM32_MII_MCO)
   stm32_configgpio(GPIO_MCO);
   stm32_mcoconfig(BOARD_CFGR_MCO_SOURCE);
 #endif

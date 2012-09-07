@@ -1562,12 +1562,31 @@ config STM32_MII
 	---help---
 		Support Ethernet MII interface.
 
+choice
+	prompt "MII clock configuration"
+	default STM32_MII_MCO if STM32_STM32F10XX
+	default STM32_MII_MCO1 if STM32_STM32F20XX || STM32_STM32F40XX
+	depends on STM32_MII
+
+config STM32_MII_MCO
+	bool "Use MC0 as MII clock"
+	depends on STM32_STM32F10XX
+	---help---
+		Use MCO to clock the MII interface.  Default:  Use MC0
+
+config STM32_MII_MCO1
+	bool "Use MC01 as MII clock"
+	depends on (STM32_STM32F20XX || STM32_STM32F40XX)
+	---help---
+		Use MCO1 to clock the MII interface.  Default:  Use MC01
+
 config STM32_MII_MCO2
 	bool "Use MC02 as MII clock"
-	default n
-	depends on STM32_MII
+	depends on (STM32_STM32F20XX || STM32_STM32F40XX)
 	---help---
 		Use MCO2 to clock the MII interface.  Default:  Use MC01
+
+endchoice
 
 config STM32_AUTONEG
 	bool "Use autonegtiation"
@@ -1642,11 +1661,6 @@ config STM32_RMII
 	bool
 	default y if !STM32_MII
 	depends on STM32_ETHMAC
-
-config STM32_MII_MCO1
-	bool
-	default y if !STM32_MII_MCO2
-	depends on STM32_MII
 
 menu "USB Host Configuration"
 

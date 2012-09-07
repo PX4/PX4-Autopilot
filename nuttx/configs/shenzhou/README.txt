@@ -40,30 +40,36 @@ Contents
 STM32F107VCT Pin Usage
 ======================
 
+-- ---- -------------- -------------------------------------------------------------------
+PN NAME SIGNAL         NOTES
+-- ---- -------------- -------------------------------------------------------------------
 23 PA0  WAKEUP         Connected to KEY4.  Active low: Closing KEY4 pulls WAKEUP to ground.
 24 PA1  MII_RX_CLK
         RMII_REF_CLK
 25 PA2  MII_MDIO
 26 PA3  315M_VT
-29 PA4  DAC_OUT1
-30 PA5  DAC_OUT2       JP10
-        SPI1_SCK
-31 PA6  SPI1_MISO
-32 PA7  SPI1_MOSI
-67 PA8  MCO
-68 PA9  USB_VBUS       JP3
-        USART1_TX
-69 PA10 USB_ID         JP5
-        USART1TX
-70 PA11 USB_DM
-71 PA12 USB_DP
+29 PA4  DAC_OUT1       To CON5(CN14)
+30 PA5  DAC_OUT2       To CON5(CN14). JP10
+        SPI1_SCK       To the SD card, SPI FLASH
+31 PA6  SPI1_MISO      To the SD card, SPI FLASH
+32 PA7  SPI1_MOSI      To the SD card, SPI FLASH
+67 PA8  MCO            To DM9161AEP PHY
+68 PA9  USB_VBUS       MINI-USB-AB. JP3
+        USART1_TX      MAX3232 to CN5
+69 PA10 USB_ID         MINI-USB-AB. JP5
+        USART1_RX      MAX3232 to CN5
+70 PA11 USB_DM         MINI-USB-AB
+71 PA12 USB_DP         MINI-USB-AB
 72 PA13 TMS/SWDIO
 76 PA14 TCK/SWCLK
 77 PA15 TDI
 
-35 PB0  ADC_IN1
-36 PB1  ADC_IN2
-37 PB2  DATA_LE
+-- ---- -------------- -------------------------------------------------------------------
+PN NAME SIGNAL         NOTES
+-- ---- -------------- -------------------------------------------------------------------
+35 PB0  ADC_IN1        To CON5(CN14)
+36 PB1  ADC_IN2        To CON5(CN14)
+37 PB2  DATA_LE        To TFT LCD (CN13)
         BOOT1          JP13
 89 PB3  TDO/SWO
 90 PB4  TRST
@@ -71,73 +77,85 @@ STM32F107VCT Pin Usage
 92 PB6  CAN2_TX        JP11
         I2C1_SCL
 93 PB7  I2C1_SDA
-95 PB8  USB_PWR
-96 PB9  F_CS
-47 PB10 USERKEY
-48 PB11 MII_TX_EN
-51 PB12 I2S_WS
-        MII_TXD0
-52 PB13 I2S_CK
-        MII_TXD1
+95 PB8  USB_PWR        Drives USB VBUS
+96 PB9  F_CS           To both the TFT LCD (CN13) and to the W25X16 SPI FLASH
+47 PB10 USERKEY        Connected to KEY2
+48 PB11 MII_TX_EN      Ethernet PHY
+51 PB12 I2S_WS         Audio DAC
+        MII_TXD0       Ethernet PHY
+52 PB13 I2S_CK         Audio DAC
+        MII_TXD1       Ethernet PHY
 53 PB14 SD_CD
-54 PB15 I2S_DIN
+54 PB15 I2S_DIN        Audio DAC
 
+-- ---- -------------- -------------------------------------------------------------------
+PN NAME SIGNAL         NOTES
+-- ---- -------------- -------------------------------------------------------------------
 15 PC0  POTENTIO_METER
-16 PC1  MII_MDC
+16 PC1  MII_MDC        Ethernet PHY
 17 PC2  WIRELESS_INT
-18 PC3  WIRELESS_CE
-33 PC4  USERKEY2
-34 PC5  TP_INT         JP6
-        MII_INT
-63 PC6  I2S_MCK        Pulled high
-64 PC7  LCD_CS         Pulled high
-65 PC8  LCD_CS         Pulled high
-66 PC9  TP_CS          Pulled hight
-78 PC10 SPI3_SCK
-79 PC11 SPI3_MISO
-80 PC12 SPI3_MOSI
-7  PC13 TAMPER
+18 PC3  WIRELESS_CE    To the NRF24L01 2.4G wireless module
+33 PC4  USERKEY2       Connected to KEY1
+34 PC5  TP_INT         JP6.  To TFT LCD (CN13) module
+        MII_INT        Ethernet PHY
+63 PC6  I2S_MCK        Audio DAC. Active low: Pulled high
+64 PC7  PCM1770_CS     Audio DAC. Active low: Pulled high
+65 PC8  LCD_CS         TFT LCD (CN13). Active low: Pulled high
+66 PC9  TP_CS          TFT LCD (CN13). Active low: Pulled high
+78 PC10 SPI3_SCK       To TFT LCD (CN13), the NRF24L01 2.4G wireless module
+79 PC11 SPI3_MISO      To TFT LCD (CN13), the NRF24L01 2.4G wireless module
+80 PC12 SPI3_MOSI      To TFT LCD (CN13), the NRF24L01 2.4G wireless module
+7  PC13 TAMPER         Connected to KEY3
 8  PC14 OSC32_IN       Y1 32.768Khz XTAL
 9  PC15 OSC32_OUT      Y1 32.768Khz XTAL
 
+-- ---- -------------- -------------------------------------------------------------------
+PN NAME SIGNAL         NOTES
+-- ---- -------------- -------------------------------------------------------------------
 81 PD0  CAN1_RX
 82 PD1  CAN1_TX
-83 PD2  LED1
-84 PD3  LED2
-85 PD4  LED3
-86 PD5  485_TX
-        USART2_TX
-87 PD6  485_RX         JP4
-        USART2_RX
-88 PD7  LED4
-        485_DIR
-55 PD8  MII_RX_DV
-        RMII_CRSDV
-56 PD9  MII_RXD0
-57 PD10 MII_RXD1
-58 PD11 SD_CS
-59 PD12 WIRELESS_CS
-60 PD13 LCD_RS
-61 PD14 LCD_WR
-62 PD15 LCD_RD
+83 PD2  LED1           Active low: Pulled high
+84 PD3  LED2           Active low: Pulled high
+85 PD4  LED3           Active low: Pulled high
+86 PD5  485_TX         Same as USART2_TX but goes to SP3485
+        USART2_TX      MAX3232 to CN6
+87 PD6  485_RX         Save as USART2_RX but goes to SP3485 (see JP4)
+        USART2_RX      MAX3232 to CN6
+88 PD7  LED4           Active low: Pulled high
+        485_DIR        SP3485 read enable (not)
+55 PD8  MII_RX_DV      Ethernet PHY
+        RMII_CRSDV     Ethernet PHY
+56 PD9  MII_RXD0       Ethernet PHY
+57 PD10 MII_RXD1       Ethernet PHY
+58 PD11 SD_CS          Active low: Pulled high
+59 PD12 WIRELESS_CS    To the NRF24L01 2.4G wireless module
+60 PD13 LCD_RS         To TFT LCD (CN13)
+61 PD14 LCD_WR         To TFT LCD (CN13)
+62 PD15 LCD_RD         To TFT LCD (CN13)
 
-97 PE0  DB00
-98 PE1  DB01
-1  PE2  DB02
-2  PE3  DB03
-3  PE4  DB04
-4  PE5  DB05
-5  PE6  DB06
-38 PE7  DB07
-39 PE8  DB08
-40 PE9  DB09
-41 PE10 DB10
-42 PE11 DB11
-43 PE12 DB12
-44 PE13 DB13
-45 PE14 DB14
-46 PE15 DB15
+-- ---- -------------- -------------------------------------------------------------------
+PN NAME SIGNAL         NOTES
+-- ---- -------------- -------------------------------------------------------------------
+97 PE0  DB00           To TFT LCD (CN13)
+98 PE1  DB01           To TFT LCD (CN13)
+1  PE2  DB02           To TFT LCD (CN13)
+2  PE3  DB03           To TFT LCD (CN13)
+3  PE4  DB04           To TFT LCD (CN13)
+4  PE5  DB05           To TFT LCD (CN13)
+5  PE6  DB06           To TFT LCD (CN13)
+38 PE7  DB07           To TFT LCD (CN13)
+39 PE8  DB08           To TFT LCD (CN13)
+40 PE9  DB09           To TFT LCD (CN13)
+41 PE10 DB10           To TFT LCD (CN13)
+42 PE11 DB11           To TFT LCD (CN13)
+43 PE12 DB12           To TFT LCD (CN13)
+44 PE13 DB13           To TFT LCD (CN13)
+45 PE14 DB14           To TFT LCD (CN13)
+46 PE15 DB15           To TFT LCD (CN13)
 
+-- ---- -------------- -------------------------------------------------------------------
+PN NAME SIGNAL         NOTES
+-- ---- -------------- -------------------------------------------------------------------
 73 N/C
 
 12 OSC_IN              Y2 25Mhz XTAL
@@ -154,7 +172,6 @@ STM32F107VCT Pin Usage
 10 VSS_5               GND
 19 VSSA                VSSA
 20 VREF-               VREF-
-
 
 Development Environment
 =======================
