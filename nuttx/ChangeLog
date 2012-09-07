@@ -3274,4 +3274,10 @@
 	* Kconfig: Verify configuration settings for the LPC43xx.  This includes
 	  some corrections to configuration variable names and defconfig settings.
 	* Kconfig: Add and verify configuration settings for the LPC31xx.
-
+	* arch/arm/src/stm32/stm32_uart.h and stm32_serial.c:  Add logic to
+	  re-initialize the console UART as needed to enable DMA on the
+	  console UART (contributed by Mike Smith).
+	* net/recvfrom.c, net/Kconfig, include/nuttx/net/uipopt.h: Remove delay
+	  after receiving data.  That has historical reasons to be there (it
+	  was needed before read-ahead buffering was added), but kills performance.
+	  (Noted by Max Holtzberg).

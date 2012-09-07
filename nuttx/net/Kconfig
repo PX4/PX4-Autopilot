@@ -112,16 +112,43 @@ config NET_MAX_LISTENPORTS
 		Maximum number of listening TCP/IP ports (all tasks).  Default: 20
 
 config NET_TCP_READAHEAD_BUFSIZE
-	bool "TCP/IP read-ahead buffer size"
+	int "TCP/IP read-ahead buffer size"
 	default 562
 	---help---
-		Size of TCP/IP read-ahead buffers
+		Read-ahead buffers allows buffering of TCP/IP packets when there is no
+		receive in place to catch the TCP packet.  In that case, the packet
+		will be retained in the NuttX read-ahead buffers.
+
+		This setting specifies the size of one TCP/IP read-ahead buffer.
+		This should best be a equal to the maximum packet size (NET_BUFSIZE).
 
 config NET_NTCP_READAHEAD_BUFFERS
 	int "Number of TCP/IP read-ahead buffers"
 	default 8
 	---help---
-		Number of TCP/IP read-ahead buffers (may be zero)
+		Read-ahead buffers allows buffering of TCP/IP packets when there is no
+		receive in place to catch the TCP packet.  In that case, the packet
+		will be retained in the NuttX read-ahead buffers.
+
+		This setting specifies the number of TCP/IP read-ahead buffers  This
+		value can be set to zero to disable all TCP/IP read-ahead buffering.
+		You might want to disable TCP/IP read-ahead buffering on a highly
+		memory constained system that does not have any TCP/IP packet rate
+		issues.
+
+config NET_TCP_RECVDELAY
+	int "TCP Rx delay"
+	default 0
+	---help---
+		If NET_NTCP_READAHEAD_BUFFERS is zero, then there will be no buffering
+		of TCP/IP packets:  Any TCP/IP packet received will be ACKed, but its contents
+		will be dropped in the bit-bucket.
+
+		One low-performance option is delay for a short period of time after a
+		TCP/IP packet is received to see if another comes right behind it. Then
+		the packet data from both can be combined.  This option only makes since
+		if performance is not an issue and you need to handle short bursts of
+		small, back-to-back packets.  The delay is in units of deciseconds.
 
 config NET_TCPBACKLOG
 	bool "TCP/IP backlog support"

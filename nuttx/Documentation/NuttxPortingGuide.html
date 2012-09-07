@@ -5037,7 +5037,12 @@ build
     <code>CONFIG_NET_TCP_READAHEAD_BUFSIZE</code>: Size of TCP read-ahead buffers
   </li>
   <li>
-    <code>CONFIG_NET_NTCP_READAHEAD_BUFFERS</code>: Number of TCP read-ahead buffers (may be zero)
+    <code>CONFIG_NET_NTCP_READAHEAD_BUFFERS</code>: Number of TCP read-ahead buffers (may be zero to disable TCP/IP read-ahead buffering)
+  </li>
+  <li>
+    <code>CONFIG_NET_TCP_RECVDELAY</code>: Delay (in deciseconds) after a TCP/IP packet is received.
+     This delay may allow catching of additional packets when TCP/IP read-ahead is disabled.
+     Default: 0
   </li>
   <li>
     <code>CONFIG_NET_MAX_LISTENPORTS</code>: Maximum number of listening TCP ports (all tasks).

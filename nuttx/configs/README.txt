@@ -990,7 +990,10 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_NET_MAX_LISTENPORTS - Maximum number of listening TCP ports (all tasks)
     CONFIG_NET_TCP_READAHEAD_BUFSIZE - Size of TCP read-ahead buffers
     CONFIG_NET_NTCP_READAHEAD_BUFFERS - Number of TCP read-ahead buffers
-      (may be zero)
+      (may be zero to disable TCP/IP read-ahead buffering)
+    CONFIG_NET_TCP_RECVDELAY - Delay (in deciseconds) after a TCP/IP packet
+      is received.  This delay may allow catching of additional packets
+      when TCP/IP read-ahead is disabled.  Default: 0
     CONFIG_NET_TCPBACKLOG - Incoming connections pend in a backlog until
       accept() is called. The size of the backlog is selected when listen()
       is called.

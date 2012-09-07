@@ -59,8 +59,6 @@
  * Definitions
  ****************************************************************************/
 
-#define TCP_TIMEO 10  /* Deciseconds after data received before recv() returns */
-
 #define UDPBUF ((struct uip_udpip_hdr *)&dev->d_buf[UIP_LLH_LEN])
 #define TCPBUF ((struct uip_tcpip_hdr *)&dev->d_buf[UIP_LLH_LEN])
 
@@ -354,31 +352,39 @@ static int recvfrom_timeout(struct recvfrom_s *pstate)
   FAR struct socket *psock = 0;
   socktimeo_t        timeo = 0;
 
-  /* If this is a TCP socket that has already received some data,
-   * than we will always use a short timeout.
+  /* Check for a timeout configured via setsockopts(SO_RCVTIMEO). If none...
+   * we well let the read hang forever (except for the special case below).
    */
 
-  if (pstate->rf_recvlen > 0)
-    {
-      /* Use the short timeout */
+  /* Get the socket reference from the private data */
 
-      timeo = TCP_TIMEO;
+  psock = pstate->rf_sock;
+  if (psock)
+    {
+      /* Recover the timeout value (zero if no timeout) */
+
+      timeo = psock->s_rcvtimeo;
     }
 
-  /* No.. check for a timeout configured via setsockopts(SO_RCVTIMEO).
-   * If none... we well let the read hang forever.
+  /* Use a fixed, configurable delay under the following circumstances:
+   *
+   * 1) This delay function has been enabled with CONFIG_NET_TCP_RECVDELAY > 0
+   * 2) Some data has already been received from the socket.  Since this can
+   *    only be true for a TCP/IP socket, this logic applies only to TCP/IP
+   *    sockets, and either
+   * 3) There is no configured receive timeout, or
+   * 4) The configured receive timeout is greater than than the delay
    */
 
-  else
+#if CONFIG_NET_TCP_RECVDELAY > 0
+  if ((timeo == 0 || timeo > CONFIG_NET_TCP_RECVDELAY) &&
+      pstate->rf_recvlen > 0)
     {
-      /* Get the socket reference from the private data */
+      /* Use the configured timeout */
 
-      psock = pstate->rf_sock;
-      if (psock)
-        {
-          timeo = psock->s_rcvtimeo;
-        }
+      timeo = CONFIG_NET_TCP_RECVDELAY;
     }
+#endif
 
   /* Is there an effective timeout? */
 
@@ -389,7 +395,7 @@ static int recvfrom_timeout(struct recvfrom_s *pstate)
       return net_timeo(pstate->rf_starttime, timeo);
     }
 
-  /* No timeout */
+  /* No timeout -- hang forever waiting for data. */
 
   return FALSE;
 }
@@ -489,9 +495,28 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
 
           flags = (flags & ~UIP_NEWDATA) | UIP_SNDACK;
 
-          /* If the user buffer has been filled, then we are finished. */
+          /* Check for transfer complete.  We will consider the transfer
+           * complete in own of two different ways, depending on the setting
+           * of CONFIG_NET_TCP_RECVDELAY.
+           *
+           * 1) If CONFIG_NET_TCP_RECVDELAY == 0 then we will consider the
+           *    TCP/IP transfer complete as soon as any data has been received.
+           *    This is safe because if any additional data is received, it
+           *    will be retained inthe TCP/IP read-ahead buffer until the
+           *    next receive is performed.
+           * 2) CONFIG_NET_TCP_RECVDELAY > 0 may be set to wait a little
+           *    bit to determine if more data will be received.  You might
+           *    do this if read-ahead buffereing is disabled and we want to
+           *    minimize the loss of back-to-back packets.  In this case,
+           *    the transfer is complete when either a) the entire user buffer 
+           *    is full or 2) when the receive timeout occurs (below).
+           */
 
+#if CONFIG_NET_TCP_RECVDELAY > 0
           if (pstate->rf_buflen == 0)
+#else
+          if (pstate->rf_recvlen > 0)
+#endif
             {
               nllvdbg("TCP resume\n");
 

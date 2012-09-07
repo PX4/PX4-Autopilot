@@ -296,7 +296,23 @@
 /* The size of the TCP read buffer size */
 
 #ifndef CONFIG_NET_TCP_READAHEAD_BUFSIZE
-# define CONFIG_NET_TCP_READAHEAD_BUFSIZE UIP_TCP_MSS
+#  if CONFIG_NET_NTCP_READAHEAD_BUFFERS < 1
+#    define CONFIG_NET_TCP_READAHEAD_BUFSIZE 0
+#  else
+#    define CONFIG_NET_TCP_READAHEAD_BUFSIZE UIP_TCP_MSS
+#  endif
+#endif
+
+/* Delay after receive to catch a following packet.  No delay should be
+ * required if TCP/IP read-ahead buffering is enabled.
+ */
+
+#ifndef CONFIG_NET_TCP_RECVDELAY
+#  if CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0
+#    define CONFIG_NET_TCP_RECVDELAY 0
+#  else
+#    define CONFIG_NET_TCP_RECVDELAY 5
+#  endif
 #endif
 
 /****************************************************************************
