@@ -221,6 +221,9 @@ CONFIG_AT24XX_MTD_BLOCKSIZE=256
 #   tcflush, etc.).  If this is not defined, then the terminal settings (baud,
 #   parity, etc.) are not configurable at runtime; serial streams cannot be
 #   flushed, etc.
+# CONFIG_SERIAL_CONSOLE_REINIT - re-initializes the console serial port
+#   immediately after creating the /dev/console device.  This is required
+#   if the console serial port has RX DMA enabled.
 #
 # CONFIG_USARTn_SERIAL_CONSOLE - selects the USARTn for the
 #   console and ttys0 (default is the USART1).
@@ -234,6 +237,7 @@ CONFIG_AT24XX_MTD_BLOCKSIZE=256
 # CONFIG_USARTn_2STOP - Two stop bits
 #
 CONFIG_SERIAL_TERMIOS=y
+CONFIG_SERIAL_CONSOLE_REINIT=y
 
 CONFIG_USART1_SERIAL_CONSOLE=y
 CONFIG_USART2_SERIAL_CONSOLE=n
