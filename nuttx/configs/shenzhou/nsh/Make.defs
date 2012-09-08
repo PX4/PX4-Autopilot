@@ -88,7 +88,13 @@ ifeq ($(CONFIG_STM32_BUILDROOT),y)
   MAXOPTIMIZATION = -Os
 endif
 
-LDSCRIPT = ld.script
+# Pick the linker script
+
+ifeq ($(CONFIG_STM32_DFU),y)
+  LDSCRIPT = ld.script.dfu
+else
+  LDSCRIPT = ld.script
+endif
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains

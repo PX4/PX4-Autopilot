@@ -143,7 +143,7 @@ config DRAM_SIZE
 comment "Boot options"
 
 choice
-	prompt "LPC31xx Boot Mode"
+	prompt "Boot Mode"
 	default BOOT_RUNFROMFLASH
 
 config BOOT_RUNFROMEXTSRAM
