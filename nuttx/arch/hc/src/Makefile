@@ -107,11 +107,6 @@ nuttx: $(HEAD_OBJ) board/libboard$(LIBEXT)
 	@echo "LD: nuttx"
 	@$(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) -o $(NUTTX)$(EXEEXT) $(HEAD_OBJ) \
 		--start-group $(LDLIBS) -lboard $(EXTRA_LIBS) $(LIBGCC) --end-group
-ifeq ($(CONFIG_BOOT_RUNFROMFLASH),y)
-	@export flashloc=`$(OBJDUMP) --all-headers $(NUTTX)$(EXEEXT) | grep _eronly | cut -d' ' -f1`;  \
-	$(OBJCOPY) $(OBJCOPYARGS) --adjust-section-vma=.data=0x$$flashloc $(NUTTX)$(EXEEXT) $(NUTTX).flashimage
-	@mv $(NUTTX).flashimage $(NUTTX)$(EXEEXT)
-endif
 	@$(NM) $(NUTTX)$(EXEEXT) | \
 	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
 	sort > $(TOPDIR)/System.map

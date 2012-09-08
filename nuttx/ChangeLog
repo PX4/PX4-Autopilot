@@ -3284,4 +3284,12 @@
 	* configs/shenzhou:  Add beginnings of a board configuration for the
 	  Shenzhou STM32107 board (see www.armjishu.com).  Very little is in
 	  place as of this initial check-in.
+	* QEMU: Fixes from Richard Cochran to build QEMU with Kconfig files.
+	* arch/*/src/Makefile:  Remove some old logic that was kicked off
+	  when CONFIG_BOOT_RUNFROMFLASH=y.  The old logic used to use
+	  objcopy to move sections.  Newer logic changes the load position
+	  of sections in the the linker script.  As far as I can tell, there
+	  is nothing in the source tree now that depends on the old way of
+	  doing things (if I am wrong, they will need a change to the linker
+	  script).
 

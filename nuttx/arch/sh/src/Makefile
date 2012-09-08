@@ -85,11 +85,6 @@ nuttx: $(HEAD_OBJ) board/libboard$(LIBEXT)
 	@echo "LD: nuttx"
 	@$(LD) --entry=__start $(LDFLAGS) $(LDPATHES) -L$(BOARDDIR) -o $(TOPDIR)/$@ $(HEAD_OBJ) \
 		--start-group $(LDLIBS) -lboard $(EXTRA_LIBS) $(LIBGCC) --end-group
-ifeq ($(CONFIG_BOOT_RUNFROMFLASH),y)
-	@export flashloc=`$(OBJDUMP) --all-headers $(TOPDIR)/$@ | grep _eronly | cut -d' ' -f1`;  \
-	$(OBJCOPY) --adjust-section-vma=.data=0x$$flashloc $(TOPDIR)/$@ $(TOPDIR)/$@.flashimage
-	@mv $(TOPDIR)/$@.flashimage $(TOPDIR)/$@
-endif
 	@$(NM) $(TOPDIR)/$@ | \
 	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
 	sort > $(TOPDIR)/System.map
