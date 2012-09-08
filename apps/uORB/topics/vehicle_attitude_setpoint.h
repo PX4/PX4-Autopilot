@@ -64,6 +64,9 @@ struct vehicle_attitude_setpoint_s
 	float roll_body;				/**< body angle in NED frame		*/
 	float pitch_body;				/**< body angle in NED frame		*/
 	float yaw_body;					/**< body angle in NED frame		*/
+	float roll_rate_body;				/**< body angle in NED frame		*/
+	float pitch_rate_body;				/**< body angle in NED frame		*/
+	float yaw_rate_body;					/**< body angle in NED frame		*/
 	float body_valid;				/**< Set to true if Tait-Bryan angles are valid */
 
 	float R_body[9];				/**< Rotation matrix describing the setpoint as rotation from the current body frame */

@@ -98,7 +98,6 @@ mc_thread_main(int argc, char *argv[])
 	memset(&setpoint, 0, sizeof(setpoint));
 
 	struct actuator_controls_s actuators;
-	struct actuator_armed_s armed;
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -113,10 +112,11 @@ mc_thread_main(int argc, char *argv[])
 	struct pollfd fds = { .fd = att_sub, .events = POLLIN };
 
 	/* publish actuator controls */
-	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
+	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
 		actuators.control[i] = 0.0f;
+	}
+
 	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
-	armed.armed = false;
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 
 	/* register the perf counter */
@@ -143,12 +143,16 @@ mc_thread_main(int argc, char *argv[])
 
 		att_sp.roll_body = -manual.roll * M_PI_F / 8.0f;
 		att_sp.pitch_body = -manual.pitch * M_PI_F / 8.0f;
-		att_sp.yaw_body = -manual.yaw * M_PI_F;
+		att_sp.yaw_rate_body = -manual.yaw * M_PI_F;
 		att_sp.timestamp = hrt_absolute_time();
+		
 		if (motor_test_mode) {
 			att_sp.roll_body = 0.0f;
 			att_sp.pitch_body = 0.0f;
 			att_sp.yaw_body = 0.0f;
+			att_sp.roll_rate_body = 0.0f;
+			att_sp.pitch_rate_body = 0.0f;
+			att_sp.yaw_rate_body = 0.0f;
 			att_sp.thrust = 0.1f;
 		} else {
 			att_sp.thrust = manual.throttle;
