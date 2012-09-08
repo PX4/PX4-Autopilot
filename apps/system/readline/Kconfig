@@ -19,21 +19,4 @@ config READLINE_ECHO
 		already has local echo support or you need to suppress the back-channel
 		responses for any other reason.
 
-choice
-	prompt "Newline Options"
-	default EOL_IS_EITHER_CRLF
-
-config EOL_IS_CR
-	bool "EOL is CR"
-
-config EOL_IS_LF
-	bool "EOL is LF"
-
-config EOL_IS_BOTH_CRLF
-	bool "EOL is CR and LF"
-
-config EOL_IS_EITHER_CRLF
-	bool "EOL is CR or LF"
-
-endchoice
 endif

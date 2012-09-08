@@ -195,9 +195,9 @@ int cmd_df(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     defined(CONFIG_FS_READABLE) && !defined(CONFIG_NSH_DISABLE_MOUNT)
 int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
-  char *source;
-  char *target;
-  char *filesystem = 0;
+  FAR char *source;
+  FAR char *target;
+  FAR char *filesystem = NULL;
   bool badarg = false;
   int ret;
 
@@ -208,7 +208,11 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       return mount_show(vtbl, argv[0]);
     }
 
-  /* Get the mount options */
+  /* Get the mount options.  NOTE: getopt() is not thread safe nor re-entrant.
+   * To keep its state proper for the next usage, it is necessary to parse to
+   * the end of the line even if an error occurs.  If an error occurs, this
+   * logic just sets 'badarg' and continues.
+   */
 
   int option;
   while ((option = getopt(argc, argv, ":t:")) != ERROR)
@@ -232,14 +236,18 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
         }
     }
 
-  /* If a bad argument was encountered, then return without processing the command */
+  /* If a bad argument was encountered, then return without processing the
+   * command.
+   */
 
   if (badarg)
     {
       return ERROR;
     }
 
-  /* There are two required arguments after the options */
+  /* There are two required arguments after the options: the source and target
+   * paths.
+   */
 
   if (optind + 2 < argc)
     {
@@ -247,6 +255,16 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       return ERROR;
     }
   else if (optind + 2 > argc)
+    {
+      nsh_output(vtbl, g_fmtargrequired, argv[0]);
+      return ERROR;
+    }
+
+  /* While the above parsing for the -t argument looks nice, the -t argument
+   * not really optional.
+   */
+
+  if (!filesystem)
     {
       nsh_output(vtbl, g_fmtargrequired, argv[0]);
       return ERROR;

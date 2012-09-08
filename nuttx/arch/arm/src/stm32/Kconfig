@@ -11,80 +11,93 @@ choice
 config ARCH_CHIP_STM32F103ZET6
 	bool "STM32F103ZET6"
 	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
 
 config ARCH_CHIP_STM32F103RET6
 	bool "STM32F103RET6"
 	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
 
 config ARCH_CHIP_STM32F103VCT6
 	bool "STM32F103VCT6"
 	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
 
 config ARCH_CHIP_STM32F105VBT7
 	bool "STM32F105VBT7"
 	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_CONNECTIVITYLINE
 
 config ARCH_CHIP_STM32F107VC
 	bool "STM32F107VC"
 	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_CONNECTIVITYLINE
 
 config ARCH_CHIP_STM32F207IG
 	bool "STM32F207IG"
 	select ARCH_CORTEXM3
+	select STM32_STM32F20XX
 
 config ARCH_CHIP_STM32F405RG
 	bool "STM32F405RG"
-	select ARCH_CORTEXM3
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F405VG
 	bool "STM32F405VG"
-	select ARCH_CORTEXM3
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F405ZG
 	bool "STM32F405ZG"
-	select ARCH_CORTEXM3
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F407VE
 	bool "STM32F407VE"
-	select ARCH_CORTEXM3
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F407VG
 	bool "STM32F407VG"
 	select ARCH_CORTEXM3
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F407ZE
 	bool "STM32F407ZE"
 	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F407ZG
 	bool "STM32F407ZG"
 	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F407IE
 	bool "STM32F407IE"
 	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F407IG
 	bool "STM32F407IG"
 	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 endchoice
 
 config STM32_STM32F10XX
 	bool
-	default y if ARCH_CHIP_STM32F103ZET6 || ARCH_CHIP_STM32F103RET6 || ARCH_CHIP_STM32F103VCT6 || ARCH_CHIP_STM32F105VBT7 || ARCH_CHIP_STM32F107VC
 
 config STM32_CONNECTIVITYLINE
 	bool
-	default y if ARCH_CHIP_STM32F105VBT7 || ARCH_CHIP_STM32F107VC
 
 config STM32_STM32F20XX
 	bool
-	default y if ARCH_CHIP_STM32F207IG
 
 config STM32_STM32F40XX
 	bool
-	default y if ARCH_CHIP_STM32F405RG || ARCH_CHIP_STM32F405VG || ARCH_CHIP_STM32F405ZG || ARCH_CHIP_STM32F407VE || ARCH_CHIP_STM32F407VG || ARCH_CHIP_STM32F407ZE || ARCH_CHIP_STM32F407ZG || ARCH_CHIP_STM32F407IE || ARCH_CHIP_STM32F407IG
 
 choice
 	prompt "Toolchain Selection"
@@ -160,11 +173,13 @@ config STM32_BKPSRAM
 config STM32_CAN1
 	bool "CAN1"
 	default n
+	select CAN
 
 config STM32_CAN2
 	bool "CAN2"
 	default n
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	select CAN
 
 config STM32_CCMDATARAM
 	bool "CMD/DATA RAM"
@@ -192,11 +207,12 @@ config STM32_DCMI
 config STM32_ETHMAC
 	bool "Ethernet MAC"
 	default n
-	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	depends on STM32_CONNECTIVITYLINE || STM32_STM32F20XX || STM32_STM32F40XX
 
 config STM32_FSMC
 	bool "FSMC"
 	default n
+	depends on !STM32_CONNECTIVITYLINE
 
 config STM32_HASH
 	bool "HASH"
@@ -219,6 +235,7 @@ config STM32_I2C3
 config STM32_IWDG
 	bool "IWDG"
 	default n
+	select WATCHDOG
 
 config STM32_OTGFS
 	bool "OTG FS"
@@ -242,24 +259,29 @@ config STM32_RNG
 config STM32_SDIO
 	bool "SDIO"
 	default n
+	depends on !STM32_CONNECTIVITYLINE
 
 config STM32_SPI1
 	bool "SPI1"
 	default n
+	select SPI
 
 config STM32_SPI2
 	bool "SPI2"
 	default n
+	select SPI
 
 config STM32_SPI3
 	bool "SPI3"
 	default n
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	select SPI
 
 config STM32_SPI4
 	bool "SPI4"
 	default n
 	depends on STM32_STM32F10XX
+	select SPI
 
 config STM32_SYSCFG
 	bool "SYSCFG"
@@ -330,43 +352,45 @@ config STM32_TIM14
 
 config STM32_USART1
 	bool "USART1"
-	select ARCH_HAS_USART1
 	default n
+	select ARCH_HAVE_USART1
 
 config STM32_USART2
 	bool "USART2"
-	select ARCH_HAS_USART2
 	default n
+	select ARCH_HAVE_USART2
 
 config STM32_USART3
 	bool "USART3"
-	select ARCH_HAS_USART3
 	default n
+	select ARCH_HAVE_USART3
 
 config STM32_UART4
 	bool "UART4"
-	select ARCH_HAS_UART4
 	default n
+	select ARCH_HAVE_UART4
 
 config STM32_UART5
 	bool "UART5"
-	select ARCH_HAS_UART5
 	default n
+	select ARCH_HAVE_UART5
 
 config STM32_USART6
 	bool "USART6"
 	default n
-	select ARCH_HAS_USART6
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	select ARCH_HAVE_USART6
 
 config STM32_USB
 	bool "USB Device"
 	default n
 	depends on STM32_STM32F10XX
+	select USBDEV
 
 config STM32_WWDG
 	bool "WWDG"
 	default n
+	select WATCHDOG
 
 endmenu
 
@@ -495,18 +519,23 @@ choice
 config STM32_CAN1_NO_REMAP
 	bool "No pin remapping"
 
-config STM32_CAN1_FULL_REMAP
-	bool "Full pin remapping"
+config CONFIG_STM32_CAN1_REMAP1
+	bool "CAN1 alternate pin remapping #1"
 
-config STM32_CAN1_PARTIAL_REMAP
-	bool "Partial pin remapping"
+config CONFIG_STM32_CAN1_REMAP2
+	bool "CAN1 alternate pin remapping #2"
 
 endchoice
 
 config STM32_CAN2_REMAP
 	bool "CAN2 Alternate Pin Mapping"
 	default n
-	depends on STM32_STM32F10XX && STM32_CAN2
+	depends on STM32_CONNECTIVITYLINE && STM32_CAN2
+
+config STM32_ETH_REMAP
+	bool "Ethernet Alternate Pin Mapping"
+	default n
+	depends on STM32_CONNECTIVITYLINE && STM32_ETHMAC
 
 choice
 	prompt "JTAG Configuration"

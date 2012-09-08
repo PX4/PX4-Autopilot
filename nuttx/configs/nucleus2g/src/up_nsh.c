@@ -56,8 +56,8 @@
 /* PORT and SLOT number probably depend on the board configuration */
 
 #ifdef CONFIG_ARCH_BOARD_NUCLEUS2G
-#  define CONFIG_NSH_HAVEUSBDEV 1
-#  define CONFIG_NSH_HAVEMMCSD  1
+#  define NSH_HAVEUSBDEV 1
+#  define NSH_HAVEMMCSD  1
 #  if !defined(CONFIG_NSH_MMCSDSPIPORTNO) || CONFIG_NSH_MMCSDSPIPORTNO != 0
 #    error "The Nucleus-2G MMC/SD is on SSP0"
 #    undef CONFIG_NSH_MMCSDSPIPORTNO
@@ -73,20 +73,20 @@
 #  endif
 #else
 #  error "Unrecognized board"
-#  undef CONFIG_NSH_HAVEUSBDEV
-#  undef CONFIG_NSH_HAVEMMCSD
+#  undef NSH_HAVEUSBDEV
+#  undef NSH_HAVEMMCSD
 #endif
 
 /* Can't support USB device features if USB device is not enabled */
 
 #ifndef CONFIG_USBDEV
-#  undef CONFIG_NSH_HAVEUSBDEV
+#  undef NSH_HAVEUSBDEV
 #endif
 
 /* Can't support MMC/SD features if mountpoints are disabled */
 
 #if defined(CONFIG_DISABLE_MOUNTPOINT)
-#  undef CONFIG_NSH_HAVEMMCSD
+#  undef NSH_HAVEMMCSD
 #endif
 
 #ifndef CONFIG_NSH_MMCSDMINOR

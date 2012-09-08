@@ -96,7 +96,7 @@ config LPC17_PLL1
 config LPC17_ETHERNET
 	bool "Ethernet"
 	select NET
-	select ARCH_HAS_PHY
+	select ARCH_HAVE_PHY
 	default n
 
 config LPC17_USBHOST
@@ -116,27 +116,27 @@ config LPC17_USBOTG
 
 config LPC17_UART0
 	bool "UART0"
-	select ARCH_HAS_UART0
+	select ARCH_HAVE_UART0
 	default n
 
 config LPC17_UART1
 	bool "UART1"
-	select ARCH_HAS_UART1
+	select ARCH_HAVE_UART1
 	default n
 
 config LPC17_UART2
 	bool "UART2"
-	select ARCH_HAS_UART2
+	select ARCH_HAVE_UART2
 	default n
 
 config LPC17_UART3
 	bool "UART3"
-	select ARCH_HAS_UART3
+	select ARCH_HAVE_UART3
 	default n
 
 config LPC17_CAN1
 	bool "CAN1"
-	select ARCH_HAS_UART4
+	select ARCH_HAVE_UART4
 	default n
 
 config LPC17_CAN2

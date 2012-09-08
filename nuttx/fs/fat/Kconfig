@@ -11,12 +11,6 @@ config FS_FAT
 		Enable FAT filesystem support
 
 if FS_FAT
-config FAT_SECTORSIZE
-	int "FAT sector size"
-	default 512
-	---help---
-		Max supported sector size
-
 config FAT_LCNAMES
 	bool "FAT upper/lower names"
 	default n

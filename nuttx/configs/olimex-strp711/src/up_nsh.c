@@ -56,9 +56,9 @@
 /* PORT and SLOT number probably depend on the board configuration */
 
 #ifdef CONFIG_ARCH_BOARD_OLIMEX_STRP711
-#  define CONFIG_NSH_HAVEUSBDEV 1
+#  define NSH_HAVEUSBDEV 1
 #  ifdef CONFIG_STR71X_BSPI1
-#    define CONFIG_NSH_HAVEMMCSD  1
+#    define NSH_HAVEMMCSD  1
 #    if !defined(CONFIG_NSH_MMCSDSPIPORTNO) || CONFIG_NSH_MMCSDSPIPORTNO != 1
 #      error "The Olimex STR-P711 MMC/SD is on BSPI1"
 #      undef CONFIG_NSH_MMCSDSPIPORTNO
@@ -70,25 +70,25 @@
 #      define CONFIG_NSH_MMCSDSLOTNO 0
 #    endif
 #  else
-#    undef CONFIG_NSH_HAVEMMCSD
+#    undef NSH_HAVEMMCSD
 #  endif
 #else
    /* Add configuration for new STR71x boards here */
 #  error "Unrecognized STR71x board"
-#  undef CONFIG_NSH_HAVEUSBDEV
-#  undef CONFIG_NSH_HAVEMMCSD
+#  undef NSH_HAVEUSBDEV
+#  undef NSH_HAVEMMCSD
 #endif
 
 /* Can't support USB features if USB is not enabled */
 
 #ifndef CONFIG_USBDEV
-#  undef CONFIG_NSH_HAVEUSBDEV
+#  undef NSH_HAVEUSBDEV
 #endif
 
 /* Can't support MMC/SD features if mountpoints are disabled */
 
 #if defined(CONFIG_DISABLE_MOUNTPOINT)
-#  undef CONFIG_NSH_HAVEMMCSD
+#  undef NSH_HAVEMMCSD
 #endif
 
 #ifndef CONFIG_NSH_MMCSDMINOR
@@ -128,7 +128,7 @@ int nsh_archinitialize(void)
   FAR struct spi_dev_s *spi;
   int ret;
 
-#ifdef CONFIG_NSH_HAVEMMCSD
+#ifdef NSH_HAVEMMCSD
 
   /* Get the SPI port */
 

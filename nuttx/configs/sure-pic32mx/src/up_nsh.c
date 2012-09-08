@@ -61,8 +61,8 @@
 /* PORT and SLOT number probably depend on the board configuration */
 
 #ifdef CONFIG_ARCH_BOARD_SUREPIC32MX
-#  define CONFIG_NSH_HAVEMMCSD   1
-#  define CONFIG_NSH_HAVEUSBHOST 1
+#  define NSH_HAVEMMCSD   1
+#  define NSH_HAVEUSBHOST 1
 #  if !defined(CONFIG_NSH_MMCSDSPIPORTNO) || CONFIG_NSH_MMCSDSPIPORTNO != 2
 #    error "The Sure PIC32MX MMC/SD is on SPI2"
 #    undef CONFIG_NSH_MMCSDSPIPORTNO
@@ -75,18 +75,18 @@
 #  endif
 #  ifndef CONFIG_PIC32MX_SPI2
 #    warning "CONFIG_PIC32MX_SPI2 is not enabled"
-#    undef CONFIG_NSH_HAVEMMCSD
+#    undef NSH_HAVEMMCSD
 #  endif
 #else
 #  error "Unrecognized board"
-#  undef CONFIG_NSH_HAVEMMCSD
-#  undef CONFIG_NSH_HAVEUSBHOST
+#  undef NSH_HAVEMMCSD
+#  undef NSH_HAVEUSBHOST
 #endif
 
 /* Can't support MMC/SD features if mountpoints are disabled */
 
 #if defined(CONFIG_DISABLE_MOUNTPOINT)
-#  undef CONFIG_NSH_HAVEMMCSD
+#  undef NSH_HAVEMMCSD
 #endif
 
 #ifndef CONFIG_NSH_MMCSDMINOR
@@ -108,10 +108,10 @@
 #endif
 
 #if !defined(CONFIG_USBHOST) || !defined(CONFIG_PIC32MX_USBHOST)
-#  undef CONFIG_NSH_HAVEUSBHOST
+#  undef NSH_HAVEUSBHOST
 #endif
 
-#ifdef CONFIG_NSH_HAVEUSBHOST
+#ifdef NSH_HAVEUSBHOST
 #  ifndef CONFIG_USBHOST_DEFPRIO
 #    define CONFIG_USBHOST_DEFPRIO 50
 #  endif
@@ -140,7 +140,7 @@
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_HAVEUSBHOST
+#ifdef NSH_HAVEUSBHOST
 static struct usbhost_driver_s *g_drvr;
 #endif
 
@@ -156,7 +156,7 @@ static struct usbhost_driver_s *g_drvr;
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_HAVEUSBHOST
+#ifdef NSH_HAVEUSBHOST
 static int nsh_waiter(int argc, char *argv[])
 {
   bool connected = false;
@@ -197,7 +197,7 @@ static int nsh_waiter(int argc, char *argv[])
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_HAVEMMCSD
+#ifdef NSH_HAVEMMCSD
 static int nsh_sdinitialize(void)
 {
   FAR struct spi_dev_s *spi;
@@ -259,7 +259,7 @@ errout:
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_HAVEUSBHOST
+#ifdef NSH_HAVEUSBHOST
 static int nsh_usbhostinitialize(void)
 {
   int pid;

@@ -310,3 +310,7 @@
 	  files into memory before transferring them.
 	* apps/netutils/webserver:  Add ability to map a URL to CGI function.
 	  Contributed by Kate.
+	* apps/nshlib/nsh_mntcmds.c: The changes of 6.21 introduced holes in the
+	  error handling:  Now the number of arguments to mount can be 0 or 4.
+	  Additional parameter checking is required to prevent mysterious errors
+	  (submiteed by Kate).

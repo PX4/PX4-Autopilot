@@ -58,8 +58,8 @@
 /* Configuration ************************************************************/
 /* Assume that we have MMC/SD, USB host (and USB device) */
 
-#define CONFIG_NSH_HAVEMMCSD   1
-#define CONFIG_NSH_HAVEUSBHOST 1
+#define NSH_HAVEMMCSD   1
+#define NSH_HAVEUSBHOST 1
 
 /* The PIC32 Ethernet Starter Kit does not have an SD slot on board.  If one
  * is added, then it must be specified by defining which SPI bus that it
@@ -67,12 +67,12 @@
  */
 
 #ifndef CONFIG_PIC32MX_MMCSDSPIPORTNO
-#  undef CONFIG_NSH_HAVEMMCSD
+#  undef NSH_HAVEMMCSD
 #endif
 
 /* Make sure that the configuration will support the SD card */
 
-#ifdef CONFIG_NSH_HAVEMMCSD
+#ifdef NSH_HAVEMMCSD
 
    /* Make sure that the NSH configuration uses the correct SPI */
 
@@ -96,23 +96,23 @@
 
 #  if CONFIG_PIC32MX_MMCSDSPIPORTNO == 1 && !defined(CONFIG_PIC32MX_SPI1)
 #    warning "CONFIG_PIC32MX_SPI1 is not enabled"
-#    undef CONFIG_NSH_HAVEMMCSD
+#    undef NSH_HAVEMMCSD
 #  elif CONFIG_PIC32MX_MMCSDSPIPORTNO == 2 && !defined(CONFIG_PIC32MX_SPI2)
 #    warning "CONFIG_PIC32MX_SPI2 is not enabled"
-#    undef CONFIG_NSH_HAVEMMCSD
+#    undef NSH_HAVEMMCSD
 #  elif CONFIG_PIC32MX_MMCSDSPIPORTNO == 3 && !defined(CONFIG_PIC32MX_SPI3)
 #    warning "CONFIG_PIC32MX_SPI3 is not enabled"
-#    undef CONFIG_NSH_HAVEMMCSD
+#    undef NSH_HAVEMMCSD
 #  elif CONFIG_PIC32MX_MMCSDSPIPORTNO == 4 && !defined(CONFIG_PIC32MX_SPI4)
 #    warning "CONFIG_PIC32MX_SPI4 is not enabled"
-#    undef CONFIG_NSH_HAVEMMCSD
+#    undef NSH_HAVEMMCSD
 #  endif
 #endif
 
 /* Can't support MMC/SD features if mountpoints are disabled */
 
 #if defined(CONFIG_DISABLE_MOUNTPOINT)
-#  undef CONFIG_NSH_HAVEMMCSD
+#  undef NSH_HAVEMMCSD
 #endif
 
 /* Select /dev/mmcsd0 if no other minor number is provided */
@@ -126,22 +126,22 @@
 #ifdef CONFIG_USBHOST
 #  ifndef CONFIG_PIC32MX_USBHOST
 #    error "CONFIG_PIC32MX_USBHOST is not selected"
-#    undef CONFIG_NSH_HAVEUSBHOST
+#    undef NSH_HAVEUSBHOST
 #  endif
 #endif
 
 #ifdef CONFIG_PIC32MX_USBHOST
 #  ifndef CONFIG_USBHOST
 #    warning "CONFIG_USBHOST is not selected"
-#    undef CONFIG_NSH_HAVEUSBHOST
+#    undef NSH_HAVEUSBHOST
 #  endif
 #endif
 
 #if !defined(CONFIG_USBHOST) || !defined(CONFIG_PIC32MX_USBHOST)
-#  undef CONFIG_NSH_HAVEUSBHOST
+#  undef NSH_HAVEUSBHOST
 #endif
 
-#ifdef CONFIG_NSH_HAVEUSBHOST
+#ifdef NSH_HAVEUSBHOST
 #  ifndef CONFIG_USBHOST_DEFPRIO
 #    define CONFIG_USBHOST_DEFPRIO 50
 #  endif
@@ -170,7 +170,7 @@
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_HAVEUSBHOST
+#ifdef NSH_HAVEUSBHOST
 static struct usbhost_driver_s *g_drvr;
 #endif
 
@@ -186,7 +186,7 @@ static struct usbhost_driver_s *g_drvr;
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_HAVEUSBHOST
+#ifdef NSH_HAVEUSBHOST
 static int nsh_waiter(int argc, char *argv[])
 {
   bool connected = false;
@@ -227,7 +227,7 @@ static int nsh_waiter(int argc, char *argv[])
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_HAVEMMCSD
+#ifdef NSH_HAVEMMCSD
 static int nsh_sdinitialize(void)
 {
   FAR struct spi_dev_s *ssp;
@@ -280,7 +280,7 @@ errout:
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_HAVEUSBHOST
+#ifdef NSH_HAVEUSBHOST
 static int nsh_usbhostinitialize(void)
 {
   int pid;

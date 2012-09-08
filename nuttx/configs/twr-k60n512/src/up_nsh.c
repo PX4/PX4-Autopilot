@@ -61,8 +61,8 @@
 /* PORT and SLOT number probably depend on the board configuration */
 
 #ifdef CONFIG_ARCH_BOARD_TWR_K60N512
-#  define CONFIG_NSH_HAVEUSBDEV 1
-#  define CONFIG_NSH_HAVEMMCSD  1
+#  define NSH_HAVEUSBDEV 1
+#  define NSH_HAVEMMCSD  1
 #  if defined(CONFIG_NSH_MMCSDSLOTNO) && CONFIG_NSH_MMCSDSLOTNO != 0
 #    error "Only one MMC/SD slot, slot 0"
 #    undef CONFIG_NSH_MMCSDSLOTNO
@@ -73,14 +73,14 @@
 #else
    /* Add configuration for new Kinetis boards here */
 #  error "Unrecognized Kinetis board"
-#  undef CONFIG_NSH_HAVEUSBDEV
-#  undef CONFIG_NSH_HAVEMMCSD
+#  undef NSH_HAVEUSBDEV
+#  undef NSH_HAVEMMCSD
 #endif
 
 /* Can't support USB features if USB is not enabled */
 
 #ifndef CONFIG_USBDEV
-#  undef CONFIG_NSH_HAVEUSBDEV
+#  undef NSH_HAVEUSBDEV
 #endif
 
 /* Can't support MMC/SD features if mountpoints are disabled or if SDHC support
@@ -88,7 +88,7 @@
  */
 
 #if defined(CONFIG_DISABLE_MOUNTPOINT) || !defined(CONFIG_KINETIS_SDHC)
-#  undef CONFIG_NSH_HAVEMMCSD
+#  undef NSH_HAVEMMCSD
 #endif
 
 #ifndef CONFIG_NSH_MMCSDMINOR
@@ -129,7 +129,7 @@
  * reduces the probability of name collistions.
  */
 
-#ifdef CONFIG_NSH_HAVEMMCSD
+#ifdef NSH_HAVEMMCSD
 struct kinetis_nsh_s
 {
   FAR struct sdio_dev_s *sdhc; /* SDIO driver handle */
@@ -141,7 +141,7 @@ struct kinetis_nsh_s
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_HAVEMMCSD
+#ifdef NSH_HAVEMMCSD
 static struct kinetis_nsh_s g_nsh;
 #endif
 
@@ -153,7 +153,7 @@ static struct kinetis_nsh_s g_nsh;
  * Name: kinetis_mediachange
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_HAVEMMCSD
+#ifdef NSH_HAVEMMCSD
 static void kinetis_mediachange(void)
 {
   bool inserted;
@@ -190,7 +190,7 @@ static void kinetis_mediachange(void)
  * Name: kinetis_cdinterrupt
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_HAVEMMCSD
+#ifdef NSH_HAVEMMCSD
 static int kinetis_cdinterrupt(int irq, FAR void *context)
 {
   /* All of the work is done by kinetis_mediachange() */
@@ -214,7 +214,7 @@ static int kinetis_cdinterrupt(int irq, FAR void *context)
 
 int nsh_archinitialize(void)
 {
-#ifdef CONFIG_NSH_HAVEMMCSD
+#ifdef NSH_HAVEMMCSD
   int ret;
 
   /* Configure GPIO pins */

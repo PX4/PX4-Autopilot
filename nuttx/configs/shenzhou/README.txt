@@ -480,7 +480,6 @@ Shenzhou-specific Configuration Options
 
     APB1 (low speed)
     ----------------
-    CONFIG_STM32_RTC
     CONFIG_STM32_BKP
     CONFIG_STM32_TIM2
     CONFIG_STM32_TIM3

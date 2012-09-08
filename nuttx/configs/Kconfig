@@ -677,6 +677,27 @@ config ARCH_IRQBUTTONS
 	---help---
 		"Support interrupts on button presses and releases."
 
+config NSH_MMCSDMINOR
+	int "MMC/SD minor number"
+	default 0
+	depends on NSH_LIBRARY && MMCSD
+	---help---
+		If board-specific NSH start-up logic needs to mount an MMC/SD device, then the setting should be provided to identify the MMC/SD minor device number (i.e., the N in /dev/mmcsdN).  Default 0
+
+config NSH_MMCSDSLOTNO
+	int "MMC/SD slot number"
+	default 0
+	depends on NSH_LIBRARY && MMCSD
+	---help---
+		If board-specific NSH start-up supports more than one MMC/SD slot, then this setting should be provided to indicate which slot should be used.  Default: 0.
+
+config NSH_MMCSDSPIPORTNO
+	int "MMC/SD SPI device number"
+	default 0
+	depends on NSH_LIBRARY && MMCSD && SPI
+	---help---
+		If board-specif NSH start-up logic will mount an SPI-based MMC/SD volume, then this setting may be needed to tell the board logic which SPI bus to use.  Default: 0 (meaning is board-specific).
+
 comment "Board-Specific Options"
 
 if ARCH_BOARD_AMBER

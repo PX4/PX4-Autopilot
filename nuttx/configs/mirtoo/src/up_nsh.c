@@ -75,8 +75,8 @@
 
 /* Use minor device number 0 is not is provided */
 
-#ifndef CONFIG_NSH_SST25MINOR
-#  define CONFIG_NSH_SST25MINOR 0
+#ifndef CONFIG_NSH_MMCSDMINOR
+#  define CONFIG_NSH_MMCSDMINOR 0
 #endif
 
 /* Can't support both FAT and NXFFS */
@@ -125,7 +125,7 @@ int nsh_archinitialize(void)
 #ifndef CONFIG_FS_NXFFS
   /* And finally, use the FTL layer to wrap the MTD driver as a block driver */
 
-  ret = ftl_initialize(CONFIG_NSH_SST25MINOR, mtd);
+  ret = ftl_initialize(CONFIG_NSH_MMCSDMINOR, mtd);
   if (ret < 0)
     {
       fdbg("ERROR: Initialize the FTL layer\n");

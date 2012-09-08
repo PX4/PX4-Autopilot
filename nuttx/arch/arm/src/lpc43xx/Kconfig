@@ -269,22 +269,22 @@ config LPC43_TMR3
 
 config LPC43_USART0
 	bool "USART0"
-	select ARCH_HAS_USART0
+	select ARCH_HAVE_USART0
 	default n
 
 config LPC43_UART1
 	bool "UART1"
-	select ARCH_HAS_UART1
+	select ARCH_HAVE_UART1
 	default n
 
 config LPC43_USART2
 	bool "USART2"
-	select ARCH_HAS_USART2
+	select ARCH_HAVE_USART2
 	default n
 
 config LPC43_USART3
 	bool "USART3"
-	select ARCH_HAS_USART3
+	select ARCH_HAVE_USART3
 	default n
 
 config LPC43_USB0

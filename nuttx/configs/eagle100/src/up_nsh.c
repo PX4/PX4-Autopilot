@@ -56,8 +56,8 @@
 /* PORT and SLOT number probably depend on the board configuration */
 
 #ifdef CONFIG_ARCH_BOARD_EAGLE100
-#  undef CONFIG_NSH_HAVEUSBDEV
-#  define CONFIG_NSH_HAVEMMCSD  1
+#  undef NSH_HAVEUSBDEV
+#  define NSH_HAVEMMCSD  1
 #  if !defined(CONFIG_NSH_MMCSDSPIPORTNO) || CONFIG_NSH_MMCSDSPIPORTNO != 0
 #    error "The Eagle100 MMC/SD is on SSI0"
 #    undef CONFIG_NSH_MMCSDSPIPORTNO
@@ -71,20 +71,20 @@
 #else
    /* Add configuration for new LM3s boards here */
 #  error "Unrecognized lm3s board"
-#  undef CONFIG_NSH_HAVEUSBDEV
-#  undef CONFIG_NSH_HAVEMMCSD
+#  undef NSH_HAVEUSBDEV
+#  undef NSH_HAVEMMCSD
 #endif
 
 /* Can't support USB features if USB is not enabled */
 
 #ifndef CONFIG_USBDEV
-#  undef CONFIG_NSH_HAVEUSBDEV
+#  undef NSH_HAVEUSBDEV
 #endif
 
 /* Can't support MMC/SD features if mountpoints are disabled */
 
 #if defined(CONFIG_DISABLE_MOUNTPOINT)
-#  undef CONFIG_NSH_HAVEMMCSD
+#  undef NSH_HAVEMMCSD
 #endif
 
 #ifndef CONFIG_NSH_MMCSDMINOR

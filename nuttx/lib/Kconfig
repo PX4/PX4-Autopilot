@@ -51,6 +51,29 @@ config LIBC_FLOATINGPOINT
 		By default, floating point
 		support in printf, sscanf, etc. is disabled.
 
+choice
+	prompt "Newline Options"
+	default EOL_IS_EITHER_CRLF
+	---help---
+		This selection determines the line terminating character that is used.
+		Some environments may return CR as end-of-line, others LF, and others
+		both.  If not specified, the default is either CR or LF (but not both)
+		as the line terminating charactor.
+
+config EOL_IS_CR
+	bool "EOL is CR"
+
+config EOL_IS_LF
+	bool "EOL is LF"
+
+config EOL_IS_BOTH_CRLF
+	bool "EOL is CR and LF"
+
+config EOL_IS_EITHER_CRLF
+	bool "EOL is CR or LF"
+
+endchoice
+
 config LIBC_STRERROR
 	bool "Enable strerror"
 	default n

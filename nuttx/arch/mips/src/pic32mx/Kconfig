@@ -493,32 +493,32 @@ config PIC32MX_SPI4
 config PIC32MX_UART1
 	bool "UART1"
 	default n
-	select ARCH_HAS_UART1
+	select ARCH_HAVE_UART1
 
 config PIC32MX_UART2
 	bool "UART2"
 	default n
-	select ARCH_HAS_UART1
+	select ARCH_HAVE_UART1
 
 config PIC32MX_UART3
 	bool "UART3"
 	default n
-	select ARCH_HAS_UART3
+	select ARCH_HAVE_UART3
 
 config PIC32MX_UART4
 	bool "UART4"
 	default n
-	select ARCH_HAS_UART4
+	select ARCH_HAVE_UART4
 
 config PIC32MX_UART5
 	bool "UART5"
 	default n
-	select ARCH_HAS_UART5
+	select ARCH_HAVE_UART5
 
 config PIC32MX_UART6
 	bool "UART6"
 	default n
-	select ARCH_HAS_UART6
+	select ARCH_HAVE_UART6
 
 config PIC32MX_ADC
 	bool "ADC1"
@@ -568,7 +568,7 @@ config PIC32MX_ETHERNET
 	bool "Ethernet"
 	default n
 	select NET
-	select ARCH_HAS_PHY
+	select ARCH_HAVE_PHY
 
 config PIC32MX_CTMU
 	bool "Charge Time Measurement Unit (CMTU)"

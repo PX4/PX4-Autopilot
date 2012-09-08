@@ -119,7 +119,7 @@ menu "LPC31xx Peripheral Support"
 config LPC31_UART
 	bool "UART"
 	default n
-	select ARCH_HAS_UART
+	select ARCH_HAVE_UART
 
 config LPC31_SPI
 	bool "SPI"

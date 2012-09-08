@@ -271,43 +271,43 @@ endif
 # MCU serial peripheral driver?
 #
 
-config ARCH_HAS_UART
+config ARCH_HAVE_UART
        bool
-config ARCH_HAS_UART0
+config ARCH_HAVE_UART0
        bool
-config ARCH_HAS_UART1
+config ARCH_HAVE_UART1
        bool
-config ARCH_HAS_UART2
+config ARCH_HAVE_UART2
        bool
-config ARCH_HAS_UART3
+config ARCH_HAVE_UART3
        bool
-config ARCH_HAS_UART4
+config ARCH_HAVE_UART4
        bool
-config ARCH_HAS_UART5
+config ARCH_HAVE_UART5
        bool
-config ARCH_HAS_UART6
+config ARCH_HAVE_UART6
        bool
 
-config ARCH_HAS_USART0
+config ARCH_HAVE_USART0
        bool
-config ARCH_HAS_USART1
+config ARCH_HAVE_USART1
        bool
-config ARCH_HAS_USART2
+config ARCH_HAVE_USART2
        bool
-config ARCH_HAS_USART3
+config ARCH_HAVE_USART3
        bool
-config ARCH_HAS_USART4
+config ARCH_HAVE_USART4
        bool
-config ARCH_HAS_USART5
+config ARCH_HAVE_USART5
        bool
-config ARCH_HAS_USART6
+config ARCH_HAVE_USART6
        bool
 
 config MCU_SERIAL
 	bool
-	default y if ARCH_HAS_UART || ARCH_HAS_UART0 || ARCH_HAS_USART0 || ARCH_HAS_UART1 || ARCH_HAS_USART1 || \
-	ARCH_HAS_UART2 || ARCH_HAS_USART2 || ARCH_HAS_UART3 || ARCH_HAS_USART3 || \
-	ARCH_HAS_UART4 || ARCH_HAS_USART4 || ARCH_HAS_UART5 || ARCH_HAS_USART5 || ARCH_HAS_UART6 || ARCH_HAS_USART6
+	default y if ARCH_HAVE_UART || ARCH_HAVE_UART0 || ARCH_HAVE_USART0 || ARCH_HAVE_UART1 || ARCH_HAVE_USART1 || \
+	ARCH_HAVE_UART2 || ARCH_HAVE_USART2 || ARCH_HAVE_UART3 || ARCH_HAVE_USART3 || \
+	ARCH_HAVE_UART4 || ARCH_HAVE_USART4 || ARCH_HAVE_UART5 || ARCH_HAVE_USART5 || ARCH_HAVE_UART6 || ARCH_HAVE_USART6
 
 #
 # Standard serial driver configuration
@@ -340,63 +340,63 @@ choice
 
 config UART_SERIAL_CONSOLE
 	bool "UART"
-	depends on ARCH_HAS_UART
+	depends on ARCH_HAVE_UART
 
 config UART0_SERIAL_CONSOLE
 	bool "UART0"
-	depends on ARCH_HAS_UART0
+	depends on ARCH_HAVE_UART0
 
 config USART0_SERIAL_CONSOLE
 	bool "USART0"
-	depends on ARCH_HAS_USART0
+	depends on ARCH_HAVE_USART0
 
 config UART1_SERIAL_CONSOLE
 	bool "UART1"
-	depends on ARCH_HAS_UART1
+	depends on ARCH_HAVE_UART1
 
 config USART1_SERIAL_CONSOLE
 	bool "USART1"
-	depends on ARCH_HAS_USART1
+	depends on ARCH_HAVE_USART1
 
 config UART2_SERIAL_CONSOLE
 	bool "UART2"
-	depends on ARCH_HAS_UART2
+	depends on ARCH_HAVE_UART2
 
 config USART2_SERIAL_CONSOLE
 	bool "USART2"
-	depends on ARCH_HAS_USART2
+	depends on ARCH_HAVE_USART2
 
 config UART3_SERIAL_CONSOLE
 	bool "UART3"
-	depends on ARCH_HAS_UART3
+	depends on ARCH_HAVE_UART3
 
 config USART3_SERIAL_CONSOLE
 	bool "USART3"
-	depends on ARCH_HAS_USART3
+	depends on ARCH_HAVE_USART3
 
 config UART4_SERIAL_CONSOLE
 	bool "UART4"
-	depends on ARCH_HAS_UART4
+	depends on ARCH_HAVE_UART4
 
 config USART4_SERIAL_CONSOLE
 	bool "USART4"
-	depends on ARCH_HAS_USART4
+	depends on ARCH_HAVE_USART4
 
 config UART5_SERIAL_CONSOLE
 	bool "UART5"
-	depends on ARCH_HAS_UART5
+	depends on ARCH_HAVE_UART5
 
 config USART5_SERIAL_CONSOLE
 	bool "USART5"
-	depends on ARCH_HAS_USART5
+	depends on ARCH_HAVE_USART5
 
 config UART6_SERIAL_CONSOLE
 	bool "UART6"
-	depends on ARCH_HAS_UART6
+	depends on ARCH_HAVE_UART6
 
 config USART6_SERIAL_CONSOLE
 	bool "USART6"
-	depends on ARCH_HAS_USART6
+	depends on ARCH_HAVE_USART6
 
 config NO_SERIAL_CONSOLE
 	bool "No serial console"
@@ -404,7 +404,7 @@ config NO_SERIAL_CONSOLE
 endchoice
 
 menu "UART Configuration"
-	depends on ARCH_HAS_UART
+	depends on ARCH_HAVE_UART
 
 config UART_RXBUFSIZE
 	int "receive buffer size"
@@ -447,7 +447,7 @@ config UART_2STOP
 endmenu
 
 menu "UART0 Configuration"
-	depends on ARCH_HAS_UART0
+	depends on ARCH_HAVE_UART0
 
 config UART0_RXBUFSIZE
 	int "receive buffer size"
@@ -490,7 +490,7 @@ config UART0_2STOP
 endmenu
 
 menu "USART0 Configuration"
-	depends on ARCH_HAS_USART0
+	depends on ARCH_HAVE_USART0
 
 config USART0_RXBUFSIZE
 	int "receive buffer size"
@@ -533,7 +533,7 @@ config USART0_2STOP
 endmenu
 
 menu "UART1 Configuration"
-	depends on ARCH_HAS_UART1
+	depends on ARCH_HAVE_UART1
 
 config UART1_RXBUFSIZE
 	int "receive buffer size"
@@ -576,7 +576,7 @@ config UART1_2STOP
 endmenu
 
 menu "USART1 Configuration"
-	depends on ARCH_HAS_USART1
+	depends on ARCH_HAVE_USART1
 
 config USART1_RXBUFSIZE
 	int "receive buffer size"
@@ -619,7 +619,7 @@ config USART1_2STOP
 endmenu
 
 menu "UART2 Configuration"
-	depends on ARCH_HAS_UART2
+	depends on ARCH_HAVE_UART2
 
 config UART2_RXBUFSIZE
 	int "receive buffer size"
@@ -662,7 +662,7 @@ config UART2_2STOP
 endmenu
 
 menu "USART2 Configuration"
-	depends on ARCH_HAS_USART2
+	depends on ARCH_HAVE_USART2
 
 config USART2_RXBUFSIZE
 	int "receive buffer size"
@@ -705,7 +705,7 @@ config USART2_2STOP
 endmenu
 
 menu "UART3 Configuration"
-	depends on ARCH_HAS_UART3
+	depends on ARCH_HAVE_UART3
 
 config UART3_RXBUFSIZE
 	int "receive buffer size"
@@ -748,7 +748,7 @@ config UART3_2STOP
 endmenu
 
 menu "USART3 Configuration"
-	depends on ARCH_HAS_USART3
+	depends on ARCH_HAVE_USART3
 
 config USART3_RXBUFSIZE
 	int "receive buffer size"
@@ -791,7 +791,7 @@ config USART3_2STOP
 endmenu
 
 menu "UART4 Configuration"
-	depends on ARCH_HAS_UART4
+	depends on ARCH_HAVE_UART4
 
 config UART4_RXBUFSIZE
 	int "receive buffer size"
@@ -834,7 +834,7 @@ config UART4_2STOP
 endmenu
 
 menu "USART4 Configuration"
-	depends on ARCH_HAS_USART4
+	depends on ARCH_HAVE_USART4
 
 config USART4_RXBUFSIZE
 	int "receive buffer size"
@@ -877,7 +877,7 @@ config USART4_2STOP
 endmenu
 
 menu "UART5 Configuration"
-	depends on ARCH_HAS_UART5
+	depends on ARCH_HAVE_UART5
 
 config UART5_RXBUFSIZE
 	int "receive buffer size"
@@ -920,7 +920,7 @@ config UART5_2STOP
 endmenu
 
 menu "USART5 Configuration"
-	depends on ARCH_HAS_USART5
+	depends on ARCH_HAVE_USART5
 
 config USART5_RXBUFSIZE
 	int "receive buffer size"
@@ -963,7 +963,7 @@ config USART5_2STOP
 endmenu
 
 menu "USART6 Configuration"
-	depends on ARCH_HAS_USART6
+	depends on ARCH_HAVE_USART6
 
 config USART6_RXBUFSIZE
 	int "receive buffer size"
@@ -1006,7 +1006,7 @@ config USART6_2STOP
 endmenu
 
 menu "UART6 Configuration"
-	depends on ARCH_HAS_UART6
+	depends on ARCH_HAVE_UART6
 
 config UART6_RXBUFSIZE
 	int "receive buffer size"

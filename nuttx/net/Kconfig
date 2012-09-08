@@ -9,14 +9,14 @@ config NET
 	---help---
 		Enable or disable all network features
 
-config ARCH_HAS_PHY
+config ARCH_HAVE_PHY
 	bool
 
 if NET
 
 choice
 	prompt "Board PHY Selection"
-	depends on ARCH_HAS_PHY
+	depends on ARCH_HAVE_PHY
 	default PHY_KS8721
 
 config PHY_KS8721

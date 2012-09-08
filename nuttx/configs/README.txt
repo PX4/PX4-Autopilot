@@ -721,7 +721,6 @@ defconfig -- This is a configuration file similar to the Linux
   Filesystem configuration
 
     CONFIG_FS_FAT - Enable FAT filesystem support
-    CONFIG_FAT_SECTORSIZE - Max supported sector size
     CONFIG_FAT_LCNAMES - Enable use of the NT-style upper/lower case 8.3
       file name support.
     CONFIG_FAT_LFN - Enable FAT long file names.  NOTE:  Microsoft claims
