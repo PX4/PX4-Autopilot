@@ -125,8 +125,9 @@ newconfig=`grep CONFIG_NUTTX_NEWCONFIG= "${configpath}/defconfig" | cut -d'=' -f
 
 defappdir=y
 if [ -z "${appdir}" ]; then
-  appdir=`grep CONFIG_APPS_DIR= "${configpath}/defconfig" | cut -d'=' -f2`
+  quoted=`grep "^CONFIG_APPS_DIR=" "${configpath}/defconfig" | cut -d'=' -f2`
   if [ ! -z "${appdir}" ]; then
+    appdir=`echo ${quoted} | sed -e "s/\"//g"`
     defappdir=n
   fi
 fi
@@ -174,6 +175,18 @@ chmod 755 "${TOPDIR}/setenv.sh"
 install -C "${configpath}/defconfig" "${TOPDIR}/.configX" || \
   { echo "Failed to copy ${configpath}/defconfig" ; exit 9 ; }
 
+# If we did not use the CONFIG_APPS_DIR that was in the defconfig config file,
+# then append the correct application information to the tail of the .config
+# file
+
+if [ "X${defappdir}" = "Xy" ]; then
+  sed -i -e "/^CONFIG_APPS_DIR/d" "${TOPDIR}/.configX"
+  echo "" >> "${TOPDIR}/.configX"
+  echo "# Application configuration" >> "${TOPDIR}/.configX"
+  echo "" >> "${TOPDIR}/.configX"
+  echo "CONFIG_APPS_DIR=\"$appdir\"" >> "${TOPDIR}/.configX"
+fi 
+
 # Copy appconfig file.  The appconfig file will be copied to ${appdir}/.config
 # if both (1) ${appdir} is defined and (2) we are not using the new configuration
 # (which does not require a .config file in the appsdir.
@@ -184,14 +197,6 @@ if [ ! -z "${appdir}" -a "X${newconfig}" != "Xy" ]; then
   else
     install -C "${configpath}/appconfig" "${TOPDIR}/${appdir}/.config" || \
       { echo "Failed to copy ${configpath}/appconfig" ; exit 10 ; }
-
-    if [ "X${defappdir}" = "Xy" ]; then
-      sed -i -e "/^CONFIG_APPS_DIR/d" "${TOPDIR}/.configX"
-      echo "" >> "${TOPDIR}/.configX"
-      echo "# Application configuration" >> "${TOPDIR}/.configX"
-      echo "" >> "${TOPDIR}/.configX"
-      echo "CONFIG_APPS_DIR=\"$appdir\"" >> "${TOPDIR}/.configX"
-    fi 
   fi
 fi
 

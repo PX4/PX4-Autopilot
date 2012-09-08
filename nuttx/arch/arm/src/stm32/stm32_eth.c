@@ -102,11 +102,17 @@
 #endif
 
 #ifdef CONFIG_STM32_MII
-#  if !defined(CONFIG_STM32_MII_MCO1) && !defined(CONFIG_STM32_MII_MCO2)
-#    warning "Neither CONFIG_STM32_MII_MCO1 nor CONFIG_STM32_MII_MCO2 defined"
-#  endif
-#  if defined(CONFIG_STM32_MII_MCO1) && defined(CONFIG_STM32_MII_MCO2)
-#    error "Both CONFIG_STM32_MII_MCO1 and CONFIG_STM32_MII_MCO2 defined"
+#  if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+#    if !defined(CONFIG_STM32_MII_MCO1) && !defined(CONFIG_STM32_MII_MCO2)
+#      warning "Neither CONFIG_STM32_MII_MCO1 nor CONFIG_STM32_MII_MCO2 defined"
+#    endif
+#    if defined(CONFIG_STM32_MII_MCO1) && defined(CONFIG_STM32_MII_MCO2)
+#      error "Both CONFIG_STM32_MII_MCO1 and CONFIG_STM32_MII_MCO2 defined"
+#    endif
+#  elif defined(CONFIG_STM32_CONNECTIVITYLINE)
+#    if !defined(CONFIG_STM32_MII_MCO)
+#      warning "CONFIG_STM32_MII_MCO not defined"
+#    endif
 #  endif
 #endif
 
@@ -608,6 +614,12 @@ static int  stm32_phyinit(FAR struct stm32_ethmac_s *priv);
 
 /* MAC/DMA Initialization */
 
+#ifdef CONFIG_STM32_MII
+static inline void stm32_selectmii(void);
+#endif
+#ifdef CONFIG_STM32_RMII
+static inline void stm32_selectrmii(void);
+#endif
 static inline void stm32_ethgpioconfig(FAR struct stm32_ethmac_s *priv);
 static void stm32_ethreset(FAR struct stm32_ethmac_s *priv);
 static int  stm32_macconfig(FAR struct stm32_ethmac_s *priv);
@@ -2570,6 +2582,66 @@ static int stm32_phyinit(FAR struct stm32_ethmac_s *priv)
   return OK;
 }
 
+/************************************************************************************
+ * Name: stm32_selectmii
+ *
+ * Description:
+ *   Selects the MII inteface.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_STM32_MII
+static inline void stm32_selectmii(void)
+{
+  uint32_t regval;
+
+#ifdef CONFIG_STM32_CONNECTIVITYLINE
+  regval  = getreg32(STM32_AFIO_MAPR);
+  regval &= ~AFIO_MAPR_MII_RMII_SEL;
+  putreg32(regval, STM32_AFIO_MAPR);
+#else
+  regval  = getreg32(STM32_SYSCFG_PMC);
+  regval &= ~SYSCFG_PMC_MII_RMII_SEL;
+  putreg32(regval, STM32_SYSCFG_PMC);
+#endif
+}
+#endif
+
+/************************************************************************************
+ * Name: stm32_selectrmii
+ *
+ * Description:
+ *   Selects the RMII inteface.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ************************************************************************************/
+
+static inline void stm32_selectrmii(void)
+{
+  uint32_t regval;
+
+#ifdef CONFIG_STM32_CONNECTIVITYLINE
+  regval  = getreg32(STM32_AFIO_MAPR);
+  regval |= AFIO_MAPR_MII_RMII_SEL;
+  putreg32(regval, STM32_AFIO_MAPR);
+#else
+  regval  = getreg32(STM32_SYSCFG_PMC);
+  regval |= SYSCFG_PMC_MII_RMII_SEL;
+  putreg32(regval, STM32_SYSCFG_PMC);
+#endif
+}
+
 /****************************************************************************
  * Function: stm32_ethgpioconfig
  *
@@ -2605,7 +2677,7 @@ static inline void stm32_ethgpioconfig(FAR struct stm32_ethmac_s *priv)
 
   stm32_selectmii();
 
-  /* Provide clocking via MCO1 or MCO2:
+  /* Provide clocking via MCO, MCO1 or MCO2:
    *
    * "MCO1 (microcontroller clock output), used to output HSI, LSE, HSE or PLL
    *  clock (through a configurable prescaler) on PA8 pin."
@@ -2614,7 +2686,7 @@ static inline void stm32_ethgpioconfig(FAR struct stm32_ethmac_s *priv)
    *  PLLI2S clock (through a configurable prescaler) on PC9 pin."
    */
 
-#  if defined(CONFIG_STM32_MII_MCO1)
+# if defined(CONFIG_STM32_MII_MCO1)
   /* Configure MC01 to drive the PHY.  Board logic must provide MC01 clocking
    * info.
    */
@@ -2622,14 +2694,20 @@ static inline void stm32_ethgpioconfig(FAR struct stm32_ethmac_s *priv)
   stm32_configgpio(GPIO_MCO1);
   stm32_mco1config(BOARD_CFGR_MC01_SOURCE, BOARD_CFGR_MC01_DIVIDER);
 
-#  elif defined(CONFIG_STM32_MII_MCO2)
+# elif defined(CONFIG_STM32_MII_MCO2)
   /* Configure MC02 to drive the PHY.  Board logic must provide MC02 clocking
    * info.
    */
 
   stm32_configgpio(GPIO_MCO2);
   stm32_mco2config(BOARD_CFGR_MC02_SOURCE, BOARD_CFGR_MC02_DIVIDER);
-#  endif
+
+# elif defined(CONFIG_STM32_MII_MCO)
+  /* Setup MCO pin for alternative usage */
+
+  stm32_configgpio(GPIO_MCO);
+  stm32_mcoconfig(BOARD_CFGR_MCO_SOURCE);
+# endif
 
   /* MII interface pins (17):  
    *

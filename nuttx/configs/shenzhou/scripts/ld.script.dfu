@@ -33,11 +33,16 @@
  *
  ****************************************************************************/
 
-/* Don't know if this is correct. Just 256K-48K (not testet) */
+/* The STM32F107VC has 256Kb of FLASH beginning at address 0x0800:0000 and
+ * 64Kb of SRAM beginning at address 0x2000:0000.  Here we assume that the
+ * STMicro DFU bootloader is being used.  In that case, the corrct load .text
+ * load address is 0x08003000 (leaving 464Kb).
+ */
+
 MEMORY
 {
-    flash (rx) : ORIGIN = 0x08003000, LENGTH = 208K
-    sram (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
+	flash (rx) : ORIGIN = 0x08003000, LENGTH = 208K
+	sram (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
 }
 
 OUTPUT_ARCH(arm)
@@ -62,7 +67,7 @@ SECTIONS
 
 	_eronly = ABSOLUTE(.);
 
-	/* The STM32F103Z has 64Kb of SRAM beginning at the following address */
+	/* The STM32F107VC has 64Kb of SRAM beginning at the following address */
 
 	.data : {
 		_sdata = ABSOLUTE(.);

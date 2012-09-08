@@ -1,6 +1,6 @@
 /****************************************************************************
- * config/shenzhou/src/up_nsh.c
- * arch/arm/src/board/up_nsh.c
+ * config/shenzhou/src/up_mmcsd.c
+ * arch/arm/src/board/up_mmcsd.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -40,33 +40,29 @@
 
 #include <nuttx/config.h>
 
-#include <stdbool.h>
 #include <stdio.h>
 #include <debug.h>
 #include <errno.h>
 
-#include "stm32_internal.h"
-#include "shenzhou-internal.h"
+#include <nuttx/spi.h>
+#include <nuttx/mmcsd.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
-
-/* Assume that we support everything until convinced otherwise */
-
-#define HAVE_MMCSD    1
-#define HAVE_USBDEV   1
-#define HAVE_USBHOST  1
-
-/* Configuration ************************************************************/
 /* SPI1 connects to the SD CARD (and to the SPI FLASH) */
 
-#define STM32_MMCSDSPIPORTNO   1  /* SPI1 */
-#define STM32_MMCSDSLOTNO      0  /* Only one slot */
+#define HAVE_MMCSD 1           /* Assume that we have SD support */
+#define STM32_MMCSDSPIPORTNO 1 /* Port is SPI1 */
+#define STM32_MMCSDSLOTNO    0 /* There is only one slot */
 
 #ifndef CONFIG_STM32_SPI1
 #  undef HAVE_MMCSD
+#else
+#  ifdef CONFIG_SPI_OWNBUS
+#    warning "SPI1 is shared with SD and FLASH but CONFIG_SPI_OWNBUS is defined"
+#  endif
 #endif
 
 /* Can't support MMC/SD features if mountpoints are disabled */
@@ -75,121 +71,53 @@
 #  undef NSH_HAVEMMCSD
 #endif
 
-/* Can't support MMC/SD features if mountpoints are disabled) */
-
-#if defined(CONFIG_DISABLE_MOUNTPOINT)
-#  undef HAVE_MMCSD
-#endif
-
-/* Default MMC/SD minor number */
-
-#ifdef HAVE_MMCSD
-#  ifndef CONFIG_NSH_MMCSDMINOR
-#    define CONFIG_NSH_MMCSDMINOR 0
-#  endif
-
-/* Default MMC/SD SLOT number */
-
-#  if defined(CONFIG_NSH_MMCSDSLOTNO) && CONFIG_NSH_MMCSDSLOTNO != STM32_MMCSDSLOTNO
-#    error "Only one MMC/SD slot:  Slot 0"
-#    undef  CONFIG_NSH_MMCSDSLOTNO
-#    define CONFIG_NSH_MMCSDSLOTNO STM32_MMCSDSLOTNO
-#  endif
-
-#  ifndef CONFIG_NSH_MMCSDSLOTNO
-#    define CONFIG_NSH_MMCSDSLOTNO STM32_MMCSDSLOTNO
-#  endif
-
-/* Verify configured SPI port number */
-
-#  if defined(CONFIG_NSH_MMCSDSPIPORTNO) && CONFIG_NSH_MMCSDSPIPORTNO != STM32_MMCSDSPIPORTNO
-#    error "Only one MMC/SD port:  SPI1"
-#    undef  CONFIG_NSH_MMCSDSPIPORTNO
-#    define CONFIG_NSH_MMCSDSPIPORTNO STM32_MMCSDSPIPORTNO
-#  endif
-
-#  ifndef CONFIG_NSH_MMCSDSPIPORTNO
-#    define CONFIG_NSH_MMCSDSPIPORTNO STM32_MMCSDSPIPORTNO
-#  endif
-#endif
-
-/* Can't support USB host or device features if USB OTG FS is not enabled */
-
-#ifndef CONFIG_STM32_OTGFS
-#  undef HAVE_USBDEV
-#  undef HAVE_USBHOST
-#endif
-
-/* Can't support USB device is USB device is not enabled */
-
-#ifndef CONFIG_USBDEV
-#  undef HAVE_USBDEV
-#endif
-
-/* Can't support USB host is USB host is not enabled */
-
-#ifndef CONFIG_USBHOST
-#  undef HAVE_USBHOST
-#endif
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) lib_lowprintf(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message lib_lowprintf
-#  else
-#    define message printf
-#  endif
-#endif
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nsh_archinitialize
+ * Name: stm32_sdinitialize
  *
  * Description:
- *   Perform architecture specific initialization
+ *   Initialize the SPI-based SD card.  Requires CONFIG_DISABLE_MOUNTPOINT=n
+ *   and CONFIG_STM32_SPI1=y
  *
  ****************************************************************************/
 
-int nsh_archinitialize(void)
+int stm32_sdinitialize(int minor)
 {
-#if defined(HAVE_MMCSD) || defined(HAVE_USBHOST)
-  int ret;
-#endif
-
-  /* Initialize the SPI-based MMC/SD slot */
-
 #ifdef HAVE_MMCSD
-  ret = stm32_sdinitialze(CONFIG_NSH_MMCSDMINOR);
+  FAR struct spi_dev_s *spi;
+  int ret;
+
+  /* Get the SPI port */
+
+  fvdbg("Initializing SPI port %d\n", STM32_MMCSDSPIPORTNO);
+
+  spi = up_spiinitialize(STM32_MMCSDSPIPORTNO);
+  if (!spi)
+    {
+      fdbg("Failed to initialize SPI port %d\n", STM32_MMCSDSPIPORTNO);
+      return -ENODEV;
+    }
+
+  fvdbg("Successfully initialized SPI port %d\n", STM32_MMCSDSPIPORTNO);
+
+  /* Bind the SPI port to the slot */
+
+  fvdbg("Binding SPI port %d to MMC/SD slot %d\n",
+          STM32_MMCSDSPIPORTNO, STM32_MMCSDSLOTNO);
+
+  ret = mmcsd_spislotinitialize(minor, STM32_MMCSDSLOTNO, spi);
   if (ret < 0)
     {
-      message("nsh_archinitialize: Failed to initialize MMC/SD slot %d: %d\n",
-              CONFIG_NSH_MMCSDSLOTNO, ret);
+      fdbg("Failed to bind SPI port %d to MMC/SD slot %d: %d\n",
+            STM32_MMCSDSPIPORTNO, STM32_MMCSDSLOTNO, ret);
       return ret;
     }
+
+  fvdbg("Successfuly bound SPI port %d to MMC/SD slot %d\n",
+        STM32_MMCSDSPIPORTNO, STM32_MMCSDSLOTNO);
 #endif
-
-  /* Initialize USB host operation.  stm32_usbhost_initialize() starts a thread
-   * will monitor for USB connection and disconnection events.
-   */
-
-#ifdef HAVE_USBHOST
-  ret = stm32_usbhost_initialize();
-  if (ret != OK)
-    {
-      message("nsh_archinitialize: Failed to initialize USB host: %d\n", ret);
-      return ret;
-    }
-#endif
-
   return OK;
 }

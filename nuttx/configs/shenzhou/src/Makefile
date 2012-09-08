@@ -40,7 +40,11 @@ CFLAGS		+= -I$(TOPDIR)/sched
 ASRCS		= 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
-CSRCS		= up_boot.c up_spi.c
+CSRCS		= up_boot.c up_spi.c up_mmcsd.c
+
+ifeq ($(CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG),y)
+CSRCS		+= up_clockconfig.c
+endif
 
 ifeq ($(CONFIG_HAVE_CXX),y)
 CSRCS		+= up_cxxinitialize.c
@@ -50,6 +54,7 @@ ifeq ($(CONFIG_ARCH_LEDS),y)
 CSRCS		+= up_autoleds.c
 else
 CSRCS		+= up_userleds.c
+endif
 
 ifeq ($(CONFIG_ARCH_BUTTONS),y)
 CSRCS		+=  up_buttons.c

@@ -4,7 +4,7 @@
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
- * Configure and register the STM32 MMC/SD SDIO block driver.
+ * Configure and register the STM32 SPI-based MMC/SD block driver.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,29 +45,16 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
-
 #include "stm32_internal.h"
-
-/* There is nothing to do here if SDIO support is not selected. */
-
-#ifdef CONFIG_STM32_SDIO
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
 /* Configuration ************************************************************/
 
 #ifndef CONFIG_EXAMPLES_USBMSC_DEVMINOR1
 #  define CONFIG_EXAMPLES_USBMSC_DEVMINOR1 0
 #endif
-
-/* SLOT number(s) could depend on the board configuration */
-
-#undef STM32_MMCSDSLOTNO
-#define STM32_MMCSDSLOTNO 0
 
 /* Debug ********************************************************************/
 
@@ -89,7 +76,6 @@
 #  endif
 #endif
 
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -110,50 +96,8 @@ int usbmsc_archinitialize(void)
    */
 
 #ifndef CONFIG_EXAMPLES_USBMSC_BUILTIN
-  FAR struct sdio_dev_s *sdio;
-  int ret;
-
-  /* First, get an instance of the SDIO interface */
-
-  message("usbmsc_archinitialize: "
-          "Initializing SDIO slot %d\n",
-          STM32_MMCSDSLOTNO);
-
-  sdio = sdio_initialize(STM32_MMCSDSLOTNO);
-  if (!sdio)
-    {
-      message("usbmsc_archinitialize: Failed to initialize SDIO slot %d\n",
-              STM32_MMCSDSLOTNO);
-      return -ENODEV;
-    }
-
-  /* Now bind the SDIO interface to the MMC/SD driver */
-
-  message("usbmsc_archinitialize: "
-          "Bind SDIO to the MMC/SD driver, minor=%d\n",
-          CONFIG_EXAMPLES_USBMSC_DEVMINOR1);
-
-  ret = mmcsd_slotinitialize(CONFIG_EXAMPLES_USBMSC_DEVMINOR1, sdio);
-  if (ret != OK)
-    {
-      message("usbmsc_archinitialize: "
-              "Failed to bind SDIO to the MMC/SD driver: %d\n",
-              ret);
-      return ret;
-    }
-  message("usbmsc_archinitialize: "
-          "Successfully bound SDIO to the MMC/SD driver\n");
-  
-  /* Then let's guess and say that there is a card in the slot.  I need to check to
-   * see if the Shenzhou board supports a GPIO to detect if there is a card in
-   * the slot.
-   */
-
-   sdio_mediachange(sdio, true);
-
-#endif /* CONFIG_EXAMPLES_USBMSC_BUILTIN */
-
-   return OK;
+  return stm32_sdinitialize(CONFIG_EXAMPLES_USBMSC_DEVMINOR1);
+#else
+  return OK;
+#endif
 }
-
-#endif /* CONFIG_STM32_SDIO */

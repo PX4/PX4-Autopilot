@@ -153,7 +153,7 @@ void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sele
 
       stm32_gpiowrite(GPIO_SD_CS, !selected);
     }
-  elseif (devid == SPIDEV_FLASH)
+  else if (devid == SPIDEV_FLASH)
     {
       /* Set the GPIO low to select and high to de-select */
 
@@ -163,14 +163,16 @@ void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sele
 
 uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
+  /* The card detect pin is pulled up so that we detect the presence of a card
+   * by see a low value on the input pin.
+   */
+
   if (stm32_gpioread(GPIO_SD_CD))
     {
       return 0;
     }
-  else
-    {
-      return SPI_STATUS_PRESENT;
-    }
+
+  return SPI_STATUS_PRESENT;
 }
 #endif
 
@@ -187,7 +189,7 @@ void stm32_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sele
 
       stm32_gpiowrite(GPIO_LCD_CS, !selected);
     }
-  elseif (devid == SPIDEV_WIRELESS)
+  else if (devid == SPIDEV_WIRELESS)
     {
       /* Set the GPIO low to select and high to de-select */
 

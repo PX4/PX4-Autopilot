@@ -344,27 +344,3 @@ EXTERN void stm32_ledinit(void);
 EXTERN void stm32_setled(int led, bool ledon);
 EXTERN void stm32_setleds(uint8_t ledset);
 #endif
-
-/************************************************************************************
- * Name: stm32_selectrmii
- *
- * Description:
- *   Selects the RMII inteface.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None
- *
- ************************************************************************************/
-
-static inline void stm32_selectrmii(void)
-{
-  uint32_t regval;
-
-  regval = getreg32(STM32_AFIO_MAPR);
-  regval |= AFIO_MAPR_MII_RMII_SEL;
-  putreg32(regval, STM32_AFIO_MAPR);
-}
-
