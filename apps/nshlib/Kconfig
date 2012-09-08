@@ -242,9 +242,12 @@ config NSH_ROMFSSECTSIZE
 		increased if the ROMFS volume were to be become large.  Any value
 		selected must be a power of 2.
 
+endif
+
 config NSH_FATDEVNO
 	int "FAT block device minor number"
 	default 0
+	depends on FS_FAT
 	---help---
 		When the default rcS file used when NSH_ROMFSETC is selected, it
 		will mount a FAT FS under /tmp. This is the minor number of the FAT
@@ -253,6 +256,7 @@ config NSH_FATDEVNO
 config NSH_FATSECTSIZE
 	int "FAT sector size"
 	default 512
+	depends on FS_FAT
 	---help---
 		When the default rcS file used when NSH_ROMFSETC is selected, it
 		will mount a FAT FS under /tmp. This is the sector size use with the
@@ -261,6 +265,7 @@ config NSH_FATSECTSIZE
 config NSH_FATNSECTORS
 	int "FAT number of sectors"
 	default 1024
+	depends on FS_FAT
 	---help---
 		When the default rcS file used when NSH_ROMFSETC is selected, it
 		will mount a FAT FS under /tmp. This is the number of sectors to use
@@ -269,12 +274,12 @@ config NSH_FATNSECTORS
 
 config NSH_FATMOUNTPT
 	string "FAT mount point"
-	default 512
+	default "/tmp"
+	depends on FS_FAT
 	---help---
 		When the default rcS file used when NSH_ROMFSETC is selected, it
 		will mount a FAT FS under /tmp. This is the location where the FAT
 		FS will be mounted.  Default is /tmp.
-endif
 
 if NSH_LIBRARY
 config NSH_CONSOLE

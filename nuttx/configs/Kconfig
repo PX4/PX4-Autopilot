@@ -277,6 +277,14 @@ config ARCH_BOARD_OLIMEX_STRP711
 		further information.  STATUS: Configurations for the basic OS test and NSH
 		are complete and verified.
 
+config ARCH_BOARD_OLIMEX_STM32P107
+	bool "Olimex STM32 P107 board"
+	depends on ARCH_CHIP_STM32F107VC
+	---help---
+		This port uses the Olimex STM32 P107 board and a GNU arm-elf toolchain* under
+		Linux or Cygwin. See the http://www.olimex.com for further information. This
+		board features the STMicro STM32F107VC MCU
+
 config ARCH_BOARD_PCBLOGICPIC32MX
 	bool "PIC32MX board from PCB Logic Design Co"
 	depends on ARCH_CHIP_PIC32MX460F512L
@@ -335,6 +343,14 @@ config ARCH_BOARD_SAM3UEK
 	depends on ARCH_CHIP_AT91SAM3U4E
 	---help---
 		The port of NuttX to the Atmel SAM3U-EK development board.
+
+config ARCH_BOARD_SHENZHOU
+	bool "Shenzhou STM32F107 board"
+	depends on ARCH_CHIP_STM32F107VC
+	---help---
+		This port uses the Shenzhou STM32 F107 board and a GNU arm-elf toolchain* under
+		Linux or Cygwin. See the http://www.armjishu.com for further information. This
+		board features the STMicro STM32F107VC MCU
 
 config ARCH_BOARD_SKP16C26
 	bool "Renesas SKP16C26 StarterKit"
@@ -517,6 +533,7 @@ config ARCH_BOARD
 	default "nucleus2g"          if ARCH_BOARD_NUCLEUS2G
 	default "olimex-lpc1766stk"  if ARCH_BOARD_LPC1766STK
 	default "olimex-lpc2378"     if ARCH_BOARD_OLIMEXLPC2378
+	default "olimex-stm32-p107"  if ARCH_BOARD_OLIMEX_STM32P107
 	default "olimex-strp711"     if ARCH_BOARD_OLIMEX_STRP711
 	default "pcblogic-pic32mx"   if ARCH_BOARD_PCBLOGICPIC32MX
 	default "pic32-starterkit"   if ARCH_BOARD_PIC32_STARTERKIT
@@ -525,6 +542,7 @@ config ARCH_BOARD
 	default "qemu-i486"          if ARCH_BOARD_QEMU_I486
 	default "rgmp"               if ARCH_BOARD_RGMP
 	default "sam3u-ek"           if ARCH_BOARD_SAM3UEK
+	default "shenzhou"           if ARCH_BOARD_SHENZHOU
 	default "skp16c26"           if ARCH_BOARD_SKP16C26
 	default "stm3210e-eval"      if ARCH_BOARD_STM3210E_EVAL
 	default "stm3220g-eval"      if ARCH_BOARD_STM3220G_EVAL
@@ -637,6 +655,9 @@ endif
 if ARCH_BOARD_OLIMEXLPC2378
 source "configs/olimex-lpc2378/Kconfig"
 endif
+if ARCH_BOARD_OLIMEX_STM32P107
+source "configs/olimex-stm32-p107/Kconfig"
+endif
 if ARCH_BOARD_OLIMEX_STRP711
 source "configs/olimex-strp711/Kconfig"
 endif
@@ -660,6 +681,9 @@ source "configs/rgmp/Kconfig"
 endif
 if ARCH_BOARD_SAM3UEK
 source "configs/sam3u-ek/Kconfig"
+endif
+if ARCH_BOARD_SHENZHOU
+source "configs/shenzhou/Kconfig"
 endif
 if ARCH_BOARD_SKP16C26
 source "configs/skp16c26/Kconfig"

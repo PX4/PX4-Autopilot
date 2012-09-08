@@ -9,7 +9,7 @@ config NETUTILS_THTTPD
 	---help---
 		Enable support for the THTTPD webservert.
 
-if NETUTILS_TFTPC
+if NETUTILS_THTTPD
 config THTTPD_PORT
 	int "THTTPD port number"
 	default 80

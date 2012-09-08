@@ -411,7 +411,7 @@ Shenzhou-specific Configuration Options
     CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
        chip:
 
-       CONFIG_ARCH_CHIP_STM32F107VCT=y
+       CONFIG_ARCH_CHIP_STM32F107VC=y
 
     CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG - Enables special STM32 clock
        configuration features.
@@ -443,17 +443,6 @@ Shenzhou-specific Configuration Options
 
     CONFIG_STM32_CCMEXCLUDE - Exclude CCM SRAM from the HEAP
 
-    In addition to internal SRAM, SRAM may also be available through the FSMC.
-    In order to use FSMC SRAM, the following additional things need to be
-    present in the NuttX configuration file:
-
-    CONFIG_STM32_FSMC_SRAM - Indicates that SRAM is available via the
-      FSMC (as opposed to an LCD or FLASH).
-
-    CONFIG_HEAP2_BASE - The base address of the SRAM in the FSMC address space (hex)
-
-    CONFIG_HEAP2_END - The size of the SRAM in the FSMC address space (decimal)
-
     CONFIG_ARCH_IRQPRIO - The STM32107xxx supports interrupt prioritization
 
        CONFIG_ARCH_IRQPRIO=y
@@ -479,71 +468,47 @@ Shenzhou-specific Configuration Options
 
   Individual subsystems can be enabled:
 
-    AHB1
-    ----
-    CONFIG_STM32_CRC
-    CONFIG_STM32_BKPSRAM
-    CONFIG_STM32_CCMDATARAM
+    AHB
+    ---
     CONFIG_STM32_DMA1
     CONFIG_STM32_DMA2
+    CONFIG_STM32_CRC
     CONFIG_STM32_ETHMAC
-    CONFIG_STM32_OTGHS
-
-    AHB2
-    ----
-    CONFIG_STM32_DCMI
-    CONFIG_STM32_CRYP
-    CONFIG_STM32_HASH
-    CONFIG_STM32_RNG
     CONFIG_STM32_OTGFS
+    CONFIG_STM32_IWDG
+    CONFIG_STM32_PWR -- Required for RTC
 
-    AHB3
-    ----
-    CONFIG_STM32_FSMC
-
-    APB1
-    ----
+    APB1 (low speed)
+    ----------------
+    CONFIG_STM32_RTC
+    CONFIG_STM32_BKP
     CONFIG_STM32_TIM2
     CONFIG_STM32_TIM3
     CONFIG_STM32_TIM4
     CONFIG_STM32_TIM5
     CONFIG_STM32_TIM6
     CONFIG_STM32_TIM7
-    CONFIG_STM32_TIM12
-    CONFIG_STM32_TIM13
-    CONFIG_STM32_TIM14
-    CONFIG_STM32_WWDG
-    CONFIG_STM32_IWDG
-    CONFIG_STM32_SPI2
-    CONFIG_STM32_SPI3
     CONFIG_STM32_USART2
     CONFIG_STM32_USART3
     CONFIG_STM32_UART4
     CONFIG_STM32_UART5
+    CONFIG_STM32_SPI2
+    CONFIG_STM32_SPI3
     CONFIG_STM32_I2C1
     CONFIG_STM32_I2C2
-    CONFIG_STM32_I2C3
     CONFIG_STM32_CAN1
     CONFIG_STM32_CAN2
     CONFIG_STM32_DAC1
     CONFIG_STM32_DAC2
-    CONFIG_STM32_PWR -- Required for RTC
+    CONFIG_STM32_WWDG
 
-    APB2
-    ----
+    APB2 (high speed)
+    -----------------
     CONFIG_STM32_TIM1
-    CONFIG_STM32_TIM8
+    CONFIG_STM32_SPI1
     CONFIG_STM32_USART1
-    CONFIG_STM32_USART6
     CONFIG_STM32_ADC1
     CONFIG_STM32_ADC2
-    CONFIG_STM32_ADC3
-    CONFIG_STM32_SDIO
-    CONFIG_STM32_SPI1
-    CONFIG_STM32_SYSCFG
-    CONFIG_STM32_TIM9
-    CONFIG_STM32_TIM10
-    CONFIG_STM32_TIM11
 
   Timer devices may be used for different purposes.  One special purpose is
   to generate modulated outputs for such things as motor control.  If CONFIG_STM32_TIMn
