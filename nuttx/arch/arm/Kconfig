@@ -216,12 +216,6 @@ config PAGING
 		If set =y in your configation file, this setting will enable the on-demand
 		paging feature as described in http://www.nuttx.org/NuttXDemandPaging.html.
 
-config ARCH_LEDS
-	bool "Use board LEDs to show state"
-	default y
-	---help---
-		Use LEDs to show state. Unique to boards that have LEDs
-
 config ARCH_INTERRUPTSTACK
 	bool "Use interrupt stack"
 	default y

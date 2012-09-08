@@ -27,12 +27,6 @@ config ARCH_CHIP
 	string
 	default "pic32mx"	if ARCH_CHIP_PIC32MX
 
-config ARCH_LEDS
-	bool "Use board LEDs to show state"
-	default y
-	---help---
-		Use LEDs to show state. Unique to boards that have LEDs
-
 config ARCH_INTERRUPTSTACK
 	bool "Use interrupt stack"
 	default y

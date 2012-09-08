@@ -202,6 +202,7 @@ config NSH_MMCSDMINOR
 config NSH_ROMFSETC
 	bool "Support ROMFS start-up script"
 	default n
+	depends on FS_ROMFS
 	---help---
 		Mount a ROMFS filesystem at /etc and provide a startup script
 		at /etc/init.d/rcS.  The default startup script will mount
@@ -242,8 +243,6 @@ config NSH_ROMFSSECTSIZE
 		increased if the ROMFS volume were to be become large.  Any value
 		selected must be a power of 2.
 
-endif
-
 config NSH_FATDEVNO
 	int "FAT block device minor number"
 	default 0
@@ -279,7 +278,9 @@ config NSH_FATMOUNTPT
 	---help---
 		When the default rcS file used when NSH_ROMFSETC is selected, it
 		will mount a FAT FS under /tmp. This is the location where the FAT
-		FS will be mounted.  Default is /tmp.
+		FS will be mounted.  Default is "/tmp".
+
+endif
 
 if NSH_LIBRARY
 config NSH_CONSOLE
