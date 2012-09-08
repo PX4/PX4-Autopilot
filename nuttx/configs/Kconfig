@@ -667,6 +667,9 @@ config ARCH_BUTTONS
 	---help---
 		"Support interfaces to use buttons provided by the board."
 
+config ARCH_HAVE_IRQBUTTONS
+	bool
+
 config ARCH_IRQBUTTONS
 	bool "Button interrupt support"
 	default n

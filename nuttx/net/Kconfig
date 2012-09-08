@@ -64,9 +64,10 @@ config NSOCKET_DESCRIPTORS
 
 config NET_NACTIVESOCKETS
 	int "Max socket operations"
+	default 16
 	---help---
 		Maximum number of concurrent socket operations (recv, send, etc.).
-		Default: NET_TCP_CONNS+NET_UCP_CONNS
+		Default: 16
 
 config NET_SOCKOPTS
 	bool "Socket options"
@@ -238,8 +239,12 @@ config NET_STATISTICS
 
 config NET_RECEIVE_WINDOW
 	int "Receive window size"
+	default 562
 	---help---
-		The size of the advertised receiver's window
+		The size of the advertised receiver's window.   Should be set low
+		(i.e., to the size of the NET_BUFSIZE) if the application is slow
+		to process incoming data, or high (32768 bytes) if the application
+		processes data quickly.
 
 config NET_ARPTAB_SIZE
 	int "ARP table size"
@@ -259,11 +264,6 @@ config NET_MULTICAST
 	default n
 	---help---
 		Outgoing multi-cast address support
-
-config NET_FWCACHE_SIZE
-	int "FW cache size"
-	---help---
-		Number of packets to remember when looking for duplicates
 
 config NET_SLIP
 	bool "SLIP support"

@@ -389,11 +389,6 @@ config CUSTOM_STACK
 		nuttx model.  This is necessary for certain architectures that have
 		have hardware stacks (such as the 8051 family).
 
-config STACK_POINTER
-	hex "The initial stack pointer"
-	---help---
-		The initial stack pointer (arm7tdmi only).
-
 config IDLETHREAD_STACKSIZE
 	int "Idle thread stack size"
 	default 1024

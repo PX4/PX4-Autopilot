@@ -1019,8 +1019,6 @@ defconfig -- This is a configuration file similar to the Linux
       from incoming IP packets.
     CONFIG_NET_BROADCAST - Incoming UDP broadcast support
     CONFIG_NET_MULTICAST - Outgoing multi-cast address support
-    CONFIG_NET_FWCACHE_SIZE - number of packets to remember when
-      looking for duplicates
 
   SLIP Driver.  SLIP supports point-to-point IP communications over a serial
     port.  The default data link layer for uIP is Ethernet. If CONFIG_NET_SLIP
@@ -1457,8 +1455,6 @@ defconfig -- This is a configuration file similar to the Linux
       but copy themselves entirely into RAM for better performance.
     CONFIG_BOOT_RAMFUNCS - Other configurations may copy just some functions
       into RAM, either for better performance or for errata workarounds.
-    CONFIG_STACK_POINTER - The initial stack pointer (may not be supported
-      in all architectures).
     CONFIG_STACK_ALIGNMENT - Set if the your application has specific
       stack alignment requirements (may not be supported
       in all architectures).
