@@ -3294,5 +3294,10 @@
 	  script).
 	* configs/fire-stm32v2:  Configuration for the M3 Wildfire board.  I
 	  don't know very much about this board other than is has an
-	  STM32F103VET chip, LCD, touchscreen, and ENC28J60 network.
+	  STM32F103VET6 chip, LCD, touchscreen, and ENC28J60 network.  Very
+	  little is in place on the initial check-in.
+	* configs/shenzhou: Coding for the Shenzhou board port is complete,
+	  but tested has been deferred until I get the right tools.
+	* arch/arc/include/stm32/chip.h and arch/arm/src/stm32/chip.h:
+	  Add support for the STM32F103VET6.
 

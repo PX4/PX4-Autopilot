@@ -219,6 +219,14 @@
  * 46  PE15   PE15-FSMC_D12  2.4" TFT + Touchscreen
  */
 
+#if defined(CONFIG_STM32_SPI1) && defined(CONFIG_STM32_SPI1_REMAP)
+#  error "SPI1 requires CONFIG_STM32_SPI1_REMAP=n"
+#endif
+
+#if defined(CONFIG_STM32_I2C1) && defined(CONFIG_STM32_I2C1_REMAP)
+#  error "SPI1 requires CONFIG_STM32_I2C1_REMAP=n"
+#endif
+
 /* AT24C02
  *
  * --- ------ -------------- -------------------------------------------------------------------
@@ -229,6 +237,10 @@
  * 93  PB7    PB7-I2C1-SDA   2.4" TFT + Touchscreen, AT24C02
  */
 
+#if defined(CONFIG_STM32_I2C1) && defined(CONFIG_STM32_I2C1_REMAP)
+#  error "SPI1 requires CONFIG_STM32_I2C1_REMAP=n"
+#endif
+
 /* Potentiometer/ADC
  *
  * --- ------ -------------- -------------------------------------------------------------------
@@ -236,7 +248,7 @@
  * --- ------ -------------- -------------------------------------------------------------------
  *
  * 16  PC1    PC1/ADC123-IN11 Potentiometer (R16)
- * 24  PA1    PC1/ADC123-IN11
+ * 24  PA1    PC1/ADC123-IN1
  */
 
 /* USARTs
@@ -245,11 +257,19 @@
  * PIN NAME   SIGNAL         NOTES
  * --- ------ -------------- -------------------------------------------------------------------
  *
- * 25  PA2    PA2-US2-TX     MAX3232, DB9 D7
- * 26  PA3    PA3-US2-RX     MAX3232, DB9 D7
- * 68  PA9    PA9-US1-TX     MAX3232, DB9 D8
- * 69  PA10   PA10-US1-RX    MAX3232, DB9 D8
+ * 68  PA9    PA9-US1-TX     MAX3232, DB9 D8, Requires CONFIG_STM32_USART1_REMAP
+ * 69  PA10   PA10-US1-RX    MAX3232, DB9 D8, Requires CONFIG_STM32_USART1_REMAP
+ * 25  PA2    PA2-US2-TX     MAX3232, DB9 D7, Requires !CONFIG_STM32_USART2_REMAP
+ * 26  PA3    PA3-US2-RX     MAX3232, DB9 D7, Requires !CONFIG_STM32_USART2_REMAP
  */
+
+#if defined(CONFIG_STM32_USART1) && !defined(CONFIG_STM32_USART1_REMAP)
+#  errror "USART1 requires CONFIG_STM32_USART1_REMAP=y"
+#endif
+
+#if defined(CONFIG_STM32_USART2) && defined()
+#  errror "USART2 requires CONFIG_STM32_USART2_REMAP=n"
+#endif
 
 /* ENC28J60
  *
@@ -259,6 +279,10 @@
  *
  * 29  PA4    PA4-SPI1-NSS   10Mbit ENC28J60, SPI 2M FLASH
  */
+
+#if defined(CONFIG_STM32_SPI1) && defined(CONFIG_STM32_SPI1_REMAP)
+#  error "SPI1 requires CONFIG_STM32_SPI1_REMAP=n"
+#endif
 
 /* MP3
  *
@@ -298,6 +322,10 @@
  * 95  PB8    PB8-CAN-RX     CAN tranceiver, Header 2H
  * 96  PB9    PB9-CAN-TX     CAN tranceiver, Header 2H
  */
+
+#if defined(CONFIG_STM32_CAN1) && !defined(CONFIG_STM32_CAN1_REMAP1)
+#  error "SPI1 requires CONFIG_STM32_CAN1_REMAP1=y"
+#endif
 
 /************************************************************************************
  * Public Data

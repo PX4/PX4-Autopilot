@@ -132,13 +132,13 @@ config ARCH_BOARD_EZ80F910200ZCO
 
 config ARCH_BOARD_FIRE_STM32V2
 	bool "M3 Wildfire STM32v2 board"
-	depends on ARCH_CHIP_STM32F103VET
+	depends on ARCH_CHIP_STM32F103VET6
 	select ARCH_HAVE_LEDS
 	select ARCH_HAVE_BUTTONS
 	select ARCH_HAVE_IRQBUTTONS
 	---help---
 		A configuration for the M3 Wildfile board.  This board is based on the
-		STM32F103VET chip.
+		STM32F103VET6 chip.
 
 config ARCH_BOARD_HYMINI_STM32V
 	bool "HY-Mini STM32v board"

@@ -2,7 +2,7 @@ README
 ======
 
 This README discusses issues unique to NuttX configurations for the M3
-Wildfire development board (STM32F103VET).
+Wildfire development board (STM32F103VET6).
 
 Contents
 ========
@@ -48,7 +48,7 @@ PIN NAME   SIGNAL         NOTES
 21  VREF+  3V3
 22  VDDA   3V3
 23  PA0    PA0-C-VSYNC    Camera (P9)
-24  PA1    PC1/ADC123-IN11
+24  PA1    PC1/ADC123-IN1
 25  PA2    PA2-US2-TX     MAX3232, DB9 D7
 
 --- ------ -------------- -------------------------------------------------------------------
@@ -163,31 +163,36 @@ Development Environment
 GNU Toolchain Options
 =====================
 
+  Toolchain Configurations
+  ------------------------
   The NuttX make system has been modified to support the following different
   toolchain options.
 
   1. The CodeSourcery GNU toolchain,
-  2. The devkitARM GNU toolchain,
-  3. Raisonance GNU toolchain, or
-  4. The NuttX buildroot Toolchain (see below).
+  2. The Atollic Toolchain,
+  3. The devkitARM GNU toolchain,
+  4. Raisonance GNU toolchain, or
+  5. The NuttX buildroot Toolchain (see below).
 
-  All testing has been conducted using the NuttX buildroot toolchain.  However,
-  the make system is setup to default to use the devkitARM toolchain.  To use
-  the CodeSourcery, devkitARM or Raisonance GNU toolchain, you simply need to
+  Most testing has been conducted using the CodeSourcery toolchain for Windows and
+  that is the default toolchain in most configurations.  To use the Atollic,
+  devkitARM, Raisonance GNU, or NuttX buildroot toolchain, you simply need to
   add one of the following configuration options to your .config (or defconfig)
   file:
 
     CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
     CONFIG_STM32_CODESOURCERYL=y  : CodeSourcery under Linux
+    CONFIG_STM32_ATOLLIC_LITE=y   : The free, "Lite" version of Atollic toolchain under Windows
+    CONFIG_STM32_ATOLLIC_PRO=y    : The paid, "Pro" version of Atollic toolchain under Windows
     CONFIG_STM32_DEVKITARM=y      : devkitARM under Windows
     CONFIG_STM32_RAISONANCE=y     : Raisonance RIDE7 under Windows
     CONFIG_STM32_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin (default)
 
-  If you are not using CONFIG_STM32_BUILDROOT, then you may also have to modify
-  the PATH in the setenv.h file if your make cannot find the tools.
+  If you change the default toolchain, then you may also have to modify the PATH in
+  the setenv.h file if your make cannot find the tools.
 
-  NOTE: the CodeSourcery (for Windows), devkitARM, and Raisonance toolchains are
-  Windows native toolchains.  The CodeSourcey (for Linux) and NuttX buildroot
+  NOTE: the CodeSourcery (for Windows), Atollic, devkitARM, and Raisonance toolchains are
+  Windows native toolchains.  The CodeSourcery (for Linux) and NuttX buildroot
   toolchains are Cygwin and/or Linux native toolchains. There are several limitations
   to using a Windows based toolchain in a Cygwin environment.  The three biggest are:
 
@@ -221,11 +226,45 @@ GNU Toolchain Options
      If you have problems with the dependency build (for example, if you are not
      building on C:), then you may need to modify tools/mkdeps.sh
 
-  NOTE 1: The CodeSourcery toolchain (2009q1) does not work with default optimization
+  The CodeSourcery Toolchain (2009q1)
+  -----------------------------------
+  The CodeSourcery toolchain (2009q1) does not work with default optimization
   level of -Os (See Make.defs).  It will work with -O0, -O1, or -O2, but not with
   -Os.
 
-  NOTE 2: The devkitARM toolchain includes a version of MSYS make.  Make sure that
+  The Atollic "Pro" and "Lite" Toolchain
+  --------------------------------------
+  One problem that I had with the Atollic toolchains is that the provide a gcc.exe
+  and g++.exe in the same bin/ file as their ARM binaries.  If the Atollic bin/ path
+  appears in your PATH variable before /usr/bin, then you will get the wrong gcc
+  when you try to build host executables.  This will cause to strange, uninterpretable
+  errors build some host binaries in tools/ when you first make.
+
+  The Atollic "Lite" Toolchain
+  ----------------------------
+  The free, "Lite" version of the Atollic toolchain does not support C++ nor
+  does it support ar, nm, objdump, or objdcopy. If you use the Atollic "Lite"
+  toolchain, you will have to set:
+
+    CONFIG_HAVE_CXX=n
+
+  In order to compile successfully.  Otherwise, you will get errors like:
+
+    "C++ Compiler only available in TrueSTUDIO Professional"
+
+  The make may then fail in some of the post link processing because of some of
+  the other missing tools.  The Make.defs file replaces the ar and nm with
+  the default system x86 tool versions and these seem to work okay.  Disable all
+  of the following to avoid using objcopy:
+
+    CONFIG_RRLOAD_BINARY=n
+    CONFIG_INTELHEX_BINARY=n
+    CONFIG_MOTOROLA_SREC=n
+    CONFIG_RAW_BINARY=n
+
+  devkitARM
+  ---------
+  The devkitARM toolchain includes a version of MSYS make.  Make sure that the
   the paths to Cygwin's /bin and /usr/bin directories appear BEFORE the devkitARM
   path or will get the wrong version of make.
 
@@ -472,7 +511,7 @@ M3 Wildfire-specific Configuration Options
        chip:
 
        CONFIG_ARCH_CHIP_STM32
-       CONFIG_ARCH_CHIP_STM32F103ZET6
+       CONFIG_ARCH_CHIP_STM32F103VET6
 
     CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG - Enables special STM32 clock
        configuration features.
