@@ -252,15 +252,15 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	 */
 	float zcompensation = 1.0f;
 
-	if (fabsf(att->roll) > 1.0f) {
-		zcompensation *= 1.85081571768f;
+	if (fabsf(att->roll) > 0.3f) {
+		zcompensation *= 1.04675160154f;
 
 	} else {
 		zcompensation *= 1.0f / cosf(att->roll);
 	}
 
-	if (fabsf(att->pitch) > 1.0f) {
-		zcompensation *= 1.85081571768f;
+	if (fabsf(att->pitch) > 0.3f) {
+		zcompensation *= 1.04675160154f;
 
 	} else {
 		zcompensation *= 1.0f / cosf(att->pitch);
