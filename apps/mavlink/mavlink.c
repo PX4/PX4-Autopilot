@@ -409,6 +409,10 @@ void get_mavlink_mode_and_state(const struct vehicle_status_s *c_status, const s
 		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 	}
 
+	if (c_status->flag_hil_enabled) {
+		*mavlink_mode |= MAV_MODE_FLAG_HIL_ENABLED;
+	}
+
 	/* set arming state */
 	if (actuator->armed) {
 		*mavlink_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
@@ -1298,10 +1302,10 @@ void handleMessage(mavlink_message_t *msg)
 
 			hil_global_pos.lat = hil_state.lat;
 			hil_global_pos.lon = hil_state.lon;
-			hil_global_pos.alt = hil_state.alt/1000;
-			hil_global_pos.vx = hil_state.vx;
-			hil_global_pos.vy = hil_state.vy;
-			hil_global_pos.vz = hil_state.vz;
+			hil_global_pos.alt = hil_state.alt / 1000.0f;
+			hil_global_pos.vx = hil_state.vx / 100.0f;
+			hil_global_pos.vy = hil_state.vy / 100.0f;
+			hil_global_pos.vz = hil_state.vz / 100.0f;
 
 			/* set timestamp and notify processes (broadcast) */
 			hil_global_pos.timestamp = hrt_absolute_time();
@@ -1625,6 +1629,9 @@ int mavlink_thread_main(int argc, char *argv[])
 
 			/* send heartbeat */
 			mavlink_msg_heartbeat_send(chan, system_type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.state_machine, mavlink_state);
+
+			/* switch HIL mode if required */
+			set_hil_on_off(v_status.flag_hil_enabled);
 
 			/* send status (values already copied in the section above) */
 			mavlink_msg_sys_status_send(chan, v_status.onboard_control_sensors_present, v_status.onboard_control_sensors_enabled,

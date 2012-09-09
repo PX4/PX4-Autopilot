@@ -220,7 +220,10 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 void publish_armed_status(const struct vehicle_status_s *current_status) {
 	struct actuator_armed_s armed;
 	armed.armed = current_status->flag_system_armed;
-	armed.failsafe = current_status->rc_signal_lost;
+	/* lock down actuators if required */
+	// XXX FIXME Currently any loss of RC will completely disable all actuators
+	// needs proper failsafe
+	armed.lockdown = (current_status->rc_signal_lost || current_status->flag_hil_enabled) ? true : false;
 	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 	orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 }
@@ -559,13 +562,15 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 		}
 	}
 
-	/* Switch on HIL if in standby */
-	if ((current_status->state_machine == SYSTEM_STATE_STANDBY) && (mode & VEHICLE_MODE_FLAG_HIL_ENABLED)) {
+	/* Switch on HIL if in standby and not already in HIL mode */
+	if ((current_status->state_machine == SYSTEM_STATE_STANDBY) && (mode & VEHICLE_MODE_FLAG_HIL_ENABLED)
+		&& !current_status->flag_hil_enabled) {
 		/* Enable HIL on request */
 		current_status->flag_hil_enabled = true;
 		ret = OK;
 		state_machine_publish(status_pub, current_status, mavlink_fd);
-		printf("[commander] Enabling HIL\n");
+		publish_armed_status(current_status);
+		printf("[commander] Enabling HIL, locking down all actuators for safety.\n\t(Arming the system will not activate them while in HIL mode)\n");
 	}
 
 	/* NEVER actually switch off HIL without reboot */
