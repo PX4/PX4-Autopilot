@@ -133,8 +133,8 @@ typedef struct {
 
 	/* Next waypoint*/
 
-	float wp_x;
-	float wp_y;
+	double wp_x;
+	double wp_y;
 	float wp_z;
 
 	/* Setpoints */
@@ -349,9 +349,6 @@ static void get_parameters(plane_data_t * pdata)
 	param_get(att_awu, &(pdata->intmax_att));
 	param_get(pos_awu, &(pdata->intmax_pos));
 	pdata->airspeed = 10;
-	pdata->wp_x =  48;
-	pdata->wp_y =  8;
-	pdata->wp_z =  100;
 	pdata->mode = 1;
 }
 
@@ -686,7 +683,6 @@ int fixedwing_control_main(int argc, char *argv[])
 
 	/* output structs */
 	struct actuator_controls_s actuators;
-	struct actuator_armed_s armed;
 	struct vehicle_attitude_setpoint_s att_sp;
 	memset(&att_sp, 0, sizeof(att_sp));
 
@@ -694,8 +690,6 @@ int fixedwing_control_main(int argc, char *argv[])
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
 		actuators.control[i] = 0.0f;
 	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
-	armed.armed = false;
-	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 
 	/* Subscribe to global position, attitude and rc */
@@ -771,6 +765,10 @@ int fixedwing_control_main(int argc, char *argv[])
 		plane_data.pitchspeed = att.pitchspeed;
 		plane_data.yawspeed = att.yawspeed;
 
+		plane_data.wp_x =  global_setpoint.lat / (double)1e7;
+		plane_data.wp_y =  global_setpoint.lon / (double)1e7;
+		plane_data.wp_z =  global_setpoint.altitude;
+
 		/* parameter values */
 		if (loopcounter % 20 == 0) {
 			get_parameters(&plane_data);
@@ -841,10 +839,6 @@ int fixedwing_control_main(int argc, char *argv[])
 		orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 
 		/* publish actuator setpoints (for mixer) */
-
-		/* arming state depends on commander arming state */
-		armed.armed = state.flag_system_armed;
-		orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 		orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 		loopcounter++;
