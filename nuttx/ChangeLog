@@ -3300,4 +3300,9 @@
 	  but tested has been deferred until I get the right tools.
 	* arch/arc/include/stm32/chip.h and arch/arm/src/stm32/chip.h:
 	  Add support for the STM32F103VET6.
+	* fs/fs_fdopen.c: Bad check for failure to allocate memory.  (Noted
+	  by Ronen Vainish).
+	* drivers/mmcsd/mmcsd_sdio.c: If the MMC/SD driver were ever
+	  uninitialized then there would be a double release of memory
+	  (Noted by Ronen Vainish).
 
