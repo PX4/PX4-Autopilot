@@ -654,6 +654,8 @@ nuttx
  |   |   |- ostest/README.txt
  |   |   |- poll/README.txt
  |   |   `- README.txt
+ |   |-  fire-stm32v2/
+ |   |   `- README.txt
  |   |-  hymini-stm32v/
  |   |   |- include/README.txt
  |   |   |- src/README.txt

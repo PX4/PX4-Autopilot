@@ -3292,4 +3292,7 @@
 	  is nothing in the source tree now that depends on the old way of
 	  doing things (if I am wrong, they will need a change to the linker
 	  script).
+	* configs/fire-stm32v2:  Configuration for the M3 Wildfire board.  I
+	  don't know very much about this board other than is has an
+	  STM32F103VET chip, LCD, touchscreen, and ENC28J60 network.
 

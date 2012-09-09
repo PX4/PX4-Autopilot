@@ -130,6 +130,16 @@ config ARCH_BOARD_EZ80F910200ZCO
 		development kit, eZ80F091 part, and the Zilog ZDS-II Windows command line
 		tools.  The development environment is Cygwin under WinXP.
 
+config ARCH_BOARD_FIRE_STM32V2
+	bool "M3 Wildfire STM32v2 board"
+	depends on ARCH_CHIP_STM32F103VET
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		A configuration for the M3 Wildfile board.  This board is based on the
+		STM32F103VET chip.
+
 config ARCH_BOARD_HYMINI_STM32V
 	bool "HY-Mini STM32v board"
 	depends on ARCH_CHIP_STM32F103VCT
@@ -597,6 +607,7 @@ config ARCH_BOARD
 	default "ekk-lm3s9b96"       if ARCH_BOARD_EKK_LM3S9B96
 	default "ez80f0910200kitg"   if ARCH_BOARD_EZ80F910200KITG
 	default "ez80f0910200zco"    if ARCH_BOARD_EZ80F910200ZCO
+	default "fire-stm32v2"       if ARCH_BOARD_FIRE_STM32V2
 	default "hymini-stm32v"      if ARCH_BOARD_HYMINI_STM32V
 	default "kwikstik-k40"       if ARCH_BOARD_KWIKSTIK_K40
 	default "lincoln60"          if ARCH_BOARD_LINCOLN60
@@ -735,6 +746,9 @@ source "configs/ez80f910200kitg/Kconfig"
 endif
 if ARCH_BOARD_EZ80F910200ZCO
 source "configs/ez80f910200zco/Kconfig"
+endif
+if ARCH_BOARD_FIRE_STM32V2
+source "configs/fire-stm32v2/Kconfig"
 endif
 if ARCH_BOARD_HYMINI_STM32V
 source "configs/hymini-stm32v/Kconfig"

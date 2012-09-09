@@ -1543,6 +1543,10 @@ configs/ez80f0910200zco
   development kit, eZ80F091 part, and the Zilog ZDS-II Windows command line
   tools.  The development environment is Cygwin under WinXP.
 
+configs/fire-stm32v2
+  A configuration for the M3 Wildfire STM32 board.  This board is based on the
+  STM32F103VET chip.
+
 configs/hymini-stm32v
   A configuration for the HY-Mini STM32v board.  This board is based on the
   STM32F103VCT chip.
