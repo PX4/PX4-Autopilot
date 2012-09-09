@@ -119,6 +119,13 @@
 #  define CONFIG_AT24XX_MTD_BLOCKSIZE AT24XX_PAGESIZE
 #endif
 
+/* The AT24 does not respond on the bus during write cycles, so we depend on a long
+ * timeout to detect problems.  The max program time is typically ~5ms.
+ */
+#ifndef CONFIG_AT24XX_WRITE_TIMEOUT_MS
+#  define CONFIG_AT24XX_WRITE_TIMEOUT_MS  20
+#endif
+
 /************************************************************************************
  * Private Types
  ************************************************************************************/
@@ -140,6 +147,8 @@ struct at24c_dev_s
   perf_counter_t        perf_writes;
   perf_counter_t        perf_resets;
   perf_counter_t        perf_read_retries;
+  perf_counter_t        perf_read_errors;
+  perf_counter_t        perf_write_errors;
 };
 
 /************************************************************************************
@@ -262,6 +271,7 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
   while (blocksleft-- > 0)
     {
       uint16_t offset = startblock * priv->pagesize;
+      unsigned tries = CONFIG_AT24XX_WRITE_TIMEOUT_MS;
 
       addr[1] = offset & 0xff;
       addr[0] = (offset >> 8) & 0xff;
@@ -269,7 +279,6 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 
       for (;;)
         {
-          unsigned tries = 50;
 
           perf_begin(priv->perf_reads);
           ret = I2C_TRANSFER(priv->dev, &msgv[0], 2);
@@ -279,18 +288,19 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 
           fvdbg("read stall");
           usleep(1000);
-          perf_count(priv->perf_read_retries);
 
-          /*
-           * Kick the bus in case it's stuck.
+          /* We should normally only be here on the first read after
+           * a write.
+           *
+           * XXX maybe do special first-read handling with optional 
+           * bus reset as well?
            */
+          perf_count(priv->perf_read_retries);
           if (--tries == 0)
             { 
-              tries = 50;
-              up_i2creset(priv->dev);
-              perf_count(priv->perf_resets);
+              perf_count(priv->perf_read_errors);
+              return ERROR;
             }
-
         }
 
       startblock++;
@@ -350,6 +360,7 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
   while (blocksleft-- > 0)
     {
       uint16_t offset = startblock * priv->pagesize;
+      unsigned tries = CONFIG_AT24XX_WRITE_TIMEOUT_MS;
 
       buf[1] = offset & 0xff;
       buf[0] = (offset >> 8) & 0xff;
@@ -365,9 +376,17 @@ static ssize_t at24c_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
           if (ret >= 0)
             break;
 
-          /* XXX probably want a bus reset in here and an eventual timeout */
           fvdbg("write stall");
           usleep(1000);
+
+          /* We expect to see a number of retries per write cycle as we 
+           * poll for write completion.
+           */
+          if (--tries == 0)
+            { 
+              perf_count(priv->perf_write_errors);
+              return ERROR;
+            }
         }
 
       startblock++;
@@ -496,6 +515,8 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_dev_s *dev)
       priv->perf_writes = perf_alloc(PC_ELAPSED, "EEPROM write");
       priv->perf_resets = perf_alloc(PC_COUNT, "EEPROM reset");
       priv->perf_read_retries = perf_alloc(PC_COUNT, "EEPROM read retries");
+      priv->perf_read_errors = perf_alloc(PC_COUNT, "EEPROM read errors");
+      priv->perf_write_errors = perf_alloc(PC_COUNT, "EEPROM write errors");
     }
 
   /* Return the implementation-specific state structure as the MTD device */
