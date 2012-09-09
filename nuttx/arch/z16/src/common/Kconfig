@@ -4,4 +4,6 @@
 #
 
 if ARCH_Z16
+comment "Common Configuration Options"
+
 endif

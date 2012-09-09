@@ -3,6 +3,8 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+comment "LM3S Configuration Options"
+
 choice
 	prompt "LM3S Chip Selection"
 	default ARCH_CHIP_LM3S6965

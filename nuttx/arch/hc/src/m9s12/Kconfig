@@ -4,4 +4,6 @@
 #
 
 if ARCH_HSC12
+comment "M9S12 Configuration Options"
+
 endif

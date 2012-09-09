@@ -4,4 +4,6 @@
 #
 
 if ARCH_AT90USB
+comment "AT90USB Configuration Options"
+
 endif

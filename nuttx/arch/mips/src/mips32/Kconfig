@@ -4,4 +4,6 @@
 #
 
 if ARCH_MIPS32
+comment "MIPS32 Configuration Options"
+
 endif

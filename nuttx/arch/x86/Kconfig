@@ -4,6 +4,8 @@
 #
 
 if ARCH_X86
+comment "x86 Configuration Options"
+
 choice
 	prompt "x86 chip selection"
 	default ARCH_I486

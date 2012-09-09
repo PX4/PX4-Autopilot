@@ -4,4 +4,6 @@
 #
 
 if ARCH_AT32UC3
+comment "AT32U3 Configuration Options"
+
 endif

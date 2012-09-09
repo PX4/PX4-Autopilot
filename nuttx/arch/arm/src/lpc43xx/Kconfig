@@ -3,6 +3,8 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+comment "LPC43xx Configuration Options"
+
 choice
 	prompt "LPC43XX Chip Selection"
 	default ARCH_CHIP_LPC4330FET100

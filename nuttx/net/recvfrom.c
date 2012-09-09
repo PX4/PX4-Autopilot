@@ -596,7 +596,10 @@ static uint16_t recvfrom_tcpinterrupt(struct uip_driver_s *dev, void *conn,
           pstate->rf_cb->priv    = NULL;
           pstate->rf_cb->event   = NULL;
 
-          /* Report an error only if no data has been received */
+          /* Report an error only if no data has been received. (If 
+           * CONFIG_NET_TCP_RECVDELAY then rf_recvlen should always be
+           * zero).
+           */
 
 #if CONFIG_NET_TCP_RECVDELAY > 0
           if (pstate->rf_recvlen == 0)

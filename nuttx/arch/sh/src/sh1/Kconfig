@@ -4,4 +4,6 @@
 #
 
 if ARCH_SH1
+comment "SH-1 Configuration Options"
+
 endif

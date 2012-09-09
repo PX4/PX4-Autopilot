@@ -3,6 +3,8 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+comment "STM32 Configuration Options"
+
 choice
 	prompt "STM32 Chip Selection"
 	default ARCH_CHIP_STM32F103ZET6
@@ -414,6 +416,8 @@ config STM32_CAN
 	bool
 	default y if STM32_CAN1 || STM32_CAN2
 
+menu "Alternate Pin Mapping"
+
 choice
 	prompt "TIM1 Alternate Pin Mappings"
 	depends on STM32_STM32F10XX && STM32_TIM1
@@ -536,6 +540,8 @@ config STM32_ETH_REMAP
 	bool "Ethernet Alternate Pin Mapping"
 	default n
 	depends on STM32_CONNECTIVITYLINE && STM32_ETHMAC
+
+endmenu
 
 choice
 	prompt "JTAG Configuration"

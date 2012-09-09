@@ -4,6 +4,8 @@
 #
 
 if ARCH_SIM
+comment "Simulation Configuration Options"
+
 config SIM_M32
 	bool "Build 32-bit simulation on 64-bit machine"
 	default n

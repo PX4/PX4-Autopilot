@@ -4,4 +4,6 @@
 #
 
 if ARCH_FAMILY_AVR
+comment "AVR Configuration Options"
+
 endif

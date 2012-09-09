@@ -4,5 +4,7 @@
 #
 
 if ARCH_ATMEGA
+comment "ATMega Configuration Options"
+
 endif
 

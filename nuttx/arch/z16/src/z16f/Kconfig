@@ -4,4 +4,6 @@
 #
 
 if ARCH_CHIP_Z16F
+comment "Z16F Configuration Options"
+
 endif

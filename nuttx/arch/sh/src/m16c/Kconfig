@@ -4,4 +4,6 @@
 #
 
 if ARCH_M16C
+comment "M16C Configuration Options"
+
 endif

@@ -216,14 +216,6 @@ config PAGING
 		If set =y in your configation file, this setting will enable the on-demand
 		paging feature as described in http://www.nuttx.org/NuttXDemandPaging.html.
 
-config ARCH_INTERRUPTSTACK
-	bool "Use interrupt stack"
-	default y
-	---help---
-		This architecture supports an interrupt stack. If defined, this symbol
-		is the size of the interrupt stack in bytes.  If not defined, the user
-		task stacks will be used during interrupt handling.
-
 config ARCH_IRQPRIO
 	bool "Interrupt priority"
 	default y		if ARCH_CORTEXM3 || ARCH_CORTEXM4

@@ -3,6 +3,8 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+comment "LPC31xx Configuration Options"
+
 choice
 	prompt "LPC31 Chip Selection"
 	default ARCH_CHIP_LPC3131

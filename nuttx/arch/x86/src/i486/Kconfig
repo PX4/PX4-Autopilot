@@ -4,4 +4,6 @@
 #
 
 if ARCH_I486
+comment "i486 Configuration Options"
+
 endif

@@ -4,4 +4,6 @@
 #
 
 if ARCH_CHIP_QEMU
+comment "QEMU Configuration Options"
+
 endif

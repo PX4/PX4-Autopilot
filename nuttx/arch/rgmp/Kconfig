@@ -4,6 +4,8 @@
 #
 
 if ARCH_RGMP
+comment "RGMP Configuration Options"
+
 choice
 	prompt "RGMP Architecture"
 	default RGMP_SUBARCH_X86

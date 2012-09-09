@@ -14,23 +14,27 @@ config ARCH_8051
 
 config ARCH_ARM
 	bool "ARM"
+	select ARCH_HAVE_INTERRUPTSTACK
 	---help---
 		The ARM architectures
 
 config ARCH_AVR
 	bool "AVR"
 	select ARCH_NOINTC
+	select ARCH_HAVE_INTERRUPTSTACK
 	---help---
 		Atmel 8-bit bit AVR and 32-bit AVR32 architectures
 
 config ARCH_HC
 	bool "Freescale HC"
 	select ARCH_NOINTC
+	select ARCH_HAVE_INTERRUPTSTACK
 	---help---
 		Freescale HC architectures (M9S12)
 
 config ARCH_MIPS
 	bool "MIPS"
+	select ARCH_HAVE_INTERRUPTSTACK
 	---help---
 		MIPS architectures (PIC32)
 
@@ -43,6 +47,7 @@ config ARCH_RGMP
 config ARCH_SH
 	bool "Renesas"
 	select ARCH_NOINTC
+	select ARCH_HAVE_INTERRUPTSTACK
 	---help---
 		Renesas architectures (SH and M16C).
 
@@ -139,6 +144,18 @@ config DRAM_SIZE
 		The size in bytes of the installed RAM.  Despite the naming,
 		this may be SDRAM or SRAM or any other RAM technology that support
 		program execution.
+
+config ARCH_HAVE_INTERRUPTSTACK
+	bool
+
+config ARCH_INTERRUPTSTACK
+	bool "Use interrupt stack"
+	depends on ARCH_HAVE_INTERRUPTSTACK
+	default y
+	---help---
+		This architecture supports an interrupt stack. If defined, this symbol
+		is the size of the interrupt stack in bytes.  If not defined, the user
+		task stacks will be used during interrupt handling.
 
 comment "Boot options"
 

@@ -2,3 +2,5 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+comment "AT91SAM3U Configuration Options"

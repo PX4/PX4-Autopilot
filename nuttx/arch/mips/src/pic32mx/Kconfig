@@ -4,6 +4,7 @@
 #
 
 if ARCH_CHIP_PIC32MX
+comment "PIC32MX Configuration Options"
 
 choice
 	prompt "PIC32MX chip selection"

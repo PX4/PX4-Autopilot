@@ -4,6 +4,7 @@
 #
 
 if ARCH_Z16
+comment "Z16 Configuration Options"
 
 choice
 	prompt "ZNEO chip selection"

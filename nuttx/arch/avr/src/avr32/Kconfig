@@ -4,4 +4,6 @@
 #
 
 if ARCH_FAMILY_AVR32
+comment "AVR32 Configuration Options"
+
 endif

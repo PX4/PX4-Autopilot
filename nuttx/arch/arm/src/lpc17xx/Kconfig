@@ -3,6 +3,8 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+comment "LPC17xx Configuration Options"
+
 choice
 	prompt "NXP LPC17XX Chip Selection"
 	default ARCH_CHIP_LPC1768
