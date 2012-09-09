@@ -138,6 +138,8 @@ struct at24c_dev_s
 
   perf_counter_t        perf_reads;
   perf_counter_t        perf_writes;
+  perf_counter_t        perf_resets;
+  perf_counter_t        perf_read_retries;
 };
 
 /************************************************************************************
@@ -267,6 +269,7 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 
       for (;;)
         {
+          unsigned tries = 50;
 
           perf_begin(priv->perf_reads);
           ret = I2C_TRANSFER(priv->dev, &msgv[0], 2);
@@ -274,9 +277,20 @@ static ssize_t at24c_bread(FAR struct mtd_dev_s *dev, off_t startblock,
           if (ret >= 0)
             break;
 
-          /* XXX probably want a bus reset in here and an eventual timeout */
           fvdbg("read stall");
           usleep(1000);
+          perf_count(priv->perf_read_retries);
+
+          /*
+           * Kick the bus in case it's stuck.
+           */
+          if (--tries == 0)
+            { 
+              tries = 50;
+              up_i2creset(priv->dev);
+              perf_count(priv->perf_resets);
+            }
+
         }
 
       startblock++;
@@ -480,6 +494,8 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_dev_s *dev)
 
       priv->perf_reads = perf_alloc(PC_ELAPSED, "EEPROM read");
       priv->perf_writes = perf_alloc(PC_ELAPSED, "EEPROM write");
+      priv->perf_resets = perf_alloc(PC_COUNT, "EEPROM reset");
+      priv->perf_read_retries = perf_alloc(PC_COUNT, "EEPROM read retries");
     }
 
   /* Return the implementation-specific state structure as the MTD device */

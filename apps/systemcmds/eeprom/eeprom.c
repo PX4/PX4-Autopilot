@@ -67,13 +67,16 @@
 
 __EXPORT int eeprom_main(int argc, char *argv[]);
 
+static void	eeprom_attach(void);
 static void	eeprom_start(void);
 static void	eeprom_erase(void);
 static void	eeprom_ioctl(unsigned operation);
 static void	eeprom_save(const char *name);
 static void	eeprom_load(const char *name);
 
+static bool attached = false;
 static bool started = false;
+static struct mtd_dev_s *eeprom_mtd;
 
 int eeprom_main(int argc, char *argv[])
 {
@@ -105,13 +108,8 @@ int eeprom_main(int argc, char *argv[])
 
 
 static void
-eeprom_start(void)
+eeprom_attach(void)
 {
-	int ret;
-
-	if (started)
-		errx(1, "EEPROM service already started");
-
 	/* find the right I2C */
 	struct i2c_dev_s *i2c = up_i2cinitialize(PX4_I2C_BUS_ONBOARD);
 	/* this resets the I2C bus, set correct bus speed again */
@@ -121,16 +119,27 @@ eeprom_start(void)
 		errx(1, "failed to locate I2C bus");
 
 	/* start the MTD driver */
-	struct mtd_dev_s *mtd = at24c_initialize(i2c);
+	eeprom_mtd = at24c_initialize(i2c);
 
-	if (mtd == NULL)
+	if (eeprom_mtd == NULL)
 		errx(1, "failed to initialize EEPROM driver");
 
-	/* driver is started, even if NXFFS fails to mount */
-	started = true;
+	attached = true;
+}
+
+static void
+eeprom_start(void)
+{
+	int ret;
+
+	if (started)
+		errx(1, "EEPROM already mounted");
+
+	if (!attached)
+		eeprom_attach();
 
 	/* start NXFFS */
-	ret = nxffs_initialize(mtd);
+	ret = nxffs_initialize(eeprom_mtd);
 
 	if (ret < 0)
 		errx(1, "failed to initialize NXFFS - erase EEPROM to reformat");
@@ -141,7 +150,9 @@ eeprom_start(void)
 	if (ret < 0)
 		errx(1, "failed to mount /eeprom - erase EEPROM to reformat");
 	
-	errx(0, "mounted EEPROM at /eeprom");
+	started = true;
+	warnx("mounted EEPROM at /eeprom");
+	exit(0);
 }
 
 extern int at24c_nuke(void);
@@ -149,8 +160,8 @@ extern int at24c_nuke(void);
 static void
 eeprom_erase(void)
 {
-	if (!started)
-		errx(1, "must be started first");
+	if (!attached)
+		eeprom_attach();
 
 	if (at24c_nuke())
 		errx(1, "erase failed");
