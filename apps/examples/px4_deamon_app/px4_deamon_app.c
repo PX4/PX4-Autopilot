@@ -64,10 +64,9 @@ int px4_deamon_thread_main(int argc, char *argv[]) {
 
 	printf("[deamon] starting\n");
 
-	while (true) {
+	while (!thread_should_exit) {
 		printf("Hello Deamon!\n");
 		sleep(10);
-		if (thread_should_exit) break;
 	}
 
 	printf("[deamon] exiting.\n");

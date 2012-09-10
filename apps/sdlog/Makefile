@@ -37,8 +37,6 @@
 
 APPNAME		 = sdlog
 PRIORITY	 = SCHED_PRIORITY_DEFAULT - 1
-STACKSIZE	 = 3000
-
-INCLUDES	 = $(TOPDIR)/../mavlink/include/mavlink
+STACKSIZE	 = 2048
 
 include $(APPDIR)/mk/app.mk

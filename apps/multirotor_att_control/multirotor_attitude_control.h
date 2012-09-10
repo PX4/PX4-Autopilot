@@ -46,11 +46,8 @@
 #define MULTIROTOR_ATTITUDE_CONTROL_H_
 
 #include <uORB/uORB.h>
-#include <uORB/topics/rc_channels.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/ardrone_control.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,

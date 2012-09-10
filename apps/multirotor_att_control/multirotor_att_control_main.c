@@ -57,7 +57,6 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/ardrone_control.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/ardrone_motors_setpoint.h>
 #include <uORB/topics/sensor_combined.h>
