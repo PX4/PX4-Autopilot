@@ -172,10 +172,16 @@ class uploader(object):
 		self.__send(uploader.CHIP_ERASE 
 				+ uploader.EOC)
 		# erase is very slow, give it 10s
-		old_timeout = self.port.timeout
-		self.port.timeout = 10
-		self.__getSync()
-		self.port.timeout = old_timeout
+		deadline = time.time() + 10
+		while time.time() < deadline:
+			try:
+				self.__getSync()
+				return
+			except RuntimeError as ex:
+				# we timed out, that's OK
+				continue
+
+		raise RuntimeError("timed out waiting for erase")
 
 	# send a PROG_MULTI command to write a collection of bytes
 	def __program_multi(self, data):

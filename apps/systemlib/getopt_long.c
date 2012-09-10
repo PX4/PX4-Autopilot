@@ -87,9 +87,7 @@ gpietsch@comcast.net
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifndef GETOPT_H
 #include "getopt_long.h"
-#endif
 
 /* macros */
 
@@ -143,8 +141,8 @@ is_option (char *argv_element, int only)
 
 /* getopt_internal:  the function that does all the dirty work */
 static int
-getopt_internal (int argc, char **argv, char *shortopts,
-                 GETOPT_LONG_OPTION_T * longopts, int *longind, int only)
+getopt_internal (int argc, char **argv, const char *shortopts,
+                 const GETOPT_LONG_OPTION_T * longopts, int *longind, int only)
 {
   GETOPT_ORDERING_T ordering = PERMUTE;
   static size_t optwhere = 0;
@@ -178,7 +176,7 @@ getopt_internal (int argc, char **argv, char *shortopts,
       shortopts++;
     }
   else
-    ordering = (getenv ("POSIXLY_CORRECT") != NULL) ? REQUIRE_ORDER : PERMUTE;
+    ordering = /*(getenv ("POSIXLY_CORRECT") != NULL) ? REQUIRE_ORDER :*/ PERMUTE;
 
   /*
    * based on ordering, find our next option, if we're at the beginning of
@@ -381,22 +379,24 @@ getopt_internal (int argc, char **argv, char *shortopts,
     return optopt;
 }
 
+#if 0
 int
 getopt (int argc, char **argv, char *optstring)
 {
   return getopt_internal (argc, argv, optstring, NULL, NULL, 0);
 }
+#endif
 
 int
-getopt_long (int argc, char **argv, char *shortopts,
-             GETOPT_LONG_OPTION_T * longopts, int *longind)
+getopt_long (int argc, char **argv, const char *shortopts,
+             const GETOPT_LONG_OPTION_T * longopts, int *longind)
 {
   return getopt_internal (argc, argv, shortopts, longopts, longind, 0);
 }
 
 int
-getopt_long_only (int argc, char **argv, char *shortopts,
-                  GETOPT_LONG_OPTION_T * longopts, int *longind)
+getopt_long_only (int argc, char **argv, const char *shortopts,
+                  const GETOPT_LONG_OPTION_T * longopts, int *longind)
 {
   return getopt_internal (argc, argv, shortopts, longopts, longind, 1);
 }
