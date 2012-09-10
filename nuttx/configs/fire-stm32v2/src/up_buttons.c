@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/shenzhou/src/up_buttons.c
+ * configs/fire-stm32v2/src/up_buttons.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -42,7 +42,7 @@
 #include <stdint.h>
 
 #include <arch/board/board.h>
-#include "shenzhou-internal.h"
+#include "fire-internal.h"
 
 #ifdef CONFIG_ARCH_BUTTONS
 
@@ -59,7 +59,7 @@
 
 static const uint16_t g_buttons[NUM_BUTTONS] =
 {
-  GPIO_BTN_USERKEY2, GPIO_BTN_USERKEY, GPIO_BTN_TAMPER, GPIO_BTN_WAKEUP
+  GPIO_BTN_KEY1, GPIO_BTN_KEY1
 };
 
 /****************************************************************************
@@ -83,16 +83,12 @@ static const uint16_t g_buttons[NUM_BUTTONS] =
 
 void up_buttoninit(void)
 {
-  int i;
-
   /* Configure the GPIO pins as inputs.  NOTE that EXTI interrupts are 
    * configured for some pins but NOT used in this file
    */
 
-  for (i = 0; i < NUM_BUTTONS; i++)
-    {
-      stm32_configgpio(g_buttons[i]);
-    }
+  stm32_configgpio(GPIO_BTN_KEY1);
+  stm32_configgpio(GPIO_BTN_KEY2);
 }
 
 /****************************************************************************
@@ -102,28 +98,17 @@ void up_buttoninit(void)
 uint8_t up_buttons(void)
 {
   uint8_t ret = 0;
-  int i;
 
-  /* Check that state of each key */
+  /* Check that state of each key.  A LOW value means that the key is pressed, */
 
-  for (i = 0; i < NUM_BUTTONS; i++)
+  if (!stm32_gpioread(GPIO_BTN_KEY1))
     {
-       /* A LOW value means that the key is pressed for most keys.  The exception
-        * is the WAKEUP button.
-        */
+      ret |= BUTTON_KEY1_BIT;
+    }
 
-       bool released = stm32_gpioread(g_buttons[i]);
-       if (i == BUTTON_WAKEUP)
-         {
-           released = !released;
-         }
-
-       /* Accumulate the set of depressed (not released) keys */
-
-       if (!released)
-         {
-            ret |= (1 << i);
-         }
+  if (!stm32_gpioread(GPIO_BTN_KEY2))
+    {
+      ret |= BUTTON_KEY2_BIT;
     }
 
   return ret;
@@ -155,15 +140,22 @@ uint8_t up_buttons(void)
 #ifdef CONFIG_ARCH_IRQBUTTONS
 xcpt_t up_irqbutton(int id, xcpt_t irqhandler)
 {
-  xcpt_t oldhandler = NULL;
+  uint16_t gpio;
 
-  /* The following should be atomic */
-
-  if (id >= MIN_IRQBUTTON && id <= MAX_IRQBUTTON)
+  if (id == BUTTON_KEY1)
     {
-      oldhandler = stm32_gpiosetevent(g_buttons[id], true, true, true, irqhandler);
+      gpio = GPIO_KEY1;
     }
-  return oldhandler;
+  else if (id == BUTTON_KEY2)
+    {
+      gpio = GPIO_KEY2;
+    }
+  else
+    {
+      return NULL;
+    }
+
+  return stm32_gpiosetevent(gpio, true, true, true, irqhandler);
 }
 #endif
 #endif /* CONFIG_ARCH_BUTTONS */

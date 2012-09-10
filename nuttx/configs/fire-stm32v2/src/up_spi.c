@@ -101,10 +101,35 @@ void weak_function stm32_spiinitialize(void)
    */
 
 #ifdef CONFIG_STM32_SPI1
-  /* Configure the SPI-based FLASH CS GPIO */
+  /* Configure the TFT/Touchscreen CS GPIO */
+
+#if 0 /* Need to study this */
+  stm32_configgpio(GPIO_LCD_CS);
+#endif
+
+  /* Configure the TFT/Touchscreen and ENC28J60 or SPI-based FLASH PIOs */
+
+  /* Configure ENC28J60 SPI1 CS (also RESET and interrupt pins) */
+
+#ifdef CONFIG_NET_ENC28J60
+  stm32_configgpio(GPIO_ENC28J60_CS);
+  stm32_configgpio(GPIO_ENC28J60_RESET);
+  stm32_configgpio(GPIO_ENC28J60_INTR);
+#else
+
+  /* Configure FLASH SPI1 CS */
 
   stm32_configgpio(GPIO_FLASH_CS);
 #endif
+
+#endif /* CONFIG_STM32_SPI1 */
+
+#ifdef CONFIG_STM32_SPI2
+  /* Configure the MP3 SPI2 CS GPIO */
+
+  stm32_configgpio(GPIO_MP3_CS);
+
+#endif /* CONFIG_STM32_SPI2 */
 }
 
 /****************************************************************************
@@ -137,12 +162,29 @@ void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sele
 {
   spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 
+#if 0 /* Need to study this */
   if (devid == SPIDEV_FLASH)
     {
       /* Set the GPIO low to select and high to de-select */
 
       stm32_gpiowrite(GPIO_FLASH_CS, !selected);
     }
+  else
+#ifdef CONFIG_NET_ENC28J60
+  if (devid == SPIDEV_ETHERNET)
+    {
+      /* Set the GPIO low to select and high to de-select */
+
+      stm32_gpiowrite(GPIO_ENC28J60_CS, !selected);
+    }
+#else
+  if (devid == SPIDEV_FLASH)
+    {
+      /* Set the GPIO low to select and high to de-select */
+
+      stm32_gpiowrite(GPIO_FLASH_CS, !selected);
+    }
+#endif
 }
 
 uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
@@ -155,21 +197,16 @@ uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
   spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
+
+  if (devid == SPIDEV_AUDIO)
+    {
+      /* Set the GPIO low to select and high to de-select */
+
+      stm32_gpiowrite(GPIO_MP3_CS, !selected);
+    }
 }
 
 uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
-{
-  return SPI_STATUS_PRESENT;
-}
-#endif
-
-#ifdef CONFIG_STM32_SPI3
-void stm32_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
-{
-  spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
-}
-
-uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
   return SPI_STATUS_PRESENT;
 }

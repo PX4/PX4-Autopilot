@@ -1,7 +1,7 @@
 /****************************************************************************
- * configs/olimex-strp711/src/up_enc28j60.c
+ * configs/fire-stm32v2/src/up_enc28j60.c
  *
- *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,47 +33,17 @@
  *
  ****************************************************************************/
 
-/*
- * ENC28J60 Module
+/* 2MBit SPI FLASH OR ENC28J60
  *
- * The ENC28J60 module does not come on the Olimex-STR-P711, but this
- * describes how I have connected it.  NOTE that the ENC28J60 requires an
- * external interrupt (XTI) pin.  The only easily accessible XTI pins are on
- * SPI0/1 so you can't have both SPI0 and 1 together with this configuration.
+ * --- ------ -------------- -----------------------------------------------------
+ * PIN NAME   SIGNAL         NOTES
+ * --- ------ -------------- -----------------------------------------------------
  *
- * Module CON5     QFN ENC2860 Description
- * --------------- -------------------------------------------------------
- * 1  J8-1 NET CS   5  ~CS    Chip select input pin for SPI interface (active low)
- * 2     2 SCK      4  SCK    Clock in pin for SPI interface
- * 3     3 MOSI     3  SI     Data in pin for SPI interface
- * 4     4 MISO     2  SO     Data out pin for SPI interface
- * 5     5 GND      -- ---    ---
- * 10 J9-1 3V3      -- ---    ---
- * 9     2 WOL      1  ~WOL   Unicast WOL filter
- * 8     3 NET INT  28 ~INT   Interrupt output pin (active low)
- * 7     4 CLKOUT   27 CLKOUT Programmable clock output pin
- * 6     5 NET RST  6  ~RESET Active-low device Reset input
- *
- * For the Olimex STR-P711, the ENC28J60 module is placed on SPI0 and uses
- * P0.3 for CS, P0.6 for an interrupt, and P0.4 as a reset:
- *
- * Module CON5     Olimex STR-P711 Connection
- * --------------- -------------------------------------------------------
- * 1  J8-1 NET CS   SPI0-2     P0.3 output P0.3/S0.SS/I1.SDA
- * 2     2 SCK      SPI0-5     SCLK0       P0.2/S0.SCLK/I1.SCL
- * 3     3 MOSI     SPI0-3     MOSI0       P0.0/S0.MOSI/U3.RX
- * 4     4 MISO     SPI0-4     MISO0       P0.1/S0.MISO/U3.TX
- * 5     5 GND      SPI0-1     GND
- * 10 J9-1 3V3      SPI0-6     3.3V
- * 9     2 WOL      NC
- * 8     3 NET INT  SPI1-5     P0.6 XTI 11 P0.6/S1.SCLK
- * 7     4 CLKOUT   NC
- * 6     5 NET RST  SPI1-4     P0.4 output P0.4/S1.MISO
- *
- * UART3, I2C cannot be used with SPI0.  The GPIOs selected for the ENC28J60
- * interrupt conflict with TMR1.
+ * 29  PA4    PA4-SPI1-NSS   10Mbit ENC28J60, SPI 2M FLASH
+ * 30  PA5    PA5-SPI1-SCK   2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 31  PA6    PA6-SPI1-MISO  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 32  PA7    PA7-SPI1-MOSI  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
  */
-
 
 /****************************************************************************
  * Included Files
@@ -93,62 +63,48 @@
 #include "chip.h"
 #include "up_arch.h"
 #include "up_internal.h"
-#include "str71x_internal.h"
+#include "fire_internal.h"
 
 #ifdef CONFIG_NET_ENC28J60
 
 /****************************************************************************
  * Definitions
  ****************************************************************************/
-
 /* Configuration ************************************************************/
-
-/* We assume that the ENC28J60 is on SPI0 */
-
-#ifndef CONFIG_STR71X_BSPI0
-# error "Need CONFIG_STR71X_BSPI0 in the configuration"
-#endif
-
-#ifndef CONFIG_STR71X_XTI
-# error "Need CONFIG_STR71X_XTI in the configuration"
-#endif
-
-/* UART3, I2C cannot be used with SPI0.  The GPIOs selected for the ENC28J60
- * interrupt conflict with BSPI1.
+/* ENC28J60
+ *
+ * --- ------ -------------- -----------------------------------------------------
+ * PIN NAME   SIGNAL         NOTES
+ * --- ------ -------------- -----------------------------------------------------
+ *
+ * 29  PA4    PA4-SPI1-NSS   10Mbit ENC28J60, SPI 2M FLASH
+ * 30  PA5    PA5-SPI1-SCK   2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 31  PA6    PA6-SPI1-MISO  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 32  PA7    PA7-SPI1-MOSI  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 98  PE1    PE1-FSMC_NBL1  2.4" TFT + Touchscreen, 10Mbit EN28J60 Reset
+ * 4   PE5    (no name)      10Mbps ENC28J60 Interrupt
  */
 
-#ifdef CONFIG_STR71X_UART3
-# error "CONFIG_STR71X_UART3 cannot be used in this configuration"
-#endif
+/* ENC28J60 is on SPI1 */
 
-#ifdef CONFIG_STR71X_I2C1
-# error "CONFIG_STR71X_I2C1 cannot be used in this configuration"
-#endif
-
-#ifdef CONFIG_STR71X_BSP1
-# error "CONFIG_STR71X_BSP1 cannot be used in this configuration"
+#ifndef CONFIG_STM32_SPI1
+# error "Need CONFIG_STM32_SPI1 in the configuration"
 #endif
 
 /* SPI Assumptions **********************************************************/
 
-#define ENC28J60_SPI_PORTNO 0                  /* On SPI0 */
-#define ENC28J60_DEVNO      0                  /* Only one ENC28J60 */
-#define ENC28J60_IRQ        STR71X_IRQ_PORT0p6 /* XTI Line 11: P0.6 */
+#define ENC28J60_SPI_PORTNO 1   /* On SPI1 */
+#define ENC28J60_DEVNO      0   /* Only one ENC28J60 */
 
-/* ENC28J60 additional pins *************************************************
- *
- * NOTE: The ENC28J60 is a 3.3V part; however, it was designed to be
- * easily integrated into 5V systems. The SPI CS, SCK and SI inputs,
- * as well as the RESET pin, are all 5V tolerant. On the other hand,
- * if the host controller is operated at 5V, it quite likely will
- * not be within specifications when its SPI and interrupt inputs
- * are driven by the 3.3V CMOS outputs on the ENC28J60. A
- * unidirectional level translator would be necessary.
- */
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
 
-#  define ENC_GPIO0_CS       (1 << 3) /* Chip select (P0.3) */
-#  define ENC_GPIO0_NETRST   (1 << 4) /* Reset (P0.4) */
-#  define ENC_GPIO0_NETINT   (1 << 6) /* Interrupt (P0.6) */
+struct stm32_lower_s
+{
+  const struct enc_lower_s lower;    /* Low-level MCU interface */
+  xcpt_t                   handler;  /* ENC28J60 interrupt handler */
+};
 
 /****************************************************************************
  * Private Function Prototypes
@@ -169,9 +125,11 @@ static void up_disable(FAR struct enc_lower_s *lower);
 
 static const struct enc_lower_s g_enclower =
 {
-  .attach  = up_attach,
-  .enable  = up_enable,
-  .disable = up_disable
+  {
+    .attach  = up_attach,
+    .enable  = up_enable,
+    .disable = up_disable
+  }
 };
 
 /****************************************************************************
@@ -184,17 +142,25 @@ static const struct enc_lower_s g_enclower =
 
 static int up_attach(FAR struct enc_lower_s *lower, xcpt_t handler)
 {
-  return irq_attach(ENC28J60_IRQ, handler)
+  FAR struct stm32_lower_s *priv = (FAR struct stm32_lower_s *)lower;
+
+  /* Just save the handler for use when the interrupt is enabled */
+
+  priv-handler = handler;
+  return OK;
 }
 
 static void up_enable(FAR struct enc_lower_s *lower)
 {
-  up_enable_irq(ENC28J60_IRQ);
+  FAR struct stm32_lower_s *priv = (FAR struct stm32_lower_s *)lower;
+
+  DEBUGASSERT(priv->handler);
+  (void)stm32_gpiosetevent(GPIO_ENC28J60_INTR, true, true, true, priv-handler);
 }
 
 static void up_disable(FAR struct enc_lower_s *lower)
 {
-  up_disable_irq(ENC28J60_IRQ);
+  (void)stm32_gpiosetevent(GPIO_ENC28J60_INTR, true, true, true, NULL);
 }
 
 /****************************************************************************
@@ -211,7 +177,10 @@ void up_netinitialize(void)
   uint16_t reg16;
   int ret;
 
-  /* Get the SPI port */
+  /* Assumptions:
+   * 1) ENC28J60 pins were configured in up_spi.c early in the boot-up phase.
+   * 2) Clocking for the SPI1 peripheral was also provided earlier in boot-up.
+   */
 
   spi = up_spiinitialize(ENC28J60_SPI_PORTNO);
   if (!spi)
@@ -220,20 +189,9 @@ void up_netinitialize(void)
       return;
     }
 
-  /* Configure the XTI for the ENC28J60 interrupt.  */
-
-  ret = str71x_xticonfig(ENC28J60_IRQ, false);
-  if (ret < 0)
-    {
-      nlldbg("Failed configure interrupt for IRQ %d: %d\n", ENC28J60_IRQ, ret);
-      return;
-    }
-
   /* Take ENC28J60 out of reset (active low)*/
 
-  reg16  = getreg16(STR71X_GPIO0_PD);
-  reg16 &= ~ENC_GPIO0_NETRST;
-  putreg16(reg16, STR71X_GPIO0_PD);
+  stm32_gpiowrite(GPIO_ENC28J60_RESET, true);
 
   /* Bind the SPI port to the ENC28J60 driver */
 
@@ -248,4 +206,5 @@ void up_netinitialize(void)
   nllvdbg("Bound SPI port %d to ENC28J60 device %d\n",
         ENC28J60_SPI_PORTNO, ENC28J60_DEVNO);
 }
+
 #endif /* CONFIG_NET_ENC28J60 */

@@ -172,36 +172,36 @@ struct enc_driver_s
 {
   /* Device control */
 
-  bool          bifup;        /* true:ifup false:ifdown */
-  uint8_t       bank;         /* Currently selected bank */
-  uint16_t      nextpkt;      /* Next packet address */
-  int           irq;          /* GPIO IRQ configured for the ENC28J60 */
+  bool                    bifup;     /* true:ifup false:ifdown */
+  uint8_t                 bank;      /* Currently selected bank */
+  uint16_t                nextpkt;   /* Next packet address */
+  FAR struct enc_lower_s *lower;     /* Low-level MCU-specific support */
 
   /* Timing */
 
-  WDOG_ID       txpoll;       /* TX poll timer */
-  WDOG_ID       txtimeout;    /* TX timeout timer */
+  WDOG_ID                 txpoll;    /* TX poll timer */
+  WDOG_ID                 txtimeout; /* TX timeout timer */
 
   /* We we don't own the SPI bus, then we cannot do SPI accesses from the
    * interrupt handler.
    */
  
 #ifndef CONFIG_SPI_OWNBUS
-  struct work_s work;         /* Work queue support */
+  struct work_s           work;      /* Work queue support */
 #endif
 
   /* This is the contained SPI driver intstance */
 
-  FAR struct spi_dev_s *spi;
+  FAR struct spi_dev_s   *spi;
 
   /* This holds the information visible to uIP/NuttX */
 
-  struct uip_driver_s dev;    /* Interface understood by uIP */
+  struct uip_driver_s     dev;      /* Interface understood by uIP */
 
   /* Statistics */
 
 #ifdef CONFIG_ENC28J60_STATS
-  struct enc_stats_s stats;
+  struct enc_stats_s      stats;
 #endif
 };
 
@@ -1491,8 +1491,6 @@ static int enc_interrupt(int irq, FAR void *context)
 {
   register FAR struct enc_driver_s *priv = &g_enc28j60[0];
 
-  DEBUGASSERT(priv->irq == irq);
-
 #ifdef CONFIG_SPI_OWNBUS
   /* In very simple environments, we own the SPI and can do data transfers
    * from the interrupt handler.  That is actually a very bad idea in any
@@ -1659,8 +1657,9 @@ static int enc_ifup(struct uip_driver_s *dev)
        */
 
       priv->bifup = true;
-      up_enable_irq(priv->irq);
+      priv->lower->enable(priv->lower);
     }
+
   return ret;
 }
 
@@ -1693,7 +1692,7 @@ static int enc_ifdown(struct uip_driver_s *dev)
   /* Disable the Ethernet interrupt */
 
   flags = irqsave();
-  up_disable_irq(priv->irq);
+  priv->lower->disable(priv->lower);
 
   /* Cancel the TX poll timer and TX timeout timers */
 
@@ -2117,10 +2116,10 @@ static int enc_reset(FAR struct enc_driver_s *priv)
  *
  * Parameters:
  *   spi   - A reference to the platform's SPI driver for the ENC28J60
+ *   lower - The MCU-specific interrupt used to control low-level MCU
+ *           functions (i.e., ENC28J60 GPIO interrupts).
  *   devno - If more than one ENC28J60 is supported, then this is the
  *           zero based number that identifies the ENC28J60;
- *   irq   - The fully configured GPIO IRQ that ENC28J60 interrupts will be
- *           asserted on.  This driver will attach and entable this IRQ.
  *
  * Returned Value:
  *   OK on success; Negated errno on failure.
@@ -2129,7 +2128,8 @@ static int enc_reset(FAR struct enc_driver_s *priv)
  *
  ****************************************************************************/
 
-int enc_initialize(FAR struct spi_dev_s *spi, unsigned int devno, unsigned int irq)
+int enc_initialize(FAR struct spi_dev_s *spi,
+                   FAR const struct enc_lower_s *lower, unsigned int devno)
 {
   FAR struct enc_driver_s *priv ;
   int ret;
@@ -2154,7 +2154,7 @@ int enc_initialize(FAR struct spi_dev_s *spi, unsigned int devno, unsigned int i
   priv->txpoll       = wd_create();   /* Create periodic poll timer */
   priv->txtimeout    = wd_create();   /* Create TX timeout timer */
   priv->spi          = spi;           /* Save the SPI instance */
-  priv->irq          = irq;           /* Save the IRQ number */
+  priv->lower        = lower;         /* Save the low-level MCU interface */
 
   /* Make sure that the interface is in the down state.  NOTE:  The MAC
    * address will not be set up until ifup.  That gives the app time to set
@@ -2164,9 +2164,9 @@ int enc_initialize(FAR struct spi_dev_s *spi, unsigned int devno, unsigned int i
   ret = enc_ifdown(&priv->dev);
   if (ret == OK)
     {
-      /* Attach the IRQ to the driver (but don't enable it yet) */
+      /* Attach the interrupt to the driver (but don't enable it yet) */
 
-      if (irq_attach(irq, enc_interrupt))
+      if (lower->attach(lower, enc_interrupt))
         {
           /* We could not attach the ISR to the interrupt */
 
@@ -2177,6 +2177,7 @@ int enc_initialize(FAR struct spi_dev_s *spi, unsigned int devno, unsigned int i
 
       (void)netdev_register(&priv->dev);
     }
+
   return ret;
 }
 

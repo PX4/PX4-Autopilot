@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/net/enc28j60.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,8 @@
 #include <stdint.h>
 #include <stdbool.h>
  
+#include <nuttx/irq.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -80,6 +82,18 @@ struct enc_stats_s
 };
 #endif
 
+/* The ENC28J60 normal provides interrupts to the MCU via a GPIO pin.  The
+ * following structure provides an MCU-independent mechanixm for controlling
+ * the ENC28J60 GPIO interrupt.
+ */
+
+struct enc_lower_s
+{
+  int  (*attach)(FAR struct enc_lower_s *lower, xcpt_t handler);
+  void (*enable)(FAR struct enc_lower_s *lower);
+  void (*disable)(FAR struct enc_lower_s *lower);
+};
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -104,10 +118,10 @@ extern "C" {
  *
  * Parameters:
  *   spi   - A reference to the platform's SPI driver for the ENC28J60
+ *   lower - The MCU-specific interrupt used to control low-level MCU
+ *           functions (i.e., ENC28J60 GPIO interrupts).
  *   devno - If more than one ENC28J60 is supported, then this is the
  *           zero based number that identifies the ENC28J60;
- *   irq   - The fully configured GPIO IRQ that ENC28J60 interrupts will be
- *           asserted on.  This driver will attach and entable this IRQ.
  *
  * Returned Value:
  *   OK on success; Negated errno on failure.
@@ -117,8 +131,9 @@ extern "C" {
  ****************************************************************************/
 
 struct spi_dev_s; /* see nuttx/spi.h */
-EXTERN int enc_initialize(FAR struct spi_dev_s *spi, unsigned int devno,
-                          unsigned int irq);
+EXTERN int enc_initialize(FAR struct spi_dev_s *spi,
+                          FAR const struct enc_lower_s *lower,
+                          unsigned int devno);
 
 /****************************************************************************
  * Function: enc_stats

@@ -113,7 +113,6 @@
  * 32  PA7    PA7-SPI1-MOSI  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
  * 92  PB6    PB6-I2C1-SCL   2.4" TFT + Touchscreen, AT24C02
  * 93  PB7    PB7-I2C1-SDA   2.4" TFT + Touchscreen, AT24C02
- * 7   PC13   PD13_LCD_LIGHT 2.4" TFT + Touchscreen
  * 81  PD0    PD0-FSMC_D2    2.4" TFT + Touchscreen
  * 82  PD1    PD1-FSMC_D3    2.4" TFT + Touchscreen
  * 85  PD4    PD4-FSMC_NOE   2.4" TFT + Touchscreen
@@ -139,7 +138,9 @@
  */
 
 #define GPIO_LCD_BACKLIGHT (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
-                             GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)
+                            GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN13)
+
+/* GPIO_LCD_CS - Is there some kind of chip select for SPI1? */
 
 /* LEDs
  *
@@ -174,9 +175,71 @@
 #define NUM_IRQBUTTONS  (MAX_IRQBUTTON - MIN_IRQBUTTON + 1)
 
 #define GPIO_BTN_KEY1   (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|\
-                         GPIO_PORTB|GPIO_PIN0)
+                         GPIO_EXTI|GPIO_PORTB|GPIO_PIN0)
 #define GPIO_BTN_KEY2   (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|\
-                         GPIO_PORTB|GPIO_PIN1)
+                         GPIO_EXTI|GPIO_PORTB|GPIO_PIN1)
+
+/* 2MBit SPI FLASH
+ *
+ * --- ------ -------------- -------------------------------------------------------------------
+ * PIN NAME   SIGNAL         NOTES
+ * --- ------ -------------- -------------------------------------------------------------------
+ *
+ * 29  PA4    PA4-SPI1-NSS   10Mbit ENC28J60, SPI 2M FLASH
+ * 30  PA5    PA5-SPI1-SCK   2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 31  PA6    PA6-SPI1-MISO  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 32  PA7    PA7-SPI1-MOSI  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ */
+
+#ifndef CONFIG_NET_ENC28J60
+#  define GPIO_ENC28J60_CS (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                            GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
+#endif
+
+/* ENC28J60
+ *
+ * --- ------ -------------- -------------------------------------------------------------------
+ * PIN NAME   SIGNAL         NOTES
+ * --- ------ -------------- -------------------------------------------------------------------
+ *
+ * 29  PA4    PA4-SPI1-NSS   10Mbit ENC28J60, SPI 2M FLASH
+ * 30  PA5    PA5-SPI1-SCK   2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 31  PA6    PA6-SPI1-MISO  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 32  PA7    PA7-SPI1-MOSI  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 98  PE1    PE1-FSMC_NBL1  2.4" TFT + Touchscreen, 10Mbit EN28J60 Reset
+ * 4   PE5    (no name)      10Mbps ENC28J60 Interrupt
+ */
+
+#if defined(CONFIG_STM32_FSMC) && defined(CONFIG_NET_ENC28J60)
+#  warning "TFT LCD and ENCJ2860 shared PE1"
+#endif
+
+#ifdef CONFIG_NET_ENC28J60
+#  define GPIO_ENC28J60_CS    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                               GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
+#  define GPIO_ENC28J60_RESET (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                               GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN1)
+#  define GPIO_ENC28J60_INTR  (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|\
+                               GPIO_EXTI|GPIO_PORTE|GPIO_PIN5)
+#endif
+
+/* MP3
+ *
+ * --- ------ -------------- -------------------------------------------------------------------
+ * PIN NAME   SIGNAL         NOTES
+ * --- ------ -------------- -------------------------------------------------------------------
+ *
+ * 48  PB11   PB11-MP3-RST   MP3
+ * 51  PB12   PB12-SPI2-NSS  MP3
+ * 52  PB13   PB13-SPI2-SCK  MP3
+ * 53  PB14   PB14-SPI2-MISO MP3
+ * 54  PB15   PB15-SPI2-MOSI MP3
+ * 63  PC6    PC6-MP3-XDCS   MP3
+ * 64  PC7    PC7-MP3-DREQ   MP3
+ */
+
+#define GPIO_MP3_CS    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN6)
 
 /************************************************************************************
  * Public Types

@@ -28,10 +28,10 @@ PIN NAME   SIGNAL         NOTES
 1   PE2    PE2-C-RCLK     Camera (P9)
 2   PE3    PE3-USB-M      USB2.0
 3   PE4    PE4-BEEP       LS1 Bell
-4   PE5
+4   PE5    (no name)      10Mbps ENC28J60 Interrupt
 5   PE6
 6   VBAT   BT1            Battery (BT1)
-7   PC13   PD13_LCD_LIGHT 2.4" TFT + Touchscreen
+7   PC13                  Header 7X2
 8   PC14   PC14/OSC32-IN  Y2 32.768KHz
 9   PC15   PC15/OSC32-OUT Y2 32.768KHz
 10  VSS_5  DGND
@@ -449,10 +449,10 @@ The LEDs are used to encode OS-related events as follows:
   #define LED_IRQSENABLED            2  /* OFF    ON     OFF */
   #define LED_STACKCREATED           3  /* OFF    OFF    OFF */
 
-  #define LED_INIRQ                  4  /*  NC     NC    ON  (momentary) */
-  #define LED_SIGNAL                 5  /*  NC     NC    ON  (momentary) */
-  #define LED_ASSERTION              6  /*  NC     NC    ON  (momentary) */
-  #define LED_PANIC                  7  /*  NC     NC    ON  (2Hz flashing) */
+  #define LED_INIRQ                  4  /* NC     NC    ON  (momentary) */
+  #define LED_SIGNAL                 5  /* NC     NC    ON  (momentary) */
+  #define LED_ASSERTION              6  /* NC     NC    ON  (momentary) */
+  #define LED_PANIC                  7  /* NC     NC    ON  (2Hz flashing) */
   #undef  LED_IDLE                      /* Sleep mode indication not supported */
 
 RTC

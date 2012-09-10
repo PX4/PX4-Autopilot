@@ -149,17 +149,17 @@
  * used by the NuttX port unless CONFIG_ARCH_LEDS is defined.  In that case, the
  * usage by the board port is defined in include/board.h and src/up_autoleds.c.
  * The LEDs are used to encode OS-related events as follows:
- *.
+ */
                                       /* LED1   LED2   LED3 */
 #define LED_STARTED                0  /* OFF    OFF    OFF */
 #define LED_HEAPALLOCATE           1  /* ON     OFF    OFF */
 #define LED_IRQSENABLED            2  /* OFF    ON     OFF */
 #define LED_STACKCREATED           3  /* OFF    OFF    OFF */
 
-#define LED_INIRQ                  4  /*  NC     NC    ON  (momentary) */
-#define LED_SIGNAL                 5  /*  NC     NC    ON  (momentary) */
-#define LED_ASSERTION              6  /*  NC     NC    ON  (momentary) */
-#define LED_PANIC                  7  /*  NC     NC    ON  (2Hz flashing) */
+#define LED_INIRQ                  4  /* NC     NC     ON  (momentary) */
+#define LED_SIGNAL                 4  /* NC     NC     ON  (momentary) */
+#define LED_ASSERTION              4  /* NC     NC     ON  (momentary) */
+#define LED_PANIC                  4  /* NC     NC     ON  (2Hz flashing) */
 #undef  LED_IDLE                      /* Sleep mode indication not supported */
 
 /* The M3 Wildfire supports several two user buttons:  KEY1 and KEY2 */
@@ -194,7 +194,6 @@
  * 32  PA7    PA7-SPI1-MOSI  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
  * 92  PB6    PB6-I2C1-SCL   2.4" TFT + Touchscreen, AT24C02
  * 93  PB7    PB7-I2C1-SDA   2.4" TFT + Touchscreen, AT24C02
- * 7   PC13   PD13_LCD_LIGHT 2.4" TFT + Touchscreen
  * 81  PD0    PD0-FSMC_D2    2.4" TFT + Touchscreen
  * 82  PD1    PD1-FSMC_D3    2.4" TFT + Touchscreen
  * 85  PD4    PD4-FSMC_NOE   2.4" TFT + Touchscreen
@@ -207,7 +206,7 @@
  * 60  PD13   PD13-LCD/LIGHT 2.4" TFT + Touchscreen
  * 61  PD14   PD14-FSMC_D0   2.4" TFT + Touchscreen
  * 62  PD15   PD15-FSMC_D1   2.4" TFT + Touchscreen
- * 98  PE1    PE1-FSMC_NBL1  2.4" TFT + Touchscreen
+ * 98  PE1    PE1-FSMC_NBL1  2.4" TFT + Touchscreen, 10Mbit EN28J60 Reset
  * 38  PE7    PE7-FSMC_D4    2.4" TFT + Touchscreen
  * 39  PE8    PE8-FSMC_D5    2.4" TFT + Touchscreen
  * 40  PE9    PE9-FSMC_D6    2.4" TFT + Touchscreen
@@ -271,6 +270,22 @@
 #  errror "USART2 requires CONFIG_STM32_USART2_REMAP=n"
 #endif
 
+/* 2MBit SPI FLASH
+ *
+ * --- ------ -------------- -------------------------------------------------------------------
+ * PIN NAME   SIGNAL         NOTES
+ * --- ------ -------------- -------------------------------------------------------------------
+ *
+ * 29  PA4    PA4-SPI1-NSS   10Mbit ENC28J60, SPI 2M FLASH
+ * 30  PA5    PA5-SPI1-SCK   2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 31  PA6    PA6-SPI1-MISO  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 32  PA7    PA7-SPI1-MOSI  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ */
+
+#if defined(CONFIG_STM32_SPI1) && defined(CONFIG_STM32_SPI1_REMAP)
+#  error "SPI1 requires CONFIG_STM32_SPI1_REMAP=n"
+#endif
+
 /* ENC28J60
  *
  * --- ------ -------------- -------------------------------------------------------------------
@@ -278,6 +293,11 @@
  * --- ------ -------------- -------------------------------------------------------------------
  *
  * 29  PA4    PA4-SPI1-NSS   10Mbit ENC28J60, SPI 2M FLASH
+ * 30  PA5    PA5-SPI1-SCK   2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 31  PA6    PA6-SPI1-MISO  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 32  PA7    PA7-SPI1-MOSI  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
+ * 98  PE1    PE1-FSMC_NBL1  2.4" TFT + Touchscreen, 10Mbit EN28J60 Reset
+ * 4   PE5    (no name)      10Mbps ENC28J60 Interrupt
  */
 
 #if defined(CONFIG_STM32_SPI1) && defined(CONFIG_STM32_SPI1_REMAP)

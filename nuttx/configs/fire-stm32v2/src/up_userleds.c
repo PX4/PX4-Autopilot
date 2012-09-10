@@ -1,5 +1,6 @@
 /****************************************************************************
- * configs/shenzhou/src/up_buttons.c
+ * configs/fire-stm32v2/src/up_userleds.c
+ * arch/arm/src/board/up_userleds.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -40,26 +41,45 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
+#include <stdbool.h>
+#include <debug.h>
 
 #include <arch/board/board.h>
-#include "shenzhou-internal.h"
 
-#ifdef CONFIG_ARCH_BUTTONS
+#include "chip.h"
+#include "up_arch.h"
+#include "up_internal.h"
+#include "stm32_internal.h"
+#include "fire-internal.h"
+
+#ifndef CONFIG_ARCH_LEDS
 
 /****************************************************************************
  * Definitions
  ****************************************************************************/
 
+/* Enables debug output from this file (needs CONFIG_DEBUG with
+ * CONFIG_DEBUG_VERBOSE too)
+ */
+
+#undef LED_DEBUG  /* Define to enable debug */
+
+#ifdef LED_DEBUG
+#  define leddbg  lldbg
+#  define ledvdbg llvdbg
+#else
+#  define leddbg(x...)
+#  define ledvdbg(x...)
+#endif
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-/* Pin configuration for each Shenzhou button.  This array is indexed by
- * the BUTTON_* definitions in board.h
- */
+/* This array maps an LED number to GPIO pin configuration */
 
-static const uint16_t g_buttons[NUM_BUTTONS] =
+static uint32_t g_ledcfg[BOARD_NLEDS] = 
 {
-  GPIO_BTN_USERKEY2, GPIO_BTN_USERKEY, GPIO_BTN_TAMPER, GPIO_BTN_WAKEUP
+  GPIO_LED1, GPIO_LED2, GPIO_LED3
 };
 
 /****************************************************************************
@@ -71,99 +91,39 @@ static const uint16_t g_buttons[NUM_BUTTONS] =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_buttoninit
- *
- * Description:
- *   up_buttoninit() must be called to initialize button resources.  After
- *   that, up_buttons() may be called to collect the current state of all
- *   buttons or up_irqbutton() may be called to register button interrupt
- *   handlers.
- *
+ * Name: stm32_ledinit
  ****************************************************************************/
 
-void up_buttoninit(void)
+void stm32_ledinit(void)
 {
-  int i;
+   /* Configure LED1-4 GPIOs for output */
 
-  /* Configure the GPIO pins as inputs.  NOTE that EXTI interrupts are 
-   * configured for some pins but NOT used in this file
-   */
+   stm32_configgpio(GPIO_LED1);
+   stm32_configgpio(GPIO_LED2);
+   stm32_configgpio(GPIO_LED3);
+}
 
-  for (i = 0; i < NUM_BUTTONS; i++)
+/****************************************************************************
+ * Name: stm32_setled
+ ****************************************************************************/
+
+void stm32_setled(int led, bool ledon)
+{
+  if ((unsigned)led < BOARD_NLEDS)
     {
-      stm32_configgpio(g_buttons[i]);
+      stm32_gpiowrite(g_ledcfg[led], ledon);
     }
 }
 
 /****************************************************************************
- * Name: up_buttons
+ * Name: stm32_setleds
  ****************************************************************************/
 
-uint8_t up_buttons(void)
+void stm32_setleds(uint8_t ledset)
 {
-  uint8_t ret = 0;
-  int i;
-
-  /* Check that state of each key */
-
-  for (i = 0; i < NUM_BUTTONS; i++)
-    {
-       /* A LOW value means that the key is pressed for most keys.  The exception
-        * is the WAKEUP button.
-        */
-
-       bool released = stm32_gpioread(g_buttons[i]);
-       if (i == BUTTON_WAKEUP)
-         {
-           released = !released;
-         }
-
-       /* Accumulate the set of depressed (not released) keys */
-
-       if (!released)
-         {
-            ret |= (1 << i);
-         }
-    }
-
-  return ret;
+  stm32_gpiowrite(BOARD_LED1, (ledset & BOARD_LED1_BIT) == 0);
+  stm32_gpiowrite(BOARD_LED2, (ledset & BOARD_LED2_BIT) == 0);
+  stm32_gpiowrite(BOARD_LED3, (ledset & BOARD_LED3_BIT) == 0);
 }
 
-/************************************************************************************
- * Button support.
- *
- * Description:
- *   up_buttoninit() must be called to initialize button resources.  After
- *   that, up_buttons() may be called to collect the current state of all
- *   buttons or up_irqbutton() may be called to register button interrupt
- *   handlers.
- *
- *   After up_buttoninit() has been called, up_buttons() may be called to
- *   collect the state of all buttons.  up_buttons() returns an 8-bit bit set
- *   with each bit associated with a button.  See the BUTTON_*_BIT and JOYSTICK_*_BIT
- *   definitions in board.h for the meaning of each bit.
- *
- *   up_irqbutton() may be called to register an interrupt handler that will
- *   be called when a button is depressed or released.  The ID value is a
- *   button enumeration value that uniquely identifies a button resource. See the
- *   BUTTON_* and JOYSTICK_* definitions in board.h for the meaning of enumeration
- *   value.  The previous interrupt handler address is returned (so that it may
- *   restored, if so desired).
- *
- ************************************************************************************/
-
-#ifdef CONFIG_ARCH_IRQBUTTONS
-xcpt_t up_irqbutton(int id, xcpt_t irqhandler)
-{
-  xcpt_t oldhandler = NULL;
-
-  /* The following should be atomic */
-
-  if (id >= MIN_IRQBUTTON && id <= MAX_IRQBUTTON)
-    {
-      oldhandler = stm32_gpiosetevent(g_buttons[id], true, true, true, irqhandler);
-    }
-  return oldhandler;
-}
-#endif
-#endif /* CONFIG_ARCH_BUTTONS */
+#endif /* !CONFIG_ARCH_LEDS */
