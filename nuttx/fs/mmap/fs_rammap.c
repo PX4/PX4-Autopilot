@@ -165,7 +165,7 @@ FAR void *rammap(int fd, size_t length, off_t offset)
        */
 
       fdbg("Seek to position %d failed\n", (int)offset);
-      err = ENOMEM;
+      err = EINVAL;
       goto errout_with_region;
     }
 
@@ -181,28 +181,35 @@ FAR void *rammap(int fd, size_t length, off_t offset)
             * signal.
             */
 
-           if (nread != EINTR)
+           err = get_errno();
+           if (err != EINTR)
              {
                /* All other read errors are bad.  errno is already set.
-                * (but maybe should be forced to EINVAL?)
+                * (but maybe should be forced to EINVAL?).  NOTE that if
+                * FS DEBUG is enabled, then the following fdbg() macro will
+                * destroy the errno value.
                 */
 
-               fdbg("Read failed: %d\n", (int)offset);
+               fdbg("Read failed: offset=%d errno=%d\n", (int)offset, err);
+#ifdef CONFIG_DEBUG_FS
+               goto errout_with_region;
+#else
                goto errout_with_errno;
+#endif
              }
-
-           /* Check for end of file. */
-
-           if (nread == 0)
-             {
-               break;
-             }
-
-           /* Increment number of bytes read */
-
-           rdbuffer += nread;
-           length   -= nread;
         }
+
+      /* Check for end of file. */
+
+      if (nread == 0)
+        {
+          break;
+        }
+
+      /* Increment number of bytes read */
+
+      rdbuffer += nread;
+      length   -= nread;
     }
 
   /* Zero any memory beyond the amount read from the file */
@@ -227,7 +234,7 @@ FAR void *rammap(int fd, size_t length, off_t offset)
 errout_with_region:
   kfree(alloc);
 errout:
-  errno = err;
+  set_errno(err);
   return MAP_FAILED;
 
 errout_with_errno:

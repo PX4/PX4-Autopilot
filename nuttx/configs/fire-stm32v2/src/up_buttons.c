@@ -53,14 +53,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-/* Pin configuration for each Shenzhou button.  This array is indexed by
- * the BUTTON_* definitions in board.h
- */
-
-static const uint16_t g_buttons[NUM_BUTTONS] =
-{
-  GPIO_BTN_KEY1, GPIO_BTN_KEY1
-};
 
 /****************************************************************************
  * Private Functions

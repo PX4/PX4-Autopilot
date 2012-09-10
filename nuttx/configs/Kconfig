@@ -138,7 +138,7 @@ config ARCH_BOARD_FIRE_STM32V2
 	select ARCH_HAVE_IRQBUTTONS
 	---help---
 		A configuration for the M3 Wildfile board.  This board is based on the
-		STM32F103VET6 chip.
+		STM32F103VET6 chip.  See http://firestm32.taobao.com
 
 config ARCH_BOARD_HYMINI_STM32V
 	bool "HY-Mini STM32v board"

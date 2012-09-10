@@ -95,6 +95,15 @@ int httpd_mmap_open(const char *name, struct httpd_fs_file *file)
        return ERROR;
     }
 
+  file->len = (int) st.st_size;
+
+  /* SUS3: "If len is zero, mmap() shall fail and no mapping shall be established." */
+
+  if (st.st_size == 0)
+    {
+      return OK;
+    }
+
   file->fd = open(path, O_RDONLY);
   if (file->fd == -1)
     {
@@ -108,13 +117,16 @@ int httpd_mmap_open(const char *name, struct httpd_fs_file *file)
        return ERROR;
     }
 
-  file->len = (int) st.st_size;
-
   return OK;
 }
 
 int httpd_mmap_close(struct httpd_fs_file *file)
 {
+  if (file->len == 0)
+    {
+      return OK;
+    }
+
 #ifdef CONFIG_FS_RAMMAP
   if (-1 == munmap(file->data, file->len))
     {

@@ -1,9 +1,10 @@
 /****************************************************************************
- * config/shenzhou/src/up_nsh.c
- * arch/arm/src/board/up_nsh.c
+ * configs/fire-stm32v2/src/up_composite.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *
+ * Configure and register the STM32 SPI-based MMC/SD block driver.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,90 +41,19 @@
 
 #include <nuttx/config.h>
 
-#include <stdbool.h>
 #include <stdio.h>
 #include <debug.h>
-#include <errno.h>
 
-#include "stm32_internal.h"
-#include "shenzhou-internal.h"
+#include "fire-internal.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
+/* Device minor number */
 
-/* Assume that we support everything until convinced otherwise */
-
-#define HAVE_MMCSD    1
-#define HAVE_USBDEV   1
-#define HAVE_USBHOST  1
-
-/* Configuration ************************************************************/
-/* SPI1 connects to the SD CARD (and to the SPI FLASH) */
-
-#define STM32_MMCSDSPIPORTNO   1  /* SPI1 */
-#define STM32_MMCSDSLOTNO      0  /* Only one slot */
-
-#ifndef CONFIG_STM32_SPI1
-#  undef HAVE_MMCSD
-#endif
-
-/* Can't support MMC/SD features if mountpoints are disabled */
-
-#ifdef CONFIG_DISABLE_MOUNTPOINT
-#  undef HAVE_MMCSD
-#endif
-
-/* Default MMC/SD minor number */
-
-#ifdef HAVE_MMCSD
-#  ifndef CONFIG_NSH_MMCSDMINOR
-#    define CONFIG_NSH_MMCSDMINOR 0
-#  endif
-
-/* Default MMC/SD SLOT number */
-
-#  if defined(CONFIG_NSH_MMCSDSLOTNO) && CONFIG_NSH_MMCSDSLOTNO != STM32_MMCSDSLOTNO
-#    error "Only one MMC/SD slot:  Slot 0"
-#    undef  CONFIG_NSH_MMCSDSLOTNO
-#    define CONFIG_NSH_MMCSDSLOTNO STM32_MMCSDSLOTNO
-#  endif
-
-#  ifndef CONFIG_NSH_MMCSDSLOTNO
-#    define CONFIG_NSH_MMCSDSLOTNO STM32_MMCSDSLOTNO
-#  endif
-
-/* Verify configured SPI port number */
-
-#  if defined(CONFIG_NSH_MMCSDSPIPORTNO) && CONFIG_NSH_MMCSDSPIPORTNO != STM32_MMCSDSPIPORTNO
-#    error "Only one MMC/SD port:  SPI1"
-#    undef  CONFIG_NSH_MMCSDSPIPORTNO
-#    define CONFIG_NSH_MMCSDSPIPORTNO STM32_MMCSDSPIPORTNO
-#  endif
-
-#  ifndef CONFIG_NSH_MMCSDSPIPORTNO
-#    define CONFIG_NSH_MMCSDSPIPORTNO STM32_MMCSDSPIPORTNO
-#  endif
-#endif
-
-/* Can't support USB host or device features if USB OTG FS is not enabled */
-
-#ifndef CONFIG_STM32_OTGFS
-#  undef HAVE_USBDEV
-#  undef HAVE_USBHOST
-#endif
-
-/* Can't support USB device is USB device is not enabled */
-
-#ifndef CONFIG_USBDEV
-#  undef HAVE_USBDEV
-#endif
-
-/* Can't support USB host is USB host is not enabled */
-
-#ifndef CONFIG_USBHOST
-#  undef HAVE_USBHOST
+#ifndef CONFIG_EXAMPLES_COMPOSITE_DEVMINOR1
+#  define CONFIG_EXAMPLES_COMPOSITE_DEVMINOR1 0
 #endif
 
 /* Debug ********************************************************************/
@@ -131,14 +61,18 @@
 #ifdef CONFIG_CPP_HAVE_VARARGS
 #  ifdef CONFIG_DEBUG
 #    define message(...) lib_lowprintf(__VA_ARGS__)
+#    define msgflush()
 #  else
 #    define message(...) printf(__VA_ARGS__)
+#    define msgflush() fflush(stdout)
 #  endif
 #else
 #  ifdef CONFIG_DEBUG
 #    define message lib_lowprintf
+#    define msgflush()
 #  else
 #    define message printf
+#    define msgflush() fflush(stdout)
 #  endif
 #endif
 
@@ -147,43 +81,26 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nsh_archinitialize
+ * Name: composite_archinitialize
  *
  * Description:
  *   Perform architecture specific initialization
  *
  ****************************************************************************/
 
-int nsh_archinitialize(void)
+int composite_archinitialize(void)
 {
-#if defined(HAVE_MMCSD) || defined(HAVE_USBHOST)
-  int ret;
-#endif
-
-  /* Initialize the SPI-based MMC/SD slot */
-
-#ifdef HAVE_MMCSD
-  ret = stm32_sdinitialze(CONFIG_NSH_MMCSDMINOR);
-  if (ret < 0)
-    {
-      message("nsh_archinitialize: Failed to initialize MMC/SD slot %d: %d\n",
-              CONFIG_NSH_MMCSDSLOTNO, ret);
-      return ret;
-    }
-#endif
-
-  /* Initialize USB host operation.  stm32_usbhost_initialize() starts a thread
-   * will monitor for USB connection and disconnection events.
+  /* If examples/composite is built as an NSH command, then SD slot should
+   * already have been initized in nsh_archinitialize() (see up_nsh.c).  In
+   * this case, there is nothing further to be done here.
+   *
+   * NOTE: CONFIG_NSH_BUILTIN_APPS is not a fool-proof indication that NSH
+   * was built.
    */
 
-#ifdef HAVE_USBHOST
-  ret = stm32_usbhost_initialize();
-  if (ret != OK)
-    {
-      message("nsh_archinitialize: Failed to initialize USB host: %d\n", ret);
-      return ret;
-    }
-#endif
-
+#ifndef CONFIG_NSH_BUILTIN_APPS
+  return sd_mount(CONFIG_EXAMPLES_COMPOSITE_DEVMINOR1);
+#else
   return OK;
+#endif /* CONFIG_NSH_BUILTIN_APPS */
 }

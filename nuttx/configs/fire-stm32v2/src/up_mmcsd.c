@@ -1,10 +1,9 @@
 /****************************************************************************
- * configs/shenzhou/src/up_composite.c
+ * config/fire-stm32v2/src/up_mmcsd.c
+ * arch/arm/src/board/up_mmcsd.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
- * Configure and register the STM32 SPI-based MMC/SD block driver.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,37 +42,31 @@
 
 #include <stdio.h>
 #include <debug.h>
+#include <errno.h>
 
-#include "shenzhou-internal.h"
+#include <nuttx/sdio.h>
+#include <nuttx/mmcsd.h>
+
+#include "fire-internal.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
-/* Device minor number */
 
-#ifndef CONFIG_EXAMPLES_COMPOSITE_DEVMINOR1
-#  define CONFIG_EXAMPLES_COMPOSITE_DEVMINOR1 0
+#define HAVE_MMCSD           1 /* Assume that we have SD support */
+#define STM32_MMCSDSLOTNO    0 /* There is only one slot */
+
+/* Can't support MMC/SD features if the SDIO peripheral is disabled */
+
+#ifndef CONFIG_STM32_SDIO
+#  undef HAVE_MMCSD
 #endif
 
-/* Debug ********************************************************************/
+/* Can't support MMC/SD features if mountpoints are disabled */
 
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) lib_lowprintf(__VA_ARGS__)
-#    define msgflush()
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#    define msgflush() fflush(stdout)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message lib_lowprintf
-#    define msgflush()
-#  else
-#    define message printf
-#    define msgflush() fflush(stdout)
-#  endif
+#ifndef CONFIG_DISABLE_MOUNTPOINT
+#  undef HAVE_MMCSD
 #endif
 
 /****************************************************************************
@@ -81,26 +74,49 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: composite_archinitialize
+ * Name: stm32_sdinitialize
  *
  * Description:
- *   Perform architecture specific initialization
+ *   Initialize the SPI-based SD card.  Requires CONFIG_DISABLE_MOUNTPOINT=n
+ *   and CONFIG_STM32_SPI1=y
  *
  ****************************************************************************/
 
-int composite_archinitialize(void)
+int stm32_sdinitialize(int minor)
 {
-  /* If examples/composite is built as an NSH command, then SD slot should
-   * already have been initized in nsh_archinitialize() (see up_nsh.c).  In
-   * this case, there is nothing further to be done here.
-   *
-   * NOTE: CONFIG_NSH_BUILTIN_APPS is not a fool-proof indication that NSH
-   * was built.
+#ifdef HAVE_MMCSD
+  FAR struct sdio_dev_s *sdio;
+  int ret;
+
+  /* First, get an instance of the SDIO interface */
+
+  sdio = sdio_initialize(STM32_MMCSDSLOTNO);
+  if (!sdio)
+    {
+      message("Failed to initialize SDIO slot %d\n", STM32_MMCSDSLOTNO);
+      return -ENODEV;
+    }
+
+  fvdbg("Initialized SDIO slot %d\n", STM32_MMCSDSLOTNO);
+
+  /* Now bind the SDIO interface to the MMC/SD driver */
+
+  ret = mmcsd_slotinitialize(minor, sdio);
+  if (ret != OK)
+    {
+      message("Failed to bind SDIO slot %d to the MMC/SD driver, minor=%d\n",
+              STM32_MMCSDSLOTNO, minor);
+    }
+
+  fvdbg("Bound SDIO slot %d to the MMC/SD driver, minor=%d\n",
+         STM32_MMCSDSLOTNO, minor);
+  
+  /* Then let's guess and say that there is a card in the slot.  I need to check to
+   * see if the M3 Wildfire board supports a GPIO to detect if there is a card in
+   * the slot.
    */
 
-#ifndef CONFIG_NSH_BUILTIN_APPS
-  return sd_mount(CONFIG_EXAMPLES_COMPOSITE_DEVMINOR1);
-#else
+  sdio_mediachange(sdio, true);
+#endif
   return OK;
-#endif /* CONFIG_NSH_BUILTIN_APPS */
 }

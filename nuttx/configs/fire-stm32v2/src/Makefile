@@ -40,7 +40,7 @@ CFLAGS		+= -I$(TOPDIR)/sched
 ASRCS		= 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
-CSRCS		= up_boot.c up_spi.c up_usbdev.c
+CSRCS		= up_boot.c up_spi.c up_usbdev.c up_mmcsd.c
 
 ifeq ($(CONFIG_STM32_FSMC),y)
 CSRCS		+= up_lcd.c up_selectlcd.c
@@ -74,10 +74,6 @@ endif
 
 ifeq ($(CONFIG_USBDEV_COMPOSITE),y)
 CSRCS		+= up_composite.c
-endif
-
-ifeq ($(CONFIG_CAN),y)
-CSRCS		+= up_can.c
 endif
 
 ifeq ($(CONFIG_WATCHDOG),y)

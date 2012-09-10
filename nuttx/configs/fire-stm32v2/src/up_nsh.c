@@ -1,5 +1,5 @@
 /****************************************************************************
- * config/shenzhou/src/up_nsh.c
+ * config/fire-stm32v2/src/up_nsh.c
  * arch/arm/src/board/up_nsh.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
@@ -46,7 +46,7 @@
 #include <errno.h>
 
 #include "stm32_internal.h"
-#include "shenzhou-internal.h"
+#include "fire-internal.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -57,7 +57,6 @@
 
 #define HAVE_MMCSD    1
 #define HAVE_USBDEV   1
-#define HAVE_USBHOST  1
 
 /* Configuration ************************************************************/
 /* SPI1 connects to the SD CARD (and to the SPI FLASH) */
@@ -65,7 +64,9 @@
 #define STM32_MMCSDSPIPORTNO   1  /* SPI1 */
 #define STM32_MMCSDSLOTNO      0  /* Only one slot */
 
-#ifndef CONFIG_STM32_SPI1
+/* Can't support MMC/SD features if the SDIO peripheral is disabled */
+
+#ifndef CONFIG_STM32_SDIO
 #  undef HAVE_MMCSD
 #endif
 
@@ -93,37 +94,14 @@
 #  ifndef CONFIG_NSH_MMCSDSLOTNO
 #    define CONFIG_NSH_MMCSDSLOTNO STM32_MMCSDSLOTNO
 #  endif
-
-/* Verify configured SPI port number */
-
-#  if defined(CONFIG_NSH_MMCSDSPIPORTNO) && CONFIG_NSH_MMCSDSPIPORTNO != STM32_MMCSDSPIPORTNO
-#    error "Only one MMC/SD port:  SPI1"
-#    undef  CONFIG_NSH_MMCSDSPIPORTNO
-#    define CONFIG_NSH_MMCSDSPIPORTNO STM32_MMCSDSPIPORTNO
-#  endif
-
-#  ifndef CONFIG_NSH_MMCSDSPIPORTNO
-#    define CONFIG_NSH_MMCSDSPIPORTNO STM32_MMCSDSPIPORTNO
-#  endif
 #endif
 
-/* Can't support USB host or device features if USB OTG FS is not enabled */
+/* Can't support USB host or device features if the USB peripheral or the USB
+ * device infrastructure is not enabled
+ */
 
-#ifndef CONFIG_STM32_OTGFS
+#if !defined(CONFIG_STM32_USB) || !defined(CONFIG_USBDEV)
 #  undef HAVE_USBDEV
-#  undef HAVE_USBHOST
-#endif
-
-/* Can't support USB device is USB device is not enabled */
-
-#ifndef CONFIG_USBDEV
-#  undef HAVE_USBDEV
-#endif
-
-/* Can't support USB host is USB host is not enabled */
-
-#ifndef CONFIG_USBHOST
-#  undef HAVE_USBHOST
 #endif
 
 /* Debug ********************************************************************/
@@ -156,13 +134,11 @@
 
 int nsh_archinitialize(void)
 {
-#if defined(HAVE_MMCSD) || defined(HAVE_USBHOST)
-  int ret;
-#endif
-
-  /* Initialize the SPI-based MMC/SD slot */
-
 #ifdef HAVE_MMCSD
+  int ret;
+
+  /* Initialize the SDIO-based MMC/SD slot */
+
   ret = stm32_sdinitialze(CONFIG_NSH_MMCSDMINOR);
   if (ret < 0)
     {
@@ -171,19 +147,5 @@ int nsh_archinitialize(void)
       return ret;
     }
 #endif
-
-  /* Initialize USB host operation.  stm32_usbhost_initialize() starts a thread
-   * will monitor for USB connection and disconnection events.
-   */
-
-#ifdef HAVE_USBHOST
-  ret = stm32_usbhost_initialize();
-  if (ret != OK)
-    {
-      message("nsh_archinitialize: Failed to initialize USB host: %d\n", ret);
-      return ret;
-    }
-#endif
-
   return OK;
 }

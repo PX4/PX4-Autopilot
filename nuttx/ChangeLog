@@ -3305,4 +3305,6 @@
 	* drivers/mmcsd/mmcsd_sdio.c: If the MMC/SD driver were ever
 	  uninitialized then there would be a double release of memory
 	  (Noted by Ronen Vainish).
+	* fs/mmap/fs_rammap.c:  Fix logic error and errno check (contributed
+	  by Kate).
 

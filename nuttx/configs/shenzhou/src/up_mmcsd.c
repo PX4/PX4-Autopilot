@@ -53,7 +53,7 @@
 /* Configuration ************************************************************/
 /* SPI1 connects to the SD CARD (and to the SPI FLASH) */
 
-#define HAVE_MMCSD 1           /* Assume that we have SD support */
+#define HAVE_MMCSD           1 /* Assume that we have SD support */
 #define STM32_MMCSDSPIPORTNO 1 /* Port is SPI1 */
 #define STM32_MMCSDSLOTNO    0 /* There is only one slot */
 
@@ -68,7 +68,7 @@
 /* Can't support MMC/SD features if mountpoints are disabled */
 
 #ifndef CONFIG_DISABLE_MOUNTPOINT
-#  undef NSH_HAVEMMCSD
+#  undef HAVE_MMCSD
 #endif
 
 /****************************************************************************
@@ -121,3 +121,4 @@ int stm32_sdinitialize(int minor)
 #endif
   return OK;
 }
+

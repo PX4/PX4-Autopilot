@@ -314,3 +314,6 @@
 	  error handling:  Now the number of arguments to mount can be 0 or 4.
 	  Additional parameter checking is required to prevent mysterious errors
 	  (submiteed by Kate).
+	* apps/netutils/webserver/httpd_mmap.c:  Fix errors when the mmap()
+	  length is zero (submitted by Kate).
+

@@ -1,8 +1,8 @@
 /************************************************************************************
- * configs/stm3210e_eval/src/up_spi.c
+ * configs/fire-stm32v2/src/up_spi.c
  * arch/arm/src/board/up_spi.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@
 #include "up_arch.h"
 #include "chip.h"
 #include "stm32_internal.h"
-#include "stm3210e-internal.h"
+#include "fire-internal.h"
 
 #if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2)
 
@@ -88,7 +88,7 @@
  * Name: stm32_spiinitialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the STM3210E-EVAL board.
+ *   Called to configure SPI chip select GPIO pins for the M3 Wildfire board.
  *
  ************************************************************************************/
 

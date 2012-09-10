@@ -287,6 +287,17 @@ void weak_function stm32_usbinitialize(void);
 void stm32_selectlcd(void);
 #endif
 
+/****************************************************************************
+ * Name: stm32_sdinitialize
+ *
+ * Description:
+ *   Initialize the SPI-based SD card.  Requires CONFIG_DISABLE_MOUNTPOINT=n
+ *   and CONFIG_STM32_SPI1=y
+ *
+ ****************************************************************************/
+
+int stm32_sdinitialize(int minor);
+
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_FIRE_STM32V2_SRC_FIRE_INTERNAL_H */
 
