@@ -121,11 +121,13 @@ extern "C"
   extern int optopt;
 
   /* function prototypes */
+#if 0
   int getopt (int argc, char **argv, char *optstring);
-  int getopt_long (int argc, char **argv, char *shortopts,
-                   GETOPT_LONG_OPTION_T * longopts, int *longind);
-  int getopt_long_only (int argc, char **argv, char *shortopts,
-                        GETOPT_LONG_OPTION_T * longopts, int *longind);
+#endif
+  int getopt_long (int argc, char **argv, const char *shortopts,
+                   const GETOPT_LONG_OPTION_T * longopts, int *longind);
+  int getopt_long_only (int argc, char **argv, const char *shortopts,
+                        const GETOPT_LONG_OPTION_T * longopts, int *longind);
 
 #ifdef __cplusplus
 };
