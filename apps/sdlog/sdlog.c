@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Example User <mail@example.com>
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,8 @@
 
 /**
  * @file sdlog.c
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ *
  * Simple SD logger for flight data
  */
 
@@ -64,12 +66,12 @@ static const int MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log folders */
 static const char *mountpoint = "/fs/microsd";
 
 /**
- * Deamon management function.
+ * SD log management function.
  */
 __EXPORT int sdlog_main(int argc, char *argv[]);
 
 /**
- * Mainloop of deamon.
+ * Mainloop of sd log deamon.
  */
 int sdlog_thread_main(int argc, char *argv[]);
 
@@ -94,7 +96,7 @@ usage(const char *reason)
 }
 
 /**
- * The deamon app only briefly exists to start
+ * The sd log deamon app only briefly exists to start
  * the background job. The stack size assigned in the
  * Makefile does only apply to this management task.
  * 
@@ -156,7 +158,7 @@ int create_logfolder(char* folder_path) {
 
 		} else if (mkdir_ret == -1) {
 			/* folder exists already */
-			foldernumber++; // to try next time
+			foldernumber++;
 			continue;
 
 		} else {
