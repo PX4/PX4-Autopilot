@@ -74,9 +74,11 @@
 
 void stm32_usbinitialize(void)
 {
-  /* USB Soft Connect Pullup: PB.14 */
+  /* USB Soft Connect Pullup */
 
+#if 0 /* REVISIT */
   stm32_configgpio(GPIO_USB_PULLUP);
+#endif
 }
 
 /************************************************************************************
@@ -94,7 +96,9 @@ void stm32_usbinitialize(void)
 int stm32_usbpullup(FAR struct usbdev_s *dev, bool enable)
 {
   usbtrace(TRACE_DEVPULLUP, (uint16_t)enable);
+#if 0 /* REVISIT */
   stm32_gpiowrite(GPIO_USB_PULLUP, !enable);
+#endif
   return OK;
 }
 

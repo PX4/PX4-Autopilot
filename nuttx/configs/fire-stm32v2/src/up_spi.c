@@ -170,6 +170,7 @@ void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sele
       stm32_gpiowrite(GPIO_FLASH_CS, !selected);
     }
   else
+#endif
 #ifdef CONFIG_NET_ENC28J60
   if (devid == SPIDEV_ETHERNET)
     {

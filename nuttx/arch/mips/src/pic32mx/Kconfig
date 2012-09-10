@@ -544,6 +544,7 @@ config PIC32MX_RTCC
 config PIC32MX_DMA
 	bool "DMA"
 	default n
+	select ARCH_DMA
 
 config PIC32MX_FLASH
 	bool "FLASH"

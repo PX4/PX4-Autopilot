@@ -266,7 +266,7 @@
 #  errror "USART1 requires CONFIG_STM32_USART1_REMAP=y"
 #endif
 
-#if defined(CONFIG_STM32_USART2) && defined()
+#if defined(CONFIG_STM32_USART2) && defined(CONFIG_STM32_USART2_REMAP)
 #  errror "USART2 requires CONFIG_STM32_USART2_REMAP=n"
 #endif
 

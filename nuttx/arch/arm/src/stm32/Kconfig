@@ -10,18 +10,62 @@ choice
 	default ARCH_CHIP_STM32F103ZET6
 	depends on ARCH_CHIP_STM32
 
-config ARCH_CHIP_STM32F103ZET6
-	bool "STM32F103ZET6"
+config ARCH_CHIP_STM32F100C8
+	bool "STM32F100C8"
 	select ARCH_CORTEXM3
 	select STM32_STM32F10XX
+	select STM32_VALUELINE
+
+config ARCH_CHIP_STM32F100CB
+	bool "STM32F100CB"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+
+config ARCH_CHIP_STM32F100R8
+	bool "STM32F100R8"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+
+config ARCH_CHIP_STM32F100RB
+	bool "STM32F100RB"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+
+config ARCH_CHIP_STM32F100V8
+	bool "STM32F100V8"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+
+config ARCH_CHIP_STM32F100VB
+	bool "STM32F100VB"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
 
 config ARCH_CHIP_STM32F103RET6
 	bool "STM32F103RET6"
 	select ARCH_CORTEXM3
 	select STM32_STM32F10XX
+	select STM32_HIGHDENSITY
 
 config ARCH_CHIP_STM32F103VCT6
 	bool "STM32F103VCT6"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_HIGHDENSITY
+
+config ARCH_CHIP_STM32F103VET6
+	bool "STM32F103VET6"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_HIGHDENSITY
+
+config ARCH_CHIP_STM32F103ZET6
+	bool "STM32F103ZET6"
 	select ARCH_CORTEXM3
 	select STM32_STM32F10XX
 
@@ -92,6 +136,12 @@ endchoice
 config STM32_STM32F10XX
 	bool
 
+config STM32_VALUELINE
+	bool
+
+config STM32_HIGHDENSITY
+	bool
+
 config STM32_CONNECTIVITYLINE
 	bool
 
@@ -157,10 +207,12 @@ config STM32_CRC
 config STM32_DMA1
 	bool "DMA1"
 	default n
+	select ARCH_DMA
 
 config STM32_DMA2
 	bool "DMA2"
 	default n
+	select ARCH_DMA
 
 config STM32_BKP
 	bool "BKP"
@@ -408,10 +460,6 @@ config STM32_SPI
 	bool
 	default y if STM32_SPI1 || STM32_SPI2 || STM32_SPI3 || STM32_SPI4
 
-config STM32_DMA
-	bool
-	default y if STM32_DMA1 || STM32_DMA2
-
 config STM32_CAN
 	bool
 	default y if STM32_CAN1 || STM32_CAN2
@@ -580,7 +628,7 @@ config ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG
 config STM32_CCMEXCLUDE
 	bool "Exclude CCM SRAM from the heap"
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
-	default y if  STM32_DMA1 || STM32_DMA2
+	default y if  ARCH_DMA
 	---help---
 		Exclude CCM SRAM from the HEAP because it cannot be used for DMA.
 
@@ -1485,42 +1533,42 @@ endchoice
 config USART1_RXDMA
 	bool "USART1 Rx DMA"
 	default n
-	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA2
+	depends on STM32_STM32F40XX && STM32_DMA2
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
 config USART2_RXDMA
 	bool "USART2 Rx DMA"
 	default n
-	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
+	depends on STM32_STM32F40XX && STM32_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
 config USART3_RXDMA
 	bool "USART3 Rx DMA"
 	default n
-	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
+	depends on STM32_STM32F40XX && STM32_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
 config UART4_RXDMA
 	bool "UART4 Rx DMA"
 	default n
-	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
+	depends on STM32_STM32F40XX && STM32_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
 config UART5_RXDMA
 	bool "UART5 Rx DMA"
 	default n
-	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
+	depends on STM32_STM32F40XX && STM32_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
 config USART6_RXDMA
 	bool "USART6 Rx DMA"
 	default n
-	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA2
+	depends on STM32_STM32F40XX && STM32_DMA2
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
@@ -1587,8 +1635,9 @@ menu "Ethernet MAC configuration"
 
 config STM32_PHYADDR
 	int "PHY address"
+	default 1
 	---help---
-		The 5-bit address of the PHY on the board
+		The 5-bit address of the PHY on the board.  Default: 1
 
 config STM32_MII
 	bool "Use MII interface"

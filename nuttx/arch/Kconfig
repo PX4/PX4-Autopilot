@@ -107,6 +107,10 @@ config ARCH_NOINTC
 	bool
 	default n
 
+config ARCH_DMA
+	bool
+	default n
+
 config ARCH_STACKDUMP
 	bool "Dump stack on assertions"
 	default n

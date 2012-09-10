@@ -139,7 +139,7 @@ int nsh_archinitialize(void)
 
   /* Initialize the SDIO-based MMC/SD slot */
 
-  ret = stm32_sdinitialze(CONFIG_NSH_MMCSDMINOR);
+  ret = stm32_sdinitialize(CONFIG_NSH_MMCSDMINOR);
   if (ret < 0)
     {
       message("nsh_archinitialize: Failed to initialize MMC/SD slot %d: %d\n",

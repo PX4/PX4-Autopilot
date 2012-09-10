@@ -95,4 +95,4 @@ void stm32_pwr_enablebkp(void)
   stm32_pwr_modifyreg(STM32_PWR_CR_OFFSET, 0, PWR_CR_DBP);
 }
 
-#endif // defined(CONFIG_STM32_PWR)
+#endif /* CONFIG_STM32_PWR */

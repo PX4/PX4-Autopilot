@@ -9,5 +9,128 @@ config EXAMPLES_USBMSC
 	---help---
 		Enable the USB mass storage class example
 
-if EXAMPLES_USBMSC
-endif
+config EXAMPLES_USBMSC_BUILTIN
+	bool "NSH built-in command"
+	default y
+	depends on EXAMPLES_USBMSC && NSH_BUILTIN_APPS
+	---help---
+		This example can be built as two NSH "built-in" commands if this
+		option is selected: 'msconn' will connect the USB mass storage
+		device; 'msdis' will disconnect the USB storage device.
+
+config EXAMPLES_USBMSC_NLUNS
+	int "Number of LUNs"
+	default 1
+	depends on EXAMPLES_USBMSC
+	---help---
+		Defines the number of logical units (LUNs) exported by the USB
+		storage driver.  Each LUN corresponds to one exported block driver
+		(or partition of a block driver).  May be 1, 2, or 3.  Default is 1.
+
+config EXAMPLES_USBMSC_DEVMINOR1
+	int "LUN1 Minor Device Number"
+	default 0
+	depends on EXAMPLES_USBMSC
+	---help---
+		The minor device number of the block driver for the first LUN. For
+		example, N in /dev/mmcsdN.  Used for registering the block driver.
+		Default is zero.
+
+config EXAMPLES_USBMSC_DEVPATH1
+	string "LUN1 Device Path"
+	default "/dev/mmcsd0"
+	depends on EXAMPLES_USBMSC
+	---help---
+		The full path to the registered block driver.  Default is
+		"/dev/mmcsd0"
+
+config EXAMPLES_USBMSC_DEVMINOR2
+	int "LUN2 Minor Device Number"
+	default 1
+	depends on EXAMPLES_USBMSC
+	---help---
+		The minor device number of the block driver for the second LUN. For
+		example, N in /dev/mmcsdN.  Used for registering the block driver.
+		Ignored if EXAMPLES_USBMSC_NLUNS < 2. Default is one.
+
+config EXAMPLES_USBMSC_DEVPATH2
+	string "LUN2 Device Path"
+	default "/dev/mmcsd1"
+	depends on EXAMPLES_USBMSC
+	---help---
+		The full path to the registered block driver.  Ignored if
+		EXAMPLES_USBMSC_NLUNS < 2. Default is "/dev/mmcsd1"
+
+config EXAMPLES_USBMSC_DEVMINOR3
+	int "LUN3 Minor Device Number"
+	default 2
+	depends on EXAMPLES_USBMSC
+	---help---
+		The minor device number of the block driver for the third LUN. For
+		example, N in /dev/mmcsdN.  Used for registering the block driver.
+		Ignored if EXAMPLES_USBMSC_NLUNS < 2. Default is two.
+
+config EXAMPLES_USBMSC_DEVPATH3
+	string "LUN3 Device Path"
+	default "/dev/mmcsd2"
+	depends on EXAMPLES_USBMSC
+	---help---
+		The full path to the registered block driver.  Ignored if
+		EXAMPLES_USBMSC_NLUNS < 2. Default is "/dev/mmcsd2"
+
+config EXAMPLES_USBMSC_DEBUGMM
+	bool "USB MSC MM Debug"
+	default n
+	depends on EXAMPLES_USBMSC
+	---help---
+		Enables some debug tests to check for memory usage and memory leaks.
+
+config EXAMPLES_USBMSC_TRACEINIT
+	bool "USB Trace Initialization"
+	default n
+	depends on EXAMPLES_USBMSC
+	---help---
+		If USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB),
+		then the example code will also manage the USB trace output.  The
+		amount of trace output can be controlled this configuration value:
+		This setting will show USB initialization events
+
+config EXAMPLES_USBMSC_TRACECLASS
+	bool "USB Trace Class"
+	default n
+	depends on EXAMPLES_USBMSC
+	---help---
+		If USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB),
+		then the example code will also manage the USB trace output.  The
+		amount of trace output can be controlled this configuration value:
+		This setting will show USB class driver events
+
+config EXAMPLES_USBMSC_TRACETRANSFERS
+	bool "USB Trace Transfers"
+	default n
+	depends on EXAMPLES_USBMSC
+	---help---
+		If USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB),
+		then the example code will also manage the USB trace output.  The
+		amount of trace output can be controlled this configuration value:
+		This setting will show USB data transfer events
+
+config EXAMPLES_USBMSC_TRACECONTROLLER
+	bool "USB Trace Device Controller Events"
+	default n
+	depends on EXAMPLES_USBMSC
+	---help---
+		If USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB),
+		then the example code will also manage the USB trace output.  The
+		amount of trace output can be controlled this configuration value:
+		This setting will show USB device controller events
+
+config EXAMPLES_USBMSC_TRACEINTERRUPTS
+	bool "USB Trace Device Controller Interrupt Events"
+	default n
+	depends on EXAMPLES_USBMSC
+	---help---
+		If USBDEV_TRACE is enabled (or CONFIG_DEBUG and CONFIG_DEBUG_USB),
+		then the example code will also manage the USB trace output.  The
+		amount of trace output can be controlled this configuration value:
+		This setting will show USB device controller interrupt-related events.

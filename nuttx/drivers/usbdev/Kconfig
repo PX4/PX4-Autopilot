@@ -75,8 +75,7 @@ config USBDEV_DUALSPEED
 	bool "Enable high and full speed"
 	default n
 	---help---
-		Hardware handles high and full speed
-		operation (USB 2.0)
+		Hardware handles high and full speed operation (USB 2.0)
 
 choice USBDEV_POWERED
 	prompt "Select USB device powered"
@@ -84,14 +83,12 @@ choice USBDEV_POWERED
 config USBDEV_SELFPOWERED
 	bool "Self powerd"
 	---help---
-		Will cause USB features to indicate
-		that the device is self-powered
+		Will cause USB features to indicate that the device is self-powered
 
 config USBDEV_BUSPOWERED
 	bool "Bus powerd"
 	---help---
-		Will cause USB features to indicate
-		that the device is self-powered
+		Will cause USB features to indicate that the device is self-powered
 
 endchoice
 
@@ -449,6 +446,10 @@ config USBMSC_PRODUCTID
 config USBMSC_PRODUCTSTR
 	string "Mass stroage product string"
 	default "Mass stroage"
+
+config USBMSC_VERSIONNO
+	hex "USB MSC Version Number"
+	default "0x399"
 
 config USBMSC_REMOVABLE
 	bool "Mass stroage remove able"

@@ -331,24 +331,24 @@ menu "Device Drivers"
 source drivers/Kconfig
 endmenu
 
-menu "Networking support"
+menu "Networking Support"
 source net/Kconfig
 endmenu
 
-menu "File systems"
+menu "File Systems"
 source fs/Kconfig
 endmenu
 
-menu "Memory management"
+menu "Memory Management"
 source mm/Kconfig
 endmenu
 
-menu "Library routines"
+menu "Library Routines"
 source lib/Kconfig
 source libxx/Kconfig
 endmenu
 
-menu "Application configuration"
+menu "Application Configuration"
 source "$APPSDIR/Kconfig"
 endmenu
 

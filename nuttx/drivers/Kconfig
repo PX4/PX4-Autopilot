@@ -3,8 +3,6 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-comment "Device Driver Configuration"
-
 config DEV_NULL
 	bool "Enable /dev/null"
 	default y
@@ -22,15 +20,17 @@ config LOOP
 		loteardown() in include/nuttx/fs/fs.h.
 
 config RAMDISK
-	bool "RAM disk support"
+	bool "RAM Disk Support"
 	default n
 	---help---
 		Can be used to set up a block of memory or (read-only) FLASH as
 		a block driver that can be mounted as a files system.  See
 		include/nuttx/ramdisk.h.
 
+comment "CAN Driver Options"
+
 config CAN
-	bool "CAN support"
+	bool "CAN Support"
 	default n
 	---help---
 		This selection enables building of the "upper-half" CAN driver.
@@ -65,8 +65,10 @@ config CAN_LOOPBACK
 
 endif
 
+comment "PWM Driver Options"
+
 config PWM
-	bool "PWM support"
+	bool "PWM Support"
 	default n
 	---help---
 		This selection enables building of the "upper-half" PWM driver.
@@ -74,7 +76,7 @@ config PWM
 
 if PWM
 config PWM_PULSECOUNT
-	bool "PWM pulse count support"
+	bool "PWM Pulse Count Support"
 	default n
 	---help---
 		Some hardware will support generation of a fixed number of pulses.  This
@@ -84,18 +86,49 @@ config PWM_PULSECOUNT
 
 endif
 
+comment "I2C Driver Options"
+
 config I2C
-	bool "I2C support"
+	bool "I2C Support"
 	default n
 	---help---
 		This selection enables building of the "upper-half" I2C driver.
 		See include/nuttx/i2c.h for further I2C driver information.
 
-if I2C
-endif
+config I2C_SLAVE
+	bool "I2C Slave"
+	default n
+	depends on I2C
+
+config I2C_TRANSFER
+	bool "Support the I2C transfer() method"
+	default n
+	depends on I2C
+
+config I2C_WRITEREAD
+	bool "Support the I2C writeread() method"
+	default n
+	depends on I2C
+
+config I2C_POLLED
+	bool "Polled I2C (no interrupts)"
+	default n
+	depends on I2C
+
+config I2C_TRACE
+	bool "Enable I2C trace debug"
+	default n
+	depends on I2C
+
+config I2C_NTRACE
+	bool "Enable I2C trace debug"
+	default n
+	depends on I2C_TRACE
+
+comment "SPI Driver Options"
 
 config SPI
-	bool "SPI support"
+	bool "SPI Support"
 	default n
 	---help---
 		This selection enables building of the "upper-half" SPI driver.
@@ -104,7 +137,7 @@ config SPI
 if SPI
 config SPI_OWNBUS
 	bool "SPI single device"
-	default y
+	default n
 	---help---
 		Set if there is only one active device on the SPI bus.  No locking or SPI
 		configuration will be performed. It is not necessary for clients to lock,
@@ -126,8 +159,10 @@ config SPI_CMDDATA
 
 endif
 
+comment "RTC Driver Options"
+
 config RTC
-	bool "RTC support"
+	bool "RTC Support"
 	default n
 	---help---
 		This selection enables configuration of a real time clock (RTCdriver.
@@ -135,7 +170,7 @@ config RTC
 		Most RTC drivers are MCU specific and may require other specific settings.
 
 config RTC_DATETIME
-	bool "Date/Time RTC support"
+	bool "Date/Time RTC Support"
 	default n
 	depends on RTC
 	---help---
@@ -147,7 +182,7 @@ config RTC_DATETIME
 		timer provides for higher resolution time.
 
 config RTC_HIRES
-	bool "Hi-Res RTC support"
+	bool "Hi-Res RTC Support"
 	default n
 	depends on RTC && !RTC_DATETIME
 	---help---
@@ -172,15 +207,17 @@ config RTC_FREQUENCY
 		to be one Hz.
 
 config RTC_ALARM 
-	bool "RTC alarm support"
+	bool "RTC Alarm Support"
 	default n
 	depends on RTC
 	---help---
 		Enable if the RTC hardware supports setting of an alarm.  A callback
 		function will be executed when the alarm goes off.
 
+comment "Watchdog Driver Options"
+
 config WATCHDOG
-	bool "Watchdog timer support"
+	bool "Watchdog Timer Support"
 	default n
 	---help---
 		This selection enables building of the "upper-half" watchdog timer driver.
@@ -189,8 +226,10 @@ config WATCHDOG
 if WATCHDOG
 endif
 
+comment "Analog Driver Options"
+
 menuconfig ANALOG
-	bool "Analog Device(ADC/DAC) support"
+	bool "Analog Device(ADC/DAC) Support"
 	default n
 	---help---
 		This directory holds implementations of analog device drivers.
@@ -202,8 +241,10 @@ if ANALOG
 source drivers/analog/Kconfig
 endif
 
+comment "Block-to-Character Driver Support"
+
 config BCH
-	bool "BCH support"
+	bool "Block-to-Character (BCH) Support"
 	default n
 	---help---
 		Contains logic that may be used to convert a block driver into
@@ -215,8 +256,10 @@ if BCH
 source drivers/bch/Kconfig
 endif
 
+comment "Input device Driver Options"
+
 menuconfig INPUT
-	bool "Input device support"
+	bool "Input Device Support"
 	default n
 	---help---
 		This directory holds implementations of input device drivers.
@@ -227,8 +270,10 @@ if INPUT
 source drivers/input/Kconfig
 endif
 
+comment "LCD Driver Options"
+
 menuconfig LCD
-	bool "LCD support"
+	bool "LCD Support"
 	default n
 	select NX_LCDDRIVER
 	---help---
@@ -243,8 +288,10 @@ if LCD
 source drivers/lcd/Kconfig
 endif
 
+comment "MMCSD Driver Options"
+
 menuconfig MMCSD
-	bool "MMC/SD support"
+	bool "MMC/SD Support"
 	default n
 	---help---
 		Support for MMC/SD block drivers.  MMC/SD block drivers based on
@@ -254,9 +301,11 @@ menuconfig MMCSD
 if MMCSD
 source drivers/mmcsd/Kconfig
 endif
-	
+
+comment "I2C Driver Options"
+
 menuconfig MTD
-	bool "Memory Technology Device (MTD) support"
+	bool "Memory Technology Device (MTD) Support"
 	default n
 	---help---
 		Memory Technology Device (MTD) drivers.  Some simple drivers for
@@ -272,8 +321,10 @@ if MTD
 source drivers/mtd/Kconfig
 endif
 
+comment "Network Device Driver Options"
+
 menuconfig NETDEVICES
-	bool "Network Device support"
+	bool "Network Device Support"
 	default n
 	---help---
 		Network interface drivers.  See also include/nuttx/net/net.h
@@ -281,6 +332,8 @@ menuconfig NETDEVICES
 if NETDEVICES
 source drivers/net/Kconfig
 endif
+
+comment "Pipe Options"
 
 menuconfig PIPES
 	bool "FIFO and named pipe drivers"
@@ -293,6 +346,8 @@ if PIPES
 source drivers/pipes/Kconfig
 endif
 
+comment "Power Management Options"
+
 config PM
 	bool "Power management (PM) driver interfaces"
 	default n
@@ -303,7 +358,7 @@ config PM
 		drivers are not active.
 
 menuconfig POWER
-	bool "Power management device support"
+	bool "Power Management Support"
 	default n
 	---help---
 		Enable building of power-related devices (battery monitors, chargers, etc).
@@ -312,8 +367,10 @@ if POWER
 source drivers/power/Kconfig
 endif
 
+comment "Sensor Driver Options"
+
 menuconfig SENSORS
-	bool "Sensors support"
+	bool "Sensors Support"
 	default n
 	---help---
 		Drivers for various sensors
@@ -321,6 +378,8 @@ menuconfig SENSORS
 if SENSORS
 source drivers/sensors/Kconfig
 endif
+
+comment "Osmocom-bb Sercomm Driver Options"
 
 menuconfig SERCOMM_CONSOLE
 	bool "Osmocom-bb serial console"
@@ -339,8 +398,10 @@ if SERCOMM
 source drivers/sercomm/Kconfig
 endif
 
+comment "Serial Driver Options"
+
 menuconfig SERIAL
-	bool "Serial support"
+	bool "Serial Support"
 	default y
 	---help---
 		Front-end character drivers for chip-specific UARTs.  This provide
@@ -351,8 +412,10 @@ if SERIAL
 source drivers/serial/Kconfig
 endif
 
+comment "USB Device Driver Options"
+
 menuconfig USBDEV
-	bool "USB device support"
+	bool "USB Device Support"
 	default n
 	---help---
 		USB device drivers.  See also include/nuttx/usb/usbdev.h
@@ -361,8 +424,10 @@ if USBDEV
 source drivers/usbdev/Kconfig
 endif
 
+comment "USB Host Driver Options"
+
 menuconfig USBHOST
-	bool "USB Host support"
+	bool "USB Host Support"
 	default n
 	---help---
 		USB host drivers.  See also include/nuttx/usb/usbhost.h
@@ -371,8 +436,10 @@ if USBHOST
 source drivers/usbhost/Kconfig
 endif
 
+comment "Wireless Device Driver Options"
+
 menuconfig WIRELESS
-	bool "Wireless support"
+	bool "Wireless Support"
 	default n
 	---help---
 		Drivers for various wireless devices.
@@ -380,6 +447,8 @@ menuconfig WIRELESS
 if WIRELESS
 source drivers/wireless/Kconfig
 endif
+
+comment "System Logging Device Options"
 
 source drivers/syslog/Kconfig
 
