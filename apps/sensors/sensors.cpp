@@ -533,12 +533,10 @@ Sensors::accel_init()
 		warnx("using BMA180");
 	} else {
 		/* set the accel internal sampling rate up to at leat 500Hz */
-		if (OK != ioctl(fd, ACCELIOCSSAMPLERATE, 500))
-			warn("WARNING: failed to set minimum 500Hz sample rate for accel");
+		ioctl(fd, ACCELIOCSSAMPLERATE, 500);
 
 		/* set the driver to poll at 500Hz */
-		if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 500))
-			warn("WARNING: failed to set 500Hz poll rate for accel");
+		ioctl(fd, SENSORIOCSPOLLRATE, 500);
 
 		warnx("using system accel");
 		close(fd);
@@ -568,12 +566,10 @@ Sensors::gyro_init()
 		warn("using L3GD20");
 	} else {
 		/* set the gyro internal sampling rate up to at leat 500Hz */
-		if (OK != ioctl(fd, GYROIOCSSAMPLERATE, 500))
-			warn("WARNING: failed to set minimum 500Hz sample rate for gyro");
+		ioctl(fd, GYROIOCSSAMPLERATE, 500);
 
 		/* set the driver to poll at 500Hz */
-		if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 500))
-			warn("WARNING: failed to set 500Hz poll rate for gyro");
+		ioctl(fd, SENSORIOCSPOLLRATE, 500);
 
 		warnx("using system gyro");
 		close(fd);
@@ -592,12 +588,10 @@ Sensors::mag_init()
 	}
 
 	/* set the mag internal poll rate to at least 150Hz */
-	if (OK != ioctl(fd, MAGIOCSSAMPLERATE, 150))
-		warn("WARNING: failed to set minimum 150Hz sample rate for mag");
+	ioctl(fd, MAGIOCSSAMPLERATE, 150);
 
 	/* set the driver to poll at 150Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 150))
-		warn("WARNING: failed to set 150Hz poll rate for mag");
+	ioctl(fd, SENSORIOCSPOLLRATE, 150);
 
 	close(fd);
 }
@@ -614,8 +608,7 @@ Sensors::baro_init()
 	}
 
 	/* set the driver to poll at 150Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 150))
-		warn("WARNING: failed to set 150Hz poll rate for baro");
+	ioctl(fd, SENSORIOCSPOLLRATE, 150);
 
 	close(fd);
 }
