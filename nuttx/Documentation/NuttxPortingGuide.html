@@ -3907,21 +3907,8 @@ build
   </li>
 </ul>
 
-<h2>General OS setup</h2>
+<h2>Memory Management</h2>
 <ul>
-  <li>
-    <code>CONFIG_ARCH_LOWPUTC</code>: architecture supports low-level, boot
-    time console output
-  </li>
-  <li>
-    <code>CONFIG_NUTTX_KERNEL</code>:
-      With most MCUs, NuttX is built as a flat, single executable image
-      containing the NuttX RTOS along with all application code.
-      The RTOS code and the application run in the same address space and at the same kernel-mode privileges.
-      If this option is selected, NuttX will be built separately as a monolithic, kernel-mode module and the applications
-      can be added as a separately built, user-mode module.
-      In this a system call layer will be built to support the user- to kernel-mode interface to the RTOS.
-  </li>
   <li>
     <code>CONFIG_MM_REGIONS</code>: If the architecture includes multiple
     regions of memory to allocate from, this specifies the
@@ -3938,6 +3925,50 @@ build
     of size less than or equal to 64K.  In this case, CONFIG_MM_SMALL
     can be defined so that those MCUs will also benefit from the
     smaller, 16-bit-based allocation overhead.
+  </li>
+  <li>
+    <code>CONFIG_HEAP2_BASE</code> and <code>CONFIG_HEAP2_SIZE</code>:
+      Some architectures use these settings to specify the size of
+      a second heap region.
+  <li>
+  </li>
+    <code>CONFIG_GRAN</code>:
+      Enable granual allocator support.  Allocations will be aligned to the
+      granule size; allocations will be in units of the granule size.
+      Larger granules will give better performance and less overhead but
+      more losses of memory due to alignment and quantization waste.
+      NOTE: The current implementation also restricts the maximum
+      allocation size to 32 granaules.  That restriction could be
+      eliminated with some additional coding effort.
+  <li>
+  </li>
+    <code>CONFIG_GRAN_SINGLE</code>:
+      Select if there is only one instance of the granule allocator (i.e.,
+      gran_initialize will be called only once. In this case, (1) there
+      are a few optimizations that can can be done and (2) the GRAN_HANDLE
+      is not needed.
+  </li>
+  <li>
+    <code>CONFIG_DEBUG_GRAM</code>:
+      Just like <code>CONFIG_DEBUG_MM</code>, but only generates ouput from the gran
+      allocation logic.
+  </li>
+</ul>
+
+<h2>General OS setup</h2>
+<ul>
+  <li>
+    <code>CONFIG_ARCH_LOWPUTC</code>: architecture supports low-level, boot
+    time console output
+  </li>
+  <li>
+    <code>CONFIG_NUTTX_KERNEL</code>:
+      With most MCUs, NuttX is built as a flat, single executable image
+      containing the NuttX RTOS along with all application code.
+      The RTOS code and the application run in the same address space and at the same kernel-mode privileges.
+      If this option is selected, NuttX will be built separately as a monolithic, kernel-mode module and the applications
+      can be added as a separately built, user-mode module.
+      In this a system call layer will be built to support the user- to kernel-mode interface to the RTOS.
   </li>
   <li>
     <code>CONFIG_MSEC_PER_TICK</code>: The default system timer is 100Hz

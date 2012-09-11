@@ -164,6 +164,15 @@
  * Private Types
  ****************************************************************************/
 
+/* The state of the interface */
+
+enum enc_state_e
+{
+  ENCSTATE_UNIT = 0,                  /* The interface is in an unknown state */
+  ENCSTATE_DOWN,                      /* The interface is down */
+  ENCSTATE_UP                         /* The interface is up */
+};
+
 /* The enc_driver_s encapsulates all state information for a single hardware
  * interface
  */
@@ -172,7 +181,7 @@ struct enc_driver_s
 {
   /* Device control */
 
-  bool                  bifup;         /* true:ifup false:ifdown */
+  uint8_t               ifstate;       /* Interface state:  See ENCSTATE_* */
   uint8_t               bank;          /* Currently selected bank */
   uint16_t              nextpkt;       /* Next packet address */
   FAR const struct enc_lower_s *lower; /* Low-level MCU-specific support */
@@ -1656,7 +1665,7 @@ static int enc_ifup(struct uip_driver_s *dev)
        * controller
        */
 
-      priv->bifup = true;
+      priv->ifstate = ENCSTATE_UP;
       priv->lower->enable(priv->lower);
     }
 
@@ -1686,8 +1695,8 @@ static int enc_ifdown(struct uip_driver_s *dev)
   int ret;
 
   nlldbg("Taking down: %d.%d.%d.%d\n",
-       dev->d_ipaddr & 0xff, (dev->d_ipaddr >> 8) & 0xff,
-       (dev->d_ipaddr >> 16) & 0xff, dev->d_ipaddr >> 24 );
+         dev->d_ipaddr & 0xff, (dev->d_ipaddr >> 8) & 0xff,
+         (dev->d_ipaddr >> 16) & 0xff, dev->d_ipaddr >> 24 );
 
   /* Disable the Ethernet interrupt */
 
@@ -1704,7 +1713,7 @@ static int enc_ifdown(struct uip_driver_s *dev)
   ret = enc_reset(priv);
   enc_pwrsave(priv);
 
-  priv->bifup = false;
+  priv->ifstate = ENCSTATE_DOWN;
   irqrestore(flags);
   return ret;
 }
@@ -1737,7 +1746,7 @@ static int enc_txavail(struct uip_driver_s *dev)
 
   /* Ignore the notification if the interface is not yet up */
 
-  if (priv->bifup)
+  if (priv->ifstate == ENCSTATE_UP)
     {
       /* Check if the hardware is ready to send another packet.  The driver
        * starts a transmission process by setting ECON1.TXRTS. When the packet is
@@ -2131,8 +2140,7 @@ static int enc_reset(FAR struct enc_driver_s *priv)
 int enc_initialize(FAR struct spi_dev_s *spi,
                    FAR const struct enc_lower_s *lower, unsigned int devno)
 {
-  FAR struct enc_driver_s *priv ;
-  int ret;
+  FAR struct enc_driver_s *priv;
 
   DEBUGASSERT(devno < CONFIG_ENC28J60_NINTERFACES);
   priv = &g_enc28j60[devno];
@@ -2156,29 +2164,28 @@ int enc_initialize(FAR struct spi_dev_s *spi,
   priv->spi          = spi;           /* Save the SPI instance */
   priv->lower        = lower;         /* Save the low-level MCU interface */
 
-  /* Make sure that the interface is in the down state.  NOTE:  The MAC
-   * address will not be set up until ifup.  That gives the app time to set
-   * the MAC address before bringing the interface up.
+  /* The interface should be in the down state.  However, this function is called
+   * too early in initalization to perform the ENC28J60 reset in enc_ifdown.  We
+   * are depending upon the fact that the application level logic will call enc_ifdown
+   * later to reset the ENC28J60.  NOTE:  The MAC address will not be set up until
+   * enc_ifup() is called. That gives the app time to set the MAC address before
+   * bringing the interface up.
    */
 
-  ret = enc_ifdown(&priv->dev);
-  if (ret == OK)
+  priv->ifstate = ENCSTATE_UNIT;
+
+  /* Attach the interrupt to the driver (but don't enable it yet) */
+
+  if (lower->attach(lower, enc_interrupt))
     {
-      /* Attach the interrupt to the driver (but don't enable it yet) */
+      /* We could not attach the ISR to the interrupt */
 
-      if (lower->attach(lower, enc_interrupt))
-        {
-          /* We could not attach the ISR to the interrupt */
-
-          ret =  -EAGAIN;
-        }
-
-      /* Register the device with the OS so that socket IOCTLs can be performed */
-
-      (void)netdev_register(&priv->dev);
+      return -EAGAIN;
     }
 
-  return ret;
+  /* Register the device with the OS so that socket IOCTLs can be performed */
+
+  return netdev_register(&priv->dev);
 }
 
 /****************************************************************************

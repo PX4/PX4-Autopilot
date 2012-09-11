@@ -42,3 +42,33 @@ config HEAP2_SIZE
 	---help---
 		The size of the second heap region.
 
+config GRAN
+	bool "Enable Granule Allocator"
+	default n
+	---help---
+		Enable granual allocator support.  Allocations will be aligned to the
+		granule size; allocations will be in units of the granule size.
+		Larger granules will give better performance and less overhead but
+		more losses of memory due to alignment and quantization waste.
+
+		NOTE: The current implementation also restricts the maximum
+		allocation size to 32 granaules.  That restriction could be
+		eliminated with some additional coding effort.
+
+config GRAN_SINGLE
+	bool "Single Granule Allocator"
+	default n
+	depends on GRAN
+	---help---
+		Select if there is only one instance of the granule allocator (i.e.,
+		gran_initialize will be called only once. In this case, (1) there
+		are a few optimizations that can can be done and (2) the GRAN_HANDLE
+		is not needed.
+
+config DEBUG_GRAN
+	bool "Granule Allocator Debug"
+	default n
+	depends on GRAN && DEBUG
+	---help---
+		Just like CONFIG_DEBUG_MM, but only generates ouput from the gran
+		allocation logic.

@@ -39,7 +39,13 @@
 
 #include <nuttx/config.h>
 
+#include <assert.h>
+
 #include <nuttx/gran.h>
+
+#include "mm_gran.h"
+
+#ifdef CONFIG_GRAN
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -61,7 +67,7 @@
  *
  ****************************************************************************/
 
-static inline FAR void *gran_mark_allocated(FAR struct gran_s *priv, uintptr_t alloc, unsigned int ngranules)
+static inline void gran_mark_allocated(FAR struct gran_s *priv, uintptr_t alloc, unsigned int ngranules)
 {
   unsigned int granno;
   unsigned int gatidx;
@@ -128,13 +134,13 @@ static inline FAR void *gran_common_alloc(FAR struct gran_s *priv, size_t size)
   int           i;
   int           j;
 
-  DEBUGASSERT(priv);
+  DEBUGASSERT(priv && size <= 32 * (1 << priv->log2gran));
   if (priv && size > 0)
     {
       /* How many contiguous granules we we need to find? */
 
-      tmpmask   = (1 << log2gran) - 1;
-      ngranules = (size + tmpmask) >> log2gran;
+      tmpmask   = (1 << priv->log2gran) - 1;
+      ngranules = (size + tmpmask) >> priv->log2gran;
 
       /* Then create mask for that number of granules */
 
@@ -188,11 +194,11 @@ static inline FAR void *gran_common_alloc(FAR struct gran_s *priv, size_t size)
                */
 
               curr >>= 1;
-              if (next & 1)
+              if ((next & 1) != 0)
                 {
                   curr |= 0x80000000;
                 }
-              next >> 1;
+              next >>= 1;
 
               /* Increment the next candidate allocation address */
 
@@ -239,3 +245,5 @@ FAR void *gran_alloc(GRAN_HANDLE handle, size_t size)
   return gran_common_alloc((FAR struct gran_s *)handle, size);
 }
 #endif
+
+#endif /* CONFIG_GRAN */

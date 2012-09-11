@@ -36,10 +36,15 @@
 -include $(TOPDIR)/Make.defs
 
 ASRCS	= 
-AOBJS	= $(ASRCS:.S=$(OBJEXT))
 CSRCS	= mm_initialize.c mm_sem.c  mm_addfreechunk.c mm_size2ndx.c mm_shrinkchunk.c \
 	  mm_malloc.c mm_zalloc.c mm_calloc.c mm_realloc.c \
 	  mm_memalign.c mm_free.c mm_mallinfo.c
+
+ifeq ($(CONFIG_GRAN),y)
+CSRCS	= mm_graninit.c mm_granalloc.c mm_granfree.c
+endif
+
+AOBJS	= $(ASRCS:.S=$(OBJEXT))
 COBJS	= $(CSRCS:.c=$(OBJEXT))
 
 SRCS	= $(ASRCS) $(CSRCS)

@@ -304,66 +304,22 @@ CONFIG_DEV_NULL=y
 # CONFIG_DEV_ZERO is not set
 # CONFIG_LOOP is not set
 # CONFIG_RAMDISK is not set
-
-#
-# CAN Driver Options
-#
 # CONFIG_CAN is not set
-
-#
-# PWM Driver Options
-#
 # CONFIG_PWM is not set
-
-#
-# I2C Driver Options
-#
 # CONFIG_I2C is not set
-
-#
-# SPI Driver Options
-#
 CONFIG_SPI=y
 # CONFIG_SPI_OWNBUS is not set
 CONFIG_SPI_EXCHANGE=y
 CONFIG_SPI_CMDDATA=y
-
-#
-# RTC Driver Options
-#
 CONFIG_RTC=y
 # CONFIG_RTC_DATETIME is not set
 # CONFIG_RTC_HIRES is not set
 # CONFIG_RTC_ALARM is not set
-
-#
-# Watchdog Driver Options
-#
 # CONFIG_WATCHDOG is not set
-
-#
-# Analog Driver Options
-#
 # CONFIG_ANALOG is not set
-
-#
-# Block-to-Character Driver Support
-#
 # CONFIG_BCH is not set
-
-#
-# Input device Driver Options
-#
 # CONFIG_INPUT is not set
-
-#
-# LCD Driver Options
-#
 # CONFIG_LCD is not set
-
-#
-# MMCSD Driver Options
-#
 CONFIG_MMCSD=y
 CONFIG_MMCSD_NSLOTS=1
 # CONFIG_MMCSD_READONLY is not set
@@ -373,42 +329,14 @@ CONFIG_MMCSD_HAVECARDDETECT=y
 CONFIG_MMCSD_SPI=y
 CONFIG_MMCSD_SPICLOCK=12500000
 # CONFIG_MMCSD_SDIO is not set
-
-#
-# I2C Driver Options
-#
 # CONFIG_MTD is not set
-
-#
-# Network Device Driver Options
-#
 # CONFIG_NETDEVICES is not set
 # CONFIG_NET_SLIP is not set
-
-#
-# Pipe Options
-#
 # CONFIG_PIPES is not set
-
-#
-# Power Management Options
-#
 # CONFIG_PM is not set
 # CONFIG_POWER is not set
-
-#
-# Sensor Driver Options
-#
 # CONFIG_SENSORS is not set
-
-#
-# Osmocom-bb Sercomm Driver Options
-#
 # CONFIG_SERCOMM_CONSOLE is not set
-
-#
-# Serial Driver Options
-#
 CONFIG_SERIAL=y
 # CONFIG_LOWLEVEL_CONSOLE is not set
 # CONFIG_16550_UART is not set
@@ -427,20 +355,8 @@ CONFIG_USART2_BAUD=115200
 CONFIG_USART2_BITS=8
 CONFIG_USART2_PARITY=0
 CONFIG_USART2_2STOP=0
-
-#
-# USB Device Driver Options
-#
 # CONFIG_USBDEV is not set
-
-#
-# USB Host Driver Options
-#
 # CONFIG_USBHOST is not set
-
-#
-# Wireless Device Driver Options
-#
 # CONFIG_WIRELESS is not set
 
 #
@@ -496,6 +412,7 @@ CONFIG_FAT_LCNAMES=y
 CONFIG_FAT_LFN=y
 CONFIG_FAT_MAXFNAME=32
 # CONFIG_FS_FATTIME is not set
+# CONFIG_FAT_DMAMEMORY is not set
 # CONFIG_FS_RAMMAP is not set
 # CONFIG_NFS is not set
 # CONFIG_FS_NXFFS is not set
@@ -511,6 +428,7 @@ CONFIG_FAT_MAXFNAME=32
 #
 # CONFIG_MM_SMALL is not set
 CONFIG_MM_REGIONS=1
+# CONFIG_GRAN is not set
 
 #
 # Library Routines

@@ -43,6 +43,11 @@
 
 #include <nuttx/config.h>
 
+#include <sys/types.h>
+#include <stdint.h>
+
+#ifdef CONFIG_GRAN
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -52,6 +57,8 @@
  *   granule allocator (i.e., gran_initialize will be called only once.
  *   In this case, (1) there are a few optimizations that can can be done
  *   and (2) the GRAN_HANDLE is not needed.
+ * CONFIG_DEBUG_GRAN - Just like CONFIG_DEBUG_MM, but only generates ouput
+ *   from the gran allocation logic.
  */
 
 /****************************************************************************
@@ -158,4 +165,5 @@ EXTERN void gran_free(GRAN_HANDLE handle, FAR void *memory, size_t size);
 }
 #endif
 
+#endif /* CONFIG_GRAN */
 #endif /* __INCLUDE_NUTTX_GRAN_H */

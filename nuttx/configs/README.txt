@@ -270,8 +270,6 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_DEBUG_GRAPHICS - enable NX graphics debug output
       (disabled by default)
 
-    CONFIG_ARCH_LOWPUTC - architecture supports low-level, boot
-      time console output
     CONFIG_MM_REGIONS - If the architecture includes multiple
       regions of memory to allocate from, this specifies the
       number of memory regions that the memory manager must
@@ -285,6 +283,28 @@ defconfig -- This is a configuration file similar to the Linux
       of size less than or equal to 64Kb.  In this case, CONFIG_MM_SMALL
       can be defined so that those MCUs will also benefit from the
       smaller, 16-bit-based allocation overhead.
+    CONFIG_HEAP2_BASE and CONFIG_HEAP2_SIZE
+      Some architectures use these settings to specify the size of
+      a second heap region.
+    CONFIG_GRAN
+      Enable granual allocator support.  Allocations will be aligned to the
+      granule size; allocations will be in units of the granule size.
+      Larger granules will give better performance and less overhead but
+      more losses of memory due to alignment and quantization waste.
+      NOTE: The current implementation also restricts the maximum
+      allocation size to 32 granaules.  That restriction could be
+      eliminated with some additional coding effort.
+    CONFIG_GRAN_SINGLE
+      Select if there is only one instance of the granule allocator (i.e.,
+      gran_initialize will be called only once. In this case, (1) there
+      are a few optimizations that can can be done and (2) the GRAN_HANDLE
+      is not needed.
+    CONFIG_DEBUG_GRAM
+      Just like CONFIG_DEBUG_MM, but only generates ouput from the gran
+      allocation logic.
+
+    CONFIG_ARCH_LOWPUTC - architecture supports low-level, boot
+      time console output
     CONFIG_MSEC_PER_TICK - The default system timer is 100Hz
       or MSEC_PER_TICK=10.  This setting may be defined to
       inform NuttX that the processor hardware is providing

@@ -481,6 +481,7 @@ CONFIG_FAT_MAXFNAME=32
 #
 # CONFIG_MM_SMALL is not set
 CONFIG_MM_REGIONS=1
+# CONFIG_GRAN is not set
 
 #
 # Library Routines

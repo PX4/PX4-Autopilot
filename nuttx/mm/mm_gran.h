@@ -42,16 +42,40 @@
 
 #include <nuttx/config.h>
 
+#include <stdint.h>
+
 #include <nuttx/gran.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* Sizes of things */
+
 #define SIZEOF_GAT(n) \
   ((n + 31) >> 5)
 #define SIZEOF_GRAN_S(n) \
   (sizeof(struct gran_s) + sizeof(uint32_t) * (SIZEOF_GAT(n) - 1))
+
+/* Debug */
+
+#ifdef CONFIG_CPP_HAVE_VARARGS
+#  ifdef CONFIG_DEBUG_GRAM
+#    define gramdbg(format, arg...)    dbg(format, ##arg)
+#    define gramvdbg(format, arg...)   vdbg(format, ##arg)
+#  else
+#    define gramdbg(format, arg...)    mdbg(format, ##arg)
+#    define gramvdbg(format, arg...)   mvdbg(format, ##arg)
+#  endif
+#else
+#  ifdef CONFIG_DEBUG_GRAM
+#    define gramdbg                    dbg
+#    define gramvdbg                   vdbg
+#  else
+#    define gramdbg                    (void)
+#    define gramvdbg                   (void)
+#  endif
+#endif
 
 /****************************************************************************
  * Public Types
@@ -64,7 +88,7 @@ struct gran_s
   uint8_t    log2gran;  /* Log base 2 of the size of one granule */
   uint16_t   ngranules; /* The total number of (aligned) granules in the heap */
   uintptr_t  heapstart; /* The aligned start of the granule heap */
-  uint32_t   gat[i];    /* Start of the granule allocation table */
+  uint32_t   gat[1];    /* Start of the granule allocation table */
 };
 
 /****************************************************************************

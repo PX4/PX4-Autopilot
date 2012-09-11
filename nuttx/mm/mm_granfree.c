@@ -39,7 +39,13 @@
 
 #include <nuttx/config.h>
 
+#include <assert.h>
+
 #include <nuttx/gran.h>
+
+#include "mm_gran.h"
+
+#ifdef CONFIG_GRAN
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -66,17 +72,28 @@ static inline void gran_common_free(FAR struct gran_s *priv,
   unsigned int granno;
   unsigned int gatidx;
   unsigned int gatbit;
+  unsigned int granmask;
+  unsigned int ngranules;
   unsigned int avail;
-  uint32_t mask;
+  uint32_t gatmask;
 
-  /* Determine the granule number of the allocation */
+  DEBUGASSERT(priv && memory && size <= 32 * (1 << priv->log2gran));
 
-  granno = (alloc - priv->heapstart) >> priv->log2gran;
+  /* Determine the granule number of the first granule in the allocation */
 
-  /* Determine the GAT table index associated with the allocation */
+  granno = ((uintptr_t)memory - priv->heapstart) >> priv->log2gran;
+
+  /* Determine the GAT table index and bit number associated with the
+   * allocation.
+   */
 
   gatidx = granno >> 5;
   gatbit = granno & 31;
+
+  /* Determine the number of granules in the allocation */
+
+  granmask =  (1 << priv->log2gran) - 1;
+  ngranules = (size + granmask) >> priv->log2gran;
 
   /* Clear bits in the first GAT entry */
 
@@ -91,15 +108,15 @@ static inline void gran_common_free(FAR struct gran_s *priv,
 
   else
     {
-      mask = 0xffffffff >> (32 - ngranules);
-      priv->gat[gatidx] &= ~(mask << gatbit);
+      gatmask = 0xffffffff >> (32 - ngranules);
+      priv->gat[gatidx] &= ~(gatmask << gatbit);
       return;
     }
 
   /* Clear bits in the second GAT entry */
 
-  mask = 0xffffffff >> (32 - ngranules);
-  priv->gat[gatidx+1] &= ~(mask << gatbit);
+  gatmask = 0xffffffff >> (32 - ngranules);
+  priv->gat[gatidx+1] &= ~(gatmask << gatbit);
 }
 
 /****************************************************************************
@@ -132,3 +149,5 @@ void gran_free(GRAN_HANDLE handle, FAR void *memory, size_t size)
   return gran_common_free((FAR struct gran_s *)handle, memory, size);
 }
 #endif
+
+#endif /* CONFIG_GRAN */

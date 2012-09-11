@@ -39,7 +39,13 @@
 
 #include <nuttx/config.h>
 
+#include <stdlib.h>
+
 #include <nuttx/gran.h>
+
+#include "mm_gran.h"
+
+#ifdef CONFIG_GRAN
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -108,7 +114,7 @@ static inline FAR struct gran_s *gran_common_initialize(FAR void *heapstart,
 
       priv->log2gran  = log2gran;
       priv->ngranules = ngranules;
-      priv->heapstart = alignedstart
+      priv->heapstart = alignedstart;
     }
 
   return priv;
@@ -160,4 +166,7 @@ GRAN_HANDLE gran_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gr
   return (GRAN_HANDLE)gran_common_initialize(heapstart, heapsize, log2gran);
 }
 #endif
+
+#endif /* CONFIG_GRAN */
+
 
