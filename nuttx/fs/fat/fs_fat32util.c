@@ -668,7 +668,7 @@ int fat_mount(struct fat_mountpt_s *fs, bool writeable)
   return OK;
 
  errout_with_buffer:
-  fat_io_free(fs->fs_buffer);
+  fat_io_free(fs->fs_buffer, fs->fs_hwsectorsize);
   fs->fs_buffer = 0;
  errout:
   fs->fs_mounted = false;

@@ -1,7 +1,7 @@
 /****************************************************************************
- * include/nuttx/fs/fat.h
+ * mm/mm_gran.h
  *
- *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,84 +33,52 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_FS_FAT_H
-#define __INCLUDE_NUTTX_FS_FAT_H
+#ifndef __MM_MM_GRAN_H
+#define __MM_MM_GRAN_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <stdint.h>
+#include <nuttx/config.h>
+
+#include <nuttx/gran.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* File attribute bits in FAT directory entry */
-
-#define FATATTR_READONLY  0x01
-#define FATATTR_HIDDEN    0x02
-#define FATATTR_SYSTEM    0x04
-#define FATATTR_VOLUMEID  0x08
-#define FATATTR_DIRECTORY 0x10
-#define FATATTR_ARCHIVE   0x20
-
-#define FATATTR_LONGNAME \
-  (FATATTR_READONLY|FATATTR_HIDDEN|FATATTR_SYSTEM|FATATTR_VOLUMEID)
+#define SIZEOF_GAT(n) \
+  ((n + 31) >> 5)
+#define SIZEOF_GRAN_S(n) \
+  (sizeof(struct gran_s) + sizeof(uint32_t) * (SIZEOF_GAT(n) - 1))
 
 /****************************************************************************
- * Type Definitions
+ * Public Types
  ****************************************************************************/
 
-typedef uint8_t fat_attrib_t;
+/* This structure represents the state of on granual allocation */
+
+struct gran_s
+{
+  uint8_t    log2gran;  /* Log base 2 of the size of one granule */
+  uint16_t   ngranules; /* The total number of (aligned) granules in the heap */
+  uintptr_t  heapstart; /* The aligned start of the granule heap */
+  uint32_t   gat[i];    /* Start of the granule allocation table */
+};
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/* State of the single GRAN allocator */
+
+#ifdef CONFIG_GRAN_SINGLE
+extern FAR struct gran_s *g_graninfo;
+#endif
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
-/****************************************************************************
- * Name: fat_getattrib and fat_setattrib
- *
- * Description:
- *   Non-standard functions to get and set FAT file/directory attributes
- *
- ****************************************************************************/
-
-EXTERN int fat_getattrib(const char *path, fat_attrib_t *attrib);
-EXTERN int fat_setattrib(const char *path, fat_attrib_t setbits, fat_attrib_t clearbits);
-
-/****************************************************************************
- * Name: fat_dma_alloc and fat_dma_free
- *
- * Description:
- *   The FAT file system allocates two I/O buffers for data transfer, each
- *   are the size of one device sector.  One of the buffers is allocated
- *   once for each FAT volume that is mounted; the other buffers are
- *   allocated each time a FAT file is opened.
- *
- *   Some hardware, however, may require special DMA-capable memory in
- *   order to perform the the transfers.  If CONFIG_FAT_DMAMEMORY is defined
- *   then the architecture-specific hardware must provide the funtions
- *   fat_dma_alloc() and fat_dma_free() as prototyped below:  fat_dmalloc()
- *   will allocate DMA-capable memory of the specified size; fat_dmafree()
- *   is the corresponding function that will be called to free the DMA-
- *   capable memory.
- *
- ****************************************************************************/
-
-EXTERN FAR void *fat_dma_alloc(size_t size);
-EXTERN void fat_dma_free(FAR void *memory, size_t size);
-
-#undef EXTERN
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* __INCLUDE_NUTTX_FS_FAT_H */
+#endif /* __MM_MM_GRAN_H */

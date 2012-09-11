@@ -697,11 +697,11 @@
  ****************************************************************************/
 
 #ifdef CONFIG_FAT_DMAMEMORY
-#  define fat_io_alloc(s) fat_dma_alloc(s)
-#  define fat_io_free(s)  fat_dma_free(s)
+#  define fat_io_alloc(s)  fat_dma_alloc(s)
+#  define fat_io_free(m,s) fat_dma_free(m,s)
 #else
-#  define fat_io_alloc(s) kmalloc(s)
-#  define fat_io_free(s)  kfree(s)
+#  define fat_io_alloc(s)  kmalloc(s)
+#  define fat_io_free(m,s) kfree(m)
 #endif
 
 /****************************************************************************

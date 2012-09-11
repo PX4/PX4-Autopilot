@@ -405,7 +405,7 @@ static int fat_close(FAR struct file *filep)
 
   if (ff->ff_buffer)
     {
-      fat_io_free(ff->ff_buffer);
+      fat_io_free(ff->ff_buffer, fs->fs_hwsectorsize);
     }
 
   /* Then free the file structure itself. */
@@ -1651,7 +1651,7 @@ static int fat_unbind(void *handle, FAR struct inode **blkdriver)
 
       if (fs->fs_buffer)
         {
-          fat_io_free(fs->fs_buffer);
+          fat_io_free(fs->fs_buffer, fs->fs_hwsectorsize);
         }
 
       kfree(fs);

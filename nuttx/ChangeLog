@@ -3323,3 +3323,8 @@
 	  ENC28J60 GPIO interrupts.  That is because GPIO interrupts are
 	  handled in different ways by different MCUs and some do not
 	  support IRQ numbers for GPIO interrupts.
+	* mm/mm_gran* and include/nuttx/gran.h:  Add a simple granule-
+	  based allocator.  The intent of this allocator is to support
+	  simple allocation of DMA I/O buffers.  The initiali check-in
+	  is code complete but untested (not event built into the
+	  mm/Makefile yet.

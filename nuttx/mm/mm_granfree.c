@@ -1,7 +1,7 @@
 /****************************************************************************
- * include/nuttx/fs/fat.h
+ * mm/mm_granfree.c
  *
- *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,84 +33,102 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_FS_FAT_H
-#define __INCLUDE_NUTTX_FS_FAT_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <stdint.h>
+#include <nuttx/config.h>
+
+#include <nuttx/gran.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* File attribute bits in FAT directory entry */
-
-#define FATATTR_READONLY  0x01
-#define FATATTR_HIDDEN    0x02
-#define FATATTR_SYSTEM    0x04
-#define FATATTR_VOLUMEID  0x08
-#define FATATTR_DIRECTORY 0x10
-#define FATATTR_ARCHIVE   0x20
-
-#define FATATTR_LONGNAME \
-  (FATATTR_READONLY|FATATTR_HIDDEN|FATATTR_SYSTEM|FATATTR_VOLUMEID)
-
 /****************************************************************************
- * Type Definitions
+ * Name: gran_common_free
+ *
+ * Description:
+ *   Return memory to the granule heap.
+ *
+ * Input Parameters:
+ *   handle - The handle previously returned by gran_initialize
+ *   memory - A pointer to memory previoiusly allocated by gran_alloc.
+ *
+ * Returned Value:
+ *   None
+ *
  ****************************************************************************/
 
-typedef uint8_t fat_attrib_t;
+static inline void gran_common_free(FAR struct gran_s *priv,
+                                    FAR void *memory, size_t size)
+{
+  unsigned int granno;
+  unsigned int gatidx;
+  unsigned int gatbit;
+  unsigned int avail;
+  uint32_t mask;
+
+  /* Determine the granule number of the allocation */
+
+  granno = (alloc - priv->heapstart) >> priv->log2gran;
+
+  /* Determine the GAT table index associated with the allocation */
+
+  gatidx = granno >> 5;
+  gatbit = granno & 31;
+
+  /* Clear bits in the first GAT entry */
+
+  avail = 32 - gatbit;
+  if (ngranules > avail)
+    {
+      priv->gat[gatidx] &= ~(0xffffffff << gatbit);
+      ngranules -= avail;
+    }
+
+  /* Handle the cae where where all of the granules came from one entry */
+
+  else
+    {
+      mask = 0xffffffff >> (32 - ngranules);
+      priv->gat[gatidx] &= ~(mask << gatbit);
+      return;
+    }
+
+  /* Clear bits in the second GAT entry */
+
+  mask = 0xffffffff >> (32 - ngranules);
+  priv->gat[gatidx+1] &= ~(mask << gatbit);
+}
 
 /****************************************************************************
- * Public Function Prototypes
+ * Global Functions
  ****************************************************************************/
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
+/****************************************************************************
+ * Name: gran_free
+ *
+ * Description:
+ *   Return memory to the granule heap.
+ *
+ * Input Parameters:
+ *   handle - The handle previously returned by gran_initialize
+ *   memory - A pointer to memory previoiusly allocated by gran_alloc.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_GRAN_SINGLE
+void gran_free(FAR void *memory, size_t size)
+{
+  return gran_common_free(g_graninfo, memory, size);
+}
 #else
-#define EXTERN extern
-#endif
-
-/****************************************************************************
- * Name: fat_getattrib and fat_setattrib
- *
- * Description:
- *   Non-standard functions to get and set FAT file/directory attributes
- *
- ****************************************************************************/
-
-EXTERN int fat_getattrib(const char *path, fat_attrib_t *attrib);
-EXTERN int fat_setattrib(const char *path, fat_attrib_t setbits, fat_attrib_t clearbits);
-
-/****************************************************************************
- * Name: fat_dma_alloc and fat_dma_free
- *
- * Description:
- *   The FAT file system allocates two I/O buffers for data transfer, each
- *   are the size of one device sector.  One of the buffers is allocated
- *   once for each FAT volume that is mounted; the other buffers are
- *   allocated each time a FAT file is opened.
- *
- *   Some hardware, however, may require special DMA-capable memory in
- *   order to perform the the transfers.  If CONFIG_FAT_DMAMEMORY is defined
- *   then the architecture-specific hardware must provide the funtions
- *   fat_dma_alloc() and fat_dma_free() as prototyped below:  fat_dmalloc()
- *   will allocate DMA-capable memory of the specified size; fat_dmafree()
- *   is the corresponding function that will be called to free the DMA-
- *   capable memory.
- *
- ****************************************************************************/
-
-EXTERN FAR void *fat_dma_alloc(size_t size);
-EXTERN void fat_dma_free(FAR void *memory, size_t size);
-
-#undef EXTERN
-#ifdef __cplusplus
+void gran_free(GRAN_HANDLE handle, FAR void *memory, size_t size)
+{
+  return gran_common_free((FAR struct gran_s *)handle, memory, size);
 }
 #endif
-
-#endif /* __INCLUDE_NUTTX_FS_FAT_H */
