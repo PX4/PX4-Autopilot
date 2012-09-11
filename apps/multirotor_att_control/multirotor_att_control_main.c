@@ -140,9 +140,9 @@ mc_thread_main(int argc, char *argv[])
 		/* get a local copy of attitude setpoint */
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), att_setpoint_sub, &att_sp);
 
-		att_sp.roll_body = -manual.roll * M_PI_F / 8.0f;
-		att_sp.pitch_body = -manual.pitch * M_PI_F / 8.0f;
-		att_sp.yaw_rate_body = -manual.yaw * M_PI_F;
+		att_sp.roll_body = manual.roll;
+		att_sp.pitch_body = manual.pitch;
+		att_sp.yaw_rate_body = manual.yaw;
 		att_sp.timestamp = hrt_absolute_time();
 		
 		if (motor_test_mode) {

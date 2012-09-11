@@ -193,6 +193,10 @@ private:
 		int rc_map_throttle;
 		int rc_map_mode_sw;
 
+		int rc_scale_roll;
+		int rc_scale_pitch;
+		int rc_scale_yaw;
+
 		float battery_voltage_scaling;
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -213,6 +217,10 @@ private:
 		param_t rc_map_yaw;
 		param_t rc_map_throttle;
 		param_t rc_map_mode_sw;
+
+		param_t rc_scale_roll;
+		param_t rc_scale_pitch;
+		param_t rc_scale_yaw;
 
 		param_t battery_voltage_scaling;
 	}		_parameter_handles;		/**< handles for interesting parameters */
@@ -384,6 +392,10 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_throttle = param_find("RC_MAP_THROTTLE");
 	_parameter_handles.rc_map_mode_sw = param_find("RC_MAP_MODE_SW");
 
+	_parameter_handles.rc_scale_roll = param_find("RC_SCALE_ROLL");
+	_parameter_handles.rc_scale_pitch = param_find("RC_SCALE_PITCH");
+	_parameter_handles.rc_scale_yaw = param_find("RC_SCALE_YAW");
+
 	/* gyro offsets */
 	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
 	_parameter_handles.gyro_offset[1] = param_find("SENS_GYRO_YOFF");
@@ -490,6 +502,16 @@ Sensors::parameters_update()
 	}
 	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
 		warnx("Failed getting mode sw chan index");
+	}
+
+	if (param_get(_parameter_handles.rc_scale_roll, &(_parameters.rc_scale_roll)) != OK) {
+		warnx("Failed getting rc scaling for roll");
+	}
+	if (param_get(_parameter_handles.rc_scale_pitch, &(_parameters.rc_scale_pitch)) != OK) {
+		warnx("Failed getting rc scaling for pitch");
+	}
+	if (param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw)) != OK) {
+		warnx("Failed getting rc scaling for yaw");
 	}
 
 	/* gyro offsets */
@@ -928,18 +950,21 @@ Sensors::ppm_poll()
 	_rc.chan_count = ppm_decoded_channels;
 	_rc.timestamp = ppm_last_valid_decode;
 
-	/* roll input */
-	manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled;
+	/* roll input - rolling right is stick-wise and rotation-wise positive */
+	manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled * _parameters.rc_scale_roll;
 	if (manual_control.roll < -1.0f) manual_control.roll = -1.0f;
 	if (manual_control.roll >  1.0f) manual_control.roll =  1.0f;
 
-	/* pitch input */
-	manual_control.pitch = _rc.chan[_rc.function[PITCH]].scaled;
+	/*
+	 * pitch input - stick down is negative, but stick down is pitching up (pos) in NED,
+	 * so reverse sign.
+	 */
+	manual_control.pitch = -1.0f * _rc.chan[_rc.function[PITCH]].scaled * _parameters.rc_scale_pitch;
 	if (manual_control.pitch < -1.0f) manual_control.pitch = -1.0f;
 	if (manual_control.pitch >  1.0f) manual_control.pitch =  1.0f;
 
-	/* yaw input */
-	manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled;
+	/* yaw input - stick right is positive and positive rotation */
+	manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled * _parameters.rc_scale_yaw;
 	if (manual_control.yaw < -1.0f) manual_control.yaw = -1.0f;
 	if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
 	
