@@ -27,10 +27,8 @@ config RAMDISK
 		a block driver that can be mounted as a files system.  See
 		include/nuttx/ramdisk.h.
 
-comment "CAN Driver Options"
-
-config CAN
-	bool "CAN Support"
+menuconfig CAN
+	bool "CAN Driver Support"
 	default n
 	---help---
 		This selection enables building of the "upper-half" CAN driver.
@@ -65,10 +63,8 @@ config CAN_LOOPBACK
 
 endif
 
-comment "PWM Driver Options"
-
-config PWM
-	bool "PWM Support"
+menuconfig PWM
+	bool "PWM Driver Support"
 	default n
 	---help---
 		This selection enables building of the "upper-half" PWM driver.
@@ -86,10 +82,8 @@ config PWM_PULSECOUNT
 
 endif
 
-comment "I2C Driver Options"
-
-config I2C
-	bool "I2C Support"
+menuconfig I2C
+	bool "I2C Driver Support"
 	default n
 	---help---
 		This selection enables building of the "upper-half" I2C driver.
@@ -125,10 +119,8 @@ config I2C_NTRACE
 	default n
 	depends on I2C_TRACE
 
-comment "SPI Driver Options"
-
-config SPI
-	bool "SPI Support"
+menuconfig SPI
+	bool "SPI Driver Support"
 	default n
 	---help---
 		This selection enables building of the "upper-half" SPI driver.
@@ -159,10 +151,8 @@ config SPI_CMDDATA
 
 endif
 
-comment "RTC Driver Options"
-
-config RTC
-	bool "RTC Support"
+menuconfig RTC
+	bool "RTC Driver Support"
 	default n
 	---help---
 		This selection enables configuration of a real time clock (RTCdriver.
@@ -214,9 +204,7 @@ config RTC_ALARM
 		Enable if the RTC hardware supports setting of an alarm.  A callback
 		function will be executed when the alarm goes off.
 
-comment "Watchdog Driver Options"
-
-config WATCHDOG
+menuconfig WATCHDOG
 	bool "Watchdog Timer Support"
 	default n
 	---help---
@@ -225,8 +213,6 @@ config WATCHDOG
 
 if WATCHDOG
 endif
-
-comment "Analog Driver Options"
 
 menuconfig ANALOG
 	bool "Analog Device(ADC/DAC) Support"
@@ -241,9 +227,7 @@ if ANALOG
 source drivers/analog/Kconfig
 endif
 
-comment "Block-to-Character Driver Support"
-
-config BCH
+menuconfig BCH
 	bool "Block-to-Character (BCH) Support"
 	default n
 	---help---
@@ -255,8 +239,6 @@ config BCH
 if BCH
 source drivers/bch/Kconfig
 endif
-
-comment "Input device Driver Options"
 
 menuconfig INPUT
 	bool "Input Device Support"
@@ -270,10 +252,8 @@ if INPUT
 source drivers/input/Kconfig
 endif
 
-comment "LCD Driver Options"
-
 menuconfig LCD
-	bool "LCD Support"
+	bool "LCD Driver Support"
 	default n
 	select NX_LCDDRIVER
 	---help---
@@ -288,10 +268,8 @@ if LCD
 source drivers/lcd/Kconfig
 endif
 
-comment "MMCSD Driver Options"
-
 menuconfig MMCSD
-	bool "MMC/SD Support"
+	bool "MMC/SD Driver Support"
 	default n
 	---help---
 		Support for MMC/SD block drivers.  MMC/SD block drivers based on
@@ -301,8 +279,6 @@ menuconfig MMCSD
 if MMCSD
 source drivers/mmcsd/Kconfig
 endif
-
-comment "I2C Driver Options"
 
 menuconfig MTD
 	bool "Memory Technology Device (MTD) Support"
@@ -321,8 +297,6 @@ if MTD
 source drivers/mtd/Kconfig
 endif
 
-comment "Network Device Driver Options"
-
 menuconfig NETDEVICES
 	bool "Network Device Support"
 	default n
@@ -332,8 +306,6 @@ menuconfig NETDEVICES
 if NETDEVICES
 source drivers/net/Kconfig
 endif
-
-comment "Pipe Options"
 
 menuconfig PIPES
 	bool "FIFO and named pipe drivers"
@@ -345,8 +317,6 @@ menuconfig PIPES
 if PIPES
 source drivers/pipes/Kconfig
 endif
-
-comment "Power Management Options"
 
 config PM
 	bool "Power management (PM) driver interfaces"
@@ -367,10 +337,8 @@ if POWER
 source drivers/power/Kconfig
 endif
 
-comment "Sensor Driver Options"
-
 menuconfig SENSORS
-	bool "Sensors Support"
+	bool "Sensor Device Support"
 	default n
 	---help---
 		Drivers for various sensors
@@ -379,10 +347,8 @@ if SENSORS
 source drivers/sensors/Kconfig
 endif
 
-comment "Osmocom-bb Sercomm Driver Options"
-
 menuconfig SERCOMM_CONSOLE
-	bool "Osmocom-bb serial console"
+	bool "Osmocom-bb Sercomm Driver Support"
 	default n
 	---help---
 		Sercomm is the transport used by osmocom-bb that runs on top of serial.
@@ -398,10 +364,8 @@ if SERCOMM
 source drivers/sercomm/Kconfig
 endif
 
-comment "Serial Driver Options"
-
 menuconfig SERIAL
-	bool "Serial Support"
+	bool "Serial Driver Support"
 	default y
 	---help---
 		Front-end character drivers for chip-specific UARTs.  This provide
@@ -412,10 +376,8 @@ if SERIAL
 source drivers/serial/Kconfig
 endif
 
-comment "USB Device Driver Options"
-
 menuconfig USBDEV
-	bool "USB Device Support"
+	bool "USB Device Driver Support"
 	default n
 	---help---
 		USB device drivers.  See also include/nuttx/usb/usbdev.h
@@ -424,10 +386,8 @@ if USBDEV
 source drivers/usbdev/Kconfig
 endif
 
-comment "USB Host Driver Options"
-
 menuconfig USBHOST
-	bool "USB Host Support"
+	bool "USB Host Driver Support"
 	default n
 	---help---
 		USB host drivers.  See also include/nuttx/usb/usbhost.h
@@ -436,10 +396,8 @@ if USBHOST
 source drivers/usbhost/Kconfig
 endif
 
-comment "Wireless Device Driver Options"
-
 menuconfig WIRELESS
-	bool "Wireless Support"
+	bool "Wireless Device Support"
 	default n
 	---help---
 		Drivers for various wireless devices.

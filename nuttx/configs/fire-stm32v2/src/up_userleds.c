@@ -105,18 +105,28 @@ void stm32_ledinit(void)
 
 /****************************************************************************
  * Name: stm32_setled
+ *
+ * Description:
+ *   Set one LED to the 'ledon' state.  The LEDs are pulled up and, hence,
+ *   active low.
+ *
  ****************************************************************************/
 
 void stm32_setled(int led, bool ledon)
 {
   if ((unsigned)led < BOARD_NLEDS)
     {
-      stm32_gpiowrite(g_ledcfg[led], ledon);
+      stm32_gpiowrite(g_ledcfg[led], !ledon);
     }
 }
 
 /****************************************************************************
  * Name: stm32_setleds
+ *
+ * Description:
+ *   Set each LED to the bit encoded state.  The LEDs are pulled up and,
+ *   hence, active low.
+ *
  ****************************************************************************/
 
 void stm32_setleds(uint8_t ledset)

@@ -950,7 +950,7 @@ defconfig -- This is a configuration file similar to the Linux
 
   ENC28J60 Ethernet Driver Configuration Settings:
 
-    CONFIG_NET_ENC28J60 - Enabled ENC28J60 support
+    CONFIG_ENC28J60 - Enabled ENC28J60 support
     CONFIG_ENC28J60_SPIMODE - Controls the SPI mode
     CONFIG_ENC28J60_FREQUENCY - Define to use a different bus frequency
     CONFIG_ENC28J60_NINTERFACES - Specifies the number of physical ENC28J60

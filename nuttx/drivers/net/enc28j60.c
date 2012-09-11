@@ -42,7 +42,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#if defined(CONFIG_NET) && defined(CONFIG_NET_ENC28J60)
+#if defined(CONFIG_NET) && defined(CONFIG_ENC28J60)
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -74,7 +74,7 @@
 
 /* ENC28J60 Configuration Settings:
  *
- * CONFIG_NET_ENC28J60 - Enabled ENC28J60 support
+ * CONFIG_ENC28J60 - Enabled ENC28J60 support
  * CONFIG_ENC28J60_SPIMODE - Controls the SPI mode
  * CONFIG_ENC28J60_FREQUENCY - Define to use a different bus frequency
  * CONFIG_ENC28J60_NINTERFACES - Specifies the number of physical ENC28J60
@@ -172,36 +172,36 @@ struct enc_driver_s
 {
   /* Device control */
 
-  bool                    bifup;     /* true:ifup false:ifdown */
-  uint8_t                 bank;      /* Currently selected bank */
-  uint16_t                nextpkt;   /* Next packet address */
-  FAR struct enc_lower_s *lower;     /* Low-level MCU-specific support */
+  bool                  bifup;         /* true:ifup false:ifdown */
+  uint8_t               bank;          /* Currently selected bank */
+  uint16_t              nextpkt;       /* Next packet address */
+  FAR const struct enc_lower_s *lower; /* Low-level MCU-specific support */
 
   /* Timing */
 
-  WDOG_ID                 txpoll;    /* TX poll timer */
-  WDOG_ID                 txtimeout; /* TX timeout timer */
+  WDOG_ID               txpoll;        /* TX poll timer */
+  WDOG_ID               txtimeout;     /* TX timeout timer */
 
   /* We we don't own the SPI bus, then we cannot do SPI accesses from the
    * interrupt handler.
    */
  
 #ifndef CONFIG_SPI_OWNBUS
-  struct work_s           work;      /* Work queue support */
+  struct work_s         work;          /* Work queue support */
 #endif
 
   /* This is the contained SPI driver intstance */
 
-  FAR struct spi_dev_s   *spi;
+  FAR struct spi_dev_s *spi;
 
   /* This holds the information visible to uIP/NuttX */
 
-  struct uip_driver_s     dev;      /* Interface understood by uIP */
+  struct uip_driver_s   dev;          /* Interface understood by uIP */
 
   /* Statistics */
 
 #ifdef CONFIG_ENC28J60_STATS
-  struct enc_stats_s      stats;
+  struct enc_stats_s    stats;
 #endif
 };
 

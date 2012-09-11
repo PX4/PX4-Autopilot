@@ -3315,4 +3315,11 @@
 	  require DMA-capable memory.  If CONFIG_FAT_DMAMEMORY is defined,
 	  then the FAT FS will use platform-provided DMA memory allocators
 	  to allocate the block driver I/O buffers.
-
+	* CONFIG_NET_ENC28J60 renamed CONFIG_ENC28J60 to be consistent
+	  in all places.
+	* drivers/enc28j60.c, include/nuttx/net/enc28j60.h, and 
+	  olimex-strp711/src/up_enc28j60.c:  No longer passes IRQ number
+	  as a parameters.  Instead now passes a call table to manage
+	  ENC28J60 GPIO interrupts.  That is because GPIO interrupts are
+	  handled in different ways by different MCUs and some do not
+	  support IRQ numbers for GPIO interrupts.

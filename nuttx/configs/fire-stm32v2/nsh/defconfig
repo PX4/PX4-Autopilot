@@ -131,7 +131,7 @@ CONFIG_STM32_I2C1=y
 # CONFIG_STM32_IWDG is not set
 CONFIG_STM32_PWR=y
 CONFIG_STM32_SDIO=y
-# CONFIG_STM32_SPI1 is not set
+CONFIG_STM32_SPI1=y
 # CONFIG_STM32_SPI2 is not set
 # CONFIG_STM32_SPI4 is not set
 # CONFIG_STM32_TIM1 is not set
@@ -149,12 +149,14 @@ CONFIG_STM32_USART2=y
 # CONFIG_STM32_UART5 is not set
 CONFIG_STM32_USB=y
 # CONFIG_STM32_WWDG is not set
+CONFIG_STM32_SPI=y
 
 #
 # Alternate Pin Mapping
 #
-CONFIG_STM32_USART1_REMAP=y
+# CONFIG_STM32_USART1_REMAP is not set
 # CONFIG_STM32_USART2_REMAP is not set
+# CONFIG_STM32_SPI1_REMAP is not set
 # CONFIG_STM32_I2C1_REMAP is not set
 # CONFIG_STM32_JTAG_DISABLE is not set
 CONFIG_STM32_JTAG_FULL_ENABLE=y
@@ -162,6 +164,12 @@ CONFIG_STM32_JTAG_FULL_ENABLE=y
 # CONFIG_STM32_JTAG_SW_ENABLE is not set
 # CONFIG_STM32_FORCEPOWER is not set
 # CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG is not set
+
+#
+# SPI Configuration
+#
+# CONFIG_STM32_SPI_INTERRUPTS is not set
+# CONFIG_STM32_SPI_DMA is not set
 
 #
 # SDIO Configuration
@@ -300,71 +308,27 @@ CONFIG_DEV_NULL=y
 # CONFIG_DEV_ZERO is not set
 # CONFIG_LOOP is not set
 # CONFIG_RAMDISK is not set
-
-#
-# CAN Driver Options
-#
 # CONFIG_CAN is not set
-
-#
-# PWM Driver Options
-#
 # CONFIG_PWM is not set
-
-#
-# I2C Driver Options
-#
 CONFIG_I2C=y
 # CONFIG_I2C_SLAVE is not set
 CONFIG_I2C_TRANSFER=y
 # CONFIG_I2C_WRITEREAD is not set
 CONFIG_I2C_POLLED=y
 # CONFIG_I2C_TRACE is not set
-
-#
-# SPI Driver Options
-#
 CONFIG_SPI=y
 # CONFIG_SPI_OWNBUS is not set
 CONFIG_SPI_EXCHANGE=y
-CONFIG_SPI_CMDDATA=y
-
-#
-# RTC Driver Options
-#
+# CONFIG_SPI_CMDDATA is not set
 CONFIG_RTC=y
 # CONFIG_RTC_DATETIME is not set
 # CONFIG_RTC_HIRES is not set
 # CONFIG_RTC_ALARM is not set
-
-#
-# Watchdog Driver Options
-#
 # CONFIG_WATCHDOG is not set
-
-#
-# Analog Driver Options
-#
 # CONFIG_ANALOG is not set
-
-#
-# Block-to-Character Driver Support
-#
 # CONFIG_BCH is not set
-
-#
-# Input device Driver Options
-#
 # CONFIG_INPUT is not set
-
-#
-# LCD Driver Options
-#
 # CONFIG_LCD is not set
-
-#
-# MMCSD Driver Options
-#
 CONFIG_MMCSD=y
 CONFIG_MMCSD_NSLOTS=1
 # CONFIG_MMCSD_READONLY is not set
@@ -375,42 +339,23 @@ CONFIG_MMCSD_SPI=y
 CONFIG_MMCSD_SPICLOCK=20000000
 CONFIG_MMCSD_SDIO=y
 # CONFIG_SDIO_MUXBUS is not set
-
-#
-# I2C Driver Options
-#
 # CONFIG_MTD is not set
-
-#
-# Network Device Driver Options
-#
-# CONFIG_NETDEVICES is not set
+CONFIG_NETDEVICES=y
+# CONFIG_NET_DM90x0 is not set
+CONFIG_ENC28J60=y
+CONFIG_ENC28J60_NINTERFACES=1
+CONFIG_ENC28J60_SPIMODE=2
+CONFIG_ENC28J60_FREQUENCY=20000000
+# CONFIG_ENC28J60_STATS is not set
+# CONFIG_ENC28J60_HALFDUPPLEX is not set
+# CONFIG_NET_E1000 is not set
 # CONFIG_NET_SLIP is not set
-
-#
-# Pipe Options
-#
+# CONFIG_NET_VNET is not set
 # CONFIG_PIPES is not set
-
-#
-# Power Management Options
-#
 # CONFIG_PM is not set
 # CONFIG_POWER is not set
-
-#
-# Sensor Driver Options
-#
 # CONFIG_SENSORS is not set
-
-#
-# Osmocom-bb Sercomm Driver Options
-#
 # CONFIG_SERCOMM_CONSOLE is not set
-
-#
-# Serial Driver Options
-#
 CONFIG_SERIAL=y
 # CONFIG_LOWLEVEL_CONSOLE is not set
 # CONFIG_16550_UART is not set
@@ -441,10 +386,6 @@ CONFIG_USART2_BAUD=115200
 CONFIG_USART2_BITS=8
 CONFIG_USART2_PARITY=0
 CONFIG_USART2_2STOP=0
-
-#
-# USB Device Driver Options
-#
 CONFIG_USBDEV=y
 # CONFIG_USBDEV_COMPOSITE is not set
 # CONFIG_USBDEV_ISOCHRONOUS is not set
@@ -468,15 +409,7 @@ CONFIG_USBMSC_PRODUCTID=0x5342
 CONFIG_USBMSC_PRODUCTSTR="USBdev Storage"
 CONFIG_USBMSC_VERSIONNO=0x0399
 CONFIG_USBMSC_REMOVABLE=y
-
-#
-# USB Host Driver Options
-#
 # CONFIG_USBHOST is not set
-
-#
-# Wireless Device Driver Options
-#
 # CONFIG_WIRELESS is not set
 
 #
@@ -495,7 +428,7 @@ CONFIG_NET=y
 # CONFIG_NET_NOINTS is not set
 # CONFIG_NET_MULTIBUFFER is not set
 # CONFIG_NET_IPv6 is not set
-CONFIG_NSOCKET_DESCRIPTORS=0
+CONFIG_NSOCKET_DESCRIPTORS=16
 CONFIG_NET_NACTIVESOCKETS=16
 CONFIG_NET_SOCKOPTS=y
 CONFIG_NET_BUFSIZE=562
@@ -512,7 +445,7 @@ CONFIG_NET_UDP_CHECKSUMS=y
 CONFIG_NET_UDP_CONNS=8
 CONFIG_NET_BROADCAST=y
 CONFIG_NET_ICMP=y
-# CONFIG_NET_ICMP_PING is not set
+CONFIG_NET_ICMP_PING=y
 # CONFIG_NET_PINGADDRCONF is not set
 # CONFIG_NET_IGMP is not set
 CONFIG_NET_STATISTICS=y
@@ -532,6 +465,7 @@ CONFIG_FAT_LCNAMES=y
 CONFIG_FAT_LFN=y
 CONFIG_FAT_MAXFNAME=32
 # CONFIG_FS_FATTIME is not set
+# CONFIG_FAT_DMAMEMORY is not set
 # CONFIG_FS_RAMMAP is not set
 # CONFIG_NFS is not set
 # CONFIG_FS_NXFFS is not set

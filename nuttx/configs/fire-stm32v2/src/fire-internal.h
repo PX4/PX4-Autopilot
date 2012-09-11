@@ -191,7 +191,7 @@
  * 32  PA7    PA7-SPI1-MOSI  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
  */
 
-#ifndef CONFIG_NET_ENC28J60
+#ifndef CONFIG_ENC28J60
 #  define GPIO_ENC28J60_CS (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
                             GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
 #endif
@@ -210,11 +210,11 @@
  * 4   PE5    (no name)      10Mbps ENC28J60 Interrupt
  */
 
-#if defined(CONFIG_STM32_FSMC) && defined(CONFIG_NET_ENC28J60)
+#if defined(CONFIG_STM32_FSMC) && defined(CONFIG_ENC28J60)
 #  warning "TFT LCD and ENCJ2860 shared PE1"
 #endif
 
-#ifdef CONFIG_NET_ENC28J60
+#ifdef CONFIG_ENC28J60
 #  define GPIO_ENC28J60_CS    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
                                GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
 #  define GPIO_ENC28J60_RESET (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\

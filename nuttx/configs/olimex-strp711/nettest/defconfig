@@ -2,7 +2,7 @@
 # configs/olimes-strp711/nettest/defconfig
 #
 #   Copyright (C) 2010 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -235,7 +235,7 @@ CONFIG_FS_ROMFS=n
 #
 # ENC28J60 configuration
 #
-CONFIG_NET_ENC28J60=y
+CONFIG_ENC28J60=y
 #CONFIG_ENC28J60_SPIMODE
 CONFIG_ENC28J60_FREQUENCY=20000000
 CONFIG_ENC28J60_NINTERFACES=1

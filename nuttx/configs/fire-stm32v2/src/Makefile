@@ -56,7 +56,7 @@ else
 CSRCS		+= up_userleds.c
 endif
 
-ifeq ($(CONFIG_NET_ENC28J60),y)
+ifeq ($(CONFIG_ENC28J60),y)
 CSRCS		+= up_enc28j60.c
 endif
 

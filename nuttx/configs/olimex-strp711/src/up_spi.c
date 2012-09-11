@@ -1,8 +1,8 @@
 /****************************************************************************
  * config/olimex-strp711/src/up_spi.c
  *
- *   Copyright (C) 2008-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2010,2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -155,7 +155,7 @@
  * P0.4/S1.MISO            P0.4 output           6    5 NET RST
  */
 
-#ifdef CONFIG_NET_ENC28J60
+#ifdef CONFIG_ENC28J60
 
 /* UART3, I2C cannot be used with SPI0.  The GPIOs selected for the ENC28J60
  * interrupt conflict with BSPI1
@@ -981,7 +981,7 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
            * reset (also active low)
            */
 
-#ifdef CONFIG_NET_ENC28J60
+#ifdef CONFIG_ENC28J60
           reg16  = getreg16(STR71X_GPIO0_PD);
           reg16 |= (ENC_GPIO0_CS | ENC_GPIO0_NETRST);
           putreg16(reg16, STR71X_GPIO0_PD);

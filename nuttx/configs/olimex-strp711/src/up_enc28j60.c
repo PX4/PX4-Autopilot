@@ -95,7 +95,7 @@
 #include "up_internal.h"
 #include "str71x_internal.h"
 
-#ifdef CONFIG_NET_ENC28J60
+#ifdef CONFIG_ENC28J60
 
 /****************************************************************************
  * Definitions
@@ -182,17 +182,17 @@ static const struct enc_lower_s g_enclower =
  * Name: struct enc_lower_s methods
  ****************************************************************************/
 
-static int up_attach(FAR struct enc_lower_s *lower, xcpt_t handler)
+static int up_attach(FAR const struct enc_lower_s *lower, xcpt_t handler)
 {
   return irq_attach(ENC28J60_IRQ, handler)
 }
 
-static void up_enable(FAR struct enc_lower_s *lower)
+static void up_enable(FAR const struct enc_lower_s *lower)
 {
   up_enable_irq(ENC28J60_IRQ);
 }
 
-static void up_disable(FAR struct enc_lower_s *lower)
+static void up_disable(FAR const struct enc_lower_s *lower)
 {
   up_disable_irq(ENC28J60_IRQ);
 }
@@ -237,7 +237,7 @@ void up_netinitialize(void)
 
   /* Bind the SPI port to the ENC28J60 driver */
 
-  ret = enc_initialize(spi, ENC28J60_DEVNO, &g_enclower);
+  ret = enc_initialize(spi, &g_enclower, ENC28J60_DEVNO);
   if (ret < 0)
     {
       nlldbg("Failed to bind SPI port %d ENC28J60 device %d: %d\n",
@@ -248,4 +248,4 @@ void up_netinitialize(void)
   nllvdbg("Bound SPI port %d to ENC28J60 device %d\n",
         ENC28J60_SPI_PORTNO, ENC28J60_DEVNO);
 }
-#endif /* CONFIG_NET_ENC28J60 */
+#endif /* CONFIG_ENC28J60 */

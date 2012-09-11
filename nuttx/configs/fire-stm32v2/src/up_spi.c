@@ -111,7 +111,7 @@ void weak_function stm32_spiinitialize(void)
 
   /* Configure ENC28J60 SPI1 CS (also RESET and interrupt pins) */
 
-#ifdef CONFIG_NET_ENC28J60
+#ifdef CONFIG_ENC28J60
   stm32_configgpio(GPIO_ENC28J60_CS);
   stm32_configgpio(GPIO_ENC28J60_RESET);
   stm32_configgpio(GPIO_ENC28J60_INTR);
@@ -171,7 +171,7 @@ void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sele
     }
   else
 #endif
-#ifdef CONFIG_NET_ENC28J60
+#ifdef CONFIG_ENC28J60
   if (devid == SPIDEV_ETHERNET)
     {
       /* Set the GPIO low to select and high to de-select */

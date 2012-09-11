@@ -63,9 +63,9 @@
 #include "chip.h"
 #include "up_arch.h"
 #include "up_internal.h"
-#include "fire_internal.h"
+#include "fire-internal.h"
 
-#ifdef CONFIG_NET_ENC28J60
+#ifdef CONFIG_ENC28J60
 
 /****************************************************************************
  * Definitions
@@ -110,9 +110,9 @@ struct stm32_lower_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static int  up_attach(FAR struct enc_lower_s *lower, xcpt_t handler);
-static void up_enable(FAR struct enc_lower_s *lower);
-static void up_disable(FAR struct enc_lower_s *lower);
+static int  up_attach(FAR const struct enc_lower_s *lower, xcpt_t handler);
+static void up_enable(FAR const struct enc_lower_s *lower);
+static void up_disable(FAR const struct enc_lower_s *lower);
 
 /****************************************************************************
  * Private Data
@@ -123,13 +123,15 @@ static void up_disable(FAR struct enc_lower_s *lower);
  * the ENC28J60 GPIO interrupt.
  */
 
-static const struct enc_lower_s g_enclower =
+static struct stm32_lower_s g_enclower =
 {
+  .lower =
   {
     .attach  = up_attach,
     .enable  = up_enable,
     .disable = up_disable
-  }
+  },
+  .handler = NULL,
 };
 
 /****************************************************************************
@@ -140,25 +142,25 @@ static const struct enc_lower_s g_enclower =
  * Name: struct enc_lower_s methods
  ****************************************************************************/
 
-static int up_attach(FAR struct enc_lower_s *lower, xcpt_t handler)
+static int up_attach(FAR const struct enc_lower_s *lower, xcpt_t handler)
 {
   FAR struct stm32_lower_s *priv = (FAR struct stm32_lower_s *)lower;
 
   /* Just save the handler for use when the interrupt is enabled */
 
-  priv-handler = handler;
+  priv->handler = handler;
   return OK;
 }
 
-static void up_enable(FAR struct enc_lower_s *lower)
+static void up_enable(FAR const struct enc_lower_s *lower)
 {
   FAR struct stm32_lower_s *priv = (FAR struct stm32_lower_s *)lower;
 
   DEBUGASSERT(priv->handler);
-  (void)stm32_gpiosetevent(GPIO_ENC28J60_INTR, true, true, true, priv-handler);
+  (void)stm32_gpiosetevent(GPIO_ENC28J60_INTR, true, true, true, priv->handler);
 }
 
-static void up_disable(FAR struct enc_lower_s *lower)
+static void up_disable(FAR const struct enc_lower_s *lower)
 {
   (void)stm32_gpiosetevent(GPIO_ENC28J60_INTR, true, true, true, NULL);
 }
@@ -174,7 +176,6 @@ static void up_disable(FAR struct enc_lower_s *lower)
 void up_netinitialize(void)
 {
   FAR struct spi_dev_s *spi;
-  uint16_t reg16;
   int ret;
 
   /* Assumptions:
@@ -195,7 +196,7 @@ void up_netinitialize(void)
 
   /* Bind the SPI port to the ENC28J60 driver */
 
-  ret = enc_initialize(spi, ENC28J60_DEVNO, &g_enclower);
+  ret = enc_initialize(spi, &g_enclower.lower, ENC28J60_DEVNO);
   if (ret < 0)
     {
       nlldbg("Failed to bind SPI port %d ENC28J60 device %d: %d\n",
@@ -207,4 +208,4 @@ void up_netinitialize(void)
         ENC28J60_SPI_PORTNO, ENC28J60_DEVNO);
 }
 
-#endif /* CONFIG_NET_ENC28J60 */
+#endif /* CONFIG_ENC28J60 */

@@ -193,7 +193,8 @@ static struct pm_callback_s g_ledscb =
  * Name: led_clrbits
  *
  * Description:
- *   Clear all LEDs to the bit encoded state
+ *   Clear all LEDs to the bit encoded state.  The LEDs are pulled up and,
+ *   hence, active low.
  *
  ****************************************************************************/
 
@@ -201,17 +202,17 @@ static inline void led_clrbits(unsigned int clrbits)
 {
   if ((clrbits & FIRE_LED1) != 0)
     {
-      stm32_gpiowrite(GPIO_LED1, false);
+      stm32_gpiowrite(GPIO_LED1, true);
     }
 
   if ((clrbits & FIRE_LED2) != 0)
     {
-      stm32_gpiowrite(GPIO_LED2, false);
+      stm32_gpiowrite(GPIO_LED2, true);
     }
 
   if ((clrbits & FIRE_LED3) != 0)
     {
-      stm32_gpiowrite(GPIO_LED3, false);
+      stm32_gpiowrite(GPIO_LED3, true);
     }
 }
 
@@ -219,7 +220,8 @@ static inline void led_clrbits(unsigned int clrbits)
  * Name: led_setbits
  *
  * Description:
- *   Set all LEDs to the bit encoded state
+ *   Set all LEDs to the bit encoded state.  The LEDs are pulled up and,
+ *   hence, active low.
  *
  ****************************************************************************/
 
@@ -227,17 +229,17 @@ static inline void led_setbits(unsigned int setbits)
 {
   if ((setbits & FIRE_LED1) != 0)
     {
-      stm32_gpiowrite(GPIO_LED1, true);
+      stm32_gpiowrite(GPIO_LED1, false);
     }
 
   if ((setbits & FIRE_LED2) != 0)
     {
-      stm32_gpiowrite(GPIO_LED2, true);
+      stm32_gpiowrite(GPIO_LED2, false);
     }
 
   if ((setbits & FIRE_LED3) != 0)
     {
-      stm32_gpiowrite(GPIO_LED3, true);
+      stm32_gpiowrite(GPIO_LED3, false);
     }
 }
 

@@ -256,14 +256,14 @@
  * PIN NAME   SIGNAL         NOTES
  * --- ------ -------------- -------------------------------------------------------------------
  *
- * 68  PA9    PA9-US1-TX     MAX3232, DB9 D8, Requires CONFIG_STM32_USART1_REMAP
- * 69  PA10   PA10-US1-RX    MAX3232, DB9 D8, Requires CONFIG_STM32_USART1_REMAP
+ * 68  PA9    PA9-US1-TX     MAX3232, DB9 D8, Requires !CONFIG_STM32_USART1_REMAP
+ * 69  PA10   PA10-US1-RX    MAX3232, DB9 D8, Requires !CONFIG_STM32_USART1_REMAP
  * 25  PA2    PA2-US2-TX     MAX3232, DB9 D7, Requires !CONFIG_STM32_USART2_REMAP
  * 26  PA3    PA3-US2-RX     MAX3232, DB9 D7, Requires !CONFIG_STM32_USART2_REMAP
  */
 
-#if defined(CONFIG_STM32_USART1) && !defined(CONFIG_STM32_USART1_REMAP)
-#  errror "USART1 requires CONFIG_STM32_USART1_REMAP=y"
+#if defined(CONFIG_STM32_USART1) && defined(CONFIG_STM32_USART1_REMAP)
+#  errror "USART1 requires CONFIG_STM32_USART1_REMAP=n"
 #endif
 
 #if defined(CONFIG_STM32_USART2) && defined(CONFIG_STM32_USART2_REMAP)

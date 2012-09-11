@@ -51,7 +51,7 @@
 
 /* ENC28J60 Configuration Settings:
  *
- * CONFIG_NET_ENC28J60 - Enabled ENC28J60 support
+ * CONFIG_ENC28J60 - Enabled ENC28J60 support
  * CONFIG_ENC28J60_SPIMODE - Controls the SPI mode
  * CONFIG_ENC28J60_FREQUENCY - Define to use a different bus frequency
  * CONFIG_ENC28J60_NINTERFACES - Specifies the number of physical ENC28J60
@@ -89,9 +89,9 @@ struct enc_stats_s
 
 struct enc_lower_s
 {
-  int  (*attach)(FAR struct enc_lower_s *lower, xcpt_t handler);
-  void (*enable)(FAR struct enc_lower_s *lower);
-  void (*disable)(FAR struct enc_lower_s *lower);
+  int  (*attach)(FAR const struct enc_lower_s *lower, xcpt_t handler);
+  void (*enable)(FAR const struct enc_lower_s *lower);
+  void (*disable)(FAR const struct enc_lower_s *lower);
 };
 
 /****************************************************************************
