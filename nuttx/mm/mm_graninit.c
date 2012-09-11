@@ -40,6 +40,8 @@
 #include <nuttx/config.h>
 
 #include <stdlib.h>
+#include <assert.h>
+#include <errno.h>
 
 #include <nuttx/gran.h>
 
@@ -95,6 +97,8 @@ static inline FAR struct gran_s *gran_common_initialize(FAR void *heapstart,
   unsigned int       alignedsize;
   unsigned int       ngranules;
 
+  DEBUGASSERT(heapstart && heapsize > 0 && log2gran > 0 && log2gran < 32);
+
   /* Determine the number of granules */
 
   mask         = (1 << log2gran) - 1;
@@ -115,6 +119,7 @@ static inline FAR struct gran_s *gran_common_initialize(FAR void *heapstart,
       priv->log2gran  = log2gran;
       priv->ngranules = ngranules;
       priv->heapstart = alignedstart;
+      sem_init(&priv->exclsem, 0, 1);
     }
 
   return priv;
@@ -153,7 +158,7 @@ static inline FAR struct gran_s *gran_common_initialize(FAR void *heapstart,
 int gran_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gran)
 {
   g_graninfo = gran_common_initialize(heapstart, heapsize, log2gran);
-  if (!g_granifo)
+  if (!g_graninfo)
     {
       return -ENOMEM;
     }
@@ -166,6 +171,38 @@ GRAN_HANDLE gran_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gr
   return (GRAN_HANDLE)gran_common_initialize(heapstart, heapsize, log2gran);
 }
 #endif
+
+/****************************************************************************
+ * Name: gran_semtake and gran_semgive
+ *
+ * Description:
+ *   Managed semaphore for the granule allocator.  gran_semgive is
+ *   implemented as a macro.
+ *
+ * Input Parameters:
+ *   priv - Pointer to the gran state
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void gran_semtake(FAR struct gran_s *priv)
+{
+  int ret;
+
+  /* Continue waiting if we are awakened by a signal */
+
+  do
+    {
+      ret = sem_wait(&priv->exclsem);
+      if (ret < 0)
+        {
+          DEBUGASSERT(errno == EINTR);
+        }
+    }
+  while (ret < 0);
+}
 
 #endif /* CONFIG_GRAN */
 

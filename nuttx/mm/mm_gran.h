@@ -43,6 +43,7 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
+#include <semaphore.h>
 
 #include <nuttx/gran.h>
 
@@ -87,6 +88,7 @@ struct gran_s
 {
   uint8_t    log2gran;  /* Log base 2 of the size of one granule */
   uint16_t   ngranules; /* The total number of (aligned) granules in the heap */
+  sem_t      exclsem;   /* For exclusive access to the GAT */
   uintptr_t  heapstart; /* The aligned start of the granule heap */
   uint32_t   gat[1];    /* Start of the granule allocation table */
 };
@@ -104,5 +106,23 @@ extern FAR struct gran_s *g_graninfo;
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: gran_semtake and gran_semgive
+ *
+ * Description:
+ *   Managed semaphore for the granule allocator.  gran_semgive is
+ *   implemented as a macro.
+ *
+ * Input Parameters:
+ *   priv - Pointer to the gran state
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void gran_semtake(FAR struct gran_s *priv);
+#define gran_semgive(p) sem_post(&(p)->exclsem);
 
 #endif /* __MM_MM_GRAN_H */

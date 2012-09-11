@@ -106,8 +106,8 @@ extern "C" {
  ****************************************************************************/
 
 #ifdef CONFIG_GRAN_SINGLE
-EXTERN void gran_initialize(FAR void *heapstart, size_t heapsize,
-                            uint8_t log2gran);
+EXTERN int gran_initialize(FAR void *heapstart, size_t heapsize,
+                           uint8_t log2gran);
 #else
 EXTERN GRAN_HANDLE gran_initialize(FAR void *heapstart, size_t heapsize,
                                    uint8_t log2gran);

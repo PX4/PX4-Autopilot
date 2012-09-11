@@ -41,7 +41,7 @@ CSRCS	= mm_initialize.c mm_sem.c  mm_addfreechunk.c mm_size2ndx.c mm_shrinkchunk
 	  mm_memalign.c mm_free.c mm_mallinfo.c
 
 ifeq ($(CONFIG_GRAN),y)
-CSRCS	= mm_graninit.c mm_granalloc.c mm_granfree.c
+CSRCS	+= mm_graninit.c mm_granalloc.c mm_granfree.c
 endif
 
 AOBJS	= $(ASRCS:.S=$(OBJEXT))

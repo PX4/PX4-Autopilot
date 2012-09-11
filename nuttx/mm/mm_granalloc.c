@@ -93,7 +93,7 @@ static inline void gran_mark_allocated(FAR struct gran_s *priv, uintptr_t alloc,
       ngranules -= avail;
     }
 
-  /* Handle the cae where where all of the granules come from one entry */
+  /* Handle the case where where all of the granules come from one entry */
 
   else
     {
@@ -135,8 +135,13 @@ static inline FAR void *gran_common_alloc(FAR struct gran_s *priv, size_t size)
   int           j;
 
   DEBUGASSERT(priv && size <= 32 * (1 << priv->log2gran));
+
   if (priv && size > 0)
     {
+      /* Get exclusive access to the GAT */
+
+      gran_semtake(priv);
+
       /* How many contiguous granules we we need to find? */
 
       tmpmask   = (1 << priv->log2gran) - 1;
@@ -186,6 +191,7 @@ static inline FAR void *gran_common_alloc(FAR struct gran_s *priv, size_t size)
 
                   /* And return the allocation address */
 
+                  gran_semgive(priv);
                   return (FAR void *)alloc;
                 }
 
@@ -207,6 +213,7 @@ static inline FAR void *gran_common_alloc(FAR struct gran_s *priv, size_t size)
         }
     }
 
+  gran_semgive(priv);
   return NULL;
 }
 

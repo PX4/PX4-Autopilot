@@ -79,6 +79,10 @@ static inline void gran_common_free(FAR struct gran_s *priv,
 
   DEBUGASSERT(priv && memory && size <= 32 * (1 << priv->log2gran));
 
+  /* Get exclusive access to the GAT */
+
+  gran_semtake(priv);
+
   /* Determine the granule number of the first granule in the allocation */
 
   granno = ((uintptr_t)memory - priv->heapstart) >> priv->log2gran;
@@ -102,21 +106,22 @@ static inline void gran_common_free(FAR struct gran_s *priv,
     {
       priv->gat[gatidx] &= ~(0xffffffff << gatbit);
       ngranules -= avail;
+
+      /* Clear bits in the second GAT entry */
+
+      gatmask = 0xffffffff >> (32 - ngranules);
+      priv->gat[gatidx+1] &= ~(gatmask << gatbit);
     }
 
-  /* Handle the cae where where all of the granules came from one entry */
+  /* Handle the case where where all of the granules came from one entry */
 
   else
     {
       gatmask = 0xffffffff >> (32 - ngranules);
       priv->gat[gatidx] &= ~(gatmask << gatbit);
-      return;
     }
 
-  /* Clear bits in the second GAT entry */
-
-  gatmask = 0xffffffff >> (32 - ngranules);
-  priv->gat[gatidx+1] &= ~(gatmask << gatbit);
+  gran_semgive(priv);
 }
 
 /****************************************************************************
