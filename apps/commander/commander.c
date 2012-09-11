@@ -74,6 +74,16 @@
  
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/err.h>
+
+/* XXX MOVE CALIBRATION TO SENSORS APP THREAD */
+#include <drivers/drv_accel.h>
+#include <drivers/drv_gyro.h>
+#include <drivers/drv_mag.h>
+#include <drivers/drv_baro.h>
+
+
+
 
 #include <arch/board/up_cpuload.h>
 extern struct system_load_s system_load;
@@ -294,7 +304,20 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		mag_minima[2][i] = FLT_MAX;
 	}
 
-	mavlink_log_info(mavlink_fd, "[commander] Please rotate in all directions.");
+	int fd = open(MAG_DEVICE_PATH, 0);
+	struct mag_scale mscale_null = {
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+	};
+	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null))
+		warn("WARNING: failed to set scale / offsets for mag");
+	close(fd);
+
+	mavlink_log_info(mavlink_fd, "[commander] Please rotate around all axes.");
 	
 	uint64_t calibration_start = hrt_absolute_time();
 	while ((hrt_absolute_time() - calibration_start) < calibration_interval_us) {
@@ -443,6 +466,19 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		}
 	}
 
+	fd = open(MAG_DEVICE_PATH, 0);
+	struct mag_scale mscale = {
+		mag_offset[0],
+		1.0f,
+		mag_offset[1],
+		1.0f,
+		mag_offset[2],
+		1.0f,
+	};
+	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale))
+		warn("WARNING: failed to set scale / offsets for mag");
+	close(fd);
+
 	free(mag_maxima[0]);
 	free(mag_maxima[1]);
 	free(mag_maxima[2]);
@@ -467,6 +503,20 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 
 	int calibration_counter = 0;
 	float gyro_offset[3] = {0.0f, 0.0f, 0.0f};
+
+	/* set offsets to zero */
+	int fd = open(GYRO_DEVICE_PATH, 0);
+	struct gyro_scale gscale_null = { 
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+	};
+	if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale_null))
+		warn("WARNING: failed to set scale / offsets for gyro");
+	close(fd);
 
 	while (calibration_counter < calibration_count) {
 
@@ -502,6 +552,20 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 		mavlink_log_critical(mavlink_fd, "[commander] Setting Z gyro offset failed!");
 	}
 
+	/* set offsets to actual value */
+	fd = open(GYRO_DEVICE_PATH, 0);
+	struct gyro_scale gscale = { 
+		gyro_offset[0],
+		1.0f,
+		gyro_offset[1],
+		1.0f,
+		gyro_offset[2],
+		1.0f,
+	};
+	if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale))
+		warn("WARNING: failed to set scale / offsets for gyro");
+	close(fd);
+
 	/* exit to gyro calibration mode */
 	status->flag_preflight_gyro_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
@@ -531,6 +595,19 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	int calibration_counter = 0;
 	float accel_offset[3] = {0.0f, 0.0f, 0.0f};
 
+	int fd = open(ACCEL_DEVICE_PATH, 0);
+	struct accel_scale ascale_null = {
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+	};
+	if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale_null))
+		warn("WARNING: failed to set scale / offsets for accel");
+	close(fd);
+
 	while (calibration_counter < calibration_count) {
 
 		/* wait blocking for new data */
@@ -556,19 +633,47 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	/* add the removed length from x / y to z, since we induce a scaling issue else */
 	float total_len = sqrtf(accel_offset[0]*accel_offset[0] + accel_offset[1]*accel_offset[1] + accel_offset[2]*accel_offset[2]);
 
+	/* if length is correct, zero results here */
 	accel_offset[2] = accel_offset[2] + total_len;
 
-	if (param_set(param_find("SENSOR_ACC_XOFF"), &(accel_offset[0]))) {
+	float scale = 9.80665f / total_len;
+
+	if (param_set(param_find("SENS_ACC_XOFF"), &(accel_offset[0]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting X accel offset failed!");
 	}
 	
-	if (param_set(param_find("SENSOR_ACC_YOFF"), &(accel_offset[1]))) {
+	if (param_set(param_find("SENS_ACC_YOFF"), &(accel_offset[1]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting Y accel offset failed!");
 	}
 
-	if (param_set(param_find("SENSOR_ACC_ZOFF"), &(accel_offset[2]))) {
+	if (param_set(param_find("SENS_ACC_ZOFF"), &(accel_offset[2]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting Z accel offset failed!");
 	}
+
+	if (param_set(param_find("SENS_ACC_XSCALE"), &(scale))) {
+		mavlink_log_critical(mavlink_fd, "[commander] Setting X accel offset failed!");
+	}
+	
+	if (param_set(param_find("SENS_ACC_YSCALE"), &(scale))) {
+		mavlink_log_critical(mavlink_fd, "[commander] Setting Y accel offset failed!");
+	}
+
+	if (param_set(param_find("SENS_ACC_ZSCALE"), &(scale))) {
+		mavlink_log_critical(mavlink_fd, "[commander] Setting Z accel offset failed!");
+	}
+
+	fd = open(ACCEL_DEVICE_PATH, 0);
+	struct accel_scale ascale = {
+		accel_offset[0],
+		scale,
+		accel_offset[1],
+		scale,
+		accel_offset[2],
+		scale,
+	};
+	if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale))
+		warn("WARNING: failed to set scale / offsets for accel");
+	close(fd);
 
 	/* exit to gyro calibration mode */
 	status->flag_preflight_accel_calibration = false;

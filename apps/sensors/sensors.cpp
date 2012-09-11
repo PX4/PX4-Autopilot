@@ -182,7 +182,8 @@ private:
 
 		float gyro_offset[3];
 		float mag_offset[3];
-		float acc_offset[3];
+		float accel_offset[3];
+		float accel_scale[3];
 
 		int rc_type;
 
@@ -203,8 +204,9 @@ private:
 		param_t rc_type;
 
 		param_t gyro_offset[3];
+		param_t accel_offset[3];
+		param_t accel_scale[3];
 		param_t mag_offset[3];
-		param_t acc_offset[3];
 
 		param_t rc_map_roll;
 		param_t rc_map_pitch;
@@ -383,19 +385,22 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_mode_sw = param_find("RC_MAP_MODE_SW");
 
 	/* gyro offsets */
-	_parameter_handles.gyro_offset[0] = param_find("SENSOR_GYRO_XOFF");
-	_parameter_handles.gyro_offset[1] = param_find("SENSOR_GYRO_YOFF");
-	_parameter_handles.gyro_offset[2] = param_find("SENSOR_GYRO_ZOFF");
+	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
+	_parameter_handles.gyro_offset[1] = param_find("SENS_GYRO_YOFF");
+	_parameter_handles.gyro_offset[2] = param_find("SENS_GYRO_ZOFF");
 
 	/* accel offsets */
-	_parameter_handles.acc_offset[0] = param_find("SENSOR_ACC_XOFF");
-	_parameter_handles.acc_offset[1] = param_find("SENSOR_ACC_YOFF");
-	_parameter_handles.acc_offset[2] = param_find("SENSOR_ACC_ZOFF");
+	_parameter_handles.accel_offset[0] = param_find("SENS_ACC_XOFF");
+	_parameter_handles.accel_offset[1] = param_find("SENS_ACC_YOFF");
+	_parameter_handles.accel_offset[2] = param_find("SENS_ACC_ZOFF");
+	_parameter_handles.accel_scale[0] = param_find("SENS_ACC_XSCALE");
+	_parameter_handles.accel_scale[1] = param_find("SENS_ACC_YSCALE");
+	_parameter_handles.accel_scale[2] = param_find("SENS_ACC_ZSCALE");
 
 	/* mag offsets */
-	_parameter_handles.mag_offset[0] = param_find("SENSOR_MAG_XOFF");
-	_parameter_handles.mag_offset[1] = param_find("SENSOR_MAG_YOFF");
-	_parameter_handles.mag_offset[2] = param_find("SENSOR_MAG_ZOFF");
+	_parameter_handles.mag_offset[0] = param_find("SENS_MAG_XOFF");
+	_parameter_handles.mag_offset[1] = param_find("SENS_MAG_YOFF");
+	_parameter_handles.mag_offset[2] = param_find("SENS_MAG_ZOFF");
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
 
@@ -493,9 +498,12 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.gyro_offset[2], &(_parameters.gyro_offset[2]));
 
 	/* accel offsets */
-	param_get(_parameter_handles.acc_offset[0], &(_parameters.acc_offset[0]));
-	param_get(_parameter_handles.acc_offset[1], &(_parameters.acc_offset[1]));
-	param_get(_parameter_handles.acc_offset[2], &(_parameters.acc_offset[2]));
+	param_get(_parameter_handles.accel_offset[0], &(_parameters.accel_offset[0]));
+	param_get(_parameter_handles.accel_offset[1], &(_parameters.accel_offset[1]));
+	param_get(_parameter_handles.accel_offset[2], &(_parameters.accel_offset[2]));
+	param_get(_parameter_handles.accel_scale[0], &(_parameters.accel_scale[0]));
+	param_get(_parameter_handles.accel_scale[1], &(_parameters.accel_scale[1]));
+	param_get(_parameter_handles.accel_scale[2], &(_parameters.accel_scale[2]));
 
 	/* mag offsets */
 	param_get(_parameter_handles.mag_offset[0], &(_parameters.mag_offset[0]));
@@ -643,9 +651,9 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 		const float range_g = 4.0f;
 		/* scale from 14 bit to m/s2 */
-		accel_report.x = (((accel_report.x_raw - _parameters.acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
-		accel_report.y = (((accel_report.y_raw - _parameters.acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
-		accel_report.z = (((accel_report.z_raw - _parameters.acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
+		accel_report.x = (((accel_report.x_raw - _parameters.accel_offset[0]) * range_g) / 8192.0f) / 9.81f;
+		accel_report.y = (((accel_report.y_raw - _parameters.accel_offset[0]) * range_g) / 8192.0f) / 9.81f;
+		accel_report.z = (((accel_report.z_raw - _parameters.accel_offset[0]) * range_g) / 8192.0f) / 9.81f;
 		raw.accelerometer_counter++;
 
 	} else {
@@ -822,12 +830,12 @@ Sensors::parameter_update_poll(bool forced)
 
 		fd = open(ACCEL_DEVICE_PATH, 0);
 		struct accel_scale ascale = {
-			_parameters.acc_offset[0],
-			1.0f,
-			_parameters.acc_offset[1],
-			1.0f,
-			_parameters.acc_offset[2],
-			1.0f,
+			_parameters.accel_offset[0],
+			_parameters.accel_scale[0],
+			_parameters.accel_offset[1],
+			_parameters.accel_scale[1],
+			_parameters.accel_offset[2],
+			_parameters.accel_scale[2],
 		};
 		if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale))
 			warn("WARNING: failed to set scale / offsets for accel");
@@ -1004,7 +1012,7 @@ Sensors::task_main()
 
 	parameter_update_poll(true /* forced */);
 
-	/* advertise the sensor_combined topic and make the initial publication */
+	/* advertise the SENS_combined topic and make the initial publication */
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 
 	/* advertise the manual_control topic */
@@ -1092,7 +1100,7 @@ Sensors::start()
 	ASSERT(_sensors_task == -1);
 
 	/* start the task */
-	_sensors_task = task_create("sensor_task",
+	_sensors_task = task_create("SENS_task",
 				    SCHED_PRIORITY_MAX - 5,
 				    4096,	/* XXX may be excesssive */
 				    (main_t)&Sensors::task_main_trampoline,
