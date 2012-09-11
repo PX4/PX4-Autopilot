@@ -48,6 +48,7 @@
 #include <semaphore.h>
 #include <time.h>
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/fs/dirent.h>
 
 /****************************************************************************
@@ -674,6 +675,33 @@
 # define FAT_PUTFAT16(p,i,v)       UINT16_PUT(p,i,v)
 # define FAT_PUTFAT32(p,i,v)       UINT32_PUT(p,i,v)
 
+#endif
+
+/****************************************************************************
+ * Name: fat_io_alloc and fat_io_free
+ *
+ * Description:
+ *   The FAT file system allocates two I/O buffers for data transfer, each
+ *   are the size of one device sector.  One of the buffers is allocated
+ *   once for each FAT volume that is mounted; the other buffers are
+ *   allocated each time a FAT file is opened.
+ *
+ *   Some hardware, however, may require special DMA-capable memory in
+ *   order to perform the the transfers.  If CONFIG_FAT_DMAMEMORY is defined
+ *   then the architecture-specific hardware must provide the funtions
+ *   fat_dma_alloc() and fat_dma_free() as prototyped below:  fat_dmalloc()
+ *   will allocate DMA-capable memory of the specified size; fat_dmafree()
+ *   is the corresponding function that will be called to free the DMA-
+ *   capable memory.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_FAT_DMAMEMORY
+#  define fat_io_alloc(s) fat_dma_alloc(s)
+#  define fat_io_free(s)  fat_dma_free(s)
+#else
+#  define fat_io_alloc(s) kmalloc(s)
+#  define fat_io_free(s)  kfree(s)
 #endif
 
 /****************************************************************************

@@ -302,7 +302,7 @@ static int fat_open(FAR struct file *filep, const char *relpath,
 
   /* Create a file buffer to support partial sector accesses */
 
-  ff->ff_buffer = (uint8_t*)kmalloc(fs->fs_hwsectorsize);
+  ff->ff_buffer = (uint8_t*)fat_io_alloc(fs->fs_hwsectorsize);
   if (!ff->ff_buffer)
     {
       ret = -ENOMEM;
@@ -405,7 +405,7 @@ static int fat_close(FAR struct file *filep)
 
   if (ff->ff_buffer)
     {
-      kfree(ff->ff_buffer);
+      fat_io_free(ff->ff_buffer);
     }
 
   /* Then free the file structure itself. */
@@ -1651,8 +1651,9 @@ static int fat_unbind(void *handle, FAR struct inode **blkdriver)
 
       if (fs->fs_buffer)
         {
-          kfree(fs->fs_buffer);
+          fat_io_free(fs->fs_buffer);
         }
+
       kfree(fs);
     }
 

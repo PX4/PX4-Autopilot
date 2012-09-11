@@ -72,7 +72,8 @@ config NETUTILS_HTTPD_MMAP
 		selected, then files can be accessed from the NuttX file system
 		as well.  This selection will map the files into memory (using mmap)
 		so that the logic is still basically compatible with the classic
-		approach.
+		approach.  NOTE, however, that since files are copied into memory,
+		this limits solution to small files that will fit into available RAM.
 
 config NETUTILS_HTTPD_MMAP
 	bool "sendfile()"
@@ -83,10 +84,9 @@ config NETUTILS_HTTPD_MMAP
 		However, extensions have been contributed.  If this option is
 		selected, then files can be accessed from the NuttX file system
 		as well.  This selection will use the NuttX sendfile() interface
-		to send files.  NOTE: if this option is selected, then scripting
-		must be disabled.
+		to send files.  NOTE: If this option is selected, then scripting
+		must be disabled since it depends on the classic, in-memory
+		representation.
 
 endchoice
-
-
 endif

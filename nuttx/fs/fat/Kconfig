@@ -41,9 +41,26 @@ config FAT_MAXFNAME
 config FS_FATTIME
 	bool "FAT timestamps"
 	default n
-	---help---	
+	---help---
 		Support FAT date and time. NOTE:  There is not
 		much sense in supporting FAT date and time unless you have a
 		hardware RTC or other way to get the time and date.
+
+config FAT_DMAMEMORY
+	bool "DMA memory allocator"
+	default n
+	---help---
+		The FAT file system allocates two I/O buffers for data transfer, each
+		are the size of one device sector.  One of the buffers is allocated
+		once for each FAT volume that is mounted; the other buffers are
+		allocated each time a FAT file is opened.
+
+		Some hardware, however, may require special DMA-capable memory in
+		order to perform the the transfers.  If FAT_DMAMEMORY is defined
+		then the architecture-specific hardware must provide the funtions
+		fat_dma_alloc() and fat_dma_free():  fat_dmalloc() will allocate
+		DMA-capable memory of the specified size; fat_dmafree() is the
+		corresponding function that will be called to free the DMA-capable
+		memory.
 
 endif

@@ -75,10 +75,38 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-/* Non-standard functions to get and set FAT file/directory attributes */
+/****************************************************************************
+ * Name: fat_getattrib and fat_setattrib
+ *
+ * Description:
+ *   Non-standard functions to get and set FAT file/directory attributes
+ *
+ ****************************************************************************/
 
 EXTERN int fat_getattrib(const char *path, fat_attrib_t *attrib);
 EXTERN int fat_setattrib(const char *path, fat_attrib_t setbits, fat_attrib_t clearbits);
+
+/****************************************************************************
+ * Name: fat_dma_alloc and fat_dma_free
+ *
+ * Description:
+ *   The FAT file system allocates two I/O buffers for data transfer, each
+ *   are the size of one device sector.  One of the buffers is allocated
+ *   once for each FAT volume that is mounted; the other buffers are
+ *   allocated each time a FAT file is opened.
+ *
+ *   Some hardware, however, may require special DMA-capable memory in
+ *   order to perform the the transfers.  If CONFIG_FAT_DMAMEMORY is defined
+ *   then the architecture-specific hardware must provide the funtions
+ *   fat_dma_alloc() and fat_dma_free() as prototyped below:  fat_dmalloc()
+ *   will allocate DMA-capable memory of the specified size; fat_dmafree()
+ *   is the corresponding function that will be called to free the DMA-
+ *   capable memory.
+ *
+ ****************************************************************************/
+
+EXTERN FAR void *fat_dma_alloc(size_t size);
+EXTERN void fat_dma_free(FAR void *memory);
 
 #undef EXTERN
 #ifdef __cplusplus

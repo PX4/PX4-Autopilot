@@ -3309,4 +3309,10 @@
 	  by Kate).
 	* arch/avr/src: Fixes from AVR32 build errors that have crept in
 	  over the time; incorporated Kconfig for AVR3 (Richard Cochran).
+	* fs/fat and include/nuttx/fs/fat.h: The FAT file system allocates
+	  memory for sector I/O buffers used to exchange data with the
+	  configured block driver.  In some contexts, the block driver may
+	  require DMA-capable memory.  If CONFIG_FAT_DMAMEMORY is defined,
+	  then the FAT FS will use platform-provided DMA memory allocators
+	  to allocate the block driver I/O buffers.
 
