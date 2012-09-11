@@ -179,6 +179,8 @@ private:
 		float trim[_rc_max_chan_count];
 		float max[_rc_max_chan_count];
 		float rev[_rc_max_chan_count];
+		float dz[_rc_max_chan_count];
+		float ex[_rc_max_chan_count];
 
 		float gyro_offset[3];
 		float mag_offset[3];
@@ -205,6 +207,8 @@ private:
 		param_t trim[_rc_max_chan_count];
 		param_t max[_rc_max_chan_count];
 		param_t rev[_rc_max_chan_count];
+		param_t dz[_rc_max_chan_count];
+		param_t ex[_rc_max_chan_count];
 		param_t rc_type;
 
 		param_t gyro_offset[3];
@@ -358,10 +362,6 @@ Sensors::Sensors() :
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update"))
 {
-	_parameter_handles.min[0] = param_find("RC1_MIN");
-	_parameter_handles.max[0] = param_find("RC1_MAX");
-	_parameter_handles.trim[0] = param_find("RC1_TRIM");
-	_parameter_handles.rev[0] = param_find("RC1_REV");
 
 	/* basic r/c parameters */
 	for (unsigned i = 1; i < _rc_max_chan_count; i++) {
@@ -382,6 +382,14 @@ Sensors::Sensors() :
 		/* channel reverse */
 		sprintf(nbuf, "RC%d_REV", i + 1);
 		_parameter_handles.rev[i] = param_find(nbuf);
+
+		/* channel deadzone */
+		sprintf(nbuf, "RC%d_DZ", i + 1);
+		_parameter_handles.dz[i] = param_find(nbuf);
+
+		/* channel exponential gain */
+		sprintf(nbuf, "RC%d_EXP", i + 1);
+		_parameter_handles.ex[i] = param_find(nbuf);
 	}
 
 	_parameter_handles.rc_type = param_find("RC_TYPE");
@@ -463,6 +471,12 @@ Sensors::parameters_update()
 		}
 		if (param_get(_parameter_handles.rev[i], &(_parameters.rev[i])) != OK) {
 			warnx("Failed getting rev for chan %d", i);
+		}
+		if (param_get(_parameter_handles.dz[i], &(_parameters.dz[i])) != OK) {
+			warnx("Failed getting dead zone for chan %d", i);
+		}
+		if (param_get(_parameter_handles.ex[i], &(_parameters.ex[i])) != OK) {
+			warnx("Failed getting exponential gain for chan %d", i);
 		}
 
 		_rc.chan[i].scaling_factor = (1.0f / ((_parameters.max[i] - _parameters.min[i]) / 2.0f) * _parameters.rev[i]);
@@ -940,11 +954,29 @@ Sensors::ppm_poll()
 	_ppm_last_valid = ppm_last_valid_decode;
 
 	/* Read out values from HRT */
-	for (unsigned int i = 0; i < ppm_decoded_channels; i++) {
+	for (unsigned int i = 0; (i < ppm_decoded_channels && i < 8); i++) {
 		_rc.chan[i].raw = ppm_buffer[i];
 		/* Set the range to +-, then scale up */
 		_rc.chan[i].scale = (ppm_buffer[i] - _rc.chan[i].mid) * _rc.chan[i].scaling_factor * 10000;
-		_rc.chan[i].scaled = (ppm_buffer[i] - _rc.chan[i].mid) * _rc.chan[i].scaling_factor;
+
+		/* scale around the mid point differently for lower and upper range */
+		if (ppm_buffer[i] > _rc.chan[i].mid + _parameters.dz[i]) {
+			_rc.chan[i].scaled = ((ppm_buffer[i] - _parameters.trim[i]) / (_parameters.max[i] - _parameters.trim[i]));
+		} else if ((ppm_buffer[i] < _rc_chan[i].mid - _parameters.dz[i])) {
+			_rc.chan[i].scaled = -1.0 + ((ppm_buffer[i] - _parameters.min[i]) / (_parameters.trim[i] - _parameters.min[i]));
+		} else {
+			/* in the configured dead zone, output zero */
+			_rc.chan[i].scaled = 0.0f;
+		}
+
+		/* reverse channel if required */
+		_rc.chan[i] *= _parameters.rev[i];
+
+		/* handle any parameter-induced blowups */
+		if (isnan(_rc.chan[i].scaled) || isinf(_rc.chan[i].scaled))
+			_rc.chan[i].scaled = 0.0f;
+
+		//_rc.chan[i].scaled = (ppm_buffer[i] - _rc.chan[i].mid) * _rc.chan[i].scaling_factor;
 	}
 
 	_rc.chan_count = ppm_decoded_channels;
