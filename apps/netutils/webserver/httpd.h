@@ -58,12 +58,22 @@
 
 /* 'file' must be allocated by caller and will be filled in by the function. */
 
+#if defined(CONFIG_NETUTILS_HTTPD_SENDFILE)
+
+int httpd_sendfile_open(const char *name, struct httpd_fs_file *file);
+int httpd_sendfile_close(struct httpd_fs_file *file);
+int httpd_sendfile_send(int outfd, struct httpd_fs_file *file);
+
+#elif defined(CONFIG_NETUTILS_HTTPD_MMAP)
+
+int  httpd_mmap_open(const char *name, struct httpd_fs_file *file);
+int  httpd_mmap_close(struct httpd_fs_file *file);
+
+#else
+
 int  httpd_fs_open(const char *name, struct httpd_fs_file *file);
 void httpd_fs_init(void);
 
-#ifdef CONFIG_NETUTILS_HTTPD_MMAP
-int  httpd_mmap_open(const char *name, struct httpd_fs_file *file);
-int  httpd_mmap_close(struct httpd_fs_file *file);
 #endif
 
 #endif /* _NETUTILS_WEBSERVER_HTTPD_H */

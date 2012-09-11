@@ -44,7 +44,9 @@ CSRCS		=
 
 ifeq ($(CONFIG_NET_TCP),y)
 CSRCS		= httpd.c httpd_cgi.c
-ifeq ($(CONFIG_NETUTILS_HTTPD_MMAP),y)
+ifeq ($(CONFIG_NETUTILS_HTTPD_SENDFILE),y)
+CSRCS		+= httpd_sendfile.c
+else ifeq ($(CONFIG_NETUTILS_HTTPD_MMAP),y)
 CSRCS		+= httpd_mmap.c
 else
 CSRCS		+= httpd_fs.c

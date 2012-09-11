@@ -316,4 +316,6 @@
 	  (submiteed by Kate).
 	* apps/netutils/webserver/httpd_mmap.c:  Fix errors when the mmap()
 	  length is zero (submitted by Kate).
-
+	* apps/netutils/webserver/httpd_sendfile.c:  Add and option,
+	  CONFIG_NETUTILS_HTTPD_SENDFILE to transfer files using the NuttX
+	  sendfile() interface.

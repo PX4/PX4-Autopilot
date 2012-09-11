@@ -69,7 +69,7 @@
  * structure.  If is non-NULL only during interrupt processing.
  */
 
-extern volatile uint32_ *current_regs;
+extern volatile uint32_t *current_regs;
 
 /* This is the beginning of heap as provided from up_head.S. This is the first
  * address in DRAM after the loaded program+bss+idle stack.  The end of the

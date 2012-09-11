@@ -1,8 +1,8 @@
 /****************************************************************************
- * arch/avr/src/avr32/up_copystate.c
+ * netutils/webserver/httpd_mmap.c
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,16 +34,25 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Included Files
+ * Included Header Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <stdint.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/sendfile.h>
 
-#include <arch/avr32/irq.h>
+#include <limits.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <errno.h>
+#include <debug.h>
 
-#include "up_internal.h"
+#include <apps/netutils/httpd.h>
+
+#include "httpd.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -61,27 +70,59 @@
  * Public Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: up_copystate
- ****************************************************************************/
-
-/* A little faster than most memcpy's */
-
-void up_copystate(uint32_t *dest, uint32_t *src)
+int httpd_sendfile_open(const char *name, struct httpd_fs_file *file)
 {
-  int i;
+  char path[PATH_MAX];
+  struct stat st;
 
-  /* The state is copied from the stack to the TCB, but only a reference is
-   * passed to get the state from the TCB.  So the following check avoids
-   * copying the TCB save area onto itself:
-   */
-
-  if (src != dest)
+  if (sizeof path < snprintf(path, sizeof path, "%s%s",
+      CONFIG_NETUTILS_HTTPD_PATH, name))
     {
-      for (i = 0; i < XCPTCONTEXT_REGS; i++)
-        {
-          *dest++ = *src++;
-        }
+      errno = ENAMETOOLONG;
+      return ERROR;
     }
+
+  /* XXX: awaiting fstat to avoid a race */
+
+  if (-1 == stat(path, &st))
+    {
+       return ERROR;
+    }
+
+  if (st.st_size > INT_MAX || st.st_size > SIZE_MAX)
+    {
+       errno = EFBIG;
+       return ERROR;
+    }
+
+  file->len = (int) st.st_size;
+
+  file->fd = open(path, O_RDONLY);
+  if (file->fd == -1)
+    {
+       return ERROR;
+    }
+
+  return OK;
+}
+
+int httpd_sendfile_close(struct httpd_fs_file *file)
+{
+  if (-1 == close(file->fd))
+    {
+      return ERROR;
+    }
+
+  return OK;
+}
+
+int httpd_sendfile_send(int outfd, struct httpd_fs_file *file)
+{
+  if (-1 == sendfile(outfd, file->fd, 0, file->len))
+    {
+      return ERROR;
+    }
+
+  return OK;
 }
 

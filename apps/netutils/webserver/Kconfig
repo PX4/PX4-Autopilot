@@ -15,7 +15,8 @@ if NETUTILS_WEBSERVER
 
 config NETUTILS_HTTPD_SCRIPT_DISABLE
 	bool "Disable %! scripting"
-	default n
+	default y if NETUTILS_HTTPD_SENDFILE
+	default n if !NETUTILS_HTTPD_SENDFILE
 	---help---
 		This option, if selected, will elide the %! scripting
 
@@ -52,10 +53,40 @@ config NETUTILS_HTTPD_SERVERHEADER_DISABLE
 	---help---
 		This option, if selected, will elide the Server\: header
 
+choice
+	prompt "File Transfer Method"
+	default NETUTILS_HTTPD_CLASSIC
+
+config NETUTILS_HTTPD_CLASSIC
+	bool "Pre-processed files"
+	---help---
+		Traditionally, the uIP-based webserver only sends "files" that have
+		been prepared as a data structure using nutts/tools/mkfsdata.pl
+
 config NETUTILS_HTTPD_MMAP
 	bool "File mmap-ing"
-	default n
 	---help---
-		Replaces standard uIP server file open operations with mmap-ing operations.
+		Traditionally, the uIP-based webserver only sends "files" that have
+		been prepared as a data structure using nutts/tools/mkfsdata.pl
+		However, extensions have been contributed.  If this option is
+		selected, then files can be accessed from the NuttX file system
+		as well.  This selection will map the files into memory (using mmap)
+		so that the logic is still basically compatible with the classic
+		approach.
+
+config NETUTILS_HTTPD_MMAP
+	bool "sendfile()"
+	select NETUTILS_HTTPD_SCRIPT_DISABLE
+	---help---
+		Traditionally, the uIP-based webserver only sends "files" that have
+		been prepared as a data structure using nutts/tools/mkfsdata.pl
+		However, extensions have been contributed.  If this option is
+		selected, then files can be accessed from the NuttX file system
+		as well.  This selection will use the NuttX sendfile() interface
+		to send files.  NOTE: if this option is selected, then scripting
+		must be disabled.
+
+endchoice
+
 
 endif

@@ -3307,4 +3307,6 @@
 	  (Noted by Ronen Vainish).
 	* fs/mmap/fs_rammap.c:  Fix logic error and errno check (contributed
 	  by Kate).
+	* arch/avr/src: Fixes from AVR32 build errors that have crept in
+	  over the time; incorporated Kconfig for AVR3 (Richard Cochran).
 

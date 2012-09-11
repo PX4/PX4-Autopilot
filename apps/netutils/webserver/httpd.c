@@ -69,6 +69,14 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#if !defined(CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE) && defined(CONFIG_NETUTILS_HTTPD_SENDFILE)
+#  error "Script support and CONFIG_NETUTILS_HTTPD_SENDFILE are mutually exclusive"
+#endif
+
+#if defined(CONFIG_NETUTILS_HTTPD_SENDFILE) && defined(CONFIG_NETUTILS_HTTPD_MMAP)
+#  error "CONFIG_NETUTILS_HTTPD_SENDFILE and CONFIG_NETUTILS_HTTPD_MMAP are mutually exclusive"
+#endif
+
 #define ISO_nl      0x0a
 #define ISO_space   0x20
 #define ISO_bang    0x21
@@ -131,7 +139,9 @@ static const char g_httpheader404[]         =
 
 static int httpd_open(const char *name, struct httpd_fs_file *file)
 {
-#ifdef CONFIG_NETUTILS_HTTPD_MMAP
+#if defined(CONFIG_NETUTILS_HTTPD_SENDFILE)
+  return httpd_sendfile_open(name, file);
+#elif defined(CONFIG_NETUTILS_HTTPD_MMAP)
   return httpd_mmap_open(name, file);
 #else
   return httpd_fs_open(name, file);
@@ -140,7 +150,9 @@ static int httpd_open(const char *name, struct httpd_fs_file *file)
 
 static int httpd_close(struct httpd_fs_file *file)
 {
-#ifdef CONFIG_NETUTILS_HTTPD_MMAP
+#if defined(CONFIG_NETUTILS_HTTPD_SENDFILE)
+  return httpd_sendfile_close(file);
+#elif defined(CONFIG_NETUTILS_HTTPD_MMAP)
   return httpd_mmap_close(file);
 #else
   return OK;
@@ -424,7 +436,11 @@ static int httpd_sendfile(struct httpd_state *pstate)
 
       if (send_headers(pstate, g_httpheader404, strlen(g_httpheader404)) == OK)
         {
+#ifdef CONFIG_NETUTILS_HTTPD_SENDFILE
+          ret = httpd_sendfile_send(pstate->ht_sockfd, &pstate->ht_file);
+#else
           ret = httpd_addchunk(pstate, pstate->ht_file.data, pstate->ht_file.len);
+#endif
         }
     }
   else
@@ -447,7 +463,11 @@ static int httpd_sendfile(struct httpd_state *pstate)
               else
 #endif
                 {
+#ifdef CONFIG_NETUTILS_HTTPD_SENDFILE
+                  ret = httpd_sendfile_send(pstate->ht_sockfd, &pstate->ht_file);
+#else
                   ret = httpd_addchunk(pstate, pstate->ht_file.data, pstate->ht_file.len);
+#endif
                 }
             }
         }
@@ -603,7 +623,7 @@ int httpd_listen(void)
 
 void httpd_init(void)
 {
-#ifndef CONFIG_NETUTILS_HTTPD_MMAP
+#if !defined(CONFIG_NETUTILS_HTTPD_MMAP) && !defined(CONFIG_NETUTILS_HTTPD_SENDFILE)
   httpd_fs_init();
 #endif
 }
