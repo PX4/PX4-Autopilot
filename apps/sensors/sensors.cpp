@@ -950,11 +950,15 @@ Sensors::ppm_poll()
 	if (ppm_decoded_channels < 4)
 		return;
 
+	unsigned channel_limit = ppm_decoded_channels;
+	if (channel_limit > _rc_max_chan_count)
+		channel_limit = _rc_max_chan_count;
+
 	/* we are accepting this decode */
 	_ppm_last_valid = ppm_last_valid_decode;
 
 	/* Read out values from HRT */
-	for (unsigned int i = 0; (i < ppm_decoded_channels && i < 8); i++) {
+	for (unsigned int i = 0; channel_limit; i++) {
 		_rc.chan[i].raw = ppm_buffer[i];
 		/* Set the range to +-, then scale up */
 		_rc.chan[i].scale = (ppm_buffer[i] - _rc.chan[i].mid) * _rc.chan[i].scaling_factor * 10000;
