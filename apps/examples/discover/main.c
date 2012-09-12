@@ -87,6 +87,11 @@
 
 int discover_main(int argc, char *argv[])
 {
+  /* If this task is excecutated as an NSH built-in function, then the
+   * network has already been configured by NSH's start-up logic.
+   */
+
+#ifndef CONFIG_NSH_BUILTIN_APPS
   struct in_addr addr;
 #if defined(CONFIG_EXAMPLE_DISCOVER_DHCPC) || defined(CONFIG_EXAMPLE_DISCOVER_NOMAC)
   uint8_t mac[IFHWADDRLEN];
@@ -168,7 +173,9 @@ int discover_main(int argc, char *argv[])
       dhcpc_close(handle);
       printf("IP: %s\n", inet_ntoa(ds.ipaddr));
     }
-#endif
+
+#endif /* CONFIG_EXAMPLE_DISCOVER_DHCPC */
+#endif /* CONFIG_NSH_BUILTIN_APPS */
 
   if (discover_start() < 0)
     {

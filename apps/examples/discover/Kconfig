@@ -17,29 +17,29 @@ config EXAMPLE_DISCOVER
 		It is also possible to address all classes with a kind of broadcast
 		discover.
 
-if EXAMPLE_DISCOVER
-
 config EXAMPLE_DISCOVER_DHCPC
 	bool "DHCP Client"
 	default n
+	depends on EXAMPLE_DISCOVER && !NSH_BUILTIN_APPS
 	select NETUTILS_DHCPC
 	select NETUTILS_RESOLV
 
 config EXAMPLE_DISCOVER_NOMAC
-	bool "Use canned MAC address"
+	bool "Use Canned MAC Address"
 	default n
+	depends on EXAMPLE_DISCOVER && !NSH_BUILTIN_APPS
 
 config EXAMPLE_DISCOVER_IPADDR
 	hex "Target IP address"
 	default 0x0a000002
-	depends on !EXAMPLE_DISCOVER_DHCPC
+	depends on EXAMPLE_DISCOVER && !NSH_BUILTIN_APPS && !EXAMPLE_DISCOVER_DHCPC
 
 config EXAMPLE_DISCOVER_DRIPADDR
-	hex "Router IP address"
+	hex "Default Router IP address (Gateway)"
 	default 0x0a000001
+	depends on EXAMPLE_DISCOVER && !NSH_BUILTIN_APPS
 
 config EXAMPLE_DISCOVER_NETMASK
 	hex "Network Mask"
 	default 0xffffff00
-
-endif
+	depends on EXAMPLE_DISCOVER && !NSH_BUILTIN_APPS

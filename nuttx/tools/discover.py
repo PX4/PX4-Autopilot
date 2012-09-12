@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ############################################################################
-# tools/indent.sh
+# tools/discover.py
 #
 #   Copyright (C) 2012 Max Holtzberg. All rights reserved.
 #   Author: Max Holtzberg <mh@uvc.de>
