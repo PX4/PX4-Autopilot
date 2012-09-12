@@ -3949,6 +3949,13 @@ build
       is not needed.
   </li>
   <li>
+    <code>CONFIG_GRAN_INTR</code>:
+      Normally mutual exclusive access to granule allocator data is assured using a semaphore.
+      If this option is set then, instead, mutual exclusion logic will disable interrupts.
+      While this options is more invasive to system performance, it will also support use of the
+      granule allocator from interrupt level logic.
+  </li>
+  <li>
     <code>CONFIG_DEBUG_GRAM</code>:
       Just like <code>CONFIG_DEBUG_MM</code>, but only generates ouput from the gran
       allocation logic.

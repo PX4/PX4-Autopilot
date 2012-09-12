@@ -45,6 +45,7 @@
 #include <stdint.h>
 #include <semaphore.h>
 
+#include <arch/types.h>
 #include <nuttx/gran.h>
 
 /****************************************************************************
@@ -88,7 +89,11 @@ struct gran_s
 {
   uint8_t    log2gran;  /* Log base 2 of the size of one granule */
   uint16_t   ngranules; /* The total number of (aligned) granules in the heap */
+#ifdef CONFIG_GRAN_INTR
+  irqstate_t irqstate;  /* For exclusive access to the GAT */
+#else
   sem_t      exclsem;   /* For exclusive access to the GAT */
+#endif
   uintptr_t  heapstart; /* The aligned start of the granule heap */
   uint32_t   gat[1];    /* Start of the granule allocation table */
 };
@@ -108,11 +113,10 @@ extern FAR struct gran_s *g_graninfo;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: gran_semtake and gran_semgive
+ * Name: gran_enter_critical and gran_leave_critical
  *
  * Description:
- *   Managed semaphore for the granule allocator.  gran_semgive is
- *   implemented as a macro.
+ *   Critical section management for the granule allocator.
  *
  * Input Parameters:
  *   priv - Pointer to the gran state
@@ -122,7 +126,7 @@ extern FAR struct gran_s *g_graninfo;
  *
  ****************************************************************************/
 
-void gran_semtake(FAR struct gran_s *priv);
-#define gran_semgive(p) sem_post(&(p)->exclsem);
+void gran_enter_critical(FAR struct gran_s *priv);
+void gran_leave_critical(FAR struct gran_s *priv);
 
 #endif /* __MM_MM_GRAN_H */

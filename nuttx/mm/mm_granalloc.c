@@ -127,12 +127,12 @@ static inline FAR void *gran_common_alloc(FAR struct gran_s *priv, size_t size)
 {
   unsigned int ngranules;
   size_t       tmpmask;
-  uintptr_t     alloc;
-  uint32_t      curr;
-  uint32_t      next;
-  uint32_t      mask;
-  int           i;
-  int           j;
+  uintptr_t    alloc;
+  uint32_t     curr;
+  uint32_t     next;
+  uint32_t     mask;
+  int          i;
+  int          j;
 
   DEBUGASSERT(priv && size <= 32 * (1 << priv->log2gran));
 
@@ -140,7 +140,7 @@ static inline FAR void *gran_common_alloc(FAR struct gran_s *priv, size_t size)
     {
       /* Get exclusive access to the GAT */
 
-      gran_semtake(priv);
+      gran_enter_critical(priv);
 
       /* How many contiguous granules we we need to find? */
 
@@ -199,7 +199,7 @@ static inline FAR void *gran_common_alloc(FAR struct gran_s *priv, size_t size)
 
                   /* And return the allocation address */
 
-                  gran_semgive(priv);
+                  gran_leave_critical(priv);
                   return (FAR void *)alloc;
                 }
 
@@ -221,7 +221,7 @@ static inline FAR void *gran_common_alloc(FAR struct gran_s *priv, size_t size)
         }
     }
 
-  gran_semgive(priv);
+  gran_leave_critical(priv);
   return NULL;
 }
 

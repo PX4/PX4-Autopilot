@@ -65,7 +65,7 @@
 
 /* Can't support MMC/SD features if mountpoints are disabled */
 
-#ifndef CONFIG_DISABLE_MOUNTPOINT
+#ifdef CONFIG_DISABLE_MOUNTPOINT
 #  undef HAVE_MMCSD
 #endif
 
@@ -78,7 +78,7 @@
  *
  * Description:
  *   Initialize the SPI-based SD card.  Requires CONFIG_DISABLE_MOUNTPOINT=n
- *   and CONFIG_STM32_SPI1=y
+ *   and CONFIG_STM32_SDIO=y
  *
  ****************************************************************************/
 
@@ -93,7 +93,7 @@ int stm32_sdinitialize(int minor)
   sdio = sdio_initialize(STM32_MMCSDSLOTNO);
   if (!sdio)
     {
-      message("Failed to initialize SDIO slot %d\n", STM32_MMCSDSLOTNO);
+      fdbg("Failed to initialize SDIO slot %d\n", STM32_MMCSDSLOTNO);
       return -ENODEV;
     }
 
@@ -104,7 +104,7 @@ int stm32_sdinitialize(int minor)
   ret = mmcsd_slotinitialize(minor, sdio);
   if (ret != OK)
     {
-      message("Failed to bind SDIO slot %d to the MMC/SD driver, minor=%d\n",
+      fdbg("Failed to bind SDIO slot %d to the MMC/SD driver, minor=%d\n",
               STM32_MMCSDSLOTNO, minor);
     }
 

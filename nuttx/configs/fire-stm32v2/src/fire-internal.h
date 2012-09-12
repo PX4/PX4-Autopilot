@@ -296,7 +296,7 @@ void stm32_selectlcd(void);
  *
  * Description:
  *   Initialize the SPI-based SD card.  Requires CONFIG_DISABLE_MOUNTPOINT=n
- *   and CONFIG_STM32_SPI1=y
+ *   and CONFIG_STM32_SDIO=y
  *
  ****************************************************************************/
 

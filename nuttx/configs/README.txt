@@ -299,6 +299,11 @@ defconfig -- This is a configuration file similar to the Linux
       gran_initialize will be called only once. In this case, (1) there
       are a few optimizations that can can be done and (2) the GRAN_HANDLE
       is not needed.
+    CONFIG_GRAN_INTR - Normally mutual exclusive access to granule allocator
+      data is assured using a semaphore.  If this option is set then, instead,
+      mutual exclusion logic will disable interrupts.  While this options is
+      more invasive to system performance, it will also support use of the
+      granule allocator from interrupt level logic.
     CONFIG_DEBUG_GRAM
       Just like CONFIG_DEBUG_MM, but only generates ouput from the gran
       allocation logic.

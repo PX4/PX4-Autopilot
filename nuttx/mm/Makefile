@@ -1,7 +1,7 @@
 ############################################################################
 # mm/Makefile
 #
-#   Copyright (C) 2007 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007, 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ CSRCS	= mm_initialize.c mm_sem.c  mm_addfreechunk.c mm_size2ndx.c mm_shrinkchunk
 	  mm_memalign.c mm_free.c mm_mallinfo.c
 
 ifeq ($(CONFIG_GRAN),y)
-CSRCS	+= mm_graninit.c mm_granalloc.c mm_granfree.c
+CSRCS	+= mm_graninit.c mm_granalloc.c mm_granfree.c mm_grancritical.c
 endif
 
 AOBJS	= $(ASRCS:.S=$(OBJEXT))

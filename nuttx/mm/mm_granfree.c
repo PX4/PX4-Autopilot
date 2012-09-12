@@ -75,13 +75,13 @@ static inline void gran_common_free(FAR struct gran_s *priv,
   unsigned int granmask;
   unsigned int ngranules;
   unsigned int avail;
-  uint32_t gatmask;
+  uint32_t     gatmask;
 
   DEBUGASSERT(priv && memory && size <= 32 * (1 << priv->log2gran));
 
   /* Get exclusive access to the GAT */
 
-  gran_semtake(priv);
+  gran_enter_critical(priv);
 
   /* Determine the granule number of the first granule in the allocation */
 
@@ -121,7 +121,7 @@ static inline void gran_common_free(FAR struct gran_s *priv,
       priv->gat[gatidx] &= ~(gatmask << gatbit);
     }
 
-  gran_semgive(priv);
+  gran_leave_critical(priv);
 }
 
 /****************************************************************************
