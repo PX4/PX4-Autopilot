@@ -87,7 +87,6 @@
 
 int discover_main(int argc, char *argv[])
 {
-#ifndef CONFIG_NSH_BUILTIN_APPS
   struct in_addr addr;
 #if defined(CONFIG_EXAMPLE_DISCOVER_DHCPC) || defined(CONFIG_EXAMPLE_DISCOVER_NOMAC)
   uint8_t mac[IFHWADDRLEN];
@@ -147,30 +146,29 @@ int discover_main(int argc, char *argv[])
   printf("Getting IP address\n");
   if (handle)
     {
-        struct dhcpc_state ds;
-        (void)dhcpc_request(handle, &ds);
-        uip_sethostaddr("eth1", &ds.ipaddr);
+      struct dhcpc_state ds;
+      (void)dhcpc_request(handle, &ds);
+      uip_sethostaddr("eth1", &ds.ipaddr);
 
-        if (ds.netmask.s_addr != 0)
-          {
-            uip_setnetmask("eth0", &ds.netmask);
-          }
+      if (ds.netmask.s_addr != 0)
+        {
+          uip_setnetmask("eth0", &ds.netmask);
+        }
 
-        if (ds.default_router.s_addr != 0)
-          {
-            uip_setdraddr("eth0", &ds.default_router);
-          }
+      if (ds.default_router.s_addr != 0)
+        {
+          uip_setdraddr("eth0", &ds.default_router);
+        }
 
-        if (ds.dnsaddr.s_addr != 0)
-          {
-            resolv_conf(&ds.dnsaddr);
-          }
+      if (ds.dnsaddr.s_addr != 0)
+        {
+          resolv_conf(&ds.dnsaddr);
+        }
 
-        dhcpc_close(handle);
-        printf("IP: %s\n", inet_ntoa(ds.ipaddr));
+      dhcpc_close(handle);
+      printf("IP: %s\n", inet_ntoa(ds.ipaddr));
     }
 #endif
-#endif /* CONFIG_NSH_BUILTIN_APPS */
 
   if (discover_start() < 0)
     {

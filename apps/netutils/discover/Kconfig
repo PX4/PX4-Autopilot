@@ -7,32 +7,33 @@ config NETUTILS_DISCOVER
 	bool "Network Discovery Utility"
 	default n
 	depends on NET_UDP
+	select NETUTILS_UIPLIB
 	---help---
 		Tool for discovering devices on the local network per UDP broadcast.
 
 if NETUTILS_DISCOVER
 
-DISCOVER_STACK_SIZE
+config DISCOVER_STACK_SIZE
 	int "Discover Daemon Stack Size"
 	default 1024
 
-DISCOVER_PRIORITY
+config DISCOVER_PRIORITY
 	int "Discover Daemon Priority"
 	default 50
 
-DISCOVER_PORT
+config DISCOVER_PORT
 	int "Discover Daemon Port Number"
 	default 96
 
-DISCOVER_INTERFACE
-	int "Network Interface Name"
+config DISCOVER_INTERFACE
+	string "Network Interface Name"
 	default "eth0"
 
-DISCOVER_DEVICE_CLASS
+config DISCOVER_DEVICE_CLASS
 	hex "Network Discovery Class"
 	default 0xff
 
-CONFIG_DISCOVER_DESCR
+config CONFIG_DISCOVER_DESCR
 	string "Discoverer Description"
 	default "NuttX"
 

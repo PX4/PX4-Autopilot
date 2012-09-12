@@ -880,6 +880,28 @@ Where <subdir> is one of the following:
 
     CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
 
+  discover:
+  --------
+    This configuration exercises netutils/discover utility using
+    apps/exmaples/discover.  This example initializes and starts the UDP
+    discover daemon. This daemon is useful for discovering devices in
+    local networks, especially with DHCP configured devices.  It listens
+    for UDP broadcasts which also can include a device class so that
+    groups of devices can be discovered. It is also possible to address all
+    classes with a kind of broadcast discover.
+
+    Configuration settings that you may need to change for your
+    environment:
+
+      CONFIG_STM32_CODESOURCERYL=y    - CodeSourcery for Linux
+      CONFIG_EXAMPLE_DISCOVER_DHCPC=y - DHCP Client
+      CONFIG_EXAMPLE_DISCOVER_IPADDR  - (not defined)
+      CONFIG_EXAMPLE_DISCOVER_DRIPADDR - Router IP address
+
+    NOTE:  This configuration uses to the mconf configuration tool to control
+    the configuration.  See the section entitled "NuttX Configuration Tool"
+    in the top-level README.txt file.
+
   nettest:
   -------
 
