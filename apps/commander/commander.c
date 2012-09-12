@@ -1065,7 +1065,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* create pthreads */
 	pthread_attr_t command_handling_attr;
 	pthread_attr_init(&command_handling_attr);
-	pthread_attr_setstacksize(&command_handling_attr, 4096);
+	pthread_attr_setstacksize(&command_handling_attr, 6000);
 	pthread_create(&command_handling_thread, &command_handling_attr, command_handling_loop, NULL);
 
 	pthread_attr_t subsystem_info_attr;

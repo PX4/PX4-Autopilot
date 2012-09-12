@@ -958,7 +958,7 @@ Sensors::ppm_poll()
 	_ppm_last_valid = ppm_last_valid_decode;
 
 	/* Read out values from HRT */
-	for (unsigned int i = 0; channel_limit; i++) {
+	for (unsigned int i = 0; i < channel_limit; i++) {
 		_rc.chan[i].raw = ppm_buffer[i];
 		/* Set the range to +-, then scale up */
 		_rc.chan[i].scale = (ppm_buffer[i] - _rc.chan[i].mid) * _rc.chan[i].scaling_factor * 10000;

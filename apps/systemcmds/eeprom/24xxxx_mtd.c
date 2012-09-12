@@ -204,7 +204,7 @@ static int at24c_eraseall(FAR struct at24c_dev_s *priv)
       while (I2C_TRANSFER(priv->dev, &msgv[0], 1) < 0)
         { 
           fvdbg("erase stall\n");
-          usleep(1000);
+          usleep(10000);
         }
     }
 
