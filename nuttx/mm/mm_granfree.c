@@ -99,26 +99,38 @@ static inline void gran_common_free(FAR struct gran_s *priv,
   granmask =  (1 << priv->log2gran) - 1;
   ngranules = (size + granmask) >> priv->log2gran;
 
-  /* Clear bits in the first GAT entry */
+  /* Clear bits in the GAT entry or entries */
 
   avail = 32 - gatbit;
   if (ngranules > avail)
     {
-      priv->gat[gatidx] &= ~(0xffffffff << gatbit);
+      /* Clear bits in the first GAT entry */
+
+      gatmask = (0xffffffff << gatbit);
+      DEBUGASSERT((priv->gat[gatidx] & gatmask) == gatmask);
+
+      priv->gat[gatidx] &= ~gatmask;
       ngranules -= avail;
 
       /* Clear bits in the second GAT entry */
 
       gatmask = 0xffffffff >> (32 - ngranules);
-      priv->gat[gatidx+1] &= ~(gatmask << gatbit);
+      DEBUGASSERT((priv->gat[gatidx+1] & gatmask) == gatmask);
+
+      priv->gat[gatidx+1] &= ~gatmask;
     }
 
   /* Handle the case where where all of the granules came from one entry */
 
   else
     {
-      gatmask = 0xffffffff >> (32 - ngranules);
-      priv->gat[gatidx] &= ~(gatmask << gatbit);
+      /* Clear bits in a single GAT entry */
+
+      gatmask   = 0xffffffff >> (32 - ngranules);
+      gatmask <<= gatbit;
+      DEBUGASSERT((priv->gat[gatidx] & gatmask) == gatmask);
+
+      priv->gat[gatidx] &= ~gatmask;
     }
 
   gran_leave_critical(priv);
