@@ -992,8 +992,9 @@ Sensors::ppm_poll()
 	manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled;
 	if (manual_control.roll < -1.0f) manual_control.roll = -1.0f;
 	if (manual_control.roll >  1.0f) manual_control.roll =  1.0f;
-	if (!isnan(_parameters.rc_scale_roll) || isinf(_parameters.rc_scale_roll))
+	if (!isnan(_parameters.rc_scale_roll) || !isinf(_parameters.rc_scale_roll)) {
 		manual_control.roll *= _parameters.rc_scale_roll;
+	}
 
 	/*
 	 * pitch input - stick down is negative, but stick down is pitching up (pos) in NED,
@@ -1002,15 +1003,17 @@ Sensors::ppm_poll()
 	manual_control.pitch = -1.0f * _rc.chan[_rc.function[PITCH]].scaled;
 	if (manual_control.pitch < -1.0f) manual_control.pitch = -1.0f;
 	if (manual_control.pitch >  1.0f) manual_control.pitch =  1.0f;
-	if (!isnan(_parameters.rc_scale_pitch) || isinf(_parameters.rc_scale_pitch))
+	if (!isnan(_parameters.rc_scale_pitch) || !isinf(_parameters.rc_scale_pitch)) {
 		manual_control.pitch *= _parameters.rc_scale_pitch;
+	}
 
 	/* yaw input - stick right is positive and positive rotation */
 	manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled * _parameters.rc_scale_yaw;
 	if (manual_control.yaw < -1.0f) manual_control.yaw = -1.0f;
 	if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
-	if (!isnan(_parameters.rc_scale_yaw) || isinf(_parameters.rc_scale_yaw))
+	if (!isnan(_parameters.rc_scale_yaw) || !isinf(_parameters.rc_scale_yaw)) {
 		manual_control.yaw *= _parameters.rc_scale_yaw;
+	}
 	
 	/* throttle input */
 	manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
@@ -1081,7 +1084,7 @@ Sensors::task_main()
 
 	parameter_update_poll(true /* forced */);
 
-	/* advertise the SENS_combined topic and make the initial publication */
+	/* advertise the sensor_combined topic and make the initial publication */
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 
 	/* advertise the manual_control topic */
@@ -1169,7 +1172,7 @@ Sensors::start()
 	ASSERT(_sensors_task == -1);
 
 	/* start the task */
-	_sensors_task = task_create("SENS_task",
+	_sensors_task = task_create("sensors_task",
 				    SCHED_PRIORITY_MAX - 5,
 				    4096,	/* XXX may be excesssive */
 				    (main_t)&Sensors::task_main_trampoline,
