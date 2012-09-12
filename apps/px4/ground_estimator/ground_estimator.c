@@ -41,6 +41,9 @@
 #include <unistd.h>
 #include <stdio.h>
 
+#include <uORB/uORB.h>
+#include <uORB/topics/sensor_combined.h>
+
 static bool thread_should_exit = false;		/**< ground_estimator exit flag */
 static bool thread_running = false;		/**< ground_estimator status flag */
 static int ground_estimator_task;				/**< Handle of ground_estimator task / thread */
@@ -64,9 +67,49 @@ int ground_estimator_thread_main(int argc, char *argv[]) {
 
 	printf("[ground_estimator] starting\n");
 
+	/* subscribe to raw data */
+	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
+	bool publishing = false;
+
+	/* advertise attitude */
+	struct debug_key_value_s dbg = { .key = "velx      ", .value = 0.0f };
+	orb_advert_t pub_att = orb_advertise(ORB_ID(debug_key_value), &dbg);
+
+	float position[3] = {};
+	float velocity[3] = {};
+
+	uint64_t last_time = 0;
+
 	while (!thread_should_exit) {
-		printf("Hello ground_estimator!\n");
-		sleep(10);
+		
+		/* wait for sensor update */
+		int ret = poll(fds, 1, 1000);
+
+		if (ret < 0) {
+			/* XXX this is seriously bad - should be an emergency */
+		} else if (ret == 0) {
+			/* XXX this means no sensor data - should be critical or emergency */
+			printf("[attitude estimator bm] WARNING: Not getting sensor data - sensor app running?\n");
+		} else {
+			struct sensor_combined_s s;
+			orb_copy(ORB_ID(sensor_combined), sub_raw, &s);
+
+			uint64_t dt = s.timestamp - last_time;
+
+			/* Integration */
+			position[0] += velocity[0] * dt;
+			position[1] += velocity[1] * dt;
+			position[2] += velocity[2] * dt;
+
+			velocity[0] += velocity[0] * 0.01f + 0.99f * s.acceleration_m_s2[0] * dt;
+			velocity[1] += velocity[1] * 0.01f + 0.99f * s.acceleration_m_s2[1] * dt;
+			velocity[2] += velocity[2] * 0.01f + 0.99f * s.acceleration_m_s2[2] * dt;
+
+			dbg.value = position[0];
+
+			orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
+		}
+
 	}
 
 	printf("[ground_estimator] exiting.\n");

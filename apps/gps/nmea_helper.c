@@ -202,8 +202,8 @@ void *nmea_loop(void *arg)
 			nmea_gps->timestamp = hrt_absolute_time();
 			nmea_gps->time_gps_usec =  epoch * 1e6 + info->utc.hsec * 1e4;
 			nmea_gps->fix_type = (uint8_t)info->fix;
-			nmea_gps->lat = (int32_t)ndeg2degree(info->lat) * 1e7;
-			nmea_gps->lon = (int32_t)ndeg2degree(info->lon) * 1e7;
+			nmea_gps->lat = (int32_t)(ndeg2degree(info->lat) * 1e7);
+			nmea_gps->lon = (int32_t)(ndeg2degree(info->lon) * 1e7);
 			nmea_gps->alt = (int32_t)(info->elv * 1e3);
 			nmea_gps->eph = (uint16_t)(info->HDOP * 100); //TODO:test scaling
 			nmea_gps->epv = (uint16_t)(info->VDOP * 100); //TODO:test scaling

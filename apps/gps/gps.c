@@ -58,6 +58,10 @@
 #include <v1.0/common/mavlink.h>
 #include <mavlink/mavlink_log.h>
 
+static bool thread_should_exit = false;		/**< Deamon exit flag */
+static bool thread_running = false;		/**< Deamon status flag */
+static int deamon_task;				/**< Handle of deamon task / thread */
+
 /**
  * GPS module readout and publishing.
  * 
@@ -67,6 +71,26 @@
  * @ingroup apps
  */
 __EXPORT int gps_main(int argc, char *argv[]);
+
+/**
+ * Mainloop of deamon.
+ */
+int gps_thread_main(int argc, char *argv[]);
+
+/**
+ * Print the correct usage.
+ */
+static void usage(const char *reason);
+
+
+static void
+usage(const char *reason)
+{
+	if (reason)
+		fprintf(stderr, "%s\n", reason);
+	fprintf(stderr, "\tusage: %s -d devicename -b baudrate -m mode\n\tmodes are:\n\t\tubx\n\t\tmtkcustom\n\t\tnmea\n\t\tall\n");
+	exit(1);
+}
 
 /****************************************************************************
  * Definitions
@@ -137,11 +161,56 @@ void setup_port(char *device, int speed, int *fd)
 }
 
 
-/*
- * Main function of gps app.
+/**
+ * The deamon app only briefly exists to start
+ * the background job. The stack size assigned in the
+ * Makefile does only apply to this management task.
+ * 
+ * The actual stack size should be set in the call
+ * to task_create().
  */
 int gps_main(int argc, char *argv[])
 {
+	if (argc < 1)
+		usage("missing command");
+
+	if (!strcmp(argv[1], "start")) {
+
+		if (thread_running) {
+			printf("gps already running\n");
+			/* this is not an error */
+			exit(0);
+		}
+
+		thread_should_exit = false;
+		deamon_task = task_create("gps", SCHED_PRIORITY_DEFAULT, 4096, gps_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		thread_running = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		thread_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			printf("\gps is running\n");
+		} else {
+			printf("\tgps not started\n");
+		}
+		exit(0);
+	}
+
+	usage("unrecognized command");
+	exit(1);
+}
+
+/*
+ * Main function of gps app.
+ */
+int gps_thread_main(int argc, char *argv[]) {
+
 	/* welcome message */
 	printf("[gps] Initialized. Searching for GPS receiver..\n");
 
@@ -163,7 +232,7 @@ int gps_main(int argc, char *argv[])
 	/* read arguments */
 	int i;
 
-	for (i = 1; i < argc; i++) {
+	for (i = 0; i < argc; i++) {
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) { //device set
 			printf(commandline_usage, argv[0]);
 			return 0;
@@ -294,7 +363,7 @@ int gps_main(int argc, char *argv[])
 	}
 
 
-	while (true) {
+	while (!thread_should_exit) {
 		/* Infinite retries or break if retry == false */
 
 		/* Loop over all configurations of baud rate and protocol */
@@ -482,7 +551,9 @@ int gps_main(int argc, char *argv[])
 
 	close(mavlink_fd);
 
-	return ERROR;
+	printf("[gps] exiting.\n");
+
+	return 0;
 }
 
 int open_port(char *port)
