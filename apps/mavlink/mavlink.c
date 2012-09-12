@@ -754,9 +754,9 @@ static void *uorb_receiveloop(void *arg)
 
 		/* handle the poll result */
 		if (poll_ret == 0) {
-			/* XXX this means none of our providers is giving us data - might be an error? */
+			mavlink_missionlib_send_gcs_string("[mavlink] No telemetry data for 1 s");
 		} else if (poll_ret < 0) {
-			/* XXX this is seriously bad - should be an emergency */
+			mavlink_missionlib_send_gcs_string("[mavlink] ERROR reading uORB data");
 		} else {
 
 			int ifds = 0;
@@ -867,7 +867,8 @@ static void *uorb_receiveloop(void *arg)
 				/* copy rc channels into local buffer */
 				orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
 				/* Channels are sent in MAVLink main loop at a fixed interval */
-				// TODO decide where to send channels
+				mavlink_msg_rc_channels_raw_send(chan, rc.timestamp / 1000, 0, rc.chan[0].raw, rc.chan[1].raw, rc.chan[2].raw, rc.chan[3].raw,
+							 rc.chan[4].raw, rc.chan[5].raw, rc.chan[6].raw, rc.chan[7].raw, rc.rssi);
 			}
 
 			/* --- VEHICLE GLOBAL POSITION --- */
@@ -1617,13 +1618,6 @@ int mavlink_thread_main(int argc, char *argv[])
 						    v_status.onboard_control_sensors_health, v_status.load, v_status.voltage_battery * 1000.f, v_status.current_battery * 1000.f,
 						    v_status.battery_remaining, v_status.drop_rate_comm, v_status.errors_comm,
 						    v_status.errors_count1, v_status.errors_count2, v_status.errors_count3, v_status.errors_count4);
-
-			/* send over MAVLink */
-			if ((hrt_absolute_time() - rc.timestamp) < 200000) {
-				mavlink_msg_rc_channels_raw_send(chan, rc.timestamp / 1000, 0, rc.chan[0].raw, rc.chan[1].raw, rc.chan[2].raw, rc.chan[3].raw,
-							 rc.chan[4].raw, rc.chan[5].raw, rc.chan[6].raw, rc.chan[7].raw, rc.rssi);
-			}
-
 			lowspeed_counter = 0;
 		}
 		lowspeed_counter++;

@@ -195,9 +195,9 @@ private:
 		int rc_map_throttle;
 		int rc_map_mode_sw;
 
-		int rc_scale_roll;
-		int rc_scale_pitch;
-		int rc_scale_yaw;
+		float rc_scale_roll;
+		float rc_scale_pitch;
+		float rc_scale_yaw;
 
 		float battery_voltage_scaling;
 	}		_parameters;			/**< local copies of interesting parameters */
@@ -960,17 +960,19 @@ Sensors::ppm_poll()
 		_rc.chan[i].scale = (ppm_buffer[i] - _rc.chan[i].mid) * _rc.chan[i].scaling_factor * 10000;
 
 		/* scale around the mid point differently for lower and upper range */
-		if (ppm_buffer[i] > _rc.chan[i].mid + _parameters.dz[i]) {
-			_rc.chan[i].scaled = ((ppm_buffer[i] - _parameters.trim[i]) / (_parameters.max[i] - _parameters.trim[i]));
-		} else if ((ppm_buffer[i] < _rc_chan[i].mid - _parameters.dz[i])) {
-			_rc.chan[i].scaled = -1.0 + ((ppm_buffer[i] - _parameters.min[i]) / (_parameters.trim[i] - _parameters.min[i]));
+		if (ppm_buffer[i] > (_parameters.trim[i] + _parameters.dz[i])) {
+			_rc.chan[i].scaled = (ppm_buffer[i] - _parameters.trim[i]) / (float)(_parameters.max[i] - _parameters.trim[i]);
+		} else if (ppm_buffer[i] < (_parameters.trim[i] - _parameters.dz[i])) {
+			/* division by zero impossible for trim == min (as for throttle), as this falls in the above if clause */
+			_rc.chan[i].scaled = -1.0 + ((ppm_buffer[i] - _parameters.min[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
+			
 		} else {
 			/* in the configured dead zone, output zero */
 			_rc.chan[i].scaled = 0.0f;
 		}
 
 		/* reverse channel if required */
-		_rc.chan[i] *= _parameters.rev[i];
+		_rc.chan[i].scaled *= _parameters.rev[i];
 
 		/* handle any parameter-induced blowups */
 		if (isnan(_rc.chan[i].scaled) || isinf(_rc.chan[i].scaled))
@@ -1001,7 +1003,7 @@ Sensors::ppm_poll()
 	if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
 	
 	/* throttle input */
-	manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled/2.0f;
+	manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
 	if (manual_control.throttle < 0.0f) manual_control.throttle = 0.0f;
 	if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
 
