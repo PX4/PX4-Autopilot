@@ -364,7 +364,7 @@ Sensors::Sensors() :
 {
 
 	/* basic r/c parameters */
-	for (unsigned i = 1; i < _rc_max_chan_count; i++) {
+	for (unsigned i = 0; i < _rc_max_chan_count; i++) {
 		char nbuf[16];
 
 		/* min values */
@@ -1174,7 +1174,7 @@ Sensors::start()
 	/* start the task */
 	_sensors_task = task_create("sensors_task",
 				    SCHED_PRIORITY_MAX - 5,
-				    4096,	/* XXX may be excesssive */
+				    6000,	/* XXX may be excesssive */
 				    (main_t)&Sensors::task_main_trampoline,
 				    nullptr);
 
