@@ -1302,6 +1302,48 @@ void handleMessage(mavlink_message_t *msg)
 			hil_attitude.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(vehicle_attitude), pub_hil_attitude, &hil_attitude);
 		}
+
+		if (msg->msgid == MAVLINK_MSG_ID_MANUAL_CONTROL) {
+			mavlink_manual_control_t man;
+			mavlink_msg_manual_control_decode(msg, &man);
+
+			struct rc_channels_s rc_hil;
+			memset(&rc_hil, 0, sizeof(rc_hil));
+			static orb_advert_t rc_pub = 0;
+
+			rc_hil.chan[0].raw = 1510 + man.roll * 500;
+			rc_hil.chan[1].raw = 1520 + man.pitch * 500;
+			rc_hil.chan[2].raw = 1590 + man.yaw * 500;
+			rc_hil.chan[3].raw = 1420 + man.thrust * 500;
+
+			rc_hil.chan[0].scaled = man.roll;
+			rc_hil.chan[1].scaled = man.pitch;
+			rc_hil.chan[2].scaled = man.yaw;
+			rc_hil.chan[3].scaled = man.thrust;
+
+			struct manual_control_setpoint_s mc;
+			static orb_advert_t mc_pub = 0;
+
+			mc.roll = man.roll;
+			mc.pitch = man.roll;
+			mc.yaw = man.roll;
+			mc.roll = man.roll;
+
+			/* fake RC channels with manual control input from simulator */
+
+
+			if (rc_pub == 0) {
+				rc_pub = orb_advertise(ORB_ID(rc_channels), &rc_hil);
+			} else {
+				orb_publish(ORB_ID(rc_channels), rc_pub, &rc_hil);
+			}
+
+			if (mc_pub == 0) {
+				mc_pub = orb_advertise(ORB_ID(manual_control_setpoint), &mc);
+			} else {
+				orb_publish(ORB_ID(manual_control_setpoint), mc_pub, &mc);
+			}
+		}
 	}
 }
 
