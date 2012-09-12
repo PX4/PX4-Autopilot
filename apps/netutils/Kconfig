@@ -52,3 +52,7 @@ endmenu
 menu "uIP web server"
 source "$APPSDIR/netutils/webserver/Kconfig"
 endmenu
+
+menu "UDP Discovery Utility"
+source "$APPSDIR/netutils/discover/Kconfig"
+endmenu

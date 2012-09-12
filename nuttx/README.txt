@@ -824,6 +824,8 @@ apps
  |- modbus/
  |   `- README.txt
  |- netutils/
+ |   |- discover
+ |   |  `- README.txt
  |   |- ftpc
  |   |  `- README.txt
  |   |- telnetd

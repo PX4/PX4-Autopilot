@@ -1,0 +1,42 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_DISCOVER
+	bool "UDP Discovery Example"
+	default n
+	depends on NET_UDP
+	select NETUTILS_DISCOVER
+	---help---
+		Enable the netutils/discover utility.  This example initializes and
+		starts the UDP discover daemon. This daemon is useful for
+		discovering devices in local networks, especially with DHCP
+		configured devices.  It listens for UDP broadcasts which also can
+		include a device class so that groups of devices can be discovered.
+		It is also possible to address all classes with a kind of broadcast
+		discover.
+
+if EXAMPLES_DISCOVER
+
+config EXAMPLE_DISCOVER_DHCPC
+	bool "DHCP Client"
+	default n
+
+config EXAMPLE_DISCOVER_NOMAC
+	bool "Use canned MAC address"
+	default n
+
+config EXAMPLE_DISCOVER_IPADDR
+	hex "Target IP address"
+	default 0x0a000002
+
+config EXAMPLE_DISCOVER_DRIPADDR
+	hex "Router IP address"
+	default 0x0a000001
+
+config EXAMPLE_DISCOVER_NETMASK
+	hex "Network Mask"
+	default 0xffffff00
+
+endif

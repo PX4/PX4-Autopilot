@@ -319,3 +319,7 @@
 	* apps/netutils/webserver/httpd_sendfile.c:  Add and option,
 	  CONFIG_NETUTILS_HTTPD_SENDFILE to transfer files using the NuttX
 	  sendfile() interface.
+	* apps/netutils/discover:  A UDP network discovery utility contributed
+	  by Max Holtzberg.
+	* apps/examples/discover:  A test example for the UDP network discovery
+	  utility (also contribed by Max Holtzberg).

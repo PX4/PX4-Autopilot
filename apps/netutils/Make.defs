@@ -78,6 +78,10 @@ ifeq ($(CONFIG_NETUTILS_WEBCLIENT),y)
 CONFIGURED_APPS += netutils/webclient
 endif
 
-ifeq ($(CONFIGNETUTILS_WEBSERVER),y)
+ifeq ($(CONFIG_NETUTILS_WEBSERVER),y)
 CONFIGURED_APPS += netutils/webserver
+endif
+
+ifeq ($(CONFIG_NETUTILS_DISCOVER),y)
+CONFIGURED_APPS += netutils/discover
 endif
