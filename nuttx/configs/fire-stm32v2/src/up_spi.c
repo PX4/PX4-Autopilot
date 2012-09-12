@@ -163,11 +163,11 @@ void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sele
   spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 
 #if 0 /* Need to study this */
-  if (devid == SPIDEV_FLASH)
+  if (devid == SPIDEV_LCD)
     {
       /* Set the GPIO low to select and high to de-select */
 
-      stm32_gpiowrite(GPIO_FLASH_CS, !selected);
+      stm32_gpiowrite(GPIO_LCD_CS, !selected);
     }
   else
 #endif

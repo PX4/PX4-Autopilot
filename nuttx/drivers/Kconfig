@@ -300,6 +300,7 @@ endif
 menuconfig NETDEVICES
 	bool "Network Device Support"
 	default n
+	depends on NET
 	---help---
 		Network interface drivers.  See also include/nuttx/net/net.h
 

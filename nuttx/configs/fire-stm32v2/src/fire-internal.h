@@ -192,7 +192,7 @@
  */
 
 #ifndef CONFIG_ENC28J60
-#  define GPIO_ENC28J60_CS (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+#  define GPIO_FLASH_CS    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
                             GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
 #endif
 
@@ -214,11 +214,15 @@
 #  warning "TFT LCD and ENCJ2860 shared PE1"
 #endif
 
+/* CS and Reset are active low.  Initial states are not selected and not in
+ * reset (driver does a soft reset).
+ */
+
 #ifdef CONFIG_ENC28J60
 #  define GPIO_ENC28J60_CS    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
                                GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
 #  define GPIO_ENC28J60_RESET (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
-                               GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN1)
+                               GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN1)
 #  define GPIO_ENC28J60_INTR  (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|\
                                GPIO_EXTI|GPIO_PORTE|GPIO_PIN5)
 #endif

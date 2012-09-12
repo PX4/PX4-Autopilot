@@ -1734,8 +1734,9 @@
   <td>
     <p>
       <b>STMicro STM32F103x</b>.
-      Support for four MCUs and three board configurations are available.
-      MCU support includes: STM32F103ZET6, STM32F103RET6, and STM32F103VCT.
+      Support for four MCUs and four board configurations are available.
+      MCU support includes all of the high density and connectivity line families.
+      Board supported is available specifically for: STM32F103ZET6, STM32F103RET6, STM32F103VCT, and STM32F103VET6.
       Boards supported include:
     </p>
     <ol>
@@ -1751,6 +1752,10 @@
         A port for the HY-Mini STM32v board.  This board is based on the
         STM32F103VCT chip.  Contributed by Laurent Latil.
       </li>
+      <li>
+         This M3 Wildfire development board (STM32F103VET6), version 2.
+         See <a href="http://firestm32.taobao.com">http://firestm32.taobao.com</a> (the current board is version 3).
+      </li>
     </ol>
     <p>
       These ports uses a GNU arm-elf toolchain* under either Linux or Cygwin (with native Windows GNU
@@ -1761,7 +1766,7 @@
         <b>STATUS:</b>
       </p>
       <ul>
-        <li>
+        <li><b>Basic Support/Drivers</b>.
           The basic STM32 port was released in NuttX version 0.4.12. The basic port includes boot-up
           logic, interrupt driven serial console, and system timer interrupts.
           The 0.4.13 release added support for SPI, serial FLASH, and USB device.;
@@ -1769,14 +1774,20 @@
           Verified configurations are available for NuttX OS test, the NuttShell (NSH) example,
           the USB serial device class, and the USB mass storage device class example.
         </li>
-        <li>
+        <li><b>NetClamps VSN</b>.
           Support for the NetClamps VSN was included in version 5.18 of NuttX.
           Uros Platise added support for timers, RTC, I2C, FLASH, extended power management
           and other features.
         </li>
-        <li>
+        <li><b>Additional Drivers</b>.
           Additional drivers and configurations were added in NuttX 6.13 and later releases for the STM32 F1 and F4.
           F1 compatible drivers include an Ethernet driver, ADC driver, DAC driver, PWM driver, IWDG, WWDG, and CAN drivers.
+        </li>
+        <li><b>M3 Wildfire</b>.
+          Support for the Wildfire board was included in version 6.22 of NuttX.
+          The board port is basically functional.
+          Not all features have been verified.
+          The ENC28J60 network is not yet functional.
         </li>
       </ul>
       <p>

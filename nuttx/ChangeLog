@@ -3328,3 +3328,6 @@
 	  simple allocation of DMA I/O buffers.  The initiali check-in
 	  is code complete but untested (not event built into the
 	  mm/Makefile yet.
+	* confgs/fire-stm32v2: The board port is basically functional.
+	  Not all features have been verified.  The ENC28J60 network
+	  is not yet functional.

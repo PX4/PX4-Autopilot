@@ -83,12 +83,15 @@
  * CONFIG_ENC28J60_HALFDUPPLEX - Default is full duplex
  */
 
-/* The ENC28J60 spec says that is supports SPI mode 0,0 only.  However,
- * somtimes you need to tinker with these things.
+/* The ENC28J60 spec says that it supports SPI mode 0,0 only: "The
+ * implementation used on this device supports SPI mode 0,0 only. In
+ * addition, the SPI port requires that SCK be at Idle in a low state;
+ * selectable clock polarity is not supported."  However, sometimes you
+ * need to tinker with these things.
  */
 
 #ifndef CONFIG_ENC28J60_SPIMODE
-#  define CONFIG_ENC28J60_SPIMODE SPIDEV_MODE2
+#  define CONFIG_ENC28J60_SPIMODE SPIDEV_MODE0
 #endif
 
 /* CONFIG_ENC28J60_NINTERFACES determines the number of physical interfaces
@@ -370,7 +373,9 @@ static void enc_select(FAR struct enc_driver_s *priv)
 
   if (priv->lockcount > 0)
     {
-      /* Yes... just increment the lock count */
+      /* Yes... just increment the lock count.  In this case, we know
+       * that the bus has already been configured for the ENC28J60.
+       */
 
       DEBUGASSERT(priv->lockcount < 255);
       priv->lockcount++;
@@ -382,21 +387,21 @@ static void enc_select(FAR struct enc_driver_s *priv)
       DEBUGASSERT(priv->lockcount == 0);
       SPI_LOCK(priv->spi, true);
       priv->lockcount = 1;
+
+      /* Now make sure that the SPI bus is configured for the ENC28J60 (it
+       * might have gotten configured for a different device while unlocked)
+       */
+
+      SPI_SETMODE(priv->spi, CONFIG_ENC28J60_SPIMODE);
+      SPI_SETBITS(priv->spi, 8);
+#ifdef CONFIG_ENC28J60_FREQUENCY
+      SPI_SETFREQUENCY(priv->spi, CONFIG_ENC28J60_FREQUENCY);
+#endif
     }
 
   /* Select ENC28J60 chip. */
 
   SPI_SELECT(priv->spi, SPIDEV_ETHERNET, true);
-
-  /* Now make sure that the SPI bus is configured for the ENC28J60 (it
-   * might have gotten configured for a different device while unlocked)
-   */
-
-  SPI_SETMODE(priv->spi, CONFIG_ENC28J60_SPIMODE);
-  SPI_SETBITS(priv->spi, 8);
-#ifdef CONFIG_ENC28J60_FREQUENCY
-  SPI_SETFREQUENCY(priv->spi, CONFIG_ENC28J60_FREQUENCY);
-#endif
 }
 #endif
 
@@ -667,10 +672,10 @@ static uint8_t enc_rdbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg)
        * 8 dummy bits, and 8 to clock in the PHY/MAC data.
        */
 
-      (void)SPI_SEND(priv->spi, 0); /* Clock in the dummy byte */
+      (void)SPI_SEND(priv->spi, 0);                      /* Clock in the dummy byte */
     }
 
-  rddata = SPI_SEND(priv->spi, 0); /* Clock in the data */
+  rddata = SPI_SEND(priv->spi, 0);                       /* Clock in the data */
 
   /* De-select ENC28J60 chip */
 

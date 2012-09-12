@@ -764,3 +764,17 @@ Where <subdir> is one of the following:
     Configure the NuttShell (nsh) located at examples/nsh. The nsh configuration
     contains support for some built-in applications that can be enabled by making
     some additional minor change to the configuration file.
+
+    NOTE:  This configuration uses to the mconf configuration tool to control
+    the configuration.  See the section entitled "NuttX Configuration Tool"
+    in the top-level README.txt file.
+
+    STATUS:  The board port is basically functional. Not all features have been
+    verified.  The ENC28J60 network is not yet functional.  Networking is
+    enabled by default in this configuration for testing purposes.  To use this
+    configuration, the network must currently be disabled.  To do this using
+    the mconf configuration tool:
+
+    > make menuconfig
+
+    Then de-select "Networking Support" -> "Networking Support"
