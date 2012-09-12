@@ -964,7 +964,7 @@ Sensors::ppm_poll()
 			_rc.chan[i].scaled = (ppm_buffer[i] - _parameters.trim[i]) / (float)(_parameters.max[i] - _parameters.trim[i]);
 		} else if (ppm_buffer[i] < (_parameters.trim[i] - _parameters.dz[i])) {
 			/* division by zero impossible for trim == min (as for throttle), as this falls in the above if clause */
-			_rc.chan[i].scaled = -1.0 + ((ppm_buffer[i] - _parameters.min[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
+			_rc.chan[i].scaled = -1.0f + ((ppm_buffer[i] - _parameters.min[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
 			
 		} else {
 			/* in the configured dead zone, output zero */
@@ -985,22 +985,28 @@ Sensors::ppm_poll()
 	_rc.timestamp = ppm_last_valid_decode;
 
 	/* roll input - rolling right is stick-wise and rotation-wise positive */
-	manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled * _parameters.rc_scale_roll;
+	manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled;
 	if (manual_control.roll < -1.0f) manual_control.roll = -1.0f;
 	if (manual_control.roll >  1.0f) manual_control.roll =  1.0f;
+	if (!isnan(_parameters.rc_scale_roll) || isinf(_parameters.rc_scale_roll))
+		//manual_control.roll *= _parameters.rc_scale_roll;
 
 	/*
 	 * pitch input - stick down is negative, but stick down is pitching up (pos) in NED,
 	 * so reverse sign.
 	 */
-	manual_control.pitch = -1.0f * _rc.chan[_rc.function[PITCH]].scaled * _parameters.rc_scale_pitch;
+	manual_control.pitch = -1.0f * _rc.chan[_rc.function[PITCH]].scaled;
 	if (manual_control.pitch < -1.0f) manual_control.pitch = -1.0f;
 	if (manual_control.pitch >  1.0f) manual_control.pitch =  1.0f;
+	if (!isnan(_parameters.rc_scale_pitch) || isinf(_parameters.rc_scale_pitch))
+		manual_control.pitch *= _parameters.rc_scale_pitch;
 
 	/* yaw input - stick right is positive and positive rotation */
 	manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled * _parameters.rc_scale_yaw;
 	if (manual_control.yaw < -1.0f) manual_control.yaw = -1.0f;
 	if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
+	if (!isnan(_parameters.rc_scale_yaw) || isinf(_parameters.rc_scale_yaw))
+		manual_control.yaw *= _parameters.rc_scale_yaw;
 	
 	/* throttle input */
 	manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
