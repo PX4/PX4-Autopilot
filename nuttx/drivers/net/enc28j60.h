@@ -56,7 +56,7 @@
  */
 
 #define ENC_RCR             (0x00)    /* Read Control Register
-                                       * 000 | aaaaa | (Registe value returned)) */
+                                       * 000 | aaaaa | (Register value returned)) */
 #define ENC_RBM             (0x3a)    /* Read Buffer Memory
                                        * 001 | 11010 | (Read buffer data follows) */
 #define ENC_WCR             (0x40)    /* Write Control Register

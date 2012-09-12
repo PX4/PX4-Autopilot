@@ -158,10 +158,18 @@ static inline FAR void *gran_common_alloc(FAR struct gran_s *priv, size_t size)
 
       for (i = 0; i < priv->ngranules; i += 32)
         {
-          /* Get the GAT index associated with the granule (i) */
+          /* Get the GAT index associated with the granule table entry [i] */
 
           j = i >> 5;
-          curr  = priv->gat[j];
+          curr = priv->gat[j];
+
+          /* Handle the case where there are no free granules in the entry */
+
+          if (curr == 0xffffffff)
+            {
+              alloc += (32 << priv->log2gran);
+              continue;
+            }
 
           /* Get the next entry from the GAT to support a 64 bit shift */
 
@@ -228,7 +236,7 @@ static inline FAR void *gran_common_alloc(FAR struct gran_s *priv, size_t size)
  *   Allocate memory from the granule heap.
  *
  *   NOTE: The current implementation also restricts the maximum allocation
- *   size to 32 granaules.  That restriction could be eliminated with some
+ *   size to 32 granules.  That restriction could be eliminated with some
  *   additional coding effort.
  *
  * Input Parameters:

@@ -90,7 +90,7 @@ extern "C" {
  *   losses of memory due to alignment and quantization waste.
  *
  *   NOTE: The current implementation also restricts the maximum allocation
- *   size to 32 granaules.  That restriction could be eliminated with some
+ *   size to 32 granules.  That restriction could be eliminated with some
  *   additional coding effort.
  *
  * Input Parameters:
@@ -120,7 +120,7 @@ EXTERN GRAN_HANDLE gran_initialize(FAR void *heapstart, size_t heapsize,
  *   Allocate memory from the granule heap.
  *
  *   NOTE: The current implementation also restricts the maximum allocation
- *   size to 32 granaules.  That restriction could be eliminated with some
+ *   size to 32 granules.  That restriction could be eliminated with some
  *   additional coding effort.
  *
  * Input Parameters:
