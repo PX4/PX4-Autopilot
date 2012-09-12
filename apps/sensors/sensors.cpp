@@ -989,7 +989,7 @@ Sensors::ppm_poll()
 	if (manual_control.roll < -1.0f) manual_control.roll = -1.0f;
 	if (manual_control.roll >  1.0f) manual_control.roll =  1.0f;
 	if (!isnan(_parameters.rc_scale_roll) || isinf(_parameters.rc_scale_roll))
-		//manual_control.roll *= _parameters.rc_scale_roll;
+		manual_control.roll *= _parameters.rc_scale_roll;
 
 	/*
 	 * pitch input - stick down is negative, but stick down is pitching up (pos) in NED,
