@@ -1079,7 +1079,25 @@ static ssize_t tcp_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
 
   else
 #endif
+
+  /* We get here when we we decide that we need to setup the wait for incoming
+   * TCP/IP data.  Just a few more conditions to check:
+   *
+   * 1) Make sure thet there is buffer space to receive additional data
+   *    (state.rf_buflen > 0).  This could be zero, for example, if read-ahead
+   *    buffering was enabled and we filled the user buffer with data from
+   *    the read-ahead buffers.  Aand
+   * 2) if read-ahead buffering is enabled (CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0)
+   *    and delay logic is disabled (CONFIG_NET_TCP_RECVDELAY == 0), then we
+   *    not want to wait if we already obtained some data from the read-ahead
+   *    buffer.  In that case, return now with what we have.
+   */
+
+#if CONFIG_NET_TCP_RECVDELAY == 0 && CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0
+  if (state.rf_recvlen == 0 && state.rf_buflen > 0)
+#else
   if (state.rf_buflen > 0)
+#endif
     {
       struct uip_conn *conn = (struct uip_conn *)psock->s_conn;
 

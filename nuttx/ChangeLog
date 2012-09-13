@@ -3337,4 +3337,8 @@
 	* include/nuttx/usb/usb.h, arch/*/src/*usb.c, and arch/*/src/*otg*.c:
 	  Add hooks to to use common, external DMA buffer allocation
 	  implementation.
+	* net/recvfrom.c: Don't block in recvfrom if (1) read-ahead buffering
+	  is enabled and (2) some data was obtained from read-ahead buffers.
+	  Blocking is a bad idea in that case because there is no timeout!
+	  (submitted by Max Holtzberg).
 
