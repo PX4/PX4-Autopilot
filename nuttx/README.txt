@@ -806,6 +806,8 @@ nuttx
  |   `- README.txt
  |- libxx/
  |   `- README.txt
+ |- mm/
+ |   `- README.txt
  |- syscall/
  |   `- README.txt
  `- tools/

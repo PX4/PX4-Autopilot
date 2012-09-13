@@ -3333,3 +3333,5 @@
 	  is not yet functional.
 	* configs/stm3240g-eval/discover:  A configuration for testing
 	  the UDP discovery utility.  Contributed by Max Holtzberg.
+	* mm/README.txt:  Add a new README file.
+
