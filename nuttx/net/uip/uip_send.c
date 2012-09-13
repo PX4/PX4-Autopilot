@@ -2,7 +2,7 @@
  * net/uip/uip_send.c
  *
  *   Copyright (C) 2007i, 2008 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Based in part on uIP which also has a BSD stylie license:
  *

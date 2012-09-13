@@ -2,7 +2,7 @@
  * up_wcap.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Based on code from uIP which also has a BSD-like license:
  *

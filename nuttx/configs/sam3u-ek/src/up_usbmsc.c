@@ -2,7 +2,7 @@
  * configs/sam3u-ek/src/up_usbmsc.c
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Configure and register the SAM3U MMC/SD SDIO block driver.
  *

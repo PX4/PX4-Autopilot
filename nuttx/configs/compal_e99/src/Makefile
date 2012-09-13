@@ -2,7 +2,7 @@
 # configs/compal_e99/src/Makefile
 #
 #   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 #   Copyright (C) 2011 Stefan Richter. All rights reserved.
 #   Author: Stefan Richter <ichgeh@l--putt.de>

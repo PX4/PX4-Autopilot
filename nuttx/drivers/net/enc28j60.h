@@ -2,7 +2,7 @@
  * drivers/net/enc28j60.h
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  * - ENC28J60 Data Sheet, Stand-Alone Ethernet Controller with SPI Interface,

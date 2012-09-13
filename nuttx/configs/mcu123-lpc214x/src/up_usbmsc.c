@@ -2,7 +2,7 @@
  * configs/mcu123-lpc214x/src/up_usbmsc.c
  *
  *   Copyright (C) 2008-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Configure and register the LPC214x MMC/SD SPI block driver.
  *

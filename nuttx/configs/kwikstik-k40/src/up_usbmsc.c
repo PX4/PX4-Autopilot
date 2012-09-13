@@ -2,7 +2,7 @@
  * configs/kwikstik-k40/src/up_usbmsc.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Configure and register the Kinetis MMC/SD block driver.
  *

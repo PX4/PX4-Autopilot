@@ -2,7 +2,7 @@
  * arch/x86/src/i486/i486_utils.S
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  *   Based on Bran's kernel development tutorials. Rewritten for JamesM's
  *   kernel development tutorials.

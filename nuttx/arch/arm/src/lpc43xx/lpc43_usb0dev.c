@@ -7,7 +7,7 @@
  * Part of the NuttX OS and based, in part, on the LPC31xx USB driver:
  *
  *   Authors: David Hewson
- *            Gregory Nutt <spudmonkey@racsa.co.cr>
+ *            Gregory Nutt <gnutt@nuttx.org>
  *
  * Which, in turn, was based on the LPC2148 USB driver:
  *

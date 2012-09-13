@@ -3,7 +3,7 @@
  * arch/arm/src/board/up_clkinit.c
  *
  *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  *   - NXP UM10314 LPC3130/31 User manual Rev. 1.01 — 9 September 2009

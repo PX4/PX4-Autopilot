@@ -2,7 +2,7 @@
  * arch/arm/src/c5471/c5471_ethernet.c
  *
  *   Copyright (C) 2007, 2009-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Based one a C5471 Linux driver and released under this BSD license with
  * special permisson from the copyright holder of the Linux driver:

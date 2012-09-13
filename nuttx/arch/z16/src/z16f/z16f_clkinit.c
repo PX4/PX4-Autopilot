@@ -2,7 +2,7 @@
  * z16f/z16f_clkinit.c
  *
  *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Based upon sample code included with the Zilog ZDS-II toolchain.
  *

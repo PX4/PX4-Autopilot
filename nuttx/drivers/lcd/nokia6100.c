@@ -3,7 +3,7 @@
  * Nokia 6100 LCD Display Driver
  *
  *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  *   "Nokia 6100 LCD Display Driver," Revision 1, James P. Lynch ("Nokia 6100 LCD

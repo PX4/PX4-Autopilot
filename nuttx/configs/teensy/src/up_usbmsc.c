@@ -3,7 +3,7 @@
  * arch/arm/src/board/up_usbmsc.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Configure and register the AVR MMC/SD SPI block driver.
  *

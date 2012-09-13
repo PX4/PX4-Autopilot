@@ -4,7 +4,7 @@
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
  *   Copyright (c) 2011 Uros Platise. All rights reserved.
  *
- *   Authors: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *            Uros Platise <uros.platise@isotel.eu>
  *
  * Configure and register the STM32 MMC/SD SDIO block driver.

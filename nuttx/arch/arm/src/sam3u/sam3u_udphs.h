@@ -2,7 +2,7 @@
  * arch/arm/src/sam3u/sam3u_udphs.h
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -177,9 +177,9 @@
 
 #define UDPHS_TST_SPEEDCFG_SHIFT              (0)       /* Bits 0-1: Speed Configuration */
 #define UDPHS_TST_SPEEDCFG_MASK               (3 << UDPHS_TST_SPEEDCFG_SHIFT)
-00 Normal Mode
-10 Force High Speed
-11 Force Full Speed
+#  define UDPHS_TST_SPEEDCFG_NORMAL           (0 << UDPHS_TST_SPEEDCFG_SHIFT) /* Normal Mode */
+#  define UDPHS_TST_SPEEDCFG_HIGH             (2 << UDPHS_TST_SPEEDCFG_SHIFT) /* Force High Speed */
+#  define UDPHS_TST_SPEEDCFG_FULL             (3 << UDPHS_TST_SPEEDCFG_SHIFT) /* Force Full Speed */
 #define UDPHS_TST_TSTJ                        (1 << 2)  /* Bit 2:  Test J Mode */
 #define UDPHS_TST_TSTK                        (1 << 3)  /* Bit 3:  Test K Mode */
 #define UDPHS_TST_TSTPKT                      (1 << 4)  /* Bit 4:  Test Packet Mo */
@@ -368,3 +368,4 @@
  ****************************************************************************************/
 
 #endif /* __ARCH_ARM_SRC_SAM3U_SAM3U_UDPHS_H */
+
