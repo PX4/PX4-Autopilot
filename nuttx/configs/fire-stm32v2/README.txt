@@ -778,3 +778,9 @@ Where <subdir> is one of the following:
     > make menuconfig
 
     Then de-select "Networking Support" -> "Networking Support"
+
+    UPDATE:  The primary problem with the ENC29J60 is a v2 board issue:  The
+    SPI FLASH and the ENC28J60 shared the same SPI chip select signal (PA4-SPI1-NSS).
+    In order to finish the debug of the ENC28J60, it may be necessary to lift
+    the SPI FLASH chip select pin from the board.
+
