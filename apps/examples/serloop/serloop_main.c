@@ -1,5 +1,5 @@
 /****************************************************************************
- * examples/serloop/main.c
+ * examples/serloop/serloop_main.c
  *
  *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>

@@ -40,7 +40,7 @@ include $(APPDIR)/Make.defs
 # Hello, World! Example
 
 ASRCS		=
-CSRCS		= main.c
+CSRCS		= buttons_main.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

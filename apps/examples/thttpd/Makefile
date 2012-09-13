@@ -40,7 +40,7 @@ include $(APPDIR)/Make.defs
 # THTTPD Web Server Example
 
 ASRCS		=
-CSRCS		= main.c
+CSRCS		= thttpd_main.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

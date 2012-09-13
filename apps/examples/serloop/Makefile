@@ -40,7 +40,7 @@ include $(APPDIR)/Make.defs
 # Mindlessly simple console loopack test
 
 ASRCS		=
-CSRCS		= main.c
+CSRCS		= serloop_main.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

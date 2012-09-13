@@ -40,7 +40,7 @@ include $(APPDIR)/Make.defs
 # USB serial device example
 
 ASRCS		=
-CSRCS		=  main.c
+CSRCS		=  usbserial_main.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

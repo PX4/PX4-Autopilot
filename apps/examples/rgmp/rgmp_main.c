@@ -1,5 +1,5 @@
 /****************************************************************************
- * examples/rgmp/main.c
+ * examples/rgmp/rgmp_main.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>

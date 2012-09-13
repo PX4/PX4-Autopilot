@@ -46,7 +46,7 @@ STACKSIZE	= 2048
 # Hello, World! Example
 
 ASRCS		=
-CSRCS		= main.c
+CSRCS		= hello_main.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

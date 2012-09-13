@@ -47,7 +47,7 @@ PRIORITY	= SCHED_PRIORITY_DEFAULT
 STACKSIZE	= 2048
 
 ASRCS		=
-CSRCS		= main.c
+CSRCS		= discover_main.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

@@ -1,5 +1,5 @@
 /****************************************************************************
- * examples/uip/main.c
+ * examples/uip/uip_main.c
  *
  *   Copyright (C) 2007, 2009-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -201,7 +201,7 @@ int uip_main(int argc, char *argv[])
   while(1)
     {
       sleep(3);
-      printf("main: Still running\n");
+      printf("uip_main: Still running\n");
 #if CONFIG_NFILE_DESCRIPTORS > 0
       fflush(stdout);
 #endif

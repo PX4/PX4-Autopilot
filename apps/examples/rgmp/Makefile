@@ -40,7 +40,7 @@ include $(APPDIR)/Make.defs
 # The smallest thing you can build -- the NULL example.
 
 ASRCS		=
-CSRCS		= main.c
+CSRCS		= rgmp_main.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

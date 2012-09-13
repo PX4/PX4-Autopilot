@@ -1,5 +1,5 @@
 /****************************************************************************
- * examples/buttons/main.c
+ * examples/buttons/buttons_main.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

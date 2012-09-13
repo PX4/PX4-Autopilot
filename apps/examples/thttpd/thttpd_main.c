@@ -1,5 +1,5 @@
 /****************************************************************************
- * examples/thttpd/main.c
+ * examples/thttpd/thttpd_main.c
  *
  *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

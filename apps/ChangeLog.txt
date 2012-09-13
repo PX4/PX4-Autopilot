@@ -323,3 +323,6 @@
 	  by Max Holtzberg.
 	* apps/examples/discover:  A test example for the UDP network discovery
 	  utility (also contribed by Max Holtzberg).
+	* apps/examples/*/main.c:  Too many files called main.c.  Each renamed
+	  to something unique so that they will not collide in the archive.
+

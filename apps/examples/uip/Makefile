@@ -40,7 +40,7 @@ include $(APPDIR)/Make.defs
 # uIP very tiny web server example
 
 ASRCS		=
-CSRCS		= main.c cgi.c httpd_fsdata.c
+CSRCS		= uip_main.c cgi.c httpd_fsdata.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

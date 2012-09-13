@@ -41,7 +41,7 @@ include $(APPDIR)/Make.defs
 
 ASRCS		=
 CSRCS		=
-CXXSRCS		= main.cxx
+CXXSRCS		= helloxx_main.cxx
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

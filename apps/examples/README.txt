@@ -1133,7 +1133,7 @@ examples/rgmp
 
   See http://rgmp.sourceforge.net/wiki/index.php/Main_Page for further
 
-  At present, the RGMP example folder contains only an empty main.c file.
+  At present, the RGMP example folder contains only an empty rgmp_main.c file.
 
 examples/romfs
 ^^^^^^^^^^^^^^
