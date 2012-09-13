@@ -1,12 +1,12 @@
-pascal-0.1.0 2008-01-07 Gregory Nutt <spudmonkey@racsa.co.cr>
+pascal-0.1.0 2008-01-07 Gregory Nutt <gnutt@nuttx.org>
 
 	* Initial release
 
-pascal-0.1.1 2008-02-01 Gregory Nutt <spudmonkey@racsa.co.cr>
+pascal-0.1.1 2008-02-01 Gregory Nutt <gnutt@nuttx.org>
 
 	* Correct some errors in the NuttX installation logic
 
-pascal-0.1.2 2008-02-10 Gregory Nutt <spudmonkey@racsa.co.cr>
+pascal-0.1.2 2008-02-10 Gregory Nutt <gnutt@nuttx.org>
 
 	* Add logic to build and link with the ZDS-II toolchain
 	  use with the z16f.
@@ -16,13 +16,13 @@ pascal-0.1.2 2008-02-10 Gregory Nutt <spudmonkey@racsa.co.cr>
 	  and eliminate a compiler bug
 	* Changes so that runtime compiles with SDCC.
 
-pascal-2.0 2009-12-21 Gregory Nutt <spudmonkey@racsa.co.cr>
+pascal-2.0 2009-12-21 Gregory Nutt <gnutt@nuttx.org>
 
 	* Updated to use standard C99 types in stdint.h and
 	  stdbool.h.  This change was necessary for compatibility
 	  with NuttX-5.0 (any beyond).
 
-pascal-3.0 2010-05-15 Gregory Nutt <spudmonkey@racsa.co.cr>
+pascal-3.0 2010-05-15 Gregory Nutt <gnutt@nuttx.org>
 
 	* nuttx/:  The Pascal add-on module now installs and builds under the
 	  apps/interpreters directory.  This means that the pascal-3.0 module is

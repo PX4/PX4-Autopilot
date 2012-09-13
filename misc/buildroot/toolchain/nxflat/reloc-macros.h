@@ -3,7 +3,7 @@
  * Generic relocation support for BFD.
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Simply lifted with minimal change from the BFD, binutils 2.19.1:
  *

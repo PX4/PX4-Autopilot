@@ -3,13 +3,13 @@
  * ARM Disassembler
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Derived from XFLAT:
  *
  *   Copyright (c) 2006, Cadenux, LLC.  All rights reserved.
  *   Copyright (c) 2006, Gregory Nutt.  All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Which simply lifted it from the BFD:
  *

@@ -9,14 +9,14 @@
  * will and GOT relocations as well).
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  *
  * Modified from ldelf2xflat (see http://xflat.org):
  *
  *   Copyright (c) 2002, 2006, Cadenux, LLC.  All rights reserved.
  *   Copyright (c) 2002, 2006, Gregory Nutt.  All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Extended from the FLAT ldnxflat.c (original copyright below )
  *

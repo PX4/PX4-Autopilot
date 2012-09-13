@@ -5,7 +5,7 @@
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2011 Rafael Noronha. All rights reserved.
- *   Authors: Gregoyr Nutt <spudmonkey@racsa.co.cr>
+ *   Authors: Gregoyr Nutt <gnutt@nuttx.org>
  *            Rafael Noronha <rafael@pdsolucoes.com.br>
  *
  * Portions of the logic in this file derives from the KisMAC RTL8187x driver
