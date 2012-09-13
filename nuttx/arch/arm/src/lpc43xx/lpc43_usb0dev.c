@@ -404,7 +404,7 @@ static int  lpc43_epdisable(FAR struct usbdev_ep_s *ep);
 static FAR struct usbdev_req_s *lpc43_epallocreq(FAR struct usbdev_ep_s *ep);
 static void lpc43_epfreereq(FAR struct usbdev_ep_s *ep,
               FAR struct usbdev_req_s *);
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
 static void *lpc43_epallocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes);
 static void lpc43_epfreebuffer(FAR struct usbdev_ep_s *ep, FAR void *buf);
 #endif
@@ -441,7 +441,7 @@ static const struct usbdev_epops_s g_epops =
   .disable     = lpc43_epdisable,
   .allocreq    = lpc43_epallocreq,
   .freereq     = lpc43_epfreereq,
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
   .allocbuffer = lpc43_epallocbuffer,
   .freebuffer  = lpc43_epfreebuffer,
 #endif
@@ -1958,11 +1958,16 @@ static void lpc43_epfreereq(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s 
  *
  *******************************************************************************/
 
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
 static void *lpc43_epallocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes)
 {
   usbtrace(TRACE_EPALLOCBUFFER, privep->epphy);
-  return malloc(bytes)
+
+#ifdef CONFIG_USBDEV_DMAMEMORY
+  return usbdev_dma_alloc(bytes);
+#else
+  return malloc(bytes);
+#endif
 }
 #endif
 
@@ -1974,11 +1979,16 @@ static void *lpc43_epallocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes)
  *
  *******************************************************************************/
 
-#ifdef CONFIG_LPC433x_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
 static void lpc43_epfreebuffer(FAR struct usbdev_ep_s *ep, FAR void *buf)
 {
   usbtrace(TRACE_EPFREEBUFFER, privep->epphy);
+
+#ifdef CONFIG_USBDEV_DMAMEMORY
+  usbdev_dma_free(buf);
+#else
   free(buf);
+#endif
 }
 #endif
 

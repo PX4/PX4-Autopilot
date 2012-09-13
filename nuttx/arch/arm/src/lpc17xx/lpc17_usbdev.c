@@ -434,7 +434,7 @@ static int  lpc17_epdisable(FAR struct usbdev_ep_s *ep);
 static FAR struct usbdev_req_s *lpc17_epallocreq(FAR struct usbdev_ep_s *ep);
 static void lpc17_epfreereq(FAR struct usbdev_ep_s *ep,
               FAR struct usbdev_req_s *);
-#ifdef CONFIG_LPC17_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
 static FAR void *lpc17_epallocbuffer(FAR struct usbdev_ep_s *ep,
               uint16_t nbytes);
 static void lpc17_epfreebuffer(FAR struct usbdev_ep_s *ep, void *buf);
@@ -471,7 +471,7 @@ static const struct usbdev_epops_s g_epops =
   .disable     = lpc17_epdisable,
   .allocreq    = lpc17_epallocreq,
   .freereq     = lpc17_epfreereq,
-#ifdef CONFIG_LPC17_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
   .allocbuffer = lpc17_epallocbuffer,
   .freebuffer  = lpc17_epfreebuffer,
 #endif
@@ -2684,9 +2684,11 @@ static void lpc17_epfreereq(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s 
  *
  *******************************************************************************/
 
-#ifdef CONFIG_LPC17_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
 static FAR void *lpc17_epallocbuffer(FAR struct usbdev_ep_s *ep, uint16_t nbytes)
 {
+#if defined(CONFIG_LPC17_USBDEV_DMA)
+
   FAR struct lpc17_ep_s *privep = (FAR struct lpc17_ep_s *)ep;
   int descndx;
 
@@ -2699,7 +2701,19 @@ static FAR void *lpc17_epallocbuffer(FAR struct usbdev_ep_s *ep, uint16_t nbytes
   /* Set UDCA to the allocated DMA descriptor for this endpoint */
 
   g_udca[privep->epphy] = &g_usbddesc[descndx];
-  return  &g_usbddesc[descndx]
+  return &g_usbddesc[descndx]
+
+#elif defined(CONFIG_USBDEV_DMAMEMORY)
+
+  usbtrace(TRACE_EPALLOCBUFFER, privep->epphy);
+  return usbdev_dma_alloc(bytes);
+
+#else
+
+  usbtrace(TRACE_EPALLOCBUFFER, privep->epphy);
+  return malloc(bytes);
+
+#endif
 }
 #endif
 
@@ -2711,9 +2725,11 @@ static FAR void *lpc17_epallocbuffer(FAR struct usbdev_ep_s *ep, uint16_t nbytes
  *
  *******************************************************************************/
 
-#ifdef CONFIG_LPC17_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
 static void lpc17_epfreebuffer(FAR struct usbdev_ep_s *ep, FAR void *buf)
 {
+#if defined(CONFIG_LPC17_USBDEV_DMA)
+
   FAR struct lpc17_ep_s *privep = (FAR struct lpc17_ep_s *)ep;
 
   usbtrace(TRACE_EPFREEBUFFER, privep->epphy);
@@ -2724,7 +2740,19 @@ static void lpc17_epfreebuffer(FAR struct usbdev_ep_s *ep, FAR void *buf)
 
   /* Mark the DMA descriptor as free for re-allocation */
 
-#error "LOGIC INCOMPLETE"
+#  error "LOGIC INCOMPLETE"
+
+#elif defined(CONFIG_USBDEV_DMAMEMORY)
+
+  usbtrace(TRACE_EPFREEBUFFER, privep->epphy);
+  usbdev_dma_free(buf);
+
+#else
+
+  usbtrace(TRACE_EPFREEBUFFER, privep->epphy);
+  free(buf);
+
+#endif
 }
 #endif
 

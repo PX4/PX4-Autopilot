@@ -2,7 +2,7 @@
 # apps/examples/wlan/Makefile
 #
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Authors: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Authors: Gregory Nutt <gnutt@nuttx.org>
 #            Rafael Noronha <rafael@pdsolucoes.com.br>
 #
 # Redistribution and use in source and binary forms, with or without

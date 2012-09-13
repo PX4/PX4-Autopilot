@@ -40,6 +40,7 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
 #include <stdint.h>
 
 /****************************************************************************
@@ -98,15 +99,20 @@ EXTERN int fat_setattrib(const char *path, fat_attrib_t setbits, fat_attrib_t cl
  *   Some hardware, however, may require special DMA-capable memory in
  *   order to perform the the transfers.  If CONFIG_FAT_DMAMEMORY is defined
  *   then the architecture-specific hardware must provide the funtions
- *   fat_dma_alloc() and fat_dma_free() as prototyped below:  fat_dmalloc()
- *   will allocate DMA-capable memory of the specified size; fat_dmafree()
+ *   fat_dma_alloc() and fat_dma_free() as prototyped below:  fat_dma_alloc()
+ *   will allocate DMA-capable memory of the specified size; fat_dma_free()
  *   is the corresponding function that will be called to free the DMA-
  *   capable memory.
  *
+ *   This functions may be simple wrappers around gran_alloc() and gran_free()
+ *   (See nuttx/gran.h).
+ *
  ****************************************************************************/
 
+#ifdef CONFIG_FAT_DMAMEMORY
 EXTERN FAR void *fat_dma_alloc(size_t size);
 EXTERN void fat_dma_free(FAR void *memory, size_t size);
+#endif
 
 #undef EXTERN
 #ifdef __cplusplus

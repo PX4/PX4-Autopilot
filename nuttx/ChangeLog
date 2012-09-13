@@ -3334,4 +3334,7 @@
 	* configs/stm3240g-eval/discover:  A configuration for testing
 	  the UDP discovery utility.  Contributed by Max Holtzberg.
 	* mm/README.txt:  Add a new README file.
+	* include/nuttx/usb/usb.h, arch/*/src/*usb.c, and arch/*/src/*otg*.c:
+	  Add hooks to to use common, external DMA buffer allocation
+	  implementation.
 

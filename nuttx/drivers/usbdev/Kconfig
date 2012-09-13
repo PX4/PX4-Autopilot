@@ -3,6 +3,88 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+menu "Device Controller Driver Options"
+
+config USBDEV_ISOCHRONOUS
+	bool "Enable isochronous"
+	default n
+	---help---
+		Build in extra support for isochronous endpoints
+
+config USBDEV_DUALSPEED
+	bool "Enable high and full speed"
+	default n
+	---help---
+		Hardware handles high and full speed operation (USB 2.0)
+
+choice USBDEV_POWERED
+	prompt "Select USB device powered"
+	default USBDEV_SELFPOWERED
+
+config USBDEV_SELFPOWERED
+	bool "Self powered"
+	---help---
+		Will cause USB features to indicate that the device is self-powered
+
+config USBDEV_BUSPOWERED
+	bool "Bus powered"
+	---help---
+		Will cause USB features to indicate that the device is self-powered
+
+endchoice
+
+config USBDEV_MAXPOWER
+	int "Maximum power consumption in mA"
+	default 100
+	depends on USBDEV_BUSPOWERED
+	---help---
+		Maximum power consumption in mA
+
+config USBDEV_DMA
+	bool "Enable DMA methods"
+	default n
+	---help---
+		Select this enable DMA-related methods in USB device controller driver
+		interface.  These methods include the DMA buffer allocation methods:
+		allobuffer() and freebuffer().
+
+		The USB class driver allocates packet I/O buffers for data transfer by
+		calling the driver allocbuffer() and freebuffer() methods.  Those methods
+		are only available if USBDEV_DMA is defined in the system configuration.
+
+config USBDEV_DMAMEMORY
+bool "Board DMA Allocation Hooks"
+	default n
+	depends on USBDEV_DMA
+	---help---
+		The USB class driver allocates packet I/O buffers for data transfer by
+		calling the driver allocbuffer() and freebuffer() methods.  Those methods
+		are only available if USBDEV_DMA is defined in the system configuration.
+
+		If USBDEV_DMAMEMORY is also defined in the NuttX configuration, then
+		the driver implementations of the allocbuffer() and freebuffer()
+		methods may use board-specific usbdev_dma_alloc() and usbdev_dma_free().
+		If USBDEV_DMA and USBDEV_DMAMEMORY are both defined, then the board-
+		specific logic must provide the functions usbdev_dma_alloc() and
+		usbdev_dma_free(): usbdev_dma_alloc() will allocate DMA-capable
+		memory of the specified size; usbdev_dma_free() is the corresponding
+		function that will be called to free the DMA-capable memory.
+
+config USBDEV_TRACE
+	bool "Enable USB tracing for debug"
+	default n
+	---help---
+		Enables USB tracing for debug
+
+config USBDEV_TRACE_NRECORDS
+	int "Number of trace entries to remember"
+	default 32 
+	depends on USBDEV_TRACE
+	---help---
+		Number of trace entries to remember
+
+endmenu
+
 menuconfig USBDEV_COMPOSITE
 	bool "USB composite device support"
 	default n
@@ -64,53 +146,6 @@ config COMPOSITE_VERSIONNO
 	---help---
 		Interface version number.
 endif
-
-config USBDEV_ISOCHRONOUS
-	bool "Enable isochronous"
-	default n
-	---help---
-		Build in extra support for isochronous endpoints
-
-config USBDEV_DUALSPEED
-	bool "Enable high and full speed"
-	default n
-	---help---
-		Hardware handles high and full speed operation (USB 2.0)
-
-choice USBDEV_POWERED
-	prompt "Select USB device powered"
-	default USBDEV_SELFPOWERED
-config USBDEV_SELFPOWERED
-	bool "Self powerd"
-	---help---
-		Will cause USB features to indicate that the device is self-powered
-
-config USBDEV_BUSPOWERED
-	bool "Bus powerd"
-	---help---
-		Will cause USB features to indicate that the device is self-powered
-
-endchoice
-
-config USBDEV_MAXPOWER
-	int "Maximum power consumption in mA"
-	default 100
-	depends on USBDEV_BUSPOWERED
-	---help---
-		Maximum power consumption in mA
-
-config USBDEV_TRACE
-	bool "Enable USB tracing for debug"
-	default n
-	---help---
-		Enables USB tracing for debug
-
-config USBDEV_TRACE_NRECORDS
-	int "Number of trace entries to remember"
-	default 32 
-	depends on USBDEV_TRACE
-	---help---
-		Number of trace entries to remember
 
 menuconfig PL2303
 	bool "Emulates the Prolific PL2303 serial/USB converter"

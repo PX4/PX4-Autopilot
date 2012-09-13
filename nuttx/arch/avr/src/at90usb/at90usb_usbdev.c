@@ -313,7 +313,7 @@ static int avr_epdisable(FAR struct usbdev_ep_s *ep);
 static FAR struct usbdev_req_s *avr_epallocreq(FAR struct usbdev_ep_s *ep);
 static void avr_epfreereq(FAR struct usbdev_ep_s *ep,
                           FAR struct usbdev_req_s *);
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
 static void *avr_epallocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes);
 static void avr_epfreebuffer(FAR struct usbdev_ep_s *ep, FAR void *buf);
 #endif
@@ -346,7 +346,7 @@ static const struct usbdev_epops_s g_epops =
   .disable     = avr_epdisable,
   .allocreq    = avr_epallocreq,
   .freereq     = avr_epfreereq,
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
   .allocbuffer = avr_epallocbuffer,
   .freebuffer  = avr_epfreebuffer,
 #endif
@@ -2314,11 +2314,17 @@ static void avr_epfreereq(FAR struct usbdev_ep_s *ep,
  *
  *******************************************************************************/
 
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
 static void *avr_epallocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes)
 {
   usbtrace(TRACE_EPALLOCBUFFER, privep->ep.eplog);
-  return malloc(bytes)}
+
+#ifdef CONFIG_USBDEV_DMAMEMORY
+  return usbdev_dma_alloc(bytes);
+#else
+  return malloc(bytes);
+#endif
+}
 #endif
 
 /*******************************************************************************
@@ -2329,11 +2335,16 @@ static void *avr_epallocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes)
  *
  *******************************************************************************/
 
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
 static void avr_epfreebuffer(FAR struct usbdev_ep_s *ep, FAR void *buf)
 {
   usbtrace(TRACE_EPFREEBUFFER, privep->ep.eplog);
+
+#ifdef CONFIG_USBDEV_DMAMEMORY
+  usbdev_dma_free(buf);
+#else
   free(buf);
+#endif
 }
 #endif
 
