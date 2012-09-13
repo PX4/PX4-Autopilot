@@ -1,5 +1,5 @@
 /****************************************************************************
- * board/xtr_serial.c
+ * config/xtrs/src/xtr_serial.c
  *
  *   Copyright (C) 2008 Jacques Pelletier. All rights reserved.
  *   Author: Jacques Pelletier

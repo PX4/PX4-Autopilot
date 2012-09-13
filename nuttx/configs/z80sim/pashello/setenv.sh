@@ -1,5 +1,5 @@
 #!/bin/bash
-# z80sim/setenv.sh
+# configs/z80sim/pashello/setenv.sh
 #
 #   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

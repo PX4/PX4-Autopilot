@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/z80/src/z80/z80_irq.c
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,14 @@
  * Private Definitions
  ****************************************************************************/
 
+#ifdef CONFIG_SDCC_OLD
+#  define ASM    _asm
+#  define ENDASM _endasm
+#else
+#  define ASM    __asm
+#  define ENDASM __endasm
+#endif
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -80,13 +88,13 @@ volatile chipreg_t *current_regs;
 
 irqstate_t irqsave(void) __naked
 {
-  _asm
+  ASM
 	ld	a, i		; AF Parity bit holds interrupt state
 	di			; Interrupts are disabled
 	push	af		; Return AF in HL
 	pop	hl		;
 	ret			;
-  _endasm;
+  ENDASM;
 }
 
 /****************************************************************************
@@ -99,7 +107,7 @@ irqstate_t irqsave(void) __naked
 
 void irqrestore(irqstate_t flags) __naked
 {
-  _asm
+  ASM
 	di			; Assume disabled
 	pop	hl		; HL = return address
 	pop	af		; AF Parity bit holds interrupt state
@@ -109,5 +117,5 @@ statedisable:
 	push	af		; Restore stack
 	push	hl		;
 	ret			; and return
-  _endasm;
+  ENDASM;
 }

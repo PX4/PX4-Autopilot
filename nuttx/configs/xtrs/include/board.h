@@ -1,5 +1,5 @@
 /************************************************************
- * board/board.h
+ * configs/xtrs/include/board.h
  *
  *   Copyright (C) 2008 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

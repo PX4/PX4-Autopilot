@@ -1,5 +1,5 @@
 #!/bin/bash
-# xtrs/setenv.sh
+# configs/xtrs/ostest/setenv.sh
 #
 #   Copyright (C) 2008 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

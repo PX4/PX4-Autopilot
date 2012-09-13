@@ -1,5 +1,5 @@
 /********************************************************************************
- * board/xtr_lowputc.c
+ * configs/xtrs/src//xtr_lowputc.c
  *
  *   Copyright (C) 2008 Jacques Pelletier. All rights reserved.
  *   Author: Jacques Pelletier

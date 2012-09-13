@@ -1,5 +1,5 @@
 /****************************************************************************
- * board/z80_serial.c
+ * configs/z80sim/src/z80_serial.c
  *
  *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

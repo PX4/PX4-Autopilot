@@ -1,5 +1,5 @@
 /****************************************************************************
- * board/z80_irq.c
+ * configs/z80sim/src/z80_irq.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

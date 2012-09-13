@@ -1,5 +1,5 @@
 /****************************************************************************
- * board/xtr_timerisr.c
+ * configs/xtrs/src/xtr_timerisr.c
  *
  *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

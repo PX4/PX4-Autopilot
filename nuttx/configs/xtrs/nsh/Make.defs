@@ -1,5 +1,5 @@
 ############################################################################
-# configs/xtrs/Make.defs
+# configs/xtrs/nsh/Make.defs
 #
 #   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -36,27 +36,38 @@
 include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+CROSSDEV		=
+CC				= sdcc
+CPP				= sdcpp
+AR				= sdcclib -a
+
+ifeq ($(CONFIG_SDCC_OLD),y)
+
+LD				= link-z80
+AS				= as-z80
+ARCHCPUFLAGS	= -mz80 --stack-auto --int-long-reent --float-reent
+
+else
+
+LD				= sdldz80
+AS				= sdasz80
+ARCHCPUFLAGS	= -mz80
+
+endif
+
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHOPTIMIZATION	= --debug
 else
   ARCHOPTIMIZATION	=
 endif
 
-ARCHCPUFLAGS		= -mz80 --stack-auto --int-long-reent --float-reent
-ARCHPICFLAGS		=
-ARCHWARNINGS		=
+ARCHPICFLAGS	=
+ARCHWARNINGS	=
 ARCHDEFINES		=
-ARCHINCLUDES		= -I. -I$(TOPDIR)/include
-
-CROSSDEV		=
-CC			= sdcc
-CPP			= sdcpp
-LD			= link-z80
-AS			= as-z80
-AR			= sdcclib -a
+ARCHINCLUDES	= -I. -I$(TOPDIR)/include
 
 CFLAGS			= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) \
-			  $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+				  $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 CPPFLAGS		= $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 ASFLAGS			= -x -a -l -o -s
 

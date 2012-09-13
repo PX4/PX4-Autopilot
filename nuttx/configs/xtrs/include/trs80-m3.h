@@ -1,5 +1,5 @@
 /****************************************************************************
- * board/trs80-m3.h
+ * configs/xtrs/include/trs80-m3.h
  *
  *   Copyright (C) 2008 Jacques Pelletier. All rights reserved.
  *   Author: Jacques Pelletier

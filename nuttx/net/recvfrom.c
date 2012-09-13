@@ -1090,7 +1090,8 @@ static ssize_t tcp_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
    * 2) if read-ahead buffering is enabled (CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0)
    *    and delay logic is disabled (CONFIG_NET_TCP_RECVDELAY == 0), then we
    *    not want to wait if we already obtained some data from the read-ahead
-   *    buffer.  In that case, return now with what we have.
+   *    buffer.  In that case, return now with what we have (don't want for more
+   *    because there may be no timeout).
    */
 
 #if CONFIG_NET_TCP_RECVDELAY == 0 && CONFIG_NET_NTCP_READAHEAD_BUFFERS > 0

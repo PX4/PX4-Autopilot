@@ -94,7 +94,7 @@ $(AOBJS) $(HEAD_OBJ): %$(OBJEXT): %$(ASMEXT)
 $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
-# This is a kludge to work around some conflicting symbols in libsdcc.liXqueb
+# This is a kludge to work around some conflicting symbols in libsdcc.lib
 
 $(SDCCLIBDIR)/myz80.lib: $(SDCCLIBDIR)/$(SDCCLIB)
 	@cat $(SDCCLIBDIR)/$(SDCCLIB) | \

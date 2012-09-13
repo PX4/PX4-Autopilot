@@ -1,5 +1,5 @@
 ############################################################################
-# sim/z80sim/nsh/defconfig
+# configs/z80sim/nsh/defconfig
 #
 #   Copyright (C) 2007-2010 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

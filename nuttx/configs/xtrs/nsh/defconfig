@@ -1,5 +1,5 @@
 ############################################################################
-# sim/xtrs/nsh/defconfig
+# configs/xtrs/nsh/defconfig
 #
 #   Copyright (C) 2007-2010, 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
