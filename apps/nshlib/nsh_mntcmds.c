@@ -199,6 +199,7 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   FAR char *target;
   FAR char *filesystem = NULL;
   bool badarg = false;
+  int option;
   int ret;
 
   /* The mount command behaves differently if no parameters are provided */
@@ -214,7 +215,6 @@ int cmd_mount(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
    * logic just sets 'badarg' and continues.
    */
 
-  int option;
   while ((option = getopt(argc, argv, ":t:")) != ERROR)
     {
       switch (option)

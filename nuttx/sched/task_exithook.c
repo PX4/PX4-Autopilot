@@ -44,6 +44,7 @@
 #include <debug.h>
 #include <errno.h>
 
+#include <nuttx/sched.h>
 #include <nuttx/fs/fs.h>
 
 #include "os_internal.h"

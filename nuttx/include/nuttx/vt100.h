@@ -105,7 +105,7 @@
 #define VT100_CURSORPOS(v,h) {ASCII_ESC, '[', (v), ';', (h), 'H'} /* Move cursor to screen location v,h */
 
 #define VT100_HVHOME         {ASCII_ESC, '[', 'f'}            /* Move cursor to upper left corner */
-#define VT100_HVHOME_        {ASCII_ESC, '[', ;', 'f'}        /* Move cursor to upper left corner */
+#define VT100_HVHOME_        {ASCII_ESC, '[', ';', 'f'}       /* Move cursor to upper left corner */
 #define VT100_HVPOS(v,h)     {ASCII_ESC, '[', (v), ';', (h), 'f'} /* Move cursor to screen location v,h */
 #define VT100_INDEX          {ASCII_ESC, 'D'}                 /* Move/scroll window up one line */
 #define VT100_REVINDEX       {ASCII_ESC, 'M'}                 /* Move/scroll window down one line */
@@ -138,7 +138,7 @@
 #define VT100_TERMNOK        {ASCII_ESC, '3', 'n'}            /* Response: terminal is not OK */
 
 #define VT100_GETCURSOR      {ASCII_ESC, '6', 'n'}            /* Get cursor position */
-#define VT100_CURSORPOS      {ASCII_ESC, (v), ';', (h), 'R'}  /* Response: cursor is at v,h */
+#define VT100_CURSORPOSAT    {ASCII_ESC, (v), ';', (h), 'R'}  /* Response: cursor is at v,h */
 
 #define VT100_IDENT          {ASCII_ESC, '[', 'c'}            /* Identify what terminal type */
 #define VT100_IDENT_         {ASCII_ESC, '[', '0', 'c'}       /* Identify what terminal type */
