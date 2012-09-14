@@ -85,3 +85,7 @@ endif
 ifeq ($(CONFIG_NETUTILS_DISCOVER),y)
 CONFIGURED_APPS += netutils/discover
 endif
+
+ifeq ($(CONFIG_NETUTILS_XMLRPC),y)
+CONFIGURED_APPS += netutils/xmlrpc
+endif

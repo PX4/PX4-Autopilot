@@ -1320,3 +1320,11 @@ Where <subdir> is one of the following:
     use NSH, then you don't care about this.  This test is good for
     testing the Telnet daemon only because it works in a simpler
     environment than does the nsh configuration.
+
+  xmlrpc
+  ------
+
+    An example configuration for the Embeddable Lightweight XML-RPC
+    Server at apps/examples/xmlrpc. See http://www.drdobbs.com/web-development/\
+    an-embeddable-lightweight-xml-rpc-server/184405364 for more info.
+    Contributed by Max Holtzberg.

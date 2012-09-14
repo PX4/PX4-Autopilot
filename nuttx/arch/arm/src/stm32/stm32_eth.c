@@ -103,15 +103,30 @@
 
 #ifdef CONFIG_STM32_MII
 #  if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
-#    if !defined(CONFIG_STM32_MII_MCO1) && !defined(CONFIG_STM32_MII_MCO2)
-#      warning "Neither CONFIG_STM32_MII_MCO1 nor CONFIG_STM32_MII_MCO2 defined"
+#    if !defined(CONFIG_STM32_MII_MCO1) && !defined(CONFIG_STM32_MII_MCO2) && !defined(CONFIG_STM32_MII_EXTCLK)
+#      warning "Neither CONFIG_STM32_MII_MCO1, CONFIG_STM32_MII_MCO2, nor CONFIG_STM32_MII_EXTCLK defined"
 #    endif
 #    if defined(CONFIG_STM32_MII_MCO1) && defined(CONFIG_STM32_MII_MCO2)
 #      error "Both CONFIG_STM32_MII_MCO1 and CONFIG_STM32_MII_MCO2 defined"
 #    endif
 #  elif defined(CONFIG_STM32_CONNECTIVITYLINE)
-#    if !defined(CONFIG_STM32_MII_MCO)
-#      warning "CONFIG_STM32_MII_MCO not defined"
+#    if !defined(CONFIG_STM32_MII_MCO) && !defined(CONFIG_STM32_MII_EXTCLK)
+#      warning "Neither CONFIG_STM32_MII_MCO nor CONFIG_STM32_MII_EXTCLK defined"
+#    endif
+#  endif
+#endif
+
+#ifdef CONFIG_STM32_RMII
+#  if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+#    if !defined(CONFIG_STM32_RMII_MCO1) && !defined(CONFIG_STM32_RMII_MCO2) && !defined(CONFIG_STM32_RMII_EXTCLK)
+#      warning "Neither CONFIG_STM32_RMII_MCO1, CONFIG_STM32_RMII_MCO2, nor CONFIG_STM32_RMII_EXTCLK defined"
+#    endif
+#    if defined(CONFIG_STM32_RMII_MCO1) && defined(CONFIG_STM32_RMII_MCO2)
+#      error "Both CONFIG_STM32_RMII_MCO1 and CONFIG_STM32_RMII_MCO2 defined"
+#    endif
+#  elif defined(CONFIG_STM32_CONNECTIVITYLINE)
+#    if !defined(CONFIG_STM32_RMII_MCO) && !defined(CONFIG_STM32_RMII_EXTCLK)
+#      warning "Neither CONFIG_STM32_RMII_MCO nor CONFIG_STM32_RMII_EXTCLK defined"
 #    endif
 #  endif
 #endif
@@ -2735,16 +2750,41 @@ static inline void stm32_ethgpioconfig(FAR struct stm32_ethmac_s *priv)
 
 #elif defined(CONFIG_STM32_RMII)
 
-  /* Setup MCO pin for alternative usage */
-
-#if defined(CONFIG_STM32_MII_MCO)
-  stm32_configgpio(GPIO_MCO);
-  stm32_mcoconfig(BOARD_CFGR_MCO_SOURCE);
-#endif
-
   /* Select the RMII interface */
 
   stm32_selectrmii();
+
+  /* Provide clocking via MCO, MCO1 or MCO2:
+   *
+   * "MCO1 (microcontroller clock output), used to output HSI, LSE, HSE or PLL
+   *  clock (through a configurable prescaler) on PA8 pin."
+   *
+   * "MCO2 (microcontroller clock output), used to output HSE, PLL, SYSCLK or
+   *  PLLI2S clock (through a configurable prescaler) on PC9 pin."
+   */
+
+# if defined(CONFIG_STM32_RMII_MCO1)
+  /* Configure MC01 to drive the PHY.  Board logic must provide MC01 clocking
+   * info.
+   */
+
+  stm32_configgpio(GPIO_MCO1);
+  stm32_mco1config(BOARD_CFGR_MC01_SOURCE, BOARD_CFGR_MC01_DIVIDER);
+
+# elif defined(CONFIG_STM32_RMII_MCO2)
+  /* Configure MC02 to drive the PHY.  Board logic must provide MC02 clocking
+   * info.
+   */
+
+  stm32_configgpio(GPIO_MCO2);
+  stm32_mco2config(BOARD_CFGR_MC02_SOURCE, BOARD_CFGR_MC02_DIVIDER);
+
+# elif defined(CONFIG_STM32_RMII_MCO)
+  /* Setup MCO pin for alternative usage */
+
+  stm32_configgpio(GPIO_MCO);
+  stm32_mcoconfig(BOARD_CFGR_MCO_SOURCE);
+# endif
 
   /* RMII interface pins (7):
    *

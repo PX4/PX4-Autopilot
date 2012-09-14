@@ -181,6 +181,7 @@ static inline void task_onexit(FAR _TCB *tcb, int status)
       tcb->onexitfunc = NULL;
     }
 #endif
+}
 #else
 #  define task_onexit(tcb,status)
 #endif

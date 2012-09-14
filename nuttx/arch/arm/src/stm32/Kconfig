@@ -1670,6 +1670,12 @@ config STM32_MII_MCO2
 	---help---
 		Use MCO2 to clock the MII interface.  Default:  Use MC01
 
+config STM32_MII_EXTCLK
+	bool "External MII clock"
+	---help---
+		Clocking is provided by external logic.  Don't use MCO for MII
+		clock.  Default:  Use MC0[1]
+
 endchoice
 
 config STM32_AUTONEG
@@ -1745,6 +1751,38 @@ config STM32_RMII
 	bool
 	default y if !STM32_MII
 	depends on STM32_ETHMAC
+
+choice
+	prompt "RMII clock configuration"
+	default STM32_RMII_MCO if STM32_STM32F10XX
+	default STM32_RMII_MCO1 if STM32_STM32F20XX || STM32_STM32F40XX
+	depends on STM32_RMII
+
+config STM32_RMII_MCO
+	bool "Use MC0 as RMII clock"
+	depends on STM32_STM32F10XX
+	---help---
+		Use MCO to clock the RMII interface.  Default:  Use MC0
+
+config STM32_RMII_MCO1
+	bool "Use MC01 as RMII clock"
+	depends on (STM32_STM32F20XX || STM32_STM32F40XX)
+	---help---
+		Use MCO1 to clock the RMII interface.  Default:  Use MC01
+
+config STM32_RMII_MCO2
+	bool "Use MC02 as RMII clock"
+	depends on (STM32_STM32F20XX || STM32_STM32F40XX)
+	---help---
+		Use MCO2 to clock the RMII interface.  Default:  Use MC01
+
+config STM32_RMII_EXTCLK
+	bool "External RMII clock"
+	---help---
+		Clocking is provided by external logic.  Don't use MCO for RMII
+		clock.  Default:  Use MC0[1]
+
+endchoice
 
 menu "USB Host Configuration"
 

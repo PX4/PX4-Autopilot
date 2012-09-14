@@ -1,8 +1,9 @@
+#!/usr/bin/env python
 ############################################################################
-# apps/netutils/Makefile
+# tools/xmlrpc_test.py
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <gnutt@nuttx.org>
+#   Copyright (C) 2012 Max Holtzberg. All rights reserved.
+#   Author: Max Holtzberg <mh@uvc.de>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,34 +34,15 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config	# Current configuration
+import sys
+import xmlrpclib
 
-# Sub-directories
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        print 'Usage: %s <ip address>' % sys.argv[0]
+        quit(1)
 
-ifeq ($(CONFIG_NET),y)
-SUBDIRS  = uiplib dhcpc dhcpd discover ftpc ftpd resolv smtp telnetd
-SUBDIRS += webclient webserver tftpc thttpd xmlrpc
-endif
-
-all: nothing
-
-.PHONY: nothing context depend clean distclean
-
-nothing:
-
-context:
-
-depend:
-	@for dir in $(SUBDIRS) ; do \
-		$(MAKE) -C $$dir depend TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
-	done
-
-clean:
-	@for dir in $(SUBDIRS) ; do \
-		$(MAKE) -C $$dir clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
-	done
-
-distclean: clean
-	@for dir in $(SUBDIRS) ; do \
-		$(MAKE) -C $$dir distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
-	done
+    server_url = 'http://%s/device' % sys.argv[1]
+    server = xmlrpclib.ServerProxy(server_url)
+    result = server.get_device_stats("username", "password", 0)
+    print result

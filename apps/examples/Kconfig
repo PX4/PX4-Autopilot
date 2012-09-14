@@ -202,3 +202,7 @@ endmenu
 menu "WLAN Example"
 source "$APPSDIR/examples/wlan/Kconfig"
 endmenu
+
+menu "XML RPC Example"
+source "$APPSDIR/examples/xmlrpc/Kconfig"
+endmenu

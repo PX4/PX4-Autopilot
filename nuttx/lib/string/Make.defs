@@ -42,11 +42,7 @@ CSRCS += lib_checkbase.c lib_isbasedigit.c lib_memset.c lib_memchr.c \
 		 lib_strncasecmp.c lib_strncat.c lib_strncmp.c lib_strncpy.c \
 		 lib_strndup.c lib_strcasestr.c lib_strpbrk.c lib_strrchr.c\
 		 lib_strspn.c lib_strstr.c lib_strtok.c lib_strtokr.c lib_strtol.c \
-		 lib_strtoll.c lib_strtoul.c lib_strtoull.c
-
-ifeq ($(CONFIG_LIBC_FLOATINGPOINT),y)
-CSRCS += lib_strtod.c
-endif
+		 lib_strtoll.c lib_strtoul.c lib_strtoull.c lib_strtod.c
 
 # Add the string directory to the build
 

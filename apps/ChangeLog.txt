@@ -325,4 +325,8 @@
 	  utility (also contribed by Max Holtzberg).
 	* apps/examples/*/main.c:  Too many files called main.c.  Each renamed
 	  to something unique so that they will not collide in the archive.
+	* apps/netutils/xmlrpc: The Embeddable Lightweight XML-RPC Server
+	  discussed at http://www.drdobbs.com/web-development/\
+	  an-embeddable-lightweight-xml-rpc-server/184405364.  Contributed by
+	  Max Holtzberg.
 

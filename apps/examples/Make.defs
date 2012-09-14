@@ -225,3 +225,7 @@ endif
 ifeq ($(CONFIG_EXAMPLES_WLAN),y)
 CONFIGURED_APPS += examples/wlan
 endif
+
+ifeq ($(CONFIG_EXAMPLES_XMLRPC),y)
+CONFIGURED_APPS += examples/xmlrpc
+endif

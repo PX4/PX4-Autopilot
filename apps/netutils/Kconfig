@@ -56,3 +56,7 @@ endmenu
 menu "UDP Discovery Utility"
 source "$APPSDIR/netutils/discover/Kconfig"
 endmenu
+
+menu "XML-RPC library"
+source "$APPSDIR/netutils/xmlrpc/Kconfig"
+endmenu

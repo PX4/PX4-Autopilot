@@ -3341,4 +3341,11 @@
 	  is enabled and (2) some data was obtained from read-ahead buffers.
 	  Blocking is a bad idea in that case because there is no timeout!
 	  (submitted by Max Holtzberg).
-
+	* configs/stm3240g-eval/xmlrpc: An example configuration for the
+	  Embeddable Lightweight XML-RPC Server at apps/examples/xmlrpc.
+	  See http://www.drdobbs.com/web-development/\
+	  an-embeddable-lightweight-xml-rpc-server/184405364 for more info.
+	  Contributed by Max Holtzberg.
+	* configs/*/nxwm/defconfig and sched/task_exithook.c: Fixes for
+	  bugs that crept in during recent changes.  (Submitted by Max
+	  Holtzberg).

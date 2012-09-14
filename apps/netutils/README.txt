@@ -66,6 +66,8 @@ highly influenced by uIP) include:
 
                CONFIGURED_APPS += uiplib
                CONFIGURED_APPS += thttpd
+  xmlrpc    - The Embeddable Lightweight XML-RPC Server discussed at
+              http://www.drdobbs.com/web-development/an-embeddable-lightweight-xml-rpc-server/184405364
 
 Tips for Using Telnetd
 ^^^^^^^^^^^^^^^^^^^^^^
