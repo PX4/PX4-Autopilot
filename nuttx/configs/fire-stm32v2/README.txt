@@ -765,9 +765,17 @@ Where <subdir> is one of the following:
     contains support for some built-in applications that can be enabled by making
     some additional minor change to the configuration file.
 
-    NOTE:  This configuration uses to the mconf configuration tool to control
+    Reconfiguring:  This configuration uses to the mconf configuration tool to control
     the configuration.  See the section entitled "NuttX Configuration Tool"
     in the top-level README.txt file.
+
+    Start Delays:  If no SD card is present in the slot, or if the network is not
+    connected, then there will be long start-up delays before you get the NSH
+    prompt.  If I am focused on ENC28J60 debug, I usually disable MMC/SD so that
+    I don't have to bother with the SD card:
+
+      CONFIG_STM32_SDIO=n
+      CONFIG_MMCSD=n
 
     STATUS:  The board port is basically functional. Not all features have been
     verified.  The ENC28J60 network is not yet functional.  Networking is

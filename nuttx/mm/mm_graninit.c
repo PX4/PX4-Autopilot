@@ -158,11 +158,10 @@ gran_common_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gran,
  *   Set up one granule allocator instance.  Allocations will be aligned to
  *   the alignment size (log2align; allocations will be in units of the
  *   granule size (log2gran). Larger granules will give better performance
- *   and less overhead but more losses of memory due to alignment
- *   quantization waste.  Additional memory waste can occur form alignment;
- *   log2align should be set to 0 unless you are using the granule allocator
- *   to manage DMA memory and your hardware has specific memory alignment
- *   requirements.
+ *   and less overhead but more losses of memory due to quantization waste.
+ *   Additional memory waste can occur from alignment; log2align should be
+ *   set to 0 unless you are using the granule allocator to manage DMA memory
+ *   and your hardware has specific memory alignment requirements.
  *
  *   Geneneral Usage Summary.  This is an example using the GCC section
  *   attribute to position a DMA heap in memory (logic in the linker script

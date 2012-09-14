@@ -652,13 +652,13 @@ static uint8_t enc_rdbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg)
 
   DEBUGASSERT(priv && priv->spi);
 
-  /* Select ENC28J60 chip */
-
-  enc_select(priv);
-
   /* Set the bank */
 
   enc_setbank(priv, GETBANK(ctrlreg));
+
+  /* Select ENC28J60 chip */
+
+  enc_select(priv);
 
   /* Send the RCR command and collect the data.  How we collect the data
    * depends on if this is a PHY/CAN or not.  The normal sequence requires
@@ -672,10 +672,10 @@ static uint8_t enc_rdbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg)
        * 8 dummy bits, and 8 to clock in the PHY/MAC data.
        */
 
-      (void)SPI_SEND(priv->spi, 0);                      /* Clock in the dummy byte */
+      (void)SPI_SEND(priv->spi, 0); /* Clock in the dummy byte */
     }
 
-  rddata = SPI_SEND(priv->spi, 0);                       /* Clock in the data */
+  rddata = SPI_SEND(priv->spi, 0);  /* Clock in the data */
 
   /* De-select ENC28J60 chip */
 

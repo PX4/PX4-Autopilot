@@ -47,6 +47,7 @@
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 
+#include "stm32_sdio.h"
 #include "fire-internal.h"
 
 /****************************************************************************
