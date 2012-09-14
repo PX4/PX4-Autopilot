@@ -164,6 +164,7 @@ int nsh_netinit(void)
         dhcpc_close(handle);
     }
 #endif
+
   return OK;
 }
 

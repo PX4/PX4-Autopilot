@@ -16,6 +16,7 @@ config EXAMPLES_XMLRPC
 config EXAMPLES_XMLRPC_BUFFERSIZE
 	int "HTTP buffer size"
 	default 1024
+	depends on EXAMPLES_XMLRPC
 
 config EXAMPLES_XMLRPC_DHCPC
 	bool "DHCP Client"

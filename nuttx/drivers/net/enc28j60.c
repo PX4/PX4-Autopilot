@@ -1383,7 +1383,14 @@ static void enc_worker(FAR void *arg)
 
   DEBUGASSERT(priv);
 
-  /* Disable further interrupts by clearing the global interrup enable bit */
+  /* Disable further interrupts by clearing the global interrupt enable bit.
+   * "After an interrupt occurs, the host controller should clear the global
+   * enable bit for the interrupt pin before servicing the interrupt. Clearing
+   * the enable bit will cause the interrupt pin to return to the non-asserted
+   * state (high). Doing so will prevent the host controller from missing a
+   * falling edge should another interrupt occur while the immediate interrupt
+   * is being serviced."
+   */
 
   enc_bfcgreg(priv, ENC_EIE, EIE_INTIE);
 
@@ -1551,12 +1558,17 @@ static void enc_worker(FAR void *arg)
           enc_rxerif(priv);                       /* Handle the RX error */
           enc_bfcgreg(priv, ENC_EIR, EIR_RXERIF); /* Clear the RXERIF interrupt */
         }
-
     }
 
   /* Enable Ethernet interrupts */
 
   enc_bfsgreg(priv, ENC_EIE, EIE_INTIE);
+
+  /* Enable GPIO interrupts if they were disbled in enc_interrupt */
+
+#ifndef CONFIG_SPI_OWNBUS
+  priv->lower->enable(priv->lower);
+#endif
 }
 
 /****************************************************************************
@@ -1596,6 +1608,14 @@ static int enc_interrupt(int irq, FAR void *context)
    * a good thing to do in any event.
    */
 
+  DEBUGASSERT(work_available(&priv->work));
+
+  /* Notice that further GPIO interrupts are disabled until the work is
+   * actually performed.  This is to prevent overrun of the worker thread.
+   * Interrupts are re-enabled in enc_worker() when the work is completed.
+   */
+
+  priv->lower->disable(priv->lower);
   return work_queue(HPWORK, &priv->work, enc_worker, (FAR void *)priv, 0);
 #endif
 }
