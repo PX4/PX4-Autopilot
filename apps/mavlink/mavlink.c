@@ -777,10 +777,10 @@ static void *uorb_receiveloop(void *arg)
 				last_sensor_timestamp = buf.raw.timestamp;
 
 				/* send raw imu data */
-				mavlink_msg_raw_imu_send(MAVLINK_COMM_0, last_sensor_timestamp, buf.raw.accelerometer_raw[0],
-					buf.raw.accelerometer_raw[1], buf.raw.accelerometer_raw[2], buf.raw.gyro_raw[0],
-					buf.raw.gyro_raw[1], buf.raw.gyro_raw[2], buf.raw.magnetometer_raw[0],
-					buf.raw.magnetometer_raw[1], buf.raw.magnetometer_raw[2]);
+				// mavlink_msg_raw_imu_send(MAVLINK_COMM_0, last_sensor_timestamp, buf.raw.accelerometer_raw[0],
+				// 	buf.raw.accelerometer_raw[1], buf.raw.accelerometer_raw[2], buf.raw.gyro_raw[0],
+				// 	buf.raw.gyro_raw[1], buf.raw.gyro_raw[2], buf.raw.magnetometer_raw[0],
+				// 	buf.raw.magnetometer_raw[1], buf.raw.magnetometer_raw[2]);
 
 				/* mark individual fields as changed */
 				uint16_t fields_updated = 0;
@@ -835,7 +835,7 @@ static void *uorb_receiveloop(void *arg)
 				orb_copy(ORB_ID(vehicle_attitude), subs->att_sub, &buf.att);
 
 				/* send sensor values */
-				mavlink_msg_attitude_send(MAVLINK_COMM_0, last_sensor_timestamp, buf.att.roll, buf.att.pitch, buf.att.yaw, buf.att.rollspeed, buf.att.pitchspeed, buf.att.yawspeed);
+				mavlink_msg_attitude_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000, buf.att.roll, buf.att.pitch, buf.att.yaw, buf.att.rollspeed, buf.att.pitchspeed, buf.att.yawspeed);
 
 				attitude_counter++;
 			}
@@ -1073,7 +1073,7 @@ static void *uorb_receiveloop(void *arg)
 				/* copy local position data into local buffer */
 				orb_copy(ORB_ID(manual_control_setpoint), subs->man_control_sp_sub, &buf.man_control);
 				mavlink_msg_manual_control_send(MAVLINK_COMM_0, mavlink_system.sysid, buf.man_control.roll,
-					buf.man_control.pitch, buf.man_control.yaw, buf.man_control.throttle, 1, 1, 1, 1);
+					buf.man_control.pitch, buf.man_control.yaw, buf.man_control.throttle, 0);
 			}
 
 			/* --- ACTUATOR ARMED --- */
@@ -1320,23 +1320,23 @@ void handleMessage(mavlink_message_t *msg)
 			memset(&rc_hil, 0, sizeof(rc_hil));
 			static orb_advert_t rc_pub = 0;
 
-			rc_hil.chan[0].raw = 1510 + man.roll * 500;
-			rc_hil.chan[1].raw = 1520 + man.pitch * 500;
-			rc_hil.chan[2].raw = 1590 + man.yaw * 500;
-			rc_hil.chan[3].raw = 1420 + man.thrust * 500;
+			rc_hil.chan[0].raw = 1510 + man.x * 500;
+			rc_hil.chan[1].raw = 1520 + man.y * 500;
+			rc_hil.chan[2].raw = 1590 + man.r * 500;
+			rc_hil.chan[3].raw = 1420 + man.z * 500;
 
-			rc_hil.chan[0].scaled = man.roll;
-			rc_hil.chan[1].scaled = man.pitch;
-			rc_hil.chan[2].scaled = man.yaw;
-			rc_hil.chan[3].scaled = man.thrust;
+			rc_hil.chan[0].scaled = man.x;
+			rc_hil.chan[1].scaled = man.y;
+			rc_hil.chan[2].scaled = man.r;
+			rc_hil.chan[3].scaled = man.z;
 
 			struct manual_control_setpoint_s mc;
 			static orb_advert_t mc_pub = 0;
 
-			mc.roll = man.roll;
-			mc.pitch = man.roll;
-			mc.yaw = man.roll;
-			mc.roll = man.roll;
+			mc.roll = man.x;
+			mc.pitch = man.y;
+			mc.yaw = man.r;
+			mc.roll = man.z;
 
 			/* fake RC channels with manual control input from simulator */
 
@@ -1578,15 +1578,15 @@ int mavlink_thread_main(int argc, char *argv[])
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 200);
 	} else if (baudrate >= 230400) {
 		/* 200 Hz / 5 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 5);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_RAW_IMU, 100);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 20);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_RAW_IMU, 20);
 		/* 50 Hz / 20 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 50);
 		/* 20 Hz / 50 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 50);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 50);
 		/* 2 Hz */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 100);
 	} else if (baudrate >= 115200) {
 		/* 50 Hz / 20 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 20);

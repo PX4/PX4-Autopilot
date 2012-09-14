@@ -53,6 +53,7 @@
 #define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
 
 struct actuator_controls_s {
+	uint64_t timestamp;
 	float	control[NUM_ACTUATOR_CONTROLS];
 };
 

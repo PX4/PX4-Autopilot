@@ -195,10 +195,12 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		errx(1, "unable to create logging folder, exiting");
 
 	/* create sensorfile */
-	int sensorfile;
+	int sensorfile = -1;
 	unsigned sensor_combined_bytes = 0;
-	int actuator_outputs_file;
+	int actuator_outputs_file = -1;
 	unsigned actuator_outputs_bytes = 0;
+	int actuator_controls_file = -1;
+	unsigned actuator_controls_bytes = 0;
 	FILE *gpsfile;
 	unsigned blackbox_file_bytes = 0;
 	FILE *blackbox_file;
@@ -208,18 +210,23 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	printf("[sdlog] logging to directory %s\n", folder_path);
 
-	/* set up file path: e.g. /mnt/sdcard/session0001/sensors_combined.bin */
-	sprintf(path_buf, "%s/%s.bin", folder_path, "sensors_combined");
+	/* set up file path: e.g. /mnt/sdcard/session0001/sensor_combined.bin */
+	sprintf(path_buf, "%s/%s.bin", folder_path, "sensor_combined");
 	if (0 == (sensorfile = open(path_buf, O_CREAT | O_WRONLY | O_DSYNC))) {
 		errx(1, "opening %s failed.\n", path_buf);
 	}
 
-	/* set up file path: e.g. /mnt/sdcard/session0001/actuator_outputs0.bin */
-	sprintf(path_buf, "%s/%s.bin", folder_path, "actuator_outputs0");
-	if (0 == (actuator_outputs_file = open(path_buf, O_CREAT | O_WRONLY | O_DSYNC))) {
+	// /* set up file path: e.g. /mnt/sdcard/session0001/actuator_outputs0.bin */
+	// sprintf(path_buf, "%s/%s.bin", folder_path, "actuator_outputs0");
+	// if (0 == (actuator_outputs_file = open(path_buf, O_CREAT | O_WRONLY | O_DSYNC))) {
+	// 	errx(1, "opening %s failed.\n", path_buf);
+	// }
+
+	/* set up file path: e.g. /mnt/sdcard/session0001/actuator_controls0.bin */
+	sprintf(path_buf, "%s/%s.bin", folder_path, "actuator_controls0");
+	if (0 == (actuator_controls_file = open(path_buf, O_CREAT | O_WRONLY | O_DSYNC))) {
 		errx(1, "opening %s failed.\n", path_buf);
 	}
-	int actuator_outputs_file_no = actuator_outputs_file;
 
 	/* set up file path: e.g. /mnt/sdcard/session0001/gps.txt */
 	sprintf(path_buf, "%s/%s.txt", folder_path, "gps");
@@ -249,7 +256,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		struct vehicle_attitude_s att;
 		struct vehicle_attitude_setpoint_s att_sp;
 		struct actuator_outputs_s act_outputs;
-		struct actuator_controls_s actuators;
+		struct actuator_controls_s act_controls;
 		struct vehicle_command_s cmd;
 	} buf;
 
@@ -259,7 +266,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		int att_sub;
 		int spa_sub;
 		int act_0_sub;
-		int actuators_sub;
+		int controls0_sub;
 	} subs;
 
 	/* --- MANAGEMENT - LOGGING COMMAND --- */
@@ -299,8 +306,8 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	/* --- ACTUATOR CONTROL VALUE --- */
 	/* subscribe to ORB for actuator control */
-	subs.actuators_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-	fds[fdsc_count].fd = subs.actuators_sub;
+	subs.controls0_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	fds[fdsc_count].fd = subs.controls0_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -338,9 +345,10 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 			int ifds = 0;
 
-			if (poll_count % 2000 == 0) {
+			if (poll_count % 5000 == 0) {
 				fsync(sensorfile);
-				fsync(actuator_outputs_file_no);
+				fsync(actuator_outputs_file);
+				fsync(actuator_controls_file);
 				fsync(blackbox_file_no);
 			}
 			poll_count++;
@@ -349,7 +357,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy command into local buffer */
 				orb_copy(ORB_ID(vehicle_command), subs.cmd_sub, &buf.cmd);
-				blackbox_file_bytes += fprintf(blackbox_file, "[%10.4f\tVCMD] CMD #%d [%f-%f-%f-%f-%f-%f-%f]\n", hrt_absolute_time()/1000000.0d,
+				blackbox_file_bytes += fprintf(blackbox_file, "[%10.4f\tVCMD] CMD #%d [%f\t%f\t%f\t%f\t%f\t%f\t%f]\n", hrt_absolute_time()/1000000.0d,
 					buf.cmd.command, (double)buf.cmd.param1, (double)buf.cmd.param2, (double)buf.cmd.param3, (double)buf.cmd.param4,
 					(double)buf.cmd.param5, (double)buf.cmd.param6, (double)buf.cmd.param7);
 			}
@@ -360,7 +368,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 				/* copy sensors raw data into local buffer */
 				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.raw);
 				/* write out */
-				sensor_combined_bytes += write(sensorfile, (const char*)&buf.raw, sizeof(buf.raw));
+				sensor_combined_bytes += write(sensorfile, (const char*)&(buf.raw), sizeof(buf.raw));
 			}
 
 			/* --- ATTITUDE VALUE --- */
@@ -384,18 +392,19 @@ int sdlog_thread_main(int argc, char *argv[]) {
 				/* copy actuator data into local buffer */
 				orb_copy(ORB_ID(actuator_outputs_0), subs.act_0_sub, &buf.act_outputs);
 				/* write out */
-				actuator_outputs_bytes += write(actuator_outputs_file, (const char*)&buf.raw, sizeof(buf.raw));
+				// actuator_outputs_bytes += write(actuator_outputs_file, (const char*)&buf.act_outputs, sizeof(buf.act_outputs));
 			}
 
 			/* --- ACTUATOR CONTROL --- */
 			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.actuators_sub, &buf.actuators);
-				
+				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.controls0_sub, &buf.act_controls);
+				/* write out */
+				actuator_controls_bytes += write(actuator_controls_file, (const char*)&buf.act_controls, sizeof(buf.act_controls));
 			}
 		}
 	}
 
-	unsigned bytes = sensor_combined_bytes + actuator_outputs_bytes + blackbox_file_bytes;
+	unsigned bytes = sensor_combined_bytes + actuator_outputs_bytes + blackbox_file_bytes + actuator_controls_bytes;
 	float mebibytes = bytes / 1024.0f / 1024.0f;
 	float seconds = ((float)(hrt_absolute_time() - starttime)) / 1000000.0f;
 
@@ -404,7 +413,8 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	printf("[sdlog] exiting.\n");
 
 	close(sensorfile);
-	close(gpsfile);
+	close(actuator_outputs_file);
+	close(actuator_controls_file);
 	fclose(gpsfile);
 	fclose(blackbox_file);
 
