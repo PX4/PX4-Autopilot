@@ -956,7 +956,8 @@ static int up_setup(struct uart_dev_s *dev)
 
   /* Set up the cached interrupt enables value */
 
-  priv->ie    = 0;
+  up_restoreusartint(priv, 0);
+
   return OK;
 }
 
@@ -976,12 +977,15 @@ static int up_dma_setup(struct uart_dev_s *dev)
   int result;
   uint32_t regval;
 
-  /* Do the basic UART setup first */
+  /* Do the basic UART setup first, unless we are the console */
 
-  result = up_setup(dev);
-  if (result != OK)
-    {
-      return result;
+  if (!dev->isconsole)
+    {    
+      result = up_setup(dev);
+      if (result != OK)
+        {
+          return result;
+        }
     }
 
   /* Acquire the DMA channel.  This should always succeed. */
@@ -1941,10 +1945,10 @@ void stm32_serial_dma_poll(void)
 int up_putc(int ch)
 {
 #if CONSOLE_UART > 0
-  struct up_dev_s *priv = uart_devs[CONSOLE_UART - 1];
-  uint16_t ie;
+//  struct up_dev_s *priv = uart_devs[CONSOLE_UART - 1];
+//  uint16_t ie;
 
-  up_disableusartint(priv, &ie);
+//  up_disableusartint(priv, &ie);
 
   /* Check for LF */
 
@@ -1956,7 +1960,7 @@ int up_putc(int ch)
     }
 
   up_lowputc(ch);
-  up_restoreusartint(priv, ie);
+//  up_restoreusartint(priv, ie);
 #endif
   return ch;
 }

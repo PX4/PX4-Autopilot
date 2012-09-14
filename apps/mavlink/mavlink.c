@@ -748,6 +748,13 @@ static void *uorb_receiveloop(void *arg)
 	 */
 	const int timeout = 1000;
 
+	/*
+	 * Last sensor loop time
+	 * some outputs are better timestamped
+	 * with this "global" reference.
+	 */
+	uint64_t last_sensor_timestamp = 0;
+
 	while (!thread_should_exit) {
 
 		int poll_ret = poll(fds, fdsc_count, timeout);
@@ -767,8 +774,10 @@ static void *uorb_receiveloop(void *arg)
 				/* copy sensors raw data into local buffer */
 				orb_copy(ORB_ID(sensor_combined), subs->sensor_sub, &buf.raw);
 
+				last_sensor_timestamp = buf.raw.timestamp;
+
 				/* send raw imu data */
-				mavlink_msg_raw_imu_send(MAVLINK_COMM_0, buf.raw.timestamp, buf.raw.accelerometer_raw[0],
+				mavlink_msg_raw_imu_send(MAVLINK_COMM_0, last_sensor_timestamp, buf.raw.accelerometer_raw[0],
 					buf.raw.accelerometer_raw[1], buf.raw.accelerometer_raw[2], buf.raw.gyro_raw[0],
 					buf.raw.gyro_raw[1], buf.raw.gyro_raw[2], buf.raw.magnetometer_raw[0],
 					buf.raw.magnetometer_raw[1], buf.raw.magnetometer_raw[2]);
@@ -804,7 +813,7 @@ static void *uorb_receiveloop(void *arg)
 					baro_counter = buf.raw.baro_counter;
 				}
 
-				mavlink_msg_highres_imu_send(MAVLINK_COMM_0, buf.raw.timestamp,
+				mavlink_msg_highres_imu_send(MAVLINK_COMM_0, last_sensor_timestamp,
 					buf.raw.accelerometer_m_s2[0], buf.raw.accelerometer_m_s2[1],
 					buf.raw.accelerometer_m_s2[2], buf.raw.gyro_rad_s[0],
 					buf.raw.gyro_rad_s[1], buf.raw.gyro_rad_s[2],
@@ -826,7 +835,7 @@ static void *uorb_receiveloop(void *arg)
 				orb_copy(ORB_ID(vehicle_attitude), subs->att_sub, &buf.att);
 
 				/* send sensor values */
-				mavlink_msg_attitude_send(MAVLINK_COMM_0, buf.att.timestamp / 1000, buf.att.roll, buf.att.pitch, buf.att.yaw, buf.att.rollspeed, buf.att.pitchspeed, buf.att.yawspeed);
+				mavlink_msg_attitude_send(MAVLINK_COMM_0, last_sensor_timestamp, buf.att.roll, buf.att.pitch, buf.att.yaw, buf.att.rollspeed, buf.att.pitchspeed, buf.att.yawspeed);
 
 				attitude_counter++;
 			}
@@ -933,17 +942,17 @@ static void *uorb_receiveloop(void *arg)
 
 					/* HIL message as per MAVLink spec */
 					mavlink_msg_hil_controls_send(chan,
-										hrt_absolute_time(),
-										buf.att_sp.roll_body, /* this may be replaced by ctrl0 later */
-										buf.att_sp.pitch_body,
-										buf.att_sp.yaw_body,
-										buf.att_sp.thrust,
-										0,
-										0,
-										0,
-										0,
-										mavlink_mode,
-										0);
+						hrt_absolute_time(),
+						buf.att_sp.roll_body, /* this may be replaced by ctrl0 later */
+						buf.att_sp.pitch_body,
+						buf.att_sp.yaw_body,
+						buf.att_sp.thrust,
+						0,
+						0,
+						0,
+						0,
+						mavlink_mode,
+						0);
 				}
 			}
 
@@ -951,7 +960,7 @@ static void *uorb_receiveloop(void *arg)
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy actuator data into local buffer */
 				orb_copy(ORB_ID(actuator_outputs_0), subs->act_0_sub, &buf.act_outputs);
-				mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+				mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp/1000,
 					0 /* port 0 */,
 					buf.act_outputs.output[0],
 					buf.act_outputs.output[1],
@@ -979,7 +988,7 @@ static void *uorb_receiveloop(void *arg)
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy actuator data into local buffer */
 				orb_copy(ORB_ID(actuator_outputs_1), subs->act_1_sub, &buf.act_outputs);
-				mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+				mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp/1000,
 					(NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) ? 2 : 1 /* port 2 or 1*/,
 					buf.act_outputs.output[0],
 					buf.act_outputs.output[1],
@@ -990,7 +999,7 @@ static void *uorb_receiveloop(void *arg)
 					buf.act_outputs.output[6],
 					buf.act_outputs.output[7]);
 				if (NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) {
-					mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+					mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp/1000,
 					3 /* port 3 */,
 					buf.act_outputs.output[ 8],
 					buf.act_outputs.output[ 9],
@@ -1007,7 +1016,7 @@ static void *uorb_receiveloop(void *arg)
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy actuator data into local buffer */
 				orb_copy(ORB_ID(actuator_outputs_2), subs->act_2_sub, &buf.act_outputs);
-				mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+				mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp/1000,
 					(NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) ? 4 : 2 /* port 4 or 2 */,
 					buf.act_outputs.output[0],
 					buf.act_outputs.output[1],
@@ -1018,7 +1027,7 @@ static void *uorb_receiveloop(void *arg)
 					buf.act_outputs.output[6],
 					buf.act_outputs.output[7]);
 				if (NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) {
-					mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+					mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp/1000,
 					5 /* port 5 */,
 					buf.act_outputs.output[ 8],
 					buf.act_outputs.output[ 9],
@@ -1035,7 +1044,7 @@ static void *uorb_receiveloop(void *arg)
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy actuator data into local buffer */
 				orb_copy(ORB_ID(actuator_outputs_3), subs->act_3_sub, &buf.act_outputs);
-				mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+				mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp/1000,
 					(NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) ? 6 : 3 /* port 6 or 3 */,
 					buf.act_outputs.output[0],
 					buf.act_outputs.output[1],
@@ -1046,7 +1055,7 @@ static void *uorb_receiveloop(void *arg)
 					buf.act_outputs.output[6],
 					buf.act_outputs.output[7]);
 				if (NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) {
-					mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
+					mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp/1000,
 					7 /* port 7 */,
 					buf.act_outputs.output[ 8],
 					buf.act_outputs.output[ 9],
@@ -1075,16 +1084,16 @@ static void *uorb_receiveloop(void *arg)
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs->actuators_sub, &buf.actuators);
 				/* send, add spaces so that string buffer is at least 10 chars long */
-				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl0     ", buf.actuators.control[0]);
-				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl1     ", buf.actuators.control[1]);
-				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl2     ", buf.actuators.control[2]);
-				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, "ctrl3     ", buf.actuators.control[3]);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000, "ctrl0       ", buf.actuators.control[0]);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000, "ctrl1       ", buf.actuators.control[1]);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000, "ctrl2       ", buf.actuators.control[2]);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000, "ctrl3       ", buf.actuators.control[3]);
 			}
 
 			/* --- DEBUG KEY/VALUE --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(debug_key_value), subs->debug_key_value, &buf.debug);
-				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, hrt_absolute_time() / 1000, buf.debug.key, buf.debug.value);
+				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000, buf.debug.key, buf.debug.value);
 			}
 		}
 	}
