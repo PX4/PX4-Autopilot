@@ -28,7 +28,8 @@ ROMFS_FSSPEC	:= $(SRCROOT)/scripts/rcS~init.d/rcS \
 		   $(SRCROOT)/mixers/FMU_AET.mix~mixers/FMU_AET.mix \
 		   $(SRCROOT)/mixers/FMU_RET.mix~mixers/FMU_ERT.mix \
 		   $(SRCROOT)/mixers/FMU_quad_x.mix~mixers/FMU_quad_x.mix \
-		   $(SRCROOT)/mixers/FMU_quad_+.mix~mixers/FMU_quad_+.mix
+		   $(SRCROOT)/mixers/FMU_quad_+.mix~mixers/FMU_quad_+.mix \
+		   $(SRCROOT)/logging/sdcard_logconverter.m~logging/sdcard_logconverter.m
 
 #
 # Add the PX4IO firmware to the spec if someone has dropped it into the
