@@ -63,7 +63,7 @@ ARCHIVER=$(TESTTOOL_DIR)/addobjs.sh
 
 ASRCS		=
 CSRCS		=
-CXXSRCS		= main.cxx ckeypadtest.cxx
+CXXSRCS		= ckeypad_main.cxx ckeypadtest.cxx
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

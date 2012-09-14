@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/CLabel/main.cxx
+// NxWidgets/UnitTests/CLabel/clabel_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -68,7 +68,7 @@ static const char g_hello[] = "Hello, World!";
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
+extern "C" int clabel_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Public Functions
@@ -78,29 +78,29 @@ extern "C" int MAIN_NAME(int argc, char *argv[]);
 // user_start/nxheaders_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int clabel_main(int argc, char *argv[])
 {
   // Create an instance of the font test
 
-  printf(MAIN_STRING "Create CLabelTest instance\n");
+  printf("clabel_main: Create CLabelTest instance\n");
   CLabelTest *test = new CLabelTest();
 
   // Connect the NX server
 
-  printf(MAIN_STRING "Connect the CLabelTest instance to the NX server\n");
+  printf("clabel_main: Connect the CLabelTest instance to the NX server\n");
   if (!test->connect())
     {
-      printf(MAIN_STRING "Failed to connect the CLabelTest instance to the NX server\n");
+      printf("clabel_main: Failed to connect the CLabelTest instance to the NX server\n");
       delete test;
       return 1;
     }
 
   // Create a window to draw into
 
-  printf(MAIN_STRING "Create a Window\n");
+  printf("clabel_main: Create a Window\n");
   if (!test->createWindow())
     {
-      printf(MAIN_STRING "Failed to create a window\n");
+      printf("clabel_main: Failed to create a window\n");
       delete test;
       return 1;
     }
@@ -110,7 +110,7 @@ int MAIN_NAME(int argc, char *argv[])
   CLabel *label = test->createLabel(g_hello);
   if (!label)
     {
-      printf(MAIN_STRING "Failed to create a label\n");
+      printf("clabel_main: Failed to create a label\n");
       delete test;
       return 1;
     }
@@ -122,7 +122,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   // Clean up and exit
 
-  printf(MAIN_STRING "Clean-up and exit\n");
+  printf("clabel_main: Clean-up and exit\n");
   delete label;
   delete test;
   return 0;

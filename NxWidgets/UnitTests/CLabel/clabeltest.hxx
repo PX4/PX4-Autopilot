@@ -75,16 +75,6 @@
 #  define CONFIG_CLABELTEST_FONTCOLOR CONFIG_NXWIDGETS_DEFAULT_FONTCOLOR
 #endif
 
-// What is the entry point called?
-
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME clabel_main
-#  define MAIN_STRING "clabel_main: "
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
 /////////////////////////////////////////////////////////////////////////////
 // Public Classes
 /////////////////////////////////////////////////////////////////////////////

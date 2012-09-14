@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/CButtonArray/main.cxx
+// NxWidgets/UnitTests/CLatchButtonArray/clatchbuttonarry_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -48,7 +48,7 @@
 #include <nuttx/nx/nx.h>
 
 #include "cnxstring.hxx"
-#include "cbuttonarraytest.hxx"
+#include "clatchbuttonarraytest.hxx"
 
 /////////////////////////////////////////////////////////////////////////////
 // Definitions
@@ -82,11 +82,37 @@ static FAR const char *g_buttonLabels[BUTTONARRAY_NCOLUMNS*BUTTONARRAY_NROWS] = 
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
+extern "C" int clatchbuttonarray_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Functions
 /////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: showButtonState
+/////////////////////////////////////////////////////////////////////////////
+
+static void showButtonState(CLatchButtonArray *buttonArray, int i, int j,
+                            bool &clicked, bool &latched)
+{
+  bool nowClicked = buttonArray->isThisButtonClicked(i,j);
+  bool nowLatched = buttonArray->isThisButtonLatched(i,j);
+
+  printf("showButtonState: Button(%d,%d) state: %s and %s\n",
+    i, j,
+    nowClicked ? "clicked" : "released",
+    nowLatched ? "latched" : "unlatched");
+
+  if (clicked != nowClicked || latched != nowLatched)
+    {
+      printf("showButtonState: ERROR: Expected %s and %s\n",
+        clicked ? "clicked" : "released",
+        latched ? "latched" : "unlatched");
+
+      clicked = nowClicked;
+      latched = nowLatched;
+    }
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // Name: updateMemoryUsage
@@ -141,54 +167,6 @@ static void initMemoryUsage(void)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// Name: checkHighlighting
-/////////////////////////////////////////////////////////////////////////////
-
-static void checkHighlighting(CButtonArray *buttonArray)
-{
-  // Turn highlighting on
-
-  buttonArray->setCursorPosition(0, 0);
-  buttonArray->cursor(true);
-
-  // Then test the cursor movement
-
-  for (int row = 0; row < BUTTONARRAY_NROWS; row++)
-    {
-      for (int column = 0; column < BUTTONARRAY_NCOLUMNS; column++)
-        {
-          // Set cursor position
-
-          buttonArray->setCursorPosition(column, row);
-
-          // Check cursor position
-
-          int checkColumn;
-          int checkRow;
-          if (buttonArray->isCursorPosition(checkColumn, checkRow))
-            {
-              printf("ERROR: Not button selected\n");
-              printf("       Expected (%d,%d)\n", column, row);
-            }
-          else if (checkColumn != column || checkRow != row)
-            {
-              printf("ERROR: Wrong button selected\n");
-              printf("       Expected (%d,%d)\n", column, row);
-              printf("       Selected (%d,%d)\n", checkColumn, checkRow);
-            }
-
-          // Wait a bit so that we can see the highlighting
-
-          usleep(500*1000);
-        }
-    }
-
-  // Turn highlighting off
-
-  buttonArray->cursor(false);
-}
-
-/////////////////////////////////////////////////////////////////////////////
 // Public Functions
 /////////////////////////////////////////////////////////////////////////////
 
@@ -196,7 +174,7 @@ static void checkHighlighting(CButtonArray *buttonArray)
 // user_start/nxheaders_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int clatchbuttonarray_main(int argc, char *argv[])
 {
   // Initialize memory monitor logic
 
@@ -204,16 +182,16 @@ int MAIN_NAME(int argc, char *argv[])
 
   // Create an instance of the button array test
 
-  printf(MAIN_STRING "Create CButtonArrayTest instance\n");
-  CButtonArrayTest *test = new CButtonArrayTest();
-  updateMemoryUsage(g_mmPrevious, "After creating CButtonArrayTest");
+  printf("clatchbuttonarray_main: Create CLatchButtonArrayTest instance\n");
+  CLatchButtonArrayTest *test = new CLatchButtonArrayTest();
+  updateMemoryUsage(g_mmPrevious, "After creating CLatchButtonArrayTest");
 
   // Connect the NX server
 
-  printf(MAIN_STRING "Connect the CButtonArrayTest instance to the NX server\n");
+  printf("clatchbuttonarray_main: Connect the CLatchButtonArrayTest instance to the NX server\n");
   if (!test->connect())
     {
-      printf(MAIN_STRING "Failed to connect the CButtonArrayTest instance to the NX server\n");
+      printf("clatchbuttonarray_main: Failed to connect the CLatchButtonArrayTest instance to the NX server\n");
       delete test;
       return 1;
     }
@@ -221,25 +199,25 @@ int MAIN_NAME(int argc, char *argv[])
 
   // Create a window to draw into
 
-  printf(MAIN_STRING "Create a Window\n");
+  printf("clatchbuttonarray_main: Create a Window\n");
   if (!test->createWindow())
     {
-      printf(MAIN_STRING "Failed to create a window\n");
+      printf("clatchbuttonarray_main: Failed to create a window\n");
       delete test;
       return 1;
     }
   updateMemoryUsage(g_mmPrevious, "After creating a window");
 
-  // Create a CButtonArray instance
+  // Create a CLatchButtonArray instance
 
-  CButtonArray *buttonArray = test->createButtonArray();
+  CLatchButtonArray *buttonArray = test->createButtonArray();
   if (!buttonArray)
     {
-      printf(MAIN_STRING "Failed to create a button array\n");
+      printf("clatchbuttonarray_main: Failed to create a button array\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmPrevious, "After creating CButtonArray");
+  updateMemoryUsage(g_mmPrevious, "After creating CLatchButtonArray");
 
   // Add the labels to each button
 
@@ -248,7 +226,7 @@ int MAIN_NAME(int argc, char *argv[])
     {
       for (int i = 0; i < BUTTONARRAY_NCOLUMNS; i++)
         {
-          printf(MAIN_STRING "Label (%d,%d): %s\n", i, j, *ptr);
+          printf("clatchbuttonarray_main: Label (%d,%d): %s\n", i, j, *ptr);
           CNxString string = *ptr++;
           buttonArray->setText(i, j, string);
         }
@@ -257,65 +235,61 @@ int MAIN_NAME(int argc, char *argv[])
 
   // Show the button array
 
-  printf(MAIN_STRING "Show the button array\n");
+  printf("clatchbuttonarray_main: Show the button array\n");
   test->showButton(buttonArray);
   sleep(1);
 
-  // Verify that button highlighting works
-
-  checkHighlighting(buttonArray);
-  updateMemoryUsage(g_mmPrevious, "After highliting");
-
   // Then perform a simulated mouse click on a button in the array
 
+  bool clicked = false;
+  bool latched = false;
+ 
   for (int j = 0; j < BUTTONARRAY_NROWS; j++)
     {
       for (int i = 0; i < BUTTONARRAY_NCOLUMNS; i++)
         {
-          printf(MAIN_STRING "Click the button (%d,%d)\n", i, j);
+          // Initially, this button should be neither clicked nor latched 
+
+          clicked = false;
+          latched = false;
+          showButtonState(buttonArray, i, j, clicked, latched);
+
+          printf("clatchbuttonarray_main: Click the button (%d,%d)\n", i, j);
           test->click(buttonArray, i, j);
 
           // Poll for the mouse click event
 
           test->poll(buttonArray);
 
-          // Is anything clicked?
+          // Now it should be clicked and latched
 
-          int clickColumn;
-          int clickRow;
-          if (buttonArray->isButtonClicked(clickColumn, clickRow))
-            {
-              printf(MAIN_STRING "%s: Button (%d, %d) is clicked\n", 
-                     clickColumn == i && clickRow == j ? "OK" : "ERROR",
-                     clickColumn, clickRow);
-            }
-          else
-            {
-              printf(MAIN_STRING "ERROR: No button is clicked\n");
-            }
+          clicked = true;
+          latched = true;
+          showButtonState(buttonArray, i, j, clicked, latched);
 
           // Wait a bit, then release the mouse button
 
-          usleep(500*1000);
+          usleep(200*1000);
           test->release(buttonArray, i, j);
 
           // Poll for the mouse release event (of course this can hang if something fails)
 
           test->poll(buttonArray);
-          if (buttonArray->isButtonClicked(clickColumn, clickRow))
-            {
-              printf(MAIN_STRING "ERROR: Button (%d, %d) is clicked\n", 
-                     clickColumn, clickRow);
-            }
  
-          usleep(500*1000);
+          // Now it should be un-clicked and latched
+
+          clicked = false;
+          latched = true;
+          showButtonState(buttonArray, i, j, clicked, latched);
+
+          usleep(300*1000);
         }
     }
   updateMemoryUsage(g_mmPrevious, "After pushing buttons");
 
   // Clean up and exit
 
-  printf(MAIN_STRING "Clean-up and exit\n");
+  printf("clatchbuttonarray_main: Clean-up and exit\n");
   delete buttonArray;
   updateMemoryUsage(g_mmPrevious, "After deleting the button array");
   delete test;

@@ -63,7 +63,7 @@ ARCHIVER=$(TESTTOOL_DIR)/addobjs.sh
 
 ASRCS		=
 CSRCS		=
-CXXSRCS		= main.cxx clatchbuttontest.cxx
+CXXSRCS		= clatchbutton_main.cxx clatchbuttontest.cxx
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

@@ -63,7 +63,7 @@ ARCHIVER=$(TESTTOOL_DIR)/addobjs.sh
 
 ASRCS		=
 CSRCS		=
-CXXSRCS		= main.cxx cscrollbarhorizontaltest.cxx
+CXXSRCS		= cscrollbarhorizontal_main.cxx cscrollbarhorizontaltest.cxx
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/CKeypad/main.cxx
+// NxWidgets/UnitTests/CScrollbarVertical/cscrollbarvertical_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -42,17 +42,19 @@
 #include <nuttx/init.h>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <unistd.h>
 #include <debug.h>
 
 #include <nuttx/nx/nx.h>
 
-#include "cnxstring.hxx"
-#include "ckeypadtest.hxx"
+#include "cscrollbarverticaltest.hxx"
 
 /////////////////////////////////////////////////////////////////////////////
 // Definitions
 /////////////////////////////////////////////////////////////////////////////
+
+#define MAX_SCROLLBAR 20
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Classes
@@ -63,8 +65,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 static unsigned int g_mmInitial;
-static unsigned int g_mmPrevious;
-static unsigned int g_mmPeak;
+static unsigned int g_mmprevious;
 
 /////////////////////////////////////////////////////////////////////////////
 // Public Function Prototypes
@@ -72,7 +73,7 @@ static unsigned int g_mmPeak;
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
+extern "C" int cscrollbarvertical_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Functions
@@ -97,16 +98,13 @@ static void updateMemoryUsage(unsigned int previous,
 
   /* Show the change from the previous time */
 
-  message("%s: Before: %8d After: %8d Change: %8d\n",
-           msg, previous, mmcurrent.uordblks, mmcurrent.uordblks - previous);
+  message("\n%s:\n", msg);
+  message("  Before: %8d After: %8d Change: %8d\n\n",
+          previous, mmcurrent.uordblks, mmcurrent.uordblks - previous);
 
   /* Set up for the next test */
 
-  g_mmPrevious = mmcurrent.uordblks;
-  if ((unsigned int)mmcurrent.uordblks > g_mmPeak)
-    {
-      g_mmPeak = mmcurrent.uordblks;
-    }
+  g_mmprevious = mmcurrent.uordblks;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -126,62 +124,7 @@ static void initMemoryUsage(void)
 #endif
 
   g_mmInitial  = mmcurrent.uordblks;
-  g_mmPrevious = mmcurrent.uordblks;
-  g_mmPeak     = mmcurrent.uordblks;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-// Name: clickButtons
-/////////////////////////////////////////////////////////////////////////////
-
-static void clickButtons(CKeypadTest *test, CKeypad *keypad)
-{
-  // Perform a simulated mouse click on a button in the keypad
-
-  for (int j = 0; j < KEYPAD_NROWS; j++)
-    {
-      for (int i = 0; i < KEYPAD_NCOLUMNS; i++)
-        {
-          printf(MAIN_STRING "Click the button (%d,%d)\n", i, j);
-          test->click(keypad, i, j);
-
-          // Poll for the mouse click event
-
-          test->poll(keypad);
-
-          // Is anything clicked?
-
-          int clickColumn;
-          int clickRow;
-          if (keypad->isButtonClicked(clickColumn, clickRow))
-            {
-              printf(MAIN_STRING "%s: Button (%d, %d) is clicked\n", 
-                     clickColumn == i && clickRow == j ? "OK" : "ERROR",
-                     clickColumn, clickRow);
-            }
-          else
-            {
-              printf(MAIN_STRING "ERROR: No button is clicked\n");
-            }
-
-          // Wait a bit, then release the mouse button
-
-          usleep(250*1000);
-          test->release(keypad, i, j);
-
-          // Poll for the mouse release event (of course this can hang if something fails)
-
-          test->poll(keypad);
-          if (keypad->isButtonClicked(clickColumn, clickRow))
-            {
-              printf(MAIN_STRING "ERROR: Button (%d, %d) is clicked\n", 
-                     clickColumn, clickRow);
-            }
- 
-          usleep(500*1000);
-        }
-    }
-  updateMemoryUsage(g_mmPrevious, "After pushing buttons");
+  g_mmprevious = mmcurrent.uordblks;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -189,86 +132,100 @@ static void clickButtons(CKeypadTest *test, CKeypad *keypad)
 /////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
-// user_start/nxheaders_main
+// Name: user_start/nxheaders_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int cscrollbarvertical_main(int argc, char *argv[])
 {
   // Initialize memory monitor logic
 
   initMemoryUsage();
 
-  // Create an instance of the keypad test
+  // Create an instance of the checkbox test
 
-  printf(MAIN_STRING "Create CKeypadTest instance\n");
-  CKeypadTest *test = new CKeypadTest();
-  updateMemoryUsage(g_mmPrevious, "After creating CKeypadTest");
+  message("cscrollbarvertical_main: Create CScrollbarVerticalTest instance\n");
+  CScrollbarVerticalTest *test = new CScrollbarVerticalTest();
+  updateMemoryUsage(g_mmprevious, "After creating CScrollbarVerticalTest");
 
   // Connect the NX server
 
-  printf(MAIN_STRING "Connect the CKeypadTest instance to the NX server\n");
+  message("cscrollbarvertical_main: Connect the CScrollbarVerticalTest instance to the NX server\n");
   if (!test->connect())
     {
-      printf(MAIN_STRING "Failed to connect the CKeypadTest instance to the NX server\n");
+      message("cscrollbarvertical_main: Failed to connect the CScrollbarVerticalTest instance to the NX server\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmPrevious, "After connecting to the server");
+  updateMemoryUsage(g_mmprevious, "cscrollbarvertical_main: After connecting to the server");
 
   // Create a window to draw into
 
-  printf(MAIN_STRING "Create a Window\n");
+  message("cscrollbarvertical_main: Create a Window\n");
   if (!test->createWindow())
     {
-      printf(MAIN_STRING "Failed to create a window\n");
+      message("cscrollbarvertical_main: Failed to create a window\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmPrevious, "After creating a window");
+  updateMemoryUsage(g_mmprevious, "cscrollbarvertical_main: After creating a window");
 
-  // Create a CKeypad instance
+  // Create a scrollbar
 
-  CKeypad *keypad = test->createKeypad();
-  if (!keypad)
+  message("cscrollbarvertical_main: Create a Scrollbar\n");
+  CScrollbarVertical *scrollbar = test->createScrollbar();
+  if (!scrollbar)
     {
-      printf(MAIN_STRING "Failed to create a keypad\n");
+      message("cscrollbarvertical_main: Failed to create a scrollbar\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmPrevious, "After creating CKeypad");
+  updateMemoryUsage(g_mmprevious, "cscrollbarvertical_main: After creating a scrollbar");
 
-  // Show the keypad in alphabetic mode
+  // Set the scrollbar minimum and maximum values
 
-  printf(MAIN_STRING "Show the keypad in alphabetic mode\n");
-  keypad->setKeypadMode(false);
-  test->showKeypad(keypad);
+  scrollbar->setMinimumValue(0);
+  scrollbar->setMaximumValue(MAX_SCROLLBAR);
+  scrollbar->setValue(0);
+  message("cscrollbarvertical_main: Scrollbar range %d->%d Initial value %d\n",
+          scrollbar->getMinimumValue(), scrollbar->getMaximumValue(),
+          scrollbar->getValue());
+
+  // Show the initial state of the checkbox
+
+  test->showScrollbar(scrollbar);
   sleep(1);
 
-  // Then click some buttons
+  // Now move the scrollbar up
 
-  clickButtons(test, keypad);
-  sleep(1);
+  for (int i = 0; i <= MAX_SCROLLBAR; i++)
+    {
+      scrollbar->setValue(i);
+      test->showScrollbar(scrollbar);
+      message("cscrollbarvertical_main: %d. New value %d\n", i, scrollbar->getValue());
+      usleep(1000); // The simulation needs this to let the X11 event loop run
+    }
+  updateMemoryUsage(g_mmprevious, "cscrollbarvertical_main: After moving the scrollbar up");
 
-  // Show the keypad in numeric mode
+  // And move the scrollbar down
 
-  printf(MAIN_STRING "Show the keypad in numeric mode\n");
-  keypad->setKeypadMode(true);
-  sleep(1);
-
-  // Then click some buttons
-
-  clickButtons(test, keypad);
+  for (int i = MAX_SCROLLBAR; i >= 0; i--)
+    {
+      scrollbar->setValue(i);
+      test->showScrollbar(scrollbar);
+      message("cscrollbarvertical_main: %d. New value %d\n", i, scrollbar->getValue());
+      usleep(5000); // The simulation needs this to let the X11 event loop run
+    }
+  updateMemoryUsage(g_mmprevious, "cscrollbarvertical_main: After moving the scrollbar down");
   sleep(1);
 
   // Clean up and exit
 
-  printf(MAIN_STRING "Clean-up and exit\n");
-  delete keypad;
-  updateMemoryUsage(g_mmPrevious, "After deleting the keypad");
+  message("cscrollbarvertical_main: Clean-up and exit\n");
+  delete scrollbar;
+  updateMemoryUsage(g_mmprevious, "After deleting the scrollbar");
   delete test;
-  updateMemoryUsage(g_mmPrevious, "After deleting the test");
+  updateMemoryUsage(g_mmprevious, "After deleting the test");
   updateMemoryUsage(g_mmInitial, "Final memory usage");
-  message("Peak memory usage: %8d\n", g_mmPeak - g_mmInitial);
   return 0;
 }
 

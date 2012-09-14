@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/CListBox/main.cxx
+// NxWidgets/UnitTests/CListBox/clistbox_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -108,7 +108,7 @@ static FAR const char *g_options[] =
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
+extern "C" int clistbox_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Functions
@@ -174,7 +174,7 @@ static void initMemoryUsage(void)
 // Name: user_start/nxheaders_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int clistbox_main(int argc, char *argv[])
 {
   // Initialize memory monitor logic
 
@@ -182,43 +182,43 @@ int MAIN_NAME(int argc, char *argv[])
 
   // Create an instance of the listbox test
 
-  message(MAIN_STRING "Create CListBoxTest instance\n");
+  message("clistbox_main: Create CListBoxTest instance\n");
   CListBoxTest *test = new CListBoxTest();
   updateMemoryUsage(g_mmPrevious, "After creating CListBoxTest");
 
   // Connect the NX server
 
-  message(MAIN_STRING "Connect the CListBoxTest instance to the NX server\n");
+  message("clistbox_main: Connect the CListBoxTest instance to the NX server\n");
   if (!test->connect())
     {
-      message(MAIN_STRING "Failed to connect the CListBoxTest instance to the NX server\n");
+      message("clistbox_main: Failed to connect the CListBoxTest instance to the NX server\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmPrevious, MAIN_STRING "After connecting to the server");
+  updateMemoryUsage(g_mmPrevious, "clistbox_main: After connecting to the server");
 
   // Create a window to draw into
 
-  message(MAIN_STRING "Create a Window\n");
+  message("clistbox_main: Create a Window\n");
   if (!test->createWindow())
     {
-      message(MAIN_STRING "Failed to create a window\n");
+      message("clistbox_main: Failed to create a window\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmPrevious, MAIN_STRING "After creating a window");
+  updateMemoryUsage(g_mmPrevious, "clistbox_main: After creating a window");
 
   // Create a listbox
 
-  message(MAIN_STRING "Create a ListBox\n");
+  message("clistbox_main: Create a ListBox\n");
   CListBox *listbox = test->createListBox();
   if (!listbox)
     {
-      message(MAIN_STRING "Failed to create a listbox\n");
+      message("clistbox_main: Failed to create a listbox\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmPrevious, MAIN_STRING "After creating a listbox");
+  updateMemoryUsage(g_mmPrevious, "clistbox_main: After creating a listbox");
 
   // Show the initial state of the listbox
 
@@ -228,23 +228,23 @@ int MAIN_NAME(int argc, char *argv[])
 
   // Now add items to the list box (in reverse alphabetical order)
 
-  message(MAIN_STRING "Add options to the ListBox\n");
+  message("clistbox_main: Add options to the ListBox\n");
   for (int i = NOPTIONS - 1; i >= 0; i--)
     {
       listbox->addOption(g_options[i],i);
       test->showListBox(listbox);
-      message(MAIN_STRING "%d. New option %s\n", i, g_options[i]);
+      message("clistbox_main: %d. New option %s\n", i, g_options[i]);
       usleep(500000); // The simulation needs this to let the X11 event loop run
     }
-  updateMemoryUsage(g_mmPrevious, MAIN_STRING "After adding the listbox items");
+  updateMemoryUsage(g_mmPrevious, "clistbox_main: After adding the listbox items");
   sleep(1);
 
   // Sort the list box
 
-  message(MAIN_STRING "Sort the ListBox\n");
+  message("clistbox_main: Sort the ListBox\n");
   listbox->sort();
   test->showListBox(listbox);
-  updateMemoryUsage(g_mmPrevious, MAIN_STRING "After sorting the listbox");
+  updateMemoryUsage(g_mmPrevious, "clistbox_main: After sorting the listbox");
   sleep(1);
 
   // Select and remove items from the listbox
@@ -253,69 +253,69 @@ int MAIN_NAME(int argc, char *argv[])
   int nOptions;
   while ((nOptions = listbox->getOptionCount()) > 0)
     {
-      message(MAIN_STRING "Option count: %d\n", nOptions);
+      message("clistbox_main: Option count: %d\n", nOptions);
       if (nOptions <= 5)
         {
-          message(MAIN_STRING "Selecting all remaining options\n");
+          message("clistbox_main: Selecting all remaining options\n");
           listbox->selectAllOptions();
           test->showListBox(listbox);
-          updateMemoryUsage(g_mmPrevious, MAIN_STRING "After selecting all options");
+          updateMemoryUsage(g_mmPrevious, "clistbox_main: After selecting all options");
           sleep(1);
 
-          message(MAIN_STRING "Removing all remaining options\n");
+          message("clistbox_main: Removing all remaining options\n");
           listbox->removeAllOptions();
-          updateMemoryUsage(g_mmPrevious, MAIN_STRING "After removing all options");
+          updateMemoryUsage(g_mmPrevious, "clistbox_main: After removing all options");
           test->showListBox(listbox);
         }
       else
         {
           int selected[5];
 
-          message(MAIN_STRING "Selecting five options\n");
+          message("clistbox_main: Selecting five options\n");
           for (int i = 0; i < 5; i++)
             {
               selected[i] = ((nOptions - 1) * rand()) / MAX_RAND;
-              message(MAIN_STRING "Selecting option %d\n", selected[i]);
+              message("clistbox_main: Selecting option %d\n", selected[i]);
               listbox->removeOption(selected[i]);
               test->showListBox(listbox);
               usleep(500000);
             }
-          updateMemoryUsage(g_mmPrevious, MAIN_STRING "After selecting five options");
+          updateMemoryUsage(g_mmPrevious, "clistbox_main: After selecting five options");
 
-          message(MAIN_STRING "De-selecting options\n");
+          message("clistbox_main: De-selecting options\n");
           int index;
           int count = 0;
           while ((index = listbox->getSelectedIndex()) >= 0)
             {
-              message(MAIN_STRING "De-selecting option %d\n", index);
+              message("clistbox_main: De-selecting option %d\n", index);
               listbox->deselectOption(index);
               test->showListBox(listbox);
               count++;
               usleep(500000);
             }
 
-          message(MAIN_STRING "%s: %d options de-selected\n",
+          message("clistbox_main: %s: %d options de-selected\n",
                   count == 5 ? "OK" : "ERROR", count);
-          updateMemoryUsage(g_mmPrevious, MAIN_STRING "After de-selecting options");
+          updateMemoryUsage(g_mmPrevious, "clistbox_main: After de-selecting options");
  
-          message(MAIN_STRING "Removing the selected options\n");
+          message("clistbox_main: Removing the selected options\n");
           for (int i = 0; i < 5; i++)
             {
-              message(MAIN_STRING "Removing option %d\n", selected[i]);
+              message("clistbox_main: Removing option %d\n", selected[i]);
               listbox->removeOption(selected[i]);
               test->showListBox(listbox);
               usleep(500000);
             }
-          updateMemoryUsage(g_mmPrevious, MAIN_STRING "After removing five options");
+          updateMemoryUsage(g_mmPrevious, "clistbox_main: After removing five options");
         }
       sleep(1);
     }
-  updateMemoryUsage(g_mmPrevious, MAIN_STRING "After the listbox is empty again");
+  updateMemoryUsage(g_mmPrevious, "clistbox_main: After the listbox is empty again");
   sleep(1);
 
   // Clean up and exit
 
-  message(MAIN_STRING "Clean-up and exit\n");
+  message("clistbox_main: Clean-up and exit\n");
   delete listbox;
   updateMemoryUsage(g_mmPrevious, "After deleting the listbox");
   delete test;

@@ -75,16 +75,6 @@
 #  define CONFIG_CBUTTONARRAYTEST_FONTCOLOR CONFIG_NXWIDGETS_DEFAULT_FONTCOLOR
 #endif
 
-// What is the entry point called?
-
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME cbuttonarray_main
-#  define MAIN_STRING "cbuttonarray_main: "
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
 // If debug is enabled, use the debug function, lib_rawprintf() instead
 // of printf() so that the output is synchronized.
 

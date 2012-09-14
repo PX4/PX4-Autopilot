@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/CProgressBar/main.cxx
+// NxWidgets/UnitTests/CImage/cimage_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -48,13 +48,13 @@
 
 #include <nuttx/nx/nx.h>
 
-#include "cprogressbartest.hxx"
+#include "crlepalettebitmap.hxx"
+#include "glyphs.hxx"
+#include "cimagetest.hxx"
 
 /////////////////////////////////////////////////////////////////////////////
 // Definitions
 /////////////////////////////////////////////////////////////////////////////
-
-#define MAX_PROGRESSBAR 50
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Classes
@@ -64,8 +64,8 @@
 // Private Data
 /////////////////////////////////////////////////////////////////////////////
 
-static unsigned int g_mmInitial;
-static unsigned int g_mmprevious;
+static struct mallinfo g_mmInitial;
+static struct mallinfo g_mmprevious;
 
 /////////////////////////////////////////////////////////////////////////////
 // Public Function Prototypes
@@ -73,17 +73,33 @@ static unsigned int g_mmprevious;
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
+extern "C" int cimage_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Functions
 /////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
+// Name: showMemoryUsage
+/////////////////////////////////////////////////////////////////////////////
+
+static void showMemoryUsage(FAR struct mallinfo *mmbefore,
+                            FAR struct mallinfo *mmafter)
+{
+  message("VARIABLE  BEFORE   AFTER\n");
+  message("======== ======== ========\n");
+  message("arena    %8d %8d\n", mmbefore->arena,    mmafter->arena);
+  message("ordblks  %8d %8d\n", mmbefore->ordblks,  mmafter->ordblks);
+  message("mxordblk %8d %8d\n", mmbefore->mxordblk, mmafter->mxordblk);
+  message("uordblks %8d %8d\n", mmbefore->uordblks, mmafter->uordblks);
+  message("fordblks %8d %8d\n", mmbefore->fordblks, mmafter->fordblks);
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // Name: updateMemoryUsage
 /////////////////////////////////////////////////////////////////////////////
 
-static void updateMemoryUsage(unsigned int previous,
+static void updateMemoryUsage(FAR struct mallinfo *previous,
                               FAR const char *msg)
 {
   struct mallinfo mmcurrent;
@@ -99,12 +115,15 @@ static void updateMemoryUsage(unsigned int previous,
   /* Show the change from the previous time */
 
   message("\n%s:\n", msg);
-  message("  Before: %8d After: %8d Change: %8d\n\n",
-          previous, mmcurrent.uordblks, mmcurrent.uordblks - previous);
+  showMemoryUsage(previous, &mmcurrent);
 
   /* Set up for the next test */
 
-  g_mmprevious = mmcurrent.uordblks;
+#ifdef CONFIG_CAN_PASS_STRUCTS
+  g_mmprevious = mmcurrent;
+#else
+  memcpy(&g_mmprevious, &mmcurrent, sizeof(struct mallinfo));
+#endif
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -113,18 +132,13 @@ static void updateMemoryUsage(unsigned int previous,
 
 static void initMemoryUsage(void)
 {
-  struct mallinfo mmcurrent;
-
-  /* Get the current memory usage */
-
 #ifdef CONFIG_CAN_PASS_STRUCTS
-  mmcurrent = mallinfo();
+  g_mmInitial = mallinfo();
+  g_mmprevious = g_mmInitial;
 #else
-  (void)mallinfo(&mmcurrent);
+  (void)mallinfo(&g_mmInitial);
+  memcpy(&g_mmprevious, &g_mmInitial, sizeof(struct mallinfo));
 #endif
-
-  g_mmInitial  = mmcurrent.uordblks;
-  g_mmprevious = mmcurrent.uordblks;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -135,104 +149,74 @@ static void initMemoryUsage(void)
 // Name: user_start/nxheaders_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int cimage_main(int argc, char *argv[])
 {
   // Initialize memory monitor logic
 
   initMemoryUsage();
 
-  // Create an instance of the checkbox test
+  // Create an instance of the font test
 
-  message(MAIN_STRING "Create CProgressBarTest instance\n");
-  CProgressBarTest *test = new CProgressBarTest();
-  updateMemoryUsage(g_mmprevious, "After creating CProgressBarTest");
+  message("cimage_main: Create CImageTest instance\n");
+  CImageTest *test = new CImageTest();
+  updateMemoryUsage(&g_mmprevious, "After creating CImageTest");
 
   // Connect the NX server
 
-  message(MAIN_STRING "Connect the CProgressBarTest instance to the NX server\n");
+  message("cimage_main: Connect the CImageTest instance to the NX server\n");
   if (!test->connect())
     {
-      message(MAIN_STRING "Failed to connect the CProgressBarTest instance to the NX server\n");
+      message("cimage_main: Failed to connect the CImageTest instance to the NX server\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After connecting to the server");
+  updateMemoryUsage(&g_mmprevious, "After connecting to the server");
 
   // Create a window to draw into
 
-  message(MAIN_STRING "Create a Window\n");
+  message("cimage_main: Create a Window\n");
   if (!test->createWindow())
     {
-      message(MAIN_STRING "Failed to create a window\n");
+      message("cimage_main: Failed to create a window\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After creating a window");
+  updateMemoryUsage(&g_mmprevious, "After creating a window");
 
-  // Create a progress bar
+  // Create an instance of the NuttX logo
 
-  message(MAIN_STRING "Create a ProgressBar\n");
-  CProgressBar *bar = test->createProgressBar();
-  if (!bar)
+  CRlePaletteBitmap *nuttxBitmap = new CRlePaletteBitmap(&g_nuttxBitmap);
+  updateMemoryUsage(&g_mmprevious, "After creating the bitmap");
+
+  // Create a CImage instance
+
+  CImage *image = test->createImage(static_cast<IBitmap*>(nuttxBitmap));
+  if (!image)
     {
-      message(MAIN_STRING "Failed to create a progress bar\n");
+      message("cimage_main: Failed to create a image\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After creating a progress bar");
+  updateMemoryUsage(&g_mmprevious, "After creating CImage");
 
-  // Set the progress bar minimum and maximum values
+  // Show the image
 
-  bar->setMinimumValue(0);
-  bar->setMaximumValue(MAX_PROGRESSBAR);
-  bar->setValue(0);
-  bar->hidePercentageText();
-  message(MAIN_STRING "ProgressBar range %d->%d Initial value %d\n",
-          bar->getMinimumValue(), bar->getMaximumValue(),
-          bar->getValue());
-
-  // Show the initial state of the checkbox
-
-  test->showProgressBar(bar);
-  sleep(1);
-
-  // Now move the progress bar up from 0 to 100% (with percentages off)
-
-  for (int i = 0; i <= MAX_PROGRESSBAR; i++)
-    {
-      bar->setValue(i);
-      test->showProgressBar(bar);
-      message(MAIN_STRING "%d. New value %d\n", i, bar->getValue());
-      usleep(1000); // The simulation needs this to let the X11 event loop run
-    }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After moving the progress bar up #1");
-  usleep(500*1000);
-
-  // Now move the progress bar up from 0 to 100% (with percentages off)
-
-  bar->showPercentageText();
-  bar->setValue(0);
-  test->showProgressBar(bar);
-  usleep(500*1000);
-
-  for (int i = 0; i <= MAX_PROGRESSBAR; i++)
-    {
-      bar->setValue(i);
-      test->showProgressBar(bar);
-      message(MAIN_STRING "%d. New value %d\n", i, bar->getValue());
-      usleep(1000); // The simulation needs this to let the X11 event loop run
-    }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After moving the progress bar up #2");
-  sleep(1);
+  test->showImage(image);
+  updateMemoryUsage(&g_mmprevious, "After showing the image");
+  sleep(5);
 
   // Clean up and exit
 
-  message(MAIN_STRING "Clean-up and exit\n");
-  delete bar;
-  updateMemoryUsage(g_mmprevious, "After deleting the progress bar");
+  message("cimage_main: Clean-up and exit\n");
+  delete image;
+  updateMemoryUsage(&g_mmprevious, "After deleting CImage");
+
+  delete nuttxBitmap;
+  updateMemoryUsage(&g_mmprevious, "After deleting the bitmap");
+
   delete test;
-  updateMemoryUsage(g_mmprevious, "After deleting the test");
-  updateMemoryUsage(g_mmInitial, "Final memory usage");
+  updateMemoryUsage(&g_mmprevious, "After deleting the test");
+  updateMemoryUsage(&g_mmInitial, "Final memory usage");
   return 0;
 }
 

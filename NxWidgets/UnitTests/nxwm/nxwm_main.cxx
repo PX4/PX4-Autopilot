@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/nxwm/main.cxx
+// NxWidgets/UnitTests/nxwm/nxwm_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -62,16 +62,6 @@
 // Pre-processor Definitions
 /////////////////////////////////////////////////////////////////////////////
 
-// What is the entry point called?
-
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME nxwm_main
-#  define MAIN_STRING "nxwm_main: "
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
 #ifdef CONFIG_HAVE_FILENAME
 #  define showTestStepMemory(msg) \
      _showTestStepMemory((FAR const char*)__FILE__, (int)__LINE__, msg)
@@ -121,7 +111,7 @@ static struct SNxWmTest g_nxwmtest;
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
+extern "C" int nxwm_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Public Functions
@@ -503,7 +493,7 @@ static bool createCalibration(void)
   printf("createCalibration: Start the calibration application\n");
   if (!g_nxwmtest.taskbar->startApplication(calibration, false))
     {
-      printf(MAIN_STRING "ERROR: Failed to start the calibration application\n");
+      printf("createCalibration ERROR: Failed to start the calibration application\n");
       delete calibration;
       return false;
     }
@@ -599,7 +589,7 @@ void showTestStepMemory(FAR const char *msg)
 // user_start/nxwm_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int nxwm_main(int argc, char *argv[])
 {
   // Call all C++ static constructors
 
@@ -613,19 +603,19 @@ int MAIN_NAME(int argc, char *argv[])
 
   // Initialize the NSH library
 
-  printf(MAIN_STRING "Initialize the NSH library\n");
+  printf("nxwm_main: Initialize the NSH library\n");
   if (!NxWM::nshlibInitialize())
     {
-      printf(MAIN_STRING "ERROR: Failed to initialize the NSH library\n");
+      printf("nxwm_main: ERROR: Failed to initialize the NSH library\n");
       return EXIT_FAILURE;
     }
-  showTestCaseMemory(MAIN_STRING "After initializing the NSH library");
+  showTestCaseMemory("nxwm_main: After initializing the NSH library");
 
   // Create the task bar.
 
   if (!createTaskbar())
     {
-      printf(MAIN_STRING "ERROR: Failed to create the task bar\n");
+      printf("nxwm_main: ERROR: Failed to create the task bar\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 
@@ -633,7 +623,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   if (!createStartWindow())
     {
-      printf(MAIN_STRING "ERROR: Failed to create the start window\n");
+      printf("nxwm_main: ERROR: Failed to create the start window\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 
@@ -642,7 +632,7 @@ int MAIN_NAME(int argc, char *argv[])
 #ifdef CONFIG_NXWM_KEYBOARD
   if (!createKeyboard())
     {
-      printf(MAIN_STRING "ERROR: Failed to create the keyboard\n");
+      printf("nxwm_main: ERROR: Failed to create the keyboard\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 #endif
@@ -652,7 +642,7 @@ int MAIN_NAME(int argc, char *argv[])
 #ifdef CONFIG_NXWM_TOUCHSCREEN
   if (!createTouchScreen())
     {
-      printf(MAIN_STRING "ERROR: Failed to create the touchscreen\n");
+      printf("nxwm_main ERROR: Failed to create the touchscreen\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 #endif
@@ -662,7 +652,7 @@ int MAIN_NAME(int argc, char *argv[])
 #ifdef CONFIG_NXWM_TOUCHSCREEN
   if (!createCalibration())
     {
-      printf(MAIN_STRING "ERROR: Failed to create the calibration application\n");
+      printf("nxwm_main ERROR: Failed to create the calibration application\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 #endif
@@ -671,7 +661,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   if (!createNxConsole())
     {
-      printf(MAIN_STRING "ERROR: Failed to create the NxConsole application\n");
+      printf("nxwm_main: ERROR: Failed to create the NxConsole application\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 
@@ -679,7 +669,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   if (!createHexCalculator())
     {
-      printf(MAIN_STRING "ERROR: Failed to create the hex calculator application\n");
+      printf("nxwm_main: ERROR: Failed to create the hex calculator application\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 
@@ -687,7 +677,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   if (!startWindowManager())
     {
-      printf(MAIN_STRING "ERROR: Failed to start the window manager\n");
+      printf("nxwm_main: ERROR: Failed to start the window manager\n");
       testCleanUpAndExit(EXIT_FAILURE);
     }
 
@@ -697,7 +687,7 @@ int MAIN_NAME(int argc, char *argv[])
   // to know whenthe touchscreen has been calibrated.  If we really want to know,
   // we have to poll
 
-  printf(MAIN_STRING "Waiting for touchscreen calibration\n");
+  printf("nxwm_main: Waiting for touchscreen calibration\n");
   while (!g_nxwmtest.touchscreen->isCalibrated())
     {
       std::sleep(2);
@@ -708,10 +698,10 @@ int MAIN_NAME(int argc, char *argv[])
   // After the touchscreen driver gets it, it will report isCalibrated() == true
   // and then we can read the calibration data from the touchscreen driver.
 
-  printf(MAIN_STRING "Getting calibration data from the touchscreen\n");
+  printf("nxwm_main: Getting calibration data from the touchscreen\n");
   if (!g_nxwmtest.touchscreen->getCalibrationData(g_nxwmtest.calibData))
     {
-      printf(MAIN_STRING "ERROR: Failed to get calibration data from the touchscreen\n");    
+      printf("nxwm_main: ERROR: Failed to get calibration data from the touchscreen\n");    
     } 
 #endif
 
@@ -723,7 +713,7 @@ int MAIN_NAME(int argc, char *argv[])
   g_nxwmtest.taskbar->clickIcon(0, true);
   usleep(500*1000);
   g_nxwmtest.taskbar->clickIcon(0, false);
-  showTestCaseMemory(MAIN_STRING "After clicking the start window icon");
+  showTestCaseMemory("nxwm_main: After clicking the start window icon");
 
   // Wait bit to see the result of the button press.  Then press the first icon
   // in the start menu.  That should be the NxConsole icon.
@@ -732,13 +722,13 @@ int MAIN_NAME(int argc, char *argv[])
   g_nxwmtest.startwindow->clickIcon(0, true);
   usleep(500*1000);
   g_nxwmtest.startwindow->clickIcon(0, false);
-  showTestCaseMemory(MAIN_STRING "After clicking the NxConsole icon");
+  showTestCaseMemory("nxwm_main: After clicking the NxConsole icon");
 #endif
 
   // Wait bit to see the result of the button press.
 
   sleep(2);
-  showTestMemory(MAIN_STRING "Final memory usage");
+  showTestMemory("nxwm_main: Final memory usage");
   return EXIT_SUCCESS;
 }
 

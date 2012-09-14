@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/CRadioButton/main.cxx
+// NxWidgets/UnitTests/CProgressBar/cprogressbar_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -48,13 +48,13 @@
 
 #include <nuttx/nx/nx.h>
 
-#include "crlepalettebitmap.hxx"
-#include "glyphs.hxx"
-#include "cradiobuttontest.hxx"
+#include "cprogressbartest.hxx"
 
 /////////////////////////////////////////////////////////////////////////////
 // Definitions
 /////////////////////////////////////////////////////////////////////////////
+
+#define MAX_PROGRESSBAR 50
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Classes
@@ -73,7 +73,7 @@ static unsigned int g_mmprevious;
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
+extern "C" int cprogressbar_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Functions
@@ -135,101 +135,101 @@ static void initMemoryUsage(void)
 // Name: user_start/nxheaders_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int cprogressbar_main(int argc, char *argv[])
 {
   // Initialize memory monitor logic
 
   initMemoryUsage();
 
-  // Create an instance of the radio button test
+  // Create an instance of the checkbox test
 
-  message(MAIN_STRING "Create CRadioButtonTest instance\n");
-  CRadioButtonTest *test = new CRadioButtonTest();
-  updateMemoryUsage(g_mmprevious, "After creating CRadioButtonTest");
+  message("cprogressbar_main: Create CProgressBarTest instance\n");
+  CProgressBarTest *test = new CProgressBarTest();
+  updateMemoryUsage(g_mmprevious, "After creating CProgressBarTest");
 
   // Connect the NX server
 
-  message(MAIN_STRING "Connect the CRadioButtonTest instance to the NX server\n");
+  message("cprogressbar_main: Connect the CProgressBarTest instance to the NX server\n");
   if (!test->connect())
     {
-      message(MAIN_STRING "Failed to connect the CRadioButtonTest instance to the NX server\n");
+      message("cprogressbar_main: Failed to connect the CProgressBarTest instance to the NX server\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After connecting to the server");
+  updateMemoryUsage(g_mmprevious, "cprogressbar_main: After connecting to the server");
 
   // Create a window to draw into
 
-  message(MAIN_STRING "Create a Window\n");
+  message("cprogressbar_main: Create a Window\n");
   if (!test->createWindow())
     {
-      message(MAIN_STRING "Failed to create a window\n");
+      message("cprogressbar_main: Failed to create a window\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After creating a window");
+  updateMemoryUsage(g_mmprevious, "cprogressbar_main: After creating a window");
 
-  // Create three radio buttons
+  // Create a progress bar
 
-  CRadioButton *button1 = test->newRadioButton();
-  if (!button1)
+  message("cprogressbar_main: Create a ProgressBar\n");
+  CProgressBar *bar = test->createProgressBar();
+  if (!bar)
     {
-      message(MAIN_STRING "Failed to create radio button 1\n");
+      message("cprogressbar_main: Failed to create a progress bar\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After creating radio button 1");
+  updateMemoryUsage(g_mmprevious, "cprogressbar_main: After creating a progress bar");
 
-  CRadioButton *button2 = test->newRadioButton();
-  if (!button2)
-    {
-      message(MAIN_STRING "Failed to create radio button 2\n");
-      delete test;
-      return 1;
-    }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After creating radio button 2");
+  // Set the progress bar minimum and maximum values
 
-  CRadioButton *button3 = test->newRadioButton();
-  if (!button3)
-    {
-      message(MAIN_STRING "Failed to create radio button 3\n");
-      delete test;
-      return 1;
-    }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After creating radio button 3");
+  bar->setMinimumValue(0);
+  bar->setMaximumValue(MAX_PROGRESSBAR);
+  bar->setValue(0);
+  bar->hidePercentageText();
+  message("cprogressbar_main: ProgressBar range %d->%d Initial value %d\n",
+          bar->getMinimumValue(), bar->getMaximumValue(),
+          bar->getValue());
 
-  // Show the initial state of the buttons
+  // Show the initial state of the checkbox
 
-  test->showButtons();
-  test->showButtonState();
+  test->showProgressBar(bar);
   sleep(1);
 
-  // Now push some buttons
+  // Now move the progress bar up from 0 to 100% (with percentages off)
 
-  message(MAIN_STRING "Pushing button 1\n");
-  test->pushButton(button1);
-  usleep(500*1000);
-  test->showButtonState();
-  updateMemoryUsage(g_mmprevious, "After pushing button 1");
-  usleep(500*1000);
-
-  message(MAIN_STRING "Pushing button 2\n");
-  test->pushButton(button2);
-  usleep(500*1000);
-  test->showButtonState();
-  updateMemoryUsage(g_mmprevious, "After pushing button 2");
+  for (int i = 0; i <= MAX_PROGRESSBAR; i++)
+    {
+      bar->setValue(i);
+      test->showProgressBar(bar);
+      message("cprogressbar_main: %d. New value %d\n", i, bar->getValue());
+      usleep(1000); // The simulation needs this to let the X11 event loop run
+    }
+  updateMemoryUsage(g_mmprevious, "cprogressbar_main: After moving the progress bar up #1");
   usleep(500*1000);
 
-  message(MAIN_STRING "Pushing button 3\n");
-  test->pushButton(button3);
+  // Now move the progress bar up from 0 to 100% (with percentages off)
+
+  bar->showPercentageText();
+  bar->setValue(0);
+  test->showProgressBar(bar);
   usleep(500*1000);
-  test->showButtonState();
-  updateMemoryUsage(g_mmprevious, "After pushing button 3");
-  sleep(2);
+
+  for (int i = 0; i <= MAX_PROGRESSBAR; i++)
+    {
+      bar->setValue(i);
+      test->showProgressBar(bar);
+      message("cprogressbar_main: %d. New value %d\n", i, bar->getValue());
+      usleep(1000); // The simulation needs this to let the X11 event loop run
+    }
+  updateMemoryUsage(g_mmprevious, "cprogressbar_main: After moving the progress bar up #2");
+  sleep(1);
 
   // Clean up and exit
 
-  message(MAIN_STRING "Clean-up and exit\n");
+  message("cprogressbar_main: Clean-up and exit\n");
+  delete bar;
+  updateMemoryUsage(g_mmprevious, "After deleting the progress bar");
   delete test;
   updateMemoryUsage(g_mmprevious, "After deleting the test");
   updateMemoryUsage(g_mmInitial, "Final memory usage");

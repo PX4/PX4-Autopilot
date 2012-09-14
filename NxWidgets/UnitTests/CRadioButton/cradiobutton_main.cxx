@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/CScrollbarVertical/main.cxx
+// NxWidgets/UnitTests/CRadioButton/cradiobutton_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -48,13 +48,13 @@
 
 #include <nuttx/nx/nx.h>
 
-#include "cscrollbarverticaltest.hxx"
+#include "crlepalettebitmap.hxx"
+#include "glyphs.hxx"
+#include "cradiobuttontest.hxx"
 
 /////////////////////////////////////////////////////////////////////////////
 // Definitions
 /////////////////////////////////////////////////////////////////////////////
-
-#define MAX_SCROLLBAR 20
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Classes
@@ -73,7 +73,7 @@ static unsigned int g_mmprevious;
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
+extern "C" int cradiobutton_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Functions
@@ -135,94 +135,101 @@ static void initMemoryUsage(void)
 // Name: user_start/nxheaders_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int cradiobutton_main(int argc, char *argv[])
 {
   // Initialize memory monitor logic
 
   initMemoryUsage();
 
-  // Create an instance of the checkbox test
+  // Create an instance of the radio button test
 
-  message(MAIN_STRING "Create CScrollbarVerticalTest instance\n");
-  CScrollbarVerticalTest *test = new CScrollbarVerticalTest();
-  updateMemoryUsage(g_mmprevious, "After creating CScrollbarVerticalTest");
+  message("cradiobutton_main: Create CRadioButtonTest instance\n");
+  CRadioButtonTest *test = new CRadioButtonTest();
+  updateMemoryUsage(g_mmprevious, "After creating CRadioButtonTest");
 
   // Connect the NX server
 
-  message(MAIN_STRING "Connect the CScrollbarVerticalTest instance to the NX server\n");
+  message("cradiobutton_main: Connect the CRadioButtonTest instance to the NX server\n");
   if (!test->connect())
     {
-      message(MAIN_STRING "Failed to connect the CScrollbarVerticalTest instance to the NX server\n");
+      message("cradiobutton_main: Failed to connect the CRadioButtonTest instance to the NX server\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After connecting to the server");
+  updateMemoryUsage(g_mmprevious, "cradiobutton_main: After connecting to the server");
 
   // Create a window to draw into
 
-  message(MAIN_STRING "Create a Window\n");
+  message("cradiobutton_main: Create a Window\n");
   if (!test->createWindow())
     {
-      message(MAIN_STRING "Failed to create a window\n");
+      message("cradiobutton_main: Failed to create a window\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After creating a window");
+  updateMemoryUsage(g_mmprevious, "cradiobutton_main: After creating a window");
 
-  // Create a scrollbar
+  // Create three radio buttons
 
-  message(MAIN_STRING "Create a Scrollbar\n");
-  CScrollbarVertical *scrollbar = test->createScrollbar();
-  if (!scrollbar)
+  CRadioButton *button1 = test->newRadioButton();
+  if (!button1)
     {
-      message(MAIN_STRING "Failed to create a scrollbar\n");
+      message("cradiobutton_main: Failed to create radio button 1\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After creating a scrollbar");
+  updateMemoryUsage(g_mmprevious, "cradiobutton_main: After creating radio button 1");
 
-  // Set the scrollbar minimum and maximum values
+  CRadioButton *button2 = test->newRadioButton();
+  if (!button2)
+    {
+      message("cradiobutton_main: Failed to create radio button 2\n");
+      delete test;
+      return 1;
+    }
+  updateMemoryUsage(g_mmprevious, "cradiobutton_main: After creating radio button 2");
 
-  scrollbar->setMinimumValue(0);
-  scrollbar->setMaximumValue(MAX_SCROLLBAR);
-  scrollbar->setValue(0);
-  message(MAIN_STRING "Scrollbar range %d->%d Initial value %d\n",
-          scrollbar->getMinimumValue(), scrollbar->getMaximumValue(),
-          scrollbar->getValue());
+  CRadioButton *button3 = test->newRadioButton();
+  if (!button3)
+    {
+      message("cradiobutton_main: Failed to create radio button 3\n");
+      delete test;
+      return 1;
+    }
+  updateMemoryUsage(g_mmprevious, "cradiobutton_main: After creating radio button 3");
 
-  // Show the initial state of the checkbox
+  // Show the initial state of the buttons
 
-  test->showScrollbar(scrollbar);
+  test->showButtons();
+  test->showButtonState();
   sleep(1);
 
-  // Now move the scrollbar up
+  // Now push some buttons
 
-  for (int i = 0; i <= MAX_SCROLLBAR; i++)
-    {
-      scrollbar->setValue(i);
-      test->showScrollbar(scrollbar);
-      message(MAIN_STRING "%d. New value %d\n", i, scrollbar->getValue());
-      usleep(1000); // The simulation needs this to let the X11 event loop run
-    }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After moving the scrollbar up");
+  message("cradiobutton_main: Pushing button 1\n");
+  test->pushButton(button1);
+  usleep(500*1000);
+  test->showButtonState();
+  updateMemoryUsage(g_mmprevious, "After pushing button 1");
+  usleep(500*1000);
 
-  // And move the scrollbar down
+  message("cradiobutton_main: Pushing button 2\n");
+  test->pushButton(button2);
+  usleep(500*1000);
+  test->showButtonState();
+  updateMemoryUsage(g_mmprevious, "After pushing button 2");
+  usleep(500*1000);
 
-  for (int i = MAX_SCROLLBAR; i >= 0; i--)
-    {
-      scrollbar->setValue(i);
-      test->showScrollbar(scrollbar);
-      message(MAIN_STRING "%d. New value %d\n", i, scrollbar->getValue());
-      usleep(5000); // The simulation needs this to let the X11 event loop run
-    }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After moving the scrollbar down");
-  sleep(1);
+  message("cradiobutton_main: Pushing button 3\n");
+  test->pushButton(button3);
+  usleep(500*1000);
+  test->showButtonState();
+  updateMemoryUsage(g_mmprevious, "After pushing button 3");
+  sleep(2);
 
   // Clean up and exit
 
-  message(MAIN_STRING "Clean-up and exit\n");
-  delete scrollbar;
-  updateMemoryUsage(g_mmprevious, "After deleting the scrollbar");
+  message("cradiobutton_main: Clean-up and exit\n");
   delete test;
   updateMemoryUsage(g_mmprevious, "After deleting the test");
   updateMemoryUsage(g_mmInitial, "Final memory usage");

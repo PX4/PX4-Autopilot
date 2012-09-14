@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/CImage/main.cxx
+// NxWidgets/UnitTests/CSliderVertical/cslidervertical_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -48,13 +48,13 @@
 
 #include <nuttx/nx/nx.h>
 
-#include "crlepalettebitmap.hxx"
-#include "glyphs.hxx"
-#include "cimagetest.hxx"
+#include "csliderverticaltest.hxx"
 
 /////////////////////////////////////////////////////////////////////////////
 // Definitions
 /////////////////////////////////////////////////////////////////////////////
+
+#define MAX_SLIDER 50
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Classes
@@ -64,8 +64,8 @@
 // Private Data
 /////////////////////////////////////////////////////////////////////////////
 
-static struct mallinfo g_mmInitial;
-static struct mallinfo g_mmprevious;
+static unsigned int g_mmInitial;
+static unsigned int g_mmprevious;
 
 /////////////////////////////////////////////////////////////////////////////
 // Public Function Prototypes
@@ -73,33 +73,17 @@ static struct mallinfo g_mmprevious;
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
+extern "C" int cslidervertical_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Functions
 /////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
-// Name: showMemoryUsage
-/////////////////////////////////////////////////////////////////////////////
-
-static void showMemoryUsage(FAR struct mallinfo *mmbefore,
-                            FAR struct mallinfo *mmafter)
-{
-  message("VARIABLE  BEFORE   AFTER\n");
-  message("======== ======== ========\n");
-  message("arena    %8d %8d\n", mmbefore->arena,    mmafter->arena);
-  message("ordblks  %8d %8d\n", mmbefore->ordblks,  mmafter->ordblks);
-  message("mxordblk %8d %8d\n", mmbefore->mxordblk, mmafter->mxordblk);
-  message("uordblks %8d %8d\n", mmbefore->uordblks, mmafter->uordblks);
-  message("fordblks %8d %8d\n", mmbefore->fordblks, mmafter->fordblks);
-}
-
-/////////////////////////////////////////////////////////////////////////////
 // Name: updateMemoryUsage
 /////////////////////////////////////////////////////////////////////////////
 
-static void updateMemoryUsage(FAR struct mallinfo *previous,
+static void updateMemoryUsage(unsigned int previous,
                               FAR const char *msg)
 {
   struct mallinfo mmcurrent;
@@ -115,15 +99,12 @@ static void updateMemoryUsage(FAR struct mallinfo *previous,
   /* Show the change from the previous time */
 
   message("\n%s:\n", msg);
-  showMemoryUsage(previous, &mmcurrent);
+  message("  Before: %8d After: %8d Change: %8d\n\n",
+          previous, mmcurrent.uordblks, mmcurrent.uordblks - previous);
 
   /* Set up for the next test */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-  g_mmprevious = mmcurrent;
-#else
-  memcpy(&g_mmprevious, &mmcurrent, sizeof(struct mallinfo));
-#endif
+  g_mmprevious = mmcurrent.uordblks;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -132,13 +113,18 @@ static void updateMemoryUsage(FAR struct mallinfo *previous,
 
 static void initMemoryUsage(void)
 {
+  struct mallinfo mmcurrent;
+
+  /* Get the current memory usage */
+
 #ifdef CONFIG_CAN_PASS_STRUCTS
-  g_mmInitial = mallinfo();
-  g_mmprevious = g_mmInitial;
+  mmcurrent = mallinfo();
 #else
-  (void)mallinfo(&g_mmInitial);
-  memcpy(&g_mmprevious, &g_mmInitial, sizeof(struct mallinfo));
+  (void)mallinfo(&mmcurrent);
 #endif
+
+  g_mmInitial  = mmcurrent.uordblks;
+  g_mmprevious = mmcurrent.uordblks;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -149,74 +135,97 @@ static void initMemoryUsage(void)
 // Name: user_start/nxheaders_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int cslidervertical_main(int argc, char *argv[])
 {
   // Initialize memory monitor logic
 
   initMemoryUsage();
 
-  // Create an instance of the font test
+  // Create an instance of the checkbox test
 
-  message(MAIN_STRING "Create CImageTest instance\n");
-  CImageTest *test = new CImageTest();
-  updateMemoryUsage(&g_mmprevious, "After creating CImageTest");
+  message("cslidervertical_main: Create CSliderVerticalTest instance\n");
+  CSliderVerticalTest *test = new CSliderVerticalTest();
+  updateMemoryUsage(g_mmprevious, "After creating CSliderVerticalTest");
 
   // Connect the NX server
 
-  message(MAIN_STRING "Connect the CImageTest instance to the NX server\n");
+  message("cslidervertical_main: Connect the CSliderVerticalTest instance to the NX server\n");
   if (!test->connect())
     {
-      message(MAIN_STRING "Failed to connect the CImageTest instance to the NX server\n");
+      message("cslidervertical_main: Failed to connect the CSliderVerticalTest instance to the NX server\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(&g_mmprevious, "After connecting to the server");
+  updateMemoryUsage(g_mmprevious, "cslidervertical_main: After connecting to the server");
 
   // Create a window to draw into
 
-  message(MAIN_STRING "Create a Window\n");
+  message("cslidervertical_main: Create a Window\n");
   if (!test->createWindow())
     {
-      message(MAIN_STRING "Failed to create a window\n");
+      message("cslidervertical_main: Failed to create a window\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(&g_mmprevious, "After creating a window");
+  updateMemoryUsage(g_mmprevious, "cslidervertical_main: After creating a window");
 
-  // Create an instance of the NuttX logo
+  // Create a slider
 
-  CRlePaletteBitmap *nuttxBitmap = new CRlePaletteBitmap(&g_nuttxBitmap);
-  updateMemoryUsage(&g_mmprevious, "After creating the bitmap");
-
-  // Create a CImage instance
-
-  CImage *image = test->createImage(static_cast<IBitmap*>(nuttxBitmap));
-  if (!image)
+  message("cslidervertical_main: Create a Slider\n");
+  CSliderVertical *slider = test->createSlider();
+  if (!slider)
     {
-      message(MAIN_STRING "Failed to create a image\n");
+      message("cslidervertical_main: Failed to create a slider\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(&g_mmprevious, "After creating CImage");
+  updateMemoryUsage(g_mmprevious, "cslidervertical_main: After creating a slider");
 
-  // Show the image
+  // Set the slider minimum and maximum values
 
-  test->showImage(image);
-  updateMemoryUsage(&g_mmprevious, "After showing the image");
-  sleep(5);
+  slider->setMinimumValue(0);
+  slider->setMaximumValue(MAX_SLIDER);
+  slider->setValue(0);
+  message("cslidervertical_main: Slider range %d->%d Initial value %d\n",
+          slider->getMinimumValue(), slider->getMaximumValue(),
+          slider->getValue());
+
+  // Show the initial state of the checkbox
+
+  test->showSlider(slider);
+  sleep(1);
+
+  // Now move the slider up
+
+  for (int i = 0; i <= MAX_SLIDER; i++)
+    {
+      slider->setValue(i);
+      test->showSlider(slider);
+      message("cslidervertical_main: %d. New value %d\n", i, slider->getValue());
+      usleep(1000); // The simulation needs this to let the X11 event loop run
+    }
+  updateMemoryUsage(g_mmprevious, "cslidervertical_main: After moving the slider up");
+
+  // And move the slider down
+
+  for (int i = MAX_SLIDER; i >= 0; i--)
+    {
+      slider->setValue(i);
+      test->showSlider(slider);
+      message("cslidervertical_main: %d. New value %d\n", i, slider->getValue());
+      usleep(1000); // The simulation needs this to let the X11 event loop run
+    }
+  updateMemoryUsage(g_mmprevious, "cslidervertical_main: After moving the slider down");
+  sleep(1);
 
   // Clean up and exit
 
-  message(MAIN_STRING "Clean-up and exit\n");
-  delete image;
-  updateMemoryUsage(&g_mmprevious, "After deleting CImage");
-
-  delete nuttxBitmap;
-  updateMemoryUsage(&g_mmprevious, "After deleting the bitmap");
-
+  message("cslidervertical_main: Clean-up and exit\n");
+  delete slider;
+  updateMemoryUsage(g_mmprevious, "After deleting the slider");
   delete test;
-  updateMemoryUsage(&g_mmprevious, "After deleting the test");
-  updateMemoryUsage(&g_mmInitial, "Final memory usage");
+  updateMemoryUsage(g_mmprevious, "After deleting the test");
+  updateMemoryUsage(g_mmInitial, "Final memory usage");
   return 0;
 }
 

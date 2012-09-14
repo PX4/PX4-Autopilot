@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/CLatchButton/main.cxx
+// NxWidgets/UnitTests/CButton/cbutton_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -46,7 +46,7 @@
 
 #include <nuttx/nx/nx.h>
 
-#include "clatchbuttontest.hxx"
+#include "cbuttontest.hxx"
 
 /////////////////////////////////////////////////////////////////////////////
 // Definitions
@@ -68,35 +68,7 @@ static const char g_pushme[] = "Push Me";
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
-
-/////////////////////////////////////////////////////////////////////////////
-// Private Functions
-/////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////
-// Name: showButtonState
-/////////////////////////////////////////////////////////////////////////////
-
-static void showButtonState(CLatchButton *button, bool &clicked, bool &latched)
-{
-  bool nowClicked = button->isClicked();
-  bool nowLatched = button->isLatched();
-
-  printf(MAIN_STRING "Button state: %s and %s\n",
-    nowClicked ? "clicked" : "released",
-    nowLatched ? "latched" : "unlatched");
-
-  if (clicked != nowClicked || latched != nowLatched)
-    {
-      printf(MAIN_STRING "ERROR: Expected %s and %s\n",
-        clicked ? "clicked" : "released",
-        latched ? "latched" : "unlatched");
-
-      clicked = nowClicked;
-      latched = nowLatched;
-    }
-}
+extern "C" int cbutton_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Public Functions
@@ -106,84 +78,68 @@ static void showButtonState(CLatchButton *button, bool &clicked, bool &latched)
 // user_start/nxheaders_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int cbutton_main(int argc, char *argv[])
 {
   // Create an instance of the font test
 
-  printf(MAIN_STRING "Create CLatchButtonTest instance\n");
-  CLatchButtonTest *test = new CLatchButtonTest();
+  printf("cbutton_main: Create CButtonTest instance\n");
+  CButtonTest *test = new CButtonTest();
 
   // Connect the NX server
 
-  printf(MAIN_STRING "Connect the CLatchButtonTest instance to the NX server\n");
+  printf("cbutton_main: Connect the CButtonTest instance to the NX server\n");
   if (!test->connect())
     {
-      printf(MAIN_STRING "Failed to connect the CLatchButtonTest instance to the NX server\n");
+      printf("cbutton_main: Failed to connect the CButtonTest instance to the NX server\n");
       delete test;
       return 1;
     }
 
   // Create a window to draw into
 
-  printf(MAIN_STRING "Create a Window\n");
+  printf("cbutton_main: Create a Window\n");
   if (!test->createWindow())
     {
-      printf(MAIN_STRING "Failed to create a window\n");
+      printf("cbutton_main: Failed to create a window\n");
       delete test;
       return 1;
     }
 
-  // Create a CLatchButton instance
+  // Create a CButton instance
 
-  CLatchButton *button = test->createButton(g_pushme);
+  CButton *button = test->createButton(g_pushme);
   if (!button)
     {
-      printf(MAIN_STRING "Failed to create a button\n");
+      printf("cbutton_main: Failed to create a button\n");
       delete test;
       return 1;
     }
 
   // Show the button
 
-  printf(MAIN_STRING "Show the button\n");
+  printf("cbutton_main: Show the button\n");
   test->showButton(button);
 
-  bool clicked = false;
-  bool latched = false;
-  showButtonState(button, clicked, latched);
+  // Wait two seconds, then perform a simulated mouse click on the button
 
-  // Toggle the button state a few times
+  sleep(2);
+  printf("cbutton_main: Click the button\n");
+  test->click();
 
-  for (int i = 0; i < 8; i++)
-    {
-      // Wait two seconds, then perform a simulated mouse click on the button
+  // Poll for the mouse click event (of course this can hang if something fails)
 
-      sleep(2);
-      printf(MAIN_STRING "Click the button\n");
-      test->click();
-      test->poll(button);
+  bool clicked = test->poll(button);
+  printf("cbutton_main: Button is %s\n", clicked ? "clicked" : "released");
 
-      // Test the button state it should be clicked with the latch state
-      // toggled
+  // Wait a second, then release the mouse buttone
 
-      clicked = true;
-      latched = !latched;
-      showButtonState(button, clicked, latched);
+  sleep(1);
+  test->release();
 
-      // And release the button after 0.5 seconds
+  // Poll for the mouse release event (of course this can hang if something fails)
 
-      usleep(500 * 1000);
-      printf(MAIN_STRING "Release the button\n");
-      test->release();
-      test->poll(button);
-
-      // Test the button state it should be unclicked with the latch state
-      // unchanged
-
-      clicked = false;
-      showButtonState(button, clicked, latched);
-      fflush(stdout);
-    }
+  clicked = test->poll(button);
+  printf("cbutton_main: Button is %s\n", clicked ? "clicked" : "released");
 
   // Wait a few more seconds so that the tester can ponder the result
 
@@ -191,7 +147,7 @@ int MAIN_NAME(int argc, char *argv[])
 
   // Clean up and exit
 
-  printf(MAIN_STRING "Clean-up and exit\n");
+  printf("cbutton_main: Clean-up and exit\n");
   delete button;
   delete test;
   return 0;

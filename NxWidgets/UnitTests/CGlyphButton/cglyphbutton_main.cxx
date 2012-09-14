@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/CSliderHorizontal/main.cxx
+// NxWidgets/UnitTests/CGlyphButton/cglyphbutton_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -48,13 +48,12 @@
 
 #include <nuttx/nx/nx.h>
 
-#include "csliderhorizontaltest.hxx"
+#include "cglyphbuttontest.hxx"
+#include "glyphs.hxx"
 
 /////////////////////////////////////////////////////////////////////////////
 // Definitions
 /////////////////////////////////////////////////////////////////////////////
-
-#define MAX_SLIDER 50
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Classes
@@ -73,7 +72,7 @@ static unsigned int g_mmprevious;
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
+extern "C" int cglyphbutton_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Functions
@@ -132,97 +131,92 @@ static void initMemoryUsage(void)
 /////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
-// Name: user_start/nxheaders_main
+// user_start/nxheaders_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int cglyphbutton_main(int argc, char *argv[])
 {
   // Initialize memory monitor logic
 
   initMemoryUsage();
 
-  // Create an instance of the checkbox test
+  // Create an instance of the font test
 
-  message(MAIN_STRING "Create CSliderHorizontalTest instance\n");
-  CSliderHorizontalTest *test = new CSliderHorizontalTest();
-  updateMemoryUsage(g_mmprevious, "After creating CSliderHorizontalTest");
+  message("cglyphbutton_main: Create CGlyphButtonTest instance\n");
+  CGlyphButtonTest *test = new CGlyphButtonTest();
+  updateMemoryUsage(g_mmprevious, "After creating CGlyphButtonTest");
 
   // Connect the NX server
 
-  message(MAIN_STRING "Connect the CSliderHorizontalTest instance to the NX server\n");
+  message("cglyphbutton_main: Connect the CGlyphButtonTest instance to the NX server\n");
   if (!test->connect())
     {
-      message(MAIN_STRING "Failed to connect the CSliderHorizontalTest instance to the NX server\n");
+      message("cglyphbutton_main: Failed to connect the CGlyphButtonTest instance to the NX server\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After connecting to the server");
+  updateMemoryUsage(g_mmprevious, "After connecting to the server");
 
   // Create a window to draw into
 
-  message(MAIN_STRING "Create a Window\n");
+  message("cglyphbutton_main: Create a Window\n");
   if (!test->createWindow())
     {
-      message(MAIN_STRING "Failed to create a window\n");
+      message("cglyphbutton_main: Failed to create a window\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After creating a window");
+  updateMemoryUsage(g_mmprevious, "After creating a window");
 
-  // Create a slider
+  // Create a CGlyphButton instance
 
-  message(MAIN_STRING "Create a Slider\n");
-  CSliderHorizontal *slider = test->createSlider();
-  if (!slider)
+  CGlyphButton *button = test->createButton(&g_arrowDown, &g_arrowUp);
+  if (!button)
     {
-      message(MAIN_STRING "Failed to create a slider\n");
+      message("cglyphbutton_main: Failed to create a button\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After creating a slider");
+  updateMemoryUsage(g_mmprevious, "After creating the glyph button");
 
-  // Set the slider minimum and maximum values
+  // Show the button
 
-  slider->setMinimumValue(0);
-  slider->setMaximumValue(MAX_SLIDER);
-  slider->setValue(0);
-  message(MAIN_STRING "Slider range %d->%d Initial value %d\n",
-          slider->getMinimumValue(), slider->getMaximumValue(),
-          slider->getValue());
+  message("cglyphbutton_main: Show the button\n");
+  test->showButton(button);
+  updateMemoryUsage(g_mmprevious, "After showing the glyph button");
 
-  // Show the initial state of the checkbox
+  // Wait two seconds, then perform a simulated mouse click on the button
 
-  test->showSlider(slider);
+  sleep(2);
+  message("cglyphbutton_main: Click the button\n");
+  test->click();
+  updateMemoryUsage(g_mmprevious, "After clicking glyph button");
+
+  // Poll for the mouse click event (of course this can hang if something fails)
+
+  bool clicked = test->poll(button);
+  message("cglyphbutton_main: Button is %s\n", clicked ? "clicked" : "released");
+
+  // Wait a second, then release the mouse buttone
+
   sleep(1);
+  test->release();
+  updateMemoryUsage(g_mmprevious, "After releasing glyph button");
 
-  // Now move the slider up
+  // Poll for the mouse release event (of course this can hang if something fails)
 
-  for (int i = 0; i <= MAX_SLIDER; i++)
-    {
-      slider->setValue(i);
-      test->showSlider(slider);
-      message(MAIN_STRING "%d. New value %d\n", i, slider->getValue());
-      usleep(1000); // The simulation needs this to let the X11 event loop run
-    }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After moving the slider up");
+  clicked = test->poll(button);
+  message("cglyphbutton_main: Button is %s\n", clicked ? "clicked" : "released");
 
-  // And move the slider down
+  // Wait a few more seconds so that the tester can ponder the result
 
-  for (int i = MAX_SLIDER; i >= 0; i--)
-    {
-      slider->setValue(i);
-      test->showSlider(slider);
-      message(MAIN_STRING "%d. New value %d\n", i, slider->getValue());
-      usleep(1000); // The simulation needs this to let the X11 event loop run
-    }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After moving the slider down");
-  sleep(1);
+  sleep(3);
 
   // Clean up and exit
 
-  message(MAIN_STRING "Clean-up and exit\n");
-  delete slider;
-  updateMemoryUsage(g_mmprevious, "After deleting the slider");
+  message("cglyphbutton_main: Clean-up and exit\n");
+  delete button;
+  updateMemoryUsage(g_mmprevious, "After deleting the glyph button");
   delete test;
   updateMemoryUsage(g_mmprevious, "After deleting the test");
   updateMemoryUsage(g_mmInitial, "Final memory usage");

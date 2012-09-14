@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/CGlyphButton/main.cxx
+// NxWidgets/UnitTests/CKeypad/ckeypad_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -42,14 +42,13 @@
 #include <nuttx/init.h>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <unistd.h>
 #include <debug.h>
 
 #include <nuttx/nx/nx.h>
 
-#include "cglyphbuttontest.hxx"
-#include "glyphs.hxx"
+#include "cnxstring.hxx"
+#include "ckeypadtest.hxx"
 
 /////////////////////////////////////////////////////////////////////////////
 // Definitions
@@ -64,7 +63,8 @@
 /////////////////////////////////////////////////////////////////////////////
 
 static unsigned int g_mmInitial;
-static unsigned int g_mmprevious;
+static unsigned int g_mmPrevious;
+static unsigned int g_mmPeak;
 
 /////////////////////////////////////////////////////////////////////////////
 // Public Function Prototypes
@@ -72,7 +72,7 @@ static unsigned int g_mmprevious;
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
+extern "C" int ckeypad_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Functions
@@ -97,13 +97,16 @@ static void updateMemoryUsage(unsigned int previous,
 
   /* Show the change from the previous time */
 
-  message("\n%s:\n", msg);
-  message("  Before: %8d After: %8d Change: %8d\n\n",
-          previous, mmcurrent.uordblks, mmcurrent.uordblks - previous);
+  message("%s: Before: %8d After: %8d Change: %8d\n",
+           msg, previous, mmcurrent.uordblks, mmcurrent.uordblks - previous);
 
   /* Set up for the next test */
 
-  g_mmprevious = mmcurrent.uordblks;
+  g_mmPrevious = mmcurrent.uordblks;
+  if ((unsigned int)mmcurrent.uordblks > g_mmPeak)
+    {
+      g_mmPeak = mmcurrent.uordblks;
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -123,7 +126,62 @@ static void initMemoryUsage(void)
 #endif
 
   g_mmInitial  = mmcurrent.uordblks;
-  g_mmprevious = mmcurrent.uordblks;
+  g_mmPrevious = mmcurrent.uordblks;
+  g_mmPeak     = mmcurrent.uordblks;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+// Name: clickButtons
+/////////////////////////////////////////////////////////////////////////////
+
+static void clickButtons(CKeypadTest *test, CKeypad *keypad)
+{
+  // Perform a simulated mouse click on a button in the keypad
+
+  for (int j = 0; j < KEYPAD_NROWS; j++)
+    {
+      for (int i = 0; i < KEYPAD_NCOLUMNS; i++)
+        {
+          printf("clickButtons: Click the button (%d,%d)\n", i, j);
+          test->click(keypad, i, j);
+
+          // Poll for the mouse click event
+
+          test->poll(keypad);
+
+          // Is anything clicked?
+
+          int clickColumn;
+          int clickRow;
+          if (keypad->isButtonClicked(clickColumn, clickRow))
+            {
+              printf("clickButtons: %s: Button (%d, %d) is clicked\n", 
+                     clickColumn == i && clickRow == j ? "OK" : "ERROR",
+                     clickColumn, clickRow);
+            }
+          else
+            {
+              printf("clickButtons: ERROR: No button is clicked\n");
+            }
+
+          // Wait a bit, then release the mouse button
+
+          usleep(250*1000);
+          test->release(keypad, i, j);
+
+          // Poll for the mouse release event (of course this can hang if something fails)
+
+          test->poll(keypad);
+          if (keypad->isButtonClicked(clickColumn, clickRow))
+            {
+              printf("clickButtons: ERROR: Button (%d, %d) is clicked\n", 
+                     clickColumn, clickRow);
+            }
+ 
+          usleep(500*1000);
+        }
+    }
+  updateMemoryUsage(g_mmPrevious, "After pushing buttons");
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -134,92 +192,83 @@ static void initMemoryUsage(void)
 // user_start/nxheaders_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int ckeypad_main(int argc, char *argv[])
 {
   // Initialize memory monitor logic
 
   initMemoryUsage();
 
-  // Create an instance of the font test
+  // Create an instance of the keypad test
 
-  message(MAIN_STRING "Create CGlyphButtonTest instance\n");
-  CGlyphButtonTest *test = new CGlyphButtonTest();
-  updateMemoryUsage(g_mmprevious, "After creating CGlyphButtonTest");
+  printf("ckeypad_main: Create CKeypadTest instance\n");
+  CKeypadTest *test = new CKeypadTest();
+  updateMemoryUsage(g_mmPrevious, "After creating CKeypadTest");
 
   // Connect the NX server
 
-  message(MAIN_STRING "Connect the CGlyphButtonTest instance to the NX server\n");
+  printf("ckeypad_main: Connect the CKeypadTest instance to the NX server\n");
   if (!test->connect())
     {
-      message(MAIN_STRING "Failed to connect the CGlyphButtonTest instance to the NX server\n");
+      printf("ckeypad_main: Failed to connect the CKeypadTest instance to the NX server\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, "After connecting to the server");
+  updateMemoryUsage(g_mmPrevious, "After connecting to the server");
 
   // Create a window to draw into
 
-  message(MAIN_STRING "Create a Window\n");
+  printf("ckeypad_main: Create a Window\n");
   if (!test->createWindow())
     {
-      message(MAIN_STRING "Failed to create a window\n");
+      printf("ckeypad_main: Failed to create a window\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, "After creating a window");
+  updateMemoryUsage(g_mmPrevious, "After creating a window");
 
-  // Create a CGlyphButton instance
+  // Create a CKeypad instance
 
-  CGlyphButton *button = test->createButton(&g_arrowDown, &g_arrowUp);
-  if (!button)
+  CKeypad *keypad = test->createKeypad();
+  if (!keypad)
     {
-      message(MAIN_STRING "Failed to create a button\n");
+      printf("ckeypad_main: Failed to create a keypad\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, "After creating the glyph button");
+  updateMemoryUsage(g_mmPrevious, "After creating CKeypad");
 
-  // Show the button
+  // Show the keypad in alphabetic mode
 
-  message(MAIN_STRING "Show the button\n");
-  test->showButton(button);
-  updateMemoryUsage(g_mmprevious, "After showing the glyph button");
-
-  // Wait two seconds, then perform a simulated mouse click on the button
-
-  sleep(2);
-  message(MAIN_STRING "Click the button\n");
-  test->click();
-  updateMemoryUsage(g_mmprevious, "After clicking glyph button");
-
-  // Poll for the mouse click event (of course this can hang if something fails)
-
-  bool clicked = test->poll(button);
-  message(MAIN_STRING "Button is %s\n", clicked ? "clicked" : "released");
-
-  // Wait a second, then release the mouse buttone
-
+  printf("ckeypad_main: Show the keypad in alphabetic mode\n");
+  keypad->setKeypadMode(false);
+  test->showKeypad(keypad);
   sleep(1);
-  test->release();
-  updateMemoryUsage(g_mmprevious, "After releasing glyph button");
 
-  // Poll for the mouse release event (of course this can hang if something fails)
+  // Then click some buttons
 
-  clicked = test->poll(button);
-  message(MAIN_STRING "Button is %s\n", clicked ? "clicked" : "released");
+  clickButtons(test, keypad);
+  sleep(1);
 
-  // Wait a few more seconds so that the tester can ponder the result
+  // Show the keypad in numeric mode
 
-  sleep(3);
+  printf("ckeypad_main: Show the keypad in numeric mode\n");
+  keypad->setKeypadMode(true);
+  sleep(1);
+
+  // Then click some buttons
+
+  clickButtons(test, keypad);
+  sleep(1);
 
   // Clean up and exit
 
-  message(MAIN_STRING "Clean-up and exit\n");
-  delete button;
-  updateMemoryUsage(g_mmprevious, "After deleting the glyph button");
+  printf("ckeypad_main: Clean-up and exit\n");
+  delete keypad;
+  updateMemoryUsage(g_mmPrevious, "After deleting the keypad");
   delete test;
-  updateMemoryUsage(g_mmprevious, "After deleting the test");
+  updateMemoryUsage(g_mmPrevious, "After deleting the test");
   updateMemoryUsage(g_mmInitial, "Final memory usage");
+  message("Peak memory usage: %8d\n", g_mmPeak - g_mmInitial);
   return 0;
 }
 

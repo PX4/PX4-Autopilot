@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/CLatchButtonArray/main.cxx
+// NxWidgets/UnitTests/CSliderHorizontal/csliderhorizontal_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -42,17 +42,19 @@
 #include <nuttx/init.h>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <unistd.h>
 #include <debug.h>
 
 #include <nuttx/nx/nx.h>
 
-#include "cnxstring.hxx"
-#include "clatchbuttonarraytest.hxx"
+#include "csliderhorizontaltest.hxx"
 
 /////////////////////////////////////////////////////////////////////////////
 // Definitions
 /////////////////////////////////////////////////////////////////////////////
+
+#define MAX_SLIDER 50
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Classes
@@ -63,18 +65,7 @@
 /////////////////////////////////////////////////////////////////////////////
 
 static unsigned int g_mmInitial;
-static unsigned int g_mmPrevious;
-static unsigned int g_mmPeak;
-
-static FAR const char *g_buttonLabels[BUTTONARRAY_NCOLUMNS*BUTTONARRAY_NROWS] = {
- "=>", "A", "B", "<DEL", 
- "C", "D", "E", "F",
- "G", "H", "I", "J",
- "K", "L", "M", "N",
- "O", "P", "Q", "R",
- "S", "T", "U", "V",
- "W", "X", "Y", "Z"
-};
+static unsigned int g_mmprevious;
 
 /////////////////////////////////////////////////////////////////////////////
 // Public Function Prototypes
@@ -82,37 +73,11 @@ static FAR const char *g_buttonLabels[BUTTONARRAY_NCOLUMNS*BUTTONARRAY_NROWS] = 
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
+extern "C" int csliderhorizontal_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Functions
 /////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////
-// Name: showButtonState
-/////////////////////////////////////////////////////////////////////////////
-
-static void showButtonState(CLatchButtonArray *buttonArray, int i, int j,
-                            bool &clicked, bool &latched)
-{
-  bool nowClicked = buttonArray->isThisButtonClicked(i,j);
-  bool nowLatched = buttonArray->isThisButtonLatched(i,j);
-
-  printf(MAIN_STRING "Button(%d,%d) state: %s and %s\n",
-    i, j,
-    nowClicked ? "clicked" : "released",
-    nowLatched ? "latched" : "unlatched");
-
-  if (clicked != nowClicked || latched != nowLatched)
-    {
-      printf(MAIN_STRING "ERROR: Expected %s and %s\n",
-        clicked ? "clicked" : "released",
-        latched ? "latched" : "unlatched");
-
-      clicked = nowClicked;
-      latched = nowLatched;
-    }
-}
 
 /////////////////////////////////////////////////////////////////////////////
 // Name: updateMemoryUsage
@@ -133,16 +98,13 @@ static void updateMemoryUsage(unsigned int previous,
 
   /* Show the change from the previous time */
 
-  message("%s: Before: %8d After: %8d Change: %8d\n",
-           msg, previous, mmcurrent.uordblks, mmcurrent.uordblks - previous);
+  message("\n%s:\n", msg);
+  message("  Before: %8d After: %8d Change: %8d\n\n",
+          previous, mmcurrent.uordblks, mmcurrent.uordblks - previous);
 
   /* Set up for the next test */
 
-  g_mmPrevious = mmcurrent.uordblks;
-  if ((unsigned int)mmcurrent.uordblks > g_mmPeak)
-    {
-      g_mmPeak = mmcurrent.uordblks;
-    }
+  g_mmprevious = mmcurrent.uordblks;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -162,8 +124,7 @@ static void initMemoryUsage(void)
 #endif
 
   g_mmInitial  = mmcurrent.uordblks;
-  g_mmPrevious = mmcurrent.uordblks;
-  g_mmPeak     = mmcurrent.uordblks;
+  g_mmprevious = mmcurrent.uordblks;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -171,131 +132,100 @@ static void initMemoryUsage(void)
 /////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
-// user_start/nxheaders_main
+// Name: user_start/nxheaders_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int csliderhorizontal_main(int argc, char *argv[])
 {
   // Initialize memory monitor logic
 
   initMemoryUsage();
 
-  // Create an instance of the button array test
+  // Create an instance of the checkbox test
 
-  printf(MAIN_STRING "Create CLatchButtonArrayTest instance\n");
-  CLatchButtonArrayTest *test = new CLatchButtonArrayTest();
-  updateMemoryUsage(g_mmPrevious, "After creating CLatchButtonArrayTest");
+  message("csliderhorizontal_main: Create CSliderHorizontalTest instance\n");
+  CSliderHorizontalTest *test = new CSliderHorizontalTest();
+  updateMemoryUsage(g_mmprevious, "After creating CSliderHorizontalTest");
 
   // Connect the NX server
 
-  printf(MAIN_STRING "Connect the CLatchButtonArrayTest instance to the NX server\n");
+  message("csliderhorizontal_main: Connect the CSliderHorizontalTest instance to the NX server\n");
   if (!test->connect())
     {
-      printf(MAIN_STRING "Failed to connect the CLatchButtonArrayTest instance to the NX server\n");
+      message("csliderhorizontal_main: Failed to connect the CSliderHorizontalTest instance to the NX server\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmPrevious, "After connecting to the server");
+  updateMemoryUsage(g_mmprevious, "csliderhorizontal_main: After connecting to the server");
 
   // Create a window to draw into
 
-  printf(MAIN_STRING "Create a Window\n");
+  message("csliderhorizontal_main: Create a Window\n");
   if (!test->createWindow())
     {
-      printf(MAIN_STRING "Failed to create a window\n");
+      message("csliderhorizontal_main: Failed to create a window\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmPrevious, "After creating a window");
+  updateMemoryUsage(g_mmprevious, "csliderhorizontal_main: After creating a window");
 
-  // Create a CLatchButtonArray instance
+  // Create a slider
 
-  CLatchButtonArray *buttonArray = test->createButtonArray();
-  if (!buttonArray)
+  message("csliderhorizontal_main: Create a Slider\n");
+  CSliderHorizontal *slider = test->createSlider();
+  if (!slider)
     {
-      printf(MAIN_STRING "Failed to create a button array\n");
+      message("csliderhorizontal_main: Failed to create a slider\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmPrevious, "After creating CLatchButtonArray");
+  updateMemoryUsage(g_mmprevious, "csliderhorizontal_main: After creating a slider");
 
-  // Add the labels to each button
+  // Set the slider minimum and maximum values
 
-  FAR const char **ptr = g_buttonLabels;
-  for (int j = 0; j < BUTTONARRAY_NROWS; j++)
-    {
-      for (int i = 0; i < BUTTONARRAY_NCOLUMNS; i++)
-        {
-          printf(MAIN_STRING "Label (%d,%d): %s\n", i, j, *ptr);
-          CNxString string = *ptr++;
-          buttonArray->setText(i, j, string);
-        }
-    }
-  updateMemoryUsage(g_mmPrevious, "After adding labels to the buttons");
+  slider->setMinimumValue(0);
+  slider->setMaximumValue(MAX_SLIDER);
+  slider->setValue(0);
+  message("csliderhorizontal_main: Slider range %d->%d Initial value %d\n",
+          slider->getMinimumValue(), slider->getMaximumValue(),
+          slider->getValue());
 
-  // Show the button array
+  // Show the initial state of the checkbox
 
-  printf(MAIN_STRING "Show the button array\n");
-  test->showButton(buttonArray);
+  test->showSlider(slider);
   sleep(1);
 
-  // Then perform a simulated mouse click on a button in the array
+  // Now move the slider up
 
-  bool clicked = false;
-  bool latched = false;
- 
-  for (int j = 0; j < BUTTONARRAY_NROWS; j++)
+  for (int i = 0; i <= MAX_SLIDER; i++)
     {
-      for (int i = 0; i < BUTTONARRAY_NCOLUMNS; i++)
-        {
-          // Initially, this button should be neither clicked nor latched 
-
-          clicked = false;
-          latched = false;
-          showButtonState(buttonArray, i, j, clicked, latched);
-
-          printf(MAIN_STRING "Click the button (%d,%d)\n", i, j);
-          test->click(buttonArray, i, j);
-
-          // Poll for the mouse click event
-
-          test->poll(buttonArray);
-
-          // Now it should be clicked and latched
-
-          clicked = true;
-          latched = true;
-          showButtonState(buttonArray, i, j, clicked, latched);
-
-          // Wait a bit, then release the mouse button
-
-          usleep(200*1000);
-          test->release(buttonArray, i, j);
-
-          // Poll for the mouse release event (of course this can hang if something fails)
-
-          test->poll(buttonArray);
- 
-          // Now it should be un-clicked and latched
-
-          clicked = false;
-          latched = true;
-          showButtonState(buttonArray, i, j, clicked, latched);
-
-          usleep(300*1000);
-        }
+      slider->setValue(i);
+      test->showSlider(slider);
+      message("csliderhorizontal_main: %d. New value %d\n", i, slider->getValue());
+      usleep(1000); // The simulation needs this to let the X11 event loop run
     }
-  updateMemoryUsage(g_mmPrevious, "After pushing buttons");
+  updateMemoryUsage(g_mmprevious, "csliderhorizontal_main: After moving the slider up");
+
+  // And move the slider down
+
+  for (int i = MAX_SLIDER; i >= 0; i--)
+    {
+      slider->setValue(i);
+      test->showSlider(slider);
+      message("csliderhorizontal_main: %d. New value %d\n", i, slider->getValue());
+      usleep(1000); // The simulation needs this to let the X11 event loop run
+    }
+  updateMemoryUsage(g_mmprevious, "csliderhorizontal_main: After moving the slider down");
+  sleep(1);
 
   // Clean up and exit
 
-  printf(MAIN_STRING "Clean-up and exit\n");
-  delete buttonArray;
-  updateMemoryUsage(g_mmPrevious, "After deleting the button array");
+  message("csliderhorizontal_main: Clean-up and exit\n");
+  delete slider;
+  updateMemoryUsage(g_mmprevious, "After deleting the slider");
   delete test;
-  updateMemoryUsage(g_mmPrevious, "After deleting the test");
+  updateMemoryUsage(g_mmprevious, "After deleting the test");
   updateMemoryUsage(g_mmInitial, "Final memory usage");
-  message("Peak memory usage: %8d\n", g_mmPeak - g_mmInitial);
   return 0;
 }
 

@@ -70,16 +70,6 @@
 #  define CONFIG_CRADIOBUTTONTEST_BGCOLOR CONFIG_NXWIDGETS_DEFAULT_BACKGROUNDCOLOR
 #endif
 
-// What is the entry point called?
-
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME cradiobutton_main
-#  define MAIN_STRING "cradiobutton_main: "
-#else
-#  define MAIN_NAME user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
 // If debug is enabled, use the debug function, lib_rawprintf() instead
 // of printf() so that the output is synchronized.
 
