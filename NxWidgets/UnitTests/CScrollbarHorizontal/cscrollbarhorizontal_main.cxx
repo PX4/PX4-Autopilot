@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////////////////
-// NxWidgets/UnitTests/CScrollbarHorizontal/main.cxx
+// NxWidgets/UnitTests/CScrollbarHorizontal/cscrollbarhorizontal_main.cxx
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -73,7 +73,7 @@ static unsigned int g_mmprevious;
 
 // Suppress name-mangling
 
-extern "C" int MAIN_NAME(int argc, char *argv[]);
+extern "C" int cscrollbarhorizontal_main(int argc, char *argv[]);
 
 /////////////////////////////////////////////////////////////////////////////
 // Private Functions
@@ -135,7 +135,7 @@ static void initMemoryUsage(void)
 // Name: user_start/nxheaders_main
 /////////////////////////////////////////////////////////////////////////////
 
-int MAIN_NAME(int argc, char *argv[])
+int cscrollbarhorizontal_main(int argc, char *argv[])
 {
   // Initialize memory monitor logic
 
@@ -143,50 +143,50 @@ int MAIN_NAME(int argc, char *argv[])
 
   // Create an instance of the checkbox test
 
-  message(MAIN_STRING "Create CScrollbarHorizontalTest instance\n");
+  message("cscrollbarhorizontal_main: Create CScrollbarHorizontalTest instance\n");
   CScrollbarHorizontalTest *test = new CScrollbarHorizontalTest();
   updateMemoryUsage(g_mmprevious, "After creating CScrollbarHorizontalTest");
 
   // Connect the NX server
 
-  message(MAIN_STRING "Connect the CScrollbarHorizontalTest instance to the NX server\n");
+  message("cscrollbarhorizontal_main: Connect the CScrollbarHorizontalTest instance to the NX server\n");
   if (!test->connect())
     {
-      message(MAIN_STRING "Failed to connect the CScrollbarHorizontalTest instance to the NX server\n");
+      message("cscrollbarhorizontal_main: Failed to connect the CScrollbarHorizontalTest instance to the NX server\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After connecting to the server");
+  updateMemoryUsage(g_mmprevious, "cscrollbarhorizontal_main: After connecting to the server");
 
   // Create a window to draw into
 
-  message(MAIN_STRING "Create a Window\n");
+  message("cscrollbarhorizontal_main: Create a Window\n");
   if (!test->createWindow())
     {
-      message(MAIN_STRING "Failed to create a window\n");
+      message("cscrollbarhorizontal_main: Failed to create a window\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After creating a window");
+  updateMemoryUsage(g_mmprevious, "cscrollbarhorizontal_main: After creating a window");
 
   // Create a scrollbar
 
-  message(MAIN_STRING "Create a Scrollbar\n");
+  message("cscrollbarhorizontal_main: Create a Scrollbar\n");
   CScrollbarHorizontal *scrollbar = test->createScrollbar();
   if (!scrollbar)
     {
-      message(MAIN_STRING "Failed to create a scrollbar\n");
+      message("cscrollbarhorizontal_main: Failed to create a scrollbar\n");
       delete test;
       return 1;
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After creating a scrollbar");
+  updateMemoryUsage(g_mmprevious, "cscrollbarhorizontal_main: After creating a scrollbar");
 
   // Set the scrollbar minimum and maximum values
 
   scrollbar->setMinimumValue(0);
   scrollbar->setMaximumValue(MAX_SCROLLBAR);
   scrollbar->setValue(0);
-  message(MAIN_STRING "Scrollbar range %d->%d Initial value %d\n",
+  message("cscrollbarhorizontal_main: Scrollbar range %d->%d Initial value %d\n",
           scrollbar->getMinimumValue(), scrollbar->getMaximumValue(),
           scrollbar->getValue());
 
@@ -201,10 +201,10 @@ int MAIN_NAME(int argc, char *argv[])
     {
       scrollbar->setValue(i);
       test->showScrollbar(scrollbar);
-      message(MAIN_STRING "%d. New value %d\n", i, scrollbar->getValue());
+      message("cscrollbarhorizontal_main: %d. New value %d\n", i, scrollbar->getValue());
       usleep(1000); // The simulation needs this to let the X11 event loop run
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After moving the scrollbar up");
+  updateMemoryUsage(g_mmprevious, "cscrollbarhorizontal_main: After moving the scrollbar up");
 
   // And move the scrollbar down
 
@@ -212,15 +212,15 @@ int MAIN_NAME(int argc, char *argv[])
     {
       scrollbar->setValue(i);
       test->showScrollbar(scrollbar);
-      message(MAIN_STRING "%d. New value %d\n", i, scrollbar->getValue());
+      message("cscrollbarhorizontal_main: %d. New value %d\n", i, scrollbar->getValue());
       usleep(1000); // The simulation needs this to let the X11 event loop run
     }
-  updateMemoryUsage(g_mmprevious, MAIN_STRING "After moving the scrollbar down");
+  updateMemoryUsage(g_mmprevious, "cscrollbarhorizontal_main: After moving the scrollbar down");
   sleep(1);
 
   // Clean up and exit
 
-  message(MAIN_STRING "Clean-up and exit\n");
+  message("cscrollbarhorizontal_main: Clean-up and exit\n");
   delete scrollbar;
   updateMemoryUsage(g_mmprevious, "After deleting the scrollbar");
   delete test;

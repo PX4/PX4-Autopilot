@@ -78,7 +78,13 @@ FAR struct gran_s *g_graninfo;
  *   heapstart - Start of the granule allocation heap
  *   heapsize  - Size of heap in bytes
  *   log2gran  - Log base 2 of the size of one granule.  0->1 byte,
- *               1->2 bytes, 2->4 bytes, 3-> 8bytes, etc.
+ *               1->2 bytes, 2->4 bytes, 3-> 8 bytes, etc.
+ *   log2align - Log base 2 of required alignment.  0->1 byte,
+ *               1->2 bytes, 2->4 bytes, 3-> 8 bytes, etc.  Note that
+ *               log2gran must be greater than or equal to log2align
+ *               so that all contiguous granules in memory will meet
+ *               the minimum alignment requirement. A value of zero
+ *               would mean that no alignment is required.
  *
  * Returned Value:
  *   On success, a non-NULL info structure is returned that may be used with
@@ -86,9 +92,9 @@ FAR struct gran_s *g_graninfo;
  *
  ****************************************************************************/
 
-static inline FAR struct gran_s *gran_common_initialize(FAR void *heapstart,
-                                                        size_t heapsize,
-                                                        uint8_t log2gran)
+static inline FAR struct gran_s *
+gran_common_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gran,
+                       uint8_t log2align)
 {
   FAR struct gran_s *priv;
   uintptr_t          heapend;
@@ -97,13 +103,24 @@ static inline FAR struct gran_s *gran_common_initialize(FAR void *heapstart,
   unsigned int       alignedsize;
   unsigned int       ngranules;
 
-  DEBUGASSERT(heapstart && heapsize > 0 && log2gran > 0 && log2gran < 32);
+  /* Check parameters if debug is on.  Note the the size of a granual is
+   * limited to 2**31 bytes and that the size of the granule must be greater
+   * than the alignment size.
+   */
 
+  DEBUGASSERT(heapstart && heapsize > 0 &&
+              log2gran > 0 && log2gran < 32 &&
+              log2gran > log2align);
+
+  /* Get the aligned start of the heap */
+
+  mask         = (1 << log2align) - 1;
+  alignedstart = ((uintptr_t)heapstart + mask) & ~mask;
+  
   /* Determine the number of granules */
 
   mask         = (1 << log2gran) - 1;
   heapend      = (uintptr_t)heapstart + heapsize;
-  alignedstart = ((uintptr_t)heapstart + mask) & ~mask;
   alignedsize  = (heapend - alignedstart) & ~mask;
   ngranules    = alignedsize >> log2gran;
 
@@ -139,9 +156,32 @@ static inline FAR struct gran_s *gran_common_initialize(FAR void *heapstart,
  *
  * Description:
  *   Set up one granule allocator instance.  Allocations will be aligned to
- *   the granule size; allocations will be in units of the granule size.
- *   Larger granules will give better performance and less overhead but more
- *   losses of memory due to alignment and quantization waste.
+ *   the alignment size (log2align; allocations will be in units of the
+ *   granule size (log2gran). Larger granules will give better performance
+ *   and less overhead but more losses of memory due to alignment
+ *   quantization waste.  Additional memory waste can occur form alignment;
+ *   log2align should be set to 0 unless you are using the granule allocator
+ *   to manage DMA memory and your hardware has specific memory alignment
+ *   requirements.
+ *
+ *   Geneneral Usage Summary.  This is an example using the GCC section
+ *   attribute to position a DMA heap in memory (logic in the linker script
+ *   would assign the section .dmaheap to the DMA memory.
+ *
+ *     FAR uint32_t g_dmaheap[DMAHEAP_SIZE] __attribute__((section(.dmaheap)));
+ *
+ *   The heap is created by calling gran_initialize().  Here the granual size
+ *   is set to 64 bytes (2**6) and the alignment to 16 bytes (2**4):
+ *
+ *     GRAN_HANDLE handle = gran_initialize(g_dmaheap, DMAHEAP_SIZE, 6, 4);
+ *
+ *   Then the GRAN_HANDLE can be used to allocate memory (There is no
+ *   GRAN_HANDLE if CONFIG_GRAN_SINGLE=y):
+ *
+ *     FAR uint8_t *dma_memory = (FAR uint8_t *)gran_alloc(handle, 47);
+ *
+ *   The actual memory allocates will be 64 byte (wasting 17 bytes) and
+ *   will be aligned at least to (1 << log2align).
  *
  *   NOTE: The current implementation also restricts the maximum allocation
  *   size to 32 granules.  That restriction could be eliminated with some
@@ -151,7 +191,13 @@ static inline FAR struct gran_s *gran_common_initialize(FAR void *heapstart,
  *   heapstart - Start of the granule allocation heap
  *   heapsize  - Size of heap in bytes
  *   log2gran  - Log base 2 of the size of one granule.  0->1 byte,
- *               1->2 bytes, 2->4 bytes, 3-> 8bytes, etc.
+ *               1->2 bytes, 2->4 bytes, 3-> 8 bytes, etc.
+ *   log2align - Log base 2 of required alignment.  0->1 byte,
+ *               1->2 bytes, 2->4 bytes, 3-> 8 bytes, etc.  Note that
+ *               log2gran must be greater than or equal to log2align
+ *               so that all contiguous granules in memory will meet
+ *               the minimum alignment requirement. A value of zero
+ *               would mean that no alignment is required.
  *
  * Returned Value:
  *   On success, a non-NULL handle is returned that may be used with other
@@ -160,9 +206,12 @@ static inline FAR struct gran_s *gran_common_initialize(FAR void *heapstart,
  ****************************************************************************/
 
 #ifdef CONFIG_GRAN_SINGLE
+int gran_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gran,
+                    uint8_t log2align)
 int gran_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gran)
 {
-  g_graninfo = gran_common_initialize(heapstart, heapsize, log2gran);
+  g_graninfo = gran_common_initialize(heapstart, heapsize, log2gran,
+                                      log2align);
   if (!g_graninfo)
     {
       return -ENOMEM;
@@ -171,9 +220,11 @@ int gran_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gran)
   return OK;
 }
 #else
-GRAN_HANDLE gran_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gran)
+GRAN_HANDLE gran_initialize(FAR void *heapstart, size_t heapsize,
+                            uint8_t log2gran, uint8_t log2align)
 {
-  return (GRAN_HANDLE)gran_common_initialize(heapstart, heapsize, log2gran);
+  return (GRAN_HANDLE)gran_common_initialize(heapstart, heapsize,
+                                             log2gran, log2align);
 }
 #endif
 

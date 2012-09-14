@@ -90,9 +90,32 @@ extern "C" {
  *
  * Description:
  *   Set up one granule allocator instance.  Allocations will be aligned to
- *   the granule size; allocations will be in units of the granule size.
- *   Larger granules will give better performance and less overhead but more
- *   losses of memory due to alignment and quantization waste.
+ *   the alignment size (log2align; allocations will be in units of the
+ *   granule size (log2gran). Larger granules will give better performance
+ *   and less overhead but more losses of memory due to alignment
+ *   quantization waste.  Additional memory waste can occur form alignment;
+ *   log2align should be set to 0 unless you are using the granule allocator
+ *   to manage DMA memory and your hardware has specific memory alignment
+ *   requirements.
+ *
+ *   Geneneral Usage Summary.  This is an example using the GCC section
+ *   attribute to position a DMA heap in memory (logic in the linker script
+ *   would assign the section .dmaheap to the DMA memory.
+ *
+ *     FAR uint32_t g_dmaheap[DMAHEAP_SIZE] __attribute__((section(.dmaheap)));
+ *
+ *   The heap is created by calling gran_initialize.  Here the granual size
+ *   is set to 64 bytes and the alignment to 16 bytes:
+ *
+ *     GRAN_HANDLE handle = gran_initialize(g_dmaheap, DMAHEAP_SIZE, 6, 4);
+ *
+ *   Then the GRAN_HANDLE can be used to allocate memory (There is no
+ *   GRAN_HANDLE if CONFIG_GRAN_SINGLE=y):
+ *
+ *     FAR uint8_t *dma_memory = (FAR uint8_t *)gran_alloc(handle, 47);
+ *
+ *   The actual memory allocates will be 64 byte (wasting 17 bytes) and
+ *   will be aligned at least to (1 << log2align).
  *
  *   NOTE: The current implementation also restricts the maximum allocation
  *   size to 32 granules.  That restriction could be eliminated with some
@@ -102,7 +125,13 @@ extern "C" {
  *   heapstart - Start of the granule allocation heap
  *   heapsize  - Size of heap in bytes
  *   log2gran  - Log base 2 of the size of one granule.  0->1 byte,
- *               1->2 bytes, 2->4 bytes, 3-> 8bytes, etc.
+ *               1->2 bytes, 2->4 bytes, 3-> 8 bytes, etc.
+ *   log2align - Log base 2 of required alignment.  0->1 byte,
+ *               1->2 bytes, 2->4 bytes, 3-> 8 bytes, etc.  Note that
+ *               log2gran must be greater than or equal to log2align
+ *               so that all contiguous granules in memory will meet
+ *               the minimum alignment requirement. A value of zero
+ *               would mean that no alignment is required.
  *
  * Returned Value:
  *   On success, a non-NULL handle is returned that may be used with other
@@ -112,10 +141,10 @@ extern "C" {
 
 #ifdef CONFIG_GRAN_SINGLE
 EXTERN int gran_initialize(FAR void *heapstart, size_t heapsize,
-                           uint8_t log2gran);
+                           uint8_t log2gran, uint8_t log2align);
 #else
 EXTERN GRAN_HANDLE gran_initialize(FAR void *heapstart, size_t heapsize,
-                                   uint8_t log2gran);
+                                   uint8_t log2gran, uint8_t log2align);
 #endif
 
 /****************************************************************************
