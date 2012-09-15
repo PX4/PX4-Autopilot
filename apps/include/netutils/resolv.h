@@ -3,8 +3,13 @@
  * DNS resolver code header file.
  * Author Adam Dunkels <adam@dunkels.com>
  *
- * Copyright (c) 2002-2003, Adam Dunkels.
- * All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *
+ * Inspired by/based on uIP logic by Adam Dunkels:
+ *
+ *   Copyright (c) 2002-2003, Adam Dunkels.
+ *   All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,6 +46,8 @@
 
 #include <nuttx/net/uip/uipopt.h>
 
+#include <netinet/in.h>
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -58,13 +65,13 @@ extern "C" {
 EXTERN int resolv_init(void);
 
 #ifdef CONFIG_NET_IPv6
-EXTERN void resolv_conf(const struct in6_addr *dnsserver);
-EXTERN void resolv_getserver(const struct in_addr *dnsserver);
-EXTERN int  resolv_query(const char *name, struct sockaddr_in6 *addr);
+EXTERN void resolv_conf(FAR const struct in6_addr *dnsserver);
+EXTERN void resolv_getserver(FAR const struct in_addr *dnsserver);
+EXTERN int  resolv_query(FAR const char *name, FAR struct sockaddr_in6 *addr);
 #else
-EXTERN void resolv_conf(const struct in_addr *dnsserver);
-EXTERN void resolv_getserver(struct in_addr *dnsserver);
-EXTERN int  resolv_query(const char *name, struct sockaddr_in *addr);
+EXTERN void resolv_conf(FAR const struct in_addr *dnsserver);
+EXTERN void resolv_getserver(FAR struct in_addr *dnsserver);
+EXTERN int  resolv_query(FAR const char *name, FAR struct sockaddr_in *addr);
 #endif
 
 #undef EXTERN
