@@ -453,15 +453,15 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		// sprintf(offset_output, "[commander] mag cal: %8.4f %8.4f %8.4f", (double)mag_offset[0], (double)mag_offset[1], (double)mag_offset[2]);
 		// mavlink_log_info(mavlink_fd, offset_output);
 
-		if (param_set(param_find("SENSOR_MAG_XOFF"), &(mag_offset[0]))) {
+		if (param_set(param_find("SENS_MAG_XOFF"), &(mag_offset[0]))) {
 			fprintf(stderr, "[commander] Setting X mag offset failed!\n");
 		}
 		
-		if (param_set(param_find("SENSOR_MAG_YOFF"), &(mag_offset[1]))) {
+		if (param_set(param_find("SENS_MAG_YOFF"), &(mag_offset[1]))) {
 			fprintf(stderr, "[commander] Setting Y mag offset failed!\n");
 		}
 
-		if (param_set(param_find("SENSOR_MAG_ZOFF"), &(mag_offset[2]))) {
+		if (param_set(param_find("SENS_MAG_ZOFF"), &(mag_offset[2]))) {
 			fprintf(stderr, "[commander] Setting Z mag offset failed!\n");
 		}
 	}
@@ -540,15 +540,15 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	gyro_offset[1] = gyro_offset[1] / calibration_count;
 	gyro_offset[2] = gyro_offset[2] / calibration_count;
 
-	if (param_set(param_find("SENSOR_GYRO_XOFF"), &(gyro_offset[0]))) {
+	if (param_set(param_find("SENS_GYRO_XOFF"), &(gyro_offset[0]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting X gyro offset failed!");
 	}
 	
-	if (param_set(param_find("SENSOR_GYRO_YOFF"), &(gyro_offset[1]))) {
+	if (param_set(param_find("SENS_GYRO_YOFF"), &(gyro_offset[1]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting Y gyro offset failed!");
 	}
 
-	if (param_set(param_find("SENSOR_GYRO_ZOFF"), &(gyro_offset[2]))) {
+	if (param_set(param_find("SENS_GYRO_ZOFF"), &(gyro_offset[2]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting Z gyro offset failed!");
 	}
 
