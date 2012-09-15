@@ -527,13 +527,13 @@ HMC5883::start()
 	_oldest_report = _next_report = 0;
 
 	/* schedule a cycle to start things */
-	work_queue(&_work, (worker_t)&HMC5883::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&HMC5883::cycle_trampoline, this, 1);
 }
 
 void
 HMC5883::stop()
 {
-	work_cancel(&_work);
+	work_cancel(HPWORK, &_work);
 }
 
 void
@@ -567,7 +567,8 @@ HMC5883::cycle()
 		if (_measure_ticks > USEC2TICK(HMC5883_CONVERSION_INTERVAL)) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(&_work,
+			work_queue(HPWORK, 
+				   &_work,
 				   (worker_t)&HMC5883::cycle_trampoline,
 				   this,
 				   _measure_ticks - USEC2TICK(HMC5883_CONVERSION_INTERVAL));
@@ -584,7 +585,8 @@ HMC5883::cycle()
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(&_work,
+	work_queue(HPWORK, 
+		   &_work,
 		   (worker_t)&HMC5883::cycle_trampoline,
 		   this,
 		   USEC2TICK(HMC5883_CONVERSION_INTERVAL));

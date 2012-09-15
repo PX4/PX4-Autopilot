@@ -541,13 +541,13 @@ MS5611::start()
 	_oldest_report = _next_report = 0;
 
 	/* schedule a cycle to start things */
-	work_queue(&_work, (worker_t)&MS5611::cycle_trampoline, this, 1);
+	work_queue(HPWORK, &_work, (worker_t)&MS5611::cycle_trampoline, this, 1);
 }
 
 void
 MS5611::stop()
 {
-	work_cancel(&_work);
+	work_cancel(HPWORK, &_work);
 }
 
 void
@@ -585,7 +585,8 @@ MS5611::cycle()
 		    (_measure_ticks > USEC2TICK(MS5611_CONVERSION_INTERVAL))) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(&_work,
+			work_queue(HPWORK,
+				   &_work,
 				   (worker_t)&MS5611::cycle_trampoline,
 				   this,
 				   _measure_ticks - USEC2TICK(MS5611_CONVERSION_INTERVAL));
@@ -602,7 +603,8 @@ MS5611::cycle()
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(&_work,
+	work_queue(HPWORK,
+		   &_work,
 		   (worker_t)&MS5611::cycle_trampoline,
 		   this,
 		   USEC2TICK(MS5611_CONVERSION_INTERVAL));
@@ -713,30 +715,30 @@ MS5611::collect()
 		 * 	double precision: ms5611_read: 992 events, 258641us elapsed, min 202us max 305us
 		 *	single precision: ms5611_read: 963 events, 208066us elapsed, min 202us max 241us
 		 */
+#if 0/* USE_FLOAT */
+		/* tropospheric properties (0-11km) for standard atmosphere */
+		const float T1 = 15.0f + 273.15f;	/* temperature at base height in Kelvin */
+		const float a  = -6.5f / 1000f;	/* temperature gradient in degrees per metre */
+		const float g  = 9.80665f;	/* gravity constant in m/s/s */
+		const float R  = 287.05f;	/* ideal gas constant in J/kg/K */
 
-		// /* tropospheric properties (0-11km) for standard atmosphere */
-		// const float T1 = 15.0f + 273.15f;	/* temperature at base height in Kelvin */
-		// const float a  = -6.5f / 1000f;	/* temperature gradient in degrees per metre */
-		// const float g  = 9.80665f;	/* gravity constant in m/s/s */
-		// const float R  = 287.05f;	/* ideal gas constant in J/kg/K */
+		/* current pressure at MSL in kPa */
+		float p1 = _msl_pressure / 1000.0f;
 
-		// /* current pressure at MSL in kPa */
-		// float p1 = _msl_pressure / 1000.0f;
+		/* measured pressure in kPa */
+		float p = P / 1000.0f;
 
-		// /* measured pressure in kPa */
-		// float p = P / 1000.0f;
-
-		// /*
-		//  * Solve:
-		//  *
-		//  *     /        -(aR / g)     \
-		//  *    | (p / p1)          . T1 | - T1
-		//  *     \                      /
-		//  * h = -------------------------------  + h1
-		//  *                   a
-		//  */
-		// _reports[_next_report].altitude = (((powf((p / p1), (-(a * R) / g))) * T1) - T1) / a;
-
+		/*
+		 * Solve:
+		 *
+		 *     /        -(aR / g)     \
+		 *    | (p / p1)          . T1 | - T1
+		 *     \                      /
+		 * h = -------------------------------  + h1
+		 *                   a
+		 */
+		_reports[_next_report].altitude = (((powf((p / p1), (-(a * R) / g))) * T1) - T1) / a;
+#else
 		/* tropospheric properties (0-11km) for standard atmosphere */
 		const double T1 = 15.0 + 273.15;	/* temperature at base height in Kelvin */
 		const double a  = -6.5 / 1000;	/* temperature gradient in degrees per metre */
@@ -759,7 +761,7 @@ MS5611::collect()
 		 *                   a
 		 */
 		_reports[_next_report].altitude = (((pow((p / p1), (-(a * R) / g))) * T1) - T1) / a;
-
+#endif
 		/* publish it */
 		orb_publish(ORB_ID(sensor_baro), _baro_topic, &_reports[_next_report]);
 
