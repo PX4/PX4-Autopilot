@@ -195,7 +195,7 @@ static int stmpe811_interrupt(int irq, FAR void *context)
        * action should be required to protect the work queue.
        */
 
-      ret = work_queue(&priv->work, stmpe811_worker, priv, 0);
+      ret = work_queue(HPWORK, &priv->work, stmpe811_worker, priv, 0);
       if (ret != 0)
         {
           illdbg("Failed to queue work: %d\n", ret);

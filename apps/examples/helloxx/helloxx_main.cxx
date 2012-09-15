@@ -1,5 +1,5 @@
 //***************************************************************************
-// examples/helloxx/main.cxx
+// examples/helloxx/helloxx_main.cxx
 //
 //   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -63,13 +63,32 @@
 #define CONFIG_READLINE_ECHO 1
 
 /* Some environments may return CR as end-of-line, others LF, and others
- * both.  The logic here assumes either but not both.
+ * both.  If not specified, the logic here assumes either (but not both) as
+ * the default.
  */
 
-#undef  CONFIG_EOL_IS_CR
-#undef  CONFIG_EOL_IS_LF
-#undef  CONFIG_EOL_IS_BOTH_CRLF
-#define CONFIG_EOL_IS_EITHER_CRLF 1
+#if defined(CONFIG_EOL_IS_CR)
+#  undef  CONFIG_EOL_IS_LF
+#  undef  CONFIG_EOL_IS_BOTH_CRLF
+#  undef  CONFIG_EOL_IS_EITHER_CRLF
+#elif defined(CONFIG_EOL_IS_LF)
+#  undef  CONFIG_EOL_IS_CR
+#  undef  CONFIG_EOL_IS_BOTH_CRLF
+#  undef  CONFIG_EOL_IS_EITHER_CRLF
+#elif defined(CONFIG_EOL_IS_BOTH_CRLF)
+#  undef  CONFIG_EOL_IS_CR
+#  undef  CONFIG_EOL_IS_LF
+#  undef  CONFIG_EOL_IS_EITHER_CRLF
+#elif defined(CONFIG_EOL_IS_EITHER_CRLF)
+#  undef  CONFIG_EOL_IS_CR
+#  undef  CONFIG_EOL_IS_LF
+#  undef  CONFIG_EOL_IS_BOTH_CRLF
+#else
+#  undef  CONFIG_EOL_IS_CR
+#  undef  CONFIG_EOL_IS_LF
+#  undef  CONFIG_EOL_IS_BOTH_CRLF
+#  define CONFIG_EOL_IS_EITHER_CRLF 1
+#endif
 
 /****************************************************************************
  * Private Type Declarations

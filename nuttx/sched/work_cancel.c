@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/work_cancel.c
  *
- *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2010, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -74,6 +74,7 @@
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
 /****************************************************************************
  * Name: work_cancel
  *
@@ -83,6 +84,7 @@
  *   again.
  *
  * Input parameters:
+ *   qid    - The work queue ID
  *   work   - The previously queue work structure to cancel
  *
  * Returned Value:
@@ -90,11 +92,12 @@
  *
  ****************************************************************************/
 
-int work_cancel(struct work_s *work)
+int work_cancel(int qid, FAR struct work_s *work)
 {
+  FAR struct wqueue_s *wqueue = &g_work[qid];
   irqstate_t flags;
 
-  DEBUGASSERT(work != NULL);
+  DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
 
   /* Cancelling the work is simply a matter of removing the work structure
    * from the work queue.  This must be done with interrupts disabled because
@@ -106,18 +109,19 @@ int work_cancel(struct work_s *work)
     {
       /* A little test of the integrity of the work queue */
 
-      DEBUGASSERT(work->dq.flink ||(FAR dq_entry_t *)work == g_work.tail);
-      DEBUGASSERT(work->dq.blink ||(FAR dq_entry_t *)work == g_work.head);
+      DEBUGASSERT(work->dq.flink ||(FAR dq_entry_t *)work == wqueue->q.tail);
+      DEBUGASSERT(work->dq.blink ||(FAR dq_entry_t *)work == wqueue->q.head);
 
       /* Remove the entry from the work queue and make sure that it is
        * mark as availalbe (i.e., the worker field is nullified).
        */
 
-      dq_rem((FAR dq_entry_t *)work, &g_work);
+      dq_rem((FAR dq_entry_t *)work, &wqueue->q);
       work->worker = NULL;
     }
 
   irqrestore(flags);
   return OK;
 }
+
 #endif /* CONFIG_SCHED_WORKQUEUE */

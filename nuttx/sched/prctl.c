@@ -91,7 +91,7 @@ int prctl(int option, ...)
       {
         /* Get the prctl arguments */
 
-        char     *name = va_arg(ap, char *);
+        FAR char *name = va_arg(ap, FAR char *);
         int       pid  = va_arg(ap, int);
         FAR _TCB *tcb;
 

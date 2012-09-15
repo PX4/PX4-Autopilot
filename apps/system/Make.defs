@@ -34,18 +34,18 @@
 #
 ############################################################################
 
-ifeq ($(CONFIG_VSN_POWEROFF),y)
-CONFIGURED_APPS += vsn/poweroff
+ifeq ($(CONFIG_SYSTEM_FREE),y)
+CONFIGURED_APPS += system/free
 endif
 
-ifeq ($(CONFIG_VSN_RAMTRON),y)
-CONFIGURED_APPS += vsn/ramtron
+ifeq ($(CONFIG_SYSTEM_I2CTOOL),y)
+CONFIGURED_APPS += system/i2c
 endif
 
-ifeq ($(CONFIG_VSN_SDCARD),y)
-CONFIGURED_APPS += vsn/sdcard
+ifeq ($(CONFIG_SYSTEM_INSTALL),y)
+CONFIGURED_APPS += system/install
 endif
 
-ifeq ($(CONFIG_VSN_SYSINFO),y)
-CONFIGURED_APPS += vsn/sysinfo
+ifeq ($(CONFIG_SYSTEM_READLINE),y)
+CONFIGURED_APPS += system/readline
 endif

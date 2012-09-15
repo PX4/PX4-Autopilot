@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/os_bringup.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * With extensions by:
@@ -47,6 +47,7 @@
 #include <debug.h>
 
 #include <nuttx/init.h>
+#include <nuttx/wqueue.h>
 
 #include "os_internal.h"
 #ifdef CONFIG_PAGING
@@ -149,10 +150,23 @@ int os_bringup(void)
 #ifdef CONFIG_SCHED_WORKQUEUE
   svdbg("Starting worker thread\n");
 
-  g_worker = KERNEL_THREAD("work", CONFIG_SCHED_WORKPRIORITY,
-                           CONFIG_SCHED_WORKSTACKSIZE,
-                           (main_t)work_thread, (const char **)NULL);
-  ASSERT(g_worker != ERROR);
+  g_work[HPWORK].pid = KERNEL_THREAD("work0", CONFIG_SCHED_WORKPRIORITY,
+                                     CONFIG_SCHED_WORKSTACKSIZE,
+                                     (main_t)work_hpthread, (const char **)NULL);
+  ASSERT(g_work[HPWORK].pid != ERROR);
+
+  /* Start a lower priority worker thread for other, non-critical continuation
+   * tasks
+   */
+
+#ifdef CONFIG_SCHED_LPWORK
+  svdbg("Starting worker thread\n");
+
+  g_work[LPWORK].pid = KERNEL_THREAD("work1", CONFIG_SCHED_LPWORKPRIORITY,
+                                     CONFIG_SCHED_LPWORKSTACKSIZE,
+                                     (main_t)work_lpthread, (const char **)NULL);
+  ASSERT(g_work[LPWORK].pid != ERROR);
+#endif
 #endif
 
   /* Once the operating system has been initialized, the system must be

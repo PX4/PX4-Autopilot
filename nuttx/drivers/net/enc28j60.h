@@ -2,7 +2,7 @@
  * drivers/net/enc28j60.h
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  * - ENC28J60 Data Sheet, Stand-Alone Ethernet Controller with SPI Interface,
@@ -56,7 +56,7 @@
  */
 
 #define ENC_RCR             (0x00)    /* Read Control Register
-                                       * 000 | aaaaa | (Registe value returned)) */
+                                       * 000 | aaaaa | (Register value returned)) */
 #define ENC_RBM             (0x3a)    /* Read Buffer Memory
                                        * 001 | 11010 | (Read buffer data follows) */
 #define ENC_WCR             (0x40)    /* Write Control Register

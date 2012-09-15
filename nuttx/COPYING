@@ -71,7 +71,12 @@ FAT Long File Names
      FAT implementations that include support for long filenames, and that
      removable solid state media and consumer devices only using short names
      would be unaffected. ..."
- 
+
+  This Wikipedia entry has been updated with recent legal decisions in favor
+  of Microsoft. Refer to:
+  
+    http://en.wikipedia.org/wiki/File_Allocation_Table#Legal_issues
+
   So you have been forewarned:  Use the long filename at your own risk!
 
 uIP

@@ -64,7 +64,7 @@ enum open_mode_e
   MODE_A,        /* "a" or "ab" open for writing, appending to file */
   MODE_RPLUS,    /* "r+", "rb+", or "r+b" open for update (reading and writing) */
   MODE_WPLUS,    /* "w+", "wb+", or "w+b"  open for update, truncating or creating file */
-  MODE_APLUS,    /* "a+", "ab+", or "a+b" open for update, appending to file */
+  MODE_APLUS     /* "a+", "ab+", or "a+b" open for update, appending to file */
 };
 
 /****************************************************************************

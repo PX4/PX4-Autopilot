@@ -328,7 +328,7 @@ void pm_update(int16_t accum)
   /* The work will be performed on the worker thread */
 
   DEBUGASSERT(g_pmglobals.work.worker == NULL);
-  (void)work_queue(&g_pmglobals.work, pm_worker, (FAR void*)((intptr_t)accum), 0);
+  (void)work_queue(HPWORK, &g_pmglobals.work, pm_worker, (FAR void*)((intptr_t)accum), 0);
 }
 
 #endif /* CONFIG_PM */

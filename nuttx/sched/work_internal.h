@@ -51,20 +51,14 @@
 
 /* Configuration ************************************************************/
 
-#ifndef CONFIG_SCHED_WORKPRIORITY
-#  define CONFIG_SCHED_WORKPRIORITY 50
-#endif
-
-#ifndef CONFIG_SCHED_WORKPERIOD
-#  define CONFIG_SCHED_WORKPERIOD (50*1000) /* 50 milliseconds */
-#endif
-
-#ifndef CONFIG_SCHED_WORKSTACKSIZE
-#  define CONFIG_SCHED_WORKSTACKSIZE CONFIG_IDLETHREAD_STACKSIZE
-#endif
-
 #ifdef CONFIG_DISABLE_SIGNALS
 #  warning "Worker thread support requires signals"
+#endif
+
+#ifdef CONFIG_SCHED_LPWORK
+#  define NWORKERS 2
+#else
+#  define NWORKERS 1
 #endif
 
 /****************************************************************************
@@ -73,29 +67,33 @@
 
 #ifndef __ASSEMBLY__
 
+/* This structure defines the state on one work queue */
+
+struct wqueue_s
+{
+  pid_t             pid; /* The task ID of the worker thread */
+  struct dq_queue_s q;   /* The queue of pending work */
+};
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
 
-/* The queue of pending work */
+/* The state of each work queue */
 
-extern struct dq_queue_s g_work;
-
-/* The task ID of the worker thread */
-
-extern pid_t g_worker;
+extern struct wqueue_s g_work[NWORKERS];
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Name: work_thread
+ * Name: work_hpthread and work_lpthread
  *
  * Description:
- *   This is the main worker thread that performs actions placed on the work
- *   queue.  It also performs periodic garbage collection (that is performed
- *   by the idle thread if CONFIG_SCHED_WORKQUEUE is not defined).
+ *   These are the main worker threads that performs actions placed on the
+ *   work lists.  One thread also performs periodic garbage collection (that
+ *   is performed by the idle thread if CONFIG_SCHED_WORKQUEUE is not defined).
  *
  * Input parameters:
  *   argc, argv (not used)
@@ -105,7 +103,11 @@ extern pid_t g_worker;
  *
  ****************************************************************************/
 
-int work_thread(int argc, char *argv[]);
+int work_hpthread(int argc, char *argv[]);
+
+#ifdef CONFIG_SCHED_LPWORK
+int work_lpthread(int argc, char *argv[]);
+#endif
 
 #endif /* __ASSEMBLY__ */
 #endif /* CONFIG_SCHED_WORKQUEUE */

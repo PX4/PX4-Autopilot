@@ -36,9 +36,13 @@ config ENC28J60_NINTERFACES
 
 config ENC28J60_SPIMODE
 	int "SPI mode"
-	default 2
+	default 0
 	---help---
-		Controls the SPI mode
+		Controls the SPI mode.  The ENC28J60 spec says that it supports SPI
+		mode 0,0 only: "The implementation used on this device supports SPI
+		mode 0,0 only. In addition, the SPI port requires that SCK be at Idle
+		in a low state; selectable clock polarity is not supported."
+		However, sometimes you need to tinker with these things.
 
 config ENC28J60_FREQUENCY
 	int "SPI frequency"

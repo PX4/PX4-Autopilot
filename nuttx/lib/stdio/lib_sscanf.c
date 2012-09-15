@@ -91,13 +91,13 @@ static const char spaces[] = " \t\n\r\f\v";
  *
  ****************************************************************************/
 
-int sscanf(const char *buf, const char *fmt, ...)
+int sscanf(FAR const char *buf, FAR const char *fmt, ...)
 {
   va_list ap;
   int     count;
 
   va_start(ap, fmt);
-  count = vsscanf((char*)buf, fmt, ap);
+  count = vsscanf((FAR char*)buf, fmt, ap);
   va_end(ap);
   return count;
 }
@@ -109,15 +109,15 @@ int sscanf(const char *buf, const char *fmt, ...)
  *    ANSI standard vsscanf implementation.
  *
  ****************************************************************************/
-int vsscanf(char *buf, const char *s, va_list ap)
+int vsscanf(FAR char *buf, FAR const char *s, va_list ap)
 {
   int             count;
   int             noassign;
   int             width;
   int             base = 10;
   int             lflag;
-  char           *tv;
-  const char     *tc;
+  FAR char       *tv;
+  FAR const char *tc;
   char            tmp[MAXLN];
 
   lvdbg("vsscanf: buf=\"%s\" fmt=\"%s\"\n", buf, s);

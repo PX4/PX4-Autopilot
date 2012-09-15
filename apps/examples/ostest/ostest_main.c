@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/examples/ostest/main.c
+ * apps/examples/ostest/ostest_main.c
  *
  *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -1,8 +1,8 @@
 /****************************************************************************
- * graphics/nxsu/nx_raise.c
+ * examples/serloop/serloop_main.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,18 +39,12 @@
 
 #include <nuttx/config.h>
 
-#include <errno.h>
-#include <debug.h>
-
-#include <nuttx/nx/nx.h>
-#include "nxfe.h"
+#include <stdint.h>
+#include <stdio.h>
+#include <unistd.h>
 
 /****************************************************************************
- * Pre-Processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Types
+ * Definitions
  ****************************************************************************/
 
 /****************************************************************************
@@ -58,42 +52,49 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nx_raise
- *
- * Description:
- *   Bring the specified window to the top of the display.
- *
- * Input parameters:
- *   hwnd - the window to be raised
- *
- * Returned value:
- *   OK on success; ERROR on failure with errno set appropriately
- *
+ * serloop_main
  ****************************************************************************/
 
-int nx_raise(NXWINDOW hwnd)
+int serloop_main(int argc, char *argv[])
 {
-#ifdef CONFIG_DEBUG
-  if (!hwnd)
+#ifdef CONFIG_EXAMPLES_SERLOOP_BUFIO
+  int ch;
+
+  for (;;)
     {
-      errno = EINVAL;
-      return ERROR;
+      ch = getchar();
+      if (ch < 1)
+        {
+          ch = '!';
+        }
+      else if ((ch < 0x20 || ch > 0x7e) && ch != '\n')
+        {
+          ch = '.';
+        }
+      putchar(ch);
+    }
+#else
+  uint8_t ch;
+  int ret;
+
+  for (;;)
+    {
+      ret = read(0, &ch, 1);
+      if (ret < 1)
+        {
+          ch = '!';
+        }
+      else if ((ch < 0x20 || ch > 0x7e) && ch != '\n')
+        {
+          ch = '.';
+        }
+      ret = write(1, &ch, 1);
     }
 #endif
-
-  nxbe_raise((FAR struct nxbe_window_s *)hwnd);
-  return OK;
+  return 0;
 }
 

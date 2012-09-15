@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/work_thread.c
  *
- *   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -67,15 +67,9 @@
  * Public Variables
  ****************************************************************************/
 
-/* The queue of pending work */
+/* The state of each work queue */
 
-struct dq_queue_s g_work;
-
-/* The task ID of the worker thread */
-
-#ifdef CONFIG_SCHED_WORKQUEUE
-pid_t g_worker;
-#endif
+struct wqueue_s g_work[NWORKERS];
 
 /****************************************************************************
  * Private Variables
@@ -86,15 +80,115 @@ pid_t g_worker;
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: work_process
+ *
+ * Description:
+ *   This is the logic that performs actions placed on any work list.
+ *
+ * Input parameters:
+ *   wqueue - Describes the work queue to be processed
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static void work_process(FAR struct wqueue_s *wqueue)
+{
+  volatile FAR struct work_s *work;
+  worker_t  worker;
+  irqstate_t flags;
+  FAR void *arg;
+  uint32_t elapsed;
+  uint32_t remaining;
+  uint32_t next;
+
+  /* Then process queued work.  We need to keep interrupts disabled while
+   * we process items in the work list.
+   */
+
+  next  = CONFIG_SCHED_WORKPERIOD / USEC_PER_TICK;
+  flags = irqsave();
+  work  = (FAR struct work_s *)wqueue->q.head;
+  while (work)
+    {
+      /* Is this work ready?  It is ready if there is no delay or if
+       * the delay has elapsed. qtime is the time that the work was added
+       * to the work queue.  It will always be greater than or equal to
+       * zero.  Therefore a delay of zero will always execute immediately.
+       */
+
+      elapsed = clock_systimer() - work->qtime;
+      if (elapsed >= work->delay)
+        {
+          /* Remove the ready-to-execute work from the list */
+
+          (void)dq_rem((struct dq_entry_s *)work, &wqueue->q);
+
+          /* Extract the work description from the entry (in case the work
+           * instance by the re-used after it has been de-queued).
+           */
+
+          worker = work->worker;
+          arg    = work->arg;
+
+          /* Mark the work as no longer being queued */
+
+          work->worker = NULL;
+
+          /* Do the work.  Re-enable interrupts while the work is being
+           * performed... we don't have any idea how long that will take!
+           */
+
+          irqrestore(flags);
+          worker(arg);
+
+          /* Now, unfortunately, since we re-enabled interrupts we don't
+           * know the state of the work list and we will have to start
+           * back at the head of the list.
+           */
+
+          flags = irqsave();
+          work  = (FAR struct work_s *)wqueue->q.head;
+        }
+      else
+        {
+          /* This one is not ready.. will it be ready before the next
+           * scheduled wakeup interval?
+           */
+
+          remaining = elapsed - work->delay;
+          if (remaining < next)
+            {
+              /* Yes.. Then schedule to wake up when the work is ready */
+
+              next = remaining;
+            }
+              
+          /* Then try the next in the list. */
+
+          work = (FAR struct work_s *)work->dq.flink;
+        }
+    }
+
+  /* Wait awhile to check the work list.  We will wait here until either
+   * the time elapses or until we are awakened by a signal.
+   */
+
+  usleep(next * USEC_PER_TICK);
+  irqrestore(flags);
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 /****************************************************************************
- * Name: work_thread
+ * Name: work_hpthread and work_lpthread
  *
  * Description:
- *   This is the main worker thread that performs actions placed on the work
- *   list.  It also performs periodic garbage collection (that is performed
- *   by the idle thread if CONFIG_SCHED_WORKQUEUE is not defined).
+ *   These are the main worker threads that performs actions placed on the
+ *   work lists.  One thread also performs periodic garbage collection (that
+ *   is performed by the idle thread if CONFIG_SCHED_WORKQUEUE is not defined).
  *
  * Input parameters:
  *   argc, argv (not used)
@@ -104,30 +198,40 @@ pid_t g_worker;
  *
  ****************************************************************************/
 
-int work_thread(int argc, char *argv[])
+int work_hpthread(int argc, char *argv[])
 {
-  volatile FAR struct work_s *work;
-  worker_t  worker;
-  FAR void *arg;
-  uint32_t elapsed;
-  uint32_t remaining;
-  uint32_t next;
-  int usec;
-  irqstate_t flags;
-
   /* Loop forever */
 
-  usec = CONFIG_SCHED_WORKPERIOD;
-  flags = irqsave();
   for (;;)
     {
-      /* Wait awhile to check the work list.  We will wait here until either
-       * the time elapses or until we are awakened by a signal.
+      /* First, perform garbage collection.  This cleans-up memory de-allocations
+       * that were queued because they could not be freed in that execution
+       * context (for example, if the memory was freed from an interrupt handler).
+       * NOTE: If the work thread is disabled, this clean-up is performed by
+       * the IDLE thread (at a very, very lower priority).
        */
 
-      usleep(usec);
-      irqrestore(flags);
+#ifdef CONFIG_SCHED_LPWORK
+      sched_garbagecollection();
+#endif
 
+      /* Then process queued work.  We need to keep interrupts disabled while
+       * we process items in the work list.
+       */
+
+      work_process(&g_work[HPWORK]);
+    }
+
+  return OK; /* To keep some compilers happy */
+}
+
+#ifdef CONFIG_SCHED_LPWORK
+int work_lpthread(int argc, char *argv[])
+{
+  /* Loop forever */
+
+  for (;;)
+    {
       /* First, perform garbage collection.  This cleans-up memory de-allocations
        * that were queued because they could not be freed in that execution
        * context (for example, if the memory was freed from an interrupt handler).
@@ -141,75 +245,12 @@ int work_thread(int argc, char *argv[])
        * we process items in the work list.
        */
 
-      next  = CONFIG_SCHED_WORKPERIOD / USEC_PER_TICK;
-      flags = irqsave();
-      work  = (FAR struct work_s *)g_work.head;
-      while (work)
-        {
-          /* Is this work ready?  It is ready if there is no delay or if
-           * the delay has elapsed. qtime is the time that the work was added
-           * to the work queue.  It will always be greater than or equal to
-           * zero.  Therefore a delay of zero will always execute immediately.
-           */
-
-          elapsed = clock_systimer() - work->qtime;
-          if (elapsed >= work->delay)
-            {
-              /* Remove the ready-to-execute work from the list */
-
-              (void)dq_rem((struct dq_entry_s *)work, &g_work);
-
-              /* Extract the work description from the entry (in case the work
-               * instance by the re-used after it has been de-queued).
-               */
-
-              worker = work->worker;
-              arg    = work->arg;
-
-              /* Mark the work as no longer being queued */
-
-              work->worker = NULL;
-
-              /* Do the work.  Re-enable interrupts while the work is being
-               * performed... we don't have any idea how long that will take!
-               */
-
-              irqrestore(flags);
-              worker(arg);
-
-              /* Now, unfortunately, since we re-enabled interrupts we don't
-               * know the state of the work list and we will have to start
-               * back at the head of the list.
-               */
-
-              flags = irqsave();
-              work  = (FAR struct work_s *)g_work.head;
-            }
-          else
-            {
-              /* This one is not ready.. will it be ready before the next
-               * scheduled wakeup interval?
-               */
-
-              remaining = elapsed - work->delay;
-              if (remaining < next)
-                {
-                  /* Yes.. Then schedule to wake up when the work is ready */
-
-                  next = remaining;
-                }
-              
-              /* Then try the next in the list. */
-
-              work = (FAR struct work_s *)work->dq.flink;
-            }
-        }
-
-      /* Now calculate the microsecond delay we should wait */
-
-      usec = next * USEC_PER_TICK;
+      work_process(&g_work[LPWORK]);
     }
 
   return OK; /* To keep some compilers happy */
 }
+
+#endif /* CONFIG_SCHED_LPWORK */
+
 #endif /* CONFIG_SCHED_WORKQUEUE */

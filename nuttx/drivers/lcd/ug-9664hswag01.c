@@ -4,7 +4,7 @@
  * controller.
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Reference: "Product Specification, OEL Display Module, UG-9664HSWAG01", Univision
  *            Technology Inc., SAS1-6020-B, January 3, 2008.
