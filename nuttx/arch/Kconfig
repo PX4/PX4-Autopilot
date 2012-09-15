@@ -153,13 +153,14 @@ config ARCH_HAVE_INTERRUPTSTACK
 	bool
 
 config ARCH_INTERRUPTSTACK
-	bool "Use interrupt stack"
+	int "Interrupt Stack Size"
 	depends on ARCH_HAVE_INTERRUPTSTACK
-	default y
+	default 0
 	---help---
 		This architecture supports an interrupt stack. If defined, this symbol
-		is the size of the interrupt stack in bytes.  If not defined, the user
-		task stacks will be used during interrupt handling.
+		will be the size of the interrupt stack in bytes.  If not defined (or
+		defined to be zero), the user task stacks will be used during interrupt
+		handling.
 
 comment "Boot options"
 
