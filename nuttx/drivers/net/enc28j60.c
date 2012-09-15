@@ -171,7 +171,7 @@
 
 enum enc_state_e
 {
-  ENCSTATE_UNIT = 0,                  /* The interface is in an unknown state */
+  ENCSTATE_UNINIT = 0,                /* The interface is in an uninitialized state */
   ENCSTATE_DOWN,                      /* The interface is down */
   ENCSTATE_UP                         /* The interface is up */
 };
@@ -2265,7 +2265,7 @@ int enc_initialize(FAR struct spi_dev_s *spi,
    * bringing the interface up.
    */
 
-  priv->ifstate = ENCSTATE_UNIT;
+  priv->ifstate = ENCSTATE_UNINIT;
 
   /* Attach the interrupt to the driver (but don't enable it yet) */
 

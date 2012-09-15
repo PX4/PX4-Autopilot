@@ -74,7 +74,7 @@ Installing and Building the Unit Tests
    writing *ONLY* the sim/nsh2 and stm321-e-eval configurations have C++ support
    pre-enabled).
 
-   c) Enable Debug Options
+   d) Enable Debug Options
 
    If you are running on a simulated target, then you might also want to
    enable debug symbols:
@@ -84,12 +84,12 @@ Installing and Building the Unit Tests
    Then you can run the simulation using GDB or DDD which is a very powerful
    debugging environment!
 
-   d) Special configuration requirements for the nxwm unit test:
+   e) Special configuration requirements for the nxwm unit test:
  
      CONFIG_NXCONSOLE=y
      CONFIG_NX_MULTIUSER=y
 
-   e) Other nuttx/.config changes -- NSH configurations only.
+   f) Other nuttx/.config changes -- NSH configurations only.
  
    If the configuration that you are using supports NSH and NSH built-in tasks
    then all is well.  If it is an NSH configuration, then you will have to define
@@ -101,7 +101,26 @@ Installing and Building the Unit Tests
    to change anything further in the nuttx/.config file if you are using either
    of these configurations.
 
-   f) Other apps/.config changes -- NON-NSH configurations only.
+   g) Other apps/.config changes -- NON-NSH configurations only.
+
+   Entry Point.  You will need to set the entry point in the .config file.
+   For NSH configurations, the entry point will always be "nsh_main" and you
+   will see that setting like:
+
+     CONFIG_USER_ENTRYPOINT="nsh_main"
+
+   If you are not using in NSH, then each unit test has a unique entry point.
+   That entry point is the name of the unit test directory in all lower case
+   plus the suffix "_main".  So, for example, the correct entry for the
+   UnitTests/CButton would be:
+
+     CONFIG_USER_ENTRYPOINT="cbutton_main"
+
+   And the correct entry point for UnitTests/nxwm would be:
+
+     CONFIG_USER_ENTRYPOINT="nxwm_main"
+
+   etc.
 
    For non-NSH configurations (such as the sim/touchscreen) you will have to
    remove the CONFIGURED_APPS seting that contains the user_start function so
@@ -305,6 +324,9 @@ Example
 2. Edit nuttx/.config to enable C++ support
 
    Do nothing... sim/nsh2 already has C++ support enabled.
+
+   Since this is an NSH configuration, the entry point does not need to be
+   changed.
 
 3. Install the CButton C++ application (for example)
    Where: <nxwidgets-directory>/tool

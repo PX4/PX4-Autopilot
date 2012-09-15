@@ -6,7 +6,7 @@ standards, things that could be improved, and ideas for enhancements.
 
 nuttx/
 
-  (5)  Task/Scheduler (sched/)
+  (6)  Task/Scheduler (sched/)
   (1)  On-demand paging (sched/)
   (1)  Memory Managment (mm/)
   (2)  Signals (sched/, arch/)
@@ -109,6 +109,13 @@ o Task/Scheduler (sched/)
 
   Status:      Open
   Priority:    Low
+
+  Title:       posix_spawn()
+  Description: This would be a good interface to add to NuttX.  It is really
+               just a re-packaging of the existing, non-standard NuttX exec()
+               function.
+  Status:      Open
+  Priority:    Medium low.
 
 o On-demand paging (sched/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^
