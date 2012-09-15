@@ -1431,7 +1431,12 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
           spi_portinitialize(priv);
         }
     }
+  else
 #endif
+    {
+      spidbg("ERROR: Unsupported SPI port: %d\n", port);
+      return NULL;
+    }
 
   irqrestore(flags);
   return (FAR struct spi_dev_s *)priv;

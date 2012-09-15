@@ -129,6 +129,64 @@ struct xcptcontext
 
 #ifndef __ASSEMBLY__
 
+/* Disable IRQs */
+
+static inline void irqdisable(void) __attribute__((always_inline));
+static inline void irqdisable(void)
+{
+  __asm__ __volatile__ ("\tcpsid  i\n");
+}
+
+/* Save the current primask state & disable IRQs */
+
+static inline irqstate_t irqsave(void) __attribute__((always_inline));
+static inline irqstate_t irqsave(void)
+{
+  unsigned short primask;
+
+  /* Return the current value of primask register and set
+   * bit 0 of the primask register to disable interrupts
+   */
+
+  __asm__ __volatile__
+    (
+     "\tmrs    %0, primask\n"
+     "\tcpsid  i\n"
+     : "=r" (primask)
+     :
+     : "memory");
+
+  return primask;
+}
+
+/* Enable IRQs */
+
+static inline void irqenable(void) __attribute__((always_inline));
+static inline void irqenable(void)
+{
+  __asm__ __volatile__ ("\tcpsie  i\n");
+}
+
+/* Restore saved primask state */
+
+static inline void irqrestore(irqstate_t primask) __attribute__((always_inline));
+static inline void irqrestore(irqstate_t primask)
+{
+  /* If bit 0 of the primask is 0, then we need to restore
+   * interupts.
+   */
+
+  __asm__ __volatile__
+    (
+      "\ttst    %0, #1\n"
+      "\tbne    1f\n"
+      "\tcpsie  i\n"
+      "1:\n"
+      :
+      : "r" (primask)
+      : "memory");
+}
+
 /* Get/set the primask register */
 
 static inline uint8_t getprimask(void) __attribute__((always_inline));
@@ -145,39 +203,6 @@ static inline uint8_t getprimask(void)
   return (uint8_t)primask;
 }
 
-/* Disable IRQs */
-
-static inline void irqdisable(void) __attribute__((always_inline));
-static inline void irqdisable(void)
-{
-  __asm__ __volatile__ ("\tcpsid  i\n");
-}
-
-/* Save the current primask state & disable IRQs */
-
-static inline irqstate_t irqsave(void) __attribute__((always_inline));
-static inline irqstate_t irqsave(void)
-{
-  /* Return the current value of primask register (before disabling) */
-
-  uint8_t primask = getprimask();
-
-  /* Then set bit 0 of the primask register to disable interrupts */
-
-  irqdisable();
-  return primask;
-}
-
-/* Enable IRQs */
-
-static inline void irqenable(void) __attribute__((always_inline));
-static inline void irqenable(void)
-{
-  __asm__ __volatile__ ("\tcpsie  i\n");
-}
-
-/* Restore saved primask state */
-
 static inline void setprimask(uint32_t primask) __attribute__((always_inline));
 static inline void setprimask(uint32_t primask)
 {
@@ -187,19 +212,6 @@ static inline void setprimask(uint32_t primask)
       :
       : "r" (primask)
       : "memory");
-}
-
-static inline void irqrestore(irqstate_t primask) __attribute__((always_inline));
-static inline void irqrestore(irqstate_t primask)
-{
-  /* If bit 0 of the primask is 0, then we need to restore
-   * interrupts.
-   */
-
-  if ((primask & 1) == 0)
-    {
-      setprimask(primask);
-    }
 }
 
 /* Get/set the basepri register */
