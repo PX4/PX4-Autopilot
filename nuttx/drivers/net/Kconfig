@@ -25,6 +25,7 @@ config ENC28J60
 		References:
 		ENC28J60 Data Sheet, Stand-Alone Ethernet Controller with SPI Interface,
 		DS39662C, 2008 Microchip Technology Inc.
+
 if ENC28J60
 config ENC28J60_NINTERFACES
 	int "Number of physical ENC28J60"
@@ -61,6 +62,14 @@ config ENC28J60_HALFDUPPLEX
 	default n
 	---help---
 		Default is full duplex
+
+config ENC28J60_DUMPPACKET
+	bool "Dump Packets"
+	default n
+	---help---
+		If selected, the ENC28J60 driver  will dump the contents of each
+		packet to the console.
+
 endif
 	
 config NET_E1000

@@ -47,6 +47,7 @@
  ************************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/compiler.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -78,7 +79,7 @@ struct adc_msg_s
 {
   uint8_t      am_channel;               /* The 8-bit ADC Channel */
   int32_t      am_data;                  /* ADC convert result (4 bytes) */
-} __attribute__((__packed__));
+} packed_struct;
 
 struct adc_fifo_s
 {

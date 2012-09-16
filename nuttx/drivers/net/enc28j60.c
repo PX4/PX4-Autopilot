@@ -110,7 +110,7 @@
 
 /* We need to have the work queue to handle SPI interrupts */
 
-#if !defined(CONFIG_SCHED_WORKQUEUE) && !defined(CONFIG_SPI_OWNBUS)
+#ifndef CONFIG_SCHED_WORKQUEUE
 #  error "Worker thread support is required (CONFIG_SCHED_WORKQUEUE)"
 #endif
 
@@ -120,6 +120,12 @@
 #  define enc_dumppacket(m,a,n) lib_dumpbuffer(m,a,n)
 #else
 #  define enc_dumppacket(m,a,n)
+#endif
+
+/* The ENC28J60 will not do interrupt level processing */
+
+#ifndef CONFIG_NET_NOINTS
+#  warrning "CONFIG_NET_NOINTS should be set"
 #endif
 
 /* Timing *******************************************************************/
@@ -144,7 +150,7 @@
 #define ALIGNED_BUFSIZE ((CONFIG_NET_BUFSIZE + 255) & ~255)
 
 #define PKTMEM_TX_START 0x0000           /* Start TX buffer at 0 */
-#define PKTMEM_TX_ENDP1 ALIGNED_BUFSIZE  /* Allow TX buffer for one frame + */
+#define PKTMEM_TX_ENDP1 ALIGNED_BUFSIZE  /* Allow TX buffer for one frame */
 #define PKTMEM_RX_START PKTMEM_TX_ENDP1  /* Followed by RX buffer */
 #define PKTMEM_RX_END   PKTMEM_END       /* RX buffer goes to the end of SRAM */
 
@@ -171,7 +177,7 @@
 
 enum enc_state_e
 {
-  ENCSTATE_UNIT = 0,                  /* The interface is in an unknown state */
+  ENCSTATE_UNINIT = 0,                /* The interface is in an uninitialized state */
   ENCSTATE_DOWN,                      /* The interface is down */
   ENCSTATE_UP                         /* The interface is up */
 };
@@ -200,10 +206,10 @@ struct enc_driver_s
   /* If we don't own the SPI bus, then we cannot do SPI accesses from the
    * interrupt handler.
    */
- 
-#ifndef CONFIG_SPI_OWNBUS
-  struct work_s         work;          /* Work queue support */
-#endif
+
+  struct work_s         irqwork;       /* Interrupt continuation work queue support */
+  struct work_s         towork;        /* Tx timeout work queue support */
+  struct work_s         pollwork;      /* Poll timeout work queue support */
 
   /* This is the contained SPI driver intstance */
 
@@ -279,15 +285,17 @@ static void enc_txif(FAR struct enc_driver_s *priv);
 static void enc_txerif(FAR struct enc_driver_s *priv);
 static void enc_txerif(FAR struct enc_driver_s *priv);
 static void enc_rxerif(FAR struct enc_driver_s *priv);
-static void enc_rxdispath(FAR struct enc_driver_s *priv);
+static void enc_rxdispatch(FAR struct enc_driver_s *priv);
 static void enc_pktif(FAR struct enc_driver_s *priv);
-static void enc_worker(FAR void *arg);
+static void enc_irqworker(FAR void *arg);
 static int  enc_interrupt(int irq, FAR void *context);
 
 /* Watchdog timer expirations */
 
-static void enc_polltimer(int argc, uint32_t arg, ...);
+static void enc_toworker(FAR void *arg);
 static void enc_txtimeout(int argc, uint32_t arg, ...);
+static void enc_pollworker(FAR void *arg);
+static void enc_polltimer(int argc, uint32_t arg, ...);
 
 /* NuttX callback functions */
 
@@ -1026,6 +1034,7 @@ static int enc_transmit(FAR struct enc_driver_s *priv)
  *   OK on success; a negated errno on failure
  *
  * Assumptions:
+ *   Interrupts are enabled but the caller holds the uIP lock.
  *
  ****************************************************************************/
 
@@ -1095,6 +1104,7 @@ static void enc_linkstatus(FAR struct enc_driver_s *priv)
  *   None
  *
  * Assumptions:
+ *   Interrupts are enabled but the caller holds the uIP lock.
  *
  ****************************************************************************/
 
@@ -1195,7 +1205,7 @@ static void enc_rxerif(FAR struct enc_driver_s *priv)
 }
 
 /****************************************************************************
- * Function: enc_rxdispath
+ * Function: enc_rxdispatch
  *
  * Description:
  *   Give the newly received packet to uIP.
@@ -1207,10 +1217,11 @@ static void enc_rxerif(FAR struct enc_driver_s *priv)
  *   None
  *
  * Assumptions:
+ *   Interrupts are enabled but the caller holds the uIP lock.
  *
  ****************************************************************************/
 
-static void enc_rxdispath(FAR struct enc_driver_s *priv)
+static void enc_rxdispatch(FAR struct enc_driver_s *priv)
 {
  /* We only accept IP packets of the configured type and ARP packets */
 
@@ -1267,6 +1278,7 @@ static void enc_rxdispath(FAR struct enc_driver_s *priv)
  *   None
  *
  * Assumptions:
+ *   Interrupts are enabled but the caller holds the uIP lock.
  *
  ****************************************************************************/
 
@@ -1326,7 +1338,7 @@ static void enc_pktif(FAR struct enc_driver_s *priv)
       nlldbg("Bad packet size dropped (%d)\n", pktlen);
 #ifdef CONFIG_ENC28J60_STATS
       priv->stats.rxpktlen++;
-#endif	    
+#endif
     }
 
   /* Otherwise, read and process the packet */
@@ -1340,11 +1352,11 @@ static void enc_pktif(FAR struct enc_driver_s *priv)
       /* Copy the data data from the receive buffer to priv->dev.d_buf */
 
       enc_rdbuffer(priv, priv->dev.d_buf, priv->dev.d_len);
-      enc_dumppacket("Received Packet", priv->ld_dev.d_buf, priv->ld_dev.d_len);
+      enc_dumppacket("Received Packet", priv->dev.d_buf, priv->dev.d_len);
 
       /* Dispatch the packet to uIP */
  
-      enc_rxdispath(priv);
+      enc_rxdispatch(priv);
     }
 
   /* Move the RX read pointer to the start of the next received packet.
@@ -1360,7 +1372,7 @@ static void enc_pktif(FAR struct enc_driver_s *priv)
 }
 
 /****************************************************************************
- * Function: enc_worker
+ * Function: enc_irqworker
  *
  * Description:
  *   Perform interrupt handling logic outside of the interrupt handler (on
@@ -1376,12 +1388,17 @@ static void enc_pktif(FAR struct enc_driver_s *priv)
  *
  ****************************************************************************/
 
-static void enc_worker(FAR void *arg)
+static void enc_irqworker(FAR void *arg)
 {
   FAR struct enc_driver_s *priv = (FAR struct enc_driver_s *)arg;
+  uip_lock_t lock;
   uint8_t eir;
 
   DEBUGASSERT(priv);
+
+  /* Get exclusive access to uIP. */
+
+  lock = uip_lock();
 
   /* Disable further interrupts by clearing the global interrupt enable bit.
    * "After an interrupt occurs, the host controller should clear the global
@@ -1402,9 +1419,12 @@ static void enc_worker(FAR void *arg)
   while ((eir = enc_rdgreg(priv, ENC_EIR) & EIR_ALLINTS) != 0)
     {
       /* Handle interrupts according to interrupt register register bit
-       * settings
-       *
-       * DMAIF: The DMA interrupt indicates that the DMA module has completed
+       * settings.
+       */
+
+      nllvdbg("EIR: %02x\n", eir);
+
+      /* DMAIF: The DMA interrupt indicates that the DMA module has completed
        * its memory copy or checksum calculation. Additionally, this interrupt
        * will be caused if the host controller cancels a DMA operation by
        * manually clearing the DMAST bit. Once set, DMAIF can only be cleared
@@ -1521,6 +1541,8 @@ static void enc_worker(FAR void *arg)
           uint8_t pktcnt = enc_rdbreg(priv, ENC_EPKTCNT);
           if (pktcnt > 0)
             {
+              nllvdbg("EPKTCNT: %02x\n", pktcnt);
+
 #ifdef CONFIG_ENC28J60_STATS
               if (pktcnt > priv->stats.maxpktcnt)
                 {
@@ -1560,15 +1582,17 @@ static void enc_worker(FAR void *arg)
         }
     }
 
+  /* Release lock on uIP */
+
+  uip_unlock(lock);
+
   /* Enable Ethernet interrupts */
 
   enc_bfsgreg(priv, ENC_EIE, EIE_INTIE);
 
-  /* Enable GPIO interrupts if they were disbled in enc_interrupt */
+  /* Enable GPIO interrupts */
 
-#ifndef CONFIG_SPI_OWNBUS
   priv->lower->enable(priv->lower);
-#endif
 }
 
 /****************************************************************************
@@ -1592,15 +1616,6 @@ static int enc_interrupt(int irq, FAR void *context)
 {
   register FAR struct enc_driver_s *priv = &g_enc28j60[0];
 
-#ifdef CONFIG_SPI_OWNBUS
-  /* In very simple environments, we own the SPI and can do data transfers
-   * from the interrupt handler.  That is actually a very bad idea in any
-   * case because it keeps interrupts disabled for a long time.
-   */
-
-  enc_worker((FAR void*)priv);
-  return OK;
-#else
   /* In complex environments, we cannot do SPI transfers from the interrupt
    * handler because semaphores are probably used to lock the SPI bus.  In
    * this case, we will defer processing to the worker thread.  This is also
@@ -1608,16 +1623,69 @@ static int enc_interrupt(int irq, FAR void *context)
    * a good thing to do in any event.
    */
 
-  DEBUGASSERT(work_available(&priv->work));
+  DEBUGASSERT(work_available(&priv->irqwork));
 
   /* Notice that further GPIO interrupts are disabled until the work is
    * actually performed.  This is to prevent overrun of the worker thread.
-   * Interrupts are re-enabled in enc_worker() when the work is completed.
+   * Interrupts are re-enabled in enc_irqworker() when the work is completed.
    */
 
   priv->lower->disable(priv->lower);
-  return work_queue(HPWORK, &priv->work, enc_worker, (FAR void *)priv, 0);
+  return work_queue(HPWORK, &priv->irqwork, enc_irqworker, (FAR void *)priv, 0);
+}
+
+/****************************************************************************
+ * Function: enc_toworker
+ *
+ * Description:
+ *   Our TX watchdog timed out.  This is the worker thread continuation of
+ *   the watchdog timer interrupt.  Reset the hardware and start again.
+ *
+ * Parameters:
+ *   arg     - The reference to the driver structure (case to void*)
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+static void enc_toworker(FAR void *arg)
+{
+  FAR struct enc_driver_s *priv = (FAR struct enc_driver_s *)arg;
+  uip_lock_t lock;
+  int ret;
+
+  nlldbg("Tx timeout\n");
+  DEBUGASSERT(priv);
+
+  /* Get exclusive access to uIP. */
+
+  lock = uip_lock();
+
+  /* Increment statistics and dump debug info */
+
+#ifdef CONFIG_ENC28J60_STATS
+  priv->stats.txtimeouts++;
 #endif
+
+  /* Then reset the hardware: Take the interface down, then bring it
+   * back up
+   */
+ 
+  ret = enc_ifdown(&priv->dev);
+  DEBUGASSERT(ret == OK);
+  ret = enc_ifup(&priv->dev);
+  DEBUGASSERT(ret == OK);
+
+  /* Then poll uIP for new XMIT data */
+
+  (void)uip_poll(&priv->dev, enc_uiptxpoll);
+
+  /* Release lock on uIP */
+
+  uip_unlock(lock);
 }
 
 /****************************************************************************
@@ -1625,7 +1693,7 @@ static int enc_interrupt(int irq, FAR void *context)
  *
  * Description:
  *   Our TX watchdog timed out.  Called from the timer interrupt handler.
- *   The last TX never completed.  Reset the hardware and start again.
+ *   The last TX never completed.  Perform work on the worker thread.
  *
  * Parameters:
  *   argc - The number of available arguments
@@ -1643,25 +1711,74 @@ static void enc_txtimeout(int argc, uint32_t arg, ...)
   FAR struct enc_driver_s *priv = (FAR struct enc_driver_s *)arg;
   int ret;
 
-  /* Increment statistics and dump debug info */
-
-  nlldbg("Tx timeout\n");
-#ifdef CONFIG_ENC28J60_STATS
-  priv->stats.txtimeouts++;
-#endif
-
-  /* Then reset the hardware: Take the interface down, then bring it
-   * back up
+  /* In complex environments, we cannot do SPI transfers from the timout
+   * handler because semaphores are probably used to lock the SPI bus.  In
+   * this case, we will defer processing to the worker thread.  This is also
+   * much kinder in the use of system resources and is, therefore, probably
+   * a good thing to do in any event.
    */
- 
-  ret = enc_ifdown(&priv->dev);
-  DEBUGASSERT(ret == OK);
-  ret = enc_ifup(&priv->dev);
-  DEBUGASSERT(ret == OK);
 
-  /* Then poll uIP for new XMIT data */
+  DEBUGASSERT(priv && work_available(&priv->towork));
 
-  (void)uip_poll(&priv->dev, enc_uiptxpoll);
+  /* Notice that Tx timeout watchdog is not active so further Tx timeouts
+   * can occur until we restart the Tx timeout watchdog.
+   */
+
+  ret = work_queue(HPWORK, &priv->towork, enc_toworker, (FAR void *)priv, 0);
+  DEBUGASSERT(ret == OK);
+}
+
+/****************************************************************************
+ * Function: enc_pollworker
+ *
+ * Description:
+ *   Periodic timer handler continuation.
+ *
+ * Parameters:
+ *   argc - The number of available arguments
+ *   arg  - The first argument
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+static void enc_pollworker(FAR void *arg)
+{
+  FAR struct enc_driver_s *priv = (FAR struct enc_driver_s *)arg;
+  uip_lock_t lock;
+
+  DEBUGASSERT(priv);
+
+  /* Get exclusive access to uIP. */
+
+  lock = uip_lock();
+
+  /* Verify that the hardware is ready to send another packet.  The driver
+   * start a transmission process by setting ECON1.TXRTS. When the packet is
+   * finished transmitting or is aborted due to an error/cancellation, the
+   * ECON1.TXRTS bit will be cleared.
+   */
+
+  if ((enc_rdgreg(priv, ENC_ECON1) & ECON1_TXRTS) == 0)
+    {
+      /* Yes.. update TCP timing states and poll uIP for new XMIT data. Hmmm..
+       * looks like a bug here to me.  Does this mean if there is a transmit
+       * in progress, we will missing TCP time state updates?
+       */
+
+      (void)uip_timer(&priv->dev, enc_uiptxpoll, ENC_POLLHSEC);
+    }
+
+  /* Release lock on uIP */
+
+  uip_unlock(lock);
+
+  /* Setup the watchdog poll timer again */
+
+  (void)wd_start(priv->txpoll, ENC_WDDELAY, enc_polltimer, 1, arg);
 }
 
 /****************************************************************************
@@ -1684,26 +1801,23 @@ static void enc_txtimeout(int argc, uint32_t arg, ...)
 static void enc_polltimer(int argc, uint32_t arg, ...)
 {
   FAR struct enc_driver_s *priv = (FAR struct enc_driver_s *)arg;
+  int ret;
 
-  /* Verify that the hardware is ready to send another packet.  The driver
-   * start a transmission process by setting ECON1.TXRTS. When the packet is
-   * finished transmitting or is aborted due to an error/cancellation, the
-   * ECON1.TXRTS bit will be cleared.
+  /* In complex environments, we cannot do SPI transfers from the timout
+   * handler because semaphores are probably used to lock the SPI bus.  In
+   * this case, we will defer processing to the worker thread.  This is also
+   * much kinder in the use of system resources and is, therefore, probably
+   * a good thing to do in any event.
    */
 
-  if ((enc_rdgreg(priv, ENC_ECON1) & ECON1_TXRTS) == 0)
-    {
-      /* Yes.. update TCP timing states and poll uIP for new XMIT data. Hmmm..
-       * looks like a bug here to me.  Does this mean if there is a transmit
-       * in progress, we will missing TCP time state updates?
-       */
+  DEBUGASSERT(priv && work_available(&priv->pollwork));
 
-      (void)uip_timer(&priv->dev, enc_uiptxpoll, ENC_POLLHSEC);
-    }
+  /* Notice that poll watchdog is not active so further poll timeouts can
+   * occur until we restart the poll timeout watchdog.
+   */
 
-  /* Setup the watchdog poll timer again */
-
-  (void)wd_start(priv->txpoll, ENC_WDDELAY, enc_polltimer, 1, arg);
+  ret = work_queue(HPWORK, &priv->pollwork, enc_pollworker, (FAR void *)priv, 0);
+  DEBUGASSERT(ret == OK);
 }
 
 /****************************************************************************
@@ -1747,11 +1861,9 @@ static int enc_ifup(struct uip_driver_s *dev)
        */
 
       enc_wrphy(priv, ENC_PHIE, PHIE_PGEIE | PHIE_PLNKIE);
-      enc_bfsgreg(priv, ENC_EIE, EIE_INTIE | EIE_PKTIE);
-      enc_bfsgreg(priv, ENC_EIR, EIR_DMAIF  | EIR_LINKIF | EIR_TXIF |
-                                 EIR_TXERIF | EIR_RXERIF | EIR_PKTIF);
-      enc_wrgreg(priv, ENC_EIE,  EIE_INTIE  | EIE_PKTIE  | EIE_LINKIE |
-                                 EIE_TXIE   | EIE_TXERIE | EIE_RXERIE);
+      enc_bfcgreg(priv, ENC_EIR, EIR_ALLINTS);
+      enc_wrgreg(priv, ENC_EIE, EIE_INTIE  | EIE_PKTIE  | EIE_LINKIE |
+                                EIE_TXIE   | EIE_TXERIE | EIE_RXERIE);
 
       /* Enable the receiver */
 
@@ -2180,7 +2292,7 @@ static int enc_reset(FAR struct enc_driver_s *priv)
 
   enc_wrbreg(priv, ENC_MAIPGL, 0x12);
 
-  /* Set ack-to-Back Inter-Packet Gap */
+  /* Set Back-to-Back Inter-Packet Gap */
 
   enc_wrbreg(priv, ENC_MABBIPG, 0x15);
 #endif
@@ -2265,7 +2377,7 @@ int enc_initialize(FAR struct spi_dev_s *spi,
    * bringing the interface up.
    */
 
-  priv->ifstate = ENCSTATE_UNIT;
+  priv->ifstate = ENCSTATE_UNINIT;
 
   /* Attach the interrupt to the driver (but don't enable it yet) */
 
