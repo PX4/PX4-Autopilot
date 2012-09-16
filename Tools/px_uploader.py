@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 ############################################################################
 #
 #   Copyright (C) 2012 PX4 Development Team. All rights reserved.
@@ -148,16 +149,16 @@ class uploader(object):
 				+ uploader.EOC)
 		self.__getSync()
 		
-	def __trySync(self):
-		c = self.__recv()
-		if (c != self.INSYNC):
-			#print("unexpected 0x%x instead of INSYNC" % ord(c))
-			return False;
-		c = self.__recv()
-		if (c != self.OK):
-			#print("unexpected 0x%x instead of OK" % ord(c))
-			return False
-		return True
+#	def __trySync(self):
+#		c = self.__recv()
+#		if (c != self.INSYNC):
+#			#print("unexpected 0x%x instead of INSYNC" % ord(c))
+#			return False;
+#		c = self.__recv()
+#		if (c != self.OK):
+#			#print("unexpected 0x%x instead of OK" % ord(c))
+#			return False
+#		return True
 
 	# send the GET_DEVICE command and wait for an info parameter
 	def __getInfo(self, param):
@@ -196,6 +197,7 @@ class uploader(object):
 		self.__send(uploader.READ_MULTI
 				+ chr(len(data))
 				+ uploader.EOC)
+		self.port.flush()
 		programmed = self.__recv(len(data))
 		if (programmed != data):
 			print("got    " + binascii.hexlify(programmed))
