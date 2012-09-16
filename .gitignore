@@ -3,6 +3,8 @@
 .depend
 .config
 .version
+.project
+.cproject
 apps/namedapp/namedapp_list.h
 apps/namedapp/namedapp_proto.h
 Make.dep
