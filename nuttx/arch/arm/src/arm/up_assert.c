@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/arm/up_assert.c
  *
- *   Copyright (C) 2007-2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2010, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -252,7 +252,7 @@ static void up_dumpstate(void)
  * Name: _up_assert
  ****************************************************************************/
 
-static void _up_assert(int errorcode) /* __attribute__ ((noreturn)) */
+static void _up_assert(int errorcode) /* noreturn_function */
 {
   /* Are we in an interrupt handler or the idle task? */
 

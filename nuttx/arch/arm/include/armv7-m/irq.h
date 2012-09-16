@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/include/armv7-m/irq.h
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,7 @@
 
 #include <nuttx/irq.h>
 #ifndef __ASSEMBLY__
+#  include <nuttx/compiler.h>
 #  include <stdint.h>
 #endif
 
@@ -131,7 +132,7 @@ struct xcptcontext
 
 /* Disable IRQs */
 
-static inline void irqdisable(void) __attribute__((always_inline));
+static inline void irqdisable(void) inline_function;
 static inline void irqdisable(void)
 {
   __asm__ __volatile__ ("\tcpsid  i\n");
@@ -139,7 +140,7 @@ static inline void irqdisable(void)
 
 /* Save the current primask state & disable IRQs */
 
-static inline irqstate_t irqsave(void) __attribute__((always_inline));
+static inline irqstate_t irqsave(void) inline_function;
 static inline irqstate_t irqsave(void)
 {
   unsigned short primask;
@@ -161,7 +162,7 @@ static inline irqstate_t irqsave(void)
 
 /* Enable IRQs */
 
-static inline void irqenable(void) __attribute__((always_inline));
+static inline void irqenable(void) inline_function;
 static inline void irqenable(void)
 {
   __asm__ __volatile__ ("\tcpsie  i\n");
@@ -169,7 +170,7 @@ static inline void irqenable(void)
 
 /* Restore saved primask state */
 
-static inline void irqrestore(irqstate_t primask) __attribute__((always_inline));
+static inline void irqrestore(irqstate_t primask) inline_function;
 static inline void irqrestore(irqstate_t primask)
 {
   /* If bit 0 of the primask is 0, then we need to restore
@@ -189,7 +190,7 @@ static inline void irqrestore(irqstate_t primask)
 
 /* Get/set the primask register */
 
-static inline uint8_t getprimask(void) __attribute__((always_inline));
+static inline uint8_t getprimask(void) inline_function;
 static inline uint8_t getprimask(void)
 {
   uint32_t primask;
@@ -203,7 +204,7 @@ static inline uint8_t getprimask(void)
   return (uint8_t)primask;
 }
 
-static inline void setprimask(uint32_t primask) __attribute__((always_inline));
+static inline void setprimask(uint32_t primask) inline_function;
 static inline void setprimask(uint32_t primask)
 {
   __asm__ __volatile__
@@ -216,7 +217,7 @@ static inline void setprimask(uint32_t primask)
 
 /* Get/set the basepri register */
 
-static inline uint8_t getbasepri(void) __attribute__((always_inline));
+static inline uint8_t getbasepri(void) inline_function;
 static inline uint8_t getbasepri(void)
 {
   uint32_t basepri;
@@ -231,7 +232,7 @@ static inline uint8_t getbasepri(void)
   return (uint8_t)basepri;
 }
 
-static inline void setbasepri(uint32_t basepri) __attribute__((always_inline));
+static inline void setbasepri(uint32_t basepri) inline_function;
 static inline void setbasepri(uint32_t basepri)
 {
   __asm__ __volatile__
@@ -244,7 +245,7 @@ static inline void setbasepri(uint32_t basepri)
 
 /* Get/set IPSR */
 
-static inline uint32_t getipsr(void) __attribute__((always_inline));
+static inline uint32_t getipsr(void) inline_function;
 static inline uint32_t getipsr(void)
 {
   uint32_t ipsr;
@@ -258,7 +259,7 @@ static inline uint32_t getipsr(void)
   return ipsr;
 }
 
-static inline void setipsr(uint32_t ipsr) __attribute__((always_inline));
+static inline void setipsr(uint32_t ipsr) inline_function;
 static inline void setipsr(uint32_t ipsr)
 {
   __asm__ __volatile__
@@ -271,7 +272,7 @@ static inline void setipsr(uint32_t ipsr)
 
 /* Get/set CONTROL */
 
-static inline uint32_t getcontrol(void) __attribute__((always_inline));
+static inline uint32_t getcontrol(void) inline_function;
 static inline uint32_t getcontrol(void)
 {
   uint32_t control;
@@ -285,7 +286,7 @@ static inline uint32_t getcontrol(void)
   return control;
 }
 
-static inline void setcontrol(uint32_t control) __attribute__((always_inline));
+static inline void setcontrol(uint32_t control) inline_function;
 static inline void setcontrol(uint32_t control)
 {
   __asm__ __volatile__

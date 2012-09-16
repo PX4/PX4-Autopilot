@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/sh/src/common/up_assert.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -76,7 +76,7 @@
  * Name: _up_assert
  ****************************************************************************/
 
-static void _up_assert(int errorcode) /* __attribute__ ((noreturn)) */
+static void _up_assert(int errorcode) /* noreturn_function */
 {
   /* Are we in an interrupt handler or the idle task? */
 

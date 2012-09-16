@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/avr/src/avr32/up_internal.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,10 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 #ifndef __ASSEMBLY__
+#  include <nuttx/compiler.h>
 #  include <stdint.h>
 #endif
 
@@ -109,7 +112,7 @@ extern void up_copystate(uint32_t *dest, uint32_t *src);
  *
  ************************************************************************************/
 
-extern void up_fullcontextrestore(uint32_t *restoreregs) __attribute__ ((noreturn));
+extern void up_fullcontextrestore(uint32_t *restoreregs) noreturn_function;
 
 /************************************************************************************
  * Name:  up_switchcontext

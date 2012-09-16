@@ -45,7 +45,9 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #ifndef __ASSEMBLY__
+#  include <nuttx/compiler.h>
 #  include <stdint.h>
 #endif
 
@@ -323,7 +325,7 @@ struct gdt_entry_s
   uint8_t  access;             /* Access flags, determine ring segment can be used in */
   uint8_t  granularity;
   uint8_t  hibase;             /* The last 8 bits of the base */
-} __attribute__((packed));
+} packed_struct;
 
 /* This structure refers to the array of GDT entries, and is in the format
  * required by the lgdt instruction.
@@ -333,7 +335,7 @@ struct gdt_ptr_s
 {
   uint16_t limit;               /* The upper 16 bits of all selector limits */
   uint32_t base;                /* The address of the first GDT entry */
-} __attribute__((packed));
+} packed_struct;
 
 /* IDT data structures ******************************************************
  *
@@ -349,7 +351,7 @@ struct idt_entry_s
   uint8_t  zero;             /* This must always be zero */
   uint8_t  flags;            /* (See documentation) */
   uint16_t hibase;           /* Upper 16-bits of vector address for interrupt */
-} __attribute__((packed));
+} packed_struct;
 
 /* A struct describing a pointer to an array of interrupt handlers.  This is
  * in a format suitable for giving to 'lidt'.
@@ -359,7 +361,7 @@ struct idt_ptr_s
 {
   uint16_t limit;
   uint32_t base;             /* The address of the first GDT entry */
-} __attribute__((packed));
+} packed_struct;
 
 /****************************************************************************
  * Inline functions

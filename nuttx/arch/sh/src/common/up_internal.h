@@ -40,7 +40,10 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 #ifndef __ASSEMBLY__
+#  include <nuttx/compiler.h>
 #  include <stdint.h>
 #endif
 
@@ -144,7 +147,7 @@ extern void up_copystate(uint32_t *dest, uint32_t *src);
 extern void up_dataabort(uint32_t *regs);
 extern void up_decodeirq(uint32_t *regs);
 extern uint32_t *up_doirq(int irq, uint32_t *regs);
-extern void up_fullcontextrestore(uint32_t *regs) __attribute__ ((noreturn));
+extern void up_fullcontextrestore(uint32_t *regs) noreturn_function;
 extern void up_irqinitialize(void);
 extern void up_prefetchabort(uint32_t *regs);
 extern int  up_saveusercontext(uint32_t *regs);
