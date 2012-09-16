@@ -150,7 +150,7 @@
 #define ALIGNED_BUFSIZE ((CONFIG_NET_BUFSIZE + 255) & ~255)
 
 #define PKTMEM_TX_START 0x0000           /* Start TX buffer at 0 */
-#define PKTMEM_TX_ENDP1 ALIGNED_BUFSIZE  /* Allow TX buffer for one frame + */
+#define PKTMEM_TX_ENDP1 ALIGNED_BUFSIZE  /* Allow TX buffer for one frame */
 #define PKTMEM_RX_START PKTMEM_TX_ENDP1  /* Followed by RX buffer */
 #define PKTMEM_RX_END   PKTMEM_END       /* RX buffer goes to the end of SRAM */
 
@@ -1352,7 +1352,7 @@ static void enc_pktif(FAR struct enc_driver_s *priv)
       /* Copy the data data from the receive buffer to priv->dev.d_buf */
 
       enc_rdbuffer(priv, priv->dev.d_buf, priv->dev.d_len);
-      enc_dumppacket("Received Packet", priv->ld_dev.d_buf, priv->ld_dev.d_len);
+      enc_dumppacket("Received Packet", priv->dev.d_buf, priv->dev.d_len);
 
       /* Dispatch the packet to uIP */
  
@@ -1419,9 +1419,12 @@ static void enc_irqworker(FAR void *arg)
   while ((eir = enc_rdgreg(priv, ENC_EIR) & EIR_ALLINTS) != 0)
     {
       /* Handle interrupts according to interrupt register register bit
-       * settings
-       *
-       * DMAIF: The DMA interrupt indicates that the DMA module has completed
+       * settings.
+       */
+
+      nllvdbg("EIR: %02x\n", eir);
+
+      /* DMAIF: The DMA interrupt indicates that the DMA module has completed
        * its memory copy or checksum calculation. Additionally, this interrupt
        * will be caused if the host controller cancels a DMA operation by
        * manually clearing the DMAST bit. Once set, DMAIF can only be cleared
@@ -1538,6 +1541,8 @@ static void enc_irqworker(FAR void *arg)
           uint8_t pktcnt = enc_rdbreg(priv, ENC_EPKTCNT);
           if (pktcnt > 0)
             {
+              nllvdbg("EPKTCNT: %02x\n", pktcnt);
+
 #ifdef CONFIG_ENC28J60_STATS
               if (pktcnt > priv->stats.maxpktcnt)
                 {
@@ -1856,11 +1861,9 @@ static int enc_ifup(struct uip_driver_s *dev)
        */
 
       enc_wrphy(priv, ENC_PHIE, PHIE_PGEIE | PHIE_PLNKIE);
-      enc_bfsgreg(priv, ENC_EIE, EIE_INTIE | EIE_PKTIE);
-      enc_bfsgreg(priv, ENC_EIR, EIR_DMAIF  | EIR_LINKIF | EIR_TXIF |
-                                 EIR_TXERIF | EIR_RXERIF | EIR_PKTIF);
-      enc_wrgreg(priv, ENC_EIE,  EIE_INTIE  | EIE_PKTIE  | EIE_LINKIE |
-                                 EIE_TXIE   | EIE_TXERIE | EIE_RXERIE);
+      enc_bfcgreg(priv, ENC_EIR, EIR_ALLINTS);
+      enc_wrgreg(priv, ENC_EIE, EIE_INTIE  | EIE_PKTIE  | EIE_LINKIE |
+                                EIE_TXIE   | EIE_TXERIE | EIE_RXERIE);
 
       /* Enable the receiver */
 
@@ -2289,7 +2292,7 @@ static int enc_reset(FAR struct enc_driver_s *priv)
 
   enc_wrbreg(priv, ENC_MAIPGL, 0x12);
 
-  /* Set ack-to-Back Inter-Packet Gap */
+  /* Set Back-to-Back Inter-Packet Gap */
 
   enc_wrbreg(priv, ENC_MABBIPG, 0x15);
 #endif

@@ -303,6 +303,18 @@ void stm32_selectlcd(void);
 
 int stm32_sdinitialize(int minor);
 
+/****************************************************************************
+ * Name: stm32_w25initialize
+ *
+ * Description:
+ *   Initialize and register the W25 FLASH file system.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_MTD_W25
+int stm32_w25initialize(int minor);
+#endif
+
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_FIRE_STM32V2_SRC_FIRE_INTERNAL_H */
 
