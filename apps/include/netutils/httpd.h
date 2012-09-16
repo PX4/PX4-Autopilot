@@ -84,9 +84,13 @@ extern "C" {
 
 #define HTTPD_IOBUFFER_SIZE (3*UIP_TCP_MSS)
 
-/* this is the maximum size of a file path */
+/* This is the maximum size of a file path */
 
+#if defined(CONFIG_NETUTILS_HTTPD_MMAP) || defined(CONFIG_NETUTILS_HTTPD_SENDFILE)
+#define HTTPD_MAX_FILENAME PATH_MAX
+#else
 #define HTTPD_MAX_FILENAME  20
+#endif
 
 /****************************************************************************
  * Public types
@@ -96,7 +100,7 @@ struct httpd_fs_file
 {
   char *data;
   int len;
-#ifdef CONFIG_NETUTILS_HTTPD_MMAP
+#if defined(CONFIG_NETUTILS_HTTPD_MMAP) || defined(CONFIG_NETUTILS_HTTPD_SENDFILE)
   int fd;
 #endif
 };

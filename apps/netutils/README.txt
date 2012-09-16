@@ -14,8 +14,8 @@ uIP Applications
 
 This directory contains most of the network applications contained
 under the uIP-1.0 apps directory.  As the uIP apps/README says,
-these applications "are not all heavily tested."  These uIP apps
-include:
+these applications "are not all heavily tested."  These uIP-based
+apps include:
 
   dhcpc     - Dynamic Host Configuration Protocol (DHCP) client.  See
               apps/include/netutils/dhcpc.h for interface information.
@@ -29,7 +29,9 @@ include:
               for interface information.
 
 You may find additional information on these apps in the uIP forum
-accessible through: http://www.sics.se/~adam/uip/index.php/Main_Page 
+accessible through: http://www.sics.se/~adam/uip/index.php/Main_Page .
+Some of these (such as the uIP web server) have grown some additional
+functionality due primarily to NuttX user contributions.
 
 Other Network Applications
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

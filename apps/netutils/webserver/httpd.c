@@ -100,6 +100,7 @@ static const char g_httpcontenttypehtml[]   = "Content-type: text/html\r\n\r\n";
 static const char g_httpcontenttypejpg[]    = "Content-type: image/jpeg\r\n\r\n";
 static const char g_httpcontenttypeplain[]  = "Content-type: text/plain\r\n\r\n";
 static const char g_httpcontenttypepng[]    = "Content-type: image/png\r\n\r\n";
+static const char g_httpcontenttypejs[]     = "Content-type: text/javascript\r\n\r\n";
 
 #ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
 static const char g_httpextensionshtml[]    = ".shtml";
@@ -109,6 +110,7 @@ static const char g_httpextensioncss[]      = ".css";
 static const char g_httpextensionpng[]      = ".png";
 static const char g_httpextensiongif[]      = ".gif";
 static const char g_httpextensionjpg[]      = ".jpg";
+static const char g_httpextensionjs[]       = ".js";
 
 static const char g_http404path[]           = "/404.html";
 #ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
@@ -390,6 +392,10 @@ static int send_headers(struct httpd_state *pstate, const char *statushdr, int l
   else if (strncmp(g_httpextensionjpg, ptr, strlen(g_httpextensionjpg)) == 0)
     {
       ret = httpd_addchunk(pstate, g_httpcontenttypejpg, strlen(g_httpcontenttypejpg));
+    }
+  else if (strncmp(g_httpextensionjs, ptr, strlen(g_httpextensionjs)) == 0)
+    {
+      ret = httpd_addchunk(pstate, g_httpcontenttypejs, strlen(g_httpcontenttypejs));
     }
   else
     {
