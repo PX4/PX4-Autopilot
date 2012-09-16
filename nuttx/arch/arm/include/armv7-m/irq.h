@@ -131,12 +131,16 @@ struct xcptcontext
 
 /* Disable IRQs */
 
+static inline void irqdisable(void) __attribute__((always_inline, no_instrument_function));
+
 static inline void irqdisable(void)
 {
   __asm__ __volatile__ ("\tcpsid  i\n");
 }
 
 /* Save the current primask state & disable IRQs */
+
+static inline irqstate_t irqsave(void) __attribute__((always_inline, no_instrument_function));
 
 static inline irqstate_t irqsave(void)
 {
@@ -158,12 +162,16 @@ static inline irqstate_t irqsave(void)
 
 /* Enable IRQs */
 
+static inline void irqenable(void) __attribute__((always_inline, no_instrument_function));
+
 static inline void irqenable(void)
 {
   __asm__ __volatile__ ("\tcpsie  i\n");
 }
 
 /* Restore saved primask state */
+
+static inline void irqrestore(irqstate_t primask) __attribute__((always_inline, no_instrument_function));
 
 static inline void irqrestore(irqstate_t primask)
 {
