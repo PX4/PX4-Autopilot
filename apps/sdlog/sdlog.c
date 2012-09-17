@@ -201,6 +201,8 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	unsigned actuator_outputs_bytes = 0;
 	int actuator_controls_file = -1;
 	unsigned actuator_controls_bytes = 0;
+	int sysvector_file = -1;
+	unsigned sysvector_bytes = 0;
 	FILE *gpsfile;
 	unsigned blackbox_file_bytes = 0;
 	FILE *blackbox_file;
@@ -221,6 +223,12 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	// if (0 == (actuator_outputs_file = open(path_buf, O_CREAT | O_WRONLY | O_DSYNC))) {
 	// 	errx(1, "opening %s failed.\n", path_buf);
 	// }
+
+	/* set up file path: e.g. /mnt/sdcard/session0001/actuator_controls0.bin */
+	sprintf(path_buf, "%s/%s.bin", folder_path, "sysvector");
+	if (0 == (sysvector_file = open(path_buf, O_CREAT | O_WRONLY | O_DSYNC))) {
+		errx(1, "opening %s failed.\n", path_buf);
+	}
 
 	/* set up file path: e.g. /mnt/sdcard/session0001/actuator_controls0.bin */
 	sprintf(path_buf, "%s/%s.bin", folder_path, "actuator_controls0");
@@ -251,7 +259,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	struct pollfd fds[fdsc];
 
 
-	union {
+	struct {
 		struct sensor_combined_s raw;
 		struct vehicle_attitude_s att;
 		struct vehicle_attitude_setpoint_s att_sp;
@@ -259,6 +267,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		struct actuator_controls_s act_controls;
 		struct vehicle_command_s cmd;
 	} buf;
+	memset(&buf, 0, sizeof(buf));
 
 	struct {
 		int cmd_sub;
@@ -334,74 +343,123 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	while (!thread_should_exit) {
 
-		int poll_ret = poll(fds, fdsc_count, timeout);
+		// int poll_ret = poll(fds, fdsc_count, timeout);
 
-		/* handle the poll result */
-		if (poll_ret == 0) {
-			/* XXX this means none of our providers is giving us data - might be an error? */
-		} else if (poll_ret < 0) {
-			/* XXX this is seriously bad - should be an emergency */
-		} else {
+		// /* handle the poll result */
+		// if (poll_ret == 0) {
+		// 	/* XXX this means none of our providers is giving us data - might be an error? */
+		// } else if (poll_ret < 0) {
+		// 	/* XXX this is seriously bad - should be an emergency */
+		// } else {
 
-			int ifds = 0;
+		// 	int ifds = 0;
 
-			if (poll_count % 5000 == 0) {
-				fsync(sensorfile);
-				fsync(actuator_outputs_file);
-				fsync(actuator_controls_file);
-				fsync(blackbox_file_no);
-			}
-			poll_count++;
+		// 	if (poll_count % 5000 == 0) {
+		// 		fsync(sensorfile);
+		// 		fsync(actuator_outputs_file);
+		// 		fsync(actuator_controls_file);
+		// 		fsync(blackbox_file_no);
+		// 	}
 
-			/* --- VEHICLE COMMAND VALUE --- */
-			if (fds[ifds++].revents & POLLIN) {
-				/* copy command into local buffer */
-				orb_copy(ORB_ID(vehicle_command), subs.cmd_sub, &buf.cmd);
-				blackbox_file_bytes += fprintf(blackbox_file, "[%10.4f\tVCMD] CMD #%d [%f\t%f\t%f\t%f\t%f\t%f\t%f]\n", hrt_absolute_time()/1000000.0d,
-					buf.cmd.command, (double)buf.cmd.param1, (double)buf.cmd.param2, (double)buf.cmd.param3, (double)buf.cmd.param4,
-					(double)buf.cmd.param5, (double)buf.cmd.param6, (double)buf.cmd.param7);
-			}
+			
 
-			/* --- SENSORS RAW VALUE --- */
-			if (fds[ifds++].revents & POLLIN) {
+		// 	/* --- VEHICLE COMMAND VALUE --- */
+		// 	if (fds[ifds++].revents & POLLIN) {
+		// 		/* copy command into local buffer */
+		// 		orb_copy(ORB_ID(vehicle_command), subs.cmd_sub, &buf.cmd);
+		// 		blackbox_file_bytes += fprintf(blackbox_file, "[%10.4f\tVCMD] CMD #%d [%f\t%f\t%f\t%f\t%f\t%f\t%f]\n", hrt_absolute_time()/1000000.0d,
+		// 			buf.cmd.command, (double)buf.cmd.param1, (double)buf.cmd.param2, (double)buf.cmd.param3, (double)buf.cmd.param4,
+		// 			(double)buf.cmd.param5, (double)buf.cmd.param6, (double)buf.cmd.param7);
+		// 	}
 
-				/* copy sensors raw data into local buffer */
-				orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.raw);
-				/* write out */
-				sensor_combined_bytes += write(sensorfile, (const char*)&(buf.raw), sizeof(buf.raw));
-			}
+		// 	/* --- SENSORS RAW VALUE --- */
+		// 	if (fds[ifds++].revents & POLLIN) {
 
-			/* --- ATTITUDE VALUE --- */
-			if (fds[ifds++].revents & POLLIN) {
+		// 		/* copy sensors raw data into local buffer */
+		// 		orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.raw);
+		// 		/* write out */
+		// 		sensor_combined_bytes += write(sensorfile, (const char*)&(buf.raw), sizeof(buf.raw));
+		// 	}
 
-				/* copy attitude data into local buffer */
-				orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
+		// 	/* --- ATTITUDE VALUE --- */
+		// 	if (fds[ifds++].revents & POLLIN) {
+
+		// 		/* copy attitude data into local buffer */
+		// 		orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
 
 				
-			}
+		// 	}
 
-			/* --- VEHICLE ATTITUDE SETPOINT --- */
-			if (fds[ifds++].revents & POLLIN) {
-				/* copy local position data into local buffer */
-				orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.spa_sub, &buf.att_sp);
+		// 	/* --- VEHICLE ATTITUDE SETPOINT --- */
+		// 	if (fds[ifds++].revents & POLLIN) {
+		// 		/* copy local position data into local buffer */
+		// 		orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.spa_sub, &buf.att_sp);
 				
-			}
+		// 	}
 
-			/* --- ACTUATOR OUTPUTS 0 --- */
-			if (fds[ifds++].revents & POLLIN) {
-				/* copy actuator data into local buffer */
-				orb_copy(ORB_ID(actuator_outputs_0), subs.act_0_sub, &buf.act_outputs);
-				/* write out */
-				// actuator_outputs_bytes += write(actuator_outputs_file, (const char*)&buf.act_outputs, sizeof(buf.act_outputs));
-			}
+		// 	/* --- ACTUATOR OUTPUTS 0 --- */
+		// 	if (fds[ifds++].revents & POLLIN) {
+		// 		/* copy actuator data into local buffer */
+		// 		orb_copy(ORB_ID(actuator_outputs_0), subs.act_0_sub, &buf.act_outputs);
+		// 		/* write out */
+		// 		// actuator_outputs_bytes += write(actuator_outputs_file, (const char*)&buf.act_outputs, sizeof(buf.act_outputs));
+		// 	}
 
-			/* --- ACTUATOR CONTROL --- */
-			if (fds[ifds++].revents & POLLIN) {
-				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.controls0_sub, &buf.act_controls);
-				/* write out */
-				actuator_controls_bytes += write(actuator_controls_file, (const char*)&buf.act_controls, sizeof(buf.act_controls));
-			}
+		// 	/* --- ACTUATOR CONTROL --- */
+		// 	if (fds[ifds++].revents & POLLIN) {
+		// 		orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.controls0_sub, &buf.act_controls);
+		// 		/* write out */
+		// 		actuator_controls_bytes += write(actuator_controls_file, (const char*)&buf.act_controls, sizeof(buf.act_controls));
+		// 	}
+		// }
+
+		if (poll_count % 100 == 0) {
+			fsync(sysvector_file);
 		}
+
+		poll_count++;
+
+
+		/* copy sensors raw data into local buffer */
+		orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.raw);
+		orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.controls0_sub, &buf.act_controls);
+		/* copy actuator data into local buffer */
+		orb_copy(ORB_ID(actuator_outputs_0), subs.act_0_sub, &buf.act_outputs);
+		orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.spa_sub, &buf.att_sp);
+
+		#pragma pack(push, 1)
+		struct {
+			uint64_t timestamp;
+			float gyro[3];
+			float accel[3];
+			float mag[3];
+			float baro;
+			float baro_alt;
+			float baro_temp;
+			float control[4];
+
+			float actuators[8];
+			float vbat;
+			float adc[3];
+		} sysvector = {
+			.timestamp = buf.raw.timestamp,
+			.gyro = {buf.raw.gyro_rad_s[0], buf.raw.gyro_rad_s[1], buf.raw.gyro_rad_s[2]},
+			.accel = {buf.raw.accelerometer_m_s2[0], buf.raw.accelerometer_m_s2[1], buf.raw.accelerometer_m_s2[2]},
+			.mag = {buf.raw.magnetometer_ga[0], buf.raw.magnetometer_ga[1], buf.raw.magnetometer_ga[2]},
+			.baro = buf.raw.baro_pres_mbar,
+			.baro_alt = buf.raw.baro_alt_meter,
+			.baro_temp = buf.raw.baro_temp_celcius,
+			.control = {buf.act_controls.control[0], buf.act_controls.control[1], buf.act_controls.control[2], buf.act_controls.control[3]},
+			.actuators = {buf.act_outputs.output[0], buf.act_outputs.output[1], buf.act_outputs.output[2], buf.act_outputs.output[3],
+					buf.act_outputs.output[4], buf.act_outputs.output[5], buf.act_outputs.output[6], buf.act_outputs.output[7]},
+			.vbat = buf.raw.battery_voltage_v,
+			.adc = {buf.raw.adc_voltage_v[0], buf.raw.adc_voltage_v[1], buf.raw.adc_voltage_v[2]}
+		};
+		#pragma pack(pop)
+
+		sysvector_bytes += write(sysvector_file, (const char*)&sysvector, sizeof(sysvector));
+
+		usleep(4900);
 	}
 
 	unsigned bytes = sensor_combined_bytes + actuator_outputs_bytes + blackbox_file_bytes + actuator_controls_bytes;
