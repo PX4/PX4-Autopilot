@@ -103,11 +103,15 @@ mc_thread_main(int argc, char *argv[])
 	int att_setpoint_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	//int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	// int setpoint_sub = orb_subscribe(ORB_ID(ardrone_motors_setpoint));
 
-	/* rate-limit the attitude subscription to 200Hz to pace our loop */
-	orb_set_interval(att_sub, 5);
+	/* 
+	 * Do not rate-limit the loop to prevent aliasing
+	 * if rate-limiting would be desired later, the line below would
+	 * enable it.
+	 *
+	 * rate-limit the attitude subscription to 200Hz to pace our loop
+	 * orb_set_interval(att_sub, 5);
+	 */
 	struct pollfd fds = { .fd = att_sub, .events = POLLIN };
 
 	/* publish actuator controls */

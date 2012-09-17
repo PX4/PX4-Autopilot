@@ -1140,8 +1140,8 @@ Sensors::task_main()
 		raw.timestamp = hrt_absolute_time();
 
 		/* copy most recent sensor data */
-		accel_poll(raw);
 		gyro_poll(raw);
+		accel_poll(raw);
 		mag_poll(raw);
 		baro_poll(raw);
 
