@@ -13,6 +13,18 @@ config NETUTILS_WEBSERVER
 
 if NETUTILS_WEBSERVER
 
+config NETUTILS_HTTPD_SINGLETHREAD
+	bool "Single Threded"
+	default n if !DISABLE_PTHREAD
+	default y if DISABLE_PTHREAD
+	---help---
+		By default, the uIP web server will create a new, independent thread
+		for each connection.  This can, however, use a lot of stack space 
+		if there are many connections and that can be a problem is RAM is
+		limited.  If this option is selected, then a single thread will
+		service all HTTP requests.  TCP_BACKLOG would be a good idea
+		in this case.
+	
 config NETUTILS_HTTPD_SCRIPT_DISABLE
 	bool "Disable %! scripting"
 	default y if NETUTILS_HTTPD_SENDFILE

@@ -54,9 +54,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <pthread.h>
 #include <errno.h>
 #include <debug.h>
+
+#ifndef CONFIG_NETUTILS_HTTPD_SINGLETHREAD
+#  include <pthread.h>
+#endif
 
 #include <nuttx/net/uip/uip.h>
 #include <apps/netutils/uiplib.h>
@@ -595,6 +598,60 @@ static void *httpd_handler(void *arg)
   return NULL;
 }
 
+#ifdef CONFIG_NETUTILS_HTTPD_SINGLETHREAD
+static void single_server(uint16_t portno, pthread_startroutine_t handler, int stacksize)
+{
+  struct sockaddr_in myaddr;
+  socklen_t addrlen;
+  int listensd;
+  int acceptsd;
+#ifdef CONFIG_NET_HAVE_SOLINGER
+  struct linger ling;
+#endif
+
+  listensd = uip_listenon(portno);
+  if (listensd < 0)
+    {
+      return ERROR;
+    }
+
+  /* Begin serving connections */
+
+  for (;;)
+    {
+      addrlen = sizeof(struct sockaddr_in);
+      acceptsd = accept(listensd, (struct sockaddr*)&myaddr, &addrlen);
+
+      if (acceptsd < 0)
+        {
+          ndbg("accept failure: %d\n", errno);
+          break;;
+        }
+
+      nvdbg("Connection accepted -- serving sd=%d\n", acceptsd);
+
+      /* Configure to "linger" until all data is sent when the socket is closed */
+
+#ifdef CONFIG_NET_HAVE_SOLINGER
+      ling.l_onoff  = 1;
+      ling.l_linger = 30;     /* timeout is seconds */
+      if (setsockopt(acceptsd, SOL_SOCKET, SO_LINGER, &ling, sizeof(struct linger)) < 0)
+        {
+          close(acceptsd);
+          ndbg("setsockopt SO_LINGER failure: %d\n", errno);
+          break;;
+        }
+#endif
+
+      /* Handle the request. This blocks until complete. */
+
+      (void) httpd_handler((void*)acceptsd);
+    }
+
+  return ERROR;
+}
+#endif
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -611,9 +668,13 @@ int httpd_listen(void)
 {
   /* Execute httpd_handler on each connection to port 80 */
 
+#ifdef CONFIG_NETUTILS_HTTPD_SINGLETHREAD
+  single_server(HTONS(80), httpd_handler, CONFIG_NETUTILS_HTTPDSTACKSIZE);
+#else
   uip_server(HTONS(80), httpd_handler, CONFIG_NETUTILS_HTTPDSTACKSIZE);
+#endif
 
-  /* uip_server only returns on errors */
+  /* the server accept loop only returns on errors */
 
   return ERROR;
 }
