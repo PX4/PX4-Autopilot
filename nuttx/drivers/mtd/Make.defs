@@ -47,6 +47,10 @@ ifeq ($(CONFIG_MTD_SST25),y)
 CSRCS += sst25.c
 endif
 
+ifeq ($(CONFIG_MTD_W25),y)
+CSRCS += w25.c
+endif
+
 # Include MTD driver support
 
 DEPPATH += --dep-path mtd

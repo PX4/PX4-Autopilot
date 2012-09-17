@@ -1,8 +1,8 @@
 /****************************************************************************
- * graphics/nxtk/nxtk_movewindow.c
+ * examples/hello/hello_main.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,23 +38,10 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
-#include <stdlib.h>
-#include <errno.h>
-#include <debug.h>
-
-#include <nuttx/nx/nx.h>
-#include <nuttx/nx/nxtk.h>
-
-#include "nxfe.h"
-#include "nxtk_internal.h"
+#include <stdio.h>
 
 /****************************************************************************
- * Pre-Processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Types
+ * Definitions
  ****************************************************************************/
 
 /****************************************************************************
@@ -62,57 +49,16 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxtk_movewindow
- *
- * Description:
- *   Move a rectangular region within the client sub-window of a framed window
- *
- * Input Parameters:
- *   hfwnd   - The client sub-window within which the move is to be done.
- *            This must have been previously created by nxtk_openwindow().
- *   rect   - Describes the rectangular region relative to the client
- *            sub-window to move
- *   offset - The offset to move the region
- *
- * Return:
- *   OK on success; ERROR on failure with errno set appropriately
- *
+ * hello_main
  ****************************************************************************/
 
-int nxtk_movewindow(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
-                    FAR const struct nxgl_point_s *offset)
+int hello_main(int argc, char *argv[])
 {
-  FAR struct nxtk_framedwindow_s *fwnd = (FAR struct nxtk_framedwindow_s *)hfwnd;
-  struct nxgl_rect_s srcrect;
-  struct nxgl_point_s clipoffset;
-
-#ifdef CONFIG_DEBUG
-  if (!hfwnd || !rect || !offset)
-    {
-      errno = EINVAL;
-      return ERROR;
-    }
-#endif
-
-  /* Make sure that both the source and dest rectangle lie within the
-   * client sub-window 
-   */
-
-  nxtk_subwindowmove(fwnd, &srcrect, &clipoffset, rect, offset, &fwnd->fwrect);
-
-  /* Then move it within the client window */
-
-  return nx_move((NXWINDOW)hfwnd, &srcrect, &clipoffset);
+  printf("Hello, World!!\n");
+  return 0;
 }
+

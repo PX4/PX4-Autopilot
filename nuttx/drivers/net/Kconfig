@@ -25,6 +25,7 @@ config ENC28J60
 		References:
 		ENC28J60 Data Sheet, Stand-Alone Ethernet Controller with SPI Interface,
 		DS39662C, 2008 Microchip Technology Inc.
+
 if ENC28J60
 config ENC28J60_NINTERFACES
 	int "Number of physical ENC28J60"
@@ -36,9 +37,13 @@ config ENC28J60_NINTERFACES
 
 config ENC28J60_SPIMODE
 	int "SPI mode"
-	default 2
+	default 0
 	---help---
-		Controls the SPI mode
+		Controls the SPI mode.  The ENC28J60 spec says that it supports SPI
+		mode 0,0 only: "The implementation used on this device supports SPI
+		mode 0,0 only. In addition, the SPI port requires that SCK be at Idle
+		in a low state; selectable clock polarity is not supported."
+		However, sometimes you need to tinker with these things.
 
 config ENC28J60_FREQUENCY
 	int "SPI frequency"
@@ -57,6 +62,14 @@ config ENC28J60_HALFDUPPLEX
 	default n
 	---help---
 		Default is full duplex
+
+config ENC28J60_DUMPPACKET
+	bool "Dump Packets"
+	default n
+	---help---
+		If selected, the ENC28J60 driver  will dump the contents of each
+		packet to the console.
+
 endif
 	
 config NET_E1000

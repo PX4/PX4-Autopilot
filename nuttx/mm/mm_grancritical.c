@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx/graphics/nxconsole/nxcon_bkgd.c
+ * mm/mm_grancritical.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,32 +39,19 @@
 
 #include <nuttx/config.h>
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <semaphore.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
 
-#include <nuttx/nx/nx.h>
-#include <nuttx/nx/nxglib.h>
+#include <arch/irq.h>
+#include <nuttx/gran.h>
 
-#include "nxcon_internal.h"
+#include "mm_gran.h"
 
-/****************************************************************************
- * Definitions
- ****************************************************************************/
+#ifdef CONFIG_GRAN
 
 /****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
-
-/****************************************************************************
- * Private Data
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
@@ -80,73 +67,50 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxcon_redraw
+ * Name: gran_enter_critical and gran_leave_critical
  *
  * Description:
- *   Re-draw a portion of the NX console.  This function should be called
- *   from the appropriate window callback logic.
+ *   Critical section management for the granule allocator.
  *
  * Input Parameters:
- *   handle - A handle previously returned by nx_register, nxtk_register, or
- *     nxtool_register.
- *   rect - The rectangle that needs to be re-drawn (in window relative
- *          coordinates)
- *   more - true:  More re-draw requests will follow
+ *   priv - Pointer to the gran state
  *
  * Returned Value:
  *   None
  *
  ****************************************************************************/
 
-void nxcon_redraw(NXCONSOLE handle, FAR const struct nxgl_rect_s *rect, bool more)
+void gran_enter_critical(FAR struct gran_s *priv)
 {
-  FAR struct nxcon_state_s *priv;
+#ifdef CONFIG_GRAN_INTR
+  priv->irqstate = irqsave();
+#else
   int ret;
-  int i;
 
-  DEBUGASSERT(handle && rect);
-  gvdbg("rect={(%d,%d),(%d,%d)} more=%s\n",
-        rect->pt1.x, rect->pt1.y, rect->pt2.x, rect->pt2.y,
-        more ? "true" : "false");
-
-  /* Recover our private state structure */
-
-  priv = (FAR struct nxcon_state_s *)handle;
-
-  /* Get exclusive access to the state structure */
+  /* Continue waiting if we are awakened by a signal */
 
   do
     {
-      ret = nxcon_semwait(priv);
-
-      /* Check for errors */
-
+      ret = sem_wait(&priv->exclsem);
       if (ret < 0)
         {
-          /* The only expected error is if the wait failed because of it
-           * was interrupted by a signal.
-           */
-
           DEBUGASSERT(errno == EINTR);
         }
     }
   while (ret < 0);
-
-  /* Fill the rectangular region with the window background color */
-
-  ret = priv->ops->fill(priv, rect, priv->wndo.wcolor);
-  if (ret < 0)
-    {
-      gdbg("fill failed: %d\n", errno);
-    }
-
-  /* Then redraw each character on the display (Only the characters within
-   * the rectangle will actually be redrawn).
-   */
-
-  for (i = 0; i < priv->nchars; i++)
-    {
-      nxcon_fillchar(priv, rect, &priv->bm[i]);
-    }
-  ret = nxcon_sempost(priv);
+#endif
 }
+
+void gran_leave_critical(FAR struct gran_s *priv)
+{
+#ifdef CONFIG_GRAN_INTR
+  irqrestore(priv->irqstate);
+#else
+  sem_post(&priv->exclsem);
+#endif
+}
+
+
+#endif /* CONFIG_GRAN */
+
+

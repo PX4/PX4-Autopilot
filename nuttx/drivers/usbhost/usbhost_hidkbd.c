@@ -2,7 +2,7 @@
  * drivers/usbhost/usbhost_hidkbd.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1674,7 +1674,7 @@ static int usbhost_disconnected(struct usbhost_class_s *class)
        */
 
       DEBUGASSERT(priv->work.worker == NULL);
-      (void)work_queue(&priv->work, usbhost_destroy, priv, 0);
+      (void)work_queue(HPWORK, &priv->work, usbhost_destroy, priv, 0);
     }
 
   return OK;

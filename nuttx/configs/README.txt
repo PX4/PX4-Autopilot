@@ -270,8 +270,6 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_DEBUG_GRAPHICS - enable NX graphics debug output
       (disabled by default)
 
-    CONFIG_ARCH_LOWPUTC - architecture supports low-level, boot
-      time console output
     CONFIG_MM_REGIONS - If the architecture includes multiple
       regions of memory to allocate from, this specifies the
       number of memory regions that the memory manager must
@@ -285,6 +283,33 @@ defconfig -- This is a configuration file similar to the Linux
       of size less than or equal to 64Kb.  In this case, CONFIG_MM_SMALL
       can be defined so that those MCUs will also benefit from the
       smaller, 16-bit-based allocation overhead.
+    CONFIG_HEAP2_BASE and CONFIG_HEAP2_SIZE
+      Some architectures use these settings to specify the size of
+      a second heap region.
+    CONFIG_GRAN
+      Enable granual allocator support.  Allocations will be aligned to the
+      granule size; allocations will be in units of the granule size.
+      Larger granules will give better performance and less overhead but
+      more losses of memory due to alignment and quantization waste.
+      NOTE: The current implementation also restricts the maximum
+      allocation size to 32 granaules.  That restriction could be
+      eliminated with some additional coding effort.
+    CONFIG_GRAN_SINGLE
+      Select if there is only one instance of the granule allocator (i.e.,
+      gran_initialize will be called only once. In this case, (1) there
+      are a few optimizations that can can be done and (2) the GRAN_HANDLE
+      is not needed.
+    CONFIG_GRAN_INTR - Normally mutual exclusive access to granule allocator
+      data is assured using a semaphore.  If this option is set then, instead,
+      mutual exclusion logic will disable interrupts.  While this options is
+      more invasive to system performance, it will also support use of the
+      granule allocator from interrupt level logic.
+    CONFIG_DEBUG_GRAM
+      Just like CONFIG_DEBUG_MM, but only generates ouput from the gran
+      allocation logic.
+
+    CONFIG_ARCH_LOWPUTC - architecture supports low-level, boot
+      time console output
     CONFIG_MSEC_PER_TICK - The default system timer is 100Hz
       or MSEC_PER_TICK=10.  This setting may be defined to
       inform NuttX that the processor hardware is providing
@@ -361,13 +386,24 @@ defconfig -- This is a configuration file similar to the Linux
       if memory reclamation is of high priority).  If CONFIG_SCHED_WORKQUEUE
       is enabled, then the following options can also be used:
     CONFIG_SCHED_WORKPRIORITY - The execution priority of the worker
-      thread.  Default: 50
+      thread.  Default: 192
     CONFIG_SCHED_WORKPERIOD - How often the worker thread checks for
       work in units of microseconds.  Default: 50*1000 (50 MS).
     CONFIG_SCHED_WORKSTACKSIZE - The stack size allocated for the worker
       thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
     CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
       the worker thread.  Default: 4
+    CONFIG_SCHED_LPWORK. If CONFIG_SCHED_WORKQUEUE is defined, then a single
+      work queue is created by default.  If CONFIG_SCHED_LPWORK is also defined
+      then an additional, lower-priority work queue will also be created.  This
+      lower priority work queue is better suited for more extended processing
+      (such as file system clean-up operations)
+    CONFIG_SCHED_LPWORKPRIORITY - The execution priority of the lower priority
+      worker thread.  Default: 50
+    CONFIG_SCHED_LPWORKPERIOD - How often the lower priority worker thread
+      checks for work in units of microseconds.  Default: 50*1000 (50 MS).
+    CONFIG_SCHED_LPWORKSTACKSIZE - The stack size allocated for the lower
+      priority worker thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
     CONFIG_SCHED_WAITPID - Enables the waitpid() API
     CONFIG_SCHED_ATEXIT -  Enables the atexit() API
     CONFIG_SCHED_ATEXIT_MAX -  By default if CONFIG_SCHED_ATEXIT is
@@ -710,7 +746,6 @@ defconfig -- This is a configuration file similar to the Linux
   Filesystem configuration
 
     CONFIG_FS_FAT - Enable FAT filesystem support
-    CONFIG_FAT_SECTORSIZE - Max supported sector size
     CONFIG_FAT_LCNAMES - Enable use of the NT-style upper/lower case 8.3
       file name support.
     CONFIG_FAT_LFN - Enable FAT long file names.  NOTE:  Microsoft claims
@@ -940,7 +975,7 @@ defconfig -- This is a configuration file similar to the Linux
 
   ENC28J60 Ethernet Driver Configuration Settings:
 
-    CONFIG_NET_ENC28J60 - Enabled ENC28J60 support
+    CONFIG_ENC28J60 - Enabled ENC28J60 support
     CONFIG_ENC28J60_SPIMODE - Controls the SPI mode
     CONFIG_ENC28J60_FREQUENCY - Define to use a different bus frequency
     CONFIG_ENC28J60_NINTERFACES - Specifies the number of physical ENC28J60
@@ -979,7 +1014,10 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_NET_MAX_LISTENPORTS - Maximum number of listening TCP ports (all tasks)
     CONFIG_NET_TCP_READAHEAD_BUFSIZE - Size of TCP read-ahead buffers
     CONFIG_NET_NTCP_READAHEAD_BUFFERS - Number of TCP read-ahead buffers
-      (may be zero)
+      (may be zero to disable TCP/IP read-ahead buffering)
+    CONFIG_NET_TCP_RECVDELAY - Delay (in deciseconds) after a TCP/IP packet
+      is received.  This delay may allow catching of additional packets
+      when TCP/IP read-ahead is disabled.  Default: 0
     CONFIG_NET_TCPBACKLOG - Incoming connections pend in a backlog until
       accept() is called. The size of the backlog is selected when listen()
       is called.
@@ -1005,8 +1043,6 @@ defconfig -- This is a configuration file similar to the Linux
       from incoming IP packets.
     CONFIG_NET_BROADCAST - Incoming UDP broadcast support
     CONFIG_NET_MULTICAST - Outgoing multi-cast address support
-    CONFIG_NET_FWCACHE_SIZE - number of packets to remember when
-      looking for duplicates
 
   SLIP Driver.  SLIP supports point-to-point IP communications over a serial
     port.  The default data link layer for uIP is Ethernet. If CONFIG_NET_SLIP
@@ -1443,8 +1479,6 @@ defconfig -- This is a configuration file similar to the Linux
       but copy themselves entirely into RAM for better performance.
     CONFIG_BOOT_RAMFUNCS - Other configurations may copy just some functions
       into RAM, either for better performance or for errata workarounds.
-    CONFIG_STACK_POINTER - The initial stack pointer (may not be supported
-      in all architectures).
     CONFIG_STACK_ALIGNMENT - Set if the your application has specific
       stack alignment requirements (may not be supported
       in all architectures).
@@ -1533,6 +1567,10 @@ configs/ez80f0910200zco
   ez80Acclaim! Microcontroller.  This port use the Zilog ez80f0910200zco
   development kit, eZ80F091 part, and the Zilog ZDS-II Windows command line
   tools.  The development environment is Cygwin under WinXP.
+
+configs/fire-stm32v2
+  A configuration for the M3 Wildfire STM32 board.  This board is based on the
+  STM32F103VET6 chip.  See http://firestm32.taobao.com
 
 configs/hymini-stm32v
   A configuration for the HY-Mini STM32v board.  This board is based on the
@@ -1694,6 +1732,10 @@ configs/sim
   The purpose of this port is primarily to support OS feature development.
   This port does not support interrupts or a real timer (and hence no
   round robin scheduler)  Otherwise, it is complete.
+
+configs/shenzhou
+  This is the port of NuttX to the Shenzhou development board from
+  www.armjishu.com. This board features the STMicro STM32F107VCT MCU.
 
 configs/skp16c26
   Renesas M16C processor on the Renesas SKP16C26 StarterKit.  This port

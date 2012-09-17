@@ -2,7 +2,7 @@
  * arch/arm/src/armv7-m/svcall.h
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -74,7 +74,7 @@
 
 /* SYS call 1:
  *
- * void up_fullcontextrestore(uint32_t *restoreregs) __attribute__ ((noreturn));
+ * void up_fullcontextrestore(uint32_t *restoreregs) noreturn_function;
  */
 
 #define SYS_restore_context (1)

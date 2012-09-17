@@ -268,7 +268,7 @@ static uint16_t send_interrupt(struct uip_driver_s *dev, void *pvconn,
        * then the send won't actually make it out... it will be replaced with
        * an ARP request.
        *
-       * NOTE 1: This could an expensive check if there are a lot of entries
+       * NOTE 1: This could be an expensive check if there are a lot of entries
        * in the ARP table.  Hence, we only check on the first packet -- when
        * snd_sent is zero.
        *

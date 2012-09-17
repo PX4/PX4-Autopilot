@@ -101,21 +101,38 @@ if [ ! -d "${configpath}" ]; then
 fi
 
 if [ ! -r "${configpath}/Make.defs" ]; then
-  echo "File ${configpath}/Make.defs does not exist"
+  echo "File \"${configpath}/Make.defs\" does not exist"
   exit 4
 fi
 
 if [ ! -r "${configpath}/setenv.sh" ]; then
-  echo "File ${configpath}/setenv.sh does not exist"
+  echo "File \"${configpath}/setenv.sh\" does not exist"
   exit 5
 fi
 
 if [ ! -r "${configpath}/defconfig" ]; then
-  echo "File ${configpath}/defconfig does not exist"
+  echo "File \"${configpath}/defconfig\" does not exist"
   exit 6
 fi
 
-# Check for the apps/ dir in the usual place if appdir was not provided
+# Extract values needed from the defconfig file.  We need:
+# (1) The CONFIG_NUTTX_NEWCONFIG setting to know if this is a "new" style
+#     configuration, and
+# (2) The CONFIG_APPS_DIR to see if there is a configured location for the
+#     application directory.
+
+newconfig=`grep CONFIG_NUTTX_NEWCONFIG= "${configpath}/defconfig" | cut -d'=' -f2`
+
+defappdir=y
+if [ -z "${appdir}" ]; then
+  quoted=`grep "^CONFIG_APPS_DIR=" "${configpath}/defconfig" | cut -d'=' -f2`
+  if [ ! -z "${appdir}" ]; then
+    appdir=`echo ${quoted} | sed -e "s/\"//g"`
+    defappdir=n
+  fi
+fi
+
+# Check for the apps/ directory in the usual place if appdir was not provided
 
 if [ -z "${appdir}" ]; then
 
@@ -140,7 +157,15 @@ if [ -z "${appdir}" ]; then
   fi
 fi
 
-# Okay... setup the configuration
+# If appsdir was provided (or discovered) then make sure that the apps/
+# directory exists
+
+if [ ! -z "${appdir}" -a ! -d "${TOPDIR}/${appdir}" ]; then
+  echo "Directory \"${TOPDIR}/${appdir}\" does not exist"
+  exit 7
+fi
+
+# Okay... Everything looks good.  Setup the configuration
 
 install -C "${configpath}/Make.defs" "${TOPDIR}/." || \
   { echo "Failed to copy ${configpath}/Make.defs" ; exit 7 ; }
@@ -150,19 +175,28 @@ chmod 755 "${TOPDIR}/setenv.sh"
 install -C "${configpath}/defconfig" "${TOPDIR}/.configX" || \
   { echo "Failed to copy ${configpath}/defconfig" ; exit 9 ; }
 
-# Copy option appconfig
+# If we did not use the CONFIG_APPS_DIR that was in the defconfig config file,
+# then append the correct application information to the tail of the .config
+# file
 
-if [ ! -z "${appdir}" ]; then
+if [ "X${defappdir}" = "Xy" ]; then
+  sed -i -e "/^CONFIG_APPS_DIR/d" "${TOPDIR}/.configX"
+  echo "" >> "${TOPDIR}/.configX"
+  echo "# Application configuration" >> "${TOPDIR}/.configX"
+  echo "" >> "${TOPDIR}/.configX"
+  echo "CONFIG_APPS_DIR=\"$appdir\"" >> "${TOPDIR}/.configX"
+fi 
+
+# Copy appconfig file.  The appconfig file will be copied to ${appdir}/.config
+# if both (1) ${appdir} is defined and (2) we are not using the new configuration
+# (which does not require a .config file in the appsdir.
+
+if [ ! -z "${appdir}" -a "X${newconfig}" != "Xy" ]; then
   if [ ! -r "${configpath}/appconfig" ]; then
     echo "NOTE: No readable appconfig file found in ${configpath}"
   else
     install -C "${configpath}/appconfig" "${TOPDIR}/${appdir}/.config" || \
       { echo "Failed to copy ${configpath}/appconfig" ; exit 10 ; }
-
-    echo "" >> "${TOPDIR}/.configX"
-    echo "# Application configuration" >> "${TOPDIR}/.configX"
-    echo "" >> "${TOPDIR}/.configX"
-    echo "CONFIG_APPS_DIR=\"$appdir\"" >> "${TOPDIR}/.configX"
   fi
 fi
 

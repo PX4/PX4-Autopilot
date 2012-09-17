@@ -3,7 +3,7 @@
  * Definitions for the Phillips PCF8833 LCD controller
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References: "Data Sheet, PCF8833 STN RGB 132x132x3 driver," Phillips, 2003 Feb 14.
  *

@@ -3,7 +3,7 @@
  * Definitions for the Epson S1D15G0 LCD controller
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References: S1D15G0D08B000, Seiko Epson Corportation, 2002.
  *

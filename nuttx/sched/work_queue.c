@@ -76,6 +76,7 @@
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
 /****************************************************************************
  * Name: work_queue
  *
@@ -91,6 +92,7 @@
  *   and remove it from the work queue.
  *
  * Input parameters:
+ *   qid    - The work queue ID (index)
  *   work   - The work structure to queue
  *   worker - The worker callback to be invoked.  The callback will invoked
  *            on the worker thread of execution.
@@ -104,11 +106,13 @@
  *
  ****************************************************************************/
 
-int work_queue(struct work_s *work, worker_t worker, FAR void *arg, uint32_t delay)
+int work_queue(int qid, FAR struct work_s *work, worker_t worker,
+               FAR void *arg, uint32_t delay)
 {
+  FAR struct wqueue_s *wqueue = &g_work[qid];
   irqstate_t flags;
 
-  DEBUGASSERT(work != NULL);
+  DEBUGASSERT(work != NULL && (unsigned)qid < NWORKERS);
 
   /* First, initialize the work structure */
 
@@ -123,8 +127,10 @@ int work_queue(struct work_s *work, worker_t worker, FAR void *arg, uint32_t del
 
   flags        = irqsave();
   work->qtime  = clock_systimer(); /* Time work queued */
-  dq_addlast((FAR dq_entry_t *)work, &g_work);
-  work_signal();                   /* Wake up the worker thread */
+
+  dq_addlast((FAR dq_entry_t *)work, &wqueue->q);
+  kill(wqueue->pid, SIGWORK);      /* Wake up the worker thread */
+
   irqrestore(flags);
   return OK;
 }

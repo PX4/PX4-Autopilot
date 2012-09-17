@@ -1,7 +1,7 @@
 /****************************************************************************
- * examples/hello/main.c
+ * sched/work_signal.c
  *
- *   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,27 +38,59 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <stdio.h>
+
+#include <signal.h>
+#include <assert.h>
+
+#include <nuttx/wqueue.h>
+
+#include "work_internal.h"
+
+#ifdef CONFIG_SCHED_WORKQUEUE
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Private Data
+ * Private Type Declarations
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Variables
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Variables
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
 /****************************************************************************
- * hello_main
+ * Name: work_signal
+ *
+ * Description:
+ *   Signal the worker thread to process the work queue now.  This function
+ *   is used internally by the work logic but could also be used by the
+ *   user to force an immediate re-assessment of pending work.
+ *
+ * Input parameters:
+ *   qid    - The work queue ID
+ *
+ * Returned Value:
+ *   Zero on success, a negated errno on failure
+ *
  ****************************************************************************/
 
-int hello_main(int argc, char *argv[])
+int work_signal(int qid)
 {
-  printf("Hello, World!!\n");
-  return 0;
+  DEBUGASSERT((unsigned)qid < NWORKERS);
+  return kill(g_work[qid].pid, SIGWORK);
 }
 
+#endif /* CONFIG_SCHED_WORKQUEUE */

@@ -2,7 +2,7 @@
  * drivers/net/enc28j60.h
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  * - ENC28J60 Data Sheet, Stand-Alone Ethernet Controller with SPI Interface,
@@ -56,7 +56,7 @@
  */
 
 #define ENC_RCR             (0x00)    /* Read Control Register
-                                       * 000 | aaaaa | (Registe value returned)) */
+                                       * 000 | aaaaa | (Register value returned)) */
 #define ENC_RBM             (0x3a)    /* Read Buffer Memory
                                        * 001 | 11010 | (Read buffer data follows) */
 #define ENC_WCR             (0x40)    /* Write Control Register
@@ -131,10 +131,10 @@
 
 #define ECON1_BSEL_SHIFT    (0)      /* Bits 0-1: Bank select */
 #define ECON1_BSEL_MASK     (3 << ECON1_BSEL_SHIFT)
-#  define ECON1_BSEL_BANK0  (0 << 0) /* Bank 0 */
-#  define ECON1_BSEL_BANK1  (1 << 1) /* Bank 1 */
-#  define ECON1_BSEL_BANK2  (2 << 0) /* Bank 2 */
-#  define ECON1_BSEL_BANK3  (3 << 0) /* Bank 3 */
+#  define ECON1_BSEL_BANK0  (0 << ECON1_BSEL_SHIFT) /* Bank 0 */
+#  define ECON1_BSEL_BANK1  (1 << ECON1_BSEL_SHIFT) /* Bank 1 */
+#  define ECON1_BSEL_BANK2  (2 << ECON1_BSEL_SHIFT) /* Bank 2 */
+#  define ECON1_BSEL_BANK3  (3 << ECON1_BSEL_SHIFT) /* Bank 3 */
 #define ECON1_RXEN          (1 << 2) /* Bit 2: Receive Enable */
 #define ECON1_TXRTS         (1 << 3) /* Bit 3: Transmit Request to Send */
 #define ECON1_CSUMEN        (1 << 4) /* Bit 4: DMA Checksum Enable */

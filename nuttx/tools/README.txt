@@ -17,6 +17,12 @@ configure.sh
   target board.  See configs/README.txt or Documentation/NuttxPortingGuide.html
   for a description of how to configure NuttX with this script.
 
+discover.py
+
+  Example script for discovering devices in the local network.
+  It is the counter part to apps/netutils/discover
+
+
 mkconfig.c, cfgparser.c, and cfgparser.h
 
   These are Cs file that are used to build mkconfig program.  The mkconfig
