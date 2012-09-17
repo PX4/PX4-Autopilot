@@ -257,7 +257,7 @@ NuttX buildroot Toolchain
   different from the default in your PATH variable).
 
   If you have no Cortex-M4 toolchain, one can be downloaded from the NuttX
-  SourceForge download site (https://sourceforge.net/project/showfiles.php?group_id=189573).
+  SourceForge download site (https://sourceforge.net/projects/nuttx/files/buildroot/).
   This GNU toolchain builds and executes in the Linux or Cygwin environment.
 
   NOTE:  The NuttX toolchain is an OABI toolchain (vs. the more common EABI)

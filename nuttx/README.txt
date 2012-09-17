@@ -118,7 +118,7 @@ Installation Directories with Spaces in the Path
   I work around spaces in the home directory name, by creating a
   new directory that does not contain any spaces, such as /home/nuttx.
   Then I install NuttX in /home/nuttx and always build from 
-  /home/nuttx/nuttx.
+  /home/nuttx/nuttx-code.
 
 Notes about Header Files
 ------------------------

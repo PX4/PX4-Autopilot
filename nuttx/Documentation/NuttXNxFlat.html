@@ -157,14 +157,14 @@
 <ul>
   <li>
     A dynamic loader that is built into the NuttX core
-   (See <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/binfmt/">SVN</a>).
+   (See <a href="http://svn.code.sf.net/p/nuttx/code/trunk/nuttx/binfmt/">SVN</a>).
   </li>
   <li>
     Minor changes to RTOS to support position independent code, and
   </li>
   <li>
     A linker to bind ELF binaries to produce the NXFLAT binary format
-    (See <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/misc/buildroot/toolchain/nxflat/">SVN).
+    (See <a href="http://svn.code.sf.net/p/nuttx/code/trunk/misc/buildroot/toolchain/nxflat/">SVN).
   </li>
 </ul>
 
@@ -284,7 +284,7 @@
   The initial release of NXFLAT was made in NuttX version 0.4.9.
   Testing is limited to the tests found under <code>apps/examples/nxflat</code> in the source tree.
   Some known problems exist
-  (see the <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/TODO?view=log">TODO</a> list).
+  (see the <a href="http://svn.code.sf.net/p/nuttx/code/trunk/nuttx/TODO?view=log">TODO</a> list).
   As such, NXFLAT is currently in an early alpha phase.
 </p>
 
@@ -302,7 +302,7 @@
   In order to use NXFLAT, you must use special NXFLAT tools to create the binary module in FLASH.
   To do this, you will need to download the buildroot package and build it on your Linux or Cygwin machine.
   The buildroot can be downloaded from 
-  <a https://sourceforge.net/project/showfiles.php?group_id=189573&package_id=224585">Sourceforge</a>.
+  <a https://sourceforge.net/projects/nuttx/files/">Sourceforge</a>.
   You will need version 0.1.7 or later.
 </p>
 <p>
@@ -429,7 +429,7 @@ cat ../syscall/syscall.csv ../lib/lib.csv | sort >tmp.csv
 
 <p>
   Below is a snippet from an NXFLAT make file (simplified from NuttX
-  <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/apps/examples/nxflat/tests/hello/Makefile?view=log">
+  <a href="http://svn.code.sf.net/p/nuttx/code/trunk/apps/examples/nxflat/tests/hello/Makefile?view=log">
   Hello, World!</a> example.
 <p>
 <ul><table width="50%">
@@ -535,18 +535,18 @@ cat ../syscall/syscall.csv ../lib/lib.csv | sort >tmp.csv
 <ul>
   <li>
     The interface to the binary loader is described in the header file 
-    <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/include/nuttx/binfmt.h?view=log">
+    <a href="http://svn.code.sf.net/p/nuttx/code/trunk/nuttx/include/nuttx/binfmt.h?view=log">
     <code>include/nuttx/binfmt.h</code></a>.
     A brief summary of the APIs prototyped in that header file are listed below.
   </li>
   <li>
     NXFLAT APIs needed to register NXFLAT as a binary loader appear in the header file
-    <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/include/nuttx/nxflat.h?view=log">
+    <a href="http://svn.code.sf.net/p/nuttx/code/trunk/nuttx/include/nuttx/nxflat.h?view=log">
     <code>include/nuttx/nxflat.h</code></a>.
   </li>
   <li>
     The format of an NXFLAT object itself is described in the header file:
-    <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/include/nuttx/nxflat.h?view=log">
+    <a href="http://svn.code.sf.net/p/nuttx/code/trunk/nuttx/include/nuttx/nxflat.h?view=log">
     <code>include/nuttx/nxflat.h</code></a>.
   </li>
 </ul>

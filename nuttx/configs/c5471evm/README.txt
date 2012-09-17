@@ -8,8 +8,8 @@ Toolchain
   be modified to point to the correct path to the SH toolchain (if
   different from the default).
 
-  If you have no SH toolchain, one can be downloaded from the NuttX
-  SourceForge download site (https://sourceforge.net/project/showfiles.php?group_id=189573).
+  If you have no ARM toolchain, one can be downloaded from the NuttX
+  SourceForge download site (https://sourceforge.net/projects/nuttx/files/buildroot).
 
   1. You must have already configured Nuttx in <some-dir>nuttx.
 

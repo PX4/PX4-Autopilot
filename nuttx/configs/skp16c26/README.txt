@@ -54,11 +54,7 @@ NOTE:  See the toolchain issues above -- you may not want to waste your time.
    
      Check out the misc/buildroot module. SVN checkout instructions:
 
-        svn co https://nuttx.svn.sourceforge.net/svnroot/nuttx nuttx/trunk/misc/buildroot
-
-     Move the buildroot Source Tree and create the archive directory
-
-        mv misc/buildroot .
+        svn checkout svn://svn.code.sf.net/p/nuttx/code/trunk/buildroot buildroot
 
    Make the archive directory:
   

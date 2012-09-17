@@ -1968,7 +1968,7 @@ release includes several new features:
     small for the MCU usage and has some limitations.  No formal
     documentation of NXFFS yet exists.  See the fs/nxffs/README.txt
     file for details (see
-    http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/fs/nxffs/README.txt?view=log)
+    http://svn.code.sf.net/p/nuttx/code/trunk/nuttx/fs/nxffs/README.txt?view=log)
   * Support for NXP LPCXpresso LPC1768 board on the Embedded
     Artists base board.  The Code Red toolchain is supported under
     either Linux or Windows.   Verified configurations include
