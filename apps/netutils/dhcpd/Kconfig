@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config NETUTILS_DHCPD
+	bool "DHCP server"
+	default n
+	---help---
+		Enable support for the DHCP server.
+
+if NETUTILS_DHCPD
+endif

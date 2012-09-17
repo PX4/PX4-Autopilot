@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_UIP
+	bool "uIP web server example"
+	default n
+	---help---
+		Enable the uIP web server example
+
+if EXAMPLES_UIP
+endif

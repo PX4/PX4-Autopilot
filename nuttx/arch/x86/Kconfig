@@ -1,0 +1,33 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+if ARCH_X86
+comment "x86 Configuration Options"
+
+choice
+	prompt "x86 chip selection"
+	default ARCH_I486
+
+config ARCH_I486
+	bool "i486"
+	---help---
+		Intel i486 architecture
+
+endchoice
+
+config ARCH_CHIP_QEMU
+	bool "Qemu x86 emulation"
+	---help---
+		Intel i486 architecture
+
+config ARCH_CHIP
+	string
+	default "qemu"		if ARCH_CHIP_QEMU
+
+source arch/x86/src/common/Kconfig
+source arch/x86/src/i486/Kconfig
+source arch/x86/src/qemu/Kconfig
+
+endif

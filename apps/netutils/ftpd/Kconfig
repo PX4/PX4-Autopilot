@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config NETUTILS_FTPD
+	bool "FTP server"
+	default n
+	---help---
+		Enable support for the FTP server.
+
+if NETUTILS_FTPD
+endif

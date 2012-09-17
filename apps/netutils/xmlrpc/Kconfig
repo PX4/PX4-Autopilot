@@ -1,0 +1,23 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config NETUTILS_XMLRPC
+	bool "XML RPC library"
+	default n
+	depends on NET_TCP
+	select NETUTILS_UIPLIB
+	---help---
+		Enables the Embeddable Lightweight XML-RPC Server discussed at
+		http://www.drdobbs.com/web-development/an-embeddable-lightweight-xml-rpc-server/184405364
+
+if NETUTILS_XMLRPC
+
+config XMLRPC_STRINGSIZE
+	int "Maximum string length"
+	default 64
+	---help---
+		Maximum string length for method names and XML RPC string values.
+
+endif

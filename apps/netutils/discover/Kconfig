@@ -1,0 +1,40 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config NETUTILS_DISCOVER
+	bool "Network Discovery Utility"
+	default n
+	depends on NET_UDP
+	select NETUTILS_UIPLIB
+	---help---
+		Tool for discovering devices on the local network per UDP broadcast.
+
+if NETUTILS_DISCOVER
+
+config DISCOVER_STACK_SIZE
+	int "Discover Daemon Stack Size"
+	default 1024
+
+config DISCOVER_PRIORITY
+	int "Discover Daemon Priority"
+	default 50
+
+config DISCOVER_PORT
+	int "Discover Daemon Port Number"
+	default 96
+
+config DISCOVER_INTERFACE
+	string "Network Interface Name"
+	default "eth0"
+
+config DISCOVER_DEVICE_CLASS
+	hex "Network Discovery Class"
+	default 0xff
+
+config CONFIG_DISCOVER_DESCR
+	string "Discoverer Description"
+	default "NuttX"
+
+endif

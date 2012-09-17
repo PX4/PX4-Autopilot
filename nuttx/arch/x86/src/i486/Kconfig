@@ -1,0 +1,9 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+if ARCH_I486
+comment "i486 Configuration Options"
+
+endif

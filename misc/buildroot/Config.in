@@ -1,0 +1,371 @@
+#
+
+mainmenu "Buildroot2 Configuration"
+
+config BR2_HAVE_DOT_CONFIG
+	bool
+	default y
+
+choice
+	prompt "Target Architecture"
+	default BR2_i386
+	help
+	  Select the target architecture family to build for.
+
+config BR2_alpha
+	bool "alpha"
+config BR2_arm
+	bool "arm"
+config BR2_armeb
+	bool "armeb"
+config BR2_avr
+	bool "avr"
+config BR2_avr32
+	bool "avr32"
+config BR2_bfin
+	bool "blackfin"
+config BR2_cris
+	bool "cris"
+config BR2_i386
+	bool "i386"
+config BR2_m32c
+	bool "r8c/m16c/m32c"
+config BR2_m68k
+	bool "m68k"
+config BR2_m68hc11
+	bool "m68hc11"
+config BR2_m68hc12
+	bool "m68hc12"
+config BR2_m9s12x
+	bool "m9s12x"
+config BR2_mips
+	bool "mips"
+config BR2_mipsel
+	bool "mipsel"
+config BR2_nios2
+	bool "nios2"
+config BR2_powerpc
+	bool "powerpc"
+config BR2_sh
+	bool "superh"
+config BR2_sh64
+	bool "superh64"
+config BR2_h8300
+	bool "H8/300"
+config BR2_sparc
+	bool "sparc"
+config BR2_x86_64
+	bool "x86_64"
+endchoice
+
+#
+# Keep the variants separate, there's no need to clutter everything else.
+# sh is fairly "special" in this regard, as virtually everyone else has
+# things kept down to a _sensible_ number of target variants. No such
+# luck for sh..
+#
+choice
+	prompt "Target Architecture Variant"
+	depends BR2_arm || BR2_armeb
+	default BR2_generic_arm
+	help
+	  Specific CPU variant to use
+
+config BR2_generic_arm
+	bool "generic ARM"
+config BR2_arm610
+	bool "ARM610"
+config BR2_arm7tdmi
+	bool "ARM7TDMI"
+config BR2_arm710
+	bool "ARM710"
+config BR2_arm720t
+	bool "ARM720T"
+config BR2_arm740t
+	bool "ARM740T"
+config BR2_arm920t
+	bool "ARM920T"
+config BR2_arm922t
+	bool "ARM922T"
+config BR2_arm926t
+	bool "ARM926T"
+config BR2_arm1136jf_s
+	bool "ARM1136JF-S"
+config BR2_cortex_m3
+	bool "Cortex-M3"
+config BR2_sa110
+	bool "SA110"
+config BR2_sa1100
+	bool "SA1100"
+config BR2_xscale
+	bool "X-Scale"
+config BR2_iwmmxt
+	bool "iwmmxt"
+endchoice
+
+choice
+	prompt "Target ABI"
+	depends BR2_arm || BR2_armeb
+	default BR2_ARM_OABI
+	help
+	  Application Binary Interface to use
+
+config BR2_ARM_OABI
+	bool "OABI"
+config BR2_ARM_EABI
+	bool "EABI"
+endchoice
+
+choice
+	prompt "Target Architecture Variant"
+	depends BR2_avr32
+config BR2_ap7000
+	bool "AP7000"
+config BR2_ap7010
+	bool "AP7010"
+config BR2_ap7020
+	bool "AP7020"
+endchoice
+
+choice
+	prompt "Target Architecture Variant"
+	depends BR2_sh
+	default BR2_sh4
+	help
+	  Specific CPU variant to use
+
+config BR2_sh1
+	bool "sh1"
+config BR2_sh2a_nofpueb
+	bool "sh2a_nofpueb"
+config BR2_sh2eb
+	bool "sh2eb"
+config BR2_sh3
+	bool "sh3"
+config BR2_sh3eb
+	bool "sh3eb"
+config BR2_sh4
+	bool "sh4"
+config BR2_sh4eb
+	bool "sh4eb"
+endchoice
+
+#
+# gcc builds libstdc++ differently depending on the
+# host tuplet given to it, so let people choose
+#
+choice
+	prompt "Target Architecture Variant"
+	depends BR2_i386
+	default BR2_x86_i686
+	help
+	  Specific CPU variant to use
+
+config BR2_x86_i386
+	bool "i386"
+config BR2_x86_i486
+	bool "i486"
+config BR2_x86_i586
+	bool "i586"
+config BR2_x86_i686
+	bool "i686"
+endchoice
+
+config BR2_ARCH
+	string
+	default "alpha"		if BR2_alpha
+	default "arm"		if BR2_arm
+	default "armeb"		if BR2_armeb
+	default "avr"		if BR2_avr
+	default "avr32"		if BR2_avr32
+	default "bfin"		if BR2_bfin
+	default "cris"		if BR2_cris
+	default "i386"		if BR2_x86_i386
+	default "i486"		if BR2_x86_i486
+	default "i586"		if BR2_x86_i586
+	default "i686"		if BR2_x86_i686
+	default "m32c"		if BR2_m32c
+	default "m68k"		if BR2_m68k
+	default "m68hc11"	if BR2_m68hc11
+	default "m68hc12"	if BR2_m68hc12
+	default "m9s12x"	if BR2_m9s12x
+	default "mips"		if BR2_mips
+	default "mipsel"	if BR2_mipsel
+	default "nios2"		if BR2_nios2
+	default "powerpc"	if BR2_powerpc
+	default "sh"		if BR2_sh1
+	default "sh2a_nofpueb"	if BR2_sh2a_nofpueb
+	default "sh2eb"		if BR2_sh2eb
+	default "sh3"		if BR2_sh3
+	default "sh3eb"		if BR2_sh3eb
+	default "sh4"		if BR2_sh4
+	default "sh4eb"		if BR2_sh4eb
+	default "sh64"		if BR2_sh64
+	default "h8300"		if BR2_h8300
+	default "sparc"		if BR2_sparc
+
+config BR2_GCC_TARGET_TUNE
+	string
+	default i386		if BR2_x86_i386
+	default i486		if BR2_x86_i486
+	default i586		if BR2_x86_i586
+	default i686		if BR2_x86_i686
+	default arm610		if BR2_arm610
+	default arm7tdmi	if BR2_arm7tdmi || BR2_arm720t || BR2_arm740t
+	default arm920t		if BR2_arm920t
+	default arm922t		if BR2_arm922t
+	default arm9tdmi	if BR2_arm926t
+	default arm1136jf-s	if BR2_arm1136jf_s
+	default cortex-m3	if BR2_cortex_m3
+	default strongarm110	if BR2_sa110
+	default strongarm1100	if BR2_sa1100
+	default xscale		if BR2_xscale
+	default iwmmxt		if BR2_iwmmxt
+
+config BR2_GCC_TARGET_ARCH
+	string
+	default i386		if BR2_x86_i386
+	default i486		if BR2_x86_i486
+	default i586		if BR2_x86_i586
+	default i686		if BR2_x86_i686
+	default armv3		if BR2_arm610 || BR2_arm710
+	default armv4		if BR2_sa110 || BR2_sa1100
+	default armv4t		if BR2_arm7tdmi
+	default armv4t		if BR2_arm720t || BR2_arm920t || BR2_arm922t
+	default armv5te		if BR2_arm926t || BR2_arm10t || BR2_xscale
+	default armv6j		if BR2_arm1136jf_s
+	default armv7-m		if BR2_cortex_m3
+	default iwmmxt		if BR2_iwmmxt
+
+config BR2_GCC_TARGET_ABI
+	string
+	default apcs-gnu	if BR2_ARM_OABI
+	default aapcs-linux	if BR2_ARM_EABI
+
+config BR2_ENDIAN
+	string
+	default "LITTLE" if BR2_arm || BR2_avr || BR2_bfin || BR2_cris || BR2_i386 || BR2_m32c || \
+	                    BR2_mipsel || BR2_sh3 || BR2_sh4 || BR2_x86_64 || \
+			    BR2_nios2 || BR2_sh64 || BR2_h8300
+	default "BIG"    if BR2_alpha || BR2_armeb || BR2_avr32 || BR2_m68k || \
+			    BR2_m68hc11 || BR2_m68hc12 || BR2_m9s12x || BR2_mips || \
+	                    BR2_powerpc || BR2_sh1 || BR2_sh2a_nofpueb || BR2_sh2eb || \
+	                    BR2_sh3eb || BR2_sh4eb || BR2_sparc
+
+menu "Build options"
+
+config BR2_WGET
+	string "Wget command"
+	default "wget --passive-ftp -nd"
+
+config BR2_SVN
+	string "Subversion (svn) checkout command"
+	default "svn co"
+
+config BR2_ZCAT
+	string "zcat command"
+	default "zcat"
+	help
+	  Command to be used to extract a gzip'ed file to stdout.
+	  zcat is identical to gunzip -c except that the former may
+	  not be available on your system.
+	  Default is "zcat"
+	  Other possible values include "gunzip -c" or "gzip -d -c".
+
+config BR2_BZCAT
+	string "bzcat command"
+	default "bzcat"
+	help
+	  Command to be used to extract a bzip2'ed file to stdout.
+	  bzcat is identical to bunzip2 -c except that the former may
+	  not be available on your system.
+	  Default is "bzcat"
+	  Other possible values include "bunzip2 -c" or "bzip2 -d -c".
+
+config BR2_TAR_OPTIONS
+	string "Tar options"
+	default ""
+	help
+	  Options to pass to tar when extracting the sources.
+	  E.g. " -v --exclude='*.svn*'" to exclude all .svn internal files
+	  and to be verbose.
+
+config BR2_DL_DIR
+	string "Download dir"
+	default "$(BASE_DIR)/dl"
+	help
+	  Directory to store all the source files that we need to fetch.
+
+config BR2_STAGING_DIR
+	string "Toolchain and header file location?"
+	default "$(BUILD_DIR)/staging_dir"
+	help
+	  This is the location where the toolchain will be installed.  The
+	  toolchain will not work if it is moved from this location.
+	  Therefore, if you wish to package up a uClibc toolchain, it is
+	  important that is is set to the final location where the toolchain
+	  will be used.
+
+	  Most people will leave this set to the default value of
+	  "$(BUILD_DIR)/staging_dir".
+
+config BR2_NUTTX_DIR
+	string "Path to the NuttX root directory"
+	default "$(TOPDIR)/../../nuttx"
+	help
+	  This is the location where the NuttX source tree is located.
+
+config BR2_TOPDIR_PREFIX
+	string "Custom build dir prefix"
+	default ""
+	help
+	  Add a custom string to the beginning of the build directories.
+
+	  build_ARCH -> [PREFIX]_build_ARCH
+	  toolchain_build_ARCH -> [PREFIX]_toolchain_build_ARCH
+
+config BR2_TOPDIR_SUFFIX
+	string "Custom build dir suffix"
+	default ""
+	help
+	  Add a custom string to the end of the build directories.
+
+	  build_ARCH -> build_ARCH_[SUFFIX]
+	  toolchain_build_ARCH -> toolchain_build_ARCH_[SUFFIX] 
+
+config BR2_GNU_BUILD_SUFFIX
+	string "GNU build hostname suffix"
+	default "pc-elf"
+	help
+	  The string used to pass to configure scripts via the
+	  --build= option.  Just specify the suffix here, the leading
+	  arch will be filled in automatically.
+
+config BR2_GNU_TARGET_SUFFIX
+	string "GNU target suffix"
+	default "elf"
+	help
+	  The string used to pass to configure scripts via the
+	  --target= option.  Just specify the suffix here, the leading
+	  arch will be filled in automatically.
+
+	  Most users will want to stick with the default setting, though
+	  other users (most notably ARM EABI) like to add on to this in
+	  order to stay in line with gcc conventions.
+
+config BR2_PREFER_IMA
+	bool "prefer IMA compiles"
+	default n
+	help
+	  Where possible, compile package with Inter Module Analysis.
+	  This potentially uses alot of system resources on your compile
+	  host with the benefit of creating smaller binaries for the target.
+
+	  If unsure, say No.
+
+	  WARNING: This is highly experimental at the moment.
+
+
+endmenu
+
+source "toolchain/Config.in"

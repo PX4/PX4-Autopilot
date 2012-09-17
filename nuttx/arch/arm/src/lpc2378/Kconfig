@@ -1,0 +1,6 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+comment "LPC2378 Configuration Options"

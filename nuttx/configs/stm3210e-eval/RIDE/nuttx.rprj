@@ -1,0 +1,4 @@
+
+<Project Header="Project 'nuttx'" Path=".\nuttx.rprj" Project="Yes" OutputFile="" sate="96" ActiveApp="nuttx" >
+	<ApplicationBuild Header="nuttx" Extern=".\nuttx.rapp" Path=".\nuttx.rapp" OutputFile=".\nuttx.elf" sate="98" />
+</Project>

@@ -1,0 +1,222 @@
+/***********************************************************************
+ * toolchain/nxflat/thumb2/dyncall_skeleton.def
+ *
+ *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ***********************************************************************/
+
+/*******************************************************************
+ * File Prologue
+ *******************************************************************/
+
+static const char file_prologue[] =
+  "/*******************************************************************\n"
+  " *\n"
+  " * This file contains the dynamic call logic that performs the thunk\n"
+  " * for outound calls from one module to another.\n"
+  " *\n"
+  " * ARM register quick reference:\n"
+  " *\n"
+  " *    Name    Number ARM Procedure Calling Standard Role\n"
+  " *\n"
+  " *    a1      r0     argument 1/integer result/scratch register/argc\n"
+  " *    a2      r1     argument 2/scratch register/argv\n"
+  " *    a3      r2     argument 3/scratch register/envp\n"
+  " *    a4      r3     argument 4/scratch register\n"
+  " *    v1      r4     register variable\n"
+  " *    v2      r5     register variable\n"
+  " *    v3      r6     register variable\n"
+  " *    v4      r7     register variable\n"
+  " *    v5      r8     register variable\n"
+  " *    sb/v6   r9     static base/register variable\n"
+  " *    sl/v7   r10    stack limit/stack chunk handle/reg. variable\n"
+  " *    fp      r11    frame pointer\n"
+  " *    ip      r12    scratch register/new-sb in inter-link-unit calls\n"
+  " *    sp      r13    lower end of current stack frame\n"
+  " *    lr      r14    link address/scratch register\n"
+  " *    pc      r15    program counter\n"
+  " *******************************************************************/\n\n"
+  "\t.syntax\tunified\n"
+  "\t.thumb\n\n"
+  "/*******************************************************************\n"
+  " * Included Files\n"
+  " *******************************************************************/\n\n"
+  "/*******************************************************************\n"
+  " * Definitions\n"
+  " *******************************************************************/\n";
+
+static const char import_prologue[] = "";
+
+/*******************************************************************
+ * Import Function Name String Table
+ *******************************************************************/
+
+static const char import_name_strtab_prologue[] = 
+  "\n/*******************************************************************\n"
+  " * Import Function Names\n"
+  " *******************************************************************/\n\n"
+  "/* These are the names of all of the functions that are imported.\n"
+  " * Notice that all data associated with the library names is retained\n"
+  " * in the .text section."
+  " */\n\n"
+  "\t.text\n"
+  "\t.align\t0\n";
+
+#define MKIMPSTRTABARG(fn,i) (i), (i), (i), (fn), (i), (i)
+
+static const char import_name_strtab_format[] =
+  "\n\t.local\t__dynimport%04d\n"
+  "\t.type\t__dynimport%04d, object\n\n"
+  "__dynimport%04d:\n"
+  "\t.asciz\t\"%s\"\n"
+  "\t.size\t__dynimport%04d, .-__dynimport%04d\n";
+
+/*******************************************************************
+ * Dyanamic Call Information
+ *******************************************************************/
+
+static const char dynimport_decl_prologue[] =
+  "\n/*******************************************************************\n"
+  " * Imported Symbol Table (an array of type struct flat_import)\n"
+  " *******************************************************************/\n\n"
+  "/* Notice that, unlike most other arrays in this file, this array\n"
+  " * is declared to reside in .data.  Because of this, there will be\n"
+  " * per-process instances of this table.\n"
+  " */\n\n"
+  "\t.data\n"
+  "\t.align\t2\n\n"
+  "\t.global\t__dynimport_begin\n"
+  "\t.type\t__dynimport_begin, object\n"
+  "\t.global\t__dynimport_end\n"
+  "\t.type\t__dynimport_end, object\n\n";
+
+#define MKINFODECLARGS(fn, i) (i), (fn), (i)
+
+static const char dynimport_decl_format[] =
+  "\t.local\t__dyninfo%04d\t/* Dynamic info for imported symbol %s */\n"
+  "\t.type\t__dyninfo%04d, object\n";
+
+static const char dynimport_array_prologue[] =
+  "\n__dynimport_begin:\n";
+
+#define MKINFOARGS(fn, i) (i), (fn), (i), (i), (i)
+
+static const char dynimport_array_format[] =
+  "__dyninfo%04d:\t\t\t/* Dynamic info for imported symbol %s */\n"
+  "\t.word\t__dynimport%04d\t/* Offset to name of imported function */\n"
+  "\t.word\t0\t\t/* Resolved address of imported function */\n"
+  "\t.size\t__dyninfo%04d, .-__dyninfo%04d\n";
+
+static const char dynimport_array_epilogue[] =
+  "__dynimport_end:\n"
+  "\t.size\t__dynimport_begin, __dynimport_end-__dynimport_begin\n";
+
+static const char dyncall_decl_prologue[] =
+  "\n/*******************************************************************\n"
+  " * Dynamic Call Logic\n"
+  " *******************************************************************/\n\n"
+  "\t.text\n"
+  "\t.align\t2\n";
+
+#define MKCALLARGS(fn, i) (fn), (fn), (fn), (fn), (i), (i), (i), (fn), (fn)
+
+#ifndef __NO_GOT__
+
+static const char dyncall_format[] =
+  "\n/* Dynamic call logic for imported symbol %s */\n\n"
+  "\t.global\t%s\n"
+  "\t.type\t%s, function\n"
+  "\t.thumb_func\n\n"
+  "%s:\n"
+  "\tldr\tip,.Ldyn%04d\n"
+  "\tadd\tip,ip,sl\n"
+  "\tldr\tip,[ip,#4]\n"
+  "\tbx\tip\n"
+  ".Ldyn%04d:\n"
+  "\t.word\t__dyninfo%04d(GOTOFF)\n"
+  "\t.size\t%s, .-%s\n";
+
+static const char nonreturning_dyncall_format[] =
+  "\n/* Dynamic call logic for imported, non-returning symbol %s */\n\n"
+  "\t.global\t%s\n"
+  "\t.type\t%s, function\n"
+  "\t.thumb_func\n\n"
+  "%s:\n"
+  "\tldr\tip,.Ldyn%04d\n"
+  "\tadd\tip,ip,sl\n"
+  "\tldr\tip,[ip,#4]\n"
+  "\tbx\tip\n"
+  ".Ldyn%04d:\n"
+  "\t.word\t__dyninfo%04d(GOTOFF)\n"
+  "\t.size\t%s, .-%s\n";
+
+#else
+
+static const char dyncall_format[] =
+  "\n/* Dynamic call logic for imported symbol %s */\n\n"
+  "\t.global\t%s\n"
+  "\t.type\t%s, function\n"
+  "\t.thumb_func\n\n"
+  "%s:\n"
+  "\tldr\tip,.Ldyn%04d\n"
+  "\tadd\tip,ip,sl\n"
+  "\tldr\tip,[ip,#4]\n"
+  "\tbx\tip\n"
+  ".Ldyn%04d:\n"
+  "\t.word\t__dyninfo%04d\n"
+  "\t.size\t%s, .-%s\n";
+
+static const char nonreturning_dyncall_format[] =
+  "\n/* Dynamic call logic for imported, non-returning symbol %s */\n\n"
+  "\t.global\t%s\n"
+  "\t.type\t%s, function\n"
+  "\t.thumb_func\n\n"
+  "%s:\n"
+  "\tldr\tip,.Ldyn%04d\n"
+  "\tadd\tip,ip,sl\n"
+  "\tldr\tip,[ip,#4]\n"
+  "\tbx\tip\n"
+  ".Ldyn%04d:\n"
+  "\t.word\t__dyninfo%04d\n"
+  "\t.size\t%s, .-%s\n";
+
+#endif
+
+/*******************************************************************
+ * File Epilogue
+ *******************************************************************/
+
+static const char file_epilogue[] =
+  "\t.end\n";
+
+
+
+

@@ -1,0 +1,127 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+if ARCH_AVR
+
+choice
+	prompt "Toolchain"
+	default AVR_BUILDROOT
+
+config AVR_WINAVR
+	bool "WinAVR"
+	---help---
+		For Cygwin development environment on Windows machines, you
+		can use WinAVR: http://sourceforge.net/projects/winavr/files/
+
+		It is assumed in some places that WinAVR is installed at
+		C:/WinAVR. Edit the setenv.sh file if this is not the case.
+
+		WARNING: There is an incompatible version of cygwin.dll in
+		the WinAVR/bin directory! Make sure that the path to the
+		correct cygwin.dll file precedes the path to the WinAVR
+		binaries!
+
+config AVR_LINUXGCC
+	bool "Linux GCC"
+	---help---
+		For Linux, there are widely available avr-gcc packages. On
+		Ubuntu, use: sudo apt-get install gcc-avr gdb-avr avr-libc
+
+config AVR_BUILDROOT
+	bool "Buildroot"
+	---help---
+		There is a DIY buildroot version for the AVR boards here:
+		http://sourceforge.net/projects/nuttx/files/buildroot/. See
+		the following section for details on building this toolchain.
+
+		It is assumed in some places that buildroot toolchain is
+		available at ../misc/buildroot/build_avr. Edit the setenv.sh
+		file if this is not the case.
+
+endchoice
+
+choice
+	prompt "Atmel AVR chip selection"
+	default ARCH_CHIP_AT32UC3B0256
+
+config ARCH_CHIP_ATMEGA128
+	bool "ATMega128"
+	---help---
+		Atmel ATMega128 8-bit AVR.
+
+config ARCH_CHIP_AT90USB646
+	bool "AT90USB646"
+	---help---
+		Atmel AT90USB646 8-bit AVR.
+
+config ARCH_CHIP_AT90USB647
+	bool "AT90USB647"
+	---help---
+		Atmel AT90USB647 8-bit AVR.
+
+config ARCH_CHIP_AT90USB1286
+	bool "AT90USB1286"
+	---help---
+		Atmel AT90USB1286 8-bit AVR.
+
+config ARCH_CHIP_AT90USB1287
+	bool "AT90USB1287"
+	---help---
+		Atmel AT90USB1287 8-bit AVR.
+
+config ARCH_CHIP_AT32UC3B0256
+	bool "AT32UC3B0256"
+	---help---
+		Atmel AT32UC3B0256 32-bit AVR32.
+
+endchoice
+
+config ARCH_FAMILY_AVR
+	bool
+	default y			if ARCH_CHIP_ATMEGA128 || ARCH_CHIP_AT90USB646 || ARCH_CHIP_AT90USB647 || ARCH_CHIP_AT90USB1286 || ARCH_CHIP_AT90USB1287
+
+config ARCH_FAMILY_AVR32
+	bool
+	default y			if ARCH_CHIP_AT32UC3B0256
+
+config ARCH_FAMILY
+	string
+	default "avr"		if ARCH_FAMILY_AVR
+	default "avr32"		if ARCH_FAMILY_AVR32
+
+config ARCH_ATMEGA
+	bool
+	default y			if ARCH_CHIP_ATMEGA128
+
+config ARCH_AT90USB
+	bool
+	default y			if ARCH_CHIP_AT90USB646 || ARCH_CHIP_AT90USB647 || ARCH_CHIP_AT90USB1286 || ARCH_CHIP_AT90USB1287
+
+config ARCH_AT32UC3
+	bool
+	default y			if ARCH_CHIP_AT32UC3B0256
+
+config ARCH_CHIP
+	string
+	default "atmega"	if ARCH_ATMEGA
+	default "at90usb"	if ARCH_AT90USB
+	default "at32uc3"	if ARCH_AT32UC3
+
+source arch/avr/src/common/Kconfig
+source arch/avr/src/avr/Kconfig
+source arch/avr/src/at90usb/Kconfig
+source arch/avr/src/atmega/Kconfig
+source arch/avr/src/avr32/Kconfig
+source arch/avr/src/at32uc3/Kconfig
+
+config AVR_USART0
+	bool "USART0 specific serial device driver settings"
+	select ARCH_HAVE_USART0
+
+config AVR_USART1
+	bool "USART1 specific serial device driver settings"
+	select ARCH_HAVE_USART1
+
+endif

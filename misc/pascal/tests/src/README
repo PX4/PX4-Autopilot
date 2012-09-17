@@ -1,0 +1,38 @@
+README
+^^^^^^
+
+Naming Conventions
+^^^^^^^^^^^^^^^^^^
+
+This directory contains miscellaneous Pascal test files.
+All test fils are prefixed with a number.  The number is only to
+control the order of execution:  From the most simple to the
+most complex tests.
+
+XXX-name.pas and (optional XXX-name.inp)
+
+XXX-name.pas is the program under test XXX follows the numbering
+conventions below.  'name' helps humans to remember what is
+being testged.
+
+XXX-name.inp contains optional inparameter for the program
+under test.
+
+General numbering conventions:
+
+000-099: Basic functionality
+100-199: Math and runtime libraries
+200-299: Strings
+500-599: multi-file features:  uses, units
+800-899: Erie pascal programs
+900-999: Misc. large programs not targeted at any particular feature.
+
+Sources/Licensing
+^^^^^^^^^^^^^^^^^
+
+Some of these pascal files were collected from the internet
+and their original sources are lost to memory.  Since they are
+included here only for testing purposes, I suspect that there
+are no licensing issues... However, I would avoid using any of
+these files as part of a pascal application!
+

@@ -1,0 +1,9 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+if ARCH_Z16
+comment "Common Configuration Options"
+
+endif

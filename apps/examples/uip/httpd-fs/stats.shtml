@@ -1,0 +1,31 @@
+%!: /header.html
+<h1>Network statistics</h1>
+<center>
+<table width="300" border="0">
+<tr><td><pre>
+IP           Packets received
+             Packets sent
+	     Packets dropped
+IP errors    IP version/header length
+             IP length, high byte
+             IP length, low byte
+             IP fragments
+             Header checksum
+             Wrong protocol
+ICMP	     Packets received
+             Packets sent
+             Packets dropped
+             Type errors
+TCP          Packets received
+             Packets sent
+             Packets dropped
+             Checksum errors
+             Data packets without ACKs
+             Resets
+             Retransmissions
+	     No connection avaliable
+	     Connection attempts to closed ports
+</pre></td><td><pre>%! net-stats
+</pre></table>
+</center>
+%!: /footer.html

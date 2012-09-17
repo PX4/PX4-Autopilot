@@ -1,0 +1,40 @@
+pascal-0.1.2
+^^^^^^^^^^^^
+
+This is the 3rd release of the Pascal P-Code add-on to NuttX. This
+release adds support for some additional toolchains and standardizes
+the binary format to big-endian for portability of the P-Code across
+different platforms.  This release is synchronized with the release
+of NuttX-0.3.8.
+
+This tarball contains a complete CVS snapshot from February 10, 2008.
+
+pascal-0.1.3
+^^^^^^^^^^^^
+
+This was a bug-fix release
+
+pascal-2.0
+^^^^^^^^^^
+
+This release updates all of the code to use the standard types defined
+in the C99 files stdint.h and stdbool.h.  This change was necessary for
+compatibility with NuttX-5.0.  No functional changes were made.
+
+The release version was bumped to 2.0 because these changes introduce
+typing incompatibilies with earlier versions.
+
+This tarball contains a complete CVS snapshot from December 21, 2009.
+
+pascal-3.0
+^^^^^^^^^^
+
+This release moves the Pascal installation location from the nuttx/
+source to the apps/ source tree.  Specifically, the Pascall runtime now
+builds under apps/interpreters.
+
+This means that the pascal-3.0 module is incompatible with will all
+releases of NuttX prior to nuttx-6.0 where the apps/ module was
+introduced. The release version was bumped to 3.0 because these changes
+introduces installation incompatibilies with earlier versions.
+

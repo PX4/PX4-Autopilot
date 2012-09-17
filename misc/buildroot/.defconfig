@@ -1,0 +1,64 @@
+#
+# Automatically generated make config: don't edit
+#
+BR2_HAVE_DOT_CONFIG=y
+# BR2_arm is not set
+# BR2_armeb is not set
+# BR2_cris is not set
+BR2_i386=y
+# BR2_m68k is not set
+# BR2_mips is not set
+# BR2_mipsel is not set
+# BR2_powerpc is not set
+# BR2_sh is not set
+# BR2_sparc is not set
+BR2_ARCH="i386"
+BR2_WGET="wget --passive-ftp"
+
+#
+# Toolchain Options
+#
+BR2_KERNEL_HEADERS_2_6_19_2=y
+BR2_DEFAULT_KERNEL_HEADERS="2.6.19.2"
+# BR2_UCLIBC_VERSION_SNAPSHOT is not set
+BR2_UCLIBC_VERSION_0_9_28_1=y
+# BR2_ENABLE_LOCALE is not set
+# BR2_BINUTILS_VERSION_2_14_90_0_8 is not set
+# BR2_BINUTILS_VERSION_2_15 is not set
+# BR2_BINUTILS_VERSION_2_15_94_0_2_2 is not set
+# BR2_BINUTILS_VERSION_2_16_1 is not set
+# BR2_BINUTILS_VERSION_2_16_90_0_3 is not set
+# BR2_BINUTILS_VERSION_2_16_91_0_5 is not set
+# BR2_BINUTILS_VERSION_2_16_91_0_6 is not set
+# BR2_BINUTILS_VERSION_2_16_91_0_7 is not set
+BR2_BINUTILS_VERSION_2_17=y
+# BR2_BINUTILS_VERSION_2_17_50_0_2 is not set
+# BR2_BINUTILS_VERSION_2_17_50_0_3 is not set
+# BR2_BINUTILS_VERSION_2_17_50_0_4 is not set
+# BR2_BINUTILS_VERSION_2_17_50_0_5 is not set
+# BR2_BINUTILS_VERSION_2_17_50_0_6 is not set
+# BR2_BINUTILS_VERSION_2_17_50_0_7 is not set
+# BR2_BINUTILS_VERSION_2_17_50_0_8 is not set
+# BR2_BINUTILS_VERSION_2_17_50_0_9 is not set
+# BR2_BINUTILS_VERSION is not set
+# BR2_GCC_VERSION_3_3_5 is not set
+# BR2_GCC_VERSION_3_3_6 is not set
+# BR2_GCC_VERSION_3_4_2 is not set
+# BR2_GCC_VERSION_3_4_3 is not set
+# BR2_GCC_VERSION_3_4_4 is not set
+# BR2_GCC_VERSION_3_4_5 is not set
+# BR2_GCC_VERSION_3_4_6 is not set
+# BR2_GCC_VERSION_4_0_0 is not set
+# BR2_GCC_VERSION_4_0_1 is not set
+# BR2_GCC_VERSION_4_0_2 is not set
+# BR2_GCC_VERSION_4_0_3 is not set
+# BR2_GCC_VERSION_4_1_0 is not set
+BR2_GCC_VERSION_4_1_1=y
+BR2_GCC_USE_SJLJ_EXCEPTIONS="--enable-sjlj-exceptions"
+BR2_EXTRA_GCC_CONFIG_OPTIONS=""
+# BR2_INSTALL_LIBSTDCPP is not set
+# BR2_PACKAGE_GDB is not set
+# BR2_PACKAGE_GDB_SERVER is not set
+# BR2_ENABLE_MULTILIB is not set
+BR2_LARGEFILE=y
+BR2_TARGET_OPTIMIZATION="-Os -pipe"

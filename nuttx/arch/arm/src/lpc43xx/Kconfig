@@ -1,0 +1,318 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+comment "LPC43xx Configuration Options"
+
+choice
+	prompt "LPC43XX Chip Selection"
+	default ARCH_CHIP_LPC4330FET100
+	depends on ARCH_CHIP_LPC43XX
+
+config ARCH_CHIP_LPC4310FBD144
+	bool "LPC4310FBD144"
+
+config ARCH_CHIP_LPC4310FET100
+	bool "LPC4310FET100"
+
+config ARCH_CHIP_LPC4320FBD144
+	bool "LPC4320FBD144"
+
+config ARCH_CHIP_LPC4320FET100
+	bool "LPC4320FET100"
+
+config ARCH_CHIP_LPC4330FBD144
+	bool "LPC4330FBD144"
+
+config ARCH_CHIP_LPC4330FET100
+	bool "LPC4330FET100"
+
+config ARCH_CHIP_LPC4330FET180
+	bool "LPC4330FET180"
+
+config ARCH_CHIP_LPC4330FET256
+	bool "LPC4330FET256"
+
+config ARCH_CHIP_LPC4350FBD208
+	bool "LPC4350FBD208"
+
+config ARCH_CHIP_LPC4350FET180
+	bool "LPC4350FET180"
+
+config ARCH_CHIP_LPC4350FET256
+	bool "LPC4350FET256"
+
+config ARCH_CHIP_LPC4353FBD208
+	bool "LPC4353FBD208"
+
+config ARCH_CHIP_LPC4353FET180
+	bool "LPC4353FET180"
+
+config ARCH_CHIP_LPC4353FET256
+	bool "LPC4353FET256"
+
+config ARCH_CHIP_LPC4357FET180
+	bool "LPC4357FET180"
+
+config ARCH_CHIP_LPC4357FBD208
+	bool "LPC4357FBD208"
+
+config ARCH_CHIP_LPC4357FET256
+	bool "LPC4357FET256"
+
+endchoice
+
+config ARCH_FAMILY_LPC4310
+	bool
+	default y if ARCH_CHIP_LPC4310FBD144 || ARCH_CHIP_LPC4310FET100
+
+config ARCH_FAMILY_LPC4320
+	bool
+	default y if ARCH_CHIP_LPC4320FBD144 || ARCH_CHIP_LPC4320FET100
+
+config ARCH_FAMILY_LPC4330
+	bool
+	default y if ARCH_CHIP_LPC4330FBD144 || ARCH_CHIP_LPC4330FET100 || ARCH_CHIP_LPC4330FET180 || ARCH_CHIP_LPC4330FET256
+
+config ARCH_FAMILY_LPC4350
+	bool
+	default y if ARCH_CHIP_LPC4350FBD208 || ARCH_CHIP_LPC4350FET180 || ARCH_CHIP_LPC4350FET256
+
+config ARCH_FAMILY_LPC4353
+	bool
+	default y if ARCH_CHIP_LPC4353FBD208 || ARCH_CHIP_LPC4353FET180 || ARCH_CHIP_LPC4353FET256
+
+config ARCH_FAMILY_LPC4357
+	bool
+	default y if ARCH_CHIP_LPC4357FET180 || ARCH_CHIP_LPC4357FBD208 || ARCH_CHIP_LPC4357FET256
+
+choice
+	prompt "Toolchain Selection"
+	default LPC43_CODEREDW
+	depends on ARCH_CHIP_LPC43XX
+
+config LPC43_CODEREDW
+	bool "CodeRed for Windows"
+
+config LPC43_CODESOURCERYW
+	bool "CodeSourcery for Windows"
+
+config LPC43_CODESOURCERYL
+	bool "CodeSourcery for Linux"
+
+config LPC43_ATOLLIC_LITE
+	bool "Atollic Lite for Windows"
+
+config LPC43_ATOLLIC_PRO
+	bool "Atollic Pro for Windows"
+
+config LPC43_DEVKITARM
+	bool "DevkitARM (Windows)"
+
+config LPC43_BUILDROOT
+	bool "NuttX buildroot (Cygwin or Linux)"
+
+endchoice
+
+choice
+	prompt "LPC43XX Boot Configuration"
+	default BOOT_SRAM
+	depends on ARCH_CHIP_LPC43XX
+	---help---
+		The startup code needs to know if the code is running from internal FLASH,
+		external FLASH, SPIFI, or SRAM in order to initialize properly.  Note that
+		a boot device is not specified for cases where the code is copied into SRAM;
+		those cases are all covered by BOOT_SRAM.
+
+config BOOT_SRAM
+	bool "Running from SRAM"
+
+config BOOT_SPIFI
+	bool "Running from QuadFLASH"
+
+config BOOT_FLASHA
+	bool "Running in internal FLASHA"
+
+config BOOT_FLASHB
+	bool "Running in internal FLASHA"
+
+config BOOT_CS0FLASH
+	bool "Running in external FLASH CS0"
+
+config BOOT_CS1FLASH
+	bool "Running in external FLASH CS1"
+
+config BOOT_CS2FLASH
+	bool "Running in external FLASH CS2"
+
+config BOOT_CS3FLASH
+	bool "Running in external FLASH CS3"
+
+endchoice
+
+menu "LPC43xx Peripheral Support"
+
+config LPC43_ADC0
+	bool "ADC0"
+	default n
+
+config LPC43_ADC1
+	bool "ADC1"
+	default n
+
+config LPC43_ATIMER
+	bool "Alarm timer"
+	default n
+
+config LPC43_CAN1
+	bool "C_CAN1"
+	default n
+
+config LPC43_CAN2
+	bool "C_CAN1"
+	default n
+
+config LPC43_DAC
+	bool "DAC"
+	default n
+
+config LPC43_EMC
+	bool "External Memory Controller (EMC)"
+	default n
+
+config LPC43_ETHERNET
+	bool "Ethernet"
+	default n
+
+config LPC43_EVNTMNTR
+	bool "Event Monitor"
+	default n
+
+config LPC43_GPDMA
+	bool "GPDMA"
+	default n
+
+config LPC43_I2C0
+	bool "I2C0"
+	default n
+
+config LPC43_I2C1
+	bool "I2C1"
+	default n
+
+config LPC43_I2S0
+	bool "I2S0"
+	default n
+
+config LPC43_I2S1
+	bool "I2S1"
+	default n
+
+config LPC43_LCD
+	bool "LCD"
+	default n
+
+config LPC43_MCPWM
+	bool "Motor Control PWM (MCPWM)"
+	default n
+
+config LPC43_QEI
+	bool "Quadrature Controller Interface (QEI)"
+	default n
+
+config LPC43_RIT
+	bool "Repetitive Interrupt Timer (RIT)"
+	default n
+
+config LPC43_RTC
+	bool "Real Time Clock (RTC)"
+	default n
+
+config LPC43_SCT
+	bool "State Configurable Timer (SCT)"
+	default n
+
+config LPC43_SDMMC
+	bool "SD/MMC"
+	default n
+
+config LPC43_SPI
+	bool "SPI"
+	default n
+
+config LPC43_SPIFI
+	bool "SPI Flash Interface (SPIFI)"
+	default n
+
+config LPC43_SSP0
+	bool "SSP0"
+	default n
+
+config LPC43_SSP1
+	bool "SSP1"
+	default n
+
+config LPC43_TMR0
+	bool "ADC1"
+	default n
+
+config LPC43_TMR1
+	bool "Timer 1"
+	default n
+
+config LPC43_TMR2
+	bool "Timer 2"
+	default n
+
+config LPC43_TMR3
+	bool "Timer 3"
+	default n
+
+config LPC43_USART0
+	bool "USART0"
+	select ARCH_HAVE_USART0
+	default n
+
+config LPC43_UART1
+	bool "UART1"
+	select ARCH_HAVE_UART1
+	default n
+
+config LPC43_USART2
+	bool "USART2"
+	select ARCH_HAVE_USART2
+	default n
+
+config LPC43_USART3
+	bool "USART3"
+	select ARCH_HAVE_USART3
+	default n
+
+config LPC43_USB0
+	bool "USB0"
+	default n
+
+config LPC43_USB1
+	bool "USB1"
+	default n
+
+config LPC43_USB1_ULPI
+	bool "USB1 with ULPI"
+	default n
+	depends on LPC43_USB1
+
+config LPC43_WWDT
+	bool "Windowing Watchdog Timer (WWDT)"
+	default n
+
+endmenu
+
+config SERIAL_TERMIOS
+	bool "Serial driver TERMIOS supported"
+	depends on LPC43_USART0 || LPC43_UART1 || LPC43_USART2 || LPC43_USART3
+	default n
+	---help---
+		Serial driver supports termios.h interfaces (tcsetattr, tcflush, etc.).
+		If this is not defined, then the terminal settings (baud, parity, etc).
+		are not configurable at runtime; serial streams cannot be flushed, etc..

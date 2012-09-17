@@ -1,0 +1,18 @@
+\\\\ followup of PR34205; trying to use aapcs-linux
+\\ gcc/ChangeLog
+\\
+\\ 2008-09-18  Bernhard Reutner-Fischer  <aldot@>
+\\
+\\ * config.gcc (arm*-*-*): Add aapcs-linux to supported ABIs.
+\\
+--- gcc-4.3.2.orig/gcc/config.gcc	2008-09-18 20:33:55.000000000 +0200
++++ gcc-4.3.2/gcc/config.gcc	2008-09-18 21:38:52.000000000 +0200
+@@ -2921,7 +2921,7 @@
+ 
+ 		case "$with_abi" in
+ 		"" \
+-		| apcs-gnu | atpcs | aapcs | iwmmxt )
++		| apcs-gnu | atpcs | aapcs | iwmmxt | aapcs-linux )
+ 			#OK
+ 			;;
+ 		*)

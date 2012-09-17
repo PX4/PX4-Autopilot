@@ -1,0 +1,9 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+if ARCH_AT32UC3
+comment "AT32U3 Configuration Options"
+
+endif

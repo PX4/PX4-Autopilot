@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_NXCONSOLE
+	bool "NxConsole example"
+	default n
+	---help---
+		Enable the NxConsole example
+
+if EXAMPLES_NXCONSOLE
+endif

@@ -1,0 +1,135 @@
+                          AS OF 1/18/04
+
+TYPES
+- Only types INT, BOOLEAN, CHAR, REAL, SCALAR, SUBRANGE, RECORD and SET
+  implemented
+  - No PACKED types (actually, types are always packed).
+  - FILE OF and TEXT types partially supported
+    - Not supported in TYPE block
+    - TEXT is defined as FILE OF CHAR vs PACKED FILE OF CHAR
+    - No function returning FILE OF; No FILE OF 
+      procedure/function arguments
+    - Only PROGRAM arguments can be declared type FILE OF
+    - Only one file identifier per FILE OF declaration in type 
+      block.
+  - SET is limit to 16/32 (# bits in int) adjacent elements
+  - Expressions are not strongly typed across different SCALAR types
+    (see exprEnum in expr.h)
+  - In RECORD CASE, there is no verification that the type of the tag
+    is consistent with a case selector; the is check if the case selector
+    constants are of the same type as the tag type identifier.
+
+- No range checks on array indices
+- Pointers
+  - Can't pass pointers as VAR parameters
+  - No pointer functions ??
+  - No pointers to pointers
+
+STATEMENTS
+- The following statements not implemented:
+    - No PROCEDURE call with PROCEDUREs or FUNCTIONs as parameters
+- The following statements are only partially implemented
+    - WITH statements cannot be nested.
+    - Cannot reference "up the chain" in WITH statements.  Eg.
+      suppose RECORD "a" contains RECORD "b" which contains "c" and
+      that RECORD "a" also contains "d" so that we could write
+        a.b.c OR a.d
+      Then the following should work but is not yet supported:
+      WITH a DO
+        BEGIN
+          WITH b DO
+            BEGIN
+              c := ..
+              d := .. <== SHOULD WORK!!!
+    - GOTO only partially implemented -- no stack corrections
+      for GOTOs between loops, blocks, etc.  Use is DANGEROUS.
+
+STANDARD PROCEDURES and FUNCTIONS
+- The following statement procedures/functions not implemented:
+    - GET, PUT, PACK, UNPACK, NEW
+    - TBD
+- No fieldwidth colon operator on WRITE arguments
+
+Extended Pascal Features
+- Type STRING is partially implemented.
+- PACKED ARRAY[..] OF CHAR is not a a string.
+
+NON-standard Pascal extensions/differences
+
+TYPES
+- ARRAY index type is integer constant specifying size of array
+- Hexadecimal constants.
+- INPUT and OUTPUT parameters in PROGRAM statement are
+  predeclared and optional.
+
+OPERATORS
+- Binary shift operators -- << and >> like in C
+- '#', "<>", and "><" are all equivalent
+
+COMPILER PSEUDO-OPERATIONS
+- INCLUDE
+
+STATEMENTS
+- CASE statement expects integer expression for the switch 
+  variable
+- ELSE in CASE statement
+
+EXPRESSIONS
+
+- Assumes sizeof(pointer) == sizeof(integer)
+
+TODO LIST
+
+o BUGS
+- Implement PUT and GET.
+- In FUNC/PROC calls, if simpleExpression fails to find a parameter (eg., 
+  proc (,,), no error is detected.
+- Type FILE OF is totally busted -- fix it
+- Need to get max string size into stack somehow.  Runtime routines like
+  strcat and strcatc need to know how big the string storage space is.
+- Need logic to release string stack used by actual parameters after
+  function/procedure call.
+- Can't declare new parameters / variables with same name as another
+  variable at higher stock.  Tokenizer does not return tIDENT.
+- There are lots of cases where the string stack is not being managed
+  correctly (e.g., usesSection()).
+- Redirection of input and output is not supported (e.g. see setting of
+  input and output in CONST section of pageutils.pas).
+
+o IMPROVEMENTS
+- In PTKN, verify that string stack does not overflow when 
+  character added.
+- Option to turn on listing
+- Option to interleave assembly language with listing
+- Option to select string stack size (or let it grow dynamically)
+- Option to select symbol table size (or let it grow dynamically)
+- List file should only be produced if option provided.  
+- Provide instrumentation to use the line number data in the 
+  object files.  In debugger, display source line.  Allow stepping
+  from source line to source line.
+- Optimizer needs to be incorporated into compiler.
+- arrayIndex needs to conform with Pascal standard.
+- Need to have 32-bit integers and address
+- Translation to register model
+- Native code translator
+- Linker and support multiple source files
+- Runtime package
+- Full extended pascal string support
+- Other things from extended pascal:  'list of' 'uses' 'unit'
+- Need to optimize out JMP .+1
+- For compatibility, let  'packed array [n..m] of char;' be equivalent to
+  string.
+- Need to review all uses of string stack for identifiers and strings
+  that get discarded.  Probably should get a get infrastructure.
+- Add 16-bit word type
+
+o ISSUES
+- What happens in TYPE block if type is sTYPE or sFILE_OF?  Need 
+  to re-think all typing.  Maybe replace sTYPE and sFILE_OF with 
+  sINT_TYPE, sINT_ARRAY_TYPE, ..., sFILE_OF_INT, 
+  sFILE_OF_INT_ARRAY, etc.
+- Is it really necessary or meaningful to allocate dstack for 
+  file buffers.
+- Revisit procedure call logic in pexec.c & pdbg.c.  First stack parameter
+  is calculated but never used.
+- Decide what to do about type filename in tests/src/cgimail.pas

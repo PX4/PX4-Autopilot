@@ -1,0 +1,39 @@
+gnuconfig seems intent on only supporting superfluous targets that don't
+represent any real hardware (such as sh2a LE). GCC in its infinite wisdom is
+also incapable of supporting tuning for other variants in a sensible fashion.
+
+As such, we still need to be able to support such useful targets as
+sh2a_nofpueb in order to not only get the byte order right, but also to
+support -m2a-nofpu tuning from the kernel (though we tend to do this through
+-Wa,-isa= instead, as the binutils people do a much better job of not screwing
+up their config code every other day. Way to go config.gcc..).
+
+The fact that the sh variant matching is the ugliest out of any of the other
+architectures doesn't seem to deter GCC folk from their well thought out and
+brilliantly managed config target list.
+
+Index: config.sub
+===================================================================
+RCS file: /cvsroot/config/config/config.sub,v
+retrieving revision 1.340
+diff -u -p -r1.340 config.sub
+--- config.sub	26 Feb 2006 23:33:46 -0000	1.340
++++ config.sub	2 Mar 2006 06:22:01 -0000
+@@ -275,7 +275,7 @@ case $basic_machine in
+ 	| pdp10 | pdp11 | pj | pjl \
+ 	| powerpc | powerpc64 | powerpc64le | powerpcle | ppcbe \
+ 	| pyramid \
+-	| sh | sh[1234] | sh[24]a | sh[23]e | sh[34]eb | shbe | shle | sh[1234]le | sh3ele \
++	| sh | sh[1234] | sh[24]a | sh[24]a*eb | sh[23]e | sh[34]eb | shbe | sheb | shle | sh[1234]le | sh3ele \
+ 	| sh64 | sh64le \
+ 	| sparc | sparc64 | sparc64b | sparc64v | sparc86x | sparclet | sparclite \
+ 	| sparcv8 | sparcv9 | sparcv9b | sparcv9v \
+@@ -359,7 +359,7 @@ case $basic_machine in
+ 	| powerpc-* | powerpc64-* | powerpc64le-* | powerpcle-* | ppcbe-* \
+ 	| pyramid-* \
+ 	| romp-* | rs6000-* \
+-	| sh-* | sh[1234]-* | sh[24]a-* | sh[23]e-* | sh[34]eb-* | shbe-* \
++	| sh-* | sh[1234]-* | sh[24]a-* | sh[24]a*eb-* | sh[23]e-* | sh[34]eb-* | shbe-* | sheb-* \
+ 	| shle-* | sh[1234]le-* | sh3ele-* | sh64-* | sh64le-* \
+ 	| sparc-* | sparc64-* | sparc64b-* | sparc64v-* | sparc86x-* | sparclet-* \
+ 	| sparclite-* \

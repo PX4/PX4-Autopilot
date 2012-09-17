@@ -1,0 +1,10 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+if ARCH_ATMEGA
+comment "ATMega Configuration Options"
+
+endif
+

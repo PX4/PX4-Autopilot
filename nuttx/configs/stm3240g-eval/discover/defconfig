@@ -1,0 +1,866 @@
+#
+# Automatically generated file; DO NOT EDIT.
+# Nuttx/ Configuration
+#
+CONFIG_NUTTX_NEWCONFIG=y
+
+#
+# Build Setup
+#
+# CONFIG_EXPERIMENTAL is not set
+
+#
+# Build Configuration
+#
+# CONFIG_APPS_DIR="../apps"
+# CONFIG_BUILD_2PASS is not set
+
+#
+# Binary Output Formats
+#
+# CONFIG_RRLOAD_BINARY is not set
+# CONFIG_INTELHEX_BINARY is not set
+# CONFIG_MOTOROLA_SREC is not set
+CONFIG_RAW_BINARY=y
+
+#
+# Customize Header Files
+#
+# CONFIG_ARCH_STDBOOL_H is not set
+# CONFIG_ARCH_MATH_H is not set
+# CONFIG_ARCH_STDARG_H is not set
+
+#
+# Debug Options
+#
+CONFIG_DEBUG=y
+# CONFIG_DEBUG_VERBOSE is not set
+# CONFIG_DEBUG_ENABLE is not set
+# CONFIG_DEBUG_SCHED is not set
+# CONFIG_DEBUG_MM is not set
+CONFIG_DEBUG_NET=y
+# CONFIG_DEBUG_USB is not set
+# CONFIG_DEBUG_FS is not set
+# CONFIG_DEBUG_LIB is not set
+# CONFIG_DEBUG_BINFMT is not set
+# CONFIG_DEBUG_GRAPHICS is not set
+# CONFIG_DEBUG_I2C is not set
+# CONFIG_DEBUG_SPI is not set
+# CONFIG_DEBUG_WATCHDOG is not set
+# CONFIG_DEBUG_SYMBOLS is not set
+
+#
+# System Type
+#
+# CONFIG_ARCH_8051 is not set
+CONFIG_ARCH_ARM=y
+# CONFIG_ARCH_AVR is not set
+# CONFIG_ARCH_HC is not set
+# CONFIG_ARCH_MIPS is not set
+# CONFIG_ARCH_RGMP is not set
+# CONFIG_ARCH_SH is not set
+# CONFIG_ARCH_SIM is not set
+# CONFIG_ARCH_X86 is not set
+# CONFIG_ARCH_Z16 is not set
+# CONFIG_ARCH_Z80 is not set
+CONFIG_ARCH="arm"
+# CONFIG_ARCH_CHIP_C5471 is not set
+# CONFIG_ARCH_CHIP_CALYPSO is not set
+# CONFIG_ARCH_CHIP_DM320 is not set
+# CONFIG_ARCH_CHIP_IMX is not set
+# CONFIG_ARCH_CHIP_KINETIS is not set
+# CONFIG_ARCH_CHIP_LM3S is not set
+# CONFIG_ARCH_CHIP_LPC17XX is not set
+# CONFIG_ARCH_CHIP_LPC214X is not set
+# CONFIG_ARCH_CHIP_LPC2378 is not set
+# CONFIG_ARCH_CHIP_LPC31XX is not set
+# CONFIG_ARCH_CHIP_LPC43XX is not set
+# CONFIG_ARCH_CHIP_SAM3U is not set
+CONFIG_ARCH_CHIP_STM32=y
+# CONFIG_ARCH_CHIP_STR71X is not set
+CONFIG_ARCH_CORTEXM4=y
+CONFIG_ARCH_FAMILY="armv7-m"
+CONFIG_ARCH_CHIP="stm32"
+# CONFIG_ARCH_FPU is not set
+CONFIG_ARCH_HAVE_MPU=y
+# CONFIG_ARMV7M_MPU is not set
+CONFIG_ARCH_IRQPRIO=y
+CONFIG_BOARD_LOOPSPERMSEC=16717
+# CONFIG_ARCH_CALIBRATION is not set
+# CONFIG_SERIAL_TERMIOS is not set
+# CONFIG_NET_MULTICAST is not set
+
+#
+# STM32 Configuration Options
+#
+# CONFIG_ARCH_CHIP_STM32F100C8 is not set
+# CONFIG_ARCH_CHIP_STM32F100CB is not set
+# CONFIG_ARCH_CHIP_STM32F100R8 is not set
+# CONFIG_ARCH_CHIP_STM32F100RB is not set
+# CONFIG_ARCH_CHIP_STM32F100V8 is not set
+# CONFIG_ARCH_CHIP_STM32F100VB is not set
+# CONFIG_ARCH_CHIP_STM32F103RET6 is not set
+# CONFIG_ARCH_CHIP_STM32F103VCT6 is not set
+# CONFIG_ARCH_CHIP_STM32F103VET6 is not set
+# CONFIG_ARCH_CHIP_STM32F103ZET6 is not set
+# CONFIG_ARCH_CHIP_STM32F105VBT7 is not set
+# CONFIG_ARCH_CHIP_STM32F107VC is not set
+# CONFIG_ARCH_CHIP_STM32F207IG is not set
+# CONFIG_ARCH_CHIP_STM32F405RG is not set
+# CONFIG_ARCH_CHIP_STM32F405VG is not set
+# CONFIG_ARCH_CHIP_STM32F405ZG is not set
+# CONFIG_ARCH_CHIP_STM32F407VE is not set
+# CONFIG_ARCH_CHIP_STM32F407VG is not set
+# CONFIG_ARCH_CHIP_STM32F407ZE is not set
+# CONFIG_ARCH_CHIP_STM32F407ZG is not set
+# CONFIG_ARCH_CHIP_STM32F407IE is not set
+CONFIG_ARCH_CHIP_STM32F407IG=y
+CONFIG_STM32_STM32F40XX=y
+# CONFIG_STM32_CODESOURCERYW is not set
+CONFIG_STM32_CODESOURCERYL=y
+# CONFIG_STM32_ATOLLIC_LITE is not set
+# CONFIG_STM32_ATOLLIC_PRO is not set
+# CONFIG_STM32_DEVKITARM is not set
+# CONFIG_STM32_RAISONANCE is not set
+# CONFIG_STM32_BUILDROOT is not set
+# CONFIG_STM32_DFU is not set
+
+#
+# STM32 Peripheral Support
+#
+# CONFIG_STM32_ADC1 is not set
+# CONFIG_STM32_ADC2 is not set
+# CONFIG_STM32_ADC3 is not set
+# CONFIG_STM32_CRC is not set
+# CONFIG_STM32_DMA1 is not set
+# CONFIG_STM32_DMA2 is not set
+# CONFIG_STM32_BKPSRAM is not set
+# CONFIG_STM32_CAN1 is not set
+# CONFIG_STM32_CAN2 is not set
+# CONFIG_STM32_CCMDATARAM is not set
+# CONFIG_STM32_CRYP is not set
+# CONFIG_STM32_DAC1 is not set
+# CONFIG_STM32_DAC2 is not set
+# CONFIG_STM32_DCMI is not set
+CONFIG_STM32_ETHMAC=y
+# CONFIG_STM32_FSMC is not set
+# CONFIG_STM32_HASH is not set
+CONFIG_STM32_I2C1=y
+# CONFIG_STM32_I2C2 is not set
+# CONFIG_STM32_I2C3 is not set
+# CONFIG_STM32_IWDG is not set
+# CONFIG_STM32_OTGFS is not set
+# CONFIG_STM32_OTGHS is not set
+CONFIG_STM32_PWR=y
+# CONFIG_STM32_RNG is not set
+# CONFIG_STM32_SDIO is not set
+# CONFIG_STM32_SPI1 is not set
+# CONFIG_STM32_SPI2 is not set
+# CONFIG_STM32_SPI3 is not set
+CONFIG_STM32_SYSCFG=y
+# CONFIG_STM32_TIM1 is not set
+# CONFIG_STM32_TIM2 is not set
+# CONFIG_STM32_TIM3 is not set
+# CONFIG_STM32_TIM4 is not set
+# CONFIG_STM32_TIM5 is not set
+# CONFIG_STM32_TIM6 is not set
+# CONFIG_STM32_TIM7 is not set
+# CONFIG_STM32_TIM8 is not set
+# CONFIG_STM32_TIM9 is not set
+# CONFIG_STM32_TIM10 is not set
+# CONFIG_STM32_TIM11 is not set
+# CONFIG_STM32_TIM12 is not set
+# CONFIG_STM32_TIM13 is not set
+# CONFIG_STM32_TIM14 is not set
+# CONFIG_STM32_USART1 is not set
+# CONFIG_STM32_USART2 is not set
+CONFIG_STM32_USART3=y
+# CONFIG_STM32_UART4 is not set
+# CONFIG_STM32_UART5 is not set
+# CONFIG_STM32_USART6 is not set
+# CONFIG_STM32_WWDG is not set
+
+#
+# Alternate Pin Mapping
+#
+# CONFIG_STM32_JTAG_DISABLE is not set
+CONFIG_STM32_JTAG_FULL_ENABLE=y
+# CONFIG_STM32_JTAG_NOJNTRST_ENABLE is not set
+# CONFIG_STM32_JTAG_SW_ENABLE is not set
+# CONFIG_STM32_FORCEPOWER is not set
+# CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG is not set
+# CONFIG_STM32_CCMEXCLUDE is not set
+
+#
+# Ethernet MAC configuration
+#
+CONFIG_STM32_PHYADDR=1
+CONFIG_STM32_MII=y
+CONFIG_STM32_MII_MCO1=y
+# CONFIG_STM32_MII_MCO2 is not set
+CONFIG_STM32_AUTONEG=y
+CONFIG_STM32_PHYSR=16
+CONFIG_STM32_PHYSR_SPEED=0x0002
+CONFIG_STM32_PHYSR_100MBPS=0x0000
+CONFIG_STM32_PHYSR_MODE=0x0004
+CONFIG_STM32_PHYSR_FULLDUPLEX=0x0004
+# CONFIG_STM32_ETH_PTP is not set
+
+#
+# USB Host Configuration
+#
+
+#
+# Architecture Options
+#
+# CONFIG_ARCH_NOINTC is not set
+# CONFIG_ARCH_DMA is not set
+CONFIG_ARCH_STACKDUMP=y
+
+#
+# Board Settings
+#
+CONFIG_DRAM_START=0x20000000
+CONFIG_DRAM_SIZE=196608
+CONFIG_ARCH_HAVE_INTERRUPTSTACK=y
+# CONFIG_ARCH_INTERRUPTSTACK is not set
+
+#
+# Boot options
+#
+# CONFIG_BOOT_RUNFROMEXTSRAM is not set
+CONFIG_BOOT_RUNFROMFLASH=y
+# CONFIG_BOOT_RUNFROMISRAM is not set
+# CONFIG_BOOT_RUNFROMSDRAM is not set
+# CONFIG_BOOT_COPYTORAM is not set
+
+#
+# Board Selection
+#
+CONFIG_ARCH_BOARD_STM3240G_EVAL=y
+# CONFIG_ARCH_BOARD_CUSTOM is not set
+CONFIG_ARCH_BOARD="stm3240g-eval"
+
+#
+# Common Board Options
+#
+CONFIG_ARCH_HAVE_LEDS=y
+CONFIG_ARCH_LEDS=y
+CONFIG_ARCH_HAVE_BUTTONS=y
+# CONFIG_ARCH_BUTTONS is not set
+CONFIG_ARCH_HAVE_IRQBUTTONS=y
+
+#
+# Board-Specific Options
+#
+
+#
+# RTOS Features
+#
+CONFIG_MSEC_PER_TICK=10
+CONFIG_RR_INTERVAL=200
+# CONFIG_SCHED_INSTRUMENTATION is not set
+CONFIG_TASK_NAME_SIZE=0
+# CONFIG_JULIAN_TIME is not set
+CONFIG_START_YEAR=2011
+CONFIG_START_MONTH=12
+CONFIG_START_DAY=6
+CONFIG_DEV_CONSOLE=y
+# CONFIG_DEV_LOWCONSOLE is not set
+# CONFIG_MUTEX_TYPES is not set
+# CONFIG_PRIORITY_INHERITANCE is not set
+# CONFIG_FDCLONE_DISABLE is not set
+# CONFIG_FDCLONE_STDIO is not set
+CONFIG_SDCLONE_DISABLE=y
+# CONFIG_SCHED_WORKQUEUE is not set
+CONFIG_SCHED_WAITPID=y
+# CONFIG_SCHED_ATEXIT is not set
+# CONFIG_SCHED_ONEXIT is not set
+CONFIG_USER_ENTRYPOINT="discover_main"
+CONFIG_DISABLE_OS_API=y
+# CONFIG_DISABLE_CLOCK is not set
+# CONFIG_DISABLE_POSIX_TIMERS is not set
+# CONFIG_DISABLE_PTHREAD is not set
+# CONFIG_DISABLE_SIGNALS is not set
+# CONFIG_DISABLE_MQUEUE is not set
+# CONFIG_DISABLE_MOUNTPOINT is not set
+# CONFIG_DISABLE_ENVIRON is not set
+CONFIG_DISABLE_POLL=y
+
+#
+# Sizes of configurable things (0 disables)
+#
+CONFIG_MAX_TASKS=16
+CONFIG_MAX_TASK_ARGS=4
+CONFIG_NPTHREAD_KEYS=4
+CONFIG_NFILE_DESCRIPTORS=8
+CONFIG_NFILE_STREAMS=8
+CONFIG_NAME_MAX=32
+CONFIG_PREALLOC_MQ_MSGS=4
+CONFIG_MQ_MAXMSGSIZE=32
+CONFIG_MAX_WDOGPARMS=2
+CONFIG_PREALLOC_WDOGS=8
+CONFIG_PREALLOC_TIMERS=4
+
+#
+# Stack and heap information
+#
+# CONFIG_CUSTOM_STACK is not set
+CONFIG_IDLETHREAD_STACKSIZE=1024
+CONFIG_USERMAIN_STACKSIZE=2048
+CONFIG_PTHREAD_STACK_MIN=256
+CONFIG_PTHREAD_STACK_DEFAULT=2048
+
+#
+# Device Drivers
+#
+CONFIG_DEV_NULL=y
+# CONFIG_DEV_ZERO is not set
+# CONFIG_LOOP is not set
+# CONFIG_RAMDISK is not set
+# CONFIG_CAN is not set
+# CONFIG_PWM is not set
+CONFIG_I2C=y
+# CONFIG_I2C_SLAVE is not set
+CONFIG_I2C_TRANSFER=y
+# CONFIG_I2C_WRITEREAD is not set
+CONFIG_I2C_POLLED=y
+# CONFIG_I2C_TRACE is not set
+# CONFIG_SPI is not set
+# CONFIG_RTC is not set
+# CONFIG_WATCHDOG is not set
+# CONFIG_ANALOG is not set
+# CONFIG_BCH is not set
+# CONFIG_INPUT is not set
+# CONFIG_LCD is not set
+# CONFIG_MMCSD is not set
+# CONFIG_MTD is not set
+# CONFIG_NETDEVICES is not set
+# CONFIG_NET_SLIP is not set
+# CONFIG_PIPES is not set
+# CONFIG_PM is not set
+# CONFIG_POWER is not set
+# CONFIG_SENSORS is not set
+# CONFIG_SERCOMM_CONSOLE is not set
+CONFIG_SERIAL=y
+# CONFIG_LOWLEVEL_CONSOLE is not set
+# CONFIG_16550_UART is not set
+CONFIG_ARCH_HAVE_USART3=y
+CONFIG_MCU_SERIAL=y
+CONFIG_STANDARD_SERIAL=y
+CONFIG_USART3_SERIAL_CONSOLE=y
+# CONFIG_NO_SERIAL_CONSOLE is not set
+
+#
+# USART3 Configuration
+#
+CONFIG_USART3_RXBUFSIZE=128
+CONFIG_USART3_TXBUFSIZE=128
+CONFIG_USART3_BAUD=115200
+CONFIG_USART3_BITS=8
+CONFIG_USART3_PARITY=0
+CONFIG_USART3_2STOP=0
+# CONFIG_USBDEV is not set
+# CONFIG_USBHOST is not set
+# CONFIG_WIRELESS is not set
+
+#
+# System Logging Device Options
+#
+
+#
+# System Logging
+#
+# CONFIG_RAMLOG is not set
+
+#
+# Networking Support
+#
+CONFIG_NET=y
+# CONFIG_NET_NOINTS is not set
+CONFIG_NET_MULTIBUFFER=y
+# CONFIG_NET_IPv6 is not set
+CONFIG_NSOCKET_DESCRIPTORS=10
+CONFIG_NET_NACTIVESOCKETS=16
+CONFIG_NET_SOCKOPTS=y
+CONFIG_NET_BUFSIZE=650
+# CONFIG_NET_TCPURGDATA is not set
+CONFIG_NET_TCP=y
+CONFIG_NET_TCP_CONNS=40
+CONFIG_NET_MAX_LISTENPORTS=40
+CONFIG_NET_TCP_READAHEAD_BUFSIZE=562
+CONFIG_NET_NTCP_READAHEAD_BUFFERS=16
+CONFIG_NET_TCP_RECVDELAY=0
+CONFIG_NET_TCPBACKLOG=y
+CONFIG_NET_UDP=y
+CONFIG_NET_UDP_CHECKSUMS=y
+CONFIG_NET_UDP_CONNS=8
+CONFIG_NET_BROADCAST=y
+CONFIG_NET_ICMP=y
+CONFIG_NET_ICMP_PING=y
+# CONFIG_NET_PINGADDRCONF is not set
+# CONFIG_NET_IGMP is not set
+CONFIG_NET_STATISTICS=y
+CONFIG_NET_RECEIVE_WINDOW=562
+CONFIG_NET_ARPTAB_SIZE=16
+CONFIG_NET_ARP_IPIN=y
+
+#
+# File Systems
+#
+
+#
+# File system configuration
+#
+CONFIG_FS_FAT=y
+CONFIG_FAT_LCNAMES=y
+CONFIG_FAT_LFN=y
+CONFIG_FAT_MAXFNAME=32
+# CONFIG_FS_FATTIME is not set
+# CONFIG_FAT_DMAMEMORY is not set
+# CONFIG_FS_RAMMAP is not set
+# CONFIG_NFS is not set
+# CONFIG_FS_NXFFS is not set
+# CONFIG_FS_ROMFS is not set
+
+#
+# System Logging
+#
+# CONFIG_SYSLOG is not set
+
+#
+# Memory Management
+#
+# CONFIG_MM_SMALL is not set
+CONFIG_MM_REGIONS=2
+# CONFIG_GRAN is not set
+
+#
+# Library Routines
+#
+CONFIG_STDIO_BUFFER_SIZE=256
+CONFIG_STDIO_LINEBUFFER=y
+CONFIG_NUNGET_CHARS=2
+CONFIG_LIB_HOMEDIR="/"
+# CONFIG_HAVE_LIBM is not set
+# CONFIG_NOPRINTF_FIELDWIDTH is not set
+# CONFIG_LIBC_FLOATINGPOINT is not set
+# CONFIG_EOL_IS_CR is not set
+# CONFIG_EOL_IS_LF is not set
+# CONFIG_EOL_IS_BOTH_CRLF is not set
+CONFIG_EOL_IS_EITHER_CRLF=y
+# CONFIG_LIBC_STRERROR is not set
+# CONFIG_LIBC_PERROR_STDOUT is not set
+CONFIG_ARCH_LOWPUTC=y
+CONFIG_LIB_SENDFILE_BUFSIZE=512
+# CONFIG_ARCH_ROMGETC is not set
+# CONFIG_ARCH_OPTIMIZED_FUNCTIONS is not set
+CONFIG_HAVE_CXX=y
+CONFIG_HAVE_CXXINITIALIZE=y
+# CONFIG_CXX_NEWLONG is not set
+
+#
+# Application Configuration
+#
+
+#
+# Named Applications
+#
+# CONFIG_NAMEDAPP is not set
+
+#
+# Examples
+#
+
+#
+# ADC Example
+#
+# CONFIG_EXAMPLES_ADC is not set
+
+#
+# Buttons Example
+#
+# CONFIG_EXAMPLES_BUTTONS is not set
+
+#
+# CAN Example
+#
+# CONFIG_EXAMPLES_CAN is not set
+
+#
+# USB CDC/ACM Class Driver Example
+#
+# CONFIG_EXAMPLES_CDCACM is not set
+
+#
+# USB composite Class Driver Example
+#
+# CONFIG_EXAMPLES_COMPOSITE is not set
+
+#
+# DHCP Server Example
+#
+# CONFIG_EXAMPLES_DHCPD is not set
+
+#
+# FTP Client Example
+#
+# CONFIG_EXAMPLES_FTPC is not set
+
+#
+# FTP Server Example
+#
+# CONFIG_EXAMPLES_FTPD is not set
+
+#
+# "Hello, World!" Example
+#
+# CONFIG_EXAMPLES_HELLO is not set
+
+#
+# "Hello, World!" C++ Example
+#
+# CONFIG_EXAMPLES_HELLOXX is not set
+
+#
+# USB HID Keyboard Example
+#
+# CONFIG_EXAMPLES_HIDKBD is not set
+
+#
+# IGMP Example
+#
+# CONFIG_EXAMPLES_IGMP is not set
+
+#
+# LCD Read/Write Example
+#
+# CONFIG_EXAMPLES_LCDRW is not set
+
+#
+# Memory Management Example
+#
+# CONFIG_EXAMPLES_MM is not set
+
+#
+# File System Mount Example
+#
+# CONFIG_EXAMPLES_MOUNT is not set
+
+#
+# FreeModBus Example
+#
+# CONFIG_EXAMPLES_MODBUS is not set
+
+#
+# Network Test Example
+#
+# CONFIG_EXAMPLES_NETTEST is not set
+
+#
+# NuttShell (NSH) Example
+#
+# CONFIG_EXAMPLES_NSH is not set
+
+#
+# NULL Example
+#
+# CONFIG_EXAMPLES_NULL is not set
+
+#
+# NX Graphics Example
+#
+# CONFIG_EXAMPLES_NX is not set
+
+#
+# NxConsole Example
+#
+# CONFIG_EXAMPLES_NXCONSOLE is not set
+
+#
+# NXFFS File System Example
+#
+# CONFIG_EXAMPLES_NXFFS is not set
+
+#
+# NXFLAT Example
+#
+# CONFIG_EXAMPLES_NXFLAT is not set
+
+#
+# NX Graphics "Hello, World!" Example
+#
+# CONFIG_EXAMPLES_NXHELLO is not set
+
+#
+# NX Graphics image Example
+#
+# CONFIG_EXAMPLES_NXIMAGE is not set
+
+#
+# NX Graphics lines Example
+#
+# CONFIG_EXAMPLES_NXLINES is not set
+
+#
+# NX Graphics Text Example
+#
+# CONFIG_EXAMPLES_NXTEXT is not set
+
+#
+# OS Test Example
+#
+# CONFIG_EXAMPLES_OSTEST is not set
+
+#
+# Pascal "Hello, World!"example
+#
+# CONFIG_EXAMPLES_PASHELLO is not set
+
+#
+# Pipe Example
+#
+# CONFIG_EXAMPLES_PIPE is not set
+
+#
+# Poll Example
+#
+# CONFIG_EXAMPLES_POLL is not set
+
+#
+# Pulse Width Modulation (PWM) Example
+#
+
+#
+# Quadrature Encoder Example
+#
+# CONFIG_EXAMPLES_QENCODER is not set
+
+#
+# RGMP Example
+#
+# CONFIG_EXAMPLES_RGMP is not set
+
+#
+# ROMFS Example
+#
+# CONFIG_EXAMPLES_ROMFS is not set
+
+#
+# sendmail Example
+#
+# CONFIG_EXAMPLES_SENDMAIL is not set
+
+#
+# Serial Loopback Example
+#
+# CONFIG_EXAMPLES_SERLOOP is not set
+
+#
+# Telnet Daemon Example
+#
+# CONFIG_EXAMPLES_TELNETD is not set
+
+#
+# THTTPD Web Server Example
+#
+# CONFIG_EXAMPLES_THTTPD is not set
+
+#
+# TIFF Generation Example
+#
+# CONFIG_EXAMPLES_TIFF is not set
+
+#
+# Touchscreen Example
+#
+# CONFIG_EXAMPLES_TOUCHSCREEN is not set
+
+#
+# UDP Example
+#
+# CONFIG_EXAMPLES_UDP is not set
+
+#
+# UDP Discovery Daemon Example
+#
+CONFIG_EXAMPLE_DISCOVER=y
+CONFIG_EXAMPLE_DISCOVER_DHCPC=y
+CONFIG_EXAMPLE_DISCOVER_NOMAC=y
+CONFIG_EXAMPLE_DISCOVER_DRIPADDR=0xc0a80201
+CONFIG_EXAMPLE_DISCOVER_NETMASK=0xffffff00
+
+#
+# uIP Web Server Example
+#
+# CONFIG_EXAMPLES_UIP is not set
+
+#
+# USB Serial Test Example
+#
+# CONFIG_EXAMPLES_USBSERIAL is not set
+
+#
+# USB Mass Storage Class Example
+#
+# CONFIG_EXAMPLES_USBMSC is not set
+
+#
+# USB Serial Terminal Example
+#
+# CONFIG_EXAMPLES_USBTERM is not set
+
+#
+# Watchdog timer Example
+#
+# CONFIG_EXAMPLES_WATCHDOG is not set
+
+#
+# wget Example
+#
+# CONFIG_EXAMPLES_WGET is not set
+
+#
+# WLAN Example
+#
+# CONFIG_EXAMPLES_WLAN is not set
+
+#
+# Interpreters
+#
+
+#
+# Interpreters
+#
+# CONFIG_FICL is not set
+# CONFIG_PCODE is not set
+
+#
+# Network Utilities
+#
+
+#
+# Networking Utilities
+#
+
+#
+# DHCP client
+#
+CONFIG_NETUTILS_DHCPC=y
+
+#
+# DHCP server
+#
+# CONFIG_NETUTILS_DHCPD is not set
+
+#
+# FTP client
+#
+# CONFIG_NETUTILS_FTPC is not set
+
+#
+# FTP server
+#
+# CONFIG_NETUTILS_FTPD is not set
+
+#
+# Name resolution
+#
+CONFIG_NETUTILS_RESOLV=y
+CONFIG_NET_RESOLV_ENTRIES=4
+
+#
+# SMTP
+#
+# CONFIG_NETUTILS_SMTP is not set
+
+#
+# TFTP client
+#
+# CONFIG_NETUTILS_TELNETD is not set
+
+#
+# TFTP client
+#
+# CONFIG_NETUTILS_TFTPC is not set
+
+#
+# THTTPD web server
+#
+# CONFIG_NETUTILS_THTTPD is not set
+
+#
+# uIP support library
+#
+CONFIG_NETUTILS_UIPLIB=y
+
+#
+# uIP web client
+#
+# CONFIG_NETUTILS_WEBCLIENT is not set
+
+#
+# uIP web server
+#
+# CONFIG_NETUTILS_WEBSERVER is not set
+
+#
+# UDP Discovery Utility
+#
+CONFIG_NETUTILS_DISCOVER=y
+CONFIG_DISCOVER_STACK_SIZE=1024
+CONFIG_DISCOVER_PRIORITY=50
+CONFIG_DISCOVER_PORT=96
+CONFIG_DISCOVER_INTERFACE="eth0"
+CONFIG_DISCOVER_DEVICE_CLASS=0xff
+CONFIG_CONFIG_DISCOVER_DESCR="STM3240G-EVAL"
+
+#
+# ModBus
+#
+
+#
+# FreeModbus
+#
+# CONFIG_MODBUS is not set
+
+#
+# NSH Library
+#
+# CONFIG_NSH_LIBRARY is not set
+
+#
+# System NSH Add-Ons
+#
+
+#
+# Custom free memory command
+#
+# CONFIG_SYSTEM_FREE is not set
+
+#
+# I2C tool
+#
+# CONFIG_SYSTEM_I2CTOOL is not set
+
+#
+# FLASH Program Installation
+#
+# CONFIG_SYSTEM_INSTALL is not set
+
+#
+# readline() support
+#
+# CONFIG_SYSTEM_READLINE is not set
+
+#
+# VSN board Add-Ons
+#
+
+#
+# VSN board add-ons
+#
+# CONFIG_VSN_POWEROFF is not set
+# CONFIG_VSN_RAMTRON is not set
+# CONFIG_VSN_SDCARD is not set
+# CONFIG_VSN_SYSINFO is not set

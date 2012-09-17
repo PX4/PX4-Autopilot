@@ -1,0 +1,30 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+if ARCH_RGMP
+comment "RGMP Configuration Options"
+
+choice
+	prompt "RGMP Architecture"
+	default RGMP_SUBARCH_X86
+
+config RGMP_SUBARCH_ARM
+	bool "ARM"
+	---help---
+		RGMP ARM architecture"
+
+config RGMP_SUBARCH_X86
+	bool "x86"
+	---help---
+		RGMP x86 architecture"
+
+endchoice
+
+config RGMP_SUBARCH
+	string
+	default "arm"		if RGMP_SUBARCH_ARM
+	default "x86"		if RGMP_SUBARCH_X86
+
+endif

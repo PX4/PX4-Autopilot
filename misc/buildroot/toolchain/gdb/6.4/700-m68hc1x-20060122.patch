@@ -1,0 +1,5682 @@
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/bfd/ChangeLog.M68HC11 gdb-6.4-m68hc1x/bfd/ChangeLog.M68HC11
+--- gdb-6.4/bfd/ChangeLog.M68HC11	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/bfd/ChangeLog.M68HC11	Sun Jan 22 22:18:25 2006
+@@ -0,0 +1,7 @@
++2006-01-21  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* elf32-m68hc1x.c: Include "alloca-conf.h"
++
++2004-02-01  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* opncls.c: Merge from mingw32 20031011 port.
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/bfd/elf32-m68hc1x.c gdb-6.4-m68hc1x/bfd/elf32-m68hc1x.c
+--- gdb-6.4/bfd/elf32-m68hc1x.c	Mon Jun 20 20:12:07 2005
++++ gdb-6.4-m68hc1x/bfd/elf32-m68hc1x.c	Sat Jan 21 17:53:08 2006
+@@ -1,5 +1,5 @@
+ /* Motorola 68HC11/HC12-specific support for 32-bit ELF
+-   Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005
++   Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006
+    Free Software Foundation, Inc.
+    Contributed by Stephane Carrez (stcarrez@nerim.fr)
+ 
+@@ -19,6 +19,7 @@ You should have received a copy of the G
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston, MA 02110-1301, USA.  */
+ 
++#include "alloca-conf.h"
+ #include "bfd.h"
+ #include "sysdep.h"
+ #include "bfdlink.h"
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/ChangeLog.M68HC11 gdb-6.4-m68hc1x/gdb/ChangeLog.M68HC11
+--- gdb-6.4/gdb/ChangeLog.M68HC11	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/gdb/ChangeLog.M68HC11	Sat Jan 21 17:14:12 2006
+@@ -0,0 +1,147 @@
++2006-01-21  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* m68hc11-rom.c (dbug_xfer_memory): Use gdb_byte
++	* remote-bdm12.c (gdbbdm12_insert_breakpoint): Use gdb_byte
++	(gdbbdm12_remove_breakpoint): Likewise.
++	(gdbbdm12_xfer_inferior_memory): Likewise.
++	(gdbbdm12_fetch_register): Use regcache_raw_supply to set the
++	register in gdb's cache. Use register_size.
++	(gdbbdm12_store_register): Likewise.
++
++2004-08-05  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* ser-mingw.c (do_mingw_readchar): Use deprecated_ui_loop_hook instead of
++	ui_loop_hook
++
++2004-08-01  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* signals/signals.c (SIGTRAP): Define if not defined so that the
++	simulator works on mingw32.
++
++2004-08-01  Stephane Carrez  <stcarrez@nerim.fr>
++
++	Patch Savannah/3123:
++	From Marek Peca <marek@tynska.cuni.cz>:
++
++	* remote-bdm12.c (gdbbdm12_cntrl_c): Set stop requested flag.
++	(gdbbdm12_wait): Call gdbbdm12_stop here instead of from sig handler.
++	* remote-bdm12.c (gdbbdm12_stop): Clear stop requested flag.
++
++2004-08-01  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* remote-bdm12.c (gdbbdm12_create_inferior): Fix prototype.
++
++2004-08-01  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* remote-bdm12.c (gdbbdm12_fetch_register): Use DEPRECATED_REGISTER_RAW_SIZE.
++	(gdbbdm12_store_register): Likewise.
++
++2004-02-08  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* remote-bdm12.c (gdbbdm12_wait): Use TARGET_SIGNAL_SIGABRT,
++	TARGET_SIGNAL_INT, TARGET_SIGNAL_TRAP
++
++	* bdm12.c (bdm12_stop_reason): Use TARGET_SIGNAL_TRAP and
++	TARGET_SIGNAL_INT.
++
++2004-02-01  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* version.in: Bump to 2004-02-01
++
++2004-02-01  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* bdm12.h (bdm12_create_inferior): Update prototype.
++	Convert prototypes.
++	* bdm12.c (bdm12_create_inferior): Use bfd type.
++
++	* remote-bdm12.c (gdbbdm12_fetch_register): Use MAX_REGISTER_SIZE.
++	(gdbbdm12_store_register): Likewise.
++	(gdbbdm12_store_register): Use deprecated_read_register_gen.
++
++2004-02-01  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* configure.in, environ.c, environ.h, infcmd.c, inferior.h,
++	win32-nat.c, event-loop.c, event-loop.h, utils.c, top.c, ser-mingw.c,
++        set-mingw.h, ser-tcp.c, ser-unix.c, inferior.h:
++
++	Merge http://www.ming.org 20031011 gdb patch for Mingw32 host.
++
++2002-06-15  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* remote-bdm12.c (gdbbdm12_kill): Use null_ptid.
++	(gdbbdm12_load): Likewise.
++	(gdbbdm12_resume): Use PIDGET.
++	(gdbbdm12_wait): Update prototype.
++	(pass_command): Use target_fetch_register.
++
++2002-06-10  Martin Rod  <martin.rod@ct.cz>
++
++	* bdm12.c: Add small delay after RTS asserting (Linux)
++
++2001-10-14  Stephane Carrez  <Stephane.Carrez@worldnet.fr>
++
++	* bdm12.c: Don't compile under Mingw32 since serial line code is
++	not ported.
++	* remote-bdm12.c: Likewise.
++
++2001-09-28  Tim Housel	<thousel@usa.net>
++
++	* bdm12.c: New file (BDM12 pod communication support).
++	* bdm12.h: New file.
++	* remote-bdm12.c: New file (BDM12 gdb backend).
++	* bdm12_eraseflash.h: New file.
++	* bdm12_programflash.h: New file.
++	* Makefile.in (ALLDEPFILES): Add new files.
++
++2001-01-13  Stephane Carrez  <Stephane.Carrez@worldnet.fr>
++
++	* dsrec.c (load_srec): Use the LMA address when loading.
++
++2001-01-06  Stephane Carrez  <Stephane.Carrez@worldnet.fr>
++
++	* dsrec.c (load_srec): Use serial_write function to send
++	data on the serial line.
++	* srec.h (load_srec): Add serial_write parameter.
++
++2000-12-28  Stephane Carrez  <Stephane.Carrez@worldnet.fr>
++
++	* monitor.h (serial_write): New member.
++	* monitor.c (monitor_write): Use it if it is set.
++	(monitor_read_memory): Use monitor_write.
++
++2000-12-28  Stephane Carrez  <Stephane.Carrez@worldnet.fr>
++
++	* m68hc11-rom.c (set_gdbarch): New function.
++	(m68hc11_serial_write): New function.
++	(console_input): New function.
++	(do_console_input): New function.
++	(m68hc11_wait_filter): New function.
++	(init_buffalo_cmds): Install them.
++	(dbug_dumpregs): New function.
++	(dbug_xfer_memory): New function.
++	(init_dbug_cmds): New function.
++	(dbug_open): New function.
++	(_initialize_m68hc11_rom): Register DBUG monitor.
++
++2000-12-03  Stephane Carrez  <Stephane.Carrez@worldnet.fr>
++
++	* Makefile.in (m68hc11-tdep.o): Define dependencies.
++	(m68hc11-rom.o): Likewise.
++	(ALLDEPFILES): Add m68hc11-tdep.c
++	* m68hc11-rom.c: New file for 68HC11/68HC12 monitors.
++	* config/m68hc11/m68hc11.mt (TDEPFILES): Add files for monitor
++	support.
++
++2000-09-10  Stephane Carrez  <Stephane.Carrez@worldnet.fr>
++
++	* monitor.c (monitor_fetch_register): Fix allocation of zerobuf
++	and regbuf (from GDB cvs main branch).
++
++2000-09-10  Stephane Carrez  <Stephane.Carrez@worldnet.fr>
++
++	* monitor.c (monitor_write_memory): If setmem.resp_delim is set,
++	use a regular expression to check the write memory command.
++	(monitor_store_register): Likewise with setreg.resp_delim.
++	(monitor_open): Compile the setmem and setreg regular expressions.
++	* m68hc11-rom.c: New file for 68hc11 monitors support.
++	* config/m68hc11/m68hc11.mt (TDEPFILES): Add the monitor support.
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/bdm12.c gdb-6.4-m68hc1x/gdb/bdm12.c
+--- gdb-6.4/gdb/bdm12.c	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/gdb/bdm12.c	Sat Jan 21 15:28:49 2006
+@@ -0,0 +1,1340 @@
++/* Target communications support for Kevin Ross' BDM12 pod for the 68HC12
++   Copyright 2001
++   Free Software Foundation, Inc.
++   Contributed by Tim Housel (thousel@usa.net)
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place - Suite 330,
++   Boston, MA 02111-1307, USA.  */
++
++#include "defs.h"
++#include "gdbcore.h"
++#include "gdb_string.h"
++#include <fcntl.h>
++#include "frame.h"
++#include "inferior.h"
++#include "bfd.h"
++#include "symfile.h"
++#include "target.h"
++#include "gdbcmd.h"
++#include "objfiles.h"
++#include "gdb-stabs.h"
++#include <sys/types.h>
++#include <sys/time.h>
++#include <signal.h>
++#include "serial.h"
++#include "bdm12.h"
++#include "bdm12_eraseflash.h"
++#include "bdm12_programflash.h"
++
++#if defined(__CYGWIN32__) || defined(__MINGW32__)
++#include <windows.h>
++#include <io.h>
++#else
++/* assuming UNIX */
++#include <sys/ioctl.h>
++#endif
++
++#define xfree(ptr) free(ptr)
++
++#define BDM12_RTS_DELAY 1
++
++/* Prototypes for local functions */
++
++static int bdm12_eeprom_write (CORE_ADDR memaddr, char *buf, int len);
++
++static int bdm12_flash_write (CORE_ADDR memaddr, char *buf, int len);
++
++static int erase_flash(void);
++
++static int bdm12_put_packet (unsigned char *packet, int pktlen);
++
++static int bdm12_get_packet (unsigned char *packet, int pktlen);
++
++static void write_rts_state (int state);
++
++static int read_cts_state (void);
++
++static int valid_write_range (CORE_ADDR start_addr, CORE_ADDR end_addr);
++
++static int valid_read_range (CORE_ADDR start_addr, CORE_ADDR end_addr);
++
++static long diffms (struct timeval t1, struct timeval t2);
++
++/* serial descriptor for interface to BDM pod */
++static struct serial* ser_desc = NULL;
++
++/* since cygwin doesn't support the ioctls for manually mucking with the
++   RTS and CTS lines, we must use win32 calls. This provides a place to
++   store the windows handle */
++#if defined(__CYGWIN32__) || defined(__MINGW32__)
++static HANDLE win_ser_desc = INVALID_HANDLE_VALUE;
++#endif
++
++static unsigned char reg_page = 0;
++static unsigned int  reg_base = 0;
++static unsigned int ram_base = 0;
++static unsigned int eeprom_base = 0;
++static unsigned int flash_base = 0;
++static int num_breakpoints = 0;
++static int program_loaded = 0;
++static int flash_erased = 0;
++static int stopped = 0;
++static int singlestepped = 1;
++
++static CORE_ADDR breakpoint[BDM12_MAX_BREAKPOINTS] = {0, 0};
++
++struct memory_region_list
++  {
++    CORE_ADDR addr;
++    unsigned int size;
++    unsigned char* data;
++    struct memory_region_list* next;
++    struct memory_region_list* prev;
++  } flash_regions;
++
++struct memory_region_list *cur_region = &flash_regions;
++
++/* Open a connection to a remote debugger.
++   NAME is the filename used for communication.  */
++
++BDM12_RC
++bdm12_open (char **argv)
++{
++  char *ser_name;
++  unsigned char buf[5];
++  int erate, rc;
++
++  if (argv == NULL)
++    return BDM12_RC_FAIL;
++  if (argv[0] == NULL)
++    return BDM12_RC_FAIL;
++  if (argv[1] == NULL)
++    return BDM12_RC_FAIL;
++  if (argv[2] == NULL)
++    return BDM12_RC_FAIL;
++  if (argv[3] == NULL)
++    return BDM12_RC_FAIL;
++  if (argv[4] == NULL)
++    return BDM12_RC_FAIL;
++  if (argv[5] == NULL)
++    return BDM12_RC_FAIL;
++
++  ser_name = alloca (strlen (argv[0]) + 6); /* for "/dev/\0" */
++  if (!ser_name)
++    return BDM12_RC_FAIL;
++
++  strcpy (ser_name, "/dev/");
++  strcat (ser_name, argv[0]);
++  erate = atoi (argv[1]);
++  switch (erate)
++    {
++    case 1:
++      erate = BDM12_ECLOCK_1MHZ;
++      break;
++    case 2:
++      erate = BDM12_ECLOCK_2MHZ;
++      break;
++    case 4:
++      erate = BDM12_ECLOCK_4MHZ;
++      break;
++    case 8:
++      erate = BDM12_ECLOCK_8MHZ;
++      break;
++    default:
++      error ("bad value for target E clock rate - use 1, 2, 4, or 8)");
++      return BDM12_RC_FAIL;
++      break;
++    }
++
++  reg_base = strtoul (argv[2], NULL, 16);
++  if (reg_base & 0x7ff)
++    {
++      error ("bad value for target register base - should be on 2K boundary");
++      return BDM12_RC_FAIL;
++    }
++
++  ram_base = strtoul (argv[3], NULL, 16);
++  if (ram_base & 0x7ff)
++    {
++      error ("bad value for target RAM base - should be on 2K boundary");
++      return BDM12_RC_FAIL;
++    }
++
++  eeprom_base = strtoul (argv[4], NULL, 16);
++  if ((eeprom_base & 0x2ff) || !((eeprom_base & 0xfff) | 0xd00))
++    {
++      error ("bad value for target EEPROM base - should be on 4K boundary + 0xd00");
++      return BDM12_RC_FAIL;
++    }
++
++  flash_base = strtoul (argv[5], NULL, 16);
++  if (flash_base & 0x7fff)
++    {
++      error ("bad value for target FLASH base - should be on 32K boundary");
++      return BDM12_RC_FAIL;
++    }
++
++  reg_page = reg_base >> 8;
++
++  ser_desc = serial_open (ser_name);
++  if (!ser_desc)
++    {
++      error ("unable to open serial port");
++      return BDM12_RC_FAIL;
++    }
++
++#if defined(__CYGWIN32__)
++  win_ser_desc = (HANDLE) get_osfhandle (ser_desc->fd);
++#elif defined(__MINGW32__)
++  win_ser_desc = (HANDLE) ser_desc->fd;
++#endif
++
++  if (!ser_desc)
++    {
++      perror_with_name (ser_name);
++      return BDM12_RC_FAIL;
++    }
++
++  if (serial_setbaudrate (ser_desc, BDM12_BAUD_RATE))
++    {
++      serial_close (ser_desc);
++      perror_with_name (ser_name);
++      return BDM12_RC_FAIL;
++    }
++
++  serial_raw (ser_desc);
++
++  /* If there is something sitting in the buffer we might take it as a
++     response to a command, which would be bad.  */
++  serial_flush_input (ser_desc);
++
++  rc = 0;
++
++  /* synchronize the pod */
++  buf[0] = BDM12_CMD_SYNC;
++  rc = bdm12_put_packet (buf, 1);
++  /* if the first command doesn't work, bail */
++  if (rc)
++    return BDM12_RC_FAIL;
++
++  /* now just collect the errors for the next set of commands */
++
++  /* set the target parameters */
++  buf[0] = BDM12_CMD_EXT;
++  buf[1] = BDM12_CMD_EXT_SETPARAM;
++  buf[2] = erate;
++  buf[3] = 0; /* We don't need no steekin' delays, I hope ;-) */
++  buf[4] = 0;
++  rc += bdm12_put_packet (buf, 5);
++
++  /* reset the target */
++  buf[0] = BDM12_CMD_RESET;
++  rc += bdm12_put_packet (buf, 1);
++
++  /* make sure BDM is enabled */
++  buf[0] = BDM12_CMD_WRITE_BD_BYTE;
++  buf[1] = BDM12_BDM_HI;
++  buf[2] = BDM12_ENABLE_BDM_LO;
++  buf[3] = BDM12_INIT_ENABLE_BDM;
++  buf[4] = buf[3];
++  rc += bdm12_put_packet (buf, 5);
++
++  /* map the registers */
++  buf[0] = BDM12_CMD_WRITE_BYTE;
++  buf[1] = 0;
++  buf[2] = BDM12_REG_INITRG;
++  buf[3] = reg_page;
++  buf[4] = buf[3];
++  rc += bdm12_put_packet (buf, 5);
++
++  /* Let the POD know where we've mapped the registers */
++  buf[0] = BDM12_CMD_SET_REGBASE;
++  buf[1] = reg_page;
++  rc += bdm12_put_packet (buf, 2);
++
++  /* map RAM */
++  buf[0] = BDM12_CMD_WRITE_BYTE;
++  buf[2] = BDM12_REG_INITRM;
++  buf[3] = ram_base >> 8;
++  buf[4] = buf[3];
++  rc += bdm12_put_packet (buf, 5);
++
++  /* map EEPROM */
++  buf[2] = BDM12_REG_INITEE;
++  buf[3] = ((eeprom_base >> 8) & 0xf0) | 0x1;
++  buf[4] = buf[3];
++  rc += bdm12_put_packet (buf, 5);
++
++  /* map FLASH */
++  buf[2] = BDM12_REG_MISC;
++  buf[3] = 0x0d | (flash_base >> 14);
++  buf[4] = buf[3];
++  rc += bdm12_put_packet (buf, 5);
++
++  /* setup breakpoints */
++  buf[2] = BDM12_REG_BRKCT0;
++  buf[3] = BDM12_INIT_BRKCT0;
++  buf[4] = buf[3];
++  rc += bdm12_put_packet (buf, 5);
++
++  /* setup breakpoints */
++  buf[2] = BDM12_REG_BRKCT1;
++  buf[3] = BDM12_INIT_BRKCT1;
++  buf[4] = buf[3];
++  rc += bdm12_put_packet (buf, 5);
++
++  /* disable flash protection */
++  buf[2] = BDM12_REG_FEEMCR;
++  buf[3] = BDM12_INIT_FEEMCR;
++  buf[4] = buf[3];
++  rc += bdm12_put_packet (buf, 5);
++
++  if (rc)
++    return BDM12_RC_FAIL;
++
++  serial_flush_input (ser_desc);
++  return BDM12_RC_OK;
++}
++
++/* Clean up connection to a remote debugger.  */
++
++void
++bdm12_close (int quitting)
++{
++  if (ser_desc)
++    serial_close (ser_desc);
++  ser_desc = NULL;
++#if defined(__CYGWIN32__) || defined(__MINGW32__)
++  win_ser_desc = INVALID_HANDLE_VALUE;
++#endif
++  program_loaded = 0;
++  flash_erased = 0;
++  stopped = 0;
++
++  while (cur_region->prev != NULL)
++    {
++      if (cur_region->data)
++        xfree(cur_region->data);
++      if (cur_region->next)
++        xfree(cur_region->next);
++
++      cur_region = cur_region->prev;
++    }
++}
++
++/* Init processor state - for us just set the PC to _start from the bfd */
++BDM12_RC
++bdm12_create_inferior (bfd *abfd, char **argv, char **env)
++{
++  CORE_ADDR start = bfd_get_start_address (abfd);
++  unsigned char cmdbuf[2];
++
++  /* set the PC */
++  cmdbuf[0] = start >> 8;
++  cmdbuf[1] = start;
++  return (bdm12_store_register (HARD_PC_REGNUM, cmdbuf, 2) != 2);
++}
++
++/* Tell the remote machine to resume.  */
++
++int
++bdm12_resume (int step)
++{
++  unsigned char buf;
++  int rc;
++
++  if (step)
++    {
++      buf = BDM12_CMD_TRACE1;
++      singlestepped = 1;
++    }
++  else
++    {
++      buf = BDM12_CMD_GO;
++      singlestepped = 0;
++    }
++
++  if (!(rc = bdm12_put_packet (&buf, 1)))
++    stopped = 0;
++  return rc;
++}
++
++int
++bdm12_stop (void)
++{
++  BDM12_RC rc;
++  unsigned char buf = BDM12_CMD_BACKGROUND;
++
++  rc = bdm12_put_packet (&buf, 1);
++  if (rc == BDM12_RC_OK)
++    stopped = 1;
++  return !rc;
++}
++
++/* Read register */
++
++int
++bdm12_fetch_register (int regno, unsigned char* buf, int length)
++{
++  unsigned char cmdbuf[3];
++  int rc;
++
++  switch (regno)
++    {
++    case HARD_A_REGNUM:
++    case HARD_B_REGNUM:
++    case HARD_D_REGNUM:
++      cmdbuf[0] = BDM12_CMD_READ_D;
++      break;
++    case HARD_X_REGNUM:
++      cmdbuf[0] = BDM12_CMD_READ_X;
++      break;
++    case HARD_Y_REGNUM:
++      cmdbuf[0] = BDM12_CMD_READ_Y;
++      break;
++    case HARD_SP_REGNUM:
++      cmdbuf[0] = BDM12_CMD_READ_SP;
++      break;
++    case HARD_PC_REGNUM:
++      cmdbuf[0] = BDM12_CMD_READ_PC;
++      break;
++    case HARD_PSW_REGNUM:
++      cmdbuf[0] = BDM12_CMD_READ_BD_BYTE;
++      cmdbuf[1] = BDM12_BDM_HI;
++      cmdbuf[2] = BDM12_CCRSAV_BDM_LO;
++      break;
++    default:
++      return 0;
++    }
++
++  if (regno == HARD_PSW_REGNUM)
++    rc = bdm12_put_packet (cmdbuf, 3);
++  else
++    rc = bdm12_put_packet (cmdbuf, 1);
++
++  if (rc)
++    return 0;
++
++  rc = bdm12_get_packet (cmdbuf, 2);
++  if (rc)
++    return 0;
++
++  switch (regno)
++    {
++    case HARD_A_REGNUM:
++    case HARD_PSW_REGNUM:
++      buf[0] = 0;
++      buf[1] = cmdbuf[0];
++      break;
++    case HARD_B_REGNUM:
++      buf[0] = 0;
++      buf[1] = cmdbuf[1];
++      break;
++    default:
++      buf[0] = cmdbuf[0];
++      buf[1] = cmdbuf[1];
++      break;
++    }
++
++  return length;
++}
++
++/* Write register */
++
++int
++bdm12_store_register (int regno, unsigned char* buf, int length)
++{
++  unsigned char cmdbuf[5];
++  int rc = 0;
++
++  switch (regno)
++    {
++    case HARD_A_REGNUM:
++      cmdbuf[0] = BDM12_CMD_READ_D;
++      rc += bdm12_put_packet (cmdbuf, 1);
++      rc += bdm12_get_packet (cmdbuf, 2);
++      cmdbuf[2] = cmdbuf[1];
++      cmdbuf[1] = buf[0];
++      cmdbuf[0] = BDM12_CMD_WRITE_D;
++      break;
++    case HARD_B_REGNUM:
++      cmdbuf[0] = BDM12_CMD_READ_D;
++      rc += bdm12_put_packet (cmdbuf, 1);
++      rc += bdm12_get_packet (cmdbuf, 2);
++      cmdbuf[2] = buf[1];
++      cmdbuf[1] = cmdbuf[0];
++      cmdbuf[0] = BDM12_CMD_WRITE_D;
++      break;
++    case HARD_D_REGNUM:
++      cmdbuf[0] = BDM12_CMD_WRITE_D;
++      cmdbuf[1] = buf[0];
++      cmdbuf[2] = buf[1];
++      break;
++    case HARD_X_REGNUM:
++      cmdbuf[0] = BDM12_CMD_WRITE_X;
++      cmdbuf[1] = buf[0];
++      cmdbuf[2] = buf[1];
++      break;
++    case HARD_Y_REGNUM:
++      cmdbuf[0] = BDM12_CMD_WRITE_Y;
++      cmdbuf[1] = buf[0];
++      cmdbuf[2] = buf[1];
++      break;
++    case HARD_SP_REGNUM:
++      cmdbuf[0] = BDM12_CMD_WRITE_SP;
++      cmdbuf[1] = buf[0];
++      cmdbuf[2] = buf[1];
++      break;
++    case HARD_PC_REGNUM:
++      cmdbuf[0] = BDM12_CMD_WRITE_PC;
++      cmdbuf[1] = buf[0];
++      cmdbuf[2] = buf[1];
++      break;
++    case HARD_PSW_REGNUM:
++      cmdbuf[0] = BDM12_CMD_WRITE_BD_BYTE;
++      cmdbuf[1] = BDM12_BDM_HI;
++      cmdbuf[2] = BDM12_CCRSAV_BDM_LO;
++      cmdbuf[3] = buf[1];
++      cmdbuf[4] = buf[1];
++      break;
++    default:
++      return 0;
++    }
++
++  if (regno == HARD_PSW_REGNUM)
++    rc += bdm12_put_packet (cmdbuf, 5);
++  else
++    rc += bdm12_put_packet (cmdbuf, 3);
++
++  if (rc)
++    return 0;
++
++  return length;
++}
++
++/* Write memory to the target. */
++
++int
++bdm12_write (CORE_ADDR memaddr, unsigned char *buf, int len)
++{
++  unsigned char *cmdbuf;
++  unsigned int numwritten = 0;
++  int need_final_write = 0;
++
++  /* allow writes to flash and eeprom if the program isn't loaded yet */
++  if (!program_loaded && !valid_write_range (memaddr, memaddr + len - 1))
++    {
++      if (!valid_read_range (memaddr, memaddr + len - 1) || len <= 0)
++        return 0;
++      if (memaddr >= eeprom_base &&
++          memaddr < (eeprom_base + BDM12_SIZE_EEPROM) &&
++          (memaddr + len - 1) >= eeprom_base &&
++          (memaddr + len - 1) < (eeprom_base + BDM12_SIZE_EEPROM))
++        return bdm12_eeprom_write (memaddr, buf, len);
++      else if (memaddr >= flash_base &&
++            memaddr < (flash_base + BDM12_SIZE_FLASH) &&
++            (memaddr + len - 1) >= flash_base &&
++            (memaddr + len - 1) < (flash_base + BDM12_SIZE_FLASH))
++        return bdm12_flash_write (memaddr, buf, len);
++      else
++        {
++          error ("writing between different regions of memory");
++          return 0;
++        }
++    }
++  else if (!valid_write_range (memaddr, memaddr + len - 1) || len <= 0)
++    return 0;
++
++  cmdbuf = alloca (len + 6);
++  if (!cmdbuf)
++    return 0;
++
++  if (memaddr & 0x1)
++    {
++      cmdbuf[0] = BDM12_CMD_WRITE_BYTE;
++      cmdbuf[1] = memaddr >> 8;
++      cmdbuf[2] = memaddr;
++      cmdbuf[3] = *buf;
++      cmdbuf[4] = cmdbuf[3];
++      if (bdm12_put_packet (cmdbuf, 5))
++        return numwritten;
++      len--;
++      buf++;
++      numwritten++;
++      memaddr++;
++    }
++
++  if (len & 0x1)
++    {
++      need_final_write = 1;
++      len--;
++    }
++#if 0 /* MEMPUT command seems to cause communications hangups easily */
++    if (len)
++    {
++      cmdbuf[0] = BDM12_CMD_EXT;
++      cmdbuf[1] = BDM12_CMD_EXT_MEMPUT;
++      cmdbuf[2] = memaddr >> 8;
++      cmdbuf[3] = memaddr ;
++      cmdbuf[4] = (len / 2) >> 8;
++      cmdbuf[5] = (len / 2);
++      memcpy (cmdbuf + 6, buf, len);
++      if (bdm12_put_packet (cmdbuf, len + 6))
++        return numwritten;
++      buf += len;
++      numwritten += len;
++      memaddr += len;
++    }
++#endif
++
++#if 1
++
++  cmdbuf[0] = BDM12_CMD_WRITE_WORD;
++  while (len)
++    {
++      cmdbuf[1] = memaddr >> 8;
++      cmdbuf[2] = memaddr;
++      cmdbuf[3] = *(buf++);
++      cmdbuf[4] = *(buf++);
++      if (bdm12_put_packet (cmdbuf, 5))
++        return numwritten;
++      memaddr += 2;
++      numwritten += 2;
++      len -= 2;
++    }
++
++#endif
++
++  if (need_final_write)
++    {
++      cmdbuf[0] = BDM12_CMD_WRITE_BYTE;
++      cmdbuf[1] = memaddr >> 8;
++      cmdbuf[2] = memaddr;
++      cmdbuf[3] = *buf;
++      cmdbuf[4] = cmdbuf[3];
++      if (bdm12_put_packet (cmdbuf, 5))
++        return numwritten;
++      numwritten++;
++    }
++
++  return numwritten;
++}
++
++static int
++bdm12_eeprom_write (CORE_ADDR memaddr, char *buf, int len)
++{
++  unsigned char cmdbuf[6], recvbuf[2];
++  int numwritten = 0, need_final_write = 0;
++
++  if (memaddr & 0x1)
++    {
++      cmdbuf[0] = BDM12_CMD_READ_BYTE;
++      cmdbuf[1] = (memaddr - 1) >> 8;
++      cmdbuf[2] = (memaddr - 1);
++      if (bdm12_put_packet (cmdbuf, 3))
++        return numwritten;
++      if (bdm12_get_packet (recvbuf, 2))
++        return numwritten;
++      cmdbuf[0] = BDM12_CMD_EEPROM_WRITE;
++      cmdbuf[3] = recvbuf[0];
++      cmdbuf[4] = *buf;
++      if (bdm12_put_packet (cmdbuf, 5))
++        return numwritten;
++      len--;
++      buf++;
++      numwritten++;
++      memaddr++;
++    }
++
++  if (len & 0x1)
++    {
++      need_final_write = 1;
++      len--;
++    }
++
++  while (len)
++    {
++      cmdbuf[1] = memaddr >> 8;
++      cmdbuf[2] = memaddr;
++      cmdbuf[3] = *(buf++);
++      cmdbuf[4] = *(buf++);
++      if (bdm12_put_packet (cmdbuf, 5))
++        return numwritten;
++      memaddr += 2;
++      numwritten += 2;
++      len -= 2;
++    }
++
++  if (need_final_write)
++    {
++      cmdbuf[0] = BDM12_CMD_READ_BYTE;
++      cmdbuf[1] = (memaddr + 1) >> 8;
++      cmdbuf[2] = (memaddr + 1);
++      if (bdm12_put_packet (cmdbuf, 3))
++        return numwritten;
++      if (bdm12_get_packet (recvbuf, 2))
++        return numwritten;
++      cmdbuf[0] = BDM12_CMD_EEPROM_WRITE;
++      cmdbuf[3] = *buf;
++      cmdbuf[4] = recvbuf[1];
++      if (bdm12_put_packet (cmdbuf, 5))
++        return numwritten;
++      numwritten++;
++    }
++  return numwritten;
++}
++
++static int
++bdm12_flash_write (CORE_ADDR memaddr, char *buf, int len)
++{
++  unsigned char cmdbuf[2];
++  int numwritten = 0, dum, expectedsize, actualsize;
++  int packetsize = BDM12_SIZE_RAM - BDM12_PROGRAMFLASH_SIZE;
++
++  struct timeval start_time, cur_time;
++  enum bdm12_stop reason;
++
++  if (!flash_erased)
++    {
++      /* check to see if what is going to be written is the same as
++         what is already in flash, so that we don't write to flash
++         needlessly */
++      cur_region->next = xmalloc (sizeof (struct memory_region_list));
++      if (!cur_region->next)
++        return numwritten;
++      cur_region->data = xmalloc (len);
++      if (!cur_region->data)
++        {
++          xfree (cur_region->next);
++          cur_region->next = NULL;
++          return numwritten;
++        }
++      if (bdm12_read (memaddr, cur_region->data, len) != len)
++        {
++          xfree (cur_region->next);
++          xfree (cur_region->data);
++          cur_region->next = NULL;
++          cur_region->data = NULL;
++          return numwritten;
++        }
++      if (memcmp (cur_region->data, buf, len) == 0)
++        {
++          cur_region->size = len;
++          cur_region->addr = memaddr;
++          cur_region->next->prev = cur_region;
++          cur_region->next->next = NULL;
++          cur_region->next->size = 0;
++          cur_region->next->data = NULL;
++          cur_region = cur_region->next;
++          return len;
++        }
++
++      xfree(cur_region->next);
++      cur_region->next = NULL;
++
++      /* erase the flash array */
++      if (erase_flash ())
++        {
++          error ("Unable to erase flash");
++          return numwritten;
++        }
++      flash_erased = 1;
++      /* write the flash burning program into RAM - the program is in
++         bdm12_programflash.h */
++      if (bdm12_write (ram_base, programflash, BDM12_PROGRAMFLASH_SIZE) !=
++          BDM12_PROGRAMFLASH_SIZE)
++        return numwritten;
++      /* tell the burn program where the registers are */
++      cmdbuf[0] = reg_base >> 8;
++      cmdbuf[1] = reg_base;
++      if (bdm12_write (ram_base + BDM12_PROGRAMFLASH_REGSTART, cmdbuf, 2) != 2)
++        return numwritten;
++      /* tell the burn program where the data starts */
++      cmdbuf[0] = (ram_base + BDM12_PROGRAMFLASH_SIZE) >> 8;
++      cmdbuf[1] = (ram_base + BDM12_PROGRAMFLASH_SIZE);
++      if (bdm12_write (ram_base + BDM12_PROGRAMFLASH_DATASTART, cmdbuf, 2) != 2)
++        return numwritten;
++
++      /* now write all the previously stored regions */
++      for (cur_region = &flash_regions; cur_region->next != NULL;
++           cur_region = cur_region->next)
++        {
++          if (bdm12_flash_write (cur_region->addr, cur_region->data,
++              cur_region->size) != cur_region->size)
++            return numwritten;
++        }
++    }
++
++  /* tell the burn program where flash is */
++  while (len > 0)
++    {
++      if (len < packetsize)
++          expectedsize = len;
++      else
++          expectedsize = packetsize;
++
++      /* write the next packet in target RAM */
++      if (bdm12_write (ram_base + BDM12_PROGRAMFLASH_SIZE, buf,
++          expectedsize) != expectedsize)
++        break;
++
++      /* tell the burn program the starting flash address */
++      cmdbuf[0] = memaddr >> 8;
++      cmdbuf[1] = memaddr;
++      if (bdm12_write (ram_base + BDM12_PROGRAMFLASH_FLASHSTART, cmdbuf, 2) != 2)
++        break;
++      
++      /* tell the burn program the ending flash address (noninclusive) */
++      cmdbuf[0] = (memaddr + expectedsize) >> 8;
++      cmdbuf[1] = (memaddr + expectedsize);
++      if (bdm12_write (ram_base + BDM12_PROGRAMFLASH_FLASHEND, cmdbuf, 2) != 2)
++        break;
++
++      /* set the PC */
++      cmdbuf[0] = (ram_base + BDM12_PROGRAMFLASH_PROGSTART) >> 8;
++      cmdbuf[1] = (ram_base + BDM12_PROGRAMFLASH_PROGSTART);
++      if (bdm12_store_register (HARD_PC_REGNUM, cmdbuf, 2) != 2)
++        break;
++    
++      /* run the burn program */
++      if (bdm12_resume (0))
++        break;
++
++      /* wait for burn program t finish; it should go back into bdm mode */
++      gettimeofday (&start_time, NULL);
++      do
++        { 
++          bdm12_stop_reason (&reason, &dum);
++          gettimeofday (&cur_time, NULL);
++          if (diffms (start_time, cur_time) > BDM12_PROGRAMFLASH_TIMEOUT *
++              expectedsize)
++            {
++              bdm12_stop_reason (&reason, &dum);
++              if (reason == BDM12_RUNNING)
++                break;
++            }
++        } while (reason == BDM12_RUNNING);
++      /* check error flag */
++      if (bdm12_read (ram_base + BDM12_PROGRAMFLASH_NUMWRITTEN, cmdbuf, 2) != 2)
++        break;
++
++      actualsize = (cmdbuf[0] << 8) + cmdbuf[1];
++      numwritten += actualsize;
++      if (expectedsize != actualsize)
++        break;
++      memaddr += actualsize;
++      buf += actualsize;
++      len -= actualsize;
++    }
++  return numwritten;
++}
++
++static int
++erase_flash(void)
++{
++  unsigned char buf[2];
++  struct timeval start_time, cur_time;
++  int dum;
++  enum bdm12_stop reason;
++
++  /* write the erase program into RAM - the program is in bdm12_eraseflash.h */
++  if (bdm12_write (ram_base, eraseflash, BDM12_ERASEFLASH_SIZE) !=
++      BDM12_ERASEFLASH_SIZE)
++    return 1;
++
++  /* tell the erase program where flash is */
++  buf[0] = flash_base >> 8;
++  buf[1] = flash_base;
++  if (bdm12_write (ram_base + BDM12_ERASEFLASH_FLASHSTART, buf, 2) != 2)
++    return 1;
++
++  /* tell the erase program where the registers are */
++  buf[0] = reg_base >> 8;
++  buf[1] = reg_base;
++  if (bdm12_write (ram_base + BDM12_ERASEFLASH_REGSTART, buf, 2) != 2)
++    return 1;
++
++  /* set the PC */
++  buf[0] = (ram_base + BDM12_ERASEFLASH_PROGSTART) >> 8;
++  buf[1] = (ram_base + BDM12_ERASEFLASH_PROGSTART);
++  if (bdm12_store_register (HARD_PC_REGNUM, buf, 2) != 2)
++    return 1;
++
++  /* run the erase program */
++  if (bdm12_resume (0))
++    return 1;
++  /* wait for erase program to finish; it should go back into bdm mode */
++  
++  gettimeofday (&start_time, NULL);
++  do
++    { 
++      bdm12_stop_reason (&reason, &dum);
++      gettimeofday (&cur_time, NULL);
++      if (diffms (start_time, cur_time) > BDM12_ERASEFLASH_TIMEOUT)
++        {
++          bdm12_stop_reason (&reason, &dum);
++          if (reason == BDM12_RUNNING)
++            return 1;
++        }
++    } while (reason == BDM12_RUNNING);
++
++  /* check error flag */
++  if (bdm12_read (ram_base + BDM12_ERASEFLASH_ERRORFLAG, buf, 1) != 1)
++    return 1;
++
++  return buf[0];
++}
++
++void
++bdm12_stop_reason (enum bdm12_stop *reason, int *sigrc)
++{
++  unsigned char buf[3];
++
++  buf[0] = BDM12_CMD_READ_BD_BYTE;
++  buf[1] = BDM12_BDM_HI;
++  buf[2] = BDM12_ENABLE_BDM_LO;
++  if (bdm12_put_packet (buf, 3))
++    {
++      *reason = BDM12_POLLING;
++      return;
++    }
++  if (bdm12_get_packet (buf, 2))
++    {
++      *reason = BDM12_POLLING;
++      return;
++    }
++
++  if (!(buf[1] & BDM12_STATUS_STOPPED))
++    {
++      *reason = BDM12_RUNNING;
++      return;
++    }
++  if (num_breakpoints > 0)
++    {
++      unsigned char pcbuf[2];
++      CORE_ADDR pc;
++      if (bdm12_fetch_register (HARD_PC_REGNUM, pcbuf, 2) != 2)
++        {
++          *reason = BDM12_POLLING;
++          return;
++        }
++      pc = (pcbuf[0] << 8) + pcbuf[1];
++      if (pc == breakpoint[0])
++        {
++          *reason = BDM12_STOPPED;
++          *sigrc = TARGET_SIGNAL_TRAP;
++          return;
++        }
++      if ((num_breakpoints == 2) && (pc == breakpoint[1]))
++        {
++          *reason = BDM12_STOPPED;
++          *sigrc = TARGET_SIGNAL_TRAP;
++          return;
++        }
++    }
++
++  if (stopped)
++    {
++      *reason = BDM12_STOPPED;
++      *sigrc = TARGET_SIGNAL_INT;
++      return;
++    }
++  if (singlestepped)
++    {
++      *reason = BDM12_STOPPED;
++      *sigrc = TARGET_SIGNAL_TRAP;
++      return;
++    }
++
++  /* don't know why we stopped */
++  *reason = BDM12_POLLING;
++  return;
++}
++
++static int
++valid_write_range (CORE_ADDR start_addr, CORE_ADDR end_addr)
++{
++  if (((start_addr >= reg_base && start_addr < (reg_base + BDM12_SIZE_REG)) &&
++       (end_addr >= reg_base && end_addr < (reg_base + BDM12_SIZE_RAM))) ||
++      ((start_addr >= ram_base && start_addr < (ram_base + BDM12_SIZE_RAM)) &&
++       (end_addr >= ram_base && end_addr < (ram_base + BDM12_SIZE_RAM))))
++    return 1;
++
++  return 0;
++}
++
++/* Read memory from the target. */
++
++int
++bdm12_read (CORE_ADDR memaddr, unsigned char *buf, int len)
++{
++  unsigned char cmdbuf[6], *recvbuf;
++  unsigned int numread = 0;
++  int need_final_read = 0;
++
++  if (!valid_read_range (memaddr, memaddr + len - 1) || len < 0)
++    return 0;
++
++  if (len == 0)
++    return 0;
++
++  recvbuf = alloca (len);
++  if (!recvbuf)
++    return 0;
++
++  if (memaddr & 0x1)
++    {
++      cmdbuf[0] = BDM12_CMD_READ_BYTE;
++      cmdbuf[1] = memaddr >> 8;
++      cmdbuf[2] = memaddr;
++      if (bdm12_put_packet (cmdbuf, 3))
++        return numread;
++      if (bdm12_get_packet (recvbuf, 2))
++        return numread;
++      *(buf++) = recvbuf[1];
++      len--;
++      numread++;
++      memaddr++;
++    }
++
++  if (len & 0x1)
++    {
++      need_final_read = 1;
++      len--;
++    }
++
++  if (len)
++    {
++      cmdbuf[0] = BDM12_CMD_EXT;
++      cmdbuf[1] = BDM12_CMD_EXT_MEMDUMP;
++      cmdbuf[2] = memaddr >> 8;
++      cmdbuf[3] = memaddr ;
++      cmdbuf[4] = (len / 2) >> 8;
++      cmdbuf[5] = (len / 2);
++      if (bdm12_put_packet (cmdbuf, 6))
++        return numread;
++      if (bdm12_get_packet (recvbuf, len))
++        return numread;
++      memcpy (buf, recvbuf, len);
++      buf += len;
++      numread += len;
++      memaddr += len;
++    }
++
++  if (need_final_read)
++    {
++      cmdbuf[0] = BDM12_CMD_READ_BYTE;
++      cmdbuf[1] = memaddr >> 8;
++      cmdbuf[2] = memaddr;
++      if (bdm12_put_packet (cmdbuf, 3))
++        return numread;
++      if (bdm12_get_packet (recvbuf, 2))
++        return numread;
++      *(buf++) = recvbuf[0];
++      numread++;
++    }
++
++  return numread;
++}
++
++static int
++valid_read_range (CORE_ADDR start_addr, CORE_ADDR end_addr)
++{
++  if (((start_addr >= reg_base && start_addr < (reg_base + BDM12_SIZE_REG)) &&
++       (end_addr >= reg_base && end_addr < (reg_base + BDM12_SIZE_REG))) ||
++      ((start_addr >= ram_base && start_addr < (ram_base + BDM12_SIZE_RAM)) &&
++       (end_addr >= ram_base && end_addr < (ram_base + BDM12_SIZE_RAM))) ||
++      ((start_addr >= eeprom_base && start_addr < (eeprom_base + BDM12_SIZE_EEPROM)) &&
++       (end_addr >= eeprom_base && end_addr < (eeprom_base + BDM12_SIZE_EEPROM))) ||
++      ((start_addr >= flash_base && start_addr < (flash_base + BDM12_SIZE_FLASH)) &&
++       (end_addr >= flash_base && end_addr < (flash_base + BDM12_SIZE_FLASH))))
++    return 1;
++
++  return 0;
++}
++
++/* Send a packet to the BDM12 pod. This is basically copied from Kevin's
++   BDM12 User Manual */
++
++static int
++bdm12_put_packet (unsigned char *packet, int len)
++{
++  int i, iloop;
++  struct timeval start_time, cur_time;
++
++  for (i = 0; i < len; i++)
++    {
++      write_rts_state (1);
++
++      iloop = 5;
++      gettimeofday (&start_time, NULL);
++      cur_time = start_time;
++      while ((diffms (start_time, cur_time) < BDM12_COMM_TIMEOUT) || iloop)
++        {
++          if (read_cts_state ())
++            break;
++
++          write_rts_state (0);
++          gettimeofday (&cur_time, NULL);
++          if (iloop)
++            --iloop;
++
++          write_rts_state (1);
++        }
++      if (!read_cts_state ())
++        {
++          error ("bdm12_put_packet RTS1->CTS1: Couldn't communicate with BDM12 pod");
++          return 1;
++        }
++
++      if (serial_write (ser_desc, packet, 1))
++        {
++          write_rts_state (0);
++          perror_with_name ("bdm12_put_packet");
++          return 1;
++        }
++
++      iloop = 5;
++      gettimeofday (&start_time, NULL);
++      cur_time = start_time;
++      while ((diffms (start_time, cur_time) < BDM12_COMM_TIMEOUT) || iloop)
++        {
++          if (!read_cts_state ())
++            break;
++
++          gettimeofday (&cur_time, NULL);
++          if (iloop)
++            --iloop;
++
++        }
++      write_rts_state (0);
++      if (read_cts_state ())
++        {
++          error ("bdm12_put_packet RTS0->CTS0: Couldn't communicate with BDM12 pod");
++          return 1;
++        }
++      packet++;
++    }
++  return 0;
++}
++
++/* Raise or lower the RTS line (clear if state==0, set otherwise). This is
++   also based on code from Kevin's BDM12 User's Manual. */
++
++static void 
++write_rts_state (int state)
++{
++  
++#if defined(__CYGWIN32__) || defined(__MINGW32__)
++  EscapeCommFunction (win_ser_desc, state ? SETRTS : CLRRTS);
++#else
++  struct timeval start_time, cur_time;
++
++  int tiocm = TIOCM_RTS;
++  ioctl (ser_desc->fd, state ? TIOCMBIS : TIOCMBIC, &tiocm);
++  
++  gettimeofday (&start_time, NULL);
++  cur_time = start_time;
++  while ((diffms (start_time, cur_time) < BDM12_RTS_DELAY))
++    {
++      gettimeofday (&cur_time, NULL);
++    }
++#endif
++}
++
++/* Return the state of the CTS line (0 if clear, 1 if set). This is also
++   based on code from Kevin's BDM12 User's Manual. */
++
++static int
++read_cts_state (void)
++{
++#if defined(__CYGWIN32__) || defined(__MINGW32__)
++  DWORD cts_state;
++  GetCommModemStatus (win_ser_desc, &cts_state);
++  return (cts_state & MS_CTS_ON) ? 1 : 0;
++#else
++  /* assuming UNIX - if not, add your own #elseif above */
++  unsigned int cts_state;
++  ioctl (ser_desc->fd, TIOCMGET, &cts_state);
++  return (cts_state & TIOCM_CTS) ? 1 : 0;
++#endif
++}
++
++/* take the difference of t2 - t1 in milliseconds */
++
++static long
++diffms (struct timeval t1, struct timeval t2)
++{
++  long diffsec, diffusec;
++
++  diffsec = t2.tv_sec - t1.tv_sec;
++  diffusec = t2.tv_usec - t1.tv_usec;
++
++  if (diffusec < 0)
++    {
++      diffsec--;
++      diffusec += 1000000;
++    }
++
++  return (diffsec * 1000) + (diffusec / 1000);
++}
++
++/* Get a packet from the BDM12.  Timeout is only enforced for the
++   first byte of the packet.  Subsequent bytes are expected to arrive in
++   time <= remote_timeout.  Returns a pointer to a static buffer containing
++   the payload of the packet.  *LENP contains the length of the packet.
++ */
++
++static int bdm12_get_packet (unsigned char *packet, int pktlen)
++{
++  int i, ch;
++
++  for (i = 0; i < pktlen; i++)
++    {
++      ch = serial_readchar (ser_desc, BDM12_COMM_TIMEOUT);
++      switch (ch)
++        {
++        case SERIAL_EOF:
++          error ("Remote connection closed");
++          return 1;
++          break;
++        case SERIAL_ERROR:
++          perror_with_name ("bdm12_get_packet");
++          return 1;
++          break;
++        case SERIAL_TIMEOUT:
++          error ("Remote connection timed out");
++          return 1;
++          break;
++        default:
++          *(packet++) = ch;
++          break;
++        }
++    }
++  return 0;
++}
++
++/* All we actually do is set the PC to the start address of exec_bfd, and start
++   the program at that point.  */
++
++/* load a program into target memory, the bfd struct is not used here */
++
++BDM12_RC
++bdm12_load (char *prog, struct _bfd *abfd, int from_tty)
++{
++  generic_load (prog, from_tty);
++
++  program_loaded = 1;
++/* This is necessary because many things were based on the PC at the time that
++   we attached to the monitor, which is no longer valid now that we have loaded
++   new code (and just changed the PC).  Another way to do this might be to call
++   normal_stop, except that the stack may not be valid, and things would get
++   horribly confused... */
++
++  clear_symtab_users ();
++  return BDM12_RC_OK;
++}
++
++BDM12_RC
++bdm12_set_breakpoint (CORE_ADDR addr)
++{
++  unsigned char buf[5];
++
++  if (num_breakpoints >= BDM12_MAX_BREAKPOINTS)
++    {
++      error ("Maximum breakpoints have already been set");
++      return BDM12_RC_INSUFFICIENT_RESOURCES;
++    }
++
++  if (num_breakpoints == 0)
++    buf[2] = BDM12_REG_BRKAH;
++  else
++    buf[2] = BDM12_REG_BRKDH;
++
++  buf[0] = BDM12_CMD_WRITE_WORD;
++  buf[1] = reg_page;
++  buf[3] = addr >> 8;
++  buf[4] = addr;
++  if (bdm12_put_packet (buf, 5))
++    return BDM12_RC_FAIL;
++  breakpoint[num_breakpoints] = addr;
++  num_breakpoints++;
++  return BDM12_RC_OK;
++}
++
++BDM12_RC
++bdm12_clear_breakpoint (CORE_ADDR addr)
++{
++  unsigned char buf[5];
++  if (breakpoint[0] == addr)
++    {
++      buf[2] = BDM12_REG_BRKAH;
++      breakpoint[0] = 0;
++    }
++  else if (breakpoint[1] == addr)
++    {
++      buf[2] = BDM12_REG_BRKDH;
++      breakpoint[1] = 0;
++    }
++  else
++    {
++       error ("breakpoint doesn't exist");
++       return BDM12_RC_UNKNOWN_BREAKPOINT;
++    }
++
++  buf[0] = BDM12_CMD_WRITE_WORD;
++  buf[1] = reg_page;
++  buf[3] = 0;
++  buf[4] = 0;
++  if (bdm12_put_packet (buf, 5))
++    return BDM12_RC_FAIL;
++
++  num_breakpoints--;
++  return BDM12_RC_OK;
++}
++
++
++void
++_initialize_bdm12 (void)
++{
++  flash_regions.next = NULL;
++  flash_regions.prev = NULL;
++  flash_regions.data = NULL;
++  flash_regions.size = 0;
++}
++
++#if 0
++/* maybe I should do something like this - later*/
++void _initialize_remote_ocd (void)
++{
++  extern struct cmd_list_element *cmdlist;
++  static struct cmd_list_element *ocd_cmd_list = NULL;
++
++  add_show_from_set (add_set_cmd ("remotetimeout", no_class,
++                                  var_integer, (char *) &remote_timeout,
++                     "Set timeout value for remote read.\n", &setlist),
++                     &showlist);
++
++  add_prefix_cmd ("ocd", class_obscure, bdm_command, "", &ocd_cmd_list, "ocd ",
++                   0, &cmdlist);
++
++  add_cmd ("reset", class_obscure, bdm_reset_command, "", &ocd_cmd_list);
++  add_cmd ("restart", class_obscure, bdm_restart_command, "", &ocd_cmd_list);
++  add_cmd ("update-flash", class_obscure, bdm_update_flash_command, "", &ocd_cmd_list);
++}
++#endif
++
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/bdm12.h gdb-6.4-m68hc1x/gdb/bdm12.h
+--- gdb-6.4/gdb/bdm12.h	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/gdb/bdm12.h	Sat Jan 21 15:28:49 2006
+@@ -0,0 +1,289 @@
++/* This file defines the interface between the BDM12 target and gdb.
++   Copyright (C) 2001, 2004 Free Software Foundation, Inc.
++   Contributed by Tim Housel (thousel@usa.net)
++
++This file is part of GDB.
++
++This program is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 2 of the License, or
++(at your option) any later version.
++
++This program is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with this program; if not, write to the Free Software
++Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
++
++/* This is basically  */
++#if !defined (BDM12_H)
++#define BDM12_H 1
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++#ifndef REGISTER_BDM12_REGNO
++#define REGISTER_BDM12_REGNO(N) (N)
++#endif
++
++/* Return codes from various functions.  */
++
++typedef enum {
++  BDM12_RC_FAIL = 0,
++  BDM12_RC_OK = 1,
++  BDM12_RC_UNKNOWN_BREAKPOINT = 2,
++  BDM12_RC_INSUFFICIENT_RESOURCES = 3,
++  BDM12_RC_DUPLICATE_BREAKPOINT = 4
++} BDM12_RC;
++
++/* these defines were pulled from Stephane's code in
++   m68hc11-tdep.c */  
++
++#define HARD_X_REGNUM        0
++#define HARD_D_REGNUM        1
++#define HARD_Y_REGNUM        2
++#define HARD_SP_REGNUM       3
++#define HARD_PC_REGNUM       4
++#define HARD_A_REGNUM        5
++#define HARD_B_REGNUM        6
++#define HARD_PSW_REGNUM      7
++
++/* commands for the BDM12 pod */
++
++typedef enum {
++  BDM12_CMD_SYNC = 0x0,
++  BDM12_CMD_RESET = 0x1,
++  BDM12_CMD_EXT = 0x4,
++  BDM12_CMD_EXT_MEMDUMP = 0x3,
++  BDM12_CMD_EXT_SETPARAM = 0x4,
++  BDM12_CMD_EXT_MEMPUT = 0x6,
++  BDM12_CMD_EEPROM_WRITE = 0x5,
++  BDM12_CMD_SET_REGBASE = 0x6,
++  BDM12_CMD_EEPROM_ERASE = 0x7,
++  BDM12_CMD_BACKGROUND = 0x90,
++  BDM12_CMD_READ_BD_BYTE = 0xe4,
++  BDM12_CMD_READ_BD_WORD = 0xec,
++  BDM12_CMD_READ_WORD = 0xe8,
++  BDM12_CMD_READ_BYTE = 0xe0,
++  BDM12_CMD_WRITE_BD_BYTE = 0xc4,
++  BDM12_CMD_WRITE_BD_WORD = 0xcc,
++  BDM12_CMD_WRITE_WORD = 0xc8,
++  BDM12_CMD_WRITE_BYTE = 0xc0,
++  BDM12_CMD_READ_NEXT = 0x62,
++  BDM12_CMD_READ_PC = 0x63,
++  BDM12_CMD_READ_D = 0x64,
++  BDM12_CMD_READ_X = 0x65,
++  BDM12_CMD_READ_Y = 0x66,
++  BDM12_CMD_READ_SP = 0x67,
++  BDM12_CMD_WRITE_NEXT = 0x42,
++  BDM12_CMD_WRITE_PC = 0x43,
++  BDM12_CMD_WRITE_D = 0x44,
++  BDM12_CMD_WRITE_X = 0x45,
++  BDM12_CMD_WRITE_Y = 0x46,
++  BDM12_CMD_WRITE_SP = 0x47,
++  BDM12_CMD_GO = 0x8,
++  BDM12_CMD_TRACE1 = 0x10,
++  BDM12_CMD_TAGGO = 0x18
++} BDM12_CMD;  
++
++/* e-clock rates as required by the BDM12 pod */
++
++typedef enum {
++  BDM12_ECLOCK_1MHZ = 0x0,
++  BDM12_ECLOCK_2MHZ = 0x1,
++  BDM12_ECLOCK_4MHZ = 0x2,
++  BDM12_ECLOCK_8MHZ = 0x3
++} BDM12_ECLOCK;
++
++/* misc stuff used to avoid magic constants */
++
++typedef enum {
++  BDM12_BDM_HI = 0xff,
++  BDM12_ENABLE_BDM_LO = 0x01,
++  BDM12_CCRSAV_BDM_LO = 0x06,
++  BDM12_REG_INITRG = 0x11,
++  BDM12_REG_INITRM = 0x10,
++  BDM12_REG_INITEE = 0x12,
++  BDM12_REG_MISC = 0x13,
++  BDM12_REG_BRKCT0 = 0x20,
++  BDM12_REG_BRKCT1 = 0x21,
++  BDM12_REG_BRKAH = 0x22,
++  BDM12_REG_BRKAL = 0x23,
++  BDM12_REG_BRKDH = 0x24,
++  BDM12_REG_BRKDL = 0x25,
++  BDM12_REG_FEEMCR = 0xf5,
++  BDM12_SIZE_REG = 512,
++  BDM12_SIZE_RAM = 1024,
++  BDM12_SIZE_EEPROM = 768,
++  BDM12_SIZE_FLASH = 32768,
++  BDM12_INIT_ENABLE_BDM = 0x80,
++  BDM12_INIT_BRKCT0 = 0xec,
++  BDM12_INIT_BRKCT1 = 0x40,
++  BDM12_INIT_FEEMCR = 0x0,
++  BDM12_STATUS_STOPPED = 0x40,
++  BDM12_MAX_BREAKPOINTS = 2,
++  BDM12_BAUD_RATE = 115200,
++  BDM12_COMM_TIMEOUT = 1, /* 1s timeout for serial ops */
++  BDM12_ERASEFLASH_TIMEOUT = 1000, /* 200 ms timeout for flash erase program */
++  BDM12_PROGRAMFLASH_TIMEOUT = 3 /* 3 ms/byte  timeout for flash burn program */
++} BDM12_MISC;
++  
++/* The bfd struct, as an opaque type.  */
++
++struct _bfd;
++
++
++/* Main bdm12 entry points.  */
++
++
++/* Create a fully initialized bdm12 instance.
++
++   (This function is called when the bdm12 target is selected from the
++   gdb command line.)
++
++   ARGV is a standard ARGV pointer such as that passed from the
++   command line.  The syntax of the argument list is is assumed to be
++   ``BDM12 { BDM12-OPTION }''.
++
++   While the bdm12 configuration can be parameterized by (in decreasing
++   precedence) ARGV's BDM12-OPTION and the ABFD argument, the
++   successful creation of the bdm12 target shall not be dependent on the
++   presence of any of these arguments/options. */
++
++
++extern BDM12_RC bdm12_open (char **argv);
++
++
++/* Destory a bdm12 instance.
++
++   QUITTING is non-zero if we cannot hang on errors.
++*/
++
++extern void bdm12_close (int quitting);
++
++
++/* Load program PROG into the target memory.
++
++   If ABFD is non-NULL, the bfd for the file has already been opened.
++   The result is a return code indicating success. */
++
++extern BDM12_RC bdm12_load (char *prog, struct _bfd *abfd, int from_tty);
++
++
++/* Prepare to run the program.
++
++   ABFD, if not NULL, provides initial processor state information.
++   ARGV and ENV, if non NULL, are NULL terminated lists of pointers.
++
++   This function shall initialize the processor
++   registers to a known value.  The program counter and possibly stack
++   pointer shall be set using information obtained from ABFD (or
++   hardware reset defaults).  ARGV and ENV, dependant on the target
++   ABI, may be written to memory. */
++
++extern BDM12_RC bdm12_create_inferior (bfd *abfd, char **argv, char **env);
++
++
++/* Fetch LENGTH bytes of the target's memory.  Start fetch
++   at virtual address MEM and store in BUF.  Result is number of bytes
++   read, or zero if error.  */
++
++extern int bdm12_read (CORE_ADDR mem, unsigned char *buf, int length);
++
++
++/* Store LENGTH bytes from BUF into the target's
++   memory. Store bytes starting at virtual address MEM. Result is
++   number of bytes write, or zero if error.  */
++
++extern int bdm12_write (CORE_ADDR mem, unsigned char *buf, int length);
++
++
++/* Fetch register REGNO storing its raw (target endian) value in the
++   LENGTH byte buffer BUF.  Return the actual size of the register or
++   zero if REGNO is not applicable.
++
++   Legacy implementations ignore LENGTH and always return -1.
++
++   If LENGTH does not match the size of REGNO no data is transfered
++   (the actual register size is still returned). */
++
++extern int bdm12_fetch_register (int regno, unsigned char *buf, int length);
++
++
++/* Store register REGNO from the raw (target endian) value in BUF.
++   Return the actual size of the register or zero if REGNO is not
++   applicable.
++
++   Legacy implementations ignore LENGTH and always return -1.
++
++   If LENGTH does not match the size of REGNO no data is transfered
++   (the actual register size is still returned). */
++
++extern int bdm12_store_register (int regno, unsigned char *buf, int length);
++
++
++/* Run (or resume) the program.
++
++   STEP, when non-zero indicates that only a single instruction
++   should be executed. */
++
++extern int bdm12_resume (int step);
++
++
++/* Asynchronous request to stop execution.
++   A nonzero return indicates that the target is able to handle
++   the request */
++
++extern int bdm12_stop (void);
++
++
++/* Fetch the REASON why the program stopped.
++
++   BDM12_EXITED: The program has terminated. SIGRC indicates the target
++   dependant exit status.
++
++   BDM12_STOPPED: The program has stopped.  SIGRC uses the host's signal
++   numbering as a way of identifying the reaon: program interrupted by
++   user via a bdm12_stop request (SIGINT); a breakpoint instruction
++   (SIGTRAP); a completed single step (SIGTRAP); an internal error
++   condition (SIGABRT); an illegal instruction (SIGILL); Access to an
++   undefined memory region (SIGSEGV); Mis-aligned memory access
++   (SIGBUS).  For some signals information in addition to the signal
++   number may be retained by the target (e.g. offending address);
++   that information is not directly accessable via this interface.
++
++   BDM12_SIGNALLED: The program has been terminated by a signal. The
++   target has encountered code that causes the the program
++   to exit with signal SIGRC.
++
++   BDM12_RUNNING, BDM12_POLLING: The return of one of these values
++   indicates a problem internal to the BDM12 interface. */
++
++enum bdm12_stop { BDM12_RUNNING, BDM12_POLLING, BDM12_EXITED, BDM12_STOPPED, BDM12_SIGNALLED };
++
++extern void bdm12_stop_reason (enum bdm12_stop *reason, int *sigrc);
++
++#if 0
++/* implement later */
++/* Passthru for other commands that the bdm12 interface might support.
++   The interface should be prepared to deal with any combination of NULL
++   or empty CMD. */
++
++void bdm12_do_command PARAMS ((char *cmd));
++
++#endif
++
++/* Call these functions to set and clear breakpoints at ADDR. */
++
++extern BDM12_RC bdm12_set_breakpoint (CORE_ADDR addr);
++extern BDM12_RC bdm12_clear_breakpoint (CORE_ADDR addr);
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif /* !defined (BDM12_H) */
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/bdm12_eraseflash.h gdb-6.4-m68hc1x/gdb/bdm12_eraseflash.h
+--- gdb-6.4/gdb/bdm12_eraseflash.h	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/gdb/bdm12_eraseflash.h	Sat Jan 21 15:28:49 2006
+@@ -0,0 +1,249 @@
++#define BDM12_ERASEFLASH_SIZE 208
++#define BDM12_ERASEFLASH_FLASHSTART 0
++#define BDM12_ERASEFLASH_REGSTART 2
++#define BDM12_ERASEFLASH_ERRORFLAG 9
++#define BDM12_ERASEFLASH_PROGSTART 10
++
++unsigned char eraseflash[BDM12_ERASEFLASH_SIZE] = {
++ 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
++ 0x00, 0x01, 0x1B, 0xD4, 0x14, 0x10, 0xEE, 0xF2, 
++ 0x00, 0x00, 0x69, 0xF2, 0x00, 0x06, 0x69, 0xF2, 
++ 0x00, 0x07, 0x69, 0xF2, 0x00, 0x08, 0xED, 0xF2, 
++ 0x00, 0x02, 0x0F, 0xE8, 0xF7, 0x08, 0x74, 0x19, 
++ 0xE8, 0xF7, 0x18, 0x08, 0x40, 0x06, 0x6C, 0x00, 
++ 0xED, 0xF2, 0x00, 0x02, 0x0C, 0xE8, 0xF7, 0x01, 
++ 0x19, 0xC6, 0x6D, 0xF2, 0x00, 0x04, 0x20, 0x7B, 
++ 0xED, 0xF2, 0x00, 0x02, 0x0D, 0xE8, 0xF7, 0x01, 
++ 0x19, 0xC6, 0x6D, 0xF2, 0x00, 0x04, 0x20, 0x6B, 
++ 0xE7, 0xF2, 0x00, 0x07, 0x27, 0x1E, 0x63, 0xF2, 
++ 0x00, 0x06, 0x26, 0xD4, 0x19, 0xC6, 0x6D, 0xF2, 
++ 0x00, 0x04, 0x20, 0x38, 0xE7, 0xF2, 0x00, 0x08, 
++ 0x27, 0x31, 0xED, 0xF2, 0x00, 0x02, 0x0D, 0xE8, 
++ 0xF7, 0x06, 0x20, 0x22, 0x62, 0xF2, 0x00, 0x06, 
++ 0x19, 0xC6, 0x6D, 0xF2, 0x00, 0x04, 0x20, 0x1C, 
++ 0xE7, 0xF2, 0x00, 0x08, 0x26, 0x0A, 0xE6, 0xF2, 
++ 0x00, 0x06, 0xC1, 0x05, 0x23, 0xA2, 0x20, 0x0B, 
++ 0x62, 0xF2, 0x00, 0x07, 0x20, 0x9A, 0x69, 0xF2, 
++ 0x00, 0x09, 0x00, 0x00, 0x69, 0xF2, 0x00, 0x08, 
++ 0xCD, 0x3C, 0x00, 0xEE, 0xF2, 0x00, 0x00, 0xCC, 
++ 0xFF, 0xFF, 0xAC, 0x31, 0x26, 0x07, 0x04, 0x36, 
++ 0xF9, 0x62, 0xF2, 0x00, 0x08, 0xED, 0xF2, 0x00, 
++ 0x04, 0x05, 0x40, 0xCC, 0x00, 0x0A, 0x20, 0x00, 
++ 0xCE, 0x07, 0xD0, 0xA7, 0x04, 0x35, 0xFC, 0x04, 
++ 0x34, 0xF6, 0xED, 0xF2, 0x00, 0x04, 0x05, 0x40 };
++/* The above was produced by assembling the following program with
++   > m6812-elf-as -o bdm12_eraseflash.o bdm12_eraseflash.s
++   > m6812-elf-objcopy.exe --change-addresses 0x800 -O srec bdm12_eraseflash.o
++     bdm12_eraseflash.s19
++   > ./convert < bdm12_eraseflash.s19 > bdm12_eraseflash.h
++
++   convert.c is listed following the assembly
++
++;-------------------bdm12_eraseflash.s-------------------
++;--------------------------------------------------------
++;--- Application Note Source Code for AN1836 ---
++;--- Erasing and Programming the FLASH ---
++;--- EEPROM on the MC68HC912B32 ---
++;--- ---
++;--- FLASH EEPROM erase routine ---
++;--- MC68HC912B32 1.5T FLASH Module ---
++;--- ---
++;--- Rev. 1.2 February 9, 2000 ---
++;--- Fixed bug in ReadArray routine ---
++;--- Created Bit Name Labels for easier reading ---
++;--- Streamlined Code for efficiency ---
++;--- Rev. 1.1 January 11, 2000 ---
++;--- Changed to 10ms delay for tepulse ---
++;--- to match specification change ---
++;--- Rev. 1.0 April 16, 1998 ---
++;--- Changed to 100ms delay for tepulse ---
++;--- Written November 6, 1997 ---
++;--- ---
++;--- ASSEMBLER: IASM12 v. 3.06 ---
++;--- P & E Microcomputer Systems ---
++;--- ---
++;--- by Matt Ruff, BE/OS Systems Engineering ---
++;--- ---
++;--- This code is intended for instructional use ---
++;--- only. Motorola assumes no liability for use ---
++;--- or modification of this code. It is the ---
++;--- responsibility of the user to verify all ---
++;--- parameters, variables, timings, etc. ---
++;--- ---
++;--------------------------------------------------------
++;----------------------------- Equates -----------------------------
++
++TmpStorage:
++FLASHStart:	.word 0x8000		;FLASH Start address
++REGStart:	.word 0x0		;Register Start Address
++SavePC:		.word 0x0		;saved PC
++Nep:		.byte 0			;Number of programming pulses applied
++MarginFlag:	.byte 0			;Programming margin flag
++ErasedFlag:	.byte 0			;Array Erased Flag
++ErrorFlag:	.byte 1			;Error Flag
++		.equ FLASHSize, 0x8000
++		.equ BootBlkSize, 0x800	;Size of the boot block
++		.equ BCFEEWords, ((FLASHSize-BootBlkSize)/2)
++				;Num of words to blank check
++		.equ MaxNep, 5		;5 pulses maximum
++		.equ FEELCK, 0xF4	;FLASH Lock Control Register
++		.equ FEEMCR, 0xF5	;FLASH Module Configuration Register
++		.equ FEECTL, 0xF7	;FLASH Control Register
++		.equ LOCK, 0x01		;Lock register Bit in FEELCK
++		.equ BOOTP, 0x01	;Boot Protect Bit in FEEMCR
++		.equ SVFP, 0x08		;Status Vfp Voltage Bit in FEECTL
++		.equ ERAS, 0x04		;Erase Control Bit in FEECTL
++		.equ LAT, 0x02		;Programming Latch Control bit in FEECTL
++		.equ ENPE, 0x01		;Enable Program/Erase Voltage Bit in FEECTL
++		.equ Mult, 1000		;Multiplier for EClock, assembler won't do
++					; values over 2^16
++		.equ EClock,(Mult*8000)	;E-clock frequency in Hz.
++		.equ mS1LoopTime, 4	;Num of clock cycles per loop.
++		.equ mS1Delay, (EClock/(mS1LoopTime*1000))
++					;Factor of 1000 used for base time of 1 ms.
++
++Start:
++		LEAS TmpStorage,PC
++		SEI			;disable interrupts - no SP
++		LDX FLASHStart,SP
++		CLR Nep,SP		;Clear number of pulses
++		CLR MarginFlag,SP	;Clear margin flag
++		CLR ErasedFlag,SP	;Clear erased flag
++		LDY REGStart,SP
++		BRCLR FEECTL,Y, SVFP,Error
++					;If Vfp not present, output an error
++;- Step 2 -
++		LEAY FEECTL,Y
++		MOVB #ERAS|LAT, 0,Y
++					;Set ERAS and LAT in FEECTL ( | is bitwise or)
++;- Step 3 -
++		STD 0,X			;Write some data to a valid FLASH address
++;- Step 4 -
++STEP4:
++		LDY REGStart,SP
++		BSET FEECTL,Y, ENPE	;Apply erase voltage (Set ENPE)
++;- Step 5 -
++		LEAY 6,PC
++		STY SavePC,SP
++		BRA dly_10ms		;Delay time for erase pulse (Tepulse)
++		
++;- Step 6 -
++		LDY REGStart,SP
++		BCLR FEECTL,Y, ENPE	;Remove erase voltage (Clear ENPE)
++;- Step 7 -
++		LEAY 6,PC
++		STY SavePC,SP
++		BRA dly_10ms		;Delay for high voltage turn off (Tverase)
++		TST MarginFlag,SP	;Is margin flag set??
++					; (TST sets Z bit in CCR if MarginFlag is 0)
++		BEQ NoFlag		;If not, go bump counter and check data
++					; (BEQ branches if MarginFlag is 0)
++YesFlag:
++		DEC Nep,SP		;Decrement Nep - mod. Z bit in CCR for coming
++					; BNE branch
++		BNE STEP4		;If Nep not 0, go to Step 4
++		LEAY 6,PC
++		STY SavePC,SP
++		BRA ReadArray		;Verify entire array is erased
++		TST ErasedFlag,SP	;Is the array erased?
++					; (TST sets Z bit in CCR if ErasedFlag is 0)
++		BEQ Error		;If not, Erase failed, output an error
++					; (BEQ branches if ErasedFlag is 0)
++;- Step 10 -
++		LDY REGStart,SP
++		BCLR FEECTL,Y, ERAS|LAT
++					;Clear ERAS and LAT in FEECTL
++		BRA Done		;If so, quit.
++NoFlag:
++		INC Nep,SP		;Increment number of erase pulses applied
++		LEAY 6,PC
++		STY SavePC,SP
++		BRA ReadArray		;Verify entire array is erased
++		TST ErasedFlag,SP	;Is it erased?
++					; (TST sets Z bit in CCR if ErasedFlag is 0)
++		BNE SetMarginFlag	;If so, set margin flag
++					; (BNE branches if ErasedFlag is 1)
++		LDAB Nep,SP
++		CMPB #MaxNep		;Have we applied max number of pulses?
++		BLS STEP4		;If not, continue erasing
++		BRA Error		;If so, we have a problem
++SetMarginFlag:
++		INC MarginFlag,SP	;Set Margin Flag
++		BRA STEP4
++Done:
++                CLR ErrorFlag,SP
++		BGND
++Error:
++		BGND
++;-----------------------------------------------------------------------
++;----------------- Read and Verify Erase subroutine ----------------
++;-----------------------------------------------------------------------
++ReadArray:
++		CLR ErasedFlag,SP	; Always start with clear flag.
++		LDY #BCFEEWords		; Num of words to check in FLASH. (No boot
++					; block check)
++		LDX FLASHStart,SP	; Index to the start of FLASH.
++		LDD #0xFFFF		; Erased word value for comparison.
++CheckLoop:
++		CPD 2,X+		; Is word erased?
++		BNE VerifyBad		; If not, return without setting ErasedFlag.
++					; (failure)
++		DBNE Y,CheckLoop	; Yes, Dec the word count, if not done check
++					; the next word.
++		INC ErasedFlag,SP	; All words checked & are erased. Set
++					; ErasedFlag.
++VerifyBad:
++		LDY SavePC,SP
++		JMP 0,Y
++;-----------------------------------------------------------------------
++;---------------------- Delay Subroutines -----------------------
++;-----------------------------------------------------------------------
++dly_10ms:
++		LDD #10 ;Delay for 10ms
++		BRA DelaymS
++
++;-----------------------------------------------------------------------
++;--- Millisecond Delay Routine ---
++;--- ---
++;--- Call with the number of mS to delay in the D accumulator. ---
++;--- The delay is not exact, but close enough when delaying ms. ---
++;-----------------------------------------------------------------------
++DelaymS:
++DlyLoop1mS:
++		LDX #mS1Delay		;Load 1ms delay count into X
++DlyLoop:
++		NOP			;Decrement count
++		DBNE X,DlyLoop		;Loop until done.
++		DBNE D,DlyLoop1mS
++		LDY SavePC,SP
++		JMP 0,Y
++------------------------convert.c---------------------------------------
++#include <stdio.h>
++#include <string.h>
++main()
++{
++  char line[200];
++  char *data = line + 8;
++  int i;
++  int count = 0;
++
++  printf ("unsigned char prog[] = {\n ");
++  while (fgets (line, 200, stdin))
++    {
++      if (strncmp (line, "S1", 2) != 0)
++        continue;
++      for (i = 0; i < strlen(data) - 4; i += 2)
++        {
++          printf ("0x");
++          putchar (data[i]);
++          putchar (data[i+1]);
++          printf (", ");
++          count++;
++          if (!(count % 8))
++            printf("\n ");
++        }
++    }
++    printf(" };\n");
++    printf("#define SIZE_PROG %d\n", count);
++}
++*/
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/bdm12_programflash.h gdb-6.4-m68hc1x/gdb/bdm12_programflash.h
+--- gdb-6.4/gdb/bdm12_programflash.h	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/gdb/bdm12_programflash.h	Sat Jan 21 15:28:49 2006
+@@ -0,0 +1,236 @@
++#define BDM12_PROGRAMFLASH_SIZE 207
++#define BDM12_PROGRAMFLASH_FLASHSTART 0
++#define BDM12_PROGRAMFLASH_FLASHEND 2
++#define BDM12_PROGRAMFLASH_REGSTART 4
++#define BDM12_PROGRAMFLASH_DATASTART 6
++#define BDM12_PROGRAMFLASH_NUMWRITTEN 10
++#define BDM12_PROGRAMFLASH_PROGSTART 14
++
++unsigned char programflash[BDM12_PROGRAMFLASH_SIZE] = {
++ 0x80, 0x00, 0x80, 0x02, 0x00, 0x00, 0x09, 0x00, 
++ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1B, 0xD0, 
++ 0x14, 0x10, 0x87, 0xC7, 0x6C, 0xF2, 0x00, 0x0A, 
++ 0xEE, 0xF2, 0x00, 0x00, 0xED, 0xF2, 0x00, 0x04, 
++ 0x0E, 0xE8, 0xF7, 0x08, 0x04, 0x18, 0x20, 0x00, 
++ 0x8B, 0xED, 0xF2, 0x00, 0x06, 0x69, 0xF2, 0x00, 
++ 0x0C, 0x69, 0xF2, 0x00, 0x0D, 0x6D, 0xF2, 0x00, 
++ 0x08, 0xED, 0xF2, 0x00, 0x04, 0xC6, 0x02, 0x6B, 
++ 0xE8, 0xF7, 0xED, 0xF2, 0x00, 0x08, 0xE6, 0x40, 
++ 0x6B, 0x00, 0x6D, 0xF2, 0x00, 0x08, 0xED, 0xF2, 
++ 0x00, 0x04, 0x0C, 0xE8, 0xF7, 0x01, 0x19, 0xC2, 
++ 0x20, 0x65, 0xED, 0xF2, 0x00, 0x04, 0x0D, 0xE8, 
++ 0xF7, 0x01, 0x19, 0xC2, 0x20, 0x61, 0xED, 0xF2, 
++ 0x00, 0x08, 0xE7, 0xF2, 0x00, 0x0D, 0x27, 0x2A, 
++ 0x63, 0xF2, 0x00, 0x0C, 0xE7, 0xF2, 0x00, 0x0C, 
++ 0x26, 0xD0, 0xA6, 0x00, 0xA1, 0x40, 0x26, 0x34, 
++ 0x6D, 0xF2, 0x00, 0x08, 0xED, 0xF2, 0x00, 0x04, 
++ 0x0D, 0xE8, 0xF7, 0x02, 0xED, 0xF2, 0x00, 0x08, 
++ 0x08, 0x02, 0xAE, 0xF2, 0x00, 0x02, 0x26, 0x95, 
++ 0x20, 0x1A, 0x62, 0xF2, 0x00, 0x0C, 0xA6, 0x00, 
++ 0xA1, 0x40, 0x27, 0x0A, 0xE6, 0xF2, 0x00, 0x0C, 
++ 0xC1, 0x32, 0x23, 0x9E, 0x20, 0x06, 0x62, 0xF2, 
++ 0x00, 0x0D, 0x20, 0x96, 0xB7, 0x54, 0xA3, 0xF2, 
++ 0x00, 0x00, 0x6C, 0xF2, 0x00, 0x0A, 0x00, 0xCC, 
++ 0x00, 0x34, 0x04, 0x34, 0xFD, 0x05, 0x40, 0xCC, 
++ 0x00, 0x18, 0x04, 0x34, 0xFD, 0x05, 0x40  };
++
++/* The above was produced by assembling the following program with
++   > m6812-elf-as bdm12_programflash.s
++   > m6812-elf-objcopy.exe --change-addresses 0x800 -O srec
++     bdm12_programflash.o bdm12_programflash.s19
++   > ./convert < bdm12_programflash.s19 > bdm12_programflash.h
++
++   Convert.c is listed following the assembly
++
++;----------------bdm12_programflash.s-----------------
++;-----------------------------------------------------
++;--- Application Note Source Code for AN1836 ---
++;--- Erasing and Programming the FLASH ---
++;--- EEPROM on the MC68HC912B32 ---
++;--- ---
++;--- FLASH EEPROM program routine ---
++;--- MC68HC912B32 1.5T FLASH Module ---
++;--- ---
++;--- Rev. 1.2 February 9, 2000 ---
++;--- Created Bit Name Labels for easier reading---
++;--- Streamlined Code for efficiency ---
++;--- Rev. 1.0 - April 23,1998 ---
++;--- Fixed Tppulse = 25us and Tvprog = 10us ---
++;--- Written November 6, 1997 ---
++;--- ---
++;--- ASSEMBLER: IASM12 v. 3.06 ---
++;--- P & E Microcomputer Systems---
++;--- ---
++;--- by Matt Ruff, BE/OS Systems Engineering ---
++;--- ---
++;--- This code is intended for instructional use ---
++;--- only. Motorola assumes no liability for use ---
++;--- or modification of this code. It is the ---
++;--- responsibility of the user to verify all ---
++;--- parameters, variables, timings, etc. ---
++;--- ---
++;--------------------------------------------------------
++;------------------------------ Equates ----------------------------------
++		
++TmpStorage:
++FLASHStart:	.word 0x8000		;FLASH Start address
++FLASHEnd:	.word 0x8002		;FLASH End address (non-inclusive)
++REGStart:	.word 0x0	     	;Register Start address
++DATAStart:	.word 0x900		;Start of memory address to read from
++SaveY:		.word 0x0		;tmp storage for Y since I don't want
++					;to mess with stack
++NumWritten:	.word 0x0		;how many words have been written
++Npp:		.byte 0			;Number of programming pulses applied
++MarginFlag:	.byte 0			;Programming margin flag
++
++		.equ MaxNpp, 50		;50 pulses maximum
++		.equ FEELCK, 0xF4	;FLASH Lock Control Register
++		.equ FEEMCR, 0xF5	;FLASH Module Configuration Register
++		.equ FEECTL, 0xF7	;FLASH Control Register
++		.equ LOCK, 0x01		;Lock register Bit in FEELCK
++		.equ BOOTP, 0x01	;Boot Protect Bit in FEEMCR
++		.equ SVFP, 0x08		;Status Vfp Voltage Bit in FEECTL
++		.equ ERASE, 0x04	;Erase Control Bit in FEECTL
++		.equ LAT, 0x02		;Programming Latch Control bit in FEECTL
++		.equ ENPE, 0x01		;Enable Program/Erase Voltage Bit in FEECTL
++Start:
++                LEAS TmpStorage,PC	;Set SP to the beginning of tmp vars
++                SEI			;disable interrupts - no SP
++		CLRA
++		CLRB
++		STD NumWritten,SP	;Clear Num Bytes Written counter
++		LDX FLASHStart,SP
++		LDY REGStart,SP
++		BRSET FEECTL,Y, 8,NoError
++					;If Vfp not present, output an error
++		LBRA Done
++NoError:
++		LDY DATAStart,SP
++Loop:
++		CLR Npp,SP		;Clear number of pulses
++		CLR MarginFlag,SP	;Clear MarginFlag
++;- Step 2 -
++		STY SaveY,SP
++		LDY REGStart,SP
++		LDAB #LAT
++		STAB FEECTL,Y
++		LDY SaveY,SP
++				;Set LAT in FEECTL
++		LDAB 0,Y 	;Load from RAM
++;- Step 3 -
++		STAB 0,X	;Store in Flash
++;- Step 4 -
++STEP4:
++		STY SaveY,SP
++		LDY REGStart,SP
++		BSET FEECTL,Y,ENPE
++				;Apply programming voltage (Set ENPE)
++;- Step 5 -
++		LEAY 2,PC
++		BRA dly_22us	;Delay time for prog pulse (Tppulse)
++;- Step 6 -
++		LDY REGStart,SP
++		BCLR FEECTL,Y,ENPE
++				;Remove programming voltage (Clear ENPE)
++;- Step 7 -
++		LEAY 2,PC
++		BRA dly_10us	;Delay for high voltage turn off (Tvprog)
++		LDY SaveY,SP
++		TST MarginFlag,SP	;Is MarginFlag set??
++		BEQ NoFlag	;If not, go bump counter and check data
++YesFlag:
++		DEC Npp,SP	;Decrement Npp
++		TST Npp,SP	;Is Npp=0?
++		BNE STEP4	;If not, go to Step 4
++;- Step 9 -
++		LDAA 0,X	;Read FEEPROM location to verify programming
++		CMPA 0,Y	;Is it the same as the byte to be programmed?
++		BNE Done	;Programming failed, output an error
++;- Step 10 -
++		STY SaveY,SP
++		LDY REGStart,SP
++		BCLR FEECTL,Y,LAT	;Clear LAT in FEECTL
++		LDY SaveY,SP
++
++		INX
++		INY
++		CPX FLASHEnd,SP	;Check for end
++		BNE Loop	;If not, go back to start!
++		BRA Done	;If so, quit.
++NoFlag:
++		INC Npp,SP	;Increment number of prog pulses applied
++		LDAA 0,X	;Read FEEPROM location to verify programming
++		CMPA 0,Y	;Is it the same as the byte to be programmed?
++		BEQ SetMarginFlag
++				;If so, set the margin flag
++		LDAB Npp,SP
++		CMPB #MaxNpp	;Have we applied max number of pulses?
++		BLS STEP4	;If not, continue programming
++		BRA Done	;If so, we have a problem
++SetMarginFlag:
++		INC MarginFlag,SP	;Set MarginFlag
++		BRA STEP4
++Done:
++		TFR X, D
++		SUBD FLASHStart,SP
++		STD NumWritten,SP
++		BGND
++;-----------------------------------------------------------------------
++;---------------------- Delay Subroutines -----------------------
++;-----------------------------------------------------------------------
++;-----------------------------------------------------------------------
++;--- Microsecond Delay Routines (8MHz e clock) ---
++;--- ---
++;--- To reduce loop overhead, the following routines have been ---
++;--- optimized by counting cycle time and calculating the delay ---
++;--- based on an 8MHz system clock. ---
++;-----------------------------------------------------------------------
++dly_22us:			; Delay for about 22-23us
++; JSR or BSR is 4 cycles
++; Total delay is {4+2+(loopcount*3)+5}*125ns
++; For a loopcount of 52 yields 20.875us
++		LDD #52		; -2 cycles-
++d_22u:
++		DBNE D,d_22u	; -3 cycles-
++		JMP 0,Y
++				; -5 cycles-
++
++dly_10us:			; Delay for about 10us
++				; JSR or BSR is 4 cycles
++				; Total delay is {4+2+(loopcount*3)+5}*125ns
++				; For a loopcount of 24 yields 10.375us
++		LDD #24		; -2 cycles-
++d_10u:
++		DBNE D,d_10u	; -3 cycles-
++		JMP 0,Y
++				; -5 cycles-
++--------------------------------convert.c-------------------------------
++#include <stdio.h>
++#include <string.h>
++main()
++{
++  char line[200];
++  char *data = line + 8;
++  int i;
++  int count = 0;
++
++  printf ("unsigned char prog[] = {\n ");
++  while (fgets (line, 200, stdin))
++    {
++      if (strncmp (line, "S1", 2) != 0)
++        continue;
++      for (i = 0; i < strlen(data) - 4; i += 2)
++        {
++          printf ("0x");
++          putchar (data[i]);
++          putchar (data[i+1]);
++          printf (", ");
++          count++;
++          if (!(count % 8))
++            printf("\n ");
++        }
++    }
++    printf(" };\n");
++    printf("#define SIZE_PROG %d\n", count);
++}
++*/
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/config/m68hc11/m68hc11.mt gdb-6.4-m68hc1x/gdb/config/m68hc11/m68hc11.mt
+--- gdb-6.4/gdb/config/m68hc11/m68hc11.mt	Wed Sep  3 17:02:50 2003
++++ gdb-6.4-m68hc1x/gdb/config/m68hc11/m68hc11.mt	Sat Jan 21 15:28:49 2006
+@@ -1,5 +1,5 @@
+ # Target: Motorola 68HC11 processor
+-TDEPFILES= m68hc11-tdep.o
++TDEPFILES= m68hc11-tdep.o m68hc11-rom.o monitor.o dsrec.o remote-bdm12.o bdm12.o
+ SIM_OBS= remote-sim.o
+ SIM= ../sim/m68hc11/libsim.a -lm
+ 
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/dsrec.c gdb-6.4-m68hc1x/gdb/dsrec.c
+--- gdb-6.4/gdb/dsrec.c	Sat Feb 12 01:39:18 2005
++++ gdb-6.4-m68hc1x/gdb/dsrec.c	Sat Jan 21 15:28:49 2006
+@@ -49,7 +49,8 @@ static int make_srec (char *srec, CORE_A
+ void
+ load_srec (struct serial *desc, const char *file, bfd_vma load_offset,
+ 	   int maxrecsize,
+-	   int flags, int hashmark, int (*waitack) (void))
++	   int flags, int hashmark, int (*waitack) (void),
++           int (*serial_write) PARAMS ((struct serial*, char*, int)))
+ {
+   bfd *abfd;
+   asection *s;
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/m68hc11-rom.c gdb-6.4-m68hc1x/gdb/m68hc11-rom.c
+--- gdb-6.4/gdb/m68hc11-rom.c	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/gdb/m68hc11-rom.c	Sat Jan 21 17:12:43 2006
+@@ -0,0 +1,732 @@
++/* Remote target glue for various Motorola 68HC11/68HC12 monitors.
++   Copyright (C) 2000 Free Software Foundation, Inc.
++   Contributed by Stephane Carrez, stcarrez@worldnet.fr
++
++This file is part of GDB.
++
++This program is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 2 of the License, or
++(at your option) any later version.
++
++This program is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with this program; if not, write to the Free Software
++Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
++
++
++#include "defs.h"
++#include "gdbcore.h"
++#include "target.h"
++#include "monitor.h"
++#include "serial.h"
++#include "arch-utils.h"
++#include "event-loop.h"
++#include "event-top.h"
++#include "target.h"
++#include "inferior.h"
++#include <bfd/libbfd.h>
++#include <string.h>
++#ifndef __MINGW32__
++#include <sys/poll.h>
++#endif
++
++/* Register numbers of various important registers.  */
++#define HARD_X_REGNUM 	0
++#define HARD_D_REGNUM	1
++#define HARD_Y_REGNUM   2
++#define HARD_SP_REGNUM 	3
++#define HARD_PC_REGNUM 	4
++
++#define HARD_A_REGNUM   5
++#define HARD_B_REGNUM   6
++#define HARD_CCR_REGNUM 7
++#define M68HC11_LAST_HARD_REG (HARD_CCR_REGNUM)
++#define M68HC11_NUM_REGS (8)
++
++/* Switch gdb to use the given architecture.  The architecture is
++   controlled by the monitor we are connected to, not by our program.
++   Each time we connect to the monitor, update the gdb-arch to
++   reflect the target arch.  */
++static void
++set_gdbarch (enum bfd_architecture arch, unsigned long mach)
++{
++  struct gdbarch_info info;
++  bfd abfd;
++
++  bfd_default_set_arch_mach (&abfd, arch, mach);
++
++  memset (&info, 0, sizeof info);
++  info.bfd_arch_info = bfd_get_arch_info (&abfd);
++
++  if (!gdbarch_update_p (info))
++    {
++      internal_error (__FILE__, __LINE__,
++                      "monitor: failed to select architecture");
++    }
++}
++
++/* Special write routine to send monitor commands on the serial line.
++   The 68HC11/68HC12 have a 1 character SCI input queue.  When a character
++   is sent, it is echoed by the monitor.  SCI read/write operations are
++   made in polling mode.  Due to the 1 character length, the polling
++   and the echo, a character sent by Gdb can be lost.  We pad the
++   monitor command with a \0.  If the \0 is lost we don't care and
++   otherwise it is ignored by the monitor.  */
++static int
++m68hc11_serial_write (struct serial* scb, char* str, int len)
++{
++  int result = 0;
++  
++  while (len)
++    {
++      result = serial_write (scb, str, 1);
++      str++;
++      len--;
++      if (result)
++        break;
++
++      if (str[-1] == '\r' && len == 0)
++        break;
++      
++      /* Pad with a \0.  */
++      result = serial_write (scb, "", 1);
++      if (result)
++        break;
++    }
++  return result;
++}
++
++typedef struct console
++{
++  int escaped;
++  int escape_char;
++  int pos;
++  struct serial* target;
++  char cmd[256];
++  int cmdlen;
++  int interrupt;
++} *console_t;
++
++static struct console console_data;
++
++static int
++console_input (console_t cons, char c)
++{
++  int result;
++  
++  if (cons->escaped)
++    {
++      if (c == '.')
++        cons->interrupt = 1;
++
++      cons->escaped = 0;
++      return 0;
++    }
++  if (cons->pos == 0 && cons->escape_char == c)
++    {
++      cons->escaped = 1;
++      return 0;
++    }
++
++  result = serial_write (cons->target, &c, 1);
++  return 0;
++}
++
++static void
++do_console_input (gdb_client_data d)
++{
++  char c;
++  int result;
++  
++  result = read (input_fd, &c, 1);
++  if (result == 1)
++    {
++      console_input (&console_data, c);
++    }
++}
++
++static int
++m68hc11_wait_filter (char *buf,
++		     int bufmax,
++		     int *ext_resp_len,
++		     struct target_waitstatus *status)
++{
++  char c;
++  int result;
++  extern struct serial* monitor_desc;
++  int seen_zero = 0;
++  int timeout;
++  int i, cnt;
++#ifndef __MINGW32__
++  struct pollfd fds[2];
++
++  fds[0].fd = input_fd;
++  fds[0].events = POLLIN;
++  fds[1].fd = deprecated_serial_fd (monitor_desc);
++  fds[1].events = POLLIN;
++
++  console_data.escaped = 0;
++  console_data.escape_char = '~';
++  console_data.pos = 0;
++  console_data.target = monitor_desc;
++  console_data.interrupt = 0;
++  cnt = 0;
++  timeout = -1;
++  while (1)
++    {
++      gdb_flush (gdb_stdout);
++      result = poll (fds, 2, timeout);
++      if (result > 0 && (fds[0].revents & POLLIN))
++        {
++          do_console_input (0);
++        }
++      if (result > 0 && (fds[1].revents & POLLIN))
++        {
++          while (1)
++            {
++              c = serial_readchar (monitor_desc, 0);
++              if (c == SERIAL_TIMEOUT)
++                break;
++      
++              /* For Buffalo monitor, a \0 is printed before the prompt
++                 and before the monitor output in general.  */
++              if (seen_zero && c == '>')
++                {
++                  *ext_resp_len = 0;
++                  return 0;
++                }
++
++              /* If we see a \0, keep track of the characters for some
++                 delay to have a chance to identify the monitor prompt.
++                 If the delay is too long, what we received is printed
++                 as a standard output produced by the program.  */
++              if (c == 0)
++                {
++                  seen_zero++;
++                  timeout = 1000; /* 250 ms timeout  */
++                }
++              else if (seen_zero && step_range_end == 0)
++                {
++                  if (cnt < bufmax)
++                    buf[cnt++] = c;
++                }
++              /* Don't print when doing a single step.  */
++              else if (step_range_end == 0)
++                {
++                  putchar_unfiltered (c);
++                }
++            }
++        }
++      else if (result < 0)
++        {
++          for (i = 0; i < cnt; i++)
++            putchar_unfiltered (buf[i]);
++
++          cnt = 0;
++          seen_zero = 0;
++          timeout = -1;
++        }
++    }
++#else
++  int dt;
++  
++  console_data.escaped = 0;
++  console_data.escape_char = '~';
++  console_data.pos = 0;
++  console_data.target = monitor_desc;
++  console_data.interrupt = 0;
++  cnt = 0;
++  dt = 0;
++  timeout = -1;
++  while (1)
++    {
++      gdb_flush (gdb_stdout);
++      if (_rl_input_available ())
++        {
++          do_console_input (0);
++        }
++      result = serial_readchar (monitor_desc, 10);
++      if (result == SERIAL_TIMEOUT && (timeout < 0 || dt > 0))
++        {
++          if (timeout > 0)
++            dt--;
++          continue;
++        }
++      
++      if (result != SERIAL_TIMEOUT)
++        {
++          c = result;
++          while (1)
++            {
++              /* For Buffalo monitor, a \0 is printed before the prompt
++                 and before the monitor output in general.  */
++              if (seen_zero && c == '>')
++                {
++                  *ext_resp_len = 0;
++                  return 0;
++                }
++
++              /* If we see a \0, keep track of the characters for some
++                 delay to have a chance to identify the monitor prompt.
++                 If the delay is too long, what we received is printed
++                 as a standard output produced by the program.  */
++              if (c == 0)
++                {
++                  seen_zero++;
++                  timeout = 1000; /* 250 ms timeout  */
++                }
++              else if (seen_zero && step_range_end == 0)
++                {
++                  if (cnt < bufmax)
++                    buf[cnt++] = c;
++                }
++              /* Don't print when doing a single step.  */
++              else if (step_range_end == 0)
++                {
++                  putchar_unfiltered (c);
++                }
++
++              c = serial_readchar (monitor_desc, 0);
++              if (c == SERIAL_TIMEOUT)
++                break;
++            }
++          if (timeout > 0)
++            dt = timeout / 10;
++        }
++      else
++        {
++          for (i = 0; i < cnt; i++)
++            putchar_unfiltered (buf[i]);
++
++          cnt = 0;
++          seen_zero = 0;
++          timeout = -1;
++        }
++    }
++#endif
++  return 0;
++}
++
++
++/* Buffalo 68HC11 monitor.  */
++
++static void buffalo_open (char *args, int from_tty);
++
++/* This array of registers needs to match the indexes used by GDB.  The
++   whole reason this exists is because the various ROM monitors use
++   different names than GDB does, and don't support all the registers
++   either.  So, typing "info reg sp" becomes an "S".  */
++
++static char *buffalo_regnames[M68HC11_NUM_REGS] =
++{
++  "X", NULL, "Y", "S", "P", "A", "B", "C"
++};
++
++static struct target_ops buffalo_ops;
++static struct monitor_ops buffalo_cmds;
++
++/* Initialization strings to wakeup the monitor.
++   Send both \r and \030 (^X) to abort a possible current command.  */
++static char *buffalo_inits[] = {
++  /* First command to invalidate a possible command ('~') and
++     to acknowledge the monitor after a reset ('\r').  */
++  "~\r",
++
++  /* Second command ^X to abort a possible current command
++     such as 'asm' and 'rm'.  */
++  "\030",
++  NULL
++};
++
++static int
++m68hc11_dumpregs (void)
++{
++  char buf[256];
++  int resp_len;
++  char *p;
++  char reg_d[5];
++  
++  /* Send the dump register command to the monitor and
++     get the reply.  */
++  monitor_printf ("rd\r");
++  resp_len = monitor_expect ("\r", buf, sizeof (buf));
++
++  memset (reg_d, 0, sizeof (reg_d));
++  p = buf;
++  while (p && (p[0] == '\r' || p[0] == '\n'))
++    p++;
++  
++  while (p && p[0] != '\r' && p[0] != '\n' && p[1] == '-')
++    {
++      int reg;
++      char *q;
++      
++      if (p[0] == 'P')
++        reg = HARD_PC_REGNUM;
++      else if (p[0] == 'Y')
++        reg = HARD_Y_REGNUM;
++      else if (p[0] == 'X')
++        reg = HARD_X_REGNUM;
++      else if (p[0] == 'S')
++        reg = HARD_SP_REGNUM;
++      else if (p[0] == 'C')
++        reg = HARD_CCR_REGNUM;
++      else if (p[0] == 'A')
++        reg = HARD_A_REGNUM;
++      else if (p[0] == 'B')
++        reg = HARD_B_REGNUM;
++      else
++        break;
++
++      q = &p[2];
++      p = strchr (q, ' ');
++      if (p == 0)
++        p = strchr (q, '\t');
++      if (p == 0)
++        p = strchr (q, '\n');
++      if (p)
++        *p++ = 0;
++
++      if (reg == HARD_A_REGNUM)
++        {
++          reg_d[0] = q[0];
++          reg_d[1] = q[1];
++        }
++      else if (reg == HARD_B_REGNUM)
++        {
++          reg_d[2] = q[0];
++          reg_d[3] = q[1];
++        }
++      monitor_supply_register (reg, q);
++    }
++
++  /* If we got the value of both A and B, set the value of D.  */
++  if (reg_d[0] && reg_d[2])
++    monitor_supply_register (HARD_D_REGNUM, reg_d);
++
++
++  monitor_expect (" ", 0, 0);
++  monitor_printf_noecho ("\r");
++  monitor_expect_prompt (0, 0);
++  return 0;
++}
++
++static void
++init_buffalo_cmds (void)
++{
++  buffalo_cmds.dumpregs = m68hc11_dumpregs;
++  buffalo_cmds.flags = MO_NO_ECHO_ON_OPEN | MO_GETMEM_16_BOUNDARY |
++    MO_SETMEM_INTERACTIVE | MO_SETREG_INTERACTIVE |
++    MO_CLR_BREAK_USES_ADDR | MO_GETMEM_NEEDS_RANGE | MO_FILL_USES_ADDR;
++  buffalo_cmds.init = buffalo_inits;	/* Init strings */
++  buffalo_cmds.cont = "p\r";            /* continue command */
++  buffalo_cmds.step = "t 1\r";          /* single step */
++  buffalo_cmds.stop = NULL;             /* interrupt command */
++  buffalo_cmds.set_break = "br %x\r";	/* set a breakpoint */
++  buffalo_cmds.clr_break = "br -%x\r";	/* clear a breakpoint */
++  buffalo_cmds.clr_all_break = "br -\r";	/* clear all breakpoints */
++  buffalo_cmds.fill = "bf %x %x %x\r";	/* fill (start end val) */
++  buffalo_cmds.setmem.cmdb = "mm %x\r";	/* setmem.cmdb (addr, value) */
++  buffalo_cmds.setmem.cmdw = NULL;
++  buffalo_cmds.setmem.cmdl = NULL;
++  buffalo_cmds.setmem.cmdll = NULL;	/* setmem.cmdll (addr, value) */
++  buffalo_cmds.setmem.resp_delim = "[\r\n]*[0-9a-fA-F]+ [0-9a-fA-F]+ ";
++  buffalo_cmds.setmem.term = NULL;	/* setmem.term */
++  buffalo_cmds.setmem.term_cmd = NULL;	/* setmem.term_cmd */
++  buffalo_cmds.getmem.cmdb = "md %x %x\r";	/* getmem.cmdb (addr, addr2) */
++  buffalo_cmds.getmem.cmdw = NULL;
++  buffalo_cmds.getmem.cmdl = NULL;
++  buffalo_cmds.getmem.cmdll = NULL;	/* getmem.cmdll (addr, addr2) */
++  buffalo_cmds.getmem.resp_delim = " ";	/* getmem.resp_delim */
++  buffalo_cmds.getmem.term = NULL;	/* getmem.term */
++  buffalo_cmds.getmem.term_cmd = NULL;	/* getmem.term_cmd */
++  buffalo_cmds.setreg.cmd = "rm %s\r";	/* setreg.cmd (name, value) */
++  buffalo_cmds.setreg.resp_delim =
++    "\nP.*S\\-[0-9a-fA-F]+ [\r\n]+.[PXYABCS]\\-[0-9a-fA-F]+ ";
++  buffalo_cmds.setreg.term = NULL;	/* setreg.term */
++  buffalo_cmds.setreg.term_cmd = NULL;	/* setreg.term_cmd */
++  buffalo_cmds.getreg.cmd = NULL;	/* getreg.cmd (name) */
++  buffalo_cmds.getreg.resp_delim = NULL;/* getreg.resp_delim */
++  buffalo_cmds.getreg.term = NULL;	/* getreg.term */
++  buffalo_cmds.getreg.term_cmd = NULL;	/* getreg.term_cmd */
++  buffalo_cmds.dump_registers = NULL;   /* dump_registers */
++  /* register_pattern */
++  buffalo_cmds.register_pattern = NULL;
++  buffalo_cmds.supply_register = NULL;	/* supply_register */
++  buffalo_cmds.load_routine = NULL;	/* load_routine (defaults to SRECs) */
++  buffalo_cmds.load = "load t\r";	/* download command */
++  buffalo_cmds.loadresp = NULL;	/* load response */
++  buffalo_cmds.prompt = ">";	/* monitor command prompt */
++  buffalo_cmds.line_term = "\r";	/* end-of-line terminator */
++  buffalo_cmds.cmd_end = NULL;	/* optional command terminator */
++  buffalo_cmds.target = &buffalo_ops;	/* target operations */
++  buffalo_cmds.stopbits = SERIAL_2_STOPBITS;	/* number of stop bits */
++  buffalo_cmds.regnames = buffalo_regnames;	/* registers names */
++  buffalo_cmds.magic = MONITOR_OPS_MAGIC;	/* magic */
++  buffalo_cmds.serial_write = m68hc11_serial_write;
++  buffalo_cmds.wait_filter = m68hc11_wait_filter;
++}
++
++static void
++buffalo_open (char *args, int from_tty)
++{
++  monitor_open (args, &buffalo_cmds, from_tty);
++  set_gdbarch (bfd_arch_m68hc11, 0);
++}
++
++
++/* DBug 68HC12 monitor.  */
++
++static void dbug_open (char *args, int from_tty);
++
++/* This array of registers needs to match the indexes used by GDB.  The
++   whole reason this exists is because the various ROM monitors use
++   different names than GDB does, and don't support all the registers
++   either.  So, typing "info reg sp" becomes an "S".  */
++
++static char *dbug_regnames[M68HC11_NUM_REGS] =
++{
++  "X", "D", "Y", "SP", "PC", "A", "B", "CCR"
++};
++
++static struct target_ops dbug_ops;
++static struct monitor_ops dbug_cmds;
++
++/* Initialization strings to wakeup the monitor.
++   Send both \r and \030 (^X) to abort a possible current command.  */
++static char *dbug_inits[] =
++{ "\r\030", NULL};
++
++static int
++dbug_dumpregs (void)
++{
++  char buf[256];
++  int resp_len;
++  char *p;
++  int i;
++  static int reg_list[] = {
++    HARD_PC_REGNUM,
++    HARD_SP_REGNUM,
++    HARD_X_REGNUM,
++    HARD_Y_REGNUM,
++    HARD_D_REGNUM,
++    -1
++  };
++
++  /* Send the dump register command to the monitor and
++     get the reply.  */
++  monitor_printf ("rd\r");
++  monitor_printf_noecho ("\r");
++  resp_len = monitor_expect_prompt (buf, sizeof (buf));
++
++  p = buf;
++  while (p && strncmp (p, "CCR = SXHI NZVC", 15) != 0)
++    p++;
++
++  if (p == 0)
++    {
++      return -1;
++    }
++  
++  /* Skip the CCR marker.  */
++  while (p && p[0] != '\r' && p[0] != '\n')
++    p++;
++
++  /* Skip end of line markers.  */
++  while (p && (p[0] == '\r' || p[0] == '\n'))
++    p++;
++  
++  for (i = 0; p && reg_list[i] >= 0; i++)
++    {
++      char *q;
++
++      q = strchr (p, ' ');
++      if (q == 0)
++        q = strchr (p, '\t');
++
++      if (q)
++        *q++ = 0;
++
++      /* Value for register D is split with ':' ex: 45:23.  */
++      if (p[2] == ':')
++        {
++          p[2] = p[1];
++          p[1] = p[0];
++          p++;
++        }
++      monitor_supply_register (reg_list[i], p);
++      p = q;
++      while (p && p[0] == ' ')
++        p++;
++    }
++
++  /* Last value is the CCR expressed in bits.  */
++  if (p)
++    {
++      int bit, val;
++
++      val = 0;
++      for (bit = 7; p[0] && bit >= 0; )
++        {
++          char c = *p++;
++
++          if (c == ' ')
++            continue;
++
++          if (c == '1')
++            val |= (1 << bit);
++          bit--;
++        }
++      sprintf (buf, "%x", val);
++      monitor_supply_register (HARD_CCR_REGNUM, buf);
++    }
++  return 0;
++}
++
++static int (* monitor_xfer_memory) (CORE_ADDR, gdb_byte*, int, int,
++                                    struct mem_attrib *attrib,
++                                    struct target_ops*);
++
++static int
++dbug_xfer_memory (CORE_ADDR memaddr, gdb_byte *myaddr, int len, int write,
++                  struct mem_attrib *attrib,
++                  struct target_ops *target)
++{
++  unsigned char val;
++  int written = 0;
++  char buf[16];
++  int result;
++
++  if (write == 0)
++    return monitor_xfer_memory (memaddr, myaddr, len, write, attrib, target);
++
++  if (len == 0)
++    return 0;
++
++  /* Enter the sub mode */
++  monitor_printf ("mm %x\r", (int) memaddr);
++
++  /* Wait output (7 chars); If we get the prompt, that's too bad.  */
++  result = monitor_expect (">", buf, 8);
++  if (result > 0)
++    return 0;
++  
++  while (len)
++    {
++      val = *myaddr;
++      monitor_printf ("%x\r", val);
++
++      result = monitor_expect (">", buf, 8);
++      if (result > 0)
++        return written;
++      
++      myaddr++;
++      memaddr++;
++      written++;
++      /* If we wanted to, here we could validate the address */
++      len--;
++    }
++  /* Now exit the sub mode */
++  monitor_printf (".\r");
++  monitor_expect_prompt (NULL, 0);
++  return written;
++}
++
++static void
++init_dbug_cmds (void)
++{
++  dbug_cmds.dumpregs = dbug_dumpregs;
++  dbug_cmds.flags = MO_NO_ECHO_ON_OPEN | MO_GETMEM_16_BOUNDARY |
++    MO_SETMEM_INTERACTIVE |
++    MO_CLR_BREAK_USES_ADDR | MO_GETMEM_NEEDS_RANGE | MO_FILL_USES_ADDR;
++  dbug_cmds.init = dbug_inits;	/* Init strings */
++  dbug_cmds.cont = "g\r";            /* continue command */
++  dbug_cmds.step = "t 1\r";          /* single step */
++  dbug_cmds.stop = NULL;             /* interrupt command */
++  dbug_cmds.set_break = "br %x\r";	/* set a breakpoint */
++  dbug_cmds.clr_break = "nobr %x\r";	/* clear a breakpoint */
++  dbug_cmds.clr_all_break = "nobr\r";	/* clear all breakpoints */
++  dbug_cmds.fill = "bf %x %x %x\r";	/* fill (start end val) */
++  dbug_cmds.setmem.cmdb = "mm %x\r";	/* setmem.cmdb (addr, value) */
++  dbug_cmds.setmem.cmdw = NULL;
++  dbug_cmds.setmem.cmdl = NULL;
++  dbug_cmds.setmem.cmdll = NULL;	/* setmem.cmdll (addr, value) */
++  dbug_cmds.setmem.resp_delim = NULL;
++  dbug_cmds.setmem.term = NULL;	/* setmem.term */
++  dbug_cmds.setmem.term_cmd = ".\r";	/* setmem.term_cmd */
++  dbug_cmds.getmem.cmdb = "md %x %x\r";	/* getmem.cmdb (addr, addr2) */
++  dbug_cmds.getmem.cmdw = NULL;
++  dbug_cmds.getmem.cmdl = NULL;
++  dbug_cmds.getmem.cmdll = NULL;	/* getmem.cmdll (addr, addr2) */
++  dbug_cmds.getmem.resp_delim = " ";	/* getmem.resp_delim */
++  dbug_cmds.getmem.term = NULL;	/* getmem.term */
++  dbug_cmds.getmem.term_cmd = NULL;	/* getmem.term_cmd */
++  dbug_cmds.setreg.cmd = "%s %x\r";	/* setreg.cmd (name, value) */
++  dbug_cmds.setreg.resp_delim = NULL;
++  dbug_cmds.setreg.term = NULL;	/* setreg.term */
++  dbug_cmds.setreg.term_cmd = NULL;	/* setreg.term_cmd */
++  dbug_cmds.getreg.cmd = NULL;	/* getreg.cmd (name) */
++  dbug_cmds.getreg.resp_delim = " ";	/* getreg.resp_delim */
++  dbug_cmds.getreg.term = NULL;	/* getreg.term */
++  dbug_cmds.getreg.term_cmd = NULL;	/* getreg.term_cmd */
++  dbug_cmds.dump_registers = NULL;;     /* dump_registers */
++  /* register_pattern */
++  dbug_cmds.register_pattern = NULL;
++  dbug_cmds.supply_register = NULL;	/* supply_register */
++  dbug_cmds.load_routine = NULL;	/* load_routine (defaults to SRECs) */
++  dbug_cmds.load = "load\r";	/* download command */
++  dbug_cmds.loadresp = NULL;	/* load response */
++  dbug_cmds.prompt = ">";	/* monitor command prompt */
++  dbug_cmds.line_term = "\r";	/* end-of-line terminator */
++  dbug_cmds.cmd_end = NULL;	/* optional command terminator */
++  dbug_cmds.target = &dbug_ops;	/* target operations */
++  dbug_cmds.stopbits = SERIAL_2_STOPBITS;	/* number of stop bits */
++  dbug_cmds.regnames = dbug_regnames;	/* registers names */
++  dbug_cmds.magic = MONITOR_OPS_MAGIC;	/* magic */
++}
++
++static void
++dbug_open (char *args, int from_tty)
++{
++  monitor_open (args, &dbug_cmds, from_tty);
++  set_gdbarch (bfd_arch_m68hc12, 0);
++}
++
++
++/* Initialize all 68HC11/68HC12 monitors.  */
++
++void
++_initialize_m68hc11_rom (void)
++{
++  /* 68HC11 Buffalo monitor.  */
++  init_buffalo_cmds ();
++  init_monitor_ops (&buffalo_ops);
++
++  buffalo_ops.to_shortname = "buffalo";
++  buffalo_ops.to_longname = "Buffalo monitor";
++  buffalo_ops.to_doc = "Debug via the Buffalo 68HC11 monitor.\n\
++Specify the serial device it is connected to (e.g. /dev/ttya).";
++  buffalo_ops.to_open = buffalo_open;
++
++  add_target (&buffalo_ops);
++
++  /* 68HC12 DBug monitor.  */
++  init_dbug_cmds ();
++  init_monitor_ops (&dbug_ops);
++
++  dbug_ops.to_shortname = "dbug";
++  dbug_ops.to_longname = "DBug monitor";
++  dbug_ops.to_doc = "Debug via the DBug 68HC12 monitor.\n\
++Specify the serial device it is connected to (e.g. /dev/ttya).";
++  dbug_ops.to_open = dbug_open;
++  monitor_xfer_memory = dbug_ops.deprecated_xfer_memory;
++  dbug_ops.deprecated_xfer_memory = dbug_xfer_memory;
++  
++  add_target (&dbug_ops);
++} 
++
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/monitor.c gdb-6.4-m68hc1x/gdb/monitor.c
+--- gdb-6.4/gdb/monitor.c	Fri Feb 18 19:58:56 2005
++++ gdb-6.4-m68hc1x/gdb/monitor.c	Sat Jan 21 15:28:49 2006
+@@ -122,7 +122,7 @@ static CORE_ADDR *breakaddr;
+    that monitor_open knows that we don't have a file open when the
+    program starts.  */
+ 
+-static struct serial *monitor_desc = NULL;
++struct serial *monitor_desc = NULL;
+ 
+ /* Pointer to regexp pattern matching data */
+ 
+@@ -138,6 +138,12 @@ static char setmem_resp_delim_fastmap[25
+ static struct re_pattern_buffer setreg_resp_delim_pattern;
+ static char setreg_resp_delim_fastmap[256];
+ 
++static struct re_pattern_buffer setmem_resp_delim_pattern;
++static char setmem_resp_delim_fastmap[256];
++
++static struct re_pattern_buffer setreg_resp_delim_pattern;
++static char setreg_resp_delim_fastmap[256];
++
+ static int dump_reg_flag;	/* Non-zero means do a dump_registers cmd when
+ 				   monitor_wait wakes up.  */
+ 
+@@ -2161,7 +2167,8 @@ monitor_load (char *file, int from_tty)
+       load_srec (monitor_desc, file, (bfd_vma) load_offset,
+ 		 32, SREC_ALL, hashmark,
+ 		 current_monitor->flags & MO_SREC_ACK ?
+-		 monitor_wait_srec_ack : NULL);
++		 monitor_wait_srec_ack : NULL,
++                 current_monitor->serial_write);
+ 
+       monitor_expect_prompt (NULL, 0);
+     }
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/monitor.h gdb-6.4-m68hc1x/gdb/monitor.h
+--- gdb-6.4/gdb/monitor.h	Tue Aug  5 04:44:50 2003
++++ gdb-6.4-m68hc1x/gdb/monitor.h	Sat Jan 21 15:28:49 2006
+@@ -109,6 +109,7 @@ struct monitor_ops
+ 			int bufmax,
+ 			int *response_length,
+ 			struct target_waitstatus * status);
++    int (*serial_write) (struct serial*, char* buf, int buflen);
+     char *load;			/* load command */
+     char *loadresp;		/* Response to load command */
+     char *prompt;		/* monitor command prompt */
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/remote-bdm12.c gdb-6.4-m68hc1x/gdb/remote-bdm12.c
+--- gdb-6.4/gdb/remote-bdm12.c	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/gdb/remote-bdm12.c	Sat Jan 21 17:09:25 2006
+@@ -0,0 +1,718 @@
++/* remote debugging interface for Kevin Ross' BDM12 BDM pod for the 68HC12.
++   Copyright 2001
++   Free Software Foundation, Inc.
++   Contributed by Tim Housel (thousel@usa.net)
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place - Suite 330,
++   Boston, MA 02111-1307, USA.  */
++
++#include "defs.h"
++#include "inferior.h"
++#include "value.h"
++#include "gdb_string.h"
++#include <ctype.h>
++#include <fcntl.h>
++#include <signal.h>
++#include <setjmp.h>
++#include <errno.h>
++#include "terminal.h"
++#include "target.h"
++#include "gdbcore.h"
++#include "gdb/callback.h"
++#include "gdb/signals.h"
++#include "bdm12.h"
++#include "remote-utils.h"
++#include "command.h"
++#include "regcache.h"
++
++/* Prototypes */
++
++extern void _initialize_remote_bdm12 (void);
++
++static void dump_mem (char *buf, int len);
++
++static void gdbbdm12_fetch_register (int regno);
++
++static void gdbbdm12_store_register (int regno);
++
++static void gdbbdm12_kill (void);
++
++static void gdbbdm12_load (char *prog, int fromtty);
++
++static void gdbbdm12_create_inferior (char *exec_file, char *args, char **env, int);
++
++static void gdbbdm12_open (char *args, int from_tty);
++
++static void gdbbdm12_close (int quitting);
++
++static void gdbbdm12_detach (char *args, int from_tty);
++
++static void gdbbdm12_resume (ptid_t pid, int step, enum target_signal siggnal);
++
++static ptid_t gdbbdm12_wait (ptid_t pid, struct target_waitstatus *status);
++
++static void gdbbdm12_prepare_to_store (void);
++struct mem_attrib;
++static int gdbbdm12_xfer_inferior_memory (CORE_ADDR memaddr, gdb_byte *myaddr, 
++                                          int len, int write,
++                                          struct mem_attrib *attrib,
++                                          struct target_ops *target);
++
++static void gdbbdm12_files_info (struct target_ops *target);
++
++static void gdbbdm12_mourn_inferior (void);
++
++static void gdbbdm12_stop (void);
++
++static int gdbbdm12_insert_breakpoint (CORE_ADDR addr, gdb_byte *contents_cache);
++
++static int gdbbdm12_remove_breakpoint (CORE_ADDR addr, gdb_byte *contents_cache);
++
++void pass_command (char *args, int from_tty);
++
++/* Naming convention:
++
++   bdm12_* are the interface to the BDM Hardware (see bdm12.h).
++   gdbbdm12_* are stuff which is internal to gdb.  */
++
++/* Forward data declarations */
++extern struct target_ops gdbbdm12_ops;
++
++static int program_loaded = 0;
++
++/* We must keep track of whether the BDM has been opened or not because
++   GDB can call a target's close routine twice, but bdm12_close doesn't allow
++   this.  We also need to record the result of bdm12_open so we can pass it
++   back to the other bdm12_foo routines.  */
++static int gdbbdm12_opened = 0;
++
++static int bdm12_stop_requested = 0;
++
++static void
++dump_mem (char *buf, int len)
++{
++  if (len <= 8)
++    {
++      if (len == 8 || len == 4)
++        {
++          long l[2];
++          memcpy (l, buf, len);
++          printf_filtered ("\t0x%lx", l[0]);
++          if (len == 8)
++            printf_filtered (" 0x%lx", l[1]);
++          printf_filtered ("\n");
++        }
++      else
++        {
++          int i;
++          printf_filtered ("\t");
++          for (i = 0; i < len; i++)
++            printf_filtered ("0x%x ", buf[i]);
++          printf_filtered ("\n");
++        }
++    }
++}
++
++static void
++gdbbdm12_fetch_register (int regno)
++{
++  static int warn_user = 1;
++  if (regno == -1)
++    {
++      for (regno = 0; regno < NUM_REGS; regno++)
++        gdbbdm12_fetch_register (regno);
++    }
++  else if (REGISTER_NAME (regno) != NULL
++           && *REGISTER_NAME (regno) != '\0')
++    {
++      char buf[MAX_REGISTER_SIZE];
++      int nr_bytes;
++      if (REGISTER_BDM12_REGNO (regno) >= 0)
++        nr_bytes = bdm12_fetch_register (REGISTER_BDM12_REGNO (regno),
++                                         buf, register_size (current_gdbarch, regno));
++      else
++        nr_bytes = 0;
++      if (nr_bytes == 0)
++        /* register not applicable, supply zero's */
++        memset (buf, 0, MAX_REGISTER_SIZE);
++      else if (nr_bytes > 0 && nr_bytes != register_size (current_gdbarch, regno)
++               && warn_user)
++        {
++          fprintf_unfiltered (gdb_stderr,
++                              "Size of register %s (%d/%d) incorrect (%d instead of %d))",
++                              REGISTER_NAME (regno),
++                              regno, REGISTER_BDM12_REGNO (regno),
++                              nr_bytes, register_size (current_gdbarch, regno));
++          warn_user = 0;
++      }
++      regcache_raw_supply (current_regcache, regno, buf);
++      if (sr_get_debug ())
++        {
++          printf_filtered ("gdbbdm12_fetch_register: %d", regno);
++          /* FIXME: We could print something more intelligible.  */
++          dump_mem (buf, register_size (current_gdbarch, regno));
++        }
++    }
++}
++
++
++static void
++gdbbdm12_store_register (int regno)
++{
++  if (regno == -1)
++    {
++      for (regno = 0; regno < NUM_REGS; regno++)
++        gdbbdm12_store_register (regno);
++    }
++  else if (REGISTER_NAME (regno) != NULL
++           && *REGISTER_NAME (regno) != '\0'
++           && REGISTER_BDM12_REGNO (regno) >= 0)
++    {
++      char tmp[MAX_REGISTER_SIZE];
++      int nr_bytes;
++      deprecated_read_register_gen (regno, tmp);
++      nr_bytes = bdm12_store_register (REGISTER_BDM12_REGNO (regno),
++                                       tmp, register_size (current_gdbarch, regno));
++      if (nr_bytes > 0 && nr_bytes != register_size (current_gdbarch, regno))
++        internal_error (__FILE__, __LINE__,
++                        "Register size different than expected");
++      if (sr_get_debug ())
++        {
++          printf_filtered ("gdbbdm12_store_register: %d", regno);
++          /* FIXME: We could print something more intelligible.  */
++          dump_mem (tmp, register_size (current_gdbarch, regno));
++        }
++    }
++}
++
++/* Kill the running program. */
++
++static void
++gdbbdm12_kill (void)
++{
++  if (sr_get_debug ())
++    printf_filtered ("gdbbdm12_kill\n");
++
++  /* make sure everything is closed up okay (e.g. serial port) */
++
++  bdm12_close (1);
++  inferior_ptid = null_ptid;
++}
++
++/* Load an executable file into the target process.  This is expected to
++   not only bring new code into the target process, but also to update
++   GDB's symbol tables to match.  */
++
++static void
++gdbbdm12_load (char *prog, int fromtty)
++{
++  if (sr_get_debug ())
++    printf_filtered ("gdbbdm12_load: prog \"%s\"\n", prog);
++
++  inferior_ptid = null_ptid;
++
++  /* FIXME: We will print two messages on error.
++     Need error to either not print anything if passed NULL or need
++     another routine that doesn't take any arguments.  */
++  if (bdm12_load (prog, NULL, fromtty) == BDM12_RC_FAIL)
++    error ("unable to load program");
++
++  /* FIXME: If a load command should reset the targets registers then
++     a call to bdm12_create_inferior() should go here. */
++
++  program_loaded = 1;
++}
++
++
++/* Start an inferior process and set inferior_pid to its pid.
++   EXEC_FILE is the file to run.
++   ARGS is a string containing the arguments to the program.
++   ENV is the environment vector to pass.  Errors reported with error().
++   This is called not only when we first attach, but also when the
++   user types "run" after having attached.  */
++
++static void
++gdbbdm12_create_inferior (char *exec_file, char *args, char **env, int from_tty)
++{
++  int len;
++  char *arg_buf, **argv;
++
++  if (exec_file == 0 || exec_bfd == 0)
++    warning ("No executable file specified.");
++  if (!program_loaded)
++    warning ("No program loaded.");
++  if (!gdbbdm12_opened)
++      error ("Not connected to the bdm12 interface");
++
++  if (sr_get_debug ())
++    printf_filtered ("gdbbdm12_create_inferior: exec_file \"%s\", args \"%s\"\n",
++                     (exec_file ? exec_file : "(NULL)"),
++                     args);
++
++  remove_breakpoints ();
++  init_wait_for_inferior ();
++
++  if (exec_file != NULL)
++    {
++      len = strlen (exec_file) + 1 + strlen (args) + 1 + /*slop */ 10;
++      arg_buf = (char *) alloca (len);
++      arg_buf[0] = '\0';
++      strcat (arg_buf, exec_file);
++      strcat (arg_buf, " ");
++      strcat (arg_buf, args);
++      argv = buildargv (arg_buf);
++      make_cleanup_freeargv (argv);
++    }
++  else
++    argv = NULL;
++  bdm12_create_inferior (exec_bfd, argv, env);
++
++  inferior_ptid = pid_to_ptid (42);
++  insert_breakpoints ();
++
++  clear_proceed_status ();
++
++  /* NB: Entry point already set by bdm12_create_inferior. */
++  proceed ((CORE_ADDR) -1, TARGET_SIGNAL_DEFAULT, 0);
++}
++
++/* The open routine takes the rest of the parameters from the command,
++   and (if successful) pushes a new target onto the stack.
++   Called when selecting the bdm12 target. EG: (gdb) target bdm12 name.  */
++
++static void
++gdbbdm12_open (char *args, int from_tty)
++{
++  int len;
++  char **argv;
++  BDM12_RC retval;
++
++  if (sr_get_debug ())
++    printf_filtered ("gdbbdm12_open: args \"%s\"\n", args ? args : "(null)");
++
++  /* Remove current bdm12 if one exists.  Only do this if the bdm12 interface
++     has been opened because bdm12_close requires it.
++     This is important because the call to push_target below will cause
++     bdm12_close to be called if the bdm12 interface is already open, but
++     push_target is called after bdm12_open!  We can't move the call to
++     push_target before the call to bdm12_open because bdm12_open may invoke
++     'error'.  */
++
++  if (args == NULL)
++    error("\n\
++Usage: target bdm12 <serial_device> <E-clock rate (1,2,4, or 8 MHz) \n\
++                           <register base> <ram base> <eeprom base> <flash base> \n\
++(ex. target bdm12 com1 8 0x0 0x800 0xd00 0x8000 on Win32, \n\
++  or target bdm12 ttya 8 0x0 0x800 0xd00 0x8000 on UNIX)");
++
++  if (gdbbdm12_opened != 0)
++    unpush_target (&gdbbdm12_ops);
++
++  argv = buildargv (args);
++  if (argv == NULL)
++    error("Insufficient memory available to allocate arg list");
++  make_cleanup_freeargv (argv);
++
++  retval = bdm12_open (argv);
++  if (retval != BDM12_RC_OK)
++    error ("unable to open bdm12 interface\n\
++Usage: target bdm12 <serial_device> <E-clock rate (1,2,4, or 8 MHz) \n\
++                    <register base> <ram base> <eeprom base> <flash base> \n\
++(ex. target bdm12 com1 8 0x0 0x800 0xd00 0x8000 on Win32, \n\
++  or target bdm12 ttya 8 0x0 0x800 0xd00 0x8000 on UNIX)");
++  else
++    gdbbdm12_opened = 1;
++
++  push_target (&gdbbdm12_ops);
++  target_fetch_registers (-1);
++  printf_filtered ("Connected to the bdm12 interface.\n");
++}
++
++/* Does whatever cleanup is required for a target that we are no longer
++   going to be calling.  Argument says whether we are quitting gdb and
++   should not get hung in case of errors, or whether we want a clean
++   termination even if it takes a while.  This routine is automatically
++   always called just before a routine is popped off the target stack.
++   Closing file and freeing memory are typical things it should
++   do.  */
++/* Close out all files and local state before this target loses control. */
++
++static void
++gdbbdm12_close (int quitting)
++{
++  if (sr_get_debug ())
++    printf_filtered ("gdbbdm12_close: quitting %d\n", quitting);
++
++  program_loaded = 0;
++
++  if (gdbbdm12_opened != 0)
++    {
++      bdm12_close (quitting);
++      gdbbdm12_opened = 0;
++    }
++
++  generic_mourn_inferior ();
++}
++
++/* Takes a program previously attached to and detaches it.
++   The program may resume execution (some targets do, some don't) and will
++   no longer stop on signals, etc.  We better not have left any breakpoints
++   in the program or it'll die when it hits one.  ARGS is arguments
++   typed by the user (e.g. a signal to send the process).  FROM_TTY
++   says whether to be verbose or not.  */
++/* Terminate the open connection to the remote debugger.
++   Use this when you want to detach and do something else with your gdb.  */
++
++static void
++gdbbdm12_detach (char *args, int from_tty)
++{
++  if (sr_get_debug ())
++    printf_filtered ("gdbbdm12_detach: args \"%s\"\n", args);
++
++  pop_target ();  /* calls gdbbdm12_close to do the real work */
++  if (from_tty)
++    printf_filtered ("Ending %s debugging\n", target_shortname);
++}
++
++/* Resume execution of the target process.  STEP says whether to single-step
++   or to run free; SIGGNAL is the signal value (e.g. SIGINT) to be given
++   to the target, or zero for no signal.  */
++
++static enum target_signal resume_siggnal;
++static int resume_step;
++
++static void
++gdbbdm12_resume (ptid_t pid, int step, enum target_signal siggnal)
++{
++  if (PIDGET (inferior_ptid) != 42)
++    error ("The program is not being run.");
++
++  if (sr_get_debug ())
++    printf_filtered ("gdbbdm12_resume: step %d, signal %d\n", step, siggnal);
++
++  resume_siggnal = siggnal;
++  resume_step = step;
++}
++
++/* Notify the bdm12 interface of an asynchronous request to stop. */
++
++static void
++gdbbdm12_stop (void)
++{
++  bdm12_stop_requested = 0;
++  if (!bdm12_stop ())
++    {
++      quit ();
++    }
++}
++
++static void
++gdbbdm12_cntrl_c (int signo)
++{
++  bdm12_stop_requested = 1;
++}
++
++/* Wait for inferior process to do something.  Return pid of child,
++   or -1 in case of error; store status through argument pointer STATUS,
++   just as `wait' would. */
++
++static ptid_t
++gdbbdm12_wait (ptid_t pid, struct target_waitstatus *status)
++{
++  static RETSIGTYPE (*prev_sigint) ();
++  int sigrc = 0;
++  enum bdm12_stop reason;
++
++  if (sr_get_debug ())
++    printf_filtered ("gdbbdm12_wait\n");
++
++#if defined (HAVE_SIGACTION) && defined (SA_RESTART)
++  {
++    struct sigaction sa, osa;
++    sa.sa_handler = gdbbdm12_cntrl_c;
++    sigemptyset (&sa.sa_mask);
++    sa.sa_flags = 0;
++    sigaction (SIGINT, &sa, &osa);
++    prev_sigint = osa.sa_handler;
++  }
++#else
++  prev_sigint = signal (SIGINT, gdbbdm12_cntrl_c);
++#endif
++  
++  bdm12_resume (resume_step);
++
++  do
++    bdm12_stop_reason (&reason, &sigrc);
++  while ((reason == BDM12_RUNNING) && !bdm12_stop_requested);
++
++  if (bdm12_stop_requested)
++    gdbbdm12_stop ();
++
++  signal (SIGINT, prev_sigint);
++  resume_step = 0;
++
++  switch (reason)
++    {
++    case BDM12_EXITED:
++      status->kind = TARGET_WAITKIND_EXITED;
++      status->value.integer = sigrc;
++      break;
++    case BDM12_STOPPED:
++      switch (sigrc)
++        {
++        case TARGET_SIGNAL_ABRT:
++          quit ();
++          break;
++        case TARGET_SIGNAL_INT:
++        case TARGET_SIGNAL_TRAP:
++        default:
++          status->kind = TARGET_WAITKIND_STOPPED;
++          status->value.sig = sigrc;
++          break;
++        }
++      break;
++    case BDM12_SIGNALLED:
++      status->kind = TARGET_WAITKIND_SIGNALLED;
++      status->value.sig = sigrc;
++      break;
++    case BDM12_RUNNING:
++    case BDM12_POLLING:
++      /* FIXME: Is this correct? */
++      break;
++    }
++
++  return inferior_ptid;
++}
++
++/* Get ready to modify the registers array.  On machines which store
++   individual registers, this doesn't need to do anything.  On machines
++   which store all the registers in one fell swoop, this makes sure
++   that registers contains all the registers from the program being
++   debugged.  */
++
++static void
++gdbbdm12_prepare_to_store (void)
++{
++  /* Do nothing, since we can store individual regs */
++}
++
++/* Transfer LEN bytes between GDB address MYADDR and target address
++   MEMADDR.  If WRITE is non-zero, transfer them to the target,
++   otherwise transfer them from the target.  TARGET is unused.
++
++   Returns the number of bytes transferred. */
++
++static int
++gdbbdm12_xfer_inferior_memory (CORE_ADDR memaddr, gdb_byte *myaddr, int len,
++                               int write, 
++                               struct mem_attrib *attrib ATTRIBUTE_UNUSED,
++                               struct target_ops *target ATTRIBUTE_UNUSED)
++{
++  if (sr_get_debug ())
++    {
++      /* FIXME: Send to something other than STDOUT? */
++      printf_filtered ("gdbbdm12_xfer_inferior_memory: myaddr 0x");
++      gdb_print_host_address (myaddr, gdb_stdout);
++      printf_filtered (", memaddr 0x%s, len %d, write %d\n",
++                       paddr_nz (memaddr), len, write);
++      if (sr_get_debug () && write)
++        dump_mem (myaddr, len);
++    }
++
++  if (write)
++    {
++      len = bdm12_write (memaddr, myaddr, len);
++    }
++  else
++    {
++      len = bdm12_read (memaddr, myaddr, len);
++      if (sr_get_debug () && len > 0)
++        dump_mem (myaddr, len);
++    }
++  return len;
++}
++
++static void
++gdbbdm12_files_info (struct target_ops *target)
++{
++  char *file = "nothing";
++
++  if (exec_bfd)
++    file = bfd_get_filename (exec_bfd);
++
++  if (sr_get_debug ())
++    printf_filtered ("gdbbdm12_files_info: file \"%s\"\n", file);
++
++  if (exec_bfd)
++    {
++      printf_filtered ("\tAttached to %s running program %s\n",
++                       target_shortname, file);
++    }
++}
++
++/* Clear the BDM interface's notion of what the breakpoints are.  */
++
++static void
++gdbbdm12_mourn_inferior (void)
++{
++  if (sr_get_debug ())
++    printf_filtered ("gdbbdm12_mourn_inferior:\n");
++
++  remove_breakpoints ();
++  generic_mourn_inferior ();
++}
++
++static int
++gdbbdm12_insert_breakpoint (CORE_ADDR addr, gdb_byte *contents_cache)
++{
++  BDM12_RC retcode;
++
++  retcode = bdm12_set_breakpoint (addr);
++
++  switch (retcode)
++    {
++    case BDM12_RC_OK:
++      return 0;
++    case BDM12_RC_INSUFFICIENT_RESOURCES:
++      return ENOMEM;
++    default:
++      return EIO;
++    }
++}
++
++static int
++gdbbdm12_remove_breakpoint (CORE_ADDR addr, gdb_byte *contents_cache)
++{
++  BDM12_RC retcode;
++
++  retcode = bdm12_clear_breakpoint (addr);
++
++  switch (retcode)
++    {
++    case BDM12_RC_OK:
++    case BDM12_RC_UNKNOWN_BREAKPOINT:
++      return 0;
++    case BDM12_RC_INSUFFICIENT_RESOURCES:
++      return ENOMEM;
++    default:
++      return EIO;
++    }
++}
++
++/* Pass the command argument through to the bdm12 interface verbatim.  The
++   bdm12 must do any command interpretation work.  */
++
++void
++pass_command (char *args, int from_tty)
++{
++  if (gdbbdm12_opened == 0)
++    {
++      /* Don't send commands if the interface isn't opened! */
++      error ("Not connected to the bdm12 interface");
++    }
++
++#if 0
++  /* implement later */ 
++  bdm12_do_command (args);
++#endif
++
++  /* Invalidate the register cache, in case the command does
++     something funny. */
++  registers_changed ();
++}
++
++/* Define the target subroutine names */
++
++struct target_ops gdbbdm12_ops;
++
++static void
++init_gdbbdm12_ops (void)
++{
++  gdbbdm12_ops.to_shortname = "bdm12";
++  gdbbdm12_ops.to_longname = "Kevin Ross' BDM12 Pod for BDM on the 68HC12";
++  gdbbdm12_ops.to_doc = "Debug using Kevin Ross' BDM12 Pod\n\
++(http://www.nwlink.com/~kevinro/bdm.html) for the Motorola 68HC12 series of\n\
++microcontrollers. This processor features a single wire background debug mode\n\
++interface.\n\
++Usage: target bdm12 <serial_device> <E-clock rate (1,2,4, or 8 MHz) \n\
++                    <register base> <ram base> <eeprom base> <flash base> \n\
++(ex. target bdm12 com1 8 0x0 0x800 0xd00 0x8000 on Win32, \n\
++  or target bdm12 ttya 8 0x0 0x800 0xd00 0x8000 on UNIX)";
++  gdbbdm12_ops.to_open = gdbbdm12_open;
++  gdbbdm12_ops.to_close = gdbbdm12_close;
++  gdbbdm12_ops.to_attach = NULL;
++  gdbbdm12_ops.to_post_attach = NULL;
++  gdbbdm12_ops.to_detach = gdbbdm12_detach;
++  gdbbdm12_ops.to_resume = gdbbdm12_resume;
++  gdbbdm12_ops.to_wait = gdbbdm12_wait;
++  gdbbdm12_ops.to_fetch_registers = gdbbdm12_fetch_register;
++  gdbbdm12_ops.to_store_registers = gdbbdm12_store_register;
++  gdbbdm12_ops.to_prepare_to_store = gdbbdm12_prepare_to_store;
++  gdbbdm12_ops.deprecated_xfer_memory = gdbbdm12_xfer_inferior_memory;
++  gdbbdm12_ops.to_files_info = gdbbdm12_files_info;
++  gdbbdm12_ops.to_insert_breakpoint = gdbbdm12_insert_breakpoint;
++  gdbbdm12_ops.to_remove_breakpoint = gdbbdm12_remove_breakpoint;
++  gdbbdm12_ops.to_terminal_init = NULL;
++  gdbbdm12_ops.to_terminal_inferior = NULL;
++  gdbbdm12_ops.to_terminal_ours_for_output = NULL;
++  gdbbdm12_ops.to_terminal_ours = NULL;
++  gdbbdm12_ops.to_terminal_info = NULL;
++  gdbbdm12_ops.to_kill = gdbbdm12_kill;
++  gdbbdm12_ops.to_load = gdbbdm12_load;
++  gdbbdm12_ops.to_lookup_symbol = NULL;
++  gdbbdm12_ops.to_create_inferior = gdbbdm12_create_inferior;
++  gdbbdm12_ops.to_post_startup_inferior = NULL;
++  gdbbdm12_ops.to_acknowledge_created_inferior = NULL;
++  gdbbdm12_ops.to_insert_fork_catchpoint = NULL;
++  gdbbdm12_ops.to_remove_fork_catchpoint = NULL;
++  gdbbdm12_ops.to_insert_vfork_catchpoint = NULL;
++  gdbbdm12_ops.to_remove_vfork_catchpoint = NULL;
++  gdbbdm12_ops.to_insert_exec_catchpoint = NULL;
++  gdbbdm12_ops.to_remove_exec_catchpoint = NULL;
++  gdbbdm12_ops.to_reported_exec_events_per_exec_call = NULL;
++  gdbbdm12_ops.to_has_exited = NULL;
++  gdbbdm12_ops.to_mourn_inferior = gdbbdm12_mourn_inferior;
++  gdbbdm12_ops.to_can_run = 0;
++  gdbbdm12_ops.to_notice_signals = 0;
++  gdbbdm12_ops.to_thread_alive = 0;
++  gdbbdm12_ops.to_stop = gdbbdm12_stop;
++  gdbbdm12_ops.to_pid_to_exec_file = NULL;
++  gdbbdm12_ops.to_stratum = process_stratum;
++  gdbbdm12_ops.to_has_all_memory = 1;
++  gdbbdm12_ops.to_has_memory = 1;
++  gdbbdm12_ops.to_has_stack = 1;
++  gdbbdm12_ops.to_has_registers = 1;
++  gdbbdm12_ops.to_has_execution = 1;
++  gdbbdm12_ops.to_sections = NULL;
++  gdbbdm12_ops.to_sections_end = NULL;
++  gdbbdm12_ops.to_magic = OPS_MAGIC;
++
++#ifdef TARGET_REDEFINE_DEFAULT_OPS
++  TARGET_REDEFINE_DEFAULT_OPS (&gdbbdm12_ops);
++#endif
++}
++
++
++void
++_initialize_remote_bdm12 (void)
++{
++  init_gdbbdm12_ops ();
++  add_target (&gdbbdm12_ops);
++
++  add_com ("bdm12 <command>", class_obscure, pass_command,
++           "Send a command to the BDM interface directly.");
++}
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/ser-dummy.c gdb-6.4-m68hc1x/gdb/ser-dummy.c
+--- gdb-6.4/gdb/ser-dummy.c	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/gdb/ser-dummy.c	Sat Jan 21 15:28:49 2006
+@@ -0,0 +1,153 @@
++/* Dummy (do-nothing) serial interface */
++
++/*
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place - Suite 330,
++   Boston, MA 02111-1307, USA.  */
++
++#include "defs.h"
++#include "serial.h"
++
++static int
++ser_dummy_open (struct serial *scb ATTRIBUTE_UNUSED, const char *name ATTRIBUTE_UNUSED)
++{
++  scb->fd = -1;
++  return 0;
++}
++
++void
++ser_dummy_close (struct serial *scb ATTRIBUTE_UNUSED)
++{
++}
++
++/* Wait for the output to drain away, as opposed to flushing (discarding) it */
++
++serial_ttystate
++ser_dummy_get_tty_state (struct serial *scb ATTRIBUTE_UNUSED)
++{
++  /* allocate a dummy */
++  return (serial_ttystate) xmalloc (8);
++}
++
++int
++ser_dummy_set_tty_state (struct serial *scb ATTRIBUTE_UNUSED, serial_ttystate ttystate ATTRIBUTE_UNUSED)
++{
++  return 0;
++}
++
++void
++ser_dummy_go_raw (struct serial *scb ATTRIBUTE_UNUSED)
++{
++  return;			/* Always in raw mode */
++}
++
++
++int
++ser_dummy_readchar (struct serial *scb ATTRIBUTE_UNUSED, int timeout ATTRIBUTE_UNUSED)
++{
++  return SERIAL_EOF;
++}
++
++int
++ser_dummy_noflush_set_tty_state (struct serial *scb ATTRIBUTE_UNUSED,
++				    serial_ttystate new_ttystate ATTRIBUTE_UNUSED,
++				    serial_ttystate old_ttystate ATTRIBUTE_UNUSED)
++{
++  return 0;
++}
++
++void
++ser_dummy_print_tty_state (struct serial *scb ATTRIBUTE_UNUSED, 
++			      serial_ttystate ttystate ATTRIBUTE_UNUSED,
++			      struct ui_file *stream ATTRIBUTE_UNUSED)
++{
++  /* Nothing to print.  */
++  return;
++}
++
++int
++ser_dummy_setbaudrate (struct serial *scb ATTRIBUTE_UNUSED, int rate ATTRIBUTE_UNUSED)
++{
++  return 0;			/* Never fails! */
++}
++
++int
++ser_dummy_setstopbits (struct serial *scb ATTRIBUTE_UNUSED, int num ATTRIBUTE_UNUSED)
++{
++  return 0;			/* Never fails! */
++}
++
++int
++ser_dummy_write (struct serial *scb ATTRIBUTE_UNUSED, const char *str ATTRIBUTE_UNUSED, int len ATTRIBUTE_UNUSED)
++{
++  return 0;
++}
++
++int
++ser_dummy_flush_output (struct serial *scb ATTRIBUTE_UNUSED)
++{
++  return 0;
++}
++
++int
++ser_dummy_flush_input (struct serial *scb ATTRIBUTE_UNUSED)
++{
++ return 0;
++}
++
++int
++ser_dummy_send_break (struct serial *scb ATTRIBUTE_UNUSED)
++{
++  return 0;
++}
++
++static int
++ser_dummy_drain_output (struct serial *scb ATTRIBUTE_UNUSED)
++{
++  return 0;
++}
++
++/* Put the SERIAL device into/out-of ASYNC mode.  */
++
++void
++ser_dummy_async (struct serial *scb ATTRIBUTE_UNUSED,
++		int async_p ATTRIBUTE_UNUSED)
++{
++}
++
++void
++_initialize_dummy_ser_hardwire (void)
++{
++  struct serial_ops *ops = (struct serial_ops *) xmalloc (sizeof (struct serial_ops));
++  memset (ops, sizeof (struct serial_ops), 0);
++  ops->name = "hardwire";
++  ops->next = 0;
++  ops->open = ser_dummy_open;
++  ops->close = ser_dummy_close;
++  ops->readchar = ser_dummy_readchar;
++  ops->write = ser_dummy_write;
++  ops->flush_output = ser_dummy_flush_output;
++  ops->flush_input = ser_dummy_flush_input;
++  ops->send_break = ser_dummy_send_break;
++  ops->go_raw = ser_dummy_go_raw;
++  ops->get_tty_state = ser_dummy_get_tty_state;
++  ops->set_tty_state = ser_dummy_set_tty_state;
++  ops->print_tty_state = ser_dummy_print_tty_state;
++  ops->noflush_set_tty_state = ser_dummy_noflush_set_tty_state;
++  ops->setbaudrate = ser_dummy_setbaudrate;
++  ops->setstopbits = ser_dummy_setstopbits;
++  ops->drain_output = ser_dummy_drain_output;
++  ops->async = ser_dummy_async;
++  serial_add_interface (ops);
++}
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/ser-mingw.c gdb-6.4-m68hc1x/gdb/ser-mingw.c
+--- gdb-6.4/gdb/ser-mingw.c	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/gdb/ser-mingw.c	Sat Jan 21 15:28:49 2006
+@@ -0,0 +1,533 @@
++/* Serial interface for TCP connections on MingW Windows systems
++   Copyright 1992, 1993, 1994, 1995, 1996, 1998, 1999, 2000, 2001
++   Free Software Foundation, Inc.
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place - Suite 330,
++   Boston, MA 02111-1307, USA.  */
++
++#include "defs.h"
++#include "serial.h"
++#include "ser-mingw.h"
++
++#include <fcntl.h>
++#include <sys/time.h>
++#include <sys/timeb.h>
++
++#include <winsock2.h>
++
++#include "gdb_string.h"
++#include "event-loop.h"
++
++void
++gettimeofday(struct timeval* tv, struct timezone* tz)
++{
++  struct timeb tb;
++
++  ftime(&tb);
++  tv->tv_sec = (unsigned long) tb.time;
++  tv->tv_usec = ((unsigned long) tb.millitm) * 1000L;
++}
++
++static int do_mingw_readchar (struct serial *scb, int timeout);
++static timer_handler_func push_event;
++static handler_func fd_event;
++static void reschedule (struct serial *scb);
++
++extern int (*deprecated_ui_loop_hook) (int);
++
++/* Generic operations used by all UNIX/FD based serial interfaces. */
++
++serial_ttystate
++ser_mingw_nop_get_tty_state (struct serial *scb)
++{
++  /* allocate a dummy */
++  return (serial_ttystate) XMALLOC (int);
++}
++
++int
++ser_mingw_nop_set_tty_state (struct serial *scb, serial_ttystate ttystate)
++{
++  return 0;
++}
++
++void
++ser_mingw_nop_raw (struct serial *scb)
++{
++  return;			/* Always in raw mode */
++}
++
++/* Wait for input on scb, with timeout seconds.  Returns 0 on success,
++   otherwise SERIAL_TIMEOUT or SERIAL_ERROR. */
++
++int
++ser_mingw_wait_for (struct serial *scb, int timeout)
++{
++  while (1)
++    {
++      int numfds;
++      struct timeval tv;
++      fd_set readfds, exceptfds;
++
++      /* NOTE: Some OS's can scramble the READFDS when the select()
++         call fails (ex the kernel with Red Hat 5.2).  Initialize all
++         arguments before each call. */
++
++      tv.tv_sec = timeout;
++      tv.tv_usec = 0;
++
++      FD_ZERO (&readfds);
++      FD_ZERO (&exceptfds);
++      FD_SET (scb->fd, &readfds);
++      FD_SET (scb->fd, &exceptfds);
++
++      if (timeout >= 0)
++	numfds = select (scb->fd + 1, &readfds, 0, &exceptfds, &tv);
++      else
++	numfds = select (scb->fd + 1, &readfds, 0, &exceptfds, 0);
++
++      if (numfds <= 0)
++	{
++	  if (numfds == 0)
++	    return SERIAL_TIMEOUT;
++	  else if (errno == EINTR)
++	    continue;
++	  else
++	    return SERIAL_ERROR;	/* Got an error from select or poll */
++	}
++
++      return 0;
++    }
++}
++
++/* Read a character with user-specified timeout.  TIMEOUT is number of seconds
++   to wait, or -1 to wait forever.  Use timeout of 0 to effect a poll.  Returns
++   char if successful.  Returns -2 if timeout expired, EOF if line dropped
++   dead, or -3 for any other error (see errno in that case). */
++
++static int
++do_mingw_readchar (struct serial *scb, int timeout)
++{
++  int status;
++  int delta;
++
++  /* We have to be able to keep the GUI alive here, so we break the original
++     timeout into steps of 1 second, running the "keep the GUI alive" hook 
++     each time through the loop.
++
++     Also, timeout = 0 means to poll, so we just set the delta to 0, so we
++     will only go through the loop once. */
++
++  delta = (timeout == 0 ? 0 : 1);
++  while (1)
++    {
++
++      /* N.B. The UI may destroy our world (for instance by calling
++         remote_stop,) in which case we want to get out of here as
++         quickly as possible.  It is not safe to touch scb, since
++         someone else might have freed it.  The ui_loop_hook signals that 
++         we should exit by returning 1. */
++
++      if (deprecated_ui_loop_hook)
++	{
++	  if (deprecated_ui_loop_hook (0))
++	    return SERIAL_TIMEOUT;
++	}
++
++      status = ser_mingw_wait_for (scb, delta);
++      if (timeout > 0)
++        timeout -= delta;
++
++      /* If we got a character or an error back from wait_for, then we can 
++         break from the loop before the timeout is completed. */
++
++      if (status != SERIAL_TIMEOUT)
++	{
++	  break;
++	}
++
++      /* If we have exhausted the original timeout, then generate
++         a SERIAL_TIMEOUT, and pass it out of the loop. */
++
++      else if (timeout == 0)
++	{
++	  status = SERIAL_TIMEOUT;
++	  break;
++	}
++    }
++
++  if (status < 0)
++    return status;
++
++  while (1)
++    {
++      status = recv (scb->fd, scb->buf, BUFSIZ, 0);
++      if (status != -1 || errno != EINTR)
++	break;
++    }
++
++  if (status <= 0)
++    {
++      if (status == 0)
++	return SERIAL_TIMEOUT;	/* 0 chars means timeout [may need to
++				   distinguish between EOF & timeouts
++				   someday] */
++      else
++	return SERIAL_ERROR;	/* Got an error from read */
++    }
++
++  scb->bufcnt = status;
++  scb->bufcnt--;
++  scb->bufp = scb->buf;
++  return *scb->bufp++;
++}
++
++/* Perform operations common to both old and new readchar. */
++
++/* Return the next character from the input FIFO.  If the FIFO is
++   empty, call the SERIAL specific routine to try and read in more
++   characters.
++
++   Initially data from the input FIFO is returned (fd_event()
++   pre-reads the input into that FIFO.  Once that has been emptied,
++   further data is obtained by polling the input FD using the device
++   specific readchar() function.  Note: reschedule() is called after
++   every read.  This is because there is no guarentee that the lower
++   level fd_event() poll_event() code (which also calls reschedule())
++   will be called. */
++
++static int
++generic_readchar (struct serial *scb, int timeout,
++		  int (do_readchar) (struct serial *scb, int timeout))
++{
++  int ch;
++  if (scb->bufcnt > 0)
++    {
++      ch = *scb->bufp;
++      scb->bufcnt--;
++      scb->bufp++;
++    }
++  else if (scb->bufcnt < 0)
++    {
++      /* Some errors/eof are are sticky. */
++      ch = scb->bufcnt;
++    }
++  else
++    {
++      ch = do_readchar (scb, timeout);
++      if (ch < 0)
++	{
++	  switch ((enum serial_rc) ch)
++	    {
++	    case SERIAL_EOF:
++	    case SERIAL_ERROR:
++	      /* Make the error/eof stick. */
++	      scb->bufcnt = ch;
++	      break;
++	    case SERIAL_TIMEOUT:
++	      scb->bufcnt = 0;
++	      break;
++	    }
++	}
++    }
++  reschedule (scb);
++  return ch;
++}
++
++int
++ser_mingw_readchar (struct serial *scb, int timeout)
++{
++  return generic_readchar (scb, timeout, do_mingw_readchar);
++}
++
++int
++ser_mingw_nop_noflush_set_tty_state (struct serial *scb,
++				    serial_ttystate new_ttystate,
++				    serial_ttystate old_ttystate)
++{
++  return 0;
++}
++
++void
++ser_mingw_nop_print_tty_state (struct serial *scb, 
++			      serial_ttystate ttystate,
++			      struct ui_file *stream)
++{
++  /* Nothing to print.  */
++  return;
++}
++
++int
++ser_mingw_nop_setbaudrate (struct serial *scb, int rate)
++{
++  return 0;			/* Never fails! */
++}
++
++int
++ser_mingw_nop_setstopbits (struct serial *scb, int num)
++{
++  return 0;			/* Never fails! */
++}
++
++int
++ser_mingw_write (struct serial *scb, const char *str, int len)
++{
++  int cc;
++
++  while (len > 0)
++    {
++      cc = send (scb->fd, str, len, 0);
++
++      if (cc < 0)
++	return 1;
++      len -= cc;
++      str += cc;
++    }
++  return 0;
++}
++
++int
++ser_mingw_nop_flush_output (struct serial *scb)
++{
++  return 0;
++}
++
++int
++ser_mingw_flush_input (struct serial *scb)
++{
++  if (scb->bufcnt >= 0)
++    {
++      scb->bufcnt = 0;
++      scb->bufp = scb->buf;
++      return 0;
++    }
++  else
++    return SERIAL_ERROR;
++}
++
++int
++ser_mingw_nop_send_break (struct serial *scb)
++{
++  return 0;
++}
++
++int
++ser_mingw_nop_drain_output (struct serial *scb)
++{
++  return 0;
++}
++
++
++
++/* Event handling for ASYNC serial code.
++
++   At any time the SERIAL device either: has an empty FIFO and is
++   waiting on a FD event; or has a non-empty FIFO/error condition and
++   is constantly scheduling timer events.
++
++   ASYNC only stops pestering its client when it is de-async'ed or it
++   is told to go away. */
++
++/* Value of scb->async_state: */
++enum {
++  /* >= 0 (TIMER_SCHEDULED) */
++  /* The ID of the currently scheduled timer event. This state is
++     rarely encountered.  Timer events are one-off so as soon as the
++     event is delivered the state is shanged to NOTHING_SCHEDULED. */
++  FD_SCHEDULED = -1,
++  /* The fd_event() handler is scheduled.  It is called when ever the
++     file descriptor becomes ready. */
++  NOTHING_SCHEDULED = -2
++  /* Either no task is scheduled (just going into ASYNC mode) or a
++     timer event has just gone off and the current state has been
++     forced into nothing scheduled. */
++};
++
++/* Identify and schedule the next ASYNC task based on scb->async_state
++   and scb->buf* (the input FIFO).  A state machine is used to avoid
++   the need to make redundant calls into the event-loop - the next
++   scheduled task is only changed when needed. */
++
++static void
++reschedule (struct serial *scb)
++{
++  if (serial_is_async_p (scb))
++    {
++      int next_state;
++      switch (scb->async_state)
++	{
++	case FD_SCHEDULED:
++	  if (scb->bufcnt == 0)
++	    next_state = FD_SCHEDULED;
++	  else
++	    {
++	      delete_file_handler (scb->fd);
++	      next_state = create_timer (0, push_event, scb);
++	    }
++	  break;
++	case NOTHING_SCHEDULED:
++	  if (scb->bufcnt == 0)
++	    {
++	      add_file_handler (scb->fd, fd_event, scb);
++	      next_state = FD_SCHEDULED;
++	    }
++	  else
++	    {
++	      next_state = create_timer (0, push_event, scb);
++	    }
++	  break;
++	default: /* TIMER SCHEDULED */
++	  if (scb->bufcnt == 0)
++	    {
++	      delete_timer (scb->async_state);
++	      add_file_handler (scb->fd, fd_event, scb);
++	      next_state = FD_SCHEDULED;
++	    }
++	  else
++	    next_state = scb->async_state;
++	  break;
++	}
++      if (serial_debug_p (scb))
++	{
++	  switch (next_state)
++	    {
++	    case FD_SCHEDULED:
++	      if (scb->async_state != FD_SCHEDULED)
++		fprintf_unfiltered (gdb_stdlog, "[fd%d->fd-scheduled]\n",
++				    scb->fd);
++	      break;
++	    default: /* TIMER SCHEDULED */
++	      if (scb->async_state == FD_SCHEDULED)
++		fprintf_unfiltered (gdb_stdlog, "[fd%d->timer-scheduled]\n",
++				    scb->fd);
++	      break;
++	    }
++	}
++      scb->async_state = next_state;
++    }
++}
++
++/* FD_EVENT: This is scheduled when the input FIFO is empty (and there
++   is no pending error).  As soon as data arrives, it is read into the
++   input FIFO and the client notified.  The client should then drain
++   the FIFO using readchar().  If the FIFO isn't immediatly emptied,
++   push_event() is used to nag the client until it is. */
++
++static void
++fd_event (int error, void *context)
++{
++  struct serial *scb = context;
++  if (error != 0)
++    {
++      scb->bufcnt = SERIAL_ERROR;
++    }
++  else if (scb->bufcnt == 0)
++    {
++      /* Prime the input FIFO.  The readchar() function is used to
++         pull characters out of the buffer.  See also
++         generic_readchar(). */
++      int nr;
++      do
++	{
++	  nr = read (scb->fd, scb->buf, BUFSIZ);
++	}
++      while (nr == -1 && errno == EINTR);
++      if (nr == 0)
++	{
++	  scb->bufcnt = SERIAL_EOF;
++	}
++      else if (nr > 0)
++	{
++	  scb->bufcnt = nr;
++	  scb->bufp = scb->buf;
++	}
++      else
++	{
++	  scb->bufcnt = SERIAL_ERROR;
++	}
++    }
++  scb->async_handler (scb, scb->async_context);
++  reschedule (scb);
++}
++
++/* PUSH_EVENT: The input FIFO is non-empty (or there is a pending
++   error).  Nag the client until all the data has been read.  In the
++   case of errors, the client will need to close or de-async the
++   device before naging stops. */
++
++static void
++push_event (void *context)
++{
++  struct serial *scb = context;
++  scb->async_state = NOTHING_SCHEDULED; /* Timers are one-off */
++  scb->async_handler (scb, scb->async_context);
++  /* re-schedule */
++  reschedule (scb);
++}
++
++/* Put the SERIAL device into/out-of ASYNC mode.  */
++
++void
++ser_mingw_async (struct serial *scb,
++		int async_p)
++{
++  if (async_p)
++    {
++      /* Force a re-schedule. */
++      scb->async_state = NOTHING_SCHEDULED;
++      if (serial_debug_p (scb))
++	fprintf_unfiltered (gdb_stdlog, "[fd%d->asynchronous]\n",
++			    scb->fd);
++      reschedule (scb);
++    }
++  else
++    {
++      if (serial_debug_p (scb))
++	fprintf_unfiltered (gdb_stdlog, "[fd%d->synchronous]\n",
++			    scb->fd);
++      /* De-schedule whatever tasks are currently scheduled. */
++      switch (scb->async_state)
++	{
++	case FD_SCHEDULED:
++	  delete_file_handler (scb->fd);
++	  break;
++	NOTHING_SCHEDULED:
++	  break;
++	default: /* TIMER SCHEDULED */
++	  delete_timer (scb->async_state);
++	  break;
++	}
++    }
++}
++
++void
++ser_platform_tcp_init (struct serial_ops *ops)
++{
++  ops->readchar = ser_mingw_readchar;
++  ops->write = ser_mingw_write;
++  ops->flush_output = ser_mingw_nop_flush_output;
++  ops->flush_input = ser_mingw_flush_input;
++  ops->send_break = ser_mingw_nop_send_break;
++  ops->go_raw = ser_mingw_nop_raw;
++  ops->get_tty_state = ser_mingw_nop_get_tty_state;
++  ops->set_tty_state = ser_mingw_nop_set_tty_state;
++  ops->print_tty_state = ser_mingw_nop_print_tty_state;
++  ops->noflush_set_tty_state = ser_mingw_nop_noflush_set_tty_state;
++  ops->setbaudrate = ser_mingw_nop_setbaudrate;
++  ops->setstopbits = ser_mingw_nop_setstopbits;
++  ops->drain_output = ser_mingw_nop_drain_output;
++  ops->async = ser_mingw_async;
++}
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/ser-mingw.h gdb-6.4-m68hc1x/gdb/ser-mingw.h
+--- gdb-6.4/gdb/ser-mingw.h	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/gdb/ser-mingw.h	Sat Jan 21 15:28:49 2006
+@@ -0,0 +1,51 @@
++/* Serial interface for MinGW Winsock file-descriptor based connection.
++
++   Copyright 1999, 2000, 2002 Free Software Foundation, Inc.
++
++   This file is part of GDB.
++
++   This program is free software; you can redistribute it and/or modify
++   it under the terms of the GNU General Public License as published by
++   the Free Software Foundation; either version 2 of the License, or
++   (at your option) any later version.
++
++   This program is distributed in the hope that it will be useful,
++   but WITHOUT ANY WARRANTY; without even the implied warranty of
++   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++   GNU General Public License for more details.
++
++   You should have received a copy of the GNU General Public License
++   along with this program; if not, write to the Free Software
++   Foundation, Inc., 59 Temple Place - Suite 330,
++   Boston, MA 02111-1307, USA.  */
++
++#ifndef SER_MINGW_H
++#define SER_MINGW_H
++
++/* Generic MinGW Winsock functions */
++
++extern int ser_mingw_nop_flush_output (struct serial *scb);
++extern int ser_mingw_flush_input (struct serial *scb);
++extern int ser_mingw_nop_send_break (struct serial *scb);
++extern void ser_mingw_nop_raw (struct serial *scb);
++extern serial_ttystate ser_mingw_nop_get_tty_state (struct serial *scb);
++extern int ser_mingw_nop_set_tty_state (struct serial *scb,
++				       serial_ttystate ttystate);
++extern void ser_mingw_nop_print_tty_state (struct serial *scb,
++					  serial_ttystate ttystate,
++					  struct ui_file *stream);
++extern int ser_mingw_nop_noflush_set_tty_state (struct serial *scb,
++					       serial_ttystate new_ttystate,
++					       serial_ttystate old_ttystate);
++extern int ser_mingw_nop_setbaudrate (struct serial *scb, int rate);
++extern int ser_mingw_nop_setstopbits (struct serial *scb, int rate);
++extern int ser_mingw_nop_drain_output (struct serial *scb);
++
++extern int ser_mingw_wait_for (struct serial *scb, int timeout);
++extern int ser_mingw_readchar (struct serial *scb, int timeout);
++
++extern int ser_mingw_write (struct serial *scb, const char *str, int len);
++
++extern void ser_mingw_async (struct serial *scb, int async_p);
++
++#endif
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/serial.c gdb-6.4-m68hc1x/gdb/serial.c
+--- gdb-6.4/gdb/serial.c	Mon Feb 21 05:31:58 2005
++++ gdb-6.4-m68hc1x/gdb/serial.c	Sat Jan 21 15:28:49 2006
+@@ -329,12 +329,16 @@ do_serial_close (struct serial *scb, int
+ void
+ serial_close (struct serial *scb)
+ {
++  if (!scb)
++    return;
+   do_serial_close (scb, 1);
+ }
+ 
+ void
+ serial_un_fdopen (struct serial *scb)
+ {
++  if (!scb)
++    return;
+   do_serial_close (scb, 0);
+ }
+ 
+@@ -343,6 +347,9 @@ serial_readchar (struct serial *scb, int
+ {
+   int ch;
+ 
++  if (!scb)
++    return 0;
++
+   /* FIXME: cagney/1999-10-11: Don't enable this check until the ASYNC
+      code is finished. */
+   if (0 && serial_is_async_p (scb) && timeout < 0)
+@@ -384,6 +391,9 @@ serial_write (struct serial *scb, const 
+       gdb_flush (serial_logfp);
+     }
+ 
++  if (!scb)
++    return 0;
++
+   return (scb->ops->write (scb, str, len));
+ }
+ 
+@@ -404,24 +414,33 @@ serial_printf (struct serial *desc, cons
+ int
+ serial_drain_output (struct serial *scb)
+ {
++  if (!scb)
++    return 0;
+   return scb->ops->drain_output (scb);
+ }
+ 
+ int
+ serial_flush_output (struct serial *scb)
+ {
++  if (!scb)
++    return 0;
+   return scb->ops->flush_output (scb);
+ }
+ 
+ int
+ serial_flush_input (struct serial *scb)
+ {
++  if (!scb)
++    return 0;
+   return scb->ops->flush_input (scb);
+ }
+ 
+ int
+ serial_send_break (struct serial *scb)
+ {
++  if (!scb)
++    return 0;
++
+   if (serial_logfp != NULL)
+     serial_logchar (serial_logfp, 'w', SERIAL_BREAK, 0);
+ 
+@@ -431,18 +450,24 @@ serial_send_break (struct serial *scb)
+ void
+ serial_raw (struct serial *scb)
+ {
++  if (!scb)
++    return;
+   scb->ops->go_raw (scb);
+ }
+ 
+ serial_ttystate
+ serial_get_tty_state (struct serial *scb)
+ {
++  if (!scb)
++    return 0;
+   return scb->ops->get_tty_state (scb);
+ }
+ 
+ int
+ serial_set_tty_state (struct serial *scb, serial_ttystate ttystate)
+ {
++  if (!scb)
++    return 0;
+   return scb->ops->set_tty_state (scb, ttystate);
+ }
+ 
+@@ -451,6 +476,8 @@ serial_print_tty_state (struct serial *s
+ 			serial_ttystate ttystate,
+ 			struct ui_file *stream)
+ {
++  if (!scb)
++    return;
+   scb->ops->print_tty_state (scb, ttystate, stream);
+ }
+ 
+@@ -459,30 +486,40 @@ serial_noflush_set_tty_state (struct ser
+ 			      serial_ttystate new_ttystate,
+ 			      serial_ttystate old_ttystate)
+ {
++  if (!scb)
++    return 0;
+   return scb->ops->noflush_set_tty_state (scb, new_ttystate, old_ttystate);
+ }
+ 
+ int
+ serial_setbaudrate (struct serial *scb, int rate)
+ {
++  if (!scb)
++    return 0;
+   return scb->ops->setbaudrate (scb, rate);
+ }
+ 
+ int
+ serial_setstopbits (struct serial *scb, int num)
+ {
++  if (!scb)
++    return 0;
+   return scb->ops->setstopbits (scb, num);
+ }
+ 
+ int
+ serial_can_async_p (struct serial *scb)
+ {
++  if (!scb)
++    return 0;
+   return (scb->ops->async != NULL);
+ }
+ 
+ int
+ serial_is_async_p (struct serial *scb)
+ {
++  if (!scb)
++    return 0;
+   return (scb->ops->async != NULL) && (scb->async_handler != NULL);
+ }
+ 
+@@ -491,6 +528,9 @@ serial_async (struct serial *scb,
+ 	      serial_event_ftype *handler,
+ 	      void *context)
+ {
++  if (!scb)
++    return;
++
+   /* Only change mode if there is a need. */
+   if ((scb->async_handler == NULL)
+       != (handler == NULL))
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/signals/signals.c gdb-6.4-m68hc1x/gdb/signals/signals.c
+--- gdb-6.4/gdb/signals/signals.c	Sun Jun  8 20:27:14 2003
++++ gdb-6.4-m68hc1x/gdb/signals/signals.c	Sat Jan 21 15:28:49 2006
+@@ -44,6 +44,11 @@
+ # endif
+ #endif
+ 
++/* SCz: We need SIGTRAP for interaction with the gdb simulator  */
++#ifndef SIGTRAP
++# define SIGTRAP 5
++#endif
++
+ /* This table must match in order and size the signals in enum target_signal
+    in target.h.  */
+ /* *INDENT-OFF* */
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/srec.h gdb-6.4-m68hc1x/gdb/srec.h
+--- gdb-6.4/gdb/srec.h	Sat Apr 12 19:41:25 2003
++++ gdb-6.4-m68hc1x/gdb/srec.h	Sat Jan 21 15:28:49 2006
+@@ -22,7 +22,8 @@ struct serial;
+ 
+ void load_srec (struct serial *desc, const char *file, bfd_vma load_offset,
+ 		int maxrecsize, int flags, int hashmark,
+-		int (*waitack) (void));
++		int (*waitack) (void),
++                int (*serial_write) (struct serial*, char*, int));
+ 
+ /* S-record capability flags */
+ 
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/testsuite/ChangeLog.M68HC11 gdb-6.4-m68hc1x/gdb/testsuite/ChangeLog.M68HC11
+--- gdb-6.4/gdb/testsuite/ChangeLog.M68HC11	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/gdb/testsuite/ChangeLog.M68HC11	Sat Jan 21 15:28:49 2006
+@@ -0,0 +1,22 @@
++2002-11-13  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* gdb.base/huge.exp: Skip this test.
++	* gdb.fortran/types.exp: Likewise.
++	* gdb.fortran/exprs.exp: Don't run fortran float tests for 68HC11.
++
++2002-11-13  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* gdb.base/remote.exp: Compile remote.c with -mshort for 68HC11.
++	* gdb.base/printcmds.exp: Run the test after we are in the main.
++	* gdb.base/break.exp: Fix test because there is also a marker4()
++	at line 46.
++
++2002-08-12  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* gdb.trace/deltrace.exp: Don't fail if target does not support
++	trace points.
++	* gdb.trace/passcount.exp: Likewise.
++	* gdb.trace/save-trace.exp: Likewise.
++	* lib/gdb.exp: Don't run C++ test on 68HC11.
++	* gdb.threads/gcore-thread.exp: Don't run the test for 68HC11.
++	* gdb.asm/m68hc11.inc: New file.
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/testsuite/gdb.base/huge.exp gdb-6.4-m68hc1x/gdb/testsuite/gdb.base/huge.exp
+--- gdb-6.4/gdb/testsuite/gdb.base/huge.exp	Mon Feb  2 06:15:27 2004
++++ gdb-6.4-m68hc1x/gdb/testsuite/gdb.base/huge.exp	Sat Jan 21 15:28:49 2006
+@@ -32,7 +32,9 @@ set bug_id 0
+ if [target_info exists gdb,skip_huge_test] {
+     return;
+ }
+-
++if [istarget "m6811-*-*"] {
++    return;
++}
+ set testfile "huge"
+ set srcfile ${testfile}.c
+ set binfile ${objdir}/${subdir}/${testfile}
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/testsuite/gdb.base/printcmds.exp gdb-6.4-m68hc1x/gdb/testsuite/gdb.base/printcmds.exp
+--- gdb-6.4/gdb/testsuite/gdb.base/printcmds.exp	Thu Feb 26 18:23:23 2004
++++ gdb-6.4-m68hc1x/gdb/testsuite/gdb.base/printcmds.exp	Sat Jan 21 15:28:49 2006
+@@ -694,9 +694,9 @@ gdb_test "set print address off" ""
+ gdb_test "set width 0" ""
+ 
+ if [set_lang_c] then {
+-    gdb_test "p ctable1\[120\]" "120 'x'" "p ctable1\[120\] #1"
+-
+     if [runto_main] then {
++	gdb_test "p ctable1\[120\]" "120 'x'" "p ctable1\[120\] #1"
++
+ 	test_integer_literals_accepted
+ 	test_integer_literals_rejected
+ 	test_character_literals_accepted
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/testsuite/gdb.base/remote.exp gdb-6.4-m68hc1x/gdb/testsuite/gdb.base/remote.exp
+--- gdb-6.4/gdb/testsuite/gdb.base/remote.exp	Fri Sep 10 03:04:58 2004
++++ gdb-6.4-m68hc1x/gdb/testsuite/gdb.base/remote.exp	Sat Jan 21 15:28:49 2006
+@@ -36,7 +36,12 @@ set binfile ${objdir}/${subdir}/${testfi
+ 
+ gdb_start
+ 
+-set result [gdb_compile "${srcdir}/${subdir}/${srcfile}" "${binfile}" executable {debug}]
++# Must compile remote.c with 16-bit int
++if [istarget "m6811-*-*"] then {
++   set result [gdb_compile "${srcdir}/${subdir}/${srcfile}" "${binfile}" executable {debug additional_flags=-mshort}]
++} else {
++   set result [gdb_compile "${srcdir}/${subdir}/${srcfile}" "${binfile}" executable {debug}]
++}
+ if {$result != "" } then {
+     gdb_suppress_entire_file "Testcase compile failed, so all tests in this file will automatically fail."
+ }
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/testsuite/gdb.fortran/exprs.exp gdb-6.4-m68hc1x/gdb/testsuite/gdb.fortran/exprs.exp
+--- gdb-6.4/gdb/testsuite/gdb.fortran/exprs.exp	Tue Sep 20 08:37:03 2005
++++ gdb-6.4-m68hc1x/gdb/testsuite/gdb.fortran/exprs.exp	Sat Jan 21 15:28:49 2006
+@@ -280,7 +280,9 @@ if [set_lang_fortran] then {
+     test_integer_literals_rejected
+     test_logical_literals_accepted
+     test_character_literals_accepted
+-    test_float_literals_accepted
++    if {! [istarget "m6811-*-*"]} {
++        test_float_literals_accepted
++    }
+     test_arithmetic_expressions
+ } else {
+     warning "$test_name tests suppressed." 0
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/testsuite/gdb.fortran/types.exp gdb-6.4-m68hc1x/gdb/testsuite/gdb.fortran/types.exp
+--- gdb-6.4/gdb/testsuite/gdb.fortran/types.exp	Mon Dec 16 20:33:53 2002
++++ gdb-6.4-m68hc1x/gdb/testsuite/gdb.fortran/types.exp	Sat Jan 21 15:28:49 2006
+@@ -109,7 +109,9 @@ if [set_lang_fortran] then {
+     test_integer_literal_types_rejected
+     test_logical_literal_types_accepted
+     test_character_literal_types_accepted
+-    test_float_literal_types_accepted
++    if {! [istarget "m6811-*-*"]} {
++        test_float_literal_types_accepted
++    }
+ } else {
+     warning "$test_name tests suppressed." 0
+ }
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/testsuite/gdb.threads/gcore-thread.exp gdb-6.4-m68hc1x/gdb/testsuite/gdb.threads/gcore-thread.exp
+--- gdb-6.4/gdb/testsuite/gdb.threads/gcore-thread.exp	Mon Feb  2 06:15:27 2004
++++ gdb-6.4-m68hc1x/gdb/testsuite/gdb.threads/gcore-thread.exp	Sat Jan 21 15:28:49 2006
+@@ -24,6 +24,11 @@ if $tracelevel then {
+ 	strace $tracelevel
+ }
+ 
++# Threads are not supported for 68HC11.
++if [istarget "m6811-*-*"] then {
++    return;
++}
++
+ set prms_id 0
+ set bug_id 0
+ 
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/testsuite/gdb.trace/deltrace.exp gdb-6.4-m68hc1x/gdb/testsuite/gdb.trace/deltrace.exp
+--- gdb-6.4/gdb/testsuite/gdb.trace/deltrace.exp	Tue Apr 17 22:16:31 2001
++++ gdb-6.4-m68hc1x/gdb/testsuite/gdb.trace/deltrace.exp	Sat Jan 21 15:28:49 2006
+@@ -50,6 +50,15 @@ gdb_reinitialize_dir $srcdir/$subdir
+ 
+ gdb_file_cmd $binfile
+ 
++
++# We generously give ourselves one "pass" if we successfully 
++# detect that this test cannot be run on this target!
++if { ![gdb_target_supports_trace] } then {
++    pass "Current target does not supporst trace"
++    return 1;
++
++}
++
+ # define relative source line numbers:
+ # all subsequent line numbers are relative to this first one (baseline)
+ set baseline [gdb_find_recursion_test_baseline $srcfile];
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/testsuite/gdb.trace/passcount.exp gdb-6.4-m68hc1x/gdb/testsuite/gdb.trace/passcount.exp
+--- gdb-6.4/gdb/testsuite/gdb.trace/passcount.exp	Tue Apr 17 22:16:31 2001
++++ gdb-6.4-m68hc1x/gdb/testsuite/gdb.trace/passcount.exp	Sat Jan 21 15:28:49 2006
+@@ -49,6 +49,14 @@ gdb_reinitialize_dir $srcdir/$subdir
+ 
+ gdb_file_cmd $binfile
+ 
++# We generously give ourselves one "pass" if we successfully 
++# detect that this test cannot be run on this target!
++if { ![gdb_target_supports_trace] } then {
++    pass "Current target does not supporst trace"
++    return 1;
++
++}
++
+ # define relative source line numbers:
+ # all subsequent line numbers are relative to this first one (baseline)
+ set baseline  [gdb_find_recursion_test_baseline $srcfile];
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/testsuite/gdb.trace/save-trace.exp gdb-6.4-m68hc1x/gdb/testsuite/gdb.trace/save-trace.exp
+--- gdb-6.4/gdb/testsuite/gdb.trace/save-trace.exp	Thu Aug  7 19:55:41 2003
++++ gdb-6.4-m68hc1x/gdb/testsuite/gdb.trace/save-trace.exp	Sat Jan 21 15:28:49 2006
+@@ -58,6 +58,14 @@ if { $baseline == -1 } then {
+     return;
+ }
+ 
++# We generously give ourselves one "pass" if we successfully 
++# detect that this test cannot be run on this target!
++if { ![gdb_target_supports_trace] } then {
++    pass "Current target does not supporst trace"
++    return 1;
++
++}
++
+ set testline1 [expr $baseline + 4]
+ set testline2 [expr $baseline + 5]
+ set testline3 [expr $baseline + 6]
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/gdb/testsuite/lib/gdb.exp gdb-6.4-m68hc1x/gdb/testsuite/lib/gdb.exp
+--- gdb-6.4/gdb/testsuite/lib/gdb.exp	Wed Sep 28 00:39:03 2005
++++ gdb-6.4-m68hc1x/gdb/testsuite/lib/gdb.exp	Sat Jan 21 15:28:49 2006
+@@ -1153,6 +1153,9 @@ proc skip_cplus_tests {} {
+     if { [istarget "m6812-*-*"] } {
+ 	return 1
+     }
++    if { [istarget "m6811-*-*"] } {
++	return 1
++    }
+     return 0
+ }
+ 
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/include/gdb/ChangeLog.M68HC11 gdb-6.4-m68hc1x/include/gdb/ChangeLog.M68HC11
+--- gdb-6.4/include/gdb/ChangeLog.M68HC11	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/include/gdb/ChangeLog.M68HC11	Sun Jan 22 22:19:11 2006
+@@ -0,0 +1,4 @@
++2006-01-22  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* remote-sim.h (SIGTRAP): Define for mingw32
++
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/include/gdb/remote-sim.h gdb-6.4-m68hc1x/include/gdb/remote-sim.h
+--- gdb-6.4/include/gdb/remote-sim.h	Fri Feb 28 00:13:32 2003
++++ gdb-6.4-m68hc1x/include/gdb/remote-sim.h	Sat Jan 21 17:57:30 2006
+@@ -22,6 +22,10 @@ Foundation, Inc., 59 Temple Place - Suit
+ #if !defined (REMOTE_SIM_H)
+ #define REMOTE_SIM_H 1
+ 
++#ifndef SIGTRAP
++#define SIGTRAP 5
++#endif
++
+ #ifdef __cplusplus
+ extern "C" {
+ #endif
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/ChangeLog.M68HC11 gdb-6.4-m68hc1x/sim/common/ChangeLog.M68HC11
+--- gdb-6.4/sim/common/ChangeLog.M68HC11	Thu Jan  1 01:00:00 1970
++++ gdb-6.4-m68hc1x/sim/common/ChangeLog.M68HC11	Sat Jan 21 15:28:49 2006
+@@ -0,0 +1,44 @@
++2004-08-03  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* callback.c (os_ftruncate): Don't compile on Mingw32.
++	(os_truncate): Likewise.
++	(default_callback): Use null for the above
++
++2004-02-01  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* aclocal.m4 (SIM_AC_COMMON): Check for winsock.h and bind().
++
++2003-10-05  Stephane Carrez  <stcarrez@nerim.fr>
++
++	From 2003-05-10 <fernando@seventh.com.br>
++	* sim-io.c (sim_io_poll_read): Fix reading of input keyboard on
++	Windows.
++
++2002-08-11  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* sim-core.h: Use address_word to specify the base and size
++	of the memory mapping (necessary when sizeof(address_word) >
++	sizeof(unsigned_word)).
++	* sim-memopt.h: Likewise.
++	* hw-base.c (panic_hw_io_read_buffer): Likewise.
++	(panic_hw_io_write_buffer): Likewise.
++	* sim-core.c (sim_core_write_buffer): Likewise for raddr.
++	(sim_core_read_buffer): Likewise.
++	* dv-glue.c (hw_glue_io_read_buffer): Likewise.
++	(hw_glue_io_write_buffer): Likewise.
++	* dv-pal.c (hw_pal_io_write_buffer): Likewise.
++	(hw_pal_io_read_buffer): Likewise.
++	* sim-hw.c (sim_hw_io_read_buffer): Likewise.
++	(sim_hw_io_write_buffer): Likewise.
++	(sim_cpu_hw_io_read_buffer): Likewise.
++	(sim_cpu_hw_io_write_buffer): Likewise.
++
++2002-08-11  Stephane Carrez  <stcarrez@nerim.fr>
++
++	* hw-instances.c (panic_hw_instance_read): Use unsigned_cell for
++	the length to conform to hw_instance_read_method type.
++	* sim-profile.c (profile_print_addr_ranges): Compile only when
++	SIM_HAVE_ADDR_RANGE.
++	* sim-memopt.c: Include <unistd.h> for close prototype.
++	(do_memopt_add): Use %ld since bytes is a unsigned long.
++
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/aclocal.m4 gdb-6.4-m68hc1x/sim/common/aclocal.m4
+--- gdb-6.4/sim/common/aclocal.m4	Wed Mar 23 19:55:14 2005
++++ gdb-6.4-m68hc1x/sim/common/aclocal.m4	Sat Jan 21 15:28:49 2006
+@@ -53,11 +53,37 @@ AC_CHECK_HEADERS(stdlib.h string.h strin
+ AC_CHECK_HEADERS(sys/time.h sys/resource.h)
+ AC_CHECK_HEADERS(fcntl.h fpu_control.h)
+ AC_CHECK_HEADERS(dlfcn.h errno.h sys/stat.h)
++AC_CHECK_HEADERS(winsock.h)
+ AC_CHECK_FUNCS(getrusage time sigaction __setfpucw)
+ 
+ # Check for socket libraries
+ AC_CHECK_LIB(socket, bind)
+ AC_CHECK_LIB(nsl, gethostbyname)
++
++dnl Check for Windows socket library.
++dnl We need a special program that include <winsock.h> and we must not
++dnl define bind() because the winsock definition can be special
++dnl (The real symbol for bind() seems to be bind@12)
++ac_save_libs="$LIBS"
++LIBS="-lwsock32 ${LIBS}"
++
++AC_MSG_CHECKING([for bind in -lwsock32])
++AC_TRY_LINK([#include <winsock.h>
++],[
++ bind(0, 0, 0);
++],found=yes, found=no)
++AC_MSG_RESULT($found)
++if test $found = yes; then
++  ac_tr_lib=HAVE_LIB`echo nsl | sed -e 's/[^a-zA-Z0-9_]/_/g' \
++    -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/'`
++  cat >> confdefs.h <<EOF
++#define $ac_tr_lib 1
++EOF
++  LIBS="-lwsock32 ${LIBS}"
++
++else
++  LIBS="$ac_save_libs"
++fi
+ 
+ . ${srcdir}/../../bfd/configure.host
+ 
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/callback.c gdb-6.4-m68hc1x/sim/common/callback.c
+--- gdb-6.4/sim/common/callback.c	Fri Jul  8 10:05:35 2005
++++ gdb-6.4-m68hc1x/sim/common/callback.c	Sat Jan 21 15:28:49 2006
+@@ -584,6 +584,7 @@ os_lstat (p, file, buf)
+ #endif
+ }
+ 
++#if !defined(__MINGW32__)
+ static int 
+ os_ftruncate (p, fd, len)
+      host_callback *p;
+@@ -608,6 +609,7 @@ os_ftruncate (p, fd, len)
+ #endif
+   return result;
+ }
++#endif
+ 
+ static int
+ os_truncate (p, file, len)
+@@ -811,8 +813,12 @@ host_callback default_callback =
+   os_fstat,
+   os_lstat,
+ 
++#if defined(__MINGW32__)
++  0, 0,
++#else
+   os_ftruncate,
+   os_truncate,
++#endif
+ 
+   os_pipe,
+   os_pipe_empty,
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/dv-glue.c gdb-6.4-m68hc1x/sim/common/dv-glue.c
+--- gdb-6.4/sim/common/dv-glue.c	Tue May 18 23:20:07 2004
++++ gdb-6.4-m68hc1x/sim/common/dv-glue.c	Sat Jan 21 15:28:49 2006
+@@ -278,7 +278,7 @@ static unsigned
+ hw_glue_io_read_buffer (struct hw *me,
+ 			void *dest,
+ 			int space,
+-			unsigned_word addr,
++			address_word addr,
+ 			unsigned nr_bytes)
+ {
+   struct hw_glue *glue = (struct hw_glue *) hw_data (me);
+@@ -298,7 +298,7 @@ static unsigned
+ hw_glue_io_write_buffer (struct hw *me,
+ 			 const void *source,
+ 			 int space,
+-			 unsigned_word addr,
++			 address_word addr,
+ 			 unsigned nr_bytes)
+ {
+   struct hw_glue *glue = (struct hw_glue *) hw_data (me);
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/dv-pal.c gdb-6.4-m68hc1x/sim/common/dv-pal.c
+--- gdb-6.4/sim/common/dv-pal.c	Sat Nov 23 02:12:05 2002
++++ gdb-6.4-m68hc1x/sim/common/dv-pal.c	Sat Jan 21 15:28:49 2006
+@@ -341,7 +341,7 @@ static unsigned
+ hw_pal_io_read_buffer (struct hw *me,
+ 		       void *dest,
+ 		       int space,
+-		       unsigned_word addr,
++		       address_word addr,
+ 		       unsigned nr_bytes)
+ {
+   hw_pal_device *hw_pal = (hw_pal_device *) hw_data (me);
+@@ -426,7 +426,7 @@ static unsigned
+ hw_pal_io_write_buffer (struct hw *me,
+ 			const void *source,
+ 			int space,
+-			unsigned_word addr,
++			address_word addr,
+ 			unsigned nr_bytes)
+ {
+   hw_pal_device *hw_pal = (hw_pal_device*) hw_data (me);
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/dv-sockser.c gdb-6.4-m68hc1x/sim/common/dv-sockser.c
+--- gdb-6.4/sim/common/dv-sockser.c	Fri Aug 11 02:48:51 2000
++++ gdb-6.4-m68hc1x/sim/common/dv-sockser.c	Sat Jan 21 15:28:49 2006
+@@ -42,6 +42,9 @@ with this program; if not, write to the 
+ #include <errno.h>
+ #include <sys/types.h>
+ #include <sys/time.h>
++#ifdef _WIN32
++#include <winsock.h>
++#else
+ #include <netinet/in.h>
+ #include <arpa/inet.h>
+ #include <netdb.h>
+@@ -50,6 +53,7 @@ with this program; if not, write to the 
+ #ifndef __CYGWIN32__
+ #include <netinet/tcp.h>
+ #endif
++#endif
+ 
+ #include "sim-assert.h"
+ #include "sim-options.h"
+@@ -198,6 +202,7 @@ dv_sockser_init (SIM_DESC sd)
+       return SIM_RC_OK;
+     }
+ 
++#ifdef SIGPIPE
+   /* Handle writes to missing client -> SIGPIPE.
+      ??? Need a central signal management module.  */
+   {
+@@ -207,7 +212,7 @@ dv_sockser_init (SIM_DESC sd)
+     if (orig != SIG_DFL && orig != SIG_IGN)
+       signal (SIGPIPE, orig);
+   }
+-
++#endif
+   return SIM_RC_OK;
+ }
+ 
+@@ -274,6 +279,7 @@ connected_p (SIM_DESC sd)
+   if (sockser_fd < 0)
+     return 0;
+ 
++#ifdef F_GETFL
+   /* Set non-blocking i/o.  */
+   flags = fcntl (sockser_fd, F_GETFL);
+   flags |= O_NONBLOCK | O_NDELAY;
+@@ -284,6 +290,7 @@ connected_p (SIM_DESC sd)
+       sockser_fd = -1;
+       return 0;
+     }
++#endif
+   return 1;
+ }
+ 
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/hw-base.c gdb-6.4-m68hc1x/sim/common/hw-base.c
+--- gdb-6.4/sim/common/hw-base.c	Sat Nov 23 02:12:05 2002
++++ gdb-6.4-m68hc1x/sim/common/hw-base.c	Sat Jan 21 15:28:49 2006
+@@ -217,7 +217,7 @@ static unsigned
+ panic_hw_io_read_buffer (struct hw *me,
+ 			 void *dest,
+ 			 int space,
+-			 unsigned_word addr,
++			 address_word addr,
+ 			 unsigned nr_bytes)
+ {
+   hw_abort (me, "no io-read method");
+@@ -228,7 +228,7 @@ static unsigned
+ panic_hw_io_write_buffer (struct hw *me,
+ 			  const void *source,
+ 			  int space,
+-			  unsigned_word addr,
++			  address_word addr,
+ 			  unsigned nr_bytes)
+ {
+   hw_abort (me, "no io-write method");
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/hw-device.h gdb-6.4-m68hc1x/sim/common/hw-device.h
+--- gdb-6.4/sim/common/hw-device.h	Sat Nov 23 02:12:05 2002
++++ gdb-6.4-m68hc1x/sim/common/hw-device.h	Sat Jan 21 15:28:49 2006
+@@ -231,7 +231,7 @@ typedef unsigned (hw_io_read_buffer_meth
+      (struct hw *me,
+       void *dest,
+       int space,
+-      unsigned_word addr,
++      address_word addr,
+       unsigned nr_bytes);
+ 
+ #define hw_io_read_buffer(hw, dest, space, addr, nr_bytes) \
+@@ -244,7 +244,7 @@ typedef unsigned (hw_io_write_buffer_met
+      (struct hw *me,
+       const void *source,
+       int space,
+-      unsigned_word addr,
++      address_word addr,
+       unsigned nr_bytes);
+ 
+ #define hw_io_write_buffer(hw, src, space, addr, nr_bytes) \
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/hw-instances.c gdb-6.4-m68hc1x/sim/common/hw-instances.c
+--- gdb-6.4/sim/common/hw-instances.c	Sat Nov 23 02:12:05 2002
++++ gdb-6.4-m68hc1x/sim/common/hw-instances.c	Sat Jan 21 15:28:49 2006
+@@ -126,7 +126,7 @@ hw_instance_delete (struct hw_instance *
+ static int
+ panic_hw_instance_read (struct hw_instance *instance,
+ 			void *addr,
+-			unsigned_word len)
++			unsigned_cell len)
+ {
+   hw_abort (hw_instance_hw (instance), "no read method");
+   return -1;
+@@ -137,7 +137,7 @@ panic_hw_instance_read (struct hw_instan
+ static int
+ panic_hw_instance_write (struct hw_instance *instance,
+ 			 const void *addr,
+-			 unsigned_word len)
++			 unsigned_cell len)
+ {
+   hw_abort (hw_instance_hw (instance), "no write method");
+   return -1;
+@@ -146,8 +146,8 @@ panic_hw_instance_write (struct hw_insta
+ 
+ static int
+ panic_hw_instance_seek (struct hw_instance *instance,
+-			unsigned_word pos_hi,
+-			unsigned_word pos_lo)
++			unsigned_cell pos_hi,
++			unsigned_cell pos_lo)
+ {
+   hw_abort (hw_instance_hw (instance), "no seek method");
+   return -1;
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/sim-core.c gdb-6.4-m68hc1x/sim/common/sim-core.c
+--- gdb-6.4/sim/common/sim-core.c	Fri Dec 19 12:43:56 2003
++++ gdb-6.4-m68hc1x/sim/common/sim-core.c	Sat Jan 21 15:28:49 2006
+@@ -518,7 +518,7 @@ sim_core_read_buffer (SIM_DESC sd,
+   unsigned count = 0;
+   while (count < len)
+  {
+-    unsigned_word raddr = addr + count;
++    address_word raddr = addr + count;
+     sim_core_mapping *mapping =
+       sim_core_find_mapping (core, map,
+ 			    raddr, /*nr-bytes*/1,
+@@ -584,7 +584,7 @@ sim_core_write_buffer (SIM_DESC sd,
+   unsigned count = 0;
+   while (count < len)
+     {
+-      unsigned_word raddr = addr + count;
++      address_word raddr = addr + count;
+       sim_core_mapping *mapping =
+ 	sim_core_find_mapping (core, map,
+ 			       raddr, /*nr-bytes*/1,
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/sim-core.h gdb-6.4-m68hc1x/sim/common/sim-core.h
+--- gdb-6.4/sim/common/sim-core.h	Sat Nov 23 02:12:05 2002
++++ gdb-6.4-m68hc1x/sim/common/sim-core.h	Sat Jan 21 15:28:49 2006
+@@ -51,9 +51,9 @@ struct _sim_core_mapping {
+   /* common */
+   int level;
+   int space;
+-  unsigned_word base;
+-  unsigned_word bound;
+-  unsigned_word nr_bytes;
++  address_word base;
++  address_word bound;
++  address_word nr_bytes;
+   unsigned mask;
+   /* memory map */
+   void *free_buffer;
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/sim-hw.c gdb-6.4-m68hc1x/sim/common/sim-hw.c
+--- gdb-6.4/sim/common/sim-hw.c	Thu Jul 27 13:34:30 2000
++++ gdb-6.4-m68hc1x/sim/common/sim-hw.c	Sat Jan 21 15:28:49 2006
+@@ -1,5 +1,5 @@
+ /* Simulator hardware option handling.
+-   Copyright (C) 1998 Free Software Foundation, Inc.
++   Copyright (C) 1998, 2002 Free Software Foundation, Inc.
+    Contributed by Cygnus Support and Andrew Cagney.
+ 
+ This file is part of GDB, the GNU debugger.
+@@ -339,7 +339,7 @@ sim_cpu_hw_io_read_buffer (sim_cpu *cpu,
+ 			   struct hw *hw,
+ 			   void *dest,
+ 			   int space,
+-			   unsigned_word addr,
++			   address_word addr,
+ 			   unsigned nr_bytes)
+ {
+   SIM_DESC sd = CPU_STATE (cpu);
+@@ -355,7 +355,7 @@ sim_cpu_hw_io_write_buffer (sim_cpu *cpu
+ 			    struct hw *hw,
+ 			    const void *source,
+ 			    int space,
+-			    unsigned_word addr,
++			    address_word addr,
+ 			    unsigned nr_bytes)
+ {
+   SIM_DESC sd = CPU_STATE (cpu);
+@@ -375,7 +375,7 @@ sim_hw_io_read_buffer (struct sim_state 
+ 		       struct hw *hw,
+ 		       void *dest,
+ 		       int space,
+-		       unsigned_word addr,
++		       address_word addr,
+ 		       unsigned nr_bytes)
+ {
+   STATE_HW (sd)->cpu = NULL;
+@@ -387,7 +387,7 @@ sim_hw_io_write_buffer (struct sim_state
+ 			struct hw *hw,
+ 			const void *source,
+ 			int space,
+-			unsigned_word addr,
++			address_word addr,
+ 			unsigned nr_bytes)
+ {
+   STATE_HW (sd)->cpu = NULL;
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/sim-hw.h gdb-6.4-m68hc1x/sim/common/sim-hw.h
+--- gdb-6.4/sim/common/sim-hw.h	Fri Apr 16 03:34:57 1999
++++ gdb-6.4-m68hc1x/sim/common/sim-hw.h	Sat Jan 21 15:28:49 2006
+@@ -1,5 +1,5 @@
+ /* Device definitions.
+-   Copyright (C) 1998 Free Software Foundation, Inc.
++   Copyright (C) 1998, 2002 Free Software Foundation, Inc.
+    Contributed by Cygnus Support.
+ 
+ This file is part of GDB, the GNU debugger.
+@@ -62,7 +62,7 @@ void sim_cpu_hw_io_read_buffer
+  struct hw *hw,
+  void *dest,
+  int space,
+- unsigned_word addr,
++ address_word addr,
+  unsigned nr_bytes);
+ 
+ void sim_cpu_hw_io_write_buffer
+@@ -71,7 +71,7 @@ void sim_cpu_hw_io_write_buffer
+  struct hw *hw,
+  const void *source,
+  int space,
+- unsigned_word addr,
++ address_word addr,
+  unsigned nr_bytes);
+ 
+ 
+@@ -83,7 +83,7 @@ unsigned sim_hw_io_read_buffer
+  struct hw *hw,
+  void *dest,
+  int space,
+- unsigned_word addr,
++ address_word addr,
+  unsigned nr_bytes);
+ 
+ unsigned sim_hw_io_write_buffer
+@@ -91,7 +91,7 @@ unsigned sim_hw_io_write_buffer
+  struct hw *hw,
+  const void *source,
+  int space,
+- unsigned_word addr,
++ address_word addr,
+  unsigned nr_bytes);
+ 
+ 
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/sim-io.c gdb-6.4-m68hc1x/sim/common/sim-io.c
+--- gdb-6.4/sim/common/sim-io.c	Sat Nov 23 02:12:05 2002
++++ gdb-6.4-m68hc1x/sim/common/sim-io.c	Sat Jan 21 15:28:49 2006
+@@ -386,6 +386,15 @@ sim_io_poll_read (SIM_DESC sd,
+     }
+   return result;
+ #else
++#ifdef _WIN32
++  /* For Windows, use _kbhit() to see whether some input is available.  */
++  if (sim_io_fd == STDIN_FILENO) {
++    int result = 0;
++    while (_kbhit() && result < sizeof_buf)
++      buf[result++] = _getch();
++    return result;
++  } else
++#endif
+   return sim_io_read (sd, sim_io_fd, buf, sizeof_buf);
+ #endif
+ }
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/sim-memopt.h gdb-6.4-m68hc1x/sim/common/sim-memopt.h
+--- gdb-6.4/sim/common/sim-memopt.h	Tue Mar 20 18:13:39 2001
++++ gdb-6.4-m68hc1x/sim/common/sim-memopt.h	Sat Jan 21 15:28:49 2006
+@@ -27,8 +27,8 @@ typedef struct _sim_memopt sim_memopt;
+ struct _sim_memopt {
+   int level;
+   int space;
+-  unsigned_word addr;
+-  unsigned_word nr_bytes;
++  address_word addr;
++  address_word nr_bytes;
+   unsigned modulo;
+   void *buffer;
+   unsigned long munmap_length;
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/sim-profile.c gdb-6.4-m68hc1x/sim/common/sim-profile.c
+--- gdb-6.4/sim/common/sim-profile.c	Thu Feb 15 22:14:40 2001
++++ gdb-6.4-m68hc1x/sim/common/sim-profile.c	Sat Jan 21 15:28:49 2006
+@@ -1050,6 +1050,7 @@ profile_print_speed (sim_cpu *cpu)
+     }
+ }
+ 
++#ifdef SIM_HAVE_ADDR_RANGE
+ /* Print selected address ranges.  */
+ 
+ static void
+@@ -1070,6 +1071,7 @@ profile_print_addr_ranges (sim_cpu *cpu)
+       sim_io_printf (sd, "\n");
+     }
+ }
++#endif
+ 
+ /* Top level function to print all summary profile information.
+    It is [currently] intended that all such data is printed by this function.
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/sim-signal.c gdb-6.4-m68hc1x/sim/common/sim-signal.c
+--- gdb-6.4/sim/common/sim-signal.c	Fri Apr 16 03:34:59 1999
++++ gdb-6.4-m68hc1x/sim/common/sim-signal.c	Sat Jan 21 15:28:49 2006
+@@ -27,7 +27,7 @@ with this program; if not, write to the 
+    to not think the process has died (so it can be debugged at the point of
+    failure).  */
+ 
+-#ifdef _MSC_VER
++#if defined(_MSC_VER) || defined(__MINGW32__)
+ #ifndef SIGTRAP
+ #define SIGTRAP 5
+ #endif
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/common/sim-trace.c gdb-6.4-m68hc1x/sim/common/sim-trace.c
+--- gdb-6.4/sim/common/sim-trace.c	Fri Oct 31 06:32:46 2003
++++ gdb-6.4-m68hc1x/sim/common/sim-trace.c	Sat Jan 21 15:28:49 2006
+@@ -241,7 +241,9 @@ trace_option_handler (SIM_DESC sd, sim_c
+ 		      char *arg, int is_command)
+ {
+   int n;
++#ifdef SIM_HAVE_ADDR_RANGE
+   int cpu_nr;
++#endif
+ 
+   switch (opt)
+     {
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/m68hc11/configure gdb-6.4-m68hc1x/sim/m68hc11/configure
+--- gdb-6.4/sim/m68hc11/configure	Wed Mar 23 19:55:17 2005
++++ gdb-6.4-m68hc1x/sim/m68hc11/configure	Sat Jan 21 15:28:49 2006
+@@ -6800,6 +6800,45 @@ _ACEOF
+ fi
+ 
+ 
++ac_save_libs="$LIBS"
++LIBS="-lwsock32 ${LIBS}"
++
++echo $ac_n "checking for bind in -lwsock32""... $ac_c" 1>&6
++echo "configure:3297: checking for bind in -lwsock32" >&5
++cat > conftest.$ac_ext <<EOF
++#line 3299 "configure"
++#include "confdefs.h"
++#include <winsock.h>
++
++int main() {
++
++ bind(0, 0, 0);
++
++; return 0; }
++EOF
++if { (eval echo configure:3309: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
++  rm -rf conftest*
++  found=yes
++else
++  echo "configure: failed program was:" >&5
++  cat conftest.$ac_ext >&5
++  rm -rf conftest*
++  found=no
++fi
++rm -f conftest*
++echo "$ac_t""$found" 1>&6
++if test $found = yes; then
++  ac_tr_lib=HAVE_LIB`echo nsl | sed -e 's/^a-zA-Z0-9_/_/g' \
++    -e 'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/'`
++  cat >> confdefs.h <<EOF
++#define $ac_tr_lib 1
++EOF
++  LIBS="-lwsock32 ${LIBS}"
++
++else
++  LIBS="$ac_save_libs"
++fi
++
+ . ${srcdir}/../../bfd/configure.host
+ 
+ 
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/m68hc11/dv-m68hc11.c gdb-6.4-m68hc1x/sim/m68hc11/dv-m68hc11.c
+--- gdb-6.4/sim/m68hc11/dv-m68hc11.c	Fri Aug  8 23:00:55 2003
++++ gdb-6.4-m68hc1x/sim/m68hc11/dv-m68hc11.c	Sat Jan 21 15:28:50 2006
+@@ -831,7 +831,7 @@ static unsigned
+ m68hc11cpu_io_read_buffer (struct hw *me,
+ 			   void *dest,
+ 			   int space,
+-			   unsigned_word base,
++			   address_word base,
+ 			   unsigned nr_bytes)
+ {
+   SIM_DESC sd;
+@@ -981,7 +981,7 @@ m68hc11cpu_set_port (struct hw *me, sim_
+ 
+ static void
+ m68hc11cpu_io_write (struct hw *me, sim_cpu *cpu,
+-                     unsigned_word addr, uint8 val)
++                     address_word addr, uint8 val)
+ {
+   switch (addr)
+     {
+@@ -1079,7 +1079,7 @@ static unsigned
+ m68hc11cpu_io_write_buffer (struct hw *me,
+ 			    const void *source,
+ 			    int space,
+-			    unsigned_word base,
++			    address_word base,
+ 			    unsigned nr_bytes)
+ {
+   SIM_DESC sd;
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/m68hc11/dv-m68hc11eepr.c gdb-6.4-m68hc1x/sim/m68hc11/dv-m68hc11eepr.c
+--- gdb-6.4/sim/m68hc11/dv-m68hc11eepr.c	Tue Aug 13 11:01:16 2002
++++ gdb-6.4-m68hc1x/sim/m68hc11/dv-m68hc11eepr.c	Sat Jan 21 15:28:50 2006
+@@ -393,7 +393,7 @@ static unsigned
+ m68hc11eepr_io_read_buffer (struct hw *me,
+ 			    void *dest,
+ 			    int space,
+-			    unsigned_word base,
++			    address_word base,
+ 			    unsigned nr_bytes)
+ {
+   SIM_DESC sd;
+@@ -448,7 +448,7 @@ static unsigned
+ m68hc11eepr_io_write_buffer (struct hw *me,
+ 			     const void *source,
+ 			     int space,
+-			     unsigned_word base,
++			     address_word base,
+ 			     unsigned nr_bytes)
+ {
+   SIM_DESC sd;
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/m68hc11/dv-m68hc11sio.c gdb-6.4-m68hc1x/sim/m68hc11/dv-m68hc11sio.c
+--- gdb-6.4/sim/m68hc11/dv-m68hc11sio.c	Fri Aug  8 23:02:24 2003
++++ gdb-6.4-m68hc1x/sim/m68hc11/dv-m68hc11sio.c	Sat Jan 21 15:28:50 2006
+@@ -492,7 +492,7 @@ static unsigned
+ m68hc11sio_io_read_buffer (struct hw *me,
+                            void *dest,
+                            int space,
+-                           unsigned_word base,
++                           address_word base,
+                            unsigned nr_bytes)
+ {
+   SIM_DESC sd;
+@@ -537,7 +537,7 @@ static unsigned
+ m68hc11sio_io_write_buffer (struct hw *me,
+                             const void *source,
+                             int space,
+-                            unsigned_word base,
++                            address_word base,
+                             unsigned nr_bytes)
+ {
+   SIM_DESC sd;
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/m68hc11/dv-m68hc11spi.c gdb-6.4-m68hc1x/sim/m68hc11/dv-m68hc11spi.c
+--- gdb-6.4/sim/m68hc11/dv-m68hc11spi.c	Fri Aug  8 23:02:24 2003
++++ gdb-6.4-m68hc1x/sim/m68hc11/dv-m68hc11spi.c	Sat Jan 21 15:28:50 2006
+@@ -381,7 +381,7 @@ static unsigned
+ m68hc11spi_io_read_buffer (struct hw *me,
+                            void *dest,
+                            int space,
+-                           unsigned_word base,
++                           address_word base,
+                            unsigned nr_bytes)
+ {
+   SIM_DESC sd;
+@@ -426,7 +426,7 @@ static unsigned
+ m68hc11spi_io_write_buffer (struct hw *me,
+                             const void *source,
+                             int space,
+-                            unsigned_word base,
++                            address_word base,
+                             unsigned nr_bytes)
+ {
+   SIM_DESC sd;
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/m68hc11/dv-m68hc11tim.c gdb-6.4-m68hc1x/sim/m68hc11/dv-m68hc11tim.c
+--- gdb-6.4/sim/m68hc11/dv-m68hc11tim.c	Fri Aug  8 23:02:24 2003
++++ gdb-6.4-m68hc1x/sim/m68hc11/dv-m68hc11tim.c	Sat Jan 21 15:28:50 2006
+@@ -638,7 +638,7 @@ static unsigned
+ m68hc11tim_io_read_buffer (struct hw *me,
+                            void *dest,
+                            int space,
+-                           unsigned_word base,
++                           address_word base,
+                            unsigned nr_bytes)
+ {
+   SIM_DESC sd;
+@@ -687,7 +687,7 @@ static unsigned
+ m68hc11tim_io_write_buffer (struct hw *me,
+                             const void *source,
+                             int space,
+-                            unsigned_word base,
++                            address_word base,
+                             unsigned nr_bytes)
+ {
+   SIM_DESC sd;
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/m68hc11/dv-nvram.c gdb-6.4-m68hc1x/sim/m68hc11/dv-nvram.c
+--- gdb-6.4/sim/m68hc11/dv-nvram.c	Fri Nov 24 21:53:35 2000
++++ gdb-6.4-m68hc1x/sim/m68hc11/dv-nvram.c	Sat Jan 21 15:28:50 2006
+@@ -258,7 +258,7 @@ static unsigned
+ nvram_io_read_buffer (struct hw *me,
+                       void *dest,
+                       int space,
+-                      unsigned_word base,
++                      address_word base,
+                       unsigned nr_bytes)
+ {
+   struct nvram *controller = hw_data (me);
+@@ -281,7 +281,7 @@ static unsigned
+ nvram_io_write_buffer (struct hw *me,
+                        const void *source,
+                        int space,
+-                       unsigned_word base,
++                       address_word base,
+                        unsigned nr_bytes)
+ {
+   struct nvram *controller = hw_data (me);
+diff --exclude-from=exclude.lst -Nrup gdb-6.4/sim/m68hc11/m68hc11_sim.c gdb-6.4-m68hc1x/sim/m68hc11/m68hc11_sim.c
+--- gdb-6.4/sim/m68hc11/m68hc11_sim.c	Fri Aug  8 23:00:55 2003
++++ gdb-6.4-m68hc1x/sim/m68hc11/m68hc11_sim.c	Sat Jan 21 15:28:50 2006
+@@ -291,8 +291,8 @@ cpu_get_indexed_operand_addr (sim_cpu* c
+ 	  return 0;
+ 	}
+       reg = (code >> 3) & 0x03;
+-      addr = cpu_get_reg (cpu, reg);
+-      addr += cpu_fetch16 (cpu);
++      addr = cpu_fetch16 (cpu);
++      addr += cpu_get_reg (cpu, reg);
+       addr = memory_read16 (cpu, addr);
+       cpu_add_cycles (cpu, 1);
+     }
+@@ -765,7 +765,7 @@ cpu_special (sim_cpu *cpu, enum M6811_Sp
+     case M6811_WAI:
+       /* In the ELF-start mode, we are in a special mode where
+ 	 the WAI corresponds to an exit.  */
+-      if (cpu->cpu_use_elf_start)
++      if (cpu->cpu_use_elf_start || 1)
+         {
+           cpu_set_pc (cpu, cpu->cpu_insn_pc);
+           sim_engine_halt (CPU_STATE (cpu), cpu,

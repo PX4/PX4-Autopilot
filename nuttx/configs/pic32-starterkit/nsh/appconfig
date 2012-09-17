@@ -1,0 +1,115 @@
+############################################################################
+# configs/pic32-starterkit/nsh/appconfig
+#
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+############################################################################
+# Path to example in apps/examples containing the user_start entry point
+############################################################################
+
+CONFIGURED_APPS += examples/nsh
+
+############################################################################
+# The NSH application library
+############################################################################
+
+CONFIGURED_APPS += system/readline
+CONFIGURED_APPS += nshlib
+
+############################################################################
+# USB device configurations
+############################################################################
+
+ifeq ($(CONFIG_PIC32MX_USBDEV),y)
+
+# USB Mass Storage Class device configurations
+
+ifeq ($(CONFIG_USBMSC),y)
+#  Uncomment to enable the examples/usbstorage built-in
+#  CONFIGURED_APPS += examples/usbstorage
+endif
+
+# USB CDC/ACM serial device configurations
+
+ifeq ($(CONFIG_CDCACM),y)
+#  Uncomment to enable the examples/cdcacm built-in
+#  CONFIGURED_APPS += examples/cdcacm
+#  Uncomment the following to enable the examples/usbterm built-in
+#  CONFIGURED_APPS += examples/usbterm
+endif
+
+# Prolifics PL2303 emulation configurations
+
+ifeq ($(CONFIG_PL2303),y)
+#  Uncomment the following to enable the examples/usbterm built-in
+#  CONFIGURED_APPS += examples/usbterm
+endif
+endif
+
+############################################################################
+# Networking configurations
+############################################################################
+
+# Networking libraries.
+# Uncomment netutils/ftpc to include an FTP client library
+# Uncomment netutils/ftpd to include an FTP server library
+
+ifeq ($(CONFIG_NET),y)
+CONFIGURED_APPS += netutils/uiplib
+CONFIGURED_APPS += netutils/resolv
+CONFIGURED_APPS += netutils/webclient
+CONFIGURED_APPS += netutils/tftpc
+#CONFIGURED_APPS += netutils/ftpc
+#CONFIGURED_APPS += netutils/ftpd
+ifeq ($(CONFIG_NSH_TELNET),y)
+CONFIGURED_APPS += netutils/telnetd
+endif
+endif
+
+# Uncomment examples/ftpc to include the FTP client example
+# Uncomment examples/ftpd to include the FTP daemon example
+
+ifeq ($(CONFIG_NET),y)
+#CONFIGURED_APPS += examples/ftpc
+#CONFIGURED_APPS += examples/ftpd
+endif
+
+############################################################################
+# Other pplications that can be configured as an NX built-in commands
+############################################################################
+
+ifeq ($(CONFIG_I2C),y)
+CONFIGURED_APPS += system/i2c
+endif
+
+

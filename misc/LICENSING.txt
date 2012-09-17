@@ -1,0 +1,46 @@
+Licensing
+^^^^^^^^^
+
+This directory contains miscellaneous NuttX add-ons and utilities.
+NuttX is retained separately for maintenance and licensing reasons.
+NuttX has a BSD-style license.  However, the contents of this
+directory have have other license restrictions.
+
+The licensing of the components of this directory are summarized
+below:
+
+  buildroot:
+    Description:  GNU toolchain build environment.  Derived from
+      http://buildroot.uclibc.org/
+    License: GPLv2
+
+  pascal:
+    Description:  Pascal compiler with NuttX runtime add-on.
+    License: BSD
+
+  sims:
+    Description:  This is a repository of instruction set simulators
+      that were used to verify NuttX.  The licensing of the
+      instruction set simulators vary
+
+    sims/z80sim:
+      You are well comecom to use the source files provided in 
+      this directory for any purpose.  However, the core of the Z80
+      emulation is based on a proprietary-but-free-to-use
+      instruction set emulator.  That emulation is not included
+      in this directory, but is automatically downloaded when
+      z80sim is built.
+
+  drivers:
+    Descriptions: This is a folder of drivers that are not included
+    in the main NuttX source tree due to licensing or other concerns.
+    Compatibly licensed drivers (BSD or MIT) are included in the main
+    source tree.  These drivers have incompatible licesnes.  They
+    may, as an example, have been leveraged from Linux and, hence,
+    inherit a GPL license.  By installing this driver package you
+    agree to the licensing terms of the individual drivers.
+
+    rtl8187x
+      This is a USB host driver for the RTL8187x wireless LAN.  Some
+      of the critical logic in this driver derives from Linux and,
+      hence, is GPLv2.

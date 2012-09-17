@@ -1,0 +1,419 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config MSEC_PER_TICK
+	int "tick timer"
+	default 10
+	---help---
+		The default system timer is 100Hz or MSEC_PER_TICK=10.  This setting
+		may be defined to inform NuttX that the processor hardware is providing
+		system timer interrupts at some interrupt interval other than 10 msec.
+
+config RR_INTERVAL
+	int "round robin timeslice"
+	default 0
+	---help---
+		The round robin timeslice will be set this number of milliseconds;
+		Round robin scheduling can be disabled by setting this value to zero.
+
+config SCHED_INSTRUMENTATION
+	bool "Monitor system performance"
+	default n
+	---help---
+		enables instrumentation in scheduler to monitor system performance.
+
+config TASK_NAME_SIZE
+	int "Maximum task name size"
+	default 32
+	---help---
+		Spcifies that maximum size of a task name to save in the TCB.
+		Useful if scheduler instrumentation is selected.  Set to zero to
+		disable.
+
+config JULIAN_TIME
+	bool "Enables Julian time conversions"
+	default n
+	---help---
+		Enables Julian time conversions
+
+config START_YEAR
+	int "start year"
+	default 2010
+
+config START_MONTH
+	int "start month"
+	default 1
+	
+config START_DAY
+	int "start day"
+	default 1
+
+config DEV_CONSOLE
+	bool "Enable /dev/console"
+	default y
+	---help---
+		Set if architecture-specific logic provides /dev/console.  Enables
+		stdout, stderr, stdin.
+
+config DEV_LOWCONSOLE
+	bool "enable low-level serial console"
+	default n
+	---help---
+		Use the simple, low-level, write-only serial console driver (minimul support)
+
+config MUTEX_TYPES:
+	bool "Enable mutex types"
+	default n
+	---help---
+		Set to enable support for recursive and errorcheck mutexes. Enables
+		pthread_mutexattr_settype().
+
+config PRIORITY_INHERITANCE 
+	bool "Enable priority inheritance "
+	default n
+	---help---
+		Set to enable support for priority inheritance on mutexes and semaphores. 
+
+config SEM_PREALLOCHOLDERS 
+	int "Pre-allocated holders"
+	default 16
+	depends on PRIORITY_INHERITANCE
+	---help---
+		This setting is only used if priority inheritance is enabled.
+		It defines the maximum number of different threads (minus one) that
+		can take counts on a semaphore with priority inheritance support.
+		This may be set to zero if priority inheritance is disabled OR if you
+		are only using semaphores as mutexes (only one holder) OR if no more
+		than two threads participate using a counting semaphore.
+
+config SEM_NNESTPRIO
+	int "Maximum number of higher priority threads"
+	default 16
+	depends on PRIORITY_INHERITANCE
+	---help---
+		If priority inheritance is enabled, then this setting is the 
+		maximum number of higher priority threads (minus 1) than can be
+		waiting for another thread to release a count on a semaphore.
+		This value may be set to zero if no more than one thread is
+		expected to wait for a semaphore.
+
+config FDCLONE_DISABLE
+	bool "Disable cloning of file descriptors"
+	default n
+	---help---
+	Disable cloning of all file descriptors
+	by task_create() when a new task is started.  If set, all
+	files/drivers will appear to be closed in the new task.
+
+config FDCLONE_STDIO
+	bool "Disable clone file descriptors without stdio"
+	default n
+	---help---
+		Disable cloning of all but the first three file descriptors (stdin,
+		stdout, stderr) by task_create() when a new task is started. If set,
+		all files/drivers will appear to be closed in the new task except
+		for stdin, stdout, and stderr.
+
+config SDCLONE_DISABLE
+	bool "Disable cloning of socket descriptors"
+	default n
+	---help---
+	Disable cloning of all socket
+	desciptors by task_create() when a new task is started. If
+	set, all sockets will appear to be closed in the new task.
+
+config SCHED_WORKQUEUE
+	bool "Enable worker thread"
+	default n
+	---help---
+		Create a dedicated "worker" thread to handle delayed processing from interrupt
+		handlers.  This feature is required for some drivers but, if there are no
+		complaints, can be safely disabled.  The worker thread also performs
+		garbage collection -- completing any delayed memory deallocations from
+		interrupt handlers.  If the worker thread is disabled, then that clean up will
+		be performed by the IDLE thread instead (which runs at the lowest of priority
+		and may not be appropriate if memory reclamation is of high priority).
+
+config SCHED_WORKPRIORITY
+	int "Worker thread priority"
+	default 192
+	depends on SCHED_WORKQUEUE
+	---help---
+		The execution priority of the worker thread.  Default: 192
+
+config SCHED_WORKPERIOD
+	int "Worker thread period"
+	default 50000
+	depends on SCHED_WORKQUEUE
+	---help---
+		How often the worker thread checks for work in units of microseconds.
+		Default: 50*1000 (50 MS).
+
+config SCHED_WORKSTACKSIZE
+	int "Worker thread stack size"
+	default 2048
+	depends on SCHED_WORKQUEUE
+	---help---
+		The stack size allocated for the worker thread.  Default: 2K.
+
+config SIG_SIGWORK
+	int "Worker thread wakeup signal"
+	default 4
+	depends on SCHED_WORKQUEUE
+	---help---
+		The signal number that will be used to wake-up the worker thread.
+		Default: 4
+
+config SCHED_LPWORK
+	bool "Enable a lower priority worker thread"
+	default n
+	depends on SCHED_WORKQUEUE
+	---help---
+		If SCHED_WORKQUEUE is defined, then a single work queue is created by
+		default.  If SCHED_LPWORK is also defined then an additional, lower-
+		priority work queue will also be created.  This lower priority work
+		queue is better suited for more extended processing (such as file system
+		clean-up operations)
+
+config SCHED_LPWORKPRIORITY
+	int "Lower priority worker thread priority"
+	default 50
+	depends on SCHED_LPWORK
+	---help---
+		The execution priority of the lopwer priority worker thread.  Default: 192
+
+config SCHED_LPWORKPERIOD
+	int "Lower priority worker thread period"
+	default 50000
+	depends on SCHED_LPWORK
+	---help---
+		How often the lower priority worker thread checks for work in units
+		of microseconds. Default: 50*1000 (50 MS).
+
+config SCHED_LPWORKSTACKSIZE
+	int "Lower priority worker thread stack size"
+	default 2048
+	depends on SCHED_LPWORK
+	---help---
+		The stack size allocated for the lower priority worker thread.  Default: 2K.
+
+config SCHED_WAITPID
+	bool "Enable waitpid() API"
+	default n
+	---help---
+		Enables the waitpid() API
+
+config SCHED_ATEXIT
+	bool "Enable atexit() API"
+	default n
+	---help---
+		Enables the atexit() API
+
+config SCHED_ATEXIT_MAX
+	int "Max number of atexit() functions"
+	default 1
+	depends on SCHED_ATEXIT
+	---help---
+		By default if SCHED_ATEXIT is selected, only a single atexit() function
+		is supported. That number can be increased by defined this setting to
+		the number that you require.
+
+config SCHED_ONEXIT
+	bool "Enable on_exit() API"
+	default n
+	---help---
+		Enables the on_exit() API
+
+config SCHED_ONEXIT_MAX
+	int "Max number of on_exit() functions"
+	default 1
+	depends on SCHED_ONEXIT
+	---help---
+		By default if SCHED_ONEXIT is selected, only a single on_exit() function
+		is supported. That number can be increased by defined this setting to the
+		number that you require.
+
+config USER_ENTRYPOINT
+	string "Application entry point"
+	default "user_start"
+	---help---
+		The name of the entry point for user applications.  For the example
+		applications this is of the form 'app_main' where 'app' is the application
+		name. If not defined, USER_ENTRYPOINT defaults to "user_start."
+
+config DISABLE_OS_API
+	bool "Disable NuttX interfaces"
+	default y
+	---help---
+	The following can be used to disable categories of
+	APIs supported by the OS.  If the compiler supports
+	weak functions, then it should not be necessary to
+	disable functions unless you want to restrict usage
+	of those APIs.
+
+	There are certain dependency relationships in these
+	features.
+
+	o mq_notify logic depends on signals to awaken tasks
+	  waiting for queues to become full or empty.
+	o pthread_condtimedwait() depends on signals to wake
+	  up waiting tasks.
+
+config DISABLE_CLOCK
+	bool "Disable clock interfaces"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_POSIX_TIMERS
+	bool "Disable POSIX timers"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_PTHREAD
+	bool "Disable pthread support"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_SIGNALS
+	bool "Disable signal support"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_MQUEUE
+	bool "Disable POSIX message queue support"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_MOUNTPOINT
+	bool "Disable support for mount points"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_ENVIRON
+	bool "Disable environment variable support"
+	depends on DISABLE_OS_API
+	default n
+
+config DISABLE_POLL
+	bool "Disable driver poll interfaces"
+	depends on DISABLE_OS_API
+	default n
+
+comment "Sizes of configurable things (0 disables)"
+
+config MAX_TASKS
+	int "Max tasks"
+	default 32
+	---help---
+		The maximum number of simultaneously active tasks. This value must be
+		a power of two.
+
+config MAX_TASK_ARGS
+	int "Maximum number of task arguments"
+	default 4
+	---help---
+		This controls the maximum number of of parameters that a task may
+		receive (i.e., maxmum value of 'argc')
+
+config NPTHREAD_KEYS
+	int "Number of pthread keys"
+	default 4
+	---help---
+		The number of items of thread-
+		specific data that can be retained
+
+config NFILE_DESCRIPTORS
+	int "Max file descriptors"
+	default 16
+	---help---
+		The maximum number of file
+		descriptors (one for each open)
+
+config NFILE_STREAMS
+	int "Max file streams"
+	default 16
+	---help---
+		The maximum number of streams that can be fopen'ed
+
+config NAME_MAX
+	int "name max"
+	default 32
+	---help---
+	The maximum size of a file name.
+
+config PREALLOC_MQ_MSGS
+	int "Pre-allocated messages"
+	default 32
+	---help---
+		The number of pre-allocated message structures.  The system manages
+		a pool of preallocated message structures to minimize dynamic allocations
+
+config MQ_MAXMSGSIZE
+	int "Maximum message size"
+	default 32
+	---help---
+		Message structures are allocated with a fixed payload size given by this
+		setting (does not include other message structure overhead.
+
+config MAX_WDOGPARMS
+	int "max watchdog parms"
+	default 4
+	---help---
+		Maximum number of parameters that
+		can be passed to a watchdog handler
+
+config PREALLOC_WDOGS
+	int "Pre-allocated watchdogs"
+	default 32
+	---help---
+		The number of pre-allocated watchdog structures.  The system manages a
+		pool of preallocated watchdog structures to minimize dynamic allocations
+	
+config PREALLOC_TIMERS
+	int "Pre-allocated timers"
+	default 8
+	---help---
+		The number of pre-allocated POSIX timer structures.  The system manages a
+		pool of preallocated timer structures to minimize dynamic allocations.  Set to
+		zero for all dynamic allocations.
+
+comment "Stack and heap information"
+
+config CUSTOM_STACK
+	bool "Enable custom stack"
+	default n
+	---help---
+		The up_ implementation will handle all stack operations outside of the
+		nuttx model.  This is necessary for certain architectures that have
+		have hardware stacks (such as the 8051 family).
+
+config IDLETHREAD_STACKSIZE
+	int "Idle thread stack size"
+	default 1024
+	---help---
+		The size of the initial stack used by the IDLE thread.  The IDLE thread
+		is the thread that (1) performs the inital boot of the system up to the
+		point where user_start() is spawned, and (2) there after is the IDLE
+		thread that executes only when there is no other thread ready to run.
+
+config USERMAIN_STACKSIZE
+	int "Main thread stack size"
+	default 2048
+	---help---
+		The size of the stack to allocate for the main user thread that begins at
+		the user_start() entry point.
+
+config PTHREAD_STACK_MIN
+	int "Minimum pthread stack size"
+	default 256
+	---help---
+		Minimum pthread stack size
+
+config PTHREAD_STACK_DEFAULT
+	int "Default pthread stack size"
+	default 2048
+	---help---
+		Default pthread stack size
+

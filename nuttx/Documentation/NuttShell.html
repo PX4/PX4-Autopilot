@@ -1,0 +1,3656 @@
+<html>
+<head>
+<title>NuttShell</title>
+</head>
+<body background="backgd.gif">
+<hr><hr>
+<table width ="100%">
+  <tr align="center" bgcolor="#e4e4e4">
+    <td>
+      <h1><big><font color="#3c34ec"><i>NuttShell (NSH)</i></font></big></h1>
+      <p>Last Updated: August 28, 2012</p>
+    </td>
+  </tr>
+</table>
+<hr><hr>
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+  <h1>Table of Contents</h1>
+    </td>
+  </tr>
+</table>
+
+<center><table width ="80%">
+<tr>
+<td>
+<table>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#overview">1.0 Overview</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#frontend">1.1 Console/NSH Front End</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdoverview">1.2 Command Overview</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#conditional">1.3 Conditional Command Execution</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#builtinvars">1.4 Built-In Variables</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#currentwd">1.5 Current Working Directory</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#environvars">1.6 Environment Variables</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#startupscript">1.7 NSH Start-Up Script</a>
+  </td>
+</tr>
+
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#commands">2.0 Commands</a>.
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdtest">2.1 Evaluate Expression (test)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdcat">2.2 Concatenate Files (cat)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdcd">2.3 Change Current Working Directory (cd)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdcp">2.4 Copy Files (cp)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmddate">2.5 Show or set the date and time (date)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmddd">2.6 Copy and Convert Files (dd)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmddf">2.7 Show volume status (df)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdecho">2.8 Echo Strings and Variables (echo)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdexec">2.9 Execute User Code (exec)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdexit">2.10 Exit NSH (exit)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdfree">2.11 Show Memory Manager Status (free)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdget">2.12 Get File Via TFTP (get)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdhelp">2.13 Show Usage Command Usage (help)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdifconfig">2.14 Show Network Configuration (ifconfig)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdkill">2.15 Send a signal to a task (kill)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdlosetup">2.16 Setup/teardown the Loop Device (losetup)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdls">2.17 List Directory Contents (ls)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdmbhw">2.18 Access Memory (mb, mh, and mw)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdps">2.19 Show Current Tasks and Threads (ps)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdmkdir">2.20 Create a Directory (mkdir)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdmkfatfs">2.21 Create a FAT Filesystem (mkfatfs)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdmkfifo">2.22 Create a FIFO (mkfifo)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdmkrd">2.23 Create a RAMDISK (mkrd)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdmount">2.24 Mount a File System (mount)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdmv">2.25 Rename a File (mv)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdnfsmount">2.26 Mount an NFS file system (nfsmount)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdping">2.27 Check Network Peer (ping)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdput">2.28 Send File Via TFTP (put)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdpwd">2.29 Show Current Working Directory (pwd)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdrm">2.30 Remove a File (rm)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdrmdir">2.31 Remove a Directory (rmdir)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdset">2.32 Set an Environment Variable (set)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdsh">2.33 Execute an NSH Script (sh)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdsleep">2.34 Wait for Seconds (sleep)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdunmount">2.35 Unmount a File System (umount)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdunset">2.36 Unset an Environment Variable (unset)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdusleep">2.37 Wait for Microseconds (usleep)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdwget">2.38 Get File Via HTTP (wget)</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmdxd">2.39 Hexadecimal Dump (xd)</a>
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#configuration">3.0 Configuration Settings</a>
+</td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#cmddependencies">3.1 Command Dependencies on Configuration Settings</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#nshconfiguration">3.2  NSH-Specific Configuration Settings</a>
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#customizingnsh">4.0 Customimizing the NuttShell</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#custonshlib">4.1 The NSH Library and NSH Initialization</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#custoncmds">4.2 NSH Commands</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#custapps">4.3 NSH &quot;Built-In&quot; Applications</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <a href="#custinit">4.4 Customizing NSH Initialization</a>
+  </td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#index">Index</a>
+</td>
+</table>
+</td>
+</tr>
+</table></center>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="overview"><h1>1.0 Overview</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  The <code>apps/nshlib</code> sub-directory contains the NuttShell (NSH)
+  library.
+  This library can easily to linked to produce a NSH application (See as an example <code>apps/nshlib</code>).
+  NSH is a simple shell application for NuttX.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="frontend"><h2>1.1 Console/NSH Front End</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  Using settings in the configuration file, NSH may be configured to
+  use either the serial stdin/out or a telnet connection as the console
+  or BOTH.  When NSH is started, you will see the following welcome on
+  either console:
+  <ul><pre>
+NuttShell (NSH)
+nsh&gt;
+</pre></ul>
+  <code>nsh&gt;</code> is the NSH prompt and indicates that you may enter a command
+   from the console.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdoverview"><h2>1.2 Command Overview</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  <b>Simple, Re-directed, and Background Commands</b>.
+  The NuttShell (NSH) is a simple shell application.
+  NSH supports the following commands forms:
+</p>
+<ul><table>
+  <tr>
+     <td>Simple command:</td>
+     <td><code>&lt;cmd&gt;</code></td>
+  </tr>
+  <tr>
+     <td>Command with re-directed output:</td>
+     <td><code>
+         &lt;cmd&gt; &gt; &lt;file&gt;<br>
+         &lt;cmd&gt; &gt;&gt; &lt;file&gt;
+     </code></td>
+  </tr>
+  <tr>
+     <td>Background command:</td>
+     <td><code>&lt;cmd&gt; &amp;</code></td>
+  </tr>
+  <tr>
+     <td>Re-directed background command:</td>
+     <td><code>
+       &lt;cmd&gt; &gt; &lt;file&gt; &amp;<br>
+       &lt;cmd&gt; &gt;&gt; &lt;file&gt; &amp;
+     </code></td>
+  </tr>
+</table></ul>
+<p>Where:</p>
+<ul><table>
+  <tr>
+    <td><code>&lt;cmd&gt;</code></td>
+    <td>
+      is any one of the simple commands listed later.
+    </td>
+  </tr>
+  <tr>
+    <td><code>&lt;file&gt;</code></td>
+    <td>
+      is the full or relative path to any writable object
+      in the filesystem name space (file or character driver).
+      Such objects will be referred to simply as files throughout
+      this document.
+    </td>
+  </tr>
+</table></ul>
+<p>
+  <b><big><code>nice</code></big>'d Background Commands</b>
+  NSH executes at the mid-priority (128).  Backgrounded commands can
+  be made to execute at higher or lower priorities using <code>nice</code>:
+</p>
+<ul><code>
+  [nice [-d &lt;niceness&gt;&gt;]] &lt;cmd&gt; [&gt; &lt;file&gt;|&gt;&gt; &lt;file&gt;] [&amp;]
+</code></ul>
+<p>
+  Where <code>&lt;niceness&gt;</code> is any value between -20 and 19 where lower
+  (more negative values) correspond to higher priorities.
+  The default niceness is 10.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="conditional"><h2>1.3 Conditional Command Execution</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  An <code>if-then[-else]-fi</code> construct is also supported in order to
+  support conditional execution of commands.  This works from the
+  command line but is primarily intended for use within NSH scripts
+  (see the <a href="#cmdsh"><code>sh</code></a> commnd).  The syntax is as follows:
+</p>
+<ul><pre>
+if &lt;cmd&gt;
+then
+  [sequence of &lt;cmd&gt;]
+else
+  [sequence of &lt;cmd&gt;]
+fi
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="builtinvars"><h2>1.4 Built-In Variables</h2></a>
+  </td>
+  </tr>
+</table>
+
+<ul><table>
+  <tr>
+    <td valign="top"><b><code>$?</code></b></td>
+    <td>
+      The result of the last simple command execution.
+      On backgrounded commands, this variable holds only the result of spawning the background command.
+    </td>
+  </tr>
+</table></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="currentwd"><h2>1.5 Current Working Directory</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  <b><code>cd</code> and <code>pwd</code></b>.
+  All path arguments to commands may be either an absolute path or a
+  path relative to the current working directory.  The current working
+  directory is set using the <a href="#cmdcd"><code>cd</code></a> command and can be queried either
+  by using the <a href="#cmdpwd"><code>pwd</code></a> command or by
+  using the <a href="#cmdecho"><code>echo</code></a> <a href="#environvars"><code>$PWD</code></a>
+  command.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="environvars"><h2>1.6 Environment Variables</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  <b>Environment Variables:</b>
+</p>
+<ul><table>
+  <tr>
+    <td><b><code>PWD</code></b></td><td>The current working directory</td>
+  </tr>
+  <tr>
+    <td><b><code>OLDPWD</code></b></td><td>The previous working directory</td>
+  </tr>
+</table></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="startupscript"><h2>1.7 NSH Start-Up Script</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  <b>NSH Start-Up Script</b>.
+  NSH supports options to provide a start up script for NSH.  In general
+  this capability is enabled with <code>CONFIG_NSH_ROMFSETC</code>, but has
+  several other related configuration options as described with the
+  <a href="#nshconfiguration">NSH-specific configuration settings</a>.
+  This capability also depends on:
+  <ul>
+    <li><code>CONFIG_DISABLE_MOUNTPOINT</code> not set
+    <li><code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 4
+    <li><code>CONFIG_FS_ROMFS</code> enabled
+  </ul>
+</p>
+
+<p>
+  <b>Default Start-Up Behavior</b>.
+  The implementation that is provided is intended to provide great flexibility
+  for the use of Start-Up files.  This paragraph will discuss the general
+  behavior when all of the configuration options are set to the default
+  values.
+</p>
+<p>
+  In this default case, enabling <code>CONFIG_NSH_ROMFSETC</code> will cause
+  NSH to behave as follows at NSH startup time:
+  <ul>
+    <li>
+      NSH will create a read-only RAM disk (a ROM disk), containing a tiny
+      ROMFS filesystem containing the following:
+<ul><pre>
+`--init.d/
+     `-- rcS
+</pre></ul>
+      Where rcS is the NSH start-up script.
+    </li>
+    <li>
+      NSH will then mount the ROMFS filesystem at <code>/etc</code>, resulting in:
+<ul><pre>
+|--dev/
+|   `-- ram0
+`--etc/
+    `--init.d/
+        `-- rcS
+</pre></ul>
+    </li>
+    <li>
+      By default, the contents of rcS script are:
+<ul><pre>
+# Create a RAMDISK and mount it at XXXRDMOUNTPOUNTXXX
+
+mkrd -m 1 -s 512 1024
+mkfatfs /dev/ram1
+mount -t vfat /dev/ram1 /tmp
+</pre></ul>
+    </li>
+    <li>
+      NSH will execute the script at <code>/etc/init.d/rcS</code> at start-up (before the
+      first NSH prompt.  After execution of the script, the root FS will look
+      like:
+<ul><pre>
+|--dev/
+|   |-- ram0
+|   `-- ram1
+|--etc/
+|   `--init.d/
+|       `-- rcS
+`--tmp/
+</pre></ul>
+    </li>
+  </ul>
+</p>
+<p>
+  <b>Modifying the ROMFS Image</b>.
+  The contents of the <code>/etc</code> directory are retained in the file <code>apps/nshlib/nsh_romfsimg.h</code> OR, if <code>CONFIG_NSH_ARCHROMFS</code> is defined, <code>include/arch/board/rcs.template</code>).
+  In order to modify the start-up behavior, there are three things to study:
+  <ol>
+    <li>
+      <b>Configuration Options.</b>
+      The additional <code>CONFIG_NSH_ROMFSETC</code> configuration options
+      discussed with the other <a href="#nshconfiguration">NSH-specific configuration settings</a>.
+    </li>
+    <li>
+      <p>
+        <b><code>tools/mkromfsimg.sh</code> Script</b>.
+        The script <code>tools/mkromfsimg.sh</code> creates <code>nsh_romfsimg.h</code>.
+        It is not automatically executed.  If you want to change the
+        configuration settings associated with creating and mounting
+        the <code>/tmp</code> directory, then it will be necessary to re-generate
+        this header file using the <code>tools/mkromfsimg.sh</code> script.
+      </p>
+      <p>
+        The behavior of this script depends upon three things:
+        <ul>
+          <li>The configuration settings then installed configuration.
+          <li>The <code>genromfs</code> tool (available from <a href="http://romfs.sourceforge.net">http://romfs.sourceforge.net</a>).
+          <li>The file <code>apps/nshlib/rcS.template</code>
+		    (OR, if <code>CONFIG_NSH_ARCHROMFS</code> is defined <code>include/arch/board/rcs.template</code>.
+        </ul>
+      </p>
+    </li>
+    <li>
+      <b><code>rcS.template</code></b>.
+      The file <code>apps/nshlib/rcS.template</code> contains the general form
+      of the <code>rcS</code> file; configured values are plugged into this
+      template file to produce the final <code>rcS</code> file.
+    </li>
+  </ol>
+</p>
+<p>
+  <b>NOTE</b>:
+  <code>apps/nshlib/rcS.template</code> generates the standard, default <code>nsh_romfsimg.h</code> file.
+  If <code>CONFIG_NSH_ARCHROMFS</code> is defined in the NuttX configuration file, then a custom, board-specific <code>nsh_romfsimg.h</code> file residing in <code>configs/&lt;board&gt;/include</code> will be used.
+  NOTE when the OS is configured, <code>include/arch/board</code> will be linked to <code>configs/&lt;board&gt;/include</code>.
+</p>
+<p>
+  All of the startup-behavior is contained in <code>rcS.template</code>.  The
+  role of <code>mkromfsimg.sh</code> is to (1) apply the specific configuration
+  settings to <code>rcS.template</code> to create the final <code>rcS</code>, and (2) to
+  generate the header file <code>nsh_romfsimg.h</code> containg the ROMFS
+  file system image.
+</p>
+
+<p>
+  <b>Further Information</b>.
+  See the section on <a href="#customizingnsh">Customimizing the NuttShell</a> for additional, more detailed information about the NSH start-up script and how to modify it.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="commands"><h1>2.0 Commands</h1></a>
+  </td>
+  </tr>
+</table>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdtest"><h2>2.1 Evaluate Expression (test)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+[ &lt;expression&gt; ]
+test &lt;expression&gt;
+</pre></ul>
+<p>
+   <b>Synopsis</b>.
+   These are two alternative forms of the same command.  They support
+   evaluation of a boolean expression which sets <a href="#builtinvars"><code>$?</code></a>.
+   This command is used most frequently as the conditional command following the
+   <code>if</code> in the <a href="#conditional"><code>if-then[-else]-fi</code></a> construct.
+</p>
+<p><b>Expression Syntax:</b></p>
+<ul>
+  <p>
+     expression = simple-expression | !expression | expression -o expression | expression -a expression
+  </p>
+  <p>
+     simple-expression = unary-expression | binary-expression
+  </p>
+  <p>
+     unary-expression = string-unary | file-unary
+  </p>
+  <p>
+     string-unary = -n string | -z string
+  </p>
+  <p>
+     file-unary = -b file | -c file | -d file | -e file | -f file | -r file | -s file | -w file
+  </p>
+  <p>
+     binary-expression = string-binary | numeric-binary
+  </p>
+  <p>
+     string-binary = string = string | string == string | string != string
+  </p>
+  <p>
+     numeric-binary = integer -eq integer | integer -ge integer | integer -gt integer | integer -le integer |
+                      integer -lt integer | integer -ne integer
+  </p>
+</ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdcat"><h2>2.2 Concatenate Files (cat)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+cat <code>&lt;path&gt;</code> [<code>&lt;path&gt;</code> [<code>&lt;path&gt;</code> ...]]
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  This command copies and concatentates all of the files at <code>&lt;path&gt;</code>
+  to the console (or to another file if the output is redirected).
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdcd"><h2>2.3 Change Current Working Directory (cd)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+cd [&lt;dir-path&gt;|-|~|..]
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Changes the current working directory (<code>PWD</code>).  Also sets the
+  previous working directory environment variable (<code>OLDPWD</code>).
+<p>
+<p><b>Forms:</b></p>
+<ul><table>
+  <tr>
+    <td><b><code>cd &lt;dir-path&gt;</code></b></td>
+    <td>sets the current working directory to <code>&lt;dir-path&gt;</code>.</td>
+  </tr>
+  <tr>
+    <td><b><code>cd -</code></b></td>
+    <td>sets the current working directory to the previous
+       working directory ($<a href="#environvars"><code>OLDPWD</code></a>).
+      Equivalent to <code><a href="#cmdcd">cd</a> $<a href="#environvars">OLDPWD</a></code>.</td>
+  </tr>
+  <tr>
+    <td><b><code>cd</code> or <b><code>cd ~</code></b></td>
+    <td>set the current working directory to the 'home'
+       directory.  The <i>home</i> directory can be configured by setting
+       <code>CONFIG_LIB_HOMEDIR</code> in the configuration file.  The default
+       <i>home</i> directory is <code>/</code>.</td>
+  </tr>
+  <tr>
+    <td><b><code>cd ..</code></td>
+    <td>sets the current working directory to the parent directory.</td>
+  </tr>
+</table></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdcp"><h2>2.4 Copy Files (cp)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+cp &lt;source-path&gt; &lt;dest-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Copy of the contents of the file at <code>&lt;source-path&gt;</code> to the location
+  in the filesystem indicated by <code>&lt;dest-path&gt;</code>.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmddate"><h2>2.5 Show or set the date and time (date)</h2></a>
+  </td>
+  </tr>
+</table>
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+date [-s &quot;MMM DD HH:MM:SS YYYY&quot;]
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Show or set the current date and time.
+  This command is only supported if the platform supported RTC hardware (<code>CONFIG_RTC=y</code>).
+</p>
+<p>
+  Only one format is used both on display and when setting the date/time:
+  <code>MMM DD HH:MM:SS YYYY</code>.  For example,
+<ul><pre>
+data -s &quot;Sep 1 11:30:00 2011&quot;
+</pre></ul>
+</p>
+<p>
+  24-hour time is used.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmddd"><h2>2.6 Copy and Convert Files (dd)</h2></a>
+  </td>
+  </tr>
+</table>
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+dd if=&lt;infile&gt; of=&lt;outfile&gt; [bs=&lt;sectsize&gt;] [count=&lt;sectors&gt;] [skip=&lt;sectors&gt;]
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Copy blocks from &lt;infile&gt; to &lt;outfile&gt;.
+  &lt;infile&gt; or &lt;outfile&gt; may be the path to a standard file, a character device, or a block device.
+  Examples follow:
+</p>
+<ol>
+  <li>
+    Read from character device, write to regular file.
+    This will create a new file of the specified size filled with zero.
+<ul><pre>
+nsh&gt; ls -l /dev
+/dev:
+ crw-rw-rw-       0 zero
+nsh&gt; dd if=/dev/zero of=/tmp/zeros bs=64 count=16
+nsh&gt; ls -l /tmp
+/tmp:
+ -rw-rw-rw-    1024 ZEROS
+</pre></ul>
+  </li>
+  <li>
+    Read from character device, write to block device.
+    This will fill the entire block device with zeros.
+  </li>
+<ul><pre>
+nsh&gt; ls -l /dev
+/dev:
+ brw-rw-rw-       0 ram0
+ crw-rw-rw-       0 zero
+nsh&gt; dd if=/dev/zero of=/dev/ram0
+</pre></ul>
+  </li>
+  <li>
+    Read from a block devic, write to a character device.  This
+    will read the entire block device and dump the contents in
+    the bit bucket.
+  </li>
+<ul><pre>
+nsh&gt; ls -l /dev
+/dev:
+ crw-rw-rw-       0 null
+ brw-rw-rw-       0 ram0
+nsh&gt; dd if=/dev/ram0 of=/dev/null
+</pre></ul>
+  </li>
+</ol>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmddf"><h2>2.7 Show Volument Status (df)</h2></a>
+  </td>
+  </tr>
+</table>
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+df
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+    Show the state of each mounted volume.
+    As an example:
+</p>
+<ul><pre>
+nsh> mount
+  /etc type romfs
+  /tmp type vfat
+nsh> df
+  Block  Number
+  Size   Blocks     Used Available Mounted on
+    64        6        6         0 /etc
+   512      985        2       983 /tmp
+nsh> 
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdecho"><h2>2.8 Echo Strings and Variables (echo)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+echo [&lt;string|$name&gt; [&lt;string|$name&gt;...]]
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Copy the sequence of strings and expanded environment variables to
+  console output (or to a file if the output is re-directed).
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdexec"><h2>2.9 Execute User Code (exec)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+exec &lt;hex-address&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Execute the user logic at address <code>&lt;hex-address&gt;</code>.  NSH will pause
+  until the execution unless the user logic is executed in background
+  via <code><a href="#cmdexec">exec</a> &lt;hex-address&gt; &amp;</code>.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdexit"><h2>2.10 Exit NSH (exit)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+exit
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Exit NSH.  Only useful for the serial front end if you have started some other tasks (perhaps
+  using the <code><a href="#cmdexec">exec</a></code> command) and you would like to have NSH out of the
+  way.  For the telnet front-end, <code>exit</code> terminates the telenet session.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdfree"><h2>2.11 Show Memory Manager Status (free)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+free
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Show the current state of the memory allocator.  For example,
+</p>
+<ul><pre>
+nsh&gt; free
+             total       used       free    largest
+Mem:       4194288    1591552    2602736    2601584
+nsh&gt;
+</pre></ul>
+<p><b>Where:</b></p>
+<ul><table>
+  <tr>
+    <td><b><code>total</code></b></td>
+    <td>This is the total size of memory allocated for use by malloc in bytes.</td>
+  </tr>
+  <tr>
+    <td><b><code>used</code></b></td>
+    <td>This is the total size of memory occupied by chunks handed out by malloc.</td>
+  </tr>
+  <tr>
+    <td><b><code>free</code></b></td>
+    <td>This is the total size of memory occupied by free (not in use) chunks.</td>
+  </tr>
+  <tr>
+    <td><b><code>largest</code></b></td>
+    <td>Size of the largest free (not in use) chunk.</td>
+  </tr>
+</table></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdget"><h2>2.12 Get File Via TFTP (get)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+get [-b|-n] [-f &lt;local-path&gt;] -h &lt;ip-address&gt; &lt;remote-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Copy the file at <code>&lt;remote-address&gt;</code> from the host whose IP address is
+  identified by <code>&lt;ip-address&gt;</code>.
+</p>
+<p><b>Other options:</b></p>
+<ul><table>
+  <tr>
+    <td><b><code>-f &lt;local-path&gt;</code></b></td>
+    <td>
+      The file will be saved relative to the current working directory
+      unless <code>&lt;local-path&gt;</code> is provided.
+    </td>
+  </tr>
+  <tr>
+    <td><b><code>-b|-n</code></b></td>
+    <td>
+      Selects either binary (&quot;octect&quot;) or test (&quot;netascii&quot;) transfer
+      mode.  Default: text.
+    </td>
+  </tr>
+</table></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdhelp"><h2>2.13 Show Usage Command Usage (help)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+help [-v] [&lt;cmd&gt;]
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Presents summary information about NSH commands to console.
+</p>
+<p><b>Options:</b></p>
+<ul><table>
+  <tr>
+    <td><b><code>-v</code></b></td>
+    <td>
+      how verbose output will full command usage.
+    </td>
+  </tr>
+  <tr>
+    <td><b><code>&lt;cmd&gt;</code></b></td>
+    <td>
+      Show full command usage only for this command.
+    </td>
+  </tr>
+</table></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdifconfig"><h2>2.14 Show Network Configuration (ifconfig)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+ifconfig [nic_name [ip_address]]
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Two forms of the <code>ifconfig</code>command are supported:
+</p>
+<ol>
+  <li>
+    <p>
+      With one or no arguments, <code>ifconfig</code> will shows the
+      current configuration of the network and, perhaps, the status of ethernet
+      device:
+    </p>
+    <ul><pre>
+ifconfig
+ifconfig [nic_name]
+</pre></ul>
+    <p>
+      As an example:
+    </p>
+    <ul><pre>
+nsh&gt; ifconfig
+eth0    HWaddr 00:18:11:80:10:06
+        IPaddr:10.0.0.2 DRaddr:10.0.0.1 Mask:255.255.255.0
+</pre></ul>
+    <p>
+      If uIP statistics are enabled (<code>CONFIG_NET_STATISTICS</code>), then
+      this command will also show the detailed state of uIP.
+    </p>
+  </li>
+  <li>
+    <p>
+      If both the network interface name and an IP address are supplied as arguments,
+      then <code>ifconfig</code> will set the address of the ethernet device:
+    </p>
+    <ul><pre>
+ifconfig nic_name ip_address
+</pre><ul>
+  </li>
+</ol>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdkill"><h2>2.15 Send a signal to a task (kill)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<ul><pre>
+kill -&lt;signal&gt; &lt;pid&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Send the &lt;signal&gt; to the task identified by &lt;pid&gt;.
+</p>
+<ul><pre>
+nsh&gt; mkfifo /dev/fifo
+nsh&gt; cat /dev/fifo &
+cat [2:128]
+nsh&gt; ps
+PID   PRI SCHD TYPE   NP STATE    NAME
+    0   0 FIFO TASK      READY    Idle Task()
+    1 128 FIFO TASK      RUNNING  init()
+    2 128 FIFO PTHREAD   WAITSEM  <pthread>(51ea50)
+nsh&gt; kill -9 2
+nsh: cat: open failed: 4
+nsh&gt; ps
+PID   PRI SCHD TYPE   NP STATE    NAME
+    0   0 FIFO TASK      READY    Idle Task()
+    1 128 FIFO TASK      RUNNING  init()
+nsh&gt;
+</pre></ul>
+<p><small>
+  <b>NOTE</b>:
+  NuttX does not support a FULL POSIX signalling system.
+  Standard signals like SIGCHLD, SIGINTR, SIGKILL, etc. do not exist in NuttX and sending those signal may not have the result that you expect.
+  Rather, NuttX supports only what are referred to as POSIX real-time signals.
+  These signals may be used to communicate with running tasks, may be use to waiting waiting tasks, etc.
+  But, as an example, <code>kill -9</code> (SIGKILL) will not terminate a task.
+</p></small>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdlosetup"><h2>2.16 Setup/teardown the Loop Device (losetup)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax 1:</b></p>
+<ul><pre>
+losetup [-o <offset>] [-r] &lt;dev-path&gt; &lt;file-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+   Setup the loop device at &lt;dev-path&gt; to access the file at &lt;file-path&gt; as a block device.
+   In the following example a 256K file is created (<code>dd</code>) and <code>losetup</code> is
+   used to make the file accessible as a block device. 
+   A FAT file system is created (<code>mkfatfs</code>) and mounted (<code>mount</code>).
+   Files can then be managed on the loop-mounted file.
+<ul><pre>
+nsh&gt; dd if=/dev/zero of=/tmp/image bs=512 count=512
+nsh&gt; ls -l /tmp
+/tmp:
+ -rw-rw-rw-   262144 IMAGE
+nsh&gt; losetup /dev/loop0 /tmp/image
+nsh&gt; ls -l /dev
+/dev:
+ brw-rw-rw-       0 loop0
+nsh&gt; mkfatfs /dev/loop0
+nsh&gt; mount -t vfat /dev/loop0 /mnt/example
+nsh&gt; ls -l /mnt
+ls -l /mnt
+/mnt:
+ drw-rw-rw-       0 example/
+nsh&gt; echo &quot;This is a test&quot; &gt;/mnt/example/atest.txt
+nsh&gt; ls -l /mnt/example
+/mnt/example:
+ -rw-rw-rw-      16 ATEST.TXT
+nsh&gt; cat /mnt/example/atest.txt
+This is a test
+nsh&gt;
+</pre></ul>
+</p>
+
+<p><b>Command Syntax 2:</b></p>
+<ul><pre>
+losetup d &lt;dev-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Teardown the setup for the loop device at &lt;dev-path&gt;.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdls"><h2>2.17 List Directory Contents (ls)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+ls [-lRs] &lt;dir-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Show the contents of the directory at <code>&lt;dir-path&gt;</code>.  NOTE:
+  <code>&lt;dir-path&gt;</code> must refer to a directory and no other filesystem
+  object.
+</p>
+<p><b>Options:</b></p>
+<ul><table>
+  <tr>
+    <td><b><code>-R</code></b></td>
+    <td>Show the constents of specified directory and all of its
+        sub-directories.</td>
+  </tr>
+  <tr>
+    <td><b><code>-s</code></b></td>
+    <td>Show the size of the files along with the filenames in the
+        listing</td>
+  </tr>
+  <tr>
+    <td><b><code>-l</code></b></td>
+    <td>Show size and mode information along with the filenames
+        in the listing.</td>
+  </tr>
+</table></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdmbhw"><h2>2.18 Access Memory (mb, mh, and mw)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+mb &lt;hex-address&gt;[=&lt;hex-value&gt;][ &lt;hex-byte-count&gt;]
+mh &lt;hex-address&gt;[=&lt;hex-value&gt;][ &lt;hex-byte-count&gt;]
+mw &lt;hex-address&gt;[=&lt;hex-value&gt;][ &lt;hex-byte-count&gt;]
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Access memory using byte size access (mb), 16-bit accesses (mh),
+  or 32-bit access (mw).  In each case,
+</p>
+<ul><table>
+  <tr>
+    <td><code>&lt;hex-address&gt;</code>.</td>
+    <td>Specifies the address to be accessed.  The current
+      value at that address will always be read and displayed.
+  </tr>
+  <tr>
+    <td><code>&lt;hex-address&gt;=&lt;hex-value&gt;</code>.</td>
+    <td>Read the value, then write <code>&lt;hex-value&gt;</code>
+      to the location.
+  </tr>
+  <tr>
+    <td><code>&lt;hex-byte-count&gt;</code>.</td>
+    <td>Perform the mb, mh, or mw operation on a total
+      of <code>&lt;hex-byte-count&gt;</code> bytes, increment the <code>&lt;hex-address&gt;</code> appropriately
+      after each access
+  </tr>
+</table></ul>
+<p><b>Example:</b><p>
+<ul><pre>
+nsh&gt; mh 0 16
+  0 = 0x0c1e
+  2 = 0x0100
+  4 = 0x0c1e
+  6 = 0x0110
+  8 = 0x0c1e
+  a = 0x0120
+  c = 0x0c1e
+  e = 0x0130
+  10 = 0x0c1e
+  12 = 0x0140
+  14 = 0x0c1e
+nsh&gt;
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdps"><h2>2.19 Show Current Tasks and Threads (ps)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+ps
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Show the currently active threads and tasks.  For example,
+</p>
+<ul><pre>
+nsh&gt; ps
+PID   PRI SCHD TYPE   NP STATE    NAME
+    0   0 FIFO TASK      READY    Idle Task()
+    1 128 RR   TASK      RUNNING  init()
+    2 128 FIFO TASK      WAITSEM  nsh_telnetmain()
+    3 100 RR   PTHREAD   WAITSEM  &lt;pthread&gt;(21)
+nsh&gt;
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdmkdir"><h2>2.20 Create a Directory (mkdir)</h2></a>
+  </td>
+</tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+mkdir &lt;path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Create the directory at <code>&lt;path&gt;</code>.
+  All components of of <code>&lt;path&gt;</code> except the final directory name must exist on a mounted file
+  system; the final directory must not.
+</p>
+<p>
+  <b>Limited to Mounted File Systems</b>.
+  Recall that NuttX uses a <a href="NuttxUserGuide.html#FileSystemOverview"><i>pseudo</i> filesystem</a> for its root file
+  system.
+  The <code>mkdir</code> command can only be used to create directories in volumes set up with the
+  <a href="#cmdmount"><code>mount</code></a> command; it cannot be used to create directories in the <i>pseudo</i> filesystem.
+</p>
+<p><b>Example:</b></p>
+<ul><pre>
+nsh> mkdir /mnt/fs/tmp
+nsh> ls -l /mnt/fs
+/mnt/fs:
+ drw-rw-rw-       0 TESTDIR/
+ drw-rw-rw-       0 TMP/
+nsh>
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdmkfatfs"><h2>2.21 Create a FAT Filesystem (mkfatfs)</h2></a>
+  </td>
+</tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+mkfatfs &lt;path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Format a fat file system on the block device specified by <code>&lt;path&gt;</code>.
+  NSH provides this command to access the <a href="mkfatfs"><code>mkfatfs()</code></a> NuttX API.
+  This block device must reside in the NuttX <a href="NuttxUserGuide.html#FileSystemOverview"><i>pseudo</i> filesystem</a> and
+  must have been created by some call to <code>register_blockdriver()</code> (see <code>include/nuttx/fs/fs.h</code>).
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdmkfifo"><h2>2.22 Create a FIFO (mkfifo)</h2></a>
+  </td>
+</tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+mkfifo &lt;path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Creates a FIFO character device anywhere in the pseudo file system, creating
+  whatever pseudo directories that may be needed to complete the <code>&lt;path&gt;</code>.
+  By convention, however, device drivers are place in the standard <code>/dev</code> directory.
+  After it is created, the FIFO device may be used as any other device driver.
+  NSH provides this command to access the <a href="NuttxUserGuide.html#mkfifo"><code>mkfifo()</code></a> NuttX API.
+</p>
+<p><b>Example</b></p>
+<ul><pre>
+nsh> ls -l /dev
+/dev:
+ crw-rw-rw-       0 console
+ crw-rw-rw-       0 null
+ brw-rw-rw-       0 ram0
+nsh> mkfifo /dev/fifo
+nsh> ls -l /dev
+ls -l /dev
+/dev:
+ crw-rw-rw-       0 console
+ crw-rw-rw-       0 fifo
+ crw-rw-rw-       0 null
+ brw-rw-rw-       0 ram0
+nsh>
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdmkrd"><h2>2.23 Create a RAMDISK (mkrd)</h2></a>
+  </td>
+</tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+mkrd [-m &lt;minor&gt;] [-s &lt;sector-size&gt;] &lt;nsectors&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Create a ramdisk consisting of <code>&lt;nsectors&gt;</code>, each of size
+  <code>&lt;sector-size&gt;</code> (or 512 bytes if <code>&lt;sector-size&gt;</code> is not specified.
+  The ramdisk will be registered as <code>/dev/ram&lt;n&gt;</code> (if <code>&lt;n&gt;</code> is not
+  specified, mkrd will attempt to register the ramdisk as <code>/dev/ram0</code>.
+</p>
+<p><b>Example</b></p>
+<ul><pre>
+nsh&gt; ls /dev
+/dev:
+ console
+ null
+ ttyS0
+ ttyS1
+nsh&gt; mkrd 1024
+nsh&gt; ls /dev
+/dev:
+ console
+ null
+ ram0
+ ttyS0
+ ttyS1
+nsh&gt;
+</pre></ul>
+<p>
+  Once the ramdisk has been created, it may be formatted using
+  the <code>mkfatfs</code> command and mounted using the <code>mount</code> command.
+</p>
+<p><b>Example</b></p>
+<ul><pre>
+nsh&gt; mkrd 1024
+nsh&gt; mkfatfs /dev/ram0
+nsh&gt; mount -t vfat /dev/ram0 /tmp
+nsh&gt; ls /tmp
+/tmp:
+nsh&gt;
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdmount"><h2>2.24 Mount a File System (mount)</h2></a>
+  </td>
+</tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+mount -t &lt;fstype&gt; &lt;block-device&gt; <code>&lt;dir-path&gt;</code>
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  The <code>mount</code> command performs one of two different operations.
+  If no paramters are provided on the command line after the <code>mount</code> command, then the <code>mount</code> command will enumerate all of the current mountpoints on the console.
+</p>
+<p>
+  If the mount parameters are provied on the command after the <code>mount</code> command, then the <code>mount</code> command will mount a file system in the NuttX pseudo-file system.
+  <code>mount</code>' performs a three way association, binding:
+</p>
+<ol>
+  <li><b>File system.</b>
+    The '-t <code>&lt;fstype&gt;</code>' option identifies the type of
+    file system that has been formatted on the <code>&lt;block-device&gt;</code>.
+    As of this writing, <code>vfat</code> is the only supported value for <code>&lt;fstype&gt;</code>
+  </li>
+  <li><b>Block Device.</b>
+    The <code>&lt;block-device&gt;</code> argument is the full or relative
+    path to a block driver inode in the <a href="NuttxUserGuide.html#FileSystemOverview"><i>pseudo</i> filesystem</a>.
+    By convention, this is a name under the <code>/dev</code> sub-directory.
+    This <code>&lt;block-device&gt;</code>  must have been previously formatted with the same file system
+    type as specified by <code>&lt;fstype&gt;</code>
+  </li>
+  <li><b>Mount Point.</b>
+    The mount point, <code>&lt;dir-path&gt;</code>, is the location in the
+    <a href="NuttxUserGuide.html#FileSystemOverview"><i>pseudo</i> filesystem</a> where the mounted volume will appear.
+    This mount point can only reside in the NuttX <a href="NuttxUserGuide.html#FileSystemOverview"><i>pseudo</i> filesystem</a>.
+    By convention, this mount point is a subdirectory under <code>/mnt</code>.
+    The mount command will create whatever pseudo directories that may be needed to complete the
+    full path but the full path must not already exist.
+  </li>
+</ol>
+<p>
+  After the volume has been mounted in the NuttX
+  <a href="NuttxUserGuide.html#FileSystemOverview"><i>pseudo</i> filesystem</a>,
+  it may be access in the same way as other objects in thefile system.
+</p>
+<p><b>Examples</b>:</p>
+<p>Using <code>mount</code> to mount a file system:</p>
+<ul><pre>
+nsh> ls -l /dev
+/dev:
+ crw-rw-rw-       0 console
+ crw-rw-rw-       0 null
+ brw-rw-rw-       0 ram0
+nsh> ls /mnt
+nsh: ls: no such directory: /mnt
+nsh> mount -t vfat /dev/ram0 /mnt/fs
+nsh> ls -l /mnt/fs/testdir
+/mnt/fs/testdir:
+ -rw-rw-rw-      15 TESTFILE.TXT
+nsh> echo "This is a test" >/mnt/fs/testdir/example.txt
+nsh> ls -l /mnt/fs/testdir
+/mnt/fs/testdir:
+-rw-rw-rw-      15 TESTFILE.TXT
+ -rw-rw-rw-      16 EXAMPLE.TXT
+nsh> cat /mnt/fs/testdir/example.txt
+This is a test
+nsh>
+</pre></ul>
+<p>Using <code>mount</code> to enumerate mounts:</p>
+<ul><pre>
+nsh> mount
+  /etc type romfs
+  /mnt/fs type vfat
+  /tmp type vfat
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdmv"><h2>2.25 Rename a File (mv)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+mv &lt;old-path&gt; &lt;new-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Rename the file object at <code>&lt;old-path&gt;</code> to <code>&lt;new-path&gt;</code>.
+  Both paths must reside in the same mounted filesystem.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdnfsmount"><h2>2.26 Mount an NFS file system (nfsmount)</h2></a>
+  </td>
+  </tr>
+</table>
+    <a href="#"></a>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+nfsmount &lt;server-address&gt; &lt;mount-point&gt; &lt;remote-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Mount the remote NFS server directory&lt;remote-path&gt; at &lt;mount-point&gt; on the target machine.
+  &lt;server-address&gt; is the IP address of the remote server.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdping"><h2>2.27 Check Network Peer (ping)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+ping [-c &lt;count&gt;] [-i &lt;interval&gt;] &lt;ip-address&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Test the network communication with a remote peer.  Example,
+</p>
+<ul><pre>
+nsh&gt; ping 10.0.0.1
+PING 10.0.0.1 56 bytes of data
+56 bytes from 10.0.0.1: icmp_seq=1 time=0 ms
+56 bytes from 10.0.0.1: icmp_seq=2 time=0 ms
+56 bytes from 10.0.0.1: icmp_seq=3 time=0 ms
+56 bytes from 10.0.0.1: icmp_seq=4 time=0 ms
+56 bytes from 10.0.0.1: icmp_seq=5 time=0 ms
+56 bytes from 10.0.0.1: icmp_seq=6 time=0 ms
+56 bytes from 10.0.0.1: icmp_seq=7 time=0 ms
+56 bytes from 10.0.0.1: icmp_seq=8 time=0 ms
+56 bytes from 10.0.0.1: icmp_seq=9 time=0 ms
+56 bytes from 10.0.0.1: icmp_seq=10 time=0 ms
+10 packets transmitted, 10 received, 0% packet loss, time 10190 ms
+nsh&gt;
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdput"><h2>2.28 Send File Via TFTP (put)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+put [-b|-n] [-f &lt;remote-path&gt;] -h &lt;ip-address&gt; &lt;local-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Copy the file at <code>&lt;local-address&gt;</code> to the host whose IP address is
+  identified by <code>&lt;ip-address&gt;</code>.
+</p>
+<p><b>Other options:</b></p>
+<ul><table>
+  <tr>
+    <td><b><code>-f &lt;remote-path&gt;</code></b></td>
+    <td>
+      The file will be saved relative with the same name on the host
+      unless <code>&lt;remote-path&gt;</code> is provided.
+    </td>
+  </tr>
+  <tr>
+    <td><b><code>-b|-n</code></b></td>
+    <td>
+      Selects either binary (&quot;octect&quot;) or test (&quot;netascii&quot;) transfer
+      mode.  Default: text.
+    </td>
+  </tr>
+</table></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdpwd"><h2>2.29 Show Current Working Directory (pwd)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+pwd
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Show the current working directory.
+</p>
+<ul><pre>
+nsh&gt; cd /dev
+nsh&gt; pwd
+/dev
+nsh&gt;
+</pre></ul>
+
+<p>Same as <code><a href="#cmdecho">echo</a> <a href="#environvars">$PWD</a></code>.</p>
+<ul><pre>
+nsh&gt; echo $PWD
+/dev
+nsh&gt;
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdrm"><h2>2.30 Remove a File (rm)</h2></a>
+  </td>
+</tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+rm &lt;file-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Remove the specified <code>&lt;file-path&gt;</code> name from the mounted file system.
+  Recall that NuttX uses a <a href="NuttxUserGuide.html#FileSystemOverview"><i>pseudo</i> filesystem</a> for its root file
+  system.
+  The <code>rm</code> command can only be used to remove (unlink) files in volumes set up with the
+  <a href="#cmdmount"><code>mount</code></a> command;
+  it cannot be used to remove names in the <i>pseudo</i> filesystem.
+</p>
+<p><b>Example:</b></p>
+<ul><pre>
+nsh> ls /mnt/fs/testdir
+/mnt/fs/testdir:
+ TESTFILE.TXT
+ EXAMPLE.TXT
+nsh> rm /mnt/fs/testdir/example.txt
+nsh> ls /mnt/fs/testdir
+/mnt/fs/testdir:
+ TESTFILE.TXT
+nsh>
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdrmdir"><h2>2.31 Remove a Directory (rmdir)</h2></a>
+  </td>
+</tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+rmdir &lt;dir-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Remove the specified <code>&lt;dir-path&gt;</code> directory from the mounted file system.
+  Recall that NuttX uses a <a href="NuttxUserGuide.html#FileSystemOverview"><i>pseudo</i> filesystem</a> for its root file
+  system.
+  The <code>rmdir</code> command can only be used to remove directories from volumes set up with the
+  <a href="#cmdmount"><code>mount</code></a> command;
+  it cannot be used to remove directories from the <i>pseudo</i> filesystem.
+</p>
+<p><b>Example:</b></p>
+<ul><pre>
+nsh> mkdir /mnt/fs/tmp
+nsh> ls -l /mnt/fs
+/mnt/fs:
+ drw-rw-rw-       0 TESTDIR/
+ drw-rw-rw-       0 TMP/
+nsh> rmdir /mnt/fs/tmp
+nsh> ls -l /mnt/fs
+/mnt/fs:
+ drw-rw-rw-       0 TESTDIR/
+nsh>
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdset"><h2>2.32 Set an Environment Variable (set)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+set &lt;name&gt; &lt;value&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Set the environment variable <code>&lt;name&gt;</code> to the string <code>&lt;value&gt;</code>.
+  For example,
+</p>
+<ul><pre>
+nsh&gt; echo $foobar
+
+nsh&gt; set foobar foovalue
+nsh&gt; echo $foobar
+foovalue
+nsh&gt;
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdsh"><h2>2.33 Execute an NSH Script (sh)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+sh &lt;script-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Execute the sequence of NSH commands in the file referred
+  to by <code>&lt;script-path&gt;</code>.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdsleep"><h2>2.34 Wait for Seconds (sleep)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+sleep &lt;sec&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Pause execution (sleep) for <code>&lt;sec&gt;</code> seconds.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdunmount"><h2>2.35 Unmount a File System (umount)</h2></a>
+  </td>
+</tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+umount &lt;dir-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Un-mount the file system at mount point <code>&lt;dir-path&gt;</code>.
+  The <code>umount</code> command can only be used to un-mount volumes previously mounted using
+  <a href="#cmdmount"><code>mount</code></a> command.
+</p>
+<p><b>Example:</b></p>
+<ul><pre>
+nsh> ls /mnt/fs
+/mnt/fs:
+ TESTDIR/
+nsh> umount /mnt/fs
+nsh> ls /mnt/fs
+/mnt/fs:
+nsh: ls: no such directory: /mnt/fs
+nsh>
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdunset"><h2>2.36 Unset an Environment Variable (unset)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+unset &lt;name&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Remove the value associated with the environment variable
+  <code>&lt;name&gt;</code>.  Example:
+</p>
+<ul><pre>
+nsh&gt; echo $foobar
+foovalue
+nsh&gt; unset foobar
+nsh&gt; echo $foobar
+
+nsh&gt;
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdusleep"><h2>2.37 Wait for Microseconds (usleep)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+usleep &lt;usec&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Pause execution (sleep) of <code>&lt;usec&gt;</code> microseconds.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdwget">2.37 Get File Via HTTP (wget)</a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+wget [-o &lt;local-path&gt;] &lt;url&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Use HTTP to copy the file at <code>&lt;url&gt;</code> to the current directory.
+</p>
+<p><b>Options:</b></p>
+<ul><table>
+  <tr>
+    <td><b><code>-o &lt;local-path&gt;</code></b></td>
+    <td>
+      The file will be saved relative to the current working directory
+      and with the same name as on the HTTP server unless <code>&lt;local-path&gt;</code> is provided.
+    </td>
+  </tr>
+</table></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmdxd"><h2>2.38 Hexadecimal dump (xd)</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p><b>Command Syntax:</b></p>
+<ul><pre>
+xd &lt;hex-address&gt; &lt;byte-count&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  Dump <code>&lt;byte-count&gt;</code> bytes of data from address <code>&lt;hex-address&gt;</code>.
+</p>
+<p><b>Example:</b></p>
+<ul><pre>
+nsh> xd 410e0 512
+Hex dump:
+0000: 00 00 00 00 9c 9d 03 00 00 00 00 01 11 01 10 06 ................
+0010: 12 01 11 01 25 08 13 0b 03 08 1b 08 00 00 02 24 ....%..........$
+...
+01f0: 08 3a 0b 3b 0b 49 13 00 00 04 13 01 01 13 03 08 .:.;.I..........
+nsh>
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="configuration"><h1>3.0 Configuration Settings</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  The availability of the above commands depends upon features that
+  may or may not be enabled in the NuttX configuration file.  The 
+  following <a href="#cmddependencies">table</a> indicates the dependency of each command on NuttX
+  configuration settings.  General configuration settings are discussed
+  in the <a href="NuttxPortingGuide.html">NuttX Porting Guide.</a>
+  Configuration settings specific to NSH as discussed at the <a href="#nshconfiguration">bottom</a> of this document.
+</p>
+
+<p>
+  Note that in addition to general NuttX configuation settings, each NSH command can be
+  individually disabled via the settings in the rightmost column.
+  All of these settings make the configuration of NSH potentially complex but also allow it to
+  squeeze into very small memory footprints.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="cmddependencies"><h2>3.1 Command Dependencies on Configuration Settings</h2></a>
+  </td>
+  </tr>
+</table>
+
+<center><p>Table. Command Dependencies on Configuration Settings</p>
+<table width="100%">
+  <tr bgcolor="#e4e4e4">
+    <th align="left" width="25%">Command</th>
+    <th align="left">Depends on Configuration</th>
+    <th align="left">Can Be Disabled with</th>
+  </tr>
+  <tr>
+    <td><b><code>[</code></b></td>
+    <td>!<code>CONFIG_NSH_DISABLESCRIPT</code></td>
+    <td><code>CONFIG_NSH_DISABLE_TEST</code></td>
+  </tr>
+  <tr>
+    <td><b><code>cat</code></b></td>
+    <td><code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0</td>
+    <td><code>CONFIG_NSH_DISABLE_CAT</code></td>
+  </tr>
+  <tr>
+    <td><b><code>cd</code></b></td>
+    <td>!<code>CONFIG_DISABLE_ENVIRON</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0</td>
+    <td><code>CONFIG_NSH_DISABLE_CD</code></td>
+  </tr>
+  <tr>
+    <td><b><code>cp</code></b></td>
+    <td><code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0</td>
+    <td><code>CONFIG_NSH_DISABLE_CP</code></td>
+  </tr>
+  <tr>
+    <td><b><code>date</code></b></td>
+    <td>!<code>CONFIG_DISABLE_CLOCK</code> &amp;&amp; <code>CONFIG_RTC</code></td>
+    <td><code>CONFIG_NSH_DISABLE_DATE</code></td>
+  </tr>
+  <tr>
+    <td><b><code>dd</code></b></td>
+    <td><code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0</td>
+    <td><code>CONFIG_NSH_DISABLE_DD</code></td>
+  </tr>
+  <tr>
+    <td><b><code>df</code></b></td>
+    <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_FS_READABLE</code><sup>3</sup></td>
+    <td><code>CONFIG_NSH_DISABLE_DF</code></td>
+  </tr>
+  <tr>
+    <td><b><code>echo</code></b></td>
+    <td><br></td>
+    <td><code>CONFIG_NSH_DISABLE_ECHO</code></td>
+  </tr>
+  <tr>
+    <td><b><code>exec</code></b></td>
+    <td><br></td>
+    <td><code>CONFIG_NSH_DISABLE_EXEC</code></td>
+  </tr>
+  <tr>
+    <td><b><code>exit</code></b></td>
+    <td><br></td>
+    <td><code>CONFIG_NSH_DISABLE_EXIT</code></td>
+  </tr>
+  <tr>
+    <td><b><code>free</code></b></td>
+    <td><br></td>
+    <td><code>CONFIG_NSH_DISABLE_FREE</code></td>
+  </tr>
+  <tr>
+    <td><b><code>get</code></b></td>
+    <td><code>CONFIG_NET</code> &amp;&amp; <code>CONFIG_NET_UDP</code> &amp;&amp;
+        <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_NET_BUFSIZE</code> &gt;= 558<sup>1</sup></td>
+    <td><code>CONFIG_NSH_DISABLE_GET</code></td>
+  </tr>
+  <tr>
+    <td><b><code>help</code></b><sup>5</sup></td>
+    <td><br></td>
+    <td><code>CONFIG_NSH_DISABLE_HELP</code></td>
+  </tr>
+  <tr>
+    <td><b><code>ifconfig</code></b></td>
+    <td><code>CONFIG_NET</code></td>
+    <td><code>CONFIG_NSH_DISABLE_IFCONFIG</code></td>
+  </tr>
+  <tr>
+    <td><b><code>kill</code></b></td>
+    <td>!<code>CONFIG_DISABLE_SIGNALS</code></td>
+    <td><code>CONFIG_NSH_DISABLE_KILL</code></td>
+  </tr>
+  <tr>
+    <td><b><code>losetup</code></b></td>
+    <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0</td>
+    <td><code>CONFIG_NSH_DISABLE_LOSETUP</code></td>
+  </tr>
+  <tr>
+    <td><b><code>ls</code></b></td>
+    <td><code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0</td>
+    <td><code>CONFIG_NSH_DISABLE_LS</code></td>
+  </tr>
+  <tr>
+    <td><b><code>mb,mh,mw</code></b></td>
+    <td><br></td>
+    <td>
+      <code>CONFIG_NSH_DISABLE_MB</code>,<br>
+      <code>CONFIG_NSH_DISABLE_MH</code>,<br>
+      <code>CONFIG_NSH_DISABLE_MW</code>
+    </td>
+  </tr>
+  <tr>
+    <td><b><code>mkdir</code></b></td>
+    <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_FS_WRITABLE</code><sup>4</sup></td>
+    <td><code>CONFIG_NSH_DISABLE_MKDIR</code></td>
+  </tr>
+  <tr>
+    <td><b><code>mkfatfs</code></b></td>
+    <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_FS_FAT</code></td>
+    <td><code>CONFIG_NSH_DISABLE_MKFATFS</code></td>
+  </tr>
+  <tr>
+    <td><b><code>mkfifo</code></b></td>
+    <td><code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0</td>
+    <td><code>CONFIG_NSH_DISABLE_MKFIFO</code></td>
+  </tr>
+  <tr>
+    <td><b><code>mkrd</code></b></td>
+    <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_FS_WRITABLE</code><sup>4</sup></td>
+    <td><code>CONFIG_NSH_DISABLE_MKRD</code></td>
+  </tr>
+  <tr>
+    <td><b><code>mount</code></b></td>
+    <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_FS_READABLE</code><sup>3</sup></td>
+    <td><code>CONFIG_NSH_DISABLE_MOUNT</code></td>
+  </tr>
+  <tr>
+    <td><b><code>mv</code></b></td>
+    <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_FS_WRITABLE</code><sup>3</sup></td>
+    <td><code>CONFIG_NSH_DISABLE_MV</code></td>
+  </tr>
+  <tr>
+    <td><b><code>nfsmount</code></b></td>
+    <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_NET</code> &amp;&amp; <code>CONFIG_NFS</code></td>
+    <td><code>CONFIG_NSH_DISABLE_NFSMOUNT</code></td>
+  </tr>
+  <tr>
+    <td><b><code>ping</code></b></td>
+    <td><code>CONFIG_NET</code> &amp;&amp; <code>CONFIG_NET_ICMP</code> &amp;&amp;
+        <code>CONFIG_NET_ICMP_PING</code>  &amp;&amp; !<code>CONFIG_DISABLE_CLOCK</code> &amp;&amp;
+        !<code>CONFIG_DISABLE_SIGNALS</code></td>
+    <td><code>CONFIG_NSH_DISABLE_PING</code></td>
+  </tr>
+  <tr>
+    <td><b><code>ps</code></b></td>
+    <td><br></td>
+    <td><code>CONFIG_NSH_DISABLE_PS</code></td>
+  </tr>
+  <tr>
+    <td><b><code>put</code></b></td>
+    <td><code>CONFIG_NET</code> &amp;&amp; <code>CONFIG_NET_UDP</code> &amp;&amp;
+    <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_NET_BUFSIZE</code> &gt;= 558<sup>1,2</sup></td>
+    <td><code>CONFIG_NSH_DISABLE_PUT</code></td>
+  </tr>
+  <tr>
+    <td><b><code>pwd</code></b></td>
+    <td>!<code>CONFIG_DISABLE_ENVIRON</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0</td>
+    <td><code>CONFIG_NSH_DISABLE_PWD</code></td>
+  </tr>
+  <tr>
+    <td><b><code>rm</code></b></td>
+    <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_FS_WRITABLE</code><sup>4</sup></td>
+    <td><code>CONFIG_NSH_DISABLE_RM</code></td>
+  </tr>
+  <tr>
+    <td><b><code>rmdir</code></b></td>
+    <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_FS_WRITABLE</code><sup>4</sup></td>
+    <td><code>CONFIG_NSH_DISABLE_RMDIR</code></td>
+  </tr>
+  <tr>
+    <td><b><code>set</code></b></td>
+    <td>!<code>CONFIG_DISABLE_ENVIRON</code></td>
+    <td><code>CONFIG_NSH_DISABLE_SET</code></td>
+  </tr>
+  <tr>
+    <td><b><code>sh</code></b></td>
+    <td><code>CONFIG_NFILE_DESCRIPTORS &gt; 0 &amp;&amp; <code>CONFIG_NFILE_STREAMS &gt; 0 &amp;&amp; !<code>CONFIG_NSH_DISABLESCRIPT</code></td>
+    <td><code>CONFIG_NSH_DISABLE_SH</code></td>
+  </tr>
+  <tr>
+    <td><b><code>sleep</code></b></td>
+    <td>!<code>CONFIG_DISABLE_SIGNALS</code></td>
+    <td><code>CONFIG_NSH_DISABLE_SLEEP</code></td>
+  </tr>
+  <tr>
+    <td><b><code>test</code></b></td>
+    <td>!<code>CONFIG_NSH_DISABLESCRIPT</code></td>
+    <td><code>CONFIG_NSH_DISABLE_TEST</code></td>
+  </tr>
+  <tr>
+    <td><b><code>umount</code></b></td>
+    <td>!<code>CONFIG_DISABLE_MOUNTPOINT</code> &amp;&amp; <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0 &amp;&amp; <code>CONFIG_FS_READABLE</code><sup>3</sup></td>
+    <td><code>CONFIG_NSH_DISABLE_UMOUNT</code></td>
+  </tr>
+  <tr>
+    <td><b><code>unset</code></b></td>
+    <td>!<code>CONFIG_DISABLE_ENVIRON</code></td>
+    <td><code>CONFIG_NSH_DISABLE_UNSET</code></td>
+  </tr>
+  <tr>
+    <td><b><code>usleep</code></b></td>
+    <td>!<code>CONFIG_DISABLE_SIGNALS</code></td>
+    <td><code>CONFIG_NSH_DISABLE_USLEEP</code></td>
+  </tr>
+  <tr>
+    <td><b><code>wget</code></b></td>
+    <td><code>CONFIG_NET</code> &amp;&amp; <code>CONFIG_NET_TCP</code> &amp;&amp;
+        <code>CONFIG_NFILE_DESCRIPTORS</code> &gt; 0</td>
+    <td><code>CONFIG_NSH_DISABLE_WGET</code></td>
+  </tr>
+  <tr>
+    <td><b><code>xd</code></b></td>
+    <td><br></td>
+    <td><code>CONFIG_NSH_DISABLE_XD</code></td>
+  </tr>
+</table></center>
+
+<p><sup>1</sup><small>
+  Because of hardware padding, the actual required packet size may be larger</small><br>
+  <sup>2</sup><small>
+  Special TFTP server start-up optionss will probably be required to permit
+  creation of files for the correct operation of the <code>put</code> command.</small><br>
+  <sup>3</sup><small>
+  <code>CONFIG_FS_READABLE</code> is not a user configuration but is set automatically
+  if any readable filesystem is selected.  At present, this is either <code>CONFIG_FS_FAT</code>
+  or <code>CONFIG_FS_ROMFS</code>.</small><br>
+  <sup>4</sup><small>
+  <code>CONFIG_FS_WRITABLE</code> is not a user configuration but is set automatically
+  if any writable filesystem is selected.  At present, this is only <code>CONFIG_FS_FAT</code>.</small><br>
+  <sup>5</sup><small>
+  Verbose help output can be suppressed by defining <code>CONFIG_NSH_HELP_TERSE</code>.
+  In that case, the help command is still available but will be slightly smaller.
+  </small>
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="nshconfiguration"><h2>3.2  NSH-Specific Configuration Settings</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  The behavior of NSH can be modified with the following settings in
+  the <code>configs/&lt;board-name&gt;/defconfig</code> file:
+</p>
+
+<center><table width="100%">
+  <tr bgcolor="#e4e4e4">
+    <th align="left" width="25%">Configuration</th>
+    <th align="left">Description</th>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_BUILTIN_APPS</code></b></td>
+    <td>
+      Support external registered, &quot;named&quot; applications that can be
+      executed from the NSH command line (see apps/README.txt for
+      more information).
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_FILEIOSIZE</code></b></td>
+    <td>
+      Size of a static I/O buffer used for file access (ignored if
+      there is no filesystem). Default is 1024.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_STRERROR</code></b></td>
+    <td>
+      <code>strerror(errno)</code> makes more readable output but <code>strerror()</code> is
+      very large and will not be used unless this setting is <i>y</i>.
+      This setting depends upon the <code>strerror()</code> having been enabled with <code>CONFIG_LIBC_STRERROR</code>.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_LINELEN</code></b></td>
+    <td>
+      The maximum length of one command line and of one output line.
+      Default: 80
+    </td>
+  </tr>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_NESTDEPTH</code></b></td>
+    <td>
+      The maximum number of nested <a href="#conditional"><code>if-then[-else]-fi</code></a> sequences that
+      are permissable.  Default: 3
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_DISABLESCRIPT</code></b></td>
+    <td>
+      This can be set to <i>y</i> to suppress support for scripting.  This
+      setting disables the <a href="#cmdsh"><code>sh</code></a>, <a href="#cmdtest"><code>test</code></a>, and <a href="#cmtest"><code>[</code></a> commands and the
+      <a href="#conditional"><code>if-then[-else]-fi</code></a> construct.  This would only be set on systems
+      where a minimal footprint is a necessity and scripting is not.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_DISABLEBG</code></b></td>
+    <td>
+      This can be set to <i>y</i> to suppress support for background
+      commands.  This setting disables the <a href="#cmdoverview"><code>nice</code></a> command prefix and
+      the <a href="#cmdoverview"><code>&amp;</code></a> command suffix.  This would only be set on systems
+      where a minimal footprint is a necessity and background command execution is not.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_MMCSDMINOR</code></b></td>
+    <td>
+      If the architecture supports an MMC/SD slot and if the NSH
+      architecture specific logic is present, this option will provide
+      the MMC/SD minor number, i.e., the MMC/SD block driver will
+      be registered as <code>/dev/mmcsd</code><i>N</i> where <i>N</i> is the minor number.
+      Default is zero.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_ROMFSETC</code></b></td>
+    <td>
+      Mount a ROMFS filesystem at <code>/etc</code> and provide a startup script
+      at <code>/etc/init.d/rcS</code>.  The default startup script will mount
+      a FAT FS RAMDISK at <code>/tmp</code> but the logic is
+      <a href="#startupscript">easily extensible</a>.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_CONSOLE</code></b></td>
+    <td>
+      <p>
+        If <code>CONFIG_NSH_CONSOLE</code> is set to <i>y</i>, then a serial
+        console front-end is selected.
+      </p>
+      <p>
+        Normally, the serial console device is a UART and RS-232 interface.
+        However, if  <code>CONFIG_USBDEV</code> is defined, then a USB serial device may, instead, be used if the one of the following are defined:
+      </p>
+      <ul>
+        <li>
+          <code>CONFIG_PL2303</code> and <code>CONFIG_PL2303_CONSOLE</code>.
+          Sets up the Prolifics PL2303 emulation as a console device at <code>/dev/console</code>.
+        </li>
+        <li>
+          <code>CONFIG_CDCACM</code> and <code>CONFIG_CDCACM_CONSOLE</code>.
+          Sets up the CDC/ACM serial device as a console device at <code>/dev/console</code>.
+        </li>
+        <li>
+          <code>CONFIG_NSH_USBCONSOLE</code>.
+          If defined, then the an arbitrary USB device may be used to as the NSH console.
+          In this case, <code>CONFIG_NSH_CONDEV</code> must be defined to indicate which USB device to use as the console. 
+          The advantage of using a device other that /dev/console is that normal debug output can not use /dev/console while NSH uses <code>CONFIG_NSH_USBCONDEV</code>.
+          <p>
+          <code>CONFIG_NSH_USBCONDEV</code>.
+          If <code>CONFIG_NSH_USBCONSOLE</code> is set to 'y', then <code>CONFIG_NSH_USBCONDEV</code> must also be set to select the USB device used to support the NSH console.
+          This should be set to the quoted name of a readable/write-able USB driver such as: <code>CONFIG_NSH_USBCONDEV="/dev/ttyACM0"</code>.
+          </p>
+        </li>
+      </ul>
+      <p>
+        If there are more than one USB slots, then a USB device minor number may also need to be provided:
+      </p>
+      <ul>
+        <li>
+          <code>CONFIG_NSH_UBSDEV_MINOR</code>.
+          The minor device number of the USB device.  Default: 0
+        </li>
+      </ul>
+      <p>
+        If USB tracing is enabled (<code>CONFIG_USBDEV_TRACE</code>), then NSH will initialize USB tracing as requested by the following.
+        Default:  Only USB errors are traced.
+      </p>
+      <ul>
+        <li>
+          <code>CONFIG_NSH_USBDEV_TRACEINIT</code>.
+          Show initialization events
+        </li>
+        <li>
+          <code>CONFIG_NSH_USBDEV_TRACECLASS</code>.
+          Show class driver events
+        </li>
+        <li>
+          <code>CONFIG_NSH_USBDEV_TRACETRANSFERS</code>.
+          Show data transfer events
+        </li>
+        <li>
+          <code>CONFIG_NSH_USBDEV_TRACECONTROLLER</code>.
+          Show controller events
+        <li>
+          <code>CONFIG_NSH_USBDEV_TRACEINTERRUPTS</code>.
+          Show interrupt-related events.
+        </li>
+      </ul>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_CONDEV</code></b></td>
+    <td>
+      If <code>CONFIG_NSH_CONSOLE</code> is set to <i>y</i>, then <code>CONFIG_NSH_CONDEV</code>
+      may also be set to select the serial device used to support the NSH console.
+      This should be set to the quoted name of a readable/write-able character driver such as:
+      <code>CONFIG_NSH_CONDEV=&quot;/dev/ttyS1&quot;</code>.
+      This is useful, for example, to separate the NSH command line from the system console
+      when the system console is used to provide debug output.
+      Default:  <code>stdin</code> and <code>stdout</code> (probably &quot;<code>/dev/console</code>&quot;)
+      <ul><small>
+        NOTE: When any other device other than <code>/dev/console</code> is used for a user interface,
+        (1) linefeeds (<code>\n</code>) will not be expanded to carriage return / linefeeds (<code>\r\n</code>).
+        You will need to configure your terminal program to account for this.
+        And (2) input is not automatically echoed so you will have to turn local echo on.
+      </small></ul>
+    </td>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_TELNET</code></b></td>
+    <td>
+      If <code>CONFIG_NSH_TELNET</code> is set to <i>y</i>, then a TELENET
+      server front-end is selected.  When this option is provided,
+      you may log into NuttX remotely using telnet in order to
+      access NSH.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_ARCHINIT</code></b></td>
+    <td>
+      Set <code>CONFIG_NSH_ARCHINIT</code> if your board provides architecture
+      specific initialization  via the board-specific function <code>nsh_archinitialize()</code>.
+      This function will be called early in NSH initialization to allow board logic to
+      do such things as configure MMC/SD slots.
+    </td>
+  </tr>
+</table></center>
+
+<p>
+  If Telnet is selected for the NSH console, then we must configure
+  the resources used by the Telnet daemon and by the Telnet clients.
+</p>
+
+<center><table width="100%">
+  <tr bgcolor="#e4e4e4">
+    <th align="left" width="25%">Configuration</th>
+    <th align="left">Description</th>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_TELNETD_PORT</code></b></td>
+    <td>
+      The telnet daemon will listen on this TCP port number for connections.  Default: 23
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_TELNETD_DAEMONPRIO</code></b></td>
+    <td>
+      Priority of the Telnet daemon.
+      Default: <code>SCHED_PRIORITY_DEFAULT</code>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_TELNETD_DAEMONSTACKSIZE</code></b></td>
+    <td>
+      Stack size allocated for the
+      Telnet daemon. Default: 2048
+    </td>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_TELNETD_CLIENTPRIO</code></b></td>
+    <td>
+      Priority of the Telnet client.
+      Default: <code>SCHED_PRIORITY_DEFAULT</code>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_TELNETD_CLIENTSTACKSIZE</code></b></td>
+    <td>
+      Stack size allocated for the Telnet client. Default: 2048
+    </td>
+  </tr>
+</table></center>
+
+<p>
+  One or both of <code>CONFIG_NSH_CONSOLE</code> and <code>CONFIG_NSH_TELNET</code>
+  must be defined.  If <code>CONFIG_NSH_TELNET</code> is selected, then there some
+  other configuration settings that apply:
+</p>
+
+<center><table width="100%">
+  <tr bgcolor="#e4e4e4">
+    <th align="left" width="25%">Configuration</th>
+    <th align="left">Description</th>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NET=y</code></b></td>
+    <td>
+      Of course, networking must be enabled.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSOCKET_DESCRIPTORS</code></b></td>
+    <td>
+      And, of course, you must allocate some socket descriptors.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NET_TCP=y</code></b></td>
+    <td>
+      TCP/IP support is required for telnet (as well as various other TCP-related configuration settings).
+    </td>
+  </tr>
+    <td valign="top"><b><code>CONFIG_NSH_IOBUFFER_SIZE</code></b></td>
+    <td>
+      Determines the size of the I/O buffer to use for sending/
+      receiving TELNET commands/reponses
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_DHCPC</code></b></td>
+    <td>
+      Obtain the IP address via DHCP.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_IPADDR</code></b></td>
+    <td>
+      If <code>CONFIG_NSH_DHCPC</code> is NOT set, then the static IP
+      address must be provided.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_DRIPADDR</code></b></td>
+    <td>
+      Default router IP address
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_NETMASK</code></b></td>
+    <td>
+      Network mask
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_NOMAC</code></b></td>
+    <td>
+      Set if your ethernet hardware has no built-in MAC address.
+      If set, a bogus MAC will be assigned.
+    </td>
+  </tr>
+</table></center>
+
+<p>
+  If you use DHCPC, then some special configuration network options are
+  required.  These include:
+</p>
+
+<center><table width="100%">
+  <tr bgcolor="#e4e4e4">
+    <th align="left" width="25%">Configuration</th>
+    <th align="left">Description</th>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NET=y</code></b></td>
+    <td>
+      Of course, networking must be enabled.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSOCKET_DESCRIPTORS</code></b></td>
+    <td>
+      And, of course, you must allocate some socket descriptors.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NET_UDP=y</code></b></td>
+    <td>
+      UDP support is required for DHCP (as well as various other UDP-related configuration settings).
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NET_BROADCAST=y</code></b></td>
+    <td>
+      UDP broadcast support is needed.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NET_BUFSIZE=650</code></b> (or larger)</td>
+    <td>
+      Per RFC2131 (p. 9), the DHCP client must be prepared to receive DHCP messages of up to
+      576 bytes (excluding Ethernet, IP, or UDP headers and FCS).
+    </td>
+  </tr>
+</table></center>
+
+<p>
+  If <code>CONFIG_NSH_ROMFSETC</code> is selected, then the following additional
+  configuration setting apply:
+</p>
+
+<center><table width="100%">
+  <tr bgcolor="#e4e4e4">
+    <th align="left" width="25%">Configuration</th>
+    <th align="left">Description</th>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_ARCHROMFS</code></b></td>
+    <td>
+      May be defined to specify an alternative ROMFS image that can be found at <code>configs/&lt;board&gt;/include/nsh_romfsimg.h</code>.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_ROMFSMOUNTPT</code></b></td>
+    <td>
+      The default mountpoint for the ROMFS volume is <code>&quot;/etc&quot;</code>, but that
+      can be changed with this setting.  This must be a absolute path
+      beginning with '<code>/</code>' and enclosed in quotes.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_INITSCRIPT</code></b></td>
+    <td>
+      This is the relative path to the startup script within the mountpoint.
+      The default is <code>&quot;init.d/rcS&quot;</code>.  This is a relative path and must not
+      start with '<code>/</code>' but must be enclosed in quotes.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_ROMFSDEVNO</code></b></td>
+    <td>
+      This is the minor number of the ROMFS block device.  The default is
+      '<code>0</code>' corresponding to <code>/dev/ram0</code>.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_ROMFSSECTSIZE</code></b></td>
+    <td>
+      This is the sector size to use with the ROMFS volume.  Since the
+      default volume is very small, this defaults to 64 but should be
+      increased if the ROMFS volume were to be become large.  Any value
+      selected must be a power of 2.
+    </td>
+  </tr>
+</table></center>
+
+<p>
+  When the default <code>rcS</code> file used when <code>CONFIG_NSH_ROMFSETC</code> is
+  selected, it will mount a FAT FS under <code>/tmp</code>.  The following selections
+  describe that FAT FS.
+</p>
+
+<center><table width="100%">
+  <tr bgcolor="#e4e4e4">
+    <th align="left" width="25%">Configuration</th>
+    <th align="left">Description</th>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_FATDEVNO</code></b></td>
+    <td>
+      This is the minor number of the FAT FS block device.  The default is
+      '<code>1</code>' corresponding to <code>/dev/ram1</code>.
+    </td>
+  </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_FATSECTSIZE</code></b></td>
+    <td>
+      This is the sector size use with the FAT FS. Default is 512.
+    </td>
+  </tr>
+</table></center>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="customizingnsh"><h1>4.0 Customimizing the NuttShell</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  <b>Overview.</b>
+  The NuttShell (NSH) is a simple shell application that may be used with NuttX.
+  It supports a variety of commands and is (very) loosely based on the bash shell and the common utilities used in Unix shell programming.
+  The paragraphs in this appendix will focus on customizing NSH:  Adding new commands, changing the initialization sequence, etc.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="custonshlib"><h2>4.1 The NSH Library and NSH Initialization</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  <b>Overview.</b>
+  NSH is implemented as a library that can be found at <code>apps/nshlib</code>.
+  As a library, it can be custom built into any application that follows the NSH initialization sequence described below.
+  As an example, the code at <code>apps/examples/nsh/nsh_main.c</code> illustrates how to start NSH and the logic there was intended to be incorporated into your own custom code.
+  Although code was generated simply as an example, in the end most people just use this example code as their application <code>main()</code> function.
+  That initialization performed by that example is discussed in the following paragraphs.
+</p>
+
+<h3>4.1.1 NSH Initialization sequence</h3>
+
+<p>
+  The NSH start-up sequence is very simple. 
+  As an example, the code at <code>apps/examples/nsh/nsh_main.c</code> illustrates how to start NSH.
+  It simple does the following:
+</p>
+
+<ol>
+  <li>
+    <p>
+      If you have C++ static initializers, it will call your implementation of <code>up_cxxinitialize()</code> which will, in turn, call those static initializers.
+      For the case of the STM3240G-EVAL board, the implementation of <code>up_cxxinitialize()</code> can be found at <code>nuttx/configs/stm3240g-eval/src/up_cxxinitialize.c</code>.
+    </p>
+  <li>
+    <p>
+      This function then calls <code>nsh_initialize()</code> which initializes the NSH library.
+      <code>nsh_initialize()</code> is described in more detail below.
+    </p>
+  <li>
+    <p>
+      If the Telnetconsole is enabled, it calls  <code>nsh_telnetstart()</code> which resides in the NSH library.
+      <code>nsh_telnetstart()</code> will start the Telnet daemon that will listen for Telnet connections and start remote NSH sessions.
+    </p>
+  <li>
+    <p>
+      If a local console is enabled (probably on a serial port), then <code>nsh_consolemain()</code> is called.
+      <code>nsh_consolemain()</code> also resides in the NSH library.
+      <code>nsh_consolemain()</code> does not return so that finished the entire NSH initialization sequence.
+    </p>
+</ol>
+
+<h3>4.1.2 <code>nsh_initialize()</code></h3>
+
+<p>
+  The NSH initialization function, <code>nsh_initialize()</code>, be found in <code>apps/nshlib/nsh_init.c</code>.
+  It does only three things:
+</p>
+
+<ol>
+  <li>
+    <p>
+      <code>nsh_romfsetc()</code>:
+      If so configured, it executes an NSH start-up script that can be found at <code>/etc/init.d/rcS</code> in the target file system.
+      The <code>nsh_romfsetc()</code> function can be found in <code>apps/nshlib/nsh_romfsetc.c</code>.
+      This function will (1) register a ROMFS file system, then (2) mount the ROMFS file system.
+      <code>/etc</code> is the default location where a read-only, ROMFS file system is  mounted by <code>nsh_romfsetc()</code>.
+    </p>
+    <p>
+      The ROMFS image is, itself, just built into the firmware.
+      By default, this <code>rcS</code> start-up script contains the following logic:
+    </p>
+<ul><pre>
+# Create a RAMDISK and mount it at XXXRDMOUNTPOUNTXXX
+
+mkrd -m XXXMKRDMINORXXX -s XXMKRDSECTORSIZEXXX XXMKRDBLOCKSXXX
+mkfatfs /dev/ramXXXMKRDMINORXXX
+mount -t vfat /dev/ramXXXMKRDMINORXXX XXXRDMOUNTPOUNTXXX
+</pre></ul>
+
+    <p>
+      Where the <code>XXXX*XXXX</code> strings get replaced in the template when the ROMFS image is created:
+    </p>
+    <ul>
+      <li>
+        <p>
+          <code>XXXMKRDMINORXXX</code> will become the RAM device minor number.
+          Default: 0
+        </p>
+      <li>
+        <p>
+          <code>XXMKRDSECTORSIZEXXX</code> will become the RAM device sector size
+        </p>
+      <li>
+        <p>
+          <code>XXMKRDBLOCKSXXX</code> will become the number of sectors in the device.
+        </p>
+      <li>
+        <p>
+          <code>XXXRDMOUNTPOUNTXXX</code> will become the configured mount point.
+          Default: <code>/etc</code>
+        </p>
+    </ul>
+    <p>
+      By default, the substituted values would yield an <code>rcS</code> file like:
+    </p>
+<ul><pre>
+# Create a RAMDISK and mount it at /tmp
+
+mkrd -m 1 -s 512 1024
+mkfatfs /dev/ram1
+mount -t vfat /dev/ram1 /tmp
+</pre></ul>
+    <p>
+      This script will, then:
+    </p>
+    <ul>
+    <li>
+      <p>
+        Create a RAMDISK of size 512*1024 bytes at <code>/dev/ram1</code>,
+      </p>
+    <li>
+      <p>
+        Format a FAT file system on the RAM disk at <code>/dev/ram1</code>, and then
+      </p>
+    <li>
+      <p>
+        Mount the  FAT filesystem at a configured mountpoint, <code>/tmp</code>. 
+      </p>
+    </ul>
+    <p>
+      This <code>rcS</code> template file can be found at <code>apps/nshlib/rcS.template</code>.
+      The resulting ROMFS file system can be found in <code>apps/nshlib/nsh_romfsimg.h</code>.
+    </p>
+  <li>
+    <p>
+      <code>nsh_archinitialize()</code>:
+      Next any architecture-specific NSH initialization will be performed (if any).
+      For the STM3240G-EVAL, this architecture specific initialization can be found at <code>configs/stm3240g-eval/src/up_nsh.c</code>.
+      This it does things like:  (1) Initialize SPI devices, (2) Initialize SDIO, and (3) mount any SD cards that may be inserted.
+    </p>
+  <li>
+    <p>
+      <code>nsh_netinit()</code>:
+      The <code>nsh_netinit()</code> function can be found in <code>apps/nshlib/nsh_netinit.c</code>.
+    </p>
+</ol>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="custoncmds"><h2>4.2 NSH Commands</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  <b>Overview.</b>
+  NSH supports a variety of commands as part of the NSH program.
+  All of the NSH commands are listed in the NSH documentation <a href="#cmdoverview">above</a>.
+  Not all of these commands may be available at any time, however. 
+  Many commands depend upon certain NuttX configuration options.
+  You can enter the help command at the NSH prompt to see the commands actual available:
+</p>
+<ul><pre>
+nsh&gt; help
+</pre></ul>
+<p>
+  For example, if network support is disabled, then all network-related commands will be missing from the list of commands presented by '<code>nsh&gt; help</code>'.
+  You can see the specific command dependencies in the table <a href="#cmddependencies">above</a>.
+</p>
+
+<h3>4.2.1 Adding New NSH Commands</h3>
+
+<p>
+  New commands can be added to the NSH very easily.
+  You simply need to add two things:
+</p>
+<ol>
+  <li>
+    <p>
+      The implementation of your command, and
+    </p>
+  <li>
+    <p>
+      A new entry in the NSH command table
+    </p>
+</ol>
+
+<p>
+  <b>Implementation of Your Command.</b>
+  For example, if you want to add a new a new command called <code>mycmd</code> to NSH, you would first implement  the <code>mycmd</code> code in a function with this prototype:
+</p>
+
+<ul></pre>
+int cmd_mycmd(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+</pre></ul>
+
+<p>
+  The <code>argc</code> and <code>argv</code> are used to pass command line arguments to the NSH command.
+  Command line parameters are passed in a very standard way: <code>argv[0]</code> will be the name of the command, and <code>argv[1]</code> through <code>argv[argc-1]</code> are the additional arguments provided on the NSH command line.
+</p>
+<p>
+  The first parameter, <code>vtbl</code>, is special.
+  This is a pointer to session-specific state information.
+  You don't need to know the contents of the state information, but you do need to pass this <code>vtbl</code> argument when you interact with the NSH logic.
+  The only use you will need to make of the <code>vtbl</code> argument will be for outputting data to the console.
+  You don't use <code>printf()</code> within NSH commands.
+  Instead you would use:
+</p>
+<ul><pre>
+void nsh_output(FAR struct nsh_vtbl_s *vtbl, const char *fmt, &hellip;);
+</pre></ul>
+<p>
+  So if you only wanted to output &quot;Hello, World!&quot; on the console, then your whole command implementation might be:
+</p>
+<ul><pre>
+int cmd_mycmd(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
+{
+  nsh_output(vtbl, &quote;Hello, World!&quote;);
+  return 0;
+}
+</pre></ul>
+<p>
+  The prototype for the new command should be placed in <code>apps/examples/nshlib/nsh.h></code>.
+</p>
+
+<p>
+  <b>Adding You Command to the NSH Command Table</b>.
+  All of the commands support by NSH appear in a single table called:
+</p>
+<ul><pre>
+const struct cmdmap_s g_cmdmap[]
+</pre></ul>
+<p>
+  That table can be found in the file <code>apps/examples/nshlib/nsh_parse.c</code>.
+  The structure <code>cmdmap_s</code> is also defined in <code>apps/nshlib/nsh_parse.c</code>:
+</p>
+<ul><pre>
+struct cmdmap_s
+{
+  const char *cmd;        /* Name of the command */
+  cmd_t       handler;    /* Function that handles the command */
+  uint8_t     minargs;    /* Minimum number of arguments (including command) */
+  uint8_t     maxargs;    /* Maximum number of arguments (including command) */
+  const char *usage;      /* Usage instructions for 'help' command */
+};
+</pre></ul>
+<p>
+  This structure provides everything that you need to describe your command:
+  Its name (<code>cmd</code>), the function that handles the command (<code>cmd_mycmd()</code>), the minimum and maximum number of arguments needed by the command,
+  and a string describing the command line arguments.
+  That last string is what is printed when enter &quot;<code>nsh&gt help</code>&quot;.
+</p>
+<p>
+  So, for you sample commnd, you would add the following the to the <code>g_cmdmap[]</code> table:
+</p>
+<ul><pre>
+{ &quot;mycmd&quot;, cmd_mycmd, 1, 1, NULL },
+</pre></ul>
+
+<p>
+  This entry is particularly simply because <code>mycmd</code> is so simple.
+  Look at the other commands in <code>g_cmdmap[]</code> for more complex examples.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="custapps"><h2>4.3 NSH &quot;Built-In&quot; Applications</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  <b>Overview.</b>
+  In addition to these commands that are a part of NSH, external programs can also be executed as NSH commands.
+  These external programs are called &quot;Built-In&quot; Applications for historic reasons. 
+  That terminology is somewhat confusing because the actual NSH commands as described above are truly &quot;built-into&quot; NSH whereas these applications are really external to NuttX.
+</p>
+<p>
+  These applications are built-into NSH in the sense that they can be executed by simply typing the name of the application at the NSH prompt.
+  Built-in application support is enabled with the configuration option <code>CONFIG_NSH_BUILTIN_APPS</code>.
+  When this configuration option is set, you will also be able to see the built-in applications if you enter &quot;nsh&gt; help&quot;.
+  They will appear at the bottom of the list of NSH commands under:
+</p>
+
+<ul><pre>
+Builtin Apps:
+</pre></ul>
+<p>
+  Note that no detailed help information beyond the name of the built-in application is provided.
+</p>
+
+<h3>4.3.1 Named Applications</h3>
+
+<p>
+  <b>Overview.</b>
+  The underlying logic that supports the NSH built-in applications is called &quot;Named Applications&quot;.
+  The named application logic can be found at <code>apps/namedapp</code>.
+  This logic simply does the following:
+</p>
+
+<ol>
+  <li>
+    <p>
+      It supports registration mechanism so that named applications can dynamically register themselves at build time, and
+    </p>
+  <li>
+    <p>
+      Utility functions to look up, list, and execute the named applications.
+    </p>
+</ol>
+
+<p>
+  <b>Named Application Utility Functions</b>.
+  The utility functions exported by the named application logic are prototyped in <code>apps/include/apps.h</code>.
+  These utility functions include:
+</p>
+
+<ul>
+  <li>
+    <p>
+      <code>int namedapp_isavail(FAR const char *appname);</code>
+      Checks for availability of application registered as <code>appname</code> during build time.
+    </p>
+  <li>
+    <p>
+      <code>const char *namedapp_getname(int index);</code>
+      Returns a pointer to a name of built-in application pointed by the <code>index</code>.
+      This is the utility function that is used by NSH in order to list the available built-in applications when &quot;<code>nsh&gt; help</code>&quot; is entered.
+    </p>
+  <li>
+    <p>
+      <code>int exec_namedapp(FAR const char *appname, FAR const char **argv);</code>
+      Executes built-in named application registered during compile time.
+      This is the utility function used by NSH to execute the built-in application.
+    </p>
+</ul>
+
+<p>
+  <b>Autogenerated Header Files</b>.
+  Application entry points with their requirements are gathered together in two files when NuttX is first built:
+</p>
+<ol>
+  <li>
+    <p>
+      <code>apps/namedapp/namedapp_proto.h</code>:
+      Prototypes of application task entry points.
+    </p>
+  <li>
+    <p>
+      <code>apps/namedapp/namedapp_list.h</code>:
+      Application specific information and start-up requirements
+    </p>
+</ol>
+
+<p>
+  <b>Registration of Named Applications</b>.
+  The NuttX build occurs in several phases as different build targets are executed:
+  (1) <i>context</i> when the configuration is established,
+  (2) <i>depend </i>when target dependencies are generated, and
+  (3) <i>default</i> (<code>all</code>) when the normal compilation and link operations are performed.  
+  Named application information is collected during the make <i>context</i> build phase.
+</p>
+
+<p>
+  An example application that can be &quot;built-in&quot; is be found in the <code>apps/examples/hello directory</code>.
+  Let's walk through this specific cause to illustrate the general way that built-in applications are created and how they register themselves so that they can be used from NSH.
+</p>
+
+<p>
+  <code><b>apps/examples/hello</code></b>.
+   The main routine for apps/examples/hello can be found in <code>apps/examples/hello/main.c</code>.
+   The main routine is:
+</p>
+<ul><pre>
+int hello_main(int argc, char *argv[])
+{
+  printf(&quot;Hello, World!!\n&quot;);
+  return 0;
+}
+</pre></ul>
+
+<p>
+  This is the built in function that will be registered during the <i>context</i> build phase of the NuttX build.
+  That registration is performed by logic in <code>apps/examples/hello/Makefile</code>.
+  But the build system gets to that logic through a rather tortuous path:
+</p>
+
+<ol>
+  <li>
+    <p>
+      The top-level context make target is in <code>nuttx/Makefile</code>.
+      All build targets depend upon the <i>context</i> build target.
+      For the <code>apps/</code> directory, this build target will execute the <i>context</i> target in the <code>apps/Makefile</code>.
+    </p>
+  <li>
+    <p>
+      The <code>apps/Makefile</code> will, in turn, execute the <i>context</i> targets in all of the configured sub-directories.
+      In our case will include the <code>Makefile</code> in <code>apps/examples</code>.
+    </p>
+  <li>
+    <p>
+      And finally, the <code>apps/examples/Makefile</code>will execute the <i>context</i> target in all configured <code>example</code>sub-directores, getting us finally to <code>apps/examples/Makefile</code> (which is covered below).</p>
+  <li>
+    <p>
+      At the conclusion of the <i>context</i> phase, the <code> apps/Makefile</code> will touch a file called <code>.context</code> in the <code>apps/</code> directory, preventing any further configurations during any subsequent <i>context</i> phase build attempts.
+    </p>
+</ol>
+
+<p>
+  <b>NOTE</b>:
+  Since this context build phase can only be executed one time, any subsequent configuration changes that you make will, then, not be reflected in the build sequence.
+  That is a common area of confusion.
+  Before you can instantiate the new configuration, you have to first get rid of the old configuration.
+  The most drastic way to this is:
+</p>
+<ul><pre>
+make distclean
+</pre></ul>
+<p>
+  But then you will have to re-configuration NuttX from scratch.
+  But if you only want to re-build the configuration in the <code>apps/</code> sub-directory, then there is a less labor-intensive way to do that.
+  The following NuttX make command will remove the configuration only from the <code>apps/</code> directory and will let you continue without re-configuring everything:
+</p>
+<ul><pre>
+make apps_distclean
+</pre></ul>
+
+<p>
+  Logic for the <code>context</code> target in <code>apps/examples/hello/Makefile</code> registers the <code>hello_main()</code> application in the <code>namedapp</code>'s <code>namedapp_proto.h</code>and <code>namedapp_list.h</code> files.
+  That logic that does that in  <code>apps/examples/hello/Makefile</code> is abstracted below:
+</p>
+<ol>
+  <li>
+    <p>
+      First, the <code>Makefile</code> includes <code>apps/Make.defs</code>:
+    </p>
+<ul><pre>
+include $(APPDIR)/Make.defs
+</pre></ul>
+    <p>
+      This defines a macro called <code>REGISTER</code> that adds data to the <i>namedapp</i> header files:
+    </p>
+<ul><pre>
+define REGISTER
+    @echo &quot;Register: $1&quot;
+    @echo &quot;{ \&quot;$1\&quot;, $2, $3, $4 },&quot; &gt;&gt; &quot;$(APPDIR)/namedapp/namedapp_list.h&quot;
+    @echo &quot;EXTERN int $4(int argc, char *argv[]);&quot; &gt;&gt; &quot;$(APPDIR)/namedapp/namedapp_proto.h&quot;
+endef
+</pre></ul>
+    <p>
+      When this macro runs, you will see the output in the build &quot;<code>Register: hello</code>&quot;, that is a sure sign that the registration was successful.
+    </p>
+  <li>
+    <p>
+      The make file then defines the application name (<code>hello</code>), the task priority (default), and the stack size that will be allocated in the task runs (2K).
+    </p>
+<ul><pre>
+APPNAME         = hello
+PRIORITY        = SCHED_PRIORITY_DEFAULT
+STACKSIZE       = 2048
+</pre></ul>
+
+  <li>
+    <p>
+      And finally, the <code>Makefile</code> invokes the <code>REGISTER</code> macro to added the <code>hello_main()</code> named application.
+      Then, when the system build completes, the <code>hello</code> command can be executed from the NSH command line.
+      When the <code>hello</code> command is executed, it will start the task with entry point <code>hello_main()</code> with the default priority and with a stack size of 2K.
+   </p>
+<ul><pre>
+.context:
+  $(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
+  @touch $@
+</pre></ul>
+</ol>
+
+<p>
+  <b>Other Uses of Named Application.</b>
+  The primary purpose of named applications is to support command line execution of applications from NSH.
+  However, there are two other uses of named applications that should be mentioned.
+</p>
+
+<ol>
+  <li>
+    <p>
+      <b>Named Application Start-Up <code>main()</code> function</b>.
+      A named application can even be used as the main, start-up entry point into your embedded software. 
+      When the user defines this option in the NuttX configuration file:
+    </p>
+<ul><pre>
+CONFIG_BUILTIN_APP_START=&lt;application name&gt;
+</pre></ul>
+    <p>
+      that application will be invoked immediately after system starts instead of the default <code>CONFIG_USER_ENTRYPOINT</code>() entry point.
+      Note that <code>&lt;application name&gt;</code> must be provided just as it would have been on the NSH command line.
+      For example, <code>hello</code> would result in <code>hello_main()</code> being started at power-up.
+    </p>
+    <p>
+      This option might be useful in some develop environments where you use NSH only during the debug phase, but want to eliminate NSH in the final product.
+      Setting <code>CONFIG_BUILTIN_APP_START</code> in this way will bypass NSH and execute your application just as if it were entered from the NSH command line.
+    </p>
+
+  <li>
+    <p><b><i>binfs</i></b>.
+    <i>binfs</i> is a tiny file system located at <code>apps/namedapp/binfs.c</code>.
+     This provides an alternative what of visualizing installed named applications.
+     Without <i>binfs</i>, you can see the installed named applications using the NSH help command.
+     <i>binfs</i> will create a tiny pseudo-file system mounted at <code>/bin</code>.
+     Using <i>binfs</i>, you can see the available named applications by listing the contents of  <code>/bin</code> directory.
+     This gives some superficial Unix compatibility, but does not really add any new functionality.
+   </p>
+</ol>
+
+<h3>4.3.2 Synchronous Built-In Applications</h3>
+
+<p>
+  By default, built-in commands started from the NSH command line will run asynchronously with NSH.
+  If you want to force NSH to execute commands then wait for the command to execute, you can enable that feature by adding the following to the NuttX configuration file:
+</p>
+<ul><pre>
+CONFIG_SCHED_WAITPID=y
+</pre></ul>
+<p>
+  This configuration option enables support for the standard <code>waitpid()</code> RTOS interface.
+  When that interface is enabled, NSH will use it to wait, sleeping until the built-in application executes to completion.
+</p>
+<p>
+  Of course, even with <code>CONFIG_SCHED_WAITPID=y</code> defined, specific applications can still be forced to run asynchronously by adding the ampersand (&amp;) after the NSH command.
+</p>
+
+<h3>4.3.3 Application Configuration File</h3>
+
+<p>
+  <b>The appconfig File</b>.
+  A special configuration file is used to configure which applications are to be included in the build.
+  The source for this file is saved at <code>configs/&lt;board&gt;/&lt;configuration&gt;/appconfig</code>.
+  The existence of the <code>appconfig</code> file in the board configuration directory is sufficient to enable building of applications.
+</p>
+
+<p>
+  The <code>appconfig</code> file is copied into the <code>apps/</code> directory as <code>.config</code> when NuttX is configured.
+  <code>.config</code> is included by the top-level <code>apps/Makefile</code>.
+  As a minimum, this configuration file must define files to add to the <code>CONFIGURED_APPS</code> list like:
+</p>
+<ul><pre>
+CONFIGURED_APPS += examples/hello
+</pre></ul>
+
+<p>
+  <b>Changes in the Works</b>.
+  There are changes in the works that will obsolete the <code>appconfig</code> file.
+  These changes will implement an automated configuration system for NuttX.
+  One consequence of this new configuration system is that the <code>appconfig</code> file will become obsolete and will be replaced by a new mechanism for selecting applications.
+  This new mechanism is not yet available, but is dicussed here: <a href="http://tech.groups.yahoo.com/group/nuttx/message/1604">http://tech.groups.yahoo.com/group/nuttx/message/1604</a>.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="custinit"><h2>4.4 Customizing NSH Initialization</h2></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  <b>Ways to Customize NSH Initialization</b>.
+  There are three ways to customize the NSH start-up behavior.
+  Here they are presented in order of increasing difficulty:
+</p>
+
+<ol>
+  <li>
+    <p>
+      You can extend the initialization logic in <code>configs/stm3240g-eval/src/up_nsh.c</code>.
+      The logic there is called each time that NSH is started and is good place in particular for any device-related initialization.
+    </p>
+  <li>
+    <p>
+      You replace the sample code at <code>apps/examples/nsh/nsh_main.c</code> with whatever start-up logic that you want.
+      NSH is a library at <code>apps/nshlib</code>. 
+      <code>apps.examplex/nsh</code> is just a tiny, example start-up function (<code>CONFIG_USER_ENTRYPOINT</code>()) that that runs immediately and illustrates how to start NSH
+      If you want something else to run immediately then you can write your write your own custom <code>CONFIG_USER_ENTRYPOINT</code>() function and then start other tasks from your custom <code>CONFIG_USER_ENTRYPOINT</code>().
+    </p>
+  <li>
+    <p>
+      NSH also supports a start-up script that executed when NSH first runs.
+      This mechanism has the advantage that the start-up script can contain any NSH commands and so can do a lot of work with very little coding.
+      The disadvantage is that is is considerably more complex to create the start-up script.
+      It is sufficiently complex that is deserves its own paragraph
+  </p>
+</ol>
+
+<h3>4.4.1 NuttShell Start up Scripts</h3>
+
+<p>
+  First of all you should look at <a href="#startupscript">NSH Start-Up Script</a> paragraph.
+  Most everything you need to know can be found there.
+  That information will be repeated and extended here for completeness.
+</p>
+
+<p>
+  <b>NSH Start-Up Script</b>.
+  NSH supports options to provide a start up script for NSH.
+  The start-up script contains any command support by NSH (i.e., that you see when you enter 'nsh&gt; help').
+  In general this capability is enabled with <code>CONFIG_NSH_ROMFSETC=y</code>, but has several other related configuration options as described with the <a href="#nshconfiguration">NSH-specific configuration settings</a> paragraph.
+  This capability also depends on: 
+</p>
+
+<ul>
+  <li>
+    <p>
+      <code>CONFIG_DISABLE_MOUNTPOINT=n</code>.
+      If mount point support is disabled, then you cannot mount <i>any</i> file systems.
+    </p>
+  <li>
+    <p>
+      <code>CONFIG_NFILE_DESCRIPTORS &gt; 4</code>.
+      Of course you have to have file descriptions to use any thing in the file system.
+    </p>
+  <li>
+    <p>
+      <code>CONFIG_FS_ROMFS</code> enabled.
+      This option enables ROMFS file system support.
+    </p>
+</ul>
+
+<p>
+  <b>Default Start-Up Behavior</b>.
+  The implementation that is provided is intended to provide great flexibility for the use of Start-Up files.
+  This paragraph will discuss the general behavior when all of the configuration options are set to the default values. 
+</p>
+<p>
+ In this default case, enabling <code>CONFIG_NSH_ROMFSETC</code> will cause NSH to behave as follows at NSH start-up time: 
+</p>
+<ul>
+  <li>
+    <p>
+      NSH will create a read-only RAM disk (a ROM disk), containing a tiny ROMFS filesystem containing the following: 
+    </p>
+<ul><pre>
+`--init.d/
+    `-- rcS
+</pre></ul>
+    <p>
+      Where <code>rcS</code> is the NSH start-up script. 
+    </p>
+  <li>
+    <p>
+      NSH will then mount the ROMFS filesystem at <code>/etc</code>, resulting in: 
+    </p>
+<ul><pre>
+|--dev/
+|   `-- ram0
+`--etc/
+    `--init.d/
+        `-- rcS</PRE>
+</pre></ul>
+  <li>
+    <p>
+      By default, the contents of <code>rcS</code> script are: 
+    </p>
+<ul><pre>
+# Create a RAMDISK and mount it at /tmp
+
+mkrd -m 1 -s 512 1024
+mkfatfs /dev/ram1
+mount -t vfat /dev/ram1 /tmp
+</pre></ul>
+  <li>
+    <p>
+      NSH will execute the script at <code>/etc/init.d/rcS</code> at start-up (before the first NSH prompt).
+      After execution of the script, the root FS will look like: 
+    </p>
+<ul><pre>
+|--dev/
+|   |-- ram0
+|   `-- ram1
+|--etc/
+|   `--init.d/
+|       `-- rcS
+`--tmp/
+</pre></ul>
+</ul>
+
+<p>
+  <b>Example Configurations</b>.
+  Here are some configurations that have <code>CONFIG_NSH_ROMFSETC=y</code> in the NuttX configuration file.
+  They might provide useful examples:
+</p>
+<ul>
+  <code>configs/hymini-stm32v/nsh2<br>
+  configs/ntosd-dm320/nsh<br>
+  configs/sim/nsh<br>
+  configs/sim/nsh2<br>
+  configs/sim/nx<br>
+  configs/sim/nx11<br>
+  configs/sim/touchscreen<br>
+  configs/vsn/nsh</code>
+</ul>
+<p>
+  In most of these cases, the configuration sets up the <i>default</i> <code>/etc/init.d/rcS</code> script.
+  The default script is here: <code>apps/nshlib/rcS.template</code>.
+  (The funny values in the template like <code>XXXMKRDMINORXXX</code> get replaced via <code>sed</code> at build time).
+  This default configuration creates a ramdisk and mounts it at <code>/tmp</code> as discussed above.
+</p>
+<p>
+  If that default behavior is not what you want, then you can provide your own custom <code>rcS</code> script by defining <code>CONFIG_NSH_ARCHROMFS=y</code> in the configuration file.
+  The only example that uses a custom /<code>etc/init.d/rcS</code> file in the NuttX source tree is this one: <code>configs/vsn/nsh</code>.
+  The <code>configs/vsn/nsh/defconfig</code> file also has this definition:
+</p>
+<ul><code>CONFIG_NSH_ARCHROMFS=y</code> -- Support an architecture specific ROMFS file.</ul>
+
+<p>
+  <b>Modifying the ROMFS Image</b>.
+  The contents of the <code>/etc</code> directory are retained in the file <code>apps/nshlib/nsh_romfsimg.h</code> OR, if <code>CONFIG_NSH_ARCHROMFS</code> is defined, <code>include/arch/board/rcs.template</code>.
+  In order to modify the start-up behavior, there are three things to study: 
+</p>
+
+<ol>
+  <li>
+    <p>
+      <b>Configuration Options.</b>
+      The additional <code>CONFIG_NSH_ROMFSETC</code> configuration options discussed with the other <a href="#nshconfiguration">NSH-specific configuration settings</a>.
+    </p>
+  <li>
+    <p>
+      <b><code>tools/mkromfsimg.sh</code> Script</b>.
+      The script <code>tools/mkromfsimg.sh</code> creates <code>nsh_romfsimg.h</code>.
+      It is not automatically executed.
+      If you want to change the configuration settings associated with creating and mounting the <code>/tmp</code> directory, then it will be necessary to re-generate this header file using the <code>tools/mkromfsimg.sh</code> script. 
+    </p>
+    <p>
+      The behavior of this script depends upon several things: 
+    </p>
+    <ol>
+      <li>
+        <p>
+          The configuration  settings then installed configuration. 
+        </p>
+      <li>
+        <p>
+          The <code>genromfs</code> tool(available from <a href="http://romfs.sourceforge.net/">http://romfs.sourceforge.net</a>) or included within the NuttX buildroot toolchain.
+          There is a snapshot here: <code>misc/tools/genromfs-0.5.2.tar.gz</code>.
+        </p>
+      <li>
+        <p>
+          The <code>xxd</code> tool that is used to generate the C header files (xxd is a normal part of a complete Linux or Cygwin installation, usually as part of the <code>vi</code> package).
+        </p>
+      <li>
+        <p>
+          The file <code>apps/nshlib/rcS.template</code> (OR, if <code>CONFIG_NSH_ARCHROMFS</code> is defined <code>include/arch/board/rcs.template</code>.
+      </p>
+    </ol>
+  <li>
+    <p>
+      <code><b>rcS.template</b></code>.
+      The file <code>apps/nshlib/rcS.template</code> contains the general form of the <code>rcS</code> file; configured values are plugged into this template file to produce the final <code>rcS</code> file. 
+    </p>
+</ol>
+
+<p>
+  <b><code>rcS.template</code></b>.
+  The default <code>rcS.template</code>, </code><code>apps/nshlib/rcS.template</code>, generates the standard, default <code>apps/nshlib/nsh_romfsimg.h</code> file.
+</p>
+
+<p>
+  If <code>CONFIG_NSH_ARCHROMFS</code> is defined in the NuttX configuration file, then a custom, board-specific <code>nsh_romfsimg.h</code> file residing in <code>configs/&lt;board&gt;/include</code>will be used.
+  NOTE when the OS is configured, <code>include/arch/board</code> will be linked to <code>configs/&lt;board&gt;/include</code>.
+</p>
+
+<p>
+  As mention above, the only example that uses a custom <code>/etc/init.d/rcS</code> file in the NuttX source tree is this one: <code>configs/vsn/nsh</code>.
+  The custom script for the <code>configs/vsn</code> case is located at <code>configs/vsn/include/rcS.template</code>.
+</p>
+
+<p>
+  All of the startup-behavior is contained in <code>rcS.template</code>.
+  The role of <code>mkromfsimg.sh</code> script is to (1) apply the specific configuration settings to <code>rcS.template</code> to create the final <code>rcS</code>, and (2) to generate the header file <code>nsh_romfsimg.h</code> containg the ROMFS file system image.
+  To do this,  <code>mkromfsimg.sh</code> uses two tools that must be installed in your system:
+</p>
+<ol>
+  <li>
+    <p>
+      The <code>genromfs</code> tool that is used to generate the ROMFS file system image.</code>
+    </p>
+  <li>
+    <p>
+      The <code>xxd</code> tool that is used to create the C header file.
+    </p>
+</ol>
+<p>
+  You can find the generated ROMFS file system for the <code>configs/vsn</code> case here: <code>configs/vsn/include/rcS.template</code>
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="index"><h1>Index</h1></a>
+  </td>
+  </tr>
+</table>
+
+<table width="100%">
+<tr><td width="50%">
+<ul>
+  <li><a href="#builtinvars"><code>$?</code></a></li>
+  <li><a href="#cmdtest"><code>[</code></a></li>
+  <li><a href="#custoncmds">Adding NSH commands<</a></li>
+  <li><a href="#custapps"><code>appconfig</code></a></li>
+  <li><a href="#custapps">Application configuration file (<code>appconfig</code>)</a></li>
+  <li><a href="#custapps">Autogenerated header files</a></li>
+  <li><a href="#cmdoverview">Background commands</a></li>
+  <li><a href="#cmdoverview">Background command priority</a></li>
+  <li><a href="#custapps"><code>binfs</code></a></li>
+  <li><a href="#custapps">Built-In applications</a></li>
+  <li><a href="#builtinvars">Built-in variables</a></li>
+  <li><a href="#cmdcat"><code>cat</code></a></li>
+  <li><a href="#cmdcd"><code>cd</code></a></li>
+  <li><a href="#commands">Command summaries</a></li>
+  <li><a href="#custoncmds">Command table</a></li>
+  <li><a href="#conditional">Conditional command execution</a></li>
+  <li><a href="#custapps"><code>CONFIG_BUILTIN_APP_START</code></a></li>
+  <li><a href="#custinit"><code>CONFIG_DISABLE_MOUNTPOINT</code></a></li>
+  <li><a href="#custinit"><code>CONFIG_FS_ROMFS</code></a></li>
+  <li><a href="#custinit"><code>CONFIG_NFILE_DESCRIPTORS</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_ARCHINIT</code></a></li>
+  <li><a href="#custinit"><code>CONFIG_NSH_ARCHROMFS</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_BUILTIN_APPS</code></a></li>
+  <li><a href="#custapps"><code>CONFIG_NSH_BUILTIN_APPS</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_CONSOLE</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_DHCPC</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_DISABLEBG</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_DISABLESCRIPT</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_DRIPADDR</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_FATDEVNO</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_FATMOUNTPT</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_FATNSECTORS</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_FATSECTSIZE</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_FILEIOSIZE</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_INITSCRIPT</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_IOBUFFER_SIZE</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_IPADDR</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_LINELEN</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_NESTDEPTH</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_NETMASK</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_NOMAC</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_ROMFSDEVNO</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_ROMFSETC</code></a></li>
+  <li><a href="#custinit"><code>CONFIG_NSH_ROMFSETC</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_ARCHROMFS</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_ROMFSMOUNTPT</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_ROMFSSECTSIZE</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_STRERROR</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_TELNET</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBCONDEV</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBCONSOLE</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_UBSDEV_MINOR</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBDEV_TRACECLASS</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBDEV_TRACECONTROLLER</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBDEV_TRACEINIT</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBDEV_TRACEINTERRUPTS</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBDEV_TRACETRANSFERS</code></a></li>
+  <li><a href="#custapps"><code>CONFIG_SCHED_WAITPID</code></a></li>
+  <li><a href="#custapps"><code>CONFIGURED_APPS</code></a></li>
+  <li><a href="#configuration">Configuration settings</a></li>
+  <li><a href="#cmddependencies">Configuration settings, command dependencies</a></li>
+  <li><a href="#nshconfiguration">Configuration settings, NSH-specific</a></li>
+  <li><a href="#cmdcp"><code>cp</code></a></li>
+  <li><a href="#currentwd">Current working directory</a></li>
+  <li><a href="#customizingnsh">Customizing NSH</a></li>
+  <li><a href="#custinit">Customizing NSH initialization</a></li>
+  <li><a href="#cmddate"><code>date</code></a></li>
+  <li><a href="#cmddd"><code>dd</code></a></li>
+  <li><a href="#cmddf"><code>df</code></a></li>
+  <li><a href="#cmdecho"><code>echo</code></a></li>
+  <li><a href="#environvars">Environment Variables</a></li>
+  <li><a href="#startupscript"><code>/etc/init.d/rcS</code></a>
+  <li><a href="#cmdexec"><code>exec</code></a></li>
+  <li><a href="#custapps"><code>exec_namedapp()</code></a></li>
+</ul></td>
+<td></ul>
+  <li><a href="#cmdexit"><code>exit</code></a></li>
+  <li><a href="#cmdfree"><code>free</code></a></li>
+  <li><a href="#custoncmds"><code>g_cmdmap</code></a></li>
+  <li><a href="#custinit"><code>genromfs</code></a></li>
+  <li><a href="#cmdget"><code>get</code></a></li>
+  <li><a href="#frontend">Greeting</a></li>
+  <li><a href="#cmdhelp"><code>help</code></a></li>
+  <li><a href="#conditional"><code>if-then[-else]-fi</code></a></li>
+  <li><a href="#cmdifconfig"><code>ifconfig</code></a></li>
+  <li><a href="#custonshlib">Initialization sequence</a></li>
+  <li><a href="#cmdkill"><code>kill</code></a></li>
+  <li><a href="#cmdlosetup"><code>losetup</code></a></li>
+  <li><a href="#cmdls">ls</code></a></li>
+  <li><a href="#cmdmbhw"><code>mb</code></a></li>
+  <li><a href="#cmdmbhw"><code>mh</code></a></li>
+  <li><a href="#cmdmbhw"><code>mw</code></a></li>
+  <li><a href="#cmdmkdir"><code>mkdir</code></a></li>
+  <li><a href="#cmdmkfatfs"><code>mkfatfs</code></a></li>
+  <li><a href="#cmdmkfifo"><code>mkfifo</code></a></li>
+  <li><a href="#cmdmkrd"><code>mkrd</code></a></li>
+  <li><a href="#custinit"><code>mkromfsimg.sh</code></a></li>
+  <li><a href="#cmdmount"><code>mount</code></a></li>
+  <li><a href="#cmdmv"><code>mv</code></a></li>
+  <li><a href="#custapps">Named application start-up <code>main()</code></a></li>
+  <li><a href="#custapps">Named applications</a></li>
+  <li><a href="#custapps"><code>namedapp_getname()</code></a></li>
+  <li><a href="#custapps"><code>namedapp_isavail()</code></a></li>
+  <li><a href="#custapps"><code>namedapp_list.h</code></a></li>
+  <li><a href="#custapps"><code>namedapp_proto.h</code></a></li>
+  <li><a href="#cmdnfsmount"><code>nfsmount</code></a></li>
+  <li><a href="#cmdoverview"><code>nice</code></a></li>
+  <li><a href="#custonshlib">NSH library (<code>nshlib</code>)</a></li>
+  <li><a href="#custonshlib"><code>nsh_archinitialize()</code></a></li>
+  <li><a href="#custonshlib"><code>nsh_consolemain()</code></a></li>  
+  <li><a href="#custonshlib"><code>nsh_initialize()</code></a></li>
+  <li><a href="#custonshlib"><code>nsh_main()</code></a></li>
+  <li><a href="#custinit"><code>nsh_main.c</code></a></li>
+  <li><a href="#custonshlib"><code>nsh_netinit()</code></a></li>
+  <li><a href="#custoncmds"><code>nsh_output()</code></a></li>
+  <li><a href="#custonshlib"><code>nsh_romfsetc()</code></a></li>
+  <li><a href="#custonshlib"><code>nsh_telnetstart()</code></a></li>
+  <li><a href="#custonshlib"><code>nshlib</code></a></li>
+  <li><a href="#environvars"><code>OLDPWD</code></a></li>
+  <li><a href="#overview">Overview</a></li>
+  <li><a href="#cmdping"><code>ping</code></a></li>
+  <li><a href="#frontend">Prompt</a></li>
+  <li><a href="#cmdps"><code>ps</code></a></li>
+  <li><a href="#cmdput"><code>put</code></a></li>
+  <li><a href="#cmdpwd"><code>pwd</code></a></li>
+  <li><a href="#environvars"><code>PWD</code></a></li>
+  <li><a href="#custinit"><code>rcS.template</code></a></li>
+  <li><a href="#cmdoverview">Re-directed commands</a></li>
+  <li><a href="#custapps">Registration of named applications</a></li>
+  <li><a href="#cmdrm"><code>rm</code></a></li>
+  <li><a href="#cmdrmdir"><code>rmdir</code></a></li>
+  <li><a href="#custinit">ROMFS, Modifying the ROMFS image</a></li>
+  <li><a href="#cmdset"><code>set</code></a></li>
+  <li><a href="#cmdsh"><code>sh</code></a></li>
+  <li><a href="#cmdoverview">Simple commands</a></li>
+  <li><a href="#cmdsleep"><code>sleep</code></a></li>
+  <li><a href="#custinit">Start-up, Default behavior</a></li>
+  <li><a href="#startupscript">Start-up script</a>
+  <li><a href="#custinit">Start-up script</a></li>
+  <li><a href="#custapps">Synchronous built-in applications</a></li>
+  <li><a href="#cmdtest"><code>test</code></a></li>
+  <li><a href="#cmdunmount"><code>umount</code></a></li>
+  <li><a href="#cmdunset"><code>unset</code></a></li>
+  <li><a href="#custonshlib"><code>up_cxxinitialize()</code></a></li>
+  <li><a href="#custinit"><code>up_nsh.c</code></a></li>
+  <li><a href="#cmdusleep"><code>usleep</code></a></li>
+  <li><a href="#custapps"><code>waitpid()</code></a></li>
+  <li><a href="#cmdwget"><code>wget</code></a></li>
+  <li><a href="#cmdxd"><code>xd</code></a></li>
+  <li><a href="#custinit"><code>xxd</code></a></li>
+</ul></td>
+</tr></table>
+
+</body>
+</html>

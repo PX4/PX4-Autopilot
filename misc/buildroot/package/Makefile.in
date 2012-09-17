@@ -1,0 +1,111 @@
+ifndef MAKE
+MAKE=make
+endif
+MAKE1:=$(MAKE) MAKE="$(firstword $(MAKE)) -j1"
+
+# Strip off the annoying quoting
+ARCH:=$(strip $(subst ",, $(BR2_ARCH)))
+#"))
+WGET:=$(strip $(subst ",, $(BR2_WGET)))
+#"))
+SVN:=$(strip $(subst ",, $(BR2_SVN)))
+#"))
+ZCAT:=$(strip $(subst ",, $(BR2_ZCAT)))
+#"))
+BZCAT:=$(strip $(subst ",, $(BR2_BZCAT)))
+#"))
+TAR_OPTIONS=$(subst ",, $(BR2_TAR_OPTIONS)) -xf
+#")
+
+TARGET_CFLAGS=$(TARGET_OPTIMIZATION) $(TARGET_DEBUGGING)
+HOSTCC:=gcc
+HOSTCXX:=g++
+
+BASE_DIR:=${shell pwd}
+
+TOPDIR_PREFIX:=$(strip $(subst ",, $(BR2_TOPDIR_PREFIX)))_
+#"))
+TOPDIR_SUFFIX:=_$(strip $(subst ",, $(BR2_TOPDIR_SUFFIX)))
+#"))
+ifeq ($(TOPDIR_PREFIX),_)
+TOPDIR_PREFIX:=
+endif
+ifeq ($(TOPDIR_SUFFIX),_)
+TOPDIR_SUFFIX:=
+endif
+
+DL_DIR=$(strip $(subst ",, $(BR2_DL_DIR)))
+#"))
+ifeq ($(DL_DIR),)
+DL_DIR:=$(BASE_DIR)/dl
+endif
+#PATCH_DIR=$(BASE_DIR)/sources/patches
+BUILD_DIR:=$(BASE_DIR)/$(TOPDIR_PREFIX)build_$(ARCH)$(ARCH_FPU_SUFFIX)$(TOPDIR_SUFFIX)
+TARGET_DIR:=$(BUILD_DIR)/root
+
+GNU_TARGET_SUFFIX:=-$(strip $(subst ",, $(BR2_GNU_TARGET_SUFFIX)))
+#"))
+
+STAGING_DIR:=$(strip $(subst ",, $(BR2_STAGING_DIR)))
+NUTTX_DIR:=$(strip $(subst ",, $(BR2_NUTTX_DIR)))
+#"))
+TOOL_BUILD_DIR=$(BASE_DIR)/$(TOPDIR_PREFIX)toolchain_build_$(ARCH)$(ARCH_FPU_SUFFIX)$(TOPDIR_SUFFIX)
+
+# Quotes are needed for spaces et al in path components.
+TARGET_PATH="$(STAGING_DIR)/bin:$(TOOL_BUILD_DIR)/bin:$(PATH)"
+REAL_GNU_TARGET_NAME=$(OPTIMIZE_FOR_CPU)$(GNU_TARGET_SUFFIX)
+GNU_TARGET_NAME=$(OPTIMIZE_FOR_CPU)-elf
+KERNEL_CROSS=$(STAGING_DIR)/bin/$(OPTIMIZE_FOR_CPU)$(GNU_TARGET_SUFFIX)-
+TARGET_CROSS=$(STAGING_DIR)/bin/$(OPTIMIZE_FOR_CPU)$(GNU_TARGET_SUFFIX)-
+TARGET_CC=$(TARGET_CROSS)gcc
+TARGET_CXX=$(TARGET_CROSS)g++
+TARGET_RANLIB=$(TARGET_CROSS)ranlib
+STRIP=$(TARGET_CROSS)strip --remove-section=.comment --remove-section=.note
+INSTALL=/usr/bin/install
+
+
+HOST_ARCH:=$(shell $(HOSTCC) -dumpmachine | sed -e s'/-.*//' \
+	-e 's/sparc.*/sparc/' \
+	-e 's/arm.*/arm/g' \
+	-e 's/m68k.*/m68k/' \
+	-e 's/ppc/powerpc/g' \
+	-e 's/v850.*/v850/g' \
+	-e 's/sh[234]/sh/' \
+	-e 's/mips-.*/mips/' \
+	-e 's/mipsel-.*/mipsel/' \
+	-e 's/cris.*/cris/' \
+	-e 's/i[3-9]86/i386/' \
+	)
+GNU_HOST_NAME:=$(HOST_ARCH)-$(subst ",,$(BR2_GNU_BUILD_SUFFIX))
+#")
+TARGET_CONFIGURE_OPTS=PATH=$(TARGET_PATH) \
+		AR=$(TARGET_CROSS)ar \
+		AS=$(TARGET_CROSS)as \
+		LD=$(TARGET_CROSS)ld \
+		NM=$(TARGET_CROSS)nm \
+		CC=$(TARGET_CROSS)gcc \
+		GCC=$(TARGET_CROSS)gcc \
+		CXX=$(TARGET_CROSS)g++ \
+		CPP=$(TARGET_CROSS)cpp \
+		RANLIB=$(TARGET_CROSS)ranlib \
+		STRIP=$(TARGET_CROSS)strip \
+		OBJCOPY=$(TARGET_CROSS)objcopy \
+		CC_FOR_BUILD="$(HOSTCC)" \
+		PKG_CONFIG_SYSROOT=$(STAGING_DIR) \
+		PKG_CONFIG=$(STAGING_DIR)/usr/bin/pkg-config
+
+
+ifeq ($(BR2_ENABLE_LOCALE),y)
+DISABLE_NLS:=
+else
+DISABLE_NLS:=--disable-nls
+endif
+
+ifneq ($(BR2_LARGEFILE),y)
+DISABLE_LARGEFILE= --disable-largefile
+endif
+
+ifeq ($(BR2_INSTALL_LIBSTDCPP),)
+TARGET_CONFIGURE_OPTS+=CXX=""
+endif
+

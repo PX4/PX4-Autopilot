@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config NETUTILS_TELNETD
+	bool "Telet daemon"
+	default n
+	---help---
+		Enable support for the Telnet daemon.
+
+if NETUTILS_TELNETD
+endif

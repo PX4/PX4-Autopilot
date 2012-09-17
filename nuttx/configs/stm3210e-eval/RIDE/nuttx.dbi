@@ -1,0 +1,23 @@
+[Application]
+ApplicationPath=C:\cygwin\home\Owner\projects\nuttx\nuttx\configs\stm3210e-eval\RIDE\nuttx.elf
+CSX=0
+HighBankAddr=400000
+BootMode=0
+Format=ELF
+CodeOffset=0x0
+DataOffset=0x0
+LoaderTool=ARM
+Target=ARM
+DebugTool=RLINK_CORTEX
+ApplicationComponents=
+[Device]
+Name=STM32F101VET6
+[ARMSigDrv options]
+CXS=0
+[Debug]
+Explore=No
+Startup=1
+StartupSymb=main
+ToolName=RLINK_CORTEX
+[SimFile]
+path=C:\Program Files\Raisonance\Ride\sim\ARM\STM32F101VET6.sim

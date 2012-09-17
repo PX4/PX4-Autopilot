@@ -1,0 +1,119 @@
+32-bit op-code bit definitions
+
+Machine model:
+
+  SPB 32-bit Pascal stack base address
+  SP  32-bit Pascal stack pointer
+  LSP 32-bit Level stack pointer
+  CSB 32-bit Character stack base address
+  CSP 32-bit Character stack pointer
+  DS  32-bit Data size register (for multiple reg transfers)
+  PC  32-bit Program Counter
+  CC  Condition code register
+  --- Volatile general purpose registers
+  --- Static general purpose registers
+
+Condition codes:  Z(ero), N(egative)
+
+       +=====+=====+
+       |  Z  |  N  |
+  +=====+=====+=====+
+  | EQ  |  1  |  -  |
+  | NEQ |  0  |  -  |
+  | LT  |  -  |  1  |
+  | GTE |  -  |  0  |
+  | GT  |  0  |  0  |
+  | LTE |  1  |  1  |
+  +=====+=====+=====+
+
+Opcode Encoding Summary:
+
+           0rxx xxxx  1rxxx xxxx
+xr00 0000  NOP        LD   uoffs4
+xr00 0001  NEG        LDH  uoffs3
+xr00 0010  ABS        LDB  uoffs
+xr00 0011  INC        LDM  uoffs4
+xr00 0100  DEC        ST   uoffs4
+xr00 0101  NOT        STH  uoffs2
+xr00 0110  ADD        STB  uoffs
+xr00 0111  SUB        STM  uoffs4
+xr00 1000  MUL        LDX  uoffs4
+xr00 1001  DIV        LDXH uoffs2
+xr00 1010  MOD        LDXB uoffs
+xr00 1011  SLL        LDXM uoffs4
+xr00 1100  SRL        STX  uoffs4
+xr00 1101  SRA        STXH uoffs2
+xr00 1110  OR         STXB uoffs
+xr00 1111  AND        STXM uoffs
+
+xr01 0000  EQUZ       JEQUZ ilbl
+xr01 0001  NEQZ       JNEQZ ilbl
+xr01 0010  LTZ        JLTZ  ilbl
+xr01 0011  GTEZ       JGTEZ ilbl
+xr01 0100  GTZ        JGTZ  ilbl
+xr01 0101  LTEZ       JLTEZ ilbl
+xr01 0110  ---        JMP   ilbl
+xr01 0111  ---        PUSH  nn
+xr01 1000  EQU        JEQU  ilbl
+xr01 1001  NEQ        JNEQ  ilbl
+xr01 1010  LT         JLT   ilbl
+xr01 1011  GTE        JGTE  ilbl    
+xr01 1100  GT         JGT   ilbl
+xr01 1101  LTE        JLTE  ilbl
+xr01 1110  ---        ---
+xr01 1111  BIT        INDS  nn
+
+xr10 0000  LDI        LDS   offs4
+xr10 0001  LDIH       LDSH  offs3
+xr10 0010  LDIB       LDSB  offs
+xr10 0011  LDIM       LDSM  offs4
+xr10 0100  STI        STS   offs4
+xr10 0101  STIH       STSH  offs2
+xr10 0110  STIB       STSB  offs
+xr10 0111  STIM       STSM  offs4
+xr10 1000  DUP        LDSX  offs4
+xr10 1001  ---        LDSXH offs2
+xr10 1010  PUSHS      LDSXB offs
+xr10 1011  POPS       LDSXM offs4
+xr10 1100  ---        STSX  offs4
+xr10 1101  ---        STSXH offs2
+xr10 1110  ---        STSXB offs
+xr10 1111  RET        STSXM offs
+
+xr11 0000  ---        LA    uoffs       
+xr11 0001  ---        LAS   offs
+xr11 0010  ---        LAC   dlbl
+xr11 0011  ---        ---
+xr11 0100  ---        LAX   uoffs
+xr11 0101  ---        LASX  offs
+xr11 0110  ---        SLSP  level
+xr11 0111  ---        SDC   uu
+xr11 1000  ---        ---
+xr11 1001  ---        PCAL  ilbl
+xr11 1010  ---        SYSIO fn,sop
+xr11 1011  ---        LIB   lop
+xr11 1100  ---        FLOAT fop
+xr11 1101  ---       *LABEL ilbl
+xr11 1110  ---       *INCLUDE fn
+xr11 1111  END       *LINE  lineno 
+
+KEY:
+  r      = Reserved bit (must be zero)
+  fn     = 8-bit file number
+  lvl    = 8-bit static nexting level
+  sop    = 17-bit sysio operation
+  lineno = 17-bit line number
+  nn     = 32-bit constant value (signed)
+  uu     = 32-bit constant value (unsigned)
+  fop    = 32-bit floating point operation
+  lop    = 32-bit library call identifier
+  ilbl   = 32-bit Instruction space label number
+  dlbl   = 32-stack data label
+  offs4  = 32-bit word offset with respect to LSP (signed)
+  offs2  = 32-bit halfword offset with respect to LSP (signed)
+  offs   = 32-bit byte offset with respect to LSP (signed)
+  uoffs4 = 32-bit word offset with respect to SPB (unsigned)
+  uoffs2 = 32-bit halfword offset with respect to SPB (unsigned)
+  uoffs  = 32-bit byte offset with respect to SPB (unsigned)
+  c      = string follows pseudo-operation
+      = Indicates pseudo-operations (these are removed

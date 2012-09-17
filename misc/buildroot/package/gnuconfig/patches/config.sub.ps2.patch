@@ -1,0 +1,50 @@
+Index: config.sub
+===================================================================
+RCS file: /cvsroot/config/config/config.sub,v
+retrieving revision 1.340
+diff -u -p -r1.340 config.sub
+--- config.sub
++++ config.sub
+@@ -244,7 +244,7 @@ case $basic_machine in
+ 	| arc | arm | arm[bl]e | arme[lb] | armv[2345] | armv[345][lb] | avr \
+ 	| bfin \
+ 	| c4x | clipper \
+-	| d10v | d30v | dlx | dsp16xx \
++	| d10v | d30v | dlx | dsp16xx | dvp \
+ 	| fr30 | frv \
+ 	| h8300 | h8500 | hppa | hppa1.[01] | hppa2.0 | hppa2.0[nw] | hppa64 \
+ 	| i370 | i860 | i960 | ia64 \
+@@ -693,6 +693,24 @@ case $basic_machine in
+ 		basic_machine=m68k-atari
+ 		os=-mint
+ 		;;
++	mipsEE* | ee | ps2)
++		basic_machine=mips64r5900el-scei
++		case $os in
++		    -linux*)
++			;;
++		    *)
++			os=-elf
++			;;
++		esac
++		;;
++	iop)
++		basic_machine=mipsel-scei
++		os=-irx
++		;;
++	dvp)
++		basic_machine=dvp-scei
++		os=-elf
++		;;
+ 	mips3*-*)
+ 		basic_machine=`echo $basic_machine | sed -e 's/mips3/mips64/'`
+ 		;;
+@@ -1218,7 +1236,7 @@ case $os in
+ 	      | -os2* | -vos* | -palmos* | -uclinux* | -nucleus* \
+ 	      | -morphos* | -superux* | -rtmk* | -rtmk-nova* | -windiss* \
+ 	      | -powermax* | -dnix* | -nx6 | -nx7 | -sei* | -dragonfly* \
+-	      | -skyos* | -haiku* | -rdos*)
++	      | -skyos* | -haiku* | -rdos* | -irx*)
+ 	# Remember, each alternative MUST END IN *, to match a version number.
+ 		;;
+ 	-qnx*)

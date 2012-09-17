@@ -1,0 +1,80 @@
+/****************************************************************************/
+/* configs/z8encore000zco/ostest/ostest.linkcmd                             */
+/*                                                                          */
+/*   Copyright (C) 2008 Gregory Nutt. All rights reserved.                  */
+/*   Author: Gregory Nutt <gnutt@nuttx.org>                          */
+/*                                                                          */
+/* Redistribution and use in source and binary forms, with or without       */
+/* modification, are permitted provided that the following conditions       */
+/* are met:                                                                 */
+/*                                                                          */
+/* 1. Redistributions of source code must retain the above copyright        */
+/*    notice, this list of conditions and the following disclaimer.         */
+/* 2. Redistributions in binary form must reproduce the above copyright     */
+/*    notice, this list of conditions and the following disclaimer in       */
+/*    the documentation and/or other materials provided with the            */
+/*    distribution.                                                         */
+/* 3. Neither the name NuttX nor the names of its contributors may be       */
+/*    used to endorse or promote products derived from this software        */
+/*    without specific prior written permission.                            */
+/*                                                                          */
+/* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS      */
+/* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT        */
+/* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS        */
+/* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE           */
+/* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,      */
+/* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,     */
+/* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS    */
+/* OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED       */
+/* AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT              */
+/* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN        */
+/* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE          */
+/* POSSIBILITY OF SUCH DAMAGE.                                              */
+/*                                                                          */
+/****************************************************************************/
+
+-FORMAT=OMF695,INTEL32
+-map -maxhexlen=64 -quiet -sort NAME=ascending -unresolved=fatal
+-NOwarnoverlap -NOxref -warn -debug -NOigcase -quiet
+
+RANGE ROM $0 : $FFFF
+RANGE RDATA $20 : $FF
+RANGE EDATA $100 : $EFF
+RANGE PRAM FORBIDDEN
+
+CHANGE TEXT=EDATA
+CHANGE TEXT=FAR_DATA
+change NEAR_TXT=NEAR_DATA
+change FAR_TXT=FAR_DATA
+ORDER FAR_BSS, FAR_DATA
+ORDER NEAR_BSS,NEAR_DATA
+COPY NEAR_DATA ROM
+COPY FAR_DATA ROM
+
+define _low_near_romdata = copy base of NEAR_DATA
+define _low_neardata = base of NEAR_DATA
+define _len_neardata = length of NEAR_DATA
+define _low_far_romdata = copy base of FAR_DATA
+define _low_fardata = base of FAR_DATA
+define _len_fardata = length of FAR_DATA
+define _low_nearbss = base of NEAR_BSS
+define _len_nearbss = length of NEAR_BSS
+define _low_farbss = base of FAR_BSS
+define _len_farbss = length of FAR_BSS
+define _far_stacktop = highaddr of EDATA
+define _near_stack = highaddr of RDATA
+define _far_heapbot = top of EDATA
+define _near_heaptop = highaddr of RDATA
+define _near_heapbot = top of RDATA
+define _low_pramseg = base of PRAMSEG
+define _len_pramseg = length of PRAMSEG
+define _low_pram_romdata = copy base of PRAMSEG
+define _READ_NVDS=$1000
+define _WRITE_NVDS=$10B3
+define _READ_NVDS_GET_STATUS=$1000
+define _WRITE_NVDS_GET_STATUS=$10B3
+/* Set frequency to 18432000 Hz */
+define __user_frequency = 18432000
+
+/* arch/z80/src/Makefile.zdsii will append target, object and library paths below */
+

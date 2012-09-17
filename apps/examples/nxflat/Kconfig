@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_NXFLAT
+	bool "NXFLAT example"
+	default n
+	---help---
+		Enable the NXFLAT example
+
+if EXAMPLES_NXFLAT
+endif

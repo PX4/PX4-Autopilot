@@ -1,0 +1,388 @@
+<html>
+<head>
+<title>NFS Client How-To</title>
+</head>
+<body background="backgd.gif">
+<hr><hr>
+
+<table width ="100%">
+  <tr align="center" bgcolor="#e4e4e4">
+    <td>
+      <h1><big><font color="#3c34ec"><i>NFS Client How-To</i></font></big></h1>
+      <p>Last Updated: June 18, 2012</p>
+    </td>
+  </tr>
+</table>
+<hr><hr>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+      <h1>Table of Contents</h1>
+    </td>
+  </tr>
+</table>
+
+<center><table width ="80%">
+<tr>
+<td>
+<table>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#nfsconfiguration">Adding NFS to the NuttX Configuration</a>
+  </td>
+</tr>
+</table>
+<table>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#mountinterface">Mount Interface</a>
+  </td>
+</tr>
+</table>
+<table>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#nfsmount">NFS Mount Command</a>
+  </td>
+</tr>
+</table>
+<table>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td>
+    <a href="#serverconfig">Configuring the NFS server (Ubuntu)</a>
+  </td>
+</tr>
+</table>
+</td>
+</tr>
+</table></center>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="nfsconfiguration"><h1>Adding NFS to the NuttX Configuration</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  The NFS client is easily added to your configuration:
+  You simply need to add <code>CONFIG_NFS</code> to your <code>nuttx/.config</code> file.
+  There are, however, a few dependencies on other system settings:
+</p>
+<ol>
+  <li>
+    First, there are number of things that you must configure in order to be able to use any file system:
+  </li>
+  <ul>
+    <li>
+      <code>CONFIG_NFILE_DESCRIPTORS > 0</code>.  You must include support for file descriptors.
+    </li>
+    <li>
+      <code>CONFIG_DISABLE_MOUNTPOINT=n</code>.  You must include support for mount points in the pseudo-file system.
+    </li>
+  </ul>
+  <li>
+    And there are several dependencies on the networking configuration.
+    At a minimum, you need to have the following selections:
+  </li>
+  <ul>
+    <li>
+      <code>CONFIG_NET=y</code>.  General networking support.
+    </li>
+    <li>
+      <code>CONFIG_NET_UDP=y</code>.  Support for UDP.
+    </li>
+  </ul>
+</ol>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="mountinterface"><h1>Mount Interface</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  A low-level, C-callable interface is provided to mount a file system.
+  That interface is called <code>mount()</code> and is mentioned in the <a href="NuttxPortingGuide.html#NxFileSystem"><code>porting guide</code></a> and is prototyped in the header file <code>include/sys/mount.h</code>:
+</p>
+<ul><pre>
+int mount(const char *source, const char *target, const char *filesystemtype, unsigned long mountflags, const void *data);
+</pre></ul>
+<p>
+  <b>Synopsis</b>:
+   <code>mount()</code> attaches the filesystem specified by the <code>source</code> block device name into the root file system at the path specified by <code>target</code>.
+</p>
+<p>
+  <b>Input Paramters</b>:
+  <ul>
+    <li><code>source</code>.  A null-terminated string providing the fill path to a block driver in the NuttX pseudo-file system.
+    <li><code>target</code>.  The location in the NuttX pseudo-file system where the volume will be mounted.
+    <li><code>filesystemtype</code>.  A string identifying the type of file system to use.
+    <li><code>mountflags</code>.  Various flags that can be used to qualify how the file system is mounted.
+    <li><code>data</code>.  Opaque data that is passed to the file system with the mount occurs.
+  </ul>
+</p>
+<p>
+  <b>Returned Values</b>
+  Zero is returned on success; -1 is returned on an error and <code>errno</code> is set appropriately:
+  <ul>
+    <li><code>EACCES</code>.
+      A component of a path was not searchable or mounting a read-onlyfilesystem was attempted without giving the <code>MS_RDONLY</code> flag.
+    </li>
+    <li><code>EBUSY</code>.
+      <code>source</code> is already  mounted.
+    </li>
+    <li><code>EFAULT</code>.
+      One of the pointer arguments points outside the user address space.
+    </li>
+    <li><code>EINVAL</code>.
+      <code>source</code> had an invalid superblock.
+    </li>
+    <li><code>ENODEV</code>.
+      <code>filesystemtype</code> not configured
+    </li>
+    <li><code>ENOENT</code>.
+      A pathname was empty or had a nonexistent component.
+    </li>
+    <li><code>ENOMEM</code>.
+      Could not allocate a memory to copy filenames or data into.
+    </li>
+    <li><code>ENOTBLK</code>.
+      <code>source</code> is not a block device
+    </li>
+ </ul>
+</p>
+<p>
+  This same interface can be used to mount a remote, NFS file system using some special parameters.
+  The NFS mount differs from the <i>normal</i> file system mount in that: (1) there is no block driver for the NFS file system, and (2) special parameters must be passed as <code>data</code> to describe the remote NFS server.
+  Thus the following code snippet might represent how an NFS file system is mounted:
+</p>
+<ul><pre>
+#include &lt;sys/mount.h&gt;
+#include &lt;nuttx/fs/nfs.h&gt;
+
+struct nfs_args data;
+char *mountpoint;
+
+ret = mount(NULL, mountpoint, string &quot;nfs&quot;, 0, (FAR void *)&data);
+</pre></ul>
+<p>
+  NOTE that:  (1) the block driver paramter is <code>NULL</code>.
+  The <code>mount()</code> is smart enough to know that no block driver is needed with the NFS file system.
+  (2) The NFS file system is identified with the simple string &quot;nfs&quot;
+  (3) A reference to <code>struct nfs_args</code> is passed as an NFS-specific argument.
+</p>
+<p>
+  The NFS-specific interface is described in the file <code>include/nuttx/fs/nfs.h</code>.
+  There you can see that <code>struct nfs_args</code> is defined as:
+</p>
+<ul><pre>
+struct nfs_args
+{
+  uint8_t  addrlen;               /* Length of address */
+  uint8_t  sotype;                /* Socket type */
+  uint8_t  flags;                 /* Flags, determines if following are valid: */
+  uint8_t  timeo;                 /* Time value in deciseconds (with NFSMNT_TIMEO) */
+  uint8_t  retrans;               /* Times to retry send (with NFSMNT_RETRANS) */
+  uint16_t wsize;                 /* Write size in bytes (with NFSMNT_WSIZE) */
+  uint16_t rsize;                 /* Read size in bytes (with NFSMNT_RSIZE) */
+  uint16_t readdirsize;           /* readdir size in bytes (with NFSMNT_READDIRSIZE) */
+  char    *path;                  /* Server's path of the directory being mount */
+  struct   sockaddr_storage addr; /* File server address (requires 32-bit alignment) */
+};
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="nfsmount"><h1>NFS Mount Command</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  The <a href="NuttShell.html">NuttShell (NSH)</a> also supports a command called <code>nfsmount</code>
+  that can be used to mount a remote file system via the NSH command line.
+</p>
+<p>
+  <b>Command Syntax:</b>
+</p>
+<ul><pre>
+nfsmount &lt;server-address&gt; &lt;mount-point&gt; &lt;remote-path&gt;
+</pre></ul>
+<p>
+  <b>Synopsis</b>.
+  The <code>nfsmount</code> command mounts a network file system in the NuttX pseudo filesystem.
+  The <code>nfsmount</code> will use NFSv3 UDP protocol to mount the remote file system.
+</p>
+<p>
+  <b>Command Line Arguments</b>.
+  The <code>nfsmount</code> takes three arguments:
+</p>
+<ol>
+  <li>
+    The <code>&lt;server-address&gt;</code> is the IP address of the server exporting the file system you wish to mount.
+    This implementation of NFS for the NuttX RTOS is only for a local area network, so the server and client must be in the same network.
+  </li>
+  <li>
+    The <code>&lt;mount-point &gt;</code> is the location in the NuttX pseudo filesystem where the mounted volume will appear.
+    This mount point can only reside in the  NuttX pseudo filesystem.
+    By convention, this mount point is a subdirectory under <code>/mnt</code>.
+    The mount command will create whatever  pseudo directories that may be needed to complete the full path (but the full path must not already exist).
+  </li>
+  <li>
+    The <code>&lt;remote-path&gt;</code> is the file system <code>/</code> directory being exported from server.
+    This <code>/</code> directory must have been configured for exportation on the server before when the NFS server was set up.
+  </li>
+</ol>
+
+<p>
+  After the volume has been mounted in the NuttX pseudo filesystem, it may be access in the same way as other objects in the file system.
+</p>
+<p>
+  <b>Example</b>.
+  Suppose the the NFS server has been configured to export the directory <code>/export/shared</code>.
+  The the following command would mount that file system (assuming that the target also has privileges to mount the file system).
+</p>
+<ul><pre>
+NuttShell (NSH)
+nsh&gt; ls /mnt
+/mnt:
+nsh: ls: no such directory: /mnt
+nsh&gt; nfsmount 10.0.0.1 /mnt/nfs /export/shared
+nsh&gt; ls -l /mnt/nfs
+/mnt/nfs:
+ drwxrwxrwx   4096 ..
+ drwxrwxrwx   4096 testdir/
+ -rw-rw-rw-      6 ctest.txt
+ -rw-r--r--     15 btest.txt
+ drwxrwxrwx   4096 .
+nsh&gt; echo &quot;This is a test&quot; &gt;/mnt/nfs/testdir/testfile.txt
+nsh&gt; ls -l /mnt/nfs/testdir
+/mnt/nfs/testdir:
+ -rw-rw-rw-     21 another.txt
+ drwxrwxrwx   4096 ..
+ drwxrwxrwx   4096 .
+ -rw-rw-rw-     16 testfile.txt
+nsh&gt; cat /mnt/nfs/testdir/testfile.txt
+This is a test
+</pre></ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+  <td>
+    <a name="serverconfig"><h1>Configuring the NFS server (Ubuntu)</h1></a>
+  </td>
+  </tr>
+</table>
+
+<p>
+  Setting up the server will be done in two steps:
+  First, setting up the configuration file for NFS, and then starting the NFS services.
+  But first, you need to install the nfs server on Ubuntu with the these two commands:
+</p>
+<ul><pre>
+# sudo apt-get install nfs-common</FONT>
+# sudo apt-get install nfs-kernel-server</FONT>
+</pre></ul>
+
+<p>
+  After that, we need to make or choose the directory we want to export from the NFS server.
+  In our case, we are going to make a new directory called <code>/export</code>.
+</p>
+<ul><pre>
+# sudo mkdir /export
+</pre></ul>
+<p>
+  It is important that <code>/export</code> directory allow access to everyone (777 permissions) as we will be accessing the NFS share from the client with no authentication. 
+</p>
+<ul><pre>
+# sudo chmod 777 /export
+</pre></ul>
+<p>
+  When all this is done, we will need to edit the configuration file to set up an NFS server: <code>/etc/exports</code>.
+  This file contains a list of entries;
+  each entry indicates a volume that is shared and how it is shared.
+  For more information for a complete description of all the setup options for this file you can check in the man pages (<code>man export</code>).</p>
+  An entry in <code>/etc/exports</code> will typically look like this:
+</p>
+<ul><pre>
+directory machine1(option11,option12)
+</pre></ul>
+<p>
+  So for our example we export <coce>/export</code> to the client 10.0.0.2 add the entry:
+</p>
+<ul><pre>
+/export 10.0.0.2(rw)
+</pre></ul>
+<p>
+  In our case we are using all the default options except for the <code>ro</code> that we replaced with <code>rw</code>  so that our client will have read and write access to the directory that we are exporting.
+</p>
+</p>
+  After we do all the require configurations, we are ready to start the server with the next command: 
+</p>
+<ul><pre>
+# sudo /etc/init.d/nfs-kernel-server start
+</pre></ul>
+</p>
+  Note: If you later decide to add more NFS exports to the /etc/exports file, you will need to either restart NFS daemon
+or run command exportfs.
+</p>
+<ul><pre>
+# sudo /etc/init.d/nfs-kernel-server start 
+</pre></ul>
+<p>Or</p>
+<ul><pre>
+# exportfs -ra
+</pre></ul>
+<p>
+  Now we can check if the export directory and our mount point is properly set up.
+</p>
+<ul><pre>
+# sudo showmount -e
+# sudo showmount -a
+</pre></ul>
+<p>
+  And also we can verify if NFS is running in the system with:
+</p>
+<P STYLE="margin-left: 0.49in; margin-bottom: 0in; line-height: 100%">
+<ul><pre>
+# rpcinfo &ndash;p</FONT>
+program vers proto   port
+   100000   2   tcp    111  portmapper
+   100000   2   udp    111  portmapper
+   100011   1   udp   749  rquotad
+   100011   2   udp   749  rquotad
+   100005   1   udp    759  mountd
+   100005   1   tcp    761  mountd
+   100005   2   udp    764  mountd
+   100005   2   tcp    766  mountd
+   100005   3   udp    769  mountd
+   100005   3   tcp    771  mountd
+   100003   2   udp   2049  nfs
+   100003   3   udp   2049  nfs
+   300019   1   tcp    830  amd
+   300019   1   udp    831  amd
+   100024   1   udp    944  status
+   100024   1   tcp    946  status
+   100021   1   udp   1042  nlockmgr
+   100021   3   udp   1042  nlockmgr
+   100021   4   udp   1042  nlockmgr
+   100021   1   tcp   1629  nlockmgr
+   100021   3   tcp   1629  nlockmgr
+   100021   4   tcp   1629  nlockmgr
+</pre></ul>
+<p>
+  Now your NFS sever is sharing <code>/export</code> directory to be accessed.
+</p>
+
+</body>
+</html>

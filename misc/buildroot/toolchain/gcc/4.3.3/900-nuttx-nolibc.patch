@@ -1,0 +1,30 @@
+At present, libstdc++ will not build.  My understanding is that it needs to have
+the NuttX libc characterized in crossconfig.m4.  This is a first attempt to do that --
+unfortunately, it still does not work.
+
+diff -u gcc-4.2.4/libstdc++-v3/configure.orig gcc-4.2.4/libstdc++-v3/configure
+--- gcc-4.2.4/libstdc++-v3/configure.orig	2009-01-05 17:52:11.000000000 -0600
++++ gcc-4.2.4/libstdc++-v3/configure	2009-01-05 17:52:43.000000000 -0600
+@@ -114335,9 +114335,7 @@
+ 
+     ;;
+   *)
+-    { { echo "$as_me:$LINENO: error: No support for this host/target combination." >&5
+-echo "$as_me: error: No support for this host/target combination." >&2;}
+-   { (exit 1); exit 1; }; }
++  # Assume bare hardware
+    ;;
+ esac
+ 
+diff -u gcc-4.2.4/libstdc++-v3/crossconfig.m4.orig gcc-4.2.4/libstdc++-v3/crossconfig.m4
+--- gcc-4.2.4/libstdc++-v3/crossconfig.m4.orig	2009-01-05 17:51:07.000000000 -0600
++++ gcc-4.2.4/libstdc++-v3/crossconfig.m4	2009-01-05 17:52:02.000000000 -0600
+@@ -464,7 +464,7 @@
+     AC_DEFINE(HAVE_TANHL)
+     ;;
+   *)
+-    AC_MSG_ERROR([No support for this host/target combination.])
++   # Assume bare hardware
+    ;;
+ esac
+ ])

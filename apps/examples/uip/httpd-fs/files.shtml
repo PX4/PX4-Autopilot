@@ -1,0 +1,31 @@
+%!: /header.html
+<h1>File statistics</h1>
+<center>
+<table width="300">
+<tr><td><a href="/index.shtml">/index.shtml</a></td>
+<td>%! file-stats /index.shtml
+</td><td><img src="/fade.png" height=10 width=%! file-stats /index.shtml
+> </td></tr>
+<tr><td><a href="/files.shtml">/files.shtml</a></td>
+<td>%! file-stats /files.shtml
+</td><td><img src="/fade.png" height=10 width=%! file-stats /files.shtml
+> </td></tr>
+<tr><td><a href="/stats.shtml">/stats.shtml</a></td>
+<td>%! file-stats /stats.shtml
+</td><td><img src="/fade.png" height=10 width=%! file-stats /stats.shtml
+> </td></tr>
+<tr><td><a href="/style.css">/style.css</a></td>
+<td>%! file-stats /style.css
+</td><td><img src="/fade.png" height=10 width=%! file-stats /style.css
+> </td></tr>
+<tr><td><a href="/404.html">/404.html</a></td>
+<td>%! file-stats /404.html
+</td><td><img src="/fade.png" height=10 width=%! file-stats /404.html
+> </td></tr>
+<tr><td><a href="/fade.png">/fade.png</a></td>
+<td>%! file-stats /fade.png
+</td><td><img src="/fade.png" height=10 width=%! file-stats /fade.png
+> </td></tr>
+</table>
+</center>
+%!: /footer.html

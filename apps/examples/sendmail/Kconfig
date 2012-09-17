@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_SENDMAIL
+	bool "Sendmail example"
+	default n
+	---help---
+		Enable the sendmail example
+
+if EXAMPLES_SENDMAIL
+endif

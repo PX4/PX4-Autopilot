@@ -1,0 +1,179 @@
+############################################################################
+# configs/ez80f910200zco/httpd/Make.defs
+#
+#   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+include ${TOPDIR}/.config
+include ${TOPDIR}/tools/Config.mk
+
+# These are the directories where the ZDS-II toolchain is installed
+
+ZDSVERSION		:= 4.11.1
+ZDSINSTALLDIR		:= C:/Program\ Files/ZiLOG/ZDSII_eZ80Acclaim!_$(ZDSVERSION)
+ZDSBINDIR		:= $(ZDSINSTALLDIR)/bin
+ZDSSTDINCDIR		:= $(ZDSINSTALLDIR)/include/std
+ZDSZILOGINCDIR		:= $(ZDSINSTALLDIR)/include/zilog
+ZDSSTDLIBDIR		:= $(ZDSINSTALLDIR)/lib/std
+ZDSZILOGLIBDIR		:= $(ZDSINSTALLDIR)/lib/zilog
+
+# These are the same directories but with the directory separator
+# character swapped as needed by the ZDS-II compiler
+
+WINTOOL			:= y
+WTOPDIR 		:= ${shell cygpath -w $(TOPDIR)}
+WZDSSTDINCDIR		:= ${shell cygpath -w $(ZDSSTDINCDIR)}
+WZDSZILOGINCDIR 	:= ${shell cygpath -w $(ZDSZILOGINCDIR)}
+WZDSSTDLIBDIR		:= ${shell cygpath -w $(ZDSSTDLIBDIR)}
+WZDSZILOGLIBDIR 	:= ${shell cygpath -w $(ZDSZILOGLIBDIR)}
+
+# Escaped versions
+
+ETOPDIR 		:= ${shell echo "$(WTOPDIR)" | sed -e "s/ /%20/g"}
+EZDSSTDINCDIR		:= ${shell echo "$(WZDSSTDINCDIR)" | sed -e "s/ /%20/g"}
+EZDSZILOGINCDIR 	:= ${shell echo "$(WZDSZILOGINCDIR)" | sed -e "s/ /%20/g"}
+
+# Assembler definitions
+
+ifeq ($(CONFIG_ARCH_CHIP_EZ80F91),y)
+ARCHCPU			= eZ80F91
+ARCHCPUDEF		= _EZ80F91
+ARCHFAMILY		= _EZ80ACCLAIM!
+endif
+
+ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+  ARCHASMOPTIMIZATION	= -debug -NOsdiopt
+else
+  ARCHASMOPTIMIZATION	= -nodebug -NOsdiopt
+endif
+
+ARCHASMCPUFLAGS 	= -cpu:$(ARCHCPU) -NOigcase
+ARCHASMLIST		= -list -NOlistmac -name -pagelen:56 -pagewidth:80 -quiet
+ARCHASMWARNINGS 	= -warn
+ARCHASMDEFINES		= -define:$(ARCHCPUDEF)=1 -define:$(ARCHFAMILYDEF)=1 -define:__ASSEMBLY__
+ARCHASMINCLUDES 	= -include:'$(WTOPDIR)\include;$(WZDSSTDINCDIR);$(WZDSZILOGINCDIR)'
+EARCHASMINCLUDES 	= -include:'$(ETOPDIR)\include;$(EZDSSTDINCDIR);$(EZDSZILOGINCDIR)'
+AFLAGS			= $(ARCHASMCPUFLAGS) $(ARCHASMINCLUDES) $(ARCHASMLIST) \
+			  $(ARCHASMWARNINGS) $(ARCHASMOPTIMIZATION)
+
+# Compiler definitions
+
+ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+  ARCHOPTIMIZATION	= -debug -reduceopt
+else
+  ARCHOPTIMIZATION	= -nodebug -optsize
+endif
+
+ARCHCPUFLAGS		= -chartype:S -promote -cpu:$(ARCHCPU) -NOgenprintf -NOmodsect \
+			  -asmsw:" $(ARCHASMCPUFLAGS) $(EARCHASMINCLUDES) $(ARCHASMWARNINGS) $(ARCHASMOPTIMIZATION)"
+ARCHLIST		= -keeplst -NOlist -NOlistinc -keepasm
+ARCHPICFLAGS		=
+ARCHWARNINGS		= -warn
+ARCHDEFINES		= -define:$(ARCHCPUDEF) -define:$(ARCHFAMILYDEF)
+ARCHSTDINCLUDES 	= -stdinc:'$(WTOPDIR)\include;$(WZDSSTDINCDIR);$(WZDSZILOGINCDIR)'
+ARCHUSRINCLUDES 	= -usrinc:'.'
+ARCHINCLUDES		= $(ARCHSTDINCLUDES) $(ARCHUSRINCLUDES)
+CFLAGS			= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHLIST) \
+			  $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+
+CPPDEFINES              = -D$(ARCHFAMILYDEF) -D$(ARCHCPUDEF) -D__ASSEMBLY__
+CPPINCLUDES             = -I$(TOPDIR)/include
+CPPFLAGS                = $(CPPDEFINES) $(CPPINCLUDES)
+
+# Librarian definitions
+
+ARFLAGS 		= -quiet -warn
+
+# Linker definitions
+
+LINKCMDTEMPLATE 	= $(TOPDIR)/configs/ez80f910200zco/httpd/httpd.linkcmd
+
+# Tool names/pathes
+
+CROSSDEV		=
+CC			= $(ZDSBINDIR)/ez80cc.exe
+CPP			= gcc -E
+LD			= $(ZDSBINDIR)/ez80link.exe
+AS			= $(ZDSBINDIR)/ez80asm.exe
+AR			= $(ZDSBINDIR)/ez80lib.exe
+
+# File extensions
+
+ASMEXT			= .asm
+OBJEXT			= .obj
+LIBEXT			= .lib
+EXEEXT			= .lod
+HEXEXT			= .hex
+
+# These are the macros that will be used in the NuttX make system
+# to compile and assembly source files and to insert the resulting
+# object files into an archive
+
+define PREPROCESS
+	@echo "CPP: $1->$2"
+	@$(CPP) $(CPPFLAGS) $1 -o $2
+endef
+
+define COMPILE
+	@#echo "CC: $1"
+	@(wfile=`cygpath -w $1`; $(CC) $(CFLAGS) $$wfile)
+endef
+
+define ASSEMBLE
+	@#echo "AS: $1"
+	@(wfile=`cygpath -w $1`; $(AS) $(AFLAGS) $$wfile)
+endef
+
+define ARCHIVE
+	echo "AR: $2"; \
+	$(AR) $(ARFLAGS) $1=-+$2 || { echo "$(AR) $1=-+$2 FAILED!" ; exit 1 ; }
+endef
+
+define CLEAN
+	@rm -f *.obj *.src *.lib *.hex *.lod *.lst
+endef
+
+# This is the tool to use for dependencies (i.e., none)
+
+MKDEP			= $(TOPDIR)/tools/mknulldeps.sh
+
+# ZDS-II cannot follow Cygwin soft links, so we will have to use directory copies
+
+DIRLINK 		= $(TOPDIR)/tools/winlink.sh
+DIRUNLINK		= $(TOPDIR)/tools/unlink.sh
+
+# Linux/Cygwin host tool definitions
+
+HOSTCC			= gcc
+HOSTINCLUDES		= -I.
+HOSTCFLAGS		= -Wall -wstrict-prototypes -Wshadow -g -pipe
+HOSTLDFLAGS		=

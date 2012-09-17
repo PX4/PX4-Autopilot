@@ -1,0 +1,92 @@
+/****************************************************************************/
+/* configs/z16f2800100zcog/pashello/pashello.linkcmd                        */
+/*                                                                          */
+/*   Copyright (C) 2008 Gregory Nutt. All rights reserved.                  */
+/*   Author: Gregory Nutt <gnutt@nuttx.org>                          */
+/*                                                                          */
+/* Redistribution and use in source and binary forms, with or without       */
+/* modification, are permitted provided that the following conditions       */
+/* are met:                                                                 */
+/*                                                                          */
+/* 1. Redistributions of source code must retain the above copyright        */
+/*    notice, this list of conditions and the following disclaimer.         */
+/* 2. Redistributions in binary form must reproduce the above copyright     */
+/*    notice, this list of conditions and the following disclaimer in       */
+/*    the documentation and/or other materials provided with the            */
+/*    distribution.                                                         */
+/* 3. Neither the name NuttX nor the names of its contributors may be       */
+/*    used to endorse or promote products derived from this software        */
+/*    without specific prior written permission.                            */
+/*                                                                          */
+/* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS      */
+/* "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT        */
+/* LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS        */
+/* FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE           */
+/* COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,      */
+/* INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,     */
+/* BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS    */
+/* OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED       */
+/* AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT              */
+/* LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN        */
+/* ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE          */
+/* POSSIBILITY OF SUCH DAMAGE.                                              */
+/*                                                                          */
+/****************************************************************************/
+
+-FORMAT=OMF695,INTEL32
+-map -maxhexlen=64 -quiet -sort NAME=ascending -unresolved=fatal
+-warnoverlap -NOxref -warn -debug -NOigcase
+
+RANGE ROM    $000000 : $007FFF
+RANGE RAM    $FFB000 : $FFBFFF
+RANGE IODATA $FFC000 : $FFFFFF
+RANGE EROM   $008000 : $01FFFF
+RANGE ERAM   $800000 : $87FFFF
+
+CHANGE NEAR_TEXT=NEAR_DATA
+CHANGE FAR_TEXT=FAR_DATA
+
+ORDER FAR_BSS,  FAR_DATA
+ORDER NEAR_BSS, NEAR_DATA
+COPY  NEAR_DATA EROM
+COPY  FAR_DATA  EROM
+
+define _0_exit             = 0
+define _low_near_romdata   = copy base of NEAR_DATA
+define _low_neardata       = base of NEAR_DATA
+define _len_neardata       = length of NEAR_DATA
+define _low_far_romdata    = copy base of FAR_DATA
+define _low_fardata        = base of FAR_DATA
+define _len_fardata        = length of FAR_DATA
+define _low_nearbss        = base of NEAR_BSS
+define _len_nearbss        = length of NEAR_BSS
+define _low_farbss         = base of FAR_BSS
+define _len_farbss         = length of FAR_BSS
+define _near_heaptop       = highaddr of RAM
+define _far_heaptop        = highaddr of ERAM
+define _far_stack          = highaddr of ERAM
+define _near_stack         = highaddr of RAM
+define _near_heapbot       = top of RAM
+define _far_heapbot        = top of ERAM
+
+define _SYS_CLK_SRC        = 2
+define _SYS_CLK_FREQ       = 20000000
+
+define __EXTCT_INIT_PARAM  = $80
+define __EXTCS0_INIT_PARAM = $8012
+define __EXTCS1_INIT_PARAM = $8001
+define __EXTCS2_INIT_PARAM = $0000
+define __EXTCS3_INIT_PARAM = $0000
+define __EXTCS4_INIT_PARAM = $0000
+define __EXTCS5_INIT_PARAM = $0000
+
+define __PFAF_INIT_PARAM   = $ff
+define __PGAF_INIT_PARAM   = $ff
+define __PDAF_INIT_PARAM   = $ff00
+define __PAAF_INIT_PARAM   = $0000
+define __PCAF_INIT_PARAM   = $0000
+define __PHAF_INIT_PARAM   = $0300
+define __PKAF_INIT_PARAM   = $0f
+
+/* arch/z16/src/Makefile will append target, object and library paths below */
+

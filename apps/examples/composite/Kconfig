@@ -1,0 +1,14 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_COMPOSITE
+	bool "USB composite class driver example"
+	default n
+	---help---
+		Enable the USB compsite class driver example
+
+if EXAMPLES_COMPOSITE
+endif
+

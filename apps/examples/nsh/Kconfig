@@ -1,0 +1,15 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_NSH
+	bool "NuttShell (NSH) example"
+	default n
+	select NSH_LIBRARY
+	select SYSTEM_READLINE
+	---help---
+		Enable the NuttShell (NSH) example
+
+if EXAMPLES_NSH
+endif

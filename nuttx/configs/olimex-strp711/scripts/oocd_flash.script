@@ -1,0 +1,26 @@
+# 
+# The following command will be executed on reset
+# - wait for target halt
+# - erase memory
+# - flash content of file nuttx.bin into target-memory
+# - shutdown openocd
+#
+# Based on file originally created by Martin Thomas 
+#
+
+arm7_9 dcc_downloads enable
+wait_halt
+sleep 10
+poll
+flash probe 0
+
+# STR710 erase all banks:
+#flash erase 0 0 9
+# STR710 erase first 4 banks (32kB)
+flash erase 0 0 4
+
+flash write 0 nuttx.bin 0x0
+reset run
+sleep 10
+shutdown
+

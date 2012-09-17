@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_PASHELLO
+	bool "Pascal \"Hello, World!\" example"
+	default n
+	---help---
+		Enable the Pascal \"Hello, World!\" example
+
+if EXAMPLES_PASHELLO
+endif

@@ -1,0 +1,4234 @@
+<html>
+<head>
+<title>NX Graphics Subsystem</title>
+<meta name="author" content="Gregory Nutt">
+</head>
+
+<body background="backgd.gif">
+<hr><hr>
+<table width ="100%">
+  <tr align="center" bgcolor="#e4e4e4">
+    <td>
+      <h1><big><font color="#3c34ec">
+        <i>NX Graphics Subsystem</i>
+      </font></big></h1>
+      <p>Last Updated: May 7, 2012</p>
+    </td>
+  </tr>
+</table>
+<hr><hr>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+      <h1>Table of Contents</h1>
+    </td>
+  </tr>
+</table>
+
+<table width="100%">
+<tr>
+  <td align="left" valign="top">
+  <p>
+   <big><b>1.0</b> <a href="#Introduction">Introduction</a></big>
+  </p>
+  <ul>
+    <p>
+     <i><b>1.1</b> <a href="#Overview">Overview</a><br></i>
+     <i><b>1.2</b> <a href="#Objectives">Objectives</a></i><br>
+     <i><b>1.3</b> <a href="#Organization">Organization</a></i>
+    </p>
+    <p>
+      <ul>
+        <i>1.3.1 <a href="#nxgl1">NX Graphics Library (<code>NXGL</code>)</a></i><br>
+        <i>1.3.2 <a href="#nx1">NX (NXSU and NXMU)</a></i><br>
+        <i>1.3.3 <a href="#nxtk1">NX Tool Kit (<code>NXTK</code>)</a></i><br>
+        <i>1.3.4 <a href="#nxfonts1">NX Fonts Support (<code>NXFONTS</code>)</a></i><br>
+        <i>1.3.5 <a href="#nxwidgets1">NX Widgets (<code>NxWidgets</code>)</a></i><br>
+        <i>1.3.6 <a href="#nxconsole1">NX Console Driver (<code>NxConsole</code>)</a></i>
+      </ul>
+    </p>
+  </ul>
+  <p>
+    <big><b>2.0</b> <a href="#nxapis">NX User APIs</a></big>
+  </p>
+  <ul>
+    <p>
+      <i><b>2.1</b> <a href="#nxheaders">NX Header Files</a></i><br>
+      <i><b>2.2</b> <a href="#nxgl2">NX Graphics Library (<code>NXGL</code>)</a></i>
+    </p>
+    <p>
+      <ul>
+        <i>2.2.1 <a href="#nxgltypes">NXGL Types</a></i><br>
+        <i>2.2.1 <a href="#nxglrgb2yuv"><code>nxgl_rgb2yuv()</code></a></i><br>
+        <i>2.2.2 <a href="#nxglyuv2rgb"><code>nxgl_yuv2rgb()</code></a></i><br>
+        <i>2.2.3 <a href="#nxglrectcopy"><code>nxgl_rectcopy()</code></a></i><br>
+        <i>2.2.4 <a href="#nxglrectoffset"><code>nxgl_rectoffset()</code></a></i><br>
+        <i>2.2.5 <a href="#nxglvectoradd"><code>nxgl_vectoradd()</code></a></i><br>
+        <i>2.2.6 <a href="#nxglvectorsubtract"><code>nxgl_vectorsubtract()</code></a></i><br>
+        <i>2.2.7 <a href="#nxglrectintersect"><code>nxgl_rectintersect()</code></a></i><br>
+        <i>2.2.8 <a href="#nxglrectunion"><code>nxgl_rectunion()</code></a></i><br>
+        <i>2.2.9 <a href="#nxglnonintersecting"><code>nxgl_nonintersecting()</code></a></i><br>
+        <i>2.2.10 <a href="#nxglrectoverlap"><code>nxgl_rectoverlap()</code></a></i><br>
+        <i>2.2.11 <a href="#nxglrectinside"><code>nxgl_rectinside()</code></a></i><br>
+        <i>2.2.12 <a href="#nxglrectsize"><code>nxgl_rectsize()</code></a></i><br>
+        <i>2.2.13 <a href="#nxglnullrect"><code>nxgl_nullrect()</code></a></i><br>
+        <i>2.2.14 <a href="#nxglrunoffset"><code>nxgl_runoffset()</code></a></i><br>
+        <i>2.2.15 <a href="#nxglruncopy"><code>nxgl_runcopy()</code></a></i><br>
+        <i>2.2.16 <a href="#nxgltrapoffset"><code>nxgl_trapoffset()</code></a></i><br>
+        <i>2.2.17 <a href="#nxgltrapcopy"><code>nxgl_trapcopy()</code></a></i><br>
+        <i>2.2.18 <a href="#nxglcolorcopy"><code>nxgl_colorcopy</code></a></i><br>
+        <i>2.2.19 <a href="#nxglsplitline"><code>nxgl_splitline()</code></a></i><br>
+        <i>2.2.20 <a href="#nxglcirclepts"><code>nxgl_circlepts()</code></a></i><br>
+        <i>2.2.21 <a href="#nxglcircletraps"><code>nxgl_circletraps()</code></a></i>
+      </ul>
+     </p>
+   <p>
+     <i><b>2.3</b> <a href="#nx2">NX</a></i>
+   </p>
+   <p>
+     <ul>
+        <i>2.3.1 <a href="#nxppdefs">Pre-Processor Definitions</a></i><br>
+        <i>2.3.2 <a href="#nxtypes">NX Types</a></i><br>
+        <i>2.3.3 <a href="#nxtypes">NX Server Callbacks</a></i>
+        <p>
+          <ul>
+            <i>2.3.3.1 <a href="#nxcbredraw"><code>redraw()</code></a></i><br>
+            <i>2.3.3.2 <a href="#nxcbposition"><code>position()</code></a></i><br>
+            <i>2.3.3.3 <a href="#nxcbmousein"><code>mousein()</code></a></i><br>
+            <i>2.3.3.4 <a href="#nxcbkbdin"><code>kbdin()</code></a></i>
+          </ul>
+        <p>
+        <i>2.3.4 <a href="#nxruninstance"><code>nx_runinstance()</code> (and <code>nx_run()<code> macro)</a></i><br>
+        <i>2.3.5 <a href="#nxconnectinstance"><code>nx_connectinstance()</code> (and <code>nx_connect()</code> macro)</a></i><br>
+        <i>2.3.6 <a href="#nxopen"><code>nx_open()</code></a></i><br>
+        <i>2.3.7 <a href="#nxdisconnect"><code>nx_disconnect()</code></a></i><br>
+        <i>2.3.8 <a href="#nxclose"><code>nx_close()</code></a></i><br>
+        <i>2.3.9 <a href="#nxeventhandler"><code>nx_eventhandler()</code></a></i><br>
+        <i>2.3.10 <a href="#nxeventnotify"><code>nx_eventnotify()</code></a></i><br>
+        <i>2.3.11 <a href="#nxopenwindow"><code>nx_openwindow()</code></a></i><br>
+        <i>2.3.12 <a href="#nxclosewindow"><code>nx_closewindow()</code></a></i><br>
+        <i>2.3.13 <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a></i><br>
+        <i>2.3.14 <a href="#nxreleasebkgd"><code>nx_releasebkgd()</code></a></i><br>
+        <i>2.3.15 <a href="#nxgetposition"><code>nx_getposition()</code></a></i><br>
+        <i>2.3.16 <a href="#nxsetposition"><code>nx_setposition()</code></a></i><br>
+        <i>2.3.17 <a href="#nxsetsize"><code>nx_setsize()</code></a></i><br>
+        <i>2.3.18 <a href="#nxraise"><code>nx_raise()</code></a></i><br>
+        <i>2.3.19 <a href="#nxlower"><code>nx_lower()</code></a></i><br>
+        <i>2.3.20 <a href="#nxfill"><code>nx_fill()</code></a></i><br>
+        <i>2.3.21 <a href="#nxgetrectangle"><code>nx_getrectangle()</code></a></i><br>
+        <i>2.3.22 <a href="#nxfilltrapezoid"><code>nx_filltrapezoid()</code></a></i><br>
+        <i>2.3.23 <a href="#nxdrawline"><code>nx_drawline()</code></a></i><br>
+        <i>2.3.24 <a href="#nxdrawcircle"><code>nx_drawcircle()</code></a></i><br>
+        <i>2.3.25 <a href="#nxfillcircle"><code>nx_fillcircle()</code></a></i><br>
+        <i>2.3.26 <a href="#nxglrgb2yuv"><code>nx_setbgcolor()</code></a></i><br>
+        <i>2.3.27 <a href="#nxmove"><code>nx_move()</code></a></i><br>
+        <i>2.3.28 <a href="#nxbitmap"><code>nx_bitmap()</code></a></i><br>
+        <i>2.3.29 <a href="#nxkbdin"><code>nx_kbdin()</code></a></i><br>
+        <i>2.3.30 <a href="#nxmousein"><code>nx_mousein()</code></a></i><br>
+     </ul>
+   </p>
+  </td>
+  <td align="left" valign="top">
+   <p>
+     <i><b>2.4</b> <a href="#nxtk2">NX Tool Kit (<code>NXTK</code>)</a></i>
+   </p>
+   <p>
+     <ul>
+        <i>2.4.1 <a href="#nxtktypes"><code>NXTK Types()</code></a></i><br>
+        <i>2.4.2 <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a></i><br>
+        <i>2.4.3 <a href="#nxtkclosewindow"><code>nxtk_closewindow()</code></a></i><br>
+        <i>2.4.4 <a href="#nxtkgetposition"><code>nxtk_getposition()</code></a></i><br>
+        <i>2.4.5 <a href="#nxtksetposition"><code>nxtk_setposition()</code></a></i><br>
+        <i>2.4.6 <a href="#nxtksetsize"><code>nxtk_setsize()</code></a></i><br>
+        <i>2.4.7 <a href="#nxtkraise"><code>nxtk_raise()</code></a></i><br>
+        <i>2.4.8 <a href="#nxtklower"><code>nxtk_lower()</code></a></i><br>
+        <i>2.4.9 <a href="#nxtkfillwindow"><code>nxtk_fillwindow()</code></a></i><br>
+        <i>2.4.10 <a href="#nxtkgetwindow"><code>nxtk_getwindow()</code></a></i><br>
+        <i>2.4.11 <a href="#nxtkfilltrapwindow"><code>nxtk_filltrapwindow()</code></a></i><br>
+        <i>2.4.12 <a href="#nxtkdrawlinewindow"><code>nxtk_drawlinewindow()</code></a></i><br>
+        <i>2.4.13 <a href="#nxtkdrawcirclewindow"><code>nxtk_drawcirclewindow()</code></a></i><br>
+        <i>2.4.14 <a href="#nxtkfillcirclewindow"><code>nxtk_fillcirclewindow()</code></a></i><br>
+        <i>2.4.15 <a href="#nxtkmovewindow"><code>nxtk_movewindow()</code></a></i><br>
+        <i>2.4.16 <a href="#nxtkbitmapwindow"><code>nxtk_bitmapwindow()</code></a></i><br>
+        <i>2.4.17 <a href="#nxtkopentoolbar"><code>nxtk_opentoolbar()</code></a></i><br>
+        <i>2.4.18 <a href="#nxtkclosetoolbar"><code>nxtk_closetoolbar()</code></a></i><br>
+        <i>2.4.19 <a href="#nxtkfilltoolbar"><code>nxtk_filltoolbar()</code></a></i><br>
+        <i>2.4.20 <a href="#nxtkgettoolbar"><code>nxtk_gettoolbar()</code></a></i><br>
+        <i>2.4.21 <a href="#nxtkfilltraptoolbar"><code>nxtk_filltraptoolbar()</code></a></i><br>
+        <i>2.4.22 <a href="#nxtkdrawlinetoolbar"><code>nxtk_drawlinetoolbar()</code></a></i><br>
+        <i>2.4.23 <a href="#nxtkdrawcircletoolbar"><code>nxtk_drawcircletoolbar()</code></a></i><br>
+        <i>2.4.24 <a href="#nxtkfillcircletoolbar"><code>nxtk_fillcircletoolbar()</code></a></i><br>
+        <i>2.4.25 <a href="#nxtkmovetoolbar"><code>nxtk_movetoolbar()</code></a></i><br>
+        <i>2.4.26 <a href="#nxtkbitmaptoolbar"><code>nxtk_bitmaptoolbar()</code></a></i>
+     </ul>
+   </p>
+   <p>
+     <i><b>2.5</b> <a href="#nxfonts2">NX Fonts Support (<code>NXFONTS</code>)</a></i>
+   </p>
+   <p>
+     <ul>
+        <i>2.5.1 <a href="#nxfontstypes"><code>NXFONTS Types()</code></a></i><br>
+        <i>2.5.2 <a href="#nxfgetfonthandle"><code>nxf_getfonthandle()</code></a></i><br>
+        <i>2.5.3 <a href="#nxfgetfontset"><code>nxf_getfontset()</code></a></i><br>
+        <i>2.5.4 <a href="#nxfgetbitmap"><code>nxf_getbitmap()</code></a></i><br>
+        <i>2.5.5 <a href="#nxfconvertbpp"><code>nxf_convert_*bpp()</code></a></i>
+     </ul>
+   </p>
+   <p>
+     <i><b>2.6</b> <a href="#samplecode">Sample Code</a></i>
+   </p>
+  </ul>
+  <p>
+    <big><b>Appendix A</b> <a href="#grapicsdirs"><code>graphics/</code> Directory Structure</a></big><br>
+    <big><b>Appendix B</b> <a href="#nxconfigs">NX Configuration Options</a></big>
+  </p>
+  <p>
+    <ul>
+      <i><b>B.1</b> <a href="#nxgenconfig">General Configuration Settings</a></i><br>
+      <i><b>B.2</b> <a href="#nxglconfig">NXGL Configuration Settings</a></i><br>
+      <i><b>B.3</b> <a href="#nxconfig">NX Configuration Settings</a></i><br>
+      <i><b>B.4</b> <a href="#nxmuconfig">NX Multi-User (Only) Configuration Settings</a></i><br>
+      <i><b>B.5</b> <a href="#nxtkconfig">NXTK Configuration Settings</a></i><br>
+      <i><b>B.6</b> <a href="#nxfpmtsconfig">NXFONTS Configuration Settings</a></i><br>
+      <i><b>B.7</b> <a href="#nxconsoleconfig">NxConsole Configuration Settings</a></i>
+    </ul>
+  </p>
+  <p>
+    <big><b>Appendix C</b> <a href="#installnewfonts">Installing New Fonts</a></big>
+  </p>
+  <p>
+    <big><b>Appendix D</b> <a href="#testcoverage">NX Test Coverage</a></big>
+  </p>
+    <ul>
+      <i><b>Table D.1:</b> <a href="#nxglibcoverage">NXGLIB API Test Coverage</a></i><br>
+      <i><b>Table D.2:</b> <a href="#nxcbcoverage">NX Server Callbacks Test Coverage</a></i><br>
+      <i><b>Table D.3:</b> <a href="#nxcoverage">NX API Test Coverage</a></i><br>
+      <i><b>Table D.4:</b> <a href="#nxtkcoverage">NXTK API Test Coverage</a></i><br>
+      <i><b>Table D.5:</b> <a href="#nxfontscoverage">NXFONTS API Test Coverage</a></i><br>
+    </ul>
+  </td>
+  </tr>
+</table>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+      <h1>1.0 <a name="Introduction">Introduction</a></h1>
+    </td>
+  </tr>
+</table>
+
+<h2>1.1 <a name="Overview">Overview</a></h2>
+<p>
+  This document describes the tiny graphics support included in NuttX.
+  It includes an overview description of that graphics support, detailed
+  descriptions of the NuttX graphics APIs, and discussion of code organization,
+  and OS configuration options.
+</p>
+
+<center><table width="480">
+  <tr>
+    <td><a name="screenshot"><img src="NuttXScreenShot.jpg"></a></td>
+  </tr>
+  <tr>
+    <td><small>Figure 1.
+    This scren shot shows the final frame for the NuttX example at <code>apps/examples/nx</code>
+    running on the simulated, Linux x86 platform with simulated framebuffer output to
+    an X window.
+    This picture shows to framed windows with (blank) toolbars.
+    Each window has displayed text as received from the NX keyboard interface
+    The second window has just been raised to the top of the display.
+    </small>
+  </tr>
+</table></center>
+
+
+<h2>1.2 <a name="Objectives">Objectives</a></h2>
+
+<p>
+  The objective of this development was to provide a tiny windowing system in the
+  spirit of X, but greatly scaled down and appropriate for most resource-limited
+  embedded environments.
+  The current NX implementation supports the general following, high-level features:
+</p>
+<ul>
+  <li><b>Virtual Vertical Graphics Space</b>.
+    Windows that reside in a virtual, <i>vertical</i> space so that it makes
+    sense to talk about one window being on top of another and obscuring the
+    window below it.
+  </li>
+  <li><b>Client/Server Model</b>.
+    A standard client server/model was adopted.  NX may be considered a server
+    and other logic that presents the windows are NX clients.
+  </li>
+  <li><b>Single- and Multi-User Support</b>.
+    NX includes <i>front-end</i> logic to either a simple single-thread/single-user
+    architecture or a separate NX server thread that can serve multiple NX client threads.
+    In the single-user case, the NX <i>server</i> is simply a set of library
+    calls;  in the multi-user case, NX is a server thread/daemon the serializes
+    graphics operations from multiple clients.
+    Other some unique start-up/connection logic, the APIs supported by the single-user
+    and multi-user front-ends are identical.
+    Providing both front-ends is consistent with the NuttX commitment to scalability.
+  </li>
+  <li><b>Minimal Graphics Toolset</b>.
+    The actual implementation of the graphics operations is performed by common,
+    <i>back-end</i> logic.  This back-end supports only a primitive set of graphic
+    and rendering operations.
+  </li>
+  <li><b>Device Interface</b>.
+    NX supports any graphics device either of two device interfaces:
+    <ul>
+      <li>
+        Any device with random accesss video memory using the NuttX framebuffer driver interface
+        (see <code>include/nuttx/fb.h</code>).
+      </li>
+      <li>
+        Any LCD-like device than can accept raster line <i>runs</i> through a parallel or serial interface
+        (see <code>include/nuttx/lcd/lcd.h</code>).
+        By default, NX is configured to use the frame buffer driver unless <code>CONFIG_NX_LCDDRIVER</code> is defined =y in your NuttX configuration file.
+      </li>
+    </ul>
+  </li>
+  <li><b>Transparent to NX Client</b>.
+    The window client on &quot;sees&quot; the sub-window that is operates in
+    and does not need to be concerned with the virtual, vertical space (other
+    that to respond to <i>redraw</i> requests from NX when needed).
+  </li>
+  <li><b>Framed Windows and Toolbars</b>.
+    NX also adds the capability to support windows with frames and toolbars on
+    top of the basic windowing support.
+    These are windows such as those shown in the
+    <a href="#screenshot">screenshot</a> above.
+    These framed windows sub-divide one one window into three relatively independent
+    subwindows:  A frame, the contained window and an (optional) toolbar window.
+  </li>
+  <li><b>Mouse Support</b>.
+    NX provides support for a mouse or other X/Y pointing devices.
+    APIs are provided to allow external devices to give X/Y position information
+    and mouse button presses to NX.
+    NX will then provide the mouse input to the relevant window clients via callbacks.
+    Client windows only receive the mouse input callback if the mouse is positioned over a visible
+    portion of the client window; X/Y position is provided to the client in the relative
+    coordinate system of the client window.
+  </li>
+  <li><b>Keyboard input</b>.
+    NX also supports keyboard/keypad devices.
+    APIs are provided to allow external devices to give keypad information to NX.
+    NX will then provide the mouse input to the top window on the display (the window
+    that has the <i>focus</i>) via a callback function.
+  </li>
+</ul>
+
+<h2>1.3 <a name="Organization">Organization</a></h2>
+
+<p>
+  NX is organized into 6 (and perhaps someday 7 or 8) logical modules.
+  These logical modules also correspond to the directory organization.
+  That NuttX directory organization is discussed in 
+  <a href="#grapicsdirs">Appendix B</a> of this document.
+  The logic modules are discussed in the following sub-paragraphs.
+</p>
+
+<p>
+  <center><img src="NXOrganization.gif" width="60%"></center>
+</p>
+
+<h3>1.3.1 <a name="nxgl1">NX Graphics Library (<code>NXGL</code>)</a></h3>
+
+<p>
+  NXGLIB is a standalone library that contains low-level graphics utilities and
+  direct framebuffer or LCD rendering logic. NX is built on top NXGLIB.
+</p>
+
+<h3>1.3.2 <a name="nx1">NX (<code>NXSU</code> and <code>NXMU</code>)</a></h3>
+
+<p>
+  NX is the tiny NuttX windowing system for raw windows (i.e., simple regions of
+  graphics memory).
+  NX includes both a small-footprint, single user implementaton (NXSU) and a somewhat
+  larger multi-user implentation (NXMU as described below).
+  Both conform to the same APIs as defined in <code>include/nuttx/nx/nx.h</code> and, hence,
+  are interchangable<sup>1</sup>.
+  NX can be used without NxWidgets and without NXTOOLKIT for raw window displays.
+</p>
+
+<p>
+  <sup>1</sup><small>NXMU and NXSU are interchangeable other than (1) certain start-up
+  and intialization APIs (as described below), and (2) timing.  With NXSU, NX APIs
+  execute immediately; with NXMU, NX APIs defer and serialize the operations and, hence,
+  introduce different timing and potential race conditions that you would not experience
+  with NXSU.</small>
+</p>
+
+<p><b>NXNULL?</b>
+  At one time, I also envisoned a <i>NULL</i> front-end that did not support windowing
+  at all but, rather, simply provided the entire framebuffer or LCD memory as one dumb window.
+  This has the advantage that the same NX APIs can be used on the one dumb window as
+  for the other NX windows.
+  This would be in the NuttX spirit of scalability.
+</p>
+<p>
+  However, the same end result can be obtained by using the
+  <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a> API.
+  It still may be possible to reduce the footprint in this usage case by developing
+  and even thinner NXNULL front-end.
+  That is a possible future development.
+</p>
+
+<h3>1.3.3 <a name="nxtk1">NX Tool Kit (<code>NXTK</code>)</a></h3>
+
+<p>
+  NXTK is a s set of C graphics tools that provide higher-level window drawing
+  operations.
+  This is the module where the framed windows and toolbar logic is implemented.
+  NXTK is built on top of NX and does not depend on NxWidgets.
+</p>
+
+<h3>1.3.4 <a name="nxfonts1">NX Fonts Support (<code>NXFONTS</code>)</a></h3>
+
+<p>
+  A set of C graphics tools for present (bitmap) font images.
+  The font implementation is at a very low level or graphics operation,
+  comparable to the logic in NXGLIB.
+  NXFONTS does not depend on any NX module other than some utilities and types from NXGLIB.
+</p>
+
+<h3>1.3.5 <a name="nxwidgets1">NX Widgets (<code>NxWidgets</code>)</a></h3>
+
+<p>
+  <a href="NxWidgets.html">NxWidgets</a> is a higher level, C++, object-oriented library for object-oriented access to graphical &quot;widgets.&quot;
+  NxWidgets is provided as a separate package.
+  NxWidgets is built on top of the core NuttX graphics subsystem, but is not a part of the core graphics subystems.
+</p>
+
+<h3>1.3.6 <a name="nxconsole1">NX Console Driver (<code>NxConsole</code>)</a></h3>
+
+<p>
+  NxConsole is a write-only character device (not shown) that is built on top of an NX window.
+  This character device can be used to provide <code>stdout</code> and <code>stderr</code> and, hence, can provide the output side of NuttX console.
+  NxConsole is only available when the multi-user NX implementation is selected (<code>CONFIG_NX_MULTIUSER</code>).
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+      <h1>2.0 <a name="nxapis">NX User APIs</a></h1>
+    </td>
+  </tr>
+</table>
+
+<h2>2.1 <a name="nxheaders">NX Header Files</a></h2>
+
+<ul><dl>
+  <dt><code>include/nuttx/nx/nxglib.h</code>
+    <dd>Describes the NXGLIB C interfaces
+  <dt><code>include/nuttx/nx/nx.h</code>
+    <dd>Describes the NX C interfaces
+  <dt><code>include/nutt/nxtk.h</code>
+    <dd>Describe the NXTOOLKIT C interfaces
+  <dt><code>include/nutt/nxfont.h</code>
+    <dd>Describe sthe NXFONT C interfaces
+</dl></ul>
+
+<h2>2.2 <a name="nxgl2">NX Graphics Library (<code>NXGL</code>)</a></h2>
+
+<p>
+  NXGL provides many APIs, some available for use internally by NX and
+  others for use by applications as well.
+  Only those APIs intended for application usage are documented here
+  See <code>include/nuttx/nx/nxglib.h</code> for the full set of APIs;
+  those APIs might be of interest if you are rendering directly into
+  framebuffer or LCD memory.
+</p>
+
+<h3>2.2.1 <a name="nxgltypes">NXGL Types</a></h3>
+
+<p>
+  <code>nxgl_mxpixel_t</code>.
+  Holds one device pixel.
+  NXGLIB will select the smallest size for the <code>nxgl_mxpixel_t</code>
+  that just contains the pixel:  <code>byte</code> if 16, 24, and 32 resolution
+  support is disabled, <code>uint16_t</code> if 24, and 32 resolution
+  support is disabled, or <code>uint32_t</code>.
+</p>
+
+<p>
+  <code>nxgl_coord_t</code>.
+  A given coordinate is limited to the screen height an width.  If either
+  of those values exceed 32,767 pixels, then the following will have to need
+  to change:
+</p>
+<ul><pre>
+typedef int16_t nxgl_coord_t;
+</pre></ul>
+
+<p>
+  <code>struct nxgl_point_s</code>. Describes a point on the display:
+</p>
+<ul><pre>
+struct nxgl_point_s
+{
+  nxgl_coord_t x;         /* X position, range: 0 to screen width - 1 */
+  nxgl_coord_t y;         /* Y position, range: 0 to screen height - 1 */
+};
+</pre></ul>
+
+<p>
+  <code>struct nxgl_size_s</code>. Describes the size of a rectangular region.
+</p>
+<ul><pre>
+struct nxgl_size_s
+{
+  nxgl_coord_t w;        /* Width in pixels */
+  nxgl_coord_t h;        /* Height in rows */
+};
+</pre></ul>
+
+<p>
+  <code>struct nxgl_rect_s</code>. Describes a positioned rectangle on the display.
+</p>
+<ul><pre>
+struct nxgl_rect_s
+{
+  struct nxgl_point_s pt1; /* Upper, left-hand corner */
+  struct nxgl_point_s pt2; /* Lower, right-hand corner */
+};
+</pre></ul>
+
+<p>
+  <code>struct nxgl_run_s</code>.
+  Describes a run, i.e., a horizontal line.  Note that the start/end positions
+  have fractional precision.  This is necessary for good joining of trapezoids
+  when a more complex shape is decomposed into trapezoids
+</p>
+<ul><pre>
+struct nxgl_run_s
+{
+  b16_t        x1;        /* Left X position, range: 0 to x2 */
+  b16_t        x2;        /* Right X position, range: x1 to screen width - 1 */
+  nxgl_coord_t y;         /* Top Y position, range: 0 to screen height - 1 */
+};
+</pre></ul>
+
+<p>
+  <code>struct nxgl_trapezoid_s</code>.
+  Describes a horizontal trapezoid on the display in terms the run at the
+  top of the trapezoid and the run at the bottom
+</p>
+<ul><pre>
+struct nxgl_trapezoid_s
+{
+  struct nxgl_run_s top;  /* Top run */
+  struct nxgl_run_s bot;  /* bottom run */
+};
+</pre></ul>
+
+<h3>2.2.1 <a name="nxglrgb2yuv"><code>nxgl_rgb2yuv()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_rgb2yuv(uint8_t r, uint8_t g, uint8_t b, uint8_t *y, uint8_t *u, uint8_t *v);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Convert 8-bit RGB triplet to 8-bit YUV triplet.
+</p>
+
+<h3>2.2.2 <a name="nxglyuv2rgb"><code>nxgl_yuv2rgb()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_yuv2rgb(uint8_t y, uint8_t u, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Convert 8-bit RGB triplet to 8-bit YUV triplet.
+</p>
+
+<h3>2.2.3 <a name="nxglrectcopy"><code>nxgl_rectcopy()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_rectcopy(FAR struct nxgl_rect_s *dest,
+                   FAR const struct nxgl_rect_s *src);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  This is essentially <code>memcpy()</code>for rectangles.  We don't do structure
+  assignments because some compilers are not good at that.
+</p>
+
+<h3>2.2.4 <a name="nxglrectoffset"><code>nxgl_rectoffset()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_rectoffset(FAR struct nxgl_rect_s *dest,
+                     FAR const struct nxgl_rect_s *src,
+                     nxgl_coord_t dx, nxgl_coord_t dy);
+</pre></ul>
+<p>
+  <b>Description:</b>
+   Offset the rectangle position by the specified dx, dy values.
+</p>
+
+<h3>2.2.5 <a name="nxglvectoradd"><code>nxgl_vectoradd()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_vectoradd(FAR struct nxgl_point_s *dest,
+                    FAR const struct nxgl_point_s *v1,
+                    FAR const struct nxgl_point_s *v2);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Add two 2x1 vectors and save the result to a third.
+</p>
+
+<h3>2.2.6 <a name="nxglvectorsubtract"><code>nxgl_vectorsubtract()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_vectsubtract(FAR struct nxgl_point_s *dest,
+                       FAR const struct nxgl_point_s *v1,
+                       FAR const struct nxgl_point_s *v2);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Add subtract vector <code>v2</code> from vector <code>v1</code> and return the result in vector dest.
+</p>
+
+<h3>2.2.7 <a name="nxglrectintersect"><code>nxgl_rectintersect()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_rectintersect(FAR struct nxgl_rect_s *dest,
+                        FAR const struct nxgl_rect_s *src1,
+                        FAR const struct nxgl_rect_s *src2);
+</pre></ul>
+<p>
+  <b>Description:</b>
+   Return the rectangle representing the intersection of the two rectangles.
+</p>
+
+<h3>2.2.8 <a name="nxglrectunion"><code>nxgl_rectunion()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_rectunion(FAR struct nxgl_rect_s *dest,
+                    FAR const struct nxgl_rect_s *src1,
+                    FAR const struct nxgl_rect_s *src2);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Given two rectanges, <code>src1</code> and <code>src2</code>, return the larger rectangle that 
+  contains both, <code>dest</code>.
+</p>
+
+<h3>2.2.9 <a name="nxglnonintersecting"><code>nxgl_nonintersecting()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+nxgl_nonintersecting(FAR struct nxgl_rect_s result[4],
+                     FAR const struct nxgl_rect_s *rect1,
+                     FAR const struct nxgl_rect_s *rect2);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Return the regions of rectangle <code>rect1</code> that do not intersect with
+  <code>rect2</code>.  This will four rectangles, some of which may be
+  degenerate (and can be picked off with <a href="#nxglnullrect"><code>nxgl_nullrect()</code></a>).
+</p>
+
+<h3>2.2.10 <a name="nxglrectoverlap"><code>nxgl_rectoverlap()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+bool nxgl_rectoverlap(FAR struct nxgl_rect_s *rect1,
+                      FAR struct nxgl_rect_s *rect2);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Return true if the two rectangles overlap.
+</p>
+
+<h3>2.2.11 <a name="nxglrectinside"><code>nxgl_rectinside()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+bool nxgl_rectinside(FAR const struct nxgl_rect_s *rect,
+                     FAR const struct nxgl_point_s *pt);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Return true if the point <code>pt</code> lies within <code>rect</code>.
+</p>
+
+<h3>2.2.12 <a name="nxglrectsize"><code>nxgl_rectsize()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_rectsize(FAR struct nxgl_size_s *size,
+                   FAR const struct nxgl_rect_s *rect);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Return the size of the specified rectangle.
+</p>
+
+<h3>2.2.13 <a name="nxglnullrect"><code>nxgl_nullrect()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+bool nxgl_nullrect(FAR const struct nxgl_rect_s *rect);
+</pre></ul>
+<p>
+  <b>Description:</b>
+   Return true if the area of the retangle is &lt;= 0.
+</p>
+
+<h3>2.2.14 <a name="nxglrunoffset"><code>nxgl_runoffset()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_runoffset(FAR struct nxgl_run_s *dest,
+                    FAR const struct nxgl_run_s *src,
+                    nxgl_coord_t dx, nxgl_coord_t dy);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Offset the run position by the specified <code>dx</code>, <code>dy</code> values.
+</p>
+
+<h3>2.2.15 <a name="nxglruncopy"><code>nxgl_runcopy()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_runcopy(FAR struct nxgl_run_s *dest,
+                  FAR const struct nxgl_run_s *src);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  This is essentially <code>memcpy()</code>for runs.  We don't do structure assignments
+  because some compilers are not good at that.
+</p>
+
+<h3>2.2.16 <a name="nxgltrapoffset"><code>nxgl_trapoffset()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_trapoffset(FAR struct nxgl_trapezoid_s *dest,
+                     FAR const struct nxgl_trapezoid_s *src,
+                     nxgl_coord_t dx, nxgl_coord_t dy);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Offset the trapezoid position by the specified <code>dx</code>, <code>dy</code> values.
+</p>
+
+<h3>2.2.17 <a name="nxgltrapcopy"><code>nxgl_trapcopy()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_trapcopy(FAR struct nxgl_trapezoid_s *dest,
+                   FAR const struct nxgl_trapezoid_s *src);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  This is essentially <code>memcpy()</code>for trapezoids.  We don't do structure
+  assignments because some compilers are not good at that.
+</p>
+
+<h3>2.2.18 <a name="nxglcolorcopy"><code>nxgl_colorcopy</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+nxgl_colorcopy(nxgl_mxpixel_t dest[CONFIG_NX_NPLANES],
+               const nxgl_mxpixel_t src[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  This is essentially <code>memcpy()</code>for colors.  This does very little for us
+  other than hide all of the conditional compilation for planar colors
+  in one place.
+</p>
+
+<h3>2.2.19 <a name="nxglsplitline"><code>nxgl_splitline</code></a></h3>
+
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+int nxgl_splitline(FAR struct nxgl_vector_s *vector, FAR struct nxgl_trapezoid_s *traps,
+                   FAR struct nxgl_rect_s *rect, nxgl_coord_t linewidth);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  In the general case, a line with width can be represented as a parallelogram with a triangle at the top and bottom.
+  Triangles and parallelograms are both degenerate versions of a trapeziod.
+  This function breaks a wide line into triangles and trapezoids. 
+  This function also detects other degenerate cases:
+</p>
+<ol>
+  <li>
+    If <code>y1 == y2</code> then the line is horizontal and is better represented as a rectangle.
+  </li>
+  <li>
+    If <code>x1 == x2</code> then the line is vertical and also better represented as a rectangle.
+  </li>
+  <li>
+    If the width of the line is 1, then there are no triangles at the top and bottome
+    (this may also be the case if the width is narrow and the line is near vertical).
+  </li>
+  <li>
+     If the line is oriented is certain angles, it may consist only of the upper and lower triangles with no trapezoid in between.
+     In this case, 3 trapezoids will be returned, but traps[1] will be  degenerate.
+  </li>
+</ol>
+<p>
+   <b>Input parameters</b>:
+<p>
+<ul><dl>
+   <dt><code>vector</code>
+     <dd>A pointer to the vector described the line to be drawn.
+   <dt><code>traps</code>
+     <dd>A pointer to a array of trapezoids (size 3).
+   <dt><code>rect</code>
+    <dd> A pointer to a rectangle.
+</dl></ul>
+<p>
+  <b>Returned value</b>:
+</p>
+<ul>
+  <p>
+    <code>0</code>: Line successfully broken up into three trapezoids. 
+    Values in <code>traps[0]</code>, <code>traps[1]</code>, and <code>traps[2]</code> are valid.
+  </p>
+  <p>
+    <code>1</code>: Line successfully represented by one trapezoid.
+    Value in <code>traps[1]</code> is valid.
+  </p>
+  <p>
+     <code>2</code>: Line successfully represented by one rectangle.
+     Value in <code>rect </code>is valid
+  </p>
+  <p>
+    <code>&lt;0</code>: On errors, a negated <code>errno</code> value is returned.
+  </p>
+  <p>
+</ul>
+
+<h3>2.2.20 <a name="nxglcirclepts"><code>nxgl_circlepts</code></a></h3>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+void nxgl_circlepts(FAR const struct nxgl_point_s *center, nxgl_coord_t radius,
+                    FAR struct nxgl_point_s *circle);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Given a description of a circle, return a set of 16 points on the circumference of the circle.
+  These points may then be used by <a href="nxdrawcircle"><code>nx_drawcircle()</code></a> or related APIs to draw a circle outline.
+</p>
+<p>
+   <b>Input parameters</b>:
+<p>
+<ul><dl>
+   <dt><code>center</code>
+     <dd>A pointer to the point that is the center of the circle.
+   <dt><code>radius</code>
+     <dd>The radius of the circle in pixels.
+   <dt><code>circle</code>
+    <dd>A pointer the first entry in an array of 16 points where the circle points will be returned.
+</dl></ul>
+<p>
+  <b>Returned value</b>: None
+</p>
+
+<h3>2.2.21 <a name="nxglcircletraps"><code>nxgl_circletraps</code></a></h3>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+oid nxgl_circletraps(FAR const struct nxgl_point_s *center, nxgl_coord_t radius,
+                     FAR struct nxgl_trapezoid_s *circle);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Given a description of a a circle, return 8 trapezoids that can be used to fill the circle by <a href="nxfillcircle"><code>nx_fillcircle()</code></a> and other interfaces.
+</p>
+<p>
+   <b>Input parameters</b>:
+<p>
+<ul><dl>
+   <dt><code>center</code>
+     <dd>A pointer to the point that is the center of the circle.
+   <dt><code>radius</code>
+     <dd>The radius of the circle in pixels.
+   <dt><code>circle</code>
+    <dd>A pointer the first entry in an array of 8 trapezoids where the circle description will be returned.
+</dl></ul>
+<p>
+  <b>Returned value</b>: None
+</p>
+
+<h2>2.3 <a name="nx2">NX</a></h2>
+
+<h3>2.3.1 <a name="nxppdefs">Pre-Processor Definitions</a></h3>
+
+<p>
+  The default server message queue name used by the
+  <a href="#nxruninstance"><code>nx_run()</code></a> macro:
+</p>
+<ul><pre>
+#define NX_DEFAULT_SERVER_MQNAME "/dev/nxs"
+</pre></ul>
+
+<p>
+  Mouse button bits:
+</p>
+<ul><pre>
+#define NX_MOUSE_NOBUTTONS    0x00
+#define NX_MOUSE_LEFTBUTTON   0x01
+#define NX_MOUSE_CENTERBUTTON 0x02
+#define NX_MOUSE_RIGHTBUTTON  0x04
+</pre></ul>
+
+<h3>2.3.2 <a name="nxtypes">NX Types</a></h3>
+
+<p>
+  The interface to the NX server is managed using a opaque handle:
+</p>
+<ul><pre>
+typedef FAR void *NXHANDLE;
+</pre></ul>
+
+<p>
+  The interface to a specific window is managed using an opaque handle:
+</p>
+<ul><pre>
+typedef FAR void *NXWINDOW;
+</pre></ul>
+
+<p>
+  These define callbacks that must be provided to
+  <a href="#nxopenwindow"><code>nx_openwindow()</code></a>.
+  In the multi-user model, these callbacks will be invoked as part of the
+  processing performed by
+  <a href="#nxeventhandler"><code>nx_eventhandler()</code></a>.
+</p>
+<ul><pre>
+struct nx_callback_s
+{
+  void (*redraw)(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
+                 bool more, FAR void *arg);
+  void (*position)(NXWINDOW hwnd, FAR const struct nxgl_size_s *size,
+                   FAR const struct nxgl_point_s *pos,
+                   FAR const struct nxgl_rect_s *bounds,
+                   FAR void *arg);
+#ifdef CONFIG_NX_MOUSE
+  void (*mousein)(NXWINDOW hwnd, FAR const struct nxgl_point_s *pos,
+                  uint8_t buttons, FAR void *arg);
+#endif
+#ifdef CONFIG_NX_KBD
+  void (*kbdin)(NXWINDOW hwnd, uint8_t nch, FAR const uint8_t *ch, FAR void *arg);
+#endif
+};
+</pre></ul>
+
+<h3>2.3.3 <a name="nxtypes">NX Server Callbacks</a></h3>
+
+<h4>2.3.3.1 <a name="nxcbredraw"><code>redraw()</code></a></h4>
+<p><b>Callback Function Prototype:</b></p>
+<ul><pre>
+void redraw(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
+            bool more, FAR void *arg);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  NX requests that the client re-draw the portion of the window within
+  with rectangle.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle created by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+      or <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>
+    <dt><code>rect</code>
+    <dd>The rectangle that needs to be re-drawn (in window relative coordinates)
+    <dt><code>more</code>
+    <dd>true: More re-draw requests will follow
+    <dt><code>arg</code>
+    <dd>User provided argument (see <a href="#nxopenwindow"><code>nx_openwindow()</code></a>)
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b> None
+</p>
+
+<h4>2.3.3.2 <a name="nxcbposition"><code>position()</code></a></h4>
+<p><b>Callback Function Prototype:</b></p>
+<ul><pre>
+void position(NXWINDOW hwnd, FAR const struct nxgl_size_s *size,
+              FAR const struct nxgl_point_s *pos,
+              FAR const struct nxgl_rect_s *bounds,
+              FAR void *arg);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The size or position of the window has changed (or the window was
+  just created with zero size.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle created by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+      or <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>
+    <dt><code>size</code>
+    <dd>The size of the window
+    <dt><code>pos</code>
+    <dd>The position of the upper left hand corner of the window on
+      the overall display
+    <dt><code>bounds</code>
+    <dd>The bounding rectangle that the describes the entire display
+    <dt><code>arg</code>
+    <dd>User provided argument (see <a href="#nxopenwindow"><code>nx_openwindow()</code></a>)
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b> None
+</p>
+
+<h4>2.3.3.3 <a name="nxcbmousein"><code>mousein()</code></a></h4>
+<p><b>Callback Function Prototype:</b></p>
+<ul><pre>
+#ifdef CONFIG_NX_MOUSE
+void mousein(NXWINDOW hwnd, FAR const struct nxgl_point_s *pos,
+             uint8_t buttons, FAR void *arg);
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+  New mouse data is available for the window
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle created by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+      or <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>
+    <dt><code>pos</code>
+    <dd>The (x,y) position of the mouse
+    <dt><code>buttons</code>
+    <dd>See <code>NX_MOUSE_*</code> definitions
+    <dt><code>arg</code>
+    <dd>User provided argument (see <a href="#nxopenwindow"><code>nx_openwindow()</code></a>)
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b> None
+</p>
+
+<h4>2.3.3.4 <a name="nxcbkbdin"><code>kbdin()</code></a></h4>
+<p><b>Callback Function Prototype:</b></p>
+<ul><pre>
+#ifdef CONFIG_NX_KBD
+void (*kbdin)(NXWINDOW hwnd, uint8_t nch, FAR const uint8_t *ch, FAR void *arg);
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+  New keyboard/keypad data is available for the window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle created by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+      or <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>
+    <dt><code>nch</code>
+    <dd>The number of characters that are available in ch[]
+    <dt><code>ch</code>
+    <dd>The array of characters
+    <dt><code>arg</code>
+    <dd>User provided argument (see <a href="#nxopenwindow"><code>nx_openwindow()</code></a>)
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b> None
+</p>
+
+<h3>2.3.4 <a name="nxruninstance"><code>nx_runinstance()</code> (and <code>nx_run()</code> macro)</a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+#ifdef CONFIG_NX_MULTIUSER
+int nx_runinstance(FAR const char *mqname, FAR struct fb_vtable_s *fb);
+#define nx_run(fb) nx_runinstance(NX_DEFAULT_SERVER_MQNAME, dev)
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+  This is the server entry point.  It does not return; the calling thread
+  is dedicated to supporting NX server.
+</p>
+<p>
+  NOTE that multiple instances of the NX server may run at the same time,
+  with different callback and message queue names.  <code>nx_run()</code> is simply
+  a macro that can be used when only one server instance is required.  In
+  that case, a default server name is used.
+</p>
+<p>
+  Multiple user mode only!
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>mqname</code>
+    <dd>
+     - The name for the server incoming message queue
+    <dt><code>dev</code>
+    <dd>Framebuffer or LCD driver &quot;object&quot; to be used
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  This function usually does not return.  If it does return, it will
+  return <code>ERROR</code> and <code>errno</code> will be set appropriately.
+</p>
+
+<h3>2.3.5 <a name="nxconnectinstance"><code>nx_connectinstance()</code> (and <code>nx_connect()</code> macro)</a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+#ifdef CONFIG_NX_MULTIUSER
+NXHANDLE nx_connectinstance(FAR const char *svrmqname);
+#define nx_connect(cb) nx_connectinstance(NX_DEFAULT_SERVER_MQNAME)
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Open a connection from a client to the NX server.  One one client
+  connection is normally needed per thread as each connection can host
+  multiple windows.
+</p>
+<p>
+  NOTES:
+</p>
+<ul>
+  <li>
+    This function returns before the connection is fully instantiated.
+    it is necessary to wait for the connection event before using the
+    returned handle.
+  </li>
+  <li>
+    Multiple instances of the NX server may run at the same time,
+    each with different message queue names.
+  </li>
+  <li>
+    <code>nx_connect()</code> is simply a macro that can be used when only one
+    server instance is required.  In that case, a default server name
+    is used.
+  </li>
+</ul>
+<p>
+  Multiple user mode only!
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>svrmqname</code>
+    <dd>The name for the server incoming message queue
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+</p>
+<ul>
+    Success: A non-NULL handle used with subsequent NX accesses<br>
+    Failure:  NULL is returned and <code>errno</code> is set appropriately.
+</ul>
+
+<h3>2.3.6 <a name="nxopen"><code>nx_open()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+#ifndef CONFIG_NX_MULTIUSER
+NXHANDLE nx_open(FAR struct fb_vtable_s *dev);
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+    Create, initialize and return an NX handle for use in subsequent
+    NX API calls.  <code>nx_open()</code> is the single user equivalent of
+    <a href="#nxconnectinstance"><code>nx_connect()</code></a> plus
+    <a href="#nxruninstance"><code>nx_run()</code></a>.
+</p>
+<p>
+    Single user mode only!
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>dev</code>
+    <dd>Frame buffer or LCD driver &quot;object&quot; to be used.
+    <dt><code>cb</code>
+    <dd>Callbacks used to process received NX server messages
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+</p>
+<ul>
+    Success: A non-NULL handle used with subsequent NX accesses<br>
+    Failure:  NULL is returned and <code>errno</code> is set appropriately.
+</ul>
+
+<h3>2.3.7 <a name="nxdisconnect"><code>nx_disconnect()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+#ifdef CONFIG_NX_MULTIUSER
+void nx_disconnect(NXHANDLE handle);
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Disconnect a client from the NX server and/or free resources reserved
+  by <a href="#nxconnectinstance"><code>nx_connect()</code>/<code>nx_connectinstance()</code></a>.
+  <code>nx_disconnect()</code> is muliti-user equivalent of
+  <a href="#nxclose"><code>nx_close()</code></a>.
+</p>
+<p>
+  Multiple user mode only!
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>handle</code>
+    <dd>The handle returned by <a href="#nxconnectinstance"><code>nx_connect()</code></a>.
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b> None.
+</p>
+
+<h3>2.3.8 <a name="nxclose"><code>nx_close()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+#ifndef CONFIG_NX_MULTIUSER
+void nx_close(NXHANDLE handle);
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Close the single user NX interface.  nx_close is single-user equivalent
+  of <a href="#nxdisconnect"><code>nx_disconnect()</code></a>.
+</p>
+<p>
+  Single user mode only!
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>handle</code>
+    <dd>The handle returned by <a href="#nxopen"><code>nx_open()</code></a>.
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b> None
+</p>
+
+<h3>2.3.9 <a name="nxeventhandler"><code>nx_eventhandler()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+#ifdef CONFIG_NX_MULTIUSER
+int nx_eventhandler(NXHANDLE handle);
+#else
+#  define nx_eventhandler(handle) (OK)
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The client code must call this function periodically to process
+  incoming messages from the server.  If <code>CONFIG_NX_BLOCKING</code> is defined,
+  then this function not return until a server message is received.
+</p>
+<p>
+  When <code>CONFIG_NX_BLOCKING</code> is not defined, the client must exercise
+  caution in the looping to assure that it does not eat up all of
+  the CPU bandwidth calling nx_eventhandler repeatedly.
+  <a href="#nxeventnotify"><code>nx_eventnotify()</code></a>
+  may be called to get a signal event whenever a new incoming server
+  event is avaiable.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>handle</code>
+    <dd>The handle returned by <a href="#nxconnectinstance"><code>nx_connect()</code></a>.
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+</p>
+<ul>
+  <li>
+    <code>OK</code>: No errors occurred.  If <code>CONFIG_NX_BLOCKING</code> is defined,
+    then one or more server messages were processed.
+  </li>
+  <li>
+    <code>ERROR</code>: An error occurred and <code>errno</code> has been set appropriately.
+    Of particular interest, it will return <code>errno == EHOSTDOWN</code> when the
+    server is disconnected.  After that event, the handle can no longer be used.
+  </li>
+</ul>
+
+<h3>2.3.10 <a name="nxeventnotify"><code>nx_eventnotify()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+#if defined(CONFIG_NX_MULTIUSER) && !defined(CONFIG_DISABLE_SIGNALS)
+int nx_eventnotify(NXHANDLE handle, int signo);
+#else
+#  define nx_eventnotify(handle, signo) (OK)
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Rather than calling <a href="#nxeventhandler"><code>nx_eventhandler()</code></a> periodically,
+  the client may register to receive a signal when a server event is available.
+  The client can then call <a href="#nxeventhandler"><code>nv_eventhandler()</code></a> only when
+  incoming events are available.
+</p>
+<p>
+  The underlying implementation used <code>mq_notifiy()</code> and, as a result,
+  the client must observe the rules for using <code>mq_notifiy()</code>:
+  <ul>
+    <li>
+      Only one event is signaled.  Upon receipt of the signal, if the client
+      wishes further notifications, it must call <code>nx_eventnotify()</code> again.
+    </li>
+    <li>
+      The signal will only be issued when the message queue transitions from empty to
+      not empty.
+    </li>
+  </ul>
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>handle</code>
+    <dd>The handle returned by <a href="#nxconnectinstance"><code>nx_connect()</code></a>.
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.11 <a name="nxopenwindow"><code>nx_openwindow()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+NXWINDOW nx_openwindow(NXHANDLE handle,
+                       FAR const struct nx_callback_s *cb,
+                       FAR void *arg);
+</pre></ul>
+<p>
+  <b>Description:</b> Create a new window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>handle</code>
+    <dd>The handle returned by <a href="#nxconnectinstance"><code>nx_connect()</code></a>
+       or <a href="#nxopen"><code>nx_open()</code></a>.
+    <dt><code>cb</code>
+    <dd>Callbacks used to process window events
+    <dt><code>arg</code>
+    <dd>User provided value that will be returned with NX callbacks.
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+</p>
+<ul>
+    Success: A non-NULL handle used with subsequent NX accesses<br>
+    Failure:  NULL is returned and <code>errno</code> is set appropriately.
+</ul>
+
+<h3>2.3.12 <a name="nxclosewindow"><code>nx_closewindow()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_closewindow(NXWINDOW hwnd);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Destroy a window created by <a href="#nxopenwindow"><code>nx_openwindow()</code></a> window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+       that identifies the window to be  destroyed.
+       This handle must not have been one returned by
+       <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>.
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.13 <a name="nxrequestbkgd"><code>nx_requestbkgd()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_requestbkgd(NXHANDLE handle,
+                   FAR const struct nx_callback_s *cb,
+                   FAR void *arg);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  NX normally controls a separate window called the background window.
+  It repaints the window as necessary using only a solid color fill.  The
+  background window always represents the entire screen and is always
+  below other windows.  It is useful for an application to control the
+  background window in the following conditions:
+</p>
+<ul>
+  <li>
+    If you want to implement a windowless solution.  The single screen
+    can be used to creat a truly simple graphic environment.  In this
+    case, you should probably also de-select <code>CONFIG_NX_MULTIUSER</code> as well.
+  </li>
+  <li>
+    When you want more on the background than a solid color.  For
+    example, if you want an image in the background, or animations in the
+    background, or live video, etc.
+  </li>
+</ul>
+<p>
+  This API only requests the handle of the background window.  That
+  handle will be returned asynchronously in a subsequent position and
+  redraw callbacks.
+</p>
+<p>
+  Cautions:
+</p>
+<ul>
+  <li>
+    The following should never be called using the background window.
+    They are guaranteed to cause severe crashes:
+    <a href="#nxsetposition"><code>nx_setposition()</code></a>,
+    <a href="#nxsetsize"><code>nx_setsize()</code></a>,
+    <a href="#nxraise"><code>nx_raise()</code></a>, or
+    <a href="#nxlower"><code>nx_lower()</code></a>.
+  </li>
+  <li>
+    Neither <code>nx_requestbkgd()</code> nor
+    <a href="#nxreleasebkgd"><code>nx_releasebkgd ()</code></a> should be called more than once.
+    Multiple instances of the background window are not supported.
+  </li>
+</ul>
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>handle</code>
+    <dd>The handle returned by <a href="#nxconnectinstance"><code>nx_connect()</code></a>
+       or <a href="#nxopen"><code>nx_open()</code></a>.
+    <dt><code>cb</code>
+    <dd>Callbacks to use for processing background window events
+    <dt><code>arg</code>
+    <dd>User provided argument (see <a href="#nxopenwindow"><code>nx_openwindow()</code></a>)
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.14 <a name="nxreleasebkgd"><code>nx_releasebkgd()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_releasebkgd(NXWINDOW hwnd);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Release the background window previously acquired using
+  <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>
+  and return control of the background to NX.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>handle</code>
+    <dd>The handle returned indirectly by
+      <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>.
+      This handle must not have been one created by
+      <a href="#nxopenwindow"><code>nx_openwindow()</code></a>.
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.15 <a name="nxgetposition"><code>nx_getposition()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_getposition(NXWINDOW hwnd);
+</pre></ul>
+<p>
+  <b>Description:</b>
+   Request the position and size information for the selected window.  The
+   values will be return asynchronously through the client callback function
+   pointer.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a> or
+      <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>.
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.16 <a name="nxsetposition"><code>nx_setposition()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_setposition(NXWINDOW hwnd, FAR struct nxgl_point_s *pos);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Set the position and size for the selected window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>.
+      This handle must not have been created by 
+      <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>.
+    <dt><code>pos</code>
+    <dd>The new position of the window
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.17 <a name="nxsetsize"><code>nx_setsize()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_setsize(NXWINDOW hwnd, FAR struct nxgl_size_s *size);
+</pre></ul>
+<p>
+  <b>Description:</b> Set the size of the selected window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>.
+      This handle must not have been created by 
+      <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>.
+    <dt><code>size</code>
+    <dd>The new size of the window (in pixels).
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.18 <a name="nxraise"><code>nx_raise()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_raise(NXWINDOW hwnd);
+</pre></ul>
+<p>
+  <b>Description:</b> Bring the specified window to the top of the display.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>.
+      This handle must not have been created by 
+      <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>.
+    <dt><code></code>
+    <dd>
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.19 <a name="nxlower"><code>nx_lower()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_lower(NXWINDOW hwnd);
+</pre></ul>
+<p>
+  <b>Description:</b> Lower the specified window to the bottom of the display.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>.
+      This handle must not have been created by 
+      <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>.
+    <dt><code></code>
+    <dd>
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.20 <a name="nxfill"><code>nx_fill()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_fill(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
+                   nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+   Fill the specified rectangle in the window with the specified color.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+      or <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>
+    <dt><code>rect</code>
+    <dd>The location to be filled
+    <dt><code>color</code>
+    <dd>The color to use in the fill
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.21 <a name="nxgetrectangle"><code>nx_getrectangle()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+void nx_getrectangle(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
+                     unsigned int plane, FAR uint8_t *dest,
+                     unsigned int deststride);
+</pre></ul>
+<p>
+  <b>Description:</b>
+   Get the raw contents of graphic memory within a rectangular region. NOTE:
+   Since raw graphic memory is returned, the returned memory content may be
+   the memory of windows above this one and may not necessarily belong to
+   this window unless you assure that this is the top window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+      or <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>
+    <dt><code>rect</code>
+    <dd>The location to be copied
+
+    <dt><code>plane</code>
+    <dd>Specifies the color plane to get from
+    <dt><code>dest</code>
+    <dd>The location to copy the memory region
+    <dt><code>deststride</code>
+    <dd>The width, in bytes, the the dest memory
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.22 <a name="nxfilltrapezoid"><code>nx_filltrapezoid()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_filltrapezoid(NXWINDOW hwnd, FAR const struct nxgl_rect_s *clip,
+                            FAR const struct nxgl_trapezoid_s *trap,
+                            nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Fill the specified trapezoidal region in the window with the specified color.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+      or <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>
+    <dt><code>clip</code>
+    <dd>Clipping rectangle relative to window (may be null)
+    <dt><code>trap</code>
+    <dd>The trapezoidal region to be filled
+    <dt><code>color</code>
+    <dd>The color to use in the fill
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.23 <a name="nxdrawline"><code>nx_drawline()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_drawline(NXWINDOW hwnd, FAR struct nxgl_vector_s *vector,
+               nxgl_coord_t width, nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Fill the specified trapezoidal region in the window with the specified color.
+  Fill the specified line in the window with the specified color.
+  This is simply a wrapper that uses <code>nxgl_splitline()</code> to break the line into
+  trapezoids and then calls <code>nx_filltrapezoid()</code> to render the line.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+      <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+        or <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>
+    <dt><code>vector</code>
+      <dd>Describes the line to be drawn.
+    <dt><code>width</code>
+      <dd>The width of the line
+    <dt><code>color</code>
+      <dd>The color to use to fill the line
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.24 <a name="nxdrawcircle"><code>nx_drawcircle()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_drawcircle(NXWINDOW hwnd, FAR const struct nxgl_point_s *center,
+                  nxgl_coord_t radius, nxgl_coord_t width,
+                  nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Draw a circular outline using the specified line thickness and color.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+      <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+        or <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>
+    <dt><code>center</code>
+      <dd>A pointer to the point that is the center of the circle.
+    <dt><code>radius</code>
+      <dd>The radius of the circle in pixels.
+    <dt><code>width</code>
+      <dd>The width of the line
+    <dt><code>color</code>
+      <dd>The color to use to fill the line
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.25 <a name="nxfillcircle"><code>nx_fillcircle()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_fillcircle(NXWINDOW hwnd, FAR const struct nxgl_point_s *center,
+                  nxgl_coord_t radius, nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Fill a circular region using the specified color.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+      <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+        or <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>
+    <dt><code>center</code>
+      <dd>A pointer to the point that is the center of the circle.
+    <dt><code>radius</code>
+      <dd>The width of the line
+    <dt><code>color</code>
+      <dd>The color to use to fill the circle
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.26 <a name="nxglrgb2yuv"><code>nx_setbgcolor()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_setbgcolor(NXHANDLE handle,
+                  nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b> Set the color of the background.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>handle</code>
+    <dd>The handle created by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+      or <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a>
+    <dt><code>color</code>
+    <dd>The color to use in the background
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.27 <a name="nxmove"><code>nx_move()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_move(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
+                   FAR const struct nxgl_point_s *offset);
+</pre></ul>
+<p>
+  <b>Description:</b> Move a rectangular region within the window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+      or <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a> that specifies
+      the window within which the move is to be done
+    <dt><code>rect</code>
+    <dd>Describes the (source) rectangular region to move
+    <dt><code>offset</code>
+    <dd>The offset to move the region
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.28 <a name="nxbitmap"><code>nx_bitmap()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+int nx_bitmap(NXWINDOW hwnd, FAR const struct nxgl_rect_s *dest,
+                     FAR const void *src[CONFIG_NX_NPLANES],
+                     FAR const struct nxgl_point_s *origin,
+                     unsigned int stride);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Copy a rectangular region of a larger image into the rectangle in the
+  specified window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hwnd</code>
+    <dd>The handle returned by <a href="#nxopenwindow"><code>nx_openwindow()</code></a>
+      or <a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a> that specifies the
+      window that will receive the bitmap image.
+    <dt><code>dest</code>
+    <dd> Describes the rectangular on the display that will receive the bit map.
+    <dt><code>src</code>
+    <dd>The start of the source image.  This is an array source images of size
+      <code>CONFIG_NX_NPLANES</code> (probably 1).
+    <dt><code>origin</code>
+    <dd>The origin of the upper, left-most corner of the full bitmap.
+     Both dest and origin are in window coordinates, however, the origin
+     may lie outside of the display.
+    <dt><code>stride</code>
+    <dd>The width of the full source image in bytes.
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.29 <a name="nxkbdin"><code>nx_kbdin()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+#ifdef CONFIG_NX_KBD
+int nx_kbdchin(NXHANDLE handle, uint8_t ch);
+int nx_kbdin(NXHANDLE handle, uint8_t nch, FAR const uint8_t *ch);
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Used by a thread or interrupt handler that manages some kind of keypad
+  hardware to report text information to the NX server.  That text
+  data will be routed by the NX server to the appropriate window client.
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.3.30 <a name="nxmousein"><code>nx_mousein()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+
+#ifdef CONFIG_NX_MOUSE
+int nx_mousein(NXHANDLE handle, nxgl_coord_t x, nxgl_coord_t y, uint8_t buttons);
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Used by a thread or interrupt handler that manages some kind of pointing
+  hardware to report new positional data to the NX server.  That positional
+  data will be routed by the NX server to the appropriate window client.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code></code>
+    <dd>
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h2>2.4 <a name="nxtk2">NX Tool Kit (<code>NXTK</code>)</a></h2>
+
+<p>
+  NXTK implements  where the <i>framed window</i>.
+  NX framed windows consist of three components within one NX window:
+</p>
+<ol>
+  <li>The window <i>border</i>,</li>
+  <li>The main <i>client window</i> area, and</li>
+  <li>A <i>toolbar</i> area</li>
+</ol>
+
+<p>
+  Each sub-window represents a region within one window.
+  <a href="#screenshot">Figure 1</a> shows some simple NX framed windows.
+  NXTK allows these sub-windows to be managed more-or-less independently:
+</p>
+<ul>
+  <li>
+    Each component has its own callbacks for redraw and position events
+    as well as mouse and keyboard inputs.
+    The client sub-window callbacks are registered when the framed window is
+    created with a call to <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>;
+    Separate toolbar sub-window callbakcs are reigistered when the toolbar
+    is added using <a href="#nxtkopentoolbar"><code>nxtk_opentoolbar()</code></a>.
+    (NOTES: (1) only the client sub-window receives keyboard input and,
+    (2) border callbacks are not currently accessible by the user).
+  <li>
+  </li>
+    All position informational provided within the callback is relative
+    to the specific sub-window.
+    That is, the origin (0,0) of the coordinate system for each sub-window
+    begins at the top left corner of the subwindow.
+    This means that toolbar logic need not be concerned about client window
+    geometry (and vice versa) and, for example, common toolbar logic can
+    be used with different windows.
+  </li>
+</ul>
+
+<h3>2.4.1 <a name="nxtktypes"><code>NXTK Types()</code></a></h3>
+
+<p>
+  This is the handle that can be used to access the window data region.
+</p>
+<ul><pre>
+typedef FAR void *NXTKWINDOW;
+</pre></ul>
+
+<h3>2.4.2 <a name="nxtkopenwindow"><code>nxtk_openwindow()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+NXTKWINDOW nxtk_openwindow(NXHANDLE handle,
+                           FAR const struct nx_callback_s *cb,
+                           FAR void *arg);
+</pre></ul>
+<p>
+  <b>Description:</b> Create a new, framed window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>handle</code>
+    <dd>The handle returned by <a href="#nxconnectinstance"><code>nx_connect()</code></a>
+       or <a href="#nxopen"><code>nx_open()</code></a>.
+    <dt><code>cb</code>
+    <dd>Callbacks used to process window events
+    <dt><code>arg</code>
+    <dd>User provided argument (see <a href="#nxopenwindow"><code>nx_openwindow()</code></a>)
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+</p>
+<ul>
+    Success: A non-NULL handle used with subsequent NXTK window accesses<br>
+    Failure:  NULL is returned and <code>errno</code> is set appropriately.
+</ul>
+
+<h3>2.4.3 <a name="nxtkclosewindow"><code>nxtk_closewindow()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_closewindow(NXTKWINDOW hfwnd);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Close the window opened by <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.4 <a name="nxtkgetposition"><code>nxtk_getposition()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_getposition(NXTKWINDOW hfwnd);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Request the position and size information for the selected framed window.
+  The size/position for the client window and toolbar will be return
+  asynchronously through the client callback function pointer.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.5 <a name="nxtksetposition"><code>nxtk_setposition()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_setposition(NXTKWINDOW hfwnd, FAR struct nxgl_point_s *pos);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Set the position for the selected client window.  This position does not
+  include the offsets for the borders nor for any toolbar.  Those offsets
+  will be added in to set the full window position.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>pos</code>
+    <dd>The new position of the client sub-window
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.6 <a name="nxtksetsize"><code>nxtk_setsize()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_setsize(NXTKWINDOW hfwnd, FAR struct nxgl_size_s *size);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Set the size for the selected client window.  This size does not
+  include the sizes of the borders nor for any toolbar.  Those sizes
+  will be added in to set the full window size.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>size</code>
+    <dd>The new size of the client sub-window.
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.7 <a name="nxtkraise"><code>nxtk_raise()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_raise(NXTKWINDOW hfwnd);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Bring the window containing the specified client sub-window to the top
+  of the display.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>
+      specifying the window to be raised.
+    <dt><code></code>
+    <dd>
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.8 <a name="nxtklower"><code>nxtk_lower()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_lower(NXTKWINDOW hfwnd);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Lower the window containing the specified client sub-window to the
+  bottom of the display.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+     <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>
+      specifying the window to be lowered.
+   <dt><code></code>
+    <dd>
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.9 <a name="nxtkfillwindow"><code>nxtk_fillwindow()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_fillwindow(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
+                    nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Fill the specified rectangle in the client window with the specified color.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>rect</code>
+    <dd>The location within the client window to be filled
+    <dt><code>color</code>
+    <dd>The color to use in the fill
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.10 <a name="nxtkgetwindow"><code>nxtk_getwindow()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+void nxtk_getwindow(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
+                    unsigned int plane, FAR uint8_t *dest,
+                    unsigned int deststride);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Get the raw contents of graphic memory within a rectangular region. NOTE:
+  Since raw graphic memory is returned, the returned memory content may be
+  the memory of windows above this one and may not necessarily belong to
+  this window unless you assure that this is the top window.</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>rect</code>
+    <dd>The location within the client window to be retrieved.
+
+    <dt><code>plane</code>
+    <dd>Specifies the color plane to get from.
+    <dt><code>dest</code>
+    <dd>The location to copy the memory region
+    <dt><code>deststride</code>
+    <dd>The width, in bytes, the the dest memory
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.11 <a name="nxtkfilltrapwindow"><code>nxtk_filltrapwindow()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_filltrapwindow(NXTKWINDOW hfwnd,
+                        FAR const struct nxgl_trapezoid_s *trap,
+                        nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Fill the specified trapezoid in the client window with the specified color
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>trap</code>
+    <dd>The trapezoidal region to be filled.
+    <dt><code>color</code>
+    <dd>The color to use in the fill.
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.12 <a name="nxtkdrawlinewindow"><code>nxtk_drawlinewindow()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_drawlinewindow(NXTKWINDOW hfwnd, FAR struct nxgl_vector_s *vector,
+                        nxgl_coord_t width, nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Fill the specified trapezoidal region in the window with the specified color.
+  Fill the specified line in the window with the specified color.
+  This is simply a wrapper that uses <code>nxgl_splitline()</code> to break the line into
+  trapezoids and then calls <code>nxtk_filltrapwindow()</code> to render the line.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hfwnd</code>
+      <dd>A handle previously returned by
+        <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>vector</code>
+      <dd>Describes the line to be drawn.
+    <dt><code>width</code>
+      <dd>The width of the line
+    <dt><code>color</code>
+      <dd>The color to use to fill the line
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.13 <a name="nxtkdrawcirclewindow"><code>nxtk_drawcirclewindow()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_drawcirclewindow(NXTKWINDOW hfwnd, FAR const struct nxgl_point_s *center,
+                          nxgl_coord_t radius, nxgl_coord_t width,
+                          nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Draw a circular outline using the specified line thickness and color.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hfwnd</code>
+      <dd>A handle previously returned by
+        <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>center</code>
+      <dd>A pointer to the point that is the center of the circle.
+    <dt><code>radius</code>
+      <dd>The radius of the circle in pixels.
+    <dt><code>width</code>
+      <dd>The width of the line
+    <dt><code>color</code>
+      <dd>The color to use to fill the line
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.14 <a name="nxtkfillcirclewindow"><code>nxtk_fillcirclewindow()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_fillcirclewindow(NXWINDOW hfwnd, FAR const struct nxgl_point_s *center,
+                          nxgl_coord_t radius, nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Fill a circular region using the specified color.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hfwnd</code>
+      <dd>A handle previously returned by
+        <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>center</code>
+      <dd>A pointer to the point that is the center of the circle.
+    <dt><code>radius</code>
+      <dd>The width of the line
+    <dt><code>color</code>
+      <dd>The color to use to fill the circle
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.15 <a name="nxtkmovewindow"><code>nxtk_movewindow()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_movewindow(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
+                    FAR const struct nxgl_point_s *offset);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Move a rectangular region within the client sub-window of a framed window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>
+      specifying the client sub-window within which the move is to be done.
+    <dt><code>rect</code>
+    <dd>Describes the rectangular region relative to the client sub-window to move.
+    <dt><code>offset</code>
+    <dd>The offset to move the region
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.16 <a name="nxtkbitmapwindow"><code>nxtk_bitmapwindow()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_bitmapwindow(NXTKWINDOW hfwnd,
+                      FAR const struct nxgl_rect_s *dest,
+                      FAR const void *src[CONFIG_NX_NPLANES],
+                      FAR const struct nxgl_point_s *origin,
+                      unsigned int stride);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Copy a rectangular region of a larger image into the rectangle in the
+  specified client sub-window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>
+      specifying the client sub-window that will receive the bitmap.
+    <dt><code>dest</code>
+    <dd>Describes the rectangular region on in the client sub-window
+      will receive the bit map.
+    <dt><code>src</code>
+    <dd>The start of the source image(s). This is an array source
+      images of size <code>CONFIG_NX_NPLANES</code> (probably 1).
+    <dt><code>origin</code>
+    <dd>The origin of the upper, left-most corner of the full bitmap.
+      Both dest and origin are in sub-window coordinates, however, the
+      origin may lie outside of the sub-window display.
+    <dt><code>stride</code>
+    <dd>The width of the full source image in pixels.
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.17 <a name="nxtkopentoolbar"><code>nxtk_opentoolbar()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_opentoolbar(NXTKWINDOW hfwnd, nxgl_coord_t height,
+                     FAR const struct nx_callback_s *cb,
+                     FAR void *arg);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Create a tool bar at the top of the specified framed window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>height</code>
+    <dd>The requested height of the toolbar in pixels.
+    <dt><code>cb</code>
+    <dd>Callbacks used to process toolbar events.
+    <dt><code>arg</code>
+    <dd>User provided value that will be returned with toolbar callbacks.
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.18 <a name="nxtkclosetoolbar"><code>nxtk_closetoolbar()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_closetoolbar(NXTKWINDOW hfwnd);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Remove the tool bar at the top of the specified framed window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code></code>
+    <dd>
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.19 <a name="nxtkfilltoolbar"><code>nxtk_filltoolbar()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_filltoolbar(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
+                     nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Fill the specified rectangle in the toolbar sub-window with the specified color.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>rect</code>
+    <dd>The location within the toolbar window to be filled.
+    <dt><code>color</code>
+    <dd>The color to use in the fill.
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.19 <a name="nxtkgettoolbar"><code>nxtk_gettoolbar()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_gettoolbar(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
+                    unsigned int plane, FAR uint8_t *dest,
+                    unsigned int deststride);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Get the raw contents of graphic memory within a rectangular region. NOTE:
+  Since raw graphic memory is returned, the returned memory content may be
+  the memory of windows above this one and may not necessarily belong to
+  this window unless you assure that this is the top window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>rect</code>
+    <dd>The location within the toolbar window to be retrieved.
+
+    <dt><code>plane</code>
+    <dd>TSpecifies the color plane to get from.
+    <dt><code>dest</code>
+    <dd>TThe location to copy the memory region.
+    <dt><code>deststride</code>
+    <dd>The width, in bytes, the the dest memory.
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.21 <a name="nxtkfilltraptoolbar"><code>nxtk_filltraptoolbar()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_filltraptoolbar(NXTKWINDOW hfwnd, FAR const struct nxgl_trapezoid_s *trap,
+                         nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Fill the specified trapezoid in the toolbar sub-window with the specified color.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>trap</code>
+    <dd>The trapezoidal region to be filled
+    <dt><code>color</code>
+    <dd>The color to use in the fill
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.22 <a name="nxtkdrawlinetoolbar"><code>nxtk_drawlinetoolbar()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_drawlinetoolbar(NXTKWINDOW hfwnd, FAR struct nxgl_vector_s *vector,
+                         nxgl_coord_t width, nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Fill the specified line in the toolbar sub-window with the specified color.
+  This is simply a wrapper that uses <code>nxgl_splitline()</code> to break the line into
+  trapezoids and then calls <code>nxtk_filltraptoolbar()</code> to render the line.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hfwnd</code>
+      <dd>A handle previously returned by
+        <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>vector</code>
+      <dd>Describes the line to be drawn.
+    <dt><code>width</code>
+      <dd>The width of the line
+    <dt><code>color</code>
+      <dd>The color to use to fill the line
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.23 <a name="nxtkdrawcircletoolbar"><code>nxtk_drawcircletoolbar()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_drawcircletoolbar(NXTKWINDOW hfwnd, FAR const struct nxgl_point_s *center,
+                           nxgl_coord_t radius, nxgl_coord_t width,
+                           nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Draw a circular outline using the specified line thickness and color.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hfwnd</code>
+      <dd>A handle previously returned by
+        <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>center</code>
+      <dd>A pointer to the point that is the center of the circle.
+    <dt><code>radius</code>
+      <dd>The radius of the circle in pixels.
+    <dt><code>width</code>
+      <dd>The width of the line
+    <dt><code>color</code>
+      <dd>The color to use to fill the line
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.24 <a name="nxtkfillcircletoolbar"><code>nxtk_fillcircletoolbar()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_fillcircletoolbar(NXWINDOW hfwnd, FAR const struct nxgl_point_s *center,
+                           nxgl_coord_t radius, nxgl_mxpixel_t color[CONFIG_NX_NPLANES]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Fill a circular region using the specified color.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>hfwnd</code>
+      <dd>A handle previously returned by
+        <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>center</code>
+      <dd>A pointer to the point that is the center of the circle.
+    <dt><code>radius</code>
+      <dd>The width of the line
+    <dt><code>color</code>
+      <dd>The color to use to fill the circle
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.25 <a name="nxtkmovetoolbar"><code>nxtk_movetoolbar()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_movetoolbar(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
+                     FAR const struct nxgl_point_s *offset);
+</pre></ul>
+<p>
+  <b>Description:</b>
+   Move a rectangular region within the toolbar sub-window of a framed window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle identifying sub-window containing the toolbar within which the move is
+      to be done.
+      This handle must have previously been returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>rect</code>
+    <dd>Describes the rectangular region relative to the toolbar sub-window to move.
+    <dt><code>offset</code>
+    <dd>The offset to move the region
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h3>2.4.26 <a name="nxtkbitmaptoolbar"><code>nxtk_bitmaptoolbar()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nx.h&gt;
+#include &lt;nuttx/nx/nxtk.h&gt;
+
+int nxtk_bitmaptoolbar(NXTKWINDOW hfwnd,
+                       FAR const struct nxgl_rect_s *dest,
+                       FAR const void *src[CONFIG_NX_NPLANES],
+                       FAR const struct nxgl_point_s *origin,
+                       unsigned int stride);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Copy a rectangular region of a larger image into the rectangle in the
+  specified toolbar sub-window.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <dl>
+    <dt><code>hfwnd</code>
+    <dd>A handle previously returned by
+      <a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a>.
+    <dt><code>dest</code>
+    <dd>Describes the rectangular region on in the toolbar sub-window
+           will receive the bit map.
+    <dt><code>src</code>
+    <dd>The start of the source image.
+    <dt><code>origin</code>
+    <dd>The origin of the upper, left-most corner of the full bitmap.
+           Both dest and origin are in sub-window coordinates, however, the
+           origin may lie outside of the sub-window display.
+    <dt><code>stride</code>
+    <dd>The width of the full source image in bytes.
+  </dl>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately
+</p>
+
+<h2>2.5 <a name="nxfonts2">NX Fonts Support (<code>NXFONTS</code>)</a></h2>
+
+<h3>2.5.1 <a name="nxfontstypes"><code>NXFONTS Types()</code></a></h3>
+<p>
+  This structures provides the metrics for one glyph:
+</p>
+<ul><pre>
+struct nx_fontmetric_s
+{
+  uint32_t stride   : 2;      /* Width of one font row in bytes */
+  uint32_t width    : 6;      /* Width of the font in bits */
+  uint32_t height   : 6;      /* Height of the font in rows */
+  uint32_t xoffset  : 6;      /* Top, left-hand corner X-offset in pixels */
+  uint32_t yoffset  : 6;      /* Top, left-hand corner y-offset in pixels */
+  uint32_t unused   : 6;
+};
+</pre></ul>
+
+<p>
+  This structure binds the glyph metrics to the glyph bitmap:
+</p>
+<ul><pre>
+struct nx_fontbitmap_s
+{
+  struct nx_fontmetric_s metric; /* Character metrics */
+  FAR const uint8_t *bitmap;     /* Pointer to the character bitmap */
+};
+</pre></ul>
+
+<p>
+  This structure describes one contiguous grouping of glyphs that
+  can be described by an array starting with encoding <code>first</code> and
+  extending through (<code>first</code> + <code>nchars</code> - 1).
+</p>
+<ul><pre>
+struct nx_fontset_s
+{
+  uint8_t  first;             /* First bitmap character code */
+  uint8_t  nchars;            /* Number of bitmap character codes */
+  FAR const struct nx_fontbitmap_s *bitmap;
+};
+</pre></ul>
+
+<p>
+  This structure describes the overall fontset:
+</p>
+<ul><pre>
+struct nx_font_s
+{
+  uint8_t  mxheight;          /* Max height of one glyph in rows */
+  uint8_t  mxwidth;           /* Max width of any glyph in pixels */
+  uint8_t  mxbits;            /* Max number of bits per character code */
+  uint8_t  spwidth;           /* The width of a space in pixels */
+};
+</pre></ul>
+
+<h3>2.5.2 <a name="nxfgetfonthandle"><code>nxf_getfonthandle()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxfonts.h&gt;
+
+NXHANDLE nxf_getfonthandle(enum nx_fontid_e fontid);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Given a numeric font ID, return a handle that may be subsequently be used to access the font data sets.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>fontid</code>
+    <dd>Identifies the font set to use
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  A handle that may be subsequently be used to access the font data sets.
+</p>
+
+<h3>2.5.3 <a name="nxfgetfontset"><code>nxf_getfontset()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nxfonts.h&gt;
+
+FAR const struct nx_font_s *nxf_getfontset(NXHANDLE handle);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Return information about the current font set.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>handle</code>
+    <dd>A font handle previously returned by <a href="#nxfgetfonthandle"><code>nxf_getfonthandle()</code></a>.
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  An instance of <code>struct nx_font_s</code> describing the font set.
+</p>
+
+<h3>2.5.4 <a name="nxfgetbitmap"><code>nxf_getbitmap()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nxfonts.h&gt;
+
+FAR const struct nx_fontbitmap_s *nxf_getbitmap(NXHANDLE handle, uint16_t ch);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  Return font bitmap information for the selected character encoding.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>ch</code>
+    <dd>The char code for the requested bitmap.
+    <dt><code>handle</code>
+    <dd>A font handle previously returned by <a href="#nxfgetfonthandle"><code>nxf_getfonthandle()</code></a>.
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  An instance of <code>struct nx_fontbitmap_s</code> describing the glyph.
+</p>
+
+<h3>2.5.5 <a name="nxfconvertbpp"><code>nxf_convert_*bpp()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt;nuttx/nx/nxglib.h&gt;
+#include &lt;nuttx/nx/nxfonts.h&gt;
+
+int nxf_convert_2bpp(FAR uint8_t *dest, uint16_t height,
+                     uint16_t width, uint16_t stride,
+                     FAR const struct nx_fontbitmap_s *bm,
+                     nxgl_mxpixel_t color);
+int nxf_convert_4bpp(FAR uint8_t *dest, uint16_t height,
+                     uint16_t width, uint16_t stride,
+                     FAR const struct nx_fontbitmap_s *bm,
+                     nxgl_mxpixel_t color);
+int nxf_convert_8bpp(FAR uint8_t *dest, uint16_t height,
+                     uint16_t width, uint16_t stride,
+                     FAR const struct nx_fontbitmap_s *bm,
+                     nxgl_mxpixel_t color);
+int nxf_convert_16bpp(FAR uint16_t *dest, uint16_t height,
+                      uint16_t width, uint16_t stride,
+                      FAR const struct nx_fontbitmap_s *bm,
+                      nxgl_mxpixel_t color);
+int nxf_convert_24bpp(FAR uint32_t *dest, uint16_t height,
+                      uint16_t width, uint16_t stride,
+                      FAR const struct nx_fontbitmap_s *bm,
+                      nxgl_mxpixel_t color);
+int nxf_convert_32bpp(FAR uint32_t *dest, uint16_t height,
+                      uint16_t width, uint16_t stride,
+                      FAR const struct nx_fontbitmap_s *bm,
+                      nxgl_mxpixel_t color);
+</pre></ul>
+<p>
+  <b>Description:</b> Convert the 1BPP font to a new pixel depth.
+</p>
+<p>
+  <b>Input Parameters:</b>
+  <ul><dl>
+    <dt><code>dest</code>
+    <dd>The destination buffer provided by the caller.
+    <dt><code>height</code>
+    <dd>The max height of the returned char in rows.
+    <dt><code>width</code>
+    <dd>The max width of the returned char in pixels.
+    <dt><code>stride</code>
+    <dd>The width of the destination buffer in bytes.
+    <dt><code>bm</code>
+    <dd>Describes the character glyph to convert
+    <dt><code>color</code>
+    <dd>The color to use for '1' bits in the font bitmap (0 bits are transparent).
+  </dl></ul>
+</p>
+<p>
+  <b>Returned Value:</b>
+  <code>OK</code> on success;
+  <code>ERROR</code> on failure with <code>errno</code> set appropriately.
+</p>
+
+<h2>2.6 <a name="samplecode">Sample Code</a></h2>
+
+<p><b><code>apps/examples/nx*</code></b>.
+  No sample code is provided in this document.
+  However, examples can be found in the NuttX source tree at the follow locations:
+  That example code is intended to test NX.
+  Since it is test code, it is designed to exercise functionality and does not necessarily represent best NX coding practices.
+</p>
+<ul>
+  <li><code>apps/examples/nx</code>.
+    This is a test of windows, optionally with toolbars.
+    Two windows are created, re-sized, moved, raise lowered.
+    Simulated mouse and keyboard input is provided.
+  </li>
+  <li><code>apps/examples/nxhello</code>.
+    This is intended to be simplest NX test:
+    It simply displays the words &quot;Hello, World!&quot; centered on the display.
+  </li>
+  <li><code>apps/examples/nxtext</code>.
+    This illustrates how fonts may be managed to provide scrolling text windows.
+    Pop-up windows are included to verify the clipping and re-drawing of the text display.
+  </li>
+</ul>
+
+<p>
+  In its current form, the NX graphics system provides a low level of graphics and window
+  support.
+  Most of the complexity of manage redrawing and handling mouse and keyboard events must
+  be implemented by the NX client code.
+</p>
+
+<p><b>Building <code>apps/examples/nx</code></b>.
+  Testing was performed using the Linux/Cygwin-based NuttX simulator.
+  Instructions are provided for building that simulation are provided in 
+  <a href="#testcoverage">Appendix C</a> of this document.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+      <h1>Appendix A <a name="grapicsdirs"><code>graphics/</code> Directory Structure</a></h1>
+    </td>
+  </tr>
+</table>
+
+<ul>
+  <dl>
+    <dt><code>graphics/nxglib</code>
+      <dd>The NuttX tiny graphics library.
+      The directory contains generic utilities support operations on primitive graphics objects
+      and logic to rasterize directly into a framebuffer or through an LCD driver interface.
+      It has no concept of windows (other than the one, framebuffer  or LCD window).
+
+    <dt><code>graphics/nxbe</code>
+      <dd>This is the <i>back-end</i> of a tiny windowing system.
+      It can be used with either of two front-ends to complete a windowing system (see
+      <code>nxmu</code> and <code>nxsu</code> below).
+      It contains most of the important window management logic:  clipping, window controls,
+      window drawing, etc.
+
+    <dt><code>graphics/nxsu</code>
+      <dd>This is the NX single user <i>front end</i>.
+      When combined with the generic <i>back-end</i> (<code>nxbe</code>), it implements a
+      single threaded, single user windowing system.
+      The files in this directory present the window APIs described in
+      <code>include/nuttx/nx/nx.h</code>.
+      The single user front-end is selected when <code>CONFIG_NX_MULTIUSER</code> is not
+      defined in the NuttX configuration file.
+
+    <dt><code>graphics/nxsu</code>
+      <dd>This is the NX multi user <i>front end</i>.
+      When combined with the generic <i>back-end</i> (<code>nxbe</code>), it implements a
+      multi-threaded, multi-user windowing system.
+      The files in this directory present the window APIs described in
+      <code>include/nuttx/nx/nx.h</code>.
+      The multi-user front end includes a graphics server that executes on its own thread;
+      multiple graphics clients then communicate with the server via a POSIX message
+      queue to serialize window operations from many threads.
+      The multi-user front-end is selected when <code>CONFIG_NX_MULTIUSER</code> is defined
+      in the NuttX configuration file.
+
+    <dt><code>graphics/nxfonts</code>
+      <dd>This is where the NXFONTS implementation resides.
+      This is a relatively low-level set of charset set/glyph management APIs.
+      See <code>include/nuttx/nx/nxfonts.h</code>.
+
+    <dt><code>graphics/nxtk</code>
+      <dd>This is where the NXTOOLKIT implementation resides.
+      This toolkit is built on top of NX and works with either the single-user or multi-user NX version.
+      See <code>include/nuttx/nx/nxtk.h</code>.
+
+    <dt><code>nuttx/../nxwidgets</code>
+      <dd>The <a href="NxWidgets.html">NxWidgets</a> code is provided as a separate package located outside of the
+  NuttX source tree (probably at this location).
+
+    <dt><code>graphics/nxconsole</code>
+      <dd>The NxConsole driver is built on top of NX and works with either the single-user or multi-user NX version.
+      See <code>include/nuttx/nx/nxconsole.h</code>.
+  </dl>
+</ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+      <h1>Appendix B <a name="nxconfigs">NX Configuration Options</a></h1>
+    </td>
+  </tr>
+</table>
+
+<h2>B.1 <a name="nxgenconfig">General Configuration Settings</a></h2>
+
+<ul>
+  <dl>
+    <dt><code>CONFIG_NX</code>
+    Enables overall support for graphics library and NX
+  </dl>
+</ul>
+
+<h2>B.2 <a name="nxglconfig">NXGL Configuration Settings</a></h2>
+
+<ul>
+  <dl>
+    <dt><code>CONFIG_NX_NPLANES</code>:
+      <dd>Some YUV color formats requires support for multiple planes,
+      one for each color component.  Unless you have such special
+      hardware, this value should be undefined or set to 1.
+    <dt><code>CONFIG_NX_DISABLE_1BPP</code>, <code>CONFIG_NX_DISABLE_2BPP</code>,
+    <code>CONFIG_NX_DISABLE_4BPP</code>, <code>CONFIG_NX_DISABLE_8BPP</code>
+    <code>CONFIG_NX_DISABLE_16BPP</code>, <code>CONFIG_NX_DISABLE_24BPP</code>, and
+    <code>CONFIG_NX_DISABLE_32BPP</code>:
+      <dd>NX supports a variety of pixel depths.  You can save some
+      memory by disabling support for unused color depths.
+    <dt><code>CONFIG_NX_PACKEDMSFIRST</code>:
+      <dd>If a pixel depth of less than 8-bits is used, then NX needs
+      to know if the pixels pack from the MS to LS or from LS to MS
+    <dt><code>CONFIG_NX_LCDDRIVER</code>:
+      <dd>By default, NX builds to use a framebuffer driver (see <code>include/nuttx/fb.h</code>).
+      If this option is defined, NX will build to use an LCD driver (see <code>include/nuttx/lcd/lcd.h</code>).
+  </li>
+  </dl>
+</ul>
+
+<h2>B.3 <a name="nxconfig">NX Configuration Settings</a></h2>
+
+<ul>
+  <dl>
+    <dt><code>CONFIG_NX_MOUSE</code>:
+      <dd>Build in support for mouse input.
+    <dt><code>CONFIG_NX_KBD</code>:
+      <dd>Build in support of keypad/keyboard input.
+    <dt><code>CONFIG_NX_WRITEONLY</code>:
+      <dd>Define if the underlying graphics device does not support read operations.
+      Automatically defined if <code>CONFIG_NX_LCDDRIVER</code> and <code>CONFIG_LCD_NOGETRUN</code>
+      are defined.
+  </dl>
+</ul>
+
+<h2>B.4 <a name="nxmuconfig">NX Multi-User (Only) Configuration Settings</a></h2>
+
+<ul>
+  <dl>
+    <dt><code>CONFIG_NX_MULTIUSER</code>:
+      <dd>Configures NX in multi-user mode.
+    <dt><code>CONFIG_NX_BLOCKING</code>
+      <dd>Open the client message queues in blocking mode.  In this case,
+      <code>nx_eventhandler()</code>  will not return until a message is received and processed.
+    <dt><code>CONFIG_NX_MXSERVERMSGS</code> and <code>CONFIG_NX_MXCLIENTMSGS</code>
+      <dd>Specifies the maximum number of messages that can fit in
+      the message queues.  No additional resources are allocated, but
+      this can be set to prevent flooding of the client or server with
+      too many messages (<code>CONFIG_PREALLOC_MQ_MSGS</code> controls how many
+      messages are pre-allocated).
+  </dl>
+</ul>
+
+<h2>B.5 <a name="nxtkconfig">NXTK Configuration Settings</a></h2>
+
+<ul>
+  <dl>
+    <dt><code>CONFIG_NXTK_BORDERWIDTH</code>:
+      <dd>Specifies with with of the border (in pixels) used with
+      framed windows.   The default is 4.
+    <dt><code>CONFIG_NXTK_BORDERCOLOR1</code>, <code>CONFIG_NXTK_BORDERCOLOR2</code>, and <code>CONFIG_NXTK_BORDERCOLOR3</code>:
+      <dd>Specify the colors of the border used with framed windows.
+    <dt><code>CONFIG_NXTK_BORDERCOLOR2</code>
+      <dd>The shadow side color and so is normally darker.
+    <dt><code>CONFIG_NXTK_BORDERCOLOR3</code> 
+      <dd>The shiny side color and so is normally brighter.
+      The default is medium, dark, and light grey, respectively
+    <dt><code>CONFIG_NXTK_AUTORAISE</code>:
+      <dd>If set, a window will be raised to the top if the mouse position
+      is over a visible portion of the window.  Default: A mouse
+      button must be clicked over a visible portion of the window.
+  </dl>
+</ul>
+
+<h2>B.6 <a name="nxfpmtsconfig">NXFONTS Configuration Settings</a></h2>
+
+<ul>
+  <dl>
+    <dt><code>CONFIG_NXFONTS_CHARBITS</code>:
+      <dd>The number of bits in the character set.  Current options are
+        only 7 and 8.  The default is 7.
+    <dt><code>CONFIG_NXFONT_SANS17X22</code>:
+      <dd>This option enables support for a tiny, 17x22 san serif font
+        (font <code>ID FONTID_SANS17X22</code> == 14).
+    <dt><code>CONFIG_NXFONT_SANS20X26</code>:
+      <dd>This option enables support for a tiny, 20x26 san serif font
+        (font <code>ID FONTID_SANS20X26</code> == 15).
+    <dt><code>CONFIG_NXFONT_SANS23X27</code>:
+      <dd>This option enables support for a tiny, 23x27 san serif font
+        (font <code>ID FONTID_SANS23X27</code> == 1).
+    <dt><code>CONFIG_NXFONT_SANS22X29</code>:
+      <dd>This option enables support for a small, 22x29 san serif font
+        (font <code>ID FONTID_SANS22X29</code> == 2).
+    <dt><code>CONFIG_NXFONT_SANS28X37</code>:
+      <dd>This option enables support for a medium, 28x37 san serif font
+        (font <code>ID FONTID_SANS28X37</code> == 3).
+    <dt><code>CONFIG_NXFONT_SANS39X48</code>:
+      <dd>This option enables support for a large, 39x48 san serif font
+        (font <code>ID FONTID_SANS39X48</code> == 4).
+    <dt><code>CONFIG_NXFONT_SANS17X23B</code>:
+      <dd>This option enables support for a tiny, 17x23 san serif bold font
+        (font <code>ID FONTID_SANS17X23B</code> == 16).
+    <dt><code>CONFIG_NXFONT_SANS20X27B</code>:
+      <dd>This option enables support for a tiny, 20x27 san serif bold font
+        (font <code>ID FONTID_SANS20X27B</code> == 17).
+    <dt><code>CONFIG_NXFONT_SANS22X29B</code>:
+      <dd>This option enables support for a small, 22x29 san serif bold font
+        (font ID <code>FONTID_SANS22X29B</code> == 5).
+    <dt><code>CONFIG_NXFONT_SANS28X37B</code>:
+      <dd>This option enables support for a medium, 28x37 san serif bold font
+        (font ID <code>FONTID_SANS28X37B</code> == 6).
+    <dt><code>CONFIG_NXFONT_SANS40X49B</code>:
+      <dd>This option enables support for a large, 40x49 san serif bold font
+        (font ID <code>FONTID_SANS40X49B</code> == 7).
+    <dt><code>CONFIG_NXFONT_SERIF22X29</code>:
+      <dd>This option enables support for a small, 22x29 font (with serifs)
+        (font ID <code>FONTID_SERIF22X29</code> == 8).
+    <dt><code>CONFIG_NXFONT_SERIF29X37</code>:
+      <dd>This option enables support for a medium, 29x37 font (with serifs)
+        (font ID <code>FONTID_SERIF29X37</code> == 9).
+    <dt><code>CONFIG_NXFONT_SERIF38X48</code>:
+      <dd>This option enables support for a large, 38x48 font (with serifs)
+        (font ID <code>FONTID_SERIF38X48</code> == 10).
+    <dt><code>CONFIG_NXFONT_SERIF22X28B</code>:
+      <dd>This option enables support for a small, 27x38 bold font (with serifs)
+        (font ID <code>FONTID_SERIF22X28B</code> == 11).
+    <dt><code>CONFIG_NXFONT_SERIF27X38B</code>:
+      <dd>This option enables support for a medium, 27x38 bold font (with serifs)
+        (font ID <code>FONTID_SERIF27X38B</code> == 12).
+    <dt><code>CONFIG_NXFONT_SERIF38X49B</code>:
+      <dd>This option enables support for a large, 38x49 bold font (with serifs)
+       (font ID <code>FONTID_SERIF38X49B</code> == 13).
+  </dl>
+</ul>
+
+<h2>B.7 <a name="nxconsoleconfig">NxConsole Configuration Settings</a></h2>
+
+<p>General NxConsole settings.</p>
+<ul>
+  <dl>
+    <dt><code>CONFIG_NXCONSOLE</code>:
+      <dd>Enables building of the NxConsole driver.
+  </dl>
+</ul>
+
+<p>NxConsole output text/graphics options:</p>
+<ul>
+  <dl>
+    <dt><code>CONFIG_NXCONSOLE_BPP</code>:
+      <dd>Currently, NxConsole supports only a single pixel depth.
+      This configuration setting must be provided to support that single pixel depth.
+      Default: The smallest enabled pixel depth. (see <code>CONFIG_NX_DISABLE_*BPP</code>)
+    <dt><code>CONFIG_NXCONSOLE_CURSORCHAR</code>:
+      <dd>The bitmap code to use as the cursor.  Default '_'
+    <dt><code>CONFIG_NXCONSOLE_MXCHARS</code>:
+      <dd>NxConsole needs to remember every character written to the console so that it can redraw the window.
+      This setting determines the size of some internal memory allocations used to hold the character data.
+      Default: 128.
+    <dt><code>CONFIG_NXCONSOLE_CACHESIZE</code>:
+      <dd>
+      NxConsole supports caching of rendered fonts.
+      This font caching is required for two reasons:
+      (1) First, it improves text performance, but more importantly
+      (2) it preserves the font memory.
+      Since the NX server runs on a separate server thread, it requires that the rendered font memory persist until the server has a chance to render the font.
+      Unfortunately, the font cache would be quite large if all fonts were saved.
+      The <code>CONFIG_NXCONSOLE_CACHESIZE</code> setting will control the size of the font cache (in number of glyphs).
+      Only that number of the most recently used glyphs will be retained.
+      Default: 16.
+      <blockquote>
+        NOTE: There can still be a race condition between the NxConsole driver and the
+        NX task.  If you every see character corruption (especially when printing
+        a lot of data or scrolling), then increasing the value of <code>CONFIG_NXCONSOLE_CACHESIZE</code>
+        is something that you should try.
+        Alternatively, you can reduce the size of <code>CONFIG_MQ_MAXMSGSIZE</code> which will force NxConsole task to pace the server task.
+        <code>CONFIG_NXCONSOLE_CACHESIZE</code> should be larger than <code>CONFIG_MQ_MAXMSGSIZE</code> in any event.
+      </blockquote>
+    <dt><code>CONFIG_NXCONSOLE_LINESEPARATION</code>:
+      <dd>This the space (in rows) between each row of test.  Default: 0
+    <dt><code>CONFIG_NXCONSOLE_NOWRAP</code>:
+      <dd>By default, lines will wrap when the test reaches the right hand side of the window.
+      This setting can be defining to change this behavior so that the text is simply truncated until a new line is  encountered.
+  </dl>
+</ul>
+
+<p>NxConsole input options:</p>
+<ul>
+  <dl>
+    <dt><code>CONFIG_NXCONSOLE_NXKBDIN</code>:
+      <dd>Take input from the NX keyboard input callback.
+      By default, keyboard input is taken from stdin (<code>/dev/console</code>).
+      If this option is set, then the interface<code>nxcon_kdbin()</code> is enabled. 
+      That interface may be driven by window callback functions so that keyboard input <i>only</i> goes to the top window.
+    <dt><code>CONFIG__NXCONSOLE_KBDBUFSIZE</code>:
+      <dd>If <code>CONFIG_NXCONSOLE_NXKBDIN</code> is enabled, then this value may be used to
+      define the size of the per-window keyboar input buffer.  Default: 16
+    <dt><code>CONFIG_NXCONSOLE_NPOLLWAITERS</code>:
+      <dd>The number of threads that can be waiting for read data available.
+      Default: 4
+  </dl>
+</ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+      <h1>Appendix C <a name="installnewfonts">Installing New Fonts</a></h1>
+    </td>
+  </tr>
+</table>
+
+<p><b>The BDF Font Converter</b>.
+  There is a tool called <i>bdf-converter</i> in the directory <code>tools/.</code>.
+  The <i>bdf-converter</i> program be used to convert fonts in Bitmap Distribution Format (BDF) into fonts that can be used in the NX graphics system.
+  The BDF format most well known as a font format traditionally used for X-11 bitmap fonts.
+</p>
+<blockquote><small>
+  A Note about Font Copyrights:
+  My understanding is that the underlying bitmap font data for traditional fonts cannot be copyrighted (the same is not true for scalable fonts).
+  This is because a copyright covers only the form of delivery of the font and not the underlying font content and, at least for the traditional typefaces, the underlying font designs are ancient.
+  There could be issues, however, if you convert from modern, trademarked images.
+  However, remember that I am a programmer not an attorney and that my knowledge of font copyright issues is limited to what I glean by Googling.
+</small></blockquote>
+<p>
+  <b>Font Installation Steps</b>,
+  Below are general instructions for creating and installing a new font in the NX graphic system.
+  The first two steps only appy if you are using the BDF font converter program.
+</p>
+<ol start="1">
+  <li>
+    <p>
+      Locate a font in BDF format.
+      There are many good BDF bitmap fonts bundled with X-11.
+      See <a href="http://www.cl.cam.ac.uk/~mgk25/ucs-fonts.html">this link</a>, as an example, 
+    </p>
+  </li>
+  <li>
+    <p>
+      Use the <i>bdf-converter</i> program to convert the BDF font to the NuttX font format.
+      This will result in a C header file containing defintions.
+      That header file should be installed at, for example, <code>graphics/nxfonts/nxfonts_myfont.h</code>.
+    </p>
+  </li>
+</ol>
+<p>
+  The remaining steps apply however you managed to create the NuttX C font header file.
+  After you have your C font header file, the next thing to do is to create a new NuttX configuration variable to select the font.
+  For example, suppose you define the following variable: <code>CONFIG_NXFONT_MYFONT</code>.
+  Then you would need to:
+</p>
+<ol start="3">
+  <li>
+    <p>
+      Define <code>CONFIG_NXFONT_MYFONT=y</code> in your NuttX configuration file.
+    </p>
+  </li>
+</ol>
+<p>
+  A font ID number has to be assigned for each new font.
+  The font IDs are defined in the file <code>include/nuttx/nx/nxfonts.h</code>.
+  Those definitions have to be extended to support your new font.
+  Look at how the font ID enabled by <code>CONFIG_NXFONT_SANS23X27</code> is defined and add an ID for yournew font in a similar fashion:
+</p>
+<ol start="4">
+  <li>
+    <p>
+      <b><code>include/nuttx/nx/nxfonts.h</code></b>. Add you new font as a possible system default font:
+    </p>
+    <ul><pre>
+#if defined(CONFIG_NXFONT_SANS23X27)
+# define NXFONT_DEFAULT FONTID_SANS23X27
+#elif defined(CONFIG_NXFONT_MYFONT)
+# define NXFONT_DEFAULT FONTID_MYFONT
+#endif
+</pre></ul>
+    <p>
+      Then define the actual font ID.
+      Make sure that the font ID value is unique:
+    </p>
+    <ul><pre>
+enum nx_fontid_e
+{
+  FONTID_DEFAULT     = 0      /* The default font */
+#ifdef CONFIG_NXFONT_SANS23X27
+  , FONTID_SANS23X27 = 1      /* The 23x27 sans serif font */
+#endif
+#ifdef CONFIG_NXFONT_MYFONT
+  , FONTID_MYFONT    = 2      /* My shiny, new font */
+#endif
+...
+</pre></ul>
+   </li>
+</ol>
+<p>
+  New Add the font to the NX build system.
+  There are several files that you have to modify to to this.
+  Look how the build system uses the font CONFIG_NXFONT_SANS23X27 for examaples:
+</p>
+<ol start="5">
+  <li>
+    <p>
+      <b><code>nuttx/graphics/Makefile</code></b>.
+      This file needs logic to auto-generate a C source file from the header file that you generated with the the <i>bdf-converter</i> program.
+      Notice <code>NXFONTS_FONTID=2</code>; this must be set to the same font ID value that you defined in the <code>include/nuttx/nx/nxfonts.h</code> file.
+    </p>
+    <ul><pre>
+genfontsources:
+  ifeq ($(CONFIG_NXFONT_SANS23X27),y)
+      @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=1 EXTRADEFINES=$(EXTRADEFINES)
+  endif
+  ifeq ($(CONFIG_NXFONT_MYFONT),y)
+      @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=2 EXTRADEFINES=$(EXTRADEFINES)
+  endif
+</pre></ul>
+  </li>
+  <li>
+    <p>
+      <b><code>nuttx/graphics/nxfonts/Make.defs</code></b>.
+      Set the make variable <code>NXFSET_CSRCS</code>.
+      <code>NXFSET_CSRCS</code> determines the name of the font C file to build when <code>NXFONTS_FONTID=2</code>:
+    </p>
+    <ul><pre>
+ifeq ($(CONFIG_NXFONT_SANS23X27),y)
+NXFSET_CSRCS += nxfonts_bitmaps_sans23x27.c
+endif
+ifeq ($(CONFIG_NXFONT_MYFONT),y)
+NXFSET_CSRCS += nxfonts_bitmaps_myfont.c
+endif
+</pre></ul>
+  </li>
+  <li>
+    <p>
+      <b><code>nuttx/graphics/nxfonts/Makefile.sources</code></b>.
+      This is the Makefile used in step 5 that will actually generate the font C file.
+      So, given your </code>NXFONTS_FONTID=2</code>, it needs to determine a prefix to use for auto-generated variable and function names and (again) the name of the autogenerated file to create (this must be the same name that was used in <code>nuttx/graphics/nxfonts/Make.defs</code>):
+    </p>
+    <ul><pre>
+ifeq ($(NXFONTS_FONTID),1)
+NXFONTS_PREFIX	:= g_sans23x27_
+GEN_CSRC	= nxfonts_bitmaps_sans23x27.c
+endif
+ifeq ($(NXFONTS_FONTID),2)
+NXFONTS_PREFIX	:= g_myfont_
+GEN_CSRC	= nxfonts_bitmaps_myfont.c
+endif
+</pre></ul>
+  </li>
+  <li>
+    <p>
+      <b><code>graphics/nxfonts/nxfonts_bitmaps.c</code></b>.
+      This is the file that contains the generic font structures.
+      It is used as a &quot;template&qout; file by <code>nuttx/graphics/nxfonts/Makefile.sources </code>to create your customized font data set at build time.
+    </p>
+    <ul><pre>
+#if NXFONTS_FONTID == 1
+#  include "nxfonts_sans23x27.h"
+#elif NXFONTS_FONTID == 2
+#  include "nxfonts_myfont.h"
+#else
+#  error "No font ID specified"
+#endif
+</pre></ul>
+    <p>
+       Where <code>nxfonts_myfont.h</code> is the NuttX font file that we generated in
+       step 2 using the <i>bdf-converter</i> tool.
+  </p>
+  <li>
+    <p>
+      <b><code>graphics/nxfonts/nxfonts_getfont.c</code></b>.
+      Finally, we need to extend the logic that does the run-time font lookups so that can find our new font.
+      The lookup function is <a href="#nxfgetfonthandle"><code>NXHANDLE nxf_getfonthandle(enum nx_fontid_e fontid)</code></a>.
+      Note that the lookup is based on the font ID that was defined in step 4.
+      The new font information needs to be added to data structures used by that function:
+    </p>
+    <ul><pre>
+#ifdef CONFIG_NXFONT_SANS23X27
+extern const struct nx_fontpackage_s g_sans23x27_package;
+#endif
+#ifdef CONFIG_NXFONT_MYFONT
+extern const struct nx_fontpackage_s g_myfont_package;
+#endif
+
+static FAR const struct nx_fontpackage_s *g_fontpackages[] =
+{
+#ifdef CONFIG_NXFONT_SANS23X27
+  &g_sans23x27_package,
+#endif
+#ifdef CONFIG_NXFONT_MYFONT
+  &g_myfont_package,
+#endif
+  NULL
+};
+</pre></ul>
+  </li>
+</ol>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+      <h1>Appendix D <a name="testcoverage">NX Test Coverage</a></h1>
+    </td>
+  </tr>
+</table>
+
+<p><b><code>apps/examples/nx</code></b>.
+  The primary test tool for debugging NX resides at <code>apps/examples/nx</code>.
+</p>
+<p><b>Building <code>apps/examples/nx</code></b>.
+  NX testing was performed using <code>apps/examples/nx</code> with the
+  Linux/Cygwin-based NuttX simulator.
+  Configuration files for building this test can be found in <code>configs/sim/nx</code>
+  and <code>configs/sim/nx11</code>.
+  There are two alternative configurations for building the simulation:
+</p>
+<ol>
+  <li>
+    The configuration using the configuration file at <code>configs/sim/nx/defconfig</code>.
+    This default configuration exercises the NX logic a 8 BPP but provides no visual feedback.
+    In this configuration, a very simple, simulated framebuffer driver is used that is
+    based upon a simple region of memory posing as video memory.
+    That default configuration can be built as follows:
+<ul><pre>
+cd &lt;NuttX-Directory&gt;/tools
+./configure sim/nx
+cd  &lt;NuttX-Directory&gt;
+make
+./nuttx
+</pre></ul>
+  </li>
+  <li>
+    <p>
+      The preferred configuration is at <code>configs/sim/nx11/defconfig</code>.
+      This configuration extends the test with a simulated framebuffer driver
+      that uses an X window as a framebuffer.
+      This is a superior test configuration because the X window appears at your desktop
+      and you can see the NX output.
+      This preferred configuration can be built as follows:
+    </p>
+<ul><pre>
+cd &lt;NuttX-Directory&gt;/tools
+./configure sim/nx11
+cd  &lt;NuttX-Directory&gt;
+make
+./nuttx
+</pre></ul>
+    <p>
+      <i>Update:</i>
+      The sim target has suffered some bit-rot over the years and so the following caveats need to be added:
+      <ul>
+        <li><p>
+          The X target builds under recent Cygwin configurations, but does not execute.
+          (It fails inside of <code>XOpenDisplay()</code>.
+        </p></li>
+        <li><p>
+          The X target does not build under current (9.09) Ubuntu distributions.
+          I needed to make the following changes:
+        </p>
+        <ul></pre>
+cd /usr/lib/
+sudo ln -s libXext.so.6.4.0 libXext.so
+</pre></ul>
+        <p>
+          The build will also fail to locate the X header files unless you install an X11 development package.
+        </p></li>
+        <li><p>
+          The sim target itself is broken under 64-bit Linux.
+          This is because the sim target is based upon some assembly language setjmp/longjmp logic that only works on 32-bit systems.
+        </p>
+        <p><small>
+          <b>NOTE</b>: There is a workaround in this case: 
+          You can build for 32-bit execution on a 64-bit machine by adding <code>-m3</code> to the <code>CFLAGS</code> and <code>-m32 -m elf_i386</code> to the <code>LDFLAGS</code>.
+          See the patch file <code>0001-Quick-hacks-to-build-sim-nsh-ostest-on-x86_64-as-32-.patch</code>
+          that can be found in NuttX <a href="http://tech.groups.yahoo.com/group/nuttx/files">files</a>.
+        </small></p>
+        </li>
+        <li><p>
+          Refer to the readme file in sim configuration
+          <a href="http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/nuttx/configs/sim/README.txt?view=log">README.txt</a> file for additional information.
+        </p></li>
+      </ul>
+    </p>
+  </li>
+</ol>
+
+<p><b>Test Coverage</b>.
+  At present, <code>apps/examples/nx</code>t only exercises a subset of NX;
+  the remainder is essentially untested.
+  The following table describes the testing performed on each NX API:
+</p>
+
+<center><h2>Table D.1: <a name="nxglibcoverage">NXGLIB API Test Coverage</a></h2></center>
+<center><table border="1" width="80%">
+<tr>
+  <th width="40%">Function</th>
+  <th width="60%">Special Setup/Notes</th>
+  <th width="5%">Verified</th></tr>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglrgb2yuv"><code>nxgl_rgb2yuv()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglyuv2rgb"><code>nxgl_yuv2rgb()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglrectcopy"><code>nxgl_rectcopy()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglrectoffset"><code>nxgl_rectoffset()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglvectoradd"><code>nxgl_vectoradd()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglvectorsubtract"><code>nxgl_vectorsubtract()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglrectintersect"><code>nxgl_rectintersect()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglrectunion"><code>nxgl_rectunion()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglnonintersecting"><code>nxgl_nonintersecting()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglrectoverlap"><code>nxgl_rectoverlap()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglrectinside"><code>nxgl_rectinside()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglrectsize"><code>nxgl_rectsize()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglnullrect"><code>nxgl_nullrect()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglrunoffset"><code>nxgl_runoffset()</code></a></td>
+  <td>
+    Verified by <code>apps/examples/nxlines</code>.
+  </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglruncopy"><code>nxgl_runcopy()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxgltrapoffset"><code>nxgl_trapoffset()</code></a></td>
+  <td>
+    Verified by <code>apps/examples/nxlines</code>.
+  </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxgltrapcopy"><code>nxgl_trapcopy()</code></a></td>
+  <td>
+    Verified by <code>apps/examples/nxlines</code>.
+  </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglcolorcopy"><code>nxgl_colorcopy</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglsplitline"><code>nxgl_splitline</code></a></td>
+  <td bgcolor="lightgreen">
+    Verified using <code>apps/examples/nxlines</code>.
+    Generally works well, but has some accuracy/overflow problems wide lines
+    that are nearly horizontal.
+    There is a &quot;fudge factor&quot; that seems to eliminate the problem,
+    but there could still be issues in some configurations.
+  </td>
+  <td align="center" bgcolor="lightgreen">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglcirclepts"><code>nxgl_circlepts</code></a></td>
+  <td>
+    Verified by <code>apps/examples/nxlines</code>.
+  </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglcircletraps"><code>nxgl_circletraps</code></a></td>
+  <td>
+    Verified by <code>apps/examples/nxlines</code>.
+  </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+</table></center>
+
+<center><h2>Table D.2: <a name="nxcbcoverage">NX Server Callbacks Test Coverage</a></h2></center>
+<center><table border="1" width="80%">
+<tr>
+  <th width="40%">Function</th>
+  <th width="60%">Special Setup/Notes</th>
+  <th width="5%">Verified</th></tr>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxcbredraw"><code>redraw()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxcbposition"><code>position()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxcbmousein"><code>mousein()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxcbkbdin"><code>kbdin()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+</table></center>
+
+<center><h2>Table D.3: <a name="nxcoverage">NX API Test Coverage</a></h2></center>
+<center><table border="1" width="80%">
+<tr>
+  <th width="40%">Function</th>
+  <th width="60%">Special Setup/Notes</th>
+  <th width="5%">Verified</th></tr>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxruninstance"><code>nx_runinstance()</code></a></td>
+  <td>Change to <code>CONFIG_NX_MULTIUSER=y</code> in the
+     <code>&lt;NuttX-Directory&gt;/.config</code> file </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxconnectinstance"><code>nx_connectinstance()</code></a></td>
+  <td>Change to <code>CONFIG_NX_MULTIUSER=y</code> in the
+     <code>&lt;NuttX-Directory&gt;/.config</code> file </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxopen"><code>nx_open()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxdisconnect"><code>nx_disconnect()</code></a></td>
+  <td>Change to <code>CONFIG_NX_MULTIUSER=y</code> in the
+     <code>&lt;NuttX-Directory&gt;/.config</code> file </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxclose"><code>nx_close()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxeventhandler"><code>nx_eventhandler()</code></a></td>
+  <td>Change to <code>CONFIG_NX_MULTIUSER=y</code> in the
+     <code>&lt;NuttX-Directory&gt;/.config</code> file</td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxeventnotify"><code>nx_eventnotify()</code></a></td>
+  <td>This is not used in the current version of <code>apps/examples/nx</code>,
+      was tested in a previous version)</td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxopenwindow"><code>nx_openwindow()</code></a></td>
+  <td>Change to <code>CONFIG_EXAMPLES_NX_RAWWINDOWS=y</code> in the
+     <code>&lt;NuttX-Directory&gt;/.config</code> file</td>
+  </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxclosewindow"><code>nx_closewindow()</code></a></td>
+  <td>Change to <code>CONFIG_EXAMPLES_NX_RAWWINDOWS=y</code> in the
+     <code>&lt;NuttX-Directory&gt;/.config</code> file</td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxrequestbkgd"><code>nx_requestbkgd()</code></a></td>
+  <td>
+    Verified by <code>apps/examples/nxtext</code> and <code>apps/examples/nxhello</code>.
+  </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxreleasebkgd"><code>nx_releasebkgd()</code></a></td>
+  <td>
+    Verified by <code>apps/examples/nxtext</code> and <code>apps/examples/nxhello</code>.
+  </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxgetposition"><code>nx_getposition()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxsetposition"><code>nx_setposition()</code></a></td>
+  <td>Change to <code>CONFIG_EXAMPLES_NX_RAWWINDOWS=y</code> in the
+     <code>&lt;NuttX-Directory&gt;/.config</code> file</td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxsetsize"><code>nx_setsize()</code></a></td>
+  <td>Change to <code>CONFIG_EXAMPLES_NX_RAWWINDOWS=y</code> in the
+     <code>&lt;NuttX-Directory&gt;/.config</code> file</td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxraise"><code>nx_raise()</code></a></td>
+  <td>Change to <code>CONFIG_EXAMPLES_NX_RAWWINDOWS=y</code> in the
+     <code>&lt;NuttX-Directory&gt;/.config</code> file</td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxlower"><code>nx_lower()</code></a></td>
+  <td>Change to <code>CONFIG_EXAMPLES_NX_RAWWINDOWS=y</code> in the
+     <code>&lt;NuttX-Directory&gt;/.config</code> file</td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxfill"><code>nx_fill()</code></a></td>
+  <td>Change to <code>CONFIG_EXAMPLES_NX_RAWWINDOWS=y</code> in the
+     <code>&lt;NuttX-Directory&gt;/.config</code> file</td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxgetrectangle"><code>nx_getrectangle()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxfilltrapezoid"><code>nx_filltrapezoid()</code></a></td>
+  <td>
+    Verified by <code>apps/examples/nxlines</code>.
+  </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxdrawline"><code>nx_drawline()</code></a></td>
+  <td>
+    Verified by <code>apps/examples/nxlines</code>.
+  </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxdrawcircle"><code>nx_drawcircle()</code></a></td>
+  <td>
+    Verified by <code>apps/examples/nxlines</code>.
+  </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxfillcircle"><code>nx_fillcircle()</code></a></td>
+  <td>
+    Verified by <code>apps/examples/nxlines</code>.
+  </td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxglrgb2yuv"><code>nx_setbgcolor()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxmove"><code>nx_move()</code></a></td>
+  <td>Change to <code>CONFIG_EXAMPLES_NX_RAWWINDOWS=y</code> in the
+     <code>&lt;NuttX-Directory&gt;/.config</code> file</td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxbitmap"><code>nx_bitmap()</code></a></td>
+  <td>Change to <code>CONFIG_EXAMPLES_NX_RAWWINDOWS=y</code> in the
+     <code>&lt;NuttX-Directory&gt;/.config</code> file.</td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxkbdin"><code>nx_kbdin()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxmousein"><code>nx_mousein()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+</table></center>
+
+
+<center><h2>Table D.4: <a name="nxtkcoverage">NXTK API Test Coverage</a></h2></center>
+<center><table border="1" width="80%">
+<tr>
+  <th width="40%">Function</th>
+  <th width="60%">Special Setup/Notes</th>
+  <th width="5%">Verified</th></tr>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkopenwindow"><code>nxtk_openwindow()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkclosewindow"><code>nxtk_closewindow()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkgetposition"><code>nxtk_getposition()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtksetposition"><code>nxtk_setposition()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtksetsize"><code>nxtk_setsize()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkraise"><code>nxtk_raise()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtklower"><code>nxtk_lower()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkfillwindow"><code>nxtk_fillwindow()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkgetwindow"><code>nxtk_getwindow()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkfilltrapwindow"><code>nxtk_filltrapwindow()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkdrawlinewindow"><code>nxtk_drawlinewindow()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkdrawcirclewindow"><code>nxtk_drawcirclewindow()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkfillcirclewindow"><code>nxtk_fillcirclewindow()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkmovewindow"><code>nxtk_movewindow()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkbitmapwindow"><code>nxtk_bitmapwindow()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkopentoolbar"><code>nxtk_opentoolbar()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkclosetoolbar"><code>nxtk_closetoolbar()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkfilltoolbar"><code>nxtk_filltoolbar()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkgettoolbar"><code>nxtk_gettoolbar()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkfilltraptoolbar"><code>nxtk_filltraptoolbar()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkdrawlinetoolbar"><code>nxtk_drawlinetoolbar()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkdrawcircletoolbar"><code>nxtk_drawcircletoolbar()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkfillcircletoolbar"><code>nxtk_fillcircletoolbar()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkmovetoolbar"><code>nxtk_movetoolbar()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxtkbitmaptoolbar"><code>nxtk_bitmaptoolbar()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+</table></center>
+
+<center><h2>Table D.5: <a name="nxfontscoverage">NXFONTS API Test Coverage</a></h2></center>
+<center><table border="1" width="80%">
+<tr>
+  <th width="40%">Function</th>
+  <th width="60%">Special Setup/Notes</th>
+  <th width="5%">Verified</th></tr>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxfgetfonthandle"><code>nxf_getfonthandle()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxfgetfontset"><code>nxf_getfontset()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxfgetbitmap"><code>nxf_getbitmap()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxfconvertbpp"><code>nxf_convert_2bpp()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxfconvertbpp"><code>nxf_convert_4bpp()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxfconvertbpp"><code>nxf_convert_8bpp()</code></a></td>
+  <td>Use <code>defconfig</code> when building.</td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxfconvertbpp"><code>nxf_convert_16bpp()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxfconvertbpp"><code>nxf_convert_24bpp()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="lightgrey">NO</td>
+</tr>
+<tr>
+  <td align="left" valign="top"><a href="#nxfconvertbpp"><code>nxf_convert_32bpp()</code></a></td>
+  <td><br></td>
+  <td align="center" bgcolor="skyblue">YES</td>
+</tr>
+</table></center>
+
+</body>
+</html>
+

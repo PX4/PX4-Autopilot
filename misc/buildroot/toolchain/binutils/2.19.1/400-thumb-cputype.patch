@@ -1,0 +1,16 @@
+// This patch is bogus.  It does let you create a a version of binutils with the cross
+// name of thumb-elf, but it is insufficient to build a whole thumb-elf toolchain because
+// of issues with gcc.  Rather, build arm-elf, but configure --with-mode=thumb
+//
+diff -u binutils-2.19.1/gas/configure.tgt.orig binutils-2.19.1/gas/configure.tgt
+--- binutils-2.19.1/gas/configure.tgt.orig	2009-04-25 11:00:15.593750000 -0400
++++ binutils-2.19.1/gas/configure.tgt	2009-04-25 11:00:45.593750000 -0400
+@@ -32,7 +32,7 @@
+   alpha*)		cpu_type=alpha ;;
+   am33_2.0)		cpu_type=mn10300 endian=little ;;
+   arm*be|arm*b)		cpu_type=arm endian=big ;;
+-  arm*)			cpu_type=arm endian=little ;;
++  arm*|thumb*)		cpu_type=arm endian=little ;;
+   bfin*)		cpu_type=bfin endian=little ;;
+   c4x*)			cpu_type=tic4x ;;
+   cr16*)		cpu_type=cr16 endian=little ;;

@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_RGMP
+	bool "RGMP example"
+	default n
+	---help---
+		Enable the RGMP example
+
+if EXAMPLES_RGMP
+endif

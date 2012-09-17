@@ -1,0 +1,10 @@
+%!: /header.html
+  <p>
+  These web pages are served by a small web server running on top of
+  the <a href="http://www.sics.se/~adam/uip/">uIP embedded TCP/IP
+  stack</a>.
+  </p>
+  <p>
+  Click on the links above for web server statistics.
+  </p>
+%!: /footer.html

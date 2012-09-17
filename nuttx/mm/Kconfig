@@ -1,0 +1,85 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config MM_SMALL
+	bool "Small memory model"
+	default n
+	---help---
+		Each memory allocation has a small allocation overhead.  The size
+		of that overhead is normally determined by the "width" of the
+		address support by the MCU.  MCUs that support 16-bit addressability
+		have smaller overhead than devices that support 32-bit addressability.
+		However, there are many MCUs that support 32-bit addressability *but*
+		have internal SRAM of size less than or equal to 64Kb.  In this case,
+		CONFIG_MM_SMALL can be defined so that those MCUs will also benefit
+		from the smaller, 16-bit-based allocation overhead.
+
+config MM_REGIONS
+	int "Number of memory regions"
+	default 1
+	---help---
+		If the architecture includes multiple, non-contiguous regions of
+		memory to allocate from, this specifies the number of memory regions
+		that the memory manager must handle and enables the API
+		mm_addregion(start, end);
+
+config ARCH_HAVE_HEAP2
+	bool
+
+config HEAP2_BASE
+	hex "Start address of second heap region"
+	default 0x00000000
+	depends on ARCH_HAVE_HEAP2
+	---help---
+		The base address of the second heap region.
+
+config HEAP2_SIZE
+	int "Size of the second heap region"
+	default 0
+	depends on ARCH_HAVE_HEAP2
+	---help---
+		The size of the second heap region.
+
+config GRAN
+	bool "Enable Granule Allocator"
+	default n
+	---help---
+		Enable granual allocator support.  Allocations will be aligned to the
+		granule size; allocations will be in units of the granule size.
+		Larger granules will give better performance and less overhead but
+		more losses of memory due to alignment and quantization waste.
+
+		NOTE: The current implementation also restricts the maximum
+		allocation size to 32 granaules.  That restriction could be
+		eliminated with some additional coding effort.
+
+config GRAN_SINGLE
+	bool "Single Granule Allocator"
+	default n
+	depends on GRAN
+	---help---
+		Select if there is only one instance of the granule allocator (i.e.,
+		gran_initialize will be called only once. In this case, (1) there
+		are a few optimizations that can can be done and (2) the GRAN_HANDLE
+		is not needed.
+
+config GRAN_INTR
+	bool "Interrupt level support"
+	default n
+	depends on GRAN
+	---help---
+		Normally mutual exclusive access to granule allocator data is assured
+		using a semaphore.  If this option is set then, instead, mutual
+		exclusion logic will disable interrupts.  While this options is more
+		invasive to system performance, it will also support use of the granule
+		allocator from interrupt level logic.
+
+config DEBUG_GRAN
+	bool "Granule Allocator Debug"
+	default n
+	depends on GRAN && DEBUG
+	---help---
+		Just like CONFIG_DEBUG_MM, but only generates ouput from the gran
+		allocation logic.

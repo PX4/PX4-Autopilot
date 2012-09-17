@@ -1,0 +1,25 @@
+https://www.olimex.com/dev/pdf/ARM/JTAG/Repair%20Procedure%20for%20OpenOcd-Rev.%20G%20drivers.pdf
+
+Repair procedure for ARM-USB-OCD drivers
+
+1.   Uninstalling ARM-USB-OCD drivers
+-------------------------------------
+1.1. Connect your programmer/debugger to your computer, open Device Manager
+     and uninstall the drivers for ARM-USB-OCD.
+1.2. After you have uninstalled ARM-USB-TINY driver from Device Manager,
+     disconnect the programmer from your computer.
+1.3. Now you should download FTClean.exe from here:
+     http://www.ftdichip.com/Support/Utilities/FTClean.zip.
+1.4. After download is complete extract the "*.zip" file, open folder FTClean,
+     and run FTClean.exe
+1.5. Ror VID (Hex) select "Other". And after that fill the first box with 15ba
+     and "PID (Hex)" with 0004.
+1.6. Press "Clean System" button.  Make sure that all FTDI devices are
+     disconnected. (My require administrator privileges).
+
+2. Re-installing the ARM-USB-OCD driver
+---------------------------------------
+2.1 Connect the programmer/debugger to the computer.
+2.2 When prompted, browse to the C:\gccfd\DRIVERS\ARM-USB-OCD-DRIVER
+    directory and install. (A different driver is required for OpenOCD
+    0.4.0.  That driver is available from the olimex.com web site).

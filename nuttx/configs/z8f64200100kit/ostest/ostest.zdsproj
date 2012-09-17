@@ -1,0 +1,291 @@
+<project type="Standard" project-type="Standard" configuration="Debug" created-by="{{build_number}}" modified-by="b:4.10:06121401">
+<cpu>Z8F6403</cpu>
+
+<!-- file information -->
+<files>
+<file filter-key="">.\zsldevinit.asm</file>
+<file filter-key="flash">..\..\..\nuttx.hex</file>
+</files>
+
+<!-- configuration information -->
+<configurations>
+<configuration name="Debug" >
+<tools>
+<tool name="Assembler">
+<options>
+<option name="define" type="string" change-action="assemble">_Z8F6403=1,_Z8ENCORE_640_FAMILY=1,_Z8ENCORE_F640X=1</option>
+<option name="include" type="string" change-action="assemble"></option>
+<option name="list" type="boolean" change-action="none">true</option>
+<option name="listmac" type="boolean" change-action="none">false</option>
+<option name="name" type="boolean" change-action="none">true</option>
+<option name="pagelen" type="integer" change-action="none">56</option>
+<option name="pagewidth" type="integer" change-action="none">80</option>
+<option name="quiet" type="boolean" change-action="none">true</option>
+<option name="revaa" type="boolean" change-action="rebuild">true</option>
+<option name="sdiopt" type="boolean" change-action="assemble">true</option>
+</options>
+</tool>
+<tool name="Compiler">
+<options>
+<option name="codegen" type="string" change-action="none">UserDefined</option>
+<option name="const" type="string" change-action="compile">RAM</option>
+<option name="define" type="string" change-action="compile">_Z8F6403,_Z16F_SERIES,_Z8ENCORE_640_FAMILY,_Z8ENCORE_F640X</option>
+<option name="genprintf" type="boolean" change-action="compile">true</option>
+<option name="keepasm" type="boolean" change-action="none">false</option>
+<option name="keeplst" type="boolean" change-action="none">true</option>
+<option name="list" type="boolean" change-action="none">false</option>
+<option name="listinc" type="boolean" change-action="none">false</option>
+<option name="model" type="string" change-action="compile">L</option>
+<option name="optlink" type="boolean" change-action="compile">false</option>
+<option name="promote" type="boolean" change-action="compile">true</option>
+<option name="regvar" type="string" change-action="compile">Normal</option>
+<option name="regvarcache" type="string" change-action="none">Normal</option>
+<option name="reduceopt" type="boolean" change-action="compile">false</option>
+<option name="stdinc" type="string" change-action="compile"></option>
+<option name="usrinc" type="string" change-action="compile"></option>
+<option name="watch" type="boolean" change-action="none">false</option>
+</options>
+</tool>
+<tool name="Debugger">
+<options>
+<option name="target" type="string" change-action="rebuild">Z8ENCORE00ZC0</option>
+<option name="debugtool" type="string" change-action="none">Simulator</option>
+<option name="zemul_enableevents" type="boolean" change-action="none">false</option>
+<option name="zemul_brkonfull" type="boolean" change-action="none">false</option>
+<option name="usepageerase" type="boolean" change-action="none">true</option>
+</options>
+</tool>
+<tool name="FlashProgrammer">
+<options>
+<option name="erasebeforeburn" type="boolean" change-action="none">false</option>
+<option name="eraseinfopage" type="boolean" change-action="none">false</option>
+<option name="offset" type="integer" change-action="none">0</option>
+<option name="snenable" type="boolean" change-action="none">true</option>
+<option name="sn" type="string" change-action="none">000000000000000000000000</option>
+<option name="snsize" type="integer" change-action="none">1</option>
+<option name="snstep" type="integer" change-action="none">000000000000000000000001</option>
+<option name="snstepformat" type="integer" change-action="none">0</option>
+<option name="snaddress" type="string" change-action="none">0</option>
+<option name="snformat" type="integer" change-action="none">0</option>
+<option name="snbigendian" type="boolean" change-action="none">true</option>
+<option name="singleval" type="string" change-action="none">0</option>
+<option name="singlevalformat" type="integer" change-action="none">0</option>
+<option name="usenvds" type="boolean" change-action="none">false</option>
+<option name="includeserial" type="boolean" change-action="none">false</option>
+<option name="usepageerase" type="boolean" change-action="none">false</option>
+</options>
+</tool>
+<tool name="General">
+<options>
+<option name="warn" type="boolean" change-action="none">true</option>
+<option name="debug" type="boolean" change-action="assemble">true</option>
+<option name="debugcache" type="boolean" change-action="none">true</option>
+<option name="igcase" type="boolean" change-action="assemble">false</option>
+<option name="outputdir" type="string" change-action="compile">.</option>
+</options>
+</tool>
+<tool name="Librarian">
+<options>
+<option name="outfile" type="string" change-action="build">.\ostest.lib</option>
+</options>
+</tool>
+<tool name="Linker">
+<options>
+<option name="createnew" type="boolean" change-action="build">false</option>
+<option name="directives" type="string" change-action="build"></option>
+<option name="edata" type="string" change-action="build">100-EFF</option>
+<option name="exeform" type="string" change-action="build">OMF695,INTEL32</option>
+<option name="flash" type="string" change-action="build">FF80-FFFF</option>
+<option name="fplib" type="string" change-action="build">Dummy</option>
+<option name="linkctlfile" type="string" change-action="build"></option>
+<option name="map" type="boolean" change-action="none">true</option>
+<option name="maxhexlen" type="integer" change-action="build">64</option>
+<option name="nvds" type="string" change-action="build">0-f</option>
+<option name="objlibmods" type="string" change-action="build"></option>
+<option name="of" type="string" change-action="build">.\ostest</option>
+<option name="padhex" type="boolean" change-action="build">false</option>
+<option name="pram" type="string" change-action="build">0-f</option>
+<option name="praminuse" type="boolean" change-action="build">false</option>
+<option name="quiet" type="boolean" change-action="none">false</option>
+<option name="rdata" type="string" change-action="build">20-FF</option>
+<option name="relist" type="boolean" change-action="build">false</option>
+<option name="rom" type="string" change-action="build">0-FFF</option>
+<option name="sort" type="string" change-action="none">name</option>
+<option name="startuptype" type="string" change-action="build">Standard</option>
+<option name="startuplnkcmds" type="boolean" change-action="build">true</option>
+<option name="undefisfatal" type="boolean" change-action="none">true</option>
+<option name="useadddirectives" type="boolean" change-action="build">false</option>
+<option name="usecrun" type="boolean" change-action="build">true</option>
+<option name="warnisfatal" type="boolean" change-action="none">false</option>
+<option name="warnoverlap" type="boolean" change-action="none">true</option>
+<option name="xref" type="boolean" change-action="none">false</option>
+</options>
+</tool>
+<tool name="Middleware">
+<options>
+<option name="usezsl" type="boolean" change-action="rebuild">true</option>
+<option name="zslports" type="string" change-action="rebuild"></option>
+<option name="zsluarts" type="string" change-action="rebuild"></option>
+<option name="zslpramisrs" type="string" change-action="rebuild"></option>
+</options>
+</tool>
+</tools>
+</configuration>
+<configuration name="Release" >
+<tools>
+<tool name="Assembler">
+<options>
+<option name="define" type="string" change-action="assemble">_Z8F6403=1,_Z16F_SERIES=1,_Z8ENCORE_640_FAMILY=1,_Z8ENCORE_F640X=1</option>
+<option name="include" type="string" change-action="assemble"></option>
+<option name="list" type="boolean" change-action="none">true</option>
+<option name="listmac" type="boolean" change-action="none">false</option>
+<option name="name" type="boolean" change-action="none">true</option>
+<option name="pagelen" type="integer" change-action="none">56</option>
+<option name="pagewidth" type="integer" change-action="none">80</option>
+<option name="quiet" type="boolean" change-action="none">true</option>
+<option name="revaa" type="boolean" change-action="rebuild">false</option>
+<option name="sdiopt" type="boolean" change-action="assemble">true</option>
+</options>
+</tool>
+<tool name="Compiler">
+<options>
+<option name="codegen" type="string" change-action="none">UserDefined</option>
+<option name="const" type="string" change-action="compile">RAM</option>
+<option name="define" type="string" change-action="compile">_Z8F6403,_Z16F_SERIES,_Z8ENCORE_640_FAMILY,_Z8ENCORE_F640X</option>
+<option name="genprintf" type="boolean" change-action="compile">true</option>
+<option name="keepasm" type="boolean" change-action="none">false</option>
+<option name="keeplst" type="boolean" change-action="none">true</option>
+<option name="list" type="boolean" change-action="none">false</option>
+<option name="listinc" type="boolean" change-action="none">false</option>
+<option name="model" type="string" change-action="compile">S</option>
+<option name="optlink" type="boolean" change-action="compile">false</option>
+<option name="promote" type="boolean" change-action="compile">true</option>
+<option name="regvar" type="string" change-action="compile">Normal</option>
+<option name="regvarcache" type="string" change-action="none">Normal</option>
+<option name="reduceopt" type="boolean" change-action="compile">false</option>
+<option name="stdinc" type="string" change-action="compile"></option>
+<option name="usrinc" type="string" change-action="compile"></option>
+<option name="watch" type="boolean" change-action="none">false</option>
+</options>
+</tool>
+<tool name="Debugger">
+<options>
+<option name="target" type="string" change-action="rebuild"></option>
+<option name="debugtool" type="string" change-action="none">Simulator</option>
+<option name="zemul_enableevents" type="boolean" change-action="none">false</option>
+<option name="zemul_brkonfull" type="boolean" change-action="none">false</option>
+<option name="usepageerase" type="boolean" change-action="none">true</option>
+</options>
+</tool>
+<tool name="FlashProgrammer">
+<options>
+<option name="erasebeforeburn" type="boolean" change-action="none">false</option>
+<option name="eraseinfopage" type="boolean" change-action="none">false</option>
+<option name="offset" type="integer" change-action="none">0</option>
+<option name="snenable" type="boolean" change-action="none">false</option>
+<option name="sn" type="string" change-action="none">0</option>
+<option name="snsize" type="integer" change-action="none">0</option>
+<option name="snstep" type="integer" change-action="none">1</option>
+<option name="snstepformat" type="integer" change-action="none">0</option>
+<option name="snaddress" type="string" change-action="none">0</option>
+<option name="snformat" type="integer" change-action="none">0</option>
+<option name="snbigendian" type="boolean" change-action="none">true</option>
+<option name="singleval" type="string" change-action="none">0</option>
+<option name="singlevalformat" type="integer" change-action="none">0</option>
+<option name="usenvds" type="boolean" change-action="none">false</option>
+<option name="includeserial" type="boolean" change-action="none">false</option>
+<option name="usepageerase" type="boolean" change-action="none">false</option>
+</options>
+</tool>
+<tool name="General">
+<options>
+<option name="warn" type="boolean" change-action="none">true</option>
+<option name="debug" type="boolean" change-action="assemble">true</option>
+<option name="debugcache" type="boolean" change-action="none">true</option>
+<option name="igcase" type="boolean" change-action="assemble">false</option>
+<option name="outputdir" type="string" change-action="compile">.</option>
+</options>
+</tool>
+<tool name="Librarian">
+<options>
+<option name="outfile" type="string" change-action="build"></option>
+</options>
+</tool>
+<tool name="Linker">
+<options>
+<option name="createnew" type="boolean" change-action="build">false</option>
+<option name="directives" type="string" change-action="build"></option>
+<option name="edata" type="string" change-action="build">100-EFF</option>
+<option name="exeform" type="string" change-action="build">OMF695,INTEL32</option>
+<option name="flash" type="string" change-action="build">FF80-FFFF</option>
+<option name="fplib" type="string" change-action="build">Dummy</option>
+<option name="linkctlfile" type="string" change-action="build"></option>
+<option name="map" type="boolean" change-action="none">true</option>
+<option name="maxhexlen" type="integer" change-action="build">64</option>
+<option name="nvds" type="string" change-action="build">0-f</option>
+<option name="objlibmods" type="string" change-action="build"></option>
+<option name="of" type="string" change-action="build">.\ostest</option>
+<option name="padhex" type="boolean" change-action="build">false</option>
+<option name="pram" type="string" change-action="build">0-f</option>
+<option name="praminuse" type="boolean" change-action="build">false</option>
+<option name="quiet" type="boolean" change-action="none">false</option>
+<option name="rdata" type="string" change-action="build">20-FF</option>
+<option name="relist" type="boolean" change-action="build">false</option>
+<option name="rom" type="string" change-action="build">0-FFF</option>
+<option name="sort" type="string" change-action="none">name</option>
+<option name="startuptype" type="string" change-action="build">Standard</option>
+<option name="startuplnkcmds" type="boolean" change-action="build">true</option>
+<option name="undefisfatal" type="boolean" change-action="none">true</option>
+<option name="useadddirectives" type="boolean" change-action="build">false</option>
+<option name="usecrun" type="boolean" change-action="build">true</option>
+<option name="warnisfatal" type="boolean" change-action="none">false</option>
+<option name="warnoverlap" type="boolean" change-action="none">true</option>
+<option name="xref" type="boolean" change-action="none">false</option>
+</options>
+</tool>
+<tool name="Middleware">
+<options>
+<option name="usezsl" type="boolean" change-action="rebuild">true</option>
+<option name="zslports" type="string" change-action="rebuild"></option>
+<option name="zsluarts" type="string" change-action="rebuild"></option>
+<option name="zslpramisrs" type="string" change-action="rebuild"></option>
+</options>
+</tool>
+</tools>
+</configuration>
+</configurations>
+
+<!-- watch information -->
+<watch-elements>
+<watch-element expression="0x801d1a" />
+</watch-elements>
+
+<!-- breakpoint information -->
+<breakpoints>
+</breakpoints>
+
+<!-- ice event information -->
+<ice-events count="4" enable="0" breakOnFull="0">
+<ice-event>
+<data>000000000000</data>
+<mask>000000000000</mask>
+<action>0</action>
+</ice-event>
+<ice-event>
+<data>000000000000</data>
+<mask>000000000000</mask>
+<action>0</action>
+</ice-event>
+<ice-event>
+<data>000000000000</data>
+<mask>000000000000</mask>
+<action>0</action>
+</ice-event>
+<ice-event>
+<data>000000000000</data>
+<mask>000000000000</mask>
+<action>0</action>
+</ice-event>
+</ice-events>
+
+</project>

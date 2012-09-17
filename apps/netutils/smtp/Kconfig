@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config NETUTILS_SMTP
+	bool "SMTP"
+	default n
+	---help---
+		Enable support for SMTP.
+
+if NETUTILS_SMTP
+endif

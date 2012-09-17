@@ -1,0 +1,1049 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config LOWLEVEL_CONSOLE
+	bool "Low-level console support"
+	default n
+	depends on ARCH_LOWPUTC
+
+config 16550_UART
+	bool "16550 UART Chip support"
+	default n
+
+if 16550_UART
+config 16550_UART0
+	bool "16550 UART0"
+	default n
+
+if 16550_UART0
+config 16550_UART0_BASE
+	hex "16550 UART0 base address"
+
+config 16550_UART0_CLOCK
+	int "16550 UART0 clock"
+
+config 16550_UART0_IRQ
+	int "16550 UART0 IRQ number"
+
+config 16550_UART0_BAUD
+	int "16550 UART0 BAUD"
+	default 115200
+
+config 16550_UART0_PARITY
+	int "16550 UART0 parity"
+	default 0
+	---help---
+		16550 UART0 parity.  0=None, 1=Odd, 2=Even.  Default: None
+
+config 16550_UART0_BITS
+	int "16550 UART0 number of bits"
+	default 8
+	---help---
+		16550 UART0 number of bits.  Default: 8
+
+config 16550_UART0_2STOP
+	int "16550 UART0 two stop bits"
+	default 0
+	---help---
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
+
+config 16550_UART0_RXBUFSIZE
+	int "16550 UART0 Rx buffer size"
+	default 256
+	---help---
+		16550 UART0 Rx buffer size.  Default: 256
+
+config 16550_UART0_TXBUFSIZE
+	int "16550 UART0 Tx buffer size"
+	default 256
+	---help---
+		16550 UART0 Tx buffer size.  Default: 256
+
+endif
+
+config 16550_UART1
+	bool "16550 UART1"
+	default n
+
+if 16550_UART1
+config 16550_UART1_BASE
+	hex "16550 UART1 base address"
+
+config 16550_UART1_CLOCK
+	int "16550 UART1 clock"
+
+config 16550_UART1_IRQ
+	int "16550 UART1 IRQ number"
+
+config 16550_UART1_BAUD
+	int "16550 UART1 BAUD"
+	default 115200
+
+config 16550_UART1_PARITY
+	int "16550 UART1 parity"
+	default 0
+	---help---
+		16550 UART1 parity.  0=None, 1=Odd, 2=Even.  Default: None
+
+config 16550_UART1_BITS
+	int "16550 UART1 number of bits"
+	default 8
+	---help---
+		16550 UART1 number of bits.  Default: 8
+
+config 16550_UART1_2STOP
+	int "16550 UART1 two stop bits"
+	default 0
+	---help---
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
+
+config 16550_UART1_RXBUFSIZE
+	int "16550 UART1 Rx buffer size"
+	default 256
+	---help---
+		16550 UART1 Rx buffer size.  Default: 256
+
+config 16550_UART1_TXBUFSIZE
+	int "16550 UART1 Tx buffer size"
+	default 256
+	---help---
+		16550 UART1 Tx buffer size.  Default: 256
+
+endif
+
+config 16550_UART2
+	bool "16550 UART2"
+	default n
+
+if 16550_UART2
+config 16550_UART2_BASE
+	hex "16550 UART2 base address"
+
+config 16550_UART2_CLOCK
+	int "16550 UART2 clock"
+
+config 16550_UART2_IRQ
+	int "16550 UART2 IRQ number"
+
+config 16550_UART2_BAUD
+	int "16550 UART2 BAUD"
+	default 115200
+
+config 16550_UART2_PARITY
+	int "16550 UART2 parity"
+	default 0
+	---help---
+		16550 UART2 parity.  0=None, 1=Odd, 2=Even.  Default: None
+
+config 16550_UART2_BITS
+	int "16550 UART2 number of bits"
+	default 8
+	---help---
+		16550 UART2 number of bits.  Default: 8
+
+config 16550_UART2_2STOP
+	int "16550 UART2 two stop bits"
+	default 0
+	---help---
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
+
+config 16550_UART2_RXBUFSIZE
+	int "16550 UART2 Rx buffer size"
+	default 256
+	---help---
+		16550 UART2 Rx buffer size.  Default: 256
+
+config 16550_UART2_TXBUFSIZE
+	int "16550 UART2 Tx buffer size"
+	default 256
+	---help---
+		16550 UART2 Tx buffer size.  Default: 256
+
+endif
+
+config 16550_UART3
+	bool "16550 UART3"
+	default n
+
+if 16550_UART3
+config 16550_UART3_BASE
+	hex "16550 UART3 base address"
+
+config 16550_UART3_CLOCK
+	int "16550 UART3 clock"
+
+config 16550_UART3_IRQ
+	int "16550 UART3 IRQ number"
+
+config 16550_UART3_BAUD
+	int "16550 UART3 BAUD"
+	default 115200
+
+config 16550_UART3_PARITY
+	int "16550 UART3 parity"
+	default 0
+	---help---
+		16550 UART3 parity.  0=None, 1=Odd, 2=Even.  Default: None
+
+config 16550_UART3_BITS
+	int "16550 UART3 number of bits"
+	default 8
+	---help---
+		16550 UART3 number of bits.  Default: 8
+
+config 16550_UART3_2STOP
+	int "16550 UART3 two stop bits"
+	default 0
+	---help---
+		0=1 stop bit, 1=Two stop bits.  Default: 1 stop bit
+
+config 16550_UART3_RXBUFSIZE
+	int "16550 UART3 Rx buffer size"
+	default 256
+	---help---
+		16550 UART3 Rx buffer size.  Default: 256
+
+config 16550_UART3_TXBUFSIZE
+	int "16550 UART3 Tx buffer size"
+	default 256
+	---help---
+		16550 UART3 Tx buffer size.  Default: 256
+
+endif
+
+choice
+	prompt "16550 Serial Console"
+	default 16550_NO_SERIAL_CONSOLE
+
+config 16550_UART0_SERIAL_CONSOLE
+	bool "16550 UART0 serial console"
+	depends on 16550_UART0
+
+config 16550_UART1_SERIAL_CONSOLE
+	bool "16550 UART1 serial console"
+	depends on 16550_UART1
+
+config 16550_UART2_SERIAL_CONSOLE
+	bool "16550 UART2 serial console"
+	depends on 16550_UART2
+
+config 16550_UART3_SERIAL_CONSOLE
+	bool "16550 UART3 serial console"
+	depends on 16550_UART3
+
+config 16550_NO_SERIAL_CONSOLE
+	bool "No 16550 serial console"
+
+endchoice
+
+config 16550_SUPRESS_CONFIG
+	bool "Suppress 16550 configuration"
+	default n
+	---help---
+		This option is useful, for example, if you are using a bootloader
+		that configures the 16550_UART.  In that case, you may want to 
+		just leave the existing console configuration in place.  Default: n
+
+config 16550_REGINCR
+	int "Address increment between 16550 registers"
+	default 1
+	---help---
+		The address increment between 16550 registers.  Options are 1, 2, or 4.
+		Default: 1
+
+config 16550_REGWIDTH
+	int "Bit width of 16550 registers"
+	default 8
+	---help---
+		The bit width of registers.  Options are 8, 16, or 32. Default: 8
+
+config 16550_ADDRWIDTH
+	int "Address width of 16550 registers"
+	default 8
+	---help---
+		The bit width of registers.  Options are 8, 16, or 32. Default: 8
+
+endif
+
+#
+# MCU serial peripheral driver?
+#
+
+config ARCH_HAVE_UART
+       bool
+config ARCH_HAVE_UART0
+       bool
+config ARCH_HAVE_UART1
+       bool
+config ARCH_HAVE_UART2
+       bool
+config ARCH_HAVE_UART3
+       bool
+config ARCH_HAVE_UART4
+       bool
+config ARCH_HAVE_UART5
+       bool
+config ARCH_HAVE_UART6
+       bool
+
+config ARCH_HAVE_USART0
+       bool
+config ARCH_HAVE_USART1
+       bool
+config ARCH_HAVE_USART2
+       bool
+config ARCH_HAVE_USART3
+       bool
+config ARCH_HAVE_USART4
+       bool
+config ARCH_HAVE_USART5
+       bool
+config ARCH_HAVE_USART6
+       bool
+
+config MCU_SERIAL
+	bool
+	default y if ARCH_HAVE_UART || ARCH_HAVE_UART0 || ARCH_HAVE_USART0 || ARCH_HAVE_UART1 || ARCH_HAVE_USART1 || \
+	ARCH_HAVE_UART2 || ARCH_HAVE_USART2 || ARCH_HAVE_UART3 || ARCH_HAVE_USART3 || \
+	ARCH_HAVE_UART4 || ARCH_HAVE_USART4 || ARCH_HAVE_UART5 || ARCH_HAVE_USART5 || ARCH_HAVE_UART6 || ARCH_HAVE_USART6
+
+#
+# Standard serial driver configuration
+#
+
+config STANDARD_SERIAL
+	bool "Enable standard \"upper-half\" serial driver"
+	default y if MCU_SERIAL
+	default n if !MCU_SERIAL
+	depends on !LOWLEVEL_CONSOLE
+	---help---
+		Enable the standard, upper-half serial driver used by most MCU serial peripherals.
+
+config CONFIG_SERIAL_NPOLLWAITERS
+	int "Number of poll threads"
+	default 2
+	depends on !DISABLE_POLL && STANDARD_SERIAL
+	---help---
+		Maximum number of threads than can be waiting for POLL events.
+		Default: 2
+
+#
+# U[S]ARTn_XYZ settings for MCU serial drivers
+#
+
+choice
+	prompt "Serial console"
+	depends on MCU_SERIAL
+	default NO_SERIAL_CONSOLE
+
+config UART_SERIAL_CONSOLE
+	bool "UART"
+	depends on ARCH_HAVE_UART
+
+config UART0_SERIAL_CONSOLE
+	bool "UART0"
+	depends on ARCH_HAVE_UART0
+
+config USART0_SERIAL_CONSOLE
+	bool "USART0"
+	depends on ARCH_HAVE_USART0
+
+config UART1_SERIAL_CONSOLE
+	bool "UART1"
+	depends on ARCH_HAVE_UART1
+
+config USART1_SERIAL_CONSOLE
+	bool "USART1"
+	depends on ARCH_HAVE_USART1
+
+config UART2_SERIAL_CONSOLE
+	bool "UART2"
+	depends on ARCH_HAVE_UART2
+
+config USART2_SERIAL_CONSOLE
+	bool "USART2"
+	depends on ARCH_HAVE_USART2
+
+config UART3_SERIAL_CONSOLE
+	bool "UART3"
+	depends on ARCH_HAVE_UART3
+
+config USART3_SERIAL_CONSOLE
+	bool "USART3"
+	depends on ARCH_HAVE_USART3
+
+config UART4_SERIAL_CONSOLE
+	bool "UART4"
+	depends on ARCH_HAVE_UART4
+
+config USART4_SERIAL_CONSOLE
+	bool "USART4"
+	depends on ARCH_HAVE_USART4
+
+config UART5_SERIAL_CONSOLE
+	bool "UART5"
+	depends on ARCH_HAVE_UART5
+
+config USART5_SERIAL_CONSOLE
+	bool "USART5"
+	depends on ARCH_HAVE_USART5
+
+config UART6_SERIAL_CONSOLE
+	bool "UART6"
+	depends on ARCH_HAVE_UART6
+
+config USART6_SERIAL_CONSOLE
+	bool "USART6"
+	depends on ARCH_HAVE_USART6
+
+config NO_SERIAL_CONSOLE
+	bool "No serial console"
+
+endchoice
+
+menu "UART Configuration"
+	depends on ARCH_HAVE_UART
+
+config UART_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config UART_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config UART_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the UART.
+
+config UART_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config UART_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config UART_2STOP
+	int "use 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "UART0 Configuration"
+	depends on ARCH_HAVE_UART0
+
+config UART0_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config UART0_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config UART0_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the UART.
+
+config UART0_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config UART0_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config UART0_2STOP
+	int "use 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART0 Configuration"
+	depends on ARCH_HAVE_USART0
+
+config USART0_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART0_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART0_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART0_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART0_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART0_2STOP
+	int "use 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "UART1 Configuration"
+	depends on ARCH_HAVE_UART1
+
+config UART1_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config UART1_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config UART1_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the UART.
+
+config UART1_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config UART1_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config UART1_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART1 Configuration"
+	depends on ARCH_HAVE_USART1
+
+config USART1_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART1_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART1_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART1_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART1_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART1_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "UART2 Configuration"
+	depends on ARCH_HAVE_UART2
+
+config UART2_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config UART2_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config UART2_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the UART.
+
+config UART2_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config UART2_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config UART2_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART2 Configuration"
+	depends on ARCH_HAVE_USART2
+
+config USART2_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART2_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART2_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART2_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART2_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART2_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "UART3 Configuration"
+	depends on ARCH_HAVE_UART3
+
+config UART3_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config UART3_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config UART3_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the UART.
+
+config UART3_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config UART3_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config UART3_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART3 Configuration"
+	depends on ARCH_HAVE_USART3
+
+config USART3_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART3_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART3_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART3_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART3_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART3_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "UART4 Configuration"
+	depends on ARCH_HAVE_UART4
+
+config UART4_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config UART4_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config UART4_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the UART.
+
+config UART4_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config UART4_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config UART4_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART4 Configuration"
+	depends on ARCH_HAVE_USART4
+
+config USART4_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART4_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART4_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART4_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART4_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART4_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "UART5 Configuration"
+	depends on ARCH_HAVE_UART5
+
+config UART5_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config UART5_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config UART5_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the UART.
+
+config UART5_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config UART5_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config UART5_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART5 Configuration"
+	depends on ARCH_HAVE_USART5
+
+config USART5_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART5_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART5_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART5_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART5_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART5_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "USART6 Configuration"
+	depends on ARCH_HAVE_USART6
+
+config USART6_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config USART6_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config USART6_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the USART.
+
+config USART6_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config USART6_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config USART6_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu
+
+menu "UART6 Configuration"
+	depends on ARCH_HAVE_UART6
+
+config UART6_RXBUFSIZE
+	int "receive buffer size"
+	default 256
+	help
+	  Characters are buffered as they are received. This specifies
+	  the size of the receive buffer.
+
+config UART6_TXBUFSIZE
+	int "transmit buffer size"
+	default 256
+	help
+	  Characters are buffered before being sent.  This specifies
+	  the size of the transmit buffer.
+
+config UART6_BAUD
+	int "baud rate"
+	default 11520
+	help
+	  The configured BAUD of the UART.
+
+config UART6_BITS
+	int "character size"
+	default 8
+	help
+	  The number of bits.  Must be either 7 or 8.
+
+config UART6_PARITY
+	int "parity setting"
+	default 0
+	help
+	  0=no parity, 1=odd parity, 2=even parity
+
+config UART6_2STOP
+	int "uses 2 stop bits"
+	default 0
+	help
+	  1=Two stop bits
+
+endmenu

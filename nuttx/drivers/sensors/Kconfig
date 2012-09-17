@@ -1,0 +1,33 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+config LIS331DL
+	bool "ST LIS331DL device support"
+	default n
+	select I2C
+	
+config I2C_LM75
+	bool
+	default y if LM75
+
+config LM75
+	bool "STMicro LM-75 Temperature Sensor support"
+	default n
+	select I2C
+	select I2C_LM75
+
+config DEBUG_LM75
+	bool "Enable LM-75 debug"
+	default n
+	depends on LM75
+	
+config QENCODER
+	bool "Qencoder"
+	default n
+
+config DEBUG_QENCODER
+	bool "Enable Qencoder Debug"
+	default n
+	depends on QENCODER
+	

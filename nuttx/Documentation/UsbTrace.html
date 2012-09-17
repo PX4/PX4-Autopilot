@@ -1,0 +1,332 @@
+<html>
+<head>
+<title>NuttX USB Trace Capability</title>
+</head>
+
+<body background="backgd.gif">
+<hr><hr>
+<table width ="100%">
+  <tr align="center" bgcolor="#e4e4e4">
+    <td>
+      <h1><big><font color="#3c34ec"><i>NuttX USB Device Trace</i></font></big></h1>
+      <p>Last Updated: March 20, 2011</p>
+    </td>
+  </tr>
+</table>
+<hr><hr>
+<p><b>USB Device Tracing Controls</b>.
+  The NuttX USB device subsystem supports a fairly sophisticated tracing facility.
+  The basic trace cabability is controlled by these NuttX configuration settings:
+</p>
+<ul>
+  <li><code>CONFIG_USBDEV_TRACE</code>: Enables USB tracing</li>
+  <li><code>CONFIG_USBDEV_TRACE_NRECORDS</code>: Number of trace entries to remember</li>
+</ul>
+<p><b>Trace IDs</b>.
+  The trace facility works like this:
+  When enabled, USB events that occur in either the USB device driver or in the USB class driver are logged.
+  These events are described in <code>include/nuttx/usb/usbdev_trace.h</code>.
+  The logged events are identified by a set of event IDs:
+</p>
+<ul><table>
+  <tr>
+    <td><code>TRACE_INIT_ID</code></td>
+    <td>Initialization events</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_EP_ID</code></td>
+    <td>Endpoint API calls</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_DEV_ID</code></td>
+    <td>USB device API calls</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_CLASS_ID</code></td>
+    <td>USB class driver API calls</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_CLASSAPI_ID</code></td>
+    <td>Other class driver system API calls</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_CLASSSTATE_ID</code></td>
+    <td>Track class driver state changes</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_INTENTRY_ID</code></td>
+    <td>Interrupt handler entry</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_INTDECODE_ID</code></td>
+    <td>Decoded interrupt event</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_INTEXIT_ID</code></td>
+    <td>Interrupt handler exit</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_OUTREQQUEUED_ID</code></td>
+    <td>Request queued for OUT endpoint</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_INREQQUEUED_ID</code></td>
+    <td>Request queued for IN endpoint</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_READ_ID</code></td>
+    <td>Read (OUT) action</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_WRITE_ID</code></td>
+    <td>Write (IN) action</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_COMPLETE_ID</code></td>
+    <td>Request completed</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_DEVERROR_ID</code></td>
+    <td>USB controller driver error event</td>
+  </tr>
+  <tr>
+    <td><code>TRACE_CLSERROR_ID</code></td>
+    <td>USB class driver error event</td>
+  </tr>
+</table></ul>
+<p><b>Logged Events</b>.
+  Each logged event is 32-bits in size and includes
+</p>
+<ol>
+  <li>8-bits of the trace ID (values associated with the above)</li>
+  <li>8-bits of additional trace ID data, and</li>
+  <li>16-bits of additonal data.</li>
+</ol>
+<p><b>8-bit Trace Data</b>
+  The 8-bit trace data depends on the specific event ID.  As examples,
+</p>
+<ul>
+  <li>
+    For the USB serial and mass storage class, the 8-bit event data is provided in <code>include/nuttx/usb/usbdev_trace.h</code>. 
+  </li>
+  <li>
+    For the USB device driver, that 8-bit event data is provided within the USB device driver itself.
+    So, for example, the 8-bit event data for the LPC1768 USB device driver is found in <code>arch/arm/src/lpc17xx/lpc17_usbdev.c</code>.
+  </li>
+</ul>
+<p><b>16-bit Trace Data</b>.
+  The 16-bit trace data provided additional context data relevant to the specific logged event.
+</p>
+<p><b>Trace Control Interfaces</b>.
+  Logging of each of these kinds events can be enabled or disabled using the interfaces described in <code>include/nuttx/usb/usbdev_trace.h</code>.
+</p>
+<p><b>Enabling USB Device Tracing</b>.
+  USB device tracing will be configured if <code>CONFIG_USBDEV</code> and either of the following are set in the NuttX configuration file:
+</p>
+<ul>
+  <li><code>CONFIG_USBDEV_TRACE</code>, or</li>
+  <li><code>CONFIG_DEBUG and CONFIG_DEBUG_USB</code></li>
+</ul>
+<p><b>Log Data Sink</b>.
+  The logged data itself may go to either (1) an internal circular buffer, or (2) may be provided on the console.
+  If <code>CONFIG_USBDEV_TRACE</code> is defined, then the trace data will go to the circular buffer.
+  The size of the circular buffer is determined by <code>CONFIG_USBDEV_TRACE_NRECORDS</code>.
+  Otherwise, the trace data goes to console.
+<p>
+<p><b>Example</b>.
+  Here is an example of USB trace output using <code>apps/examples/usbserial</code> for an LPC1768 platform with the following NuttX configuration settings:
+</p>
+<ul>
+  <li><code>CONFIG_DEBUG</code>, <code>CONFIG_DEBUG_VERBOSE</code>, <code>CONFIG_USB</code>
+  <li><code>CONFIG_EXAMPLES_USBSERIAL_TRACEINIT</code>, <code>CONFIG_EXAMPLES_USBSERIAL_TRACECLASS</code>,
+    <code>CONFIG_EXAMPLES_USBSERIAL_TRACETRANSFERS</code>, <code>CONFIG_EXAMPLES_USBSERIAL_TRACECONTROLLER</code>,
+    <code>CONFIG_EXAMPLES_USBSERIAL_TRACEINTERRUPTS</code>
+</ul>
+<p>Console Output:</p>
+<ul><table>
+  <tr>
+    <td align="center">&nbsp;</td>
+    <td align="left"><code>ABDE</code></td>
+  </tr>
+  <tr>
+    <td align="center">&nbsp;</td>
+    <td align="left"><code>usbserial_main: Registering USB serial driver</code></td>
+  </tr>
+  <tr>
+    <td align="center">&nbsp;</td>
+    <td align="left"><code>uart_register: Registering /dev/ttyUSB0</code></td>
+  </tr>
+  <tr>
+    <td align="center">&nbsp;</td>
+    <td align="left"><code>usbserial_main: Successfully registered the serial driver</code></td>
+  </tr>
+  <tr>
+    <td align="center">1</td>
+    <td align="left"><code>Class API call 1: 0000</code></td>
+  </tr>
+  <tr>
+    <td align="center">2</td>
+    <td align="left"><code>Class error: 19:0000</code></td>
+  </tr>
+  <tr>
+    <td align="center">&nbsp;</td>
+    <td align="left"><code>usbserial_main: ERROR: Failed to open /dev/ttyUSB0 for reading: 107</code></td>
+  </tr>
+  <tr>
+    <td align="center">&nbsp;</td>
+    <td align="left"><code>usbserial_main: Not connected. Wait and try again.</code></td>
+  </tr>
+  <tr>
+    <td align="center">3</td>
+    <td align="left"><code>Interrupt 1 entry: 0039</code></td>
+  </tr>
+  <tr>
+    <td align="center">4</td>
+    <td align="left"><code>Interrupt decode 7: 0019</code></td>
+  </tr>
+  <tr>
+    <td align="center">5</td>
+    <td align="left"><code>Interrupt decode 32: 0019</code></td>
+  </tr>
+  <tr>
+    <td align="center">6</td>
+    <td align="left"><code>Interrupt decode 6: 0019</code></td>
+  </tr>
+  <tr>
+    <td align="center">7</td>
+    <td align="left"><code>Class disconnect(): 0000</code></td>
+  </tr>
+  <tr>
+    <td align="center">8</td>
+    <td align="left"><code>Device pullup(): 0001</code></td>
+  </tr>
+  <tr>
+    <td align="center">9</td>
+    <td align="left"><code>Interrupt 1 exit: 0000</code></td>
+  </tr>
+</table></ul>
+<p>
+  The numbered items are USB USB trace output.
+  You can look in the file <code>drivers/usbdev/usbdev_trprintf.c</code> to see examctly how each output line is formatted.
+  Here is how each line should be interpreted:
+</p>
+<ul><table>
+  <tr>
+    <th align="center">&nbsp</th>
+    <td align="left">USB EVENT ID</td>
+    <td align="right">8-bit<br>EVENT<br>DATA</td>
+    <td align="left">MEANING</td>
+    <td align="left">16-bit<br>EVENT<br>DATA</td>
+  </tr>
+  <tr>
+    <td align="center">1</td>
+    <td align="left"><code>TRACE_CLASSAPI_ID</code><sup>1</sup></td>
+    <td align="right">1</td>
+    <td align="left"><code>USBSER_TRACECLASSAPI_SETUP</code><sup>1</sup></td>
+    <td align="left">0000</td>
+  </tr>
+  <tr>
+    <td align="center">2</td>
+    <td align="left"><code>TRACE_CLSERROR_ID</code><sup>1</sup></td>
+    <td align="right">19</td>
+    <td align="left"><code>USBSER_TRACEERR_SETUPNOTCONNECTED</code><sup>1</sup></td>
+    <td align="left">0000</td>
+  </tr>
+  <tr>
+    <td align="center">3</td>
+    <td align="left"><code>TRACE_INTENTRY_ID</code><sup>1</sup></td>
+    <td align="right">1</td>
+    <td align="left"><code>LPC17_TRACEINTID_USB</code><sup>2</sup></td>
+    <td align="left">0039</td>
+  </tr>
+  <tr>
+    <td align="center">4</td>
+    <td align="left"><code>TRACE_INTDECODE_ID</code><sup>2</sup></td>
+    <td align="right">7</td>
+    <td align="left"><code>LPC17_TRACEINTID_DEVSTAT</code><sup>2</sup></td>
+    <td align="left">0019</td>
+  </tr>
+  <tr>
+    <td align="center">5</td>
+    <td align="left"><code>TRACE_INTDECODE_ID</code><sup>2</sup></td>
+    <td align="right">32</td>
+    <td align="left"><code>LPC17_TRACEINTID_SUSPENDCHG</code><sup>2</sup></td>
+    <td align="left">0019</td>
+  </tr>
+  <tr>
+    <td align="center">6</td>
+    <td align="left"><code>TRACE_INTDECODE_ID</code><sup>2</sup></td>
+    <td align="right">6</td>
+    <td align="left"><code>LPC17_TRACEINTID_DEVRESET</code><sup>2</sup></td>
+    <td align="left">0019</td>
+  </tr>
+  <tr>
+    <td align="center">7</td>
+    <td align="left"><code>TRACE_CLASS_ID</code><sup>1</sup></td>
+    <td align="right">3</td>
+    <td align="left"><code>(See TRACE_CLASSDISCONNECT</code><sup>1</sup>)</td>
+    <td align="left">0000</td>
+  </tr>
+  <tr>
+    <td align="center">8</td>
+    <td align="left"><code>TRACE_DEV_ID</code><sup>1</sup></td>
+    <td align="right">6</td>
+    <td align="left"><code>(See TRACE_DEVPULLUP</code><sup>1</sup>)</td>
+    <td align="left">0001</td>
+  </tr>
+  <tr>
+    <td align="center">9</td>
+    <td align="left"><code>TRACE_INTEXIT_ID</code><sup>1</sup></td>
+    <td align="right">1</td>
+    <td align="left"><code>LPC17_TRACEINTID_USB</code><sup>2</sup></td>
+    <td align="left">0000</td>
+  </tr>
+</table>
+<p><small><b>NOTES</b>:<br>
+  <sup>1</sup>See <code>include/nuttx/usb/usbdev_trace.h</code><br>
+  <sup>2</sup><code>See arch/arm/src/lpc17xx/lpc17_usbdev.c</code>
+</small></p>
+</ul>
+<p>
+  In the above example you can see that:
+</p>
+<ul>
+  <li><b>1</b>.
+    The serial class USB setup method was called for the USB serial class.
+    This is the corresponds to the following logic in <code>drivers/usbdev/pl2303.c</code>:
+    <ul><pre>
+static int pl2303_setup(FAR struct uart_dev_s *dev)
+{
+  ...
+  usbtrace(PL2303_CLASSAPI_SETUP, 0);
+  ...
+</pre></ul>
+  </li>
+  <li><b>2</b>.
+    An error occurred while processing the setup command because no configuration has yet been selected by the host.
+    This corresponds to the following logic in <code>drivers/usbdev/pl2303.c</code>:
+    <ul><pre>
+static int pl2303_setup(FAR struct uart_dev_s *dev)
+{
+  ...
+  /* Check if we have been configured */
+
+  if (priv->config == PL2303_CONFIGIDNONE)
+    {
+      usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_SETUPNOTCONNECTED), 0);
+      return -ENOTCONN;
+    }
+  ...
+</pre></ul>
+  <li><b>3-6</b>.
+    Here is a USB interrupt that suspends and resets the device.
+  </li>
+  <li><b>7-8</b>.
+    During the interrupt processing the serial class is disconnected
+  </li>
+  <li><b>9</b>.
+    And the interrupt returns
+  </li>
+</ul>
+</body>
+</html>

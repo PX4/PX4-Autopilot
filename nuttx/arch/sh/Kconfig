@@ -1,0 +1,40 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+if ARCH_SH
+choice
+	prompt "SH chip selection"
+	default ARCH_CHIP_SH7032
+
+config ARCH_CHIP_SH7032
+	bool "SH7032"
+	---help---
+		Hitachi/Renesas SH7032 (SH1)
+
+config ARCH_CHIP_M30262F8
+	bool "M30262F8"
+	---help---
+		Renesas M30262F8 (M16C)
+
+endchoice
+
+config ARCH_SH1
+	bool
+	default y			if ARCH_CHIP_SH7032
+
+config ARCH_M16C
+	bool
+	default y			if ARCH_CHIP_M30262F8
+
+config ARCH_CHIP
+	string
+	default "sh1"		if ARCH_SH1
+	default "m16c"		if ARCH_M16C
+
+source arch/sh/src/common/Kconfig
+source arch/sh/src/m16c/Kconfig
+source arch/sh/src/sh1/Kconfig
+
+endif

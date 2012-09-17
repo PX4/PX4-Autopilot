@@ -1,0 +1,28 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+if ARCH_HC
+choice
+	prompt "HC chip selection"
+	default ARCH_CHIP_MCS92S12NEC64
+
+config ARCH_CHIP_MCS92S12NEC64
+	bool "MCS92S12NEC64"
+	---help---
+		Motorola/Freescale MCS92S12NEC64 (M9S12)
+
+endchoice
+
+config ARCH_HSC12
+	bool
+	default y			if ARCH_CHIP_MCS92S12NEC64
+
+config ARCH_CHIP
+	string
+	default "m9s12"		if ARCH_CHIP_MCS92S12NEC64
+
+source arch/hc/src/m9s12/Kconfig
+
+endif

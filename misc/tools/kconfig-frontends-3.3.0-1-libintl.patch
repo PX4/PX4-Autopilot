@@ -1,0 +1,72 @@
+diff -ru kconfig-frontends-3.3.0-1.orig//frontends/nconf/nconf.c kconfig-frontends-3.3.0-1/frontends/nconf/nconf.c
+--- kconfig-frontends-3.3.0-1.orig//frontends/nconf/nconf.c	2012-03-20 16:07:45.000000000 -0600
++++ kconfig-frontends-3.3.0-1/frontends/nconf/nconf.c	2012-04-05 15:16:06.590563200 -0600
+@@ -1503,7 +1503,7 @@
+ 	}
+ 
+ 	notimeout(stdscr, FALSE);
+-	ESCDELAY = 1;
++	//ESCDELAY = 1;
+ 
+ 	/* set btns menu */
+ 	curses_menu = new_menu(curses_menu_items);
+diff -ru kconfig-frontends-3.3.0-1.orig//frontends/nconf/nconf.h kconfig-frontends-3.3.0-1/frontends/nconf/nconf.h
+--- kconfig-frontends-3.3.0-1.orig//frontends/nconf/nconf.h	2012-03-20 16:07:45.000000000 -0600
++++ kconfig-frontends-3.3.0-1/frontends/nconf/nconf.h	2012-04-05 15:13:36.189960800 -0600
+@@ -15,7 +15,6 @@
+ #include <string.h>
+ #include <unistd.h>
+ #include <locale.h>
+-#include <curses.h>
+ #include <menu.h>
+ #include <panel.h>
+ #include <form.h>
+diff -ru kconfig-frontends-3.3.0-1.orig//libs/lxdialog/dialog.h kconfig-frontends-3.3.0-1/libs/lxdialog/dialog.h
+--- kconfig-frontends-3.3.0-1.orig//libs/lxdialog/dialog.h	2012-03-20 16:07:45.000000000 -0600
++++ kconfig-frontends-3.3.0-1/libs/lxdialog/dialog.h	2012-04-05 14:58:35.010416300 -0600
+@@ -26,11 +26,7 @@
+ #include <string.h>
+ #include <stdbool.h>
+ 
+-#ifndef KBUILD_NO_NLS
+-# include <libintl.h>
+-#else
+ # define gettext(Msgid) ((const char *) (Msgid))
+-#endif
+ 
+ #ifdef __sun__
+ #define CURS_MACROS
+diff -ru kconfig-frontends-3.3.0-1.orig//libs/parser/lkc.h kconfig-frontends-3.3.0-1/libs/parser/lkc.h
+--- kconfig-frontends-3.3.0-1.orig//libs/parser/lkc.h	2012-03-20 16:07:45.000000000 -0600
++++ kconfig-frontends-3.3.0-1/libs/parser/lkc.h	2012-04-05 14:59:02.969015400 -0600
+@@ -8,14 +8,10 @@
+ 
+ #include "expr.h"
+ 
+-#ifndef KBUILD_NO_NLS
+-# include <libintl.h>
+-#else
+ static inline const char *gettext(const char *txt) { return txt; }
+ static inline void textdomain(const char *domainname) {}
+ static inline void bindtextdomain(const char *name, const char *dir) {}
+ static inline char *bind_textdomain_codeset(const char *dn, char *c) { return c; }
+-#endif
+ 
+ #ifdef __cplusplus
+ extern "C" {
+diff -ru kconfig-frontends-3.3.0-1.orig//libs/parser/yconf.c kconfig-frontends-3.3.0-1/libs/parser/yconf.c
+--- kconfig-frontends-3.3.0-1.orig//libs/parser/yconf.c	2012-03-22 16:34:21.000000000 -0600
++++ kconfig-frontends-3.3.0-1/libs/parser/yconf.c	2012-04-05 14:59:40.732175300 -0600
+@@ -285,12 +285,6 @@
+ #define YYSIZE_MAXIMUM ((YYSIZE_T) -1)
+ 
+ #ifndef YY_
+-# if YYENABLE_NLS
+-#  if ENABLE_NLS
+-#   include <libintl.h> /* INFRINGES ON USER NAME SPACE */
+-#   define YY_(msgid) dgettext ("bison-runtime", msgid)
+-#  endif
+-# endif
+ # ifndef YY_
+ #  define YY_(msgid) msgid
+ # endif

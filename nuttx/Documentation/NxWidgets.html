@@ -1,0 +1,86 @@
+<html>
+<head>
+<title>NxWidgets</title>
+</head>
+<body background="backgd.gif">
+<hr><hr>
+<table width ="100%">
+  <tr align="center" bgcolor="#e4e4e4">
+    <td>
+      <h1><big><font color="#3c34ec"><i>NxWidgets</i></font></big></h1>
+      <p>Last Updated: March 27, 2012</p>
+    </td>
+  </tr>
+</table>
+<h1>NXWidgets</h1>
+<p>
+  In order to better support NuttX based platforms, a special graphical userinterface has been created called NXWidgets.
+  NXWidgets is written in C++ and integrates seamlessly with the NuttX <a href="NXGraphicsSubsystem.html">NX graphics subsystem</a> in order to provide graphic objects, or &quot;widgets,&quot; in the NX Graphics Subsystem
+</p>
+<p>
+  Some of the features of NXWidgets include:
+</p>
+<ul>
+  <li><b>Conservative C++</b>.
+    NXWidgets is written entirely in C++ but using only selected &quot;embedded friendly&quot; C++ constructs that are fully supported under NuttX.
+    No additional C++ support libraries are required.
+  </li>
+  <li><b>NX Integration</b>.
+    NXWidgets integrate seamlessly with the <a href="NXGraphicsSubsystem.html">NX graphics subsystem</a>.
+    Think of the X server under Linux … the NX graphics system is like a tiny X server that provides windowing under NuttX.
+    By adding NXWidgets, you can support graphics objects like buttons and text boxes in the NX windows and toolbars.
+  </li>
+  <li><b>Small Footprint</b>.
+    NXWidgets is tailored for use MCUs in embedded applications.
+    It is ideally suited for mid- and upper-range of most MCU families.
+    A complete NXWidgets is possible in as little as 40K of FLASH and maybe 4K of SRAM.
+  </li>
+  <li><b>Output Devices</b>.
+    NXWidgets will work on the high-end frame buffer devices as well as on LCDs connected via serial or parallel ports to a small MCU.
+  </li>
+  <li><b>Input Devices</b>.
+    NXWidgets will accept position and selection inputs from a mouse or a touchscreen.
+    It will also support character input from a keyboard such as a USB keyboard.
+    NXWidgets supports on very special widget called CKeypad that will provide keyboard input via an on-screen keypad that can be operated via mouse or touchscreen inputs.
+  </li>
+  <li><b>Many Graphic Objects</b>.
+    Some of the graphic objects supported by NXWidgets include labels, buttons, text boxes, button arrays, check boxes, cycle buttons, images, sliders, scrollable list boxes, progress bars, and more.
+  </li>
+  <li><b>DOxygen Documentation</b>
+    DOxygen documentation is available.
+  </li>
+</ul>
+<p>
+  Note:  Many of the fundamental classed in NxWidgets derive from the Antony
+  Dzeryn's &quot;Woopsi&quot; project: http://woopsi.org/ which also has a BSD style
+  license.  See the COPYING file for details.
+</p>
+<h1>NXWidgets DOxygen Documentation</h1>
+<p>
+  Release notes, DOxygen documentation, as well as downloads for the latest NxWidgets releases are available online:
+</p>
+<ul>
+  <li>
+    <b>NxWidgets-1.0</b>:
+    <a href="http://www.nx-engineering.com/nxwidgets_v1_0/">Documentation</a>, and
+    <a href="http://sourceforge.net/projects/nuttx/files/NxWidgets/NxWidgets-1.0/">Downloads</a>
+  </li>
+  <li>
+    <b>NxWidgets-1.1</b>:
+    <a href="http://www.nx-engineering.com/nxwidgets_v1_1/">Documentation</a>,
+    <a href="http://sourceforge.net/projects/nuttx/files/NxWidgets/NxWidgets-1.1/">Release notes</a>, and
+    <a href="http://sourceforge.net/projects/nuttx/files/NxWidgets/NxWidgets-1.1/">Downloads</a>
+  </li>
+  <li>
+    <b>NxWidgets-1.2</b>:
+    <a href="http://www.nx-engineering.com/nxwidgets_v1_2/">Documentation</a>,
+    <a href="http://sourceforge.net/projects/nuttx/files/NxWidgets/NxWidgets-1.2/">Release notes</a>, and
+    <a href="http://sourceforge.net/projects/nuttx/files/NxWidgets/NxWidgets-1.2/">Downloads</a>
+  </li>
+</p>
+<p>
+  Thanks go to Jose Pablo Carballo for contributing this!
+</p>
+</p>
+</body>
+</html>

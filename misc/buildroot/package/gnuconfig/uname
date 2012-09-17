@@ -1,0 +1,9 @@
+#!/bin/sh
+# uname(1) simulator, inspired by Pavel Roskin.
+
+[ $# -ne 1 ] && exec sh $0 -s
+[ $1 = -m ] && echo 4400
+[ $1 = -r ] && echo 4.0
+[ $1 = -s ] && echo iainfo2
+[ $1 = -v ] && echo 3.0
+[ $1 = -p ] && echo "Pentium III(TM)-ISA/PCI"

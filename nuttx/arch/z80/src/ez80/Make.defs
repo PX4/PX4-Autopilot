@@ -1,0 +1,61 @@
+############################################################################
+# arch/z80/src/ez80/Make.defs
+#
+#   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+HEAD_ASRC	= ez80_vectors.asm
+HEAD_SSRC	=
+
+CMN_SSRCS	= 
+CMN_CSRCS	= up_initialize.c up_allocateheap.c up_createstack.c \
+		  up_releasestack.c up_interruptcontext.c up_blocktask.c \
+		  up_unblocktask.c up_exit.c up_releasepending.c \
+		  up_reprioritizertr.c up_idle.c up_assert.c up_doirq.c \
+		  up_mdelay.c up_udelay.c up_usestack.c up_puts.c
+
+CHIP_ASRCS	= ez80_startup.asm ez80_io.asm ez80_irqsave.asm \
+		  ez80_saveusercontext.asm ez80_restorecontext.asm
+ifeq ($(CONFIG_ARCH_CHIP_EZ80F91),y)
+CHIP_ASRCS	+= ez80f91_init.asm
+endif
+
+CHIP_SSRCS	= 
+CHIP_CSRCS	= ez80_clock.c ez80_initialstate.c ez80_irq.c ez80_copystate.c \
+		  ez80_schedulesigaction.c ez80_sigdeliver.c ez80_timerisr.c \
+		  ez80_lowuart.c ez80_serial.c ez80_spi.c ez80_i2c.c \
+		  ez80_registerdump.c
+ifeq ($(CONFIG_ARCH_CHIP_EZ80F91),y)
+ifeq ($(CONFIG_EZ80_EMAC),y)
+CHIP_CSRCS	+= ez80_emac.c
+endif
+endif

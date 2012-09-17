@@ -1,0 +1,46 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_XMLRPC
+	bool "XML RPC example"
+	default n
+	depends on NET_TCP && !DISABLE_POLL
+	select NETUTILS_XMLRPC
+	---help---
+		An example for the netutils/xmlrpc library.
+		This example implements a lightweight HTTP server and uses the xmlrpc lib
+		for parsing xml remote procedure calls.
+
+config EXAMPLES_XMLRPC_BUFFERSIZE
+	int "HTTP buffer size"
+	default 1024
+	depends on EXAMPLES_XMLRPC
+
+config EXAMPLES_XMLRPC_DHCPC
+	bool "DHCP Client"
+	default n
+	depends on EXAMPLES_XMLRPC && !NSH_BUILTIN_APPS
+	select NETUTILS_DHCPC
+	select NETUTILS_RESOLV
+
+config EXAMPLES_XMLRPC_NOMAC
+	bool "Use Canned MAC Address"
+	default n
+	depends on EXAMPLES_XMLRPC && !NSH_BUILTIN_APPS
+
+config EXAMPLES_XMLRPC_IPADDR
+	hex "Target IP address"
+	default 0x0a000002
+	depends on EXAMPLES_XMLRPC && !NSH_BUILTIN_APPS && !EXAMPLES_XMLRPC_DHCPC
+
+config EXAMPLES_XMLRPC_DRIPADDR
+	hex "Default Router IP address (Gateway)"
+	default 0x0a000001
+	depends on EXAMPLES_XMLRPC && !NSH_BUILTIN_APPS
+
+config EXAMPLES_XMLRPC_NETMASK
+	hex "Network Mask"
+	default 0xffffff00
+	depends on EXAMPLES_XMLRPC && !NSH_BUILTIN_APPS

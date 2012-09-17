@@ -1,0 +1,57 @@
+############################################################################
+# arch/x86/src/qemu/Make.defs
+#
+#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+# The start-up, "head", file
+
+HEAD_ASRC	= qemu_head.S
+
+# Common x86 and i486 files
+
+CMN_ASRCS	= i486_utils.S up_syscall6.S
+CMN_CSRCS	= up_allocateheap.c up_assert.c up_blocktask.c up_copystate.c \
+			  up_createstack.c up_mdelay.c up_udelay.c up_exit.c\
+			  up_initialize.c up_initialstate.c up_interruptcontext.c up_irq.c \
+			  up_modifyreg8.c up_modifyreg16.c up_modifyreg32.c up_regdump.c \
+			  up_releasepending.c up_releasestack.c up_reprioritizertr.c \
+			  up_savestate.c up_sigdeliver.c up_schedulesigaction.c up_unblocktask.c \
+			  up_usestack.c
+
+# Required QEMU files
+
+CHIP_ASRCS	= qemu_saveusercontext.S qemu_fullcontextrestore.S qemu_vectors.S
+CHIP_CSRCS	= qemu_handlers.c qemu_idle.c qemu_lowputc.c qemu_lowsetup.c \
+			  qemu_serial.c qemu_timerisr.c
+
+# Configuration-dependent QEMU files

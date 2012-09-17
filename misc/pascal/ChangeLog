@@ -1,0 +1,37 @@
+pascal-0.1.0 2008-01-07 Gregory Nutt <gnutt@nuttx.org>
+
+	* Initial release
+
+pascal-0.1.1 2008-02-01 Gregory Nutt <gnutt@nuttx.org>
+
+	* Correct some errors in the NuttX installation logic
+
+pascal-0.1.2 2008-02-10 Gregory Nutt <gnutt@nuttx.org>
+
+	* Add logic to build and link with the ZDS-II toolchain
+	  use with the z16f.
+	* Make sure that POFF header structures are aligned
+	* Standardized POFF file format to big-endian
+	* Break up large switch statements to lower complexity
+	  and eliminate a compiler bug
+	* Changes so that runtime compiles with SDCC.
+
+pascal-2.0 2009-12-21 Gregory Nutt <gnutt@nuttx.org>
+
+	* Updated to use standard C99 types in stdint.h and
+	  stdbool.h.  This change was necessary for compatibility
+	  with NuttX-5.0 (any beyond).
+
+pascal-3.0 2010-05-15 Gregory Nutt <gnutt@nuttx.org>
+
+	* nuttx/:  The Pascal add-on module now installs and builds under the
+	  apps/interpreters directory.  This means that the pascal-3.0 module is
+	  incompatible with will all releases of NuttX prior to nuttx-6.0 where the 
+	  apps/ module was introduced.
+
+pascal-3.1 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* nuttx/Makefile: If DIRLINK is defined, then INCDIR was not setup
+	  correctly and the build failed.  The value of INCDIR must be
+	  initialized unconditionally.
+

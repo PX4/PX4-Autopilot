@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_UDP
+	bool "UDP example"
+	default n
+	---help---
+		Enable the UDP example
+
+if EXAMPLES_UDP
+endif

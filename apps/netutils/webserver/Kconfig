@@ -1,0 +1,92 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config NETUTILS_WEBSERVER
+	bool "uIP web server"
+	default n
+	---help---
+		Enable support for the uIP web server.  This tiny web server was
+		from uIP 1.0, but has undergone many changes.  It is, however,
+		still referred to as the "uIP" web server.
+
+if NETUTILS_WEBSERVER
+
+config NETUTILS_HTTPD_SCRIPT_DISABLE
+	bool "Disable %! scripting"
+	default y if NETUTILS_HTTPD_SENDFILE
+	default n if !NETUTILS_HTTPD_SENDFILE
+	---help---
+		This option, if selected, will elide the %! scripting
+
+config NETUTILS_HTTPD_CGIPATH
+	bool "URL/CGI function mapping"
+	default n
+	---help---
+		This option enables mappings from URLs to call CGI functions.  The
+		effect is that the existing httpd_cgi_register() interface can be
+		used thus:
+
+		const static struct httpd_cgi_call a[] = {
+		{ NULL, "/abc", cgi_abc },
+		{ NULL, "/xyz", cgi_xyz }
+		};
+
+		for (i = 0; i < sizeof a / sizeof *a; i++) {
+		httpd_cgi_register(&a[i]);
+		}
+
+		Where (under CONFIG_NETUTILS_HTTPD_CGIPATH) the "/xyz" is a URL path,
+		rather than a %! xyz style call in the existing manner.
+
+		This is useful when CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE is defined.
+
+		In other words, this provides a way to get your CGI functions called
+		without needing the scripting language. I'm using this to provide a
+		REST style interface over HTTP, where my CGI handlers just return a
+		HTTP status code with a content length of 0.
+
+config NETUTILS_HTTPD_SERVERHEADER_DISABLE
+	bool "Disabled the SERVER header"
+	default n
+	---help---
+		This option, if selected, will elide the Server\: header
+
+choice
+	prompt "File Transfer Method"
+	default NETUTILS_HTTPD_CLASSIC
+
+config NETUTILS_HTTPD_CLASSIC
+	bool "Pre-processed files"
+	---help---
+		Traditionally, the uIP-based webserver only sends "files" that have
+		been prepared as a data structure using nutts/tools/mkfsdata.pl
+
+config NETUTILS_HTTPD_MMAP
+	bool "File mmap-ing"
+	---help---
+		Traditionally, the uIP-based webserver only sends "files" that have
+		been prepared as a data structure using nutts/tools/mkfsdata.pl
+		However, extensions have been contributed.  If this option is
+		selected, then files can be accessed from the NuttX file system
+		as well.  This selection will map the files into memory (using mmap)
+		so that the logic is still basically compatible with the classic
+		approach.  NOTE, however, that since files are copied into memory,
+		this limits solution to small files that will fit into available RAM.
+
+config NETUTILS_HTTPD_MMAP
+	bool "sendfile()"
+	select NETUTILS_HTTPD_SCRIPT_DISABLE
+	---help---
+		Traditionally, the uIP-based webserver only sends "files" that have
+		been prepared as a data structure using nutts/tools/mkfsdata.pl
+		However, extensions have been contributed.  If this option is
+		selected, then files can be accessed from the NuttX file system
+		as well.  This selection will use the NuttX sendfile() interface
+		to send files.  NOTE: If this option is selected, then scripting
+		must be disabled since it depends on the classic, in-memory
+		representation.
+
+endchoice
+endif

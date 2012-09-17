@@ -1,0 +1,119 @@
+buildroot-0.1.0 2007-03-09 <gnutt@nuttx.org>
+
+	Support for arm-elf toolchain
+
+buildroot-0.1.1 (revision number not used)
+
+buildroot-0.1.2 2008-11-06 <gnutt@nuttx.org>
+
+	* Add support for m68k-elf and m68hc11 toolchain
+	* Add patch to build older binutils with newer Texinfo version
+	* Add support for SH-1 toolchain
+
+buildroot-0.1.3 2009-02-28 <gnutt@nuttx.org>
+
+	* Add support for H8/300 toolchain
+	* Add support for GCC 4.2.4 and binutils 2.19
+	* Various fixes for newer Linux environments
+	* New ARM configuration using GCC 4.2.4 and binutils 2.19
+	* Add Renesas R8C/M16C/M32C configuration using GCC 4.2.4 and binutils 2.19
+
+buildroot-0.1.4 2009-04-19 <gnutt@nuttx.org>
+
+	* Add support for a blackfin toolchain using GCC 4.2.4 and binutils 2.19
+	* GCC 4.2.4 no longer attempts to build libstdc++.  Now we can build g++!
+	* The ARM GCC-4.2.4 configuration was changed so that it now builds g++.
+	* Removed building of initial and final GCC.  that is not necessary because
+	  we do not build a libc.  Now it builds almost twice as fast.
+	* Removed logic to build the target GCC.  That is never used.
+
+buildroot-0.1.5 2009-04-25 <gnutt@nuttx.org>
+
+	* Replaced config/arm-defconfig-4.2.4 with config/arm920t-defconfig-4.2.4
+	  and config/arm926t-defconfig-4.2.4 because of differences in the
+	  way that soft floating point is handled between these two
+	  architectures.
+	* Add support for gcc-4.3.3 and the ARM Cortex-M3 processor (thumb2)
+	* Add support for binutils 2.19.1
+
+buildroot-0.1.6 2009-05-19 <gnutt@nuttx.org>
+
+	* Added config/arm7tdmi-defconfig-4.2.4
+	* Added config/arm920t-defconfig-4.3.3
+	* Correct error in arm-defconfig gcc-3.4.6 build. The gcc-3.4.6 configuration
+	  does not not take --with-abi
+	* Correct error in gcc-3.4.6/gcc/collect.c.  Calls open with O_CREAT but
+	  does not specify mode.  Newer host compilers can error out on this.
+
+buildroot-0.1.7 2009-06-26 <gnutt@nuttx.org>
+
+	* configs/avr-defconfig-4.3.3: Added support for AVR to support a NuttX
+	  port of the ATmega128.
+	* toolchain/nxflat:  Added logic to build NuttX NXFLAT binding support tools
+	* toolchain/genromfs:  Added support for the genromfs tool
+
+buildroot-1.8 2009-12-21 <gnutt@nuttx.org>
+
+	* configs/cortexm3-defconfig-4.3.3: Added support for NuttX NXFLAT
+	  tools.
+	* configs/arm7tdmi-defconfig-4.3.3: Update to arm7tdmi-defconfig-4.2.4.
+	  Also builds NuttX NXFLAT tools.
+	* configs/m68hc12-defconfig-4.3.3: Update to m68ch11-defconfig.
+	* configs/m68hc12-defconfig-3.4.6: There are problems building GCC
+	  4.3.3 for the hc12.
+	* configs/m32c-defconfig-4.2.4: Added genromfs
+	* configs/m32c-defconfig-4.3.3: Update to m32c-defconfig-4.2.4
+
+buildroot-1.9 2011-02-10 <gnutt@nuttx.org>
+
+	* configs/arm926t-defconfig-4.3.3: update arm926t-defconfig-4.2.4
+	* configs/arm926t-defconfig-nxflat: NXFLAT-only configuration for
+	  arm926
+	* toolchain/gdb/gdb.mk - Remove ncurses dependency from gdb_target target.
+	* toolchain/gdb/gdb.mk - Added --disable-werror to GDB configuration line.
+	  GDB 6.8 won't build because the tarbal was released with -Werror enabled and
+	  the build stops on the first warning.
+	* Add support for Freescale m9s12x using binutils 2.18 and gcc 3.3.6 and
+	  patches available from http://www.msextra.com/tools courtesy of James
+	  Cortina.  Add configs/m9x12x-defconfig-3.3.6.
+
+buildroot-1.10 2011-05-06 <gnutt@nuttx.org>
+
+	* Add patch submitted by Dimiter Georgiev to work around problems in building
+	  GDB 6.8 with versions of Cygwin > 1.7.
+	* configs/i486-defconfig-4.3.3 - Builds an i486 cross development toolchain
+	  using gcc 4.3.3.  Why would you want such a thing?  On Linux, of course,
+	  such a thing is not needed because you can use the installed GCC to build
+	  i486 ELF binaries.  But that will not work under Cygwin!  The Cygwin
+	  toolchain (and probably MinGW), build DOS MZ format executables (i.e.,
+	  .exe files).  That is probably not usable for most NuttX targets.
+	  Instead, you should use this i486-elf-gcc to generate true ELF binaries
+	  under Cygwin.
+	* Makefile - Alter copy arguments to avoid permissions problems when
+	  copying NuttX header files.
+	* toolchain/nxflat/nxflat.mk and Makefile - Fix include paths.
+	* toolchain/gcc/3.3.6 - Added a patch to fixed compilation error on Ubuntu
+	  9.10.
+	* toolchain/nxflat/Makefile - Correct static library link order.
+	* configs/arm920t-defconfig-4.3.3 - Enable support for NXFLAT tools.
+	* toolchain/binutils/2.21 and toolchain/gcc/4.5.2 - Add support for GCC
+	  4.5.2 with binutils 2.21.
+	* configs/arm920t-eabi-defconfig-4.5.2 - Add a configuration to build a
+	  GCC 4.5.2 EABI ARM toolchain for the ARM920t.
+
+buildroot-1.11 2011-xx-xx <gnutt@nuttx.org>
+
+	* configs/avr-defconfig-4.3.3 - Added --enable-long-long as a GCC
+	  option.
+	* configs/avr-defconfig-4.5.2 - New configuration.
+	* Config.in and almost all configurations in configs/ - Changed the
+	  default nuttx path to $(TOPDIR)/../../nuttx
+	* Misc files.  Patch provided by Gerd v. Egidy that solves the following
+	  problems
+	  - binutils 2.21 is not available on the gnu servers anymore, they replaced
+	    it with 2.21.1
+	  - there is some assembler error when compiling gcc for arm, gcc bugzilla
+	    43999
+	  - you can't build nuttx for cortex m3/m4 because of a missing instruction
+	    in ethe assembler, binutils bugzilla 12296
+

@@ -1,0 +1,57 @@
+
+NuttShell (NSH)
+nsh> ls -lR /
+/:
+ d---------0 dev/
+/dev:
+ crw-rw-rw-0 console
+ crw-rw-rw-0 null
+ crw-rw-rw-0 ttyS0
+nsh> help
+NSH command forms:
+  [nice [-d <niceness>>]] <cmd> [> <file>|>> <file>] [&]
+OR
+  if <cmd>
+  then
+    [sequence of <cmd>]
+  else
+    [sequence of <cmd>]
+  fi
+Where <cmd> is one of:
+  [ <expression> ]
+  cat <path> [<path> [<path> ...]]
+  cd [<dir-path>|-|~|..]
+  cp <source-path> <dest-path>
+  dd if=<infile> of=<outfile> [bs=<sectsize>] [count=<sectors>] [skip=<sectors>]
+  echo [<string|$name> [<string|$name>...]]
+  exec <hex-address>
+  exit
+  get [-b|-n] [-f <local-path>] -h <ip-address> <remote-path>
+  help
+  ifconfig
+  losetup [-d <dev-path>] | [[-o <offset>] [-r] <dev-path> <file-path>]
+  ls [-lRs] <dir-path>
+  mb <hex-address>[=<hex-value>][ <hex-byte-count>]
+  mem
+  mkdir <path>
+  mkfatfs <path>
+  mkfifo <path>
+  mkrd [-m <minor>] [-s <sector-size>] <nsectors>
+  mh <hex-address>[=<hex-value>][ <hex-byte-count>]
+  mount -t <fstype> <block-device> <dir-path>
+  mw <hex-address>[=<hex-value>][ <hex-byte-count>]
+  ping [-c <count>] [-i <interval>] <ip-address>
+  ps
+  put [-b|-n] [-f <remote-path>] -h <ip-address> <local-path>
+  pwd
+  rm <file-path>
+  rmdir <dir-path>
+  set <name> <value>
+  sh <script-path>
+  sleep <sec>
+  test <expression>
+  umount <dir-path>
+  unset <name>
+  usleep <usec>
+  xd <hex-address> <byte-count>
+nsh> 

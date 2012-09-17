@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_FTPD
+	bool "FTP server example"
+	default n
+	---help---
+		Enable the FTP server example
+
+if EXAMPLES_FTPD
+endif

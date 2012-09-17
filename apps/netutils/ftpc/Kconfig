@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config NETUTILS_FTPC
+	bool "FTP client"
+	default n
+	---help---
+		Enable support for the FTP client.
+
+if NETUTILS_FTPC
+endif

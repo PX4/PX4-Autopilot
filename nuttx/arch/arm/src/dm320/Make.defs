@@ -1,0 +1,54 @@
+############################################################################
+# dm320/Make.defs
+#
+#   Copyright (C) 2007, 2010 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name Gregory Nutt nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+HEAD_ASRC	= up_head.S
+
+CMN_ASRCS	= up_cache.S up_fullcontextrestore.S up_saveusercontext.S \
+		  up_vectors.S up_vectoraddrexcptn.S up_vectortab.S
+CMN_CSRCS	= up_assert.c up_blocktask.c up_copystate.c up_createstack.c \
+		  up_dataabort.c up_mdelay.c up_udelay.c up_exit.c up_idle.c \
+		  up_initialize.c up_initialstate.c up_interruptcontext.c \
+		  up_prefetchabort.c up_releasepending.c up_releasestack.c \
+		  up_reprioritizertr.c up_schedulesigaction.c \
+		  up_sigdeliver.c up_syscall.c up_unblocktask.c \
+		  up_undefinedinsn.c up_usestack.c
+
+CHIP_ASRCS	= dm320_lowputc.S dm320_restart.S
+CHIP_CSRCS	= dm320_allocateheap.c dm320_boot.c dm320_decodeirq.c \
+		  dm320_irq.c dm320_serial.c dm320_timerisr.c dm320_framebuffer.c
+
+ifeq ($(CONFIG_USBDEV),y)
+CHIP_CSRCS	+= dm320_usbdev.c
+endif

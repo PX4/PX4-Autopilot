@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_TELNETD
+	bool "Telnet daemon example"
+	default n
+	---help---
+		Enable the Telnet daemon example
+
+if EXAMPLES_TELNETD
+endif

@@ -1,0 +1,14 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_CAN
+	bool "CAN example"
+	default n
+	---help---
+		Enable the CAN example
+
+if EXAMPLES_CAN
+endif
+

@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_IGMP
+	bool "IGMP example"
+	default n
+	---help---
+		Enable the IGMP example
+
+if EXAMPLES_IGMP
+endif

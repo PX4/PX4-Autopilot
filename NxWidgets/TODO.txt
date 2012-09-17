@@ -1,0 +1,158 @@
+NxWidgets
+---------
+
+NxWM
+----
+
+ (4) General Issues
+ (3) NxConsole Issues
+ (1) CHexCalculator Issues
+ (1) Platform specific Issues
+
+See also the NuttX TODO list graphics/ section for related issues.
+
+o General NxWM Issues
+  -------------------
+
+  Title:       DISPLAY INTIALIZATION
+  Description: During the initialization of the display, the basic frame of the
+               start window is draw momentarily.  The is just the empty window
+               frame.  This is a consequence of how NX creates windows:  The
+               are enabled all of the time so the windows are visible when they
+               are being created. The solution would be to add some disable
+               logic in NX so that that nothing gets displayed when a window
+               is created until it is fully initialized and enable.
+  Status:      Open
+  Priority:    Medium
+
+  Title:       DRAGGING ACROSS WINDOWS
+  Description: Need some indication if the touch/mouse drags from one window to
+               another then is release.  Release event is lost in this case.
+  Status:      Open
+  Priority:    Low.  ICON just stays selected and must be touched again.
+
+  Title:       AUTO-RAISE DISABLED
+  Description: Auto-raise is currently disabled in nuttx for NX multi-server
+               mode.  The
+               reason is complex:
+               - Most touchscreen controls send touch data a high rates
+               - In multi-server mode, touch events get queued in a message
+                  queue.
+               - The logic that receives the messages performs the auto-raise.
+                 But it can do stupid things after the first auto-raise as
+                 it opperates on the stale data in the message queue.
+               I am thinking that auto-raise ought to be removed from NuttX
+               and moved out into a graphics layer (like NxWM) that knows
+               more about the appropriate context to do the autoraise.
+  Status:      Open
+  Priority:    Medium low
+
+  Title:       THREAD SAFETY
+  Description: I am not sure how thread-safe the NxWidgets are.  There is
+               is very little mutli-thread in the widgets now.  The "NX listener"
+               thread interacts to update mouse (and keyboard) data but all
+               of the heavy work is done on the "start window" thread.  I think
+               everything is okay now, but it may be necessary in the future
+               to introduce some semaphore protection in theCWidgetControl methods
+               to make them thread safe.
+  Status:      Open
+  Priority:    Low
+
+  Title:       COMBINE CTouchscreen AND CKeyboard THREADS
+  Description: Right now, two separate threads handle touchscreen and keyboard/
+               console input.  Each just waits on read() and when toushcscreen
+               or keyboard input is received, it injects the data into NX.
+               These two threads should be combined into one thread that waits
+               on poll for read data from either device.  Then when read data
+               becomes ready for either device, it could perform the read and
+               data inject from a single thread.
+  Status:      Open
+  Priority:    Low, this is not a product but a  text example.  If NxWM were
+               to be productized, this change should be done in order to reduce
+               stack memory consumption.
+
+o NxConsole Issues
+  ----------------
+
+  Title:       MULTIPLE COPIES OF AN NxCONSOLE
+  Description: From the start window, you an create multiple copies of the
+               NxConsole.  However, there is a problem in the current
+               implementation:  Each NxConsole receives its input from the
+               serial console so, for example, it you enter text one character
+               will go to one NxConsole instance and the next character goes
+               to a different instance.  That is correct behavior within the
+               current design, but not very usable.  We need a mechanism to
+               assure that the top window is the one that receives all 
+               eyboard input.  NX already provides this capability with its
+               nx_kbdin interface(), but that is not currently used.  At present,
+               NxConsoles get their input from /dev/console which is the serial
+               port.  The necessary change is to create an NX input device for
+               /dev/console that will get its input from NX.
+  Status:      Closed with was fixed with the check-in of 5/20/2012 (about
+               SVN version 4755).  The fixed version is available in SVN but
+               won't be in a released version until NxWidgets-1.2 is released.
+  Priority:    Medium high, basically prohibits the use of multiple NSH windows.
+  
+  Title:       CLOSING AN NxCONSOLE
+  Description: If you open multiple NxConsole applications, they all receive
+               serial input (as noted in the previous bug).  However, if 
+               you close one of the NxConsoles, then the others no longer
+               received input (or no long generate output -- that cannot be
+               distinguished).
+  Status:      Closed with was fixed with the check-in of 5/20/2012 (about
+               SVN version 4755).  The fixed version is available in SVN but
+               won't be in a released version until NxWidgets-1.2 is released.
+  Priority:    Medium high, basically prohibits the use of multiple NSH windows.
+
+  Title:       DOUBLE DISPLAY UPDATES
+  Description: When the NxConsole window is first opened, there are usually
+               double updates, i.e., the display forms twice.
+  Status:      Open
+  Priorioty:   Low, this would be necessary to fix to productize the windows.
+
+o CHexCalculator Issues
+  ---------------------
+
+  Title:       NEW DATA ENTRY IS APPENDED TO PREVIOUS RESULT
+  Description: For example 1+2= and 3 is shown.  But if you enter 4, then
+               34 is shown.  You have to manually clear the calculator ("C")
+               before entering the next number.
+  Status:      Open
+  Priority:    Low, this is only a demo.  This would, of course, have to be
+               fixed if you wanted a production quality calculator (but then
+               you would probably also want to add quite a few more features
+               as well).
+
+o Platform specific Issues
+  ------------------------
+
+  Title:       MISSING TOUCH RELEASE
+  Description: Using the STM3240G-EVAL board with the STMPE11 touchscreen, you
+               will find that there are occasional missing indications of when
+               you release a icon.  This is believed to be a data overrun in the
+               STPMPE11 data path.  The STMPE11 generates data a very high
+               rate and it is believe that it sometimes misses the interrupt
+               that indicates that the touch is released.  The symptom in NxWM
+               is that you touch an icon, it is highlighted but when you release
+               the touch nothing happens.  The icon stays highlighted.  Touching
+               the icon again usually works around this problem.
+  Status:      Closed with was fixed with the check-in of 5/21/2012 (about
+               SVN version 4758).  The was change made to NuttX, not NxWidgets.
+               The fixed version is available in SVN but won't be in a released
+               version until NuttX-6.198 is released.
+  Priorioty:   Low, but really annoying.
+
+  Title:       BUGS WHEN CANNOT READ FROM LCD
+  Description: There is a kludge in there to handle the case where we cannot
+               read the background data because the LCD does not support read
+               operations.  You cannot read from the STM3240G-EVAL LCD right
+               now (it might be possible, but I have not figured out how yet).
+
+               In that case, we just use the default background color.  However,
+               that doesn't work either for the case where the background color
+               changes when the widget is selected.  Then the background color
+               in the font is wrong.  There is a hack in in CButtonArrary that
+               fixed this problem, but the problem certainly exists in other
+               places as well and begs for a better solution.
+  Status:      Open
+  Priority:    Medium-Low

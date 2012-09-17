@@ -1,0 +1,14 @@
+Fix some missing uses of DESTDIR in the sim/ directories.  The Debian
+packages use DESTDIR to build.
+--
+diff -ur gdb-6.3.50.20050915/sim/Makefile.in gdb-6.3.50.20050915-patched/sim/Makefile.in
+--- gdb-6.3.50.20050915/sim/Makefile.in	2005-01-28 18:53:13.000000000 -0600
++++ gdb-6.3.50.20050915-patched/sim/Makefile.in	2005-09-15 23:17:42.000000000 -0500
+@@ -93,6 +93,7 @@
+ 	"CC=$(CC)" \
+ 	"CC_FOR_BUILD=$(CC_FOR_BUILD)" \
+ 	"CFLAGS=$(CFLAGS)" \
++	"DESTDIR=$(DESTDIR)" \
+ 	"CHILLFLAGS=$(CHILLFLAGS)" \
+ 	"CHILL=$(CHILL_FOR_TARGET)" \
+ 	"CHILL_FOR_TARGET=$(CHILL_FOR_TARGET)" \

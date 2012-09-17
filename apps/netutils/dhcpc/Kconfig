@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config NETUTILS_DHCPC
+	bool "DHCP client"
+	default n
+	---help---
+		Enable support for the DHCP client.
+
+if NETUTILS_DHCPC
+endif
