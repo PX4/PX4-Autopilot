@@ -13,8 +13,8 @@ config NETUTILS_WEBSERVER
 
 if NETUTILS_WEBSERVER
 
-config NETUTILS_HTTPD_SINGLETHREAD
-	bool "Single Threded"
+config NETUTILS_HTTPD_SINGLECONNECT
+	bool "Single Connection"
 	default n if !DISABLE_PTHREAD
 	default y if DISABLE_PTHREAD
 	---help---
@@ -22,9 +22,9 @@ config NETUTILS_HTTPD_SINGLETHREAD
 		for each connection.  This can, however, use a lot of stack space 
 		if there are many connections and that can be a problem is RAM is
 		limited.  If this option is selected, then a single thread will
-		service all HTTP requests.  TCP_BACKLOG would be a good idea
-		in this case.
-	
+		service all HTTP requests and, in this case, only a single connection
+		at a time is supported at a time.
+
 config NETUTILS_HTTPD_SCRIPT_DISABLE
 	bool "Disable %! scripting"
 	default y if NETUTILS_HTTPD_SENDFILE
@@ -64,6 +64,14 @@ config NETUTILS_HTTPD_SERVERHEADER_DISABLE
 	default n
 	---help---
 		This option, if selected, will elide the Server\: header
+
+config NETUTILS_HTTPD_TIMEOUT
+	int "Receive Timeout (sec)"
+	default 0
+	---help---
+		Receive timeout setting (in seconds).  A timeout value of zero
+		disables the timeout.  An HTTP 408 error is generated if the timeout
+		expires.
 
 choice
 	prompt "File Transfer Method"

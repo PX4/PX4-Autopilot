@@ -57,7 +57,7 @@
 #include <errno.h>
 #include <debug.h>
 
-#ifndef CONFIG_NETUTILS_HTTPD_SINGLETHREAD
+#ifndef CONFIG_NETUTILS_HTTPD_SINGLECONNECT
 #  include <pthread.h>
 #endif
 
@@ -92,6 +92,14 @@
 #  define CONFIG_NETUTILS_HTTPD_PATH "/mnt"
 #endif
 
+/* The correct way to disable receive timeout errors is by setting the
+ * timeout to zero.
+ */
+
+#ifndef CONFIG_NETUTILS_HTTPD_TIMEOUT
+#  define CONFIG_NETUTILS_HTTPD_TIMEOUT 0
+#endif
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -116,6 +124,9 @@ static const char g_httpextensionjpg[]      = ".jpg";
 static const char g_httpextensionjs[]       = ".js";
 
 static const char g_http404path[]           = "/404.html";
+#if CONFIG_NETUTILS_HTTPD_TIMEOUT > 0
+static const char g_http408path[]           = "/408.html";
+#endif
 #ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
 static const char g_httpindexpath[]         = "/index.shtml";
 #else
@@ -137,6 +148,15 @@ static const char g_httpheader404[]         =
    "Server: uIP/1.0 http://www.sics.se/~adam/uip/\r\n"
 #endif
    "Connection: close\r\n";
+
+#if CONFIG_NETUTILS_HTTPD_TIMEOUT > 0
+static const char g_httpheader408[]         =
+   "HTTP/1.0 408 Request timed out\r\n"
+#ifndef CONFIG_NETUTILS_HTTPD_SERVERHEADER_DISABLE
+   "Server: uIP/1.0 http://www.sics.se/~adam/uip/\r\n"
+#endif
+   "Connection: close\r\n";
+#endif
 
 /****************************************************************************
  * Private Functions
@@ -507,6 +527,28 @@ static inline int httpd_cmd(struct httpd_state *pstate)
   /* Get the next HTTP command.  We will handle only GET */
 
   recvlen = recv(pstate->ht_sockfd, pstate->ht_buffer, HTTPD_IOBUFFER_SIZE, 0);
+#if CONFIG_NETUTILS_HTTPD_TIMEOUT > 0
+  if (recvlen < 0 && errno == EWOULDBLOCK)
+    {
+      ndbg("[%d] recv timeout\n");
+      strncpy(pstate->ht_filename, g_httpindexpath, strlen(g_httpindexpath));
+
+      memcpy(pstate->ht_filename, g_http408path, strlen(g_http408path));
+      if (httpd_open(g_http408path, &pstate->ht_file) != OK)
+        {
+          return ERROR;
+        }
+
+      if (send_headers(pstate, g_httpheader408, strlen(g_httpheader408)) == OK)
+        {
+#ifdef CONFIG_NETUTILS_HTTPD_SENDFILE
+          return httpd_sendfile_send(pstate->ht_sockfd, &pstate->ht_file);
+#else
+          return httpd_addchunk(pstate, pstate->ht_file.data, pstate->ht_file.len);
+#endif
+        }
+    }
+#endif
   if (recvlen < 0)
     {
       ndbg("[%d] recv failed: %d\n", pstate->ht_sockfd, errno);
@@ -598,7 +640,7 @@ static void *httpd_handler(void *arg)
   return NULL;
 }
 
-#ifdef CONFIG_NETUTILS_HTTPD_SINGLETHREAD
+#ifdef CONFIG_NETUTILS_HTTPD_SINGLECONNECT
 static void single_server(uint16_t portno, pthread_startroutine_t handler, int stacksize)
 {
   struct sockaddr_in myaddr;
@@ -608,11 +650,14 @@ static void single_server(uint16_t portno, pthread_startroutine_t handler, int s
 #ifdef CONFIG_NET_HAVE_SOLINGER
   struct linger ling;
 #endif
+#if CONFIG_NETUTILS_HTTPD_TIMEOUT > 0
+  struct timeval tv;
+#endif
 
   listensd = uip_listenon(portno);
   if (listensd < 0)
     {
-      return ERROR;
+      return;
     }
 
   /* Begin serving connections */
@@ -643,12 +688,25 @@ static void single_server(uint16_t portno, pthread_startroutine_t handler, int s
         }
 #endif
 
+#if CONFIG_NETUTILS_HTTPD_TIMEOUT > 0
+      /* Set up a receive timeout */
+
+      tv.tv_sec  = CONFIG_NETUTILS_HTTPD_TIMEOUT;
+      tv.tv_usec = 0;
+      if (setsockopt(acceptsd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval)) < 0)
+        {
+          close(acceptsd);
+          ndbg("setsockopt SO_RCVTIMEO failure: %d\n", errno);
+          break;;
+        }
+#endif
+
       /* Handle the request. This blocks until complete. */
 
       (void) httpd_handler((void*)acceptsd);
     }
 
-  return ERROR;
+  return;
 }
 #endif
 
@@ -668,7 +726,7 @@ int httpd_listen(void)
 {
   /* Execute httpd_handler on each connection to port 80 */
 
-#ifdef CONFIG_NETUTILS_HTTPD_SINGLETHREAD
+#ifdef CONFIG_NETUTILS_HTTPD_SINGLECONNECT
   single_server(HTONS(80), httpd_handler, CONFIG_NETUTILS_HTTPDSTACKSIZE);
 #else
   uip_server(HTONS(80), httpd_handler, CONFIG_NETUTILS_HTTPDSTACKSIZE);

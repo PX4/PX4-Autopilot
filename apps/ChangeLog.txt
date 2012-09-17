@@ -332,6 +332,7 @@
 	* apps/netutils/uip_listenon.c:  Logic in uip_server.c that creates
 	  the listening socket was moved to this new file to support re-use.
 	  Contributed by Kate.
-	* apps/netutils/webserver/httpd.c:  The option CONFIG_NETUTILS_HTTPD_SINGLETHREAD
-	  can now be used to limit the server to a single thread.  From Kate.
-
+	* apps/netutils/webserver/httpd.c:  The option CONFIG_NETUTILS_HTTPD_SINGLECONNECT
+	  can now be used to limit the server to a single thread.  Option
+	  CONFIG_NETUTILS_HTTPD_TIMEOUT can be used to generate HTTP 408 errors.
+	  Both from Kate.

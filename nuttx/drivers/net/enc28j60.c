@@ -128,6 +128,12 @@
 #  warrning "CONFIG_NET_NOINTS should be set"
 #endif
 
+/* Low-level register debug */
+
+#if !defined(CONFIG_DEBUG) || !defined(CONFIG_DEBUG_NET)
+#  undef CONFIG_ENC28J60_REGDEBUG
+#endif
+
 /* Timing *******************************************************************/
 
 /* TX poll deley = 1 seconds. CLK_TCK is the number of clock ticks per second */
@@ -168,6 +174,20 @@
 /* This is a helper pointer for accessing the contents of the Ethernet header */
 
 #define BUF ((struct uip_eth_hdr *)priv->dev.d_buf)
+
+/* Debug ********************************************************************/
+
+#ifdef CONFIG_ENC28J60_REGDEBUG
+#  define enc_wrdump(a,v)   lib_lowprintf("ENC28J60: %02x<-%02x\n", a, v);
+#  define enc_rddump(a,v)   lib_lowprintf("ENC28J60: %02x->%02x\n", a, v);
+#  define enc_cmddump(c)    lib_lowprintf("ENC28J60: CMD: %02x\n", c);
+#  define enc_bmdump(c,b,s) lib_lowprintf("ENC28J60: CMD: %02x buffer: %p length: %d\n", c,b,s);
+#else
+#  define enc_wrdump(a,v)
+#  define enc_rddump(a,v)
+#  define enc_cmddump(c)
+#  define enc_bmdump(c,b,s)
+#endif
 
 /****************************************************************************
  * Private Types
@@ -264,7 +284,7 @@ static int enc_waitbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg,
 
 static void enc_rdbuffer(FAR struct enc_driver_s *priv, FAR uint8_t *buffer,
          size_t buflen);
-static void enc_wrbuffer(FAR struct enc_driver_s *priv,
+static inline void enc_wrbuffer(FAR struct enc_driver_s *priv,
          FAR const uint8_t *buffer, size_t buflen);
 
 /* PHY register access */
@@ -498,6 +518,8 @@ static uint8_t enc_rdgreg2(FAR struct enc_driver_s *priv, uint8_t cmd)
   /* De-select ENC28J60 chip */
 
   enc_deselect(priv);
+
+  enc_rddump(cmd, rddata);
   return rddata;
 }
 
@@ -539,6 +561,7 @@ static void enc_wrgreg2(FAR struct enc_driver_s *priv, uint8_t cmd,
   /* De-select ENC28J60 chip. */
 
   enc_deselect(priv);
+  enc_wrdump(cmd, wrdata);
 }
 
 /****************************************************************************
@@ -592,6 +615,7 @@ static inline void enc_src(FAR struct enc_driver_s *priv)
   /* De-select ENC28J60 chip. */
 
   enc_deselect(priv);
+  enc_cmddump(ENC_SRC);
 }
 
 /****************************************************************************
@@ -688,6 +712,7 @@ static uint8_t enc_rdbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg)
   /* De-select ENC28J60 chip */
 
   enc_deselect(priv);
+  enc_rddump(ENC_RCR | GETADDR(ctrlreg), rddata);
   return rddata;
 }
 
@@ -734,6 +759,7 @@ static void enc_wrbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg,
   /* De-select ENC28J60 chip. */
 
   enc_deselect(priv);
+  enc_wrdump(ENC_WCR | GETADDR(ctrlreg), wrdata);
 }
 
 /****************************************************************************
@@ -816,6 +842,7 @@ static void enc_rdbuffer(FAR struct enc_driver_s *priv, FAR uint8_t *buffer,
   /* De-select ENC28J60 chip. */
 
   enc_deselect(priv);
+  enc_bmdump(ENC_WBM, buffer, buflen);
 }
 
 /****************************************************************************
@@ -837,26 +864,68 @@ static void enc_rdbuffer(FAR struct enc_driver_s *priv, FAR uint8_t *buffer,
  *
  ****************************************************************************/
 
-static void enc_wrbuffer(FAR struct enc_driver_s *priv,
-                         FAR const uint8_t *buffer, size_t buflen)
+static inline void enc_wrbuffer(FAR struct enc_driver_s *priv,
+                                FAR const uint8_t *buffer, size_t buflen)
 {
   DEBUGASSERT(priv && priv->spi);
 
-  /* Select ENC28J60 chip */
+  /* Select ENC28J60 chip
+   *
+   * "The WBM command is started by lowering the CS pin. ..."
+   */
 
   enc_select(priv);
 
-  /* Send the write buffer memory command (ignoring the response) */
+  /* Send the write buffer memory command (ignoring the response)
+   *
+   * "...The [3-bit]WBM opcode should then be sent to the ENC28J60,
+   *  followed by the 5-bit constant, 1Ah."
+   */
 
   (void)SPI_SEND(priv->spi, ENC_WBM);
  
-  /* Then send the buffer */
+  /* "...the ENC28J60 requires a single per packet control byte to
+   * precede the packet for transmission."
+   *
+   * POVERRIDE: Per Packet Override bit (Not set):
+   *   1 = The values of PCRCEN, PPADEN and PHUGEEN will override the
+   *       configuration defined by MACON3.
+   *   0 = The values in MACON3 will be used to determine how the packet
+   *       will be transmitted
+   * PCRCEN: Per Packet CRC Enable bit (Set, but won't be used because
+   *   POVERRIDE is zero).
+   * PPADEN: Per Packet Padding Enable bit (Set, but won't be used because
+   *   POVERRIDE is zero).
+   * PHUGEEN: Per Packet Huge Frame Enable bit (Set, but won't be used
+   *   because POVERRIDE is zero).
+   */
+
+  (void)SPI_SEND(priv->spi,
+                 (PKTCTRL_PCRCEN | PKTCTRL_PPADEN | PKTCTRL_PHUGEEN));
+
+  /* Then send the buffer
+   *
+   * "... After the WBM command and constant are sent, the data to
+   *  be stored in the memory pointed to by EWRPT should be shifted
+   *  out MSb first to the ENC28J60. After 8 data bits are received,
+   *  the Write Pointer will automatically increment if AUTOINC is
+   *  set. The host controller can continue to provide clocks on the
+   *  SCK pin and send data on the SI pin, without raising CS, to
+   *  keep writing to the memory. In this manner, with AUTOINC
+   *  enabled, it is possible to continuously write sequential bytes
+   *  to the buffer memory without any extra SPI command
+   *  overhead.
+   */
 
   SPI_SNDBLOCK(priv->spi, buffer, buflen);
 
-  /* De-select ENC28J60 chip. */
+  /* De-select ENC28J60 chip
+   *
+   * "The WBM command is terminated by bringing up the CS pin. ..."
+   */
 
   enc_deselect(priv);
+  enc_bmdump(ENC_WBM, buffer, buflen);
 }
 
 /****************************************************************************
@@ -984,6 +1053,11 @@ static int enc_transmit(FAR struct enc_driver_s *priv)
 
   enc_dumppacket("Transmit Packet", priv->dev.d_buf, priv->dev.d_len);
 
+  /* Set transmit buffer start (is this necessary?). */
+
+  enc_wrbreg(priv, ENC_ETXSTL, PKTMEM_TX_START & 0xff);
+  enc_wrbreg(priv, ENC_ETXSTH, PKTMEM_TX_START >> 8);
+
   /* Reset the write pointer to start of transmit buffer */
 
   enc_wrbreg(priv, ENC_EWRPTL, PKTMEM_TX_START & 0xff);
@@ -995,11 +1069,9 @@ static int enc_transmit(FAR struct enc_driver_s *priv)
   enc_wrbreg(priv, ENC_ETXNDL, txend & 0xff);
   enc_wrbreg(priv, ENC_ETXNDH, txend >> 8);
 
-  /* Write the per-packet control byte into the transmit buffer */
-
-  enc_wrgreg(priv, ENC_WBM, 0x00);
-
-  /* Copy the packet itself into the transmit buffer */
+  /* Send the WBM command and copy the packet itself into the transmit
+   * buffer at the position of the EWRPT register.
+   */
 
   enc_wrbuffer(priv, priv->dev.d_buf, priv->dev.d_len);
 
