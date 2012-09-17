@@ -56,16 +56,20 @@ else
 CSRCS		+= up_userleds.c
 endif
 
-ifeq ($(CONFIG_ENC28J60),y)
-CSRCS		+= up_enc28j60.c
-endif
-
 ifeq ($(CONFIG_ARCH_BUTTONS),y)
 CSRCS		+=  up_buttons.c
 endif
 
 ifeq ($(CONFIG_NSH_ARCHINIT),y)
 CSRCS		+= up_nsh.c
+endif
+
+ifeq ($(CONFIG_ENC28J60),y)
+CSRCS		+= up_enc28j60.c
+endif
+
+ifeq ($(CONFIG_MTD_W25),y)
+CSRCS		+= up_w25.c
 endif
 
 ifeq ($(CONFIG_USBMSC),y)

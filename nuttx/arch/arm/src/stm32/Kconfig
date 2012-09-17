@@ -191,14 +191,17 @@ menu "STM32 Peripheral Support"
 config STM32_ADC1
 	bool "ADC1"
 	default n
+	select STM32_ADC
 
 config STM32_ADC2
 	bool "ADC2"
 	default n
+	select STM32_ADC
 
 config STM32_ADC3
 	bool "ADC3"
 	default n
+	select STM32_ADC
 
 config STM32_CRC
 	bool "CRC"
@@ -228,12 +231,14 @@ config STM32_CAN1
 	bool "CAN1"
 	default n
 	select CAN
+	select STM32_CAN
 
 config STM32_CAN2
 	bool "CAN2"
 	default n
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
 	select CAN
+	select STM32_CAN
 
 config STM32_CCMDATARAM
 	bool "CMD/DATA RAM"
@@ -248,10 +253,12 @@ config STM32_CRYP
 config STM32_DAC1
 	bool "DAC1"
 	default n
+	select STM32_DAC
 
 config STM32_DAC2
 	bool "DAC2"
 	default n
+	select STM32_DAC
 
 config STM32_DCMI
 	bool "DCMI"
@@ -276,15 +283,18 @@ config STM32_HASH
 config STM32_I2C1
 	bool "I2C1"
 	default n
+	select STM32_I2C
 
 config STM32_I2C2
 	bool "I2C2"
 	default n
+	select STM32_I2C
 
 config STM32_I2C3
 	bool "I2C3"
 	default n
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	select STM32_I2C
 
 config STM32_IWDG
 	bool "IWDG"
@@ -319,23 +329,27 @@ config STM32_SPI1
 	bool "SPI1"
 	default n
 	select SPI
+	select STM32_SPI
 
 config STM32_SPI2
 	bool "SPI2"
 	default n
 	select SPI
+	select STM32_SPI
 
 config STM32_SPI3
 	bool "SPI3"
 	default n
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
 	select SPI
+	select STM32_SPI
 
 config STM32_SPI4
 	bool "SPI4"
 	default n
 	depends on STM32_STM32F10XX
 	select SPI
+	select STM32_SPI
 
 config STM32_SYSCFG
 	bool "SYSCFG"
@@ -450,19 +464,18 @@ endmenu
 
 config STM32_ADC
 	bool
-	default y if STM32_ADC1 || STM32_ADC2 || STM32_ADC3
 
 config STM32_DAC
 	bool
-	default y if STM32_DAC1 || STM32_ADC2
 
 config STM32_SPI
 	bool
-	default y if STM32_SPI1 || STM32_SPI2 || STM32_SPI3 || STM32_SPI4
+
+config STM32_I2C
+	bool
 
 config STM32_CAN
 	bool
-	default y if STM32_CAN1 || STM32_CAN2
 
 menu "Alternate Pin Mapping"
 
@@ -571,10 +584,10 @@ choice
 config STM32_CAN1_NO_REMAP
 	bool "No pin remapping"
 
-config CONFIG_STM32_CAN1_REMAP1
+config STM32_CAN1_REMAP1
 	bool "CAN1 alternate pin remapping #1"
 
-config CONFIG_STM32_CAN1_REMAP2
+config STM32_CAN1_REMAP2
 	bool "CAN1 alternate pin remapping #2"
 
 endchoice
@@ -1600,6 +1613,46 @@ config STM32_SPI_DMA
 
 endmenu
 
+menu "I2C Configuration"
+	depends on STM32_I2C
+
+config STM32_I2C_DYNTIMEO
+	bool "Use dynamic timeouts"
+	default n
+	depends on STM32_I2C
+
+config STM32_I2C_DYNTIMEO_USECPERBYTE
+	int "Timeout Microseconds per Byte"
+	default 0
+	depends on STM32_I2C_DYNTIMEO
+
+config STM32_I2C_DYNTIMEO_STARTSTOP
+	int "Timeout for Start/Stop (Milliseconds)"
+	default 5000
+	depends on STM32_I2C_DYNTIMEO
+
+config STM32_I2CTIMEOSEC
+	int "Timeout seconds"
+	default 0
+	depends on STM32_I2C
+
+config STM32_I2CTIMEOMS
+	int "Timeout Milliseconds"
+	default 500
+	depends on STM32_I2C && !STM32_I2C_DYNTIMEO
+
+config STM32_I2CTIMEOTICKS
+	int "Timeout for Done and Stop (ticks)"
+	default 500
+	depends on STM32_I2C && !STM32_I2C_DYNTIMEO
+
+config STM32_I2C_DUTY16_9
+	bool "Frequency with Tlow/Thigh = 16/9 "
+	default n
+	depends on STM32_I2C
+
+endmenu
+
 menu "SDIO Configuration"
 	depends on STM32_SDIO
 
@@ -1826,13 +1879,13 @@ config STM32_USBHOST_REGDEBUG
 	default n
 	depends on USBHOST && STM32_OTGFS
 	---help---
-		Enable very low-level register access debug.  Depends on CONFIG_DEBUG.
+		Enable very low-level register access debug.  Depends on DEBUG.
  
 config STM32_USBHOST_PKTDUMP
 	bool "Packet Dump Debug"
 	default n
 	depends on USBHOST && STM32_OTGFS
 	---help---
-		Dump all incoming and outgoing USB packets. Depends on CONFIG_DEBUG.
+		Dump all incoming and outgoing USB packets. Depends on DEBUG.
 
 endmenu

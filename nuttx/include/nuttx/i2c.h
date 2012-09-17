@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/i2c.h
  *
- *   Copyright(C) 2009-2011 Gregory Nutt. All rights reserved.
+ *   Copyright(C) 2009-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,6 +47,16 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+/* If a dynamic timeout is selected, then a non-negative, non-zero micro-
+ * seconds per byte vale must be provided as well.
+ */
+
+#ifdef CONFIG_STM32_I2C_DYNTIMEO
+#  if CONFIG_STM32_I2C_DYNTIMEO_USECPERBYTE < 1
+#    warning "Ignoring CONFIG_STM32_I2C_DYNTIMEO because of CONFIG_STM32_I2C_DYNTIMEO_USECPERBYTE"
+#    undef CONFIG_STM32_I2C_DYNTIMEO
+#  endif
+#endif
 
 /* I2C address calculation.  Convert 7- and 10-bit address to 8-bit and
  * 16-bit read/write address
@@ -323,7 +333,19 @@ EXTERN FAR struct i2c_dev_s *up_i2cinitialize(int port);
  *
  ****************************************************************************/
 
-EXTERN int up_i2cuninitialize(FAR struct i2c_dev_s * dev);
+EXTERN int up_i2cuninitialize(FAR struct i2c_dev_s *dev);
+
+/************************************************************************************
+ * Name: up_i2creset
+ *
+ * Description:
+ *   Reset an I2C bus
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_I2C_RESET
+EXTERN int up_i2creset(FAR struct i2c_dev_s *dev);
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

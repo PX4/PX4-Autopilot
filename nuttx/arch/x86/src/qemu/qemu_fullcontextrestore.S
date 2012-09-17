@@ -1,7 +1,7 @@
 /**************************************************************************
  * arch/x86/src/qemu/qemu_fullcontextrestore.S
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -89,7 +89,7 @@
  * Name: up_fullcontextrestore
  *
  * Full C prototype:
- *  void up_fullcontextrestore(uint32_t *regs) __attribute__ ((noreturn));
+ *  void up_fullcontextrestore(uint32_t *regs) noreturn_function;
  *
  **************************************************************************/
 

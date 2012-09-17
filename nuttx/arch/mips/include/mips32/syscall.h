@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/mips/include/mips32/syscall.h
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -150,7 +150,7 @@
 
 /* SYS call 1:
  *
- * void up_fullcontextrestore(uint32_t *restoreregs) __attribute__ ((noreturn));
+ * void up_fullcontextrestore(uint32_t *restoreregs) noreturn_function;
  */
 
 #define SYS_restore_context (1)

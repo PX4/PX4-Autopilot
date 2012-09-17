@@ -41,7 +41,9 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #ifndef __ASSEMBLY__
+#  include <nuttx/compiler.h>
 #  include <stdint.h>
 #endif
 
@@ -152,7 +154,7 @@ extern void up_copystate(uint8_t *dest, uint8_t *src);
 extern void up_decodeirq(uint8_t *regs);
 extern void up_irqinitialize(void);
 extern int  up_saveusercontext(uint8_t *saveregs);
-extern void up_fullcontextrestore(uint8_t *restoreregs) __attribute__ ((noreturn));
+extern void up_fullcontextrestore(uint8_t *restoreregs) noreturn_function;
 extern void up_switchcontext(uint8_t *saveregs, uint8_t *restoreregs);
 
 /* Interrupt handling */

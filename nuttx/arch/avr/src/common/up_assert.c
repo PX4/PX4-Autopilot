@@ -90,7 +90,7 @@
  * Name: _up_assert
  ****************************************************************************/
 
-static void _up_assert(int errorcode) /* __attribute__ ((noreturn)) */
+static void _up_assert(int errorcode) /* noreturn_function */
 {
   /* Are we in an interrupt handler or the idle task? */
 

@@ -74,7 +74,7 @@
 
 /* SYS call 1:
  *
- * void up_fullcontextrestore(uint32_t *restoreregs) __attribute__ ((noreturn));
+ * void up_fullcontextrestore(uint32_t *restoreregs) noreturn_function;
  */
 
 #define SYS_restore_context (1)

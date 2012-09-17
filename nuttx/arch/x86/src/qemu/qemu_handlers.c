@@ -1,7 +1,7 @@
 /****************************************************************************
  *  arch/x86/src/qemu/qemu_handlers.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/compiler.h>
 
 #include <nuttx/arch.h>
 #include <arch/io.h>
@@ -52,7 +53,7 @@
  * Private Function Prototypes
  ****************************************************************************/
 
-static void idt_outb(uint8_t val, uint16_t addr) __attribute__((noinline));
+static void idt_outb(uint8_t val, uint16_t addr) noinline_function;
 
 /****************************************************************************
  * Private Data

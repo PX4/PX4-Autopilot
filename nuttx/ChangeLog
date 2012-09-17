@@ -3349,3 +3349,25 @@
 	* configs/*/nxwm/defconfig and sched/task_exithook.c: Fixes for
 	  bugs that crept in during recent changes.  (Submitted by Max
 	  Holtzberg).
+	* arch/arm/include/armv7-m/irq.h:  Fix a critical bug in irqsave().
+	  It looks like sometimes the compile will re-order some instructions
+	  inapproapriately.  This end result is that interrupts will get
+	  stuff off.
+	* drivers/mtd/w25.c:  Beginning of a driver for the Windbond SPI
+	  FLASH family (W25x16, W25x32, and W25x64).  The initial check-in
+	  is basically just the SST25 driver with some name changes.
+	* arch/arm/include/armv7-m/irq.h and arch/arm/src/stm32/stm32_spi.c:
+	  Back out the last change in irq.h.  It is (most likely) fine the
+	  way it was.  The really interrupt related problem was in stm32_spi.c:
+	  When SPI3 is not enabled, then the irqrestore() falls in the
+	  else clause.
+	* include/nuttx/compiler.h and other files:  Moved always_inline
+	  and noinline __attributes__ here.  Also replaced all occurrences
+	  of explicit __atributes__ in other files with definitions from
+	  this header file.
+	* drivers/mtd/w25.c:  The Windbond SPI FLASH W25 FLASH driver is
+	  code complete (but still untested).
+	* arch/arm/src/stm32/stm32_i2c.c:  I2C improvements from Mike Smith.
+	  Unified configuration logic; dynamic timeout calculations;
+	  I2C reset logic to recover from locked devices on the bus.
+

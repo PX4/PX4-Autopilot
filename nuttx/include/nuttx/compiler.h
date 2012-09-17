@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/compiler.h
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -91,6 +91,14 @@
 
 # define reentrant_function
 # define naked_function
+
+/* The inline_function attribute informs GCC that the function should always
+ * be inlined, regardless of the level of optimization.  The noinline_function
+ * indicates that the function should never be inlined.
+ */
+
+# define inline_function __attribute__ ((always_inline))
+# define noinline_function __attribute__ ((noinline))
 
 /* GCC has does not use storage classes to qualify addressing */
 
@@ -224,9 +232,14 @@
 # define noreturn_function
 # define packed_struct
 
-/* SDCC does support "naked" function s*/
+/* SDCC does support "naked" functions */
 
 # define naked_function __naked
+
+/* SDCC does not support forced inlining. */
+
+# define inline_function
+# define noinline_function
 
 /* The reentrant attribute informs SDCC that the function
  * must be reentrant.  In this case, SDCC will store input
@@ -320,11 +333,13 @@
 # define weak_function
 # define weak_const_function
 
-/* The Zilog compiler does not support the noreturn, packed, or naked attributes */
+/* The Zilog compiler does not support the noreturn, packed, naked attributes */
 
 # define noreturn_function
 # define packed_struct
 # define naked_function
+# define inline_function
+# define noinline_function
 
 /* The Zilog compiler does not support the reentrant attribute */
 
@@ -406,7 +421,8 @@
 # define packed_struct
 # define reentrant_function
 # define naked_function
-
+# define inline_function
+# define noinline_function
 
 # define FAR
 # define NEAR

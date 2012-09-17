@@ -1,6 +1,6 @@
 /****************************************************************************
- * config/fire-stm32v2/src/up_mmcsd.c
- * arch/arm/src/board/up_mmcsd.c
+ * config/fire-stm32v2/src/up_w25.c
+ * arch/arm/src/board/up_w25.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -40,34 +40,43 @@
 
 #include <nuttx/config.h>
 
+#include <sys/mount.h>
+
+#include <stdbool.h>
 #include <stdio.h>
-#include <debug.h>
 #include <errno.h>
+#include <debug.h>
 
-#include <nuttx/sdio.h>
-#include <nuttx/mmcsd.h>
+#ifdef CONFIG_STM32_SPI1
+#  include <nuttx/spi.h>
+#  include <nuttx/mtd.h>
+#  include <nuttx/fs/nxffs.h>
+#endif
 
-#include "stm32_sdio.h"
 #include "fire-internal.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
+/* Can't support the W25 device if it SPI1 or W25 support is not enabled */
 
-#define HAVE_MMCSD           1 /* Assume that we have SD support */
-#define STM32_MMCSDSLOTNO    0 /* There is only one slot */
-
-/* Can't support MMC/SD features if the SDIO peripheral is disabled */
-
-#ifndef CONFIG_STM32_SDIO
-#  undef HAVE_MMCSD
+#define HAVE_W25  1
+#if !defined(CONFIG_STM32_SPI1) || !defined(CONFIG_MTD_W25)
+#  undef HAVE_W25
 #endif
 
-/* Can't support MMC/SD features if mountpoints are disabled */
+/* Can't support W25 features if mountpoints are disabled */
 
-#ifdef CONFIG_DISABLE_MOUNTPOINT
-#  undef HAVE_MMCSD
+#if defined(CONFIG_DISABLE_MOUNTPOINT)
+#  undef HAVE_W25
+#endif
+
+/* Can't support both FAT and NXFFS */
+
+#if defined(CONFIG_FS_FAT) && defined(CONFIG_FS_NXFFS)
+#  warning "Can't support both FAT and NXFFS -- using FAT"
 #endif
 
 /****************************************************************************
@@ -75,49 +84,70 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stm32_sdinitialize
+ * Name: stm32_w25initialize
  *
  * Description:
- *   Initialize the SPI-based SD card.  Requires CONFIG_DISABLE_MOUNTPOINT=n
- *   and CONFIG_STM32_SDIO=y
+ *   Initialize and register the W25 FLASH file system.
  *
  ****************************************************************************/
 
-int stm32_sdinitialize(int minor)
+int stm32_w25initialize(int minor)
 {
-#ifdef HAVE_MMCSD
-  FAR struct sdio_dev_s *sdio;
+#ifdef HAVE_W25
+  FAR struct spi_dev_s *spi;
+  FAR struct mtd_dev_s *mtd;
+#ifndef CONFIG_FS_NXFFS
+  uint8_t devname[12];
+#endif
   int ret;
 
-  /* First, get an instance of the SDIO interface */
+  /* Get the SPI port */
 
-  sdio = sdio_initialize(STM32_MMCSDSLOTNO);
-  if (!sdio)
+  spi = up_spiinitialize(2);
+  if (!spi)
     {
-      fdbg("Failed to initialize SDIO slot %d\n", STM32_MMCSDSLOTNO);
+      fdbg("ERROR: Failed to initialize SPI port 2\n");
       return -ENODEV;
     }
 
-  fvdbg("Initialized SDIO slot %d\n", STM32_MMCSDSLOTNO);
+  /* Now bind the SPI interface to the SST 25 SPI FLASH driver */
 
-  /* Now bind the SDIO interface to the MMC/SD driver */
-
-  ret = mmcsd_slotinitialize(minor, sdio);
-  if (ret != OK)
+  mtd = sst25_initialize(spi);
+  if (!mtd)
     {
-      fdbg("Failed to bind SDIO slot %d to the MMC/SD driver, minor=%d\n",
-              STM32_MMCSDSLOTNO, minor);
+      fdbg("ERROR: Failed to bind SPI port 2 to the SST 25 FLASH driver\n");
+      return -ENODEV;
     }
 
-  fvdbg("Bound SDIO slot %d to the MMC/SD driver, minor=%d\n",
-         STM32_MMCSDSLOTNO, minor);
-  
-  /* Then let's guess and say that there is a card in the slot.  I need to check to
-   * see if the M3 Wildfire board supports a GPIO to detect if there is a card in
-   * the slot.
-   */
+#ifndef CONFIG_FS_NXFFS
+  /* And finally, use the FTL layer to wrap the MTD driver as a block driver */
 
-  sdio_mediachange(sdio, true);
+  ret = ftl_initialize(minor, mtd);
+  if (ret < 0)
+    {
+      fdbg("ERROR: Initialize the FTL layer\n");
+      return ret;
+    }
+#else
+  /* Initialize to provide NXFFS on the MTD interface */
+
+  ret = nxffs_initialize(mtd);
+  if (ret < 0)
+    {
+      fdbg("ERROR: NXFFS initialization failed: %d\n", -ret);
+      return ret;
+    }
+
+  /* Mount the file system at /mnt/w25 */
+
+  snprintf(devname, 12, "/mnt/w25%c", a + minor);
+  ret = mount(NULL, devname, "nxffs", 0, NULL);
+  if (ret < 0)
+    {
+      fdbg("ERROR: Failed to mount the NXFFS volume: %d\n", errno);
+      return ret;
+    }
+#endif
 #endif
   return OK;
 }

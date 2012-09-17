@@ -41,6 +41,7 @@
  **************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/compiler.h>
 #include <sys/types.h>
 #include <nuttx/irq.h>
 
@@ -150,7 +151,7 @@ extern volatile int g_eventloop;
 /* up_setjmp.S ************************************************************/
 
 extern int  up_setjmp(int *jb);
-extern void up_longjmp(int *jb, int val) __attribute__ ((noreturn));
+extern void up_longjmp(int *jb, int val) noreturn_function;
 
 /* up_devconsole.c ********************************************************/
 

@@ -34,7 +34,7 @@ config NET_NOINTS
 	bool "Not interrupt driven"
 	default n
 	---help---
-		NET_NOINT indicates that uIP not called from the interrupt level. 
+		NET_NOINT indicates that uIP is not called from the interrupt level. 
 		If NET_NOINTS is defined, critical sections will be managed with semaphores;
 		Otherwise, it assumed that uIP will be called from interrupt level handling
 		and critical sections will be managed by enabling and disabling interrupts.

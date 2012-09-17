@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/mips/src/mips32/up_swint0.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -290,7 +290,7 @@ int up_swint0(int irq, FAR void *context)
     {
       /* R4=SYS_restore_context: This a restore context command:
        *
-       *   void up_fullcontextrestore(uint32_t *restoreregs) __attribute__ ((noreturn));
+       *   void up_fullcontextrestore(uint32_t *restoreregs) noreturn_function;
        *
        * At this point, the following values are saved in context:
        *

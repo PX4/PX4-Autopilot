@@ -40,7 +40,10 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 #ifndef __ASSEMBLY__
+#  include <nuttx/compiler.h>
 #  include <stdint.h>
 #endif
 
@@ -174,7 +177,7 @@ extern void up_irqinitialize(void);
 extern void weak_function up_dmainitialize(void);
 #endif
 extern int  up_saveusercontext(uint32_t *saveregs);
-extern void up_fullcontextrestore(uint32_t *restoreregs) __attribute__ ((noreturn));
+extern void up_fullcontextrestore(uint32_t *restoreregs) noreturn_function;
 extern void up_switchcontext(uint32_t *saveregs, uint32_t *restoreregs);
 extern void up_sigdeliver(void);
 extern void up_lowputc(char ch);

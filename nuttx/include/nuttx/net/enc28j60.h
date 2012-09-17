@@ -85,6 +85,22 @@ struct enc_stats_s
 /* The ENC28J60 normal provides interrupts to the MCU via a GPIO pin.  The
  * following structure provides an MCU-independent mechanixm for controlling
  * the ENC28J60 GPIO interrupt.
+ *
+ * The ENC32J60 interrupt is an active low, *level* interrupt. "When an
+ * interrupt occurs, the interrupt flag is set. If the interrupt is enabled
+ * in the EIE register and the INTIE global interrupt enable bit is set, the
+ * INT pin will be driven low"
+ *
+ * "When an enabled interrupt occurs, the interrupt pin will remain low until
+ * all flags which are causing the interrupt are cleared or masked off
+ * (enable bit is cleared) by the host controller."  However, the interrupt
+ * will behave like a falling edge interrupt because "After an interrupt
+ * occurs, the host controller [clears] the global enable bit for the
+ * interrupt pin before servicing the interrupt. Clearing the enable bit
+ * will cause the interrupt pin to return to the non-asserted state (high).
+ * Doing so will prevent the host controller from missing a falling edge
+ * should another interrupt occur while the immediate interrupt is being
+ * serviced."
  */
 
 struct enc_lower_s

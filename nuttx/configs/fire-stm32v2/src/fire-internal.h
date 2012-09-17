@@ -214,15 +214,16 @@
 #  warning "TFT LCD and ENCJ2860 shared PE1"
 #endif
 
-/* CS and Reset are active low.  Initial states are not selected and not in
- * reset (driver does a soft reset).
+/* CS and Reset are active low.  Initial states are not selected and in
+ * reset.  The ENC28J60 is taken out of reset when the driver is
+ * initialized (thedriver does a soft reset too).
  */
 
 #ifdef CONFIG_ENC28J60
 #  define GPIO_ENC28J60_CS    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
                                GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
 #  define GPIO_ENC28J60_RESET (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
-                               GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN1)
+                               GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN1)
 #  define GPIO_ENC28J60_INTR  (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|\
                                GPIO_EXTI|GPIO_PORTE|GPIO_PIN5)
 #endif
@@ -301,6 +302,18 @@ void stm32_selectlcd(void);
  ****************************************************************************/
 
 int stm32_sdinitialize(int minor);
+
+/****************************************************************************
+ * Name: stm32_w25initialize
+ *
+ * Description:
+ *   Initialize and register the W25 FLASH file system.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_MTD_W25
+int stm32_w25initialize(int minor);
+#endif
 
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_FIRE_STM32V2_SRC_FIRE_INTERNAL_H */
