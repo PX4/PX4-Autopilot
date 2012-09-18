@@ -74,29 +74,6 @@ ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
   LDFLAGS		+= -g
 endif
 
-define PREPROCESS
-	@echo "CPP: $1->$2"
-	@$(CPP) $(CPPFLAGS) $1 -o $2
-endef
-
-define COMPILE
-	@echo "CC: $1"
-	@$(CC) -c $(CFLAGS) $1 -o $2
-endef
-
-define ASSEMBLE
-	@echo "AS: $1"
-	@$(CC) -c $(AFLAGS) $1 -o $2
-endef
-
-define ARCHIVE
-	echo "AR: $2"; \
-	$(AR) $1 $2 || { echo "$(AR) $1 $2 FAILED!" ; exit 1 ; }
-endef
-
-define CLEAN
-	@rm -f *.o *.a
-endef
 
 MKDEP			= $(TOPDIR)/tools/mkdeps.sh
 

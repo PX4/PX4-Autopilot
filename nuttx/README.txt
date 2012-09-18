@@ -17,7 +17,7 @@ README
   o Building NuttX
     - Building
     - Re-building 
-    - Build Targets
+    - Build Targets and Options
   o Cygwin Build Problems
     - Strange Path Problems
     - Window Native Toolchain Issues
@@ -380,9 +380,10 @@ Re-building
   This 'make' command will remove of the copied directories, re-copy them,
   then make NuttX.
 
-Build Targets
--------------
+Build Targets and Options
+-------------------------
 
+  Build Targets:
   Below is a summary of the build targets available in the top-level
   NuttX Makefile:
 
@@ -450,10 +451,22 @@ Build Targets
     the config.h and version.h header files in the include/nuttx directory and
     the establishment of symbolic links to configured directories.
 
-   clean_context
+  clean_context
 
-     This is part of the distclean target.  It removes all of the header files
-     and symbolic links created by the context target.
+    This is part of the distclean target.  It removes all of the header files
+    and symbolic links created by the context target.
+
+  Build Options:
+  Of course, the value any make variable an be overriden from the make command
+  line.  However, there is one particular variable assignment option that may
+  be useful to you:
+
+  V=1
+
+    This is the build "verbosity flag."  If you specify V=1 on the make command
+    line, you will see the exact commands used in the build. This can be very
+    useful when adding new boards or tracking down compile time errors and
+    warnings.
 
 CYGWIN BUILD PROBLEMS
 ^^^^^^^^^^^^^^^^^^^^^
@@ -461,27 +474,27 @@ CYGWIN BUILD PROBLEMS
 Strange Path Problems
 ---------------------
 
-If you see strange behavior when building under Cygwin then you may have
-a problem with your PATH variable.  For example, if you see failures to
-locate files that are clearly present, that may mean that you are using
-the wrong version of a tool.  For example, you may not be using Cygwin's
-'make' program at /usr/bin/make.  Try:
+  If you see strange behavior when building under Cygwin then you may have
+  a problem with your PATH variable.  For example, if you see failures to
+  locate files that are clearly present, that may mean that you are using
+  the wrong version of a tool.  For example, you may not be using Cygwin's
+  'make' program at /usr/bin/make.  Try:
 
     $ which make
     /usr/bin/make
 
-When you install some toolchains (such as Yargarto or CodeSourcery tools),
-they may modify your PATH variable to include a path to their binaries.
-At that location, they make have GNUWin32 versions of the tools.  So you
-might actually be using a version of make that does not understand Cygwin
-paths.
+  When you install some toolchains (such as Yargarto or CodeSourcery tools),
+  they may modify your PATH variable to include a path to their binaries.
+  At that location, they make have GNUWin32 versions of the tools.  So you
+  might actually be using a version of make that does not understand Cygwin
+  paths.
 
-The solution is either:
+  The solution is either:
 
-1. Edit your PATH to remove the path to the GNUWin32 tools, or
-2. Put /usr/local/bin, /usr/bin, and /bin at the front of your path:
+  1. Edit your PATH to remove the path to the GNUWin32 tools, or
+  2. Put /usr/local/bin, /usr/bin, and /bin at the front of your path:
 
-   $ export PATH=/usr/local/bin:/usr/bin:/bin:$PATH
+     $ export PATH=/usr/local/bin:/usr/bin:/bin:$PATH
 
 Window Native Toolchain Issues
 ------------------------------
@@ -568,7 +581,7 @@ General Pre-built Toolchain Issues
   And finally you may not be able to use NXFLAT.
 
   7. NXFLAT. If you use a pre-built toolchain, you will lose all support
-    for NXFLAT.  NXFLAT is a binary format described in
+     for NXFLAT.  NXFLAT is a binary format described in
      Documentation/NuttXNxFlat.html.  It may be possible to build
      standalone versions of the NXFLAT tools; there are a few examples
      of this in the misc/buildroot/configs directory.  However, it
