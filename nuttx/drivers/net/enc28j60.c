@@ -42,6 +42,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #if defined(CONFIG_NET) && defined(CONFIG_ENC28J60)
 
 #include <stdint.h>
@@ -279,6 +280,11 @@ static void enc_wrbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg,
          uint8_t wrdata);
 static int enc_waitbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg,
          uint8_t bits, uint8_t value);
+
+#if 0 /* Sometimes useful */
+static void enc_rxdump(FAR struct enc_driver_s *priv);
+static void enc_txdump(FAR struct enc_driver_s *priv);
+#endif
 
 /* SPI buffer transfers */
 
@@ -688,7 +694,7 @@ static uint8_t enc_rdbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg)
 
   enc_setbank(priv, GETBANK(ctrlreg));
 
-  /* Select ENC28J60 chip */
+  /* Re-select ENC28J60 chip */
 
   enc_select(priv);
 
@@ -741,13 +747,13 @@ static void enc_wrbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg,
 {
   DEBUGASSERT(priv && priv->spi);
 
-  /* Select ENC28J60 chip */
-
-  enc_select(priv);
-
   /* Set the bank */
 
   enc_setbank(priv, GETBANK(ctrlreg));
+
+  /* Re-select ENC28J60 chip */
+
+  enc_select(priv);
 
   /* Send the WCR command and data.  The sequence requires 16-clocks:
    * 8 to clock out the cmd + 8 to clock out the data.
@@ -802,6 +808,78 @@ static int enc_waitbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg,
 
   return (rddata & bits) == value ? -ETIMEDOUT : OK;
 }
+
+/****************************************************************************
+ * Function: enc_txdump enc_rxdump
+ *
+ * Description:
+ *   Dump registers associated with receiving or sending packets.
+ *
+ * Parameters:
+ *   priv    - Reference to the driver state structure
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+#if 0 /* Sometimes useful */
+static void enc_rxdump(FAR struct enc_driver_s *priv)
+{
+  lib_lowprintf("Rx Registers:\n");
+  lib_lowprintf("  EIE:      %02x EIR:      %02x\n",
+                enc_rdgreg(priv, ENC_EIE), enc_rdgreg(priv, ENC_EIR));
+  lib_lowprintf("  ESTAT:    %02x ECON1:    %02x ECON2:    %02x\n",
+                enc_rdgreg(priv, ENC_ESTAT), enc_rdgreg(priv, ENC_ECON1),
+                enc_rdgreg(priv, ENC_ECON2));
+  lib_lowprintf("  ERXST:    %02x %02x\n",
+                enc_rdbreg(priv, ENC_ERXSTH), enc_rdbreg(priv, ENC_ERXSTL));
+  lib_lowprintf("  ERXND:    %02x %02x\n",
+                enc_rdbreg(priv, ENC_ERXNDH), enc_rdbreg(priv, ENC_ERXNDL));
+  lib_lowprintf("  ERXRDPT:  %02x %02x\n",
+                enc_rdbreg(priv, ENC_ERXRDPTH), enc_rdbreg(priv, ENC_ERXRDPTL));
+  lib_lowprintf("  ERXFCON:  %02x EPKTCNT:  %02x\n",
+                enc_rdbreg(priv, ENC_ERXFCON), enc_rdbreg(priv, ENC_EPKTCNT));
+  lib_lowprintf("  MACON1:   %02x MACON3:   %02x\n",
+                enc_rdbreg(priv, ENC_MACON1), enc_rdbreg(priv, ENC_MACON3));
+  lib_lowprintf("  MAMXFL:   %02x %02x\n",
+                enc_rdbreg(priv, ENC_MAMXFLH), enc_rdbreg(priv, ENC_MAMXFLL));
+  lib_lowprintf("  MAADR:    %02x:%02x:%02x:%02x:%02x:%02x\n",
+                enc_rdgreg(priv, ENC_MAADR1), enc_rdgreg(priv, ENC_MAADR2),
+                enc_rdgreg(priv, ENC_MAADR3), enc_rdgreg(priv, ENC_MAADR4),
+                enc_rdgreg(priv, ENC_MAADR5), enc_rdgreg(priv, ENC_MAADR6));
+}
+#endif
+
+#if 0 /* Sometimes useful */
+static void enc_txdump(FAR struct enc_driver_s *priv)
+{
+  lib_lowprintf("Tx Registers:\n");
+  lib_lowprintf("  EIE:      %02x EIR:      %02x ESTAT:    %02x\n",
+                enc_rdgreg(priv, ENC_EIE), enc_rdgreg(priv, ENC_EIR),);
+  lib_lowprintf("  ESTAT:    %02x ECON1:    %02x\n",
+                enc_rdgreg(priv, ENC_ESTAT), enc_rdgreg(priv, ENC_ECON1));
+  lib_lowprintf("  ETXST:    %02x %02x\n",
+                enc_rdbreg(priv, ENC_ETXSTH), enc_rdbreg(priv, ENC_ETXSTL));
+  lib_lowprintf("  ETXND:    %02x %02x\n",
+                enc_rdbreg(priv, ENC_ETXNDH), enc_rdbreg(priv, ENC_ETXNDL));
+  lib_lowprintf("  MACON1:   %02x MACON3:   %02x MACON4:   %02x\n",
+                enc_rdbreg(priv, ENC_MACON1), enc_rdbreg(priv, ENC_MACON3),
+                enc_rdbreg(priv, ENC_MACON4));
+  lib_lowprintf("  MACON1:   %02x MACON3:   %02x MACON4:   %02x\n",
+                enc_rdbreg(priv, ENC_MACON1), enc_rdbreg(priv, ENC_MACON3),
+                enc_rdbreg(priv, ENC_MACON4));
+  lib_lowprintf("  MABBIPG:  %02x MAIPG %02x %02x\n",
+                enc_rdbreg(priv, ENC_MABBIPG), enc_rdbreg(priv, ENC_MAIPGH),
+                enc_rdbreg(priv, ENC_MAIPGL));
+  lib_lowprintf("  MACLCON1: %02x MACLCON2:   %02x\n",
+                enc_rdbreg(priv, ENC_MACLCON1), enc_rdbreg(priv, ENC_MACLCON2));
+  lib_lowprintf("  MAMXFL:   %02x %02x\n",
+                enc_rdbreg(priv, ENC_MAMXFLH), enc_rdbreg(priv, ENC_MAMXFLL));
+}
+#endif
 
 /****************************************************************************
  * Function: enc_rdbuffer
@@ -1430,7 +1508,9 @@ static void enc_pktif(FAR struct enc_driver_s *priv)
   priv->nextpkt = (uint16_t)rsv[1] << 8 | (uint16_t)rsv[0];
   pktlen        = (uint16_t)rsv[3] << 8 | (uint16_t)rsv[2];
   rxstat        = (uint16_t)rsv[5] << 8 | (uint16_t)rsv[4];
-  nllvdbg("Receiving packet, pktlen: %d\n", pktlen);
+
+  nllvdbg("Receiving packet, nextpkt: %04x pktlen: %d rxstat: %04x\n",
+          priv->nextpkt, pktlen, rxstat);
 
   /* Check if the packet was received OK */
 
