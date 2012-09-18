@@ -211,7 +211,7 @@ COMMAND SUMMARY
 ===============
 
 We have already seen the I2C help (or ?) commands above.  This section will
-discusse the remaining commands.
+discuss the remaining commands.
 
 List buses: bus [OPTIONS]
 --------------------------

@@ -176,7 +176,8 @@ int carrier_get_board_info(struct carrier_board_info_s *info)
 	int ret;
 	int fd = open("/dev/eeprom", O_RDONLY | O_NONBLOCK);
 
-	if (fd < 0) fprintf(stderr, "[boardinfo carrier] ERROR opening carrier eeprom\n");
+	if (fd < 0)
+		return -1;	/* no board */
 
 	ret = read(fd, info, sizeof(struct carrier_board_info_s));
 

@@ -10,7 +10,7 @@
 #endif
 
 /*
-  internal function to give access to the channel status for each channel
+ * Internal function to give access to the channel status for each channel
  */
 MAVLINK_HELPER mavlink_status_t* mavlink_get_channel_status(uint8_t chan)
 {
@@ -19,7 +19,7 @@ MAVLINK_HELPER mavlink_status_t* mavlink_get_channel_status(uint8_t chan)
 }
 
 /*
- internal function to give access to the channel buffer for each channel
+ * Internal function to give access to the channel buffer for each channel
  */
 MAVLINK_HELPER mavlink_message_t* mavlink_get_channel_buffer(uint8_t chan)
 {
@@ -34,6 +34,15 @@ MAVLINK_HELPER mavlink_message_t* mavlink_get_channel_buffer(uint8_t chan)
 	static mavlink_message_t m_mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS];
 #endif
 	return &m_mavlink_buffer[chan];
+}
+
+/**
+ * @brief Reset the status of a channel.
+ */
+MAVLINK_HELPER void mavlink_reset_channel_status(uint8_t chan)
+{
+	mavlink_status_t *status = mavlink_get_channel_status(chan);
+	status->parse_state = MAVLINK_PARSE_STATE_IDLE;
 }
 
 /**

@@ -1,8 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,44 +32,45 @@
  ****************************************************************************/
 
 /**
- * @file fixedwing_control.h
- * Definition of the fixedwing_control uORB topic.
+ * @file tests_file.c
+ *
+ * File write test.
  */
 
-#ifndef TOPIC_FIXEDWING_CONTROL_H_
-#define TOPIC_FIXEDWING_CONTROL_H_
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <systemlib/err.h>
+#include <systemlib/perf_counter.h>
+#include <string.h>
 
-#include <stdint.h>
-#include "../uORB.h"
+#include <arch/board/up_hrt.h>
 
-/**
- * @addtogroup topics
- * @{
- */
+#include "tests.h"
 
-/**
- * fixed wing control status.
- */
-struct fixedwing_control_s
+int
+test_file(int argc, char *argv[])
 {
-	/* use of a counter and timestamp recommended (but not necessary) */
+	uint8_t buf[512];
+	hrt_abstime start, end;
+	perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes");
 
-	uint16_t counter; //incremented by the writing thread everytime new data is stored
-	uint64_t timestamp; //in microseconds since system start, is set whenever the writing thread stores new data
+	int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
+	memset(buf, 0, sizeof(buf));
 
-	float setpoint_rate_cast[3];
-	float setpoint_attitude_rate[3];
-	float setpoint_attitude[3];
-	float attitude_control_output[4];	/**< roll, pitch, yaw, throttle      */
-	float position_control_output[4];
+	start = hrt_absolute_time();
+	for (unsigned i = 0; i < 1024; i++) {
+		perf_begin(wperf);
+		write(fd, buf, sizeof(buf));
+		perf_end(wperf);
+	}
+	end = hrt_absolute_time();
 
-};
+	close(fd);
 
-/**
- * @}
- */
+	warnx("512KiB in %llu microseconds", end - start);
+	perf_print_counter(wperf);
+	perf_free(wperf);
 
-/* register this as object request broker structure */
-ORB_DECLARE(fixedwing_control);
-
-#endif //GLOBAL_DATA_FIXEDWING_CONTROL_T_H_
+	return 0;
+}

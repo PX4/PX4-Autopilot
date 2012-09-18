@@ -1,8 +1,8 @@
 /****************************************************************************
- * graphics/nxsu/nx_closewindow.c
+ * mm/mm_gran.h
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,68 +33,100 @@
  *
  ****************************************************************************/
 
+#ifndef __MM_MM_GRAN_H
+#define __MM_MM_GRAN_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <stdlib.h>
-#include <errno.h>
-#include <debug.h>
+#include <stdint.h>
+#include <semaphore.h>
 
-#include <nuttx/nx/nx.h>
-#include "nxfe.h"
-
-/****************************************************************************
- * Pre-Processor Definitions
- ****************************************************************************/
+#include <arch/types.h>
+#include <nuttx/gran.h>
 
 /****************************************************************************
- * Private Types
+ * Pre-processor Definitions
  ****************************************************************************/
 
+/* Sizes of things */
+
+#define SIZEOF_GAT(n) \
+  ((n + 31) >> 5)
+#define SIZEOF_GRAN_S(n) \
+  (sizeof(struct gran_s) + sizeof(uint32_t) * (SIZEOF_GAT(n) - 1))
+
+/* Debug */
+
+#ifdef CONFIG_CPP_HAVE_VARARGS
+#  ifdef CONFIG_DEBUG_GRAM
+#    define gramdbg(format, arg...)    dbg(format, ##arg)
+#    define gramvdbg(format, arg...)   vdbg(format, ##arg)
+#  else
+#    define gramdbg(format, arg...)    mdbg(format, ##arg)
+#    define gramvdbg(format, arg...)   mvdbg(format, ##arg)
+#  endif
+#else
+#  ifdef CONFIG_DEBUG_GRAM
+#    define gramdbg                    dbg
+#    define gramvdbg                   vdbg
+#  else
+#    define gramdbg                    (void)
+#    define gramvdbg                   (void)
+#  endif
+#endif
+
 /****************************************************************************
- * Private Data
+ * Public Types
  ****************************************************************************/
+
+/* This structure represents the state of on granual allocation */
+
+struct gran_s
+{
+  uint8_t    log2gran;  /* Log base 2 of the size of one granule */
+  uint16_t   ngranules; /* The total number of (aligned) granules in the heap */
+#ifdef CONFIG_GRAN_INTR
+  irqstate_t irqstate;  /* For exclusive access to the GAT */
+#else
+  sem_t      exclsem;   /* For exclusive access to the GAT */
+#endif
+  uintptr_t  heapstart; /* The aligned start of the granule heap */
+  uint32_t   gat[1];    /* Start of the granule allocation table */
+};
 
 /****************************************************************************
  * Public Data
  ****************************************************************************/
 
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
+/* State of the single GRAN allocator */
 
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: nx_closewindow
- *
- * Description:
- *   Destroy a window created by nx_openwindow.
- *
- * Input Parameters:
- *   wnd - The window to be destroyed
- *
- * Return:
- *   OK on success; ERROR on failure with errno set appropriately
- *
- ****************************************************************************/
-
-int nx_closewindow(NXWINDOW hwnd)
-{
-#ifdef CONFIG_DEBUG
-  if (!hwnd)
-    {
-      errno = EINVAL;
-      return ERROR;
-    }
+#ifdef CONFIG_GRAN_SINGLE
+extern FAR struct gran_s *g_graninfo;
 #endif
 
-  nxbe_closewindow((FAR struct nxbe_window_s *)hwnd);
-  return OK;
-}
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
+/****************************************************************************
+ * Name: gran_enter_critical and gran_leave_critical
+ *
+ * Description:
+ *   Critical section management for the granule allocator.
+ *
+ * Input Parameters:
+ *   priv - Pointer to the gran state
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void gran_enter_critical(FAR struct gran_s *priv);
+void gran_leave_critical(FAR struct gran_s *priv);
+
+#endif /* __MM_MM_GRAN_H */

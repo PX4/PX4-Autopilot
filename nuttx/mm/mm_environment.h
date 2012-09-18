@@ -105,12 +105,16 @@ extern void mm_addregion(FAR void *heapstart, size_t heapsize);
 
 /* Debug macros are always on */
 
-# define CONFIG_DEBUG
+# define CONFIG_DEBUG 1
 
 # undef mdbg
 # define mdbg(format, arg...) printf(format, ##arg)
 # undef mvdg
 # define mvdbg(format, arg...) printf(format, ##arg)
+# undef mlldbg
+# define mlldbg(format, arg...) printf(format, ##arg)
+# undef mllvdg
+# define mllvdbg(format, arg...) printf(format, ##arg)
 
 #else
 # define mm_errno get_errno()

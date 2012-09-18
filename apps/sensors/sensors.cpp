@@ -179,10 +179,13 @@ private:
 		float trim[_rc_max_chan_count];
 		float max[_rc_max_chan_count];
 		float rev[_rc_max_chan_count];
+		float dz[_rc_max_chan_count];
+		float ex[_rc_max_chan_count];
 
 		float gyro_offset[3];
 		float mag_offset[3];
-		float acc_offset[3];
+		float accel_offset[3];
+		float accel_scale[3];
 
 		int rc_type;
 
@@ -192,6 +195,10 @@ private:
 		int rc_map_throttle;
 		int rc_map_mode_sw;
 
+		float rc_scale_roll;
+		float rc_scale_pitch;
+		float rc_scale_yaw;
+
 		float battery_voltage_scaling;
 	}		_parameters;			/**< local copies of interesting parameters */
 
@@ -200,17 +207,24 @@ private:
 		param_t trim[_rc_max_chan_count];
 		param_t max[_rc_max_chan_count];
 		param_t rev[_rc_max_chan_count];
+		param_t dz[_rc_max_chan_count];
+		param_t ex[_rc_max_chan_count];
 		param_t rc_type;
 
 		param_t gyro_offset[3];
+		param_t accel_offset[3];
+		param_t accel_scale[3];
 		param_t mag_offset[3];
-		param_t acc_offset[3];
 
 		param_t rc_map_roll;
 		param_t rc_map_pitch;
 		param_t rc_map_yaw;
 		param_t rc_map_throttle;
 		param_t rc_map_mode_sw;
+
+		param_t rc_scale_roll;
+		param_t rc_scale_pitch;
+		param_t rc_scale_yaw;
 
 		param_t battery_voltage_scaling;
 	}		_parameter_handles;		/**< handles for interesting parameters */
@@ -348,13 +362,9 @@ Sensors::Sensors() :
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update"))
 {
-	_parameter_handles.min[0] = param_find("RC1_MIN");
-	_parameter_handles.max[0] = param_find("RC1_MAX");
-	_parameter_handles.trim[0] = param_find("RC1_TRIM");
-	_parameter_handles.rev[0] = param_find("RC1_REV");
 
 	/* basic r/c parameters */
-	for (unsigned i = 1; i < _rc_max_chan_count; i++) {
+	for (unsigned i = 0; i < _rc_max_chan_count; i++) {
 		char nbuf[16];
 
 		/* min values */
@@ -372,6 +382,14 @@ Sensors::Sensors() :
 		/* channel reverse */
 		sprintf(nbuf, "RC%d_REV", i + 1);
 		_parameter_handles.rev[i] = param_find(nbuf);
+
+		/* channel deadzone */
+		sprintf(nbuf, "RC%d_DZ", i + 1);
+		_parameter_handles.dz[i] = param_find(nbuf);
+
+		/* channel exponential gain */
+		sprintf(nbuf, "RC%d_EXP", i + 1);
+		_parameter_handles.ex[i] = param_find(nbuf);
 	}
 
 	_parameter_handles.rc_type = param_find("RC_TYPE");
@@ -382,20 +400,27 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_throttle = param_find("RC_MAP_THROTTLE");
 	_parameter_handles.rc_map_mode_sw = param_find("RC_MAP_MODE_SW");
 
+	_parameter_handles.rc_scale_roll = param_find("RC_SCALE_ROLL");
+	_parameter_handles.rc_scale_pitch = param_find("RC_SCALE_PITCH");
+	_parameter_handles.rc_scale_yaw = param_find("RC_SCALE_YAW");
+
 	/* gyro offsets */
-	_parameter_handles.gyro_offset[0] = param_find("SENSOR_GYRO_XOFF");
-	_parameter_handles.gyro_offset[1] = param_find("SENSOR_GYRO_YOFF");
-	_parameter_handles.gyro_offset[2] = param_find("SENSOR_GYRO_ZOFF");
+	_parameter_handles.gyro_offset[0] = param_find("SENS_GYRO_XOFF");
+	_parameter_handles.gyro_offset[1] = param_find("SENS_GYRO_YOFF");
+	_parameter_handles.gyro_offset[2] = param_find("SENS_GYRO_ZOFF");
 
 	/* accel offsets */
-	_parameter_handles.acc_offset[0] = param_find("SENSOR_ACC_XOFF");
-	_parameter_handles.acc_offset[1] = param_find("SENSOR_ACC_YOFF");
-	_parameter_handles.acc_offset[2] = param_find("SENSOR_ACC_ZOFF");
+	_parameter_handles.accel_offset[0] = param_find("SENS_ACC_XOFF");
+	_parameter_handles.accel_offset[1] = param_find("SENS_ACC_YOFF");
+	_parameter_handles.accel_offset[2] = param_find("SENS_ACC_ZOFF");
+	_parameter_handles.accel_scale[0] = param_find("SENS_ACC_XSCALE");
+	_parameter_handles.accel_scale[1] = param_find("SENS_ACC_YSCALE");
+	_parameter_handles.accel_scale[2] = param_find("SENS_ACC_ZSCALE");
 
 	/* mag offsets */
-	_parameter_handles.mag_offset[0] = param_find("SENSOR_MAG_XOFF");
-	_parameter_handles.mag_offset[1] = param_find("SENSOR_MAG_YOFF");
-	_parameter_handles.mag_offset[2] = param_find("SENSOR_MAG_ZOFF");
+	_parameter_handles.mag_offset[0] = param_find("SENS_MAG_XOFF");
+	_parameter_handles.mag_offset[1] = param_find("SENS_MAG_YOFF");
+	_parameter_handles.mag_offset[2] = param_find("SENS_MAG_ZOFF");
 
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
 
@@ -447,6 +472,12 @@ Sensors::parameters_update()
 		if (param_get(_parameter_handles.rev[i], &(_parameters.rev[i])) != OK) {
 			warnx("Failed getting rev for chan %d", i);
 		}
+		if (param_get(_parameter_handles.dz[i], &(_parameters.dz[i])) != OK) {
+			warnx("Failed getting dead zone for chan %d", i);
+		}
+		if (param_get(_parameter_handles.ex[i], &(_parameters.ex[i])) != OK) {
+			warnx("Failed getting exponential gain for chan %d", i);
+		}
 
 		_rc.chan[i].scaling_factor = (1.0f / ((_parameters.max[i] - _parameters.min[i]) / 2.0f) * _parameters.rev[i]);
 
@@ -487,15 +518,28 @@ Sensors::parameters_update()
 		warnx("Failed getting mode sw chan index");
 	}
 
+	if (param_get(_parameter_handles.rc_scale_roll, &(_parameters.rc_scale_roll)) != OK) {
+		warnx("Failed getting rc scaling for roll");
+	}
+	if (param_get(_parameter_handles.rc_scale_pitch, &(_parameters.rc_scale_pitch)) != OK) {
+		warnx("Failed getting rc scaling for pitch");
+	}
+	if (param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw)) != OK) {
+		warnx("Failed getting rc scaling for yaw");
+	}
+
 	/* gyro offsets */
 	param_get(_parameter_handles.gyro_offset[0], &(_parameters.gyro_offset[0]));
 	param_get(_parameter_handles.gyro_offset[1], &(_parameters.gyro_offset[1]));
 	param_get(_parameter_handles.gyro_offset[2], &(_parameters.gyro_offset[2]));
 
 	/* accel offsets */
-	param_get(_parameter_handles.acc_offset[0], &(_parameters.acc_offset[0]));
-	param_get(_parameter_handles.acc_offset[1], &(_parameters.acc_offset[1]));
-	param_get(_parameter_handles.acc_offset[2], &(_parameters.acc_offset[2]));
+	param_get(_parameter_handles.accel_offset[0], &(_parameters.accel_offset[0]));
+	param_get(_parameter_handles.accel_offset[1], &(_parameters.accel_offset[1]));
+	param_get(_parameter_handles.accel_offset[2], &(_parameters.accel_offset[2]));
+	param_get(_parameter_handles.accel_scale[0], &(_parameters.accel_scale[0]));
+	param_get(_parameter_handles.accel_scale[1], &(_parameters.accel_scale[1]));
+	param_get(_parameter_handles.accel_scale[2], &(_parameters.accel_scale[2]));
 
 	/* mag offsets */
 	param_get(_parameter_handles.mag_offset[0], &(_parameters.mag_offset[0]));
@@ -533,12 +577,10 @@ Sensors::accel_init()
 		warnx("using BMA180");
 	} else {
 		/* set the accel internal sampling rate up to at leat 500Hz */
-		if (OK != ioctl(fd, ACCELIOCSSAMPLERATE, 500))
-			warn("WARNING: failed to set minimum 500Hz sample rate for accel");
+		ioctl(fd, ACCELIOCSSAMPLERATE, 500);
 
 		/* set the driver to poll at 500Hz */
-		if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 500))
-			warn("WARNING: failed to set 500Hz poll rate for accel");
+		ioctl(fd, SENSORIOCSPOLLRATE, 500);
 
 		warnx("using system accel");
 		close(fd);
@@ -568,12 +610,10 @@ Sensors::gyro_init()
 		warn("using L3GD20");
 	} else {
 		/* set the gyro internal sampling rate up to at leat 500Hz */
-		if (OK != ioctl(fd, GYROIOCSSAMPLERATE, 500))
-			warn("WARNING: failed to set minimum 500Hz sample rate for gyro");
+		ioctl(fd, GYROIOCSSAMPLERATE, 500);
 
 		/* set the driver to poll at 500Hz */
-		if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 500))
-			warn("WARNING: failed to set 500Hz poll rate for gyro");
+		ioctl(fd, SENSORIOCSPOLLRATE, 500);
 
 		warnx("using system gyro");
 		close(fd);
@@ -592,12 +632,10 @@ Sensors::mag_init()
 	}
 
 	/* set the mag internal poll rate to at least 150Hz */
-	if (OK != ioctl(fd, MAGIOCSSAMPLERATE, 150))
-		warn("WARNING: failed to set minimum 150Hz sample rate for mag");
+	ioctl(fd, MAGIOCSSAMPLERATE, 150);
 
 	/* set the driver to poll at 150Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 150))
-		warn("WARNING: failed to set 150Hz poll rate for mag");
+	ioctl(fd, SENSORIOCSPOLLRATE, 150);
 
 	close(fd);
 }
@@ -614,8 +652,7 @@ Sensors::baro_init()
 	}
 
 	/* set the driver to poll at 150Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 150))
-		warn("WARNING: failed to set 150Hz poll rate for baro");
+	ioctl(fd, SENSORIOCSPOLLRATE, 150);
 
 	close(fd);
 }
@@ -650,9 +687,9 @@ Sensors::accel_poll(struct sensor_combined_s &raw)
 
 		const float range_g = 4.0f;
 		/* scale from 14 bit to m/s2 */
-		accel_report.x = (((accel_report.x_raw - _parameters.acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
-		accel_report.y = (((accel_report.y_raw - _parameters.acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
-		accel_report.z = (((accel_report.z_raw - _parameters.acc_offset[0]) * range_g) / 8192.0f) / 9.81f;
+		accel_report.x = (((accel_report.x_raw - _parameters.accel_offset[0]) * range_g) / 8192.0f) / 9.81f;
+		accel_report.y = (((accel_report.y_raw - _parameters.accel_offset[0]) * range_g) / 8192.0f) / 9.81f;
+		accel_report.z = (((accel_report.z_raw - _parameters.accel_offset[0]) * range_g) / 8192.0f) / 9.81f;
 		raw.accelerometer_counter++;
 
 	} else {
@@ -829,12 +866,12 @@ Sensors::parameter_update_poll(bool forced)
 
 		fd = open(ACCEL_DEVICE_PATH, 0);
 		struct accel_scale ascale = {
-			_parameters.acc_offset[0],
-			1.0f,
-			_parameters.acc_offset[1],
-			1.0f,
-			_parameters.acc_offset[2],
-			1.0f,
+			_parameters.accel_offset[0],
+			_parameters.accel_scale[0],
+			_parameters.accel_offset[1],
+			_parameters.accel_scale[1],
+			_parameters.accel_offset[2],
+			_parameters.accel_scale[2],
 		};
 		if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale))
 			warn("WARNING: failed to set scale / offsets for accel");
@@ -913,37 +950,73 @@ Sensors::ppm_poll()
 	if (ppm_decoded_channels < 4)
 		return;
 
+	unsigned channel_limit = ppm_decoded_channels;
+	if (channel_limit > _rc_max_chan_count)
+		channel_limit = _rc_max_chan_count;
+
 	/* we are accepting this decode */
 	_ppm_last_valid = ppm_last_valid_decode;
 
 	/* Read out values from HRT */
-	for (unsigned int i = 0; i < ppm_decoded_channels; i++) {
+	for (unsigned int i = 0; i < channel_limit; i++) {
 		_rc.chan[i].raw = ppm_buffer[i];
 		/* Set the range to +-, then scale up */
 		_rc.chan[i].scale = (ppm_buffer[i] - _rc.chan[i].mid) * _rc.chan[i].scaling_factor * 10000;
-		_rc.chan[i].scaled = (ppm_buffer[i] - _rc.chan[i].mid) * _rc.chan[i].scaling_factor;
+
+		/* scale around the mid point differently for lower and upper range */
+		if (ppm_buffer[i] > (_parameters.trim[i] + _parameters.dz[i])) {
+			_rc.chan[i].scaled = (ppm_buffer[i] - _parameters.trim[i]) / (float)(_parameters.max[i] - _parameters.trim[i]);
+		} else if (ppm_buffer[i] < (_parameters.trim[i] - _parameters.dz[i])) {
+			/* division by zero impossible for trim == min (as for throttle), as this falls in the above if clause */
+			_rc.chan[i].scaled = -1.0f + ((ppm_buffer[i] - _parameters.min[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
+			
+		} else {
+			/* in the configured dead zone, output zero */
+			_rc.chan[i].scaled = 0.0f;
+		}
+
+		/* reverse channel if required */
+		_rc.chan[i].scaled *= _parameters.rev[i];
+
+		/* handle any parameter-induced blowups */
+		if (isnan(_rc.chan[i].scaled) || isinf(_rc.chan[i].scaled))
+			_rc.chan[i].scaled = 0.0f;
+
+		//_rc.chan[i].scaled = (ppm_buffer[i] - _rc.chan[i].mid) * _rc.chan[i].scaling_factor;
 	}
 
 	_rc.chan_count = ppm_decoded_channels;
 	_rc.timestamp = ppm_last_valid_decode;
 
-	/* roll input */
+	/* roll input - rolling right is stick-wise and rotation-wise positive */
 	manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled;
 	if (manual_control.roll < -1.0f) manual_control.roll = -1.0f;
 	if (manual_control.roll >  1.0f) manual_control.roll =  1.0f;
+	if (!isnan(_parameters.rc_scale_roll) || !isinf(_parameters.rc_scale_roll)) {
+		manual_control.roll *= _parameters.rc_scale_roll;
+	}
 
-	/* pitch input */
-	manual_control.pitch = _rc.chan[_rc.function[PITCH]].scaled;
+	/*
+	 * pitch input - stick down is negative, but stick down is pitching up (pos) in NED,
+	 * so reverse sign.
+	 */
+	manual_control.pitch = -1.0f * _rc.chan[_rc.function[PITCH]].scaled;
 	if (manual_control.pitch < -1.0f) manual_control.pitch = -1.0f;
 	if (manual_control.pitch >  1.0f) manual_control.pitch =  1.0f;
+	if (!isnan(_parameters.rc_scale_pitch) || !isinf(_parameters.rc_scale_pitch)) {
+		manual_control.pitch *= _parameters.rc_scale_pitch;
+	}
 
-	/* yaw input */
-	manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled;
+	/* yaw input - stick right is positive and positive rotation */
+	manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled * _parameters.rc_scale_yaw;
 	if (manual_control.yaw < -1.0f) manual_control.yaw = -1.0f;
 	if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
+	if (!isnan(_parameters.rc_scale_yaw) || !isinf(_parameters.rc_scale_yaw)) {
+		manual_control.yaw *= _parameters.rc_scale_yaw;
+	}
 	
 	/* throttle input */
-	manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled/2.0f;
+	manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
 	if (manual_control.throttle < 0.0f) manual_control.throttle = 0.0f;
 	if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
 
@@ -1067,8 +1140,8 @@ Sensors::task_main()
 		raw.timestamp = hrt_absolute_time();
 
 		/* copy most recent sensor data */
-		accel_poll(raw);
 		gyro_poll(raw);
+		accel_poll(raw);
 		mag_poll(raw);
 		baro_poll(raw);
 
@@ -1099,9 +1172,9 @@ Sensors::start()
 	ASSERT(_sensors_task == -1);
 
 	/* start the task */
-	_sensors_task = task_create("sensor_task",
+	_sensors_task = task_create("sensors_task",
 				    SCHED_PRIORITY_MAX - 5,
-				    4096,	/* XXX may be excesssive */
+				    6000,	/* XXX may be excesssive */
 				    (main_t)&Sensors::task_main_trampoline,
 				    nullptr);
 

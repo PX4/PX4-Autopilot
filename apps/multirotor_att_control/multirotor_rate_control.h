@@ -1,8 +1,12 @@
 /****************************************************************************
- * examples/hello/main.c
  *
- *   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           @author Julian Oes <joes@student.ethz.ch>
+ *           @author Laurens Mackay <mackayl@student.ethz.ch>
+ *           @author Tobias Naegeli <naegelit@student.ethz.ch>
+ *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *           @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -14,7 +18,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -33,32 +37,20 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
+/*
+ * @file multirotor_attitude_control.h
+ * Attitude control for multi rotors.
+ */
 
-#include <nuttx/config.h>
-#include <stdio.h>
+#ifndef MULTIROTOR_RATE_CONTROL_H_
+#define MULTIROTOR_RATE_CONTROL_H_
 
-/****************************************************************************
- * Definitions
- ****************************************************************************/
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/actuator_controls.h>
 
-/****************************************************************************
- * Private Data
- ****************************************************************************/
+void multirotor_control_rates(const struct vehicle_attitude_setpoint_s *rate_sp,
+	const float rates[], struct actuator_controls_s *actuators);
 
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * hello_main
- ****************************************************************************/
-
-int hello_main(int argc, char *argv[])
-{
-  printf("Hello, World!!\n");
-  return 0;
-}
-
+#endif /* MULTIROTOR_RATE_CONTROL_H_ */

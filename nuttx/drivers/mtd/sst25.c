@@ -1,5 +1,5 @@
 /************************************************************************************
- * drivers/mtd/m25px.c
+ * drivers/mtd/sst25.c
  * Driver for SPI-based SST25 FLASH.
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.

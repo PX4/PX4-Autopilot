@@ -331,6 +331,7 @@ int ardrone_write_motor_commands(int ardrone_fd, uint16_t motor1, uint16_t motor
 	static uint64_t last_motor_time = 0;
 
 	static struct actuator_outputs_s outputs;
+	outputs.timestamp = hrt_absolute_time();
 	outputs.output[0] = motor1;
 	outputs.output[1] = motor2;
 	outputs.output[2] = motor3;

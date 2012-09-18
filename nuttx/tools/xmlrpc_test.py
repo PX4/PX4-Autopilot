@@ -1,8 +1,9 @@
+#!/usr/bin/env python
 ############################################################################
-# apps/examples/lcdrw/Makefile
+# tools/xmlrpc_test.py
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2012 Max Holtzberg. All rights reserved.
+#   Author: Max Holtzberg <mh@uvc.de>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,73 +34,15 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config
--include $(TOPDIR)/Make.defs
-include $(APPDIR)/Make.defs
+import sys
+import xmlrpclib
 
-# LCD Read/Write Test
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        print 'Usage: %s <ip address>' % sys.argv[0]
+        quit(1)
 
-ASRCS		=
-CSRCS		= lcdrw_main.c
-
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
-COBJS		= $(CSRCS:.c=$(OBJEXT))
-
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
-
-ifeq ($(WINTOOL),y)
-  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
-else
-  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
-endif
-
-ROOTDEPPATH	= --dep-path .
-
-# LCD R/W built-in application info
- 
-APPNAME		= lcdrw
-PRIORITY	= SCHED_PRIORITY_DEFAULT
-STACKSIZE	= 2048
-
-# Common build
-
-VPATH		= 
-
-all: .built
-.PHONY: clean depend distclean
-
-$(AOBJS): %$(OBJEXT): %.S
-	$(call ASSEMBLE, $<, $@)
-
-$(COBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-.built: $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $(BIN), $${obj}); \
-	done ; )
-	@touch .built
-
-.context:
-ifeq ($(CONFIG_EXAMPLES_LCDRW_BUILTIN),y)
-	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
-	@touch $@
-endif
-
-context: .context
-
-.depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
-
-depend: .depend
-
-clean:
-	@rm -f *.o *~ .*.swp .built
-	$(call CLEAN)
-
-distclean: clean
-	@rm -f Make.dep .depend
-
--include Make.dep
+    server_url = 'http://%s/device' % sys.argv[1]
+    server = xmlrpclib.ServerProxy(server_url)
+    result = server.get_device_stats("username", "password", 0)
+    print result

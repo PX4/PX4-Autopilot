@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated August 12, 2012)
+NuttX TODO List (Last updated September 16, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -6,7 +6,7 @@ standards, things that could be improved, and ideas for enhancements.
 
 nuttx/
 
-  (5)  Task/Scheduler (sched/)
+  (6)  Task/Scheduler (sched/)
   (1)  On-demand paging (sched/)
   (1)  Memory Managment (mm/)
   (2)  Signals (sched/, arch/)
@@ -109,6 +109,13 @@ o Task/Scheduler (sched/)
 
   Status:      Open
   Priority:    Low
+
+  Title:       posix_spawn()
+  Description: This would be a good interface to add to NuttX.  It is really
+               just a re-packaging of the existing, non-standard NuttX exec()
+               function.
+  Status:      Open
+  Priority:    Medium low.
 
 o On-demand paging (sched/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -540,13 +547,6 @@ o Network (net/, drivers/net)
                and the packet was rejected.
   Status:      Open
   Priority:    Low... fix defconfig files as necessary.
-
-  Title:       UNFINISHED ENC28J60 DRIVER
-  Description: So far, I have not come up with a usable hardware platform to
-               verify the ENC28J60 Ethernet driver (drivers/net/enc28j60.c).
-               So it is untested.
-  Status:      Open
-  Priority:    Low unless you need it.
 
 o USB (drivers/usbdev, drivers/usbhost)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

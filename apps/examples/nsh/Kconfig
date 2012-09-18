@@ -6,6 +6,8 @@
 config EXAMPLES_NSH
 	bool "NuttShell (NSH) example"
 	default n
+	select NSH_LIBRARY
+	select SYSTEM_READLINE
 	---help---
 		Enable the NuttShell (NSH) example
 

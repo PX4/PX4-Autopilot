@@ -46,7 +46,7 @@ STACKSIZE	= 2048
 # NuttX OS Test
 
 ASRCS		=
-CSRCS		= main.c dev_null.c
+CSRCS		= ostest_main.c dev_null.c
 
 ifeq ($(CONFIG_ARCH_FPU),y)
 CSRCS		+= fpu.c

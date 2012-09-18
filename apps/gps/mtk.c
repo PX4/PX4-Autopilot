@@ -121,7 +121,7 @@ int mtk_parse(uint8_t b,  char *gps_rx_buffer)
 			if (mtk_state->ck_a == packet->ck_a && mtk_state->ck_b == packet->ck_b) {
 				mtk_gps->lat = packet->latitude * 10; // mtk: degrees*1e6, mavlink/ubx: degrees*1e7
 				mtk_gps->lon = packet->longitude * 10; // mtk: degrees*1e6, mavlink/ubx: degrees*1e7
-				mtk_gps->alt = (int32_t)packet->msl_altitude * 10; // conversion from centimeters to millimeters, and from uint32_t to int16_t
+				mtk_gps->alt = (int32_t)(packet->msl_altitude * 10); // conversion from centimeters to millimeters, and from uint32_t to int16_t
 				mtk_gps->fix_type = packet->fix_type;
 				mtk_gps->eph = packet->hdop;
 				mtk_gps->epv = 65535; //unknown in mtk custom mode
@@ -311,14 +311,14 @@ void *mtk_loop(void *arg)
 	/* advertise GPS topic */
 	struct vehicle_gps_position_s mtk_gps_d;
 	mtk_gps = &mtk_gps_d;
-	orb_advert_t gps_handle = orb_advertise(ORB_ID(vehicle_gps_position), &mtk_gps);
+	orb_advert_t gps_handle = orb_advertise(ORB_ID(vehicle_gps_position), mtk_gps);
 
 	while (1) {
 		/* Parse a message from the gps receiver */
 		if (OK == read_gps_mtk(fd, gps_rx_buffer, MTK_BUFFER_SIZE)) {
 
 			/* publish new GPS position */
-			orb_publish(ORB_ID(vehicle_gps_position), gps_handle, &mtk_gps);
+			orb_publish(ORB_ID(vehicle_gps_position), gps_handle, mtk_gps);
 
 		} else {
 			break;

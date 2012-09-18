@@ -36,19 +36,19 @@ config AT45DB_PWRSAVE
 	bool "enables power save"
 	default n
 	depends on MTD_AT45DB
-	
+
 config MTD_MP25P
-	bool "SPI-based M25P1 falsh"
+	bool "SPI-based M25P FLASH"
 	default n
 	select SPI
 
 config MP25P_SPIMODE
-	int "mp25p spi mode"
+	int "MP25P SPI mode"
 	default 0
 	depends on MTD_MP25P
 
 config MP25P_MANUFACTURER
-	hex "mp25p manufacturers ID"
+	hex "MP25P manufacturers ID"
 	default 0x20
 	depends on MTD_MP25P
 	---help---
@@ -66,3 +66,68 @@ config MTD_RAMTRON
 config MTD_RAM
 	bool "Memory bus ram"
 	default n
+
+config MTD_SST25
+	bool "SPI-based SST25 FLASH"
+	default n
+	select SPI
+
+config SST25_SPIMODE
+	int "SST25 SPI Mode"
+	default 0
+	depends on MTD_SST25
+
+config SST25_SPIFREQUENCY
+	int "SST25 SPI Frequency"
+	default 20000000
+	depends on MTD_SST25
+
+config SST25_READONLY
+	bool "SST25 Read-Only FLASH"
+	default n
+	depends on MTD_SST25
+
+config SST25_SECTOR512
+	bool "Simulate 512 byte Erase Blocks"
+	default n
+	depends on MTD_SST25
+
+config SST25_SLOWWRITE
+	bool
+	default y
+	depends on MTD_SST25
+
+config SST25_SLOWREAD
+	bool
+	default n
+	depends on MTD_SST25
+
+config MTD_W25
+	bool "SPI-based W25 FLASH"
+	default n
+	select SPI
+
+config W25_SPIMODE
+	int "W25 SPI Mode"
+	default 0
+	depends on MTD_W25
+
+config W25_SPIFREQUENCY
+	int "W25 SPI Frequency"
+	default 20000000
+	depends on MTD_W25
+
+config W25_READONLY
+	bool "W25 Read-Only FLASH"
+	default n
+	depends on MTD_W25
+
+config W25_SECTOR512
+	bool "Simulate 512 byte Erase Blocks"
+	default n
+	depends on MTD_W25
+
+config W25_SLOWREAD
+	bool
+	default n
+	depends on MTD_W25

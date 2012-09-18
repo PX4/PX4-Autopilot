@@ -2,7 +2,7 @@
  * drivers/net/dm9x.c
  *
  *   Copyright (C) 2007-2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References: Davicom data sheets (DM9000-DS-F03-041906.pdf,
  *   DM9010-DS-F01-103006.pdf) and looking at lots of other DM90x0

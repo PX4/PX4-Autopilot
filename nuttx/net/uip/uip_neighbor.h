@@ -3,7 +3,7 @@
  * to be used by future ARP code.
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * A direct leverage of logic from uIP which also has b BSD style license
  *

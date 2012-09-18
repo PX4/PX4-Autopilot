@@ -141,7 +141,7 @@ TIMER_SRCS	= timer_initialize.c timer_create.c timer_delete.c timer_getoverrun.c
 endif
 
 ifeq ($(CONFIG_SCHED_WORKQUEUE),y)
-WORK_SRCS	= work_thread.c work_queue.c work_cancel.c
+WORK_SRCS	= work_thread.c work_queue.c work_cancel.c work_signal.c
 endif
 
 ifeq ($(CONFIG_PAGING),y)

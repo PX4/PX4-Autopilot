@@ -109,6 +109,7 @@
 "sched_get_priority_min","sched.h","","int","int"
 "sem_getvalue","semaphore.h","","int","FAR sem_t *","FAR int *"
 "sem_init","semaphore.h","","int","FAR sem_t *","int","unsigned int"
+"sendfile","sys/sendfile.h","CONFIG_NSOCKET_DESCRIPTORS > 0 || CONFIG_NFILE_DESCRIPTORS > 0","ssize_t","int","int","off_t","size_t"
 "sigaddset","signal.h","!defined(CONFIG_DISABLE_SIGNALS)","int","FAR sigset_t *","int"
 "sigdelset","signal.h","!defined(CONFIG_DISABLE_SIGNALS)","int","FAR sigset_t *","int"
 "sigemptyset","signal.h","!defined(CONFIG_DISABLE_SIGNALS)","int","FAR sigset_t *"

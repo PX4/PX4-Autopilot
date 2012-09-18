@@ -93,9 +93,6 @@ CONFIG_ARCH_MATH_H=y
 
 CONFIG_ARMV7M_CMNVECTOR=y
 
-
-
-
 #
 # JTAG Enable settings (by default JTAG-DP and SW-DP are enabled):
 #
@@ -242,58 +239,59 @@ CONFIG_SERIAL_CONSOLE_REINIT=y
 CONFIG_USART1_SERIAL_CONSOLE=y
 CONFIG_USART2_SERIAL_CONSOLE=n
 CONFIG_USART3_SERIAL_CONSOLE=n
-CONFIG_USART4_SERIAL_CONSOLE=n
-CONFIG_USART5_SERIAL_CONSOLE=n
+CONFIG_UART4_SERIAL_CONSOLE=n
+CONFIG_UART5_SERIAL_CONSOLE=n
 CONFIG_USART6_SERIAL_CONSOLE=n
 
 #Mavlink messages can be bigger than 128
 CONFIG_USART1_TXBUFSIZE=512
 CONFIG_USART2_TXBUFSIZE=128
 CONFIG_USART3_TXBUFSIZE=128
-CONFIG_USART4_TXBUFSIZE=128
-CONFIG_USART5_TXBUFSIZE=64
+CONFIG_UART4_TXBUFSIZE=128
+CONFIG_UART5_TXBUFSIZE=64
 CONFIG_USART6_TXBUFSIZE=128
 
 CONFIG_USART1_RXBUFSIZE=512
 CONFIG_USART2_RXBUFSIZE=128
 CONFIG_USART3_RXBUFSIZE=128
-CONFIG_USART4_RXBUFSIZE=128
-CONFIG_USART5_RXBUFSIZE=128
+CONFIG_UART4_RXBUFSIZE=128
+CONFIG_UART5_RXBUFSIZE=128
 CONFIG_USART6_RXBUFSIZE=128
 
 CONFIG_USART1_BAUD=57600
 CONFIG_USART2_BAUD=115200
 CONFIG_USART3_BAUD=115200
-CONFIG_USART4_BAUD=115200
-CONFIG_USART5_BAUD=115200
+CONFIG_UART4_BAUD=115200
+CONFIG_UART5_BAUD=115200
 CONFIG_USART6_BAUD=9600
 
 CONFIG_USART1_BITS=8
 CONFIG_USART2_BITS=8
 CONFIG_USART3_BITS=8
-CONFIG_USART4_BITS=8
-CONFIG_USART5_BITS=8
+CONFIG_UART4_BITS=8
+CONFIG_UART5_BITS=8
 CONFIG_USART6_BITS=8
 
 CONFIG_USART1_PARITY=0
 CONFIG_USART2_PARITY=0
 CONFIG_USART3_PARITY=0
-CONFIG_USART4_PARITY=0
-CONFIG_USART5_PARITY=0
+CONFIG_UART4_PARITY=0
+CONFIG_UART5_PARITY=0
 CONFIG_USART6_PARITY=0
 
 CONFIG_USART1_2STOP=0
 CONFIG_USART2_2STOP=0
 CONFIG_USART3_2STOP=0
-CONFIG_USART4_2STOP=0
-CONFIG_USART5_2STOP=0
+CONFIG_UART4_2STOP=0
+CONFIG_UART5_2STOP=0
 CONFIG_USART6_2STOP=0
 
 CONFIG_USART1_RXDMA=y
+SERIAL_HAVE_CONSOLE_DMA=y
 CONFIG_USART2_RXDMA=y
 CONFIG_USART3_RXDMA=n
-CONFIG_USART4_RXDMA=n
-CONFIG_USART5_RXDMA=y
+CONFIG_UART4_RXDMA=n
+CONFIG_UART5_RXDMA=y
 CONFIG_USART6_RXDMA=y
 
 #
@@ -494,23 +492,35 @@ CONFIG_HAVE_LIBM=y
 #   desciptors by task_create() when a new task is started. If
 #   set, all sockets will appear to be closed in the new task.
 # CONFIG_SCHED_WORKQUEUE.  Create a dedicated "worker" thread to
-#  handle delayed processing from interrupt handlers.  This feature
-#  is required for some drivers but, if there are not complaints,
-#  can be safely disabled.  The worker thread also performs
-#  garbage collection -- completing any delayed memory deallocations
-#  from interrupt handlers.  If the worker thread is disabled,
-#  then that clean will be performed by the IDLE thread instead
-#  (which runs at the lowest of priority and may not be appropriate
-#  if memory reclamation is of high priority).  If CONFIG_SCHED_WORKQUEUE
-#  is enabled, then the following options can also be used:
+#   handle delayed processing from interrupt handlers.  This feature
+#   is required for some drivers but, if there are not complaints,
+#   can be safely disabled.  The worker thread also performs
+#   garbage collection -- completing any delayed memory deallocations
+#   from interrupt handlers.  If the worker thread is disabled,
+#   then that clean will be performed by the IDLE thread instead
+#   (which runs at the lowest of priority and may not be appropriate
+#   if memory reclamation is of high priority).  If CONFIG_SCHED_WORKQUEUE
+#   is enabled, then the following options can also be used:
 # CONFIG_SCHED_WORKPRIORITY - The execution priority of the worker
-#  thread.  Default: 50
+#   thread.  Default: 192
 # CONFIG_SCHED_WORKPERIOD - How often the worker thread checks for
-#  work in units of microseconds.  Default: 50000 (50 MS).
+#   work in units of microseconds.  Default: 50*1000 (50 MS).
 # CONFIG_SCHED_WORKSTACKSIZE - The stack size allocated for the worker
-#  thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
+#   thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
 # CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
-#  the worker thread.  Default: 4
+#   the worker thread.  Default: 4
+#
+# CONFIG_SCHED_LPWORK. If CONFIG_SCHED_WORKQUEUE is defined, then a single
+#   work queue is created by default.  If CONFIG_SCHED_LPWORK is also defined
+#   then an additional, lower-priority work queue will also be created.  This
+#   lower priority work queue is better suited for more extended processing
+#   (such as file system clean-up operations)
+# CONFIG_SCHED_LPWORKPRIORITY - The execution priority of the lower priority
+#   worker thread.  Default: 50
+# CONFIG_SCHED_LPWORKPERIOD - How often the lower priority worker thread
+#  checks for work in units of microseconds.  Default: 50*1000 (50 MS).
+# CONFIG_SCHED_LPWORKSTACKSIZE - The stack size allocated for the lower
+#   priority worker thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
 # CONFIG_SCHED_WAITPID - Enable the waitpid() API
 # CONFIG_SCHED_ATEXIT - Enabled the atexit() API
 #
@@ -557,6 +567,10 @@ CONFIG_SCHED_WORKQUEUE=y
 CONFIG_SCHED_WORKPRIORITY=192
 CONFIG_SCHED_WORKPERIOD=5000
 CONFIG_SCHED_WORKSTACKSIZE=2048
+CONFIG_SCHED_LPWORK=y
+CONFIG_SCHED_LPWORKPRIORITY=50
+CONFIG_SCHED_LPWORKPERIOD=50000
+CONFIG_SCHED_LPWORKSTACKSIZE=2048
 CONFIG_SIG_SIGWORK=4
 CONFIG_SCHED_WAITPID=y
 CONFIG_SCHED_ATEXIT=n
@@ -1020,8 +1034,10 @@ CONFIG_CUSTOM_STACK=n
 CONFIG_STACK_POINTER=
 # Idle thread needs 4096 bytes
 # default 1 KB is not enough
-CONFIG_IDLETHREAD_STACKSIZE=4096
-CONFIG_USERMAIN_STACKSIZE=3072
+# 4096 bytes 
+CONFIG_IDLETHREAD_STACKSIZE=6000
+# USERMAIN stack size probably needs to be around 4096 bytes
+CONFIG_USERMAIN_STACKSIZE=4096
 CONFIG_PTHREAD_STACK_MIN=512
 CONFIG_PTHREAD_STACK_DEFAULT=2048
 CONFIG_HEAP_BASE=

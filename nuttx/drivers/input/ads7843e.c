@@ -521,7 +521,7 @@ static int ads7843e_schedule(FAR struct ads7843e_dev_s *priv)
    */
 
   DEBUGASSERT(priv->work.worker == NULL);
-  ret = work_queue(&priv->work, ads7843e_worker, priv, 0);
+  ret = work_queue(HPWORK, &priv->work, ads7843e_worker, priv, 0);
   if (ret != 0)
     {
       illdbg("Failed to queue work: %d\n", ret);
@@ -1179,7 +1179,7 @@ int ads7843e_register(FAR struct spi_dev_s *dev,
    * availability conditions.
    */
 
-  ret = work_queue(&priv->work, ads7843e_worker, priv, 0);
+  ret = work_queue(HPWORK, &priv->work, ads7843e_worker, priv, 0);
   if (ret != 0)
     {
       idbg("Failed to queue work: %d\n", ret);

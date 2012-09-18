@@ -1,9 +1,8 @@
 /****************************************************************************
+ * examples/hello/hello_main.c
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -34,50 +33,32 @@
  *
  ****************************************************************************/
 
-/*
- * @file ardrone_control.c
- * Definition of the ardrone_control uORB topic.
- */
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
-#ifndef TOPIC_ARDRONE_CONTROL_H_
-#define TOPIC_ARDRONE_CONTROL_H_
+#include <nuttx/config.h>
+#include <stdio.h>
 
-#include <stdint.h>
-#include "../uORB.h"
+/****************************************************************************
+ * Definitions
+ ****************************************************************************/
 
-/**
- * @addtogroup topics
- * @{
- */
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
 
-struct ardrone_control_s
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * hello_main
+ ****************************************************************************/
+
+int hello_main(int argc, char *argv[])
 {
-	uint16_t counter;                    /**< incremented by the publishing thread everytime new data is stored. */
-	uint64_t timestamp;                  /**< in microseconds since system start, is set whenever the writing thread stores new data. */
+  printf("Hello, World!!\n");
+  return 0;
+}
 
-	float setpoint_rate_cast[3];
-	float setpoint_thrust_cast;          /**< LOGME */
-	float setpoint_attitude_rate[3];
-	float setpoint_attitude[3];          /**< LOGME */
-	float attitude_control_output[3];    /**< roll, pitch, yaw. */
-	float position_control_output[3];    /**< x, y, z.  */
-	float attitude_setpoint_navigationframe_from_positioncontroller[3]; /**< LOGME */
-	float gyro_scaled[3];
-	float gyro_filtered[3];
-	float gyro_filtered_offset[3];
-	float zcompensation;
-	uint16_t motor_front_nw;
-	uint16_t motor_right_ne;
-	uint16_t motor_back_se;
-	uint16_t motor_left_sw;
-
-}; /**< ardrone control status */
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(ardrone_control);
-
-#endif /* TOPIC_ARDRONE_CONTROL_H_ */

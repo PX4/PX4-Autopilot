@@ -213,7 +213,7 @@ static void rwb_wrstarttimeout(FAR struct rwbuffer_s *rwb)
    */
 
   int ticks = (CONFIG_FS_WRDELAY + CLK_TCK/2) / CLK_TCK;
-  (void)work_queue(&rwb->work, rwb_wrtimeout, (FAR void *)rwb, ticks);
+  (void)work_queue(LPWORK, &rwb->work, rwb_wrtimeout, (FAR void *)rwb, ticks);
 }
 
 /****************************************************************************
@@ -222,7 +222,7 @@ static void rwb_wrstarttimeout(FAR struct rwbuffer_s *rwb)
 
 static inline void rwb_wrcanceltimeout(struct rwbuffer_s *rwb)
 {
-  (void)work_cancel(&rwb->work);
+  (void)work_cancel(LPWORK, &rwb->work);
 }
 
 /****************************************************************************

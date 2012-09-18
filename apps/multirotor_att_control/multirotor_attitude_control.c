@@ -54,33 +54,33 @@
 #include <systemlib/param/param.h>
 #include <arch/board/up_hrt.h>
 
-PARAM_DEFINE_FLOAT(MC_YAWPOS_P, 0.3f);
-PARAM_DEFINE_FLOAT(MC_YAWPOS_I, 0.15f);
-PARAM_DEFINE_FLOAT(MC_YAWPOS_D, 0.0f);
-PARAM_DEFINE_FLOAT(MC_YAWPOS_AWU, 1.0f);
-PARAM_DEFINE_FLOAT(MC_YAWPOS_LIM, 3.0f);
+// PARAM_DEFINE_FLOAT(MC_YAWPOS_P, 0.3f);
+// PARAM_DEFINE_FLOAT(MC_YAWPOS_I, 0.15f);
+// PARAM_DEFINE_FLOAT(MC_YAWPOS_D, 0.0f);
+// PARAM_DEFINE_FLOAT(MC_YAWPOS_AWU, 1.0f);
+// PARAM_DEFINE_FLOAT(MC_YAWPOS_LIM, 3.0f);
 
-PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.1f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.08f); /* same on Flamewheel */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.02f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_AWU, 0.02f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_LIM, 0.1f);
 
-PARAM_DEFINE_FLOAT(MC_ATT_P, 0.3f);
+PARAM_DEFINE_FLOAT(MC_ATT_P, 0.2f); /* 0.15 F405 Flamewheel */
 PARAM_DEFINE_FLOAT(MC_ATT_I, 0.0f);
-PARAM_DEFINE_FLOAT(MC_ATT_D, 0.1f);
+PARAM_DEFINE_FLOAT(MC_ATT_D, 0.05f); /* 0.025 F405 Flamewheel */
 PARAM_DEFINE_FLOAT(MC_ATT_AWU, 0.05f);
-PARAM_DEFINE_FLOAT(MC_ATT_LIM, 0.3f);
+PARAM_DEFINE_FLOAT(MC_ATT_LIM, 0.4f);
 
 PARAM_DEFINE_FLOAT(MC_ATT_XOFF, 0.0f);
 PARAM_DEFINE_FLOAT(MC_ATT_YOFF, 0.0f);
 
 struct mc_att_control_params {
-	float yaw_p;
-	float yaw_i;
-	float yaw_d;
-	float yaw_awu;
-	float yaw_lim;
+	// float yaw_p;
+	// float yaw_i;
+	// float yaw_d;
+	// float yaw_awu;
+	// float yaw_lim;
 
 	float yawrate_p;
 	float yawrate_i;
@@ -99,11 +99,11 @@ struct mc_att_control_params {
 };
 
 struct mc_att_control_param_handles {
-	param_t yaw_p;
-	param_t yaw_i;
-	param_t yaw_d;
-	param_t yaw_awu;
-	param_t yaw_lim;
+	// param_t yaw_p;
+	// param_t yaw_i;
+	// param_t yaw_d;
+	// param_t yaw_awu;
+	// param_t yaw_lim;
 
 	param_t yawrate_p;
 	param_t yawrate_i;
@@ -137,11 +137,11 @@ static int parameters_update(const struct mc_att_control_param_handles *h, struc
 static int parameters_init(struct mc_att_control_param_handles *h)
 {
 	/* PID parameters */
-	h->yaw_p 	=	param_find("MC_YAWPOS_P");
-	h->yaw_i 	=	param_find("MC_YAWPOS_I");
-	h->yaw_d 	=	param_find("MC_YAWPOS_D");
-	h->yaw_awu 	=	param_find("MC_YAWPOS_AWU");
-	h->yaw_lim 	=	param_find("MC_YAWPOS_LIM");
+	// h->yaw_p 	=	param_find("MC_YAWPOS_P");
+	// h->yaw_i 	=	param_find("MC_YAWPOS_I");
+	// h->yaw_d 	=	param_find("MC_YAWPOS_D");
+	// h->yaw_awu 	=	param_find("MC_YAWPOS_AWU");
+	// h->yaw_lim 	=	param_find("MC_YAWPOS_LIM");
 
 	h->yawrate_p 	=	param_find("MC_YAWRATE_P");
 	h->yawrate_i 	=	param_find("MC_YAWRATE_I");
@@ -163,11 +163,11 @@ static int parameters_init(struct mc_att_control_param_handles *h)
 
 static int parameters_update(const struct mc_att_control_param_handles *h, struct mc_att_control_params *p)
 {
-	param_get(h->yaw_p, &(p->yaw_p));
-	param_get(h->yaw_i, &(p->yaw_i));
-	param_get(h->yaw_d, &(p->yaw_d));
-	param_get(h->yaw_awu, &(p->yaw_awu));
-	param_get(h->yaw_lim, &(p->yaw_lim));
+	// param_get(h->yaw_p, &(p->yaw_p));
+	// param_get(h->yaw_i, &(p->yaw_i));
+	// param_get(h->yaw_d, &(p->yaw_d));
+	// param_get(h->yaw_awu, &(p->yaw_awu));
+	// param_get(h->yaw_lim, &(p->yaw_lim));
 
 	param_get(h->yawrate_p, &(p->yawrate_p));
 	param_get(h->yawrate_i, &(p->yawrate_i));
@@ -196,7 +196,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 	static int motor_skip_counter = 0;
 
-	static PID_t yaw_pos_controller;
+	// static PID_t yaw_pos_controller;
 	static PID_t yaw_speed_controller;
 	static PID_t pitch_controller;
 	static PID_t roll_controller;
@@ -211,10 +211,10 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		parameters_init(&h);
 		parameters_update(&h, &p);
 
-		pid_init(&yaw_pos_controller, p.yaw_p, p.yaw_i, p.yaw_d, p.yaw_awu,
-			PID_MODE_DERIVATIV_CALC, 154);
-		pid_init(&yaw_speed_controller, p.yawrate_p, p.yawrate_d, p.yawrate_i, p.yawrate_awu,
-			PID_MODE_DERIVATIV_CALC, 155);
+		// pid_init(&yaw_pos_controller, p.yaw_p, p.yaw_i, p.yaw_d, p.yaw_awu,
+		// 	PID_MODE_DERIVATIV_SET, 154);
+		pid_init(&yaw_speed_controller, p.yawrate_p, p.yawrate_i, p.yawrate_d, p.yawrate_awu,
+			PID_MODE_DERIVATIV_SET, 155);
 		pid_init(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu,
 			PID_MODE_DERIVATIV_SET, 156);
 		pid_init(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu,
@@ -228,8 +228,8 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		/* update parameters from storage */
 		parameters_update(&h, &p);
 		/* apply parameters */
-		pid_set_parameters(&yaw_pos_controller, p.yaw_p, p.yaw_i, p.yaw_d, p.yaw_awu);
-		pid_set_parameters(&yaw_speed_controller, p.yawrate_p, p.yawrate_d, p.yawrate_i, p.yawrate_awu);
+		// pid_set_parameters(&yaw_pos_controller, p.yaw_p, p.yaw_i, p.yaw_d, p.yaw_awu);
+		pid_set_parameters(&yaw_speed_controller, p.yawrate_p, p.yawrate_i, p.yawrate_d, p.yawrate_awu);
 		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu);
 		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu);
 	}
@@ -243,7 +243,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	float roll_control = pid_calculate(&roll_controller, att_sp->roll_body + p.att_yoff,
 					att->roll, att->rollspeed, deltaT);
 	/* control yaw rate */
-	float yaw_rate_control = pid_calculate(&yaw_speed_controller, att_sp->yaw_body, att->yawspeed, 0.0f, deltaT);
+	float yaw_rate_control = pid_calculate(&yaw_speed_controller, att_sp->yaw_rate_body, att->yawspeed, 0.0f, deltaT);
 
 	/*
 	 * compensate the vertical loss of thrust
@@ -252,15 +252,15 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	 */
 	float zcompensation = 1.0f;
 
-	if (fabsf(att->roll) > 1.0f) {
-		zcompensation *= 1.85081571768f;
+	if (fabsf(att->roll) > 0.3f) {
+		zcompensation *= 1.04675160154f;
 
 	} else {
 		zcompensation *= 1.0f / cosf(att->roll);
 	}
 
-	if (fabsf(att->pitch) > 1.0f) {
-		zcompensation *= 1.85081571768f;
+	if (fabsf(att->pitch) > 0.3f) {
+		zcompensation *= 1.04675160154f;
 
 	} else {
 		zcompensation *= 1.0f / cosf(att->pitch);

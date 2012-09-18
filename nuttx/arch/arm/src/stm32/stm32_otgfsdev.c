@@ -607,7 +607,7 @@ static void        stm32_ep_freereq(FAR struct usbdev_ep_s *ep,
 
 /* Endpoint buffer management */
 
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
 static void       *stm32_ep_allocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes);
 static void        stm32_ep_freebuffer(FAR struct usbdev_ep_s *ep, FAR void *buf);
 #endif
@@ -669,7 +669,7 @@ static const struct usbdev_epops_s g_epops =
   .disable     = stm32_ep_disable,
   .allocreq    = stm32_ep_allocreq,
   .freereq     = stm32_ep_freereq,
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
   .allocbuffer = stm32_ep_allocbuffer,
   .freebuffer  = stm32_ep_freebuffer,
 #endif
@@ -4070,11 +4070,16 @@ static void stm32_ep_freereq(FAR struct usbdev_ep_s *ep, FAR struct usbdev_req_s
  *
  *******************************************************************************/
 
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
 static void *stm32_ep_allocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes)
 {
   usbtrace(TRACE_EPALLOCBUFFER, privep->epphy);
-  return malloc(bytes)
+
+#ifdef CONFIG_USBDEV_DMAMEMORY
+  return usbdev_dma_alloc(bytes);
+#else
+  return malloc(bytes);
+#endif
 }
 #endif
 
@@ -4086,11 +4091,16 @@ static void *stm32_ep_allocbuffer(FAR struct usbdev_ep_s *ep, unsigned bytes)
  *
  *******************************************************************************/
 
-#ifdef CONFIG_STM32_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
 static void stm32_ep_freebuffer(FAR struct usbdev_ep_s *ep, FAR void *buf)
 {
   usbtrace(TRACE_EPFREEBUFFER, privep->epphy);
+
+#ifdef CONFIG_USBDEV_DMAMEMORY
+  usbdev_dma_free(buf);
+#else
   free(buf);
+#endif
 }
 #endif
 

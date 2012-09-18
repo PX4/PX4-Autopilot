@@ -1,8 +1,8 @@
 /****************************************************************************
- * graphics/nxtk/nxtk_movewindow.c
+ * sched/work_signal.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,30 +39,29 @@
 
 #include <nuttx/config.h>
 
-#include <stdlib.h>
-#include <errno.h>
-#include <debug.h>
+#include <signal.h>
+#include <assert.h>
 
-#include <nuttx/nx/nx.h>
-#include <nuttx/nx/nxtk.h>
+#include <nuttx/wqueue.h>
 
-#include "nxfe.h"
-#include "nxtk_internal.h"
+#include "work_internal.h"
+
+#ifdef CONFIG_SCHED_WORKQUEUE
 
 /****************************************************************************
- * Pre-Processor Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Private Types
+ * Private Type Declarations
  ****************************************************************************/
 
 /****************************************************************************
- * Private Data
+ * Public Variables
  ****************************************************************************/
 
 /****************************************************************************
- * Public Data
+ * Private Variables
  ****************************************************************************/
 
 /****************************************************************************
@@ -72,47 +71,26 @@
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
 /****************************************************************************
- * Name: nxtk_movewindow
+ * Name: work_signal
  *
  * Description:
- *   Move a rectangular region within the client sub-window of a framed window
+ *   Signal the worker thread to process the work queue now.  This function
+ *   is used internally by the work logic but could also be used by the
+ *   user to force an immediate re-assessment of pending work.
  *
- * Input Parameters:
- *   hfwnd   - The client sub-window within which the move is to be done.
- *            This must have been previously created by nxtk_openwindow().
- *   rect   - Describes the rectangular region relative to the client
- *            sub-window to move
- *   offset - The offset to move the region
+ * Input parameters:
+ *   qid    - The work queue ID
  *
- * Return:
- *   OK on success; ERROR on failure with errno set appropriately
+ * Returned Value:
+ *   Zero on success, a negated errno on failure
  *
  ****************************************************************************/
 
-int nxtk_movewindow(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
-                    FAR const struct nxgl_point_s *offset)
+int work_signal(int qid)
 {
-  FAR struct nxtk_framedwindow_s *fwnd = (FAR struct nxtk_framedwindow_s *)hfwnd;
-  struct nxgl_rect_s srcrect;
-  struct nxgl_point_s clipoffset;
-
-#ifdef CONFIG_DEBUG
-  if (!hfwnd || !rect || !offset)
-    {
-      errno = EINVAL;
-      return ERROR;
-    }
-#endif
-
-  /* Make sure that both the source and dest rectangle lie within the
-   * client sub-window 
-   */
-
-  nxtk_subwindowmove(fwnd, &srcrect, &clipoffset, rect, offset, &fwnd->fwrect);
-
-  /* Then move it within the client window */
-
-  return nx_move((NXWINDOW)hfwnd, &srcrect, &clipoffset);
+  DEBUGASSERT((unsigned)qid < NWORKERS);
+  return kill(g_work[qid].pid, SIGWORK);
 }
+
+#endif /* CONFIG_SCHED_WORKQUEUE */
