@@ -321,10 +321,11 @@ static int send_chunk(struct httpd_state *pstate, const char *buf, int len)
   return OK;
 }
 
-static int send_headers(struct httpd_state *pstate, int status)
+static int send_headers(struct httpd_state *pstate, int status, int len)
 {
   const char *mime;
   const char *ptr;
+  char cl[32];
   char s[128];
   int i;
 
@@ -367,6 +368,11 @@ static int send_headers(struct httpd_state *pstate, int status)
         }
     }
 
+  if (len >= 0)
+    {
+      (void) snprintf(cl, sizeof cl, "Content-Length: %d\r\n", len);
+    }
+
   i = snprintf(s, sizeof s,
     "HTTP/1.0 %d %s\r\n"
 #ifndef CONFIG_NETUTILS_HTTPD_SERVERHEADER_DISABLE
@@ -374,10 +380,12 @@ static int send_headers(struct httpd_state *pstate, int status)
 #endif
     "Connection: close\r\n"
     "Content-type: %s\r\n"
+    "%s"
     "\r\n",
     status,
     status >= 400 ? "Error" : "OK",
-    mime);
+    mime,
+    len >= 0 ? cl : "");
 
   return send_chunk(pstate, s, i);
 }
@@ -385,6 +393,7 @@ static int send_headers(struct httpd_state *pstate, int status)
 static int httpd_senderror(struct httpd_state *pstate, int status)
 {
   int ret;
+  char msg[10 + 1];
 
   nvdbg("[%d] sending error '%d'\n", pstate->ht_sockfd, status);
 
@@ -397,18 +406,18 @@ static int httpd_senderror(struct httpd_state *pstate, int status)
     "%s/%d.html",
     CONFIG_NETUTILS_HTTPD_ERRPATH, status);
 
-  if (send_headers(pstate, status) != OK)
+  ret = httpd_openindex(pstate);
+
+  if (send_headers(pstate, status, ret == OK ? pstate->ht_file.len : sizeof msg - 1) != OK)
     {
       return ERROR;
     }
 
-  if (httpd_openindex(pstate) != OK)
+  if (ret != OK)
     {
-      char s[10 + 1];
+      (void) snprintf(msg, sizeof msg, "Error %d\n", status);
 
-      (void) snprintf(s, sizeof s, "Error %d\n", status);
-
-      ret = send_chunk(pstate, s, sizeof s - 1);
+      ret = send_chunk(pstate, msg, sizeof msg - 1);
     }
   else
     {
@@ -455,25 +464,34 @@ static int httpd_sendfile(struct httpd_state *pstate)
       return httpd_senderror(pstate, 404);
     }
 
-  if (send_headers(pstate, 200) == OK)
-    {
 #ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
-      ptr = strchr(pstate->ht_filename, ISO_period);
-      if (ptr != NULL &&
-          strncmp(ptr, g_httpextensionshtml, strlen(g_httpextensionshtml)) == 0)
+  ptr = strchr(pstate->ht_filename, ISO_period);
+  if (ptr != NULL &&
+      strncmp(ptr, ".shtml", strlen(".shtml")) == 0)
+    {
+      if (send_headers(pstate, 200, -1) != OK)
         {
-          ret = handle_script(pstate);
+           goto done;
         }
-      else
-#endif
-        {
-#ifdef CONFIG_NETUTILS_HTTPD_SENDFILE
-          ret = httpd_sendfile_send(pstate->ht_sockfd, &pstate->ht_file);
-#else
-          ret = send_chunk(pstate, pstate->ht_file.data, pstate->ht_file.len);
-#endif
-        }
+
+      ret = handle_script(pstate);
+
+      goto done;
     }
+#endif
+
+  if (send_headers(pstate, pstate->ht_file.len == 0 ? 204 : 200, pstate->ht_file.len) != OK)
+    {
+      goto done;
+    }
+
+#ifdef CONFIG_NETUTILS_HTTPD_SENDFILE
+      ret = httpd_sendfile_send(pstate->ht_sockfd, &pstate->ht_file);
+#else
+      ret = send_chunk(pstate, pstate->ht_file.data, pstate->ht_file.len);
+#endif
+
+done:
 
   (void)httpd_close(&pstate->ht_file);
 
