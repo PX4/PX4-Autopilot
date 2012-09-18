@@ -925,7 +925,7 @@ static inline void enc_wrbuffer(FAR struct enc_driver_s *priv,
    */
 
   enc_deselect(priv);
-  enc_bmdump(ENC_WBM, buffer, buflen);
+  enc_bmdump(ENC_WBM, buffer, buflen+1);
 }
 
 /****************************************************************************
@@ -949,20 +949,38 @@ static uint16_t enc_rdphy(FAR struct enc_driver_s *priv, uint8_t phyaddr)
 {
   uint16_t data = 0;
 
-  /* Set the PHY address (and start the PHY read operation) */
+  /* "To read from a PHY register:
+   *
+   *   1. Write the address of the PHY register to read from into the MIREGADR
+   *      register.
+   */
 
   enc_wrbreg(priv, ENC_MIREGADR, phyaddr);
+
+  /*   2. Set the MICMD.MIIRD bit. The read operation begins and the
+   *      MISTAT.BUSY bit is set.
+   */
+
   enc_wrbreg(priv, ENC_MICMD, MICMD_MIIRD);
 
-  /* Wait until the PHY read completes */
+  /*   3. Wait 10.24 µs. Poll the MISTAT.BUSY bit to be certain that the
+   *      operation is complete. While busy, the host controller should not
+   *      start any MIISCAN operations or write to the MIWRH register.
+   *
+   *      When the MAC has obtained the register contents, the BUSY bit will
+   *      clear itself.
+   */
 
+  up_udelay(12);
   if (enc_waitbreg(priv, ENC_MISTAT, MISTAT_BUSY, 0x00) == OK);
     {
-      /* Terminate reading */
+      /* 4. Clear the MICMD.MIIRD bit. */
 
       enc_wrbreg(priv, ENC_MICMD, 0x00);
 
-      /* Get the PHY data */
+      /* 5. Read the desired data from the MIRDL and MIRDH registers. The
+       *    order that these bytes are accessed is unimportant."
+       */
 
       data  = (uint16_t)enc_rdbreg(priv, ENC_MIRDL);
       data |= (uint16_t)enc_rdbreg(priv, ENC_MIRDH) << 8;
@@ -992,17 +1010,35 @@ static uint16_t enc_rdphy(FAR struct enc_driver_s *priv, uint8_t phyaddr)
 static void enc_wrphy(FAR struct enc_driver_s *priv, uint8_t phyaddr,
                       uint16_t phydata)
 {
-  /* Set the PHY register address */
+  /* "To write to a PHY register:
+   *
+   *    1. Write the address of the PHY register to write to into the
+   *       MIREGADR register.
+   */
 
   enc_wrbreg(priv, ENC_MIREGADR, phyaddr);
 
-  /* Write the PHY data */
+  /*    2. Write the lower 8 bits of data to write into the MIWRL register. */
 
   enc_wrbreg(priv, ENC_MIWRL, phydata);
+
+  /*    3. Write the upper 8 bits of data to write into the MIWRH register.
+   *       Writing to this register automatically begins the MIIM transaction,
+   *       so it must be written to after MIWRL. The MISTAT.BUSY bit becomes
+   *       set.
+   */
+
   enc_wrbreg(priv, ENC_MIWRH, phydata >> 8);
 
-  /* Wait until the PHY write completes */
+  /*    The PHY register will be written after the MIIM operation completes,
+   *    which takes 10.24 µs. When the write operation has completed, the BUSY
+   *    bit will clear itself.
+   *
+   *    The host controller should not start any MIISCAN or MIIRD operations
+   *    while busy."
+   */
 
+  up_udelay(12);
   enc_waitbreg(priv, ENC_MISTAT, MISTAT_BUSY, 0x00);
 }
 
@@ -1063,7 +1099,10 @@ static int enc_transmit(FAR struct enc_driver_s *priv)
   enc_wrbreg(priv, ENC_EWRPTL, PKTMEM_TX_START & 0xff);
   enc_wrbreg(priv, ENC_EWRPTH, PKTMEM_TX_START >> 8);
 
-  /* Set the TX End pointer based on the size of the packet to send */
+  /* Set the TX End pointer based on the size of the packet to send. Note
+   * that the offset accounts for the control byte at the beginning the
+   * buffer plus the size of the packet data.
+   */
 
   txend = PKTMEM_TX_START +  priv->dev.d_len;
   enc_wrbreg(priv, ENC_ETXNDL, txend & 0xff);

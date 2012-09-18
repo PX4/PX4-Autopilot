@@ -466,7 +466,7 @@ Build Targets and Options
     This is the build "verbosity flag."  If you specify V=1 on the make command
     line, you will see the exact commands used in the build. This can be very
     useful when adding new boards or tracking down compile time errors and
-    warnings.
+    warnings (Contributed by Richard Cochran).
 
 CYGWIN BUILD PROBLEMS
 ^^^^^^^^^^^^^^^^^^^^^

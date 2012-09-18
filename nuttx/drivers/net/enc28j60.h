@@ -360,8 +360,8 @@
 
 /* PHY Control Register 1 Register Bit Definitions */
 
-#define PHCON1_PDPXMD     (1 << 8)  /* Bit 8:  PHY Power-Down */
-#define PHCON1_PPWRSV     (1 << 11) /* Bit 11: PHY Power Save */
+#define PHCON1_PDPXMD     (1 << 8)  /* Bit 8:  PHY Duplex Mode */
+#define PHCON1_PPWRSV     (1 << 11) /* Bit 11: PHY Power-Down */
 #define PHCON1_PLOOPBK    (1 << 14) /* Bit 14: PHY Loopback */
 #define PHCON1_PRST       (1 << 15) /* Bit 15: PHY Software Reset */
 
@@ -399,7 +399,6 @@
 #define PHIR_PLNKIF       (1 << 4)  /* Bit 4:  PHY Link Change Interrupt */
 
 /* PHLCON Regiser Bit Definitions */
-
                                     /* Bit 0:  Reserved */
 #define PHLCON_STRCH      (1 << 1)  /* Bit 1:  LED Pulse Stretching Enable */
 #define PHLCON_LFRQ0      (1 << 2)  /* Bit 2:  LED Pulse Stretch Time Configuration */
