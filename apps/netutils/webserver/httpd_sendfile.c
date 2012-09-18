@@ -89,6 +89,18 @@ int httpd_sendfile_open(const char *name, struct httpd_fs_file *file)
        return ERROR;
     }
 
+  if (S_ISDIR(st.st_mode))
+    {
+       errno = EISDIR;
+       return ERROR;
+    }
+
+  if (!S_ISREG(st.st_mode))
+    {
+       errno = ENOENT;
+       return ERROR;
+    }
+
   if (st.st_size > INT_MAX || st.st_size > SIZE_MAX)
     {
        errno = EFBIG;

@@ -104,15 +104,19 @@
 #  define CONFIG_NETUTILS_HTTPD_TIMEOUT 0
 #endif
 
+#if !defined(CONFIG_NETUTILS_HTTPD_SENDFILE) && !defined(CONFIG_NETUTILS_HTTPD_MMAP)
+#  ifndef CONFIG_NETUTILS_HTTPD_INDEX
+#    ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
+#      define CONFIG_NETUTILS_HTTPD_INDEX "index.shtml"
+#    else
+#      define CONFIG_NETUTILS_HTTPD_INDEX "index.html"
+#    endif
+#  endif
+#endif
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-
-#ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
-static const char g_httpindexpath[]         = "/index.shtml";
-#else
-static const char g_httpindexpath[]         = "/index.html";
-#endif
 
 static const char g_httpcmdget[]            = "GET ";
 
@@ -129,6 +133,33 @@ static int httpd_open(const char *name, struct httpd_fs_file *file)
 #else
   return httpd_fs_open(name, file);
 #endif
+}
+
+static int httpd_openindex(struct httpd_state *pstate)
+{
+  int ret;
+  size_t z;
+
+  z = strlen(pstate->ht_filename);
+  if (z > 0 && pstate->ht_filename[z - 1] == '/')
+    {
+      pstate->ht_filename[--z] = '\0';
+    }
+
+  ret = httpd_open(pstate->ht_filename, &pstate->ht_file);
+#if defined(CONFIG_NETUTILS_HTTPD_SENDFILE) || defined(CONFIG_NETUTILS_HTTPD_MMAP)
+#  if defined(CONFIG_NETUTILS_HTTPD_INDEX)
+  if (ret == ERROR && errno == EISDIR)
+    {
+      (void) snprintf(pstate->ht_filename + z, sizeof pstate->ht_filename - z, "/%s",
+        CONFIG_NETUTILS_HTTPD_INDEX);
+
+      ret = httpd_open(pstate->ht_filename, &pstate->ht_file);
+    }
+#  endif
+#endif
+
+  return ret;
 }
 
 static int httpd_close(struct httpd_fs_file *file)
@@ -371,7 +402,7 @@ static int httpd_senderror(struct httpd_state *pstate, int status)
       return ERROR;
     }
 
-  if (httpd_open(pstate->ht_filename, &pstate->ht_file) != OK)
+  if (httpd_openindex(pstate) != OK)
     {
       char s[10 + 1];
 
@@ -418,7 +449,7 @@ static int httpd_sendfile(struct httpd_state *pstate)
   }
 #endif
 
-  if (httpd_open(pstate->ht_filename, &pstate->ht_file) != OK)
+  if (httpd_openindex(pstate) != OK)
     {
       ndbg("[%d] '%s' not found\n", pstate->ht_sockfd, pstate->ht_filename);
       return httpd_senderror(pstate, 404);
@@ -493,10 +524,12 @@ static inline int httpd_cmd(struct httpd_state *pstate)
       ndbg("[%d] Missing path\n", pstate->ht_sockfd);
       return httpd_senderror(pstate, 400);
     }
+#if !defined(CONFIG_NETUTILS_HTTPD_SENDFILE) && !defined(CONFIG_NETUTILS_HTTPD_MMAP)
   else if (pstate->ht_buffer[5] == ISO_space)
     {
-      strncpy(pstate->ht_filename, g_httpindexpath, strlen(g_httpindexpath));
+      strncpy(pstate->ht_filename, "/" CONFIG_NETUTILS_HTTPD_INDEX, strlen("/" CONFIG_NETUTILS_HTTPD_INDEX));
     }
+#endif
   else
     {
       for (i = 0;
