@@ -50,14 +50,14 @@
 
 struct ardrone_motors_setpoint_s
 {
-	uint16_t counter; //incremented by the writing thread everytime new data is stored
 	uint64_t timestamp; //in microseconds since system start, is set whenever the writing thread stores new data
 
-	uint16_t motor_front_nw; ///< Front motor in + configuration, front left motor in x configuration
-	uint16_t motor_right_ne; ///< Right motor in + configuration, front right motor in x configuration
-	uint16_t motor_back_se; ///< Back motor in + configuration, back right motor in x configuration
-	uint16_t motor_left_sw; ///< Left motor in + configuration, back left motor in x configuration
-
+	uint8_t group;	/**< quadrotor group */
+	uint8_t mode;	/**< requested flight mode XXX define */
+	float p1;		/**< parameter 1: rate control: roll rate, att control: roll angle (in radians, NED) */
+	float p2;		/**< parameter 2: rate control: pitch rate, att control: pitch angle (in radians, NED) */
+	float p3;		/**< parameter 3: rate control: yaw rate, att control: yaw angle (in radians, NED) */
+	float p4;		/**< parameter 4: thrust, [0..1] */
 }; /**< AR.Drone low level motors */
 
  /**
@@ -67,4 +67,4 @@ struct ardrone_motors_setpoint_s
 /* register this as object request broker structure */
 ORB_DECLARE(ardrone_motors_setpoint);
 
-#endif
+#endif-\
