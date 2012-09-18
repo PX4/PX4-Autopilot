@@ -83,7 +83,7 @@
 /* define MAVLink specific parameters */
 PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
-PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_GENERIC);
+PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_QUADROTOR);
 
 __EXPORT int mavlink_main(int argc, char *argv[]);
 int mavlink_thread_main(int argc, char *argv[]);
@@ -95,7 +95,7 @@ static int mavlink_task;
 /* terminate MAVLink on user request - disabled by default */
 static bool mavlink_link_termination_allowed = false;
 
-mavlink_system_t mavlink_system = {100, 50, MAV_TYPE_FIXED_WING, 0, 0, 0}; // System ID, 1-255, Component/Subsystem ID, 1-255
+mavlink_system_t mavlink_system = {100, 50, MAV_TYPE_QUADROTOR, 0, 0, 0}; // System ID, 1-255, Component/Subsystem ID, 1-255
 static uint8_t chan = MAVLINK_COMM_0;
 static mavlink_status_t status;
 
@@ -1093,6 +1093,8 @@ static void *uorb_receiveloop(void *arg)
 			/* --- DEBUG KEY/VALUE --- */
 			if (fds[ifds++].revents & POLLIN) {
 				orb_copy(ORB_ID(debug_key_value), subs->debug_key_value, &buf.debug);
+				/* Enforce null termination */
+				buf.debug.key[sizeof(buf.debug.key) - 1] = '\0';
 				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000, buf.debug.key, buf.debug.value);
 			}
 		}
@@ -1234,26 +1236,36 @@ void handleMessage(mavlink_message_t *msg)
 
 	/* Handle quadrotor motor setpoints */
 
-	if (msg->msgid == MAVLINK_MSG_ID_SET_QUAD_MOTORS_SETPOINT) {
-		mavlink_set_quad_motors_setpoint_t quad_motors_setpoint;
-		mavlink_msg_set_quad_motors_setpoint_decode(msg, &quad_motors_setpoint);
+	if (msg->msgid == MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST) {
+		mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t quad_motors_setpoint;
+		mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_decode(msg, &quad_motors_setpoint);
 //		printf("got MAVLINK_MSG_ID_SET_QUAD_MOTORS_SETPOINT target_system=%u, sysid = %u\n", quad_motors_setpoint.target_system, mavlink_system.sysid);
 
-		if (quad_motors_setpoint.target_system == mavlink_system.sysid) {
-			ardrone_motors.motor_front_nw = quad_motors_setpoint.motor_front_nw;
-			ardrone_motors.motor_right_ne = quad_motors_setpoint.motor_right_ne;
-			ardrone_motors.motor_back_se = quad_motors_setpoint.motor_back_se;
-			ardrone_motors.motor_left_sw = quad_motors_setpoint.motor_left_sw;
+		if (mavlink_system.sysid < 4) {
+			ardrone_motors.p1 = quad_motors_setpoint.roll[mavlink_system.sysid];
+			ardrone_motors.p2 = quad_motors_setpoint.pitch[mavlink_system.sysid];
+			ardrone_motors.p3 = quad_motors_setpoint.yaw[mavlink_system.sysid];
+			ardrone_motors.p4 = quad_motors_setpoint.thrust[mavlink_system.sysid];
 
-			ardrone_motors.counter++;
 			ardrone_motors.timestamp = hrt_absolute_time();
 
-			/* check if topic has to be advertised */
-			if (ardrone_motors_pub <= 0) {
-				ardrone_motors_pub = orb_advertise(ORB_ID(ardrone_motors_setpoint), &ardrone_motors);
+			/* only send if RC is off */
+			if (v_status.rc_signal_lost) {
+				/* check if input has to be enabled */
+				if (!v_status.flag_control_offboard_enabled) {
+					/* XXX Enable offboard control */
+				}
+
+				/* XXX decode mode and set flags */
+				// if (mode == abc) xxx flag_control_rates_enabled;
+
+				/* check if topic has to be advertised */
+				if (ardrone_motors_pub <= 0) {
+					ardrone_motors_pub = orb_advertise(ORB_ID(ardrone_motors_setpoint), &ardrone_motors);
+				}
+				/* Publish */
+				orb_publish(ORB_ID(ardrone_motors_setpoint), ardrone_motors_pub, &ardrone_motors);
 			}
-			/* Publish */
-			orb_publish(ORB_ID(ardrone_motors_setpoint), ardrone_motors_pub, &ardrone_motors);
 		}
 	}
 
@@ -1557,8 +1569,6 @@ int mavlink_thread_main(int argc, char *argv[])
 	mavlink_wpm_init(wpm);
 
 	uint16_t counter = 0;
-	/* arm counter to go off immediately */
-	int lowspeed_counter = 10;
 
 	/* make sure all threads have registered their subscriptions */
 	while (!mavlink_subs.initialized) {
@@ -1625,6 +1635,9 @@ int mavlink_thread_main(int argc, char *argv[])
 
 	thread_running = true;
 
+	/* arm counter to go off immediately */
+	int lowspeed_counter = 10;
+
 	while (!thread_should_exit) {
 
 		/* get local and global position */
@@ -1649,7 +1662,7 @@ int mavlink_thread_main(int argc, char *argv[])
 			
 			int32_t system_type;
 			param_get(param_system_type, &system_type);
-			if (system_type >= 0 && system_type < MAV_AUTOPILOT_ENUM_END) {
+			if (system_type >= 0 && system_type < MAV_TYPE_ENUM_END) {
 				mavlink_system.type = system_type;
 			}
 
@@ -1659,7 +1672,7 @@ int mavlink_thread_main(int argc, char *argv[])
 			get_mavlink_mode_and_state(&v_status, &armed, &mavlink_state, &mavlink_mode);
 
 			/* send heartbeat */
-			mavlink_msg_heartbeat_send(chan, system_type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.state_machine, mavlink_state);
+			mavlink_msg_heartbeat_send(chan, mavlink_system.type, MAV_AUTOPILOT_PX4, mavlink_mode, v_status.state_machine, mavlink_state);
 
 			/* switch HIL mode if required */
 			set_hil_on_off(v_status.flag_hil_enabled);

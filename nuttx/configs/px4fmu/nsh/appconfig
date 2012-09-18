@@ -78,7 +78,7 @@ CONFIGURED_APPS += px4/attitude_estimator_bm
 CONFIGURED_APPS += fixedwing_control
 CONFIGURED_APPS += position_estimator
 CONFIGURED_APPS += attitude_estimator_ekf
-CONFIGURED_APPS += ground_estimator
+CONFIGURED_APPS += px4/ground_estimator
 
 # Hacking tools
 #CONFIGURED_APPS += system/i2c

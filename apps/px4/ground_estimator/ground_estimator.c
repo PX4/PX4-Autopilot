@@ -40,9 +40,14 @@
 #include <nuttx/config.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <poll.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/debug_key_value.h>
+
 
 static bool thread_should_exit = false;		/**< ground_estimator exit flag */
 static bool thread_running = false;		/**< ground_estimator status flag */
@@ -51,7 +56,7 @@ static int ground_estimator_task;				/**< Handle of ground_estimator task / thre
 /**
  * ground_estimator management function.
  */
-__EXPORT int ground_estimator_app_main(int argc, char *argv[]);
+__EXPORT int ground_estimator_main(int argc, char *argv[]);
 
 /**
  * Mainloop of ground_estimator.
@@ -69,16 +74,19 @@ int ground_estimator_thread_main(int argc, char *argv[]) {
 
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
-	bool publishing = false;
 
 	/* advertise attitude */
-	struct debug_key_value_s dbg = { .key = "velx      ", .value = 0.0f };
-	orb_advert_t pub_att = orb_advertise(ORB_ID(debug_key_value), &dbg);
+	struct debug_key_value_s dbg = { .key = "posx", .value = 0.0f };
+	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
 
 	float position[3] = {};
 	float velocity[3] = {};
 
 	uint64_t last_time = 0;
+
+	struct pollfd fds[] = {
+		{ .fd = sub_raw,   .events = POLLIN },
+	};
 
 	while (!thread_should_exit) {
 		
@@ -94,16 +102,16 @@ int ground_estimator_thread_main(int argc, char *argv[]) {
 			struct sensor_combined_s s;
 			orb_copy(ORB_ID(sensor_combined), sub_raw, &s);
 
-			uint64_t dt = s.timestamp - last_time;
+			float dt = ((float)(s.timestamp - last_time)) / 1000000.0f;
 
 			/* Integration */
 			position[0] += velocity[0] * dt;
 			position[1] += velocity[1] * dt;
 			position[2] += velocity[2] * dt;
 
-			velocity[0] += velocity[0] * 0.01f + 0.99f * s.acceleration_m_s2[0] * dt;
-			velocity[1] += velocity[1] * 0.01f + 0.99f * s.acceleration_m_s2[1] * dt;
-			velocity[2] += velocity[2] * 0.01f + 0.99f * s.acceleration_m_s2[2] * dt;
+			velocity[0] += velocity[0] * 0.01f + 0.99f * s.accelerometer_m_s2[0] * dt;
+			velocity[1] += velocity[1] * 0.01f + 0.99f * s.accelerometer_m_s2[1] * dt;
+			velocity[2] += velocity[2] * 0.01f + 0.99f * s.accelerometer_m_s2[2] * dt;
 
 			dbg.value = position[0];
 
@@ -134,7 +142,7 @@ usage(const char *reason)
  * The actual stack size should be set in the call
  * to task_create().
  */
-int ground_estimator_app_main(int argc, char *argv[])
+int ground_estimator_main(int argc, char *argv[])
 {
 	if (argc < 1)
 		usage("missing command");

@@ -213,7 +213,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 		// pid_init(&yaw_pos_controller, p.yaw_p, p.yaw_i, p.yaw_d, p.yaw_awu,
 		// 	PID_MODE_DERIVATIV_SET, 154);
-		pid_init(&yaw_speed_controller, p.yawrate_p, p.yawrate_d, p.yawrate_i, p.yawrate_awu,
+		pid_init(&yaw_speed_controller, p.yawrate_p, p.yawrate_i, p.yawrate_d, p.yawrate_awu,
 			PID_MODE_DERIVATIV_SET, 155);
 		pid_init(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu,
 			PID_MODE_DERIVATIV_SET, 156);
@@ -229,7 +229,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		parameters_update(&h, &p);
 		/* apply parameters */
 		// pid_set_parameters(&yaw_pos_controller, p.yaw_p, p.yaw_i, p.yaw_d, p.yaw_awu);
-		pid_set_parameters(&yaw_speed_controller, p.yawrate_p, p.yawrate_d, p.yawrate_i, p.yawrate_awu);
+		pid_set_parameters(&yaw_speed_controller, p.yawrate_p, p.yawrate_i, p.yawrate_d, p.yawrate_awu);
 		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu);
 		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu);
 	}

@@ -32,7 +32,7 @@
  *
  ****************************************************************************/
 
-/*
+/**
  * @file multirotor_att_control_main.c
  *
  * Implementation of multirotor attitude control main loop.
@@ -103,6 +103,8 @@ mc_thread_main(int argc, char *argv[])
 	int att_setpoint_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
+	int setpoint_sub = orb_subscribe(ORB_ID(ardrone_motors_setpoint));
 
 	/* 
 	 * Do not rate-limit the loop to prevent aliasing
@@ -143,28 +145,49 @@ mc_thread_main(int argc, char *argv[])
 		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 		/* get a local copy of attitude setpoint */
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), att_setpoint_sub, &att_sp);
+		/* get a local copy of the current sensor values */
+		orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
-		att_sp.roll_body = manual.roll;
-		att_sp.pitch_body = manual.pitch;
-		att_sp.yaw_rate_body = manual.yaw;
-		att_sp.timestamp = hrt_absolute_time();
-		
-		if (motor_test_mode) {
-			att_sp.roll_body = 0.0f;
-			att_sp.pitch_body = 0.0f;
-			att_sp.yaw_body = 0.0f;
-			att_sp.roll_rate_body = 0.0f;
-			att_sp.pitch_rate_body = 0.0f;
-			att_sp.yaw_rate_body = 0.0f;
-			att_sp.thrust = 0.1f;
-		} else {
-			att_sp.thrust = manual.throttle;
+
+		/** STEP 1: Define which input is the dominating control input */
+
+		if (state.flag_control_manual_enabled) {
+			/* manual inputs, from RC control or joystick */
+			att_sp.roll_body = manual.roll;
+			att_sp.pitch_body = manual.pitch;
+			att_sp.yaw_rate_body = manual.yaw;
+			att_sp.timestamp = hrt_absolute_time();
 			
+			if (motor_test_mode) {
+				att_sp.roll_body = 0.0f;
+				att_sp.pitch_body = 0.0f;
+				att_sp.yaw_body = 0.0f;
+				att_sp.roll_rate_body = 0.0f;
+				att_sp.pitch_rate_body = 0.0f;
+				att_sp.yaw_rate_body = 0.0f;
+				att_sp.thrust = 0.1f;
+			} else {
+				att_sp.thrust = manual.throttle;
+			}
+		} else if (state.flag_control_offboard_enabled) {
+			/* offboard inputs */
+
+			/* decide wether we want rate or position input */
 		}
 
-		multirotor_control_attitude(&att_sp, &att, &actuators);
+		/** STEP 2: Identify the controller setup to run and set up the inputs correctly */
 
-		/* publish the result */
+		/* run attitude controller */
+		if (state.flag_control_attitude_enabled) {
+			multirotor_control_attitude(&att_sp, &att, &actuators);
+		}
+
+		/* XXX could be also run in an independent loop */
+		if (state.flag_control_rates_enabled) {
+			multirotor_control_rates(&att_sp, &raw.gyro_rad_s, &actuators);
+		}
+
+		/* STEP 3: publish the result to the vehicle actuators */
 		orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 		orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 

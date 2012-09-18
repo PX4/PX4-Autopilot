@@ -1,7 +1,12 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           @author Julian Oes <joes@student.ethz.ch>
+ *           @author Laurens Mackay <mackayl@student.ethz.ch>
+ *           @author Tobias Naegeli <naegelit@student.ethz.ch>
+ *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *           @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,39 +37,20 @@
  *
  ****************************************************************************/
 
-/**
- * @file ardrone_motors_setpoint.h
- * Definition of the ardrone_motors_setpoint uORB topic.
+/*
+ * @file multirotor_attitude_control.h
+ * Attitude control for multi rotors.
  */
 
-#ifndef TOPIC_ARDRONE_MOTORS_SETPOINT_H_
-#define TOPIC_ARDRONE_MOTORS_SETPOINT_H_
+#ifndef MULTIROTOR_RATE_CONTROL_H_
+#define MULTIROTOR_RATE_CONTROL_H_
 
-#include <stdint.h>
-#include "../uORB.h"
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/actuator_controls.h>
 
-/**
- * @addtogroup topics
- * @{
- */
+void multirotor_control_rates(const struct vehicle_attitude_setpoint_s *rate_sp,
+	const float rates[], struct actuator_controls_s *actuators);
 
-struct ardrone_motors_setpoint_s
-{
-	uint64_t timestamp; //in microseconds since system start, is set whenever the writing thread stores new data
-
-	uint8_t group;	/**< quadrotor group */
-	uint8_t mode;	/**< requested flight mode XXX define */
-	float p1;		/**< parameter 1: rate control: roll rate, att control: roll angle (in radians, NED) */
-	float p2;		/**< parameter 2: rate control: pitch rate, att control: pitch angle (in radians, NED) */
-	float p3;		/**< parameter 3: rate control: yaw rate, att control: yaw angle (in radians, NED) */
-	float p4;		/**< parameter 4: thrust, [0..1] */
-}; /**< AR.Drone low level motors */
-
- /**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(ardrone_motors_setpoint);
-
-#endif
+#endif /* MULTIROTOR_RATE_CONTROL_H_ */
