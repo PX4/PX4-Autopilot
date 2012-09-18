@@ -304,7 +304,7 @@
 #define ENC_MAADR3      REGADDR(0x02, 3, 1) /* MAC Address Byte 3 (MAADR<31:24>), OUI Byte 3 */
 #define ENC_MAADR4      REGADDR(0x03, 3, 1) /* MAC Address Byte 4 (MAADR<23:16>) */
 #define ENC_MAADR1      REGADDR(0x04, 3, 1) /* MAC Address Byte 1 (MAADR<47:40>), OUI Byte 1 */
-#define ENC_MAADR2      REGADDR(0x05, 3, 1) /* MAC Address Byte 2 (MAADR<39:32>), OUI Byte  */
+#define ENC_MAADR2      REGADDR(0x05, 3, 1) /* MAC Address Byte 2 (MAADR<39:32>), OUI Byte 2 */
 #define ENC_EBSTSD      REGADDR(0x06, 3, 0) /* Built-in Self-Test Fill Seed (EBSTSD<7:0>) */
 #define ENC_EBSTCON     REGADDR(0x07, 3, 0) /* Built-in Self-Test Control */
 #define ENC_EBSTCSL     REGADDR(0x08, 3, 0) /* Built-in Self-Test Checksum Low Byte (EBSTCS<7:0>) */
@@ -361,11 +361,11 @@
 /* PHY Control Register 1 Register Bit Definitions */
 
 #define PHCON1_PDPXMD     (1 << 8)  /* Bit 8:  PHY Power-Down */
-#define PHCON1_PPWRSV     (1 << 11) /* Bit 11: PHY Power-Down */
+#define PHCON1_PPWRSV     (1 << 11) /* Bit 11: PHY Power Save */
 #define PHCON1_PLOOPBK    (1 << 14) /* Bit 14: PHY Loopback */
 #define PHCON1_PRST       (1 << 15) /* Bit 15: PHY Software Reset */
 
-/* HY Status 1 Register Bit Definitions */
+/* PHY Status 1 Register Bit Definitions */
 
 #define PHSTAT1_JBSTAT    (1 << 1)  /* Bit 1: PHY Latching Jabber Status */
 #define PHSTAT1_LLSTAT    (1 << 2)  /* Bit 2: PHY Latching Link Status */

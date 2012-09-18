@@ -2244,14 +2244,21 @@ static void enc_pwrfull(FAR struct enc_driver_s *priv)
 
 static void enc_setmacaddr(FAR struct enc_driver_s *priv)
 {
-  /* Program the hardware with it's MAC address (for filtering) */
+  /* Program the hardware with it's MAC address (for filtering).
+   *   MAADR1  MAC Address Byte 1 (MAADR<47:40>), OUI Byte 1
+   *   MAADR2  MAC Address Byte 2 (MAADR<39:32>), OUI Byte 2
+   *   MAADR3  MAC Address Byte 3 (MAADR<31:24>), OUI Byte 3
+   *   MAADR4  MAC Address Byte 4 (MAADR<23:16>)
+   *   MAADR5  MAC Address Byte 5 (MAADR<15:8>)
+   *   MAADR6  MAC Address Byte 6 (MAADR<7:0>)
+   */
 
-  enc_wrbreg(priv, ENC_MAADR1, priv->dev.d_mac.ether_addr_octet[5]);
-  enc_wrbreg(priv, ENC_MAADR2, priv->dev.d_mac.ether_addr_octet[4]);
-  enc_wrbreg(priv, ENC_MAADR3, priv->dev.d_mac.ether_addr_octet[3]);
-  enc_wrbreg(priv, ENC_MAADR4, priv->dev.d_mac.ether_addr_octet[2]);
-  enc_wrbreg(priv, ENC_MAADR5, priv->dev.d_mac.ether_addr_octet[1]);
-  enc_wrbreg(priv, ENC_MAADR6, priv->dev.d_mac.ether_addr_octet[0]);
+  enc_wrbreg(priv, ENC_MAADR1, priv->dev.d_mac.ether_addr_octet[0]);
+  enc_wrbreg(priv, ENC_MAADR2, priv->dev.d_mac.ether_addr_octet[1]);
+  enc_wrbreg(priv, ENC_MAADR3, priv->dev.d_mac.ether_addr_octet[2]);
+  enc_wrbreg(priv, ENC_MAADR4, priv->dev.d_mac.ether_addr_octet[3]);
+  enc_wrbreg(priv, ENC_MAADR5, priv->dev.d_mac.ether_addr_octet[4]);
+  enc_wrbreg(priv, ENC_MAADR6, priv->dev.d_mac.ether_addr_octet[5]);
 }
 
 /****************************************************************************

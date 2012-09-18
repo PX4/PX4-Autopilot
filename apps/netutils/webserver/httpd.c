@@ -92,6 +92,10 @@
 #  define CONFIG_NETUTILS_HTTPD_PATH "/mnt"
 #endif
 
+#ifndef CONFIG_NETUTILS_HTTPD_ERRPATH
+#  define CONFIG_NETUTILS_HTTPD_ERRPATH ""
+#endif
+
 /* The correct way to disable receive timeout errors is by setting the
  * timeout to zero.
  */
@@ -104,29 +108,6 @@
  * Private Data
  ****************************************************************************/
 
-static const char g_httpcontenttypebinary[] = "Content-type: application/octet-stream\r\n\r\n";
-static const char g_httpcontenttypecss[]    = "Content-type: text/css\r\n\r\n";
-static const char g_httpcontenttypegif[]    = "Content-type: image/gif\r\n\r\n";
-static const char g_httpcontenttypehtml[]   = "Content-type: text/html\r\n\r\n";
-static const char g_httpcontenttypejpg[]    = "Content-type: image/jpeg\r\n\r\n";
-static const char g_httpcontenttypeplain[]  = "Content-type: text/plain\r\n\r\n";
-static const char g_httpcontenttypepng[]    = "Content-type: image/png\r\n\r\n";
-static const char g_httpcontenttypejs[]     = "Content-type: text/javascript\r\n\r\n";
-
-#ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
-static const char g_httpextensionshtml[]    = ".shtml";
-#endif
-static const char g_httpextensionhtml[]     = ".html";
-static const char g_httpextensioncss[]      = ".css";
-static const char g_httpextensionpng[]      = ".png";
-static const char g_httpextensiongif[]      = ".gif";
-static const char g_httpextensionjpg[]      = ".jpg";
-static const char g_httpextensionjs[]       = ".js";
-
-static const char g_http404path[]           = "/404.html";
-#if CONFIG_NETUTILS_HTTPD_TIMEOUT > 0
-static const char g_http408path[]           = "/408.html";
-#endif
 #ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
 static const char g_httpindexpath[]         = "/index.shtml";
 #else
@@ -134,29 +115,6 @@ static const char g_httpindexpath[]         = "/index.html";
 #endif
 
 static const char g_httpcmdget[]            = "GET ";
-
-static const char g_httpheader200[]         =
-  "HTTP/1.0 200 OK\r\n"
-#ifndef CONFIG_NETUTILS_HTTPD_SERVERHEADER_DISABLE
-  "Server: uIP/1.0 http://www.sics.se/~adam/uip/\r\n"
-#endif
-  "Connection: close\r\n";
-
-static const char g_httpheader404[]         =
-   "HTTP/1.0 404 Not found\r\n"
-#ifndef CONFIG_NETUTILS_HTTPD_SERVERHEADER_DISABLE
-   "Server: uIP/1.0 http://www.sics.se/~adam/uip/\r\n"
-#endif
-   "Connection: close\r\n";
-
-#if CONFIG_NETUTILS_HTTPD_TIMEOUT > 0
-static const char g_httpheader408[]         =
-   "HTTP/1.0 408 Request timed out\r\n"
-#ifndef CONFIG_NETUTILS_HTTPD_SERVERHEADER_DISABLE
-   "Server: uIP/1.0 http://www.sics.se/~adam/uip/\r\n"
-#endif
-   "Connection: close\r\n";
-#endif
 
 /****************************************************************************
  * Private Functions
@@ -259,6 +217,7 @@ static int handle_script(struct httpd_state *pstate)
                   f(pstate, pstate->ht_scriptptr);
                 }
             }
+
           next_scriptstate(pstate);
 
           /* The script is over, so we reset the pointers and continue
@@ -300,6 +259,7 @@ static int handle_script(struct httpd_state *pstate)
                   len = HTTPD_IOBUFFER_SIZE;
                 }
             }
+
           send(pstate->ht_sockfd, pstate->ht_file.data, len, 0);
           pstate->ht_file.data += len;
           pstate->ht_file.len  -= len;
@@ -309,120 +269,125 @@ static int handle_script(struct httpd_state *pstate)
 }
 #endif
 
-static int httpd_addchunk(struct httpd_state *pstate, const char *buffer, int len)
+static int send_chunk(struct httpd_state *pstate, const char *buf, int len)
 {
-  int newlen;
-  int chunklen;
   int ret;
 
   do
     {
-      /* Determine the size of the next chunk so that it fits into the buffer */
-
-      newlen = pstate->ht_sndlen + len;
-      if (newlen > HTTPD_IOBUFFER_SIZE)
+      httpd_dumpbuffer("Outgoing chunk", buf, len);
+      ret = send(pstate->ht_sockfd, buf, len, 0);
+      if (ret < 0)
         {
-          newlen   = HTTPD_IOBUFFER_SIZE;
-          chunklen = HTTPD_IOBUFFER_SIZE - pstate->ht_sndlen;
-        }
-      else
-        {
-          chunklen = len;
+          return ERROR;
         }
 
-      nvdbg("[%d] sndlen=%d len=%d newlen=%d chunklen=%d\n",
-            pstate->ht_sockfd, pstate->ht_sndlen, len, newlen, chunklen);
-
-      /* Copy that chunk into the send buffer */
-
-      memcpy(&pstate->ht_buffer[pstate->ht_sndlen], buffer, chunklen);
-
-      if (newlen >= HTTPD_IOBUFFER_SIZE)
-        {
-          /* The buffer is full.. Send what we have and reset to send again */
-
-          httpd_dumpbuffer("Outgoing buffer", pstate->ht_buffer, newlen);
-          ret = send(pstate->ht_sockfd, pstate->ht_buffer, newlen, 0);
-          if (ret < 0)
-            {
-              return ret;
-            }
-
-          newlen = 0;
-        }
-
-      pstate->ht_sndlen = newlen;
-      len              -= chunklen;
-      buffer           += chunklen;
+      buf += ret;
+      len -= ret;
     }
   while (len > 0);
 
   return OK;
 }
 
-static int httpd_flush(struct httpd_state *pstate)
+static int send_headers(struct httpd_state *pstate, int status)
 {
-  int ret = 0;
+  const char *mime;
+  const char *ptr;
+  char s[128];
+  int i;
 
-  if (pstate->ht_sndlen > 0)
-    {
-      httpd_dumpbuffer("Outgoing buffer", pstate->ht_buffer, pstate->ht_sndlen);
-      ret = send(pstate->ht_sockfd, pstate->ht_buffer, pstate->ht_sndlen, 0);
-      if (ret >= 0)
-        {
-          pstate->ht_sndlen = 0;
-        }
-    }
-  return ret;
-}
+  static const struct
+  {
+    const char *ext;
+    const char *mime;
+  } a[] =
+  {
+#ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
+    { "shtml", "text/html"       },
+#endif
+    { "html",  "text/html"       },
+    { "css",   "text/css"        },
+    { "txt",   "text/plain"      },
+    { "js",    "text/javascript" },
 
-static int send_headers(struct httpd_state *pstate, const char *statushdr, int len)
-{
-  char *ptr;
-  int ret;
-  nvdbg("HEADER\n");
-  ret = httpd_addchunk(pstate, statushdr, len);
-  if (ret < 0)
-    {
-      return ret;
-    }
+    { "png",   "image/png"       },
+    { "gif",   "image/gif"       },
+    { "jpeg",  "image/jpeg"      },
+    { "jpg",   "image/jpeg"      }
+  };
 
   ptr = strrchr(pstate->ht_filename, ISO_period);
   if (ptr == NULL)
     {
-      ret = httpd_addchunk(pstate, g_httpcontenttypebinary, strlen(g_httpcontenttypebinary));
-    }
-  else if (strncmp(g_httpextensionhtml, ptr, strlen(g_httpextensionhtml)) == 0
-#ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
-        || strncmp(g_httpextensionshtml, ptr, strlen(g_httpextensionshtml)) == 0
-#endif
-       )
-    {
-      ret = httpd_addchunk(pstate, g_httpcontenttypehtml, strlen(g_httpcontenttypehtml));
-    }
-  else if (strncmp(g_httpextensioncss, ptr, strlen(g_httpextensioncss)) == 0)
-    {
-      ret = httpd_addchunk(pstate, g_httpcontenttypecss, strlen(g_httpcontenttypecss));
-    }
-  else if (strncmp(g_httpextensionpng, ptr, strlen(g_httpextensionpng)) == 0)
-    {
-      ret = httpd_addchunk(pstate, g_httpcontenttypepng, strlen(g_httpcontenttypepng));
-    }
-  else if (strncmp(g_httpextensiongif, ptr, strlen(g_httpextensiongif)) == 0)
-    {
-      ret = httpd_addchunk(pstate, g_httpcontenttypegif, strlen(g_httpcontenttypegif));
-    }
-  else if (strncmp(g_httpextensionjpg, ptr, strlen(g_httpextensionjpg)) == 0)
-    {
-      ret = httpd_addchunk(pstate, g_httpcontenttypejpg, strlen(g_httpcontenttypejpg));
-    }
-  else if (strncmp(g_httpextensionjs, ptr, strlen(g_httpextensionjs)) == 0)
-    {
-      ret = httpd_addchunk(pstate, g_httpcontenttypejs, strlen(g_httpcontenttypejs));
+      mime = "application/octet-stream";
     }
   else
     {
-      ret = httpd_addchunk(pstate, g_httpcontenttypeplain, strlen(g_httpcontenttypeplain));
+      mime = "text/plain";
+
+      for (i = 0; i < sizeof a / sizeof *a; i++)
+        {
+          if (strncmp(a[i].ext, ptr + 1, strlen(a[i].ext)) == 0)
+            {
+              mime = a[i].mime;
+              break;
+            }
+        }
+    }
+
+  i = snprintf(s, sizeof s,
+    "HTTP/1.0 %d %s\r\n"
+#ifndef CONFIG_NETUTILS_HTTPD_SERVERHEADER_DISABLE
+    "Server: uIP/NuttX http://nuttx.org/\r\n"
+#endif
+    "Connection: close\r\n"
+    "Content-type: %s\r\n"
+    "\r\n",
+    status,
+    status >= 400 ? "Error" : "OK",
+    mime);
+
+  return send_chunk(pstate, s, i);
+}
+
+static int httpd_senderror(struct httpd_state *pstate, int status)
+{
+  int ret;
+
+  nvdbg("[%d] sending error '%d'\n", pstate->ht_sockfd, status);
+
+  if (status < 400 || status >= 600)
+    {
+      status = 500;
+    }
+
+  (void) snprintf(pstate->ht_filename, sizeof pstate->ht_filename,
+    "%s/%d.html",
+    CONFIG_NETUTILS_HTTPD_ERRPATH, status);
+
+  if (send_headers(pstate, status) != OK)
+    {
+      return ERROR;
+    }
+
+  if (httpd_open(pstate->ht_filename, &pstate->ht_file) != OK)
+    {
+      char s[10 + 1];
+
+      (void) snprintf(s, sizeof s, "Error %d\n", status);
+
+      ret = send_chunk(pstate, s, sizeof s - 1);
+    }
+  else
+    {
+#ifdef CONFIG_NETUTILS_HTTPD_SENDFILE
+      ret = httpd_sendfile_send(pstate->ht_sockfd, &pstate->ht_file);
+#else
+      ret = send_chunk(pstate, pstate->ht_file.data, pstate->ht_file.len);
+#endif
+
+      (void) httpd_close(&pstate->ht_file);
     }
 
   return ret;
@@ -448,8 +413,7 @@ static int httpd_sendfile(struct httpd_state *pstate)
       {
         f(pstate, pstate->ht_filename);
 
-        ret = OK;
-        goto done;
+        return OK;
       }
   }
 #endif
@@ -457,64 +421,30 @@ static int httpd_sendfile(struct httpd_state *pstate)
   if (httpd_open(pstate->ht_filename, &pstate->ht_file) != OK)
     {
       ndbg("[%d] '%s' not found\n", pstate->ht_sockfd, pstate->ht_filename);
-      memcpy(pstate->ht_filename, g_http404path, strlen(g_http404path));
-      if (httpd_open(g_http404path, &pstate->ht_file) != OK)
-        {
-          return ERROR;
-        }
+      return httpd_senderror(pstate, 404);
+    }
 
-      if (send_headers(pstate, g_httpheader404, strlen(g_httpheader404)) == OK)
+  if (send_headers(pstate, 200) == OK)
+    {
+#ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
+      ptr = strchr(pstate->ht_filename, ISO_period);
+      if (ptr != NULL &&
+          strncmp(ptr, g_httpextensionshtml, strlen(g_httpextensionshtml)) == 0)
+        {
+          ret = handle_script(pstate);
+        }
+      else
+#endif
         {
 #ifdef CONFIG_NETUTILS_HTTPD_SENDFILE
           ret = httpd_sendfile_send(pstate->ht_sockfd, &pstate->ht_file);
 #else
-          ret = httpd_addchunk(pstate, pstate->ht_file.data, pstate->ht_file.len);
+          ret = send_chunk(pstate, pstate->ht_file.data, pstate->ht_file.len);
 #endif
-        }
-    }
-  else
-    {
-      if (send_headers(pstate, g_httpheader200, strlen(g_httpheader200)) == OK)
-        {
-          if (httpd_flush(pstate) < 0)
-            {
-              ret = ERROR;
-            }
-          else
-            {
-#ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
-              ptr = strchr(pstate->ht_filename, ISO_period);
-              if (ptr != NULL &&
-                  strncmp(ptr, g_httpextensionshtml, strlen(g_httpextensionshtml)) == 0)
-                {
-                  ret = handle_script(pstate);
-                }
-              else
-#endif
-                {
-#ifdef CONFIG_NETUTILS_HTTPD_SENDFILE
-                  ret = httpd_sendfile_send(pstate->ht_sockfd, &pstate->ht_file);
-#else
-                  ret = httpd_addchunk(pstate, pstate->ht_file.data, pstate->ht_file.len);
-#endif
-                }
-            }
         }
     }
 
   (void)httpd_close(&pstate->ht_file);
-
-done:
-
-  /* Send anything remaining in the buffer */
-
-  if (ret == OK && pstate->ht_sndlen > 0)
-    {
-      if (httpd_flush(pstate) < 0)
-        {
-          ret = ERROR;
-        }
-    }
 
   return ret;
 }
@@ -531,34 +461,21 @@ static inline int httpd_cmd(struct httpd_state *pstate)
   if (recvlen < 0 && errno == EWOULDBLOCK)
     {
       ndbg("[%d] recv timeout\n");
-      strncpy(pstate->ht_filename, g_httpindexpath, strlen(g_httpindexpath));
-
-      memcpy(pstate->ht_filename, g_http408path, strlen(g_http408path));
-      if (httpd_open(g_http408path, &pstate->ht_file) != OK)
-        {
-          return ERROR;
-        }
-
-      if (send_headers(pstate, g_httpheader408, strlen(g_httpheader408)) == OK)
-        {
-#ifdef CONFIG_NETUTILS_HTTPD_SENDFILE
-          return httpd_sendfile_send(pstate->ht_sockfd, &pstate->ht_file);
-#else
-          return httpd_addchunk(pstate, pstate->ht_file.data, pstate->ht_file.len);
-#endif
-        }
+      return httpd_senderror(pstate, 408);
     }
+  else
 #endif
   if (recvlen < 0)
     {
       ndbg("[%d] recv failed: %d\n", pstate->ht_sockfd, errno);
-      return ERROR;
+      return httpd_senderror(pstate, 400);
     }
   else if (recvlen == 0)
     {
       ndbg("[%d] connection lost\n", pstate->ht_sockfd);
-      return ERROR;
+      return httpd_senderror(pstate, 400);
     }
+
   httpd_dumpbuffer("Incoming buffer", pstate->ht_buffer, recvlen);
 
   /*  We will handle only GET */
@@ -566,7 +483,7 @@ static inline int httpd_cmd(struct httpd_state *pstate)
   if (strncmp(pstate->ht_buffer, g_httpcmdget, strlen(g_httpcmdget)) != 0)
     {
       ndbg("[%d] Unsupported command\n", pstate->ht_sockfd);
-      return ERROR;
+      return httpd_senderror(pstate, 405);
     }
 
   /* Get the name of the file to provide */
@@ -574,7 +491,7 @@ static inline int httpd_cmd(struct httpd_state *pstate)
   if (pstate->ht_buffer[4] != ISO_slash)
     {
       ndbg("[%d] Missing path\n", pstate->ht_sockfd);
-      return ERROR;
+      return httpd_senderror(pstate, 400);
     }
   else if (pstate->ht_buffer[5] == ISO_space)
     {
@@ -588,8 +505,10 @@ static inline int httpd_cmd(struct httpd_state *pstate)
         {
           pstate->ht_filename[i] = pstate->ht_buffer[i+4];
         }
-        pstate->ht_filename[i]='\0';
+
+      pstate->ht_filename[i]='\0';
     }
+
   nvdbg("[%d] Filename: %s\n", pstate->ht_sockfd, pstate->ht_filename);
 
   /* Then send the file */
@@ -705,8 +624,6 @@ static void single_server(uint16_t portno, pthread_startroutine_t handler, int s
 
       (void) httpd_handler((void*)acceptsd);
     }
-
-  return;
 }
 #endif
 

@@ -59,6 +59,12 @@ config NETUTILS_HTTPD_CGIPATH
 		REST style interface over HTTP, where my CGI handlers just return a
 		HTTP status code with a content length of 0.
 
+config NETUTILS_HTTPD_ERRPATH
+	string "Error Path"
+	default ""
+	---help---
+		Path used in error return packets.
+
 config NETUTILS_HTTPD_SERVERHEADER_DISABLE
 	bool "Disabled the SERVER header"
 	default n
