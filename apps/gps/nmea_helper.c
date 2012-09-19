@@ -34,7 +34,7 @@
  ****************************************************************************/
 
 /* @file NMEA protocol implementation */
-
+#include "gps.h"
 #include "nmea_helper.h"
 #include <sys/prctl.h>
 #include <poll.h>
@@ -75,7 +75,7 @@ int read_gps_nmea(int fd, char *gps_rx_buffer, int buffer_size, nmeaINFO *info, 
 	// NMEA or SINGLE-SENTENCE GPS mode
 
 
-	while (1) {
+	while (!gps_thread_should_exit) {
 		//check if the thread should terminate
 		if (terminate_gps_thread == true) {
 //			printf("terminate_gps_thread=%u ", terminate_gps_thread);
@@ -178,7 +178,7 @@ void *nmea_loop(void *arg)
 	nmea_gps = &nmea_gps_d;
 	orb_advert_t gps_handle = orb_advertise(ORB_ID(vehicle_gps_position), nmea_gps);
 
-	while (1) {
+	while (!gps_thread_should_exit) {
 		/* Parse a message from the gps receiver */
 		uint8_t read_res = read_gps_nmea(fd, gps_rx_buffer, NMEA_BUFFER_SIZE, info, &parser);
 
@@ -269,7 +269,7 @@ void *nmea_watchdog_loop(void *arg)
 
 	int mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
-	while (1) {
+	while (!gps_thread_should_exit) {
 //		printf("nmea_watchdog_loop : while ");
 		/* if we have no update for a long time print warning (in nmea mode there is no reconfigure) */
 		pthread_mutex_lock(nmea_mutex);

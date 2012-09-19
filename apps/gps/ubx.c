@@ -35,6 +35,7 @@
 
 /* @file U-Blox protocol implementation */
 
+#include "gps.h"
 #include "ubx.h"
 #include <sys/prctl.h>
 #include <poll.h>
@@ -570,44 +571,44 @@ void calculate_ubx_checksum(uint8_t *message, uint8_t length)
 //	printf("[%x,%x]\n", message[length-2], message[length-1]);
 }
 
-int configure_gps_ubx(int fd)
+int configure_gps_ubx(int *fd)
 {
-	fflush((FILE *)fd);
+	fflush(((FILE *)fd));
 
 	//TODO: write this in a loop once it is tested
 	//UBX_CFG_PRT_PART:
-	write_config_message_ubx(UBX_CONFIG_MESSAGE_PRT, sizeof(UBX_CONFIG_MESSAGE_PRT) / sizeof(uint8_t) , fd);
+	write_config_message_ubx(UBX_CONFIG_MESSAGE_PRT, sizeof(UBX_CONFIG_MESSAGE_PRT) / sizeof(uint8_t) , *fd);
 
 	usleep(100000);
 
 	//NAV_POSLLH:
-	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_POSLLH, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_POSLLH) / sizeof(uint8_t) , fd);
+	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_POSLLH, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_POSLLH) / sizeof(uint8_t) , *fd);
 	usleep(100000);
 
 	//NAV_TIMEUTC:
-	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_TIMEUTC, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_TIMEUTC) / sizeof(uint8_t) , fd);
+	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_TIMEUTC, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_TIMEUTC) / sizeof(uint8_t) , *fd);
 	usleep(100000);
 
 	//NAV_DOP:
-	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_DOP, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_DOP) / sizeof(uint8_t) , fd);
+	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_DOP, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_DOP) / sizeof(uint8_t) , *fd);
 	usleep(100000);
 
 	//NAV_SOL:
-	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_SOL, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_SOL) / sizeof(uint8_t) , fd);
+	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_SOL, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_SOL) / sizeof(uint8_t) , *fd);
 	usleep(100000);
 
 
 	//NAV_SVINFO:
-	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_SVINFO, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_SVINFO) / sizeof(uint8_t) , fd);
+	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_SVINFO, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_SVINFO) / sizeof(uint8_t) , *fd);
 	usleep(100000);
 
 	//NAV_VELNED:
-	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_VELNED, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_VELNED) / sizeof(uint8_t) , fd);
+	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_VELNED, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_VELNED) / sizeof(uint8_t) , *fd);
 	usleep(100000);
 
 
 	//RXM_SVSI:
-	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_RXM_SVSI, sizeof(UBX_CONFIG_MESSAGE_MSG_RXM_SVSI) / sizeof(uint8_t) , fd);
+	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_RXM_SVSI, sizeof(UBX_CONFIG_MESSAGE_MSG_RXM_SVSI) / sizeof(uint8_t) , *fd);
 	usleep(100000);
 
 	return 0;
@@ -721,7 +722,7 @@ void *ubx_watchdog_loop(void *arg)
 
 	int mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
-	while (1) {
+	while (!gps_thread_should_exit) {
 		/* if some values are to old reconfigure gps */
 		int i;
 		pthread_mutex_lock(ubx_mutex);
@@ -768,7 +769,7 @@ void *ubx_watchdog_loop(void *arg)
 			}
 
 			/* trying to reconfigure the gps configuration */
-			configure_gps_ubx(fd);
+			configure_gps_ubx(&fd);
 			fflush(stdout);
 			sleep(1);
 
@@ -799,7 +800,7 @@ void *ubx_loop(void *arg)
 {
 	/* Set thread name */
 	prctl(PR_SET_NAME, "gps ubx read", getpid());
-
+	
 	/* Retrieve file descriptor */
 	int fd = *((int *)arg);
 
@@ -809,23 +810,22 @@ void *ubx_loop(void *arg)
 
 	if (gps_verbose) printf("[gps] UBX protocol driver starting..\r\n");
 
-	//set parameters for ubx
+	//set parameters for ubx_state
 
-
-//	    	//ubx state
-//			gps_bin_ubx_state_t * ubx_state = malloc(sizeof(gps_bin_ubx_state_t));
-//		   	printf("gps: ubx_state created\n");
-//			ubx_decode_init();
-//			ubx_state->print_errors = false;
+	//ubx state
+	gps_bin_ubx_state_t * ubx_state = malloc(sizeof(gps_bin_ubx_state_t));
+	//printf("gps: ubx_state created\n");
+	ubx_decode_init();
+	ubx_state->print_errors = false;
 
 
 	/* set parameters for ubx */
 
-	if (configure_gps_ubx(fd) != 0) {
+	if (configure_gps_ubx(&fd) != 0) {
 		printf("[gps] Configuration of gps module to ubx failed\r\n");
 
 		/* Write shared variable sys_status */
-
+		// TODO enable this again
 		//global_data_send_subsystem_info(&ubx_present);
 
 	} else {
@@ -834,7 +834,7 @@ void *ubx_loop(void *arg)
 		// XXX Shouldn't the system status only change if the module is known to work ok?
 
 		/* Write shared variable sys_status */
-
+		// TODO enable this again
 		//global_data_send_subsystem_info(&ubx_present_enabled);
 	}
 
@@ -844,7 +844,7 @@ void *ubx_loop(void *arg)
 
 	orb_advert_t gps_pub = orb_advertise(ORB_ID(vehicle_gps_position), &ubx_gps);
 
-	while (1) {
+	while (!gps_thread_should_exit) {
 		/* Parse a message from the gps receiver */
 		if (0 == read_gps_ubx(fd, gps_rx_buffer, UBX_BUFFER_SIZE)) {
 			/* publish new GPS position */

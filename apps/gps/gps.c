@@ -58,8 +58,8 @@
 #include <v1.0/common/mavlink.h>
 #include <mavlink/mavlink_log.h>
 
-static bool thread_should_exit = false;		/**< Deamon exit flag */
-static bool thread_running = false;		/**< Deamon status flag */
+bool gps_thread_should_exit = false;		/**< Deamon exit flag */
+static bool thread_running = false;				/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
 
 /**
@@ -81,16 +81,6 @@ int gps_thread_main(int argc, char *argv[]);
  * Print the correct usage.
  */
 static void usage(const char *reason);
-
-
-static void
-usage(const char *reason)
-{
-	if (reason)
-		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "\tusage: %s -d devicename -b baudrate -m mode\n\tmodes are:\n\t\tubx\n\t\tmtkcustom\n\t\tnmea\n\t\tall\n");
-	exit(1);
-}
 
 /****************************************************************************
  * Definitions
@@ -125,40 +115,9 @@ const enum GPS_MODES autodetection_gpsmodes[] = {GPS_MODE_UBX, GPS_MODE_MTK, GPS
  ****************************************************************************/
 int open_port(char *port);
 
-void close_port(int fd);
+void close_port(int *fd);
 
-void setup_port(char *device, int speed, int *fd)
-{
-
-	/* open port (baud rate is set in defconfig file) */
-	*fd = open_port(device);
-
-	if (*fd != -1) {
-		if (gps_verbose) printf("[gps] Port opened: %s at %d speed\r\n", device, speed);
-
-	} else {
-		fprintf(stderr, "[gps] Could not open port, exiting gps app!\r\n");
-		fflush(stdout);
-	}
-
-	/* Try to set baud rate */
-	struct termios uart_config;
-	int termios_state;
-
-	if ((termios_state = tcgetattr(*fd, &uart_config)) < 0) {
-		fprintf(stderr, "[gps] ERROR getting baudrate / termios config for %s: %d\r\n", device, termios_state);
-		close(*fd);
-	}
-
-	/* Set baud rate */
-	cfsetispeed(&uart_config, speed);
-	cfsetospeed(&uart_config, speed);
-
-	if ((termios_state = tcsetattr(*fd, TCSANOW, &uart_config)) < 0) {
-		fprintf(stderr, "[gps] ERROR setting baudrate / termios config for %s (tcsetattr)\r\n", device);
-		close(*fd);
-	}
-}
+void setup_port(char *device, int speed, int *fd);
 
 
 /**
@@ -182,21 +141,21 @@ int gps_main(int argc, char *argv[])
 			exit(0);
 		}
 
-		thread_should_exit = false;
+		gps_thread_should_exit = false;
 		deamon_task = task_create("gps", SCHED_PRIORITY_DEFAULT, 4096, gps_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		thread_should_exit = true;
+		gps_thread_should_exit = true;
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			printf("\gps is running\n");
-		} else {
+		} else {	
 			printf("\tgps not started\n");
 		}
 		exit(0);
@@ -215,7 +174,7 @@ int gps_thread_main(int argc, char *argv[]) {
 	printf("[gps] Initialized. Searching for GPS receiver..\n");
 
 	/* default values */
-	const char *commandline_usage = "\tusage: %s -d devicename -b baudrate -m mode\n\tmodes are:\n\t\tubx\n\t\tmtkcustom\n\t\tnmea\n\t\tall\n";
+	const char *commandline_usage = "\tusage: %s {start|stop|status} -d devicename -b baudrate -m mode\n\tmodes are:\n\t\tubx\n\t\tmtkcustom\n\t\tnmea\n\t\tall\n";
 	char *device = "/dev/ttyS3";
 	char mode[10];
 	strcpy(mode, "all");
@@ -294,45 +253,25 @@ int gps_thread_main(int argc, char *argv[]) {
 	case -1:     gps_baud_try_all = true; break;
 
 	case 0:      current_gps_speed = B0;      break;
-
 	case 50:     current_gps_speed = B50;     break;
-
 	case 75:     current_gps_speed = B75;     break;
-
 	case 110:    current_gps_speed = B110;    break;
-
 	case 134:    current_gps_speed = B134;    break;
-
 	case 150:    current_gps_speed = B150;    break;
-
 	case 200:    current_gps_speed = B200;    break;
-
 	case 300:    current_gps_speed = B300;    break;
-
 	case 600:    current_gps_speed = B600;    break;
-
 	case 1200:   current_gps_speed = B1200;   break;
-
 	case 1800:   current_gps_speed = B1800;   break;
-
 	case 2400:   current_gps_speed = B2400;   break;
-
 	case 4800:   current_gps_speed = B4800;   break;
-
 	case 9600:   current_gps_speed = B9600;   break;
-
 	case 19200:  current_gps_speed = B19200;  break;
-
 	case 38400:  current_gps_speed = B38400;  break;
-
 	case 57600:  current_gps_speed = B57600;  break;
-
 	case 115200: current_gps_speed = B115200; break;
-
 	case 230400: current_gps_speed = B230400; break;
-
 	case 460800: current_gps_speed = B460800; break;
-
 	case 921600: current_gps_speed = B921600; break;
 
 	default:
@@ -362,8 +301,10 @@ int gps_thread_main(int argc, char *argv[]) {
 		return ERROR;
 	}
 
+	/* Declare file descriptor for gps here, open port later in setup_port */
+	int fd;
 
-	while (!thread_should_exit) {
+	while (!gps_thread_should_exit) {
 		/* Infinite retries or break if retry == false */
 
 		/* Loop over all configurations of baud rate and protocol */
@@ -392,11 +333,10 @@ int gps_thread_main(int argc, char *argv[]) {
 
 				if (gps_verbose) printf("[gps] Trying UBX mode at %d baud\n", current_gps_speed);
 
-				mavlink_log_info(mavlink_fd, "GPS: trying to connect to a ubx module");
-
-				int fd;
+				mavlink_log_info(mavlink_fd, "[gps] trying to connect to a ubx module");
+                
 				setup_port(device, current_gps_speed, &fd);
-
+                
 				/* start ubx thread and watchdog */
 				pthread_t ubx_thread;
 				pthread_t ubx_watchdog_thread;
@@ -411,9 +351,10 @@ int gps_thread_main(int argc, char *argv[]) {
 				pthread_attr_t ubx_loop_attr;
 				pthread_attr_init(&ubx_loop_attr);
 				pthread_attr_setstacksize(&ubx_loop_attr, 3000);
+
 				pthread_create(&ubx_thread, &ubx_loop_attr, ubx_loop, (void *)&fd);
 				sleep(2); // XXX TODO Check if this is too short, try to lower sleeps in UBX driver
-
+                
 				pthread_attr_t ubx_wd_attr;
 				pthread_attr_init(&ubx_wd_attr);
 				pthread_attr_setstacksize(&ubx_wd_attr, 1400);
@@ -433,17 +374,12 @@ int gps_thread_main(int argc, char *argv[]) {
 					gps_mode_success = true;
 					terminate_gps_thread = false;
 				}
-
-				close_port(fd);
-			}
-
-			if (current_gps_mode == GPS_MODE_MTK) {
+				close_port(&fd);
+			} else if (current_gps_mode == GPS_MODE_MTK) {
 				if (gps_verbose) printf("[gps] trying MTK binary mode at %d baud\n", current_gps_speed);
 
 				mavlink_log_info(mavlink_fd, "[gps] trying to connect to a MTK module");
 
-
-				int fd;
 				setup_port(device, current_gps_speed, &fd);
 
 				/* start mtk thread and watchdog */
@@ -476,23 +412,21 @@ int gps_thread_main(int argc, char *argv[]) {
 					terminate_gps_thread = true;
 					pthread_join(mtk_thread, NULL);
 
-					//				if(true == gps_mode_try_all)
-					//					strcpy(mode, "nmea");
+					//if(true == gps_mode_try_all)
+					//strcpy(mode, "nmea");
 
 					gps_mode_success = true;
 					terminate_gps_thread = false;
 				}
 
-				close_port(fd);
+				close_port(&fd);
 
-			}
-
-			if (current_gps_mode == GPS_MODE_NMEA) {
+			} else if (current_gps_mode == GPS_MODE_NMEA) {
 				if (gps_verbose) printf("[gps] Trying NMEA mode at %d baud\n", current_gps_speed);
 
 				mavlink_log_info(mavlink_fd, "[gps] trying to connect to a NMEA module");
 
-				int fd;
+
 				setup_port(device, current_gps_speed, &fd);
 
 				/* start nmea thread and watchdog */
@@ -526,14 +460,23 @@ int gps_thread_main(int argc, char *argv[]) {
 					terminate_gps_thread = false;
 				}
 
-				close_port(fd);
+				close_port(&fd);
 			}
+
+			/* exit quickly if stop command has been received */
+			if (gps_thread_should_exit) {
+	        		printf("[gps] stopped, exiting.\n");
+	        		close(mavlink_fd);
+	        		thread_running = false;
+				return 0;
+	        	}
 
 			/* if both, mode and baud is set by argument, we only need one loop*/
 			if (gps_mode_try_all == false && gps_baud_try_all == false)
 				break;
 		}
 
+	        
 		if (retry) {
 			printf("[gps] No configuration was successful, retrying in %d seconds \n", RETRY_INTERVAL_SECONDS);
 			mavlink_log_info(mavlink_fd, "[gps] No configuration was successful, retrying...");
@@ -549,11 +492,19 @@ int gps_thread_main(int argc, char *argv[]) {
 		sleep(RETRY_INTERVAL_SECONDS);
 	}
 
-	close(mavlink_fd);
-
 	printf("[gps] exiting.\n");
-
+	close(mavlink_fd);
+	thread_running = false;
 	return 0;
+}
+
+
+static void usage(const char *reason)
+{
+	if (reason)
+		fprintf(stderr, "%s\n", reason);
+	fprintf(stderr, "\tusage: gps {start|status|stop} -d devicename -b baudrate -m mode\n\tmodes are:\n\t\tubx\n\t\tmtkcustom\n\t\tnmea\n\t\tall\n");
+	exit(1);
 }
 
 int open_port(char *port)
@@ -566,11 +517,39 @@ int open_port(char *port)
 }
 
 
-void close_port(int fd)
+void close_port(int *fd)
 {
 	/* Close serial port */
-	close(fd);
+	close(*fd);
 }
 
+void setup_port(char *device, int speed, int *fd)
+{
+	/* open port (baud rate is set in defconfig file) */
+	*fd = open_port(device);
 
+	if (*fd != -1) {
+		if (gps_verbose) printf("[gps] Port opened: %s at %d speed\r\n", device, speed);
 
+	} else {
+		fprintf(stderr, "[gps] Could not open port, exiting gps app!\r\n");
+		fflush(stdout);
+	}
+
+	/* Try to set baud rate */
+	struct termios uart_config;
+	int termios_state;
+
+	if ((termios_state = tcgetattr(*fd, &uart_config)) < 0) {
+		fprintf(stderr, "[gps] ERROR getting baudrate / termios config for %s: %d\r\n", device, termios_state);
+		close(*fd);
+	}
+	if (gps_verbose) printf("[gps] Try to set baud rate %d now\n",speed);
+	/* Set baud rate */
+	cfsetispeed(&uart_config, speed);
+	cfsetospeed(&uart_config, speed);
+	if ((termios_state = tcsetattr(*fd, TCSANOW, &uart_config)) < 0) {
+		fprintf(stderr, "[gps] ERROR setting baudrate / termios config for %s (tcsetattr)\r\n", device);
+		close(*fd);
+	}
+}

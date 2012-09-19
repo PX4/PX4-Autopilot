@@ -6,15 +6,10 @@
  */
 
 #ifndef GPS_H_
-#define GPS_H_
-/****************************************************************************
- * Included Files
- ****************************************************************************/
+#define GPS_H
 
-int gps_fd;
+#include <stdbool.h>
 
-//extern gps_bin_ubx_state_t * ubx_state;
-
-
+extern bool gps_thread_should_exit;		/**< Deamon status flag */
 
 #endif /* GPS_H_ */

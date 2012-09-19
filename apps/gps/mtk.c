@@ -35,6 +35,7 @@
 
 /* @file MTK custom binary (3DR) protocol implementation */
 
+#include "gps.h"
 #include "mtk.h"
 #include <nuttx/config.h>
 #include <unistd.h>
@@ -313,7 +314,7 @@ void *mtk_loop(void *arg)
 	mtk_gps = &mtk_gps_d;
 	orb_advert_t gps_handle = orb_advertise(ORB_ID(vehicle_gps_position), mtk_gps);
 
-	while (1) {
+	while (!gps_thread_should_exit) {
 		/* Parse a message from the gps receiver */
 		if (OK == read_gps_mtk(fd, gps_rx_buffer, MTK_BUFFER_SIZE)) {
 
@@ -349,7 +350,7 @@ void *mtk_watchdog_loop(void *arg)
 	int mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
 
-	while (1) {
+	while (!gps_thread_should_exit) {
 		fflush(stdout);
 
 		/* if we have no update for a long time reconfigure gps */
