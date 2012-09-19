@@ -2,7 +2,6 @@
  *
  *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
  *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
- *           Laurens Mackay <mackayl@student.ethz.ch>
  *           Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,13 +34,9 @@
  ****************************************************************************/
 
 /*
- * @file Extended Kalman Filter for Attitude Estimation
+ * @file attitude_estimator_ekf_main.c
+ * Extended Kalman Filter for Attitude Estimation.
  */
-
-
-/****************************************************************************
- * Included Files
- ****************************************************************************/
 
 #include <nuttx/config.h>
 #include <unistd.h>
