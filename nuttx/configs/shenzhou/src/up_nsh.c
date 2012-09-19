@@ -58,6 +58,7 @@
 #define HAVE_MMCSD    1
 #define HAVE_USBDEV   1
 #define HAVE_USBHOST  1
+#define HAVE_W25      1
 
 /* Configuration ************************************************************/
 /* SPI1 connects to the SD CARD (and to the SPI FLASH) */
@@ -105,6 +106,24 @@
 #  ifndef CONFIG_NSH_MMCSDSPIPORTNO
 #    define CONFIG_NSH_MMCSDSPIPORTNO STM32_MMCSDSPIPORTNO
 #  endif
+#endif
+
+/* Can't support the W25 device if it SPI1 or W25 support is not enabled */
+
+#if !defined(CONFIG_STM32_SPI1) || !defined(CONFIG_MTD_W25)
+#  undef HAVE_W25
+#endif
+
+/* Can't support W25 features if mountpoints are disabled */
+
+#if defined(CONFIG_DISABLE_MOUNTPOINT)
+#  undef HAVE_W25
+#endif
+
+/* Default W25 minor number */
+
+#if defined(HAVE_W25) && !defined(CONFIG_NSH_W25MINOR)
+#  define CONFIG_NSH_W25MINOR 0
 #endif
 
 /* Can't support USB host or device features if USB OTG FS is not enabled */
@@ -156,8 +175,20 @@
 
 int nsh_archinitialize(void)
 {
-#if defined(HAVE_MMCSD) || defined(HAVE_USBHOST)
+#if defined(HAVE_MMCSD) || defined(HAVE_USBHOST) || defined(HAVE_W25)
   int ret;
+#endif
+
+  /* Initialize and register the W25 FLASH file system. */
+
+#ifdef HAVE_W25
+  ret = stm32_w25initialize(CONFIG_NSH_W25MINOR);
+  if (ret < 0)
+    {
+      message("nsh_archinitialize: Failed to initialize W25 minor %d: %d\n",
+              CONFIG_NSH_W25MINOR, ret);
+      return ret;
+    }
 #endif
 
   /* Initialize the SPI-based MMC/SD slot */
