@@ -87,9 +87,6 @@ static float P_aposteriori_k[81] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,
 				   0,   0,   0,   0,   0,   0, 100.f,   0,   0,
 				   0,   0,   0,   0,   0,   0,   0, 100.f,   0,
 				   0,   0,   0,   0,   0,   0,   0,   0, 100.f,
-				   0,   0,   0,   0,   0,   0,   0,   0,   0,
-				   0,   0,   0,   0,   0,   0,   0,   0,   0,
-				   0,   0,   0,   0,   0,   0,   0,   0,   0,
 				  };
 static float P_aposteriori[81] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,
 				   0, 100.f,   0,   0,   0,   0,   0,   0,   0,
@@ -100,15 +97,79 @@ static float P_aposteriori[81] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,
 				   0,   0,   0,   0,   0,   0, 100.f,   0,   0,
 				   0,   0,   0,   0,   0,   0,   0, 100.f,   0,
 				   0,   0,   0,   0,   0,   0,   0,   0, 100.f,
-				   0,   0,   0,   0,   0,   0,   0,   0,   0,
-				   0,   0,   0,   0,   0,   0,   0,   0,   0,
-				   0,   0,   0,   0,   0,   0,   0,   0,   0,
 				  };	/**< init: diagonal matrix with big values */
 static float knownConst[20] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};			/**< knownConst has the following entries [PrvaA,PrvarM,PrvarWO,PrvarW||MsvarA,MsvarM,MsvarW] */
 static float Rot_matrix[9] = {1.f,  0,  0,
 			      0,  1.f,  0,
 			      0,  0,  1.f
 			     };		/**< init: identity matrix */
+
+static bool thread_should_exit = false;		/**< Deamon exit flag */
+static bool thread_running = false;		/**< Deamon status flag */
+static int attitude_estimator_ekf_task;				/**< Handle of deamon task / thread */
+
+/**
+ * Mainloop of attitude_estimator_ekf.
+ */
+int attitude_estimator_ekf_thread_main(int argc, char *argv[]);
+
+/**
+ * Print the correct usage.
+ */
+static void usage(const char *reason);
+
+static void
+usage(const char *reason)
+{
+	if (reason)
+		fprintf(stderr, "%s\n", reason);
+	fprintf(stderr, "usage: attitude_estimator_ekf {start|stop|status} [-p <additional params>]\n\n");
+	exit(1);
+}
+
+/**
+ * The attitude_estimator_ekf app only briefly exists to start
+ * the background job. The stack size assigned in the
+ * Makefile does only apply to this management task.
+ * 
+ * The actual stack size should be set in the call
+ * to task_create().
+ */
+int attitude_estimator_ekf_main(int argc, char *argv[])
+{
+	if (argc < 1)
+		usage("missing command");
+
+	if (!strcmp(argv[1], "start")) {
+
+		if (thread_running) {
+			printf("attitude_estimator_ekf already running\n");
+			/* this is not an error */
+			exit(0);
+		}
+
+		thread_should_exit = false;
+		attitude_estimator_ekf_task = task_create("attitude_estimator_ekf", SCHED_PRIORITY_DEFAULT, 4096, attitude_estimator_ekf_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		thread_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			printf("\tattitude_estimator_ekf app is running\n");
+		} else {
+			printf("\tattitude_estimator_ekf app not started\n");
+		}
+		exit(0);
+	}
+
+	usage("unrecognized command");
+	exit(1);
+}
 
 /*
  * [Rot_matrix,x_aposteriori,P_aposteriori] = attitudeKalmanfilter(dt,z_k,x_aposteriori_k,P_aposteriori_k,knownConst)
@@ -122,7 +183,7 @@ static float Rot_matrix[9] = {1.f,  0,  0,
  * @param argc number of commandline arguments (plus command name)
  * @param argv strings containing the arguments
  */
-int attitude_estimator_ekf_main(int argc, char *argv[])
+int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 {
 	// print text
 	printf("Extended Kalman Filter Attitude Estimator initialized..\n\n");
@@ -136,8 +197,8 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 	/* store start time to guard against too slow update rates */
 	uint64_t last_run = hrt_absolute_time();
 
-	struct sensor_combined_s raw = {0};
-	struct vehicle_attitude_s att = {};
+	struct sensor_combined_s raw;
+	struct vehicle_attitude_s att;
 
 	uint64_t last_data = 0;
 	uint64_t last_measurement = 0;
@@ -151,8 +212,10 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 	int loopcounter = 0;
 	int printcounter = 0;
 
+	thread_running = true;
+
 	/* Main loop*/
-	while (true) {
+	while (!thread_should_exit) {
 
 		struct pollfd fds[1] = {
 			{ .fd = sub_raw,   .events = POLLIN },
@@ -216,7 +279,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 			/* print rotation matrix every 200th time */
 			if (printcounter % 200 == 0) {
 				printf("EKF attitude iteration: %d, runtime: %d us, dt: %d us (%d Hz)\n", loopcounter, (int)timing_diff, (int)(dt * 1000000.0f), (int)(1.0f / dt));
-				printf("roll: %8.4f\tpitch: %8.4f\tyaw:%8.4f", euler[0], euler[1], euler[2]);
+				printf("roll: %8.4f\tpitch: %8.4f\tyaw:%8.4f", (double)euler[0], (double)euler[1], (double)euler[2]);
 				printf("\n%d\t%d\t%d\n%d\t%d\t%d\n%d\t%d\t%d\n", (int)(Rot_matrix[0] * 100), (int)(Rot_matrix[1] * 100), (int)(Rot_matrix[2] * 100),
 				       (int)(Rot_matrix[3] * 100), (int)(Rot_matrix[4] * 100), (int)(Rot_matrix[5] * 100),
 				       (int)(Rot_matrix[6] * 100), (int)(Rot_matrix[7] * 100), (int)(Rot_matrix[8] * 100));
@@ -230,9 +293,9 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 
 			/* send out */
 			att.timestamp = raw.timestamp;
-			att.roll = euler.x;
-			att.pitch = euler.y;
-			att.yaw = euler.z;
+			att.roll = euler[0];
+			att.pitch = euler[1];
+			att.yaw = euler[2];
 
 			// att.rollspeed = rates.x;
 			// att.pitchspeed = rates.y;
@@ -245,11 +308,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 		loopcounter++;
 	}
 
-	/* Should never reach here */
+	thread_running = false;
+
 	return 0;
 }
-
-
-
-
-

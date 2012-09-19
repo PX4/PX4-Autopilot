@@ -63,7 +63,78 @@
 #include <uORB/topics/actuator_controls.h>
 #include <systemlib/param/param.h>
 
+static bool thread_should_exit = false;		/**< Deamon exit flag */
+static bool thread_running = false;		/**< Deamon status flag */
+static int deamon_task;				/**< Handle of deamon task / thread */
+
+/**
+ * Deamon management function.
+ */
 __EXPORT int fixedwing_control_main(int argc, char *argv[]);
+
+/**
+ * Mainloop of deamon.
+ */
+int fixedwing_control_thread_main(int argc, char *argv[]);
+
+/**
+ * Print the correct usage.
+ */
+static void usage(const char *reason);
+
+static void
+usage(const char *reason)
+{
+	if (reason)
+		fprintf(stderr, "%s\n", reason);
+	fprintf(stderr, "usage: fixedwing_control {start|stop|status}\n\n");
+	exit(1);
+}
+
+/**
+ * The deamon app only briefly exists to start
+ * the background job. The stack size assigned in the
+ * Makefile does only apply to this management task.
+ * 
+ * The actual stack size should be set in the call
+ * to task_create().
+ */
+int fixedwing_control_main(int argc, char *argv[])
+{
+	if (argc < 1)
+		usage("missing command");
+
+	if (!strcmp(argv[1], "start")) {
+
+		if (thread_running) {
+			printf("fixedwing_control already running\n");
+			/* this is not an error */
+			exit(0);
+		}
+
+		thread_should_exit = false;
+		deamon_task = task_create("fixedwing_control", SCHED_PRIORITY_MAX - 20, 4096, fixedwing_control_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		thread_running = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		thread_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			printf("\tfixedwing_control is running\n");
+		} else {
+			printf("\tfixedwing_control not started\n");
+		}
+		exit(0);
+	}
+
+	usage("unrecognized command");
+	exit(1);
+}
 
 #define PID_DT 0.01f
 #define PID_SCALER 0.1f
@@ -614,14 +685,12 @@ static float calc_pitch_setpoint()
 }
 
 /**
- * calc_throttle_setpoint
  *
  * Calculates the throttle setpoint for different flight modes
  *
  * @return throttle output setpoint
  *
  */
-
 static float calc_throttle_setpoint()
 {
 	float setpoint = 0;
@@ -644,8 +713,7 @@ static float calc_throttle_setpoint()
 	return setpoint;
 }
 
-/*
- * fixedwing_control_main
+/**
  *
  * @param argc number of arguments
  * @param argv argument array
@@ -653,8 +721,7 @@ static float calc_throttle_setpoint()
  * @return 0
  *
  */
-
-int fixedwing_control_main(int argc, char *argv[])
+int fixedwing_control_thread_main(int argc, char *argv[])
 {
 	/* default values for arguments */
 	char *fixedwing_uart_name = "/dev/ttyS1";
