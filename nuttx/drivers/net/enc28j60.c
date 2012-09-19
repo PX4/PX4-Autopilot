@@ -213,9 +213,6 @@ struct enc_driver_s
 
   uint8_t               ifstate;       /* Interface state:  See ENCSTATE_* */
   uint8_t               bank;          /* Currently selected bank */
-#ifndef CONFIG_SPI_OWNBUS
-  uint8_t               lockcount;     /* Avoid recursive locks */
-#endif
   uint16_t              nextpkt;       /* Next packet address */
   FAR const struct enc_lower_s *lower; /* Low-level MCU-specific support */
 
@@ -259,13 +256,14 @@ static struct enc_driver_s g_enc28j60[CONFIG_ENC28J60_NINTERFACES];
 
 /* Low-level SPI helpers */
 
-static inline void enc_configspi(FAR struct spi_dev_s *spi);
 #ifdef CONFIG_SPI_OWNBUS
-static inline void enc_select(FAR struct enc_driver_s *priv);
-static inline void enc_deselect(FAR struct enc_driver_s *priv);
+static inline void enc_configspi(FAR struct spi_dev_s *spi);
+#  define enc_lock(priv);
+#  define enc_unlock(priv);
 #else
-static void enc_select(FAR struct enc_driver_s *priv);
-static void enc_deselect(FAR struct enc_driver_s *priv);
+#  define enc_configspi(spi)
+static void enc_lock(FAR struct enc_driver_s *priv);
+static inline void enc_unlock(FAR struct enc_driver_s *priv);
 #endif
 
 /* SPI control register access */
@@ -360,23 +358,21 @@ static int  enc_reset(FAR struct enc_driver_s *priv);
  *
  ****************************************************************************/
  
+#ifdef CONFIG_SPI_OWNBUS
 static inline void enc_configspi(FAR struct spi_dev_s *spi)
 {
   /* Configure SPI for the ENC28J60.  But only if we own the SPI bus.
    * Otherwise, don't bother because it might change.
    */
 
-#ifdef CONFIG_SPI_OWNBUS
   SPI_SETMODE(spi, CONFIG_ENC28J60_SPIMODE);
   SPI_SETBITS(spi, 8);
-#ifdef CONFIG_ENC28J60_FREQUENCY
   SPI_SETFREQUENCY(spi, CONFIG_ENC28J60_FREQUENCY)
-#endif
-#endif
 }
+#endif
 
 /****************************************************************************
- * Function: enc_select
+ * Function: enc_lock
  *
  * Description:
  *   Select the SPI, locking and  re-configuring if necessary
@@ -391,56 +387,27 @@ static inline void enc_configspi(FAR struct spi_dev_s *spi)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SPI_OWNBUS
-static inline void enc_select(FAR struct enc_driver_s *priv)
-{
-  /* We own the SPI bus, so just select the chip */
-
-  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, true);
-}
-#else
-static void enc_select(FAR struct enc_driver_s *priv)
+#ifndef CONFIG_SPI_OWNBUS
+static void enc_lock(FAR struct enc_driver_s *priv)
 {
   /* Lock the SPI bus in case there are multiple devices competing for the SPI
-   * bus.  First check if we already hold the lock.
+   * bus.
    */
 
-  if (priv->lockcount > 0)
-    {
-      /* Yes... just increment the lock count.  In this case, we know
-       * that the bus has already been configured for the ENC28J60.
-       */
+  SPI_LOCK(priv->spi, true);
 
-      DEBUGASSERT(priv->lockcount < 255);
-      priv->lockcount++;
-    }
-  else
-    {
-      /* No... take the lock and set the lock count to 1 */
+  /* Now make sure that the SPI bus is configured for the ENC28J60 (it
+   * might have gotten configured for a different device while unlocked)
+   */
 
-      DEBUGASSERT(priv->lockcount == 0);
-      SPI_LOCK(priv->spi, true);
-      priv->lockcount = 1;
-
-      /* Now make sure that the SPI bus is configured for the ENC28J60 (it
-       * might have gotten configured for a different device while unlocked)
-       */
-
-      SPI_SETMODE(priv->spi, CONFIG_ENC28J60_SPIMODE);
-      SPI_SETBITS(priv->spi, 8);
-#ifdef CONFIG_ENC28J60_FREQUENCY
-      SPI_SETFREQUENCY(priv->spi, CONFIG_ENC28J60_FREQUENCY);
-#endif
-    }
-
-  /* Select ENC28J60 chip. */
-
-  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, true);
+  SPI_SETMODE(priv->spi, CONFIG_ENC28J60_SPIMODE);
+  SPI_SETBITS(priv->spi, 8);
+  SPI_SETFREQUENCY(priv->spi, CONFIG_ENC28J60_FREQUENCY);
 }
 #endif
 
 /****************************************************************************
- * Function: enc_deselect
+ * Function: enc_unlock
  *
  * Description:
  *   De-select the SPI
@@ -455,34 +422,12 @@ static void enc_select(FAR struct enc_driver_s *priv)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SPI_OWNBUS
-static inline void enc_deselect(FAR struct enc_driver_s *priv)
+#ifndef CONFIG_SPI_OWNBUS
+static inline void enc_unlock(FAR struct enc_driver_s *priv)
 {
-  /* We own the SPI bus, so just de-select the chip */
+  /* Relinquish the lock on the bus. */
 
-  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, false);
-}
-#else
-static void enc_deselect(FAR struct enc_driver_s *priv)
-{
-  /* De-select ENC28J60 chip. */
-
-  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, false);
-
-  /* And relinquishthe lock on the bus.  If the lock count is > 1 then we
-   * are in a nested lock and we only need to decrement the lock cound.
-   */
-
-  if (priv->lockcount <= 1)
-    {
-      DEBUGASSERT(priv->lockcount == 1);
-      SPI_LOCK(priv->spi, false);
-      priv->lockcount = 0;
-    }
-  else
-    {
-      priv->lockcount--;
-    }
+  SPI_LOCK(priv->spi, false);
 }
 #endif
 
@@ -512,7 +457,7 @@ static uint8_t enc_rdgreg2(FAR struct enc_driver_s *priv, uint8_t cmd)
 
   /* Select ENC28J60 chip */
 
-  enc_select(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, true);;
 
   /* Send the read command and collect the data.  The sequence requires
    * 16-clocks:  8 to clock out the cmd + 8 to clock in the data.
@@ -523,7 +468,7 @@ static uint8_t enc_rdgreg2(FAR struct enc_driver_s *priv, uint8_t cmd)
 
   /* De-select ENC28J60 chip */
 
-  enc_deselect(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, false);
 
   enc_rddump(cmd, rddata);
   return rddata;
@@ -555,7 +500,7 @@ static void enc_wrgreg2(FAR struct enc_driver_s *priv, uint8_t cmd,
 
   /* Select ENC28J60 chip */
 
-  enc_select(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, true);;
 
   /* Send the write command and data.  The sequence requires 16-clocks:
    * 8 to clock out the cmd + 8 to clock out the data.
@@ -566,7 +511,7 @@ static void enc_wrgreg2(FAR struct enc_driver_s *priv, uint8_t cmd,
 
   /* De-select ENC28J60 chip. */
 
-  enc_deselect(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, false);
   enc_wrdump(cmd, wrdata);
 }
 
@@ -599,7 +544,7 @@ static inline void enc_src(FAR struct enc_driver_s *priv)
 
   /* Select ENC28J60 chip */
 
-  enc_select(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, true);;
 
   /* Send the system reset command. */
 
@@ -620,7 +565,7 @@ static inline void enc_src(FAR struct enc_driver_s *priv)
 
   /* De-select ENC28J60 chip. */
 
-  enc_deselect(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, false);
   enc_cmddump(ENC_SRC);
 }
 
@@ -696,7 +641,7 @@ static uint8_t enc_rdbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg)
 
   /* Re-select ENC28J60 chip */
 
-  enc_select(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, true);;
 
   /* Send the RCR command and collect the data.  How we collect the data
    * depends on if this is a PHY/CAN or not.  The normal sequence requires
@@ -717,7 +662,7 @@ static uint8_t enc_rdbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg)
 
   /* De-select ENC28J60 chip */
 
-  enc_deselect(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, false);
   enc_rddump(ENC_RCR | GETADDR(ctrlreg), rddata);
   return rddata;
 }
@@ -753,7 +698,7 @@ static void enc_wrbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg,
 
   /* Re-select ENC28J60 chip */
 
-  enc_select(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, true);;
 
   /* Send the WCR command and data.  The sequence requires 16-clocks:
    * 8 to clock out the cmd + 8 to clock out the data.
@@ -764,7 +709,7 @@ static void enc_wrbreg(FAR struct enc_driver_s *priv, uint8_t ctrlreg,
 
   /* De-select ENC28J60 chip. */
 
-  enc_deselect(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, false);
   enc_wrdump(ENC_WCR | GETADDR(ctrlreg), wrdata);
 }
 
@@ -847,9 +792,9 @@ static void enc_rxdump(FAR struct enc_driver_s *priv)
   lib_lowprintf("  MAMXFL:   %02x %02x\n",
                 enc_rdbreg(priv, ENC_MAMXFLH), enc_rdbreg(priv, ENC_MAMXFLL));
   lib_lowprintf("  MAADR:    %02x:%02x:%02x:%02x:%02x:%02x\n",
-                enc_rdgreg(priv, ENC_MAADR1), enc_rdgreg(priv, ENC_MAADR2),
-                enc_rdgreg(priv, ENC_MAADR3), enc_rdgreg(priv, ENC_MAADR4),
-                enc_rdgreg(priv, ENC_MAADR5), enc_rdgreg(priv, ENC_MAADR6));
+                enc_rdbreg(priv, ENC_MAADR1), enc_rdbreg(priv, ENC_MAADR2),
+                enc_rdbreg(priv, ENC_MAADR3), enc_rdbreg(priv, ENC_MAADR4),
+                enc_rdbreg(priv, ENC_MAADR5), enc_rdbreg(priv, ENC_MAADR6));
 }
 #endif
 
@@ -907,7 +852,7 @@ static void enc_rdbuffer(FAR struct enc_driver_s *priv, FAR uint8_t *buffer,
 
   /* Select ENC28J60 chip */
 
-  enc_select(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, true);;
 
   /* Send the read buffer memory command (ignoring the response) */
 
@@ -919,7 +864,7 @@ static void enc_rdbuffer(FAR struct enc_driver_s *priv, FAR uint8_t *buffer,
 
   /* De-select ENC28J60 chip. */
 
-  enc_deselect(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, false);
   enc_bmdump(ENC_WBM, buffer, buflen);
 }
 
@@ -952,7 +897,7 @@ static inline void enc_wrbuffer(FAR struct enc_driver_s *priv,
    * "The WBM command is started by lowering the CS pin. ..."
    */
 
-  enc_select(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, true);;
 
   /* Send the write buffer memory command (ignoring the response)
    *
@@ -1002,7 +947,7 @@ static inline void enc_wrbuffer(FAR struct enc_driver_s *priv,
    * "The WBM command is terminated by bringing up the CS pin. ..."
    */
 
-  enc_deselect(priv);
+  SPI_SELECT(priv->spi, SPIDEV_ETHERNET, false);
   enc_bmdump(ENC_WBM, buffer, buflen+1);
 }
 
@@ -1483,14 +1428,15 @@ static void enc_pktif(FAR struct enc_driver_s *priv)
   priv->stats.pktifs++;
 #endif
 
-  /* Set the read pointer to the start of the received packet */
+  /* Set the read pointer to the start of the received packet (ERDPT) */
 
   DEBUGASSERT(priv->nextpkt <= PKTMEM_RX_END);
   enc_wrbreg(priv, ENC_ERDPTL, (priv->nextpkt));
   enc_wrbreg(priv, ENC_ERDPTH, (priv->nextpkt) >> 8);
 
   /* Read the next packet pointer and the 4 byte read status vector (RSV)
-   * at the beginning of the received packet
+   * at the beginning of the received packet. (ERDPT should auto-increment
+   * and wrap to the beginning of the read buffer as necessary)
    */
 
   enc_rdbuffer(priv, rsv, 6);
@@ -1540,7 +1486,10 @@ static void enc_pktif(FAR struct enc_driver_s *priv)
 
       priv->dev.d_len = pktlen - 4;
 
-      /* Copy the data data from the receive buffer to priv->dev.d_buf */
+      /* Copy the data data from the receive buffer to priv->dev.d_buf.
+       * ERDPT should be correctly positioned from the last call to to
+       * end_rdbuffer (above).
+       */
 
       enc_rdbuffer(priv, priv->dev.d_buf, priv->dev.d_len);
       enc_dumppacket("Received Packet", priv->dev.d_buf, priv->dev.d_len);
@@ -1587,9 +1536,10 @@ static void enc_irqworker(FAR void *arg)
 
   DEBUGASSERT(priv);
 
-  /* Get exclusive access to uIP. */
+  /* Get exclusive access to both uIP and the SPI bus. */
 
   lock = uip_lock();
+  enc_lock(priv);
 
   /* Disable further interrupts by clearing the global interrupt enable bit.
    * "After an interrupt occurs, the host controller should clear the global
@@ -1773,13 +1723,14 @@ static void enc_irqworker(FAR void *arg)
         }
     }
 
-  /* Release lock on uIP */
-
-  uip_unlock(lock);
-
   /* Enable Ethernet interrupts */
 
   enc_bfsgreg(priv, ENC_EIE, EIE_INTIE);
+
+  /* Release lock on the SPI bus and uIP */
+
+  enc_unlock(priv);
+  uip_unlock(lock);
 
   /* Enable GPIO interrupts */
 
@@ -1851,9 +1802,10 @@ static void enc_toworker(FAR void *arg)
   nlldbg("Tx timeout\n");
   DEBUGASSERT(priv);
 
-  /* Get exclusive access to uIP. */
+  /* Get exclusive access to both uIP and the SPI bus. */
 
   lock = uip_lock();
+  enc_lock(priv);
 
   /* Increment statistics and dump debug info */
 
@@ -1874,8 +1826,9 @@ static void enc_toworker(FAR void *arg)
 
   (void)uip_poll(&priv->dev, enc_uiptxpoll);
 
-  /* Release lock on uIP */
+  /* Release lock on the SPI bus and uIP */
 
+  enc_unlock(priv);
   uip_unlock(lock);
 }
 
@@ -1943,9 +1896,10 @@ static void enc_pollworker(FAR void *arg)
 
   DEBUGASSERT(priv);
 
-  /* Get exclusive access to uIP. */
+  /* Get exclusive access to both uIP and the SPI bus. */
 
   lock = uip_lock();
+  enc_lock(priv);
 
   /* Verify that the hardware is ready to send another packet.  The driver
    * start a transmission process by setting ECON1.TXRTS. When the packet is
@@ -1963,8 +1917,9 @@ static void enc_pollworker(FAR void *arg)
       (void)uip_timer(&priv->dev, enc_uiptxpoll, ENC_POLLHSEC);
     }
 
-  /* Release lock on uIP */
+  /* Release lock on the SPI bus and uIP */
 
+  enc_unlock(priv);
   uip_unlock(lock);
 
   /* Setup the watchdog poll timer again */
@@ -2037,6 +1992,10 @@ static int enc_ifup(struct uip_driver_s *dev)
          dev->d_ipaddr & 0xff, (dev->d_ipaddr >> 8) & 0xff,
         (dev->d_ipaddr >> 16) & 0xff, dev->d_ipaddr >> 24 );
 
+  /* Lock the SPI bus so that we have exclusive access */
+
+  enc_lock(priv);
+
   /* Initialize Ethernet interface, set the MAC address, and make sure that
    * the ENC28J80 is not in power save mode.
    */
@@ -2072,6 +2031,9 @@ static int enc_ifup(struct uip_driver_s *dev)
       priv->lower->enable(priv->lower);
     }
 
+  /* Un-lock the SPI bus */
+
+  enc_unlock(priv);
   return ret;
 }
 
@@ -2101,6 +2063,10 @@ static int enc_ifdown(struct uip_driver_s *dev)
          dev->d_ipaddr & 0xff, (dev->d_ipaddr >> 8) & 0xff,
          (dev->d_ipaddr >> 16) & 0xff, dev->d_ipaddr >> 24 );
 
+  /* Lock the SPI bus so that we have exclusive access */
+
+  enc_lock(priv);
+
   /* Disable the Ethernet interrupt */
 
   flags = irqsave();
@@ -2118,6 +2084,10 @@ static int enc_ifdown(struct uip_driver_s *dev)
 
   priv->ifstate = ENCSTATE_DOWN;
   irqrestore(flags);
+
+  /* Un-lock the SPI bus */
+
+  enc_unlock(priv);
   return ret;
 }
 
@@ -2145,10 +2115,13 @@ static int enc_txavail(struct uip_driver_s *dev)
   FAR struct enc_driver_s *priv = (FAR struct enc_driver_s *)dev->d_private;
   irqstate_t flags;
 
-  flags = irqsave();
+  /* Lock the SPI bus so that we have exclusive access */
+
+  enc_lock(priv);
 
   /* Ignore the notification if the interface is not yet up */
 
+  flags = irqsave();
   if (priv->ifstate == ENCSTATE_UP)
     {
       /* Check if the hardware is ready to send another packet.  The driver
@@ -2165,7 +2138,10 @@ static int enc_txavail(struct uip_driver_s *dev)
         }
     }
 
+  /* Un-lock the SPI bus */
+
   irqrestore(flags);
+  enc_unlock(priv);
   return OK;
 }
 
@@ -2192,9 +2168,17 @@ static int enc_addmac(struct uip_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct enc_driver_s *priv = (FAR struct enc_driver_s *)dev->d_private;
 
+  /* Lock the SPI bus so that we have exclusive access */
+
+  enc_lock(priv);
+
   /* Add the MAC address to the hardware multicast routing table */
 
 #warning "Multicast MAC support not implemented"
+
+  /* Un-lock the SPI bus */
+
+  enc_unlock(priv);
   return OK;
 }
 #endif
@@ -2222,9 +2206,17 @@ static int enc_rmmac(struct uip_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct enc_driver_s *priv = (FAR struct enc_driver_s *)dev->d_private;
 
+  /* Lock the SPI bus so that we have exclusive access */
+
+  enc_lock(priv);
+
   /* Add the MAC address to the hardware multicast routing table */
 
 #warning "Multicast MAC support not implemented"
+
+  /* Un-lock the SPI bus */
+
+  enc_unlock(priv);
   return OK;
 }
 #endif

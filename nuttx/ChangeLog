@@ -3375,3 +3375,5 @@
 	  the common tools/Make.mk.  Add support for a verbosity options:
 	  Specify V=1 on the make command line in order to see the exact
 	  commands used in the build (Contributed by Richard Cochran).
+	* drivers/net/enc28j60.c:  The ENC28J60 Ethernet driver is
+	  now functional.
