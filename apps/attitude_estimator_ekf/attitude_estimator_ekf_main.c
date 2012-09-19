@@ -80,21 +80,35 @@ static float dt = 1;
 /* 0, 0, -9.81, 1, 1, 1, wo (gyro offset), w */
 /* state vector x has the following entries [ax,ay,az||mx,my,mz||wox,woy,woz||wx,wy,wz]' */
 static float z_k[9] = {0};					/**< Measurement vector */
-static float x_aposteriori[12] = {0};		/**< */
-static float P_aposteriori[144] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-				   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-				   0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-				   0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,
-				   0,   0,   0,   0,  100.f,  0,   0,   0,   0,   0,   0,   0,
-				   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
-				   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
-				   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,
-				   0,   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
-				   0,   0,   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,
-				   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 100.f,   0,
-				   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 100.f
+static float x_aposteriori_k[9] = {0};		/**< */
+static float x_aposteriori[9] = {0};
+static float P_aposteriori_k[81] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,
+				   0, 100.f,   0,   0,   0,   0,   0,   0,   0,
+				   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,  100.f,  0,   0,   0,   0,
+				   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0, 100.f,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0, 100.f,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0, 100.f,
+				   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				  };
+static float P_aposteriori[81] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,
+				   0, 100.f,   0,   0,   0,   0,   0,   0,   0,
+				   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,  100.f,  0,   0,   0,   0,
+				   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0, 100.f,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0, 100.f,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0, 100.f,
+				   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0,   0,
 				  };	/**< init: diagonal matrix with big values */
-static float knownConst[7] = {1, 1, 1, 1, 1, 1, 1};			/**< knownConst has the following entries [PrvaA,PrvarM,PrvarWO,PrvarW||MsvarA,MsvarM,MsvarW] */
+static float knownConst[20] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};			/**< knownConst has the following entries [PrvaA,PrvarM,PrvarWO,PrvarW||MsvarA,MsvarM,MsvarW] */
 static float Rot_matrix[9] = {1.f,  0,  0,
 			      0,  1.f,  0,
 			      0,  0,  1.f
@@ -203,13 +217,31 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 			/*
 			 * function [Rot_matrix,x_aposteriori,P_aposteriori] = attitudeKalmanfilter(dt,z_k,x_aposteriori_k,P_aposteriori_k,knownConst)
 			 */
+
+			//extern void attitudeKalmanfilter(real32_T dt, const int8_T updVect[9], const real32_T z_k_data[9],
+			// const int32_T z_k_sizes[1], const real32_T u[4],
+			 // const real32_T x_aposteriori_k[9], const real32_T P_aposteriori_k[81],
+			 // const real32_T knownConst[20], real32_T eulerAngles[3],
+			 // real32_T Rot_matrix[9], real32_T x_aposteriori[9],
+			 // real32_T P_aposteriori[81]);
+
+			int8_t update_vect[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
+			float euler[3];
+			int32_t z_k_sizes = 9;
+			float u[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+
 			uint64_t timing_start = hrt_absolute_time();
-			attitudeKalmanfilter(dt, z_k, x_aposteriori, P_aposteriori, knownConst, Rot_matrix, x_aposteriori, P_aposteriori);
+			attitudeKalmanfilter(dt, update_vect, z_k, &z_k_sizes, u, x_aposteriori_k, P_aposteriori_k, knownConst, euler,
+				Rot_matrix, x_aposteriori, P_aposteriori);
+			/* swap values for next iteration */
+			memcpy(P_aposteriori_k, P_aposteriori, sizeof(P_aposteriori_k));
+			memcpy(x_aposteriori_k, x_aposteriori, sizeof(x_aposteriori_k));
 			uint64_t timing_diff = hrt_absolute_time() - timing_start;
 
 			/* print rotation matrix every 200th time */
 			if (printcounter % 200 == 0) {
 				printf("EKF attitude iteration: %d, runtime: %d us, dt: %d us (%d Hz)\n", loopcounter, (int)timing_diff, (int)(dt * 1000000.0f), (int)(1.0f / dt));
+				printf("roll: %8.4f\tpitch: %8.4f\tyaw:%8.4f", euler[0], euler[1], euler[2]);
 				printf("\n%d\t%d\t%d\n%d\t%d\t%d\n%d\t%d\t%d\n", (int)(Rot_matrix[0] * 100), (int)(Rot_matrix[1] * 100), (int)(Rot_matrix[2] * 100),
 				       (int)(Rot_matrix[3] * 100), (int)(Rot_matrix[4] * 100), (int)(Rot_matrix[5] * 100),
 				       (int)(Rot_matrix[6] * 100), (int)(Rot_matrix[7] * 100), (int)(Rot_matrix[8] * 100));

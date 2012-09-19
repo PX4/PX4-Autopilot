@@ -3,7 +3,7 @@
  *
  * Code generation for function 'norm'
  *
- * C source code generated on: Wed Jul 11 08:38:35 2012
+ * C source code generated on: Mon Sep 17 20:13:23 2012
  *
  */
 
@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "rt_defines.h"
+#include "rt_nonfinite.h"
 
 #include "rtwtypes.h"
 #include "attitudeKalmanfilter_types.h"

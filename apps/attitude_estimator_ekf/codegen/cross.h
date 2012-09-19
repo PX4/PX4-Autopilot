@@ -1,14 +1,14 @@
 /*
- * attitudeKalmanfilter_initialize.h
+ * cross.h
  *
- * Code generation for function 'attitudeKalmanfilter_initialize'
+ * Code generation for function 'cross'
  *
- * C source code generated on: Mon Sep 17 20:13:24 2012
+ * C source code generated on: Mon Sep 17 20:13:23 2012
  *
  */
 
-#ifndef __ATTITUDEKALMANFILTER_INITIALIZE_H__
-#define __ATTITUDEKALMANFILTER_INITIALIZE_H__
+#ifndef __CROSS_H__
+#define __CROSS_H__
 /* Include files */
 #include <math.h>
 #include <stdio.h>
@@ -29,6 +29,6 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void attitudeKalmanfilter_initialize(void);
+extern void cross(const real32_T a[3], const real32_T b[3], real32_T c[3]);
 #endif
-/* End of code generation (attitudeKalmanfilter_initialize.h) */
+/* End of code generation (cross.h) */
