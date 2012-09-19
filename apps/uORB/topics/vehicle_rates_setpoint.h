@@ -33,12 +33,12 @@
  ****************************************************************************/
 
 /**
- * @file ardrone_motors_setpoint.h
- * Definition of the ardrone_motors_setpoint uORB topic.
+ * @file vehicle_rates_setpoint.h
+ * Definition of the vehicle rates setpoint topic
  */
 
-#ifndef TOPIC_ARDRONE_MOTORS_SETPOINT_H_
-#define TOPIC_ARDRONE_MOTORS_SETPOINT_H_
+#ifndef TOPIC_VEHICLE_RATES_SETPOINT_H_
+#define TOPIC_VEHICLE_RATES_SETPOINT_H_
 
 #include <stdint.h>
 #include "../uORB.h"
@@ -48,23 +48,22 @@
  * @{
  */
 
-struct ardrone_motors_setpoint_s
+struct vehicle_rates_setpoint_s
 {
-	uint64_t timestamp; //in microseconds since system start, is set whenever the writing thread stores new data
+	uint64_t timestamp; /**< in microseconds since system start */
 
-	uint8_t group;	/**< quadrotor group */
-	uint8_t mode;	/**< requested flight mode XXX define */
-	float p1;		/**< parameter 1: rate control: roll rate, att control: roll angle (in radians, NED) */
-	float p2;		/**< parameter 2: rate control: pitch rate, att control: pitch angle (in radians, NED) */
-	float p3;		/**< parameter 3: rate control: yaw rate, att control: yaw angle (in radians, NED) */
-	float p4;		/**< parameter 4: thrust, [0..1] */
-}; /**< AR.Drone low level motors */
+	float roll;	/**< body angular rates in NED frame		*/
+	float pitch;	/**< body angular rates in NED frame		*/
+	float yaw;	/**< body angular rates in NED frame		*/
+	float thrust;	/**< thrust normalized to 0..1			*/
+
+}; /**< vehicle_rates_setpoint */
 
  /**
  * @}
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(ardrone_motors_setpoint);
+ORB_DECLARE(vehicle_rates_setpoint);
 
 #endif

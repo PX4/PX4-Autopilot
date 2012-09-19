@@ -243,7 +243,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	float roll_control = pid_calculate(&roll_controller, att_sp->roll_body + p.att_yoff,
 					att->roll, att->rollspeed, deltaT);
 	/* control yaw rate */
-	float yaw_rate_control = pid_calculate(&yaw_speed_controller, att_sp->yaw_rate_body, att->yawspeed, 0.0f, deltaT);
+	float yaw_rate_control = pid_calculate(&yaw_speed_controller, att_sp->yaw_body, att->yawspeed, 0.0f, deltaT);
 
 	/*
 	 * compensate the vertical loss of thrust

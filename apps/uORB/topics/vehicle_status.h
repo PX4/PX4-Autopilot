@@ -127,7 +127,7 @@ struct vehicle_status_s
 
 	bool flag_control_rates_enabled;		/**< true if rates are stabilized */
 	bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
-	bool flag_control_speed_enabled;		/**< true if speed (implies direction) is controlled */
+	bool flag_control_velocity_enabled;		/**< true if speed (implies direction) is controlled */
 	bool flag_control_position_enabled;		/**< true if position is controlled */
 
 	bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */

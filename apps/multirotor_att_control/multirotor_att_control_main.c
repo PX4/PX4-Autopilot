@@ -58,13 +58,14 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/ardrone_motors_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/actuator_controls.h>
 
 #include <systemlib/perf_counter.h>
 
 #include "multirotor_attitude_control.h"
+#include "multirotor_rate_control.h"
 
 __EXPORT int multirotor_att_control_main(int argc, char *argv[]);
 
@@ -93,18 +94,18 @@ mc_thread_main(int argc, char *argv[])
 	memset(&manual, 0, sizeof(manual));
 	struct sensor_combined_s raw;
 	memset(&raw, 0, sizeof(raw));
-	struct ardrone_motors_setpoint_s setpoint;
-	memset(&setpoint, 0, sizeof(setpoint));
+	struct vehicle_rates_setpoint_s rates_sp;
+	memset(&rates_sp, 0, sizeof(rates_sp));
 
 	struct actuator_controls_s actuators;
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int att_setpoint_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+	int setpoint_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
-	int setpoint_sub = orb_subscribe(ORB_ID(ardrone_motors_setpoint));
 
 	/* 
 	 * Do not rate-limit the loop to prevent aliasing
@@ -145,6 +146,12 @@ mc_thread_main(int argc, char *argv[])
 		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 		/* get a local copy of attitude setpoint */
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), att_setpoint_sub, &att_sp);
+		/* get a local copy of rates setpoint */
+		bool updated;
+		orb_check(setpoint_sub, &updated);
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_rates_setpoint), setpoint_sub, &rates_sp);
+		}
 		/* get a local copy of the current sensor values */
 		orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 
@@ -155,16 +162,15 @@ mc_thread_main(int argc, char *argv[])
 			/* manual inputs, from RC control or joystick */
 			att_sp.roll_body = manual.roll;
 			att_sp.pitch_body = manual.pitch;
-			att_sp.yaw_rate_body = manual.yaw;
+			att_sp.yaw_body = manual.yaw; // XXX Hack, remove, switch to yaw rate controller
+			/* set yaw rate */
+			rates_sp.yaw = manual.yaw;
 			att_sp.timestamp = hrt_absolute_time();
 			
 			if (motor_test_mode) {
 				att_sp.roll_body = 0.0f;
 				att_sp.pitch_body = 0.0f;
 				att_sp.yaw_body = 0.0f;
-				att_sp.roll_rate_body = 0.0f;
-				att_sp.pitch_rate_body = 0.0f;
-				att_sp.yaw_rate_body = 0.0f;
 				att_sp.thrust = 0.1f;
 			} else {
 				att_sp.thrust = manual.throttle;
@@ -184,7 +190,14 @@ mc_thread_main(int argc, char *argv[])
 
 		/* XXX could be also run in an independent loop */
 		if (state.flag_control_rates_enabled) {
-			multirotor_control_rates(&att_sp, &raw.gyro_rad_s, &actuators);
+			/* lowpass gyros */
+			// XXX
+			static float gyro_lp[3] = {0, 0, 0};
+			gyro_lp[0] = raw.gyro_rad_s[0];
+			gyro_lp[1] = raw.gyro_rad_s[1];
+			gyro_lp[2] = raw.gyro_rad_s[2];
+
+			multirotor_control_rates(&rates_sp, gyro_lp, &actuators);
 		}
 
 		/* STEP 3: publish the result to the vehicle actuators */

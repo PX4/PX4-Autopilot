@@ -78,8 +78,8 @@ ORB_DEFINE(vehicle_global_position, struct vehicle_global_position_s);
 #include "topics/vehicle_local_position.h"
 ORB_DEFINE(vehicle_local_position, struct vehicle_local_position_s);
 
-#include "topics/ardrone_motors_setpoint.h"
-ORB_DEFINE(ardrone_motors_setpoint, struct ardrone_motors_setpoint_s);
+#include "topics/vehicle_rates_setpoint.h"
+ORB_DEFINE(vehicle_rates_setpoint, struct vehicle_rates_setpoint_s);
 
 #include "topics/rc_channels.h"
 ORB_DEFINE(rc_channels, struct rc_channels_s);

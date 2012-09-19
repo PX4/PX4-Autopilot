@@ -742,6 +742,31 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		}
 		break;
 
+		case PX4_CMD_CONTROLLER_SELECTION: {
+			bool changed = false;
+			if ((int)cmd->param1 != (int)current_vehicle_status->flag_control_rates_enabled) {
+				current_vehicle_status->flag_control_rates_enabled = cmd->param1;
+				changed = true;
+			}
+			if ((int)cmd->param2 != (int)current_vehicle_status->flag_control_attitude_enabled) {
+				current_vehicle_status->flag_control_attitude_enabled = cmd->param2;
+				changed = true;
+			}
+			if ((int)cmd->param3 != (int)current_vehicle_status->flag_control_velocity_enabled) {
+				current_vehicle_status->flag_control_velocity_enabled = cmd->param3;
+				changed = true;
+			}
+			if ((int)cmd->param4 != (int)current_vehicle_status->flag_control_position_enabled) {
+				current_vehicle_status->flag_control_position_enabled = cmd->param4;
+				changed = true;
+			}
+
+			if (changed) {
+				/* publish current state machine */
+				state_machine_publish(status_pub, current_vehicle_status, mavlink_fd);
+			}
+		}
+
 //		/* request to land */
 //		case MAV_CMD_NAV_LAND:
 //		 {

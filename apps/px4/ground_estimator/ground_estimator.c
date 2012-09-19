@@ -75,7 +75,7 @@ int ground_estimator_thread_main(int argc, char *argv[]) {
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
 
-	/* advertise attitude */
+	/* advertise debug value */
 	struct debug_key_value_s dbg = { .key = "posx", .value = 0.0f };
 	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
 

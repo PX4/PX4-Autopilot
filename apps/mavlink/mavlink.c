@@ -65,7 +65,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/ardrone_motors_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position_setpoint.h>
@@ -126,14 +126,13 @@ static struct vehicle_attitude_s hil_attitude;
 
 static struct vehicle_global_position_s hil_global_pos;
 
-static struct ardrone_motors_setpoint_s ardrone_motors;
+static struct vehicle_rates_setpoint_s vehicle_rates_sp;
 
 static struct vehicle_command_s vcmd;
 
 static struct actuator_armed_s armed;
 
 static orb_advert_t pub_hil_global_pos = -1;
-static orb_advert_t ardrone_motors_pub = -1;
 static orb_advert_t cmd_pub = -1;
 static orb_advert_t flow_pub = -1;
 static orb_advert_t global_position_setpoint_pub = -1;
@@ -186,6 +185,12 @@ static struct mavlink_subscriptions {
 	.spg_sub = 0,
 	.debug_key_value = 0,
 	.initialized = false
+};
+
+static struct mavlink_publications {
+	orb_advert_t vehicle_rates_sp_pub;
+} mavlink_pubs = {
+	.vehicle_rates_sp_pub = -1
 };
 
 
@@ -1133,6 +1138,13 @@ mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 	}
 }
 
+#define MAVLINK_OFFBOARD_CONTROL_MODE_NONE 0
+#define MAVLINK_OFFBOARD_CONTROL_MODE_RATES 1
+#define MAVLINK_OFFBOARD_CONTROL_MODE_ATTITUDE 2
+#define MAVLINK_OFFBOARD_CONTROL_MODE_VELOCITY 3
+#define MAVLINK_OFFBOARD_CONTROL_MODE_POSITION 4
+#define MAVLINK_OFFBOARD_CONTROL_FLAG_ARMED 0x10
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -1242,29 +1254,80 @@ void handleMessage(mavlink_message_t *msg)
 //		printf("got MAVLINK_MSG_ID_SET_QUAD_MOTORS_SETPOINT target_system=%u, sysid = %u\n", quad_motors_setpoint.target_system, mavlink_system.sysid);
 
 		if (mavlink_system.sysid < 4) {
-			ardrone_motors.p1 = quad_motors_setpoint.roll[mavlink_system.sysid];
-			ardrone_motors.p2 = quad_motors_setpoint.pitch[mavlink_system.sysid];
-			ardrone_motors.p3 = quad_motors_setpoint.yaw[mavlink_system.sysid];
-			ardrone_motors.p4 = quad_motors_setpoint.thrust[mavlink_system.sysid];
-
-			ardrone_motors.timestamp = hrt_absolute_time();
-
 			/* only send if RC is off */
 			if (v_status.rc_signal_lost) {
-				/* check if input has to be enabled */
-				if (!v_status.flag_control_offboard_enabled) {
-					/* XXX Enable offboard control */
-				}
 
-				/* XXX decode mode and set flags */
-				// if (mode == abc) xxx flag_control_rates_enabled;
+				/* rate control mode */
+				if (quad_motors_setpoint.mode == 1) {
+					vehicle_rates_sp.roll = quad_motors_setpoint.roll[mavlink_system.sysid]   / (float)INT16_MAX;
+					vehicle_rates_sp.pitch = quad_motors_setpoint.pitch[mavlink_system.sysid]  / (float)INT16_MAX;
+					vehicle_rates_sp.yaw = quad_motors_setpoint.yaw[mavlink_system.sysid]    / (float)INT16_MAX;
+					vehicle_rates_sp.thrust = quad_motors_setpoint.thrust[mavlink_system.sysid] / (float)UINT16_MAX;
+
+					vehicle_rates_sp.timestamp = hrt_absolute_time();
+				}
 
 				/* check if topic has to be advertised */
-				if (ardrone_motors_pub <= 0) {
-					ardrone_motors_pub = orb_advertise(ORB_ID(ardrone_motors_setpoint), &ardrone_motors);
+				if (mavlink_pubs.vehicle_rates_sp_pub <= 0) {
+					mavlink_pubs.vehicle_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &vehicle_rates_sp);
 				}
 				/* Publish */
-				orb_publish(ORB_ID(ardrone_motors_setpoint), ardrone_motors_pub, &ardrone_motors);
+				orb_publish(ORB_ID(vehicle_rates_setpoint), mavlink_pubs.vehicle_rates_sp_pub, &vehicle_rates_sp);
+
+				/* change armed status if required */
+				bool cmd_armed = (quad_motors_setpoint.mode & MAVLINK_OFFBOARD_CONTROL_FLAG_ARMED);
+
+				bool cmd_generated = false;
+
+				if (v_status.flag_control_offboard_enabled != cmd_armed) {
+					vcmd.param1 = cmd_armed;
+					vcmd.param2 = 0;
+					vcmd.param3 = 0;
+					vcmd.param4 = 0;
+					vcmd.param5 = 0;
+					vcmd.param6 = 0;
+					vcmd.param7 = 0;
+					vcmd.command = MAV_CMD_COMPONENT_ARM_DISARM;
+					vcmd.target_system = mavlink_system.sysid;
+					vcmd.target_component = MAV_COMP_ID_ALL;
+					vcmd.source_system = msg->sysid;
+					vcmd.source_component = msg->compid;
+					vcmd.confirmation = 1;
+
+					cmd_generated = true;
+				}
+
+				/* check if input has to be enabled */
+				if ((v_status.flag_control_rates_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_RATES)) ||
+					(v_status.flag_control_attitude_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_ATTITUDE)) ||
+					(v_status.flag_control_velocity_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_VELOCITY)) ||
+					(v_status.flag_control_position_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_POSITION))) {
+					vcmd.param1 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_RATES);
+					vcmd.param2 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_ATTITUDE);
+					vcmd.param3 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_VELOCITY);
+					vcmd.param4 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_POSITION);
+					vcmd.param5 = 0;
+					vcmd.param6 = 0;
+					vcmd.param7 = 0;
+					vcmd.command = PX4_CMD_CONTROLLER_SELECTION;
+					vcmd.target_system = mavlink_system.sysid;
+					vcmd.target_component = MAV_COMP_ID_ALL;
+					vcmd.source_system = msg->sysid;
+					vcmd.source_component = msg->compid;
+					vcmd.confirmation = 1;
+
+					cmd_generated = true;
+				}
+
+				if (cmd_generated) {
+					/* check if topic is advertised */
+					if (cmd_pub <= 0) {
+						cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+					} else {
+						/* create command */
+						orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
+					}
+				}
 			}
 		}
 	}
@@ -1479,7 +1542,7 @@ int mavlink_thread_main(int argc, char *argv[])
 	memset(&rc, 0, sizeof(rc));
 	memset(&hil_attitude, 0, sizeof(hil_attitude));
 	memset(&hil_global_pos, 0, sizeof(hil_global_pos));
-	memset(&ardrone_motors, 0, sizeof(ardrone_motors));
+	memset(&vehicle_rates_sp, 0, sizeof(vehicle_rates_sp));
 	memset(&vcmd, 0, sizeof(vcmd));
 
 	/* print welcome text */
