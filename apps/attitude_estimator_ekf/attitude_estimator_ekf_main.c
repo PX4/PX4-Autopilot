@@ -1,8 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
- *           Laurens Mackay <mackayl@student.ethz.ch>
  *           Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,13 +34,10 @@
  ****************************************************************************/
 
 /*
- * @file Extended Kalman Filter for Attitude Estimation
+ * @file attitude_estimator_ekf_main.c
+ * 
+ * Extended Kalman Filter for Attitude Estimation.
  */
-
-
-/****************************************************************************
- * Included Files
- ****************************************************************************/
 
 #include <nuttx/config.h>
 #include <unistd.h>
@@ -114,9 +110,6 @@ static float Rot_matrix[9] = {1.f,  0,  0,
 			      0,  0,  1.f
 			     };		/**< init: identity matrix */
 
-// static float x_aposteriori_k[12] = {0};
-// static float P_aposteriori_k[144] = {0};
-
 /*
  * [Rot_matrix,x_aposteriori,P_aposteriori] = attitudeKalmanfilter(dt,z_k,x_aposteriori_k,P_aposteriori_k,knownConst)
  */
@@ -171,7 +164,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 			/* */
 
 			/* update successful, copy data on every 2nd run and execute filter */
-		} else if (loopcounter & 0x01) {
+		} else {
 
 			orb_copy(ORB_ID(sensor_combined), sub_raw, &raw);
 
@@ -179,24 +172,19 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 			dt = (raw.timestamp - last_measurement) / 1000000.0f;
 			last_measurement = raw.timestamp;
 
-			// XXX Read out accel range via SPI on init, assuming 4G range at 14 bit res here
-			float range_g = 4.0f;
-			float mag_offset[3] = {0};
 			/* scale from 14 bit to m/s2 */
-			z_k[3] = ((raw.accelerometer_raw[0] * range_g) / 8192.0f) / 9.81f;  // = accel * (1 / 32768.0f / 8.0f * 9.81f);
-			z_k[4] = ((raw.accelerometer_raw[1] * range_g) / 8192.0f) / 9.81f;  // = accel * (1 / 32768.0f / 8.0f * 9.81f);
-			z_k[5] = ((raw.accelerometer_raw[2] * range_g) / 8192.0f) / 9.81f;  // = accel * (1 / 32768.0f / 8.0f * 9.81f);
+			z_k[3] = raw.accelerometer_m_s2[0];
+			z_k[4] = raw.accelerometer_raw[1];
+			z_k[5] = raw.accelerometer_raw[2];
 
-			// XXX Read out mag range via I2C on init, assuming 0.88 Ga and 12 bit res here
-			z_k[0] = (raw.magnetometer_raw[0] - mag_offset[0]) * 0.01f;
-			z_k[1] = (raw.magnetometer_raw[1] - mag_offset[1]) * 0.01f;
-			z_k[2] = (raw.magnetometer_raw[2] - mag_offset[2]) * 0.01f;
+			z_k[0] = raw.magnetometer_ga[0];
+			z_k[1] = raw.magnetometer_ga[1];
+			z_k[2] = raw.magnetometer_ga[2];
 
 			/* Fill in gyro measurements */
-			z_k[6] =  raw.gyro_raw[0] * 0.00026631611f /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
-			z_k[7] =  raw.gyro_raw[1] * 0.00026631611f /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
-			z_k[8] =  raw.gyro_raw[2] * 0.00026631611f /* = gyro * (500.0f / 180.0f * pi / 32768.0f ) */;
-
+			z_k[6] =  raw.gyro_rad_s[0];
+			z_k[7] =  raw.gyro_rad_s[1];
+			z_k[8] =  raw.gyro_rad_s[2];
 
 			uint64_t now = hrt_absolute_time();
 			unsigned int time_elapsed = now - last_run;
@@ -211,19 +199,6 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 
 				overloadcounter++;
 			}
-
-//			now = hrt_absolute_time();
-			/* filter values */
-			/*
-			 * function [Rot_matrix,x_aposteriori,P_aposteriori] = attitudeKalmanfilter(dt,z_k,x_aposteriori_k,P_aposteriori_k,knownConst)
-			 */
-
-			//extern void attitudeKalmanfilter(real32_T dt, const int8_T updVect[9], const real32_T z_k_data[9],
-			// const int32_T z_k_sizes[1], const real32_T u[4],
-			 // const real32_T x_aposteriori_k[9], const real32_T P_aposteriori_k[81],
-			 // const real32_T knownConst[20], real32_T eulerAngles[3],
-			 // real32_T Rot_matrix[9], real32_T x_aposteriori[9],
-			 // real32_T P_aposteriori[81]);
 
 			int8_t update_vect[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
 			float euler[3];
@@ -249,34 +224,19 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 
 			printcounter++;
 
-//			time_elapsed = hrt_absolute_time() - now;
-//			if (blubb == 20)
-//			{
-//				printf("Estimator: %lu\n", time_elapsed);
-//				blubb = 0;
-//			}
-//			blubb++;
-
 			if (last_data > 0 && raw.timestamp - last_data > 8000) printf("sensor data missed! (%llu)\n", raw.timestamp - last_data);
 
-//			printf("%llu -> %llu = %llu\n", last_data, raw.timestamp, raw.timestamp - last_data);
 			last_data = raw.timestamp;
 
 			/* send out */
 			att.timestamp = raw.timestamp;
-			// att.roll = euler.x;
-			// att.pitch = euler.y;
-			// att.yaw = euler.z + F_M_PI;
-
-			// if (att.yaw > 2 * F_M_PI) {
-			// 	att.yaw -= 2 * F_M_PI;
-			// }
+			att.roll = euler.x;
+			att.pitch = euler.y;
+			att.yaw = euler.z;
 
 			// att.rollspeed = rates.x;
 			// att.pitchspeed = rates.y;
 			// att.yawspeed = rates.z;
-
-			// memcpy()R
 
 			// Broadcast
 			orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
