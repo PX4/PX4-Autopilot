@@ -10,6 +10,9 @@
 
 #include <stdbool.h>
 
-static bool gps_thread_should_exit;		/**< Deamon status flag */
+struct arg_struct {
+    int *fd_ptr;
+    bool *thread_should_exit_ptr;
+};
 
 #endif /* GPS_H_ */

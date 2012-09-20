@@ -38,7 +38,6 @@
  */
 
 #include "gps.h"
-
 #include <nuttx/config.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -58,8 +57,9 @@
 #include <v1.0/common/mavlink.h>
 #include <mavlink/mavlink_log.h>
 
+static bool thread_should_exit;				/**< Deamon status flag */
 static bool thread_running = false;				/**< Deamon status flag */
-static int deamon_task;				/**< Handle of deamon task / thread */
+static int deamon_task;							/**< Handle of deamon task / thread */
 
 /**
  * GPS module readout and publishing.
@@ -104,7 +104,6 @@ enum GPS_MODES {
 };
 
 
-
 #define AUTO_DETECTION_COUNT 8
 const int autodetection_baudrates[] = {B9600, B38400, B38400, B9600, B9600, B38400, B9600, B38400};
 const enum GPS_MODES autodetection_gpsmodes[] = {GPS_MODE_UBX, GPS_MODE_MTK, GPS_MODE_UBX, GPS_MODE_MTK, GPS_MODE_UBX, GPS_MODE_MTK, GPS_MODE_NMEA, GPS_MODE_NMEA}; //nmea is the fall-back if nothing else works, therefore we try the standard modes again before finally trying nmea
@@ -140,14 +139,14 @@ int gps_main(int argc, char *argv[])
 			exit(0);
 		}
 
-		gps_thread_should_exit = false;
+		thread_should_exit = false;
 		deamon_task = task_create("gps", SCHED_PRIORITY_DEFAULT, 4096, gps_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
 	}
 
 	if (!strcmp(argv[1], "stop")) {
-		gps_thread_should_exit = true;
+		thread_should_exit = true;
 		exit(0);
 	}
 
@@ -193,6 +192,7 @@ int gps_thread_main(int argc, char *argv[]) {
 	for (i = 0; i < argc; i++) {
 		if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) { //device set
 			printf(commandline_usage, argv[0]);
+			thread_running = false;
 			return 0;
 		}
 
@@ -202,6 +202,7 @@ int gps_thread_main(int argc, char *argv[]) {
 
 			} else {
 				printf(commandline_usage, argv[0]);
+				thread_running = false;
 				return 0;
 			}
 		}
@@ -212,6 +213,7 @@ int gps_thread_main(int argc, char *argv[]) {
 
 			} else {
 				printf(commandline_usage, argv[0]);
+				thread_running = false;
 				return 0;
 			}
 		}
@@ -222,6 +224,7 @@ int gps_thread_main(int argc, char *argv[]) {
 
 			} else {
 				printf(commandline_usage, argv[0]);
+				thread_running = false;
 				return 0;
 			}
 		}
@@ -232,6 +235,7 @@ int gps_thread_main(int argc, char *argv[]) {
 
 			} else {
 				printf(commandline_usage, argv[0]);
+				thread_running = false;
 				return 0;
 			}
 		}
@@ -297,13 +301,14 @@ int gps_thread_main(int argc, char *argv[]) {
 	} else {
 		fprintf(stderr, "\t[gps] Invalid mode argument\n");
 		printf(commandline_usage);
+		thread_running = false;
 		return ERROR;
 	}
 
 	/* Declare file descriptor for gps here, open port later in setup_port */
 	int fd;
 
-	while (!gps_thread_should_exit) {
+	while (!thread_should_exit) {
 		/* Infinite retries or break if retry == false */
 
 		/* Loop over all configurations of baud rate and protocol */
@@ -351,13 +356,17 @@ int gps_thread_main(int argc, char *argv[]) {
 				pthread_attr_init(&ubx_loop_attr);
 				pthread_attr_setstacksize(&ubx_loop_attr, 3000);
 
-				pthread_create(&ubx_thread, &ubx_loop_attr, ubx_loop, (void *)&fd);
+				struct arg_struct args;
+				args.fd_ptr = &fd;
+				args.thread_should_exit_ptr = &thread_should_exit;
+
+				pthread_create(&ubx_thread, &ubx_loop_attr, ubx_loop, (void *)&args);
 				sleep(2); // XXX TODO Check if this is too short, try to lower sleeps in UBX driver
                 
 				pthread_attr_t ubx_wd_attr;
 				pthread_attr_init(&ubx_wd_attr);
 				pthread_attr_setstacksize(&ubx_wd_attr, 1400);
-				int pthread_create_res = pthread_create(&ubx_watchdog_thread, &ubx_wd_attr, ubx_watchdog_loop, (void *)&fd);
+				int pthread_create_res = pthread_create(&ubx_watchdog_thread, &ubx_wd_attr, ubx_watchdog_loop, (void *)&args);
 
 				if (pthread_create_res != 0) fprintf(stderr, "[gps] ERROR: could not create ubx watchdog thread, pthread_create =%d\n", pthread_create_res);
 
@@ -372,7 +381,17 @@ int gps_thread_main(int argc, char *argv[]) {
 
 					gps_mode_success = true;
 					terminate_gps_thread = false;
+
+				/* maybe the watchdog was stopped through the thread_should_exit flag */
+				} else if (thread_should_exit) {
+					pthread_join(ubx_thread, NULL);
+					if (gps_verbose) printf("[gps] ubx watchdog and ubx loop threads have been terminated, exiting.");
+					close(mavlink_fd);
+					close_port(&fd);
+					thread_running = false;
+					return 0;
 				}
+
 				close_port(&fd);
 			} else if (current_gps_mode == GPS_MODE_MTK) {
 				if (gps_verbose) printf("[gps] trying MTK binary mode at %d baud\n", current_gps_speed);
@@ -398,9 +417,14 @@ int gps_thread_main(int argc, char *argv[]) {
 				pthread_attr_t mtk_loop_attr;
 				pthread_attr_init(&mtk_loop_attr);
 				pthread_attr_setstacksize(&mtk_loop_attr, 2048);
-				pthread_create(&mtk_thread, &mtk_loop_attr, mtk_loop, (void *)&fd);
+
+				struct arg_struct args;
+				args.fd_ptr = &fd;
+				args.thread_should_exit_ptr = &thread_should_exit;
+
+				pthread_create(&mtk_thread, &mtk_loop_attr, mtk_loop, (void *)&args);
 				sleep(2);
-				pthread_create(&mtk_watchdog_thread, NULL, mtk_watchdog_loop, (void *)&fd);
+				pthread_create(&mtk_watchdog_thread, NULL, mtk_watchdog_loop, (void *)&args);
 
 				/* wait for threads to complete */
 				pthread_join(mtk_watchdog_thread, (void *)&fd);
@@ -442,9 +466,14 @@ int gps_thread_main(int argc, char *argv[]) {
 				pthread_attr_t nmea_loop_attr;
 				pthread_attr_init(&nmea_loop_attr);
 				pthread_attr_setstacksize(&nmea_loop_attr, 4096);
-				pthread_create(&nmea_thread, &nmea_loop_attr, nmea_loop, (void *)&fd);
+
+				struct arg_struct args;
+				args.fd_ptr = &fd;
+				args.thread_should_exit_ptr = &thread_should_exit;
+
+				pthread_create(&nmea_thread, &nmea_loop_attr, nmea_loop, (void *)&args);
 				sleep(2);
-				pthread_create(&nmea_watchdog_thread, NULL, nmea_watchdog_loop, (void *)&fd);
+				pthread_create(&nmea_watchdog_thread, NULL, nmea_watchdog_loop, (void *)&args);
 
 				/* wait for threads to complete */
 				pthread_join(nmea_watchdog_thread, (void *)&fd);
@@ -463,7 +492,7 @@ int gps_thread_main(int argc, char *argv[]) {
 			}
 
 			/* exit quickly if stop command has been received */
-			if (gps_thread_should_exit) {
+			if (thread_should_exit) {
 				printf("[gps] stopped, exiting.\n");
 				close(mavlink_fd);
 				thread_running = false;

@@ -300,15 +300,15 @@ int ubx_parse(uint8_t b,  char *gps_rx_buffer);
 
 int configure_gps_ubx(int *fd);
 
-int read_gps_ubx(int fd, char *gps_rx_buffer, int buffer_size);
+int read_gps_ubx(int *fd, char *gps_rx_buffer, int buffer_size);
 
 int write_config_message_ubx(uint8_t *message, size_t length, int fd);
 
 void calculate_ubx_checksum(uint8_t *message, uint8_t length);
 
-void *ubx_watchdog_loop(void *arg);
+void *ubx_watchdog_loop(void *args);
 
-void *ubx_loop(void *arg);
+void *ubx_loop(void *args);
 
 
 #endif /* UBX_H_ */

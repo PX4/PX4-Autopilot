@@ -42,6 +42,7 @@
 #include <sys/prctl.h>
 #include <pthread.h>
 #include <poll.h>
+#include <fcntl.h>
 #include <arch/board/up_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -181,7 +182,7 @@ int mtk_parse(uint8_t b,  char *gps_rx_buffer)
 
 }
 
-int read_gps_mtk(int fd, char *gps_rx_buffer, int buffer_size)  // returns 1 if the thread should terminate
+int read_gps_mtk(int *fd, char *gps_rx_buffer, int buffer_size)  // returns 1 if the thread should terminate
 {
 //	printf("in read_gps_mtk\n");
 	uint8_t ret = 0;
@@ -192,7 +193,7 @@ int read_gps_mtk(int fd, char *gps_rx_buffer, int buffer_size)  // returns 1 if 
 	int gpsRxOverflow = 0;
 
 	struct pollfd fds;
-	fds.fd = fd;
+	fds.fd = *fd;
 	fds.events = POLLIN;
 
 	// This blocks the task until there is something on the buffer
@@ -207,7 +208,7 @@ int read_gps_mtk(int fd, char *gps_rx_buffer, int buffer_size)  // returns 1 if 
 		}
 
 		if (poll(&fds, 1, 1000) > 0) {
-			if (read(fd, &c, 1) > 0) {
+			if (read(*fd, &c, 1) > 0) {
 //				printf("Read %x\n",c);
 				if (rx_count >= buffer_size) {
 					// The buffer is already full and we haven't found a valid NMEA sentence.
@@ -244,11 +245,11 @@ int read_gps_mtk(int fd, char *gps_rx_buffer, int buffer_size)  // returns 1 if 
 	return ret;
 }
 
-int configure_gps_mtk(int fd)
+int configure_gps_mtk(int *fd)
 {
 	int success = 0;
 	size_t result_write;
-	result_write =  write(fd, MEDIATEK_REFRESH_RATE_10HZ, strlen(MEDIATEK_REFRESH_RATE_10HZ));
+	result_write =  write(*fd, MEDIATEK_REFRESH_RATE_10HZ, strlen(MEDIATEK_REFRESH_RATE_10HZ));
 
 	if (result_write != strlen(MEDIATEK_REFRESH_RATE_10HZ)) {
 		printf("[gps] Set update speed to 10 Hz failed\r\n");
@@ -259,7 +260,7 @@ int configure_gps_mtk(int fd)
 	}
 
 	//set custom mode
-	result_write =  write(fd, MEDIATEK_CUSTOM_BINARY_MODE, strlen(MEDIATEK_CUSTOM_BINARY_MODE));
+	result_write =  write(*fd, MEDIATEK_CUSTOM_BINARY_MODE, strlen(MEDIATEK_CUSTOM_BINARY_MODE));
 
 	if (result_write != strlen(MEDIATEK_CUSTOM_BINARY_MODE)) {
 		//global_data_send_subsystem_info(&mtk_present);
@@ -274,7 +275,7 @@ int configure_gps_mtk(int fd)
 	return success;
 }
 
-void *mtk_loop(void *arg)
+void *mtk_loop(void *args)
 {
 //	int oldstate;
 //	pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, oldstate);
@@ -283,8 +284,10 @@ void *mtk_loop(void *arg)
 	/* Set thread name */
 	prctl(PR_SET_NAME, "gps mtk read", getpid());
 
-	/* Retrieve file descriptor */
-	int fd = *((int *)arg);
+	/* Retrieve file descriptor and thread flag */
+	struct arg_struct *arguments = (struct arg_struct *)args;
+	int *fd = arguments->fd_ptr;
+	bool *thread_should_exit = arguments->thread_should_exit_ptr;
 
 	/* Initialize gps stuff */
 //	int buffer_size = 1000;
@@ -314,7 +317,7 @@ void *mtk_loop(void *arg)
 	mtk_gps = &mtk_gps_d;
 	orb_advert_t gps_handle = orb_advertise(ORB_ID(vehicle_gps_position), mtk_gps);
 
-	while (!gps_thread_should_exit) {
+	while (!(*thread_should_exit)) {
 		/* Parse a message from the gps receiver */
 		if (OK == read_gps_mtk(fd, gps_rx_buffer, MTK_BUFFER_SIZE)) {
 
@@ -322,15 +325,19 @@ void *mtk_loop(void *arg)
 			orb_publish(ORB_ID(vehicle_gps_position), gps_handle, mtk_gps);
 
 		} else {
+			/* de-advertise */
+			close(gps_handle);
 			break;
 		}
 
 	}
 
+	close(gps_handle);
+	if(gps_verbose) printf("[gps] mtk loop is going to terminate\n");
 	return NULL;
 }
 
-void *mtk_watchdog_loop(void *arg)
+void *mtk_watchdog_loop(void *args)
 {
 //	printf("in mtk watchdog loop\n");
 	fflush(stdout);
@@ -338,8 +345,10 @@ void *mtk_watchdog_loop(void *arg)
 	/* Set thread name */
 	prctl(PR_SET_NAME, "gps mtk watchdog", getpid());
 
-	/* Retrieve file descriptor */
-	int fd = *((int *)arg);
+	/* Retrieve file descriptor and thread flag */
+	struct arg_struct *arguments = (struct arg_struct *)args;
+	int *fd = arguments->fd_ptr;
+	bool *thread_should_exit = arguments->thread_should_exit_ptr;
 
 	bool mtk_healthy = false;
 
@@ -350,7 +359,7 @@ void *mtk_watchdog_loop(void *arg)
 	int mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
 
-	while (!gps_thread_should_exit) {
+	while (!(*thread_should_exit)) {
 		fflush(stdout);
 
 		/* if we have no update for a long time reconfigure gps */
@@ -417,8 +426,7 @@ void *mtk_watchdog_loop(void *arg)
 
 		usleep(MTK_WATCHDOG_WAIT_TIME_MICROSECONDS);
 	}
-
+	if(gps_verbose) printf("[gps] mtk watchdog is going to terminate\n");
 	close(mavlink_fd);
-
 	return NULL;
 }
