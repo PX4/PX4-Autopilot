@@ -1623,12 +1623,12 @@ config STM32_I2C_DYNTIMEO
 
 config STM32_I2C_DYNTIMEO_USECPERBYTE
 	int "Timeout Microseconds per Byte"
-	default 0
+	default 500
 	depends on STM32_I2C_DYNTIMEO
 
 config STM32_I2C_DYNTIMEO_STARTSTOP
 	int "Timeout for Start/Stop (Milliseconds)"
-	default 5000
+	default 1000
 	depends on STM32_I2C_DYNTIMEO
 
 config STM32_I2CTIMEOSEC

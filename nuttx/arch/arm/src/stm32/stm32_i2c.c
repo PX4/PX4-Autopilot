@@ -1967,4 +1967,119 @@ int up_i2cuninitialize(FAR struct i2c_dev_s * dev)
   return OK;
 }
 
+/************************************************************************************
+ * Name: up_i2creset
+ *
+ * Description:
+ *   Reset an I2C bus
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_I2C_RESET
+int up_i2creset(FAR struct i2c_dev_s * dev)
+{
+  struct stm32_i2c_priv_s * priv;
+  unsigned int clock_count;
+  unsigned int stretch_count;
+  unit32_ scl_gpio;
+  unit32_ sda_gpio;
+  int ret = ERROR;
+  irqstate_t state;
+
+  ASSERT(dev);
+
+  /* Get I2C private structure */
+
+  priv = ((struct stm32_i2c_inst_s *)dev)->priv;
+
+  /* Our caller must own a ref */
+
+  ASSERT(priv->refs > 0);
+
+  /* Lock out other clients */
+
+  stm32_i2c_sem_wait(dev);
+
+  /* De-init the port */
+
+  stm32_i2c_deinit(priv);
+
+  /* Use GPIO configuration to un-wedge the bus */
+
+  scl_gpio = MKI2C_OUTPUT(priv->config->scl_pin);
+  sda_gpio = MKI2C_OUTPUT(priv->config->sda_pin);
+
+  /* Clock the bus until any slaves currently driving it let it go. */
+
+  clock_count = 0;
+  while (!stm32_gpioread(sda_gpio)) 
+    {
+      /* Give up if we have tried too hard */
+
+      if (clock_count++ > 1000)
+        { 
+          goto out;
+        }
+
+      /* Sniff to make sure that clock stretching has finished.
+       *
+       * If the bus never relaxes, the reset has failed.
+       */
+
+      stretch_count = 0;
+      while (!stm32_gpioread(scl_gpio))
+        { 
+          /* Give up if we have tried too hard */
+
+          if (stretch_count++ > 1000)
+            { 
+              goto out;
+            }
+
+          up_udelay(10);
+        }
+
+      /* Drive SCL low */
+
+      stm32_gpiowrite(scl_gpio, 0);
+      up_udelay(10);
+
+      /* Drive SCL high again */
+
+      stm32_gpiowrite(scl_gpio, 1);
+      up_udelay(10);
+    }
+
+  /* Generate a start followed by a stop to reset slave
+   * state machines.
+   */
+
+  stm32_gpiowrite(sda_gpio, 0);
+  up_udelay(10);
+  stm32_gpiowrite(scl_gpio, 0);
+  up_udelay(10);
+  stm32_gpiowrite(scl_gpio, 1);
+  up_udelay(10);
+  stm32_gpiowrite(sda_gpio, 1);
+  up_udelay(10);
+
+  /* Revert the GPIO configuration. */
+ 
+  stm32_unconfiggpio(sda_gpio);
+  stm32_unconfiggpio(scl_gpio);
+
+  /* Re-init the port */
+
+  stm32_i2c_init(priv);
+  ret = OK;
+
+out:
+
+  /* Release the port for re-use by other clients */
+
+  stm32_i2c_sem_post(dev);
+  return ret;
+}
+#endif /* CONFIG_I2C_RESET */
+
 #endif /* CONFIG_STM32_I2C1 || CONFIG_STM32_I2C2 || CONFIG_STM32_I2C3 */
