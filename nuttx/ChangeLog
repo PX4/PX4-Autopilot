@@ -1458,7 +1458,7 @@
 	* Renamed arc/hc/include/mc9s12ne64 and src/mc9s12ne64 to m9s12.  That name is
 	  shorter and more general.
 	* The NuttX repository has been converted to SVN and can now be found here
-	  http://nuttx.svn.sourceforge.net/viewvc/nuttx/
+	  http://svn.code.sf.net/p/nuttx/code/trunk/
 	* configs/mbed/hidkbd: Added USB host support for the mbed LPC1768 board; add
 	  a USB host HID keyboard configuraion.
 	* drivers/usbhost/hid_parser.c: Leverages the LUFA HID parser written by
@@ -3367,4 +3367,13 @@
 	  this header file.
 	* drivers/mtd/w25.c:  The Windbond SPI FLASH W25 FLASH driver is
 	  code complete (but still untested).
-
+	* arch/arm/src/stm32/stm32_i2c.c:  I2C improvements from Mike Smith.
+	  Unified configuration logic; dynamic timeout calculations;
+	  I2C reset logic to recover from locked devices on the bus.
+	* configs/*/*/Make.defs, tools/Config.mk, Makefile:  Refactor all
+	  common make definitions from the various Make.defs files into
+	  the common tools/Make.mk.  Add support for a verbosity options:
+	  Specify V=1 on the make command line in order to see the exact
+	  commands used in the build (Contributed by Richard Cochran).
+	* drivers/net/enc28j60.c:  The ENC28J60 Ethernet driver is
+	  now functional.

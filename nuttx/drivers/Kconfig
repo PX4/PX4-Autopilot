@@ -119,6 +119,14 @@ config I2C_NTRACE
 	default n
 	depends on I2C_TRACE
 
+config ARCH_HAVE_I2CRESET
+	bool
+
+config I2C_RESET
+	bool "Support up_i2creset"
+	default n
+	depends on I2C && ARCH_HAVE_I2CRESET
+
 menuconfig SPI
 	bool "SPI Driver Support"
 	default n

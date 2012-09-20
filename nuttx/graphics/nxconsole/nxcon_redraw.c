@@ -1,7 +1,7 @@
 /****************************************************************************
- * graphics/nxsu/nx_fill.c
+ * nuttx/graphics/nxconsole/nxcon_bkgd.c
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,20 +39,28 @@
 
 #include <nuttx/config.h>
 
-#include <mqueue.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <semaphore.h>
+#include <assert.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/nx/nx.h>
+#include <nuttx/nx/nxglib.h>
 
-#include "nxfe.h"
+#include "nxcon_internal.h"
 
 /****************************************************************************
- * Pre-Processor Definitions
+ * Definitions
  ****************************************************************************/
 
 /****************************************************************************
  * Private Types
+ ****************************************************************************/
+
+/****************************************************************************
+ * Private Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
@@ -72,32 +80,73 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nx_fill
+ * Name: nxcon_redraw
  *
  * Description:
- *  Fill the specified rectangle in the window with the specified color
+ *   Re-draw a portion of the NX console.  This function should be called
+ *   from the appropriate window callback logic.
  *
  * Input Parameters:
- *   hwnd  - The window handle
- *   rect  - The location to be filled
- *   color - The color to use in the fill
+ *   handle - A handle previously returned by nx_register, nxtk_register, or
+ *     nxtool_register.
+ *   rect - The rectangle that needs to be re-drawn (in window relative
+ *          coordinates)
+ *   more - true:  More re-draw requests will follow
  *
- * Return:
- *   OK on success; ERROR on failure with errno set appropriately
+ * Returned Value:
+ *   None
  *
  ****************************************************************************/
 
-int nx_fill(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
-            nxgl_mxpixel_t color[CONFIG_NX_NPLANES])
+void nxcon_redraw(NXCONSOLE handle, FAR const struct nxgl_rect_s *rect, bool more)
 {
-#ifdef CONFIG_DEBUG
-  if (!hwnd || !rect || !color)
-    {
-      errno = EINVAL;
-      return ERROR;
-    }
-#endif
+  FAR struct nxcon_state_s *priv;
+  int ret;
+  int i;
 
-  nxbe_fill((FAR struct nxbe_window_s *)hwnd, rect, color);
-  return 0;
+  DEBUGASSERT(handle && rect);
+  gvdbg("rect={(%d,%d),(%d,%d)} more=%s\n",
+        rect->pt1.x, rect->pt1.y, rect->pt2.x, rect->pt2.y,
+        more ? "true" : "false");
+
+  /* Recover our private state structure */
+
+  priv = (FAR struct nxcon_state_s *)handle;
+
+  /* Get exclusive access to the state structure */
+
+  do
+    {
+      ret = nxcon_semwait(priv);
+
+      /* Check for errors */
+
+      if (ret < 0)
+        {
+          /* The only expected error is if the wait failed because of it
+           * was interrupted by a signal.
+           */
+
+          DEBUGASSERT(errno == EINTR);
+        }
+    }
+  while (ret < 0);
+
+  /* Fill the rectangular region with the window background color */
+
+  ret = priv->ops->fill(priv, rect, priv->wndo.wcolor);
+  if (ret < 0)
+    {
+      gdbg("fill failed: %d\n", errno);
+    }
+
+  /* Then redraw each character on the display (Only the characters within
+   * the rectangle will actually be redrawn).
+   */
+
+  for (i = 0; i < priv->nchars; i++)
+    {
+      nxcon_fillchar(priv, rect, &priv->bm[i]);
+    }
+  ret = nxcon_sempost(priv);
 }
