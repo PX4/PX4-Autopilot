@@ -58,7 +58,6 @@
 #include <v1.0/common/mavlink.h>
 #include <mavlink/mavlink_log.h>
 
-bool gps_thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;				/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
 
@@ -154,7 +153,7 @@ int gps_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\gps is running\n");
+			printf("\tgps is running\n");
 		} else {	
 			printf("\tgps not started\n");
 		}
@@ -329,7 +328,7 @@ int gps_thread_main(int argc, char *argv[]) {
 			 * if the gps was once running the wtachdog thread will not return but instead try to reconfigure the gps (depending on the mode/protocol)
 			 */
 
-			if (current_gps_mode == GPS_MODE_UBX) { //TODO: make a small enum with all modes to avoid all the strcpy
+			if (current_gps_mode == GPS_MODE_UBX) {
 
 				if (gps_verbose) printf("[gps] Trying UBX mode at %d baud\n", current_gps_speed);
 
@@ -465,11 +464,11 @@ int gps_thread_main(int argc, char *argv[]) {
 
 			/* exit quickly if stop command has been received */
 			if (gps_thread_should_exit) {
-	        		printf("[gps] stopped, exiting.\n");
-	        		close(mavlink_fd);
-	        		thread_running = false;
+				printf("[gps] stopped, exiting.\n");
+				close(mavlink_fd);
+				thread_running = false;
 				return 0;
-	        	}
+	        }
 
 			/* if both, mode and baud is set by argument, we only need one loop*/
 			if (gps_mode_try_all == false && gps_baud_try_all == false)

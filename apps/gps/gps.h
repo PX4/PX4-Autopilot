@@ -10,6 +10,6 @@
 
 #include <stdbool.h>
 
-extern bool gps_thread_should_exit;		/**< Deamon status flag */
+static bool gps_thread_should_exit;		/**< Deamon status flag */
 
 #endif /* GPS_H_ */
