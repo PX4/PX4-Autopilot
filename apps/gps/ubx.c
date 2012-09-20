@@ -726,7 +726,7 @@ void *ubx_watchdog_loop(void *args)
 
 	int mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
-	int err_skip_counter = 0;
+	//int err_skip_counter = 0;
 
 	while (!(*thread_should_exit)) {
 		/* if some values are to old reconfigure gps */
@@ -739,7 +739,7 @@ void *ubx_watchdog_loop(void *args)
 //			printf("timestamp_now=%llu\n", timestamp_now);
 //			printf("last_message_timestamps=%llu\n", ubx_state->last_message_timestamps[i]);
 			if (timestamp_now - ubx_state->last_message_timestamps[i] > UBX_WATCHDOG_CRITICAL_TIME_MICROSECONDS) {
-				printf("Warning: GPS ubx message %d not received for a long time\n", i);
+				//printf("Warning: GPS ubx message %d not received for a long time\n", i);
 				all_okay = false;
 			}
 		}
@@ -749,13 +749,13 @@ void *ubx_watchdog_loop(void *args)
 		if (!all_okay) {
 			/* gps error */
 			ubx_fail_count++;
-			if (err_skip_counter == 0)
-			{
-				printf("GPS Watchdog detected gps not running or having problems\n");
-				err_skip_counter = 20;
-			}
-			err_skip_counter--;
-			printf("gps_mode_try_all =%u, ubx_fail_count=%u, ubx_healthy=%u, once_ok=%u\n", gps_mode_try_all, ubx_fail_count, ubx_healthy, once_ok);
+//			if (err_skip_counter == 0)
+//			{
+//				printf("GPS Watchdog detected gps not running or having problems\n");
+//				err_skip_counter = 20;
+//			}
+//			err_skip_counter--;
+			//printf("gps_mode_try_all =%u, ubx_fail_count=%u, ubx_healthy=%u, once_ok=%u\n", gps_mode_try_all, ubx_fail_count, ubx_healthy, once_ok);
 
 
 			/* If we have too many failures and another mode or baud should be tried, exit... */
