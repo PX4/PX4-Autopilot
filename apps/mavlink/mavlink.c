@@ -1077,8 +1077,8 @@ static void *uorb_receiveloop(void *arg)
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy local position data into local buffer */
 				orb_copy(ORB_ID(manual_control_setpoint), subs->man_control_sp_sub, &buf.man_control);
-				mavlink_msg_manual_control_send(MAVLINK_COMM_0, mavlink_system.sysid, buf.man_control.roll,
-					buf.man_control.pitch, buf.man_control.yaw, buf.man_control.throttle, 0);
+				mavlink_msg_manual_control_send(MAVLINK_COMM_0, mavlink_system.sysid, buf.man_control.roll*1000,
+					buf.man_control.pitch*1000, buf.man_control.yaw*1000, buf.man_control.throttle*1000, 0);
 			}
 
 			/* --- ACTUATOR ARMED --- */
@@ -1427,10 +1427,10 @@ void handleMessage(mavlink_message_t *msg)
 			struct manual_control_setpoint_s mc;
 			static orb_advert_t mc_pub = 0;
 
-			mc.roll = man.x;
-			mc.pitch = man.y;
-			mc.yaw = man.r;
-			mc.roll = man.z;
+			mc.roll = man.x*1000;
+			mc.pitch = man.y*1000;
+			mc.yaw = man.r*1000;
+			mc.roll = man.z*1000;
 
 			/* fake RC channels with manual control input from simulator */
 

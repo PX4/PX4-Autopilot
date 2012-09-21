@@ -70,7 +70,7 @@ __EXPORT int attitude_estimator_ekf_main(int argc, char *argv[]);
 // #define PROJECTION_INITIALIZE_COUNTER_LIMIT 5000
 // #define REPROJECTION_COUNTER_LIMIT 125
 
-static unsigned int loop_interval_alarm = 4500;	// loop interval in microseconds
+static unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
 static float dt = 1;
 /* 0, 0, -9.81, 1, 1, 1, wo (gyro offset), w */
@@ -205,6 +205,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
+	/* rate-limit raw data updates to 200Hz */
+	orb_set_interval(sub_raw, 5);
+
 	/* advertise attitude */
 	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
@@ -222,11 +225,11 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 		};
 		int ret = poll(fds, 1, 1000);
 
-		/* check for a timeout */
-		if (ret == 0) {
-			/* */
-
-			/* update successful, copy data on every 2nd run and execute filter */
+		if (ret < 0) {
+			/* XXX this is seriously bad - should be an emergency */
+		} else if (ret == 0) {
+			/* XXX this means no sensor data - should be critical or emergency */
+			printf("[attitude estimator ekf] WARNING: Not getting sensor data - sensor app running?\n");
 		} else {
 
 			orb_copy(ORB_ID(sensor_combined), sub_raw, &raw);
@@ -256,7 +259,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			if (time_elapsed > loop_interval_alarm) {
 				//TODO: add warning, cpu overload here
 				if (overloadcounter == 20) {
-					printf("CPU OVERLOAD DETECTED IN ATTITUDE ESTIMATOR BLACK MAGIC (%lu > %lu)\n", time_elapsed, loop_interval_alarm);
+					printf("CPU OVERLOAD DETECTED IN ATTITUDE ESTIMATOR EKF (%lu > %lu)\n", time_elapsed, loop_interval_alarm);
 					overloadcounter = 0;
 				}
 
