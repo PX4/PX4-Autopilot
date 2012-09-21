@@ -1574,13 +1574,14 @@ static int stm32_i2c_process(FAR struct i2c_dev_s *dev, FAR struct i2c_msg_s *ms
   struct stm32_i2c_inst_s     *inst = (struct stm32_i2c_inst_s *)dev;
   FAR struct stm32_i2c_priv_s *priv = inst->priv;
   uint32_t    status = 0;
+  uint32_t    ahbenr;
   int         errval = 0;
 
   ASSERT(count);
 
   /* Disable FSMC that shares a pin with I2C1 (LBAR) */
 
-  (void)stm32_i2c_disablefsmc(priv);
+  ahbenr = stm32_i2c_disablefsmc(priv);
 
   /* Wait for any STOP in progress.  NOTE:  If we have to disable the FSMC
    * then we cannot do this at the top of the loop, unfortunately.  The STOP
