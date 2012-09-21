@@ -68,3 +68,4 @@ distclean: clean
 	@for dir in $(INSTALLED_DIRS) ; do \
 		$(MAKE) -C $$dir distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
 	done
+

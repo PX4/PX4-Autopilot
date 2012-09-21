@@ -70,8 +70,15 @@ config ENC28J60_DUMPPACKET
 		If selected, the ENC28J60 driver  will dump the contents of each
 		packet to the console.
 
+config ENC28J60_REGDEBUG
+	bool "Register-Level Debug"
+	default n
+	depends on DEBUG && DEBUG_NET
+	---help---
+		Enable very low-level register access debug.  Depends on DEBUG and DEBUG_NET.
+
 endif
-	
+
 config NET_E1000
 	bool "E1000 support"
 	default n

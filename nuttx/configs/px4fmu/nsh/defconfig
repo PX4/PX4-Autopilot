@@ -941,6 +941,7 @@ CONFIG_CDCACM_PRODUCTSTR="PX4 FMU v1.6"
 # CONFIG_NSH_FILEIOSIZE - Size of a static I/O buffer
 # CONFIG_NSH_STRERROR - Use strerror(errno)
 # CONFIG_NSH_LINELEN - Maximum length of one command line
+# CONFIG_NSH_MAX_ARGUMENTS - Maximum number of arguments for command line
 # CONFIG_NSH_NESTDEPTH - Max number of nested if-then[-else]-fi
 # CONFIG_NSH_DISABLESCRIPT - Disable scripting support
 # CONFIG_NSH_DISABLEBG - Disable background commands
@@ -972,6 +973,7 @@ CONFIG_NSH_BUILTIN_APPS=y
 CONFIG_NSH_FILEIOSIZE=512
 CONFIG_NSH_STRERROR=y
 CONFIG_NSH_LINELEN=128
+CONFIG_NSH_MAX_ARGUMENTS=12
 CONFIG_NSH_NESTDEPTH=8
 CONFIG_NSH_DISABLESCRIPT=n
 CONFIG_NSH_DISABLEBG=n

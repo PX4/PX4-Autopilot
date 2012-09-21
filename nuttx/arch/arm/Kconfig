@@ -103,6 +103,7 @@ config ARCH_CHIP_STM32
 	bool "STMicro STM32"
 	select ARCH_HAVE_CMNVECTOR
 	select ARCH_HAVE_MPU
+	select ARCH_HAVE_I2CRESET
 	---help---
 		STMicro STM32 architectures (ARM Cortex-M3/4).
 

@@ -1,6 +1,6 @@
 ############################################################################
 # Config.mk
-# Strip quotes from Kconfig strings.
+# Global build rules and macros.
 #
 #   Author: Richard Cochran
 #
@@ -39,3 +39,34 @@
 CONFIG_ARCH       := $(patsubst "%",%,$(strip $(CONFIG_ARCH)))
 CONFIG_ARCH_CHIP  := $(patsubst "%",%,$(strip $(CONFIG_ARCH_CHIP)))
 CONFIG_ARCH_BOARD := $(patsubst "%",%,$(strip $(CONFIG_ARCH_BOARD)))
+
+# Default build rules.
+
+define PREPROCESS
+	@echo "CPP: $1->$2"
+	$(Q) $(CPP) $(CPPFLAGS) $1 -o $2
+endef
+
+define COMPILE
+	@echo "CC: $1"
+	$(Q) $(CC) -c $(CFLAGS) $1 -o $2
+endef
+
+define COMPILEXX
+	@echo "CXX: $1"
+	$(Q) $(CXX) -c $(CXXFLAGS) $1 -o $2
+endef
+
+define ASSEMBLE
+	@echo "AS: $1"
+	$(Q) $(CC) -c $(AFLAGS) $1 -o $2
+endef
+
+define ARCHIVE
+	echo "AR: $2"; \
+	$(AR) $1 $2 || { echo "$(AR) $1 $2 FAILED!" ; exit 1 ; }
+endef
+
+define CLEAN
+	$(Q) rm -f *.o *.a
+endef

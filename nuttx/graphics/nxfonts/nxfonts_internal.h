@@ -1,8 +1,8 @@
 /****************************************************************************
- * pid.h
+ * graphics/nxfonts/nxfonts_internal.h
  *
- *   Copyright (C) 2012 Ivan Ovinnikov. All rights reserved.
- *   Authors: Ivan Ovinnikov <oivan@ethz.ch>
+ *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,14 +33,56 @@
  *
  ****************************************************************************/
 
+#ifndef __GRAPHICS_NXFONTS_NXFONTS_INTERNAL_H
+#define __GRAPHICS_NXFONTS_NXFONTS_INTERNAL_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
 
-#ifndef PID_H_
-#define PID_H_
+#include <nuttx/nx/nxfonts.h>
 
-static float pid(float error, float error_deriv, uint16_t dt, float scaler, float K_p, float K_i, float K_d, float intmax);
+/****************************************************************************
+ * Pre-processor definitions
+ ****************************************************************************/
 
-#endif /* PID_H_ */
+/* Configuration ************************************************************/
+
+#ifndef CONFIG_NXFONTS_CHARBITS
+#  define CONFIG_NXFONTS_CHARBITS 7
+#endif
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+#undef EXTERN
+#if defined(__cplusplus)
+# define EXTERN extern "C"
+extern "C" {
+#else
+# define EXTERN extern
+#endif
+
+EXTERN struct nx_fontset_s g_7bitfonts;
+#if CONFIG_NXFONTS_CHARBITS >= 8
+EXTERN struct nx_fontset_s g_8bitfonts;
+#endif
+EXTERN struct nx_font_s g_fonts;
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#undef EXTERN
+#if defined(__cplusplus)
+}
+#endif
+
+#endif /* __GRAPHICS_NXFONTS_NXFONTS_INTERNAL_H */

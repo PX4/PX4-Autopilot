@@ -842,7 +842,7 @@ static ssize_t recvfrom_result(int result, struct recvfrom_s *pstate)
 
   if (pstate->rf_result < 0)
     {
-      /* This might return EGAIN on a timeout or ENOTCONN on loss of
+      /* This might return EAGAIN on a timeout or ENOTCONN on loss of
        * connection (TCP only)
        */
 
@@ -1061,7 +1061,7 @@ static ssize_t tcp_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
   if (_SS_ISNONBLOCK(psock->s_flags))
     {
       /* Return the number of bytes read from the read-ahead buffer if
-       * something was received (already in 'ret'); EGAIN if not.
+       * something was received (already in 'ret'); EAGAIN if not.
        */
 
       if (ret <= 0)

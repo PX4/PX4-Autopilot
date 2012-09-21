@@ -1,5 +1,5 @@
 /****************************************************************************
- * graphics/nxsu/nx_fill.c
+ * graphics/nxtk/nxtk_movewindow.c
  *
  *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,13 +39,15 @@
 
 #include <nuttx/config.h>
 
-#include <mqueue.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/nx/nx.h>
+#include <nuttx/nx/nxtk.h>
 
 #include "nxfe.h"
+#include "nxtk_internal.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -72,32 +74,45 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nx_fill
+ * Name: nxtk_movewindow
  *
  * Description:
- *  Fill the specified rectangle in the window with the specified color
+ *   Move a rectangular region within the client sub-window of a framed window
  *
  * Input Parameters:
- *   hwnd  - The window handle
- *   rect  - The location to be filled
- *   color - The color to use in the fill
+ *   hfwnd   - The client sub-window within which the move is to be done.
+ *            This must have been previously created by nxtk_openwindow().
+ *   rect   - Describes the rectangular region relative to the client
+ *            sub-window to move
+ *   offset - The offset to move the region
  *
  * Return:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
-int nx_fill(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
-            nxgl_mxpixel_t color[CONFIG_NX_NPLANES])
+int nxtk_movewindow(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
+                    FAR const struct nxgl_point_s *offset)
 {
+  FAR struct nxtk_framedwindow_s *fwnd = (FAR struct nxtk_framedwindow_s *)hfwnd;
+  struct nxgl_rect_s srcrect;
+  struct nxgl_point_s clipoffset;
+
 #ifdef CONFIG_DEBUG
-  if (!hwnd || !rect || !color)
+  if (!hfwnd || !rect || !offset)
     {
       errno = EINVAL;
       return ERROR;
     }
 #endif
 
-  nxbe_fill((FAR struct nxbe_window_s *)hwnd, rect, color);
-  return 0;
+  /* Make sure that both the source and dest rectangle lie within the
+   * client sub-window 
+   */
+
+  nxtk_subwindowmove(fwnd, &srcrect, &clipoffset, rect, offset, &fwnd->fwrect);
+
+  /* Then move it within the client window */
+
+  return nx_move((NXWINDOW)hfwnd, &srcrect, &clipoffset);
 }
