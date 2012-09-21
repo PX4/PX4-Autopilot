@@ -6,6 +6,7 @@
 config NETUTILS_WEBSERVER
 	bool "uIP web server"
 	default n
+	depends on NET_TCP
 	---help---
 		Enable support for the uIP web server.  This tiny web server was
 		from uIP 1.0, but has undergone many changes.  It is, however,
@@ -74,10 +75,11 @@ config NETUTILS_HTTPD_SERVERHEADER_DISABLE
 config NETUTILS_HTTPD_TIMEOUT
 	int "Receive Timeout (sec)"
 	default 0
+	depends on NET_SOCKOPTS
 	---help---
 		Receive timeout setting (in seconds).  A timeout value of zero
 		disables the timeout.  An HTTP 408 error is generated if the timeout
-		expires.
+		expires.  This option depends on support for socket options (sockopts).
 
 choice
 	prompt "File Transfer Method"

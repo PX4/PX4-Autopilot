@@ -1753,7 +1753,7 @@
         STM32F103VCT chip.  Contributed by Laurent Latil.
       </li>
       <li>
-         This M3 Wildfire development board (STM32F103VET6), version 2.
+         The M3 Wildfire development board (STM32F103VET6), version 2.
          See <a href="http://firestm32.taobao.com">http://firestm32.taobao.com</a> (the current board is version 3).
       </li>
     </ol>
@@ -1787,7 +1787,9 @@
           Support for the Wildfire board was included in version 6.22 of NuttX.
           The board port is basically functional.
           Not all features have been verified.
-          The ENC28J60 network is not yet functional.
+          Support for FAT file system on an an SD card had been verified.
+          The ENC28J60 network is functional (but required lifting the chip select pin on the W25x16 part).
+          Customizations for the v3 version of the Wildfire board a selectable (but untested).
         </li>
       </ul>
       <p>

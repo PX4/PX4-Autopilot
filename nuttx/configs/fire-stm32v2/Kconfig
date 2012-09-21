@@ -4,3 +4,25 @@
 #
 
 comment "M3 Wildfire Configuration"
+
+if ARCH_BOARD_FIRE_STM32
+
+choice
+	prompt "Select Wildfire STM32 version"
+	default ARCH_BOARD_FIRE_STM32V2
+	---help---
+		This port has logic differences to support either the Version 2 or 
+		Version 3 of the Wildfire board.
+
+config ARCH_BOARD_FIRE_STM32V2
+	bool "Wildfire STM32v2"
+	---help---
+		Selects the M3 Wildfire version 2.
+
+config ARCH_BOARD_FIRE_STM32V3
+	bool "Wildfire STM32v3"
+	---help---
+		Selects the M3 Wildfire version 3.
+
+endchoice
+endif

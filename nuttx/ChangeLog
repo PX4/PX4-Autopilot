@@ -3377,3 +3377,12 @@
 	  commands used in the build (Contributed by Richard Cochran).
 	* drivers/net/enc28j60.c:  The ENC28J60 Ethernet driver is
 	  now functional.
+	* configs/fire-stm32v2:  Add support or the fire-stm32v3 board as
+	  well (untested because I do not have a v3 board).
+	* lib/stdio/lib_sscanf.c:  Add %n psuedo-format (from Kate).
+	* lib/stdio/lib_sscanf.c:  There is an issue of handling input
+	  when (1) no fieldwidth is provided and (2) there is no space
+	  seperating the input values.  No solutions is in place for this
+	  case now (either space or a fieldwidth must be provided).  But
+	  at least some of the bad logic that attempted to handle this
+	  case has been removed (noted by Kate).

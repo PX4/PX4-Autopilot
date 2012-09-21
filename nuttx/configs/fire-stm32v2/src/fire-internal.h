@@ -166,7 +166,8 @@
  * PIN NAME   SIGNAL         NOTES
  * --- ------ -------------- -------------------------------------------------------------------
  *
- * 35  PB0    PB0-KEY1       KEY1, Low when closed (pulled high if open)
+ * 35  PB0    PB0-KEY1       KEY1, Low when closed (pulled high if open) (v2)
+ * 35  PE5    PB0            KEY1, Low when closed (pulled high if open) (v3)
  * 36  PB1    PB1-KEY2       KEY2, Low when closed (pulled high if open)
  */
 
@@ -174,8 +175,13 @@
 #define MAX_IRQBUTTON   BUTTON_KEY2
 #define NUM_IRQBUTTONS  (MAX_IRQBUTTON - MIN_IRQBUTTON + 1)
 
-#define GPIO_BTN_KEY1   (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|\
+#ifdef CONFIG_ARCH_BOARD_FIRE_STM32V3
+#  define GPIO_BTN_KEY1 (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|\
+                         GPIO_EXTI|GPIO_PORTE|GPIO_PIN5)
+#else
+#  define GPIO_BTN_KEY1 (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|\
                          GPIO_EXTI|GPIO_PORTB|GPIO_PIN0)
+#endif
 #define GPIO_BTN_KEY2   (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|\
                          GPIO_EXTI|GPIO_PORTB|GPIO_PIN1)
 
@@ -207,7 +213,8 @@
  * 31  PA6    PA6-SPI1-MISO  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
  * 32  PA7    PA7-SPI1-MOSI  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
  * 98  PE1    PE1-FSMC_NBL1  2.4" TFT + Touchscreen, 10Mbit EN28J60 Reset
- * 4   PE5    (no name)      10Mbps ENC28J60 Interrupt
+ * 4   PE5    (no name)      10Mbps ENC28J60 Interrupt (v2)
+ * 4   PE4    PE4            10Mbps ENC28J60 Interrupt (v3)
  */
 
 #if defined(CONFIG_STM32_FSMC) && defined(CONFIG_ENC28J60)
@@ -224,8 +231,13 @@
                                GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN4)
 #  define GPIO_ENC28J60_RESET (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
                                GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN1)
+#ifdef CONFIG_ARCH_BOARD_FIRE_STM32V3
+#  define GPIO_ENC28J60_INTR  (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|\
+                               GPIO_EXTI|GPIO_PORTE|GPIO_PIN4)
+#else /* CONFIG_ARCH_BOARD_FIRE_STM32V2 */
 #  define GPIO_ENC28J60_INTR  (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_MODE_INPUT|\
                                GPIO_EXTI|GPIO_PORTE|GPIO_PIN5)
+#endif
 #endif
 
 /* MP3

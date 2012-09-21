@@ -4,6 +4,10 @@ README
 This README discusses issues unique to NuttX configurations for the M3
 Wildfire development board (STM32F103VET6).  See http://firestm32.taobao.com
 
+This configuration should support both the version 2 and version 3 of the
+Wildfire board (using NuttX configuration options).  However, only version 2
+has been verified.
+
 Contents
 ========
 
@@ -27,8 +31,10 @@ PIN NAME   SIGNAL         NOTES
 
 1   PE2    PE2-C-RCLK     Camera (P9)
 2   PE3    PE3-USB-M      USB2.0
-3   PE4    PE4-BEEP       LS1 Bell
-4   PE5    (no name)      10Mbps ENC28J60 Interrupt
+3   PE4    PE4-BEEP       LS1 Bell (v2)
+           PE4            10Mbps ENC28J60 Interrupt (v3)
+4   PE5    (no name)      10Mbps ENC28J60 Interrupt (v2)
+           PE5            KEY1, Low when closed (pulled high if open) (v3)
 5   PE6
 6   VBAT   BT1            Battery (BT1)
 7   PC13                  Header 7X2
@@ -64,7 +70,8 @@ PIN NAME   SIGNAL         NOTES
 32  PA7    PA7-SPI1-MOSI  2.4" TFT + Touchscreen, 10Mbit ENC28J60, SPI 2M FLASH
 33  PC4    PC4-LED2       LED2, Active low (pulled high)
 34  PC5    PC5-LED3       LED3, Active low (pulled high)
-35  PB0    PB0-KEY1       KEY1, Low when closed (pulled high if open)
+35  PB0    PB0-KEY1       KEY1, Low when closed (pulled high if open) (v2)
+           PB0            Header P5 (v3)
 36  PB1    PB1-KEY2       KEY2, Low when closed (pulled high if open)
 37  PB2    BOOT1/DGND
 38  PE7    PE7-FSMC_D4    2.4" TFT + Touchscreen
@@ -525,7 +532,8 @@ M3 Wildfire-specific Configuration Options
 
     CONFIG_ARCH_BOARD_name - For use in C code
 
-       CONFIG_ARCH_BOARD_FIRE_STM32V2=y
+       CONFIG_ARCH_BOARD_FIRE_STM32V2=y  (Version 2)
+       CONFIG_ARCH_BOARD_FIRE_STM32V3=y  (Version 3)
 
     CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
        of delay loops

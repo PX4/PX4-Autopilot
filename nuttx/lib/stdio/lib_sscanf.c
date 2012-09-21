@@ -1,7 +1,7 @@
 /****************************************************************************
  * lib/stdio/lib_sscanf.c
  *
- *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2008, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,7 +63,7 @@
  * Global Function Prototypes
  ****************************************************************************/
 
-int vsscanf(char *buf, const char *s, va_list ap);
+int vsscanf(char *buf, const char *fmt, va_list ap);
 
 /**************************************************************************
  * Global Constant Data
@@ -109,67 +109,81 @@ int sscanf(FAR const char *buf, FAR const char *fmt, ...)
  *    ANSI standard vsscanf implementation.
  *
  ****************************************************************************/
-int vsscanf(FAR char *buf, FAR const char *s, va_list ap)
+
+int vsscanf(FAR char *buf, FAR const char *fmt, va_list ap)
 {
+  FAR char       *bufstart;
+  FAR char       *tv;
+  FAR const char *tc;
   int             count;
   int             noassign;
   int             width;
   int             base = 10;
   int             lflag;
-  FAR char       *tv;
-  FAR const char *tc;
   char            tmp[MAXLN];
 
-  lvdbg("vsscanf: buf=\"%s\" fmt=\"%s\"\n", buf, s);
+  lvdbg("vsscanf: buf=\"%s\" fmt=\"%s\"\n", buf, fmt);
 
-  count = noassign = width = lflag = 0;
-  while (*s && *buf)
+  /* Remember the start of the input buffer.  We will need this for %n
+   * calculations.
+   */
+
+  bufstart = buf;
+
+  /* Parse the format, extracting values from the input buffer as needed */
+
+  count    = 0;
+  noassign = 0;
+  width    = 0;
+  lflag    = 0;
+
+  while (*fmt && *buf)
     {
       /* Skip over white space */
 
-      while (isspace(*s))
+      while (isspace(*fmt))
         {
-          s++;
+          fmt++;
         }
 
       /* Check for a conversion specifier */
 
-      if (*s == '%')
+      if (*fmt == '%')
         {
           lvdbg("vsscanf: Specifier found\n");
 
           /* Check for qualifiers on the conversion specifier */
-          s++;
-          for (; *s; s++)
+          fmt++;
+          for (; *fmt; fmt++)
             {
-              lvdbg("vsscanf: Processing %c\n", *s);
+              lvdbg("vsscanf: Processing %c\n", *fmt);
 
-              if (strchr("dibouxcsefg%", *s))
+              if (strchr("dibouxcsefgn%", *fmt))
                 {
                   break;
                 }
 
-              if (*s == '*')
+              if (*fmt == '*')
                 {
                   noassign = 1;
                 }
-              else if (*s == 'l' || *s == 'L')
+              else if (*fmt == 'l' || *fmt == 'L')
                 {
                   lflag = 1;
                 }
-              else if (*s >= '1' && *s <= '9')
+              else if (*fmt >= '1' && *fmt <= '9')
                 {
-                  for (tc = s; isdigit(*s); s++);
-                  strncpy(tmp, tc, s - tc);
-                  tmp[s - tc] = '\0';
+                  for (tc = fmt; isdigit(*fmt); fmt++);
+                  strncpy(tmp, tc, fmt - tc);
+                  tmp[fmt - tc] = '\0';
                   width = atoi(tmp);
-                  s--;
+                  fmt--;
                 }
             }
 
           /* Process %s:  String conversion */
 
-          if (*s == 's')
+          if (*fmt == 's')
             {
               lvdbg("vsscanf: Performing string conversion\n");
 
@@ -178,9 +192,26 @@ int vsscanf(FAR char *buf, FAR const char *s, va_list ap)
                   buf++;
                 }
 
+              /* Was a fieldwidth specified? */
+
               if (!width)
                 {
-                  width = strcspn(buf, spaces);
+                  /* No... is there a space after the format? */
+
+#if 0 /* Needs more thought */
+                  if (isspace(*(s + 1)) || *(s + 1) == 0)
+#endif
+                    {
+                      /* Use the input up until the first white space is
+                       * encountered.  NOTE:  This means that values on the
+                       * input line must be separated by whitespace or they
+                       * will get combined! This is a bug.  We have no good
+                       * way of determining the width of the data if there
+                       * is no field with and no space separating the input.
+                       */
+
+                      width = strcspn(buf, spaces);
+                    }
                 }
 
               if (!noassign)
@@ -189,17 +220,22 @@ int vsscanf(FAR char *buf, FAR const char *s, va_list ap)
                   strncpy(tv, buf, width);
                   tv[width] = '\0';
                 }
+
               buf += width;
             }
 
           /* Process %c:  Character conversion */
 
-          else if (*s == 'c')
+          else if (*fmt == 'c')
             {
               lvdbg("vsscanf: Performing character conversion\n");
 
+              /* Was a fieldwidth specified? */
+
               if (!width)
                 {
+                  /* No, then width is this one single character */
+
                   width = 1;
                 }
 
@@ -209,12 +245,13 @@ int vsscanf(FAR char *buf, FAR const char *s, va_list ap)
                   strncpy(tv, buf, width);
                   tv[width] = '\0';
                 }
+
               buf += width;
             }
 
           /* Process %d, %o, %b, %x, %u:  Various integer conversions */
 
-          else if (strchr("dobxu", *s))
+          else if (strchr("dobxu", *fmt))
             {
               lvdbg("vsscanf: Performing integer conversion\n");
 
@@ -229,36 +266,46 @@ int vsscanf(FAR char *buf, FAR const char *s, va_list ap)
                * conversion specification.
                */
 
-              if (*s == 'd' || *s == 'u')
+              if (*fmt == 'd' || *fmt == 'u')
                 {
                   base = 10;
                 }
-              else if (*s == 'x')
+              else if (*fmt == 'x')
                 {
                   base = 16;
                 }
-              else if (*s == 'o')
+              else if (*fmt == 'o')
                 {
                   base = 8;
                 }
-              else if (*s == 'b')
+              else if (*fmt == 'b')
                 {
                   base = 2;
                 }
 
-              /* Copy the integer string into a temporary working buffer. */
+              /* Was a fieldwidth specified? */
 
               if (!width)
                 {
+                  /* No... is there a space after the format? */
+
+#if 0 /* Needs more thought */
                   if (isspace(*(s + 1)) || *(s + 1) == 0)
+#endif
                     {
+                      /* Use the input up until the first white space is
+                       * encountered.  NOTE:  This means that values on the
+                       * input line must be separated by whitespace or they
+                       * will get combined! This is a bug.  We have no good
+                       * way of determining the width of the data if there
+                       * is no field with and no space separating the input.
+                       */
+
                       width = strcspn(buf, spaces);
                     }
-                  else
-                    {
-                      width = strchr(buf, *(s + 1)) - buf;
-                    }
                 }
+
+              /* Copy the numeric string into a temporary working buffer. */
 
               strncpy(tmp, buf, width);
               tmp[width] = '\0';
@@ -284,7 +331,7 @@ int vsscanf(FAR char *buf, FAR const char *s, va_list ap)
 
           /* Process %f:  Floating point conversion */
 
-          else if (*s == 'f')
+          else if (*fmt == 'f')
             {
 #ifndef CONFIG_LIBC_FLOATINGPOINT
               /* No floating point conversions */
@@ -303,19 +350,29 @@ int vsscanf(FAR char *buf, FAR const char *s, va_list ap)
                   buf++;
                 }
 
-              /* Copy the real string into a temporary working buffer. */
+              /* Was a fieldwidth specified? */
 
               if (!width)
                 {
+                  /* No... is there a space after the format? */
+
+#if 0 /* Needs more thought */
                   if (isspace(*(s + 1)) || *(s + 1) == 0)
+#endif
                     {
-                      width = strcspn(buf, spaces);
-                    }
-                  else
-                    {
-                      width = strchr(buf, *(s + 1)) - buf;
+                      /* Use the input up until the first white space is
+                       * encountered.  NOTE:  This means that values on the
+                       * input line must be separated by whitespace or they
+                       * will get combined! This is a bug.  We have no good
+                       * way of determining the width of the data if there
+                       * is no field with and no space separating the input.
+                       */
+
+                     width = strcspn(buf, spaces);
                     }
                 }
+
+              /* Copy the real string into a temporary working buffer. */
 
               strncpy(tmp, buf, width);
               tmp[width] = '\0';
@@ -356,13 +413,28 @@ int vsscanf(FAR char *buf, FAR const char *s, va_list ap)
 #endif
             }
 
-          if (!noassign)
+          /* Process %n:  Character count */
+
+          else if (*fmt == 'n')
+            {
+              lvdbg("vsscanf: Performing character count\n");
+
+              if (!noassign)
+                {
+                  int *pint = va_arg(ap, int*);
+                  *pint = (int)(buf - bufstart) - 1;
+                }
+            }
+
+          /* Note %n does not count as a conversion */
+
+          if (!noassign && *fmt != 'n')
             {
               count++;
             }
 
           width = noassign = lflag = 0;
-          s++;
+          fmt++;
         }
 
     /* Its is not a conversion specifier */
@@ -374,13 +446,13 @@ int vsscanf(FAR char *buf, FAR const char *s, va_list ap)
               buf++;
             }
 
-          if (*s != *buf)
+          if (*fmt != *buf)
             {
               break;
             }
           else
             {
-              s++;
+              fmt++;
               buf++;
             }
         }
