@@ -271,7 +271,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 				overloadcounter++;
 			}
 
-			int8_t update_vect[9] = {1, 1, 1, 1, 1, 1, 0, 0, 0};
+			int8_t update_vect[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
 			float euler[3];
 			int32_t z_k_sizes = 9;
 			float u[4] = {0.0f, 0.0f, 0.0f, 0.0f};
