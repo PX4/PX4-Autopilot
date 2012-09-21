@@ -103,7 +103,8 @@ class uploader(object):
 	REBOOT		= chr(0x30)
 	
 	INFO_BL_REV	= chr(1)	# bootloader protocol revision
-	BL_REV		= 2		# supported bootloader protocol 
+	BL_REV_MIN	= 2		# minimum supported bootloader protocol 
+	BL_REV_MAX	= 3		# maximum supported bootloader protocol 
 	INFO_BOARD_ID	= chr(2)	# board type
 	INFO_BOARD_REV	= chr(3)	# board revision
 	INFO_FLASH_SIZE	= chr(4)	# max firmware size in bytes
@@ -240,7 +241,8 @@ class uploader(object):
 
 		# get the bootloader protocol ID first
 		bl_rev = self.__getInfo(uploader.INFO_BL_REV)
-		if bl_rev != uploader.BL_REV:
+		if (bl_rev < uploader.BL_REV_MIN) or (bl_rev > uploader.BL_REV_MAX):
+			print("Unsupported bootloader protocol %d" % uploader.INFO_BL_REV)
 			raise RuntimeError("Bootloader protocol mismatch")
 
 		self.board_type = self.__getInfo(uploader.INFO_BOARD_ID)

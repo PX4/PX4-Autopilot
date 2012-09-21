@@ -1,5 +1,5 @@
 /****************************************************************************
- * graphics/nxsu/nx_fill.c
+ * graphics/nxsu/nx_closewindow.c
  *
  *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,12 +39,11 @@
 
 #include <nuttx/config.h>
 
-#include <mqueue.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/nx/nx.h>
-
 #include "nxfe.h"
 
 /****************************************************************************
@@ -72,32 +71,30 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nx_fill
+ * Name: nx_closewindow
  *
  * Description:
- *  Fill the specified rectangle in the window with the specified color
+ *   Destroy a window created by nx_openwindow.
  *
  * Input Parameters:
- *   hwnd  - The window handle
- *   rect  - The location to be filled
- *   color - The color to use in the fill
+ *   wnd - The window to be destroyed
  *
  * Return:
  *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
-int nx_fill(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
-            nxgl_mxpixel_t color[CONFIG_NX_NPLANES])
+int nx_closewindow(NXWINDOW hwnd)
 {
 #ifdef CONFIG_DEBUG
-  if (!hwnd || !rect || !color)
+  if (!hwnd)
     {
       errno = EINVAL;
       return ERROR;
     }
 #endif
 
-  nxbe_fill((FAR struct nxbe_window_s *)hwnd, rect, color);
-  return 0;
+  nxbe_closewindow((FAR struct nxbe_window_s *)hwnd);
+  return OK;
 }
+

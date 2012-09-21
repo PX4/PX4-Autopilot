@@ -30,7 +30,7 @@ extern pthread_mutex_t *nmea_mutex;
 
 
 
-int read_gps_nmea(int fd, char *gps_rx_buffer, int buffer_size, nmeaINFO *info, nmeaPARSER *parser);
+int read_gps_nmea(int *fd, char *gps_rx_buffer, int buffer_size, nmeaINFO *info, nmeaPARSER *parser);
 
 void *nmea_loop(void *arg);
 

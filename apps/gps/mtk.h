@@ -87,12 +87,12 @@ void mtk_checksum(uint8_t b, uint8_t *ck_a, uint8_t *ck_b);
 
 int mtk_parse(uint8_t b,  char *gps_rx_buffer);
 
-int read_gps_mtk(int fd, char *gps_rx_buffer, int buffer_size);
+int read_gps_mtk(int *fd, char *gps_rx_buffer, int buffer_size);
 
-int configure_gps_mtk(int fd);
+int configure_gps_mtk(int *fd);
 
-void *mtk_loop(void *arg);
+void *mtk_loop(void *args);
 
-void *mtk_watchdog_loop(void *arg);
+void *mtk_watchdog_loop(void *args);
 
 #endif /* MTK_H_ */
