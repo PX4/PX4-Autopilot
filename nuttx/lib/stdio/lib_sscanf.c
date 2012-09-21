@@ -80,6 +80,64 @@ int vsscanf(char *buf, const char *fmt, va_list ap);
 static const char spaces[] = " \t\n\r\f\v";
 
 /****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Function:  findwidth
+ *
+ * Description:
+ *    Try to figure out the width of the input data.
+ *
+ ****************************************************************************/
+
+static int findwidth(FAR const char *buf, FAR const char *fmt)
+{
+  FAR const char *next = fmt + 1;
+
+  /* No... is there a space after the format? Or does the format string end
+   * here?
+   */
+
+  if (isspace(*next) || *next == 0)
+    {
+      /* Use the input up until the first white space is encountered. */
+
+      return strcspn(buf, spaces);
+    }
+
+  /* No.. Another possibility is the the format character is followed by
+   * some recognizable delimiting value.
+   */
+
+  if (*next != '%')
+    {
+      /* If so we will say that the string ends there if we can find that
+       * delimiter in the input string.
+       */
+
+      FAR const char *ptr = strchr(buf, *next);
+      if (ptr)
+        {
+          return (int)(ptr - buf);
+        }
+    }
+
+  /* No... the format has not delimiter and is back-to-back with the next
+   * formats (or no is following by a delimiter that does not exist in the
+   * input string).  At this point we just bail and Use the input up until
+   * the first white space is encountered.
+   *
+   * NOTE:  This means that values from the following format may be
+   * concatenated with the first. This is a bug.  We have no generic way of
+   * determining the width of the data if there is no fieldwith, no space
+   * separating the input, and no usable delimiter character.
+   */
+
+  return strcspn(buf, spaces);
+}
+
+/****************************************************************************
  * Private Variables
  ****************************************************************************/
 
@@ -196,22 +254,9 @@ int vsscanf(FAR char *buf, FAR const char *fmt, va_list ap)
 
               if (!width)
                 {
-                  /* No... is there a space after the format? */
+                  /* No... Guess a field width using some heuristics */
 
-#if 0 /* Needs more thought */
-                  if (isspace(*(s + 1)) || *(s + 1) == 0)
-#endif
-                    {
-                      /* Use the input up until the first white space is
-                       * encountered.  NOTE:  This means that values on the
-                       * input line must be separated by whitespace or they
-                       * will get combined! This is a bug.  We have no good
-                       * way of determining the width of the data if there
-                       * is no field with and no space separating the input.
-                       */
-
-                      width = strcspn(buf, spaces);
-                    }
+                  width = findwidth(buf, fmt);
                 }
 
               if (!noassign)
@@ -287,22 +332,9 @@ int vsscanf(FAR char *buf, FAR const char *fmt, va_list ap)
 
               if (!width)
                 {
-                  /* No... is there a space after the format? */
+                  /* No... Guess a field width using some heuristics */
 
-#if 0 /* Needs more thought */
-                  if (isspace(*(s + 1)) || *(s + 1) == 0)
-#endif
-                    {
-                      /* Use the input up until the first white space is
-                       * encountered.  NOTE:  This means that values on the
-                       * input line must be separated by whitespace or they
-                       * will get combined! This is a bug.  We have no good
-                       * way of determining the width of the data if there
-                       * is no field with and no space separating the input.
-                       */
-
-                      width = strcspn(buf, spaces);
-                    }
+                  width = findwidth(buf, fmt);
                 }
 
               /* Copy the numeric string into a temporary working buffer. */
@@ -354,22 +386,9 @@ int vsscanf(FAR char *buf, FAR const char *fmt, va_list ap)
 
               if (!width)
                 {
-                  /* No... is there a space after the format? */
+                  /* No... Guess a field width using some heuristics */
 
-#if 0 /* Needs more thought */
-                  if (isspace(*(s + 1)) || *(s + 1) == 0)
-#endif
-                    {
-                      /* Use the input up until the first white space is
-                       * encountered.  NOTE:  This means that values on the
-                       * input line must be separated by whitespace or they
-                       * will get combined! This is a bug.  We have no good
-                       * way of determining the width of the data if there
-                       * is no field with and no space separating the input.
-                       */
-
-                     width = strcspn(buf, spaces);
-                    }
+                  width = findwidth(buf, fmt);
                 }
 
               /* Copy the real string into a temporary working buffer. */
