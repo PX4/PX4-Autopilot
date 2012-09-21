@@ -33,12 +33,12 @@
  ****************************************************************************/
 
 /**
- * @file manual_control_setpoint.h
+ * @file offboard_control_setpoint.h
  * Definition of the manual_control_setpoint uORB topic.
  */
 
-#ifndef TOPIC_MANUAL_CONTROL_SETPOINT_H_
-#define TOPIC_MANUAL_CONTROL_SETPOINT_H_
+#ifndef TOPIC_OFFBOARD_CONTROL_SETPOINT_H_
+#define TOPIC_OFFBOARD_CONTROL_SETPOINT_H_
 
 #include <stdint.h>
 #include "../uORB.h"
@@ -49,28 +49,32 @@
  */
 
 /**
- * Defines how RC channels map to control inputs.
- *
- * The default mode on quadrotors and fixed wing is
- * roll and pitch position of the right stick and
- * throttle and yaw rate on the left stick
+ * Off-board control inputs.
+ * 
+ * Typically sent by a ground control station / joystick or by
+ * some off-board controller via C or SIMULINK.
  */
-enum MANUAL_CONTROL_MODE
+enum OFFBOARD_CONTROL_MODE
 {
-	MANUAL_CONTROL_MODE_DIRECT = 0,
-	MANUAL_CONTROL_MODE_ATT_YAW_RATE = 1,
-	MANUAL_CONTROL_MODE_ATT_YAW_POS = 2,
-	MANUAL_CONTROL_MODE_MULTIROTOR_SIMPLE = 3 /**< roll / pitch rotated aligned to the takeoff orientation, throttle stabilized, yaw pos */
+	OFFBOARD_CONTROL_MODE_DIRECT = 0,
+	OFFBOARD_CONTROL_MODE_DIRECT_RATES = 1,
+	OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE = 2,
+	OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY = 3,
+	OFFBOARD_CONTROL_MODE_DIRECT_POSITION = 4,
+	OFFBOARD_CONTROL_MODE_ATT_YAW_RATE = 5,
+	OFFBOARD_CONTROL_MODE_ATT_YAW_POS = 6,
+	OFFBOARD_CONTROL_MODE_MULTIROTOR_SIMPLE = 7, /**< roll / pitch rotated aligned to the takeoff orientation, throttle stabilized, yaw pos */
 };
 
-struct manual_control_setpoint_s {
+struct offboard_control_setpoint_s {
 	uint64_t timestamp;
 
-	enum MANUAL_CONTROL_MODE mode;		 /**< The current control inputs mode */
-	float roll;			 /**< ailerons roll / roll rate input */
-	float pitch;     /**< elevator / pitch / pitch rate */
-	float yaw;       /**< rudder / yaw rate / yaw */
-	float throttle;  /**< throttle / collective thrust / altitude */
+	enum OFFBOARD_CONTROL_MODE mode;		 /**< The current control inputs mode */
+	bool armed;	/**< Armed flag set, yes / no */
+	float p1;	/**< ailerons roll / roll rate input */
+	float p2;	/**< elevator / pitch / pitch rate */
+	float p3;	/**< rudder / yaw rate / yaw */
+	float p4;	/**< throttle / collective thrust / altitude */
 
 	float override_mode_switch;
 
@@ -79,13 +83,12 @@ struct manual_control_setpoint_s {
 	float aux3_cam_zoom;
 	float aux4_cam_roll;
 
-}; /**< manual control inputs */
-
+}; /**< offboard control inputs */
 /**
  * @}
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(manual_control_setpoint);
+ORB_DECLARE(offboard_control_setpoint);
 
 #endif

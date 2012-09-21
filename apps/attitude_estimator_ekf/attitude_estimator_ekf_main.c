@@ -98,7 +98,7 @@ static float P_aposteriori[81] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,
 				   0,   0,   0,   0,   0,   0,   0, 100.f,   0,
 				   0,   0,   0,   0,   0,   0,   0,   0, 100.f,
 				  };	/**< init: diagonal matrix with big values */
-static float knownConst[20] = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};			/**< knownConst has the following entries [PrvaA,PrvarM,PrvarWO,PrvarW||MsvarA,MsvarM,MsvarW] */
+static float knownConst[15] = {1, 1, 1, 1, 1, 0.04, 4, 0.1, 70, 70, -2000, 9.81, 1, 4, 1};			/**< knownConst has the following entries [PrvaA,PrvarM,PrvarWO,PrvarW||MsvarA,MsvarM,MsvarW] */
 static float Rot_matrix[9] = {1.f,  0,  0,
 			      0,  1.f,  0,
 			      0,  0,  1.f
@@ -149,7 +149,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		attitude_estimator_ekf_task = task_create("attitude_estimator_ekf", SCHED_PRIORITY_DEFAULT, 4096, attitude_estimator_ekf_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		attitude_estimator_ekf_task = task_create("attitude_estimator_ekf", SCHED_PRIORITY_DEFAULT, 20000, attitude_estimator_ekf_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}
 
@@ -235,19 +235,19 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			dt = (raw.timestamp - last_measurement) / 1000000.0f;
 			last_measurement = raw.timestamp;
 
+			/* Fill in gyro measurements */
+			z_k[0] =  raw.gyro_rad_s[0];
+			z_k[1] =  raw.gyro_rad_s[1];
+			z_k[2] =  raw.gyro_rad_s[2];
+
 			/* scale from 14 bit to m/s2 */
 			z_k[3] = raw.accelerometer_m_s2[0];
 			z_k[4] = raw.accelerometer_raw[1];
 			z_k[5] = raw.accelerometer_raw[2];
 
-			z_k[0] = raw.magnetometer_ga[0];
-			z_k[1] = raw.magnetometer_ga[1];
-			z_k[2] = raw.magnetometer_ga[2];
-
-			/* Fill in gyro measurements */
-			z_k[6] =  raw.gyro_rad_s[0];
-			z_k[7] =  raw.gyro_rad_s[1];
-			z_k[8] =  raw.gyro_rad_s[2];
+			z_k[6] = raw.magnetometer_ga[0];
+			z_k[7] = raw.magnetometer_ga[1];
+			z_k[8] = raw.magnetometer_ga[2];
 
 			uint64_t now = hrt_absolute_time();
 			unsigned int time_elapsed = now - last_run;
@@ -268,6 +268,24 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			int32_t z_k_sizes = 9;
 			float u[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
+			static bool const_initialized = false;
+
+			/* initialize with good values once we have a reasonable dt estimate */
+			if (!const_initialized && dt < 0.05 && dt > 0.005) 
+			{
+				knownConst[0] = powf(0.6f, 2.0f*dt);
+				knownConst[1] = powf(0.6f, 2.0f*dt);
+				knownConst[2] = powf(0.2f, 2.0f*dt);
+				knownConst[3] = powf(0.2f, 2.0f*dt);
+				knownConst[4] = powf(0.000001f, 2.0f*dt);
+				const_initialized = true;
+			}
+
+			/* do not execute the filter if not initialized */
+			if (!const_initialized) {
+				continue;
+			}
+
 			uint64_t timing_start = hrt_absolute_time();
 			attitudeKalmanfilter(dt, update_vect, z_k, &z_k_sizes, u, x_aposteriori_k, P_aposteriori_k, knownConst, euler,
 				Rot_matrix, x_aposteriori, P_aposteriori);
@@ -277,15 +295,15 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			uint64_t timing_diff = hrt_absolute_time() - timing_start;
 
 			/* print rotation matrix every 200th time */
-			if (printcounter % 200 == 0) {
-				printf("EKF attitude iteration: %d, runtime: %d us, dt: %d us (%d Hz)\n", loopcounter, (int)timing_diff, (int)(dt * 1000000.0f), (int)(1.0f / dt));
-				printf("roll: %8.4f\tpitch: %8.4f\tyaw:%8.4f", (double)euler[0], (double)euler[1], (double)euler[2]);
-				printf("\n%d\t%d\t%d\n%d\t%d\t%d\n%d\t%d\t%d\n", (int)(Rot_matrix[0] * 100), (int)(Rot_matrix[1] * 100), (int)(Rot_matrix[2] * 100),
-				       (int)(Rot_matrix[3] * 100), (int)(Rot_matrix[4] * 100), (int)(Rot_matrix[5] * 100),
-				       (int)(Rot_matrix[6] * 100), (int)(Rot_matrix[7] * 100), (int)(Rot_matrix[8] * 100));
-			}
+			// if (printcounter % 200 == 0) {
+			// 	printf("EKF attitude iteration: %d, runtime: %d us, dt: %d us (%d Hz)\n", loopcounter, (int)timing_diff, (int)(dt * 1000000.0f), (int)(1.0f / dt));
+			// 	printf("roll: %8.4f\tpitch: %8.4f\tyaw:%8.4f", (double)euler[0], (double)euler[1], (double)euler[2]);
+			// 	printf("\n%d\t%d\t%d\n%d\t%d\t%d\n%d\t%d\t%d\n", (int)(Rot_matrix[0] * 100), (int)(Rot_matrix[1] * 100), (int)(Rot_matrix[2] * 100),
+			// 	       (int)(Rot_matrix[3] * 100), (int)(Rot_matrix[4] * 100), (int)(Rot_matrix[5] * 100),
+			// 	       (int)(Rot_matrix[6] * 100), (int)(Rot_matrix[7] * 100), (int)(Rot_matrix[8] * 100));
+			// }
 
-			printcounter++;
+			// printcounter++;
 
 			if (last_data > 0 && raw.timestamp - last_data > 8000) printf("sensor data missed! (%llu)\n", raw.timestamp - last_data);
 

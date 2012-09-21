@@ -47,7 +47,6 @@
  * @addtogroup topics
  * @{
  */
-
 struct vehicle_rates_setpoint_s
 {
 	uint64_t timestamp; /**< in microseconds since system start */
