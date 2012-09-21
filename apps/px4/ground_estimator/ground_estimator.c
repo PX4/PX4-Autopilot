@@ -97,7 +97,7 @@ int ground_estimator_thread_main(int argc, char *argv[]) {
 			/* XXX this is seriously bad - should be an emergency */
 		} else if (ret == 0) {
 			/* XXX this means no sensor data - should be critical or emergency */
-			printf("[attitude estimator bm] WARNING: Not getting sensor data - sensor app running?\n");
+			printf("[ground estimator bm] WARNING: Not getting sensor data - sensor app running?\n");
 		} else {
 			struct sensor_combined_s s;
 			orb_copy(ORB_ID(sensor_combined), sub_raw, &s);

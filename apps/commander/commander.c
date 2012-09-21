@@ -65,7 +65,8 @@
 #include <poll.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
-#include <uORB/topics/rc_channels.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/subsystem_info.h>
@@ -83,7 +84,8 @@
 #include <drivers/drv_baro.h>
 
 
-
+PARAM_DEFINE_INT32(SYS_FAILSAVE_LL, 0);	/**< Go into low-level failsafe after 0 ms */
+//PARAM_DEFINE_INT32(SYS_FAILSAVE_HL, 0);	/**< Go into high-level failsafe after 0 ms */
 
 #include <arch/board/up_cpuload.h>
 extern struct system_load_s system_load;
@@ -94,14 +96,15 @@ extern struct system_load_s system_load;
 #define LOW_VOLTAGE_BATTERY_COUNTER_LIMIT (LOW_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 #define CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT (CRITICAL_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
-#define STICK_ON_OFF_LIMIT 7500
-#define STICK_THRUST_RANGE 20000
+#define STICK_ON_OFF_LIMIT 0.75f
+#define STICK_THRUST_RANGE 1.0f
 #define STICK_ON_OFF_HYSTERESIS_TIME_MS 1000
 #define STICK_ON_OFF_COUNTER_LIMIT (STICK_ON_OFF_HYSTERESIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
 #define GPS_FIX_TYPE_2D 2
 #define GPS_FIX_TYPE_3D 3
-#define GPS_QUALITY_GOOD_COUNTER_LIMIT 50
+#define GPS_QUALITY_GOOD_HYSTERIS_TIME_MS 5000
+#define GPS_QUALITY_GOOD_COUNTER_LIMIT (GPS_QUALITY_GOOD_HYSTERIS_TIME_MS*COMMANDER_MONITORING_LOOPSPERMSEC)
 
 /* File descriptors */
 static int leds;
@@ -113,6 +116,8 @@ static orb_advert_t stat_pub;
 
 static uint16_t nofix_counter = 0;
 static uint16_t gotfix_counter = 0;
+
+static unsigned int failsafe_lowlevel_timeout_ms;
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
@@ -1048,6 +1053,10 @@ int commander_thread_main(int argc, char *argv[])
 	/* not yet initialized */
 	commander_initialized = false;
 
+	/* set parameters */
+	failsafe_lowlevel_timeout_ms = 0;
+	param_get(param_find("SYS_FAILSAVE_LL"), &failsafe_lowlevel_timeout_ms);
+
 	/* welcome user */
 	printf("[commander] I am in command now!\n");
 
@@ -1119,10 +1128,15 @@ int commander_thread_main(int argc, char *argv[])
 
 	int gps_quality_good_counter = 0;
 
-	/* Subscribe to RC data */
-	int rc_sub = orb_subscribe(ORB_ID(rc_channels));
-	struct rc_channels_s rc;
-	memset(&rc, 0, sizeof(rc));
+	/* Subscribe to manual control data */
+	int sp_man_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+	struct manual_control_setpoint_s sp_man;
+	memset(&sp_man, 0, sizeof(sp_man));
+
+	/* Subscribe to offboard control data */
+	int sp_offboard_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
+	struct offboard_control_setpoint_s sp_offboard;
+	memset(&sp_offboard, 0, sizeof(sp_offboard));
 
 	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	struct vehicle_gps_position_s gps;
@@ -1141,11 +1155,15 @@ int commander_thread_main(int argc, char *argv[])
 	commander_initialized = true;
 
 	uint64_t start_time = hrt_absolute_time();
+	uint64_t failsave_ll_start_time = 0;
+
+	bool state_changed = true;
 
 	while (!thread_should_exit) {
 
 		/* Get current values */
-		orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
+		orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
+		orb_copy(ORB_ID(offboard_control_setpoint), sp_offboard_sub, &sp_offboard);
 		orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps);
 		orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
 
@@ -1256,10 +1274,10 @@ int commander_thread_main(int argc, char *argv[])
 		/* End battery voltage check */
 
 		/* Check if last transition deserved an audio event */
-#warning This code depends on state that is no longer? maintained
-#if 0
-		trigger_audio_alarm(vehicle_mode_previous, vehicle_state_previous, current_status.mode, current_status.state_machine);
-#endif
+// #warning This code depends on state that is no longer? maintained
+// #if 0
+// 		trigger_audio_alarm(vehicle_mode_previous, vehicle_state_previous, current_status.mode, current_status.state_machine);
+// #endif
 
 		/* only check gps fix if we are outdoor */
 //		if (flight_env == PX4_FLIGHT_ENVIRONMENT_OUTDOOR) {
@@ -1314,87 +1332,173 @@ int commander_thread_main(int argc, char *argv[])
 		/* end: check gps */
 
 
-		/* Start RC state check */
-		bool prev_lost = current_status.rc_signal_lost;
+		/* ignore RC signals if in offboard control mode */
+		if (!current_status.offboard_control_signal_found_once) {
+			/* Start RC state check */
+			bool prev_lost = current_status.rc_signal_lost;
 
-		if (rc.chan_count > 4 && (hrt_absolute_time() - rc.timestamp) < 100000) {
+			if ((hrt_absolute_time() - sp_man.timestamp) < 100000) {
 
-			/* quadrotor specific logic - check against system type in the future */
+				/* check if left stick is in lower left position --> switch to standby state */
+				if ((sp_man.yaw < -STICK_ON_OFF_LIMIT) && sp_man.throttle < STICK_THRUST_RANGE*0.2f) { //TODO: remove hardcoded values
+					if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
+						update_state_machine_disarm(stat_pub, &current_status, mavlink_fd);
+						stick_on_counter = 0;
 
-			int16_t rc_yaw_scale =  rc.chan[rc.function[YAW]].scale;
-			int16_t rc_throttle_scale =  rc.chan[rc.function[THROTTLE]].scale;
-			int16_t mode_switch_rc_value = rc.chan[rc.function[OVERRIDE]].scale;
-			/* Check the value of the rc channel of the mode switch */
-			mode_switch_rc_value = rc.chan[rc.function[OVERRIDE]].scale;
+					} else {
+						stick_off_counter++;
+						stick_on_counter = 0;
+					}
+				}
 
-			/* check if left stick is in lower left position --> switch to standby state */
-			if (rc_yaw_scale < -STICK_ON_OFF_LIMIT && rc_throttle_scale < STICK_THRUST_RANGE*0.2f) { //TODO: remove hardcoded values
-				if (stick_off_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-					update_state_machine_disarm(stat_pub, &current_status, mavlink_fd);
-					stick_on_counter = 0;
+				/* check if left stick is in lower right position --> arm */
+				if (sp_man.yaw > STICK_ON_OFF_LIMIT && sp_man.throttle < STICK_THRUST_RANGE*0.2f) { //TODO: remove hardcoded values
+					if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
+						update_state_machine_arm(stat_pub, &current_status, mavlink_fd);
+						stick_on_counter = 0;
+
+					} else {
+						stick_on_counter++;
+						stick_off_counter = 0;
+					}
+				}
+				//printf("RC: y:%i/t:%i s:%i chans: %i\n", rc_yaw_scale, rc_throttle_scale, mode_switch_rc_value, rc.chan_count);
+
+				if (sp_man.override_mode_switch > STICK_ON_OFF_LIMIT) {
+					current_status.flag_control_attitude_enabled = true;
+					current_status.flag_control_rates_enabled = false;
+					update_state_machine_mode_manual(stat_pub, &current_status, mavlink_fd);
+
+				} else if (sp_man.override_mode_switch < -STICK_ON_OFF_LIMIT) {
+					current_status.flag_control_attitude_enabled = true;
+					current_status.flag_control_rates_enabled = false;
+					update_state_machine_mode_auto(stat_pub, &current_status, mavlink_fd);
 
 				} else {
-					stick_off_counter++;
-					stick_on_counter = 0;
+					current_status.flag_control_attitude_enabled = true;
+					current_status.flag_control_rates_enabled = false;
+					update_state_machine_mode_stabilized(stat_pub, &current_status, mavlink_fd);
 				}
-			}
 
-			/* check if left stick is in lower right position --> arm */
-			if (rc_yaw_scale > STICK_ON_OFF_LIMIT && rc_throttle_scale < STICK_THRUST_RANGE*0.2f) { //TODO: remove hardcoded values
-				if (stick_on_counter > STICK_ON_OFF_COUNTER_LIMIT) {
-					update_state_machine_arm(stat_pub, &current_status, mavlink_fd);
-					stick_on_counter = 0;
-
+				/* handle the case where RC signal was regained */
+				if (!current_status.rc_signal_found_once) {
+					current_status.rc_signal_found_once = true;
+					mavlink_log_critical(mavlink_fd, "[commander] DETECTED RC SIGNAL FIRST TIME.");
 				} else {
-					stick_on_counter++;
-					stick_off_counter = 0;
+					if (current_status.rc_signal_lost) mavlink_log_critical(mavlink_fd, "[commander] RECOVERY - RC SIGNAL GAINED!");
 				}
-			}
-			//printf("RC: y:%i/t:%i s:%i chans: %i\n", rc_yaw_scale, rc_throttle_scale, mode_switch_rc_value, rc.chan_count);
 
-			if (mode_switch_rc_value > STICK_ON_OFF_LIMIT) {
-				update_state_machine_mode_manual(stat_pub, &current_status, mavlink_fd);
-
-			} else if (mode_switch_rc_value < -STICK_ON_OFF_LIMIT) {
-				update_state_machine_mode_auto(stat_pub, &current_status, mavlink_fd);
+				current_status.rc_signal_lost = false;
+				current_status.rc_signal_lost_interval = 0;
 
 			} else {
-				update_state_machine_mode_stabilized(stat_pub, &current_status, mavlink_fd);
+				static uint64_t last_print_time = 0;
+				/* print error message for first RC glitch and then every 5 s / 5000 ms) */
+				if (!current_status.rc_signal_lost || ((hrt_absolute_time() - last_print_time) > 5000000)) {
+					/* only complain if the offboard control is NOT active */
+					mavlink_log_critical(mavlink_fd, "[commander] CRITICAL - NO REMOTE SIGNAL!");
+					last_print_time = hrt_absolute_time();
+				}
+				/* flag as lost and update interval since when the signal was lost (to initiate RTL after some time) */
+				current_status.rc_signal_cutting_off = true;
+				current_status.rc_signal_lost_interval = hrt_absolute_time() - sp_man.timestamp;
+
+				/* if the RC signal is gone for a full second, consider it lost */
+				if (current_status.rc_signal_lost_interval > 1000000) {
+					current_status.rc_signal_lost = true;
+					current_status.failsave_lowlevel = true;
+				}
+
+				// if (hrt_absolute_time() - current_status.failsave_ll_start_time > failsafe_lowlevel_timeout_ms*1000) {
+				// 	publish_armed_status(&current_status);
+				// }
 			}
 
-			/* Publish RC signal */
-
-
-			/* handle the case where RC signal was regained */
-			if (current_status.rc_signal_lost) mavlink_log_critical(mavlink_fd, "[commander] RECOVERY - RC SIGNAL GAINED!");
-			current_status.rc_signal_lost = false;
-			current_status.rc_signal_lost_interval = 0;
-
-		} else {
-			static uint64_t last_print_time = 0;
-			/* print error message for first RC glitch and then every 5 s / 5000 ms) */
-			if (!current_status.rc_signal_lost || ((hrt_absolute_time() - last_print_time) > 5000000)) {
-				mavlink_log_critical(mavlink_fd, "[commander] CRITICAL - NO REMOTE SIGNAL!");
-				last_print_time = hrt_absolute_time();
+			/* Check if this is the first loss or first gain*/
+			if ((!prev_lost && current_status.rc_signal_lost) ||
+				(prev_lost && !current_status.rc_signal_lost)) {
+				/* publish change */
+				publish_armed_status(&current_status);
 			}
-			/* flag as lost and update interval since when the signal was lost (to initiate RTL after some time) */
-			current_status.rc_signal_cutting_off = true;
-			current_status.rc_signal_lost_interval = hrt_absolute_time() - rc.timestamp;
-
-			/* if the RC signal is gone for a full second, consider it lost */
-			if (current_status.rc_signal_lost_interval > 1000000) current_status.rc_signal_lost = true;
 		}
 
-		/* Check if this is the first loss or first gain*/
-		if ((!prev_lost && current_status.rc_signal_lost) ||
-			prev_lost && !current_status.rc_signal_lost) {
-			/* publish rc lost */
-			publish_armed_status(&current_status);
-		}
+		
+
 
 		/* End mode switch */
 
 		/* END RC state check */
+
+
+		/* State machine update for offboard control */
+		if (!current_status.rc_signal_found_once) {
+			if ((hrt_absolute_time() - sp_offboard.timestamp) < 5000000) {
+
+				/* set up control mode */
+				if (current_status.flag_control_attitude_enabled != 
+					(sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE)) {
+					current_status.flag_control_attitude_enabled = (sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE);
+					state_changed = true;
+				}
+
+				if (current_status.flag_control_rates_enabled != 
+					(sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES)) {
+					current_status.flag_control_attitude_enabled = (sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES);
+					state_changed = true;
+				}
+
+				/* handle the case where RC signal was regained */
+				if (!current_status.offboard_control_signal_found_once) {
+					current_status.offboard_control_signal_found_once = true;
+					/* enable offboard control, disable manual input */
+					current_status.flag_control_manual_enabled = false;
+					current_status.flag_control_offboard_enabled = true;
+					state_changed = true;
+					
+					mavlink_log_critical(mavlink_fd, "[commander] DETECTED OFFBOARD CONTROL SIGNAL FIRST TIME.");
+				} else {
+					if (current_status.offboard_control_signal_lost) {
+						mavlink_log_critical(mavlink_fd, "[commander] RECOVERY - OFFBOARD CONTROL SIGNAL GAINED!");
+						state_changed = true;
+					}
+				}
+
+				current_status.offboard_control_signal_lost = false;
+				current_status.offboard_control_signal_lost_interval = 0;
+
+				/* arm / disarm on request */
+				if (sp_offboard.armed && !current_status.flag_system_armed) {
+					update_state_machine_arm(stat_pub, &current_status, mavlink_fd);
+					/* switch to stabilized mode = takeoff */
+					update_state_machine_mode_stabilized(stat_pub, &current_status, mavlink_fd);
+				} else if (!sp_offboard.armed && current_status.flag_system_armed) {
+					update_state_machine_disarm(stat_pub, &current_status, mavlink_fd);
+				}
+
+			} else {
+				static uint64_t last_print_time = 0;
+				/* print error message for first RC glitch and then every 5 s / 5000 ms) */
+				if (!current_status.offboard_control_signal_lost || ((hrt_absolute_time() - last_print_time) > 5000000)) {
+					/* only complain if the RC control is NOT active */
+					mavlink_log_critical(mavlink_fd, "[commander] CRITICAL - NO OFFBOARD CONTROL SIGNAL!");
+					last_print_time = hrt_absolute_time();
+				}
+				/* flag as lost and update interval since when the signal was lost (to initiate RTL after some time) */
+				current_status.offboard_control_signal_lost_interval = hrt_absolute_time() - sp_offboard.timestamp;
+
+				/* if the signal is gone for 0.1 seconds, consider it lost */
+				if (current_status.offboard_control_signal_lost_interval > 100000) {
+					current_status.offboard_control_signal_lost = true;
+					current_status.failsave_lowlevel_start_time = hrt_absolute_time();
+					current_status.failsave_lowlevel = true;
+
+					/* kill motors after timeout */
+					if (hrt_absolute_time() - current_status.failsave_lowlevel_start_time > failsafe_lowlevel_timeout_ms*1000) {
+						state_changed = true;
+					}
+				}
+			}
+		}
 
 
 		current_status.counter++;
@@ -1411,8 +1515,10 @@ int commander_thread_main(int argc, char *argv[])
 		}
 
 		/* publish at least with 1 Hz */
-		if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
+		if (counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0 || state_changed) {
+			publish_armed_status(&current_status);
 			orb_publish(ORB_ID(vehicle_status), stat_pub, &current_status);
+			state_changed = false;
 		}
 
 		/* Store old modes to detect and act on state transitions */
@@ -1430,7 +1536,8 @@ int commander_thread_main(int argc, char *argv[])
 	/* close fds */
 	led_deinit();
 	buzzer_deinit();
-	close(rc_sub);
+	close(sp_man_sub);
+	close(sp_offboard_sub);
 	close(gps_sub);
 	close(sensor_sub);
 

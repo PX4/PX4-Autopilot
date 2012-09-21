@@ -3,7 +3,7 @@
  *
  * Code generation for function 'attitudeKalmanfilter'
  *
- * C source code generated on: Mon Sep 17 20:13:22 2012
+ * C source code generated on: Fri Sep 21 13:56:42 2012
  *
  */
 
@@ -35,7 +35,7 @@ static real32_T rt_atan2f_snf(real32_T u0, real32_T u1)
   if (rtIsNaNF(u0) || rtIsNaNF(u1)) {
     y = ((real32_T)rtNaN);
   } else if (rtIsInfF(u0) && rtIsInfF(u1)) {
-    y = (real32_T)atan2(u0 > 0.0F ? 1.0F : -1.0F, u1 > 0.0F ? 1.0F : -1.0F);
+    y = (real32_T)atan2f(u0 > 0.0F ? 1.0F : -1.0F, u1 > 0.0F ? 1.0F : -1.0F);
   } else if (u1 == 0.0F) {
     if (u0 > 0.0F) {
       y = RT_PIF / 2.0F;
@@ -45,7 +45,7 @@ static real32_T rt_atan2f_snf(real32_T u0, real32_T u1)
       y = 0.0F;
     }
   } else {
-    y = (real32_T)atan2(u0, u1);
+    y = (real32_T)atan2f(u0, u1);
   }
 
   return y;
@@ -484,7 +484,7 @@ void attitudeKalmanfilter(real32_T dt, const int8_T updVect[9], const real32_T
         x_n_b[ib] = z_k_data[ib + 3];
       }
 
-      if ((real32_T)fabs(norm(x_n_b) - knownConst[11]) > knownConst[13]) {
+      if ((real32_T)fabsf(norm(x_n_b) - knownConst[11]) > knownConst[13]) {
         /* 'attitudeKalmanfilter:145' accUpt=10000; */
         accUpt = 10000;
       }
@@ -709,7 +709,7 @@ void attitudeKalmanfilter(real32_T dt, const int8_T updVect[9], const real32_T
   /* 'attitudeKalmanfilter:194' psi=atan2(Rot_matrix(1,2),Rot_matrix(1,1)); */
   /* 'attitudeKalmanfilter:195' eulerAngles=[phi;theta;psi]; */
   eulerAngles[0] = rt_atan2f_snf(Rot_matrix[7], Rot_matrix[8]);
-  eulerAngles[1] = -(real32_T)asin(Rot_matrix[6]);
+  eulerAngles[1] = -(real32_T)asinf(Rot_matrix[6]);
   eulerAngles[2] = rt_atan2f_snf(Rot_matrix[3], Rot_matrix[0]);
 }
 

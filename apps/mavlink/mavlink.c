@@ -65,7 +65,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_global_position_setpoint.h>
@@ -126,7 +126,7 @@ static struct vehicle_attitude_s hil_attitude;
 
 static struct vehicle_global_position_s hil_global_pos;
 
-static struct vehicle_rates_setpoint_s vehicle_rates_sp;
+static struct offboard_control_setpoint_s offboard_control_sp;
 
 static struct vehicle_command_s vcmd;
 
@@ -188,9 +188,9 @@ static struct mavlink_subscriptions {
 };
 
 static struct mavlink_publications {
-	orb_advert_t vehicle_rates_sp_pub;
+	orb_advert_t offboard_control_sp_pub;
 } mavlink_pubs = {
-	.vehicle_rates_sp_pub = -1
+	.offboard_control_sp_pub = -1
 };
 
 
@@ -1077,8 +1077,8 @@ static void *uorb_receiveloop(void *arg)
 			if (fds[ifds++].revents & POLLIN) {
 				/* copy local position data into local buffer */
 				orb_copy(ORB_ID(manual_control_setpoint), subs->man_control_sp_sub, &buf.man_control);
-				mavlink_msg_manual_control_send(MAVLINK_COMM_0, mavlink_system.sysid, buf.man_control.roll,
-					buf.man_control.pitch, buf.man_control.yaw, buf.man_control.throttle, 0);
+				mavlink_msg_manual_control_send(MAVLINK_COMM_0, mavlink_system.sysid, buf.man_control.roll*1000,
+					buf.man_control.pitch*1000, buf.man_control.yaw*1000, buf.man_control.throttle*1000, 0);
 			}
 
 			/* --- ACTUATOR ARMED --- */
@@ -1138,11 +1138,6 @@ mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 	}
 }
 
-#define MAVLINK_OFFBOARD_CONTROL_MODE_NONE 0
-#define MAVLINK_OFFBOARD_CONTROL_MODE_RATES 1
-#define MAVLINK_OFFBOARD_CONTROL_MODE_ATTITUDE 2
-#define MAVLINK_OFFBOARD_CONTROL_MODE_VELOCITY 3
-#define MAVLINK_OFFBOARD_CONTROL_MODE_POSITION 4
 #define MAVLINK_OFFBOARD_CONTROL_FLAG_ARMED 0x10
 
 /****************************************************************************
@@ -1254,81 +1249,105 @@ void handleMessage(mavlink_message_t *msg)
 //		printf("got MAVLINK_MSG_ID_SET_QUAD_MOTORS_SETPOINT target_system=%u, sysid = %u\n", quad_motors_setpoint.target_system, mavlink_system.sysid);
 
 		if (mavlink_system.sysid < 4) {
-			/* only send if RC is off */
-			if (v_status.rc_signal_lost) {
+			/* 
+			 * rate control mode - defined by MAVLink
+			 */
 
-				/* rate control mode */
-				if (quad_motors_setpoint.mode == 1) {
-					vehicle_rates_sp.roll = quad_motors_setpoint.roll[mavlink_system.sysid]   / (float)INT16_MAX;
-					vehicle_rates_sp.pitch = quad_motors_setpoint.pitch[mavlink_system.sysid]  / (float)INT16_MAX;
-					vehicle_rates_sp.yaw = quad_motors_setpoint.yaw[mavlink_system.sysid]    / (float)INT16_MAX;
-					vehicle_rates_sp.thrust = quad_motors_setpoint.thrust[mavlink_system.sysid] / (float)UINT16_MAX;
+			uint8_t ml_mode = 0;
+			bool ml_armed = false;
 
-					vehicle_rates_sp.timestamp = hrt_absolute_time();
-				}
-
-				/* check if topic has to be advertised */
-				if (mavlink_pubs.vehicle_rates_sp_pub <= 0) {
-					mavlink_pubs.vehicle_rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &vehicle_rates_sp);
-				}
-				/* Publish */
-				orb_publish(ORB_ID(vehicle_rates_setpoint), mavlink_pubs.vehicle_rates_sp_pub, &vehicle_rates_sp);
-
-				/* change armed status if required */
-				bool cmd_armed = (quad_motors_setpoint.mode & MAVLINK_OFFBOARD_CONTROL_FLAG_ARMED);
-
-				bool cmd_generated = false;
-
-				if (v_status.flag_control_offboard_enabled != cmd_armed) {
-					vcmd.param1 = cmd_armed;
-					vcmd.param2 = 0;
-					vcmd.param3 = 0;
-					vcmd.param4 = 0;
-					vcmd.param5 = 0;
-					vcmd.param6 = 0;
-					vcmd.param7 = 0;
-					vcmd.command = MAV_CMD_COMPONENT_ARM_DISARM;
-					vcmd.target_system = mavlink_system.sysid;
-					vcmd.target_component = MAV_COMP_ID_ALL;
-					vcmd.source_system = msg->sysid;
-					vcmd.source_component = msg->compid;
-					vcmd.confirmation = 1;
-
-					cmd_generated = true;
-				}
-
-				/* check if input has to be enabled */
-				if ((v_status.flag_control_rates_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_RATES)) ||
-					(v_status.flag_control_attitude_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_ATTITUDE)) ||
-					(v_status.flag_control_velocity_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_VELOCITY)) ||
-					(v_status.flag_control_position_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_POSITION))) {
-					vcmd.param1 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_RATES);
-					vcmd.param2 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_ATTITUDE);
-					vcmd.param3 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_VELOCITY);
-					vcmd.param4 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_POSITION);
-					vcmd.param5 = 0;
-					vcmd.param6 = 0;
-					vcmd.param7 = 0;
-					vcmd.command = PX4_CMD_CONTROLLER_SELECTION;
-					vcmd.target_system = mavlink_system.sysid;
-					vcmd.target_component = MAV_COMP_ID_ALL;
-					vcmd.source_system = msg->sysid;
-					vcmd.source_component = msg->compid;
-					vcmd.confirmation = 1;
-
-					cmd_generated = true;
-				}
-
-				if (cmd_generated) {
-					/* check if topic is advertised */
-					if (cmd_pub <= 0) {
-						cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
-					} else {
-						/* create command */
-						orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
-					}
-				}
+			if (quad_motors_setpoint.mode & MAVLINK_OFFBOARD_CONTROL_FLAG_ARMED) {
+				ml_armed = true;
 			}
+
+			switch (quad_motors_setpoint.mode) {
+				case 0:
+					break;
+				case 1:
+					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_RATES;
+					break;
+				case 2:
+					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE;
+					break;
+				case 3:
+					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY;
+					break;
+				case 4:
+					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_POSITION;
+					break;
+			}
+
+			offboard_control_sp.p1 = quad_motors_setpoint.roll[mavlink_system.sysid]   / (float)INT16_MAX;
+			offboard_control_sp.p2 = quad_motors_setpoint.pitch[mavlink_system.sysid]  / (float)INT16_MAX;
+			offboard_control_sp.p3= quad_motors_setpoint.yaw[mavlink_system.sysid]    / (float)INT16_MAX;
+			offboard_control_sp.p4 = quad_motors_setpoint.thrust[mavlink_system.sysid] / (float)UINT16_MAX;
+			offboard_control_sp.armed = ml_armed;
+			offboard_control_sp.mode = ml_mode;
+
+			offboard_control_sp.timestamp = hrt_absolute_time();
+
+			/* check if topic has to be advertised */
+			if (mavlink_pubs.offboard_control_sp_pub <= 0) {
+				mavlink_pubs.offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
+			} else {
+				/* Publish */
+				orb_publish(ORB_ID(offboard_control_setpoint), mavlink_pubs.offboard_control_sp_pub, &offboard_control_sp);
+			}
+
+			// /* change armed status if required */
+			// bool cmd_armed = (quad_motors_setpoint.mode & MAVLINK_OFFBOARD_CONTROL_FLAG_ARMED);
+
+			// bool cmd_generated = false;
+
+			// if (v_status.flag_control_offboard_enabled != cmd_armed) {
+			// 	vcmd.param1 = cmd_armed;
+			// 	vcmd.param2 = 0;
+			// 	vcmd.param3 = 0;
+			// 	vcmd.param4 = 0;
+			// 	vcmd.param5 = 0;
+			// 	vcmd.param6 = 0;
+			// 	vcmd.param7 = 0;
+			// 	vcmd.command = MAV_CMD_COMPONENT_ARM_DISARM;
+			// 	vcmd.target_system = mavlink_system.sysid;
+			// 	vcmd.target_component = MAV_COMP_ID_ALL;
+			// 	vcmd.source_system = msg->sysid;
+			// 	vcmd.source_component = msg->compid;
+			// 	vcmd.confirmation = 1;
+
+			// 	cmd_generated = true;
+			// }
+
+			// /* check if input has to be enabled */
+			// if ((v_status.flag_control_rates_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_RATES)) ||
+			// 	(v_status.flag_control_attitude_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_ATTITUDE)) ||
+			// 	(v_status.flag_control_velocity_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_VELOCITY)) ||
+			// 	(v_status.flag_control_position_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_POSITION))) {
+			// 	vcmd.param1 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_RATES);
+			// 	vcmd.param2 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_ATTITUDE);
+			// 	vcmd.param3 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_VELOCITY);
+			// 	vcmd.param4 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_POSITION);
+			// 	vcmd.param5 = 0;
+			// 	vcmd.param6 = 0;
+			// 	vcmd.param7 = 0;
+			// 	vcmd.command = PX4_CMD_CONTROLLER_SELECTION;
+			// 	vcmd.target_system = mavlink_system.sysid;
+			// 	vcmd.target_component = MAV_COMP_ID_ALL;
+			// 	vcmd.source_system = msg->sysid;
+			// 	vcmd.source_component = msg->compid;
+			// 	vcmd.confirmation = 1;
+
+			// 	cmd_generated = true;
+			// }
+
+			// if (cmd_generated) {
+			// 	/* check if topic is advertised */
+			// 	if (cmd_pub <= 0) {
+			// 		cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+			// 	} else {
+			// 		/* create command */
+			// 		orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
+			// 	}
+			// }
 		}
 	}
 
@@ -1408,10 +1427,10 @@ void handleMessage(mavlink_message_t *msg)
 			struct manual_control_setpoint_s mc;
 			static orb_advert_t mc_pub = 0;
 
-			mc.roll = man.x;
-			mc.pitch = man.y;
-			mc.yaw = man.r;
-			mc.roll = man.z;
+			mc.roll = man.x*1000;
+			mc.pitch = man.y*1000;
+			mc.yaw = man.r*1000;
+			mc.roll = man.z*1000;
 
 			/* fake RC channels with manual control input from simulator */
 
@@ -1542,7 +1561,7 @@ int mavlink_thread_main(int argc, char *argv[])
 	memset(&rc, 0, sizeof(rc));
 	memset(&hil_attitude, 0, sizeof(hil_attitude));
 	memset(&hil_global_pos, 0, sizeof(hil_global_pos));
-	memset(&vehicle_rates_sp, 0, sizeof(vehicle_rates_sp));
+	memset(&offboard_control_sp, 0, sizeof(offboard_control_sp));
 	memset(&vcmd, 0, sizeof(vcmd));
 
 	/* print welcome text */
@@ -1645,7 +1664,7 @@ int mavlink_thread_main(int argc, char *argv[])
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_RAW_IMU, 5);
 		/* 200 Hz / 5 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 5);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 5);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 3);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 5);
 		/* 5 Hz */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 200);

@@ -58,6 +58,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/actuator_controls.h>
@@ -94,6 +95,8 @@ mc_thread_main(int argc, char *argv[])
 	memset(&manual, 0, sizeof(manual));
 	struct sensor_combined_s raw;
 	memset(&raw, 0, sizeof(raw));
+	struct offboard_control_setpoint_s offboard_sp;
+	memset(&offboard_sp, 0, sizeof(offboard_sp));
 	struct vehicle_rates_setpoint_s rates_sp;
 	memset(&rates_sp, 0, sizeof(rates_sp));
 
@@ -102,7 +105,7 @@ mc_thread_main(int argc, char *argv[])
 	/* subscribe to attitude, motor setpoints and system state */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int att_setpoint_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	int setpoint_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
+	int setpoint_sub = orb_subscribe(ORB_ID(offboard_control_setpoint));
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
@@ -150,7 +153,7 @@ mc_thread_main(int argc, char *argv[])
 		bool updated;
 		orb_check(setpoint_sub, &updated);
 		if (updated) {
-			orb_copy(ORB_ID(vehicle_rates_setpoint), setpoint_sub, &rates_sp);
+			orb_copy(ORB_ID(offboard_control_setpoint), setpoint_sub, &offboard_sp);
 		}
 		/* get a local copy of the current sensor values */
 		orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
@@ -177,6 +180,17 @@ mc_thread_main(int argc, char *argv[])
 			}
 		} else if (state.flag_control_offboard_enabled) {
 			/* offboard inputs */
+			if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES) {
+				rates_sp.roll = offboard_sp.p1;
+				rates_sp.pitch = offboard_sp.p2;
+				rates_sp.yaw = offboard_sp.p3;
+				rates_sp.thrust = offboard_sp.p4;
+			} else if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE) {
+				att_sp.roll_body = offboard_sp.p1;
+				att_sp.pitch_body = offboard_sp.p2;
+				att_sp.yaw_body = offboard_sp.p3;
+				att_sp.thrust = offboard_sp.p4;
+			}
 
 			/* decide wether we want rate or position input */
 		}

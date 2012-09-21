@@ -33,7 +33,7 @@
 
 APPNAME		 = attitude_estimator_ekf
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 20000
+STACKSIZE	 = 2048
 
 CSRCS		 = attitude_estimator_ekf_main.c \
 		   codegen/eye.c \

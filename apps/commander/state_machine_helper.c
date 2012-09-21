@@ -223,7 +223,8 @@ void publish_armed_status(const struct vehicle_status_s *current_status) {
 	/* lock down actuators if required */
 	// XXX FIXME Currently any loss of RC will completely disable all actuators
 	// needs proper failsafe
-	armed.lockdown = (current_status->rc_signal_lost || current_status->flag_hil_enabled) ? true : false;
+	armed.lockdown = ((current_status->rc_signal_lost && current_status->offboard_control_signal_lost)
+	 || current_status->flag_hil_enabled) ? true : false;
 	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 	orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 }
