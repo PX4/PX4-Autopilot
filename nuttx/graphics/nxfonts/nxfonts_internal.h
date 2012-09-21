@@ -1,7 +1,7 @@
 /****************************************************************************
- * graphics/nxsu/nx_fill.c
+ * graphics/nxfonts/nxfonts_internal.h
  *
- *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,71 +33,56 @@
  *
  ****************************************************************************/
 
+#ifndef __GRAPHICS_NXFONTS_NXFONTS_INTERNAL_H
+#define __GRAPHICS_NXFONTS_NXFONTS_INTERNAL_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <mqueue.h>
-#include <errno.h>
-#include <debug.h>
-
-#include <nuttx/nx/nx.h>
-
-#include "nxfe.h"
+#include <nuttx/nx/nxfonts.h>
 
 /****************************************************************************
- * Pre-Processor Definitions
+ * Pre-processor definitions
  ****************************************************************************/
 
-/****************************************************************************
- * Private Types
- ****************************************************************************/
+/* Configuration ************************************************************/
+
+#ifndef CONFIG_NXFONTS_CHARBITS
+#  define CONFIG_NXFONTS_CHARBITS 7
+#endif
 
 /****************************************************************************
- * Private Data
+ * Public Types
  ****************************************************************************/
 
 /****************************************************************************
  * Public Data
  ****************************************************************************/
 
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: nx_fill
- *
- * Description:
- *  Fill the specified rectangle in the window with the specified color
- *
- * Input Parameters:
- *   hwnd  - The window handle
- *   rect  - The location to be filled
- *   color - The color to use in the fill
- *
- * Return:
- *   OK on success; ERROR on failure with errno set appropriately
- *
- ****************************************************************************/
-
-int nx_fill(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
-            nxgl_mxpixel_t color[CONFIG_NX_NPLANES])
-{
-#ifdef CONFIG_DEBUG
-  if (!hwnd || !rect || !color)
-    {
-      errno = EINVAL;
-      return ERROR;
-    }
+#undef EXTERN
+#if defined(__cplusplus)
+# define EXTERN extern "C"
+extern "C" {
+#else
+# define EXTERN extern
 #endif
 
-  nxbe_fill((FAR struct nxbe_window_s *)hwnd, rect, color);
-  return 0;
+EXTERN struct nx_fontset_s g_7bitfonts;
+#if CONFIG_NXFONTS_CHARBITS >= 8
+EXTERN struct nx_fontset_s g_8bitfonts;
+#endif
+EXTERN struct nx_font_s g_fonts;
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#undef EXTERN
+#if defined(__cplusplus)
 }
+#endif
+
+#endif /* __GRAPHICS_NXFONTS_NXFONTS_INTERNAL_H */
