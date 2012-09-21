@@ -422,7 +422,7 @@ int vsscanf(FAR char *buf, FAR const char *fmt, va_list ap)
               if (!noassign)
                 {
                   int *pint = va_arg(ap, int*);
-                  *pint = (int)(buf - bufstart) - 1;
+                  *pint = (int)(buf - bufstart);
                 }
             }
 
