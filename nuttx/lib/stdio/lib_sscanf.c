@@ -38,9 +38,11 @@
  ****************************************************************************/
 
 #include <nuttx/compiler.h>
+
 #include <sys/types.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
 #include <debug.h>
@@ -173,11 +175,11 @@ int vsscanf(FAR char *buf, FAR const char *fmt, va_list ap)
   FAR char       *bufstart;
   FAR char       *tv;
   FAR const char *tc;
+  bool            lflag;
+  bool            noassign;
   int             count;
-  int             noassign;
   int             width;
   int             base = 10;
-  int             lflag;
   char            tmp[MAXLN];
 
   lvdbg("vsscanf: buf=\"%s\" fmt=\"%s\"\n", buf, fmt);
@@ -191,9 +193,9 @@ int vsscanf(FAR char *buf, FAR const char *fmt, va_list ap)
   /* Parse the format, extracting values from the input buffer as needed */
 
   count    = 0;
-  noassign = 0;
   width    = 0;
-  lflag    = 0;
+  noassign = false;
+  lflag    = false;
 
   while (*fmt && *buf)
     {
@@ -223,11 +225,13 @@ int vsscanf(FAR char *buf, FAR const char *fmt, va_list ap)
 
               if (*fmt == '*')
                 {
-                  noassign = 1;
+                  noassign = true;
                 }
               else if (*fmt == 'l' || *fmt == 'L')
                 {
-                  lflag = 1;
+                  /* NOTE: Missing check for long long ('ll') */
+
+                  lflag = true;
                 }
               else if (*fmt >= '1' && *fmt <= '9')
                 {
@@ -349,15 +353,24 @@ int vsscanf(FAR char *buf, FAR const char *fmt, va_list ap)
               buf += width;
               if (!noassign)
                 {
-                  int *pint = va_arg(ap, int*);
 #ifdef SDCC
                   char *endptr;
-                  int tmpint = strtol(tmp, &endptr, base);
+                  long tmplong = strtol(tmp, &endptr, base);
 #else
-                  int tmpint = strtol(tmp, NULL, base);
+                  long tmplong = strtol(tmp, NULL, base);
 #endif
-                  lvdbg("vsscanf: Return %d to 0x%p\n", tmpint, pint);
-                  *pint = tmpint;
+                  if (lflag)
+                    {
+                      long *plong = va_arg(ap, long*);
+                      lvdbg("vsscanf: Return %ld to 0x%p\n", tmplong, plong);
+                      *plong = tmplong;
+                    }
+                  else
+                    {
+                      int *pint = va_arg(ap, int*);
+                      lvdbg("vsscanf: Return %ld to 0x%p\n", tmplong, pint);
+                      *pint = (int)tmplong;
+                    }
                 }
             }
 
@@ -440,8 +453,18 @@ int vsscanf(FAR char *buf, FAR const char *fmt, va_list ap)
 
               if (!noassign)
                 {
-                  int *pint = va_arg(ap, int*);
-                  *pint = (int)(buf - bufstart);
+                  size_t nchars = (size_t)(buf - bufstart);
+
+                  if (lflag)
+                    {
+                      long *plong = va_arg(ap, long*);
+                      *plong = (long)nchars;
+                    }
+                  else
+                    {
+                      int *pint = va_arg(ap, int*);
+                      *pint = (int)nchars;
+                    }
                 }
             }
 
@@ -452,7 +475,10 @@ int vsscanf(FAR char *buf, FAR const char *fmt, va_list ap)
               count++;
             }
 
-          width = noassign = lflag = 0;
+          width    = 0;
+          noassign = false;
+          lflag    = false;
+
           fmt++;
         }
 
