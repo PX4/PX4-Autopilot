@@ -245,8 +245,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 			/* scale from 14 bit to m/s2 */
 			z_k[3] = raw.accelerometer_m_s2[0];
-			z_k[4] = raw.accelerometer_raw[1];
-			z_k[5] = raw.accelerometer_raw[2];
+			z_k[4] = raw.accelerometer_m_s2[1];
+			z_k[5] = raw.accelerometer_m_s2[2];
 
 			z_k[6] = raw.magnetometer_ga[0];
 			z_k[7] = raw.magnetometer_ga[1];
@@ -274,8 +274,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			static bool const_initialized = false;
 
 			/* initialize with good values once we have a reasonable dt estimate */
-			if (!const_initialized && dt < 0.05 && dt > 0.005) 
+			if (!const_initialized /*&& dt < 0.05 && dt > 0.005*/) 
 			{
+				dt = 0.005f;
 				knownConst[0] = powf(0.6f, 2.0f*dt);
 				knownConst[1] = powf(0.6f, 2.0f*dt);
 				knownConst[2] = powf(0.2f, 2.0f*dt);
@@ -308,7 +309,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 			// printcounter++;
 
-			if (last_data > 0 && raw.timestamp - last_data > 8000) printf("sensor data missed! (%llu)\n", raw.timestamp - last_data);
+			if (last_data > 0 && raw.timestamp - last_data > 12000) printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
 
 			last_data = raw.timestamp;
 
@@ -318,9 +319,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			att.pitch = euler[1];
 			att.yaw = euler[2];
 
-			// att.rollspeed = rates.x;
-			// att.pitchspeed = rates.y;
-			// att.yawspeed = rates.z;
+			att.rollspeed = x_aposteriori[0];
+			att.pitchspeed = x_aposteriori[1];
+			att.yawspeed = x_aposteriori[2];
 
 			// Broadcast
 			orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);

@@ -40,7 +40,7 @@ real32_T norm(const real32_T x[3])
   firstNonZero = TRUE;
   for (k = 0; k < 3; k++) {
     if (x[k] != 0.0F) {
-      absxk = (real32_T)fabs(x[k]);
+      absxk = (real32_T)fabsf(x[k]);
       if (firstNonZero) {
         scale = absxk;
         y = 1.0F;
@@ -56,7 +56,7 @@ real32_T norm(const real32_T x[3])
     }
   }
 
-  return scale * (real32_T)sqrt(y);
+  return scale * (real32_T)sqrtf(y);
 }
 
 /* End of code generation (norm.c) */
