@@ -55,6 +55,7 @@
 #include <limits.h>
 #include <math.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <arch/board/up_hrt.h>
@@ -76,7 +77,7 @@ static float dt = 1;
 /* 0, 0, -9.81, 1, 1, 1, wo (gyro offset), w */
 /* state vector x has the following entries [ax,ay,az||mx,my,mz||wox,woy,woz||wx,wy,wz]' */
 static float z_k[9] = {0};					/**< Measurement vector */
-static float x_aposteriori_k[9] = {0};		/**< */
+static float x_aposteriori_k[9] = {0,0,0,0,0,-9.81,1,1,-1};		/**< */
 static float x_aposteriori[9] = {0};
 static float P_aposteriori_k[81] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,
 				   0, 100.f,   0,   0,   0,   0,   0,   0,   0,
@@ -217,6 +218,10 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 	thread_running = true;
 
+	/* advertise debug value */
+	struct debug_key_value_s dbg = { .key = "", .value = 0.0f };
+	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
+
 	/* Main loop*/
 	while (!thread_should_exit) {
 
@@ -266,7 +271,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 				overloadcounter++;
 			}
 
-			int8_t update_vect[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
+			int8_t update_vect[9] = {1, 1, 1, 1, 1, 1, 0, 0, 0};
 			float euler[3];
 			int32_t z_k_sizes = 9;
 			float u[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -277,11 +282,22 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			if (!const_initialized /*&& dt < 0.05 && dt > 0.005*/) 
 			{
 				dt = 0.005f;
-				knownConst[0] = powf(0.6f, 2.0f*dt);
-				knownConst[1] = powf(0.6f, 2.0f*dt);
-				knownConst[2] = powf(0.2f, 2.0f*dt);
-				knownConst[3] = powf(0.2f, 2.0f*dt);
-				knownConst[4] = powf(0.000001f, 2.0f*dt);
+				knownConst[0] = 0.6f*0.6f*dt;
+				knownConst[1] = 0.6f*0.6f*dt;
+				knownConst[2] = 0.2f*0.2f*dt;
+				knownConst[3] = 0.2f*0.2f*dt;
+				knownConst[4] = 0.000001f*0.000001f*dt; // -9.81,1,1,-1};
+
+				x_aposteriori_k[0] = z_k[0];
+				x_aposteriori_k[1] = z_k[1];
+				x_aposteriori_k[2] = z_k[2];
+				x_aposteriori_k[3] = z_k[3];
+				x_aposteriori_k[4] = z_k[4];
+				x_aposteriori_k[5] = z_k[5];
+				x_aposteriori_k[6] = z_k[6];
+				x_aposteriori_k[7] = z_k[7];
+				x_aposteriori_k[8] = z_k[8];
+
 				const_initialized = true;
 			}
 
@@ -299,15 +315,32 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			uint64_t timing_diff = hrt_absolute_time() - timing_start;
 
 			/* print rotation matrix every 200th time */
-			// if (printcounter % 200 == 0) {
+			if (printcounter % 2 == 0) {
+				// printf("x apo:\n%8.4f\t%8.4f\t%8.4f\n%8.4f\t%8.4f\t%8.4f\n%8.4f\t%8.4f\t%8.4f\n",
+				// 	x_aposteriori[0], x_aposteriori[1], x_aposteriori[2],
+				// 	x_aposteriori[3], x_aposteriori[4], x_aposteriori[5],
+				// 	x_aposteriori[6], x_aposteriori[7], x_aposteriori[8]);
+
+
+				// }
+
 			// 	printf("EKF attitude iteration: %d, runtime: %d us, dt: %d us (%d Hz)\n", loopcounter, (int)timing_diff, (int)(dt * 1000000.0f), (int)(1.0f / dt));
 			// 	printf("roll: %8.4f\tpitch: %8.4f\tyaw:%8.4f", (double)euler[0], (double)euler[1], (double)euler[2]);
 			// 	printf("\n%d\t%d\t%d\n%d\t%d\t%d\n%d\t%d\t%d\n", (int)(Rot_matrix[0] * 100), (int)(Rot_matrix[1] * 100), (int)(Rot_matrix[2] * 100),
 			// 	       (int)(Rot_matrix[3] * 100), (int)(Rot_matrix[4] * 100), (int)(Rot_matrix[5] * 100),
 			// 	       (int)(Rot_matrix[6] * 100), (int)(Rot_matrix[7] * 100), (int)(Rot_matrix[8] * 100));
-			// }
+			}
 
-			// printcounter++;
+							int i = printcounter % 9;
+
+				// for (int i = 0; i < 9; i++) {
+					char name[10];
+					sprintf(name, "xapo #%d", i);
+					memcpy(dbg.key, name, sizeof(dbg.key));
+					dbg.value = x_aposteriori[i];
+					orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
+
+			printcounter++;
 
 			if (last_data > 0 && raw.timestamp - last_data > 12000) printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
 
