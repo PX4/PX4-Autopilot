@@ -58,13 +58,36 @@ __EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
 	pid->error_previous = 0;
 	pid->integral = 0;
 }
-__EXPORT void pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax)
+__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax)
 {
-	pid->kp = kp;
-	pid->ki = ki;
-	pid->kd = kd;
-	pid->intmax = intmax;
+	int ret = 0;
+
+	if (isfinite(kp)) {
+		pid->kp = kp;
+	} else {
+		ret = 1;
+	}
+
+	if (isfinite(ki)) {
+		pid->ki = ki;
+	} else {
+		ret = 1;
+	}
+
+	if (isfinite(kd)) {
+		pid->kd = kd;
+	} else {
+		ret = 1;
+	}
+
+	if (isfinite(intmax)) {
+		pid->intmax = intmax;
+	}  else {
+		ret = 1;
+	}
+
 	// pid->limit = limit;
+	return ret;
 }
 
 //void pid_set(PID_t *pid, float sp)
@@ -133,19 +156,21 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 		d = -val_dot;
 
 	} else {
-		d = 0;
+		d = 0.0f;
 	}
 
-	if (pid->kd == 0) {
-		d = 0;
+	if (pid->kd == 0.0f) {
+		d = 0.0f;
 	}
 
-	if (pid->ki == 0) {
+	if (pid->ki == 0.0f) {
 		i = 0;
 	}
 
-	if (pid->kp == 0) {
-		p = 0;
+	float p;
+
+	if (pid->kp == 0.0f) {
+		p = 0.0f;
 	} else {
 		p = error;
 	}
@@ -154,10 +179,10 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 		pid->error_previous = error;
 	}
 
-	float val = (error * pid->kp) + (i * pid->ki) + (d * pid->kd);
+	float output = (error * pid->kp) + (i * pid->ki) + (d * pid->kd);
 
-	if (isfinite(val)) {
-		last_output = val;
+	if (isfinite(output)) {
+		pid->last_output = output;
 	}
 
 	if (!isfinite(pid->integral)) {
