@@ -65,6 +65,34 @@
 /* Shenzhou GPIO Configuration **********************************************************************/
 
 /* STM3240G-EVAL GPIOs ******************************************************************************/
+/* Ethernet
+ *
+ * -- ---- -------------- ----------------------------------------------------------
+ * PN NAME SIGNAL         NOTES
+ * -- ---- -------------- ----------------------------------------------------------
+ * 24 PA1  MII_RX_CLK     Ethernet PHY   NOTE:  Despite the MII labeling of these
+ *         RMII_REF_CLK   Ethernet PHY   signals, the DM916AEP is actually configured
+ * 25 PA2  MII_MDIO       Ethernet PHY   to work in RMII mode.
+ * 48 PB11 MII_TX_EN      Ethernet PHY
+ * 51 PB12 MII_TXD0       Ethernet PHY
+ * 52 PB13 MII_TXD1       Ethernet PHY
+ * 16 PC1  MII_MDC        Ethernet PHY
+ * 34 PC5  MII_INT        Ethernet PHY
+ * 55 PD8  MII_RX_DV      Ethernet PHY.  Requires CONFIG_STM32_ETH_REMAP
+ * 55 PD8  RMII_CRSDV     Ethernet PHY.  Requires CONFIG_STM32_ETH_REMAP
+ * 56 PD9  MII_RXD0       Ethernet PHY.  Requires CONFIG_STM32_ETH_REMAP
+ * 57 PD10 MII_RXD1       Ethernet PHY.  Requires CONFIG_STM32_ETH_REMAP
+ *
+ * The board desdign can support a 50MHz external clock to drive the PHY 
+ * (U9).  However, on my board, U9 is not present.
+ *
+ * 67 PA8  MCO            DM9161AEP
+ */
+
+#ifdef CONFIG_STM32_ETHMAC
+#  define GPIO_MII_INT   (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN5)
+#endif
+
 /* Wireless
  *
  * -- ---- -------------- -------------------------------------------------------------------

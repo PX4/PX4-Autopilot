@@ -739,7 +739,6 @@ static void *httpd_handler(void *arg)
         {
           pstate->ht_keepalive = false;
 #endif
-
           /* Then handle the next httpd command */
 
           status = httpd_parse(pstate);
