@@ -50,8 +50,6 @@
  * Pre-processor Definitions
  ************************************************************************************/
 
-#define BOARD_CFGR_MCO_SOURCE    RCC_CFGR_PLL3CLK
-
 /* Clocking *************************************************************************/
 
 /* On-board crystal frequency is 25MHz (HSE) */
@@ -97,10 +95,14 @@
 #define STM32_APB1_TIM6_CLKIN   (STM32_PCLK1_FREQUENCY)
 #define STM32_APB1_TIM7_CLKIN   (STM32_PCLK1_FREQUENCY)
 
-/* MCO output */
-
+/* MCO output driven by PLL3. From above, we already have PLL3 input frequency as:
+ *
+ *  STM32_PLL_PREDIV2 = 5, 25MHz / 5 => 5MHz 
+ */
+ 
 #if defined(CONFIG_STM32_MII_MCO) || defined(CONFIG_STM32_RMII_MCO)
-#  define STM32_PLL_PLL3MUL RCC_CFGR2_PLL3MULx10
+#  define BOARD_CFGR_MCO_SOURCE RCC_CFGR_PLL3CLK      /* Source: PLL3 */
+#  define STM32_PLL_PLL3MUL     RCC_CFGR2_PLL3MULx10  /* MCO 5MHz * 10 = 50MHz */
 #endif
 
 /************************************************************************************

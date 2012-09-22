@@ -135,17 +135,35 @@
 #  ifndef CONFIG_STM32_PHYSR
 #    error "CONFIG_STM32_PHYSR must be defined in the NuttX configuration"
 #  endif
-#  ifndef CONFIG_STM32_PHYSR_SPEED
-#    error "CONFIG_STM32_PHYSR_SPEED must be defined in the NuttX configuration"
-#  endif
-#  ifndef CONFIG_STM32_PHYSR_100MBPS
-#    error "CONFIG_STM32_PHYSR_100MBPS must be defined in the NuttX configuration"
-#  endif
-#  ifndef CONFIG_STM32_PHYSR_MODE
-#    error "CONFIG_STM32_PHYSR_MODE must be defined in the NuttX configuration"
-#  endif
-#  ifndef CONFIG_STM32_PHYSR_FULLDUPLEX
-#    error "CONFIG_STM32_PHYSR_FULLDUPLEX must be defined in the NuttX configuration"
+#  ifdef CONFIG_STM32_PHYSR_ALTCONFIG
+#    ifndef CONFIG_STM32_PHYSR_ALTMODE
+#      error "CONFIG_STM32_PHYSR_ALTMODE must be defined in the NuttX configuration"
+#    endif
+#    ifndef CONFIG_STM32_PHYSR_10HD
+#      error "CONFIG_STM32_PHYSR_10HD must be defined in the NuttX configuration"
+#    endif
+#    ifndef CONFIG_STM32_PHYSR_100HD
+#      error "CONFIG_STM32_PHYSR_100HD must be defined in the NuttX configuration"
+#    endif
+#    ifndef CONFIG_STM32_PHYSR_10FD
+#      error "CONFIG_STM32_PHYSR_10FD must be defined in the NuttX configuration"
+#    endif
+#    ifndef CONFIG_STM32_PHYSR_100FD
+#      error "CONFIG_STM32_PHYSR_100FD must be defined in the NuttX configuration"
+#    endif
+#  else
+#    ifndef CONFIG_STM32_PHYSR_SPEED
+#      error "CONFIG_STM32_PHYSR_SPEED must be defined in the NuttX configuration"
+#    endif
+#    ifndef CONFIG_STM32_PHYSR_100MBPS
+#      error "CONFIG_STM32_PHYSR_100MBPS must be defined in the NuttX configuration"
+#    endif
+#    ifndef CONFIG_STM32_PHYSR_MODE
+#      error "CONFIG_STM32_PHYSR_MODE must be defined in the NuttX configuration"
+#    endif
+#    ifndef CONFIG_STM32_PHYSR_FULLDUPLEX
+#      error "CONFIG_STM32_PHYSR_FULLDUPLEX must be defined in the NuttX configuration"
+#    endif
 #  endif
 #endif
 
@@ -2552,6 +2570,46 @@ static int stm32_phyinit(FAR struct stm32_ethmac_s *priv)
 
   /* Remember the selected speed and duplex modes */
 
+  nvdbg("PHYSR[%d]: %04x\n", CONFIG_STM32_PHYSR, phyval);
+
+  /* Different PHYs present speed and mode information in different ways.  IF
+   * This CONFIG_STM32_PHYSR_ALTCONFIG is selected, this indicates that the PHY
+   * represents speed and mode information are combined, for example, with
+   * separate bits for 10HD, 100HD, 10FD and 100FD.
+   */
+
+#ifdef CONFIG_STM32_PHYSR_ALTCONFIG
+  switch (phyval & CONFIG_STM32_PHYSR_ALTMODE)
+    {
+      default:
+      case CONFIG_STM32_PHYSR_10HD:
+        priv->fduplex = 0;
+        priv->mbps100 = 0;
+        break;
+
+      case CONFIG_STM32_PHYSR_100HD:
+        priv->fduplex = 0;
+        priv->mbps100 = 1;
+        break;
+
+      case CONFIG_STM32_PHYSR_10FD:
+        priv->fduplex = 1;
+        priv->mbps100 = 0;
+        break;
+
+      case CONFIG_STM32_PHYSR_100FD:
+        priv->fduplex = 1;
+        priv->mbps100 = 1;
+        break;
+    }
+
+  /* Different PHYs present speed and mode information in different ways.  Some
+   * will present separate information for speed and mode (this is the default).
+   * Those PHYs, for example, may provide a 10/100 Mbps indication and a separate
+   * full/half duplex indication.
+   */
+
+#else
   if ((phyval & CONFIG_STM32_PHYSR_MODE) == CONFIG_STM32_PHYSR_FULLDUPLEX)
     {
       priv->fduplex = 1;
@@ -2561,6 +2619,7 @@ static int stm32_phyinit(FAR struct stm32_ethmac_s *priv)
     {
       priv->mbps100 = 1;
     }
+#endif
 
 #else /* Auto-negotion not selected */
 

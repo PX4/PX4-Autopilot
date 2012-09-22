@@ -1684,6 +1684,7 @@ config SDIO_WIDTH_D1_ONLY
 
 endmenu
 
+if STM32_ETHMAC
 menu "Ethernet MAC configuration"
 
 config STM32_PHYADDR
@@ -1695,7 +1696,6 @@ config STM32_PHYADDR
 config STM32_MII
 	bool "Use MII interface"
 	default n
-	depends on STM32_ETHMAC
 	---help---
 		Support Ethernet MII interface.
 
@@ -1734,14 +1734,13 @@ endchoice
 config STM32_AUTONEG
 	bool "Use autonegotiation"
 	default y
-	depends on STM32_ETHMAC
 	---help---
 		Use PHY autonegotiation to determine speed and mode
 
 config STM32_ETHFD
 	bool "Full duplex"
 	default n
-	depends on STM32_ETHMAC && !STM32_AUTONEG
+	depends on !STM32_AUTONEG
 	---help---
 		If STM32_AUTONEG is not defined, then this may be defined to select full duplex
 		mode. Default: half-duplex
@@ -1749,61 +1748,104 @@ config STM32_ETHFD
 config STM32_ETH100MBPS
 	bool "100 Mbps"
 	default n
-	depends on STM32_ETHMAC && !STM32_AUTONEG
+	depends on !STM32_AUTONEG
 	---help---
 		If STM32_AUTONEG is not defined, then this may be defined to select 100 MBps
 		speed.  Default: 10 Mbps
 
 config STM32_PHYSR
-	hex "PHY status register address"
+	int "PHY Status Register Address (decimal)"
 	depends on STM32_AUTONEG
 	---help---
 		This must be provided if STM32_AUTONEG is defined.  The PHY status register
 		address may diff from PHY to PHY.  This configuration sets the address of
 		the PHY status register.
 
-config STM32_PHYSR_SPEED
-	hex "PHY speed mask"
+config STM32_PHYSR_ALTCONFIG
+	bool "PHY Status Alternate Bit Layout"
+	default n
 	depends on STM32_AUTONEG
 	---help---
+		Different PHYs present speed and mode information in different ways.  Some
+		will present separate information for speed and mode (this is the default).
+		Those PHYs, for example, may provide a 10/100 Mbps indication and a separate
+		full/half duplex indication. This options selects an alternative representation
+		where speed and mode information are combined.  This might mean, for example,
+		separate bits for 10HD, 100HD, 10FD and 100FD.
+
+config STM32_PHYSR_SPEED
+	hex "PHY Speed Mask"
+	depends on STM32_AUTONEG && !STM32_PHYSR_ALTCONFIG
+	---help---
 		This must be provided if STM32_AUTONEG is defined.  This provides bit mask
-		indicating 10 or 100MBps speed.
+		for isolating the 10 or 100MBps speed indication.
 
 config STM32_PHYSR_100MBPS
-	hex "PHY 100Mbps speed value"
-	depends on STM32_AUTONEG
+	hex "PHY 100Mbps Speed Value"
+	depends on STM32_AUTONEG && !STM32_PHYSR_ALTCONFIG
 	---help---
 		This must be provided if STM32_AUTONEG is defined.  This provides the value
 		of the speed bit(s) indicating 100MBps speed.
 
 config STM32_PHYSR_MODE
-	hex "PHY mode mask"
-	depends on STM32_AUTONEG
+	hex "PHY Mode Mask"
+	depends on STM32_AUTONEG && !STM32_PHYSR_ALTCONFIG
 	---help---
 		This must be provided if STM32_AUTONEG is defined.  This provide bit mask
-		indicating full or half duplex modes.
+		for isolating the full or half duplex mode bits.
 
 config STM32_PHYSR_FULLDUPLEX
-	hex "PHY full duplex mode value"
-	depends on STM32_AUTONEG
+	hex "PHY Full Duplex Mode Value"
+	depends on STM32_AUTONEG && !STM32_PHYSR_ALTCONFIG
 	---help---
 		This must be provided if STM32_AUTONEG is defined.  This provides the
 		value of the mode bits indicating full duplex mode.
 
+config STM32_PHYSR_ALTMODE
+	hex "PHY Mode Mask"
+	depends on STM32_AUTONEG && STM32_PHYSR_ALTCONFIG
+	---help---
+		This must be provided if STM32_AUTONEG is defined.  This provide bit mask
+		for isolating the speed and full/half duplex mode bits.
+
+config STM32_PHYSR_10HD
+	hex "10MHz/Half Duplex Value"
+	depends on STM32_AUTONEG && STM32_PHYSR_ALTCONFIG
+	---help---
+		This must be provided if STM32_AUTONEG is defined.  This is the value
+		under the bit mask that represents the 10Mbps, half duplex setting.
+
+config STM32_PHYSR_100HD
+	hex "100MHz/Half Duplex Value"
+	depends on STM32_AUTONEG && STM32_PHYSR_ALTCONFIG
+	---help---
+		This must be provided if STM32_AUTONEG is defined.  This is the value
+		under the bit mask that represents the 100Mbps, half duplex setting.
+
+config STM32_PHYSR_10FD
+	hex "10MHz/Full Duplex Value"
+	depends on STM32_AUTONEG && STM32_PHYSR_ALTCONFIG
+	---help---
+		This must be provided if STM32_AUTONEG is defined.  This is the value
+		under the bit mask that represents the 10Mbps, full duplex setting.
+
+config STM32_PHYSR_100FD
+	hex "100MHz/Full Duplex Value"
+	depends on STM32_AUTONEG && STM32_PHYSR_ALTCONFIG
+	---help---
+		This must be provided if STM32_AUTONEG is defined.  This is the value
+		under the bit mask that represents the 100Mbps, full duplex setting.
+
 config STM32_ETH_PTP
 	bool "Precision Time Protocol (PTP)"
 	default n
-	depends on STM32_ETHMAC
 	---help---
 		Precision Time Protocol (PTP).  Not supported but some hooks are indicated
 		with this condition.
 
-endmenu
-
 config STM32_RMII
 	bool
 	default y if !STM32_MII
-	depends on STM32_ETHMAC
 
 choice
 	prompt "RMII clock configuration"
@@ -1836,6 +1878,16 @@ config STM32_RMII_EXTCLK
 		clock.  Default:  Use MC0[1]
 
 endchoice
+
+config STM32_ETHMAC_REGDEBUG
+	bool "Register-Level Debug"
+	default n
+	depends on DEBUG
+	---help---
+		Enable very low-level register access debug.  Depends on DEBUG.
+
+endmenu
+endif
 
 menu "USB Host Configuration"
 
