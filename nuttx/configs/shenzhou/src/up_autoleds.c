@@ -203,24 +203,26 @@ static struct pm_callback_s g_ledscb =
 
 static inline void led_clrbits(unsigned int clrbits)
 {
+  /* All LEDs are pulled up and, hence, active low */
+
   if ((clrbits & SHENZHOU_LED1) != 0)
     {
-      stm32_gpiowrite(GPIO_LED1, false);
+      stm32_gpiowrite(GPIO_LED1, true);
     }
 
   if ((clrbits & SHENZHOU_LED2) != 0)
     {
-      stm32_gpiowrite(GPIO_LED2, false);
+      stm32_gpiowrite(GPIO_LED2, true);
     }
 
   if ((clrbits & SHENZHOU_LED3) != 0)
     {
-      stm32_gpiowrite(GPIO_LED3, false);
+      stm32_gpiowrite(GPIO_LED3, true);
     }
 
   if ((clrbits & SHENZHOU_LED4) != 0)
     {
-      stm32_gpiowrite(GPIO_LED4, false);
+      stm32_gpiowrite(GPIO_LED4, true);
     }
 }
 
@@ -234,24 +236,26 @@ static inline void led_clrbits(unsigned int clrbits)
 
 static inline void led_setbits(unsigned int setbits)
 {
+  /* All LEDs are pulled up and, hence, active low */
+
   if ((setbits & SHENZHOU_LED1) != 0)
     {
-      stm32_gpiowrite(GPIO_LED1, true);
+      stm32_gpiowrite(GPIO_LED1, false);
     }
 
   if ((setbits & SHENZHOU_LED2) != 0)
     {
-      stm32_gpiowrite(GPIO_LED2, true);
+      stm32_gpiowrite(GPIO_LED2, false);
     }
 
   if ((setbits & SHENZHOU_LED3) != 0)
     {
-      stm32_gpiowrite(GPIO_LED3, true);
+      stm32_gpiowrite(GPIO_LED3, false);
     }
 
   if ((setbits & SHENZHOU_LED4) != 0)
     {
-      stm32_gpiowrite(GPIO_LED4, true);
+      stm32_gpiowrite(GPIO_LED4, false);
     }
 }
 

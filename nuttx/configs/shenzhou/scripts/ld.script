@@ -63,6 +63,12 @@ SECTIONS
 		_etext = ABSOLUTE(.);
 	} > flash
 
+	__exidx_start = ABSOLUTE(.);
+	.ARM.exidx : {
+		*(.ARM.exidx*)
+	} >flash
+	__exidx_end = ABSOLUTE(.);
+
 	_eronly = ABSOLUTE(.);
 
 	/* The STM32F107VC has 64Kb of SRAM beginning at the following address */
@@ -78,12 +84,6 @@ SECTIONS
 	.ARM.extab : {
 		*(.ARM.extab*)
 	} >sram
-
-	__exidx_start = ABSOLUTE(.);
-	.ARM.exidx : {
-		*(.ARM.exidx*)
-	} >sram
-	__exidx_end = ABSOLUTE(.);
 
 	.bss : {
 		_sbss = ABSOLUTE(.);

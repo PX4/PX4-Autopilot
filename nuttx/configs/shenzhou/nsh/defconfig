@@ -175,6 +175,7 @@ CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG=y
 CONFIG_STM32_PHYADDR=1
 CONFIG_STM32_MII=y
 CONFIG_STM32_MII_MCO=y
+# CONFIG_STM32_MII_EXTCLK is not set
 CONFIG_STM32_AUTONEG=y
 CONFIG_STM32_PHYSR=16
 CONFIG_STM32_PHYSR_SPEED=0x0002
@@ -200,7 +201,7 @@ CONFIG_ARCH_STACKDUMP=y
 CONFIG_DRAM_START=0x20000000
 CONFIG_DRAM_SIZE=65536
 CONFIG_ARCH_HAVE_INTERRUPTSTACK=y
-# CONFIG_ARCH_INTERRUPTSTACK is not set
+CONFIG_ARCH_INTERRUPTSTACK=0
 
 #
 # Boot options
@@ -307,6 +308,7 @@ CONFIG_DEV_NULL=y
 # CONFIG_CAN is not set
 # CONFIG_PWM is not set
 # CONFIG_I2C is not set
+CONFIG_ARCH_HAVE_I2CRESET=y
 CONFIG_SPI=y
 # CONFIG_SPI_OWNBUS is not set
 CONFIG_SPI_EXCHANGE=y
@@ -468,142 +470,142 @@ CONFIG_NAMEDAPP=y
 #
 
 #
-# ADC example
+# ADC Example
 #
 # CONFIG_EXAMPLES_ADC is not set
 
 #
-# Buttons example
+# Buttons Example
 #
 # CONFIG_EXAMPLES_BUTTONS is not set
 
 #
-# CAN example
+# CAN Example
 #
 # CONFIG_EXAMPLES_CAN is not set
 
 #
-# USB CDC/ACM class driver example
+# USB CDC/ACM Class Driver Example
 #
 # CONFIG_EXAMPLES_CDCACM is not set
 
 #
-# USB composite class driver example
+# USB composite Class Driver Example
 #
 # CONFIG_EXAMPLES_COMPOSITE is not set
 
 #
-# DHCP server example
+# DHCP Server Example
 #
 # CONFIG_EXAMPLES_DHCPD is not set
 
 #
-# FTP client example
+# FTP Client Example
 #
 # CONFIG_EXAMPLES_FTPC is not set
 
 #
-# FTP server example
+# FTP Server Example
 #
 # CONFIG_EXAMPLES_FTPD is not set
 
 #
-# "Hello, World!" example
+# "Hello, World!" Example
 #
 # CONFIG_EXAMPLES_HELLO is not set
 
 #
-# "Hello, World!" C++ example
+# "Hello, World!" C++ Example
 #
 # CONFIG_EXAMPLES_HELLOXX is not set
 
 #
-# USB HID keyboard example
+# USB HID Keyboard Example
 #
 # CONFIG_EXAMPLES_HIDKBD is not set
 
 #
-# IGMP example
+# IGMP Example
 #
 # CONFIG_EXAMPLES_IGMP is not set
 
 #
-# LCD read/write example
+# LCD Read/Write Example
 #
 # CONFIG_EXAMPLES_LCDRW is not set
 
 #
-# Memory management example
+# Memory Management Example
 #
 # CONFIG_EXAMPLES_MM is not set
 
 #
-# File system mount example
+# File System Mount Example
 #
 # CONFIG_EXAMPLES_MOUNT is not set
 
 #
-# FreeModBus example
+# FreeModBus Example
 #
 # CONFIG_EXAMPLES_MODBUS is not set
 
 #
-# Network test example
+# Network Test Example
 #
 # CONFIG_EXAMPLES_NETTEST is not set
 
 #
-# NuttShell (NSH) example
+# NuttShell (NSH) Example
 #
 CONFIG_EXAMPLES_NSH=y
 
 #
-# NULL example
+# NULL Example
 #
 # CONFIG_EXAMPLES_NULL is not set
 
 #
-# NX graphics example
+# NX Graphics Example
 #
 # CONFIG_EXAMPLES_NX is not set
 
 #
-# NxConsole example
+# NxConsole Example
 #
 # CONFIG_EXAMPLES_NXCONSOLE is not set
 
 #
-# NXFFS file system example
+# NXFFS File System Example
 #
 # CONFIG_EXAMPLES_NXFFS is not set
 
 #
-# NXFLAT example
+# NXFLAT Example
 #
 # CONFIG_EXAMPLES_NXFLAT is not set
 
 #
-# NX graphics "Hello, World!" example
+# NX Graphics "Hello, World!" Example
 #
 # CONFIG_EXAMPLES_NXHELLO is not set
 
 #
-# NX graphics image example
+# NX Graphics image Example
 #
 # CONFIG_EXAMPLES_NXIMAGE is not set
 
 #
-# NX graphics lines example
+# NX Graphics lines Example
 #
 # CONFIG_EXAMPLES_NXLINES is not set
 
 #
-# NX graphics text example
+# NX Graphics Text Example
 #
 # CONFIG_EXAMPLES_NXTEXT is not set
 
 #
-# OS test example
+# OS Test Example
 #
 # CONFIG_EXAMPLES_OSTEST is not set
 
@@ -613,103 +615,112 @@ CONFIG_EXAMPLES_NSH=y
 # CONFIG_EXAMPLES_PASHELLO is not set
 
 #
-# Pipe example
+# Pipe Example
 #
 # CONFIG_EXAMPLES_PIPE is not set
 
 #
-# Poll example
+# Poll Example
 #
 # CONFIG_EXAMPLES_POLL is not set
 
 #
-# Pulse width modulation (PWM) example
+# Pulse Width Modulation (PWM) Example
 #
 
 #
-# Quadrature encoder example
+# Quadrature Encoder Example
 #
 # CONFIG_EXAMPLES_QENCODER is not set
 
 #
-# RGMP example
+# RGMP Example
 #
 # CONFIG_EXAMPLES_RGMP is not set
 
 #
-# ROMFS example
+# ROMFS Example
 #
 # CONFIG_EXAMPLES_ROMFS is not set
 
 #
-# sendmail example
+# sendmail Example
 #
 # CONFIG_EXAMPLES_SENDMAIL is not set
 
 #
-# Serial loopback example
+# Serial Loopback Example
 #
 # CONFIG_EXAMPLES_SERLOOP is not set
 
 #
-# Telnet daemon example
+# Telnet Daemon Example
 #
 # CONFIG_EXAMPLES_TELNETD is not set
 
 #
-# THTTPD web server example
+# THTTPD Web Server Example
 #
 # CONFIG_EXAMPLES_THTTPD is not set
 
 #
-# TIFF generation example
+# TIFF Generation Example
 #
 # CONFIG_EXAMPLES_TIFF is not set
 
 #
-# Touchscreen example
+# Touchscreen Example
 #
 # CONFIG_EXAMPLES_TOUCHSCREEN is not set
 
 #
-# UDP example
+# UDP Example
 #
 # CONFIG_EXAMPLES_UDP is not set
 
 #
-# uIP web server example
+# UDP Discovery Daemon Example
+#
+# CONFIG_EXAMPLE_DISCOVER is not set
+
+#
+# uIP Web Server Example
 #
 # CONFIG_EXAMPLES_UIP is not set
 
 #
-# USB serial test example
+# USB Serial Test Example
 #
 # CONFIG_EXAMPLES_USBSERIAL is not set
 
 #
-# USB mass storage class example
+# USB Mass Storage Class Example
 #
 # CONFIG_EXAMPLES_USBMSC is not set
 
 #
-# USB serial terminal example
+# USB Serial Terminal Example
 #
 # CONFIG_EXAMPLES_USBTERM is not set
 
 #
-# Watchdog timer example
+# Watchdog timer Example
 #
 # CONFIG_EXAMPLES_WATCHDOG is not set
 
 #
-# wget example
+# wget Example
 #
 # CONFIG_EXAMPLES_WGET is not set
 
 #
-# WLAN example
+# WLAN Example
 #
 # CONFIG_EXAMPLES_WLAN is not set
+
+#
+# XML RPC Example
+#
 
 #
 # Interpreters
@@ -789,6 +800,16 @@ CONFIG_NETUTILS_WEBCLIENT=y
 # uIP web server
 #
 # CONFIG_NETUTILS_WEBSERVER is not set
+
+#
+# UDP Discovery Utility
+#
+# CONFIG_NETUTILS_DISCOVER is not set
+
+#
+# XML-RPC library
+#
+# CONFIG_NETUTILS_XMLRPC is not set
 
 #
 # ModBus

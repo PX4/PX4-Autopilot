@@ -381,12 +381,12 @@ events as follows:
 
    * If LED1, LED2, LED3 are statically on, then NuttX probably failed to boot
      and these LEDs will give you some indication of where the failure was
-  ** The normal state is LED3 ON and LED1 faintly glowing.  This faint glow
+  ** The normal state is LED1 ON and LED1 faintly glowing.  This faint glow
      is because of timer interupts that result in the LED being illuminated
      on a small proportion of the time.
  *** LED2 may also flicker normally if signals are processed.
-**** LED4 may not be available if RS-485 is also used it will then indicate
-     the RS-485 direction.
+**** LED4 may not be available if RS-485 is also used. For RS-485, it will
+     then indicate the RS-485 direction.
 
 Shenzhou-specific Configuration Options
 ============================================
