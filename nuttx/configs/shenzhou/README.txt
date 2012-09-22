@@ -560,9 +560,9 @@ Shenzhou-specific Configuration Options
 
     CONFIG_STM32_PHYADDR - The 5-bit address of the PHY on the board
     CONFIG_STM32_MII - Support Ethernet MII interface
-    CONFIG_STM32_MII_MCO1 - Use MCO1 to clock the MII interface
-    CONFIG_STM32_MII_MCO2 - Use MCO2 to clock the MII interface
+    CONFIG_STM32_MII_MCO - Use MCO to clock the MII interface
     CONFIG_STM32_RMII - Support Ethernet RMII interface
+    CONFIG_STM32_RMII_MCO - Use MCO to clock the RMII interface
     CONFIG_STM32_AUTONEG - Use PHY autonegotion to determine speed and mode
     CONFIG_STM32_ETHFD - If CONFIG_STM32_AUTONEG is not defined, then this
       may be defined to select full duplex mode. Default: half-duplex

@@ -2854,7 +2854,7 @@ static void stm32_ethreset(FAR struct stm32_ethmac_s *priv)
    * reset all the registers holds their reset values.
    */
 
-  regval = stm32_getreg(STM32_ETH_DMABMR);
+  regval  = stm32_getreg(STM32_ETH_DMABMR);
   regval |= ETH_DMABMR_SR;
   stm32_putreg(regval, STM32_ETH_DMABMR);
 

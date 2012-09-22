@@ -166,9 +166,9 @@
  * -- ---- -------------- ----------------------------------------------------------
  * PN NAME SIGNAL         NOTES
  * -- ---- -------------- ----------------------------------------------------------
- * 24 PA1  MII_RX_CLK     Ethernet PHY
- *         RMII_REF_CLK   Ethernet PHY
- * 25 PA2  MII_MDIO       Ethernet PHY
+ * 24 PA1  MII_RX_CLK     Ethernet PHY   NOTE:  Despite the MII labeling of these
+ *         RMII_REF_CLK   Ethernet PHY   signals, the DM916AEP is actually configured
+ * 25 PA2  MII_MDIO       Ethernet PHY   to work in RMII mode.
  * 48 PB11 MII_TX_EN      Ethernet PHY
  * 51 PB12 MII_TXD0       Ethernet PHY
  * 52 PB13 MII_TXD1       Ethernet PHY
@@ -186,11 +186,11 @@
 #  ifndef CONFIG_STM32_ETH_REMAP
 #    error "STM32 Ethernet requires CONFIG_STM32_ETH_REMAP"
 #  endif
-#  ifndef CONFIG_STM32_MII
-#    error "STM32 Ethernet requires CONFIG_STM32_MII"
+#  ifndef CONFIG_STM32_RMII
+#    error "STM32 Ethernet requires CONFIG_STM32_RMII"
 #  endif
-#  ifndef CONFIG_STM32_MII_MCO
-#    error "STM32 Ethernet requires CONFIG_STM32_MII_MCO"
+#  ifndef CONFIG_STM32_RMII_MCO
+#    error "STM32 Ethernet requires CONFIG_STM32_RMII_MCO"
 #  endif
 #endif
 
