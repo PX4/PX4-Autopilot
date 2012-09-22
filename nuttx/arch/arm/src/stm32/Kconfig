@@ -1732,11 +1732,11 @@ config STM32_MII_EXTCLK
 endchoice
 
 config STM32_AUTONEG
-	bool "Use autonegtiation"
+	bool "Use autonegotiation"
 	default y
 	depends on STM32_ETHMAC
 	---help---
-		Use PHY autonegotion to determine speed and mode
+		Use PHY autonegotiation to determine speed and mode
 
 config STM32_ETHFD
 	bool "Full duplex"

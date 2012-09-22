@@ -57,9 +57,18 @@
 /* On-board crystal frequency is 25MHz (HSE) */
 
 #define STM32_BOARD_XTAL        25000000ul
-#define STM32_PLL_FREQUENCY     (72000000)
-#define STM32_SYSCLK_FREQUENCY  STM32_PLL_FREQUENCY
 
+/* PLL ouput is 72MHz */
+
+#define STM32_PLL_PREDIV2       RCC_CFGR2_PREDIV2d5   /* 25MHz / 5 => 5MHz */
+#define STM32_PLL_PLL2MUL       RCC_CFGR2_PLL2MULx8   /* 5MHz * 8  => 40MHz */
+#define STM32_PLL_PREDIV1       RCC_CFGR2_PREDIV1d5   /* 40MHz / 5 => 8MHz */
+#define STM32_PLL_PLLMUL        RCC_CFGR_PLLMUL_CLKx9 /* 8MHz * 9  => 72Mhz */
+#define STM32_PLL_FREQUENCY     (72000000)
+
+/* SYCLLK and HCLK are the PLL frequency */
+
+#define STM32_SYSCLK_FREQUENCY  STM32_PLL_FREQUENCY
 #define STM32_HCLK_FREQUENCY    STM32_PLL_FREQUENCY
 #define STM32_BOARD_HCLK        STM32_HCLK_FREQUENCY  /* same as above, to satisfy compiler */
 
@@ -87,6 +96,12 @@
 #define STM32_APB1_TIM5_CLKIN   (STM32_PCLK1_FREQUENCY)
 #define STM32_APB1_TIM6_CLKIN   (STM32_PCLK1_FREQUENCY)
 #define STM32_APB1_TIM7_CLKIN   (STM32_PCLK1_FREQUENCY)
+
+/* MCO output */
+
+#if defined(CONFIG_STM32_MII_MCO) || defined(CONFIG_STM32_RMII_MCO)
+#  define STM32_PLL_PLL3MUL RCC_CFGR2_PLL3MULx10
+#endif
 
 /* LED definitions ******************************************************************/
 /* If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any
@@ -315,19 +330,6 @@
  ************************************************************************************/
 
 void stm32_boardinitialize(void);
-
-/************************************************************************************
- * Name: stm32_board_clockconfig
- *
- * Description:
- *   Any STM32 board may replace the "standard" board clock configuration logic with
- *   its own, custom clock cofiguration logic.
- *
- ************************************************************************************/
-
-#ifdef CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG
-void stm32_board_clockconfig(void);
-#endif
 
 /************************************************************************************
  * Button support.
