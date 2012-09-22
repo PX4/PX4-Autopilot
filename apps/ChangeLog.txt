@@ -336,3 +336,5 @@
 	  can now be used to limit the server to a single thread.  Option
 	  CONFIG_NETUTILS_HTTPD_TIMEOUT can be used to generate HTTP 408 errors.
 	  Both from Kate.
+	* apps/netutils/webserver/httpd.c:  Improvements to HTTP parser from
+	  Kate.

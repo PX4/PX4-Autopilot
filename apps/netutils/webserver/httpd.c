@@ -118,8 +118,6 @@
  * Private Data
  ****************************************************************************/
 
-static const char g_httpcmdget[]            = "GET ";
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -179,7 +177,7 @@ static void httpd_dumpbuffer(FAR const char *msg, FAR const char *buffer, unsign
   /* CONFIG_DEBUG, CONFIG_DEBUG_VERBOSE, and CONFIG_DEBUG_NET have to be
    * defined or the following does nothing.
    */
-    
+
   nvdbgdumpbuffer(msg, (FAR const uint8_t*)buffer, nbytes);
 }
 #else
@@ -194,8 +192,10 @@ static void httpd_dumppstate(struct httpd_state *pstate, const char *msg)
   nvdbg("  filename:      [%s]\n", pstate->ht_filename);
   nvdbg("  htfile len:    %d\n", pstate->ht_file.len);
   nvdbg("  sockfd:        %d\n", pstate->ht_sockfd);
+#ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
   nvdbg("  scriptptr:     %p\n", pstate->ht_scriptptr);
   nvdbg("  scriptlen:     %d\n", pstate->ht_scriptlen);
+#endif
   nvdbg("  sndlen:        %d\n", pstate->ht_sndlen);
 #endif
 }
@@ -373,6 +373,11 @@ static int send_headers(struct httpd_state *pstate, int status, int len)
       (void) snprintf(cl, sizeof cl, "Content-Length: %d\r\n", len);
     }
 
+  if (status == 413)
+    {
+      /* TODO: here we "SHOULD" include a Retry-After header */
+    }
+
   i = snprintf(s, sizeof s,
     "HTTP/1.0 %d %s\r\n"
 #ifndef CONFIG_NETUTILS_HTTPD_SERVERHEADER_DISABLE
@@ -498,73 +503,167 @@ done:
   return ret;
 }
 
-static inline int httpd_cmd(struct httpd_state *pstate)
+static inline int httpd_parse(struct httpd_state *pstate)
 {
-  ssize_t recvlen;
-  int i;
+  char *o;
 
-  /* Get the next HTTP command.  We will handle only GET */
+  enum
+  {
+    STATE_METHOD,
+    STATE_HEADER,
+    STATE_BODY
+  } state;
 
-  recvlen = recv(pstate->ht_sockfd, pstate->ht_buffer, HTTPD_IOBUFFER_SIZE, 0);
+  state = STATE_METHOD;
+  o = pstate->ht_buffer;
+
+  do
+    {
+      char *start;
+      char *end;
+
+      if (o == pstate->ht_buffer + sizeof pstate->ht_buffer)
+        {
+          ndbg("[%d] ht_buffer overflow\n");
+          return 413;
+        }
+
+      {
+        ssize_t r;
+
+        r = recv(pstate->ht_sockfd, o,
+          sizeof pstate->ht_buffer - (o - pstate->ht_buffer), 0);
+        if (r == 0)
+          {
+            ndbg("[%d] connection lost\n", pstate->ht_sockfd);
+            return ERROR;
+          }
+
 #if CONFIG_NETUTILS_HTTPD_TIMEOUT > 0
-  if (recvlen < 0 && errno == EWOULDBLOCK)
-    {
-      ndbg("[%d] recv timeout\n");
-      return httpd_senderror(pstate, 408);
-    }
-  else
+        if (r == -1 && errno == EWOULDBLOCK)
+          {
+            ndbg("[%d] recv timeout\n");
+            return 408;
+          }
 #endif
-  if (recvlen < 0)
-    {
-      ndbg("[%d] recv failed: %d\n", pstate->ht_sockfd, errno);
-      return httpd_senderror(pstate, 400);
+        if (r == -1)
+          {
+            ndbg("[%d] recv failed: %d\n", pstate->ht_sockfd, errno);
+            return 400;
+          }
+
+        o += r;
+      }
+
+      /* Here o marks the end of the total block currently awaiting processing.
+       * There may be multiple lines in a block; next we deal with each in turn.
+       */
+
+      for (start = pstate->ht_buffer;
+           (end = memchr(start, '\r', o - start)), end != NULL;
+           start = end)
+        {
+          *end = '\0';
+          end++;
+
+          /* Here start and end are a single line within the current block */
+
+          httpd_dumpbuffer("Incoming HTTP line", start, end - start);
+
+          if (*end != '\n')
+            {
+              ndbg("[%d] expected CRLF\n");
+              return 400;
+            }
+
+          end++;
+
+          switch (state)
+          {
+          char *v;
+
+          case STATE_METHOD:
+            if (0 != strncmp(start, "GET ", 4))
+              {
+                ndbg("[%d] method not supported\n");
+                return 501;
+              }
+
+            start += 4;
+            v = start + strcspn(start, " ");
+
+            if (0 != strcmp(v, " HTTP/1.0") && 0 != strcmp(v, " HTTP/1.1"))
+              {
+                ndbg("[%d] HTTP/%d.%d not supported\n", major, minor);
+                return 505;
+              }
+
+            /* TODO: url decoding */
+
+            if (v - start >= sizeof pstate->ht_filename)
+              {
+                ndbg("[%d] ht_filename overflow\n");
+                return 414;
+              }
+
+            *v = '\0';
+            (void) strcpy(pstate->ht_filename, start);
+            state = STATE_HEADER;
+            break;
+
+          case STATE_HEADER:
+            if (*start == '\0')
+              {
+                state = STATE_BODY;
+                break;
+              }
+
+            v = start + strcspn(start, ":");
+            if (*v != '\0')
+              {
+                *v = '\0', v++;
+                v += strspn(v, ": ");
+              }
+
+            if (*start == '\0' || *v == '\0')
+              {
+                ndbg("[%d] header parse error\n");
+                return 400;
+              }
+
+            nvdbg("[%d] Request header %s: %s\n", pstate->ht_sockfd, start, v);
+
+            if (0 == strcasecmp(start, "Content-Length") && 0 != atoi(v))
+              {
+                ndbg("[%d] non-zero request length\n");
+                return 413;
+              }
+
+            break;
+
+          case STATE_BODY:
+            /* Not implemented */
+            break;
+          }
+       }
+
+      /* Shuffle down for the next block */
+
+      memmove(pstate->ht_buffer, start, o - start);
+      o -= start;
     }
-  else if (recvlen == 0)
-    {
-      ndbg("[%d] connection lost\n", pstate->ht_sockfd);
-      return httpd_senderror(pstate, 400);
-    }
+  while (state != STATE_BODY);
 
-  httpd_dumpbuffer("Incoming buffer", pstate->ht_buffer, recvlen);
-
-  /*  We will handle only GET */
-
-  if (strncmp(pstate->ht_buffer, g_httpcmdget, strlen(g_httpcmdget)) != 0)
-    {
-      ndbg("[%d] Unsupported command\n", pstate->ht_sockfd);
-      return httpd_senderror(pstate, 405);
-    }
-
-  /* Get the name of the file to provide */
-
-  if (pstate->ht_buffer[4] != ISO_slash)
-    {
-      ndbg("[%d] Missing path\n", pstate->ht_sockfd);
-      return httpd_senderror(pstate, 400);
-    }
 #if !defined(CONFIG_NETUTILS_HTTPD_SENDFILE) && !defined(CONFIG_NETUTILS_HTTPD_MMAP)
-  else if (pstate->ht_buffer[5] == ISO_space)
+  if (0 == strcmp(pstate->ht_filename, "/")
     {
       strncpy(pstate->ht_filename, "/" CONFIG_NETUTILS_HTTPD_INDEX, strlen("/" CONFIG_NETUTILS_HTTPD_INDEX));
     }
 #endif
-  else
-    {
-      for (i = 0;
-           i < (HTTPD_MAX_FILENAME-1) && pstate->ht_buffer[i+4] != ISO_space;
-           i++)
-        {
-          pstate->ht_filename[i] = pstate->ht_buffer[i+4];
-        }
-
-      pstate->ht_filename[i]='\0';
-    }
 
   nvdbg("[%d] Filename: %s\n", pstate->ht_sockfd, pstate->ht_filename);
 
-  /* Then send the file */
-
-  return httpd_sendfile(pstate);
+  return 200;
 }
 
 /****************************************************************************
@@ -589,6 +688,8 @@ static void *httpd_handler(void *arg)
 
   if (pstate)
     {
+      int status;
+
       /* Re-initialize the thread state structure */
 
       memset(pstate, 0, sizeof(struct httpd_state));
@@ -596,7 +697,15 @@ static void *httpd_handler(void *arg)
 
       /* Then handle the next httpd command */
 
-      ret = httpd_cmd(pstate);
+      status = httpd_parse(pstate);
+      if (status >= 400)
+        {
+          ret = httpd_senderror(pstate, status);
+        }
+      else
+        {
+          ret = httpd_sendfile(pstate);
+        }
 
       /* End of command processing -- Clean up and exit */
 
