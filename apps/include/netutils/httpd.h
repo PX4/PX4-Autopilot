@@ -109,6 +109,9 @@ struct httpd_state
 {
   char     ht_buffer[HTTPD_IOBUFFER_SIZE];  /* recv() buffer */
   char     ht_filename[HTTPD_MAX_FILENAME]; /* filename from GET command */
+#ifndef CONFIG_NETUTILS_HTTPD_KEEPALIVE_DISABLE
+  bool     ht_keepalive;                    /* Connection: keep-alive */
+#endif
   struct httpd_fs_file ht_file;             /* Fake file data to send */
   int      ht_sockfd;                       /* The socket descriptor from accept() */
   char    *ht_scriptptr;

@@ -104,6 +104,16 @@
 #  define CONFIG_NETUTILS_HTTPD_TIMEOUT 0
 #endif
 
+/* If timeouts are not enabled, then keep-alive is disabled.  This is to
+ * prevent a rogue HTTP client from blocking the httpd indefinitely.
+ */
+
+#if !defined(CONFIG_NETUTILS_HTTPD_KEEPALIVE_DISABLE)
+#  if CONFIG_NETUTILS_HTTPD_TIMEOUT == 0
+#    define CONFIG_NETUTILS_HTTPD_KEEPALIVE_DISABLE
+#  endif
+#endif
+
 #if !defined(CONFIG_NETUTILS_HTTPD_SENDFILE) && !defined(CONFIG_NETUTILS_HTTPD_MMAP)
 #  ifndef CONFIG_NETUTILS_HTTPD_INDEX
 #    ifndef CONFIG_NETUTILS_HTTPD_SCRIPT_DISABLE
@@ -372,6 +382,12 @@ static int send_headers(struct httpd_state *pstate, int status, int len)
     {
       (void) snprintf(cl, sizeof cl, "Content-Length: %d\r\n", len);
     }
+#ifndef CONFIG_NETUTILS_HTTPD_KEEPALIVE_DISABLE
+  else
+    {
+      pstate->ht_keepalive = false;
+    }
+#endif
 
   if (status == 413)
     {
@@ -383,12 +399,17 @@ static int send_headers(struct httpd_state *pstate, int status, int len)
 #ifndef CONFIG_NETUTILS_HTTPD_SERVERHEADER_DISABLE
     "Server: uIP/NuttX http://nuttx.org/\r\n"
 #endif
-    "Connection: close\r\n"
+    "Connection: %s\r\n"
     "Content-type: %s\r\n"
     "%s"
     "\r\n",
     status,
     status >= 400 ? "Error" : "OK",
+#ifndef CONFIG_NETUTILS_HTTPD_KEEPALIVE_DISABLE
+    pstate->ht_keepalive ? "keep-alive" : "close",
+#else
+    "close",
+#endif
     mime,
     len >= 0 ? cl : "");
 
@@ -406,6 +427,13 @@ static int httpd_senderror(struct httpd_state *pstate, int status)
     {
       status = 500;
     }
+
+#ifndef CONFIG_NETUTILS_HTTPD_KEEPALIVE_DISABLE
+  if (status != 404)
+    {
+      pstate->ht_keepalive = false;
+    }
+#endif
 
   (void) snprintf(pstate->ht_filename, sizeof pstate->ht_filename,
     "%s/%d.html",
@@ -456,6 +484,9 @@ static int httpd_sendfile(struct httpd_state *pstate)
     f = httpd_cgi(pstate->ht_filename);
     if (f != NULL)
       {
+#ifndef CONFIG_NETUTILS_HTTPD_KEEPALIVE_DISABLE
+        pstate->ht_keepalive = false;
+#endif
         f(pstate, pstate->ht_filename);
 
         return OK;
@@ -474,6 +505,9 @@ static int httpd_sendfile(struct httpd_state *pstate)
   if (ptr != NULL &&
       strncmp(ptr, ".shtml", strlen(".shtml")) == 0)
     {
+#ifndef CONFIG_NETUTILS_HTTPD_KEEPALIVE_DISABLE
+      pstate->ht_keepalive = false;
+#endif
       if (send_headers(pstate, 200, -1) != OK)
         {
            goto done;
@@ -594,7 +628,7 @@ static inline int httpd_parse(struct httpd_state *pstate)
 
             if (0 != strcmp(v, " HTTP/1.0") && 0 != strcmp(v, " HTTP/1.1"))
               {
-                ndbg("[%d] HTTP/%d.%d not supported\n", major, minor);
+                ndbg("[%d] HTTP version not supported\n");
                 return 505;
               }
 
@@ -638,7 +672,12 @@ static inline int httpd_parse(struct httpd_state *pstate)
                 ndbg("[%d] non-zero request length\n");
                 return 413;
               }
-
+#ifndef CONFIG_NETUTILS_HTTPD_KEEPALIVE_DISABLE
+            else if (0 == strcasecmp(start, "Connection") && 0 == strcasecmp(v, "keep-alive"))
+              {
+                pstate->ht_keepalive = true;
+              }
+#endif
             break;
 
           case STATE_BODY:
@@ -650,7 +689,7 @@ static inline int httpd_parse(struct httpd_state *pstate)
       /* Shuffle down for the next block */
 
       memmove(pstate->ht_buffer, start, o - start);
-      o -= start;
+      o -= (start - pstate->ht_buffer);
     }
   while (state != STATE_BODY);
 
@@ -695,17 +734,28 @@ static void *httpd_handler(void *arg)
       memset(pstate, 0, sizeof(struct httpd_state));
       pstate->ht_sockfd = sockfd;
 
-      /* Then handle the next httpd command */
+#ifndef CONFIG_NETUTILS_HTTPD_KEEPALIVE_DISABLE
+      do
+        {
+          pstate->ht_keepalive = false;
+#endif
 
-      status = httpd_parse(pstate);
-      if (status >= 400)
-        {
-          ret = httpd_senderror(pstate, status);
+          /* Then handle the next httpd command */
+
+          status = httpd_parse(pstate);
+          if (status >= 400)
+            {
+              ret = httpd_senderror(pstate, status);
+            }
+          else
+            {
+              ret = httpd_sendfile(pstate);
+            }
+
+#ifndef CONFIG_NETUTILS_HTTPD_KEEPALIVE_DISABLE
         }
-      else
-        {
-          ret = httpd_sendfile(pstate);
-        }
+      while (pstate->ht_keepalive);
+#endif
 
       /* End of command processing -- Clean up and exit */
 

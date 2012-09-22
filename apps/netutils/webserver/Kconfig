@@ -117,4 +117,22 @@ config NETUTILS_HTTPD_MMAP
 		representation.
 
 endchoice
+
+config NETUTILS_HTTPD_KEEPALIVE_DISABLE
+	bool "Keepalive Disable"
+	default y if !NETUTILS_HTTPD_TIMEOUT
+	default n if NETUTILS_HTTPD_TIMEOUT
+	---help---
+		Disabled HTTP keep-alive for HTTP clients.  Keep-alive permits a
+		client to make multiple requests over the same connection, rather
+		than closing and opening a new socket for each request.
+
+		This depends on the content-length being known, and is automatically
+		disabled for situations where that header isn't produced (i.e.
+		scripting, CGI). Keep-alive is also disabled for certain error
+		responses.
+
+		Keep-alive should normally be disabled if timeouts are enabled,
+		otherwise a rogue HTTP client could block the httpd indefinitely.
+
 endif

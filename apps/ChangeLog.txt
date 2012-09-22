@@ -338,3 +338,5 @@
 	  Both from Kate.
 	* apps/netutils/webserver/httpd.c:  Improvements to HTTP parser from
 	  Kate.
+	* apps/netutils/webserver/httpd.c:  Add support for Keep-alive connections
+	  (from Kate).
