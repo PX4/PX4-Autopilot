@@ -40,18 +40,19 @@
  */
 
 #include "pid.h"
+#include <math.h>
 
 __EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
-	      uint8_t mode, uint8_t plot_i)
+	      uint8_t mode)
 {
 	pid->kp = kp;
 	pid->ki = ki;
 	pid->kd = kd;
 	pid->intmax = intmax;
 	pid->mode = mode;
-	pid->plot_i = plot_i;
 	pid->count = 0;
 	pid->saturated = 0;
+	pid->last_output = 0;
 
 	pid->sp = 0;
 	pid->error_previous = 0;
@@ -63,11 +64,7 @@ __EXPORT void pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float
 	pid->ki = ki;
 	pid->kd = kd;
 	pid->intmax = intmax;
-	//	pid->mode = mode;
-
-	//	pid->sp = 0;
-	//	pid->error_previous = 0;
-	//	pid->integral = 0;
+	// pid->limit = limit;
 }
 
 //void pid_set(PID_t *pid, float sp)
@@ -95,6 +92,11 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	 goto start
 	 */
 
+	if (!isfinite(sp) || !isfinite(val) || !isfinite(val_dot) || !isfinite(dt))
+	{
+		return pid->last_output;
+	}
+
 	float i, d;
 	pid->sp = sp;
 	float error = pid->sp - val;
@@ -111,7 +113,7 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	}
 
 	// Anti-Windup. Needed if we don't use the saturation above.
-	if (pid->intmax != 0.0) {
+	if (pid->intmax != 0.0f) {
 		if (i > pid->intmax) {
 			pid->integral = pid->intmax;
 
@@ -122,14 +124,6 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 		} else {
 			pid->integral = i;
 		}
-
-		//Send Controller integrals
-		//		Disabled because of new possibilities with debug_vect.
-		//		Now sent in Main Loop at 5 Hz. 26.06.2010 Laurens
-		//		if (pid->plot_i && (pid->count++ % 16 == 0)&&(global_data.param[PARAM_SEND_SLOT_DEBUG_2] == 1))
-		//		{
-		//			mavlink_msg_debug_send(MAVLINK_COMM_1, pid->plot_i, pid->integral);
-		//		}
 	}
 
 	if (pid->mode == PID_MODE_DERIVATIV_CALC) {
@@ -142,7 +136,33 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 		d = 0;
 	}
 
-	pid->error_previous = error;
+	if (pid->kd == 0) {
+		d = 0;
+	}
 
-	return (error * pid->kp) + (i * pid->ki) + (d * pid->kd);
+	if (pid->ki == 0) {
+		i = 0;
+	}
+
+	if (pid->kp == 0) {
+		p = 0;
+	} else {
+		p = error;
+	}
+
+	if (isfinite(error)) {
+		pid->error_previous = error;
+	}
+
+	float val = (error * pid->kp) + (i * pid->ki) + (d * pid->kd);
+
+	if (isfinite(val)) {
+		last_output = val;
+	}
+
+	if (!isfinite(pid->integral)) {
+		pid->integral = 0;
+	}
+
+	return pid->last_output;
 }

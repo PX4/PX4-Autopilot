@@ -936,29 +936,6 @@ static void *uorb_receiveloop(void *arg)
 				orb_copy(ORB_ID(vehicle_attitude_setpoint), subs->spa_sub, &buf.att_sp);
 				mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0, buf.att_sp.timestamp/1000,
 					buf.att_sp.roll_body, buf.att_sp.pitch_body, buf.att_sp.yaw_body, buf.att_sp.thrust);
-
-				/* Only send in HIL mode */
-				if (mavlink_hil_enabled) {
-
-					/* translate the current syste state to mavlink state and mode */
-					uint8_t mavlink_state = 0;
-					uint8_t mavlink_mode = 0;
-					get_mavlink_mode_and_state(&v_status, &armed, &mavlink_state, &mavlink_mode);
-
-					/* HIL message as per MAVLink spec */
-					mavlink_msg_hil_controls_send(chan,
-						hrt_absolute_time(),
-						buf.att_sp.roll_body, /* this may be replaced by ctrl0 later */
-						buf.att_sp.pitch_body,
-						buf.att_sp.yaw_body,
-						buf.att_sp.thrust,
-						0,
-						0,
-						0,
-						0,
-						mavlink_mode,
-						0);
-				}
 			}
 
 			/* --- ACTUATOR OUTPUTS 0 --- */
@@ -975,6 +952,7 @@ static void *uorb_receiveloop(void *arg)
 					buf.act_outputs.output[5],
 					buf.act_outputs.output[6],
 					buf.act_outputs.output[7]);
+
 				// if (NUM_ACTUATOR_OUTPUTS > 8 && NUM_ACTUATOR_OUTPUTS <= 16) {
 				// 	mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, hrt_absolute_time(),
 				// 	1 /* port 1 */,
@@ -1093,6 +1071,29 @@ static void *uorb_receiveloop(void *arg)
 				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000, "ctrl1       ", buf.actuators.control[1]);
 				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000, "ctrl2       ", buf.actuators.control[2]);
 				mavlink_msg_named_value_float_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000, "ctrl3       ", buf.actuators.control[3]);
+
+												/* Only send in HIL mode */
+				if (mavlink_hil_enabled) {
+
+					/* translate the current syste state to mavlink state and mode */
+					uint8_t mavlink_state = 0;
+					uint8_t mavlink_mode = 0;
+					get_mavlink_mode_and_state(&v_status, &armed, &mavlink_state, &mavlink_mode);
+
+					/* HIL message as per MAVLink spec */
+					mavlink_msg_hil_controls_send(chan,
+						hrt_absolute_time(),
+						buf.actuators.control[0],
+						buf.actuators.control[1],
+						buf.actuators.control[2],
+						buf.actuators.control[3],
+						0,
+						0,
+						0,
+						0,
+						mavlink_mode,
+						0);
+				}
 			}
 
 			/* --- DEBUG KEY/VALUE --- */

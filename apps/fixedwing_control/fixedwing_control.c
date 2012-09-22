@@ -223,11 +223,11 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 	PID_t roll_pos_controller;
 	pid_init(&roll_pos_controller, p.roll_pos_p, p.roll_pos_i, 0.0f, p.roll_pos_awu,
-			PID_MODE_DERIVATIV_SET, 155);
+			PID_MODE_DERIVATIV_SET);
 
 	PID_t heading_controller;
 	pid_init(&heading_controller, ppos.heading_p, 0.0f, 0.0f, 0.0f,
-			PID_MODE_DERIVATIV_SET, 155);
+			PID_MODE_DERIVATIV_SET);
 
 	while(!thread_should_exit) {
 
@@ -245,6 +245,8 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 			// FIXME SUBSCRIBE
 			if (loopcounter % 20 == 0) {
+				att_parameters_update(&h, &p);
+				pos_parameters_update(&hpos, &ppos);
 				pid_set_parameters(&roll_pos_controller, p.roll_pos_p, p.roll_pos_i, 0.0f, p.roll_pos_awu);
 				pid_set_parameters(&heading_controller, ppos.heading_p, 0.0f, 0.0f, 0.0f);
 			}
@@ -420,6 +422,9 @@ static int att_parameters_init(struct fw_att_control_param_handles *h)
 static int att_parameters_update(const struct fw_att_control_param_handles *h, struct fw_att_control_params *p)
 {
 	param_get(h->roll_pos_p, &(p->roll_pos_p));
+	param_get(h->roll_pos_i, &(p->roll_pos_i));
+	param_get(h->roll_pos_lim, &(p->roll_pos_lim));
+	param_get(h->roll_pos_awu, &(p->roll_pos_awu));
 
 	return OK;
 }
