@@ -283,14 +283,22 @@
  * ETH_MACCR_IFG   Bits 17-19: Interframe gap
  * ETH_MACCR_JD    Bit 22: Jabber disable
  * ETH_MACCR_WD    Bit 23: Watchdog disable
- * ETH_MACCR_CSTF  Bits 25: CRC stripping for Type frames
+ * ETH_MACCR_CSTF  Bits 25: CRC stripping for Type frames (F2/F4 only)
  */
 
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #define MACCR_CLEAR_BITS \
- ( ETH_MACCR_RE | ETH_MACCR_TE | ETH_MACCR_DC | ETH_MACCR_BL_MASK | \
+  (ETH_MACCR_RE | ETH_MACCR_TE | ETH_MACCR_DC | ETH_MACCR_BL_MASK | \
    ETH_MACCR_APCS | ETH_MACCR_RD | ETH_MACCR_IPCO | ETH_MACCR_DM | \
    ETH_MACCR_LM | ETH_MACCR_ROD | ETH_MACCR_FES | ETH_MACCR_CSD | \
-   ETH_MACCR_IFG_MASK | ETH_MACCR_JD | ETH_MACCR_WD | ETH_MACCR_CSTF )
+   ETH_MACCR_IFG_MASK | ETH_MACCR_JD | ETH_MACCR_WD | ETH_MACCR_CSTF)
+#else
+#define MACCR_CLEAR_BITS \
+  (ETH_MACCR_RE | ETH_MACCR_TE | ETH_MACCR_DC | ETH_MACCR_BL_MASK | \
+   ETH_MACCR_APCS | ETH_MACCR_RD | ETH_MACCR_IPCO | ETH_MACCR_DM | \
+   ETH_MACCR_LM | ETH_MACCR_ROD | ETH_MACCR_FES | ETH_MACCR_CSD | \
+   ETH_MACCR_IFG_MASK | ETH_MACCR_JD | ETH_MACCR_WD)
+#endif
 
 /* The following bits are set or left zero unconditionally in all modes.
  *
@@ -307,7 +315,7 @@
  * ETH_MACCR_IFG   Interframe gap                 0 (96 bits)
  * ETH_MACCR_JD    Jabber disable                 0 (enabled)
  * ETH_MACCR_WD    Watchdog disable               0 (enabled)
- * ETH_MACCR_CSTF  CRC stripping for Type frames  0 (disabled)
+ * ETH_MACCR_CSTF  CRC stripping for Type frames  0 (disabled, F2/F4 only)
  *
  * The following are set conditioinally based on mode and speed.
  *
@@ -462,13 +470,20 @@
  * ETH_DMABMR_USP   Bit 23: Use separate PBL
  * ETH_DMABMR_FPM   Bit 24: 4xPBL mode
  * ETH_DMABMR_AAB   Bit 25: Address-aligned beats
- * ETH_DMABMR_MB    Bit 26: Mixed burst
+ * ETH_DMABMR_MB    Bit 26: Mixed burst (F2/F4 only)
  */
 
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #define DMABMR_CLEAR_MASK \
   (ETH_DMABMR_SR | ETH_DMABMR_DA | ETH_DMABMR_DSL_MASK | ETH_DMABMR_EDFE | \
    ETH_DMABMR_PBL_MASK | ETH_DMABMR_RTPR_MASK | ETH_DMABMR_FB | ETH_DMABMR_RDP_MASK | \
    ETH_DMABMR_USP | ETH_DMABMR_FPM | ETH_DMABMR_AAB | ETH_DMABMR_MB)
+#else
+#define DMABMR_CLEAR_MASK \
+  (ETH_DMABMR_SR | ETH_DMABMR_DA | ETH_DMABMR_DSL_MASK | ETH_DMABMR_EDFE | \
+   ETH_DMABMR_PBL_MASK | ETH_DMABMR_RTPR_MASK | ETH_DMABMR_FB | ETH_DMABMR_RDP_MASK | \
+   ETH_DMABMR_USP | ETH_DMABMR_FPM | ETH_DMABMR_AAB)
+#endif
 
 /* The following bits are set or left zero unconditionally in all modes.
  *
@@ -484,7 +499,7 @@
  * ETH_DMABMR_USP   Use separate PBL                   1 (enabled)
  * ETH_DMABMR_FPM   4xPBL mode                         0 (disabled)
  * ETH_DMABMR_AAB   Address-aligned beats              1 (enabled)
- * ETH_DMABMR_MB    Mixed burst                        0 (disabled)
+ * ETH_DMABMR_MB    Mixed burst                        0 (disabled, F2/F4 only)
  */
 
 #ifdef CONFIG_STM32_ETH_ENHANCEDDESC
@@ -2001,7 +2016,7 @@ static int stm32_ifup(struct uip_driver_s *dev)
 
   ndbg("Bringing up: %d.%d.%d.%d\n",
        dev->d_ipaddr & 0xff, (dev->d_ipaddr >> 8) & 0xff,
-       (dev->d_ipaddr >> 16) & 0xff, dev->d_ipaddr >> 24 );
+       (dev->d_ipaddr >> 16) & 0xff, dev->d_ipaddr >> 24);
 
   /* Configure the Ethernet interface for DMA operation. */
 
@@ -2242,7 +2257,7 @@ static void stm32_txdescinit(FAR struct stm32_ethmac_s *priv)
     
       /* Initialize the next descriptor with the Next Descriptor Polling Enable */
 
-      if( i < (CONFIG_STM32_ETH_NTXDESC-1))
+      if (i < (CONFIG_STM32_ETH_NTXDESC-1))
         {
           /* Set next descriptor address register with next descriptor base
            * address
@@ -2321,7 +2336,7 @@ static void stm32_rxdescinit(FAR struct stm32_ethmac_s *priv)
     
       /* Initialize the next descriptor with the Next Descriptor Polling Enable */
 
-      if( i < (CONFIG_STM32_ETH_NRXDESC-1))
+      if (i < (CONFIG_STM32_ETH_NRXDESC-1))
         {
           /* Set next descriptor address register with next descriptor base
            * address
@@ -2524,7 +2539,7 @@ static int stm32_phyinit(FAR struct stm32_ethmac_s *priv)
 
   if (timeout >= PHY_RETRY_TIMEOUT)
     {
-      ndbg("Timed out waiting for link status\n");
+      ndbg("Timed out waiting for link status: %04x\n", phyval);
       return -ETIMEDOUT;
     }
 

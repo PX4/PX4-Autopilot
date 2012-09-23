@@ -62,7 +62,9 @@
 #define STM32_ETH_MACVLANTR_OFFSET   0x001c /* Ethernet MAC VLAN tag register */
 #define STM32_ETH_MACRWUFFR_OFFSET   0x0028 /* Ethernet MAC remote wakeup frame filter reg */
 #define STM32_ETH_MACPMTCSR_OFFSET   0x002c /* Ethernet MAC PMT control and status register */
-#define STM32_ETH_MACDBGR_OFFSET     0x0034 /* Ethernet MAC debug register */
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+#  define STM32_ETH_MACDBGR_OFFSET   0x0034 /* Ethernet MAC debug register */
+#endif
 #define STM32_ETH_MACSR_OFFSET       0x0038 /* Ethernet MAC interrupt status register */
 #define STM32_ETH_MACIMR_OFFSET      0x003c /* Ethernet MAC interrupt mask register */
 #define STM32_ETH_MACA0HR_OFFSET     0x0040 /* Ethernet MAC address 0 high register */
@@ -132,7 +134,9 @@
 #define STM32_ETH_MACVLANTR          (STM32_ETHERNET_BASE+STM32_ETH_MACVLANTR_OFFSET)
 #define STM32_ETH_MACRWUFFR          (STM32_ETHERNET_BASE+STM32_ETH_MACRWUFFR_OFFSET)
 #define STM32_ETH_MACPMTCSR          (STM32_ETHERNET_BASE+STM32_ETH_MACPMTCSR_OFFSET)
-#define STM32_ETH_MACDBGR            (STM32_ETHERNET_BASE+STM32_ETH_MACDBGR_OFFSET)
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+#  define STM32_ETH_MACDBGR          (STM32_ETHERNET_BASE+STM32_ETH_MACDBGR_OFFSET)
+#endif
 #define STM32_ETH_MACSR              (STM32_ETHERNET_BASE+STM32_ETH_MACSR_OFFSET)
 #define STM32_ETH_MACIMR             (STM32_ETHERNET_BASE+STM32_ETH_MACIMR_OFFSET)
 #define STM32_ETH_MACA0HR            (STM32_ETHERNET_BASE+STM32_ETH_MACA0HR_OFFSET)
@@ -216,7 +220,9 @@
 #  define ETH_MACCR_IFG(n)           ((12-((n) >> 3)) << ETH_MACCR_IFG_SHIFT) /* n bit times, n=40,48,..96 */
 #define ETH_MACCR_JD                 (1 << 22) /* Bit 22: Jabber disable */
 #define ETH_MACCR_WD                 (1 << 23) /* Bit 23: Watchdog disable */
-#define ETH_MACCR_CSTF               (1 << 25) /* Bits 25: CRC stripping for Type frames */
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+#  define ETH_MACCR_CSTF             (1 << 25) /* Bits 25: CRC stripping for Type frames */
+#endif
 
 /* Ethernet MAC frame filter register */
 
@@ -303,6 +309,8 @@
 
 /* Ethernet MAC debug register */
 
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+
 #define ETH_MACDBGR_MMRPEA           (1 << 0)  /* Bit 0: MAC MII receive protocol engine active */
 #define ETH_MACDBGR_MSFRWCS_SHIFT    (1)       /* Bits 1-2: MAC small FIFO read / write controllers status */
 #define ETH_MACDBGR_MSFRWCS_MASK     (3 << ETH_MACDBGR_MSFRWCS_SHIFT)
@@ -336,6 +344,8 @@
 #define ETH_MACDBGR_TFWA             (1 << 22) /* Bit 22: Tx FIFO write active */
 #define ETH_MACDBGR_TFNE             (1 << 24) /* Bit 24: Tx FIFO not empty */
 #define ETH_MACDBGR_TFF              (1 << 25) /* Bit 25: Tx FIFO full */
+
+#endif
 
 /* Ethernet MAC interrupt status register */
 
@@ -419,7 +429,9 @@
 #define ETH_MMCCR_ROR                (1 << 2)  /* Bit 2: Reset on read */
 #define ETH_MMCCR_MCF                (1 << 3)  /* Bit 3: MMC counter freeze */
 #define ETH_MMCCR_MCP                (1 << 4)  /* Bit 4: MMC counter preset */
-#define ETH_MMCCR_MCFHP              (1 << 5)  /* Bit 5: MMC counter Full-Half preset */
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+#  define ETH_MMCCR_MCFHP            (1 << 5)  /* Bit 5: MMC counter Full-Half preset */
+#endif
 
 /* Ethernet MMC receive interrupt and interrupt mask registers */
 
@@ -453,6 +465,8 @@
 #define ETH_PTPTSCR_TSSTU            (1 << 3)  /* Bit 3:  Time stamp system time update */
 #define ETH_PTPTSCR_TSITE            (1 << 4)  /* Bit 4:  Time stamp interrupt trigger enable */
 #define ETH_PTPTSCR_TSARU            (1 << 5)  /* Bit 5:  Time stamp addend register update */
+
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #define ETH_PTPTSCR_TSSARFE          (1 << 8)  /* Bit 8:  Time stamp snapshot for all received frames enable */
 #define ETH_PTPTSCR_TSSSR            (1 << 9)  /* Bit 9:  Time stamp subsecond rollover: digital or binary rollover control */
 #define ETH_PTPTSCR_TSPTPPSV2E       (1 << 10) /* Bit 10: Time stamp PTP packet snooping for version2 format enable */
@@ -468,6 +482,7 @@
 #  define ETH_PTPTSCR_TSCNT_E2E      (2 << ETH_PTPTSCR_TSCNT_SHIFT) /* 10: End-to-end transparent clock */
 #  define ETH_PTPTSCR_TSCNT_P2P      (3 << ETH_PTPTSCR_TSCNT_SHIFT) /* 11: Peer-to-peer transparent clock */
 #define ETH_PTPTSCR_TSPFFMAE         (1 << 18) /* Bit 18: Time stamp PTP frame filtering MAC address enable */
+#endif
 
 /* Ethernet PTP subsecond increment register */
 
@@ -543,7 +558,9 @@
 #define ETH_DMABMR_USP               (1 << 23) /* Bit 23: Use separate PBL */
 #define ETH_DMABMR_FPM               (1 << 24) /* Bit 24: 4xPBL mode */
 #define ETH_DMABMR_AAB               (1 << 25) /* Bit 25: Address-aligned beats */
-#define ETH_DMABMR_MB                (1 << 26) /* Bit 26: Mixed burst */
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+#  define ETH_DMABMR_MB              (1 << 26) /* Bit 26: Mixed burst */
+#endif
 
 /* Ethernet DMA transmit poll demand register (32-bit) */
 /* Ethernet DMA receive poll demand register (32-bit) */
