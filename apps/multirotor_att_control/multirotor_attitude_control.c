@@ -188,7 +188,7 @@ static int parameters_update(const struct mc_att_control_param_handles *h, struc
 }
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
-	const struct vehicle_attitude_s *att, struct actuator_controls_s *actuators)
+	const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, struct actuator_controls_s *actuators)
 {
 	static uint64_t last_run = 0;
 	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
@@ -305,10 +305,20 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		roll_controller.saturated = 1;
 	}
 
-	actuators->control[0] = roll_control;
-	actuators->control[1] = pitch_control;
-	actuators->control[2] = yaw_rate_control;
-	actuators->control[3] = motor_thrust;
+	if (actuators) {
+		actuators->control[0] = roll_control;
+		actuators->control[1] = pitch_control;
+		actuators->control[2] = yaw_rate_control;
+		actuators->control[3] = motor_thrust;
+	}
+
+	// XXX change yaw rate to yaw pos controller
+	if (rates_sp) {
+		rates_sp->roll = roll_control;
+		rates_sp->pitch = pitch_control;
+		rates_sp->yaw = yaw_rate_control;
+		rates_sp->thrust = motor_thrust;
+	}
 
 	motor_skip_counter++;
 }
