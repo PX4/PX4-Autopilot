@@ -154,7 +154,7 @@
  * -- ---- -------------- -------------------------------------------------------------------
  * PN NAME SIGNAL         NOTES
  * -- ---- -------------- -------------------------------------------------------------------
- * 37 PB2  DATA_LE        To TFT LCD (CN13, ping 28)
+ * 37 PB2  DATA_LE        To TFT LCD. (CN13, ping 28)
  * 96 PB9  F_CS           To both the TFT LCD (CN13, pin 30) and to the W25X16 SPI FLASH
  * 34 PC5  TP_INT         JP6.  To TFT LCD (CN13) module (CN13, pin 26)
  * 65 PC8  LCD_CS         Active low: Pulled high (CN13, pin 19)
@@ -185,10 +185,128 @@
  *
  * NOTE:  The backlight signl NC_BL (CN13, pin 24) is pulled high and not under
  * software control
+ *
+ * On LCD module:
+ * -- -------------- -------------------------------------------------------------------
+ * PN SIGNAL         NOTES
+ * -- -------------- -------------------------------------------------------------------
+ * 3  DB01           To LCD DB1
+ * 4  DB00           To LCD DB0
+ * 5  DB03           To LCD DB3
+ * 6  DB02           To LCD DB2
+ * 7  DB05           To LCD DB5
+ * 8  DB04           To LCD DB4
+ * 9  DB07           To LCD DB7
+ * 10 DB06           To LCD DB6
+ * 11 DB09           To LCD DB9
+ * 12 DB08           To LCD DB8
+ * 13 DB11           To LCD DB11
+ * 14 DB10           To LCD DB10
+ * 15 DB13           To LCD DB13
+ * 16 DB12           To LCD DB12
+ * 17 DB15           To LCD DB15
+ * 18 DB14           To LCD DB14
+ * 19 RS             To LCD RS
+ * 20 /LCD_CS        To LCD CS
+ * 21 /RD            To LCD RD
+ * 22 /WR            To LCD WR
+ * 23 BL_EN          (Not referenced)
+ * 24 /RESET
+ * 25 /INT           To Touch IC /INT
+ * 26 MISO           To Touch IC DOUT; To AT45DB161B SO; To SD card DAT0
+ * 27 LE             To 74HC573 that controls LCD 8-bit/16-bit mode
+ * 28 MOSI           To Touch IC DIN; To AT45DB161B SI; To SD card CMD
+ * 29 /DF_CS         To AT45DB161B Data Flash /CS
+ * 30 SCLK           To Touch IC DCLK; To AT45DB161B SCK; To SD card CLK
+ * 31 /SD_CS         To SD card /CS
+ * 31 /TP_CS         To Touch IC CS
  */
 
-#define GPIO_LCD_CS    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+/* TFT LCD GPIOs */
+
+#define GPIO_LCD_D0     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN0)
+#define GPIO_LCD_D1     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN1)
+#define GPIO_LCD_D2     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN2)
+#define GPIO_LCD_D3     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
+#define GPIO_LCD_D4     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
+#define GPIO_LCD_D5     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN5)
+#define GPIO_LCD_D6     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN6)
+#define GPIO_LCD_D7     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN7)
+#define GPIO_LCD_D8     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN8)
+#define GPIO_LCD_D9     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN9)
+#define GPIO_LCD_D10    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN10)
+#define GPIO_LCD_D11    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN11)
+#define GPIO_LCD_D12    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN12)
+#define GPIO_LCD_D13    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN13)
+#define GPIO_LCD_D14    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN14)
+#define GPIO_LCD_D15    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
+
+#define GPIO_LCD_RS     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN13)
+#define GPIO_LCD_CS     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN8)
+#define GPIO_LCD_RD     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN15)
+#define GPIO_LCD_WR     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN14)
+#define GPIO_LCD_LE     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN2)
+
+/* Bit band addresses */
+
+#define STM32_GPIOB_OFFSET (STM32_GPIOB_BASE - STM32_PERIPH_BASE)
+#define STM32_GPIOC_OFFSET (STM32_GPIOC_BASE - STM32_PERIPH_BASE)
+#define STM32_GPIOD_OFFSET (STM32_GPIOD_BASE - STM32_PERIPH_BASE)
+
+#define LCD_BIT_CLEAR(offs,pin) \
+  (STM32_PERIPHBB_BASE + ((offs + STM32_GPIO_BRR_OFFSET) << 5) + ((pin) << 2))
+#define LCD_BIT_SET(offs,pin) \
+  (STM32_PERIPHBB_BASE + ((offs + STM32_GPIO_BSRR_OFFSET) << 5) + ((pin) << 2))
+
+#define LCD_RS_CLEAR    LCD_BIT_CLEAR(STM32_GPIOD_OFFSET, 13) /* GPIO_PORTD|GPIO_PIN13 */
+#define LCD_RS_SET      LCD_BIT_SET(STM32_GPIOD_OFFSET, 13)
+#define LCD_CS_CLEAR    LCD_BIT_CLEAR(STM32_GPIOC_OFFSET, 8)  /* GPIO_PORTC|GPIO_PIN8 */
+#define LCD_CS_SET      LCD_BIT_SET(STM32_GPIOC_OFFSET, 8)
+#define LCD_RD_CLEAR    LCD_BIT_CLEAR(STM32_GPIOD_OFFSET, 15) /* GPIO_PORTD|GPIO_PIN15 */
+#define LCD_RD_SET      LCD_BIT_SET(STM32_GPIOD_OFFSET, 15)
+#define LCD_WR_CLEAR    LCD_BIT_CLEAR(STM32_GPIOD_OFFSET, 14) /* GPIO_PORTD|GPIO_PIN14 */
+#define LCD_WR_SET      LCD_BIT_SET(STM32_GPIOD_OFFSET, 14)
+#define LCD_LE_CLEAR    LCD_BIT_CLEAR(STM32_GPIOB_OFFSET, 2)  /* GPIO_PORTB|GPIO_PIN2 */
+#define LCD_LE_SET      LCD_BIT_SET(STM32_GPIOB_OFFSET, 2)
+
+#define LCD_DATA        STM32_GPIOE_ODR
+
+/* Touchscreen IC on the LCD module */
+
+#define GPIO_TP_INT     (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN5)
+#define GPIO_TP_CS      (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN9)
+
+/* AT45DB161B Data Flash on the LCD module */
+
+#define GPIO_LCDDF_CS   (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
                          GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN9)
+
+/* SD card on the LCD module */
+
+#define GPIO_LCDSD_CS   (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN11)
 
 /* RS-485
  *

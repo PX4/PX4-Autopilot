@@ -108,10 +108,12 @@ void weak_function stm32_spiinitialize(void)
   stm32_configgpio(GPIO_FLASH_CS);    /* FLASH chip select */
 #endif
 
-  /* SPI3 connects to TFT LCD and the RF24L01 2.4G wireless module */
+  /* SPI3 connects to TFT LCD module and the RF24L01 2.4G wireless module */
 
 #ifdef CONFIG_STM32_SPI3
-  stm32_configgpio(GPIO_LCD_CS);      /* LCD chip select */
+  stm32_configgpio(GPIO_TP_CS);       /* Touchscreen chip select */
+  stm32_configgpio(GPIO_LCDDF_CS);    /* Data flash chip select (on the LCD module) */
+  stm32_configgpio(GPIO_LCDSD_CS);    /* SD chip select (on the LCD module) */
   stm32_configgpio(GPIO_WIRELESS_CS); /* Wireless chip select */
 #endif
 }
@@ -182,13 +184,27 @@ void stm32_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sele
 {
   spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 
-  /* SPI3 connects to TFT LCD and the RF24L01 2.4G wireless module */
+  /* SPI3 connects to TFT LCD (for touchscreen and SD) and the RF24L01 2.4G
+   * wireless module.
+   */
 
   if (devid == SPIDEV_TOUCHSCREEN)
     {
       /* Set the GPIO low to select and high to de-select */
 
-      stm32_gpiowrite(GPIO_LCD_CS, !selected);
+      stm32_gpiowrite(GPIO_TP_CS, !selected);
+    }
+  else if (devid == SPIDEV_MMCSD)
+    {
+      /* Set the GPIO low to select and high to de-select */
+
+      stm32_gpiowrite(GPIO_LCDDF_CS, !selected);
+    }
+  else if (devid == SPIDEV_FLASH)
+    {
+      /* Set the GPIO low to select and high to de-select */
+
+      stm32_gpiowrite(GPIO_LCDSD_CS, !selected);
     }
   else if (devid == SPIDEV_WIRELESS)
     {

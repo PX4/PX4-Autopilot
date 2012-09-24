@@ -69,8 +69,8 @@
  ************************************************************************************/
 /* Configuration ********************************************************************/
 
-#ifndef CONFIG_STM32_FSMC
-#  error "CONFIG_STM32_FSMC is required to use the LCD"
+#ifndef CONFIG_SSD1289_WRONLY
+#  warning "Only write access is supported; CONFIG_SSD1289_WRONLY should be defined"
 #endif
 
 /* Define CONFIG_DEBUG_LCD to enable detailed LCD debug output. Verbose debug must
@@ -88,26 +88,6 @@
 #endif
 
 /* Shenzhou LCD Hardware Definitions ************************************************/
-/* LCD /CS is CE1 ==  NOR/SRAM Bank 1
- * 
- * Bank 1 = 0x60000000 | 0x00000000
- * Bank 2 = 0x60000000 | 0x04000000
- * Bank 3 = 0x60000000 | 0x08000000
- * Bank 4 = 0x60000000 | 0x0c000000
- *
- * FSMC address bit 16 is used to distinguish command and data.  FSMC address bits
- * 0-24 correspond to ARM address bits 1-25. 
- */
-
-#define STM32_LCDBASE ((uintptr_t)(0x60000000 | 0x00000000))
-#define LCD_INDEX     (STM32_LCDBASE)
-#define LCD_DATA      (STM32_LCDBASE + 0x00020000)
-
-/* SRAM pin definitions */
-
-#define LCD_NADDRLINES   1   /* A16 */
-#define LCD_NDATALINES   16  /* D0-15 */
-
 /* Debug ****************************************************************************/
 
 #ifdef CONFIG_DEBUG_LCD
@@ -125,6 +105,10 @@
 /**************************************************************************************
  * Private Function Protototypes
  **************************************************************************************/
+/* Helpers */
+
+static void stm32_wrdata(uint16_t data);
+
 /* Low Level LCD access */
 
 static void stm32_select(FAR struct ssd1289_lcd_s *dev);
@@ -175,18 +159,54 @@ static void stm32_backlight(FAR struct ssd1289_lcd_s *dev, int power);
  *
  * NOTE:  The backlight signl NC_BL (CN13, pin 24) is pulled high and not under
  * software control
+ *
+ * On LCD module:
+ * -- -------------- -------------------------------------------------------------------
+ * PN SIGNAL         NOTES
+ * -- -------------- -------------------------------------------------------------------
+ * 3  DB01           To LCD DB1
+ * 4  DB00           To LCD DB0
+ * 5  DB03           To LCD DB3
+ * 6  DB02           To LCD DB2
+ * 7  DB05           To LCD DB5
+ * 8  DB04           To LCD DB4
+ * 9  DB07           To LCD DB7
+ * 10 DB06           To LCD DB6
+ * 11 DB09           To LCD DB9
+ * 12 DB08           To LCD DB8
+ * 13 DB11           To LCD DB11
+ * 14 DB10           To LCD DB10
+ * 15 DB13           To LCD DB13
+ * 16 DB12           To LCD DB12
+ * 17 DB15           To LCD DB15
+ * 18 DB14           To LCD DB14
+ * 19 RS             To LCD RS
+ * 20 /LCD_CS        To LCD CS
+ * 21 /RD            To LCD RD
+ * 22 /WR            To LCD WR
+ * 23 BL_EN          (Not referenced)
+ * 24 /RESET
+ * 25 /INT           To Touch IC /INT
+ * 26 MISO           To Touch IC DOUT; To AT45DB161B SO; To SD card DAT0
+ * 27 LE             To 74HC573 that controls LCD 8-bit/16-bit mode
+ * 28 MOSI           To Touch IC DIN; To AT45DB161B SI; To SD card CMD
+ * 29 /DF_CS         To AT45DB161B Data Flash /CS
+ * 30 SCLK           To Touch IC DCLK; To AT45DB161B SCK; To SD card CLK
+ * 31 /SD_CS         To SD card /CS
+ * 31 /TP_CS         To Touch IC CS
  */
 
-#define GPIO_LCD_RESET (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
-                        GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN6)
-
-/* GPIO configurations unique to the LCD  */
+/* LCD GPIO configurations */
 
 static const uint32_t g_lcdconfig[] =
 {
-  /* PC6(RESET), FSMC_A16, FSMC_NOE, FSMC_NWE, and FSMC_NE1  */
+  GPIO_LCD_D0,  GPIO_LCD_D1,  GPIO_LCD_D2,  GPIO_LCD_D3,
+  GPIO_LCD_D4,  GPIO_LCD_D5,  GPIO_LCD_D6,  GPIO_LCD_D7,
+  GPIO_LCD_D8,  GPIO_LCD_D9,  GPIO_LCD_D10, GPIO_LCD_D11,
+  GPIO_LCD_D12, GPIO_LCD_D13, GPIO_LCD_D14, GPIO_LCD_D15,
 
-  GPIO_LCD_RESET, GPIO_FSMC_A16, GPIO_FSMC_NOE, GPIO_FSMC_NWE, GPIO_FSMC_NE1
+  GPIO_LCD_RS,  GPIO_LCD_CS,  GPIO_LCD_RD,  GPIO_LCD_WR,
+  GPIO_LCD_LE,
 };
 #define NLCD_CONFIG (sizeof(g_lcdconfig)/sizeof(uint32_t))
 
@@ -213,6 +233,23 @@ static FAR struct lcd_dev_s *g_ssd1289drvr;
  ************************************************************************************/
 
 /************************************************************************************
+ * Name: stm32_wrdata
+ *
+ * Description:
+ *   Latch data on D0-D15 and toggle the WR line.
+ *
+ ************************************************************************************/
+
+static void stm32_wrdata(uint16_t data)
+{
+  /* Latch the 16-bit LCD data and toggle the WR line */
+
+  putreg32((uint32_t)data, LCD_DATA);
+  putreg32(1, LCD_WR_CLEAR);
+  putreg32(1, LCD_WR_SET);
+}
+
+/************************************************************************************
  * Name: stm32_select
  *
  * Description:
@@ -222,7 +259,9 @@ static FAR struct lcd_dev_s *g_ssd1289drvr;
 
 static void stm32_select(FAR struct ssd1289_lcd_s *dev)
 {
-  /* Does not apply to this hardware */
+  /* Select the LCD by setting the LCD_CS low */
+
+  putreg32(1, LCD_CS_CLEAR);
 }
 
 /************************************************************************************
@@ -235,7 +274,9 @@ static void stm32_select(FAR struct ssd1289_lcd_s *dev)
 
 static void stm32_deselect(FAR struct ssd1289_lcd_s *dev)
 {
-  /* Does not apply to this hardware */
+  /* De-select the LCD by setting the LCD_CS high */
+
+  putreg32(1, LCD_CS_SET);
 }
 
 /************************************************************************************
@@ -248,7 +289,13 @@ static void stm32_deselect(FAR struct ssd1289_lcd_s *dev)
 
 static void stm32_index(FAR struct ssd1289_lcd_s *dev, uint8_t index)
 {
-  putreg16((uint16_t)index, LCD_INDEX);
+  /* Clear the RS signal */
+
+  putreg32(1, LCD_RS_CLR);
+
+  /* And write the index */
+
+  stm32_wrdata((uint16_t)index);
 }
 
 /************************************************************************************
@@ -262,7 +309,7 @@ static void stm32_index(FAR struct ssd1289_lcd_s *dev, uint8_t index)
 #ifndef CONFIG_SSD1289_WRONLY
 static uint16_t stm32_read(FAR struct ssd1289_lcd_s *dev)
 {
-  return getreg16(LCD_DATA);
+#warning "Missing logic"
 }
 #endif
 
@@ -276,11 +323,17 @@ static uint16_t stm32_read(FAR struct ssd1289_lcd_s *dev)
 
 static void stm32_write(FAR struct ssd1289_lcd_s *dev, uint16_t data)
 {
-  putreg16((uint16_t)data, LCD_DATA);
+  /* Set the RS signal */
+
+  putreg32(1, LCD_RS_CLR);
+
+  /* And write the data */
+
+  stm32_wrdata(data);
 }
 
 /************************************************************************************
- * Name: stm32_write
+ * Name: stm32_backlight
  *
  * Description:
  *   Write LCD data (GRAM data or register contents)
@@ -289,52 +342,7 @@ static void stm32_write(FAR struct ssd1289_lcd_s *dev, uint16_t data)
 
 static void stm32_backlight(FAR struct ssd1289_lcd_s *dev, int power)
 {
-#warning "Missing logic"
-}
-
-/************************************************************************************
- * Name: stm32_selectlcd
- *
- * Description:
- *   Initialize to the LCD
- *
- ************************************************************************************/
-
-void stm32_selectlcd(void)
-{
-  /* Configure GPIO pins */
-
-  stm32_extmemdata(LCD_NDATALINES);             /* Common data lines: D0-D15 */
-  stm32_extmemgpios(g_lcdconfig, NLCD_CONFIG);  /* LCD-specific control lines */
-
-  /* Enable AHB clocking to the FSMC */
-
-  stm32_enablefsmc();
-
-  /* Color LCD configuration (LCD configured as follow):
-   * 
-   *   - Data/Address MUX  = Disable   "FSMC_BCR_MUXEN" just not enable it.
-   *   - Extended Mode     = Disable   "FSMC_BCR_EXTMOD"
-   *   - Memory Type       = SRAM      "FSMC_BCR_SRAM"
-   *   - Data Width        = 16bit     "FSMC_BCR_MWID16"
-   *   - Write Operation   = Enable    "FSMC_BCR_WREN"
-   *   - Asynchronous Wait = Disable
-   */
-
-  /* Bank1 NOR/SRAM control register configuration */
-
-  putreg32(FSMC_BCR_SRAM | FSMC_BCR_MWID16 | FSMC_BCR_WREN, STM32_FSMC_BCR1);
-
-  /* Bank1 NOR/SRAM timing register configuration */
-
-  putreg32(FSMC_BTR_ADDSET(5) | FSMC_BTR_ADDHLD(0) | FSMC_BTR_DATAST(9) | FSMC_BTR_BUSTRUN(0) |
-           FSMC_BTR_CLKDIV(0) | FSMC_BTR_DATLAT(0) | FSMC_BTR_ACCMODA, STM32_FSMC_BTR1);
-
-  putreg32(0xffffffff, STM32_FSMC_BWTR1);
-
-  /* Enable the bank by setting the MBKEN bit */
-
-  putreg32(FSMC_BCR_MBKEN | FSMC_BCR_SRAM | FSMC_BCR_MWID16 | FSMC_BCR_WREN, STM32_FSMC_BCR1);
+  /* There is no software control over the backlight */
 }
 
 /************************************************************************************
@@ -353,25 +361,23 @@ void stm32_selectlcd(void)
 
 int up_lcdinitialize(void)
 {
+  int i;
+
   /* Only initialize the driver once */
 
   if (!g_ssd1289drvr)
     {
       lcdvdbg("Initializing\n");
 
-      /* Configure GPIO pins and configure the FSMC to support the LCD */
+      /* Configure GPIO pins */
 
-      stm32_selectlcd();
-
-      /* Reset the LCD (active low) */
-
-      stm32_gpiowrite(GPIO_LCD_RESET, false);
-      up_mdelay(5);
-      stm32_gpiowrite(GPIO_LCD_RESET, true);
+      for (i = 0; i < NLCD_CONFIG; i++)
+        {
+          stm32_configgpio(g_lcdconfig[i]);
+        }
 
       /* Configure and enable the LCD */
 
-      up_mdelay(50);
       g_ssd1289drvr = ssd1289_lcdinitialize(&g_ssd1289);
       if (!g_ssd1289drvr)
         {
@@ -379,12 +385,6 @@ int up_lcdinitialize(void)
           return -ENODEV;
         }
     }
-
-  /* Clear the display (setting it to the color 0=black) */
-
-#if 0 /* Already done in the driver */
-  ssd1289_clear(g_ssd1289drvr, 0);
-#endif
 
   /* Turn the display off */
 
