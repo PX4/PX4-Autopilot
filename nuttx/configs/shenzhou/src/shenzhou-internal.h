@@ -230,7 +230,7 @@
  * PN NAME SIGNAL         NOTES
  * -- ---- -------------- -------------------------------------------------------------------
  * 53 PB14 SD_CD          Active low: Pulled high
- * 58 PD11 SD_CS
+ * 58 PD11 SD_CS          Active low: Pulled high
  */
 
 #define GPIO_SD_CD   (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_EXTI|GPIO_PORTB|GPIO_PIN14)

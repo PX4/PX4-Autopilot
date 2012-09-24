@@ -2,8 +2,17 @@ README
 ======
 
 This README discusses issues unique to NuttX configurations for the Shenzhou
-development board from www.armjishu.com featuring the STMicro STM32F107VCT
-MCU.  On-board features:
+IV development board from www.armjishu.com featuring the STMicro STM32F107VCT
+MCU.  As of this writing, there are five models of the Shenzhou board:
+
+  1. Shenzhou I (STM32F103RB)
+  2. Shenzhou II (STM32F103VC)
+  3. Shenzhou III (STM32F103ZE)
+  4. Shenzhou IV (STM32F107VC)
+  5. Shenzhou king ((STM32F103ZG, core board + IO expansion board)).
+
+Support is currently provided for the Shenzhou IV only.  Features of the
+Shenzhou IV board include:
 
   - STM32F107VCT
   - 10/100M PHY (DM9161AEP)

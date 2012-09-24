@@ -195,8 +195,10 @@ void up_idle(void)
    *    Enable DMA1 or DMA2 clocks in the RCC_AHBENR register before 
    *    executing the WFI/WFE instruction."
    *
-   * Here the workaround is just don't go into SLEEP mode for the connectivity
-   * line parts if Ethernet is enabled.
+   * Here the workaround is just to avoid SLEEP mode for the connectivity
+   * line parts if Ethernet is enabled.  The errate recommends a  more
+   * general solution:  Enabling DMA1/2 clocking in stm32f10xx_rcc.c if the
+   * STM32107 Ethernet peripheral is enabled.
    */
 
 #if !defined(CONFIG_STM32_CONNECTIVITYLINE) || !defined(CONFIG_STM32_ETHMAC)

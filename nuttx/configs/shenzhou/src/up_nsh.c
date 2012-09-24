@@ -116,7 +116,7 @@
 
 /* Can't support W25 features if mountpoints are disabled */
 
-#if defined(CONFIG_DISABLE_MOUNTPOINT)
+#ifdef CONFIG_DISABLE_MOUNTPOINT
 #  undef HAVE_W25
 #endif
 
@@ -194,7 +194,7 @@ int nsh_archinitialize(void)
   /* Initialize the SPI-based MMC/SD slot */
 
 #ifdef HAVE_MMCSD
-  ret = stm32_sdinitialze(CONFIG_NSH_MMCSDMINOR);
+  ret = stm32_sdinitialize(CONFIG_NSH_MMCSDMINOR);
   if (ret < 0)
     {
       message("nsh_archinitialize: Failed to initialize MMC/SD slot %d: %d\n",

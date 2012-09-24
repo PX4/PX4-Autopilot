@@ -67,7 +67,7 @@
 
 /* Can't support MMC/SD features if mountpoints are disabled */
 
-#ifndef CONFIG_DISABLE_MOUNTPOINT
+#ifdef CONFIG_DISABLE_MOUNTPOINT
 #  undef HAVE_MMCSD
 #endif
 

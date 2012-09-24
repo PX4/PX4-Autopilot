@@ -60,18 +60,18 @@
 
 /* Enables debug output from this file (needs CONFIG_DEBUG too) */
 
-#undef SPI_DEBUG   /* Define to enable debug */
-#undef SPI_VERBOSE /* Define to enable verbose debug */
+#ifndef CONFIG_DEBUG
+#  undef CONFIG_DEBUG_SPI
+#endif
 
-#ifdef SPI_DEBUG
+#ifdef CONFIG_DEBUG_SPI
 #  define spidbg  lldbg
-#  ifdef SPI_VERBOSE
+#  ifdef CONFIG_DEBUG_VERBOSE
 #    define spivdbg lldbg
 #  else
 #    define spivdbg(x...)
 #  endif
 #else
-#  undef SPI_VERBOSE
 #  define spidbg(x...)
 #  define spivdbg(x...)
 #endif
@@ -103,15 +103,16 @@ void weak_function stm32_spiinitialize(void)
   /* SPI1 connects to the SD CARD and to the SPI FLASH */
 
 #ifdef CONFIG_STM32_SPI1
-  stm32_configgpio(GPIO_SD_CS);
-  stm32_configgpio(GPIO_FLASH_CS);
+  stm32_configgpio(GPIO_SD_CS);       /* SD card chip select */
+  stm32_configgpio(GPIO_SD_CD);       /* SD card detect */
+  stm32_configgpio(GPIO_FLASH_CS);    /* FLASH chip select */
 #endif
 
   /* SPI3 connects to TFT LCD and the RF24L01 2.4G wireless module */
 
 #ifdef CONFIG_STM32_SPI3
-  stm32_configgpio(GPIO_LCD_CS);
-  stm32_configgpio(GPIO_WIRELESS_CS);
+  stm32_configgpio(GPIO_LCD_CS);      /* LCD chip select */
+  stm32_configgpio(GPIO_WIRELESS_CS); /* Wireless chip select */
 #endif
 }
 
