@@ -43,6 +43,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <semaphore.h>
 #include <string.h>
 #include <fcntl.h>
@@ -53,6 +54,8 @@
 #include <unistd.h>
 
 #include <systemlib/perf_counter.h>
+#include <systemlib/err.h>
+#include <systemlib/conversions.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
@@ -155,9 +158,6 @@ public:
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
-	virtual int		open_first(struct file *filp);
-	virtual int		close_last(struct file *filp);
-
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
@@ -181,12 +181,14 @@ private:
 	struct accel_report	_accel_report;
 	struct accel_scale	_accel_scale;
 	float			_accel_range_scale;
-	int			_accel_topic;
+	float			_accel_range_m_s2;
+	orb_advert_t		_accel_topic;
 
 	struct gyro_report	_gyro_report;
 	struct gyro_scale	_gyro_scale;
 	float			_gyro_range_scale;
-	int			_gyro_topic;
+	float			_gyro_range_rad_s;
+	orb_advert_t		_gyro_topic;
 
 	unsigned		_reads;
 	perf_counter_t		_sample_perf;
@@ -288,15 +290,17 @@ MPU6000::MPU6000(int bus, spi_dev_e device) :
 	_gyro(new MPU6000_gyro(this)),
 	_product(0),
 	_call_interval(0),
-	_accel_range_scale(1.0f),
+	_accel_range_scale(0.0f),
+	_accel_range_m_s2(0.0f),
 	_accel_topic(-1),
-	_gyro_range_scale(1.0f),
+	_gyro_range_scale(0.0f),
+	_gyro_range_rad_s(0.0f),
 	_gyro_topic(-1),
 	_reads(0),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6000_read"))
 {
-	// enable debug() calls
-	_debug_enabled = true;
+	// disable debug() calls
+	_debug_enabled = false;
 
 	// default accel scale factors
 	_accel_scale.x_offset = 0;
@@ -316,6 +320,7 @@ MPU6000::MPU6000(int bus, spi_dev_e device) :
 
 	memset(&_accel_report, 0, sizeof(_accel_report));
 	memset(&_gyro_report, 0, sizeof(_gyro_report));
+	memset(&_call, 0, sizeof(_call));
 }
 
 MPU6000::~MPU6000()
@@ -364,11 +369,28 @@ MPU6000::init()
 	write_reg(MPUREG_SMPLRT_DIV, 0x04);     // Sample rate = 200Hz    Fsample= 1Khz/(4+1) = 200Hz
 	usleep(1000);
 
-	// FS & DLPF   FS=2000¼/s, DLPF = 98Hz (low pass filter)
-	write_reg(MPUREG_CONFIG, BITS_DLPF_CFG_98HZ);
+	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
+	// was 90 Hz, but this ruins quality and does not improve the
+	// system response
+	write_reg(MPUREG_CONFIG, BITS_DLPF_CFG_20HZ);
 	usleep(1000);
-	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS); // Gyro scale 2000¼/s
+	// Gyro scale 2000 deg/s ()
+	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);
 	usleep(1000);
+
+	// correct gyro scale factors
+	// scale to rad/s in SI units
+	// 2000 deg/s = (2000/180)*PI = 34.906585 rad/s
+	// scaling factor:
+	// 1/(2^15)*(2000/180)*PI
+	_gyro_scale.x_offset = 0;
+	_gyro_scale.x_scale  = 1.0f;
+	_gyro_scale.y_offset = 0;
+	_gyro_scale.y_scale  = 1.0f;
+	_gyro_scale.z_offset = 0;
+	_gyro_scale.z_scale  = 1.0f;
+	_gyro_range_scale = (0.0174532 / 16.4);//1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
+	_gyro_range_rad_s = (2000.0f / 180.0f) * M_PI_F;
 
 	// product-specific scaling
 	switch (_product) {
@@ -394,6 +416,17 @@ MPU6000::init()
 		break;
 	}
 
+	// Correct accel scale factors of 4096 LSB/g
+	// scale to m/s^2 ( 1g = 9.81 m/s^2)
+	_accel_scale.x_offset = 0;
+	_accel_scale.x_scale  = 1.0f;
+	_accel_scale.y_offset = 0;
+	_accel_scale.y_scale  = 1.0f;
+	_accel_scale.z_offset = 0;
+	_accel_scale.z_scale  = 1.0f;
+	_accel_range_scale = (9.81f / 4096.0f);
+	_accel_range_m_s2 = 8.0f * 9.81f;
+
 	usleep(1000);
 
 	// INT CFG => Interrupt on Data Ready
@@ -406,28 +439,10 @@ MPU6000::init()
 	// write_reg(MPUREG_PWR_MGMT_1,MPU_CLK_SEL_PLLGYROZ);
 	usleep(1000);
 
+	/* do CDev init for the gyro device node */
+	ret = _gyro->init();
 
 	return ret;
-}
-
-int
-MPU6000::open_first(struct file *filp)
-{
-	/* reset to manual-poll mode */
-	_call_interval = 0;
-
-	/* XXX set default sampling/acquisition parameters */
-
-	return OK;
-}
-
-int
-MPU6000::close_last(struct file *filp)
-{
-	/* stop measurement */
-	stop();
-
-	return OK;
 }
 
 int
@@ -451,7 +466,7 @@ MPU6000::probe()
 	case MPU6000_REV_D8:
 	case MPU6000_REV_D9:
 	case MPU6000_REV_D10:
-		log("ID 0x%02x", _product);
+		debug("ID 0x%02x", _product);
 		return OK;
 	}
 
@@ -472,7 +487,7 @@ MPU6000::read(struct file *filp, char *buffer, size_t buflen)
 	if (_call_interval == 0)
 		measure();
 
-	/* copy out the latest report */
+	/* copy out the latest reports */
 	memcpy(buffer, &_accel_report, sizeof(_accel_report));
 	ret = sizeof(_accel_report);
 
@@ -504,21 +519,27 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-	case ACCELIOCSPOLLRATE: {
+	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
 				/* switching to manual polling */
-			case ACC_POLLRATE_MANUAL:
+			case SENSOR_POLLRATE_MANUAL:
 				stop();
 				_call_interval = 0;
 				return OK;
 
 				/* external signalling not supported */
-			case ACC_POLLRATE_EXTERNAL:
+			case SENSOR_POLLRATE_EXTERNAL:
 
 				/* zero would be bad */
 			case 0:
 				return -EINVAL;
+
+				/* set default/max polling rate */
+			case SENSOR_POLLRATE_MAX:
+			case SENSOR_POLLRATE_DEFAULT:
+				/* XXX 500Hz is just a wild guess */
+				return ioctl(filp, SENSORIOCSPOLLRATE, 500);
 
 				/* adjust to a legal polling interval in Hz */
 			default: {
@@ -534,7 +555,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call.period = _call_interval;
+					_call.period = _call_interval = ticks;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start)
@@ -545,20 +566,46 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case ACCELIOCSQUEUEDEPTH:
+	case SENSORIOCGPOLLRATE:
+		if (_call_interval == 0)
+			return SENSOR_POLLRATE_MANUAL;
+		return 1000000 / _call_interval;
+
+	case SENSORIOCSQUEUEDEPTH:
+		/* XXX not implemented */
+		return -EINVAL;
+
+	case SENSORIOCGQUEUEDEPTH:
+		/* XXX not implemented */
+		return -EINVAL;
+
+
+	case ACCELIOCSSAMPLERATE:
+	case ACCELIOCGSAMPLERATE:
 		/* XXX not implemented */
 		return -EINVAL;
 
 	case ACCELIOCSLOWPASS:
+	case ACCELIOCGLOWPASS:
 		/* XXX not implemented */
 		return -EINVAL;
 
-	case ACCELIORANGE:
-		/* XXX not implemented really */
-		return set_range(arg);
+	case ACCELIOCSSCALE:
+		/* copy scale in */
+		memcpy(&_accel_scale, (struct accel_scale*) arg, sizeof(_accel_scale));
+		return OK;
 
-	case ACCELIOCSSAMPLERATE:	/* sensor sample rate is not (really) adjustable */
-	case ACCELIOCSREPORTFORMAT:	/* no alternate report formats */
+	case ACCELIOCGSCALE:
+		/* copy scale out */
+		memcpy((struct accel_scale*) arg, &_accel_scale, sizeof(_accel_scale));
+		return OK;
+
+	case ACCELIOCSRANGE:
+	case ACCELIOCGRANGE:
+		/* XXX not implemented */
+		// XXX change these two values on set:
+		// _accel_range_scale = (9.81f / 4096.0f);
+		// _accel_range_rad_s = 8.0f * 9.81f;
 		return -EINVAL;
 
 	default:
@@ -572,24 +619,40 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
-	case GYROIOCSPOLLRATE:
-		/* gyro and accel poll rates are shared */
-		return ioctl(filp, ACCELIOCSPOLLRATE, arg);
+		/* these are shared with the accel side */
+	case SENSORIOCSPOLLRATE:
+	case SENSORIOCGPOLLRATE:
+	case SENSORIOCSQUEUEDEPTH:
+	case SENSORIOCGQUEUEDEPTH:
+	case SENSORIOCRESET:
+		return ioctl(filp, cmd, arg);
 
-	case GYROIOCSQUEUEDEPTH:
+	case GYROIOCSSAMPLERATE:
+	case GYROIOCGSAMPLERATE:
 		/* XXX not implemented */
 		return -EINVAL;
 
 	case GYROIOCSLOWPASS:
+	case GYROIOCGLOWPASS:
 		/* XXX not implemented */
 		return -EINVAL;
 
 	case GYROIOCSSCALE:
-		/* XXX not implemented really */
-		return set_range(arg);
+		/* copy scale in */
+		memcpy(&_gyro_scale, (struct gyro_scale*) arg, sizeof(_gyro_scale));
+		return OK;
 
-	case GYROIOCSSAMPLERATE:	/* sensor sample rate is not (really) adjustable */
-	case GYROIOCSREPORTFORMAT:	/* no alternate report formats */
+	case GYROIOCGSCALE:
+		/* copy scale out */
+		memcpy((struct gyro_scale*) arg, &_gyro_scale, sizeof(_gyro_scale));
+		return OK;
+
+	case GYROIOCSRANGE:
+	case GYROIOCGRANGE:
+		/* XXX not implemented */
+		// XXX change these two values on set:
+		// _gyro_range_scale = xx
+		// _gyro_range_m_s2 = xx
 		return -EINVAL;
 
 	default:
@@ -719,18 +782,28 @@ MPU6000::measure()
 	 * Report conversation within the MPU6000, including command byte and
 	 * interrupt status.
 	 */
-	struct Report {
+	struct MPUReport {
 		uint8_t		cmd;
 		uint8_t		status;
-		uint16_t	accel_x;
-		uint16_t	accel_y;
-		uint16_t	accel_z;
-		uint16_t	temp;
-		uint16_t	gyro_x;
-		uint16_t	gyro_y;
-		uint16_t	gyro_z;
-	} report;
+		uint8_t		accel_x[2];
+		uint8_t		accel_y[2];
+		uint8_t		accel_z[2];
+		uint8_t		temp[2];
+		uint8_t		gyro_x[2];
+		uint8_t		gyro_y[2];
+		uint8_t		gyro_z[2];
+	} mpu_report;
 #pragma pack(pop)
+
+	struct Report {
+		int16_t		accel_x;
+		int16_t		accel_y;
+		int16_t		accel_z;
+		int16_t		temp;
+		int16_t		gyro_x;
+		int16_t		gyro_y;
+		int16_t		gyro_z;
+	} report;
 
 	/* start measuring */
 	perf_begin(_sample_perf);
@@ -738,21 +811,89 @@ MPU6000::measure()
 	/*
 	 * Fetch the full set of measurements from the MPU6000 in one pass.
 	 */
-	report.cmd = DIR_READ | MPUREG_INT_STATUS;
-	transfer((uint8_t *)&report, (uint8_t *)&report, sizeof(report));
+	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
+	transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report));
 
 	/*
-	 * Adjust and scale results to mg.
+	 * Convert from big to little endian
+	 */
+
+	report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
+	report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
+	report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
+
+	report.temp = int16_t_from_bytes(mpu_report.temp);
+
+	report.gyro_x = int16_t_from_bytes(mpu_report.gyro_x);
+	report.gyro_y = int16_t_from_bytes(mpu_report.gyro_y);
+	report.gyro_z = int16_t_from_bytes(mpu_report.gyro_z);
+
+	/*
+	 * Swap axes and negate y
+	 */
+	int16_t accel_xt = report.accel_y;
+	int16_t accel_yt = ((report.accel_x == -32768) ? 32767 : -report.accel_x);
+
+	int16_t gyro_xt = report.gyro_y;
+	int16_t gyro_yt = ((report.gyro_x == -32768) ? 32767 : -report.gyro_x);
+
+	/*
+	 * Apply the swap
+	 */
+	report.accel_x = accel_xt;
+	report.accel_y = accel_yt;
+	report.gyro_x = gyro_xt;
+	report.gyro_y = gyro_yt;
+
+	/*
+	 * Adjust and scale results to m/s^2.
 	 */
 	_gyro_report.timestamp = _accel_report.timestamp = hrt_absolute_time();
 
-	_accel_report.x = report.accel_x * _accel_range_scale;
-	_accel_report.y = report.accel_y * _accel_range_scale;
-	_accel_report.z = report.accel_z * _accel_range_scale;
 
-	_gyro_report.x = report.gyro_x * _gyro_range_scale;
-	_gyro_report.y = report.gyro_y * _gyro_range_scale;
-	_gyro_report.z = report.gyro_z * _gyro_range_scale;
+	/*
+	 * 1) Scale raw value to SI units using scaling from datasheet.
+	 * 2) Subtract static offset (in SI units)
+	 * 3) Scale the statically calibrated values with a linear
+	 *    dynamically obtained factor
+	 *
+	 * Note: the static sensor offset is the number the sensor outputs
+	 * 	 at a nominally 'zero' input. Therefore the offset has to
+	 * 	 be subtracted.
+	 *
+	 *	 Example: A gyro outputs a value of 74 at zero angular rate
+	 *	 	  the offset is 74 from the origin and subtracting
+	 *		  74 from all measurements centers them around zero.
+	 */
+
+
+	/* NOTE: Axes have been swapped to match the board a few lines above. */
+
+	_accel_report.x_raw = report.accel_x;
+	_accel_report.y_raw = report.accel_y;
+	_accel_report.z_raw = report.accel_z;
+
+	_accel_report.x = ((report.accel_x * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
+	_accel_report.y = ((report.accel_y * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
+	_accel_report.z = ((report.accel_z * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
+	_accel_report.scaling = _accel_range_scale;
+	_accel_report.range_m_s2 = _accel_range_m_s2;
+
+	_accel_report.temperature_raw = report.temp;
+	_accel_report.temperature = (report.temp) / 361.0f + 35.0f;
+
+	_gyro_report.x_raw = report.gyro_x;
+	_gyro_report.y_raw = report.gyro_y;
+	_gyro_report.z_raw = report.gyro_z;
+
+	_gyro_report.x = ((report.gyro_x * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
+	_gyro_report.y = ((report.gyro_y * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
+	_gyro_report.z = ((report.gyro_z * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
+	_gyro_report.scaling = _gyro_range_scale;
+	_gyro_report.range_rad_s = _gyro_range_rad_s;
+
+	_gyro_report.temperature_raw = report.temp;
+	_gyro_report.temperature = (report.temp) / 361.0f + 35.0f;
 
 	/* notify anyone waiting for data */
 	poll_notify(POLLIN);
@@ -803,67 +944,151 @@ MPU6000_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
 /**
  * Local functions in support of the shell command.
  */
-namespace
+namespace mpu6000
 {
 
 MPU6000	*g_dev;
 
-/*
- * XXX this should just be part of the generic sensors test...
- */
+void	start();
+void	test();
+void	reset();
+void	info();
 
-int
+/**
+ * Start the driver.
+ */
+void
+start()
+{
+	int fd;
+
+	if (g_dev != nullptr)
+		errx(1, "already started");
+
+	/* create the driver */
+	g_dev = new MPU6000(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_MPU);
+
+	if (g_dev == nullptr)
+		goto fail;
+
+	if (OK != g_dev->init())
+		goto fail;
+
+	/* set the poll rate to default, starts automatic data collection */
+	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		goto fail;
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+		goto fail;
+
+	exit(0);
+fail:
+	if (g_dev != nullptr) {
+		delete g_dev;
+		g_dev = nullptr;
+	}
+	errx(1, "driver start failed");
+}
+
+/**
+ * Perform some basic functional tests on the driver;
+ * make sure we can collect data from the sensor in polled
+ * and automatic modes.
+ */
+void
 test()
 {
 	int fd = -1;
-	struct accel_report report;
+	int fd_gyro = -1;
+	struct accel_report a_report;
+	struct gyro_report g_report;
 	ssize_t sz;
-	const char *reason = "test OK";
 
-	do {
+	/* get the driver */
+	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		err(1, "%s open failed (try 'mpu6000 start' if the driver is not running)", 
+			ACCEL_DEVICE_PATH);
 
-		/* get the driver */
-		fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	/* get the driver */
+	fd_gyro = open(GYRO_DEVICE_PATH, O_RDONLY);
+	if (fd_gyro < 0)
+		err(1, "%s open failed", GYRO_DEVICE_PATH);
 
-		if (fd < 0) {
-			reason = "can't open driver";
-			break;
-		}
+	/* reset to manual polling */
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
+		err(1, "reset to manual polling");
+	
+	/* do a simple demand read */
+	sz = read(fd, &a_report, sizeof(a_report));
+	if (sz != sizeof(a_report))
+		err(1, "immediate acc read failed");
 
-		/* do a simple demand read */
-		sz = read(fd, &report, sizeof(report));
+	warnx("single read");
+	warnx("time:     %lld", a_report.timestamp);
+	warnx("acc  x:  \t%8.4f\tm/s^2", (double)a_report.x);
+	warnx("acc  y:  \t%8.4f\tm/s^2", (double)a_report.y);
+	warnx("acc  z:  \t%8.4f\tm/s^2", (double)a_report.z);
+	warnx("acc  x:  \t%d\traw 0x%0x", (short)a_report.x_raw, (unsigned short)a_report.x_raw);
+	warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
+	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
+	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
+		(double)(a_report.range_m_s2 / 9.81f));
 
-		if (sz != sizeof(report)) {
-			reason = "immediate read failed";
-			break;
-		}
+	/* do a simple demand read */
+	sz = read(fd_gyro, &g_report, sizeof(g_report));
+	if (sz != sizeof(g_report))
+		err(1, "immediate gyro read failed");
 
-		printf("single read\n");
-		fflush(stdout);
-		printf("time:        %lld\n", report.timestamp);
-		printf("x:           %f\n", report.x);
-		printf("y:           %f\n", report.y);
-		printf("z:           %f\n", report.z);
+	warnx("gyro x: \t% 9.5f\trad/s", (double)g_report.x);
+	warnx("gyro y: \t% 9.5f\trad/s", (double)g_report.y);
+	warnx("gyro z: \t% 9.5f\trad/s", (double)g_report.z);
+	warnx("gyro x: \t%d\traw", (int)g_report.x_raw);
+	warnx("gyro y: \t%d\traw", (int)g_report.y_raw);
+	warnx("gyro z: \t%d\traw", (int)g_report.z_raw);
+	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
+		(int)((g_report.range_rad_s / M_PI_F) * 180.0f+0.5f));
 
-	} while (0);
+	warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
+	warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
 
-	printf("MPU6000: %s\n", reason);
 
-	return OK;
+	/* XXX add poll-rate tests here too */
+
+	reset();
+	errx(0, "PASS");
 }
 
-int
+/**
+ * Reset the driver.
+ */
+void
+reset()
+{
+	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		err(1, "failed ");
+	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
+		err(1, "driver reset failed");
+	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
+		err(1, "driver poll restart failed");
+
+	exit(0);
+}
+
+/**
+ * Print a little info about the driver.
+ */
+void
 info()
 {
-	if (g_dev == nullptr) {
-		fprintf(stderr, "MPU6000: driver not running\n");
-		return -ENOENT;
-	}
+	if (g_dev == nullptr)
+		errx(1, "driver not running");
 
 	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
 
-	return OK;
+	exit(0);
 }
 
 
@@ -874,47 +1099,28 @@ mpu6000_main(int argc, char *argv[])
 {
 	/*
 	 * Start/load the driver.
-	 *
-	 * XXX it would be nice to have a wrapper for this...
+
 	 */
-	if (!strcmp(argv[1], "start")) {
-
-		if (g_dev != nullptr) {
-			fprintf(stderr, "MPU6000: already loaded\n");
-			return -EBUSY;
-		}
-
-		/* create the driver */
-		g_dev = new MPU6000(1 /* XXX magic number */, (spi_dev_e)PX4_SPIDEV_MPU);
-
-		if (g_dev == nullptr) {
-			fprintf(stderr, "MPU6000: driver alloc failed\n");
-			return -ENOMEM;
-		}
-
-		if (OK != g_dev->init()) {
-			fprintf(stderr, "MPU6000: driver init failed\n");
-			usleep(100000);
-			delete g_dev;
-			g_dev = nullptr;
-			return -EIO;
-		}
-
-		return OK;
-	}
+	if (!strcmp(argv[1], "start"))
+		mpu6000::start();
 
 	/*
 	 * Test the driver/device.
 	 */
 	if (!strcmp(argv[1], "test"))
-		return test();
+		mpu6000::test();
+
+	/*
+	 * Reset the driver.
+	 */
+	if (!strcmp(argv[1], "reset"))
+		mpu6000::reset();
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(argv[1], "info"))
-		return info();
+		mpu6000::info();
 
-	fprintf(stderr, "unrecognised command, try 'start', 'test' or 'info'\n");
-	return -EINVAL;
+	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
 }

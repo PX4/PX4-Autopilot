@@ -80,11 +80,11 @@ struct sensor_combined_s {
 	uint64_t timestamp;			/**< Timestamp in microseconds since boot       LOGME  */
 
 	int16_t	gyro_raw[3];			/**< Raw sensor values of angular velocity      LOGME  */
-	uint16_t gyro_raw_counter;		/**< Number of raw measurments taken            LOGME  */
+	uint16_t gyro_counter;			/**< Number of raw measurments taken            LOGME  */
 	float gyro_rad_s[3];			/**< Angular velocity in radian per seconds     LOGME  */
 	
 	int16_t accelerometer_raw[3];		/**< Raw acceleration in NED body frame         LOGME  */
-	uint16_t accelerometer_raw_counter;	/**< Number of raw acc measurements taken       LOGME  */
+	uint32_t accelerometer_counter;		/**< Number of raw acc measurements taken       LOGME  */
 	float accelerometer_m_s2[3];		/**< Acceleration in NED body frame, in m/s^2   LOGME  */
 	int accelerometer_mode;			/**< Accelerometer measurement mode */
 	float accelerometer_range_m_s2;		/**< Accelerometer measurement range in m/s^2 */
@@ -94,15 +94,15 @@ struct sensor_combined_s {
 	int magnetometer_mode;			/**< Magnetometer measurement mode */
 	float magnetometer_range_ga;		/**< ± measurement range in Gauss */
 	float magnetometer_cuttoff_freq_hz;	/**< Internal analog low pass frequency of sensor */
-	uint16_t magnetometer_raw_counter;	/**< Number of raw mag measurements taken       LOGME  */
+	uint32_t magnetometer_counter;		/**< Number of raw mag measurements taken       LOGME  */
 	
 	float baro_pres_mbar;			/**< Barometric pressure, already temp. comp.   LOGME  */
 	float baro_alt_meter;			/**< Altitude, already temp. comp.              LOGME  */
 	float baro_temp_celcius;		/**< Temperature in degrees celsius             LOGME  */
 	float battery_voltage_v;		/**< Battery voltage in volts, filtered         LOGME  */
 	float adc_voltage_v[3];			/**< ADC voltages of ADC Chan 11/12/13 or -1    LOGME  */
-	uint16_t baro_raw_counter;		/**< Number of raw baro measurements taken      LOGME  */
-	uint16_t battery_voltage_counter;	/**< Number of voltage measurements taken       LOGME  */
+	uint32_t baro_counter;			/**< Number of raw baro measurements taken      LOGME  */
+	uint32_t battery_voltage_counter;	/**< Number of voltage measurements taken       LOGME  */
 	bool battery_voltage_valid;		/**< True if battery voltage can be measured    LOGME  */
 
 };

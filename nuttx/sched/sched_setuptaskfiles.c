@@ -148,8 +148,8 @@ static inline void sched_dupsockets(FAR _TCB *tcb)
   /* The parent task is the one at the head of the ready-to-run list */
 
   FAR _TCB *rtcb = (FAR _TCB*)g_readytorun.head;
-  FAR struct sockets *parent;
-  FAR struct sockets *child;
+  FAR struct socket *parent;
+  FAR struct socket *child;
   int i;
 
  /* Duplicate the socket descriptors of all sockets opened by the parent

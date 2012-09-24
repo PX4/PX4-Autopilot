@@ -95,5 +95,7 @@ extern int	test_sleep(int argc, char *argv[]);
 extern int	test_time(int argc, char *argv[]);
 extern int	test_uart_console(int argc, char *argv[]);
 extern int	test_jig_voltages(int argc, char *argv[]);
+extern int	test_param(int argc, char *argv[]);
+extern int	test_file(int argc, char *argv[]);
 
 #endif /* __APPS_PX4_TESTS_H */

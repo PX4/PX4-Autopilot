@@ -147,18 +147,18 @@ void attitude_blackmagic_init(void)
 //	};
 
 	static m_elem kal_gain[12 * 9] = {
-		0.0006f , 0    ,   0    ,   0    ,   0    ,   0    ,   0   ,    0    ,   0,
-		0   ,    0.0006f , 0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0,
-		0   ,    0    ,   0.0006f , 0   ,    0   ,    0   ,    0   ,    0   ,    0,
+		0.0007f , 0    ,   0    ,   0    ,   0    ,   0    ,   0   ,    0    ,   0,
+		0   ,    0.0007f , 0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0,
+		0   ,    0    ,   0.0007f , 0   ,    0   ,    0   ,    0   ,    0   ,    0,
 		0   ,    0    ,   0   ,    0.015f, 	0   ,    0   ,    0   ,    0   ,    0,
 		0   ,    0   ,    0   ,    0    ,   0.015f, 	 0   ,    0   ,    0   ,    0,
 		0   ,    0    ,   0   ,    0    ,   0   ,    0.015f, 	  0   ,    0   ,    0,
 		0.0000f , +0.00002f, 0   ,    0 , 		0, 		 0,  	  0,  	   0    ,   0,
 		-0.00002f, 0    ,   0   ,    0 , 		0, 		 0,  	  0,  	   0, 	    0,
 		0,    	 0 ,	  0   ,    0,  	    0,		 0,  	  0,  	   0, 	    0,
-		0  ,     0    ,   0   ,    0   ,    0    ,   0   ,    0.6f ,   0   ,    0,
-		0   ,    0   ,    0   ,    0   ,    0    ,   0   ,    0    ,   0.6f ,   0,
-		0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0    ,   0    ,   0.6f
+		0  ,     0    ,   0   ,    0   ,    0    ,   0   ,    0.7f ,   0   ,    0,
+		0   ,    0   ,    0   ,    0   ,    0    ,   0   ,    0    ,   0.7f ,   0,
+		0   ,    0   ,    0   ,    0   ,    0   ,    0   ,    0    ,   0    ,   0.7f
 	};
 	//offset update only correct if not upside down.
 
@@ -207,10 +207,6 @@ void attitude_blackmagic_init(void)
 
 void attitude_blackmagic(const float_vect3 *accel, const float_vect3 *mag, const float_vect3 *gyro)
 {
-	//Transform accelerometer used in all directions
-	//	float_vect3 acc_nav;
-	//body2navi(&global_data.accel_si, &global_data.attitude, &acc_nav);
-
 	// Kalman Filter
 
 	//Calculate new linearized A matrix
@@ -224,6 +220,18 @@ void attitude_blackmagic(const float_vect3 *accel, const float_vect3 *mag, const
 		{ };
 	m_elem mask[9] =
 	{ 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+
+	// XXX Hack - stop updating accel if upside down
+
+	if (accel->z > 0) {
+		mask[0] = 0.0f;
+		mask[1] = 0.0f;
+		mask[2] = 0.0f;
+	} else {
+		mask[0] = 1.0f;
+		mask[1] = 1.0f;
+		mask[2] = 1.0f;
+	}
 
 	measurement[0] = accel->x;
 	measurement[1] = accel->y;

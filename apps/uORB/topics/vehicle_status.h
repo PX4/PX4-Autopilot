@@ -111,26 +111,28 @@ struct vehicle_status_s
 	uint16_t counter;   /**< incremented by the writing thread everytime new data is stored */
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
 
-	commander_state_machine_t state_machine;	/**< Current flight state, main state machine */
-	enum VEHICLE_FLIGHT_MODE flight_mode;		/**< Current flight mode, as defined by mode switch */
-	enum VEHICLE_ATTITUDE_MODE attitute_mode;	/**< Current attitude control mode, as defined by VEHICLE_ATTITUDE_MODE enum */
+	commander_state_machine_t state_machine;	/**< current flight state, main state machine */
+	enum VEHICLE_FLIGHT_MODE flight_mode;		/**< current flight mode, as defined by mode switch */
+	enum VEHICLE_ATTITUDE_MODE attitute_mode;	/**< current attitude control mode, as defined by VEHICLE_ATTITUDE_MODE enum */
 
 	// uint8_t mode;
 
 
 	/* system flags - these represent the state predicates */
 
-	bool flag_system_armed;				/**< True is motors / actuators are armed */
+	bool flag_system_armed;				/**< true is motors / actuators are armed */
 	bool flag_control_manual_enabled;		/**< true if manual input is mixed in */
-	bool flag_hil_enabled;				/**< True if hardware in the loop simulation is enabled */
+	bool flag_control_offboard_enabled;		/**< true if offboard control input is on */
+	bool flag_hil_enabled;				/**< true if hardware in the loop simulation is enabled */
 
-	// bool flag_control_rates_enabled;			/**< true if rates are stabilized */
-	// bool flag_control_attitude_enabled;			*< true if attitude stabilization is mixed in 
-	// bool control_speed_enabled;			/**< true if speed (implies direction) is controlled */
-	// bool control_position_enabled;			/**< true if position is controlled */
+	bool flag_control_rates_enabled;		/**< true if rates are stabilized */
+	bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
+	bool flag_control_speed_enabled;		/**< true if speed (implies direction) is controlled */
+	bool flag_control_position_enabled;		/**< true if position is controlled */
 
-	bool preflight_gyro_calibration;		/**< true if gyro calibration is requested */
-	bool preflight_mag_calibration;			/**< true if mag calibration is requested */
+	bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */
+	bool flag_preflight_mag_calibration;			/**< true if mag calibration is requested */
+	bool flag_preflight_accel_calibration;
 
 	bool rc_signal_lost;				/**< true if RC reception is terminally lost */
 	bool rc_signal_cutting_off;			/**< true if RC reception is weak / cutting off */

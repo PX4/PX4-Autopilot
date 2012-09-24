@@ -2,7 +2,7 @@
  * examples/romfs/romfs_main.c
  *
  *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -452,10 +452,10 @@ static void checkdirectories(struct node_s *entry)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start
+ * Name: romfs_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int romfs_main(int argc, char *argv[])
 {
    int  ret;
 

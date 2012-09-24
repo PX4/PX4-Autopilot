@@ -178,7 +178,7 @@
 
 pid_t waitpid(pid_t pid, int *stat_loc, int options)
 {
-  _TCB *tcb = sched_gettcb(pid);
+  _TCB *tcb;
   bool mystat;
   int err;
   int ret;
@@ -186,6 +186,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
   /* Disable pre-emption so that nothing changes in the following tests */
 
   sched_lock();
+  tcb = sched_gettcb(pid);
   if (!tcb)
     {
       err = ECHILD;

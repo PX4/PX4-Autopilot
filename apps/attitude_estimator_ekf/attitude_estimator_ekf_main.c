@@ -2,7 +2,6 @@
  *
  *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
  *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
- *           Laurens Mackay <mackayl@student.ethz.ch>
  *           Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,13 +34,9 @@
  ****************************************************************************/
 
 /*
- * @file Extended Kalman Filter for Attitude Estimation
+ * @file attitude_estimator_ekf_main.c
+ * Extended Kalman Filter for Attitude Estimation.
  */
-
-
-/****************************************************************************
- * Included Files
- ****************************************************************************/
 
 #include <nuttx/config.h>
 #include <unistd.h>
@@ -138,7 +133,7 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
 	/* advertise attitude */
-	int pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
+	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
 
 	int loopcounter = 0;

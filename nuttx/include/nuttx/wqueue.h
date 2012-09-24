@@ -50,6 +50,75 @@
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
+/* Configuration ************************************************************/
+/* CONFIG_SCHED_WORKQUEUE.  Create a dedicated "worker" thread to
+ *   handle delayed processing from interrupt handlers.  This feature
+ *   is required for some drivers but, if there are not complaints,
+ *   can be safely disabled.  The worker thread also performs
+ *   garbage collection -- completing any delayed memory deallocations
+ *   from interrupt handlers.  If the worker thread is disabled,
+ *   then that clean will be performed by the IDLE thread instead
+ *   (which runs at the lowest of priority and may not be appropriate
+ *   if memory reclamation is of high priority).  If CONFIG_SCHED_WORKQUEUE
+ *   is enabled, then the following options can also be used:
+ * CONFIG_SCHED_WORKPRIORITY - The execution priority of the worker
+ *   thread.  Default: 192
+ * CONFIG_SCHED_WORKPERIOD - How often the worker thread checks for
+ *   work in units of microseconds.  Default: 50*1000 (50 MS).
+ * CONFIG_SCHED_WORKSTACKSIZE - The stack size allocated for the worker
+ *   thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
+ * CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
+ *   the worker thread.  Default: 4
+ *
+ * CONFIG_SCHED_LPWORK. If CONFIG_SCHED_WORKQUEUE is defined, then a single
+ *   work queue is created by default.  If CONFIG_SCHED_LPWORK is also defined
+ *   then an additional, lower-priority work queue will also be created.  This
+ *   lower priority work queue is better suited for more extended processing
+ *   (such as file system clean-up operations)
+ * CONFIG_SCHED_LPWORKPRIORITY - The execution priority of the lower priority
+ *   worker thread.  Default: 50
+ * CONFIG_SCHED_LPWORKPERIOD - How often the lower priority worker thread
+ *  checks for work in units of microseconds.  Default: 50*1000 (50 MS).
+ * CONFIG_SCHED_LPWORKSTACKSIZE - The stack size allocated for the lower
+ *   priority worker thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
+ */
+
+#ifndef CONFIG_SCHED_WORKPRIORITY
+#  define CONFIG_SCHED_WORKPRIORITY 192
+#endif
+
+#ifndef CONFIG_SCHED_WORKPERIOD
+#  define CONFIG_SCHED_WORKPERIOD (50*1000) /* 50 milliseconds */
+#endif
+
+#ifndef CONFIG_SCHED_WORKSTACKSIZE
+#  define CONFIG_SCHED_WORKSTACKSIZE CONFIG_IDLETHREAD_STACKSIZE
+#endif
+
+#ifdef CONFIG_SCHED_LPWORK
+#  ifndef CONFIG_SCHED_LPWORKPRIORITY
+#    define CONFIG_SCHED_LPWORKPRIORITY 50
+#  endif
+
+#  ifndef CONFIG_SCHED_LPWORKPERIOD
+#    define CONFIG_SCHED_LPWORKPERIOD (50*1000) /* 50 milliseconds */
+#  endif
+
+#  ifndef CONFIG_SCHED_LPWORKSTACKSIZE
+#    define CONFIG_SCHED_LPWORKSTACKSIZE CONFIG_IDLETHREAD_STACKSIZE
+#  endif
+#endif
+
+/* Work queue IDs (indices).  These are both zero if there is only one work
+ * queue.
+ */
+
+#define HPWORK 0
+#ifdef CONFIG_SCHED_LPWORK
+#  define LPWORK 1
+#else
+#  define LPWORK HPWORK
+#endif
 
 /****************************************************************************
  * Public Types
@@ -86,10 +155,6 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-/* The task ID of the worker thread */
-
-EXTERN pid_t g_worker;
-
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -109,6 +174,7 @@ EXTERN pid_t g_worker;
  *   and remove it from the work queue.
  *
  * Input parameters:
+ *   qid    - The work queue ID
  *   work   - The work structure to queue
  *   worker - The worker callback to be invoked.  The callback will invoked
  *            on the worker thread of execution.
@@ -122,7 +188,8 @@ EXTERN pid_t g_worker;
  *
  ****************************************************************************/
 
-EXTERN int work_queue(struct work_s *work, worker_t worker, FAR void *arg, uint32_t delay);
+EXTERN int work_queue(int qid, FAR struct work_s *work, worker_t worker,
+                      FAR void *arg, uint32_t delay);
 
 /****************************************************************************
  * Name: work_cancel
@@ -133,6 +200,7 @@ EXTERN int work_queue(struct work_s *work, worker_t worker, FAR void *arg, uint3
  *   again.
  *
  * Input parameters:
+ *   qid    - The work queue ID
  *   work   - The previously queue work structure to cancel
  *
  * Returned Value:
@@ -140,7 +208,7 @@ EXTERN int work_queue(struct work_s *work, worker_t worker, FAR void *arg, uint3
  *
  ****************************************************************************/
 
-EXTERN int work_cancel(struct work_s *work);
+EXTERN int work_cancel(int qid, FAR struct work_s *work);
 
 /****************************************************************************
  * Name: work_signal
@@ -151,14 +219,14 @@ EXTERN int work_cancel(struct work_s *work);
  *   user to force an immediate re-assessment of pending work.
  *
  * Input parameters:
- *   None
+ *   qid    - The work queue ID
  *
  * Returned Value:
  *   Zero on success, a negated errno on failure
  *
  ****************************************************************************/
 
-#define work_signal() kill(g_worker, SIGWORK)
+EXTERN int work_signal(int qid);
 
 /****************************************************************************
  * Name: work_available

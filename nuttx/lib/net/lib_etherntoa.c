@@ -2,7 +2,7 @@
  * lib/net/lib_etherntoa.c
  *
  *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,7 +58,7 @@
  *
  ****************************************************************************/
 
-char *ether_ntoa(const struct ether_addr *addr)
+FAR char *ether_ntoa(FAR const struct ether_addr *addr)
 {
   static char buffer[20];
   sprintf(buffer, "%02x:%02x:%02x:%02x:%02x:%02x",

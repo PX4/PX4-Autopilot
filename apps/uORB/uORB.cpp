@@ -32,7 +32,8 @@
  ****************************************************************************/
 
 /**
- * @file A lightweight object broker.
+ * @file uORB.cpp
+ * A lightweight object broker.
  */
 
 #include <nuttx/config.h>
@@ -111,6 +112,8 @@ public:
 	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
 	virtual ssize_t		write(struct file *filp, const char *buffer, size_t buflen);
 	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+
+	static ssize_t		publish(const orb_metadata *meta, orb_advert_t handle, const void *data);
 
 protected:
 	virtual pollevent_t	poll_state(struct file *filp);
@@ -298,6 +301,8 @@ ORBDevNode::write(struct file *filp, const char *buffer, size_t buflen)
 	 *
 	 * Writes outside interrupt context will allocate the object
 	 * if it has not yet been allocated.
+	 *
+	 * Note that filp will usually be NULL.
 	 */
 	if (nullptr == _data) {
 		if (!up_interrupt_context()) {
@@ -353,10 +358,40 @@ ORBDevNode::ioctl(struct file *filp, int cmd, unsigned long arg)
 		sd->update_interval = arg;
 		return OK;
 
+	case ORBIOCGADVERTISER:
+		*(uintptr_t *)arg = (uintptr_t)this;
+		return OK;
+
 	default:
 		/* give it to the superclass */
 		return CDev::ioctl(filp, cmd, arg);
 	}
+}
+
+ssize_t
+ORBDevNode::publish(const orb_metadata *meta, orb_advert_t handle, const void *data)
+{
+	ORBDevNode *devnode = (ORBDevNode *)handle;
+	int ret;
+
+	/* this is a bit risky, since we are trusting the handle in order to deref it */
+	if (devnode->_meta != meta) {
+		errno = EINVAL;
+		return ERROR;
+	}
+
+	/* call the devnode write method with no file pointer */
+	ret = devnode->write(nullptr, (const char *)data, meta->o_size);
+
+	if (ret < 0)
+		return ERROR;
+
+	if (ret != (int)meta->o_size) {
+		errno = EIO;
+		return ERROR;
+	}
+
+	return OK;
 }
 
 pollevent_t
@@ -614,7 +649,7 @@ test()
 	if (pfd < 0)
 		return test_fail("advertise failed: %d", errno);
 
-	test_note("publish fd %d", pfd);
+	test_note("publish handle 0x%08x", pfd);
 	sfd = orb_subscribe(ORB_ID(orb_test));
 
 	if (sfd < 0)
@@ -877,29 +912,35 @@ node_open(Flavor f, const struct orb_metadata *meta, const void *data, bool adve
 		return ERROR;
 	}
 
-	/* the advertiser must perform an initial publish to initialise the object */
-	if (advertiser) {
-		ret = orb_publish(meta, fd, data);
-
-		if (ret != OK) {
-			/* save errno across the close */
-			ret = errno;
-			close(fd);
-			errno = ret;
-			return ERROR;
-		}
-	}
-
 	/* everything has been OK, we can return the handle now */
 	return fd;
 }
 
 } // namespace
 
-int
+orb_advert_t
 orb_advertise(const struct orb_metadata *meta, const void *data)
 {
-	return node_open(PUBSUB, meta, data, true);
+	int result, fd;
+	orb_advert_t advertiser;
+
+	/* open the node as an advertiser */
+	fd = node_open(PUBSUB, meta, data, true);
+	if (fd == ERROR)
+		return ERROR;
+
+	/* get the advertiser handle and close the node */
+	result = ioctl(fd, ORBIOCGADVERTISER, (unsigned long)&advertiser);
+	close(fd);
+	if (result == ERROR)
+		return ERROR;
+
+	/* the advertiser must perform an initial publish to initialise the object */
+	result= orb_publish(meta, advertiser, data);
+	if (result == ERROR)
+		return ERROR;
+
+	return advertiser;
 }
 
 int
@@ -915,21 +956,9 @@ orb_unsubscribe(int handle)
 }
 
 int
-orb_publish(const struct orb_metadata *meta, int handle, const void *data)
+orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data)
 {
-	int ret;
-
-	ret = write(handle, data, meta->o_size);
-
-	if (ret < 0)
-		return ERROR;
-
-	if (ret != (int)meta->o_size) {
-		errno = EIO;
-		return ERROR;
-	}
-
-	return OK;
+	return ORBDevNode::publish(meta, handle, data);
 }
 
 int

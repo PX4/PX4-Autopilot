@@ -46,6 +46,18 @@
 /****************************************************************************************************
  * Pre-processor Definitions
  ****************************************************************************************************/
+/* General definitions */
+
+#define OTGFS_EPTYPE_CTRL               (0) /* Control */
+#define OTGFS_EPTYPE_ISOC               (1) /* Isochronous */
+#define OTGFS_EPTYPE_BULK               (2) /* Bulk */
+#define OTGFS_EPTYPE_INTR               (3) /* Interrupt */
+
+#define OTGFS_PID_DATA0                 (0)
+#define OTGFS_PID_DATA2                 (1)
+#define OTGFS_PID_DATA1                 (2)
+#define OTGFS_PID_MDATA                 (3) /* Non-control */
+#define OTGFS_PID_SETUP                 (3) /* Control */
 
 /* Register Offsets *********************************************************************************/
 /* Core global control and status registers */
@@ -125,8 +137,8 @@
 #define STM32_OTGFS_HCTSIZ3_OFFSET      0x0570 /* Host channel-3 interrupt register */
 #define STM32_OTGFS_HCTSIZ4_OFFSET      0x0590 /* Host channel-4 interrupt register */
 #define STM32_OTGFS_HCTSIZ5_OFFSET      0x05b0 /* Host channel-5 interrupt register */
-#define STM32_OTGFS_HCTSIZ6_OFFSET      0x05d9 /* Host channel-6 interrupt register */
-#define STM32_OTGFS_HCTSIZ7_OFFSET      0x05f9 /* Host channel-7 interrupt register */
+#define STM32_OTGFS_HCTSIZ6_OFFSET      0x05d0 /* Host channel-6 interrupt register */
+#define STM32_OTGFS_HCTSIZ7_OFFSET      0x05f0 /* Host channel-7 interrupt register */
 
 /* Device-mode control and status registers */
 
@@ -193,6 +205,10 @@
 #define STM32_OTGFS_DOEPTSIZ2_OFFSET    0x00b50 /* Device OUT endpoint-2 transfer size register */
 #define STM32_OTGFS_DOEPTSIZ3_OFFSET    0x00b70 /* Device OUT endpoint-3 transfer size register */
 
+/* Power and clock gating registers */
+
+#define STM32_OTGFS_PCGCCTL_OFFSET      0x0e00 /* Power and clock gating control register */
+
 /* Data FIFO (DFIFO) access registers */
 
 #define STM32_OTGFS_DFIFO_DEP_OFFSET(n) (0x1000 + ((n) << 12))
@@ -204,15 +220,11 @@
 #define STM32_OTGFS_DFIFO_DEP1_OFFSET   0x2000 /* 0x2000-0x2ffc Device IN/OUT Endpoint 1 DFIFO Write/Read Access */
 #define STM32_OTGFS_DFIFO_HCH1_OFFSET   0x2000 /* 0x2000-0x2ffc Host OUT/IN Channel 1 DFIFO Read/Write Access */
 
-#define STM32_OTGFS_DFIFO_DEP2_OFFSET   0x3000 /* 0x3000-0x3ffc Device IN/OUT Endpoint 1 DFIFO Write/Read Access */
-#define STM32_OTGFS_DFIFO_HCH2_OFFSET   0x3000 /* 0x3000-0x3ffc Host OUT/IN Channel 1 DFIFO Read/Write Access */
+#define STM32_OTGFS_DFIFO_DEP2_OFFSET   0x3000 /* 0x3000-0x3ffc Device IN/OUT Endpoint 2 DFIFO Write/Read Access */
+#define STM32_OTGFS_DFIFO_HCH2_OFFSET   0x3000 /* 0x3000-0x3ffc Host OUT/IN Channel 2 DFIFO Read/Write Access */
 
-#define STM32_OTGFS_DFIFO_DEP3_OFFSET   0x4000 /* 0x4000-0x4ffc Device IN/OUT Endpoint 1 DFIFO Write/Read Access */
-#define STM32_OTGFS_DFIFO_HCH3_OFFSET   0x4000 /* 0x4000-0x4ffc Host OUT/IN Channel 1 DFIFO Read/Write Access */
-
-/* Power and clock gating registers */
-
-#define STM32_OTGFS_PCGCCTL_OFFSET      0x0e00 /* Power and clock gating control register */
+#define STM32_OTGFS_DFIFO_DEP3_OFFSET   0x4000 /* 0x4000-0x4ffc Device IN/OUT Endpoint 3 DFIFO Write/Read Access */
+#define STM32_OTGFS_DFIFO_HCH3_OFFSET   0x4000 /* 0x4000-0x4ffc Host OUT/IN Channel 3 DFIFO Read/Write Access */
 
 /* Register Addresses *******************************************************************************/
 
@@ -349,6 +361,10 @@
 #define STM32_OTGFS_DOEPTSIZ2           (STM32_OTGFS_BASE+STM32_OTGFS_DOEPTSIZ2_OFFSET)
 #define STM32_OTGFS_DOEPTSIZ3           (STM32_OTGFS_BASE+STM32_OTGFS_DOEPTSIZ3_OFFSET)
 
+/* Power and clock gating registers */
+
+#define STM32_OTGFS_PCGCCTL             (STM32_OTGFS_BASE+STM32_OTGFS_PCGCCTL_OFFSET)
+
 /* Data FIFO (DFIFO) access registers */
 
 #define STM32_OTGFS_DFIFO_DEP(n)        (STM32_OTGFS_BASE+STM32_OTGFS_DFIFO_DEP_OFFSET(n))
@@ -365,10 +381,6 @@
 
 #define STM32_OTGFS_DFIFO_DEP3          (STM32_OTGFS_BASE+STM32_OTGFS_DFIFO_DEP3_OFFSET)
 #define STM32_OTGFS_DFIFO_HCH3          (STM32_OTGFS_BASE+STM32_OTGFS_DFIFO_HCH3_OFFSET)
-
-/* Power and clock gating registers */
-
-#define STM32_OTGFS_PCGCCTL             (STM32_OTGFS_BASE+STM32_OTGFS_PCGCCTL_OFFSET)
 
 /* Register Bitfield Definitions ********************************************************************/
 /* Core global control and status registers */
@@ -411,7 +423,9 @@
 
 #define OTGFS_GUSBCFG_TOCAL_SHIFT       (0)       /* Bits 0-2: FS timeout calibration */
 #define OTGFS_GUSBCFG_TOCAL_MASK        (7 << OTGFS_GUSBCFG_TOCAL_SHIFT)
-                                                  /* Bits 3-6: Reserved, must be kept at reset value */
+                                                  /* Bits 3-5: Reserved, must be kept at reset value */
+#define OTGFS_GUSBCFG_PHYSEL            (1 << 6)  /* Bit 6: Full Speed serial transceiver select */
+                                                  /* Bit 7: Reserved, must be kept at reset value */
 #define OTGFS_GUSBCFG_SRPCAP            (1 << 8)  /* Bit 8: SRP-capable */
 #define OTGFS_GUSBCFG_HNPCAP            (1 << 9)  /* Bit 9: HNP-capable */
 #define OTGFS_GUSBCFG_TRDT_SHIFT        (10)      /* Bits 10-13: USB turnaround time */
@@ -491,7 +505,7 @@
 #define OTGFS_GRXSTSH_PKTSTS_MASK       (15 << OTGFS_GRXSTSH_PKTSTS_SHIFT)
 #  define OTGFS_GRXSTSH_PKTSTS_INRECVD  (2 << OTGFS_GRXSTSH_PKTSTS_SHIFT) /* IN data packet received */
 #  define OTGFS_GRXSTSH_PKTSTS_INDONE   (3 << OTGFS_GRXSTSH_PKTSTS_SHIFT) /* IN transfer completed */
-#  define OTGFS_GRXSTSH_PKTSTS_DTOGERR  (2 << OTGFS_GRXSTSH_PKTSTS_SHIFT) /* Data toggle error */
+#  define OTGFS_GRXSTSH_PKTSTS_DTOGERR  (5 << OTGFS_GRXSTSH_PKTSTS_SHIFT) /* Data toggle error */
 #  define OTGFS_GRXSTSH_PKTSTS_HALTED   (7 << OTGFS_GRXSTSH_PKTSTS_SHIFT) /* Channel halted */
                                                   /* Bits 21-31: Reserved, must be kept at reset value */
 /* Receive status debug read/OTG status read and pop registers (device mode) */
@@ -559,7 +573,7 @@
 #  define OTGFS_HNPTXSTS_EPNUM_SHIFT    (27)      /* Bits 27-30: Endpoint number */
 #  define OTGFS_HNPTXSTS_EPNUM_MASK     (15 << OTGFS_HNPTXSTS_EPNUM_SHIFT)
                                                   /* Bit 31 Reserved, must be kept at reset value */
-/* general core configuration register */
+/* General core configuration register */
                                                   /* Bits 15:0 Reserved, must be kept at reset value */
 #define OTGFS_GCCFG_PWRDWN              (1 << 16) /* Bit 16: Power down */
                                                   /* Bit 17 Reserved, must be kept at reset value */
@@ -625,9 +639,11 @@
 #    define OTGFS_HPTXSTS_TYPE_HALT     (3 << OTGFS_HPTXSTS_TYPE_SHIFT) /* Disable channel command */
 #  define OTGFS_HPTXSTS_EPNUM_SHIFT     (27)      /* Bits 27-30: Endpoint number */
 #  define OTGFS_HPTXSTS_EPNUM_MASK      (15 << OTGFS_HPTXSTS_EPNUM_SHIFT)
+#  define OTGFS_HPTXSTS_CHNUM_SHIFT     (27)      /* Bits 27-30: Channel number */
+#  define OTGFS_HPTXSTS_CHNUM_MASK      (15 << OTGFS_HPTXSTS_CHNUM_SHIFT)
 #  define OTGFS_HPTXSTS_ODD             (1 << 24) /* Bit 31: Send in odd (vs even) frame */
 
-/* Host all channels interrupt and  all channels interrupt mask registers */
+/* Host all channels interrupt and all channels interrupt mask registers */
 
 #define OTGFS_HAINT(n)                  (1 << (n)) /* Bits 15:0 HAINTM: Channel interrupt */
 
@@ -664,7 +680,7 @@
 
 /* Host channel-n characteristics register */
 
-#define OTGFS_HCCHAR0_MPSIZ_SHIFT       (0)       /* Bits 0-10: Maximum packet size */
+#define OTGFS_HCCHAR_MPSIZ_SHIFT        (0)       /* Bits 0-10: Maximum packet size */
 #define OTGFS_HCCHAR_MPSIZ_MASK         (0x7ff << OTGFS_HCCHAR_MPSIZ_SHIFT)
 #define OTGFS_HCCHAR_EPNUM_SHIFT        (11)      /* Bits 11-14: Endpoint number */
 #define OTGFS_HCCHAR_EPNUM_MASK         (15 << OTGFS_HCCHAR_EPNUM_SHIFT)
@@ -695,7 +711,7 @@
 #define OTGFS_HCINT_STALL               (1 << 3)  /* Bit 3:  STALL response received interrupt */
 #define OTGFS_HCINT_NAK                 (1 << 4)  /* Bit 4:  NAK response received interrupt */
 #define OTGFS_HCINT_ACK                 (1 << 5)  /* Bit 5:  ACK response received/transmitted interrupt */
-#define OTGFS_HCINTMSK_NYET             (1 << 6)  /* Bit 6:  response received interrupt mask */
+#define OTGFS_HCINT_NYET                (1 << 6)  /* Bit 6:  Response received interrupt */
 #define OTGFS_HCINT_TXERR               (1 << 7)  /* Bit 7:  Transaction error */
 #define OTGFS_HCINT_BBERR               (1 << 8)  /* Bit 8:  Babble error */
 #define OTGFS_HCINT_FRMOR               (1 << 9)  /* Bit 9:  Frame overrun */
@@ -712,7 +728,8 @@
 #  define OTGFS_HCTSIZ_DPID_DATA0       (0 << OTGFS_HCTSIZ_DPID_SHIFT)
 #  define OTGFS_HCTSIZ_DPID_DATA2       (1 << OTGFS_HCTSIZ_DPID_SHIFT)
 #  define OTGFS_HCTSIZ_DPID_DATA1       (2 << OTGFS_HCTSIZ_DPID_SHIFT)
-#  define OTGFS_HCTSIZ_DPID_MDATA       (3 << OTGFS_HCTSIZ_DPID_SHIFT)
+#  define OTGFS_HCTSIZ_DPID_MDATA       (3 << OTGFS_HCTSIZ_DPID_SHIFT) /* Non-control */
+#  define OTGFS_HCTSIZ_PID_SETUP        (3 << OTGFS_HCTSIZ_DPID_SHIFT) /* Control */
                                                   /* Bit 31 Reserved, must be kept at reset value */
 /* Device-mode control and status registers */
 
@@ -989,8 +1006,6 @@
 #  define OTGFS_DOEPTSIZ_RXDPID_DATA1   (2 << OTGFS_DOEPTSIZ_RXDPID_SHIFT)
 #  define OTGFS_DOEPTSIZ_RXDPID_MDATA   (3 << OTGFS_DOEPTSIZ_RXDPID_SHIFT)
                                                   /* Bit 31: Reserved, must be kept at reset value */
-/* Power and clock gating registers */
-
 /* Power and clock gating control register */
 
 #define OTGFS_PCGCCTL_STPPCLK           (1 << 0)  /* Bit 0: Stop PHY clock */

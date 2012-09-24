@@ -3,7 +3,6 @@
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
- *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -35,7 +34,7 @@
 
 /**
  * @file systemlib.c
- * Implementation of commonly used low-level system-call like functions
+ * Implementation of commonly used low-level system-call like functions.
  */
 
 #include <nuttx/config.h>
@@ -47,7 +46,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <arch/board/drv_eeprom.h>
-#include <uORB/parameter_storage.h>
 #include <float.h>
 #include <string.h>
 
@@ -123,142 +121,6 @@ void kill_task(FAR _TCB *tcb, FAR void *arg)
 	kill(tcb->pid, SIGUSR1);
 }
 
-union param_union {
-	float f;
-	char c[4];
-};
-
-int store_params_in_eeprom(struct global_data_parameter_storage_t *params)
-{
-	int ret = ERROR;
-	int fd = open("/dev/eeprom", O_RDWR | O_NONBLOCK);
-	int lseek_res = lseek(fd, EEPROM_OFFSET, SEEK_SET); //don't touch first 64 bytes
-	int write_res;
-
-	if (fd < 0) {
-		fprintf(stderr, "onboard eeprom: open fail\n");
-		ret = ERROR;
-
-	} else if (lseek_res < 0) {
-		fprintf(stderr, "onboard eeprom: set offet fail\n");
-		ret = ERROR;
-
-	} else {
-		/*Write start magic byte */
-		uint8_t mb = EEPROM_PARAM_MAGIC_BYTE;
-		write_res = write(fd, &mb, sizeof(mb));
-
-		if (write_res != sizeof(mb)) {
-			ret = ERROR;
-
-		} else {
-			for (int i = 0; i < PARAM_MAX_COUNT; i++) {
-
-				union param_union p;
-				p.f = params->pm.param_values[i];
-				write_res = write(fd, p.c, sizeof(p.f));
-
-				if (write_res != sizeof(p.f)) return ERROR;
-			}
-
-			/*Write end magic byte */
-			write_res = write(fd, &mb, sizeof(mb));
-
-			if (write_res != sizeof(mb)) {
-				ret = ERROR;
-
-			} else {
-				ret = OK;
-			}
-		}
-
-	}
-
-	close(fd);
-
-	return ret;
-}
-
-int get_params_from_eeprom(struct global_data_parameter_storage_t *params)
-{
-	int ret = ERROR;
-	uint8_t magic_byte = 0;
-	int fd = open("/dev/eeprom", O_RDWR | O_NONBLOCK);
-	int lseek_res = lseek(fd, EEPROM_OFFSET, SEEK_SET);  //don't touch first 64 bytes
-
-	if (fd < 0) {
-		fprintf(stderr, "onboard eeprom: open fail\n");
-		ret = ERROR;
-
-	} else if (lseek_res < 0) {
-		fprintf(stderr, "onboard eeprom: set offet fail\n");
-		ret = ERROR;
-
-	} else {
-		/*Get start magic byte */
-		magic_byte = 0;
-		int read_res = read(fd, &magic_byte, sizeof(uint8_t));
-
-		if (read_res != sizeof(uint8_t)) {
-			ret = ERROR;
-
-		} else {
-			if (magic_byte != EEPROM_PARAM_MAGIC_BYTE) {
-				ret = ERROR;
-				fprintf(stderr, "onboard eeprom: parameters: start magic byte wrong\n");
-
-			} else {
-				/*get end magic byte */
-				lseek_res = lseek(fd, EEPROM_OFFSET + 1 + params->pm.size * sizeof(float), SEEK_SET); // jump to 2nd magic byte
-
-				if (lseek_res == OK) {
-					/*Get end magic */
-					read_res = read(fd, &magic_byte, sizeof(uint8_t));
-
-					if (read_res != sizeof(uint8_t)) {
-						ret = ERROR;
-
-					} else {
-						if (magic_byte != EEPROM_PARAM_MAGIC_BYTE) {
-							ret = ERROR;
-							printf("onboard eeprom: parameters: end magic byte wrong\n");
-
-						} else {
-							lseek_res = lseek(fd, EEPROM_OFFSET + 1, SEEK_SET);
-
-							/* read data */
-							if (lseek_res == OK) {
-
-								for (int i = 0; i < PARAM_MAX_COUNT; i++) {
-									union param_union p;
-									read_res = read(fd, p.c, sizeof(p.f));
-									params->pm.param_values[i] = p.f;
-									if (read_res != sizeof(p.f)) return ERROR;
-								}
-
-								ret = OK;
-
-							} else {
-								/* lseek #2 failed */
-								ret = ERROR;
-							}
-						}
-					}
-
-				} else {
-					/* lseek #1 failed */
-					ret = ERROR;
-				}
-			}
-		}
-
-	}
-
-	close(fd);
-
-	return ret;
-}
-
 #define PX4_BOARD_ID_FMU (5)
 
 int fmu_get_board_info(struct fmu_board_info_s *info)
@@ -268,23 +130,20 @@ int fmu_get_board_info(struct fmu_board_info_s *info)
 	int statres;
 
 	/* Copy version-specific fields */
-	statres = stat("/dev/bma280", &sb);
+	statres = stat("/dev/bma180", &sb);
 
 	if (statres == OK) {
-		/* BMA280 indicates a v1.7+ board */
-		strcpy(info->board_name, "FMU v1.7");
-		info->board_version = 17;
-
-	} else {
-		statres = stat("/dev/bma180", &sb);
-
-		if (statres == OK) {
 			/* BMA180 indicates a v1.5-v1.6 board */
 			strcpy(info->board_name, "FMU v1.6");
 			info->board_version = 16;
-
+	} else {
+		statres = stat("/dev/accel", &sb);
+		if (statres == OK) {
+			/* MPU-6000 indicates a v1.7+ board */
+			strcpy(info->board_name, "FMU v1.7");
+			info->board_version = 17;
 		} else {
-			/* If no BMA pressure sensor is present, it is a v1.3 board */
+			/* If no BMA and no MPU is present, it is a v1.3 board */
 			strcpy(info->board_name, "FMU v1.3");
 			info->board_version = 13;
 		}
@@ -317,7 +176,8 @@ int carrier_get_board_info(struct carrier_board_info_s *info)
 	int ret;
 	int fd = open("/dev/eeprom", O_RDONLY | O_NONBLOCK);
 
-	if (fd < 0) fprintf(stderr, "[boardinfo carrier] ERROR opening carrier eeprom\n");
+	if (fd < 0)
+		return -1;	/* no board */
 
 	ret = read(fd, info, sizeof(struct carrier_board_info_s));
 

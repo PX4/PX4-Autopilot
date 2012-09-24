@@ -275,6 +275,28 @@ examples/dhcpd
 
   CONFIGURED_APPS += uiplib
 
+examples/discover
+^^^^^^^^^^^^^^^^^
+
+  This example exercises netutils/discover utility.  This example initializes
+  and starts the UDP discover daemon. This daemon is useful for discovering
+  devices in local networks, especially with DHCP configured devices.  It
+  listens for UDP broadcasts which also can include a device class so that
+  groups of devices can be discovered. It is also possible to address all
+  classes with a kind of broadcast discover.
+
+  This example will automatically be built as an NSH built-in if
+  CONFIG_NSH_BUILTIN_APPS is selected.  Otherwise, it will be a standalone
+  program with entry point "discover_main".
+
+  NuttX configuration settings:
+
+    CONFIG_EXAMPLE_DISCOVER_DHCPC - DHCP Client
+    CONFIG_EXAMPLE_DISCOVER_NOMAC - Use canned MAC address
+    CONFIG_EXAMPLE_DISCOVER_IPADDR - Target IP address
+    CONFIG_EXAMPLE_DISCOVER_DRIPADDR - Router IP address
+    CONFIG_EXAMPLE_DISCOVER_NETMASK - Network Mask
+
 examples/ftpc
 ^^^^^^^^^^^^^
 
@@ -1111,7 +1133,7 @@ examples/rgmp
 
   See http://rgmp.sourceforge.net/wiki/index.php/Main_Page for further
 
-  At present, the RGMP example folder contains only an empty main.c file.
+  At present, the RGMP example folder contains only an empty rgmp_main.c file.
 
 examples/romfs
 ^^^^^^^^^^^^^^
@@ -1345,10 +1367,14 @@ examples/uip
   file in the configuration driver with instruction to build applications
   like:
 
-  CONFIGURED_APPS += uiplib
-  CONFIGURED_APPS += dhcpc
-  CONFIGURED_APPS += resolv
-  CONFIGURED_APPS += webserver
+    CONFIGURED_APPS += uiplib
+    CONFIGURED_APPS += dhcpc
+    CONFIGURED_APPS += resolv
+    CONFIGURED_APPS += webserver
+
+  NOTE:  This example does depend on the perl script at
+  nuttx/tools/mkfsdata.pl.  You must have perl installed on your
+  development system at /usr/bin/perl.
 
 examples/usbserial
 ^^^^^^^^^^^^^^^^^^
@@ -1642,8 +1668,27 @@ examples/wget
   file in the configuration driver with instruction to build applications
   like:
 
-  CONFIGURED_APPS += uiplib
-  CONFIGURED_APPS += resolv
-  CONFIGURED_APPS += webclient
+    CONFIGURED_APPS += uiplib
+    CONFIGURED_APPS += resolv
+    CONFIGURED_APPS += webclient
 
+examples/xmlrpc
 
+  This example exercises the "Embeddable Lightweight XML-RPC Server" which
+  is discussed at:
+
+    http://www.drdobbs.com/web-development/an-embeddable-lightweight-xml-rpc-server/184405364
+
+  Configuration options:
+
+    CONFIG_EXAMPLES_XMLRPC_BUFFERSIZE - HTTP buffer size. Default 1024
+    CONFIG_EXAMPLES_XMLRPC_DHCPC - Use DHCP Client.  Default n. Ignored
+      if CONFIG_NSH_BUILTIN_APPS is selected.
+    CONFIG_EXAMPLES_XMLRPC_NOMAC - Use Canned MAC Address. Defaul n. Ignored
+      if CONFIG_NSH_BUILTIN_APPS is selected.
+    CONFIG_EXAMPLES_XMLRPC_IPADDR - Target IP address. Default 0x0a000002.
+      Ignored if CONFIG_NSH_BUILTIN_APPS is selected.
+    CONFIG_EXAMPLES_XMLRPC_DRIPADDR - Default Router IP address (Gateway).
+      Default 0x0a000001. Ignored if CONFIG_NSH_BUILTIN_APPS is selected.
+    CONFIG_EXAMPLES_XMLRPC_NETMASK - Network Mask.  Default 0xffffff00
+      Ignored if CONFIG_NSH_BUILTIN_APPS is selected.

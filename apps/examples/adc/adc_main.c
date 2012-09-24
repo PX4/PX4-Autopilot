@@ -57,14 +57,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifdef CONFIG_NSH_BUILTIN_APPS
-#  define MAIN_NAME   adc_main
-#  define MAIN_STRING "adc_main: "
-#else
-#  define MAIN_NAME   user_start
-#  define MAIN_STRING "user_start: "
-#endif
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -223,10 +215,10 @@ static void parse_args(FAR struct adc_state_s *adc, int argc, FAR char **argv)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start/adc_main
+ * Name: adc_main
  ****************************************************************************/
 
-int MAIN_NAME(int argc, char *argv[])
+int adc_main(int argc, char *argv[])
 {
   struct adc_msg_s sample[CONFIG_EXAMPLES_ADC_GROUPSIZE];
   size_t readsize;
@@ -244,11 +236,11 @@ int MAIN_NAME(int argc, char *argv[])
        * this test.
        */
 
-      message(MAIN_STRING "Initializing external ADC device\n");
+      message("adc_main: Initializing external ADC device\n");
       ret = adc_devinit();
       if (ret != OK)
         {
-          message(MAIN_STRING "adc_devinit failed: %d\n", ret);
+          message("adc_main: adc_devinit failed: %d\n", ret);
           errval = 1;
           goto errout;
         }
@@ -276,18 +268,18 @@ int MAIN_NAME(int argc, char *argv[])
    */
 
 #if defined(CONFIG_NSH_BUILTIN_APPS) || defined(CONFIG_EXAMPLES_ADC_NSAMPLES)
-  message(MAIN_STRING "g_adcstate.count: %d\n", g_adcstate.count);
+  message("adc_main: g_adcstate.count: %d\n", g_adcstate.count);
 #endif
 
   /* Open the ADC device for reading */
 
-  message(MAIN_STRING "Hardware initialized. Opening the ADC device: %s\n",
+  message("adc_main: Hardware initialized. Opening the ADC device: %s\n",
           g_adcstate.devpath);
 
   fd = open(g_adcstate.devpath, O_RDONLY);
   if (fd < 0)
     {
-      message(MAIN_STRING "open %s failed: %d\n", g_adcstate.devpath, errno);
+      message("adc_main: open %s failed: %d\n", g_adcstate.devpath, errno);
       errval = 2;
       goto errout_with_dev;
     }
@@ -322,17 +314,17 @@ int MAIN_NAME(int argc, char *argv[])
         errval = errno;
         if (errval != EINTR)
           {
-            message(MAIN_STRING "read %s failed: %d\n",
+            message("adc_main: read %s failed: %d\n",
                     g_adcstate.devpath, errval);
             errval = 3;
             goto errout_with_dev;
           }
 
-        message(MAIN_STRING "Interrupted read...\n");
+        message("adc_main: Interrupted read...\n");
       }
     else if (nbytes == 0)
       {
-        message(MAIN_STRING "No data read, Ignoring\n");
+        message("adc_main: No data read, Ignoring\n");
       }
 
     /* Print the sample data on successful return */
@@ -342,7 +334,7 @@ int MAIN_NAME(int argc, char *argv[])
         int nsamples = nbytes / sizeof(struct adc_msg_s);
         if (nsamples * sizeof(struct adc_msg_s) != nbytes)
           {
-            message(MAIN_STRING "read size=%d is not a multiple of sample size=%d, Ignoring\n",
+            message("adc_main: read size=%d is not a multiple of sample size=%d, Ignoring\n",
                     nbytes, sizeof(struct adc_msg_s));
           }
         else

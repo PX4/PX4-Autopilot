@@ -2,7 +2,7 @@
  * rm/romfs/fs_romfsutil.h
  *
  *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References: Linux/Documentation/filesystems/romfs.txt
  *
@@ -351,7 +351,7 @@ static inline int romfs_searchdir(struct romfs_mountpt_s *rm,
     }
    while (next != 0);
 
-   /* There is nothing in this directoy with that name */
+   /* There is nothing in this directory with that name */
 
    return -ENOENT;
 }

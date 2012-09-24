@@ -2,7 +2,7 @@
  * lib/stdio/lib_fflush.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -97,22 +97,36 @@
 
 int fflush(FAR FILE *stream)
 {
+  int ret;
+
   /* Is the stream argument NULL? */
 
   if (!stream)
     {
       /* Yes... then this is a request to flush all streams */
 
-      return lib_flushall(sched_getstreams());
+      ret = lib_flushall(sched_getstreams());
     }
-  else if (lib_fflush(stream, true) != 0)
+  else
     {
-      /* An error occurred during the flush AND/OR we were unable to flush all
-       * of the buffered write data.  Return EOF on failure.
+      ret = lib_fflush(stream, true);
+    }
+
+  /* Check the return value */
+
+  if (ret < 0)
+    {
+      /* An error occurred during the flush AND/OR we were unable to flush
+       * all of the buffered write data. Set the errno value.
        */
+
+      set_errno(-ret);
+
+      /* And return EOF on failure. */
 
       return EOF;
     }
+
   return OK;
 }
 

@@ -1,7 +1,0 @@
-Multirotor mixer for PX4FMU
-===========================
-
-This file defines a single mixer for a quadrotor in the X configuration, with 10% contribution from 
-roll and pitch and 20% contribution from yaw and no deadband.
-
-R: 4x 1000 1000 2000 0

@@ -44,6 +44,7 @@
 #include <debug.h>
 #include <errno.h>
 
+#include <nuttx/sched.h>
 #include <nuttx/fs/fs.h>
 
 #include "os_internal.h"
@@ -180,6 +181,7 @@ static inline void task_onexit(FAR _TCB *tcb, int status)
       tcb->onexitfunc = NULL;
     }
 #endif
+}
 #else
 #  define task_onexit(tcb,status)
 #endif

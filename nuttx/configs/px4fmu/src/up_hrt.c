@@ -244,9 +244,21 @@
  */
 static struct sq_queue_s	callout_queue;
 
+/* latency baseline (last compare value applied) */
+static uint16_t			latency_baseline;
+
+/* timer count at interrupt (for latency purposes) */
+static uint16_t			latency_actual;
+
+/* latency histogram */
+#define LATENCY_BUCKET_COUNT	8
+static const uint16_t		latency_buckets[LATENCY_BUCKET_COUNT] = { 1, 2, 5, 10, 20, 50, 100, 1000 };
+static uint32_t			latency_counters[LATENCY_BUCKET_COUNT + 1];
+
 /* timer-specific functions */
 static void		hrt_tim_init(void);
 static int		hrt_tim_isr(int irq, void *context);
+static void		hrt_latency_update(void);
 
 /* callout list manipulation */
 static void		hrt_call_internal(struct hrt_call *entry,
@@ -302,9 +314,9 @@ static void		hrt_call_invoke(void);
  * PPM decoder tuning parameters
  */
 # define PPM_MAX_PULSE_WIDTH	500		/* maximum width of a pulse */
-# define PPM_MIN_CHANNEL_VALUE	750		/* shortest valid channel signal */
-# define PPM_MAX_CHANNEL_VALUE	2400		/* longest valid channel signal */
-# define PPM_MIN_START		5000		/* shortest valid start gap */
+# define PPM_MIN_CHANNEL_VALUE	800		/* shortest valid channel signal */
+# define PPM_MAX_CHANNEL_VALUE	2200		/* longest valid channel signal */
+# define PPM_MIN_START		2500		/* shortest valid start gap */
 
 /* decoded PPM buffer */
 #define PPM_MAX_CHANNELS	12
@@ -502,6 +514,9 @@ hrt_tim_isr(int irq, void *context)
 {
 	uint32_t status;
 
+	/* grab the timer for latency tracking purposes */
+	latency_actual = rCNT;
+
 	/* copy interrupt status */
 	status = rSR;
 
@@ -516,6 +531,10 @@ hrt_tim_isr(int irq, void *context)
 
 	/* was this a timer tick? */
 	if (status & SR_INT_HRT) {
+
+		/* do latency calculations */
+		hrt_latency_update();
+
 		/* run any callouts that have met their deadline */
 		hrt_call_invoke();
 
@@ -799,8 +818,26 @@ hrt_call_reschedule()
 	}
 	//lldbg("schedule for %u at %u\n", (unsigned)(deadline & 0xffffffff), (unsigned)(now & 0xffffffff));
 
-	/* set the new compare value */
-	rCCR_HRT = deadline & 0xffff;
+	/* set the new compare value and remember it for latency tracking */
+	rCCR_HRT = latency_baseline = deadline & 0xffff;
 }
+
+static void
+hrt_latency_update(void)
+{
+	uint16_t latency = latency_actual - latency_baseline;
+	unsigned	index;
+
+	/* bounded buckets */
+	for (index = 0; index < LATENCY_BUCKET_COUNT; index++) {
+		if (latency <= latency_buckets[index]) {
+			latency_counters[index]++;
+			return;
+		}
+	}
+	/* catch-all at the end */
+	latency_counters[index]++;
+}
+
 
 #endif /* CONFIG_HRT_TIMER */

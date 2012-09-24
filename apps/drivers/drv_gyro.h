@@ -41,6 +41,7 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
+#include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
 #define GYRO_DEVICE_PATH	"/dev/gyro"
@@ -50,10 +51,18 @@
  * structure.
  */
 struct gyro_report {
-	float x;
-	float y;
-	float z;
 	uint64_t timestamp;
+	float x;		/**< angular velocity in the NED X board axis in rad/s */
+	float y;		/**< angular velocity in the NED Y board axis in rad/s */
+	float z;		/**< angular velocity in the NED Z board axis in rad/s */
+	float temperature;	/**< temperature in degrees celcius */
+	float range_rad_s;
+	float scaling;
+	
+	int16_t x_raw;
+	int16_t y_raw;
+	int16_t z_raw;
+	int16_t temperature_raw;
 };
 
 /** gyro scaling factors; Vout = (Vin * Vscale) + Voffset */
@@ -75,28 +84,31 @@ ORB_DECLARE(sensor_gyro);
  * ioctl() definitions
  */
 
-#define _GYROIOCBASE		(0x2200)
+#define _GYROIOCBASE		(0x2300)
 #define _GYROIOC(_n)		(_IOC(_GYROIOCBASE, _n))
 
-/** set the driver polling rate to (arg) Hz, or one of the GYRO_POLLRATE constants */
-#define GYROIOCSPOLLRATE	_GYROIOC(0)
-
-#define GYRO_POLLRATE_MANUAL		1000000	/**< poll when read */
-#define GYRO_POLLRATE_EXTERNAL		1000001	/**< poll when device signals ready */
-
-/** set the internal queue depth to (arg) entries, must be at least 1 */
-#define GYROIOCSQUEUEDEPTH	_GYROIOC(1)
-
 /** set the gyro internal sample rate to at least (arg) Hz */
-#define GYROIOCSSAMPLERATE	_GYROIOC(2)
+#define GYROIOCSSAMPLERATE	_GYROIOC(0)
+
+/** return the gyro internal sample rate in Hz */
+#define GYROIOCGSAMPLERATE	_GYROIOC(1)
 
 /** set the gyro internal lowpass filter to no lower than (arg) Hz */
-#define GYROIOCSLOWPASS		_GYROIOC(3)
+#define GYROIOCSLOWPASS		_GYROIOC(2)
 
-/** set the report format to (arg); zero is the standard, 1-10 are reserved, all others are driver-specific. */
-#define GYROIOCSREPORTFORMAT	_GYROIOC(4)
+/** set the gyro internal lowpass filter to no lower than (arg) Hz */
+#define GYROIOCGLOWPASS		_GYROIOC(3)
 
 /** set the gyro scaling constants to (arg) */
-#define GYROIOCSSCALE		_GYROIOC(5)
+#define GYROIOCSSCALE		_GYROIOC(4)
+
+/** get the gyro scaling constants into (arg) */
+#define GYROIOCGSCALE		_GYROIOC(5)
+
+/** set the gyro measurement range to handle at least (arg) degrees per second */
+#define GYROIOCSRANGE		_GYROIOC(6)
+
+/** get the current gyro measurement range in degrees per second */
+#define GYROIOCGRANGE		_GYROIOC(7)
 
 #endif /* _DRV_GYRO_H */

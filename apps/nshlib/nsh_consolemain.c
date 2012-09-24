@@ -97,8 +97,9 @@
 int nsh_consolemain(int argc, char *argv[])
 {
   FAR struct console_stdio_s *pstate = nsh_newconsole();
-  DEBUGASSERT(pstate);
   int ret;
+
+  DEBUGASSERT(pstate);
 
   /* If we are using a USB serial console, then we will have to wait for the
    * USB to be connected to the host.

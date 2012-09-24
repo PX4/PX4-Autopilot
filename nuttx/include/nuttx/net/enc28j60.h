@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/net/enc28j60.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,13 +43,15 @@
 #include <stdint.h>
 #include <stdbool.h>
  
+#include <nuttx/irq.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /* ENC28J60 Configuration Settings:
  *
- * CONFIG_NET_ENC28J60 - Enabled ENC28J60 support
+ * CONFIG_ENC28J60 - Enabled ENC28J60 support
  * CONFIG_ENC28J60_SPIMODE - Controls the SPI mode
  * CONFIG_ENC28J60_FREQUENCY - Define to use a different bus frequency
  * CONFIG_ENC28J60_NINTERFACES - Specifies the number of physical ENC28J60
@@ -80,6 +82,34 @@ struct enc_stats_s
 };
 #endif
 
+/* The ENC28J60 normal provides interrupts to the MCU via a GPIO pin.  The
+ * following structure provides an MCU-independent mechanixm for controlling
+ * the ENC28J60 GPIO interrupt.
+ *
+ * The ENC32J60 interrupt is an active low, *level* interrupt. "When an
+ * interrupt occurs, the interrupt flag is set. If the interrupt is enabled
+ * in the EIE register and the INTIE global interrupt enable bit is set, the
+ * INT pin will be driven low"
+ *
+ * "When an enabled interrupt occurs, the interrupt pin will remain low until
+ * all flags which are causing the interrupt are cleared or masked off
+ * (enable bit is cleared) by the host controller."  However, the interrupt
+ * will behave like a falling edge interrupt because "After an interrupt
+ * occurs, the host controller [clears] the global enable bit for the
+ * interrupt pin before servicing the interrupt. Clearing the enable bit
+ * will cause the interrupt pin to return to the non-asserted state (high).
+ * Doing so will prevent the host controller from missing a falling edge
+ * should another interrupt occur while the immediate interrupt is being
+ * serviced."
+ */
+
+struct enc_lower_s
+{
+  int  (*attach)(FAR const struct enc_lower_s *lower, xcpt_t handler);
+  void (*enable)(FAR const struct enc_lower_s *lower);
+  void (*disable)(FAR const struct enc_lower_s *lower);
+};
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -104,10 +134,10 @@ extern "C" {
  *
  * Parameters:
  *   spi   - A reference to the platform's SPI driver for the ENC28J60
+ *   lower - The MCU-specific interrupt used to control low-level MCU
+ *           functions (i.e., ENC28J60 GPIO interrupts).
  *   devno - If more than one ENC28J60 is supported, then this is the
  *           zero based number that identifies the ENC28J60;
- *   irq   - The fully configured GPIO IRQ that ENC28J60 interrupts will be
- *           asserted on.  This driver will attach and entable this IRQ.
  *
  * Returned Value:
  *   OK on success; Negated errno on failure.
@@ -117,8 +147,9 @@ extern "C" {
  ****************************************************************************/
 
 struct spi_dev_s; /* see nuttx/spi.h */
-EXTERN int enc_initialize(FAR struct spi_dev_s *spi, unsigned int devno,
-                          unsigned int irq);
+EXTERN int enc_initialize(FAR struct spi_dev_s *spi,
+                          FAR const struct enc_lower_s *lower,
+                          unsigned int devno);
 
 /****************************************************************************
  * Function: enc_stats

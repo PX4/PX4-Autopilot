@@ -7,6 +7,7 @@ Table of Contents
   o Summary of Files
   o Supported Architectures
   o Configuring NuttX
+  o Building Symbol Tables
 
 Board-Specific Configurations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -268,8 +269,7 @@ defconfig -- This is a configuration file similar to the Linux
       by default)
     CONFIG_DEBUG_GRAPHICS - enable NX graphics debug output
       (disabled by default)
-    CONFIG_ARCH_LOWPUTC - architecture supports low-level, boot
-      time console output
+
     CONFIG_MM_REGIONS - If the architecture includes multiple
       regions of memory to allocate from, this specifies the
       number of memory regions that the memory manager must
@@ -283,6 +283,33 @@ defconfig -- This is a configuration file similar to the Linux
       of size less than or equal to 64Kb.  In this case, CONFIG_MM_SMALL
       can be defined so that those MCUs will also benefit from the
       smaller, 16-bit-based allocation overhead.
+    CONFIG_HEAP2_BASE and CONFIG_HEAP2_SIZE
+      Some architectures use these settings to specify the size of
+      a second heap region.
+    CONFIG_GRAN
+      Enable granual allocator support.  Allocations will be aligned to the
+      granule size; allocations will be in units of the granule size.
+      Larger granules will give better performance and less overhead but
+      more losses of memory due to alignment and quantization waste.
+      NOTE: The current implementation also restricts the maximum
+      allocation size to 32 granaules.  That restriction could be
+      eliminated with some additional coding effort.
+    CONFIG_GRAN_SINGLE
+      Select if there is only one instance of the granule allocator (i.e.,
+      gran_initialize will be called only once. In this case, (1) there
+      are a few optimizations that can can be done and (2) the GRAN_HANDLE
+      is not needed.
+    CONFIG_GRAN_INTR - Normally mutual exclusive access to granule allocator
+      data is assured using a semaphore.  If this option is set then, instead,
+      mutual exclusion logic will disable interrupts.  While this options is
+      more invasive to system performance, it will also support use of the
+      granule allocator from interrupt level logic.
+    CONFIG_DEBUG_GRAM
+      Just like CONFIG_DEBUG_MM, but only generates ouput from the gran
+      allocation logic.
+
+    CONFIG_ARCH_LOWPUTC - architecture supports low-level, boot
+      time console output
     CONFIG_MSEC_PER_TICK - The default system timer is 100Hz
       or MSEC_PER_TICK=10.  This setting may be defined to
       inform NuttX that the processor hardware is providing
@@ -323,13 +350,17 @@ defconfig -- This is a configuration file similar to the Linux
       set to zero if priority inheritance is disabled OR if you
       are only using semaphores as mutexes (only one holder) OR
       if no more than two threads participate using a counting
-      semaphore.
+      semaphore.  If defined, then this should be a relatively
+      large number because this is the total number of counts on
+      the total number of semaphores (like 64 or 100).
     CONFIG_SEM_NNESTPRIO.  If priority inheritance is enabled,
       then this setting is the maximum number of higher priority
       threads (minus 1) than can be waiting for another thread
       to release a count on a semaphore.  This value may be set
       to zero if no more than one thread is expected to wait for
-      a semaphore.
+      a semaphore.  If defined, then this should be a relatively
+      small number because this the number of maximumum of waiters
+      on one semaphore (like 4 or 8).
     CONFIG_FDCLONE_DISABLE. Disable cloning of all file descriptors
       by task_create() when a new task is started.  If set, all
         files/drivers will appear to be closed in the new task.
@@ -355,13 +386,24 @@ defconfig -- This is a configuration file similar to the Linux
       if memory reclamation is of high priority).  If CONFIG_SCHED_WORKQUEUE
       is enabled, then the following options can also be used:
     CONFIG_SCHED_WORKPRIORITY - The execution priority of the worker
-      thread.  Default: 50
+      thread.  Default: 192
     CONFIG_SCHED_WORKPERIOD - How often the worker thread checks for
       work in units of microseconds.  Default: 50*1000 (50 MS).
     CONFIG_SCHED_WORKSTACKSIZE - The stack size allocated for the worker
       thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
     CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
       the worker thread.  Default: 4
+    CONFIG_SCHED_LPWORK. If CONFIG_SCHED_WORKQUEUE is defined, then a single
+      work queue is created by default.  If CONFIG_SCHED_LPWORK is also defined
+      then an additional, lower-priority work queue will also be created.  This
+      lower priority work queue is better suited for more extended processing
+      (such as file system clean-up operations)
+    CONFIG_SCHED_LPWORKPRIORITY - The execution priority of the lower priority
+      worker thread.  Default: 50
+    CONFIG_SCHED_LPWORKPERIOD - How often the lower priority worker thread
+      checks for work in units of microseconds.  Default: 50*1000 (50 MS).
+    CONFIG_SCHED_LPWORKSTACKSIZE - The stack size allocated for the lower
+      priority worker thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
     CONFIG_SCHED_WAITPID - Enables the waitpid() API
     CONFIG_SCHED_ATEXIT -  Enables the atexit() API
     CONFIG_SCHED_ATEXIT_MAX -  By default if CONFIG_SCHED_ATEXIT is
@@ -371,6 +413,10 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_SCHED_ONEXIT_MAX -  By default if CONFIG_SCHED_ONEXIT is selected,
       only a single on_exit() function is supported. That number can be
       increased by defined this setting to the number that you require.
+    CONFIG_USER_ENTRYPOINT - The name of the entry point for user
+      applications.  For the example applications this is of the form 'app_main'
+      where 'app' is the application name. If not defined, CONFIG_USER_ENTRYPOINT
+      defaults to user_start.
 
   System Logging:
     CONFIG_SYSLOG enables general system logging support.
@@ -542,10 +588,28 @@ defconfig -- This is a configuration file similar to the Linux
 
   Misc libc settings
 
-    CONFIG_NOPRINTF_FIELDWIDTH - sprintf-related logic is a
-       little smaller if we do not support fieldwidthes
-    CONFIG_LIBC_FLOATINGPOINT - By default, floating point
-      support in printf, sscanf, etc. is disabled.
+    CONFIG_NOPRINTF_FIELDWIDTH - sprintf-related logic is a little smaller
+      if we do not support fieldwidthes
+    CONFIG_LIBC_FLOATINGPOINT - By default, floating point support in printf,
+      sscanf, etc. is disabled.
+    CONFIG_LIBC_STRERROR - strerror() is useful because it decodes 'errno'
+      values into a human readable strings.  But it can also require
+      a lot of memory.  If this option is selected, strerror() will still
+      exist in the build but it will not decode error values.  This option
+      should be used by other logic to decide if it should use strerror() or
+      not.  For example, the NSH application will not use strerror() if this
+      option is not selected; perror() will not use strerror() is this option
+      is not selected (see also CONFIG_NSH_STRERROR).
+    CONFIG_LIBC_STRERROR_SHORT - If this option is selected, then strerror()
+      will use a shortened string when it decodes the error.  Specifically,
+      strerror() is simply use the string that is the common name for the
+      error.  For example, the 'errno' value of 2 will produce the string
+      "No such file or directory" if CONFIG_LIBC_STRERROR_SHORT is not
+      defined but the string "ENOENT" if CONFIG_LIBC_STRERROR_SHORT is
+      defined.
+    CONFIG_LIBC_PERROR_STDOUT - POSIX requires that perror() provide its output
+      on stderr.  This option may be defined, however, to provide perror() output
+      that is serialized with other stdout messages.
 
   Allow for architecture optimized implementations
 
@@ -682,7 +746,6 @@ defconfig -- This is a configuration file similar to the Linux
   Filesystem configuration
 
     CONFIG_FS_FAT - Enable FAT filesystem support
-    CONFIG_FAT_SECTORSIZE - Max supported sector size
     CONFIG_FAT_LCNAMES - Enable use of the NT-style upper/lower case 8.3
       file name support.
     CONFIG_FAT_LFN - Enable FAT long file names.  NOTE:  Microsoft claims
@@ -912,7 +975,7 @@ defconfig -- This is a configuration file similar to the Linux
 
   ENC28J60 Ethernet Driver Configuration Settings:
 
-    CONFIG_NET_ENC28J60 - Enabled ENC28J60 support
+    CONFIG_ENC28J60 - Enabled ENC28J60 support
     CONFIG_ENC28J60_SPIMODE - Controls the SPI mode
     CONFIG_ENC28J60_FREQUENCY - Define to use a different bus frequency
     CONFIG_ENC28J60_NINTERFACES - Specifies the number of physical ENC28J60
@@ -951,7 +1014,10 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_NET_MAX_LISTENPORTS - Maximum number of listening TCP ports (all tasks)
     CONFIG_NET_TCP_READAHEAD_BUFSIZE - Size of TCP read-ahead buffers
     CONFIG_NET_NTCP_READAHEAD_BUFFERS - Number of TCP read-ahead buffers
-      (may be zero)
+      (may be zero to disable TCP/IP read-ahead buffering)
+    CONFIG_NET_TCP_RECVDELAY - Delay (in deciseconds) after a TCP/IP packet
+      is received.  This delay may allow catching of additional packets
+      when TCP/IP read-ahead is disabled.  Default: 0
     CONFIG_NET_TCPBACKLOG - Incoming connections pend in a backlog until
       accept() is called. The size of the backlog is selected when listen()
       is called.
@@ -977,8 +1043,6 @@ defconfig -- This is a configuration file similar to the Linux
       from incoming IP packets.
     CONFIG_NET_BROADCAST - Incoming UDP broadcast support
     CONFIG_NET_MULTICAST - Outgoing multi-cast address support
-    CONFIG_NET_FWCACHE_SIZE - number of packets to remember when
-      looking for duplicates
 
   SLIP Driver.  SLIP supports point-to-point IP communications over a serial
     port.  The default data link layer for uIP is Ethernet. If CONFIG_NET_SLIP
@@ -1415,8 +1479,6 @@ defconfig -- This is a configuration file similar to the Linux
       but copy themselves entirely into RAM for better performance.
     CONFIG_BOOT_RAMFUNCS - Other configurations may copy just some functions
       into RAM, either for better performance or for errata workarounds.
-    CONFIG_STACK_POINTER - The initial stack pointer (may not be supported
-      in all architectures).
     CONFIG_STACK_ALIGNMENT - Set if the your application has specific
       stack alignment requirements (may not be supported
       in all architectures).
@@ -1505,6 +1567,10 @@ configs/ez80f0910200zco
   ez80Acclaim! Microcontroller.  This port use the Zilog ez80f0910200zco
   development kit, eZ80F091 part, and the Zilog ZDS-II Windows command line
   tools.  The development environment is Cygwin under WinXP.
+
+configs/fire-stm32v2
+  A configuration for the M3 Wildfire STM32 board.  This board is based on the
+  STM32F103VET6 chip.  See http://firestm32.taobao.com
 
 configs/hymini-stm32v
   A configuration for the HY-Mini STM32v board.  This board is based on the
@@ -1667,6 +1733,10 @@ configs/sim
   This port does not support interrupts or a real timer (and hence no
   round robin scheduler)  Otherwise, it is complete.
 
+configs/shenzhou
+  This is the port of NuttX to the Shenzhou development board from
+  www.armjishu.com. This board features the STMicro STM32F107VCT MCU.
+
 configs/skp16c26
   Renesas M16C processor on the Renesas SKP16C26 StarterKit.  This port
   uses the GNU m32c toolchain.  STATUS:  The port is complete but untested
@@ -1735,7 +1805,7 @@ configs/z16f2800100zcog
 configs/z80sim
   z80 Microcontroller.  This port uses a Z80 instruction set simulator.
   That simulator can be found in the NuttX SVN at
-  http://nuttx.svn.sourceforge.net/viewvc/nuttx/trunk/misc/sims/z80sim.
+  http://svn.code.sf.net/p/nuttx/code/trunk/misc/sims/z80sim.
   This port also uses the SDCC toolchain (http://sdcc.sourceforge.net/")
   (verified with version 2.6.0).
 
@@ -1778,3 +1848,26 @@ command line like:
   
   cd tools
   ./configure.sh -a <app-dir> <board-name>/<config-dir>
+
+Building Symbol Tables
+^^^^^^^^^^^^^^^^^^^^^^
+
+Symbol tables are needed at several of the binfmt interfaces in order to bind
+a module to the base code.  These symbol tables can be tricky to create and
+will probably have to be tailored for any specific application, balancing
+the number of symbols and the size of the symbol table against the symbols
+required by the applications.
+
+The top-level System.map file is one good source of symbol information
+(which, or course, was just generated from the top-level nuttx file
+using the GNU 'nm' tool).
+
+There are also common-separated value (CSV) values in the source try that
+provide information about symbols.  In particular:
+
+  nuttx/syscall/syscall.csv - Describes the NuttX RTOS interface, and
+  nuttx/lib/lib.csv         - Describes the NuttX C library interface.
+
+There is a tool at nuttx/tools/mksymtab that will use these CSV files as
+input to generate a generic symbol table.  See nuttx/tools/README.txt for
+more information about using the mksymtab tool.

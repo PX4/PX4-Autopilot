@@ -2,7 +2,7 @@
  * examples/ostest/prioinherit.c
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,12 +58,30 @@
 #ifndef CONFIG_SEM_PREALLOCHOLDERS
 #  define CONFIG_SEM_PREALLOCHOLDERS 0
 #endif
-#define NLOWPRI_THREADS  (CONFIG_SEM_PREALLOCHOLDERS+1)
+
+/* If resources were configured for lots of holders, then run 3 low priority
+ * threads.  Otherwise, just one.
+ */
+
+#if CONFIG_SEM_PREALLOCHOLDERS > 3
+#  define NLOWPRI_THREADS 3
+#else
+#  define NLOWPRI_THREADS 1
+#endif
 
 #ifndef CONFIG_SEM_NNESTPRIO
 #  define CONFIG_SEM_NNESTPRIO 0
 #endif
-#define NHIGHPRI_THREADS (CONFIG_SEM_NNESTPRIO+1)
+
+/* Where resources configured for lots of waiters?  If so then run 3 high
+ * priority threads.  Otherwise, just one.
+ */
+
+#if CONFIG_SEM_NNESTPRIO > 3
+#  define NHIGHPRI_THREADS 3
+#else
+#  define NHIGHPRI_THREADS 1
+#endif
 
 /****************************************************************************
  * Private Data

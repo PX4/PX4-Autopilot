@@ -35,7 +35,15 @@
 
 TOPDIR		:= ${shell pwd | sed -e 's/ /\\ /g'}
 -include ${TOPDIR}/.config
+-include ${TOPDIR}/tools/Config.mk
 -include ${TOPDIR}/Make.defs
+
+# Control build verbosity.
+ifeq ($(V),1)
+export Q :=
+else
+export Q := @
+endif
 
 # Default tools
 
@@ -276,8 +284,8 @@ include/stdarg.h:
 endif
 
 # Targets used to build include/nuttx/version.h.  Creation of version.h is
-# part of the overall NuttX configuration sequency.  Notice that the
-# tools/mkversion tool is cuilt and used to create include/nuttx/version.h
+# part of the overall NuttX configuration sequence. Notice that the
+# tools/mkversion tool is built and used to create include/nuttx/version.h
 
 tools/mkversion:
 	@$(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)"  mkversion
@@ -293,8 +301,8 @@ include/nuttx/version.h: $(TOPDIR)/.version tools/mkversion
 	@tools/mkversion $(TOPDIR) > include/nuttx/version.h
 
 # Targets used to build include/nuttx/config.h.  Creation of config.h is
-# part of the overall NuttX configuration sequency.  Notice that the
-# tools/mkconfig tool is cuilt and used to create include/nuttx/config.h
+# part of the overall NuttX configuration sequence. Notice that the
+# tools/mkconfig tool is built and used to create include/nuttx/config.h
 
 tools/mkconfig:
 	@$(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)"  mkconfig
@@ -602,7 +610,7 @@ distclean: clean subdir_distclean clean_context
 ifeq ($(CONFIG_BUILD_2PASS),y)
 	@$(MAKE) -C $(CONFIG_PASS1_BUILDIR) TOPDIR="$(TOPDIR)" distclean
 endif
-	@rm -f Make.defs setenv.sh .config
+	@rm -f Make.defs setenv.sh .config .config.old
 
 # Application housekeeping targets.  The APPDIR variable refers to the user
 # application directory.  A sample apps/ directory is included with NuttX,
@@ -615,9 +623,10 @@ endif
 # apps_clean:     Perform the clean operation only in the user application
 #                 directory
 # apps_distclean: Perform the distclean operation only in the user application
-#                 directory.  Note that the apps/.config file is preserved
-#                 so that this is not a "full" distclean but more of a
-#                 configuration "reset."
+#                 directory.  Note that the apps/.config file (inf any) is
+#                 preserved so that this is not a "full" distclean but more of a
+#                 configuration "reset." (There willnot be an apps/.config
+#                 file if the configuration was generated via make menuconfig).
 
 apps_clean:
 ifneq ($(APPDIR),)
@@ -626,10 +635,16 @@ endif
 
 apps_distclean:
 ifneq ($(APPDIR),)
-	@cp "$(TOPDIR)/$(APPDIR)/.config" _SAVED_APPS_config || \
-		{ echo "Copy of $(APPDIR)/.config failed" ; exit 1 ; }
+	@if [ -r "$(TOPDIR)/$(APPDIR)/.config" ]; then \
+		cp "$(TOPDIR)/$(APPDIR)/.config" _SAVED_APPS_config || \
+			{ echo "Copy of $(APPDIR)/.config failed" ; exit 1 ; } \
+	else \
+		rm -f _SAVED_APPS_config; \
+	fi
 	@$(MAKE) -C "$(TOPDIR)/$(APPDIR)" TOPDIR="$(TOPDIR)" distclean
-	@mv _SAVED_APPS_config "$(TOPDIR)/$(APPDIR)/.config" || \
-		{ echo "Copy of _SAVED_APPS_config failed" ; exit 1 ; }
+	@if [ -r _SAVED_APPS_config ]; then \
+		@mv _SAVED_APPS_config "$(TOPDIR)/$(APPDIR)/.config" || \
+			{ echo "Copy of _SAVED_APPS_config failed" ; exit 1 ; } \
+	fi
 endif
 

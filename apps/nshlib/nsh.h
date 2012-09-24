@@ -234,12 +234,19 @@
 #endif
 
 /* This is the maximum number of arguments that will be accepted for a command */
-
-#define NSH_MAX_ARGUMENTS 6
-
+#ifdef CONFIG_NSH_MAX_ARGUMENTS
+#  define NSH_MAX_ARGUMENTS CONFIG_NSH_MAX_ARGUMENTS
+#else
+#  define NSH_MAX_ARGUMENTS 10
+#endif
 /* strerror() produces much nicer output but is, however, quite large and
- * will only be used if CONFIG_NSH_STRERROR is defined.
+ * will only be used if CONFIG_NSH_STRERROR is defined.  Note that the strerror
+ * interface must also have been enabled with CONFIG_LIBC_STRERROR.
  */
+
+#ifndef CONFIG_LIBC_STRERROR
+#  undef CONFIG_NSH_STRERROR
+#endif
 
 #ifdef CONFIG_NSH_STRERROR
 #  define NSH_ERRNO         strerror(errno)

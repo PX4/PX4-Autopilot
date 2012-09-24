@@ -18,7 +18,7 @@
 # can change this to prevent automatic startup of the flight script.
 #
 set MODE autostart
-set USB no
+set USB autoconnect
 
 #
 # Try to mount the microSD card.
@@ -30,6 +30,8 @@ then
 else
 	echo "[init] no microSD card found"
 fi
+
+usleep 500
 
 #
 # Look for an init script on the microSD card.
@@ -46,11 +48,16 @@ fi
 #
 # Check for USB host
 #
-if sercon
+if [ $USB != autoconnect ]
 then
-	echo "[init] USB interface connected"
+	echo "[init] not connecting USB"
 else
-	echo "[init] No USB connected"
+	if sercon
+	then
+		echo "[init] USB interface connected"
+	else
+		echo "[init] No USB connected"
+	fi
 fi
 
 #
@@ -77,6 +84,7 @@ else
 		if [ -f /etc/init.d/rc.PX4IOAR ]
 		then
 			echo "[init] reading /etc/init.d/rc.PX4IOAR"
+			usleep 500
 			sh /etc/init.d/rc.PX4IOAR
 		fi
 	else
@@ -92,6 +100,7 @@ else
 		if [ -f /etc/init.d/rc.PX4IO ]
 		then
 			echo "[init] reading /etc/init.d/rc.PX4IO"
+			usleep 500
 			sh /etc/init.d/rc.PX4IO
 		fi
 	else

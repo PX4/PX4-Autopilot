@@ -41,6 +41,7 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
+#include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
 #define BARO_DEVICE_PATH	"/dev/baro"
@@ -65,19 +66,13 @@ ORB_DECLARE(sensor_baro);
  * ioctl() definitions
  */
 
-#define _BAROIOCBASE		(0x2100)
+#define _BAROIOCBASE		(0x2200)
 #define _BAROIOC(_n)		(_IOC(_BAROIOCBASE, _n))
 
-/** set the driver polling rate to (arg) Hz, or one of the BARO_POLLRATE constants */
-#define BAROIOCSPOLLRATE	_BAROIOC(0)
+/** set corrected MSL pressure in pascals */
+#define BAROIOCSMSLPRESSURE	_BAROIOC(0)
 
-#define BARO_POLLRATE_MANUAL		1000000	/**< poll when read */
-#define BARO_POLLRATE_EXTERNAL		1000001	/**< poll when device signals ready */
-
-/** set the internal queue depth to (arg) entries, must be at least 1 */
-#define BAROIOCSQUEUEDEPTH	_BAROIOC(1)
-
-/** set the report format to (arg); zero is the standard, 1-10 are reserved, all others are driver-specific. */
-#define BAROIOCSREPORTFORMAT 	_BAROIOC(2)
+/** get current MSL pressure in pascals */
+#define BAROIOCGMSLPRESSURE	_BAROIOC(1)
 
 #endif /* _DRV_BARO_H */

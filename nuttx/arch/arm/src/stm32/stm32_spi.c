@@ -49,7 +49,7 @@
  *   3. Add a calls to up_spiinitialize() in your low level application
  *      initialization logic
  *   4. The handle returned by up_spiinitialize() may then be used to bind the
- *      SPI driver to higher level logic (e.g., calling 
+ *      SPI driver to higher level logic (e.g., calling
  *      mmcsd_spislotinitialize(), for example, will bind the SPI driver to
  *      the SPI MMC/SD driver).
  *
@@ -881,7 +881,7 @@ static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency)
       else
         {
           /* Less than fPCLK/128.  This is as slow as we can go */
- 
+
           setbits = SPI_CR1_FPCLCKd256; /* 111: fPCLK/256 */
           actual = priv->spiclock >> 8;
         }
@@ -941,22 +941,22 @@ static void spi_setmode(FAR struct spi_dev_s *dev, enum spi_mode_e mode)
           setbits = 0;
           clrbits = SPI_CR1_CPOL|SPI_CR1_CPHA;
           break;
- 
+
         case SPIDEV_MODE1: /* CPOL=0; CPHA=1 */
           setbits = SPI_CR1_CPHA;
           clrbits = SPI_CR1_CPOL;
           break;
- 
+
         case SPIDEV_MODE2: /* CPOL=1; CPHA=0 */
           setbits = SPI_CR1_CPOL;
           clrbits = SPI_CR1_CPHA;
           break;
- 
+
         case SPIDEV_MODE3: /* CPOL=1; CPHA=1 */
           setbits = SPI_CR1_CPOL|SPI_CR1_CPHA;
           clrbits = 0;
           break;
- 
+
         default:
           return;
         }
@@ -1008,7 +1008,7 @@ static void spi_setbits(FAR struct spi_dev_s *dev, int nbits)
           setbits = 0;
           clrbits = SPI_CR1_DFF;
           break;
- 
+
         case 16:
           setbits = SPI_CR1_DFF;
           clrbits = 0;
@@ -1111,7 +1111,7 @@ static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
           }
 
           /* Exchange one word */
- 
+
           word = spi_send(dev, word);
 
           /* Is there a buffer to receive the return value? */
@@ -1120,7 +1120,7 @@ static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
             {
               *dest++ = word;
             }
-        } 
+        }
     }
   else
     {
@@ -1144,7 +1144,7 @@ static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
           }
 
           /* Exchange one word */
- 
+
           word = (uint8_t)spi_send(dev, (uint16_t)word);
 
           /* Is there a buffer to receive the return value? */
@@ -1152,7 +1152,7 @@ static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
           if (dest)
             {
               *dest++ = word;
-            } 
+            }
         }
     }
 }
@@ -1331,7 +1331,7 @@ static void spi_portinitialize(FAR struct stm32_spidev_s *priv)
   priv->txdma = stm32_dmachannel(priv->txch);
   DEBUGASSERT(priv->rxdma && priv->txdma);
 #endif
-  
+
   /* Enable spi */
 
   spi_modifycr1(priv, SPI_CR1_SPE, 0);
@@ -1360,7 +1360,7 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
   FAR struct stm32_spidev_s *priv = NULL;
 
   irqstate_t flags = irqsave();
-  
+
 #ifdef CONFIG_STM32_SPI1
   if (port == 1)
     {
@@ -1431,7 +1431,12 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
           spi_portinitialize(priv);
         }
     }
+  else
 #endif
+    {
+      spidbg("ERROR: Unsupported SPI port: %d\n", port);
+      return NULL;
+    }
 
   irqrestore(flags);
   return (FAR struct spi_dev_s *)priv;

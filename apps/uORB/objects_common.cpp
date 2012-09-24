@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file objects_common.h
+ * @file objects_common.cpp
  *
  * Common object definitions without a better home.
  */
@@ -78,17 +78,11 @@ ORB_DEFINE(vehicle_global_position, struct vehicle_global_position_s);
 #include "topics/vehicle_local_position.h"
 ORB_DEFINE(vehicle_local_position, struct vehicle_local_position_s);
 
-#include "topics/ardrone_control.h"
-ORB_DEFINE(ardrone_control, struct ardrone_control_s);
-
 #include "topics/ardrone_motors_setpoint.h"
 ORB_DEFINE(ardrone_motors_setpoint, struct ardrone_motors_setpoint_s);
 
 #include "topics/rc_channels.h"
 ORB_DEFINE(rc_channels, struct rc_channels_s);
-
-#include "topics/fixedwing_control.h"
-ORB_DEFINE(fixedwing_control, struct fixedwing_control_s);
 
 #include "topics/vehicle_command.h"
 ORB_DEFINE(vehicle_command, struct vehicle_command_s);
@@ -108,9 +102,21 @@ ORB_DEFINE(manual_control_setpoint, struct manual_control_setpoint_s);
 #include "topics/optical_flow.h"
 ORB_DEFINE(optical_flow, struct optical_flow_s);
 
+#include "topics/subsystem_info.h"
+ORB_DEFINE(subsystem_info, struct subsystem_info_s);
+
 #include "topics/actuator_controls.h"
 ORB_DEFINE(actuator_controls_0, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_1, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_2, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_3, struct actuator_controls_s);
 ORB_DEFINE(actuator_armed, struct actuator_armed_s);
+
+#include "topics/actuator_outputs.h"
+ORB_DEFINE(actuator_outputs_0, struct actuator_outputs_s);
+ORB_DEFINE(actuator_outputs_1, struct actuator_outputs_s);
+ORB_DEFINE(actuator_outputs_2, struct actuator_outputs_s);
+ORB_DEFINE(actuator_outputs_3, struct actuator_outputs_s);
+
+#include "topics/debug_key_value.h"
+ORB_DEFINE(debug_key_value, struct debug_key_value_s);

@@ -7,14 +7,14 @@
 # Start sensor drivers here.
 #
 
-#ms5611 start
+ms5611 start
+mpu6000 start
+hmc5883 start
 
 #
 # Start the sensor collection task.
 #
-# XXX should be 'sensors start'
-#
-sensors &
+sensors start
 
 #
 # Test sensor functionality

@@ -1,8 +1,8 @@
 /************************************************************************
  * lib/string/lib_strerror.c
  *
- *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2007, 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,6 +61,8 @@ struct errno_strmap_s
  * Private Data
  ************************************************************************/
 
+#ifdef CONFIG_LIBC_STRERROR
+
 /* This table maps all error numbers to descriptive strings.
  * The only assumption that the code makes with regard to this
  * this table is that it is ordered by error number.
@@ -69,6 +71,8 @@ struct errno_strmap_s
  * reduced by eliminating some of the more obscure error
  * strings.
  */
+
+#ifndef CONFIG_LIBC_STRERROR_SHORT
 
 static const struct errno_strmap_s g_errnomap[] =
 {
@@ -196,7 +200,139 @@ static const struct errno_strmap_s g_errnomap[] =
   { EMEDIUMTYPE,         EMEDIUMTYPE_STR     }
 };
 
+#else /* CONFIG_LIBC_STRERROR_SHORT */
+
+static const struct errno_strmap_s g_errnomap[] =
+{
+  { EPERM,               "EPERM"             },
+  { ENOENT,              "ENOENT"            },
+  { ESRCH,               "ESRCH"             },
+  { EINTR,               "EINTR"             },
+  { EIO,                 "EIO"               },
+  { ENXIO,               "ENXIO"             },
+  { E2BIG,               "E2BIG"             },
+  { ENOEXEC,             "ENOEXEC"           },
+  { EBADF,               "EBADF"             },
+  { ECHILD,              "ECHILD"            },
+  { EAGAIN,              "EAGAIN"            },
+  { ENOMEM,              "ENOMEM"            },
+  { EACCES,              "EACCES"            },
+  { EFAULT,              "EFAULT"            },
+  { ENOTBLK,             "ENOTBLK"           },
+  { EBUSY,               "EBUSY"             },
+  { EEXIST,              "EEXIST"            },
+  { EXDEV,               "EXDEV"             },
+  { ENODEV,              "ENODEV"            },
+  { ENOTDIR,             "ENOTDIR"           },
+  { EISDIR,              "EISDIR"            },
+  { EINVAL,              "EINVAL"            },
+  { ENFILE,              "ENFILE"            },
+  { EMFILE,              "EMFILE"            },
+  { ENOTTY,              "ENOTTY"            },
+  { ETXTBSY,             "ETXTBSY"           },
+  { EFBIG,               "EFBIG"             },
+  { ENOSPC,              "ENOSPC"            },
+  { ESPIPE,              "ESPIPE"            },
+  { EROFS,               "EROFS"             },
+  { EMLINK,              "EMLINK"            },
+  { EPIPE,               "EPIPE"             },
+  { EDOM,                "EDOM"              },
+  { ERANGE,              "ERANGE"            },
+  { EDEADLK,             "EDEADLK"           },
+  { ENAMETOOLONG,        "ENAMETOOLONG"      },
+  { ENOLCK,              "ENOLCK"            },
+  { ENOSYS,              "ENOSYS"            },
+  { ENOTEMPTY,           "ENOTEMPTY"         },
+  { ELOOP,               "ELOOP"             },
+  { ENOMSG,              "ENOMSG"            },
+  { EIDRM,               "EIDRM"             },
+  { ECHRNG,              "ECHRNG"            },
+  { EL2NSYNC,            "EL2NSYNC"          },
+  { EL3HLT,              "EL3HLT"            },
+  { EL3RST,              "EL3RST"            },
+  { EL3RST,              "EL3RST"            },
+  { EUNATCH,             "EUNATCH"           },
+  { ENOCSI,              "ENOCSI"            },
+  { EL2HLT,              "EL2HLT"            },
+  { EBADE,               "EBADE"             },
+  { EBADR,               "EBADR"             },
+  { EXFULL,              "EXFULL"            },
+  { ENOANO,              "ENOANO"            },
+  { EBADRQC,             "EBADRQC"           },
+  { EBADSLT,             "EBADSLT"           },
+  { EBFONT,              "EBFONT"            },
+  { ENOSTR,              "ENOSTR"            },
+  { ENODATA,             "ENODATA"           },
+  { ETIME,               "ETIME"             },
+  { ENOSR,               "ENOSR"             },
+  { ENONET,              "ENONET"            },
+  { ENOPKG,              "ENOPKG"            },
+  { EREMOTE,             "EREMOTE"           },
+  { ENOLINK,             "ENOLINK"           },
+  { EADV,                "EADV"              },
+  { ESRMNT,              "ESRMNT"            },
+  { ECOMM,               "ECOMM"             },
+  { EPROTO,              "EPROTO"            },
+  { EMULTIHOP,           "EMULTIHOP"         },
+  { EDOTDOT,             "EDOTDOT"           },
+  { EBADMSG,             "EBADMSG"           },
+  { EOVERFLOW,           "EOVERFLOW"         },
+  { ENOTUNIQ,            "ENOTUNIQ"          },
+  { EBADFD,              "EBADFD"            },
+  { EREMCHG,             "EREMCHG"           },
+  { ELIBACC,             "ELIBACC"           },
+  { ELIBBAD,             "ELIBBAD"           },
+  { ELIBSCN,             "ELIBSCN"           },
+  { ELIBMAX,             "ELIBMAX"           },
+  { ELIBEXEC,            "ELIBEXEC"          },
+  { EILSEQ,              "EILSEQ"            },
+  { ERESTART,            "ERESTART"          },
+  { ESTRPIPE,            "ESTRPIPE"          },
+  { EUSERS,              "EUSERS"            },
+  { ENOTSOCK,            "ENOTSOCK"          },
+  { EDESTADDRREQ,        "EDESTADDRREQ"      },
+  { EMSGSIZE,            "EMSGSIZE"          },
+  { EPROTOTYPE,          "EPROTOTYPE"        },
+  { ENOPROTOOPT,         "ENOPROTOOPT"       },
+  { EPROTONOSUPPORT,     "EPROTONOSUPPORT"   },
+  { ESOCKTNOSUPPORT,     "ESOCKTNOSUPPORT"   },
+  { EOPNOTSUPP,          "EOPNOTSUPP"        },
+  { EPFNOSUPPORT,        "EPFNOSUPPORT"      },
+  { EAFNOSUPPORT,        "EAFNOSUPPORT"      },
+  { EADDRINUSE,          "EADDRINUSE"        },
+  { EADDRNOTAVAIL,       "EADDRNOTAVAIL"     },
+  { ENETDOWN,            "ENETDOWN"          },
+  { ENETUNREACH,         "ENETUNREACH"       },
+  { ENETRESET,           "ENETRESET"         },
+  { ECONNABORTED,        "ECONNABORTED"      },
+  { ECONNRESET,          "ECONNRESET"        },
+  { ENOBUFS,             "ENOBUFS"           },
+  { EISCONN,             "EISCONN"           },
+  { ENOTCONN,            "ENOTCONN"          },
+  { ESHUTDOWN,           "ESHUTDOWN"         },
+  { ETOOMANYREFS,        "ETOOMANYREFS"      },
+  { ETIMEDOUT,           "ETIMEDOUT"         },
+  { ECONNREFUSED,        "ECONNREFUSED"      },
+  { EHOSTDOWN,           "EHOSTDOWN"         },
+  { EHOSTUNREACH,        "EHOSTUNREACH"      },
+  { EALREADY,            "EALREADY"          },
+  { EINPROGRESS,         "EINPROGRESS"       },
+  { ESTALE,              "ESTALE"            },
+  { EUCLEAN,             "EUCLEAN"           },
+  { ENOTNAM,             "ENOTNAM"           },
+  { ENAVAIL,             "ENAVAIL"           },
+  { EISNAM,              "EISNAM"            },
+  { EREMOTEIO,           "EREMOTEIO"         },
+  { EDQUOT,              "EDQUOT"            },
+  { ENOMEDIUM,           "ENOMEDIUM"         },
+  { EMEDIUMTYPE,         "EMEDIUMTYPE"     }
+};
+
+#endif /* CONFIG_LIBC_STRERROR_SHORT */
+
 #define NERRNO_STRS (sizeof(g_errnomap) / sizeof(struct errno_strmap_s))
+
+#endif /* CONFIG_LIBC_STRERROR */
 
 /************************************************************************
  * Private Functions
@@ -210,8 +346,9 @@ static const struct errno_strmap_s g_errnomap[] =
  * Name: strerror
  ************************************************************************/
 
-const char *strerror(int errnum)
+FAR const char *strerror(int errnum)
 {
+#ifdef CONFIG_LIBC_STRERROR
   int ndxlow = 0;
   int ndxhi  = NERRNO_STRS - 1;
   int ndxmid;
@@ -233,5 +370,6 @@ const char *strerror(int errnum)
         }
     }
   while (ndxlow <= ndxhi);
+#endif
   return "Unknown error";
 }

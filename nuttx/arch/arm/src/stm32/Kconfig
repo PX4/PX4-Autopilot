@@ -3,95 +3,205 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+comment "STM32 Configuration Options"
+
 choice
 	prompt "STM32 Chip Selection"
 	default ARCH_CHIP_STM32F103ZET6
 	depends on ARCH_CHIP_STM32
 
-config ARCH_CHIP_STM32F103ZET6
-	bool "STM32F103ZET6"
+config ARCH_CHIP_STM32F100C8
+	bool "STM32F100C8"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+
+config ARCH_CHIP_STM32F100CB
+	bool "STM32F100CB"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+
+config ARCH_CHIP_STM32F100R8
+	bool "STM32F100R8"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+
+config ARCH_CHIP_STM32F100RB
+	bool "STM32F100RB"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+
+config ARCH_CHIP_STM32F100V8
+	bool "STM32F100V8"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+
+config ARCH_CHIP_STM32F100VB
+	bool "STM32F100VB"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
 
 config ARCH_CHIP_STM32F103RET6
 	bool "STM32F103RET6"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_HIGHDENSITY
 
 config ARCH_CHIP_STM32F103VCT6
 	bool "STM32F103VCT6"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_HIGHDENSITY
+
+config ARCH_CHIP_STM32F103VET6
+	bool "STM32F103VET6"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_HIGHDENSITY
+
+config ARCH_CHIP_STM32F103ZET6
+	bool "STM32F103ZET6"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
 
 config ARCH_CHIP_STM32F105VBT7
 	bool "STM32F105VBT7"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_CONNECTIVITYLINE
 
 config ARCH_CHIP_STM32F107VC
 	bool "STM32F107VC"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_CONNECTIVITYLINE
 
 config ARCH_CHIP_STM32F207IG
 	bool "STM32F207IG"
+	select ARCH_CORTEXM3
+	select STM32_STM32F20XX
 
 config ARCH_CHIP_STM32F405RG
 	bool "STM32F405RG"
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F405VG
 	bool "STM32F405VG"
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F405ZG
 	bool "STM32F405ZG"
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F407VE
 	bool "STM32F407VE"
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F407VG
 	bool "STM32F407VG"
+	select ARCH_CORTEXM3
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F407ZE
 	bool "STM32F407ZE"
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F407ZG
 	bool "STM32F407ZG"
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F407IE
 	bool "STM32F407IE"
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 config ARCH_CHIP_STM32F407IG
 	bool "STM32F407IG"
+	select ARCH_CORTEXM4
+	select STM32_STM32F40XX
 
 endchoice
 
 config STM32_STM32F10XX
 	bool
-	default y if ARCH_CHIP_STM32F103ZET6 || ARCH_CHIP_STM32F103RET6 || ARCH_CHIP_STM32F103VCT6 || ARCH_CHIP_STM32F105VBT7 || ARCH_CHIP_STM32F107VC
+
+config STM32_VALUELINE
+	bool
+
+config STM32_HIGHDENSITY
+	bool
 
 config STM32_CONNECTIVITYLINE
 	bool
-	default y if ARCH_CHIP_STM32F105VBT7 || ARCH_CHIP_STM32F107VC
 
 config STM32_STM32F20XX
 	bool
-	default y if ARCH_CHIP_STM32F207IG
 
 config STM32_STM32F40XX
 	bool
-	default y if ARCH_CHIP_STM32F405RG || ARCH_CHIP_STM32F405VG || ARCH_CHIP_STM32F405ZG || ARCH_CHIP_STM32F407VE || ARCH_CHIP_STM32F407VG || ARCH_CHIP_STM32F407ZE || ARCH_CHIP_STM32F407ZG || ARCH_CHIP_STM32F407IE || ARCH_CHIP_STM32F407IE
 
-config ARCH_CORTEXM3
-	bool
-	default y if !STM32_STM32F40XX
+choice
+	prompt "Toolchain Selection"
+	default STM32_CODESOURCERYW
+	depends on ARCH_CHIP_STM32
 
-config ARCH_CORTEXM4
-	bool
-	default y if STM32_STM32F40XX
+config STM32_CODESOURCERYW
+	bool "CodeSourcery for Windows"
+
+config STM32_CODESOURCERYL
+	bool "CodeSourcery for Linux"
+
+config STM32_ATOLLIC_LITE
+	bool "Atollic Lite for Windows"
+
+config STM32_ATOLLIC_PRO
+	bool "Atollic Pro for Windows"
+
+config STM32_DEVKITARM
+	bool "DevkitARM (Windows)"
+
+config STM32_RAISONANCE
+	bool "STMicro Raisonance for Windows"
+
+config STM32_BUILDROOT
+	bool "NuttX buildroot (Cygwin or Linux)"
+
+endchoice
+
+config STM32_DFU
+	bool "DFU bootloader"
+	default n
+	---help---
+		Configure and position code for use with the STMicro DFU bootloader.  Do
+		not select this option if you will load code using JTAG/SWM.
 
 menu "STM32 Peripheral Support"
 
 config STM32_ADC1
 	bool "ADC1"
 	default n
+	select STM32_ADC
 
 config STM32_ADC2
 	bool "ADC2"
 	default n
+	select STM32_ADC
 
 config STM32_ADC3
 	bool "ADC3"
 	default n
+	select STM32_ADC
 
 config STM32_CRC
 	bool "CRC"
@@ -100,10 +210,12 @@ config STM32_CRC
 config STM32_DMA1
 	bool "DMA1"
 	default n
+	select ARCH_DMA
 
 config STM32_DMA2
 	bool "DMA2"
 	default n
+	select ARCH_DMA
 
 config STM32_BKP
 	bool "BKP"
@@ -118,11 +230,15 @@ config STM32_BKPSRAM
 config STM32_CAN1
 	bool "CAN1"
 	default n
+	select CAN
+	select STM32_CAN
 
 config STM32_CAN2
 	bool "CAN2"
 	default n
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	select CAN
+	select STM32_CAN
 
 config STM32_CCMDATARAM
 	bool "CMD/DATA RAM"
@@ -137,10 +253,12 @@ config STM32_CRYP
 config STM32_DAC1
 	bool "DAC1"
 	default n
+	select STM32_DAC
 
 config STM32_DAC2
 	bool "DAC2"
 	default n
+	select STM32_DAC
 
 config STM32_DCMI
 	bool "DCMI"
@@ -150,11 +268,12 @@ config STM32_DCMI
 config STM32_ETHMAC
 	bool "Ethernet MAC"
 	default n
-	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	depends on STM32_CONNECTIVITYLINE || STM32_STM32F20XX || STM32_STM32F40XX
 
 config STM32_FSMC
 	bool "FSMC"
 	default n
+	depends on !STM32_CONNECTIVITYLINE
 
 config STM32_HASH
 	bool "HASH"
@@ -164,19 +283,23 @@ config STM32_HASH
 config STM32_I2C1
 	bool "I2C1"
 	default n
+	select STM32_I2C
 
 config STM32_I2C2
 	bool "I2C2"
 	default n
+	select STM32_I2C
 
 config STM32_I2C3
 	bool "I2C3"
 	default n
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	select STM32_I2C
 
 config STM32_IWDG
 	bool "IWDG"
 	default n
+	select WATCHDOG
 
 config STM32_OTGFS
 	bool "OTG FS"
@@ -200,28 +323,37 @@ config STM32_RNG
 config STM32_SDIO
 	bool "SDIO"
 	default n
+	depends on !STM32_CONNECTIVITYLINE
 
 config STM32_SPI1
 	bool "SPI1"
 	default n
+	select SPI
+	select STM32_SPI
 
 config STM32_SPI2
 	bool "SPI2"
 	default n
+	select SPI
+	select STM32_SPI
 
 config STM32_SPI3
 	bool "SPI3"
 	default n
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	select SPI
+	select STM32_SPI
 
 config STM32_SPI4
 	bool "SPI4"
 	default n
 	depends on STM32_STM32F10XX
+	select SPI
+	select STM32_SPI
 
 config STM32_SYSCFG
 	bool "SYSCFG"
-	default n
+	default y
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
 
 config STM32_TIM1
@@ -289,58 +421,63 @@ config STM32_TIM14
 config STM32_USART1
 	bool "USART1"
 	default n
+	select ARCH_HAVE_USART1
 
 config STM32_USART2
 	bool "USART2"
 	default n
+	select ARCH_HAVE_USART2
 
 config STM32_USART3
 	bool "USART3"
 	default n
+	select ARCH_HAVE_USART3
 
 config STM32_UART4
 	bool "UART4"
 	default n
+	select ARCH_HAVE_UART4
 
 config STM32_UART5
 	bool "UART5"
 	default n
+	select ARCH_HAVE_UART5
 
 config STM32_USART6
 	bool "USART6"
 	default n
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	select ARCH_HAVE_USART6
 
 config STM32_USB
 	bool "USB Device"
 	default n
 	depends on STM32_STM32F10XX
+	select USBDEV
 
 config STM32_WWDG
 	bool "WWDG"
 	default n
+	select WATCHDOG
 
 endmenu
 
 config STM32_ADC
 	bool
-	default y if STM32_ADC1 || STM32_ADC2 || STM32_ADC3
 
 config STM32_DAC
 	bool
-	default y if STM32_DAC1 || STM32_ADC2
 
 config STM32_SPI
 	bool
-	default y if STM32_SPI1 || STM32_SPI2 || STM32_SPI3 || STM32_SPI4
 
-config STM32_DMA
+config STM32_I2C
 	bool
-	default y if STM32_DMA1 || STM32_DMA2
 
 config STM32_CAN
 	bool
-	default y if STM32_CAN1 || STM32_CAN2
+
+menu "Alternate Pin Mapping"
 
 choice
 	prompt "TIM1 Alternate Pin Mappings"
@@ -447,18 +584,25 @@ choice
 config STM32_CAN1_NO_REMAP
 	bool "No pin remapping"
 
-config STM32_CAN1_FULL_REMAP
-	bool "Full pin remapping"
+config STM32_CAN1_REMAP1
+	bool "CAN1 alternate pin remapping #1"
 
-config STM32_CAN1_PARTIAL_REMAP
-	bool "Partial pin remapping"
+config STM32_CAN1_REMAP2
+	bool "CAN1 alternate pin remapping #2"
 
 endchoice
 
 config STM32_CAN2_REMAP
 	bool "CAN2 Alternate Pin Mapping"
 	default n
-	depends on STM32_STM32F10XX && STM32_CAN2
+	depends on STM32_CONNECTIVITYLINE && STM32_CAN2
+
+config STM32_ETH_REMAP
+	bool "Ethernet Alternate Pin Mapping"
+	default n
+	depends on STM32_CONNECTIVITYLINE && STM32_ETHMAC
+
+endmenu
 
 choice
 	prompt "JTAG Configuration"
@@ -497,38 +641,17 @@ config ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG
 config STM32_CCMEXCLUDE
 	bool "Exclude CCM SRAM from the heap"
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
-	default y if  STM32_DMA1 || STM32_DMA2
+	default y if  ARCH_DMA
 	---help---
 		Exclude CCM SRAM from the HEAP because it cannot be used for DMA.
 
 config STM32_FSMC_SRAM
 	bool "External SRAM on FSMC"
 	default n
-	depends on FSMC
+	depends on STM32_FSMC
+	select ARCH_HAVE_HEAP2
 	---help---
 		In addition to internal SRAM, SRAM may also be available through the FSMC.
-
-config HEAP2_BASE
-	hex "FSMC SRAM base address"
-	default 0x00000000
-	depends on STM32_FSMC_SRAM
-	---help---
-		The base address of the SRAM in the FSMC address space.
-
-config HEAP2_END
-	hex "FSMC SRAM end+1 address"
-	default 0x00000000
-	depends on STM32_FSMC_SRAM
-	---help---
-		The end (+1) of the SRAM in the FSMC address space
-
-config ARCH_FPU
-	bool "FPU support"
-	default y
-	depends on ARCH_CORTEXM4
-	---help---
-		Build in support for the ARM Cortex-M4 FPU.  Only the STM3240xxx supports
-		a floating point unit (FPU)
 
 config STM32_TIM1_PWM
 	bool "TIM1 PWM"
@@ -1420,341 +1543,47 @@ config STM32_TIM14_DAC2
 
 endchoice
 
-menu "USART1 Configuration"
-	depends on STM32_USART1
-
-config USART1_SERIAL_CONSOLE
-	bool "USART1 serial console"
-	default y
-	---help---
-		Selects the USART1 for the console and ttys0 (default is the USART1).
-
-config USART1_RXBUFSIZE
-	int "USART1 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config USART1_TXBUFSIZE
-	int "USART1 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config USART1_BAUD
-	int "USART1 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config USART1_BITS
-	int "USART1 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config USART1_PARITY
-	int "USART1 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config USART1_2STOP
-	bool "USART1 two stop bits"
-	default n
-	---help---
-		Two stop bits
-
 config USART1_RXDMA
 	bool "USART1 Rx DMA"
 	default n
-	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA2
+	depends on STM32_STM32F40XX && STM32_DMA2
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
-
-endmenu
-
-menu "USART2 Configuration"
-	depends on STM32_USART2
-
-config USART2_SERIAL_CONSOLE
-	bool "USART2 serial console"
-	default y if !STM32_USART1
-	---help---
-		Selects the USART2 for the console and ttys0 (default is the USART2).
-
-config USART2_RXBUFSIZE
-	int "USART2 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config USART2_TXBUFSIZE
-	int "USART2 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config USART2_BAUD
-	int "USART2 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config USART2_BITS
-	int "USART2 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config USART2_PARITY
-	int "USART2 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config USART2_2STOP
-	bool "USART2 two stop bits"
-	default n
-	---help---
-		Two stop bits
 
 config USART2_RXDMA
 	bool "USART2 Rx DMA"
 	default n
-	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
+	depends on STM32_STM32F40XX && STM32_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
-
-endmenu
-
-menu "USART3 Configuration"
-	depends on STM32_USART3
-
-config USART3_SERIAL_CONSOLE
-	bool "USART3 serial console"
-	default y if !STM32_USART1 && !STM32_USART2
-	---help---
-		Selects the USART3 for the console and ttys0 (default is the USART3).
-
-config USART3_RXBUFSIZE
-	int "USART3 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config USART3_TXBUFSIZE
-	int "USART3 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config USART3_BAUD
-	int "USART3 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config USART3_BITS
-	int "USART3 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config USART3_PARITY
-	int "USART3 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config USART3_2STOP
-	bool "USART3 two stop bits"
-	default n
-	---help---
-		Two stop bits
 
 config USART3_RXDMA
 	bool "USART3 Rx DMA"
 	default n
-	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
+	depends on STM32_STM32F40XX && STM32_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
-endmenu
-
-menu "UART4 Configuration"
-	depends on STM32_UART4
-
-config USART4_SERIAL_CONSOLE
-	bool "UART4 serial console"
-	default y if !STM32_USART1 && !STM32_USART2 && !STM32_USART3
-	---help---
-		Selects the UART4 for the console and ttys0 (default is the USART1).
-
-config USART4_RXBUFSIZE
-	int "UART4 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config USART4_TXBUFSIZE
-	int "UART4 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config USART4_BAUD
-	int "UART4 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config USART4_BITS
-	int "UART4 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config USART4_PARITY
-	int "UART4 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config USART4_2STOP
-	bool "UART4 two stop bits"
+config UART4_RXDMA
+	bool "UART4 Rx DMA"
 	default n
-	---help---
-		Two stop bits
-
-config USART4_RXDMA
-	bool "USART4 Rx DMA"
-	default n
-	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
+	depends on STM32_STM32F40XX && STM32_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
-endmenu
-
-menu "UART5 Configuration"
-	depends on STM32_UART5
-
-config USART5_SERIAL_CONSOLE
-	bool "UART5 serial console"
-	default y if !STM32_USART1 && !STM32_USART2 && !STM32_USART3 && !STM32_UART4
-	---help---
-		Selects the UART5 for the console and ttys0 (default is the USART1).
-
-config USART5_RXBUFSIZE
-	int "USART5 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config USART5_TXBUFSIZE
-	int "UART5 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config USART5_BAUD
-	int "UART5 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config USART5_BITS
-	int "UART5 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config USART5_PARITY
-	int "UART5 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config USART5_2STOP
-	bool "UART5 two stop bits"
+config UART5_RXDMA
+	bool "UART5 Rx DMA"
 	default n
-	---help---
-		Two stop bits
-
-config USART5_RXDMA
-	bool "USART5 Rx DMA"
-	default n
-	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA1
+	depends on STM32_STM32F40XX && STM32_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
-
-endmenu
-
-menu "USART6 Configuration"
-	depends on STM32_USART6
-
-config USART6_SERIAL_CONSOLE
-	bool "USART6 serial console"
-	default y if !STM32_USART1 && !STM32_USART2 && !STM32_USART3 && !STM32_UART4 && !STM32_UART5
-	---help---
-		Selects the USART6 for the console and ttys0 (default is the USART6).
-
-config USART6_RXBUFSIZE
-	int "USART6 Rx buffer size"
-	default 256
-	---help---
-		Characters are buffered as received.  This specific the size of the receive
-		buffer.
-
-config USART6_TXBUFSIZE
-	int "USART6 Tx buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specific the size of the
-		transmit buffer
-
-config USART6_BAUD
-	int "USART6 BAUD"
-	default 11520
-	---help---
-		The configured BAUD of the UART
-
-config USART6_BITS
-	int "USART6 number of bits"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config USART6_PARITY
-	int "USART6 parity"
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config USART6_2STOP
-	bool "USART6 two stop bits"
-	default n
-	---help---
-		Two stop bits
 
 config USART6_RXDMA
 	bool "USART6 Rx DMA"
 	default n
-	depends on STM32_STM32F40XX && ARCH_DMA && STM32_DMA2
+	depends on STM32_STM32F40XX && STM32_DMA2
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
-
-endmenu
 
 config SERIAL_TERMIOS
 	bool "Serial driver TERMIOS supported"
@@ -1781,6 +1610,46 @@ config STM32_SPI_DMA
 	default n
 	---help---
 		Use DMA to improve SPI transfer performance.  Cannot be used with STM32_SPI_INTERRUPT.
+
+endmenu
+
+menu "I2C Configuration"
+	depends on STM32_I2C
+
+config STM32_I2C_DYNTIMEO
+	bool "Use dynamic timeouts"
+	default n
+	depends on STM32_I2C
+
+config STM32_I2C_DYNTIMEO_USECPERBYTE
+	int "Timeout Microseconds per Byte"
+	default 0
+	depends on STM32_I2C_DYNTIMEO
+
+config STM32_I2C_DYNTIMEO_STARTSTOP
+	int "Timeout for Start/Stop (Milliseconds)"
+	default 5000
+	depends on STM32_I2C_DYNTIMEO
+
+config STM32_I2CTIMEOSEC
+	int "Timeout seconds"
+	default 0
+	depends on STM32_I2C
+
+config STM32_I2CTIMEOMS
+	int "Timeout Milliseconds"
+	default 500
+	depends on STM32_I2C && !STM32_I2C_DYNTIMEO
+
+config STM32_I2CTIMEOTICKS
+	int "Timeout for Done and Stop (ticks)"
+	default 500
+	depends on STM32_I2C && !STM32_I2C_DYNTIMEO
+
+config STM32_I2C_DUTY16_9
+	bool "Frequency with Tlow/Thigh = 16/9 "
+	default n
+	depends on STM32_I2C
 
 endmenu
 
@@ -1819,32 +1688,60 @@ menu "Ethernet MAC configuration"
 
 config STM32_PHYADDR
 	int "PHY address"
+	default 1
 	---help---
-		The 5-bit address of the PHY on the board
+		The 5-bit address of the PHY on the board.  Default: 1
 
 config STM32_MII
 	bool "Use MII interface"
 	default n
+	depends on STM32_ETHMAC
 	---help---
 		Support Ethernet MII interface.
 
+choice
+	prompt "MII clock configuration"
+	default STM32_MII_MCO if STM32_STM32F10XX
+	default STM32_MII_MCO1 if STM32_STM32F20XX || STM32_STM32F40XX
+	depends on STM32_MII
+
+config STM32_MII_MCO
+	bool "Use MC0 as MII clock"
+	depends on STM32_STM32F10XX
+	---help---
+		Use MCO to clock the MII interface.  Default:  Use MC0
+
+config STM32_MII_MCO1
+	bool "Use MC01 as MII clock"
+	depends on (STM32_STM32F20XX || STM32_STM32F40XX)
+	---help---
+		Use MCO1 to clock the MII interface.  Default:  Use MC01
+
 config STM32_MII_MCO2
 	bool "Use MC02 as MII clock"
-	default n
-	depends on STM32_MII
+	depends on (STM32_STM32F20XX || STM32_STM32F40XX)
 	---help---
 		Use MCO2 to clock the MII interface.  Default:  Use MC01
+
+config STM32_MII_EXTCLK
+	bool "External MII clock"
+	---help---
+		Clocking is provided by external logic.  Don't use MCO for MII
+		clock.  Default:  Use MC0[1]
+
+endchoice
 
 config STM32_AUTONEG
 	bool "Use autonegtiation"
 	default y
+	depends on STM32_ETHMAC
 	---help---
 		Use PHY autonegotion to determine speed and mode
 
 config STM32_ETHFD
 	bool "Full duplex"
 	default n
-	depends on !STM32_AUTONEG
+	depends on STM32_ETHMAC && !STM32_AUTONEG
 	---help---
 		If STM32_AUTONEG is not defined, then this may be defined to select full duplex
 		mode. Default: half-duplex
@@ -1852,7 +1749,7 @@ config STM32_ETHFD
 config STM32_ETH100MBPS
 	bool "100 Mbps"
 	default n
-	depends on !STM32_AUTONEG
+	depends on STM32_ETHMAC && !STM32_AUTONEG
 	---help---
 		If STM32_AUTONEG is not defined, then this may be defined to select 100 MBps
 		speed.  Default: 10 Mbps
@@ -1896,6 +1793,7 @@ config STM32_PHYSR_FULLDUPLEX
 config STM32_ETH_PTP
 	bool "Precision Time Protocol (PTP)"
 	default n
+	depends on STM32_ETHMAC
 	---help---
 		Precision Time Protocol (PTP).  Not supported but some hooks are indicated
 		with this condition.
@@ -1905,8 +1803,89 @@ endmenu
 config STM32_RMII
 	bool
 	default y if !STM32_MII
+	depends on STM32_ETHMAC
 
-config STM32_MII_MCO1
-	bool
-	default y if !STM32_MII_MCO2
-	depends on STM32_MII
+choice
+	prompt "RMII clock configuration"
+	default STM32_RMII_MCO if STM32_STM32F10XX
+	default STM32_RMII_MCO1 if STM32_STM32F20XX || STM32_STM32F40XX
+	depends on STM32_RMII
+
+config STM32_RMII_MCO
+	bool "Use MC0 as RMII clock"
+	depends on STM32_STM32F10XX
+	---help---
+		Use MCO to clock the RMII interface.  Default:  Use MC0
+
+config STM32_RMII_MCO1
+	bool "Use MC01 as RMII clock"
+	depends on (STM32_STM32F20XX || STM32_STM32F40XX)
+	---help---
+		Use MCO1 to clock the RMII interface.  Default:  Use MC01
+
+config STM32_RMII_MCO2
+	bool "Use MC02 as RMII clock"
+	depends on (STM32_STM32F20XX || STM32_STM32F40XX)
+	---help---
+		Use MCO2 to clock the RMII interface.  Default:  Use MC01
+
+config STM32_RMII_EXTCLK
+	bool "External RMII clock"
+	---help---
+		Clocking is provided by external logic.  Don't use MCO for RMII
+		clock.  Default:  Use MC0[1]
+
+endchoice
+
+menu "USB Host Configuration"
+
+config STM32_OTGFS_RXFIFO_SIZE
+	int "Rx Packet Size"
+	default 128
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Size of the RX FIFO in 32-bit words. Default 128 (512 bytes)
+
+config STM32_OTGFS_NPTXFIFO_SIZE
+	int "Non-periodic Tx FIFO Size"
+	default 96
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Size of the non-periodic Tx FIFO in 32-bit words.  Default 96 (384 bytes)
+ 
+config STM32_OTGFS_PTXFIFO_SIZE
+	int "Periodic Tx FIFO size"
+	default 128
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Size of the periodic Tx FIFO in 32-bit words.  Default 96 (384 bytes)
+ 
+config STM32_OTGFS_DESCSIZE
+	int "Descriptor Size"
+	default 128
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Maximum size to allocate for descriptor memory descriptor.  Default: 128
+
+config STM32_OTGFS_SOFINTR
+	bool "Enable SOF interrupts"
+	default n
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Enable SOF interrupts.  Why would you ever want to do that?
+ 
+config STM32_USBHOST_REGDEBUG
+	bool "Register-Level Debug"
+	default n
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Enable very low-level register access debug.  Depends on DEBUG.
+ 
+config STM32_USBHOST_PKTDUMP
+	bool "Packet Dump Debug"
+	default n
+	depends on USBHOST && STM32_OTGFS
+	---help---
+		Dump all incoming and outgoing USB packets. Depends on DEBUG.
+
+endmenu

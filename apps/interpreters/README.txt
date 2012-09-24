@@ -58,7 +58,7 @@ pcode
     Pascal P-Code at runtime.  To use this example, place the following in
     your appconfig file"
 
-      # Path to example in apps/examples containing the user_start entry point
+      # Path to example in apps/examples containing the passhello_main entry point
 
       CONFIGURED_APPS += examples/pashello
 

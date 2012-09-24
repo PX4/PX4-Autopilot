@@ -2,7 +2,7 @@
  * examples/pipe/redirect_test.c
  *
  *   Copyright (C) 2008-2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -301,16 +301,16 @@ int redirection_test(void)
 
   if (close(filedes[0]) != 0)
     {
-      fprintf(stderr, "user_start: close failed: %d\n", errno);
+      fprintf(stderr, "pipe_main: close failed: %d\n", errno);
     }
   if (close(filedes[1]) != 0)
     {
-      fprintf(stderr, "user_start: close failed: %d\n", errno);
+      fprintf(stderr, "pipe_main: close failed: %d\n", errno);
     }
 
   if (ret != 0)
     {
-      fprintf(stderr, "user_start: PIPE test FAILED (%d)\n", ret);
+      fprintf(stderr, "pipe_main: PIPE test FAILED (%d)\n", ret);
       return 6;
     }
 

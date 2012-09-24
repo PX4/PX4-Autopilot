@@ -31,34 +31,21 @@
  *
  ****************************************************************************/
 
-/*
- * Driver for the ST MS5611 gyroscope
- */
-
-/* IMPORTANT NOTES:
+/**
+ * @file drv_eeprom.h
  *
- * SPI max. clock frequency: 10 Mhz
- * CS has to be high before transfer,
- * go low right before transfer and
- * go high again right after transfer
- *
+ * Config for the non-MTD EEPROM driver.
  */
 
 /* IMPORTANT: Adjust this number! */
-#define MAX_EEPROMS									2
+#define MAX_EEPROMS					2
 
 /* FMU onboard */
-#define FMU_ONBOARD_EEPROM_ADDRESS					0x50
-#define FMU_ONBOARD_EEPROM_TOTAL_SIZE_BYTES			16000
-#define FMU_ONBOARD_EEPROM_PAGE_SIZE_BYTES			64
-#define FMU_ONBOARD_EEPROM_PAGE_WRITE_TIME_US		5500
-#define FMU_ONBOARD_EEPROM_BUS_CLOCK				1000000   ///< 1 Mhz max. clock
-
-#define FMU_BASEBOARD_EEPROM_ADDRESS				0x57
+#define FMU_BASEBOARD_EEPROM_ADDRESS			0x57
 #define FMU_BASEBOARD_EEPROM_TOTAL_SIZE_BYTES		128
 #define FMU_BASEBOARD_EEPROM_PAGE_SIZE_BYTES		8
 #define FMU_BASEBOARD_EEPROM_PAGE_WRITE_TIME_US		3300
-#define FMU_BASEBOARD_EEPROM_BUS_CLOCK				400000    ///< 400 KHz max. clock
+#define FMU_BASEBOARD_EEPROM_BUS_CLOCK			400000    ///< 400 KHz max. clock
 
 /**
  * @brief i2c I2C bus struct

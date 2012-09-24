@@ -41,6 +41,7 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
+#include "drv_sensor.h"
 #include "drv_orb_dev.h"
 
 #define ACCEL_DEVICE_PATH	"/dev/accel"
@@ -50,10 +51,18 @@
  * structure.
  */
 struct accel_report {
-	float x;
-	float y;
-	float z;
 	uint64_t timestamp;
+	float x;		/**< acceleration in the NED X board axis in m/s^2 */
+	float y;		/**< acceleration in the NED Y board axis in m/s^2 */
+	float z;		/**< acceleration in the NED Z board axis in m/s^2 */
+	float temperature;	/**< temperature in degrees celsius */
+	float range_m_s2;	/**< range in m/s^2 (+- this value) */
+	float scaling;
+
+	int16_t x_raw;
+	int16_t y_raw;
+	int16_t z_raw;
+	int16_t temperature_raw;
 };
 
 /** accel scaling factors; Vout = (Vin * Vscale) + Voffset */
@@ -73,33 +82,37 @@ ORB_DECLARE(sensor_accel);
 
 /*
  * ioctl() definitions
+ *
+ * Accelerometer drivers also implement the generic sensor driver 
+ * interfaces from drv_sensor.h
  */
 
-#define _ACCELIOCBASE		(0x2000)
+#define _ACCELIOCBASE		(0x2100)
 #define _ACCELIOC(_n)		(_IOC(_ACCELIOCBASE, _n))
 
-/** set the driver polling rate to (arg) Hz, or one of the ACC_POLLRATE constants */
-#define ACCELIOCSPOLLRATE	_ACCELIOC(0)
-
-#define ACC_POLLRATE_MANUAL		1000000	/**< poll when read */
-#define ACC_POLLRATE_EXTERNAL		1000001	/**< poll when device signals ready */
-
-/** set the internal queue depth to (arg) entries, must be at least 1 */
-#define ACCELIOCSQUEUEDEPTH	_ACCELIOC(1)
 
 /** set the accel internal sample rate to at least (arg) Hz */
-#define ACCELIOCSSAMPLERATE	_ACCELIOC(2)
+#define ACCELIOCSSAMPLERATE	_ACCELIOC(0)
+
+/** return the accel internal sample rate in Hz */
+#define ACCELIOCGSAMPLERATE	_ACCELIOC(1)
 
 /** set the accel internal lowpass filter to no lower than (arg) Hz */
-#define ACCELIOCSLOWPASS	_ACCELIOC(3)
+#define ACCELIOCSLOWPASS	_ACCELIOC(2)
 
-/** set the report format to (arg); zero is the standard, 1-10 are reserved, all others are driver-specific. */
-#define ACCELIOCSREPORTFORMAT	_ACCELIOC(4)
+/** return the accel internal lowpass filter in Hz */
+#define ACCELIOCGLOWPASS	_ACCELIOC(3)
 
 /** set the accel scaling constants to the structure pointed to by (arg) */
 #define ACCELIOCSSCALE		_ACCELIOC(5)
 
+/** get the accel scaling constants into the structure pointed to by (arg) */
+#define ACCELIOCGSCALE		_ACCELIOC(6)
+
 /** set the accel measurement range to handle at least (arg) g */
-#define ACCELIORANGE		_ACCELIOC(6)
+#define ACCELIOCSRANGE		_ACCELIOC(7)
+
+/** get the current accel measurement range in g */
+#define ACCELIOCGRANGE		_ACCELIOC(8)
 
 #endif /* _DRV_ACCEL_H */

@@ -6,6 +6,7 @@
 config NSH_LIBRARY
 	bool "NSH Library"
 	default n
+	select SYSTEM_READLINE
 	---help---
 		Build the NSH support library.  This is used, for example, by examples/nsh
 		in order to implement the full NuttShell (NSH).
@@ -148,9 +149,12 @@ config NSH_FILEIOSIZE
 config NSH_STRERROR
 	bool "Use strerror()"
 	default n
+	depends on LIBC_STRERROR
 	---help---
 		strerror(errno) makes more readable output but strerror() is
 		very large and will not be used unless this setting is 'y'
+		This setting depends upon the strerror() having been enabled
+		with LIBC_STRERROR.
 
 config NSH_LINELEN
 	int "Max command line length"
@@ -198,6 +202,7 @@ config NSH_MMCSDMINOR
 config NSH_ROMFSETC
 	bool "Support ROMFS start-up script"
 	default n
+	depends on FS_ROMFS
 	---help---
 		Mount a ROMFS filesystem at /etc and provide a startup script
 		at /etc/init.d/rcS.  The default startup script will mount
@@ -241,6 +246,7 @@ config NSH_ROMFSSECTSIZE
 config NSH_FATDEVNO
 	int "FAT block device minor number"
 	default 0
+	depends on FS_FAT
 	---help---
 		When the default rcS file used when NSH_ROMFSETC is selected, it
 		will mount a FAT FS under /tmp. This is the minor number of the FAT
@@ -249,6 +255,7 @@ config NSH_FATDEVNO
 config NSH_FATSECTSIZE
 	int "FAT sector size"
 	default 512
+	depends on FS_FAT
 	---help---
 		When the default rcS file used when NSH_ROMFSETC is selected, it
 		will mount a FAT FS under /tmp. This is the sector size use with the
@@ -257,6 +264,7 @@ config NSH_FATSECTSIZE
 config NSH_FATNSECTORS
 	int "FAT number of sectors"
 	default 1024
+	depends on FS_FAT
 	---help---
 		When the default rcS file used when NSH_ROMFSETC is selected, it
 		will mount a FAT FS under /tmp. This is the number of sectors to use
@@ -265,11 +273,13 @@ config NSH_FATNSECTORS
 
 config NSH_FATMOUNTPT
 	string "FAT mount point"
-	default 512
+	default "/tmp"
+	depends on FS_FAT
 	---help---
 		When the default rcS file used when NSH_ROMFSETC is selected, it
 		will mount a FAT FS under /tmp. This is the location where the FAT
-		FS will be mounted.  Default is /tmp.
+		FS will be mounted.  Default is "/tmp".
+
 endif
 
 if NSH_LIBRARY

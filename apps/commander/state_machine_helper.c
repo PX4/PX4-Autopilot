@@ -39,13 +39,16 @@
  */
 
 #include <stdio.h>
-#include "state_machine_helper.h"
+#include <unistd.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_controls.h>
 #include <systemlib/systemlib.h>
 #include <arch/board/up_hrt.h>
 #include <mavlink/mavlink_log.h>
+
+#include "state_machine_helper.h"
 
 static const char* system_state_txt[] = {
 	"SYSTEM_STATE_PREFLIGHT",
@@ -75,14 +78,12 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 	switch (new_state) {
 	case SYSTEM_STATE_MISSION_ABORT: {
 			/* Indoor or outdoor */
-			uint8_t flight_environment_parameter = (uint8_t)(global_data_parameter_storage->pm.param_values[PARAM_FLIGHT_ENV]);
-
-			if (flight_environment_parameter == PX4_FLIGHT_ENVIRONMENT_OUTDOOR) {
+			// if (flight_environment_parameter == PX4_FLIGHT_ENVIRONMENT_OUTDOOR) {
 				ret = do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_EMCY_LANDING);
 
-			} else {
-				ret = do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_EMCY_CUTOFF);
-			}
+			// } else {
+			// 	ret = do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_EMCY_CUTOFF);
+			// }
 		}
 		break;
 
@@ -121,7 +122,7 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 		if (current_status->state_machine == SYSTEM_STATE_STANDBY
 		 || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
 			/* set system flags according to state */
-			current_status->flag_system_armed = true;
+			current_status->flag_system_armed = false;
 			mavlink_log_critical(mavlink_fd, "[commander] Switched to PREFLIGHT state");
 		} else {
 			invalid_state = true;
@@ -198,10 +199,14 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 	if (invalid_state == false || old_state != new_state) {
 		current_status->state_machine = new_state;
 		state_machine_publish(status_pub, current_status, mavlink_fd);
+		publish_armed_status(current_status);
+		ret = OK;
 	}
 	if (invalid_state) {
 		mavlink_log_critical(mavlink_fd, "[commander] REJECTING invalid state transition");
+		ret = ERROR;
 	}
+	return ret;
 }
 
 void state_machine_publish(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd) {
@@ -210,6 +215,17 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 	current_status->timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
 	printf("[commander] new state: %s\n", system_state_txt[current_status->state_machine]);
+}
+
+void publish_armed_status(const struct vehicle_status_s *current_status) {
+	struct actuator_armed_s armed;
+	armed.armed = current_status->flag_system_armed;
+	/* lock down actuators if required */
+	// XXX FIXME Currently any loss of RC will completely disable all actuators
+	// needs proper failsafe
+	armed.lockdown = (current_status->rc_signal_lost || current_status->flag_hil_enabled) ? true : false;
+	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
+	orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 }
 
 
@@ -485,6 +501,8 @@ void update_state_machine_mode_manual(int status_pub, struct vehicle_status_s *c
 	int old_mode = current_status->flight_mode;
 	current_status->flight_mode = VEHICLE_FLIGHT_MODE_MANUAL;
 	current_status->flag_control_manual_enabled = true;
+	/* enable attitude control per default */
+	current_status->flag_control_attitude_enabled = true;
 	if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
 
 	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_STABILIZED || current_status->state_machine == SYSTEM_STATE_AUTO) {
@@ -522,7 +540,7 @@ void update_state_machine_mode_auto(int status_pub, struct vehicle_status_s *cur
 
 uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd, uint8_t mode)
 {
-	printf("in update state request\n");
+	printf("[commander] Requested new mode: %d\n", (int)mode);
 	uint8_t ret = 1;
 
 	/* vehicle is disarmed, mode requests arming */
@@ -546,13 +564,15 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 		}
 	}
 
-	/* Switch on HIL if in standby */
-	if ((current_status->state_machine == SYSTEM_STATE_STANDBY) && (mode & VEHICLE_MODE_FLAG_HIL_ENABLED)) {
+	/* Switch on HIL if in standby and not already in HIL mode */
+	if ((current_status->state_machine == SYSTEM_STATE_STANDBY) && (mode & VEHICLE_MODE_FLAG_HIL_ENABLED)
+		&& !current_status->flag_hil_enabled) {
 		/* Enable HIL on request */
 		current_status->flag_hil_enabled = true;
 		ret = OK;
 		state_machine_publish(status_pub, current_status, mavlink_fd);
-		printf("[commander] Enabling HIL\n");
+		publish_armed_status(current_status);
+		printf("[commander] Enabling HIL, locking down all actuators for safety.\n\t(Arming the system will not activate them while in HIL mode)\n");
 	}
 
 	/* NEVER actually switch off HIL without reboot */

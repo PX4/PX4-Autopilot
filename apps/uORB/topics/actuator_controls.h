@@ -53,6 +53,7 @@
 #define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
 
 struct actuator_controls_s {
+	uint64_t timestamp;
 	float	control[NUM_ACTUATOR_CONTROLS];
 };
 
@@ -67,7 +68,8 @@ ORB_DECLARE(actuator_controls_3);
 
 /** global 'actuator output is live' control. */
 struct actuator_armed_s {
-	bool	armed;
+	bool	armed;		/**< Set to true if system is armed */
+	bool	lockdown;	/**< Set to true if actuators are forced to being disabled (due to emergency or HIL) */
 };
 
 ORB_DECLARE(actuator_armed);

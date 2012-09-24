@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/os_bringup.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * With extensions by:
@@ -47,6 +47,7 @@
 #include <debug.h>
 
 #include <nuttx/init.h>
+#include <nuttx/wqueue.h>
 
 #include "os_internal.h"
 #ifdef CONFIG_PAGING
@@ -70,12 +71,6 @@
  * file should contain the address of the user module entry point.  If not
  * then the default entry point is user_start.
  */
-
-#if defined(CONFIG_NUTTX_KERNEL) && defined(CONFIG_USER_ENTRYPOINT)
-#  define USER_ENTRYPOINT (main_t)CONFIG_USER_ENTRYPOINT
-#else
-#  define USER_ENTRYPOINT user_start
-#endif
 
 /****************************************************************************
  * Private Types
@@ -155,10 +150,23 @@ int os_bringup(void)
 #ifdef CONFIG_SCHED_WORKQUEUE
   svdbg("Starting worker thread\n");
 
-  g_worker = KERNEL_THREAD("work", CONFIG_SCHED_WORKPRIORITY,
-                           CONFIG_SCHED_WORKSTACKSIZE,
-                           (main_t)work_thread, (const char **)NULL);
-  ASSERT(g_worker != ERROR);
+  g_work[HPWORK].pid = KERNEL_THREAD("work0", CONFIG_SCHED_WORKPRIORITY,
+                                     CONFIG_SCHED_WORKSTACKSIZE,
+                                     (main_t)work_hpthread, (const char **)NULL);
+  ASSERT(g_work[HPWORK].pid != ERROR);
+
+  /* Start a lower priority worker thread for other, non-critical continuation
+   * tasks
+   */
+
+#ifdef CONFIG_SCHED_LPWORK
+  svdbg("Starting worker thread\n");
+
+  g_work[LPWORK].pid = KERNEL_THREAD("work1", CONFIG_SCHED_LPWORKPRIORITY,
+                                     CONFIG_SCHED_LPWORKSTACKSIZE,
+                                     (main_t)work_lpthread, (const char **)NULL);
+  ASSERT(g_work[LPWORK].pid != ERROR);
+#endif
 #endif
 
   /* Once the operating system has been initialized, the system must be
@@ -175,11 +183,11 @@ int os_bringup(void)
   
   init_taskid = exec_namedapp(CONFIG_BUILTIN_APP_START, argv);
 #else
-  /* Start the default application at USER_ENTRYPOINT() */
+  /* Start the default application at CONFIG_USER_ENTRYPOINT() */
 
   init_taskid = TASK_CREATE("init", SCHED_PRIORITY_DEFAULT,
                             CONFIG_USERMAIN_STACKSIZE,
-                            (main_t)USER_ENTRYPOINT, (const char **)NULL);
+                            (main_t)CONFIG_USER_ENTRYPOINT, (const char **)NULL);
 #endif
   ASSERT(init_taskid != ERROR);
   return OK;

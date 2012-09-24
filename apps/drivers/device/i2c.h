@@ -53,6 +53,12 @@ class __EXPORT I2C : public CDev
 
 protected:
 	/**
+	 * The number of times a read or write operation will be retried on
+	 * error.
+	 */
+	unsigned		_retries;
+
+	/**
 	 * @ Constructor
 	 *
 	 * @param name		Driver name

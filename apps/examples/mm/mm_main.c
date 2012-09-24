@@ -2,7 +2,7 @@
  * examples/mm/mm_main.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -267,10 +267,10 @@ static void do_frees(void **mem, const int *size, const int *seq, int n)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start
+ * Name: mm_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int mm_main(int argc, char *argv[])
 {
   mm_showmallinfo();
 

@@ -90,11 +90,11 @@ struct {
 	const char	*path;
 	int	(* test)(int argc, char *argv[]);
 } sensors[] = {
-	{"l3gd20",	"/dev/l3gd20",	l3gd20},
 	{"bma180",	"/dev/bma180",	bma180},
+	{"mpu6000",	"/dev/accel",	mpu6000},
+	{"l3gd20",	"/dev/l3gd20",	l3gd20},
 	{"hmc5883l",	"/dev/hmc5883l",	hmc5883l},
 	{"ms5611",	"/dev/ms5611",	ms5611},
-	{"mpu6000",	"/dev/accel",	mpu6000},
 //    {"lis331",	"/dev/lis331",	lis331},
 	{NULL, NULL, NULL}
 };
@@ -253,6 +253,9 @@ l3gd20(int argc, char *argv[])
 static int
 bma180(int argc, char *argv[])
 {
+	// XXX THIS SENSOR IS OBSOLETE
+	// TEST REMAINS, BUT ALWAYS RETURNS OK
+
 	printf("\tBMA180: test start\n");
 	fflush(stdout);
 
@@ -264,7 +267,7 @@ bma180(int argc, char *argv[])
 
 	if (fd < 0) {
 		printf("\tBMA180: open fail\n");
-		return ERROR;
+		return OK;
 	}
 
 //	if (ioctl(fd, LIS331_SETRATE, LIS331_RATE_50Hz) ||
@@ -283,7 +286,7 @@ bma180(int argc, char *argv[])
 	if (ret != sizeof(buf)) {
 		printf("\tBMA180: read1 fail (%d)\n", ret);
 		close(fd);
-		return ERROR;
+		return OK;
 
 	} else {
 		printf("\tBMA180 values: x:%d\ty:%d\tz:%d\n", buf[0], buf[1], buf[2]);
@@ -297,7 +300,7 @@ bma180(int argc, char *argv[])
 	if (ret != sizeof(buf)) {
 		printf("\tBMA180: read2 fail (%d)\n", ret);
 		close(fd);
-		return ERROR;
+		return OK;
 
 	} else {
 		printf("\tBMA180: x:%d\ty:%d\tz:%d\n", buf[0], buf[1], buf[2]);

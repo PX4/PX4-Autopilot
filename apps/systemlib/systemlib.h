@@ -34,7 +34,7 @@
 
 /**
  * @file systemlib.h
- * Definition of commonly used low-level system-call like functions
+ * Definition of commonly used low-level system-call like functions.
  */
 
 #ifndef SYSTEMLIB_H_
@@ -49,12 +49,6 @@ __EXPORT int reboot(void);
 
 /** Sends SIGUSR1 to all processes */
 __EXPORT void killall(void);
-
-struct global_data_parameter_storage_t;
-
-__EXPORT int store_params_in_eeprom(struct global_data_parameter_storage_t *params);
-
-__EXPORT int get_params_from_eeprom(struct global_data_parameter_storage_t *params);
 
 enum MULT_PORTS {
 	MULT_0_US2_RXTX = 0,

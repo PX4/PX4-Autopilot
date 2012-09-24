@@ -43,7 +43,7 @@ filename = args[0]
 def LoadImage(filename):
     '''return an image from the images/ directory'''
     app_dir = os.path.dirname(os.path.realpath(__file__))
-    path = os.path.join(app_dir, 'images', filename)
+    path = os.path.join(app_dir, 'files/images', filename)
     return Tkinter.PhotoImage(file=path)
 
 

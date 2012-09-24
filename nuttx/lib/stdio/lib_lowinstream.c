@@ -39,8 +39,6 @@
 
 #include <nuttx/config.h>
 
-#ifdef CONFIG_ARCH_LOWGETC
-
 #include <stdio.h>
 #include <assert.h>
 #include <errno.h>
@@ -48,6 +46,8 @@
 #include <nuttx/arch.h>
 
 #include "lib_internal.h"
+
+#ifdef CONFIG_ARCH_LOWGETC
 
 /****************************************************************************
  * Private Functions

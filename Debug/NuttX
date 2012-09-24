@@ -74,6 +74,30 @@ document showheap
 end
 
 ################################################################################
+# Task file listing 
+################################################################################
+
+define showfiles
+	set $task = (struct _TCB *)$arg0
+	set $nfiles = sizeof((*(struct filelist*)0).fl_files) / sizeof(struct file)
+	printf "%d files\n", $nfiles
+	set $index = 0
+	while $index < $nfiles
+		set $file = &($task->filelist->fl_files[$index])
+		printf "%d: inode %p f_priv %p\n", $index, $file->f_inode, $file->f_priv
+		if $file->f_inode != 0
+			printf "    i_name %s  i_private %p\n", &$file->f_inode->i_name[0], $file->f_inode->i_private
+		end
+		set $index = $index + 1
+	end
+end
+
+document showfiles
+.    showfiles <TCB pointer>
+.        Prints the files opened by a task.
+end
+
+################################################################################
 # Task display
 ################################################################################
 
@@ -137,8 +161,8 @@ end
 #
 define _showsemaphore
 	printf "count %d ", $arg0->semcount
-	if $arg0->hlist.holder != 0
-		set $_task = (struct _TCB *)$arg0->hlist.holder
+	if $arg0->holder.htcb != 0
+		set $_task = (struct _TCB *)$arg0->holder.htcb
 		printf "held by %s", $_task->name
 	end
 	printf "\n"

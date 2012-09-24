@@ -1,8 +1,8 @@
 /****************************************************************************
  * drivers/usbhost/usbhost_skeleton.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1015,7 +1015,7 @@ static int usbhost_disconnected(struct usbhost_class_s *class)
 
           uvdbg("Queuing destruction: worker %p->%p\n", priv->work.worker, usbhost_destroy);
           DEBUGASSERT(priv->work.worker == NULL);
-          (void)work_queue(&priv->work, usbhost_destroy, priv, 0);
+          (void)work_queue(HPWORK, &priv->work, usbhost_destroy, priv, 0);
        }
       else
         {

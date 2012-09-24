@@ -2,7 +2,7 @@
  * examples/null/null_main.c
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,10 +58,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: user_start
+ * Name: null_main
  ****************************************************************************/
 
-int user_start(int argc, char *argv[])
+int null_main(int argc, char *argv[])
 {
   return 0;
 }

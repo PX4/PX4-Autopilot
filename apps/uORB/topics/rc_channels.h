@@ -62,11 +62,6 @@ enum RC_CHANNELS_STATUS
  * This defines the mapping of the RC functions.
  * The value assigned to the specific function corresponds to the entry of
  * the channel array chan[].
- * Ex. To read out the scaled Pitch value:
- * pitch = global_data_rc_channels->chan[PITCH].scale;
- * The override is on channel 8, since we don't usually have a 12 channel RC
- * and channel 5/6 (GRAUPNER/FUTABA) are mapped to the second ROLL servo, which
- * can only be disabled on more advanced RC sets.
  */
 enum RC_CHANNELS_FUNCTION
 {
@@ -98,10 +93,10 @@ struct rc_channels_s {
     uint16_t override;
     enum RC_CHANNELS_STATUS status;   /**< status of the channel */
   } chan[RC_CHANNELS_FUNCTION_MAX];
-  uint8_t chan_count;                    /**< maximum number of valid channels */
+  uint8_t chan_count;                 /**< maximum number of valid channels */
 
   /*String array to store the names of the functions*/
-  const char function_name[RC_CHANNELS_FUNCTION_MAX][20];
+  char function_name[RC_CHANNELS_FUNCTION_MAX][20];
   uint8_t function[RC_CHANNELS_FUNCTION_MAX];
   uint8_t rssi;                       /**< Overall receive signal strength */
 }; /**< radio control channels. */

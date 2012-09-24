@@ -96,9 +96,9 @@
  * values are advertised to clients.
  */
 #define PPM_MAX_PULSE_WIDTH	500		/* maximum width of a pulse */
-#define PPM_MIN_CHANNEL_VALUE	750		/* shortest valid channel signal */
-#define PPM_MAX_CHANNEL_VALUE	2400		/* longest valid channel signal */
-#define PPM_MIN_START		5000		/* shortest valid start gap */
+#define PPM_MIN_CHANNEL_VALUE	800		/* shortest valid channel signal */
+#define PPM_MAX_CHANNEL_VALUE	2200		/* longest valid channel signal */
+#define PPM_MIN_START		2500		/* shortest valid start gap */
 
 /* Input timeout - after this interval we assume signal is lost */
 #define PPM_INPUT_TIMEOUT	100 * 1000	/* 100ms */

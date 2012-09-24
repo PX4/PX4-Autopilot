@@ -2,7 +2,7 @@
  * arch/arm/src/stm32/chip/stm32f10xxx_memorymap.h
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,6 +46,9 @@
 #define STM32_SRAM_BASE      0x20000000     /* 0x20000000 - 64Kb SRAM */
 #define STM32_SRAMBB_BASE    0x22000000
 #define STM32_PERIPH_BASE    0x40000000
+
+#define STM32_REGION_MASK    0xf0000000
+#define STM32_IS_SRAM(a)     ((((uint32_t)(a)) & STM32_REGION_MASK) == STM32_SRAM_BASE)
 
 /* Register Base Address ************************************************************/
 
@@ -123,7 +126,13 @@
 
 /* Flexible SRAM controller (FSMC) */
 
-#define STM32_FSMC_BASE     0xa0000000
+#define STM32_FSMC_BANK1    0x60000000     /* 0x60000000-0x6fffffff: 256Mb NOR/SRAM */
+#define STM32_FSMC_BANK2    0x70000000     /* 0x70000000-0x7fffffff: 256Mb NAND FLASH */
+#define STM32_FSMC_BANK3    0x80000000     /* 0x80000000-0x8fffffff: 256Mb  NAND FLASH */
+#define STM32_FSMC_BANK4    0x90000000     /* 0x90000000-0x9fffffff: 256Mb PC CARD*/
+#define STM32_IS_EXTSRAM(a) ((((uint32_t)(a)) & STM32_REGION_MASK) == STM32_FSMC_BANK1)
+
+#define STM32_FSMC_BASE     0xa0000000     /* 0xa0000000-0xbfffffff: 512Mb FSMC register block */
 
 /* Other registers -- see armv7-m/nvic.h for standard Cortex-M3 registers in this
  * address range

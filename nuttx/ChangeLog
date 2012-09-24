@@ -1458,7 +1458,7 @@
 	* Renamed arc/hc/include/mc9s12ne64 and src/mc9s12ne64 to m9s12.  That name is
 	  shorter and more general.
 	* The NuttX repository has been converted to SVN and can now be found here
-	  http://nuttx.svn.sourceforge.net/viewvc/nuttx/
+	  http://svn.code.sf.net/p/nuttx/code/trunk/
 	* configs/mbed/hidkbd: Added USB host support for the mbed LPC1768 board; add
 	  a USB host HID keyboard configuraion.
 	* drivers/usbhost/hid_parser.c: Leverages the LUFA HID parser written by
@@ -2280,7 +2280,7 @@
 	  the particular condition that revealed the bug occurred.  My impression is
 	  that this latter bugfix also fixes some STM32 USB performance problems.
 	* configs/hymini-stm32v: A configuration for the HY-Mini STM32v board contributed
-	  by Laurent Latil.  Theses changes also include support for the STM32F103VCT6. 
+	  by Laurent Latil.  These changes also include support for the STM32F103VCT6. 
 	* arch/configs/stm3240g-eval/src/up_pwm.c:  Add hooks needed to use the new
 	  apps/examples/pwm test of the STM32 PWM  driver.
 	* drivers/mtd/mp25x.c:  Add ability to use different SPI modes and different
@@ -2977,7 +2977,7 @@
 	* configs/lpc4330-xplorer/nsh:  Add an NSH configuration for the LPC4330
 	  Xplorer board.
 
-6.21 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.21 2012-08-25 Gregory Nutt <gnutt@nuttx.org>
 
 	* configs/lpc4330-xplorer/up_nsh.c:  Add support for a basic SPIFI block
 	  driver for use by NSH.  Does not work!  Crashes on first SPIFI write.
@@ -3024,7 +3024,7 @@
 	  but the driver still does not work.
 	* arch/arm/src/stm32 and arch/arm/include/stm32: Make name of RTC ALARM interrupt
 	  common on STM32 F1,2,4
-	* arch/arm/src/stm32 and arch/arm/include/stm32: Add add support for the
+	* arch/arm/src/stm32 and arch/arm/include/stm32: Add support for the
 	  STM32F100x "Value Line" devices. This includes changes to stm32F10xx_rcc.c that
 	  add the ability to run the chip off the internal oscillator.  There is no open
 	  board configuration for this part yet (the STM32VLDiscovery would be a candidate).
@@ -3050,7 +3050,7 @@
 	* include/termios.h and lib/termios/*:  Redesigned yet again (this is getting
 	  painful.  NuttX now supports the BOTHER baud setting just as Linux does.  termios
 	  Bxxx definitions are again encoded; cf[set|get][o|i]speed now deal with only the
-	  encoded values.  If the encode baud is set to BOTHER, then the values in the (non-
+	  encoded values.  If the encoded baud is set to BOTHER, then the values in the (non-
 	  standard) c_ispeed and c_ospeed baud values may be accessed directly.
 	* arch/arm/src/stm32/stm32_serial.c:  Add minimal termios support for the STM32
 	  (BOTHER style baud settings only).  Contributed by Mike Smith.
@@ -3063,8 +3063,7 @@
 	* arch/arm/src/stm32/stm32_sdio.c and chip/stm32f20xx_pinmap.h:  STM32 F2 SDIO
 	  fixes from Gary Teravskis and Scott Rondestvedt.
 	* include/termios.h and lib/termios/*:  Replace cfsetispeed and cfsetospeed with
-	  cfsetspeed (with definitions for the input/outputs in termios.h).  Same for
-	  cfgetispeed and cfgetospeed.
+	  cfsetspeed (with definitions for the input/outputs in termios.h).
 	* configs/stm32f4discovery/src and configs/stm32f4discovery/pm:  Add a power
 	  management configuration for the STM32F4Discovery and supporting logic.  This
 	  check-in also includes some fixes for the F4 RTC alarm logic.
@@ -3090,10 +3089,10 @@
 	* arch/mips/src/pic32mx/pic32mx-gpio.c:  Now supports the PIC32MX1/2 ANSEL
 	  IOPORT register.
 	* lib/string/lib_memchr.c:  Add support for memchr() (contributed by Mike Smith)
-	* lib/string/lib_memccpy.c:  Add support for memcpy()
+	* lib/string/lib_memccpy.c:  Add support for memccpy()
 	* arch/arm/src/lpc17xx/lpc17_serial.c:  Now supports ioctl commands to change
 	  the baud using tcsetattr() (contributed by Chris Taglia).
-	* arch/*/src/*_serial.c: Fix ioctl method return values.  Theses methods
+	* arch/*/src/*_serial.c: Fix ioctl method return values.  These methods
 	  should return a negated errno value; they should not set the errno
 	  variable.
 	* sched/on_exit.c, sched/task_exithook.c, and include/nuttx/sched.c:  Add
@@ -3118,7 +3117,7 @@
 	* arch/arm/src/stm32/stm32*_rcc.c and .h:  If CONFIG_PM is defined, add a
 	  function called stm32_clockenable() that can be used by PM logic to re-start
 	  the PLL after re-awakening from deep sleep modes.
-	* fs/fs_foreachinode.c and fs/fs_foreachmountpoint.c:  All logic to traverse
+	* fs/fs_foreachinode.c and fs/fs_foreachmountpoint.c:  Add logic to traverse
 	  inodes and mountpoints in the NuttX pseudo-file system.
 	* fs/fat/fs_fat32.c: Max. filename length reported by statfs() was wrong
 	  if FAT long file names were enabled.
@@ -3137,7 +3136,7 @@
 	  LPC31xx has the same USB IP, but will require some additional initialization
 	  (and lots of testing) before it can be used with the LPC43xx.
 	* nuttx/Documentation/NuttShell.html:  Added a section covering ways to
-	  customize the behavior or NSH.
+	  customize the behavior of NSH.
 	* arch/arm/src/stm32/chip/stm32f1*_pinmap.h: STM32 CAN TX/RX pins reversed;
 	  inconsistent conditional compilation.  Reported by Max Holtzberg.
 	* arch/arm/*/stm32:  Add support for STM32 F107 "Connectivity Line" 
@@ -3166,5 +3165,215 @@
 	  for all 8-bit AVR platforms (Thanks Richard Cochran).
 	* lib/stdio/lib_*stream.c:  Revised to handle new error return values from
 	  serial.c.
-	* arch/arm/src/stm32/stm32_spi.c:  SPI driver can now survice re-
+	* arch/arm/src/stm32/stm32_spi.c:  SPI driver can now service re-
 	  initialization (Mike Smith).
+	* tools/mkconfig.c:  If CONFIG_DRAM_END is not specified, this tool
+	  will provide default definition of (CONFIG_DRAM_START + CONFIG_DRAM_SIZE)
+	* arch/arm/src/stm32/stm32_otgfshost.c:  Renamed from stm32_usbhost.c.
+	  This is nearly code complete and, with any luck, will be available
+	  in NuttX-6.21.
+	* configs/*/defconfig:  Update all defconfig files to remove syntax
+	  that is incompatible with the mconf configuration tool.
+	* arch/arm/src/stm32/stm32_otgfshost.c:  This driver now appears to be
+	  functional (although more testing is necesary).
+
+6.22 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* include/semaphore.h, sched/sem_holders.c, and lib/semaphore/sem_init.c:
+	  Fix some strange (and probably wrong) list handling when
+	  CONFIG_PRIORITY_INHERITANCE and CONFIG_SEM_PREALLOCHOLDERS are defined.
+	  This list handling was probably causing errors reported by Mike Smith
+	* sched/sched_waitpid.c: Fix a possible issue with logic logic that
+	  should be brought into a critical section (suggested by Mike Smith)
+	* sched/sched_setuptaskfiles.c: Should be 'struct socket' not
+	  'struct sockets'.  How did this compile before? (found by Kate)
+	* syscall/syscall.csv:  Fix prototype for usleep() and prctl() (also
+	  from Kate).
+	* arch/arm/src/lpc17xx/lpc17_ethernet.c:  Conditionally elide setting PHY
+	  speed/duplex.  This does not work for certain PHYs.  Still some unresolved
+	  issues (also from Kate).
+	* tools/Config.mk, Makefile, configs/*/Make.defs:  Add a new Makefile
+	  fragement to de-quoate certain strings from the Kconfig logic that
+	  need to be used at path segments (Richard Cochran).
+	* arch/arm/src/stm32/stm32_usbotghost.c:  The STM32 USB host driver only
+	  works with debug turned on.  The problem appears to be that with debug
+	  OFF, there are more NAKs occuring in more places than before and this
+	  reveals a variety of errors.  This check in improves NAK robustness
+	  for control transfers but does not resolve all of the issues.
+	* configs/stm3220g-eval/*/defconfig:  Calibrated delay loop.  It had
+	  never been calibrated was was way off.
+	* sched/sem_holder.c: Add logic to handler some priority inheritance
+	  cases when sem_post() is called from an interrupt handler.  The
+	  logic is clearly wrong, but it is not known if this is the
+	  cause of any known bugs.
+	* lib/stdio/lib_perror():  Add perror().  Contributed by Kate.
+	* lib/string/lib_strerror():  Add option CONFIG_LIBC_STRERROR that
+	  is now required to enabled strerror().  Add an option
+	  CONFIG_LIBC_STRERROR_SHORT that can be used to output shortened
+	  strings by strerror().
+	* arch/arm/src/stm32/stm32_usbotghost.c:  Finally... the USB OTG FS
+	  appears to handle NAKing correctly is complete.
+	* configs/stm32f4discovery/*:  Added and verifed support for USB OTG FS
+	  host on the STM32F4Discovery board.
+	* configs/*/defconfig: Remove configuration documentation from config
+	  files.  It is redundant, error-prone, and difficult to maintain.
+	  Configuration documentation is available in configs/README.txt for
+	  common configurations and in configs/*/README.txt for board and MCU_
+	  specific configurations.
+	* configs/stm3240g-eval: Add USB host support.
+	* sched/os_bring.c, configs/*/defconfig, tools/mkconfig.c, and others:  Added
+	  configuration variable CONFIG_USER_ENTRYPOINT that may be used to change
+	  the default entry from user_start to some other symbol.  Contributed by
+	  Kate. NOTE: This change does introduce a minor backward incompatibility.
+	  For example, if your application uses NSH as its start-up program, then your
+	  code will not fail because it will be unable to find "user_start".  The fix
+	  for this link failure is to add the following to your configuration file:
+	  CONFIG_USER_ENTRYPOINT="nsh_main".
+	* libs/stdio/lib_libfread.c and lib_*flush*.c:  Correct a couple of
+	  error cases where the lib semaphore was not be released on error
+	  exits (thanks Ronen Vainish).  Also, improved some error reporting:
+	  the generic ERROR was being used instead of the specific errno
+	  value; the errno variable was not always set correctly.
+	* tools/mkfsdata.pl: The uIP web server CGI image making perl script was
+	  moved from apps/netutils/webserver/makefsdata to nuttx/tools/mkfsdata.pl
+	  (Part of a larger change submitted by Max Holtzberg).
+	* configs/stm3240g-eval/script/ld.script:  All of the identical ld.script
+	  files for the STM3240G-EVAL were replaced by one version in this directory.
+	* configs/stm3240g-eval/webserver:  Configuration submitted by Max Holtzberg
+	  for testing the changes to the uIP web server (see apps/ChangeLog.txt).
+	* lib/stdio/lib_perror.c:  Remove CONFIG_LIBC_PERROR_DEVNAME.  What was I
+	  thinking?  Arbitrary streams cannot be shared by different tasks.
+	* tools/mksyscall.c, csvparser.c, and csvparser.h: Separate CSV parsing
+	  logic from mksyscall.c into files where it can be shared.
+	* tools/mksymtab.c:  Add a tool that can be used to convert a CSV file
+	  into a NuttX-style symbol table.
+	* sched/work_cancel.c:  Fix a bad assertion (reported by Mike Smith)
+	* configs/stm3210e-eval/src/up_idle.c:  Correct some power management
+	  compilation errors (reported by Diego Sanchez).
+	* include/nuttx/wqueue.h, sched/work*, and others:  Added logic to support
+	  a second, lower priority work queue (CONFIG_SCHED_LPWORK).
+	* arch/arm/src/stm32/stm32_dma.c, chip/stm32*_memorymap.h:  FSMC SRAM is
+	  only 16-bits wide and the SDIO DMA must be set up differently.
+	* arch/arm/src/stm32/stm32_dma.c:  Back out the 16-bit DMA change. It
+	  is incorrect.
+	* configs/:  Make use of UART4/5 vs USART4/5 consistent in all places.
+	* Kconfig: Serial 2STOP setting must be integer 0/1, not a boolean.
+	* lib/misc/sendfile.c and include/sys/sendfile.h:  Add a Linux style
+	  sendfile() (non-standard!)
+	* Kconfig: Refactor serial settings (moved from chip to drivers/serial).
+	  AVR "teensy" now builds with Kconfig (contributed by Richard Cochran).
+	* Kconfig: Add configuration settings for the LPC17xx
+	* Kconfig: Add configuration settings for the LM3S (from Richard Cochran).
+	* Kconfig: Verify configuration settings for the STM32.  This includes
+	  changes in the way that the external SRAM is configured:  Define
+	  CONFIG_HEAP2_SIZE (decimal) instead of CONFIG_HEAP2_END (hex).
+	* tools/configure.sh:  Don't append the apps directory path setting
+	  if the correct setting is already in defined in the defconfig file.
+	* fs/fat/fs_utils.c:  Improper constructed bool expression.  This
+	  would cause many unnecessary writes to FLASH (Thanks Ronen Vainish).
+	* Kconfig: Verify configuration settings for the LPC43xx.  This includes
+	  some corrections to configuration variable names and defconfig settings.
+	* Kconfig: Add and verify configuration settings for the LPC31xx.
+	* arch/arm/src/stm32/stm32_uart.h and stm32_serial.c:  Add logic to
+	  re-initialize the console UART as needed to enable DMA on the
+	  console UART (contributed by Mike Smith).
+	* net/recvfrom.c, net/Kconfig, include/nuttx/net/uipopt.h: Remove delay
+	  after receiving data.  That has historical reasons to be there (it
+	  was needed before read-ahead buffering was added), but kills performance.
+	  (Noted by Max Holtzberg).
+	* configs/shenzhou:  Add beginnings of a board configuration for the
+	  Shenzhou STM32107 board (see www.armjishu.com).  Very little is in
+	  place as of this initial check-in.
+	* QEMU: Fixes from Richard Cochran to build QEMU with Kconfig files.
+	* arch/*/src/Makefile:  Remove some old logic that was kicked off
+	  when CONFIG_BOOT_RUNFROMFLASH=y.  The old logic used to use
+	  objcopy to move sections.  Newer logic changes the load position
+	  of sections in the the linker script.  As far as I can tell, there
+	  is nothing in the source tree now that depends on the old way of
+	  doing things (if I am wrong, they will need a change to the linker
+	  script).
+	* configs/fire-stm32v2:  Configuration for the M3 Wildfire board.  I
+	  don't know very much about this board other than is has an
+	  STM32F103VET6 chip, LCD, touchscreen, and ENC28J60 network.  Very
+	  little is in place on the initial check-in.
+	* configs/shenzhou: Coding for the Shenzhou board port is complete,
+	  but tested has been deferred until I get the right tools.
+	* arch/arc/include/stm32/chip.h and arch/arm/src/stm32/chip.h:
+	  Add support for the STM32F103VET6.
+	* fs/fs_fdopen.c: Bad check for failure to allocate memory.  (Noted
+	  by Ronen Vainish).
+	* drivers/mmcsd/mmcsd_sdio.c: If the MMC/SD driver were ever
+	  uninitialized then there would be a double release of memory
+	  (Noted by Ronen Vainish).
+	* fs/mmap/fs_rammap.c:  Fix logic error and errno check (contributed
+	  by Kate).
+	* arch/avr/src: Fixes from AVR32 build errors that have crept in
+	  over the time; incorporated Kconfig for AVR3 (Richard Cochran).
+	* fs/fat and include/nuttx/fs/fat.h: The FAT file system allocates
+	  memory for sector I/O buffers used to exchange data with the
+	  configured block driver.  In some contexts, the block driver may
+	  require DMA-capable memory.  If CONFIG_FAT_DMAMEMORY is defined,
+	  then the FAT FS will use platform-provided DMA memory allocators
+	  to allocate the block driver I/O buffers.
+	* CONFIG_NET_ENC28J60 renamed CONFIG_ENC28J60 to be consistent
+	  in all places.
+	* drivers/enc28j60.c, include/nuttx/net/enc28j60.h, and 
+	  olimex-strp711/src/up_enc28j60.c:  No longer passes IRQ number
+	  as a parameters.  Instead now passes a call table to manage
+	  ENC28J60 GPIO interrupts.  That is because GPIO interrupts are
+	  handled in different ways by different MCUs and some do not
+	  support IRQ numbers for GPIO interrupts.
+	* mm/mm_gran* and include/nuttx/gran.h:  Add a simple granule-
+	  based allocator.  The intent of this allocator is to support
+	  simple allocation of DMA I/O buffers.  The initiali check-in
+	  is code complete but untested (not event built into the
+	  mm/Makefile yet.
+	* confgs/fire-stm32v2: The board port is basically functional.
+	  Not all features have been verified.  The ENC28J60 network
+	  is not yet functional.
+	* configs/stm3240g-eval/discover:  A configuration for testing
+	  the UDP discovery utility.  Contributed by Max Holtzberg.
+	* mm/README.txt:  Add a new README file.
+	* include/nuttx/usb/usb.h, arch/*/src/*usb.c, and arch/*/src/*otg*.c:
+	  Add hooks to to use common, external DMA buffer allocation
+	  implementation.
+	* net/recvfrom.c: Don't block in recvfrom if (1) read-ahead buffering
+	  is enabled and (2) some data was obtained from read-ahead buffers.
+	  Blocking is a bad idea in that case because there is no timeout!
+	  (submitted by Max Holtzberg).
+	* configs/stm3240g-eval/xmlrpc: An example configuration for the
+	  Embeddable Lightweight XML-RPC Server at apps/examples/xmlrpc.
+	  See http://www.drdobbs.com/web-development/\
+	  an-embeddable-lightweight-xml-rpc-server/184405364 for more info.
+	  Contributed by Max Holtzberg.
+	* configs/*/nxwm/defconfig and sched/task_exithook.c: Fixes for
+	  bugs that crept in during recent changes.  (Submitted by Max
+	  Holtzberg).
+	* arch/arm/include/armv7-m/irq.h:  Fix a critical bug in irqsave().
+	  It looks like sometimes the compile will re-order some instructions
+	  inapproapriately.  This end result is that interrupts will get
+	  stuff off.
+	* drivers/mtd/w25.c:  Beginning of a driver for the Windbond SPI
+	  FLASH family (W25x16, W25x32, and W25x64).  The initial check-in
+	  is basically just the SST25 driver with some name changes.
+	* arch/arm/include/armv7-m/irq.h and arch/arm/src/stm32/stm32_spi.c:
+	  Back out the last change in irq.h.  It is (most likely) fine the
+	  way it was.  The really interrupt related problem was in stm32_spi.c:
+	  When SPI3 is not enabled, then the irqrestore() falls in the
+	  else clause.
+	* include/nuttx/compiler.h and other files:  Moved always_inline
+	  and noinline __attributes__ here.  Also replaced all occurrences
+	  of explicit __atributes__ in other files with definitions from
+	  this header file.
+	* drivers/mtd/w25.c:  The Windbond SPI FLASH W25 FLASH driver is
+	  code complete (but still untested).
+	* arch/arm/src/stm32/stm32_i2c.c:  I2C improvements from Mike Smith.
+	  Unified configuration logic; dynamic timeout calculations;
+	  I2C reset logic to recover from locked devices on the bus.
+	* configs/*/*/Make.defs, tools/Config.mk, Makefile:  Refactor all
+	  common make definitions from the various Make.defs files into
+	  the common tools/Make.mk.  Add support for a verbosity options:
+	  Specify V=1 on the make command line in order to see the exact
+	  commands used in the build (Contributed by Richard Cochran).
+	* drivers/net/enc28j60.c:  The ENC28J60 Ethernet driver is
+	  now functional.

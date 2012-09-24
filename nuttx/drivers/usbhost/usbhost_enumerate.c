@@ -1,8 +1,8 @@
 /*******************************************************************************
  * drivers/usbhost/usbhost_enumerate.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Authors: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+ *   Authors: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,6 +42,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <string.h>
+#include <unistd.h>
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>
@@ -122,8 +123,8 @@ static void usbhost_putle16(uint8_t *dest, uint16_t val)
  *
  *******************************************************************************/
 
-static inline int usbhost_devdesc(const struct usb_devdesc_s *devdesc,
-                                  struct usbhost_id_s *id)
+static inline int usbhost_devdesc(FAR const struct usb_devdesc_s *devdesc,
+                                  FAR struct usbhost_id_s *id)
 {
   /* Clear the ID info */
 
@@ -131,7 +132,7 @@ static inline int usbhost_devdesc(const struct usb_devdesc_s *devdesc,
 
   /* Pick off the class ID info */
 
-  id->base     = devdesc->class;
+  id->base     = devdesc->classid;
   id->subclass = devdesc->subclass;
   id->proto    = devdesc->protocol;
 
@@ -194,7 +195,7 @@ static inline int usbhost_configdesc(const uint8_t *configdesc, int cfglen,
            */
  
           DEBUGASSERT(remaining >= sizeof(struct usb_ifdesc_s));
-          id->base     = ifdesc->class;
+          id->base     = ifdesc->classid;
           id->subclass = ifdesc->subclass;
           id->proto    = ifdesc->protocol;
           uvdbg("class:%d subclass:%d protocol:%d\n",
@@ -317,7 +318,7 @@ int usbhost_enumerate(FAR struct usbhost_driver_s *drvr, uint8_t funcaddr,
 
   DEBUGASSERT(drvr && class);
 
-  /* Allocate TD buffers for use in this function.  We will need two:
+  /* Allocate descriptor buffers for use in this function.  We will need two:
    * One for the request and one for the data buffer.
    */
 
@@ -400,7 +401,7 @@ int usbhost_enumerate(FAR struct usbhost_driver_s *drvr, uint8_t funcaddr,
       udbg("ERROR: SETADDRESS DRVR_CTRLOUT returned %d\n", ret);
       goto errout;
     }
-  up_mdelay(2);
+  usleep(2*1000);
 
   /* Modify control pipe with the provided USB device address */
 
@@ -461,9 +462,9 @@ int usbhost_enumerate(FAR struct usbhost_driver_s *drvr, uint8_t funcaddr,
       goto errout;
     }
 
-  /* Free the TD that we were using for the request buffer.  It is not needed
-   * further here but it may be needed by the class driver during its connection
-   * operations.
+  /* Free the descriptor buffer that we were using for the request buffer.
+   * It is not needed further here but it may be needed by the class driver
+   * during its connection operations.
    */
  
   DRVR_FREE(drvr, (uint8_t*)ctrlreq);
@@ -488,9 +489,9 @@ int usbhost_enumerate(FAR struct usbhost_driver_s *drvr, uint8_t funcaddr,
         }
     }
 
-  /* Some devices may require this delay before initialization */
+  /* Some devices may require some delay before initialization */
 
-  up_mdelay(100);
+  usleep(100*1000);
 
   /* Parse the configuration descriptor and bind to the class instance for the
    * device.  This needs to be the last thing done because the class driver

@@ -248,7 +248,7 @@
 	  being set to the priority of the parent thread; losing its configured
 	  priority.  Reported by Mike Smith.
 
-6.21 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.21 2012-08-25 Gregory Nutt <gnutt@nuttx.org>
 
 	* apps/include/: Stylistic clean-up of all header files.
 	* apps/modbus and apps/include/modbus:  A port of freemodbus-v1.5.0
@@ -259,9 +259,9 @@
 	* apps/modbus:  Add CONFIG_MB_TERMIOS.  If the driver doesn't support
 	  termios ioctls, then don't bother trying to configure the baud, parity
 	  etc.
-	* apps/nslib:  If waitpid() is supported, then NSH not catches the
+	* apps/nshlib:  If waitpid() is supported, then NSH now catches the
 	  return value from spawned applications (provided by Mike Smith)
-	* apps/nslib:  Lock the schedule while starting built-in applications
+	* apps/nshlib:  Lock the scheduler while starting built-in applications
 	  in order to eliminate race conditions (also from Mike Smith).
 	* apps/examples/adc, pwm, and qencoder:  Add support for testing
 	  devices with multiple ADC, PWM, and QE devices.
@@ -272,9 +272,67 @@
 	  properties of mounted file systems.
 	* apps/nshlib/nsh_parse.c:  Extend help command options.  'help' with
 	  no arguments outputs a short list of commands.  With -v lists all
-	  command line details.  And command name can be added to just get
+	  command line details.  A command name can be added to just get
 	  help on one command.
 	* system/readline.c:  If character input/output is interrupted by a
 	  signal, then readline() will try the read/write again.
 	* apps/*/Make.defs:  Numerous fixes needed to use the automated
 	  configuration (from Richard Cochran).
+
+6.22 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/netutils/thttpd/thttpd_cgi.c:  Missing NULL in argv[]
+	  list (contributed by Kate).
+	* apps/nshlib/nsh_parse.c: CONFIG_NSH_DISABLE_WGET not CONFIG_NSH_DISABLE_GET
+	  in one location (found by Kate).
+	* apps/examples/ostest/prioinherit.c:  Limit the number of test
+	  threds to no more than 3 of each priority.  Bad things happen
+	  when the existing logic tried to created several hundred test
+	  treads!
+	* apps/nshlib/nsh.h:  Both CONFIG_LIBC_STRERROR and CONFIG_NSH_STRERROR
+	  must be defined to use strerror() with NSH.
+	* apps/examples/*/*_main.c, system/i2c/i2c_main.c, and others:  Added
+	  configuration variable CONFIG_USER_ENTRYPOINT that may be used to change
+	  the default entry from user_start to some other symbol.  Contributed by
+	  Kate.
+	* apps/netutils/webserver/httpd/c:  Fix a typo that as introduced in
+	  version r4402:  'lese' instead of 'else' (Noted by Max Holtzberg).
+	* tools/mkfsdata.pl: The uIP web server CGI image making perl script was
+	  moved from apps/netutils/webserver/makefsdata to nuttx/tools/mkfsdata.pl
+	  (Part of a larger change submitted by Max Holtzberg).
+	* apps/netutils/webserver, apps/examples/uip, and apps/include/netutils/httpd.h:
+	  The "canned" version of the uIP web servers content that was at 
+	  netutils/webserver/httpd_fsdata.c has been replaced with a dynamically
+	  built configuration located at apps/examples/uip (Contributed by
+	  Max Holtzberg).
+	* apps/netutils/webserver:  Several inenhancements from Kate including the
+	  ability to elide scripting and SERVER headers and the ability to map
+	  files into memory before transferring them.
+	* apps/netutils/webserver:  Add ability to map a URL to CGI function.
+	  Contributed by Kate.
+	* apps/nshlib/nsh_mntcmds.c: The changes of 6.21 introduced holes in the
+	  error handling:  Now the number of arguments to mount can be 0 or 4.
+	  Additional parameter checking is required to prevent mysterious errors
+	  (submiteed by Kate).
+	* apps/netutils/webserver/httpd_mmap.c:  Fix errors when the mmap()
+	  length is zero (submitted by Kate).
+	* apps/netutils/webserver/httpd_sendfile.c:  Add and option,
+	  CONFIG_NETUTILS_HTTPD_SENDFILE to transfer files using the NuttX
+	  sendfile() interface.
+	* apps/netutils/discover:  A UDP network discovery utility contributed
+	  by Max Holtzberg.
+	* apps/examples/discover:  A test example for the UDP network discovery
+	  utility (also contribed by Max Holtzberg).
+	* apps/examples/*/main.c:  Too many files called main.c.  Each renamed
+	  to something unique so that they will not collide in the archive.
+	* apps/netutils/xmlrpc: The Embeddable Lightweight XML-RPC Server
+	  discussed at http://www.drdobbs.com/web-development/\
+	  an-embeddable-lightweight-xml-rpc-server/184405364.  Contributed by
+	  Max Holtzberg.
+	* apps/netutils/uip_listenon.c:  Logic in uip_server.c that creates
+	  the listening socket was moved to this new file to support re-use.
+	  Contributed by Kate.
+	* apps/netutils/webserver/httpd.c:  The option CONFIG_NETUTILS_HTTPD_SINGLECONNECT
+	  can now be used to limit the server to a single thread.  Option
+	  CONFIG_NETUTILS_HTTPD_TIMEOUT can be used to generate HTTP 408 errors.
+	  Both from Kate.

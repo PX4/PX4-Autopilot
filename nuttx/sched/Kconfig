@@ -166,6 +166,39 @@ config SIG_SIGWORK
 		The signal number that will be used to wake-up the worker thread.
 		Default: 4
 
+config SCHED_LPWORK
+	bool "Enable a lower priority worker thread"
+	default n
+	depends on SCHED_WORKQUEUE
+	---help---
+		If SCHED_WORKQUEUE is defined, then a single work queue is created by
+		default.  If SCHED_LPWORK is also defined then an additional, lower-
+		priority work queue will also be created.  This lower priority work
+		queue is better suited for more extended processing (such as file system
+		clean-up operations)
+
+config SCHED_LPWORKPRIORITY
+	int "Lower priority worker thread priority"
+	default 50
+	depends on SCHED_LPWORK
+	---help---
+		The execution priority of the lopwer priority worker thread.  Default: 192
+
+config SCHED_LPWORKPERIOD
+	int "Lower priority worker thread period"
+	default 50000
+	depends on SCHED_LPWORK
+	---help---
+		How often the lower priority worker thread checks for work in units
+		of microseconds. Default: 50*1000 (50 MS).
+
+config SCHED_LPWORKSTACKSIZE
+	int "Lower priority worker thread stack size"
+	default 2048
+	depends on SCHED_LPWORK
+	---help---
+		The stack size allocated for the lower priority worker thread.  Default: 2K.
+
 config SCHED_WAITPID
 	bool "Enable waitpid() API"
 	default n
@@ -202,9 +235,17 @@ config SCHED_ONEXIT_MAX
 		is supported. That number can be increased by defined this setting to the
 		number that you require.
 
+config USER_ENTRYPOINT
+	string "Application entry point"
+	default "user_start"
+	---help---
+		The name of the entry point for user applications.  For the example
+		applications this is of the form 'app_main' where 'app' is the application
+		name. If not defined, USER_ENTRYPOINT defaults to "user_start."
+
 config DISABLE_OS_API
 	bool "Disable NuttX interfaces"
-	default n
+	default y
 	---help---
 	The following can be used to disable categories of
 	APIs supported by the OS.  If the compiler supports
@@ -340,20 +381,6 @@ config PREALLOC_TIMERS
 
 comment "Stack and heap information"
 
-config BOOT_RUNFROMFLASH
-	bool "boot run from flash"
-	default n
-	---help---
-		Some configurations support XIP operation from FLASH but must copy
-		initialized .data sections to RAM
-
-config BOOT_COPYTORAM
-	bool "boot copy to ram"
-	default n
-	---help---
-		Some configurations boot in FLASH
-		but copy themselves entirely into RAM for better performance.
-
 config CUSTOM_STACK
 	bool "Enable custom stack"
 	default n
@@ -361,11 +388,6 @@ config CUSTOM_STACK
 		The up_ implementation will handle all stack operations outside of the
 		nuttx model.  This is necessary for certain architectures that have
 		have hardware stacks (such as the 8051 family).
-
-config STACK_POINTER
-	hex "The initial stack pointer"
-	---help---
-		The initial stack pointer (arm7tdmi only).
 
 config IDLETHREAD_STACKSIZE
 	int "Idle thread stack size"

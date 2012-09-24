@@ -1,5 +1,5 @@
 /****************************************************************************
- * config/stm3210e_eval/src/up_nsh.c
+ * config/px4fmu/src/up_nsh.c
  * arch/arm/src/board/up_nsh.c
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
@@ -63,11 +63,8 @@
 #include <arch/board/board.h>
 #include <arch/board/drv_bma180.h>
 #include <arch/board/drv_l3gd20.h>
-#include <arch/board/drv_hmc5883l.h>
-#include <arch/board/drv_mpu6000.h>
-#include <arch/board/drv_ms5611.h>
-#include <arch/board/drv_eeprom.h>
 #include <arch/board/drv_led.h>
+#include <arch/board/drv_eeprom.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -94,20 +91,6 @@
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: multiport_setup
- *
- * Description:
- *   Perform setup of the PX4FMU's multi function ports
- *
- ****************************************************************************/
-int multiport_setup(void)
-{
-  int result = OK;
-
-  return result;
-}
 
 /****************************************************************************
  * Public Functions
@@ -221,7 +204,7 @@ int nsh_archinitialize(void)
 	  up_udelay(1000);
   }
 
-  if (gyro_fail) message("[boot] FAILED to attach L3GD20 gyro\r\n");
+  if (!gyro_fail) message("[boot] Found L3GD20 gyro\n");
 
   int acc_attempts = 0;
   int acc_fail = 0;
@@ -234,13 +217,13 @@ int nsh_archinitialize(void)
 	  up_udelay(1000);
   }
 
-  if (acc_fail) message("[boot] FAILED to attach BMA180 accelerometer\r\n");
+  if (!acc_fail) message("[boot] Found BMA180 accelerometer\n");
 
   /* initialize I2C2 bus */
 
   i2c2 = up_i2cinitialize(2);
   if (!i2c2) {
-	  message("[boot] FAILED to initialize I2C bus 2\r\n");
+	  message("[boot] FAILED to initialize I2C bus 2\n");
 	  up_ledon(LED_AMBER);
 	  return -ENODEV;
   }
@@ -251,7 +234,7 @@ int nsh_archinitialize(void)
 
   i2c3 = up_i2cinitialize(3);
   if (!i2c3) {
-	  message("[boot] FAILED to initialize I2C bus 3\r\n");
+	  message("[boot] FAILED to initialize I2C bus 3\n");
 	  up_ledon(LED_AMBER);
 	  return -ENODEV;
   }
@@ -259,88 +242,41 @@ int nsh_archinitialize(void)
   /* set I2C3 speed */
   I2C_SETFREQUENCY(i2c3, 400000);
 
-  int mag_attempts = 0;
-  int mag_fail = 0;
-
-  while (mag_attempts < 5)
-  {
-	  mag_fail = hmc5883l_attach(i2c2);
-	  mag_attempts++;
-	  if (mag_fail == 0) break;
-	  up_udelay(1000);
-  }
-
-  if (mag_fail) message("[boot] FAILED to attach HMC5883L magnetometer\r\n");
-
-  int baro_attempts = 0;
-  int baro_fail = 0;
-  while (baro_attempts < 5)
-  {
-	  baro_fail = ms5611_attach(i2c2);
-	  baro_attempts++;
-	  if (baro_fail == 0) break;
-	  up_udelay(1000);
-  }
-
-  if (baro_fail) message("[boot] FAILED to attach MS5611 baro at addr #1 or #2 (0x76 or 0x77)\r\n");
-
   /* try to attach, don't fail if device is not responding */
   (void)eeprom_attach(i2c3, FMU_BASEBOARD_EEPROM_ADDRESS,
 		  FMU_BASEBOARD_EEPROM_TOTAL_SIZE_BYTES,
 		  FMU_BASEBOARD_EEPROM_PAGE_SIZE_BYTES,
 		  FMU_BASEBOARD_EEPROM_PAGE_WRITE_TIME_US, "/dev/baseboard_eeprom", 1);
 
-  int eeprom_attempts = 0;
-  int eeprom_fail;
-  while (eeprom_attempts < 5)
-  {
-	  /* try to attach, fail if device does not respond */
-	  eeprom_fail = eeprom_attach(i2c2, FMU_ONBOARD_EEPROM_ADDRESS,
-			  FMU_ONBOARD_EEPROM_TOTAL_SIZE_BYTES,
-			  FMU_ONBOARD_EEPROM_PAGE_SIZE_BYTES,
-			  FMU_ONBOARD_EEPROM_PAGE_WRITE_TIME_US, "/dev/eeprom", 1);
-	  eeprom_attempts++;
-	  if (eeprom_fail == OK) break;
-	  up_udelay(1000);
-  }
-
-  if (eeprom_fail) message("[boot] FAILED to attach FMU EEPROM\r\n");
-
-  /* Report back sensor status */
-  if (gyro_fail || mag_fail || baro_fail || eeprom_fail)
-  {
-	  up_ledon(LED_AMBER);
-  }
-
 #if defined(CONFIG_STM32_SPI3)
   /* Get the SPI port */
 
-  message("[boot] Initializing SPI port 3\r\n");
+  message("[boot] Initializing SPI port 3\n");
   spi3 = up_spiinitialize(3);
   if (!spi3)
     {
-      message("[boot] FAILED to initialize SPI port 3\r\n");
+      message("[boot] FAILED to initialize SPI port 3\n");
       up_ledon(LED_AMBER);
       return -ENODEV;
     }
-  message("[boot] Successfully initialized SPI port 3\r\n");
+  message("[boot] Successfully initialized SPI port 3\n");
 
   /* Now bind the SPI interface to the MMCSD driver */
   result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi3);
   if (result != OK)
   {
-	  message("[boot] FAILED to bind SPI port 3 to the MMCSD driver\r\n");
+	  message("[boot] FAILED to bind SPI port 3 to the MMCSD driver\n");
 	  up_ledon(LED_AMBER);
 	  return -ENODEV;
   }
-  message("[boot] Successfully bound SPI port 3 to the MMCSD driver\r\n");
+  message("[boot] Successfully bound SPI port 3 to the MMCSD driver\n");
 #endif /* SPI3 */
 
   /* initialize I2C1 bus */
 
   i2c1 = up_i2cinitialize(1);
   if (!i2c1) {
-    message("[boot] FAILED to initialize I2C bus 1\r\n");
+    message("[boot] FAILED to initialize I2C bus 1\n");
     up_ledon(LED_AMBER);
     return -ENODEV;
   }
@@ -352,7 +288,7 @@ int nsh_archinitialize(void)
 
   /* Get board information if available */
 
-    /* Initialize the user GPIOs */
+  /* Initialize the user GPIOs */
   px4fmu_gpio_init();
 
 #ifdef CONFIG_ADC
@@ -364,7 +300,7 @@ int nsh_archinitialize(void)
     if (adc_state != OK)
     {
       /* Give up */
-      message("[boot] FAILED adc_devinit: %d\r\n", adc_state);
+      message("[boot] FAILED adc_devinit: %d\n", adc_state);
       return -ENODEV;
     }
   }

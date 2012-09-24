@@ -2,7 +2,7 @@
  * drivers/net/enc28j60.h
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
  * - ENC28J60 Data Sheet, Stand-Alone Ethernet Controller with SPI Interface,
@@ -56,7 +56,7 @@
  */
 
 #define ENC_RCR             (0x00)    /* Read Control Register
-                                       * 000 | aaaaa | (Registe value returned)) */
+                                       * 000 | aaaaa | (Register value returned)) */
 #define ENC_RBM             (0x3a)    /* Read Buffer Memory
                                        * 001 | 11010 | (Read buffer data follows) */
 #define ENC_WCR             (0x40)    /* Write Control Register
@@ -131,10 +131,10 @@
 
 #define ECON1_BSEL_SHIFT    (0)      /* Bits 0-1: Bank select */
 #define ECON1_BSEL_MASK     (3 << ECON1_BSEL_SHIFT)
-#  define ECON1_BSEL_BANK0  (0 << 0) /* Bank 0 */
-#  define ECON1_BSEL_BANK1  (1 << 1) /* Bank 1 */
-#  define ECON1_BSEL_BANK2  (2 << 0) /* Bank 2 */
-#  define ECON1_BSEL_BANK3  (3 << 0) /* Bank 3 */
+#  define ECON1_BSEL_BANK0  (0 << ECON1_BSEL_SHIFT) /* Bank 0 */
+#  define ECON1_BSEL_BANK1  (1 << ECON1_BSEL_SHIFT) /* Bank 1 */
+#  define ECON1_BSEL_BANK2  (2 << ECON1_BSEL_SHIFT) /* Bank 2 */
+#  define ECON1_BSEL_BANK3  (3 << ECON1_BSEL_SHIFT) /* Bank 3 */
 #define ECON1_RXEN          (1 << 2) /* Bit 2: Receive Enable */
 #define ECON1_TXRTS         (1 << 3) /* Bit 3: Transmit Request to Send */
 #define ECON1_CSUMEN        (1 << 4) /* Bit 4: DMA Checksum Enable */
@@ -304,7 +304,7 @@
 #define ENC_MAADR3      REGADDR(0x02, 3, 1) /* MAC Address Byte 3 (MAADR<31:24>), OUI Byte 3 */
 #define ENC_MAADR4      REGADDR(0x03, 3, 1) /* MAC Address Byte 4 (MAADR<23:16>) */
 #define ENC_MAADR1      REGADDR(0x04, 3, 1) /* MAC Address Byte 1 (MAADR<47:40>), OUI Byte 1 */
-#define ENC_MAADR2      REGADDR(0x05, 3, 1) /* MAC Address Byte 2 (MAADR<39:32>), OUI Byte  */
+#define ENC_MAADR2      REGADDR(0x05, 3, 1) /* MAC Address Byte 2 (MAADR<39:32>), OUI Byte 2 */
 #define ENC_EBSTSD      REGADDR(0x06, 3, 0) /* Built-in Self-Test Fill Seed (EBSTSD<7:0>) */
 #define ENC_EBSTCON     REGADDR(0x07, 3, 0) /* Built-in Self-Test Control */
 #define ENC_EBSTCSL     REGADDR(0x08, 3, 0) /* Built-in Self-Test Checksum Low Byte (EBSTCS<7:0>) */
@@ -360,12 +360,12 @@
 
 /* PHY Control Register 1 Register Bit Definitions */
 
-#define PHCON1_PDPXMD     (1 << 8)  /* Bit 8:  PHY Power-Down */
+#define PHCON1_PDPXMD     (1 << 8)  /* Bit 8:  PHY Duplex Mode */
 #define PHCON1_PPWRSV     (1 << 11) /* Bit 11: PHY Power-Down */
 #define PHCON1_PLOOPBK    (1 << 14) /* Bit 14: PHY Loopback */
 #define PHCON1_PRST       (1 << 15) /* Bit 15: PHY Software Reset */
 
-/* HY Status 1 Register Bit Definitions */
+/* PHY Status 1 Register Bit Definitions */
 
 #define PHSTAT1_JBSTAT    (1 << 1)  /* Bit 1: PHY Latching Jabber Status */
 #define PHSTAT1_LLSTAT    (1 << 2)  /* Bit 2: PHY Latching Link Status */
@@ -399,7 +399,6 @@
 #define PHIR_PLNKIF       (1 << 4)  /* Bit 4:  PHY Link Change Interrupt */
 
 /* PHLCON Regiser Bit Definitions */
-
                                     /* Bit 0:  Reserved */
 #define PHLCON_STRCH      (1 << 1)  /* Bit 1:  LED Pulse Stretching Enable */
 #define PHLCON_LFRQ0      (1 << 2)  /* Bit 2:  LED Pulse Stretch Time Configuration */

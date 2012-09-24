@@ -323,13 +323,20 @@ hmc5883l_ioctl(struct file *filp, int cmd, unsigned long arg)
 	return result;
 }
 
+extern int up_i2creset(FAR struct i2c_dev_s * dev);
+
 int hmc5883l_reset()
 {
 	int ret;
+#if 1
+	ret = up_i2creset(hmc5883l_dev.i2c);
+	printf("HMC5883: BUS RESET %s\n", ret ? "FAIL" : "OK");
+#else
 	printf("[hmc5883l drv] Resettet I2C2 BUS\n");
 	up_i2cuninitialize(hmc5883l_dev.i2c);
 	hmc5883l_dev.i2c = up_i2cinitialize(2);
 	I2C_SETFREQUENCY(hmc5883l_dev.i2c, 400000);
+#endif
 	return ret;
 }
 

@@ -37,7 +37,7 @@
 
 APPNAME		 = mavlink
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 4096
+STACKSIZE	 = 2048
 
 INCLUDES	 = $(TOPDIR)/../mavlink/include/mavlink
 
