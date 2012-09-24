@@ -3390,3 +3390,8 @@
 	  even multiple of 4, 8, or 16 bytes.
 	* arch/arm/src/stm32/stm32_idle.c:  Fixes STM32F107 DMA issues:
 	  We cannot go into sleep mode while Ethernet is actively DMAing.
+	* configs/shenzhou/src/up_ssd1289.c:  Add infrastructure to support
+	  SSD1289 LCD.  Initial checkin is just a clone of the
+	  STM32F4Discovery's FSMC-based LCD interface.  The Shenzhou
+	  will need a completely need bit-banging interface; this
+	  initial check-in is only for the framework.

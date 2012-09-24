@@ -84,6 +84,10 @@ ifeq ($(CONFIG_WATCHDOG),y)
 CSRCS		+= up_watchdog.c
 endif
 
+ifeq ($(CONFIG_LCD_SSD1289),y)
+CSRCS           += up_ssd1289.c
+endif
+
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)

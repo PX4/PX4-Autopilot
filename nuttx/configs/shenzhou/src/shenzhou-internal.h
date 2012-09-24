@@ -154,30 +154,37 @@
  * -- ---- -------------- -------------------------------------------------------------------
  * PN NAME SIGNAL         NOTES
  * -- ---- -------------- -------------------------------------------------------------------
- * 37 PB2  DATA_LE        To TFT LCD (CN13)
- * 96 PB9  F_CS           To both the TFT LCD (CN13) and to the W25X16 SPI FLASH
- * 34 PC5  TP_INT         JP6.  To TFT LCD (CN13) module
- * 65 PC8  LCD_CS         Active low: Pulled high
- * 66 PC9  TP_CS          Active low: Pulled high
- * 60 PD13 LCD_RS         To TFT LCD (CN13)
- * 61 PD14 LCD_WR         To TFT LCD (CN13)
- * 62 PD15 LCD_RD         To TFT LCD (CN13)
- * 97 PE0  DB00           To TFT LCD (CN13)
- * 98 PE1  DB01           To TFT LCD (CN13)
- * 1  PE2  DB02           To TFT LCD (CN13)
- * 2  PE3  DB03           To TFT LCD (CN13)
- * 3  PE4  DB04           To TFT LCD (CN13)
- * 4  PE5  DB05           To TFT LCD (CN13)
- * 5  PE6  DB06           To TFT LCD (CN13)
- * 38 PE7  DB07           To TFT LCD (CN13)
- * 39 PE8  DB08           To TFT LCD (CN13)
- * 40 PE9  DB09           To TFT LCD (CN13)
- * 41 PE10 DB10           To TFT LCD (CN13)
- * 42 PE11 DB11           To TFT LCD (CN13)
- * 43 PE12 DB12           To TFT LCD (CN13)
- * 44 PE13 DB13           To TFT LCD (CN13)
- * 45 PE14 DB14           To TFT LCD (CN13)
- * 46 PE15 DB15           To TFT LCD (CN13)
+ * 37 PB2  DATA_LE        To TFT LCD (CN13, ping 28)
+ * 96 PB9  F_CS           To both the TFT LCD (CN13, pin 30) and to the W25X16 SPI FLASH
+ * 34 PC5  TP_INT         JP6.  To TFT LCD (CN13) module (CN13, pin 26)
+ * 65 PC8  LCD_CS         Active low: Pulled high (CN13, pin 19)
+ * 66 PC9  TP_CS          Active low: Pulled high (CN13, pin 31)
+ * 78 PC10 SPI3_SCK       To TFT LCD (CN13, pin 29)
+ * 79 PC11 SPI3_MISO      To TFT LCD (CN13, pin 25)
+ * 80 PC12 SPI3_MOSI      To TFT LCD (CN13, pin 27)
+ * 58 PD11 SD_CS          Active low: Pulled high (See also TFT LCD CN13, pin 32)
+ * 60 PD13 LCD_RS         To TFT LCD (CN13, pin 20)
+ * 61 PD14 LCD_WR         To TFT LCD (CN13, pin 21)
+ * 62 PD15 LCD_RD         To TFT LCD (CN13, pin 22)
+ * 97 PE0  DB00           To TFT LCD (CN13, pin 3)
+ * 98 PE1  DB01           To TFT LCD (CN13, pin 4)
+ * 1  PE2  DB02           To TFT LCD (CN13, pin 5)
+ * 2  PE3  DB03           To TFT LCD (CN13, pin 6)
+ * 3  PE4  DB04           To TFT LCD (CN13, pin 7)
+ * 4  PE5  DB05           To TFT LCD (CN13, pin 8)
+ * 5  PE6  DB06           To TFT LCD (CN13, pin 9)
+ * 38 PE7  DB07           To TFT LCD (CN13, pin 10)
+ * 39 PE8  DB08           To TFT LCD (CN13, pin 11)
+ * 40 PE9  DB09           To TFT LCD (CN13, pin 12)
+ * 41 PE10 DB10           To TFT LCD (CN13, pin 13)
+ * 42 PE11 DB11           To TFT LCD (CN13, pin 16)
+ * 43 PE12 DB12           To TFT LCD (CN13, pin 15)
+ * 44 PE13 DB13           To TFT LCD (CN13, pin 16)
+ * 45 PE14 DB14           To TFT LCD (CN13, pin 17)
+ * 46 PE15 DB15           To TFT LCD (CN13, pin 18)
+ *
+ * NOTE:  The backlight signl NC_BL (CN13, pin 24) is pulled high and not under
+ * software control
  */
 
 #define GPIO_LCD_CS    (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
@@ -230,7 +237,7 @@
  * PN NAME SIGNAL         NOTES
  * -- ---- -------------- -------------------------------------------------------------------
  * 53 PB14 SD_CD          Active low: Pulled high
- * 58 PD11 SD_CS          Active low: Pulled high
+ * 58 PD11 SD_CS          Active low: Pulled high (See also TFT LCD CN13, pin 32)
  */
 
 #define GPIO_SD_CD   (GPIO_INPUT|GPIO_CNF_INFLOAT|GPIO_EXTI|GPIO_PORTB|GPIO_PIN14)

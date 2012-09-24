@@ -136,7 +136,7 @@ PN NAME SIGNAL         NOTES
         RMII_CRSDV     Ethernet PHY
 56 PD9  MII_RXD0       Ethernet PHY
 57 PD10 MII_RXD1       Ethernet PHY
-58 PD11 SD_CS          Active low: Pulled high
+58 PD11 SD_CS          Active low: Pulled high (See also TFT LCD CN13, pin 32)
 59 PD12 WIRELESS_CS    To the NRF24L01 2.4G wireless module
 60 PD13 LCD_RS         To TFT LCD (CN13)
 61 PD14 LCD_WR         To TFT LCD (CN13)
