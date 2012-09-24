@@ -114,6 +114,10 @@ endif
 
 upload:		$(FIRMWARE_BUNDLE) $(UPLOADER)
 	@python -u $(UPLOADER) --port $(SERIAL_PORTS) $(FIRMWARE_BUNDLE)
+	
+upload-jtag-px4fmu:
+	@echo Attempting to flash PX4FMU board via JTAG
+	@openocd -f interface/olimex-jtag-tiny.cfg -f Tools/stm32f4x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4fmu_bl.elf" -c "reset run" -c shutdown
 
 #
 # Hacks and fixups
@@ -129,7 +133,7 @@ endif
 # a complete re-compilation, 'distclean' should remove everything 
 # that's generated leaving only files that are in source control.
 #
-.PHONY:	clean
+.PHONY:	clean upload-jtag-px4fmu
 clean:
 	@make -C $(NUTTX_SRC) -r $(MQUIET) distclean
 	@make -C $(ROMFS_SRC) -r $(MQUIET) clean
