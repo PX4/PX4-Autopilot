@@ -4,7 +4,7 @@
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Copyright (C) 2012 Michael Smith. All Rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *           Uros Platise <uros.platise@isotel.eu>
  *
  * Redistribution and use in source and binary forms, with or without

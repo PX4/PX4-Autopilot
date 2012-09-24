@@ -45,60 +45,10 @@
 
 #if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
 #  include "chip/stm32_syscfg.h"
+#endif /* CONFIG_STM32_STM32F20XX || CONFIG_STM32_STM32F40XX */
 
 /****************************************************************************************************
  * Pre-processor Definitions
  ****************************************************************************************************/
 
-/****************************************************************************************************
- * Inline Functions
- ****************************************************************************************************/
-
-/************************************************************************************
- * Name: stm32_selectmii
- *
- * Description:
- *   Selects the MII inteface.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None
- *
- ************************************************************************************/
-
-static inline void stm32_selectmii(void)
-{
-  uint32_t regval;
-
-  regval = getreg32(STM32_SYSCFG_PMC);
-  regval &= ~SYSCFG_PMC_MII_RMII_SEL;
-  putreg32(regval, STM32_SYSCFG_PMC);
-}
-
-/************************************************************************************
- * Name: stm32_selectrmii
- *
- * Description:
- *   Selects the RMII inteface.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None
- *
- ************************************************************************************/
-
-static inline void stm32_selectrmii(void)
-{
-  uint32_t regval;
-
-  regval = getreg32(STM32_SYSCFG_PMC);
-  regval |= SYSCFG_PMC_MII_RMII_SEL;
-  putreg32(regval, STM32_SYSCFG_PMC);
-}
-
-#endif /* CONFIG_STM32_STM32F20XX || CONFIG_STM32_STM32F40XX */
 #endif /* __ARCH_ARM_SRC_STM32_STM32_SYSCFG_H */

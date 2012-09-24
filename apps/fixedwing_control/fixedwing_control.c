@@ -63,7 +63,78 @@
 #include <uORB/topics/actuator_controls.h>
 #include <systemlib/param/param.h>
 
+static bool thread_should_exit = false;		/**< Deamon exit flag */
+static bool thread_running = false;		/**< Deamon status flag */
+static int deamon_task;				/**< Handle of deamon task / thread */
+
+/**
+ * Deamon management function.
+ */
 __EXPORT int fixedwing_control_main(int argc, char *argv[]);
+
+/**
+ * Mainloop of deamon.
+ */
+int fixedwing_control_thread_main(int argc, char *argv[]);
+
+/**
+ * Print the correct usage.
+ */
+static void usage(const char *reason);
+
+static void
+usage(const char *reason)
+{
+	if (reason)
+		fprintf(stderr, "%s\n", reason);
+	fprintf(stderr, "usage: fixedwing_control {start|stop|status}\n\n");
+	exit(1);
+}
+
+/**
+ * The deamon app only briefly exists to start
+ * the background job. The stack size assigned in the
+ * Makefile does only apply to this management task.
+ * 
+ * The actual stack size should be set in the call
+ * to task_create().
+ */
+int fixedwing_control_main(int argc, char *argv[])
+{
+	if (argc < 1)
+		usage("missing command");
+
+	if (!strcmp(argv[1], "start")) {
+
+		if (thread_running) {
+			printf("fixedwing_control already running\n");
+			/* this is not an error */
+			exit(0);
+		}
+
+		thread_should_exit = false;
+		deamon_task = task_create("fixedwing_control", SCHED_PRIORITY_MAX - 20, 4096, fixedwing_control_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		thread_running = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		thread_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			printf("\tfixedwing_control is running\n");
+		} else {
+			printf("\tfixedwing_control not started\n");
+		}
+		exit(0);
+	}
+
+	usage("unrecognized command");
+	exit(1);
+}
 
 #define PID_DT 0.01f
 #define PID_SCALER 0.1f
@@ -133,8 +204,8 @@ typedef struct {
 
 	/* Next waypoint*/
 
-	float wp_x;
-	float wp_y;
+	double wp_x;
+	double wp_y;
 	float wp_z;
 
 	/* Setpoints */
@@ -349,9 +420,6 @@ static void get_parameters(plane_data_t * pdata)
 	param_get(att_awu, &(pdata->intmax_att));
 	param_get(pos_awu, &(pdata->intmax_pos));
 	pdata->airspeed = 10;
-	pdata->wp_x =  48;
-	pdata->wp_y =  8;
-	pdata->wp_z =  100;
 	pdata->mode = 1;
 }
 
@@ -617,14 +685,12 @@ static float calc_pitch_setpoint()
 }
 
 /**
- * calc_throttle_setpoint
  *
  * Calculates the throttle setpoint for different flight modes
  *
  * @return throttle output setpoint
  *
  */
-
 static float calc_throttle_setpoint()
 {
 	float setpoint = 0;
@@ -647,8 +713,7 @@ static float calc_throttle_setpoint()
 	return setpoint;
 }
 
-/*
- * fixedwing_control_main
+/**
  *
  * @param argc number of arguments
  * @param argv argument array
@@ -656,8 +721,7 @@ static float calc_throttle_setpoint()
  * @return 0
  *
  */
-
-int fixedwing_control_main(int argc, char *argv[])
+int fixedwing_control_thread_main(int argc, char *argv[])
 {
 	/* default values for arguments */
 	char *fixedwing_uart_name = "/dev/ttyS1";
@@ -686,7 +750,6 @@ int fixedwing_control_main(int argc, char *argv[])
 
 	/* output structs */
 	struct actuator_controls_s actuators;
-	struct actuator_armed_s armed;
 	struct vehicle_attitude_setpoint_s att_sp;
 	memset(&att_sp, 0, sizeof(att_sp));
 
@@ -694,8 +757,6 @@ int fixedwing_control_main(int argc, char *argv[])
 	for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
 		actuators.control[i] = 0.0f;
 	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
-	armed.armed = false;
-	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 
 	/* Subscribe to global position, attitude and rc */
@@ -771,6 +832,10 @@ int fixedwing_control_main(int argc, char *argv[])
 		plane_data.pitchspeed = att.pitchspeed;
 		plane_data.yawspeed = att.yawspeed;
 
+		plane_data.wp_x =  global_setpoint.lat / (double)1e7;
+		plane_data.wp_y =  global_setpoint.lon / (double)1e7;
+		plane_data.wp_z =  global_setpoint.altitude;
+
 		/* parameter values */
 		if (loopcounter % 20 == 0) {
 			get_parameters(&plane_data);
@@ -841,10 +906,6 @@ int fixedwing_control_main(int argc, char *argv[])
 		orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 
 		/* publish actuator setpoints (for mixer) */
-
-		/* arming state depends on commander arming state */
-		armed.armed = state.flag_system_armed;
-		orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 		orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 		loopcounter++;

@@ -775,7 +775,7 @@ static int tsc2007_interrupt(int irq, FAR void *context)
    */
 
   DEBUGASSERT(priv->work.worker == NULL);
-  ret = work_queue(&priv->work, tsc2007_worker, priv, 0);
+  ret = work_queue(HPWORK, &priv->work, tsc2007_worker, priv, 0);
   if (ret != 0)
     {
       illdbg("Failed to queue work: %d\n", ret);
@@ -1316,7 +1316,7 @@ int tsc2007_register(FAR struct i2c_dev_s *dev,
    * availability conditions.
    */
 
-  ret = work_queue(&priv->work, tsc2007_worker, priv, 0);
+  ret = work_queue(HPWORK, &priv->work, tsc2007_worker, priv, 0);
   if (ret != 0)
     {
       idbg("Failed to queue work: %d\n", ret);

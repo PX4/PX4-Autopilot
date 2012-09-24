@@ -60,21 +60,6 @@ int px4_deamon_thread_main(int argc, char *argv[]);
  */
 static void usage(const char *reason);
 
-int px4_deamon_thread_main(int argc, char *argv[]) {
-
-	printf("[deamon] starting\n");
-
-	while (true) {
-		printf("Hello Deamon!\n");
-		sleep(10);
-		if (thread_should_exit) break;
-	}
-
-	printf("[deamon] exiting.\n");
-
-	return 0;
-}
-
 static void
 usage(const char *reason)
 {
@@ -127,4 +112,18 @@ int px4_deamon_app_main(int argc, char *argv[])
 
 	usage("unrecognized command");
 	exit(1);
+}
+
+int px4_deamon_thread_main(int argc, char *argv[]) {
+
+	printf("[deamon] starting\n");
+
+	while (!thread_should_exit) {
+		printf("Hello Deamon!\n");
+		sleep(10);
+	}
+
+	printf("[deamon] exiting.\n");
+
+	return 0;
 }

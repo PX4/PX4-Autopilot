@@ -189,7 +189,7 @@ static int mavlink_pm_save_eeprom()
 	int result = param_export(fd, false);
 	close(fd);
 
-	if (result < 0) {
+	if (result != 0) {
 		unlink(mavlink_parameter_file);
 		warn("error exporting parameters to '%s'", mavlink_parameter_file);
 		return -2;
@@ -218,7 +218,7 @@ mavlink_pm_load_eeprom()
 	int result = param_load(fd);
 	close(fd);
 
-	if (result < 0) {
+	if (result != 0) {
 		warn("error reading parameters from '%s'", mavlink_parameter_file);
 		return -2;
 	}
@@ -346,7 +346,7 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 			}
 
 			/* send back command result */
-			// mavlink_message_t tx;
+			//mavlink_msg_command_ack_send(chan, cmd.command, result);
 		} break;
 	}
 }

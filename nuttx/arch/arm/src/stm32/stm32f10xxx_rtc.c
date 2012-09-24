@@ -113,6 +113,10 @@
 #  error "CONFIG_STM32_BKP is required for CONFIG_RTC"
 #endif
 
+#ifndef CONFIG_STM32_PWR
+#  error "CONFIG_STM32_PWR is required for CONFIG_RTC"
+#endif
+
 /* RTC/BKP Definitions *************************************************************/
 /* STM32_RTC_PRESCALAR_VALUE
  *   RTC pre-scalar value.  The RTC is driven by a 32,768Hz input clock.  This input

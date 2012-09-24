@@ -74,6 +74,16 @@
  
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/err.h>
+
+/* XXX MOVE CALIBRATION TO SENSORS APP THREAD */
+#include <drivers/drv_accel.h>
+#include <drivers/drv_gyro.h>
+#include <drivers/drv_mag.h>
+#include <drivers/drv_baro.h>
+
+
+
 
 #include <arch/board/up_cpuload.h>
 extern struct system_load_s system_load;
@@ -294,7 +304,20 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		mag_minima[2][i] = FLT_MAX;
 	}
 
-	mavlink_log_info(mavlink_fd, "[commander] Please rotate in all directions.");
+	int fd = open(MAG_DEVICE_PATH, 0);
+	struct mag_scale mscale_null = {
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+	};
+	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null))
+		warn("WARNING: failed to set scale / offsets for mag");
+	close(fd);
+
+	mavlink_log_info(mavlink_fd, "[commander] Please rotate around all axes.");
 	
 	uint64_t calibration_start = hrt_absolute_time();
 	while ((hrt_absolute_time() - calibration_start) < calibration_interval_us) {
@@ -426,22 +449,35 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	} else {
 		/* announce and set new offset */
 
-		char offset_output[50];
-		sprintf(offset_output, "[commander] mag cal: %8.4f %8.4f %8.4f", (double)mag_offset[0], (double)mag_offset[1], (double)mag_offset[2]);
-		mavlink_log_info(mavlink_fd, offset_output);
+		// char offset_output[50];
+		// sprintf(offset_output, "[commander] mag cal: %8.4f %8.4f %8.4f", (double)mag_offset[0], (double)mag_offset[1], (double)mag_offset[2]);
+		// mavlink_log_info(mavlink_fd, offset_output);
 
-		if (param_set(param_find("SENSOR_MAG_XOFF"), &(mag_offset[0]))) {
+		if (param_set(param_find("SENS_MAG_XOFF"), &(mag_offset[0]))) {
 			fprintf(stderr, "[commander] Setting X mag offset failed!\n");
 		}
 		
-		if (param_set(param_find("SENSOR_MAG_YOFF"), &(mag_offset[1]))) {
+		if (param_set(param_find("SENS_MAG_YOFF"), &(mag_offset[1]))) {
 			fprintf(stderr, "[commander] Setting Y mag offset failed!\n");
 		}
 
-		if (param_set(param_find("SENSOR_MAG_ZOFF"), &(mag_offset[2]))) {
+		if (param_set(param_find("SENS_MAG_ZOFF"), &(mag_offset[2]))) {
 			fprintf(stderr, "[commander] Setting Z mag offset failed!\n");
 		}
 	}
+
+	fd = open(MAG_DEVICE_PATH, 0);
+	struct mag_scale mscale = {
+		mag_offset[0],
+		1.0f,
+		mag_offset[1],
+		1.0f,
+		mag_offset[2],
+		1.0f,
+	};
+	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale))
+		warn("WARNING: failed to set scale / offsets for mag");
+	close(fd);
 
 	free(mag_maxima[0]);
 	free(mag_maxima[1]);
@@ -468,6 +504,20 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	int calibration_counter = 0;
 	float gyro_offset[3] = {0.0f, 0.0f, 0.0f};
 
+	/* set offsets to zero */
+	int fd = open(GYRO_DEVICE_PATH, 0);
+	struct gyro_scale gscale_null = { 
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+	};
+	if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale_null))
+		warn("WARNING: failed to set scale / offsets for gyro");
+	close(fd);
+
 	while (calibration_counter < calibration_count) {
 
 		/* wait blocking for new data */
@@ -490,25 +540,39 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	gyro_offset[1] = gyro_offset[1] / calibration_count;
 	gyro_offset[2] = gyro_offset[2] / calibration_count;
 
-	if (param_set(param_find("SENSOR_GYRO_XOFF"), &(gyro_offset[0]))) {
+	if (param_set(param_find("SENS_GYRO_XOFF"), &(gyro_offset[0]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting X gyro offset failed!");
 	}
 	
-	if (param_set(param_find("SENSOR_GYRO_YOFF"), &(gyro_offset[1]))) {
+	if (param_set(param_find("SENS_GYRO_YOFF"), &(gyro_offset[1]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting Y gyro offset failed!");
 	}
 
-	if (param_set(param_find("SENSOR_GYRO_ZOFF"), &(gyro_offset[2]))) {
+	if (param_set(param_find("SENS_GYRO_ZOFF"), &(gyro_offset[2]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting Z gyro offset failed!");
 	}
+
+	/* set offsets to actual value */
+	fd = open(GYRO_DEVICE_PATH, 0);
+	struct gyro_scale gscale = { 
+		gyro_offset[0],
+		1.0f,
+		gyro_offset[1],
+		1.0f,
+		gyro_offset[2],
+		1.0f,
+	};
+	if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale))
+		warn("WARNING: failed to set scale / offsets for gyro");
+	close(fd);
 
 	/* exit to gyro calibration mode */
 	status->flag_preflight_gyro_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
 
-	char offset_output[50];
-	sprintf(offset_output, "[commander] gyro cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
-	mavlink_log_info(mavlink_fd, offset_output);
+	// char offset_output[50];
+	// sprintf(offset_output, "[commander] gyro cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
+	// mavlink_log_info(mavlink_fd, offset_output);
 
 	close(sub_sensor_combined);
 }
@@ -530,6 +594,19 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 
 	int calibration_counter = 0;
 	float accel_offset[3] = {0.0f, 0.0f, 0.0f};
+
+	int fd = open(ACCEL_DEVICE_PATH, 0);
+	struct accel_scale ascale_null = {
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+	};
+	if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale_null))
+		warn("WARNING: failed to set scale / offsets for accel");
+	close(fd);
 
 	while (calibration_counter < calibration_count) {
 
@@ -556,28 +633,56 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	/* add the removed length from x / y to z, since we induce a scaling issue else */
 	float total_len = sqrtf(accel_offset[0]*accel_offset[0] + accel_offset[1]*accel_offset[1] + accel_offset[2]*accel_offset[2]);
 
+	/* if length is correct, zero results here */
 	accel_offset[2] = accel_offset[2] + total_len;
 
-	if (param_set(param_find("SENSOR_ACC_XOFF"), &(accel_offset[0]))) {
+	float scale = 9.80665f / total_len;
+
+	if (param_set(param_find("SENS_ACC_XOFF"), &(accel_offset[0]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting X accel offset failed!");
 	}
 	
-	if (param_set(param_find("SENSOR_ACC_YOFF"), &(accel_offset[1]))) {
+	if (param_set(param_find("SENS_ACC_YOFF"), &(accel_offset[1]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting Y accel offset failed!");
 	}
 
-	if (param_set(param_find("SENSOR_ACC_ZOFF"), &(accel_offset[2]))) {
+	if (param_set(param_find("SENS_ACC_ZOFF"), &(accel_offset[2]))) {
 		mavlink_log_critical(mavlink_fd, "[commander] Setting Z accel offset failed!");
 	}
+
+	if (param_set(param_find("SENS_ACC_XSCALE"), &(scale))) {
+		mavlink_log_critical(mavlink_fd, "[commander] Setting X accel offset failed!");
+	}
+	
+	if (param_set(param_find("SENS_ACC_YSCALE"), &(scale))) {
+		mavlink_log_critical(mavlink_fd, "[commander] Setting Y accel offset failed!");
+	}
+
+	if (param_set(param_find("SENS_ACC_ZSCALE"), &(scale))) {
+		mavlink_log_critical(mavlink_fd, "[commander] Setting Z accel offset failed!");
+	}
+
+	fd = open(ACCEL_DEVICE_PATH, 0);
+	struct accel_scale ascale = {
+		accel_offset[0],
+		scale,
+		accel_offset[1],
+		scale,
+		accel_offset[2],
+		scale,
+	};
+	if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale))
+		warn("WARNING: failed to set scale / offsets for accel");
+	close(fd);
 
 	/* exit to gyro calibration mode */
 	status->flag_preflight_accel_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
 
-	char offset_output[50];
-	sprintf(offset_output, "[commander] accel cal: x:%8.4f y:%8.4f z:%8.4f", (double)accel_offset[0],
-		(double)accel_offset[1], (double)accel_offset[2]);
-	mavlink_log_info(mavlink_fd, offset_output);
+	// char offset_output[50];
+	// sprintf(offset_output, "[commander] accel cal: x:%8.4f y:%8.4f z:%8.4f", (double)accel_offset[0],
+	// 	(double)accel_offset[1], (double)accel_offset[2]);
+	// mavlink_log_info(mavlink_fd, offset_output);
 
 	close(sub_sensor_combined);
 }
@@ -960,7 +1065,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* create pthreads */
 	pthread_attr_t command_handling_attr;
 	pthread_attr_init(&command_handling_attr);
-	pthread_attr_setstacksize(&command_handling_attr, 4096);
+	pthread_attr_setstacksize(&command_handling_attr, 6000);
 	pthread_create(&command_handling_thread, &command_handling_attr, command_handling_loop, NULL);
 
 	pthread_attr_t subsystem_info_attr;
@@ -973,7 +1078,7 @@ int commander_thread_main(int argc, char *argv[])
 	uint8_t flight_env;
 
 	/* Initialize to 3.0V to make sure the low-pass loads below valid threshold */
-	float battery_voltage = VOLTAGE_BATTERY_HIGH_VOLTS;
+	float battery_voltage = 12.0f;
 	bool battery_voltage_valid = true;
 	bool low_battery_voltage_actions_done = false;
 	bool critical_battery_voltage_actions_done = false;
@@ -1010,6 +1115,8 @@ int commander_thread_main(int argc, char *argv[])
 	/* now initialized */
 	commander_initialized = true;
 
+	uint64_t start_time = hrt_absolute_time();
+
 	while (!thread_should_exit) {
 
 		/* Get current values */
@@ -1019,7 +1126,14 @@ int commander_thread_main(int argc, char *argv[])
 
 		battery_voltage = sensors.battery_voltage_v;
 		battery_voltage_valid = sensors.battery_voltage_valid;
-		bat_remain = battery_remaining_estimate_voltage(3, BAT_CHEM_LITHIUM_POLYMERE, battery_voltage);
+
+		/*
+		 * Only update battery voltage estimate if voltage is
+		 * valid and system has been running for two and a half seconds
+		 */
+		if (battery_voltage_valid && (hrt_absolute_time() - start_time > 2500000)) {
+			bat_remain = battery_remaining_estimate_voltage(3, BAT_CHEM_LITHIUM_POLYMERE, battery_voltage);
+		}
 
 		/* Slow but important 8 Hz checks */
 		if (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 8) == 0) {
@@ -1084,6 +1198,38 @@ int commander_thread_main(int argc, char *argv[])
 			ioctl(buzzer, TONE_SET_ALARM, 0);
 		}
 
+		/* Check battery voltage */
+		/* write to sys_status */
+		current_status.voltage_battery = battery_voltage;
+
+		/* if battery voltage is getting lower, warn using buzzer, etc. */
+		if (battery_voltage_valid && (bat_remain < 0.15f /* XXX MAGIC NUMBER */) && (false == low_battery_voltage_actions_done)) { //TODO: add filter, or call emergency after n measurements < VOLTAGE_BATTERY_MINIMAL_MILLIVOLTS
+
+			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
+				low_battery_voltage_actions_done = true;
+				mavlink_log_critical(mavlink_fd, "[commander] WARNING! LOW BATTERY!");
+			}
+
+			low_voltage_counter++;
+		}
+
+		/* Critical, this is rather an emergency, kill signal to sdlog and change state machine */
+		else if (battery_voltage_valid && (bat_remain < 0.1f /* XXX MAGIC NUMBER */) && (false == critical_battery_voltage_actions_done && true == low_battery_voltage_actions_done)) {
+			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
+				critical_battery_voltage_actions_done = true;
+				mavlink_log_critical(mavlink_fd, "[commander] EMERGENCY! CIRITICAL BATTERY!");
+				state_machine_emergency(stat_pub, &current_status, mavlink_fd);
+			}
+
+			critical_voltage_counter++;
+
+		} else {
+			low_voltage_counter = 0;
+			critical_voltage_counter = 0;
+		}
+
+		/* End battery voltage check */
+
 		/* Check if last transition deserved an audio event */
 #warning This code depends on state that is no longer? maintained
 #if 0
@@ -1142,37 +1288,6 @@ int commander_thread_main(int argc, char *argv[])
 		//update_state_machine_got_position_fix(stat_pub, &current_status, mavlink_fd);
 		/* end: check gps */
 
-		/* Check battery voltage */
-		/* write to sys_status */
-		current_status.voltage_battery = battery_voltage;
-
-		/* if battery voltage is getting lower, warn using buzzer, etc. */
-		if (battery_voltage_valid && (battery_voltage < VOLTAGE_BATTERY_LOW_VOLTS && false == low_battery_voltage_actions_done)) { //TODO: add filter, or call emergency after n measurements < VOLTAGE_BATTERY_MINIMAL_MILLIVOLTS
-
-			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
-				low_battery_voltage_actions_done = true;
-				mavlink_log_critical(mavlink_fd, "[commander] WARNING! LOW BATTERY!");
-			}
-
-			low_voltage_counter++;
-		}
-
-		/* Critical, this is rather an emergency, kill signal to sdlog and change state machine */
-		else if (battery_voltage_valid && (battery_voltage < VOLTAGE_BATTERY_CRITICAL_VOLTS && false == critical_battery_voltage_actions_done && true == low_battery_voltage_actions_done)) {
-			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
-				critical_battery_voltage_actions_done = true;
-				mavlink_log_critical(mavlink_fd, "[commander] EMERGENCY! CIRITICAL BATTERY!");
-				state_machine_emergency(stat_pub, &current_status, mavlink_fd);
-			}
-
-			critical_voltage_counter++;
-
-		} else {
-			low_voltage_counter = 0;
-			critical_voltage_counter = 0;
-		}
-
-		/* End battery voltage check */
 
 		/* Start RC state check */
 		bool prev_lost = current_status.rc_signal_lost;

@@ -34,13 +34,17 @@
  ****************************************************************************/
 
 /* @file NMEA protocol implementation */
-
+#include "gps.h"
 #include "nmea_helper.h"
 #include <sys/prctl.h>
+#include <unistd.h>
 #include <poll.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <mavlink/mavlink_log.h>
+#include <arch/board/up_hrt.h>
 
 #define NMEA_HEALTH_SUCCESS_COUNTER_LIMIT 2
 #define NMEA_HEALTH_FAIL_COUNTER_LIMIT 2
@@ -59,7 +63,7 @@ extern bool gps_verbose;
 extern int current_gps_speed;
 
 
-int read_gps_nmea(int fd, char *gps_rx_buffer, int buffer_size, nmeaINFO *info, nmeaPARSER *parser)
+int read_gps_nmea(int *fd, char *gps_rx_buffer, int buffer_size, nmeaINFO *info, nmeaPARSER *parser)
 {
 	int ret = 1;
 	char c;
@@ -69,7 +73,7 @@ int read_gps_nmea(int fd, char *gps_rx_buffer, int buffer_size, nmeaINFO *info, 
 	int gpsRxOverflow = 0;
 
 	struct pollfd fds;
-	fds.fd = fd;
+	fds.fd = *fd;
 	fds.events = POLLIN;
 
 	// NMEA or SINGLE-SENTENCE GPS mode
@@ -86,7 +90,7 @@ int read_gps_nmea(int fd, char *gps_rx_buffer, int buffer_size, nmeaINFO *info, 
 		}
 
 		if (poll(&fds, 1, 1000) > 0) {
-			if (read(fd, &c, 1) > 0) {
+			if (read(*fd, &c, 1) > 0) {
 				// detect start while acquiring stream
 				//		printf("Char = %c\n", c);
 				if (!start_flag && (c == '$')) {
@@ -155,13 +159,15 @@ float ndeg2degree(float val)
 	return val;
 }
 
-void *nmea_loop(void *arg)
+void *nmea_loop(void *args)
 {
 	/* Set thread name */
 	prctl(PR_SET_NAME, "gps nmea read", getpid());
 
-	/* Retrieve file descriptor */
-	int fd = *((int *)arg);
+	/* Retrieve file descriptor and thread flag */
+	struct arg_struct *arguments = (struct arg_struct *)args;
+	int *fd = arguments->fd_ptr;
+	bool *thread_should_exit = arguments->thread_should_exit_ptr;
 
 	/* Initialize gps stuff */
 	nmeaINFO info_d;
@@ -174,11 +180,11 @@ void *nmea_loop(void *arg)
 	nmea_zero_INFO(info);
 
 	/* advertise GPS topic */
-	struct vehicle_gps_position_s nmea_gps_d = {0};
+	struct vehicle_gps_position_s nmea_gps_d = {.counter=0};
 	nmea_gps = &nmea_gps_d;
 	orb_advert_t gps_handle = orb_advertise(ORB_ID(vehicle_gps_position), nmea_gps);
 
-	while (1) {
+	while (!(*thread_should_exit)) {
 		/* Parse a message from the gps receiver */
 		uint8_t read_res = read_gps_nmea(fd, gps_rx_buffer, NMEA_BUFFER_SIZE, info, &parser);
 
@@ -200,11 +206,11 @@ void *nmea_loop(void *arg)
 			//			printf("%d.%d.%d %d:%d:%d:%d\n", timeinfo.tm_year, timeinfo.tm_mon, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, info->utc.hsec);
 
 			nmea_gps->timestamp = hrt_absolute_time();
-			nmea_gps->time_gps_usec =  epoch * 1e6 + info->utc.hsec * 1e4;
+			nmea_gps->time_gps_usec = (uint64_t)((epoch)*1000000 + (info->utc.hsec)*10000);
 			nmea_gps->fix_type = (uint8_t)info->fix;
-			nmea_gps->lat = (int32_t)ndeg2degree(info->lat) * 1e7;
-			nmea_gps->lon = (int32_t)ndeg2degree(info->lon) * 1e7;
-			nmea_gps->alt = (int32_t)(info->elv * 1e3);
+			nmea_gps->lat = (int32_t)(ndeg2degree(info->lat) * 1e7f);
+			nmea_gps->lon = (int32_t)(ndeg2degree(info->lon) * 1e7f);
+			nmea_gps->alt = (int32_t)(info->elv * 1000.0f);
 			nmea_gps->eph = (uint16_t)(info->HDOP * 100); //TODO:test scaling
 			nmea_gps->epv = (uint16_t)(info->VDOP * 100); //TODO:test scaling
 			nmea_gps->vel = (uint16_t)(info->speed * 1000 / 36); //*1000/3600*100
@@ -251,12 +257,12 @@ void *nmea_loop(void *arg)
 
 	//destroy gps parser
 	nmea_parser_destroy(&parser);
-
+	if(gps_verbose) printf("[gps] nmea loop is going to terminate\n");
 	return NULL;
 
 }
 
-void *nmea_watchdog_loop(void *arg)
+void *nmea_watchdog_loop(void *args)
 {
 	/* Set thread name */
 	prctl(PR_SET_NAME, "gps nmea watchdog", getpid());
@@ -267,9 +273,14 @@ void *nmea_watchdog_loop(void *arg)
 	uint8_t nmea_success_count = 0;
 	bool once_ok = false;
 
+	/* Retrieve file descriptor and thread flag */
+	struct arg_struct *arguments = (struct arg_struct *)args;
+	//int *fd = arguments->fd_ptr;
+	bool *thread_should_exit = arguments->thread_should_exit_ptr;
+
 	int mavlink_fd = open(MAVLINK_LOG_DEVICE, 0);
 
-	while (1) {
+	while (!(*thread_should_exit)) {
 //		printf("nmea_watchdog_loop : while ");
 		/* if we have no update for a long time print warning (in nmea mode there is no reconfigure) */
 		pthread_mutex_lock(nmea_mutex);
@@ -328,8 +339,7 @@ void *nmea_watchdog_loop(void *arg)
 
 		usleep(NMEA_WATCHDOG_WAIT_TIME_MICROSECONDS);
 	}
-
+	if(gps_verbose) printf("[gps] nmea watchdog loop is going to terminate\n");
 	close(mavlink_fd);
-
 	return NULL;
 }

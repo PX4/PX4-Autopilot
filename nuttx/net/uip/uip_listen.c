@@ -2,7 +2,7 @@
  * net/uip/uip_listen.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * A direct leverage of logic from uIP which also has b BSD style license
  *

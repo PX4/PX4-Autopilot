@@ -305,3 +305,34 @@
 	  netutils/webserver/httpd_fsdata.c has been replaced with a dynamically
 	  built configuration located at apps/examples/uip (Contributed by
 	  Max Holtzberg).
+	* apps/netutils/webserver:  Several inenhancements from Kate including the
+	  ability to elide scripting and SERVER headers and the ability to map
+	  files into memory before transferring them.
+	* apps/netutils/webserver:  Add ability to map a URL to CGI function.
+	  Contributed by Kate.
+	* apps/nshlib/nsh_mntcmds.c: The changes of 6.21 introduced holes in the
+	  error handling:  Now the number of arguments to mount can be 0 or 4.
+	  Additional parameter checking is required to prevent mysterious errors
+	  (submiteed by Kate).
+	* apps/netutils/webserver/httpd_mmap.c:  Fix errors when the mmap()
+	  length is zero (submitted by Kate).
+	* apps/netutils/webserver/httpd_sendfile.c:  Add and option,
+	  CONFIG_NETUTILS_HTTPD_SENDFILE to transfer files using the NuttX
+	  sendfile() interface.
+	* apps/netutils/discover:  A UDP network discovery utility contributed
+	  by Max Holtzberg.
+	* apps/examples/discover:  A test example for the UDP network discovery
+	  utility (also contribed by Max Holtzberg).
+	* apps/examples/*/main.c:  Too many files called main.c.  Each renamed
+	  to something unique so that they will not collide in the archive.
+	* apps/netutils/xmlrpc: The Embeddable Lightweight XML-RPC Server
+	  discussed at http://www.drdobbs.com/web-development/\
+	  an-embeddable-lightweight-xml-rpc-server/184405364.  Contributed by
+	  Max Holtzberg.
+	* apps/netutils/uip_listenon.c:  Logic in uip_server.c that creates
+	  the listening socket was moved to this new file to support re-use.
+	  Contributed by Kate.
+	* apps/netutils/webserver/httpd.c:  The option CONFIG_NETUTILS_HTTPD_SINGLECONNECT
+	  can now be used to limit the server to a single thread.  Option
+	  CONFIG_NETUTILS_HTTPD_TIMEOUT can be used to generate HTTP 408 errors.
+	  Both from Kate.

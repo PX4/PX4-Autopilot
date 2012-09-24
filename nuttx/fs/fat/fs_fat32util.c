@@ -542,7 +542,7 @@ int fat_mount(struct fat_mountpt_s *fs, bool writeable)
 
   /* Allocate a buffer to hold one hardware sector */
 
-  fs->fs_buffer = (uint8_t*)kmalloc(fs->fs_hwsectorsize);
+  fs->fs_buffer = (uint8_t*)fat_io_alloc(fs->fs_hwsectorsize);
   if (!fs->fs_buffer)
     {
       ret = -ENOMEM;
@@ -668,7 +668,7 @@ int fat_mount(struct fat_mountpt_s *fs, bool writeable)
   return OK;
 
  errout_with_buffer:
-  kfree(fs->fs_buffer);
+  fat_io_free(fs->fs_buffer, fs->fs_hwsectorsize);
   fs->fs_buffer = 0;
  errout:
   fs->fs_mounted = false;
@@ -1563,7 +1563,7 @@ int fat_ffcacheflush(struct fat_mountpt_s *fs, struct fat_file_s *ff)
    */
 
   if (ff->ff_cachesector &&
-      ff->ff_bflags && (FFBUFF_DIRTY|FFBUFF_VALID) == (FFBUFF_DIRTY|FFBUFF_VALID))
+      (ff->ff_bflags & (FFBUFF_DIRTY|FFBUFF_VALID)) == (FFBUFF_DIRTY|FFBUFF_VALID))
     {
       /* Write the dirty sector */
 

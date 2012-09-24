@@ -38,6 +38,13 @@ TOPDIR		:= ${shell pwd | sed -e 's/ /\\ /g'}
 -include ${TOPDIR}/tools/Config.mk
 -include ${TOPDIR}/Make.defs
 
+# Control build verbosity.
+ifeq ($(V),1)
+export Q :=
+else
+export Q := @
+endif
+
 # Default tools
 
 ifeq ($(DIRLINK),)
@@ -603,7 +610,7 @@ distclean: clean subdir_distclean clean_context
 ifeq ($(CONFIG_BUILD_2PASS),y)
 	@$(MAKE) -C $(CONFIG_PASS1_BUILDIR) TOPDIR="$(TOPDIR)" distclean
 endif
-	@rm -f Make.defs setenv.sh .config
+	@rm -f Make.defs setenv.sh .config .config.old
 
 # Application housekeeping targets.  The APPDIR variable refers to the user
 # application directory.  A sample apps/ directory is included with NuttX,
@@ -616,9 +623,10 @@ endif
 # apps_clean:     Perform the clean operation only in the user application
 #                 directory
 # apps_distclean: Perform the distclean operation only in the user application
-#                 directory.  Note that the apps/.config file is preserved
-#                 so that this is not a "full" distclean but more of a
-#                 configuration "reset."
+#                 directory.  Note that the apps/.config file (inf any) is
+#                 preserved so that this is not a "full" distclean but more of a
+#                 configuration "reset." (There willnot be an apps/.config
+#                 file if the configuration was generated via make menuconfig).
 
 apps_clean:
 ifneq ($(APPDIR),)
@@ -627,10 +635,16 @@ endif
 
 apps_distclean:
 ifneq ($(APPDIR),)
-	@cp "$(TOPDIR)/$(APPDIR)/.config" _SAVED_APPS_config || \
-		{ echo "Copy of $(APPDIR)/.config failed" ; exit 1 ; }
+	@if [ -r "$(TOPDIR)/$(APPDIR)/.config" ]; then \
+		cp "$(TOPDIR)/$(APPDIR)/.config" _SAVED_APPS_config || \
+			{ echo "Copy of $(APPDIR)/.config failed" ; exit 1 ; } \
+	else \
+		rm -f _SAVED_APPS_config; \
+	fi
 	@$(MAKE) -C "$(TOPDIR)/$(APPDIR)" TOPDIR="$(TOPDIR)" distclean
-	@mv _SAVED_APPS_config "$(TOPDIR)/$(APPDIR)/.config" || \
-		{ echo "Copy of _SAVED_APPS_config failed" ; exit 1 ; }
+	@if [ -r _SAVED_APPS_config ]; then \
+		@mv _SAVED_APPS_config "$(TOPDIR)/$(APPDIR)/.config" || \
+			{ echo "Copy of _SAVED_APPS_config failed" ; exit 1 ; } \
+	fi
 endif
 

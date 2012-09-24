@@ -1,7 +1,7 @@
 /************************************************************************
  * sched/sched_free.c
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -99,7 +99,7 @@ void sched_free(FAR void *address)
       /* Signal the worker thread that is has some clean up to do */
 
 #ifdef CONFIG_SCHED_WORKQUEUE
-      work_signal();
+      work_signal(LPWORK);
 #endif
       irqrestore(saved_state);
     }

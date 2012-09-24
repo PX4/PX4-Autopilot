@@ -10,4 +10,33 @@ config EXAMPLES_OSTEST
 		Enable the OS test example
 
 if EXAMPLES_OSTEST
+
+config EXAMPLES_OSTEST_BUILTIN
+	bool "NSH built-in application"
+	default y if NSH_LIBRARY
+	default n if !NSH_LIBRARY
+	---help---
+		Build the OS test example as an NSH built-in application.
+
+config EXAMPLES_OSTEST_LOOPS
+	int "OS test loop"
+	default 1
+	---help---
+		Used to control the number of executions of the test.  If undefined, the test
+		executes one time.  If defined to be zero, the test runs forever.
+
+config EXAMPLES_OSTEST_STACKSIZE
+	int "OS test stack size"
+	default 8192
+	---help---
+		Size of the stack used to create the ostest task.  Default is 8192.
+
+config EXAMPLES_OSTEST_NBARRIER_THREADS
+	int "Number of barrier threads"
+	default 8
+	---help---
+		Specifies the number of threads to create in the barrier test.  The default
+		is 8 but a smaller number may be needed on systems without sufficient memory
+		to start so many threads.
+
 endif

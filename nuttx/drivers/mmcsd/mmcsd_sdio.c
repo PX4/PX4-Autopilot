@@ -3171,7 +3171,9 @@ errout_with_buffers:
   rwb_uninitialize(&priv->rwbuffer);
 errout_with_hwinit:
 #endif
-  mmcsd_hwuninitialize(priv);
+  mmcsd_hwuninitialize(priv);  /* This will free the private data structure */
+  return ret;
+
 errout_with_alloc:
   kfree(priv);
   return ret;

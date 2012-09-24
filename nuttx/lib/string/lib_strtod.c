@@ -37,9 +37,14 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
+
 #include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
+
+#ifdef CONFIG_HAVE_DOUBLE
 
 /****************************************************************************
  * Pre-processor definitions
@@ -231,4 +236,6 @@ double_t strtod(const char *str, char **endptr)
 
   return number;
 }
+
+#endif /* CONFIG_HAVE_DOUBLE */
 

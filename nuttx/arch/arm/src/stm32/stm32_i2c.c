@@ -1198,6 +1198,10 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
         {
           stm32_i2c_traceevent(priv, I2CEVENT_RCVBYTE, priv->dcnt);
 
+#ifdef CONFIG_I2C_POLLED
+          irqstate_t state = irqsave();
+#endif
+
           /* Receive a byte */
 
           *priv->ptr++ = stm32_i2c_getreg(priv, STM32_I2C_DR_OFFSET);
@@ -1209,6 +1213,11 @@ static int stm32_i2c_isr(struct stm32_i2c_priv_s *priv)
               stm32_i2c_modifyreg(priv, STM32_I2C_CR1_OFFSET, I2C_CR1_ACK, 0);  
             }
           priv->dcnt--;
+
+#ifdef CONFIG_I2C_POLLED
+          irqrestore(state);
+#endif
+
         }
     }
     

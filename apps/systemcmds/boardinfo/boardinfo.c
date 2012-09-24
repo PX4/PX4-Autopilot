@@ -247,7 +247,7 @@ int boardinfo_main(int argc, char *argv[])
 		int ret = carrier_get_board_info(&info);
 
 		if (ret != sizeof(info)) {
-			fprintf(stderr, "[boardinfo] ERROR loading board info from EEPROM (errno #%d), aborting\n", -ret);
+			fprintf(stderr, "[boardinfo] no EEPROM for board %d\n", test_boardid);
 			exit(1);
 		}
 

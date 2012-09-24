@@ -1,8 +1,8 @@
 ############################################################################
 # drivers/net/Make.defs
 #
-#   Copyright (C) 2007, 2010-2011 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+#   Copyright (C) 2007, 2010-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -47,7 +47,7 @@ ifeq ($(CONFIG_NET_CS89x0),y)
   CSRCS += cs89x0.c
 endif
 
-ifeq ($(CONFIG_NET_ENC28J60),y)
+ifeq ($(CONFIG_ENC28J60),y)
   CSRCS += enc28j60.c
 endif
 

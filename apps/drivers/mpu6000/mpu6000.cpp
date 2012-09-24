@@ -369,8 +369,10 @@ MPU6000::init()
 	write_reg(MPUREG_SMPLRT_DIV, 0x04);     // Sample rate = 200Hz    Fsample= 1Khz/(4+1) = 200Hz
 	usleep(1000);
 
-	// FS & DLPF   FS=2000 deg/s, DLPF = 98Hz (low pass filter)
-	write_reg(MPUREG_CONFIG, BITS_DLPF_CFG_98HZ);
+	// FS & DLPF   FS=2000 deg/s, DLPF = 20Hz (low pass filter)
+	// was 90 Hz, but this ruins quality and does not improve the
+	// system response
+	write_reg(MPUREG_CONFIG, BITS_DLPF_CFG_20HZ);
 	usleep(1000);
 	// Gyro scale 2000 deg/s ()
 	write_reg(MPUREG_GYRO_CONFIG, BITS_FS_2000DPS);

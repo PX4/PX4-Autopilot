@@ -4,7 +4,7 @@
  * Segment/Common Driver with C
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References: SSD1305.pdf, "Solomon Systech SSD1305 132x64 Dot Matrix OLED/PLED
  *             Segment/Common Driver with Controller," Solomon Systech Limited,

@@ -53,6 +53,7 @@
 #define NUM_ACTUATOR_OUTPUT_GROUPS	4	/**< for sanity checking */
 
 struct actuator_outputs_s {
+	uint64_t timestamp;
 	float	output[NUM_ACTUATOR_OUTPUTS];
 };
 

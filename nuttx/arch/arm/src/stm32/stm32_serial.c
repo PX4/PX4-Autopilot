@@ -90,7 +90,7 @@
 #  endif
 
 #  if defined(CONFIG_USART2_RXDMA) || defined(CONFIG_USART3_RXDMA) || \
-      defined(CONFIG_USART4_RXDMA) || defined(CONFIG_USART5_RXDMA)
+      defined(CONFIG_UART4_RXDMA) || defined(CONFIG_UART5_RXDMA)
 #    ifndef CONFIG_STM32_DMA1
 #      error STM32 USART2/3/4/5 receive DMA requires CONFIG_STM32_DMA1
 #    endif
@@ -113,11 +113,11 @@
 #    error "USART3 DMA channel not defined (DMAMAP_USART3_RX)"
 #  endif
 
-#  if defined(CONFIG_USART4_RXDMA) && !defined(DMAMAP_UART4_RX)
+#  if defined(CONFIG_UART4_RXDMA) && !defined(DMAMAP_UART4_RX)
 #    error "UART4 DMA channel not defined (DMAMAP_UART4_RX)"
 #  endif
 
-#  if defined(CONFIG_USART5_RXDMA) && !defined(DMAMAP_UART5_RX)
+#  if defined(CONFIG_UART5_RXDMA) && !defined(DMAMAP_UART5_RX)
 #    error "UART5 DMA channel not defined (DMAMAP_UART5_RX)"
 #  endif
 
@@ -338,17 +338,17 @@ static char g_usart3rxfifo[RXDMA_BUFFER_SIZE];
 #endif
 
 #ifdef CONFIG_STM32_UART4
-static char g_uart4rxbuffer[CONFIG_USART4_RXBUFSIZE];
-static char g_uart4txbuffer[CONFIG_USART4_TXBUFSIZE];
-# ifdef CONFIG_USART4_RXDMA
+static char g_uart4rxbuffer[CONFIG_UART4_RXBUFSIZE];
+static char g_uart4txbuffer[CONFIG_UART4_TXBUFSIZE];
+# ifdef CONFIG_UART4_RXDMA
 static char g_uart4rxfifo[RXDMA_BUFFER_SIZE];
 # endif
 #endif
 
 #ifdef CONFIG_STM32_UART5
-static char g_uart5rxbuffer[CONFIG_USART5_RXBUFSIZE];
-static char g_uart5txbuffer[CONFIG_USART5_TXBUFSIZE];
-# ifdef CONFIG_USART5_RXDMA
+static char g_uart5rxbuffer[CONFIG_UART5_RXBUFSIZE];
+static char g_uart5txbuffer[CONFIG_UART5_TXBUFSIZE];
+# ifdef CONFIG_UART5_RXDMA
 static char g_uart5rxfifo[RXDMA_BUFFER_SIZE];
 # endif
 #endif
@@ -526,15 +526,15 @@ static struct up_dev_s g_uart4priv =
 #endif
       .recv      =
       {
-        .size    = CONFIG_USART4_RXBUFSIZE,
+        .size    = CONFIG_UART4_RXBUFSIZE,
         .buffer  = g_uart4rxbuffer,
       },
       .xmit      =
       {
-        .size    = CONFIG_USART4_TXBUFSIZE,
+        .size    = CONFIG_UART4_TXBUFSIZE,
         .buffer  = g_uart4txbuffer,
       },
-#ifdef CONFIG_USART4_RXDMA
+#ifdef CONFIG_UART4_RXDMA
       .ops       = &g_uart_dma_ops,
 #else
       .ops       = &g_uart_ops,
@@ -543,21 +543,21 @@ static struct up_dev_s g_uart4priv =
     },
 
   .irq           = STM32_IRQ_UART4,
-  .parity        = CONFIG_USART4_PARITY,
-  .bits          = CONFIG_USART4_BITS,
-  .stopbits2     = CONFIG_USART4_2STOP,
-  .baud          = CONFIG_USART4_BAUD,
+  .parity        = CONFIG_UART4_PARITY,
+  .bits          = CONFIG_UART4_BITS,
+  .stopbits2     = CONFIG_UART4_2STOP,
+  .baud          = CONFIG_UART4_BAUD,
   .apbclock      = STM32_PCLK1_FREQUENCY,
   .usartbase     = STM32_UART4_BASE,
   .tx_gpio       = GPIO_UART4_TX,
   .rx_gpio       = GPIO_UART4_RX,
-#ifdef GPIO_USART4_CTS
+#ifdef GPIO_UART4_CTS
   .cts_gpio      = GPIO_UART4_CTS,
 #endif
-#ifdef GPIO_USART4_RTS
+#ifdef GPIO_UART4_RTS
   .rts_gpio      = GPIO_UART4_RTS,
 #endif
-#ifdef CONFIG_USART4_RXDMA
+#ifdef CONFIG_UART4_RXDMA
   .rxdma_channel = DMAMAP_UART4_RX,
   .rxfifo        = g_uart4rxfifo,
 #endif
@@ -577,15 +577,15 @@ static struct up_dev_s g_uart5priv =
 #endif
       .recv     =
       {
-        .size   = CONFIG_USART5_RXBUFSIZE,
+        .size   = CONFIG_UART5_RXBUFSIZE,
         .buffer = g_uart5rxbuffer,
       },
       .xmit     =
       {
-        .size   = CONFIG_USART5_TXBUFSIZE,
+        .size   = CONFIG_UART5_TXBUFSIZE,
         .buffer = g_uart5txbuffer,
       },
-#ifdef CONFIG_USART5_RXDMA
+#ifdef CONFIG_UART5_RXDMA
       .ops      = &g_uart_dma_ops,
 #else
       .ops      = &g_uart_ops,
@@ -594,21 +594,21 @@ static struct up_dev_s g_uart5priv =
     },
 
   .irq            = STM32_IRQ_UART5,
-  .parity         = CONFIG_USART5_PARITY,
-  .bits           = CONFIG_USART5_BITS,
-  .stopbits2      = CONFIG_USART5_2STOP,
-  .baud           = CONFIG_USART5_BAUD,
+  .parity         = CONFIG_UART5_PARITY,
+  .bits           = CONFIG_UART5_BITS,
+  .stopbits2      = CONFIG_UART5_2STOP,
+  .baud           = CONFIG_UART5_BAUD,
   .apbclock       = STM32_PCLK1_FREQUENCY,
   .usartbase      = STM32_UART5_BASE,
   .tx_gpio        = GPIO_UART5_TX,
   .rx_gpio        = GPIO_UART5_RX,
-#ifdef GPIO_USART5_CTS
+#ifdef GPIO_UART5_CTS
   .cts_gpio       = GPIO_UART5_CTS,
 #endif
-#ifdef GPIO_USART5_RTS
+#ifdef GPIO_UART5_RTS
   .rts_gpio       = GPIO_UART5_RTS,
 #endif
-#ifdef CONFIG_USART5_RXDMA
+#ifdef CONFIG_UART5_RXDMA
   .rxdma_channel = DMAMAP_UART5_RX,
   .rxfifo        = g_uart5rxfifo,
 #endif
@@ -956,7 +956,8 @@ static int up_setup(struct uart_dev_s *dev)
 
   /* Set up the cached interrupt enables value */
 
-  priv->ie    = 0;
+  up_restoreusartint(priv, 0);
+
   return OK;
 }
 
@@ -976,12 +977,15 @@ static int up_dma_setup(struct uart_dev_s *dev)
   int result;
   uint32_t regval;
 
-  /* Do the basic UART setup first */
+  /* Do the basic UART setup first, unless we are the console */
 
-  result = up_setup(dev);
-  if (result != OK)
-    {
-      return result;
+  if (!dev->isconsole)
+    {    
+      result = up_setup(dev);
+      if (result != OK)
+        {
+          return result;
+        }
     }
 
   /* Acquire the DMA channel.  This should always succeed. */
@@ -1835,7 +1839,14 @@ void up_serialinit(void)
 #if CONSOLE_UART > 0
   (void)uart_register("/dev/console", &uart_devs[CONSOLE_UART - 1]->dev);
   (void)uart_register("/dev/ttyS0",   &uart_devs[CONSOLE_UART - 1]->dev);
-#endif
+
+  /* If we need to re-initialise the console to enable DMA do that here. */
+
+# ifdef SERIAL_HAVE_CONSOLE_DMA
+  up_dma_setup(&uart_devs[CONSOLE_UART - 1]->dev);
+# endif
+
+#endif /* CONSOLE_UART > 0 */
 
   /* Register all remaining USARTs */
 
@@ -1898,14 +1909,14 @@ void stm32_serial_dma_poll(void)
     }
 #endif
 
-#ifdef CONFIG_USART4_RXDMA
+#ifdef CONFIG_UART4_RXDMA
   if (g_uart4priv.rxdma != NULL)
     {
       up_dma_rxcallback(g_uart4priv.rxdma, 0, &g_uart4priv);
     }
 #endif
 
-#ifdef CONFIG_USART5_RXDMA
+#ifdef CONFIG_UART5_RXDMA
   if (g_uart5priv.rxdma != NULL)
     {
       up_dma_rxcallback(g_uart5priv.rxdma, 0, &g_uart5priv);
@@ -1934,10 +1945,10 @@ void stm32_serial_dma_poll(void)
 int up_putc(int ch)
 {
 #if CONSOLE_UART > 0
-  struct up_dev_s *priv = uart_devs[CONSOLE_UART - 1];
-  uint16_t ie;
+//  struct up_dev_s *priv = uart_devs[CONSOLE_UART - 1];
+//  uint16_t ie;
 
-  up_disableusartint(priv, &ie);
+//  up_disableusartint(priv, &ie);
 
   /* Check for LF */
 
@@ -1949,7 +1960,7 @@ int up_putc(int ch)
     }
 
   up_lowputc(ch);
-  up_restoreusartint(priv, ie);
+//  up_restoreusartint(priv, ie);
 #endif
   return ch;
 }

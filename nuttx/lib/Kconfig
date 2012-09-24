@@ -51,6 +51,29 @@ config LIBC_FLOATINGPOINT
 		By default, floating point
 		support in printf, sscanf, etc. is disabled.
 
+choice
+	prompt "Newline Options"
+	default EOL_IS_EITHER_CRLF
+	---help---
+		This selection determines the line terminating character that is used.
+		Some environments may return CR as end-of-line, others LF, and others
+		both.  If not specified, the default is either CR or LF (but not both)
+		as the line terminating charactor.
+
+config EOL_IS_CR
+	bool "EOL is CR"
+
+config EOL_IS_LF
+	bool "EOL is LF"
+
+config EOL_IS_BOTH_CRLF
+	bool "EOL is CR and LF"
+
+config EOL_IS_EITHER_CRLF
+	bool "EOL is CR or LF"
+
+endchoice
+
 config LIBC_STRERROR
 	bool "Enable strerror"
 	default n
@@ -82,35 +105,53 @@ config LIBC_PERROR_STDOUT
 		be defined, however, to provide perror() output that is serialized with
 		other stdout messages.
 
-config LIBC_PERROR_DEVNAME
-	string "perror() to device"
-	default "/dev/console"
-	depends on !LIBC_PERROR_STDOUT
-	---help---
-		Another non-standard option is to provide perror() output to a logging device
-		or file. LIBC_PERROR_DEVNAME may be defined to be any write-able,
-		character device (or file).
-
 config ARCH_LOWPUTC
 	bool "Low-level console output"
 	default "y"
 	---help---
-	  architecture supports low-level, boot time console output
-	  
-config ENABLE_ARCH_OPTIMIZED_FUN
+		architecture supports low-level, boot time console output
+
+config LIB_SENDFILE_BUFSIZE
+	int "sendfile() buffer size"
+	default 512
+	---help---
+		Size of the I/O buffer to allocate in sendfile().  Default: 512b
+
+config ARCH_ROMGETC
+	bool "Support for ROM string access"
+	default n
+	---help---
+		In Harvard architectures, data accesses and instruction accesses
+		occur on different busses, perhaps concurrently.  All data accesses
+		are performed on the data bus unless special machine instructions
+		are used to read data from the instruction address space.  Also, in
+		the typical MCU, the available SRAM data memory is much smaller that
+		the non-volatile FLASH instruction memory.  So if the application
+		requires many constant strings, the only practical solution may be
+		to store those constant strings in FLASH memory where they can only
+		be accessed using architecture-specific machine instructions.
+
+		If ARCH_ROMGETC is defined, then the architecture logic must export
+		the function up_romgetc().  up_romgetc() will simply read one byte
+		of data from the instruction space.
+
+		If ARCH_ROMGETC, certain C stdio functions are effected: (1) All
+		format strings in printf, fprintf, sprintf, etc. are assumed to lie
+		in FLASH (string arguments for %s are still assumed to reside in SRAM).
+		And (2), the string argument to puts and fputs is assumed to reside
+		in FLASH.  Clearly, these assumptions may have to modified for the
+		particular needs of your environment.  There is no "one-size-fits-all"
+		solution for this problem.
+
+config ARCH_OPTIMIZED_FUNCTIONS
 	bool "Enable arch optimized functions"
 	default n
 	---help---
-		Allow for architecture optimized implementations
-		
-		The architecture can provide optimized versions of the
-		following to improve system performance
+		Allow for architecture optimized implementations of certain library
+		functions.  Architecture-specific implementations can improve overall
+		system performance.
 
-		The architecture may provide custom versions of certain
-		standard header files:
-		config ARCH_MATH_H, ARCH_STDBOOL_H, ARCH_STDINT_H
-
-if 	ENABLE_ARCH_OPTIMIZED_FUN
+if ARCH_OPTIMIZED_FUNCTIONS
 config ARCH_MEMCPY
 	bool "memcpy"
 	default n

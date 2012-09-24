@@ -85,7 +85,7 @@
 
 /* Allocate/free an I/O buffer.  Should not be called from interrupt processing! */
 
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
 #  define EP_ALLOCBUFFER(ep,nb)    (ep)->ops->alloc(ep,nb)
 #  define EP_FREEBUFFER(ep,buff)   (ep)->ops->free(ep,buf)
 #else
@@ -234,7 +234,7 @@ struct usbdev_epops_s
 
   /* Allocate and free I/O buffers */
 
-#ifdef CONFIG_ARCH_USBDEV_DMA
+#ifdef CONFIG_USBDEV_DMA
   FAR void *(*allocbuffer)(FAR struct usbdev_ep_s *ep, uint16_t nbytes);
   void (*freebuffer)(FAR struct usbdev_ep_s *ep, FAR void *buf);
 #endif
@@ -353,6 +353,37 @@ EXTERN int usbdev_register(FAR struct usbdevclass_driver_s *driver);
  ************************************************************************************/
 
 EXTERN int usbdev_unregister(FAR struct usbdevclass_driver_s *driver);
+
+/****************************************************************************
+ * Name: usbdev_dma_alloc and usbdev_dma_free
+ *
+ * Description:
+ *   The USB class driver allocates packet I/O buffers for data transfer by
+ *   calling the driver allocbuffer() and freebuffer() methods.  Those
+ *   methods are only available if CONFIG_USBDEV_DMA is defined in the
+ *   system configuration.
+ *
+ *   If CONFIG_USBDEV_DMAMEMORY is also defined in the NuttX configuration,
+ *   then the driver implementations of the allocbuffer() and freebuffer()
+ *   methods may use board-specific usbdev_dma_alloc() and usbdev_dma_free().
+ *   If CONFIG_USBDEV_DMA and CONFIG_USBDEV_DMAMEMORY are both defined,
+ *   then the board-specific logic must provide the functions
+ *   usbdev_dma_alloc() and usbdev_dma_free() as prototyped below:
+ *   usbdev_dma_alloc() will allocate DMA-capable memory of the specified
+ *   size; usbdev_dma_free() is the corresponding function that will be
+ *   called to free the DMA-capable memory.
+ *
+ *   This functions may be simple wrappers around gran_alloc() and
+ *   gran_free() (See nuttx/gran.h).  Note that the gran_free() function
+ *   does require the size of the allocation to be freed; that would need
+ *   to be managed in the board-specific logic.
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_USBDEV_DMA) && defined(CONFIG_USBDEV_DMAMEMORY)
+EXTERN FAR void *usbdev_dma_alloc(size_t size);
+EXTERN void usbdev_dma_free(FAR void *memory);
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)
