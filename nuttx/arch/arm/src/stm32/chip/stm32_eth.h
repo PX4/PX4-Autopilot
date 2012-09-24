@@ -711,7 +711,9 @@
 /* RDES0: Receive descriptor Word0 */
 
 #define ETH_RDES0_PCE                (1 << 0)  /* Bit 0:  Payload checksum error */
-#define ETH_RDES0_ESA                (1 << 0)  /* Bit 0:  Extended status available */
+#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+#  define ETH_RDES0_ESA              (1 << 0)  /* Bit 0:  Extended status available */
+#endif
 #define ETH_RDES0_CE                 (1 << 1)  /* Bit 1:  CRC error */
 #define ETH_RDES0_DBE                (1 << 2)  /* Bit 2:  Dribble bit error */
 #define ETH_RDES0_RE                 (1 << 3)  /* Bit 3:  Receive error */
@@ -735,8 +737,9 @@
 
 /* RDES1: Receive descriptor Word1 */
 
-#define ETH_RDES1_RBS1_SHIFT         (0)      /* Bits 0-12: Receive buffer 1 size */
+#define ETH_RDES1_RBS1_SHIFT         (0)       /* Bits 0-12: Receive buffer 1 size */
 #define ETH_RDES1_RBS1_MASK          (0x1fff << ETH_RDES1_RBS1_SHIFT)
+                                               /* Bit 13: Reserved */
 #define ETH_RDES1_RCH                (1 << 14) /* Bit 14: Second address chained */
 #define ETH_RDES1_RER                (1 << 15) /* Bit 15: Receive end of ring */
 #define ETH_RDES1_RBS2_SHIFT         (16)      /* Bits 16-28: Receive buffer 2 size */

@@ -186,10 +186,12 @@
 #endif
 
 /* Add 4 to the configured buffer size to account for the 2 byte checksum
- * memory needed at the end of the maximum size packet.
+ * memory needed at the end of the maximum size packet.  Buffer sizes must
+ * be an even multiple of 4, 8, or 16 bytes (depending on buswidth).  We
+ * will use the 16-byte alignment in all cases.
  */
 
-#define OPTIMAL_ETH_BUFSIZE (CONFIG_NET_BUFSIZE+4)
+#define OPTIMAL_ETH_BUFSIZE ((CONFIG_NET_BUFSIZE + 4 + 15) & ~15)
 
 #ifndef CONFIG_STM32_ETH_BUFSIZE
 #  define CONFIG_STM32_ETH_BUFSIZE OPTIMAL_ETH_BUFSIZE
@@ -197,6 +199,10 @@
 
 #if CONFIG_STM32_ETH_BUFSIZE > ETH_TDES1_TBS1_MASK
 #  error "CONFIG_STM32_ETH_BUFSIZE is too large"
+#endif
+
+#if (CONFIG_STM32_ETH_BUFSIZE & 15) != 0
+#  error "CONFIG_STM32_ETH_BUFSIZE must be aligned"
 #endif
 
 #if CONFIG_STM32_ETH_BUFSIZE != OPTIMAL_ETH_BUFSIZE
@@ -1470,9 +1476,6 @@ static int stm32_recvframe(FAR struct stm32_ethmac_s *priv)
         { 
           priv->segments++;
 
-          nllvdbg("rxhead: %p rxcurr: %p segments: %d\n",
-              priv->rxhead, priv->rxcurr, priv->segments);
-
           /* Check if the there is only one segment in the frame */
 
           if (priv->segments == 1)
@@ -1483,6 +1486,9 @@ static int stm32_recvframe(FAR struct stm32_ethmac_s *priv)
             {
               rxcurr = priv->rxcurr;
             }
+
+          nllvdbg("rxhead: %p rxcurr: %p segments: %d\n",
+              priv->rxhead, priv->rxcurr, priv->segments);
 
           /* Check if any errors are reported in the frame */
 

@@ -3386,3 +3386,7 @@
 	  case now (either space or a fieldwidth must be provided).  But
 	  at least some of the bad logic that attempted to handle this
 	  case has been removed (noted by Kate).
+	* arch/arm/src/stm32/stm32_eth.c:  DMA buffer sizes must be an
+	  even multiple of 4, 8, or 16 bytes.
+	* arch/arm/src/stm32/stm32_idle.c:  Fixes STM32F107 DMA issues:
+	  We cannot go into sleep mode while Ethernet is actively DMAing.
