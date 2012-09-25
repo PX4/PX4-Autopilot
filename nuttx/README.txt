@@ -848,6 +848,8 @@ apps
  |   `- README.txt
  |- nshlib/
  |   `- README.txt
+ |- NxWidgets/
+ |   `- README.txt
  |- system/
  |   |- i2c/README.txt
  |   |- free/README.txt
