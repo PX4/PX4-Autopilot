@@ -71,7 +71,7 @@
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/actuator_controls.h>
 #include <mavlink/mavlink_log.h>
- 
+
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
@@ -136,6 +136,7 @@ static void led_deinit(void);
 static int led_toggle(int led);
 static int led_on(int led);
 static int led_off(int led);
+static int pm_save_eeprom(bool only_unsaved);
 static void do_gyro_calibration(int status_pub, struct vehicle_status_s *status);
 static void do_mag_calibration(int status_pub, struct vehicle_status_s *status);
 static void do_accel_calibration(int status_pub, struct vehicle_status_s *status);
@@ -264,6 +265,33 @@ static void cal_bsort(float a[], int n)
 			}
 		}
 	}
+}
+
+static const char *parameter_file = "/eeprom/parameters";
+
+static int pm_save_eeprom(bool only_unsaved)
+{
+	/* delete the file in case it exists */
+	unlink(parameter_file);
+
+	/* create the file */
+	int fd = open(parameter_file, O_WRONLY | O_CREAT | O_EXCL);
+
+	if (fd < 0) {
+		warn("opening '%s' for writing failed", parameter_file);
+		return -1;
+	}
+
+	int result = param_export(fd, only_unsaved);
+	close(fd);
+
+	if (result != 0) {
+		unlink(parameter_file);
+		warn("error exporting parameters to '%s'", parameter_file);
+		return -2;
+	}
+
+	return 0;
 }
 
 void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
@@ -487,6 +515,12 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	free(mag_minima[1]);
 	free(mag_minima[2]);
 
+	/* auto-save to EEPROM */
+	int save_ret = pm_save_eeprom(true);
+	if(save_ret != 0) {
+		warn("WARNING: auto-save of params to EEPROM failed");
+	}
+
 	close(sub_sensor_combined);
 }
 
@@ -565,6 +599,12 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale))
 		warn("WARNING: failed to set scale / offsets for gyro");
 	close(fd);
+
+	/* auto-save to EEPROM */
+	int save_ret = pm_save_eeprom(true);
+	if(save_ret != 0) {
+		warn("WARNING: auto-save of params to EEPROM failed");
+	}
 
 	/* exit to gyro calibration mode */
 	status->flag_preflight_gyro_calibration = false;
@@ -674,6 +714,12 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale))
 		warn("WARNING: failed to set scale / offsets for accel");
 	close(fd);
+
+	/* auto-save to EEPROM */
+	int save_ret = pm_save_eeprom(true);
+	if(save_ret != 0) {
+		warn("WARNING: auto-save of params to EEPROM failed");
+	}
 
 	/* exit to gyro calibration mode */
 	status->flag_preflight_accel_calibration = false;
