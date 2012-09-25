@@ -124,7 +124,7 @@ config NXTK_BORDERWIDTH
 config NXTK_BORDERCOLOR1
 	hex "Border Color"
 	default 0
-	---help--
+	---help---
 		Specify the colors of the border used with framed windows.
 		NXTL_BODERCOLOR is the "normal" color of the border.
 		NXTK_BORDERCOLOR2 is the shadow side color and so is normally darker.
@@ -133,7 +133,7 @@ config NXTK_BORDERCOLOR1
 config NXTK_BORDERCOLOR2
 	hex "Darker Border Color"
 	default 0
-	---help--
+	---help---
 		Specify the colors of the border used with framed windows.
 		NXTL_BODERCOLOR is the "normal" color of the border.
 		NXTK_BORDERCOLOR2 is the shadow side color and so is normally darker.
@@ -142,7 +142,7 @@ config NXTK_BORDERCOLOR2
 config NXTK_BORDERCOLOR3
 	hex "Brighter Border Color"
 	default 0
-	---help--
+	---help---
 		Specify the colors of the border used with framed windows.
 		NXTL_BODERCOLOR is the "normal" color of the border.
 		NXTK_BORDERCOLOR2 is the shadow side color and so is normally darker.
@@ -164,7 +164,7 @@ config NXFONTS_CHARBITS
 	int "Bits in Character Set"
 	default 7
 	range 7 8
-	---help--
+	---help---
 		The number of bits in the character set.  Current options are only 7 and 8.
 		The default is 7.
 
@@ -347,7 +347,7 @@ config NXCONSOLE_CACHESIZE
 		NXCONSOLE_CACHESIZE should be larger than MQ_MAXMSGSIZE in any event.
 
 config NXCONSOLE_LINESEPARATION
-	int "Line Separation
+	int "Line Separation"
 	default 0
 	---help---
 		This the space (in rows) between each row of test.  Default: 0
@@ -360,7 +360,7 @@ config NXCONSOLE_NOWRAP
 		of the window. This setting can be defining to change this behavior so
 		that the text is simply truncated until a new line is  encountered.
 
-commont "NxConsole Input options"
+comment "NxConsole Input options"
 
 config NXCONSOLE_NXKBDIN
 	bool "NX KBD input"
@@ -387,11 +387,10 @@ config NXCONSOLE_NPOLLWAITERS
 		Default: 4
 
 endif
-endmenu
 
-menu "NX Multi-user only options"
+comment "NX Multi-user only options"
 
-config NX_MULTIUSER
+menuconfig NX_MULTIUSER
 	bool "Multi-user NX Server"
 	default n
 	---help---
@@ -425,6 +424,4 @@ config NX_MXCLIENTMSGS
 		controls how many messages are pre-allocated).
 
 endif
-endmenu
-
 endif

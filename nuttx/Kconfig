@@ -339,6 +339,10 @@ menu "File Systems"
 source fs/Kconfig
 endmenu
 
+menu "Graphics Support"
+source graphics/Kconfig
+endmenu
+
 menu "Memory Management"
 source mm/Kconfig
 endmenu
