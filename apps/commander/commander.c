@@ -516,10 +516,12 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	free(mag_minima[2]);
 
 	/* auto-save to EEPROM */
-	int save_ret = pm_save_eeprom(true);
+	int save_ret = pm_save_eeprom(false);
 	if(save_ret != 0) {
 		warn("WARNING: auto-save of params to EEPROM failed");
 	}
+
+	mavlink_log_info(mavlink_fd, "[commander] magnetometer calibration finished");
 
 	close(sub_sensor_combined);
 }
@@ -601,7 +603,7 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	close(fd);
 
 	/* auto-save to EEPROM */
-	int save_ret = pm_save_eeprom(true);
+	int save_ret = pm_save_eeprom(false);
 	if(save_ret != 0) {
 		warn("WARNING: auto-save of params to EEPROM failed");
 	}
@@ -609,6 +611,8 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	/* exit to gyro calibration mode */
 	status->flag_preflight_gyro_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
+
+	mavlink_log_info(mavlink_fd, "[commander] gyro calibration finished");
 
 	// char offset_output[50];
 	// sprintf(offset_output, "[commander] gyro cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
@@ -716,7 +720,7 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	close(fd);
 
 	/* auto-save to EEPROM */
-	int save_ret = pm_save_eeprom(true);
+	int save_ret = pm_save_eeprom(false);
 	if(save_ret != 0) {
 		warn("WARNING: auto-save of params to EEPROM failed");
 	}
@@ -724,6 +728,8 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	/* exit to gyro calibration mode */
 	status->flag_preflight_accel_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
+
+	mavlink_log_info(mavlink_fd, "[commander] acceleration calibration finished");
 
 	// char offset_output[50];
 	// sprintf(offset_output, "[commander] accel cal: x:%8.4f y:%8.4f z:%8.4f", (double)accel_offset[0],
