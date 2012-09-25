@@ -384,20 +384,20 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	 * offset = (max + min) / 2.0f
 	 */
 
-	printf("max 0: %f\n",mag_max[0]);
-	printf("max 1: %f\n",mag_max[1]);
-	printf("max 2: %f\n",mag_max[2]);
-	printf("min 0: %f\n",mag_min[0]);
-	printf("min 1: %f\n",mag_min[1]);
-	printf("min 2: %f\n",mag_min[2]);
+//	printf("max 0: %f\n",mag_max[0]);
+//	printf("max 1: %f\n",mag_max[1]);
+//	printf("max 2: %f\n",mag_max[2]);
+//	printf("min 0: %f\n",mag_min[0]);
+//	printf("min 1: %f\n",mag_min[1]);
+//	printf("min 2: %f\n",mag_min[2]);
 
 	mag_offset[0] = (mag_max[0] + mag_min[0]) / 2.0f;
 	mag_offset[1] = (mag_max[1] + mag_min[1]) / 2.0f;
 	mag_offset[2] = (mag_max[2] + mag_min[2]) / 2.0f;
 
-	printf("mag off 0: %f\n",mag_offset[0]);
-	printf("mag off 1: %f\n",mag_offset[1]);
-	printf("mag off 2: %f\n",mag_offset[2]);
+//	printf("mag off 0: %f\n",mag_offset[0]);
+//	printf("mag off 1: %f\n",mag_offset[1]);
+//	printf("mag off 2: %f\n",mag_offset[2]);
 
 	/* announce and set new offset */
 
