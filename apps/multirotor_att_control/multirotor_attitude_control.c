@@ -312,6 +312,10 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		actuators->control[3] = motor_thrust;
 	}
 
+//	if(motor_skip_counter%20 == 0)
+//		printf("MAC: Roll: %4.4f, Pitch: %4.4f, Yaw: %4.4f, Thrust: %4.4f\n",actuators->control[0], actuators->control[1], actuators->control[2], actuators->control[3]);
+
+
 	// XXX change yaw rate to yaw pos controller
 	if (rates_sp) {
 		rates_sp->roll = roll_control;
@@ -319,6 +323,9 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		rates_sp->yaw = yaw_rate_control;
 		rates_sp->thrust = motor_thrust;
 	}
+
+//	if(motor_skip_counter%20 == 0)
+//		printf("Roll: %4.4f, Pitch: %4.4f, Yaw: %4.4f, Thrust: %4.4f\n",rates_sp->roll, rates_sp->pitch, rates_sp->yaw, rates_sp->thrust);
 
 	motor_skip_counter++;
 }

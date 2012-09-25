@@ -239,14 +239,15 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 
 	/* declare and safely initialize all structs */
 	struct vehicle_status_s state;
-	memset(&state, 0, sizeof(state));
+	//memset(&state, 0, sizeof(state));
 	struct actuator_controls_s actuator_controls;
-	memset(&actuator_controls, 0, sizeof(actuator_controls));
+	//memset(&actuator_controls, 0, sizeof(actuator_controls));
 	struct actuator_armed_s armed;
 	armed.armed = false;
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int actuator_controls_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
@@ -328,7 +329,13 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 			 * if in failsafe
 			 */
 			if (armed.armed && !armed.lockdown) {
+
+
+
+				//printf("AMO_BEF: Roll: %4.4f, Pitch: %4.4f, Yaw: %4.4f, Thrust: %4.4f\n",actuator_controls.control[0], actuator_controls.control[1], actuator_controls.control[2], actuator_controls.control[3]);
+
 				ardrone_mixing_and_output(ardrone_write, &actuator_controls);
+
 			} else {
 				/* Silently lock down motor speeds to zero */
 				ardrone_write_motor_commands(ardrone_write, 0, 0, 0, 0);
