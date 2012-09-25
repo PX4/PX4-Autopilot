@@ -89,6 +89,7 @@ void uip_server(uint16_t portno, pthread_startroutine_t handler, int stacksize)
   socklen_t addrlen;
   int listensd;
   int acceptsd;
+  int ret;
 
   /* Create a new TCP socket to use to listen for connections */
 
@@ -102,22 +103,28 @@ void uip_server(uint16_t portno, pthread_startroutine_t handler, int stacksize)
 
   for (;;)
     {
+      /* Accept the next connectin */
+ 
       addrlen = sizeof(struct sockaddr_in);
       acceptsd = accept(listensd, (struct sockaddr*)&myaddr, &addrlen);
       if (acceptsd < 0)
         {
           ndbg("accept failure: %d\n", errno);
-          break;;
+          break;
         }
 
       nvdbg("Connection accepted -- spawning sd=%d\n", acceptsd);
 
-      /* Configure to "linger" until all data is sent when the socket is closed */
+      /* Configure to "linger" until all data is sent when the socket is
+       * closed.
+       */
 
 #ifdef CONFIG_NET_HAVE_SOLINGER
       ling.l_onoff  = 1;
       ling.l_linger = 30;     /* timeout is seconds */
-      if (setsockopt(acceptsd, SOL_SOCKET, SO_LINGER, &ling, sizeof(struct linger)) < 0)
+
+      ret = setsockopt(acceptsd, SOL_SOCKET, SO_LINGER, &ling, sizeof(struct linger));
+      if (ret < 0)
         {
           close(acceptsd);
           ndbg("setsockopt SO_LINGER failure: %d\n", errno);
@@ -132,10 +139,26 @@ void uip_server(uint16_t portno, pthread_startroutine_t handler, int stacksize)
       (void)pthread_attr_init(&attr);
       (void)pthread_attr_setstacksize(&attr, stacksize);
 
-      if (pthread_create(&child, &attr, handler, (void*)acceptsd) != 0)
+      ret = pthread_create(&child, &attr, handler, (void*)acceptsd);
+      if (ret != 0)
         {
+          /* Close the connection */
+
           close(acceptsd);
-          ndbg("create_create failed\n");
+          ndbg("pthread_create failed\n");
+
+          if (ret == EAGAIN)
+            {
+              /* Lacked resources to create a new thread. This is a temporary
+               * condition, so we close this peer, but keep serving for
+               * other connections.
+               */
+
+              continue;
+            }
+
+          /* Something is very wrong... Break out and stop serving */
+
           break;
         }
 
@@ -145,6 +168,8 @@ void uip_server(uint16_t portno, pthread_startroutine_t handler, int stacksize)
 
       (void)pthread_detach(child);
     }
+
+  /* Close the listerner socket */
 
   close(listensd);
 }
