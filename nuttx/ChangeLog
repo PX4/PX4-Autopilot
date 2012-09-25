@@ -3395,3 +3395,5 @@
 	  STM32F4Discovery's FSMC-based LCD interface.  The Shenzhou
 	  will need a completely need bit-banging interface; this
 	  initial check-in is only for the framework.
+	* configs/shenzhou/src/up_ssd1289.c:  Bit-banging driver is
+	  code complete.
