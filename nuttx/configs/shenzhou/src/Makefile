@@ -84,8 +84,12 @@ ifeq ($(CONFIG_WATCHDOG),y)
 CSRCS		+= up_watchdog.c
 endif
 
+# NOTE: SSD1289 is not supported on the board
+
 ifeq ($(CONFIG_LCD_SSD1289),y)
-CSRCS           += up_ssd1289.c
+CSRCS		+= up_ssd1289.c
+else
+CSRCS		+= up_lcd.c
 endif
 
 COBJS		= $(CSRCS:.c=$(OBJEXT))

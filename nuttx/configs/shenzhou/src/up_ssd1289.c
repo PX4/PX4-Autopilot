@@ -68,11 +68,6 @@
  * Pre-processor Definitions
  ************************************************************************************/
 /* Configuration ********************************************************************/
-
-#ifndef CONFIG_SSD1289_WRONLY
-#  warning "Only write access is supported; CONFIG_SSD1289_WRONLY should be defined"
-#endif
-
 /* Define CONFIG_DEBUG_LCD to enable detailed LCD debug output. Verbose debug must
  * also be enabled.
  */
@@ -86,6 +81,9 @@
 #ifndef CONFIG_DEBUG_VERBOSE
 #  undef CONFIG_DEBUG_LCD
 #endif
+
+#undef CONFIG_LCD_FASTCONFIG
+#define CONFIG_LCD_FASTCONFIG 1
 
 /* Shenzhou LCD Hardware Definitions ************************************************/
 /* Debug ****************************************************************************/
@@ -108,6 +106,9 @@
 /* Helpers */
 
 static void stm32_wrdata(uint16_t data);
+#ifndef CONFIG_SSD1289_WRONLY
+static uint16_t stm32_rddata(void);
+#endif
 
 /* Low Level LCD access */
 
@@ -125,9 +126,9 @@ static void stm32_backlight(FAR struct ssd1289_lcd_s *dev, int power);
  ************************************************************************************/
 /* TFT LCD
  *
- * -- ---- -------------- -------------------------------------------------------------------
+ * -- ---- -------------- -----------------------------------------------------------
  * PN NAME SIGNAL         NOTES
- * -- ---- -------------- -------------------------------------------------------------------
+ * -- ---- -------------- -----------------------------------------------------------
  * 37 PB2  DATA_LE        To TFT LCD (CN13, ping 28)
  * 96 PB9  F_CS           To both the TFT LCD (CN13, pin 30) and to the W25X16 SPI FLASH
  * 34 PC5  TP_INT         JP6.  To TFT LCD (CN13) module (CN13, pin 26)
@@ -198,14 +199,27 @@ static void stm32_backlight(FAR struct ssd1289_lcd_s *dev, int power);
 
 /* LCD GPIO configurations */
 
+#ifndef CONFIG_LCD_FASTCONFIG
+static const uint32_t g_lcdout[16] =
+{
+  GPIO_LCD_D0OUT,  GPIO_LCD_D1OUT,  GPIO_LCD_D2OUT,  GPIO_LCD_D3OUT,
+  GPIO_LCD_D4OUT,  GPIO_LCD_D5OUT,  GPIO_LCD_D6OUT,  GPIO_LCD_D7OUT,
+  GPIO_LCD_D8OUT,  GPIO_LCD_D9OUT,  GPIO_LCD_D10OUT, GPIO_LCD_D11OUT,
+  GPIO_LCD_D12OUT, GPIO_LCD_D13OUT, GPIO_LCD_D14OUT, GPIO_LCD_D15OUT
+};
+
+static const uint32_t g_lcdin[16] =
+{
+  GPIO_LCD_D0IN,   GPIO_LCD_D1IN,   GPIO_LCD_D2IN,   GPIO_LCD_D3IN, 
+  GPIO_LCD_D4IN,   GPIO_LCD_D5IN,   GPIO_LCD_D6IN,   GPIO_LCD_D7IN, 
+  GPIO_LCD_D8IN,   GPIO_LCD_D9IN,   GPIO_LCD_D10IN,  GPIO_LCD_D11IN, 
+  GPIO_LCD_D12IN,  GPIO_LCD_D13IN,  GPIO_LCD_D14IN,  GPIO_LCD_D15IN
+};
+#endif
+
 static const uint32_t g_lcdconfig[] =
 {
-  GPIO_LCD_D0,  GPIO_LCD_D1,  GPIO_LCD_D2,  GPIO_LCD_D3,
-  GPIO_LCD_D4,  GPIO_LCD_D5,  GPIO_LCD_D6,  GPIO_LCD_D7,
-  GPIO_LCD_D8,  GPIO_LCD_D9,  GPIO_LCD_D10, GPIO_LCD_D11,
-  GPIO_LCD_D12, GPIO_LCD_D13, GPIO_LCD_D14, GPIO_LCD_D15,
-
-  GPIO_LCD_RS,  GPIO_LCD_CS,  GPIO_LCD_RD,  GPIO_LCD_WR,
+  GPIO_LCD_RS,     GPIO_LCD_CS,     GPIO_LCD_RD,     GPIO_LCD_WR,
   GPIO_LCD_LE,
 };
 #define NLCD_CONFIG (sizeof(g_lcdconfig)/sizeof(uint32_t))
@@ -242,12 +256,40 @@ static FAR struct lcd_dev_s *g_ssd1289drvr;
 
 static void stm32_wrdata(uint16_t data)
 {
+  /* Make sure D0-D15 are configured as outputs */
+
+  stm32_lcdoutput();
+
   /* Latch the 16-bit LCD data and toggle the WR line */
 
-  putreg32((uint32_t)data, LCD_DATA);
   putreg32(1, LCD_WR_CLEAR);
+  putreg32((uint32_t)data, LCD_ODR);
   putreg32(1, LCD_WR_SET);
 }
+
+/************************************************************************************
+ * Name: stm32_rddata
+ *
+ * Description:
+ *   Latch data on D0-D15 and toggle the WR line.
+ *
+ ************************************************************************************/
+
+#ifndef CONFIG_SSD1289_WRONLY
+static uint16_t stm32_rddata(void);
+{
+  /* Make sure D0-D15 are configured as inputs */
+
+  stm32_lcdinput();
+
+  /* Toggle the RD line to latch the 16-bit LCD data */
+
+#warning "Requires pins configured as inputs"
+  putreg32(1, LCD_RD_CLEAR);
+  putreg32(1, LCD_RD_SET);
+  return (uin16_t)getreg32(LCD_IDR);
+}
+#endif
 
 /************************************************************************************
  * Name: stm32_select
@@ -309,7 +351,13 @@ static void stm32_index(FAR struct ssd1289_lcd_s *dev, uint8_t index)
 #ifndef CONFIG_SSD1289_WRONLY
 static uint16_t stm32_read(FAR struct ssd1289_lcd_s *dev)
 {
-#warning "Missing logic"
+  /* Set the RS signal */
+
+  putreg32(1, LCD_RS_CLR);
+
+  /* And return the data */
+
+  return stm32_rddata();
 }
 #endif
 
@@ -346,6 +394,51 @@ static void stm32_backlight(FAR struct ssd1289_lcd_s *dev, int power)
 }
 
 /************************************************************************************
+ * Name:  stm32_lcdinput
+ *
+ * Description:
+ *   Config data lines for input operations.
+ *
+ ************************************************************************************/
+
+static void stm32_lcdinput(void)
+{
+#ifdef CONFIG_LCD_FASTCONFIG
+  putreg32(LCD_INPUT, LCD_CRL);
+  putreg32(LCD_INPUT, LCD_CRH);
+#else
+  int i;
+
+  /* Configure GPIO data lines as inputs */
+
+  for (i = 0; i < 16; i++)
+    {
+      stm32_configgpio(g_lcdin[i]);
+    }
+#endif
+}
+
+/************************************************************************************
+ * Name:  stm32_lcdoutput
+ *
+ * Description:
+ *   Config data lines for output operations.
+ *
+ ************************************************************************************/
+
+static void stm32_lcdoutput(void)
+{
+  int i;
+
+  /* Configure GPIO data lines as outputs */
+
+  for (i = 0; i < 16; i++)
+    {
+      stm32_configgpio(g_lcdout[i]);
+    }
+}
+
+/************************************************************************************
  * Public Functions
  ************************************************************************************/
 
@@ -371,6 +464,7 @@ int up_lcdinitialize(void)
 
       /* Configure GPIO pins */
 
+      stm32_lcdoutput();
       for (i = 0; i < NLCD_CONFIG; i++)
         {
           stm32_configgpio(g_lcdconfig[i]);

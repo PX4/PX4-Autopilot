@@ -33,6 +33,9 @@
  *
  ************************************************************************************/
 
+#ifndef __CONFIGS_SHENZHOU_INCLUDE_BOARD_H
+#define __CONFIGS_SHENZHOU_INCLUDE_BOARD_H 1
+
 /************************************************************************************
  * Included Files
  ************************************************************************************/
@@ -322,6 +325,20 @@
  */
 
 /************************************************************************************
+ * Public Data
+ ************************************************************************************/
+
+#ifndef __ASSEMBLY__
+
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C" {
+#else
+#define EXTERN extern
+#endif
+
+/************************************************************************************
  * Public Function Prototypes
  ************************************************************************************/
 /************************************************************************************
@@ -382,3 +399,24 @@ EXTERN void stm32_ledinit(void);
 EXTERN void stm32_setled(int led, bool ledon);
 EXTERN void stm32_setleds(uint8_t ledset);
 #endif
+
+/************************************************************************************
+ * Name:  stm32_lcdclear
+ *
+ * Description:
+ *   This is a non-standard LCD interface just for the Shenzhou board.  Because
+ *   of the various rotations, clearing the display in the normal way by writing a
+ *   sequences of runs that covers the entire display can be very slow.  Here the
+ *   display is cleared by simply setting all GRAM memory to the specified color.
+ *
+ ************************************************************************************/
+
+EXTERN void stm32_lcdclear(uint16_t color);
+
+#undef EXTERN
+#if defined(__cplusplus)
+}
+#endif
+
+#endif /* __ASSEMBLY__ */
+#endif /* __CONFIGS_SHENZHOU_INCLUDE_BOARD_H */
