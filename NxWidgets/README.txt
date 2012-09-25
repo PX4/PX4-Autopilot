@@ -53,6 +53,12 @@ license.  See the COPYING file for details.
 Directory Structure
 ===================
 
+Kconfig
+
+  This is a Kconfig file that should be provided at apps/NxWidgets/Kconfig.
+  When copied to that location, it will be used by the NuttX configuration
+  systems to configure settings for NxWidgets and NxWM
+
 libnxwidgets
 
   The source code, header files, and build environment for NxWidgets is

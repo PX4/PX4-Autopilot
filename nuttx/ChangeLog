@@ -3400,3 +3400,10 @@
 	* configs/shenzhou/src/up_lcd.c:  Oops. Shenzhou LCD does not
 	  have an SSD1289 controller.  Its an ILI93xx.  Ported the
 	  STM3240G-EVAL ILI93xx driver to work on the Shenzhou board.
+	* configs/shenzhou/nxwm:  Added an NxWM configuratino for the
+	  Shenzhou board.  This is untested on initial check-in.  It will
+	  be used to verify the Shenzhou LCD driver (and eventually the
+	  touchscreen driver).
+	* configs/shenzhou/src/up_touchscreen.c:  Add ADS7843E touchscreen
+	  support for the Shenzhou board.  The initial check-in is untested
+	  and basically a clone of the the touchscreen support fro the SAM-3U.

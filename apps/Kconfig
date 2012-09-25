@@ -27,6 +27,10 @@ menu "NSH Library"
 source "$APPSDIR/nshlib/Kconfig"
 endmenu
 
+menu "NxWidgets/NxWM"
+source "$APPSDIR/NxWidgets/Kconfig"
+endmenu
+
 menu "System NSH Add-Ons"
 source "$APPSDIR/system/Kconfig"
 endmenu

@@ -340,3 +340,8 @@
 	  Kate.
 	* apps/netutils/webserver/httpd.c:  Add support for Keep-alive connections
 	  (from Kate).
+	* apps/NxWidget/Kconfig:  This is a kludge.  I created this NxWidgets
+	  directory that ONLY contains Kconfig.  NxWidgets does not like in
+	  either the nuttx/ or the apps/ source trees.  This kludge makes it
+	  possible to configure NxWidgets/NxWM without too much trouble (with
+	  the tradeoff being a kind ugly structure and some maintenance issues).
