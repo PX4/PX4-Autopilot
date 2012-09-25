@@ -48,7 +48,8 @@ CSRCS		 = err.c \
 #
 ifeq ($(TARGET),px4fmu)
 CSRCS		+= systemlib.c \
-		   pid/pid.c
+		   pid/pid.c \
+		   geo/geo.c
 endif
 
 include $(APPDIR)/mk/app.mk

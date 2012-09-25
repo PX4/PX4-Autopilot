@@ -3,7 +3,7 @@
  *
  * Code generation for function 'eye'
  *
- * C source code generated on: Wed Jul 11 08:38:35 2012
+ * C source code generated on: Fri Sep 21 13:56:43 2012
  *
  */
 
@@ -27,12 +27,12 @@
 /*
  *
  */
-void b_eye(real_T I[144])
+void b_eye(real_T I[81])
 {
   int32_T i;
-  memset((void *)&I[0], 0, 144U * sizeof(real_T));
-  for (i = 0; i < 12; i++) {
-    I[i + 12 * i] = 1.0;
+  memset((void *)&I[0], 0, 81U * sizeof(real_T));
+  for (i = 0; i < 9; i++) {
+    I[i + 9 * i] = 1.0;
   }
 }
 

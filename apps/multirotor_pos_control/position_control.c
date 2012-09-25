@@ -51,46 +51,6 @@
 
 #include "multirotor_position_control.h"
 
-float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
-{
-	double lat_now_rad = lat_now / 180.0 * M_PI;
-	double lon_now_rad = lon_now / 180.0 * M_PI;
-	double lat_next_rad = lat_next / 180.0 * M_PI;
-	double lon_next_rad = lon_next / 180.0 * M_PI;
-
-
-	double d_lat = lat_next_rad - lat_now_rad;
-	double d_lon = lon_next_rad - lon_now_rad;
-
-	double a = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0) * cos(lat_now_rad) * cos(lat_next_rad);
-	double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-
-	const double radius_earth = 6371000.0;
-
-	return radius_earth * c;
-}
-
-float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
-{
-	double lat_now_rad = lat_now / 180.0 * M_PI;
-	double lon_now_rad = lon_now / 180.0 * M_PI;
-	double lat_next_rad = lat_next / 180.0 * M_PI;
-	double lon_next_rad = lon_next / 180.0 * M_PI;
-
-	double d_lat = lat_next_rad - lat_now_rad;
-	double d_lon = lon_next_rad - lon_now_rad;
-
-	/* conscious mix of double and float trig function to maximize speed and efficiency */
-	float theta = atan2f(sin(d_lon) * cos(lat_next_rad) , cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
-
-	// XXX wrapping check is incomplete
-	if (theta < 0.0f) {
-		theta = theta + 2.0f * M_PI_F;
-	}
-
-	return theta;
-}
-
 void control_multirotor_position(const struct vehicle_state_s *vstatus, const struct vehicle_manual_control_s *manual,
  const struct vehicle_attitude_s *att, const struct vehicle_local_position_s *local_pos,
  const struct vehicle_local_position_setpoint_s *local_pos_sp, struct vehicle_attitude_setpoint_s *att_sp)
