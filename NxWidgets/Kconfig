@@ -1,0 +1,569 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+menuconfig NxWIDGETS
+	bool "Enable NxWidgets"
+	default n
+	depends on NX && HAVE_CXX
+	---help---
+		Enable support for NxWidgets
+
+if NxWIDGETS
+comment "NX Server/Device Configuration"
+
+config NXWIDGETS_DEVNO
+	int "LCD Device Number"
+	default 0
+	---help---
+		LCD device number (in case there are more than one LCDs connected).
+		Default: 0
+
+config NXWIDGETS_VPLANE
+	int "Plane Number"
+	default 0
+	---help---
+		Only a single video plane is supported. Default: 0
+
+config NXWIDGETS_SERVERPRIO
+	int "NX Server priority"
+	default 51
+	---help---
+		Priority of the NX server.  This applies only if NX is configured in
+		multi-user mode (NX_MULTIUSER=y).  Default: 51.
+
+		NOTE:  Of the three priority definitions here, NXWIDGETS_SERVERPRIO
+		should have the highest priority to avoid data overrun race conditions.
+		Such errors would most likely appear as duplicated rows of data on the
+		display.
+
+config NXWIDGETS_SERVERSTACK
+	int "NX Server Stack Size"
+	default 2048
+	---help---
+		NX server thread stack size (in multi-user mode).  Default 2048
+
+config NXWIDGETS_CLIENTPRIO
+	int "NX Client Priority"
+	default 50
+	---help---
+		The thread that calls CNxServer::connect() will be re-prioritized to
+		this priority.  This applies only if NX is configured in multi-user
+		mode (NX_MULTIUSER=y). Default: 50
+
+config NXWIDGETS_LISTENERPRIO
+	int "NX Listener Priority"
+	default 50
+	---help---
+		Priority of the NX event listener thread. This applies only if NX
+		is configured in multi-user mode (NX_MULTIUSER=y). Default: 50
+
+config NXWIDGETS_LISTENERSTACK
+	int "NX Listener Stack Size"
+	default 2048
+	---help---
+		NX listener thread stack size (in multi-user mode).  Default 2048
+
+config NXWIDGETS_EXTERNINIT
+	bool "Extern LCD Initialization"
+	---help---
+		Define to support external display initialization.
+
+config NXWIDGET_EVENTWAIT
+	bool "Event Waiting"
+	default n
+	---help---
+		Build in support for external window event, modal loop management
+		logic.  This includes methods to wait for windows events to occur
+		so that looping logic can sleep until something interesting happens
+		with the window.
+
+comment "NXWidget Configuration"
+
+config NXWIDGETS_BPP
+	int "BPP"
+	---help---
+		Supported bits-per-pixel {8, 16, 24, 32}.  Default: The smallest
+		BPP configuration supported by NX.
+
+config NXWIDGETS_SIZEOFCHAR
+	int "Size of a character (1 or 2 bytes)
+	range 1 2
+	---help---
+		Size of character {1 or 2 bytes}.  Default Determined by
+		NXWIDGETS_SIZEOFCHAR
+
+comment "NXWidget Default Values"
+
+config NXWIDGETS_DEFAULT_FONTID
+	int "Default Font ID"
+	---help---
+		Default font ID.  Default: NXFONT_DEFAULT
+
+config NXWIDGETS_TNXARRAY_INITIALSIZE
+	int "Initial Size of Dynamic Arrays"
+	default 16
+	---help---
+		Default dynamic array size (in entries).  Default: 16
+
+config NXWIDGETS_TNXARRAY_SIZEINCREMENT
+	int "Dyanamic Array Reallocation Size Increment"
+	default 8
+	---help---
+		Default dynamic array realloctino increment (in entries).  Default: 8
+
+config NXWIDGETS_DEFAULT_BACKGROUNDCOLOR
+	hex "Normal Background Color"
+	---help---
+		Normal background color.  Default: RGB(160,160,160)
+
+config NXWIDGETS_DEFAULT_SELECTEDBACKGROUNDCOLOR
+	hex "Selected Background Color"
+	---help---
+		Default selected background color. Default: RGB(120,192,192)
+
+config NXWIDGETS_DEFAULT_SHINEEDGECOLOR
+	hex "Shiny Edge Color"
+	---help---
+		Shiny side boarder color. Default: RGB(248,248,248)
+
+config NXWIDGETS_DEFAULT_SHADOWEDGECOLOR
+	hex "Shadow Edge Color"
+	---help---
+		Shadowed side border color. Default: RGB(0,0,0)
+
+config NXWIDGETS_DEFAULT_HIGHLIGHTCOLOR
+	hex "Highlight Color"
+	---help---
+		Highlight color.  Default: RGB(192,192,192)
+
+config NXWIDGETS_DEFAULT_DISABLEDTEXTCOLOR
+	hex "Disabled Text Color"
+	---help---
+		Text color on a disabled widget: Default: RGB(192,192,192)
+
+config NXWIDGETS_DEFAULT_ENABLEDTEXTCOLOR
+	hex "Enabled Text Color"
+	---help---
+		Text color on a enabled widget. Default: RGB(248,248,248)
+
+config NXWIDGETS_DEFAULT_SELECTEDTEXTCOLOR
+	hex "Selected Text Color"
+	---help---
+		Text color on a selected widget. Default: RGB(0,0,0)
+
+config NXWIDGETS_DEFAULT_FONTCOLOR
+	hex "Default Font Color"
+	---help---
+		Default font color. Default: RGB(255,255,255)
+
+config NXWIDGETS_TRANSPARENT_COLOR
+	hex "Transparent Color"
+	---help---
+		Transparent color. Default: RGB(0,0,0)
+
+comment "Keypad behavior"
+
+config NXWIDGETS_FIRST_REPEAT_TIME
+	int "First Repeat Time"
+	default 500
+	---help---
+		Time taken before a key starts repeating (in milliseconds).  Default: 500
+
+config NXWIDGETS_CONTINUE_REPEAT_TIME
+	int "Continue Repeat Time"
+	default 200
+	---help---
+		Time taken before a repeating key repeats again (in milliseconds).
+		Default: 200
+
+config NXWIDGETS_DOUBLECLICK_TIME
+	int "Double Click Time"
+	default 350
+	---help---
+		Left button release-press time for double click (in milliseconds).
+		Default: 350
+
+config NXWIDGETS_KBDBUFFER_SIZE
+	int "Keybard Buffer Size"
+	default 16
+	---help---
+		Size of incoming character buffer, i.e., the maximum number of
+		characters that can be entered between NX polling cycles without
+		losing data.
+
+config NXWIDGETS_CURSORCONTROL_SIZE
+	int "Cursor Control Buffer Size"
+	default 4
+	---help---
+		Size of incoming cursor control buffer, i.e., the maximum number
+		of cursor controls that can between entered by NX polling cycles
+		without losing data.  Default: 4
+
+endif
+
+menuconfig NxWM
+	bool "Enable NxWM"
+	default n
+	depends on NxWIDGETS && NX_MULTIUSER
+	---help---
+		Enable support for the NuttX Tiny Window Manager (NxWM)
+
+if NxWM
+comment "General settings"
+
+config NXWM_DEFAULT_FONTID
+	int "Font ID"
+	---help---
+		The NxWM default font ID. Default: NXFONT_DEFAULT
+
+comment "Color configuration"
+
+config NXWM_DEFAULT_BACKGROUNDCOLOR
+	hex "Background Color"
+	---help---
+		Normal background color.  Default: RGB(148,189,215)
+
+config NXWM_DEFAULT_SELECTEDBACKGROUNDCOLOR
+	hex "Normal Background Color"
+	---help---
+		Select background color. Default:  RGB(206,227,241)
+
+config NXWM_DEFAULT_SHINEEDGECOLOR
+	hex "Shiny Edge Color"
+	---help---
+		Color of the bright edge of a border. Default: RGB(255,255,255)
+
+config NXWM_DEFAULT_SHADOWEDGECOLOR
+	hex "Shadow Edge Color"
+	---help---
+		Color of the shadowed edge of a border. Default: RGB(0,0,0)
+
+config NXWM_DEFAULT_FONTCOLOR
+	hex "Default Font Color"
+	---help---
+		Default fong color.  Default: RGB(0,0,0)
+
+config NXWM_TRANSPARENT_COLOR
+	hex "Transparent Color"
+	---help---
+		The "transparent" color.  Default: RGB(0,0,0)
+
+comment "Horizontal and vertical spacing of icons in the task bar"
+
+config NXWM_TASKBAR_VSPACING
+	int "Vertical Spacing"
+	default 2
+	---help---
+		Vertical spacing.  Default: 2 pixels
+
+config NXWM_TASKBAR_HSPACING
+	int "Horizontal Spacing"
+	default 2
+	---help---
+		Horizontal spacing.  Default: 2 rows
+
+choice NXWM_TASKBAR_LOCATION
+	prompt "Taskbar Location"
+	default NXWM_TASKBAR_TOP
+
+config NXWM_TASKBAR_TOP
+	bool "Top"
+	---help---
+		Task bar is at the top of the display
+
+config NXWM_TASKBAR_BOTTOM
+	bool "Bottom"
+	---help---
+		Task bar is at the bottom of the display
+
+config NXWM_TASKBAR_LEFT
+	bool "Left"
+	---help---
+		Task bar is on the left side of the display
+
+config NXWM_TASKBAR_RIGHT
+	bool "Right"
+	---help---
+		Task bar is on the right side of the display
+
+endchoice
+
+config NXWM_TASKBAR_WIDTH
+	int "Taskbar Width"
+	---help---
+		Task bar thickness (either vertical or horizontal).  Default: 25 + 2*spacing
+
+comment "Tool Bar Configuration"
+
+config NXWM_TOOLBAR_HEIGHT
+	int "Toolbar Height"
+	---help---
+		The height of the tool bar in each application window. At present,
+		all icons are 21 pixels in height and, hence, require a task bar of
+		at least that size.
+
+comment "Background Image"
+
+config NXWM_BACKGROUND_IMAGE
+	string "Background Image"
+	---help---
+		The name of the image to use in the background window.  Default:
+		NXWidgets::g_nuttxBitmap
+
+comment "Start Window Configuration"
+
+comment "Horizontal and vertical spacing of icons in the task bar"
+
+config NXWM_STARTWINDOW_VSPACING
+	int "Vertical Spacing"
+	default 4
+	---help---
+		Vertical spacing.  Default: 4 pixels
+
+config NXWM_STARTWINDOW_HSPACING
+	int "Horizontal Spacing"
+	default 4
+	---help---
+		Horizontal spacing.  Default: 4 rows
+
+config NXWM_STARTWINDOW_ICON
+	string "StartWindow Icon"
+	---help---
+		The glyph to use as the start window icon.  Default: NxWM::g_playBitmap
+
+config NXWM_STARTWINDOW_MQNAME
+	string "Message Queue Name"
+	default "/dev/nxwm"
+	---help---
+		The well known name of the message queue. Used to communicated from
+		CWindowMessenger to the start window thread.  Default: "/dev/nxwm"
+
+config NXWM_STARTWINDOW_MXMSGS
+	int "Max Messages"
+	default 32
+	---help---
+		The maximum number of messages to queue before blocking.  Defualt 32
+
+config NXWM_STARTWINDOW_MXMPRIO
+	int "Message Priority"
+	default 42
+	---help---
+		The message priority. Default: 42.
+
+config NXWM_STARTWINDOW_PRIO
+	int "StartWindow Task Priority"
+	default 50
+	---help---
+		Priority of the StartWindow task.  Default: 50.
+
+		NOTE:  This priority should be less than NXWIDGETS_SERVERPRIO or else
+		there may be data overrun errors. Such errors would most likely appear
+		as duplicated rows of data on the display.
+
+config NXWM_STARTWINDOW_STACKSIZE
+	int "StartWindow Task Stack Size"
+	default 2048
+	---help---
+		The stack size to use when starting the StartWindow task.  Default:
+		2048 bytes.
+
+comment "NxConsole Window Configuration"
+
+config NXWM_NXCONSOLE_PRIO
+	int "NxConsole Task Priority"
+	default 50
+	---help---
+		Priority of the NxConsole task.  Default:  50.
+
+		NOTE:  This priority should be less than NXWIDGETS_SERVERPRIO or
+		else there may be data overrun errors. Such errors would most likely
+		appear as duplicated rows of data on the display.
+
+config NXWM_NXCONSOLE_STACKSIZE
+	int "NxConsole Task Stack Size"
+	default 2048
+	---help---
+		The stack size to use when starting the NxConsole task.  Default:
+		2048 bytes.
+
+config NXWM_NXCONSOLE_WCOLOR
+	hex "NxConsole Background Color"
+	---help---
+		The color of the NxConsole window background. Default: 
+		RGB(192,192,192)
+
+config NXWM_NXCONSOLE_FONTCOLOR
+	hex "NxConsole Font Color"
+	---help---
+		The color of the fonts to use in the NxConsole window. 
+		Default: RGB(0,0,0)
+
+config NXWM_NXCONSOLE_FONTID
+	int "NxConsole Font ID"
+	---help---
+		The ID of the font to use in the NxConsole window.  Default:
+		NXWM_DEFAULT_FONTID
+
+config NXWM_NXCONSOLE_ICON
+	string "NxConsole Icon"
+	---help---
+		The glyph to use as the NxConsole icon.  Default: NxWM::g_cmdBitmap
+
+config NXWM_TOUCHSCREEN
+	bool "Touchscreen Support"
+	default y if INPUT
+	default n if !INPUT
+	---help---
+		Define to build in touchscreen support.
+
+if NXWM_TOUCHSCREEN
+comment "Touchscreen device settings"
+
+config NXWM_TOUCHSCREEN_DEVNO
+	int "Touchscreen Device Number"
+	default 0
+	---help---
+		Touchscreen device minor number, i.e., the N in /dev/inputN.
+		Default: 0
+
+config NXWM_TOUCHSCREEN_DEVPATH
+	string "Touchscreen Device Path"
+	default "/dev/input0"
+	---help---
+		The full path to the touchscreen device. Default: "/dev/input0"
+
+config NXWM_TOUCHSCREEN_SIGNO
+	int "Touchscreen Signal Number"
+	default 5
+	---help---
+		The realtime signal used to wake up the touchscreen listener
+		thread.  Default: 5
+
+config NXWM_TOUCHSCREEN_LISTENERPRIO
+	int "Touchscreen Listener Task Priority"
+	default 50
+	---help---
+		Priority of the touchscreen listener thread.  Default: 50
+
+config NXWM_TOUCHSCREEN_LISTENERSTACK
+	int "Touchscreen Listener Task Stack Size"
+	---help---
+		Touchscreen listener thread stack size.  Default 1024
+
+endif
+
+config NXWM_KEYBOARD
+	bool "Keyboard Support"
+	default n
+	---help---
+		Define to build in touchscreen support.
+
+if NXWM_KEYBOARD
+comment "Keyboard device settings"
+
+config NXWM_KEYBOARD_DEVPATH
+	string "Keyboard Device Path"
+	default "/dev/console"
+	---help---
+		The full path to the touchscreen device. Default: "/dev/console"
+
+config NXWM_KEYBOARD_SIGNO
+	int "Keyboard Task Signal Number"
+	default 6
+	---help---
+		The realtime signal used to wake up the touchscreen listener thread.
+		Default: 6
+
+config NXWM_KEYBOARD_BUFSIZE
+	int "Keyboard Buffer Size"
+	default 16
+	---help---
+		The size of the keyboard read data buffer. Default: 16
+
+config NXWM_KEYBOARD_LISTENERPRIO
+	int "Keyboard Listener Task Priority"
+	default 50
+	---help---
+		Priority of the touchscreen listener thread.  Default: 50
+
+config NXWM_KEYBOARD_LISTENERSTACK
+	int "Keyboard Listener Task Stack Size"
+	default 2048
+	---help---
+		Keyboard listener thread stack size.  Default: 1024
+
+endif
+
+comment "Calibration display settings"
+
+config NXWM_CALIBRATION_BACKGROUNDCOLOR
+	hex "Background Color"
+	---help---
+		The background color of the touchscreen calibration display.
+		Default:  Same as NXWM_DEFAULT_BACKGROUNDCOLOR.
+
+config NXWM_CALIBRATION_LINECOLOR
+	hex "Line Color"
+	---help---
+		The color of the lines used in the touchscreen calibration display.
+		Default:  RGB(0, 0, 128) (dark blue)
+
+config NXWM_CALIBRATION_CIRCLECOLOR
+	hex "Normal Circle Color"
+	---help---
+		The color of the circle in the touchscreen calibration display.
+		Default:  RGB(255, 255, 255) (white)
+
+config NXWM_CALIBRATION_TOUCHEDCOLOR
+	hex "Touched Circle Color"
+	---help---
+		The color of the circle in the touchscreen calibration display after
+		the touch is recorder.  Default: RGB(255, 255, 96) (very light yellow)
+
+config NXWM_CALIBRATION_ICON
+	string "Callibration Icon"
+	---help---
+		The ICON to use for the touchscreen calibration application. Default:
+		NxWM::g_calibrationBitmap
+
+config NXWM_CALIBRATION_SIGNO
+	int "Calibration Signal Number"
+	default 5
+	---help---
+		The realtime signal used to wake up the touchscreen calibration
+		thread.  Default: 5
+
+config NXWM_CALIBRATION_LISTENERPRIO
+	int "Calibration Task Priority"
+	default 50
+	---help---
+		Priority of the calibration listener thread.  Default: 50
+
+config NXWM_CALIBRATION_LISTENERSTACK
+	int "Calibration Task Stack Size"
+	default 2048
+	---help---
+		Calibration listener thread stack size.  Default 2048
+
+comment "Calibration display settings"
+
+config NXWM_HEXCALCULATOR_BACKGROUNDCOLOR
+	hex "Calculator Background Color"
+	---help---
+		The background color of the calculator display.  Default:  Same
+		as NXWM_DEFAULT_BACKGROUNDCOLOR
+
+config NXWM_HEXCALCULATOR_ICON
+	string "Calculator Icon"
+	---help---
+		The ICON to use for the hex calculator application.  Default:
+		NxWM::g_calculatorBitmap
+
+config NXWM_HEXCALCULATOR_FONTID
+	int "Calculator Font ID"
+	---help---
+		The font used with the calculator.  Default: NXWM_DEFAULT_FONTID
+
+endif

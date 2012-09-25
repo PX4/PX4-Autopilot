@@ -135,8 +135,7 @@
  * Pre-processor Definitions
  ************************************************************************************/
 /* Configuration **********************************************************************/
-/* 
- * CONFIG_STM32_ILI1505_DISABLE may be defined to disable the LCD_ILI1505
+/* CONFIG_STM32_ILI1505_DISABLE may be defined to disable the LCD_ILI1505
  * CONFIG_STM32_ILI9300_DISABLE may be defined to disable the LCD_ILI9300
  * CONFIG_STM32_ILI9320_DISABLE may be defined to disable the LCD_ILI9320
  * CONFIG_STM32_ILI9321_DISABLE may be defined to disable the LCD_ILI9321

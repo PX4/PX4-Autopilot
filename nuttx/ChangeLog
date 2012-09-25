@@ -3397,3 +3397,6 @@
 	  initial check-in is only for the framework.
 	* configs/shenzhou/src/up_ssd1289.c:  Bit-banging driver is
 	  code complete.
+	* configs/shenzhou/src/up_lcd.c:  Oops. Shenzhou LCD does not
+	  have an SSD1289 controller.  Its an ILI93xx.  Ported the
+	  STM3240G-EVAL ILI93xx driver to work on the Shenzhou board.

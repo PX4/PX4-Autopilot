@@ -270,13 +270,13 @@
  * CONFIG_NXWM_STARTWINDOW_MXMSGS - The maximum number of messages to queue
  *   before blocking.  Defualt 32
  * CONFIG_NXWM_STARTWINDOW_MXMPRIO - The message priority. Default: 42.
- * CONFIG_NXWM_STARTWINDOW_PRIO - Priority of the NxConsole task.  Default:
+ * CONFIG_NXWM_STARTWINDOW_PRIO - Priority of the StartWindoW task.  Default:
  *   SCHED_PRIORITY_DEFAULT.  NOTE:  This priority should be less than
  *   CONFIG_NXWIDGETS_SERVERPRIO or else there may be data overrun errors.
  *   Such errors would most likely appear as duplicated rows of data on the
  *   display.
  * CONFIG_NXWM_STARTWINDOW_STACKSIZE - The stack size to use when starting the
- *   NxConsole task.  Default: 2048 bytes.
+ *   StartWindow task.  Default: 2048 bytes.
  */
 
 #ifndef CONFIG_NXWM_STARTWINDOW_VSPACING
@@ -421,7 +421,7 @@
 /**
  * Keyboard device settings
  *
- * CONFIG_NXWM_KEYBOARD_DEVNO - The full path to the touchscreen device.
+ * CONFIG_NXWM_KEYBOARD_DEVPATH - The full path to the keyboard device.
  *   Default: "/dev/console"
  * CONFIG_NXWM_KEYBOARD_SIGNO - The realtime signal used to wake up the
  *   touchscreen listener thread.  Default: 6
@@ -464,16 +464,16 @@
  *   touchscreen calibration display.  Default:  MKRGB(0, 0, 128) (dark blue)
  * CONFIG_NXWM_CALIBRATION_CIRCLECOLOR - The color of the circle in the
  *   touchscreen calibration display.  Default:  MKRGB(255, 255, 255) (white)
- * CONFIG_NXWM_CALIBRATION_CIRCLECOLOR - The color of the circle in the
+ * CONFIG_NXWM_CALIBRATION_TOUCHEDCOLOR - The color of the circle in the
  *   touchscreen calibration display after the touch is recorder.  Default: 
  *   MKRGB(255, 255, 96) (very light yellow)
  * CONFIG_NXWM_CALIBRATION_ICON - The ICON to use for the touchscreen
  *   calibration application.  Default:  NxWM::g_calibrationBitmap
  * CONFIG_NXWM_CALIBRATION_SIGNO - The realtime signal used to wake up the
  *   touchscreen calibration thread.  Default: 5
- * CONFIG_NXWM_CALIBRATION_LISTENERPRIO - Priority of the touchscreen listener
+ * CONFIG_NXWM_CALIBRATION_LISTENERPRIO - Priority of the calibration listener
  *   thread.  Default: SCHED_PRIORITY_DEFAULT
- * CONFIG_NXWM_CALIBRATION_LISTENERSTACK - Touchscreen listener thread stack
+ * CONFIG_NXWM_CALIBRATION_LISTENERSTACK - Calibration listener thread stack
  *   size.  Default 2048
  */
 

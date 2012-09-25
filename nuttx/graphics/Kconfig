@@ -11,6 +11,16 @@ config NX
 
 if NX
 
+config NX_LCDDRIVER
+	bool "LCD driver"
+	default y
+	depends on LCD
+	---help---
+		By default, the NX graphics system uses the frame buffer driver interface
+		defined in include/nuttx/fb.h.  However, if LCD is support is enabled,
+		this this option is provide to select, instead, the LCD driver interface
+		defined in include/nuttx/lcd/lcd.h.
+
 config NX_NPLANES
 	int "Number of Color Planes"
 	default 1
@@ -21,8 +31,8 @@ config NX_NPLANES
 
 config NX_WRITEONLY
 	bool "Write-only Graphics Device"
-	default y if NX_LCDDRIVER && NX_LCDDRIVER
-	default n if !NX_LCDDRIVER || !NX_LCDDRIVER
+	default y if NX_LCDDRIVER && LCD_NOGETRUN
+	default n if !NX_LCDDRIVER || !LCD_NOGETRUN
 	---help---
 		Define if the underlying graphics device does not support read operations.
 		Automatically defined if NX_LCDDRIVER and LCD_NOGETRUN are

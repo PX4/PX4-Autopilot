@@ -4,4 +4,76 @@
 #
 
 if ARCH_BOARD_SHENZHOU
+
+if LCD
+menu "LCD Controller Selection"
+
+comment "Disable Unused LCD Controllers"
+
+config STM32_ILI1505_DISABLE
+	bool "Disable ILI1505"
+	default n
+	---help---
+		This may be defined to disable support for the ILI1505 LCD controller
+		You might want to eliminate unused LCD controll support in order to
+		reduce the FLASH footprint.
+
+config STM32_ILI9300_DISABLE
+	bool "Disable ILI9300"
+	default n
+	---help---
+		This may be defined to disable support for the ILI9300 LCD controller
+		You might want to eliminate unused LCD controll support in order to
+		reduce the FLASH footprint.
+
+config STM32_ILI9320_DISABLE
+	bool "Disable ILI9320"
+	default n
+	---help---
+		This may be defined to disable support for the ILI9320 LCD controller
+		You might want to eliminate unused LCD controll support in order to
+		reduce the FLASH footprint.
+
+config STM32_ILI9321_DISABLE
+	bool "Disable ILI9321"
+	default n
+	---help---
+		This may be defined to disable support for the ILI9321 LCD controller
+		You might want to eliminate unused LCD controll support in order to
+		reduce the FLASH footprint.
+
+config STM32_ILI9325_DISABLE
+	bool "Disable ILI9325"
+	default n
+	---help---
+		This may be defined to disable support for the ILI9325 LCD controller
+		You might want to eliminate unused LCD controll support in order to
+		reduce the FLASH footprint.
+
+config STM32_ILI9328_DISABLE
+	bool "Disable ILI9328"
+	default n
+	---help---
+		This may be defined to disable support for the ILI9328 LCD controller
+		You might want to eliminate unused LCD controll support in order to
+		reduce the FLASH footprint.
+
+config STM32_ILI9331_DISABLE
+	bool "Disable ILI9331"
+	default n
+	---help---
+		This may be defined to disable support for the ILI9331 LCD controller
+		You might want to eliminate unused LCD controll support in order to
+		reduce the FLASH footprint.
+
+config STM32_ILI9919_DISABLE
+	bool "Disable ILI9919"
+	default n
+	---help---
+		This may be defined to disable support for the ILI9919 LCD controller
+		You might want to eliminate unused LCD controll support in order to
+		reduce the FLASH footprint.
+
+endmenu
+endif
 endif

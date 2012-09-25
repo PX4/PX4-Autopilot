@@ -2,6 +2,21 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
+config LCD_NOGETRUN
+	bool "Write-only LCD"
+	default n
+	---help---
+		Many LCD hardware interfaces provide only minimal graphics capability.  In
+		particulary, many simple LCD interfaces are write only.  That is we, can
+		write graphics data to the LCD device memory, but we cannot read it back.
+		If the LCD hardware does not support reading the graphics memory, then
+		this option should be defined so that the NX layer can taking alternative
+		measures when the LCD is not readable.  For example, if the LCD is not
+		readable, then NX will not attempt to support transparency.
+
+		See also NX_WRITEONLY in the graphics support menu.
+
 config LCD_MAXCONTRAST
 	int "LCD maximum contrast"
 	default 63 if NOKIA6100_S1D15G10

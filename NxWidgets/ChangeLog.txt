@@ -163,3 +163,6 @@
 * UnitTests/*/main.cxx:  Change entry point name to be consistent
   with with entry point naming conventions introduced in NuttX
   6.22.
+* Kconfig:  Added a mconfig configuration file.  Eventually, NxWidgets
+  needs to get hooked into the NuttX mconf configuration.  Still not
+  exactly sure how to do that.

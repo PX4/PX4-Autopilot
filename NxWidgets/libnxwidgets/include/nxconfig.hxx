@@ -117,7 +117,7 @@
  *   Default: MKRGB(192,192,192)
  * CONFIG_NXWIDGETS_DEFAULT_ENABLEDTEXTCOLOR - Text color on a enabled widget:
  *   Default: MKRGB(248,248,248)
- * CONFIG_NXWIDGETS_DEFAULT_DISABLEDTEXTCOLOR - Text color on a selected widget:
+ * CONFIG_NXWIDGETS_DEFAULT_SELECTEDTEXTCOLOR - Text color on a selected widget:
  *   Default: MKRGB(0,0,0)
  * CONFIG_NXWIDGETS_DEFAULT_FONTCOLOR - Default font color: Default:
  *   MKRGB(255,255,255)

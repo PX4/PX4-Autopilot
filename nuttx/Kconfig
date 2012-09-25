@@ -286,6 +286,13 @@ config DEBUG_GRAPHICS
 	---help---
 		Enable NX graphics debug output (disabled by default)
 
+config DEBUG_LCD
+	bool "Enable low-leve LCD debug output"
+	default n
+	depends on LCD
+	---help---
+		Enable low level debug output from the LCD driver (disabled by default)
+
 config DEBUG_I2C
 	bool "Enable I2C debug output"
 	default n
