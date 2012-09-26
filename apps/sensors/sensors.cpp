@@ -968,7 +968,7 @@ Sensors::ppm_poll()
 			_rc.chan[i].scaled = (ppm_buffer[i] - _parameters.trim[i]) / (float)(_parameters.max[i] - _parameters.trim[i]);
 		} else if (ppm_buffer[i] < (_parameters.trim[i] - _parameters.dz[i])) {
 			/* division by zero impossible for trim == min (as for throttle), as this falls in the above if clause */
-			_rc.chan[i].scaled = -1.0f + ((ppm_buffer[i] - _parameters.min[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
+			_rc.chan[i].scaled = -((_parameters.trim[i] - ppm_buffer[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
 			
 		} else {
 			/* in the configured dead zone, output zero */
@@ -1029,6 +1029,8 @@ Sensors::ppm_poll()
 
 	orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
 	orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual_control);
+
+//	printf("SENSORS: Roll: %4.4f, Pitch: %4.4f, Yaw: %4.4f, Thrust: %4.4f\n",manual_control.roll, manual_control.pitch, manual_control.yaw, manual_control.throttle);
 }
 #endif
 

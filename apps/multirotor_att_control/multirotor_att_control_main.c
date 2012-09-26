@@ -127,8 +127,8 @@ static void *rate_control_thread_main(void *arg)
 				gyro_lp[1] = gyro_report.y;
 				gyro_lp[2] = gyro_report.z;
 
-//				multirotor_control_rates(&rates_sp, gyro_lp, &actuators);
-//				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+				multirotor_control_rates(&rates_sp, gyro_lp, &actuators);
+				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 			// }
 		}
 	}
@@ -192,10 +192,10 @@ mc_thread_main(int argc, char *argv[])
 
 	/* ready, spawn pthread */
 	pthread_attr_t rate_control_attr;
-	pthread_attr_init(&rate_control_attr);
-	pthread_attr_setstacksize(&rate_control_attr, 2048);
-	pthread_t rate_control_thread;
-	pthread_create(&rate_control_thread, &rate_control_attr, rate_control_thread_main, NULL);
+//	pthread_attr_init(&rate_control_attr);
+//	pthread_attr_setstacksize(&rate_control_attr, 2048);
+//	pthread_t rate_control_thread;
+//	pthread_create(&rate_control_thread, &rate_control_attr, rate_control_thread_main, NULL);
 
 	while (!thread_should_exit) {
 
@@ -306,7 +306,7 @@ mc_thread_main(int argc, char *argv[])
 	perf_print_counter(mc_loop_perf);
 	perf_free(mc_loop_perf);
 
-	pthread_join(rate_control_thread, NULL);
+	//pthread_join(rate_control_thread, NULL);
 
 	fflush(stdout);
 	exit(0);
@@ -340,6 +340,7 @@ int multirotor_att_control_main(int argc, char *argv[])
 		default:
 			fprintf(stderr, "option: -%c\n", ch);
 			usage("unrecognized option");
+			break;
 		}
 	}
 	argc -= optioncount;
