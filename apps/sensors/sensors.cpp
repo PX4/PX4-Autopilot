@@ -968,7 +968,7 @@ Sensors::ppm_poll()
 			_rc.chan[i].scaled = (ppm_buffer[i] - _parameters.trim[i]) / (float)(_parameters.max[i] - _parameters.trim[i]);
 		} else if (ppm_buffer[i] < (_parameters.trim[i] - _parameters.dz[i])) {
 			/* division by zero impossible for trim == min (as for throttle), as this falls in the above if clause */
-			_rc.chan[i].scaled = -1.0f + ((ppm_buffer[i] - _parameters.min[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
+			_rc.chan[i].scaled = -((_parameters.trim[i] - ppm_buffer[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
 			
 		} else {
 			/* in the configured dead zone, output zero */
