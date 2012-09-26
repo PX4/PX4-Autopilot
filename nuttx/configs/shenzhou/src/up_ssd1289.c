@@ -160,7 +160,7 @@ static void stm32_lcdoutput(FAR struct stm32_lower_s *priv);
  * 80 PC12 SPI3_MOSI      To TFT LCD (CN13, pin 27)
  * 58 PD11 SD_CS          Active low: Pulled high (See also TFT LCD CN13, pin 32)
  * 60 PD13 LCD_RS         To TFT LCD (CN13, pin 20)
- * 61 PD14 LCD_WR         To TFT LCD (CN13, pin 21)
+ * 61 PD14 LCD_WR         To TFT LCD (CN13, pin 21). Schematic is wrong LCD_WR is PB14.
  * 62 PD15 LCD_RD         To TFT LCD (CN13, pin 22)
  * 97 PE0  DB00           To TFT LCD (CN13, pin 3)
  * 98 PE1  DB01           To TFT LCD (CN13, pin 4)
@@ -312,6 +312,9 @@ static void stm32_wrdata(FAR struct stm32_lower_s *priv, uint16_t data)
 
   putreg32(1, LCD_WR_CLEAR);
   putreg32((uint32_t)data, LCD_ODR);
+
+  /* Total WR pulse with should be 50ns wide. */
+
   putreg32(1, LCD_WR_SET);
 }
 
@@ -326,6 +329,8 @@ static void stm32_wrdata(FAR struct stm32_lower_s *priv, uint16_t data)
 #ifndef CONFIG_SSD1289_WRONLY
 static inline uint16_t stm32_rddata(FAR struct stm32_lower_s *priv)
 {
+  uint16_t regval;
+
   /* Make sure D0-D15 are configured as inputs */
 
   stm32_lcdinput(priv);
@@ -333,8 +338,13 @@ static inline uint16_t stm32_rddata(FAR struct stm32_lower_s *priv)
   /* Toggle the RD line to latch the 16-bit LCD data */
 
   putreg32(1, LCD_RD_CLEAR);
+
+  /* Data should appear 250ns after RD.  Total RD pulse width should be 500nS */
+
+  __asm__ __volatile__(" nop\n nop\n nop\n nop\n");
+  regval = (uint16_t)getreg32(LCD_IDR);
   putreg32(1, LCD_RD_SET);
-  return (uint16_t)getreg32(LCD_IDR);
+  return regval;
 }
 #endif
 

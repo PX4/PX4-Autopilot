@@ -3415,4 +3415,6 @@
 	  configuration.
 	* configs/shenzhou:  Oops.  The Shenzhou LCD is and SSD1289,
 	  not an ILI93xx.
+	* configs/shenzhou/src/up_ssd1289.c: The LCD is basically functional
+	  on the Shenzhou board.
 

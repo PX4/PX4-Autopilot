@@ -164,7 +164,7 @@
  * 80 PC12 SPI3_MOSI      To TFT LCD (CN13, pin 27)
  * 58 PD11 SD_CS          Active low: Pulled high (See also TFT LCD CN13, pin 32)
  * 60 PD13 LCD_RS         To TFT LCD (CN13, pin 20)
- * 61 PD14 LCD_WR         To TFT LCD (CN13, pin 21)
+ * 61 PD14 LCD_WR         To TFT LCD (CN13, pin 21). Schematic is wrong LCD_WR is PB14.
  * 62 PD15 LCD_RD         To TFT LCD (CN13, pin 22)
  * 97 PE0  DB00           To TFT LCD (CN13, pin 3)
  * 98 PE1  DB01           To TFT LCD (CN13, pin 4)
@@ -281,7 +281,7 @@
 #define GPIO_LCD_RD     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
                          GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN15)
 #define GPIO_LCD_WR     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
-                         GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN14)
+                         GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN14)
 #define GPIO_LCD_LE     (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
                          GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN2)
 
@@ -307,9 +307,9 @@
 #define LCD_RD_CLEAR    LCD_BIT_CLEAR(STM32_GPIOD_OFFSET, 15) /* GPIO_PORTD|GPIO_PIN15 */
 #define LCD_RD_SET      LCD_BIT_SET(STM32_GPIOD_OFFSET, 15)
 #define LCD_RD_READ     LCD_BIT_READ(STM32_GPIOD_OFFSET, 15)
-#define LCD_WR_CLEAR    LCD_BIT_CLEAR(STM32_GPIOD_OFFSET, 14) /* GPIO_PORTD|GPIO_PIN14 */
-#define LCD_WR_SET      LCD_BIT_SET(STM32_GPIOD_OFFSET, 14)
-#define LCD_WR_READ     LCD_BIT_READ(STM32_GPIOD_OFFSET, 14)
+#define LCD_WR_CLEAR    LCD_BIT_CLEAR(STM32_GPIOB_OFFSET, 14) /* GPIO_PORTB|GPIO_PIN14 */
+#define LCD_WR_SET      LCD_BIT_SET(STM32_GPIOB_OFFSET, 14)
+#define LCD_WR_READ     LCD_BIT_READ(STM32_GPIOB_OFFSET, 14)
 #define LCD_LE_CLEAR    LCD_BIT_CLEAR(STM32_GPIOB_OFFSET, 2)  /* GPIO_PORTB|GPIO_PIN2 */
 #define LCD_LE_SET      LCD_BIT_SET(STM32_GPIOB_OFFSET, 2)
 #define LCD_LE_READ     LCD_BIT_READ(STM32_GPIOB_OFFSET, 2)
@@ -383,7 +383,7 @@
  * -- ---- -------------- -------------------------------------------------------------------
  * PN NAME SIGNAL         NOTES
  * -- ---- -------------- -------------------------------------------------------------------
- * 53 PB14 SD_CD          Active low: Pulled high
+ * 53 PB14 SD_CD          Active low: Pulled high. Schematic is wrong LCD_WR is PB14.
  * 58 PD11 SD_CS          Active low: Pulled high (See also TFT LCD CN13, pin 32)
  */
 

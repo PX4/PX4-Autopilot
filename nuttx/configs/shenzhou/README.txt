@@ -94,7 +94,7 @@ PN NAME SIGNAL         NOTES
         MII_TXD0       Ethernet PHY
 52 PB13 I2S_CK         Audio DAC
         MII_TXD1       Ethernet PHY
-53 PB14 SD_CD
+53 PB14 SD_CD          There is confusion here.  Schematic is wrong LCD_WR is PB14.
 54 PB15 I2S_DIN        Audio DAC
 
 -- ---- -------------- -------------------------------------------------------------------
@@ -139,7 +139,7 @@ PN NAME SIGNAL         NOTES
 58 PD11 SD_CS          Active low: Pulled high (See also TFT LCD CN13, pin 32)
 59 PD12 WIRELESS_CS    To the NRF24L01 2.4G wireless module
 60 PD13 LCD_RS         To TFT LCD (CN13)
-61 PD14 LCD_WR         To TFT LCD (CN13)
+61 PD14 LCD_WR         To TFT LCD (CN13). Schematic is wrong LCD_WR is PB14.
 62 PD15 LCD_RD         To TFT LCD (CN13)
 
 -- ---- -------------- -------------------------------------------------------------------

@@ -49,7 +49,7 @@
  * 80 PC12 SPI3_MOSI      To TFT LCD (CN13, pin 27)
  * 58 PD11 SD_CS          Active low: Pulled high (See also TFT LCD CN13, pin 32)
  * 60 PD13 LCD_RS         To TFT LCD (CN13, pin 20)
- * 61 PD14 LCD_WR         To TFT LCD (CN13, pin 21)
+ * 61 PD14 LCD_WR         To TFT LCD (CN13, pin 21). Schematic is wrong LCD_WR is PB14.
  * 62 PD15 LCD_RD         To TFT LCD (CN13, pin 22)
  * 97 PE0  DB00           To TFT LCD (CN13, pin 3)
  * 98 PE1  DB01           To TFT LCD (CN13, pin 4)

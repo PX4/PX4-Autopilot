@@ -238,6 +238,8 @@ config DEBUG_ENABLE
 	---help---
 		Support an interface to dynamically enable or disable debug output.
 
+comment "Subsystem Debug Options"
+
 config DEBUG_SCHED
 	bool "Enable Scheduler Debug Output"
 	default n
@@ -287,6 +289,8 @@ config DEBUG_GRAPHICS
 	default n
 	---help---
 		Enable NX graphics debug output (disabled by default)
+
+comment "Driver Debug Options"
 
 config DEBUG_LCD
 	bool "Enable Low-level LCD Debug Output"
