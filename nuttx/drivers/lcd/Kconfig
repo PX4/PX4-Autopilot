@@ -43,6 +43,7 @@ config LCD_P14201
 		p14201.c.  Driver for RiT P14201 series display with SD1329 IC
 		controller.  This OLED is used with older versions of the
 		TI/Luminary LM3S8962 Evaluation Kit.
+
 if LCD_P14201
 config P14201_NINTERFACES
 	int "Number of physical P14201 devices"
@@ -188,6 +189,33 @@ config LCD_UG9664HSWAG01
 		ug-9664hswag01.c.  OLED Display Module, UG-9664HSWAG01", Univision
 		Technology Inc.  Used with the LPC Xpresso and Embedded Artists
 		base board.
+
+config LCD_SSD1289
+	bool "LCD Based on SSD1289 Controller"
+	default n
+	---help---
+		Enables generic support for any LCD based on the Solomon Systech,
+		Ltd, SSD1289 Controller.  Use of this driver will usually require so
+		detailed customization of the LCD initialization code as necessary
+		for the specific LCD driven by the SSD1289 controller.
+
+if LCD_SSD1289
+
+choice
+	prompt "SSD1289 Initialization Profile"
+	default SSD1289_PROFILE1
+
+config SSD1289_PROFILE1
+	bool "Profile 1"
+
+config SSD1289_PROFILE2
+	bool "Profile 2"
+
+config SSD1289_PROFILE3
+	bool "Profile 3"
+
+endchoice
+endif
 
 choice
 	prompt "LCD Orientation"

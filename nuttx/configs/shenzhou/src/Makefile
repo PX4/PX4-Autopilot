@@ -89,7 +89,7 @@ endif
 ifeq ($(CONFIG_LCD_SSD1289),y)
 CSRCS		+= up_ssd1289.c
 else
-CSRCS		+= up_lcd.c
+CSRCS		+= up_ili93xx.c
 endif
 
 ifeq ($(CONFIG_INPUT_ADS7843E),y)

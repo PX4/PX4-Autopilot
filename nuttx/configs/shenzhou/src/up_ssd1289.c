@@ -76,6 +76,7 @@
 #  undef CONFIG_DEBUG_VERBOSE
 #  undef CONFIG_DEBUG_GRAPHICS
 #  undef CONFIG_DEBUG_LCD
+#  undef CONFIG_LCD_REGDEBUG
 #endif
 
 #ifndef CONFIG_DEBUG_VERBOSE
@@ -100,14 +101,29 @@
  * Private Type Definition
  ************************************************************************************/
 
+/* This structure describes the state of this driver */
+
+struct stm32_lower_s
+{
+  struct ssd1289_lcd_s  dev;    /* This is externally visible the driver state */
+  FAR struct lcd_dev_s *drvr;   /* The saved instance of the LCD driver */
+  bool                  output; /* True: Configured for output */
+};
+
 /**************************************************************************************
  * Private Function Protototypes
  **************************************************************************************/
 /* Helpers */
 
-static void stm32_wrdata(uint16_t data);
+#ifdef CONFIG_LCD_REGDEBUG
+static void stm32_lcdshow(FAR struct stm32_lower_s *priv, FAR const char *msg);
+#else
+#  define stm32_lcdshow(p,m)
+#endif
+
+static void stm32_wrdata(FAR struct stm32_lower_s *priv, uint16_t data);
 #ifndef CONFIG_SSD1289_WRONLY
-static uint16_t stm32_rddata(void);
+static inline uint16_t stm32_rddata(FAR struct stm32_lower_s *priv);
 #endif
 
 /* Low Level LCD access */
@@ -120,6 +136,11 @@ static uint16_t stm32_read(FAR struct ssd1289_lcd_s *dev);
 #endif
 static void stm32_write(FAR struct ssd1289_lcd_s *dev, uint16_t data);
 static void stm32_backlight(FAR struct ssd1289_lcd_s *dev, int power);
+
+/* Initialization */
+
+static void stm32_lcdinput(FAR struct stm32_lower_s *priv);
+static void stm32_lcdoutput(FAR struct stm32_lower_s *priv);
 
 /************************************************************************************
  * Private Data
@@ -224,27 +245,54 @@ static const uint32_t g_lcdconfig[] =
 };
 #define NLCD_CONFIG (sizeof(g_lcdconfig)/sizeof(uint32_t))
 
-/* This is the driver state structure (there is no retained state information) */
+/* Driver state structure (only supports one LCD) */
 
-static struct ssd1289_lcd_s g_ssd1289 =
+static struct stm32_lower_s g_lcdlower =
 {
-  .select    = stm32_select,
-  .deselect  = stm32_deselect,
-  .index     = stm32_index,
+  {
+    .select    = stm32_select,
+    .deselect  = stm32_deselect,
+    .index     = stm32_index,
 #ifndef CONFIG_SSD1289_WRONLY
-  .read      = stm32_read,
+    .read      = stm32_read,
 #endif
-  .write     = stm32_write,
-  .backlight = stm32_backlight
+    .write     = stm32_write,
+    .backlight = stm32_backlight
+  },
+  .drvr        = NULL,
+  .output      = false
 };
-
-/* The saved instance of the LCD driver */
-
-static FAR struct lcd_dev_s *g_ssd1289drvr;
 
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
+
+/************************************************************************************
+ * Name: stm32_lcdshow
+ *
+ * Description:
+ *   Show the state of the interface
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_LCD_REGDEBUG
+static void stm32_lcdshow(FAR struct stm32_lower_s *priv, FAR const char *msg)
+{
+  dbg("%s:\n", msg);
+  dbg("  CRTL   RS: %d CS: %d RD: %d WR: %d LE: %d\n",
+      getreg32(LCD_RS_READ), getreg32(LCD_CS_READ), getreg32(LCD_RD_READ),
+      getreg32(LCD_WR_READ), getreg32(LCD_LE_READ));
+  dbg("  DATA   CR: %08x %08x\n", getreg32(LCD_CRL), getreg32(LCD_CRH));
+  if (priv->output)
+    {
+      dbg("  OUTPUT: %08x\n", getreg32(LCD_ODR));
+    }
+  else
+    {
+      dbg("  INPUT:  %08x\n", getreg32(LCD_IDR));
+    }
+}
+#endif
 
 /************************************************************************************
  * Name: stm32_wrdata
@@ -254,11 +302,11 @@ static FAR struct lcd_dev_s *g_ssd1289drvr;
  *
  ************************************************************************************/
 
-static void stm32_wrdata(uint16_t data)
+static void stm32_wrdata(FAR struct stm32_lower_s *priv, uint16_t data)
 {
   /* Make sure D0-D15 are configured as outputs */
 
-  stm32_lcdoutput();
+  stm32_lcdoutput(priv);
 
   /* Latch the 16-bit LCD data and toggle the WR line */
 
@@ -276,18 +324,17 @@ static void stm32_wrdata(uint16_t data)
  ************************************************************************************/
 
 #ifndef CONFIG_SSD1289_WRONLY
-static uint16_t stm32_rddata(void);
+static inline uint16_t stm32_rddata(FAR struct stm32_lower_s *priv)
 {
   /* Make sure D0-D15 are configured as inputs */
 
-  stm32_lcdinput();
+  stm32_lcdinput(priv);
 
   /* Toggle the RD line to latch the 16-bit LCD data */
 
-#warning "Requires pins configured as inputs"
   putreg32(1, LCD_RD_CLEAR);
   putreg32(1, LCD_RD_SET);
-  return (uin16_t)getreg32(LCD_IDR);
+  return (uint16_t)getreg32(LCD_IDR);
 }
 #endif
 
@@ -322,7 +369,7 @@ static void stm32_deselect(FAR struct ssd1289_lcd_s *dev)
 }
 
 /************************************************************************************
- * Name: stm32_deselect
+ * Name: stm32_index
  *
  * Description:
  *   Set the index register
@@ -331,13 +378,15 @@ static void stm32_deselect(FAR struct ssd1289_lcd_s *dev)
 
 static void stm32_index(FAR struct ssd1289_lcd_s *dev, uint8_t index)
 {
-  /* Clear the RS signal */
+  FAR struct stm32_lower_s *priv = (FAR struct stm32_lower_s *)dev;
 
-  putreg32(1, LCD_RS_CLR);
+  /* Clear the RS signal to select the index address */
+
+  putreg32(1, LCD_RS_CLEAR);
 
   /* And write the index */
 
-  stm32_wrdata((uint16_t)index);
+  stm32_wrdata(priv, (uint16_t)index);
 }
 
 /************************************************************************************
@@ -351,13 +400,15 @@ static void stm32_index(FAR struct ssd1289_lcd_s *dev, uint8_t index)
 #ifndef CONFIG_SSD1289_WRONLY
 static uint16_t stm32_read(FAR struct ssd1289_lcd_s *dev)
 {
-  /* Set the RS signal */
+  FAR struct stm32_lower_s *priv = (FAR struct stm32_lower_s *)dev;
 
-  putreg32(1, LCD_RS_CLR);
+  /* Set the RS signal to select the data address */
 
-  /* And return the data */
+  putreg32(1, LCD_RS_SET);
 
-  return stm32_rddata();
+  /* Read and return the data */
+
+  return stm32_rddata(priv);
 }
 #endif
 
@@ -371,13 +422,15 @@ static uint16_t stm32_read(FAR struct ssd1289_lcd_s *dev)
 
 static void stm32_write(FAR struct ssd1289_lcd_s *dev, uint16_t data)
 {
-  /* Set the RS signal */
+  FAR struct stm32_lower_s *priv = (FAR struct stm32_lower_s *)dev;
 
-  putreg32(1, LCD_RS_CLR);
+  /* Set the RS signal to select the data address */
+
+  putreg32(1, LCD_RS_SET);
 
   /* And write the data */
 
-  stm32_wrdata(data);
+  stm32_wrdata(priv, data);
 }
 
 /************************************************************************************
@@ -401,21 +454,31 @@ static void stm32_backlight(FAR struct ssd1289_lcd_s *dev, int power)
  *
  ************************************************************************************/
 
-static void stm32_lcdinput(void)
+static void stm32_lcdinput(FAR struct stm32_lower_s *priv)
 {
-#ifdef CONFIG_LCD_FASTCONFIG
-  putreg32(LCD_INPUT, LCD_CRL);
-  putreg32(LCD_INPUT, LCD_CRH);
-#else
+#ifndef CONFIG_LCD_FASTCONFIG
   int i;
-
-  /* Configure GPIO data lines as inputs */
-
-  for (i = 0; i < 16; i++)
-    {
-      stm32_configgpio(g_lcdin[i]);
-    }
 #endif
+
+  /* Check if we are already configured for input */
+
+  if (priv->output)
+    {
+      /* Configure GPIO data lines as inputs */
+
+#ifdef CONFIG_LCD_FASTCONFIG
+      putreg32(LCD_INPUT, LCD_CRL);
+      putreg32(LCD_INPUT, LCD_CRH);
+#else
+      for (i = 0; i < 16; i++)
+        {
+          stm32_configgpio(g_lcdin[i]);
+        }
+#endif
+      /* No longer configured for output */
+
+      priv->output = false;
+    }
 }
 
 /************************************************************************************
@@ -426,15 +489,30 @@ static void stm32_lcdinput(void)
  *
  ************************************************************************************/
 
-static void stm32_lcdoutput(void)
+static void stm32_lcdoutput(FAR struct stm32_lower_s *priv)
 {
+#ifndef CONFIG_LCD_FASTCONFIG
   int i;
+#endif
 
-  /* Configure GPIO data lines as outputs */
+  /* Check if we are already configured for output */
 
-  for (i = 0; i < 16; i++)
+  if (!priv->output)
     {
-      stm32_configgpio(g_lcdout[i]);
+      /* Configure GPIO data lines as outputs */
+
+#ifdef CONFIG_LCD_FASTCONFIG
+      putreg32(LCD_OUTPUT, LCD_CRL);
+      putreg32(LCD_OUTPUT, LCD_CRH);
+#else
+      for (i = 0; i < 16; i++)
+        {
+          stm32_configgpio(g_lcdout[i]);
+        }
+#endif
+      /* Now we are configured for output */
+
+      priv->output = true;
     }
 }
 
@@ -454,17 +532,18 @@ static void stm32_lcdoutput(void)
 
 int up_lcdinitialize(void)
 {
+  FAR struct stm32_lower_s *priv = &g_lcdlower;
   int i;
 
   /* Only initialize the driver once */
 
-  if (!g_ssd1289drvr)
+  if (!priv->drvr)
     {
       lcdvdbg("Initializing\n");
 
       /* Configure GPIO pins */
 
-      stm32_lcdoutput();
+      stm32_lcdoutput(priv);
       for (i = 0; i < NLCD_CONFIG; i++)
         {
           stm32_configgpio(g_lcdconfig[i]);
@@ -472,8 +551,8 @@ int up_lcdinitialize(void)
 
       /* Configure and enable the LCD */
 
-      g_ssd1289drvr = ssd1289_lcdinitialize(&g_ssd1289);
-      if (!g_ssd1289drvr)
+      priv->drvr = ssd1289_lcdinitialize(&priv->dev);
+      if (!priv->drvr)
         {
           lcddbg("ERROR: ssd1289_lcdinitialize failed\n");
           return -ENODEV;
@@ -482,7 +561,7 @@ int up_lcdinitialize(void)
 
   /* Turn the display off */
 
-  g_ssd1289drvr->setpower(g_ssd1289drvr, 0);
+  priv->drvr->setpower(priv->drvr, 0);
   return OK;
 }
 
@@ -497,8 +576,9 @@ int up_lcdinitialize(void)
 
 FAR struct lcd_dev_s *up_lcdgetdev(int lcddev)
 {
+  FAR struct stm32_lower_s *priv = &g_lcdlower;
   DEBUGASSERT(lcddev == 0);
-  return g_ssd1289drvr;
+  return priv->drvr;
 }
 
 /************************************************************************************
@@ -511,9 +591,11 @@ FAR struct lcd_dev_s *up_lcdgetdev(int lcddev)
 
 void up_lcduninitialize(void)
 {
+  FAR struct stm32_lower_s *priv = &g_lcdlower;
+
   /* Turn the display off */
 
-  g_ssd1289drvr->setpower(g_ssd1289drvr, 0);
+  priv->drvr->setpower(priv->drvr, 0);
 }
 
 #endif /* CONFIG_LCD_SSD1289 */

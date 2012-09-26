@@ -216,7 +216,7 @@ endmenu
 menu "Debug Options"
 
 config DEBUG
-	bool "Enable debug features"
+	bool "Enable Debug Features"
 	default n
 	---help---
 		Enables built-in debug features.  Selecting this option will (1) Enable
@@ -227,94 +227,107 @@ config DEBUG
 
 if DEBUG
 config DEBUG_VERBOSE
-	bool "Enable debug verbose output"
+	bool "Enable Debug Verbose Output"
 	default n
 	---help---
 		Enables verbose debug output (assuming debug output is enabled)
 
 config DEBUG_ENABLE
-	bool "Enable debug controls"
+	bool "Enable Debug Controls"
 	default n
 	---help---
 		Support an interface to dynamically enable or disable debug output.
 
 config DEBUG_SCHED
-	bool "Enable scheduler debug output"
+	bool "Enable Scheduler Debug Output"
 	default n
 	---help---
 		Enable OS debug output (disabled by default)
 
 config DEBUG_MM
-	bool "Enable memory manager debug output"
+	bool "Enable Memory Manager Debug Output"
 	default n
 	---help---
 		Enable memory management debug output (disabled by default)
 
 config DEBUG_NET
-	bool "Enable network debug output"
+	bool "Enable Network Debug Output"
 	default n
+	depends on NET
 	---help---
 		Enable network debug output (disabled by default)
 
 config DEBUG_USB
-	bool "Enable USB debug output"
+	bool "Enable USB Debug Output"
 	default n
+	depends on USBDEV || USBHOST
 	---help---
 		Enable usb debug output (disabled by default)
 
 config DEBUG_FS
-	bool "Enable file system debug output"
+	bool "Enable File System Debug Output"
 	default n
 	---help---
 		Enable file system debug output (disabled by default)
 
 config DEBUG_LIB
-	bool "Enable C library debug output"
+	bool "Enable C Library Debug Output"
 	default n
 	---help---
 		Enable C library debug output (disabled by default)
 
 config DEBUG_BINFMT
-	bool "Enable binary loader debug output"
+	bool "Enable Binary Loader Debug Output"
 	default n
 	---help---
 		Enable binary loader debug output (disabled by default)
 
 config DEBUG_GRAPHICS
-	bool "Enable graphics debug output"
+	bool "Enable Graphics Debug Output"
 	default n
 	---help---
 		Enable NX graphics debug output (disabled by default)
 
 config DEBUG_LCD
-	bool "Enable low-leve LCD debug output"
+	bool "Enable Low-level LCD Debug Output"
 	default n
 	depends on LCD
 	---help---
 		Enable low level debug output from the LCD driver (disabled by default)
 
-config DEBUG_I2C
-	bool "Enable I2C debug output"
+config DEBUG_INPUT
+	bool "Enable Input Device Debug Output"
 	default n
+	depends on INPUT
+	---help---
+		Enable low level debug output from the input device drivers such as
+ 		mice and touchscreens (disabled by default)
+
+config DEBUG_I2C
+	bool "Enable I2C Debug Output"
+	default n
+	depends on I2C
 	---help---
 		Enable I2C driver debug output (disabled by default)
 
 config DEBUG_SPI
-	bool "Enable SPI debug output"
+	bool "Enable SPI Debug Output"
 	default n
+	depends on SPI
 	---help---
 		Enable I2C driver debug output (disabled by default)
 
 config DEBUG_WATCHDOG
-	bool "Enable watchdog timer debug output"
+	bool "Enable Watchdog Timer Debug Output"
 	default n
+	depends on WATCHDOG
 	---help---
 		Enable  watchdog timer debug output (disabled by default)
 
 endif
 
 config DEBUG_SYMBOLS
-	bool "Enable debug symbols"
+	bool "Enable Debug Symbols"
 	default n
 	---help---
 		Build without optimization and with debug symbols (needed

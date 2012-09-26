@@ -177,7 +177,7 @@ static void tsc_enable(FAR struct ads7843e_config_s *state, bool enable)
 
   /* Attach and enable, or detach and disable */
 
-  ivdbg("IRQ:%d enable:%d\n", STM32_TCS_IRQ, enable);
+  ivdbg("enable:%d\n", enable);
   if (enable)
     {
       (void)stm32_gpiosetevent(GPIO_TP_INT, false, true, true,

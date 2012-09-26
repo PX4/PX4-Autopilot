@@ -1,6 +1,6 @@
 /************************************************************************************
- * configs/shenzhou/src/up_lcd.c
- * arch/arm/src/board/up_lcd.c
+ * configs/shenzhou/src/up_ili93xx.c
+ * arch/arm/src/board/up_ili93xx.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
@@ -211,6 +211,7 @@
 #  undef CONFIG_DEBUG_VERBOSE
 #  undef CONFIG_DEBUG_GRAPHICS
 #  undef CONFIG_DEBUG_LCD
+#  undef CONFIG_LCD_REGDEBUG
 #endif
 
 #ifndef CONFIG_DEBUG_VERBOSE
@@ -425,6 +426,12 @@ struct stm32_dev_s
  ************************************************************************************/
 /* Low Level LCD access */
 
+#ifdef CONFIG_LCD_REGDEBUG
+static void stm32_lcdshow(FAR struct stm32_lower_s *priv, FAR const char *msg);
+#else
+#  define stm32_lcdshow(p,m)
+#endif
+
 static void stm32_writereg(FAR struct stm32_dev_s *priv, uint8_t regaddr,
                            uint16_t regval);
 static uint16_t stm32_readreg(FAR struct stm32_dev_s *priv, uint8_t regaddr);
@@ -485,7 +492,7 @@ static inline void stm32_lcd9919init(FAR struct stm32_dev_s *priv);
 #ifndef CONFIG_STM32_ILI1505_DISABLE
 static inline void stm32_lcd1505init(FAR struct stm32_dev_s *priv);
 #endif
-static inline void stm32_lcdinitialize(FAR struct stm32_dev_s *priv);
+static inline int stm32_lcdinitialize(FAR struct stm32_dev_s *priv);
 
 /************************************************************************************
  * Private Data
@@ -578,6 +585,33 @@ static struct stm32_dev_s g_lcddev =
  ************************************************************************************/
 
 /************************************************************************************
+ * Name: stm32_lcdshow
+ *
+ * Description:
+ *   Show the state of the interface
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_LCD_REGDEBUG
+static void stm32_lcdshow(FAR struct stm32_lower_s *priv, FAR const char *msg)
+{
+  dbg("%s:\n", msg);
+  dbg("  CRTL   RS: %d CS: %d RD: %d WR: %d LE: %d\n",
+      getreg32(LCD_RS_READ), getreg32(LCD_CS_READ), getreg32(LCD_RD_READ),
+      getreg32(LCD_WR_READ), getreg32(LCD_LE_READ));
+  dbg("  DATA   CR: %08x %08x\n", getreg32(LCD_CRL), getreg32(LCD_CRH));
+  if (priv->output)
+    {
+      dbg("  OUTPUT: %08x\n", getreg32(LCD_ODR));
+    }
+  else
+    {
+      dbg("  INPUT:  %08x\n", getreg32(LCD_IDR));
+    }
+}
+#endif
+
+/************************************************************************************
  * Name:  stm32_writereg
  *
  * Description:
@@ -601,7 +635,7 @@ static void stm32_writereg(FAR struct stm32_dev_s *priv, uint8_t regaddr, uint16
 
   /* Then write the 16-bit register value */
 
-  putreg32(1, LCD_RS_CLEAR);
+  putreg32(1, LCD_RS_SET);
   putreg32(1, LCD_WR_CLEAR);
   putreg32((uint32_t)regval, LCD_ODR);
   putreg32(1, LCD_WR_SET);
@@ -638,7 +672,7 @@ static uint16_t stm32_readreg(FAR struct stm32_dev_s *priv, uint8_t regaddr)
 
   /* Read the 16-bit register value */
 
-  putreg32(1, LCD_RS_CLEAR);
+  putreg32(1, LCD_RS_SET);
   putreg32(1, LCD_RD_CLEAR);
   putreg32(1, LCD_RD_SET);
   regval = (uint16_t)getreg32(LCD_IDR); 
@@ -688,7 +722,7 @@ static inline void stm32_writegram(FAR struct stm32_dev_s *priv, uint16_t rgbval
   /* Write the value (GRAM register already selected) */
 
   putreg32(1, LCD_CS_CLEAR);
-  putreg32(1, LCD_RS_CLEAR);
+  putreg32(1, LCD_RS_SET);
   putreg32(1, LCD_WR_CLEAR);
   putreg32((uint32_t)rgbval, LCD_ODR);
   putreg32(1, LCD_WR_SET);
@@ -713,7 +747,8 @@ static inline uint16_t stm32_readgram(FAR struct stm32_dev_s *priv)
 
   /* Read the 16-bit value */
 
-  putreg32(1, LCD_RS_CLEAR);
+  putreg32(1, LCD_CS_CLEAR);
+  putreg32(1, LCD_RS_SET);
   putreg32(1, LCD_RD_CLEAR);
   putreg32(1, LCD_RD_SET);
   regval = (uint16_t)getreg32(LCD_IDR); 
@@ -770,8 +805,16 @@ static uint16_t stm32_readnoshift(FAR struct stm32_dev_s *priv, FAR uint16_t *ac
 
 static void stm32_setcursor(FAR struct stm32_dev_s *priv, uint16_t col, uint16_t row)
 {
-  stm32_writereg(priv, LCD_REG_32, row); /* GRAM horizontal address */
-  stm32_writereg(priv, LCD_REG_33, col); /* GRAM vertical address */
+  if (priv->type = LCD_TYPE_ILI9919)
+    {
+      stm32_writereg(priv, LCD_REG_78, col); /* GRAM horizontal address */
+      stm32_writereg(priv, LCD_REG_79, row); /* GRAM vertical address */
+    }
+  else
+    {
+      stm32_writereg(priv, LCD_REG_32, row); /* GRAM vertical address */
+      stm32_writereg(priv, LCD_REG_33, col); /* GRAM horizontal address */
+    }
 }
 
 /************************************************************************************
@@ -1726,9 +1769,10 @@ static inline void stm32_lcd1505init(FAR struct stm32_dev_s *priv)
  *
  ************************************************************************************/
 
-static inline void stm32_lcdinitialize(FAR struct stm32_dev_s *priv)
+static inline int stm32_lcdinitialize(FAR struct stm32_dev_s *priv)
 {
   uint16_t id;
+  int ret = OK;
 
   /* Check LCD ID */
 
@@ -1809,11 +1853,12 @@ static inline void stm32_lcdinitialize(FAR struct stm32_dev_s *priv)
 #endif
     {
       lcddbg("Unsupported LCD type\n");
+      ret = -ENODEV;
     }
 
   lcddbg("LCD type: %d\n", priv->type);
+  return ret;
 }
-
  /************************************************************************************
  * Public Functions
  ************************************************************************************/
@@ -1831,6 +1876,7 @@ static inline void stm32_lcdinitialize(FAR struct stm32_dev_s *priv)
 int up_lcdinitialize(void)
 {
   FAR struct stm32_dev_s *priv = &g_lcddev;
+  int ret;
   int i;
 
   lcdvdbg("Initializing\n");
@@ -1851,16 +1897,19 @@ int up_lcdinitialize(void)
   /* Configure and enable LCD */
 
   up_mdelay(50);
-  stm32_lcdinitialize(priv);
+  ret = stm32_lcdinitialize(priv);
+  if (ret == OK)
+    {
+      /* Clear the display (setting it to the color 0=black) */
 
-  /* Clear the display (setting it to the color 0=black) */
+      stm32_lcdclear(0);
 
-  stm32_lcdclear(0);
+      /* Turn the display off */
 
-  /* Turn the display off */
+      stm32_poweroff(priv);
+    }
 
-  stm32_poweroff(priv);
-  return OK;
+  return ret;
 }
 
 /************************************************************************************
@@ -1925,7 +1974,7 @@ void stm32_lcdclear(uint16_t color)
   /* Write the selected color into the entire GRAM memory */
 
   putreg32(1, LCD_CS_CLEAR);
-  putreg32(1, LCD_RS_CLEAR);
+  putreg32(1, LCD_RS_SET);
   for (i = 0; i < STM32_XRES * STM32_YRES; i++)
     {
       putreg32(1, LCD_WR_CLEAR);

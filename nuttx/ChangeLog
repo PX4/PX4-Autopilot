@@ -3413,3 +3413,6 @@
 	  SPI3 and some do not (still not clear).
 	* nuttx/configs/shenzhou: Various fixes to build new NxWM
 	  configuration.
+	* configs/shenzhou:  Oops.  The Shenzhou LCD is and SSD1289,
+	  not an ILI93xx.
+
