@@ -372,7 +372,7 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 
 	const float min_thrust = 0.02f;			/**< 2% minimum thrust */
 	const float max_thrust = 1.0f;			/**< 100% max thrust */
-	const float scaling = 512.0f;			/**< 100% thrust equals a value of 512 */
+	const float scaling = 500.0f;			/**< 100% thrust equals a value of 500 which works, 512 leads to cutoff */
 
 	const float min_gas = min_thrust * scaling;	/**< value range sent to motors, minimum */
 	const float max_gas = max_thrust * scaling;	/**< value range sent to motors, maximum */
