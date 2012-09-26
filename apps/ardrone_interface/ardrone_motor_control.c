@@ -306,7 +306,7 @@ int ar_init_motors(int ardrone_uart, int gpios)
 	return errcounter;
 }
 
-/*
+/**
  * Sets the leds on the motor controllers, 1 turns led on, 0 off.
  */
 void ar_set_leds(int ardrone_uart, uint8_t led1_red, uint8_t led1_green, uint8_t led2_red, uint8_t led2_green, uint8_t led3_red, uint8_t led3_green, uint8_t led4_red, uint8_t led4_green)
@@ -370,7 +370,7 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 
 	const float min_thrust = 0.02f;			/**< 2% minimum thrust */
 	const float max_thrust = 1.0f;			/**< 100% max thrust */
-	const float scaling = 512.0f;			/**< 100% thrust equals a value of 512 */
+	const float scaling = 500.0f;      /**< 100% thrust equals a value of 500 which works, 512 leads to cutoff */
 
 	const float min_gas = min_thrust * scaling;	/**< value range sent to motors, minimum */
 	const float max_gas = max_thrust * scaling;	/**< value range sent to motors, maximum */
