@@ -340,14 +340,7 @@ config STM32_SPI2
 config STM32_SPI3
 	bool "SPI3"
 	default n
-	depends on STM32_STM32F20XX || STM32_STM32F40XX
-	select SPI
-	select STM32_SPI
-
-config STM32_SPI4
-	bool "SPI4"
-	default n
-	depends on STM32_STM32F10XX
+	depends on STM32_CONNECTIVITYLINE || STM32_STM32F20XX || STM32_STM32F40XX
 	select SPI
 	select STM32_SPI
 

@@ -52,7 +52,7 @@
 #include <nuttx/input/ads7843e.h>
 
 #include "stm32_internal.h"
-#include "shenzhou_internal.h"
+#include "shenzhou-internal.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -159,13 +159,14 @@ static struct stm32_config_s g_tscinfo =
  * pendown - Return the state of the pen down GPIO input
  */
 
-static int tsc_attach(FAR struct ads7843e_config_s *state, xcpt_t isr)
+static int tsc_attach(FAR struct ads7843e_config_s *state, xcpt_t handler)
 {
   FAR struct stm32_config_s *priv = (FAR struct stm32_config_s *)state;
 
   /* Just save the handler for use when the interrupt is enabled */
 
   priv->handler = handler;
+  return OK;
 }
 
 static void tsc_enable(FAR struct ads7843e_config_s *state, bool enable)
@@ -256,7 +257,7 @@ int arch_tcinitialize(int minor)
 
   /* Initialize and register the SPI touschscreen device */
 
-  ret = ads7843e_register(dev, &g_tscinfo, CONFIG_ADS7843E_DEVMINOR);
+  ret = ads7843e_register(dev, &g_tscinfo.dev, CONFIG_ADS7843E_DEVMINOR);
   if (ret < 0)
     {
       idbg("Failed to initialize SPI bus %d\n", CONFIG_ADS7843E_SPIDEV);

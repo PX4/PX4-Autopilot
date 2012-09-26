@@ -166,3 +166,5 @@
 * Kconfig:  Added a mconfig configuration file.  Eventually, NxWidgets
   needs to get hooked into the NuttX mconf configuration.  Still not
   exactly sure how to do that.
+* libnxwidgets/Makefile and NxWidgets/nxwm/Makefile:  Need updates
+  for consistency with recent changes to NuttX build system (>= 6.22)

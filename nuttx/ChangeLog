@@ -3407,3 +3407,9 @@
 	* configs/shenzhou/src/up_touchscreen.c:  Add ADS7843E touchscreen
 	  support for the Shenzhou board.  The initial check-in is untested
 	  and basically a clone of the the touchscreen support fro the SAM-3U.
+	* tools/cfgparser.c: There are some NxWidget configuration
+	  settings that must be de-quoted.
+	* arch/arm/src/stm32/Kconfig: There is no SPI4.  Some platforms
+	  SPI3 and some do not (still not clear).
+	* nuttx/configs/shenzhou: Various fixes to build new NxWM
+	  configuration.

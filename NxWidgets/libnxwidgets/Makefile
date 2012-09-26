@@ -36,6 +36,14 @@
 -include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 
+# Control build verbosity
+
+ifeq ($(V),1)
+export Q :=
+else
+export Q := @
+endif
+
 NXWIDGETDIR := ${shell pwd | sed -e 's/ /\\ /g'}
 
 ASRCS =
