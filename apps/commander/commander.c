@@ -1135,6 +1135,8 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&current_status, 0, sizeof(current_status));
 	current_status.state_machine = SYSTEM_STATE_PREFLIGHT;
 	current_status.flag_system_armed = false;
+	current_status.offboard_control_signal_found_once = false;
+	current_status.rc_signal_found_once = false;
 
 	/* advertise to ORB */
 	stat_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
@@ -1214,8 +1216,16 @@ int commander_thread_main(int argc, char *argv[])
 	while (!thread_should_exit) {
 
 		/* Get current values */
-		orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
-		orb_copy(ORB_ID(offboard_control_setpoint), sp_offboard_sub, &sp_offboard);
+		bool new_data;
+		orb_check(sp_man_sub, &new_data);
+		if (new_data) {
+			orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
+		}
+
+		orb_check(sp_offboard_sub, &new_data);
+		if (new_data) {
+			orb_copy(ORB_ID(offboard_control_setpoint), sp_offboard_sub, &sp_offboard);
+		}
 		orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps);
 		orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
 
@@ -1385,9 +1395,8 @@ int commander_thread_main(int argc, char *argv[])
 
 
 		/* ignore RC signals if in offboard control mode */
-		if (!current_status.offboard_control_signal_found_once) {
+		if (!current_status.offboard_control_signal_found_once && sp_man.timestamp != 0) {
 			/* Start RC state check */
-			bool prev_lost = current_status.rc_signal_lost;
 
 			if ((hrt_absolute_time() - sp_man.timestamp) < 100000) {
 
@@ -1440,37 +1449,32 @@ int commander_thread_main(int argc, char *argv[])
 					if (current_status.rc_signal_lost) mavlink_log_critical(mavlink_fd, "[commander] RECOVERY - RC SIGNAL GAINED!");
 				}
 
+				current_status.rc_signal_cutting_off = false;
 				current_status.rc_signal_lost = false;
 				current_status.rc_signal_lost_interval = 0;
 
 			} else {
 				static uint64_t last_print_time = 0;
 				/* print error message for first RC glitch and then every 5 s / 5000 ms) */
-				if (!current_status.rc_signal_lost || ((hrt_absolute_time() - last_print_time) > 5000000)) {
+				if (!current_status.rc_signal_cutting_off || ((hrt_absolute_time() - last_print_time) > 5000000)) {
 					/* only complain if the offboard control is NOT active */
+					current_status.rc_signal_cutting_off = true;
 					mavlink_log_critical(mavlink_fd, "[commander] CRITICAL - NO REMOTE SIGNAL!");
 					last_print_time = hrt_absolute_time();
 				}
 				/* flag as lost and update interval since when the signal was lost (to initiate RTL after some time) */
-				current_status.rc_signal_cutting_off = true;
 				current_status.rc_signal_lost_interval = hrt_absolute_time() - sp_man.timestamp;
 
 				/* if the RC signal is gone for a full second, consider it lost */
 				if (current_status.rc_signal_lost_interval > 1000000) {
 					current_status.rc_signal_lost = true;
 					current_status.failsave_lowlevel = true;
+					state_changed = true;
 				}
 
 				// if (hrt_absolute_time() - current_status.failsave_ll_start_time > failsafe_lowlevel_timeout_ms*1000) {
 				// 	publish_armed_status(&current_status);
 				// }
-			}
-
-			/* Check if this is the first loss or first gain*/
-			if ((!prev_lost && current_status.rc_signal_lost) ||
-				(prev_lost && !current_status.rc_signal_lost)) {
-				/* publish change */
-				publish_armed_status(&current_status);
 			}
 		}
 
@@ -1483,23 +1487,29 @@ int commander_thread_main(int argc, char *argv[])
 
 
 		/* State machine update for offboard control */
-		if (!current_status.rc_signal_found_once) {
+		if (!current_status.rc_signal_found_once && sp_offboard.timestamp != 0) {
 			if ((hrt_absolute_time() - sp_offboard.timestamp) < 5000000) {
 
+				/* decide about attitude control flag, enable in att/pos/vel */
+				bool attitude_ctrl_enabled = (sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE ||
+					 sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY ||
+					 sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_POSITION);
+
+				/* decide about rate control flag, enable it always XXX (for now) */
+				bool rates_ctrl_enabled = true;
+
 				/* set up control mode */
-				if (current_status.flag_control_attitude_enabled != 
-					(sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE)) {
-					current_status.flag_control_attitude_enabled = (sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE);
+				if (current_status.flag_control_attitude_enabled != attitude_ctrl_enabled) {
+					current_status.flag_control_attitude_enabled = attitude_ctrl_enabled;
 					state_changed = true;
 				}
 
-				if (current_status.flag_control_rates_enabled != 
-					(sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES)) {
-					current_status.flag_control_attitude_enabled = (sp_offboard.mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES);
+				if (current_status.flag_control_rates_enabled != rates_ctrl_enabled) {
+					current_status.flag_control_rates_enabled = rates_ctrl_enabled;
 					state_changed = true;
 				}
 
-				/* handle the case where RC signal was regained */
+				/* handle the case where offboard control signal was regained */
 				if (!current_status.offboard_control_signal_found_once) {
 					current_status.offboard_control_signal_found_once = true;
 					/* enable offboard control, disable manual input */
@@ -1515,6 +1525,7 @@ int commander_thread_main(int argc, char *argv[])
 					}
 				}
 
+				current_status.offboard_control_signal_weak = false;
 				current_status.offboard_control_signal_lost = false;
 				current_status.offboard_control_signal_lost_interval = 0;
 
@@ -1530,8 +1541,8 @@ int commander_thread_main(int argc, char *argv[])
 			} else {
 				static uint64_t last_print_time = 0;
 				/* print error message for first RC glitch and then every 5 s / 5000 ms) */
-				if (!current_status.offboard_control_signal_lost || ((hrt_absolute_time() - last_print_time) > 5000000)) {
-					/* only complain if the RC control is NOT active */
+				if (!current_status.offboard_control_signal_weak || ((hrt_absolute_time() - last_print_time) > 5000000)) {
+					current_status.offboard_control_signal_weak = true;
 					mavlink_log_critical(mavlink_fd, "[commander] CRITICAL - NO OFFBOARD CONTROL SIGNAL!");
 					last_print_time = hrt_absolute_time();
 				}
