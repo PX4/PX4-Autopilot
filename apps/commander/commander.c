@@ -256,22 +256,6 @@ int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, u
 	return 0;
 }
 
-static void cal_bsort(float a[], int n)
-{
-	int i,j,t;
-	for(i=0;i<n-1;i++)
-	{
-		for(j=0;j<n-i-1;j++)
-		{
-			if(a[j]>a[j+1]) {
-				t=a[j];
-				a[j]=a[j+1];
-				a[j+1]=t;
-			}
-		}
-	}
-}
-
 static const char *parameter_file = "/eeprom/parameters";
 
 static int pm_save_eeprom(bool only_unsaved)
@@ -312,8 +296,8 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	const uint64_t calibration_interval_us = 45 * 1000000;
 	unsigned int calibration_counter = 0;
 
-	float mag_max[3] = {0, 0, 0};
-	float mag_min[3] = {0, 0, 0};
+	float mag_max[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+	float mag_min[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
 
 	int fd = open(MAG_DEVICE_PATH, 0);
 	struct mag_scale mscale_null = {
@@ -340,25 +324,25 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
 			/* get min/max values */
 
-			if (raw.magnetometer_raw[0] < mag_min[0]) {
-				mag_min[0] = raw.magnetometer_raw[0];
+			if (raw.magnetometer_ga[0] < mag_min[0]) {
+				mag_min[0] = raw.magnetometer_ga[0];
 			}
-			else if (raw.magnetometer_raw[0] > mag_max[0]) {
-				mag_max[0] = raw.magnetometer_raw[0];
-			}
-
-			if (raw.magnetometer_raw[1] < mag_min[1]) {
-				mag_min[1] = raw.magnetometer_raw[1];
-			}
-			else if (raw.magnetometer_raw[1] > mag_max[1]) {
-				mag_max[1] = raw.magnetometer_raw[1];
+			else if (raw.magnetometer_ga[0] > mag_max[0]) {
+				mag_max[0] = raw.magnetometer_ga[0];
 			}
 
-			if (raw.magnetometer_raw[2] < mag_min[2]) {
-				mag_min[2] = raw.magnetometer_raw[2];
+			if (raw.magnetometer_ga[1] < mag_min[1]) {
+				mag_min[1] = raw.magnetometer_ga[1];
 			}
-			else if (raw.magnetometer_raw[2] > mag_max[2]) {
-				mag_max[2] = raw.magnetometer_raw[2];
+			else if (raw.magnetometer_ga[1] > mag_max[1]) {
+				mag_max[1] = raw.magnetometer_ga[1];
+			}
+
+			if (raw.magnetometer_ga[2] < mag_min[2]) {
+				mag_min[2] = raw.magnetometer_ga[2];
+			}
+			else if (raw.magnetometer_ga[2] > mag_max[2]) {
+				mag_max[2] = raw.magnetometer_ga[2];
 			}
 
 			calibration_counter++;
@@ -387,20 +371,11 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	 * offset = (max + min) / 2.0f
 	 */
 
-	printf("max 0: %f\n",mag_max[0]);
-	printf("max 1: %f\n",mag_max[1]);
-	printf("max 2: %f\n",mag_max[2]);
-	printf("min 0: %f\n",mag_min[0]);
-	printf("min 1: %f\n",mag_min[1]);
-	printf("min 2: %f\n",mag_min[2]);
-
 	mag_offset[0] = (mag_max[0] + mag_min[0]) / 2.0f;
 	mag_offset[1] = (mag_max[1] + mag_min[1]) / 2.0f;
 	mag_offset[2] = (mag_max[2] + mag_min[2]) / 2.0f;
 
-	printf("mag off 0: %f\n",mag_offset[0]);
-	printf("mag off 1: %f\n",mag_offset[1]);
-	printf("mag off 2: %f\n",mag_offset[2]);
+	printf("mag off x: %4.4f, y: %4.4f, z: %4.4f\n",(double)mag_offset[0],(double)mag_offset[0],(double)mag_offset[2]);
 
 	/* announce and set new offset */
 
