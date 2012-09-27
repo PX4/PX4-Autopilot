@@ -500,6 +500,14 @@
 #define NVIC_SYSHCON_BUSFAULTENA        (1 << 17) /* Bit 17: BusFault enabled */
 #define NVIC_SYSHCON_USGFAULTENA        (1 << 18) /* Bit 18: UsageFault enabled */
 
+/* Application Interrupt and Reset Control Register (AIRCR) */
+                                                  /* Bit 0:  Reserved */
+#define NVIC_AIRC_VECTCLRACTIVE         (1 << 1)  /* Bit 1:  Reserved for debug use */
+#define NVIC_AIRC_SYSRESETREQ           (1 << 2)  /* Bit 2:  System reset */
+                                                  /* Bits 3-14:  Reserved */
+#define NVIC_AIRC_ENDIANNESS            (1 << 15) /* Bit 15: 1=Big endian */
+                                                  /* Bits 16-31:  Reserved */
+
 /* Debug Exception and Monitor Control Register (DEMCR) */
 
 #define NVIC_DEMCR_VCCORERESET          (1 << 0)  /* Bit 0:  Reset Vector Catch */

@@ -555,6 +555,7 @@ static void ads7843e_worker(FAR void *arg)
   FAR struct ads7843e_dev_s    *priv = (FAR struct ads7843e_dev_s *)arg;
   FAR struct ads7843e_config_s *config;
   bool                          pendown;
+  int                           ret;
 
   ASSERT(priv != NULL);
 
@@ -565,9 +566,25 @@ static void ads7843e_worker(FAR void *arg)
   config = priv->config;
   DEBUGASSERT(config != NULL);
 
-  /* Disable the watchdog timer */
+  /* Disable the watchdog timer.  This is safe because it is started only
+   * by this function and this function is serialized on the worker thread.
+   */
 
   wd_cancel(priv->wdog);
+
+  /* Get exclusive access to the driver data structure */
+
+  do
+    {
+      ret = sem_wait(&priv->devsem);
+
+      /* This should only fail if the wait was canceled by an signal
+       * (and the worker thread will receive a lot of signals).
+       */
+
+      DEBUGASSERT(ret == OK || errno == EINTR);
+    }
+  while (ret < 0);
 
   /* Check for pen up or down by reading the PENIRQ GPIO. */
 
@@ -645,6 +662,10 @@ static void ads7843e_worker(FAR void *arg)
 errout:
   (void)ads7843e_sendcmd(priv, ADS7843_CMD_ENABPINIRQ);
   config->enable(config, true);
+
+  /* Release our lock on the state structure */
+
+  sem_post(&priv->devsem);
 }
 
 /****************************************************************************

@@ -345,3 +345,4 @@
 	  either the nuttx/ or the apps/ source trees.  This kludge makes it
 	  possible to configure NxWidgets/NxWM without too much trouble (with
 	  the tradeoff being a kind ugly structure and some maintenance issues).
+	* apps/examples/Make.defs: Missing support for apps/examples/watchdog.

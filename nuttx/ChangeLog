@@ -3419,4 +3419,10 @@
 	  on the Shenzhou board.
 	* graphics/nxmu:  Correct some bad parameter checking that caused
 	  failures when DEBUG was enabled.
+	* arch/arm/src/armv7-m/nvic.h:  Add bit definitions for the AIRCR
+	  register.
+	* drivers/input/ads7843.c:  Need semaphore protection in logic
+	  that samples the position.
+	* drivers/lcd/ssd1289.c:  On some platforms we are unable to
+	  read the device ID -- reason unknown; workaround in place.
 

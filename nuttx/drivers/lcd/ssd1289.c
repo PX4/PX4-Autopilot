@@ -931,9 +931,27 @@ static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
 
   lcd->select(lcd);
 
+  /* Read the device ID.  Skip verification of the device ID is the LCD is
+   * write-only. What choice do we have?
+   */
+
 #ifndef CONFIG_LCD_NOGETRUN
   id = ssd1289_readreg(lcd, SSD1289_DEVCODE);
-  lcddbg("LCD ID: %04x\n", id);
+  if (id != 0)
+    {
+      lcddbg("LCD ID: %04x\n", id);
+    }
+
+  /* If we could not get the ID, then let's just assume that this is an SSD1289.
+   * Perhaps we have some early register access issues.  This seems to happen.
+   * But then perhaps we should not even bother to read the device ID at all?
+   */
+
+  else
+    {
+      lcddbg("No LCD ID, assuming SSD1289\n");
+      id = SSD1289_DEVCODE_VALUE;
+    }
 
   /* Check if the ID is for the SSD1289 */
 

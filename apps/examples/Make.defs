@@ -218,6 +218,10 @@ ifeq ($(CONFIG_EXAMPLES_USBTERM),y)
 CONFIGURED_APPS += examples/usbterm
 endif
 
+ifeq ($(CONFIG_EXAMPLES_WATCHDOG),y)
+CONFIGURED_APPS += examples/watchdog
+endif
+
 ifeq ($(CONFIG_EXAMPLES_WGET),y)
 CONFIGURED_APPS += examples/wget
 endif
