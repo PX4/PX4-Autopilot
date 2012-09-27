@@ -936,7 +936,7 @@ static ssize_t ads7843e_read(FAR struct file *filep, FAR char *buffer, size_t le
   report = (FAR struct touch_sample_s *)buffer;
   memset(report, 0, SIZEOF_TOUCH_SAMPLE_S(1));
   report->npoints            = 1;
-  report->point[0].id        = priv->id;
+  report->point[0].id        = sample.id;
   report->point[0].x         = sample.x;
   report->point[0].y         = sample.y;
 
