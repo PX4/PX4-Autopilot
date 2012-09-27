@@ -140,9 +140,8 @@ static int ardrone_open_uart(char *uart_name, struct termios *uart_config_origin
 	int speed = B115200;
 	int uart;
 
-
 	/* open uart */
-	printf("[ardrone_interface] UART is %s, baud rate is%d\n",uart_name,speed);
+	//printf("[ardrone_interface] UART is %s, baud rate is%d\n",uart_name,speed);
 	uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	/* Try to set baud rate */

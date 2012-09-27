@@ -312,8 +312,6 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	const uint64_t calibration_interval_us = 45 * 1000000;
 	unsigned int calibration_counter = 0;
 
-	const int peak_samples = 500;
-
 	float mag_max[3] = {0, 0, 0};
 	float mag_min[3] = {0, 0, 0};
 
@@ -366,8 +364,8 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 			calibration_counter++;
 		} else {
 			/* any poll failure for 1s is a reason to abort */
-			//mavlink_log_info(mavlink_fd, "[commander] mag calibration aborted, please retry.");
-			//break;
+			mavlink_log_info(mavlink_fd, "[commander] mag calibration aborted, please retry.");
+			break;
 		}
 	}
 
@@ -389,20 +387,20 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	 * offset = (max + min) / 2.0f
 	 */
 
-//	printf("max 0: %f\n",mag_max[0]);
-//	printf("max 1: %f\n",mag_max[1]);
-//	printf("max 2: %f\n",mag_max[2]);
-//	printf("min 0: %f\n",mag_min[0]);
-//	printf("min 1: %f\n",mag_min[1]);
-//	printf("min 2: %f\n",mag_min[2]);
+	printf("max 0: %f\n",mag_max[0]);
+	printf("max 1: %f\n",mag_max[1]);
+	printf("max 2: %f\n",mag_max[2]);
+	printf("min 0: %f\n",mag_min[0]);
+	printf("min 1: %f\n",mag_min[1]);
+	printf("min 2: %f\n",mag_min[2]);
 
 	mag_offset[0] = (mag_max[0] + mag_min[0]) / 2.0f;
 	mag_offset[1] = (mag_max[1] + mag_min[1]) / 2.0f;
 	mag_offset[2] = (mag_max[2] + mag_min[2]) / 2.0f;
 
-//	printf("mag off 0: %f\n",mag_offset[0]);
-//	printf("mag off 1: %f\n",mag_offset[1]);
-//	printf("mag off 2: %f\n",mag_offset[2]);
+	printf("mag off 0: %f\n",mag_offset[0]);
+	printf("mag off 1: %f\n",mag_offset[1]);
+	printf("mag off 2: %f\n",mag_offset[2]);
 
 	/* announce and set new offset */
 
@@ -487,7 +485,7 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 			calibration_counter++;
 		} else {
 			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "[commander] gyro calibration aborted, please retry.");
+			mavlink_log_info(mavlink_fd, "[commander] gyro calibration aborted, retry");
 			return;
 		}
 	}
@@ -534,9 +532,7 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 
 	mavlink_log_info(mavlink_fd, "[commander] gyro calibration finished");
 
-	// char offset_output[50];
-	// sprintf(offset_output, "[commander] gyro cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
-	// mavlink_log_info(mavlink_fd, offset_output);
+	printf("[commander] gyro cal: x:%8.4f y:%8.4f z:%8.4f\n", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
 
 	close(sub_sensor_combined);
 }
@@ -544,9 +540,8 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 {
 	/* announce change */
-	usleep(5000);
-	mavlink_log_info(mavlink_fd, "[commander] The system should be level and not moved");
 
+	mavlink_log_info(mavlink_fd, "[commander] keep it level and still");
 	/* set to accel calibration mode */
 	status->flag_preflight_accel_calibration = true;
 	state_machine_publish(status_pub, status, mavlink_fd);
@@ -571,7 +566,6 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale_null))
 		warn("WARNING: failed to set scale / offsets for accel");
 	close(fd);
-
 	while (calibration_counter < calibration_count) {
 
 		/* wait blocking for new data */
@@ -585,11 +579,10 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 			calibration_counter++;
 		} else {
 			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "[commander] gyro calibration aborted, please retry.");
+			mavlink_log_info(mavlink_fd, "[commander] acceleration calibration aborted");
 			return;
 		}
 	}
-
 	accel_offset[0] = accel_offset[0] / calibration_count;
 	accel_offset[1] = accel_offset[1] / calibration_count;
 	accel_offset[2] = accel_offset[2] / calibration_count;
@@ -644,18 +637,11 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	if(save_ret != 0) {
 		warn("WARNING: auto-save of params to EEPROM failed");
 	}
-
 	/* exit to gyro calibration mode */
 	status->flag_preflight_accel_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
-
 	mavlink_log_info(mavlink_fd, "[commander] acceleration calibration finished");
-
-	// char offset_output[50];
-	// sprintf(offset_output, "[commander] accel cal: x:%8.4f y:%8.4f z:%8.4f", (double)accel_offset[0],
-	// 	(double)accel_offset[1], (double)accel_offset[2]);
-	// mavlink_log_info(mavlink_fd, offset_output);
-
+	printf("[commander] accel calibration: x:%8.4f y:%8.4f z:%8.4f\n", (double)accel_offset[0],(double)accel_offset[1], (double)accel_offset[2]);
 	close(sub_sensor_combined);
 }
 
@@ -823,7 +809,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			/* none found */
 			if (!handled) {
 				//fprintf(stderr, "[commander] refusing unsupported calibration request\n");
-				mavlink_log_critical(mavlink_fd, "[commander] CMD refusing unsupported calibration request");
+				mavlink_log_critical(mavlink_fd, "[commander] CMD refusing unsup. calib. request");
 				result = MAV_RESULT_UNSUPPORTED;
 			}
 		}
