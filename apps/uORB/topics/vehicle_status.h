@@ -143,6 +143,7 @@ struct vehicle_status_s
 
 	bool offboard_control_signal_found_once;
 	bool offboard_control_signal_lost;
+	bool offboard_control_signal_weak;
 	uint64_t offboard_control_signal_lost_interval;	/**< interval in microseconds without an offboard control message */
 
 	bool failsave_lowlevel;				/**< Set to true if low-level failsafe mode is enabled */

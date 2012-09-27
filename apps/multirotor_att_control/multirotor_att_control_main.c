@@ -79,6 +79,8 @@ static bool motor_test_mode = false;
 
 static orb_advert_t actuator_pub;
 
+static struct vehicle_status_s state;
+
 /**
  * Perform rate control right after gyro reading
  */
@@ -120,7 +122,7 @@ static void *rate_control_thread_main(void *arg)
 			/* perform local lowpass */
 
 			/* apply controller */
-			// if (state.flag_control_rates_enabled) {
+			if (state.flag_control_rates_enabled) {
 				/* lowpass gyros */
 				// XXX
 				gyro_lp[0] = gyro_report.x;
@@ -129,7 +131,7 @@ static void *rate_control_thread_main(void *arg)
 
 				multirotor_control_rates(&rates_sp, gyro_lp, &actuators);
 				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
-			// }
+			}
 		}
 	}
 
@@ -140,7 +142,6 @@ static int
 mc_thread_main(int argc, char *argv[])
 {
 	/* declare and safely initialize all structs */
-	struct vehicle_status_s state;
 	memset(&state, 0, sizeof(state));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
@@ -205,7 +206,11 @@ mc_thread_main(int argc, char *argv[])
 		perf_begin(mc_loop_perf);
 
 		/* get a local copy of system state */
-		orb_copy(ORB_ID(vehicle_status), state_sub, &state);
+		bool updated;
+		orb_check(state_sub, &updated);
+		if (updated) {
+			orb_copy(ORB_ID(vehicle_status), state_sub, &state);
+		}
 		/* get a local copy of manual setpoint */
 		orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &manual);
 		/* get a local copy of attitude */
@@ -213,7 +218,6 @@ mc_thread_main(int argc, char *argv[])
 		/* get a local copy of attitude setpoint */
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), att_setpoint_sub, &att_sp);
 		/* get a local copy of rates setpoint */
-		bool updated;
 		orb_check(setpoint_sub, &updated);
 		if (updated) {
 			orb_copy(ORB_ID(offboard_control_setpoint), setpoint_sub, &offboard_sp);
