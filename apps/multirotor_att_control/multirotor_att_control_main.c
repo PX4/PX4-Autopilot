@@ -76,7 +76,7 @@ __EXPORT int multirotor_att_control_main(int argc, char *argv[]);
 static bool thread_should_exit;
 static int mc_task;
 static bool motor_test_mode = false;
-static struct actuator_controls_s actuators;
+
 static orb_advert_t actuator_pub;
 
 static struct vehicle_status_s state;
@@ -87,6 +87,8 @@ static struct vehicle_status_s state;
 static void *rate_control_thread_main(void *arg)
 {
 	prctl(PR_SET_NAME, "mc rate control", getpid());
+
+	struct actuator_controls_s actuators;
 
 	int gyro_sub = orb_subscribe(ORB_ID(sensor_gyro));
 	int rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
@@ -153,6 +155,8 @@ mc_thread_main(int argc, char *argv[])
 	memset(&offboard_sp, 0, sizeof(offboard_sp));
 	struct vehicle_rates_setpoint_s rates_sp;
 	memset(&rates_sp, 0, sizeof(rates_sp));
+
+	struct actuator_controls_s actuators;
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -334,6 +338,7 @@ int multirotor_att_control_main(int argc, char *argv[])
 		default:
 			fprintf(stderr, "option: -%c\n", ch);
 			usage("unrecognized option");
+			break;
 		}
 	}
 	argc -= optioncount;

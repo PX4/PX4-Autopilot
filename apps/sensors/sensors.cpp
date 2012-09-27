@@ -1029,6 +1029,7 @@ Sensors::ppm_poll()
 
 	orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
 	orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual_control);
+
 }
 #endif
 

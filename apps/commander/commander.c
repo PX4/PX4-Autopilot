@@ -256,22 +256,6 @@ int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, u
 	return 0;
 }
 
-static void cal_bsort(float a[], int n)
-{
-	int i,j,t;
-	for(i=0;i<n-1;i++)
-	{
-		for(j=0;j<n-i-1;j++)
-		{
-			if(a[j]>a[j+1]) {
-				t=a[j];
-				a[j]=a[j+1];
-				a[j+1]=t;
-			}
-		}
-	}
-}
-
 static const char *parameter_file = "/eeprom/parameters";
 
 static int pm_save_eeprom(bool only_unsaved)
@@ -312,30 +296,8 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	const uint64_t calibration_interval_us = 45 * 1000000;
 	unsigned int calibration_counter = 0;
 
-	const int peak_samples = 2000;
-	/* Get rid of 10% */
-	const int outlier_margin = (peak_samples) / 10;
-
-	float *mag_maxima[3];
-	mag_maxima[0] = (float*)malloc(peak_samples * sizeof(float));
-	mag_maxima[1] = (float*)malloc(peak_samples * sizeof(float));
-	mag_maxima[2] = (float*)malloc(peak_samples * sizeof(float));
-
-	float *mag_minima[3];
-	mag_minima[0] = (float*)malloc(peak_samples * sizeof(float));
-	mag_minima[1] = (float*)malloc(peak_samples * sizeof(float));
-	mag_minima[2] = (float*)malloc(peak_samples * sizeof(float));
-
-	/* initialize data table */
-	for (int i = 0; i < peak_samples; i++) {
-		mag_maxima[0][i] = FLT_MIN;
-		mag_maxima[1][i] = FLT_MIN;
-		mag_maxima[2][i] = FLT_MIN;
-
-		mag_minima[0][i] = FLT_MAX;
-		mag_minima[1][i] = FLT_MAX;
-		mag_minima[2][i] = FLT_MAX;
-	}
+	float mag_max[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+	float mag_min[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
 
 	int fd = open(MAG_DEVICE_PATH, 0);
 	struct mag_scale mscale_null = {
@@ -362,101 +324,38 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
 			/* get min/max values */
 
-			/* iterate through full list */
-			for (int i = 0; i < peak_samples; i++) {
-				/* x minimum */
-				if (raw.magnetometer_raw[0] < mag_minima[0][i])
-					mag_minima[0][i] = raw.magnetometer_ga[0];
-				/* y minimum */
-				if (raw.magnetometer_raw[1] < mag_minima[1][i])
-					mag_minima[1][i] = raw.magnetometer_ga[1];
-				/* z minimum */
-				if (raw.magnetometer_raw[2] < mag_minima[2][i])
-					mag_minima[2][i] = raw.magnetometer_ga[2];
+			if (raw.magnetometer_ga[0] < mag_min[0]) {
+				mag_min[0] = raw.magnetometer_ga[0];
+			}
+			else if (raw.magnetometer_ga[0] > mag_max[0]) {
+				mag_max[0] = raw.magnetometer_ga[0];
+			}
 
-				/* x maximum */
-				if (raw.magnetometer_raw[0] > mag_maxima[0][i])
-					mag_maxima[0][i] = raw.magnetometer_ga[0];
-				/* y maximum */
-				if (raw.magnetometer_raw[1] > mag_maxima[1][i])
-					mag_maxima[1][i] = raw.magnetometer_ga[1];
-				/* z maximum */
-				if (raw.magnetometer_raw[2] > mag_maxima[2][i])
-					mag_maxima[2][i] = raw.magnetometer_ga[2];
+			if (raw.magnetometer_ga[1] < mag_min[1]) {
+				mag_min[1] = raw.magnetometer_ga[1];
+			}
+			else if (raw.magnetometer_ga[1] > mag_max[1]) {
+				mag_max[1] = raw.magnetometer_ga[1];
+			}
+
+			if (raw.magnetometer_ga[2] < mag_min[2]) {
+				mag_min[2] = raw.magnetometer_ga[2];
+			}
+			else if (raw.magnetometer_ga[2] > mag_max[2]) {
+				mag_max[2] = raw.magnetometer_ga[2];
 			}
 
 			calibration_counter++;
 		} else {
 			/* any poll failure for 1s is a reason to abort */
-			//mavlink_log_info(mavlink_fd, "[commander] mag calibration aborted, please retry.");
-			//break;
+			mavlink_log_info(mavlink_fd, "[commander] mag calibration aborted, please retry.");
+			break;
 		}
 	}
 
 	/* disable calibration mode */
 	status->flag_preflight_mag_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
-
-	/* sort values */
-	cal_bsort(mag_minima[0], peak_samples);
-	cal_bsort(mag_minima[1], peak_samples);
-	cal_bsort(mag_minima[2], peak_samples);
-
-	cal_bsort(mag_maxima[0], peak_samples);
-	cal_bsort(mag_maxima[1], peak_samples);
-	cal_bsort(mag_maxima[2], peak_samples);
-
-	float min_avg[3] = { 0.0f, 0.0f, 0.0f };
-	float max_avg[3] = { 0.0f, 0.0f, 0.0f };
-
-	// printf("start:\n");
-
-	// for (int i = 0; i < 10; i++) {
-	// 	printf("mag min: %8.4f\t%8.4f\t%8.4f\tmax: %8.4f\t%8.4f\t%8.4f\n",
-	// 								mag_minima[0][i],
-	// 								mag_minima[1][i],
-	// 								mag_minima[2][i],
-	// 								mag_maxima[0][i],
-	// 								mag_maxima[1][i],
-	// 								mag_maxima[2][i]);
-	// 		usleep(10000);
-	// }
-	// printf("-----\n");
-
-	// for (int i = (peak_samples - outlier_margin)-10; i < (peak_samples - outlier_margin); i++) {
-	// 	printf("mag min: %8.4f\t%8.4f\t%8.4f\tmax: %8.4f\t%8.4f\t%8.4f\n",
-	// 								mag_minima[0][i],
-	// 								mag_minima[1][i],
-	// 								mag_minima[2][i],
-	// 								mag_maxima[0][i],
-	// 								mag_maxima[1][i],
-	// 								mag_maxima[2][i]);
-	// 		usleep(10000);
-	// }
-
-	// printf("end\n");
-
-	/* take average of center value group */
-	for (int i = 0; i < (peak_samples - outlier_margin); i++) {
-		min_avg[0] += mag_minima[0][i+outlier_margin];
-		min_avg[1] += mag_minima[1][i+outlier_margin];
-		min_avg[2] += mag_minima[2][i+outlier_margin];
-
-		max_avg[0] += mag_maxima[0][i];
-		max_avg[1] += mag_maxima[1][i];
-		max_avg[2] += mag_maxima[2][i];
-	}
-
-	min_avg[0] /= (peak_samples - outlier_margin);
-	min_avg[1] /= (peak_samples - outlier_margin);
-	min_avg[2] /= (peak_samples - outlier_margin);
-
-	max_avg[0] /= (peak_samples - outlier_margin);
-	max_avg[1] /= (peak_samples - outlier_margin);
-	max_avg[2] /= (peak_samples - outlier_margin);
-
-	// printf("\nFINAL:\nmag min: %8.4f\t%8.4f\t%8.4f\nmax: %8.4f\t%8.4f\t%8.4f\n", (double)min_avg[0], 
-	// 	(double)min_avg[1], (double)min_avg[2], (double)max_avg[0], (double)max_avg[1], (double)max_avg[2]);
 
 	float mag_offset[3];
 
@@ -472,31 +371,24 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	 * offset = (max + min) / 2.0f
 	 */
 
-	mag_offset[0] = (max_avg[0] + min_avg[0]) / 2.0f;
-	mag_offset[1] = (max_avg[1] + min_avg[1]) / 2.0f;
-	mag_offset[2] = (max_avg[2] + min_avg[2]) / 2.0f;
+	mag_offset[0] = (mag_max[0] + mag_min[0]) / 2.0f;
+	mag_offset[1] = (mag_max[1] + mag_min[1]) / 2.0f;
+	mag_offset[2] = (mag_max[2] + mag_min[2]) / 2.0f;
 
-	if (!isfinite(mag_offset[1]) || !isfinite(mag_offset[1]) || !isfinite(mag_offset[2])) {
+	printf("mag off x: %4.4f, y: %4.4f, z: %4.4f\n",(double)mag_offset[0],(double)mag_offset[0],(double)mag_offset[2]);
 
-		mavlink_log_critical(mavlink_fd, "[commander] MAG calibration failed (INF/NAN)");
-	} else {
-		/* announce and set new offset */
+	/* announce and set new offset */
 
-		// char offset_output[50];
-		// sprintf(offset_output, "[commander] mag cal: %8.4f %8.4f %8.4f", (double)mag_offset[0], (double)mag_offset[1], (double)mag_offset[2]);
-		// mavlink_log_info(mavlink_fd, offset_output);
+	if (param_set(param_find("SENS_MAG_XOFF"), &(mag_offset[0]))) {
+		fprintf(stderr, "[commander] Setting X mag offset failed!\n");
+	}
 
-		if (param_set(param_find("SENS_MAG_XOFF"), &(mag_offset[0]))) {
-			fprintf(stderr, "[commander] Setting X mag offset failed!\n");
-		}
-		
-		if (param_set(param_find("SENS_MAG_YOFF"), &(mag_offset[1]))) {
-			fprintf(stderr, "[commander] Setting Y mag offset failed!\n");
-		}
+	if (param_set(param_find("SENS_MAG_YOFF"), &(mag_offset[1]))) {
+		fprintf(stderr, "[commander] Setting Y mag offset failed!\n");
+	}
 
-		if (param_set(param_find("SENS_MAG_ZOFF"), &(mag_offset[2]))) {
-			fprintf(stderr, "[commander] Setting Z mag offset failed!\n");
-		}
+	if (param_set(param_find("SENS_MAG_ZOFF"), &(mag_offset[2]))) {
+		fprintf(stderr, "[commander] Setting Z mag offset failed!\n");
 	}
 
 	fd = open(MAG_DEVICE_PATH, 0);
@@ -511,14 +403,6 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale))
 		warn("WARNING: failed to set scale / offsets for mag");
 	close(fd);
-
-	free(mag_maxima[0]);
-	free(mag_maxima[1]);
-	free(mag_maxima[2]);
-
-	free(mag_minima[0]);
-	free(mag_minima[1]);
-	free(mag_minima[2]);
 
 	/* auto-save to EEPROM */
 	int save_ret = pm_save_eeprom(false);
@@ -572,7 +456,7 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 			calibration_counter++;
 		} else {
 			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "[commander] gyro calibration aborted, please retry.");
+			mavlink_log_info(mavlink_fd, "[commander] gyro calibration aborted, retry");
 			return;
 		}
 	}
@@ -619,9 +503,7 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 
 	mavlink_log_info(mavlink_fd, "[commander] gyro calibration finished");
 
-	// char offset_output[50];
-	// sprintf(offset_output, "[commander] gyro cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
-	// mavlink_log_info(mavlink_fd, offset_output);
+	printf("[commander] gyro cal: x:%8.4f y:%8.4f z:%8.4f\n", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
 
 	close(sub_sensor_combined);
 }
@@ -629,9 +511,8 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 {
 	/* announce change */
-	usleep(5000);
-	mavlink_log_info(mavlink_fd, "[commander] The system should be level and not moved");
 
+	mavlink_log_info(mavlink_fd, "[commander] keep it level and still");
 	/* set to accel calibration mode */
 	status->flag_preflight_accel_calibration = true;
 	state_machine_publish(status_pub, status, mavlink_fd);
@@ -656,7 +537,6 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale_null))
 		warn("WARNING: failed to set scale / offsets for accel");
 	close(fd);
-
 	while (calibration_counter < calibration_count) {
 
 		/* wait blocking for new data */
@@ -670,11 +550,10 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 			calibration_counter++;
 		} else {
 			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "[commander] gyro calibration aborted, please retry.");
+			mavlink_log_info(mavlink_fd, "[commander] acceleration calibration aborted");
 			return;
 		}
 	}
-
 	accel_offset[0] = accel_offset[0] / calibration_count;
 	accel_offset[1] = accel_offset[1] / calibration_count;
 	accel_offset[2] = accel_offset[2] / calibration_count;
@@ -729,18 +608,11 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	if(save_ret != 0) {
 		warn("WARNING: auto-save of params to EEPROM failed");
 	}
-
 	/* exit to gyro calibration mode */
 	status->flag_preflight_accel_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
-
 	mavlink_log_info(mavlink_fd, "[commander] acceleration calibration finished");
-
-	// char offset_output[50];
-	// sprintf(offset_output, "[commander] accel cal: x:%8.4f y:%8.4f z:%8.4f", (double)accel_offset[0],
-	// 	(double)accel_offset[1], (double)accel_offset[2]);
-	// mavlink_log_info(mavlink_fd, offset_output);
-
+	printf("[commander] accel calibration: x:%8.4f y:%8.4f z:%8.4f\n", (double)accel_offset[0],(double)accel_offset[1], (double)accel_offset[2]);
 	close(sub_sensor_combined);
 }
 
@@ -908,7 +780,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 			/* none found */
 			if (!handled) {
 				//fprintf(stderr, "[commander] refusing unsupported calibration request\n");
-				mavlink_log_critical(mavlink_fd, "[commander] CMD refusing unsupported calibration request");
+				mavlink_log_critical(mavlink_fd, "[commander] CMD refusing unsup. calib. request");
 				result = MAV_RESULT_UNSUPPORTED;
 			}
 		}

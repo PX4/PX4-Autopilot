@@ -368,10 +368,11 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 	float yaw_control = actuators->control[2];
 	float motor_thrust = actuators->control[3];
 
+	//printf("AMO: Roll: %4.4f, Pitch: %4.4f, Yaw: %4.4f, Thrust: %4.4f\n",roll_control, pitch_control, yaw_control, motor_thrust);
+
 	const float min_thrust = 0.02f;			/**< 2% minimum thrust */
 	const float max_thrust = 1.0f;			/**< 100% max thrust */
-	const float scaling = 500.0f;      /**< 100% thrust equals a value of 500 which works, 512 leads to cutoff */
-
+	const float scaling = 500.0f;			/**< 100% thrust equals a value of 500 which works, 512 leads to cutoff */
 	const float min_gas = min_thrust * scaling;	/**< value range sent to motors, minimum */
 	const float max_gas = max_thrust * scaling;	/**< value range sent to motors, maximum */
 
@@ -387,13 +388,10 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 	if (motor_thrust <= min_thrust) {
 		motor_thrust = min_thrust;
 		output_band = 0.0f;
-
 	} else if (motor_thrust < startpoint_full_control && motor_thrust > min_thrust) {
 		output_band = band_factor * (motor_thrust - min_thrust);
-
 	} else if (motor_thrust >= startpoint_full_control && motor_thrust < max_thrust - band_factor * startpoint_full_control) {
 		output_band = band_factor * startpoint_full_control;
-
 	} else if (motor_thrust >= max_thrust - band_factor * startpoint_full_control) {
 		output_band = band_factor * (max_thrust - motor_thrust);
 	}
