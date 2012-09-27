@@ -6,8 +6,15 @@ config INPUT_TSC2007
 	bool "TI TSC2007 touchscreen controller"
 	default n
 	select I2C
+	---help---
+		Enable support for the TI TSC2007 touchscreen controller
+
 		
 config INPUT_ADS7843E
-	bool "TI ADS7843E touchscreen controller"
+	bool "TI ADS7843/TSC2046 touchscreen controller"
 	default n
 	select SPI
+	---help---
+		Enable support for the TI/Burr-Brown ADS7842 touchscreen controller.  I believe
+		that driver should be compatibile with the TI/Burr-Brown TSC2046 and XPT2046
+		touchscreen controllers as well. 

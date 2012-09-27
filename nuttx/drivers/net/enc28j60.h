@@ -78,7 +78,7 @@
  *
  * The last five locations (0x1b to 0x1f) of all banks point to a common set
  * of registers: EIE, EIR, ESTAT, ECON2 and ECON1. These are key registers
- * usedin controlling and monitoring the operation of the device. Their
+ * used in controlling and monitoring the operation of the device. Their
  * common mapping allows easy access without switching the bank.
  *
  * Control registers for the ENC28J60 are generically grouped as ETH, MAC and

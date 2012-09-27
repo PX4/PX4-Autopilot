@@ -766,7 +766,7 @@ static int ssd1289_getvideoinfo(FAR struct lcd_dev_s *dev,
 {
   DEBUGASSERT(dev && vinfo);
   lcdvdbg("fmt: %d xres: %d yres: %d nplanes: 1\n",
-          SSD1289_COLORFMT, SSD1289_XRES, SSD1289_XRES);
+          SSD1289_COLORFMT, SSD1289_XRES, SSD1289_YRES);
 
   vinfo->fmt     = SSD1289_COLORFMT;    /* Color format: RGB16-565: RRRR RGGG GGGB BBBB */
   vinfo->xres    = SSD1289_XRES;        /* Horizontal resolution in pixel columns */
@@ -925,6 +925,7 @@ static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
 #ifndef CONFIG_LCD_NOGETRUN
   uint16_t id;
 #endif
+  int ret;
 
   /* Select the LCD */
 
@@ -1168,19 +1169,20 @@ static inline int ssd1289_hwinitialize(FAR struct ssd1289_dev_s *priv)
       /* One driver has a 50 msec delay here */
       /* up_mdelay(50); */
 
-      return OK;
+      ret = OK;
     }
 #ifndef CONFIG_LCD_NOGETRUN
   else
     {
       lcddbg("Unsupported LCD type\n");
-      return -ENODEV;
+      ret = -ENODEV;
     }
 #endif
 
   /* De-select the LCD */
 
   lcd->deselect(lcd);
+  return ret;
 }
 
  /*************************************************************************************
