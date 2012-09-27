@@ -388,16 +388,12 @@ void ardrone_mixing_and_output(int ardrone_write, const struct actuator_controls
 	if (motor_thrust <= min_thrust) {
 		motor_thrust = min_thrust;
 		output_band = 0.0f;
-		//printf("0 silent\n");
 	} else if (motor_thrust < startpoint_full_control && motor_thrust > min_thrust) {
 		output_band = band_factor * (motor_thrust - min_thrust);
-		//printf("1 starting\n");
 	} else if (motor_thrust >= startpoint_full_control && motor_thrust < max_thrust - band_factor * startpoint_full_control) {
 		output_band = band_factor * startpoint_full_control;
-		//printf("2 working\n");
 	} else if (motor_thrust >= max_thrust - band_factor * startpoint_full_control) {
 		output_band = band_factor * (max_thrust - motor_thrust);
-		//printf("3 full\n");
 	}
 
 	//add the yaw, nick and roll components to the basic thrust //TODO:this should be done by the mixer

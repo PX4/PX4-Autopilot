@@ -404,10 +404,6 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 
 	/* announce and set new offset */
 
-	// char offset_output[50];
-	// sprintf(offset_output, "[commander] mag cal: %8.4f %8.4f %8.4f", (double)mag_offset[0], (double)mag_offset[1], (double)mag_offset[2]);
-	// mavlink_log_info(mavlink_fd, offset_output);
-
 	if (param_set(param_find("SENS_MAG_XOFF"), &(mag_offset[0]))) {
 		fprintf(stderr, "[commander] Setting X mag offset failed!\n");
 	}

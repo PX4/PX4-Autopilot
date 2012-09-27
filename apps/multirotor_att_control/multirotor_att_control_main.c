@@ -236,7 +236,6 @@ mc_thread_main(int argc, char *argv[])
 			/* set yaw rate */
 			rates_sp.yaw = manual.yaw;
 			att_sp.thrust = manual.throttle;
-			//printf("Roll: %4.4f, Pitch: %4.4f, Yaw: %4.4f, Thrust: %4.4f\n",att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body, att_sp.thrust);
 			att_sp.timestamp = hrt_absolute_time();
 			/* STEP 2: publish the result to the vehicle actuators */
 			orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
@@ -278,15 +277,10 @@ mc_thread_main(int argc, char *argv[])
 		/* run attitude controller */
 		if (state.flag_control_attitude_enabled && !state.flag_control_rates_enabled) {
 			multirotor_control_attitude(&att_sp, &att, NULL, &actuators);
-//			printf("publish actuator\n");
-
-//			printf("MAC_PUB: Roll: %4.4f, Pitch: %4.4f, Yaw: %4.4f, Thrust: %4.4f\n",actuators.control[0], actuators.control[1], actuators.control[2], actuators.control[3]);
-
 			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 		} else if (state.flag_control_attitude_enabled && state.flag_control_rates_enabled) {
 			multirotor_control_attitude(&att_sp, &att, &rates_sp, NULL);
 			orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
-//			printf("publish attitude\n");
 		}
 
 

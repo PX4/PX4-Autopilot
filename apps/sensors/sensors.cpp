@@ -1030,7 +1030,6 @@ Sensors::ppm_poll()
 	orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
 	orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual_control);
 
-//	printf("SENSORS: Roll: %4.4f, Pitch: %4.4f, Yaw: %4.4f, Thrust: %4.4f\n",manual_control.roll, manual_control.pitch, manual_control.yaw, manual_control.throttle);
 }
 #endif
 
