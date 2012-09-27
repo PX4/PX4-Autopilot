@@ -3417,4 +3417,6 @@
 	  not an ILI93xx.
 	* configs/shenzhou/src/up_ssd1289.c: The LCD is basically functional
 	  on the Shenzhou board.
+	* graphics/nxmu:  Correct some bad parameter checking that caused
+	  failures when DEBUG was enabled.
 

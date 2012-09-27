@@ -93,9 +93,9 @@ int nxmu_sendclient(FAR struct nxfe_conn_s *conn, FAR const void *msg,
   /* Sanity checking */
 
 #ifdef CONFIG_DEBUG
-  if (!conn || conn->swrmq)
+  if (!conn || !conn->swrmq)
     {
-      errno = EINVAL;
+      set_errno(EINVAL);
       return ERROR;
     }
 #endif

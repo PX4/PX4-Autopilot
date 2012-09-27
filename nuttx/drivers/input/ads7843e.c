@@ -572,7 +572,7 @@ static void ads7843e_worker(FAR void *arg)
   /* Check for pen up or down by reading the PENIRQ GPIO. */
 
   pendown = config->pendown(config);
-dbg("pendown: %d\n", pendown); // REMOVE ME
+
   /* Handle the change from pen down to pen up */
 
   if (!pendown)
@@ -643,7 +643,6 @@ dbg("pendown: %d\n", pendown); // REMOVE ME
   /* Exit, re-enabling ADS7843E interrupts */
 
 errout:
-dbg("Exiting\n"); // REMOVE ME
   (void)ads7843e_sendcmd(priv, ADS7843_CMD_ENABPINIRQ);
   config->enable(config, true);
 }

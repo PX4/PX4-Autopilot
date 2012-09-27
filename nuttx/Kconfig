@@ -230,7 +230,11 @@ config DEBUG_VERBOSE
 	bool "Enable Debug Verbose Output"
 	default n
 	---help---
-		Enables verbose debug output (assuming debug output is enabled)
+		Enables verbose debug output (assuming debug output is enabled).  As a
+		general rule, when DEBUG is enabled only errors will be reported in the debug
+		output.  But if you also enable DEBUG_VERBOSE, then very chatty (and
+		often annoying) output will be generated.  This means there are two levels
+		of debug output:  errors-only and everything.
 
 config DEBUG_ENABLE
 	bool "Enable Debug Controls"
