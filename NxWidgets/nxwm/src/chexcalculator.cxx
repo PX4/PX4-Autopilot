@@ -656,7 +656,7 @@ int64_t CHexCalculator::evaluateBinaryOperation(uint8_t operation, int64_t value
         return value1 + value2;
 
       default:
-        gdbg("ERROR: Unexpected pending operation %d\n", m_pending);
+        gdbg("ERROR: Unexpected pending operation %d\n", operation);
         return 0;
       }
 }

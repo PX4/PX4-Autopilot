@@ -696,3 +696,61 @@ Where <subdir> is one of the following:
        delay (maybe 30 seconds?) before anything happens.  That is the timeout
        before the networking finally gives up and decides that no network is
        available.
+
+  nxwm
+  ----
+    This is a special configuration setup for the NxWM window manager
+    UnitTest.  The NxWM window manager can be found here:
+
+      trunk/NxWidgets/nxwm
+
+    The NxWM unit test can be found at:
+
+      trunk/NxWidgets/UnitTests/nxwm
+
+    NOTE:  JP6 selects between the touchscreen interrupt and the MII
+    interrupt.  It should be positioned 1-2 to enable the touchscreen
+    interrupt.
+
+    Documentation for installing the NxWM unit test can be found here:
+
+      trunk/NxWidgets/UnitTests/README.txt
+
+    Here is the quick summary of the build steps:
+
+    1. Intall the nxwm configuration
+
+       $ cd ~/nuttx/trunk/nuttx/tools
+       $ ./configure.sh shenzhou/nxwm
+
+    2. Make the build context (only)
+
+       $ cd ..
+       $ . ./setenv.sh
+       $ make context
+       ...
+
+    3. Install the nxwm unit test
+
+       $ cd ~/nuttx/trunk/NxWidgets
+       $ tools/install.sh ~/nuttx/trunk/apps nxwm
+       Creating symbolic link
+        - To ~/nuttx/trunk/NxWidgets/UnitTests/nxwm
+        - At ~/nuttx/trunk/apps/external
+
+    4. Build the NxWidgets library
+
+       $ cd ~/nuttx/trunk/NxWidgets/libnxwidgets
+       $ make TOPDIR=~/nuttx/trunk/nuttx
+       ...
+
+    5. Build the NxWM library
+
+       $ cd ~/nuttx/trunk/NxWidgets/nxwm
+       $ make TOPDIR=~//nuttx/trunk/nuttx
+       ...
+
+    6. Built NuttX with the installed unit test as the application
+
+       $ cd ~/nuttx/trunk/nuttx
+       $ make

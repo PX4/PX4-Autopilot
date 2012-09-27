@@ -173,19 +173,23 @@ static void tsc_enable(FAR struct ads7843e_config_s *state, bool enable)
 {
   FAR struct stm32_config_s *priv = (FAR struct stm32_config_s *)state;
 
-  DEBUGASSERT(priv->handler);
+  /* The caller should not attempt to enable interrupts if the handler
+   * has not yet been 'attached'
+   */
+
+  DEBUGASSERT(priv->handler || !enable);
 
   /* Attach and enable, or detach and disable */
 
   ivdbg("enable:%d\n", enable);
   if (enable)
     {
-      (void)stm32_gpiosetevent(GPIO_TP_INT, false, true, true,
+      (void)stm32_gpiosetevent(GPIO_TP_INT, true, true, false,
                                priv->handler);
     }
   else
     {
-      (void)stm32_gpiosetevent(GPIO_TP_INT, false, true, true, NULL);
+      (void)stm32_gpiosetevent(GPIO_TP_INT, false, false, false, NULL);
     }
 }
 
@@ -205,9 +209,12 @@ static bool tsc_busy(FAR struct ads7843e_config_s *state)
 
 static bool tsc_pendown(FAR struct ads7843e_config_s *state)
 {
-  /* REVISIT:  This might need to be inverted */
+  /* XPT2046 uses an an internal pullup resistor.  The PENIRQ output goes low
+   * due to the current path through the touch screen to ground, which
+   * initiates an interrupt to the processor via TP_INT.
+   */
 
-  bool pendown = stm32_gpioread(GPIO_TP_INT);
+  bool pendown = !stm32_gpioread(GPIO_TP_INT);
   ivdbg("pendown:%d\n", pendown);
   return pendown;
 }

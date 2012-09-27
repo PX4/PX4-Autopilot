@@ -214,7 +214,7 @@ bool CNxServer::connect(void)
 
   // Start the server task
 
-  gvdbg("NxServer::connect: Starting server task\n");
+  gvdbg("CNxServer::connect: Starting server task\n");
   serverId = TASK_CREATE("NX Server", CONFIG_NXWIDGETS_SERVERPRIO,
                          CONFIG_NXWIDGETS_SERVERSTACK, server, (FAR const char **)0);
   if (serverId < 0)

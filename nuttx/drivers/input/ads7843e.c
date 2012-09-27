@@ -9,6 +9,12 @@
  *   "Touch Screen Controller, ADS7843," Burr-Brown Products from Texas
  *    Instruments, SBAS090B, September 2000, Revised May 2002"
  *
+ * See also:
+ *   "Low Voltage I/O Touch Screen Controller, TSC2046," Burr-Brown Products
+ *    from Texas Instruments, SBAS265F, October 2002, Revised August 2007.
+ *
+ *   "XPT2046 Data Sheet," Shenzhen XPTek Technology Co., Ltd, 2007
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -566,7 +572,7 @@ static void ads7843e_worker(FAR void *arg)
   /* Check for pen up or down by reading the PENIRQ GPIO. */
 
   pendown = config->pendown(config);
-
+dbg("pendown: %d\n", pendown); // REMOVE ME
   /* Handle the change from pen down to pen up */
 
   if (!pendown)
@@ -637,6 +643,7 @@ static void ads7843e_worker(FAR void *arg)
   /* Exit, re-enabling ADS7843E interrupts */
 
 errout:
+dbg("Exiting\n"); // REMOVE ME
   (void)ads7843e_sendcmd(priv, ADS7843_CMD_ENABPINIRQ);
   config->enable(config, true);
 }
