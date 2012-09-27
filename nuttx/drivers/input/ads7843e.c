@@ -951,8 +951,7 @@ static ssize_t ads7843e_read(FAR struct file *filep, FAR char *buffer, size_t le
 
       if (sample.valid)
         {
-          report->point[0].flags  = TOUCH_UP | TOUCH_ID_VALID |
-                                    TOUCH_POS_VALID | TOUCH_PRESSURE_VALID;
+          report->point[0].flags  = TOUCH_UP | TOUCH_ID_VALID | TOUCH_POS_VALID;
         }
       else
         {

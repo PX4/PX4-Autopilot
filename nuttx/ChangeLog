@@ -3435,3 +3435,6 @@
 	  DM9161 PHY.  If the DM9161 failed to initialize, then use the
 	  up_sysemreset() logic to reset the MCU.  Contributed by Darcy
 	  Gong.
+	* arch/arm/src/stm32/stm32_gpio.c:  Add missing logic to set bit
+	  for SPI3 remap.  This fixes the XPT2046 touchscreen driver using
+	  drivers/input/ads7843.c

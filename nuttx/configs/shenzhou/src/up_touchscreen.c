@@ -209,9 +209,6 @@ static bool tsc_busy(FAR struct ads7843e_config_s *state)
    * between sending the command, then reading the returned data.
    */
 
-#if 0
-  up_udelay(1600); /* 1.6MS */
-#endif
   return false;
 }
 
