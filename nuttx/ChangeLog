@@ -3425,4 +3425,13 @@
 	  that samples the position.
 	* drivers/lcd/ssd1289.c:  On some platforms we are unable to
 	  read the device ID -- reason unknown; workaround in place.
-
+	* drivers/input/ads7843.c:  Add thresholding options and an
+	  option to swap X and Y positions.  Fix some logic errors in
+	  the SPI locking/selecting logic.
+	* arch/arm/src/armv7-m/up_systemreset.c:  Add logic to reset
+	  the Cortex-Mx using the AIRCR register.  Contributed by Darcy
+	  Gong.
+	* arch/arm/src/stm32/up_eth.c:  Add logic specifically for the
+	  DM9161 PHY.  If the DM9161 failed to initialize, then use the
+	  up_sysemreset() logic to reset the MCU.  Contributed by Darcy
+	  Gong.

@@ -201,9 +201,17 @@ static void tsc_clear(FAR struct ads7843e_config_s *state)
 static bool tsc_busy(FAR struct ads7843e_config_s *state)
 {
   /* Hmmm... The ADS7843E BUSY pin is not brought out on the Shenzhou board.
-   * We will most certainly have to revisit this.
+   * We will most certainly have to revisit this.  There is this cryptic
+   * statement in the XPT2046 spec:  "No DCLK delay required with dedicated
+   * serial port."
+   *
+   * The busy state is used by the ADS7843E driver to control the delay
+   * between sending the command, then reading the returned data.
    */
 
+#if 0
+  up_udelay(1600); /* 1.6MS */
+#endif
   return false;
 }
 

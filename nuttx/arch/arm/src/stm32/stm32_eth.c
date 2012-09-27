@@ -664,6 +664,9 @@ static void stm32_rxdescinit(FAR struct stm32_ethmac_s *priv);
 
 static int  stm32_phyread(uint16_t phydevaddr, uint16_t phyregaddr, uint16_t *value);
 static int  stm32_phywrite(uint16_t phydevaddr, uint16_t phyregaddr, uint16_t value);
+#ifdef CONFIG_PHY_DM9161
+static inline int stm32_dm9161(FAR struct stm32_ethmac_s *priv);
+#endif
 static int  stm32_phyinit(FAR struct stm32_ethmac_s *priv);
 
 /* MAC/DMA Initialization */
@@ -2480,6 +2483,72 @@ static int stm32_phywrite(uint16_t phydevaddr, uint16_t phyregaddr, uint16_t val
 }
 
 /****************************************************************************
+ * Function: stm32_dm9161
+ *
+ * Description:
+ *   Special workaround for the Davicom DM9161 PHY is required.  On power,
+ *   up, the PHY is not usually configured correctly but will work after
+ *   a powered-up reset.  This is really a workaround for some more
+ *   fundamental issue with the PHY clocking initialization, but the
+ *   root cause has not been studied (nor will it be with this workaround).
+ *
+ * Parameters:
+ *   priv - A reference to the private driver state structure
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PHY_DM9161
+static inline int stm32_dm9161(FAR struct stm32_ethmac_s *priv)
+{
+  uint16_t phyval;
+  int ret;
+
+  /* Read the PHYID1 register;  A failure to read the PHY ID is one
+   * indication that check if the DM9161 PHY CHIP is not ready.
+   */
+
+  ret = stm32_phyread(CONFIG_STM32_PHYADDR, MII_PHYID1, &phyval);
+  if (ret < 0)
+    {
+      ndbg("Failed to read the PHY ID1: %d\n", ret);
+      return ret;
+    }
+
+  /* If we failed to read the PHY ID1 register, the reset the MCU to recover */
+
+  else if (phyval == 0xffff)
+    {
+      up_systemreset();
+    }
+
+  nvdbg("PHY ID1: 0x%04X\n", phyval);
+
+  /* Now check the "DAVICOM Specified Configuration Register (DSCR)", Register 16 */
+
+  ret = stm32_phyread(CONFIG_STM32_PHYADDR, 16, &phyval);
+  if (ret < 0)
+    {
+      ndbg("Failed to read the PHY Register 0x10: %d\n", ret);
+      return ret;
+    }
+
+  /* Bit 8 of the DSCR register is zero, the the DM9161 has not selected RMII.
+   * If RMII is not selected, then reset the MCU to recover.
+   */
+ 
+  else if ((phyval & (1 << 8)) == 0)
+    {
+      up_systemreset();
+    }
+
+  return OK;
+}
+#endif
+
+/****************************************************************************
  * Function: stm32_phyinit
  *
  * Description:
@@ -2523,6 +2592,16 @@ static int stm32_phyinit(FAR struct stm32_ethmac_s *priv)
       return ret;
     }
   up_mdelay(PHY_RESET_DELAY);
+
+  /* Special workaround for the Davicom DM9161 PHY is required. */
+
+#ifdef CONFIG_PHY_DM9161
+  ret = stm32_dm9161(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
+#endif
 
   /* Perform auto-negotion if so configured */
 

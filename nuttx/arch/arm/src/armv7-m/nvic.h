@@ -175,7 +175,7 @@
 #define NVIC_CPUID_BASE_OFFSET          0x0d00 /* CPUID base register */
 #define NVIC_INTCTRL_OFFSET             0x0d04 /* Interrupt control state register */
 #define NVIC_VECTAB_OFFSET              0x0d08 /* Vector table offset register */
-#define NVIC_AIRC_OFFSET                0x0d0c /* Application interrupt/reset contol registr */
+#define NVIC_AIRCR_OFFSET               0x0d0c /* Application interrupt/reset contol registr */
 #define NVIC_SYSCON_OFFSET              0x0d10 /* System control register */
 #define NVIC_CFGCON_OFFSET              0x0d14 /* Configuration control register */
 #define NVIC_SYSH_PRIORITY_OFFSET(n)    (0x0d14 + 4*((n) >> 2))
@@ -348,7 +348,7 @@
 #define NVIC_CPUID_BASE                 (ARMV7M_NVIC_BASE + NVIC_CPUID_BASE_OFFSET)
 #define NVIC_INTCTRL                    (ARMV7M_NVIC_BASE + NVIC_INTCTRL_OFFSET)
 #define NVIC_VECTAB                     (ARMV7M_NVIC_BASE + NVIC_VECTAB_OFFSET)
-#define NVIC_AIRC                       (ARMV7M_NVIC_BASE + NVIC_AIRC_OFFSET)
+#define NVIC_AIRCR                      (ARMV7M_NVIC_BASE + NVIC_AIRCR_OFFSET)
 #define NVIC_SYSCON                     (ARMV7M_NVIC_BASE + NVIC_SYSCON_OFFSET)
 #define NVIC_CFGCON                     (ARMV7M_NVIC_BASE + NVIC_CFGCON_OFFSET)
 #define NVIC_SYSH_PRIORITY(n)           (ARMV7M_NVIC_BASE + NVIC_SYSH_PRIORITY_OFFSET(n))
@@ -501,12 +501,18 @@
 #define NVIC_SYSHCON_USGFAULTENA        (1 << 18) /* Bit 18: UsageFault enabled */
 
 /* Application Interrupt and Reset Control Register (AIRCR) */
-                                                  /* Bit 0:  Reserved */
-#define NVIC_AIRC_VECTCLRACTIVE         (1 << 1)  /* Bit 1:  Reserved for debug use */
-#define NVIC_AIRC_SYSRESETREQ           (1 << 2)  /* Bit 2:  System reset */
-                                                  /* Bits 3-14:  Reserved */
-#define NVIC_AIRC_ENDIANNESS            (1 << 15) /* Bit 15: 1=Big endian */
-                                                  /* Bits 16-31:  Reserved */
+
+#define NVIC_AIRCR_VECTRESET            (1 << 0)  /* Bit 0:  VECTRESET */
+#define NVIC_AIRCR_VECTCLRACTIVE        (1 << 1)  /* Bit 1:  Reserved for debug use */
+#define NVIC_AIRCR_SYSRESETREQ          (1 << 2)  /* Bit 2:  System reset */
+                                                  /* Bits 2-7:  Reserved */
+#define NVIC_AIRCR_PRIGROUP_SHIFT       (8)       /* Bits 8-14: PRIGROUP */
+#define NVIC_AIRCR_PRIGROUP_MASK        (7 << NVIC_AIRCR_PRIGROUP_SHIFT)
+#define NVIC_AIRCR_ENDIANNESS           (1 << 15) /* Bit 15: 1=Big endian */
+#define NVIC_AIRCR_VECTKEY_SHIFT        (16)      /* Bits 16-31: VECTKEY */
+#define NVIC_AIRCR_VECTKEY_MASK         (0xffff << NVIC_AIRCR_VECTKEY_SHIFT)
+#define NVIC_AIRCR_VECTKEYSTAT_SHIFT    (16)      /* Bits 16-31: VECTKEYSTAT */
+#define NVIC_AIRCR_VECTKEYSTAT_MASK     (0xffff << NVIC_AIRCR_VECTKEYSTAT_SHIFT)
 
 /* Debug Exception and Monitor Control Register (DEMCR) */
 

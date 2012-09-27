@@ -241,6 +241,10 @@ extern void up_pminitialize(void);
 #  define up_pminitialize()
 #endif
 
+#if defined(CONFIG_ARCH_CORTEXM3) || defined(CONFIG_ARCH_CORTEXM4)
+extern void up_systemreset(void) noreturn_function;
+#endif
+
 /* Interrupt handling *******************************************************/
 
 extern void up_irqinitialize(void);
