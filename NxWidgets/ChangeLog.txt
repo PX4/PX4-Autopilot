@@ -168,3 +168,5 @@
   exactly sure how to do that.
 * libnxwidgets/Makefile and NxWidgets/nxwm/Makefile:  Need updates
   for consistency with recent changes to NuttX build system (>= 6.22)
+* Kconfig:  Add option to turn on the memory monitor feature of the
+  NxWidgets/NxWM unit tests.

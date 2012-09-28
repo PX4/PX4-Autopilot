@@ -122,7 +122,7 @@ static void stm32_lcdshow(FAR struct stm32_lower_s *priv, FAR const char *msg);
 #endif
 
 static void stm32_wrdata(FAR struct stm32_lower_s *priv, uint16_t data);
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
 static inline uint16_t stm32_rddata(FAR struct stm32_lower_s *priv);
 #endif
 
@@ -131,7 +131,7 @@ static inline uint16_t stm32_rddata(FAR struct stm32_lower_s *priv);
 static void stm32_select(FAR struct ssd1289_lcd_s *dev);
 static void stm32_deselect(FAR struct ssd1289_lcd_s *dev);
 static void stm32_index(FAR struct ssd1289_lcd_s *dev, uint8_t index);
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
 static uint16_t stm32_read(FAR struct ssd1289_lcd_s *dev);
 #endif
 static void stm32_write(FAR struct ssd1289_lcd_s *dev, uint16_t data);
@@ -253,7 +253,7 @@ static struct stm32_lower_s g_lcdlower =
     .select    = stm32_select,
     .deselect  = stm32_deselect,
     .index     = stm32_index,
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
     .read      = stm32_read,
 #endif
     .write     = stm32_write,
@@ -326,7 +326,7 @@ static void stm32_wrdata(FAR struct stm32_lower_s *priv, uint16_t data)
  *
  ************************************************************************************/
 
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
 static inline uint16_t stm32_rddata(FAR struct stm32_lower_s *priv)
 {
   uint16_t regval;
@@ -407,7 +407,7 @@ static void stm32_index(FAR struct ssd1289_lcd_s *dev, uint8_t index)
  *
  ************************************************************************************/
 
-#ifndef CONFIG_SSD1289_WRONLY
+#ifndef CONFIG_LCD_NOGETRUN
 static uint16_t stm32_read(FAR struct ssd1289_lcd_s *dev)
 {
   FAR struct stm32_lower_s *priv = (FAR struct stm32_lower_s *)dev;

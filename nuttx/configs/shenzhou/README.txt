@@ -702,11 +702,11 @@ Where <subdir> is one of the following:
     This is a special configuration setup for the NxWM window manager
     UnitTest.  The NxWM window manager can be found here:
 
-      trunk/NxWidgets/nxwm
+      nuttx-code/NxWidgets/nxwm
 
     The NxWM unit test can be found at:
 
-      trunk/NxWidgets/UnitTests/nxwm
+      nuttx-code/NxWidgets/UnitTests/nxwm
 
     NOTE:  JP6 selects between the touchscreen interrupt and the MII
     interrupt.  It should be positioned 1-2 to enable the touchscreen
@@ -714,13 +714,13 @@ Where <subdir> is one of the following:
 
     Documentation for installing the NxWM unit test can be found here:
 
-      trunk/NxWidgets/UnitTests/README.txt
+      nuttx-code/NxWidgets/UnitTests/README.txt
 
     Here is the quick summary of the build steps:
 
     1. Intall the nxwm configuration
 
-       $ cd ~/nuttx/trunk/nuttx/tools
+       $ cd ~/nuttx/nuttx-code/tools
        $ ./configure.sh shenzhou/nxwm
 
     2. Make the build context (only)
@@ -732,25 +732,41 @@ Where <subdir> is one of the following:
 
     3. Install the nxwm unit test
 
-       $ cd ~/nuttx/trunk/NxWidgets
-       $ tools/install.sh ~/nuttx/trunk/apps nxwm
+       $ cd ~/nuttx/nuttx-code/NxWidgets
+       $ tools/install.sh ~/nuttx/nuttx-code/apps nxwm
        Creating symbolic link
-        - To ~/nuttx/trunk/NxWidgets/UnitTests/nxwm
-        - At ~/nuttx/trunk/apps/external
+        - To ~/nuttx/nuttx-code/NxWidgets/UnitTests/nxwm
+        - At ~/nuttx/nuttx-code/apps/external
 
     4. Build the NxWidgets library
 
-       $ cd ~/nuttx/trunk/NxWidgets/libnxwidgets
-       $ make TOPDIR=~/nuttx/trunk/nuttx
+       $ cd ~/nuttx/nuttx-code/NxWidgets/libnxwidgets
+       $ make TOPDIR=~/nuttx/nuttx-code
        ...
 
     5. Build the NxWM library
 
-       $ cd ~/nuttx/trunk/NxWidgets/nxwm
-       $ make TOPDIR=~//nuttx/trunk/nuttx
+       $ cd ~/nuttx/nuttx-code/NxWidgets/nxwm
+       $ make TOPDIR=~/nuttx/nuttx-code
        ...
 
     6. Built NuttX with the installed unit test as the application
 
-       $ cd ~/nuttx/trunk/nuttx
+       $ cd ~/nuttx/nuttx-code
        $ make
+
+    NOTE: Reading from the LCD is not currently supported by this
+    configuration.  The hardware will support reading from the LCD
+    and drivers/lcd/ssd1289.c also supports reading from the LCD.
+    This limits some graphics capabilities.
+
+    If you enable reading from the LCD, you will see some memory
+    corruption.  If you get inspired to debug this problem, you can
+    turn the LCD read functionality back on by setting:
+
+      -CONFIG_LCD_NOGETRUN=y
+      +# CONFIG_LCD_NOGETRUN is not set
+
+      -CONFIG_NX_WRITEONLY=y
+      +# CONFIG_NX_WRITEONLY is not set
+ 

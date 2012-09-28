@@ -3,7 +3,7 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-menuconfig NXWIDGETS
+config NXWIDGETS
 	bool "Enable NxWidgets"
 	default n
 	depends on NX && HAVE_CXX
@@ -201,9 +201,16 @@ config NXWIDGETS_CURSORCONTROL_SIZE
 		of cursor controls that can between entered by NX polling cycles
 		without losing data.  Default: 4
 
+config NXWIDGET_MEMMONITOR
+	bool "Memory Usage Monitor"
+	default n
+	---help---
+		Enable memory usage monitor instrumentation.  This feature is only
+		used by the NxWidget/NxWM unit tests.
+
 endif
 
-menuconfig NXWM
+config NXWM
 	bool "Enable NxWM"
 	default n
 	depends on NXWIDGETS && NX_MULTIUSER

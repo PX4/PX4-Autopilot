@@ -3438,3 +3438,11 @@
 	* arch/arm/src/stm32/stm32_gpio.c:  Add missing logic to set bit
 	  for SPI3 remap.  This fixes the XPT2046 touchscreen driver using
 	  drivers/input/ads7843.c
+	* configs/shenzhou/src/up_ssd1289.c:  Fix naming error in
+	  conditional compilation.
+	* configs/shenzhou/nxwm/defconfig:  Disable reading from the LCD.
+	  This does not work.  The hardware and the driver support the
+	  capability, but there is some bug that causes memory corruption.
+	  The work around for now:  Just disable reading from the LCD.
+	* drivers/lcd/ssd1289.c:  Add some logic to reduce the amount of
+	  output when CONFIG_DEBUG_LCD is enabled.

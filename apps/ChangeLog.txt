@@ -346,3 +346,5 @@
 	  possible to configure NxWidgets/NxWM without too much trouble (with
 	  the tradeoff being a kind ugly structure and some maintenance issues).
 	* apps/examples/Make.defs: Missing support for apps/examples/watchdog.
+	* apps/NxWidgets/Kconfig:  Add option to turn on the memory monitor
+	  feature of the NxWidgets/NxWM unit tests.
