@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -140,9 +140,7 @@ static int ardrone_open_uart(char *uart_name, struct termios *uart_config_origin
 	int speed = B115200;
 	int uart;
 
-
 	/* open uart */
-	printf("[ardrone_interface] UART is %s, baud rate is%d\n",uart_name,speed);
 	uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	/* Try to set baud rate */
@@ -329,6 +327,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 			 */
 			if (armed.armed && !armed.lockdown) {
 				ardrone_mixing_and_output(ardrone_write, &actuator_controls);
+
 			} else {
 				/* Silently lock down motor speeds to zero */
 				ardrone_write_motor_commands(ardrone_write, 0, 0, 0, 0);

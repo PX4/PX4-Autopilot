@@ -50,6 +50,10 @@
  * @{
  */
 
+enum PX4_CMD {
+	PX4_CMD_CONTROLLER_SELECTION = 1000,
+};
+
 struct vehicle_command_s
 {
 	float param1;			/**< Parameter 1, as defined by MAVLink MAV_CMD enum.   */

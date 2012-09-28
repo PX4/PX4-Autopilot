@@ -1,14 +1,14 @@
 /*
- * attitudeKalmanfilter_terminate.h
+ * diag.h
  *
- * Code generation for function 'attitudeKalmanfilter_terminate'
+ * Code generation for function 'diag'
  *
- * C source code generated on: Fri Sep 21 13:56:44 2012
+ * C source code generated on: Fri Sep 21 13:56:43 2012
  *
  */
 
-#ifndef __ATTITUDEKALMANFILTER_TERMINATE_H__
-#define __ATTITUDEKALMANFILTER_TERMINATE_H__
+#ifndef __DIAG_H__
+#define __DIAG_H__
 /* Include files */
 #include <math.h>
 #include <stdio.h>
@@ -29,6 +29,6 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void attitudeKalmanfilter_terminate(void);
+extern void diag(const real32_T v[3], real32_T d[9]);
 #endif
-/* End of code generation (attitudeKalmanfilter_terminate.h) */
+/* End of code generation (diag.h) */

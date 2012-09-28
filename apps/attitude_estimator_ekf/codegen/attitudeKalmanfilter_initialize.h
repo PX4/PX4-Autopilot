@@ -3,7 +3,7 @@
  *
  * Code generation for function 'attitudeKalmanfilter_initialize'
  *
- * C source code generated on: Wed Jul 11 08:38:35 2012
+ * C source code generated on: Fri Sep 21 13:56:44 2012
  *
  */
 
@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "rt_defines.h"
+#include "rt_nonfinite.h"
 
 #include "rtwtypes.h"
 #include "attitudeKalmanfilter_types.h"

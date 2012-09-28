@@ -3,7 +3,7 @@
  *
  * Code generation for function 'norm'
  *
- * C source code generated on: Wed Jul 11 08:38:35 2012
+ * C source code generated on: Fri Sep 21 13:56:43 2012
  *
  */
 
@@ -40,7 +40,7 @@ real32_T norm(const real32_T x[3])
   firstNonZero = TRUE;
   for (k = 0; k < 3; k++) {
     if (x[k] != 0.0F) {
-      absxk = fabsf(x[k]);
+      absxk = (real32_T)fabsf(x[k]);
       if (firstNonZero) {
         scale = absxk;
         y = 1.0F;
@@ -56,7 +56,7 @@ real32_T norm(const real32_T x[3])
     }
   }
 
-  return scale * sqrtf(y);
+  return scale * (real32_T)sqrtf(y);
 }
 
 /* End of code generation (norm.c) */

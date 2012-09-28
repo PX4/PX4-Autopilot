@@ -3,7 +3,7 @@
  *
  * Code generation for function 'mrdivide'
  *
- * C source code generated on: Wed Jul 11 08:38:35 2012
+ * C source code generated on: Fri Sep 21 13:56:44 2012
  *
  */
 
@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "rt_defines.h"
+#include "rt_nonfinite.h"
 
 #include "rtwtypes.h"
 #include "attitudeKalmanfilter_types.h"
@@ -27,6 +29,6 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void mrdivide(const real32_T A[108], const real32_T B[81], real32_T y[108]);
+extern void mrdivide(const real32_T A_data[81], const int32_T A_sizes[2], const real32_T B_data[81], const int32_T B_sizes[2], real32_T y_data[81], int32_T y_sizes[2]);
 #endif
 /* End of code generation (mrdivide.h) */

@@ -75,7 +75,7 @@ int ground_estimator_thread_main(int argc, char *argv[]) {
 	/* subscribe to raw data */
 	int sub_raw = orb_subscribe(ORB_ID(sensor_combined));
 
-	/* advertise attitude */
+	/* advertise debug value */
 	struct debug_key_value_s dbg = { .key = "posx", .value = 0.0f };
 	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
 
@@ -97,7 +97,7 @@ int ground_estimator_thread_main(int argc, char *argv[]) {
 			/* XXX this is seriously bad - should be an emergency */
 		} else if (ret == 0) {
 			/* XXX this means no sensor data - should be critical or emergency */
-			printf("[attitude estimator bm] WARNING: Not getting sensor data - sensor app running?\n");
+			printf("[ground estimator bm] WARNING: Not getting sensor data - sensor app running?\n");
 		} else {
 			struct sensor_combined_s s;
 			orb_copy(ORB_ID(sensor_combined), sub_raw, &s);

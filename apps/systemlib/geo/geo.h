@@ -1,7 +1,9 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           Julian Oes <joes@student.ethz.ch>
+ *           Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,38 +35,15 @@
  ****************************************************************************/
 
 /**
- * @file ardrone_motors_setpoint.h
- * Definition of the ardrone_motors_setpoint uORB topic.
+ * @file geo.h
+ *
+ * Definition of geo / math functions to perform geodesic calculations
+ *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#ifndef TOPIC_ARDRONE_MOTORS_SETPOINT_H_
-#define TOPIC_ARDRONE_MOTORS_SETPOINT_H_
+__EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 
-#include <stdint.h>
-#include "../uORB.h"
-
-/**
- * @addtogroup topics
- * @{
- */
-
-struct ardrone_motors_setpoint_s
-{
-	uint64_t timestamp; //in microseconds since system start, is set whenever the writing thread stores new data
-
-	uint8_t group;	/**< quadrotor group */
-	uint8_t mode;	/**< requested flight mode XXX define */
-	float p1;		/**< parameter 1: rate control: roll rate, att control: roll angle (in radians, NED) */
-	float p2;		/**< parameter 2: rate control: pitch rate, att control: pitch angle (in radians, NED) */
-	float p3;		/**< parameter 3: rate control: yaw rate, att control: yaw angle (in radians, NED) */
-	float p4;		/**< parameter 4: thrust, [0..1] */
-}; /**< AR.Drone low level motors */
-
- /**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(ardrone_motors_setpoint);
-
-#endif
+__EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);

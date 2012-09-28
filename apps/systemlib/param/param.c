@@ -484,7 +484,7 @@ param_export(int fd, bool only_unsaved)
 
 		s->unsaved = false;
 
-		/* append the appripriate BSON type object */
+		/* append the appropriate BSON type object */
 		switch (param_type(s->param)) {
 		case PARAM_TYPE_INT32:
 			param_get(s->param, &i);
