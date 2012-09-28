@@ -625,7 +625,7 @@ fmu_main(int argc, char *argv[])
 
 		/* look for the optional pwm update rate for the supported modes */
 		if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--update-rate") == 0) {
-			if (new_mode == PORT_FULL_PWM || new_mode == PORT_PWM_AND_SERIAL || new_mode == PORT_PWM_AND_GPIO) {
+			if (new_mode == PORT_FULL_PWM || new_mode == PORT_PWM_AND_GPIO) {
 				if (argc > i + 1) {
 					pwm_update_rate_in_hz = atoi(argv[i + 1]);
 				} else {
@@ -633,7 +633,7 @@ fmu_main(int argc, char *argv[])
 					return 1;
 				}
 			} else {
-				fprintf(stderr, "pwm update rate currently only supported for mode_pwm, mode_gpio_serial, mode_pwm_gpio\n");
+				fprintf(stderr, "pwm update rate currently only supported for mode_pwm, mode_pwm_gpio\n");
 			}
 		}
         }
