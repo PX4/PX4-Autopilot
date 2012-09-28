@@ -760,9 +760,9 @@ Where <subdir> is one of the following:
     and drivers/lcd/ssd1289.c also supports reading from the LCD.
     This limits some graphics capabilities.
 
-    If you enable reading from the LCD, you will see some memory
-    corruption.  If you get inspired to debug this problem, you can
-    turn the LCD read functionality back on by setting:
+    Reading from the LCD is not supported only because it has not
+    been test.  If you get inspired to test this feature, you can
+    turn the LCD read functionality on by setting:
 
       -CONFIG_LCD_NOGETRUN=y
       +# CONFIG_LCD_NOGETRUN is not set

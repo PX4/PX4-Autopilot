@@ -3446,3 +3446,7 @@
 	  The work around for now:  Just disable reading from the LCD.
 	* drivers/lcd/ssd1289.c:  Add some logic to reduce the amount of
 	  output when CONFIG_DEBUG_LCD is enabled.
+	* configs/shenzhou/nxwm/defconfig:  Bug found and fixed... The
+	  original configuration had too much stuff turned on.  Reducing
+	  stack sizes, some features, and buffer sizes made the
+	  configuration reliable (Reading from the LCD is still disabled).
