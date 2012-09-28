@@ -203,6 +203,7 @@ int mavlink_missionlib_send_gcs_string(const char *string);
 uint64_t mavlink_missionlib_get_system_timestamp(void);
 
 void handleMessage(mavlink_message_t *msg);
+static void mavlink_update_system();
 
 /**
  * Enable / disable Hardware in the Loop simulation mode.
@@ -1548,6 +1549,39 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 	return uart;
 }
 
+void mavlink_update_system()
+{
+	static initialized = false;
+	param_t param_system_id;
+	param_t param_component_id;
+	param_t param_system_type;
+
+	if (!initialized) {
+		param_system_id = param_find("MAV_SYS_ID");
+		param_component_id = param_find("MAV_COMP_ID");
+		param_system_type = param_find("MAV_TYPE");
+	}
+
+	/* update system and component id */
+	int32_t system_id;
+	param_get(param_system_id, &system_id);
+	if (system_id > 0 && system_id < 255) {
+		mavlink_system.sysid = system_id;
+	}
+
+	int32_t component_id;
+	param_get(param_component_id, &component_id);
+	if (component_id > 0 && component_id < 255) {
+		mavlink_system.compid = component_id;
+	}
+	
+	int32_t system_type;
+	param_get(param_system_type, &system_type);
+	if (system_type >= 0 && system_type < MAV_TYPE_ENUM_END) {
+		mavlink_system.type = system_type;
+	}
+}
+
 /**
  * MAVLink Protocol main function.
  */
@@ -1624,9 +1658,7 @@ int mavlink_thread_main(int argc, char *argv[])
 	fflush(stdout);
 
 	/* Initialize system properties */
-	param_t param_system_id = param_find("MAV_SYS_ID");
-	param_t param_component_id = param_find("MAV_COMP_ID");
-	param_t param_system_type = param_find("MAV_TYPE");
+	mavlink_update_system();
 
 	/* topics to subscribe globally */
 	/* subscribe to ORB for global position */
@@ -1730,24 +1762,7 @@ int mavlink_thread_main(int argc, char *argv[])
 
 		/* 1 Hz */
 		if (lowspeed_counter == 10) {
-			/* update system and component id */
-			int32_t system_id;
-			param_get(param_system_id, &system_id);
-			if (system_id > 0 && system_id < 255) {
-				mavlink_system.sysid = system_id;
-			}
-
-			int32_t component_id;
-			param_get(param_component_id, &component_id);
-			if (component_id > 0 && component_id < 255) {
-				mavlink_system.compid = component_id;
-			}
-			
-			int32_t system_type;
-			param_get(param_system_type, &system_type);
-			if (system_type >= 0 && system_type < MAV_TYPE_ENUM_END) {
-				mavlink_system.type = system_type;
-			}
+			mavlink_update_system();
 
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
