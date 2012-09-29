@@ -179,7 +179,7 @@ static void
 pwm_timer_set_rate(unsigned timer, unsigned rate)
 {
 	/* configure the timer to update at the desired rate */
-	rARR(timer) = 1000000 / pwm_update_rate;
+	rARR(timer) = 1000000 / rate;
 
 	/* generate an update event; reloads the counter and all registers */
 	rEGR(timer) = GTIM_EGR_UG;

@@ -66,7 +66,6 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 
-
 class FMUServo : public device::CDev
 {
 public:
@@ -75,7 +74,7 @@ public:
 		MODE_4PWM,
 		MODE_NONE
 	};
-	FMUServo(Mode mode);
+	FMUServo(Mode mode, int update_rate);
 	~FMUServo();
 
 	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
@@ -86,6 +85,7 @@ private:
 	static const unsigned _max_actuators = 4;
 
 	Mode		_mode;
+	int 		_update_rate;
 	int		_task;
 	int		_t_actuators;
 	int		_t_armed;
@@ -115,9 +115,10 @@ FMUServo	*g_servo;
 
 } // namespace
 
-FMUServo::FMUServo(Mode mode) :
+FMUServo::FMUServo(Mode mode, int update_rate) :
 	CDev("fmuservo", PWM_OUTPUT_DEVICE_PATH),
 	_mode(mode),
+	_update_rate(update_rate),
 	_task(-1),
 	_t_actuators(-1),
 	_t_armed(-1),
@@ -199,6 +200,8 @@ FMUServo::task_main()
 		/* multi-port as 4 PWM outs */
 		/* XXX magic numbers */
 		up_pwm_servo_init(0xf);
+		/* set the update rate for 4 PWM mode only for now */
+		up_pwm_servo_set_rate(_update_rate);
 		break;
 
 	case MODE_NONE:
@@ -208,7 +211,9 @@ FMUServo::task_main()
 
 	/* subscribe to objects that we are interested in watching */
 	_t_actuators = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-	orb_set_interval(_t_actuators, 20);		/* 50Hz update rate */
+	/* convert the update rate in hz to milliseconds, rounding down if necessary */
+	int update_rate_in_ms = int(1000 / _update_rate);
+	orb_set_interval(_t_actuators, update_rate_in_ms);
 
 	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
 	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
@@ -444,7 +449,7 @@ enum PortMode {
 PortMode g_port_mode;
 
 int
-fmu_new_mode(PortMode new_mode)
+fmu_new_mode(PortMode new_mode, int update_rate)
 {
 	int fd;
 	int ret = OK;
@@ -511,7 +516,7 @@ fmu_new_mode(PortMode new_mode)
 
 	/* create new PWM driver if required */
 	if (servo_mode != FMUServo::MODE_NONE) {
-		g_servo = new FMUServo(servo_mode);
+		g_servo = new FMUServo(servo_mode, update_rate);
 
 		if (g_servo == nullptr) {
 			ret = -ENOMEM;
@@ -585,6 +590,7 @@ int
 fmu_main(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNSET;
+	int pwm_update_rate_in_hz = 50;
 
 	if (!strcmp(argv[1], "test"))
 		test();
@@ -597,24 +603,40 @@ fmu_main(int argc, char *argv[])
 	 *
 	 * XXX use getopt?
 	 */
-	if (!strcmp(argv[1], "mode_gpio")) {
-		new_mode = PORT_FULL_GPIO;
+	for (int i = 1; i < argc; i++) {   /* argv[0] is "fmu" */
+		if (!strcmp(argv[i], "mode_gpio")) {
+			new_mode = PORT_FULL_GPIO;
 
-	} else if (!strcmp(argv[1], "mode_serial")) {
-		new_mode = PORT_FULL_SERIAL;
+		} else if (!strcmp(argv[i], "mode_serial")) {
+			new_mode = PORT_FULL_SERIAL;
 
-	} else if (!strcmp(argv[1], "mode_pwm")) {
-		new_mode = PORT_FULL_PWM;
+		} else if (!strcmp(argv[i], "mode_pwm")) {
+			new_mode = PORT_FULL_PWM;
 
-	} else if (!strcmp(argv[1], "mode_gpio_serial")) {
-		new_mode = PORT_GPIO_AND_SERIAL;
+		} else if (!strcmp(argv[i], "mode_gpio_serial")) {
+			new_mode = PORT_GPIO_AND_SERIAL;
 
-	} else if (!strcmp(argv[1], "mode_pwm_serial")) {
-		new_mode = PORT_PWM_AND_SERIAL;
+		} else if (!strcmp(argv[i], "mode_pwm_serial")) {
+			new_mode = PORT_PWM_AND_SERIAL;
 
-	} else if (!strcmp(argv[1], "mode_pwm_gpio")) {
-		new_mode = PORT_PWM_AND_GPIO;
-	}
+		} else if (!strcmp(argv[i], "mode_pwm_gpio")) {
+			new_mode = PORT_PWM_AND_GPIO;
+		}
+
+		/* look for the optional pwm update rate for the supported modes */
+		if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--update-rate") == 0) {
+			if (new_mode == PORT_FULL_PWM || new_mode == PORT_PWM_AND_GPIO) {
+				if (argc > i + 1) {
+					pwm_update_rate_in_hz = atoi(argv[i + 1]);
+				} else {
+					fprintf(stderr, "missing argument for pwm update rate (-u)\n");
+					return 1;
+				}
+			} else {
+				fprintf(stderr, "pwm update rate currently only supported for mode_pwm, mode_pwm_gpio\n");
+			}
+		}
+        }
 
 	/* was a new mode set? */
 	if (new_mode != PORT_MODE_UNSET) {
@@ -624,12 +646,12 @@ fmu_main(int argc, char *argv[])
 			return OK;
 
 		/* switch modes */
-		return fmu_new_mode(new_mode);
+		return fmu_new_mode(new_mode, pwm_update_rate_in_hz);
 	}
 
 	/* test, etc. here */
 
 	fprintf(stderr, "FMU: unrecognised command, try:\n");
-	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm, mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio\n");
+	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm [-r pwm_update_rate_in_hz], mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio\n");
 	return -EINVAL;
 }
