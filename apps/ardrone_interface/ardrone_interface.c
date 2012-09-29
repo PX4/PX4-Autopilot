@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +49,7 @@
 #include <debug.h>
 #include <termios.h>
 #include <time.h>
+#include <systemlib/err.h>
 #include <sys/prctl.h>
 #include <arch/board/up_hrt.h>
 #include <uORB/uORB.h>
@@ -73,7 +74,7 @@ int ardrone_interface_thread_main(int argc, char *argv[]);
 /**
  * Open the UART connected to the motor controllers
  */
-static int ardrone_open_uart(struct termios *uart_config_original);
+static int ardrone_open_uart(char *uart_name, struct termios *uart_config_original);
 
 /**
  * Print the correct usage.
@@ -133,15 +134,13 @@ int ardrone_interface_main(int argc, char *argv[])
 	exit(1);
 }
 
-static int ardrone_open_uart(struct termios *uart_config_original)
+static int ardrone_open_uart(char *uart_name, struct termios *uart_config_original)
 {
 	/* baud rate */
 	int speed = B115200;
 	int uart;
-	const char* uart_name = "/dev/ttyS1";
 
 	/* open uart */
-	printf("[ardrone_interface] UART is /dev/ttyS1, baud rate is 115200\n");
 	uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	/* Try to set baud rate */
@@ -182,6 +181,8 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 {
 	thread_running = true;
 
+	char *device = "/dev/ttyS1";
+
 	/* welcome user */
 	printf("[ardrone_interface] Control started, taking over motors\n");
 
@@ -205,9 +206,20 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 				if (motor > 0 && motor < 5) {
 					test_motor = motor;
 				} else {
+					thread_running = false;
 					errx(1, "supply a motor # between 1 and 4. Example: -m 1\n %s", commandline_usage);
 				}
 			} else {
+				thread_running = false;
+				errx(1, "missing parameter to -m 1..4\n %s", commandline_usage);
+			}
+		}
+		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) { //device set
+			if (argc > i + 1) {
+				device = argv[i + 1];
+
+			} else {
+				thread_running = false;
 				errx(1, "missing parameter to -m 1..4\n %s", commandline_usage);
 			}
 		}
@@ -240,7 +252,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	fflush(stdout);
 
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
-	ardrone_write = ardrone_open_uart(&uart_config_original);
+	ardrone_write = ardrone_open_uart(device, &uart_config_original);
 
 	/* initialize multiplexing, deactivate all outputs - must happen after UART open to claim GPIOs on PX4FMU */
 	gpios = ar_multiplexing_init();
@@ -270,7 +282,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 	//ar_multiplexing_deinit(gpios);
 
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
-	ardrone_write = ardrone_open_uart(&uart_config_original);
+	ardrone_write = ardrone_open_uart(device, &uart_config_original);
 
 	/* initialize multiplexing, deactivate all outputs - must happen after UART open to claim GPIOs on PX4FMU */
 	gpios = ar_multiplexing_init();
@@ -315,6 +327,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 			 */
 			if (armed.armed && !armed.lockdown) {
 				ardrone_mixing_and_output(ardrone_write, &actuator_controls);
+
 			} else {
 				/* Silently lock down motor speeds to zero */
 				ardrone_write_motor_commands(ardrone_write, 0, 0, 0, 0);

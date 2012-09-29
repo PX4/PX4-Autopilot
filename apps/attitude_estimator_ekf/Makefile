@@ -33,7 +33,7 @@
 
 APPNAME		 = attitude_estimator_ekf
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 20000
+STACKSIZE	 = 2048
 
 CSRCS		 = attitude_estimator_ekf_main.c \
 		   codegen/eye.c \
@@ -44,7 +44,10 @@ CSRCS		 = attitude_estimator_ekf_main.c \
 		   codegen/rt_nonfinite.c \
 		   codegen/rtGetInf.c \
 		   codegen/rtGetNaN.c \
-		   codegen/norm.c
+		   codegen/norm.c \
+		   codegen/find.c \
+		   codegen/diag.c \
+		   codegen/cross.c
 
 # XXX this is *horribly* broken
 INCLUDES	+= $(TOPDIR)/../mavlink/include/mavlink

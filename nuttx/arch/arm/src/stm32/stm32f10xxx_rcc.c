@@ -90,7 +90,7 @@ static inline void rcc_reset(void)
   regval  = getreg32(STM32_RCC_CR);         /* Reset HSEBYP bit */
   regval &= ~RCC_CR_HSEBYP;
   putreg32(regval, STM32_RCC_CR);
- 
+
   regval  = getreg32(STM32_RCC_CFGR);       /* Reset PLLSRC, PLLXTPRE, PLLMUL and USBPRE bits */
   regval &= ~(RCC_CFGR_PLLSRC|RCC_CFGR_PLLXTPRE|RCC_CFGR_PLLMUL_MASK|RCC_CFGR_USBPRE);
   putreg32(regval, STM32_RCC_CFGR);
@@ -235,7 +235,7 @@ static inline void rcc_enableapb1(void)
 
   regval |= RCC_APB1ENR_SPI2EN;
 #endif
-  
+
 #ifdef CONFIG_STM32_SPI3
   /* SPI 3 clock enable */
 
@@ -411,13 +411,128 @@ static inline void rcc_enableapb2(void)
  * Name: stm32_stdclockconfig
  *
  * Description:
- *   Called to change to new clock based on settings in board.h
- * 
+ *   Called to change to new clock based on settings in board.h.  This
+ *   version is for the Connectivity Line parts.
+ *
  *   NOTE:  This logic would need to be extended if you need to select low-
  *   power clocking modes!
  ****************************************************************************/
 
-#ifndef CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG
+#if !defined(CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG) && defined(CONFIG_STM32_CONNECTIVITYLINE)
+static void stm32_stdclockconfig(void)
+{
+  uint32_t regval;
+
+  /* Enable HSE */
+
+  regval  = getreg32(STM32_RCC_CR);
+  regval &= ~RCC_CR_HSEBYP;         /* Disable HSE clock bypass */
+  regval |= RCC_CR_HSEON;           /* Enable HSE */
+  putreg32(regval, STM32_RCC_CR);
+
+  /* Set flash wait states
+   * Sysclk runs with 72MHz -> 2 waitstates.
+   * 0WS from 0-24MHz
+   * 1WS from 24-48MHz
+   * 2WS from 48-72MHz
+   */
+
+  regval  = getreg32(STM32_FLASH_ACR);
+  regval &= ~FLASH_ACR_LATENCY_MASK;
+  regval |= (FLASH_ACR_LATENCY_2|FLASH_ACR_PRTFBE);
+  putreg32(regval, STM32_FLASH_ACR);
+
+  /* Set up PLL input scaling (with source = PLL2) */
+
+  regval = getreg32(STM32_RCC_CFGR2);
+  regval &= ~(RCC_CFGR2_PREDIV2_MASK    | RCC_CFGR2_PLL2MUL_MASK |
+              RCC_CFGR2_PREDIV1SRC_MASK | RCC_CFGR2_PREDIV1_MASK);
+  regval |=  (STM32_PLL_PREDIV2         | STM32_PLL_PLL2MUL |
+              RCC_CFGR2_PREDIV1SRC_PLL2 | STM32_PLL_PREDIV1);
+  putreg32(regval, STM32_RCC_CFGR2);
+
+  /* Set the PCLK2 divider */
+
+  regval = getreg32(STM32_RCC_CFGR);
+  regval &= ~(RCC_CFGR_PPRE2_MASK | RCC_CFGR_HPRE_MASK);
+  regval |= STM32_RCC_CFGR_PPRE2;
+  regval |= RCC_CFGR_HPRE_SYSCLK;
+  putreg32(regval, STM32_RCC_CFGR);
+
+  /* Set the PCLK1 divider */
+
+  regval = getreg32(STM32_RCC_CFGR);
+  regval &= ~RCC_CFGR_PPRE1_MASK;
+  regval |= STM32_RCC_CFGR_PPRE1;
+  putreg32(regval, STM32_RCC_CFGR);
+
+  /* Enable PLL2 */
+
+  regval = getreg32(STM32_RCC_CR);
+  regval |= RCC_CR_PLL2ON;
+  putreg32(regval, STM32_RCC_CR);
+
+  /* Wait for PLL2 ready */
+
+  while((getreg32(STM32_RCC_CR) & RCC_CR_PLL2RDY) == 0);
+
+  /* Setup PLL3 for MII/RMII clock on MCO */
+
+#if defined(CONFIG_STM32_MII_MCO) || defined(CONFIG_STM32_RMII_MCO)
+  regval = getreg32(STM32_RCC_CFGR2);
+  regval &= ~(RCC_CFGR2_PLL3MUL_MASK);
+  regval |= STM32_PLL_PLL3MUL;
+  putreg32(regval, STM32_RCC_CFGR2);
+
+  /* Switch PLL3 on */
+
+  regval = getreg32(STM32_RCC_CR);
+  regval |= RCC_CR_PLL3ON;
+  putreg32(regval, STM32_RCC_CR);
+
+  while ((getreg32(STM32_RCC_CR) & RCC_CR_PLL3RDY) == 0);
+#endif
+
+  /* Set main PLL source and multiplier */
+
+  regval = getreg32(STM32_RCC_CFGR);
+  regval &= ~(RCC_CFGR_PLLSRC | RCC_CFGR_PLLMUL_MASK);
+  regval |= (RCC_CFGR_PLLSRC | STM32_PLL_PLLMUL);
+  putreg32(regval, STM32_RCC_CFGR);
+
+  /* Switch main PLL on */
+
+  regval = getreg32(STM32_RCC_CR);
+  regval |= RCC_CR_PLLON;
+  putreg32(regval, STM32_RCC_CR);
+
+  while ((getreg32(STM32_RCC_CR) & RCC_CR_PLLRDY) == 0);
+
+  /* Select PLL as system clock source */
+
+  regval  = getreg32(STM32_RCC_CFGR);
+  regval &= ~RCC_CFGR_SW_MASK;
+  regval |= RCC_CFGR_SW_PLL;
+  putreg32(regval, STM32_RCC_CFGR);
+
+  /* Wait until PLL is used as the system clock source */
+
+  while ((getreg32(STM32_RCC_CFGR) & RCC_CFGR_SWS_PLL) == 0);
+}
+#endif
+
+/****************************************************************************
+ * Name: stm32_stdclockconfig
+ *
+ * Description:
+ *   Called to change to new clock based on settings in board.h.  This
+ *   version is for the non-Connectivity Line parts.
+ *
+ *   NOTE:  This logic would need to be extended if you need to select low-
+ *   power clocking modes!
+ ****************************************************************************/
+
+#if !defined(CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG) && !defined(CONFIG_STM32_CONNECTIVITYLINE)
 static void stm32_stdclockconfig(void)
 {
   uint32_t regval;
@@ -430,7 +545,7 @@ static void stm32_stdclockconfig(void)
     volatile int32_t timeout;
 
     /* Enable External High-Speed Clock (HSE) */
-   
+
     regval  = getreg32(STM32_RCC_CR);
     regval &= ~RCC_CR_HSEBYP;         /* Disable HSE clock bypass */
     regval |= RCC_CR_HSEON;           /* Enable HSE */

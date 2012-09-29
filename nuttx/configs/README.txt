@@ -1570,7 +1570,8 @@ configs/ez80f0910200zco
 
 configs/fire-stm32v2
   A configuration for the M3 Wildfire STM32 board.  This board is based on the
-  STM32F103VET6 chip.  See http://firestm32.taobao.com
+  STM32F103VET6 chip.  See http://firestm32.taobao.com .  Version 2 and 3 of
+  the boards are supported but only version 2 has been tested.
 
 configs/hymini-stm32v
   A configuration for the HY-Mini STM32v board.  This board is based on the

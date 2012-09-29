@@ -59,7 +59,6 @@ ORB_DEFINE(output_pwm, struct pwm_output_values);
 #include <drivers/drv_rc_input.h>
 ORB_DEFINE(input_rc, struct rc_input_values);
 
-// XXX need to check wether these should be here
 #include "topics/vehicle_attitude.h"
 ORB_DEFINE(vehicle_attitude, struct vehicle_attitude_s);
 
@@ -78,8 +77,8 @@ ORB_DEFINE(vehicle_global_position, struct vehicle_global_position_s);
 #include "topics/vehicle_local_position.h"
 ORB_DEFINE(vehicle_local_position, struct vehicle_local_position_s);
 
-#include "topics/ardrone_motors_setpoint.h"
-ORB_DEFINE(ardrone_motors_setpoint, struct ardrone_motors_setpoint_s);
+#include "topics/vehicle_rates_setpoint.h"
+ORB_DEFINE(vehicle_rates_setpoint, struct vehicle_rates_setpoint_s);
 
 #include "topics/rc_channels.h"
 ORB_DEFINE(rc_channels, struct rc_channels_s);
@@ -98,6 +97,9 @@ ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_setpoint_s);
 
 #include "topics/manual_control_setpoint.h"
 ORB_DEFINE(manual_control_setpoint, struct manual_control_setpoint_s);
+
+#include "topics/offboard_control_setpoint.h"
+ORB_DEFINE(offboard_control_setpoint, struct offboard_control_setpoint_s);
 
 #include "topics/optical_flow.h"
 ORB_DEFINE(optical_flow, struct optical_flow_s);

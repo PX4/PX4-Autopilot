@@ -124,14 +124,27 @@ static inline void stm32_gpioremap(void)
 
   uint32_t val = 0;
 
-#ifdef CONFIG_STM32_JTAG_FULL_ENABLE
-  /* The reset default */
-#elif CONFIG_STM32_JTAG_NOJNTRST_ENABLE
-  val |= AFIO_MAPR_SWJ;       /* enabled but without JNTRST */
-#elif CONFIG_STM32_JTAG_SW_ENABLE
-  val |= AFIO_MAPR_SWDP;      /* set JTAG-DP disabled and SW-DP enabled */
-#else
-  val |= AFIO_MAPR_DISAB;     /* set JTAG-DP and SW-DP Disabled */
+#ifdef CONFIG_STM32_SPI1_REMAP
+  val |= AFIO_MAPR_SPI1_REMAP;
+#endif
+#ifdef CONFIG_STM32_SPI3_REMAP
+#endif
+
+#ifdef CONFIG_STM32_I2C1_REMAP
+  val |= AFIO_MAPR_I2C1_REMAP;
+#endif
+
+#ifdef CONFIG_STM32_USART1_REMAP
+  val |= AFIO_MAPR_USART1_REMAP;
+#endif
+#ifdef CONFIG_STM32_USART2_REMAP
+  val |= AFIO_MAPR_USART2_REMAP;
+#endif
+#ifdef CONFIG_STM32_USART3_FULL_REMAP
+  val |= AFIO_MAPR_USART3_FULLREMAP;
+#endif
+#ifdef CONFIG_STM32_USART3_PARTIAL_REMAP
+  val |= AFIO_MAPR_USART3_PARTREMAP;
 #endif
 
 #ifdef CONFIG_STM32_TIM1_FULL_REMAP
@@ -159,34 +172,28 @@ static inline void stm32_gpioremap(void)
   val |= AFIO_MAPR_TIM4_REMAP;
 #endif
 
-#ifdef CONFIG_STM32_USART1_REMAP
-  val |= AFIO_MAPR_USART1_REMAP;
-#endif
-#ifdef CONFIG_STM32_USART2_REMAP
-  val |= AFIO_MAPR_USART2_REMAP;
-#endif
-#ifdef CONFIG_STM32_USART3_FULL_REMAP
-  val |= AFIO_MAPR_USART3_FULLREMAP;
-#endif
-#ifdef CONFIG_STM32_USART3_PARTIAL_REMAP
-  val |= AFIO_MAPR_USART3_PARTREMAP;
-#endif
-
-#ifdef CONFIG_STM32_SPI1_REMAP
-  val |= AFIO_MAPR_SPI1_REMAP;
-#endif
-#ifdef CONFIG_STM32_SPI3_REMAP
-#endif
-
-#ifdef CONFIG_STM32_I2C1_REMAP
-  val |= AFIO_MAPR_I2C1_REMAP;
-#endif
-
 #ifdef CONFIG_STM32_CAN1_REMAP1
   val |= AFIO_MAPR_PB89;
 #endif
 #ifdef CONFIG_STM32_CAN1_REMAP2
   val |= AFIO_MAPR_PD01;
+#endif
+#ifdef CONFIG_STM32_CAN2_REMAP /* Connectivity line only */
+  val |= AFIO_MAPR_CAN2_REMAP;
+#endif
+
+#ifdef CONFIG_STM32_ETH_REMAP /* Connectivity line only */
+  val |= AFIO_MAPR_ETH_REMAP;
+#endif
+
+#ifdef CONFIG_STM32_JTAG_FULL_ENABLE
+  /* The reset default */
+#elif CONFIG_STM32_JTAG_NOJNTRST_ENABLE
+  val |= AFIO_MAPR_SWJ;       /* enabled but without JNTRST */
+#elif CONFIG_STM32_JTAG_SW_ENABLE
+  val |= AFIO_MAPR_SWDP;      /* set JTAG-DP disabled and SW-DP enabled */
+#else
+  val |= AFIO_MAPR_DISAB;     /* set JTAG-DP and SW-DP Disabled */
 #endif
 
   putreg32(val, STM32_AFIO_MAPR);

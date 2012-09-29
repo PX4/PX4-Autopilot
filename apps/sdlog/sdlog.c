@@ -289,6 +289,8 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	/* subscribe to ORB for sensors raw */
 	subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	fds[fdsc_count].fd = subs.sensor_sub;
+	/* rate-limit raw data updates to 200Hz */
+	orb_set_interval(subs.sensor_sub, 5);
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -459,7 +461,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 		sysvector_bytes += write(sysvector_file, (const char*)&sysvector, sizeof(sysvector));
 
-		usleep(4900);
+		usleep(10000);
 	}
 
 	unsigned bytes = sensor_combined_bytes + actuator_outputs_bytes + blackbox_file_bytes + actuator_controls_bytes;

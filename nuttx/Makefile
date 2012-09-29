@@ -38,7 +38,8 @@ TOPDIR		:= ${shell pwd | sed -e 's/ /\\ /g'}
 -include ${TOPDIR}/tools/Config.mk
 -include ${TOPDIR}/Make.defs
 
-# Control build verbosity.
+# Control build verbosity
+
 ifeq ($(V),1)
 export Q :=
 else

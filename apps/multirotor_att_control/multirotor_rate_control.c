@@ -132,7 +132,7 @@ static int parameters_update(const struct mc_rate_control_param_handles *h, stru
 	return OK;
 }
 
-void multirotor_control_rates(const struct vehicle_attitude_setpoint_s *rate_sp,
+void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	const float rates[], struct actuator_controls_s *actuators)
 {
 	static uint64_t last_run = 0;
@@ -157,11 +157,11 @@ void multirotor_control_rates(const struct vehicle_attitude_setpoint_s *rate_sp,
 		parameters_update(&h, &p);
 
 		pid_init(&yaw_speed_controller, p.yawrate_p, 0, p.yawrate_i, p.yawrate_awu,
-			PID_MODE_DERIVATIV_SET, 155);
+			PID_MODE_DERIVATIV_SET);
 		pid_init(&pitch_controller, p.attrate_p, p.attrate_i, 0, p.attrate_awu,
-			PID_MODE_DERIVATIV_SET, 156);
+			PID_MODE_DERIVATIV_SET);
 		pid_init(&roll_controller, p.attrate_p, p.attrate_i, 0, p.attrate_awu,
-			PID_MODE_DERIVATIV_SET, 157);
+			PID_MODE_DERIVATIV_SET);
 
 		initialized = true;
 	}
@@ -179,13 +179,13 @@ void multirotor_control_rates(const struct vehicle_attitude_setpoint_s *rate_sp,
 	/* calculate current control outputs */
 	
 	/* control pitch (forward) output */
-	float pitch_control = pid_calculate(&pitch_controller, rate_sp->pitch_rate_body,
+	float pitch_control = pid_calculate(&pitch_controller, rate_sp->pitch,
 					rates[1], 0.0f, deltaT);
 	/* control roll (left/right) output */
-	float roll_control = pid_calculate(&roll_controller, rate_sp->roll_rate_body,
+	float roll_control = pid_calculate(&roll_controller, rate_sp->roll,
 					rates[0], 0.0f, deltaT);
 	/* control yaw rate */
-	float yaw_rate_control = pid_calculate(&yaw_speed_controller, rate_sp->yaw_rate_body, rates[2], 0.0f, deltaT);
+	float yaw_rate_control = pid_calculate(&yaw_speed_controller, rate_sp->yaw, rates[2], 0.0f, deltaT);
 
 	/*
 	 * compensate the vertical loss of thrust

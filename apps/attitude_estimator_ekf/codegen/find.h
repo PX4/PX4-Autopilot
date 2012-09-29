@@ -1,14 +1,14 @@
 /*
- * attitudeKalmanfilter_terminate.h
+ * find.h
  *
- * Code generation for function 'attitudeKalmanfilter_terminate'
+ * Code generation for function 'find'
  *
- * C source code generated on: Fri Sep 21 13:56:44 2012
+ * C source code generated on: Fri Sep 21 13:56:43 2012
  *
  */
 
-#ifndef __ATTITUDEKALMANFILTER_TERMINATE_H__
-#define __ATTITUDEKALMANFILTER_TERMINATE_H__
+#ifndef __FIND_H__
+#define __FIND_H__
 /* Include files */
 #include <math.h>
 #include <stdio.h>
@@ -29,6 +29,6 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void attitudeKalmanfilter_terminate(void);
+extern void find(const int8_T x[9], real_T i_data[9], int32_T i_sizes[1]);
 #endif
-/* End of code generation (attitudeKalmanfilter_terminate.h) */
+/* End of code generation (find.h) */

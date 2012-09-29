@@ -188,7 +188,7 @@ static int parameters_update(const struct mc_att_control_param_handles *h, struc
 }
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
-	const struct vehicle_attitude_s *att, struct actuator_controls_s *actuators)
+	const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, struct actuator_controls_s *actuators)
 {
 	static uint64_t last_run = 0;
 	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
@@ -214,11 +214,11 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		// pid_init(&yaw_pos_controller, p.yaw_p, p.yaw_i, p.yaw_d, p.yaw_awu,
 		// 	PID_MODE_DERIVATIV_SET, 154);
 		pid_init(&yaw_speed_controller, p.yawrate_p, p.yawrate_i, p.yawrate_d, p.yawrate_awu,
-			PID_MODE_DERIVATIV_SET, 155);
+			PID_MODE_DERIVATIV_SET);
 		pid_init(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu,
-			PID_MODE_DERIVATIV_SET, 156);
+			PID_MODE_DERIVATIV_SET);
 		pid_init(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu,
-			PID_MODE_DERIVATIV_SET, 157);
+			PID_MODE_DERIVATIV_SET);
 
 		initialized = true;
 	}
@@ -243,7 +243,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	float roll_control = pid_calculate(&roll_controller, att_sp->roll_body + p.att_yoff,
 					att->roll, att->rollspeed, deltaT);
 	/* control yaw rate */
-	float yaw_rate_control = pid_calculate(&yaw_speed_controller, att_sp->yaw_rate_body, att->yawspeed, 0.0f, deltaT);
+	float yaw_rate_control = pid_calculate(&yaw_speed_controller, att_sp->yaw_body, att->yawspeed, 0.0f, deltaT);
 
 	/*
 	 * compensate the vertical loss of thrust
@@ -305,10 +305,20 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		roll_controller.saturated = 1;
 	}
 
-	actuators->control[0] = roll_control;
-	actuators->control[1] = pitch_control;
-	actuators->control[2] = yaw_rate_control;
-	actuators->control[3] = motor_thrust;
+	if (actuators) {
+		actuators->control[0] = roll_control;
+		actuators->control[1] = pitch_control;
+		actuators->control[2] = yaw_rate_control;
+		actuators->control[3] = motor_thrust;
+	}
+
+	// XXX change yaw rate to yaw pos controller
+	if (rates_sp) {
+		rates_sp->roll = roll_control;
+		rates_sp->pitch = pitch_control;
+		rates_sp->yaw = yaw_rate_control;
+		rates_sp->thrust = motor_thrust;
+	}
 
 	motor_skip_counter++;
 }

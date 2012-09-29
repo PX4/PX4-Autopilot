@@ -151,7 +151,7 @@ config SPI_EXCHANGE
 
 config SPI_CMDDATA
 	bool "SPI CMD/DATA"
-	default y
+	default n
 	---help---
 		Devices on the SPI bus require out-of-band support to distinguish command
 		transfers from data transfers.  Such devices will often support either 9-bit

@@ -56,13 +56,24 @@ char line[LINESIZE+1];
  ****************************************************************************/
 
 /* These are configuration variable name that are quoted by configuration tool
- * but which must be unquoated when used in C code.
+ * but which must be unquoted when used in C code.
  */
 
 static const char *dequote_list[] =
 {
-  "CONFIG_USER_ENTRYPOINT",
-  NULL
+  /* NuttX */
+
+  "CONFIG_USER_ENTRYPOINT",            /* Name of entry point function */
+
+  /* NxWidgets/NxWM */
+
+  "CONFIG_NXWM_BACKGROUND_IMAGE",      /* Name of bitmap image class */
+  "CONFIG_NXWM_STARTWINDOW_ICON",      /* Name of bitmap image class */
+  "CONFIG_NXWM_NXCONSOLE_ICON",        /* Name of bitmap image class */
+  "CONFIG_NXWM_CALIBRATION_ICON",      /* Name of bitmap image class */
+  "CONFIG_NXWM_HEXCALCULATOR_ICON",    /* Name of bitmap image class */
+
+  NULL                                 /* Marks the end of the list */
 };
 
  /****************************************************************************
@@ -239,7 +250,7 @@ static char *dequote_value(const char *varname, char *varval)
 
            /* Handle the case where nothing is left after dequoting */
 
-           if (len < 0)
+           if (len <= 0)
              {
                dqval = NULL;
              }

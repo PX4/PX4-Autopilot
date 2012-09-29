@@ -111,8 +111,8 @@ int nx_block(NXWINDOW hwnd, FAR void *arg)
 #ifdef CONFIG_DEBUG
   if (!hwnd)
     {
-      errno = EINVAL;
-      return NULL;
+      set_errno(EINVAL);
+      return ERROR;
     }
 #endif
 

@@ -110,6 +110,8 @@ struct vehicle_status_s
 
 	uint16_t counter;   /**< incremented by the writing thread everytime new data is stored */
 	uint64_t timestamp; /**< in microseconds since system start, is set whenever the writing thread stores new data */
+	uint64_t failsave_lowlevel_start_time;		/**< time when the lowlevel failsafe flag was set */
+	//uint64_t failsave_highlevel_begin; TO BE COMPLETED
 
 	commander_state_machine_t state_machine;	/**< current flight state, main state machine */
 	enum VEHICLE_FLIGHT_MODE flight_mode;		/**< current flight mode, as defined by mode switch */
@@ -127,16 +129,25 @@ struct vehicle_status_s
 
 	bool flag_control_rates_enabled;		/**< true if rates are stabilized */
 	bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
-	bool flag_control_speed_enabled;		/**< true if speed (implies direction) is controlled */
+	bool flag_control_velocity_enabled;		/**< true if speed (implies direction) is controlled */
 	bool flag_control_position_enabled;		/**< true if position is controlled */
 
 	bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */
 	bool flag_preflight_mag_calibration;			/**< true if mag calibration is requested */
 	bool flag_preflight_accel_calibration;
 
+	bool rc_signal_found_once;
 	bool rc_signal_lost;				/**< true if RC reception is terminally lost */
 	bool rc_signal_cutting_off;			/**< true if RC reception is weak / cutting off */
 	uint64_t rc_signal_lost_interval;		/**< interval in microseconds since when no RC signal is available */
+
+	bool offboard_control_signal_found_once;
+	bool offboard_control_signal_lost;
+	bool offboard_control_signal_weak;
+	uint64_t offboard_control_signal_lost_interval;	/**< interval in microseconds without an offboard control message */
+
+	bool failsave_lowlevel;				/**< Set to true if low-level failsafe mode is enabled */
+	//bool failsave_highlevel;
 
 	/* see SYS_STATUS mavlink message for the following */
 	uint32_t onboard_control_sensors_present;
