@@ -3450,3 +3450,6 @@
 	  original configuration had too much stuff turned on.  Reducing
 	  stack sizes, some features, and buffer sizes made the
 	  configuration reliable (Reading from the LCD is still disabled).
+	* net/uip/uip_icmpping.c:  Fix problem that prevented ping from
+	  going outside of local network.  Submitted by Darcy Gong
+

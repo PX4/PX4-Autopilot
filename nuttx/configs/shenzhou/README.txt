@@ -716,11 +716,12 @@ Where <subdir> is one of the following:
 
       nuttx-code/NxWidgets/UnitTests/README.txt
 
-    Here is the quick summary of the build steps:
+    Here is the quick summary of the build steps (Assuming that all of
+    the required packages are available in a directory ~/nuttx-code):
 
     1. Intall the nxwm configuration
 
-       $ cd ~/nuttx/nuttx-code/tools
+       $ cd ~/nuttx-code/tools
        $ ./configure.sh shenzhou/nxwm
 
     2. Make the build context (only)
@@ -732,27 +733,27 @@ Where <subdir> is one of the following:
 
     3. Install the nxwm unit test
 
-       $ cd ~/nuttx/nuttx-code/NxWidgets
-       $ tools/install.sh ~/nuttx/nuttx-code/apps nxwm
+       $ cd ~/nuttx-code/NxWidgets
+       $ tools/install.sh ~/nuttx-code/apps nxwm
        Creating symbolic link
-        - To ~/nuttx/nuttx-code/NxWidgets/UnitTests/nxwm
-        - At ~/nuttx/nuttx-code/apps/external
+        - To ~/nuttx-code/NxWidgets/UnitTests/nxwm
+        - At ~/nuttx-code/apps/external
 
     4. Build the NxWidgets library
 
-       $ cd ~/nuttx/nuttx-code/NxWidgets/libnxwidgets
-       $ make TOPDIR=~/nuttx/nuttx-code
+       $ cd ~/nuttx-code/NxWidgets/libnxwidgets
+       $ make TOPDIR=~/nuttx-code
        ...
 
     5. Build the NxWM library
 
-       $ cd ~/nuttx/nuttx-code/NxWidgets/nxwm
-       $ make TOPDIR=~/nuttx/nuttx-code
+       $ cd ~/nuttx-code/NxWidgets/nxwm
+       $ make TOPDIR=~/nuttx-code
        ...
 
     6. Built NuttX with the installed unit test as the application
 
-       $ cd ~/nuttx/nuttx-code
+       $ cd ~/nuttx-code
        $ make
 
     NOTE: Reading from the LCD is not currently supported by this
