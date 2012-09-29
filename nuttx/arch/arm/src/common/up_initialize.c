@@ -171,6 +171,12 @@ void up_initialize(void)
   ramlog_consoleinit();
 #endif
 
+  /* Initialize the Random Number Generator (RNG)  */
+
+#ifdef CONFIG_DEV_RANDOM
+  up_rnginitialize();
+#endif
+
   /* Initialize the system logging device */
 
 #ifdef CONFIG_SYSLOG_CHAR

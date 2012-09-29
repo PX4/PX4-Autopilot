@@ -1110,7 +1110,16 @@ Where <subdir> is one of the following:
 
        nsh> umount /mnt/stuff
 
-    11. This configuration requires that jumper JP22 be set to enable RS-232
+    11. By default, this configuration supports /dev/random using the STM32's
+        RNG hardware.  This can be disabled as follows:
+
+        -CONFIG_STM32_RNG=y
+        +CONFIG_STM32_RNG=n
+ 
+        -CONFIG_DEV_RANDOM=y
+        +CONFIG_DEV_RANDOM=n
+
+    12. This configuration requires that jumper JP22 be set to enable RS-232
        operation.
 
   nsh2:

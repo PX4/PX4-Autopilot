@@ -320,6 +320,7 @@ config STM32_RNG
 	bool "RNG"
 	default n
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	select ARCH_HAVE_RNG
 
 config STM32_SDIO
 	bool "SDIO"

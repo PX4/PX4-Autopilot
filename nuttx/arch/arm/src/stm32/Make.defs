@@ -78,7 +78,7 @@ endif
 
 ifeq ($(CONFIG_USBHOST),y)
 ifeq ($(CONFIG_STM32_OTGFS),y)
-CMN_CSRCS       += stm32_otgfshost.c
+CMN_CSRCS	+= stm32_otgfshost.c
 endif
 endif
 
@@ -117,6 +117,10 @@ endif
 
 ifeq ($(CONFIG_DAC),y)
 CHIP_CSRCS	+= stm32_dac.c
+endif
+
+ifeq ($(CONFIG_DEV_RANDOM),y)
+CHIP_CSRCS	+= stm32_rng.c
 endif
 
 ifeq ($(CONFIG_PWM),y)

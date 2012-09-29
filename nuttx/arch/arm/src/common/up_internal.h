@@ -373,6 +373,12 @@ extern void up_usbuninitialize(void);
 # define up_usbuninitialize()
 #endif
 
+/* Random Number Generator (RNG) ********************************************/
+
+#ifdef CONFIG_DEV_RANDOM
+extern void up_rnginitialize(void);
+#endif
+
 /****************************************************************************
  * Name: up_check_stack
  *

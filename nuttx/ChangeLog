@@ -3454,3 +3454,7 @@
 	  going outside of local network.  Submitted by Darcy Gong
 
 6.23 2012-09-29 Gregory Nutt <gnutt@nuttx.org>
+
+	* arch/arm/src/stm32/stm32_rng.c, chip/stm32_rng.h, and other files:
+	  Implementation of /dev/random using the STM32 Random Number
+	  Generator (RNG).
