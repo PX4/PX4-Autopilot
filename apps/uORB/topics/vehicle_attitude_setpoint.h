@@ -56,21 +56,18 @@ struct vehicle_attitude_setpoint_s
 {
 	uint64_t timestamp;		/**< in microseconds since system start, is set whenever the writing thread stores new data */
 
-	float roll_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
-	float pitch_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
-	float yaw_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
-	float tait_bryan_valid;			/**< Set to true if Tait-Bryan angles are valid */
+	//float roll_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
+	//float pitch_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
+	//float yaw_tait_bryan;			/**< Tait-Bryan angle in NED frame		*/
+	//float tait_bryan_valid;			/**< Set to true if Tait-Bryan angles are valid */
 
 	float roll_body;				/**< body angle in NED frame		*/
 	float pitch_body;				/**< body angle in NED frame		*/
 	float yaw_body;					/**< body angle in NED frame		*/
-	float roll_rate_body;				/**< body angle in NED frame		*/
-	float pitch_rate_body;				/**< body angle in NED frame		*/
-	float yaw_rate_body;					/**< body angle in NED frame		*/
-	float body_valid;				/**< Set to true if Tait-Bryan angles are valid */
+	//float body_valid;				/**< Set to true if body angles are valid */
 
-	float R_body[9];				/**< Rotation matrix describing the setpoint as rotation from the current body frame */
-	bool R_valid;					/**< Set to true if rotation matrix is valid */
+	//float R_body[9];				/**< Rotation matrix describing the setpoint as rotation from the current body frame */
+	//bool R_valid;					/**< Set to true if rotation matrix is valid */
 
 	float thrust;					/**< Thrust in Newton the power system should generate */
 

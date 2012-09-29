@@ -567,7 +567,7 @@ Sensors::accel_init()
 		_fd_bma180 = open("/dev/bma180", O_RDONLY);
 		if (_fd_bma180 < 0) {
 			warn("/dev/bma180");
-			errx(1, "FATAL: no accelerometer found");
+			warn("FATAL: no accelerometer found");
 		}
 	
 		/* discard first (junk) reading */
@@ -600,7 +600,7 @@ Sensors::gyro_init()
 		_fd_gyro_l3gd20 = open("/dev/l3gd20", O_RDONLY);
 		if (_fd_gyro_l3gd20 < 0) {
 			warn("/dev/l3gd20");
-			errx(1, "FATAL: no gyro found");
+			warn("FATAL: no gyro found");
 		}
 
 		/* discard first (junk) reading */
@@ -968,7 +968,7 @@ Sensors::ppm_poll()
 			_rc.chan[i].scaled = (ppm_buffer[i] - _parameters.trim[i]) / (float)(_parameters.max[i] - _parameters.trim[i]);
 		} else if (ppm_buffer[i] < (_parameters.trim[i] - _parameters.dz[i])) {
 			/* division by zero impossible for trim == min (as for throttle), as this falls in the above if clause */
-			_rc.chan[i].scaled = -1.0f + ((ppm_buffer[i] - _parameters.min[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
+			_rc.chan[i].scaled = -((_parameters.trim[i] - ppm_buffer[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
 			
 		} else {
 			/* in the configured dead zone, output zero */
@@ -987,6 +987,8 @@ Sensors::ppm_poll()
 
 	_rc.chan_count = ppm_decoded_channels;
 	_rc.timestamp = ppm_last_valid_decode;
+
+	manual_control.timestamp = ppm_last_valid_decode;
 
 	/* roll input - rolling right is stick-wise and rotation-wise positive */
 	manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled;
@@ -1027,6 +1029,7 @@ Sensors::ppm_poll()
 
 	orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
 	orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual_control);
+
 }
 #endif
 
@@ -1090,7 +1093,7 @@ Sensors::task_main()
 	/* advertise the manual_control topic */
 	{
 		struct manual_control_setpoint_s manual_control;
-		manual_control.mode = ROLLPOS_PITCHPOS_YAWRATE_THROTTLE;
+		manual_control.mode = MANUAL_CONTROL_MODE_ATT_YAW_RATE;
 		manual_control.roll = 0.0f;
 		manual_control.pitch = 0.0f;
 		manual_control.yaw = 0.0f;

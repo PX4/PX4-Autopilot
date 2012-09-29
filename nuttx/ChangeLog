@@ -3377,3 +3377,46 @@
 	  commands used in the build (Contributed by Richard Cochran).
 	* drivers/net/enc28j60.c:  The ENC28J60 Ethernet driver is
 	  now functional.
+	* configs/fire-stm32v2:  Add support or the fire-stm32v3 board as
+	  well (untested because I do not have a v3 board).
+	* lib/stdio/lib_sscanf.c:  Add %n psuedo-format (from Kate).
+	* lib/stdio/lib_sscanf.c:  There is an issue of handling input
+	  when (1) no fieldwidth is provided and (2) there is no space
+	  seperating the input values.  No solutions is in place for this
+	  case now (either space or a fieldwidth must be provided).  But
+	  at least some of the bad logic that attempted to handle this
+	  case has been removed (noted by Kate).
+	* arch/arm/src/stm32/stm32_eth.c:  DMA buffer sizes must be an
+	  even multiple of 4, 8, or 16 bytes.
+	* arch/arm/src/stm32/stm32_idle.c:  Fixes STM32F107 DMA issues:
+	  We cannot go into sleep mode while Ethernet is actively DMAing.
+	* configs/shenzhou/src/up_ssd1289.c:  Add infrastructure to support
+	  SSD1289 LCD.  Initial checkin is just a clone of the
+	  STM32F4Discovery's FSMC-based LCD interface.  The Shenzhou
+	  will need a completely need bit-banging interface; this
+	  initial check-in is only for the framework.
+	* configs/shenzhou/src/up_ssd1289.c:  Bit-banging driver is
+	  code complete.
+	* configs/shenzhou/src/up_lcd.c:  Oops. Shenzhou LCD does not
+	  have an SSD1289 controller.  Its an ILI93xx.  Ported the
+	  STM3240G-EVAL ILI93xx driver to work on the Shenzhou board.
+	* configs/shenzhou/nxwm:  Added an NxWM configuratino for the
+	  Shenzhou board.  This is untested on initial check-in.  It will
+	  be used to verify the Shenzhou LCD driver (and eventually the
+	  touchscreen driver).
+	* configs/shenzhou/src/up_touchscreen.c:  Add ADS7843E touchscreen
+	  support for the Shenzhou board.  The initial check-in is untested
+	  and basically a clone of the the touchscreen support fro the SAM-3U.
+	* tools/cfgparser.c: There are some NxWidget configuration
+	  settings that must be de-quoted.
+	* arch/arm/src/stm32/Kconfig: There is no SPI4.  Some platforms
+	  SPI3 and some do not (still not clear).
+	* nuttx/configs/shenzhou: Various fixes to build new NxWM
+	  configuration.
+	* configs/shenzhou:  Oops.  The Shenzhou LCD is and SSD1289,
+	  not an ILI93xx.
+	* configs/shenzhou/src/up_ssd1289.c: The LCD is basically functional
+	  on the Shenzhou board.
+	* graphics/nxmu:  Correct some bad parameter checking that caused
+	  failures when DEBUG was enabled.
+

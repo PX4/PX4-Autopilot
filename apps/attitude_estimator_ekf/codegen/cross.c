@@ -1,7 +1,7 @@
 /*
- * attitudeKalmanfilter_initialize.c
+ * cross.c
  *
- * Code generation for function 'attitudeKalmanfilter_initialize'
+ * Code generation for function 'cross'
  *
  * C source code generated on: Fri Sep 21 13:56:44 2012
  *
@@ -10,7 +10,7 @@
 /* Include files */
 #include "rt_nonfinite.h"
 #include "attitudeKalmanfilter.h"
-#include "attitudeKalmanfilter_initialize.h"
+#include "cross.h"
 
 /* Type Definitions */
 
@@ -23,9 +23,15 @@
 /* Function Declarations */
 
 /* Function Definitions */
-void attitudeKalmanfilter_initialize(void)
+
+/*
+ *
+ */
+void cross(const real32_T a[3], const real32_T b[3], real32_T c[3])
 {
-  rt_InitInfAndNaN(8U);
+  c[0] = a[1] * b[2] - a[2] * b[1];
+  c[1] = a[2] * b[0] - a[0] * b[2];
+  c[2] = a[0] * b[1] - a[1] * b[0];
 }
 
-/* End of code generation (attitudeKalmanfilter_initialize.c) */
+/* End of code generation (cross.c) */

@@ -1,9 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,41 +33,36 @@
  ****************************************************************************/
 
 /**
- * @file pid.h
- * Definition of generic PID control interface
+ * @file vehicle_rates_setpoint.h
+ * Definition of the vehicle rates setpoint topic
  */
 
-#ifndef PID_H_
-#define PID_H_
+#ifndef TOPIC_VEHICLE_RATES_SETPOINT_H_
+#define TOPIC_VEHICLE_RATES_SETPOINT_H_
 
 #include <stdint.h>
+#include "../uORB.h"
 
-/* PID_MODE_DERIVATIV_CALC calculates discrete derivative from previous error
- * val_dot in pid_calculate() will be ignored */
-#define PID_MODE_DERIVATIV_CALC	0
-/* Use PID_MODE_DERIVATIV_SET if you have the derivative already (Gyros, Kalman) */
-#define PID_MODE_DERIVATIV_SET	1
+/**
+ * @addtogroup topics
+ * @{
+ */
+struct vehicle_rates_setpoint_s
+{
+	uint64_t timestamp; /**< in microseconds since system start */
 
-typedef struct {
-	float kp;
-	float ki;
-	float kd;
-	float intmax;
-	float sp;
-	float integral;
-	float error_previous;
-	float last_output;
-	float limit;
-	uint8_t mode;
-	uint8_t count;
-	uint8_t saturated;
-} PID_t;
+	float roll;	/**< body angular rates in NED frame		*/
+	float pitch;	/**< body angular rates in NED frame		*/
+	float yaw;	/**< body angular rates in NED frame		*/
+	float thrust;	/**< thrust normalized to 0..1			*/
 
-__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, uint8_t mode);
-__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax);
-//void pid_set(PID_t *pid, float sp);
-__EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt);
+}; /**< vehicle_rates_setpoint */
 
+ /**
+ * @}
+ */
 
+/* register this as object request broker structure */
+ORB_DECLARE(vehicle_rates_setpoint);
 
-#endif /* PID_H_ */
+#endif

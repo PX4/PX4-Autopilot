@@ -48,9 +48,10 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 
-void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp, const struct vehicle_attitude_s *att,
-	struct actuator_controls_s *actuators);
+void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
+	const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, struct actuator_controls_s *actuators);
 
 #endif /* MULTIROTOR_ATTITUDE_CONTROL_H_ */

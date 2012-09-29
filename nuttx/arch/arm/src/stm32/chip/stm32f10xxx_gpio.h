@@ -265,48 +265,58 @@
 
 /* AF remap and debug I/O configuration register */
 
-#define AFIO_MAPR_SWJ_CFG_SHIFT      (24)      /* Bits 26-24: Serial Wire JTAG configuration*/
+#define AFIO_MAPR_SPI1_REMAP         (1 << 0)  /* Bit 0: SPI1 remapping */
+#define AFIO_MAPR_I2C1_REMAP         (1 << 1)  /* Bit 1: I2C1 remapping */
+#define AFIO_MAPR_USART1_REMAP       (1 << 2)  /* Bit 2: USART1 remapping */
+#define AFIO_MAPR_USART2_REMAP       (1 << 3)  /* Bit 3: USART2 remapping */
+#define AFIO_MAPR_USART3_REMAP_SHIFT (4)       /* Bits 5-4: USART3 remapping */
+#define AFIO_MAPR_USART3_REMAP_MASK  (3 << AFIO_MAPR_USART3_REMAP_SHIFT) 
+#  define AFIO_MAPR_USART3_NOREMAP   (0 << AFIO_MAPR_USART3_REMAP_SHIFT) /* 00: No remap */
+#  define AFIO_MAPR_USART3_PARTREMAP (1 << AFIO_MAPR_USART3_REMAP_SHIFT) /* 01: Partial remap */
+#  define AFIO_MAPR_USART3_FULLREMAP (3 << AFIO_MAPR_USART3_REMAP_SHIFT) /* 11: Full remap */
+#define AFIO_MAPR_TIM1_REMAP_SHIFT   (6)       /* Bits 7-6: TIM1 remapping */
+#define AFIO_MAPR_TIM1_REMAP_MASK    (3 << AFIO_MAPR_TIM1_REMAP_SHIFT) 
+#  define AFIO_MAPR_TIM1_NOREMAP     (0 << AFIO_MAPR_TIM1_REMAP_SHIFT) /* 00: No remap */
+#  define AFIO_MAPR_TIM1_PARTREMAP   (1 << AFIO_MAPR_TIM1_REMAP_SHIFT) /* 01: Partial remap */
+#  define AFIO_MAPR_TIM1_FULLREMAP   (3 << AFIO_MAPR_TIM1_REMAP_SHIFT) /* 11: Full remap */
+#define AFIO_MAPR_TIM2_REMAP_SHIFT   (8)       /* Bits 9-8: TIM2 remapping */
+#define AFIO_MAPR_TIM2_REMAP_MASK    (3 << AFIO_MAPR_TIM2_REMAP_SHIFT)
+#  define AFIO_MAPR_TIM2_NOREMAP     (0 << AFIO_MAPR_TIM2_REMAP_SHIFT) /* 00: No remap */
+#  define AFIO_MAPR_TIM2_PARTREMAP1  (1 << AFIO_MAPR_TIM2_REMAP_SHIFT) /* 01: Partial remap */
+#  define AFIO_MAPR_TIM2_PARTREMAP2  (2 << AFIO_MAPR_TIM2_REMAP_SHIFT) /* 10: Partial remap */
+#  define AFIO_MAPR_TIM2_FULLREMAP   (3 << AFIO_MAPR_TIM2_REMAP_SHIFT) /* 11: Full remap */
+#define AFIO_MAPR_TIM3_REMAP_SHIFT   (10)      /* Bits 11-10: TIM3 remapping */
+#define AFIO_MAPR_TIM3_REMAP_MASK    (3 << AFIO_MAPR_TIM3_REMAP_SHIFT)
+#  define AFIO_MAPR_TIM3_NOREMAP     (0 << AFIO_MAPR_TIM3_REMAP_SHIFT) /* 00: No remap */
+#  define AFIO_MAPR_TIM3_PARTREMAP   (2 << AFIO_MAPR_TIM3_REMAP_SHIFT) /* 10: Partial remap */
+#  define AFIO_MAPR_TIM3_FULLREMAP   (3 << AFIO_MAPR_TIM3_REMAP_SHIFT) /* 11: Full remap */
+#define AFIO_MAPR_TIM4_REMAP         (1 << 12) /* Bit 12: TIM4 remapping */
+#define AFIO_MAPR_CAN1_REMAP_SHIFT   (13)      /* Bits 14-13: CAN Alternate function remapping */
+#define AFIO_MAPR_CAN1_REMAP_MASK    (3 << AFIO_MAPR_CAN1_REMAP_SHIFT)
+#  define AFIO_MAPR_PA1112           (0 << AFIO_MAPR_CAN1_REMAP_SHIFT) /* 00: CANRX mapped to PA11, CANTX mapped to PA12 */
+#  define AFIO_MAPR_PB89             (2 << AFIO_MAPR_CAN1_REMAP_SHIFT) /* 10: CANRX mapped to PB8, CANTX mapped to PB9 */
+#  define AFIO_MAPR_PD01             (3 << AFIO_MAPR_CAN1_REMAP_SHIFT) /* 11: CANRX mapped to PD0, CANTX mapped to PD1 */
+#define AFIO_MAPR_PD01_REMAP         (1 << 15) /* Bit 15 : Port D0/Port D1 mapping on OSC_IN/OSC_OUT */
+#define AFIO_MAPR_TIM5CH4_IREMAP     (1 << 16) /* Bit 16: TIM5 channel4 internal remap */
+                                               /* Bits 17-20: Reserved */
+#ifdef CONFIG_STM32_CONNECTIVITYLINE
+#  define AFIO_MAPR_ETH_REMAP        (1 << 21) /* Bit 21: Ethernet MAC I/O remapping */
+#  define AFIO_MAPR_CAN2_REMAP       (1 << 22) /* Bit 22: CAN2 I/O remapping */
+#  define AFIO_MAPR_MII_RMII_SEL     (1 << 23) /* Bit 23: MII or RMII selection */
+#endif
+#define AFIO_MAPR_SWJ_CFG_SHIFT      (24)      /* Bits 26-24: Serial Wire JTAG configuration */
 #define AFIO_MAPR_SWJ_CFG_MASK       (7 << AFIO_MAPR_SWJ_CFG_SHIFT)
 #  define AFIO_MAPR_SWJRST           (0 << AFIO_MAPR_SWJ_CFG_SHIFT) /* 000: Full SWJ (JTAG-DP + SW-DP): Reset State */
 #  define AFIO_MAPR_SWJ              (1 << AFIO_MAPR_SWJ_CFG_SHIFT) /* 001: Full SWJ (JTAG-DP + SW-DP) but without JNTRST */
 #  define AFIO_MAPR_SWDP             (2 << AFIO_MAPR_SWJ_CFG_SHIFT) /* 010: JTAG-DP Disabled and SW-DP Enabled */
 #  define AFIO_MAPR_DISAB            (4 << AFIO_MAPR_SWJ_CFG_SHIFT) /* 100: JTAG-DP Disabled and SW-DP Disabled */
+                                               /* Bit 27: Reserved */
 #ifdef CONFIG_STM32_CONNECTIVITYLINE
-#  define AFIO_MAPR_MII_RMII_SEL     (1 << 23) /* MII or RMII selection */
+#  define AFIO_MAPR_SPI3_REMAP       (1 << 28) /* Bit 28: SPI3 remapping */
+#  define AFIO_MAPR_TIM2ITR1_IREMAP  (1 << 29) /* Bit 29: TIM2 internal trigger 1 remapping */
+#  define AFIO_MAPR_PTP_PPS_REMAP    (1 << 30) /* Bit 30: Ethernet PTP PPS remapping */
 #endif
-#define AFIO_MAPR_PD01_REMAP         (1 << 15) /* Bit 15 : Port D0/Port D1 mapping on OSC_IN/OSC_OUT */
-#define AFIO_MAPR_CAN_REMAP_SHIFT    (13)      /* Bits 14-13: CAN Alternate function remapping */
-#define AFIO_MAPR_CAN_REMAP_MASK     (3 << AFIO_MAPR_CAN_REMAP_SHIFT)
-#  define AFIO_MAPR_PA1112           (0 << AFIO_MAPR_CAN_REMAP_SHIFT) /* 00: CANRX mapped to PA11, CANTX mapped to PA12 */
-#  define AFIO_MAPR_PB89             (2 << AFIO_MAPR_CAN_REMAP_SHIFT) /* 10: CANRX mapped to PB8, CANTX mapped to PB9 */
-#  define AFIO_MAPR_PD01             (3 << AFIO_MAPR_CAN_REMAP_SHIFT) /* 11: CANRX mapped to PD0, CANTX mapped to PD1 */
-#define AFIO_MAPR_TIM4_REMAP         (1 << 12) /* Bit 12: TIM4 remapping */
-#define AFIO_MAPR_TIM3_REMAP_SHIFT   (10)      /* Bits 11-10: TIM3 remapping */
-#define AFIO_MAPR_TIM3_REMAP_MASK    (3 << AFIO_MAPR_TIM3_REMAP_SHIFT)
-#  define AFIO_MAPR_TIM3_NOREMAP     (0 << AFIO_MAPR_TIM3_REMAP_SHIFT) /* 00: No remap (CH1/PA6, CH2/PA7, CH3/PB0, CH4/PB1) */
-#  define AFIO_MAPR_TIM3_PARTREMAP   (2 << AFIO_MAPR_TIM3_REMAP_SHIFT) /* 10: Partial remap (CH1/PB4, CH2/PB5, CH3/PB0, CH4/PB1) */
-#  define AFIO_MAPR_TIM3_FULLREMAP   (3 << AFIO_MAPR_TIM3_REMAP_SHIFT) /* 11: Full remap (CH1/PC6, CH2/PC7, CH3/PC8, CH4/PC9) */
-#define AFIO_MAPR_TIM2_REMAP_SHIFT   (8)       /* Bits 9-8: TIM2 remapping */
-#define AFIO_MAPR_TIM2_REMAP_MASK    (3 << AFIO_MAPR_TIM2_REMAP_SHIFT)
-#  define AFIO_MAPR_TIM2_NOREMAP     (0 << AFIO_MAPR_TIM2_REMAP_SHIFT) /* 00: No remap (CH1/ETR/PA0, CH2/PA1, CH3/PA2, CH4/PA3) */
-#  define AFIO_MAPR_TIM2_PARTREMAP1  (1 << AFIO_MAPR_TIM2_REMAP_SHIFT) /* 01: Partial remap (CH1/ETR/PA15, CH2/PB3, CH3/PA2, CH4/PA3) */
-#  define AFIO_MAPR_TIM2_PARTREMAP2  (2 << AFIO_MAPR_TIM2_REMAP_SHIFT) /* 10: Partial remap (CH1/ETR/PA0, CH2/PA1, CH3/PB10, CH4/PB11) */
-#  define AFIO_MAPR_TIM2_FULLREMAP   (3 << AFIO_MAPR_TIM2_REMAP_SHIFT) /* 11: Full remap (CH1/ETR/PA15, CH2/PB3, CH3/PB10, CH4/PB11) */
-#define AFIO_MAPR_TIM1_REMAP_SHIFT   (6)       /* Bits 7-6: TIM1 remapping */
-#define AFIO_MAPR_TIM1_REMAP_MASK    (3 << AFIO_MAPR_TIM1_REMAP_SHIFT) 
-#  define AFIO_MAPR_TIM1_NOREMAP     (0 << AFIO_MAPR_TIM1_REMAP_SHIFT) /* 00: No remap (ETR/PA12, CH1/PA8, CH2/PA9, CH3/PA10, CH4/PA11, BKIN/PB12, CH1N/PB13, CH2N/PB14, CH3N/PB15) */
-#  define AFIO_MAPR_TIM1_PARTREMAP   (1 << AFIO_MAPR_TIM1_REMAP_SHIFT) /* 01: Partial remap (ETR/PA12, CH1/PA8, CH2/PA9, CH3/PA10, CH4/PA11, BKIN/PA6, CH1N/PA7, CH2N/PB0, CH3N/PB1) */
-#  define AFIO_MAPR_TIM1_FULLREMAP   (3 << AFIO_MAPR_TIM1_REMAP_SHIFT) /* 11: Full remap (ETR/PE7, CH1/PE9, CH2/PE11, CH3/PE13, CH4/PE14, BKIN/PE15, CH1N/PE8, CH2N/PE10, CH3N/PE12) */
-#define AFIO_MAPR_USART3_REMAP_SHIFT (6)       /* Bits 5-4: USART3 remapping */
-#define AFIO_MAPR_USART3_REMAP_MASK  (3 << AFIO_MAPR_USART3_REMAP_SHIFT) 
-#  define AFIO_MAPR_USART3_NOREMAP   (0 << AFIO_MAPR_USART3_REMAP_SHIFT) /* 00: No remap (TX/PB10, RX/PB11, CK/PB12, CTS/PB13, RTS/PB14) */
-#  define AFIO_MAPR_USART3_PARTREMAP (1 << AFIO_MAPR_USART3_REMAP_SHIFT) /* 01: Partial remap (TX/PC10, RX/PC11, CK/PC12, CTS/PB13, RTS/PB14) */
-#  define AFIO_MAPR_USART3_FULLREMAP (3 << AFIO_MAPR_USART3_REMAP_SHIFT) /* 11: Full remap (TX/PD8, RX/PD9, CK/PD10, CTS/PD11, RTS/PD12) */
-#define AFIO_MAPR_USART2_REMAP       (1 << 3)  /* Bit 3: USART2 remapping */
-#define AFIO_MAPR_USART1_REMAP       (1 << 2)  /* Bit 2: USART1 remapping */
-#define AFIO_MAPR_I2C1_REMAP         (1 << 1)  /* Bit 1: I2C1 remapping */
-#define AFIO_MAPR_SPI1_REMAP         (1 << 0)  /* Bit 0: SPI1 remapping */
-
+                                               /* Bit 31: Reserved */
 /* External interrupt configuration register 1 */
 
 #define AFIO_EXTICR_PORT_MASK        (0x0f)

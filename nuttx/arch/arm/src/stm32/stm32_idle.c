@@ -45,6 +45,7 @@
 
 #include <arch/irq.h>
 
+#include "chip.h"
 #include "stm32_pm.h"
 #include "up_internal.h"
 
@@ -178,11 +179,33 @@ void up_idle(void)
 
   up_idlepm();
 
-  /* Sleep until an interrupt occurs to save power */
+  /* Sleep until an interrupt occurs to save power.
+   *
+   * NOTE:  There is an STM32F107 errata that is fixed by the following
+   * workaround:
+   *
+   * "2.17.11 Ethernet DMA not working after WFI/WFE instruction
+   *  Description
+   *  If a WFI/WFE instruction is executed to put the system in sleep mode
+   *    while the Ethernet MAC master clock on the AHB bus matrix is ON and all
+   *    remaining masters clocks are OFF, the Ethernet DMA will be not able to
+   *    perform any AHB master accesses during sleep mode."
+   *
+   *  Workaround
+   *    Enable DMA1 or DMA2 clocks in the RCC_AHBENR register before 
+   *    executing the WFI/WFE instruction."
+   *
+   * Here the workaround is just to avoid SLEEP mode for the connectivity
+   * line parts if Ethernet is enabled.  The errate recommends a  more
+   * general solution:  Enabling DMA1/2 clocking in stm32f10xx_rcc.c if the
+   * STM32107 Ethernet peripheral is enabled.
+   */
 
+#if !defined(CONFIG_STM32_CONNECTIVITYLINE) || !defined(CONFIG_STM32_ETHMAC)
   BEGIN_IDLE();
   asm("WFI");
   END_IDLE();
+#endif
 #endif
 }
 

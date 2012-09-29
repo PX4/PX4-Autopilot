@@ -1,14 +1,14 @@
 /*
- * attitudeKalmanfilter_terminate.h
+ * cross.h
  *
- * Code generation for function 'attitudeKalmanfilter_terminate'
+ * Code generation for function 'cross'
  *
  * C source code generated on: Fri Sep 21 13:56:44 2012
  *
  */
 
-#ifndef __ATTITUDEKALMANFILTER_TERMINATE_H__
-#define __ATTITUDEKALMANFILTER_TERMINATE_H__
+#ifndef __CROSS_H__
+#define __CROSS_H__
 /* Include files */
 #include <math.h>
 #include <stdio.h>
@@ -29,6 +29,6 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void attitudeKalmanfilter_terminate(void);
+extern void cross(const real32_T a[3], const real32_T b[3], real32_T c[3]);
 #endif
-/* End of code generation (attitudeKalmanfilter_terminate.h) */
+/* End of code generation (cross.h) */
