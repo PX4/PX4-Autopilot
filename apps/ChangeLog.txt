@@ -286,7 +286,7 @@
 	* apps/nshlib/nsh_parse.c: CONFIG_NSH_DISABLE_WGET not CONFIG_NSH_DISABLE_GET
 	  in one location (found by Kate).
 	* apps/examples/ostest/prioinherit.c:  Limit the number of test
-	  threds to no more than 3 of each priority.  Bad things happen
+	  threads to no more than 3 of each priority.  Bad things happen
 	  when the existing logic tried to created several hundred test
 	  treads!
 	* apps/nshlib/nsh.h:  Both CONFIG_LIBC_STRERROR and CONFIG_NSH_STRERROR
@@ -341,7 +341,7 @@
 	* apps/netutils/webserver/httpd.c:  Add support for Keep-alive connections
 	  (from Kate).
 	* apps/NxWidget/Kconfig:  This is a kludge.  I created this NxWidgets
-	  directory that ONLY contains Kconfig.  NxWidgets does not like in
+	  directory that ONLY contains Kconfig.  NxWidgets does not live in
 	  either the nuttx/ or the apps/ source trees.  This kludge makes it
 	  possible to configure NxWidgets/NxWM without too much trouble (with
 	  the tradeoff being a kind ugly structure and some maintenance issues).

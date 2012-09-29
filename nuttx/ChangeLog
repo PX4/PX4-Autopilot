@@ -3193,7 +3193,7 @@
 	  speed/duplex.  This does not work for certain PHYs.  Still some unresolved
 	  issues (also from Kate).
 	* tools/Config.mk, Makefile, configs/*/Make.defs:  Add a new Makefile
-	  fragement to de-quoate certain strings from the Kconfig logic that
+	  fragment to de-quote certain strings from the Kconfig logic that
 	  need to be used at path segments (Richard Cochran).
 	* arch/arm/src/stm32/stm32_usbotghost.c:  The STM32 USB host driver only
 	  works with debug turned on.  The problem appears to be that with debug
@@ -3201,7 +3201,7 @@
 	  reveals a variety of errors.  This check in improves NAK robustness
 	  for control transfers but does not resolve all of the issues.
 	* configs/stm3220g-eval/*/defconfig:  Calibrated delay loop.  It had
-	  never been calibrated was was way off.
+	  never been calibrated was way off.
 	* sched/sem_holder.c: Add logic to handler some priority inheritance
 	  cases when sem_post() is called from an interrupt handler.  The
 	  logic is clearly wrong, but it is not known if this is the
@@ -3212,13 +3212,13 @@
 	  CONFIG_LIBC_STRERROR_SHORT that can be used to output shortened
 	  strings by strerror().
 	* arch/arm/src/stm32/stm32_usbotghost.c:  Finally... the USB OTG FS
-	  appears to handle NAKing correctly is complete.
+	  appears to handle NAKing correctly.
 	* configs/stm32f4discovery/*:  Added and verifed support for USB OTG FS
 	  host on the STM32F4Discovery board.
 	* configs/*/defconfig: Remove configuration documentation from config
 	  files.  It is redundant, error-prone, and difficult to maintain.
 	  Configuration documentation is available in configs/README.txt for
-	  common configurations and in configs/*/README.txt for board and MCU_
+	  common configurations and in configs/*/README.txt for board and MCU-
 	  specific configurations.
 	* configs/stm3240g-eval: Add USB host support.
 	* sched/os_bring.c, configs/*/defconfig, tools/mkconfig.c, and others:  Added
@@ -3226,7 +3226,7 @@
 	  the default entry from user_start to some other symbol.  Contributed by
 	  Kate. NOTE: This change does introduce a minor backward incompatibility.
 	  For example, if your application uses NSH as its start-up program, then your
-	  code will not fail because it will be unable to find "user_start".  The fix
+	  build will now fail because it will be unable to find "user_start".  The fix
 	  for this link failure is to add the following to your configuration file:
 	  CONFIG_USER_ENTRYPOINT="nsh_main".
 	* libs/stdio/lib_libfread.c and lib_*flush*.c:  Correct a couple of
@@ -3269,7 +3269,7 @@
 	  CONFIG_HEAP2_SIZE (decimal) instead of CONFIG_HEAP2_END (hex).
 	* tools/configure.sh:  Don't append the apps directory path setting
 	  if the correct setting is already in defined in the defconfig file.
-	* fs/fat/fs_utils.c:  Improper constructed bool expression.  This
+	* fs/fat/fs_utils.c:  Improperly constructed bool expression.  This
 	  would cause many unnecessary writes to FLASH (Thanks Ronen Vainish).
 	* Kconfig: Verify configuration settings for the LPC43xx.  This includes
 	  some corrections to configuration variable names and defconfig settings.
@@ -3319,13 +3319,13 @@
 	  in all places.
 	* drivers/enc28j60.c, include/nuttx/net/enc28j60.h, and 
 	  olimex-strp711/src/up_enc28j60.c:  No longer passes IRQ number
-	  as a parameters.  Instead now passes a call table to manage
+	  as a parameter.  Instead now passes a call table to manage
 	  ENC28J60 GPIO interrupts.  That is because GPIO interrupts are
 	  handled in different ways by different MCUs and some do not
 	  support IRQ numbers for GPIO interrupts.
 	* mm/mm_gran* and include/nuttx/gran.h:  Add a simple granule-
 	  based allocator.  The intent of this allocator is to support
-	  simple allocation of DMA I/O buffers.  The initiali check-in
+	  simple allocation of DMA I/O buffers.  The initial check-in
 	  is code complete but untested (not event built into the
 	  mm/Makefile yet.
 	* confgs/fire-stm32v2: The board port is basically functional.
@@ -3352,7 +3352,7 @@
 	* arch/arm/include/armv7-m/irq.h:  Fix a critical bug in irqsave().
 	  It looks like sometimes the compile will re-order some instructions
 	  inapproapriately.  This end result is that interrupts will get
-	  stuff off.
+	  stuck off.
 	* drivers/mtd/w25.c:  Beginning of a driver for the Windbond SPI
 	  FLASH family (W25x16, W25x32, and W25x64).  The initial check-in
 	  is basically just the SST25 driver with some name changes.
@@ -3372,7 +3372,7 @@
 	  I2C reset logic to recover from locked devices on the bus.
 	* configs/*/*/Make.defs, tools/Config.mk, Makefile:  Refactor all
 	  common make definitions from the various Make.defs files into
-	  the common tools/Make.mk.  Add support for a verbosity options:
+	  the common tools/Config.mk.  Add support for a verbosity options:
 	  Specify V=1 on the make command line in order to see the exact
 	  commands used in the build (Contributed by Richard Cochran).
 	* drivers/net/enc28j60.c:  The ENC28J60 Ethernet driver is
@@ -3400,17 +3400,17 @@
 	* configs/shenzhou/src/up_lcd.c:  Oops. Shenzhou LCD does not
 	  have an SSD1289 controller.  Its an ILI93xx.  Ported the
 	  STM3240G-EVAL ILI93xx driver to work on the Shenzhou board.
-	* configs/shenzhou/nxwm:  Added an NxWM configuratino for the
+	* configs/shenzhou/nxwm:  Added an NxWM configuration for the
 	  Shenzhou board.  This is untested on initial check-in.  It will
 	  be used to verify the Shenzhou LCD driver (and eventually the
 	  touchscreen driver).
 	* configs/shenzhou/src/up_touchscreen.c:  Add ADS7843E touchscreen
 	  support for the Shenzhou board.  The initial check-in is untested
-	  and basically a clone of the the touchscreen support fro the SAM-3U.
+	  and basically a clone of the the touchscreen support for the SAM-3U.
 	* tools/cfgparser.c: There are some NxWidget configuration
 	  settings that must be de-quoted.
 	* arch/arm/src/stm32/Kconfig: There is no SPI4.  Some platforms
-	  SPI3 and some do not (still not clear).
+	  support SPI3 and some do not (still not clear).
 	* nuttx/configs/shenzhou: Various fixes to build new NxWM
 	  configuration.
 	* configs/shenzhou:  Oops.  The Shenzhou LCD is and SSD1289,

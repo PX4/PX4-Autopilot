@@ -3063,3 +3063,107 @@ Bugfixes (see the change log for details) :
       for C++
 
 As well as other, less critical bugs (see the ChangeLog for details)
+
+NuttX-6.22
+^^^^^^^^^^
+
+The 89th release of NuttX, Version 6.22, was made on September 29, 2012,
+and is available for download from the SourceForge website.  Note
+that release consists of two tarballs:  nuttx-6.22.tar.gz and
+apps-6.22.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
+file for build information).
+
+This release corresponds with SVN release number: r5206
+
+Note that all SVN information has been stripped from the tarballs.  If you
+need the SVN configuration, you should check out directly from SVN.  Revision
+r5206 should equivalent to release 6.22 of NuttX 6.22:
+
+    svn checkout -r5206 svn://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+
+Or
+
+    svn checkout -r5206 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+
+Additional new features and extended functionality:
+
+    * RTOS: Application entry point is no longer user_start, but can be
+      configured using CONFIG_USER_ENTRYPOINT.  NuttX now supports two work
+      queues:  A lower priority work queue (for extended processing) and a
+      higher priority work queue (for quick, high priority operations).
+
+    * Memory Management: Added a new granule-based allocated that can be
+      used to manage, aligned and quantized DMA memory.
+
+    * File System: Add hooks to allocate I/O memory with and external
+      allocated (need if required by DMA).
+
+    * Networking: ENC28J60 driver is (finally) verified.
+
+    * Drivers: Add hooks USB device drivers to allocate I/O memory with and
+      external allocated (need if required by DMA).  Driver for the Windbond
+      SPI FLASH family (W25x16, W25x32, W25x64, and others).  ADS7843E driver
+      extended for TSC2046 and XPT2046 and verified.
+
+    * ARMv7-M: Added logic to reset the MCU using the NVIC.
+
+    * STM32: Add support for STM32F103VET6.
+
+    * STM32 Drivers: Add logic to re-initialize UARTs a second time to
+      enable DMA (Mike Smith).  I2C driver error recovery (Mike Smith).
+
+    * STM32 boards: Support for USB host added add to several configurations
+      (or at least explained in README files).  Support for the Shenzhou
+      STM32F107 board (see www.armjishu.com).  Support for M3 Wildfire
+      STM32F103 board (v2 and v3).
+
+    * Build System:  Kconfig string de-quoting logic.  Remove comments from
+      defconfig files (Kate).  Add tool to create NuttX-style symbol tables.
+      Numerous changes to configuration logic as needed for the new mconf-based
+      configuration (much of this from Richard Cochran).  Refactor common
+      Make.defs logic into tools/Config.mk (Richard Cochran).
+
+    * Library: Configurable terse output from strerror(). Added perror() (Kate).
+      Add %n format to sscanf() (Kate).
+
+    * Applications: Numerous changes and extensions to the old uIP web server
+      (from Kate and Max Holtzberg, see the ChangeLog for specific extensions).
+      UDP network discovery utility (Max Holtzberg).  Embeddable Lightweight
+      XML-RPC Server (http://www.drdobbs.com/web-development/an-embeddable-lightweight-xml-rpc-server/184405364, Max Holtzberg).
+
+Bugfixes (see the change log for details).  Some of these are very important
+(marked *critical*):
+
+    * RTOS: Fixes to priority inheritance logic (*critical*).  waitpid()
+      critical section.  Assertion in work_cancel() (Mike Smith).  mmap() (Kate).
+
+    * FAT File System: Improper Boolean expression caused un-necessary writes
+      and performance issues (*critical*, Ronen Vainish).
+
+    * Networking: Remove an un-necessary delay from recvfrom().  This greatly
+      improves network performance (*critical*, Max Holtzberg).
+
+    * Graphics: NX parameter checking errors.
+
+    * Drivers: Fix double release of memory in SDIO-based, MMC/SD driver
+      (Ronen Vainish).
+
+    * LPC17xx:  Ethernet driver fixes needed for certain PHYs (Kate).
+
+    * AVR: Fix build error (Richard Cochran).
+
+    * STM32: USB OTG FS host driver NAKing an retries.  Power management
+      compilation errors (Diego Sanchez).  Missing SPI3 remap logic.
+
+    * STM32 Drivers: Fix for Ethernet errata for STM32F107 (*critical*).
+      Ethernet buffer alignment check.  Add "kludge" to Ethernet driver to
+      handle DM9161 PHY which (at least on the Shenzhou board), sometimes
+      does not come up correctly.
+
+    * Applications: THTTPD (Kate).  NSH ping when IP address is on a different
+      network (Darcy Gong).
+
+    * Library: fread(), fflush(), fdopen(): Fix error handling logic (Ronen
+      Vainish). Fix some field-width handling issues in sscanf()
+
+As well as other, less critical bugs (see the ChangeLog for details)
