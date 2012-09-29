@@ -1432,7 +1432,7 @@ void handleMessage(mavlink_message_t *msg)
 			mc.roll = man.x / 1000.0f;
 			mc.pitch = man.y / 1000.0f;
 			mc.yaw = man.r / 1000.0f;
-			mc.thrust = man.z / 1000.0f;
+			mc.throttle = man.z / 1000.0f;
 
 			/* fake RC channels with manual control input from simulator */
 
