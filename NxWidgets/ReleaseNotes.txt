@@ -97,3 +97,18 @@ Bugfixes:
 
 As well as other, less critical bugs (see the ChangeLog for details)
 
+NxWidgets-1.3
+=============
+
+The 4th release of the NxWidgets package as made on September 29, 2012.  This
+release depends on NuttX-6.22 or above and should not be used with older
+NuttX releases.
+
+There are no functional changes in this release of NxWidgets.  This release
+is required in order to retain compatibility with the most recent versions
+of NuttX.  These comptibility changes include:
+
+* Naming of function entry points
+* Build system changes
+* Changes needed for the NuttX configuration tool
+

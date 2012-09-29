@@ -3177,7 +3177,7 @@
 	* arch/arm/src/stm32/stm32_otgfshost.c:  This driver now appears to be
 	  functional (although more testing is necesary).
 
-6.22 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.22 2012-09-29 Gregory Nutt <gnutt@nuttx.org>
 
 	* include/semaphore.h, sched/sem_holders.c, and lib/semaphore/sem_init.c:
 	  Fix some strange (and probably wrong) list handling when
@@ -3453,3 +3453,4 @@
 	* net/uip/uip_icmpping.c:  Fix problem that prevented ping from
 	  going outside of local network.  Submitted by Darcy Gong
 
+6.23 2012-09-29 Gregory Nutt <gnutt@nuttx.org>
