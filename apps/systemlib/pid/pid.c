@@ -179,7 +179,7 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 		pid->error_previous = error;
 	}
 
-	float output = (error * pid->kp) + (i * pid->ki) + (d * pid->kd);
+	float output = (pid->error_previous * pid->kp) + (i * pid->ki) + (d * pid->kd);
 
 	if (isfinite(output)) {
 		pid->last_output = output;
