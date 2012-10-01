@@ -60,6 +60,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/pid/pid.h>
 #include <systemlib/geo/geo.h>
+#include <uORB/topics/debug_key_value.h>
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
@@ -158,14 +159,14 @@ static int pos_parameters_update(const struct fw_pos_control_param_handles *h, s
  */
 int fixedwing_control_thread_main(int argc, char *argv[])
 {
-	// /* read arguments */
-	// bool verbose = false;
+	/* read arguments */
+	bool verbose = false;
 
-	// for (int i = 1; i < argc; i++) {
-	// 	if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
-	// 		verbose = true;
-	// 	}
-	// }
+	for (int i = 1; i < argc; i++) {
+		if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
+			verbose = true;
+		}
+	}
 
 	/* welcome user */
 	printf("[fixedwing control] started\n");
@@ -229,6 +230,11 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	pid_init(&heading_controller, ppos.heading_p, 0.0f, 0.0f, 0.0f,
 			PID_MODE_DERIVATIV_SET);
 
+	// XXX remove in production
+	/* advertise debug value */
+	struct debug_key_value_s dbg = { .key = "", .value = 0.0f };
+	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
+
 	while(!thread_should_exit) {
 
 		struct pollfd fds[1] = {
@@ -268,7 +274,11 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 			/* get a local copy of attitude */
 			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 			/* get a local copy of attitude setpoint */
-			orb_copy(ORB_ID(vehicle_attitude_setpoint), att_setpoint_sub, &att_sp);
+			//orb_copy(ORB_ID(vehicle_attitude_setpoint), att_setpoint_sub, &att_sp);
+			// XXX update to switch between external attitude reference and the
+			// attitude calculated here
+
+			char name[10];
 
 			if (pos_updated) {
 
@@ -288,7 +298,14 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 						global_setpoint.lat / (double)1e7d, global_setpoint.lon / (double)1e7d);
 
 					/* shift error to prevent wrapping issues */
-					float bearing_error = att.yaw - target_bearing;
+					float bearing_error = target_bearing - att.yaw;
+
+					if (loopcounter % 2 == 0) {
+						sprintf(name, "hdng err1");
+						memcpy(dbg.key, name, sizeof(name));
+						dbg.value = bearing_error;
+						orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
+					}
 
 					if (bearing_error < M_PI_F) {
 						bearing_error += 2.0f * M_PI_F;
@@ -296,6 +313,13 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 					if (bearing_error > M_PI_F) {
 						bearing_error -= 2.0f * M_PI_F;
+					}
+
+					if (loopcounter % 2 != 0) {
+						sprintf(name, "hdng err2");
+						memcpy(dbg.key, name, sizeof(name));
+						dbg.value = bearing_error;
+						orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
 					}
 
 					/* calculate roll setpoint, do this artificially around zero */
@@ -313,7 +337,6 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 						heading_controller.saturated = 1;
 					}
 
-					att_sp.roll_body = att_sp.roll_body;
 					att_sp.pitch_body = 0.0f;
 					att_sp.yaw_body = 0.0f;
 
@@ -331,7 +354,13 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 			const float deltaTpos = (hrt_absolute_time() - last_run_pos) / 1000000.0f;
 			last_run_pos = hrt_absolute_time();
 
-			actuators.control[0] = pid_calculate(&roll_pos_controller, att_sp.roll_body,
+			if (verbose && (loopcounter % 20 == 0)) {
+				printf("[fixedwing control] roll sp: %8.4f, \n", att_sp.roll_body);
+			}
+
+			// actuators.control[0] = pid_calculate(&roll_pos_controller, att_sp.roll_body,
+			// 		att.roll, att.rollspeed, deltaTpos);
+						actuators.control[0] = pid_calculate(&roll_pos_controller, att_sp.roll_body,
 					att.roll, att.rollspeed, deltaTpos);
 			actuators.control[1] = 0;
 			actuators.control[2] = 0;

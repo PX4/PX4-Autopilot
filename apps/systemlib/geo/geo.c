@@ -79,9 +79,12 @@ __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, doub
 	/* conscious mix of double and float trig function to maximize speed and efficiency */
 	float theta = atan2f(sin(d_lon) * cos(lat_next_rad) , cos(lat_now_rad) * sin(lat_next_rad) - sin(lat_now_rad) * cos(lat_next_rad) * cos(d_lon));
 
-	// XXX wrapping check is incomplete
-	if (theta < 0.0f) {
-		theta = theta + 2.0f * M_PI_F;
+	if (theta < M_PI_F) {
+		theta += 2.0f * M_PI_F;
+	}
+
+	if (theta > M_PI_F) {
+		theta -= 2.0f * M_PI_F;
 	}
 
 	return theta;

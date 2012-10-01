@@ -1416,15 +1416,15 @@ void handleMessage(mavlink_message_t *msg)
 			memset(&rc_hil, 0, sizeof(rc_hil));
 			static orb_advert_t rc_pub = 0;
 
-			rc_hil.chan[0].raw = 1510 + man.x / 2;
-			rc_hil.chan[1].raw = 1520 + man.y / 2;
-			rc_hil.chan[2].raw = 1590 + man.r / 2;
-			rc_hil.chan[3].raw = 1420 + man.z / 2;
+			rc_hil.chan[0].raw = 1500 + man.x / 2;
+			rc_hil.chan[1].raw = 1500 + man.y / 2;
+			rc_hil.chan[2].raw = 1500 + man.r / 2;
+			rc_hil.chan[3].raw = 1500 + man.z / 2;
 
-			rc_hil.chan[0].scaled = man.x;
-			rc_hil.chan[1].scaled = man.y;
-			rc_hil.chan[2].scaled = man.r;
-			rc_hil.chan[3].scaled = man.z;
+			rc_hil.chan[0].scaled = man.x / 1000.0f;
+			rc_hil.chan[1].scaled = man.y / 1000.0f;
+			rc_hil.chan[2].scaled = man.r / 1000.0f;
+			rc_hil.chan[3].scaled = man.z / 1000.0f;
 
 			struct manual_control_setpoint_s mc;
 			static orb_advert_t mc_pub = 0;
@@ -1432,7 +1432,7 @@ void handleMessage(mavlink_message_t *msg)
 			mc.roll = man.x / 1000.0f;
 			mc.pitch = man.y / 1000.0f;
 			mc.yaw = man.r / 1000.0f;
-			mc.roll = man.z / 1000.0f;
+			mc.throttle = man.z / 1000.0f;
 
 			/* fake RC channels with manual control input from simulator */
 
