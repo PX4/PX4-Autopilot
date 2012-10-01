@@ -271,7 +271,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 				overloadcounter++;
 			}
 
-			int8_t update_vect[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
+			int8_t update_vect[3] = {1, 1, 1};
 			float euler[3];
 			int32_t z_k_sizes = 9;
 			float u[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -282,11 +282,28 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			if (!const_initialized /*&& dt < 0.05 && dt > 0.005*/) 
 			{
 				dt = 0.005f;
-				knownConst[0] = 0.6f*0.6f*dt;
-				knownConst[1] = 0.6f*0.6f*dt;
-				knownConst[2] = 0.2f*0.2f*dt;
-				knownConst[3] = 0.2f*0.2f*dt;
-				knownConst[4] = 0.000001f*0.000001f*dt; // -9.81,1,1,-1};
+				q[0] =  1e1;
+				q[1] =  1e1;
+				q[2] =  1e1;
+				q[3] =  1e-6;
+				q[4] =  1e-6;
+				q[5] =  1e-6;
+				q[6] =  1e-1;
+				q[7] =  1e-1;
+				q[8] =  1e-1;
+				q[9] =  1e-1;
+				q[10] = 1e-1;
+				q[11] = 1e-1;
+
+				r[0]= 1e-2;
+				r[1]= 1e-2;
+				r[2]= 1e-2;
+				r[3]= 1e-1;
+				r[4]= 1e-1;
+				r[5]= 1e-1;
+				r[6]= 1e-1;
+				r[7]= 1e-1;
+				r[8]= 1e-1;
 
 				x_aposteriori_k[0] = z_k[0];
 				x_aposteriori_k[1] = z_k[1];
