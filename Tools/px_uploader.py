@@ -263,8 +263,8 @@ class uploader(object):
 		print("program...")
 		self.__program(fw)
 
-		print("verify...")
-		self.__verify(fw)
+		#print("verify...")
+		#self.__verify(fw)
 
 		print("done, rebooting.")
 		self.__reboot()
@@ -290,18 +290,7 @@ while True:
 
 		# create an uploader attached to the port
 		try:
-			if "linux" in _platform:
-			# Linux, don't open Mac OS and Win ports
-				if not "COM" in port and not "tty.usb" in port:
-					up = uploader(port, args.baud)
-			elif "darwin" in _platform:
-				# OS X, don't open Windows and Linux ports
-				if not "COM" in port and not "ACM" in port:
-					up = uploader(port, args.baud)
-			elif "win" in _platform:
-				# Windows, don't open POSIX ports
-				if not "/" in port:
-					up = uploader(port, args.baud)
+			up = uploader("\\\\.\\COM2", args.baud)
 		except:
 			# open failed, rate-limit our attempts
 			time.sleep(0.05)
