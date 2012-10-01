@@ -60,6 +60,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <arch/board/up_hrt.h>
 
+#include <systemlib/systemlib.h>
+
 #include "codegen/attitudeKalmanfilter_initialize.h"
 #include "codegen/attitudeKalmanfilter.h"
 
@@ -150,7 +152,12 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		attitude_estimator_ekf_task = task_create("attitude_estimator_ekf", SCHED_PRIORITY_DEFAULT, 20000, attitude_estimator_ekf_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		attitude_estimator_ekf_task = task_spawn("attitude_estimator_ekf",
+							 SCHED_RR,
+							 SCHED_PRIORITY_DEFAULT,
+							 20000,
+							 attitude_estimator_ekf_thread_main,
+							 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}
 
