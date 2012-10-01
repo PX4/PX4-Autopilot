@@ -138,6 +138,9 @@ static void *rate_control_thread_main(void *arg)
 	return NULL;
 }
 
+static bool carefree_mode = true;
+static float initial_mag_baring = 0;  /* north */
+
 static int
 mc_thread_main(int argc, char *argv[])
 {
@@ -229,9 +232,22 @@ mc_thread_main(int argc, char *argv[])
 		/** STEP 1: Define which input is the dominating control input */
 
 		if (state.flag_control_manual_enabled) {
+			float roll = manual.roll;
+			float pitch = manual.pitch;
+
+			if (carefree_mode) {  
+				float delta = att.yaw - initial_mag_baring;
+				float sin_x = sin(M_PI_2 - delta);
+				float cos_y = cos(M_PI_2 - delta);
+
+				/* rotate the roll/pitch inputs */
+				roll = manual.roll * sin_x + manual.pitch * cos_y;
+				pitch = -manual.roll * cos_y + manual.pitch * sin_x;
+    			}
+
 			/* manual inputs, from RC control or joystick */
-			att_sp.roll_body = manual.roll;
-			att_sp.pitch_body = manual.pitch;
+			att_sp.roll_body = roll;
+			att_sp.pitch_body = pitch;
 			att_sp.yaw_body = manual.yaw; // XXX Hack, remove, switch to yaw rate controller
 			/* set yaw rate */
 			rates_sp.yaw = manual.yaw;
