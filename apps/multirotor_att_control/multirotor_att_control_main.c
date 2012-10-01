@@ -67,6 +67,7 @@
 #include <uORB/topics/actuator_controls.h>
 
 #include <systemlib/perf_counter.h>
+#include <systemlib/systemlib.h>
 
 #include "multirotor_attitude_control.h"
 #include "multirotor_rate_control.h"
@@ -350,7 +351,12 @@ int multirotor_att_control_main(int argc, char *argv[])
 	if (!strcmp(argv[1+optioncount], "start")) {
 
 		thread_should_exit = false;
-		mc_task = task_create("multirotor_att_control", SCHED_PRIORITY_MAX - 15, 2048, mc_thread_main, NULL);
+		mc_task = task_spawn("multirotor_att_control",
+				     SCHED_RR,
+				     SCHED_PRIORITY_MAX - 15,
+				     2048,
+				     mc_thread_main,
+				     NULL);
 		exit(0);
 	}
 

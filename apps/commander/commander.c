@@ -949,7 +949,12 @@ int commander_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_create("commander", SCHED_PRIORITY_MAX - 50, 4096, commander_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		deamon_task = task_spawn("commander",
+					 SCHED_RR,
+					 SCHED_PRIORITY_MAX - 50,
+					 4096,
+					 commander_thread_main,
+					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
 	}
