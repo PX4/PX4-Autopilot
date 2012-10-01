@@ -61,6 +61,8 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
 
+#include <systemlib/systemlib.h>
+
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
@@ -120,7 +122,12 @@ int sdlog_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_create("sdlog", SCHED_PRIORITY_DEFAULT - 30, 4096, sdlog_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		deamon_task = task_spawn("sdlog",
+					 SCHED_RR,
+					 SCHED_PRIORITY_DEFAULT - 30,
+					 4096,
+					 sdlog_thread_main,
+					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
 	}

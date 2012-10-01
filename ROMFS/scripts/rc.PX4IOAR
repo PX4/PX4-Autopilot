@@ -8,38 +8,61 @@ echo "[init] doing PX4IOAR startup..."
 #
 # Start the ORB
 #
+
+echo "[init] uORB"
 uorb start
+
+#
+# Start the EEPROM and load params 
+#
+echo "[init] eeprom"
+eeprom start
+if [ -f /eeprom/parameters ]
+then
+	eeprom load_param /eeprom/parameters
+fi
+ 
 
 #
 # Start the sensors.
 #
-sh /etc/init.d/rc.sensors
+echo "[init] sensors"
+#bma180 start
+#l3gd20 start
+mpu6000 start
+hmc5883 start
+ms5611 start
+
+sensors start
+
+#sh /etc/init.d/rc.sensors
 
 #
 # Start MAVLink
 #
+
+echo "[init] mavlink"
 mavlink start -d /dev/ttyS0 -b 57600
 usleep 5000
 
 #
 # Start the commander.
 #
-# XXX this should be '<command> start'.
-#
-commander &
+
+echo "[init] commander"
+commander start
 
 #
 # Start the attitude estimator
 #
-# XXX this should be '<command> start'.
-#
+
+echo "[init] attitude control"
 attitude_estimator_bm &
+multirotor_att_control start
 #position_estimator &
 
 #
 # Configure PX4FMU for operation with PX4IOAR
-#
-# XXX arguments?
 #
 #fmu mode_
 
@@ -48,7 +71,7 @@ attitude_estimator_bm &
 #
 # XXX this should be '<command> start'.
 #
-ardrone_control -d /dev/ttyS1 -m attitude &
+# ardrone_control -d /dev/ttyS1 -m attitude &
 
 #
 # Start looking for a GPS.
