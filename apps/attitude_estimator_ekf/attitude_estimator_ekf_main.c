@@ -306,9 +306,10 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 				q[0] =  1e1f;
 				q[1] =  1e1f;
 				q[2] =  1e1f;
-				q[3] =  1e-6f;
-				q[4] =  1e-6f;
-				q[5] =  1e-6f;
+				/* process noise gyro offset covariance */
+				q[3] =  1e-4f;
+				q[4] =  1e-4f;
+				q[5] =  1e-4f;
 				q[6] =  1e-1f;
 				q[7] =  1e-1f;
 				q[8] =  1e-1f;
@@ -346,6 +347,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			if (!const_initialized) {
 				continue;
 			}
+
+			dt = 0.004f;
 
 			uint64_t timing_start = hrt_absolute_time();
 			// attitudeKalmanfilter(dt, update_vect, z_k, &z_k_sizes, u, x_aposteriori_k, P_aposteriori_k, knownConst, euler,
