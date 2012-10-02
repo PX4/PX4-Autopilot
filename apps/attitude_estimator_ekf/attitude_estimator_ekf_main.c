@@ -285,10 +285,10 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 			if (time_elapsed > loop_interval_alarm) {
 				//TODO: add warning, cpu overload here
-				if (overloadcounter == 20) {
-					printf("CPU OVERLOAD DETECTED IN ATTITUDE ESTIMATOR EKF (%lu > %lu)\n", time_elapsed, loop_interval_alarm);
-					overloadcounter = 0;
-				}
+				// if (overloadcounter == 20) {
+				// 	printf("CPU OVERLOAD DETECTED IN ATTITUDE ESTIMATOR EKF (%lu > %lu)\n", time_elapsed, loop_interval_alarm);
+				// 	overloadcounter = 0;
+				// }
 
 				overloadcounter++;
 			}

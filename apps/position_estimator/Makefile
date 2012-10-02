@@ -47,6 +47,4 @@ CSRCS		 = position_estimator_main.c \
 		   codegen/rtGetInf.c \
 		   codegen/rtGetNaN.c
 
-INCLUDES	 = $(TOPDIR)/../mavlink/include/mavlink
-
 include $(APPDIR)/mk/app.mk
