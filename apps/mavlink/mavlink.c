@@ -1416,6 +1416,8 @@ void handleMessage(mavlink_message_t *msg)
 			memset(&rc_hil, 0, sizeof(rc_hil));
 			static orb_advert_t rc_pub = 0;
 
+			rc_hil.timestamp = hrt_absolute_time();
+			rc_hil.chan_count = 4;
 			rc_hil.chan[0].raw = 1500 + man.x / 2;
 			rc_hil.chan[1].raw = 1500 + man.y / 2;
 			rc_hil.chan[2].raw = 1500 + man.r / 2;
@@ -1429,6 +1431,7 @@ void handleMessage(mavlink_message_t *msg)
 			struct manual_control_setpoint_s mc;
 			static orb_advert_t mc_pub = 0;
 
+			mc.timestamp = rc_hil.timestamp;
 			mc.roll = man.x / 1000.0f;
 			mc.pitch = man.y / 1000.0f;
 			mc.yaw = man.r / 1000.0f;

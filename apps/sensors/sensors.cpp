@@ -960,8 +960,6 @@ Sensors::ppm_poll()
 	/* Read out values from HRT */
 	for (unsigned int i = 0; i < channel_limit; i++) {
 		_rc.chan[i].raw = ppm_buffer[i];
-		/* Set the range to +-, then scale up */
-		_rc.chan[i].scale = (ppm_buffer[i] - _rc.chan[i].mid) * _rc.chan[i].scaling_factor * 10000;
 
 		/* scale around the mid point differently for lower and upper range */
 		if (ppm_buffer[i] > (_parameters.trim[i] + _parameters.dz[i])) {
