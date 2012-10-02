@@ -1173,11 +1173,12 @@ Sensors::start()
 	ASSERT(_sensors_task == -1);
 
 	/* start the task */
-	_sensors_task = task_create("sensors_task",
-				    SCHED_PRIORITY_MAX - 5,
-				    6000,	/* XXX may be excesssive */
-				    (main_t)&Sensors::task_main_trampoline,
-				    nullptr);
+	_sensors_task = task_spawn("sensors_task",
+				   SCHED_RR,
+				   SCHED_PRIORITY_MAX - 5,
+				   6000,	/* XXX may be excesssive */
+				   (main_t)&Sensors::task_main_trampoline,
+				   nullptr);
 
 	if (_sensors_task < 0) {
 		warn("task start failed");

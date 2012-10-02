@@ -2,69 +2,75 @@
 #
 # Flight startup script for PX4FMU on PX4IOAR carrier board.
 #
-
+ 
+set USB no
+ 
 echo "[init] doing PX4IOAR startup..."
-
+ 
 #
 # Start the ORB
 #
 uorb start
-
+ 
+#
+# Init the EEPROM
+#
+echo "[init] eeprom"
+eeprom start
+if [ -f /eeprom/parameters ]
+then
+	eeprom load_param /eeprom/parameters
+fi
+ 
 #
 # Start the sensors.
 #
 sh /etc/init.d/rc.sensors
-
+ 
 #
 # Start MAVLink
 #
 mavlink start -d /dev/ttyS0 -b 57600
 usleep 5000
-
+ 
 #
 # Start the commander.
 #
-# XXX this should be '<command> start'.
-#
-commander &
-
+commander start
+ 
 #
 # Start the attitude estimator
 #
-# XXX this should be '<command> start'.
-#
-attitude_estimator_bm &
-#position_estimator &
-
+attitude_estimator_ekf start
+ 
 #
 # Configure PX4FMU for operation with PX4IOAR
 #
-# XXX arguments?
+fmu mode_gpio_serial
+ 
 #
-#fmu mode_
+# Fire up the multi rotor attitude controller
+#
+multirotor_att_control start
+ 
+#
+# Fire up the AR.Drone interface.
+#
+ardrone_interface start
 
 #
-# Fire up the AR.Drone controller.
+# Start logging
 #
-# XXX this should be '<command> start'.
-#
-ardrone_control -d /dev/ttyS1 -m attitude &
+#sdlog start
 
 #
-# Start looking for a GPS.
+# Start GPS capture
 #
-# XXX this should not need to be backgrounded
-#
-#gps -d /dev/ttyS3 -m all &
-
-#
-# Start logging to microSD if we can
-#
-#sh /etc/init.d/rc.logging
-
+gps start
+ 
 #
 # startup is done; we don't want the shell because we
-# use the same UART for telemetry (dumb).
+# use the same UART for telemetry
 #
-echo "[init] startup done, exiting."
+echo "[init] startup done"
 exit

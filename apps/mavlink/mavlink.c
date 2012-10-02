@@ -75,7 +75,9 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/debug_key_value.h>
+
 #include <systemlib/param/param.h>
+#include <systemlib/systemlib.h>
 
 #include "waypoints.h"
 #include "mavlink_log.h"
@@ -203,7 +205,7 @@ int mavlink_missionlib_send_gcs_string(const char *string);
 uint64_t mavlink_missionlib_get_system_timestamp(void);
 
 void handleMessage(mavlink_message_t *msg);
-static void mavlink_update_system();
+static void mavlink_update_system(void);
 
 /**
  * Enable / disable Hardware in the Loop simulation mode.
@@ -1552,9 +1554,9 @@ int mavlink_open_uart(int baud, const char *uart_name, struct termios *uart_conf
 	return uart;
 }
 
-void mavlink_update_system()
+void mavlink_update_system(void)
 {
-	static initialized = false;
+	static bool initialized = false;
 	param_t param_system_id;
 	param_t param_component_id;
 	param_t param_system_type;
@@ -1709,9 +1711,9 @@ int mavlink_thread_main(int argc, char *argv[])
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 20);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_RAW_IMU, 20);
 		/* 50 Hz / 20 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 50);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 30);
 		/* 20 Hz / 50 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 50);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 10);
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 50);
 		/* 2 Hz */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 100);
@@ -1869,7 +1871,12 @@ int mavlink_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		mavlink_task = task_create("mavlink", SCHED_PRIORITY_DEFAULT, 6000, mavlink_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		mavlink_task = task_spawn("mavlink",
+					  SCHED_RR,
+					  SCHED_PRIORITY_DEFAULT,
+					  6000,
+					  mavlink_thread_main,
+					  (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}
 
