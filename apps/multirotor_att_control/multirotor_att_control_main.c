@@ -66,6 +66,7 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/actuator_controls.h>
 
+#include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 
 #include "multirotor_attitude_control.h"
@@ -138,9 +139,6 @@ static void *rate_control_thread_main(void *arg)
 	return NULL;
 }
 
-static bool carefree_mode = true;
-static float initial_mag_baring = 0;  /* north */
-
 static int
 mc_thread_main(int argc, char *argv[])
 {
@@ -201,6 +199,9 @@ mc_thread_main(int argc, char *argv[])
 	pthread_t rate_control_thread;
 	pthread_create(&rate_control_thread, &rate_control_attr, rate_control_thread_main, NULL);
 
+	bool heading_set = false;
+	float initial_heading = 0;
+
 	while (!thread_should_exit) {
 
 		/* wait for a sensor update, check for exit condition every 500 ms */
@@ -235,14 +236,24 @@ mc_thread_main(int argc, char *argv[])
 			float roll = manual.roll;
 			float pitch = manual.pitch;
 
-			if (carefree_mode) {  
-				float delta = att.yaw - initial_mag_baring;
-				float sin_x = sin(M_PI_2 - delta);
-				float cos_y = cos(M_PI_2 - delta);
+			if (true || manual.mode == MANUAL_CONTROL_MODE_MULTIROTOR_SIMPLE) {
+				if (state.flag_system_armed) {
+					if (!heading_set) {
+						initial_heading = att.yaw;
+						heading_set = true;
+					}
+					float delta = att.yaw - initial_heading;
+					if (delta > M_TWOPI) delta -= M_TWOPI;
+					if (delta < -M_TWOPI) delta += M_TWOPI;
+					float sin_x = sin(M_PI_2 - delta);
+					float cos_y = cos(M_PI_2 - delta);
 
-				/* rotate the roll/pitch inputs */
-				roll = manual.roll * sin_x + manual.pitch * cos_y;
-				pitch = -manual.roll * cos_y + manual.pitch * sin_x;
+					/* rotate the roll/pitch inputs */
+					roll = manual.roll * sin_x + manual.pitch * cos_y;
+					pitch = -manual.roll * cos_y + manual.pitch * sin_x;
+				} else {
+					heading_set = false;
+				}
     			}
 
 			/* manual inputs, from RC control or joystick */
