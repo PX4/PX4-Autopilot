@@ -1012,8 +1012,12 @@ int commander_thread_main(int argc, char *argv[])
 	memset(&current_status, 0, sizeof(current_status));
 	current_status.state_machine = SYSTEM_STATE_PREFLIGHT;
 	current_status.flag_system_armed = false;
+	/* neither manual nor offboard control commands have been received */
 	current_status.offboard_control_signal_found_once = false;
 	current_status.rc_signal_found_once = false;
+	/* mark all signals lost as long as they haven't been found */
+	current_status.rc_signal_lost = true;
+	current_status.offboard_control_signal_lost = true;
 
 	/* advertise to ORB */
 	stat_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
