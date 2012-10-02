@@ -3,7 +3,7 @@
  *
  * Code generation for function 'attitudeKalmanfilter'
  *
- * C source code generated on: Fri Sep 21 13:56:42 2012
+ * C source code generated on: Mon Oct 01 19:38:49 2012
  *
  */
 
@@ -15,7 +15,7 @@
 #include "eye.h"
 #include "mrdivide.h"
 #include "diag.h"
-#include "find.h"
+#include "power.h"
 
 /* Type Definitions */
 
@@ -52,662 +52,696 @@ static real32_T rt_atan2f_snf(real32_T u0, real32_T u1)
 }
 
 /*
- * function [eulerAngles,Rot_matrix,x_aposteriori,P_aposteriori] = attitudeKalmanfilter(dt,updVect,z_k,u,x_aposteriori_k,P_aposteriori_k,knownConst)
+ * function [eulerAngles,Rot_matrix,x_aposteriori,P_aposteriori] = attitudeKalmanfilter_wo(updateVect,dt,z,x_aposteriori_k,P_aposteriori_k,q,r)
  */
-void attitudeKalmanfilter(real32_T dt, const int8_T updVect[9], const real32_T
-  z_k_data[9], const int32_T z_k_sizes[1], const real32_T u[4], const real32_T
-  x_aposteriori_k[9], const real32_T P_aposteriori_k[81], const real32_T
-  knownConst[20], real32_T eulerAngles[3], real32_T Rot_matrix[9], real32_T
-  x_aposteriori[9], real32_T P_aposteriori[81])
+void attitudeKalmanfilter(const uint8_T updateVect[3], real32_T dt, const
+  real32_T z[9], const real32_T x_aposteriori_k[12], const real32_T
+  P_aposteriori_k[144], const real32_T q[12], const real32_T r[9], real32_T
+  eulerAngles[3], real32_T Rot_matrix[9], real32_T x_aposteriori[12], real32_T
+  P_aposteriori[144])
 {
-  int32_T udpIndVect_sizes;
-  real_T udpIndVect_data[9];
-  real32_T R_temp[9];
+  real32_T a[12];
+  int32_T i;
+  real32_T b_a[12];
+  real32_T Q[144];
+  real32_T O[9];
   real_T dv0[9];
-  int32_T ib;
-  int32_T i0;
-  real32_T fv0[81];
-  real32_T b_knownConst[27];
-  real32_T fv1[9];
-  real32_T c_knownConst[9];
-  real_T dv1[9];
-  real_T dv2[9];
-  real32_T A_lin[81];
+  real32_T c_a[9];
+  real32_T d_a[9];
   real32_T x_n_b[3];
-  real32_T K_k_data[81];
+  real32_T z_n_b[3];
+  real32_T x_apriori[12];
+  real32_T y_n_b[3];
+  int32_T i0;
+  real32_T e_a[3];
+  real_T dv1[144];
+  real32_T A_lin[144];
+  real32_T b_A_lin[144];
   int32_T i1;
-  real32_T b_A_lin[81];
-  static const int8_T iv0[9] = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
+  real32_T y;
+  real32_T P_apriori[144];
+  real32_T R[81];
+  real32_T b_P_apriori[108];
+  static const int8_T iv0[108] = { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
 
-  real32_T P_apriori[81];
-  int32_T ia;
-  static const int8_T H_k_full[81] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+  real32_T K_k[108];
+  static const int8_T iv1[108] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 };
 
-  int8_T H_k_data[81];
-  int32_T accUpt;
-  int32_T magUpt;
-  real32_T y;
-  real32_T y_k_data[9];
-  int32_T P_apriori_sizes[2];
-  int32_T H_k_sizes[2];
-  int32_T K_k_sizes[2];
-  real32_T b_y[9];
-  real_T dv3[81];
-  real32_T c_y;
-  real32_T z_n_b[3];
-  real32_T y_n_b[3];
+  real32_T fv0[81];
+  real32_T c_P_apriori[36];
+  static const int8_T iv2[36] = { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0 };
 
-  /* Extended Attitude Kalmanfilter */
+  real32_T fv1[36];
+  static const int8_T iv3[36] = { 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0,
+    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+  real32_T S_k[36];
+  real32_T d_P_apriori[72];
+  static const int8_T iv4[72] = { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0 };
+
+  real32_T b_K_k[72];
+  static const int8_T iv5[72] = { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
+    0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+    0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0 };
+
+  real32_T b_r[6];
+  static const int8_T iv6[72] = { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0,
+    0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0,
+    0, 0, 0, 1 };
+
+  static const int8_T iv7[72] = { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 1 };
+
+  real32_T fv2[6];
+  real32_T b_z[6];
+  real32_T b_y;
+
+  /*  Extended Attitude Kalmanfilter */
   /*  */
-  /* state vector x has the following entries [ax,ay,az||mx,my,mz||wox,woy,woz||wx,wy,wz]' */
-  /* measurement vector z has the following entries [ax,ay,az||mx,my,mz||wmx,wmy,wmz]' */
-  /* knownConst has the following entries [PrvaA,PrvarM,PrvarWO,PrvarW||MsvarA,MsvarM,MsvarW] */
+  /*  state vector x has the following entries [ax,ay,az||mx,my,mz||wox,woy,woz||wx,wy,wz]' */
+  /*  measurement vector z has the following entries [ax,ay,az||mx,my,mz||wmx,wmy,wmz]' */
+  /*  knownConst has the following entries [PrvaA,PrvarM,PrvarWO,PrvarW||MsvarA,MsvarM,MsvarW] */
   /*  */
-  /* [x_aposteriori,P_aposteriori] = AttKalman(dt,z_k,x_aposteriori_k,P_aposteriori_k,knownConst) */
+  /*  [x_aposteriori,P_aposteriori] = AttKalman(dt,z_k,x_aposteriori_k,P_aposteriori_k,knownConst) */
   /*  */
-  /* Example.... */
+  /*  Example.... */
   /*  */
   /*  $Author: Tobias Naegeli $    $Date: 2012 $    $Revision: 1 $ */
-  /* %define the matrices */
-  /*  tpred=0.005; */
-  /*   */
-  /*  A=[   0,   0,  0,  0, 0, 0, 0, 0, 0;  */
-  /*        0,   0,  0,  0, 0, 0, 0, 0, 0; */
-  /*        0,   0,  0,  0, 0, 0, 0, 0, 0;   */
-  /*        0,   -1,  1,  0, 0, 0, 0, 0, 0;   */
-  /*        1,   0,  -1,  0, 0, 0, 0, 0, 0;   */
-  /*        -1,   1,  0,  0, 0, 0, 0, 0, 0; */
-  /*        0,   -1,  1,  0, 0, 0, 0, 0, 0;   */
-  /*        1,   0,  -1,  0, 0, 0, 0, 0, 0;   */
-  /*        -1,   1,  0,  0, 0, 0, 0, 0, 0];  */
-  /*   */
-  /*   */
-  /*  b=[70,   0,   0;   */
-  /*    0, 70,   0;  */
-  /*    0,   0,   0;   */
-  /*    0,   0,   0;   */
-  /*    0,   0, 0;   */
-  /*    0,   0,   0;   */
-  /*    0,   0,   0;   */
-  /*    0,   0,   0; */
-  /*    0,   0,   0];   */
-  /*   */
-  /*   */
-  /*  C=[1,   0,  0,  0, 0, 0, 0, 0, 0; */
-  /*      0,   1,  0,  0, 0, 0, 0, 0, 0;   */
-  /*      0,   0,  1,  0, 0, 0, 0, 0, 0; */
-  /*      0,   0,  0,  1, 0, 0, 0, 0, 0; */
-  /*      0,   0,  0,  0, 1, 0, 0, 0, 0; */
-  /*      0,   0,  0,  0, 0, 1, 0, 0, 0; */
-  /*      0,   0,  0,  0, 0, 0, 1, 0, 0; */
-  /*      0,   0,  0,  0, 0, 0, 0, 1, 0; */
-  /*      0,   0,  0,  0, 0, 0, 0, 0, 1]; */
-  /*  D=[]; */
-  /*   */
-  /*   */
-  /*  sys=ss(A,b,C,D); */
-  /*   */
-  /*  sysd=c2d(sys,tpred); */
-  /*   */
-  /*   */
-  /*  F=sysd.a; */
-  /*   */
-  /*  B=sysd.b; */
-  /*   */
-  /*  H=sysd.c; */
-  /* 'attitudeKalmanfilter:68' udpIndVect=find(updVect); */
-  find(updVect, udpIndVect_data, &udpIndVect_sizes);
+  /* coder.varsize('udpIndVect', [9,1], [1,0]) */
+  /* udpIndVect=find(updVect); */
+  /* process and measurement noise covariance matrix */
+  /* 'attitudeKalmanfilter:27' Q = diag(q.^2*dt); */
+  power(q, 2.0, a);
+  for (i = 0; i < 12; i++) {
+    b_a[i] = a[i] * dt;
+  }
 
-  /* 'attitudeKalmanfilter:71' rates_ProcessNoiseMatrix=diag([knownConst(1),knownConst(1),knownConst(2)]); */
-  /* 'attitudeKalmanfilter:72' acc_ProcessNoise=knownConst(3); */
-  /* 'attitudeKalmanfilter:73' mag_ProcessNoise=knownConst(4); */
-  /* 'attitudeKalmanfilter:74' rates_MeasurementNoise=knownConst(6); */
-  /* 'attitudeKalmanfilter:75' acc_MeasurementNoise=knownConst(7); */
-  /* 'attitudeKalmanfilter:76' mag_MeasurementNoise=knownConst(8); */
-  /* process noise covariance matrix */
-  /* 'attitudeKalmanfilter:81' Q = [  rates_ProcessNoiseMatrix,     zeros(3),                                              zeros(3); */
-  /* 'attitudeKalmanfilter:82'     zeros(3),                       eye(3)*mag_ProcessNoise,                               zeros(3); */
-  /* 'attitudeKalmanfilter:83'     zeros(3),                       zeros(3),                                              eye(3)*acc_ProcessNoise]; */
+  diag(b_a, Q);
+
   /* observation matrix */
-  /* 'attitudeKalmanfilter:89' H_k_full=[   eye(3),     zeros(3),      zeros(3); */
-  /* 'attitudeKalmanfilter:90'     zeros(3),   eye(3),        zeros(3); */
-  /* 'attitudeKalmanfilter:91'     zeros(3),   zeros(3),        eye(3)]; */
-  /* compute A(t,w) */
-  /* x_aposteriori_k[10,11,12] should be [p,q,r] */
-  /* R_temp=[1,-r, q */
-  /*         r, 1, -p */
-  /*        -q, p, 1] */
-  /* 'attitudeKalmanfilter:100' R_temp=[1,                      -dt*x_aposteriori_k(3), dt*x_aposteriori_k(2); */
-  /* 'attitudeKalmanfilter:101'         dt*x_aposteriori_k(3),  1,                      -dt*x_aposteriori_k(1); */
-  /* 'attitudeKalmanfilter:102'         -dt*x_aposteriori_k(2), dt*x_aposteriori_k(1),  1]; */
-  R_temp[0] = 1.0F;
-  R_temp[3] = -dt * x_aposteriori_k[2];
-  R_temp[6] = dt * x_aposteriori_k[1];
-  R_temp[1] = dt * x_aposteriori_k[2];
-  R_temp[4] = 1.0F;
-  R_temp[7] = -dt * x_aposteriori_k[0];
-  R_temp[2] = -dt * x_aposteriori_k[1];
-  R_temp[5] = dt * x_aposteriori_k[0];
-  R_temp[8] = 1.0F;
+  /* 'attitudeKalmanfilter:37' wx=  x_aposteriori_k(1); */
+  /* 'attitudeKalmanfilter:38' wy=  x_aposteriori_k(2); */
+  /* 'attitudeKalmanfilter:39' wz=  x_aposteriori_k(3); */
+  /* 'attitudeKalmanfilter:41' wox=  x_aposteriori_k(4); */
+  /* 'attitudeKalmanfilter:42' woy=  x_aposteriori_k(5); */
+  /* 'attitudeKalmanfilter:43' woz=  x_aposteriori_k(6); */
+  /* 'attitudeKalmanfilter:45' zex=  x_aposteriori_k(7); */
+  /* 'attitudeKalmanfilter:46' zey=  x_aposteriori_k(8); */
+  /* 'attitudeKalmanfilter:47' zez=  x_aposteriori_k(9); */
+  /* 'attitudeKalmanfilter:49' mux=  x_aposteriori_k(10); */
+  /* 'attitudeKalmanfilter:50' muy=  x_aposteriori_k(11); */
+  /* 'attitudeKalmanfilter:51' muz=  x_aposteriori_k(12); */
+  /* 'attitudeKalmanfilter:54' wk =[wx; */
+  /* 'attitudeKalmanfilter:55'      wy; */
+  /* 'attitudeKalmanfilter:56'      wz]; */
+  /* 'attitudeKalmanfilter:58' wok =[wox;woy;woz]; */
+  /* 'attitudeKalmanfilter:59' O=[0,-wz,wy;wz,0,-wx;-wy,wx,0]'; */
+  O[0] = 0.0F;
+  O[1] = -x_aposteriori_k[2];
+  O[2] = x_aposteriori_k[1];
+  O[3] = x_aposteriori_k[2];
+  O[4] = 0.0F;
+  O[5] = -x_aposteriori_k[0];
+  O[6] = -x_aposteriori_k[1];
+  O[7] = x_aposteriori_k[0];
+  O[8] = 0.0F;
 
-  /* 'attitudeKalmanfilter:106' A_pred=[eye(3),     zeros(3),       zeros(3); */
-  /* 'attitudeKalmanfilter:107'         zeros(3),   R_temp',        zeros(3); */
-  /* 'attitudeKalmanfilter:108'         zeros(3),   zeros(3),       R_temp']; */
-  /* 'attitudeKalmanfilter:110' B_pred=[knownConst(9)*dt,   0,                  0; */
-  /* 'attitudeKalmanfilter:111'         0,                  knownConst(10)*dt,  0; */
-  /* 'attitudeKalmanfilter:112'         0,                  0,                  0; */
-  /* 'attitudeKalmanfilter:113'         0,                  0,                  0; */
-  /* 'attitudeKalmanfilter:114'         0,                  0,                  0; */
-  /* 'attitudeKalmanfilter:115'         0,                  0,                  0; */
-  /* 'attitudeKalmanfilter:116'         0,                  0,                  0; */
-  /* 'attitudeKalmanfilter:117'         0,                  0,                  0; */
-  /* 'attitudeKalmanfilter:118'         0,                  0,                  0]; */
-  /* %prediction step */
-  /* 'attitudeKalmanfilter:121' x_apriori=A_pred*x_aposteriori_k+B_pred*u(1:3); */
+  /* 'attitudeKalmanfilter:60' zek =(eye(3)+O*dt)*[zex;zey;zez]; */
   eye(dv0);
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      fv0[i0 + 9 * ib] = (real32_T)dv0[i0 + 3 * ib];
-    }
+  for (i = 0; i < 9; i++) {
+    c_a[i] = (real32_T)dv0[i] + O[i] * dt;
   }
 
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      fv0[i0 + 9 * (ib + 3)] = 0.0F;
-    }
-  }
-
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      fv0[i0 + 9 * (ib + 6)] = 0.0F;
-    }
-  }
-
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      fv0[(i0 + 9 * ib) + 3] = 0.0F;
-    }
-  }
-
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      fv0[(i0 + 9 * (ib + 3)) + 3] = R_temp[ib + 3 * i0];
-    }
-  }
-
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      fv0[(i0 + 9 * (ib + 6)) + 3] = 0.0F;
-    }
-  }
-
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      fv0[(i0 + 9 * ib) + 6] = 0.0F;
-    }
-  }
-
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      fv0[(i0 + 9 * (ib + 3)) + 6] = 0.0F;
-    }
-  }
-
-  b_knownConst[0] = knownConst[8] * dt;
-  b_knownConst[9] = 0.0F;
-  b_knownConst[18] = 0.0F;
-  b_knownConst[1] = 0.0F;
-  b_knownConst[10] = knownConst[9] * dt;
-  b_knownConst[19] = 0.0F;
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      fv0[(i0 + 9 * (ib + 6)) + 6] = R_temp[ib + 3 * i0];
-    }
-
-    b_knownConst[2 + 9 * ib] = 0.0F;
-    b_knownConst[3 + 9 * ib] = 0.0F;
-    b_knownConst[4 + 9 * ib] = 0.0F;
-    b_knownConst[5 + 9 * ib] = 0.0F;
-    b_knownConst[6 + 9 * ib] = 0.0F;
-    b_knownConst[7 + 9 * ib] = 0.0F;
-    b_knownConst[8 + 9 * ib] = 0.0F;
-  }
-
-  for (ib = 0; ib < 9; ib++) {
-    fv1[ib] = 0.0F;
-    for (i0 = 0; i0 < 9; i0++) {
-      fv1[ib] += fv0[ib + 9 * i0] * x_aposteriori_k[i0];
-    }
-
-    c_knownConst[ib] = 0.0F;
-    for (i0 = 0; i0 < 3; i0++) {
-      c_knownConst[ib] += b_knownConst[ib + 9 * i0] * u[i0];
-    }
-
-    x_aposteriori[ib] = fv1[ib] + c_knownConst[ib];
-  }
-
-  /* linearization */
-  /* 'attitudeKalmanfilter:125' temp_mat=[  0,      -dt,    dt; */
-  /* 'attitudeKalmanfilter:126'             dt,    0,     -dt; */
-  /* 'attitudeKalmanfilter:127'             -dt,     dt,   0]; */
-  R_temp[0] = 0.0F;
-  R_temp[3] = -dt;
-  R_temp[6] = dt;
-  R_temp[1] = dt;
-  R_temp[4] = 0.0F;
-  R_temp[7] = -dt;
-  R_temp[2] = -dt;
-  R_temp[5] = dt;
-  R_temp[8] = 0.0F;
-
-  /* 'attitudeKalmanfilter:129' A_lin=[ eye(3),         zeros(3),     zeros(3); */
-  /* 'attitudeKalmanfilter:130'         temp_mat,  eye(3) ,     zeros(3); */
-  /* 'attitudeKalmanfilter:131'         temp_mat,  zeros(3),     eye(3)]; */
+  /* 'attitudeKalmanfilter:61' muk =(eye(3)+O*dt)*[mux;muy;muz]; */
   eye(dv0);
-  eye(dv1);
-  eye(dv2);
-  for (ib = 0; ib < 3; ib++) {
+  for (i = 0; i < 9; i++) {
+    d_a[i] = (real32_T)dv0[i] + O[i] * dt;
+  }
+
+  /* 'attitudeKalmanfilter:63' EZ=[0,zez,-zey; */
+  /* 'attitudeKalmanfilter:64'     -zez,0,zex; */
+  /* 'attitudeKalmanfilter:65'     zey,-zex,0]'; */
+  /* 'attitudeKalmanfilter:66' MA=[0,muz,-muy; */
+  /* 'attitudeKalmanfilter:67'     -muz,0,mux; */
+  /* 'attitudeKalmanfilter:68'     zey,-mux,0]'; */
+  /* 'attitudeKalmanfilter:72' E=eye(3); */
+  /* 'attitudeKalmanfilter:73' Z=zeros(3); */
+  /* 'attitudeKalmanfilter:74' x_apriori=[wk;wok;zek;muk]; */
+  x_n_b[0] = x_aposteriori_k[6];
+  x_n_b[1] = x_aposteriori_k[7];
+  x_n_b[2] = x_aposteriori_k[8];
+  z_n_b[0] = x_aposteriori_k[9];
+  z_n_b[1] = x_aposteriori_k[10];
+  z_n_b[2] = x_aposteriori_k[11];
+  x_apriori[0] = x_aposteriori_k[0];
+  x_apriori[1] = x_aposteriori_k[1];
+  x_apriori[2] = x_aposteriori_k[2];
+  x_apriori[3] = x_aposteriori_k[3];
+  x_apriori[4] = x_aposteriori_k[4];
+  x_apriori[5] = x_aposteriori_k[5];
+  for (i = 0; i < 3; i++) {
+    y_n_b[i] = 0.0F;
     for (i0 = 0; i0 < 3; i0++) {
-      A_lin[i0 + 9 * ib] = (real32_T)dv0[i0 + 3 * ib];
+      y_n_b[i] += c_a[i + 3 * i0] * x_n_b[i0];
+    }
+
+    e_a[i] = 0.0F;
+    for (i0 = 0; i0 < 3; i0++) {
+      e_a[i] += d_a[i + 3 * i0] * z_n_b[i0];
+    }
+
+    x_apriori[i + 6] = y_n_b[i];
+  }
+
+  for (i = 0; i < 3; i++) {
+    x_apriori[i + 9] = e_a[i];
+  }
+
+  /* 'attitudeKalmanfilter:76' A_lin=[ Z,  Z,  Z,  Z */
+  /* 'attitudeKalmanfilter:77'         Z,  Z,  Z,  Z */
+  /* 'attitudeKalmanfilter:78'         EZ, Z,  O,  Z */
+  /* 'attitudeKalmanfilter:79'         MA, Z,  Z,  O]; */
+  /* 'attitudeKalmanfilter:82' A_lin=eye(12)+A_lin*dt; */
+  b_eye(dv1);
+  for (i = 0; i < 12; i++) {
+    for (i0 = 0; i0 < 3; i0++) {
+      A_lin[i0 + 12 * i] = 0.0F;
+    }
+
+    for (i0 = 0; i0 < 3; i0++) {
+      A_lin[(i0 + 12 * i) + 3] = 0.0F;
     }
   }
 
-  for (ib = 0; ib < 3; ib++) {
+  A_lin[6] = 0.0F;
+  A_lin[7] = x_aposteriori_k[8];
+  A_lin[8] = -x_aposteriori_k[7];
+  A_lin[18] = -x_aposteriori_k[8];
+  A_lin[19] = 0.0F;
+  A_lin[20] = x_aposteriori_k[6];
+  A_lin[30] = x_aposteriori_k[7];
+  A_lin[31] = -x_aposteriori_k[6];
+  A_lin[32] = 0.0F;
+  for (i = 0; i < 3; i++) {
     for (i0 = 0; i0 < 3; i0++) {
-      A_lin[i0 + 9 * (ib + 3)] = 0.0F;
+      A_lin[(i0 + 12 * (i + 3)) + 6] = 0.0F;
     }
   }
 
-  for (ib = 0; ib < 3; ib++) {
+  for (i = 0; i < 3; i++) {
     for (i0 = 0; i0 < 3; i0++) {
-      A_lin[i0 + 9 * (ib + 6)] = 0.0F;
+      A_lin[(i0 + 12 * (i + 6)) + 6] = O[i0 + 3 * i];
     }
   }
 
-  for (ib = 0; ib < 3; ib++) {
+  for (i = 0; i < 3; i++) {
     for (i0 = 0; i0 < 3; i0++) {
-      A_lin[(i0 + 9 * ib) + 3] = R_temp[i0 + 3 * ib];
+      A_lin[(i0 + 12 * (i + 9)) + 6] = 0.0F;
     }
   }
 
-  for (ib = 0; ib < 3; ib++) {
+  A_lin[9] = 0.0F;
+  A_lin[10] = x_aposteriori_k[11];
+  A_lin[11] = -x_aposteriori_k[10];
+  A_lin[21] = -x_aposteriori_k[11];
+  A_lin[22] = 0.0F;
+  A_lin[23] = x_aposteriori_k[9];
+  A_lin[33] = x_aposteriori_k[7];
+  A_lin[34] = -x_aposteriori_k[9];
+  A_lin[35] = 0.0F;
+  for (i = 0; i < 3; i++) {
     for (i0 = 0; i0 < 3; i0++) {
-      A_lin[(i0 + 9 * (ib + 3)) + 3] = (real32_T)dv1[i0 + 3 * ib];
+      A_lin[(i0 + 12 * (i + 3)) + 9] = 0.0F;
     }
   }
 
-  for (ib = 0; ib < 3; ib++) {
+  for (i = 0; i < 3; i++) {
     for (i0 = 0; i0 < 3; i0++) {
-      A_lin[(i0 + 9 * (ib + 6)) + 3] = 0.0F;
+      A_lin[(i0 + 12 * (i + 6)) + 9] = 0.0F;
     }
   }
 
-  for (ib = 0; ib < 3; ib++) {
+  for (i = 0; i < 3; i++) {
     for (i0 = 0; i0 < 3; i0++) {
-      A_lin[(i0 + 9 * ib) + 6] = R_temp[i0 + 3 * ib];
+      A_lin[(i0 + 12 * (i + 9)) + 9] = O[i0 + 3 * i];
     }
   }
 
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      A_lin[(i0 + 9 * (ib + 3)) + 6] = 0.0F;
+  for (i = 0; i < 12; i++) {
+    for (i0 = 0; i0 < 12; i0++) {
+      b_A_lin[i0 + 12 * i] = (real32_T)dv1[i0 + 12 * i] + A_lin[i0 + 12 * i] *
+        dt;
     }
   }
 
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      A_lin[(i0 + 9 * (ib + 6)) + 6] = (real32_T)dv2[i0 + 3 * ib];
-    }
-  }
-
-  /* 'attitudeKalmanfilter:134' P_apriori=A_lin*P_aposteriori_k*A_lin'+Q; */
-  x_n_b[0] = knownConst[0];
-  x_n_b[1] = knownConst[0];
-  x_n_b[2] = knownConst[1];
-  diag(x_n_b, R_temp);
-  for (ib = 0; ib < 9; ib++) {
-    for (i0 = 0; i0 < 9; i0++) {
-      K_k_data[ib + 9 * i0] = 0.0F;
-      for (i1 = 0; i1 < 9; i1++) {
-        K_k_data[ib + 9 * i0] += A_lin[ib + 9 * i1] * P_aposteriori_k[i1 + 9 *
+  /* 'attitudeKalmanfilter:88' P_apriori=A_lin*P_aposteriori_k*A_lin'+Q; */
+  for (i = 0; i < 12; i++) {
+    for (i0 = 0; i0 < 12; i0++) {
+      A_lin[i + 12 * i0] = 0.0F;
+      for (i1 = 0; i1 < 12; i1++) {
+        A_lin[i + 12 * i0] += b_A_lin[i + 12 * i1] * P_aposteriori_k[i1 + 12 *
           i0];
       }
     }
+  }
 
-    for (i0 = 0; i0 < 9; i0++) {
-      b_A_lin[ib + 9 * i0] = 0.0F;
-      for (i1 = 0; i1 < 9; i1++) {
-        b_A_lin[ib + 9 * i0] += K_k_data[ib + 9 * i1] * A_lin[i0 + 9 * i1];
+  for (i = 0; i < 12; i++) {
+    for (i0 = 0; i0 < 12; i0++) {
+      y = 0.0F;
+      for (i1 = 0; i1 < 12; i1++) {
+        y += A_lin[i + 12 * i1] * b_A_lin[i0 + 12 * i1];
       }
+
+      P_apriori[i + 12 * i0] = y + Q[i + 12 * i0];
     }
   }
 
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      K_k_data[i0 + 9 * ib] = R_temp[i0 + 3 * ib];
-    }
-  }
+  /* %update */
+  /* 'attitudeKalmanfilter:92' if updateVect(1)==1&&updateVect(2)==1&&updateVect(3)==1 */
+  if ((updateVect[0] == 1) && (updateVect[1] == 1) && (updateVect[2] == 1)) {
+    /* 'attitudeKalmanfilter:93' R=diag(r); */
+    b_diag(r, R);
 
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      K_k_data[i0 + 9 * (ib + 3)] = 0.0F;
-    }
-  }
-
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      K_k_data[i0 + 9 * (ib + 6)] = 0.0F;
-    }
-  }
-
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      K_k_data[(i0 + 9 * ib) + 3] = 0.0F;
-    }
-  }
-
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      K_k_data[(i0 + 9 * (ib + 3)) + 3] = (real32_T)iv0[i0 + 3 * ib] *
-        knownConst[3];
-    }
-  }
-
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      K_k_data[(i0 + 9 * (ib + 6)) + 3] = 0.0F;
-    }
-  }
-
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      K_k_data[(i0 + 9 * ib) + 6] = 0.0F;
-    }
-  }
-
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      K_k_data[(i0 + 9 * (ib + 3)) + 6] = 0.0F;
-    }
-  }
-
-  for (ib = 0; ib < 3; ib++) {
-    for (i0 = 0; i0 < 3; i0++) {
-      K_k_data[(i0 + 9 * (ib + 6)) + 6] = (real32_T)iv0[i0 + 3 * ib] *
-        knownConst[2];
-    }
-  }
-
-  for (ib = 0; ib < 9; ib++) {
-    for (i0 = 0; i0 < 9; i0++) {
-      P_apriori[i0 + 9 * ib] = b_A_lin[i0 + 9 * ib] + K_k_data[i0 + 9 * ib];
-    }
-  }
-
-  /* 'attitudeKalmanfilter:137' if ~isempty(udpIndVect)==1 */
-  if (!(udpIndVect_sizes == 0) == 1) {
-    /* 'attitudeKalmanfilter:138' H_k= H_k_full(udpIndVect,:); */
-    for (ib = 0; ib < 9; ib++) {
-      ia = udpIndVect_sizes - 1;
-      for (i0 = 0; i0 <= ia; i0++) {
-        H_k_data[i0 + udpIndVect_sizes * ib] = H_k_full[((int32_T)
-          udpIndVect_data[i0] + 9 * ib) - 1];
+    /* observation matrix */
+    /* 'attitudeKalmanfilter:96' H_k=[  E,     E,      Z,    Z; */
+    /* 'attitudeKalmanfilter:97'         Z,     Z,      E,    Z; */
+    /* 'attitudeKalmanfilter:98'         Z,     Z,      Z,    E]; */
+    /* 'attitudeKalmanfilter:100' y_k=z(1:9)-H_k*x_apriori; */
+    /* 'attitudeKalmanfilter:102' S_k=H_k*P_apriori*H_k'+R; */
+    /* 'attitudeKalmanfilter:103' K_k=(P_apriori*H_k'/(S_k)); */
+    for (i = 0; i < 12; i++) {
+      for (i0 = 0; i0 < 9; i0++) {
+        b_P_apriori[i + 12 * i0] = 0.0F;
+        for (i1 = 0; i1 < 12; i1++) {
+          b_P_apriori[i + 12 * i0] += P_apriori[i + 12 * i1] * (real32_T)iv0[i1
+            + 12 * i0];
+        }
       }
     }
 
-    /* %update step */
-    /* 'attitudeKalmanfilter:140' accUpt=1; */
-    accUpt = 1;
+    for (i = 0; i < 9; i++) {
+      for (i0 = 0; i0 < 12; i0++) {
+        K_k[i + 9 * i0] = 0.0F;
+        for (i1 = 0; i1 < 12; i1++) {
+          K_k[i + 9 * i0] += (real32_T)iv1[i + 9 * i1] * P_apriori[i1 + 12 * i0];
+        }
+      }
+    }
 
-    /* 'attitudeKalmanfilter:141' magUpt=1; */
-    magUpt = 1;
+    for (i = 0; i < 9; i++) {
+      for (i0 = 0; i0 < 9; i0++) {
+        y = 0.0F;
+        for (i1 = 0; i1 < 12; i1++) {
+          y += K_k[i + 9 * i1] * (real32_T)iv0[i1 + 12 * i0];
+        }
 
-    /* 'attitudeKalmanfilter:142' y_k=z_k-H_k*x_apriori; */
-    ia = udpIndVect_sizes - 1;
-    for (ib = 0; ib <= ia; ib++) {
+        fv0[i + 9 * i0] = y + R[i + 9 * i0];
+      }
+    }
+
+    mrdivide(b_P_apriori, fv0, K_k);
+
+    /* 'attitudeKalmanfilter:106' x_aposteriori=x_apriori+K_k*y_k; */
+    for (i = 0; i < 9; i++) {
+      y = 0.0F;
+      for (i0 = 0; i0 < 12; i0++) {
+        y += (real32_T)iv1[i + 9 * i0] * x_apriori[i0];
+      }
+
+      c_a[i] = z[i] - y;
+    }
+
+    for (i = 0; i < 12; i++) {
       y = 0.0F;
       for (i0 = 0; i0 < 9; i0++) {
-        y += (real32_T)H_k_data[ib + udpIndVect_sizes * i0] * x_aposteriori[i0];
+        y += K_k[i + 12 * i0] * c_a[i0];
       }
 
-      y_k_data[ib] = z_k_data[ib] - y;
+      x_aposteriori[i] = x_apriori[i] + y;
     }
 
-    /* 'attitudeKalmanfilter:143' if updVect(4)==1 */
-    if (updVect[3] == 1) {
-      /* 'attitudeKalmanfilter:144' if (abs(norm(z_k(4:6))-knownConst(12))>knownConst(14)) */
-      for (ib = 0; ib < 3; ib++) {
-        x_n_b[ib] = z_k_data[ib + 3];
-      }
-
-      if ((real32_T)fabsf(norm(x_n_b) - knownConst[11]) > knownConst[13]) {
-        /* 'attitudeKalmanfilter:145' accUpt=10000; */
-        accUpt = 10000;
-      }
-    }
-
-    /* 'attitudeKalmanfilter:149' if updVect(7)==1 */
-    if (updVect[6] == 1) {
-      /* 'attitudeKalmanfilter:150' if (abs(norm(z_k(7:9))-knownConst(13))>knownConst(15)) */
-      for (ib = 0; ib < 3; ib++) {
-        x_n_b[ib] = z_k_data[ib + 6];
-      }
-
-      if ((real32_T)fabs(norm(x_n_b) - knownConst[12]) > knownConst[14]) {
-        /* 'attitudeKalmanfilter:152' magUpt=10000; */
-        magUpt = 10000;
-      }
-    }
-
-    /* measurement noise covariance matrix */
-    /* 'attitudeKalmanfilter:157' R = [   eye(3)*rates_MeasurementNoise,       zeros(3),                       zeros(3); */
-    /* 'attitudeKalmanfilter:158'             zeros(3),                            eye(3)*acc_MeasurementNoise*accUpt,    zeros(3); */
-    /* 'attitudeKalmanfilter:159'             zeros(3),                            zeros(3),                       eye(3)*mag_MeasurementNoise*magUpt]; */
-    /* 'attitudeKalmanfilter:161' S_k=H_k*P_apriori*H_k'+R(udpIndVect,udpIndVect); */
-    /* 'attitudeKalmanfilter:162' K_k=(P_apriori*H_k'/(S_k)); */
-    P_apriori_sizes[0] = 9;
-    P_apriori_sizes[1] = udpIndVect_sizes;
-    for (ib = 0; ib < 9; ib++) {
-      ia = udpIndVect_sizes - 1;
-      for (i0 = 0; i0 <= ia; i0++) {
-        b_A_lin[ib + 9 * i0] = 0.0F;
-        for (i1 = 0; i1 < 9; i1++) {
-          b_A_lin[ib + 9 * i0] += P_apriori[ib + 9 * i1] * (real32_T)H_k_data[i0
-            + udpIndVect_sizes * i1];
-        }
-      }
-    }
-
-    ia = udpIndVect_sizes - 1;
-    for (ib = 0; ib <= ia; ib++) {
-      for (i0 = 0; i0 < 9; i0++) {
-        K_k_data[ib + udpIndVect_sizes * i0] = 0.0F;
-        for (i1 = 0; i1 < 9; i1++) {
-          K_k_data[ib + udpIndVect_sizes * i0] += (real32_T)H_k_data[ib +
-            udpIndVect_sizes * i1] * P_apriori[i1 + 9 * i0];
-        }
-      }
-    }
-
-    for (ib = 0; ib < 3; ib++) {
-      for (i0 = 0; i0 < 3; i0++) {
-        fv0[i0 + 9 * ib] = (real32_T)iv0[i0 + 3 * ib] * knownConst[5];
-      }
-    }
-
-    for (ib = 0; ib < 3; ib++) {
-      for (i0 = 0; i0 < 3; i0++) {
-        fv0[i0 + 9 * (ib + 3)] = 0.0F;
-      }
-    }
-
-    for (ib = 0; ib < 3; ib++) {
-      for (i0 = 0; i0 < 3; i0++) {
-        fv0[i0 + 9 * (ib + 6)] = 0.0F;
-      }
-    }
-
-    for (ib = 0; ib < 3; ib++) {
-      for (i0 = 0; i0 < 3; i0++) {
-        fv0[(i0 + 9 * ib) + 3] = 0.0F;
-      }
-    }
-
-    for (ib = 0; ib < 3; ib++) {
-      for (i0 = 0; i0 < 3; i0++) {
-        fv0[(i0 + 9 * (ib + 3)) + 3] = (real32_T)iv0[i0 + 3 * ib] * knownConst[6]
-          * (real32_T)accUpt;
-      }
-    }
-
-    for (ib = 0; ib < 3; ib++) {
-      for (i0 = 0; i0 < 3; i0++) {
-        fv0[(i0 + 9 * (ib + 6)) + 3] = 0.0F;
-      }
-    }
-
-    for (ib = 0; ib < 3; ib++) {
-      for (i0 = 0; i0 < 3; i0++) {
-        fv0[(i0 + 9 * ib) + 6] = 0.0F;
-      }
-    }
-
-    for (ib = 0; ib < 3; ib++) {
-      for (i0 = 0; i0 < 3; i0++) {
-        fv0[(i0 + 9 * (ib + 3)) + 6] = 0.0F;
-      }
-    }
-
-    for (ib = 0; ib < 3; ib++) {
-      for (i0 = 0; i0 < 3; i0++) {
-        fv0[(i0 + 9 * (ib + 6)) + 6] = (real32_T)iv0[i0 + 3 * ib] * knownConst[7]
-          * (real32_T)magUpt;
-      }
-    }
-
-    H_k_sizes[0] = udpIndVect_sizes;
-    H_k_sizes[1] = udpIndVect_sizes;
-    ia = udpIndVect_sizes - 1;
-    for (ib = 0; ib <= ia; ib++) {
-      accUpt = udpIndVect_sizes - 1;
-      for (i0 = 0; i0 <= accUpt; i0++) {
+    /* 'attitudeKalmanfilter:107' P_aposteriori=(eye(12)-K_k*H_k)*P_apriori; */
+    b_eye(dv1);
+    for (i = 0; i < 12; i++) {
+      for (i0 = 0; i0 < 12; i0++) {
         y = 0.0F;
         for (i1 = 0; i1 < 9; i1++) {
-          y += K_k_data[ib + udpIndVect_sizes * i1] * (real32_T)H_k_data[i0 +
-            udpIndVect_sizes * i1];
+          y += K_k[i + 12 * i1] * (real32_T)iv1[i1 + 9 * i0];
         }
 
-        A_lin[ib + H_k_sizes[0] * i0] = y + fv0[((int32_T)udpIndVect_data[ib] +
-          9 * ((int32_T)udpIndVect_data[i0] - 1)) - 1];
+        Q[i + 12 * i0] = (real32_T)dv1[i + 12 * i0] - y;
       }
     }
 
-    mrdivide(b_A_lin, P_apriori_sizes, A_lin, H_k_sizes, K_k_data, K_k_sizes);
-
-    /* 'attitudeKalmanfilter:165' x_aposteriori=x_apriori+K_k*y_k; */
-    if ((K_k_sizes[1] == 1) || (udpIndVect_sizes == 1)) {
-      for (ib = 0; ib < 9; ib++) {
-        b_y[ib] = 0.0F;
-        ia = udpIndVect_sizes - 1;
-        for (i0 = 0; i0 <= ia; i0++) {
-          b_y[ib] += K_k_data[ib + K_k_sizes[0] * i0] * y_k_data[i0];
-        }
-      }
-    } else {
-      for (accUpt = 0; accUpt < 9; accUpt++) {
-        b_y[accUpt] = 0.0F;
-      }
-
-      magUpt = -1;
-      for (ib = 0; ib + 1 <= K_k_sizes[1]; ib++) {
-        if ((real_T)y_k_data[ib] != 0.0) {
-          ia = magUpt;
-          for (accUpt = 0; accUpt < 9; accUpt++) {
-            ia++;
-            b_y[accUpt] += y_k_data[ib] * K_k_data[ia];
-          }
-        }
-
-        magUpt += 9;
-      }
-    }
-
-    for (ib = 0; ib < 9; ib++) {
-      x_aposteriori[ib] += b_y[ib];
-    }
-
-    /* 'attitudeKalmanfilter:166' P_aposteriori=(eye(9)-K_k*H_k)*P_apriori; */
-    b_eye(dv3);
-    for (ib = 0; ib < 9; ib++) {
-      for (i0 = 0; i0 < 9; i0++) {
-        y = 0.0F;
-        ia = K_k_sizes[1] - 1;
-        for (i1 = 0; i1 <= ia; i1++) {
-          y += K_k_data[ib + K_k_sizes[0] * i1] * (real32_T)H_k_data[i1 +
-            udpIndVect_sizes * i0];
-        }
-
-        fv0[ib + 9 * i0] = (real32_T)dv3[ib + 9 * i0] - y;
-      }
-    }
-
-    for (ib = 0; ib < 9; ib++) {
-      for (i0 = 0; i0 < 9; i0++) {
-        P_aposteriori[ib + 9 * i0] = 0.0F;
-        for (i1 = 0; i1 < 9; i1++) {
-          P_aposteriori[ib + 9 * i0] += fv0[ib + 9 * i1] * P_apriori[i1 + 9 * i0];
+    for (i = 0; i < 12; i++) {
+      for (i0 = 0; i0 < 12; i0++) {
+        P_aposteriori[i + 12 * i0] = 0.0F;
+        for (i1 = 0; i1 < 12; i1++) {
+          P_aposteriori[i + 12 * i0] += Q[i + 12 * i1] * P_apriori[i1 + 12 * i0];
         }
       }
     }
   } else {
-    /* 'attitudeKalmanfilter:167' else */
-    /* 'attitudeKalmanfilter:168' x_aposteriori=x_apriori; */
-    /* 'attitudeKalmanfilter:169' P_aposteriori=P_apriori; */
-    memcpy((void *)&P_aposteriori[0], (void *)&P_apriori[0], 81U * sizeof
-           (real32_T));
+    /* 'attitudeKalmanfilter:108' else */
+    /* 'attitudeKalmanfilter:109' if updateVect(1)==1&&updateVect(2)==0&&updateVect(3)==0 */
+    if ((updateVect[0] == 1) && (updateVect[1] == 0) && (updateVect[2] == 0)) {
+      /* 'attitudeKalmanfilter:110' R=diag(r(1:3)); */
+      c_diag(*(real32_T (*)[3])&r[0], O);
+
+      /* observation matrix */
+      /* 'attitudeKalmanfilter:113' H_k=[  E,     E,      Z,    Z]; */
+      /* 'attitudeKalmanfilter:115' y_k=z(1:3)-H_k(1:3,1:12)*x_apriori; */
+      /* 'attitudeKalmanfilter:117' S_k=H_k(1:3,1:12)*P_apriori*H_k(1:3,1:12)'+R(1:3,1:3); */
+      /* 'attitudeKalmanfilter:118' K_k=(P_apriori*H_k(1:3,1:12)'/(S_k)); */
+      for (i = 0; i < 12; i++) {
+        for (i0 = 0; i0 < 3; i0++) {
+          c_P_apriori[i + 12 * i0] = 0.0F;
+          for (i1 = 0; i1 < 12; i1++) {
+            c_P_apriori[i + 12 * i0] += P_apriori[i + 12 * i1] * (real32_T)
+              iv2[i1 + 12 * i0];
+          }
+        }
+      }
+
+      for (i = 0; i < 3; i++) {
+        for (i0 = 0; i0 < 12; i0++) {
+          fv1[i + 3 * i0] = 0.0F;
+          for (i1 = 0; i1 < 12; i1++) {
+            fv1[i + 3 * i0] += (real32_T)iv3[i + 3 * i1] * P_apriori[i1 + 12 *
+              i0];
+          }
+        }
+      }
+
+      for (i = 0; i < 3; i++) {
+        for (i0 = 0; i0 < 3; i0++) {
+          y = 0.0F;
+          for (i1 = 0; i1 < 12; i1++) {
+            y += fv1[i + 3 * i1] * (real32_T)iv2[i1 + 12 * i0];
+          }
+
+          c_a[i + 3 * i0] = y + O[i + 3 * i0];
+        }
+      }
+
+      b_mrdivide(c_P_apriori, c_a, S_k);
+
+      /* 'attitudeKalmanfilter:121' x_aposteriori=x_apriori+K_k*y_k; */
+      for (i = 0; i < 3; i++) {
+        y = 0.0F;
+        for (i0 = 0; i0 < 12; i0++) {
+          y += (real32_T)iv3[i + 3 * i0] * x_apriori[i0];
+        }
+
+        x_n_b[i] = z[i] - y;
+      }
+
+      for (i = 0; i < 12; i++) {
+        y = 0.0F;
+        for (i0 = 0; i0 < 3; i0++) {
+          y += S_k[i + 12 * i0] * x_n_b[i0];
+        }
+
+        x_aposteriori[i] = x_apriori[i] + y;
+      }
+
+      /* 'attitudeKalmanfilter:122' P_aposteriori=(eye(12)-K_k*H_k(1:3,1:12))*P_apriori; */
+      b_eye(dv1);
+      for (i = 0; i < 12; i++) {
+        for (i0 = 0; i0 < 12; i0++) {
+          y = 0.0F;
+          for (i1 = 0; i1 < 3; i1++) {
+            y += S_k[i + 12 * i1] * (real32_T)iv3[i1 + 3 * i0];
+          }
+
+          Q[i + 12 * i0] = (real32_T)dv1[i + 12 * i0] - y;
+        }
+      }
+
+      for (i = 0; i < 12; i++) {
+        for (i0 = 0; i0 < 12; i0++) {
+          P_aposteriori[i + 12 * i0] = 0.0F;
+          for (i1 = 0; i1 < 12; i1++) {
+            P_aposteriori[i + 12 * i0] += Q[i + 12 * i1] * P_apriori[i1 + 12 *
+              i0];
+          }
+        }
+      }
+    } else {
+      /* 'attitudeKalmanfilter:123' else */
+      /* 'attitudeKalmanfilter:124' if  updateVect(1)==1&&updateVect(2)==1&&updateVect(3)==0 */
+      if ((updateVect[0] == 1) && (updateVect[1] == 1) && (updateVect[2] == 0))
+      {
+        /* 'attitudeKalmanfilter:125' R=diag(r(1:6)); */
+        d_diag(*(real32_T (*)[6])&r[0], S_k);
+
+        /* observation matrix */
+        /* 'attitudeKalmanfilter:128' H_k=[  E,     E,      Z,    Z; */
+        /* 'attitudeKalmanfilter:129'                 Z,     Z,      E,    Z]; */
+        /* 'attitudeKalmanfilter:131' y_k=z(1:6)-H_k(1:6,1:12)*x_apriori; */
+        /* 'attitudeKalmanfilter:133' S_k=H_k(1:6,1:12)*P_apriori*H_k(1:6,1:12)'+R(1:6,1:6); */
+        /* 'attitudeKalmanfilter:134' K_k=(P_apriori*H_k(1:6,1:12)'/(S_k)); */
+        for (i = 0; i < 12; i++) {
+          for (i0 = 0; i0 < 6; i0++) {
+            d_P_apriori[i + 12 * i0] = 0.0F;
+            for (i1 = 0; i1 < 12; i1++) {
+              d_P_apriori[i + 12 * i0] += P_apriori[i + 12 * i1] * (real32_T)
+                iv4[i1 + 12 * i0];
+            }
+          }
+        }
+
+        for (i = 0; i < 6; i++) {
+          for (i0 = 0; i0 < 12; i0++) {
+            b_K_k[i + 6 * i0] = 0.0F;
+            for (i1 = 0; i1 < 12; i1++) {
+              b_K_k[i + 6 * i0] += (real32_T)iv5[i + 6 * i1] * P_apriori[i1 + 12
+                * i0];
+            }
+          }
+        }
+
+        for (i = 0; i < 6; i++) {
+          for (i0 = 0; i0 < 6; i0++) {
+            y = 0.0F;
+            for (i1 = 0; i1 < 12; i1++) {
+              y += b_K_k[i + 6 * i1] * (real32_T)iv4[i1 + 12 * i0];
+            }
+
+            fv1[i + 6 * i0] = y + S_k[i + 6 * i0];
+          }
+        }
+
+        c_mrdivide(d_P_apriori, fv1, b_K_k);
+
+        /* 'attitudeKalmanfilter:137' x_aposteriori=x_apriori+K_k*y_k; */
+        for (i = 0; i < 6; i++) {
+          y = 0.0F;
+          for (i0 = 0; i0 < 12; i0++) {
+            y += (real32_T)iv5[i + 6 * i0] * x_apriori[i0];
+          }
+
+          b_r[i] = z[i] - y;
+        }
+
+        for (i = 0; i < 12; i++) {
+          y = 0.0F;
+          for (i0 = 0; i0 < 6; i0++) {
+            y += b_K_k[i + 12 * i0] * b_r[i0];
+          }
+
+          x_aposteriori[i] = x_apriori[i] + y;
+        }
+
+        /* 'attitudeKalmanfilter:138' P_aposteriori=(eye(12)-K_k*H_k(1:6,1:12))*P_apriori; */
+        b_eye(dv1);
+        for (i = 0; i < 12; i++) {
+          for (i0 = 0; i0 < 12; i0++) {
+            y = 0.0F;
+            for (i1 = 0; i1 < 6; i1++) {
+              y += b_K_k[i + 12 * i1] * (real32_T)iv5[i1 + 6 * i0];
+            }
+
+            Q[i + 12 * i0] = (real32_T)dv1[i + 12 * i0] - y;
+          }
+        }
+
+        for (i = 0; i < 12; i++) {
+          for (i0 = 0; i0 < 12; i0++) {
+            P_aposteriori[i + 12 * i0] = 0.0F;
+            for (i1 = 0; i1 < 12; i1++) {
+              P_aposteriori[i + 12 * i0] += Q[i + 12 * i1] * P_apriori[i1 + 12 *
+                i0];
+            }
+          }
+        }
+      } else {
+        /* 'attitudeKalmanfilter:139' else */
+        /* 'attitudeKalmanfilter:140' if  updateVect(1)==1&&updateVect(2)==0&&updateVect(3)==1 */
+        if ((updateVect[0] == 1) && (updateVect[1] == 0) && (updateVect[2] == 1))
+        {
+          /* 'attitudeKalmanfilter:141' R=diag([r(1:3);r(7:9)]); */
+          /* observation matrix */
+          /* 'attitudeKalmanfilter:144' H_k=[  E,     E,      Z,    Z; */
+          /* 'attitudeKalmanfilter:145'                     Z,     Z,      Z,    E]; */
+          /* 'attitudeKalmanfilter:147' y_k=[z(1:3);z(7:9)]-H_k(1:6,1:12)*x_apriori; */
+          /* 'attitudeKalmanfilter:149' S_k=H_k(1:6,1:12)*P_apriori*H_k(1:6,1:12)'+R(1:6,1:6); */
+          for (i = 0; i < 6; i++) {
+            for (i0 = 0; i0 < 12; i0++) {
+              b_K_k[i + 6 * i0] = 0.0F;
+              for (i1 = 0; i1 < 12; i1++) {
+                b_K_k[i + 6 * i0] += (real32_T)iv6[i + 6 * i1] * P_apriori[i1 +
+                  12 * i0];
+              }
+            }
+          }
+
+          for (i = 0; i < 3; i++) {
+            b_r[i << 1] = r[i];
+            b_r[1 + (i << 1)] = r[6 + i];
+          }
+
+          for (i = 0; i < 6; i++) {
+            for (i0 = 0; i0 < 6; i0++) {
+              y = 0.0F;
+              for (i1 = 0; i1 < 12; i1++) {
+                y += b_K_k[i + 6 * i1] * (real32_T)iv7[i1 + 12 * i0];
+              }
+
+              S_k[i + 6 * i0] = y + b_r[3 * (i + i0)];
+            }
+          }
+
+          /* 'attitudeKalmanfilter:150' K_k=(P_apriori*H_k(1:6,1:12)'/(S_k)); */
+          for (i = 0; i < 12; i++) {
+            for (i0 = 0; i0 < 6; i0++) {
+              d_P_apriori[i + 12 * i0] = 0.0F;
+              for (i1 = 0; i1 < 12; i1++) {
+                d_P_apriori[i + 12 * i0] += P_apriori[i + 12 * i1] * (real32_T)
+                  iv7[i1 + 12 * i0];
+              }
+            }
+          }
+
+          c_mrdivide(d_P_apriori, S_k, b_K_k);
+
+          /* 'attitudeKalmanfilter:153' x_aposteriori=x_apriori+K_k*y_k; */
+          for (i = 0; i < 3; i++) {
+            b_r[i] = z[i];
+          }
+
+          for (i = 0; i < 3; i++) {
+            b_r[i + 3] = z[i + 6];
+          }
+
+          for (i = 0; i < 6; i++) {
+            fv2[i] = 0.0F;
+            for (i0 = 0; i0 < 12; i0++) {
+              fv2[i] += (real32_T)iv6[i + 6 * i0] * x_apriori[i0];
+            }
+
+            b_z[i] = b_r[i] - fv2[i];
+          }
+
+          for (i = 0; i < 12; i++) {
+            y = 0.0F;
+            for (i0 = 0; i0 < 6; i0++) {
+              y += b_K_k[i + 12 * i0] * b_z[i0];
+            }
+
+            x_aposteriori[i] = x_apriori[i] + y;
+          }
+
+          /* 'attitudeKalmanfilter:154' P_aposteriori=(eye(12)-K_k*H_k(1:6,1:12))*P_apriori; */
+          b_eye(dv1);
+          for (i = 0; i < 12; i++) {
+            for (i0 = 0; i0 < 12; i0++) {
+              y = 0.0F;
+              for (i1 = 0; i1 < 6; i1++) {
+                y += b_K_k[i + 12 * i1] * (real32_T)iv6[i1 + 6 * i0];
+              }
+
+              Q[i + 12 * i0] = (real32_T)dv1[i + 12 * i0] - y;
+            }
+          }
+
+          for (i = 0; i < 12; i++) {
+            for (i0 = 0; i0 < 12; i0++) {
+              P_aposteriori[i + 12 * i0] = 0.0F;
+              for (i1 = 0; i1 < 12; i1++) {
+                P_aposteriori[i + 12 * i0] += Q[i + 12 * i1] * P_apriori[i1 + 12
+                  * i0];
+              }
+            }
+          }
+        } else {
+          /* 'attitudeKalmanfilter:155' else */
+          /* 'attitudeKalmanfilter:156' x_aposteriori=x_apriori; */
+          for (i = 0; i < 12; i++) {
+            x_aposteriori[i] = x_apriori[i];
+          }
+
+          /* 'attitudeKalmanfilter:157' P_aposteriori=P_apriori; */
+          memcpy((void *)&P_aposteriori[0], (void *)&P_apriori[0], 144U * sizeof
+                 (real32_T));
+        }
+      }
+    }
   }
 
-  /*         %% euler anglels extraction */
-  /* 'attitudeKalmanfilter:175' z_n_b = -x_aposteriori(4:6)./norm(x_aposteriori(4:6)); */
-  y = norm(*(real32_T (*)[3])&x_aposteriori[3]);
+  /* % euler anglels extraction */
+  /* 'attitudeKalmanfilter:166' z_n_b = -x_aposteriori(7:9)./norm(x_aposteriori(7:9)); */
+  y = norm(*(real32_T (*)[3])&x_aposteriori[6]);
 
-  /* 'attitudeKalmanfilter:176' m_n_b = x_aposteriori(7:9)./norm(x_aposteriori(7:9)); */
-  c_y = norm(*(real32_T (*)[3])&x_aposteriori[6]);
+  /* 'attitudeKalmanfilter:167' m_n_b = x_aposteriori(10:12)./norm(x_aposteriori(10:12)); */
+  b_y = norm(*(real32_T (*)[3])&x_aposteriori[9]);
 
-  /* 'attitudeKalmanfilter:178' y_n_b=cross(z_n_b,m_n_b); */
-  for (accUpt = 0; accUpt < 3; accUpt++) {
-    z_n_b[accUpt] = -x_aposteriori[accUpt + 3] / y;
-    x_n_b[accUpt] = x_aposteriori[accUpt + 6] / c_y;
+  /* 'attitudeKalmanfilter:169' y_n_b=cross(z_n_b,m_n_b); */
+  for (i = 0; i < 3; i++) {
+    z_n_b[i] = -x_aposteriori[i + 6] / y;
+    x_n_b[i] = x_aposteriori[i + 9] / b_y;
   }
 
   cross(z_n_b, x_n_b, y_n_b);
 
-  /* 'attitudeKalmanfilter:179' y_n_b=y_n_b./norm(y_n_b); */
+  /* 'attitudeKalmanfilter:170' y_n_b=y_n_b./norm(y_n_b); */
   y = norm(y_n_b);
-  for (ib = 0; ib < 3; ib++) {
-    y_n_b[ib] /= y;
+  for (i = 0; i < 3; i++) {
+    y_n_b[i] /= y;
   }
 
-  /* 'attitudeKalmanfilter:181' x_n_b=(cross(y_n_b,z_n_b)); */
+  /* 'attitudeKalmanfilter:172' x_n_b=(cross(y_n_b,z_n_b)); */
   cross(y_n_b, z_n_b, x_n_b);
 
-  /* 'attitudeKalmanfilter:182' x_n_b=x_n_b./norm(x_n_b); */
+  /* 'attitudeKalmanfilter:173' x_n_b=x_n_b./norm(x_n_b); */
   y = norm(x_n_b);
-  for (ib = 0; ib < 3; ib++) {
-    /* 'attitudeKalmanfilter:188' Rot_matrix=[x_n_b,y_n_b,z_n_b]; */
-    Rot_matrix[ib] = x_n_b[ib] / y;
-    Rot_matrix[3 + ib] = y_n_b[ib];
-    Rot_matrix[6 + ib] = z_n_b[ib];
+  for (i = 0; i < 3; i++) {
+    /* 'attitudeKalmanfilter:179' Rot_matrix=[x_n_b,y_n_b,z_n_b]; */
+    Rot_matrix[i] = x_n_b[i] / y;
+    Rot_matrix[3 + i] = y_n_b[i];
+    Rot_matrix[6 + i] = z_n_b[i];
   }
 
-  /* 'attitudeKalmanfilter:192' phi=atan2(Rot_matrix(2,3),Rot_matrix(3,3)); */
-  /* 'attitudeKalmanfilter:193' theta=-asin(Rot_matrix(1,3)); */
-  /* 'attitudeKalmanfilter:194' psi=atan2(Rot_matrix(1,2),Rot_matrix(1,1)); */
-  /* 'attitudeKalmanfilter:195' eulerAngles=[phi;theta;psi]; */
+  /* 'attitudeKalmanfilter:183' phi=atan2(Rot_matrix(2,3),Rot_matrix(3,3)); */
+  /* 'attitudeKalmanfilter:184' theta=-asin(Rot_matrix(1,3)); */
+  /* 'attitudeKalmanfilter:185' psi=atan2(Rot_matrix(1,2),Rot_matrix(1,1)); */
+  /* 'attitudeKalmanfilter:186' eulerAngles=[phi;theta;psi]; */
   eulerAngles[0] = rt_atan2f_snf(Rot_matrix[7], Rot_matrix[8]);
   eulerAngles[1] = -(real32_T)asinf(Rot_matrix[6]);
   eulerAngles[2] = rt_atan2f_snf(Rot_matrix[3], Rot_matrix[0]);

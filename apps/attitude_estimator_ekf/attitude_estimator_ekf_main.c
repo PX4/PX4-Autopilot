@@ -60,6 +60,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <arch/board/up_hrt.h>
 
+#include <systemlib/systemlib.h>
+
 #include "codegen/attitudeKalmanfilter_initialize.h"
 #include "codegen/attitudeKalmanfilter.h"
 
@@ -73,37 +75,44 @@ __EXPORT int attitude_estimator_ekf_main(int argc, char *argv[]);
 
 static unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
-static float dt = 1;
+static float dt = 1.0f;
 /* 0, 0, -9.81, 1, 1, 1, wo (gyro offset), w */
 /* state vector x has the following entries [ax,ay,az||mx,my,mz||wox,woy,woz||wx,wy,wz]' */
-static float z_k[9] = {0};					/**< Measurement vector */
-static float x_aposteriori_k[9] = {0,0,0,0,0,-9.81,1,1,-1};		/**< */
-static float x_aposteriori[9] = {0};
-static float P_aposteriori_k[81] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,
-				   0, 100.f,   0,   0,   0,   0,   0,   0,   0,
-				   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
-				   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
-				   0,   0,   0,   0,  100.f,  0,   0,   0,   0,
-				   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
-				   0,   0,   0,   0,   0,   0, 100.f,   0,   0,
-				   0,   0,   0,   0,   0,   0,   0, 100.f,   0,
-				   0,   0,   0,   0,   0,   0,   0,   0, 100.f,
+static float z_k[9];					/**< Measurement vector */
+static float x_aposteriori_k[12];		/**< */
+static float x_aposteriori[12];
+static float P_aposteriori_k[144] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				   0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,  100.f,  0,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0,  0.0f, 100.0f,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   100.0f,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   0,   100.0f,
 				  };
-static float P_aposteriori[81] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,
-				   0, 100.f,   0,   0,   0,   0,   0,   0,   0,
-				   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
-				   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
-				   0,   0,   0,   0,  100.f,  0,   0,   0,   0,
-				   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
-				   0,   0,   0,   0,   0,   0, 100.f,   0,   0,
-				   0,   0,   0,   0,   0,   0,   0, 100.f,   0,
-				   0,   0,   0,   0,   0,   0,   0,   0, 100.f,
+static float P_aposteriori[144] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				   0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,  100.f,  0,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0,  0.0f, 100.0f,   0,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   100.0f,   0,
+				   0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   0,   100.0f,
 				  };	/**< init: diagonal matrix with big values */
-static float knownConst[15] = {1, 1, 1, 1, 1, 0.04, 4, 0.1, 70, 70, -2000, 9.81, 1, 4, 1};			/**< knownConst has the following entries [PrvaA,PrvarM,PrvarWO,PrvarW||MsvarA,MsvarM,MsvarW] */
+// static float knownConst[15] = {1, 1, 1, 1, 1, 0.04, 4, 0.1, 70, 70, -2000, 9.81, 1, 4, 1};			/**< knownConst has the following entries [PrvaA,PrvarM,PrvarWO,PrvarW||MsvarA,MsvarM,MsvarW] */
 static float Rot_matrix[9] = {1.f,  0,  0,
 			      0,  1.f,  0,
 			      0,  0,  1.f
 			     };		/**< init: identity matrix */
+
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
@@ -150,7 +159,12 @@ int attitude_estimator_ekf_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		attitude_estimator_ekf_task = task_create("attitude_estimator_ekf", SCHED_PRIORITY_DEFAULT, 20000, attitude_estimator_ekf_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		attitude_estimator_ekf_task = task_spawn("attitude_estimator_ekf",
+							 SCHED_RR,
+							 SCHED_PRIORITY_DEFAULT,
+							 20000,
+							 attitude_estimator_ekf_thread_main,
+							 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}
 
@@ -222,6 +236,14 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	struct debug_key_value_s dbg = { .key = "", .value = 0.0f };
 	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
 
+
+	/* process noise covariance */
+	float q[12];
+	/* measurement noise covariance */
+	float r[9];
+	/* output euler angles */
+	float euler[3] = {0.0f, 0.0f, 0.0f};
+
 	/* Main loop*/
 	while (!thread_should_exit) {
 
@@ -271,10 +293,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 				overloadcounter++;
 			}
 
-			int8_t update_vect[9] = {1, 1, 1, 1, 1, 1, 1, 1, 1};
-			float euler[3];
+			uint8_t update_vect[3] = {1, 1, 1};
 			int32_t z_k_sizes = 9;
-			float u[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+			// float u[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
 			static bool const_initialized = false;
 
@@ -282,21 +303,42 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			if (!const_initialized /*&& dt < 0.05 && dt > 0.005*/) 
 			{
 				dt = 0.005f;
-				knownConst[0] = 0.6f*0.6f*dt;
-				knownConst[1] = 0.6f*0.6f*dt;
-				knownConst[2] = 0.2f*0.2f*dt;
-				knownConst[3] = 0.2f*0.2f*dt;
-				knownConst[4] = 0.000001f*0.000001f*dt; // -9.81,1,1,-1};
+				q[0] =  1e1f;
+				q[1] =  1e1f;
+				q[2] =  1e1f;
+				/* process noise gyro offset covariance */
+				q[3] =  1e-4f;
+				q[4] =  1e-4f;
+				q[5] =  1e-4f;
+				q[6] =  1e-1f;
+				q[7] =  1e-1f;
+				q[8] =  1e-1f;
+				q[9] =  1e-1f;
+				q[10] = 1e-1f;
+				q[11] = 1e-1f;
+
+				r[0]= 1e-2f;
+				r[1]= 1e-2f;
+				r[2]= 1e-2f;
+				r[3]= 1e-1f;
+				r[4]= 1e-1f;
+				r[5]= 1e-1f;
+				r[6]= 1e-1f;
+				r[7]= 1e-1f;
+				r[8]= 1e-1f;
 
 				x_aposteriori_k[0] = z_k[0];
 				x_aposteriori_k[1] = z_k[1];
 				x_aposteriori_k[2] = z_k[2];
-				x_aposteriori_k[3] = z_k[3];
-				x_aposteriori_k[4] = z_k[4];
-				x_aposteriori_k[5] = z_k[5];
-				x_aposteriori_k[6] = z_k[6];
-				x_aposteriori_k[7] = z_k[7];
-				x_aposteriori_k[8] = z_k[8];
+				x_aposteriori_k[3] = 0.0f;
+				x_aposteriori_k[4] = 0.0f;
+				x_aposteriori_k[5] = 0.0f;
+				x_aposteriori_k[6] = z_k[3];
+				x_aposteriori_k[7] = z_k[4];
+				x_aposteriori_k[8] = z_k[5];
+				x_aposteriori_k[9] = z_k[6];
+				x_aposteriori_k[10] = z_k[7];
+				x_aposteriori_k[11] = z_k[8];
 
 				const_initialized = true;
 			}
@@ -306,39 +348,43 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 				continue;
 			}
 
+			dt = 0.004f;
+
 			uint64_t timing_start = hrt_absolute_time();
-			attitudeKalmanfilter(dt, update_vect, z_k, &z_k_sizes, u, x_aposteriori_k, P_aposteriori_k, knownConst, euler,
-				Rot_matrix, x_aposteriori, P_aposteriori);
+			// attitudeKalmanfilter(dt, update_vect, z_k, &z_k_sizes, u, x_aposteriori_k, P_aposteriori_k, knownConst, euler,
+			// 	Rot_matrix, x_aposteriori, P_aposteriori);
+			attitudeKalmanfilter(update_vect, dt, z_k, x_aposteriori_k, P_aposteriori_k, q, r,
+				euler, Rot_matrix, x_aposteriori, P_aposteriori);
 			/* swap values for next iteration */
 			memcpy(P_aposteriori_k, P_aposteriori, sizeof(P_aposteriori_k));
 			memcpy(x_aposteriori_k, x_aposteriori, sizeof(x_aposteriori_k));
 			uint64_t timing_diff = hrt_absolute_time() - timing_start;
 
-			/* print rotation matrix every 200th time */
-			if (printcounter % 2 == 0) {
-				// printf("x apo:\n%8.4f\t%8.4f\t%8.4f\n%8.4f\t%8.4f\t%8.4f\n%8.4f\t%8.4f\t%8.4f\n",
-				// 	x_aposteriori[0], x_aposteriori[1], x_aposteriori[2],
-				// 	x_aposteriori[3], x_aposteriori[4], x_aposteriori[5],
-				// 	x_aposteriori[6], x_aposteriori[7], x_aposteriori[8]);
+			// /* print rotation matrix every 200th time */
+			// if (printcounter % 200 == 0) {
+			// 	// printf("x apo:\n%8.4f\t%8.4f\t%8.4f\n%8.4f\t%8.4f\t%8.4f\n%8.4f\t%8.4f\t%8.4f\n",
+			// 	// 	x_aposteriori[0], x_aposteriori[1], x_aposteriori[2],
+			// 	// 	x_aposteriori[3], x_aposteriori[4], x_aposteriori[5],
+			// 	// 	x_aposteriori[6], x_aposteriori[7], x_aposteriori[8]);
 
 
-				// }
+			// 	// }
 
 			// 	printf("EKF attitude iteration: %d, runtime: %d us, dt: %d us (%d Hz)\n", loopcounter, (int)timing_diff, (int)(dt * 1000000.0f), (int)(1.0f / dt));
-			// 	printf("roll: %8.4f\tpitch: %8.4f\tyaw:%8.4f", (double)euler[0], (double)euler[1], (double)euler[2]);
-			// 	printf("\n%d\t%d\t%d\n%d\t%d\t%d\n%d\t%d\t%d\n", (int)(Rot_matrix[0] * 100), (int)(Rot_matrix[1] * 100), (int)(Rot_matrix[2] * 100),
-			// 	       (int)(Rot_matrix[3] * 100), (int)(Rot_matrix[4] * 100), (int)(Rot_matrix[5] * 100),
-			// 	       (int)(Rot_matrix[6] * 100), (int)(Rot_matrix[7] * 100), (int)(Rot_matrix[8] * 100));
-			}
+			// 	printf("roll: %8.4f\tpitch: %8.4f\tyaw:%8.4f\n", (double)euler[0], (double)euler[1], (double)euler[2]);
+			// // 	printf("\n%d\t%d\t%d\n%d\t%d\t%d\n%d\t%d\t%d\n", (int)(Rot_matrix[0] * 100), (int)(Rot_matrix[1] * 100), (int)(Rot_matrix[2] * 100),
+			// // 	       (int)(Rot_matrix[3] * 100), (int)(Rot_matrix[4] * 100), (int)(Rot_matrix[5] * 100),
+			// // 	       (int)(Rot_matrix[6] * 100), (int)(Rot_matrix[7] * 100), (int)(Rot_matrix[8] * 100));
+			// }
 
-							int i = printcounter % 9;
+			// 				int i = printcounter % 9;
 
-				// for (int i = 0; i < 9; i++) {
-					char name[10];
-					sprintf(name, "xapo #%d", i);
-					memcpy(dbg.key, name, sizeof(dbg.key));
-					dbg.value = x_aposteriori[i];
-					orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
+			// 	// for (int i = 0; i < 9; i++) {
+			// 		char name[10];
+			// 		sprintf(name, "xapo #%d", i);
+			// 		memcpy(dbg.key, name, sizeof(dbg.key));
+			// 		dbg.value = x_aposteriori[i];
+			// 		orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
 
 			printcounter++;
 

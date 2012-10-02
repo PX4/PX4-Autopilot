@@ -91,7 +91,12 @@ int px4_deamon_app_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_create("deamon", SCHED_PRIORITY_DEFAULT, 4096, px4_deamon_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		deamon_task = task_spawn("deamon",
+					 SCHED_RR,
+					 SCHED_PRIORITY_DEFAULT,
+					 4096,
+					 px4_deamon_thread_main,
+					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
 	}

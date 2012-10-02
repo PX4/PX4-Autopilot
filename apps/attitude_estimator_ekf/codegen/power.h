@@ -1,14 +1,14 @@
 /*
- * find.h
+ * power.h
  *
- * Code generation for function 'find'
+ * Code generation for function 'power'
  *
- * C source code generated on: Fri Sep 21 13:56:43 2012
+ * C source code generated on: Mon Oct 01 19:38:49 2012
  *
  */
 
-#ifndef __FIND_H__
-#define __FIND_H__
+#ifndef __POWER_H__
+#define __POWER_H__
 /* Include files */
 #include <math.h>
 #include <stdio.h>
@@ -29,6 +29,6 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void find(const int8_T x[9], real_T i_data[9], int32_T i_sizes[1]);
+extern void power(const real32_T a[12], real_T b, real32_T y[12]);
 #endif
-/* End of code generation (find.h) */
+/* End of code generation (power.h) */
