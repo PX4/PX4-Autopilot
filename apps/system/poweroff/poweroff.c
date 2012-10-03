@@ -1,11 +1,8 @@
 /****************************************************************************
- * ramtron/ramtron.c
+ * apps/system/poweroff/poweroff.c
  *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *
- *   Authors: Uros Platise <uros.platise@isotel.eu>
- *            Gregory Nutt <gnutt@nuttx.org>
+ *   Author: Uros Platise <uros.platise@isotel.eu>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,64 +33,31 @@
  *
  ****************************************************************************/
 
-#include <nuttx/config.h>
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <debug.h>
-#include <errno.h>
-#include <string.h>
+#include <arch/board/power.h>
 
-#include <nuttx/spi.h>
-#include <nuttx/mtd.h>
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
 
-FAR struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev);
-
-int ramtron_start(int spino)
+int poweroff_main(int argc, char *argv[])
 {
-  FAR struct spi_dev_s *spi;
-  FAR struct mtd_dev_s *mtd;
-  int retval;
+  /* TODO:
+   *  - replace this by sending general system signal to shutdown, where i.e. nsh
+   *    must issue down script (it may check whether nsh is running before spawning
+   *    a new process with nsh poweroff)
+   *  - wait for some time (~0.5 second for VSN), that SDcard is flashed and synced
+   *  - call poweroff
+   * 
+   * TODO on boot:
+   *  - if external key is pressed, do not start the nsh! but wait until it is released
+   *    (to get rid of bad mounts of the sdcard etc.) this could be handled in the 
+   *    button driver immediately on system boot
+   */
 
-  /* Get the SPI port */
-  
-  spi = up_spiinitialize(spino);
-  if (!spi)
-    {
-      printf("RAMTRON: Failed to initialize SPI%d\n", spino);
-      return -ENODEV;
-    }
-  printf("RAMTRON: Initialized SPI%d\n", spino);
-
-  mtd = (struct mtd_dev_s *)ramtron_initialize(spi);
-  if (!mtd)
-    {
-      printf("RAMTRON: Device not found\n");
-      return -ENODEV;
-    }
-  printf("RAMTRON: FM25V10 of size 128 kB\n");
-  //printf("RAMTRON: %s of size %d B\n", ramtron_getpart(mtd), ramtron_getsize(mtd) );
-
-  retval = ftl_initialize(0, mtd);
-  printf("RAMTRON: FTL Initialized (returns with %d)\n", retval);
-
-  return OK;
-}
-
-
-int ramtron_main(int argc, char *argv[])
-{
-  int spino;
-  
-  if (argc == 3) {
-    spino = atoi(argv[2]);
-    
-    if (!strcmp(argv[1], "start")) {
-      return ramtron_start(spino);
-    }
-  }
-  
-  // todo: write protect  
-  printf("%s: <start> <spino>\n", argv[0]);
-  return -1;
+  board_power_off();
+  return 0;
 }

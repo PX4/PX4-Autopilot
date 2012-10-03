@@ -350,3 +350,6 @@
 	  feature of the NxWidgets/NxWM unit tests.
 
 6.23 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* vsn: Moved all NSH commands from vsn/ to system/.  Deleted the vsn/
+	  directory.

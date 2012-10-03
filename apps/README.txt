@@ -107,7 +107,7 @@ NuttX is configured.  .config is included in the toplevel apps/Makefile.
 As a minimum, this configuration file must define files to add to the
 CONFIGURED_APPS list like:
 
-  CONFIGURED_APPS  += examples/hello vsn/poweroff
+  CONFIGURED_APPS  += examples/hello system/poweroff
 
 Named Start-Up main() function
 ------------------------------

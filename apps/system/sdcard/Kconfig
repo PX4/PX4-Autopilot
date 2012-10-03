@@ -3,12 +3,12 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-config VSN_SDCARD
+config SYSTEM_SDCARD
 	bool "NSH sdcard command"
 	default n
 	---help---
 		Enable support for the NSH sdcard command.
 
-if VSN_SDCARD
+if SYSTEM_SDCARD
 endif
 

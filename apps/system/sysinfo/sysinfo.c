@@ -1,5 +1,5 @@
 /****************************************************************************
- * sysinfo/sysinfo.c
+ * apps/system/sysinfo/sysinfo.c
  *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
@@ -32,18 +32,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
- 
-/** \file
- *  \brief System Information
- *  \author Uros Platise
- * 
- * Collects and reports system information.
- * 
- * \todo Gather information also from low-level devices, kernel/sched, clock,
- *   and further reporting as: sysinfo rtc, or sysinfo sched, ... with 
- *   sysinfo help to report all of the options.
+
+/* Collects and reports system information.
  *
- **/
+ * TODO: Gather information also from low-level devices, kernel/sched, clock,
+ *   and further reporting as: sysinfo rtc, or sysinfo sched, ... with
+ *   sysinfo help to report all of the options.
+ */
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 #include <nuttx/version.h>
@@ -52,18 +51,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
 
 int sysinfo_main(int argc, char *argv[])
 {
-	printf("System Information:\n");
-    
-    printf("\tNuttX Version:\t" CONFIG_VERSION_STRING " Build: %d\n", CONFIG_VERSION_BUILD);
-    
-    printf("\tSystem Time:\t%d [s] UTC "
+  printf("System Information:\n");
+  printf("\tNuttX Version:\t" CONFIG_VERSION_STRING
+         " Build: %d\n", CONFIG_VERSION_BUILD);
+  printf("\tSystem Time:\t%d [s] UTC "
 #ifdef CONFIG_RTC
         "Hardware RTC Support"
 #endif
         "\n", time(NULL) );
-
-	return 0;
+  return 0;
 }

@@ -1,5 +1,5 @@
 ############################################################################
-# Makefile
+# apps/system/ramtron/Makefile
 #
 #   Copyright (C) 2011 Uros Platise. All rights reserved.
 #   Author: Uros Platise <uros.platise@isotel.eu>
@@ -48,12 +48,12 @@ endif
 # Hello Application
 # TODO: appname can be automatically extracted from the directory name
 
-APPNAME		= sdcard
+APPNAME		= ramtron
 PRIORITY	= SCHED_PRIORITY_DEFAULT
 STACKSIZE	= 1024
 
 ASRCS		=
-CSRCS		= sdcard.c
+CSRCS		= ramtron.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

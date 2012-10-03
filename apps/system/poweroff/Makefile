@@ -1,8 +1,9 @@
 ############################################################################
-# apps/vsn/Makefile
+# apps/system/poweroff/Makefile
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <gnutt@nuttx.org>
+#   Copyright (C) 2011 Uros Platise. All rights reserved.
+#   Author: Uros Platise <uros.platise@isotel.eu>
+#           Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,39 +34,81 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config	# Current configuration
+# TODO, this makefile should run make under the app dirs, instead of
+# sourcing the Make.defs!
 
-# Sub-directories
+-include $(TOPDIR)/.config
+-include $(TOPDIR)/Make.defs
+include $(APPDIR)/Make.defs
 
-SUBDIRS = poweroff ramtron sdcard sysinfo
+ifeq ($(WINTOOL),y)
+INCDIROPT	= -w
+endif
 
-all: nothing
-.PHONY: nothing context depend clean distclean
+# Hello Application
+# TODO: appname can be automatically extracted from the directory name
 
-nothing:
+APPNAME		= poweroff
+PRIORITY	= SCHED_PRIORITY_DEFAULT
+STACKSIZE	= 768
+
+ASRCS		=
+CSRCS		= poweroff.c
+
+AOBJS		= $(ASRCS:.S=$(OBJEXT))
+COBJS		= $(CSRCS:.c=$(OBJEXT))
+
+SRCS		= $(ASRCS) $(CSRCS)
+OBJS		= $(AOBJS) $(COBJS)
+
+ifeq ($(WINTOOL),y)
+  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
+else
+  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
+endif
+
+ROOTDEPPATH	= --dep-path .
+
+# Common build
+
+VPATH		= 
+
+all:	.built
+.PHONY: context depend clean distclean
+
+$(AOBJS): %$(OBJEXT): %.S
+	$(call ASSEMBLE, $<, $@)
+
+$(COBJS): %$(OBJEXT): %.c
+	$(call COMPILE, $<, $@)
+
+.built: $(OBJS)
+	@( for obj in $(OBJS) ; do \
+		$(call ARCHIVE, $(BIN), $${obj}); \
+	done ; )
+	@touch .built
+
+# Register application
 
 .context:
-	@for dir in $(SUBDIRS) ; do \
-		$(MAKE) -C $$dir context TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
-	done
+	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
 	@touch $@
 
 context: .context
 
-depend:
-	@for dir in $(SUBDIRS) ; do \
-		$(MAKE) -C $$dir depend TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
-	done
+# Create dependencies
+
+.depend: Makefile $(SRCS)
+	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@touch $@
+
+depend: .depend
 
 clean:
-	@for dir in $(SUBDIRS) ; do \
-		$(MAKE) -C $$dir clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
-	done
+	@rm -f *.o *~ .*.swp .built
+	$(call CLEAN)
 
 distclean: clean
-	@for dir in $(SUBDIRS) ; do \
-		$(MAKE) -C $$dir distclean TOPDIR="$(TOPDIR)" APPDIR=$(APPDIR); \
-	done
+	@rm -f .context Make.dep .depend
 
 -include Make.dep
-

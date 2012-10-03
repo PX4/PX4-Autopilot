@@ -1,0 +1,16 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config SYSTEM_POWEROFF
+	bool "Power-Off command"
+	default n
+	---help---
+		Enable support for the NSH poweroff command.  NOTE: This option
+		provides the NSH power-off command only.  It requires board-specific
+		support to actually implement the power-off.
+
+if SYSTEM_POWEROFF
+endif
+

@@ -1,5 +1,5 @@
 ############################################################################
-# Makefile
+# apps/system/sdcard/Makefile
 #
 #   Copyright (C) 2011 Uros Platise. All rights reserved.
 #   Author: Uros Platise <uros.platise@isotel.eu>
@@ -48,12 +48,12 @@ endif
 # Hello Application
 # TODO: appname can be automatically extracted from the directory name
 
-APPNAME		= sysinfo
+APPNAME		= sdcard
 PRIORITY	= SCHED_PRIORITY_DEFAULT
-STACKSIZE	= 768
+STACKSIZE	= 1024
 
 ASRCS		=
-CSRCS		= sysinfo.c
+CSRCS		= sdcard.c
 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))

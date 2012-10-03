@@ -1,9 +1,9 @@
 ############################################################################
-# apps/vsn/Make.defs
-# Adds selected applications to apps/ build
+# apps/system/sysinfo/Makefile
 #
-#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <gnutt@nuttx.org>
+#   Copyright (C) 2011 Uros Platise. All rights reserved.
+#   Author: Uros Platise <uros.platise@isotel.eu>
+#           Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,18 +34,81 @@
 #
 ############################################################################
 
-ifeq ($(CONFIG_VSN_POWEROFF),y)
-CONFIGURED_APPS += vsn/poweroff
+# TODO, this makefile should run make under the app dirs, instead of
+# sourcing the Make.defs!
+
+-include $(TOPDIR)/.config
+-include $(TOPDIR)/Make.defs
+include $(APPDIR)/Make.defs
+
+ifeq ($(WINTOOL),y)
+INCDIROPT	= -w
 endif
 
-ifeq ($(CONFIG_VSN_RAMTRON),y)
-CONFIGURED_APPS += vsn/ramtron
+# Hello Application
+# TODO: appname can be automatically extracted from the directory name
+
+APPNAME		= sysinfo
+PRIORITY	= SCHED_PRIORITY_DEFAULT
+STACKSIZE	= 768
+
+ASRCS		=
+CSRCS		= sysinfo.c
+
+AOBJS		= $(ASRCS:.S=$(OBJEXT))
+COBJS		= $(CSRCS:.c=$(OBJEXT))
+
+SRCS		= $(ASRCS) $(CSRCS)
+OBJS		= $(AOBJS) $(COBJS)
+
+ifeq ($(WINTOOL),y)
+  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
+else
+  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
 endif
 
-ifeq ($(CONFIG_VSN_SDCARD),y)
-CONFIGURED_APPS += vsn/sdcard
-endif
+ROOTDEPPATH	= --dep-path .
 
-ifeq ($(CONFIG_VSN_SYSINFO),y)
-CONFIGURED_APPS += vsn/sysinfo
-endif
+# Common build
+
+VPATH		= 
+
+all:	.built
+.PHONY: context depend clean distclean
+
+$(AOBJS): %$(OBJEXT): %.S
+	$(call ASSEMBLE, $<, $@)
+
+$(COBJS): %$(OBJEXT): %.c
+	$(call COMPILE, $<, $@)
+
+.built: $(OBJS)
+	@( for obj in $(OBJS) ; do \
+		$(call ARCHIVE, $(BIN), $${obj}); \
+	done ; )
+	@touch .built
+
+# Register application
+
+.context:
+	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
+	@touch $@
+
+context: .context
+
+# Create dependencies
+
+.depend: Makefile $(SRCS)
+	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@touch $@
+
+depend: .depend
+
+clean:
+	@rm -f *.o *~ .*.swp .built
+	$(call CLEAN)
+
+distclean: clean
+	@rm -f .context Make.dep .depend
+
+-include Make.dep

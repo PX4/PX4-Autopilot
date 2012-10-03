@@ -49,7 +49,7 @@ APPDIR = ${shell pwd}
 #   list can be extended by the .config file as well
 
 CONFIGURED_APPS =
-SUBDIRS = examples graphics interpreters modbus namedapp nshlib netutils system vsn
+SUBDIRS = examples graphics interpreters modbus namedapp nshlib netutils system
 
 # There are two different mechanisms for obtaining the list of configured
 # directories:
@@ -78,7 +78,6 @@ include namedapp/Make.defs
 include netutils/Make.defs
 include nshlib/Make.defs
 include system/Make.defs
-include vsn/Make.defs
 
 # INSTALLED_APPS is the list of currently available application directories.  It
 # is the same as CONFIGURED_APPS, but filtered to exclude any non-existent

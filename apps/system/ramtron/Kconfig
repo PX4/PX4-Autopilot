@@ -3,12 +3,12 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-config VSN_SYSINFO
-	bool "NSH sysinfo command"
+config SYSTEM_RAMTRON
+	bool "RAMTRON command"
 	default n
 	---help---
-		Enable support for the NSH sysinfo command.
+		Enable support for the NSH RAMTRON command.
 
-if VSN_SYSINFO
+if SYSTEM_RAMTRON
 endif
 
