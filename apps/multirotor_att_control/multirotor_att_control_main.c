@@ -104,14 +104,14 @@ static void *rate_control_thread_main(void *arg)
 	while (!thread_should_exit) {
 		/* rate control at maximum rate */
 		/* wait for a sensor update, check for exit condition every 1000 ms */
-		int ret = poll(&fds, 1, 1000);
-
-		if (ret < 0) {
-			/* XXX this is seriously bad - should be an emergency */
-		} else if (ret == 0) {
-			/* XXX this means no sensor data - should be critical or emergency */
-			printf("[mc att control] WARNING: Not getting gyro data, no rate control\n");
-		} else {
+//		int ret = poll(&fds, 1, 1000);
+//
+//		if (ret < 0) {
+//			/* XXX this is seriously bad - should be an emergency */
+//		} else if (ret == 0) {
+//			/* XXX this means no sensor data - should be critical or emergency */
+//			printf("[mc att control] WARNING: Not getting gyro data, no rate control\n");
+//		} else {
 			/* get data */
 			orb_copy(ORB_ID(sensor_gyro), gyro_sub, &gyro_report);
 			bool rates_sp_valid = false;
@@ -133,7 +133,8 @@ static void *rate_control_thread_main(void *arg)
 				multirotor_control_rates(&rates_sp, gyro_lp, &actuators);
 				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 			}
-		}
+//		}
+		usleep(2000);
 	}
 
 	return NULL;
