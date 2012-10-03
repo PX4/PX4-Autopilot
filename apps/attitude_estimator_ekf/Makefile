@@ -36,6 +36,7 @@ PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 2048
 
 CSRCS		 = attitude_estimator_ekf_main.c \
+		   attitude_estimator_ekf_params.c \
 		   codegen/eye.c \
 		   codegen/attitudeKalmanfilter.c \
 		   codegen/mrdivide.c \
