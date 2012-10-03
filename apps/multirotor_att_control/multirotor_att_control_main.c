@@ -91,12 +91,12 @@ static void *rate_control_thread_main(void *arg)
 
 	struct actuator_controls_s actuators;
 
-	int gyro_sub = orb_subscribe(ORB_ID(sensor_gyro));
+	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 
-	struct pollfd fds = { .fd = gyro_sub, .events = POLLIN };
+	struct pollfd fds = { .fd = att_sub, .events = POLLIN };
 
-	struct gyro_report gyro_report;
+	struct vehicle_attitude_s vehicle_attitude;
 	struct vehicle_rates_setpoint_s rates_sp;
 	memset(&rates_sp, 0, sizeof(rates_sp));
 	float gyro_lp[3] = {0.0f, 0.0f, 0.0f};
@@ -110,10 +110,11 @@ static void *rate_control_thread_main(void *arg)
 			/* XXX this is seriously bad - should be an emergency */
 		} else if (ret == 0) {
 			/* XXX this means no sensor data - should be critical or emergency */
-			//printf("[mc att control] WARNING: Not getting gyro data, no rate control\n");
+			printf("[mc att control] WARNING: Not getting gyro data, no rate control\n");
 		} else {
-			/* get data */
-			orb_copy(ORB_ID(sensor_gyro), gyro_sub, &gyro_report);
+			/* get current angular rate */
+			orb_copy(ORB_ID(vehicle_attitude), att_sub, &vehicle_attitude);
+			/* get current rate setpoint */
 			bool rates_sp_valid = false;
 			orb_check(rates_sp_sub, &rates_sp_valid);
 			if (rates_sp_valid) {
@@ -126,9 +127,9 @@ static void *rate_control_thread_main(void *arg)
 			if (state.flag_control_rates_enabled) {
 				/* lowpass gyros */
 				// XXX
-				gyro_lp[0] = gyro_report.x;
-				gyro_lp[1] = gyro_report.y;
-				gyro_lp[2] = gyro_report.z;
+				gyro_lp[0] = vehicle_attitude.rollspeed;
+				gyro_lp[1] = vehicle_attitude.pitchspeed;
+				gyro_lp[2] = vehicle_attitude.yawspeed;
 
 				multirotor_control_rates(&rates_sp, gyro_lp, &actuators);
 				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
