@@ -261,6 +261,7 @@ int position_estimator_main(int argc, char *argv[])
 
 	/* subscribe to vehicle status, attitude, gps */
 	struct vehicle_gps_position_s gps;
+	gps.fix_type = 0;
 	struct vehicle_status_s vstatus;
 	struct vehicle_attitude_s att;
 
@@ -283,8 +284,8 @@ int position_estimator_main(int argc, char *argv[])
 			/* Wait for the GPS update to propagate (we have some time) */
 			usleep(5000);
 			/* Read wether the vehicle status changed */
-			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
-			gps_valid = vstatus.gps_valid;
+			orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_sub, &gps);
+			gps_valid = (gps.fix_type > 2);
 		}
 	}
 

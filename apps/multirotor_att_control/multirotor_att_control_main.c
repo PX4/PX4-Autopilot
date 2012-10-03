@@ -110,7 +110,7 @@ static void *rate_control_thread_main(void *arg)
 			/* XXX this is seriously bad - should be an emergency */
 		} else if (ret == 0) {
 			/* XXX this means no sensor data - should be critical or emergency */
-			printf("[mc att control] WARNING: Not getting gyro data, no rate control\n");
+			//printf("[mc att control] WARNING: Not getting gyro data, no rate control\n");
 		} else {
 			/* get data */
 			orb_copy(ORB_ID(sensor_gyro), gyro_sub, &gyro_report);
@@ -354,7 +354,7 @@ int multirotor_att_control_main(int argc, char *argv[])
 		mc_task = task_spawn("multirotor_att_control",
 				     SCHED_RR,
 				     SCHED_PRIORITY_MAX - 15,
-				     2048,
+				     4096,
 				     mc_thread_main,
 				     NULL);
 		exit(0);
