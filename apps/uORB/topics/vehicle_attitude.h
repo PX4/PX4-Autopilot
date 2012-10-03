@@ -74,6 +74,7 @@ struct vehicle_attitude_s {
 	float rollspeed;      /**< Roll angular speed (rad/s, Tait-Bryan, NED)   LOGME    */
 	float pitchspeed;     /**< Pitch angular speed (rad/s, Tait-Bryan, NED)  LOGME    */
 	float yawspeed;       /**< Yaw angular speed (rad/s, Tait-Bryan, NED)    LOGME    */
+	float rate_offsets[3];/**< Offsets of the body angular rates from zero */
 	float R[3][3];        /**< Rotation matrix body to world, (Tait-Bryan, NED)       */
 	float q[4];           /**< Quaternion (NED) */
 	bool R_valid;         /**< Rotation matrix valid */

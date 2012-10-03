@@ -427,6 +427,13 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			att.pitchspeed = x_aposteriori[1];
 			att.yawspeed = x_aposteriori[2];
 
+			/* copy offsets */
+			memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));
+
+			/* copy rotation matrix */
+			memcpy(&att.R, Rot_matrix, sizeof(Rot_matrix));
+			att.R_valid = true;
+
 			// Broadcast
 			orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
 		}
