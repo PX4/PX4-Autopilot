@@ -143,7 +143,7 @@ int gps_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		deamon_task = task_spawn("gps",
-					 SCHED_RR,
+					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT,
 					 4096,
 					 gps_thread_main,

@@ -353,7 +353,7 @@ int multirotor_att_control_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		mc_task = task_spawn("multirotor_att_control",
-				     SCHED_RR,
+				     SCHED_DEFAULT,
 				     SCHED_PRIORITY_MAX - 15,
 				     4096,
 				     mc_thread_main,

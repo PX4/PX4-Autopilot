@@ -1174,7 +1174,7 @@ Sensors::start()
 
 	/* start the task */
 	_sensors_task = task_spawn("sensors_task",
-				   SCHED_RR,
+				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_MAX - 5,
 				   6000,	/* XXX may be excesssive */
 				   (main_t)&Sensors::task_main_trampoline,
