@@ -751,7 +751,7 @@ CONFIG_EXAMPLES_NSH=y
 #
 # UDP Discovery Daemon Example
 #
-# CONFIG_EXAMPLE_DISCOVER is not set
+# CONFIG_EXAMPLES_DISCOVER is not set
 
 #
 # uIP Web Server Example

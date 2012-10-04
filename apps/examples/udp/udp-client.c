@@ -102,7 +102,7 @@ void send_client(void)
 
       server.sin_family      = AF_INET;
       server.sin_port        = HTONS(PORTNO);
-      server.sin_addr.s_addr = HTONL(CONFIG_EXAMPLE_UDP_SERVERIP);
+      server.sin_addr.s_addr = HTONL(CONFIG_EXAMPLES_UDP_SERVERIP);
 
       message("client: %d. Sending %d bytes\n", offset, SENDSIZE);
       nbytes = sendto(sockfd, outbuf, SENDSIZE, 0,

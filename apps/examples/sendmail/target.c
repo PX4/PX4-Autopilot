@@ -52,32 +52,32 @@
  * Pre-processor Defintitions
  ****************************************************************************/
 
-#ifndef CONFIG_EXAMPLE_SENDMAIL_RECIPIENT
-#  error "You must provice CONFIG_EXAMPLE_SENDMAIL_RECIPIENT"
+#ifndef CONFIG_EXAMPLES_SENDMAIL_RECIPIENT
+#  error "You must provice CONFIG_EXAMPLES_SENDMAIL_RECIPIENT"
 #endif
 
-#ifndef CONFIG_EXAMPLE_SENDMAIL_IPADDR
-#  error "You must provice CONFIG_EXAMPLE_SENDMAIL_IPADDR"
+#ifndef CONFIG_EXAMPLES_SENDMAIL_IPADDR
+#  error "You must provice CONFIG_EXAMPLES_SENDMAIL_IPADDR"
 #endif
 
-#ifndef CONFIG_EXAMPLE_SENDMAIL_DRIPADDR
-#  error "You must provice CONFIG_EXAMPLE_SENDMAIL_DRIPADDR"
+#ifndef CONFIG_EXAMPLES_SENDMAIL_DRIPADDR
+#  error "You must provice CONFIG_EXAMPLES_SENDMAIL_DRIPADDR"
 #endif
 
-#ifndef CONFIG_EXAMPLE_SENDMAIL_NETMASK
-#  error "You must provice CONFIG_EXAMPLE_SENDMAIL_NETMASK"
+#ifndef CONFIG_EXAMPLES_SENDMAIL_NETMASK
+#  error "You must provice CONFIG_EXAMPLES_SENDMAIL_NETMASK"
 #endif
 
-#ifndef CONFIG_EXAMPLE_SENDMAIL_SENDER
-#  define CONFIG_EXAMPLE_SENDMAIL_SENDER "nuttx-testing@example.com"
+#ifndef CONFIG_EXAMPLES_SENDMAIL_SENDER
+#  define CONFIG_EXAMPLES_SENDMAIL_SENDER "nuttx-testing@example.com"
 #endif
 
-#ifndef CONFIG_EXAMPLE_SENDMAIL_SUBJECT
-#  define CONFIG_EXAMPLE_SENDMAIL_SUBJECT "Testing SMTP from NuttX"
+#ifndef CONFIG_EXAMPLES_SENDMAIL_SUBJECT
+#  define CONFIG_EXAMPLES_SENDMAIL_SUBJECT "Testing SMTP from NuttX"
 #endif
 
-#ifndef CONFIG_EXAMPLE_SENDMAIL_BODY
-#  define CONFIG_EXAMPLE_SENDMAIL_BODY "Test message sent by NuttX"
+#ifndef CONFIG_EXAMPLES_SENDMAIL_BODY
+#  define CONFIG_EXAMPLES_SENDMAIL_BODY "Test message sent by NuttX"
 #endif
 
 /****************************************************************************
@@ -85,10 +85,10 @@
  ****************************************************************************/
 
 static const char g_host_name[] = "localhost";
-static const char g_recipient[] = CONFIG_EXAMPLE_SENDMAIL_RECIPIENT;
-static const char g_sender[]    = CONFIG_EXAMPLE_SENDMAIL_SENDER;
-static const char g_subject[]   = CONFIG_EXAMPLE_SENDMAIL_SUBJECT;
-static const char g_msg_body[]  = CONFIG_EXAMPLE_SENDMAIL_BODY "\r\n";
+static const char g_recipient[] = CONFIG_EXAMPLES_SENDMAIL_RECIPIENT;
+static const char g_sender[]    = CONFIG_EXAMPLES_SENDMAIL_SENDER;
+static const char g_subject[]   = CONFIG_EXAMPLES_SENDMAIL_SUBJECT;
+static const char g_msg_body[]  = CONFIG_EXAMPLES_SENDMAIL_BODY "\r\n";
 
 /****************************************************************************
  * Private Functions
@@ -105,7 +105,7 @@ static const char g_msg_body[]  = CONFIG_EXAMPLE_SENDMAIL_BODY "\r\n";
 int sendmail_main(int argc, char *argv[])
 {
   struct in_addr addr;
-#if defined(CONFIG_EXAMPLE_SENDMAIL_NOMAC)
+#if defined(CONFIG_EXAMPLES_SENDMAIL_NOMAC)
   uint8_t mac[IFHWADDRLEN];
 #endif
   void *handle;
@@ -117,7 +117,7 @@ int sendmail_main(int argc, char *argv[])
 
 /* Many embedded network interfaces must have a software assigned MAC */
 
-#ifdef CONFIG_EXAMPLE_SENDMAIL_NOMAC
+#ifdef CONFIG_EXAMPLES_SENDMAIL_NOMAC
   mac[0] = 0x00;
   mac[1] = 0xe0;
   mac[2] = 0xde;
@@ -129,17 +129,17 @@ int sendmail_main(int argc, char *argv[])
 
   /* Set up our host address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_SENDMAIL_IPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_SENDMAIL_IPADDR);
   uip_sethostaddr("eth0", &addr);
 
   /* Set up the default router address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_SENDMAIL_DRIPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_SENDMAIL_DRIPADDR);
   uip_setdraddr("eth0", &addr);
 
   /* Setup the subnet mask */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_SENDMAIL_NETMASK);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_SENDMAIL_NETMASK);
   uip_setnetmask("eth0", &addr);
 
   /* Then send the mail */

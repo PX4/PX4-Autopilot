@@ -57,16 +57,16 @@
  * but there are default values for those so we cannot check them here.
  */
 
-#ifndef CONFIG_EXAMPLE_DHCPD_IPADDR
-#  error "You must define CONFIG_EXAMPLE_DHCPD_IPADDR"
+#ifndef CONFIG_EXAMPLES_DHCPD_IPADDR
+#  error "You must define CONFIG_EXAMPLES_DHCPD_IPADDR"
 #endif
 
-#ifndef CONFIG_EXAMPLE_DHCPD_DRIPADDR
-#  error "You must define CONFIG_EXAMPLE_DHCPD_DRIPADDR"
+#ifndef CONFIG_EXAMPLES_DHCPD_DRIPADDR
+#  error "You must define CONFIG_EXAMPLES_DHCPD_DRIPADDR"
 #endif
 
-#ifndef CONFIG_EXAMPLE_DHCPD_NETMASK
-#  error "You must define CONFIG_EXAMPLE_DHCPD_NETMASK"
+#ifndef CONFIG_EXAMPLES_DHCPD_NETMASK
+#  error "You must define CONFIG_EXAMPLES_DHCPD_NETMASK"
 #endif
 
 #ifndef CONFIG_NET
@@ -92,13 +92,13 @@
 int dhcpd_main(int argc, char *argv[])
 {
   struct in_addr addr;
-#if defined(CONFIG_EXAMPLE_DHCPD_NOMAC)
+#if defined(CONFIG_EXAMPLES_DHCPD_NOMAC)
   uint8_t mac[IFHWADDRLEN];
 #endif
 
 /* Many embedded network interfaces must have a software assigned MAC */
 
-#ifdef CONFIG_EXAMPLE_DHCPD_NOMAC
+#ifdef CONFIG_EXAMPLES_DHCPD_NOMAC
   mac[0] = 0x00;
   mac[1] = 0xe0;
   mac[2] = 0xde;
@@ -110,17 +110,17 @@ int dhcpd_main(int argc, char *argv[])
 
   /* Set up our host address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_DHCPD_IPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_DHCPD_IPADDR);
   uip_sethostaddr("eth0", &addr);
 
   /* Set up the default router address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_DHCPD_DRIPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_DHCPD_DRIPADDR);
   uip_setdraddr("eth0", &addr);
 
   /* Setup the subnet mask */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_DHCPD_NETMASK);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_DHCPD_NETMASK);
   uip_setnetmask("eth0", &addr);
 
   /* Then start the server */

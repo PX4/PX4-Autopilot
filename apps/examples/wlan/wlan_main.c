@@ -64,7 +64,7 @@
 
 /* DHCPC may be used in conjunction with any other feature (or not) */
 
-#ifdef CONFIG_EXAMPLE_WLAN_DHCPC
+#ifdef CONFIG_EXAMPLES_WLAN_DHCPC
 #  include <arpa/inet.h>
 #  include <apps/netutils/resolv.h>
 #  include <apps/netutils/dhcpc.h>
@@ -131,11 +131,11 @@ static struct usbhost_driver_s *g_drvr;
 
 static inline void wlan_bringup(void)
 {
-#if defined(CONFIG_EXAMPLE_WLAN_DHCPC) || defined(CONFIG_EXAMPLE_WLAN_NOMAC)
+#if defined(CONFIG_EXAMPLES_WLAN_DHCPC) || defined(CONFIG_EXAMPLES_WLAN_NOMAC)
   uint8_t mac[IFHWADDRLEN];
 #endif
   struct in_addr addr;
-#ifdef CONFIG_EXAMPLE_WLAN_DHCPC
+#ifdef CONFIG_EXAMPLES_WLAN_DHCPC
   void *handle;
 #endif
 
@@ -143,7 +143,7 @@ static inline void wlan_bringup(void)
    * MAC
    */
 
-#ifdef CONFIG_EXAMPLE_WLAN_NOMAC
+#ifdef CONFIG_EXAMPLES_WLAN_NOMAC
   mac[0] = 0x00;
   mac[1] = 0xe0;
   mac[2] = 0xde;
@@ -155,24 +155,24 @@ static inline void wlan_bringup(void)
 
   /* Set up the default router address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_WLAN_DRIPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_WLAN_DRIPADDR);
   uip_setdraddr("eth0", &addr);
 
   /* Setup the subnet mask */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_WLAN_NETMASK);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_WLAN_NETMASK);
   uip_setnetmask("eth0", &addr);
 
   /* Set up our host address */
 
-#ifdef CONFIG_EXAMPLE_WLAN_DHCPC
+#ifdef CONFIG_EXAMPLES_WLAN_DHCPC
   addr.s_addr = 0;
 #else
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_WLAN_IPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_WLAN_IPADDR);
 #endif
   uip_sethostaddr("eth0", &addr);
 
-#ifdef CONFIG_EXAMPLE_WLAN_DHCPC
+#ifdef CONFIG_EXAMPLES_WLAN_DHCPC
   /* Set up the resolver */
 
   resolv_init();

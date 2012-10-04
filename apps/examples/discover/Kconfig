@@ -3,7 +3,7 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-config EXAMPLE_DISCOVER
+config EXAMPLES_DISCOVER
 	bool "UDP Discovery Example"
 	default n
 	depends on NET_UDP
@@ -17,29 +17,29 @@ config EXAMPLE_DISCOVER
 		It is also possible to address all classes with a kind of broadcast
 		discover.
 
-config EXAMPLE_DISCOVER_DHCPC
+config EXAMPLES_DISCOVER_DHCPC
 	bool "DHCP Client"
 	default n
-	depends on EXAMPLE_DISCOVER && !NSH_BUILTIN_APPS
+	depends on EXAMPLES_DISCOVER && !NSH_BUILTIN_APPS
 	select NETUTILS_DHCPC
 	select NETUTILS_RESOLV
 
-config EXAMPLE_DISCOVER_NOMAC
+config EXAMPLES_DISCOVER_NOMAC
 	bool "Use Canned MAC Address"
 	default n
-	depends on EXAMPLE_DISCOVER && !NSH_BUILTIN_APPS
+	depends on EXAMPLES_DISCOVER && !NSH_BUILTIN_APPS
 
-config EXAMPLE_DISCOVER_IPADDR
+config EXAMPLES_DISCOVER_IPADDR
 	hex "Target IP address"
 	default 0x0a000002
-	depends on EXAMPLE_DISCOVER && !NSH_BUILTIN_APPS && !EXAMPLE_DISCOVER_DHCPC
+	depends on EXAMPLES_DISCOVER && !NSH_BUILTIN_APPS && !EXAMPLES_DISCOVER_DHCPC
 
-config EXAMPLE_DISCOVER_DRIPADDR
+config EXAMPLES_DISCOVER_DRIPADDR
 	hex "Default Router IP address (Gateway)"
 	default 0x0a000001
-	depends on EXAMPLE_DISCOVER && !NSH_BUILTIN_APPS
+	depends on EXAMPLES_DISCOVER && !NSH_BUILTIN_APPS
 
-config EXAMPLE_DISCOVER_NETMASK
+config EXAMPLES_DISCOVER_NETMASK
 	hex "Network Mask"
 	default 0xffffff00
-	depends on EXAMPLE_DISCOVER && !NSH_BUILTIN_APPS
+	depends on EXAMPLES_DISCOVER && !NSH_BUILTIN_APPS

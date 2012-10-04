@@ -54,7 +54,7 @@
 #include <apps/netutils/uiplib.h>
 #include <apps/netutils/discover.h>
 
-#ifdef CONFIG_EXAMPLE_DISCOVER_DHCPC
+#ifdef CONFIG_EXAMPLES_DISCOVER_DHCPC
 #  include <arpa/inet.h>
 #endif
 
@@ -64,7 +64,7 @@
 
 /* DHCPC may be used in conjunction with any other feature (or not) */
 
-#ifdef CONFIG_EXAMPLE_DISCOVER_DHCPC
+#ifdef CONFIG_EXAMPLES_DISCOVER_DHCPC
 #  include <apps/netutils/resolv.h>
 #  include <apps/netutils/dhcpc.h>
 #endif
@@ -93,16 +93,16 @@ int discover_main(int argc, char *argv[])
 
 #ifndef CONFIG_NSH_BUILTIN_APPS
   struct in_addr addr;
-#if defined(CONFIG_EXAMPLE_DISCOVER_DHCPC) || defined(CONFIG_EXAMPLE_DISCOVER_NOMAC)
+#if defined(CONFIG_EXAMPLES_DISCOVER_DHCPC) || defined(CONFIG_EXAMPLES_DISCOVER_NOMAC)
   uint8_t mac[IFHWADDRLEN];
 #endif
-#ifdef CONFIG_EXAMPLE_DISCOVER_DHCPC
+#ifdef CONFIG_EXAMPLES_DISCOVER_DHCPC
   void *handle;
 #endif
 
 /* Many embedded network interfaces must have a software assigned MAC */
 
-#ifdef CONFIG_EXAMPLE_DISCOVER_NOMAC
+#ifdef CONFIG_EXAMPLES_DISCOVER_NOMAC
   mac[0] = 0x00;
   mac[1] = 0xe0;
   mac[2] = 0xde;
@@ -114,24 +114,24 @@ int discover_main(int argc, char *argv[])
 
   /* Set up our host address */
 
-#ifdef CONFIG_EXAMPLE_DISCOVER_DHCPC
+#ifdef CONFIG_EXAMPLES_DISCOVER_DHCPC
   addr.s_addr = 0;
 #else
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_DISCOVER_IPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_DISCOVER_IPADDR);
 #endif
   uip_sethostaddr("eth0", &addr);
 
   /* Set up the default router address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_DISCOVER_DRIPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_DISCOVER_DRIPADDR);
   uip_setdraddr("eth0", &addr);
 
   /* Setup the subnet mask */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_DISCOVER_NETMASK);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_DISCOVER_NETMASK);
   uip_setnetmask("eth0", &addr);
 
-#ifdef CONFIG_EXAMPLE_DISCOVER_DHCPC
+#ifdef CONFIG_EXAMPLES_DISCOVER_DHCPC
   /* Set up the resolver */
 
   resolv_init();
@@ -174,7 +174,7 @@ int discover_main(int argc, char *argv[])
       printf("IP: %s\n", inet_ntoa(ds.ipaddr));
     }
 
-#endif /* CONFIG_EXAMPLE_DISCOVER_DHCPC */
+#endif /* CONFIG_EXAMPLES_DISCOVER_DHCPC */
 #endif /* CONFIG_NSH_BUILTIN_APPS */
 
   if (discover_start() < 0)

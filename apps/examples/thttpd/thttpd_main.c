@@ -99,7 +99,7 @@
 
    /* No MAC address operations */
 
-#  undef CONFIG_EXAMPLE_THTTPD_NOMAC
+#  undef CONFIG_EXAMPLES_THTTPD_NOMAC
 
    /* TTY device to use */
 
@@ -172,7 +172,7 @@ int                         g_thttpdnsymbols;
 int thttp_main(int argc, char *argv[])
 {
   struct in_addr addr;
-#ifdef CONFIG_EXAMPLE_THTTPD_NOMAC
+#ifdef CONFIG_EXAMPLES_THTTPD_NOMAC
   uint8_t mac[IFHWADDRLEN];
 #endif
   char *thttpd_argv = "thttpd";
@@ -191,7 +191,7 @@ int thttp_main(int argc, char *argv[])
 
 /* Many embedded network interfaces must have a software assigned MAC */
 
-#ifdef CONFIG_EXAMPLE_THTTPD_NOMAC
+#ifdef CONFIG_EXAMPLES_THTTPD_NOMAC
   message("Assigning MAC\n");
 
   mac[0] = 0x00;
@@ -211,12 +211,12 @@ int thttp_main(int argc, char *argv[])
 
   /* Set up the default router address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_THTTPD_DRIPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_THTTPD_DRIPADDR);
   uip_setdraddr(NET_DEVNAME, &addr);
 
   /* Setup the subnet mask */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_THTTPD_NETMASK);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_THTTPD_NETMASK);
   uip_setnetmask(NET_DEVNAME, &addr);
 
   /* Initialize the NXFLAT binary loader */

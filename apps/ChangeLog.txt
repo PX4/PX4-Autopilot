@@ -358,3 +358,7 @@
 	  context is established first.  If the namedapp context is established
 	  later, it will overwrite any existing namedapp_list.h and nameapp_proto.h
 	  files.
+	* CONFIG_EXAMPLES_*: To make things consistent, changed all occurrences
+	  of CONFIG_EXAMPLE_* to CONFIG_EXAMPLES_*.
+	* Kconfig:  Fleshed out apps/examples/adc/Kconfig and apps/examples/wget/Kconfig.
+	  There are still a LOT of empty, stub Kconfig files.

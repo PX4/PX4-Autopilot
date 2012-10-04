@@ -68,13 +68,13 @@
 int nettest_main(int argc, char *argv[])
 {
   struct in_addr addr;
-#ifdef CONFIG_EXAMPLE_NETTEST_NOMAC
+#ifdef CONFIG_EXAMPLES_NETTEST_NOMAC
   uint8_t mac[IFHWADDRLEN];
 #endif
 
 /* Many embedded network interfaces must have a software assigned MAC */
 
-#ifdef CONFIG_EXAMPLE_NETTEST_NOMAC
+#ifdef CONFIG_EXAMPLES_NETTEST_NOMAC
   mac[0] = 0x00;
   mac[1] = 0xe0;
   mac[2] = 0xde;
@@ -86,20 +86,20 @@ int nettest_main(int argc, char *argv[])
 
   /* Set up our host address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_NETTEST_IPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_NETTEST_IPADDR);
   uip_sethostaddr("eth0", &addr);
 
   /* Set up the default router address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_NETTEST_DRIPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_NETTEST_DRIPADDR);
   uip_setdraddr("eth0", &addr);
 
   /* Setup the subnet mask */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_NETTEST_NETMASK);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_NETTEST_NETMASK);
   uip_setnetmask("eth0", &addr);
 
-#ifdef CONFIG_EXAMPLE_NETTEST_SERVER
+#ifdef CONFIG_EXAMPLES_NETTEST_SERVER
   recv_server();
 #else
   send_client();

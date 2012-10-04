@@ -72,7 +72,7 @@ extern int uipdriver_setmacaddr(unsigned char *macaddr);
 
 #define DEVTAP          "/dev/net/tun"
 
-#ifndef CONFIG_EXAMPLE_UIP_DHCPC
+#ifndef CONFIG_EXAMPLES_UIP_DHCPC
 #  define UIP_IPADDR0   192
 #  define UIP_IPADDR1   168
 #  define UIP_IPADDR2   0

@@ -61,12 +61,12 @@
  * If CONFIG_EXAMPLES_FTPD_NONETINIT is not defined, then the following may
  * be specified to customized the network configuration:
  *
- * CONFIG_EXAMPLE_FTPD_NOMAC - If the hardware has no MAC address of its
+ * CONFIG_EXAMPLES_FTPD_NOMAC - If the hardware has no MAC address of its
  *   own, define this =y to provide a bogus address for testing.
- * CONFIG_EXAMPLE_FTPD_IPADDR - The target IP address.  Default 10.0.0.2
- * CONFIG_EXAMPLE_FTPD_DRIPADDR - The default router address. Default
+ * CONFIG_EXAMPLES_FTPD_IPADDR - The target IP address.  Default 10.0.0.2
+ * CONFIG_EXAMPLES_FTPD_DRIPADDR - The default router address. Default
  *   10.0.0.1
- * CONFIG_EXAMPLE_FTPD_NETMASK - The network mask.  Default: 255.255.255.0
+ * CONFIG_EXAMPLES_FTPD_NETMASK - The network mask.  Default: 255.255.255.0
  */
 
 #ifndef CONFIG_EXAMPLES_FTPD_PRIO
@@ -92,18 +92,18 @@
 #endif
 
 #ifdef CONFIG_EXAMPLES_FTPD_NONETINIT
-#  undef CONFIG_EXAMPLE_FTPD_IPADDR
-#  undef CONFIG_EXAMPLE_FTPD_DRIPADDR
-#  undef CONFIG_EXAMPLE_FTPD_NETMASK
+#  undef CONFIG_EXAMPLES_FTPD_IPADDR
+#  undef CONFIG_EXAMPLES_FTPD_DRIPADDR
+#  undef CONFIG_EXAMPLES_FTPD_NETMASK
 #else
-#  ifndef CONFIG_EXAMPLE_FTPD_IPADDR
-#    define CONFIG_EXAMPLE_FTPD_IPADDR 0x0a000002
+#  ifndef CONFIG_EXAMPLES_FTPD_IPADDR
+#    define CONFIG_EXAMPLES_FTPD_IPADDR 0x0a000002
 #  endif
-#  ifndef CONFIG_EXAMPLE_FTPD_DRIPADDR
-#    define CONFIG_EXAMPLE_FTPD_DRIPADDR 0x0a000001
+#  ifndef CONFIG_EXAMPLES_FTPD_DRIPADDR
+#    define CONFIG_EXAMPLES_FTPD_DRIPADDR 0x0a000001
 #  endif
-#  ifndef CONFIG_EXAMPLE_FTPD_NETMASK
-#    define CONFIG_EXAMPLE_FTPD_NETMASK 0xffffff00
+#  ifndef CONFIG_EXAMPLES_FTPD_NETMASK
+#    define CONFIG_EXAMPLES_FTPD_NETMASK 0xffffff00
 #  endif
 #endif
 

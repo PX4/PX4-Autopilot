@@ -58,7 +58,7 @@ ifeq ($(CONFIG_EXAMPLES_DHCPD),y)
 CONFIGURED_APPS += examples/dhcpd
 endif
 
-ifeq ($(CONFIG_EXAMPLE_DISCOVER),y)
+ifeq ($(CONFIG_EXAMPLES_DISCOVER),y)
 CONFIGURED_APPS += examples/discover
 endif
 

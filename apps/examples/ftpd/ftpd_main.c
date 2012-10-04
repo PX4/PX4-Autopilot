@@ -83,13 +83,13 @@ static void fptd_netinit(void)
 {
 #ifndef CONFIG_EXAMPLES_FTPD_NONETINIT
   struct in_addr addr;
-#ifdef CONFIG_EXAMPLE_FTPD_NOMAC
+#ifdef CONFIG_EXAMPLES_FTPD_NOMAC
   uint8_t mac[IFHWADDRLEN];
 #endif
 
 /* Many embedded network interfaces must have a software assigned MAC */
 
-#ifdef CONFIG_EXAMPLE_FTPD_NOMAC
+#ifdef CONFIG_EXAMPLES_FTPD_NOMAC
   mac[0] = 0x00;
   mac[1] = 0xe0;
   mac[2] = 0xde;
@@ -101,17 +101,17 @@ static void fptd_netinit(void)
 
   /* Set up our host address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_FTPD_IPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_FTPD_IPADDR);
   uip_sethostaddr("eth0", &addr);
 
   /* Set up the default router address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_FTPD_DRIPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_FTPD_DRIPADDR);
   uip_setdraddr("eth0", &addr);
 
   /* Setup the subnet mask */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_FTPD_NETMASK);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_FTPD_NETMASK);
   uip_setnetmask("eth0", &addr);
 #endif /* CONFIG_EXAMPLES_FTPD_NONETINIT */
 }

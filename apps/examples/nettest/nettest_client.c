@@ -56,12 +56,12 @@ void send_client(void)
 {
   struct sockaddr_in myaddr;
   char *outbuf;
-#ifndef CONFIG_EXAMPLE_NETTEST_PERFORMANCE
+#ifndef CONFIG_EXAMPLES_NETTEST_PERFORMANCE
   char *inbuf;
 #endif
   int sockfd;
   int nbytessent;
-#ifndef CONFIG_EXAMPLE_NETTEST_PERFORMANCE
+#ifndef CONFIG_EXAMPLES_NETTEST_PERFORMANCE
   int nbytesrecvd;
   int totalbytesrecvd;
 #endif
@@ -71,7 +71,7 @@ void send_client(void)
   /* Allocate buffers */
 
   outbuf = (char*)malloc(SENDSIZE);
-#ifndef CONFIG_EXAMPLE_NETTEST_PERFORMANCE
+#ifndef CONFIG_EXAMPLES_NETTEST_PERFORMANCE
   inbuf  = (char*)malloc(SENDSIZE);
   if (!outbuf || !inbuf)
 #else
@@ -98,7 +98,7 @@ void send_client(void)
 #if 0
   myaddr.sin_addr.s_addr = HTONL(INADDR_LOOPBACK);
 #else
-  myaddr.sin_addr.s_addr = HTONL(CONFIG_EXAMPLE_NETTEST_CLIENTIP);
+  myaddr.sin_addr.s_addr = HTONL(CONFIG_EXAMPLES_NETTEST_CLIENTIP);
 #endif
 
   message("client: Connecting...\n");
@@ -121,7 +121,7 @@ void send_client(void)
         }
     }
 
-#ifdef CONFIG_EXAMPLE_NETTEST_PERFORMANCE
+#ifdef CONFIG_EXAMPLES_NETTEST_PERFORMANCE
   /* Then send messages forever */
 
   for (;;)
@@ -192,7 +192,7 @@ void send_client(void)
 
   close(sockfd);
   free(outbuf);
-#ifndef CONFIG_EXAMPLE_NETTEST_PERFORMANCE
+#ifndef CONFIG_EXAMPLES_NETTEST_PERFORMANCE
   free(inbuf);
 #endif
   return;
@@ -203,7 +203,7 @@ errout_with_socket:
 
 errout_with_buffers:
   free(outbuf);
-#ifndef CONFIG_EXAMPLE_NETTEST_PERFORMANCE
+#ifndef CONFIG_EXAMPLES_NETTEST_PERFORMANCE
   free(inbuf);
 #endif
   exit(1);

@@ -64,8 +64,8 @@
  *   addresses=0xff (ff00::/8.)
  */
 
-#if ((CONFIG_EXAMPLE_IGMP_GRPADDR & 0xffff0000) < 0xe0000000ul) || \
-    ((CONFIG_EXAMPLE_IGMP_GRPADDR & 0xffff0000) > 0xeffffffful)
+#if ((CONFIG_EXAMPLES_IGMP_GRPADDR & 0xffff0000) < 0xe0000000ul) || \
+    ((CONFIG_EXAMPLES_IGMP_GRPADDR & 0xffff0000) > 0xeffffffful)
 #  error "Bad range for IGMP group address"
 #endif
 
@@ -84,7 +84,7 @@
 int igmp_main(int argc, char *argv[])
 {
   struct in_addr addr;
-#if defined(CONFIG_EXAMPLE_IGMP_NOMAC)
+#if defined(CONFIG_EXAMPLES_IGMP_NOMAC)
   uint8_t mac[IFHWADDRLEN];
 #endif
 
@@ -92,7 +92,7 @@ int igmp_main(int argc, char *argv[])
   
   /* Many embedded network interfaces must have a software assigned MAC */
 
-#ifdef CONFIG_EXAMPLE_IGMP_NOMAC
+#ifdef CONFIG_EXAMPLES_IGMP_NOMAC
   mac[0] = 0x00;
   mac[1] = 0xe0;
   mac[2] = 0xde;
@@ -104,24 +104,24 @@ int igmp_main(int argc, char *argv[])
 
   /* Set up our host address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_IGMP_IPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_IGMP_IPADDR);
   uip_sethostaddr("eth0", &addr);
 
   /* Set up the default router address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_IGMP_DRIPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_IGMP_DRIPADDR);
   uip_setdraddr("eth0", &addr);
 
   /* Setup the subnet mask */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_IGMP_NETMASK);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_IGMP_NETMASK);
   uip_setnetmask("eth0", &addr);
 
   /* Not much of a test for now */
   /* Join the group */
 
   message("Join group...\n");
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_IGMP_GRPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_IGMP_GRPADDR);
   ipmsfilter("eth0", &addr, MCAST_INCLUDE);
 
   /* Wait a while */

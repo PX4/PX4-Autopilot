@@ -63,7 +63,7 @@ void recv_server(void)
   int acceptsd;
   socklen_t addrlen;
   int nbytesread;
-#ifndef CONFIG_EXAMPLE_NETTEST_PERFORMANCE
+#ifndef CONFIG_EXAMPLES_NETTEST_PERFORMANCE
   int totalbytesread;
   int nbytessent;
   int ch;
@@ -143,7 +143,7 @@ void recv_server(void)
     }
 #endif
 
-#ifdef CONFIG_EXAMPLE_NETTEST_PERFORMANCE
+#ifdef CONFIG_EXAMPLES_NETTEST_PERFORMANCE
   /* Then receive data forever */
 
   for (;;)

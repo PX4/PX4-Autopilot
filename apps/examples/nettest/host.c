@@ -53,7 +53,7 @@
 
 int main(int argc, char **argv, char **envp)
 {
-#ifdef CONFIG_EXAMPLE_NETTEST_SERVER
+#ifdef CONFIG_EXAMPLES_NETTEST_SERVER
   send_client();
 #else
   recv_server();

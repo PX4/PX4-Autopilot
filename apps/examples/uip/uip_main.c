@@ -59,7 +59,7 @@
 
 #include <apps/netutils/uiplib.h>
 
-#ifdef CONFIG_EXAMPLE_UIP_DHCPC
+#ifdef CONFIG_EXAMPLES_UIP_DHCPC
 #include <arpa/inet.h>
 #endif
 
@@ -69,7 +69,7 @@
 
 /* DHCPC may be used in conjunction with any other feature (or not) */
 
-#ifdef CONFIG_EXAMPLE_UIP_DHCPC
+#ifdef CONFIG_EXAMPLES_UIP_DHCPC
 # include <apps/netutils/resolv.h>
 # include <apps/netutils/dhcpc.h>
 #endif
@@ -113,16 +113,16 @@
 int uip_main(int argc, char *argv[])
 {
   struct in_addr addr;
-#if defined(CONFIG_EXAMPLE_UIP_DHCPC) || defined(CONFIG_EXAMPLE_UIP_NOMAC)
+#if defined(CONFIG_EXAMPLES_UIP_DHCPC) || defined(CONFIG_EXAMPLES_UIP_NOMAC)
   uint8_t mac[IFHWADDRLEN];
 #endif
-#ifdef CONFIG_EXAMPLE_UIP_DHCPC
+#ifdef CONFIG_EXAMPLES_UIP_DHCPC
   void *handle;
 #endif
 
 /* Many embedded network interfaces must have a software assigned MAC */
 
-#ifdef CONFIG_EXAMPLE_UIP_NOMAC
+#ifdef CONFIG_EXAMPLES_UIP_NOMAC
   mac[0] = 0x00;
   mac[1] = 0xe0;
   mac[2] = 0xde;
@@ -134,24 +134,24 @@ int uip_main(int argc, char *argv[])
 
   /* Set up our host address */
 
-#ifdef CONFIG_EXAMPLE_UIP_DHCPC
+#ifdef CONFIG_EXAMPLES_UIP_DHCPC
   addr.s_addr = 0;
 #else
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_UIP_IPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_UIP_IPADDR);
 #endif
   uip_sethostaddr("eth0", &addr);
 
   /* Set up the default router address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_UIP_DRIPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_UIP_DRIPADDR);
   uip_setdraddr("eth0", &addr);
 
   /* Setup the subnet mask */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_UIP_NETMASK);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_UIP_NETMASK);
   uip_setnetmask("eth0", &addr);
 
-#ifdef CONFIG_EXAMPLE_UIP_DHCPC
+#ifdef CONFIG_EXAMPLES_UIP_DHCPC
   /* Set up the resolver */
 
   resolv_init();

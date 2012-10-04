@@ -62,16 +62,16 @@
  * but there are default values for those so we cannot check them here.
  */
 
-#ifndef CONFIG_EXAMPLE_WGET_IPADDR
-#  error "You must define CONFIG_EXAMPLE_WGET_IPADDR"
+#ifndef CONFIG_EXAMPLES_WGET_IPADDR
+#  error "You must define CONFIG_EXAMPLES_WGET_IPADDR"
 #endif
 
-#ifndef CONFIG_EXAMPLE_WGET_DRIPADDR
-#  error "You must define CONFIG_EXAMPLE_WGET_DRIPADDR"
+#ifndef CONFIG_EXAMPLES_WGET_DRIPADDR
+#  error "You must define CONFIG_EXAMPLES_WGET_DRIPADDR"
 #endif
 
-#ifndef CONFIG_EXAMPLE_WGET_NETMASK
-#  error "You must define CONFIG_EXAMPLE_WGET_NETMASK"
+#ifndef CONFIG_EXAMPLES_WGET_NETMASK
+#  error "You must define CONFIG_EXAMPLES_WGET_NETMASK"
 #endif
 
 #ifndef CONFIG_NET
@@ -112,13 +112,13 @@ static void callback(FAR char **buffer, int offset, int datend,
 int wget_main(int argc, char *argv[])
 {
   struct in_addr addr;
-#if defined(CONFIG_EXAMPLE_WGET_NOMAC)
+#if defined(CONFIG_EXAMPLES_WGET_NOMAC)
   uint8_t mac[IFHWADDRLEN];
 #endif
 
 /* Many embedded network interfaces must have a software assigned MAC */
 
-#ifdef CONFIG_EXAMPLE_WGET_NOMAC
+#ifdef CONFIG_EXAMPLES_WGET_NOMAC
   mac[0] = 0x00;
   mac[1] = 0xe0;
   mac[2] = 0xde;
@@ -130,21 +130,21 @@ int wget_main(int argc, char *argv[])
 
   /* Set up our host address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_WGET_IPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_WGET_IPADDR);
   uip_sethostaddr("eth0", &addr);
 
   /* Set up the default router address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_WGET_DRIPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_WGET_DRIPADDR);
   uip_setdraddr("eth0", &addr);
 
   /* Setup the subnet mask */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_WGET_NETMASK);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_WGET_NETMASK);
   uip_setnetmask("eth0", &addr);
 
   /* Then start the server */
   
-  wget(CONFIG_EXAMPLE_WGET_URL, g_iobuffer, 512, callback, NULL);
+  wget(CONFIG_EXAMPLES_WGET_URL, g_iobuffer, 512, callback, NULL);
   return 0;
 }

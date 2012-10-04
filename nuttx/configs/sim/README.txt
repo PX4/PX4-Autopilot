@@ -221,7 +221,7 @@ nettest
 
     NOTE that the IP address is hard-coded in arch/sim/src/up_wpcap.c.
     You will either need to edit your configuration files to use 10.0.0.1
-    on the "target" (CONFIG_EXAMPLE_NETTEST_*) or edit up_wpcap.c to
+    on the "target" (CONFIG_EXAMPLES_NETTEST_*) or edit up_wpcap.c to
     select the IP address that you want to use.
 
 nsh

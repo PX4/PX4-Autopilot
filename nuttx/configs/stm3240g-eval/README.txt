@@ -893,10 +893,10 @@ Where <subdir> is one of the following:
     Configuration settings that you may need to change for your
     environment:
 
-      CONFIG_STM32_CODESOURCERYL=y    - CodeSourcery for Linux
-      CONFIG_EXAMPLE_DISCOVER_DHCPC=y - DHCP Client
-      CONFIG_EXAMPLE_DISCOVER_IPADDR  - (not defined)
-      CONFIG_EXAMPLE_DISCOVER_DRIPADDR - Router IP address
+      CONFIG_STM32_CODESOURCERYL=y      - CodeSourcery for Linux
+      CONFIG_EXAMPLES_DISCOVER_DHCPC=y  - DHCP Client
+      CONFIG_EXAMPLES_DISCOVER_IPADDR   - (not defined)
+      CONFIG_EXAMPLES_DISCOVER_DRIPADDR - Router IP address
 
     NOTE:  This configuration uses to the mconf configuration tool to control
     the configuration.  See the section entitled "NuttX Configuration Tool"
@@ -909,11 +909,11 @@ Where <subdir> is one of the following:
     using the STM32's Ethernet controller. It uses apps/examples/nettest to excercise the
     TCP/IP network.
 
-    CONFIG_EXAMPLE_NETTEST_SERVER=n                       : Target is configured as the client
-    CONFIG_EXAMPLE_NETTEST_PERFORMANCE=y                  : Only network performance is verified.
-    CONFIG_EXAMPLE_NETTEST_IPADDR=(10<<24|0<<16|0<<8|2)   : Target side is IP: 10.0.0.2
-    CONFIG_EXAMPLE_NETTEST_DRIPADDR=(10<<24|0<<16|0<<8|1) : Host side is IP: 10.0.0.1
-    CONFIG_EXAMPLE_NETTEST_CLIENTIP=(10<<24|0<<16|0<<8|1) : Server address used by which ever is client.
+    CONFIG_EXAMPLES_NETTEST_SERVER=n                       : Target is configured as the client
+    CONFIG_EXAMPLES_NETTEST_PERFORMANCE=y                  : Only network performance is verified.
+    CONFIG_EXAMPLES_NETTEST_IPADDR=(10<<24|0<<16|0<<8|2)   : Target side is IP: 10.0.0.2
+    CONFIG_EXAMPLES_NETTEST_DRIPADDR=(10<<24|0<<16|0<<8|1) : Host side is IP: 10.0.0.1
+    CONFIG_EXAMPLES_NETTEST_CLIENTIP=(10<<24|0<<16|0<<8|1) : Server address used by which ever is client.
 
   nsh:
   ---

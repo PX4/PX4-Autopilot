@@ -40,7 +40,7 @@
  * Included Files
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLE_UDP_HOST
+#ifdef CONFIG_EXAMPLES_UDP_HOST
 #else
 # include <debug.h>
 #endif
@@ -49,7 +49,7 @@
  * Definitions
  ****************************************************************************/
 
-#ifdef CONFIG_EXAMPLE_UDP_HOST
+#ifdef CONFIG_EXAMPLES_UDP_HOST
    /* HTONS/L macros are unique to uIP */
 
 #  define HTONS(a)       htons(a)

@@ -47,12 +47,12 @@
  *   Default: SCHED_PRIORITY_DEFAULT
  * CONFIG_EXAMPLES_TELNETD_CLIENTSTACKSIZE - Stack size allocated for the
  *   Telnet client. Default: 2048
- * CONFIG_EXAMPLE_TELNETD_NOMAC - If the hardware has no MAC address of its
+ * CONFIG_EXAMPLES_TELNETD_NOMAC - If the hardware has no MAC address of its
  *   own, define this =y to provide a bogus address for testing.
- * CONFIG_EXAMPLE_TELNETD_IPADDR - The target IP address.  Default 10.0.0.2
- * CONFIG_EXAMPLE_TELNETD_DRIPADDR - The default router address. Default
+ * CONFIG_EXAMPLES_TELNETD_IPADDR - The target IP address.  Default 10.0.0.2
+ * CONFIG_EXAMPLES_TELNETD_DRIPADDR - The default router address. Default
  *   10.0.0.1
- * CONFIG_EXAMPLE_TELNETD_NETMASK - The network mask.  Default: 255.255.255.0
+ * CONFIG_EXAMPLES_TELNETD_NETMASK - The network mask.  Default: 255.255.255.0
  */
 
 #ifndef CONFIG_EXAMPLES_TELNETD_DAEMONPRIO
@@ -71,14 +71,14 @@
 #  define CONFIG_EXAMPLES_TELNETD_CLIENTSTACKSIZE 2048
 #endif
 
-#ifndef CONFIG_EXAMPLE_TELNETD_IPADDR
-#  define CONFIG_EXAMPLE_TELNETD_IPADDR 0x0a000002
+#ifndef CONFIG_EXAMPLES_TELNETD_IPADDR
+#  define CONFIG_EXAMPLES_TELNETD_IPADDR 0x0a000002
 #endif
-#ifndef CONFIG_EXAMPLE_TELNETD_DRIPADDR
-#  define CONFIG_EXAMPLE_TELNETD_DRIPADDR 0x0a000002
+#ifndef CONFIG_EXAMPLES_TELNETD_DRIPADDR
+#  define CONFIG_EXAMPLES_TELNETD_DRIPADDR 0x0a000002
 #endif
-#ifndef CONFIG_EXAMPLE_TELNETD_NETMASK
-#  define CONFIG_EXAMPLE_TELNETD_NETMASK 0xffffff00
+#ifndef CONFIG_EXAMPLES_TELNETD_NETMASK
+#  define CONFIG_EXAMPLES_TELNETD_NETMASK 0xffffff00
 #endif
 
 /* Other definitions ********************************************************/

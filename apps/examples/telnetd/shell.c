@@ -186,13 +186,13 @@ int shell_session(int argc, char *argv[])
 static void shell_netinit(void)
 {
   struct in_addr addr;
-#ifdef CONFIG_EXAMPLE_TELNETD_NOMAC
+#ifdef CONFIG_EXAMPLES_TELNETD_NOMAC
   uint8_t mac[IFHWADDRLEN];
 #endif
 
 /* Many embedded network interfaces must have a software assigned MAC */
 
-#ifdef CONFIG_EXAMPLE_TELNETD_NOMAC
+#ifdef CONFIG_EXAMPLES_TELNETD_NOMAC
   mac[0] = 0x00;
   mac[1] = 0xe0;
   mac[2] = 0xde;
@@ -204,17 +204,17 @@ static void shell_netinit(void)
 
   /* Set up our host address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_TELNETD_IPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_TELNETD_IPADDR);
   uip_sethostaddr("eth0", &addr);
 
   /* Set up the default router address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_TELNETD_DRIPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_TELNETD_DRIPADDR);
   uip_setdraddr("eth0", &addr);
 
   /* Setup the subnet mask */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_TELNETD_NETMASK);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_TELNETD_NETMASK);
   uip_setnetmask("eth0", &addr);
 }
 

@@ -6,8 +6,32 @@
 config EXAMPLES_WGET
 	bool "wget example"
 	default n
+	depends on NET_TCP && !NSH_BUILTIN_APPS
 	---help---
 		Enable the wget example
 
 if EXAMPLES_WGET
+
+config EXAMPLES_WGET_URL
+	string "File URL"
+	default ""
+	---help---
+	The URL of the file to get
+
+config EXAMPLES_WGET_NOMAC
+	bool "Use Canned MAC Address"
+	default n
+
+config EXAMPLES_WGET_IPADDR
+	hex "Target IP address"
+	default 0x0a000002
+
+config EXAMPLES_WGET_DRIPADDR
+	hex "Default Router IP address (Gateway)"
+	default 0x0a000001
+
+config EXAMPLES_WGET_NETMASK
+	hex "Network Mask"
+	default 0xffffff00
+
 endif
