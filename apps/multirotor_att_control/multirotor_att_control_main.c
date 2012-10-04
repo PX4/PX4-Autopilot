@@ -224,13 +224,13 @@ mc_thread_main(int argc, char *argv[])
 		/** STEP 3: Identify the controller setup to run and set up the inputs correctly */
 
 		/* run attitude controller */
-		// if (state.flag_control_attitude_enabled && !state.flag_control_rates_enabled) {
-		// 	multirotor_control_attitude(&att_sp, &att, NULL, &actuators);
-		// 	orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
-		// } else if (state.flag_control_attitude_enabled && state.flag_control_rates_enabled) {
-		// 	multirotor_control_attitude(&att_sp, &att, &rates_sp, NULL);
-		// 	orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
-		// }
+		if (state.flag_control_attitude_enabled && !state.flag_control_rates_enabled) {
+			multirotor_control_attitude(&att_sp, &att, NULL, &actuators);
+			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+		} else if (state.flag_control_attitude_enabled && state.flag_control_rates_enabled) {
+			multirotor_control_attitude(&att_sp, &att, &rates_sp, NULL);
+			orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
+		}
 
 
 		if (state.flag_control_rates_enabled) {
