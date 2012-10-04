@@ -1872,7 +1872,7 @@ int mavlink_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		mavlink_task = task_spawn("mavlink",
-					  SCHED_RR,
+					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_DEFAULT,
 					  6000,
 					  mavlink_thread_main,

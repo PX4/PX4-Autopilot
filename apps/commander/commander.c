@@ -950,7 +950,7 @@ int commander_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		deamon_task = task_spawn("commander",
-					 SCHED_RR,
+					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 50,
 					 4096,
 					 commander_thread_main,

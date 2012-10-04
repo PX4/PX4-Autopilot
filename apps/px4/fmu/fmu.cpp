@@ -172,7 +172,7 @@ FMUServo::init()
 
 	/* start the IO interface task */
 	_task = task_spawn("fmuservo",
-			   SCHED_RR,
+			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
 			   1024,
 			   (main_t)&FMUServo::task_main_trampoline,

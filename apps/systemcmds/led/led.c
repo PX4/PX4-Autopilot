@@ -148,7 +148,7 @@ int led_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		led_task = task_spawn("led",
-				      SCHED_RR,
+				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_MAX - 15,
 				      4096,
 				      led_thread_main,

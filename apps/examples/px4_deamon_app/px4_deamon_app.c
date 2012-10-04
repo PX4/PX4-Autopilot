@@ -92,7 +92,7 @@ int px4_deamon_app_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		deamon_task = task_spawn("deamon",
-					 SCHED_RR,
+					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT,
 					 4096,
 					 px4_deamon_thread_main,
