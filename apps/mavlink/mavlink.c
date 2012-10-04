@@ -1824,7 +1824,9 @@ int mavlink_thread_main(int argc, char *argv[])
 		mavlink_pm_queued_send();
 		/* sleep quarter the time */
 		usleep(25000);
-		mavlink_pm_queued_send();
+		if (baudrate > 57600) {
+			mavlink_pm_queued_send();
+		}
 
 		/* sleep 10 ms */
 		usleep(10000);

@@ -223,6 +223,7 @@ mc_thread_main(int argc, char *argv[])
 
 		/** STEP 3: Identify the controller setup to run and set up the inputs correctly */
 
+
 		/* run attitude controller */
 		if (state.flag_control_attitude_enabled && !state.flag_control_rates_enabled) {
 			multirotor_control_attitude(&att_sp, &att, NULL, &actuators);
@@ -252,7 +253,6 @@ mc_thread_main(int argc, char *argv[])
 			multirotor_control_rates(&rates_sp, gyro, &actuators);
 			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 		}
-
 
 		perf_end(mc_loop_perf);
 	}
@@ -321,7 +321,7 @@ int multirotor_att_control_main(int argc, char *argv[])
 		mc_task = task_spawn("multirotor_att_control",
 				     SCHED_DEFAULT,
 				     SCHED_PRIORITY_MAX - 15,
-				     4096,
+				     6000,
 				     mc_thread_main,
 				     NULL);
 		exit(0);
