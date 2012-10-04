@@ -97,7 +97,6 @@ int px4_deamon_app_main(int argc, char *argv[])
 					 4096,
 					 px4_deamon_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
-		thread_running = true;
 		exit(0);
 	}
 
@@ -123,12 +122,16 @@ int px4_deamon_thread_main(int argc, char *argv[]) {
 
 	printf("[deamon] starting\n");
 
+	thread_running = true;
+
 	while (!thread_should_exit) {
 		printf("Hello Deamon!\n");
 		sleep(10);
 	}
 
 	printf("[deamon] exiting.\n");
+
+	thread_running = false;
 
 	return 0;
 }

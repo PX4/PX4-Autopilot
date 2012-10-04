@@ -1,10 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,15 +33,46 @@
  ****************************************************************************/
 
 /**
- * @file multirotor_position_control.h
- * Definition of the position control for a multirotor VTOL
+ * @file vehicle_vicon_position.h
+ * Definition of the raw VICON Motion Capture position
  */
 
-// #ifndef POSITION_CONTROL_H_
-// #define POSITION_CONTROL_H_
+#ifndef TOPIC_VEHICLE_VICON_POSITION_H_
+#define TOPIC_VEHICLE_VICON_POSITION_H_
 
-// void control_multirotor_position(const struct vehicle_state_s *vstatus, const struct vehicle_manual_control_s *manual,
-//  const struct vehicle_attitude_s *att, const struct vehicle_local_position_s *local_pos,
-//  const struct vehicle_local_position_setpoint_s *local_pos_sp, struct vehicle_attitude_setpoint_s *att_sp);
+#include <stdint.h>
+#include <stdbool.h>
+#include "../uORB.h"
 
-// #endif /* POSITION_CONTROL_H_ */
+/**
+ * @addtogroup topics
+ * @{
+ */
+
+/**
+ * Fused local position in NED.
+ */
+struct vehicle_vicon_position_s
+{
+	uint64_t timestamp;			/**< time of this estimate, in microseconds since system start */
+	bool valid;				/**< true if position satisfies validity criteria of estimator */
+
+	float x;				/**< X positin in meters in NED earth-fixed frame */
+	float y;				/**< X positin in meters in NED earth-fixed frame */
+	float z;				/**< Z positin in meters in NED earth-fixed frame (negative altitude) */
+	float vx;
+	float vy;
+	float vz;
+
+	// TODO Add covariances here
+
+};
+
+/**
+ * @}
+ */
+
+/* register this as object request broker structure */
+ORB_DECLARE(vehicle_vicon_position);
+
+#endif
