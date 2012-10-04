@@ -40,11 +40,11 @@
  * Definition of the position control for a multirotor VTOL
  */
 
-#ifndef POSITION_CONTROL_H_
-#define POSITION_CONTROL_H_
+// #ifndef POSITION_CONTROL_H_
+// #define POSITION_CONTROL_H_
 
-void control_multirotor_position(const struct vehicle_state_s *vstatus, const struct vehicle_manual_control_s *manual,
- const struct vehicle_attitude_s *att, const struct vehicle_local_position_s *local_pos,
- const struct vehicle_local_position_setpoint_s *local_pos_sp, struct vehicle_attitude_setpoint_s *att_sp);
+// void control_multirotor_position(const struct vehicle_state_s *vstatus, const struct vehicle_manual_control_s *manual,
+//  const struct vehicle_attitude_s *att, const struct vehicle_local_position_s *local_pos,
+//  const struct vehicle_local_position_setpoint_s *local_pos_sp, struct vehicle_attitude_setpoint_s *att_sp);
 
-#endif /* POSITION_CONTROL_H_ */
+// #endif /* POSITION_CONTROL_H_ */
