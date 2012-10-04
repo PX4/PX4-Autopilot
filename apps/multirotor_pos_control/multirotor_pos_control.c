@@ -55,8 +55,10 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_vicon_position.h>
 #include <systemlib/systemlib.h>
+
+#include "multirotor_pos_control_params.h"
 
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
@@ -144,7 +146,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[])
 	struct vehicle_attitude_s att;
 	//struct vehicle_global_position_setpoint_s global_pos_sp;
 	struct vehicle_local_position_setpoint_s local_pos_sp;
-	struct vehicle_local_position_s local_pos;
+	struct vehicle_vicon_position_s local_pos;
 	struct manual_control_setpoint_s manual;
 	struct vehicle_attitude_setpoint_s att_sp;
 
@@ -152,7 +154,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[])
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	int local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	int local_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
 	//int global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
 	int local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 
@@ -160,6 +162,14 @@ multirotor_pos_control_thread_main(int argc, char *argv[])
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 
 	thread_running = true;
+
+	int loopcounter = 0;
+
+	struct multirotor_position_control_params p;
+	struct multirotor_position_control_param_handles h;
+	parameters_init(&h);
+	parameters_update(&h, &p);
+
 
 	while (1) {
 		/* get a local copy of the vehicle state */
@@ -169,16 +179,27 @@ multirotor_pos_control_thread_main(int argc, char *argv[])
 		/* get a local copy of attitude */
 		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 		/* get a local copy of local position */
-		orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
+		orb_copy(ORB_ID(vehicle_vicon_position), local_pos_sub, &local_pos);
 		/* get a local copy of local position setpoint */
 		orb_copy(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_sub, &local_pos_sp);
+
+		if (loopcounter == 500) {
+			parameters_update(&h, &p);
+			loopcounter = 0;
+		}
 
 		// if (state.state_machine == SYSTEM_STATE_AUTO) {
 			
 			// XXX IMPLEMENT POSITION CONTROL HERE
 
-			att_sp.roll_body = 0.1f;
-			att_sp.pitch_body = 0.0f;
+			float dT = 1.0f / 50.0f;
+
+			float x_setpoint = 0.0f;
+
+			/* local pos is the Vicon position */
+
+			att_sp.pitch_body = (local_pos.x - x_setpoint) * p.p * dT;
+			att_sp.roll_body = 0.0f;
 			att_sp.yaw_body = 0.0f;
 			att_sp.thrust = 0.4f;
 			att_sp.timestamp = hrt_absolute_time();
@@ -199,6 +220,7 @@ multirotor_pos_control_thread_main(int argc, char *argv[])
 
 		/* run at approximately 50 Hz */
 		usleep(20000);
+		loopcounter++;
 
 	}
 

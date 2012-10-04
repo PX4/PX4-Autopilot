@@ -68,6 +68,7 @@
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -134,6 +135,8 @@ static struct vehicle_command_s vcmd;
 
 static struct actuator_armed_s armed;
 
+static struct vehicle_vicon_position_s vicon_position;
+
 static orb_advert_t pub_hil_global_pos = -1;
 static orb_advert_t cmd_pub = -1;
 static orb_advert_t flow_pub = -1;
@@ -191,8 +194,10 @@ static struct mavlink_subscriptions {
 
 static struct mavlink_publications {
 	orb_advert_t offboard_control_sp_pub;
+	orb_advert_t vicon_position_pub;
 } mavlink_pubs = {
-	.offboard_control_sp_pub = -1
+	.offboard_control_sp_pub = -1,
+	.vicon_position_pub = -1
 };
 
 
@@ -1240,9 +1245,26 @@ void handleMessage(mavlink_message_t *msg)
 		/* check if topic is advertised */
 		if (cmd_pub <= 0) {
 			cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+		} else {
+			/* create command */
+			orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
 		}
-		/* create command */
-		orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
+	}
+
+	/* Handle Vicon position estimates */
+	if (msg->msgid == MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE) {
+		mavlink_vicon_position_estimate_t pos;
+		mavlink_msg_vicon_position_estimate_decode(msg, &pos);
+
+		vicon_position.x = pos.x;
+		vicon_position.y = pos.y;
+		vicon_position.z = pos.z;
+
+		if (mavlink_pubs.vicon_position_pub <= 0) {
+			mavlink_pubs.vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
+		} else {
+			orb_publish(ORB_ID(vehicle_vicon_position), mavlink_pubs.vicon_position_pub, &vicon_position);
+		}
 	}
 
 	/* Handle quadrotor motor setpoints */
