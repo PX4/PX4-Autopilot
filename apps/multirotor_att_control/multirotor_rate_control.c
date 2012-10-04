@@ -150,11 +150,6 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	static int motor_skip_counter = 0;
 
-	// static PID_t yaw_pos_controller;
-	static PID_t yaw_speed_controller;
-	static PID_t pitch_controller;
-	static PID_t roll_controller;
-
 	static struct mc_rate_control_params p;
 	static struct mc_rate_control_param_handles h;
 
@@ -166,13 +161,6 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	if (motor_skip_counter % 500 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-		/* apply parameters */
-
-
-
-		pid_set_parameters(&yaw_speed_controller, p.yawrate_p, p.yawrate_i, 0, p.yawrate_awu);
-		pid_set_parameters(&pitch_controller, p.attrate_p, p.attrate_i, 0, p.attrate_awu);
-		pid_set_parameters(&roll_controller, p.attrate_p, p.attrate_i, 0, p.attrate_awu);
 	}
 
 	/* calculate current control outputs */
@@ -183,15 +171,12 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	float setPitchRate=rate_sp->pitch;
 	float setYawRate=rate_sp->yaw;
 
-	
-			//x-axis
-			setpointXrate=p.attrate_p*(setRollRate-gyro_filtered[0]);
-			//Y-axis
-			setpointYrate=p.attrate_p*(setPitchRate-gyro_filtered[1]);
-			//Z-axis
-			setpointZrate=p.yawrate_p*(setYawRate-gyro_filtered[2]);
-
-
+	//x-axis
+	setpointXrate=p.attrate_p*(setRollRate-rates[0]);
+	//Y-axis
+	setpointYrate=p.attrate_p*(setPitchRate-rates[1]);
+	//Z-axis
+	setpointZrate=p.yawrate_p*(setYawRate-rates[2]);
 
 	actuators->control[0] = setpointXrate; //roll
 	actuators->control[1] = setpointYrate; //pitch
