@@ -55,9 +55,18 @@
 
 /* Clocking *************************************************************************/
 
-/* On-board crystal frequency is 8MHz (HSE) */
+/* HSI - 8 MHz RC factory-trimmed
+ * LSI - 40 KHz RC (30-60KHz, uncalibrated)
+ * HSE - On-board crystal frequency is 8MHz
+ * LSE - 32.768 kHz crytal
+ */
 
 #define STM32_BOARD_XTAL        8000000ul
+
+#define STM32_HSI_FREQUENCY     8000000ul
+#define STM32_LSI_FREQUENCY     40000
+#define STM32_HSE_FREQUENCY     STM32_BOARD_XTAL
+#define STM32_LSE_FREQUENCY     32768
 
 /* PLL source is HSE/1, PLL multipler is 9: PLL frequency is 8MHz (XTAL) x 9 = 72MHz */
 

@@ -353,3 +353,8 @@
 
 	* vsn: Moved all NSH commands from vsn/ to system/.  Deleted the vsn/
 	  directory.
+	* Makefile:  Change order of includes when CONFIG_NEWCONFIG=y.  In
+	  that case, namedapp must be included first so that the namedapp
+	  context is established first.  If the namedapp context is established
+	  later, it will overwrite any existing namedapp_list.h and nameapp_proto.h
+	  files.

@@ -3458,3 +3458,6 @@
 	* arch/arm/src/stm32/stm32_rng.c, chip/stm32_rng.h, and other files:
 	  Implementation of /dev/random using the STM32 Random Number
 	  Generator (RNG).
+	* board.h file for shenzhou, fire-stm32v2, and olimex-stm32-p107:
+	  Add frequencies for HSE, HSI, LSE, and LSI.  These are needed
+	  by the STM32 watchdog driver.
