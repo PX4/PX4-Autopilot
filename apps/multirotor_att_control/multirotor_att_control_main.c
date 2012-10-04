@@ -82,68 +82,6 @@ static orb_advert_t actuator_pub;
 
 static struct vehicle_status_s state;
 
-/**
- * Perform rate control right after gyro reading
- */
-static void *rate_control_thread_main(void *arg)
-{
-	prctl(PR_SET_NAME, "mc rate control", getpid());
-
-	struct actuator_controls_s actuators;
-
-	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	int rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
-
-	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
-
-//	struct pollfd fds = { .fd = att_sub, .events = POLLIN };
-
-	struct vehicle_attitude_s vehicle_attitude;
-	struct vehicle_rates_setpoint_s rates_sp;
-	memset(&rates_sp, 0, sizeof(rates_sp));
-	float gyro_lp[3] = {0.0f, 0.0f, 0.0f};
-
-	while (true) {
-//		/* rate control at maximum rate */
-//		/* wait for a sensor update, check for exit condition every 1000 ms */
-//		int ret = poll(&fds, 1, 1000);
-//
-//		if (ret < 0) {
-//			/* XXX this is seriously bad - should be an emergency */
-//		} else if (ret == 0) {
-//			/* XXX this means no sensor data - should be critical or emergency */
-//			printf("[mc att control] WARNING: Not getting gyro data, no rate control\n");
-//		} else {
-			/* get current angular rate */
-			orb_copy(ORB_ID(vehicle_attitude), att_sub, &vehicle_attitude);
-			/* get current rate setpoint */
-			bool rates_sp_valid = false;
-			orb_check(rates_sp_sub, &rates_sp_valid);
-			if (rates_sp_valid) {
-				orb_copy(ORB_ID(vehicle_rates_setpoint), rates_sp_sub, &rates_sp);
-			}
-
-			/* perform local lowpass */
-
-			/* apply controller */
-//			if (state.flag_control_rates_enabled) {
-				/* lowpass gyros */
-				// XXX
-				gyro_lp[0] = vehicle_attitude.rollspeed;
-				gyro_lp[1] = vehicle_attitude.pitchspeed;
-				gyro_lp[2] = vehicle_attitude.yawspeed;
-
-				//multirotor_control_rates(&rates_sp, gyro_lp, &actuators);
-				printf(".\n");
-				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
-//			}
-//		}
-		usleep(5000);
-	}
-
-	return NULL;
-}
-
 static int
 mc_thread_main(int argc, char *argv[])
 {
@@ -187,22 +125,16 @@ mc_thread_main(int argc, char *argv[])
 		actuators.control[i] = 0.0f;
 	}
 
-	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
+	actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
 	orb_advert_t rates_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
+	int rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 
 	/* register the perf counter */
 	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "multirotor_att_control");
 
 	/* welcome user */
 	printf("[multirotor_att_control] starting\n");
-
-	/* ready, spawn pthread */
-	pthread_attr_t rate_control_attr;
-	pthread_attr_init(&rate_control_attr);
-	pthread_attr_setstacksize(&rate_control_attr, 4096);
-	pthread_t rate_control_thread;
-	pthread_create(&rate_control_thread, &rate_control_attr, rate_control_thread_main, NULL);
 
 	while (!thread_should_exit) {
 
@@ -236,13 +168,24 @@ mc_thread_main(int argc, char *argv[])
 
 		if (state.flag_control_manual_enabled) {
 			/* manual inputs, from RC control or joystick */
-			att_sp.roll_body = manual.roll;
-			att_sp.pitch_body = manual.pitch;
-			att_sp.yaw_body = manual.yaw; // XXX Hack, remove, switch to yaw rate controller
-			/* set yaw rate */
-			rates_sp.yaw = manual.yaw;
-			att_sp.thrust = manual.throttle;
-			att_sp.timestamp = hrt_absolute_time();
+
+			if (state.flag_control_rates_enabled && !state.flag_control_attitude_enabled) {
+				rates_sp.roll = manual.roll;
+				rates_sp.pitch = manual.pitch;
+				rates_sp.yaw = manual.yaw;
+				rates_sp.thrust = manual.throttle;
+				rates_sp.timestamp = hrt_absolute_time();
+			}
+
+			if (state.flag_control_attitude_enabled) {
+				att_sp.roll_body = manual.roll;
+				att_sp.pitch_body = manual.pitch;
+				att_sp.yaw_body = manual.yaw; // XXX Hack, remove, switch to yaw rate controller
+				/* set yaw rate */
+				rates_sp.yaw = manual.yaw;
+				att_sp.thrust = manual.throttle;
+				att_sp.timestamp = hrt_absolute_time();
+			}
 			/* STEP 2: publish the result to the vehicle actuators */
 			orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 			
@@ -280,31 +223,36 @@ mc_thread_main(int argc, char *argv[])
 
 		/** STEP 3: Identify the controller setup to run and set up the inputs correctly */
 
-//		/* run attitude controller */
-//		if (state.flag_control_attitude_enabled && !state.flag_control_rates_enabled) {
-//			multirotor_control_attitude(&att_sp, &att, NULL, &actuators);
-//			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
-//		} else if (state.flag_control_attitude_enabled && state.flag_control_rates_enabled) {
-//			multirotor_control_attitude(&att_sp, &att, &rates_sp, NULL);
-//			orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
-//		}
 
-		float gyro_lp[3] = {0.0f, 0.0f, 0.0f};
+		/* run attitude controller */
+		// if (state.flag_control_attitude_enabled && !state.flag_control_rates_enabled) {
+		// 	multirotor_control_attitude(&att_sp, &att, NULL, &actuators);
+		// 	orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+		// } else if (state.flag_control_attitude_enabled && state.flag_control_rates_enabled) {
+		// 	multirotor_control_attitude(&att_sp, &att, &rates_sp, NULL);
+		// 	orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
+		// }
 
-		gyro_lp[0] = att.rollspeed;
-		gyro_lp[1] = att.pitchspeed;
-		gyro_lp[2] = att.yawspeed;
 
-		rates_sp.roll = manual.roll;
-		rates_sp.pitch = manual.pitch;
-		rates_sp.yaw = manual.yaw; // XXX Hack, remove, switch to yaw rate controller
-					/* set yaw rate */
-		rates_sp.yaw = manual.yaw;
-		rates_sp.thrust = manual.throttle;
-		rates_sp.timestamp = hrt_absolute_time();
+		if (state.flag_control_rates_enabled) {
 
-		multirotor_control_rates(&rates_sp, gyro_lp, &actuators);
-		orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+			float gyro[3] = {0.0f, 0.0f, 0.0f};
+
+			/* get current rate setpoint */
+			bool rates_sp_valid = false;
+			orb_check(rates_sp_sub, &rates_sp_valid);
+			if (rates_sp_valid) {
+				orb_copy(ORB_ID(vehicle_rates_setpoint), rates_sp_sub, &rates_sp);
+			}
+
+			/* apply controller */
+			gyro[0] = att.rollspeed;
+			gyro[1] = att.pitchspeed;
+			gyro[2] = att.yawspeed;
+
+			multirotor_control_rates(&rates_sp, gyro, &actuators);
+			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+		}
 
 		perf_end(mc_loop_perf);
 	}
@@ -325,8 +273,6 @@ mc_thread_main(int argc, char *argv[])
 
 	perf_print_counter(mc_loop_perf);
 	perf_free(mc_loop_perf);
-
-	pthread_join(rate_control_thread, NULL);
 
 	fflush(stdout);
 	exit(0);

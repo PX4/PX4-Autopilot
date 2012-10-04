@@ -155,32 +155,33 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	static bool initialized = false;
 
+	/* initialize the pid controllers when the function is called for the first time */
+	if (initialized == false) {
+		parameters_init(&h);
+		parameters_update(&h, &p);
+		initialized = true;
+	}
 
 	/* load new parameters with lower rate */
-
-	if (motor_skip_counter % 500 == 0) {
+	if (motor_skip_counter % 2500 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
+		printf("p.yawrate_p: %8.4f\n", (double)p.yawrate_p);
 	}
 
 	/* calculate current control outputs */
-	float setpointXrate;
-	float setpointYrate;
-	float setpointZrate;
-	float setRollRate=rate_sp->roll;
-	float setPitchRate=rate_sp->pitch;
-	float setYawRate=rate_sp->yaw;
+	
+	/* control pitch (forward) output */
+	float pitch_control = p.attrate_p * deltaT * (rate_sp->pitch-rates[1]);
+	/* control roll (left/right) output */
+	float roll_control = p.attrate_p * deltaT * (rate_sp->roll-rates[0]  );
 
-	//x-axis
-	setpointXrate=p.attrate_p*(setRollRate-rates[0]);
-	//Y-axis
-	setpointYrate=p.attrate_p*(setPitchRate-rates[1]);
-	//Z-axis
-	setpointZrate=p.yawrate_p*(setYawRate-rates[2]);
+	/* control yaw rate */
+	float yaw_rate_control = p.yawrate_p * deltaT * (rate_sp->yaw-rates[2]  );
 
-	actuators->control[0] = setpointXrate; //roll
-	actuators->control[1] = setpointYrate; //pitch
-	actuators->control[2] = setpointZrate; //yaw
+	actuators->control[0] = roll_control;
+	actuators->control[1] = pitch_control;
+	actuators->control[2] = yaw_rate_control;
 	actuators->control[3] = rate_sp->thrust;
 
 	motor_skip_counter++;

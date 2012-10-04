@@ -257,7 +257,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			{ .fd = sub_raw,   .events = POLLIN },
 			{ .fd = sub_params, .events = POLLIN }
 		};
-		int ret = poll(fds, 1, 1000);
+		int ret = poll(fds, 2, 1000);
 
 		if (ret < 0) {
 			/* XXX this is seriously bad - should be an emergency */
