@@ -141,11 +141,6 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	static int motor_skip_counter = 0;
 
-	// static PID_t yaw_pos_controller;
-	static PID_t yaw_speed_controller;
-	static PID_t pitch_controller;
-	static PID_t roll_controller;
-
 	static struct mc_rate_control_params p;
 	static struct mc_rate_control_param_handles h;
 
@@ -155,37 +150,25 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	if (initialized == false) {
 		parameters_init(&h);
 		parameters_update(&h, &p);
-
-		pid_init(&yaw_speed_controller, p.yawrate_p, 0, p.yawrate_i, p.yawrate_awu,
-			PID_MODE_DERIVATIV_SET);
-		pid_init(&pitch_controller, p.attrate_p, p.attrate_i, 0, p.attrate_awu,
-			PID_MODE_DERIVATIV_SET);
-		pid_init(&roll_controller, p.attrate_p, p.attrate_i, 0, p.attrate_awu,
-			PID_MODE_DERIVATIV_SET);
-
 		initialized = true;
 	}
 
 	/* load new parameters with lower rate */
-	if (motor_skip_counter % 250 == 0) {
+	if (motor_skip_counter % 2500 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-		/* apply parameters */
-		pid_set_parameters(&yaw_speed_controller, p.yawrate_p, p.yawrate_i, 0, p.yawrate_awu);
-		pid_set_parameters(&pitch_controller, p.attrate_p, p.attrate_i, 0, p.attrate_awu);
-		pid_set_parameters(&roll_controller, p.attrate_p, p.attrate_i, 0, p.attrate_awu);
+		printf("p.yawrate_p: %8.4f", (double)p.yawrate_p);
 	}
 
 	/* calculate current control outputs */
 	
 	/* control pitch (forward) output */
-	float pitch_control = pid_calculate(&pitch_controller, rate_sp->pitch,
-					rates[1], 0.0f, deltaT);
+	float pitch_control = 5 * deltaT * (rates[1] - rate_sp->pitch);
 	/* control roll (left/right) output */
-	float roll_control = pid_calculate(&roll_controller, rate_sp->roll,
-					rates[0], 0.0f, deltaT);
+	float roll_control = p.attrate_p * deltaT * (rates[0] - rate_sp->roll);
+
 	/* control yaw rate */
-	float yaw_rate_control = pid_calculate(&yaw_speed_controller, rate_sp->yaw, rates[2], 0.0f, deltaT);
+	float yaw_rate_control = p.yawrate_p * deltaT * (rates[2] - rate_sp->yaw);
 
 	/*
 	 * compensate the vertical loss of thrust
@@ -215,37 +198,37 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	/* compensate thrust vector for roll / pitch contributions */
 	motor_thrust *= zcompensation;
 
-	/* limit yaw rate output */
-	if (yaw_rate_control > p.yawrate_lim) {
-		yaw_rate_control = p.yawrate_lim;
-		yaw_speed_controller.saturated = 1;
-	}
+	// /* limit yaw rate output */
+	// if (yaw_rate_control > p.yawrate_lim) {
+	// 	yaw_rate_control = p.yawrate_lim;
+	// 	yaw_speed_controller.saturated = 1;
+	// }
 
-	if (yaw_rate_control < -p.yawrate_lim) {
-		yaw_rate_control = -p.yawrate_lim;
-		yaw_speed_controller.saturated = 1;
-	}
+	// if (yaw_rate_control < -p.yawrate_lim) {
+	// 	yaw_rate_control = -p.yawrate_lim;
+	// 	yaw_speed_controller.saturated = 1;
+	// }
 
-	if (pitch_control > p.attrate_lim) {
-		pitch_control = p.attrate_lim;
-		pitch_controller.saturated = 1;
-	}
+	// if (pitch_control > p.attrate_lim) {
+	// 	pitch_control = p.attrate_lim;
+	// 	pitch_controller.saturated = 1;
+	// }
 
-	if (pitch_control < -p.attrate_lim) {
-		pitch_control = -p.attrate_lim;
-		pitch_controller.saturated = 1;
-	}
+	// if (pitch_control < -p.attrate_lim) {
+	// 	pitch_control = -p.attrate_lim;
+	// 	pitch_controller.saturated = 1;
+	// }
 
 
-	if (roll_control > p.attrate_lim) {
-		roll_control = p.attrate_lim;
-		roll_controller.saturated = 1;
-	}
+	// if (roll_control > p.attrate_lim) {
+	// 	roll_control = p.attrate_lim;
+	// 	roll_controller.saturated = 1;
+	// }
 
-	if (roll_control < -p.attrate_lim) {
-		roll_control = -p.attrate_lim;
-		roll_controller.saturated = 1;
-	}
+	// if (roll_control < -p.attrate_lim) {
+	// 	roll_control = -p.attrate_lim;
+	// 	roll_controller.saturated = 1;
+	// }
 
 	actuators->control[0] = roll_control;
 	actuators->control[1] = pitch_control;

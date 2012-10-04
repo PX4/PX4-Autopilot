@@ -1307,18 +1307,12 @@ int commander_thread_main(int argc, char *argv[])
 				//printf("RC: y:%i/t:%i s:%i chans: %i\n", rc_yaw_scale, rc_throttle_scale, mode_switch_rc_value, rc.chan_count);
 
 				if (sp_man.override_mode_switch > STICK_ON_OFF_LIMIT) {
-					current_status.flag_control_attitude_enabled = true;
-					current_status.flag_control_rates_enabled = false;
 					update_state_machine_mode_manual(stat_pub, &current_status, mavlink_fd);
 
 				} else if (sp_man.override_mode_switch < -STICK_ON_OFF_LIMIT) {
-					current_status.flag_control_attitude_enabled = true;
-					current_status.flag_control_rates_enabled = false;
 					update_state_machine_mode_auto(stat_pub, &current_status, mavlink_fd);
 
 				} else {
-					current_status.flag_control_attitude_enabled = true;
-					current_status.flag_control_rates_enabled = false;
 					update_state_machine_mode_stabilized(stat_pub, &current_status, mavlink_fd);
 				}
 
