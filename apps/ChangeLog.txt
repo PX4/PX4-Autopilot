@@ -362,3 +362,5 @@
 	  of CONFIG_EXAMPLE_* to CONFIG_EXAMPLES_*.
 	* Kconfig:  Fleshed out apps/examples/adc/Kconfig and apps/examples/wget/Kconfig.
 	  There are still a LOT of empty, stub Kconfig files.
+	* Kconfig:  Fleshed out apps/examples/buttons/Kconfig. There are still a LOT
+	  of empty, stub Kconfig files.

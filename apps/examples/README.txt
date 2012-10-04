@@ -60,11 +60,11 @@ examples/buttons
   This is a simple configuration that may be used to test the board-
   specific button interfaces.  Configuration options:
 
-  CONFIG_ARCH_BUTTONS                - Must be defined for button support
+  CONFIG_ARCH_BUTTONS                 - Must be defined for button support
   CONFIG_EXAMPLES_BUTTONS_MIN         - Lowest button number (MIN=0)
   CONFIG_EXAMPLES_BUTTONS_MAX         - Highest button number (MAX=7)
 
-  CONFIG_ARCH_IRQBUTTONS             - Must be defined for interrupting button support
+  CONFIG_ARCH_IRQBUTTONS              - Must be defined for interrupting button support
   CONFIG_EXAMPLES_IRQBUTTONS_MIN      - Lowest interrupting button number (MIN=0)
   CONFIG_EXAMPLES_IRQBUTTONS_MAX      - Highest interrupting button number (MAX=7)
 

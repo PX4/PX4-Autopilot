@@ -3463,3 +3463,5 @@
 	  by the STM32 watchdog driver.
 	* CONFIG_EXAMPLES_*: To make things consistent, changed all occurrences
 	  of CONFIG_EXAMPLE_* to CONFIG_EXAMPLES_*.
+	* drivers/mtd/w25.c and configs/*/src/up_w25.c:  Several fixes for the
+	  W25 SPI FLASH.

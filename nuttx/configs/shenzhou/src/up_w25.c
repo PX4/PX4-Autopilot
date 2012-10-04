@@ -96,23 +96,23 @@ int stm32_w25initialize(int minor)
 #ifdef HAVE_W25
   FAR struct spi_dev_s *spi;
   FAR struct mtd_dev_s *mtd;
-#ifndef CONFIG_FS_NXFFS
-  uint8_t devname[12];
+#ifdef CONFIG_FS_NXFFS
+  char devname[12];
 #endif
   int ret;
 
   /* Get the SPI port */
 
-  spi = up_spiinitialize(2);
+  spi = up_spiinitialize(1);
   if (!spi)
     {
       fdbg("ERROR: Failed to initialize SPI port 2\n");
       return -ENODEV;
     }
 
-  /* Now bind the SPI interface to the SST 25 SPI FLASH driver */
+  /* Now bind the SPI interface to the W25 SPI FLASH driver */
 
-  mtd = sst25_initialize(spi);
+  mtd = w25_initialize(spi);
   if (!mtd)
     {
       fdbg("ERROR: Failed to bind SPI port 2 to the SST 25 FLASH driver\n");
@@ -140,7 +140,7 @@ int stm32_w25initialize(int minor)
 
   /* Mount the file system at /mnt/w25 */
 
-  snprintf(devname, 12, "/mnt/w25%c", a + minor);
+  snprintf(devname, 12, "/mnt/w25%c", 'a' + minor);
   ret = mount(NULL, devname, "nxffs", 0, NULL);
   if (ret < 0)
     {
