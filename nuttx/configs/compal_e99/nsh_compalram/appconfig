@@ -40,4 +40,4 @@ CONFIGURED_APPS += examples/nsh
 
 # Path to example in apps/examples
 CONFIGURED_APPS += examples/hello
-CONFIGURED_APPS += vsn/poweroff
+CONFIGURED_APPS += system/poweroff

@@ -1159,7 +1159,7 @@ CONFIG_NXWM_HEXCALCULATOR_FONTID=5
 #
 
 #
-# Custom free memory command
+# Custom Free Memory Command
 #
 # CONFIG_SYSTEM_FREE is not set
 
@@ -1173,19 +1173,27 @@ CONFIG_NXWM_HEXCALCULATOR_FONTID=5
 # CONFIG_SYSTEM_INSTALL is not set
 
 #
-# readline() support
+# readline()
 #
 CONFIG_SYSTEM_READLINE=y
 CONFIG_READLINE_ECHO=y
 
 #
-# VSN board Add-Ons
+# Power Off
 #
+# CONFIG_SYSTEM_POWEROFF is not set
 
 #
-# VSN board add-ons
+# RAMTRON
 #
-# CONFIG_VSN_POWEROFF is not set
-# CONFIG_VSN_RAMTRON is not set
-# CONFIG_VSN_SDCARD is not set
-# CONFIG_VSN_SYSINFO is not set
+# CONFIG_SYSTEM_RAMTRON is not set
+
+#
+# SD Card
+#
+# CONFIG_SYSTEM_SDCARD is not set
+
+#
+# Sysinfo
+#
+# CONFIG_SYSTEM_SYSINFO is not set

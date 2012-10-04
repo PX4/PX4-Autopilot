@@ -1,5 +1,5 @@
 /****************************************************************************
- * ramtron/ramtron.c
+ * apps/system/ramtron/ramtron.c
  *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
