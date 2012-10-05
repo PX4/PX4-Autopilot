@@ -3465,3 +3465,8 @@
 	  of CONFIG_EXAMPLE_* to CONFIG_EXAMPLES_*.
 	* drivers/mtd/w25.c and configs/*/src/up_w25.c:  Several fixes for the
 	  W25 SPI FLASH.
+	* configs/*/Make.defs:  All buildroot tools now use the extension
+	  xxx-nuttx-elf- vs. xxx-elf-
+	* configs/shenzhou/*/Make.defs:  Now uses the new buildroot 4.6.3
+	  EABI toolchain.
+

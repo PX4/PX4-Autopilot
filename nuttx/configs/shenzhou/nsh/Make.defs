@@ -82,8 +82,8 @@ ifeq ($(CONFIG_STM32_RAISONANCE),y)
 endif
 ifeq ($(CONFIG_STM32_BUILDROOT),y)
   # NuttX buildroot under Linux or Cygwin
-  CROSSDEV = arm-nuttx-elf-
-  ARCROSSDEV = arm-nuttx-elf-
+  CROSSDEV = arm-nuttx-eabi-
+  ARCROSSDEV = arm-nuttx-eabi-
   ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
   MAXOPTIMIZATION = -Os
 endif
@@ -153,7 +153,7 @@ OBJEXT = .o
 LIBEXT = .a
 EXEEXT =
 
-ifneq ($(CROSSDEV),arm-nuttx-elf-)
+ifneq ($(CROSSDEV),arm-nuttx-eabi-)
   LDFLAGS += -nostartfiles -nodefaultlibs
 endif
 ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
