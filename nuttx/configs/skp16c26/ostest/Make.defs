@@ -36,7 +36,7 @@
 include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
 
-CROSSDEV		= m32c-elf-
+CROSSDEV		= m32c-nuttx-elf-
 CC			= $(CROSSDEV)gcc
 CPP			= $(CROSSDEV)gcc -E
 LD			= $(CROSSDEV)ld

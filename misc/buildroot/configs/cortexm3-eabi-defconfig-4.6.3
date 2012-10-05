@@ -1,0 +1,123 @@
+#
+# Automatically generated make config: don't edit
+#
+BR2_HAVE_DOT_CONFIG=y
+# BR2_alpha is not set
+BR2_arm=y
+# BR2_armeb is not set
+# BR2_avr is not set
+# BR2_avr32 is not set
+# BR2_bfin is not set
+# BR2_cris is not set
+# BR2_i386 is not set
+# BR2_m32c is not set
+# BR2_m68k is not set
+# BR2_m68hc11 is not set
+# BR2_m68hc12 is not set
+# BR2_m9s12x is not set
+# BR2_mips is not set
+# BR2_mipsel is not set
+# BR2_nios2 is not set
+# BR2_powerpc is not set
+# BR2_sh is not set
+# BR2_sh64 is not set
+# BR2_h8300 is not set
+# BR2_sparc is not set
+# BR2_x86_64 is not set
+# BR2_generic_arm is not set
+# BR2_arm610 is not set
+# BR2_arm7tdmi is not set
+# BR2_arm710 is not set
+# BR2_arm720t is not set
+# BR2_arm740t is not set
+# BR2_arm920t is not set
+# BR2_arm922t is not set
+# BR2_arm926t is not set
+# BR2_arm1136jf_s is not set
+BR2_cortex_m3=y
+# BR2_sa110 is not set
+# BR2_sa1100 is not set
+# BR2_xscale is not set
+# BR2_iwmmxt is not set
+# BR2_ARM_OABI is not set
+BR2_ARM_EABI=y
+BR2_ARCH="arm"
+BR2_GCC_TARGET_TUNE="cortex-m3"
+BR2_GCC_TARGET_ARCH="armv7-m"
+BR2_GCC_TARGET_ABI="aapcs-linux"
+BR2_ENDIAN="LITTLE"
+
+#
+# Build options
+#
+BR2_WGET="wget --passive-ftp"
+BR2_SVN="svn co"
+BR2_ZCAT="zcat"
+BR2_BZCAT="bzcat"
+BR2_TAR_OPTIONS=""
+BR2_DL_DIR="$(BASE_DIR)/../archives"
+BR2_STAGING_DIR="$(BUILD_DIR)/staging_dir"
+BR2_NUTTX_DIR="$(TOPDIR)/../../nuttx"
+BR2_TOPDIR_PREFIX=""
+BR2_TOPDIR_SUFFIX=""
+BR2_GNU_BUILD_SUFFIX="pc-elf"
+BR2_GNU_TARGET_SUFFIX="nuttx-eabi"
+# BR2_PREFER_IMA is not set
+
+#
+# Toolchain Options
+#
+
+#
+# Binutils Options
+#
+# BR2_BINUTILS_VERSION_2_17 is not set
+# BR2_BINUTILS_VERSION_2_18 is not set
+# BR2_BINUTILS_VERSION_2_19 is not set
+# BR2_BINUTILS_VERSION_2_19_1 is not set
+# BR2_BINUTILS_VERSION_2_21_1 is not set
+BR2_BINUTILS_VERSION_2_22=y
+BR2_BINUTILS_VERSION="2.22"
+BR2_EXTRA_BINUTILS_CONFIG_OPTIONS=""
+
+#
+# GCC Options
+#
+BR2_PACKAGE_GCC=y
+# BR2_GCC_VERSION_3_3_6 is not set
+# BR2_GCC_VERSION_3_4_6 is not set
+# BR2_GCC_VERSION_4_2_4 is not set
+# BR2_GCC_VERSION_4_3_3 is not set
+# BR2_GCC_VERSION_4_5_2 is not set
+BR2_GCC_VERSION_4_6_3=y
+BR2_GCC_SUPPORTS_SYSROOT=y
+BR2_GCC_VERSION="4.6.3"
+# BR2_GCC_USE_SJLJ_EXCEPTIONS is not set
+BR2_EXTRA_GCC_CONFIG_OPTIONS=""
+BR2_INSTALL_LIBSTDCPP=y
+# BR2_INSTALL_LIBGCJ is not set
+# BR2_INSTALL_OBJC is not set
+# BR2_INSTALL_FORTRAN is not set
+
+#
+# Gdb Options
+#
+# BR2_PACKAGE_GDB is not set
+# BR2_PACKAGE_GDB_SERVER is not set
+# BR2_PACKAGE_GDB_HOST is not set
+
+#
+# NuttX Binary Support
+#
+BR2_PACKAGE_NXFLAT=y
+BR2_PACKAGE_GENROMFS=y
+
+#
+# Common Toolchain Options
+#
+# BR2_PACKAGE_SSTRIP_TARGET is not set
+# BR2_PACKAGE_SSTRIP_HOST is not set
+# BR2_ENABLE_MULTILIB is not set
+BR2_LARGEFILE=y
+BR2_SOFT_FLOAT=y
+BR2_TARGET_OPTIMIZATION="-Os -pipe"

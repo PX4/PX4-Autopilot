@@ -127,7 +127,7 @@ GNU Toolchain Options
      make                         # Will build for the NuttX buildroot toolchain
      make CROSSDEV=arm-eabi-      # Will build for the devkitARM toolchain
      make CROSSDEV=arm-none-eabi- # Will build for the CodeSourcery toolchain
-     make CROSSDEV=arm-elf-       # Will build for the NuttX buildroot toolchain
+     make CROSSDEV=arm-nuttx-elf- # Will build for the NuttX buildroot toolchain
 
   Of course, hard coding this CROSS_COMPILE value in Make.defs file will save
   some repetitive typing.
@@ -267,7 +267,7 @@ GENERAL STEPS:
 
 6. GDB
 
-  start arm-elf-gdb
+  start arm-nuttx-elf-gdb
   type 'file <executable.elf>' to load the executable
   type 'set debug remote 1' to enable tracing of gdb protocol (if required)
   type 'target remote localhost:3333' to connect to the target
@@ -301,7 +301,7 @@ Windows OpenOCD will Olimex JTAG
   Once the OpenOCD daemon has been started, you can connect to it via
   GDB using the following GDB command:
 
-   arm-elf-gdb
+   arm-nuttx-elf-gdb
    (gdb) target remote localhost:3333
 
   And you can load the NuttX ELF file into FLASH:

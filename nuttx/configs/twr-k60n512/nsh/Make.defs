@@ -58,7 +58,7 @@ ifeq ($(CONFIG_KINETIS_DEVKITARM),y)
 endif
 ifeq ($(CONFIG_KINETIS_BUILDROOT),y)
   # NuttX buildroot under Linux or Cygwin
-  CROSSDEV = arm-elf-
+  CROSSDEV = arm-nuttx-elf-
   ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft -mlong-calls
   MAXOPTIMIZATION = -Os
 endif
@@ -120,7 +120,7 @@ OBJEXT = .o
 LIBEXT = .a
 EXEEXT =
 
-ifneq ($(CROSSDEV),arm-elf-)
+ifneq ($(CROSSDEV),arm-nuttx-elf-)
   LDFLAGS += -nostartfiles -nodefaultlibs
 endif
 ifeq ($(CONFIG_DEBUG_SYMBOLS),y)

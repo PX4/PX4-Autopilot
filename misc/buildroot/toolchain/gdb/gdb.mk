@@ -36,7 +36,9 @@ ifeq ($(GDB_VERSION),snapshot)
 		tar jtf $(DL_DIR)/$(GDB_SOURCE) | head -1 | cut -d"/" -f1)
 	ln -sf $(TOOL_BUILD_DIR)/$(shell tar jtf $(DL_DIR)/$(GDB_SOURCE) | head -1 | cut -d"/" -f1) $(GDB_DIR)
 endif
+ifneq ($(wildcard toolchain/gdb/$(GDB_VERSION)),)
 	toolchain/patch-kernel.sh $(GDB_DIR) toolchain/gdb/$(GDB_VERSION) \*.patch
+endif
 	$(CONFIG_UPDATE) $(GDB_DIR)
 	touch $(GDB_DIR)/.unpacked
 

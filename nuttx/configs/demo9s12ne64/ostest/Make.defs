@@ -39,7 +39,7 @@ include ${TOPDIR}/tools/Config.mk
 # Setup for the selected toolchain
 # NuttX buildroot under Linux or Cygwin
 
-CROSSDEV = m9s12x-elf-
+CROSSDEV = m9s12x-nuttx-elf-
 MAXOPTIMIZATION = -Os
 WINTOOL = n
 

@@ -534,7 +534,7 @@ Using OpenOCD and GDB with an FT2232 JTAG emulator
     Once the OpenOCD daemon has been started, you can connect to it via
     GDB using the following GDB command:
 
-      arm-elf-gdb
+      arm-nuttx-elf-gdb
       (gdb) target remote localhost:3333
 
     NOTE:  The name of your GDB program may differ.  For example, with the

@@ -36,7 +36,7 @@ GNU Toolchain Options
      make                         # Will build for the devkitARM toolchain
      make CROSSDEV=arm-eabi-      # Will build for the devkitARM toolchain
      make CROSSDEV=arm-none-eabi- # Will build for the CodeSourcery toolchain
-     make CROSSDEV=arm-elf-       # Will build for the NuttX buildroot toolchain
+     make CROSSDEV=arm-nuttx-elf- # Will build for the NuttX buildroot toolchain
 
   Of course, hard coding this CROSS_COMPILE value in Make.defs file will save
   some repetitive typing.

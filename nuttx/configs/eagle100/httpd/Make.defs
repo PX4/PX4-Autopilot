@@ -40,7 +40,7 @@ include ${TOPDIR}/tools/Config.mk
 #   make                         -- Will build for the devkitARM toolchain
 #   make CROSSDEV=arm-eabi-      -- Will build for the devkitARM toolchain
 #   make CROSSDEV=arm-none-eabi- -- Will build for the CodeSourcery toolchain
-#   make CROSSDEV=arm-elf-       -- Will build for the NuttX buildroot toolchain
+#   make CROSSDEV=arm-nuttx-elf- -- Will build for the NuttX buildroot toolchain
 
 CROSSDEV		= arm-eabi-
 CC			= $(CROSSDEV)gcc
@@ -55,7 +55,7 @@ OBJDUMP			= $(CROSSDEV)objdump
 ARCHCCVERSION		= ${shell $(CC) -v 2>&1 | sed -n '/^gcc version/p' | sed -e 's/^gcc version \([0-9\.]\)/\1/g' -e 's/[-\ ].*//g' -e '1q'}
 ARCHCCMAJOR		= ${shell echo $(ARCHCCVERSION) | cut -d'.' -f1}
 
-ifeq ($(CROSSDEV),arm-elf-)
+ifeq ($(CROSSDEV),arm-nuttx-elf-)
   MKDEP			= $(TOPDIR)/tools/mkdeps.sh
   ARCHCPUFLAGS		= -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
   ARCHINCLUDES		= -I. -isystem $(TOPDIR)/include
@@ -106,7 +106,7 @@ OBJEXT			= .o
 LIBEXT			= .a
 EXEEXT			=
 
-ifneq ($(CROSSDEV),arm-elf-)
+ifneq ($(CROSSDEV),arm-nuttx-elf-)
   LDFLAGS		+= -nostartfiles -nodefaultlibs
 endif
 ifeq ($(CONFIG_DEBUG_SYMBOLS),y)

@@ -343,7 +343,8 @@ config BR2_GNU_BUILD_SUFFIX
 
 config BR2_GNU_TARGET_SUFFIX
 	string "GNU target suffix"
-	default "elf"
+	default "nuttx-elf" if !BR2_ARM_EABI
+	default "nuttx-eabi" if BR2_ARM_EABI
 	help
 	  The string used to pass to configure scripts via the
 	  --target= option.  Just specify the suffix here, the leading

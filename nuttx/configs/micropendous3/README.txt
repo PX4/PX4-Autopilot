@@ -523,7 +523,7 @@ Where <subdir> is one of the following:
 
     FLASH/SRAM Requirements (as of 6/16/2011):
 
-      $ avr-elf-size nuttx
+      $ avr-nuttx-elf-size nuttx
        text    data     bss     dec     hex filename
       24816     978     308   26102    65f6 nuttx
 

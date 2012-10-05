@@ -56,7 +56,7 @@ ifeq ($(CONFIG_LPC31_DEVKITARM),y)
 endif
 ifeq ($(CONFIG_LPC31_BUILDROOT),y)
   # NuttX buildroot under Linux or Cygwin
-  CROSSDEV = arm-elf-
+  CROSSDEV = arm-nuttx-elf-
   MAXOPTIMIZATION = -Os
 endif
 

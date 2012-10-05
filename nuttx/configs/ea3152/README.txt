@@ -264,7 +264,7 @@ Using OpenOCD and GDB
   Once the OpenOCD daemon has been started, you can connect to it via
   GDB using the following GDB command:
 
-   arm-elf-gdb
+   arm-nuttx-elf-gdb
    (gdb) target remote localhost:3333
 
   And you can load the NuttX ELF file:

@@ -115,5 +115,8 @@ buildroot-1.11 2011-xx-xx <gnutt@nuttx.org>
 	  - there is some assembler error when compiling gcc for arm, gcc bugzilla
 	    43999
 	  - you can't build nuttx for cortex m3/m4 because of a missing instruction
-	    in ethe assembler, binutils bugzilla 12296
+	    in the assembler, binutils bugzilla 12296
+	* Add support for binutils 2.22 and GCC 4.6.3.
+	* Change name of all tools from xxx-elf to xxx-nuttx-elf
+	* Added an ARM EABI GCC 4.6.3 configuration (tool name is arm-nuttx-eabi-).
 

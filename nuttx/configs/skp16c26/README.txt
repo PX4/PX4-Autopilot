@@ -5,10 +5,10 @@ configs/skp16c26/README.txt
    buildroot can be downloaded from misc/buildroot in the NuttX SVN.  Insructions
    for building the toolchain are provided below.
 
-   However, the target cannot be built because the GNU m16c-elf-ld link fails with 
+   However, the target cannot be built because the GNU m16c-nuttx-elf-ld link fails with 
    the following message:
 
-     m32c-elf-ld: BFD (GNU Binutils) 2.19 assertion fail /home/Owner/projects/nuttx/buildroot/toolchain_build_m32c/binutils-2.19/bfd/elf32-m32c.c:482
+     m32c-nuttx-elf-ld: BFD (GNU Binutils) 2.19 assertion fail /home/Owner/projects/nuttx/buildroot/toolchain_build_m32c/binutils-2.19/bfd/elf32-m32c.c:482
 
    Where the reference line is:
 

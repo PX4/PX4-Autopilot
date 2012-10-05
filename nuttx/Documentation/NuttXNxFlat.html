@@ -443,7 +443,7 @@ cat ../syscall/syscall.csv ../lib/lib.csv | sort >tmp.csv
   <tr>
     <td><br></td>
     <td><br></td>
-    <td><code>abc-elf-ld -r -d -warn-common -o $@ $^</code></td>
+    <td><code>abc-nuttx-elf-ld -r -d -warn-common -o $@ $^</code></td>
   </tr>
   <tr>
     <th>Target 2</th>
@@ -464,7 +464,7 @@ cat ../syscall/syscall.csv ../lib/lib.csv | sort >tmp.csv
     <td><br></td>
     <td><br></td>
     <td>
-      <code>abc-elf-ld -r -d -warn-common -T binfmt/libnxflat/gnu-nxflat.ld -no-check-sections -o $@ hello.o hello-thunk.o</code>
+      <code>abc-nuttx-elf-ld -r -d -warn-common -T binfmt/libnxflat/gnu-nxflat.ld -no-check-sections -o $@ hello.o hello-thunk.o</code>
     </td>
   </tr>
   <tr>

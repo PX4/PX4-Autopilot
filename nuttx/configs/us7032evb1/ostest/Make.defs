@@ -50,7 +50,7 @@ ARCHDEFINES		=
 ARCHINCLUDES		= -I. -isystem $(TOPDIR)/include
 ARCHSCRIPT		= -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/ostest/ld.script
 
-CROSSDEV		= sh-elf-
+CROSSDEV		= sh-nuttx-elf-
 CC			= $(CROSSDEV)gcc
 CPP			= $(CROSSDEV)gcc -E
 LD			= $(CROSSDEV)ld

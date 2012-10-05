@@ -78,7 +78,7 @@ endif
 # Cygwin toolchains don't generate ELF binaries.
 
 ifeq ($(HOSTOS),Cygwin)
-CROSSDEV = i486-elf-
+CROSSDEV = i486-nuttx-elf-
 else
 CROSSDEV =
 endif

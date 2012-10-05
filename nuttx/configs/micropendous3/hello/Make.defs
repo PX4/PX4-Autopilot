@@ -57,7 +57,7 @@ endif
 
 ifeq ($(CONFIG_AVR_BUILDROOT),y)
   # NuttX buildroot GCC toolchain under Linux or Cygwin
-  CROSSDEV = avr-elf-
+  CROSSDEV = avr-nuttx-elf-
   MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mmcu=at90usb647
   LDFLAGS += -nostartfiles -nodefaultlibs

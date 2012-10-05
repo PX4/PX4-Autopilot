@@ -45,7 +45,7 @@ EXTRA_LIBS		= $(OSMODIR)/src/target/firmware/comm/libcomm.a \
 			# ^^^ Stupid hack! Why do I have to put it twice???
 endif
 
-CROSSDEV		= arm-elf-
+CROSSDEV		= arm-nuttx-elf-
 CC			= $(CROSSDEV)gcc
 CPP			= $(CROSSDEV)gcc -E
 LD			= $(CROSSDEV)ld

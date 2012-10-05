@@ -40,9 +40,14 @@ choice
 		bool "gdb 6.8"
 		depends on !BR2_avr32
 
+	config BR2_GDB_VERSION_7_4
+		config BR2_GDB_VERSION_7_4
+		depends on !BR2_bfin
+
 endchoice
 
 config BR2_GDB_VERSION
 	string
 	default "6.3"      if BR2_GDB_VERSION_6_3
 	default "6.8"      if BR2_GDB_VERSION_6_8
+	default "7.4.1"    if BR2_GDB_VERSION_7_4

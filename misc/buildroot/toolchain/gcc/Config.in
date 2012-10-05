@@ -41,6 +41,11 @@ choice
 		select BR2_GCC_SUPPORTS_SYSROOT
 		bool "gcc 4.5.2"
 
+	config BR2_GCC_VERSION_4_6_3
+		depends on !BR2_avr32 && !BR2_nios2 && !BR2_m9s12x
+		select BR2_GCC_SUPPORTS_SYSROOT
+		bool "gcc 4.6.3"
+
 endchoice
 
 config BR2_GCC_SUPPORTS_SYSROOT
@@ -54,6 +59,7 @@ config BR2_GCC_VERSION
 	default "4.2.4"     if BR2_GCC_VERSION_4_2_4
 	default "4.3.3"     if BR2_GCC_VERSION_4_3_3
 	default "4.5.2"     if BR2_GCC_VERSION_4_5_2
+	default "4.6.3"     if BR2_GCC_VERSION_4_6_3
 
 config BR2_GCC_USE_SJLJ_EXCEPTIONS
 	bool "Enable setjmp/longjmp exceptions?"
