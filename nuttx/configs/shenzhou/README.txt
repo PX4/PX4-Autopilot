@@ -346,6 +346,9 @@ NuttX buildroot Toolchain
      cd tools
      ./configure.sh shenzhou/<sub-dir>
 
+     cd ..
+     make context
+
   2. Download the latest buildroot package into <some-dir>
 
   3. unpack the buildroot tarball.  The resulting directory may
@@ -360,8 +363,20 @@ NuttX buildroot Toolchain
 
   7. make
 
-  8. Edit setenv.h, if necessary, so that the PATH variable includes
+  8. Edit nuttx/.config to select the buildroot toolchain as described above
+     and below:
+
+     -CONFIG_STM32_CODESOURCERYW=y
+     +CONFIG_STM32_BUILDROOT=y
+
+  9. Edit setenv.h, if necessary, so that the PATH variable includes
      the path to the newly built binaries.
+
+     -export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/CodeSourcery/Sourcery G++ Lite/bin"
+     +#export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/CodeSourcery/Sourcery G++ Lite/bin"
+
+     -#export TOOLCHAIN_BIN="${WD}/../misc/buildroot/build_arm_nofpu/staging_dir/bin"
+     +export TOOLCHAIN_BIN="${WD}/../misc/buildroot/build_arm_nofpu/staging_dir/bin"
 
   See the file configs/README.txt in the buildroot source tree.  That has more
   detailed PLUS some special instructions that you will need to follow if you are

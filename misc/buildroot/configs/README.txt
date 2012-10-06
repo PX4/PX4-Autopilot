@@ -14,12 +14,12 @@ AVAILABLE CONFIGURATIONS
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 arm-defconfig
-	Builds an ARM toolchain using gcc 3.4.6
+	Builds an OABI ARM toolchain using gcc 3.4.6
 
 arm7tdmi-defconfig-4.2.4
 arm920t-defconfig-4.2.4
 arm926t-defconfig-4.2.4
-	Builds an ARM toolchain using gcc 4.2.4.  This configuration
+	Builds an OABI ARM toolchain using gcc 4.2.4.  This configuration
 	builds both gcc and g++.  There are three versions: one for 
 	arm7tdmi (armv4t), arm920t (armv4t) and arm926t (arv5t) because
 	of differences in the way that soft floating is handled in between
@@ -48,7 +48,7 @@ arm926t-defconfig-4.2.4
 
 arm920t-defconfig-4.3.3
 arm7tdmi-defconfig-4.3.3
-	Builds an ARM toolchain using gcc 4.3.3.  These configurations
+	Builds an OABI ARM toolchain using gcc 4.3.3.  These configurations
 	builds both gcc and g++ for the arm7tdmi (armv4t) or the arm920t
 	(armv4t).  These are udates to *-defconfig-4.2.4 (see notes above).
 
@@ -61,6 +61,10 @@ avr-defconfig-5.4.2
 cortexm3-defconfig-4.3.3
 	Builds an OABI ARM toolchain for the Cortex-M3 using gcc 4.3.3.
 	This configuration builds gcc, g++ and the NXFLAT toolchain.
+
+cortexm3-eabi-defconfig-4.6.3
+        Builds an EABI ARM toolchain for the Cortex-M3 using gcc 4.6.3.
+        This configuration builds gcc, g++ and the NXFLAT toolchain.
 
 cortexm3-defconfig-nxflat
 arm926t-defconfig-nxflat
