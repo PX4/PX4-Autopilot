@@ -110,7 +110,7 @@ struct wget_s
   FAR char *buffer;  /* user-provided buffer */
   int buflen;        /* Length of the user provided buffer */
   int offset;        /* Offset to the beginning of interesting data */
-  int datend;        /* Offset+1 to the last valid byte of data in the buffer */  
+  int datend;        /* Offset+1 to the last valid byte of data in the buffer */
 
   /* Buffer HTTP header data and parse line at a time */
 
@@ -204,7 +204,7 @@ static inline int wget_resolvehost(const char *hostname, in_addr_t *ipaddr)
       /* 'host' does not point to a valid address string.  Try to resolve
        *  the host name to an IP address.
        */
- 
+
       if (resolv_query(hostname, &addr) < 0)
         {
           /* Needs to set the errno here */
@@ -401,10 +401,10 @@ exit:
  *
  * Returned Value:
  *   0: if the GET operation completed successfully;
- *  -1: On a failure with errno set appropriately 
+ *  -1: On a failure with errno set appropriately
  *
  ****************************************************************************/
- 
+
 int wget(FAR const char *url, FAR char *buffer, int buflen,
          wget_callback_t callback, FAR void *arg)
 {
@@ -524,10 +524,10 @@ int wget(FAR const char *url, FAR char *buffer, int buflen,
               ret = ws.datend;
               goto errout_with_errno;
             }
-          else if (ret == 0)
+          else if (ws.datend == 0)
             {
               nvdbg("Connection lost\n");
-              close(sockfd);            
+              close(sockfd);
               break;
             }
 
@@ -567,7 +567,7 @@ int wget(FAR const char *url, FAR char *buffer, int buflen,
               else
                 {
                   redirected = true;
-                  close(sockfd);            
+                  close(sockfd);
                   break;
                 }
             }

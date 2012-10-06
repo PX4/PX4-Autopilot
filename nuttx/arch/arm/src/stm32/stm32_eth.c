@@ -1656,6 +1656,7 @@ static void stm32_receive(FAR struct stm32_ethmac_s *priv)
 
           stm32_freebuffer(priv, dev->d_buf);
           dev->d_buf = NULL;
+          dev->d_len = 0;
         }
     }
 }

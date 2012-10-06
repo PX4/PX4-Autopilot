@@ -364,3 +364,7 @@
 	  There are still a LOT of empty, stub Kconfig files.
 	* Kconfig:  Fleshed out apps/examples/buttons/Kconfig. There are still a LOT
 	  of empty, stub Kconfig files.
+	* apps/netutils/webserver/httpd.c:  Fix a bug that I introduced in
+	  recent check-ins (Darcy Gong).
+	* apps/netutils/webclient/webclient.c:  Fix another but that I introduced
+	  when I was trying to add correct handling for loss of connection (Darcy Gong)

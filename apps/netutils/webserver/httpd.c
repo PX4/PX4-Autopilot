@@ -694,7 +694,7 @@ static inline int httpd_parse(struct httpd_state *pstate)
   while (state != STATE_BODY);
 
 #if !defined(CONFIG_NETUTILS_HTTPD_SENDFILE) && !defined(CONFIG_NETUTILS_HTTPD_MMAP)
-  if (0 == strcmp(pstate->ht_filename, "/")
+  if (0 == strcmp(pstate->ht_filename, "/"))
     {
       strncpy(pstate->ht_filename, "/" CONFIG_NETUTILS_HTTPD_INDEX, strlen("/" CONFIG_NETUTILS_HTTPD_INDEX));
     }
