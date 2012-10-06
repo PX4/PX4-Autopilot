@@ -45,7 +45,7 @@ if [ ! -x "setenv.sh" ]; then
   exit 1
 fi
 
-# This the Cygwin path to the location where I installed the MicroChip
+# This is the Cygwin path to the location where I installed the MicroChip
 # PIC32MX C32 toolchain under windows.  This is *not* the default install
 # location so you will probably have to edit this.  You will also have
 # to edit this if you install a different version of if you install the
@@ -58,7 +58,7 @@ export TOOLCHAIN_BIN="/cygdrive/c/MicroChip/mplabc32/v1.12/bin"
 # version of if you install the toolchain at a different location
 #export TOOLCHAIN_BIN="/opt/microchip/xc32/v1.00/bin"
 
-# This the Cygwin path to the location where I installed the Pinguino
+# This is the Cygwin path to the location where I installed the Pinguino
 # toolchain under Windows.  You will have to edit this if you install the
 # tool chain in a different location or use a different version.  /bin
 # needs to precede the tool path or otherwise you will get

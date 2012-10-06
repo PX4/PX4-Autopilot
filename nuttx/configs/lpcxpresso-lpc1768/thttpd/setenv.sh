@@ -49,7 +49,7 @@ export BUILDROOT_BIN="${WD}/../buildroot/build_arm_nofpu/staging_dir/bin"
 # This is the default install location for Code Red on Linux
 export TOOLCHAIN_BIN="/usr/local/LPCXpresso/tools/bin"
 
-# This the Cygwin path to the LPCXpresso 3.6 install location under Windows
+# This is the Cygwin path to the LPCXpresso 3.6 install location under Windows
 #export TOOLCHAIN_BIN="/cygdrive/c/nxp/lpcxpresso_3.6/Tools/bin"
 
 # This is the path to the LPCXpression tool subdirectory

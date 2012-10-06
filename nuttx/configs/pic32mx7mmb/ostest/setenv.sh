@@ -45,7 +45,7 @@ if [ ! -x "setenv.sh" ]; then
   exit 1
 fi
 
-# This the Cygwin path to the location where I installed the MicroChip
+# This is the Cygwin path to the location where I installed the MicroChip
 # PIC32MX toolchain under windows.  This is *not* the default install
 # location so you will probably have to edit this.  You will also have
 # to edit this if you install a different version of if you install
