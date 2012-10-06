@@ -46,7 +46,7 @@ GNU Toolchain Options
     CONFIG_LPC31_CODESOURCERYW=y  : CodeSourcery under Windows
     CONFIG_LPC31_CODESOURCERYL=y  : CodeSourcery under Linux
     CONFIG_LPC31_DEVKITARM=y      : devkitARM under Windows
-    CONFIG_LPC31_BUILDROOT=y	    : NuttX buildroot under Linux or Cygwin (default)
+    CONFIG_LPC31_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin (default)
 
   If you are not using CONFIG_LPC31_BUILDROOT, then you may also have to modify
   the PATH in the setenv.h file if your make cannot find the tools.
@@ -196,12 +196,12 @@ Image Format
   Then, to build the NuttX binary ready to load with the bootloader, just
   following these steps:
 
-  - cd tools/				# Configure Nuttx
-  - ./configure.sh ea3131/ostest	# (using the ostest configuration for this example)
-  - cd ..				# Set up environment
-  - . ./setenv.sh			# (see notes below)
-  - make				# Make NuttX.  This will produce nuttx.bin
-  - mklpc.sh				# Make the bootloader binary (nuttx.lpc)
+  - cd tools/                     # Configure Nuttx
+  - ./configure.sh ea3131/ostest  # (using the ostest configuration for this example)
+  - cd ..                         # Set up environment
+  - . ./setenv.sh                 # (see notes below)
+  - make                          # Make NuttX.  This will produce nuttx.bin
+  - mklpc.sh                      # Make the bootloader binary (nuttx.lpc)
 
   NOTES:
   
@@ -469,121 +469,121 @@ On-Demand Paging
 ARM/EA3131-specific Configuration Options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-	CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
-	   be set to:
+    CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
+       be set to:
 
-	   CONFIG_ARCH=arm
+       CONFIG_ARCH=arm
 
-	CONFIG_ARCH_family - For use in C code:
+    CONFIG_ARCH_family - For use in C code:
 
-	   CONFIG_ARCH_ARM=y
+       CONFIG_ARCH_ARM=y
 
-	CONFIG_ARCH_architecture - For use in C code:
+    CONFIG_ARCH_architecture - For use in C code:
 
-	   CONFIG_ARCH_ARM926EJS=y
+       CONFIG_ARCH_ARM926EJS=y
 
-	CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
+    CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 
-	   CONFIG_ARCH_CHIP=lpc313x
+       CONFIG_ARCH_CHIP=lpc313x
 
-	CONFIG_ARCH_CHIP_name - For use in C code
+    CONFIG_ARCH_CHIP_name - For use in C code
 
-	   CONFIG_ARCH_CHIP_LPC3131
+       CONFIG_ARCH_CHIP_LPC3131
 
-	CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
-	   hence, the board that supports the particular chip or SoC.
+    CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
+       hence, the board that supports the particular chip or SoC.
 
-	   CONFIG_ARCH_BOARD=ea3131
+       CONFIG_ARCH_BOARD=ea3131
 
-	CONFIG_ARCH_BOARD_name - For use in C code
+    CONFIG_ARCH_BOARD_name - For use in C code
 
-	   CONFIG_ARCH_BOARD_EA3131
+       CONFIG_ARCH_BOARD_EA3131
 
-	CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
-	   of delay loops
+    CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
+       of delay loops
 
-	CONFIG_ENDIAN_BIG - define if big endian (default is little
-	   endian)
+    CONFIG_ENDIAN_BIG - define if big endian (default is little
+       endian)
 
-	CONFIG_DRAM_SIZE - For most ARM9 architectures, this describes the
-	  size of installed DRAM.  For the LPC313X, it is used only to
-	  deterimine how to map the executable regions.  It is SDRAM size
-	  only if you are executing out of the external SDRAM; or it could
-	  be NOR FLASH size, external SRAM size, or internal SRAM size.
+    CONFIG_DRAM_SIZE - For most ARM9 architectures, this describes the
+      size of installed DRAM.  For the LPC313X, it is used only to
+      deterimine how to map the executable regions.  It is SDRAM size
+      only if you are executing out of the external SDRAM; or it could
+      be NOR FLASH size, external SRAM size, or internal SRAM size.
 
-	CONFIG_DRAM_START - The start address of installed DRAM (physical)
+    CONFIG_DRAM_START - The start address of installed DRAM (physical)
 
-	CONFIG_DRAM_VSTART - The startaddress of DRAM (virtual)
+    CONFIG_DRAM_VSTART - The startaddress of DRAM (virtual)
 
-	CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
-	   have LEDs
+    CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
+       have LEDs
 
-	CONFIG_ARCH_IRQPRIO - The LPC313x supports interrupt prioritization
+    CONFIG_ARCH_IRQPRIO - The LPC313x supports interrupt prioritization
 
-	CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
-	   stack. If defined, this symbol is the size of the interrupt
-	   stack in bytes.  If not defined, the user task stacks will be
-	  used during interrupt handling.
+    CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
+       stack. If defined, this symbol is the size of the interrupt
+       stack in bytes.  If not defined, the user task stacks will be
+      used during interrupt handling.
 
-	CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
+    CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
 
-	CONFIG_ARCH_BOOTLOADER - Set if you are using a bootloader.
+    CONFIG_ARCH_BOOTLOADER - Set if you are using a bootloader.
 
-	CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
+    CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
 
-	CONFIG_ARCH_BUTTONS -  Enable support for buttons. Unique to board architecture.
+    CONFIG_ARCH_BUTTONS -  Enable support for buttons. Unique to board architecture.
 
-	CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-	   cause a 100 second delay during boot-up.  This 100 second delay
-	   serves no purpose other than it allows you to calibratre
-	   CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-	   the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-	   the delay actually is 100 seconds.
-	CONFIG_ARCH_DMA - Support DMA initialization
-	CONFIG_ARCH_LOWVECTORS - define if vectors reside at address 0x0000:00000
-	  Undefine if vectors reside at address 0xffff:0000
-	CONFIG_ARCH_ROMPGTABLE - A pre-initialized, read-only page table is available.
-	  If defined, then board-specific logic must also define PGTABLE_BASE_PADDR,
-	  PGTABLE_BASE_VADDR, and all memory section mapping in a file named
-	  board_memorymap.h.
+    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
+       cause a 100 second delay during boot-up.  This 100 second delay
+       serves no purpose other than it allows you to calibratre
+       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
+       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
+       the delay actually is 100 seconds.
+    CONFIG_ARCH_DMA - Support DMA initialization
+    CONFIG_ARCH_LOWVECTORS - define if vectors reside at address 0x0000:00000
+      Undefine if vectors reside at address 0xffff:0000
+    CONFIG_ARCH_ROMPGTABLE - A pre-initialized, read-only page table is available.
+      If defined, then board-specific logic must also define PGTABLE_BASE_PADDR,
+      PGTABLE_BASE_VADDR, and all memory section mapping in a file named
+      board_memorymap.h.
 
   Individual subsystems can be enabled:
 
-	CONFIG_LPC31_MCI, CONFIG_LPC31_SPI, CONFIG_LPC31_UART
+    CONFIG_LPC31_MCI, CONFIG_LPC31_SPI, CONFIG_LPC31_UART
 
   External memory available on the board (see also CONFIG_MM_REGIONS)
 
-	CONFIG_LPC31_EXTSRAM0 - Select if external SRAM0 is present
-	CONFIG_LPC31_EXTSRAM0HEAP - Select if external SRAM0 should be
-	  configured as part of the NuttX heap.
-	CONFIG_LPC31_EXTSRAM0SIZE - Size (in bytes) of the installed
-	  external SRAM0 memory
-	CONFIG_LPC31_EXTSRAM1 - Select if external SRAM1 is present
-	CONFIG_LPC31_EXTSRAM1HEAP - Select if external SRAM1 should be
-	  configured as part of the NuttX heap.
-	CONFIG_LPC31_EXTSRAM1SIZE - Size (in bytes) of the installed
-	  external SRAM1 memory
-	CONFIG_LPC31_EXTSDRAM - Select if external SDRAM is present
-	CONFIG_LPC31_EXTSDRAMHEAP - Select if external SDRAM should be
-	  configured as part of the NuttX heap.
-	CONFIG_LPC31_EXTSDRAMSIZE - Size (in bytes) of the installed
-	  external SDRAM memory
-	CONFIG_LPC31_EXTNAND - Select if external NAND is present
-	CONFIG_LPC31_EXTSDRAMSIZE - Size (in bytes) of the installed
-	  external NAND memory
+    CONFIG_LPC31_EXTSRAM0 - Select if external SRAM0 is present
+    CONFIG_LPC31_EXTSRAM0HEAP - Select if external SRAM0 should be
+      configured as part of the NuttX heap.
+    CONFIG_LPC31_EXTSRAM0SIZE - Size (in bytes) of the installed
+      external SRAM0 memory
+    CONFIG_LPC31_EXTSRAM1 - Select if external SRAM1 is present
+    CONFIG_LPC31_EXTSRAM1HEAP - Select if external SRAM1 should be
+      configured as part of the NuttX heap.
+    CONFIG_LPC31_EXTSRAM1SIZE - Size (in bytes) of the installed
+      external SRAM1 memory
+    CONFIG_LPC31_EXTSDRAM - Select if external SDRAM is present
+    CONFIG_LPC31_EXTSDRAMHEAP - Select if external SDRAM should be
+      configured as part of the NuttX heap.
+    CONFIG_LPC31_EXTSDRAMSIZE - Size (in bytes) of the installed
+      external SDRAM memory
+    CONFIG_LPC31_EXTNAND - Select if external NAND is present
+    CONFIG_LPC31_EXTSDRAMSIZE - Size (in bytes) of the installed
+      external NAND memory
 
   LPC313X specific device driver settings
 
-	CONFIG_UART_SERIAL_CONSOLE - selects the UART for the
-	  console and ttys0
-	CONFIG_UART_RXBUFSIZE - Characters are buffered as received.
-	  This specific the size of the receive buffer
-	CONFIG_UART_TXBUFSIZE - Characters are buffered before
-	  being sent.  This specific the size of the transmit buffer
-	CONFIG_UART_BAUD - The configure BAUD of the UART.  Must be
-	CONFIG_UART_BITS - The number of bits.  Must be either 7 or 8.
-	CONFIG_UART_PARTIY - 0=no parity, 1=odd parity, 2=even parity
-	CONFIG_UART_2STOP - Two stop bits
+    CONFIG_UART_SERIAL_CONSOLE - selects the UART for the
+      console and ttys0
+    CONFIG_UART_RXBUFSIZE - Characters are buffered as received.
+      This specific the size of the receive buffer
+    CONFIG_UART_TXBUFSIZE - Characters are buffered before
+      being sent.  This specific the size of the transmit buffer
+    CONFIG_UART_BAUD - The configure BAUD of the UART.  Must be
+    CONFIG_UART_BITS - The number of bits.  Must be either 7 or 8.
+    CONFIG_UART_PARTIY - 0=no parity, 1=odd parity, 2=even parity
+    CONFIG_UART_2STOP - Two stop bits
 
 Configurations
 ^^^^^^^^^^^^^^
@@ -591,10 +591,10 @@ Configurations
 Each EA3131 configuration is maintained in a sudirectory and can be
 selected as follow:
 
-	cd tools
-	./configure.sh ea3131/<subdir>
-	cd -
-	. ./setenv.sh
+    cd tools
+    ./configure.sh ea3131/<subdir>
+    cd -
+    . ./setenv.sh
 
 Where <subdir> is one of the following:
 

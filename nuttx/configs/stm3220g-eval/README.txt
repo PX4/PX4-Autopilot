@@ -10,7 +10,9 @@ Contents
   - Development Environment
   - GNU Toolchain Options
   - IDEs
-  - NuttX buildroot Toolchain
+  - NuttX EABI "buildroot" Toolchain
+  - NuttX OABI "buildroot" Toolchain
+  - NXFLAT Toolchain
   - STM3220G-EVAL-specific Configuration Options
   - LEDs
   - Ethernet
@@ -170,8 +172,8 @@ IDEs
   one time from the Cygwin command line in order to obtain the pre-built
   startup object needed by RIDE.
 
-NuttX buildroot Toolchain
-=========================
+NuttX EABI "buildroot" Toolchain
+================================
 
   A GNU GCC-based toolchain is assumed.  The files */setenv.sh should
   be modified to point to the correct path to the Cortex-M3 GCC toolchain (if
@@ -194,7 +196,7 @@ NuttX buildroot Toolchain
 
   4. cd <some-dir>/buildroot
 
-  5. cp configs/cortexm3-defconfig-4.3.3 .config
+  5. cp configs/cortexm3-eabi-defconfig-4.6.3 .config
 
   6. make oldconfig
 
@@ -204,8 +206,58 @@ NuttX buildroot Toolchain
      the path to the newly built binaries.
 
   See the file configs/README.txt in the buildroot source tree.  That has more
-  detailed PLUS some special instructions that you will need to follow if you are
+  details PLUS some special instructions that you will need to follow if you are
   building a Cortex-M3 toolchain for Cygwin under Windows.
+
+NuttX OABI "buildroot" Toolchain
+================================
+
+  The older, OABI buildroot toolchain is also available.  To use the OABI
+  toolchain:
+
+  1. When building the buildroot toolchain, either (1) modify the cortexm3-eabi-defconfig-4.6.3
+     configuration to use EABI (using 'make menuconfig'), or (2) use an exising OABI
+     configuration such as cortexm3-defconfig-4.3.3
+
+  2. Modify the Make.defs file to use the OABI converntions:
+
+    +CROSSDEV = arm-nuttx-elf-
+    +ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
+    -CROSSDEV = arm-nuttx-eabi-
+    -ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
+
+NXFLAT Toolchain
+================
+
+  If you are *not* using the NuttX buildroot toolchain and you want to use
+  the NXFLAT tools, then you will still have to build a portion of the buildroot
+  tools -- just the NXFLAT tools.  The buildroot with the NXFLAT tools can
+  be downloaded from the NuttX SourceForge download site
+  (https://sourceforge.net/projects/nuttx/files/).
+ 
+  This GNU toolchain builds and executes in the Linux or Cygwin environment.
+
+  1. You must have already configured Nuttx in <some-dir>/nuttx.
+
+     cd tools
+     ./configure.sh lpcxpresso-lpc1768/<sub-dir>
+
+  2. Download the latest buildroot package into <some-dir>
+
+  3. unpack the buildroot tarball.  The resulting directory may
+     have versioning information on it like buildroot-x.y.z.  If so,
+     rename <some-dir>/buildroot-x.y.z to <some-dir>/buildroot.
+
+  4. cd <some-dir>/buildroot
+
+  5. cp configs/cortexm3-defconfig-nxflat .config
+
+  6. make oldconfig
+
+  7. make
+
+  8. Edit setenv.h, if necessary, so that the PATH variable includes
+     the path to the newly builtNXFLAT binaries.
 
 Ethernet
 ========

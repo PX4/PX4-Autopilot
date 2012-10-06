@@ -23,7 +23,9 @@ Contents
   o Development Environment
   o GNU Toolchain Options
   o IDEs
-  o NuttX buildroot Toolchain
+  o NuttX EABI "buildroot" Toolchain
+  o NuttX OABI "buildroot" Toolchain
+  o NXFLAT Toolchain
   
 Kinetis TWR-K60N512 Features:
 =============================
@@ -264,17 +266,17 @@ The TWR-K60N100 board has four LEDs labeled D2..D4 on the board.  Usage of
 these LEDs is defined in include/board.h and src/up_leds.c.  They are encoded
 as follows:
 
-	SYMBOL				Meaning					LED1*	LED2	LED3	LED4
-	-------------------	-----------------------	-------	-------	-------	------
-	LED_STARTED			NuttX has been started	ON		OFF		OFF		OFF
-	LED_HEAPALLOCATE	Heap has been allocated	OFF		ON		OFF		OFF
-	LED_IRQSENABLED		Interrupts enabled		ON		ON		OFF		OFF
-	LED_STACKCREATED	Idle stack created		OFF		OFF		ON		OFF
-	LED_INIRQ			In an interrupt**		ON		N/C		N/C		OFF
-	LED_SIGNAL			In a signal handler***  N/C		ON		N/C		OFF
-	LED_ASSERTION		An assertion failed		ON		ON		N/C		OFF
-	LED_PANIC			The system has crashed	N/C		N/C		N/C		ON
-    LED_IDLE            STM32 is is sleep mode  (Optional, not used)
+    SYMBOL                Meaning                  LED1*    LED2    LED3    LED4
+    -------------------   -----------------------  -------  ------- ------- ------
+    LED_STARTED           NuttX has been started   ON       OFF     OFF     OFF
+    LED_HEAPALLOCATE      Heap has been allocated  OFF      ON      OFF     OFF
+    LED_IRQSENABLED       Interrupts enabled       ON       ON      OFF     OFF
+    LED_STACKCREATED      Idle stack created       OFF      OFF     ON      OFF
+    LED_INIRQ             In an interrupt**        ON       N/C     N/C     OFF
+    LED_SIGNAL            In a signal handler***   N/C      ON      N/C     OFF
+    LED_ASSERTION         An assertion failed      ON       ON      N/C     OFF
+    LED_PANIC             The system has crashed   N/C      N/C      N/C    ON
+    LED_IDLE              STM32 is is sleep mode   (Optional, not used)
 
   * If LED1, LED2, LED3 are statically on, then NuttX probably failed to boot
     and these LEDs will give you some indication of where the failure was
@@ -308,7 +310,7 @@ GNU Toolchain Options
     CONFIG_KINETIS_CODESOURCERYW=y  : CodeSourcery under Windows
     CONFIG_KINETIS_CODESOURCERYL=y  : CodeSourcery under Linux
     CONFIG_KINETIS_DEVKITARM=y      : devkitARM under Windows
-    CONFIG_KINETIS_BUILDROOT=y	    : NuttX buildroot under Linux or Cygwin (default)
+    CONFIG_KINETIS_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin (default)
 
   If you are not using CONFIG_KINETIS_BUILDROOT, then you may also have to modify
   the PATH in the setenv.h file if your make cannot find the tools.
@@ -386,8 +388,8 @@ IDEs
   Startup files will probably cause you some headaches.  The NuttX startup file
   is arch/arm/src/kinetis/k40_vectors.S.
 
-NuttX buildroot Toolchain
-=========================
+NuttX EABI "buildroot" Toolchain
+================================
 
   A GNU GCC-based toolchain is assumed.  The files */setenv.sh should
   be modified to point to the correct path to the Cortex-M4 GCC toolchain (if
@@ -397,8 +399,7 @@ NuttX buildroot Toolchain
   SourceForge download site (https://sourceforge.net/projects/nuttx/files/buildroot/).
   This GNU toolchain builds and executes in the Linux or Cygwin environment.
 
-  NOTE:  The NuttX toolchain is an OABI toolchain (vs. the more common EABI)
-  and does not include optimizations for Cortex-M4 (ARMv7E-M).
+  NOTE:  The NuttX toolchain may not include optimizations for Cortex-M4 (ARMv7E-M).
 
   1. You must have already configured Nuttx in <some-dir>/nuttx.
 
@@ -413,7 +414,7 @@ NuttX buildroot Toolchain
 
   4. cd <some-dir>/buildroot
 
-  5. cp configs/cortexm3-defconfig-4.3.3 .config
+  5. cp configs/cortexm3-eabi-defconfig-4.6.3 .config
 
   6. make oldconfig
 
@@ -423,92 +424,142 @@ NuttX buildroot Toolchain
      the path to the newly built binaries.
 
   See the file configs/README.txt in the buildroot source tree.  That has more
-  detailed PLUS some special instructions that you will need to follow if you are
+  details PLUS some special instructions that you will need to follow if you are
   building a Cortex-M4 toolchain for Cygwin under Windows.
+
+NuttX OABI "buildroot" Toolchain
+================================
+
+  The older, OABI buildroot toolchain is also available.  To use the OABI
+  toolchain:
+
+  1. When building the buildroot toolchain, either (1) modify the cortexm3-eabi-defconfig-4.6.3
+     configuration to use EABI (using 'make menuconfig'), or (2) use an exising OABI
+     configuration such as cortexm3-defconfig-4.3.3
+
+  2. Modify the Make.defs file to use the OABI converntions:
+
+    +CROSSDEV = arm-nuttx-elf-
+    +ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
+    -CROSSDEV = arm-nuttx-eabi-
+    -ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
+
+NXFLAT Toolchain
+================
+
+  If you are *not* using the NuttX buildroot toolchain and you want to use
+  the NXFLAT tools, then you will still have to build a portion of the buildroot
+  tools -- just the NXFLAT tools.  The buildroot with the NXFLAT tools can
+  be downloaded from the NuttX SourceForge download site
+  (https://sourceforge.net/projects/nuttx/files/).
+ 
+  This GNU toolchain builds and executes in the Linux or Cygwin environment.
+
+  1. You must have already configured Nuttx in <some-dir>/nuttx.
+
+     cd tools
+     ./configure.sh lpcxpresso-lpc1768/<sub-dir>
+
+  2. Download the latest buildroot package into <some-dir>
+
+  3. unpack the buildroot tarball.  The resulting directory may
+     have versioning information on it like buildroot-x.y.z.  If so,
+     rename <some-dir>/buildroot-x.y.z to <some-dir>/buildroot.
+
+  4. cd <some-dir>/buildroot
+
+  5. cp configs/cortexm3-defconfig-nxflat .config
+
+  6. make oldconfig
+
+  7. make
+
+  8. Edit setenv.h, if necessary, so that the PATH variable includes
+     the path to the newly builtNXFLAT binaries.
 
 TWR-K60N512-specific Configuration Options
 ==========================================
 
-	CONFIG_ARCH - Identifies the arch/ subdirectory.  This sould
-	   be set to:
+    CONFIG_ARCH - Identifies the arch/ subdirectory.  This sould
+       be set to:
 
-	   CONFIG_ARCH=arm
+       CONFIG_ARCH=arm
 
-	CONFIG_ARCH_family - For use in C code:
+    CONFIG_ARCH_family - For use in C code:
 
-	   CONFIG_ARCH_ARM=y
+       CONFIG_ARCH_ARM=y
 
-	CONFIG_ARCH_architecture - For use in C code:
+    CONFIG_ARCH_architecture - For use in C code:
 
-	   CONFIG_ARCH_CORTEXM4=y
+       CONFIG_ARCH_CORTEXM4=y
 
-	CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
+    CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 
-	   CONFIG_ARCH_CHIP=k40
+       CONFIG_ARCH_CHIP=k40
 
-	CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
-	   chip:
+    CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
+       chip:
 
-	   CONFIG_ARCH_CHIP_MK60N512VMD100
+       CONFIG_ARCH_CHIP_MK60N512VMD100
 
-	CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
-	   hence, the board that supports the particular chip or SoC.
+    CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
+       hence, the board that supports the particular chip or SoC.
 
-	   CONFIG_ARCH_BOARD=twr-k60n512 (for the TWR-K60N512 development board)
+       CONFIG_ARCH_BOARD=twr-k60n512 (for the TWR-K60N512 development board)
 
-	CONFIG_ARCH_BOARD_name - For use in C code
+    CONFIG_ARCH_BOARD_name - For use in C code
 
-	   CONFIG_ARCH_BOARD_TWR_K60N512=y
+       CONFIG_ARCH_BOARD_TWR_K60N512=y
 
-	CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
-	   of delay loops
+    CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
+       of delay loops
 
-	CONFIG_ENDIAN_BIG - define if big endian (default is little
-	   endian)
+    CONFIG_ENDIAN_BIG - define if big endian (default is little
+       endian)
 
-	CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
+    CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
 
-	   CONFIG_DRAM_SIZE=0x00010000 (64Kb)
+       CONFIG_DRAM_SIZE=0x00010000 (64Kb)
 
-	CONFIG_DRAM_START - The start address of installed DRAM
+    CONFIG_DRAM_START - The start address of installed DRAM
 
-	   CONFIG_DRAM_START=0x20000000
+       CONFIG_DRAM_START=0x20000000
 
-	CONFIG_ARCH_IRQPRIO - The Kinetis K60 supports interrupt prioritization
+    CONFIG_ARCH_IRQPRIO - The Kinetis K60 supports interrupt prioritization
 
-	   CONFIG_ARCH_IRQPRIO=y
+       CONFIG_ARCH_IRQPRIO=y
 
-	CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
-	   have LEDs
+    CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
+       have LEDs
 
-	CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
-	   stack. If defined, this symbol is the size of the interrupt
-	    stack in bytes.  If not defined, the user task stacks will be
-	  used during interrupt handling.
+    CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
+       stack. If defined, this symbol is the size of the interrupt
+        stack in bytes.  If not defined, the user task stacks will be
+      used during interrupt handling.
 
-	CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
+    CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
 
-	CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
+    CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
 
-	CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-	   cause a 100 second delay during boot-up.  This 100 second delay
-	   serves no purpose other than it allows you to calibratre
-	   CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-	   the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-	   the delay actually is 100 seconds.
+    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
+       cause a 100 second delay during boot-up.  This 100 second delay
+       serves no purpose other than it allows you to calibratre
+       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
+       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
+       the delay actually is 100 seconds.
 
   Individual subsystems can be enabled:
 
     CONFIG_KINETIS_TRACE    -- Enable trace clocking on power up.
     CONFIG_KINETIS_FLEXBUS  -- Enable flexbus clocking on power up.
-  	CONFIG_KINETIS_UART0    -- Support UART0
-  	CONFIG_KINETIS_UART1    -- Support UART1
-  	CONFIG_KINETIS_UART2    -- Support UART2
-  	CONFIG_KINETIS_UART3    -- Support UART3
-  	CONFIG_KINETIS_UART4    -- Support UART4
-  	CONFIG_KINETIS_UART5    -- Support UART5
-  	CONFIG_KINETIS_ENET     -- Support Ethernet (K60 only)
-  	CONFIG_KINETIS_RNGB     -- Support the random number generator(K60 only)
+      CONFIG_KINETIS_UART0    -- Support UART0
+      CONFIG_KINETIS_UART1    -- Support UART1
+      CONFIG_KINETIS_UART2    -- Support UART2
+      CONFIG_KINETIS_UART3    -- Support UART3
+      CONFIG_KINETIS_UART4    -- Support UART4
+      CONFIG_KINETIS_UART5    -- Support UART5
+      CONFIG_KINETIS_ENET     -- Support Ethernet (K60 only)
+      CONFIG_KINETIS_RNGB     -- Support the random number generator(K60 only)
     CONFIG_KINETIS_FLEXCAN0 -- Support FlexCAN0
     CONFIG_KINETIS_FLEXCAN1 -- Support FlexCAN1
     CONFIG_KINETIS_SPI0     -- Support SPI0
@@ -517,8 +568,8 @@ TWR-K60N512-specific Configuration Options
     CONFIG_KINETIS_I2C0     -- Support I2C0
     CONFIG_KINETIS_I2C1     -- Support I2C1
     CONFIG_KINETIS_I2S      -- Support I2S
-  	CONFIG_KINETIS_DAC0     -- Support DAC0
-  	CONFIG_KINETIS_DAC1     -- Support DAC1
+      CONFIG_KINETIS_DAC0     -- Support DAC0
+      CONFIG_KINETIS_DAC1     -- Support DAC1
     CONFIG_KINETIS_ADC0     -- Support ADC0
     CONFIG_KINETIS_ADC1     -- Support ADC1
     CONFIG_KINETIS_CMP      -- Support CMP
@@ -571,15 +622,15 @@ TWR-K60N512-specific Configuration Options
 
   Kinetis K60 specific device driver settings
 
-	CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn (n=0..5) for the
+    CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn (n=0..5) for the
       console and ttys0 (default is the UART0).
-	CONFIG_UARTn_RXBUFSIZE - Characters are buffered as received.
-	   This specific the size of the receive buffer
-	CONFIG_UARTn_TXBUFSIZE - Characters are buffered before
-	   being sent.  This specific the size of the transmit buffer
-	CONFIG_UARTn_BAUD - The configure BAUD of the UART.
-	CONFIG_UARTn_BITS - The number of bits.  Must be either 8 or 8.
-	CONFIG_UARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
+    CONFIG_UARTn_RXBUFSIZE - Characters are buffered as received.
+       This specific the size of the receive buffer
+    CONFIG_UARTn_TXBUFSIZE - Characters are buffered before
+       being sent.  This specific the size of the transmit buffer
+    CONFIG_UARTn_BAUD - The configure BAUD of the UART.
+    CONFIG_UARTn_BITS - The number of bits.  Must be either 8 or 8.
+    CONFIG_UARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
 
   Kenetis ethernet controller settings
 
@@ -596,10 +647,10 @@ Configurations
 Each TWR-K60N512 configuration is maintained in a sudirectory and
 can be selected as follow:
 
-	cd tools
-	./configure.sh twr-k60n512/<subdir>
-	cd -
-	. ./setenv.sh
+    cd tools
+    ./configure.sh twr-k60n512/<subdir>
+    cd -
+    . ./setenv.sh
 
 Where <subdir> is one of the following:
 
@@ -609,7 +660,7 @@ Where <subdir> is one of the following:
     examples/ostest.  By default, this project assumes that you are
     using the DFU bootloader.
 
-    CONFIG_KINETIS_BUILDROOT=y	  : NuttX buildroot under Linux or Cygwin
+    CONFIG_KINETIS_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin
 
   nsh:
   ---
@@ -618,7 +669,7 @@ Where <subdir> is one of the following:
     Support for the board's SPI-based MicroSD card is included
     (but not passing tests as of this writing).
 
-	NOTE: An SDHC driver is underwork and can be enabled in the NSH
+    NOTE: An SDHC driver is underwork and can be enabled in the NSH
     configuration for further testing be setting the following
     configuration faluesas follows:
 

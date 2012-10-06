@@ -11,7 +11,9 @@ Contents
   Embedded Artist's Base Board
   Development Environment
   GNU Toolchain Options
-  NuttX buildroot Toolchain
+  NuttX EABI "buildroot" Toolchain
+  NuttX OABI "buildroot" Toolchain
+  NXFLAT Toolchain
   Code Red IDE
   LEDs
   LPCXpresso Configuration Options
@@ -406,8 +408,8 @@ Code Red IDE
   All of the above steps are automated in the bash script flash.sh that can
   be found in the configs/lpcxpresso/tools directory.
 
-NuttX buildroot Toolchain
-^^^^^^^^^^^^^^^^^^^^^^^^^
+NuttX EABI "buildroot" Toolchain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   A GNU GCC-based toolchain is assumed.  The files */setenv.sh should
   be modified to point to the correct path to the Cortex-M3 GCC toolchain (if
@@ -430,7 +432,7 @@ NuttX buildroot Toolchain
 
   4. cd <some-dir>/buildroot
 
-  5. cp configs/cortexm3-defconfig-4.3.3 .config
+  5. cp configs/cortexm3-eabi-defconfig-4.6.3 .config
 
   6. make oldconfig
 
@@ -440,10 +442,25 @@ NuttX buildroot Toolchain
      the path to the newly built binaries.
 
   See the file configs/README.txt in the buildroot source tree.  That has more
-  detailed PLUS some special instructions that you will need to follow if you
+  details PLUS some special instructions that you will need to follow if you
   are building a Cortex-M3 toolchain for Cygwin under Windows.
 
-  NOTE: This is an OABI toolchain.
+NuttX OABI "buildroot" Toolchain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  The older, OABI buildroot toolchain is also available.  To use the OABI
+  toolchain:
+
+  1. When building the buildroot toolchain, either (1) modify the cortexm3-eabi-defconfig-4.6.3
+     configuration to use EABI (using 'make menuconfig'), or (2) use an exising OABI
+     configuration such as cortexm3-defconfig-4.3.3
+
+  2. Modify the Make.defs file to use the OABI converntions:
+
+    +CROSSDEV = arm-nuttx-elf-
+    +ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
+    -CROSSDEV = arm-nuttx-eabi-
+    -ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
 
 NXFLAT Toolchain
 ^^^^^^^^^^^^^^^^

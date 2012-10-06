@@ -11,7 +11,9 @@ Contents
   Development Environment
   GNU Toolchain Options
   IDEs
-  NuttX buildroot Toolchain
+  NuttX EABI "buildroot" Toolchain
+  NuttX OABI "buildroot" Toolchain
+  NXFLAT Toolchain
   LEDs
   Nucleus 2G Configuration Options
   Configurations
@@ -180,8 +182,8 @@ IDEs
   Startup files will probably cause you some headaches.  The NuttX startup file
   is arch/arm/src/lpc17x/lpc17_vectors.S.
 
-NuttX buildroot Toolchain
-^^^^^^^^^^^^^^^^^^^^^^^^^
+NuttX EABI "buildroot" Toolchain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   A GNU GCC-based toolchain is assumed.  The files */setenv.sh should
   be modified to point to the correct path to the Cortex-M3 GCC toolchain (if
@@ -204,7 +206,7 @@ NuttX buildroot Toolchain
 
   4. cd <some-dir>/buildroot
 
-  5. cp configs/cortexm3-defconfig-4.3.3 .config
+  5. cp configs/cortexm3-eabi-defconfig-4.6.3 .config
 
   6. make oldconfig
 
@@ -214,10 +216,58 @@ NuttX buildroot Toolchain
      the path to the newly built binaries.
 
   See the file configs/README.txt in the buildroot source tree.  That has more
-  detailed PLUS some special instructions that you will need to follow if you
+  details PLUS some special instructions that you will need to follow if you
   are building a Cortex-M3 toolchain for Cygwin under Windows.
 
-  NOTE: This is an OABI toolchain.
+NuttX OABI "buildroot" Toolchain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  The older, OABI buildroot toolchain is also available.  To use the OABI
+  toolchain:
+
+  1. When building the buildroot toolchain, either (1) modify the cortexm3-eabi-defconfig-4.6.3
+     configuration to use EABI (using 'make menuconfig'), or (2) use an exising OABI
+     configuration such as cortexm3-defconfig-4.3.3
+
+  2. Modify the Make.defs file to use the OABI converntions:
+
+    +CROSSDEV = arm-nuttx-elf-
+    +ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
+    -CROSSDEV = arm-nuttx-eabi-
+    -ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
+
+NXFLAT Toolchain
+^^^^^^^^^^^^^^^^
+
+  If you are *not* using the NuttX buildroot toolchain and you want to use
+  the NXFLAT tools, then you will still have to build a portion of the buildroot
+  tools -- just the NXFLAT tools.  The buildroot with the NXFLAT tools can
+  be downloaded from the NuttX SourceForge download site
+  (https://sourceforge.net/projects/nuttx/files/).
+ 
+  This GNU toolchain builds and executes in the Linux or Cygwin environment.
+
+  1. You must have already configured Nuttx in <some-dir>/nuttx.
+
+     cd tools
+     ./configure.sh lpcxpresso-lpc1768/<sub-dir>
+
+  2. Download the latest buildroot package into <some-dir>
+
+  3. unpack the buildroot tarball.  The resulting directory may
+     have versioning information on it like buildroot-x.y.z.  If so,
+     rename <some-dir>/buildroot-x.y.z to <some-dir>/buildroot.
+
+  4. cd <some-dir>/buildroot
+
+  5. cp configs/cortexm3-defconfig-nxflat .config
+
+  6. make oldconfig
+
+  7. make
+
+  8. Edit setenv.h, if necessary, so that the PATH variable includes
+     the path to the newly builtNXFLAT binaries.
 
 LEDs
 ^^^^
@@ -274,176 +324,176 @@ LEDs
 Nucleus 2G Configuration Options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-	CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
-	   be set to:
+    CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
+       be set to:
 
-	   CONFIG_ARCH=arm
+       CONFIG_ARCH=arm
 
-	CONFIG_ARCH_family - For use in C code:
+    CONFIG_ARCH_family - For use in C code:
 
-	   CONFIG_ARCH_ARM=y
+       CONFIG_ARCH_ARM=y
 
-	CONFIG_ARCH_architecture - For use in C code:
+    CONFIG_ARCH_architecture - For use in C code:
 
-	   CONFIG_ARCH_CORTEXM3=y
+       CONFIG_ARCH_CORTEXM3=y
 
-	CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
+    CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 
-	   CONFIG_ARCH_CHIP=lpc17xx
+       CONFIG_ARCH_CHIP=lpc17xx
 
-	CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
-	   chip:
+    CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
+       chip:
 
-	   CONFIG_ARCH_CHIP_LPC1768=y
+       CONFIG_ARCH_CHIP_LPC1768=y
 
-	CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
-	   hence, the board that supports the particular chip or SoC.
+    CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
+       hence, the board that supports the particular chip or SoC.
 
-	   CONFIG_ARCH_BOARD=nucleus2g (for the Nucleus 2G)
+       CONFIG_ARCH_BOARD=nucleus2g (for the Nucleus 2G)
 
-	CONFIG_ARCH_BOARD_name - For use in C code
+    CONFIG_ARCH_BOARD_name - For use in C code
 
-	   CONFIG_ARCH_BOARD_NUCLEUS2G=y
+       CONFIG_ARCH_BOARD_NUCLEUS2G=y
 
-	CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
-	   of delay loops
+    CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
+       of delay loops
 
-	CONFIG_ENDIAN_BIG - define if big endian (default is little
-	   endian)
+    CONFIG_ENDIAN_BIG - define if big endian (default is little
+       endian)
 
-	CONFIG_DRAM_SIZE - Describes the installed DRAM (CPU SRAM in this case):
+    CONFIG_DRAM_SIZE - Describes the installed DRAM (CPU SRAM in this case):
 
-	   CONFIG_DRAM_SIZE=(32*1024) (32Kb)
+       CONFIG_DRAM_SIZE=(32*1024) (32Kb)
 
-	   There is an additional 32Kb of SRAM in AHB SRAM banks 0 and 1.
+       There is an additional 32Kb of SRAM in AHB SRAM banks 0 and 1.
 
-	CONFIG_DRAM_START - The start address of installed DRAM
+    CONFIG_DRAM_START - The start address of installed DRAM
 
-	   CONFIG_DRAM_START=0x10000000
+       CONFIG_DRAM_START=0x10000000
 
-	CONFIG_ARCH_IRQPRIO - The LPC17xx supports interrupt prioritization
+    CONFIG_ARCH_IRQPRIO - The LPC17xx supports interrupt prioritization
 
-	   CONFIG_ARCH_IRQPRIO=y
+       CONFIG_ARCH_IRQPRIO=y
 
-	CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
-	   have LEDs
+    CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
+       have LEDs
 
-	CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
-	   stack. If defined, this symbol is the size of the interrupt
-	    stack in bytes.  If not defined, the user task stacks will be
-	  used during interrupt handling.
+    CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
+       stack. If defined, this symbol is the size of the interrupt
+        stack in bytes.  If not defined, the user task stacks will be
+      used during interrupt handling.
 
-	CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
+    CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
 
-	CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
+    CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
 
-	CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-	   cause a 100 second delay during boot-up.  This 100 second delay
-	   serves no purpose other than it allows you to calibratre
-	   CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-	   the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-	   the delay actually is 100 seconds.
+    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
+       cause a 100 second delay during boot-up.  This 100 second delay
+       serves no purpose other than it allows you to calibratre
+       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
+       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
+       the delay actually is 100 seconds.
 
-	Individual subsystems can be enabled:
-	  CONFIG_LPC17_MAINOSC=y
-	  CONFIG_LPC17_PLL0=y
-	  CONFIG_LPC17_PLL1=n
-	  CONFIG_LPC17_ETHERNET=n
-	  CONFIG_LPC17_USBHOST=n
-	  CONFIG_LPC17_USBOTG=n
-	  CONFIG_LPC17_USBDEV=n
-	  CONFIG_LPC17_UART0=y
-	  CONFIG_LPC17_UART1=n
-	  CONFIG_LPC17_UART2=n
-	  CONFIG_LPC17_UART3=n
-	  CONFIG_LPC17_CAN1=n
-	  CONFIG_LPC17_CAN2=n
-	  CONFIG_LPC17_SPI=n
-	  CONFIG_LPC17_SSP0=n
-	  CONFIG_LPC17_SSP1=n
-	  CONFIG_LPC17_I2C0=n
-	  CONFIG_LPC17_I2C1=n
-	  CONFIG_LPC17_I2S=n
-	  CONFIG_LPC17_TMR0=n
-	  CONFIG_LPC17_TMR1=n
-	  CONFIG_LPC17_TMR2=n
-	  CONFIG_LPC17_TMR3=n
-	  CONFIG_LPC17_RIT=n
-	  CONFIG_LPC17_PWM=n
-	  CONFIG_LPC17_MCPWM=n
-	  CONFIG_LPC17_QEI=n
-	  CONFIG_LPC17_RTC=n
-	  CONFIG_LPC17_WDT=n
-	  CONFIG_LPC17_ADC=n
-	  CONFIG_LPC17_DAC=n
-	  CONFIG_LPC17_GPDMA=n
-	  CONFIG_LPC17_FLASH=n
+    Individual subsystems can be enabled:
+      CONFIG_LPC17_MAINOSC=y
+      CONFIG_LPC17_PLL0=y
+      CONFIG_LPC17_PLL1=n
+      CONFIG_LPC17_ETHERNET=n
+      CONFIG_LPC17_USBHOST=n
+      CONFIG_LPC17_USBOTG=n
+      CONFIG_LPC17_USBDEV=n
+      CONFIG_LPC17_UART0=y
+      CONFIG_LPC17_UART1=n
+      CONFIG_LPC17_UART2=n
+      CONFIG_LPC17_UART3=n
+      CONFIG_LPC17_CAN1=n
+      CONFIG_LPC17_CAN2=n
+      CONFIG_LPC17_SPI=n
+      CONFIG_LPC17_SSP0=n
+      CONFIG_LPC17_SSP1=n
+      CONFIG_LPC17_I2C0=n
+      CONFIG_LPC17_I2C1=n
+      CONFIG_LPC17_I2S=n
+      CONFIG_LPC17_TMR0=n
+      CONFIG_LPC17_TMR1=n
+      CONFIG_LPC17_TMR2=n
+      CONFIG_LPC17_TMR3=n
+      CONFIG_LPC17_RIT=n
+      CONFIG_LPC17_PWM=n
+      CONFIG_LPC17_MCPWM=n
+      CONFIG_LPC17_QEI=n
+      CONFIG_LPC17_RTC=n
+      CONFIG_LPC17_WDT=n
+      CONFIG_LPC17_ADC=n
+      CONFIG_LPC17_DAC=n
+      CONFIG_LPC17_GPDMA=n
+      CONFIG_LPC17_FLASH=n
 
   LPC17xx specific device driver settings
 
-	CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn for the
-	   console and ttys0 (default is the UART0).
-	CONFIG_UARTn_RXBUFSIZE - Characters are buffered as received.
-	   This specific the size of the receive buffer
-	CONFIG_UARTn_TXBUFSIZE - Characters are buffered before
-	   being sent.  This specific the size of the transmit buffer
-	CONFIG_UARTn_BAUD - The configure BAUD of the UART.  Must be
-	CONFIG_UARTn_BITS - The number of bits.  Must be either 7 or 8.
-	CONFIG_UARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
-	CONFIG_UARTn_2STOP - Two stop bits
+    CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn for the
+       console and ttys0 (default is the UART0).
+    CONFIG_UARTn_RXBUFSIZE - Characters are buffered as received.
+       This specific the size of the receive buffer
+    CONFIG_UARTn_TXBUFSIZE - Characters are buffered before
+       being sent.  This specific the size of the transmit buffer
+    CONFIG_UARTn_BAUD - The configure BAUD of the UART.  Must be
+    CONFIG_UARTn_BITS - The number of bits.  Must be either 7 or 8.
+    CONFIG_UARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
+    CONFIG_UARTn_2STOP - Two stop bits
 
   LPC17xx specific CAN device driver settings.  These settings all
   require CONFIG_CAN:
 
-	CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
-	  Standard 11-bit IDs.
-	CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC17_CAN1 is defined.
-	CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC17_CAN2 is defined.
-	CONFIG_CAN1_DIVISOR - CAN1 is clocked at CCLK divided by this number.
-	  (the CCLK frequency is divided by this number to get the CAN clock).
-	  Options = {1,2,4,6}. Default: 4.
-	CONFIG_CAN2_DIVISOR - CAN2 is clocked at CCLK divided by this number.
-	  (the CCLK frequency is divided by this number to get the CAN clock).
-	  Options = {1,2,4,6}. Default: 4.
-	CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
-	CONFIG_CAN_TSEG2 = the number of CAN time quanta in segment 2. Default: 7
+    CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
+      Standard 11-bit IDs.
+    CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC17_CAN1 is defined.
+    CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC17_CAN2 is defined.
+    CONFIG_CAN1_DIVISOR - CAN1 is clocked at CCLK divided by this number.
+      (the CCLK frequency is divided by this number to get the CAN clock).
+      Options = {1,2,4,6}. Default: 4.
+    CONFIG_CAN2_DIVISOR - CAN2 is clocked at CCLK divided by this number.
+      (the CCLK frequency is divided by this number to get the CAN clock).
+      Options = {1,2,4,6}. Default: 4.
+    CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
+    CONFIG_CAN_TSEG2 = the number of CAN time quanta in segment 2. Default: 7
 
   LPC17xx specific PHY/Ethernet device driver settings.  These setting
   also require CONFIG_NET and CONFIG_LPC17_ETHERNET.
 
-	CONFIG_PHY_KS8721 - Selects Micrel KS8721 PHY
-	CONFIG_PHY_AUTONEG - Enable auto-negotion
-	CONFIG_PHY_SPEED100 - Select 100Mbit vs. 10Mbit speed.
-	CONFIG_PHY_FDUPLEX - Select full (vs. half) duplex
+    CONFIG_PHY_KS8721 - Selects Micrel KS8721 PHY
+    CONFIG_PHY_AUTONEG - Enable auto-negotion
+    CONFIG_PHY_SPEED100 - Select 100Mbit vs. 10Mbit speed.
+    CONFIG_PHY_FDUPLEX - Select full (vs. half) duplex
 
     CONFIG_NET_EMACRAM_SIZE - Size of EMAC RAM.  Default: 16Kb
-	CONFIG_NET_NTXDESC - Configured number of Tx descriptors. Default: 18
-	CONFIG_NET_NRXDESC - Configured number of Rx descriptors. Default: 18
-	CONFIG_NET_PRIORITY - Ethernet interrupt priority.  The is default is
-	  the higest priority.
-	CONFIG_NET_WOL - Enable Wake-up on Lan (not fully implemented).
-	CONFIG_NET_REGDEBUG - Enabled low level register debug.  Also needs
-	  CONFIG_DEBUG.
-	CONFIG_NET_DUMPPACKET - Dump all received and transmitted packets.
-	  Also needs CONFIG_DEBUG.
-	CONFIG_NET_HASH - Enable receipt of near-perfect match frames.
-	CONFIG_NET_MULTICAST - Enable receipt of multicast (and unicast) frames.
+    CONFIG_NET_NTXDESC - Configured number of Tx descriptors. Default: 18
+    CONFIG_NET_NRXDESC - Configured number of Rx descriptors. Default: 18
+    CONFIG_NET_PRIORITY - Ethernet interrupt priority.  The is default is
+      the higest priority.
+    CONFIG_NET_WOL - Enable Wake-up on Lan (not fully implemented).
+    CONFIG_NET_REGDEBUG - Enabled low level register debug.  Also needs
+      CONFIG_DEBUG.
+    CONFIG_NET_DUMPPACKET - Dump all received and transmitted packets.
+      Also needs CONFIG_DEBUG.
+    CONFIG_NET_HASH - Enable receipt of near-perfect match frames.
+    CONFIG_NET_MULTICAST - Enable receipt of multicast (and unicast) frames.
       Automatically set if CONFIG_NET_IGMP is selected.
 
   LPC17xx USB Device Configuration
 
-	CONFIG_LPC17_USBDEV_FRAME_INTERRUPT
-	  Handle USB Start-Of-Frame events. 
-	  Enable reading SOF from interrupt handler vs. simply reading on demand.
-	  Probably a bad idea... Unless there is some issue with sampling the SOF
-	  from hardware asynchronously.
-	CONFIG_LPC17_USBDEV_EPFAST_INTERRUPT
-	  Enable high priority interrupts.  I have no idea why you might want to
-	  do that
-	CONFIG_LPC17_USBDEV_NDMADESCRIPTORS
-	  Number of DMA descriptors to allocate in SRAM.
-	CONFIG_LPC17_USBDEV_DMA
-	  Enable lpc17xx-specific DMA support
+    CONFIG_LPC17_USBDEV_FRAME_INTERRUPT
+      Handle USB Start-Of-Frame events. 
+      Enable reading SOF from interrupt handler vs. simply reading on demand.
+      Probably a bad idea... Unless there is some issue with sampling the SOF
+      from hardware asynchronously.
+    CONFIG_LPC17_USBDEV_EPFAST_INTERRUPT
+      Enable high priority interrupts.  I have no idea why you might want to
+      do that
+    CONFIG_LPC17_USBDEV_NDMADESCRIPTORS
+      Number of DMA descriptors to allocate in SRAM.
+    CONFIG_LPC17_USBDEV_DMA
+      Enable lpc17xx-specific DMA support
     CONFIG_LPC17_USBDEV_NOVBUS
       Define if the hardware implementation does not support the VBUS signal
     CONFIG_LPC17_USBDEV_NOLED
@@ -472,10 +522,10 @@ Configurations
 Each Nucleus 2G configuration is maintained in a
 sudirectory and can be selected as follow:
 
-	cd tools
-	./configure.sh nucleus2g/<subdir>
-	cd -
-	. ./setenv.sh
+    cd tools
+    ./configure.sh nucleus2g/<subdir>
+    cd -
+    . ./setenv.sh
 
 Where <subdir> is one of the following:
 

@@ -10,7 +10,9 @@ Contents
   - Development Environment
   - GNU Toolchain Options
   - IDEs
-  - NuttX buildroot Toolchain
+  - NuttX EABI "buildroot" Toolchain
+  - NuttX OABI "buildroot" Toolchain
+  - NXFLAT Toolchain
   - DFU
   - LEDs
   - RTC
@@ -47,7 +49,7 @@ GNU Toolchain Options
     CONFIG_STM32_CODESOURCERYL=y  : CodeSourcery under Linux
     CONFIG_STM32_DEVKITARM=y      : devkitARM under Windows
     CONFIG_STM32_RAISONANCE=y     : Raisonance RIDE7 under Windows
-    CONFIG_STM32_BUILDROOT=y	  : NuttX buildroot under Linux or Cygwin (default)
+    CONFIG_STM32_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin (default)
 
   If you are not using CONFIG_STM32_BUILDROOT, then you may also have to modify
   the PATH in the setenv.h file if your make cannot find the tools.
@@ -128,8 +130,8 @@ IDEs
   one time from the Cygwin command line in order to obtain the pre-built
   startup object needed by RIDE.
 
-NuttX buildroot Toolchain
-=========================
+NuttX EABI "buildroot" Toolchain
+================================
 
   A GNU GCC-based toolchain is assumed.  The files */setenv.sh should
   be modified to point to the correct path to the Cortex-M3 GCC toolchain (if
@@ -152,7 +154,7 @@ NuttX buildroot Toolchain
 
   4. cd <some-dir>/buildroot
 
-  5. cp configs/cortexm3-defconfig-4.3.3 .config
+  5. cp configs/cortexm3-eabi-defconfig-4.6.3 .config
 
   6. make oldconfig
 
@@ -162,8 +164,58 @@ NuttX buildroot Toolchain
      the path to the newly built binaries.
 
   See the file configs/README.txt in the buildroot source tree.  That has more
-  detailed PLUS some special instructions that you will need to follow if you are
+  details PLUS some special instructions that you will need to follow if you are
   building a Cortex-M3 toolchain for Cygwin under Windows.
+
+NuttX OABI "buildroot" Toolchain
+================================
+
+  The older, OABI buildroot toolchain is also available.  To use the OABI
+  toolchain:
+
+  1. When building the buildroot toolchain, either (1) modify the cortexm3-eabi-defconfig-4.6.3
+     configuration to use EABI (using 'make menuconfig'), or (2) use an exising OABI
+     configuration such as cortexm3-defconfig-4.3.3
+
+  2. Modify the Make.defs file to use the OABI converntions:
+
+    +CROSSDEV = arm-nuttx-elf-
+    +ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
+    -CROSSDEV = arm-nuttx-eabi-
+    -ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
+
+NXFLAT Toolchain
+================
+
+  If you are *not* using the NuttX buildroot toolchain and you want to use
+  the NXFLAT tools, then you will still have to build a portion of the buildroot
+  tools -- just the NXFLAT tools.  The buildroot with the NXFLAT tools can
+  be downloaded from the NuttX SourceForge download site
+  (https://sourceforge.net/projects/nuttx/files/).
+ 
+  This GNU toolchain builds and executes in the Linux or Cygwin environment.
+
+  1. You must have already configured Nuttx in <some-dir>/nuttx.
+
+     cd tools
+     ./configure.sh lpcxpresso-lpc1768/<sub-dir>
+
+  2. Download the latest buildroot package into <some-dir>
+
+  3. unpack the buildroot tarball.  The resulting directory may
+     have versioning information on it like buildroot-x.y.z.  If so,
+     rename <some-dir>/buildroot-x.y.z to <some-dir>/buildroot.
+
+  4. cd <some-dir>/buildroot
+
+  5. cp configs/cortexm3-defconfig-nxflat .config
+
+  6. make oldconfig
+
+  7. make
+
+  8. Edit setenv.h, if necessary, so that the PATH variable includes
+     the path to the newly builtNXFLAT binaries.
 
 DFU
 ===
@@ -218,16 +270,16 @@ The HY-MiniSTM32 board provides only two controlable LEDs labeled LED1 and LED2.
 Usage of these LEDs is defined in include/board.h and src/up_leds.c.
 They are encoded as follows:
 
-	SYMBOL				Meaning					LED1*	LED2	
-	-------------------	-----------------------	-------	-------	
-	LED_STARTED			NuttX has been started	OFF		OFF		
-	LED_HEAPALLOCATE	Heap has been allocated	ON		OFF		
-	LED_IRQSENABLED		Interrupts enabled		OFF		ON		
-	LED_STACKCREATED	Idle stack created		ON		OFF		
-	LED_INIRQ			In an interrupt**		OFF		N/C		
-	LED_SIGNAL			In a signal handler***  N/C		ON		
-	LED_ASSERTION		An assertion failed		ON		ON		
-	LED_PANIC			The system has crashed	BLINK	BLINK		
+    SYMBOL              Meaning                 LED1*   LED2    
+    ------------------- ----------------------- ------- -------    
+    LED_STARTED         NuttX has been started  OFF     OFF        
+    LED_HEAPALLOCATE    Heap has been allocated ON      OFF        
+    LED_IRQSENABLED     Interrupts enabled      OFF     ON        
+    LED_STACKCREATED    Idle stack created      ON      OFF        
+    LED_INIRQ           In an interrupt**       OFF     N/C        
+    LED_SIGNAL          In a signal handler***  N/C     ON        
+    LED_ASSERTION       An assertion failed     ON      ON        
+    LED_PANIC           The system has crashed  BLINK   BLINK        
     LED_IDLE            STM32 is is sleep mode  (Optional, not used)
 
   * If Nuttx starts correctly, normal state is to have LED1 on and LED2 off.
@@ -269,123 +321,123 @@ RTC
 HY-Mini specific Configuration Options
 ============================================
 
-	CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
-	   be set to:
+    CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
+       be set to:
 
-	   CONFIG_ARCH=arm
+       CONFIG_ARCH=arm
 
-	CONFIG_ARCH_family - For use in C code:
+    CONFIG_ARCH_family - For use in C code:
 
-	   CONFIG_ARCH_ARM=y
+       CONFIG_ARCH_ARM=y
 
-	CONFIG_ARCH_architecture - For use in C code:
+    CONFIG_ARCH_architecture - For use in C code:
 
-	   CONFIG_ARCH_CORTEXM3=y
+       CONFIG_ARCH_CORTEXM3=y
 
-	CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
+    CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 
-	   CONFIG_ARCH_CHIP=stm32
+       CONFIG_ARCH_CHIP=stm32
 
-	CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
-	   chip:
+    CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
+       chip:
 
-	   CONFIG_ARCH_CHIP_STM32F103VCT6
+       CONFIG_ARCH_CHIP_STM32F103VCT6
 
     CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG - Enables special STM32 clock
        configuration features.
 
        CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG=n
  
-	CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
-	   hence, the board that supports the particular chip or SoC.
+    CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
+       hence, the board that supports the particular chip or SoC.
 
-	   CONFIG_ARCH_BOARD=hymini-stm32v (for the HY-Mini development board)
+       CONFIG_ARCH_BOARD=hymini-stm32v (for the HY-Mini development board)
 
-	CONFIG_ARCH_BOARD_name - For use in C code
+    CONFIG_ARCH_BOARD_name - For use in C code
 
-	   CONFIG_ARCH_BOARD_HYMINI_STM32V=y
+       CONFIG_ARCH_BOARD_HYMINI_STM32V=y
 
-	CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
-	   of delay loops
+    CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
+       of delay loops
 
-	CONFIG_ENDIAN_BIG - define if big endian (default is little
-	   endian)
+    CONFIG_ENDIAN_BIG - define if big endian (default is little
+       endian)
 
-	CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
+    CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
 
-	   CONFIG_DRAM_SIZE=0x0000C000 (48Kb)
+       CONFIG_DRAM_SIZE=0x0000C000 (48Kb)
 
-	CONFIG_DRAM_START - The start address of installed DRAM
+    CONFIG_DRAM_START - The start address of installed DRAM
 
-	   CONFIG_DRAM_START=0x20000000
+       CONFIG_DRAM_START=0x20000000
 
-	CONFIG_ARCH_IRQPRIO - The STM32F103V supports interrupt prioritization
+    CONFIG_ARCH_IRQPRIO - The STM32F103V supports interrupt prioritization
 
-	   CONFIG_ARCH_IRQPRIO=y
+       CONFIG_ARCH_IRQPRIO=y
 
-	CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
-	   have LEDs
+    CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
+       have LEDs
 
-	CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
-	   stack. If defined, this symbol is the size of the interrupt
-	   stack in bytes.  If not defined, the user task stacks will be
-	   used during interrupt handling.
+    CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
+       stack. If defined, this symbol is the size of the interrupt
+       stack in bytes.  If not defined, the user task stacks will be
+       used during interrupt handling.
 
-	CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
+    CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
 
-	CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
+    CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
 
-	CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-	   cause a 100 second delay during boot-up.  This 100 second delay
-	   serves no purpose other than it allows you to calibratre
-	   CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-	   the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-	   the delay actually is 100 seconds.
+    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
+       cause a 100 second delay during boot-up.  This 100 second delay
+       serves no purpose other than it allows you to calibratre
+       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
+       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
+       the delay actually is 100 seconds.
 
   Individual subsystems can be enabled:
-	AHB
-	---
-	CONFIG_STM32_DMA1
-	CONFIG_STM32_DMA2
-	CONFIG_STM32_CRC
-	CONFIG_STM32_FSMC
-	CONFIG_STM32_SDIO
+    AHB
+    ---
+    CONFIG_STM32_DMA1
+    CONFIG_STM32_DMA2
+    CONFIG_STM32_CRC
+    CONFIG_STM32_FSMC
+    CONFIG_STM32_SDIO
 
-	APB1
-	----
-	CONFIG_STM32_TIM2
-	CONFIG_STM32_TIM3    (required for PWM control of LCD backlight)
-	CONFIG_STM32_TIM4
-	CONFIG_STM32_TIM5
-	CONFIG_STM32_TIM6
-	CONFIG_STM32_TIM7
-	CONFIG_STM32_IWDG
-	CONFIG_STM32_WWDG
-	CONFIG_STM32_IWDG
-	CONFIG_STM32_SPI2
-	CONFIG_STM32_SPI4
-	CONFIG_STM32_USART2
-	CONFIG_STM32_USART3
-	CONFIG_STM32_UART4
-	CONFIG_STM32_UART5
-	CONFIG_STM32_I2C1
-	CONFIG_STM32_I2C2
-	CONFIG_STM32_USB
-	CONFIG_STM32_CAN1
-	CONFIG_STM32_BKP
-	CONFIG_STM32_PWR
-	CONFIG_STM32_DAC
-	CONFIG_STM32_USB
+    APB1
+    ----
+    CONFIG_STM32_TIM2
+    CONFIG_STM32_TIM3    (required for PWM control of LCD backlight)
+    CONFIG_STM32_TIM4
+    CONFIG_STM32_TIM5
+    CONFIG_STM32_TIM6
+    CONFIG_STM32_TIM7
+    CONFIG_STM32_IWDG
+    CONFIG_STM32_WWDG
+    CONFIG_STM32_IWDG
+    CONFIG_STM32_SPI2
+    CONFIG_STM32_SPI4
+    CONFIG_STM32_USART2
+    CONFIG_STM32_USART3
+    CONFIG_STM32_UART4
+    CONFIG_STM32_UART5
+    CONFIG_STM32_I2C1
+    CONFIG_STM32_I2C2
+    CONFIG_STM32_USB
+    CONFIG_STM32_CAN1
+    CONFIG_STM32_BKP
+    CONFIG_STM32_PWR
+    CONFIG_STM32_DAC
+    CONFIG_STM32_USB
 
-	APB2
-	----
-	CONFIG_STM32_ADC1
-	CONFIG_STM32_ADC2
-	CONFIG_STM32_TIM1
-	CONFIG_STM32_SPI1
-	CONFIG_STM32_TIM8
-	CONFIG_STM32_USART1
-	CONFIG_STM32_ADC3
+    APB2
+    ----
+    CONFIG_STM32_ADC1
+    CONFIG_STM32_ADC2
+    CONFIG_STM32_TIM1
+    CONFIG_STM32_SPI1
+    CONFIG_STM32_TIM8
+    CONFIG_STM32_USART1
+    CONFIG_STM32_ADC3
 
   Timer and I2C devices may need to the following to force power to be applied
   unconditionally at power up.  (Otherwise, the device is powered when it is
@@ -405,84 +457,84 @@ HY-Mini specific Configuration Options
   to assign the timer (n) for used by the ADC or DAC, but then you also have to
   configure which ADC or DAC (m) it is assigned to.
 
-	CONFIG_STM32_TIMn_PWM   Reserve timer n for use by PWM, n=1,..,8
-	CONFIG_STM32_TIMn_ADC   Reserve timer n for use by ADC, n=1,..,8
-	CONFIG_STM32_TIMn_ADCm  Reserve timer n to trigger ADCm, n=1,..,8, m=1,..,3
-	CONFIG_STM32_TIMn_DAC   Reserve timer n for use by DAC, n=1,..,8
-	CONFIG_STM32_TIMn_DACm  Reserve timer n to trigger DACm, n=1,..,8, m=1,..,2
+    CONFIG_STM32_TIMn_PWM   Reserve timer n for use by PWM, n=1,..,8
+    CONFIG_STM32_TIMn_ADC   Reserve timer n for use by ADC, n=1,..,8
+    CONFIG_STM32_TIMn_ADCm  Reserve timer n to trigger ADCm, n=1,..,8, m=1,..,3
+    CONFIG_STM32_TIMn_DAC   Reserve timer n for use by DAC, n=1,..,8
+    CONFIG_STM32_TIMn_DACm  Reserve timer n to trigger DACm, n=1,..,8, m=1,..,2
 
   Others alternate pin mappings available:
 
-	CONFIG_STM32_TIM1_FULL_REMAP
-	CONFIG_STM32_TIM1_PARTIAL_REMAP
-	CONFIG_STM32_TIM2_FULL_REMAP
-	CONFIG_STM32_TIM2_PARTIAL_REMAP_1
-	CONFIG_STM32_TIM2_PARTIAL_REMAP_2
-	CONFIG_STM32_TIM3_FULL_REMAP
-	CONFIG_STM32_TIM3_PARTIAL_REMAP
-	CONFIG_STM32_TIM4_REMAP
-	CONFIG_STM32_USART1_REMAP
-	CONFIG_STM32_USART2_REMAP
-	CONFIG_STM32_USART3_FULL_REMAP
-	CONFIG_STM32_USART3_PARTIAL_REMAP
-	CONFIG_STM32_SPI1_REMAP
-	CONFIG_STM32_SPI3_REMAP
-	CONFIG_STM32_I2C1_REMAP
-	CONFIG_STM32_CAN1_REMAP1
-	CONFIG_STM32_CAN1_REMAP2
-	CONFIG_STM32_CAN2_REMAP
+    CONFIG_STM32_TIM1_FULL_REMAP
+    CONFIG_STM32_TIM1_PARTIAL_REMAP
+    CONFIG_STM32_TIM2_FULL_REMAP
+    CONFIG_STM32_TIM2_PARTIAL_REMAP_1
+    CONFIG_STM32_TIM2_PARTIAL_REMAP_2
+    CONFIG_STM32_TIM3_FULL_REMAP
+    CONFIG_STM32_TIM3_PARTIAL_REMAP
+    CONFIG_STM32_TIM4_REMAP
+    CONFIG_STM32_USART1_REMAP
+    CONFIG_STM32_USART2_REMAP
+    CONFIG_STM32_USART3_FULL_REMAP
+    CONFIG_STM32_USART3_PARTIAL_REMAP
+    CONFIG_STM32_SPI1_REMAP
+    CONFIG_STM32_SPI3_REMAP
+    CONFIG_STM32_I2C1_REMAP
+    CONFIG_STM32_CAN1_REMAP1
+    CONFIG_STM32_CAN1_REMAP2
+    CONFIG_STM32_CAN2_REMAP
 
   STM32F103V specific device driver settings
 
-	CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the USARTn (n=1,2,3) or UART
+    CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the USARTn (n=1,2,3) or UART
            m (m=4,5) for the console and ttys0 (default is the USART1).
            
            Note: USART1 is connected to a PL2303 serial to USB converter.
            So USART1 is available through USB port labeled CN3 on the board.
            
-	CONFIG_U[S]ARTn_RXBUFSIZE - Characters are buffered as received.
-	   This specific the size of the receive buffer
-	CONFIG_U[S]ARTn_TXBUFSIZE - Characters are buffered before
-	   being sent.  This specific the size of the transmit buffer
-	CONFIG_U[S]ARTn_BAUD - The configure BAUD of the UART.  Must be
-	CONFIG_U[S]ARTn_BITS - The number of bits.  Must be either 7 or 8.
-	CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
-	CONFIG_U[S]ARTn_2STOP - Two stop bits
+    CONFIG_U[S]ARTn_RXBUFSIZE - Characters are buffered as received.
+       This specific the size of the receive buffer
+    CONFIG_U[S]ARTn_TXBUFSIZE - Characters are buffered before
+       being sent.  This specific the size of the transmit buffer
+    CONFIG_U[S]ARTn_BAUD - The configure BAUD of the UART.  Must be
+    CONFIG_U[S]ARTn_BITS - The number of bits.  Must be either 7 or 8.
+    CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
+    CONFIG_U[S]ARTn_2STOP - Two stop bits
 
-	CONFIG_STM32_SPI_INTERRUPTS - Select to enable interrupt driven SPI
-	  support. Non-interrupt-driven, poll-waiting is recommended if the
-	  interrupt rate would be to high in the interrupt driven case.
-	CONFIG_STM32_SPI_DMA - Use DMA to improve SPI transfer performance.
-	  Cannot be used with CONFIG_STM32_SPI_INTERRUPT.
+    CONFIG_STM32_SPI_INTERRUPTS - Select to enable interrupt driven SPI
+      support. Non-interrupt-driven, poll-waiting is recommended if the
+      interrupt rate would be to high in the interrupt driven case.
+    CONFIG_STM32_SPI_DMA - Use DMA to improve SPI transfer performance.
+      Cannot be used with CONFIG_STM32_SPI_INTERRUPT.
 
-	CONFIG_SDIO_DMA - Support DMA data transfers.  Requires CONFIG_STM32_SDIO
-	  and CONFIG_STM32_DMA2.
-	CONFIG_SDIO_PRI - Select SDIO interrupt prority.  Default: 128
-	CONFIG_SDIO_DMAPRIO - Select SDIO DMA interrupt priority. 
-	  Default:  Medium
-	CONFIG_SDIO_WIDTH_D1_ONLY - Select 1-bit transfer mode.  Default:
-	  4-bit transfer mode.
+    CONFIG_SDIO_DMA - Support DMA data transfers.  Requires CONFIG_STM32_SDIO
+      and CONFIG_STM32_DMA2.
+    CONFIG_SDIO_PRI - Select SDIO interrupt prority.  Default: 128
+    CONFIG_SDIO_DMAPRIO - Select SDIO DMA interrupt priority. 
+      Default:  Medium
+    CONFIG_SDIO_WIDTH_D1_ONLY - Select 1-bit transfer mode.  Default:
+      4-bit transfer mode.
     CONFIG_MMCSD_HAVECARDDETECT - Select if SDIO driver card detection
       is 100% accurate  (it is on the  HY-MiniSTM32V)
 
   HY-MiniSTM32V CAN Configuration
 
-	CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
-	  CONFIG_STM32_CAN2 must also be defined)
-	CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
-	  Standard 11-bit IDs.
-	CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
-	  Default: 8
-	CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
-	  Default: 4
-	CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
-	  mode for testing. The STM32 CAN driver does support loopback mode.
-	CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
-	CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
-	CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
-	CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
-	CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
-	  dump of all CAN registers.
+    CONFIG_CAN - Enables CAN support (one or both of CONFIG_STM32_CAN1 or
+      CONFIG_STM32_CAN2 must also be defined)
+    CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
+      Standard 11-bit IDs.
+    CONFIG_CAN_FIFOSIZE - The size of the circular buffer of CAN messages.
+      Default: 8
+    CONFIG_CAN_NPENDINGRTR - The size of the list of pending RTR requests.
+      Default: 4
+    CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
+      mode for testing. The STM32 CAN driver does support loopback mode.
+    CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
+    CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
+    CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
+    CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
+    CONFIG_CAN_REGDEBUG - If CONFIG_DEBUG is set, this will generate an
+      dump of all CAN registers.
 
   HY-MiniSTM32V LCD Hardware Configuration  (SSD1289 controler)
 
@@ -510,10 +562,10 @@ Configurations
 Each HY-MiniSTM32V configuration is maintained in a sudirectory and
 can be selected as follow:
 
-	cd tools
-	./configure.sh hymini-stm32v/<subdir>
-	cd -
-	. ./setenv.sh
+    cd tools
+    ./configure.sh hymini-stm32v/<subdir>
+    cd -
+    . ./setenv.sh
 
 Where <subdir> is one of the following:
 
@@ -547,10 +599,10 @@ Where <subdir> is one of the following:
     FAT FS      CONFIG_FAT_LCNAME=y     CONFIG_FAT_LCNAME=y
     Config      CONFIG_FAT_LFN=n        CONFIG_FAT_LFN=y (4)
     ----------- ----------------------- --------------------------------
-	LCD Driver  No                      Yes
-	Support 
+    LCD Driver  No                      Yes
+    Support 
     ----------- ----------------------- --------------------------------
-	RTC Support No                      Yes
+    RTC Support No                      Yes
     ----------- ----------------------- --------------------------------
     Support for No                      Yes
     Built-in

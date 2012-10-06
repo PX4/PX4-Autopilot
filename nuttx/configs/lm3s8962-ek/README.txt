@@ -10,7 +10,9 @@ Contents
   Development Environment
   GNU Toolchain Options
   IDEs
-  NuttX buildroot Toolchain
+  NuttX EABI "buildroot" Toolchain
+  NuttX OABI "buildroot" Toolchain
+  NXFLAT Toolchain
   USB Device Controller Functions
   OLED
   Stellaris LM3S8962 Evaluation Kit Configuration Options
@@ -194,8 +196,8 @@ IDEs
   Startup files will probably cause you some headaches.  The NuttX startup file
   is arch/arm/src/lm3s/lm3s_vectors.S.
 
-NuttX buildroot Toolchain
-^^^^^^^^^^^^^^^^^^^^^^^^^
+NuttX EABI "buildroot" Toolchain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   A GNU GCC-based toolchain is assumed.  The files */setenv.sh should
   be modified to point to the correct path to the Cortex-M3 GCC toolchain (if
@@ -218,7 +220,7 @@ NuttX buildroot Toolchain
 
   4. cd <some-dir>/buildroot
 
-  5. cp configs/cortexm3-defconfig-4.3.3 .config
+  5. cp configs/cortexm3-eabi-defconfig-4.6.3 .config
 
   6. make oldconfig
 
@@ -228,10 +230,60 @@ NuttX buildroot Toolchain
      the path to the newly built binaries.
 
   See the file configs/README.txt in the buildroot source tree.  That has more
-  detailed PLUS some special instructions that you will need to follow if you
+  details PLUS some special instructions that you will need to follow if you
   are building a Cortex-M3 toolchain for Cygwin under Windows.
 
   NOTE: This is an OABI toolchain.
+
+NuttX OABI "buildroot" Toolchain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  The older, OABI buildroot toolchain is also available.  To use the OABI
+  toolchain:
+
+  1. When building the buildroot toolchain, either (1) modify the cortexm3-eabi-defconfig-4.6.3
+     configuration to use EABI (using 'make menuconfig'), or (2) use an exising OABI
+     configuration such as cortexm3-defconfig-4.3.3
+
+  2. Modify the Make.defs file to use the OABI converntions:
+
+    +CROSSDEV = arm-nuttx-elf-
+    +ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
+    -CROSSDEV = arm-nuttx-eabi-
+    -ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
+
+NXFLAT Toolchain
+^^^^^^^^^^^^^^^^
+
+  If you are *not* using the NuttX buildroot toolchain and you want to use
+  the NXFLAT tools, then you will still have to build a portion of the buildroot
+  tools -- just the NXFLAT tools.  The buildroot with the NXFLAT tools can
+  be downloaded from the NuttX SourceForge download site
+  (https://sourceforge.net/projects/nuttx/files/).
+ 
+  This GNU toolchain builds and executes in the Linux or Cygwin environment.
+
+  1. You must have already configured Nuttx in <some-dir>/nuttx.
+
+     cd tools
+     ./configure.sh lpcxpresso-lpc1768/<sub-dir>
+
+  2. Download the latest buildroot package into <some-dir>
+
+  3. unpack the buildroot tarball.  The resulting directory may
+     have versioning information on it like buildroot-x.y.z.  If so,
+     rename <some-dir>/buildroot-x.y.z to <some-dir>/buildroot.
+
+  4. cd <some-dir>/buildroot
+
+  5. cp configs/cortexm3-defconfig-nxflat .config
+
+  6. make oldconfig
+
+  7. make
+
+  8. Edit setenv.h, if necessary, so that the PATH variable includes
+     the path to the newly builtNXFLAT binaries.
 
 USB Device Controller Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -275,124 +327,124 @@ USB Device Controller Functions
 Stellaris LM3S8962 Evaluation Kit Configuration Options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-	CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
-	   be set to:
+    CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
+       be set to:
 
-	   CONFIG_ARCH=arm
+       CONFIG_ARCH=arm
 
-	CONFIG_ARCH_family - For use in C code:
+    CONFIG_ARCH_family - For use in C code:
 
-	   CONFIG_ARCH_ARM=y
+       CONFIG_ARCH_ARM=y
 
-	CONFIG_ARCH_architecture - For use in C code:
+    CONFIG_ARCH_architecture - For use in C code:
 
-	   CONFIG_ARCH_CORTEXM3=y
+       CONFIG_ARCH_CORTEXM3=y
 
-	CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
+    CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 
-	   CONFIG_ARCH_CHIP=lm3s
+       CONFIG_ARCH_CHIP=lm3s
 
-	CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
-	   chip:
+    CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
+       chip:
 
-	   CONFIG_ARCH_CHIP_LM3S8962
+       CONFIG_ARCH_CHIP_LM3S8962
 
-	CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
-	   hence, the board that supports the particular chip or SoC.
+    CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
+       hence, the board that supports the particular chip or SoC.
 
-	   CONFIG_ARCH_BOARD=lm3s8962-ek (for the Stellaris LM3S8962 Evaluation Kit)
+       CONFIG_ARCH_BOARD=lm3s8962-ek (for the Stellaris LM3S8962 Evaluation Kit)
 
-	CONFIG_ARCH_BOARD_name - For use in C code
+    CONFIG_ARCH_BOARD_name - For use in C code
 
-	   CONFIG_ARCH_BOARD_LM3S8962EK
+       CONFIG_ARCH_BOARD_LM3S8962EK
 
-	CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
-	   of delay loops
+    CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
+       of delay loops
 
-	CONFIG_ENDIAN_BIG - define if big endian (default is little
-	   endian)
+    CONFIG_ENDIAN_BIG - define if big endian (default is little
+       endian)
 
-	CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
+    CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
 
-	   CONFIG_DRAM_SIZE=0x00010000 (64Kb)
+       CONFIG_DRAM_SIZE=0x00010000 (64Kb)
 
-	CONFIG_DRAM_START - The start address of installed DRAM
+    CONFIG_DRAM_START - The start address of installed DRAM
 
-	   CONFIG_DRAM_START=0x20000000
+       CONFIG_DRAM_START=0x20000000
 
-	CONFIG_ARCH_IRQPRIO - The LM3S6918 supports interrupt prioritization
+    CONFIG_ARCH_IRQPRIO - The LM3S6918 supports interrupt prioritization
 
-	   CONFIG_ARCH_IRQPRIO=y
+       CONFIG_ARCH_IRQPRIO=y
 
-	CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
-	   have LEDs
+    CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
+       have LEDs
 
-	CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
-	   stack. If defined, this symbol is the size of the interrupt
-	    stack in bytes.  If not defined, the user task stacks will be
-	  used during interrupt handling.
+    CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
+       stack. If defined, this symbol is the size of the interrupt
+        stack in bytes.  If not defined, the user task stacks will be
+      used during interrupt handling.
 
-	CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
+    CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
 
-	CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
+    CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
 
-	CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-	   cause a 100 second delay during boot-up.  This 100 second delay
-	   serves no purpose other than it allows you to calibratre
-	   CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-	   the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-	   the delay actually is 100 seconds.
+    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
+       cause a 100 second delay during boot-up.  This 100 second delay
+       serves no purpose other than it allows you to calibratre
+       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
+       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
+       the delay actually is 100 seconds.
 
   There are configurations for disabling support for interrupts GPIO ports.
   GPIOJ must be disabled because it does not exist on the LM3S6918.
   Additional interrupt support can be disabled if desired to reduce memory
   footprint.
 
-	CONFIG_LM3S_DISABLE_GPIOA_IRQS=n
-	CONFIG_LM3S_DISABLE_GPIOB_IRQS=n
-	CONFIG_LM3S_DISABLE_GPIOC_IRQS=n
-	CONFIG_LM3S_DISABLE_GPIOD_IRQS=n
-	CONFIG_LM3S_DISABLE_GPIOE_IRQS=n
-	CONFIG_LM3S_DISABLE_GPIOF_IRQS=n
-	CONFIG_LM3S_DISABLE_GPIOG_IRQS=n
-	CONFIG_LM3S_DISABLE_GPIOH_IRQS=n
-	CONFIG_LM3S_DISABLE_GPIOJ_IRQS=y
+    CONFIG_LM3S_DISABLE_GPIOA_IRQS=n
+    CONFIG_LM3S_DISABLE_GPIOB_IRQS=n
+    CONFIG_LM3S_DISABLE_GPIOC_IRQS=n
+    CONFIG_LM3S_DISABLE_GPIOD_IRQS=n
+    CONFIG_LM3S_DISABLE_GPIOE_IRQS=n
+    CONFIG_LM3S_DISABLE_GPIOF_IRQS=n
+    CONFIG_LM3S_DISABLE_GPIOG_IRQS=n
+    CONFIG_LM3S_DISABLE_GPIOH_IRQS=n
+    CONFIG_LM3S_DISABLE_GPIOJ_IRQS=y
  
   LM3S6818 specific device driver settings
 
-	CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn for the
-	   console and ttys0 (default is the UART0).
-	CONFIG_UARTn_RXBUFSIZE - Characters are buffered as received.
-	   This specific the size of the receive buffer
-	CONFIG_UARTn_TXBUFSIZE - Characters are buffered before
-	   being sent.  This specific the size of the transmit buffer
-	CONFIG_UARTn_BAUD - The configure BAUD of the UART.  Must be
-	CONFIG_UARTn_BITS - The number of bits.  Must be either 7 or 8.
-	CONFIG_UARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
-	CONFIG_UARTn_2STOP - Two stop bits
+    CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn for the
+       console and ttys0 (default is the UART0).
+    CONFIG_UARTn_RXBUFSIZE - Characters are buffered as received.
+       This specific the size of the receive buffer
+    CONFIG_UARTn_TXBUFSIZE - Characters are buffered before
+       being sent.  This specific the size of the transmit buffer
+    CONFIG_UARTn_BAUD - The configure BAUD of the UART.  Must be
+    CONFIG_UARTn_BITS - The number of bits.  Must be either 7 or 8.
+    CONFIG_UARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
+    CONFIG_UARTn_2STOP - Two stop bits
 
-	CONFIG_SSI0_DISABLE - Select to disable support for SSI0
-	CONFIG_SSI1_DISABLE - Select to disable support for SSI1
-	CONFIG_SSI_POLLWAIT - Select to disable interrupt driven SSI support.
-	  Poll-waiting is recommended if the interrupt rate would be to
-	  high in the interrupt driven case.
-	CONFIG_SSI_TXLIMIT - Write this many words to the Tx FIFO before
-	  emptying the Rx FIFO.  If the SPI frequency is high and this
-	  value is large, then larger values of this setting may cause
-	  Rx FIFO overrun errors.  Default: half of the Tx FIFO size (4).
+    CONFIG_SSI0_DISABLE - Select to disable support for SSI0
+    CONFIG_SSI1_DISABLE - Select to disable support for SSI1
+    CONFIG_SSI_POLLWAIT - Select to disable interrupt driven SSI support.
+      Poll-waiting is recommended if the interrupt rate would be to
+      high in the interrupt driven case.
+    CONFIG_SSI_TXLIMIT - Write this many words to the Tx FIFO before
+      emptying the Rx FIFO.  If the SPI frequency is high and this
+      value is large, then larger values of this setting may cause
+      Rx FIFO overrun errors.  Default: half of the Tx FIFO size (4).
 
-	CONFIG_LM3S_ETHERNET - This must be set (along with CONFIG_NET)
-	  to build the LM3S Ethernet driver
-	CONFIG_LM3S_ETHLEDS - Enable to use Ethernet LEDs on the board.
-	CONFIG_LM3S_BOARDMAC - If the board-specific logic can provide
-	  a MAC address (via lm3s_ethernetmac()), then this should be selected.
-	CONFIG_LM3S_ETHHDUPLEX - Set to force half duplex operation
-	CONFIG_LM3S_ETHNOAUTOCRC - Set to suppress auto-CRC generation
-	CONFIG_LM3S_ETHNOPAD - Set to suppress Tx padding
-	CONFIG_LM3S_MULTICAST - Set to enable multicast frames
-	CONFIG_LM3S_PROMISCUOUS - Set to enable promiscuous mode
-	CONFIG_LM3S_BADCRC - Set to enable bad CRC rejection.
-	CONFIG_LM3S_DUMPPACKET - Dump each packet received/sent to the console.
+    CONFIG_LM3S_ETHERNET - This must be set (along with CONFIG_NET)
+      to build the LM3S Ethernet driver
+    CONFIG_LM3S_ETHLEDS - Enable to use Ethernet LEDs on the board.
+    CONFIG_LM3S_BOARDMAC - If the board-specific logic can provide
+      a MAC address (via lm3s_ethernetmac()), then this should be selected.
+    CONFIG_LM3S_ETHHDUPLEX - Set to force half duplex operation
+    CONFIG_LM3S_ETHNOAUTOCRC - Set to suppress auto-CRC generation
+    CONFIG_LM3S_ETHNOPAD - Set to suppress Tx padding
+    CONFIG_LM3S_MULTICAST - Set to enable multicast frames
+    CONFIG_LM3S_PROMISCUOUS - Set to enable promiscuous mode
+    CONFIG_LM3S_BADCRC - Set to enable bad CRC rejection.
+    CONFIG_LM3S_DUMPPACKET - Dump each packet received/sent to the console.
 
 Configurations
 ^^^^^^^^^^^^^^
@@ -400,10 +452,10 @@ Configurations
 Each Stellaris LM3S8962 Evaluation Kit configuration is maintained in a
 sudirectory and can be selected as follow:
 
-	cd tools
-	./configure.sh lm3s8962-ek/<subdir>
-	cd -
-	. ./setenv.sh
+    cd tools
+    ./configure.sh lm3s8962-ek/<subdir>
+    cd -
+    . ./setenv.sh
 
 Where <subdir> is one of the following:
 

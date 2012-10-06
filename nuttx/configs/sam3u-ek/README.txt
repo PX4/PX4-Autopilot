@@ -10,7 +10,9 @@ Contents
   - Development Environment
   - GNU Toolchain Options
   - IDEs
-  - NuttX buildroot Toolchain
+  - NuttX EABI "buildroot" Toolchain
+  - NuttX OABI "buildroot" Toolchain
+  - NXFLAT Toolchain
   - LEDs
   - SAM3U-EK-specific Configuration Options
   - Configurations
@@ -42,7 +44,7 @@ GNU Toolchain Options
     CONFIG_SAM3U_CODESOURCERYW=y  : CodeSourcery under Windows
     CONFIG_SAM3U_CODESOURCERYL=y  : CodeSourcery under Linux
     CONFIG_SAM3U_DEVKITARM=y      : devkitARM under Windows
-    CONFIG_SAM3U_BUILDROOT=y	  : NuttX buildroot under Linux or Cygwin (default)
+    CONFIG_SAM3U_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin (default)
 
   If you are not using CONFIG_SAM3U_BUILDROOT, then you may also have to modify
   the PATH in the setenv.h file if your make cannot find the tools.
@@ -123,8 +125,8 @@ IDEs
   one time from the Cygwin command line in order to obtain the pre-built
   startup object needed by RIDE.
 
-NuttX buildroot Toolchain
-^^^^^^^^^^^^^^^^^^^^^^^^^
+NuttX EABI "buildroot" Toolchain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   A GNU GCC-based toolchain is assumed.  The files */setenv.sh should
   be modified to point to the correct path to the Cortex-M3 GCC toolchain (if
@@ -147,7 +149,7 @@ NuttX buildroot Toolchain
 
   4. cd <some-dir>/buildroot
 
-  5. cp configs/cortexm3-defconfig-4.3.3 .config
+  5. cp configs/cortexm3-eabi-defconfig-4.6.3 .config
 
   6. make oldconfig
 
@@ -157,8 +159,58 @@ NuttX buildroot Toolchain
      the path to the newly built binaries.
 
   See the file configs/README.txt in the buildroot source tree.  That has more
-  detailed PLUS some special instructions that you will need to follow if you are
+  details PLUS some special instructions that you will need to follow if you are
   building a Cortex-M3 toolchain for Cygwin under Windows.
+
+NuttX OABI "buildroot" Toolchain
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  The older, OABI buildroot toolchain is also available.  To use the OABI
+  toolchain:
+
+  1. When building the buildroot toolchain, either (1) modify the cortexm3-eabi-defconfig-4.6.3
+     configuration to use EABI (using 'make menuconfig'), or (2) use an exising OABI
+     configuration such as cortexm3-defconfig-4.3.3
+
+  2. Modify the Make.defs file to use the OABI converntions:
+
+    +CROSSDEV = arm-nuttx-elf-
+    +ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
+    -CROSSDEV = arm-nuttx-eabi-
+    -ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
+
+NXFLAT Toolchain
+^^^^^^^^^^^^^^^^
+
+  If you are *not* using the NuttX buildroot toolchain and you want to use
+  the NXFLAT tools, then you will still have to build a portion of the buildroot
+  tools -- just the NXFLAT tools.  The buildroot with the NXFLAT tools can
+  be downloaded from the NuttX SourceForge download site
+  (https://sourceforge.net/projects/nuttx/files/).
+ 
+  This GNU toolchain builds and executes in the Linux or Cygwin environment.
+
+  1. You must have already configured Nuttx in <some-dir>/nuttx.
+
+     cd tools
+     ./configure.sh lpcxpresso-lpc1768/<sub-dir>
+
+  2. Download the latest buildroot package into <some-dir>
+
+  3. unpack the buildroot tarball.  The resulting directory may
+     have versioning information on it like buildroot-x.y.z.  If so,
+     rename <some-dir>/buildroot-x.y.z to <some-dir>/buildroot.
+
+  4. cd <some-dir>/buildroot
+
+  5. cp configs/cortexm3-defconfig-nxflat .config
+
+  6. make oldconfig
+
+  7. make
+
+  8. Edit setenv.h, if necessary, so that the PATH variable includes
+     the path to the newly builtNXFLAT binaries.
 
 LEDs
 ^^^^
@@ -167,16 +219,16 @@ The SAM3U-EK board has four LEDs labeled LD1, LD2, LD3 and LD4 on the
 the board.  Usage of these LEDs is defined in include/board.h and src/up_leds.c.
 They are encoded as follows:
 
-	SYMBOL				Meaning		LED0*	LED1	LED2
-	-------------------	-----------------------	-------	-------	-------
-	LED_STARTED		NuttX has been started	OFF	OFF	OFF
-	LED_HEAPALLOCATE	Heap has been allocated	OFF	OFF	ON
-	LED_IRQSENABLED		Interrupts enabled	OFF	ON	OFF
-	LED_STACKCREATED	Idle stack created	OFF	ON	ON
-	LED_INIRQ		In an interrupt**	N/C	FLASH   N/C
-	LED_SIGNAL		In a signal handler***  N/C	N/C	FLASH
-	LED_ASSERTION		An assertion failed	FLASH	N/C	N/C
-	LED_PANIC		The system has crashed	FLASH	N/C	N/C
+    SYMBOL              Meaning                 LED0*   LED1    LED2
+    ------------------- ----------------------- ------- ------- -------
+    LED_STARTED         NuttX has been started  OFF     OFF     OFF
+    LED_HEAPALLOCATE    Heap has been allocated OFF     OFF     ON
+    LED_IRQSENABLED     Interrupts enabled      OFF     ON      OFF
+    LED_STACKCREATED    Idle stack created      OFF     ON      ON
+    LED_INIRQ           In an interrupt**       N/C     FLASH   N/C
+    LED_SIGNAL          In a signal handler***  N/C     N/C     FLASH
+    LED_ASSERTION       An assertion failed     FLASH   N/C     N/C
+    LED_PANIC           The system has crashed  FLASH   N/C     N/C
 
   * If LED1 and LED2 are statically on, then NuttX probably failed to boot
     and these LEDs will give you some indication of where the failure was
@@ -188,116 +240,116 @@ They are encoded as follows:
 SAM3U-EK-specific Configuration Options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-	CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
-	   be set to:
+    CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
+       be set to:
 
-	   CONFIG_ARCH=arm
+       CONFIG_ARCH=arm
 
-	CONFIG_ARCH_family - For use in C code:
+    CONFIG_ARCH_family - For use in C code:
 
-	   CONFIG_ARCH_ARM=y
+       CONFIG_ARCH_ARM=y
 
-	CONFIG_ARCH_architecture - For use in C code:
+    CONFIG_ARCH_architecture - For use in C code:
 
-	   CONFIG_ARCH_CORTEXM3=y
+       CONFIG_ARCH_CORTEXM3=y
 
-	CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
+    CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 
-	   CONFIG_ARCH_CHIP=sam3u
+       CONFIG_ARCH_CHIP=sam3u
 
-	CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
-	   chip:
+    CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
+       chip:
 
-	   CONFIG_ARCH_CHIP_AT91SAM3U4
+       CONFIG_ARCH_CHIP_AT91SAM3U4
 
-	CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
-	   hence, the board that supports the particular chip or SoC.
+    CONFIG_ARCH_BOARD - Identifies the configs subdirectory and
+       hence, the board that supports the particular chip or SoC.
 
-	   CONFIG_ARCH_BOARD=sam3u_ek (for the SAM3U-EK development board)
+       CONFIG_ARCH_BOARD=sam3u_ek (for the SAM3U-EK development board)
 
-	CONFIG_ARCH_BOARD_name - For use in C code
+    CONFIG_ARCH_BOARD_name - For use in C code
 
-	   CONFIG_ARCH_BOARD_SAM3UEK=y
+       CONFIG_ARCH_BOARD_SAM3UEK=y
 
-	CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
-	   of delay loops
+    CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
+       of delay loops
 
-	CONFIG_ENDIAN_BIG - define if big endian (default is little
-	   endian)
+    CONFIG_ENDIAN_BIG - define if big endian (default is little
+       endian)
 
-	CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
+    CONFIG_DRAM_SIZE - Describes the installed DRAM (SRAM in this case):
 
-	   CONFIG_DRAM_SIZE=0x0000c000 (48Kb)
+       CONFIG_DRAM_SIZE=0x0000c000 (48Kb)
 
-	CONFIG_DRAM_START - The start address of installed DRAM
+    CONFIG_DRAM_START - The start address of installed DRAM
 
-	   CONFIG_DRAM_START=0x20000000
+       CONFIG_DRAM_START=0x20000000
 
-	CONFIG_ARCH_IRQPRIO - The SAM3UF103Z supports interrupt prioritization
+    CONFIG_ARCH_IRQPRIO - The SAM3UF103Z supports interrupt prioritization
 
-	   CONFIG_ARCH_IRQPRIO=y
+       CONFIG_ARCH_IRQPRIO=y
 
-	CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
-	   have LEDs
+    CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
+       have LEDs
 
-	CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
-	   stack. If defined, this symbol is the size of the interrupt
-	    stack in bytes.  If not defined, the user task stacks will be
-	  used during interrupt handling.
+    CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
+       stack. If defined, this symbol is the size of the interrupt
+        stack in bytes.  If not defined, the user task stacks will be
+      used during interrupt handling.
 
-	CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
+    CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
 
-	CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
+    CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
 
-	CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-	   cause a 100 second delay during boot-up.  This 100 second delay
-	   serves no purpose other than it allows you to calibratre
-	   CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-	   the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-	   the delay actually is 100 seconds.
+    CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
+       cause a 100 second delay during boot-up.  This 100 second delay
+       serves no purpose other than it allows you to calibratre
+       CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
+       the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
+       the delay actually is 100 seconds.
 
   Individual subsystems can be enabled:
 
-	CONFIG_SAM3U_DMA
-	CONFIG_SAM3U_HSMCI
-	CONFIG_SAM3U_NAND
-	CONFIG_SAM3U_SPI
-	CONFIG_SAM3U_UART
-	CONFIG_SAM3U_USART0
-	CONFIG_SAM3U_USART1
-	CONFIG_SAM3U_USART2
-	CONFIG_SAM3U_USART3
+    CONFIG_SAM3U_DMA
+    CONFIG_SAM3U_HSMCI
+    CONFIG_SAM3U_NAND
+    CONFIG_SAM3U_SPI
+    CONFIG_SAM3U_UART
+    CONFIG_SAM3U_USART0
+    CONFIG_SAM3U_USART1
+    CONFIG_SAM3U_USART2
+    CONFIG_SAM3U_USART3
 
   Some subsystems can be configured to operate in different ways. The drivers
   need to know how to configure the subsystem.
 
-	CONFIG_GPIOA_IRQ
-	CONFIG_GPIOB_IRQ
-	CONFIG_GPIOC_IRQ
-	CONFIG_USART0_ISUART
-	CONFIG_USART1_ISUART
-	CONFIG_USART2_ISUART
-	CONFIG_USART3_ISUART
+    CONFIG_GPIOA_IRQ
+    CONFIG_GPIOB_IRQ
+    CONFIG_GPIOC_IRQ
+    CONFIG_USART0_ISUART
+    CONFIG_USART1_ISUART
+    CONFIG_USART2_ISUART
+    CONFIG_USART3_ISUART
 
   AT91SAM3U specific device driver settings
 
-	CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the USARTn (n=0,1,2,3) or UART
+    CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the USARTn (n=0,1,2,3) or UART
            m (m=4,5) for the console and ttys0 (default is the USART1).
-	CONFIG_U[S]ARTn_RXBUFSIZE - Characters are buffered as received.
-	   This specific the size of the receive buffer
-	CONFIG_U[S]ARTn_TXBUFSIZE - Characters are buffered before
-	   being sent.  This specific the size of the transmit buffer
-	CONFIG_U[S]ARTn_BAUD - The configure BAUD of the UART.  Must be
-	CONFIG_U[S]ARTn_BITS - The number of bits.  Must be either 7 or 8.
-	CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
-	CONFIG_U[S]ARTn_2STOP - Two stop bits
+    CONFIG_U[S]ARTn_RXBUFSIZE - Characters are buffered as received.
+       This specific the size of the receive buffer
+    CONFIG_U[S]ARTn_TXBUFSIZE - Characters are buffered before
+       being sent.  This specific the size of the transmit buffer
+    CONFIG_U[S]ARTn_BAUD - The configure BAUD of the UART.  Must be
+    CONFIG_U[S]ARTn_BITS - The number of bits.  Must be either 7 or 8.
+    CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
+    CONFIG_U[S]ARTn_2STOP - Two stop bits
 
   LCD Options.  Other than the standard LCD configuration options
   (see configs/README.txt), the SAM3U-EK driver also supports:
 
-	CONFIG_LCD_PORTRAIT - Present the display in the standard 240x320
-	   "Portrait" orientation.  Default:  The display is rotated to
-	   support a 320x240 "Landscape" orientation.
+    CONFIG_LCD_PORTRAIT - Present the display in the standard 240x320
+       "Portrait" orientation.  Default:  The display is rotated to
+       support a 320x240 "Landscape" orientation.
 
 Configurations
 ^^^^^^^^^^^^^^
@@ -305,10 +357,10 @@ Configurations
 Each SAM3U-EK configuration is maintained in a sudirectory and
 can be selected as follow:
 
-	cd tools
-	./configure.sh sam3u-ek/<subdir>
-	cd -
-	. ./setenv.sh
+    cd tools
+    ./configure.sh sam3u-ek/<subdir>
+    cd -
+    . ./setenv.sh
 
 Before sourcing the setenv.sh file above, you should examine it and perform
 edits as necessary so that BUILDROOT_BIN is the correct path to the directory
@@ -317,7 +369,7 @@ than holds your toolchain binaries.
 And then build NuttX by simply typing the following.  At the conclusion of
 the make, the nuttx binary will reside in an ELF file called, simply, nuttx.
 
-	make
+    make
 
 The <subdir> that is provided above as an argument to the tools/configure.sh
 must be is one of the following:
@@ -328,7 +380,7 @@ must be is one of the following:
     are built separately.  This build requires a special make command; not
     just 'make' but make with the following two arguments:
 
-	    make pass1 pass2
+        make pass1 pass2
 
     This is required because in the normal case (just 'make'), make will
     create all dependencies then execute the pass1 and pass2 targets.  But
@@ -336,16 +388,16 @@ must be is one of the following:
     This specall make command ('make pass1 pass2') will make the dependencies
     separately for each pass.
 
-	At there end of the build, there four files will top-level build
-	directory:
+    At there end of the build, there four files will top-level build
+    directory:
 
-	nuttx_user.elf	- The pass1 ELF file
-	nuttx			- The pass2 ELF file
-	nuttx_user.hex	- The pass1 Intel HEX format file
-	nuttx.hex		- The pass2 Intel HEX file
+    nuttx_user.elf    - The pass1 ELF file
+    nuttx            - The pass2 ELF file
+    nuttx_user.hex    - The pass1 Intel HEX format file
+    nuttx.hex        - The pass2 Intel HEX file
 
-	The J-Link program will except files in .hex, .mot, .srec, and .bin
-	formats.
+    The J-Link program will except files in .hex, .mot, .srec, and .bin
+    formats.
 
   nsh:
     Configures the NuttShell (nsh) located at examples/nsh.  The
