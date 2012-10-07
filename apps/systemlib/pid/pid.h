@@ -49,6 +49,8 @@
 #define PID_MODE_DERIVATIV_CALC	0
 /* Use PID_MODE_DERIVATIV_SET if you have the derivative already (Gyros, Kalman) */
 #define PID_MODE_DERIVATIV_SET	1
+// Use PID_MODE_DERIVATIV_NONE for a PI controller (vs PID)
+#define PID_MODE_DERIVATIV_NONE 9
 
 typedef struct {
 	float kp;
@@ -65,8 +67,8 @@ typedef struct {
 	uint8_t saturated;
 } PID_t;
 
-__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, uint8_t mode);
-__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax);
+__EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax, float limit, uint8_t mode);
+__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit);
 //void pid_set(PID_t *pid, float sp);
 __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, float dt);
 
