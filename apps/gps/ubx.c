@@ -781,6 +781,8 @@ void *ubx_watchdog_loop(void *args)
 		} else {
 			/* gps healthy */
 			ubx_success_count++;
+			ubx_healthy = true;
+			ubx_fail_count = 0;
 
 			if (!ubx_healthy && ubx_success_count == UBX_HEALTH_SUCCESS_COUNTER_LIMIT) {
 				//printf("[gps] ublox UBX module status ok (baud=%d)\r\n", current_gps_speed);
