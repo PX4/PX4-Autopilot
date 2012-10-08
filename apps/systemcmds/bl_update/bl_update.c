@@ -56,11 +56,16 @@
 
 __EXPORT int bl_update_main(int argc, char *argv[]);
 
+static void setopt(void);
+
 int
 bl_update_main(int argc, char *argv[])
 {
 	if (argc != 2)
-		errx(1, "missing firmware filename");
+		errx(1, "missing firmware filename or command");
+
+	if (!strcmp(argv[1], "setopt"))
+		setopt();
 
 	int fd = open(argv[1], O_RDONLY);
 	if (fd < 0)
@@ -171,4 +176,34 @@ flash_end:
 
 	free(buf);
 	exit(0);
+}
+
+static void
+setopt(void)
+{
+	volatile uint32_t *optcr = (volatile uint32_t *)0x40023c14;
+
+	const uint16_t opt_mask = (3 << 2);		/* BOR_LEV bitmask */
+	const uint16_t opt_bits = (0 << 2);		/* BOR = 0, setting for 2.7-3.6V operation */
+
+	if ((*optcr & opt_mask) == opt_bits)
+		errx(0, "option bits are already set as required");
+
+	/* unlock the control register */
+	volatile uint32_t *optkeyr = (volatile uint32_t *)0x40023c08;
+	*optkeyr = 0x08192a3bU;
+	*optkeyr = 0x4c5d6e7fU;
+
+	if (*optcr & 1)
+		errx(1, "option control register unlock failed");
+
+	/* program the new option value */
+	*optcr = (*optcr & ~opt_mask) | opt_bits | (1 << 1);
+
+	usleep(1000);
+
+	if ((*optcr & opt_mask) == opt_bits)
+		errx(0, "option bits set");
+	errx(1, "option bits setting failed; readback 0x%04x", *optcr);
+
 }
