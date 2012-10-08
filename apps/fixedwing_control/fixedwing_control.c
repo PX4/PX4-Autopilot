@@ -88,53 +88,53 @@ static void usage(const char *reason);
  *
  */
 // Roll control parameters
-PARAM_DEFINE_FLOAT(FW_ROLL_RATE_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_ROLLRATE_P, 0.3f);
 // Need to add functionality to suppress integrator windup while on the ground
-// Suggested value of FW_ROLL_RATE_I is 0.0 till this is in place
-PARAM_DEFINE_FLOAT(FW_ROLL_RATE_I, 0.0f);
-PARAM_DEFINE_FLOAT(FW_ROLL_RATE_AWU, 0.0f);
-PARAM_DEFINE_FLOAT(FW_ROLL_RATE_LIMIT, 0.7f);   // Roll rate limit in radians/sec
-PARAM_DEFINE_FLOAT(FW_ROLL_ANGLE_P, 0.3f);
-PARAM_DEFINE_FLOAT(FW_ROLL_ANGLE_LIMIT, 0.7f);	// Roll angle limit in radians
+// Suggested value of FW_ROLLRATE_I is 0.0 till this is in place
+PARAM_DEFINE_FLOAT(FW_ROLLRATE_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ROLLRATE_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ROLLRATE_LIM, 0.7f);   // Roll rate limit in radians/sec
+PARAM_DEFINE_FLOAT(FW_ROLL_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_ROLL_LIM, 0.7f);	// Roll angle limit in radians
 
 //Pitch control parameters
-PARAM_DEFINE_FLOAT(FW_PITCH_RATE_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_PITCHRATE_P, 0.3f);
 // Need to add functionality to suppress integrator windup while on the ground
-// Suggested value of FW_PITCH_RATE_I is 0.0 till this is in place
-PARAM_DEFINE_FLOAT(FW_PITCH_RATE_I, 0.0f);
-PARAM_DEFINE_FLOAT(FW_PITCH_RATE_AWU, 0.0f);
-PARAM_DEFINE_FLOAT(FW_PITCH_RATE_LIMIT, 0.35f);   // Pitch rate limit in radians/sec
-PARAM_DEFINE_FLOAT(FW_PITCH_ANGLE_P, 0.3f);
-PARAM_DEFINE_FLOAT(FW_PITCH_ANGLE_LIMIT, 0.35f);	// Pitch angle limit in radians
+// Suggested value of FW_PITCHRATE_I is 0.0 till this is in place
+PARAM_DEFINE_FLOAT(FW_PITCHRATE_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_PITCHRATE_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(FW_PITCHRATE_LIM, 0.35f);   // Pitch rate limit in radians/sec
+PARAM_DEFINE_FLOAT(FW_PITCH_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_PITCH_LIM, 0.35f);	// Pitch angle limit in radians
 
 struct fw_att_control_params {
-	float roll_rate_p;
-	float roll_rate_i;
-	float roll_rate_awu;
-	float roll_rate_limit;
-	float roll_angle_p;
-	float roll_angle_limit;
-	float pitch_rate_p;
-	float pitch_rate_i;
-	float pitch_rate_awu;
-	float pitch_rate_limit;
-	float pitch_angle_p;
-	float pitch_angle_limit;
+	float rollrate_p;
+	float rollrate_i;
+	float rollrate_awu;
+	float rollrate_lim;
+	float roll_p;
+	float roll_lim;
+	float pitchrate_p;
+	float pitchrate_i;
+	float pitchrate_awu;
+	float pitchrate_lim;
+	float pitch_p;
+	float pitch_lim;
 };
 
 struct fw_att_control_param_handles {
-	param_t roll_rate_p;
-	param_t roll_rate_i;
-	param_t roll_rate_awu;
-	param_t roll_rate_limit;
-	param_t roll_angle_p;
-	param_t roll_angle_limit;
-	param_t pitch_rate_p;
-	param_t pitch_rate_i;
-	param_t pitch_rate_awu;
-	param_t pitch_rate_limit;
-	param_t pitch_angle_p;
-	param_t pitch_angle_limit;
+	param_t rollrate_p;
+	param_t rollrate_i;
+	param_t rollrate_awu;
+	param_t rollrate_lim;
+	param_t roll_p;
+	param_t roll_lim;
+	param_t pitchrate_p;
+	param_t pitchrate_i;
+	param_t pitchrate_awu;
+	param_t pitchrate_lim;
+	param_t pitch_p;
+	param_t pitch_lim;
 };
 
 
@@ -260,18 +260,18 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 
 // TO_DO  Fix output limit functionallity of PID controller or add that function elsewhere
 	PID_t roll_rate_controller;
-	pid_init(&roll_rate_controller, p.roll_rate_p, p.roll_rate_i, 0.0f, p.roll_rate_awu,
-			p.roll_rate_limit,PID_MODE_DERIVATIV_NONE);
+	pid_init(&roll_rate_controller, p.rollrate_p, p.rollrate_i, 0.0f, p.rollrate_awu,
+			p.rollrate_lim,PID_MODE_DERIVATIV_NONE);
 	PID_t roll_angle_controller;
-	pid_init(&roll_angle_controller, p.roll_angle_p, 0.0f, 0.0f, 0.0f,
-			p.roll_angle_limit,PID_MODE_DERIVATIV_NONE);
+	pid_init(&roll_angle_controller, p.roll_p, 0.0f, 0.0f, 0.0f,
+			p.roll_lim,PID_MODE_DERIVATIV_NONE);
 			
 	PID_t pitch_rate_controller;
-	pid_init(&pitch_rate_controller, p.pitch_rate_p, p.pitch_rate_i, 0.0f, p.pitch_rate_awu,
-			p.pitch_rate_limit,PID_MODE_DERIVATIV_NONE);
+	pid_init(&pitch_rate_controller, p.pitchrate_p, p.pitchrate_i, 0.0f, p.pitchrate_awu,
+			p.pitchrate_lim,PID_MODE_DERIVATIV_NONE);
 	PID_t pitch_angle_controller;
-	pid_init(&pitch_angle_controller, p.pitch_angle_p, 0.0f, 0.0f, 0.0f,
-			p.pitch_angle_limit,PID_MODE_DERIVATIV_NONE);
+	pid_init(&pitch_angle_controller, p.pitch_p, 0.0f, 0.0f, 0.0f,
+			p.pitch_lim,PID_MODE_DERIVATIV_NONE);
 
 	PID_t heading_controller;
 	pid_init(&heading_controller, ppos.heading_p, 0.0f, 0.0f, 0.0f,
@@ -298,18 +298,20 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 		} else {
 
 			// FIXME SUBSCRIBE
-			if (loopcounter % 20 == 0) {
+			if (loopcounter % 100 == 0) {
 				att_parameters_update(&h, &p);
 				pos_parameters_update(&hpos, &ppos);
-				pid_set_parameters(&roll_rate_controller, p.roll_rate_p, p.roll_rate_i, 0.0f, 
-									p.roll_rate_awu, p.roll_rate_limit);
-				pid_set_parameters(&roll_angle_controller, p.roll_angle_p, 0.0f, 0.0f, 
-									0.0f, p.roll_angle_limit);
-				pid_set_parameters(&pitch_rate_controller, p.pitch_rate_p, p.pitch_rate_i, 0.0f, 
-									p.pitch_rate_awu, p.pitch_rate_limit);
-				pid_set_parameters(&pitch_angle_controller, p.pitch_angle_p, 0.0f, 0.0f, 
-									0.0f, p.pitch_angle_limit);
+				pid_set_parameters(&roll_rate_controller, p.rollrate_p, p.rollrate_i, 0.0f, 
+									p.rollrate_awu, p.rollrate_lim);
+				pid_set_parameters(&roll_angle_controller, p.roll_p, 0.0f, 0.0f, 
+									0.0f, p.roll_lim);
+				pid_set_parameters(&pitch_rate_controller, p.pitchrate_p, p.pitchrate_i, 0.0f, 
+									p.pitchrate_awu, p.pitchrate_lim);
+				pid_set_parameters(&pitch_angle_controller, p.pitch_p, 0.0f, 0.0f, 
+									0.0f, p.pitch_lim);
 				pid_set_parameters(&heading_controller, ppos.heading_p, 0.0f, 0.0f, 0.0f, 90.0f);
+//printf("[fixedwing control debug] p: %8.4f, i: %8.4f, limit: %8.4f  \n",
+//p.rollrate_p, p.rollrate_i, p.rollrate_lim);
 			}
 
 			/* if position updated, run position control loop */
@@ -512,36 +514,36 @@ static int att_parameters_init(struct fw_att_control_param_handles *h)
 {
 	/* PID parameters */
 	
-	h->roll_rate_p 			=	param_find("FW_ROLL_RATE_P");
-	h->roll_rate_i 			=	param_find(";FW_ROLL_RATE_I");
-	h->roll_rate_awu 		=	param_find("FW_ROLL_RATE_AWU");
-	h->roll_rate_limit 		=	param_find("FW_ROLL_RATE_LIMIT");
-	h->roll_angle_p 		=	param_find("FW_ROLL_ANGLE_P");
-	h->roll_angle_limit 	=	param_find("FW_ROLL_ANGLE_LIMIT");
-	h->pitch_rate_p 		=	param_find("FW_PITCH_RATE_P");
-	h->pitch_rate_i 		=	param_find("FW_PITCH_RATE_I");
-	h->pitch_rate_awu 		=	param_find("FW_PITCH_RATE_AWU");
-	h->pitch_rate_limit 	=	param_find("FW_PITCH_RATE_LIMIT");
-	h->pitch_angle_p 		=	param_find("FW_PITCH_ANGLE_P");
-	h->pitch_angle_p 		=	param_find("FW_PITCH_ANGLE_LIMIT");
+	h->rollrate_p 			=	param_find("FW_ROLLRATE_P");
+	h->rollrate_i 			=	param_find("FW_ROLLRATE_I");
+	h->rollrate_awu 		=	param_find("FW_ROLLRATE_AWU");
+	h->rollrate_lim 		=	param_find("FW_ROLLRATE_LIM");
+	h->roll_p 				=	param_find("FW_ROLL_P");
+	h->roll_lim 			=	param_find("FW_ROLL_LIM");
+	h->pitchrate_p 			=	param_find("FW_PITCHRATE_P");
+	h->pitchrate_i 			=	param_find("FW_PITCHRATE_I");
+	h->pitchrate_awu 		=	param_find("FW_PITCHRATE_AWU");
+	h->pitchrate_lim 		=	param_find("FW_PITCHRATE_LIM");
+	h->pitch_p 				=	param_find("FW_PITCH_P");
+	h->pitch_lim 			=	param_find("FW_PITCH_LIM");
 	
 	return OK;
 }
 
 static int att_parameters_update(const struct fw_att_control_param_handles *h, struct fw_att_control_params *p)
 {
-	param_get(h->roll_rate_p, &(p->roll_rate_p));
-	param_get(h->roll_rate_i, &(p->roll_rate_i));
-	param_get(h->roll_rate_awu, &(p->roll_rate_awu));
-	param_get(h->roll_rate_limit, &(p->roll_rate_limit));
-	param_get(h->roll_angle_p, &(p->roll_angle_p));
-	param_get(h->roll_angle_limit, &(p->roll_angle_limit));
-	param_get(h->pitch_rate_p, &(p->pitch_rate_p));
-	param_get(h->pitch_rate_i, &(p->pitch_rate_i));
-	param_get(h->pitch_rate_awu, &(p->pitch_rate_awu));
-	param_get(h->pitch_rate_limit, &(p->pitch_rate_limit));
-	param_get(h->pitch_angle_p, &(p->pitch_angle_p));
-	param_get(h->pitch_angle_limit, &(p->pitch_angle_limit));
+	param_get(h->rollrate_p, &(p->rollrate_p));
+	param_get(h->rollrate_i, &(p->rollrate_i));
+	param_get(h->rollrate_awu, &(p->rollrate_awu));
+	param_get(h->rollrate_lim, &(p->rollrate_lim));
+	param_get(h->roll_p, &(p->roll_p));
+	param_get(h->roll_lim, &(p->roll_lim));
+	param_get(h->pitchrate_p, &(p->pitchrate_p));
+	param_get(h->pitchrate_i, &(p->pitchrate_i));
+	param_get(h->pitchrate_awu, &(p->pitchrate_awu));
+	param_get(h->pitchrate_lim, &(p->pitchrate_lim));
+	param_get(h->pitch_p, &(p->pitch_p));
+	param_get(h->pitch_lim, &(p->pitch_lim));
 	
 	return OK;
 }
