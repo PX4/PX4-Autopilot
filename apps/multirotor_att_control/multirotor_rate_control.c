@@ -166,18 +166,17 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	if (motor_skip_counter % 2500 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-		printf("p.yawrate_p: %8.4f\n", (double)p.yawrate_p);
 	}
 
 	/* calculate current control outputs */
 	
 	/* control pitch (forward) output */
-	float pitch_control = p.attrate_p * deltaT * (rate_sp->pitch-rates[1]);
+	float pitch_control = p.attrate_p * deltaT * (rate_sp->pitch - rates[1]);
 	/* control roll (left/right) output */
-	float roll_control = p.attrate_p * deltaT * (rate_sp->roll-rates[0]  );
+	float roll_control = p.attrate_p * deltaT * (rate_sp->roll - rates[0]);
 
 	/* control yaw rate */
-	float yaw_rate_control = p.yawrate_p * deltaT * (rate_sp->yaw-rates[2]  );
+	float yaw_rate_control = p.yawrate_p * deltaT * (rate_sp->yaw - rates[2]);
 
 	actuators->control[0] = roll_control;
 	actuators->control[1] = pitch_control;
