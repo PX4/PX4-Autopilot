@@ -503,7 +503,7 @@ void update_state_machine_mode_manual(int status_pub, struct vehicle_status_s *c
 	current_status->flight_mode = VEHICLE_FLIGHT_MODE_MANUAL;
 	current_status->flag_control_manual_enabled = true; //XXX
 	/* enable attitude control per default */
-	current_status->flag_control_attitude_enabled = false;
+	current_status->flag_control_attitude_enabled = true;
 	current_status->flag_control_rates_enabled = true;
 	if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
 
@@ -518,7 +518,7 @@ void update_state_machine_mode_stabilized(int status_pub, struct vehicle_status_
 	int old_mode = current_status->flight_mode;
 	current_status->flight_mode = VEHICLE_FLIGHT_MODE_STABILIZED;
 	current_status->flag_control_manual_enabled = true; //XXX
-	current_status->flag_control_attitude_enabled = false;
+	current_status->flag_control_attitude_enabled = true;
 	current_status->flag_control_rates_enabled = true;
 	if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
 
@@ -533,7 +533,7 @@ void update_state_machine_mode_auto(int status_pub, struct vehicle_status_s *cur
 	int old_mode = current_status->flight_mode;
 	current_status->flight_mode = VEHICLE_FLIGHT_MODE_AUTO;
 	current_status->flag_control_manual_enabled = true; //XXX
-	current_status->flag_control_attitude_enabled = false;
+	current_status->flag_control_attitude_enabled = true;
 	current_status->flag_control_rates_enabled = true;
 	if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
 
