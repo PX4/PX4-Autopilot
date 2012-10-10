@@ -296,7 +296,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	int calibration_interval_ms = 30 * 1000;
 	unsigned int calibration_counter = 0;
 
-	float mag_max[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+	float mag_max[3] = {FLT_MIN, FLT_MIN, FLT_MIN};
 	float mag_min[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
 
 	int fd = open(MAG_DEVICE_PATH, 0);
@@ -353,6 +353,8 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		}
 	}
 
+	usleep(200000);
+
 	mavlink_log_info(mavlink_fd, "[commander] mag calibration done");
 
 	/* disable calibration mode */
@@ -377,7 +379,15 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	mag_offset[1] = (mag_max[1] + mag_min[1]) / 2.0f;
 	mag_offset[2] = (mag_max[2] + mag_min[2]) / 2.0f;
 
-	printf("mag off x: %4.4f, y: %4.4f, z: %4.4f\n",(double)mag_offset[0],(double)mag_offset[0],(double)mag_offset[2]);
+	if (!isfinite(mag_offset[0]) || !isfinite(mag_offset[1]) || !isfinite(mag_offset[2]))
+	{
+		mavlink_log_info(mavlink_fd, "[commander] mag cal aborted: NaN");
+	}
+
+	//char buf[52];
+
+	//sprintf(buf, "mag off x: %4.4f, y: %4.4f, z: %4.4f\n",(double)mag_offset[0],(double)mag_offset[0],(double)mag_offset[2]);
+	//mavlink_log_info(mavlink_fd, buf);
 
 	/* announce and set new offset */
 
@@ -412,7 +422,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		warn("WARNING: auto-save of params to EEPROM failed");
 	}
 
-	mavlink_log_info(mavlink_fd, "[commander] magnetometer calibration finished");
+	mavlink_log_info(mavlink_fd, "[commander] mag cal finished");
 
 	close(sub_sensor_combined);
 }
@@ -519,7 +529,7 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	status->flag_preflight_accel_calibration = true;
 	state_machine_publish(status_pub, status, mavlink_fd);
 
-	const int calibration_count = 5000;
+	const int calibration_count = 2500;
 
 	int sub_sensor_combined = orb_subscribe(ORB_ID(sensor_combined));
 	struct sensor_combined_s raw;
@@ -954,7 +964,7 @@ int commander_main(int argc, char *argv[])
 		deamon_task = task_spawn("commander",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 50,
-					 4096,
+					 8000,
 					 commander_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
