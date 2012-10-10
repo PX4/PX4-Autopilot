@@ -233,7 +233,11 @@ NuttX EABI "buildroot" Toolchain
   details PLUS some special instructions that you will need to follow if you
   are building a Cortex-M3 toolchain for Cygwin under Windows.
 
-  NOTE: This is an OABI toolchain.
+  NOTE:  Unfortunately, the 4.6.3 EABI toolchain is not compatible with the
+  the NXFLAT tools.  See the top-level TODO file (under "Binary loaders") for
+  more information about this problem. If you plan to use NXFLAT, please do not
+  use the GCC 4.6.3 EABI toochain; instead use the GCC 4.3.3 OABI toolchain.
+  See instructions below.
 
 NuttX OABI "buildroot" Toolchain
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -431,8 +431,10 @@ o Binary loaders (binfmt/)
                be done.  One question that I have is does this apply to all kinds of .rodata? 
                Or just to .rodata.str1.1?
   
-  Status:      Open.  Many of the required changes are in place but, unfortunately, not enought
-               go be fully functional.
+  Status:      Open.  Many of the required changes are in place but, unfortunately, not enough
+               go be fully functional.  I think all of the I-Space-to-I-Space fixes are in place.
+               However, the generated code also includes PC-relative references to .bss which
+               just cannot be done.
   Priority:    Medium.  The workaround for now is to use the older, 4.3.3 OABI compiler.
 
 o Network (net/, drivers/net)

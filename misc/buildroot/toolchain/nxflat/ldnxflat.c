@@ -812,7 +812,6 @@ relocate_rel32(arelent *relp, int32_t *target, symvalue sym_value)
   int32_t                value;
   int32_t                temp;
   int32_t                saved;
-  int                    reloc_type;
 
   if (verbose > 1)
     {
