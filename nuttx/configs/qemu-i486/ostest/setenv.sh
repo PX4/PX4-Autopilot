@@ -42,7 +42,7 @@ if [ -z ${PATH_ORIG} ]; then export PATH_ORIG=${PATH}; fi
 # Uncomment and modify the following if you are using anything other
 # than the system GCC
 # WD=`pwd`
-# export BUILDROOT_BIN="${WD}/../../../buildroot/build_i486/staging_dir/bin"
+# export BUILDROOT_BIN="${WD}/../../../misc/buildroot/build_i486/staging_dir/bin"
 # export PATH="${BUILDROOT_BIN}:/sbin:/usr/sbin:${PATH_ORIG}"
 
 echo "PATH : ${PATH}"

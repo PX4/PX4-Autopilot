@@ -51,7 +51,7 @@ fi
 # TOOLCHAIN_BIN must be defined to the full path to the location where you
 # have installed the toolchain of your choice.  Modify the following:
 
-export TOOLCHAIN_BIN="${WD}/../buildroot/build_arm_nofpu/staging_dir/bin"
+export TOOLCHAIN_BIN="${WD}/../misc/buildroot/build_arm_nofpu/staging_dir/bin"
 
 # Andd add the toolchain path to the PATH variable
 

@@ -40,7 +40,7 @@ fi
 if [ -z ${PATH_ORIG} ]; then export PATH_ORIG=${PATH}; fi
 
 WD=`pwd`
-export BUILDROOT_BIN=${WD}/../buildroot/build_m68k/staging_dir/bin
+export BUILDROOT_BIN=${WD}/../misc/buildroot/build_m68k/staging_dir/bin
 export PATH=${BUILDROOT_BIN}:/sbin:/usr/sbin:${PATH_ORIG}
 
 echo "PATH : ${PATH}"

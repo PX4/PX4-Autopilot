@@ -40,7 +40,7 @@ fi
 if [ -z "${PATH_ORIG}" ]; then export PATH_ORIG="${PATH}"; fi
 
 WD=`pwd`
-export BUILDROOT_BIN="${WD}/../buildroot/build_arm_nofpu/staging_dir/bin"
+export BUILDROOT_BIN="${WD}/../misc/buildroot/build_arm_nofpu/staging_dir/bin"
 export LPC214XSCRIPTS="$WD/configs/mcu123-lpc214x/scripts"
 export PATH="${BUILDROOT_BIN}:${LPC214XSCRIPTS}:/sbin:/usr/sbin:${PATH_ORIG}"
 
