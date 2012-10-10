@@ -11,6 +11,16 @@ echo "[init] doing standalone PX4FMU startup..."
 uorb start
 
 #
+# Init the EEPROM
+#
+echo "[init] eeprom"
+eeprom start
+if [ -f /eeprom/parameters ]
+then
+	param load
+fi
+
+#
 # Start the sensors.
 #
 #sh /etc/init.d/rc.sensors
