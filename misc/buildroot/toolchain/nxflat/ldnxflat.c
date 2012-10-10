@@ -800,16 +800,142 @@ static void alloc_got_entry(asymbol *sym)
 }
 
 /***********************************************************************
+ * relocate_arm32
+ ***********************************************************************/
+
+static void
+relocate_arm32(arelent *relp, int32_t *target, symvalue sym_value)
+{
+  reloc_howto_type      *how_to      = relp->howto;
+  asymbol               *rel_sym     = *relp->sym_ptr_ptr;
+  asection              *rel_section = rel_sym->section;
+  struct nxflat_reloc_s *relocs;
+  int32_t                temp;
+  int32_t                saved;
+  int                    reloc_type;
+
+  /* ABS32 links from .text are easy - since the fetches will
+   * always be base relative. the ABS32 refs from data will be
+   * handled the same
+   */
+
+  if (verbose > 1)
+    {
+      vdbg("  Original location %p is %08lx ",
+#ifdef ARCH_BIG_ENDIAN
+           target, (long)nxflat_swap32(*target));
+#else
+          target, (long)*target);
+#endif
+      if (verbose > 2)
+        {
+          printf("rsh %d ", how_to->rightshift);
+          printf(" sz %d ", how_to->size);
+          printf("bit %d ", how_to->bitsize);
+          printf("rel %d ", how_to->pc_relative);
+          printf("smask %08lx ", (long)how_to->src_mask);
+          printf("dmask %08lx ", (long)how_to->dst_mask);
+          printf("off %d ", how_to->pcrel_offset);
+        }
+
+      printf("\n");
+    }
+
+#ifdef ARCH_BIG_ENDIAN
+  saved = temp = (int32_t) nxflat_swap32(*target);
+#else
+  saved = temp = *target;
+#endif
+  /* Mask  and sign extend */
+
+  temp &= how_to->src_mask;
+  temp <<= (32 - how_to->bitsize);
+  temp >>= (32 - how_to->bitsize);
+
+  /* Offset */
+
+  temp += (sym_value + rel_section->vma) >> how_to->rightshift;
+
+  /* Mask upper bits from rollover */
+
+  temp &= how_to->dst_mask;
+
+  /* Replace data that was masked */
+
+  temp |= saved & (~how_to->dst_mask);
+
+  vdbg("  Modified location: %08lx\n", (long)temp);
+#ifdef ARCH_BIG_ENDIAN
+  *target = (long)nxflat_swap32(temp);
+#else
+  *target = (long)temp;
+#endif
+  /* Determine where the symbol lies */
+
+  switch (get_reloc_type(rel_section, NULL))
+    {
+      case NXFLAT_RELOC_TARGET_UNKNOWN:
+      default:
+        {
+          err("Symbol relocation section type is unknown\n");
+          nerrors++;
+        }
+        /* Fall through and do something wrong */
+
+      case NXFLAT_RELOC_TARGET_BSS:
+      case NXFLAT_RELOC_TARGET_DATA:
+        {
+          vdbg("Symbol '%s' lies in D-Space\n", rel_sym->name);
+          reloc_type = NXFLAT_RELOC_TYPE_REL32D;
+        }
+        break;
+
+      case NXFLAT_RELOC_TARGET_TEXT:
+        {
+          vdbg("Symbol '%s' lies in I-Space\n", rel_sym->name);
+          reloc_type = NXFLAT_RELOC_TYPE_REL32I;
+        }
+        break;
+    }
+
+  /* Re-allocate memory to include this relocation */
+
+  relocs = (struct nxflat_reloc_s*)
+  realloc(nxflat_relocs, sizeof(struct nxflat_reloc_s) * nxflat_nrelocs + 1);
+  if (!relocs)
+    {
+      err("Failed to re-allocate memory ABS32 relocations (%d relocations)\n",
+          nxflat_nrelocs);
+      nerrors++;
+    }
+  else
+    {
+      /* Reallocation was successful.  Update globals */
+               
+      nxflat_nrelocs++;
+      nxflat_relocs = relocs;
+
+      /* Then add the relocation at the end of the table */
+
+      nxflat_relocs[nxflat_nrelocs-1].r_info =
+      NXFLAT_RELOC(reloc_type, relp->address + got_size);
+ 
+      vdbg("relocs[%d]: type: %d offset: %08x\n",
+      nxflat_nrelocs-1,
+      NXFLAT_RELOC_TYPE(nxflat_relocs[nxflat_nrelocs-1].r_info),
+      NXFLAT_RELOC_OFFSET(nxflat_relocs[nxflat_nrelocs-1].r_info));
+    }
+ }
+
+/***********************************************************************
  * resolve_segment_relocs
  ***********************************************************************/
 
 static void
 resolve_segment_relocs(bfd *input_bfd, segment_info *inf, asymbol **syms)
 {
-  struct nxflat_reloc_s *relocs;
   arelent **relpp;
   int relsize;
-  int reloc_type;
   int relcount;
   int i;
   int j;
@@ -976,68 +1102,22 @@ resolve_segment_relocs(bfd *input_bfd, segment_info *inf, asymbol **syms)
 
             case R_ARM_ABS32:
               {
-                int32_t temp;
-                int32_t saved;
-
                 dbg("Performing ABS32 link at addr %08lx [%08lx] to sym '%s' [%08lx]\n",
                      (long)relpp[j]->address, (long)*target, rel_sym->name, (long)sym_value);
 
-                /* ABS32 links from .text are easy - since the fetches will
-                 * always be base relative. the ABS32 refs from data will be
-                 * handled the same
+                relocate_arm32(relpp[j], target, sym_value);
+              }
+              break;
+
+            case R_ARM_REL32:
+              {
+                dbg("Performing REL32 link at addr %08lx [%08lx] to sym '%s' [%08lx]\n",
+                     (long)relpp[j]->address, (long)*target, rel_sym->name, (long)sym_value);
+
+                /* The REL32 relocation is just like the ABS32 relocation except that (1)
+                 * the symbol value is relative to the PC, and (2) we cannot permit
+                 * REL32 relocations to data in I-Space.  That just would not make sense.
                  */
-
-                if (verbose > 1)
-                  {
-                    vdbg("  Original location %p is %08lx ",
-#ifdef ARCH_BIG_ENDIAN
-                         target, (long)nxflat_swap32(*target));
-#else
-                         target, (long)*target);
-#endif
-                    if (verbose > 2)
-                      {
-                        printf("rsh %d ", how_to->rightshift);
-                        printf(" sz %d ", how_to->size);
-                        printf("bit %d ", how_to->bitsize);
-                        printf("rel %d ", how_to->pc_relative);
-                        printf("smask %08lx ", (long)how_to->src_mask);
-                        printf("dmask %08lx ", (long)how_to->dst_mask);
-                        printf("off %d ", how_to->pcrel_offset);
-                      }
-                    printf("\n");
-                  }
-
-#ifdef ARCH_BIG_ENDIAN
-                saved = temp = (int32_t) nxflat_swap32(*target);
-#else
-                saved = temp = *target;
-#endif
-                /* Mask  and sign extend */
-
-                temp &= how_to->src_mask;
-                temp <<= (32 - how_to->bitsize);
-                temp >>= (32 - how_to->bitsize);
-
-                /* Offset */
-
-                temp += (sym_value + rel_section->vma) >> how_to->rightshift;
-
-                /* Mask upper bits from rollover */
-
-                temp &= how_to->dst_mask;
-
-                /* Replace data that was masked */
-
-                temp |= saved & (~how_to->dst_mask);
-
-                vdbg("  Modified location: %08lx\n", (long)temp);
-#ifdef ARCH_BIG_ENDIAN
-                *target = (long)nxflat_swap32(temp);
-#else
-                *target = (long)temp;
-#endif
-                /* Determine where the symbol lies */
 
                 switch (get_reloc_type(rel_section, NULL))
                   {
@@ -1047,50 +1127,23 @@ resolve_segment_relocs(bfd *input_bfd, segment_info *inf, asymbol **syms)
                         err("Symbol relocation section type is unknown\n");
                         nerrors++;
                       }
-                      /* Fall through and do something wrong */
+                      break;
 
                     case NXFLAT_RELOC_TARGET_BSS:
                     case NXFLAT_RELOC_TARGET_DATA:
                       {
-                        vdbg("Symbol '%s' lies in D-Space\n", rel_sym->name);
-                        reloc_type = NXFLAT_RELOC_TYPE_REL32D;
+                        err("Cannot perform REL32 relocation: Symbol '%s' lies in D-Space\n",
+                            rel_sym->name);
+                        nerrors++;
                       }
                       break;
 
                     case NXFLAT_RELOC_TARGET_TEXT:
                       {
                         vdbg("Symbol '%s' lies in I-Space\n", rel_sym->name);
-                        reloc_type = NXFLAT_RELOC_TYPE_REL32I;
+                        relocate_arm32(relpp[j], target, sym_value - relpp[j]->address);
                       }
                       break;
-                  }
-
-                /* Re-allocate memory to include this relocation */
-
-                relocs = (struct nxflat_reloc_s*)
-                  realloc(nxflat_relocs, sizeof(struct nxflat_reloc_s) * nxflat_nrelocs + 1);
-                if (!relocs)
-                  {
-                    err("Failed to re-allocate memory ABS32 relocations (%d relocations)\n",
-                        nxflat_nrelocs);
-                    nerrors++;
-                  }
-                else
-                  {
-                    /* Reallocation was successful.  Update globlas */
-               
-                    nxflat_nrelocs++;
-                    nxflat_relocs = relocs;
-
-                    /* Then add the relocation at the end of the table */
-
-                    nxflat_relocs[nxflat_nrelocs-1].r_info =
-                         NXFLAT_RELOC(reloc_type, relpp[j]->address + got_size);
- 
-                    vdbg("relocs[%d]: type: %d offset: %08x\n",
-                         nxflat_nrelocs-1,
-                         NXFLAT_RELOC_TYPE(nxflat_relocs[nxflat_nrelocs-1].r_info),
-                         NXFLAT_RELOC_OFFSET(nxflat_relocs[nxflat_nrelocs-1].r_info));
                   }
               }
               break;
