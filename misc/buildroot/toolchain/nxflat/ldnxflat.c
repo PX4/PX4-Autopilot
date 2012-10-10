@@ -1118,7 +1118,14 @@ resolve_segment_relocs(bfd *input_bfd, segment_info *inf, asymbol **syms)
                  * the symbol value is relative to the PC, and (2) we cannot permit
                  * REL32 relocations to data in I-Space.  That just would not make sense.
                  */
+#if 1
+                /* The logic below may or may not be correct.  It has not been verified
+                 * so, for now, it is disabled.
+                 */
 
+                err("REL32 relocation not yet supported\n");
+                nerrors++;
+#else
                 switch (get_reloc_type(rel_section, NULL))
                   {
                     case NXFLAT_RELOC_TARGET_UNKNOWN:
@@ -1145,6 +1152,7 @@ resolve_segment_relocs(bfd *input_bfd, segment_info *inf, asymbol **syms)
                       }
                       break;
                   }
+#endif
               }
               break;
 
