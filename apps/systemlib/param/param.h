@@ -122,6 +122,20 @@ __EXPORT int		param_get_index(param_t param);
 __EXPORT const char	*param_name(param_t param);
 
 /**
+ * Test whether a parameter's value has changed from the default.
+ *
+ * @return		If true, the parameter's value has not been changed from the default.
+ */
+__EXPORT bool		param_value_is_default(param_t param);
+
+/**
+ * Test whether a parameter's value has been changed but not saved.
+ *
+ * @return		If true, the parameter's value has not been saved.
+ */
+__EXPORT bool		param_value_unsaved(param_t param);
+
+/**
  * Obtain the type of a parameter.
  *
  * @param param		A handle returned by param_find or passed by param_foreach.
@@ -160,7 +174,8 @@ __EXPORT int		param_set(param_t param, const void *val);
 /**
  * Reset a parameter to its default value.
  *
- * This function frees any storage used by struct parameters, but scalar parameters 
+ * This function frees any storage used by struct parameters, and returns the parameter
+ * to its default value.
  *
  * @param param		A handle returned by param_find or passed by param_foreach.
  */

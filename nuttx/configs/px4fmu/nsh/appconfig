@@ -53,6 +53,7 @@ CONFIGURED_APPS += systemcmds/boardinfo
 CONFIGURED_APPS += systemcmds/mixer
 CONFIGURED_APPS += systemcmds/eeprom
 CONFIGURED_APPS += systemcmds/led
+CONFIGURED_APPS += systemcmds/param
 CONFIGURED_APPS += systemcmds/bl_update
 #CONFIGURED_APPS += systemcmds/calibration
 
