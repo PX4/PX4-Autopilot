@@ -1,7 +1,7 @@
 /****************************************************************************
- * examples/nxflat/nxflat.ld
+ * examples/nxflat/gnu-nxflat-gotoff.ld
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,17 @@ MEMORY
  * (2) DSpace (Data Space).  This is the segment that contains both
  *     read-write data (.data, .bss) as well as read-only data (.rodata).
  *     Everything in this segment should be access-able with machine
- *     with machine load and store instructions.
+ *     PIC load and store instructions.
+ *
+ * Older versions of GCC (at least up to GCC 4.3.3), use GOT-relative
+ * addressing to access RO data. In that case, read-only data (.rodata) must
+ * reside in D-Space and this linker script should be used.
+ *
+ * Newer versions of GCC (at least as of GCC 4.6.3), use PC-relative
+ * addressing to access RO data. In that case, read-only data (.rodata) must
+ * reside in I-Space and this linker script should NOT be used with those
+ * newer tools.
+ *
  ****************************************************************************/
 
 SECTIONS

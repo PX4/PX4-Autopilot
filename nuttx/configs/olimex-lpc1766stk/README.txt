@@ -317,12 +317,14 @@ NuttX OABI "buildroot" Toolchain
      configuration to use EABI (using 'make menuconfig'), or (2) use an exising OABI
      configuration such as cortexm3-defconfig-4.3.3
 
-  2. Modify the Make.defs file to use the OABI converntions:
+  2. Modify the Make.defs file to use the OABI conventions:
 
     +CROSSDEV = arm-nuttx-elf-
     +ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
+    +NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T$(TOPDIR)/binfmt/libnxflat/gnu-nxflat-gotoff.ld -no-check-sections
     -CROSSDEV = arm-nuttx-eabi-
     -ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
+    -NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T$(TOPDIR)/binfmt/libnxflat/gnu-nxflat-pcrel.ld -no-check-sections
 
 NXFLAT Toolchain
 ^^^^^^^^^^^^^^^^

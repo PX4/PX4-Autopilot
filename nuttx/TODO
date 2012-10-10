@@ -376,15 +376,15 @@ o Binary loaders (binfmt/)
   Description: Windows build issue.  Some of the configurations that use NXFLAT have
                the linker script specified like this:
 
-               NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T$(TOPDIR)/binfmt/libnxflat/gnu-nxflat.ld -no-check-sections
+               NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T$(TOPDIR)/binfmt/libnxflat/gnu-nxflat-gotoff.ld -no-check-sections
 
                That will not work for windows-based tools because they require Windows
                style paths.  The solution is to do something like this:
 
                if ($(WINTOOL)y)
-                 NXFLATLDSCRIPT=${cygpath -w $(TOPDIR)/binfmt/libnxflat/gnu-nxflat.ld}
+                 NXFLATLDSCRIPT=${cygpath -w $(TOPDIR)/binfmt/libnxflat/gnu-nxflat-gotoff.ld}
                else
-                 NXFLATLDSCRIPT=$(TOPDIR)/binfmt/libnxflat/gnu-nxflat.ld
+                 NXFLATLDSCRIPT=$(TOPDIR)/binfmt/libnxflat/gnu-nxflat-gotoff.ld
                endif
                
                Then use
