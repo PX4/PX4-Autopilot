@@ -97,6 +97,15 @@ SECTIONS
       *(.call_table_data)
       *(.call_table_text)
 
+      /* In this model, .rodata is access using PC-relative addressing
+       * and, hence, must also reside in the .text section.
+       */
+
+      *(.rodata)
+      *(.rodata1)
+      *(.rodata.*)
+      *(.gnu.linkonce.r*)
+
       _etext = . ;
 
     } > ISPACE
@@ -108,10 +117,6 @@ SECTIONS
   .data 0x00000000 :
     {
       __data_start = . ;
-      *(.rodata)
-      *(.rodata1)
-      *(.rodata.*)
-      *(.gnu.linkonce.r*)
       *(.data)
       *(.data1)
       *(.data.*)
