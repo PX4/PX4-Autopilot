@@ -107,11 +107,16 @@ SECTIONS
 
   .data 0x00000000 :
     {
+      /* In this model, .rodata is access using PC-relative addressing
+       * and, hence, must also reside in the .text section.
+       */
+
       __data_start = . ;
       *(.rodata)
       *(.rodata1)
       *(.rodata.*)
       *(.gnu.linkonce.r*)
+
       *(.data)
       *(.data1)
       *(.data.*)

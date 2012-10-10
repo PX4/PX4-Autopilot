@@ -12,7 +12,7 @@ nuttx/
   (2)  Signals (sched/, arch/)
   (2)  pthreads (sched/)
   (2)  C++ Support
-  (5)  Binary loaders (binfmt/)
+  (6)  Binary loaders (binfmt/)
  (17)  Network (net/, drivers/net)
   (3)  USB (drivers/usbdev, drivers/usbhost)
  (11)  Libraries (lib/)
@@ -394,6 +394,46 @@ o Binary loaders (binfmt/)
   Status:      Open
   Priority:    There are too many references like the above.  They will have
                to get fixed as needed for Windows native tool builds.
+
+  Title:       TOOLCHAIN COMPATIBILITY PROBLEM
+  Descripton:  The older 4.3.3 compiler generates GOTOFF relocations to the constant
+               strings, like:
+
+               .L3:
+                  .word   .LC0(GOTOFF)
+                  .word   .LC1(GOTOFF)
+                  .word   .LC2(GOTOFF)
+                  .word   .LC3(GOTOFF)
+                  .word   .LC4(GOTOFF)
+
+               Where .LC0, LC1, LC2, LC3, and .LC4 are the labels correponding to strings in
+               the .rodata.str1.1 section.  One consequence of this is that .rodata must reside
+               in D-Space since it will addressed relative to the GOT (see the section entitled
+               "Read-Only Data in RAM" at
+               http://nuttx.org/Documentation/NuttXNxFlat.html#limitations).
+
+               The newer 4.6.3compiler generated PC relative relocations to the strings:
+
+               .L2:
+                  .word   .LC0-(.LPIC0+4)
+                  .word   .LC1-(.LPIC1+4)
+                  .word   .LC2-(.LPIC2+4)
+                  .word   .LC3-(.LPIC4+4)
+                  .word   .LC4-(.LPIC5+4)
+
+               This is good and bad.  This is good because it means that .rodata.str1.1 can not
+               reside in FLASH with .text and can be accessed using PC-relative addressing. 
+               That can be accomplished by simply moving the .rodata from the .data section to
+               the .text section in the linker script.  (The NXFLAT linker script is located at
+               nuttx/binfmt/libnxflat/gnu-nxflat.ld).
+
+               This is bad because a lot of stuff may get broken an a lot of test will need to
+               be done.  One question that I have is does this apply to all kinds of .rodata? 
+               Or just to .rodata.str1.1?
+  
+  Status:      Open.  Many of the required changes are in place but, unfortunately, not enought
+               go be fully functional.
+  Priority:    Medium.  The workaround for now is to use the older, 4.3.3 OABI compiler.
 
 o Network (net/, drivers/net)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
