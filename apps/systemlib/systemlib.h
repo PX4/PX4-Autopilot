@@ -50,6 +50,21 @@ __EXPORT int reboot(void);
 /** Sends SIGUSR1 to all processes */
 __EXPORT void killall(void);
 
+/** Default scheduler type */
+#if CONFIG_RR_INTERVAL > 0
+# define SCHED_DEFAULT	SCHED_RR
+#else
+# define SCHED_DEFAULT	SCHED_FIFO
+#endif
+
+/** Starts a task and performs any specific accounting, scheduler setup, etc. */
+__EXPORT int task_spawn(const char *name,
+			int priority,
+			int scheduler,
+			int stack_size,
+			main_t entry,
+			const char *argv[]);
+
 enum MULT_PORTS {
 	MULT_0_US2_RXTX = 0,
 	MULT_1_US2_FLOW,

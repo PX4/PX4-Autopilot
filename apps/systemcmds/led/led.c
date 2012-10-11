@@ -53,6 +53,9 @@
 #include <arch/board/up_hrt.h>
 #include <arch/board/drv_led.h>
 
+#include <systemlib/err.h>
+#include <systemlib/systemlib.h>
+
 __EXPORT int led_main(int argc, char *argv[]);
 
 
@@ -61,7 +64,7 @@ static bool thread_running = false;	/**< Deamon status flag */
 static int led_task;			/**< Handle of deamon task / thread */
 static int leds;
 
-static int led_init()
+static int led_init(void)
 {
 	leds = open("/dev/led", O_RDONLY | O_NONBLOCK);
 
@@ -76,7 +79,7 @@ static int led_init()
 	return 0;
 }
 
-static void led_deinit()
+static void led_deinit(void)
 {
 	close(leds);
 }
@@ -144,7 +147,12 @@ int led_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		led_task = task_create("led", SCHED_PRIORITY_MAX - 15, 4096, led_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		led_task = task_spawn("led",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_MAX - 15,
+				      4096,
+				      led_thread_main,
+				      (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
 	}

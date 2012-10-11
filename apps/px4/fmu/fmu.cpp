@@ -66,6 +66,8 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 
+#include <systemlib/systemlib.h>
+
 class FMUServo : public device::CDev
 {
 public:
@@ -169,7 +171,12 @@ FMUServo::init()
 		return ret;
 
 	/* start the IO interface task */
-	_task = task_create("fmuservo", SCHED_PRIORITY_DEFAULT, 1024, (main_t)&FMUServo::task_main_trampoline, nullptr);
+	_task = task_spawn("fmuservo",
+			   SCHED_DEFAULT,
+			   SCHED_PRIORITY_DEFAULT,
+			   1024,
+			   (main_t)&FMUServo::task_main_trampoline,
+			   nullptr);
 
 	if (_task < 0) {
 		debug("task start failed: %d", errno);

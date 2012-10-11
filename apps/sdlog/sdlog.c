@@ -60,6 +60,11 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
+
+#include <systemlib/systemlib.h>
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
@@ -104,7 +109,7 @@ usage(const char *reason)
  * Makefile does only apply to this management task.
  * 
  * The actual stack size should be set in the call
- * to task_create().
+ * to task_spawn().
  */
 int sdlog_main(int argc, char *argv[])
 {
@@ -120,7 +125,12 @@ int sdlog_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_create("sdlog", SCHED_PRIORITY_DEFAULT - 30, 4096, sdlog_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		deamon_task = task_spawn("sdlog",
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_DEFAULT - 30,
+					 4096,
+					 sdlog_thread_main,
+					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
 	}
@@ -266,6 +276,9 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		struct actuator_outputs_s act_outputs;
 		struct actuator_controls_s act_controls;
 		struct vehicle_command_s cmd;
+		struct vehicle_local_position_s local_pos;
+		struct vehicle_global_position_s global_pos;
+		struct vehicle_gps_position_s gps_pos;
 	} buf;
 	memset(&buf, 0, sizeof(buf));
 
@@ -276,6 +289,9 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		int spa_sub;
 		int act_0_sub;
 		int controls0_sub;
+		int local_pos_sub;
+		int global_pos_sub;
+		int gps_pos_sub;
 	} subs;
 
 	/* --- MANAGEMENT - LOGGING COMMAND --- */
@@ -319,6 +335,27 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	/* subscribe to ORB for actuator control */
 	subs.controls0_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
 	fds[fdsc_count].fd = subs.controls0_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- LOCAL POSITION --- */
+	/* subscribe to ORB for local position */
+	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	fds[fdsc_count].fd = subs.local_pos_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- GLOBAL POSITION --- */
+	/* subscribe to ORB for global position */
+	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	fds[fdsc_count].fd = subs.global_pos_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- GPS POSITION --- */
+	/* subscribe to ORB for global position */
+	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	fds[fdsc_count].fd = subs.gps_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -428,6 +465,9 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		/* copy actuator data into local buffer */
 		orb_copy(ORB_ID(actuator_outputs_0), subs.act_0_sub, &buf.act_outputs);
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.spa_sub, &buf.att_sp);
+		orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+		orb_copy(ORB_ID(vehicle_local_position), subs.local_pos_sub, &buf.local_pos);
+		orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
 
 		#pragma pack(push, 1)
 		struct {
@@ -443,6 +483,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 			float actuators[8];
 			float vbat;
 			float adc[3];
+			float local_pos[3];
 		} sysvector = {
 			.timestamp = buf.raw.timestamp,
 			.gyro = {buf.raw.gyro_rad_s[0], buf.raw.gyro_rad_s[1], buf.raw.gyro_rad_s[2]},
@@ -455,7 +496,8 @@ int sdlog_thread_main(int argc, char *argv[]) {
 			.actuators = {buf.act_outputs.output[0], buf.act_outputs.output[1], buf.act_outputs.output[2], buf.act_outputs.output[3],
 					buf.act_outputs.output[4], buf.act_outputs.output[5], buf.act_outputs.output[6], buf.act_outputs.output[7]},
 			.vbat = buf.raw.battery_voltage_v,
-			.adc = {buf.raw.adc_voltage_v[0], buf.raw.adc_voltage_v[1], buf.raw.adc_voltage_v[2]}
+			.adc = {buf.raw.adc_voltage_v[0], buf.raw.adc_voltage_v[1], buf.raw.adc_voltage_v[2]},
+			.local_pos = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z}
 		};
 		#pragma pack(pop)
 

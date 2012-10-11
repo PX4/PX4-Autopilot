@@ -31,7 +31,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
+// Workflow test comment - DEW
 /**
  * @file fixedwing_control.c
  * Implementation of a fixed wing attitude and position controller.
@@ -60,6 +60,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/pid/pid.h>
 #include <systemlib/geo/geo.h>
+#include <systemlib/systemlib.h>
 #include <uORB/topics/debug_key_value.h>
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
@@ -414,7 +415,12 @@ int fixedwing_control_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_create("fixedwing_control", SCHED_PRIORITY_MAX - 20, 4096, fixedwing_control_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		deamon_task = task_spawn("fixedwing_control",
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_MAX - 20,
+					 4096,
+					 fixedwing_control_thread_main,
+					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
 	}

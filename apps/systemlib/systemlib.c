@@ -68,10 +68,10 @@ const struct __multiport_info multiport_info = {
  ****************************************************************************/
 
 /****************************************************************************
- * Public Functions
+ * Private Functions
  ****************************************************************************/
 
-void kill_task(FAR _TCB *tcb, FAR void *arg);
+static void kill_task(FAR _TCB *tcb, FAR void *arg);
 
 /****************************************************************************
  * user_start
@@ -116,9 +116,33 @@ void killall()
 	sched_foreach(kill_task, NULL);
 }
 
-void kill_task(FAR _TCB *tcb, FAR void *arg)
+static void kill_task(FAR _TCB *tcb, FAR void *arg)
 {
 	kill(tcb->pid, SIGUSR1);
+}
+
+int task_spawn(const char *name, int scheduler, int priority, int stack_size, main_t entry, const char *argv[])
+{
+	int pid;
+
+	sched_lock();
+
+	/* create the task */
+	pid = task_create(name, priority, stack_size, entry, argv);
+
+	if (pid > 0) {
+		
+		/* configure the scheduler */
+		struct sched_param param;
+
+		param.sched_priority = priority;
+		sched_setscheduler(pid, scheduler, &param);
+
+		/* XXX do any other private task accounting here before the task starts */
+	}
+	sched_unlock();
+
+	return pid;
 }
 
 #define PX4_BOARD_ID_FMU (5)

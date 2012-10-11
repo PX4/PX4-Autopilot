@@ -53,6 +53,7 @@ CONFIGURED_APPS += systemcmds/boardinfo
 CONFIGURED_APPS += systemcmds/mixer
 CONFIGURED_APPS += systemcmds/eeprom
 CONFIGURED_APPS += systemcmds/led
+CONFIGURED_APPS += systemcmds/param
 CONFIGURED_APPS += systemcmds/bl_update
 #CONFIGURED_APPS += systemcmds/calibration
 
@@ -74,6 +75,7 @@ CONFIGURED_APPS += sdlog
 CONFIGURED_APPS += sensors
 CONFIGURED_APPS += ardrone_interface
 CONFIGURED_APPS += multirotor_att_control
+CONFIGURED_APPS += multirotor_pos_control
 CONFIGURED_APPS += px4/attitude_estimator_bm
 CONFIGURED_APPS += fixedwing_control
 CONFIGURED_APPS += position_estimator

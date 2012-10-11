@@ -32,19 +32,11 @@
 ############################################################################
 
 #
-# Makefile to build the position estimator
+# Build the parameters tool.
 #
 
-APPNAME		 = position_estimator
+APPNAME		 = param
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 4096
-
-CSRCS		 = position_estimator_main.c \
-		   codegen/position_estimator.c \
-		   codegen/position_estimator_initialize.c \
-		   codegen/position_estimator_terminate.c \
-		   codegen/rt_nonfinite.c \
-		   codegen/rtGetInf.c \
-		   codegen/rtGetNaN.c
 
 include $(APPDIR)/mk/app.mk

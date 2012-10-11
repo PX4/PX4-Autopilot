@@ -3,7 +3,7 @@
  *
  * Code generation for function 'mrdivide'
  *
- * C source code generated on: Fri Sep 21 13:56:44 2012
+ * C source code generated on: Mon Oct 01 19:38:49 2012
  *
  */
 
@@ -29,6 +29,8 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void mrdivide(const real32_T A_data[81], const int32_T A_sizes[2], const real32_T B_data[81], const int32_T B_sizes[2], real32_T y_data[81], int32_T y_sizes[2]);
+extern void b_mrdivide(const real32_T A[36], const real32_T B[9], real32_T y[36]);
+extern void c_mrdivide(const real32_T A[72], const real32_T B[36], real32_T y[72]);
+extern void mrdivide(const real32_T A[108], const real32_T B[81], real32_T y[108]);
 #endif
 /* End of code generation (mrdivide.h) */

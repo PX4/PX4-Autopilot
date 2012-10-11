@@ -1,10 +1,8 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
+ *           Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,16 +33,32 @@
  *
  ****************************************************************************/
 
-/**
- * @file multirotor_position_control.h
- * Definition of the position control for a multirotor VTOL
+/*
+ * @file attitude_estimator_ekf_params.h
+ * 
+ * Parameters for EKF filter
  */
 
-// #ifndef POSITION_CONTROL_H_
-// #define POSITION_CONTROL_H_
+#include <systemlib/param/param.h>
 
-// void control_multirotor_position(const struct vehicle_state_s *vstatus, const struct vehicle_manual_control_s *manual,
-//  const struct vehicle_attitude_s *att, const struct vehicle_local_position_s *local_pos,
-//  const struct vehicle_local_position_setpoint_s *local_pos_sp, struct vehicle_attitude_setpoint_s *att_sp);
+struct attitude_estimator_ekf_params {
+	float r[9];
+	float q[12];
+};
 
-// #endif /* POSITION_CONTROL_H_ */
+struct attitude_estimator_ekf_param_handles {
+	param_t r0, r1, r2, r3, r4, r5, r6, r7, r8;
+	param_t q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11;
+};
+
+/**
+ * Initialize all parameter handles and values
+ *
+ */
+int parameters_init(struct attitude_estimator_ekf_param_handles *h);
+
+/**
+ * Update all parameters
+ *
+ */
+int parameters_update(const struct attitude_estimator_ekf_param_handles *h, struct attitude_estimator_ekf_params *p);

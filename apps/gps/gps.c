@@ -57,6 +57,8 @@
 #include <v1.0/common/mavlink.h>
 #include <mavlink/mavlink_log.h>
 
+#include <systemlib/systemlib.h>
+
 static bool thread_should_exit;				/**< Deamon status flag */
 static bool thread_running = false;				/**< Deamon status flag */
 static int deamon_task;							/**< Handle of deamon task / thread */
@@ -140,7 +142,12 @@ int gps_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_create("gps", SCHED_PRIORITY_DEFAULT, 4096, gps_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		deamon_task = task_spawn("gps",
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_DEFAULT,
+					 4096,
+					 gps_thread_main,
+					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
 	}

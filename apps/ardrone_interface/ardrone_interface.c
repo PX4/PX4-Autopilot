@@ -56,6 +56,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 
+#include <systemlib/systemlib.h>
+
 #include "ardrone_motor_control.h"
 
 __EXPORT int ardrone_interface_main(int argc, char *argv[]);
@@ -112,7 +114,12 @@ int ardrone_interface_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		ardrone_interface_task = task_create("ardrone_interface", SCHED_PRIORITY_MAX - 15, 4096, ardrone_interface_thread_main, (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		ardrone_interface_task = task_spawn("ardrone_interface",
+						    SCHED_DEFAULT,
+						    SCHED_PRIORITY_MAX - 15,
+						    4096,
+						    ardrone_interface_thread_main,
+						    (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}
 
