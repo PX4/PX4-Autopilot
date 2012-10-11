@@ -141,7 +141,7 @@ do_import(void)
 static void
 do_show(void)
 {
-	printf(" + = saved, * = unsaved  (warning, floating-point values are often printed with the decimal point wrong)\n");
+	printf(" + = saved, * = unsaved\n");
 	param_foreach(do_show_print, NULL, false);
 
 	exit(0);
