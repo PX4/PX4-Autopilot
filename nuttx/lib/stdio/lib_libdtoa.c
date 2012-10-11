@@ -224,8 +224,15 @@ static void lib_dtoa(FAR struct lib_outstream_s *obj, int fmt, int prec,
 
           for (i = expt; i > 0; i--)
             {
-              obj->put(obj, *digits);
-              digits++;
+              if (*digits != '\0')
+                { 
+                  obj->put(obj, *digits);
+                  digits++;
+                }
+              else
+                {
+                  obj->put(obj, '0');
+                }
             }
 
           /* Get the length of the fractional part */
