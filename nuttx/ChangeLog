@@ -3469,4 +3469,5 @@
 	  xxx-nuttx-elf- vs. xxx-elf-
 	* configs/shenzhou/*/Make.defs:  Now uses the new buildroot 4.6.3
 	  EABI toolchain.
+	* lib/stdio/lib_libdtoa.c:  Another dtoa() fix from Mike Smith.
 

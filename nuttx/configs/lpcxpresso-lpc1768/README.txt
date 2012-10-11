@@ -800,6 +800,10 @@ Where <subdir> is one of the following:
     NOTE:  You will need to build the NXFLAT toolchain as described
     above in order to use this example.
 
+    See also note above with regard to the EABI/OABI buildroot
+    toolchains.  This example can only be built using the older
+    OABI toolchain.
+
     Jumpers: Nothing special.  Use the default base board jumper
     settings.
 

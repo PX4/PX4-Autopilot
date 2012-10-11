@@ -416,13 +416,24 @@ Where <subdir> is one of the following:
     interface should also be functional, but is not enabled in this
     configuration).
 
+  nxflat:
+    This builds the NXFLAT example at apps/examples/nxfalt.
+
+    NOTE: See note above with regard to the EABI/OABI buildroot
+    toolchains.  This example can only be built using the older
+    OABI toolchain.
+
   ostest:
     This configuration directory, performs a simple OS test using
     examples/ostest.
 
   thttpd:
     This builds the THTTPD web server example using the THTTPD and
-    the examples/thttpd application.
+    the apps/examples/thttpd application.
+
+    NOTE: See note above with regard to the EABI/OABI buildroot
+    toolchains.  This example can only be built using the older
+    OABI toolchain.
 
 By default, all of these examples are built to be used with the Luminary
 Ethernet Bootloader (you can change the ld.script file in any of these

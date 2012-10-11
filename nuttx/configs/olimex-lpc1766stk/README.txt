@@ -1025,6 +1025,10 @@ Where <subdir> is one of the following:
     This builds the THTTPD web server example using the THTTPD and
     the apps/examples/thttpd application.
 
+    NOTE: See note above with regard to the EABI/OABI buildroot
+    toolchains.  This example can only be built using the older
+    OABI toolchain.
+
   usbserial:
     This configuration directory exercises the USB serial class
     driver at apps/examples/usbserial.  See apps/examples/README.txt for
