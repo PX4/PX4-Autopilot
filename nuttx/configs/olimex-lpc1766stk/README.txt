@@ -605,7 +605,7 @@ Using OpenOCD and GDB with an FT2232 JTAG emulator
 
     NOTES:
     1. Loading the symbol-file is only useful if you have built NuttX to
-       inclulde debug symbols (by setting CONFIG_DEBUG_SYMBOLS=y in the
+       include debug symbols (by setting CONFIG_DEBUG_SYMBOLS=y in the
        .config file).
     2. I usually have to reset, halt, and 'load nuttx' a second time.  For
        some reason, the first time apparently does not fully program the

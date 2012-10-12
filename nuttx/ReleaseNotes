@@ -1606,6 +1606,8 @@ The 61st release of NuttX, NuttX-5.14, was made on November 27,
 2010.  This release includes multiple, important bugfixes as well
 as a new driver for the NXP LPC1766.
 
+This release corresponds with SVN release number: r3137
+
 Important bugfixes include:
 
   * Cortex-M3 Hard Fault.  Fixed a hard fault problem that can occur
@@ -2051,6 +2053,8 @@ screen."  However, I have recently become interested because of
 interest expressed by members of the forum and because of the
 availability of newer, larger capacity AVR parts (that I don't have
 yet).
+
+This release corresponds with SVN release number: r3730
 
 This release includes support for the following AVR boards.  As
 with any initial support for new architectures, there are some
