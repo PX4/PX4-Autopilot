@@ -395,6 +395,17 @@ const char g_nshgreeting[]       = "\nNuttShell (NSH) NuttX-" CONFIG_VERSION_STR
 const char g_nshgreeting[]       = "\nNuttShell (NSH)\n";
 #endif
 
+/* Telnet login prompts */
+
+#if defined(CONFIG_NSH_TELNET_LOGIN) && defined(CONFIG_NSH_TELNET)
+const char g_telnetgreeting[]    = "\nWelcome to NuttShell(NSH) Telnet Server...\n";
+const char g_userprompt[]        = "login: ";
+const char g_passwordprompt[]    = "password: ";
+const char g_loginsuccess[]      = "\nUser Logged-in!\n";
+const char g_badcredentials[]    = "\nInvalid username or password\n";
+const char g_loginfailure[]      = "Login failed!\n";
+#endif
+
 /* The NSH prompt */
 
 const char g_nshprompt[]         = "nsh> ";
