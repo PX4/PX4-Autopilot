@@ -257,7 +257,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 			{ .fd = sub_raw,   .events = POLLIN },
 			{ .fd = sub_params, .events = POLLIN }
 		};
-		int ret = poll(fds, 1, 1000);
+		int ret = poll(fds, 2, 1000);
 
 		if (ret < 0) {
 			/* XXX this is seriously bad - should be an emergency */
@@ -389,9 +389,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 					// }
 
-					printf("EKF attitude iteration: %d, runtime: %d us, dt: %d us (%d Hz)\n", loopcounter, (int)timing_diff, (int)(dt * 1000000.0f), (int)(1.0f / dt));
-					printf("roll: %8.4f\tpitch: %8.4f\tyaw:%8.4f\n", (double)euler[0], (double)euler[1], (double)euler[2]);
-					printf("update rates gyro: %8.4f\taccel: %8.4f\tmag:%8.4f\n", (double)sensor_update_hz[0], (double)sensor_update_hz[1], (double)sensor_update_hz[2]);
+					//printf("EKF attitude iteration: %d, runtime: %d us, dt: %d us (%d Hz)\n", loopcounter, (int)timing_diff, (int)(dt * 1000000.0f), (int)(1.0f / dt));
+					//printf("roll: %8.4f\tpitch: %8.4f\tyaw:%8.4f\n", (double)euler[0], (double)euler[1], (double)euler[2]);
+					//printf("update rates gyro: %8.4f\taccel: %8.4f\tmag:%8.4f\n", (double)sensor_update_hz[0], (double)sensor_update_hz[1], (double)sensor_update_hz[2]);
 				// 	printf("\n%d\t%d\t%d\n%d\t%d\t%d\n%d\t%d\t%d\n", (int)(Rot_matrix[0] * 100), (int)(Rot_matrix[1] * 100), (int)(Rot_matrix[2] * 100),
 				// 	       (int)(Rot_matrix[3] * 100), (int)(Rot_matrix[4] * 100), (int)(Rot_matrix[5] * 100),
 				// 	       (int)(Rot_matrix[6] * 100), (int)(Rot_matrix[7] * 100), (int)(Rot_matrix[8] * 100));
@@ -418,9 +418,10 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 				att.pitch = euler[1];
 				att.yaw = euler[2];
 
-				att.rollspeed = x_aposteriori[0];
-				att.pitchspeed = x_aposteriori[1];
-				att.yawspeed = x_aposteriori[2];
+				// XXX replace with x_apo after fix to filter
+				att.rollspeed = raw.gyro_rad_s[0]; //x_aposteriori[0];
+				att.pitchspeed = raw.gyro_rad_s[1]; //x_aposteriori[1];
+				att.yawspeed = raw.gyro_rad_s[2]; //x_aposteriori[2];
 
 				/* copy offsets */
 				memcpy(&att.rate_offsets, &(x_aposteriori[3]), sizeof(att.rate_offsets));

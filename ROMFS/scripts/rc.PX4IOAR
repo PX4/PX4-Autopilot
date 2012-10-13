@@ -19,7 +19,7 @@ echo "[init] eeprom"
 eeprom start
 if [ -f /eeprom/parameters ]
 then
-	eeprom load_param /eeprom/parameters
+	param load
 fi
  
 #

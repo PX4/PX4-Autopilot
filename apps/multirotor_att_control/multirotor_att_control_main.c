@@ -165,8 +165,30 @@ mc_thread_main(int argc, char *argv[])
 
 
 		/** STEP 1: Define which input is the dominating control input */
+		if (state.flag_control_offboard_enabled) {
+					/* offboard inputs */
+					if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES) {
+						rates_sp.roll = offboard_sp.p1;
+						rates_sp.pitch = offboard_sp.p2;
+						rates_sp.yaw = offboard_sp.p3;
+						rates_sp.thrust = offboard_sp.p4;
+						printf("thrust_rate=%8.4f\n",offboard_sp.p4);
+						rates_sp.timestamp = hrt_absolute_time();
+						orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
+					} else if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE) {
+						att_sp.roll_body = offboard_sp.p1;
+						att_sp.pitch_body = offboard_sp.p2;
+						att_sp.yaw_body = offboard_sp.p3;
+						att_sp.thrust = offboard_sp.p4;
+						printf("thrust_att=%8.4f\n",offboard_sp.p4);
+						att_sp.timestamp = hrt_absolute_time();
+						/* STEP 2: publish the result to the vehicle actuators */
+						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+					}
 
-		if (state.flag_control_manual_enabled) {
+					/* decide wether we want rate or position input */
+				}
+		else if (state.flag_control_manual_enabled) {
 			/* manual inputs, from RC control or joystick */
 
 			if (state.flag_control_rates_enabled && !state.flag_control_attitude_enabled) {
@@ -188,7 +210,7 @@ mc_thread_main(int argc, char *argv[])
 			}
 			/* STEP 2: publish the result to the vehicle actuators */
 			orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-			
+
 			if (motor_test_mode) {
 				att_sp.roll_body = 0.0f;
 				att_sp.pitch_body = 0.0f;
@@ -199,38 +221,19 @@ mc_thread_main(int argc, char *argv[])
 				orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 			}
 
-		} else if (state.flag_control_offboard_enabled) {
-			/* offboard inputs */
-			if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES) {
-				rates_sp.roll = offboard_sp.p1;
-				rates_sp.pitch = offboard_sp.p2;
-				rates_sp.yaw = offboard_sp.p3;
-				rates_sp.thrust = offboard_sp.p4;
-				rates_sp.timestamp = hrt_absolute_time();
-				orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
-			} else if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE) {
-				att_sp.roll_body = offboard_sp.p1;
-				att_sp.pitch_body = offboard_sp.p2;
-				att_sp.yaw_body = offboard_sp.p3;
-				att_sp.thrust = offboard_sp.p4;
-				att_sp.timestamp = hrt_absolute_time();
-				/* STEP 2: publish the result to the vehicle actuators */
-				orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-			}
-
-			/* decide wether we want rate or position input */
 		}
 
 		/** STEP 3: Identify the controller setup to run and set up the inputs correctly */
 
+
 		/* run attitude controller */
-		if (state.flag_control_attitude_enabled && !state.flag_control_rates_enabled) {
-			multirotor_control_attitude(&att_sp, &att, NULL, &actuators);
-			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
-		} else if (state.flag_control_attitude_enabled && state.flag_control_rates_enabled) {
-			multirotor_control_attitude(&att_sp, &att, &rates_sp, NULL);
-			orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
-		}
+		 if (state.flag_control_attitude_enabled && !state.flag_control_rates_enabled) {
+		 	multirotor_control_attitude(&att_sp, &att, NULL, &actuators);
+		 	orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+		 } else if (state.flag_control_attitude_enabled && state.flag_control_rates_enabled) {
+		 	multirotor_control_attitude(&att_sp, &att, &rates_sp, NULL);
+		 	orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
+		 }
 
 
 		if (state.flag_control_rates_enabled) {
@@ -252,7 +255,6 @@ mc_thread_main(int argc, char *argv[])
 			multirotor_control_rates(&rates_sp, gyro, &actuators);
 			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 		}
-
 
 		perf_end(mc_loop_perf);
 	}
@@ -321,7 +323,7 @@ int multirotor_att_control_main(int argc, char *argv[])
 		mc_task = task_spawn("multirotor_att_control",
 				     SCHED_DEFAULT,
 				     SCHED_PRIORITY_MAX - 15,
-				     4096,
+				     6000,
 				     mc_thread_main,
 				     NULL);
 		exit(0);

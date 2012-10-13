@@ -56,18 +56,21 @@
 // PARAM_DEFINE_FLOAT(MC_YAWRATE_LIM, 0.1f);
 
 PARAM_DEFINE_FLOAT(MC_ATTRATE_P, 0.2f); /* 0.15 F405 Flamewheel */
-PARAM_DEFINE_FLOAT(MC_ATTRATE_I, 0.0f);
-PARAM_DEFINE_FLOAT(MC_ATTRATE_AWU, 0.05f);
+PARAM_DEFINE_FLOAT(MC_ATTRATE_D, 0.0f);
+//PARAM_DEFINE_FLOAT(MC_ATTRATE_I, 0.0f);
+//PARAM_DEFINE_FLOAT(MC_ATTRATE_AWU, 0.05f);
 PARAM_DEFINE_FLOAT(MC_ATTRATE_LIM, 8.0f);	/**< roughly < 500 deg/s limit */
 
 struct mc_rate_control_params {
 
 	float yawrate_p;
+	float yawrate_d;
 	float yawrate_i;
 	float yawrate_awu;
 	float yawrate_lim;
 
 	float attrate_p;
+	float attrate_d;
 	float attrate_i;
 	float attrate_awu;
 	float attrate_lim;
@@ -79,11 +82,13 @@ struct mc_rate_control_param_handles {
 
 	param_t yawrate_p;
 	param_t yawrate_i;
+	param_t yawrate_d;
 	param_t yawrate_awu;
 	param_t yawrate_lim;
 
 	param_t attrate_p;
 	param_t attrate_i;
+	param_t attrate_d;
 	param_t attrate_awu;
 	param_t attrate_lim;
 };
@@ -106,11 +111,13 @@ static int parameters_init(struct mc_rate_control_param_handles *h)
 	/* PID parameters */
 	h->yawrate_p 	=	param_find("MC_YAWRATE_P");
 	h->yawrate_i 	=	param_find("MC_YAWRATE_I");
+	h->yawrate_d 	=	param_find("MC_YAWRATE_D");
 	h->yawrate_awu 	=	param_find("MC_YAWRATE_AWU");
 	h->yawrate_lim 	=	param_find("MC_YAWRATE_LIM");
 
 	h->attrate_p 	= 	param_find("MC_ATTRATE_P");
 	h->attrate_i 	= 	param_find("MC_ATTRATE_I");
+	h->attrate_d 	= 	param_find("MC_ATTRATE_D");
 	h->attrate_awu 	= 	param_find("MC_ATTRATE_AWU");
 	h->attrate_lim 	= 	param_find("MC_ATTRATE_LIM");
 
@@ -121,11 +128,13 @@ static int parameters_update(const struct mc_rate_control_param_handles *h, stru
 {
 	param_get(h->yawrate_p, &(p->yawrate_p));
 	param_get(h->yawrate_i, &(p->yawrate_i));
+	param_get(h->yawrate_d, &(p->yawrate_d));
 	param_get(h->yawrate_awu, &(p->yawrate_awu));
 	param_get(h->yawrate_lim, &(p->yawrate_lim));
 
 	param_get(h->attrate_p, &(p->attrate_p));
 	param_get(h->attrate_i, &(p->attrate_i));
+	param_get(h->attrate_d, &(p->attrate_d));
 	param_get(h->attrate_awu, &(p->attrate_awu));
 	param_get(h->attrate_lim, &(p->attrate_lim));
 
@@ -135,6 +144,8 @@ static int parameters_update(const struct mc_rate_control_param_handles *h, stru
 void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	const float rates[], struct actuator_controls_s *actuators)
 {
+	static float roll_control_last=0;
+	static float pitch_control_last=0;
 	static uint64_t last_run = 0;
 	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
 	last_run = hrt_absolute_time();
@@ -157,83 +168,26 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	if (motor_skip_counter % 2500 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-		printf("p.yawrate_p: %8.4f", (double)p.yawrate_p);
+		printf("p.yawrate_p: %8.4f\n", (double)p.yawrate_p);
 	}
 
 	/* calculate current control outputs */
 	
 	/* control pitch (forward) output */
-	float pitch_control = 5 * deltaT * (rates[1] - rate_sp->pitch);
+
+	float pitch_control = p.attrate_p * deltaT *(rate_sp->pitch-rates[1])-p.attrate_d*(pitch_control_last);
+	pitch_control_last=pitch_control;
 	/* control roll (left/right) output */
-	float roll_control = p.attrate_p * deltaT * (rates[0] - rate_sp->roll);
 
+	float roll_control = p.attrate_p * deltaT * (rate_sp->roll-rates[0])-p.attrate_d*(roll_control_last);
+	roll_control_last=roll_control;
 	/* control yaw rate */
-	float yaw_rate_control = p.yawrate_p * deltaT * (rates[2] - rate_sp->yaw);
-
-	/*
-	 * compensate the vertical loss of thrust
-	 * when thrust plane has an angle.
-	 * start with a factor of 1.0 (no change)
-	 */
-	float zcompensation = 1.0f;
-
-	// if (fabsf(att->roll) > 0.3f) {
-	// 	zcompensation *= 1.04675160154f;
-
-	// } else {
-	// 	zcompensation *= 1.0f / cosf(att->roll);
-	// }
-
-	// if (fabsf(att->pitch) > 0.3f) {
-	// 	zcompensation *= 1.04675160154f;
-
-	// } else {
-	// 	zcompensation *= 1.0f / cosf(att->pitch);
-	// }
-
-	float motor_thrust = 0.0f;
-
-	motor_thrust = rate_sp->thrust;
-
-	/* compensate thrust vector for roll / pitch contributions */
-	motor_thrust *= zcompensation;
-
-	// /* limit yaw rate output */
-	// if (yaw_rate_control > p.yawrate_lim) {
-	// 	yaw_rate_control = p.yawrate_lim;
-	// 	yaw_speed_controller.saturated = 1;
-	// }
-
-	// if (yaw_rate_control < -p.yawrate_lim) {
-	// 	yaw_rate_control = -p.yawrate_lim;
-	// 	yaw_speed_controller.saturated = 1;
-	// }
-
-	// if (pitch_control > p.attrate_lim) {
-	// 	pitch_control = p.attrate_lim;
-	// 	pitch_controller.saturated = 1;
-	// }
-
-	// if (pitch_control < -p.attrate_lim) {
-	// 	pitch_control = -p.attrate_lim;
-	// 	pitch_controller.saturated = 1;
-	// }
-
-
-	// if (roll_control > p.attrate_lim) {
-	// 	roll_control = p.attrate_lim;
-	// 	roll_controller.saturated = 1;
-	// }
-
-	// if (roll_control < -p.attrate_lim) {
-	// 	roll_control = -p.attrate_lim;
-	// 	roll_controller.saturated = 1;
-	// }
+	float yaw_rate_control = p.yawrate_p * deltaT * (rate_sp->yaw-rates[2]  );
 
 	actuators->control[0] = roll_control;
 	actuators->control[1] = pitch_control;
 	actuators->control[2] = yaw_rate_control;
-	actuators->control[3] = motor_thrust;
+	actuators->control[3] = rate_sp->thrust;
 
 	motor_skip_counter++;
 }

@@ -106,7 +106,9 @@ bson_decoder_next(bson_decoder_t decoder)
 
 		/* if the nesting level is now zero, the top-level document is done */
 		if (decoder->nesting == 0) {
-			CODER_KILL(decoder, "nesting is zero, document is done");
+			/* like kill but not an error */
+			debug("nesting is zero, document is done");
+			decoder->fd = -1;
 
 			/* return end-of-file to the caller */
 			return 0;

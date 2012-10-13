@@ -242,6 +242,25 @@ param_name(param_t param)
 	return NULL;
 }
 
+bool
+param_value_is_default(param_t param)
+{
+	return param_find_changed(param) ? false : true;
+}
+
+bool
+param_value_unsaved(param_t param)
+{
+	static struct param_wbuf_s *s;
+
+	s = param_find_changed(param);
+
+	if (s && s->unsaved)
+		return true;
+
+	return false;
+}
+
 enum param_type_e
 param_type(param_t param)
 {
@@ -330,8 +349,8 @@ param_get(param_t param, void *val)
 	return result;
 }
 
-int
-param_set(param_t param, const void *val)
+static int
+param_set_internal(param_t param, const void *val, bool mark_saved)
 {
 	int result = -1;
 	bool params_changed = false;
@@ -394,7 +413,7 @@ param_set(param_t param, const void *val)
 			goto out;
 		}
 
-		s->unsaved = true;
+		s->unsaved = !mark_saved;
 		params_changed = true;
 		result = 0;
 	}
@@ -410,6 +429,12 @@ out:
 		param_notify_changes();
 
 	return result;
+}
+
+int
+param_set(param_t param, const void *val)
+{
+	return param_set_internal(param, val, false);
 }
 
 void
@@ -535,6 +560,11 @@ out:
 	return result;
 }
 
+struct param_import_state
+{
+	bool mark_saved;
+};
+
 static int
 param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 {
@@ -542,13 +572,13 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 	int32_t i;
 	void *v, *tmp = NULL;
 	int result = -1;
+	struct param_import_state *state = (struct param_import_state *)private;
 
 	/*
 	 * EOO means the end of the parameter object. (Currently not supporting
 	 * nested BSON objects).
 	 */
 	if (node->type == BSON_EOO) {
-		*(bool *)private = true;
 		debug("end of parameters");
 		return 0;
 	}
@@ -621,7 +651,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set(param, v)) {
+	if (param_set_internal(param, v, state->mark_saved)) {
 		debug("error setting value for '%s'", node->name);
 		goto out;
 	}
@@ -642,19 +672,19 @@ out:
 	return result;
 }
 
-int
-param_import(int fd)
+static int
+param_import_internal(int fd, bool mark_saved)
 {
-	bool done;
 	struct bson_decoder_s decoder;
 	int result = -1;
+	struct param_import_state state;
 
-	if (bson_decoder_init(&decoder, fd, param_import_callback, &done)) {
+	if (bson_decoder_init(&decoder, fd, param_import_callback, &state)) {
 		debug("decoder init failed");
 		goto out;
 	}
 
-	done = false;
+	state.mark_saved = mark_saved;
 
 	do {
 		result = bson_decoder_next(&decoder);
@@ -669,10 +699,16 @@ out:
 }
 
 int
+param_import(int fd)
+{
+	return param_import_internal(fd, false);
+}
+
+int
 param_load(int fd)
 {
 	param_reset_all();
-	return param_import(fd);
+	return param_import_internal(fd, true);
 }
 
 void

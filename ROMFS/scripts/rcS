@@ -33,6 +33,7 @@ fi
 
 usleep 500
 
+
 #
 # Look for an init script on the microSD card.
 #

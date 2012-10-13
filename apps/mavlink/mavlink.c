@@ -889,7 +889,7 @@ static void *uorb_receiveloop(void *arg)
 				/* copy rc channels into local buffer */
 				orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
 				/* Channels are sent in MAVLink main loop at a fixed interval */
-				mavlink_msg_rc_channels_raw_send(chan, rc.timestamp / 1000, 0, rc.chan[0].raw, rc.chan[1].raw, rc.chan[2].raw, rc.chan[3].raw,
+			mavlink_msg_rc_channels_raw_send(chan, rc.timestamp / 1000, 0, rc.chan[0].raw, rc.chan[1].raw, rc.chan[2].raw, rc.chan[3].raw,
 							 rc.chan[4].raw, rc.chan[5].raw, rc.chan[6].raw, rc.chan[7].raw, rc.rssi);
 			}
 
@@ -1272,7 +1272,8 @@ void handleMessage(mavlink_message_t *msg)
 	if (msg->msgid == MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST) {
 		mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t quad_motors_setpoint;
 		mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_decode(msg, &quad_motors_setpoint);
-//		printf("got MAVLINK_MSG_ID_SET_QUAD_MOTORS_SETPOINT target_system=%u, sysid = %u\n", quad_motors_setpoint.target_system, mavlink_system.sysid);
+		//printf("got message\n");
+		//printf("got MAVLINK_MSG_ID_SET_QUAD_MOTORS_SETPOINT target_system=%u, sysid = %u\n", mavlink_system.sysid, quad_motors_setpoint.mode);
 
 		if (mavlink_system.sysid < 4) {
 			/* 
@@ -1282,19 +1283,28 @@ void handleMessage(mavlink_message_t *msg)
 			uint8_t ml_mode = 0;
 			bool ml_armed = false;
 
-			if (quad_motors_setpoint.mode & MAVLINK_OFFBOARD_CONTROL_FLAG_ARMED) {
-				ml_armed = true;
-			}
+//			if (quad_motors_setpoint.mode & MAVLINK_OFFBOARD_CONTROL_FLAG_ARMED) {
+//				ml_armed = true;
+//			}
 
 			switch (quad_motors_setpoint.mode) {
 				case 0:
+					ml_armed = false;
+
 					break;
 				case 1:
+
 					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_RATES;
-					break;
+					ml_armed = true;
+
+				break;
 				case 2:
+
+
 					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE;
-					break;
+					ml_armed = true;
+
+				break;
 				case 3:
 					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY;
 					break;
@@ -1306,7 +1316,14 @@ void handleMessage(mavlink_message_t *msg)
 			offboard_control_sp.p1 = quad_motors_setpoint.roll[mavlink_system.sysid]   / (float)INT16_MAX;
 			offboard_control_sp.p2 = quad_motors_setpoint.pitch[mavlink_system.sysid]  / (float)INT16_MAX;
 			offboard_control_sp.p3= quad_motors_setpoint.yaw[mavlink_system.sysid]    / (float)INT16_MAX;
-			offboard_control_sp.p4 = quad_motors_setpoint.thrust[mavlink_system.sysid] / (float)UINT16_MAX;
+			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid]/(float)UINT16_MAX;
+			//offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid] ;
+
+			if (quad_motors_setpoint.thrust[mavlink_system.sysid] ==0){
+				ml_armed = false;
+
+			}
+
 			offboard_control_sp.armed = ml_armed;
 			offboard_control_sp.mode = ml_mode;
 
@@ -1720,14 +1737,6 @@ int mavlink_thread_main(int argc, char *argv[])
 	/* all subscriptions are now active, set up initial guess about rate limits */
 	if (baudrate >= 460800) {
 		/* 200 Hz / 5 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 5);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_RAW_IMU, 5);
-		/* 200 Hz / 5 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 5);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 3);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 5);
-		/* 5 Hz */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 200);
 	} else if (baudrate >= 230400) {
 		/* 200 Hz / 5 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 20);
@@ -1741,13 +1750,13 @@ int mavlink_thread_main(int argc, char *argv[])
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 100);
 	} else if (baudrate >= 115200) {
 		/* 50 Hz / 20 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 20);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_RAW_IMU, 20);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 200);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_RAW_IMU, 200);
 		/* 20 Hz / 50 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 20);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 50);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 200);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 200);
 		/* 10 Hz / 100 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 100);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 200);
 		/* 1 Hz */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 1000);
 	} else if (baudrate >= 57600) {
@@ -1824,7 +1833,9 @@ int mavlink_thread_main(int argc, char *argv[])
 		mavlink_pm_queued_send();
 		/* sleep quarter the time */
 		usleep(25000);
-		mavlink_pm_queued_send();
+		if (baudrate > 57600) {
+			mavlink_pm_queued_send();
+		}
 
 		/* sleep 10 ms */
 		usleep(10000);
