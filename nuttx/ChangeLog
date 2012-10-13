@@ -3470,4 +3470,8 @@
 	* configs/shenzhou/*/Make.defs:  Now uses the new buildroot 4.6.3
 	  EABI toolchain.
 	* lib/stdio/lib_libdtoa.c:  Another dtoa() fix from Mike Smith.
+	* configs/shenzhou/src/up_adc.c:  Add ADC support for the Shenzhou
+	  board (Darcy Gong).
+	* configs/shenzhou/thttpd:  Add a THTTPD configuration for the
+	  Shenzhou board (Darcy Gong).
 

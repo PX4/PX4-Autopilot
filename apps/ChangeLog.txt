@@ -368,3 +368,5 @@
 	  recent check-ins (Darcy Gong).
 	* apps/netutils/webclient/webclient.c:  Fix another but that I introduced
 	  when I was trying to add correct handling for loss of connection (Darcy Gong)
+	* apps/nshlib/nsh_telnetd.c:  Add support for login to Telnet session via
+	  username and password (Darcy Gong).

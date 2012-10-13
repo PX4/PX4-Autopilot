@@ -421,7 +421,7 @@ o Binary loaders (binfmt/)
                   .word   .LC3-(.LPIC4+4)
                   .word   .LC4-(.LPIC5+4)
 
-               This is good and bad.  This is good because it means that .rodata.str1.1 can not
+               This is good and bad.  This is good because it means that .rodata.str1.1 can now
                reside in FLASH with .text and can be accessed using PC-relative addressing. 
                That can be accomplished by simply moving the .rodata from the .data section to
                the .text section in the linker script.  (The NXFLAT linker script is located at
