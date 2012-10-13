@@ -80,6 +80,10 @@ ifeq ($(CONFIG_CAN),y)
 CSRCS		+= up_can.c
 endif
 
+ifeq ($(CONFIG_ADC),y)
+CSRCS		+= up_adc.c
+endif
+
 ifeq ($(CONFIG_WATCHDOG),y)
 CSRCS		+= up_watchdog.c
 endif

@@ -74,6 +74,10 @@ SECTIONS
 		*(.ARM.exidx*)
 	} > flash
 	__exidx_end = ABSOLUTE(.);
+	
+	.ARM.extab : {
+		*(.ARM.extab*)
+	} > flash
 
 	_eronly = ABSOLUTE(.);
 
@@ -86,10 +90,6 @@ SECTIONS
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
 	} > sram AT > flash
-
-	.ARM.extab : {
-		*(.ARM.extab*)
-	} >sram
 
 	.bss : {
 		_sbss = ABSOLUTE(.);
