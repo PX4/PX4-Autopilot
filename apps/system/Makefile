@@ -37,7 +37,7 @@
 
 # Sub-directories containing system task
 
-SUBDIRS = free i2c install readline
+SUBDIRS = free i2c install readline poweroff ramtron sdcard sysinfo
 
 # Create the list of installed runtime modules (INSTALLED_DIRS)
 

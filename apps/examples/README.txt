@@ -60,20 +60,20 @@ examples/buttons
   This is a simple configuration that may be used to test the board-
   specific button interfaces.  Configuration options:
 
-  CONFIG_ARCH_BUTTONS                - Must be defined for button support
-  CONFIG_EXAMPLE_BUTTONS_MIN         - Lowest button number (MIN=0)
-  CONFIG_EXAMPLE_BUTTONS_MAX         - Highest button number (MAX=7)
+  CONFIG_ARCH_BUTTONS                 - Must be defined for button support
+  CONFIG_EXAMPLES_BUTTONS_MIN         - Lowest button number (MIN=0)
+  CONFIG_EXAMPLES_BUTTONS_MAX         - Highest button number (MAX=7)
 
-  CONFIG_ARCH_IRQBUTTONS             - Must be defined for interrupting button support
-  CONFIG_EXAMPLE_IRQBUTTONS_MIN      - Lowest interrupting button number (MIN=0)
-  CONFIG_EXAMPLE_IRQBUTTONS_MAX      - Highest interrupting button number (MAX=7)
+  CONFIG_ARCH_IRQBUTTONS              - Must be defined for interrupting button support
+  CONFIG_EXAMPLES_IRQBUTTONS_MIN      - Lowest interrupting button number (MIN=0)
+  CONFIG_EXAMPLES_IRQBUTTONS_MAX      - Highest interrupting button number (MAX=7)
 
   Name strings for buttons:
   
-    CONFIG_EXAMPLE_BUTTONS_NAME0, CONFIG_EXAMPLE_BUTTONS_NAME1,
-    CONFIG_EXAMPLE_BUTTONS_NAME2, CONFIG_EXAMPLE_BUTTONS_NAME3,
-    CONFIG_EXAMPLE_BUTTONS_NAME4, CONFIG_EXAMPLE_BUTTONS_NAME5,
-    CONFIG_EXAMPLE_BUTTONS_NAME6, CONFIG_EXAMPLE_BUTTONS_NAME7,
+    CONFIG_EXAMPLES_BUTTONS_NAME0, CONFIG_EXAMPLES_BUTTONS_NAME1,
+    CONFIG_EXAMPLES_BUTTONS_NAME2, CONFIG_EXAMPLES_BUTTONS_NAME3,
+    CONFIG_EXAMPLES_BUTTONS_NAME4, CONFIG_EXAMPLES_BUTTONS_NAME5,
+    CONFIG_EXAMPLES_BUTTONS_NAME6, CONFIG_EXAMPLES_BUTTONS_NAME7,
 
   Additional architecture-/board- specific configuration settings may also
   be required.
@@ -260,10 +260,10 @@ examples/dhcpd
                                      configuration settings)
     CONFIG_NET_BROADCAST=y         - UDP broadcast support is needed.
 
-    CONFIG_EXAMPLE_DHCPD_NOMAC     - (May be defined to use software assigned MAC)
-    CONFIG_EXAMPLE_DHCPD_IPADDR    - Target IP address
-    CONFIG_EXAMPLE_DHCPD_DRIPADDR  - Default router IP addess
-    CONFIG_EXAMPLE_DHCPD_NETMASK   - Network mask
+    CONFIG_EXAMPLES_DHCPD_NOMAC     - (May be defined to use software assigned MAC)
+    CONFIG_EXAMPLES_DHCPD_IPADDR    - Target IP address
+    CONFIG_EXAMPLES_DHCPD_DRIPADDR  - Default router IP addess
+    CONFIG_EXAMPLES_DHCPD_NETMASK   - Network mask
 
   See also CONFIG_NETUTILS_DHCPD_* settings described elsewhere
   and used in netutils/dhcpd/dhcpd.c. These settings are required
@@ -291,11 +291,11 @@ examples/discover
 
   NuttX configuration settings:
 
-    CONFIG_EXAMPLE_DISCOVER_DHCPC - DHCP Client
-    CONFIG_EXAMPLE_DISCOVER_NOMAC - Use canned MAC address
-    CONFIG_EXAMPLE_DISCOVER_IPADDR - Target IP address
-    CONFIG_EXAMPLE_DISCOVER_DRIPADDR - Router IP address
-    CONFIG_EXAMPLE_DISCOVER_NETMASK - Network Mask
+    CONFIG_EXAMPLES_DISCOVER_DHCPC - DHCP Client
+    CONFIG_EXAMPLES_DISCOVER_NOMAC - Use canned MAC address
+    CONFIG_EXAMPLES_DISCOVER_IPADDR - Target IP address
+    CONFIG_EXAMPLES_DISCOVER_DRIPADDR - Router IP address
+    CONFIG_EXAMPLES_DISCOVER_NETMASK - Network Mask
 
 examples/ftpc
 ^^^^^^^^^^^^^
@@ -367,12 +367,12 @@ examples/ftpd
   If CONFIG_EXAMPLES_FTPD_NONETINIT is not defined, then the following may
   be specified to customized the network configuration:
 
-    CONFIG_EXAMPLE_FTPD_NOMAC - If the hardware has no MAC address of its
+    CONFIG_EXAMPLES_FTPD_NOMAC - If the hardware has no MAC address of its
       own, define this =y to provide a bogus address for testing.
-    CONFIG_EXAMPLE_FTPD_IPADDR - The target IP address.  Default 10.0.0.2
-    CONFIG_EXAMPLE_FTPD_DRIPADDR - The default router address. Default
+    CONFIG_EXAMPLES_FTPD_IPADDR - The target IP address.  Default 10.0.0.2
+    CONFIG_EXAMPLES_FTPD_DRIPADDR - The default router address. Default
       10.0.0.1
-    CONFIG_EXAMPLE_FTPD_NETMASK - The network mask.  Default: 255.255.255.0
+    CONFIG_EXAMPLES_FTPD_NETMASK - The network mask.  Default: 255.255.255.0
 
   Other required configuration settings:  Of course TCP networking support
   is required.  But here are a couple that are less obvious:
@@ -465,15 +465,15 @@ examples/igmp
   does not do much of value -- Much more is needed in order to verify
   the IGMP features!
 
-  * CONFIG_EXAMPLE_IGMP_NOMAC
+  * CONFIG_EXAMPLES_IGMP_NOMAC
       Set if the hardware has no MAC address; one will be assigned
-  * CONFIG_EXAMPLE_IGMP_IPADDR
+  * CONFIG_EXAMPLES_IGMP_IPADDR
       Target board IP address
-  * CONFIG_EXAMPLE_IGMP_DRIPADDR
+  * CONFIG_EXAMPLES_IGMP_DRIPADDR
       Default router address
-  * CONFIG_EXAMPLE_IGMP_NETMASK
+  * CONFIG_EXAMPLES_IGMP_NETMASK
       Network mask
-  * CONFIG_EXAMPLE_IGMP_GRPADDR
+  * CONFIG_EXAMPLES_IGMP_GRPADDR
       Multicast group address
 
   Applications using this example will need to provide an appconfig
@@ -1023,10 +1023,10 @@ examples/poll
   CONFIG_NSOCKET_DESCRIPTORS        - Defined to be greater than 0
   CONFIG_NET_NTCP_READAHEAD_BUFFERS - Defined to be greater than zero
 
-  CONFIG_EXAMPLE_POLL_NOMAC         - (May be defined to use software assigned MAC)
-  CONFIG_EXAMPLE_POLL_IPADDR        - Target IP address
-  CONFIG_EXAMPLE_POLL_DRIPADDR      - Default router IP addess
-  CONFIG_EXAMPLE_POLL_NETMASK       - Network mask
+  CONFIG_EXAMPLES_POLL_NOMAC         - (May be defined to use software assigned MAC)
+  CONFIG_EXAMPLES_POLL_IPADDR        - Target IP address
+  CONFIG_EXAMPLES_POLL_DRIPADDR      - Default router IP addess
+  CONFIG_EXAMPLES_POLL_NETMASK       - Network mask
 
   In order to for select to work with incoming connections, you
   must also select:
@@ -1163,14 +1163,14 @@ examples/sendmail
 
  Settings unique to this example include:
 
-    CONFIG_EXAMPLE_SENDMAIL_NOMAC     - May be defined to use software assigned MAC (optional)
-    CONFIG_EXAMPLE_SENDMAIL_IPADDR    - Target IP address (required)
-    CONFIG_EXAMPLE_SENDMAIL_DRIPADDR  - Default router IP addess (required)
-    CONFIG_EXAMPLE_SENDMAILT_NETMASK  - Network mask (required)
-    CONFIG_EXAMPLE_SENDMAIL_RECIPIENT - The recipient of the email (required)
-    CONFIG_EXAMPLE_SENDMAIL_SENDER    - Optional. Default: "nuttx-testing@example.com"
-    CONFIG_EXAMPLE_SENDMAIL_SUBJECT   - Optional. Default: "Testing SMTP from NuttX"
-    CONFIG_EXAMPLE_SENDMAIL_BODY   -    Optional. Default: "Test message sent by NuttX"
+    CONFIG_EXAMPLES_SENDMAIL_NOMAC     - May be defined to use software assigned MAC (optional)
+    CONFIG_EXAMPLES_SENDMAIL_IPADDR    - Target IP address (required)
+    CONFIG_EXAMPLES_SENDMAIL_DRIPADDR  - Default router IP addess (required)
+    CONFIG_EXAMPLES_SENDMAILT_NETMASK  - Network mask (required)
+    CONFIG_EXAMPLES_SENDMAIL_RECIPIENT - The recipient of the email (required)
+    CONFIG_EXAMPLES_SENDMAIL_SENDER    - Optional. Default: "nuttx-testing@example.com"
+    CONFIG_EXAMPLES_SENDMAIL_SUBJECT   - Optional. Default: "Testing SMTP from NuttX"
+    CONFIG_EXAMPLES_SENDMAIL_BODY   -    Optional. Default: "Test message sent by NuttX"
 
   NOTE: This test has not been verified on the NuttX target environment.
   As of this writing, unit-tested in the Cygwin/Linux host environment.
@@ -1213,12 +1213,12 @@ examples/telnetd
       Default: SCHED_PRIORITY_DEFAULT
     CONFIG_EXAMPLES_TELNETD_CLIENTSTACKSIZE - Stack size allocated for the
       Telnet client. Default: 2048
-    CONFIG_EXAMPLE_TELNETD_NOMAC - If the hardware has no MAC address of its
+    CONFIG_EXAMPLES_TELNETD_NOMAC - If the hardware has no MAC address of its
       own, define this =y to provide a bogus address for testing.
-    CONFIG_EXAMPLE_TELNETD_IPADDR - The target IP address.  Default 10.0.0.2
-    CONFIG_EXAMPLE_TELNETD_DRIPADDR - The default router address. Default
+    CONFIG_EXAMPLES_TELNETD_IPADDR - The target IP address.  Default 10.0.0.2
+    CONFIG_EXAMPLES_TELNETD_DRIPADDR - The default router address. Default
       10.0.0.1
-    CONFIG_EXAMPLE_TELNETD_NETMASK - The network mask.  Default: 255.255.255.0
+    CONFIG_EXAMPLES_TELNETD_NETMASK - The network mask.  Default: 255.255.255.0
  
   The appconfig file (apps/.config) should include:
 
@@ -1240,9 +1240,9 @@ examples/thttpd
   CGI programs.  see configs/README.txt for most THTTPD settings.
   In addition to those, this example accepts:
 
-    CONFIG_EXAMPLE_THTTPD_NOMAC    - (May be defined to use software assigned MAC)
-    CONFIG_EXAMPLE_THTTPD_DRIPADDR - Default router IP addess
-    CONFIG_EXAMPLE_THTTPD_NETMASK  - Network mask
+    CONFIG_EXAMPLES_THTTPD_NOMAC    - (May be defined to use software assigned MAC)
+    CONFIG_EXAMPLES_THTTPD_DRIPADDR - Default router IP addess
+    CONFIG_EXAMPLES_THTTPD_NETMASK  - Network mask
 
   Applications using this example will need to provide an appconfig
   file in the configuration directory with instruction to build applications
@@ -1335,11 +1335,11 @@ examples/uip
   This is a port of uIP tiny webserver example application.  Settings
   specific to this example include:
 
-    CONFIG_EXAMPLE_UIP_NOMAC     - (May be defined to use software assigned MAC)
-    CONFIG_EXAMPLE_UIP_IPADDR    - Target IP address
-    CONFIG_EXAMPLE_UIP_DRIPADDR  - Default router IP addess
-    CONFIG_EXAMPLE_UIP_NETMASK   - Network mask
-    CONFIG_EXAMPLE_UIP_DHCPC     - Select to get IP address via DHCP
+    CONFIG_EXAMPLES_UIP_NOMAC     - (May be defined to use software assigned MAC)
+    CONFIG_EXAMPLES_UIP_IPADDR    - Target IP address
+    CONFIG_EXAMPLES_UIP_DRIPADDR  - Default router IP addess
+    CONFIG_EXAMPLES_UIP_NETMASK   - Network mask
+    CONFIG_EXAMPLES_UIP_DHCPC     - Select to get IP address via DHCP
 
   If you use DHCPC, then some special configuration network options are
   required.  These include:
@@ -1637,11 +1637,11 @@ examples/wget
   A simple web client example.  It will obtain a file from a server using the HTTP
   protocol.  Settings unique to this example include:
 
-    CONFIG_EXAMPLE_WGET_URL       - The URL of the file to get
-    CONFIG_EXAMPLE_WGET_NOMAC     - (May be defined to use software assigned MAC)
-    CONFIG_EXAMPLE_WGET_IPADDR    - Target IP address
-    CONFIG_EXAMPLE_WGET_DRIPADDR  - Default router IP addess
-    CONFIG_EXAMPLE_WGET_NETMASK   - Network mask
+    CONFIG_EXAMPLES_WGET_URL       - The URL of the file to get
+    CONFIG_EXAMPLES_WGET_NOMAC     - (May be defined to use software assigned MAC)
+    CONFIG_EXAMPLES_WGET_IPADDR    - Target IP address
+    CONFIG_EXAMPLES_WGET_DRIPADDR  - Default router IP addess
+    CONFIG_EXAMPLES_WGET_NETMASK   - Network mask
 
   This example uses netutils/webclient.  Additional configuration settings apply
   to that code as follows (but built-in defaults are probably OK):

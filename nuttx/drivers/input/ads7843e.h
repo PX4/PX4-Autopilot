@@ -139,6 +139,8 @@ struct ads7843e_dev_s
   uint8_t nwaiters;                     /* Number of threads waiting for ADS7843E data */
   uint8_t id;                           /* Current touch point ID */
   volatile bool penchange;              /* An unreported event is buffered */
+  uint16_t threshx;                     /* Thresholding X value */
+  uint16_t threshy;                     /* Thresholding Y value */
   sem_t devsem;                         /* Manages exclusive access to this structure */
   sem_t waitsem;                        /* Used to wait for the availability of data */
 

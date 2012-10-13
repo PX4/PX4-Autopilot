@@ -85,7 +85,7 @@
  * CONFIG_STMPE811_TEMP_DISABLE
  *   Disable driver temperature sensor functionality.
  * CONFIG_STMPE811_REGDEBUG
- *   Enabled very low register-level debug output.  Requires CONFIG_DEBUG.
+ *   Enable very low register-level debug output.  Requires CONFIG_DEBUG.
  * CONFIG_STMPE811_THRESHX and CONFIG_STMPE811_THRESHY
  *   STMPE811 touchscreen data comes in a a very high rate.  New touch positions
  *   will only be reported when the X or Y data changes by these thresholds.

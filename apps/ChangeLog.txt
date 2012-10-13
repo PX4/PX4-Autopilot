@@ -279,14 +279,14 @@
 	* apps/*/Make.defs:  Numerous fixes needed to use the automated
 	  configuration (from Richard Cochran).
 
-6.22 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.22 2012-09-29 Gregory Nutt <gnutt@nuttx.org>
 
 	* apps/netutils/thttpd/thttpd_cgi.c:  Missing NULL in argv[]
 	  list (contributed by Kate).
 	* apps/nshlib/nsh_parse.c: CONFIG_NSH_DISABLE_WGET not CONFIG_NSH_DISABLE_GET
 	  in one location (found by Kate).
 	* apps/examples/ostest/prioinherit.c:  Limit the number of test
-	  threds to no more than 3 of each priority.  Bad things happen
+	  threads to no more than 3 of each priority.  Bad things happen
 	  when the existing logic tried to created several hundred test
 	  treads!
 	* apps/nshlib/nsh.h:  Both CONFIG_LIBC_STRERROR and CONFIG_NSH_STRERROR
@@ -341,7 +341,30 @@
 	* apps/netutils/webserver/httpd.c:  Add support for Keep-alive connections
 	  (from Kate).
 	* apps/NxWidget/Kconfig:  This is a kludge.  I created this NxWidgets
-	  directory that ONLY contains Kconfig.  NxWidgets does not like in
+	  directory that ONLY contains Kconfig.  NxWidgets does not live in
 	  either the nuttx/ or the apps/ source trees.  This kludge makes it
 	  possible to configure NxWidgets/NxWM without too much trouble (with
 	  the tradeoff being a kind ugly structure and some maintenance issues).
+	* apps/examples/Make.defs: Missing support for apps/examples/watchdog.
+	* apps/NxWidgets/Kconfig:  Add option to turn on the memory monitor
+	  feature of the NxWidgets/NxWM unit tests.
+
+6.23 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* vsn: Moved all NSH commands from vsn/ to system/.  Deleted the vsn/
+	  directory.
+	* Makefile:  Change order of includes when CONFIG_NEWCONFIG=y.  In
+	  that case, namedapp must be included first so that the namedapp
+	  context is established first.  If the namedapp context is established
+	  later, it will overwrite any existing namedapp_list.h and nameapp_proto.h
+	  files.
+	* CONFIG_EXAMPLES_*: To make things consistent, changed all occurrences
+	  of CONFIG_EXAMPLE_* to CONFIG_EXAMPLES_*.
+	* Kconfig:  Fleshed out apps/examples/adc/Kconfig and apps/examples/wget/Kconfig.
+	  There are still a LOT of empty, stub Kconfig files.
+	* Kconfig:  Fleshed out apps/examples/buttons/Kconfig. There are still a LOT
+	  of empty, stub Kconfig files.
+	* apps/netutils/webserver/httpd.c:  Fix a bug that I introduced in
+	  recent check-ins (Darcy Gong).
+	* apps/netutils/webclient/webclient.c:  Fix another but that I introduced
+	  when I was trying to add correct handling for loss of connection (Darcy Gong)

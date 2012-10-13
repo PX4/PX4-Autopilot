@@ -49,3 +49,20 @@ endif
 ifeq ($(CONFIG_SYSTEM_READLINE),y)
 CONFIGURED_APPS += system/readline
 endif
+
+ifeq ($(CONFIG_SYSTEM_POWEROFF),y)
+CONFIGURED_APPS += system/poweroff
+endif
+
+ifeq ($(CONFIG_SYSTEM_RAMTRON),y)
+CONFIGURED_APPS += system/ramtron
+endif
+
+ifeq ($(CONFIG_SYSTEM_SDCARD),y)
+CONFIGURED_APPS += system/sdcard
+endif
+
+ifeq ($(CONFIG_SYSTEM_SYSINFO),y)
+CONFIGURED_APPS += system/sysinfo
+endif
+

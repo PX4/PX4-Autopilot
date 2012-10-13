@@ -164,10 +164,19 @@
  *   Default: SCHED_PRIORITY_DEFAULT
  * CONFIG_NSH_TELNETD_DAEMONSTACKSIZE - Stack size allocated for the
  *   Telnet daemon. Default: 2048
- * CONFIG_NSH_TELNETD_CLIENTPRIO- Priority of the Telnet client.
+ * CONFIG_NSH_TELNETD_CLIENTPRIO - Priority of the Telnet client.
  *   Default: SCHED_PRIORITY_DEFAULT
  * CONFIG_NSH_TELNETD_CLIENTSTACKSIZE - Stack size allocated for the
  *   Telnet client. Default: 2048
+ * CONFIG_NSH_TELNET_LOGIN - Support a simple Telnet login.
+ *
+ * If CONFIG_NSH_TELNET_LOGIN is defined, then these additional
+ * options may be specified:
+ *
+ * CONFIG_NSH_TELNET_USERNAME - Login user name.  Default: "admin"
+ * CONFIG_NSH_TELNET_PASSWORD - Login password:  Default: "nuttx"
+ * CONFIG_NSH_TELNET_FAILCOUNT - Number of login retry attempts.
+ *   Default 3.
  */
 
 #ifndef CONFIG_NSH_TELNETD_PORT
@@ -189,6 +198,22 @@
 #ifndef CONFIG_NSH_TELNETD_CLIENTSTACKSIZE
 #  define CONFIG_NSH_TELNETD_CLIENTSTACKSIZE 2048
 #endif
+
+#ifdef CONFIG_NSH_TELNET_LOGIN
+
+#  ifndef CONFIG_NSH_TELNET_USERNAME
+#    define CONFIG_NSH_TELNET_USERNAME  "admin"
+#  endif
+
+#  ifndef CONFIG_NSH_TELNET_PASSWORD
+#    define CONFIG_NSH_TELNET_PASSWORD  "nuttx"
+#  endif
+
+#  ifndef CONFIG_NSH_TELNET_FAILCOUNT
+#    define CONFIG_NSH_TELNET_FAILCOUNT 3
+#  endif
+
+#endif /* CONFIG_NSH_TELNET_LOGIN */
 
 /* Verify support for ROMFS /etc directory support options */
 
@@ -364,6 +389,14 @@ typedef int (*cmd_t)(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
  ****************************************************************************/
 
 extern const char g_nshgreeting[];
+#if defined(CONFIG_NSH_TELNET_LOGIN) && defined(CONFIG_NSH_TELNET)
+extern const char g_telnetgreeting[];
+extern const char g_userprompt[];
+extern const char g_passwordprompt[];
+extern const char g_loginsuccess[];
+extern const char g_badcredentials[];
+extern const char g_loginfailure[];
+#endif
 extern const char g_nshprompt[];
 extern const char g_nshsyntax[];
 extern const char g_fmtargrequired[];

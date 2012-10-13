@@ -1,8 +1,9 @@
 /****************************************************************************
- * apps/system/free/free.c
+ * arch/arm/src/armv7-m/up_systemreset.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *           Darcy Gong
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,83 +39,41 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/progmem.h>
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <stdint.h>
 
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/* TODO Max block size only works on uniform prog mem */
-
-static void free_getprogmeminfo(struct mallinfo * mem)
-{
-  uint16_t page = 0, stpage = 0xFFFF;
-  uint16_t pagesize = 0;
-  int status;
-
-  mem->arena    = 0;
-  mem->fordblks = 0;
-  mem->uordblks = 0;
-  mem->mxordblk = 0;
-
-  for (status=0, page=0; status >= 0; page++)
-    {
-      status = up_progmem_ispageerased(page);
-      pagesize = up_progmem_pagesize(page);
-
-      mem->arena += pagesize;
-
-      /* Is this beginning of new free space section */
-
-      if (status == 0)
-        {
-          if (stpage == 0xFFFF) stpage = page;
-          mem->fordblks += pagesize;
-        }
-      else if (status != 0)
-        {
-          mem->uordblks += pagesize;
-
-          if (stpage != 0xFFFF && up_progmem_isuniform())
-            {
-              stpage = page - stpage;
-              if (stpage > mem->mxordblk)
-                {
-                  mem->mxordblk = stpage;
-                }
-              stpage = 0xFFFF;
-            }
-        }
-    }
-
-  mem->mxordblk *= pagesize;
-}
+#include "up_arch.h"
+#include "nvic.h"
 
 /****************************************************************************
- * Public Functions
+ * Pre-processor Definitions
  ****************************************************************************/
 
-int free_main(int argc, char **argv)
+ /****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public functions
+ ****************************************************************************/
+
+void up_systemreset(void)
 {
-  struct mallinfo data;
-  struct mallinfo prog;
+  uint32_t regval;
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-  data = mallinfo();
-#else
-  (void)mallinfo(&data);
-#endif
+  /* Set up for the system reset, retaining the priority group from the
+   * the AIRCR register.
+   */
 
-  free_getprogmeminfo(&prog);
+  regval  = getreg32(NVIC_AIRCR) & NVIC_AIRCR_PRIGROUP_MASK;
+  regval |= ((0x5fa << NVIC_AIRCR_VECTKEY_SHIFT) | NVIC_AIRCR_SYSRESETREQ);
+  putreg32(regval, NVIC_AIRCR);
 
-  printf("              total       used       free    largest\n");
-  printf("Data:   %11d%11d%11d%11d\n",
-         data.arena, data.uordblks, data.fordblks, data.mxordblk);
-  printf("Prog:   %11d%11d%11d%11d\n",
-         prog.arena, prog.uordblks, prog.fordblks, prog.mxordblk);
+  /* Ensure completion of memory accesses */              
 
-  return OK;
+  __asm volatile ("dsb");
+
+  /* Wait for the reset */
+
+  for (;;);
 }

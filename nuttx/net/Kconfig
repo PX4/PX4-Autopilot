@@ -18,6 +18,9 @@ choice
 	prompt "Board PHY Selection"
 	depends on ARCH_HAVE_PHY
 	default PHY_KS8721
+	---help---
+		Identify the PHY on your board.  This setting is not used by all Ethernet
+		drivers no do all Ethernet drivers support all PHYs.
 
 config PHY_KS8721
 	bool "Micrel KS8721 PHY"
@@ -27,6 +30,9 @@ config PHY_DP83848C
 
 config PHY_LAN8720
 	bool "SMSC LAN8720 PHY"
+
+config PHY_DM9161
+	bool "Davicom DM9161 PHY"
 
 endchoice
 

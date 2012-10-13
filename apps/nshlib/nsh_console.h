@@ -109,7 +109,7 @@ struct nsh_vtbl_s
   FAR char *(*linebuffer)(FAR struct nsh_vtbl_s *vtbl);
   void (*redirect)(FAR struct nsh_vtbl_s *vtbl, int fd, FAR uint8_t *save);
   void (*undirect)(FAR struct nsh_vtbl_s *vtbl, FAR uint8_t *save);
-  void (*exit)(FAR struct nsh_vtbl_s *vtbl, int exitstatus);
+  void (*exit)(FAR struct nsh_vtbl_s *vtbl, int exitstatus) noreturn_function;
 
   /* Parser state data */
 
