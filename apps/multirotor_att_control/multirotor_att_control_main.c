@@ -85,6 +85,7 @@ static struct vehicle_status_s state;
 
 static bool heading_set = false;
 static float initial_heading = 0.0f;
+static int debug_log_counter = 0;
 
 static int
 mc_thread_main(int argc, char *argv[])
@@ -214,9 +215,9 @@ mc_thread_main(int argc, char *argv[])
 						}
 
 						if (att.yaw > M_PI_F) {
-							fprintf(stderr, "DELTA OVERRUN: %2.3f\n", delta);
+							fprintf(stderr, "DELTA OVERRUN: %2.3f\n", att.yaw);
 						} else if (att.yaw < -M_PI_F) {
-							fprintf(stderr, "DELTA UNDERRUN: %2.3f\n", delta);
+							fprintf(stderr, "DELTA UNDERRUN: %2.3f\n", att.yaw);
 						}
 						float delta = att.yaw - initial_heading;
 						
