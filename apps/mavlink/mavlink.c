@@ -62,7 +62,6 @@
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
-#include <systemlib/getopt_long.h>
 
 #include "waypoints.h"
 #include "mavlink_log.h"
@@ -490,19 +489,15 @@ void mavlink_update_system(void)
  */
 int mavlink_thread_main(int argc, char *argv[])
 {
-	static GETOPT_LONG_OPTION_T options[] = {
-		{"baud",	REQUIRED_ARG,	NULL,	'b'},
-		{"speed",	REQUIRED_ARG,	NULL,	'b'},
-		{"device",	REQUIRED_ARG,	NULL,	'd'},
-		{"exit-allowed", NO_ARG,	NULL,	'e'},
-		{"onboard",	NO_ARG,		NULL,	'o'}
-	};
-
-	int ch, longind;
+	int ch;
 	char *device_name = "/dev/ttyS1";
 	baudrate = 57600;
 
-	while ((ch = getopt_long(argc, argv, "b:d:eo", options, &longind)) != EOF) {
+	/* work around some stupidity in task_create's argv handling */
+	argc -= 2;
+	argv += 2;
+
+	while ((ch = getopt(argc, argv, "b:d:eo")) != EOF) {
 		switch (ch) {
 		case 'b':
 			baudrate = strtoul(optarg, NULL, 10);
@@ -692,7 +687,7 @@ int mavlink_thread_main(int argc, char *argv[])
 static void
 usage()
 {
-	fprintf(stderr, "usage: mavlink start [--device <devicename>] [--speed <device speed>] [--exit-allowed] [--onboard]\n"
+	fprintf(stderr, "usage: mavlink start [-d <devicename>] [-b <baud rate>] [-e] [-o]\n"
 			"       mavlink stop\n"
 			"       mavlink status\n");
 	exit(1);
@@ -716,7 +711,7 @@ int mavlink_main(int argc, char *argv[])
 					  SCHED_PRIORITY_DEFAULT,
 					  6000,
 					  mavlink_thread_main,
-					  NULL);
+					  argv);
 		exit(0);
 	}
 
