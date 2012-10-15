@@ -46,7 +46,6 @@
  or in the same folder as this source file */
 
 #include <v1.0/mavlink_types.h>
-extern void mavlink_send_uart_bytes(mavlink_channel_t chan, uint8_t *buffer, uint16_t len);
 
 #ifndef MAVLINK_SEND_UART_BYTES
 #define MAVLINK_SEND_UART_BYTES(chan, buffer, len) mavlink_send_uart_bytes(chan, buffer, len)
