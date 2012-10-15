@@ -124,7 +124,6 @@ static bool thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
 
 /* pthread loops */
-// static void *command_handling_loop(void *arg);
 static void *orb_receive_loop(void *arg);
 
 __EXPORT int commander_main(int argc, char *argv[]);
@@ -339,6 +338,10 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 			axis_index++;
 		}
 
+		if (!(axis_index < 3)) {
+			continue;
+		}
+
 		// int axis_left = (int64_t)axis_deadline - (int64_t)hrt_absolute_time();
 
 		// if ((axis_left / 1000) == 0 && axis_left > 0) {
@@ -351,26 +354,27 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
 			/* get min/max values */
 
-			if (raw.magnetometer_ga[0] < mag_min[0]) {
-				mag_min[0] = raw.magnetometer_ga[0];
+			/* ignore other axes */
+			if (raw.magnetometer_ga[axis_index] < mag_min[axis_index]) {
+				mag_min[axis_index] = raw.magnetometer_ga[axis_index];
 			}
-			else if (raw.magnetometer_ga[0] > mag_max[0]) {
-				mag_max[0] = raw.magnetometer_ga[0];
-			}
-
-			if (raw.magnetometer_ga[1] < mag_min[1]) {
-				mag_min[1] = raw.magnetometer_ga[1];
-			}
-			else if (raw.magnetometer_ga[1] > mag_max[1]) {
-				mag_max[1] = raw.magnetometer_ga[1];
+			else if (raw.magnetometer_ga[axis_index] > mag_max[axis_index]) {
+				mag_max[axis_index] = raw.magnetometer_ga[axis_index];
 			}
 
-			if (raw.magnetometer_ga[2] < mag_min[2]) {
-				mag_min[2] = raw.magnetometer_ga[2];
-			}
-			else if (raw.magnetometer_ga[2] > mag_max[2]) {
-				mag_max[2] = raw.magnetometer_ga[2];
-			}
+			// if (raw.magnetometer_ga[1] < mag_min[1]) {
+			// 	mag_min[1] = raw.magnetometer_ga[1];
+			// }
+			// else if (raw.magnetometer_ga[1] > mag_max[1]) {
+			// 	mag_max[1] = raw.magnetometer_ga[1];
+			// }
+
+			// if (raw.magnetometer_ga[2] < mag_min[2]) {
+			// 	mag_min[2] = raw.magnetometer_ga[2];
+			// }
+			// else if (raw.magnetometer_ga[2] > mag_max[2]) {
+			// 	mag_max[2] = raw.magnetometer_ga[2];
+			// }
 
 			calibration_counter++;
 		} else {
