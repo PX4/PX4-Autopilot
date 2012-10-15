@@ -176,6 +176,24 @@ private:
 	void			stop();
 
 	/**
+	 * Perform the on-sensor scale calibration routine.
+	 *
+	 * @note The sensor will continue to provide measurements, these
+	 *	 will however reflect the uncalibrated sensor state until
+	 *	 the calibration routine has been completed.
+	 *
+	 * @param enable set to 1 to enable self-test strap, 0 to disable
+	 */
+	int			calibrate(unsigned enable);
+
+	/**
+	 * Set the sensor range.
+	 *
+	 * Sets the internal range to handle at least the argument in Gauss.
+	 */
+	int 			set_range(unsigned range);
+
+	/**
 	 * Perform a poll cycle; collect from the previous measurement
 	 * and start a new one.
 	 *
@@ -255,8 +273,8 @@ HMC5883::HMC5883(int bus) :
 	_oldest_report(0),
 	_reports(nullptr),
 	_mag_topic(-1),
-	_range_scale(1.0f / 1090.0f), /* default range scale from counts to gauss */
-	_range_ga(0.88f),
+	_range_scale(0), /* default range scale from counts to gauss */
+	_range_ga(1.3f),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows"))
@@ -308,9 +326,69 @@ HMC5883::init()
 	if (_mag_topic < 0)
 		debug("failed to create sensor_mag object");
 
+	/* set range */
+	set_range(_range_ga);
+
 	ret = OK;
 out:
 	return ret;
+}
+
+int HMC5883::set_range(unsigned range)
+{
+	uint8_t range_bits;
+
+	if (range < 1) {
+		range_bits = 0x00;
+		_range_scale = 1.0f / 1370.0f;
+		_range_ga = 0.88f;
+	} else if (range <= 1) {
+		range_bits = 0x01;
+		_range_scale = 1.0f / 1090.0f;
+		_range_ga = 1.3f;
+	} else if (range <= 2) {
+		range_bits = 0x02;
+		_range_scale = 1.0f / 820.0f;
+		_range_ga = 1.9f;
+	} else if (range <= 3) {
+		range_bits = 0x03;
+		_range_scale = 1.0f / 660.0f;
+		_range_ga = 2.5f;
+	} else if (range <= 4) {
+		range_bits = 0x04;
+		_range_scale = 1.0f / 440.0f;
+		_range_ga = 4.0f;
+	} else if (range <= 4.7f) {
+		range_bits = 0x05;
+		_range_scale = 1.0f / 390.0f;
+		_range_ga = 4.7f;
+	} else if (range <= 5.6f) {
+		range_bits = 0x06;
+		_range_scale = 1.0f / 330.0f;
+		_range_ga = 5.6f;
+	} else {
+		range_bits = 0x07;
+		_range_scale = 1.0f / 230.0f;
+		_range_ga = 8.1f;
+	}
+
+	int ret;
+
+	/*
+	 * Send the command to set the range
+	 */
+	ret = write_reg(ADDR_CONF_B, (range_bits << 5));
+
+	if (OK != ret)
+		perf_count(_comms_errors);
+
+	uint8_t range_bits_in;
+	ret = read_reg(ADDR_CONF_B, range_bits_in);
+
+	if (OK != ret)
+		perf_count(_comms_errors);
+
+	return !(range_bits_in == (range_bits << 5));
 }
 
 int
@@ -495,6 +573,9 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		/* not supported, always 1 sample per poll */
 		return -EINVAL;
 
+	case MAGIOCSRANGE:
+		return set_range(arg);
+
 	case MAGIOCSLOWPASS:
 		/* not supported, no internal filtering */
 		return -EINVAL;
@@ -510,8 +591,7 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return 0;
 
 	case MAGIOCCALIBRATE:
-		/* XXX perform auto-calibration */
-		return -EINVAL;
+		return calibrate(arg);
 
 	default:
 		/* give it to the superclass */
@@ -718,6 +798,29 @@ out:
 	return ret;
 }
 
+int HMC5883::calibrate(unsigned enable)
+{
+	int ret;
+	/* arm the excitement strap */
+	uint8_t conf_reg;
+	ret = read_reg(ADDR_CONF_A, conf_reg);
+	if (OK != ret)
+		perf_count(_comms_errors);
+	if (enable) {
+		conf_reg |= 0x01;
+	} else {
+		conf_reg &= ~0x03;
+	}
+	ret = write_reg(ADDR_CONF_A, conf_reg);
+	if (OK != ret)
+		perf_count(_comms_errors);
+
+	uint8_t conf_reg_ret;
+	read_reg(ADDR_CONF_A, conf_reg_ret);
+
+	return !(conf_reg == conf_reg_ret);
+}
+
 int
 HMC5883::write_reg(uint8_t reg, uint8_t val)
 {
@@ -775,6 +878,7 @@ void	start();
 void	test();
 void	reset();
 void	info();
+int	calibrate();
 
 /**
  * Start the driver.
@@ -872,6 +976,273 @@ test()
 	errx(0, "PASS");
 }
 
+
+/**
+ * Automatic scale calibration.
+ *
+ * Basic idea:
+ *
+ *   output = (ext field +- 1.1 Ga self-test) * scale factor
+ * 
+ * and consequently:
+ *
+ *   1.1 Ga = (excited - normal) * scale factor
+ *   scale factor = (excited - normal) / 1.1 Ga
+ *
+ *   sxy = (excited - normal) / 766	| for conf reg. B set to 0x60 / Gain = 3
+ *   sz  = (excited - normal) / 713	| for conf reg. B set to 0x60 / Gain = 3
+ *
+ * By subtracting the non-excited measurement the pure 1.1 Ga reading
+ * can be extracted and the sensitivity of all axes can be matched.
+ *
+ * SELF TEST OPERATION
+ * To check the HMC5883L for proper operation, a self test feature in incorporated
+ * in which the sensor offset straps are excited to create a nominal field strength
+ * (bias field) to be measured. To implement self test, the least significant bits
+ * (MS1 and MS0) of configuration register A are changed from 00 to 01 (positive bias)
+ * or 10 (negetive bias), e.g. 0x11 or 0x12.
+ * Then, by placing the mode register into single-measurement mode (0x01),
+ * two data acquisition cycles will be made on each magnetic vector.
+ * The first acquisition will be a set pulse followed shortly by measurement
+ * data of the external field. The second acquisition will have the offset strap
+ * excited (about 10 mA) in the positive bias mode for X, Y, and Z axes to create
+ * about a ±1.1 gauss self test field plus the external field. The first acquisition
+ * values will be subtracted from the second acquisition, and the net measurement
+ * will be placed into the data output registers.
+ * Since self test adds ~1.1 Gauss additional field to the existing field strength,
+ * using a reduced gain setting prevents sensor from being saturated and data registers
+ * overflowed. For example, if the configuration register B is set to 0x60 (Gain=3),
+ * values around +766 LSB (1.16 Ga * 660 LSB/Ga) will be placed in the X and Y data
+ * output registers and around +713 (1.08 Ga * 660 LSB/Ga) will be placed in Z data
+ * output register. To leave the self test mode, change MS1 and MS0 bit of the
+ * configuration register A back to 00 (Normal Measurement Mode), e.g. 0x10.
+ * Using the self test method described above, the user can scale sensor
+ */
+int calibrate()
+{
+
+	struct mag_report report;
+	ssize_t sz;
+	int ret;
+
+	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
+	if (fd < 0)
+		err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", MAG_DEVICE_PATH);
+
+	/* do a simple demand read */
+	sz = read(fd, &report, sizeof(report));
+	if (sz != sizeof(report))
+		err(1, "immediate read failed");
+
+	warnx("single read");
+	warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
+	warnx("time:        %lld", report.timestamp);
+
+	/* set the queue depth to 10 */
+	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10))
+		errx(1, "failed to set queue depth");
+
+	/* start the sensor polling at 10 Hz */
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 10))
+		errx(1, "failed to set 2Hz poll rate");
+
+	/* Set to 2.5 Gauss */
+	if (OK != ioctl(fd, MAGIOCSRANGE, 2)) {
+		warnx("failed to set 2.5 Ga range");
+	}
+
+	if (OK != ioctl(fd, MAGIOCCALIBRATE, 1)) {
+		warnx("failed to enable sensor calibration mode");
+	}
+
+	struct mag_scale mscale_null = {
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+	};
+
+	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null)) {
+		warn("WARNING: failed to set null scale / offsets for mag");
+	}
+
+	float avg_excited[3];
+	unsigned i;
+
+	/* read the sensor 10x and report each value */
+	for (i = 0; i < 10; i++) {
+		struct pollfd fds;
+
+		/* wait for data to be ready */
+		fds.fd = fd;
+		fds.events = POLLIN;
+		ret = poll(&fds, 1, 2000);
+
+		if (ret != 1)
+			errx(1, "timed out waiting for sensor data");
+
+		/* now go get it */
+		sz = read(fd, &report, sizeof(report));
+
+		if (sz != sizeof(report)) {
+			err(1, "periodic read failed");
+		} else {
+			avg_excited[0] += report.x;
+			avg_excited[1] += report.y;
+			avg_excited[2] += report.z;
+		}
+
+		warnx("periodic read %u", i);
+		warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
+		warnx("time:        %lld", report.timestamp);
+	}
+
+	// warnx("starting calibration");
+
+	// struct mag_report report;
+	// ssize_t sz;
+	// int ret;
+
+	// int fd = open(MAG_DEVICE_PATH, O_RDONLY);
+	// if (fd < 0)
+	// 	err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", MAG_DEVICE_PATH);
+
+	// /* do a simple demand read */
+	// sz = read(fd, &report, sizeof(report));
+	// if (sz != sizeof(report))
+	// 	err(1, "immediate read failed");
+
+	// warnx("single read");
+	// warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
+	// warnx("time:        %lld", report.timestamp);
+
+	// /* get scaling, set to zero */
+	// struct mag_scale mscale_previous;
+
+	// if (OK != ioctl(fd, MAGIOCGSCALE, (long unsigned int)&mscale_previous)) {
+	// 	warn("WARNING: failed to get scale / offsets for mag");
+	// }
+
+	// struct mag_scale mscale_null = {
+	// 	0.0f,
+	// 	1.0f,
+	// 	0.0f,
+	// 	1.0f,
+	// 	0.0f,
+	// 	1.0f,
+	// };
+
+	// if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null)) {
+	// 	warn("WARNING: failed to set null scale / offsets for mag");
+	// }
+
+	// warnx("sensor ready");
+
+	// float avg_excited[3] = {0.0f, 0.0f, 0.0f};
+
+	// if (OK != ioctl(fd, MAGIOCCALIBRATE, 1)) {
+	// 	warnx("failed to enable sensor calibration mode");
+	// }
+
+	// /* Set to 2.5 Gauss */
+	// if (OK != ioctl(fd, MAGIOCSRANGE, 2)) {
+	// 	warnx("failed to set 2.5 Ga range");
+	// }
+
+	// /* set the queue depth to 10 */
+	// if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
+	// 	warnx("failed to set queue depth");
+	// 	return 1;
+	// } else {
+	// 	warnx("set queue depth");
+	// }
+
+	// /* start the sensor polling at 100Hz */
+	// if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 100)) {
+	// 	warnx("failed to set 100 Hz poll rate");
+	// 	return 1;
+	// } else {
+	// 	warnx("set 100 Hz poll rate");
+	// }
+
+	// int i;
+	// for (i = 0; i < 10; i++) {
+	// 	struct pollfd fds;
+
+	// 	(void) ioctl(fd, MAGIOCCALIBRATE, 1);
+
+	// 	/* wait for data to be ready */
+	// 	fds.fd = fd;
+	// 	fds.events = POLLIN;
+	// 	ret = poll(&fds, 1, 2000);
+
+	// 	if (ret != 1) {
+	// 		warnx("timed out waiting for sensor data");
+	// 		return 1;
+	// 	}
+
+	// 	/* now go get it */
+	// 	sz = read(fd, &report, sizeof(report));
+
+	// 	if (sz != sizeof(report)) {
+	// 		warn("periodic read failed");
+	// 		return 1;
+	// 	} else {
+	// 		avg_excited[0] += report.x;
+	// 		avg_excited[1] += report.y;
+	// 		avg_excited[2] += report.z;
+	// 	}
+	// 	warnx("excited read %u", i);
+	// 	warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
+	// 	warnx("time:        %lld", report.timestamp);
+
+	// }
+
+	avg_excited[0] /= i;
+	avg_excited[1] /= i;
+	avg_excited[2] /= i;
+
+	warnx("periodic excited reads %u", i);
+	warnx("measurement avg: %.6f  %.6f  %.6f", (double)avg_excited[0], (double)avg_excited[1], (double)avg_excited[2]);
+
+	/* Set to 1.1 Gauss and end calibration */
+	ret = ioctl(fd, MAGIOCCALIBRATE, 0);
+	ret = ioctl(fd, MAGIOCSRANGE, 1);
+
+	float scaling[3];
+
+	/* calculate axis scaling */
+	scaling[0] = 1.16f / avg_excited[0];
+	/* second axis inverted */
+	scaling[1] = 1.16f / -avg_excited[1];
+	scaling[2] = 1.08f / avg_excited[2];
+
+	warnx("axes scaling: %.6f  %.6f  %.6f", (double)scaling[0], (double)scaling[1], (double)scaling[2]);
+	
+	/* set back to normal mode */
+	/* Set to 1.1 Gauss */
+	if (OK != ioctl(fd, MAGIOCSRANGE, 1)) {
+		warnx("failed to set 1.1 Ga range");
+	}
+
+	if (OK != ioctl(fd, MAGIOCCALIBRATE, 0)) {
+		warnx("failed to disable sensor calibration mode");
+	}
+
+	/* set scaling in device */
+	// mscale_previous.x_scale = scaling[0];
+	// mscale_previous.y_scale = scaling[1];
+	// mscale_previous.z_scale = scaling[2];
+
+	// if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_previous)) {
+	// 	warn("WARNING: failed to set new scale / offsets for mag");
+	// }
+
+	errx(0, "PASS");
+}
+
 /**
  * Reset the driver.
  */
@@ -930,8 +1301,19 @@ hmc5883_main(int argc, char *argv[])
 	/*
 	 * Print driver information.
 	 */
-	if (!strcmp(argv[1], "info"))
+	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status"))
 		hmc5883::info();
 
-	errx(1, "unrecognised command, try 'start', 'test', 'reset' or 'info'");
+	/*
+	 * Autocalibrate the scaling
+	 */
+	if (!strcmp(argv[1], "calibrate")) {
+		if (hmc5883::calibrate() == 0) {
+			errx(0, "calibration successful");
+		} else {
+			errx(1, "calibration failed");
+		}
+	}
+
+	errx(1, "unrecognized command, try 'start', 'test', 'reset' 'calibrate' or 'info'");
 }

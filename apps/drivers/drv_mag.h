@@ -99,7 +99,10 @@ ORB_DECLARE(sensor_mag);
 /** copy the mag scaling constants to the structure pointed to by (arg) */
 #define MAGIOCGSCALE		_MAGIOC(3)
 
+/** set the measurement range to handle (at least) arg Gauss */
+#define MAGIOCSRANGE		_MAGIOC(4)
+
 /** perform self-calibration, update scale factors to canonical units */
-#define MAGIOCCALIBRATE		_MAGIOC(4)
+#define MAGIOCCALIBRATE		_MAGIOC(5)
 
 #endif /* _DRV_MAG_H */
