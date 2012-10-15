@@ -131,7 +131,6 @@ int sdlog_main(int argc, char *argv[])
 					 4096,
 					 sdlog_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
-		thread_running = true;
 		exit(0);
 	}
 
@@ -202,7 +201,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	char folder_path[64];
 	if (create_logfolder(folder_path))
-		errx(1, "unable to create logging folder, exiting");
+		errx(1, "unable to create logging folder, exiting.");
 
 	/* create sensorfile */
 	int sensorfile = -1;
