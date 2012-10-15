@@ -346,14 +346,14 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	/* --- GLOBAL POSITION --- */
 	/* subscribe to ORB for global position */
-	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	fds[fdsc_count].fd = subs.global_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- GPS POSITION --- */
 	/* subscribe to ORB for global position */
-	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	fds[fdsc_count].fd = subs.gps_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
