@@ -114,8 +114,8 @@ static bool commander_initialized = false;
 static struct vehicle_status_s current_status; /**< Main state machine */
 static orb_advert_t stat_pub;
 
-static uint16_t nofix_counter = 0;
-static uint16_t gotfix_counter = 0;
+// static uint16_t nofix_counter = 0;
+// static uint16_t gotfix_counter = 0;
 
 static unsigned int failsafe_lowlevel_timeout_ms;
 
@@ -124,7 +124,7 @@ static bool thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
 
 /* pthread loops */
-static void *command_handling_loop(void *arg);
+// static void *command_handling_loop(void *arg);
 static void *orb_receive_loop(void *arg);
 
 __EXPORT int commander_main(int argc, char *argv[]);
@@ -164,7 +164,7 @@ static void usage(const char *reason);
  * @param a 	The array to sort
  * @param n 	The number of entries in the array
  */
-static void cal_bsort(float a[], int n);
+// static void cal_bsort(float a[], int n);
 
 static int buzzer_init()
 {
@@ -293,10 +293,10 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	struct sensor_combined_s raw;
 
 	/* 30 seconds */
-	int calibration_interval_ms = 30 * 1000;
+	uint64_t calibration_interval = 30 * 1000 * 1000;
 	unsigned int calibration_counter = 0;
 
-	float mag_max[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+	float mag_max[3] = {FLT_MIN, FLT_MIN, FLT_MIN};
 	float mag_min[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
 
 	int fd = open(MAG_DEVICE_PATH, 0);
@@ -308,17 +308,44 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		0.0f,
 		1.0f,
 	};
-	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null))
+	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null)) {
 		warn("WARNING: failed to set scale / offsets for mag");
+		mavlink_log_info(mavlink_fd, "[commander] failed to set scale / offsets for mag");
+	}
+
 	close(fd);
 
-	mavlink_log_info(mavlink_fd, "[commander] Please rotate around X");
-	
 	uint64_t calibration_start = hrt_absolute_time();
-	while ((hrt_absolute_time() - calibration_start)/1000 < calibration_interval_ms) {
+
+	uint64_t axis_deadline = hrt_absolute_time();
+	uint64_t calibration_deadline = hrt_absolute_time() + calibration_interval;
+
+	const char axislabels[3] = { 'X', 'Y', 'Z'};
+	int axis_index = 0;
+
+	while (hrt_absolute_time() < calibration_deadline) {
 
 		/* wait blocking for new data */
 		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
+
+		/* user guidance */
+		if (hrt_absolute_time() > axis_deadline &&
+			axis_index < 3) {
+			char buf[50];
+			sprintf(buf, "[commander] Please rotate around %c", axislabels[axis_index]);
+			mavlink_log_info(mavlink_fd, buf);
+		
+			axis_deadline += calibration_interval / 3;
+			axis_index++;
+		}
+
+		// int axis_left = (int64_t)axis_deadline - (int64_t)hrt_absolute_time();
+
+		// if ((axis_left / 1000) == 0 && axis_left > 0) {
+		// 	char buf[50];
+		// 	sprintf(buf, "[commander] %d seconds left for axis %c", axis_left, axislabels[axis_index]);
+		// 	mavlink_log_info(mavlink_fd, buf);
+		// }
 
 		if (poll(fds, 1, 1000)) {
 			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
@@ -353,8 +380,6 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		}
 	}
 
-	mavlink_log_info(mavlink_fd, "[commander] mag calibration done");
-
 	/* disable calibration mode */
 	status->flag_preflight_mag_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
@@ -377,42 +402,48 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	mag_offset[1] = (mag_max[1] + mag_min[1]) / 2.0f;
 	mag_offset[2] = (mag_max[2] + mag_min[2]) / 2.0f;
 
-	printf("mag off x: %4.4f, y: %4.4f, z: %4.4f\n",(double)mag_offset[0],(double)mag_offset[0],(double)mag_offset[2]);
+	if (isfinite(mag_offset[0]) && isfinite(mag_offset[1]) && isfinite(mag_offset[2])) {
 
-	/* announce and set new offset */
+		/* announce and set new offset */
 
-	if (param_set(param_find("SENS_MAG_XOFF"), &(mag_offset[0]))) {
-		fprintf(stderr, "[commander] Setting X mag offset failed!\n");
+		if (param_set(param_find("SENS_MAG_XOFF"), &(mag_offset[0]))) {
+			fprintf(stderr, "[commander] Setting X mag offset failed!\n");
+		}
+
+		if (param_set(param_find("SENS_MAG_YOFF"), &(mag_offset[1]))) {
+			fprintf(stderr, "[commander] Setting Y mag offset failed!\n");
+		}
+
+		if (param_set(param_find("SENS_MAG_ZOFF"), &(mag_offset[2]))) {
+			fprintf(stderr, "[commander] Setting Z mag offset failed!\n");
+		}
+
+		fd = open(MAG_DEVICE_PATH, 0);
+		struct mag_scale mscale = {
+			mag_offset[0],
+			1.0f,
+			mag_offset[1],
+			1.0f,
+			mag_offset[2],
+			1.0f,
+		};
+		if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale))
+			warn("WARNING: failed to set scale / offsets for mag");
+		close(fd);
+
+		/* auto-save to EEPROM */
+		int save_ret = pm_save_eeprom(false);
+		if(save_ret != 0) {
+			warn("WARNING: auto-save of params to EEPROM failed");
+		}
+		
+		char buf[50];
+		sprintf(buf, "[commander] mag cal: x:%d y:%d z:%d mGa", (int)(mag_offset[0]*1000), (int)(mag_offset[1]*1000), (int)(mag_offset[2]*1000));
+		mavlink_log_info(mavlink_fd, buf);
+		mavlink_log_info(mavlink_fd, "[commander] mag calibration done");
+	} else {
+		mavlink_log_info(mavlink_fd, "[commander] mag calibration FAILED (NaN)");
 	}
-
-	if (param_set(param_find("SENS_MAG_YOFF"), &(mag_offset[1]))) {
-		fprintf(stderr, "[commander] Setting Y mag offset failed!\n");
-	}
-
-	if (param_set(param_find("SENS_MAG_ZOFF"), &(mag_offset[2]))) {
-		fprintf(stderr, "[commander] Setting Z mag offset failed!\n");
-	}
-
-	fd = open(MAG_DEVICE_PATH, 0);
-	struct mag_scale mscale = {
-		mag_offset[0],
-		1.0f,
-		mag_offset[1],
-		1.0f,
-		mag_offset[2],
-		1.0f,
-	};
-	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale))
-		warn("WARNING: failed to set scale / offsets for mag");
-	close(fd);
-
-	/* auto-save to EEPROM */
-	int save_ret = pm_save_eeprom(false);
-	if(save_ret != 0) {
-		warn("WARNING: auto-save of params to EEPROM failed");
-	}
-
-	mavlink_log_info(mavlink_fd, "[commander] magnetometer calibration finished");
 
 	close(sub_sensor_combined);
 }
@@ -467,45 +498,51 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 	gyro_offset[1] = gyro_offset[1] / calibration_count;
 	gyro_offset[2] = gyro_offset[2] / calibration_count;
 
-	if (param_set(param_find("SENS_GYRO_XOFF"), &(gyro_offset[0]))) {
-		mavlink_log_critical(mavlink_fd, "[commander] Setting X gyro offset failed!");
-	}
-	
-	if (param_set(param_find("SENS_GYRO_YOFF"), &(gyro_offset[1]))) {
-		mavlink_log_critical(mavlink_fd, "[commander] Setting Y gyro offset failed!");
-	}
-
-	if (param_set(param_find("SENS_GYRO_ZOFF"), &(gyro_offset[2]))) {
-		mavlink_log_critical(mavlink_fd, "[commander] Setting Z gyro offset failed!");
-	}
-
-	/* set offsets to actual value */
-	fd = open(GYRO_DEVICE_PATH, 0);
-	struct gyro_scale gscale = { 
-		gyro_offset[0],
-		1.0f,
-		gyro_offset[1],
-		1.0f,
-		gyro_offset[2],
-		1.0f,
-	};
-	if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale))
-		warn("WARNING: failed to set scale / offsets for gyro");
-	close(fd);
-
-	/* auto-save to EEPROM */
-	int save_ret = pm_save_eeprom(false);
-	if(save_ret != 0) {
-		warn("WARNING: auto-save of params to EEPROM failed");
-	}
-
-	/* exit to gyro calibration mode */
+	/* exit gyro calibration mode */
 	status->flag_preflight_gyro_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
 
-	mavlink_log_info(mavlink_fd, "[commander] gyro calibration finished");
+	if (isfinite(gyro_offset[0]) && isfinite(gyro_offset[1]) && isfinite(gyro_offset[2])) {
 
-	printf("[commander] gyro cal: x:%8.4f y:%8.4f z:%8.4f\n", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
+		if (param_set(param_find("SENS_GYRO_XOFF"), &(gyro_offset[0]))) {
+			mavlink_log_critical(mavlink_fd, "[commander] Setting X gyro offset failed!");
+		}
+		
+		if (param_set(param_find("SENS_GYRO_YOFF"), &(gyro_offset[1]))) {
+			mavlink_log_critical(mavlink_fd, "[commander] Setting Y gyro offset failed!");
+		}
+
+		if (param_set(param_find("SENS_GYRO_ZOFF"), &(gyro_offset[2]))) {
+			mavlink_log_critical(mavlink_fd, "[commander] Setting Z gyro offset failed!");
+		}
+
+		/* set offsets to actual value */
+		fd = open(GYRO_DEVICE_PATH, 0);
+		struct gyro_scale gscale = { 
+			gyro_offset[0],
+			1.0f,
+			gyro_offset[1],
+			1.0f,
+			gyro_offset[2],
+			1.0f,
+		};
+		if (OK != ioctl(fd, GYROIOCSSCALE, (long unsigned int)&gscale))
+			warn("WARNING: failed to set scale / offsets for gyro");
+		close(fd);
+
+		/* auto-save to EEPROM */
+		int save_ret = pm_save_eeprom(false);
+		if(save_ret != 0) {
+			warn("WARNING: auto-save of params to EEPROM failed");
+		}
+
+		// char buf[50];
+		// sprintf(buf, "cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
+		// mavlink_log_info(mavlink_fd, buf);
+		mavlink_log_info(mavlink_fd, "[commander] gyro calibration done");
+	} else {
+		mavlink_log_info(mavlink_fd, "[commander] gyro calibration FAILED (NaN)");
+	}
 
 	close(sub_sensor_combined);
 }
@@ -560,61 +597,71 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 	accel_offset[1] = accel_offset[1] / calibration_count;
 	accel_offset[2] = accel_offset[2] / calibration_count;
 
-	/* add the removed length from x / y to z, since we induce a scaling issue else */
-	float total_len = sqrtf(accel_offset[0]*accel_offset[0] + accel_offset[1]*accel_offset[1] + accel_offset[2]*accel_offset[2]);
+	if (isfinite(accel_offset[0]) && isfinite(accel_offset[1]) && isfinite(accel_offset[2])) {
+		
+		/* add the removed length from x / y to z, since we induce a scaling issue else */
+		float total_len = sqrtf(accel_offset[0]*accel_offset[0] + accel_offset[1]*accel_offset[1] + accel_offset[2]*accel_offset[2]);
 
-	/* if length is correct, zero results here */
-	accel_offset[2] = accel_offset[2] + total_len;
+		/* if length is correct, zero results here */
+		accel_offset[2] = accel_offset[2] + total_len;
 
-	float scale = 9.80665f / total_len;
+		float scale = 9.80665f / total_len;
 
-	if (param_set(param_find("SENS_ACC_XOFF"), &(accel_offset[0]))) {
-		mavlink_log_critical(mavlink_fd, "[commander] Setting X accel offset failed!");
+		if (param_set(param_find("SENS_ACC_XOFF"), &(accel_offset[0]))) {
+			mavlink_log_critical(mavlink_fd, "[commander] Setting X accel offset failed!");
+		}
+		
+		if (param_set(param_find("SENS_ACC_YOFF"), &(accel_offset[1]))) {
+			mavlink_log_critical(mavlink_fd, "[commander] Setting Y accel offset failed!");
+		}
+
+		if (param_set(param_find("SENS_ACC_ZOFF"), &(accel_offset[2]))) {
+			mavlink_log_critical(mavlink_fd, "[commander] Setting Z accel offset failed!");
+		}
+
+		if (param_set(param_find("SENS_ACC_XSCALE"), &(scale))) {
+			mavlink_log_critical(mavlink_fd, "[commander] Setting X accel offset failed!");
+		}
+		
+		if (param_set(param_find("SENS_ACC_YSCALE"), &(scale))) {
+			mavlink_log_critical(mavlink_fd, "[commander] Setting Y accel offset failed!");
+		}
+
+		if (param_set(param_find("SENS_ACC_ZSCALE"), &(scale))) {
+			mavlink_log_critical(mavlink_fd, "[commander] Setting Z accel offset failed!");
+		}
+
+		fd = open(ACCEL_DEVICE_PATH, 0);
+		struct accel_scale ascale = {
+			accel_offset[0],
+			scale,
+			accel_offset[1],
+			scale,
+			accel_offset[2],
+			scale,
+		};
+		if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale))
+			warn("WARNING: failed to set scale / offsets for accel");
+		close(fd);
+
+		/* auto-save to EEPROM */
+		int save_ret = pm_save_eeprom(false);
+		if(save_ret != 0) {
+			warn("WARNING: auto-save of params to EEPROM failed");
+		}
+
+		//char buf[50];
+		//sprintf(buf, "[commander] accel cal: x:%8.4f y:%8.4f z:%8.4f\n", (double)accel_offset[0], (double)accel_offset[1], (double)accel_offset[2]);
+		//mavlink_log_info(mavlink_fd, buf);
+		mavlink_log_info(mavlink_fd, "[commander] accel calibration done");
+	} else {
+		mavlink_log_info(mavlink_fd, "[commander] accel calibration FAILED (NaN)");
 	}
-	
-	if (param_set(param_find("SENS_ACC_YOFF"), &(accel_offset[1]))) {
-		mavlink_log_critical(mavlink_fd, "[commander] Setting Y accel offset failed!");
-	}
 
-	if (param_set(param_find("SENS_ACC_ZOFF"), &(accel_offset[2]))) {
-		mavlink_log_critical(mavlink_fd, "[commander] Setting Z accel offset failed!");
-	}
-
-	if (param_set(param_find("SENS_ACC_XSCALE"), &(scale))) {
-		mavlink_log_critical(mavlink_fd, "[commander] Setting X accel offset failed!");
-	}
-	
-	if (param_set(param_find("SENS_ACC_YSCALE"), &(scale))) {
-		mavlink_log_critical(mavlink_fd, "[commander] Setting Y accel offset failed!");
-	}
-
-	if (param_set(param_find("SENS_ACC_ZSCALE"), &(scale))) {
-		mavlink_log_critical(mavlink_fd, "[commander] Setting Z accel offset failed!");
-	}
-
-	fd = open(ACCEL_DEVICE_PATH, 0);
-	struct accel_scale ascale = {
-		accel_offset[0],
-		scale,
-		accel_offset[1],
-		scale,
-		accel_offset[2],
-		scale,
-	};
-	if (OK != ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&ascale))
-		warn("WARNING: failed to set scale / offsets for accel");
-	close(fd);
-
-	/* auto-save to EEPROM */
-	int save_ret = pm_save_eeprom(false);
-	if(save_ret != 0) {
-		warn("WARNING: auto-save of params to EEPROM failed");
-	}
-	/* exit to gyro calibration mode */
+	/* exit accel calibration mode */
 	status->flag_preflight_accel_calibration = false;
 	state_machine_publish(status_pub, status, mavlink_fd);
-	mavlink_log_info(mavlink_fd, "[commander] acceleration calibration finished");
-	printf("[commander] accel calibration: x:%8.4f y:%8.4f z:%8.4f\n", (double)accel_offset[0],(double)accel_offset[1], (double)accel_offset[2]);
+
 	close(sub_sensor_combined);
 }
 
@@ -732,8 +779,10 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
 					mavlink_log_info(mavlink_fd, "[commander] CMD starting gyro calibration");
+					ioctl(buzzer, TONE_SET_ALARM, 2);
 					do_gyro_calibration(status_pub, &current_status);
 					mavlink_log_info(mavlink_fd, "[commander] CMD finished gyro calibration");
+					ioctl(buzzer, TONE_SET_ALARM, 2);
 					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
 				} else {
@@ -750,8 +799,10 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
 					mavlink_log_info(mavlink_fd, "[commander] CMD starting mag calibration");
+					ioctl(buzzer, TONE_SET_ALARM, 2);
 					do_mag_calibration(status_pub, &current_status);
 					mavlink_log_info(mavlink_fd, "[commander] CMD finished mag calibration");
+					ioctl(buzzer, TONE_SET_ALARM, 2);
 					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
 				} else {
@@ -811,37 +862,6 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		// XXX TODO
 	}
 
-}
-
-/**
- * Handle commands sent by the ground control station via MAVLink.
- */
-static void *command_handling_loop(void *arg)
-{
-	/* Set thread name */
-	prctl(PR_SET_NAME, "commander cmd handler", getpid());
-
-	/* Subscribe to command topic */
-	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
-	struct vehicle_command_s cmd;
-
-	while (!thread_should_exit) {
-		struct pollfd fds[1] = { { .fd = cmd_sub, .events = POLLIN } };
-
-		if (poll(fds, 1, 5000) == 0) {
-			/* timeout, but this is no problem, silently ignore */
-		} else {
-			/* got command */
-			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
-
-			/* handle it */
-			handle_command(stat_pub, &current_status, &cmd);
-		}
-	}
-
-	close(cmd_sub);
-
-	return NULL;
 }
 
 static void *orb_receive_loop(void *arg)  //handles status information coming from subsystems (present, enabled, health), these values do not indicate the quality (variance) of the signal
@@ -992,7 +1012,7 @@ int commander_thread_main(int argc, char *argv[])
 	printf("[commander] I am in command now!\n");
 
 	/* pthreads for command and subsystem info handling */
-	pthread_t command_handling_thread;
+	// pthread_t command_handling_thread;
 	pthread_t subsystem_info_thread;
 
 	/* initialize */
@@ -1034,11 +1054,6 @@ int commander_thread_main(int argc, char *argv[])
 	mavlink_log_info(mavlink_fd, "[commander] system is running");
 
 	/* create pthreads */
-	pthread_attr_t command_handling_attr;
-	pthread_attr_init(&command_handling_attr);
-	pthread_attr_setstacksize(&command_handling_attr, 6000);
-	pthread_create(&command_handling_thread, &command_handling_attr, command_handling_loop, NULL);
-
 	pthread_attr_t subsystem_info_attr;
 	pthread_attr_init(&subsystem_info_attr);
 	pthread_attr_setstacksize(&subsystem_info_attr, 2048);
@@ -1083,6 +1098,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct sensor_combined_s sensors;
 	memset(&sensors, 0, sizeof(sensors));
 
+	/* Subscribe to command topic */
+	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
+	struct vehicle_command_s cmd;
+	memset(&cmd, 0, sizeof(cmd));
+
 	// uint8_t vehicle_state_previous = current_status.state_machine;
 	float voltage_previous = 0.0f;
 
@@ -1111,6 +1131,15 @@ int commander_thread_main(int argc, char *argv[])
 		}
 		orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps);
 		orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
+
+		orb_check(cmd_sub, &new_data);
+		if (new_data) {
+			/* got command */
+			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
+
+			/* handle it */
+			handle_command(stat_pub, &current_status, &cmd);
+		}
 
 		battery_voltage = sensors.battery_voltage_v;
 		battery_voltage_valid = sensors.battery_voltage_valid;
@@ -1470,7 +1499,7 @@ int commander_thread_main(int argc, char *argv[])
 	}
 
 	/* wait for threads to complete */
-	pthread_join(command_handling_thread, NULL);
+	// pthread_join(command_handling_thread, NULL);
 	pthread_join(subsystem_info_thread, NULL);
 
 	/* close fds */
@@ -1480,6 +1509,7 @@ int commander_thread_main(int argc, char *argv[])
 	close(sp_offboard_sub);
 	close(gps_sub);
 	close(sensor_sub);
+	close(cmd_sub);
 
 	printf("[commander] exiting..\n");
 	fflush(stdout);
