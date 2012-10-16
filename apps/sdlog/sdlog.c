@@ -91,6 +91,11 @@ static void usage(const char *reason);
 static int file_exist(const char *filename);
 
 /**
+ * Print the current status.
+ */
+static void print_sdlog_status();
+
+/**
  * Create folder for current logging session.
  */
 static int create_logfolder(char* folder_path);
@@ -102,6 +107,14 @@ usage(const char *reason)
 		fprintf(stderr, "%s\n", reason);
 	errx(1, "usage: sdlog {start|stop|status} [-p <additional params>]\n\n");
 }
+
+// XXX turn this into a C++ class
+unsigned sensor_combined_bytes = 0;
+unsigned actuator_outputs_bytes = 0;
+unsigned actuator_controls_bytes = 0;
+unsigned sysvector_bytes = 0;
+unsigned blackbox_file_bytes = 0;
+uint64_t starttime = 0;
 
 /**
  * The sd log deamon app only briefly exists to start
@@ -145,7 +158,7 @@ int sdlog_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tsdlog is running\n");
+			print_sdlog_status();
 		} else {
 			printf("\tsdlog not started\n");
 		}
@@ -194,7 +207,7 @@ int create_logfolder(char* folder_path) {
 
 int sdlog_thread_main(int argc, char *argv[]) {
 
-	printf("[sdlog] starting\n");
+	warnx("starting\n");
 
 	if (file_exist(mountpoint) != OK) {
 		errx(1, "logging mount point %s not present, exiting.", mountpoint);
@@ -206,21 +219,16 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	/* create sensorfile */
 	int sensorfile = -1;
-	unsigned sensor_combined_bytes = 0;
 	int actuator_outputs_file = -1;
-	unsigned actuator_outputs_bytes = 0;
 	int actuator_controls_file = -1;
-	unsigned actuator_controls_bytes = 0;
 	int sysvector_file = -1;
-	unsigned sysvector_bytes = 0;
 	FILE *gpsfile;
-	unsigned blackbox_file_bytes = 0;
 	FILE *blackbox_file;
 	// FILE *vehiclefile;
 
 	char path_buf[64] = ""; // string to hold the path to the sensorfile
 
-	printf("[sdlog] logging to directory %s\n", folder_path);
+	warnx("logging to directory %s\n", folder_path);
 
 	/* set up file path: e.g. /mnt/sdcard/session0001/sensor_combined.bin */
 	sprintf(path_buf, "%s/%s.bin", folder_path, "sensor_combined");
@@ -347,14 +355,14 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	/* --- GLOBAL POSITION --- */
 	/* subscribe to ORB for global position */
-	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	fds[fdsc_count].fd = subs.global_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- GPS POSITION --- */
 	/* subscribe to ORB for global position */
-	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	fds[fdsc_count].fd = subs.gps_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
@@ -378,7 +386,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	int poll_count = 0;
 
-	uint64_t starttime = hrt_absolute_time();
+	starttime = hrt_absolute_time();
 
 	while (!thread_should_exit) {
 
@@ -484,6 +492,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 			float vbat;
 			float adc[3];
 			float local_pos[3];
+			int32_t gps_pos[3];
 		} sysvector = {
 			.timestamp = buf.raw.timestamp,
 			.gyro = {buf.raw.gyro_rad_s[0], buf.raw.gyro_rad_s[1], buf.raw.gyro_rad_s[2]},
@@ -497,7 +506,8 @@ int sdlog_thread_main(int argc, char *argv[]) {
 					buf.act_outputs.output[4], buf.act_outputs.output[5], buf.act_outputs.output[6], buf.act_outputs.output[7]},
 			.vbat = buf.raw.battery_voltage_v,
 			.adc = {buf.raw.adc_voltage_v[0], buf.raw.adc_voltage_v[1], buf.raw.adc_voltage_v[2]},
-			.local_pos = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z}
+			.local_pos = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z},
+			.gps_pos = {buf.gps_pos.lat, buf.gps_pos.lon, buf.gps_pos.alt}
 		};
 		#pragma pack(pop)
 
@@ -506,13 +516,11 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		usleep(10000);
 	}
 
-	unsigned bytes = sensor_combined_bytes + actuator_outputs_bytes + blackbox_file_bytes + actuator_controls_bytes;
-	float mebibytes = bytes / 1024.0f / 1024.0f;
-	float seconds = ((float)(hrt_absolute_time() - starttime)) / 1000000.0f;
+	fsync(sysvector_file);
 
-	printf("[sdlog] wrote %4.2f MiB (average %5.3f MiB/s).\n", (double)mebibytes, (double)(mebibytes / seconds));
+	print_sdlog_status();
 
-	printf("[sdlog] exiting.\n");
+	warnx("exiting.\n");
 
 	close(sensorfile);
 	close(actuator_outputs_file);
@@ -523,6 +531,15 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	thread_running = false;
 
 	return 0;
+}
+
+void print_sdlog_status()
+{
+	unsigned bytes = sysvector_bytes + sensor_combined_bytes + actuator_outputs_bytes + blackbox_file_bytes + actuator_controls_bytes;
+	float mebibytes = bytes / 1024.0f / 1024.0f;
+	float seconds = ((float)(hrt_absolute_time() - starttime)) / 1000000.0f;
+
+	warnx("wrote %4.2f MiB (average %5.3f MiB/s).\n", (double)mebibytes, (double)(mebibytes / seconds));
 }
 
 /**
