@@ -55,7 +55,7 @@ NM			 = $(CROSSDEV)nm
 OBJCOPY			 = $(CROSSDEV)objcopy
 OBJDUMP			 = $(CROSSDEV)objdump
 
-MAXOPTIMIZATION		 = -Os
+MAXOPTIMIZATION		 = -O3
 ARCHCPUFLAGS		 = -mcpu=cortex-m4 \
 			   -mthumb \
 			   -march=armv7e-m \
@@ -116,7 +116,6 @@ ARCHOPTIMIZATION	 = $(MAXOPTIMIZATION) \
 
 ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
 ARCHOPTIMIZATION	+= -g
-ARCHSCRIPT		+= -g
 endif
 
 ARCHCFLAGS		 = -std=gnu99
@@ -149,7 +148,7 @@ ARCHDEFINES		 =
 ARCHPICFLAGS		 = -fpic -msingle-pic-base -mpic-register=r10
 
 # this seems to be the only way to add linker flags
-ARCHSCRIPT		+= --warn-common \
+EXTRA_LIBS		+= --warn-common \
 			   --gc-sections
 
 CFLAGS			 = $(ARCHCFLAGS) $(ARCHCWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(INSTRUMENTATIONDEFINES) $(ARCHDEFINES) $(EXTRADEFINES) -pipe -fno-common
@@ -167,13 +166,6 @@ OBJEXT			 = .o
 LIBEXT			 = .a
 EXEEXT			 =
 
-# If VERBOSE is set, don't hide the compiler invocations.
-ifeq ($(VERBOSE),YES)
-_v				 =
-else
-_v				 = @
-endif
-
 define PREPROCESS
 	@echo "CPP: $1->$2"
 	@$(CPP) $(CPPFLAGS) $(abspath $1) -o $2
@@ -181,17 +173,17 @@ endef
 
 define COMPILE
 	@echo "CC: $1"
-	$(_v)$(CC) -c $(CFLAGS) $(abspath $1) -o $2
+	$(Q)$(CC) -c $(CFLAGS) $(abspath $1) -o $2
 endef
 
 define COMPILEXX
 	@echo "CXX: $1"
-	$(_v)$(CXX) -c $(CXXFLAGS) $(abspath $1) -o $2
+	$(Q)$(CXX) -c $(CXXFLAGS) $(abspath $1) -o $2
 endef
 
 define ASSEMBLE
 	@echo "AS: $1"
-	$(_v)$(CC) -c $(AFLAGS) $(abspath $1) -o $2
+	$(Q)$(CC) -c $(AFLAGS) $(abspath $1) -o $2
 endef
 
 # produce partially-linked $1 from files in $2
