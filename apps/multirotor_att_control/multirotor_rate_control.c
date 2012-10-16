@@ -50,16 +50,16 @@
 #include <systemlib/param/param.h>
 #include <arch/board/up_hrt.h>
 
-// PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.08f); /* same on Flamewheel */
-// PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.02f);
-// PARAM_DEFINE_FLOAT(MC_YAWRATE_AWU, 0.02f);
-// PARAM_DEFINE_FLOAT(MC_YAWRATE_LIM, 0.1f);
+ PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 20.0f); /* same on Flamewheel */
+ PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.0f);
+ PARAM_DEFINE_FLOAT(MC_YAWRATE_AWU, 0.0f);
+ PARAM_DEFINE_FLOAT(MC_YAWRATE_LIM, 0.f);
 
-PARAM_DEFINE_FLOAT(MC_ATTRATE_P, 0.2f); /* 0.15 F405 Flamewheel */
-PARAM_DEFINE_FLOAT(MC_ATTRATE_D, 0.0f);
-//PARAM_DEFINE_FLOAT(MC_ATTRATE_I, 0.0f);
-//PARAM_DEFINE_FLOAT(MC_ATTRATE_AWU, 0.05f);
-PARAM_DEFINE_FLOAT(MC_ATTRATE_LIM, 8.0f);	/**< roughly < 500 deg/s limit */
+PARAM_DEFINE_FLOAT(MC_ATTRATE_P, 40.0f); /* 0.15 F405 Flamewheel */
+PARAM_DEFINE_FLOAT(MC_ATTRATE_D, 0.05f);
+PARAM_DEFINE_FLOAT(MC_ATTRATE_I, 0.0f);
+PARAM_DEFINE_FLOAT(MC_ATTRATE_AWU, 0.05f);
+PARAM_DEFINE_FLOAT(MC_ATTRATE_LIM, 10.0f);	/**< roughly < 500 deg/s limit */
 
 struct mc_rate_control_params {
 
@@ -175,14 +175,14 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	
 	/* control pitch (forward) output */
 
-	float pitch_control = p.attrate_p * deltaT *(rate_sp->pitch-rates[1])-p.attrate_d*(pitch_control_last);
+	float pitch_control = p.attrate_p * deltaT *((rate_sp->pitch)*p.attrate_lim-rates[1])-p.attrate_d*(pitch_control_last);
 	pitch_control_last=pitch_control;
 	/* control roll (left/right) output */
 
-	float roll_control = p.attrate_p * deltaT * (rate_sp->roll-rates[0])-p.attrate_d*(roll_control_last);
+	float roll_control = p.attrate_p * deltaT * ((rate_sp->roll)*p.attrate_lim-rates[0])-p.attrate_d*(roll_control_last);
 	roll_control_last=roll_control;
 	/* control yaw rate */
-	float yaw_rate_control = p.yawrate_p * deltaT * (rate_sp->yaw-rates[2]  );
+	float yaw_rate_control = p.yawrate_p * deltaT * ((rate_sp->yaw)*p.attrate_lim-rates[2]  );
 
 	actuators->control[0] = roll_control;
 	actuators->control[1] = pitch_control;

@@ -1,7 +1,7 @@
 /*
- * attitudeKalmanfilter_initialize.c
+ * rdivide.c
  *
- * Code generation for function 'attitudeKalmanfilter_initialize'
+ * Code generation for function 'rdivide'
  *
  * C source code generated on: Sat Oct 13 16:28:18 2012
  *
@@ -10,7 +10,7 @@
 /* Include files */
 #include "rt_nonfinite.h"
 #include "attitudeKalmanfilter.h"
-#include "attitudeKalmanfilter_initialize.h"
+#include "rdivide.h"
 
 /* Type Definitions */
 
@@ -23,9 +23,16 @@
 /* Function Declarations */
 
 /* Function Definitions */
-void attitudeKalmanfilter_initialize(void)
+
+/*
+ *
+ */
+void rdivide(const real32_T x[3], real32_T y, real32_T z[3])
 {
-  rt_InitInfAndNaN(8U);
+  int32_T i;
+  for (i = 0; i < 3; i++) {
+    z[i] = x[i] / y;
+  }
 }
 
-/* End of code generation (attitudeKalmanfilter_initialize.c) */
+/* End of code generation (rdivide.c) */

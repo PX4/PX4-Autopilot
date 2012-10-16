@@ -238,12 +238,12 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	
 	/* control pitch (forward) output */
 	float pitch_control = pid_calculate(&pitch_controller, att_sp->pitch_body + p.att_xoff,
-					att->pitch, att->pitchspeed, deltaT);
+					att->pitch, att->pitchspeed, deltaT)*1/10.0f;
 	/* control roll (left/right) output */
 	float roll_control = pid_calculate(&roll_controller, att_sp->roll_body + p.att_yoff,
-					att->roll, att->rollspeed, deltaT);
+					att->roll, att->rollspeed, deltaT)*1/10.0f;
 	/* control yaw rate */
-	float yaw_rate_control = pid_calculate(&yaw_speed_controller, att_sp->yaw_body, att->yawspeed, 0.0f, deltaT);
+	float yaw_rate_control = pid_calculate(&yaw_speed_controller, att_sp->yaw_body, att->yawspeed, 0.0f, deltaT)*1/10.0f;
 
 	/*
 	 * compensate the vertical loss of thrust

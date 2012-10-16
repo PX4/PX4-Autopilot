@@ -3,7 +3,7 @@
  *
  * Code generation for function 'diag'
  *
- * C source code generated on: Mon Oct 01 19:38:49 2012
+ * C source code generated on: Sat Oct 13 16:28:18 2012
  *
  */
 
@@ -11,7 +11,7 @@
 #define __DIAG_H__
 /* Include files */
 #include <math.h>
-#include <stdio.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include "rt_defines.h"
@@ -29,9 +29,8 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void b_diag(const real32_T v[9], real32_T d[81]);
-extern void c_diag(const real32_T v[3], real32_T d[9]);
-extern void d_diag(const real32_T v[6], real32_T d[36]);
-extern void diag(const real32_T v[12], real32_T d[144]);
+extern void b_diag(const real32_T v[3], real32_T d[9]);
+extern void c_diag(const real32_T v[6], real32_T d[36]);
+extern void diag(const real32_T v[9], real32_T d[81]);
 #endif
 /* End of code generation (diag.h) */

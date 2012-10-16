@@ -172,7 +172,7 @@ mc_thread_main(int argc, char *argv[])
 						rates_sp.pitch = offboard_sp.p2;
 						rates_sp.yaw = offboard_sp.p3;
 						rates_sp.thrust = offboard_sp.p4;
-						printf("thrust_rate=%8.4f\n",offboard_sp.p4);
+						//printf("thrust_rate=%8.4f\n",offboard_sp.p4);
 						rates_sp.timestamp = hrt_absolute_time();
 						orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
 					} else if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE) {
@@ -180,7 +180,7 @@ mc_thread_main(int argc, char *argv[])
 						att_sp.pitch_body = offboard_sp.p2;
 						att_sp.yaw_body = offboard_sp.p3;
 						att_sp.thrust = offboard_sp.p4;
-						printf("thrust_att=%8.4f\n",offboard_sp.p4);
+						//printf("thrust_att=%8.4f\n",offboard_sp.p4);
 						att_sp.timestamp = hrt_absolute_time();
 						/* STEP 2: publish the result to the vehicle actuators */
 						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
@@ -196,6 +196,7 @@ mc_thread_main(int argc, char *argv[])
 				rates_sp.pitch = manual.pitch;
 				rates_sp.yaw = manual.yaw;
 				rates_sp.thrust = manual.throttle;
+				//printf("rates\n");
 				rates_sp.timestamp = hrt_absolute_time();
 			}
 
@@ -212,6 +213,7 @@ mc_thread_main(int argc, char *argv[])
 			orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
 
 			if (motor_test_mode) {
+				printf("testmode");
 				att_sp.roll_body = 0.0f;
 				att_sp.pitch_body = 0.0f;
 				att_sp.yaw_body = 0.0f;

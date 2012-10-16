@@ -1,5 +1,5 @@
 .built
-.context
+*.context
 .depend
 .config
 .version
