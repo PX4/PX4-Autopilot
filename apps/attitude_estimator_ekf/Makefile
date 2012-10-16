@@ -48,6 +48,7 @@ CSRCS		 = attitude_estimator_ekf_main.c \
 		   codegen/rtGetNaN.c \
 		   codegen/norm.c \
 		   codegen/diag.c \
+		   codegen/power.c \
 		   codegen/cross.c 
 
 
