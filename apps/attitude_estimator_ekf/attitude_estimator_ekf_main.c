@@ -293,12 +293,13 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					gyro_offsets[0] += raw.gyro_rad_s[0];
 					gyro_offsets[1] += raw.gyro_rad_s[1];
 					gyro_offsets[2] += raw.gyro_rad_s[2];
-
+					offset_count+=1;
 					if (hrt_absolute_time() - start_time > 3000000LL) {
 						initialized = true;
 						gyro_offsets[0] /= offset_count;
 						gyro_offsets[1] /= offset_count;
 						gyro_offsets[2] /= offset_count;
+						printf("pipapo %d\n",(int)(gyro_offsets[2]*1000) );
 					}
 				} else {
 
@@ -315,9 +316,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						sensor_last_timestamp[0] = raw.timestamp;
 					}
 
-					z_k[0] =  raw.gyro_rad_s[0];
-					z_k[1] =  raw.gyro_rad_s[1];
-					z_k[2] =  raw.gyro_rad_s[2];
+					z_k[0] =  raw.gyro_rad_s[0]-gyro_offsets[0];
+					z_k[1] =  raw.gyro_rad_s[1]-gyro_offsets[1];
+					z_k[2] =  raw.gyro_rad_s[2]-gyro_offsets[2];
 
 					/* update accelerometer measurements */
 					if (sensor_last_count[1] != raw.accelerometer_counter) {
