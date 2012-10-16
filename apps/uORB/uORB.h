@@ -54,6 +54,8 @@ struct orb_metadata {
 	const size_t o_size;		/**< object size */
 };
 
+typedef const struct orb_metadata *orb_id_t;
+
 /**
  * Generates a pointer to the uORB metadata structure for
  * a given topic.

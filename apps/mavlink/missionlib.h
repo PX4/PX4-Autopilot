@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,77 +33,20 @@
  ****************************************************************************/
 
 /**
- * @file Magnetometer driver interface.
+ * @file missionlib.h
+ * MAVLink mission helper library
  */
 
-#ifndef _DRV_MAG_H
-#define _DRV_MAG_H
+#pragma once
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+#include <v1.0/common/mavlink.h>
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#define MAG_DEVICE_PATH		"/dev/mag"
-
-/**
- * mag report structure.  Reads from the device must be in multiples of this
- * structure.
- *
- * Output values are in gauss.
- */
-struct mag_report {
-	uint64_t timestamp;
-	float x;
-	float y;
-	float z;
-	float range_ga;
-	float scaling;
-	
-	int16_t x_raw;
-	int16_t y_raw;
-	int16_t z_raw;
-};
-
-/** mag scaling factors; Vout = (Vin * Vscale) + Voffset */
-struct mag_scale {
-	float	x_offset;
-	float	x_scale;
-	float	y_offset;
-	float	y_scale;
-	float	z_offset;
-	float	z_scale;
-};
-
-/*
- * ObjDev tag for raw magnetometer data.
- */
-ORB_DECLARE(sensor_mag);
-
-/*
- * ioctl() definitions
- */
-
-#define _MAGIOCBASE		(0x2400)
-#define _MAGIOC(_n)		(_IOC(_MAGIOCBASE, _n))
-
-/** set the mag internal sample rate to at least (arg) Hz */
-#define MAGIOCSSAMPLERATE	_MAGIOC(0)
-
-/** set the mag internal lowpass filter to no lower than (arg) Hz */
-#define MAGIOCSLOWPASS		_MAGIOC(1)
-
-/** set the mag scaling constants to the structure pointed to by (arg) */
-#define MAGIOCSSCALE		_MAGIOC(2)
-
-/** copy the mag scaling constants to the structure pointed to by (arg) */
-#define MAGIOCGSCALE		_MAGIOC(3)
-
-/** set the measurement range to handle (at least) arg Gauss */
-#define MAGIOCSRANGE		_MAGIOC(4)
-
-/** perform self-calibration, update scale factors to canonical units */
-#define MAGIOCCALIBRATE		_MAGIOC(5)
-
-#endif /* _DRV_MAG_H */
+//extern void	mavlink_wpm_send_message(mavlink_message_t *msg);
+//extern void	mavlink_wpm_send_gcs_string(const char *string);
+//extern uint64_t	mavlink_wpm_get_system_timestamp(void);
+extern int	mavlink_missionlib_send_message(mavlink_message_t *msg);
+extern int	mavlink_missionlib_send_gcs_string(const char *string);
+extern uint64_t	mavlink_missionlib_get_system_timestamp(void);
+extern void	mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
+			float param2, float param3, float param4, float param5_lat_x,
+			float param6_lon_y, float param7_alt_z, uint8_t frame, uint16_t command);
