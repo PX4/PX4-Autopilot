@@ -551,12 +551,12 @@ uorb_receive_start(void)
 	/* --- SENSORS RAW VALUE --- */
 	mavlink_subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	/* rate limit set externally based on interface speed, set a basic default here */
-	orb_set_interval(mavlink_subs.sensor_sub, 100);	/* 10Hz updates */
+	orb_set_interval(mavlink_subs.sensor_sub, 200);	/* 5Hz updates */
 
 	/* --- ATTITUDE VALUE --- */
 	mavlink_subs.att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	/* rate limit set externally based on interface speed, set a basic default here */
-	orb_set_interval(mavlink_subs.att_sub, 100);	/* 10Hz updates */
+	orb_set_interval(mavlink_subs.att_sub, 200);	/* 5Hz updates */
 
 	/* --- GPS VALUE --- */
 	mavlink_subs.gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
