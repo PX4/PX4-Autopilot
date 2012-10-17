@@ -325,8 +325,8 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	uint64_t axis_deadline = hrt_absolute_time();
 	uint64_t calibration_deadline = hrt_absolute_time() + calibration_interval;
 
-	const char axislabels[3] = { 'X', 'Y', 'Z'};
-	int axis_index = 0;
+	const char axislabels[3] = { 'Z', 'X', 'Y'};
+	int axis_index = -1;
 
 	while (hrt_absolute_time() < calibration_deadline) {
 
@@ -334,15 +334,17 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
 
 		/* user guidance */
-		if (hrt_absolute_time() > axis_deadline &&
+		if (hrt_absolute_time() >= axis_deadline &&
 			axis_index < 3) {
+
+			axis_index++;
+
 			char buf[50];
 			sprintf(buf, "[commander] Please rotate around %c", axislabels[axis_index]);
 			mavlink_log_info(mavlink_fd, buf);
 			ioctl(buzzer, TONE_SET_ALARM, 2);
 		
 			axis_deadline += calibration_interval / 3;
-			axis_index++;
 		}
 
 		if (!(axis_index < 3)) {
@@ -362,26 +364,26 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 			/* get min/max values */
 
 			/* ignore other axes */
-			if (raw.magnetometer_ga[axis_index] < mag_min[axis_index]) {
-				mag_min[axis_index] = raw.magnetometer_ga[axis_index];
+			if (raw.magnetometer_ga[0] < mag_min[0]) {
+				mag_min[0] = raw.magnetometer_ga[0];
 			}
-			else if (raw.magnetometer_ga[axis_index] > mag_max[axis_index]) {
-				mag_max[axis_index] = raw.magnetometer_ga[axis_index];
+			else if (raw.magnetometer_ga[0] > mag_max[0]) {
+				mag_max[0] = raw.magnetometer_ga[0];
 			}
 
-			// if (raw.magnetometer_ga[1] < mag_min[1]) {
-			// 	mag_min[1] = raw.magnetometer_ga[1];
-			// }
-			// else if (raw.magnetometer_ga[1] > mag_max[1]) {
-			// 	mag_max[1] = raw.magnetometer_ga[1];
-			// }
+			if (raw.magnetometer_ga[1] < mag_min[1]) {
+				mag_min[1] = raw.magnetometer_ga[1];
+			}
+			else if (raw.magnetometer_ga[1] > mag_max[1]) {
+				mag_max[1] = raw.magnetometer_ga[1];
+			}
 
-			// if (raw.magnetometer_ga[2] < mag_min[2]) {
-			// 	mag_min[2] = raw.magnetometer_ga[2];
-			// }
-			// else if (raw.magnetometer_ga[2] > mag_max[2]) {
-			// 	mag_max[2] = raw.magnetometer_ga[2];
-			// }
+			if (raw.magnetometer_ga[2] < mag_min[2]) {
+				mag_min[2] = raw.magnetometer_ga[2];
+			}
+			else if (raw.magnetometer_ga[2] > mag_max[2]) {
+				mag_max[2] = raw.magnetometer_ga[2];
+			}
 
 			calibration_counter++;
 		} else {
