@@ -50,7 +50,7 @@ static real32_T rt_atan2f_snf(real32_T u0, real32_T u1)
       b_u1 = -1;
     }
 
-    y = (real32_T)atan2((real32_T)b_u0, (real32_T)b_u1);
+    y = (real32_T)atan2f((real32_T)b_u0, (real32_T)b_u1);
   } else if (u1 == 0.0F) {
     if (u0 > 0.0F) {
       y = RT_PIF / 2.0F;
@@ -60,7 +60,7 @@ static real32_T rt_atan2f_snf(real32_T u0, real32_T u1)
       y = 0.0F;
     }
   } else {
-    y = (real32_T)atan2(u0, u1);
+    y = (real32_T)atan2f(u0, u1);
   }
 
   return y;
@@ -776,12 +776,12 @@ void attitudeKalmanfilter(const uint8_T updateVect[3], real32_T dt, const
     Rot_matrix[6 + i] = z_n_b[i];
   }
 
-  /* 'attitudeKalmanfilter:193' phi=atan2(Rot_matrix(2,3),Rot_matrix(3,3)); */
-  /* 'attitudeKalmanfilter:194' theta=-asin(Rot_matrix(1,3)); */
-  /* 'attitudeKalmanfilter:195' psi=atan2(Rot_matrix(1,2),Rot_matrix(1,1)); */
+  /* 'attitudeKalmanfilter:193' phi=atan2f(Rot_matrix(2,3),Rot_matrix(3,3)); */
+  /* 'attitudeKalmanfilter:194' theta=-asinf(Rot_matrix(1,3)); */
+  /* 'attitudeKalmanfilter:195' psi=atan2f(Rot_matrix(1,2),Rot_matrix(1,1)); */
   /* 'attitudeKalmanfilter:196' eulerAngles=[phi;theta;psi]; */
   eulerAngles[0] = rt_atan2f_snf(Rot_matrix[7], Rot_matrix[8]);
-  eulerAngles[1] = -(real32_T)asin(Rot_matrix[6]);
+  eulerAngles[1] = -(real32_T)asinf(Rot_matrix[6]);
   eulerAngles[2] = rt_atan2f_snf(Rot_matrix[3], Rot_matrix[0]);
 }
 
