@@ -248,7 +248,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 			att->roll, att->rollspeed, deltaT)*1/10.0f;
 	/* control yaw rate */
 	//float yaw_rate_control = pid_calculate(&yaw_speed_controller, att_sp->yaw_body, att->yawspeed, 0.0f, deltaT)*1/10.0f;
-	rates_sp->yaw= deltaT*p.yaw_p*atan2f(sinf(att->yaw-att_sp->yaw_body),cos(att->yaw-att_sp->yaw_body));
+	rates_sp->yaw= deltaT * p.yaw_p * atan2f(sinf(att->yaw - att_sp->yaw_body),cos(att->yaw - att_sp->yaw_body));
 
 
 
