@@ -225,28 +225,20 @@ handle_message(mavlink_message_t *msg)
 			uint8_t ml_mode = 0;
 			bool ml_armed = false;
 
-//			if (quad_motors_setpoint.mode & MAVLINK_OFFBOARD_CONTROL_FLAG_ARMED) {
-//				ml_armed = true;
-//			}
-
 			switch (quad_motors_setpoint.mode) {
 				case 0:
 					ml_armed = false;
-
 					break;
 				case 1:
-
 					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_RATES;
 					ml_armed = true;
 
-				break;
+					break;
 				case 2:
-
-
 					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE;
 					ml_armed = true;
 
-				break;
+					break;
 				case 3:
 					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY;
 					break;
@@ -259,7 +251,6 @@ handle_message(mavlink_message_t *msg)
 			offboard_control_sp.p2 = quad_motors_setpoint.pitch[mavlink_system.sysid]  / (float)INT16_MAX;
 			offboard_control_sp.p3= quad_motors_setpoint.yaw[mavlink_system.sysid]    / (float)INT16_MAX;
 			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid]/(float)UINT16_MAX;
-			//offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid] ;
 
 			if (quad_motors_setpoint.thrust[mavlink_system.sysid] ==0){
 				ml_armed = false;
