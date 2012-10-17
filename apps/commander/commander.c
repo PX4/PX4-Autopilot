@@ -292,10 +292,16 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	struct sensor_combined_s raw;
 
 	/* 30 seconds */
-	uint64_t calibration_interval = 30 * 1000 * 1000;
+	uint64_t calibration_interval = 45 * 1000 * 1000;
 	unsigned int calibration_counter = 0;
 
-	float mag_max[3] = {FLT_MIN, FLT_MIN, FLT_MIN};
+	/*
+	 * FLT_MIN is not the most negative float number,
+	 * but the smallest number by magnitude float can
+	 * represent. Use -FLT_MAX to initialize the most
+	 * negative number
+	 */
+	float mag_max[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
 	float mag_min[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
 
 	int fd = open(MAG_DEVICE_PATH, 0);
@@ -333,13 +339,14 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 			char buf[50];
 			sprintf(buf, "[commander] Please rotate around %c", axislabels[axis_index]);
 			mavlink_log_info(mavlink_fd, buf);
+			ioctl(buzzer, TONE_SET_ALARM, 2);
 		
 			axis_deadline += calibration_interval / 3;
 			axis_index++;
 		}
 
 		if (!(axis_index < 3)) {
-			continue;
+			break;
 		}
 
 		// int axis_left = (int64_t)axis_deadline - (int64_t)hrt_absolute_time();
@@ -823,7 +830,9 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
 					mavlink_log_info(mavlink_fd, "[commander] CMD starting accel calibration");
+					ioctl(buzzer, TONE_SET_ALARM, 2);
 					do_accel_calibration(status_pub, &current_status);
+					ioctl(buzzer, TONE_SET_ALARM, 2);
 					mavlink_log_info(mavlink_fd, "[commander] CMD finished accel calibration");
 					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
