@@ -187,6 +187,18 @@ private:
 	int			calibrate(unsigned enable);
 
 	/**
+	 * Perform the on-sensor scale calibration routine.
+	 *
+	 * @note The sensor will continue to provide measurements, these
+	 *	 will however reflect the uncalibrated sensor state until
+	 *	 the calibration routine has been completed.
+	 *
+	 * @param enable set to 1 to enable self-test positive strap, -1 to enable
+	 *        negative strap, 0 to set to normal mode
+	 */
+	int			set_excitement(unsigned enable);
+
+	/**
 	 * Set the sensor range.
 	 *
 	 * Sets the internal range to handle at least the argument in Gauss.
@@ -593,6 +605,9 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCCALIBRATE:
 		return calibrate(arg);
 
+	case MAGIOCEXSTRAP:
+		return set_excitement(arg);
+
 	default:
 		/* give it to the superclass */
 		return I2C::ioctl(filp, cmd, arg);
@@ -800,14 +815,149 @@ out:
 
 int HMC5883::calibrate(unsigned enable)
 {
+	struct mag_report report;
+	ssize_t sz;
+	int ret;
+
+	int fd = (int)enable;
+
+	/* do a simple demand read */
+	sz = read(fd, &report, sizeof(report));
+	if (sz != sizeof(report))
+		err(1, "immediate read failed");
+
+	warnx("starting mag scale calibration");
+	warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
+	warnx("time:        %lld", report.timestamp);
+	warnx("sampling 500 samples for scaling offset");
+
+	/* set the queue depth to 10 */
+	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10))
+		errx(1, "failed to set queue depth");
+
+	/* start the sensor polling at 50 Hz */
+	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 50))
+		errx(1, "failed to set 2Hz poll rate");
+
+	/* Set to 2.5 Gauss */
+	if (OK != ioctl(fd, MAGIOCSRANGE, 2)) {
+		warnx("failed to set 2.5 Ga range");
+	}
+
+	if (OK != ioctl(fd, MAGIOCPOSEX, 1)) {
+		warnx("failed to enable sensor calibration mode");
+	}
+
+	struct mag_scale mscale_previous = {
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+	};
+
+	if (OK != ioctl(fd, MAGIOCGSCALE, (long unsigned int)&mscale_previous)) {
+		warn("WARNING: failed to get scale / offsets for mag");
+	}
+
+	struct mag_scale mscale_null = {
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+		0.0f,
+		1.0f,
+	};
+
+	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null)) {
+		warn("WARNING: failed to set null scale / offsets for mag");
+	}
+
+	float avg_excited[3];
+	unsigned i;
+
+	/* read the sensor 10x and report each value */
+	for (i = 0; i < 500; i++) {
+		struct pollfd fds;
+
+		/* wait for data to be ready */
+		fds.fd = fd;
+		fds.events = POLLIN;
+		ret = poll(&fds, 1, 2000);
+
+		if (ret != 1)
+			errx(1, "timed out waiting for sensor data");
+
+		/* now go get it */
+		sz = read(fd, &report, sizeof(report));
+
+		if (sz != sizeof(report)) {
+			err(1, "periodic read failed");
+		} else {
+			avg_excited[0] += report.x;
+			avg_excited[1] += report.y;
+			avg_excited[2] += report.z;
+		}
+
+		// warnx("periodic read %u", i);
+		// warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
+		// warnx("time:        %lld", report.timestamp);
+	}
+
+	avg_excited[0] /= i;
+	avg_excited[1] /= i;
+	avg_excited[2] /= i;
+
+	warnx("periodic excited reads %u", i);
+	warnx("measurement avg: %.6f  %.6f  %.6f", (double)avg_excited[0], (double)avg_excited[1], (double)avg_excited[2]);
+
+	/* Set to 1.1 Gauss and end calibration */
+	ret = ioctl(fd, MAGIOCNONEX, 0);
+	ret = ioctl(fd, MAGIOCSRANGE, 1);
+
+	float scaling[3];
+
+	/* calculate axis scaling */
+	scaling[0] = 1.16f / avg_excited[0];
+	/* second axis inverted */
+	scaling[1] = 1.16f / -avg_excited[1];
+	scaling[2] = 1.08f / avg_excited[2];
+
+	warnx("axes scaling: %.6f  %.6f  %.6f", (double)scaling[0], (double)scaling[1], (double)scaling[2]);
+	
+	/* set back to normal mode */
+	/* Set to 1.1 Gauss */
+	if (OK != ioctl(fd, MAGIOCSRANGE, 1)) {
+		warnx("failed to set 1.1 Ga range");
+	}
+
+	if (OK != ioctl(fd, MAGIOCCALIBRATE, 0)) {
+		warnx("failed to disable sensor calibration mode");
+	}
+
+	/* set scaling in device */
+	mscale_previous.x_scale = scaling[0];
+	mscale_previous.y_scale = scaling[1];
+	mscale_previous.z_scale = scaling[2];
+
+	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_previous)) {
+		warn("WARNING: failed to set new scale / offsets for mag");
+	}
+}
+
+int HMC5883::set_excitement(unsigned enable)
+{
 	int ret;
 	/* arm the excitement strap */
 	uint8_t conf_reg;
 	ret = read_reg(ADDR_CONF_A, conf_reg);
 	if (OK != ret)
 		perf_count(_comms_errors);
-	if (enable) {
+	if (enable < 0) {
 		conf_reg |= 0x01;
+	} else if (enable > 0) {
+		conf_reg |= 0x02;
 	} else {
 		conf_reg &= ~0x03;
 	}
@@ -1020,7 +1170,6 @@ test()
  */
 int calibrate()
 {
-
 	struct mag_report report;
 	ssize_t sz;
 	int ret;
@@ -1029,216 +1178,11 @@ int calibrate()
 	if (fd < 0)
 		err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", MAG_DEVICE_PATH);
 
-	/* do a simple demand read */
-	sz = read(fd, &report, sizeof(report));
-	if (sz != sizeof(report))
-		err(1, "immediate read failed");
-
-	warnx("single read");
-	warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-	warnx("time:        %lld", report.timestamp);
-
-	/* set the queue depth to 10 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10))
-		errx(1, "failed to set queue depth");
-
-	/* start the sensor polling at 10 Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 10))
-		errx(1, "failed to set 2Hz poll rate");
-
-	/* Set to 2.5 Gauss */
-	if (OK != ioctl(fd, MAGIOCSRANGE, 2)) {
-		warnx("failed to set 2.5 Ga range");
-	}
-
-	if (OK != ioctl(fd, MAGIOCCALIBRATE, 1)) {
+	if (OK != ioctl(fd, MAGIOCCALIBRATE, fd)) {
 		warnx("failed to enable sensor calibration mode");
 	}
 
-	struct mag_scale mscale_null = {
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-		0.0f,
-		1.0f,
-	};
-
-	if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null)) {
-		warn("WARNING: failed to set null scale / offsets for mag");
-	}
-
-	float avg_excited[3];
-	unsigned i;
-
-	/* read the sensor 10x and report each value */
-	for (i = 0; i < 10; i++) {
-		struct pollfd fds;
-
-		/* wait for data to be ready */
-		fds.fd = fd;
-		fds.events = POLLIN;
-		ret = poll(&fds, 1, 2000);
-
-		if (ret != 1)
-			errx(1, "timed out waiting for sensor data");
-
-		/* now go get it */
-		sz = read(fd, &report, sizeof(report));
-
-		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
-		} else {
-			avg_excited[0] += report.x;
-			avg_excited[1] += report.y;
-			avg_excited[2] += report.z;
-		}
-
-		warnx("periodic read %u", i);
-		warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-		warnx("time:        %lld", report.timestamp);
-	}
-
-	// warnx("starting calibration");
-
-	// struct mag_report report;
-	// ssize_t sz;
-	// int ret;
-
-	// int fd = open(MAG_DEVICE_PATH, O_RDONLY);
-	// if (fd < 0)
-	// 	err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", MAG_DEVICE_PATH);
-
-	// /* do a simple demand read */
-	// sz = read(fd, &report, sizeof(report));
-	// if (sz != sizeof(report))
-	// 	err(1, "immediate read failed");
-
-	// warnx("single read");
-	// warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-	// warnx("time:        %lld", report.timestamp);
-
-	// /* get scaling, set to zero */
-	// struct mag_scale mscale_previous;
-
-	// if (OK != ioctl(fd, MAGIOCGSCALE, (long unsigned int)&mscale_previous)) {
-	// 	warn("WARNING: failed to get scale / offsets for mag");
-	// }
-
-	// struct mag_scale mscale_null = {
-	// 	0.0f,
-	// 	1.0f,
-	// 	0.0f,
-	// 	1.0f,
-	// 	0.0f,
-	// 	1.0f,
-	// };
-
-	// if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null)) {
-	// 	warn("WARNING: failed to set null scale / offsets for mag");
-	// }
-
-	// warnx("sensor ready");
-
-	// float avg_excited[3] = {0.0f, 0.0f, 0.0f};
-
-	// if (OK != ioctl(fd, MAGIOCCALIBRATE, 1)) {
-	// 	warnx("failed to enable sensor calibration mode");
-	// }
-
-	// /* Set to 2.5 Gauss */
-	// if (OK != ioctl(fd, MAGIOCSRANGE, 2)) {
-	// 	warnx("failed to set 2.5 Ga range");
-	// }
-
-	// /* set the queue depth to 10 */
-	// if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-	// 	warnx("failed to set queue depth");
-	// 	return 1;
-	// } else {
-	// 	warnx("set queue depth");
-	// }
-
-	// /* start the sensor polling at 100Hz */
-	// if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 100)) {
-	// 	warnx("failed to set 100 Hz poll rate");
-	// 	return 1;
-	// } else {
-	// 	warnx("set 100 Hz poll rate");
-	// }
-
-	// int i;
-	// for (i = 0; i < 10; i++) {
-	// 	struct pollfd fds;
-
-	// 	(void) ioctl(fd, MAGIOCCALIBRATE, 1);
-
-	// 	/* wait for data to be ready */
-	// 	fds.fd = fd;
-	// 	fds.events = POLLIN;
-	// 	ret = poll(&fds, 1, 2000);
-
-	// 	if (ret != 1) {
-	// 		warnx("timed out waiting for sensor data");
-	// 		return 1;
-	// 	}
-
-	// 	/* now go get it */
-	// 	sz = read(fd, &report, sizeof(report));
-
-	// 	if (sz != sizeof(report)) {
-	// 		warn("periodic read failed");
-	// 		return 1;
-	// 	} else {
-	// 		avg_excited[0] += report.x;
-	// 		avg_excited[1] += report.y;
-	// 		avg_excited[2] += report.z;
-	// 	}
-	// 	warnx("excited read %u", i);
-	// 	warnx("measurement: %.6f  %.6f  %.6f", (double)report.x, (double)report.y, (double)report.z);
-	// 	warnx("time:        %lld", report.timestamp);
-
-	// }
-
-	avg_excited[0] /= i;
-	avg_excited[1] /= i;
-	avg_excited[2] /= i;
-
-	warnx("periodic excited reads %u", i);
-	warnx("measurement avg: %.6f  %.6f  %.6f", (double)avg_excited[0], (double)avg_excited[1], (double)avg_excited[2]);
-
-	/* Set to 1.1 Gauss and end calibration */
-	ret = ioctl(fd, MAGIOCCALIBRATE, 0);
-	ret = ioctl(fd, MAGIOCSRANGE, 1);
-
-	float scaling[3];
-
-	/* calculate axis scaling */
-	scaling[0] = 1.16f / avg_excited[0];
-	/* second axis inverted */
-	scaling[1] = 1.16f / -avg_excited[1];
-	scaling[2] = 1.08f / avg_excited[2];
-
-	warnx("axes scaling: %.6f  %.6f  %.6f", (double)scaling[0], (double)scaling[1], (double)scaling[2]);
-	
-	/* set back to normal mode */
-	/* Set to 1.1 Gauss */
-	if (OK != ioctl(fd, MAGIOCSRANGE, 1)) {
-		warnx("failed to set 1.1 Ga range");
-	}
-
-	if (OK != ioctl(fd, MAGIOCCALIBRATE, 0)) {
-		warnx("failed to disable sensor calibration mode");
-	}
-
-	/* set scaling in device */
-	// mscale_previous.x_scale = scaling[0];
-	// mscale_previous.y_scale = scaling[1];
-	// mscale_previous.z_scale = scaling[2];
-
-	// if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_previous)) {
-	// 	warn("WARNING: failed to set new scale / offsets for mag");
-	// }
+	close(fd);
 
 	errx(0, "PASS");
 }

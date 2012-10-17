@@ -299,6 +299,9 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	float mag_min[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
 
 	int fd = open(MAG_DEVICE_PATH, 0);
+
+	
+	
 	struct mag_scale mscale_null = {
 		0.0f,
 		1.0f,
@@ -396,6 +399,8 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	 * to shift the center to zero
 	 *
 	 * offset = max - ((max - min) / 2.0f)
+	 *          max - max/2 + min/2
+	 *          max/2 + min/2
 	 *
 	 * which reduces to
 	 *
@@ -419,6 +424,18 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		}
 
 		if (param_set(param_find("SENS_MAG_ZOFF"), &(mag_offset[2]))) {
+			fprintf(stderr, "[commander] Setting Z mag offset failed!\n");
+		}
+
+		if (param_set(param_find("SENS_MAG_XSCALE"), &(mag_offset[0]))) {
+			fprintf(stderr, "[commander] Setting X mag offset failed!\n");
+		}
+
+		if (param_set(param_find("SENS_MAG_YSCALE"), &(mag_offset[1]))) {
+			fprintf(stderr, "[commander] Setting Y mag offset failed!\n");
+		}
+
+		if (param_set(param_find("SENS_MAG_ZSCALE"), &(mag_offset[2]))) {
 			fprintf(stderr, "[commander] Setting Z mag offset failed!\n");
 		}
 

@@ -105,4 +105,7 @@ ORB_DECLARE(sensor_mag);
 /** perform self-calibration, update scale factors to canonical units */
 #define MAGIOCCALIBRATE		_MAGIOC(5)
 
+/** excite strap */
+#define MAGIOCEXSTRAP		_MAGIOC(6)
+
 #endif /* _DRV_MAG_H */

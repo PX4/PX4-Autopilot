@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,7 @@
 
 /**
  * @file sensors.cpp
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Sensor readout process.
  */
@@ -178,6 +179,7 @@ private:
 
 		float gyro_offset[3];
 		float mag_offset[3];
+		float mag_scale[3];
 		float accel_offset[3];
 		float accel_scale[3];
 
@@ -209,6 +211,7 @@ private:
 		param_t accel_offset[3];
 		param_t accel_scale[3];
 		param_t mag_offset[3];
+		param_t mag_scale[3];
 
 		param_t rc_map_roll;
 		param_t rc_map_pitch;
@@ -414,6 +417,10 @@ Sensors::Sensors() :
 	_parameter_handles.mag_offset[1] = param_find("SENS_MAG_YOFF");
 	_parameter_handles.mag_offset[2] = param_find("SENS_MAG_ZOFF");
 
+	_parameter_handles.mag_scale[0] = param_find("SENS_MAG_XSCALE");
+	_parameter_handles.mag_scale[1] = param_find("SENS_MAG_YSCALE");
+	_parameter_handles.mag_scale[2] = param_find("SENS_MAG_ZSCALE");
+
 	_parameter_handles.battery_voltage_scaling = param_find("BAT_V_SCALING");
 
 	/* fetch initial parameter values */
@@ -537,6 +544,10 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.mag_offset[0], &(_parameters.mag_offset[0]));
 	param_get(_parameter_handles.mag_offset[1], &(_parameters.mag_offset[1]));
 	param_get(_parameter_handles.mag_offset[2], &(_parameters.mag_offset[2]));
+	/* mag scaling */
+	param_get(_parameter_handles.mag_offset[0], &(_parameters.mag_scale[0]));
+	param_get(_parameter_handles.mag_offset[1], &(_parameters.mag_scale[1]));
+	param_get(_parameter_handles.mag_offset[2], &(_parameters.mag_scale[2]));
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
@@ -798,11 +809,11 @@ Sensors::parameter_update_poll(bool forced)
 		fd = open(MAG_DEVICE_PATH, 0);
 		struct mag_scale mscale = {
 			_parameters.mag_offset[0],
-			1.0f,
+			_parameters.mag_scale[0],
 			_parameters.mag_offset[1],
-			1.0f,
+			_parameters.mag_scale[1],
 			_parameters.mag_offset[2],
-			1.0f,
+			_parameters.mag_scale[2],
 		};
 		if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale))
 			warn("WARNING: failed to set scale / offsets for mag");
