@@ -195,7 +195,7 @@ mc_thread_main(int argc, char *argv[])
 				rates_sp.roll = manual.roll;
 
 				rates_sp.pitch = manual.pitch;
-				rates_sp.yaw = manual.yaw;
+				rates_sp.yaw = att.yaw + manual.yaw * 2.0f;
 				rates_sp.thrust = manual.throttle;
 				//printf("rates\n");
 				rates_sp.timestamp = hrt_absolute_time();

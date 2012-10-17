@@ -153,6 +153,13 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	static float pitch_control_last = 0;
 	static uint64_t last_run = 0;
 	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
+	static uint64_t last_input = 0;
+
+	float dT_input = (hrt_absolute_time() - last_input) / 1000000.0f;
+	if (last_input != rate_sp->timestamp) {
+		last_input = rate_sp->timestamp;
+	}
+
 	last_run = hrt_absolute_time();
 
 	static int motor_skip_counter = 0;
@@ -173,7 +180,8 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	if (motor_skip_counter % 2500 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-		printf("p.yawrate_p: %8.4f\n", (double)p.yawrate_p);
+		printf("rate ctrl: p.yawrate_p: %8.4f, loop: %d Hz, input: %d Hz\n",
+			(double)p.yawrate_p, (int)(1.0f/deltaT), (int)(1.0f/dT_input));
 	}
 
 	/* calculate current control outputs */
@@ -185,6 +193,7 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		pitch_control_last = pitch_control;
 	} else {
 		pitch_control = 0.0f;
+		printf("rej. NaN ctrl pitch\n");
 	}
 
 	/* control roll (left/right) output */
@@ -194,10 +203,11 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		roll_control_last = roll_control;
 	} else {
 		roll_control = 0.0f;
+		printf("rej. NaN ctrl roll\n");
 	}
 
 	/* control yaw rate */
-	float yaw_rate_control = p.yawrate_p * deltaT * ((rate_sp->yaw)*p.attrate_lim-rates[2]);
+	float yaw_rate_control = p.yawrate_p * deltaT * ((rate_sp->yaw)*p.yawrate_lim-rates[2]);
 
 	actuators->control[0] = roll_control;
 	actuators->control[1] = pitch_control;
