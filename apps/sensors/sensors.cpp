@@ -1004,6 +1004,7 @@ Sensors::task_main()
 	 * do advertisements
 	 */
 	struct sensor_combined_s raw;
+	memset(&raw, 0, sizeof(raw));
 	raw.timestamp = hrt_absolute_time();
 	raw.battery_voltage_v = BAT_VOL_INITIAL;
 	raw.adc_voltage_v[0] = 0.9f;

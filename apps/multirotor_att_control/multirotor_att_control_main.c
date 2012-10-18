@@ -204,9 +204,7 @@ mc_thread_main(int argc, char *argv[])
 			if (state.flag_control_attitude_enabled) {
 				att_sp.roll_body = manual.roll;
 				att_sp.pitch_body = manual.pitch;
-				att_sp.yaw_body = manual.yaw; // XXX Hack, clean up
-				/* set yaw rate */
-				rates_sp.yaw = manual.yaw;
+				att_sp.yaw_body = att.yaw + manual.yaw * -2.0f;
 				att_sp.thrust = manual.throttle;
 				att_sp.timestamp = hrt_absolute_time();
 			}

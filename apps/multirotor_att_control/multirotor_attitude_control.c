@@ -235,20 +235,21 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		//		pid_set_parameters(&yaw_speed_controller, p.yawrate_p, p.yawrate_i, p.yawrate_d, p.yawrate_awu);
 		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu);
 		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu);
-		printf("delays: %d us sens->ctrl, rate: %d Hz, input: %d Hz\n", sensor_delay, (int)(1.0f/deltaT), (int)(1.0f/dT_input));
+		printf("att ctrl: delays: %d us sens->ctrl, rate: %d Hz, input: %d Hz\n", sensor_delay, (int)(1.0f/deltaT), (int)(1.0f/dT_input));
 	}
 
 	/* calculate current control outputs */
 
 	/* control pitch (forward) output */
 	rates_sp->pitch = pid_calculate(&pitch_controller, att_sp->pitch_body + p.att_xoff,
-			att->pitch, att->pitchspeed, deltaT)*1/10.0f;
+			att->pitch, att->pitchspeed, deltaT);
+
 	/* control roll (left/right) output */
 	rates_sp->roll = pid_calculate(&roll_controller, att_sp->roll_body + p.att_yoff,
-			att->roll, att->rollspeed, deltaT)*1/10.0f;
+			att->roll, att->rollspeed, deltaT);
+
 	/* control yaw rate */
-	//float yaw_rate_control = pid_calculate(&yaw_speed_controller, att_sp->yaw_body, att->yawspeed, 0.0f, deltaT)*1/10.0f;
-	rates_sp->yaw= deltaT*p.yaw_p*atan2f(sinf(att->yaw-att_sp->yaw_body),cos(att->yaw-att_sp->yaw_body));
+	rates_sp->yaw= deltaT * p.yaw_p * atan2f(sinf(att->yaw - att_sp->yaw_body), cosf(att->yaw - att_sp->yaw_body));
 
 
 

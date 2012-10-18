@@ -141,12 +141,6 @@ l_sensor_combined(struct listener *l)
 
 	last_sensor_timestamp = raw.timestamp;
 
-	/* send raw imu data */
-	// mavlink_msg_raw_imu_send(MAVLINK_COMM_0, last_sensor_timestamp, raw.accelerometer_raw[0],
-	// 	raw.accelerometer_raw[1], raw.accelerometer_raw[2], raw.gyro_raw[0],
-	// 	raw.gyro_raw[1], raw.gyro_raw[2], raw.magnetometer_raw[0],
-	// 	raw.magnetometer_raw[1], raw.magnetometer_raw[2]);
-
 	/* mark individual fields as changed */
 	uint16_t fields_updated = 0;
 	static unsigned accel_counter = 0;
@@ -161,19 +155,19 @@ l_sensor_combined(struct listener *l)
 	}
 
 	if (gyro_counter != raw.gyro_counter) {
-		/* mark first three dimensions as changed */
+		/* mark second group dimensions as changed */
 		fields_updated |= (1 << 3) | (1 << 4) | (1 << 5);
 		gyro_counter = raw.gyro_counter;
 	}
 
 	if (mag_counter != raw.magnetometer_counter) {
-		/* mark first three dimensions as changed */
+		/* mark third group dimensions as changed */
 		fields_updated |= (1 << 6) | (1 << 7) | (1 << 8);
 		mag_counter = raw.magnetometer_counter;
 	}
 
 	if (baro_counter != raw.baro_counter) {
-		/* mark first three dimensions as changed */
+		/* mark last group dimensions as changed */
 		fields_updated |= (1 << 9) | (1 << 11) | (1 << 12);
 		baro_counter = raw.baro_counter;
 	}
@@ -187,8 +181,6 @@ l_sensor_combined(struct listener *l)
 		raw.baro_pres_mbar, 0 /* no diff pressure yet */,
 		raw.baro_alt_meter, raw.baro_temp_celcius,
 		fields_updated);
-	/* send pressure */
-	//mavlink_msg_scaled_pressure_send(MAVLINK_COMM_0, raw.timestamp / 1000, raw.baro_pres_mbar, raw.baro_alt_meter, raw.baro_temp_celcius * 100);
 
 	sensors_raw_counter++;
 }
@@ -559,12 +551,12 @@ uorb_receive_start(void)
 	/* --- SENSORS RAW VALUE --- */
 	mavlink_subs.sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	/* rate limit set externally based on interface speed, set a basic default here */
-	orb_set_interval(mavlink_subs.sensor_sub, 100);	/* 10Hz updates */
+	orb_set_interval(mavlink_subs.sensor_sub, 200);	/* 5Hz updates */
 
 	/* --- ATTITUDE VALUE --- */
 	mavlink_subs.att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	/* rate limit set externally based on interface speed, set a basic default here */
-	orb_set_interval(mavlink_subs.att_sub, 100);	/* 10Hz updates */
+	orb_set_interval(mavlink_subs.att_sub, 200);	/* 5Hz updates */
 
 	/* --- GPS VALUE --- */
 	mavlink_subs.gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
@@ -631,8 +623,7 @@ uorb_receive_start(void)
 	pthread_attr_init(&uorb_attr);
 
 	/* Set stack size, needs more than 8000 bytes */
-	/* XXX verify, should not need anything like this much unless MAVLink really sucks */
-	pthread_attr_setstacksize(&uorb_attr, 8192);
+	pthread_attr_setstacksize(&uorb_attr, 4096);
 
 	pthread_t thread;
 	pthread_create(&thread, &uorb_attr, uorb_receive_thread, NULL);

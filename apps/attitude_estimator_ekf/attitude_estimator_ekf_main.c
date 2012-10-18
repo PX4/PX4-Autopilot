@@ -71,11 +71,10 @@ __EXPORT int attitude_estimator_ekf_main(int argc, char *argv[]);
 
 static unsigned int loop_interval_alarm = 6500;	// loop interval in microseconds
 
-static float dt = 1.0f;
+static float dt = 0.005f;
 /* state vector x has the following entries [ax,ay,az||mx,my,mz||wox,woy,woz||wx,wy,wz]' */
-static float z_k[9];					/**< Measurement vector */
-static float x_aposteriori_k[12];		/**< */
-static float x_aposteriori[12];
+static float z_k[9] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 9.81f, 0.2f, -0.2f, 0.2f};					/**< Measurement vector */
+static float x_aposteriori_k[12];		/**< states */
 static float P_aposteriori_k[144] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
 		0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
 		0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -88,21 +87,10 @@ static float P_aposteriori_k[144] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0
 		0,   0,   0,   0,   0,   0,   0,   0,  0.0f, 100.0f,   0,   0,
 		0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   100.0f,   0,
 		0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   0,   100.0f,
-};
+}; /**< init: diagonal matrix with big values */
 
-static float P_aposteriori[144] = {100.f, 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-		0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-		0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,   0,
-		0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,   0,   0,
-		0,   0,   0,   0,  100.f,  0,   0,   0,   0,   0,   0,   0,
-		0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,   0,
-		0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,   0,
-		0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,   0,
-		0,   0,   0,   0,   0,   0,   0,   0, 100.f,   0,   0,   0,
-		0,   0,   0,   0,   0,   0,   0,   0,  0.0f, 100.0f,   0,   0,
-		0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   100.0f,   0,
-		0,   0,   0,   0,   0,   0,   0,   0,  0.0f,   0,   0,   100.0f,
-};	/**< init: diagonal matrix with big values */
+static float x_aposteriori[12];
+static float P_aposteriori[144];
 
 /* output euler angles */
 static float euler[3] = {0.0f, 0.0f, 0.0f};
@@ -236,7 +224,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 	/* advertise debug value */
 	struct debug_key_value_s dbg = { .key = "", .value = 0.0f };
-	orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
+	orb_advert_t pub_dbg = -1;
 
 	/* keep track of sensor updates */
 	uint32_t sensor_last_count[3] = {0, 0, 0};
@@ -293,13 +281,13 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					gyro_offsets[0] += raw.gyro_rad_s[0];
 					gyro_offsets[1] += raw.gyro_rad_s[1];
 					gyro_offsets[2] += raw.gyro_rad_s[2];
-					offset_count+=1;
+					offset_count++;
+
 					if (hrt_absolute_time() - start_time > 3000000LL) {
 						initialized = true;
 						gyro_offsets[0] /= offset_count;
 						gyro_offsets[1] /= offset_count;
 						gyro_offsets[2] /= offset_count;
-						printf("pipapo %d\n",(int)(gyro_offsets[2]*1000) );
 					}
 				} else {
 
@@ -316,9 +304,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						sensor_last_timestamp[0] = raw.timestamp;
 					}
 
-					z_k[0] =  raw.gyro_rad_s[0]-gyro_offsets[0];
-					z_k[1] =  raw.gyro_rad_s[1]-gyro_offsets[1];
-					z_k[2] =  raw.gyro_rad_s[2]-gyro_offsets[2];
+					z_k[0] =  raw.gyro_rad_s[0] - gyro_offsets[0];
+					z_k[1] =  raw.gyro_rad_s[1] - gyro_offsets[1];
+					z_k[2] =  raw.gyro_rad_s[2] - gyro_offsets[2];
 
 					/* update accelerometer measurements */
 					if (sensor_last_count[1] != raw.accelerometer_counter) {
@@ -362,7 +350,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					static bool const_initialized = false;
 
 					/* initialize with good values once we have a reasonable dt estimate */
-					if (!const_initialized /*&& dt < 0.05 && dt > 0.005*/)
+					if (!const_initialized && dt < 0.05 && dt > 0.005)
 					{
 						dt = 0.005f;
 						parameters_update(&ekf_param_handles, &ekf_params);
@@ -388,16 +376,19 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						continue;
 					}
 
-					dt = 0.004f;
-
 					uint64_t timing_start = hrt_absolute_time();
-					// attitudeKalmanfilter(dt, update_vect, z_k, &z_k_sizes, u, x_aposteriori_k, P_aposteriori_k, knownConst, euler,
-					// 	Rot_matrix, x_aposteriori, P_aposteriori);
+					
 					attitudeKalmanfilter(update_vect, dt, z_k, x_aposteriori_k, P_aposteriori_k, ekf_params.q, ekf_params.r,
 							euler, Rot_matrix, x_aposteriori, P_aposteriori);
-					/* swap values for next iteration */
-					memcpy(P_aposteriori_k, P_aposteriori, sizeof(P_aposteriori_k));
-					memcpy(x_aposteriori_k, x_aposteriori, sizeof(x_aposteriori_k));
+					/* swap values for next iteration, check for fatal inputs */
+					if (isfinite(euler[0]) && isfinite(euler[1]) && isfinite(euler[2])) {
+						memcpy(P_aposteriori_k, P_aposteriori, sizeof(P_aposteriori_k));
+						memcpy(x_aposteriori_k, x_aposteriori, sizeof(x_aposteriori_k));
+					} else {
+						/* due to inputs or numerical failure the output is invalid, skip it */
+						continue;
+					}
+					
 					uint64_t timing_diff = hrt_absolute_time() - timing_start;
 
 					// /* print rotation matrix every 200th time */
@@ -425,7 +416,11 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					// 		sprintf(name, "xapo #%d", i);
 					// 		memcpy(dbg.key, name, sizeof(dbg.key));
 					// 		dbg.value = x_aposteriori[i];
+					// if (pub_dbg < 0) {
+							// pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
+					// } else {
 					// 		orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
+					// }
 
 					printcounter++;
 
