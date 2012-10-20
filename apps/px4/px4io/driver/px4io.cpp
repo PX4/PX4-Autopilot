@@ -85,10 +85,10 @@ public:
 
 	virtual int		init();
 
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
 
 private:
-	static const unsigned	_max_actuators = 8;
+	static const unsigned	_max_actuators = PX4IO_OUTPUT_CHANNELS;
 
 	int			_serial_fd;	///< serial interface to PX4IO
 	hx_stream_t		_io_stream;	///< HX protocol stream
@@ -96,22 +96,23 @@ private:
 	int			_task;		///< worker task
 	volatile bool		_task_should_exit;
 
-	int			_t_actuators;	///< ORB subscription for actuator outputs
-	int			_t_armed;
-	orb_advert_t		_t_outputs;
+	int			_t_actuators;	///< actuator output topic
+	actuator_controls_s	_controls;	///< actuator outputs
 
-	MixerGroup		*_mixers;
-	actuator_controls_s	_controls;
-	actuator_armed_s	_armed;
-	actuator_outputs_s	_outputs;
+	int			_t_armed;	///< system armed control topic
+	actuator_armed_s	_armed;		///< system armed state
 
-	orb_advert_t		_t_input;
-	rc_input_values		_input;
+	orb_advert_t		_t_outputs;	///< mixed outputs topic
+	actuator_outputs_s	_outputs;	///< mixed outputs
+
+	MixerGroup		*_mixers;	///< loaded mixers
+
+	bool			_primary_pwm_device;	///< true if we are the default PWM output
 
 	volatile bool		_switch_armed;	///< PX4IO switch armed state
 						// XXX how should this work?
 
-	bool			_send_needed;
+	bool			_send_needed;	///< If true, we need to send a packet to IO
 
 	/**
 	 * Trampoline to the worker task
@@ -123,15 +124,30 @@ private:
 	 */
 	void			task_main();
 
+	/**
+	 * Handle receiving bytes from PX4IO
+	 */
 	void			io_recv();
 
 	/**
-	 * HX protocol callback.
+	 * HX protocol callback trampoline.
 	 */
 	static void		rx_callback_trampoline(void *arg, const void *buffer, size_t bytes_received);
+
+	/**
+	 * Callback invoked when we receive a whole packet from PX4IO
+	 */
 	void			rx_callback(const uint8_t *buffer, size_t bytes_received);
 
+	/**
+	 * Send an update packet to PX4IO
+	 */
 	void			io_send();
+
+	/**
+	 * Mixer control callback; invoked to fetch a control from a specific
+	 * group/index during mixing.
+	 */
 	static int		control_callback(uintptr_t handle,
 						 uint8_t control_group,
 						 uint8_t control_index,
@@ -156,7 +172,7 @@ PX4IO::PX4IO() :
 	_t_armed(-1),
 	_t_outputs(-1),
 	_mixers(nullptr),
-	_t_input(-1),
+	_primary_pwm_device(false),
 	_switch_armed(false),
 	_send_needed(false)
 {
@@ -169,22 +185,29 @@ PX4IO::PX4IO() :
 PX4IO::~PX4IO()
 {
 	if (_task != -1) {
-		/* task should wake up every 100ms or so at least */
+		/* tell the task we want it to go away */
 		_task_should_exit = true;
 
-		unsigned i = 0;
+		/* spin waiting for the thread to stop */
+		unsigned i = 10;
 		do {
-			/* wait 20ms */
-			usleep(20000);
+			/* wait 50ms - it should wake every 100ms or so worst-case */
+			usleep(50000);
 
 			/* if we have given up, kill it */
-			if (++i > 10) {
+			if (--i == 0) {
 				task_delete(_task);
 				break;
 			}
 
 		} while (_task != -1);
 	}
+
+	/* clean up the alternate device node */
+	if (_primary_pwm_device)
+		unregister_driver(PWM_OUTPUT_DEVICE_PATH);
+
+	/* kill the HX stream */
 	if (_io_stream != nullptr)
 		hx_stream_free(_io_stream);
 
@@ -202,6 +225,13 @@ PX4IO::init()
 	ret = CDev::init();
 	if (ret != OK)
 		return ret;
+
+	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
+	ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
+	if (ret == OK) {
+		log("default PWM output device");
+		_primary_pwm_device = true;
+	}
 
 	/* start the IO interface task */
 	_task = task_create("px4io", SCHED_PRIORITY_DEFAULT, 1024, (main_t)&PX4IO::task_main_trampoline, nullptr);
@@ -244,8 +274,12 @@ PX4IO::task_main()
 
 	/* XXX verify firmware/protocol version */
 
-	/* subscribe to objects that we are interested in watching */
-	_t_actuators = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	/*
+	 * Subscribe to the appropriate PWM output topic based on whether we are the
+	 * primary PWM output or not.
+	 */
+	_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
+				     ORB_ID(actuator_controls_1));
 	/* convert the update rate in hz to milliseconds, rounding down if necessary */
 	//int update_rate_in_ms = int(1000 / _update_rate);
 	orb_set_interval(_t_actuators, 20);	/* XXX 50Hz hardcoded for now */
@@ -254,13 +288,11 @@ PX4IO::task_main()
 	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
 
 	/* advertise the mixed control outputs */
-	_t_outputs = orb_advertise(ORB_ID_VEHICLE_CONTROLS, &_outputs);
+	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
+				   &_outputs);
 
-	/* advertise the PX4IO R/C input */
-	_t_input = orb_advertise(ORB_ID(input_rc), &_input);
-
-	/* poll descriptor(s) */
-	struct pollfd fds[3];
+	/* poll descriptor */
+	pollfd fds[3];
 	fds[0].fd = _serial_fd;
 	fds[0].events = POLLIN;
 	fds[1].fd = _t_actuators;
@@ -358,10 +390,10 @@ PX4IO::rx_callback_trampoline(void *arg, const void *buffer, size_t bytes_receiv
 void
 PX4IO::rx_callback(const uint8_t *buffer, size_t bytes_received)
 {
-	const struct px4io_report *rep = (const struct px4io_report *)buffer;
+	const px4io_report *rep = (const px4io_report *)buffer;
 
 	/* sanity-check the received frame size */
-	if (bytes_received != sizeof(struct px4io_report))
+	if (bytes_received != sizeof(px4io_report))
 		return;
 
 	/* XXX handle R/C inputs here ... needs code sharing/library */
@@ -395,7 +427,7 @@ PX4IO::io_send()
 }
 
 int
-PX4IO::ioctl(struct file *filep, int cmd, unsigned long arg)
+PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
@@ -416,6 +448,7 @@ PX4IO::ioctl(struct file *filep, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(_max_actuators - 1):
+		/* fake an update to the selected servo channel */
 		if ((arg >= 900) && (arg <= 2100)) {
 			_outputs.output[cmd - PWM_SERVO_SET(0)] = arg;
 			_send_needed = true;
@@ -425,6 +458,7 @@ PX4IO::ioctl(struct file *filep, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_GET(0) ... PWM_SERVO_GET(_max_actuators - 1):
+		/* copy the current output value from the channel */
 		*(servo_position_t *)arg = _outputs.output[cmd - PWM_SERVO_GET(0)];
 		break;
 
@@ -442,18 +476,22 @@ PX4IO::ioctl(struct file *filep, int cmd, unsigned long arg)
 	case MIXERIOCADDSIMPLE: {
 			mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
 
+			/* build the new mixer from the supplied argument */
 			SimpleMixer *mixer = new SimpleMixer(control_callback,
 							     (uintptr_t)&_controls, mixinfo);
 
+			/* validate the new mixer */
 			if (mixer->check()) {
 				delete mixer;
 				ret = -EINVAL;
 
 			} else {
+				/* if we don't have a group yet, allocate one */
 				if (_mixers == nullptr)
 					_mixers = new MixerGroup(control_callback,
 								 (uintptr_t)&_controls);
 
+				/* add the new mixer to the group */
 				_mixers->add_mixer(mixer);
 			}
 
@@ -466,20 +504,21 @@ PX4IO::ioctl(struct file *filep, int cmd, unsigned long arg)
 		break;
 
 	case MIXERIOCLOADFILE: {
+			MixerGroup *newmixers;
 			const char *path = (const char *)arg;
 
-			if (_mixers != nullptr) {
-				delete _mixers;
-				_mixers = nullptr;
-			}
-
-			_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
-
-			if (_mixers->load_from_file(path) != 0) {
-				delete _mixers;
-				_mixers = nullptr;
+			/* allocate a new mixer group and load it from the file */
+			newmixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
+			if (newmixers->load_from_file(path) != 0) {
+				delete newmixers;
 				ret = -EINVAL;
 			}
+
+			/* swap the new mixers in for the old */
+			if (_mixers != nullptr) {
+				delete _mixers;
+			}
+			_mixers = newmixers;
 
 		}
 		break;

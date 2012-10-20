@@ -79,7 +79,7 @@ public:
 	FMUServo(Mode mode, int update_rate);
 	~FMUServo();
 
-	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 
 	virtual int	init();
 
@@ -93,6 +93,7 @@ private:
 	int		_t_armed;
 	orb_advert_t	_t_outputs;
 	unsigned	_num_outputs;
+	bool		_primary_pwm_device;
 
 	volatile bool	_task_should_exit;
 	bool		_armed;
@@ -118,7 +119,7 @@ FMUServo	*g_servo;
 } // namespace
 
 FMUServo::FMUServo(Mode mode, int update_rate) :
-	CDev("fmuservo", PWM_OUTPUT_DEVICE_PATH),
+	CDev("fmuservo", "/dev/px4fmu"),
 	_mode(mode),
 	_update_rate(update_rate),
 	_task(-1),
@@ -126,6 +127,7 @@ FMUServo::FMUServo(Mode mode, int update_rate) :
 	_t_armed(-1),
 	_t_outputs(0),
 	_num_outputs(0),
+	_primary_pwm_device(false),
 	_task_should_exit(false),
 	_armed(false),
 	_mixers(nullptr)
@@ -135,24 +137,26 @@ FMUServo::FMUServo(Mode mode, int update_rate) :
 FMUServo::~FMUServo()
 {
 	if (_task != -1) {
-
-		/* task should wake up every 100ms or so at least */
+		/* tell the task we want it to go away */
 		_task_should_exit = true;
 
-		unsigned i = 0;
-
+		unsigned i = 10;
 		do {
-			/* wait 20ms */
-			usleep(20000);
+			/* wait 50ms - it should wake every 100ms or so worst-case */
+			usleep(50000);
 
 			/* if we have given up, kill it */
-			if (++i > 10) {
+			if (--i == 0) {
 				task_delete(_task);
 				break;
 			}
 
 		} while (_task != -1);
 	}
+
+	/* clean up the alternate device node */
+	if (_primary_pwm_device)
+		unregister_driver(PWM_OUTPUT_DEVICE_PATH);
 
 	g_servo = nullptr;
 }
@@ -169,6 +173,13 @@ FMUServo::init()
 
 	if (ret != OK)
 		return ret;
+
+	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
+	ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
+	if (ret == OK) {
+		log("default PWM output device");
+		_primary_pwm_device = true;
+	}
 
 	/* start the IO interface task */
 	_task = task_spawn("fmuservo",
@@ -216,8 +227,12 @@ FMUServo::task_main()
 		break;
 	}
 
-	/* subscribe to objects that we are interested in watching */
-	_t_actuators = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	/*
+	 * Subscribe to the appropriate PWM output topic based on whether we are the
+	 * primary PWM output or not.
+	 */
+	_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
+				     ORB_ID(actuator_controls_1));
 	/* convert the update rate in hz to milliseconds, rounding down if necessary */
 	int update_rate_in_ms = int(1000 / _update_rate);
 	orb_set_interval(_t_actuators, update_rate_in_ms);
@@ -226,11 +241,13 @@ FMUServo::task_main()
 	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
 
 	/* advertise the mixed control outputs */
-	struct actuator_outputs_s outputs;
+	actuator_outputs_s outputs;
 	memset(&outputs, 0, sizeof(outputs));
-	_t_outputs = orb_advertise(ORB_ID_VEHICLE_CONTROLS, &outputs);
+	/* advertise the mixed control outputs */
+	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
+				   &outputs);
 
-	struct pollfd fds[2];
+	pollfd fds[2];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
 	fds[1].fd = _t_armed;
@@ -282,7 +299,7 @@ FMUServo::task_main()
 
 		/* how about an arming update? */
 		if (fds[1].revents & POLLIN) {
-			struct actuator_armed_s aa;
+			actuator_armed_s aa;
 
 			/* get new value */
 			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
@@ -320,7 +337,7 @@ FMUServo::control_callback(uintptr_t handle,
 }
 
 int
-FMUServo::ioctl(struct file *filp, int cmd, unsigned long arg)
+FMUServo::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 	int channel;
@@ -569,7 +586,7 @@ fake(int argc, char *argv[])
 		exit(1);
 	}
 
-	struct actuator_controls_s ac;
+	actuator_controls_s ac;
 
 	ac.control[0] = strtol(argv[1], 0, 0) / 100.0f;
 
