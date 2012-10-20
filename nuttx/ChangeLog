@@ -3488,3 +3488,6 @@
 	  USB_CONFIG_ATT_SELFPOWER (contributed by Petteri Aimonen).
 	* arch/arm/src/armv7-m/up_memcpy.S:  An optimized memcpy() function for
 	  the ARMv7-M family contributed by Mike Smith.
+	* lib/strings/lib_vikmemcpy.c:  As an option, the larger but faster
+	  implemementation of memcpy from Daniel Vik is now available (this is
+	  from http://www.danielvik.com/2010/02/fast-memcpy-in-c.html).
