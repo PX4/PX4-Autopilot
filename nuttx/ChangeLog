@@ -3486,3 +3486,5 @@
 	* drivers/usbdev/pl2303.c, drivers/usbdev/usbmsc.h, and
 	  include/nuttx/usb/cdcacm.h: USB_CONFIG_ATTR_SELFPOWER vs.
 	  USB_CONFIG_ATT_SELFPOWER (contributed by Petteri Aimonen).
+	* arch/arm/src/armv7-m/up_memcpy.S:  An optimized memcpy() function for
+	  the ARMv7-M family contributed by Mike Smith.

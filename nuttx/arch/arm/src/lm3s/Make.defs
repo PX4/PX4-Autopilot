@@ -37,17 +37,21 @@ HEAD_ASRC	= lm3s_vectors.S
 
 CMN_ASRCS	= up_saveusercontext.S up_fullcontextrestore.S up_switchcontext.S
 CMN_CSRCS	= up_allocateheap.c up_assert.c up_blocktask.c up_copystate.c \
-		  up_createstack.c up_mdelay.c up_udelay.c up_exit.c \
-		  up_idle.c up_initialize.c up_initialstate.c up_interruptcontext.c \
-		  up_memfault.c up_modifyreg8.c up_modifyreg16.c up_modifyreg32.c \
-		  up_releasepending.c up_releasestack.c up_reprioritizertr.c \
-		  up_schedulesigaction.c up_sigdeliver.c up_unblocktask.c \
-		  up_usestack.c up_doirq.c up_hardfault.c up_svcall.c
+			  up_createstack.c up_mdelay.c up_udelay.c up_exit.c \
+			  up_idle.c up_initialize.c up_initialstate.c up_interruptcontext.c \
+			  up_memfault.c up_modifyreg8.c up_modifyreg16.c up_modifyreg32.c \
+			  up_releasepending.c up_releasestack.c up_reprioritizertr.c \
+			  up_schedulesigaction.c up_sigdeliver.c up_unblocktask.c \
+			  up_usestack.c up_doirq.c up_hardfault.c up_svcall.c
+
+ifeq ($(CONFIG_ARCH_MEMCPY),y)
+CMN_ASRCS	+= up_memcpy.S
+endif
 
 CHIP_ASRCS	= 
 CHIP_CSRCS	= lm3s_start.c lm3s_syscontrol.c lm3s_irq.c \
-		  lm3s_gpio.c lm3s_gpioirq.c lm3s_timerisr.c lm3s_lowputc.c \
-		  lm3s_serial.c lm3s_ssi.c lm3s_dumpgpio.c
+			  lm3s_gpio.c lm3s_gpioirq.c lm3s_timerisr.c lm3s_lowputc.c \
+			  lm3s_serial.c lm3s_ssi.c lm3s_dumpgpio.c
 
 ifdef CONFIG_NET
 CHIP_CSRCS	+= lm3s_ethernet.c

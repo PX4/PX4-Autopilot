@@ -41,12 +41,16 @@ HEAD_ASRC	= lpc17_vectors.S
 
 CMN_ASRCS	= up_saveusercontext.S up_fullcontextrestore.S up_switchcontext.S
 CMN_CSRCS	= up_assert.c up_blocktask.c up_copystate.c up_createstack.c \
-		  up_mdelay.c up_udelay.c up_exit.c up_initialize.c up_memfault.c \
-		  up_initialstate.c up_interruptcontext.c up_modifyreg8.c \
-		  up_modifyreg16.c up_modifyreg32.c up_releasepending.c \
-		  up_releasestack.c up_reprioritizertr.c up_schedulesigaction.c \
-		  up_sigdeliver.c up_unblocktask.c up_usestack.c up_doirq.c \
-		  up_hardfault.c up_svcall.c up_checkstack.c
+			  up_mdelay.c up_udelay.c up_exit.c up_initialize.c up_memfault.c \
+			  up_initialstate.c up_interruptcontext.c up_modifyreg8.c \
+			  up_modifyreg16.c up_modifyreg32.c up_releasepending.c \
+			  up_releasestack.c up_reprioritizertr.c up_schedulesigaction.c \
+			  up_sigdeliver.c up_unblocktask.c up_usestack.c up_doirq.c \
+			  up_hardfault.c up_svcall.c up_checkstack.c
+
+ifeq ($(CONFIG_ARCH_MEMCPY),y)
+CMN_ASRCS	+= up_memcpy.S
+endif
 
 ifeq ($(CONFIG_NET),y)
 ifneq ($(CONFIG_LPC17_ETHERNET),y)
@@ -58,8 +62,8 @@ endif
 
 CHIP_ASRCS	=
 CHIP_CSRCS	= lpc17_allocateheap.c lpc17_clockconfig.c lpc17_clrpend.c \
-		  lpc17_gpio.c lpc17_i2c.c lpc17_idle.c lpc17_irq.c lpc17_lowputc.c \
-		  lpc17_serial.c lpc17_spi.c lpc17_ssp.c lpc17_start.c lpc17_timerisr.c
+			  lpc17_gpio.c lpc17_i2c.c lpc17_idle.c lpc17_irq.c lpc17_lowputc.c \
+			  lpc17_serial.c lpc17_spi.c lpc17_ssp.c lpc17_start.c lpc17_timerisr.c
 
 # Configuration-dependent LPC17xx files
 

@@ -49,6 +49,10 @@ CMN_ASRCS += up_exception.S
 CMN_CSRCS += up_vectors.c
 endif
 
+ifeq ($(CONFIG_ARCH_MEMCPY),y)
+CMN_ASRCS	+= up_memcpy.S
+endif
+
 ifeq ($(CONFIG_DEBUG_STACK),y)
 CMN_CSRCS += up_checkstack.c
 endif
