@@ -3474,4 +3474,7 @@
 	  board (Darcy Gong).
 	* configs/shenzhou/thttpd:  Add a THTTPD configuration for the
 	  Shenzhou board (Darcy Gong).
+	* include/termios.h and lib/termios/libcf*speed.c: The non-standard,
+	  "hidden" c_speed cannot be type const or else static instantiations
+	  of termios will be required to initialize it (Mike Smith).
 

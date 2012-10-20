@@ -47,11 +47,6 @@ if [ -z "${PATH_ORIG}" ]; then
   export PATH_ORIG="${PATH}"
 fi
 
-# This is the Cygwin path to the location where I installed the RIDE
-# toolchain under windows.  You will also have to edit this if you install
-# the RIDE toolchain in any other location
-#export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/Raisonance/Ride/arm-gcc/bin"
-
 # This is the Cygwin path to the location where I installed the CodeSourcery
 # toolchain under windows.  You will also have to edit this if you install
 # the CodeSourcery toolchain in any other location

@@ -230,7 +230,7 @@ struct termios
    * cf[set|get][o|i]speed() POSIX interfaces.
    */
 
-  const speed_t c_speed;    /* Input/output speed (non-POSIX)*/
+  speed_t c_speed;          /* Input/output speed (non-POSIX)*/
 };
 
 /****************************************************************************

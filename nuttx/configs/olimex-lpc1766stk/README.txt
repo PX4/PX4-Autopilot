@@ -836,8 +836,8 @@ USB host operations.  To make these modifications, do the following:
 2. Then edit the top-level .config file to enable USB host.  Make the
    following changes:
 
-   CONFIG_LPC17_USBHOST=n
-   CONFIG_USBHOST=n
+   CONFIG_LPC17_USBHOST=y
+   CONFIG_USBHOST=y
    CONFIG_SCHED_WORKQUEUE=y
 
 When this change is made, NSH should be extended to support USB flash

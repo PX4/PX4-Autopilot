@@ -846,3 +846,13 @@ Where <subdir> is one of the following:
       -CONFIG_NX_WRITEONLY=y
       +# CONFIG_NX_WRITEONLY is not set
  
+  thttpd
+  ------
+
+    This builds the THTTPD web server example using the THTTPD and
+    the apps/examples/thttpd application.
+
+    NOTE: See note above with regard to the EABI/OABI buildroot
+    toolchains.  This example can only be built using the older
+    OABI toolchain due to incompatibilities introduced in later
+    GCC releases.
