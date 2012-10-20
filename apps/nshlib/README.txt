@@ -1084,6 +1084,10 @@ NSH-Specific Configuration Settings
       Set if your ethernet hardware has no built-in MAC address.
       If set, a bogus MAC will be assigned.
 
+  * CONFIG_NSH_MAX_ROUNDTRIP
+     This is the maximum round trip for a response to a ICMP ECHO request.
+    It is in units of deciseconds.  The default is 20 (2 seconds).
+
   If you use DHCPC, then some special configuration network options are
   required.  These include:
 

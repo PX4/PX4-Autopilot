@@ -2559,6 +2559,13 @@ nsh>
       If set, a bogus MAC will be assigned.
     </td>
   </tr>
+  <tr>
+    <td valign="top"><b><code>CONFIG_NSH_MAX_ROUNDTRIP</code></b></td>
+    <td>
+      This is the maximum round trip for a response to a ICMP ECHO request.
+      It is in units of deciseconds.  The default is 20 (2 seconds).
+    </td>
+  </tr>
 </table></center>
 
 <p>
@@ -3537,6 +3544,7 @@ mount -t vfat /dev/ram1 /tmp
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_IOBUFFER_SIZE</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_IPADDR</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_LINELEN</code></a></li>
+  <li><a href="#nshconfiguration"><code>CONFIG_NSH_MAX_ROUNDTRIP</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_NESTDEPTH</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_NETMASK</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_NOMAC</code></a></li>

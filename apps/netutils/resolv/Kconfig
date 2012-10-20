@@ -21,6 +21,6 @@ config NET_RESOLV_MAXRESPONSE
 	default 96
 	depends on NETUTILS_RESOLV
 	---help---
-		This setting determines the maximum size of DHCP response message that
-		can be received.  The default is 96 but may need to be larger on enterprise
- 		networks (perhaps 176).
+		This setting determines the maximum size of response message that can be
+		received by the DNS resolver.  The default is 96 but may need to be larger on
+ 		enterprise networks (perhaps 176).

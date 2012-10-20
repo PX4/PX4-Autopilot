@@ -4445,6 +4445,35 @@ build
   <code>CONFIG_ARCH_BZERO</code>
 </p></ul>
 
+<p><li>
+  If <code>CONFIG_ARCH_MEMCPY</code> is <b>not</b> selected, then you make also select Daniel
+  Vik's optimized implementation of <code>memcpy()</code>:
+</p>
+  <ul><li>
+    <code>CONFIG_MEMCPY_VIK</code>:
+    Select this option to use the optimized <code>memcpy()</code> function by Daniel Vik.
+    See licensing information in the top-level <code>COPYING</code> file.
+    Default: <code>n</code>.
+  </li></ul>
+
+<p>
+  And if <code>CONFIG_MEMCPY_VIK</code>, the following tuning options are available:
+</p>
+<ul><li>
+    <code>CONFIG_MEMCPY_PRE_INC_PTRS</code>:
+    Use pre-increment of pointers.
+    Default is post increment of pointers.
+</li>
+<li>
+    <code>CONFIG_MEMCPY_INDEXED_COPY</code>
+    Copying data using array indexing.
+    Using this option, disables the <code>CONFIG_MEMCPY_PRE_INC_PTRS</code> option.
+</li>
+<li>
+    <code>CONFIG_MEMCPY_64BIT</code>:
+    Compiles memcpy for 64 bit architectures
+</li></ul>
+
 <li>
   <p>
     The architecture may provide custom versions of certain standard header files:
@@ -5179,6 +5208,11 @@ build
   </li>
   <li>
     <code>CONFIG_NET_RESOLV_ENTRIES</code>: Number of resolver entries
+  </li>
+  <li>
+    <code>CONFIG_NET_RESOLV_MAXRESPONSE</code>:
+    This setting determines the maximum size of response message that can be received by the DNS resolver.
+    The default is 96 but may need to be larger on enterprise networks (perhaps 176).
   </li>
 </ul>
 

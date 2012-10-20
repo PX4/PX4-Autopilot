@@ -621,6 +621,23 @@ defconfig -- This is a configuration file similar to the Linux
       CONFIG_ARCH_STRNCPY, CONFIG_ARCH_STRLEN, CONFIG_ARCH_STRNLEN
       CONFIG_ARCH_BZERO
 
+  If CONFIG_ARCH_MEMCPY is not selected, then you make also select Daniel
+  Vik's optimized implementation of memcpy():
+
+    CONFIG_MEMCPY_VIK - Select this option to use the optimized memcpy()
+      function by Daniel Vik.  See licensing information in the top-level
+      COPYING file.  Default: n
+
+  And if CONFIG_MEMCPY_VIK, the following tuning options are available:
+
+    CONFIG_MEMCPY_PRE_INC_PTRS - Use pre-increment of pointers. Default is
+      post increment of pointers.
+
+    CONFIG_MEMCPY_INDEXED_COPY - Copying data using array indexing. Using
+      this option, disables the CONFIG_MEMCPY_PRE_INC_PTRS option.
+
+    CONFIG_MEMCPY_64BIT - Compiles memcpy for 64 bit architectures
+
   The architecture may provide custom versions of certain standard header
   files:
 
@@ -1078,6 +1095,10 @@ defconfig -- This is a configuration file similar to the Linux
 
     CONFIG_NET_DHCP_LIGHT - Reduces size of DHCP
     CONFIG_NET_RESOLV_ENTRIES - Number of resolver entries
+    CONFIG_NET_RESOLV_MAXRESPONSE - This setting determines the maximum
+      size of response message that can be received by the DNS resolver.
+      The default is 96 but may need to be larger on enterprise networks
+      (perhaps 176).
 
   THTTPD
 
