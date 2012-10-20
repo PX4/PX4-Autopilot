@@ -4,6 +4,8 @@
 #
 
 if ARCH_ARM
+comment "ARM Options"
+
 choice
 	prompt "ARM chip selection"
 	default ARCH_CHIP_STM32
@@ -238,6 +240,15 @@ config ARCH_CALIBRATION
 		allows you to calibratre BOARD_LOOPSPERMSEC.  You simply use a stop
 		watch to measure the 100 second delay then adjust BOARD_LOOPSPERMSEC until
 		the delay actually is 100 seconds.
+
+config DEBUG_HARDFAULT
+	bool "Verbose Hard-Fault Debug"
+	default n
+	depends on DEBUG && (ARCH_CORTEXM3 || ARCH_CORTEXM4)
+	---help---
+		Enables verbose debug output when a hard fault is occurs.  This verbose
+		output is sometimes helpful when debugging difficult hard fault problems,
+		but may be more than you typcially want to see.
 
 if ARCH_CHIP_C5471
 source arch/arm/src/c5471/Kconfig

@@ -96,7 +96,6 @@
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_NX_KBD
 static const uint8_t g_pumsg[] = "Pop-Up!";
 static const char *g_bgmsg[BGMSG_LINES] =
 {
@@ -125,7 +124,6 @@ static const char *g_bgmsg[BGMSG_LINES] =
   "I must be gone and live,\n",           /* Line 23 */
   "  or stay and die.\n"                  /* Line 24 */
 };
-#endif
 
 /****************************************************************************
  * Public Data

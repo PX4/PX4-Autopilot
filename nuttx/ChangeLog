@@ -3480,4 +3480,9 @@
 	* drivers/input/max11802.c/h, and include/nuttx/input max11802.h:  Adds
 	  support for the Maxim MAX11802 touchscreen controller (contributed by
 	  Petteri Aimonen).
-
+	* graphics/nxtk/nxtk_events.c:  Missing implementatin of the blocked
+	  method.  This is a critical bugfix for graphics support (contributed
+	  by Petteri Aimonen).
+	* drivers/usbdev/pl2303.c, drivers/usbdev/usbmsc.h, and
+	  include/nuttx/usb/cdcacm.h: USB_CONFIG_ATTR_SELFPOWER vs.
+	  USB_CONFIG_ATT_SELFPOWER (contributed by Petteri Aimonen).

@@ -172,3 +172,14 @@
   NxWidgets/NxWM unit tests.
 
 1.4 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+* libnxwidgets/Makefile, NxWidgets/nxwm/Makefile, and
+  NxWidgets/UnitTests/nxwm/Makefile:  Makefile improvements from
+  submitted by Petteri Aimonen.  Other Makefiles in the UnitTests
+  directory probably also need these changes.
+* libnxwidgets/src/ccallback.cxx: Fix misplaced #endif.  Provided
+  by Petteri Aimonen.
+* libnxwidgets/src/cnxserver.cxx:  Reduce delay to allow NX server
+  to start.  One second was un-necessarily long.  Reduced to 50 MS.
+  Reduction suggested by Petteri Aimonen.
+

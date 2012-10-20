@@ -76,6 +76,9 @@ static void nxtk_mousein(NXWINDOW hwnd, FAR const struct nxgl_point_s *pos,
 static void nxtk_kbdin(NXWINDOW hwnd, uint8_t nch, const uint8_t *ch,
                        FAR void *arg);
 #endif
+#ifdef CONFIG_NX_MULTIUSER
+static void nxtk_blocked(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2);
+#endif
 
 /****************************************************************************
  * Private Data
@@ -94,6 +97,9 @@ const struct nx_callback_s g_nxtkcb =
 #endif
 #ifdef CONFIG_NX_KBD
   , nxtk_kbdin    /* kbdin */
+#endif
+#ifdef CONFIG_NX_MULTIUSER
+  , nxtk_blocked
 #endif
 };
 
@@ -288,6 +294,24 @@ static void nxtk_kbdin(NXWINDOW hwnd, uint8_t nch, const uint8_t *ch,
   if (fwnd->fwcb->kbdin)
     {
       fwnd->fwcb->kbdin((NXTKWINDOW)fwnd, nch, ch, fwnd->fwarg);
+    }
+}
+#endif
+
+/****************************************************************************
+ * Name: nxtk_blocked
+ ****************************************************************************/
+
+#ifdef CONFIG_NX_MULTIUSER
+static void nxtk_blocked(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2)
+{
+  FAR struct nxtk_framedwindow_s *fwnd = (FAR struct nxtk_framedwindow_s *)hwnd;
+
+  /* Only the client window gets keyboard input */
+
+  if (fwnd->fwcb->blocked)
+    {
+      fwnd->fwcb->blocked((NXTKWINDOW)fwnd, fwnd->fwarg, arg2);
     }
 }
 #endif

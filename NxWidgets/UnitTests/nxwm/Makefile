@@ -105,7 +105,7 @@ STACKSIZE	= 2048
 
 VPATH		= 
 
-all: .built
+all: chkcxx chklibnxwidgets chklibnxwm .built
 .PHONY:	clean depend context disclean chkcxx chklibnxwidgets chklibnxwm
 
 # Object file creation targets
@@ -163,7 +163,7 @@ $(NXWIDGETS_LIB): # Just to keep make happy.  chklibnxwidgets does the work.
 
 $(NXWM_LIB): # Just to keep make happy.  chklibnxwm does the work.
 
-.built: chkcxx chklibnxwidgets chklibnxwm $(OBJS) $(NXWIDGETS_LIB)
+.built: $(OBJS) $(NXWIDGETS_LIB)
 	@( for obj in $(OBJS) ; do \
 		$(call ARCHIVE, $(BIN), $${obj}); \
 	   done ; )

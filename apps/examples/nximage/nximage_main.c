@@ -263,9 +263,10 @@ int nximage_main(int argc, char *argv[])
     }
   message("nximage_main: Screen resolution (%d,%d)\n", g_nximage.xres, g_nximage.yres);
 
-  /* Now, put up the NuttX logo. */
+  /* Now, put up the NuttX logo and wait a bit so that it visible. */
 
   nximage_image(g_nximage.hbkgd);
+  sleep(5);
 
   /* Release background */
 

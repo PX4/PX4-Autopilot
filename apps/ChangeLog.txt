@@ -375,3 +375,8 @@
 	* apps/nshlib/nsh_netcmds.c:  The ping command now passes a maximum round
 	  trip time to uip_icmpping().  This allows pinging of hosts on complex
 	  networks where the ICMP ECHO round trip time may exceed the ping interval.
+	* apps/examples/nxtext/nxtext_main.c:  Fix bad conditional compilation
+	  when CONFIG_NX_KBD is not defined.  Submitted by Petteri Aimonen.
+	* apps/examples/nximage/nximage_main.c:  Add a 5 second delay after the
+	  NX logo is presented so that there is time for the image to be verified.
+	  Suggested by Petteri Aimonen.

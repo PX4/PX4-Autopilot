@@ -97,7 +97,7 @@ CXXFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(NXWIDGETDIR
 DEPPATH = --dep-path src
 VPATH = src
 
-all: $(BIN)
+all: check_nuttx $(BIN)
 .PHONY = check_nuttx depend clean distclean export
 
 $(AOBJS): %$(OBJEXT): %.S
@@ -127,7 +127,7 @@ check_nuttx:
 		fi; \
 	)
 
-$(BIN): check_nuttx $(OBJS)
+$(BIN): $(OBJS)
 	@( for obj in $(OBJS) ; do \
 		$(call ARCHIVE, $@, $${obj}); \
 	done ; )
