@@ -15,3 +15,12 @@ config NET_RESOLV_ENTRIES
 	depends on NETUTILS_RESOLV
 	---help---
 		Number of resolver entries.  Default: 8
+
+NET_RESOLV_MAXRESPONSE
+	int "Max response size"
+	default 96
+	depends on NETUTILS_RESOLV
+	---help---
+		This setting determines the maximum size of DHCP response message that
+		can be received.  The default is 96 but may need to be larger on enterprise
+ 		networks (perhaps 176).

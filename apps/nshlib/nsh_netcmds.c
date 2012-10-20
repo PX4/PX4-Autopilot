@@ -51,6 +51,7 @@
 #include <fcntl.h>       /* Needed for open */
 #include <libgen.h>      /* Needed for basename */
 #include <errno.h>
+#include <debug.h>
 
 #include <nuttx/net/net.h>
 #include <nuttx/clock.h>
@@ -78,6 +79,12 @@
 #    include <apps/netutils/uiplib.h>
 #    include <apps/netutils/webclient.h>
 #  endif
+#endif
+
+#ifdef CONFIG_HAVE_GETHOSTBYNAME
+#  include <netdb.h>
+#else
+#  include <apps/netutils/resolv.h>
 #endif
 
 #include "nsh.h"
@@ -599,7 +606,7 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   if (optind == argc-1)
     {
       staddr = argv[optind];
-      if (!uiplib_ipaddrconv(staddr, (FAR unsigned char*)&ipaddr))
+      if (dns_gethostip(staddr, &ipaddr) < 0)
         {
           goto errout;
         }
@@ -621,7 +628,11 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   /* Loop for the specified count */
 
-  nsh_output(vtbl, "PING %s %d bytes of data\n", staddr, DEFAULT_PING_DATALEN);
+  nsh_output(vtbl, "PING %d.%d.%d.%d %d bytes of data\n",
+            (ipaddr       ) & 0xff, (ipaddr >> 8  ) & 0xff,
+            (ipaddr >> 16 ) & 0xff, (ipaddr >> 24 ) & 0xff,
+            DEFAULT_PING_DATALEN);
+
   start = g_system_timer;
   for (i = 1; i <= count; i++)
     {

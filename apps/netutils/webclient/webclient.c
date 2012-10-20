@@ -168,60 +168,6 @@ static char *wget_strcpy(char *dest, const char *src)
 }
 
 /****************************************************************************
- * Name: wget_resolvehost
- ****************************************************************************/
-
-static inline int wget_resolvehost(const char *hostname, in_addr_t *ipaddr)
-{
-#ifdef CONFIG_HAVE_GETHOSTBYNAME
-
-  struct hostent *he;
-
-  nvdbg("Getting address of %s\n", hostname);
-  he = gethostbyname(hostname);
-  if (!he)
-    {
-      ndbg("gethostbyname failed: %d\n", h_errno);
-      return ERROR;
-    }
-
-  nvdbg("Using IP address %04x%04x\n", (uint16_t)he->h_addr[1], (uint16_t)he->h_addr[0]);
-  memcpy(ipaddr, he->h_addr, sizeof(in_addr_t));
-  return OK;
-
-#else
-
-# ifdef CONFIG_NET_IPv6
-  struct sockaddr_in6 addr;
-# else
-  struct sockaddr_in addr;
-# endif
-
-  /* First check if the host is an IP address. */
-
-  if (!uiplib_ipaddrconv(hostname, (uint8_t*)ipaddr))
-    {
-      /* 'host' does not point to a valid address string.  Try to resolve
-       *  the host name to an IP address.
-       */
-
-      if (resolv_query(hostname, &addr) < 0)
-        {
-          /* Needs to set the errno here */
-
-          return ERROR;
-        }
-
-      /* Save the host address -- Needs fixed for IPv6 */
-
-      *ipaddr = addr.sin_addr.s_addr;
-  }
-  return OK;
-
-#endif
-}
-
-/****************************************************************************
  * Name: wget_parsestatus
  ****************************************************************************/
 
@@ -465,7 +411,7 @@ int wget(FAR const char *url, FAR char *buffer, int buflen,
 
       server.sin_family = AF_INET;
       server.sin_port   = htons(ws.port);
-      ret = wget_resolvehost(ws.hostname, &server.sin_addr.s_addr);
+      ret = dns_gethostip(ws.hostname, &server.sin_addr.s_addr);
       if (ret < 0)
         {
           /* Could not resolve host (or malformed IP address) */
