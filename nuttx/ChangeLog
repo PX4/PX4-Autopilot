@@ -3477,4 +3477,7 @@
 	* include/termios.h and lib/termios/libcf*speed.c: The non-standard,
 	  "hidden" c_speed cannot be type const or else static instantiations
 	  of termios will be required to initialize it (Mike Smith).
+	* drivers/input/max11802.c/h, and include/nuttx/input max11802.h:  Adds
+	  support for the Maxim MAX11802 touchscreen controller (contributed by
+	  Petteri Aimonen).
 

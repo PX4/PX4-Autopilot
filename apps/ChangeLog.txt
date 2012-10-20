@@ -372,3 +372,6 @@
 	  username and password (Darcy Gong).
 	* apps/netutils/resolv/resolv.c (and files using the DNS resolver): Various
 	  DNS address resolution improvements from Darcy Gong.
+	* apps/nshlib/nsh_netcmds.c:  The ping command now passes a maximum round
+	  trip time to uip_icmpping().  This allows pinging of hosts on complex
+	  networks where the ICMP ECHO round trip time may exceed the ping interval.

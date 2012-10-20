@@ -87,11 +87,16 @@
 
 # define packed_struct __attribute__ ((packed))
 
-/* GCC does not support the reentrant or naked attributes */
+/* GCC does not support the reentrant attribute */
 
 # define reentrant_function
-# define naked_function
 
+/* The naked attribute informs GCC that the programmer will take care of
+ * the function prolog and epilog.
+ */
+
+# define naked_function __attribute__ ((naked,no_instrument_function))
+ 
 /* The inline_function attribute informs GCC that the function should always
  * be inlined, regardless of the level of optimization.  The noinline_function
  * indicates that the function should never be inlined.
