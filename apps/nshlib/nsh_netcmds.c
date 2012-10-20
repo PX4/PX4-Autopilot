@@ -94,7 +94,15 @@
  * Definitions
  ****************************************************************************/
 
+/* Size of the ECHO data */
+
 #define DEFAULT_PING_DATALEN 56
+
+/* Get the larger value */
+
+#ifndef MAX
+#  define MAX(a,b) (a > b ? a : b)
+#endif
 
 /****************************************************************************
  * Private Types
@@ -543,6 +551,7 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   uint32_t start;
   uint32_t next;
   uint32_t dsec = 10;
+  uint32_t maxwait;
   uint16_t id;
   bool badarg = false;
   int count = 10;
@@ -626,6 +635,12 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   id = ping_newid();
 
+  /* The maximum wait for a response will be the larger of the inter-ping time and
+   * the configured maximum round-trip time.
+   */
+
+  maxwait = MAX(dsec, CONFIG_NSH_MAX_ROUNDTRIP);
+
   /* Loop for the specified count */
 
   nsh_output(vtbl, "PING %d.%d.%d.%d %d bytes of data\n",
@@ -639,7 +654,7 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       /* Send the ECHO request and wait for the response */
 
       next  = g_system_timer;
-      seqno = uip_ping(ipaddr, id, i, DEFAULT_PING_DATALEN, dsec);
+      seqno = uip_ping(ipaddr, id, i, DEFAULT_PING_DATALEN, maxwait);
 
       /* Was any response returned? We can tell if a non-negative sequence
        * number was returned.
@@ -647,7 +662,7 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
       if (seqno >= 0 && seqno <= i)
         {
-          /* Get the elpased time from the time that the request was
+          /* Get the elapsed time from the time that the request was
            * sent until the response was received.  If we got a response
            * to an earlier request, then fudge the elpased time.
            */
@@ -655,7 +670,7 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
           elapsed = TICK2MSEC(g_system_timer - next);
           if (seqno < i)
             {
-              elapsed += 100*dsec*(i - seqno);
+              elapsed += 100 * dsec * (i - seqno);
             }
 
           /* Report the receipt of the reply */
@@ -673,7 +688,7 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       elapsed = TICK2DSEC(g_system_timer - next);
       if (elapsed < dsec)
         {
-          usleep(100000*dsec);
+          usleep(100000 * (dsec - elapsed));
         }
     }
 

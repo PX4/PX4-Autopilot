@@ -520,3 +520,12 @@ config NSH_NOMAC
 	---help---
 		Set if your ethernet hardware has no built-in MAC address.
 		If set, a bogus MAC will be assigned.
+
+config NSH_MAX_ROUNDTRIP
+	int "Max Ping Round-Trip (DSEC)"
+	default 20
+	depends on NSH_LIBRARY && NET && !NSH_DISABLE_PING
+	---help---
+		This is the maximum round trip for a response to a ICMP ECHO request.
+		It is in units of deciseconds.  The default is 20 (2 seconds).
+

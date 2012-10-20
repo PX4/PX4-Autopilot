@@ -75,6 +75,7 @@ EXTERN int  resolv_query(FAR const char *name, FAR struct sockaddr_in *addr);
 #endif
 
 EXTERN int  dns_gethostip(const char *hostname, in_addr_t *ipaddr);
+
 #define dns_setserver   resolv_conf
 #define dns_getserver   resolv_getserver
 #define dns_whois       resolv_query

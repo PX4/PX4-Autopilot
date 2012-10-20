@@ -16,7 +16,7 @@ config NET_RESOLV_ENTRIES
 	---help---
 		Number of resolver entries.  Default: 8
 
-NET_RESOLV_MAXRESPONSE
+config NET_RESOLV_MAXRESPONSE
 	int "Max response size"
 	default 96
 	depends on NETUTILS_RESOLV

@@ -215,6 +215,15 @@
 
 #endif /* CONFIG_NSH_TELNET_LOGIN */
 
+/* CONFIG_NSH_MAX_ROUNDTRIP - This is the maximum round trip for a response to
+ *   a ICMP ECHO request. It is in units of deciseconds.  The default is 20
+ *   (2 seconds).
+ */
+
+#ifndef CONFIG_NSH_MAX_ROUNDTRIP
+#  define CONFIG_NSH_MAX_ROUNDTRIP 20
+#endif
+
 /* Verify support for ROMFS /etc directory support options */
 
 #ifdef CONFIG_NSH_ROMFSETC
