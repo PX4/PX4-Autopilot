@@ -694,10 +694,10 @@ static int adc_timinit(FAR struct stm32_dev_s *priv)
 
       case 4: /* TimerX TRGO event */
         {
-#warning "TRGO support not yet implemented"
-
+          /* TODO: TRGO support not yet implemented */
           /* Set the event TRGO */
 
+          ccenable = 0;
           egr      = GTIM_EGR_TG;
 
           /* Set the duty cycle by writing to the CCR register for this channel */
@@ -971,7 +971,7 @@ static void adc_reset(FAR struct adc_dev_s *dev)
   avdbg("intf: ADC%d\n", priv->intf);
   flags = irqsave();
 
-  /* Enable  ADC reset state */
+  /* Enable ADC reset state */
 
   adc_rccreset(priv, true);
 
@@ -1164,6 +1164,10 @@ static int adc_setup(FAR struct adc_dev_s *dev)
   ret = irq_attach(priv->irq, priv->isr);
   if (ret == OK)
     {
+      /* Make sure that the ADC device is in the powered up, reset state */
+
+      adc_reset(dev);
+
       /* Enable the ADC interrupt */
 
       avdbg("Enable the ADC interrupt: irq=%d\n", priv->irq);

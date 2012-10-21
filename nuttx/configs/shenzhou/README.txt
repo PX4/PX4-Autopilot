@@ -593,6 +593,12 @@ Shenzhou-specific Configuration Options
     CONFIG_STM32_ADC1
     CONFIG_STM32_ADC2
 
+  Timer and I2C devices may need to the following to force power to be applied
+  unconditionally at power up.  (Otherwise, the device is powered when it is
+  initialized).
+
+    CONFIG_STM32_FORCEPOWER
+
   Timer devices may be used for different purposes.  One special purpose is
   to generate modulated outputs for such things as motor control.  If CONFIG_STM32_TIMn
   is defined (as above) then the following may also be defined to indicate that
@@ -798,6 +804,7 @@ Where <subdir> is one of the following:
          CONFIG_STM32_TIM1_ADC1=y               : Allocate Timer 1 to ADC 1
          CONFIG_STM32_ADC1_SAMPLE_FREQUENCY=100 : Set sampling frequency to 100Hz
          CONFIG_STM32_ADC1_TIMTRIG=0            : Trigger on timer output 0
+         CONFIG_STM32_FORCEPOWER=y              : Apply power to TIM1 a boot up time
          CONFIG_EXAMPLES_ADC=y                  : Enable the apps/examples/adc built-in
 
   nxwm

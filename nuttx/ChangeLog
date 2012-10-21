@@ -3496,3 +3496,8 @@
 	  optimized for size.
 	* lib/strings/lib_memset.c: CONFIG_MEMSET_64BIT will perform 64-bit
 	  aligned memset() operations.
+	* arch/arm/src/stm32/stm32_adc.c:  Need to put the ADC back into the
+	  initial reset in the open/setup logic.  Opening the ADC driver works
+	  the first time, but not the second because the device is left in a
+	  powered down state on the last close.
+

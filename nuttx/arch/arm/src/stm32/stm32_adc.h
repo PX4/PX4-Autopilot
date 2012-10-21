@@ -287,7 +287,7 @@
 
 #if defined(ADC1_HAVE_TIMER) || defined(ADC2_HAVE_TIMER) || defined(ADC3_HAVE_TIMER)
 #  define ADC_HAVE_TIMER 1
-#  if defined(CONFIG_STM32_STM32F10XX) && defined(CONFIG_STM32_FORCEPOWER)
+#  if defined(CONFIG_STM32_STM32F10XX) && !defined(CONFIG_STM32_FORCEPOWER)
 #    warning "CONFIG_STM32_FORCEPOWER must be defined to enable the timer(s)"
 #  endif
 #else
