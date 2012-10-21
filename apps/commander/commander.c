@@ -83,6 +83,8 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
 
+#include "calibration_routines.h"
+
 
 PARAM_DEFINE_INT32(SYS_FAILSAVE_LL, 0);	/**< Go into low-level failsafe after 0 ms */
 //PARAM_DEFINE_INT32(SYS_FAILSAVE_HL, 0);	/**< Go into high-level failsafe after 0 ms */
@@ -288,8 +290,9 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	status->flag_preflight_mag_calibration = true;
 	state_machine_publish(status_pub, status, mavlink_fd);
 
-	int sub_sensor_combined = orb_subscribe(ORB_ID(sensor_combined));
-	struct sensor_combined_s raw;
+	int sub_mag = orb_subscribe(ORB_ID(sensor_mag));
+	orb_set_interval(sub_mag, 22);
+	struct mag_report mag;
 
 	/* 30 seconds */
 	uint64_t calibration_interval = 45 * 1000 * 1000;
@@ -306,8 +309,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 
 	int fd = open(MAG_DEVICE_PATH, 0);
 
-	
-	
+	/* erase old calibration */
 	struct mag_scale mscale_null = {
 		0.0f,
 		1.0f,
@@ -321,7 +323,14 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		mavlink_log_info(mavlink_fd, "[commander] failed to set scale / offsets for mag");
 	}
 
+	/* calibrate range */
+	if (OK != ioctl(fd, MAGIOCCALIBRATE, fd)) {
+		warnx("failed to calibrate scale");
+	}
+
 	close(fd);
+
+	/* calibrate offsets */
 
 	uint64_t calibration_start = hrt_absolute_time();
 
@@ -331,10 +340,16 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	const char axislabels[3] = { 'Z', 'X', 'Y'};
 	int axis_index = -1;
 
-	while (hrt_absolute_time() < calibration_deadline) {
+	const int calibration_maxcount = 2000;
+	float *x = malloc(sizeof(float) * calibration_maxcount);
+	float *y = malloc(sizeof(float) * calibration_maxcount);
+	float *z = malloc(sizeof(float) * calibration_maxcount);
+
+	while (hrt_absolute_time() < calibration_deadline &&
+		calibration_counter < calibration_maxcount) {
 
 		/* wait blocking for new data */
-		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
+		struct pollfd fds[1] = { { .fd = sub_mag, .events = POLLIN } };
 
 		/* user guidance */
 		if (hrt_absolute_time() >= axis_deadline &&
@@ -363,30 +378,34 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		// }
 
 		if (poll(fds, 1, 1000)) {
-			orb_copy(ORB_ID(sensor_combined), sub_sensor_combined, &raw);
+			orb_copy(ORB_ID(sensor_mag), sub_mag, &mag);
+
+			x[calibration_counter] = mag.x;
+			y[calibration_counter] = mag.y;
+			z[calibration_counter] = mag.z;
+
 			/* get min/max values */
 
-			/* ignore other axes */
-			if (raw.magnetometer_ga[0] < mag_min[0]) {
-				mag_min[0] = raw.magnetometer_ga[0];
-			}
-			else if (raw.magnetometer_ga[0] > mag_max[0]) {
-				mag_max[0] = raw.magnetometer_ga[0];
-			}
+			// if (mag.x < mag_min[0]) {
+			// 	mag_min[0] = mag.x;
+			// }
+			// else if (mag.x > mag_max[0]) {
+			// 	mag_max[0] = mag.x;
+			// }
 
-			if (raw.magnetometer_ga[1] < mag_min[1]) {
-				mag_min[1] = raw.magnetometer_ga[1];
-			}
-			else if (raw.magnetometer_ga[1] > mag_max[1]) {
-				mag_max[1] = raw.magnetometer_ga[1];
-			}
+			// if (raw.magnetometer_ga[1] < mag_min[1]) {
+			// 	mag_min[1] = raw.magnetometer_ga[1];
+			// }
+			// else if (raw.magnetometer_ga[1] > mag_max[1]) {
+			// 	mag_max[1] = raw.magnetometer_ga[1];
+			// }
 
-			if (raw.magnetometer_ga[2] < mag_min[2]) {
-				mag_min[2] = raw.magnetometer_ga[2];
-			}
-			else if (raw.magnetometer_ga[2] > mag_max[2]) {
-				mag_max[2] = raw.magnetometer_ga[2];
-			}
+			// if (raw.magnetometer_ga[2] < mag_min[2]) {
+			// 	mag_min[2] = raw.magnetometer_ga[2];
+			// }
+			// else if (raw.magnetometer_ga[2] > mag_max[2]) {
+			// 	mag_max[2] = raw.magnetometer_ga[2];
+			// }
 
 			calibration_counter++;
 		} else {
@@ -396,76 +415,89 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		}
 	}
 
-	/* disable calibration mode */
-	status->flag_preflight_mag_calibration = false;
-	state_machine_publish(status_pub, status, mavlink_fd);
+	float sphere_x;
+	float sphere_y;
+	float sphere_z;
+	float sphere_radius;
 
-	float mag_offset[3];
+	sphere_fit_least_squares(x, y, z, calibration_counter, 100, 0.0f, &sphere_x, &sphere_y, &sphere_z, &sphere_radius);
 
-	/**
-	 * The offset is subtracted from the sensor values, so the result is the
-	 * POSITIVE number that has to be subtracted from the sensor data
-	 * to shift the center to zero
-	 *
-	 * offset = max - ((max - min) / 2.0f)
-	 *          max - max/2 + min/2
-	 *          max/2 + min/2
-	 *
-	 * which reduces to
-	 *
-	 * offset = (max + min) / 2.0f
-	 */
+	free(x);
+	free(y);
+	free(z);
 
-	mag_offset[0] = (mag_max[0] + mag_min[0]) / 2.0f;
-	mag_offset[1] = (mag_max[1] + mag_min[1]) / 2.0f;
-	mag_offset[2] = (mag_max[2] + mag_min[2]) / 2.0f;
+	float mag_offset[3] = {sphere_x, sphere_y, sphere_z};
+
+	// *
+	//  * The offset is subtracted from the sensor values, so the result is the
+	//  * POSITIVE number that has to be subtracted from the sensor data
+	//  * to shift the center to zero
+	//  *
+	//  * offset = max - ((max - min) / 2.0f)
+	//  *          max - max/2 + min/2
+	//  *          max/2 + min/2
+	//  *
+	//  * which reduces to
+	//  *
+	//  * offset = (max + min) / 2.0f
+	 
+
+	// mag_offset[0] = (mag_max[0] + mag_min[0]) / 2.0f;
+	// mag_offset[1] = (mag_max[1] + mag_min[1]) / 2.0f;
+	// mag_offset[2] = (mag_max[2] + mag_min[2]) / 2.0f;
 
 	if (isfinite(mag_offset[0]) && isfinite(mag_offset[1]) && isfinite(mag_offset[2])) {
 
-		/* announce and set new offset */
-
-		if (param_set(param_find("SENS_MAG_XOFF"), &(mag_offset[0]))) {
-			fprintf(stderr, "[commander] Setting X mag offset failed!\n");
-		}
-
-		if (param_set(param_find("SENS_MAG_YOFF"), &(mag_offset[1]))) {
-			fprintf(stderr, "[commander] Setting Y mag offset failed!\n");
-		}
-
-		if (param_set(param_find("SENS_MAG_ZOFF"), &(mag_offset[2]))) {
-			fprintf(stderr, "[commander] Setting Z mag offset failed!\n");
-		}
-
-		if (param_set(param_find("SENS_MAG_XSCALE"), &(mag_offset[0]))) {
-			fprintf(stderr, "[commander] Setting X mag offset failed!\n");
-		}
-
-		if (param_set(param_find("SENS_MAG_YSCALE"), &(mag_offset[1]))) {
-			fprintf(stderr, "[commander] Setting Y mag offset failed!\n");
-		}
-
-		if (param_set(param_find("SENS_MAG_ZSCALE"), &(mag_offset[2]))) {
-			fprintf(stderr, "[commander] Setting Z mag offset failed!\n");
-		}
-
 		fd = open(MAG_DEVICE_PATH, 0);
-		struct mag_scale mscale = {
-			mag_offset[0],
-			1.0f,
-			mag_offset[1],
-			1.0f,
-			mag_offset[2],
-			1.0f,
-		};
+
+		struct mag_scale mscale;
+
+		if (OK != ioctl(fd, MAGIOCGSCALE, (long unsigned int)&mscale))
+			warn("WARNING: failed to get scale / offsets for mag");
+
+		mscale.x_offset = mag_offset[0];
+		mscale.y_offset = mag_offset[1];
+		mscale.z_offset = mag_offset[2];
+
 		if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale))
 			warn("WARNING: failed to set scale / offsets for mag");
 		close(fd);
+
+		/* announce and set new offset */
+
+		if (param_set(param_find("SENS_MAG_XOFF"), &(mscale.x_offset))) {
+			fprintf(stderr, "[commander] Setting X mag offset failed!\n");
+		}
+
+		if (param_set(param_find("SENS_MAG_YOFF"), &(mscale.y_offset))) {
+			fprintf(stderr, "[commander] Setting Y mag offset failed!\n");
+		}
+
+		if (param_set(param_find("SENS_MAG_ZOFF"), &(mscale.z_offset))) {
+			fprintf(stderr, "[commander] Setting Z mag offset failed!\n");
+		}
+
+		if (param_set(param_find("SENS_MAG_XSCALE"), &(mscale.x_scale))) {
+			fprintf(stderr, "[commander] Setting X mag scale failed!\n");
+		}
+
+		if (param_set(param_find("SENS_MAG_YSCALE"), &(mscale.y_scale))) {
+			fprintf(stderr, "[commander] Setting Y mag scale failed!\n");
+		}
+
+		if (param_set(param_find("SENS_MAG_ZSCALE"), &(mscale.z_scale))) {
+			fprintf(stderr, "[commander] Setting Z mag scale failed!\n");
+		}
 
 		/* auto-save to EEPROM */
 		int save_ret = pm_save_eeprom(false);
 		if(save_ret != 0) {
 			warn("WARNING: auto-save of params to EEPROM failed");
 		}
+
+		printf("[mag cal] scale: %.6f %.6f %.6f\n\t\toffset: %.6f %.6f %.6f\nradius: %.6f GA\n",
+			mscale.x_scale, mscale.y_scale, mscale.z_scale,
+			mscale.x_offset, mscale.y_offset, mscale.z_offset, sphere_radius);
 		
 		// char buf[50];
 		// sprintf(buf, "[commander] mag cal: x:%d y:%d z:%d mGa", (int)(mag_offset[0]*1000), (int)(mag_offset[1]*1000), (int)(mag_offset[2]*1000));
@@ -475,7 +507,11 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		mavlink_log_info(mavlink_fd, "[commander] mag calibration FAILED (NaN)");
 	}
 
-	close(sub_sensor_combined);
+	/* disable calibration mode */
+	status->flag_preflight_mag_calibration = false;
+	state_machine_publish(status_pub, status, mavlink_fd);
+
+	close(sub_mag);
 }
 
 void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
