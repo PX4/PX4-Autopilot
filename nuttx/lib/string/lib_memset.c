@@ -117,7 +117,7 @@ void *memset(void *s, int c, size_t n)
               n    -= 4;
             }
 #else
-          /* Align to a 32-bit boundary */
+          /* Check if there are at least 32-bits left to be zeroed */
 
           if (n >= 4)
             {
