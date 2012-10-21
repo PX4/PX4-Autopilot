@@ -3494,3 +3494,5 @@
 	* lib/strings/lib_memset.c: CONFIG_MEMSET_OPTSPEED will select a
 	  version of memset() optimized for speed.  By default, memset() is
 	  optimized for size.
+	* lib/strings/lib_memset.c: CONFIG_MEMSET_64BIT will perform 64-bit
+	  aligned memset() operations.

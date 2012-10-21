@@ -628,7 +628,7 @@ defconfig -- This is a configuration file similar to the Linux
       function by Daniel Vik.  See licensing information in the top-level
       COPYING file.  Default: n
 
-  And if CONFIG_MEMCPY_VIK, the following tuning options are available:
+  And if CONFIG_MEMCPY_VIK is selected, the following tuning options are available:
 
     CONFIG_MEMCPY_PRE_INC_PTRS - Use pre-increment of pointers. Default is
       post increment of pointers.
@@ -643,6 +643,11 @@ defconfig -- This is a configuration file similar to the Linux
 
     CONFIG_MEMSET_OPTSPEED - Select this option to use a version of memcpy()
       optimized for speed. Default: memcpy() is optimized for size.
+
+  And if CONFIG_MEMSET_OPTSPEED is selected, the following tuning option is
+  available:
+
+    CONFIG_MEMSET_64BIT - Compiles memset() for 64 bit architectures
 
   The architecture may provide custom versions of certain standard header
   files:

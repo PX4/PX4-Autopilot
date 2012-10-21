@@ -1,4 +1,5 @@
-/************************************************************
+
+/****************************************************************************
  * lib/string/lib_memset.c
  *
  *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
@@ -31,15 +32,12 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
- * Compilation Switches
- ************************************************************/
 
-/************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************/
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 
@@ -49,9 +47,21 @@
 #include <string.h>
 #include <assert.h>
 
-/************************************************************
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/* Can't support CONFIG_MEMSET_64BIT if the platform does not have 64-bit
+ * integer types.
+ */
+
+#ifndef CONFIG_HAVE_LONG_LONG
+#  undef CONFIG_MEMSET_64BIT
+#endif
+
+/****************************************************************************
  * Global Functions
- ************************************************************/
+ ****************************************************************************/
 
 #ifndef CONFIG_ARCH_MEMSET
 void *memset(void *s, int c, size_t n)
@@ -59,13 +69,15 @@ void *memset(void *s, int c, size_t n)
 #ifdef CONFIG_MEMSET_OPTSPEED
   /* This version is optimized for speed (you could do better
    * still by exploiting processor caching or memory burst
-   * knowledge.  64-bit support might improve performance as
-   * well.
+   * knowledge.)
    */
 
   uintptr_t addr  = (uintptr_t)s;
-  uint16_t  val16 = ((uint16_t)c << 8)  | (uint16_t)c;
-  uint32_t  val32 = ((uint32_t)val16 << 16)  | (uint32_t)val16;
+  uint16_t  val16 = ((uint16_t)c << 8) | (uint16_t)c;
+  uint32_t  val32 = ((uint32_t)val16 << 16) | (uint32_t)val16;
+#ifdef CONFIG_MEMSET_64BIT
+  uint64_t  val64 = ((uint64_t)val32 << 32) | (uint64_t)val32;
+#endif
 
   /* Make sure that there is something to be cleared */
 
@@ -95,6 +107,7 @@ void *memset(void *s, int c, size_t n)
               n    -= 2;
             }
 
+#ifndef CONFIG_MEMSET_64BIT
           /* Loop while there are at least 32-bits left to be zeroed */
 
           while (n >= 4)
@@ -103,12 +116,51 @@ void *memset(void *s, int c, size_t n)
               addr += 4;
               n    -= 4;
             }
+#else
+          /* Align to a 32-bit boundary */
+
+          if (n >= 4)
+            {
+              /* Align to a 64-bit boundary (we know that the destination
+               * address is already aligned to at least a 32-bit boundary).
+               */
+
+              if ((addr & 7) != 0)
+                {
+                  *(uint32_t*)addr = val32;
+                  addr += 4;
+                  n    -= 4;
+                }
+
+              /* Loop while there are at least 64-bits left to be zeroed */
+
+              while (n >= 8)
+                {
+                  *(uint64_t*)addr = val64;
+                  addr += 8;
+                  n    -= 8;
+                }
+            }
+#endif
         }
+
+#ifdef CONFIG_MEMSET_64BIT
+    /* We may get here with n in the range 0..7.  If n >= 4, then we should
+     * have 64-bit alignment.
+     */
+
+    if (n >= 4)
+      {
+        *(uint32_t*)addr = val32;
+        addr += 4;
+        n    -= 4;
+      }
+#endif
 
       /* We may get here under the following conditions:
        *
        *   n = 0, addr may or may not be aligned
-       *   n = 1, addr may or may not be aligned
+       *   n = 1, addr is aligned to at least a 16-bit boundary
        *   n = 2, addr is aligned to a 32-bit boundary
        *   n = 3, addr is aligned to a 32-bit boundary
        */

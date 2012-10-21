@@ -219,6 +219,13 @@ config MEMSET_OPTSPEED
 		Select this option to use a version of memcpy() optimized for speed.
 		Default: memcpy() is optimized for size.
 
+config MEMSET_64BIT
+	bool "64-bit memset()"
+	default n
+	depends on MEMSET_OPTSPEED
+	---help---
+		Compiles memset() for 64 bit architectures
+
 config ARCH_STRCMP
 	bool "strcmp()"
 	default n
