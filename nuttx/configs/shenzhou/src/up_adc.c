@@ -85,12 +85,21 @@
  * Private Data
  ************************************************************************************/
 
-/* Identifying number of each ADC channel: Variable Resistor */
+/* Identifying number of each ADC channel. The only internal signal for ADC testing
+ * is the potentiometer input:
+ *
+ *   ADC1_IN10(PC0) Potentiometer
+ *
+ * External signals are also available on CON5 CN14:
+ *
+ *  ADC_IN8 (PB0) CON5 CN14 Pin2
+ *  ADC_IN9 (PB1) CON5 CN14 Pin1
+ */
 
 #ifdef CONFIG_STM32_ADC1
 static const uint8_t  g_chanlist[ADC1_NCHANNELS] = {10}; //{10, 8, 9};
 
-/* Configurations of pins used byte each ADC channels */
+/* Configurations of pins used by each ADC channel */
 
 static const uint32_t g_pinlist[ADC1_NCHANNELS]  = {GPIO_ADC12_IN10}; //{GPIO_ADC12_IN10, GPIO_ADC12_IN8, GPIO_ADC12_IN9};
 #endif

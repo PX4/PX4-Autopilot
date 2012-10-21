@@ -772,6 +772,34 @@ Where <subdir> is one of the following:
        before the networking finally gives up and decides that no network is
        available.
 
+    2. Enabling the ADC example:
+
+       The only internal signal for ADC testing is the potentiometer input:
+
+         ADC1_IN10(PC0) Potentiometer
+
+       External signals are also available on CON5 CN14:
+    
+         ADC_IN8 (PB0) CON5 CN14 Pin2
+         ADC_IN9 (PB1) CON5 CN14 Pin1
+
+       The signal selection is hard-coded in configs/shenzhou/src/up_adc.c:  The
+       potentiometer input (only) is selected.
+
+       These selections will enable sampling the potentiometer input at 100Hz using
+       Timer 1:
+
+         CONFIG_ANALOG=y                        : Enable analog device support
+         CONFIG_ADC=y                           : Enable generic ADC driver support
+         CONFIG_ADC_DMA=n                       : ADC DMA is not supported
+         CONFIG_STM32_ADC1=y                    : Enable ADC 1
+         CONFIG_STM32_TIM1=y                    : Enable Timer 1
+         CONFIG_STM32_TIM1_ADC=y                : Use Timer 1 for ADC
+         CONFIG_STM32_TIM1_ADC1=y               : Allocate Timer 1 to ADC 1
+         CONFIG_STM32_ADC1_SAMPLE_FREQUENCY=100 : Set sampling frequency to 100Hz
+         CONFIG_STM32_ADC1_TIMTRIG=0            : Trigger on timer output 0
+         CONFIG_EXAMPLES_ADC=y                  : Enable the apps/examples/adc built-in
+
   nxwm
   ----
     This is a special configuration setup for the NxWM window manager

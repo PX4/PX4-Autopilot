@@ -244,17 +244,24 @@ config DEBUG_ENABLE
 
 comment "Subsystem Debug Options"
 
+config DEBUG_MM
+	bool "Enable Memory Manager Debug Output"
+	default n
+	---help---
+		Enable memory management debug output (disabled by default)
+
 config DEBUG_SCHED
 	bool "Enable Scheduler Debug Output"
 	default n
 	---help---
 		Enable OS debug output (disabled by default)
 
-config DEBUG_MM
-	bool "Enable Memory Manager Debug Output"
+config DEBUG_PAGING
+	bool "Enable Demand Paging Debug Output"
 	default n
+	depends on PAGING
 	---help---
-		Enable memory management debug output (disabled by default)
+		Enable demand paging debug output (disabled by default)
 
 config DEBUG_NET
 	bool "Enable Network Debug Output"
@@ -311,6 +318,13 @@ config DEBUG_INPUT
 		Enable low level debug output from the input device drivers such as
  		mice and touchscreens (disabled by default)
 
+config DEBUG_ANALOG
+	bool "Enable Analog Device Debug Output"
+	default n
+	---help---
+		Enable low level debug output from the analog device drivers such as
+ 		A/D and D/A converters (disabled by default)
+
 config DEBUG_I2C
 	bool "Enable I2C Debug Output"
 	default n
@@ -325,12 +339,18 @@ config DEBUG_SPI
 	---help---
 		Enable I2C driver debug output (disabled by default)
 
+config DEBUG_DMA
+	bool "Enable DMA Debug Output"
+	default n
+	---help---
+		Enable DMA-releated debug output (disabled by default)
+
 config DEBUG_WATCHDOG
 	bool "Enable Watchdog Timer Debug Output"
 	default n
 	depends on WATCHDOG
 	---help---
-		Enable  watchdog timer debug output (disabled by default)
+		Enable watchdog timer debug output (disabled by default)
 
 endif
 

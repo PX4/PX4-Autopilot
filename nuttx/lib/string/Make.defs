@@ -48,7 +48,7 @@ ifneq ($(CONFIG_ARCH_MEMCPY),y)
 ifeq ($(CONFIG_MEMCPY_VIK),y)
 CSRCS += lib_vikmemcpy.c
 else
-CSRCS += lib_memccpy.c
+CSRCS += lib_memcpy.c
 endif
 endif
 
