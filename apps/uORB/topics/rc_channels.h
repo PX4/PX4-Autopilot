@@ -86,10 +86,9 @@ struct rc_channels_s {
   uint64_t timestamp_last_valid;      /**< timestamp of last valid RC signal. */
   struct {
     uint16_t mid;                     /**< midpoint (0). */
-    float scaling_factor;             /**< scaling factor from raw counts to 0..1 */
+    float scaling_factor;             /**< scaling factor from raw counts to -1..+1 */
     uint16_t raw;                     /**< current raw value */
-    int16_t scale;
-    float scaled;                     /**< Scaled  */
+    float scaled;                     /**< Scaled to -1..1 (throttle: 0..1) */
     uint16_t override;
     enum RC_CHANNELS_STATUS status;   /**< status of the channel */
   } chan[RC_CHANNELS_FUNCTION_MAX];

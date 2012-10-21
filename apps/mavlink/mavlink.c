@@ -68,6 +68,7 @@
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/vehicle_global_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -134,6 +135,8 @@ static struct vehicle_command_s vcmd;
 
 static struct actuator_armed_s armed;
 
+static struct vehicle_vicon_position_s vicon_position;
+
 static orb_advert_t pub_hil_global_pos = -1;
 static orb_advert_t cmd_pub = -1;
 static orb_advert_t flow_pub = -1;
@@ -191,8 +194,10 @@ static struct mavlink_subscriptions {
 
 static struct mavlink_publications {
 	orb_advert_t offboard_control_sp_pub;
+	orb_advert_t vicon_position_pub;
 } mavlink_pubs = {
-	.offboard_control_sp_pub = -1
+	.offboard_control_sp_pub = -1,
+	.vicon_position_pub = -1
 };
 
 
@@ -884,7 +889,7 @@ static void *uorb_receiveloop(void *arg)
 				/* copy rc channels into local buffer */
 				orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
 				/* Channels are sent in MAVLink main loop at a fixed interval */
-				mavlink_msg_rc_channels_raw_send(chan, rc.timestamp / 1000, 0, rc.chan[0].raw, rc.chan[1].raw, rc.chan[2].raw, rc.chan[3].raw,
+			mavlink_msg_rc_channels_raw_send(chan, rc.timestamp / 1000, 0, rc.chan[0].raw, rc.chan[1].raw, rc.chan[2].raw, rc.chan[3].raw,
 							 rc.chan[4].raw, rc.chan[5].raw, rc.chan[6].raw, rc.chan[7].raw, rc.rssi);
 			}
 
@@ -1240,9 +1245,26 @@ void handleMessage(mavlink_message_t *msg)
 		/* check if topic is advertised */
 		if (cmd_pub <= 0) {
 			cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+		} else {
+			/* create command */
+			orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
 		}
-		/* create command */
-		orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
+	}
+
+	/* Handle Vicon position estimates */
+	if (msg->msgid == MAVLINK_MSG_ID_VICON_POSITION_ESTIMATE) {
+		mavlink_vicon_position_estimate_t pos;
+		mavlink_msg_vicon_position_estimate_decode(msg, &pos);
+
+		vicon_position.x = pos.x;
+		vicon_position.y = pos.y;
+		vicon_position.z = pos.z;
+
+		if (mavlink_pubs.vicon_position_pub <= 0) {
+			mavlink_pubs.vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
+		} else {
+			orb_publish(ORB_ID(vehicle_vicon_position), mavlink_pubs.vicon_position_pub, &vicon_position);
+		}
 	}
 
 	/* Handle quadrotor motor setpoints */
@@ -1250,7 +1272,8 @@ void handleMessage(mavlink_message_t *msg)
 	if (msg->msgid == MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST) {
 		mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t quad_motors_setpoint;
 		mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_decode(msg, &quad_motors_setpoint);
-//		printf("got MAVLINK_MSG_ID_SET_QUAD_MOTORS_SETPOINT target_system=%u, sysid = %u\n", quad_motors_setpoint.target_system, mavlink_system.sysid);
+		//printf("got message\n");
+		//printf("got MAVLINK_MSG_ID_SET_QUAD_MOTORS_SETPOINT target_system=%u, sysid = %u\n", mavlink_system.sysid, quad_motors_setpoint.mode);
 
 		if (mavlink_system.sysid < 4) {
 			/* 
@@ -1260,19 +1283,28 @@ void handleMessage(mavlink_message_t *msg)
 			uint8_t ml_mode = 0;
 			bool ml_armed = false;
 
-			if (quad_motors_setpoint.mode & MAVLINK_OFFBOARD_CONTROL_FLAG_ARMED) {
-				ml_armed = true;
-			}
+//			if (quad_motors_setpoint.mode & MAVLINK_OFFBOARD_CONTROL_FLAG_ARMED) {
+//				ml_armed = true;
+//			}
 
 			switch (quad_motors_setpoint.mode) {
 				case 0:
+					ml_armed = false;
+
 					break;
 				case 1:
+
 					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_RATES;
-					break;
+					ml_armed = true;
+
+				break;
 				case 2:
+
+
 					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE;
-					break;
+					ml_armed = true;
+
+				break;
 				case 3:
 					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY;
 					break;
@@ -1284,7 +1316,14 @@ void handleMessage(mavlink_message_t *msg)
 			offboard_control_sp.p1 = quad_motors_setpoint.roll[mavlink_system.sysid]   / (float)INT16_MAX;
 			offboard_control_sp.p2 = quad_motors_setpoint.pitch[mavlink_system.sysid]  / (float)INT16_MAX;
 			offboard_control_sp.p3= quad_motors_setpoint.yaw[mavlink_system.sysid]    / (float)INT16_MAX;
-			offboard_control_sp.p4 = quad_motors_setpoint.thrust[mavlink_system.sysid] / (float)UINT16_MAX;
+			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid]/(float)UINT16_MAX;
+			//offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid] ;
+
+			if (quad_motors_setpoint.thrust[mavlink_system.sysid] ==0){
+				ml_armed = false;
+
+			}
+
 			offboard_control_sp.armed = ml_armed;
 			offboard_control_sp.mode = ml_mode;
 
@@ -1418,6 +1457,8 @@ void handleMessage(mavlink_message_t *msg)
 			memset(&rc_hil, 0, sizeof(rc_hil));
 			static orb_advert_t rc_pub = 0;
 
+			rc_hil.timestamp = hrt_absolute_time();
+			rc_hil.chan_count = 4;
 			rc_hil.chan[0].raw = 1500 + man.x / 2;
 			rc_hil.chan[1].raw = 1500 + man.y / 2;
 			rc_hil.chan[2].raw = 1500 + man.r / 2;
@@ -1431,6 +1472,7 @@ void handleMessage(mavlink_message_t *msg)
 			struct manual_control_setpoint_s mc;
 			static orb_advert_t mc_pub = 0;
 
+			mc.timestamp = rc_hil.timestamp;
 			mc.roll = man.x / 1000.0f;
 			mc.pitch = man.y / 1000.0f;
 			mc.yaw = man.r / 1000.0f;
@@ -1695,14 +1737,6 @@ int mavlink_thread_main(int argc, char *argv[])
 	/* all subscriptions are now active, set up initial guess about rate limits */
 	if (baudrate >= 460800) {
 		/* 200 Hz / 5 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 5);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_RAW_IMU, 5);
-		/* 200 Hz / 5 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 5);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 3);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 5);
-		/* 5 Hz */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 200);
 	} else if (baudrate >= 230400) {
 		/* 200 Hz / 5 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 20);
@@ -1716,13 +1750,13 @@ int mavlink_thread_main(int argc, char *argv[])
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 100);
 	} else if (baudrate >= 115200) {
 		/* 50 Hz / 20 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 20);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_RAW_IMU, 20);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 200);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_RAW_IMU, 200);
 		/* 20 Hz / 50 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 20);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 50);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 200);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 200);
 		/* 10 Hz / 100 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 100);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 200);
 		/* 1 Hz */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 1000);
 	} else if (baudrate >= 57600) {
@@ -1799,7 +1833,9 @@ int mavlink_thread_main(int argc, char *argv[])
 		mavlink_pm_queued_send();
 		/* sleep quarter the time */
 		usleep(25000);
-		mavlink_pm_queued_send();
+		if (baudrate > 57600) {
+			mavlink_pm_queued_send();
+		}
 
 		/* sleep 10 ms */
 		usleep(10000);
@@ -1869,7 +1905,7 @@ int mavlink_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		mavlink_task = task_spawn("mavlink",
-					  SCHED_RR,
+					  SCHED_DEFAULT,
 					  SCHED_PRIORITY_DEFAULT,
 					  6000,
 					  mavlink_thread_main,

@@ -12,31 +12,31 @@ config FS_NXFFS
 
 if FS_NXFFS
 config NXFFS_ERASEDSTATE
-	bool "FLASH erased state"
-	default n
+	hex "FLASH erased state"
+	default 0xff
 	---help---	
 		The erased state of FLASH. 
 		This must have one of the values of 0xff or 0x00.
 		Default: 0xff.
 
 config NXFFS_PACKTHRESHOLD
-	bool "Re-packing threshold"
-	default n
+	int "Re-packing threshold"
+	default 32
 	---help---
 		When packing flash file data,
 		don't both with file chunks smaller than this number of data bytes.
 		Default: 32.
 
 config NXFFS_MAXNAMLEN
-	bool "Maximum file name length"
-	default n
+	int "Maximum file name length"
+	default 255
 	---help---	
 		The maximum size of an NXFFS file name.
 		Default: 255.
 
 config NXFFS_TAILTHRESHOLD
-	bool "Tail threshold"
-	default n
+	int "Tail threshold"
+	default 8192
 	---help---	
 		clean-up can either mean
 		packing files together toward the end of the file or, if file are

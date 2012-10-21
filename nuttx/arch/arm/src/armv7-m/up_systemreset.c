@@ -1,6 +1,9 @@
 /****************************************************************************
+ * arch/arm/src/armv7-m/up_systemreset.c
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *           Darcy Gong
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,7 +15,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name PX4 nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -31,53 +34,46 @@
  *
  ****************************************************************************/
 
-/*
- * Driver for the ST LIS331 MEMS accelerometer
- */
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
 
-#include <sys/ioctl.h>
+#include <nuttx/config.h>
 
-#define _LIS331BASE	0x6900
-#define LIS331C(_x)	_IOC(_LIS331BASE, _x)
+#include <stdint.h>
 
-/* 
- * Sets the sensor internal sampling rate, and if a buffer
- * has been configured, the rate at which entries will be
- * added to the buffer.
- */
-#define LIS331_SETRATE		LIS331C(1)
+#include "up_arch.h"
+#include "nvic.h"
 
-#define LIS331_RATE_50Hz		(0<<3)
-#define LIS331_RATE_100Hz		(1<<3)
-#define LIS331_RATE_400Hz		(2<<3)
-#define LIS331_RATE_1000Hz		(3<<3)
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
 
-/*
- * Sets the sensor internal range.
- */
-#define LIS331_SETRANGE		LIS331C(2)
+ /****************************************************************************
+ * Public Types
+ ****************************************************************************/
 
-#define LIS331_RANGE_2G			(0<<4)
-#define LIS331_RANGE_4G			(1<<4)
-#define LIS331_RANGE_8G			(3<<4)
+/****************************************************************************
+ * Public functions
+ ****************************************************************************/
 
-/*
- * Sets the address of a shared lis331_buffer
- * structure that is maintained by the driver.
- *
- * If zero is passed as the address, disables
- * the buffer updating.
- */
-#define LIS331_SETBUFFER	LIS331C(3)
+void up_systemreset(void)
+{
+  uint32_t regval;
 
-struct lis331_buffer {
-	uint32_t	size;		/* number of entries in the samples[] array */
-	uint32_t	next;		/* the next entry that will be populated */
-	struct {
-		uint16_t	x;
-		uint16_t	y;
-		uint16_t	z;
-	} samples[];
-};
+  /* Set up for the system reset, retaining the priority group from the
+   * the AIRCR register.
+   */
 
-extern int	lis331_attach(struct spi_dev_s *spi, int spi_id);
+  regval  = getreg32(NVIC_AIRCR) & NVIC_AIRCR_PRIGROUP_MASK;
+  regval |= ((0x5fa << NVIC_AIRCR_VECTKEY_SHIFT) | NVIC_AIRCR_SYSRESETREQ);
+  putreg32(regval, NVIC_AIRCR);
+
+  /* Ensure completion of memory accesses */              
+
+  __asm volatile ("dsb");
+
+  /* Wait for the reset */
+
+  for (;;);
+}

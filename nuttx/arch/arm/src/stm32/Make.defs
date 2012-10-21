@@ -45,8 +45,8 @@ CMN_CSRCS	= up_assert.c up_blocktask.c up_copystate.c \
 		  up_initialize.c up_initialstate.c up_interruptcontext.c \
 		  up_memfault.c up_modifyreg8.c up_modifyreg16.c up_modifyreg32.c \
 		  up_releasepending.c up_releasestack.c up_reprioritizertr.c \
-		  up_schedulesigaction.c up_sigdeliver.c up_unblocktask.c \
-		  up_usestack.c up_doirq.c up_hardfault.c up_svcall.c \
+		  up_schedulesigaction.c up_sigdeliver.c up_systemreset.c \
+		  up_unblocktask.c up_usestack.c up_doirq.c up_hardfault.c up_svcall.c \
 		  up_stackcheck.c
 
 ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
@@ -83,7 +83,7 @@ endif
 
 ifeq ($(CONFIG_USBHOST),y)
 ifeq ($(CONFIG_STM32_OTGFS),y)
-CMN_CSRCS       += stm32_otgfshost.c
+CMN_CSRCS	+= stm32_otgfshost.c
 endif
 endif
 
@@ -122,6 +122,10 @@ endif
 
 ifeq ($(CONFIG_DAC),y)
 CHIP_CSRCS	+= stm32_dac.c
+endif
+
+ifeq ($(CONFIG_DEV_RANDOM),y)
+CHIP_CSRCS	+= stm32_rng.c
 endif
 
 ifeq ($(CONFIG_PWM),y)

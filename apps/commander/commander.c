@@ -293,7 +293,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	struct sensor_combined_s raw;
 
 	/* 30 seconds */
-	const uint64_t calibration_interval_us = 45 * 1000000;
+	int calibration_interval_ms = 30 * 1000;
 	unsigned int calibration_counter = 0;
 
 	float mag_max[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
@@ -312,10 +312,10 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		warn("WARNING: failed to set scale / offsets for mag");
 	close(fd);
 
-	mavlink_log_info(mavlink_fd, "[commander] Please rotate around all axes.");
+	mavlink_log_info(mavlink_fd, "[commander] Please rotate around X");
 	
 	uint64_t calibration_start = hrt_absolute_time();
-	while ((hrt_absolute_time() - calibration_start) < calibration_interval_us) {
+	while ((hrt_absolute_time() - calibration_start)/1000 < calibration_interval_ms) {
 
 		/* wait blocking for new data */
 		struct pollfd fds[1] = { { .fd = sub_sensor_combined, .events = POLLIN } };
@@ -348,10 +348,12 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 			calibration_counter++;
 		} else {
 			/* any poll failure for 1s is a reason to abort */
-			mavlink_log_info(mavlink_fd, "[commander] mag calibration aborted, please retry.");
+			mavlink_log_info(mavlink_fd, "[commander] mag cal canceled");
 			break;
 		}
 	}
+
+	mavlink_log_info(mavlink_fd, "[commander] mag calibration done");
 
 	/* disable calibration mode */
 	status->flag_preflight_mag_calibration = false;
@@ -950,7 +952,7 @@ int commander_main(int argc, char *argv[])
 
 		thread_should_exit = false;
 		deamon_task = task_spawn("commander",
-					 SCHED_RR,
+					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 50,
 					 4096,
 					 commander_thread_main,
@@ -1307,18 +1309,12 @@ int commander_thread_main(int argc, char *argv[])
 				//printf("RC: y:%i/t:%i s:%i chans: %i\n", rc_yaw_scale, rc_throttle_scale, mode_switch_rc_value, rc.chan_count);
 
 				if (sp_man.override_mode_switch > STICK_ON_OFF_LIMIT) {
-					current_status.flag_control_attitude_enabled = true;
-					current_status.flag_control_rates_enabled = false;
 					update_state_machine_mode_manual(stat_pub, &current_status, mavlink_fd);
 
 				} else if (sp_man.override_mode_switch < -STICK_ON_OFF_LIMIT) {
-					current_status.flag_control_attitude_enabled = true;
-					current_status.flag_control_rates_enabled = false;
 					update_state_machine_mode_auto(stat_pub, &current_status, mavlink_fd);
 
 				} else {
-					current_status.flag_control_attitude_enabled = true;
-					current_status.flag_control_rates_enabled = false;
 					update_state_machine_mode_stabilized(stat_pub, &current_status, mavlink_fd);
 				}
 

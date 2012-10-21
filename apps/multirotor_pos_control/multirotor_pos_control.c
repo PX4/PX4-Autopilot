@@ -49,24 +49,94 @@
 #include <time.h>
 #include <sys/prctl.h>
 #include <arch/board/up_hrt.h>
-#include "ardrone_control.h"
-#include "attitude_control.h"
-#include "rate_control.h"
-#include "ardrone_motor_control.h"
-#include "position_control.h"
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_vicon_position.h>
+#include <systemlib/systemlib.h>
+
+#include "multirotor_pos_control_params.h"
+
+
+static bool thread_should_exit = false;		/**< Deamon exit flag */
+static bool thread_running = false;		/**< Deamon status flag */
+static int deamon_task;				/**< Handle of deamon task / thread */
 
 __EXPORT int multirotor_pos_control_main(int argc, char *argv[]);
 
-static bool thread_should_exit;
-static bool thread_running = false;
-static int mpc_task;
+/**
+ * Mainloop of position controller.
+ */
+static int multirotor_pos_control_thread_main(int argc, char *argv[]);
+
+/**
+ * Print the correct usage.
+ */
+static void usage(const char *reason);
+
+static void
+usage(const char *reason)
+{
+	if (reason)
+		fprintf(stderr, "%s\n", reason);
+	fprintf(stderr, "usage: deamon {start|stop|status} [-p <additional params>]\n\n");
+	exit(1);
+}
+
+/**
+ * The deamon app only briefly exists to start
+ * the background job. The stack size assigned in the
+ * Makefile does only apply to this management task.
+ * 
+ * The actual stack size should be set in the call
+ * to task_spawn().
+ */
+int multirotor_pos_control_main(int argc, char *argv[])
+{
+	if (argc < 1)
+		usage("missing command");
+
+	if (!strcmp(argv[1], "start")) {
+
+		if (thread_running) {
+			printf("multirotor pos control already running\n");
+			/* this is not an error */
+			exit(0);
+		}
+
+		thread_should_exit = false;
+		deamon_task = task_spawn("multirotor pos control",
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_MAX - 60,
+					 4096,
+					 multirotor_pos_control_thread_main,
+					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		thread_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			printf("\tmultirotor pos control app is running\n");
+		} else {
+			printf("\tmultirotor pos control app not started\n");
+		}
+		exit(0);
+	}
+
+	usage("unrecognized command");
+	exit(1);
+}
 
 static int
-mpc_thread_main(int argc, char *argv[])
+multirotor_pos_control_thread_main(int argc, char *argv[])
 {
 	/* welcome user */
 	printf("[multirotor pos control] Control started, taking over position control\n");
@@ -76,7 +146,7 @@ mpc_thread_main(int argc, char *argv[])
 	struct vehicle_attitude_s att;
 	//struct vehicle_global_position_setpoint_s global_pos_sp;
 	struct vehicle_local_position_setpoint_s local_pos_sp;
-	struct vehicle_local_position_s local_pos;
+	struct vehicle_vicon_position_s local_pos;
 	struct manual_control_setpoint_s manual;
 	struct vehicle_attitude_setpoint_s att_sp;
 
@@ -84,12 +154,22 @@ mpc_thread_main(int argc, char *argv[])
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	int state_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	int local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	int local_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
 	//int global_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
 	int local_pos_sp_sub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
 
 	/* publish attitude setpoint */
 	orb_advert_t att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
+
+	thread_running = true;
+
+	int loopcounter = 0;
+
+	struct multirotor_position_control_params p;
+	struct multirotor_position_control_param_handles h;
+	parameters_init(&h);
+	parameters_update(&h, &p);
+
 
 	while (1) {
 		/* get a local copy of the vehicle state */
@@ -99,15 +179,34 @@ mpc_thread_main(int argc, char *argv[])
 		/* get a local copy of attitude */
 		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 		/* get a local copy of local position */
-		orb_copy(ORB_ID(vehicle_local_position), local_pos_sub, &local_pos);
+		orb_copy(ORB_ID(vehicle_vicon_position), local_pos_sub, &local_pos);
 		/* get a local copy of local position setpoint */
 		orb_copy(ORB_ID(vehicle_local_position_setpoint), local_pos_sp_sub, &local_pos_sp);
 
-		if (state.state_machine == SYSTEM_STATE_AUTO) {
-			position_control(&state, &manual, &att, &local_pos, &local_pos_sp, &att_sp);
+		if (loopcounter == 500) {
+			parameters_update(&h, &p);
+			loopcounter = 0;
+		}
+
+		// if (state.state_machine == SYSTEM_STATE_AUTO) {
+			
+			// XXX IMPLEMENT POSITION CONTROL HERE
+
+			float dT = 1.0f / 50.0f;
+
+			float x_setpoint = 0.0f;
+
+			/* local pos is the Vicon position */
+
+			att_sp.pitch_body = (local_pos.x - x_setpoint) * p.p * dT;
+			att_sp.roll_body = 0.0f;
+			att_sp.yaw_body = 0.0f;
+			att_sp.thrust = 0.4f;
+			att_sp.timestamp = hrt_absolute_time();
+
 			/* publish new attitude setpoint */
 			orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-		} else if (state.state_machine == SYSTEM_STATE_STABILIZE) {
+		// } else if (state.state_machine == SYSTEM_STATE_STABILIZED) {
 			/* set setpoint to current position */
 			// XXX select pos reset channel on remote
 			/* reset setpoint to current position  (position hold) */
@@ -117,19 +216,18 @@ mpc_thread_main(int argc, char *argv[])
 			// 	local_pos_sp.z = local_pos.z;
 			// 	local_pos_sp.yaw = att.yaw;
 			// }
-		}
+		// }
 
 		/* run at approximately 50 Hz */
 		usleep(20000);
+		loopcounter++;
 
-		counter++;
 	}
 
-	/* close uarts */
-	close(ardrone_write);
-	ar_multiplexing_deinit(gpios);
+	printf("[multirotor pos control] ending now...\n");
 
-	printf("[multirotor pos control] ending now...\r\n");
+	thread_running = false;
+
 	fflush(stdout);
 	return 0;
 }

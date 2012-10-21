@@ -287,6 +287,12 @@ public:
 
 protected:
 	/**
+	 * Pointer to the default cdev file operations table; useful for
+	 * registering clone devices etc.
+	 */
+	static const struct file_operations	fops;
+
+	/**
 	 * Check the current state of the device for poll events from the
 	 * perspective of the file.
 	 *

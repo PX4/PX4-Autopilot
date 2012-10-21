@@ -291,19 +291,18 @@ config NSH_CONSOLE
 		console front-end is selected (/dev/console).
 
 		Normally, the serial console device is a UART and RS-232
-		interface.  However, if CONFIG_USBDEV is defined, then a USB
+		interface.  However, if USBDEV is defined, then a USB
 		serial device may, instead, be used if the one of
 		the following are defined:
 
-		CONFIG_PL2303 and CONFIG_PL2303_CONSOLE - Sets up the
-		Prolifics PL2303 emulation as a console device at /dev/console.
+		PL2303 and PL2303_CONSOLE - Set up the Prolifics PL2303
+		emulation as a console device at /dev/console.
 
-		CONFIG_CDCACM and CONFIG_CDCACM_CONSOLE - Sets up the
-		CDC/ACM serial device as a console device at dev/console.
+		CDCACM and CDCACM_CONSOLE - Set up the CDC/ACM serial
+		device as a console device at dev/console.
 
-		CONFIG_NSH_USBCONSOLE and CONFIG_NSH_USBCONDEV - Sets up the
-		some other USB serial device as the NSH console (not necessarily
-		dev/console).
+		NSH_USBCONSOLE and NSH_USBCONDEV - Sets up some other USB
+		serial device as the NSH console (not necessarily dev/console).
 
 config NSH_USBCONSOLE
 	bool "Use a USB console"
@@ -311,20 +310,20 @@ config NSH_USBCONSOLE
 	depends on NSH_CONSOLE && USBDEV
 	---help---
 		If defined, then the an arbitrary USB device may be used
-		to as the NSH console.  In this case, CONFIG_NSH_USBCONDEV
-		must be defined to indicate which USB device to use as
-		the console.
+		to as the NSH console.  In this case, NSH_USBCONDEV must
+		be defined to indicate which USB device to use as the
+		console.
 
 config NSH_USBCONDEV
 	string "USB console device"
 	default "/dev/ttyACM0"
 	depends on NSH_USBCONSOLE
 	---help---
-		If CONFIG_NSH_USBCONSOLE is set to 'y', then CONFIG_NSH_USBCONDEV
-		must also be set to select the USB device used to support
-		the NSH console.   This should be set to the quoted name of a
+		If NSH_USBCONSOLE is set to 'y', then NSH_USBCONDEV must
+		also be set to select the USB device used to support the
+		NSH console.   This should be set to the quoted name of a
 		readable/write-able USB driver such as:
-		CONFIG_NSH_USBCONDEV="/dev/ttyACM0".
+		NSH_USBCONDEV="/dev/ttyACM0".
 
 config UBSDEV_MINOR
 	int "USB console device minor number"
@@ -448,6 +447,35 @@ config NSH_IOBUFFER_SIZE
 	---help---
 		Determines the size of the I/O buffer to use for sending/
 		receiving TELNET commands/reponses.  Default: 512
+
+config NSH_TELNET_LOGIN
+	bool "Telnet Login"
+	default n
+	---help---
+		If defined, then the Telnet user will be required to provide a
+		username and password to start the NSH shell.
+
+if NSH_TELNET_LOGIN
+
+config NSH_TELNET_USERNAME
+	string "Login Username"
+	default "admin"
+	---help---
+		Login user name.  Default: "admin"
+
+config NSH_TELNET_PASSWORD
+	string "Login Password"
+	default "nuttx"
+	---help---
+		Login password:  Default: "nuttx"
+
+config NSH_TELNET_FAILCOUNT
+	int "Login Retry Count"
+	default 3
+	---help---
+		Number of login retry attempts.
+
+endif
 endif
 
 config NSH_DHCPC

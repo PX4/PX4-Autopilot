@@ -43,6 +43,7 @@
 #include <unistd.h>
 #include <assert.h>
 #include <debug.h>
+#include <string.h>
 
 #include <apps/netutils/telnetd.h>
 
@@ -54,6 +55,18 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+#ifdef CONFIG_NSH_TELNET_LOGIN
+
+#  define TELNET_IAC              255
+#  define TELNET_WILL             251
+#  define TELNET_WONT             252
+#  define TELNET_DO               253
+#  define TELNET_DONT             254
+#  define TELNET_USE_ECHO         1
+#  define TELNET_NOTUSE_ECHO      0
+
+#endif /* CONFIG_NSH_TELNET_LOGIN */
 
 /****************************************************************************
  * Private Types
@@ -76,6 +89,91 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: nsh_telnetecho
+ ****************************************************************************/
+
+#ifdef CONFIG_NSH_TELNET_LOGIN
+void nsh_telnetecho(struct console_stdio_s *pstate, uint8_t is_use)
+{
+  uint8_t optbuf[4];
+  optbuf[0] = TELNET_IAC;
+  optbuf[1] = (is_use == TELNET_USE_ECHO) ? TELNET_WILL : TELNET_DO;
+  optbuf[2] = 1;
+  optbuf[3] = 0;
+  fputs((char *)optbuf, pstate->cn_outstream);
+  fflush(pstate->cn_outstream);
+}
+#endif
+
+/****************************************************************************
+ * Name: nsh_telnetlogin
+ ****************************************************************************/
+
+#ifdef CONFIG_NSH_TELNET_LOGIN
+int nsh_telnetlogin(struct console_stdio_s *pstate)
+{
+  char username[16];
+  char password[16];
+  uint8_t i;
+
+  /* Present the NSH Telnet greeting */
+
+  fputs(g_telnetgreeting, pstate->cn_outstream);
+  fflush(pstate->cn_outstream);
+
+  /* Loop for the configured number of retries */
+
+  for(i = 0; i < CONFIG_NSH_TELNET_FAILCOUNT; i++)
+    {
+      /* Ask for the login username */
+
+      fputs(g_userprompt, pstate->cn_outstream);
+      fflush(pstate->cn_outstream);
+      if (fgets(pstate->cn_line, CONFIG_NSH_LINELEN, INSTREAM(pstate)) != NULL)
+        {
+          strcpy(username, pstate->cn_line);
+          username[strlen(pstate->cn_line) - 1] = 0;
+        }
+
+      /* Ask for the login password */
+  
+      fputs(g_passwordprompt, pstate->cn_outstream);
+      fflush(pstate->cn_outstream);
+      nsh_telnetecho(pstate, TELNET_NOTUSE_ECHO);
+      if (fgets(pstate->cn_line, CONFIG_NSH_LINELEN, INSTREAM(pstate)) != NULL)
+        {
+          /* Verify the username and password */
+
+          strcpy(password,pstate->cn_line);
+          password[strlen(pstate->cn_line) - 1] = 0;
+
+          if (strcmp(password, CONFIG_NSH_TELNET_PASSWORD) == 0 &&
+              strcmp(username, CONFIG_NSH_TELNET_USERNAME) == 0)
+            {
+              fputs(g_loginsuccess, pstate->cn_outstream);
+              fflush(pstate->cn_outstream);
+              nsh_telnetecho(pstate, TELNET_USE_ECHO);
+              return OK;
+            }
+          else
+            {
+              fputs(g_badcredentials, pstate->cn_outstream);
+              fflush(pstate->cn_outstream);
+            }
+        }
+
+      nsh_telnetecho(pstate, TELNET_USE_ECHO);
+    }
+
+  /* Too many failed login attempts */
+
+  fputs(g_loginfailure, pstate->cn_outstream);
+  fflush(pstate->cn_outstream);
+  return -1;
+}
+#endif /* CONFIG_NSH_TELNET_LOGIN */
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -90,7 +188,17 @@ int nsh_telnetmain(int argc, char *argv[])
 
   dbg("Session [%d] Started\n", getpid());
 
-  /* Present a greeting */
+  /* Login User and Password Check */
+
+#ifdef CONFIG_NSH_TELNET_LOGIN
+  if (nsh_telnetlogin(pstate) != OK)
+    {
+      nsh_exit(&pstate->cn_vtbl, 1);
+      return -1; /* nsh_exit does not return */
+    }
+#endif /* CONFIG_NSH_TELNET_LOGIN */
+
+  /* Present the NSH greeting */
 
   fputs(g_nshgreeting, pstate->cn_outstream);
   fflush(pstate->cn_outstream);

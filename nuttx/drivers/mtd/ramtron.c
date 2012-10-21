@@ -98,7 +98,7 @@
 #define RAMTRON_WRITE     0x02    /* 1 Write                     A   0     1-256 */
 #define RAMTRON_SLEEP     0xb9    // TODO:
 #define RAMTRON_RDID      0x9f    /* 1 Read Identification       0   0     1-3 */
-#define RAMTRON_SN        0xc3	  // TODO:
+#define RAMTRON_SN        0xc3    // TODO:
 
 
 /* Status register bit definitions */
@@ -125,12 +125,12 @@
 
 struct ramtron_parts_s
 {
-	const char *name;
-	uint8_t     id1;
-	uint8_t     id2;
-	uint32_t    size;
-	uint8_t     addr_len;
-	uint32_t	speed;
+  const char *name;
+  uint8_t     id1;
+  uint8_t     id2;
+  uint32_t    size;
+  uint8_t     addr_len;
+  uint32_t    speed;
 };
 
 /* This type represents the state of the MTD device.  The struct mtd_dev_s
@@ -146,84 +146,86 @@ struct ramtron_dev_s
   uint8_t  pageshift;
   uint16_t nsectors;
   uint32_t npages;
-  const struct ramtron_parts_s *part;	/* part instance */
+  const struct ramtron_parts_s *part;  /* part instance */
 };
 
 /************************************************************************************
  * Supported Part Lists
  ************************************************************************************/
 
-// Defines the initial speed compatible with all devices. In case of RAMTRON
-// the defined devices within the part list have all the same speed.
-#define RAMTRON_INIT_CLK_MAX		40000000UL
+/* Defines the initial speed compatible with all devices. In case of RAMTRON
+ * the defined devices within the part list have all the same speed.
+ */
+
+#define RAMTRON_INIT_CLK_MAX    40000000UL
 
 static struct ramtron_parts_s ramtron_parts[] =
 {
-	{
-		"FM25V02",                    /* name */
-		0x22,                         /* id1 */
-		0x00,                         /* id2 */
-		32L*1024L,                    /* size */
-		2,                            /* addr_len */
-		40000000                      /* speed */
-	},
-	{
-		"FM25VN02",                    /* name */
-		0x22,                          /* id1 */
-		0x01,                          /* id2 */
-		32L*1024L,                     /* size */
-		2,                             /* addr_len */
-		40000000                       /* speed */
-	},
-	{
-		"FM25V05",                    /* name */
-		0x23,                         /* id1 */
-		0x00,                         /* id2 */
-		64L*1024L,                    /* size */
-		2,                            /* addr_len */
-		40000000                      /* speed */
-	},
-	{
-		"FM25VN05",                    /* name */
-		0x23,                          /* id1 */
-		0x01,                          /* id2 */
-		64L*1024L,                     /* size */
-		2,                             /* addr_len */
-		40000000                       /* speed */
-	},
-	{
-		"FM25V10",                    /* name */
-		0x24,                         /* id1 */
-		0x00,                         /* id2 */
-		128L*1024L,                   /* size */
-		3,                            /* addr_len */
-		40000000                      /* speed */
-	},
-	{
-		"FM25VN10",                   /* name */
-		0x24,                         /* id1 */
-		0x01,                         /* id2 */
-		128L*1024L,                   /* size */
-		3,                            /* addr_len */
-		40000000                      /* speed */
-	},
+  {
+    "FM25V02",                    /* name */
+    0x22,                         /* id1 */
+    0x00,                         /* id2 */
+    32L*1024L,                    /* size */
+    2,                            /* addr_len */
+    40000000                      /* speed */
+  },
+  {
+    "FM25VN02",                    /* name */
+    0x22,                          /* id1 */
+    0x01,                          /* id2 */
+    32L*1024L,                     /* size */
+    2,                             /* addr_len */
+    40000000                       /* speed */
+  },
+  {
+    "FM25V05",                    /* name */
+    0x23,                         /* id1 */
+    0x00,                         /* id2 */
+    64L*1024L,                    /* size */
+    2,                            /* addr_len */
+    40000000                      /* speed */
+  },
+  {
+    "FM25VN05",                    /* name */
+    0x23,                          /* id1 */
+    0x01,                          /* id2 */
+    64L*1024L,                     /* size */
+    2,                             /* addr_len */
+    40000000                       /* speed */
+  },
+  {
+    "FM25V10",                    /* name */
+    0x24,                         /* id1 */
+    0x00,                         /* id2 */
+    128L*1024L,                   /* size */
+    3,                            /* addr_len */
+    40000000                      /* speed */
+  },
+  {
+    "FM25VN10",                   /* name */
+    0x24,                         /* id1 */
+    0x01,                         /* id2 */
+    128L*1024L,                   /* size */
+    3,                            /* addr_len */
+    40000000                      /* speed */
+  },
 #ifdef CONFIG_RAMTRON_FRAM_NON_JEDEC
-	{
-		"FM25H20",                    /* name */
-		0xff,                         /* id1 */
-		0xff,                         /* id2 */
-		256L*1024L,                   /* size */
-		3,                            /* addr_len */
-		40000000                      /* speed */
-	},
-	{
-		NULL,                         /* name */
-        0,                            /* id1 */
-        0,                            /* id2 */
-		0,                            /* size */
-        0,                            /* addr_len */
-        0                             /* speed */
-	}
+  {
+    "FM25H20",                    /* name */
+    0xff,                         /* id1 */
+    0xff,                         /* id2 */
+    256L*1024L,                   /* size */
+    3,                            /* addr_len */
+    40000000                      /* speed */
+  },
+  {
+    NULL,                         /* name */
+    0,                            /* id1 */
+    0,                            /* id2 */
+    0,                            /* size */
+    0,                            /* addr_len */
+    0                             /* speed */
+  }
 #endif
 };
 
@@ -240,17 +242,17 @@ static inline int ramtron_readid(struct ramtron_dev_s *priv);
 static void ramtron_waitwritecomplete(struct ramtron_dev_s *priv);
 static void ramtron_writeenable(struct ramtron_dev_s *priv);
 static inline void ramtron_pagewrite(struct ramtron_dev_s *priv, FAR const uint8_t *buffer,
-                                  off_t offset);
+                                     off_t offset);
 
 /* MTD driver methods */
 
 static int ramtron_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks);
 static ssize_t ramtron_bread(FAR struct mtd_dev_s *dev, off_t startblock,
-                          size_t nblocks, FAR uint8_t *buf);
+                             size_t nblocks, FAR uint8_t *buf);
 static ssize_t ramtron_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
-                           size_t nblocks, FAR const uint8_t *buf);
+                              size_t nblocks, FAR const uint8_t *buf);
 static ssize_t ramtron_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
-                         FAR uint8_t *buffer);
+                            FAR uint8_t *buffer);
 static int ramtron_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
 
 /************************************************************************************
@@ -317,31 +319,37 @@ static inline int ramtron_readid(struct ramtron_dev_s *priv)
   /* Send the "Read ID (RDID)" command and read the first three ID bytes */
 
   (void)SPI_SEND(priv->dev, RAMTRON_RDID);
-  for (i=0; i<6; i++) manufacturer = SPI_SEND(priv->dev, RAMTRON_DUMMY);
-  memory       = SPI_SEND(priv->dev, RAMTRON_DUMMY);
-  capacity     = SPI_SEND(priv->dev, RAMTRON_DUMMY);	// fram.id1
-  part         = SPI_SEND(priv->dev, RAMTRON_DUMMY);	// fram.id2
+  for (i = 0; i < 6; i++)
+    {
+      manufacturer = SPI_SEND(priv->dev, RAMTRON_DUMMY);
+    }
+
+  memory           = SPI_SEND(priv->dev, RAMTRON_DUMMY);
+  capacity         = SPI_SEND(priv->dev, RAMTRON_DUMMY);  // fram.id1
+  part             = SPI_SEND(priv->dev, RAMTRON_DUMMY);  // fram.id2
 
   /* Deselect the FLASH and unlock the bus */
 
   SPI_SELECT(priv->dev, SPIDEV_FLASH, false);
   ramtron_unlock(priv->dev);
   
-  // Select part from the part list
+  /* Select part from the part list */
+ 
   for (priv->part = ramtron_parts;
-	   priv->part->name != NULL && !(priv->part->id1 == capacity && priv->part->id2 == part);
-	   priv->part++);
-	   
-  if (priv->part->name) {
-    fvdbg("RAMTRON %s of size %d bytes (mf:%02x mem:%02x cap:%02x part:%02x)\n",
-           priv->part->name, priv->part->size, manufacturer, memory, capacity, part);
+     priv->part->name != NULL && !(priv->part->id1 == capacity && priv->part->id2 == part);
+     priv->part++);
+     
+  if (priv->part->name)
+    {
+      fvdbg("RAMTRON %s of size %d bytes (mf:%02x mem:%02x cap:%02x part:%02x)\n",
+            priv->part->name, priv->part->size, manufacturer, memory, capacity, part);
 
-    priv->sectorshift = RAMTRON_EMULATE_SECTOR_SHIFT;
-    priv->nsectors    = priv->part->size / (1 << RAMTRON_EMULATE_SECTOR_SHIFT);
-    priv->pageshift   = RAMTRON_EMULATE_PAGE_SHIFT;
-    priv->npages      = priv->part->size / (1 << RAMTRON_EMULATE_PAGE_SHIFT);
-    return OK;
-  }
+      priv->sectorshift = RAMTRON_EMULATE_SECTOR_SHIFT;
+      priv->nsectors    = priv->part->size / (1 << RAMTRON_EMULATE_SECTOR_SHIFT);
+      priv->pageshift   = RAMTRON_EMULATE_PAGE_SHIFT;
+      priv->npages      = priv->part->size / (1 << RAMTRON_EMULATE_PAGE_SHIFT);
+      return OK;
+    }
  
   fvdbg("RAMTRON device not found\n");
   return -ENODEV;
@@ -408,8 +416,10 @@ static inline void ramtron_sendaddr(const struct ramtron_dev_s *priv, uint32_t a
   DEBUGASSERT(priv->part->addr_len == 3 || priv->part->addr_len == 2);
   
   if (priv->part->addr_len == 3)
-	(void)SPI_SEND(priv->dev, (addr >> 16) & 0xff);
-	
+    {
+      (void)SPI_SEND(priv->dev, (addr >> 16) & 0xff);
+    }
+
   (void)SPI_SEND(priv->dev, (addr >> 8) & 0xff);
   (void)SPI_SEND(priv->dev, addr & 0xff);
 }
@@ -419,7 +429,7 @@ static inline void ramtron_sendaddr(const struct ramtron_dev_s *priv, uint32_t a
  ************************************************************************************/
 
 static inline void ramtron_pagewrite(struct ramtron_dev_s *priv, FAR const uint8_t *buffer,
-                                  off_t page)
+                                     off_t page)
 {
   off_t offset = page << priv->pageshift;
 
@@ -475,7 +485,7 @@ static int ramtron_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nbl
  ************************************************************************************/
 
 static ssize_t ramtron_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks,
-                          FAR uint8_t *buffer)
+                             FAR uint8_t *buffer)
 {
   FAR struct ramtron_dev_s *priv = (FAR struct ramtron_dev_s *)dev;
   ssize_t nbytes;
@@ -489,6 +499,7 @@ static ssize_t ramtron_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t
     {
         return nbytes >> priv->pageshift;
     }
+
   return (int)nbytes;
 }
 
@@ -497,7 +508,7 @@ static ssize_t ramtron_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t
  ************************************************************************************/
 
 static ssize_t ramtron_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks,
-                           FAR const uint8_t *buffer)
+                              FAR const uint8_t *buffer)
 {
   FAR struct ramtron_dev_s *priv = (FAR struct ramtron_dev_s *)dev;
   size_t blocksleft = nblocks;
@@ -512,8 +523,8 @@ static ssize_t ramtron_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_
       ramtron_pagewrite(priv, buffer, startblock);
       startblock++;
    }
-  ramtron_unlock(priv->dev);
 
+  ramtron_unlock(priv->dev);
   return nblocks;
 }
 
@@ -522,7 +533,7 @@ static ssize_t ramtron_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_
  ************************************************************************************/
 
 static ssize_t ramtron_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
-                         FAR uint8_t *buffer)
+                            FAR uint8_t *buffer)
 {
   FAR struct ramtron_dev_s *priv = (FAR struct ramtron_dev_s *)dev;
 
@@ -662,6 +673,7 @@ FAR struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev)
       if (ramtron_readid(priv) != OK)
         {
           /* Unrecognized! Discard all of that work we just did and return NULL */
+
           kfree(priv);
           priv = NULL;
         }

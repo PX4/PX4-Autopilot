@@ -290,14 +290,14 @@ static inline bool net_mksocket(struct net_listener_s *nls)
 static void net_configure(void)
 {
   struct in_addr addr;
-#if defined(CONFIG_EXAMPLE_POLL_NOMAC)
+#if defined(CONFIG_EXAMPLES_POLL_NOMAC)
   uint8_t mac[IFHWADDRLEN];
 #endif
 
   /* Configure uIP */
   /* Many embedded network interfaces must have a software assigned MAC */
 
-#ifdef CONFIG_EXAMPLE_POLL_NOMAC
+#ifdef CONFIG_EXAMPLES_POLL_NOMAC
   mac[0] = 0x00;
   mac[1] = 0xe0;
   mac[2] = 0xde;
@@ -309,17 +309,17 @@ static void net_configure(void)
 
   /* Set up our host address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_POLL_IPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_POLL_IPADDR);
   uip_sethostaddr("eth0", &addr);
 
   /* Set up the default router address */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_POLL_DRIPADDR);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_POLL_DRIPADDR);
   uip_setdraddr("eth0", &addr);
 
   /* Setup the subnet mask */
 
-  addr.s_addr = HTONL(CONFIG_EXAMPLE_POLL_NETMASK);
+  addr.s_addr = HTONL(CONFIG_EXAMPLES_POLL_NETMASK);
   uip_setnetmask("eth0", &addr);
 }
 

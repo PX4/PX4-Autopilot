@@ -1,5 +1,8 @@
-/*
- *   Copyright (C) 2012 Lorenz Meier. All rights reserved.
+/****************************************************************************
+ *
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
+ *           Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -11,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name of the author or the names of contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -27,50 +30,37 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
- */
-
-/*
- * Driver for the Meas Spec MS5611 barometric pressure sensor
- */
-
-#include <sys/ioctl.h>
-
-#define _MS5611BASE	0x6A00
-#define MS5611C(_x)	_IOC(_MS5611BASE, _x)
-
-/* 
- * Sets the sensor internal sampling rate, and if a buffer
- * has been configured, the rate at which entries will be
- * added to the buffer.
- */
-#define MS5611_SETRATE		MS5611C(1)
-
-/* set rate (configuration A register */
-#define MS5611_RATE_0_75HZ		(0 << 2) /* 0.75 Hz */
-
-/*
- * Sets the sensor internal range.
- */
-#define MS5611_SETRANGE		MS5611C(2)
-
-#define MS5611_RANGE_0_88GA			(0 << 5)
-
-/*
- * Sets the address of a shared MS5611_buffer
- * structure that is maintained by the driver.
  *
- * If zero is passed as the address, disables
- * the buffer updating.
- */
-#define MS5611_SETBUFFER	MS5611C(3)
+ ****************************************************************************/
 
-struct ms5611_buffer {
-	uint32_t	size;		/* number of entries in the samples[] array */
-	uint32_t	next;		/* the next entry that will be populated */
-	struct {
-		uint32_t	pressure;
-		uint16_t temperature;
-	} samples[];
+/*
+ * @file multirotor_position_control_params.h
+ * 
+ * Parameters for position controller
+ */
+
+#include <systemlib/param/param.h>
+
+struct multirotor_position_control_params {
+	float p;
+	float i;
+	float d;
 };
 
-extern int	ms5611_attach(struct i2c_dev_s *i2c);
+struct multirotor_position_control_param_handles {
+	param_t p;
+	param_t i;
+	param_t d;
+};
+
+/**
+ * Initialize all parameter handles and values
+ *
+ */
+int parameters_init(struct multirotor_position_control_param_handles *h);
+
+/**
+ * Update all parameters
+ *
+ */
+int parameters_update(const struct multirotor_position_control_param_handles *h, struct multirotor_position_control_params *p);

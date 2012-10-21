@@ -1524,7 +1524,7 @@ configs/c5471evm
   This is a port to the Spectrum Digital C5471 evaluation board.  The
   TMS320C5471 is a dual core processor from TI with an ARM7TDMI general
   purpose processor and a c54 DSP.  It is also known as TMS320DA180 or just DA180. 
-  NuttX runs on the ARM core and is built with a GNU arm-elf toolchain*.
+  NuttX runs on the ARM core and is built with a GNU arm-nuttx-elf toolchain*.
   This port is complete and verified.
 
 configs/compal_e88 and compal_e99
@@ -1540,19 +1540,19 @@ configs/demo9s12ne64
 
 configs/ea3131
   Embedded Artists EA3131 Development board.  This board is based on the 
-  an NXP LPC3131 MCU. This OS is built with the arm-elf toolchain*.
+  an NXP LPC3131 MCU. This OS is built with the arm-nuttx-elf toolchain*.
   STATUS:  This port is complete and mature.
 
 configs/ea3152
   Embedded Artists EA3152 Development board.  This board is based on the 
-  an NXP LPC3152 MCU. This OS is built with the arm-elf toolchain*.
+  an NXP LPC3152 MCU. This OS is built with the arm-nuttx-elf toolchain*.
   STATUS:  This port is has not be exercised well, but since it is
   a simple derivative of the ea3131, it should be fully functional.
 
 configs/eagle100
   Micromint Eagle-100 Development board.  This board is based on the 
   an ARM Cortex-M3 MCU, the Luminary LM3S6918. This OS is built with the
-  arm-elf toolchain*.  STATUS:  This port is complete and mature.
+  arm-nuttx-elf toolchain*.  STATUS:  This port is complete and mature.
 
 configs/ekk-lm3s9b96
   TI/Stellaris EKK-LM3S9B96 board.  This board is based on the 
@@ -1591,7 +1591,7 @@ configs/lm3s6432-s2e
 configs/lm3s6965-ek
   Stellaris LM3S6965 Evaluation Kit.  This board is based on the 
   an ARM Cortex-M3 MCU, the Luminary/TI LM3S6965. This OS is built with the
-  arm-elf toolchain*.  STATUS:  This port is complete and mature.
+  arm-nuttx-elf toolchain*.  STATUS:  This port is complete and mature.
 
 configs/lm3s8962-ek
   Stellaris LMS38962 Evaluation Kit.
@@ -1607,17 +1607,17 @@ configs/lpc4330-xplorer
 
 configs/m68322evb
   This is a work in progress for the venerable m68322evb board from
-  Motorola. This OS is also built with the arm-elf toolchain*.  STATUS:
+  Motorola. This OS is also built with the arm-nuttx-elf toolchain*.  STATUS:
   This port was never completed.
 
 configs/mbed
   The configurations in this directory support the mbed board (http://mbed.org)
   that features the NXP LPC1768 microcontroller. This OS is also built
-  with the arm-elf toolchain*.  STATUS:  Contributed.
+  with the arm-nuttx-elf toolchain*.  STATUS:  Contributed.
 
 configs/mcu123-lpc214x
   This port is for the NXP LPC2148 as provided on the mcu123.com
-  lpc214x development board. This OS is also built with the arm-elf
+  lpc214x development board. This OS is also built with the arm-nuttx-elf
   toolchain*.  The port supports serial, timer0, spi, and usb.
 
 configs/micropendous3
@@ -1642,7 +1642,7 @@ configs/ne64badge
   not yet been fully tested.
 
 configs/ntosd-dm320
-  This port uses the Neuros OSD v1.0 Dev Board with a GNU arm-elf
+  This port uses the Neuros OSD v1.0 Dev Board with a GNU arm-nuttx-elf
   toolchain*: see
 
     http://wiki.neurostechnology.com/index.php/OSD_1.0_Developer_Home
@@ -1666,18 +1666,18 @@ configs/olimex-lpc1766stk
   Linux or Cygwin.  STATUS: Complete and mature.
 
 configs/olimex-lpc2378
-  This port uses the Olimex-lpc2378 board and a GNU arm-elf toolchain* under
+  This port uses the Olimex-lpc2378 board and a GNU arm-nuttx-elf toolchain* under
   Linux or Cygwin.  STATUS: ostest and NSH configurations available.
   This port for the NXP LPC2378 was contributed by Rommel Marcelo.
 
 configs/olimex-stm32-p107
-  This port uses the Olimex STM32-P107 board (STM32F107VC) and a GNU arm-elf
+  This port uses the Olimex STM32-P107 board (STM32F107VC) and a GNU arm-nuttx-elf
   toolchain* under Linux or Cygwin. See the https://www.olimex.com/dev/stm32-p107.html
   for further information.  Contributed by Max Holtzberg.  STATUS: Configurations
   for the basic OS test and NSH are available and verified.
 
 configs/olimex-strp711
-  This port uses the Olimex STR-P711 board and a GNU arm-elf toolchain* under
+  This port uses the Olimex STR-P711 board and a GNU arm-nuttx-elf toolchain* under
   Linux or Cygwin. See the http://www.olimex.com/dev/str-p711.html" for
   further information.  STATUS: Configurations for the basic OS test and NSH
   are complete and verified.

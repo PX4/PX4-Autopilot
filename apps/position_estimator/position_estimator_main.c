@@ -35,8 +35,9 @@
  *
  ****************************************************************************/
 
-/*
- * @file Model-identification based position estimator for multirotors
+/**
+ * @file position_estimator_main.c
+ * Model-identification based position estimator for multirotors
  */
 
 #include <nuttx/config.h>
@@ -45,7 +46,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <fcntl.h>
-#include <v1.0/common/mavlink.h>
 #include <float.h>
 #include <nuttx/sched.h>
 #include <sys/prctl.h>
@@ -58,6 +58,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <poll.h>
 
 #include "codegen/position_estimator.h"
@@ -251,14 +252,16 @@ int position_estimator_main(int argc, char *argv[])
 
 	bool new_initialization = true;
 
-	static double lat_current = 0;//[°]] --> 47.0
-	static double lon_current = 0; //[°]] -->8.5
+	static double lat_current = 0.0d;//[°]] --> 47.0
+	static double lon_current = 0.0d; //[°]] -->8.5
+	float alt_current = 0.0f;
 
 
 	//TODO: handle flight without gps but with estimator
 
 	/* subscribe to vehicle status, attitude, gps */
 	struct vehicle_gps_position_s gps;
+	gps.fix_type = 0;
 	struct vehicle_status_s vstatus;
 	struct vehicle_attitude_s att;
 
@@ -269,7 +272,7 @@ int position_estimator_main(int argc, char *argv[])
 	int vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
 	/* wait until gps signal turns valid, only then can we initialize the projection */
-	while (!gps_valid) {
+	while (gps.fix_type < 3) {
 		struct pollfd fds[1] = { {.fd = vehicle_gps_sub, .events = POLLIN} };
 
 		/* wait for GPS updates, BUT READ VEHICLE STATUS (!)
@@ -281,8 +284,8 @@ int position_estimator_main(int argc, char *argv[])
 			/* Wait for the GPS update to propagate (we have some time) */
 			usleep(5000);
 			/* Read wether the vehicle status changed */
-			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vstatus);
-			gps_valid = vstatus.gps_valid;
+			orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_sub, &gps);
+			gps_valid = (gps.fix_type > 2);
 		}
 	}
 
@@ -290,14 +293,18 @@ int position_estimator_main(int argc, char *argv[])
 	orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_sub, &gps);
 	lat_current = ((double)(gps.lat)) * 1e-7;
 	lon_current = ((double)(gps.lon)) * 1e-7;
+	alt_current = gps.alt * 1e-3;
+
+	/* initialize coordinates */
+	map_projection_init(lat_current, lon_current);
 
 	/* publish global position messages only after first GPS message */
-	struct vehicle_global_position_s global_pos = {
-		.lat = lat_current * 1e7,
-		.lon = lon_current * 1e7,
-		.alt = gps.alt
+	struct vehicle_local_position_s local_pos = {
+		.x = 0,
+		.y = 0,
+		.z = 0
 	};
-	orb_advert_t global_pos_pub = orb_advertise(ORB_ID(vehicle_global_position), &global_pos);
+	orb_advert_t local_pos_pub = orb_advertise(ORB_ID(vehicle_local_position), &local_pos);
 
 	printf("[multirotor position estimator] initialized projection with: lat: %.10f,  lon:%.10f\n", lat_current, lon_current);
 
@@ -320,91 +327,84 @@ int position_estimator_main(int argc, char *argv[])
 			u[1] = att.pitch;
 
 			/* initialize map projection with the last estimate (not at full rate) */
-			if (counter % PROJECTION_INITIALIZE_COUNTER_LIMIT == 0) {
-				map_projection_init(lat_current, lon_current);
-				new_initialization = true;
-
-			} else {
-				new_initialization = false;
-			}
-
-			/*check if new gps values are available */
-			gps_valid = vstatus.gps_valid;
-
-
-			if (gps_valid) { //we are safe to use the gps signal (it has good quality)
-
-				predict_only = 0;
+			if (gps.fix_type > 2) {
 				/* Project gps lat lon (Geographic coordinate system) to plane*/
-				map_projection_project((double)(gps.lat) * 1e-7, (double)(gps.lon) * 1e-7, &(z[0]), &(z[1]));
+				map_projection_project(((double)(gps.lat)) * 1e-7, ((double)(gps.lon)) * 1e-7, &(z[0]), &(z[1]));
 
-				/* copy altitude */
-				z[2] = (gps.alt) * 1e-3;
-
-				gps_covariance[0] = gps.eph; //TODO: needs scaling
-				gps_covariance[1] = gps.eph;
-				gps_covariance[2] = gps.epv;
-
-			} else {
-				/* we can not use the gps signal (it is of low quality) */
-				predict_only = 1;
-			}
-
-			//		predict_only = 0;																//TODO: only for testing, removeme, XXX
-			//		z[0] = sinf(((float)counter)/180.0f*3.14159265f);								//TODO: only for testing, removeme, XXX
-			//		usleep(100000);																	//TODO: only for testing, removeme, XXX
+				local_pos.x = z[0];
+				local_pos.y = z[1];
+				/* negative offset from initialization altitude */
+				local_pos.z = alt_current - (gps.alt) * 1e-3;
 
 
-			/*Get new estimation (this is calculated in the plane) */
-			//TODO: if new_initialization == true: use 0,0,0, else use xapo
-			if (true == new_initialization) {																								//TODO,XXX: uncomment!
-				xapo[0] = 0; //we have a new plane initialization. the current estimate is in the center of the plane
-				xapo[2] = 0;
-				xapo[4] = 0;
-				position_estimator(u, z, xapo, Papo, gps_covariance, predict_only, xapo1, Papo1);
-
-			} else {
-				position_estimator(u, z, xapo, Papo, gps_covariance, predict_only, xapo1, Papo1);
+				orb_publish(ORB_ID(vehicle_local_position), local_pos_pub, &local_pos);
 			}
 
 
+			// 	gps_covariance[0] = gps.eph; //TODO: needs scaling
+			// 	gps_covariance[1] = gps.eph;
+			// 	gps_covariance[2] = gps.epv;
 
-			/* Copy values from xapo1 to xapo */
-			int i;
+			// } else {
+			// 	/* we can not use the gps signal (it is of low quality) */
+			// 	predict_only = 1;
+			// }
 
-			for (i = 0; i < N_STATES; i++) {
-				xapo[i] = xapo1[i];
-			}
+			// //		predict_only = 0;																//TODO: only for testing, removeme, XXX
+			// //		z[0] = sinf(((float)counter)/180.0f*3.14159265f);								//TODO: only for testing, removeme, XXX
+			// //		usleep(100000);																	//TODO: only for testing, removeme, XXX
 
-			if ((counter % REPROJECTION_COUNTER_LIMIT == 0) || (counter % (PROJECTION_INITIALIZE_COUNTER_LIMIT - 1) == 0)) {
-				/* Reproject from plane to geographic coordinate system */
-				//		map_projection_reproject(xapo1[0], xapo1[2], map_scale, phi_1, lambda_0, &lat_current, &lon_current) //TODO,XXX: uncomment!
-				map_projection_reproject(z[0], z[1], &lat_current, &lon_current); //do not use estimator for projection testing, removeme
-				//		//DEBUG
-				//			if(counter%500 == 0)
-				//			{
-				//				printf("phi_1: %.10f\n", phi_1);
-				//				printf("lambda_0: %.10f\n", lambda_0);
-				//				printf("lat_estimated: %.10f\n", lat_current);
-				//				printf("lon_estimated: %.10f\n", lon_current);
-				//				printf("z[0]=%.10f, z[1]=%.10f, z[2]=%f\n", z[0], z[1], z[2]);
-				//				fflush(stdout);
-				//
-				//			}
 
-				//			if(!isnan(lat_current) && !isnan(lon_current))// && !isnan(xapo1[4]) && !isnan(xapo1[1]) && !isnan(xapo1[3]) && !isnan(xapo1[5]))
-				//			{
-				/* send out */
+			// /*Get new estimation (this is calculated in the plane) */
+			// //TODO: if new_initialization == true: use 0,0,0, else use xapo
+			// if (true == new_initialization) {																								//TODO,XXX: uncomment!
+			// 	xapo[0] = 0; //we have a new plane initialization. the current estimate is in the center of the plane
+			// 	xapo[2] = 0;
+			// 	xapo[4] = 0;
+			// 	position_estimator(u, z, xapo, Papo, gps_covariance, predict_only, xapo1, Papo1);
 
-				global_pos.lat = lat_current;
-				global_pos.lon = lon_current;
-				global_pos.alt = xapo1[4];
-				global_pos.vx = xapo1[1];
-				global_pos.vy = xapo1[3];
-				global_pos.vz = xapo1[5];
+			// } else {
+			// 	position_estimator(u, z, xapo, Papo, gps_covariance, predict_only, xapo1, Papo1);
+			// }
+
+
+
+			// /* Copy values from xapo1 to xapo */
+			// int i;
+
+			// for (i = 0; i < N_STATES; i++) {
+			// 	xapo[i] = xapo1[i];
+			// }
+
+			// if ((counter % REPROJECTION_COUNTER_LIMIT == 0) || (counter % (PROJECTION_INITIALIZE_COUNTER_LIMIT - 1) == 0)) {
+			// 	/* Reproject from plane to geographic coordinate system */
+			// 	//		map_projection_reproject(xapo1[0], xapo1[2], map_scale, phi_1, lambda_0, &lat_current, &lon_current) //TODO,XXX: uncomment!
+			// 	map_projection_reproject(z[0], z[1], &lat_current, &lon_current); //do not use estimator for projection testing, removeme
+			// 	//		//DEBUG
+			// 	//			if(counter%500 == 0)
+			// 	//			{
+			// 	//				printf("phi_1: %.10f\n", phi_1);
+			// 	//				printf("lambda_0: %.10f\n", lambda_0);
+			// 	//				printf("lat_estimated: %.10f\n", lat_current);
+			// 	//				printf("lon_estimated: %.10f\n", lon_current);
+			// 	//				printf("z[0]=%.10f, z[1]=%.10f, z[2]=%f\n", z[0], z[1], z[2]);
+			// 	//				fflush(stdout);
+			// 	//
+			// 	//			}
+
+			// 	//			if(!isnan(lat_current) && !isnan(lon_current))// && !isnan(xapo1[4]) && !isnan(xapo1[1]) && !isnan(xapo1[3]) && !isnan(xapo1[5]))
+			// 	//			{
+			// 	/* send out */
+
+			// 	global_pos.lat = lat_current;
+			// 	global_pos.lon = lon_current;
+			// 	global_pos.alt = xapo1[4];
+			// 	global_pos.vx = xapo1[1];
+			// 	global_pos.vy = xapo1[3];
+			// 	global_pos.vz = xapo1[5];
 
 				/* publish current estimate */
-				orb_publish(ORB_ID(vehicle_global_position), global_pos_pub, &global_pos);
+				// orb_publish(ORB_ID(vehicle_global_position), global_pos_pub, &global_pos);
 				//			}
 				//			else
 				//			{
@@ -412,7 +412,7 @@ int position_estimator_main(int argc, char *argv[])
 				//				fflush(stdout);
 				//			}
 
-			}
+			// }
 
 			counter++;
 		}

@@ -318,7 +318,7 @@ PX4IO_Uploader::verify()
 
 			ret = recv(c);
 			if (ret != OK) {
-				log("%d: got %d waiting for bytes", ret);
+				log("%d: got %d waiting for bytes", base + i, ret);
 				return ret;
 			}
 

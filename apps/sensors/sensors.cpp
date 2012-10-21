@@ -101,8 +101,6 @@ extern "C" {
 /* PPM Settings */
 #  define PPM_MIN 1000
 #  define PPM_MAX 2000
-/* Internal resolution is 10000 */
-#  define PPM_SCALE 10000/((PPM_MAX-PPM_MIN)/2)
 #  define PPM_MID (PPM_MIN+PPM_MAX)/2
 #endif
 
@@ -135,10 +133,6 @@ public:
 
 private:	
 	static const unsigned _rc_max_chan_count = 8;	/**< maximum number of r/c channels we handle */
-
-	/* legacy sensor descriptors */
-	int 		_fd_bma180;			/**< old accel driver */
-	int 		_fd_gyro_l3gd20;		/**< old gyro driver */
 
 #if CONFIG_HRT_PPM
 	hrt_abstime	_ppm_last_valid;		/**< last time we got a valid ppm signal */
@@ -334,8 +328,6 @@ Sensors	*g_sensors;
 }
 
 Sensors::Sensors() :
-	_fd_bma180(-1),
-	_fd_gyro_l3gd20(-1),
 	_ppm_last_valid(0),
 
 	_fd_adc(-1),
@@ -562,19 +554,7 @@ Sensors::accel_init()
 	fd = open(ACCEL_DEVICE_PATH, 0);
 	if (fd < 0) {
 		warn("%s", ACCEL_DEVICE_PATH);
-
-		/* fall back to bma180 here (new driver would be better...) */
-		_fd_bma180 = open("/dev/bma180", O_RDONLY);
-		if (_fd_bma180 < 0) {
-			warn("/dev/bma180");
-			warn("FATAL: no accelerometer found");
-		}
-	
-		/* discard first (junk) reading */
-		int16_t junk_buf[3];
-		read(_fd_bma180, junk_buf, sizeof(junk_buf));
-
-		warnx("using BMA180");
+		errx(1, "FATAL: no accelerometer found");
 	} else {
 		/* set the accel internal sampling rate up to at leat 500Hz */
 		ioctl(fd, ACCELIOCSSAMPLERATE, 500);
@@ -595,19 +575,7 @@ Sensors::gyro_init()
 	fd = open(GYRO_DEVICE_PATH, 0);
 	if (fd < 0) {
 		warn("%s", GYRO_DEVICE_PATH);
-
-		/* fall back to bma180 here (new driver would be better...) */
-		_fd_gyro_l3gd20 = open("/dev/l3gd20", O_RDONLY);
-		if (_fd_gyro_l3gd20 < 0) {
-			warn("/dev/l3gd20");
-			warn("FATAL: no gyro found");
-		}
-
-		/* discard first (junk) reading */
-		int16_t junk_buf[3];
-		read(_fd_gyro_l3gd20, junk_buf, sizeof(junk_buf));
-
-		warn("using L3GD20");
+		errx(1, "FATAL: no gyro found");
 	} else {
 		/* set the gyro internal sampling rate up to at leat 500Hz */
 		ioctl(fd, GYROIOCSSAMPLERATE, 500);
@@ -648,7 +616,7 @@ Sensors::baro_init()
 	fd = open(BARO_DEVICE_PATH, 0);
 	if (fd < 0) {
 		warn("%s", BARO_DEVICE_PATH);
-		errx(1, "FATAL: no barometer found");
+		warnx("No barometer found, ignoring");
 	}
 
 	/* set the driver to poll at 150Hz */
@@ -671,67 +639,36 @@ Sensors::adc_init()
 void
 Sensors::accel_poll(struct sensor_combined_s &raw)
 {
-	struct accel_report	accel_report;
+	bool accel_updated;
+	orb_check(_accel_sub, &accel_updated);
 
-	if (_fd_bma180 >= 0) {
-		/* do ORB emulation for BMA180 */
-		int16_t		buf[3];
+	if (accel_updated) {
+		struct accel_report	accel_report;
 
-		read(_fd_bma180, buf, sizeof(buf));
+		orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
 
-		accel_report.timestamp = hrt_absolute_time();
+		raw.accelerometer_m_s2[0] = accel_report.x;
+		raw.accelerometer_m_s2[1] = accel_report.y;
+		raw.accelerometer_m_s2[2] = accel_report.z;
 
-		accel_report.x_raw = (buf[1] == -32768) ? 32767 : -buf[1];
-		accel_report.y_raw = buf[0];
-		accel_report.z_raw = buf[2];
+		raw.accelerometer_raw[0] = accel_report.x_raw;
+		raw.accelerometer_raw[1] = accel_report.y_raw;
+		raw.accelerometer_raw[2] = accel_report.z_raw;
 
-		const float range_g = 4.0f;
-		/* scale from 14 bit to m/s2 */
-		accel_report.x = (((accel_report.x_raw - _parameters.accel_offset[0]) * range_g) / 8192.0f) / 9.81f;
-		accel_report.y = (((accel_report.y_raw - _parameters.accel_offset[0]) * range_g) / 8192.0f) / 9.81f;
-		accel_report.z = (((accel_report.z_raw - _parameters.accel_offset[0]) * range_g) / 8192.0f) / 9.81f;
 		raw.accelerometer_counter++;
-
-	} else {
-		bool accel_updated;
-		orb_check(_accel_sub, &accel_updated);
-
-		if (accel_updated) {
-			orb_copy(ORB_ID(sensor_accel), _accel_sub, &accel_report);
-			raw.accelerometer_counter++;
-		}
 	}
-
-	raw.accelerometer_m_s2[0] = accel_report.x;
-	raw.accelerometer_m_s2[1] = accel_report.y;
-	raw.accelerometer_m_s2[2] = accel_report.z;
-
-	raw.accelerometer_raw[0] = accel_report.x_raw;
-	raw.accelerometer_raw[1] = accel_report.y_raw;
-	raw.accelerometer_raw[2] = accel_report.z_raw;
 }
 
 void
 Sensors::gyro_poll(struct sensor_combined_s &raw)
 {
-	struct gyro_report	gyro_report;
+	bool gyro_updated;
+	orb_check(_gyro_sub, &gyro_updated);
 
-	if (_fd_gyro_l3gd20 >= 0) {
-		/* do ORB emulation for L3GD20 */
-		int16_t		buf[3];
+	if (gyro_updated) {
+		struct gyro_report	gyro_report;
 
-		read(_fd_gyro_l3gd20, buf, sizeof(buf));
-
-		gyro_report.timestamp = hrt_absolute_time();
-
-		gyro_report.x_raw = buf[1];
-		gyro_report.y_raw = ((buf[0] == -32768) ? 32767 : -buf[0]);
-		gyro_report.z_raw = buf[2];
-
-		/* scaling calculated as: raw * (1/(32768*(500/180*PI))) */
-		gyro_report.x = (gyro_report.x_raw - _parameters.gyro_offset[0]) * 0.000266316109f;
-		gyro_report.y = (gyro_report.y_raw - _parameters.gyro_offset[1]) * 0.000266316109f;
-		gyro_report.z = (gyro_report.z_raw - _parameters.gyro_offset[2]) * 0.000266316109f;
+		orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
 
 		raw.gyro_rad_s[0] = gyro_report.x;
 		raw.gyro_rad_s[1] = gyro_report.y;
@@ -742,25 +679,6 @@ Sensors::gyro_poll(struct sensor_combined_s &raw)
 		raw.gyro_raw[2] = gyro_report.z_raw;
 
 		raw.gyro_counter++;
-
-	} else {
-
-		bool gyro_updated;
-		orb_check(_gyro_sub, &gyro_updated);
-
-		if (gyro_updated) {
-			orb_copy(ORB_ID(sensor_gyro), _gyro_sub, &gyro_report);
-
-			raw.gyro_rad_s[0] = gyro_report.x;
-			raw.gyro_rad_s[1] = gyro_report.y;
-			raw.gyro_rad_s[2] = gyro_report.z;
-
-			raw.gyro_raw[0] = gyro_report.x_raw;
-			raw.gyro_raw[1] = gyro_report.y_raw;
-			raw.gyro_raw[2] = gyro_report.z_raw;
-
-			raw.gyro_counter++;
-		}
 	}
 }
 
@@ -960,8 +878,6 @@ Sensors::ppm_poll()
 	/* Read out values from HRT */
 	for (unsigned int i = 0; i < channel_limit; i++) {
 		_rc.chan[i].raw = ppm_buffer[i];
-		/* Set the range to +-, then scale up */
-		_rc.chan[i].scale = (ppm_buffer[i] - _rc.chan[i].mid) * _rc.chan[i].scaling_factor * 10000;
 
 		/* scale around the mid point differently for lower and upper range */
 		if (ppm_buffer[i] > (_parameters.trim[i] + _parameters.dz[i])) {
@@ -976,7 +892,13 @@ Sensors::ppm_poll()
 		}
 
 		/* reverse channel if required */
-		_rc.chan[i].scaled *= _parameters.rev[i];
+		if (i == _rc.function[THROTTLE]) {
+			if ((int)_parameters.rev[i] == -1) {
+				_rc.chan[i].scaled = 1.0f + -1.0f * _rc.chan[i].scaled;
+			}
+		} else {
+			_rc.chan[i].scaled *= _parameters.rev[i];
+		}
 
 		/* handle any parameter-induced blowups */
 		if (isnan(_rc.chan[i].scaled) || isinf(_rc.chan[i].scaled))
@@ -1176,7 +1098,7 @@ Sensors::start()
 
 	/* start the task */
 	_sensors_task = task_spawn("sensors_task",
-				   SCHED_RR,
+				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_MAX - 5,
 				   6000,	/* XXX may be excesssive */
 				   (main_t)&Sensors::task_main_trampoline,

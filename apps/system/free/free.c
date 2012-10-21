@@ -33,57 +33,65 @@
  *
  ****************************************************************************/
 
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
 #include <nuttx/config.h>
 #include <nuttx/progmem.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
- 
-/* \todo Max block size only works on uniform prog mem */
- 
-void free_getprogmeminfo(struct mallinfo * mem)
-{
-    uint16_t page = 0, stpage = 0xFFFF;
-    uint16_t pagesize = 0;
-    int status;
-    
-    mem->arena    = 0;
-    mem->fordblks = 0;
-    mem->uordblks = 0;
-    mem->mxordblk = 0;
-    
-    for (status=0, page=0; status >= 0; page++) {
-    
-        status = up_progmem_ispageerased(page);
-        pagesize = up_progmem_pagesize(page);
-        
-        mem->arena += pagesize;
-        
-        /* Is this beginning of new free space section */
-        if (status == 0) {
-            if (stpage == 0xFFFF) stpage = page;
-            mem->fordblks += pagesize;
-        }
-        else if (status != 0) {
-            mem->uordblks += pagesize;
 
-            if (stpage != 0xFFFF && up_progmem_isuniform()) {
-                stpage = page - stpage;
-                if (stpage > mem->mxordblk) 
-                    mem->mxordblk = stpage;
-                stpage = 0xFFFF;
+/* TODO Max block size only works on uniform prog mem */
+
+static void free_getprogmeminfo(struct mallinfo * mem)
+{
+  uint16_t page = 0, stpage = 0xFFFF;
+  uint16_t pagesize = 0;
+  int status;
+
+  mem->arena    = 0;
+  mem->fordblks = 0;
+  mem->uordblks = 0;
+  mem->mxordblk = 0;
+
+  for (status=0, page=0; status >= 0; page++)
+    {
+      status = up_progmem_ispageerased(page);
+      pagesize = up_progmem_pagesize(page);
+
+      mem->arena += pagesize;
+
+      /* Is this beginning of new free space section */
+
+      if (status == 0)
+        {
+          if (stpage == 0xFFFF) stpage = page;
+          mem->fordblks += pagesize;
+        }
+      else if (status != 0)
+        {
+          mem->uordblks += pagesize;
+
+          if (stpage != 0xFFFF && up_progmem_isuniform())
+            {
+              stpage = page - stpage;
+              if (stpage > mem->mxordblk)
+                {
+                  mem->mxordblk = stpage;
+                }
+              stpage = 0xFFFF;
             }
         }
     }
-    
-    mem->mxordblk *= pagesize;
-}
 
+  mem->mxordblk *= pagesize;
+}
 
 /****************************************************************************
  * Public Functions

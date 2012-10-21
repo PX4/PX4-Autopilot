@@ -193,6 +193,8 @@ eeprom_save(const char *name)
 	if (!name) 
 		err(1, "missing argument for device name, try '/eeprom/parameters'");
 
+	warnx("WARNING: 'eeprom save_param' deprecated - use 'param save' instead");
+
 	/* delete the file in case it exists */
 	unlink(name);
 
@@ -222,6 +224,8 @@ eeprom_load(const char *name)
 	if (!name) 
 		err(1, "missing argument for device name, try '/eeprom/parameters'");
 	
+	warnx("WARNING: 'eeprom load_param' deprecated - use 'param load' instead");
+
 	int fd = open(name, O_RDONLY);
 
 	if (fd < 0)
