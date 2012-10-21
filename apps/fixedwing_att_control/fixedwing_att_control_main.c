@@ -63,6 +63,7 @@
 #include <systemlib/systemlib.h>
 
 #include <fixedwing_att_control_rate.h>
+#include <fixedwing_att_control_att.h>
 
 /* Prototypes */
 /**
@@ -103,6 +104,8 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 		/* declare and safely initialize all structs */
 		struct vehicle_attitude_s att;
 		memset(&att, 0, sizeof(att));
+		struct vehicle_attitude_setpoint_s att_sp;
+		memset(&att_sp, 0, sizeof(att_sp));
 		struct vehicle_rates_setpoint_s rates_sp;
 		memset(&rates_sp, 0, sizeof(rates_sp));
 
@@ -117,8 +120,9 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 
 
 
-		/* subscribe to attitude (for attitude rate) and rate septoint */
+		/* subscribe  */
 		int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+		int att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 
 		/* Setup of loop */
 		float gyro[3] = {0.0f, 0.0f, 0.0f};
@@ -140,8 +144,13 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			/* Control */
 
 			/* Attitude Control */
-			rates_sp.roll = 0.0f;
-			rates_sp.pitch = 0.0f;
+			att_sp.roll_tait_bryan = 0.0f; //REMOVEME TODO
+			att_sp.pitch_tait_bryan = 0.0f;
+			att_sp.yaw_tait_bryan = 0.0f;
+			fixedwing_att_control_attitude(&att_sp,
+					&att,
+					&rates_sp);
+			rates_sp.pitch = 0.0f; //REMOVEME TODO
 			rates_sp.yaw = 0.0f;
 
 			/* Attitude Rate Control */
