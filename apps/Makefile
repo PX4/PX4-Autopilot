@@ -46,10 +46,10 @@ APPDIR = ${shell pwd}
 #   appears in this directory as .config)
 # SUBDIRS is the list of all directories containing Makefiles.  It is used
 #   only for cleaning. namedapp must always be the first in the list.  This
-#   list can be extended by the .config file as well
+#   list can be extended by the .config file as well.
 
 CONFIGURED_APPS =
-#SUBDIRS = examples graphics interpreters modbus namedapp nshlib netutils system vsn
+#SUBDIRS = examples graphics interpreters modbus namedapp nshlib netutils system
 ALL_SUBDIRS = $(dir $(shell /usr/bin/find . -name Makefile))
 SUBDIRS = namedapp/ $(filter-out ./ ./namedapp/ ./examples/,$(ALL_SUBDIRS))
 
@@ -73,15 +73,16 @@ SUBDIRS = namedapp/ $(filter-out ./ ./namedapp/ ./examples/,$(ALL_SUBDIRS))
 
 ifeq ($(CONFIG_NUTTX_NEWCONFIG),y)
 
+# namedapp/Make.defs must be included first
+
+-include namedapp/Make.defs
 -include examples/Make.defs
 -include graphics/Make.defs
 -include interpreters/Make.defs
 -include modbus/Make.defs
--include namedapp/Make.defs
 -include netutils/Make.defs
 -include nshlib/Make.defs
 -include system/Make.defs
--include vsn/Make.defs
 
 # INSTALLED_APPS is the list of currently available application directories.  It
 # is the same as CONFIGURED_APPS, but filtered to exclude any non-existent

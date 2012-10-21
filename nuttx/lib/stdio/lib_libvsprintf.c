@@ -1169,7 +1169,9 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
   FAR char        *ptmp;
 #ifndef CONFIG_NOPRINTF_FIELDWIDTH
   int             width;
+#ifdef CONFIG_LIBC_FLOATINGPOINT
   int             trunc;
+#endif
   uint8_t         fmt;
 #endif
   uint8_t         flags;
@@ -1212,7 +1214,9 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
 #ifndef CONFIG_NOPRINTF_FIELDWIDTH
       fmt   = FMT_RJUST;
       width = 0;
+#ifdef CONFIG_LIBC_FLOATINGPOINT
       trunc = 0;
+#endif
 #endif
 
       /* Process each format qualifier. */
@@ -1260,8 +1264,10 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
               int value = va_arg(ap, int);
               if (IS_HASDOT(flags))
                 {
+#ifdef CONFIG_LIBC_FLOATINGPOINT
                   trunc = value;
                   SET_HASASTERISKTRUNC(flags);
+#endif
                 }
               else
                 {
@@ -1300,7 +1306,9 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list a
 
               if (IS_HASDOT(flags))
                 {
+#ifdef CONFIG_LIBC_FLOATINGPOINT
                   trunc = n;
+#endif
                 }
               else
                 {

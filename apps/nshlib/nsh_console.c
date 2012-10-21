@@ -75,12 +75,17 @@ struct serialsave_s
 static FAR struct nsh_vtbl_s *nsh_consoleclone(FAR struct nsh_vtbl_s *vtbl);
 #endif
 static void nsh_consolerelease(FAR struct nsh_vtbl_s *vtbl);
-static ssize_t nsh_consolewrite(FAR struct nsh_vtbl_s *vtbl, FAR const void *buffer, size_t nbytes);
-static int nsh_consoleoutput(FAR struct nsh_vtbl_s *vtbl, const char *fmt, ...);
+static ssize_t nsh_consolewrite(FAR struct nsh_vtbl_s *vtbl,
+  FAR const void *buffer, size_t nbytes);
+static int nsh_consoleoutput(FAR struct nsh_vtbl_s *vtbl,
+  FAR const char *fmt, ...);
 static FAR char *nsh_consolelinebuffer(FAR struct nsh_vtbl_s *vtbl);
-static void nsh_consoleredirect(FAR struct nsh_vtbl_s *vtbl, int fd, FAR uint8_t *save);
-static void nsh_consoleundirect(FAR struct nsh_vtbl_s *vtbl, FAR uint8_t *save);
-static void nsh_consoleexit(FAR struct nsh_vtbl_s *vtbl, int exitstatus);
+static void nsh_consoleredirect(FAR struct nsh_vtbl_s *vtbl, int fd,
+  FAR uint8_t *save);
+static void nsh_consoleundirect(FAR struct nsh_vtbl_s *vtbl,
+  FAR uint8_t *save);
+static void nsh_consoleexit(FAR struct nsh_vtbl_s *vtbl, int exitstatus)
+  noreturn_function;
 
 /****************************************************************************
  * Private Data

@@ -58,7 +58,7 @@ ifeq ($(CONFIG_EXAMPLES_DHCPD),y)
 CONFIGURED_APPS += examples/dhcpd
 endif
 
-ifeq ($(CONFIG_EXAMPLE_DISCOVER),y)
+ifeq ($(CONFIG_EXAMPLES_DISCOVER),y)
 CONFIGURED_APPS += examples/discover
 endif
 
@@ -216,6 +216,10 @@ endif
 
 ifeq ($(CONFIG_EXAMPLES_USBTERM),y)
 CONFIGURED_APPS += examples/usbterm
+endif
+
+ifeq ($(CONFIG_EXAMPLES_WATCHDOG),y)
+CONFIGURED_APPS += examples/watchdog
 endif
 
 ifeq ($(CONFIG_EXAMPLES_WGET),y)

@@ -57,6 +57,14 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* Use CONFIG_EXAMPLES_ADC_NSAMPLES == 0 to mean to collect samples
+ * indefinitely.
+ */
+
+#ifndef CONFIG_EXAMPLES_ADC_NSAMPLES
+#  define CONFIG_EXAMPLES_ADC_NSAMPLES 0
+#endif
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -249,7 +257,7 @@ int adc_main(int argc, char *argv[])
 
       adc_devpath(&g_adcstate, CONFIG_EXAMPLES_ADC_DEVPATH);
 
-#ifdef CONFIG_EXAMPLES_ADC_NSAMPLES
+#if CONFIG_EXAMPLES_ADC_NSAMPLES > 0
       g_adcstate.count = CONFIG_EXAMPLES_ADC_NSAMPLES;
 #else
       g_adcstate.count = 1;
@@ -267,7 +275,7 @@ int adc_main(int argc, char *argv[])
    * samples that we collect before returning.  Otherwise, we never return
    */
 
-#if defined(CONFIG_NSH_BUILTIN_APPS) || defined(CONFIG_EXAMPLES_ADC_NSAMPLES)
+#if defined(CONFIG_NSH_BUILTIN_APPS) || CONFIG_EXAMPLES_ADC_NSAMPLES > 0
   message("adc_main: g_adcstate.count: %d\n", g_adcstate.count);
 #endif
 
@@ -290,7 +298,7 @@ int adc_main(int argc, char *argv[])
 
 #if defined(CONFIG_NSH_BUILTIN_APPS)
   for (; g_adcstate.count > 0; g_adcstate.count--)
-#elif defined(CONFIG_EXAMPLES_ADC_NSAMPLES)
+#elif CONFIG_EXAMPLES_ADC_NSAMPLES > 0
   for (g_adcstate.count = 0; g_adcstate.count < CONFIG_EXAMPLES_ADC_NSAMPLES; g_adcstate.count++)
 #else
   for (;;)

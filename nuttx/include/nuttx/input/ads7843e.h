@@ -70,6 +70,16 @@
 #  define CONFIG_ADS7843E_SPIMODE SPIDEV_MODE0
 #endif
 
+/* Thresholds */
+
+#ifndef CONFIG_ADS7843E_THRESHX
+#  define CONFIG_ADS7843E_THRESHX 12
+#endif
+
+#ifndef CONFIG_ADS7843E_THRESHY
+#  define CONFIG_ADS7843E_THRESHY 12
+#endif
+
 /* Check for some required settings.  This can save the user a lot of time
  * in getting the right configuration.
  */
@@ -149,7 +159,7 @@ extern "C" {
  *   number
  *
  * Input Parameters:
- *   dev     - An SPI driver instance
+ *   spi     - An SPI driver instance
  *   config  - Persistent board configuration data
  *   minor   - The input device minor number
  *
@@ -159,7 +169,7 @@ extern "C" {
  *
  ****************************************************************************/
 
-EXTERN  int ads7843e_register(FAR struct spi_dev_s *dev,
+EXTERN  int ads7843e_register(FAR struct spi_dev_s *spi,
                              FAR struct ads7843e_config_s *config,
                              int minor);
 
