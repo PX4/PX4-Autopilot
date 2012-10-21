@@ -61,8 +61,6 @@
 #include <arch/board/drv_tone_alarm.h>
 #include <arch/board/up_adc.h>
 #include <arch/board/board.h>
-#include <arch/board/drv_bma180.h>
-#include <arch/board/drv_l3gd20.h>
 #include <arch/board/drv_led.h>
 #include <arch/board/drv_eeprom.h>
 
@@ -181,7 +179,7 @@ int nsh_archinitialize(void)
 	  return -ENODEV;
   }
 
-  // Setup 10 MHz clock (maximum rate the BMA180 can sustain)
+  // Default SPI1 to 1MHz and de-assert the known chip selects.
   SPI_SETFREQUENCY(spi1, 10000000);
   SPI_SETBITS(spi1, 8);
   SPI_SETMODE(spi1, SPIDEV_MODE3);
@@ -191,33 +189,6 @@ int nsh_archinitialize(void)
   up_udelay(20);
 
   message("[boot] Successfully initialized SPI port 1\r\n");
-
-  /* initialize SPI peripherals redundantly */
-  int gyro_attempts = 0;
-  int gyro_fail = 0;
-
-  while (gyro_attempts < 5)
-  {
-	  gyro_fail = l3gd20_attach(spi1, PX4_SPIDEV_GYRO);
-	  gyro_attempts++;
-	  if (gyro_fail == 0) break;
-	  up_udelay(1000);
-  }
-
-  if (!gyro_fail) message("[boot] Found L3GD20 gyro\n");
-
-  int acc_attempts = 0;
-  int acc_fail = 0;
-
-  while (acc_attempts < 5)
-  {
-	  acc_fail = bma180_attach(spi1, PX4_SPIDEV_ACCEL);
-	  acc_attempts++;
-	  if (acc_fail == 0) break;
-	  up_udelay(1000);
-  }
-
-  if (!acc_fail) message("[boot] Found BMA180 accelerometer\n");
 
   /* initialize I2C2 bus */
 
