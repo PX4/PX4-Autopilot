@@ -78,6 +78,7 @@ CONFIGURED_APPS += multirotor_att_control
 CONFIGURED_APPS += multirotor_pos_control
 CONFIGURED_APPS += px4/attitude_estimator_bm
 CONFIGURED_APPS += fixedwing_control
+CONFIGURED_APPS += fixedwing_control2
 CONFIGURED_APPS += position_estimator
 CONFIGURED_APPS += attitude_estimator_ekf
 CONFIGURED_APPS += px4/ground_estimator
