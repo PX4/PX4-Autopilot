@@ -638,6 +638,12 @@ defconfig -- This is a configuration file similar to the Linux
 
     CONFIG_MEMCPY_64BIT - Compiles memcpy for 64 bit architectures
 
+  If CONFIG_ARCH_MEMSET is not selected, then the following option is
+  also available:
+
+    CONFIG_MEMSET_OPTSPEED - Select this option to use a version of memcpy()
+      optimized for speed. Default: memcpy() is optimized for size.
+
   The architecture may provide custom versions of certain standard header
   files:
 

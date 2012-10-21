@@ -3491,3 +3491,6 @@
 	* lib/strings/lib_vikmemcpy.c:  As an option, the larger but faster
 	  implemementation of memcpy from Daniel Vik is now available (this is
 	  from http://www.danielvik.com/2010/02/fast-memcpy-in-c.html).
+	* lib/strings/lib_memset.c: CONFIG_MEMSET_OPTSPEED will select a
+	  version of memset() optimized for speed.  By default, memset() is
+	  optimized for size.

@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: August 28, 2012</p>
+      <p>Last Updated: October 20, 2012</p>
     </td>
   </tr>
 </table>
@@ -4449,12 +4449,12 @@ build
   If <code>CONFIG_ARCH_MEMCPY</code> is <b>not</b> selected, then you make also select Daniel
   Vik's optimized implementation of <code>memcpy()</code>:
 </p>
-  <ul><li>
-    <code>CONFIG_MEMCPY_VIK</code>:
-    Select this option to use the optimized <code>memcpy()</code> function by Daniel Vik.
-    See licensing information in the top-level <code>COPYING</code> file.
-    Default: <code>n</code>.
-  </li></ul>
+<ul><li>
+  <code>CONFIG_MEMCPY_VIK</code>:
+  Select this option to use the optimized <code>memcpy()</code> function by Daniel Vik.
+  See licensing information in the top-level <code>COPYING</code> file.
+  Default: <code>n</code>.
+</li></ul>
 
 <p>
   And if <code>CONFIG_MEMCPY_VIK</code>, the following tuning options are available:
@@ -4472,6 +4472,15 @@ build
 <li>
     <code>CONFIG_MEMCPY_64BIT</code>:
     Compiles memcpy for 64 bit architectures
+</li></ul>
+
+<p><li>
+  If <code>CONFIG_ARCH_MEMSET</code> is <b>not</b> selected, then the following option is also available:
+</p>
+<ul><li>
+  <code>CONFIG_MEMSET_OPTSPEED</code>:
+  Select this option to use a version of <code>memset()</code> optimized for speed.
+  Default: <code>memset()</code> is optimized for size.
 </li></ul>
 
 <li>

@@ -42,8 +42,12 @@
  ************************************************************/
 
 #include <nuttx/config.h>
+
 #include <sys/types.h>
+
+#include <stdint.h>
 #include <string.h>
+#include <assert.h>
 
 /************************************************************
  * Global Functions
@@ -52,8 +56,88 @@
 #ifndef CONFIG_ARCH_MEMSET
 void *memset(void *s, int c, size_t n)
 {
+#ifdef CONFIG_MEMSET_OPTSPEED
+  /* This version is optimized for speed (you could do better
+   * still by exploiting processor caching or memory burst
+   * knowledge.  64-bit support might improve performance as
+   * well.
+   */
+
+  uintptr_t addr  = (uintptr_t)s;
+  uint16_t  val16 = ((uint16_t)c << 8)  | (uint16_t)c;
+  uint32_t  val32 = ((uint32_t)val16 << 16)  | (uint32_t)val16;
+
+  /* Make sure that there is something to be cleared */
+
+  if (n > 0)
+    {
+      /* Align to a 16-bit boundary */
+
+      if ((addr & 1) != 0)
+        {
+          *(uint8_t*)addr = (uint8_t)c;
+          addr += 1;
+          n    -= 1;
+        }
+
+      /* Check if there are at least 16-bits left to be zeroed */
+
+      if (n >= 2)
+        {
+          /* Align to a 32-bit boundary (we know that the destination
+           * address is already aligned to at least a 16-bit boundary).
+           */
+
+          if ((addr & 3) != 0)
+            {
+              *(uint16_t*)addr = val16;
+              addr += 2;
+              n    -= 2;
+            }
+
+          /* Loop while there are at least 32-bits left to be zeroed */
+
+          while (n >= 4)
+            {
+              *(uint32_t*)addr = val32;
+              addr += 4;
+              n    -= 4;
+            }
+        }
+
+      /* We may get here under the following conditions:
+       *
+       *   n = 0, addr may or may not be aligned
+       *   n = 1, addr may or may not be aligned
+       *   n = 2, addr is aligned to a 32-bit boundary
+       *   n = 3, addr is aligned to a 32-bit boundary
+       */
+
+      switch (n)
+        {
+          default:
+          case 0:
+            DEBUGASSERT(n == 0);
+            break;
+
+          case 2:
+            *(uint16_t*)addr = val16;
+            break;
+
+          case 3:
+            *(uint16_t*)addr = val16;
+            addr += 2;
+          case 1:
+            *(uint8_t*)addr = (uint8_t)c;
+            break;
+        }
+    }
+#else
+  /* This version is optimized for size */
+
   unsigned char *p = (unsigned char*)s;
   while (n-- > 0) *p++ = c;
+#endif
   return s;
 }
 #endif
