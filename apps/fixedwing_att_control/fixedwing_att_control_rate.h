@@ -35,11 +35,14 @@
 
 /* @file Main system state machine definition */
 
-#ifndef FIXEDWING_CONTROL2_RATE_H_
-#define FIXEDWING_CONTROL2_RATE_H_
+#ifndef FIXEDWING_ATT_CONTROL_RATE_H_
+#define FIXEDWING_ATT_CONTROL_RATE_H_
 
-int fixedwing_control2_rates(const struct vehicle_rates_setpoint_s *rate_sp,
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/actuator_controls.h>
+
+int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		const float rates[],
 		struct actuator_controls_s *actuators);
 
-#endif /* FIXEDWING_CONTROL2_RATE_H_ */
+#endif /* FIXEDWING_ATT_CONTROL_RATE_H_ */

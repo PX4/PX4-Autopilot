@@ -32,9 +32,10 @@
  *
  ****************************************************************************/
 /**
- * @file fixedwing_control2.c
+ * @file fixedwing_att_control_rate.c
  * Implementation of a fixed wing attitude controller.
  */
+#include <fixedwing_att_control_rate.h>
 
 #include <nuttx/config.h>
 #include <stdio.h>
@@ -53,12 +54,12 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pid/pid.h>
 #include <systemlib/geo/geo.h>
 #include <systemlib/systemlib.h>
+
+
 
 
 struct fw_rate_control_params {
@@ -97,6 +98,9 @@ static int parameters_init(struct fw_rate_control_params *h)
 	h->attrate_awu 	= 	param_find("MC_ATTRATE_AWU");
 	h->attrate_lim 	= 	param_find("MC_ATTRATE_LIM");
 
+//	if(h->attrate_i == PARAM_INVALID)
+//		printf("FATAL MC_ATTRATE_I does not exist\n");
+
 	return OK;
 }
 
@@ -114,11 +118,12 @@ static int parameters_update(const struct fw_rate_control_params *h, struct fw_r
 	param_get(h->attrate_awu, &(p->attrate_awu));
 	param_get(h->attrate_lim, &(p->attrate_lim));
 
+	p->attrate_i = 0.01f; //TODO: as long as the parameter is not implemented
+
 	return OK;
 }
 
-
-int fixedwing_control2_rates(const struct vehicle_rates_setpoint_s *rate_sp,
+int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		const float rates[],
 		struct actuator_controls_s *actuators)
 {
@@ -128,23 +133,30 @@ int fixedwing_control2_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	static struct fw_rate_control_params p;
 	static struct fw_rate_control_params h;
 
+	static PID_t roll_rate_controller;
+
+	static uint64_t last_run = 0;
+	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
+	last_run = hrt_absolute_time();
+
 	if(!initialized)
 	{
 		parameters_init(&h);
 		parameters_update(&h, &p);
+		pid_init(&roll_rate_controller, p.attrate_p, p.attrate_i, 0, p.attrate_awu, PID_MODE_DERIVATIV_SET); //D part set to 0 because the controller layout is with a PI rate controller
 		initialized = true;
 	}
 
 	/* load new parameters with lower rate */
 	if (counter % 2500 == 0) {
 		/* update parameters from storage */
+		pid_set_parameters(&roll_rate_controller, p.attrate_p, p.attrate_i, 0, p.attrate_awu);
 		parameters_update(&h, &p);
-		printf("p.yawrate_p: %8.4f\n", (double)p.yawrate_p);
 	}
 
-	/* Roll Rate */
-	float roll_error = rate_sp->roll - rates[0];
-	actuators->control[0] =p.attrate_p*roll_error;
+	/* Roll Rate (PI) */
+	float roll_rate_error = rate_sp->roll - rates[0];
+	actuators->control[0] = pid_calculate(&roll_rate_controller, rate_sp->roll, rates[0], 0, deltaT);;
 
 
 	actuators->control[1] = 0;

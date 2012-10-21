@@ -35,7 +35,7 @@
 # Fixedwing Control application
 #
 
-APPNAME		 = fixedwing_control2
+APPNAME		 = fixedwing_att_control
 PRIORITY	 = SCHED_PRIORITY_MAX - 30
 STACKSIZE	 = 2048
 

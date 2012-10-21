@@ -32,7 +32,7 @@
  *
  ****************************************************************************/
 /**
- * @file fixedwing_control2.c
+ * @file fixedwing_att_control.c
  * Implementation of a fixed wing attitude controller.
  */
 
@@ -62,18 +62,18 @@
 #include <systemlib/geo/geo.h>
 #include <systemlib/systemlib.h>
 
-#include <fixedwing_control2_rate.h>
+#include <fixedwing_att_control_rate.h>
 
 /* Prototypes */
 /**
  * Deamon management function.
  */
-__EXPORT int fixedwing_control2_main(int argc, char *argv[]);
+__EXPORT int fixedwing_att_control_main(int argc, char *argv[]);
 
 /**
  * Mainloop of deamon.
  */
-int fixedwing_control2_thread_main(int argc, char *argv[]);
+int fixedwing_att_control_thread_main(int argc, char *argv[]);
 
 /**
  * Print the correct usage.
@@ -86,7 +86,7 @@ static bool thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
 
 /* Main Thread */
-int fixedwing_control2_thread_main(int argc, char *argv[])
+int fixedwing_att_control_thread_main(int argc, char *argv[])
 {
 	/* read arguments */
 		bool verbose = false;
@@ -98,7 +98,7 @@ int fixedwing_control2_thread_main(int argc, char *argv[])
 		}
 
 		/* welcome user */
-		printf("[fixedwing control2] started\n");
+		printf("[fixedwing att_control] started\n");
 
 		/* declare and safely initialize all structs */
 		struct vehicle_attitude_s att;
@@ -145,7 +145,7 @@ int fixedwing_control2_thread_main(int argc, char *argv[])
 			rates_sp.yaw = 0.0f;
 
 			/* Attitude Rate Control */
-			fixedwing_control2_rates(&rates_sp, gyro, &actuators);
+			fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
 
 			//REMOVEME XXX
 			actuators.control[3] = 0.7f;
@@ -153,7 +153,7 @@ int fixedwing_control2_thread_main(int argc, char *argv[])
 			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 		}
 
-		printf("[fixedwing_control2] exiting, stopping all motors.\n");
+		printf("[fixedwing_att_control] exiting, stopping all motors.\n");
 		thread_running = false;
 
 		/* kill all outputs */
@@ -179,7 +179,7 @@ usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: fixedwing_control2 {start|stop|status}\n\n");
+	fprintf(stderr, "usage: fixedwing_att_control {start|stop|status}\n\n");
 	exit(1);
 }
 
@@ -191,7 +191,7 @@ usage(const char *reason)
  * The actual stack size should be set in the call
  * to task_create().
  */
-int fixedwing_control2_main(int argc, char *argv[])
+int fixedwing_att_control_main(int argc, char *argv[])
 {
 	if (argc < 1)
 		usage("missing command");
@@ -199,17 +199,17 @@ int fixedwing_control2_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("fixedwing_control2 already running\n");
+			printf("fixedwing_att_control already running\n");
 			/* this is not an error */
 			exit(0);
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("fixedwing_control2",
+		deamon_task = task_spawn("fixedwing_att_control",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 20,
 					 4096,
-					 fixedwing_control2_thread_main,
+					 fixedwing_att_control_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
 		exit(0);
@@ -222,9 +222,9 @@ int fixedwing_control2_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tfixedwing_control2 is running\n");
+			printf("\tfixedwing_att_control is running\n");
 		} else {
-			printf("\tfixedwing_control2 not started\n");
+			printf("\tfixedwing_att_control not started\n");
 		}
 		exit(0);
 	}
