@@ -234,7 +234,7 @@ PX4IO::init()
 	}
 
 	/* start the IO interface task */
-	_task = task_create("px4io", SCHED_PRIORITY_DEFAULT, 1024, (main_t)&PX4IO::task_main_trampoline, nullptr);
+	_task = task_create("px4io", SCHED_PRIORITY_DEFAULT, 4096, (main_t)&PX4IO::task_main_trampoline, nullptr);
 	if (_task < 0) {
 		debug("task start failed: %d", errno);
 		return -errno;
@@ -255,7 +255,7 @@ PX4IO::task_main()
 	log("starting");
 
 	/* open the serial port */
-	_serial_fd = ::open("/dev/ttyS2", O_RDWR | O_NONBLOCK);
+	_serial_fd = ::open("/dev/ttyS2", O_RDWR);
 	if (_serial_fd < 0) {
 		debug("failed to open serial port for IO: %d", errno);
 		_task = -1;
@@ -300,11 +300,13 @@ PX4IO::task_main()
 	fds[2].fd = _t_armed;
 	fds[2].events = POLLIN;
 
+	log("ready");
+
 	/* loop handling received serial bytes */
 	while (!_task_should_exit) {
 
 		/* sleep waiting for data, but no more than 100ms */
-		int ret = ::poll(&fds[0], 1, 100);
+		int ret = ::poll(&fds[0], sizeof(fds) / sizeof(fds[0]), 1000);
 
 		/* this would be bad... */
 		if (ret < 0) {
@@ -342,6 +344,7 @@ PX4IO::task_main()
 				}
 			}
 			if (fds[2].revents & POLLIN) {
+
 				orb_copy(ORB_ID(actuator_armed), _t_armed, &_controls);
 				_send_needed = true;
 			}
@@ -374,11 +377,19 @@ PX4IO::control_callback(uintptr_t handle,
 void
 PX4IO::io_recv()
 {
-	uint8_t c;
+	uint8_t buf[32];
+	int count;
 
-	/* handle bytes from IO */
-	while (::read(_serial_fd, &c, 1) == 1)
-		hx_stream_rx(_io_stream, c);
+	/*
+	 * We are here because poll says there is some data, so this
+	 * won't block even on a blocking device.  If more bytes are
+	 * available, we'll go back to poll() again...
+	 */
+	count = ::read(_serial_fd, buf, sizeof(buf));
+
+	/* pass received bytes to the packet decoder */
+	for (int i = 0; i < count; i++)
+		hx_stream_rx(_io_stream, buf[i]);
 }
 
 void
@@ -402,7 +413,6 @@ PX4IO::rx_callback(const uint8_t *buffer, size_t bytes_received)
 	_switch_armed = rep->armed;
 
 	unlock();
-
 }
 
 void
