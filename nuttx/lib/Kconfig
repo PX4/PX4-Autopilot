@@ -165,8 +165,8 @@ config MEMCPY_VIK
 	depends on !ARCH_MEMCPY
 	---help---
 		Select this option to use the optimized memcpy() function by Daniel Vik.
-		Select this option to option for speed at the expense of increased size.
-		See licensing information in the top-level COPYING file.
+		Select this option for improved performance at the expense of increased
+		size. See licensing information in the top-level COPYING file.
 
 if MEMCPY_VIK
 config MEMCPY_PRE_INC_PTRS
@@ -186,7 +186,8 @@ config MEMCPY_64BIT
 	bool "64-bit memcpy()"
 	default n
 	---help---
-		Compiles memcpy() for 64 bit architectures
+		Compiles memcpy() for architectures that suppport 64-bit operations
+		efficiently.
 
 endif
 
@@ -224,7 +225,8 @@ config MEMSET_64BIT
 	default n
 	depends on MEMSET_OPTSPEED
 	---help---
-		Compiles memset() for 64 bit architectures
+		Compiles memset() for architectures that suppport 64-bit operations
+		efficiently.
 
 config ARCH_STRCMP
 	bool "strcmp()"

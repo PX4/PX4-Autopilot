@@ -625,8 +625,9 @@ defconfig -- This is a configuration file similar to the Linux
   Vik's optimized implementation of memcpy():
 
     CONFIG_MEMCPY_VIK - Select this option to use the optimized memcpy()
-      function by Daniel Vik.  See licensing information in the top-level
-      COPYING file.  Default: n
+      function by Daniel Vik.  Select this option for improved performance
+      at the expense of increased size. See licensing information in the
+      top-level COPYING file.  Default: n
 
   And if CONFIG_MEMCPY_VIK is selected, the following tuning options are available:
 
@@ -636,7 +637,8 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_MEMCPY_INDEXED_COPY - Copying data using array indexing. Using
       this option, disables the CONFIG_MEMCPY_PRE_INC_PTRS option.
 
-    CONFIG_MEMCPY_64BIT - Compiles memcpy for 64 bit architectures
+    CONFIG_MEMCPY_64BIT - Compiles memcpy for architectures that suppport
+      64-bit operations efficiently.
 
   If CONFIG_ARCH_MEMSET is not selected, then the following option is
   also available:
@@ -647,7 +649,8 @@ defconfig -- This is a configuration file similar to the Linux
   And if CONFIG_MEMSET_OPTSPEED is selected, the following tuning option is
   available:
 
-    CONFIG_MEMSET_64BIT - Compiles memset() for 64 bit architectures
+    CONFIG_MEMSET_64BIT - Compiles memset() for architectures that suppport
+      64-bit operations efficiently.
 
   The architecture may provide custom versions of certain standard header
   files:

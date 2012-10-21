@@ -92,7 +92,7 @@ void *memset(void *s, int c, size_t n)
           n    -= 1;
         }
 
-      /* Check if there are at least 16-bits left to be zeroed */
+      /* Check if there are at least 16-bits left to be written */
 
       if (n >= 2)
         {
@@ -108,7 +108,7 @@ void *memset(void *s, int c, size_t n)
             }
 
 #ifndef CONFIG_MEMSET_64BIT
-          /* Loop while there are at least 32-bits left to be zeroed */
+          /* Loop while there are at least 32-bits left to be written */
 
           while (n >= 4)
             {
@@ -117,7 +117,7 @@ void *memset(void *s, int c, size_t n)
               n    -= 4;
             }
 #else
-          /* Check if there are at least 32-bits left to be zeroed */
+          /* Check if there are at least 32-bits left to be written */
 
           if (n >= 4)
             {
@@ -132,7 +132,7 @@ void *memset(void *s, int c, size_t n)
                   n    -= 4;
                 }
 
-              /* Loop while there are at least 64-bits left to be zeroed */
+              /* Loop while there are at least 64-bits left to be written */
 
               while (n >= 8)
                 {
@@ -145,16 +145,16 @@ void *memset(void *s, int c, size_t n)
         }
 
 #ifdef CONFIG_MEMSET_64BIT
-    /* We may get here with n in the range 0..7.  If n >= 4, then we should
-     * have 64-bit alignment.
-     */
+      /* We may get here with n in the range 0..7.  If n >= 4, then we should
+       * have 64-bit alignment.
+       */
 
-    if (n >= 4)
-      {
-        *(uint32_t*)addr = val32;
-        addr += 4;
-        n    -= 4;
-      }
+      if (n >= 4)
+        {
+          *(uint32_t*)addr = val32;
+          addr += 4;
+          n    -= 4;
+        }
 #endif
 
       /* We may get here under the following conditions:
@@ -165,23 +165,16 @@ void *memset(void *s, int c, size_t n)
        *   n = 3, addr is aligned to a 32-bit boundary
        */
 
-      switch (n)
+      if (n >= 2)
         {
-          default:
-          case 0:
-            DEBUGASSERT(n == 0);
-            break;
+          *(uint16_t*)addr = val16;
+          addr += 2;
+          n    -= 2;
+        }
 
-          case 2:
-            *(uint16_t*)addr = val16;
-            break;
-
-          case 3:
-            *(uint16_t*)addr = val16;
-            addr += 2;
-          case 1:
-            *(uint8_t*)addr = (uint8_t)c;
-            break;
+      if (n >= 1)
+        {
+          *(uint8_t*)addr = (uint8_t)c;
         }
     }
 #else
