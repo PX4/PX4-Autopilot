@@ -65,6 +65,34 @@
 #include <fixedwing_att_control_rate.h>
 #include <fixedwing_att_control_att.h>
 
+/*
+ * Controller parameters, accessible via MAVLink
+ *
+ */
+// Roll control parameters
+PARAM_DEFINE_FLOAT(FW_ROLLRATE_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_ROLLRATE_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ROLLRATE_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ROLLRATE_LIM, 0.7f);   // Roll rate limit in radians/sec
+PARAM_DEFINE_FLOAT(FW_ROLL_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_ROLL_LIM, 0.7f);	// Roll angle limit in radians
+
+//Pitch control parameters
+PARAM_DEFINE_FLOAT(FW_PITCHRATE_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_PITCHRATE_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_PITCHRATE_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(FW_PITCHRATE_LIM, 0.35f);   // Pitch rate limit in radians/sec
+PARAM_DEFINE_FLOAT(FW_PITCH_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_PITCH_LIM, 0.35f);	// Pitch angle limit in radians
+
+//Yaw control parameters					//XXX TODO this is copy paste, asign correct values
+PARAM_DEFINE_FLOAT(FW_YAWRATE_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_YAWRATE_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_YAWRATE_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(FW_YAWRATE_LIM, 0.35f);   // Yaw rate limit in radians/sec
+PARAM_DEFINE_FLOAT(FW_YAW_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_YAW_LIM, 0.35f);	// Yaw angle limit in radians
+
 /* Prototypes */
 /**
  * Deamon management function.
