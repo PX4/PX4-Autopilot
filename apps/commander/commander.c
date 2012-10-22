@@ -137,6 +137,7 @@ int commander_thread_main(int argc, char *argv[]);
 
 static int buzzer_init(void);
 static void buzzer_deinit(void);
+static void tune_confirm();
 static int led_init(void);
 static void led_deinit(void);
 static int led_toggle(int led);
@@ -257,6 +258,10 @@ int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, u
 	return 0;
 }
 
+void tune_confirm() {
+	ioctl(buzzer, TONE_SET_ALARM, 3);
+}
+
 static const char *parameter_file = "/eeprom/parameters";
 
 static int pm_save_eeprom(bool only_unsaved)
@@ -364,7 +369,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 			char buf[50];
 			sprintf(buf, "[commander] Please rotate around %c", axislabels[axis_index]);
 			mavlink_log_info(mavlink_fd, buf);
-			ioctl(buzzer, TONE_SET_ALARM, 2);
+			tune_confirm();
 		
 			axis_deadline += calibration_interval / 3;
 		}
@@ -838,10 +843,10 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
 					mavlink_log_info(mavlink_fd, "[commander] CMD starting gyro calibration");
-					ioctl(buzzer, TONE_SET_ALARM, 2);
+					tune_confirm();
 					do_gyro_calibration(status_pub, &current_status);
 					mavlink_log_info(mavlink_fd, "[commander] CMD finished gyro calibration");
-					ioctl(buzzer, TONE_SET_ALARM, 2);
+					tune_confirm();
 					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
 				} else {
@@ -858,10 +863,10 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
 					mavlink_log_info(mavlink_fd, "[commander] CMD starting mag calibration");
-					ioctl(buzzer, TONE_SET_ALARM, 2);
+					tune_confirm();
 					do_mag_calibration(status_pub, &current_status);
 					mavlink_log_info(mavlink_fd, "[commander] CMD finished mag calibration");
-					ioctl(buzzer, TONE_SET_ALARM, 2);
+					tune_confirm();
 					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
 				} else {
@@ -878,9 +883,9 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
 					mavlink_log_info(mavlink_fd, "[commander] CMD starting accel calibration");
-					ioctl(buzzer, TONE_SET_ALARM, 2);
+					tune_confirm();
 					do_accel_calibration(status_pub, &current_status);
-					ioctl(buzzer, TONE_SET_ALARM, 2);
+					tune_confirm();
 					mavlink_log_info(mavlink_fd, "[commander] CMD finished accel calibration");
 					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
@@ -1273,7 +1278,7 @@ int commander_thread_main(int argc, char *argv[])
 		} else if (bat_remain < 0.2f && battery_voltage_valid && (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 2) == 0)) {
 			/* For less than 20%, start be slightly annoying at 1 Hz */
 			ioctl(buzzer, TONE_SET_ALARM, 0);
-			ioctl(buzzer, TONE_SET_ALARM, 2);
+			tune_confirm();
 
 		} else if (bat_remain < 0.2f && battery_voltage_valid && (counter % ((1000000 / COMMANDER_MONITORING_INTERVAL) / 2) == 2)) {
 			ioctl(buzzer, TONE_SET_ALARM, 0);
