@@ -33,76 +33,48 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_log.h
+ * @file mavlink_log.c
  * MAVLink text logging.
  *
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#ifndef MAVLINK_LOG
-#define MAVLINK_LOG
+#include <string.h>
 
-/*
- * IOCTL interface for sending log messages.
- */
-#include <sys/ioctl.h>
-
-/*
- * The mavlink log device node; must be opened before messages
- * can be logged.
- */
-#define MAVLINK_LOG_DEVICE			"/dev/mavlink"
-
-#define MAVLINK_IOC_SEND_TEXT_INFO		_IOC(0x1100, 1)
-#define MAVLINK_IOC_SEND_TEXT_CRITICAL		_IOC(0x1100, 2)
-#define MAVLINK_IOC_SEND_TEXT_EMERGENCY		_IOC(0x1100, 3)
-
-/**
- * Send a mavlink emergency message.
- *
- * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
- * @param _text		The text to log;
- */
-#define mavlink_log_emergency(_fd, _text)	ioctl(_fd, MAVLINK_IOC_SEND_TEXT_EMERGENCY, (unsigned long)_text);
-
-/**
- * Send a mavlink critical message.
- *
- * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
- * @param _text		The text to log;
- */
-#define mavlink_log_critical(_fd, _text)	ioctl(_fd, MAVLINK_IOC_SEND_TEXT_CRITICAL, (unsigned long)_text);
-
-/**
- * Send a mavlink info message.
- *
- * @param _fd		A file descriptor returned from open(MAVLINK_LOG_DEVICE, 0);
- * @param _text		The text to log;
- */
-#define mavlink_log_info(_fd, _text)		ioctl(_fd, MAVLINK_IOC_SEND_TEXT_INFO, (unsigned long)_text);
-
-struct mavlink_logmessage {
-    char text[51];
-    unsigned char severity;
-};
-
-struct mavlink_logbuffer {
-    unsigned int start;
-    // unsigned int end;
-    unsigned int size;
-    int count;
-    struct mavlink_logmessage *elems;
-};
+#include "mavlink_log.h"
  
-void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size);
+void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size) {
+    lb->size  = size;
+    lb->start = 0;
+    lb->count = 0;
+    lb->elems = (struct mavlink_logmessage *)calloc(lb->size, sizeof(struct mavlink_logmessage));
+}
  
-int mavlink_logbuffer_is_full(struct mavlink_logbuffer *lb);
-
-int mavlink_logbuffer_is_empty(struct mavlink_logbuffer *lb);
+int mavlink_logbuffer_is_full(struct mavlink_logbuffer *lb) {
+    return lb->count == lb->size;
+}
  
-void mavlink_logbuffer_write(struct mavlink_logbuffer *lb, const struct mavlink_logmessage *elem);
+int mavlink_logbuffer_is_empty(struct mavlink_logbuffer *lb) {
+    return lb->count == 0;
+}
  
-int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessage *elem);
-
-#endif
-
+void mavlink_logbuffer_write(struct mavlink_logbuffer *lb, const struct mavlink_logmessage *elem) {
+    int end = (lb->start + lb->count) % lb->size;
+    memcpy(&(lb->elems[end]), elem, sizeof(struct mavlink_logmessage));
+    if (mavlink_logbuffer_is_full(lb)) {
+        lb->start = (lb->start + 1) % lb->size; /* full, overwrite */
+    } else {
+        ++lb->count;
+    }
+}
+ 
+int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessage *elem) {
+    if (!mavlink_logbuffer_is_empty(lb)) {
+        memcpy(elem, &(lb->elems[lb->start]), sizeof(struct mavlink_logmessage));
+        lb->start = (lb->start + 1) % lb->size;
+        --lb->count;
+        return 0;
+    } else {
+        return 1;
+    }
+}

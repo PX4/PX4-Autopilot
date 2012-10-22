@@ -284,9 +284,9 @@ HMC5883::HMC5883(int bus) :
 	_next_report(0),
 	_oldest_report(0),
 	_reports(nullptr),
-	_mag_topic(-1),
 	_range_scale(0), /* default range scale from counts to gauss */
 	_range_ga(1.3f),
+	_mag_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
 	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows"))
@@ -950,7 +950,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		goto out;
 	}
 
-	if (OK != ioctl(filp, MAGIOCEXSTRAP, 0)) {
+	if (OK != ::ioctl(fd, MAGIOCEXSTRAP, 0)) {
 		warnx("failed to disable sensor calibration mode");
 		goto out;
 	}
@@ -969,9 +969,9 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 
 	out:
 		if (ret == OK) {
-			warnx("calibration successfully finished.");
+			warnx("mag scale calibration successfully finished.");
 		} else {
-			warnx("calibration failed.");
+			warnx("mag scale calibration failed.");
 		}
 	return ret;
 }
@@ -1200,7 +1200,6 @@ test()
  */
 int calibrate()
 {
-	ssize_t sz;
 	int ret;
 
 	int fd = open(MAG_DEVICE_PATH, O_RDONLY);

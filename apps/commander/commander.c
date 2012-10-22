@@ -291,23 +291,28 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	state_machine_publish(status_pub, status, mavlink_fd);
 
 	int sub_mag = orb_subscribe(ORB_ID(sensor_mag));
-	orb_set_interval(sub_mag, 22);
 	struct mag_report mag;
 
-	/* 30 seconds */
+	/* 45 seconds */
 	uint64_t calibration_interval = 45 * 1000 * 1000;
+
+	/* maximum 2000 values */
+	const unsigned int calibration_maxcount = 2000;
 	unsigned int calibration_counter = 0;
 
-	/*
-	 * FLT_MIN is not the most negative float number,
-	 * but the smallest number by magnitude float can
-	 * represent. Use -FLT_MAX to initialize the most
-	 * negative number
-	 */
-	float mag_max[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
-	float mag_min[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
+	/* limit update rate to get equally spaced measurements over time (in ms) */
+	orb_set_interval(sub_mag, (calibration_interval / 1000) / calibration_maxcount);
 
-	int fd = open(MAG_DEVICE_PATH, 0);
+	// XXX old cal
+	//  * FLT_MIN is not the most negative float number,
+	//  * but the smallest number by magnitude float can
+	//  * represent. Use -FLT_MAX to initialize the most
+	//  * negative number
+	 
+	// float mag_max[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
+	// float mag_min[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
+
+	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
 
 	/* erase old calibration */
 	struct mag_scale mscale_null = {
@@ -332,7 +337,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 
 	/* calibrate offsets */
 
-	uint64_t calibration_start = hrt_absolute_time();
+	// uint64_t calibration_start = hrt_absolute_time();
 
 	uint64_t axis_deadline = hrt_absolute_time();
 	uint64_t calibration_deadline = hrt_absolute_time() + calibration_interval;
@@ -340,7 +345,6 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	const char axislabels[3] = { 'Z', 'X', 'Y'};
 	int axis_index = -1;
 
-	const int calibration_maxcount = 2000;
 	float *x = malloc(sizeof(float) * calibration_maxcount);
 	float *y = malloc(sizeof(float) * calibration_maxcount);
 	float *z = malloc(sizeof(float) * calibration_maxcount);
@@ -426,27 +430,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	free(y);
 	free(z);
 
-	float mag_offset[3] = {sphere_x, sphere_y, sphere_z};
-
-	// *
-	//  * The offset is subtracted from the sensor values, so the result is the
-	//  * POSITIVE number that has to be subtracted from the sensor data
-	//  * to shift the center to zero
-	//  *
-	//  * offset = max - ((max - min) / 2.0f)
-	//  *          max - max/2 + min/2
-	//  *          max/2 + min/2
-	//  *
-	//  * which reduces to
-	//  *
-	//  * offset = (max + min) / 2.0f
-	 
-
-	// mag_offset[0] = (mag_max[0] + mag_min[0]) / 2.0f;
-	// mag_offset[1] = (mag_max[1] + mag_min[1]) / 2.0f;
-	// mag_offset[2] = (mag_max[2] + mag_min[2]) / 2.0f;
-
-	if (isfinite(mag_offset[0]) && isfinite(mag_offset[1]) && isfinite(mag_offset[2])) {
+	if (isfinite(sphere_x) && isfinite(sphere_y) && isfinite(sphere_z)) {
 
 		fd = open(MAG_DEVICE_PATH, 0);
 
@@ -455,9 +439,9 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		if (OK != ioctl(fd, MAGIOCGSCALE, (long unsigned int)&mscale))
 			warn("WARNING: failed to get scale / offsets for mag");
 
-		mscale.x_offset = mag_offset[0];
-		mscale.y_offset = mag_offset[1];
-		mscale.z_offset = mag_offset[2];
+		mscale.x_offset = sphere_x;
+		mscale.y_offset = sphere_y;
+		mscale.z_offset = sphere_z;
 
 		if (OK != ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale))
 			warn("WARNING: failed to set scale / offsets for mag");
@@ -495,13 +479,19 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 			warn("WARNING: auto-save of params to EEPROM failed");
 		}
 
-		printf("[mag cal] scale: %.6f %.6f %.6f\n\t\toffset: %.6f %.6f %.6f\nradius: %.6f GA\n",
-			mscale.x_scale, mscale.y_scale, mscale.z_scale,
-			mscale.x_offset, mscale.y_offset, mscale.z_offset, sphere_radius);
+		printf("[mag cal]\tscale: %.6f %.6f %.6f\n         \toffset: %.6f %.6f %.6f\nradius: %.6f GA\n",
+			(double)mscale.x_scale, (double)mscale.y_scale, (double)mscale.z_scale,
+			(double)mscale.x_offset, (double)mscale.y_offset, (double)mscale.z_offset, (double)sphere_radius);
 		
-		// char buf[50];
-		// sprintf(buf, "[commander] mag cal: x:%d y:%d z:%d mGa", (int)(mag_offset[0]*1000), (int)(mag_offset[1]*1000), (int)(mag_offset[2]*1000));
-		// mavlink_log_info(mavlink_fd, buf);
+		char buf[52];
+		sprintf(buf, "mag off: x:%.2f y:%.2f z:%.2f Ga", (double)mscale.x_offset,
+			(double)mscale.y_offset, (double)mscale.z_offset);
+		mavlink_log_info(mavlink_fd, buf);
+
+		sprintf(buf, "mag scale: x:%.2f y:%.2f z:%.2f", (double)mscale.x_scale,
+			(double)mscale.y_scale, (double)mscale.z_scale);
+		mavlink_log_info(mavlink_fd, buf);
+
 		mavlink_log_info(mavlink_fd, "[commander] mag calibration done");
 	} else {
 		mavlink_log_info(mavlink_fd, "[commander] mag calibration FAILED (NaN)");

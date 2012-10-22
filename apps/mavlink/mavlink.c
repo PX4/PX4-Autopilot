@@ -1,7 +1,7 @@
- /****************************************************************************
+/****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,8 @@
 /**
  * @file mavlink.c
  * MAVLink 1.0 protocol implementation.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #include <nuttx/config.h>
@@ -114,9 +116,6 @@ mavlink_wpm_storage *wpm = &wpm_s;
 
 bool mavlink_hil_enabled = false;
 
-/* buffer for message strings */
-static char mavlink_message_string[51] = {0};
-
 /* protocol interface */
 static int uart;
 static int baudrate;
@@ -126,6 +125,8 @@ static enum {
 	MAVLINK_INTERFACE_MODE_OFFBOARD,
 	MAVLINK_INTERFACE_MODE_ONBOARD
 } mavlink_link_mode = MAVLINK_INTERFACE_MODE_OFFBOARD;
+
+static struct mavlink_logbuffer lb;
 
 static void mavlink_update_system(void);
 static int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
@@ -332,7 +333,9 @@ mavlink_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 	case (int)MAVLINK_IOC_SEND_TEXT_CRITICAL:
 	case (int)MAVLINK_IOC_SEND_TEXT_EMERGENCY: {
 			const char *txt = (const char *)arg;
-			strncpy(mavlink_message_string, txt, 51);
+			struct mavlink_logmessage msg;
+			strncpy(msg.text, txt, sizeof(msg.text));
+			mavlink_logbuffer_write(&lb, &msg);
 			total_counter++;
 			return OK;
 		}
@@ -489,6 +492,9 @@ void mavlink_update_system(void)
  */
 int mavlink_thread_main(int argc, char *argv[])
 {
+	/* initialize mavlink text message buffering */
+	mavlink_logbuffer_init(&lb, 5);
+
 	int ch;
 	char *device_name = "/dev/ttyS1";
 	baudrate = 57600;
@@ -662,9 +668,12 @@ int mavlink_thread_main(int argc, char *argv[])
 		usleep(10000);
 
 		/* send one string at 10 Hz */
-		if (mavlink_message_string[0] != '\0') {
-			mavlink_missionlib_send_gcs_string(mavlink_message_string);
-			mavlink_message_string[0] = '\0';
+		if (!mavlink_logbuffer_is_empty(&lb)) {
+			struct mavlink_logmessage msg;
+			int lb_ret = mavlink_logbuffer_read(&lb, &msg);
+			if (lb_ret == OK) {
+				mavlink_missionlib_send_gcs_string(msg.text);
+			}
 		}
 
 		/* sleep 15 ms */
@@ -711,7 +720,7 @@ int mavlink_main(int argc, char *argv[])
 					  SCHED_PRIORITY_DEFAULT,
 					  6000,
 					  mavlink_thread_main,
-					  argv);
+					  (const char**)argv);
 		exit(0);
 	}
 
