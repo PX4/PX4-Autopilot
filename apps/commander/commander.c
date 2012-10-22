@@ -728,6 +728,9 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 	/* result of the command */
 	uint8_t result = MAV_RESULT_UNSUPPORTED;
 
+	/* announce command handling */
+	ioctl(buzzer, TONE_SET_ALARM, 1);
+
 
 	/* supported command handling start */
 
@@ -907,6 +910,9 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		default: {
 			mavlink_log_critical(mavlink_fd, "[commander] refusing unsupported command");
 			result = MAV_RESULT_UNSUPPORTED;
+			usleep(200000);
+			/* announce command rejection */
+			ioctl(buzzer, TONE_SET_ALARM, 4);
 		}
 		break;
 	}

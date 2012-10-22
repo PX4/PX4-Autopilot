@@ -454,6 +454,24 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, uint8_t *ch, int length)
 	write(uart, ch, (size_t)(sizeof(uint8_t) * length));
 }
 
+/*
+ * Internal function to give access to the channel status for each channel
+ */
+mavlink_status_t* mavlink_get_channel_status(uint8_t chan)
+{
+	static mavlink_status_t m_mavlink_status[MAVLINK_COMM_NUM_BUFFERS];
+	return &m_mavlink_status[chan];
+}
+
+/*
+ * Internal function to give access to the channel buffer for each channel
+ */
+mavlink_message_t* mavlink_get_channel_buffer(uint8_t chan)
+{
+	static mavlink_message_t m_mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS];
+	return &m_mavlink_buffer[chan];
+}
+
 void mavlink_update_system(void)
 {
 	static bool initialized = false;
