@@ -31,46 +31,61 @@
  *
  ****************************************************************************/
 
-/*
- * Speaker driver supporting alarm sequences.
+/**
+ * Driver for the PX4 audio alarm port, /dev/tone_alarm.
  *
- * Works with any of the 'generic' STM32 timers that has an output
- * pin, does not require an interrupt.
+ * The tone_alarm driver supports a set of predefined "alarm" 
+ * patterns and one user-supplied pattern.  Patterns are ordered by 
+ * priority, with a higher-priority pattern interrupting any
+ * lower-priority pattern that might be playing.
  *
- * Depends on the HRT timer.
+ * The TONE_SET_ALARM ioctl can be used to select a predefined
+ * alarm pattern, from 1 - <TBD>.  Selecting pattern zero silences
+ * the alarm.
+ *
+ * To supply a custom pattern, write an array of 1 - <TBD> tone_note
+ * structures to /dev/tone_alarm.  The custom pattern has a priority
+ * of zero.
+ *
+ * Patterns will normally play once and then silence (if a pattern
+ * was overridden it will not resume).  A pattern may be made to
+ * repeat by inserting a note with the duration set to
+ * DURATION_REPEAT.  This pattern will loop until either a
+ * higher-priority pattern is started or pattern zero is requested
+ * via the ioctl.
  */
 
 #include <nuttx/config.h>
-#include <nuttx/arch.h>
-#include <nuttx/irq.h>
+
+#include <drivers/device/device.h>
+#include <drivers/drv_tone_alarm.h>
 
 #include <sys/types.h>
+#include <stdint.h>
 #include <stdbool.h>
-
-#include <assert.h>
-#include <debug.h>
-#include <time.h>
-#include <queue.h>
-#include <errno.h>
+#include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <errno.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include <arch/board/board.h>
-#include <arch/board/drv_tone_alarm.h>
 #include <arch/board/up_hrt.h>
 
-#include "chip.h"
-#include "up_internal.h"
-#include "up_arch.h"
+#include <arch/stm32/chip.h>
+#include <up_internal.h>
+#include <up_arch.h>
 
-#include "stm32_internal.h"
-#include "stm32_gpio.h"
-#include "stm32_tim.h"
+#include <stm32_internal.h>
+#include <stm32_gpio.h>
+#include <stm32_tim.h>
 
-#ifdef CONFIG_TONE_ALARM
-# ifndef CONFIG_HRT_TIMER
-#  error CONFIG_TONE_ALARM requires CONFIG_HRT_TIMER
-# endif
+#include <systemlib/err.h>
+
+#ifndef CONFIG_HRT_TIMER
+# error CONFIG_TONE_ALARM requires CONFIG_HRT_TIMER
+#endif
 
 /* Tone alarm configuration */
 #if   TONE_ALARM_TIMER == 2
@@ -123,7 +138,7 @@
 #  error Must not set CONFIG_STM32_TIM11 when TONE_ALARM_TIMER is 11
 # endif
 #else
-# error Must set TONE_ALARM_TIMER to a generic timer if CONFIG_TONE_ALARM is set
+# error Must set TONE_ALARM_TIMER to a generic timer in order to use this driver.
 #endif
 
 #if TONE_ALARM_CHANNEL == 1
@@ -147,8 +162,9 @@
 # define TONE_CCER	(1 << 12)
 # define TONE_rCCR	rCCR4
 #else
-# error Must set TONE_ALARM_CHANNEL to a value between 1 and 4
+# error Must set TONE_ALARM_CHANNEL to a value between 1 and 4 to use this driver.
 #endif
+
 
 /*
  * Timer register accessors
@@ -174,11 +190,42 @@
 #define rDCR     	REG(STM32_GTIM_DCR_OFFSET)
 #define rDMAR    	REG(STM32_GTIM_DMAR_OFFSET)
 
-#define TONE_MAX_PATTERN	6
-#define TONE_MAX_PATTERN_LEN	40
+class ToneAlarm : public device::CDev
+{
+public:
+	ToneAlarm();
+	~ToneAlarm();
 
-/* predefined patterns for alarms 1-TONE_MAX_PATTERN */
-const struct tone_note patterns[TONE_MAX_PATTERN][TONE_MAX_PATTERN_LEN] = {
+	virtual int		init();
+
+	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
+	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
+
+private:
+	static const unsigned	_max_pattern = 6;
+	static const unsigned	_pattern_none = _max_pattern + 1;
+	static const unsigned	_pattern_user = 0;
+	static const unsigned	_max_pattern_len = 40;
+	static const unsigned	_note_max = TONE_NOTE_MAX;
+
+	static const tone_note	_patterns[_max_pattern][_max_pattern_len];
+	static const uint16_t	_notes[_note_max];
+
+	unsigned		_current_pattern;
+	unsigned		_next_note;
+
+	hrt_call		_note_end;
+	tone_note		_user_pattern[_max_pattern_len];
+
+	static void		next_trampoline(void *arg);
+	void			next();
+	bool			check(tone_note *pattern);
+	void			stop();
+};
+
+
+/* predefined patterns for alarms 1-_max_pattern */
+const tone_note ToneAlarm::_patterns[_max_pattern][_max_pattern_len] = {
 	{
 		{TONE_NOTE_A7, 12},
 		{TONE_NOTE_D8, 12},
@@ -193,7 +240,7 @@ const struct tone_note patterns[TONE_MAX_PATTERN][TONE_MAX_PATTERN_LEN] = {
 		{TONE_NOTE_D8, 4},
 		{TONE_NOTE_C8, 4},
 	},
-	{{TONE_NOTE_B6, 100}},
+	{{TONE_NOTE_B6, 100}, {TONE_NOTE_B6, DURATION_REPEAT}},
 	{{TONE_NOTE_C7, 100}},
 	{{TONE_NOTE_D7, 100}},
 	{{TONE_NOTE_E7, 100}},
@@ -217,7 +264,6 @@ const struct tone_note patterns[TONE_MAX_PATTERN][TONE_MAX_PATTERN_LEN] = {
 		{TONE_NOTE_G5S, 40},
 		{TONE_NOTE_F5, 40},
 		{TONE_NOTE_F5, 60},
-
 		{TONE_NOTE_A5S, 40},
 		{TONE_NOTE_C6S, 20},
 		{TONE_NOTE_F6, 40},
@@ -239,7 +285,7 @@ const struct tone_note patterns[TONE_MAX_PATTERN][TONE_MAX_PATTERN_LEN] = {
 	}
 };
 
-static uint16_t notes[TONE_NOTE_MAX] = {
+const uint16_t ToneAlarm::_notes[_note_max] = {
 	63707, /* E4 */
 	60132, /* F4 */
 	56758, /* F#4/Gb4 */
@@ -290,46 +336,46 @@ static uint16_t notes[TONE_NOTE_MAX] = {
 	4218  /* D#8/Eb8 */
 };
 
-/* current state of the tone driver */
-struct state {
-	int		pattern;				/* current pattern */
-#define PATTERN_NONE	-1
-#define PATTERN_USER	0
-	int		note;					/* next note to play */
-	struct hrt_call	note_end;
-	struct tone_note user_pattern[TONE_MAX_PATTERN_LEN];	/* user-supplied pattern (plays at pattern 0) */
-};
+/*
+ * Driver 'main' command.
+ */
+extern "C" __EXPORT int tone_alarm_main(int argc, char *argv[]);
 
-static struct state tone_state;
 
-static int	tone_write(struct file *filp, const char *buffer, size_t len);
-static int	tone_ioctl(struct file *filep, int cmd, unsigned long arg);
-
-static const struct file_operations tone_fops = {
-	.write = tone_write,
-	.ioctl = tone_ioctl
-};
-
-static void	tone_next(void);
-static bool	tone_ok(struct tone_note *pattern);
-int
-tone_alarm_init(void)
+ToneAlarm::ToneAlarm() :
+	CDev("tone_alarm", "/dev/tone_alarm"),
+	_current_pattern(_pattern_none),
+	_next_note(0)
 {
-	/* configure the GPIO */
+	// enable debug() calls
+	//_debug_enabled = true;
+}
+
+ToneAlarm::~ToneAlarm()
+{
+}
+
+int
+ToneAlarm::init()
+{
+	int ret;
+
+	ret = CDev::init();
+	if (ret != OK)
+		return ret;
+
+	/* configure the GPIO to the idle state */
 	stm32_configgpio(GPIO_TONE_ALARM);
 
 	/* clock/power on our timer */
         modifyreg32(STM32_RCC_APB1ENR, 0, TONE_ALARM_CLOCK_ENABLE);
-
-	/* default the state */
-	tone_state.pattern = -1;
 
 	/* initialise the timer */
         rCR1 = 0;
         rCR2 = 0;
         rSMCR = 0;
         rDIER = 0;
-        rCCER = 0;		/* unlock CCMR* registers */
+        rCCER &= TONE_CCER;		/* unlock CCMR* registers */
         rCCMR1 = TONE_CCMR1;
         rCCMR2 = TONE_CCMR2;
         rCCER = TONE_CCER;
@@ -346,153 +392,163 @@ tone_alarm_init(void)
          */
         rPSC = 1;
 
-        tone_state.pattern = PATTERN_NONE;
-        tone_state.note = 0;
+        /* make sure the timer is running */
+        rCR1 = GTIM_CR1_CEN;
 
-	/* play the startup tune */
-    tone_ioctl(NULL, TONE_SET_ALARM, 1);
-
-	/* register the device */
-	return register_driver("/dev/tone_alarm", &tone_fops, 0666, NULL);
+        debug("ready");
+	return OK;
 }
 
-static int
-tone_ioctl(struct file *filep, int cmd, unsigned long arg)
+int
+ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int result = 0;
-	int new = (int)arg;
+	unsigned new_pattern = arg;
 
-	irqstate_t flags = irqsave();
+	debug("ioctl %i %u", cmd, new_pattern);
+
+//	irqstate_t flags = irqsave();
 
 	/* decide whether to increase the alarm level to cmd or leave it alone */
 	switch (cmd) {
 	case TONE_SET_ALARM:
-		if (new == 0) {
+		debug("TONE_SET_ALARM %u", arg);
+		if (new_pattern == 0) {
 			/* cancel any current alarm */
-			tone_state.pattern = PATTERN_NONE;
-			tone_next();
+			_current_pattern = _pattern_none;
+			next();
 
-		} else if (new > TONE_MAX_PATTERN) {
+		} else if (new_pattern > _max_pattern) {
 
 			/* not a legal alarm value */
 			result = -ERANGE;
 
-		} else if (new > tone_state.pattern) {
+		} else if ((_current_pattern == _pattern_none) || (new_pattern > _current_pattern)) {
 
 			/* higher priority than the current alarm */
-			tone_state.pattern = new;
-			tone_state.note = 0;
+			_current_pattern = new_pattern;
+			_next_note = 0;
 
 			/* and start playing it */
-			tone_next();
+			next();
+		} else {
+			/* current pattern is higher priority than the new pattern, ignore */
 		}
 		break;
 	default:
-		result = -EINVAL;
+		result = -ENOTTY;
 		break;
 	}
 
-	irqrestore(flags);
+//	irqrestore(flags);
+
+	/* give it to the superclass if we didn't like it */
+	if (result == -ENOTTY)
+		result = CDev::ioctl(filp, cmd, arg);
+
 	return result;
 }
 
-static int
-tone_write(struct file *filp, const char *buffer, size_t len)
+int
+ToneAlarm::write(file *filp, const char *buffer, size_t len)
 {
 	irqstate_t flags;
 
 	/* sanity-check the size of the write */
-	if (len > (TONE_MAX_PATTERN_LEN * sizeof(struct tone_note)))
+	if (len > (_max_pattern_len * sizeof(tone_note)))
 		return -EFBIG;
-	if ((len % sizeof(struct tone_note)) || (len == 0))
+	if ((len % sizeof(tone_note)) || (len == 0))
 		return -EIO;
-	if (!tone_ok((struct tone_note *)buffer))
+	if (!check((tone_note *)buffer))
 		return -EIO;
 
 	flags = irqsave();
 
 	/* if we aren't playing an alarm tone */
-	if (tone_state.pattern <= PATTERN_USER) {
+	if (_current_pattern <= _pattern_user) {
 
 		/* reset the tone state to play the new user pattern */
-		tone_state.pattern = PATTERN_USER;
-		tone_state.note = 0;
+		_current_pattern = _pattern_user;
+		_next_note = 0;
 
 		/* copy in the new pattern */
-		memset(tone_state.user_pattern, 0, sizeof(tone_state.user_pattern));
-		memcpy(tone_state.user_pattern, buffer, len);
+		memset(_user_pattern, 0, sizeof(_user_pattern));
+		memcpy(_user_pattern, buffer, len);
 
 		/* and start it */
-		tone_next();
+		debug("starting user pattern");
+		next();
 	}
 	irqrestore(flags);
 
 	return len;
 }
 
-static void
-tone_next(void)
+void
+ToneAlarm::next_trampoline(void *arg)
 {
-	const struct tone_note *np;
+	ToneAlarm *ta = (ToneAlarm *)arg;
+
+	ta->next();
+}
+
+void
+ToneAlarm::next(void)
+{
+	const tone_note *np;
 
 	/* stop the current note */
-	rCR1 = 0;
+	rCCER &= ~TONE_CCER;
 
 	/* if we are no longer playing a pattern, we have nothing else to do here */
-	if (tone_state.pattern == PATTERN_NONE) {
+	if (_current_pattern == _pattern_none) {
+		stop();
 		return;
 	}
 
-	/* if the current pattern has ended, clear the pattern and stop */
-	if (tone_state.note == TONE_NOTE_MAX) {
-		tone_state.pattern = PATTERN_NONE;
-		return;
-	}
+	ASSERT(_next_note < _note_max);
 
 	/* find the note to play */
-	if (tone_state.pattern == PATTERN_USER) {
-		np = &tone_state.user_pattern[tone_state.note];
+	if (_current_pattern == _pattern_user) {
+		np = &_user_pattern[_next_note];
 	} else {
-		np = &patterns[tone_state.pattern - 1][tone_state.note];
+		np = &_patterns[_current_pattern - 1][_next_note];
 	}
 
 	/* work out which note is next */
-	tone_state.note++;
-	if (tone_state.note >= TONE_NOTE_MAX) {
+	_next_note++;
+	if (_next_note >= _note_max) {
 		/* hit the end of the pattern, stop */
-		tone_state.pattern = PATTERN_NONE;
+		_current_pattern = _pattern_none;
 	} else if (np[1].duration == DURATION_END) {
 		/* hit the end of the pattern, stop */
-		tone_state.pattern = PATTERN_NONE;
+		_current_pattern = _pattern_none;
 	} else if (np[1].duration == DURATION_REPEAT) {
 		/* next note is a repeat, rewind in preparation */
-		tone_state.note = 0;
+		_next_note = 0;
 	}
 
 	/* set the timer to play the note, if required */
 	if (np->pitch <= TONE_NOTE_SILENCE) {
 
 		/* set reload based on the pitch */
-		rARR = notes[np->pitch];
+		rARR = _notes[np->pitch];
 
 	        /* force an update, reloads the counter and all registers */
 	        rEGR = GTIM_EGR_UG;
 
-	        /* start the timer */
-	        rCR1 = GTIM_CR1_CEN;
+	        /* enable the output */
+	        rCCER |= TONE_CCER;
 	}
 
 	/* arrange a callback when the note/rest is done */
-	hrt_call_after(&tone_state.note_end, (hrt_abstime)10000 * np->duration, (hrt_callout)tone_next, NULL);
-
+	hrt_call_after(&_note_end, (hrt_abstime)10000 * np->duration, (hrt_callout)next_trampoline, this);
 }
 
-static bool
-tone_ok(struct tone_note *pattern)
+bool
+ToneAlarm::check(tone_note *pattern)
 {
-	int	i;
-
-	for (i = 0; i < TONE_NOTE_MAX; i++) {
+	for (unsigned i = 0; i < _note_max; i++) {
 
 		/* first note must not be repeat or end */
 		if ((i == 0) &&
@@ -502,10 +558,75 @@ tone_ok(struct tone_note *pattern)
 			break;
 
 		/* pitch must be legal */
-		if (pattern[i].pitch >= TONE_NOTE_MAX)
+		if (pattern[i].pitch >= _note_max)
 			return false;
 	}
 	return true;
 }
 
-#endif /* CONFIG_TONE_ALARM */
+void
+ToneAlarm::stop()
+{
+	/* stop the current note */
+	rCCER &= ~TONE_CCER;
+
+	/*
+	 * Make sure the GPIO is not driving the speaker.
+	 *
+	 * XXX this presumes PX4FMU and the onboard speaker driver FET.
+	 */
+	stm32_gpiowrite(GPIO_TONE_ALARM, 0);
+}
+
+/**
+ * Local functions in support of the shell command.
+ */
+namespace
+{
+
+ToneAlarm	*g_dev;
+
+int
+play_pattern(unsigned pattern)
+{
+	int	fd, ret;
+
+	fd = open("/dev/tone_alarm", 0);
+	if (fd < 0)
+		err(1, "/dev/tone_alarm");
+
+	warnx("playing pattern %u", pattern);
+	ret = ioctl(fd, TONE_SET_ALARM, pattern);
+	if (ret != 0)
+		err(1, "TONE_SET_ALARM");
+	exit(0);
+}
+
+} // namespace
+
+int
+tone_alarm_main(int argc, char *argv[])
+{
+	unsigned pattern;
+
+	/* start the driver lazily */
+	if (g_dev == nullptr) {
+		g_dev = new ToneAlarm;
+
+		if (g_dev == nullptr)
+			errx(1, "couldn't allocate the ToneAlarm driver");
+		if (g_dev->init() != OK) {
+			delete g_dev;
+			errx(1, "ToneAlarm init failed");
+		}
+	}
+
+	if ((argc > 1) && !strcmp(argv[1], "start"))
+		play_pattern(1);
+	if ((argc > 1) && !strcmp(argv[1], "stop"))
+		play_pattern(0);
+	if ((pattern = strtol(argv[1], nullptr, 10)) != 0)
+		play_pattern(pattern);
+
+	errx(1, "unrecognised command, try 'start', 'stop' or an alarm number");
+}
