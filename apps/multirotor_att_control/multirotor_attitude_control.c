@@ -212,13 +212,13 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		parameters_update(&h, &p);
 
 		// pid_init(&yaw_pos_controller, p.yaw_p, p.yaw_i, p.yaw_d, p.yaw_awu,
-		// 	PID_MODE_DERIVATIV_SET, 154);
+		// 	90.0f, PID_MODE_DERIVATIV_SET, 154);	// Arbitrarily large limit added
 		pid_init(&yaw_speed_controller, p.yawrate_p, p.yawrate_i, p.yawrate_d, p.yawrate_awu,
-			PID_MODE_DERIVATIV_SET);
+			90.0f, PID_MODE_DERIVATIV_SET);	// Arbitrarily large limit added
 		pid_init(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu,
-			PID_MODE_DERIVATIV_SET);
+			90.0f, PID_MODE_DERIVATIV_SET);	// Arbitrarily large limit added
 		pid_init(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu,
-			PID_MODE_DERIVATIV_SET);
+			90.0f, PID_MODE_DERIVATIV_SET);	// Arbitrarily large limit added
 
 		initialized = true;
 	}
@@ -228,10 +228,10 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		/* update parameters from storage */
 		parameters_update(&h, &p);
 		/* apply parameters */
-		// pid_set_parameters(&yaw_pos_controller, p.yaw_p, p.yaw_i, p.yaw_d, p.yaw_awu);
-		pid_set_parameters(&yaw_speed_controller, p.yawrate_p, p.yawrate_i, p.yawrate_d, p.yawrate_awu);
-		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu);
-		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu);
+		// pid_set_parameters(&yaw_pos_controller, p.yaw_p, p.yaw_i, p.yaw_d, p.yaw_awu, 90.0f);
+		pid_set_parameters(&yaw_speed_controller, p.yawrate_p, p.yawrate_i, p.yawrate_d, p.yawrate_awu, 90.0f);
+		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu, 90.0f);
+		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu, 90.0f);
 	}
 
 	/* calculate current control outputs */
