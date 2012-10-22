@@ -199,7 +199,7 @@ public:
 	virtual int		init();
 
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
-	virtual int		write(file *filp, const char *buffer, size_t len);
+	virtual ssize_t		write(file *filp, const char *buffer, size_t len);
 
 private:
 	static const unsigned	_max_pattern = 6;
