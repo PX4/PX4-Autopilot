@@ -60,11 +60,9 @@ PARAM_DEFINE_FLOAT(MC_YAWPOS_D, 0.0f);
 PARAM_DEFINE_FLOAT(MC_YAWPOS_AWU, 1.0f);
 PARAM_DEFINE_FLOAT(MC_YAWPOS_LIM, 3.0f);
 
-
-
-PARAM_DEFINE_FLOAT(MC_ATT_P, 0.2f); /* 0.15 F405 Flamewheel */
+PARAM_DEFINE_FLOAT(MC_ATT_P, 0.2f);
 PARAM_DEFINE_FLOAT(MC_ATT_I, 0.0f);
-PARAM_DEFINE_FLOAT(MC_ATT_D, 0.05f); /* 0.025 F405 Flamewheel */
+PARAM_DEFINE_FLOAT(MC_ATT_D, 0.05f);
 PARAM_DEFINE_FLOAT(MC_ATT_AWU, 0.05f);
 PARAM_DEFINE_FLOAT(MC_ATT_LIM, 0.4f);
 
@@ -77,12 +75,6 @@ struct mc_att_control_params {
 	float yaw_d;
 	float yaw_awu;
 	float yaw_lim;
-
-	//	float yawrate_p;
-	//	float yawrate_i;
-	//	float yawrate_d;
-	//	float yawrate_awu;
-	//	float yawrate_lim;
 
 	float att_p;
 	float att_i;
@@ -100,12 +92,6 @@ struct mc_att_control_param_handles {
 	param_t yaw_d;
 	param_t yaw_awu;
 	param_t yaw_lim;
-
-	//	param_t yawrate_p;
-	//	param_t yawrate_i;
-	//	param_t yawrate_d;
-	//	param_t yawrate_awu;
-	//	param_t yawrate_lim;
 
 	param_t att_p;
 	param_t att_i;
@@ -139,12 +125,6 @@ static int parameters_init(struct mc_att_control_param_handles *h)
 	h->yaw_awu 	=	param_find("MC_YAWPOS_AWU");
 	h->yaw_lim 	=	param_find("MC_YAWPOS_LIM");
 
-	//	h->yawrate_p 	=	param_find("MC_YAWRATE_P");
-	//	h->yawrate_i 	=	param_find("MC_YAWRATE_I");
-	//	h->yawrate_d 	=	param_find("MC_YAWRATE_D");
-	//	h->yawrate_awu 	=	param_find("MC_YAWRATE_AWU");
-	//	h->yawrate_lim 	=	param_find("MC_YAWRATE_LIM");
-
 	h->att_p 	= 	param_find("MC_ATT_P");
 	h->att_i 	= 	param_find("MC_ATT_I");
 	h->att_d 	= 	param_find("MC_ATT_D");
@@ -164,12 +144,6 @@ static int parameters_update(const struct mc_att_control_param_handles *h, struc
 	param_get(h->yaw_d, &(p->yaw_d));
 	param_get(h->yaw_awu, &(p->yaw_awu));
 	param_get(h->yaw_lim, &(p->yaw_lim));
-
-	//	param_get(h->yawrate_p, &(p->yawrate_p));
-	//	param_get(h->yawrate_i, &(p->yawrate_i));
-	//	param_get(h->yawrate_d, &(p->yawrate_d));
-	//	param_get(h->yawrate_awu, &(p->yawrate_awu));
-	//	param_get(h->yawrate_lim, &(p->yawrate_lim));
 
 	param_get(h->att_p, &(p->att_p));
 	param_get(h->att_i, &(p->att_i));
@@ -199,8 +173,6 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 	static int motor_skip_counter = 0;
 
-	// static PID_t yaw_pos_controller;
-//	static PID_t yaw_speed_controller;
 	static PID_t pitch_controller;
 	static PID_t roll_controller;
 
@@ -214,14 +186,10 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		parameters_init(&h);
 		parameters_update(&h, &p);
 
-		// pid_init(&yaw_pos_controller, p.yaw_p, p.yaw_i, p.yaw_d, p.yaw_awu,
-		// 	PID_MODE_DERIVATIV_SET, 154);
-		//		pid_init(&yaw_speed_controller, p.yawrate_p, p.yawrate_i, p.yawrate_d, p.yawrate_awu,
-		//			PID_MODE_DERIVATIV_SET);
 		pid_init(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu,
-				PID_MODE_DERIVATIV_SET);
+			p.att_lim, PID_MODE_DERIVATIV_SET);
 		pid_init(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu,
-				PID_MODE_DERIVATIV_SET);
+			p.att_lim, PID_MODE_DERIVATIV_SET);
 
 		initialized = true;
 	}
@@ -230,12 +198,12 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	if (motor_skip_counter % 1000 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
+
 		/* apply parameters */
-		// pid_set_parameters(&yaw_pos_controller, p.yaw_p, p.yaw_i, p.yaw_d, p.yaw_awu);
-		//		pid_set_parameters(&yaw_speed_controller, p.yawrate_p, p.yawrate_i, p.yawrate_d, p.yawrate_awu);
-		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu);
-		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu);
 		printf("att ctrl: delays: %d us sens->ctrl, rate: %d Hz, input: %d Hz\n", sensor_delay, (int)(1.0f/deltaT), (int)(1.0f/dT_input));
+
+		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, p.att_awu, p.att_lim);
+		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, p.att_awu, p.att_lim);
 	}
 
 	/* calculate current control outputs */
@@ -251,10 +219,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	/* control yaw rate */
 	rates_sp->yaw = p.yaw_p * atan2f(sinf(att->yaw - att_sp->yaw_body), cosf(att->yaw - att_sp->yaw_body));
 
-
-
 	rates_sp->thrust = att_sp->thrust;
-
 
 	motor_skip_counter++;
 }
