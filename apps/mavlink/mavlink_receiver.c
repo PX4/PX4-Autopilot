@@ -93,6 +93,8 @@ static orb_advert_t flow_pub = -1;
 static orb_advert_t offboard_control_sp_pub = -1;
 static orb_advert_t vicon_position_pub = -1;
 
+extern bool gcs_link;
+
 static void
 handle_message(mavlink_message_t *msg)
 {
@@ -218,6 +220,10 @@ handle_message(mavlink_message_t *msg)
 		//printf("got MAVLINK_MSG_ID_SET_QUAD_MOTORS_SETPOINT target_system=%u, sysid = %u\n", mavlink_system.sysid, quad_motors_setpoint.mode);
 
 		if (mavlink_system.sysid < 4) {
+
+			/* switch to a receiving link mode */
+			gcs_link = false;
+
 			/* 
 			 * rate control mode - defined by MAVLink
 			 */

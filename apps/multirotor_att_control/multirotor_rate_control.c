@@ -181,8 +181,8 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	if (motor_skip_counter % 2500 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-		warnx("rate ctrl: p.yawrate_p: %8.4f, loop: %d Hz, input: %d Hz",
-			(double)p.yawrate_p, (int)(1.0f/deltaT), (int)(1.0f/dT_input));
+		// warnx("rate ctrl: p.yawrate_p: %8.4f, loop: %d Hz, input: %d Hz",
+		// 	(double)p.yawrate_p, (int)(1.0f/deltaT), (int)(1.0f/dT_input));
 	}
 
 	/* calculate current control outputs */

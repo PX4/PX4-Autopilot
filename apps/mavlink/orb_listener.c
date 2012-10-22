@@ -61,6 +61,8 @@
 #include "mavlink_hil.h"
 #include "util.h"
 
+extern bool gcs_link;
+
 struct vehicle_global_position_s global_pos;
 struct vehicle_local_position_s local_pos;
 struct vehicle_status_s v_status;
@@ -172,15 +174,16 @@ l_sensor_combined(struct listener *l)
 		baro_counter = raw.baro_counter;
 	}
 
-	mavlink_msg_highres_imu_send(MAVLINK_COMM_0, last_sensor_timestamp,
-		raw.accelerometer_m_s2[0], raw.accelerometer_m_s2[1],
-		raw.accelerometer_m_s2[2], raw.gyro_rad_s[0],
-		raw.gyro_rad_s[1], raw.gyro_rad_s[2],
-		raw.magnetometer_ga[0],
-		raw.magnetometer_ga[1],raw.magnetometer_ga[2],
-		raw.baro_pres_mbar, 0 /* no diff pressure yet */,
-		raw.baro_alt_meter, raw.baro_temp_celcius,
-		fields_updated);
+	if (gcs_link)
+		mavlink_msg_highres_imu_send(MAVLINK_COMM_0, last_sensor_timestamp,
+			raw.accelerometer_m_s2[0], raw.accelerometer_m_s2[1],
+			raw.accelerometer_m_s2[2], raw.gyro_rad_s[0],
+			raw.gyro_rad_s[1], raw.gyro_rad_s[2],
+			raw.magnetometer_ga[0],
+			raw.magnetometer_ga[1],raw.magnetometer_ga[2],
+			raw.baro_pres_mbar, 0 /* no diff pressure yet */,
+			raw.baro_alt_meter, raw.baro_temp_celcius,
+			fields_updated);
 
 	sensors_raw_counter++;
 }
@@ -194,8 +197,9 @@ l_vehicle_attitude(struct listener *l)
 	/* copy attitude data into local buffer */
 	orb_copy(ORB_ID(vehicle_attitude), mavlink_subs.att_sub, &att);
 
-	/* send sensor values */
-	mavlink_msg_attitude_send(MAVLINK_COMM_0,
+	if (gcs_link)
+		/* send sensor values */
+		mavlink_msg_attitude_send(MAVLINK_COMM_0,
 				  last_sensor_timestamp / 1000,
 				  att.roll,
 				  att.pitch,
@@ -271,8 +275,9 @@ l_rc_channels(struct listener *l)
 	/* copy rc channels into local buffer */
 	orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
 	
-	/* Channels are sent in MAVLink main loop at a fixed interval */
-	mavlink_msg_rc_channels_raw_send(chan,
+	if (gcs_link)
+		/* Channels are sent in MAVLink main loop at a fixed interval */
+		mavlink_msg_rc_channels_raw_send(chan,
 					 rc.timestamp / 1000,
 					 0,
 					 rc.chan[0].raw,
@@ -322,7 +327,8 @@ l_local_position(struct listener *l)
 	/* copy local position data into local buffer */
 	orb_copy(ORB_ID(vehicle_local_position), mavlink_subs.local_pos_sub, &local_pos);
 	
-	mavlink_msg_local_position_ned_send(MAVLINK_COMM_0,
+	if (gcs_link)
+		mavlink_msg_local_position_ned_send(MAVLINK_COMM_0,
 					    local_pos.timestamp / 1000,
 					    local_pos.x,
 					    local_pos.y,
@@ -344,7 +350,8 @@ l_global_position_setpoint(struct listener *l)
 	if (global_sp.altitude_is_relative)
 		coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
 
-	mavlink_msg_global_position_setpoint_int_send(MAVLINK_COMM_0,
+	if (gcs_link)
+		mavlink_msg_global_position_setpoint_int_send(MAVLINK_COMM_0,
 						      coordinate_frame,
 						      global_sp.lat,
 						      global_sp.lon,
@@ -360,7 +367,8 @@ l_local_position_setpoint(struct listener *l)
 	/* copy local position data into local buffer */
 	orb_copy(ORB_ID(vehicle_local_position_setpoint), mavlink_subs.spl_sub, &local_sp);
 
-	mavlink_msg_local_position_setpoint_send(MAVLINK_COMM_0,
+	if (gcs_link)
+		mavlink_msg_local_position_setpoint_send(MAVLINK_COMM_0,
 						 MAV_FRAME_LOCAL_NED,
 						 local_sp.x,
 						 local_sp.y,
@@ -376,7 +384,8 @@ l_attitude_setpoint(struct listener *l)
 	/* copy local position data into local buffer */
 	orb_copy(ORB_ID(vehicle_attitude_setpoint), mavlink_subs.spa_sub, &att_sp);
 
-	mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0,
+	if (gcs_link)
+		mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0,
 							att_sp.timestamp/1000,
 							att_sp.roll_body,
 							att_sp.pitch_body,
@@ -399,7 +408,8 @@ l_actuator_outputs(struct listener *l)
 	/* copy actuator data into local buffer */
 	orb_copy(ids[l->arg], *l->subp, &act_outputs);
 
-	mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000,
+	if (gcs_link)
+		mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000,
 					  l->arg /* port number */,
 					  act_outputs.output[0],
 					  act_outputs.output[1],
@@ -425,7 +435,8 @@ l_manual_control_setpoint(struct listener *l)
 	/* copy manual control data into local buffer */
 	orb_copy(ORB_ID(manual_control_setpoint), mavlink_subs.man_control_sp_sub, &man_control);
 
-	mavlink_msg_manual_control_send(MAVLINK_COMM_0,
+	if (gcs_link)
+		mavlink_msg_manual_control_send(MAVLINK_COMM_0,
 					mavlink_system.sysid,
 					man_control.roll * 1000,
 					man_control.pitch * 1000,
@@ -441,23 +452,25 @@ l_vehicle_attitude_controls(struct listener *l)
 
 	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, mavlink_subs.actuators_sub, &actuators);
 
-	/* send, add spaces so that string buffer is at least 10 chars long */
-	mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-					   last_sensor_timestamp / 1000,
-					   "ctrl0       ",
-					   actuators.control[0]);
-	mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-					   last_sensor_timestamp / 1000,
-					   "ctrl1       ",
-					   actuators.control[1]);
-	mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-					   last_sensor_timestamp / 1000,
-					   "ctrl2       ",
-					   actuators.control[2]);
-	mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-					   last_sensor_timestamp / 1000,
-					   "ctrl3       ",
-					   actuators.control[3]);
+	if (gcs_link) {
+		/* send, add spaces so that string buffer is at least 10 chars long */
+		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
+						   last_sensor_timestamp / 1000,
+						   "ctrl0       ",
+						   actuators.control[0]);
+		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
+						   last_sensor_timestamp / 1000,
+						   "ctrl1       ",
+						   actuators.control[1]);
+		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
+						   last_sensor_timestamp / 1000,
+						   "ctrl2       ",
+						   actuators.control[2]);
+		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
+						   last_sensor_timestamp / 1000,
+						   "ctrl3       ",
+						   actuators.control[3]);
+	}
 
 	/* Only send in HIL mode */
 	if (mavlink_hil_enabled) {

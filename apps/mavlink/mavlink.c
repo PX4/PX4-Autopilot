@@ -119,6 +119,7 @@ bool mavlink_hil_enabled = false;
 /* protocol interface */
 static int uart;
 static int baudrate;
+bool gcs_link = true;
 
 /* interface mode */
 static enum {
@@ -600,14 +601,14 @@ int mavlink_thread_main(int argc, char *argv[])
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 1000);
 	} else if (baudrate >= 57600) {
 		/* 10 Hz / 100 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_RAW_IMU, 200);
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 200);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_RAW_IMU, 300);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_HIGHRES_IMU, 300);
 		/* 10 Hz / 100 ms ATTITUDE */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_ATTITUDE, 200);
 		/* 5 Hz / 200 ms */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_NAMED_VALUE_FLOAT, 200);
 		/* 5 Hz / 200 ms */
-		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 200);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, 500);
 		/* 2 Hz */
 		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_MANUAL_CONTROL, 500);
 	} else {
