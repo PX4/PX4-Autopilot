@@ -35,7 +35,7 @@
  * @file fixedwing_att_control_rate.c
  * Implementation of a fixed wing attitude controller.
  */
-#include <fixedwing_att_control_rate.h>
+#include <fixedwing_att_control_att.h>
 
 #include <nuttx/config.h>
 #include <stdio.h>
@@ -63,30 +63,42 @@
 
 
 struct fw_att_control_params {
-	param_t roll_p;
+	float roll_p;
+	float roll_lim;
+	float pitch_p;
+	float pitch_lim;
+};
+
+struct fw_att_control_params_handles {
+	float roll_p;
+	float roll_lim;
+	float pitch_p;
+	float pitch_lim;
 };
 
 
 
 /* Internal Prototypes */
-static int parameters_init(struct fw_att_control_params *h);
-static int parameters_update(const struct fw_att_control_params *h, struct fw_att_control_params *p);
+static int parameters_init(struct fw_att_control_params_handles *h);
+static int parameters_update(const struct fw_att_control_params_handles *h, struct fw_att_control_params *p);
 
-static int parameters_init(struct fw_att_control_params *h)
+static int parameters_init(struct fw_att_control_params_handles *h)
 {
 	/* PID parameters */
-	h->roll_p 	=	param_find("FW_ROLL_POS_P");   //TODO define rate params for fixed wing
-
-
-//	if(h->attrate_i == PARAM_INVALID)
-//		printf("FATAL MC_ATTRATE_I does not exist\n");
+	h->roll_p 		=	param_find("FW_ROLL_P");
+	h->roll_lim 	=	param_find("FW_ROLL_LIM");
+	h->pitch_p 		=	param_find("FW_PITCH_P");
+	h->pitch_lim 	=	param_find("FW_PITCH_LIM");
 
 	return OK;
 }
 
-static int parameters_update(const struct fw_att_control_params *h, struct fw_att_control_params *p)
+static int parameters_update(const struct fw_att_control_params_handles *h, struct fw_att_control_params *p)
 {
 	param_get(h->roll_p, &(p->roll_p));
+	param_get(h->roll_lim, &(p->roll_lim));
+	param_get(h->pitch_p, &(p->pitch_p));
+	param_get(h->pitch_lim, &(p->pitch_lim));
 
 	return OK;
 }
@@ -99,11 +111,7 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 	static bool initialized = false;
 
 	static struct fw_att_control_params p;
-	static struct fw_att_control_params h;
-
-	static uint64_t last_run = 0;
-	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
-	last_run = hrt_absolute_time();
+	static struct fw_att_control_params_handles h;
 
 	if(!initialized)
 	{
@@ -120,7 +128,17 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 
 	/* Roll (P) */
 	float roll_error = att_sp->roll_tait_bryan - att->roll;
-	rates_sp->roll = p.roll_p * roll_error;
+	//TODO convert to body frame
+	rates_sp->roll = p.roll_p * roll_error; //TODO enabled for testing only
+
+	/* Pitch (P) */
+	float pitch_error = att_sp->pitch_tait_bryan - att->pitch;
+	//TODO convert to body frame
+
+	/* Yaw (from coordinated turn constraint) */
+	//TODO
+
+	//TODO Limits
 
 	counter++;
 

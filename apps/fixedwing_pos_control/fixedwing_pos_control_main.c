@@ -112,7 +112,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 
 
-//		/* subscribe to attitude (for attitude rate) and rate septoint */
+//		/* subscribe */
 //
 
 		/* Setup of loop */

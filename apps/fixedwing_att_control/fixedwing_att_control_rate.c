@@ -152,6 +152,8 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	static struct fw_rate_control_param_handles h;
 
 	static PID_t roll_rate_controller;
+	static PID_t pitch_rate_controller;
+	static PID_t yaw_rate_controller;
 
 	static uint64_t last_run = 0;
 	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
@@ -162,6 +164,8 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		parameters_init(&h);
 		parameters_update(&h, &p);
 		pid_init(&roll_rate_controller, p.rollrate_p, p.rollrate_i, 0, p.rollrate_awu, p.rollrate_lim, PID_MODE_DERIVATIV_SET); // set D part to 0 because the controller layout is with a PI rate controller
+		pid_init(&pitch_rate_controller, p.pitchrate_p, p.pitchrate_i, 0, p.pitchrate_awu, p.pitchrate_lim, PID_MODE_DERIVATIV_SET); // set D part to 0 because the contpitcher layout is with a PI rate contpitcher
+		pid_init(&yaw_rate_controller, p.yawrate_p, p.yawrate_i, 0, p.yawrate_awu, p.yawrate_lim, PID_MODE_DERIVATIV_SET); // set D part to 0 because the contpitcher layout is with a PI rate contpitcher
 		initialized = true;
 	}
 
@@ -169,15 +173,17 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	if (counter % 2500 == 0) {
 		/* update parameters from storage */
 		pid_set_parameters(&roll_rate_controller, p.rollrate_p, p.rollrate_i, 0, p.rollrate_awu, p.rollrate_lim);
+		pid_set_parameters(&pitch_rate_controller, p.pitchrate_p, p.pitchrate_i, 0, p.pitchrate_awu, p.pitchrate_lim);
+		pid_set_parameters(&yaw_rate_controller, p.yawrate_p, p.yawrate_i, 0, p.yawrate_awu, p.yawrate_lim);
 		parameters_update(&h, &p);
 	}
 
 	/* Roll Rate (PI) */
 	actuators->control[0] = pid_calculate(&roll_rate_controller, rate_sp->roll, rates[0], 0, deltaT);
 
-
-	actuators->control[1] = 0;
-	actuators->control[2] = 0;
+	//XXX TODO disabled for now
+	actuators->control[1] = 0;//pid_calculate(&pitch_rate_controller, rate_sp->pitch, rates[1], 0, deltaT);
+	actuators->control[2] = 0;//pid_calculate(&yaw_rate_controller, rate_sp->yaw, rates[2], 0, deltaT);
 
 	counter++;
 
