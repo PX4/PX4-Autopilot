@@ -21,6 +21,11 @@ set MODE autostart
 set USB autoconnect
 
 #
+# Start playing the startup tune
+#
+tone_alarm start
+
+#
 # Try to mount the microSD card.
 #
 echo "[init] looking for microSD..."
@@ -30,9 +35,6 @@ then
 else
 	echo "[init] no microSD card found"
 fi
-
-usleep 500
-
 
 #
 # Look for an init script on the microSD card.
