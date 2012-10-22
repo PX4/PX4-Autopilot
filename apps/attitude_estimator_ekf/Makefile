@@ -40,6 +40,7 @@ CSRCS		 = attitude_estimator_ekf_main.c \
 		   codegen/eye.c \
 		   codegen/attitudeKalmanfilter.c \
 		   codegen/mrdivide.c \
+		   codegen/rdivide.c \
 		   codegen/attitudeKalmanfilter_initialize.c \
 		   codegen/attitudeKalmanfilter_terminate.c \
 		   codegen/rt_nonfinite.c \
@@ -47,8 +48,9 @@ CSRCS		 = attitude_estimator_ekf_main.c \
 		   codegen/rtGetNaN.c \
 		   codegen/norm.c \
 		   codegen/diag.c \
-		   codegen/cross.c \
-		   codegen/power.c
+		   codegen/power.c \
+		   codegen/cross.c 
+
 
 # XXX this is *horribly* broken
 INCLUDES	+= $(TOPDIR)/../mavlink/include/mavlink

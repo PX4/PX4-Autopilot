@@ -3,7 +3,7 @@
  *
  * Code generation for function 'diag'
  *
- * C source code generated on: Mon Oct 01 19:38:49 2012
+ * C source code generated on: Tue Oct 16 15:27:58 2012
  *
  */
 
@@ -30,7 +30,7 @@
 void b_diag(const real32_T v[9], real32_T d[81])
 {
   int32_T j;
-  memset((void *)&d[0], 0, 81U * sizeof(real32_T));
+  memset(&d[0], 0, 81U * sizeof(real32_T));
   for (j = 0; j < 9; j++) {
     d[j + 9 * j] = v[j];
   }
@@ -57,7 +57,7 @@ void c_diag(const real32_T v[3], real32_T d[9])
 void d_diag(const real32_T v[6], real32_T d[36])
 {
   int32_T j;
-  memset((void *)&d[0], 0, 36U * sizeof(real32_T));
+  memset(&d[0], 0, 36U * sizeof(real32_T));
   for (j = 0; j < 6; j++) {
     d[j + 6 * j] = v[j];
   }
@@ -69,7 +69,7 @@ void d_diag(const real32_T v[6], real32_T d[36])
 void diag(const real32_T v[12], real32_T d[144])
 {
   int32_T j;
-  memset((void *)&d[0], 0, 144U * sizeof(real32_T));
+  memset(&d[0], 0, 144U * sizeof(real32_T));
   for (j = 0; j < 12; j++) {
     d[j + 12 * j] = v[j];
   }

@@ -58,7 +58,6 @@
 
 #include <arch/board/up_hrt.h>
 #include <arch/board/up_cpuload.h>
-#include <arch/board/drv_tone_alarm.h>
 #include <arch/board/up_adc.h>
 #include <arch/board/board.h>
 #include <arch/board/drv_led.h>
@@ -275,11 +274,6 @@ int nsh_archinitialize(void)
       return -ENODEV;
     }
   }
-#endif
-
-    /* configure the tone generator */
-#ifdef CONFIG_TONE_ALARM
-  tone_alarm_init();
 #endif
 
   return OK;

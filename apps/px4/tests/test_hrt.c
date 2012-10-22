@@ -51,7 +51,7 @@
 
 #include <arch/board/board.h>
 #include <arch/board/up_hrt.h>
-#include <arch/board/drv_tone_alarm.h>
+#include <drivers/drv_tone_alarm.h>
 
 #include <nuttx/spi.h>
 

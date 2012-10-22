@@ -1,8 +1,8 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Tobias Naegeli <naegelit@student.ethz.ch>
+ *           Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,11 @@
 
 /**
  * @file multirotor_rate_control.c
+ *
  * Implementation of rate controller
+ *
+ * @author Tobias Naegeli <naegelit@student.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #include "multirotor_rate_control.h"
@@ -48,18 +52,20 @@
 #include <math.h>
 #include <systemlib/pid/pid.h>
 #include <systemlib/param/param.h>
+#include <systemlib/err.h>
 #include <arch/board/up_hrt.h>
 
-// PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.08f); /* same on Flamewheel */
-// PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.02f);
-// PARAM_DEFINE_FLOAT(MC_YAWRATE_AWU, 0.02f);
-// PARAM_DEFINE_FLOAT(MC_YAWRATE_LIM, 0.1f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.1f); /* same on Flamewheel */
+PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(MC_YAWRATE_LIM, 1.0f);
 
 PARAM_DEFINE_FLOAT(MC_ATTRATE_P, 0.2f); /* 0.15 F405 Flamewheel */
-PARAM_DEFINE_FLOAT(MC_ATTRATE_D, 0.0f);
-//PARAM_DEFINE_FLOAT(MC_ATTRATE_I, 0.0f);
-//PARAM_DEFINE_FLOAT(MC_ATTRATE_AWU, 0.05f);
-PARAM_DEFINE_FLOAT(MC_ATTRATE_LIM, 8.0f);	/**< roughly < 500 deg/s limit */
+PARAM_DEFINE_FLOAT(MC_ATTRATE_D, 0.05f);
+PARAM_DEFINE_FLOAT(MC_ATTRATE_I, 0.0f);
+PARAM_DEFINE_FLOAT(MC_ATTRATE_AWU, 0.05f);
+PARAM_DEFINE_FLOAT(MC_ATTRATE_LIM, 1.0f);	/**< roughly < 500 deg/s limit */
 
 struct mc_rate_control_params {
 
@@ -144,10 +150,17 @@ static int parameters_update(const struct mc_rate_control_param_handles *h, stru
 void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	const float rates[], struct actuator_controls_s *actuators)
 {
-	static float roll_control_last=0;
-	static float pitch_control_last=0;
+	static float roll_control_last  = 0;
+	static float pitch_control_last = 0;
 	static uint64_t last_run = 0;
 	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
+	static uint64_t last_input = 0;
+
+	float dT_input = (hrt_absolute_time() - last_input) / 1000000.0f;
+	if (last_input != rate_sp->timestamp) {
+		last_input = rate_sp->timestamp;
+	}
+
 	last_run = hrt_absolute_time();
 
 	static int motor_skip_counter = 0;
@@ -168,21 +181,34 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	if (motor_skip_counter % 2500 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-		printf("p.yawrate_p: %8.4f\n", (double)p.yawrate_p);
+		// warnx("rate ctrl: p.yawrate_p: %8.4f, loop: %d Hz, input: %d Hz",
+		// 	(double)p.yawrate_p, (int)(1.0f/deltaT), (int)(1.0f/dT_input));
 	}
 
 	/* calculate current control outputs */
 	
 	/* control pitch (forward) output */
+	float pitch_control = p.attrate_p * (rate_sp->pitch - rates[1]) - (p.attrate_d * pitch_control_last);
+	/* increase resilience to faulty control inputs */
+	if (isfinite(pitch_control)) {
+		pitch_control_last = pitch_control;
+	} else {
+		pitch_control = 0.0f;
+		warnx("rej. NaN ctrl pitch");
+	}
 
-	float pitch_control = p.attrate_p * deltaT *(rate_sp->pitch-rates[1])-p.attrate_d*(pitch_control_last);
-	pitch_control_last=pitch_control;
 	/* control roll (left/right) output */
+	float roll_control = p.attrate_p * (rate_sp->roll - rates[0]) - (p.attrate_d * roll_control_last);
+	/* increase resilience to faulty control inputs */
+	if (isfinite(roll_control)) {
+		roll_control_last = roll_control;
+	} else {
+		roll_control = 0.0f;
+		warnx("rej. NaN ctrl roll");
+	}
 
-	float roll_control = p.attrate_p * deltaT * (rate_sp->roll-rates[0])-p.attrate_d*(roll_control_last);
-	roll_control_last=roll_control;
 	/* control yaw rate */
-	float yaw_rate_control = p.yawrate_p * deltaT * (rate_sp->yaw-rates[2]  );
+	float yaw_rate_control = p.yawrate_p * (rate_sp->yaw - rates[2]);
 
 	actuators->control[0] = roll_control;
 	actuators->control[1] = pitch_control;
