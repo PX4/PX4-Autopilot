@@ -43,7 +43,7 @@ AOBJS		= $(ASRCS:.S=$(OBJEXT))
 CSRCS		= up_boot.c up_leds.c up_spi.c up_hrt.c \
 		  drv_gpio.c \
 		  drv_led.c drv_eeprom.c \
-		  drv_tone_alarm.c up_pwm_servo.c up_usbdev.c \
+		  up_pwm_servo.c up_usbdev.c \
 		  up_cpuload.c
 
 ifeq ($(CONFIG_NSH_ARCHINIT),y)

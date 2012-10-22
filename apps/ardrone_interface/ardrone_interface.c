@@ -286,7 +286,6 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 
 	/* close uarts */
 	close(ardrone_write);
-	//ar_multiplexing_deinit(gpios);
 
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
 	ardrone_write = ardrone_open_uart(device, &uart_config_original);

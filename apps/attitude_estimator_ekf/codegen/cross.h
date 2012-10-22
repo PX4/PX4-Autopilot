@@ -3,7 +3,7 @@
  *
  * Code generation for function 'cross'
  *
- * C source code generated on: Mon Oct 01 19:38:49 2012
+ * C source code generated on: Tue Oct 16 15:27:58 2012
  *
  */
 
@@ -11,7 +11,7 @@
 #define __CROSS_H__
 /* Include files */
 #include <math.h>
-#include <stdio.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include "rt_defines.h"

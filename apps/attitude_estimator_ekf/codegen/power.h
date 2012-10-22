@@ -3,7 +3,7 @@
  *
  * Code generation for function 'power'
  *
- * C source code generated on: Mon Oct 01 19:38:49 2012
+ * C source code generated on: Tue Oct 16 15:27:58 2012
  *
  */
 
@@ -11,7 +11,7 @@
 #define __POWER_H__
 /* Include files */
 #include <math.h>
-#include <stdio.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include "rt_defines.h"
@@ -29,6 +29,6 @@
 /* Variable Definitions */
 
 /* Function Declarations */
-extern void power(const real32_T a[12], real_T b, real32_T y[12]);
+extern void power(const real32_T a[12], real32_T y[12]);
 #endif
 /* End of code generation (power.h) */
