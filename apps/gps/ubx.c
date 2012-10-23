@@ -697,7 +697,7 @@ int write_config_message_ubx(uint8_t *message, size_t length, int fd)
 
 //	printf("[%x,%x]\n", ck_a, ck_b);
 
-	int result_write =  write(fd, message, length);
+	unsigned int result_write =  write(fd, message, length);
 	result_write +=  write(fd, &ck_a, 1);
 	result_write +=  write(fd, &ck_b, 1);
 
