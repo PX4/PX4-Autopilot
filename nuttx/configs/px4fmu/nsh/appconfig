@@ -93,8 +93,8 @@ CONFIGURED_APPS += drivers/hmc5883
 CONFIGURED_APPS += drivers/mpu6000
 CONFIGURED_APPS += drivers/bma180
 CONFIGURED_APPS += drivers/l3gd20
+CONFIGURED_APPS	+= drivers/px4io
 CONFIGURED_APPS += drivers/stm32/tone_alarm
-CONFIGURED_APPS	+= px4/px4io/driver
 CONFIGURED_APPS += px4/fmu
 
 # Testing stuff
