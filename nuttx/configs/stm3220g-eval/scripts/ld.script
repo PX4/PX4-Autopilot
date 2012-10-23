@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/stm3220g-eval/ostest/ld.script
+ * configs/stm3220g-eval/scripts/ld.script
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,7 +33,8 @@
  *
  ****************************************************************************/
 
-/* The STM32F207IGH6U has 1024Kb of FLASH two blocks:
+/* The STM32F207IGH6U has 1024Kb of FLASH beginning at address 0x0800:0000 and
+ * 128Kb of SRAM. SRAM is split up into two blocks:
  *
  * 1) 112Kb of SRAM beginning at address 0x2000:0000
  * 2)  16Kb of SRAM beginning at address 0x2001:c000

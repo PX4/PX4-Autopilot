@@ -1,8 +1,9 @@
 /****************************************************************************
- * configs/olimex-lpc1766stk/ostest/ld.script
+ * configs/hymini-stm32v/scripts/ld.script
  *
- *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *           Laurent Latil <laurent@latil.nom.fr>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,17 +34,17 @@
  *
  ****************************************************************************/
 
-/* The LPC1766 has 256Kb of FLASH beginning at address 0x0000:0000 and
- * 64Kb of total SRAM: 32Kb of SRAM in the CPU block beginning at address
- * 0x10000000 and 32Kb of AHB SRAM in two banks of 16Kb beginning at addresses
- * 0x20070000 and 0x20080000.  Here we assume that .data and .bss will all fit
- * into the 32Kb CPU SRAM address range.
+/* The STM32F103VCT6 has 256Kb of FLASH beginning at address 0x0800:0000 and
+ * 48Kb of SRAM beginning at address 0x2000:0000.  When booting from FLASH,
+ * FLASH memory is aliased to address 0x0000:0000 where the code expects to
+ * begin execution by jumping to the entry point in the 0x0800:0000 address
+ * range.
  */
 
 MEMORY
 {
-    flash (rx) : ORIGIN = 0x00000000, LENGTH = 256K
-    sram (rwx) : ORIGIN = 0x10000000, LENGTH = 32K
+    flash (rx) : ORIGIN = 0x08000000, LENGTH = 256K
+    sram (rwx) : ORIGIN = 0x20000000, LENGTH = 48K
 }
 
 OUTPUT_ARCH(arm)
@@ -66,7 +67,9 @@ SECTIONS
 		_etext = ABSOLUTE(.);
 	} > flash
 
-	_eronly = ABSOLUTE(.);		/* See below                    */
+	_eronly = ABSOLUTE(.);
+
+	/* The STM32F103VCT6 has 48Kb of SRAM beginning at the following address */
 
 	.data : {
 		_sdata = ABSOLUTE(.);
@@ -86,14 +89,15 @@ SECTIONS
 	} >sram
 	__exidx_end = ABSOLUTE(.);
 
-	.bss : {			/* BSS				*/
+	.bss : {
 		_sbss = ABSOLUTE(.);
 		*(.bss .bss.*)
 		*(.gnu.linkonce.b.*)
 		*(COMMON)
 		_ebss = ABSOLUTE(.);
 	} > sram
-					/* Stabs debugging sections.	*/
+
+	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }
 	.stabstr 0 : { *(.stabstr) }
 	.stab.excl 0 : { *(.stab.excl) }

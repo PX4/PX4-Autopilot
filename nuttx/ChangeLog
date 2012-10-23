@@ -3500,4 +3500,9 @@
 	  initial reset in the open/setup logic.  Opening the ADC driver works
 	  the first time, but not the second because the device is left in a
 	  powered down state on the last close.
-
+	* configs/olimex-lpc1766stck/scripts:  Replace all of the identical
+	  ld.script files with the common one in this directory.
+	* configs/stm3220g-eval/scripts:  Replace all of the identical
+	  ld.script files with the common one in this directory.
+	* configs/hymini-stm32v/scripts:  Replace all of the identical
+	  ld.script files with the common one in this directory.
