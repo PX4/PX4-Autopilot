@@ -960,12 +960,6 @@ static void *orb_receive_loop(void *arg)  //handles status information coming fr
 	return NULL;
 }
 
-
-
-enum BAT_CHEM {
-	BAT_CHEM_LITHIUM_POLYMERE = 0,
-};
-
 /*
  * Provides a coarse estimate of remaining battery power.
  *
@@ -973,35 +967,41 @@ enum BAT_CHEM {
  *
  * @return the estimated remaining capacity in 0..1
  */
-float battery_remaining_estimate_voltage(int cells, int chemistry, float voltage);
+float battery_remaining_estimate_voltage(float voltage);
 
 PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.2f);
 PARAM_DEFINE_FLOAT(BAT_V_FULL, 4.05f);
+PARAM_DEFINE_FLOAT(BAT_N_CELLS, 3);
 
-float battery_remaining_estimate_voltage(int cells, int chemistry, float voltage)
+float battery_remaining_estimate_voltage(float voltage)
 {
 	float ret = 0;
 	static param_t bat_volt_empty;
 	static param_t bat_volt_full;
+	static param_t bat_n_cells;
 	static bool initialized = false;
 	static unsigned int counter = 0;
+	static float ncells = 3;
+	// XXX change cells to int (and param to INT32)
 
 	if (!initialized) {
 		bat_volt_empty = param_find("BAT_V_EMPTY");
 		bat_volt_full = param_find("BAT_V_FULL");
+		bat_n_cells = param_find("BAT_N_CELLS");
 		initialized = true;
 	}
 
-	float chemistry_voltage_empty[1] = { 3.2f };
-	float chemistry_voltage_full[1] = { 4.05f };
+	static float chemistry_voltage_empty = 3.2f;
+	static float chemistry_voltage_full = 4.05f;
 
 	if (counter % 100 == 0) {
-		param_get(bat_volt_empty, &(chemistry_voltage_empty[0]));
-		param_get(bat_volt_full, &(chemistry_voltage_full[0]));
+		param_get(bat_volt_empty, &chemistry_voltage_empty);
+		param_get(bat_volt_full, &chemistry_voltage_full);
+		param_get(bat_n_cells, &ncells);
 	}
 	counter++;
 
-	ret = (voltage - cells * chemistry_voltage_empty[chemistry]) / (cells * (chemistry_voltage_full[chemistry] - chemistry_voltage_empty[chemistry]));
+	ret = (voltage - ncells * chemistry_voltage_empty) / (ncells * (chemistry_voltage_full - chemistry_voltage_empty));
 
 	/* limit to sane values */
 	ret = (ret < 0) ? 0 : ret;
@@ -1218,7 +1218,7 @@ int commander_thread_main(int argc, char *argv[])
 		 * valid and system has been running for two and a half seconds
 		 */
 		if (battery_voltage_valid && (hrt_absolute_time() - start_time > 2500000)) {
-			bat_remain = battery_remaining_estimate_voltage(3, BAT_CHEM_LITHIUM_POLYMERE, battery_voltage);
+			bat_remain = battery_remaining_estimate_voltage(battery_voltage);
 		}
 
 		/* Slow but important 8 Hz checks */

@@ -745,7 +745,10 @@ int mavlink_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		thread_should_exit = true;
-		/* XXX should wait for it to actually exit here */
+		while (thread_running) {
+			usleep(200000);
+		}
+		warnx("terminated.");
 		exit(0);
 	}
 
