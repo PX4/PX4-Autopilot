@@ -114,8 +114,9 @@ $(foreach BUILTIN, $(CONFIGURED_APPS), $(eval $(call ADD_BUILTIN,$(BUILTIN))))
 # provided by the user (possibly as a symbolic link) to add libraries and
 # applications to the standard build from the repository.
 
-INSTALLED_APPS += ${shell if [ -r external/Makefile ]; then echo "external"; fi}
-SUBDIRS += ${shell if [ -r external/Makefile ]; then echo "external"; fi}
+EXTERNAL_DIR := $(dir $(wildcard external/Makefile))
+INSTALLED_APPS += $(EXTERNAL_DIR)
+SUBDIRS += $(EXTERNAL_DIR)
 
 # The final build target
 
