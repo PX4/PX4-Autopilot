@@ -3,7 +3,7 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-config NXFLAT_DUMPBUFFER
-	bool "Dump NXFLAT buffers"
+config ELF_DUMPBUFFER
+	bool "Dump ELF buffers"
 	default n
 	depends on DEBUG && DEBUG_VERBOSE

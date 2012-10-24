@@ -1,7 +1,7 @@
 ############################################################################
-# nxflat/Makefile
+# binfmt/libelf/Make.defs
 #
-#   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,69 +33,21 @@
 #
 ############################################################################
 
--include $(TOPDIR)/Make.defs
+ifeq ($(CONFIG_ELF),y)
 
-ifeq ($(WINTOOL),y)
-INCDIROPT		= -w
+# ELF application interfaces
+
+BINFMT_CSRCS += elf.c
+
+# ELF library
+
+BINFMT_CSRCS = libelf_init.c libelf_uninit.c libelf_load.c \
+			   libelf_unload.c libelf_verify.c libelf_read.c \
+			   libelf_bind.c
+
+# Hook the libelf subdirectory into the build
+
+VPATH += libelf
+SUBDIRS += libelf
+
 endif
-CFLAGS			+= ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/sched}
-
-# Basic BINFMT source files 
-
-BINFMT_ASRCS	=
-BINFMT_CSRCS	= binfmt_globals.c binfmt_register.c binfmt_unregister.c \
-				  binfmt_loadmodule.c binfmt_unloadmodule.c binfmt_execmodule.c \
-				  binfmt_exec.c binfmt_dumpmodule.c
-
-# Symbol table source files
-
-BINFMT_CSRCS	+= symtab_findbyname.c symtab_findbyvalue.c \
-				   symtab_findorderedbyname.c symtab_findorderedbyvalue.c
-
-# Add configured binary modules
-
-VPATH			= 
-SUBDIRS			=
-
-include libnxflat/Make.defs
-include libelf/Make.defs
-
-BINFMT_AOBJS	= $(BINFMT_ASRCS:.S=$(OBJEXT))
-BINFMT_COBJS	= $(BINFMT_CSRCS:.c=$(OBJEXT))
-
-BINFMT_SRCS		= $(BINFMT_ASRCS) $(BINFMT_CSRCS)
-BINFMT_OBJS		= $(BINFMT_AOBJS) $(BINFMT_COBJS)
-
-BIN				= libbinfmt$(LIBEXT)
-
-all: $(BIN)
-
-$(BINFMT_AOBJS): %$(OBJEXT): %.S
-	$(call ASSEMBLE, $<, $@)
-
-$(BINFMT_COBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-$(BIN): $(BINFMT_OBJS)
-	@( for obj in $(BINFMT_OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
-
-.depend: Makefile $(BINFMT_SRCS)
-	@$(MKDEP) --dep-path . --dep-path libnxflat \
-		$(CC) -- $(CFLAGS) -- $(BINFMT_SRCS) >Make.dep
-	@touch $@
-
-depend: .depend
-
-clean:
-	@rm -f $(BIN) *~ .*.swp
-	$(call CLEAN)
-	@( for dir in $(SUBDIRS); do \
-		rm -f $${dir}/*~ $${dir}/.*.swp; \
-	done ; )
-
-distclean: clean
-	@rm -f Make.dep .depend
-
--include Make.dep

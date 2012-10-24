@@ -1,5 +1,5 @@
 ############################################################################
-# nxflat/lib/Make.defs
+# binfmt/libnxflat/Make.defs
 #
 #   Copyright (C) 2009 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,7 +33,21 @@
 #
 ############################################################################
 
-LIBNXFLAT_ASRCS =
-LIBNXFLAT_CSRCS = libnxflat_init.c libnxflat_uninit.c libnxflat_load.c \
-		  libnxflat_unload.c libnxflat_verify.c libnxflat_read.c \
-		  libnxflat_bind.c
+ifeq ($(CONFIG_NXFLAT),y)
+
+# NXFLAT application interfaces
+
+BINFMT_CSRCS += nxflat.c
+
+# NXFLAT library
+
+BINFMT_CSRCS = libnxflat_init.c libnxflat_uninit.c libnxflat_load.c \
+			   libnxflat_unload.c libnxflat_verify.c libnxflat_read.c \
+			   libnxflat_bind.c
+
+# Hook the libnxflat subdirectory into the build
+
+VPATH += libnxflat
+SUBDIRS += libnxflat
+
+endif

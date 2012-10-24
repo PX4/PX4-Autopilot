@@ -1,7 +1,7 @@
 /****************************************************************************
- * binfmt/libnxflat/libnxflat_uninit.c
+ * binfmt/libelf/libelf_unload.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,10 +39,11 @@
 
 #include <nuttx/config.h>
 
-#include <unistd.h>
+#include <sys/mman.h>
+#include <stdlib.h>
 #include <debug.h>
-#include <errno.h>
-#include <nuttx/nxflat.h>
+
+#include <nuttx/elf.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -61,11 +62,11 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxflat_uninit
+ * Name: elf_unload
  *
  * Description:
- *   Releases any resources committed by nxflat_init().  This essentially
- *   undoes the actions of nxflat_init.
+ *   This function unloads the object from memory. This essentially
+ *   undoes the actions of elf_load.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -73,12 +74,24 @@
  *
  ****************************************************************************/
 
-int nxflat_uninit(struct nxflat_loadinfo_s *loadinfo)
+int elf_unload(struct elf_loadinfo_s *loadinfo)
 {
-  if (loadinfo->filfd >= 0)
+  /* Reset the contents of the info structure. */
+
+  /* Release the memory segments */
+
+  if (loadinfo->ispace)
     {
-      close(loadinfo->filfd);
+      kfree((void*)loadinfo->ispace, loadinfo->isize);
+      loadinfo->ispace = 0;
     }
+
+  if (loadinfo->dspace)
+    {
+      kfree((void*)loadinfo->dspace);
+      loadinfo->dspace = 0;
+    }
+
   return OK;
 }
 

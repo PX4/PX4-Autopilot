@@ -1,7 +1,7 @@
 /****************************************************************************
- * binfmt/libnxflat/libnxflat_uninit.c
+ * binfmt/libelf/elf_verify.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,13 +39,14 @@
 
 #include <nuttx/config.h>
 
-#include <unistd.h>
+#include <string.h>
 #include <debug.h>
 #include <errno.h>
-#include <nuttx/nxflat.h>
+#include <arpa/inet.h>
+#include <nuttx/elf.h>
 
 /****************************************************************************
- * Pre-Processor Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
@@ -61,11 +62,11 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxflat_uninit
+ * Name: elf_verifyheader
  *
  * Description:
- *   Releases any resources committed by nxflat_init().  This essentially
- *   undoes the actions of nxflat_init.
+ *   Given the header from a possible ELF executable, verify that it
+ *   is an ELF executable.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -73,12 +74,15 @@
  *
  ****************************************************************************/
 
-int nxflat_uninit(struct nxflat_loadinfo_s *loadinfo)
+int elf_verifyheader(const struct elf_hdr_s *header)
 {
-  if (loadinfo->filfd >= 0)
+  if (!header)
     {
-      close(loadinfo->filfd);
+      bdbg("NULL ELF header!");
+      return -ENOEXEC;
     }
-  return OK;
+
+#warning "Missing Logic"
+  return -ENOSYS;
 }
 

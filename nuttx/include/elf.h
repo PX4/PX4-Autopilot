@@ -1,7 +1,7 @@
 /****************************************************************************
- * binfmt/libnxflat/libnxflat_uninit.c
+ * include/elf.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,52 +33,21 @@
  *
  ****************************************************************************/
 
+#ifndef __INCLUDE_ELF_H
+#define __INCLUDE_ELF_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <unistd.h>
-#include <debug.h>
-#include <errno.h>
-#include <nuttx/nxflat.h>
-
 /****************************************************************************
- * Pre-Processor Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Private Constant Data
+ * Public Types
  ****************************************************************************/
 
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: nxflat_uninit
- *
- * Description:
- *   Releases any resources committed by nxflat_init().  This essentially
- *   undoes the actions of nxflat_init.
- *
- * Returned Value:
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
- *
- ****************************************************************************/
-
-int nxflat_uninit(struct nxflat_loadinfo_s *loadinfo)
-{
-  if (loadinfo->filfd >= 0)
-    {
-      close(loadinfo->filfd);
-    }
-  return OK;
-}
-
+#endif /* __INCLUDE_ELF_H */

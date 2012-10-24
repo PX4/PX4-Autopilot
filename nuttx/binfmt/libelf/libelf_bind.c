@@ -1,7 +1,7 @@
 /****************************************************************************
- * binfmt/libnxflat/libnxflat_uninit.c
+ * binfmt/libelf/libelf_bind.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,17 +39,41 @@
 
 #include <nuttx/config.h>
 
-#include <unistd.h>
-#include <debug.h>
+#include <stdint.h>
+#include <string.h>
+#include <elf.h>
 #include <errno.h>
-#include <nuttx/nxflat.h>
+#include <assert.h>
+#include <debug.h>
+
+#include <arpa/inet.h>
+#include <nuttx/elf.h>
+#include <nuttx/symtab.h>
 
 /****************************************************************************
- * Pre-Processor Definitions
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/* CONFIG_DEBUG, CONFIG_DEBUG_VERBOSE, and CONFIG_DEBUG_BINFMT have to be
+ * defined or CONFIG_ELF_DUMPBUFFER does nothing.
+ */
+
+#if !defined(CONFIG_DEBUG_VERBOSE) || !defined (CONFIG_DEBUG_BINFMT)
+#  undef CONFIG_ELF_DUMPBUFFER
+#endif
+
+#ifdef CONFIG_ELF_DUMPBUFFER
+# define elf_dumpbuffer(m,b,n) bvdbgdumpbuffer(m,b,n)
+#else
+# define elf_dumpbuffer(m,b,n)
+#endif
+
+/****************************************************************************
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
- * Private Constant Data
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
@@ -61,11 +85,11 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxflat_uninit
+ * Name: elf_bind
  *
  * Description:
- *   Releases any resources committed by nxflat_init().  This essentially
- *   undoes the actions of nxflat_init.
+ *   Bind the imported symbol names in the loaded module described by
+ *   'loadinfo' using the exported symbol values provided by 'symtab'.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -73,12 +97,10 @@
  *
  ****************************************************************************/
 
-int nxflat_uninit(struct nxflat_loadinfo_s *loadinfo)
+int elf_bind(FAR struct elf_loadinfo_s *loadinfo,
+             FAR const struct symtab_s *exports, int nexports)
 {
-  if (loadinfo->filfd >= 0)
-    {
-      close(loadinfo->filfd);
-    }
-  return OK;
+#warning "Missing logic"
+  return -ENOSYS;
 }
 

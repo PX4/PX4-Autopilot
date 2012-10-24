@@ -1,7 +1,7 @@
 /****************************************************************************
- * binfmt/libnxflat/libnxflat_uninit.c
+ * binfmt/libelf/libelf_uninit.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@
 #include <unistd.h>
 #include <debug.h>
 #include <errno.h>
-#include <nuttx/nxflat.h>
+#include <nuttx/elf.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -61,11 +61,11 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxflat_uninit
+ * Name: elf_uninit
  *
  * Description:
- *   Releases any resources committed by nxflat_init().  This essentially
- *   undoes the actions of nxflat_init.
+ *   Releases any resources committed by elf_init().  This essentially
+ *   undoes the actions of elf_init.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -73,12 +73,13 @@
  *
  ****************************************************************************/
 
-int nxflat_uninit(struct nxflat_loadinfo_s *loadinfo)
+int elf_uninit(struct elf_loadinfo_s *loadinfo)
 {
   if (loadinfo->filfd >= 0)
     {
       close(loadinfo->filfd);
     }
+
   return OK;
 }
 

@@ -1,7 +1,7 @@
 /****************************************************************************
- * binfmt/libnxflat/libnxflat_uninit.c
+ * binfmt/libelf/libelf_load.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,14 +39,24 @@
 
 #include <nuttx/config.h>
 
-#include <unistd.h>
+#include <sys/types.h>
+#include <sys/mman.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <elf.h>
 #include <debug.h>
 #include <errno.h>
-#include <nuttx/nxflat.h>
+
+#include <arpa/inet.h>
+#include <nuttx/elf.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
+
+#ifndef MAX
+#define MAX(x,y) ((x) > (y) ? (x) : (y))
+#endif
 
 /****************************************************************************
  * Private Constant Data
@@ -61,11 +71,11 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxflat_uninit
+ * Name: elf_load
  *
  * Description:
- *   Releases any resources committed by nxflat_init().  This essentially
- *   undoes the actions of nxflat_init.
+ *   Loads the binary into memory, allocating memory, performing relocations
+ *   and inializing the data and bss segments.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -73,12 +83,9 @@
  *
  ****************************************************************************/
 
-int nxflat_uninit(struct nxflat_loadinfo_s *loadinfo)
+int elf_load(FAR struct elf_loadinfo_s *loadinfo)
 {
-  if (loadinfo->filfd >= 0)
-    {
-      close(loadinfo->filfd);
-    }
-  return OK;
+# warning "Missing logic"
+  return -ENOSYS;
 }
 

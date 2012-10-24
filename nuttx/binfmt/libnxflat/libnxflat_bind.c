@@ -263,7 +263,6 @@ static inline int nxflat_gotrelocs(FAR struct nxflat_loadinfo_s *loadinfo)
       result = OK;
       switch (NXFLAT_RELOC_TYPE(reloc.r_info))
         {
-
         /* NXFLAT_RELOC_TYPE_REL32I  Meaning: Object file contains a 32-bit offset
          *                                    into I-Space at the offset.
          *                           Fixup:   Add mapped I-Space address to the offset.
@@ -329,6 +328,7 @@ static inline int nxflat_gotrelocs(FAR struct nxflat_loadinfo_s *loadinfo)
       nxflat_dumpbuffer("GOT", (FAR const uint8_t*)relocs, nrelocs * sizeof(struct nxflat_reloc_s));
     }
 #endif
+
   return ret;
 }
 
@@ -388,7 +388,7 @@ static inline int nxflat_bindimports(FAR struct nxflat_loadinfo_s *loadinfo,
                   offset < loadinfo->isize + loadinfo->dsize);
 
       imports = (struct nxflat_import_s*)
-	(offset - loadinfo->isize + loadinfo->dspace->region);
+        (offset - loadinfo->isize + loadinfo->dspace->region);
 
       /* Now, traverse the list of imported symbols and attempt to bind
        * each symbol to the value exported by from the exported symbol
@@ -396,41 +396,41 @@ static inline int nxflat_bindimports(FAR struct nxflat_loadinfo_s *loadinfo,
        */
 
       for (i = 0; i < nimports; i++)
-	{
-	  bvdbg("Import[%d] (%08p) offset: %08x func: %08x\n",
-	        i, &imports[i], imports[i].i_funcname, imports[i].i_funcaddress);
+        {
+          bvdbg("Import[%d] (%08p) offset: %08x func: %08x\n",
+                i, &imports[i], imports[i].i_funcname, imports[i].i_funcaddress);
 
-	  /* Get a pointer to the imported symbol name.  The name itself
-	   * lies in the TEXT segment.  But the reference to the name
-	   * lies in DATA segment.  Therefore, the name reference should
-	   * have been relocated when the module was loaded.
-	   */
+          /* Get a pointer to the imported symbol name.  The name itself
+           * lies in the TEXT segment.  But the reference to the name
+           * lies in DATA segment.  Therefore, the name reference should
+           * have been relocated when the module was loaded.
+           */
 
           offset = imports[i].i_funcname;
           DEBUGASSERT(offset < loadinfo->isize);
 
-	  symname = (char*)(offset + loadinfo->ispace + sizeof(struct nxflat_hdr_s));
+          symname = (char*)(offset + loadinfo->ispace + sizeof(struct nxflat_hdr_s));
 
-	  /* Find the exported symbol value for this this symbol name. */
+          /* Find the exported symbol value for this this symbol name. */
 
 #ifdef CONFIG_SYMTAB_ORDEREDBYNAME
           symbol = symtab_findorderedbyname(exports, symname, nexports);
 #else
           symbol = symtab_findbyname(exports, symname, nexports);
 #endif
-	  if (!symbol)
-	    {
-	      bdbg("Exported symbol \"%s\" not found\n", symname);
+          if (!symbol)
+            {
+              bdbg("Exported symbol \"%s\" not found\n", symname);
               return -ENOENT;
-	    }
+            }
 
-	  /* And put this into the module's import structure. */
+          /* And put this into the module's import structure. */
 
-	  imports[i].i_funcaddress =  (uint32_t)symbol->sym_value;
+          imports[i].i_funcaddress =  (uint32_t)symbol->sym_value;
 
-	  bvdbg("Bound import[%d] (%08p) to export '%s' (%08x)\n",
-	        i, &imports[i], symname, imports[i].i_funcaddress);
-	}
+          bvdbg("Bound import[%d] (%08p) to export '%s' (%08x)\n",
+                i, &imports[i], symname, imports[i].i_funcaddress);
+        }
     }
 
   /* Dump the relocation import table */
@@ -441,6 +441,7 @@ static inline int nxflat_bindimports(FAR struct nxflat_loadinfo_s *loadinfo,
       nxflat_dumpbuffer("Imports", (FAR const uint8_t*)imports, nimports * sizeof(struct nxflat_import_s));
     }
 #endif
+
   return OK;
 }
 
@@ -484,9 +485,10 @@ int nxflat_bind(FAR struct nxflat_loadinfo_s *loadinfo,
            */
 
           memset((void*)(loadinfo->dspace->region + loadinfo->datasize),
-	                  0, loadinfo->bsssize);
+                      0, loadinfo->bsssize);
         }
     }
+
   return ret;
 }
 

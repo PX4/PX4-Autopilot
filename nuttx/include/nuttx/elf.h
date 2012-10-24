@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/nxflat.h
+ * include/nuttx/elf.h
  *
  *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_NXFLAT_H
-#define __INCLUDE_NUTTX_NXFLAT_H
+#ifndef __INCLUDE_NUTTX_ELF_H
+#define __INCLUDE_NUTTX_ELF_H
 
 /****************************************************************************
  * Included Files
@@ -43,7 +43,7 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
-#include <nxflat.h>
+#include <elf.h>
 #include <nuttx/sched.h>
 
 /****************************************************************************
@@ -55,43 +55,43 @@
  ****************************************************************************/
 
 /* This struct provides a desciption of the currently loaded instantiation
- * of an nxflat binary.
+ * of an ELF binary.
  */
 
-struct nxflat_loadinfo_s
+struct elf_loadinfo_s
 {
-  /* Instruction Space (ISpace):  This region contains the nxflat file header
+  /* Instruction Space (ISpace):  This region contains the ELF file header
    * plus everything from the text section.  Ideally, will have only one mmap'ed
    * text section instance in the system for each module.
    */
 
-  uint32_t ispace;         /* Address where hdr/text is loaded */
-  uint32_t entryoffs;      /* Offset from ispace to entry point */
-  uint32_t isize;          /* Size of ispace. */
+  uint32_t ispace;             /* Address where hdr/text is loaded */
+  uint32_t entryoffs;          /* Offset from ispace to entry point */
+  uint32_t isize;              /* Size of ispace. */
 
   /* Data Space (DSpace): This region contains all information that in referenced
    * as data (other than the stack which is separately allocated).  There will be
    * a unique instance of DSpace (and stack) for each instance of a process.
    */
 
-  struct dspace_s *dspace; /* Allocated D-Space (data/bss/etc) */
-  uint32_t datasize;       /* Size of data segment in dspace */
-  uint32_t bsssize;        /* Size of bss segment in dspace */
-  uint32_t stacksize;      /* Size of stack (not allocated) */
-  uint32_t dsize;          /* Size of dspace (may be large than parts) */
+  FAR struct dspace_s *dspace; /* Allocated D-Space (data/bss/etc) */
+  uint32_t datasize;           /* Size of data segment in dspace */
+  uint32_t bsssize;            /* Size of bss segment in dspace */
+  uint32_t stacksize;          /* Size of stack (not allocated) */
+  uint32_t dsize;              /* Size of dspace (may be large than parts) */
 
   /* This is temporary memory where relocation records will be loaded. */
 
-  uint32_t relocstart;     /* Start of array of struct flat_reloc */
-  uint16_t reloccount;     /* Number of elements in reloc array */
+  uint32_t relocstart;         /* Start of array of struct flat_reloc */
+  uint16_t reloccount;         /* Number of elements in reloc array */
 
   /* File descriptors */
 
-  int    filfd;            /* Descriptor for the file being loaded */
+  int    filfd;                /* Descriptor for the file being loaded */
 
-  /* This is a copy of the NXFLAT header (still in network order) */
+  /* This is a copy of the ELF header (still in network order) */
 
-  struct nxflat_hdr_s header;
+  FAR struct elf_hdr_s header;
 };
 
 /****************************************************************************
@@ -107,15 +107,15 @@ extern "C" {
 #endif
 
 /****************************************************************************
- * These are APIs exported by libnxflat (and may be used outside of NuttX):
+ * These are APIs exported by libelf (and may be used outside of NuttX):
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxflat_verifyheader
+ * Name: elf_verifyheader
  *
  * Description:
- *   Given the header from a possible NXFLAT executable, verify that it is
- *   an NXFLAT executable.
+ *   Given the header from a possible ELF executable, verify that it is
+ *   an ELF executable.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -123,13 +123,13 @@ extern "C" {
  *
  ****************************************************************************/
 
-EXTERN int nxflat_verifyheader(const struct nxflat_hdr_s *header);
+EXTERN int elf_verifyheader(FAR const struct elf_hdr_s *header);
 
 /****************************************************************************
- * Name: nxflat_init
+ * Name: elf_init
  *
  * Description:
- *   This function is called to configure the library to process an NXFLAT
+ *   This function is called to configure the library to process an ELF
  *   program binary.
  *
  * Returned Value:
@@ -138,15 +138,15 @@ EXTERN int nxflat_verifyheader(const struct nxflat_hdr_s *header);
  *
  ****************************************************************************/
 
-EXTERN int nxflat_init(const char *filename,
-                       struct nxflat_loadinfo_s *loadinfo);
+EXTERN int elf_init(FAR const char *filename,
+                    FAR struct elf_loadinfo_s *loadinfo);
 
 /****************************************************************************
- * Name: nxflat_uninit
+ * Name: elf_uninit
  *
  * Description:
- *   Releases any resources committed by nxflat_init().  This essentially
- *   undoes the actions of nxflat_init.
+ *   Releases any resources committed by elf_init().  This essentially
+ *   undoes the actions of elf_init.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -154,17 +154,14 @@ EXTERN int nxflat_init(const char *filename,
  *
  ****************************************************************************/
 
-EXTERN int nxflat_uninit(struct nxflat_loadinfo_s *loadinfo);
+EXTERN int elf_uninit(FAR struct elf_loadinfo_s *loadinfo);
 
 /****************************************************************************
- * Name: nxflat_load
+ * Name: elf_load
  *
  * Description:
- *   Loads the binary specified by nxflat_init into memory, mapping
- *   the I-space executable regions, allocating the D-Space region,
- *   and inializing the data segment (relocation information is
- *   temporarily loaded into the BSS region.  BSS will be cleared
- *   by nxflat_bind() after the relocation data has been processed).
+ *   Loads the binary into memory, allocating memory, performing relocations
+ *   and inializing the data and bss segments.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -172,10 +169,10 @@ EXTERN int nxflat_uninit(struct nxflat_loadinfo_s *loadinfo);
  *
  ****************************************************************************/
 
-EXTERN int nxflat_load(struct nxflat_loadinfo_s *loadinfo);
+EXTERN int elf_load(FAR struct elf_loadinfo_s *loadinfo);
 
 /****************************************************************************
- * Name: nxflat_read
+ * Name: elf_read
  *
  * Description:
  *   Read 'readsize' bytes from the object file at 'offset'
@@ -186,17 +183,15 @@ EXTERN int nxflat_load(struct nxflat_loadinfo_s *loadinfo);
  *
  ****************************************************************************/
 
-EXTERN int nxflat_read(struct nxflat_loadinfo_s *loadinfo, char *buffer,
-                       int readsize, int offset);
+EXTERN int elf_read(FAR struct elf_loadinfo_s *loadinfo, FAR char *buffer,
+                    FAR int readsize, int offset);
 
 /****************************************************************************
- * Name: nxflat_bind
+ * Name: elf_bind
  *
  * Description:
  *   Bind the imported symbol names in the loaded module described by
- *   'loadinfo' using the exported symbol values provided by 'symtab'
- *   After binding the module, clear the BSS region (which held the relocation
- *   data) in preparation for execution.
+ *   'loadinfo' using the exported symbol values provided by 'symtab'.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -205,15 +200,15 @@ EXTERN int nxflat_read(struct nxflat_loadinfo_s *loadinfo, char *buffer,
  ****************************************************************************/
 
 struct symtab_s;
-EXTERN int nxflat_bind(FAR struct nxflat_loadinfo_s *loadinfo,
-                       FAR const struct symtab_s *exports, int nexports);
+EXTERN int elf_bind(FAR struct elf_loadinfo_s *loadinfo,
+                    FAR const struct symtab_s *exports, int nexports);
 
 /****************************************************************************
- * Name: nxflat_unload
+ * Name: elf_unload
  *
  * Description:
  *   This function unloads the object from memory. This essentially
- *   undoes the actions of nxflat_load.
+ *   undoes the actions of elf_load.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -221,18 +216,18 @@ EXTERN int nxflat_bind(FAR struct nxflat_loadinfo_s *loadinfo,
  *
  ****************************************************************************/
 
-EXTERN int nxflat_unload(struct nxflat_loadinfo_s *loadinfo);
+EXTERN int elf_unload(struct elf_loadinfo_s *loadinfo);
 
 /****************************************************************************
  * These are APIs used internally only by NuttX:
  ****************************************************************************/
 /****************************************************************************
- * Name: nxflat_initialize
+ * Name: elf_initialize
  *
  * Description:
- *   NXFLAT support is built unconditionally.  However, it order to
+ *   ELF support is built unconditionally.  However, it order to
  *   use this binary format, this function must be called during system
- *   format in order to register the NXFLAT binary format.
+ *   format in order to register the ELF binary format.
  *
  * Returned Value:
  *   This is a NuttX internal function so it follows the convention that
@@ -241,24 +236,24 @@ EXTERN int nxflat_unload(struct nxflat_loadinfo_s *loadinfo);
  *
  ****************************************************************************/
 
-EXTERN int nxflat_initialize(void);
+EXTERN int elf_initialize(void);
 
 /****************************************************************************
- * Name: nxflat_uninitialize
+ * Name: elf_uninitialize
  *
  * Description:
- *   Unregister the NXFLAT binary loader
+ *   Unregister the ELF binary loader
  *
  * Returned Value:
  *   None
  *
  ****************************************************************************/
 
-EXTERN void nxflat_uninitialize(void);
+EXTERN void elf_uninitialize(void);
 
 #undef EXTERN
 #if defined(__cplusplus)
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_NXFLAT_H */
+#endif /* __INCLUDE_NUTTX_ELF_H */
