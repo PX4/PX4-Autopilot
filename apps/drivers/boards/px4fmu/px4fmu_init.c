@@ -102,7 +102,24 @@
  * Public Functions
  ****************************************************************************/
 
-__EXPORT int nsh_archinitialize(void);
+/************************************************************************************
+ * Name: stm32_boardinitialize
+ *
+ * Description:
+ *   All STM32 architectures must provide the following entry point.  This entry point
+ *   is called early in the intitialization -- after all memory has been configured
+ *   and mapped but before any devices have been initialized.
+ *
+ ************************************************************************************/
+
+__EXPORT void stm32_boardinitialize(void)
+{
+  /* configure SPI interfaces */
+  stm32_spiinitialize();
+
+  /* configure LEDs */
+  up_ledinit();
+}
 
 /****************************************************************************
  * Name: nsh_archinitialize
@@ -121,16 +138,16 @@ static struct i2c_dev_s *i2c3;
 #include <math.h>
 
 #ifdef __cplusplus
-int matherr(struct __exception *e) {
+__EXPORT int matherr(struct __exception *e) {
   return 1;
 }
 #else
-int matherr(struct exception *e) {
+__EXPORT int matherr(struct exception *e) {
   return 1;
 }
 #endif
 
-int nsh_archinitialize(void)
+__EXPORT int nsh_archinitialize(void)
 {
   int result;
 

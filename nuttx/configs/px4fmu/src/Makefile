@@ -40,7 +40,7 @@ CFLAGS		+= -I$(TOPDIR)/sched
 ASRCS		= 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
-CSRCS		= up_boot.c up_leds.c up_spi.c \
+CSRCS		= up_leds.c \
 		  drv_gpio.c \
 		  drv_led.c drv_eeprom.c \
 		  up_usbdev.c
