@@ -58,6 +58,8 @@
 #include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
 
+#include "drv_pwm_servo.h"
+
 #include "chip.h"
 #include "up_internal.h"
 #include "up_arch.h"
@@ -66,66 +68,9 @@
 #include "stm32_gpio.h"
 #include "stm32_tim.h"
 
-/* configuration limits */
-#define PWM_SERVO_MAX_TIMERS	2
-#define PWM_SERVO_MAX_CHANNELS	8
 
 /* default rate (in Hz) of PWM updates */
 static uint32_t	pwm_update_rate = 50;
-
-/*
- * Servo configuration for all of the pins that can be used as
- * PWM outputs on FMU.
- */
-
-/* array of timers dedicated to PWM servo use */
-static const struct pwm_servo_timer {
-	uint32_t	base;
-	uint32_t	clock_register;
-	uint32_t	clock_bit;
-	uint32_t	clock_freq;
-} pwm_timers[] = {
-	{
-		.base = STM32_TIM2_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM2EN,
-		.clock_freq = STM32_APB1_TIM2_CLKIN
-	}
-};
-
-/* array of channels in logical order */
-static const struct pwm_servo_channel {
-	uint32_t	gpio;
-	uint8_t		timer_index;
-	uint8_t		timer_channel;
-	servo_position_t default_value;
-} pwm_channels[] = {
-	{
-		.gpio = GPIO_TIM2_CH1OUT,
-		.timer_index = 0,
-		.timer_channel = 1,
-		.default_value = 1000,
-	},
-	{
-		.gpio = GPIO_TIM2_CH2OUT,
-		.timer_index = 0,
-		.timer_channel = 2,
-		.default_value = 1000,
-	},
-	{
-		.gpio = GPIO_TIM2_CH3OUT,
-		.timer_index = 0,
-		.timer_channel = 3,
-		.default_value = 1000,
-	},
-	{
-		.gpio = GPIO_TIM2_CH4OUT,
-		.timer_index = 0,
-		.timer_channel = 4,
-		.default_value = 1000,
-	}
-};
-
 
 #define REG(_tmr, _reg)	(*(volatile uint32_t *)(pwm_timers[_tmr].base + _reg))
 
