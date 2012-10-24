@@ -86,16 +86,17 @@
 /* Ehe ELF identifier */
 
 #define EI_MAG0            0      /* File identification */
-#define EI_MAG1            1      /* File identification */
-#define EI_MAG2            2      /* File identification */
-#define EI_MAG3            3      /* File identification */
+#define EI_MAG1            1      /* "  " "            " */
+#define EI_MAG2            2      /* "  " "            " */
+#define EI_MAG3            3      /* "  " "            " */
 #define EI_CLASS           4      /* File class */
 #define EI_DATA            5      /* Data encoding */
 #define EI_VERSION         6      /* File version */
 #define EI_PAD             7      /* Start of padding bytes */
 #define EI_NIDENT          16     /* Size of eident[] */
 
-#define EI_MAGIC           { 0x7f, 'E', 'L', 'F' }
+#define EI_MAGIC_SIZE      4
+#define EI_MAGIC           {0x7f, 'E', 'L', 'F'}
 
 /* Values for EI_CLASS */
 

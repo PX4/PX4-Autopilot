@@ -47,7 +47,6 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <arpa/inet.h>
 #include <nuttx/binfmt/elf.h>
 
 /****************************************************************************
@@ -95,11 +94,7 @@
 
 int elf_init(FAR const char *filename, FAR struct elf_loadinfo_s *loadinfo)
 {
-  uint32_t datastart;
-  uint32_t dataend;
-  uint32_t bssstart;
-  uint32_t bssend;
-  int      ret;
+  int ret;
 
   bvdbg("filename: %s loadinfo: %p\n", filename, loadinfo);
 
@@ -116,72 +111,33 @@ int elf_init(FAR const char *filename, FAR struct elf_loadinfo_s *loadinfo)
       return -errno;      
     }
 
-  /* Read the ELF header from offset 0 */
+  /* Read the ELF ehdr from offset 0 */
 
-  ret = elf_read(loadinfo, (char*)&loadinfo->header, sizeof(Elf32_Ehdr), 0);
+  ret = elf_read(loadinfo, (char*)&loadinfo->ehdr, sizeof(Elf32_Ehdr), 0);
   if (ret < 0)
     {
       bdbg("Failed to read ELF header: %d\n", ret);
       return ret;
     }
 
-  elf_dumpbuffer("ELF header", (FAR const uint8_t*)&loadinfo->header, sizeof(Elf32_Ehdr));
+  elf_dumpbuffer("ELF header", (FAR const uint8_t*)&loadinfo->ehdr, sizeof(Elf32_Ehdr));
 
   /* Verify the ELF header */
 
-  if (elf_verifyheader(&loadinfo->header) != 0)
+  ret = elf_verifyheader(&loadinfo->ehdr);
+  if (ret <0)
     {
-      /* This is not an error because we will be called to attempt loading
-       * EVERY binary.  Returning -ENOEXEC simply informs the system that
-       * the file is not an ELF file.  Besides, if there is something worth
-       * complaining about, nelf_verifyheader() has already
-       * done so.
+      /* This may not be an error because we will be called to attempt loading
+       * EVERY binary.  If elf_verifyheader() does not recognize the ELF header,
+       * it will -ENOEXEC whcih simply informs the system that the file is not an
+       * ELF file.  elf_verifyheader() will return other errors if the ELF header
+       * is not correctly formed.
        */
 
-      bdbg("Bad ELF header\n");
-      return -ENOEXEC;
+      bdbg("Bad ELF header: %d\n", ret);
+      return ret;
     }
 
-  /* Save all of the input values in the loadinfo structure 
-   * and extract some additional information from the xflat
-   * header.  Note that the information in the xflat header is in
-   * network order.
-   */
-
-  datastart             = ntohl(loadinfo->header.h_datastart);
-  dataend               = ntohl(loadinfo->header.h_dataend);
-  bssstart              = dataend;
-  bssend                = ntohl(loadinfo->header.h_bssend);
-
-  /* And put this information into the loadinfo structure as well.
-   *
-   * Note that:
-   *
-   *   isize       = the address range from 0 up to datastart.
-   *   datasize   = the address range from datastart up to dataend
-   *   bsssize    = the address range from dataend up to bssend.
-   */
-
-  loadinfo->entryoffs   = ntohl(loadinfo->header.h_entry);
-  loadinfo->isize       = datastart;
-
-  loadinfo->datasize    = dataend - datastart;
-  loadinfo->bsssize     = bssend - dataend;
-  loadinfo->stacksize   = ntohl(loadinfo->header.h_stacksize);
-
-  /* This is the initial dspace size.  We'll re-calculate this later
-   * after the memory has been allocated.
-   */
-
-  loadinfo->dsize       = bssend - datastart;
-
-  /* Get the offset to the start of the relocations (we'll relocate
-   * this later).
-   */
-
-  loadinfo->relocstart  = ntohl(loadinfo->header.h_relocstart);
-  loadinfo->reloccount  = ntohs(loadinfo->header.h_reloccount);
-
-  return 0;
+  return OK;
 }
 

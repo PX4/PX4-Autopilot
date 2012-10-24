@@ -42,6 +42,8 @@
 
 #include <nuttx/config.h>
 
+#include <elf.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -49,5 +51,16 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: arch_checkarch
+ *
+ * Description:
+ *   Given the ELF header in hdr, verify that the ELF file is appropriate
+ *   for the current, configured architecture.
+ *
+ ****************************************************************************/
+
+bool arch_checkarch(const struct Elf32_Ehdr *hdr);
 
 #endif /* __BINFMT_LIBELF_LIBELF_H */

@@ -47,7 +47,6 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <arpa/inet.h>
 #include <nuttx/binfmt/elf.h>
 
 /****************************************************************************

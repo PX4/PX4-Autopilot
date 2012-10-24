@@ -76,20 +76,19 @@
 
 int elf_unload(struct elf_loadinfo_s *loadinfo)
 {
-  /* Reset the contents of the info structure. */
+  /* Release the all allocated memory */
 
-  /* Release the memory segments */
-
-  if (loadinfo->ispace)
+  if (loadinfo->alloc)
     {
-      kfree((void*)loadinfo->ispace, loadinfo->isize);
-      loadinfo->ispace = 0;
+      kfree((void*)loadinfo->alloc);
+      loadinfo->alloc     = NULL;
+      loadinfo->allocsize = 0;
     }
 
-  if (loadinfo->dspace)
+  if (loadinfo->shdrs)
     {
-      kfree((void*)loadinfo->dspace);
-      loadinfo->dspace = 0;
+      kfree((void*)loadinfo->shdrs);
+      loadinfo->shdrs = 0;
     }
 
   return OK;

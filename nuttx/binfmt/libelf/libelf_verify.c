@@ -42,7 +42,7 @@
 #include <string.h>
 #include <debug.h>
 #include <errno.h>
-#include <arpa/inet.h>
+
 #include <nuttx/binfmt/elf.h>
 
 /****************************************************************************
@@ -52,6 +52,8 @@
 /****************************************************************************
  * Private Constant Data
  ****************************************************************************/
+
+static const char g_elfmagic[EI_MAGIC_SIZE] = { 0x7f, 'E', 'L', 'F' }
 
 /****************************************************************************
  * Private Functions
@@ -72,17 +74,47 @@
  *   0 (OK) is returned on success and a negated errno is returned on
  *   failure.
  *
+ *   -ENOEXEC  : Not an ELF file
+ *   -EINVALID : Not a relocatable ELF file or not supported by the current,
+ *               configured architecture.
+ *
  ****************************************************************************/
 
-int elf_verifyheader(const Elf32_Ehdr *header)
+int elf_verifyheader(const Elf32_Ehdr *ehdr)
 {
-  if (!header)
+  if (!ehdr)
     {
       bdbg("NULL ELF header!");
       return -ENOEXEC;
     }
 
-#warning "Missing Logic"
-  return -ENOSYS;
+  /* Verify that the magic number indicates an ELF file */
+
+  if (memcmp(ehdr->e_ident, g_elfmagic, EI_MAGIC_SIZE) != 0)
+    {
+      bvdbg("Not ELF magic {%02x, %02x, %02x, %02x}\n",
+            ehdr->e_ident[0], ehdr->e_ident[1], ehdr->e_ident[2], ehdr->e_ident[3]);
+      return -ENOEXEC;
+    }
+
+  /* Verify that this is a relocatable file */
+
+  if (ehdr->e_type != ET_REL)
+    {
+      bdbg("Not a relocatable file: e_type=%d\n", ehdr->e_type);
+      return -EINVALID;
+    }
+
+  /* Verify that this file works with the currently configured architecture */
+
+  if (arch_checkarch(ehdr))
+    {
+      bdbg("Not a supported architecture\n");
+      return -ENOEXEC;
+    }
+
+  /* Looks good so far... we still might find some problems later. */
+
+  return OK;
 }
 

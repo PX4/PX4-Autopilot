@@ -40,14 +40,15 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
-#include <sys/mman.h>
+#include <sys/stat.h>
+
 #include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <elf.h>
 #include <debug.h>
 #include <errno.h>
 
-#include <arpa/inet.h>
 #include <nuttx/binfmt/elf.h>
 
 /****************************************************************************
@@ -65,6 +66,148 @@
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: elf_filelen
+ *
+ * Description:
+ *  Get the size of the ELF file
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+static inline int elf_filelen(FAR struct elf_loadinfo_s *loadinfo)
+{
+  struct stat buf;
+  int ret;
+
+  /* Get the file stats */
+
+  ret = fstat(loadinfo->filfd, &buf);
+  if (ret < 0)
+    {
+      int errval = errno;
+      bdbg("Failed to fstat file: %d\n", errval);
+      return -errval;
+    }
+
+  /* Verify that it is a regular file */
+
+  if (!S_ISREG(buf.st_mode))
+    {
+      bdbg("Not a regular file.  mode: %d\n", buf.st_mode);
+      return -errval;
+    }
+
+  /* TODO:  Verify that the file is readable */
+
+  /* Return the size of the file in the loadinfo structure */
+
+  loadinfo->filelen = buf.st_size;
+  return OK;
+}
+
+/****************************************************************************
+ * Name: elf_loadshdrs
+ *
+ * Description:
+ *   Loads section headers into memory.
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+static inline int elf_loadshdrs(FAR struct elf_loadinfo_s *loadinfo)
+{
+  size_t shdrsize;
+  ssize_t bytesread;
+  uint8_t buffer;
+  off_t offset;
+  int ret;
+
+  DEBUGASSERT(loadinfo->shdrs == NULL);
+
+  /* Verify that there are sections */
+
+  if (loadinfo->e_shum < 1)
+    {
+      bdbg("No section(?)\n");
+      return -EINVAL;
+    }
+
+  /* Get the total size of the section header table */
+
+  shdrsize = (size_t)loadinfo->ehdr.e_shentsize * (size_t)loadinfo->e_shum;
+  if(loadinfo->e_shoff + shdrsize > loadinfo->filelen)
+    {
+      bdbg("Insufficent space in file for section header table\n");
+      return -ESPIPE;
+    }
+
+  /* Allocate memory to hold a working copy of the sector header table */
+
+  loadinfo->shdrs = (FAR Elf32_Shdr*)kmalloc(shdrsize);
+  if (!loadinfo->shdrs)
+    {
+      bdbg("Failed to allocate the section header table. Size: %ld\n", (long)shdrsize);
+      return -ENOMEM;
+    }
+
+  /* Seek to the start of the section header table */
+
+  offset = lseek(loadinfo->filfd, loadinfo->e_shoff, SEEK_SET);
+  if (offset == (off_t)-1)
+    {
+      int errval = errno;
+      bdbg("See to %ld failed: %d\n", (long)loadinfo->e_shoff, errval);
+      ret = -errval;
+      goto errout_with_alloc;
+    }
+
+  /* Now load the section header table into the allocated memory */
+
+  buffer = loadinfo->shdrs;
+  while (shdrsize > 0)
+    {
+      bytesread = read(loadinfo->filfd, buffer, shdrsize);
+      if (bytes < 0)
+        {
+          int errval = errno;
+
+          /* EINTR just means that we received a signal */
+
+          if (errno != EINTR)
+            {
+              bdbg("read() failed: %d\n", errval);
+              ret = -errval;
+              goto errout_with_alloc;
+            }
+        }
+      else if (bytes == 0)
+        {
+          bdbg("Unexpectged end of file\n");
+          ret = -ENODATA;
+          goto errout_with_alloc;
+        }
+      else
+        {
+          buffer   += bytesread;
+          shdrsize -= bytesread;
+        }
+    }
+
+  return OK;
+
+errout_with_alloc:
+  kfree(loadinfo->shdrs);
+  loadinfo->shdrs = 0;
+  return ret;
+}
 
 /****************************************************************************
  * Public Functions

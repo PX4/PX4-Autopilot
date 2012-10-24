@@ -60,38 +60,12 @@
 
 struct elf_loadinfo_s
 {
-  /* Instruction Space (ISpace):  This region contains the ELF file header
-   * plus everything from the text section.  Ideally, will have only one mmap'ed
-   * text section instance in the system for each module.
-   */
-
-  uint32_t ispace;             /* Address where hdr/text is loaded */
-  uint32_t entryoffs;          /* Offset from ispace to entry point */
-  uint32_t isize;              /* Size of ispace. */
-
-  /* Data Space (DSpace): This region contains all information that in referenced
-   * as data (other than the stack which is separately allocated).  There will be
-   * a unique instance of DSpace (and stack) for each instance of a process.
-   */
-
-  FAR struct dspace_s *dspace; /* Allocated D-Space (data/bss/etc) */
-  uint32_t datasize;           /* Size of data segment in dspace */
-  uint32_t bsssize;            /* Size of bss segment in dspace */
-  uint32_t stacksize;          /* Size of stack (not allocated) */
-  uint32_t dsize;              /* Size of dspace (may be large than parts) */
-
-  /* This is temporary memory where relocation records will be loaded. */
-
-  uint32_t relocstart;         /* Start of array of struct flat_reloc */
-  uint16_t reloccount;         /* Number of elements in reloc array */
-
-  /* File descriptors */
-
-  int    filfd;                /* Descriptor for the file being loaded */
-
-  /* This is a copy of the ELF header */
-
-  Elf32_Ehdr header;
+  uintptr_t       alloc;       /* Allocated memory with the ELF file is loaded */
+  size_t          allocsize;   /* Size of the memory allocation */
+  off_t           filelen;     /* Length of the entire ELF file */
+  int             filfd;       /* Descriptor for the file being loaded */
+  Elf32_Ehdr      ehdr;        /* Buffered ELF file header */
+  FAR Elf32_Shdr *shdr;        /* Buffered ELF section headers */
 };
 
 /****************************************************************************
