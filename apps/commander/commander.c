@@ -62,8 +62,8 @@
 #include <v1.0/common/mavlink.h>
 #include <string.h>
 #include <arch/board/drv_led.h>
-#include <arch/board/up_hrt.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include "state_machine_helper.h"
 #include "systemlib/systemlib.h"

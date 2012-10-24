@@ -50,7 +50,7 @@
 
 #include <sys/stat.h>
 
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include "systemlib/param/param.h"
 #include "systemlib/uthash/utarray.h"

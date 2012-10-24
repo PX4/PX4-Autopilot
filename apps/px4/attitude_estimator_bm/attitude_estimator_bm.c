@@ -46,7 +46,7 @@
 #include <sys/time.h>
 #include <stdbool.h>
 #include <fcntl.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <string.h>
 #include <poll.h>
 #include <uORB/uORB.h>

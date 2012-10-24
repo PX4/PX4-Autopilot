@@ -58,7 +58,7 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -114,6 +114,10 @@
 # undef ERROR
 #endif
 static const int ERROR = -1;
+
+#ifndef CONFIG_SCHED_WORKQUEUE
+# error This requires CONFIG_SCHED_WORKQUEUE.
+#endif
 
 class HMC5883 : public device::I2C
 {

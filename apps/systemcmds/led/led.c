@@ -50,7 +50,7 @@
 #include <termios.h>
 #include <time.h>
 #include <sys/prctl.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <arch/board/drv_led.h>
 
 #include <systemlib/err.h>

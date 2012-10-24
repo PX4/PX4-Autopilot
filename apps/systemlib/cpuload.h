@@ -31,46 +31,33 @@
  *
  ****************************************************************************/
 
-/**
- * @file tests_file.c
- *
- * File write test.
- */
+#pragma once
 
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <systemlib/err.h>
-#include <systemlib/perf_counter.h>
-#include <string.h>
+#ifdef CONFIG_SCHED_INSTRUMENTATION
 
-#include <drivers/drv_hrt.h>
+__BEGIN_DECLS
 
-#include "tests.h"
+#include <nuttx/sched.h>
 
-int
-test_file(int argc, char *argv[])
-{
-	uint8_t buf[512];
-	hrt_abstime start, end;
-	perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes");
+struct system_load_taskinfo_s {
+	uint64_t total_runtime;      ///< Runtime since start (start_time - total_runtime)/(start_time - current_time) = load
+	uint64_t curr_start_time;     ///< Start time of the current scheduling slot
+	uint64_t start_time;         ///< FIRST start time of task
+	FAR struct _TCB *tcb;               ///<
+	bool valid;                  ///< Task is currently active / valid
+};
 
-	int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
-	memset(buf, 0, sizeof(buf));
+struct system_load_s {
+	uint64_t start_time;         ///< Global start time of measurements
+	struct system_load_taskinfo_s tasks[CONFIG_MAX_TASKS];
+	uint8_t initialized;
+	int total_count;
+	int running_count;
+	int sleeping_count;
+};
 
-	start = hrt_absolute_time();
-	for (unsigned i = 0; i < 1024; i++) {
-		perf_begin(wperf);
-		write(fd, buf, sizeof(buf));
-		perf_end(wperf);
-	}
-	end = hrt_absolute_time();
+__EXPORT extern struct system_load_s system_load;
 
-	close(fd);
+__EXPORT void cpuload_initialize_once(void);
 
-	warnx("512KiB in %llu microseconds", end - start);
-	perf_print_counter(wperf);
-	perf_free(wperf);
-
-	return 0;
-}
+#endif

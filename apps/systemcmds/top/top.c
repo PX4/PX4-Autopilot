@@ -47,7 +47,7 @@
 #include <poll.h>
 
 #include <arch/board/up_cpuload.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 /**
  * Start the top application.

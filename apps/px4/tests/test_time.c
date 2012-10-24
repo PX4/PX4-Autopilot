@@ -53,7 +53,7 @@
 
 #include <math.h>
 #include <float.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 
 /****************************************************************************

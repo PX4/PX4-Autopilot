@@ -32,7 +32,9 @@
  ****************************************************************************/
  
 /**
- * @file High-resolution timer callouts and timekeeping.
+ * @file drv_hrt.c
+ *
+ * High-resolution timer callouts and timekeeping.
  *
  * This can use any general or advanced STM32 timer.
  *
@@ -58,7 +60,7 @@
 #include <string.h>
 
 #include <arch/board/board.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include "chip.h"
 #include "up_internal.h"
@@ -320,16 +322,16 @@ static void		hrt_call_invoke(void);
 
 /* decoded PPM buffer */
 #define PPM_MAX_CHANNELS	12
-uint16_t ppm_buffer[PPM_MAX_CHANNELS];
-unsigned ppm_decoded_channels;
-uint64_t ppm_last_valid_decode = 0;
+__EXPORT uint16_t ppm_buffer[PPM_MAX_CHANNELS];
+__EXPORT unsigned ppm_decoded_channels;
+__EXPORT uint64_t ppm_last_valid_decode = 0;
 
 /* PPM edge history */
-uint16_t ppm_edge_history[32];
+__EXPORT uint16_t ppm_edge_history[32];
 unsigned ppm_edge_next;
 
 /* PPM pulse history */
-uint16_t ppm_pulse_history[32];
+__EXPORT uint16_t ppm_pulse_history[32];
 unsigned ppm_pulse_next;
 
 static uint16_t ppm_temp_buffer[PPM_MAX_CHANNELS];

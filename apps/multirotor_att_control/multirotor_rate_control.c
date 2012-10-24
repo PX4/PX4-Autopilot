@@ -53,7 +53,7 @@
 #include <systemlib/pid/pid.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.1f); /* same on Flamewheel */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);

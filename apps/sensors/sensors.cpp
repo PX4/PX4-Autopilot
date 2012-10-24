@@ -52,7 +52,7 @@
 #include <errno.h>
 #include <math.h>
 
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>

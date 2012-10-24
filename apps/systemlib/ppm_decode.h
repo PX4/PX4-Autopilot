@@ -30,47 +30,51 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
+ 
 /**
- * @file tests_file.c
+ * @file ppm_decode.h
  *
- * File write test.
+ * PPM input decoder.
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <systemlib/err.h>
-#include <systemlib/perf_counter.h>
-#include <string.h>
+#pragma once
 
 #include <drivers/drv_hrt.h>
 
-#include "tests.h"
+/**
+ * Maximum number of channels that we will decode.
+ */
+#define PPM_MAX_CHANNELS	12
 
-int
-test_file(int argc, char *argv[])
-{
-	uint8_t buf[512];
-	hrt_abstime start, end;
-	perf_counter_t wperf = perf_alloc(PC_ELAPSED, "SD writes");
+__BEGIN_DECLS
 
-	int fd = open("/fs/microsd/testfile", O_TRUNC | O_WRONLY | O_CREAT);
-	memset(buf, 0, sizeof(buf));
+/*
+ * PPM decoder state
+ */
+__EXPORT extern uint16_t	ppm_buffer[];		/**< decoded PPM channel values */
+__EXPORT extern unsigned	ppm_decoded_channels;	/**< count of decoded channels */
+__EXPORT extern hrt_abstime	ppm_last_valid_decode;	/**< timestamp of the last valid decode */
 
-	start = hrt_absolute_time();
-	for (unsigned i = 0; i < 1024; i++) {
-		perf_begin(wperf);
-		write(fd, buf, sizeof(buf));
-		perf_end(wperf);
-	}
-	end = hrt_absolute_time();
+/**
+ * Initialise the PPM input decoder.
+ *
+ * @param count_max		The maximum value of the counter passed to
+ *				ppm_input_decode, used to determine how to
+ *				handle counter wrap.
+ */
+__EXPORT void		ppm_input_init(unsigned count_max);
 
-	close(fd);
+/**
+ * Inform the decoder of an edge on the PPM input.
+ *
+ * This function can be registered with the HRT as the PPM edge handler.
+ *
+ * @param reset			If set, the edge detector has missed one or
+ *				more edges and the decoder needs to be reset.
+ * @param count			A microsecond timestamp corresponding to the
+ *				edge, in the range 0-count_max.  This value
+ *				is expected to wrap.
+ */
+__EXPORT void		ppm_input_decode(bool reset, unsigned count);
 
-	warnx("512KiB in %llu microseconds", end - start);
-	perf_print_counter(wperf);
-	perf_free(wperf);
-
-	return 0;
-}
+__END_DECLS

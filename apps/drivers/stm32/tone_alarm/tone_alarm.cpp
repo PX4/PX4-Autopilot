@@ -71,7 +71,7 @@
 #include <unistd.h>
 
 #include <arch/board/board.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include <arch/stm32/chip.h>
 #include <up_internal.h>

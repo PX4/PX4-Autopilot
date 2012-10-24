@@ -31,18 +31,21 @@
  *
  ****************************************************************************/
 
-/*
- * High-resolution timer callouts and timekeeping.
+/**
+ * @file drv_hrt.h
+ *
+ * High-resolution timer with callouts and timekeeping.
  */
 
-#ifndef UP_HRT_H_
-#define UP_HRT_H_
+#pragma once
 
 #include <sys/types.h>
 #include <stdbool.h>
 
 #include <time.h>
 #include <queue.h>
+
+__BEGIN_DECLS
 
 /*
  * Absolute time, in microsecond units.
@@ -76,17 +79,17 @@ typedef struct hrt_call {
 /*
  * Get absolute time.
  */
-extern hrt_abstime hrt_absolute_time(void);
+__EXPORT extern hrt_abstime hrt_absolute_time(void);
 
 /*
  * Convert a timespec to absolute time.
  */
-extern hrt_abstime ts_to_abstime(struct timespec *ts);
+__EXPORT extern hrt_abstime ts_to_abstime(struct timespec *ts);
 
 /*
  * Convert absolute time to a timespec.
  */
-extern void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
+__EXPORT extern void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
 
 /*
  * Call callout(arg) after delay has elapsed.
@@ -94,12 +97,12 @@ extern void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
  * If callout is NULL, this can be used to implement a timeout by testing the call
  * with hrt_called().
  */
-extern void	hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, void *arg);
+__EXPORT extern void	hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, void *arg);
 
 /*
  * Call callout(arg) at absolute time calltime.
  */
-extern void	hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, void *arg);
+__EXPORT extern void	hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callout callout, void *arg);
 
 /*
  * Call callout(arg) after delay, and then after every interval.
@@ -107,7 +110,7 @@ extern void	hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, hrt_callou
  * Note thet the interval is timed between scheduled, not actual, call times, so the call rate may
  * jitter but should not drift.
  */
-extern void	hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg);
+__EXPORT extern void	hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg);
 
 /*
  * If this returns true, the entry has been invoked and removed from the callout list, 
@@ -115,16 +118,16 @@ extern void	hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstim
  *
  * Always returns false for repeating callouts.
  */
-extern bool	hrt_called(struct hrt_call *entry);
+__EXPORT extern bool	hrt_called(struct hrt_call *entry);
 
 /*
  * Remove the entry from the callout list.
  */
-extern void	hrt_cancel(struct hrt_call *entry);
+__EXPORT extern void	hrt_cancel(struct hrt_call *entry);
 
 /*
  * Initialise the HRT.
  */
-extern void	hrt_init(void);
+__EXPORT extern void	hrt_init(void);
 
-#endif /* UP_HRT_H_ */
+__END_DECLS
