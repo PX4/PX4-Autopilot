@@ -121,6 +121,7 @@ usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
+
 	fprintf(stderr, "usage: led {start|stop|status} [-d <UART>]\n\n");
 	exit(1);
 }
@@ -129,7 +130,7 @@ usage(const char *reason)
  * The deamon app only briefly exists to start
  * the background job. The stack size assigned in the
  * Makefile does only apply to this management task.
- * 
+ *
  * The actual stack size should be set in the call
  * to task_create().
  */
@@ -165,9 +166,11 @@ int led_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			printf("\tled is running\n");
+
 		} else {
 			printf("\tled not started\n");
 		}
+
 		exit(0);
 	}
 
@@ -187,7 +190,7 @@ int led_thread_main(int argc, char *argv[])
 
 	while (!thread_should_exit) {
 		/* swell blue led */
-		
+
 
 		/* 200 Hz base loop */
 		usleep(1000000 / rate);

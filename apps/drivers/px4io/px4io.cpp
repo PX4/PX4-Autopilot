@@ -110,7 +110,7 @@ private:
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
 
 	volatile bool		_switch_armed;	///< PX4IO switch armed state
-						// XXX how should this work?
+	// XXX how should this work?
 
 	bool			_send_needed;	///< If true, we need to send a packet to IO
 
@@ -149,13 +149,13 @@ private:
 	 * group/index during mixing.
 	 */
 	static int		control_callback(uintptr_t handle,
-						 uint8_t control_group,
-						 uint8_t control_index,
-						 float &input);
+			uint8_t control_group,
+			uint8_t control_index,
+			float &input);
 };
 
 
-namespace 
+namespace
 {
 
 PX4IO	*g_dev;
@@ -190,6 +190,7 @@ PX4IO::~PX4IO()
 
 		/* spin waiting for the thread to stop */
 		unsigned i = 10;
+
 		do {
 			/* wait 50ms - it should wake every 100ms or so worst-case */
 			usleep(50000);
@@ -223,11 +224,13 @@ PX4IO::init()
 
 	/* do regular cdev init */
 	ret = CDev::init();
+
 	if (ret != OK)
 		return ret;
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
 	ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
+
 	if (ret == OK) {
 		log("default PWM output device");
 		_primary_pwm_device = true;
@@ -235,6 +238,7 @@ PX4IO::init()
 
 	/* start the IO interface task */
 	_task = task_create("px4io", SCHED_PRIORITY_DEFAULT, 4096, (main_t)&PX4IO::task_main_trampoline, nullptr);
+
 	if (_task < 0) {
 		debug("task start failed: %d", errno);
 		return -errno;
@@ -256,6 +260,7 @@ PX4IO::task_main()
 
 	/* open the serial port */
 	_serial_fd = ::open("/dev/ttyS2", O_RDWR);
+
 	if (_serial_fd < 0) {
 		debug("failed to open serial port for IO: %d", errno);
 		_task = -1;
@@ -343,6 +348,7 @@ PX4IO::task_main()
 					_send_needed = true;
 				}
 			}
+
 			if (fds[2].revents & POLLIN) {
 
 				orb_copy(ORB_ID(actuator_armed), _t_armed, &_controls);
@@ -364,9 +370,9 @@ PX4IO::task_main()
 
 int
 PX4IO::control_callback(uintptr_t handle,
-			 uint8_t control_group,
-			 uint8_t control_index,
-			 float &input)
+			uint8_t control_group,
+			uint8_t control_index,
+			float &input)
 {
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
@@ -458,13 +464,16 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(_max_actuators - 1):
+
 		/* fake an update to the selected servo channel */
 		if ((arg >= 900) && (arg <= 2100)) {
 			_outputs.output[cmd - PWM_SERVO_SET(0)] = arg;
 			_send_needed = true;
+
 		} else {
 			ret = -EINVAL;
 		}
+
 		break;
 
 	case PWM_SERVO_GET(0) ... PWM_SERVO_GET(_max_actuators - 1):
@@ -481,6 +490,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			delete _mixers;
 			_mixers = nullptr;
 		}
+
 		break;
 
 	case MIXERIOCADDSIMPLE: {
@@ -519,6 +529,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 			/* allocate a new mixer group and load it from the file */
 			newmixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
+
 			if (newmixers->load_from_file(path) != 0) {
 				delete newmixers;
 				ret = -EINVAL;
@@ -528,6 +539,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			if (_mixers != nullptr) {
 				delete _mixers;
 			}
+
 			_mixers = newmixers;
 
 		}
@@ -537,6 +549,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		/* not a recognised value */
 		ret = -ENOTTY;
 	}
+
 	unlock();
 
 	return ret;
@@ -576,6 +589,7 @@ px4io_main(int argc, char *argv[])
 		if (argc > 2) {
 			fn[0] = argv[2];
 			fn[1] = nullptr;
+
 		} else {
 			fn[0] = "/fs/microsd/px4io.bin";
 			fn[1] =	"/etc/px4io.bin";
@@ -589,18 +603,24 @@ px4io_main(int argc, char *argv[])
 		switch (ret) {
 		case OK:
 			break;
+
 		case -ENOENT:
 			errx(1, "PX4IO firmware file not found");
+
 		case -EEXIST:
 		case -EIO:
 			errx(1, "error updating PX4IO - check that bootloader mode is enabled");
+
 		case -EINVAL:
 			errx(1, "verify failed - retry the update");
+
 		case -ETIMEDOUT:
 			errx(1, "timed out waiting for bootloader - power-cycle and try again");
+
 		default:
 			errx(1, "unexpected error %d", ret);
 		}
+
 		return ret;
 	}
 

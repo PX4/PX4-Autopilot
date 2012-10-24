@@ -34,7 +34,7 @@
 /**
  * @file px4fmu_init.c
  *
- * PX4FMU-specific early startup code.  This file implements the 
+ * PX4FMU-specific early startup code.  This file implements the
  * nsh_archinitialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
@@ -115,11 +115,11 @@ extern int adc_devinit(void);
 
 __EXPORT void stm32_boardinitialize(void)
 {
-  /* configure SPI interfaces */
-  stm32_spiinitialize();
+	/* configure SPI interfaces */
+	stm32_spiinitialize();
 
-  /* configure LEDs */
-  up_ledinit();
+	/* configure LEDs */
+	up_ledinit();
 }
 
 /****************************************************************************
@@ -139,171 +139,179 @@ static struct i2c_dev_s *i2c3;
 #include <math.h>
 
 #ifdef __cplusplus
-__EXPORT int matherr(struct __exception *e) {
-  return 1;
+__EXPORT int matherr(struct __exception *e)
+{
+	return 1;
 }
 #else
-__EXPORT int matherr(struct exception *e) {
-  return 1;
+__EXPORT int matherr(struct exception *e)
+{
+	return 1;
 }
 #endif
 
 __EXPORT int nsh_archinitialize(void)
 {
-  int result;
+	int result;
 
-  /* INIT 1 Lowest level NuttX initialization has been done at this point, LEDs and UARTs are configured */
+	/* INIT 1 Lowest level NuttX initialization has been done at this point, LEDs and UARTs are configured */
 
-  /* INIT 2 Configuring PX4 low-level peripherals, these will be always needed */
+	/* INIT 2 Configuring PX4 low-level peripherals, these will be always needed */
 
-  /* configure the high-resolution time/callout interface */
+	/* configure the high-resolution time/callout interface */
 #ifdef CONFIG_HRT_TIMER
-  hrt_init();
+	hrt_init();
 #endif
 
-  /* configure CPU load estimation */
-  #ifdef CONFIG_SCHED_INSTRUMENTATION
-  cpuload_initialize_once();
-  #endif
+	/* configure CPU load estimation */
+#ifdef CONFIG_SCHED_INSTRUMENTATION
+	cpuload_initialize_once();
+#endif
 
-  /* set up the serial DMA polling */
+	/* set up the serial DMA polling */
 #ifdef SERIAL_HAVE_DMA
-  {
-    static struct hrt_call serial_dma_call;
-    struct timespec ts;
+	{
+		static struct hrt_call serial_dma_call;
+		struct timespec ts;
 
-    /* 
-     * Poll at 1ms intervals for received bytes that have not triggered
-     * a DMA event.
-     */
-    ts.tv_sec = 0;
-    ts.tv_nsec = 1000000;
+		/*
+		 * Poll at 1ms intervals for received bytes that have not triggered
+		 * a DMA event.
+		 */
+		ts.tv_sec = 0;
+		ts.tv_nsec = 1000000;
 
-    hrt_call_every(&serial_dma_call, 
-                   ts_to_abstime(&ts),
-                   ts_to_abstime(&ts),
-                   (hrt_callout)stm32_serial_dma_poll,
-                   NULL);
-  }
+		hrt_call_every(&serial_dma_call,
+			       ts_to_abstime(&ts),
+			       ts_to_abstime(&ts),
+			       (hrt_callout)stm32_serial_dma_poll,
+			       NULL);
+	}
 #endif
 
-  message("\r\n");
+	message("\r\n");
 
-  up_ledoff(LED_BLUE);
-  up_ledoff(LED_AMBER);
+	up_ledoff(LED_BLUE);
+	up_ledoff(LED_AMBER);
 
-  up_ledon(LED_BLUE);
+	up_ledon(LED_BLUE);
 
-  /* Configure user-space led driver */
-  px4fmu_led_init();
+	/* Configure user-space led driver */
+	px4fmu_led_init();
 
-  /* Configure SPI-based devices */
+	/* Configure SPI-based devices */
 
-  spi1 = up_spiinitialize(1);
-  if (!spi1)
-  {
-	  message("[boot] FAILED to initialize SPI port 1\r\n");
-	  up_ledon(LED_AMBER);
-	  return -ENODEV;
-  }
+	spi1 = up_spiinitialize(1);
 
-  // Default SPI1 to 1MHz and de-assert the known chip selects.
-  SPI_SETFREQUENCY(spi1, 10000000);
-  SPI_SETBITS(spi1, 8);
-  SPI_SETMODE(spi1, SPIDEV_MODE3);
-  SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
-  SPI_SELECT(spi1, PX4_SPIDEV_ACCEL, false);
-  SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
-  up_udelay(20);
+	if (!spi1) {
+		message("[boot] FAILED to initialize SPI port 1\r\n");
+		up_ledon(LED_AMBER);
+		return -ENODEV;
+	}
 
-  message("[boot] Successfully initialized SPI port 1\r\n");
+	// Default SPI1 to 1MHz and de-assert the known chip selects.
+	SPI_SETFREQUENCY(spi1, 10000000);
+	SPI_SETBITS(spi1, 8);
+	SPI_SETMODE(spi1, SPIDEV_MODE3);
+	SPI_SELECT(spi1, PX4_SPIDEV_GYRO, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_ACCEL, false);
+	SPI_SELECT(spi1, PX4_SPIDEV_MPU, false);
+	up_udelay(20);
 
-  /* initialize I2C2 bus */
+	message("[boot] Successfully initialized SPI port 1\r\n");
 
-  i2c2 = up_i2cinitialize(2);
-  if (!i2c2) {
-	  message("[boot] FAILED to initialize I2C bus 2\n");
-	  up_ledon(LED_AMBER);
-	  return -ENODEV;
-  }
+	/* initialize I2C2 bus */
 
-  /* set I2C2 speed */
-  I2C_SETFREQUENCY(i2c2, 400000);
+	i2c2 = up_i2cinitialize(2);
+
+	if (!i2c2) {
+		message("[boot] FAILED to initialize I2C bus 2\n");
+		up_ledon(LED_AMBER);
+		return -ENODEV;
+	}
+
+	/* set I2C2 speed */
+	I2C_SETFREQUENCY(i2c2, 400000);
 
 
-  i2c3 = up_i2cinitialize(3);
-  if (!i2c3) {
-	  message("[boot] FAILED to initialize I2C bus 3\n");
-	  up_ledon(LED_AMBER);
-	  return -ENODEV;
-  }
+	i2c3 = up_i2cinitialize(3);
 
-  /* set I2C3 speed */
-  I2C_SETFREQUENCY(i2c3, 400000);
+	if (!i2c3) {
+		message("[boot] FAILED to initialize I2C bus 3\n");
+		up_ledon(LED_AMBER);
+		return -ENODEV;
+	}
 
-  /* try to attach, don't fail if device is not responding */
-  (void)eeprom_attach(i2c3, FMU_BASEBOARD_EEPROM_ADDRESS,
-		  FMU_BASEBOARD_EEPROM_TOTAL_SIZE_BYTES,
-		  FMU_BASEBOARD_EEPROM_PAGE_SIZE_BYTES,
-		  FMU_BASEBOARD_EEPROM_PAGE_WRITE_TIME_US, "/dev/baseboard_eeprom", 1);
+	/* set I2C3 speed */
+	I2C_SETFREQUENCY(i2c3, 400000);
+
+	/* try to attach, don't fail if device is not responding */
+	(void)eeprom_attach(i2c3, FMU_BASEBOARD_EEPROM_ADDRESS,
+			    FMU_BASEBOARD_EEPROM_TOTAL_SIZE_BYTES,
+			    FMU_BASEBOARD_EEPROM_PAGE_SIZE_BYTES,
+			    FMU_BASEBOARD_EEPROM_PAGE_WRITE_TIME_US, "/dev/baseboard_eeprom", 1);
 
 #if defined(CONFIG_STM32_SPI3)
-  /* Get the SPI port */
+	/* Get the SPI port */
 
-  message("[boot] Initializing SPI port 3\n");
-  spi3 = up_spiinitialize(3);
-  if (!spi3)
-    {
-      message("[boot] FAILED to initialize SPI port 3\n");
-      up_ledon(LED_AMBER);
-      return -ENODEV;
-    }
-  message("[boot] Successfully initialized SPI port 3\n");
+	message("[boot] Initializing SPI port 3\n");
+	spi3 = up_spiinitialize(3);
 
-  /* Now bind the SPI interface to the MMCSD driver */
-  result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi3);
-  if (result != OK)
-  {
-	  message("[boot] FAILED to bind SPI port 3 to the MMCSD driver\n");
-	  up_ledon(LED_AMBER);
-	  return -ENODEV;
-  }
-  message("[boot] Successfully bound SPI port 3 to the MMCSD driver\n");
+	if (!spi3) {
+		message("[boot] FAILED to initialize SPI port 3\n");
+		up_ledon(LED_AMBER);
+		return -ENODEV;
+	}
+
+	message("[boot] Successfully initialized SPI port 3\n");
+
+	/* Now bind the SPI interface to the MMCSD driver */
+	result = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi3);
+
+	if (result != OK) {
+		message("[boot] FAILED to bind SPI port 3 to the MMCSD driver\n");
+		up_ledon(LED_AMBER);
+		return -ENODEV;
+	}
+
+	message("[boot] Successfully bound SPI port 3 to the MMCSD driver\n");
 #endif /* SPI3 */
 
-  /* initialize I2C1 bus */
+	/* initialize I2C1 bus */
 
-  i2c1 = up_i2cinitialize(1);
-  if (!i2c1) {
-    message("[boot] FAILED to initialize I2C bus 1\n");
-    up_ledon(LED_AMBER);
-    return -ENODEV;
-  }
+	i2c1 = up_i2cinitialize(1);
 
-  /* set I2C1 speed */
-  I2C_SETFREQUENCY(i2c1, 400000);
+	if (!i2c1) {
+		message("[boot] FAILED to initialize I2C bus 1\n");
+		up_ledon(LED_AMBER);
+		return -ENODEV;
+	}
 
-  /* INIT 3: MULTIPORT-DEPENDENT INITIALIZATION */
+	/* set I2C1 speed */
+	I2C_SETFREQUENCY(i2c1, 400000);
 
-  /* Get board information if available */
+	/* INIT 3: MULTIPORT-DEPENDENT INITIALIZATION */
 
-  /* Initialize the user GPIOs */
-  px4fmu_gpio_init();
+	/* Get board information if available */
+
+	/* Initialize the user GPIOs */
+	px4fmu_gpio_init();
 
 #ifdef CONFIG_ADC
-  int adc_state = adc_devinit();
-  if (adc_state != OK)
-  {
-    /* Try again */
-    adc_state = adc_devinit();
-    if (adc_state != OK)
-    {
-      /* Give up */
-      message("[boot] FAILED adc_devinit: %d\n", adc_state);
-      return -ENODEV;
-    }
-  }
+	int adc_state = adc_devinit();
+
+	if (adc_state != OK) {
+		/* Try again */
+		adc_state = adc_devinit();
+
+		if (adc_state != OK) {
+			/* Give up */
+			message("[boot] FAILED adc_devinit: %d\n", adc_state);
+			return -ENODEV;
+		}
+	}
+
 #endif
 
-  return OK;
+	return OK;
 }

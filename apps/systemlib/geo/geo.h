@@ -44,8 +44,8 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  * Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
  */
- 
- 
+
+
 #include <stdbool.h>
 
 typedef struct {
@@ -59,14 +59,14 @@ __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, dou
 
 __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 
-// 
+//
 
 __EXPORT crosstrack_error_s get_distance_to_line(double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end);
 
-__EXPORT crosstrack_error_s get_distance_to_arc(double lat_now, double lon_now, double lat_center, double lon_center, 
-									 float radius, float arc_start_bearing, float arc_sweep);
-									 
+__EXPORT crosstrack_error_s get_distance_to_arc(double lat_now, double lon_now, double lat_center, double lon_center,
+		float radius, float arc_start_bearing, float arc_sweep);
+
 float _wrap180(float bearing);
-float _wrap360(float bearing);	 
+float _wrap360(float bearing);
 float _wrapPI(float bearing);
 float _wrap2PI(float bearing);

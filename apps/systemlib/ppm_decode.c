@@ -30,7 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
- 
+
 /**
  * @file ppm_decode.c
  *
@@ -51,7 +51,7 @@
  *
  * The PPM decoder works as follows.
  *
- * Initially, the decoder waits in the UNSYNCH state for two edges 
+ * Initially, the decoder waits in the UNSYNCH state for two edges
  * separated by PPM_MIN_START.  Once the second edge is detected,
  * the decoder moves to the ARM state.
  *
@@ -64,9 +64,9 @@
  *
  * The ACTIVE state expects an edge within PPM_MAX_PULSE_WIDTH, and when
  * received calculates the time from the previous mark and records
- * this time as the value for the next channel. 
+ * this time as the value for the next channel.
  *
- * If at any time waiting for an edge, the delay from the previous edge 
+ * If at any time waiting for an edge, the delay from the previous edge
  * exceeds PPM_MIN_START the frame is deemed to have ended and the recorded
  * values are advertised to clients.
  */
@@ -132,21 +132,23 @@ ppm_input_decode(bool reset, unsigned count)
 
 	/* how long since the last edge? */
 	width = count - ppm.last_edge;
+
 	if (count < ppm.last_edge)
 		width += ppm.count_max;	/* handle wrapped count */
+
 	ppm.last_edge = count;
 
-	/* 
+	/*
 	 * If this looks like a start pulse, then push the last set of values
 	 * and reset the state machine.
 	 *
 	 * Note that this is not a "high performance" design; it implies a whole
-	 * frame of latency between the pulses being received and their being 
+	 * frame of latency between the pulses being received and their being
 	 * considered valid.
 	 */
 	if (width >= PPM_MIN_START) {
 
-		/* 
+		/*
 		 * If the number of channels changes unexpectedly, we don't want
 		 * to just immediately jump on the new count as it may be a result
 		 * of noise or dropped edges.  Instead, take a few frames to settle.
@@ -169,11 +171,13 @@ ppm_input_decode(bool reset, unsigned count)
 				ppm_decoded_channels = new_channel_count;
 				new_channel_count = 0;
 			}
+
 		} else {
 			/* frame channel count matches expected, let's use it */
 			if (ppm.next_channel > PPM_MIN_CHANNELS) {
 				for (i = 0; i < ppm.next_channel; i++)
 					ppm_buffer[i] = ppm_temp_buffer[i];
+
 				ppm_last_valid_decode = hrt_absolute_time();
 			}
 		}
@@ -193,10 +197,11 @@ ppm_input_decode(bool reset, unsigned count)
 		return;
 
 	case ARM:
+
 		/* we expect a pulse giving us the first mark */
 		if (width > PPM_MAX_PULSE_WIDTH)
 			goto error;		/* pulse was too long */
-	
+
 		/* record the mark timing, expect an inactive edge */
 		ppm.last_mark = count;
 		ppm.phase = INACTIVE;
@@ -211,6 +216,7 @@ ppm_input_decode(bool reset, unsigned count)
 		return;
 
 	case ACTIVE:
+
 		/* we expect a well-formed pulse */
 		if (width > PPM_MAX_PULSE_WIDTH)
 			goto error;		/* pulse was too long */
@@ -228,7 +234,7 @@ ppm_input_decode(bool reset, unsigned count)
 			ppm_temp_buffer[ppm.next_channel++] = interval;
 
 		ppm.phase = INACTIVE;
-		return;		
+		return;
 
 	}
 

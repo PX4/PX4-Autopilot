@@ -136,7 +136,7 @@ __EXPORT extern void	up_pwm_servo_deinit(void);
  *
  * When disarmed, servos output no pulse.
  *
- * @bug This function should, but does not, guarantee that any pulse 
+ * @bug This function should, but does not, guarantee that any pulse
  *      currently in progress is cleanly completed.
  *
  * @param armed		If true, outputs are armed; if false they

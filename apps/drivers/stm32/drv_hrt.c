@@ -30,7 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
- 
+
 /**
  * @file drv_hrt.c
  *
@@ -41,7 +41,7 @@
  * Note that really, this could use systick too, but that's
  * monopolised by NuttX and stealing it would just be awkward.
  *
- * We don't use the NuttX STM32 driver per se; rather, we 
+ * We don't use the NuttX STM32 driver per se; rather, we
  * claim the timer and then drive it directly.
  */
 
@@ -264,10 +264,10 @@ static void		hrt_latency_update(void);
 
 /* callout list manipulation */
 static void		hrt_call_internal(struct hrt_call *entry,
-					  hrt_abstime deadline,
-					  hrt_abstime interval,
-					  hrt_callout callout,
-					  void *arg);
+		hrt_abstime deadline,
+		hrt_abstime interval,
+		hrt_callout callout,
+		void *arg);
 static void		hrt_call_enter(struct hrt_call *entry);
 static void		hrt_call_reschedule(void);
 static void		hrt_call_invoke(void);
@@ -372,39 +372,39 @@ static void
 hrt_tim_init(void)
 {
 	/* clock/power on our timer */
-        modifyreg32(HRT_TIMER_POWER_REG, 0, HRT_TIMER_POWER_BIT);
+	modifyreg32(HRT_TIMER_POWER_REG, 0, HRT_TIMER_POWER_BIT);
 
-        /* claim our interrupt vector */
-        irq_attach(HRT_TIMER_VECTOR, hrt_tim_isr);
+	/* claim our interrupt vector */
+	irq_attach(HRT_TIMER_VECTOR, hrt_tim_isr);
 
-        /* disable and configure the timer */
-        rCR1 = 0;
-        rCR2 = 0;
-        rSMCR = 0;
-        rDIER = DIER_HRT | DIER_PPM;
-        rCCER = 0;		/* unlock CCMR* registers */
-        rCCMR1 = CCMR1_PPM;		
-        rCCMR2 = CCMR2_PPM;
-        rCCER = CCER_PPM;
-        rDCR = 0;
+	/* disable and configure the timer */
+	rCR1 = 0;
+	rCR2 = 0;
+	rSMCR = 0;
+	rDIER = DIER_HRT | DIER_PPM;
+	rCCER = 0;		/* unlock CCMR* registers */
+	rCCMR1 = CCMR1_PPM;
+	rCCMR2 = CCMR2_PPM;
+	rCCER = CCER_PPM;
+	rDCR = 0;
 
-        /* configure the timer to free-run at 1MHz */
-        rPSC = (HRT_TIMER_CLOCK / 1000000) - 1;	/* this really only works for whole-MHz clocks */
+	/* configure the timer to free-run at 1MHz */
+	rPSC = (HRT_TIMER_CLOCK / 1000000) - 1;	/* this really only works for whole-MHz clocks */
 
-        /* run the full span of the counter */
-        rARR = 0xffff;
+	/* run the full span of the counter */
+	rARR = 0xffff;
 
-        /* set an initial capture a little ways off */
-        rCCR_HRT = 1000;
+	/* set an initial capture a little ways off */
+	rCCR_HRT = 1000;
 
-        /* generate an update event; reloads the counter, all registers */
-        rEGR = GTIM_EGR_UG;
+	/* generate an update event; reloads the counter, all registers */
+	rEGR = GTIM_EGR_UG;
 
-        /* enable the timer */
-        rCR1 = GTIM_CR1_CEN;
+	/* enable the timer */
+	rCR1 = GTIM_CR1_CEN;
 
-        /* enable interrupts */
-        up_enable_irq(HRT_TIMER_VECTOR);
+	/* enable interrupts */
+	up_enable_irq(HRT_TIMER_VECTOR);
 }
 
 #ifdef CONFIG_HRT_PPM
@@ -412,7 +412,7 @@ hrt_tim_init(void)
  * Handle the PPM decoder state machine.
  */
 static void
-hrt_ppm_decode(uint32_t status) 
+hrt_ppm_decode(uint32_t status)
 {
 	uint16_t count = rCCR_PPM;
 	uint16_t width;
@@ -428,10 +428,11 @@ hrt_ppm_decode(uint32_t status)
 	ppm.last_edge = count;
 
 	ppm_edge_history[ppm_edge_next++] = width;
+
 	if (ppm_edge_next >= 32)
 		ppm_edge_next = 0;
 
-	/* 
+	/*
 	 * if this looks like a start pulse, then push the last set of values
 	 * and reset the state machine
 	 */
@@ -441,6 +442,7 @@ hrt_ppm_decode(uint32_t status)
 		if (ppm.next_channel > 4) {
 			for (i = 0; i < ppm.next_channel && i < PPM_MAX_CHANNELS; i++)
 				ppm_buffer[i] = ppm_temp_buffer[i];
+
 			ppm_decoded_channels = i;
 			ppm_last_valid_decode = hrt_absolute_time();
 
@@ -461,10 +463,11 @@ hrt_ppm_decode(uint32_t status)
 		return;
 
 	case ARM:
+
 		/* we expect a pulse giving us the first mark */
 		if (width > PPM_MAX_PULSE_WIDTH)
 			goto error;		/* pulse was too long */
-	
+
 		/* record the mark timing, expect an inactive edge */
 		ppm.last_mark = count;
 		ppm.phase = INACTIVE;
@@ -481,6 +484,7 @@ hrt_ppm_decode(uint32_t status)
 		ppm.last_mark = count;
 
 		ppm_pulse_history[ppm_pulse_next++] = interval;
+
 		if (ppm_pulse_next >= 32)
 			ppm_pulse_next = 0;
 
@@ -493,7 +497,7 @@ hrt_ppm_decode(uint32_t status)
 			ppm_temp_buffer[ppm.next_channel++] = interval;
 
 		ppm.phase = INACTIVE;
-		return;		
+		return;
 
 	}
 
@@ -526,9 +530,11 @@ hrt_tim_isr(int irq, void *context)
 	rSR = ~status;
 
 #ifdef CONFIG_HRT_PPM
+
 	/* was this a PPM edge? */
 	if (status & (SR_INT_PPM | SR_OVF_PPM))
 		hrt_ppm_decode(status);
+
 #endif
 
 	/* was this a timer tick? */
@@ -640,7 +646,7 @@ hrt_init(void)
 void
 hrt_call_after(struct hrt_call *entry, hrt_abstime delay, hrt_callout callout, void *arg)
 {
-	hrt_call_internal(entry, 
+	hrt_call_internal(entry,
 			  hrt_absolute_time() + delay,
 			  0,
 			  callout,
@@ -730,9 +736,11 @@ hrt_call_enter(struct hrt_call *entry)
 		//lldbg("call enter at head, reschedule\n");
 		/* we changed the next deadline, reschedule the timer event */
 		hrt_call_reschedule();
+
 	} else {
 		do {
 			next = (struct hrt_call *)sq_next(&call->link);
+
 			if ((next == NULL) || (entry->deadline < next->deadline)) {
 				//lldbg("call enter after head\n");
 				sq_addafter(&call->link, &entry->link, &callout_queue);
@@ -755,8 +763,10 @@ hrt_call_invoke(void)
 		hrt_abstime now = hrt_absolute_time();
 
 		call = (struct hrt_call *)sq_peek(&callout_queue);
+
 		if (call == NULL)
 			break;
+
 		if (call->deadline > now)
 			break;
 
@@ -764,7 +774,7 @@ hrt_call_invoke(void)
 		//lldbg("call pop\n");
 
 		/* save the intended deadline for periodic calls */
-		deadline = call->deadline; 
+		deadline = call->deadline;
 
 		/* zero the deadline, as the call has occurred */
 		call->deadline = 0;
@@ -804,7 +814,7 @@ hrt_call_reschedule()
 	 * we want.
 	 *
 	 * It is important for accurate timekeeping that the compare
-	 * interrupt fires sufficiently often that the base_time update in 
+	 * interrupt fires sufficiently often that the base_time update in
 	 * hrt_absolute_time runs at least once per timer period.
 	 */
 	if (next != NULL) {
@@ -813,11 +823,13 @@ hrt_call_reschedule()
 			//lldbg("pre-expired\n");
 			/* set a minimal deadline so that we call ASAP */
 			deadline = now + HRT_INTERVAL_MIN;
+
 		} else if (next->deadline < deadline) {
 			//lldbg("due soon\n");
 			deadline = next->deadline;
 		}
 	}
+
 	//lldbg("schedule for %u at %u\n", (unsigned)(deadline & 0xffffffff), (unsigned)(now & 0xffffffff));
 
 	/* set the new compare value and remember it for latency tracking */
@@ -837,6 +849,7 @@ hrt_latency_update(void)
 			return;
 		}
 	}
+
 	/* catch-all at the end */
 	latency_counters[index]++;
 }

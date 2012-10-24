@@ -332,13 +332,16 @@ HMC5883::init()
 	/* allocate basic report buffers */
 	_num_reports = 2;
 	_reports = new struct mag_report[_num_reports];
+
 	if (_reports == nullptr)
 		goto out;
+
 	_oldest_report = _next_report = 0;
 
 	/* get a publish handle on the mag topic */
 	memset(&_reports[0], 0, sizeof(_reports[0]));
 	_mag_topic = orb_advertise(ORB_ID(sensor_mag), &_reports[0]);
+
 	if (_mag_topic < 0)
 		debug("failed to create sensor_mag object");
 
@@ -358,30 +361,37 @@ int HMC5883::set_range(unsigned range)
 		range_bits = 0x00;
 		_range_scale = 1.0f / 1370.0f;
 		_range_ga = 0.88f;
+
 	} else if (range <= 1) {
 		range_bits = 0x01;
 		_range_scale = 1.0f / 1090.0f;
 		_range_ga = 1.3f;
+
 	} else if (range <= 2) {
 		range_bits = 0x02;
 		_range_scale = 1.0f / 820.0f;
 		_range_ga = 1.9f;
+
 	} else if (range <= 3) {
 		range_bits = 0x03;
 		_range_scale = 1.0f / 660.0f;
 		_range_ga = 2.5f;
+
 	} else if (range <= 4) {
 		range_bits = 0x04;
 		_range_scale = 1.0f / 440.0f;
 		_range_ga = 4.0f;
+
 	} else if (range <= 4.7f) {
 		range_bits = 0x05;
 		_range_scale = 1.0f / 390.0f;
 		_range_ga = 4.7f;
+
 	} else if (range <= 5.6f) {
 		range_bits = 0x06;
 		_range_scale = 1.0f / 330.0f;
 		_range_ga = 5.6f;
+
 	} else {
 		range_bits = 0x07;
 		_range_scale = 1.0f / 230.0f;
@@ -413,10 +423,12 @@ HMC5883::probe()
 	uint8_t data[3] = {0, 0, 0};
 
 	_retries = 10;
+
 	if (read_reg(ADDR_ID_A, data[0]) ||
 	    read_reg(ADDR_ID_B, data[1]) ||
 	    read_reg(ADDR_ID_C, data[2]))
 		debug("read_reg fail");
+
 	_retries = 1;
 
 	if ((data[0] != ID_A_WHO_AM_I) ||
@@ -552,6 +564,7 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCGPOLLRATE:
 		if (_measure_ticks == 0)
 			return SENSOR_POLLRATE_MANUAL;
+
 		return (1000 / _measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
@@ -666,7 +679,7 @@ HMC5883::cycle()
 		if (_measure_ticks > USEC2TICK(HMC5883_CONVERSION_INTERVAL)) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK, 
+			work_queue(HPWORK,
 				   &_work,
 				   (worker_t)&HMC5883::cycle_trampoline,
 				   this,
@@ -684,7 +697,7 @@ HMC5883::cycle()
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK, 
+	work_queue(HPWORK,
 		   &_work,
 		   (worker_t)&HMC5883::cycle_trampoline,
 		   this,
@@ -850,7 +863,8 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	warnx("starting mag scale calibration");
 
 	/* do a simple demand read */
-	sz = read(filp, (char*)&report, sizeof(report));
+	sz = read(filp, (char *)&report, sizeof(report));
+
 	if (sz != sizeof(report)) {
 		warn("immediate read failed");
 		ret = 1;
@@ -920,6 +934,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 		if (sz != sizeof(report)) {
 			warn("periodic read failed");
 			goto out;
+
 		} else {
 			avg_excited[0] += report.x;
 			avg_excited[1] += report.y;
@@ -946,7 +961,7 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 	scaling[2] = fabsf(1.08f / avg_excited[2]);
 
 	warnx("axes scaling: %.6f  %.6f  %.6f", (double)scaling[0], (double)scaling[1], (double)scaling[2]);
-	
+
 	/* set back to normal mode */
 	/* Set to 1.1 Gauss */
 	if (OK != ::ioctl(fd, MAGIOCSRANGE, 1)) {
@@ -971,12 +986,15 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 
 	ret = OK;
 
-	out:
-		if (ret == OK) {
-			warnx("mag scale calibration successfully finished.");
-		} else {
-			warnx("mag scale calibration failed.");
-		}
+out:
+
+	if (ret == OK) {
+		warnx("mag scale calibration successfully finished.");
+
+	} else {
+		warnx("mag scale calibration failed.");
+	}
+
 	return ret;
 }
 
@@ -986,16 +1004,22 @@ int HMC5883::set_excitement(unsigned enable)
 	/* arm the excitement strap */
 	uint8_t conf_reg;
 	ret = read_reg(ADDR_CONF_A, conf_reg);
+
 	if (OK != ret)
 		perf_count(_comms_errors);
+
 	if (((int)enable) < 0) {
 		conf_reg |= 0x01;
+
 	} else if (enable > 0) {
 		conf_reg |= 0x02;
+
 	} else {
 		conf_reg &= ~0x03;
 	}
+
 	ret = write_reg(ADDR_CONF_A, conf_reg);
+
 	if (OK != ret)
 		perf_count(_comms_errors);
 
@@ -1087,17 +1111,22 @@ start()
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(MAG_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		goto fail;
+
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		goto fail;
+
 	exit(0);
 
 fail:
+
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 	}
+
 	errx(1, "driver start failed");
 }
 
@@ -1114,11 +1143,13 @@ test()
 	int ret;
 
 	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", MAG_DEVICE_PATH);
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
+
 	if (sz != sizeof(report))
 		err(1, "immediate read failed");
 
@@ -1167,7 +1198,7 @@ test()
  * Basic idea:
  *
  *   output = (ext field +- 1.1 Ga self-test) * scale factor
- * 
+ *
  * and consequently:
  *
  *   1.1 Ga = (excited - normal) * scale factor
@@ -1207,6 +1238,7 @@ int calibrate()
 	int ret;
 
 	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		err(1, "%s open failed (try 'hmc5883 start' if the driver is not running", MAG_DEVICE_PATH);
 
@@ -1218,6 +1250,7 @@ int calibrate()
 
 	if (ret == OK) {
 		errx(0, "PASS");
+
 	} else {
 		errx(1, "FAIL");
 	}
@@ -1230,10 +1263,13 @@ void
 reset()
 {
 	int fd = open(MAG_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		err(1, "failed ");
+
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
 		err(1, "driver reset failed");
+
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		err(1, "driver poll restart failed");
 
@@ -1290,6 +1326,7 @@ hmc5883_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "calibrate")) {
 		if (hmc5883::calibrate() == 0) {
 			errx(0, "calibration successful");
+
 		} else {
 			errx(1, "calibration failed");
 		}

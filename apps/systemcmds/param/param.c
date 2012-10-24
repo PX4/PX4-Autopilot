@@ -70,10 +70,13 @@ param_main(int argc, char *argv[])
 	if (argc >= 2) {
 		if (!strcmp(argv[1], "save"))
 			do_save();
+
 		if (!strcmp(argv[1], "load"))
 			do_load();
+
 		if (!strcmp(argv[1], "import"))
 			do_import();
+
 		if (!strcmp(argv[1], "show"))
 			do_show();
 	}
@@ -154,8 +157,8 @@ do_show_print(void *arg, param_t param)
 	float f;
 
 	printf("%c %s: ",
-		param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
-		param_name(param));
+	       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+	       param_name(param));
 
 	/*
 	 * This case can be expanded to handle printing common structure types.
@@ -167,19 +170,25 @@ do_show_print(void *arg, param_t param)
 			printf("%d\n", i);
 			return;
 		}
+
 		break;
+
 	case PARAM_TYPE_FLOAT:
 		if (!param_get(param, &f)) {
 			printf("%4.4f\n", (double)f);
 			return;
 		}
+
 		break;
+
 	case PARAM_TYPE_STRUCT ... PARAM_TYPE_STRUCT_MAX:
 		printf("<struct type %d size %u>\n", 0 + param_type(param), param_size(param));
 		return;
+
 	default:
 		printf("<unknown type %d>\n", 0 + param_type(param));
 		return;
 	}
+
 	printf("<error fetching parameter %d>\n", param);
 }

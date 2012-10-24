@@ -189,6 +189,7 @@ param_notify_changes(void)
 	 */
 	if (param_topic == -1) {
 		param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
+
 	} else {
 		orb_publish(ORB_ID(parameter_update), param_topic, &pup);
 	}
@@ -455,6 +456,7 @@ param_reset(param_t param)
 			utarray_erase(param_values, pos, 1);
 		}
 	}
+
 	param_unlock();
 
 	if (s != NULL)
@@ -560,8 +562,7 @@ out:
 	return result;
 }
 
-struct param_import_state
-{
+struct param_import_state {
 	bool mark_saved;
 };
 
@@ -689,9 +690,10 @@ param_import_internal(int fd, bool mark_saved)
 	do {
 		result = bson_decoder_next(&decoder);
 
-	} while(result > 0);
+	} while (result > 0);
 
 out:
+
 	if (result < 0)
 		debug("BSON error decoding parameters");
 

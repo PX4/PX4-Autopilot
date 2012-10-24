@@ -197,26 +197,29 @@ pwm_channel_init(unsigned channel)
 
 	/* configure the channel */
 	switch (pwm_channels[channel].timer_channel) {
-		case 1:
-			rCCMR1(timer) |= (6 << 4);
-			rCCR1(timer) = pwm_channels[channel].default_value;
-			rCCER(timer) |= (1 << 0);
-			break;
-		case 2:
-			rCCMR1(timer) |= (6 << 12);
-			rCCR2(timer) = pwm_channels[channel].default_value;
-			rCCER(timer) |= (1 << 4);
-			break;
-		case 3:
-			rCCMR2(timer) |= (6 << 4);
-			rCCR3(timer) = pwm_channels[channel].default_value;
-			rCCER(timer) |= (1 << 8);
-			break;
-		case 4:
-			rCCMR2(timer) |= (6 << 12);
-			rCCR4(timer) = pwm_channels[channel].default_value;
-			rCCER(timer) |= (1 << 12);
-			break;
+	case 1:
+		rCCMR1(timer) |= (6 << 4);
+		rCCR1(timer) = pwm_channels[channel].default_value;
+		rCCER(timer) |= (1 << 0);
+		break;
+
+	case 2:
+		rCCMR1(timer) |= (6 << 12);
+		rCCR2(timer) = pwm_channels[channel].default_value;
+		rCCER(timer) |= (1 << 4);
+		break;
+
+	case 3:
+		rCCMR2(timer) |= (6 << 4);
+		rCCR3(timer) = pwm_channels[channel].default_value;
+		rCCER(timer) |= (1 << 8);
+		break;
+
+	case 4:
+		rCCMR2(timer) |= (6 << 12);
+		rCCR4(timer) = pwm_channels[channel].default_value;
+		rCCER(timer) |= (1 << 12);
+		break;
 	}
 }
 
@@ -238,22 +241,28 @@ up_pwm_servo_set(unsigned channel, servo_position_t value)
 	/* configure the channel */
 	if (value > 0)
 		value--;
+
 	switch (pwm_channels[channel].timer_channel) {
-		case 1:
-			rCCR1(timer) = value;
-			break;
-		case 2:
-			rCCR2(timer) = value;
-			break;
-		case 3:
-			rCCR3(timer) = value;
-			break;
-		case 4:
-			rCCR4(timer) = value;
-			break;
-		default:
-			return -1;
+	case 1:
+		rCCR1(timer) = value;
+		break;
+
+	case 2:
+		rCCR2(timer) = value;
+		break;
+
+	case 3:
+		rCCR3(timer) = value;
+		break;
+
+	case 4:
+		rCCR4(timer) = value;
+		break;
+
+	default:
+		return -1;
 	}
+
 	return 0;
 }
 
@@ -275,19 +284,23 @@ up_pwm_servo_get(unsigned channel)
 
 	/* configure the channel */
 	switch (pwm_channels[channel].timer_channel) {
-		case 1:
-			value = rCCR1(timer);
-			break;
-		case 2:
-			value = rCCR2(timer);
-			break;
-		case 3:
-			value = rCCR3(timer);
-			break;
-		case 4:
-			value = rCCR4(timer);
-			break;
+	case 1:
+		value = rCCR1(timer);
+		break;
+
+	case 2:
+		value = rCCR2(timer);
+		break;
+
+	case 3:
+		value = rCCR3(timer);
+		break;
+
+	case 4:
+		value = rCCR4(timer);
+		break;
 	}
+
 	return value;
 }
 
@@ -303,9 +316,10 @@ up_pwm_servo_init(uint32_t channel_mask)
 	/* now init channels */
 	for (unsigned i = 0; i < PWM_SERVO_MAX_CHANNELS; i++) {
 		/* don't do init for disabled channels; this leaves the pin configs alone */
-		if (((1<<i) & channel_mask) && (pwm_channels[i].gpio != 0))
+		if (((1 << i) & channel_mask) && (pwm_channels[i].gpio != 0))
 			pwm_channel_init(i);
 	}
+
 	return OK;
 }
 
@@ -326,17 +340,18 @@ up_pwm_servo_set_rate(unsigned rate)
 		if (pwm_timers[i].base != 0)
 			pwm_timer_set_rate(i, rate);
 	}
+
 	return OK;
 }
 
 void
 up_pwm_servo_arm(bool armed)
 {
-	/* 
+	/*
 	 * XXX this is inelgant and in particular will either jam outputs at whatever level
 	 * they happen to be at at the time the timers stop or generate runts.
-	 * The right thing is almost certainly to kill auto-reload on the timers so that 
-	 * they just stop at the end of their count for disable, and to reset/restart them 
+	 * The right thing is almost certainly to kill auto-reload on the timers so that
+	 * they just stop at the end of their count for disable, and to reset/restart them
 	 * for enable.
 	 */
 

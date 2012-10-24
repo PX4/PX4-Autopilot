@@ -95,21 +95,24 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, 
 		stm32_gpiowrite(GPIO_SPI_CS_MPU, selected);
 		stm32_gpiowrite(GPIO_SPI_CS_ACCEL, selected);
 		break;
+
 	case PX4_SPIDEV_ACCEL:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_ACCEL, !selected);
 		stm32_gpiowrite(GPIO_SPI_CS_MPU, selected);
 		stm32_gpiowrite(GPIO_SPI_CS_GYRO, selected);
 		break;
+
 	case PX4_SPIDEV_MPU:
 		/* Making sure the other peripherals are not selected */
 		stm32_gpiowrite(GPIO_SPI_CS_ACCEL, selected);
 		stm32_gpiowrite(GPIO_SPI_CS_GYRO, selected);
 		stm32_gpiowrite(GPIO_SPI_CS_MPU, !selected);
 		break;
+
 	default:
 		break;
-		
+
 	}
 }
 

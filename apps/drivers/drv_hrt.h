@@ -62,7 +62,7 @@ typedef uint64_t	hrt_abstime;
  * they are serialised with respect to each other, and must not
  * block.
  */
-typedef void		(* hrt_callout)(void *arg);
+typedef void	(* hrt_callout)(void *arg);
 
 /*
  * Callout record.
@@ -113,7 +113,7 @@ __EXPORT extern void	hrt_call_at(struct hrt_call *entry, hrt_abstime calltime, h
 __EXPORT extern void	hrt_call_every(struct hrt_call *entry, hrt_abstime delay, hrt_abstime interval, hrt_callout callout, void *arg);
 
 /*
- * If this returns true, the entry has been invoked and removed from the callout list, 
+ * If this returns true, the entry has been invoked and removed from the callout list,
  * or it has never been entered.
  *
  * Always returns false for repeating callouts.

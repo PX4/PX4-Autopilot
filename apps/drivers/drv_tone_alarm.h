@@ -34,8 +34,8 @@
 /*
  * Driver for the PX4 audio alarm port, /dev/tone_alarm.
  *
- * The tone_alarm driver supports a set of predefined "alarm" 
- * patterns and one user-supplied pattern.  Patterns are ordered by 
+ * The tone_alarm driver supports a set of predefined "alarm"
+ * patterns and one user-supplied pattern.  Patterns are ordered by
  * priority, with a higher-priority pattern interrupting any
  * lower-priority pattern that might be playing.
  *

@@ -79,8 +79,10 @@ warnerr_core(int errcode, const char *fmt, va_list args)
 	/* convenience as many parts of NuttX use negative errno */
 	if (errcode < 0)
 		errcode = -errcode;
+
 	if (errcode < NOCODE)
 		fprintf(stderr, ": %s", strerror(errcode));
+
 	fprintf(stderr, "\n");
 #elif CONFIG_ARCH_LOWPUTC
 	lib_lowprintf("%s: ", getprogname());
@@ -89,8 +91,10 @@ warnerr_core(int errcode, const char *fmt, va_list args)
 	/* convenience as many parts of NuttX use negative errno */
 	if (errcode < 0)
 		errcode = -errcode;
+
 	if (errcode < NOCODE)
 		lib_lowprintf(": %s", strerror(errcode));
+
 	lib_lowprintf("\n");
 #endif
 }
@@ -144,7 +148,7 @@ verrx(int exitcode, const char *fmt, va_list args)
 }
 
 void
-warn(const char *fmt, ...) 
+warn(const char *fmt, ...)
 {
 	va_list args;
 
@@ -153,13 +157,13 @@ warn(const char *fmt, ...)
 }
 
 void
-vwarn(const char *fmt, va_list args) 
+vwarn(const char *fmt, va_list args)
 {
 	warnerr_core(errno, fmt, args);
 }
 
 void
-warnc(int errcode, const char *fmt, ...) 
+warnc(int errcode, const char *fmt, ...)
 {
 	va_list args;
 
@@ -168,13 +172,13 @@ warnc(int errcode, const char *fmt, ...)
 }
 
 void
-vwarnc(int errcode, const char *fmt, va_list args) 
+vwarnc(int errcode, const char *fmt, va_list args)
 {
 	warnerr_core(errcode, fmt, args);
 }
 
 void
-warnx(const char *fmt, ...) 
+warnx(const char *fmt, ...)
 {
 	va_list args;
 
@@ -183,7 +187,7 @@ warnx(const char *fmt, ...)
 }
 
 void
-vwarnx(const char *fmt, va_list args) 
+vwarnx(const char *fmt, va_list args)
 {
 	warnerr_core(NOCODE, fmt, args);
 }

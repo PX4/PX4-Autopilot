@@ -99,25 +99,22 @@ int adc_devinit(void)
 
 	/* Check if we have already initialized */
 
-	if (!initialized)
-	{
+	if (!initialized) {
 		char name[11];
 
-		for (i = 0; i < ADC3_NCHANNELS; i++)
-		{
-		stm32_configgpio(g_pinlist[i]);
+		for (i = 0; i < ADC3_NCHANNELS; i++) {
+			stm32_configgpio(g_pinlist[i]);
 		}
 
-		for (i = 0; i < 1; i++)
-		{
+		for (i = 0; i < 1; i++) {
 			/* Configure the pins as analog inputs for the selected channels */
 			//stm32_configgpio(g_pinlist[i]);
 
 			/* Call stm32_adcinitialize() to get an instance of the ADC interface */
 			//multiple channels only supported with dma!
 			adc[i] = stm32_adcinitialize(3, (g_chanlist), 4);
-			if (adc == NULL)
-			{
+
+			if (adc == NULL) {
 				adbg("ERROR: Failed to get ADC interface\n");
 				return -ENODEV;
 			}
@@ -126,8 +123,8 @@ int adc_devinit(void)
 			/* Register the ADC driver at "/dev/adc0" */
 			sprintf(name, "/dev/adc%d", i);
 			ret = adc_register(name, adc[i]);
-			if (ret < 0)
-			{
+
+			if (ret < 0) {
 				adbg("adc_register failed for adc %s: %d\n", name, ret);
 				return ret;
 			}

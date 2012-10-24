@@ -190,13 +190,15 @@ int top_main(int argc, char *argv[])
 						runtime_spaces = "";
 					}
 
-					unsigned stack_size = (uintptr_t)system_load.tasks[i].tcb->adj_stack_ptr - 
-								(uintptr_t)system_load.tasks[i].tcb->stack_alloc_ptr;
+					unsigned stack_size = (uintptr_t)system_load.tasks[i].tcb->adj_stack_ptr -
+							      (uintptr_t)system_load.tasks[i].tcb->stack_alloc_ptr;
 					unsigned stack_free = 0;
 					uint8_t *stack_sweeper = (uint8_t *)system_load.tasks[i].tcb->stack_alloc_ptr;
+
 					while (stack_free < stack_size) {
 						if (*stack_sweeper++ != 0xff)
 							break;
+
 						stack_free++;
 					}
 

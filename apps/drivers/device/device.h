@@ -54,7 +54,7 @@
 /**
  * Namespace encapsulating all device framework classes, functions and data.
  */
-namespace device __EXPORT 
+namespace device __EXPORT
 {
 
 /**
@@ -276,14 +276,14 @@ public:
 	 */
 	virtual int	poll(struct file *filp, struct pollfd *fds, bool setup);
 
-       /**
-        * Test whether the device is currently open.
-        *
-        * This can be used to avoid tearing down a device that is still active.
-        *
-        * @return              True if the device is currently open.
-        */
-       bool            is_open() { return _open_count > 0; }
+	/**
+	 * Test whether the device is currently open.
+	 *
+	 * This can be used to avoid tearing down a device that is still active.
+	 *
+	 * @return              True if the device is currently open.
+	 */
+	bool            is_open() { return _open_count > 0; }
 
 protected:
 	/**

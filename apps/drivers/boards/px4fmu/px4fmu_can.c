@@ -107,36 +107,35 @@
 
 int can_devinit(void)
 {
-  static bool initialized = false;
-  struct can_dev_s *can;
-  int ret;
+	static bool initialized = false;
+	struct can_dev_s *can;
+	int ret;
 
-  /* Check if we have already initialized */
+	/* Check if we have already initialized */
 
-  if (!initialized)
-    {
-      /* Call stm32_caninitialize() to get an instance of the CAN interface */
+	if (!initialized) {
+		/* Call stm32_caninitialize() to get an instance of the CAN interface */
 
-      can = stm32_caninitialize(CAN_PORT);
-      if (can == NULL)
-        {
-          candbg("ERROR:  Failed to get CAN interface\n");
-          return -ENODEV;
-        }
+		can = stm32_caninitialize(CAN_PORT);
 
-      /* Register the CAN driver at "/dev/can0" */
+		if (can == NULL) {
+			candbg("ERROR:  Failed to get CAN interface\n");
+			return -ENODEV;
+		}
 
-      ret = can_register("/dev/can0", can);
-      if (ret < 0)
-        {
-          candbg("ERROR: can_register failed: %d\n", ret);
-          return ret;
-        }
+		/* Register the CAN driver at "/dev/can0" */
 
-      /* Now we are initialized */
+		ret = can_register("/dev/can0", can);
 
-      initialized = true;
-    }
+		if (ret < 0) {
+			candbg("ERROR: can_register failed: %d\n", ret);
+			return ret;
+		}
 
-  return OK;
+		/* Now we are initialized */
+
+		initialized = true;
+	}
+
+	return OK;
 }
