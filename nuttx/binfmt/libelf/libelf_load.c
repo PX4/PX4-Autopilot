@@ -48,7 +48,7 @@
 #include <errno.h>
 
 #include <arpa/inet.h>
-#include <nuttx/elf.h>
+#include <nuttx/binfmt/elf.h>
 
 /****************************************************************************
  * Pre-Processor Definitions

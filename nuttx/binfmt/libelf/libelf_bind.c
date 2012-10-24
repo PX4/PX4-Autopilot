@@ -47,8 +47,8 @@
 #include <debug.h>
 
 #include <arpa/inet.h>
-#include <nuttx/elf.h>
-#include <nuttx/symtab.h>
+#include <nuttx/binfmt/elf.h>
+#include <nuttx/binfmt/symtab.h>
 
 /****************************************************************************
  * Pre-processor Definitions

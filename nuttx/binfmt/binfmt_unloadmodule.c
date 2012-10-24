@@ -45,7 +45,7 @@
 #include <debug.h>
 #include <errno.h>
 
-#include <nuttx/binfmt.h>
+#include <nuttx/binfmt/binfmt.h>
 
 #include "binfmt_internal.h"
 

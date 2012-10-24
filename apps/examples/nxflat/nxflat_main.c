@@ -50,8 +50,8 @@
 #include <errno.h>
 
 #include <nuttx/ramdisk.h>
-#include <nuttx/binfmt.h>
-#include <nuttx/nxflat.h>
+#include <nuttx/binfmt/binfmt.h>
+#include <nuttx/binfmt/nxflat.h>
 
 #include "tests/romfs.h"
 #include "tests/dirlist.h"

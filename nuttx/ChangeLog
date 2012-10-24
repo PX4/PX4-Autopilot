@@ -3511,3 +3511,6 @@
 	* binfmt/elf.c, binfmt/libelf, include/elf.h, include/nuttx/elf.h: Add
 	  basic framework for loadable ELF module support.  The initial check-
 	  in is non-functional and is simply the framework for ELF support.
+	* include/nuttx/binfmt.h, nxflat.h, elf.h, and symtab.h:  Moved to
+	  include/nuttx/binfmt/.
+

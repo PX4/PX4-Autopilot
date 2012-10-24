@@ -42,7 +42,8 @@
 #include <unistd.h>
 #include <debug.h>
 #include <errno.h>
-#include <nuttx/nxflat.h>
+
+#include <nuttx/binfmt/nxflat.h>
 
 /****************************************************************************
  * Pre-Processor Definitions

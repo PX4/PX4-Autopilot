@@ -54,7 +54,7 @@
 #include <debug.h>
 
 #include <nuttx/compiler.h>
-#include <nuttx/symtab.h>
+#include <nuttx/binfmt/symtab.h>
 #include <apps/netutils/thttpd.h>
 
 #include "config.h"

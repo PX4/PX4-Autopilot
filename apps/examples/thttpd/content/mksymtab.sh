@@ -22,7 +22,7 @@ varlist=`find $dir -name "*-thunk.S"| xargs grep -h asciz | cut -f3 | sort | uni
 echo "#ifndef __EXAMPLES_NXFLAT_TESTS_SYMTAB_H"
 echo "#define __EXAMPLES_NXFLAT_TESTS_SYMTAB_H"
 echo ""
-echo "#include <nuttx/symtab.h>"
+echo "#include <nuttx/binfmt/symtab.h>"
 echo ""
 echo "static const struct symtab_s exports[] = "
 echo "{"

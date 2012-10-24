@@ -43,7 +43,7 @@
 #include <stdlib.h>
 #include <debug.h>
 
-#include <nuttx/elf.h>
+#include <nuttx/binfmt/elf.h>
 
 /****************************************************************************
  * Pre-Processor Definitions

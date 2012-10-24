@@ -48,7 +48,7 @@
 #include <errno.h>
 
 #include <arpa/inet.h>
-#include <nuttx/nxflat.h>
+#include <nuttx/binfmt/nxflat.h>
 
 /****************************************************************************
  * Pre-Processor Definitions

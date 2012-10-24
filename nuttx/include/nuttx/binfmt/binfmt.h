@@ -1,7 +1,7 @@
 /****************************************************************************
- * include/nuttx/binfmt.h
+ * include/nuttx/binfmt/binfmt.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_BINFMT_H
-#define __INCLUDE_NUTTX_BINFMT_H
+#ifndef __INCLUDE_NUTTX_BINFMT_BINFMT_H
+#define __INCLUDE_NUTTX_BINFMT_BINFMT_H
 
 /****************************************************************************
  * Included Files
@@ -205,5 +205,5 @@ EXTERN int exec(FAR const char *filename, FAR const char **argv,
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_BINFMT_H */
+#endif /* __INCLUDE_NUTTX_BINFMT_BINFMT_H */
 

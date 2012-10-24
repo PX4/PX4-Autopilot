@@ -47,8 +47,8 @@
 #include <errno.h>
 
 #include <arpa/inet.h>
-#include <nuttx/binfmt.h>
-#include <nuttx/elf.h>
+#include <nuttx/binfmt/binfmt.h>
+#include <nuttx/binfmt/elf.h>
 
 #ifdef CONFIG_ELF
 

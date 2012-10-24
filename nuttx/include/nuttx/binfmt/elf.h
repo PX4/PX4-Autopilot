@@ -1,7 +1,7 @@
 /****************************************************************************
- * include/nuttx/elf.h
+ * include/nuttx/binfmt/elf.h
  *
- *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_ELF_H
-#define __INCLUDE_NUTTX_ELF_H
+#ifndef __INCLUDE_NUTTX_BINFMT_ELF_H
+#define __INCLUDE_NUTTX_BINFMT_ELF_H
 
 /****************************************************************************
  * Included Files
@@ -89,9 +89,9 @@ struct elf_loadinfo_s
 
   int    filfd;                /* Descriptor for the file being loaded */
 
-  /* This is a copy of the ELF header (still in network order) */
+  /* This is a copy of the ELF header */
 
-  FAR struct elf_hdr_s header;
+  Elf32_Ehdr header;
 };
 
 /****************************************************************************
@@ -123,7 +123,7 @@ extern "C" {
  *
  ****************************************************************************/
 
-EXTERN int elf_verifyheader(FAR const struct elf_hdr_s *header);
+EXTERN int elf_verifyheader(FAR const Elf32_Ehdr *header);
 
 /****************************************************************************
  * Name: elf_init
@@ -256,4 +256,4 @@ EXTERN void elf_uninitialize(void);
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_ELF_H */
+#endif /* __INCLUDE_NUTTX_BINFMT_ELF_H */

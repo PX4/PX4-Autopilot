@@ -47,8 +47,8 @@
 #include <errno.h>
 
 #include <arpa/inet.h>
-#include <nuttx/binfmt.h>
-#include <nuttx/nxflat.h>
+#include <nuttx/binfmt/binfmt.h>
+#include <nuttx/binfmt/nxflat.h>
 
 #ifdef CONFIG_NXFLAT
 

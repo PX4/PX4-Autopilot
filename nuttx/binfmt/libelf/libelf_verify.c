@@ -43,7 +43,7 @@
 #include <debug.h>
 #include <errno.h>
 #include <arpa/inet.h>
-#include <nuttx/elf.h>
+#include <nuttx/binfmt/elf.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -74,7 +74,7 @@
  *
  ****************************************************************************/
 
-int elf_verifyheader(const struct elf_hdr_s *header)
+int elf_verifyheader(const Elf32_Ehdr *header)
 {
   if (!header)
     {

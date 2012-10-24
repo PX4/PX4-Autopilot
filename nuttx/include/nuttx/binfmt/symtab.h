@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/symtab.h
+ * include/nuttx/binfmt/symtab.h
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_SYMTAB_H
-#define __INCLUDE_NUTTX_SYMTAB_H
+#ifndef __INCLUDE_NUTTX_BINFMT_SYMTAB_H
+#define __INCLUDE_NUTTX_BINFMT_SYMTAB_H
 
 /****************************************************************************
  * Included Files
@@ -159,5 +159,5 @@ symtab_findorderedbyvalue(FAR const struct symtab_s *symtab,
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_SYMTAB_H */
+#endif /* __INCLUDE_NUTTX_BINFMT_SYMTAB_H */
 

@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/nxflat.h
+ * include/nuttx/binfmt/nxflat.h
  *
  *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_NXFLAT_H
-#define __INCLUDE_NUTTX_NXFLAT_H
+#ifndef __INCLUDE_NUTTX_BINFMT_NXFLAT_H
+#define __INCLUDE_NUTTX_BINFMT_NXFLAT_H
 
 /****************************************************************************
  * Included Files
@@ -261,4 +261,4 @@ EXTERN void nxflat_uninitialize(void);
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_NXFLAT_H */
+#endif /* __INCLUDE_NUTTX_BINFMT_NXFLAT_H */
