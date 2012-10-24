@@ -46,7 +46,7 @@
 #include <string.h>
 #include <poll.h>
 
-#include <arch/board/up_cpuload.h>
+#include <systemlib/cpuload.h>
 #include <drivers/drv_hrt.h>
 
 /**

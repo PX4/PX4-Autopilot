@@ -95,7 +95,7 @@
 PARAM_DEFINE_INT32(SYS_FAILSAVE_LL, 0);	/**< Go into low-level failsafe after 0 ms */
 //PARAM_DEFINE_INT32(SYS_FAILSAVE_HL, 0);	/**< Go into high-level failsafe after 0 ms */
 
-#include <arch/board/up_cpuload.h>
+#include <systemlib/cpuload.h>
 extern struct system_load_s system_load;
 
 /* Decouple update interval and hysteris counters, all depends on intervals */

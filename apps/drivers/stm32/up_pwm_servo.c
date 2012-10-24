@@ -32,6 +32,8 @@
  ****************************************************************************/
 
 /*
+ * @file drv_pwm_servo.c
+ *
  * Servo driver supporting PWM servos connected to STM32 timer blocks.
  *
  * Works with any of the 'generic' or 'advanced' STM32 timers that
@@ -54,7 +56,7 @@
 #include <stdio.h>
 
 #include <arch/board/board.h>
-#include <arch/board/up_pwm_servo.h>
+#include <drivers/drv_pwm_output.h>
 
 #include "chip.h"
 #include "up_internal.h"
