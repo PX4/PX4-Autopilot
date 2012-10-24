@@ -61,8 +61,6 @@
 #include <systemlib/mixer/mixer.h>
 #include <drivers/drv_mixer.h>
 
-#include <arch/board/up_pwm_servo.h>
-
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 
