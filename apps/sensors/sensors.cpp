@@ -59,8 +59,6 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
 
-#include <arch/board/up_adc.h>
-
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>

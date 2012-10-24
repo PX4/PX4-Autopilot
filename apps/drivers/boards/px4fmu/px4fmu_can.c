@@ -1,9 +1,6 @@
-/************************************************************************************
- * configs/px4fmu/src/up_can.c
- * arch/arm/src/board/up_can.c
+/****************************************************************************
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,7 +29,14 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
+
+/**
+ * @file px4fmu_can.c
+ *
+ * Board-specific CAN functions.
+ */
+
 
 /************************************************************************************
  * Included Files
@@ -51,9 +55,7 @@
 
 #include "stm32.h"
 #include "stm32_can.h"
-#include "px4fmu-internal.h"
-
-#if defined(CONFIG_CAN) && (defined(CONFIG_STM32_CAN1) || defined(CONFIG_STM32_CAN2))
+#include "px4fmu_internal.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -138,5 +140,3 @@ int can_devinit(void)
 
   return OK;
 }
-
-#endif /* CONFIG_STM32_CAN || CONFIG_STM32_CAN2 || CONFIG_STM32_CAN3 */

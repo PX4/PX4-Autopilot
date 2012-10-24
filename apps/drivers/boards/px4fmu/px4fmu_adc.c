@@ -1,9 +1,6 @@
-/************************************************************************************
- * configs/stm3240g-eval/src/up_adc.c
- * arch/arm/src/board/up_adc.c
+/****************************************************************************
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,7 +29,13 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
+
+/**
+ * @file px4fmu_adc.c
+ *
+ * Board-specific ADC functions.
+ */
 
 /************************************************************************************
  * Included Files
@@ -50,35 +53,8 @@
 #include "chip.h"
 #include "up_arch.h"
 
-//#include "stm32_pwm.h"
 #include "stm32_adc.h"
-#include "px4fmu-internal.h"
-
-#ifdef CONFIG_ADC
-
-/************************************************************************************
- * Definitions
- ************************************************************************************/
-
-/* Configuration ************************************************************/
-/* Up to 3 ADC interfaces are supported */
-
-#if STM32_NADC < 3
-#  undef CONFIG_STM32_ADC3
-#endif
-
-#if STM32_NADC < 2
-#  undef CONFIG_STM32_ADC2
-#endif
-
-#if STM32_NADC < 1
-#  undef CONFIG_STM32_ADC3
-#endif
-
-#if defined(CONFIG_STM32_ADC1) || defined(CONFIG_STM32_ADC2) || defined(CONFIG_STM32_ADC3)
-#ifndef CONFIG_STM32_ADC3
-#  warning "Channel information only available for ADC3"
-#endif
+#include "px4fmu_internal.h"
 
 #define ADC3_NCHANNELS 4
 
@@ -116,7 +92,6 @@ static const uint32_t g_pinlist[ADC3_NCHANNELS]  = {GPIO_ADC3_IN10, GPIO_ADC3_IN
 
 int adc_devinit(void)
 {
-#ifdef CONFIG_STM32_ADC3
 	static bool initialized = false;
 	struct adc_dev_s *adc[ADC3_NCHANNELS];
 	int ret;
@@ -164,10 +139,4 @@ int adc_devinit(void)
 	}
 
 	return OK;
-#else
-	return -ENOSYS;
-#endif
 }
-
-#endif /* CONFIG_STM32_ADC || CONFIG_STM32_ADC2 || CONFIG_STM32_ADC3 */
-#endif /* CONFIG_ADC */

@@ -63,7 +63,6 @@
 #include "px4fmu_internal.h"
 #include "stm32_uart.h"
 
-#include <arch/board/up_adc.h>
 #include <arch/board/board.h>
 #include <arch/board/drv_led.h>
 #include <arch/board/drv_eeprom.h>
@@ -97,6 +96,8 @@
 /****************************************************************************
  * Protected Functions
  ****************************************************************************/
+
+extern int adc_devinit(void);
 
 /****************************************************************************
  * Public Functions

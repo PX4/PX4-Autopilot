@@ -44,14 +44,6 @@ CSRCS		= up_leds.c \
 		  drv_gpio.c \
 		  drv_led.c drv_eeprom.c 
 
-ifeq ($(CONFIG_ADC),y)
-CSRCS		+= up_adc.c
-endif
-
-ifeq ($(CONFIG_CAN),y)
-CSRCS		+= up_can.c
-endif
-
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)
