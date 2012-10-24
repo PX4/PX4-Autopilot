@@ -1,9 +1,6 @@
-/************************************************************************************
- * configs/stm32f4discovery/src/up_usbdev.c
- * arch/arm/src/board/up_boot.c
+/****************************************************************************
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,7 +29,13 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
+
+/**
+ * @file px4fmu_usb.c
+ *
+ * Board-specific USB functions.
+ */
 
 /************************************************************************************
  * Included Files
@@ -50,7 +53,7 @@
 
 #include "up_arch.h"
 #include "stm32_internal.h"
-#include "px4fmu-internal.h"
+#include "px4fmu_internal.h"
 
 /************************************************************************************
  * Definitions
@@ -68,11 +71,11 @@
  * Name: stm32_usbinitialize
  *
  * Description:
- *   Called to setup USB-related GPIO pins for the STM3210E-EVAL board.
+ *   Called to setup USB-related GPIO pins for the PX4FMU board.
  *
  ************************************************************************************/
 
-void stm32_usbinitialize(void)
+__EXPORT void stm32_usbinitialize(void)
 {
   /* The OTG FS has an internal soft pull-up */
 
@@ -98,7 +101,7 @@ void stm32_usbinitialize(void)
  *
  ************************************************************************************/
 
-void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
+__EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
   ulldbg("resume: %d\n", resume);
 }
