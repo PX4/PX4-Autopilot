@@ -54,7 +54,7 @@
 #include <math.h>
 #include <poll.h>
 #include <sys/prctl.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <drivers/drv_gyro.h>
 #include <uORB/topics/vehicle_status.h>

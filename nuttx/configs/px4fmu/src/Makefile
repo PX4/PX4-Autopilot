@@ -40,23 +40,9 @@ CFLAGS		+= -I$(TOPDIR)/sched
 ASRCS		= 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
-CSRCS		= up_boot.c up_leds.c up_spi.c up_hrt.c \
+CSRCS		= up_leds.c \
 		  drv_gpio.c \
-		  drv_led.c drv_eeprom.c \
-		  up_pwm_servo.c up_usbdev.c \
-		  up_cpuload.c
-
-ifeq ($(CONFIG_NSH_ARCHINIT),y)
-CSRCS		+= up_nsh.c
-endif
-
-ifeq ($(CONFIG_ADC),y)
-CSRCS		+= up_adc.c
-endif
-
-ifeq ($(CONFIG_CAN),y)
-CSRCS		+= up_can.c
-endif
+		  drv_led.c drv_eeprom.c 
 
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 

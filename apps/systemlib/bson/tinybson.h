@@ -31,14 +31,14 @@
  *
  ****************************************************************************/
 
- /**
- * @file tinybson.h
- *
- * A simple subset SAX-style BSON parser and generator. See http://bsonspec.org
- *
- * Some types and defines taken from the standalone BSON parser/generator 
- * in the Mongo C connector.
- */
+/**
+* @file tinybson.h
+*
+* A simple subset SAX-style BSON parser and generator. See http://bsonspec.org
+*
+* Some types and defines taken from the standalone BSON parser/generator
+* in the Mongo C connector.
+*/
 
 #ifndef _TINYBSON_H
 #define _TINYBSON_H
@@ -77,8 +77,7 @@ typedef enum bson_binary_subtype {
 /**
  * Node structure passed to the callback.
  */
-typedef struct bson_node_s
-{
+typedef struct bson_node_s {
 	char			name[BSON_MAXNAME];
 	bson_type_t		type;
 	bson_binary_subtype_t	subtype;
@@ -96,8 +95,7 @@ typedef struct bson_decoder_s *bson_decoder_t;
  */
 typedef int	(* bson_decoder_callback)(bson_decoder_t decoder, void *private, bson_node_t node);
 
-struct bson_decoder_s
-{
+struct bson_decoder_s {
 	int			fd;
 	bson_decoder_callback	callback;
 	void			*private;
@@ -143,8 +141,7 @@ __EXPORT size_t bson_decoder_data_pending(bson_decoder_t decoder);
 /**
  * Encoder state structure.
  */
-typedef struct bson_encoder_s
-{
+typedef struct bson_encoder_s {
 	int		fd;
 
 } *bson_encoder_t;
@@ -169,7 +166,7 @@ __EXPORT int bson_encoder_append_int(bson_encoder_t encoder, const char *name, i
  */
 __EXPORT int bson_encoder_append_double(bson_encoder_t encoder, const char *name, double value);
 
-/** 
+/**
  * Append a string to the encoded stream.
  */
 __EXPORT int bson_encoder_append_string(bson_encoder_t encoder, const char *name, const char *string);

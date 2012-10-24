@@ -52,14 +52,12 @@
 #include <errno.h>
 #include <math.h>
 
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
-
-#include <arch/board/up_adc.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>

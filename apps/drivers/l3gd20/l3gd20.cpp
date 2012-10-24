@@ -57,7 +57,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
 
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
 
 #include <drivers/device/spi.h>
@@ -317,6 +317,7 @@ L3GD20::init()
 	_num_reports = 2;
 	_oldest_report = _next_report = 0;
 	_reports = new struct gyro_report[_num_reports];
+
 	if (_reports == nullptr)
 		goto out;
 
@@ -330,7 +331,7 @@ L3GD20::init()
 	write_reg(ADDR_CTRL_REG3, 0);		/* no interrupts - we don't use them */
 	write_reg(ADDR_CTRL_REG4, REG4_BDU);
 	write_reg(ADDR_CTRL_REG5, 0);
-		
+
 	write_reg(ADDR_CTRL_REG5, REG5_FIFO_ENABLE);	  /* disable wake-on-interrupt */
 	write_reg(ADDR_FIFO_CTRL_REG, FIFO_CTRL_STREAM_MODE); /* Enable FIFO, old data is overwritten */
 
@@ -451,6 +452,7 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCGPOLLRATE:
 		if (_call_interval == 0)
 			return SENSOR_POLLRATE_MANUAL;
+
 		return 1000000 / _call_interval;
 
 	case SENSORIOCSQUEUEDEPTH: {
@@ -478,7 +480,7 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGQUEUEDEPTH:
-		return _num_reports -1;
+		return _num_reports - 1;
 
 	case SENSORIOCRESET:
 		/* XXX implement */
@@ -497,12 +499,12 @@ L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
-		memcpy(&_gyro_scale, (struct gyro_scale*) arg, sizeof(_gyro_scale));
+		memcpy(&_gyro_scale, (struct gyro_scale *) arg, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct gyro_scale*) arg, &_gyro_scale, sizeof(_gyro_scale));
+		memcpy((struct gyro_scale *) arg, &_gyro_scale, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCSRANGE:
@@ -562,12 +564,15 @@ L3GD20::set_range(unsigned max_dps)
 	if (max_dps <= 250) {
 		_current_range = 250;
 		bits |= RANGE_250DPS;
+
 	} else if (max_dps <= 500) {
 		_current_range = 500;
 		bits |= RANGE_500DPS;
+
 	} else if (max_dps <= 2000) {
 		_current_range = 2000;
 		bits |= RANGE_2000DPS;
+
 	} else {
 		return -EINVAL;
 	}
@@ -590,15 +595,19 @@ L3GD20::set_samplerate(unsigned frequency)
 	if (frequency <= 95) {
 		_current_rate = 95;
 		bits |= RATE_95HZ_LP_25HZ;
+
 	} else if (frequency <= 190) {
 		_current_rate = 190;
 		bits |= RATE_190HZ_LP_25HZ;
+
 	} else if (frequency <= 380) {
 		_current_rate = 380;
 		bits |= RATE_380HZ_LP_30HZ;
+
 	} else if (frequency <= 760) {
 		_current_rate = 760;
 		bits |= RATE_760HZ_LP_30HZ;
+
 	} else {
 		return -EINVAL;
 	}
@@ -746,17 +755,21 @@ start()
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(GYRO_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		goto fail;
+
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		goto fail;
 
 	exit(0);
 fail:
+
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 	}
+
 	errx(1, "driver start failed");
 }
 
@@ -774,15 +787,17 @@ test()
 
 	/* get the driver */
 	fd_gyro = open(GYRO_DEVICE_PATH, O_RDONLY);
+
 	if (fd_gyro < 0)
 		err(1, "%s open failed", GYRO_DEVICE_PATH);
 
 	/* reset to manual polling */
 	if (ioctl(fd_gyro, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
 		err(1, "reset to manual polling");
-	
+
 	/* do a simple demand read */
 	sz = read(fd_gyro, &g_report, sizeof(g_report));
+
 	if (sz != sizeof(g_report))
 		err(1, "immediate gyro read failed");
 
@@ -793,7 +808,7 @@ test()
 	warnx("gyro y: \t%d\traw", (int)g_report.y_raw);
 	warnx("gyro z: \t%d\traw", (int)g_report.z_raw);
 	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
-		(int)((g_report.range_rad_s / M_PI_F) * 180.0f+0.5f));
+	      (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 
 	/* XXX add poll-rate tests here too */
 
@@ -808,10 +823,13 @@ void
 reset()
 {
 	int fd = open(GYRO_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		err(1, "failed ");
+
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
 		err(1, "driver reset failed");
+
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		err(1, "driver poll restart failed");
 

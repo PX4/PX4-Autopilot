@@ -32,6 +32,8 @@
  ****************************************************************************/
 
 /*
+ * @file drv_pwm_servo.c
+ *
  * Servo driver supporting PWM servos connected to STM32 timer blocks.
  *
  * Works with any of the 'generic' or 'advanced' STM32 timers that
@@ -54,7 +56,9 @@
 #include <stdio.h>
 
 #include <arch/board/board.h>
-#include <arch/board/up_pwm_servo.h>
+#include <drivers/drv_pwm_output.h>
+
+#include "drv_pwm_servo.h"
 
 #include "chip.h"
 #include "up_internal.h"
@@ -64,66 +68,9 @@
 #include "stm32_gpio.h"
 #include "stm32_tim.h"
 
-/* configuration limits */
-#define PWM_SERVO_MAX_TIMERS	2
-#define PWM_SERVO_MAX_CHANNELS	8
 
 /* default rate (in Hz) of PWM updates */
 static uint32_t	pwm_update_rate = 50;
-
-/*
- * Servo configuration for all of the pins that can be used as
- * PWM outputs on FMU.
- */
-
-/* array of timers dedicated to PWM servo use */
-static const struct pwm_servo_timer {
-	uint32_t	base;
-	uint32_t	clock_register;
-	uint32_t	clock_bit;
-	uint32_t	clock_freq;
-} pwm_timers[] = {
-	{
-		.base = STM32_TIM2_BASE,
-		.clock_register = STM32_RCC_APB1ENR,
-		.clock_bit = RCC_APB1ENR_TIM2EN,
-		.clock_freq = STM32_APB1_TIM2_CLKIN
-	}
-};
-
-/* array of channels in logical order */
-static const struct pwm_servo_channel {
-	uint32_t	gpio;
-	uint8_t		timer_index;
-	uint8_t		timer_channel;
-	servo_position_t default_value;
-} pwm_channels[] = {
-	{
-		.gpio = GPIO_TIM2_CH1OUT,
-		.timer_index = 0,
-		.timer_channel = 1,
-		.default_value = 1000,
-	},
-	{
-		.gpio = GPIO_TIM2_CH2OUT,
-		.timer_index = 0,
-		.timer_channel = 2,
-		.default_value = 1000,
-	},
-	{
-		.gpio = GPIO_TIM2_CH3OUT,
-		.timer_index = 0,
-		.timer_channel = 3,
-		.default_value = 1000,
-	},
-	{
-		.gpio = GPIO_TIM2_CH4OUT,
-		.timer_index = 0,
-		.timer_channel = 4,
-		.default_value = 1000,
-	}
-};
-
 
 #define REG(_tmr, _reg)	(*(volatile uint32_t *)(pwm_timers[_tmr].base + _reg))
 
@@ -195,26 +142,29 @@ pwm_channel_init(unsigned channel)
 
 	/* configure the channel */
 	switch (pwm_channels[channel].timer_channel) {
-		case 1:
-			rCCMR1(timer) |= (6 << 4);
-			rCCR1(timer) = pwm_channels[channel].default_value;
-			rCCER(timer) |= (1 << 0);
-			break;
-		case 2:
-			rCCMR1(timer) |= (6 << 12);
-			rCCR2(timer) = pwm_channels[channel].default_value;
-			rCCER(timer) |= (1 << 4);
-			break;
-		case 3:
-			rCCMR2(timer) |= (6 << 4);
-			rCCR3(timer) = pwm_channels[channel].default_value;
-			rCCER(timer) |= (1 << 8);
-			break;
-		case 4:
-			rCCMR2(timer) |= (6 << 12);
-			rCCR4(timer) = pwm_channels[channel].default_value;
-			rCCER(timer) |= (1 << 12);
-			break;
+	case 1:
+		rCCMR1(timer) |= (6 << 4);
+		rCCR1(timer) = pwm_channels[channel].default_value;
+		rCCER(timer) |= (1 << 0);
+		break;
+
+	case 2:
+		rCCMR1(timer) |= (6 << 12);
+		rCCR2(timer) = pwm_channels[channel].default_value;
+		rCCER(timer) |= (1 << 4);
+		break;
+
+	case 3:
+		rCCMR2(timer) |= (6 << 4);
+		rCCR3(timer) = pwm_channels[channel].default_value;
+		rCCER(timer) |= (1 << 8);
+		break;
+
+	case 4:
+		rCCMR2(timer) |= (6 << 12);
+		rCCR4(timer) = pwm_channels[channel].default_value;
+		rCCER(timer) |= (1 << 12);
+		break;
 	}
 }
 
@@ -236,22 +186,28 @@ up_pwm_servo_set(unsigned channel, servo_position_t value)
 	/* configure the channel */
 	if (value > 0)
 		value--;
+
 	switch (pwm_channels[channel].timer_channel) {
-		case 1:
-			rCCR1(timer) = value;
-			break;
-		case 2:
-			rCCR2(timer) = value;
-			break;
-		case 3:
-			rCCR3(timer) = value;
-			break;
-		case 4:
-			rCCR4(timer) = value;
-			break;
-		default:
-			return -1;
+	case 1:
+		rCCR1(timer) = value;
+		break;
+
+	case 2:
+		rCCR2(timer) = value;
+		break;
+
+	case 3:
+		rCCR3(timer) = value;
+		break;
+
+	case 4:
+		rCCR4(timer) = value;
+		break;
+
+	default:
+		return -1;
 	}
+
 	return 0;
 }
 
@@ -273,19 +229,23 @@ up_pwm_servo_get(unsigned channel)
 
 	/* configure the channel */
 	switch (pwm_channels[channel].timer_channel) {
-		case 1:
-			value = rCCR1(timer);
-			break;
-		case 2:
-			value = rCCR2(timer);
-			break;
-		case 3:
-			value = rCCR3(timer);
-			break;
-		case 4:
-			value = rCCR4(timer);
-			break;
+	case 1:
+		value = rCCR1(timer);
+		break;
+
+	case 2:
+		value = rCCR2(timer);
+		break;
+
+	case 3:
+		value = rCCR3(timer);
+		break;
+
+	case 4:
+		value = rCCR4(timer);
+		break;
 	}
+
 	return value;
 }
 
@@ -301,9 +261,10 @@ up_pwm_servo_init(uint32_t channel_mask)
 	/* now init channels */
 	for (unsigned i = 0; i < PWM_SERVO_MAX_CHANNELS; i++) {
 		/* don't do init for disabled channels; this leaves the pin configs alone */
-		if (((1<<i) & channel_mask) && (pwm_channels[i].gpio != 0))
+		if (((1 << i) & channel_mask) && (pwm_channels[i].gpio != 0))
 			pwm_channel_init(i);
 	}
+
 	return OK;
 }
 
@@ -324,17 +285,18 @@ up_pwm_servo_set_rate(unsigned rate)
 		if (pwm_timers[i].base != 0)
 			pwm_timer_set_rate(i, rate);
 	}
+
 	return OK;
 }
 
 void
 up_pwm_servo_arm(bool armed)
 {
-	/* 
+	/*
 	 * XXX this is inelgant and in particular will either jam outputs at whatever level
 	 * they happen to be at at the time the timers stop or generate runts.
-	 * The right thing is almost certainly to kill auto-reload on the timers so that 
-	 * they just stop at the end of their count for disable, and to reset/restart them 
+	 * The right thing is almost certainly to kill auto-reload on the timers so that
+	 * they just stop at the end of their count for disable, and to reset/restart them
 	 * for enable.
 	 */
 

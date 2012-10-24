@@ -40,7 +40,7 @@
 #include "gps.h"
 #include <sys/prctl.h>
 #include <poll.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <string.h>
 #include <stdbool.h>

@@ -1,9 +1,6 @@
-/************************************************************************************
- * configs/stm3240g-eval/src/up_adc.c
- * arch/arm/src/board/up_adc.c
+/****************************************************************************
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,29 +29,39 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************************
- * Included Files
- ************************************************************************************/
-
-#include <nuttx/config.h>
-
-#ifdef CONFIG_ADC
-
-/************************************************************************************
- * Public Functions
- ************************************************************************************/
-
-/************************************************************************************
- * Name: adc_devinit
+/**
+ * @file drv_pwm_servo.h
  *
- * Description:
- *   All STM32 architectures must provide the following interface to work with
- *   examples/adc.
- *
- ************************************************************************************/
+ * stm32-specific PWM output data.
+ */
 
-int adc_devinit(void);
+#pragma once
 
-#endif /* CONFIG_ADC */
+#include <drivers/drv_pwm_output.h>
+
+/* configuration limits */
+#define PWM_SERVO_MAX_TIMERS	2
+#define PWM_SERVO_MAX_CHANNELS	8
+
+/* array of timers dedicated to PWM servo use */
+struct pwm_servo_timer {
+	uint32_t	base;
+	uint32_t	clock_register;
+	uint32_t	clock_bit;
+	uint32_t	clock_freq;
+};
+
+/* supplied by board-specific code */
+__EXPORT extern const struct pwm_servo_timer pwm_timers[PWM_SERVO_MAX_TIMERS];
+
+/* array of channels in logical order */
+struct pwm_servo_channel {
+	uint32_t	gpio;
+	uint8_t		timer_index;
+	uint8_t		timer_channel;
+	servo_position_t default_value;
+};
+
+__EXPORT extern const struct pwm_servo_channel pwm_channels[PWM_SERVO_MAX_CHANNELS];

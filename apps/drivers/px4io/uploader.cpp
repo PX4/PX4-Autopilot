@@ -67,6 +67,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 	int	ret;
 
 	_io_fd = open("/dev/ttyS2", O_RDWR);
+
 	if (_io_fd < 0) {
 		log("could not open interface");
 		return -errno;
@@ -74,6 +75,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 
 	/* look for the bootloader */
 	ret = sync();
+
 	if (ret != OK) {
 		/* this is immediately fatal */
 		log("bootloader not responding");
@@ -87,17 +89,20 @@ PX4IO_Uploader::upload(const char *filenames[])
 			log("failed to open %s", filenames[i]);
 			continue;
 		}
+
 		log("using firmware from %s", filenames[i]);
 		break;
 	}
+
 	if (_fw_fd == -1)
 		return -ENOENT;
 
 	/* do the usual program thing - allow for failure */
 	for (unsigned retries = 0; retries < 1; retries++) {
 		if (retries > 0) {
-			log("retrying update..."); 
+			log("retrying update...");
 			ret = sync();
+
 			if (ret != OK) {
 				/* this is immediately fatal */
 				log("bootloader not responding");
@@ -106,25 +111,33 @@ PX4IO_Uploader::upload(const char *filenames[])
 		}
 
 		ret = erase();
+
 		if (ret != OK) {
 			log("erase failed");
 			continue;
 		}
+
 		ret = program();
+
 		if (ret != OK) {
 			log("program failed");
 			continue;
 		}
+
 		ret = verify();
+
 		if (ret != OK) {
 			log("verify failed");
 			continue;
 		}
+
 		ret = reboot();
+
 		if (ret != OK) {
 			log("reboot failed");
 			return ret;
 		}
+
 		log("update complete");
 
 		ret = OK;
@@ -145,6 +158,7 @@ PX4IO_Uploader::recv(uint8_t &c, unsigned timeout)
 
 	/* wait 100 ms for a character */
 	int ret = ::poll(&fds[0], 1, timeout);
+
 	if (ret < 1) {
 		//log("poll timeout %d", ret);
 		return -ETIMEDOUT;
@@ -160,9 +174,11 @@ PX4IO_Uploader::recv(uint8_t *p, unsigned count)
 {
 	while (count--) {
 		int ret = recv(*p++);
+
 		if (ret != OK)
 			return ret;
 	}
+
 	return OK;
 }
 
@@ -175,7 +191,7 @@ PX4IO_Uploader::drain()
 	do {
 		ret = recv(c, 10);
 		//log("discard 0x%02x", c);
-	} while(ret == OK);
+	} while (ret == OK);
 }
 
 int
@@ -184,6 +200,7 @@ PX4IO_Uploader::send(uint8_t c)
 	//log("send 0x%02x", c);
 	if (write(_io_fd, &c, 1) != 1)
 		return -errno;
+
 	return OK;
 }
 
@@ -192,9 +209,11 @@ PX4IO_Uploader::send(uint8_t *p, unsigned count)
 {
 	while (count--) {
 		int ret = send(*p++);
+
 		if (ret != OK)
 			return ret;
 	}
+
 	return OK;
 }
 
@@ -205,15 +224,20 @@ PX4IO_Uploader::get_sync(unsigned timeout)
 	int ret;
 
 	ret = recv(c[0], timeout);
+
 	if (ret != OK)
 		return ret;
+
 	ret = recv(c[1], timeout);
+
 	if (ret != OK)
 		return ret;
+
 	if ((c[0] != PROTO_INSYNC) || (c[1] != PROTO_OK)) {
 		log("bad sync 0x%02x,0x%02x", c[0], c[1]);
 		return -EIO;
 	}
+
 	return OK;
 }
 
@@ -221,9 +245,11 @@ int
 PX4IO_Uploader::sync()
 {
 	drain();
+
 	/* complete any pending program operation */
 	for (unsigned i = 0; i < (PROG_MULTI_MAX + 6); i++)
 		send(0);
+
 	send(PROTO_GET_SYNC);
 	send(PROTO_EOC);
 	return get_sync();
@@ -239,8 +265,10 @@ PX4IO_Uploader::get_info(int param, uint32_t &val)
 	send(PROTO_EOC);
 
 	ret = recv((uint8_t *)&val, sizeof(val));
+
 	if (ret != OK)
 		return ret;
+
 	return get_sync();
 }
 
@@ -267,10 +295,13 @@ PX4IO_Uploader::program()
 		/* get more bytes to program */
 		//log("  %d", (int)lseek(_fw_fd, 0, SEEK_CUR));
 		count = read(_fw_fd, file_buf, sizeof(file_buf));
+
 		if (count == 0)
 			return OK;
+
 		if (count < 0)
 			return -errno;
+
 		ASSERT((count % 4) == 0);
 
 		send(PROTO_PROG_MULTI);
@@ -279,6 +310,7 @@ PX4IO_Uploader::program()
 		send(PROTO_EOC);
 
 		ret = get_sync(1000);
+
 		if (ret != OK)
 			return ret;
 	}
@@ -297,6 +329,7 @@ PX4IO_Uploader::verify()
 	send(PROTO_CHIP_VERIFY);
 	send(PROTO_EOC);
 	ret = get_sync();
+
 	if (ret != OK)
 		return ret;
 
@@ -304,19 +337,24 @@ PX4IO_Uploader::verify()
 		/* get more bytes to verify */
 		int base = (int)lseek(_fw_fd, 0, SEEK_CUR);
 		count = read(_fw_fd, file_buf, sizeof(file_buf));
+
 		if (count == 0)
 			break;
+
 		if (count < 0)
 			return -errno;
+
 		ASSERT((count % 4) == 0);
 
 		send(PROTO_READ_MULTI);
 		send(count);
 		send(PROTO_EOC);
+
 		for (ssize_t i = 0; i < count; i++) {
 			uint8_t c;
 
 			ret = recv(c);
+
 			if (ret != OK) {
 				log("%d: got %d waiting for bytes", base + i, ret);
 				return ret;
@@ -327,12 +365,15 @@ PX4IO_Uploader::verify()
 				return -EINVAL;
 			}
 		}
+
 		ret = get_sync();
+
 		if (ret != OK) {
 			log("timeout waiting for post-verify sync");
 			return ret;
 		}
 	}
+
 	return OK;
 }
 
@@ -358,6 +399,7 @@ PX4IO_Uploader::compare(bool &identical)
 	send(PROTO_CHIP_VERIFY);
 	send(PROTO_EOC);
 	ret = get_sync();
+
 	if (ret != OK)
 		return ret;
 
@@ -365,6 +407,7 @@ PX4IO_Uploader::compare(bool &identical)
 	send(sizeof(fw_vectors));
 	send(PROTO_EOC);
 	ret = recv((uint8_t *)&fw_vectors[0], sizeof(fw_vectors));
+
 	if (ret != OK)
 		return ret;
 

@@ -44,7 +44,7 @@
 #include <systemlib/perf_counter.h>
 #include <string.h>
 
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include "tests.h"
 

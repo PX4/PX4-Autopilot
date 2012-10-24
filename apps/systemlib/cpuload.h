@@ -31,10 +31,11 @@
  *
  ****************************************************************************/
 
-#ifndef UP_CPULOAD_H_
-#define UP_CPULOAD_H_
+#pragma once
 
 #ifdef CONFIG_SCHED_INSTRUMENTATION
+
+__BEGIN_DECLS
 
 #include <nuttx/sched.h>
 
@@ -55,8 +56,8 @@ struct system_load_s {
 	int sleeping_count;
 };
 
-void cpuload_initialize_once(void);
+__EXPORT extern struct system_load_s system_load;
 
-#endif
+__EXPORT void cpuload_initialize_once(void);
 
 #endif

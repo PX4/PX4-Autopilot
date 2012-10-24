@@ -51,7 +51,7 @@
 #include <string.h>
 #include <systemlib/err.h>
 #include <unistd.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>

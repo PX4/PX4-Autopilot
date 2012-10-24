@@ -48,14 +48,11 @@
 #include <sched.h>
 
 #include <arch/board/board.h>
-#include <arch/board/up_hrt.h>
-#include <arch/board/up_cpuload.h>
+#include <drivers/drv_hrt.h>
 
-#include "chip.h"
-#include "up_arch.h"
-#include "up_internal.h"
-#include "stm32_internal.h"
-#include "px4fmu-internal.h"
+#include "cpuload.h"
+
+#ifdef CONFIG_SCHED_INSTRUMENTATION
 
 /****************************************************************************
  * Definitions
@@ -66,59 +63,59 @@
  * Public Functions
  ****************************************************************************/
 
+__EXPORT void sched_note_start(FAR _TCB *tcb);
+__EXPORT void sched_note_stop(FAR _TCB *tcb);
+__EXPORT void sched_note_switch(FAR _TCB *pFromTcb, FAR _TCB *pToTcb);
+
 /****************************************************************************
  * Name:
  ****************************************************************************/
 
-#ifdef CONFIG_SCHED_INSTRUMENTATION
-
-struct system_load_s system_load;
+__EXPORT struct system_load_s system_load;
 
 extern FAR _TCB *sched_gettcb(pid_t pid);
-
-void cpuload_initialize_once(void);
 
 void cpuload_initialize_once()
 {
 //	if (!system_load.initialized)
 //	{
-		system_load.start_time = hrt_absolute_time();
-		int i;
-		for (i = 0; i < CONFIG_MAX_TASKS; i++)
-		{
-			system_load.tasks[i].valid = false;
-		}
-		system_load.total_count = 0;
+	system_load.start_time = hrt_absolute_time();
+	int i;
 
-		uint64_t now = hrt_absolute_time();
+	for (i = 0; i < CONFIG_MAX_TASKS; i++) {
+		system_load.tasks[i].valid = false;
+	}
 
-		/* initialize idle thread statically */
-		system_load.tasks[0].start_time = now;
-		system_load.tasks[0].total_runtime = 0;
-		system_load.tasks[0].curr_start_time = 0;
-		system_load.tasks[0].tcb = sched_gettcb(0);
-		system_load.tasks[0].valid = true;
-		system_load.total_count++;
+	system_load.total_count = 0;
 
-		/* initialize init thread statically */
-		system_load.tasks[1].start_time = now;
-		system_load.tasks[1].total_runtime = 0;
-		system_load.tasks[1].curr_start_time = 0;
-		system_load.tasks[1].tcb = sched_gettcb(1);
-		system_load.tasks[1].valid = true;
-		/* count init thread */
-		system_load.total_count++;
-		//	}
+	uint64_t now = hrt_absolute_time();
+
+	/* initialize idle thread statically */
+	system_load.tasks[0].start_time = now;
+	system_load.tasks[0].total_runtime = 0;
+	system_load.tasks[0].curr_start_time = 0;
+	system_load.tasks[0].tcb = sched_gettcb(0);
+	system_load.tasks[0].valid = true;
+	system_load.total_count++;
+
+	/* initialize init thread statically */
+	system_load.tasks[1].start_time = now;
+	system_load.tasks[1].total_runtime = 0;
+	system_load.tasks[1].curr_start_time = 0;
+	system_load.tasks[1].tcb = sched_gettcb(1);
+	system_load.tasks[1].valid = true;
+	/* count init thread */
+	system_load.total_count++;
+	//	}
 }
 
-void sched_note_start(FAR _TCB *tcb )
+void sched_note_start(FAR _TCB *tcb)
 {
 	/* search first free slot */
 	int i;
-	for (i = 1; i < CONFIG_MAX_TASKS; i++)
-	{
-		if (!system_load.tasks[i].valid)
-		{
+
+	for (i = 1; i < CONFIG_MAX_TASKS; i++) {
+		if (!system_load.tasks[i].valid) {
 			/* slot is available */
 			system_load.tasks[i].start_time = hrt_absolute_time();
 			system_load.tasks[i].total_runtime = 0;
@@ -131,13 +128,12 @@ void sched_note_start(FAR _TCB *tcb )
 	}
 }
 
-void sched_note_stop(FAR _TCB *tcb )
+void sched_note_stop(FAR _TCB *tcb)
 {
 	int i;
-	for (i = 1; i < CONFIG_MAX_TASKS; i++)
-	{
-		if (system_load.tasks[i].tcb->pid == tcb->pid)
-		{
+
+	for (i = 1; i < CONFIG_MAX_TASKS; i++) {
+		if (system_load.tasks[i].tcb->pid == tcb->pid) {
 			/* mark slot as fee */
 			system_load.tasks[i].valid = false;
 			system_load.tasks[i].total_runtime = 0;
@@ -155,26 +151,23 @@ void sched_note_switch(FAR _TCB *pFromTcb, FAR _TCB *pToTcb)
 
 	/* Kind of inefficient: find both tasks and update times */
 	uint8_t both_found = 0;
-	for (int i = 0; i < CONFIG_MAX_TASKS; i++)
-	{
+
+	for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
 		/* Task ending its current scheduling run */
-		if (system_load.tasks[i].tcb->pid == pFromTcb->pid)
-		{
+		if (system_load.tasks[i].tcb->pid == pFromTcb->pid) {
 			//if (system_load.tasks[i].curr_start_time != 0)
 			{
 				system_load.tasks[i].total_runtime += new_time - system_load.tasks[i].curr_start_time;
 			}
 			both_found++;
-		}
-		else if (system_load.tasks[i].tcb->pid == pToTcb->pid)
-		{
+
+		} else if (system_load.tasks[i].tcb->pid == pToTcb->pid) {
 			system_load.tasks[i].curr_start_time = new_time;
 			both_found++;
 		}
 
 		/* Do only iterate as long as needed */
-		if (both_found == 2)
-		{
+		if (both_found == 2) {
 			break;
 		}
 	}

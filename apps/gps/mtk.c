@@ -43,7 +43,7 @@
 #include <pthread.h>
 #include <poll.h>
 #include <fcntl.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <mavlink/mavlink_log.h>

@@ -34,8 +34,8 @@
 /**
  * Driver for the PX4 audio alarm port, /dev/tone_alarm.
  *
- * The tone_alarm driver supports a set of predefined "alarm" 
- * patterns and one user-supplied pattern.  Patterns are ordered by 
+ * The tone_alarm driver supports a set of predefined "alarm"
+ * patterns and one user-supplied pattern.  Patterns are ordered by
  * priority, with a higher-priority pattern interrupting any
  * lower-priority pattern that might be playing.
  *
@@ -71,7 +71,7 @@
 #include <unistd.h>
 
 #include <arch/board/board.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include <arch/stm32/chip.h>
 #include <up_internal.h>
@@ -244,7 +244,8 @@ const tone_note ToneAlarm::_patterns[_max_pattern][_max_pattern_len] = {
 	{{TONE_NOTE_C7, 100}},
 	{{TONE_NOTE_D7, 100}},
 	{{TONE_NOTE_E7, 100}},
-	{	//This is tetris ;)
+	{
+		//This is tetris ;)
 		{TONE_NOTE_C6, 40},
 		{TONE_NOTE_G5, 20},
 		{TONE_NOTE_G5S, 20},
@@ -361,6 +362,7 @@ ToneAlarm::init()
 	int ret;
 
 	ret = CDev::init();
+
 	if (ret != OK)
 		return ret;
 
@@ -368,34 +370,34 @@ ToneAlarm::init()
 	stm32_configgpio(GPIO_TONE_ALARM);
 
 	/* clock/power on our timer */
-        modifyreg32(STM32_RCC_APB1ENR, 0, TONE_ALARM_CLOCK_ENABLE);
+	modifyreg32(STM32_RCC_APB1ENR, 0, TONE_ALARM_CLOCK_ENABLE);
 
 	/* initialise the timer */
-        rCR1 = 0;
-        rCR2 = 0;
-        rSMCR = 0;
-        rDIER = 0;
-        rCCER &= TONE_CCER;		/* unlock CCMR* registers */
-        rCCMR1 = TONE_CCMR1;
-        rCCMR2 = TONE_CCMR2;
-        rCCER = TONE_CCER;
-        rDCR = 0;
+	rCR1 = 0;
+	rCR2 = 0;
+	rSMCR = 0;
+	rDIER = 0;
+	rCCER &= TONE_CCER;		/* unlock CCMR* registers */
+	rCCMR1 = TONE_CCMR1;
+	rCCMR2 = TONE_CCMR2;
+	rCCER = TONE_CCER;
+	rDCR = 0;
 
-        /* toggle the CC output each time the count passes 1 */
-        TONE_rCCR = 1;
+	/* toggle the CC output each time the count passes 1 */
+	TONE_rCCR = 1;
 
-        /* 
-         * Configure the timebase to free-run at half max frequency.
-         * XXX this should be more flexible in order to get a better
-         * frequency range, but for the F4 with the APB1 timers based
-         * at 42MHz, this gets us down to ~320Hz or so.
-         */
-        rPSC = 1;
+	/*
+	 * Configure the timebase to free-run at half max frequency.
+	 * XXX this should be more flexible in order to get a better
+	 * frequency range, but for the F4 with the APB1 timers based
+	 * at 42MHz, this gets us down to ~320Hz or so.
+	 */
+	rPSC = 1;
 
-        /* make sure the timer is running */
-        rCR1 = GTIM_CR1_CEN;
+	/* make sure the timer is running */
+	rCR1 = GTIM_CR1_CEN;
 
-        debug("ready");
+	debug("ready");
 	return OK;
 }
 
@@ -413,6 +415,7 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 	switch (cmd) {
 	case TONE_SET_ALARM:
 		debug("TONE_SET_ALARM %u", arg);
+
 		if (new_pattern == 0) {
 			/* cancel any current alarm */
 			_current_pattern = _pattern_none;
@@ -431,10 +434,13 @@ ToneAlarm::ioctl(file *filp, int cmd, unsigned long arg)
 
 			/* and start playing it */
 			next();
+
 		} else {
 			/* current pattern is higher priority than the new pattern, ignore */
 		}
+
 		break;
+
 	default:
 		result = -ENOTTY;
 		break;
@@ -457,8 +463,10 @@ ToneAlarm::write(file *filp, const char *buffer, size_t len)
 	/* sanity-check the size of the write */
 	if (len > (_max_pattern_len * sizeof(tone_note)))
 		return -EFBIG;
+
 	if ((len % sizeof(tone_note)) || (len == 0))
 		return -EIO;
+
 	if (!check((tone_note *)buffer))
 		return -EIO;
 
@@ -479,6 +487,7 @@ ToneAlarm::write(file *filp, const char *buffer, size_t len)
 		debug("starting user pattern");
 		next();
 	}
+
 	irqrestore(flags);
 
 	return len;
@@ -511,18 +520,22 @@ ToneAlarm::next(void)
 	/* find the note to play */
 	if (_current_pattern == _pattern_user) {
 		np = &_user_pattern[_next_note];
+
 	} else {
 		np = &_patterns[_current_pattern - 1][_next_note];
 	}
 
 	/* work out which note is next */
 	_next_note++;
+
 	if (_next_note >= _note_max) {
 		/* hit the end of the pattern, stop */
 		_current_pattern = _pattern_none;
+
 	} else if (np[1].duration == DURATION_END) {
 		/* hit the end of the pattern, stop */
 		_current_pattern = _pattern_none;
+
 	} else if (np[1].duration == DURATION_REPEAT) {
 		/* next note is a repeat, rewind in preparation */
 		_next_note = 0;
@@ -534,11 +547,11 @@ ToneAlarm::next(void)
 		/* set reload based on the pitch */
 		rARR = _notes[np->pitch];
 
-	        /* force an update, reloads the counter and all registers */
-	        rEGR = GTIM_EGR_UG;
+		/* force an update, reloads the counter and all registers */
+		rEGR = GTIM_EGR_UG;
 
-	        /* enable the output */
-	        rCCER |= TONE_CCER;
+		/* enable the output */
+		rCCER |= TONE_CCER;
 	}
 
 	/* arrange a callback when the note/rest is done */
@@ -554,6 +567,7 @@ ToneAlarm::check(tone_note *pattern)
 		if ((i == 0) &&
 		    ((pattern[i].duration == DURATION_END) || (pattern[i].duration == DURATION_REPEAT)))
 			return false;
+
 		if (pattern[i].duration == DURATION_END)
 			break;
 
@@ -561,6 +575,7 @@ ToneAlarm::check(tone_note *pattern)
 		if (pattern[i].pitch >= _note_max)
 			return false;
 	}
+
 	return true;
 }
 
@@ -592,13 +607,16 @@ play_pattern(unsigned pattern)
 	int	fd, ret;
 
 	fd = open("/dev/tone_alarm", 0);
+
 	if (fd < 0)
 		err(1, "/dev/tone_alarm");
 
 	warnx("playing pattern %u", pattern);
 	ret = ioctl(fd, TONE_SET_ALARM, pattern);
+
 	if (ret != 0)
 		err(1, "TONE_SET_ALARM");
+
 	exit(0);
 }
 
@@ -615,6 +633,7 @@ tone_alarm_main(int argc, char *argv[])
 
 		if (g_dev == nullptr)
 			errx(1, "couldn't allocate the ToneAlarm driver");
+
 		if (g_dev->init() != OK) {
 			delete g_dev;
 			errx(1, "ToneAlarm init failed");
@@ -623,8 +642,10 @@ tone_alarm_main(int argc, char *argv[])
 
 	if ((argc > 1) && !strcmp(argv[1], "start"))
 		play_pattern(1);
+
 	if ((argc > 1) && !strcmp(argv[1], "stop"))
 		play_pattern(0);
+
 	if ((pattern = strtol(argv[1], nullptr, 10)) != 0)
 		play_pattern(pattern);
 

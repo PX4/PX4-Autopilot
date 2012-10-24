@@ -117,7 +117,7 @@ upload:		$(FIRMWARE_BUNDLE) $(UPLOADER)
 	
 upload-jtag-px4fmu:
 	@echo Attempting to flash PX4FMU board via JTAG
-	@openocd -f interface/olimex-jtag-tiny.cfg -f Tools/stm32f4x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4fmu_bl.elf" -c "reset run" -c shutdown
+	@openocd -f interface/olimex-jtag-tiny.cfg -f ../Bootloader/stm32f4x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4fmu_bl.elf" -c "reset run" -c shutdown
 
 #
 # Hacks and fixups

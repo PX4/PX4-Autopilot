@@ -1,9 +1,6 @@
-/************************************************************************************
- * configs/px4fmu/src/up_can.c
- * arch/arm/src/board/up_can.c
+/****************************************************************************
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,7 +29,13 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
+
+/**
+ * @file px4fmu_usb.c
+ *
+ * Board-specific USB functions.
+ */
 
 /************************************************************************************
  * Included Files
@@ -40,51 +43,21 @@
 
 #include <nuttx/config.h>
 
-#include <errno.h>
+#include <sys/types.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include <debug.h>
 
-#include <nuttx/can.h>
-#include <arch/board/board.h>
+#include <nuttx/usb/usbdev.h>
+#include <nuttx/usb/usbdev_trace.h>
 
-#include "chip.h"
 #include "up_arch.h"
-
-#include "stm32.h"
-#include "stm32_can.h"
-#include "px4fmu-internal.h"
-
-#if defined(CONFIG_CAN) && (defined(CONFIG_STM32_CAN1) || defined(CONFIG_STM32_CAN2))
+#include "stm32_internal.h"
+#include "px4fmu_internal.h"
 
 /************************************************************************************
- * Pre-processor Definitions
+ * Definitions
  ************************************************************************************/
-/* Configuration ********************************************************************/
-
-#if defined(CONFIG_STM32_CAN1) && defined(CONFIG_STM32_CAN2)
-#  warning "Both CAN1 and CAN2 are enabled.  Assuming only CAN1."
-#  undef CONFIG_STM32_CAN2
-#endif
-
-#ifdef CONFIG_STM32_CAN1
-#  define CAN_PORT 1
-#else
-#  define CAN_PORT 2
-#endif
-
-/* Debug ***************************************************************************/
-/* Non-standard debug that may be enabled just for testing CAN */
-
-#ifdef CONFIG_DEBUG_CAN
-#  define candbg    dbg
-#  define canvdbg   vdbg
-#  define canlldbg  lldbg
-#  define canllvdbg llvdbg
-#else
-#  define candbg(x...)
-#  define canvdbg(x...)
-#  define canlldbg(x...)
-#  define canllvdbg(x...)
-#endif
 
 /************************************************************************************
  * Private Functions
@@ -95,48 +68,41 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: can_devinit
+ * Name: stm32_usbinitialize
  *
  * Description:
- *   All STM32 architectures must provide the following interface to work with
- *   examples/can.
+ *   Called to setup USB-related GPIO pins for the PX4FMU board.
  *
  ************************************************************************************/
 
-int can_devinit(void)
+__EXPORT void stm32_usbinitialize(void)
 {
-  static bool initialized = false;
-  struct can_dev_s *can;
-  int ret;
+	/* The OTG FS has an internal soft pull-up */
 
-  /* Check if we have already initialized */
+	/* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
 
-  if (!initialized)
-    {
-      /* Call stm32_caninitialize() to get an instance of the CAN interface */
-
-      can = stm32_caninitialize(CAN_PORT);
-      if (can == NULL)
-        {
-          candbg("ERROR:  Failed to get CAN interface\n");
-          return -ENODEV;
-        }
-
-      /* Register the CAN driver at "/dev/can0" */
-
-      ret = can_register("/dev/can0", can);
-      if (ret < 0)
-        {
-          candbg("ERROR: can_register failed: %d\n", ret);
-          return ret;
-        }
-
-      /* Now we are initialized */
-
-      initialized = true;
-    }
-
-  return OK;
+#ifdef CONFIG_STM32_OTGFS
+	stm32_configgpio(GPIO_OTGFS_VBUS);
+	/* XXX We only support device mode
+	stm32_configgpio(GPIO_OTGFS_PWRON);
+	stm32_configgpio(GPIO_OTGFS_OVER);
+	*/
+#endif
 }
 
-#endif /* CONFIG_STM32_CAN || CONFIG_STM32_CAN2 || CONFIG_STM32_CAN3 */
+/************************************************************************************
+ * Name:  stm32_usbsuspend
+ *
+ * Description:
+ *   Board logic must provide the stm32_usbsuspend logic if the USBDEV driver is
+ *   used.  This function is called whenever the USB enters or leaves suspend mode.
+ *   This is an opportunity for the board logic to shutdown clocks, power, etc.
+ *   while the USB is suspended.
+ *
+ ************************************************************************************/
+
+__EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
+{
+	ulldbg("resume: %d\n", resume);
+}
+

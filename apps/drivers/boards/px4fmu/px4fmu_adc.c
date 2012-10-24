@@ -1,9 +1,6 @@
-/************************************************************************************
- * configs/stm32f4discovery/src/up_usbdev.c
- * arch/arm/src/board/up_boot.c
+/****************************************************************************
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,7 +29,13 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
+
+/**
+ * @file px4fmu_adc.c
+ *
+ * Board-specific ADC functions.
+ */
 
 /************************************************************************************
  * Included Files
@@ -40,21 +43,35 @@
 
 #include <nuttx/config.h>
 
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
+#include <errno.h>
 #include <debug.h>
+#include <stdio.h>
 
-#include <nuttx/usb/usbdev.h>
-#include <nuttx/usb/usbdev_trace.h>
+#include <nuttx/analog/adc.h>
+#include <arch/board/board.h>
 
+#include "chip.h"
 #include "up_arch.h"
-#include "stm32_internal.h"
-#include "px4fmu-internal.h"
+
+#include "stm32_adc.h"
+#include "px4fmu_internal.h"
+
+#define ADC3_NCHANNELS 4
 
 /************************************************************************************
- * Definitions
+ * Private Data
  ************************************************************************************/
+/* The PX4FMU board has four ADC channels: ADC323 IN10-13
+ */
+
+/* Identifying number of each ADC channel: Variable Resistor. */
+
+#ifdef CONFIG_STM32_ADC3
+static const uint8_t  g_chanlist[ADC3_NCHANNELS] = {10, 11};// , 12, 13}; ADC12 and 13 are used by MPU on v1.5 boards
+
+/* Configurations of pins used byte each ADC channels */
+static const uint32_t g_pinlist[ADC3_NCHANNELS]  = {GPIO_ADC3_IN10, GPIO_ADC3_IN11}; // ADC12 and 13 are used by MPU on v1.5 boards, GPIO_ADC3_IN12, GPIO_ADC3_IN13};
+#endif
 
 /************************************************************************************
  * Private Functions
@@ -65,41 +82,58 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: stm32_usbinitialize
+ * Name: adc_devinit
  *
  * Description:
- *   Called to setup USB-related GPIO pins for the STM3210E-EVAL board.
+ *   All STM32 architectures must provide the following interface to work with
+ *   examples/adc.
  *
  ************************************************************************************/
 
-void stm32_usbinitialize(void)
+int adc_devinit(void)
 {
-  /* The OTG FS has an internal soft pull-up */
+	static bool initialized = false;
+	struct adc_dev_s *adc[ADC3_NCHANNELS];
+	int ret;
+	int i;
 
-  /* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
+	/* Check if we have already initialized */
 
-#ifdef CONFIG_STM32_OTGFS
-  stm32_configgpio(GPIO_OTGFS_VBUS);
-  /* XXX We only support device mode
-  stm32_configgpio(GPIO_OTGFS_PWRON);
-  stm32_configgpio(GPIO_OTGFS_OVER);
-  */
-#endif
+	if (!initialized) {
+		char name[11];
+
+		for (i = 0; i < ADC3_NCHANNELS; i++) {
+			stm32_configgpio(g_pinlist[i]);
+		}
+
+		for (i = 0; i < 1; i++) {
+			/* Configure the pins as analog inputs for the selected channels */
+			//stm32_configgpio(g_pinlist[i]);
+
+			/* Call stm32_adcinitialize() to get an instance of the ADC interface */
+			//multiple channels only supported with dma!
+			adc[i] = stm32_adcinitialize(3, (g_chanlist), 4);
+
+			if (adc == NULL) {
+				adbg("ERROR: Failed to get ADC interface\n");
+				return -ENODEV;
+			}
+
+
+			/* Register the ADC driver at "/dev/adc0" */
+			sprintf(name, "/dev/adc%d", i);
+			ret = adc_register(name, adc[i]);
+
+			if (ret < 0) {
+				adbg("adc_register failed for adc %s: %d\n", name, ret);
+				return ret;
+			}
+		}
+
+		/* Now we are initialized */
+
+		initialized = true;
+	}
+
+	return OK;
 }
-
-/************************************************************************************
- * Name:  stm32_usbsuspend
- *
- * Description:
- *   Board logic must provide the stm32_usbsuspend logic if the USBDEV driver is
- *   used.  This function is called whenever the USB enters or leaves suspend mode.
- *   This is an opportunity for the board logic to shutdown clocks, power, etc.
- *   while the USB is suspended.
- *
- ************************************************************************************/
-
-void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
-{
-  ulldbg("resume: %d\n", resume);
-}
-

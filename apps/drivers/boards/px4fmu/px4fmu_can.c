@@ -1,9 +1,6 @@
-/************************************************************************************
- * configs/stm3240g-eval/src/up_adc.c
- * arch/arm/src/board/up_adc.c
+/****************************************************************************
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -32,7 +29,14 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
+
+/**
+ * @file px4fmu_can.c
+ *
+ * Board-specific CAN functions.
+ */
+
 
 /************************************************************************************
  * Included Files
@@ -42,59 +46,46 @@
 
 #include <errno.h>
 #include <debug.h>
-#include <stdio.h>
 
-#include <nuttx/analog/adc.h>
+#include <nuttx/can.h>
 #include <arch/board/board.h>
 
 #include "chip.h"
 #include "up_arch.h"
 
-//#include "stm32_pwm.h"
-#include "stm32_adc.h"
-#include "px4fmu-internal.h"
-
-#ifdef CONFIG_ADC
+#include "stm32.h"
+#include "stm32_can.h"
+#include "px4fmu_internal.h"
 
 /************************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ************************************************************************************/
+/* Configuration ********************************************************************/
 
-/* Configuration ************************************************************/
-/* Up to 3 ADC interfaces are supported */
-
-#if STM32_NADC < 3
-#  undef CONFIG_STM32_ADC3
+#if defined(CONFIG_STM32_CAN1) && defined(CONFIG_STM32_CAN2)
+#  warning "Both CAN1 and CAN2 are enabled.  Assuming only CAN1."
+#  undef CONFIG_STM32_CAN2
 #endif
 
-#if STM32_NADC < 2
-#  undef CONFIG_STM32_ADC2
+#ifdef CONFIG_STM32_CAN1
+#  define CAN_PORT 1
+#else
+#  define CAN_PORT 2
 #endif
 
-#if STM32_NADC < 1
-#  undef CONFIG_STM32_ADC3
-#endif
+/* Debug ***************************************************************************/
+/* Non-standard debug that may be enabled just for testing CAN */
 
-#if defined(CONFIG_STM32_ADC1) || defined(CONFIG_STM32_ADC2) || defined(CONFIG_STM32_ADC3)
-#ifndef CONFIG_STM32_ADC3
-#  warning "Channel information only available for ADC3"
-#endif
-
-#define ADC3_NCHANNELS 4
-
-/************************************************************************************
- * Private Data
- ************************************************************************************/
-/* The PX4FMU board has four ADC channels: ADC323 IN10-13
- */
-
-/* Identifying number of each ADC channel: Variable Resistor. */
-
-#ifdef CONFIG_STM32_ADC3
-static const uint8_t  g_chanlist[ADC3_NCHANNELS] = {10, 11};// , 12, 13}; ADC12 and 13 are used by MPU on v1.5 boards
-
-/* Configurations of pins used byte each ADC channels */
-static const uint32_t g_pinlist[ADC3_NCHANNELS]  = {GPIO_ADC3_IN10, GPIO_ADC3_IN11}; // ADC12 and 13 are used by MPU on v1.5 boards, GPIO_ADC3_IN12, GPIO_ADC3_IN13};
+#ifdef CONFIG_DEBUG_CAN
+#  define candbg    dbg
+#  define canvdbg   vdbg
+#  define canlldbg  lldbg
+#  define canllvdbg llvdbg
+#else
+#  define candbg(x...)
+#  define canvdbg(x...)
+#  define canlldbg(x...)
+#  define canllvdbg(x...)
 #endif
 
 /************************************************************************************
@@ -106,56 +97,39 @@ static const uint32_t g_pinlist[ADC3_NCHANNELS]  = {GPIO_ADC3_IN10, GPIO_ADC3_IN
  ************************************************************************************/
 
 /************************************************************************************
- * Name: adc_devinit
+ * Name: can_devinit
  *
  * Description:
  *   All STM32 architectures must provide the following interface to work with
- *   examples/adc.
+ *   examples/can.
  *
  ************************************************************************************/
 
-int adc_devinit(void)
+int can_devinit(void)
 {
-#ifdef CONFIG_STM32_ADC3
 	static bool initialized = false;
-	struct adc_dev_s *adc[ADC3_NCHANNELS];
+	struct can_dev_s *can;
 	int ret;
-	int i;
 
 	/* Check if we have already initialized */
 
-	if (!initialized)
-	{
-		char name[11];
+	if (!initialized) {
+		/* Call stm32_caninitialize() to get an instance of the CAN interface */
 
-		for (i = 0; i < ADC3_NCHANNELS; i++)
-		{
-		stm32_configgpio(g_pinlist[i]);
+		can = stm32_caninitialize(CAN_PORT);
+
+		if (can == NULL) {
+			candbg("ERROR:  Failed to get CAN interface\n");
+			return -ENODEV;
 		}
 
-		for (i = 0; i < 1; i++)
-		{
-			/* Configure the pins as analog inputs for the selected channels */
-			//stm32_configgpio(g_pinlist[i]);
+		/* Register the CAN driver at "/dev/can0" */
 
-			/* Call stm32_adcinitialize() to get an instance of the ADC interface */
-			//multiple channels only supported with dma!
-			adc[i] = stm32_adcinitialize(3, (g_chanlist), 4);
-			if (adc == NULL)
-			{
-				adbg("ERROR: Failed to get ADC interface\n");
-				return -ENODEV;
-			}
+		ret = can_register("/dev/can0", can);
 
-
-			/* Register the ADC driver at "/dev/adc0" */
-			sprintf(name, "/dev/adc%d", i);
-			ret = adc_register(name, adc[i]);
-			if (ret < 0)
-			{
-				adbg("adc_register failed for adc %s: %d\n", name, ret);
-				return ret;
-			}
+		if (ret < 0) {
+			candbg("ERROR: can_register failed: %d\n", ret);
+			return ret;
 		}
 
 		/* Now we are initialized */
@@ -164,10 +138,4 @@ int adc_devinit(void)
 	}
 
 	return OK;
-#else
-	return -ENOSYS;
-#endif
 }
-
-#endif /* CONFIG_STM32_ADC || CONFIG_STM32_ADC2 || CONFIG_STM32_ADC3 */
-#endif /* CONFIG_ADC */

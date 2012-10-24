@@ -32,80 +32,49 @@
  ****************************************************************************/
 
 /**
- * @file Magnetometer driver interface.
+ * @file ppm_decode.h
+ *
+ * PPM input decoder.
  */
 
-#ifndef _DRV_MAG_H
-#define _DRV_MAG_H
+#pragma once
 
-#include <stdint.h>
-#include <sys/ioctl.h>
-
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
-
-#define MAG_DEVICE_PATH		"/dev/mag"
+#include <drivers/drv_hrt.h>
 
 /**
- * mag report structure.  Reads from the device must be in multiples of this
- * structure.
+ * Maximum number of channels that we will decode.
+ */
+#define PPM_MAX_CHANNELS	12
+
+__BEGIN_DECLS
+
+/*
+ * PPM decoder state
+ */
+__EXPORT extern uint16_t	ppm_buffer[];		/**< decoded PPM channel values */
+__EXPORT extern unsigned	ppm_decoded_channels;	/**< count of decoded channels */
+__EXPORT extern hrt_abstime	ppm_last_valid_decode;	/**< timestamp of the last valid decode */
+
+/**
+ * Initialise the PPM input decoder.
  *
- * Output values are in gauss.
+ * @param count_max		The maximum value of the counter passed to
+ *				ppm_input_decode, used to determine how to
+ *				handle counter wrap.
  */
-struct mag_report {
-	uint64_t timestamp;
-	float x;
-	float y;
-	float z;
-	float range_ga;
-	float scaling;
+__EXPORT void		ppm_input_init(unsigned count_max);
 
-	int16_t x_raw;
-	int16_t y_raw;
-	int16_t z_raw;
-};
-
-/** mag scaling factors; Vout = (Vin * Vscale) + Voffset */
-struct mag_scale {
-	float	x_offset;
-	float	x_scale;
-	float	y_offset;
-	float	y_scale;
-	float	z_offset;
-	float	z_scale;
-};
-
-/*
- * ObjDev tag for raw magnetometer data.
+/**
+ * Inform the decoder of an edge on the PPM input.
+ *
+ * This function can be registered with the HRT as the PPM edge handler.
+ *
+ * @param reset			If set, the edge detector has missed one or
+ *				more edges and the decoder needs to be reset.
+ * @param count			A microsecond timestamp corresponding to the
+ *				edge, in the range 0-count_max.  This value
+ *				is expected to wrap.
  */
-ORB_DECLARE(sensor_mag);
+__EXPORT void		ppm_input_decode(bool reset, unsigned count);
 
-/*
- * ioctl() definitions
- */
-
-#define _MAGIOCBASE		(0x2400)
-#define _MAGIOC(_n)		(_IOC(_MAGIOCBASE, _n))
-
-/** set the mag internal sample rate to at least (arg) Hz */
-#define MAGIOCSSAMPLERATE	_MAGIOC(0)
-
-/** set the mag internal lowpass filter to no lower than (arg) Hz */
-#define MAGIOCSLOWPASS		_MAGIOC(1)
-
-/** set the mag scaling constants to the structure pointed to by (arg) */
-#define MAGIOCSSCALE		_MAGIOC(2)
-
-/** copy the mag scaling constants to the structure pointed to by (arg) */
-#define MAGIOCGSCALE		_MAGIOC(3)
-
-/** set the measurement range to handle (at least) arg Gauss */
-#define MAGIOCSRANGE		_MAGIOC(4)
-
-/** perform self-calibration, update scale factors to canonical units */
-#define MAGIOCCALIBRATE		_MAGIOC(5)
-
-/** excite strap */
-#define MAGIOCEXSTRAP		_MAGIOC(6)
-
-#endif /* _DRV_MAG_H */
+__END_DECLS

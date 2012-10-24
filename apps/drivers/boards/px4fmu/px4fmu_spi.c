@@ -31,46 +31,106 @@
  *
  ****************************************************************************/
 
+/**
+ * @file px4fmu_spi.c
+ *
+ * Board-specific SPI functions.
+ */
+
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
 
+#include <stdint.h>
+#include <stdbool.h>
 #include <debug.h>
 
+#include <nuttx/spi.h>
 #include <arch/board/board.h>
 
 #include "up_arch.h"
-#include "px4fmu-internal.h"
-
-/************************************************************************************
- * Definitions
- ************************************************************************************/
-
-/************************************************************************************
- * Private Functions
- ************************************************************************************/
+#include "chip.h"
+#include "stm32_internal.h"
+#include "px4fmu_internal.h"
 
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
 /************************************************************************************
- * Name: stm32_boardinitialize
+ * Name: stm32_spiinitialize
  *
  * Description:
- *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
+ *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
  *
  ************************************************************************************/
 
-void stm32_boardinitialize(void)
+__EXPORT void weak_function stm32_spiinitialize(void)
 {
-	/* configure SPI interfaces */
-	stm32_spiinitialize();
+	stm32_configgpio(GPIO_SPI_CS_GYRO);
+	stm32_configgpio(GPIO_SPI_CS_ACCEL);
+	stm32_configgpio(GPIO_SPI_CS_MPU);
+	stm32_configgpio(GPIO_SPI_CS_SDCARD);
 
-	/* configure LEDs */
-	up_ledinit();
+	/* De-activate all peripherals,
+	 * required for some peripheral
+	 * state machines
+	 */
+	stm32_gpiowrite(GPIO_SPI_CS_GYRO, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_ACCEL, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_MPU, 1);
+	stm32_gpiowrite(GPIO_SPI_CS_SDCARD, 1);
 }
+
+__EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+{
+	/* SPI select is active low, so write !selected to select the device */
+
+	switch (devid) {
+	case PX4_SPIDEV_GYRO:
+		/* Making sure the other peripherals are not selected */
+		stm32_gpiowrite(GPIO_SPI_CS_GYRO, !selected);
+		stm32_gpiowrite(GPIO_SPI_CS_MPU, selected);
+		stm32_gpiowrite(GPIO_SPI_CS_ACCEL, selected);
+		break;
+
+	case PX4_SPIDEV_ACCEL:
+		/* Making sure the other peripherals are not selected */
+		stm32_gpiowrite(GPIO_SPI_CS_ACCEL, !selected);
+		stm32_gpiowrite(GPIO_SPI_CS_MPU, selected);
+		stm32_gpiowrite(GPIO_SPI_CS_GYRO, selected);
+		break;
+
+	case PX4_SPIDEV_MPU:
+		/* Making sure the other peripherals are not selected */
+		stm32_gpiowrite(GPIO_SPI_CS_ACCEL, selected);
+		stm32_gpiowrite(GPIO_SPI_CS_GYRO, selected);
+		stm32_gpiowrite(GPIO_SPI_CS_MPU, !selected);
+		break;
+
+	default:
+		break;
+
+	}
+}
+
+__EXPORT uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+{
+	return SPI_STATUS_PRESENT;
+}
+
+
+__EXPORT void stm32_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+{
+	/* there can only be one device on this bus, so always select it */
+	stm32_gpiowrite(GPIO_SPI_CS_SDCARD, 0);
+}
+
+__EXPORT uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+{
+	/* this is actually bogus, but PX4 has no way to sense the presence of an SD card */
+	return SPI_STATUS_PRESENT;
+}
+

@@ -97,6 +97,7 @@ load(const char *devname, const char *fname)
 
 	/* tell it to load the file */
 	ret = ioctl(dev, MIXERIOCLOADFILE, (unsigned long)fname);
+
 	if (ret != 0) {
 		fprintf(stderr, "failed loading %s\n", fname);
 	}

@@ -31,81 +31,61 @@
  *
  ****************************************************************************/
 
-/**
- * @file Magnetometer driver interface.
+/*
+ * @file px4fmu_pwm_servo.c
+ *
+ * Configuration data for the stm32 pwm_servo driver.
+ *
+ * Note that these arrays must always be fully-sized.
  */
-
-#ifndef _DRV_MAG_H
-#define _DRV_MAG_H
 
 #include <stdint.h>
-#include <sys/ioctl.h>
 
-#include "drv_sensor.h"
-#include "drv_orb_dev.h"
+#include <drivers/stm32/drv_pwm_servo.h>
 
-#define MAG_DEVICE_PATH		"/dev/mag"
+#include <arch/board/board.h>
+#include <drivers/drv_pwm_output.h>
 
-/**
- * mag report structure.  Reads from the device must be in multiples of this
- * structure.
- *
- * Output values are in gauss.
- */
-struct mag_report {
-	uint64_t timestamp;
-	float x;
-	float y;
-	float z;
-	float range_ga;
-	float scaling;
+#include "chip.h"
+#include "up_internal.h"
+#include "up_arch.h"
 
-	int16_t x_raw;
-	int16_t y_raw;
-	int16_t z_raw;
+#include "stm32_internal.h"
+#include "stm32_gpio.h"
+#include "stm32_tim.h"
+
+__EXPORT const struct pwm_servo_timer pwm_timers[PWM_SERVO_MAX_TIMERS] = {
+	{
+		.base = STM32_TIM2_BASE,
+		.clock_register = STM32_RCC_APB1ENR,
+		.clock_bit = RCC_APB1ENR_TIM2EN,
+		.clock_freq = STM32_APB1_TIM2_CLKIN
+	}
 };
 
-/** mag scaling factors; Vout = (Vin * Vscale) + Voffset */
-struct mag_scale {
-	float	x_offset;
-	float	x_scale;
-	float	y_offset;
-	float	y_scale;
-	float	z_offset;
-	float	z_scale;
+__EXPORT const struct pwm_servo_channel pwm_channels[PWM_SERVO_MAX_CHANNELS] = {
+	{
+		.gpio = GPIO_TIM2_CH1OUT,
+		.timer_index = 0,
+		.timer_channel = 1,
+		.default_value = 1000,
+	},
+	{
+		.gpio = GPIO_TIM2_CH2OUT,
+		.timer_index = 0,
+		.timer_channel = 2,
+		.default_value = 1000,
+	},
+	{
+		.gpio = GPIO_TIM2_CH3OUT,
+		.timer_index = 0,
+		.timer_channel = 3,
+		.default_value = 1000,
+	},
+	{
+		.gpio = GPIO_TIM2_CH4OUT,
+		.timer_index = 0,
+		.timer_channel = 4,
+		.default_value = 1000,
+	}
 };
-
-/*
- * ObjDev tag for raw magnetometer data.
- */
-ORB_DECLARE(sensor_mag);
-
-/*
- * ioctl() definitions
- */
-
-#define _MAGIOCBASE		(0x2400)
-#define _MAGIOC(_n)		(_IOC(_MAGIOCBASE, _n))
-
-/** set the mag internal sample rate to at least (arg) Hz */
-#define MAGIOCSSAMPLERATE	_MAGIOC(0)
-
-/** set the mag internal lowpass filter to no lower than (arg) Hz */
-#define MAGIOCSLOWPASS		_MAGIOC(1)
-
-/** set the mag scaling constants to the structure pointed to by (arg) */
-#define MAGIOCSSCALE		_MAGIOC(2)
-
-/** copy the mag scaling constants to the structure pointed to by (arg) */
-#define MAGIOCGSCALE		_MAGIOC(3)
-
-/** set the measurement range to handle (at least) arg Gauss */
-#define MAGIOCSRANGE		_MAGIOC(4)
-
-/** perform self-calibration, update scale factors to canonical units */
-#define MAGIOCCALIBRATE		_MAGIOC(5)
-
-/** excite strap */
-#define MAGIOCEXSTRAP		_MAGIOC(6)
-
-#endif /* _DRV_MAG_H */
