@@ -266,7 +266,9 @@ int elf_bind(FAR struct elf_loadinfo_s *loadinfo,
 
   /* Flush the instruction cache before starting the newly loaded module */
 
+#ifdef CONFIG_ELF_ICACHE
   arch_flushicache((FAR void*)loadinfo->alloc, loadinfo->allocsize);
+#endif
   return ret;
 }
 

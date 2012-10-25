@@ -60,6 +60,10 @@ endif
 endif
 endif
 
+ifeq ($(CONFIG_ELF),y)
+CSRCS += up_elf.c
+endif
+
 ifeq ($(CONFIG_FS_FAT),y)
 CSRCS += up_blockdevice.c up_deviceimage.c
 endif

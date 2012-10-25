@@ -73,10 +73,28 @@
 #define EM_386             3      /* Intel 80386 */
 #define EM_68K             4      /* Motorola 68000 */
 #define EM_88K             5      /* Motorola 88000 */
+#define EM_486             6      /* Intel 486+ */
 #define EM_860             7      /* Intel 80860 */
-#define EM_MIPS            8      /* MIPS RS3000 Big-Endian */
-#define EM_MIPS_RS4_BE     10     /* MIPS RS4000 Big-Endian */
-                                  /* 11-16 Reserved for future use */
+#define EM_MIPS            8      /* MIPS R3000 Big-Endian */
+#define EM_MIPS_RS4_BE     10     /* MIPS R4000 Big-Endian */
+#define EM_PARISC          15     /* HPPA */
+#define EM_SPARC32PLUS     18     /* Sun's "v8plus" */
+#define EM_PPC             20     /* PowerPC */
+#define EM_PPC64           21     /* PowerPC64 */
+#define EM_SH              42     /* SuperH */
+#define EM_SPARCV9         43     /* SPARC v9 64-bit */
+#define EM_IA_64           50     /* HP/Intel IA-64 */
+#define EM_X86_64          62     /* AMD x86-64 */
+#define EM_S390            22     /* IBM S/390 */
+#define EM_CRIS            76     /* Axis Communications 32-bit embedded processor */
+#define EM_V850            87     /* NEC v850 */
+#define EM_M32R            88     /* Renesas M32R */
+#define EM_H8_300          46
+#define EM_ALPHA           0x9026
+#define EM_CYGNUS_V850     0x9080
+#define EM_CYGNUS_M32R     0x9041
+#define EM_S390_OLD        0xa390
+#define EM_FRV             0x5441
 
 /* Values for Elf32_Ehdr::e_version */
 

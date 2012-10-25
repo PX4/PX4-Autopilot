@@ -174,7 +174,7 @@ EXTERN int elf_bind(FAR struct elf_loadinfo_s *loadinfo,
 EXTERN int elf_unload(struct elf_loadinfo_s *loadinfo);
 
 /****************************************************************************
- * These are APIs used internally only by NuttX:
+ * These are APIs used outside of binfmt by NuttX:
  ****************************************************************************/
 /****************************************************************************
  * Name: elf_initialize
@@ -206,6 +206,9 @@ EXTERN int elf_initialize(void);
 
 EXTERN void elf_uninitialize(void);
 
+/****************************************************************************
+ * These are APIs must be provided by architecture-specific logic:
+ ****************************************************************************/
 /****************************************************************************
  * Name: arch_checkarch
  *
@@ -262,7 +265,9 @@ EXTERN int arch_relocateadd(FAR const Elf32_Rela *rel,
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ELF_ICACHE
 EXTERN bool arch_flushicache(FAR void *addr, size_t len);
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)
