@@ -762,14 +762,14 @@ void *ubx_watchdog_loop(void *args)
 
 			/* If we have too many failures and another mode or baud should be tried, exit... */
 			if ((gps_mode_try_all == true  || gps_baud_try_all == true) && (ubx_fail_count >= UBX_HEALTH_PROBE_COUNTER_LIMIT) && (ubx_healthy == false) && once_ok == false) {
-				if (gps_verbose) printf("[gps] Connection attempt failed, no UBX module found\r\n");
+				if (gps_verbose) printf("[gps] Connection attempt failed, no UBX module found\n");
 
 				gps_mode_success = false;
 				break;
 			}
 
 			if (ubx_healthy && ubx_fail_count == UBX_HEALTH_FAIL_COUNTER_LIMIT) {
-				printf("[gps] ERROR: UBX GPS module stopped responding\r\n");
+				printf("[gps] ERROR: UBX GPS module stopped responding\n");
 				// global_data_send_subsystem_info(&ubx_present_enabled);
 				mavlink_log_critical(mavlink_fd, "[gps] UBX module stopped responding\n");
 				ubx_healthy = false;
@@ -819,7 +819,7 @@ void *ubx_loop(void *args)
 	char gps_rx_buffer[UBX_BUFFER_SIZE];
 
 
-	if (gps_verbose) printf("[gps] UBX protocol driver starting..\r\n");
+	if (gps_verbose) printf("[gps] UBX protocol driver starting..\n");
 
 	//set parameters for ubx_state
 
@@ -833,14 +833,14 @@ void *ubx_loop(void *args)
 	/* set parameters for ubx */
 
 	if (configure_gps_ubx(fd) != 0) {
-		printf("[gps] Configuration of gps module to ubx failed\r\n");
+		printf("[gps] Configuration of gps module to ubx failed\n");
 
 		/* Write shared variable sys_status */
 		// TODO enable this again
 		//global_data_send_subsystem_info(&ubx_present);
 
 	} else {
-		if (gps_verbose) printf("[gps] Attempting to configure GPS to UBX binary protocol\r\n");
+		if (gps_verbose) printf("[gps] Attempting to configure GPS to UBX binary protocol\n");
 
 		// XXX Shouldn't the system status only change if the module is known to work ok?
 
