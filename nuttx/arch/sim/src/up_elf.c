@@ -40,7 +40,9 @@
 #include <nuttx/config.h>
 
 #include <stdlib.h>
+#include <elf.h>
 #include <errno.h>
+#include <debug.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/binfmt/elf.h>
@@ -113,7 +115,7 @@ int arch_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
 {
   FAR uint32_t *ptr = (FAR uint32_t *)addr;
 
-  switch (ELF_REL_TYPE(rel->r_info))
+  switch (ELF32_R_TYPE(rel->r_info))
     {
      case R_386_32:
        *ptr += sym->st_value;

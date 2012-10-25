@@ -39,7 +39,7 @@
 BIN = hello
 
 SRCS = $(BIN).c
-OBJS = $(BIN:.c=.o)
+OBJS = $(SRCS:.c=.o)
 
 all: $(BIN)
 

@@ -89,8 +89,15 @@
 
 #define SECTORSIZE   512
 #define NSECTORS(b)  (((b)+SECTORSIZE-1)/SECTORSIZE)
-#define ROMFSDEV     "/dev/ram0"
 #define MOUNTPT      "/mnt/romfs"
+
+#ifndef CONFIG_EXAMPLES_ELF_DEVMINOR
+#  define CONFIG_EXAMPLES_ELF_DEVMINOR 0
+#endif
+
+#ifndef CONFIG_EXAMPLES_ELF_DEVPATH
+#  define CONFIG_EXAMPLES_ELF_DEVPATH "/dev/ram0"
+#endif
 
 /* If CONFIG_DEBUG is enabled, use dbg instead of printf so that the
  * output will be synchronous with the debug output.
@@ -166,8 +173,9 @@ int elf_main(int argc, char *argv[])
 
   /* Create a ROM disk for the ROMFS filesystem */
 
-  message("Registering romdisk\n");
-  ret = romdisk_register(0, romfs_img, NSECTORS(romfs_img_len), SECTORSIZE);
+  message("Registering romdisk at /dev/ram%d\n", CONFIG_EXAMPLES_ELF_DEVMINOR);
+  ret = romdisk_register(CONFIG_EXAMPLES_ELF_DEVMINOR, romfs_img,
+                         NSECTORS(romfs_img_len), SECTORSIZE);
   if (ret < 0)
     {
       err("ERROR: romdisk_register failed: %d\n", ret);
@@ -178,13 +186,13 @@ int elf_main(int argc, char *argv[])
   /* Mount the file system */
 
   message("Mounting ROMFS filesystem at target=%s with source=%s\n",
-         MOUNTPT, ROMFSDEV);
+         MOUNTPT, CONFIG_EXAMPLES_ELF_DEVPATH);
 
-  ret = mount(ROMFSDEV, MOUNTPT, "romfs", MS_RDONLY, NULL);
+  ret = mount(CONFIG_EXAMPLES_ELF_DEVPATH, MOUNTPT, "romfs", MS_RDONLY, NULL);
   if (ret < 0)
     {
       err("ERROR: mount(%s,%s,romfs) failed: %s\n",
-              ROMFSDEV, MOUNTPT, errno);
+              CONFIG_EXAMPLES_ELF_DEVPATH, MOUNTPT, errno);
       elf_uninitialize();
     }
 
@@ -219,6 +227,6 @@ int elf_main(int argc, char *argv[])
       sleep(4);
     }
 
-  message("End-of-Test.. Exit-ing\n");
+  message("End-of-Test.. Exiting\n");
   return 0;
 }

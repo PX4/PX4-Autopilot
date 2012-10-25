@@ -158,7 +158,7 @@ static int nxflat_loadbinary(struct binary_s *binp)
   nxflat_dumploadinfo(&loadinfo);
   if (ret != 0)
     {
-      bdbg("Failed to initialize for load of NXFLT program: %d\n", ret);
+      bdbg("Failed to initialize for load of NXFLAT program: %d\n", ret);
       goto errout;
     }
 
@@ -168,7 +168,7 @@ static int nxflat_loadbinary(struct binary_s *binp)
   nxflat_dumploadinfo(&loadinfo);
   if (ret != 0)
     {
-      bdbg("Failed to load NXFLT program binary: %d\n", ret);
+      bdbg("Failed to load NXFLAT program binary: %d\n", ret);
       goto errout_with_init;
     }
 

@@ -644,7 +644,7 @@ ifneq ($(APPDIR),)
 	fi
 	@$(MAKE) -C "$(TOPDIR)/$(APPDIR)" TOPDIR="$(TOPDIR)" distclean
 	@if [ -r _SAVED_APPS_config ]; then \
-		@mv _SAVED_APPS_config "$(TOPDIR)/$(APPDIR)/.config" || \
+		mv _SAVED_APPS_config "$(TOPDIR)/$(APPDIR)/.config" || \
 			{ echo "Copy of _SAVED_APPS_config failed" ; exit 1 ; } \
 	fi
 endif

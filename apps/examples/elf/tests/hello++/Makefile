@@ -64,7 +64,7 @@ all: $(BIN1) $(BIN2) $(BIN3) $(BIN4)
 
 $(OBJS): %.o: %.cpp
 	@echo "CC: $<"
-	@$(CXX) -c $(CXXPICFLAGS) $< -o $@
+	@$(CXX) -c $(CXXFLAGS) $< -o $@
 
 # This contains libstdc++ stubs to that you can build C++ code
 # without actually having libstdc++

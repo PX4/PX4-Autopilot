@@ -139,11 +139,11 @@ static void elf_dumploadinfo(FAR struct elf_loadinfo_s *loadinfo)
   bdbg("  e_shnum:      %d\n",    loadinfo->ehdr.e_shnum);
   bdbg("  e_shstrndx:   %d\n",    loadinfo->ehdr.e_shstrndx);
 
-  if (loadinfo->shdr && loadinfo->ehdr.e_shum > 0)
+  if (loadinfo->shdr && loadinfo->ehdr.e_shnum > 0)
     {
-      for (i = 0; i < loadinfo->ehdr.e_shum; i++)
+      for (i = 0; i < loadinfo->ehdr.e_shnum; i++)
         {
-          FAR ELF32_Shdr *shdr = &loadinfo->shdr[i];
+          FAR Elf32_Shdr *shdr = &loadinfo->shdr[i];
           bdbg("Sections %d:\n", i);
           bdbg("  sh_name:      %08x\n", shdr->sh_name);
           bdbg("  sh_type:      %08x\n", shdr->sh_type);
@@ -184,7 +184,7 @@ static int elf_loadbinary(struct binary_s *binp)
   elf_dumploadinfo(&loadinfo);
   if (ret != 0)
     {
-      bdbg("Failed to initialize for load of NXFLT program: %d\n", ret);
+      bdbg("Failed to initialize for load of ELF program: %d\n", ret);
       goto errout;
     }
 
@@ -194,7 +194,7 @@ static int elf_loadbinary(struct binary_s *binp)
   elf_dumploadinfo(&loadinfo);
   if (ret != 0)
     {
-      bdbg("Failed to load NXFLT program binary: %d\n", ret);
+      bdbg("Failed to load ELF program binary: %d\n", ret);
       goto errout_with_init;
     }
 

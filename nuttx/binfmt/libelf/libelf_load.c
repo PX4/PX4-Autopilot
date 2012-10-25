@@ -283,8 +283,8 @@ static inline int elf_loadfile(FAR struct elf_loadinfo_s *loadinfo)
 
       /* Update sh_addr to point to copy in memory */
 
+      bvdbg("%d. %08x->%08x\n", i, (long)shdr->sh_addr, (long)dest);
       shdr->sh_addr = (uintptr_t)dest;
-      bvdbg("%d. 0x%lx %s\n", (long)shdr->sh_addr, loadinfo->secstrings + shdr->sh_name);
 
       /* Setup the memory pointer for the next time through the loop */
 

@@ -38,7 +38,7 @@
 
 CFLAGS += -I.
 
-BIN = struct
+BIN  = struct
 SRCS = struct_main.c struct_dummy.c
 OBJS = $(SRCS:.c=.o)
 

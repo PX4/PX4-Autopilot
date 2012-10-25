@@ -166,9 +166,9 @@
 
 /* Definitions for Elf32_Sym::st_info */
 
-#define ELF32_ST_BIND(i)   ((i)>>4)
-#define ELF32_ST_TYPE(i)   ((i)&0xf)
-#define ELF32_ST_INFO(b,t) (((b)<<4)+((t)&0xf))
+#define ELF32_ST_BIND(i)   ((i) >> 4)
+#define ELF32_ST_TYPE(i)   ((i) & 0xf)
+#define ELF32_ST_INFO(b,t) (((b) << 4) | ((t) & 0xf))
 
 /* Figure 4-16: Symbol Binding, ELF32_ST_BIND */
 
@@ -190,9 +190,9 @@
 
 /* Definitions for Elf32_Rel*::r_info */
 
-#define ELF32_R_SYM(i)    ((i)>>8)
-#define ELF32_R_TYPE(i)   ((unsigned char)(i))
-#define ELF32_R_INFO(s,t) (((s)<<8)+(unsigned char)(t))
+#define ELF32_R_SYM(i)    ((i) >> 8)
+#define ELF32_R_TYPE(i)   ((i) & 0xff)
+#define ELF32_R_INFO(s,t) (((s)<< 8) | ((t) & 0xff))
 
 /* Figure 5-2: Segment Types, p_type */
 
