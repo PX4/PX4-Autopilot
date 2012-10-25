@@ -20,8 +20,8 @@ config ELF_SYMBOLS
 	bool "Export symbols from ELF modules"
 	default n
 	---help---
-		Allow symbols from one ELF module to be used by another. (NOT
-		fully implemented.
+		Allow symbols from one ELF module to be used by another. NOT
+		fully implemented!
 
 config ELF_DUMPBUFFER
 	bool "Dump ELF buffers"

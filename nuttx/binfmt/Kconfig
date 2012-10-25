@@ -19,7 +19,7 @@ config NXFLAT
 		Enable support for the NXFLAT binary format.  Default: n
 
 if NXFLAT
-include binfmt/libnxflat/Kconfig
+source binfmt/libnxflat/Kconfig
 endif
 
 config ELF
@@ -29,8 +29,9 @@ config ELF
 		Enable support for the ELF binary format.  Default: n
 
 if ELF
-include binfmt/libelf/Kconfig
+source binfmt/libelf/Kconfig
 endif
+
 endif
 
 config SYMTAB_ORDEREDBYNAME
