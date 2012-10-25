@@ -65,7 +65,9 @@
 #define ET_LOPROC         0xff00  /* Processor-specific */
 #define ET_HIPROC         0xffff  /* Processor-specific */
 
-/* Values for Elf32_Ehdr::e_machine */
+/* Values for Elf32_Ehdr::e_machine (most of this were not included in the
+ * original SCO document but have been gleaned from elsewhere).
+ */
 
 #define EM_NONE            0      /* No machine */
 #define EM_M32             1      /* AT&T WE 32100 */
@@ -81,6 +83,7 @@
 #define EM_SPARC32PLUS     18     /* Sun's "v8plus" */
 #define EM_PPC             20     /* PowerPC */
 #define EM_PPC64           21     /* PowerPC64 */
+#define EM_ARM             40     /* ARM */
 #define EM_SH              42     /* SuperH */
 #define EM_SPARCV9         43     /* SPARC v9 64-bit */
 #define EM_IA_64           50     /* HP/Intel IA-64 */
