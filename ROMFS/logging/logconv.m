@@ -1,5 +1,5 @@
 clear all
-clc
+close all
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % SYSTEM VECTOR
@@ -51,9 +51,21 @@ if exist('sysvector.bin', 'file')
     gps = sysvector(:,33:35);
     gps(~any(gps,2), :) = [];
     
-    plot3(gps(:,1), gps(:,2), gps(:,3));
+    all_data = figure('Name', 'GPS RAW');
+    gps_position = plot3(gps(:,1), gps(:,2), gps(:,3));
     
+    
+    all_data = figure('Name', 'Complete Log Data (exc. GPS)');
     plot(sysvector(:,1), sysvector(:,2:32));
+    
+    actuator_inputs = figure('Name', 'Attitude controller outputs');
+    plot(sysvector(:,1), sysvector(:,14:17));
+    legend('roll motor setpoint', 'pitch motor setpoint', 'yaw motor setpoint', 'throttle motor setpoint');
+    
+    actuator_outputs = figure('Name', 'Actuator outputs');
+    plot(sysvector(:,1), sysvector(:,18:25));
+    legend('actuator 0', 'actuator 1', 'actuator 2', 'actuator 3', 'actuator 4', 'actuator 5', 'actuator 6', 'actuator 7');
+    
 end
 
 if exist('actuator_outputs0.bin', 'file')

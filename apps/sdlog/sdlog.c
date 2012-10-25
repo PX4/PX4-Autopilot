@@ -567,6 +567,7 @@ int file_copy(const char* file_old, const char* file_new)
 {
 	FILE *source, *target;
 	source = fopen(file_old, "r");
+	int ret = 0;
  
 	if( source == NULL )
 	{
@@ -580,21 +581,24 @@ int file_copy(const char* file_old, const char* file_new)
 	{
 		fclose(source);
 		warnx("failed to open output file to copy");
+		return 1;
 	}
  
 	char buf[128];
 	int nread;
-	while ((nread = fread(buf, sizeof(buf), 1, source)) > 0) {
-		int ret = fwrite(buf, sizeof(buf), 1, target);
+	while ((nread = fread(buf, 1, sizeof(buf), source)) > 0) {
+		int ret = fwrite(buf, 1, nread, target);
 		if (ret <= 0) {
 			warnx("error writing file");
+			ret = 1;
 			break;
 		}
 	}
+	fsync(fileno(target));
 
 	fclose(source);
 	fclose(target);
 
-   return 0;
+   return ret;
 }
 
