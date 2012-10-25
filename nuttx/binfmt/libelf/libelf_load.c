@@ -116,69 +116,6 @@ static inline int elf_filelen(FAR struct elf_loadinfo_s *loadinfo)
 }
 
 /****************************************************************************
- * Name: elf_readfile
- *
- * Description:
- *   Allocate memory for the file and read the section data into the
- *   allocated memory.
- *
- * Returned Value:
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
- *
- ****************************************************************************/
-
-static int elf_readfile(FAR struct elf_loadinfo_s *loadinfo, FAR void *buffer,
-                        off_t offset, size_t nbytes)
-{
-  FAR uint8_t *buffer;
-  ssize_t bytesread;
-  off_t result;
-
-  /* Seek to the start of the section header table */
-
-  result = lseek(loadinfo->filfd, offset, SEEK_SET);
-  if (result == (off_t)-1)
-    {
-      int errval = errno;
-      bdbg("Seel to %ld failed: %d\n", (long)offset, errval);
-      return -errval;
-    }
-
-  /* Now load the file data into memory */
-
-  buffer = (FAR uint8_t *)loadinfo->shdrs;
-  while (shdrsize > 0)
-    {
-      bytesread = read(loadinfo->filfd, buffer, shdrsize);
-      if (bytes < 0)
-        {
-          int errval = errno;
-
-          /* EINTR just means that we received a signal */
-
-          if (errno != EINTR)
-            {
-              bdbg("read() failed: %d\n", errval);
-              return -errval;
-            }
-        }
-      else if (bytes == 0)
-        {
-          bdbg("Unexpected end of file\n");
-          return -ENODATA;
-        }
-      else
-        {
-          buffer   += bytesread;
-          shdrsize -= bytesread;
-        }
-    }
-
-  return OK;
-}
-
-/****************************************************************************
  * Name: elf_loadshdrs
  *
  * Description:
@@ -225,7 +162,7 @@ static inline int elf_loadshdrs(FAR struct elf_loadinfo_s *loadinfo)
 
   /* Read the section header table into memory */
 
-  ret = elf_readfile(loadinfo, loadinfo->shdrs, loadinfo->e_shoff, shdrsize);
+  ret = elf_read(loadinfo, loadinfo->shdrs, shdrsize, loadinfo->e_shoff);
   if (ret < 0)
     {
       bdbg("Failed to read section header table: %d\n", ret);
@@ -330,7 +267,7 @@ static inline int elf_loadfile(FAR struct load_info *loadinfo)
         {
           /* Read the section data from sh_offset to dest */
 
-          ret = elf_readfile(loadinfo, dest, shdr->sh_offset, shdr->sh_size);
+          ret = elf_read(loadinfo, dest, shdr->sh_size, shdr->sh_offset);
           if (ret < 0)
             {
               bdbg("Failed to read section %d: %d\n", i, ret);
@@ -375,7 +312,47 @@ errout_with_alloc:
 
 int elf_load(FAR struct elf_loadinfo_s *loadinfo)
 {
-# warning "Missing logic"
-  return -ENOSYS;
+  int ret;
+
+  bvdbg("loadinfo: %p\n", loadinfo);
+  DEBUGASSERT(loadinfo && loadinfo->filfd >= 0);
+
+  /* Get the length of the file. */
+
+  ret = elf_filelen(loadinfo);
+    {
+      return ret;
+    }
+
+  /* Load section headers into memory */
+
+  ret = elf_loadshdrs(loadinfo);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  /* Determine total size to allocate */
+
+  elf_allocsize(loadinfo);
+
+  /* Allocate memory and load sections into memory */
+
+  ret = elf_loadfile(loadinfo);
+  if (ret < 0)
+    {
+      goto errout_with_shdrs;
+    }
+
+  return OK;
+
+  /* Error exits */
+
+errout_with_alloc:
+  kfree(loadinfo->alloc);
+errout_with_shdrs:
+  kfree(loadinfo->shdrs);
+errout:
+  return ret;
 }
 

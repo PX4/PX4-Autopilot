@@ -107,8 +107,9 @@ int elf_init(FAR const char *filename, FAR struct elf_loadinfo_s *loadinfo)
   loadinfo->filfd = open(filename, O_RDONLY);
   if (loadinfo->filfd < 0)
     {
-      bdbg("Failed to open ELF binary %s: %d\n", filename, ret);
-      return -errno;      
+      int errval = errno;
+      bdbg("Failed to open ELF binary %s: %d\n", filename, errval);
+      return -errval;      
     }
 
   /* Read the ELF ehdr from offset 0 */

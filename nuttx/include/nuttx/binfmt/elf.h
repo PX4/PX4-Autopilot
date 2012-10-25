@@ -165,8 +165,8 @@ EXTERN int elf_load(FAR struct elf_loadinfo_s *loadinfo);
  *
  ****************************************************************************/
 
-EXTERN int elf_read(FAR struct elf_loadinfo_s *loadinfo, FAR char *buffer,
-                    FAR int readsize, int offset);
+EXTER int elf_read(FAR struct elf_loadinfo_s *loadinfo, FAR uint8_t *buffer,
+                   size_t readsize, off_t offset);
 
 /****************************************************************************
  * Name: elf_bind

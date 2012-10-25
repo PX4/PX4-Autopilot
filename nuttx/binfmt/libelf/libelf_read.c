@@ -106,41 +106,41 @@ static inline void elf_dumpreaddata(char *buffer, int buflen)
  *
  ****************************************************************************/
 
-int elf_read(struct elf_loadinfo_s *loadinfo, char *buffer, int readsize, int offset)
+int elf_read(FAR struct elf_loadinfo_s *loadinfo, FAR uint8_t *buffer,
+             size_t readsize, off_t offset)
 {
   ssize_t nbytes;      /* Number of bytes read */
   off_t   rpos;        /* Position returned by lseek */
-  char   *bufptr;      /* Next buffer location to read into */
-  int     bytesleft;   /* Number of bytes of .data left to read */
-  int     bytesread;   /* Total number of bytes read */
 
-  bvdbg("Read %d bytes from offset %d\n", readsize, offset);
+  bvdbg("Read %ld bytes from offset %ld\n", (long)readsize, (long)offset);
 
-  /* Seek to the position in the object file where the initialized
-   * data is saved.
-   */
+  /* Loop until all of the requested data has been read. */
 
-  bytesread = 0;
-  bufptr    = buffer;
-  bytesleft = readsize;
-  do
+  while (readsize > 0)
     {
+      /* Seek to the next read position */
+
       rpos = lseek(loadinfo->filfd, offset, SEEK_SET);
       if (rpos != offset)
         {
-          bdbg("Failed to seek to position %d: %d\n", offset, errno);
-          return -errno;
+          int errval = errno;
+          bdbg("Failed to seek to position %ld: %d\n", (long)offset, errval);
+          return -errval;
         }
 
       /* Read the file data at offset into the user buffer */
 
-       nbytes = read(loadinfo->filfd, bufptr, bytesleft);
+       nbytes = read(loadinfo->filfd, buffer, readsize);
        if (nbytes < 0)
          {
-           if (errno != EINTR)
+           int errval = errno;
+
+           /* EINTR just means that we received a signal */
+
+           if (errval != EINTR)
              {
-               bdbg("Read of .data failed: %d\n", errno);
-               return -errno;
+               bdbg("Read of .data failed: %d\n", errval);
+               return -errval;
              }
          }
        else if (nbytes == 0)
@@ -150,15 +150,12 @@ int elf_read(struct elf_loadinfo_s *loadinfo, char *buffer, int readsize, int of
          }
        else
          {
-           bytesread += nbytes;
-           bytesleft -= nbytes;
-           bufptr    += nbytes;
-           offset    += nbytes;
+           readsize -= nbytes;
+           buffer   += nbytes;
+           offset   += nbytes;
          }
     }
-  while (bytesread < readsize);
 
   elf_dumpreaddata(buffer, readsize);
   return OK;
 }
-
