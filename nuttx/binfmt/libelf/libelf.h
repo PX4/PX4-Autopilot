@@ -105,9 +105,78 @@ int elf_findsymtab(FAR struct elf_loadinfo_s *loadinfo);
  * Description:
  *   Read the ELFT symbol structure at the specfied index into memory.
  *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *   index    - Symbol table index
+ *   sym      - Location to return the table entry
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
  ****************************************************************************/
 
 int elf_readsym(FAR struct elf_loadinfo_s *loadinfo, int index,
                 FAR Elf32_Sym *sym);
+
+/****************************************************************************
+ * Name: elf_symvalue
+ *
+ * Description:
+ *   Get the value of a symbol.  The updated value of the symbol is returned
+ *   in the st_value field of the symbol table entry.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *   sym      - Symbol table entry (value might be undefined)
+ *   exports  - The symbol table to use for resolving undefined symbols.
+ *   nexports - Number of symbols in the symbol table.
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+int elf_symvalue(FAR struct elf_loadinfo_s *loadinfo, FAR Elf32_Sym *sym,
+                 FAR const struct symtab_s *exports, int nexports);
+
+/****************************************************************************
+ * Name: elf_findctors
+ *
+ * Description:
+ *   Find C++ static constructors.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ELF_CONSTRUCTORS
+int elf_findctors(FAR struct elf_loadinfo_s *loadinfo);
+#endif
+
+/****************************************************************************
+ * Name: elf_doctors
+ *
+ * Description:
+ *   Execute C++ static constructors.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ELF_CONSTRUCTORS
+int elf_doctors(FAR struct elf_loadinfo_s *loadinfo);
+#endif
 
 #endif /* __BINFMT_LIBELF_LIBELF_H */

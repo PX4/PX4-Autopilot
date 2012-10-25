@@ -327,6 +327,7 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
 
   ret = elf_filelen(loadinfo);
     {
+      bdbg("elf_filelen failed: %d\n", ret);
       return ret;
     }
 
@@ -335,6 +336,7 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
   ret = elf_loadshdrs(loadinfo);
   if (ret < 0)
     {
+      bdbg("elf_loadshdrs failed: %d\n", ret);
       return ret;
     }
 
@@ -347,11 +349,19 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
   ret = elf_loadfile(loadinfo);
   if (ret < 0)
     {
+      bdbg("elf_loadfile failed: %d\n", ret);
       goto errout_with_shdrs;
     }
 
   /* Find static constructors. */
-#warning "Missing logic"
+
+#ifdef CONFIG_ELF_CONSTRUCTORS
+  ret = elf_findctors(loadinfo);
+    {
+      bdbg("elf_findctors failed: %d\n", ret);
+      goto errout_with_shdrs;
+    }
+#endif
 
   return OK;
 

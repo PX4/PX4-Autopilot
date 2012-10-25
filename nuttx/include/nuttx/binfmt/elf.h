@@ -69,14 +69,17 @@ struct elf_loadinfo_s
   uintptr_t       alloc;       /* Allocated memory with the ELF file is loaded */
   size_t          allocsize;   /* Size of the memory allocation */
   off_t           filelen;     /* Length of the entire ELF file */
-#ifdef CONFIG_ELF_CONSTRUCTORS
-  uintptr_t       ctors;       /* Static constructors */
-#endif
   int             filfd;       /* Descriptor for the file being loaded */
+#ifdef CONFIG_ELF_CONSTRUCTORS
+  uintptr_t       ctors;       /* Location of static constructors in memory */
+  uint16_t        nctors;      /* Number of constructors */
+#endif
   uint16_t        symtabidx;   /* Symbol table section index */
   uint16_t        strtabidx;   /* String table section index */
+  uint16_t        buflen;      /* size of iobuffer[] */
   Elf32_Ehdr      ehdr;        /* Buffered ELF file header */
   FAR Elf32_Shdr *shdr;        /* Buffered ELF section headers */
+  uint8_t        *iobuffer;    /* File I/O buffer */
 };
 
 /****************************************************************************

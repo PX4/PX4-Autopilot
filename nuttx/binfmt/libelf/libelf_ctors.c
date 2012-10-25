@@ -1,5 +1,5 @@
 /****************************************************************************
- * binfmt/libelf/libelf_unload.c
+ * binfmt/libelf/libelf_ctors.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,15 +39,23 @@
 
 #include <nuttx/config.h>
 
-#include <stdlib.h>
 #include <debug.h>
 
-#include <nuttx/kmalloc.h>
 #include <nuttx/binfmt/elf.h>
+
+#include "libelf"
+
+#ifdef CONFIG_ELF_CONSTRUCTORS
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
+
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
+typedef FAR void (*ctor_t)(void);
 
 /****************************************************************************
  * Private Constant Data
@@ -62,11 +70,13 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: elf_unload
+ * Name: elf_findctors
  *
  * Description:
- *   This function unloads the object from memory. This essentially
- *   undoes the actions of elf_load.
+ *   Find C++ static constructors.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -74,30 +84,51 @@
  *
  ****************************************************************************/
 
-int elf_unload(struct elf_loadinfo_s *loadinfo)
+int elf_findctors(FAR struct elf_loadinfo_s *loadinfo)
 {
-  /* Release the all allocated memory */
+  /* Search through the shdr[] array in loadinfo for a section named .ctors */
+#warning "Missing logic"
 
-  if (loadinfo->alloc)
-    {
-      kfree((FAR void *)loadinfo->alloc);
-      loadinfo->alloc     = 0;
-      loadinfo->allocsize = 0;
-    }
+  /* Get the address of the beginning of the constructros from the sh_addr
+   * field of the section.  Save that in the ctors field of the loadinfo
+   * structure.
+   */
+#warning "Missing logic"
 
-  if (loadinfo->shdr)
-    {
-      kfree((FAR void *)loadinfo->shdr);
-      loadinfo->shdr      = NULL;
-    }
-
-  if (loadinfo->iobuffer)
-    {
-      kfree((FAR void *)loadinfo->iobuffer);
-      loadinfo->iobuffer  = NULL;
-      loadinfo->buflen    = 0;
-    }
-
-  return OK;
+  /* Get the number of constructors from the sh_size field of the section.
+   * Save that number in the nctors field of the loadinfo structure.
+   */ 
+#warning "Missing logic"
+  return -ENOSYS;
 }
 
+/****************************************************************************
+ * Name: elf_doctors
+ *
+ * Description:
+ *   Execute C++ static constructors.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+int elf_doctors(FAR struct elf_loadinfo_s *loadinfo)
+{
+  ctor_t ctor = (ctor_t)loadinfo->ctors;
+  int i;
+
+  /* Execute each constructor */
+
+  for (i = 0; i < loadinfo->nctors; i++)
+    {
+      ctor();
+      ctor++;
+    }
+}
+
+#endif /* CONFIG_ELF_CONSTRUCTORS

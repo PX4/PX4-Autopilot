@@ -45,6 +45,10 @@ BINFMT_CSRCS = libelf_init.c libelf_uninit.c libelf_load.c \
 			   libelf_unload.c libelf_verify.c libelf_read.c \
 			   libelf_bind.c libelf_symbols.c
 
+ifeq ($(CONFIG_ELF_CONSTRUCTORS),y)
+BINFMT_CSRCS += libelf_ctors.c
+endif
+
 # Hook the libelf subdirectory into the build
 
 VPATH += libelf

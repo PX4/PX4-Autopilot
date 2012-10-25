@@ -46,6 +46,7 @@
 #include <assert.h>
 #include <debug.h>
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/binfmt/elf.h>
 #include <nuttx/binfmt/symtab.h>
 
@@ -61,6 +62,10 @@
 
 #if !defined(CONFIG_DEBUG_VERBOSE) || !defined (CONFIG_DEBUG_BINFMT)
 #  undef CONFIG_ELF_DUMPBUFFER
+#endif
+
+#ifndef CONFIG_ELF_BUFFERSIZE
+#  define CONFIG_ELF_BUFFERSIZE 128
 #endif
 
 #ifdef CONFIG_ELF_DUMPBUFFER
@@ -124,7 +129,9 @@ static inline int elf_readrel(FAR struct elf_loadinfo_s *loadinfo,
  *
  ****************************************************************************/
 
-static int elf_relocate(FAR struct elf_loadinfo_s *loadinfo, int relidx)
+static int elf_relocate(FAR struct elf_loadinfo_s *loadinfo, int relidx,
+                        FAR const struct symtab_s *exports, int nexports)
+
 {
   FAR Elf32_Shdr *relsec = &loadinfo->shdr[relidx];
   FAR Elf32_Shdr *dstsec = &loadinfo->shdr[relsec->sh_info];
@@ -165,6 +172,16 @@ static int elf_relocate(FAR struct elf_loadinfo_s *loadinfo, int relidx)
           return ret;
         }
 
+      /* Get the value of the symbol (in sym.st_value) */
+
+      ret = elf_symvalue(loadinfo, &sym, exports, nexports);
+      if (ret < 0)
+        {
+          bdbg("Section %d reloc %d: Failed to get value of symbol[%d]: %d\n",
+               relidx, i, symidx, ret);
+          return ret;
+        }
+
       /* Calculate the relocation address */
 
       if (rel.r_offset < 0 || rel.r_offset > dstsec->sh_size - sizeof(uint32_t))
@@ -189,7 +206,8 @@ static int elf_relocate(FAR struct elf_loadinfo_s *loadinfo, int relidx)
   return OK;
 }
 
-static int elf_relocateadd(FAR struct elf_loadinfo_s *loadinfo, int relidx)
+static int elf_relocateadd(FAR struct elf_loadinfo_s *loadinfo, int relidx,
+                           FAR const struct symtab_s *exports, int nexports)
 {
   bdbg("Not implemented\n");
   return -ENOSYS;
@@ -226,6 +244,18 @@ int elf_bind(FAR struct elf_loadinfo_s *loadinfo,
       return ret;
     }
 
+  /* Allocate an I/O buffer.  This buffer is used only by elf_symname() to
+   * accumulate the variable length symbol name.
+   */
+
+  loadinfo->iobuffer = (FAR uint8_t *)kmalloc(CONFIG_ELF_BUFFERSIZE);
+  if (!loadinfo->iobuffer)
+    {
+      bdbg("Failed to allocate an I/O buffer\n");
+      return -ENOMEM;
+    }
+  loadinfo->buflen = CONFIG_ELF_BUFFERSIZE;
+
   /* Process relocations in every allocated section */
 
   for (i = 1; i < loadinfo->ehdr.e_shnum; i++)
@@ -251,11 +281,11 @@ int elf_bind(FAR struct elf_loadinfo_s *loadinfo,
 
       if (loadinfo->shdr[i].sh_type == SHT_REL)
         {
-          ret = elf_relocate(loadinfo, i);
+          ret = elf_relocate(loadinfo, i, exports, nexports);
         }
       else if (loadinfo->shdr[i].sh_type == SHT_RELA)
         {
-          ret = elf_relocateadd(loadinfo, i);
+          ret = elf_relocateadd(loadinfo, i, exports, nexports);
         }
 
       if (ret < 0)
@@ -269,6 +299,12 @@ int elf_bind(FAR struct elf_loadinfo_s *loadinfo,
 #ifdef CONFIG_ELF_ICACHE
   arch_flushicache((FAR void*)loadinfo->alloc, loadinfo->allocsize);
 #endif
+
+  /* Free the I/O buffer */
+
+  kfree(loadinfo->iobuffer);
+  loadinfo->iobuffer = NULL;
+  loadinfo->buflen   = 0;
   return ret;
 }
 
