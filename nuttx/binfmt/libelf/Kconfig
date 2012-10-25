@@ -9,19 +9,18 @@ config ELF_ALIGN_LOG2
 	---help---
 		Align all sections to this Log2 value:  0->1, 1->2, 2->4, etc.
 
+config ELF_STACKSIZE
+	int "ELF Stack Size"
+	default 2048
+	---help---
+		This is the default stack size that will will be used when starting ELF binaries.
+
 config ELF_CONSTRUCTORS
 	bool "C++ Static Constructor Support"
 	default n
 	depends on HAVE_CXX
 	---help---
 		Build in support for C++ constructors in ELF modules.
-
-config ELF_SYMBOLS
-	bool "Export symbols from ELF modules"
-	default n
-	---help---
-		Allow symbols from one ELF module to be used by another. NOT
-		fully implemented!
 
 config ELF_DUMPBUFFER
 	bool "Dump ELF buffers"

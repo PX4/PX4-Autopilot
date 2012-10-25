@@ -46,10 +46,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <elf.h>
-#include <debug.h>
+#include <assert.h>
 #include <errno.h>
+#include <debug.h>
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/binfmt/elf.h>
+
+#include "libelf.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -104,7 +108,7 @@ static inline int elf_filelen(FAR struct elf_loadinfo_s *loadinfo)
   if (!S_ISREG(buf.st_mode))
     {
       bdbg("Not a regular file.  mode: %d\n", buf.st_mode);
-      return -errval;
+      return -ENOENT;
     }
 
   /* TODO:  Verify that the file is readable */
@@ -132,20 +136,20 @@ static inline int elf_loadshdrs(FAR struct elf_loadinfo_s *loadinfo)
   size_t shdrsize;
   int ret;
 
-  DEBUGASSERT(loadinfo->shdrs == NULL);
+  DEBUGASSERT(loadinfo->shdr == NULL);
 
   /* Verify that there are sections */
 
-  if (loadinfo->e_shum < 1)
+  if (loadinfo->ehdr.e_shnum < 1)
     {
-      bdbg("No section(?)\n");
+      bdbg("No sections(?)\n");
       return -EINVAL;
     }
 
   /* Get the total size of the section header table */
 
-  shdrsize = (size_t)loadinfo->ehdr.e_shentsize * (size_t)loadinfo->e_shum;
-  if(loadinfo->e_shoff + shdrsize > loadinfo->filelen)
+  shdrsize = (size_t)loadinfo->ehdr.e_shentsize * (size_t)loadinfo->ehdr.e_shnum;
+  if(loadinfo->ehdr.e_shoff + shdrsize > loadinfo->filelen)
     {
       bdbg("Insufficent space in file for section header table\n");
       return -ESPIPE;
@@ -153,8 +157,8 @@ static inline int elf_loadshdrs(FAR struct elf_loadinfo_s *loadinfo)
 
   /* Allocate memory to hold a working copy of the sector header table */
 
-  loadinfo->shdrs = (FAR Elf32_Shdr*)kmalloc(shdrsize);
-  if (!loadinfo->shdrs)
+  loadinfo->shdr = (FAR Elf32_Shdr*)kmalloc(shdrsize);
+  if (!loadinfo->shdr)
     {
       bdbg("Failed to allocate the section header table. Size: %ld\n", (long)shdrsize);
       return -ENOMEM;
@@ -162,7 +166,7 @@ static inline int elf_loadshdrs(FAR struct elf_loadinfo_s *loadinfo)
 
   /* Read the section header table into memory */
 
-  ret = elf_read(loadinfo, loadinfo->shdrs, shdrsize, loadinfo->e_shoff);
+  ret = elf_read(loadinfo, (FAR uint8_t*)loadinfo->shdr, shdrsize, loadinfo->ehdr.e_shoff);
   if (ret < 0)
     {
       bdbg("Failed to read section header table: %d\n", ret);
@@ -172,8 +176,8 @@ static inline int elf_loadshdrs(FAR struct elf_loadinfo_s *loadinfo)
   return OK;
 
 errout_with_alloc:
-  kfree(loadinfo->shdrs);
-  loadinfo->shdrs = 0;
+  kfree(loadinfo->shdr);
+  loadinfo->shdr = 0;
   return ret;
 }
 
@@ -189,7 +193,7 @@ errout_with_alloc:
  *
  ****************************************************************************/
 
-static void elf_allocsize(struct load_info *loadinfo)
+static void elf_allocsize(struct elf_loadinfo_s *loadinfo)
 {
   size_t allocsize;
   int i;
@@ -199,7 +203,7 @@ static void elf_allocsize(struct load_info *loadinfo)
   allocsize = 0;
   for (i = 0; i < loadinfo->ehdr.e_shnum; i++)
     {
-      FAR Elf32_Shdr *shdr = &loadinfo->shdrs[i];
+      FAR Elf32_Shdr *shdr = &loadinfo->shdr[i];
 
       /* SHF_ALLOC indicates that the section requires memory during
        * execution.
@@ -213,7 +217,7 @@ static void elf_allocsize(struct load_info *loadinfo)
 
   /* Save the allocation size */
 
-  loadinfo->allocize = allocsize;
+  loadinfo->allocsize = allocsize;
 }
 
 /****************************************************************************
@@ -221,7 +225,8 @@ static void elf_allocsize(struct load_info *loadinfo)
  *
  * Description:
  *   Allocate memory for the file and read the section data into the
- *   allocated memory.
+ *   allocated memory.  Section addresses in the shdr[] are updated to point
+ *   to the corresponding position in the allocated memory.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -229,14 +234,15 @@ static void elf_allocsize(struct load_info *loadinfo)
  *
  ****************************************************************************/
 
-static inline int elf_loadfile(FAR struct load_info *loadinfo)
+static inline int elf_loadfile(FAR struct elf_loadinfo_s *loadinfo)
 {
   FAR uint8_t *dest;
+  int ret;
   int i;
 
   /* Allocate (and zero) memory for the ELF file. */
   
-  loadinfo->alloc = kzalloc(loadinfo->allocsize);
+  loadinfo->alloc = (uintptr_t)kzalloc(loadinfo->allocsize);
   if (!loadinfo->alloc)
     {
       return -ENOMEM;
@@ -249,7 +255,7 @@ static inline int elf_loadfile(FAR struct load_info *loadinfo)
 
   for (i = 0; i < loadinfo->ehdr.e_shnum; i++)
     {
-      FAR Elf32_Shdr *shdr = &loadinfo->shdrs[i];
+      FAR Elf32_Shdr *shdr = &loadinfo->shdr[i];
 
       /* SHF_ALLOC indicates that the section requires memory during
        * execution */
@@ -275,7 +281,7 @@ static inline int elf_loadfile(FAR struct load_info *loadinfo)
             }
         }
 
-      /* Update sh_addr to point to copy in image. */
+      /* Update sh_addr to point to copy in memory */
 
       shdr->sh_addr = (uintptr_t)dest;
       bvdbg("%d. 0x%lx %s\n", (long)shdr->sh_addr, loadinfo->secstrings + shdr->sh_name);
@@ -288,7 +294,7 @@ static inline int elf_loadfile(FAR struct load_info *loadinfo)
   return OK;
 
 errout_with_alloc:
-  kfree(loadinfo->alloc);
+  kfree((FAR void*)loadinfo->alloc);
   loadinfo->alloc = 0;
   return ret;
 }
@@ -344,15 +350,16 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
       goto errout_with_shdrs;
     }
 
+  /* Find static constructors. */
+#warning "Missing logic"
+
   return OK;
 
   /* Error exits */
 
-errout_with_alloc:
-  kfree(loadinfo->alloc);
 errout_with_shdrs:
-  kfree(loadinfo->shdrs);
-errout:
+  kfree(loadinfo->shdr);
+  loadinfo->shdr = NULL;
   return ret;
 }
 

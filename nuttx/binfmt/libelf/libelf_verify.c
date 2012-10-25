@@ -53,7 +53,7 @@
  * Private Constant Data
  ****************************************************************************/
 
-static const char g_elfmagic[EI_MAGIC_SIZE] = { 0x7f, 'E', 'L', 'F' }
+static const char g_elfmagic[EI_MAGIC_SIZE] = { 0x7f, 'E', 'L', 'F' };
 
 /****************************************************************************
  * Private Functions
@@ -75,12 +75,12 @@ static const char g_elfmagic[EI_MAGIC_SIZE] = { 0x7f, 'E', 'L', 'F' }
  *   failure.
  *
  *   -ENOEXEC  : Not an ELF file
- *   -EINVALID : Not a relocatable ELF file or not supported by the current,
+ *   -EINVAL : Not a relocatable ELF file or not supported by the current,
  *               configured architecture.
  *
  ****************************************************************************/
 
-int elf_verifyheader(const Elf32_Ehdr *ehdr)
+int elf_verifyheader(FAR const Elf32_Ehdr *ehdr)
 {
   if (!ehdr)
     {
@@ -102,7 +102,7 @@ int elf_verifyheader(const Elf32_Ehdr *ehdr)
   if (ehdr->e_type != ET_REL)
     {
       bdbg("Not a relocatable file: e_type=%d\n", ehdr->e_type);
-      return -EINVALID;
+      return -EINVAL;
     }
 
   /* Verify that this file works with the currently configured architecture */

@@ -42,7 +42,10 @@
 
 #include <nuttx/config.h>
 
+#include <sys/types.h>
 #include <elf.h>
+
+#include <nuttx/binfmt/elf.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -53,14 +56,58 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: arch_checkarch
+ * Name: elf_verifyheader
  *
  * Description:
- *   Given the ELF header in hdr, verify that the ELF file is appropriate
- *   for the current, configured architecture.
+ *   Given the header from a possible ELF executable, verify that it is
+ *   an ELF executable.
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
  *
  ****************************************************************************/
 
-bool arch_checkarch(const struct Elf32_Ehdr *hdr);
+int elf_verifyheader(FAR const Elf32_Ehdr *header);
+
+/****************************************************************************
+ * Name: elf_read
+ *
+ * Description:
+ *   Read 'readsize' bytes from the object file at 'offset'
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+int elf_read(FAR struct elf_loadinfo_s *loadinfo, FAR uint8_t *buffer,
+             size_t readsize, off_t offset);
+
+/****************************************************************************
+ * Name: elf_findsymtab
+ *
+ * Description:
+ *   Find the symbol table section.
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+int elf_findsymtab(FAR struct elf_loadinfo_s *loadinfo);
+
+/****************************************************************************
+ * Name: elf_readsym
+ *
+ * Description:
+ *   Read the ELFT symbol structure at the specfied index into memory.
+ *
+ ****************************************************************************/
+
+int elf_readsym(FAR struct elf_loadinfo_s *loadinfo, int index,
+                FAR Elf32_Sym *sym);
 
 #endif /* __BINFMT_LIBELF_LIBELF_H */

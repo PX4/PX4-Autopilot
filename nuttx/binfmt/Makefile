@@ -56,6 +56,7 @@ BINFMT_CSRCS	+= symtab_findbyname.c symtab_findbyvalue.c \
 
 VPATH			= 
 SUBDIRS			=
+DEPPATH			= --dep-path .
 
 include libnxflat/Make.defs
 include libelf/Make.defs
@@ -82,8 +83,7 @@ $(BIN): $(BINFMT_OBJS)
 	done ; )
 
 .depend: Makefile $(BINFMT_SRCS)
-	@$(MKDEP) --dep-path . --dep-path libnxflat \
-		$(CC) -- $(CFLAGS) -- $(BINFMT_SRCS) >Make.dep
+	@$(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(BINFMT_SRCS) >Make.dep
 	@touch $@
 
 depend: .depend

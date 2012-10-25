@@ -49,5 +49,6 @@ BINFMT_CSRCS = libnxflat_init.c libnxflat_uninit.c libnxflat_load.c \
 
 VPATH += libnxflat
 SUBDIRS += libnxflat
+DEPPATH += --dep-path libnxflat
 
 endif

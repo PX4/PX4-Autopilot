@@ -49,6 +49,8 @@
 #include <nuttx/binfmt/elf.h>
 #include <nuttx/binfmt/symtab.h>
 
+#include "libelf.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -80,6 +82,120 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: elf_readsym
+ *
+ * Description:
+ *   Read the ELFT symbol structure at the specfied index into memory.
+ *
+ ****************************************************************************/
+
+static inline int elf_readrel(FAR struct elf_loadinfo_s *loadinfo,
+                              FAR const Elf32_Shdr *relsec,
+                              int index, FAR Elf32_Rel *rel)
+{
+  off_t offset;
+
+  /* Verify that the symbol table index lies within symbol table */
+
+  if (index < 0 || index > (relsec->sh_size / sizeof(Elf32_Rel)))
+    {
+      bdbg("Bad relocation symbol index: %d\n", index);
+      return -EINVAL;
+    }
+
+  /* Get the file offset to the symbol table entry */
+
+  offset = relsec->sh_offset + sizeof(Elf32_Rel) * index;
+
+  /* And, finally, read the symbol table entry into memory */
+
+  return elf_read(loadinfo, (FAR uint8_t*)rel, sizeof(Elf32_Rel), offset);
+}
+
+/****************************************************************************
+ * Name: elf_relocate and elf_relocateadd
+ *
+ * Description:
+ *   Perform all relocations associated with a section.
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+static int elf_relocate(FAR struct elf_loadinfo_s *loadinfo, int relidx)
+{
+  FAR Elf32_Shdr *relsec = &loadinfo->shdr[relidx];
+  FAR Elf32_Shdr *dstsec = &loadinfo->shdr[relsec->sh_info];
+  Elf32_Rel       rel;
+  Elf32_Sym       sym;
+  uintptr_t       addr;
+  int             symidx;
+  int             ret;
+  int             i;
+
+  /* Examine each relocation in the section */
+
+  for (i = 0; i < relsec->sh_size / sizeof(Elf32_Rel); i++)
+    {
+      /* Read the relocation entry into memory */
+
+      ret = elf_readrel(loadinfo, relsec, i, &rel);
+      if (ret < 0)
+        {
+          bdbg("Section %d reloc %d: Failed to read relocation entry: %d\n",
+               relidx, i, ret);
+          return ret;
+        }
+
+      /* Get the symbol table index for the relocation.  This is contained
+       * in a bit-field within the r_info element.
+       */
+
+      symidx = ELF32_R_SYM(rel.r_info);
+
+      /* Read the symbol table entry into memory */
+
+      ret = elf_readsym(loadinfo, symidx, &sym);
+      if (ret < 0)
+        {
+          bdbg("Section %d reloc %d: Failed to read symbol[%d]: %d\n",
+               relidx, i, symidx, ret);
+          return ret;
+        }
+
+      /* Calculate the relocation address */
+
+      if (rel.r_offset < 0 || rel.r_offset > dstsec->sh_size - sizeof(uint32_t))
+        {
+          bdbg("Section %d reloc %d: Relocation address out of range, offset %d size %d\n",
+               relidx, i, rel.r_offset, dstsec->sh_size);
+          return -EINVAL;
+        }
+
+      addr = dstsec->sh_addr + rel.r_offset;
+
+      /* Now perform the architecture-specific relocation */
+
+      ret = arch_relocate(&rel, &sym, addr);
+      if (ret < 0)
+        {
+          bdbg("Section %d reloc %d: Relocation failed: %d\n", ret);
+          return ret;
+        }
+    }
+
+  return OK;
+}
+
+static int elf_relocateadd(FAR struct elf_loadinfo_s *loadinfo, int relidx)
+{
+  bdbg("Not implemented\n");
+  return -ENOSYS;
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -99,7 +215,58 @@
 int elf_bind(FAR struct elf_loadinfo_s *loadinfo,
              FAR const struct symtab_s *exports, int nexports)
 {
-#warning "Missing logic"
-  return -ENOSYS;
+  int ret;
+  int i;
+
+  /* Find the symbol and string tables */
+
+  ret = elf_findsymtab(loadinfo);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  /* Process relocations in every allocated section */
+
+  for (i = 1; i < loadinfo->ehdr.e_shnum; i++)
+    {
+      /* Get the index to the relocation section */
+      
+      int infosec = loadinfo->shdr[i].sh_info;
+      if (infosec >= loadinfo->ehdr.e_shnum)
+        {
+          continue;
+        }
+
+      /* Make sure that the section is allocated.  We can't relocated
+       * sections that were not loaded into memory.
+       */
+
+      if ((loadinfo->shdr[infosec].sh_flags & SHF_ALLOC) == 0)
+        {
+          continue;
+        }
+
+      /* Process the relocations by type */
+
+      if (loadinfo->shdr[i].sh_type == SHT_REL)
+        {
+          ret = elf_relocate(loadinfo, i);
+        }
+      else if (loadinfo->shdr[i].sh_type == SHT_RELA)
+        {
+          ret = elf_relocateadd(loadinfo, i);
+        }
+
+      if (ret < 0)
+        {
+          break;
+        }
+    }
+
+  /* Flush the instruction cache before starting the newly loaded module */
+
+  arch_flushicache((FAR void*)loadinfo->alloc, loadinfo->allocsize);
+  return ret;
 }
 

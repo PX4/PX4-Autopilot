@@ -1,5 +1,5 @@
 /****************************************************************************
- * binfmt/libelf/arm.h
+ * arch/arm/src/common/arm-elf.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __BINFMT_LIBELF_ARM_H
-#define __BINFMT_LIBELF_ARM_H
+#ifndef __ARCH_ARM_SRC_ARM_ELF_H
+#define __ARCH_ARM_SRC_ARM_ELF_H
 
 /****************************************************************************
  * Included Files
@@ -50,4 +50,4 @@
  * Public Types
  ****************************************************************************/
 
-#endif /* __BINFMT_LIBELF_ARM_H */
+#endif /* __ARCH_ARM_SRC_ARM_ELF_H */

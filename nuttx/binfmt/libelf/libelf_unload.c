@@ -39,10 +39,10 @@
 
 #include <nuttx/config.h>
 
-#include <sys/mman.h>
 #include <stdlib.h>
 #include <debug.h>
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/binfmt/elf.h>
 
 /****************************************************************************
@@ -81,14 +81,14 @@ int elf_unload(struct elf_loadinfo_s *loadinfo)
   if (loadinfo->alloc)
     {
       kfree((void*)loadinfo->alloc);
-      loadinfo->alloc     = NULL;
+      loadinfo->alloc     = 0;
       loadinfo->allocsize = 0;
     }
 
-  if (loadinfo->shdrs)
+  if (loadinfo->shdr)
     {
-      kfree((void*)loadinfo->shdrs);
-      loadinfo->shdrs = 0;
+      kfree((void*)loadinfo->shdr);
+      loadinfo->shdr      = NULL;
     }
 
   return OK;

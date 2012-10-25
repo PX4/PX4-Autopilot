@@ -64,6 +64,10 @@
 #  undef CONFIG_ELF_DUMPBUFFER
 #endif
 
+#ifndef CONFIG_ELF_STACKSIZE
+#  define CONFIG_ELF_STACKSIZE 2048
+#endif
+
 #ifdef CONFIG_ELF_DUMPBUFFER
 # define elf_dumpbuffer(m,b,n) bvdbgdumpbuffer(m,b,n)
 #else
@@ -104,33 +108,55 @@ static struct binfmt_s g_elfbinfmt =
 #if defined(CONFIG_DEBUG) && defined(CONFIG_DEBUG_BINFMT)
 static void elf_dumploadinfo(FAR struct elf_loadinfo_s *loadinfo)
 {
-  unsigned long dsize = loadinfo->datasize + loadinfo->bsssize;
+  int i;
 
   bdbg("LOAD_INFO:\n");
-  bdbg("  ISPACE:\n");
-  bdbg("    ispace:       %08lx\n", loadinfo->ispace);
-  bdbg("    entryoffs:    %08lx\n", loadinfo->entryoffs);
-  bdbg("    isize:        %08lx\n", loadinfo->isize);
+  bdbg("  alloc:        %08lx\n", (long)loadinfo->alloc);
+  bdbg("  allocsize:    %ld\n",   (long)loadinfo->allocsize);
+  bdbg("  filelen:      %ld\n",   (long)loadinfo->filelen);
+#ifdef CONFIG_ELF_CONSTRUCTORS
+  bdbg("  ctors:        %08lx\n", (long)loadinfo->ctors);
+#endif
+  bdbg("  filfd:        %d\n",    loadinfo->filfd);
+  bdbg("  symtabidx:    %d\n",    loadinfo->symtabidx);
+  bdbg("  strtabidx:    %d\n",    loadinfo->strtabidx);
 
-  bdbg("  DSPACE:\n");
-  bdbg("    dspace:       %08lx\n", loadinfo->dspace);
-  if (loadinfo->dspace != NULL)
+  bdbg("ELF Header:\n");
+  bdbg("  e_ident:      %02x %02x %02x %02x\n",
+    loadinfo->ehdr.e_ident[0], loadinfo->ehdr.e_ident[1],
+    loadinfo->ehdr.e_ident[2], loadinfo->ehdr.e_ident[3]);
+  bdbg("  e_type:       %04x\n",  loadinfo->ehdr.e_type);
+  bdbg("  e_machine:    %04x\n",  loadinfo->ehdr.e_machine);
+  bdbg("  e_version:    %08x\n",  loadinfo->ehdr.e_version);
+  bdbg("  e_entry:      %08lx\n", (long)loadinfo->ehdr.e_entry);
+  bdbg("  e_phoff:      %d\n",    loadinfo->ehdr.e_phoff);
+  bdbg("  e_shoff:      %d\n",    loadinfo->ehdr.e_shoff);
+  bdbg("  e_flags:      %08x\n" , loadinfo->ehdr.e_flags);
+  bdbg("  e_ehsize:     %d\n",    loadinfo->ehdr.e_ehsize);
+  bdbg("  e_phentsize:  %d\n",    loadinfo->ehdr.e_phentsize);
+  bdbg("  e_phnum:      %d\n",    loadinfo->ehdr.e_phnum);
+  bdbg("  e_shentsize:  %d\n",    loadinfo->ehdr.e_shentsize);
+  bdbg("  e_shnum:      %d\n",    loadinfo->ehdr.e_shnum);
+  bdbg("  e_shstrndx:   %d\n",    loadinfo->ehdr.e_shstrndx);
+
+  if (loadinfo->shdr && loadinfo->ehdr.e_shum > 0)
     {
-      bdbg("      crefs:      %d\n",    loadinfo->dspace->crefs);
-      bdbg("      region:     %08lx\n", loadinfo->dspace->region);
+      for (i = 0; i < loadinfo->ehdr.e_shum; i++)
+        {
+          FAR ELF32_Shdr *shdr = &loadinfo->shdr[i];
+          bdbg("Sections %d:\n", i);
+          bdbg("  sh_name:      %08x\n", shdr->sh_name);
+          bdbg("  sh_type:      %08x\n", shdr->sh_type);
+          bdbg("  sh_flags:     %08x\n", shdr->sh_flags);
+          bdbg("  sh_addr:      %08x\n", shdr->sh_addr);
+          bdbg("  sh_offset:    %d\n",   shdr->sh_offset);
+          bdbg("  sh_size:      %d\n",   shdr->sh_size);
+          bdbg("  sh_link:      %d\n",   shdr->sh_link);
+          bdbg("  sh_info:      %d\n",   shdr->sh_info);
+          bdbg("  sh_addralign: %d\n",   shdr->sh_addralign);
+          bdbg("  sh_entsize:   %d\n",   shdr->sh_entsize);
+        }
     }
-  bdbg("    datasize:     %08lx\n", loadinfo->datasize);
-  bdbg("    bsssize:      %08lx\n", loadinfo->bsssize);
-  bdbg("      (pad):      %08lx\n", loadinfo->dsize - dsize);
-  bdbg("    stacksize:    %08lx\n", loadinfo->stacksize);
-  bdbg("    dsize:        %08lx\n", loadinfo->dsize);
-
-  bdbg("  RELOCS:\n");
-  bdbg("    relocstart:   %08lx\n", loadinfo->relocstart);
-  bdbg("    reloccount:   %d\n",    loadinfo->reloccount);
-
-  bdbg("  HANDLES:\n");
-  bdbg("    filfd:        %d\n",    loadinfo->filfd);
 }
 #else
 # define elf_dumploadinfo(i)
@@ -148,7 +174,7 @@ static void elf_dumploadinfo(FAR struct elf_loadinfo_s *loadinfo)
 static int elf_loadbinary(struct binary_s *binp)
 {
   struct elf_loadinfo_s loadinfo;  /* Contains globals for libelf */
-  int                      ret;
+  int                   ret;
 
   bvdbg("Loading file: %s\n", binp->filename);
 
@@ -183,14 +209,14 @@ static int elf_loadbinary(struct binary_s *binp)
 
   /* Return the load information */
 
-  binp->entrypt   = (main_t)(loadinfo.ispace + loadinfo.entryoffs);
-  binp->ispace    = (void*)loadinfo.ispace;
-  binp->dspace    = (void*)loadinfo.dspace;
-  binp->isize     = loadinfo.isize;
-  binp->stacksize = loadinfo.stacksize;
+  binp->entrypt   = (main_t)(loadinfo.alloc + loadinfo.ehdr.e_entry);
+  binp->ispace    = (void*)loadinfo.alloc;
+  binp->dspace    = NULL;
+  binp->isize     = loadinfo.allocsize;
+  binp->stacksize = CONFIG_ELF_STACKSIZE;
 
   elf_dumpbuffer("Entry code", (FAR const uint8_t*)binp->entrypt,
-                    MIN(binp->isize - loadinfo.entryoffs,512));
+                 MIN(binp->isize - loadinfo.ehdr.e_entry, 512));
 
   elf_uninit(&loadinfo);
   return OK;

@@ -1,5 +1,5 @@
 /****************************************************************************
- * binfmt/libelf/libelf_init.c
+ * binfmt/libelf/libelf_symbols.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,10 +39,6 @@
 
 #include <nuttx/config.h>
 
-#include <sys/stat.h>
-#include <stdint.h>
-#include <string.h>
-#include <fcntl.h>
 #include <elf.h>
 #include <debug.h>
 #include <errno.h>
@@ -54,20 +50,6 @@
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
-/* CONFIG_DEBUG, CONFIG_DEBUG_VERBOSE, and CONFIG_DEBUG_BINFMT have to be
- * defined or CONFIG_ELF_DUMPBUFFER does nothing.
- */
-
-#if !defined(CONFIG_DEBUG_VERBOSE) || !defined (CONFIG_DEBUG_BINFMT)
-#  undef CONFIG_ELF_DUMPBUFFER
-#endif
-
-#ifdef CONFIG_ELF_DUMPBUFFER
-# define elf_dumpbuffer(m,b,n) bvdbgdumpbuffer(m,b,n)
-#else
-# define elf_dumpbuffer(m,b,n)
-#endif
 
 /****************************************************************************
  * Private Constant Data
@@ -82,11 +64,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: elf_init
+ * Name: elf_findsymtab
  *
  * Description:
- *   This function is called to configure the library to process an ELF
- *   program binary.
+ *   Find the symbol table section.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -94,53 +75,60 @@
  *
  ****************************************************************************/
 
-int elf_init(FAR const char *filename, FAR struct elf_loadinfo_s *loadinfo)
+int elf_findsymtab(FAR struct elf_loadinfo_s *loadinfo)
 {
-  int ret;
+  int i;
 
-  bvdbg("filename: %s loadinfo: %p\n", filename, loadinfo);
+  /* Find the symbol table section header and its associated string table */
 
-  /* Clear the load info structure */
-
-  memset(loadinfo, 0, sizeof(struct elf_loadinfo_s));
-
-  /* Open the binary file */
-
-  loadinfo->filfd = open(filename, O_RDONLY);
-  if (loadinfo->filfd < 0)
+  for (i = 1; i < loadinfo->ehdr.e_shnum; i++)
     {
-      int errval = errno;
-      bdbg("Failed to open ELF binary %s: %d\n", filename, errval);
-      return -errval;      
+      if (loadinfo->shdr[i].sh_type == SHT_SYMTAB)
+        {
+          loadinfo->symtabidx = i;
+          loadinfo->strtabidx = loadinfo->shdr[i].sh_link;
+          break;
+        }
     }
 
-  /* Read the ELF ehdr from offset 0 */
+  /* Verify that there is a symbol and string table */
 
-  ret = elf_read(loadinfo, (FAR uint8_t*)&loadinfo->ehdr, sizeof(Elf32_Ehdr), 0);
-  if (ret < 0)
+  if (loadinfo->symtabidx == 0)
     {
-      bdbg("Failed to read ELF header: %d\n", ret);
-      return ret;
-    }
-
-  elf_dumpbuffer("ELF header", (FAR const uint8_t*)&loadinfo->ehdr, sizeof(Elf32_Ehdr));
-
-  /* Verify the ELF header */
-
-  ret = elf_verifyheader(&loadinfo->ehdr);
-  if (ret <0)
-    {
-      /* This may not be an error because we will be called to attempt loading
-       * EVERY binary.  If elf_verifyheader() does not recognize the ELF header,
-       * it will -ENOEXEC whcih simply informs the system that the file is not an
-       * ELF file.  elf_verifyheader() will return other errors if the ELF header
-       * is not correctly formed.
-       */
-
-      bdbg("Bad ELF header: %d\n", ret);
-      return ret;
+      bdbg("No symbols in ELF file\n");
+      return -EINVAL;
     }
 
   return OK;
 }
 
+/****************************************************************************
+ * Name: elf_readsym
+ *
+ * Description:
+ *   Read the ELFT symbol structure at the specfied index into memory.
+ *
+ ****************************************************************************/
+
+int elf_readsym(FAR struct elf_loadinfo_s *loadinfo, int index,
+                FAR Elf32_Sym *sym)
+{
+  FAR Elf32_Shdr *symtab = &loadinfo->shdr[loadinfo->symtabidx];
+  off_t offset;
+
+  /* Verify that the symbol table index lies within symbol table */
+
+  if (index < 0 || index > (symtab->sh_size / sizeof(Elf32_Sym)))
+    {
+      bdbg("Bad relocation symbol index: %d\n", index);
+      return -EINVAL;
+    }
+
+  /* Get the file offset to the symbol table entry */
+
+  offset = symtab->sh_offset + sizeof(Elf32_Sym) * index;
+
+  /* And, finally, read the symbol table entry into memory */
+
+  return elf_read(loadinfo, (FAR uint8_t*)sym, sizeof(Elf32_Sym), offset);
+}
