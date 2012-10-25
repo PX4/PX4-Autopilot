@@ -62,6 +62,10 @@ ifeq ($(CONFIG_EXAMPLES_DISCOVER),y)
 CONFIGURED_APPS += examples/discover
 endif
 
+ifeq ($(CONFIG_EXAMPLES_ELF),y)
+CONFIGURED_APPS += examples/elf
+endif
+
 ifeq ($(CONFIG_EXAMPLES_FTPC),y)
 CONFIGURED_APPS += examples/ftpc
 endif

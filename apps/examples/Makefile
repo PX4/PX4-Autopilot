@@ -37,7 +37,7 @@
 
 # Sub-directories
 
-SUBDIRS  = adc buttons can cdcacm composite dhcpd discover ftpc ftpd hello
+SUBDIRS  = adc buttons can cdcacm composite dhcpd discover elf ftpc ftpd hello
 SUBDIRS += helloxx hidkbd igmp lcdrw mm modbus mount nettest nsh null nx
 SUBDIRS += nxconsole nxffs nxflat nxhello nximage nxlines nxtext ostest
 SUBDIRS += pashello pipe poll pwm qencoder rgmp romfs serloop telnetd

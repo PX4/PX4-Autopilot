@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_ELF
+	bool "ELF Loader Example"
+	default n
+	---help---
+		Enable the ELF loader example
+
+if EXAMPLES_ELF
+endif

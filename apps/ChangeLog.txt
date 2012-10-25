@@ -380,6 +380,7 @@
 	* apps/examples/nximage/nximage_main.c:  Add a 5 second delay after the
 	  NX logo is presented so that there is time for the image to be verified.
 	  Suggested by Petteri Aimonen.
-i	* apps/Makefile: Small change that reduces the number of shell invocations
+	* apps/Makefile: Small change that reduces the number of shell invocations
 	  by one (Mike Smith).
+	* apps/examples/elf:  Test example for the ELF loader.
 

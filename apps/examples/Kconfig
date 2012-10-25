@@ -27,6 +27,10 @@ menu "DHCP Server Example"
 source "$APPSDIR/examples/dhcpd/Kconfig"
 endmenu
 
+menu "ELF Loader Example"
+source "$APPSDIR/examples/elf/Kconfig"
+endmenu
+
 menu "FTP Client Example"
 source "$APPSDIR/examples/ftpc/Kconfig"
 endmenu
