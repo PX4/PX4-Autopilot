@@ -62,6 +62,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <systemlib/systemlib.h>
+#include <systemlib/err.h>
 
 #include "codegen/attitudeKalmanfilter_initialize.h"
 #include "codegen/attitudeKalmanfilter.h"
@@ -200,7 +201,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	uint64_t last_run = hrt_absolute_time();
 
 	struct sensor_combined_s raw;
+	memset(&raw, 0, sizeof(raw));
 	struct vehicle_attitude_s att;
+	memset(&att, 0, sizeof(att));
 
 	uint64_t last_data = 0;
 	uint64_t last_measurement = 0;
@@ -350,7 +353,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					static bool const_initialized = false;
 
 					/* initialize with good values once we have a reasonable dt estimate */
-					if (!const_initialized && dt < 0.05 && dt > 0.005)
+					if (!const_initialized && dt < 0.05f && dt > 0.005f)
 					{
 						dt = 0.005f;
 						parameters_update(&ekf_param_handles, &ekf_params);
@@ -445,8 +448,12 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					memcpy(&att.R, Rot_matrix, sizeof(Rot_matrix));
 					att.R_valid = true;
 
-					// Broadcast
-					orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
+					if (isfinite(att.roll) && isfinite(att.pitch) && isfinite(att.yaw)) {
+						// Broadcast
+						orb_publish(ORB_ID(vehicle_attitude), pub_att, &att);
+					} else {
+						warnx("NaN in roll/pitch/yaw estimate!");
+					}
 				}
 			}
 		}
