@@ -49,6 +49,11 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+/* Configuration ************************************************************/
+
+#ifndef CONFIG_ELF_ALIGN_LOG2
+#  define CONFIG_ELF_ALIGN_LOG2 2
+#endif
 
 /****************************************************************************
  * Public Types
@@ -63,6 +68,9 @@ struct elf_loadinfo_s
   uintptr_t       alloc;       /* Allocated memory with the ELF file is loaded */
   size_t          allocsize;   /* Size of the memory allocation */
   off_t           filelen;     /* Length of the entire ELF file */
+#ifdef CONFIG_ELF_CONSTRUCTORS
+  uintptr_t       ctors;       /* Static constructors */
+#endif
   int             filfd;       /* Descriptor for the file being loaded */
   Elf32_Ehdr      ehdr;        /* Buffered ELF file header */
   FAR Elf32_Shdr *shdr;        /* Buffered ELF section headers */
