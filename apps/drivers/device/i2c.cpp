@@ -121,7 +121,7 @@ I2C::transfer(uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len
 	unsigned tries = 0;
 
 	do {
-	//	debug("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
+		//	debug("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
 
 		msgs = 0;
 
@@ -144,7 +144,7 @@ I2C::transfer(uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len
 		if (msgs == 0)
 			return -EINVAL;
 
-		/* 
+		/*
 		 * I2C architecture means there is an unavoidable race here
 		 * if there are any devices on the bus with a different frequency
 		 * preference.  Really, this is pointless.
@@ -154,7 +154,7 @@ I2C::transfer(uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len
 
 		if (ret == OK)
 			break;
-		
+
 		// reset the I2C bus to unwedge on error
 		up_i2creset(_dev);
 

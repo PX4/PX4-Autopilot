@@ -1,10 +1,10 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
- *           @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
+ *   Author: Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
+ *           Lorenz Meier <lm@inf.ethz.ch>
+ *           Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           Julian Oes <joes@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,6 +38,12 @@
 /**
  * @file commander.c
  * Main system state machine implementation.
+ *
+ * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ *
  */
 
 #include "commander.h"
@@ -56,8 +62,8 @@
 #include <v1.0/common/mavlink.h>
 #include <string.h>
 #include <arch/board/drv_led.h>
-#include <arch/board/up_hrt.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include "state_machine_helper.h"
 #include "systemlib/systemlib.h"
@@ -89,7 +95,7 @@
 PARAM_DEFINE_INT32(SYS_FAILSAVE_LL, 0);	/**< Go into low-level failsafe after 0 ms */
 //PARAM_DEFINE_INT32(SYS_FAILSAVE_HL, 0);	/**< Go into high-level failsafe after 0 ms */
 
-#include <arch/board/up_cpuload.h>
+#include <systemlib/cpuload.h>
 extern struct system_load_s system_load;
 
 /* Decouple update interval and hysteris counters, all depends on intervals */
@@ -121,9 +127,9 @@ static orb_advert_t stat_pub;
 
 static unsigned int failsafe_lowlevel_timeout_ms;
 
-static bool thread_should_exit = false;		/**< Deamon exit flag */
-static bool thread_running = false;		/**< Deamon status flag */
-static int deamon_task;				/**< Handle of deamon task / thread */
+static bool thread_should_exit = false;		/**< daemon exit flag */
+static bool thread_running = false;		/**< daemon status flag */
+static int daemon_task;				/**< Handle of daemon task / thread */
 
 /* pthread loops */
 static void *orb_receive_loop(void *arg);
@@ -942,6 +948,8 @@ static void *orb_receive_loop(void *arg)  //handles status information coming fr
 	int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
 	struct subsystem_info_s info;
 
+	struct vehicle_status_s *vstatus = (struct vehicle_status_s*)arg;
+
 	while (!thread_should_exit) {
 		struct pollfd fds[1] = { { .fd = subsys_sub, .events = POLLIN } };
 
@@ -952,6 +960,27 @@ static void *orb_receive_loop(void *arg)  //handles status information coming fr
 			orb_copy(ORB_ID(subsystem_info), subsys_sub, &info);
 
 			printf("Subsys changed: %d\n", (int)info.subsystem_type);
+
+			/* mark / unmark as present */
+			if (info.present) {
+				vstatus->onboard_control_sensors_present |= info.subsystem_type;
+			} else {
+				vstatus->onboard_control_sensors_present &= ~info.subsystem_type;
+			}
+
+			/* mark / unmark as enabled */
+			if (info.enabled) {
+				vstatus->onboard_control_sensors_enabled |= info.subsystem_type;
+			} else {
+				vstatus->onboard_control_sensors_enabled &= ~info.subsystem_type;
+			}
+
+			/* mark / unmark as ok */
+			if (info.ok) {
+				vstatus->onboard_control_sensors_health |= info.subsystem_type;
+			} else {
+				vstatus->onboard_control_sensors_health &= ~info.subsystem_type;
+			}
 		}
 	}
 
@@ -960,12 +989,6 @@ static void *orb_receive_loop(void *arg)  //handles status information coming fr
 	return NULL;
 }
 
-
-
-enum BAT_CHEM {
-	BAT_CHEM_LITHIUM_POLYMERE = 0,
-};
-
 /*
  * Provides a coarse estimate of remaining battery power.
  *
@@ -973,35 +996,41 @@ enum BAT_CHEM {
  *
  * @return the estimated remaining capacity in 0..1
  */
-float battery_remaining_estimate_voltage(int cells, int chemistry, float voltage);
+float battery_remaining_estimate_voltage(float voltage);
 
 PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.2f);
 PARAM_DEFINE_FLOAT(BAT_V_FULL, 4.05f);
+PARAM_DEFINE_FLOAT(BAT_N_CELLS, 3);
 
-float battery_remaining_estimate_voltage(int cells, int chemistry, float voltage)
+float battery_remaining_estimate_voltage(float voltage)
 {
 	float ret = 0;
 	static param_t bat_volt_empty;
 	static param_t bat_volt_full;
+	static param_t bat_n_cells;
 	static bool initialized = false;
 	static unsigned int counter = 0;
+	static float ncells = 3;
+	// XXX change cells to int (and param to INT32)
 
 	if (!initialized) {
 		bat_volt_empty = param_find("BAT_V_EMPTY");
 		bat_volt_full = param_find("BAT_V_FULL");
+		bat_n_cells = param_find("BAT_N_CELLS");
 		initialized = true;
 	}
 
-	float chemistry_voltage_empty[1] = { 3.2f };
-	float chemistry_voltage_full[1] = { 4.05f };
+	static float chemistry_voltage_empty = 3.2f;
+	static float chemistry_voltage_full = 4.05f;
 
 	if (counter % 100 == 0) {
-		param_get(bat_volt_empty, &(chemistry_voltage_empty[0]));
-		param_get(bat_volt_full, &(chemistry_voltage_full[0]));
+		param_get(bat_volt_empty, &chemistry_voltage_empty);
+		param_get(bat_volt_full, &chemistry_voltage_full);
+		param_get(bat_n_cells, &ncells);
 	}
 	counter++;
 
-	ret = (voltage - cells * chemistry_voltage_empty[chemistry]) / (cells * (chemistry_voltage_full[chemistry] - chemistry_voltage_empty[chemistry]));
+	ret = (voltage - ncells * chemistry_voltage_empty) / (ncells * (chemistry_voltage_full - chemistry_voltage_empty));
 
 	/* limit to sane values */
 	ret = (ret < 0) ? 0 : ret;
@@ -1014,12 +1043,12 @@ usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: deamon {start|stop|status} [-p <additional params>]\n\n");
+	fprintf(stderr, "usage: daemon {start|stop|status} [-p <additional params>]\n\n");
 	exit(1);
 }
 
 /**
- * The deamon app only briefly exists to start
+ * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
  * Makefile does only apply to this management task.
  * 
@@ -1040,7 +1069,7 @@ int commander_main(int argc, char *argv[])
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("commander",
+		daemon_task = task_spawn("commander",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 50,
 					 8000,
@@ -1126,7 +1155,7 @@ int commander_thread_main(int argc, char *argv[])
 	pthread_attr_t subsystem_info_attr;
 	pthread_attr_init(&subsystem_info_attr);
 	pthread_attr_setstacksize(&subsystem_info_attr, 2048);
-	pthread_create(&subsystem_info_thread, &subsystem_info_attr, orb_receive_loop, NULL);
+	pthread_create(&subsystem_info_thread, &subsystem_info_attr, orb_receive_loop, &current_status);
 
 	/* Start monitoring loop */
 	uint16_t counter = 0;
@@ -1218,7 +1247,7 @@ int commander_thread_main(int argc, char *argv[])
 		 * valid and system has been running for two and a half seconds
 		 */
 		if (battery_voltage_valid && (hrt_absolute_time() - start_time > 2500000)) {
-			bat_remain = battery_remaining_estimate_voltage(3, BAT_CHEM_LITHIUM_POLYMERE, battery_voltage);
+			bat_remain = battery_remaining_estimate_voltage(battery_voltage);
 		}
 
 		/* Slow but important 8 Hz checks */

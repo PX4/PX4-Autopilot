@@ -52,7 +52,7 @@
 #include <math.h>
 #include <systemlib/pid/pid.h>
 #include <systemlib/param/param.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 PARAM_DEFINE_FLOAT(MC_YAWPOS_P, 0.3f);
 PARAM_DEFINE_FLOAT(MC_YAWPOS_I, 0.15f);

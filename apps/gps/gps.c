@@ -564,10 +564,10 @@ void setup_port(char *device, int speed, int *fd)
 	*fd = open_port(device);
 
 	if (*fd != -1) {
-		if (gps_verbose) printf("[gps] Port opened: %s at %d speed\r\n", device, speed);
+		if (gps_verbose) printf("[gps] Port opened: %s at %d baud\n", device, speed);
 
 	} else {
-		fprintf(stderr, "[gps] Could not open port, exiting gps app!\r\n");
+		fprintf(stderr, "[gps] Could not open port, exiting gps app!\n");
 		fflush(stdout);
 	}
 
@@ -576,7 +576,7 @@ void setup_port(char *device, int speed, int *fd)
 	int termios_state;
 
 	if ((termios_state = tcgetattr(*fd, &uart_config)) < 0) {
-		fprintf(stderr, "[gps] ERROR getting baudrate / termios config for %s: %d\r\n", device, termios_state);
+		fprintf(stderr, "[gps] ERROR getting baudrate / termios config for %s: %d\n", device, termios_state);
 		close(*fd);
 	}
 	if (gps_verbose) printf("[gps] Try to set baud rate %d now\n",speed);
@@ -584,7 +584,7 @@ void setup_port(char *device, int speed, int *fd)
 	cfsetispeed(&uart_config, speed);
 	cfsetospeed(&uart_config, speed);
 	if ((termios_state = tcsetattr(*fd, TCSANOW, &uart_config)) < 0) {
-		fprintf(stderr, "[gps] ERROR setting baudrate / termios config for %s (tcsetattr)\r\n", device);
+		fprintf(stderr, "[gps] ERROR setting baudrate / termios config for %s (tcsetattr)\n", device);
 		close(*fd);
 	}
 }

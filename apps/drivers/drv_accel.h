@@ -83,7 +83,7 @@ ORB_DECLARE(sensor_accel);
 /*
  * ioctl() definitions
  *
- * Accelerometer drivers also implement the generic sensor driver 
+ * Accelerometer drivers also implement the generic sensor driver
  * interfaces from drv_sensor.h
  */
 

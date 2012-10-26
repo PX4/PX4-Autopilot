@@ -51,7 +51,7 @@
 #include <time.h>
 #include <systemlib/err.h>
 #include <sys/prctl.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>

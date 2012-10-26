@@ -1,9 +1,10 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
+ *   Author: Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
+ *           Lorenz Meier <lm@inf.ethz.ch>
+ *           Thomas Gubler <thomasgubler@student.ethz.ch>
  *           Julian Oes <joes@student.ethz.ch>
- *
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,12 +35,20 @@
  *
  ****************************************************************************/
 
-/* @file Main system state machine definition */
+/**
+ * @file commander.h
+ * Main system state machine definition.
+ *
+ * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
+ * @author Lorenz Meier <lm@inf.ethz.ch>
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ * @author Julian Oes <joes@student.ethz.ch>
+ *
+ */
 
 #ifndef COMMANDER_H_
 #define COMMANDER_H_
 
-#define VOLTAGE_BATTERY_CRITICAL_VOLTS 10.0f
 #define LOW_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS 1000.0f
 #define CRITICAL_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS 100.0f
 

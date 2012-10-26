@@ -43,7 +43,7 @@
 #include <math.h>
 
 __EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
-	      float limit, uint8_t mode)
+		       float limit, uint8_t mode)
 {
 	pid->kp = kp;
 	pid->ki = ki;
@@ -65,30 +65,35 @@ __EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float 
 
 	if (isfinite(kp)) {
 		pid->kp = kp;
+
 	} else {
 		ret = 1;
 	}
 
 	if (isfinite(ki)) {
 		pid->ki = ki;
+
 	} else {
 		ret = 1;
 	}
 
 	if (isfinite(kd)) {
 		pid->kd = kd;
+
 	} else {
 		ret = 1;
 	}
 
 	if (isfinite(intmax)) {
 		pid->intmax = intmax;
+
 	}  else {
 		ret = 1;
 	}
-	
+
 	if (isfinite(limit)) {
 		pid->limit = limit;
+
 	}  else {
 		ret = 1;
 	}
@@ -121,17 +126,16 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	 goto start
 	 */
 
-	if (!isfinite(sp) || !isfinite(val) || !isfinite(val_dot) || !isfinite(dt))
-	{
+	if (!isfinite(sp) || !isfinite(val) || !isfinite(val_dot) || !isfinite(dt)) {
 		return pid->last_output;
 	}
 
 	float i, d;
 	pid->sp = sp;
-	
+
 	// Calculated current error value
 	float error = pid->sp - val;
-	
+
 	if (isfinite(error)) {				// Why is this necessary?  DEW
 		pid->error_previous = error;
 	}
@@ -140,30 +144,36 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 
 	if (pid->mode == PID_MODE_DERIVATIV_CALC) {
 		d = (error - pid->error_previous) / dt;
+
 	} else if (pid->mode == PID_MODE_DERIVATIV_SET) {
 		d = -val_dot;
+
 	} else {
 		d = 0.0f;
 	}
 
 	// Calculate the error integral and check for saturation
 	i = pid->integral + (error * dt);
-	if( fabs((error * pid->kp) + (i * pid->ki) +  (d * pid->kd)) > pid->limit ||
-		fabs(i) > pid->intmax )
-	{
+
+	if (fabs((error * pid->kp) + (i * pid->ki) + (d * pid->kd)) > pid->limit ||
+	    fabs(i) > pid->intmax) {
 		i = pid->integral;		// If saturated then do not update integral value
 		pid->saturated = 1;
+
 	} else {
 		if (!isfinite(i)) {
 			i = 0;
 		}
+
 		pid->integral = i;
 		pid->saturated = 0;
 	}
 
 	// Calculate the output.  Limit output magnitude to pid->limit
 	float output = (pid->error_previous * pid->kp) + (i * pid->ki) + (d * pid->kd);
+
 	if (output > pid->limit) output = pid->limit;
+
 	if (output < -pid->limit) output = -pid->limit;
 
 	if (isfinite(output)) {

@@ -131,7 +131,7 @@ int task_spawn(const char *name, int scheduler, int priority, int stack_size, ma
 	pid = task_create(name, priority, stack_size, entry, argv);
 
 	if (pid > 0) {
-		
+
 		/* configure the scheduler */
 		struct sched_param param;
 
@@ -140,6 +140,7 @@ int task_spawn(const char *name, int scheduler, int priority, int stack_size, ma
 
 		/* XXX do any other private task accounting here before the task starts */
 	}
+
 	sched_unlock();
 
 	return pid;
@@ -157,15 +158,18 @@ int fmu_get_board_info(struct fmu_board_info_s *info)
 	statres = stat("/dev/bma180", &sb);
 
 	if (statres == OK) {
-			/* BMA180 indicates a v1.5-v1.6 board */
-			strcpy(info->board_name, "FMU v1.6");
-			info->board_version = 16;
+		/* BMA180 indicates a v1.5-v1.6 board */
+		strcpy(info->board_name, "FMU v1.6");
+		info->board_version = 16;
+
 	} else {
 		statres = stat("/dev/accel", &sb);
+
 		if (statres == OK) {
 			/* MPU-6000 indicates a v1.7+ board */
 			strcpy(info->board_name, "FMU v1.7");
 			info->board_version = 17;
+
 		} else {
 			/* If no BMA and no MPU is present, it is a v1.3 board */
 			strcpy(info->board_name, "FMU v1.3");

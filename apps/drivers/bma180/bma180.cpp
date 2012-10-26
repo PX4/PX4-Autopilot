@@ -58,7 +58,7 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
 
 #include <drivers/device/spi.h>
@@ -289,6 +289,7 @@ BMA180::init()
 	_num_reports = 2;
 	_oldest_report = _next_report = 0;
 	_reports = new struct accel_report[_num_reports];
+
 	if (_reports == nullptr)
 		goto out;
 
@@ -321,13 +322,16 @@ BMA180::init()
 	modify_reg(ADDR_CTRL_REG0, REG0_WRITE_ENABLE, 0);
 
 	if (set_range(4)) warnx("Failed setting range");
+
 	if (set_lowpass(75)) warnx("Failed setting lowpass");
 
 	if (read_reg(ADDR_CHIP_ID) == CHIP_ID) {
 		ret = OK;
+
 	} else {
 		ret = ERROR;
 	}
+
 out:
 	return ret;
 }
@@ -441,6 +445,7 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCGPOLLRATE:
 		if (_call_interval == 0)
 			return SENSOR_POLLRATE_MANUAL;
+
 		return 1000000 / _call_interval;
 
 	case SENSORIOCSQUEUEDEPTH: {
@@ -468,7 +473,7 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 		}
 
 	case SENSORIOCGQUEUEDEPTH:
-		return _num_reports -1;
+		return _num_reports - 1;
 
 	case SENSORIOCRESET:
 		/* XXX implement */
@@ -488,12 +493,12 @@ BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSSCALE:
 		/* copy scale in */
-		memcpy(&_accel_scale, (struct accel_scale*) arg, sizeof(_accel_scale));
+		memcpy(&_accel_scale, (struct accel_scale *) arg, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct accel_scale*) arg, &_accel_scale, sizeof(_accel_scale));
+		memcpy((struct accel_scale *) arg, &_accel_scale, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCSRANGE:
@@ -549,24 +554,30 @@ BMA180::set_range(unsigned max_g)
 
 	if (max_g == 0)
 		max_g = 16;
+
 	if (max_g > 16)
 		return -ERANGE;
 
 	if (max_g <= 2) {
 		_current_range = 2;
 		rangebits = OFFSET_LSB1_RANGE_2G;
+
 	} else if (max_g <= 3) {
 		_current_range = 3;
 		rangebits = OFFSET_LSB1_RANGE_3G;
+
 	} else if (max_g <= 4) {
 		_current_range = 4;
 		rangebits = OFFSET_LSB1_RANGE_4G;
+
 	} else if (max_g <= 8) {
 		_current_range = 8;
 		rangebits = OFFSET_LSB1_RANGE_8G;
+
 	} else if (max_g <= 16) {
 		_current_range = 16;
 		rangebits = OFFSET_LSB1_RANGE_16G;
+
 	} else {
 		return -EINVAL;
 	}
@@ -586,7 +597,7 @@ BMA180::set_range(unsigned max_g)
 
 	/* check if wanted value is now in register */
 	return !((read_reg(ADDR_OFFSET_LSB1) & OFFSET_LSB1_RANGE_MASK) ==
-		(OFFSET_LSB1_RANGE_MASK & rangebits));
+		 (OFFSET_LSB1_RANGE_MASK & rangebits));
 }
 
 int
@@ -633,7 +644,7 @@ BMA180::set_lowpass(unsigned frequency)
 
 	/* check if wanted value is now in register */
 	return !((read_reg(ADDR_BW_TCS) & BW_TCS_BW_MASK) ==
-		(BW_TCS_BW_MASK & bwbits));
+		 (BW_TCS_BW_MASK & bwbits));
 }
 
 void
@@ -703,9 +714,9 @@ BMA180::measure()
 	 * perform only the axis assignment here.
 	 * Two non-value bits are discarded directly
 	 */
-	report->y_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB+1)) << 8) | (read_reg(ADDR_ACC_X_LSB));// XXX PX4DEV raw_report.x;
-	report->x_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB+3)) << 8) | (read_reg(ADDR_ACC_X_LSB+2));// XXX PX4DEV raw_report.y;
-	report->z_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB+5)) << 8) | (read_reg(ADDR_ACC_X_LSB+4));// XXX PX4DEV raw_report.z;
+	report->y_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB + 1)) << 8) | (read_reg(ADDR_ACC_X_LSB)); // XXX PX4DEV raw_report.x;
+	report->x_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB + 3)) << 8) | (read_reg(ADDR_ACC_X_LSB + 2)); // XXX PX4DEV raw_report.y;
+	report->z_raw = (((int16_t)read_reg(ADDR_ACC_X_LSB + 5)) << 8) | (read_reg(ADDR_ACC_X_LSB + 4)); // XXX PX4DEV raw_report.z;
 
 	/* discard two non-value bits in the 16 bit measurement */
 	report->x_raw = (report->x_raw >> 2);
@@ -781,17 +792,21 @@ start()
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		goto fail;
+
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		goto fail;
 
 	exit(0);
 fail:
+
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 	}
+
 	errx(1, "driver start failed");
 }
 
@@ -809,16 +824,18 @@ test()
 
 	/* get the driver */
 	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
-		err(1, "%s open failed (try 'bma180 start' if the driver is not running)", 
-			ACCEL_DEVICE_PATH);
+		err(1, "%s open failed (try 'bma180 start' if the driver is not running)",
+		    ACCEL_DEVICE_PATH);
 
 	/* reset to manual polling */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
 		err(1, "reset to manual polling");
-	
+
 	/* do a simple demand read */
 	sz = read(fd, &a_report, sizeof(a_report));
+
 	if (sz != sizeof(a_report))
 		err(1, "immediate acc read failed");
 
@@ -831,7 +848,7 @@ test()
 	warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
 	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
 	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
-		(double)(a_report.range_m_s2 / 9.81f));
+	      (double)(a_report.range_m_s2 / 9.81f));
 
 	/* XXX add poll-rate tests here too */
 
@@ -846,10 +863,13 @@ void
 reset()
 {
 	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		err(1, "failed ");
+
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
 		err(1, "driver reset failed");
+
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		err(1, "driver poll restart failed");
 

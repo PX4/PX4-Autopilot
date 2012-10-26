@@ -56,7 +56,7 @@
 static int
 read_int8(bson_decoder_t decoder, int8_t *b)
 {
-	return (read(decoder->fd, b, sizeof(*b)) == sizeof(*b)) ? 0 : -1;	
+	return (read(decoder->fd, b, sizeof(*b)) == sizeof(*b)) ? 0 : -1;
 }
 
 static int
@@ -119,12 +119,14 @@ bson_decoder_next(bson_decoder_t decoder)
 	while (decoder->pending > 0) {
 		if (read_int8(decoder, &tbyte))
 			CODER_KILL(decoder, "read error discarding pending bytes");
+
 		decoder->pending--;
 	}
 
 	/* get the type byte */
 	if (read_int8(decoder, &tbyte))
 		CODER_KILL(decoder, "read error on type byte");
+
 	decoder->node.type = tbyte;
 	decoder->pending = 0;
 
@@ -135,13 +137,17 @@ bson_decoder_next(bson_decoder_t decoder)
 
 		/* get the node name */
 		nlen = 0;
+
 		for (;;) {
 			if (nlen >= BSON_MAXNAME)
 				CODER_KILL(decoder, "node name overflow");
+
 			if (read_int8(decoder, (int8_t *)&decoder->node.name[nlen]))
 				CODER_KILL(decoder, "read error on node name");
+
 			if (decoder->node.name[nlen] == '\0')
 				break;
+
 			nlen++;
 		}
 
@@ -151,20 +157,28 @@ bson_decoder_next(bson_decoder_t decoder)
 		case BSON_INT:
 			if (read_int32(decoder, &decoder->node.i))
 				CODER_KILL(decoder, "read error on BSON_INT");
+
 			break;
+
 		case BSON_DOUBLE:
 			if (read_double(decoder, &decoder->node.d))
 				CODER_KILL(decoder, "read error on BSON_DOUBLE");
+
 			break;
+
 		case BSON_STRING:
 			if (read_int32(decoder, &decoder->pending))
 				CODER_KILL(decoder, "read error on BSON_STRING length");
+
 			break;
+
 		case BSON_BINDATA:
 			if (read_int32(decoder, &decoder->pending))
 				CODER_KILL(decoder, "read error on BSON_BINDATA size");
+
 			if (read_int8(decoder, &tbyte))
 				CODER_KILL(decoder, "read error on BSON_BINDATA subtype");
+
 			decoder->node.subtype = tbyte;
 			break;
 
@@ -186,11 +200,12 @@ bson_decoder_copy_data(bson_decoder_t decoder, void *buf)
 	CODER_CHECK(decoder);
 
 	/* if data already copied, return zero bytes */
-	if (decoder->pending == 0) 
+	if (decoder->pending == 0)
 		return 0;
 
 	/* copy bytes per the node size */
 	result = read(decoder->fd, buf, decoder->pending);
+
 	if (result != decoder->pending)
 		CODER_KILL(decoder, "read error on copy_data");
 
@@ -209,7 +224,7 @@ static int
 write_int8(bson_encoder_t encoder, int8_t b)
 {
 	debug("write_int8 %d", b);
-	return (write(encoder->fd, &b, sizeof(b)) == sizeof(b)) ? 0 : -1;	
+	return (write(encoder->fd, &b, sizeof(b)) == sizeof(b)) ? 0 : -1;
 }
 
 static int
@@ -233,6 +248,7 @@ write_name(bson_encoder_t encoder, const char *name)
 
 	if (len > BSON_MAXNAME)
 		return -1;
+
 	debug("write name '%s' len %d", name, len);
 	return (write(encoder->fd, name, len + 1) == (int)(len + 1)) ? 0 : -1;
 }
@@ -300,6 +316,7 @@ bson_encoder_append_string(bson_encoder_t encoder, const char *name, const char 
 	    write_int32(encoder, len) ||
 	    write(encoder->fd, name, len + 1) != (int)(len + 1))
 		CODER_KILL(encoder, "write error on BSON_STRING");
+
 	return 0;
 }
 
@@ -314,5 +331,6 @@ bson_encoder_append_binary(bson_encoder_t encoder, const char *name, bson_binary
 	    write_int8(encoder, subtype) ||
 	    write(encoder->fd, data, size) != (int)(size))
 		CODER_KILL(encoder, "write error on BSON_BINDATA");
+
 	return 0;
 }

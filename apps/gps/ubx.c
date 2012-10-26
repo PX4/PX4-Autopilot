@@ -40,7 +40,7 @@
 #include "gps.h"
 #include <sys/prctl.h>
 #include <poll.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <string.h>
 #include <stdbool.h>
@@ -50,6 +50,7 @@
 
 #define UBX_HEALTH_SUCCESS_COUNTER_LIMIT 2
 #define UBX_HEALTH_FAIL_COUNTER_LIMIT 2
+#define UBX_HEALTH_PROBE_COUNTER_LIMIT 4
 
 #define UBX_BUFFER_SIZE 1000
 
@@ -242,9 +243,9 @@ int ubx_parse(uint8_t b,  char *gps_rx_buffer)
 						ubx_gps->timestamp = hrt_absolute_time();
 						ubx_gps->counter++;
 
-						pthread_mutex_lock(ubx_mutex);
+						//pthread_mutex_lock(ubx_mutex);
 						ubx_state->last_message_timestamps[NAV_POSLLH - 1] = hrt_absolute_time();
-						pthread_mutex_unlock(ubx_mutex);
+						//pthread_mutex_unlock(ubx_mutex);
 						ret = 1;
 
 					} else {
@@ -273,9 +274,9 @@ int ubx_parse(uint8_t b,  char *gps_rx_buffer)
 						ubx_gps->counter++;
 
 
-						pthread_mutex_lock(ubx_mutex);
+						//pthread_mutex_lock(ubx_mutex);
 						ubx_state->last_message_timestamps[NAV_SOL - 1] = hrt_absolute_time();
-						pthread_mutex_unlock(ubx_mutex);
+						//pthread_mutex_unlock(ubx_mutex);
 						ret = 1;
 
 					} else {
@@ -305,9 +306,9 @@ int ubx_parse(uint8_t b,  char *gps_rx_buffer)
 						ubx_gps->counter++;
 
 
-						pthread_mutex_lock(ubx_mutex);
+						//pthread_mutex_lock(ubx_mutex);
 						ubx_state->last_message_timestamps[NAV_DOP - 1] = hrt_absolute_time();
-						pthread_mutex_unlock(ubx_mutex);
+						//pthread_mutex_unlock(ubx_mutex);
 						ret = 1;
 
 					} else {
@@ -351,9 +352,9 @@ int ubx_parse(uint8_t b,  char *gps_rx_buffer)
 						ubx_gps->counter++;
 
 
-						pthread_mutex_lock(ubx_mutex);
+						//pthread_mutex_lock(ubx_mutex);
 						ubx_state->last_message_timestamps[NAV_TIMEUTC - 1] = hrt_absolute_time();
-						pthread_mutex_unlock(ubx_mutex);
+						//pthread_mutex_unlock(ubx_mutex);
 						ret = 1;
 
 					} else {
@@ -452,9 +453,9 @@ int ubx_parse(uint8_t b,  char *gps_rx_buffer)
 						ubx_gps->counter++;
 
 
-						pthread_mutex_lock(ubx_mutex);
+						//pthread_mutex_lock(ubx_mutex);
 						ubx_state->last_message_timestamps[NAV_SVINFO - 1] = hrt_absolute_time();
-						pthread_mutex_unlock(ubx_mutex);
+						//pthread_mutex_unlock(ubx_mutex);
 						ret = 1;
 
 					} else {
@@ -484,9 +485,9 @@ int ubx_parse(uint8_t b,  char *gps_rx_buffer)
 						ubx_gps->counter++;
 
 
-						pthread_mutex_lock(ubx_mutex);
+						//pthread_mutex_lock(ubx_mutex);
 						ubx_state->last_message_timestamps[NAV_VELNED - 1] = hrt_absolute_time();
-						pthread_mutex_unlock(ubx_mutex);
+						//pthread_mutex_unlock(ubx_mutex);
 						ret = 1;
 
 					} else {
@@ -518,9 +519,9 @@ int ubx_parse(uint8_t b,  char *gps_rx_buffer)
 						ubx_gps->counter++;
 
 
-						pthread_mutex_lock(ubx_mutex);
+						//pthread_mutex_lock(ubx_mutex);
 						ubx_state->last_message_timestamps[RXM_SVSI - 1] = hrt_absolute_time();
-						pthread_mutex_unlock(ubx_mutex);
+						//pthread_mutex_unlock(ubx_mutex);
 						ret = 1;
 
 					} else {
@@ -697,9 +698,10 @@ int write_config_message_ubx(uint8_t *message, size_t length, int fd)
 
 //	printf("[%x,%x]\n", ck_a, ck_b);
 
-	int result_write =  write(fd, message, length);
+	unsigned int result_write =  write(fd, message, length);
 	result_write +=  write(fd, &ck_a, 1);
 	result_write +=  write(fd, &ck_b, 1);
+	fsync(fd);
 
 	return (result_write != length + 2); //return 0 as success
 
@@ -759,15 +761,15 @@ void *ubx_watchdog_loop(void *args)
 
 
 			/* If we have too many failures and another mode or baud should be tried, exit... */
-			if ((gps_mode_try_all == true  || gps_baud_try_all == true) && (ubx_fail_count >= UBX_HEALTH_FAIL_COUNTER_LIMIT) && (ubx_healthy == false) && once_ok == false) {
-				if (gps_verbose) printf("[gps] Connection attempt failed, no UBX module found\r\n");
+			if ((gps_mode_try_all == true  || gps_baud_try_all == true) && (ubx_fail_count >= UBX_HEALTH_PROBE_COUNTER_LIMIT) && (ubx_healthy == false) && once_ok == false) {
+				if (gps_verbose) printf("[gps] Connection attempt failed, no UBX module found\n");
 
 				gps_mode_success = false;
 				break;
 			}
 
 			if (ubx_healthy && ubx_fail_count == UBX_HEALTH_FAIL_COUNTER_LIMIT) {
-				printf("[gps] ERROR: UBX GPS module stopped responding\r\n");
+				printf("[gps] ERROR: UBX GPS module stopped responding\n");
 				// global_data_send_subsystem_info(&ubx_present_enabled);
 				mavlink_log_critical(mavlink_fd, "[gps] UBX module stopped responding\n");
 				ubx_healthy = false;
@@ -817,7 +819,7 @@ void *ubx_loop(void *args)
 	char gps_rx_buffer[UBX_BUFFER_SIZE];
 
 
-	if (gps_verbose) printf("[gps] UBX protocol driver starting..\r\n");
+	if (gps_verbose) printf("[gps] UBX protocol driver starting..\n");
 
 	//set parameters for ubx_state
 
@@ -831,14 +833,14 @@ void *ubx_loop(void *args)
 	/* set parameters for ubx */
 
 	if (configure_gps_ubx(fd) != 0) {
-		printf("[gps] Configuration of gps module to ubx failed\r\n");
+		printf("[gps] Configuration of gps module to ubx failed\n");
 
 		/* Write shared variable sys_status */
 		// TODO enable this again
 		//global_data_send_subsystem_info(&ubx_present);
 
 	} else {
-		if (gps_verbose) printf("[gps] Attempting to configure GPS to UBX binary protocol\r\n");
+		if (gps_verbose) printf("[gps] Attempting to configure GPS to UBX binary protocol\n");
 
 		// XXX Shouldn't the system status only change if the module is known to work ok?
 

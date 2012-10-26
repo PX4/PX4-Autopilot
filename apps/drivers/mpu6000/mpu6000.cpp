@@ -61,7 +61,7 @@
 #include <nuttx/clock.h>
 
 #include <arch/board/board.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
@@ -569,6 +569,7 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCGPOLLRATE:
 		if (_call_interval == 0)
 			return SENSOR_POLLRATE_MANUAL;
+
 		return 1000000 / _call_interval;
 
 	case SENSORIOCSQUEUEDEPTH:
@@ -592,12 +593,12 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case ACCELIOCSSCALE:
 		/* copy scale in */
-		memcpy(&_accel_scale, (struct accel_scale*) arg, sizeof(_accel_scale));
+		memcpy(&_accel_scale, (struct accel_scale *) arg, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct accel_scale*) arg, &_accel_scale, sizeof(_accel_scale));
+		memcpy((struct accel_scale *) arg, &_accel_scale, sizeof(_accel_scale));
 		return OK;
 
 	case ACCELIOCSRANGE:
@@ -639,12 +640,12 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case GYROIOCSSCALE:
 		/* copy scale in */
-		memcpy(&_gyro_scale, (struct gyro_scale*) arg, sizeof(_gyro_scale));
+		memcpy(&_gyro_scale, (struct gyro_scale *) arg, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCGSCALE:
 		/* copy scale out */
-		memcpy((struct gyro_scale*) arg, &_gyro_scale, sizeof(_gyro_scale));
+		memcpy((struct gyro_scale *) arg, &_gyro_scale, sizeof(_gyro_scale));
 		return OK;
 
 	case GYROIOCSRANGE:
@@ -976,17 +977,21 @@ start()
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		goto fail;
+
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		goto fail;
 
 	exit(0);
 fail:
+
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 	}
+
 	errx(1, "driver start failed");
 }
 
@@ -1006,21 +1011,24 @@ test()
 
 	/* get the driver */
 	fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
-		err(1, "%s open failed (try 'mpu6000 start' if the driver is not running)", 
-			ACCEL_DEVICE_PATH);
+		err(1, "%s open failed (try 'mpu6000 start' if the driver is not running)",
+		    ACCEL_DEVICE_PATH);
 
 	/* get the driver */
 	fd_gyro = open(GYRO_DEVICE_PATH, O_RDONLY);
+
 	if (fd_gyro < 0)
 		err(1, "%s open failed", GYRO_DEVICE_PATH);
 
 	/* reset to manual polling */
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_MANUAL) < 0)
 		err(1, "reset to manual polling");
-	
+
 	/* do a simple demand read */
 	sz = read(fd, &a_report, sizeof(a_report));
+
 	if (sz != sizeof(a_report))
 		err(1, "immediate acc read failed");
 
@@ -1033,10 +1041,11 @@ test()
 	warnx("acc  y:  \t%d\traw 0x%0x", (short)a_report.y_raw, (unsigned short)a_report.y_raw);
 	warnx("acc  z:  \t%d\traw 0x%0x", (short)a_report.z_raw, (unsigned short)a_report.z_raw);
 	warnx("acc range: %8.4f m/s^2 (%8.4f g)", (double)a_report.range_m_s2,
-		(double)(a_report.range_m_s2 / 9.81f));
+	      (double)(a_report.range_m_s2 / 9.81f));
 
 	/* do a simple demand read */
 	sz = read(fd_gyro, &g_report, sizeof(g_report));
+
 	if (sz != sizeof(g_report))
 		err(1, "immediate gyro read failed");
 
@@ -1047,7 +1056,7 @@ test()
 	warnx("gyro y: \t%d\traw", (int)g_report.y_raw);
 	warnx("gyro z: \t%d\traw", (int)g_report.z_raw);
 	warnx("gyro range: %8.4f rad/s (%d deg/s)", (double)g_report.range_rad_s,
-		(int)((g_report.range_rad_s / M_PI_F) * 180.0f+0.5f));
+	      (int)((g_report.range_rad_s / M_PI_F) * 180.0f + 0.5f));
 
 	warnx("temp:  \t%8.4f\tdeg celsius", (double)a_report.temperature);
 	warnx("temp:  \t%d\traw 0x%0x", (short)a_report.temperature_raw, (unsigned short)a_report.temperature_raw);
@@ -1066,10 +1075,13 @@ void
 reset()
 {
 	int fd = open(ACCEL_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		err(1, "failed ");
+
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
 		err(1, "driver reset failed");
+
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		err(1, "driver poll restart failed");
 

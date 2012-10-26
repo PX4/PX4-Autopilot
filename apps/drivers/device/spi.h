@@ -84,7 +84,7 @@ protected:
 	 * If called from interrupt context, this interface does not lock
 	 * the bus and may interfere with non-interrupt-context callers.
 	 *
-	 * Clients in a mixed interrupt/non-interrupt configuration must 
+	 * Clients in a mixed interrupt/non-interrupt configuration must
 	 * ensure appropriate interlocking.
 	 *
 	 * At least one of send or recv must be non-null.

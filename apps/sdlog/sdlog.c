@@ -51,7 +51,7 @@
 #include <string.h>
 #include <systemlib/err.h>
 #include <unistd.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
@@ -72,6 +72,7 @@ static int deamon_task;				/**< Handle of deamon task / thread */
 static const int MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log folders */
 
 static const char *mountpoint = "/fs/microsd";
+static const char *mfile_in = "/etc/logging/logconv.m";
 
 /**
  * SD log management function.
@@ -90,10 +91,12 @@ static void usage(const char *reason);
 
 static int file_exist(const char *filename);
 
+static int file_copy(const char* file_old, const char* file_new);
+
 /**
  * Print the current status.
  */
-static void print_sdlog_status();
+static void print_sdlog_status(void);
 
 /**
  * Create folder for current logging session.
@@ -181,7 +184,17 @@ int create_logfolder(char* folder_path) {
 		/* the result is -1 if the folder exists */
 
 		if (mkdir_ret == 0) {
-			/* folder does not exist */
+			/* folder does not exist, success */
+
+			/* now copy the Matlab/Octave file */
+			char mfile_out[100];
+			sprintf(mfile_out, "%s/session%04u/run_to_plot_data.m", mountpoint, foldernumber);
+			int ret = file_copy(mfile_in, mfile_out);
+			if (!ret) {
+				warnx("copied m file to %s", mfile_out);
+			} else {
+				warnx("failed copying m file from %s to\n %s", mfile_in, mfile_out);
+			}
 			break;
 
 		} else if (mkdir_ret == -1) {
@@ -379,7 +392,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	 * set up poll to block for new data,
 	 * wait for a maximum of 1000 ms (1 second)
 	 */
-	const int timeout = 1000;
+	// const int timeout = 1000;
 
 	thread_running = true;
 
@@ -548,5 +561,44 @@ int file_exist(const char *filename)
 {
 	struct stat buffer;
 	return stat(filename, &buffer);
+}
+
+int file_copy(const char* file_old, const char* file_new)
+{
+	FILE *source, *target;
+	source = fopen(file_old, "r");
+	int ret = 0;
+ 
+	if( source == NULL )
+	{
+		warnx("failed opening input file to copy");
+		return 1;
+	}
+
+	target = fopen(file_new, "w");
+ 
+	if( target == NULL )
+	{
+		fclose(source);
+		warnx("failed to open output file to copy");
+		return 1;
+	}
+ 
+	char buf[128];
+	int nread;
+	while ((nread = fread(buf, 1, sizeof(buf), source)) > 0) {
+		int ret = fwrite(buf, 1, nread, target);
+		if (ret <= 0) {
+			warnx("error writing file");
+			ret = 1;
+			break;
+		}
+	}
+	fsync(fileno(target));
+
+	fclose(source);
+	fclose(target);
+
+   return ret;
 }
 

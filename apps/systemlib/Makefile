@@ -41,7 +41,12 @@ CSRCS		 = err.c \
 		   param/param.c \
 		   bson/tinybson.c \
 		   conversions.c \
+		   cpuload.c \
 		   getopt_long.c
+
+#		   ppm_decode.c \
+
+
 
 #
 # XXX this really should be a CONFIG_* test

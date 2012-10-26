@@ -50,7 +50,7 @@
 #include <string.h>
 #include "mavlink_bridge_header.h"
 #include <v1.0/common/mavlink.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <time.h>
 #include <float.h>
 #include <unistd.h>
@@ -745,7 +745,10 @@ int mavlink_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "stop")) {
 		thread_should_exit = true;
-		/* XXX should wait for it to actually exit here */
+		while (thread_running) {
+			usleep(200000);
+		}
+		warnx("terminated.");
 		exit(0);
 	}
 

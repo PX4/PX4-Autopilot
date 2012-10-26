@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,8 @@
 /**
  * @file mavlink_bridge_header
  * MAVLink bridge header for UART access.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 /* MAVLink adapter header */

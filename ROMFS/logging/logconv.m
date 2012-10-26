@@ -1,5 +1,72 @@
 clear all
-clc
+close all
+
+%%%%%%%%%%%%%%%%%%%%%%%
+% SYSTEM VECTOR
+%
+% 			All measurements in NED frame
+% 			
+% 			uint64_t timestamp;
+% 			float gyro[3]; in rad/s
+% 			float accel[3]; in m/s^2
+% 			float mag[3]; in Gauss
+% 			float baro; pressure in millibar
+% 			float baro_alt; altitude above MSL in meters
+% 			float baro_temp; in degrees celcius
+% 			float control[4]; roll, pitch, yaw [-1..1], thrust [0..1]
+% 			float actuators[8]; motor 1-8, in motor units (PWM: 1000-2000,
+% 			AR.Drone: 0-512
+% 			float vbat; battery voltage in volt
+% 			float adc[3]; remaining auxiliary ADC ports in volt
+%           float local_position
+%           int32 gps_raw_position
+
+
+if exist('sysvector.bin', 'file')
+    % Read actuators file
+    myFile = java.io.File('sysvector.bin')
+    fileSize = length(myFile)
+
+    fid = fopen('sysvector.bin', 'r');
+    elements = int64(fileSize./(8+(3+3+3+1+1+1+4+8+4+3+3)*4));
+
+    for i=1:elements
+        % timestamp
+        sysvector(i,1) = double(fread(fid, 1, '*uint64', 0, 'ieee-le.l64'));
+        % actuators 1-16
+        % quadrotor: motor 1-4 on the first four positions
+        sysvector(i, 2:32) = fread(fid,  28+3, 'float', 'ieee-le');
+        sysvector(i,33:35) = fread(fid, 3, 'int32', 'ieee-le');
+    end
+    
+    sysvector_interval_seconds = (sysvector(end,1) - sysvector(1:1)) / 1000000
+    sysvector_minutes = sysvector_interval_seconds / 60
+    
+    % Normalize time
+    sysvector(:,1) = (sysvector(:,1) - sysvector(1,1)) / 1000000;
+    
+    % Create some basic plots
+    
+    % Remove zero rows from GPS
+    gps = sysvector(:,33:35);
+    gps(~any(gps,2), :) = [];
+    
+    all_data = figure('Name', 'GPS RAW');
+    gps_position = plot3(gps(:,1), gps(:,2), gps(:,3));
+    
+    
+    all_data = figure('Name', 'Complete Log Data (exc. GPS)');
+    plot(sysvector(:,1), sysvector(:,2:32));
+    
+    actuator_inputs = figure('Name', 'Attitude controller outputs');
+    plot(sysvector(:,1), sysvector(:,14:17));
+    legend('roll motor setpoint', 'pitch motor setpoint', 'yaw motor setpoint', 'throttle motor setpoint');
+    
+    actuator_outputs = figure('Name', 'Actuator outputs');
+    plot(sysvector(:,1), sysvector(:,18:25));
+    legend('actuator 0', 'actuator 1', 'actuator 2', 'actuator 3', 'actuator 4', 'actuator 5', 'actuator 6', 'actuator 7');
+    
+end
 
 if exist('actuator_outputs0.bin', 'file')
     % Read actuators file
@@ -9,7 +76,7 @@ if exist('actuator_outputs0.bin', 'file')
     fid = fopen('actuator_outputs0.bin', 'r');
     elements = int64(fileSize./(16*4+8))
 
-    for i=1:(elements-2)
+    for i=1:elements
         % timestamp
         actuators(i,1) = double(fread(fid, 1, '*uint64', 0, 'ieee-le.l64'));
         % actuators 1-16

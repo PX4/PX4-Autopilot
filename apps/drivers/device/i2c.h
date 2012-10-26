@@ -42,7 +42,7 @@
 
 #include <nuttx/i2c.h>
 
-namespace device __EXPORT 
+namespace device __EXPORT
 {
 
 /**
