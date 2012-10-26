@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <sys/stat.h>
+
 #include <stdint.h>
 #include <string.h>
 #include <fcntl.h>
@@ -78,6 +79,52 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: elf_filelen
+ *
+ * Description:
+ *  Get the size of the ELF file
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+static inline int elf_filelen(FAR struct elf_loadinfo_s *loadinfo,
+                              FAR const char *filename)
+{
+  struct stat buf;
+  int ret;
+
+  /* Get the file stats */
+
+  ret = stat(filename, &buf);
+  if (ret < 0)
+    {
+      int errval = errno;
+      bdbg("Failed to fstat file: %d\n", errval);
+      return -errval;
+    }
+
+  /* Verify that it is a regular file */
+
+  if (!S_ISREG(buf.st_mode))
+    {
+      bdbg("Not a regular file.  mode: %d\n", buf.st_mode);
+      return -ENOENT;
+    }
+
+  /* TODO:  Verify that the file is readable.  Not really important because
+   * we will detect this when we try to open the file read-only.
+   */
+
+  /* Return the size of the file in the loadinfo structure */
+
+  loadinfo->filelen = buf.st_size;
+  return OK;
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -104,7 +151,15 @@ int elf_init(FAR const char *filename, FAR struct elf_loadinfo_s *loadinfo)
 
   memset(loadinfo, 0, sizeof(struct elf_loadinfo_s));
 
-  /* Open the binary file */
+  /* Get the length of the file. */
+
+  ret = elf_filelen(loadinfo, filename);
+    {
+      bdbg("elf_filelen failed: %d\n", ret);
+      return ret;
+    }
+
+  /* Open the binary file for reading (only) */
 
   loadinfo->filfd = open(filename, O_RDONLY);
   if (loadinfo->filfd < 0)

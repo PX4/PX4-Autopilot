@@ -14,7 +14,7 @@ nuttx/
   (2)  C++ Support
   (6)  Binary loaders (binfmt/)
  (17)  Network (net/, drivers/net)
-  (3)  USB (drivers/usbdev, drivers/usbhost)
+  (4)  USB (drivers/usbdev, drivers/usbhost)
  (11)  Libraries (lib/)
   (9)  File system/Generic drivers (fs/, drivers/)
   (5)  Graphics subystem (graphics/)
@@ -628,6 +628,11 @@ o USB (drivers/usbdev, drivers/usbhost)
   Priority:    High for class drivers that need EP0 data.  For example, the
                CDC/ACM serial driver might need the line coding data (that
                data is not used currenly, but it might be).
+
+  Title:       USB HUB SUPPORT
+  Description: Add support for USB hubs
+  Status:      Open
+  Priority:    Low/Unknown.  This is a feature enhancement.
 
 o Libraries (lib/)
   ^^^^^^^^^^^^^^^^

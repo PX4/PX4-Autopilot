@@ -52,6 +52,10 @@ ifneq ($(CONFIG_DISABLE_SIGNALS),y)
 CMN_CSRCS	+= up_schedulesigaction.c up_sigdeliver.c
 endif
 
+ifeq ($(CONFIG_ELF),y)
+CMN_CSRCS += up_elf.c
+endif
+
 CHIP_ASRCS	= lpc23xx_lowputc.S
 CHIP_CSRCS	= lpc23xx_pllsetup.c  lpc23xx_decodeirq.c lpc23xx_irq.c lpc23xx_timerisr.c \
 			  lpc23xx_serial.c lpc23xx_io.c

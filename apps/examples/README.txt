@@ -333,8 +333,8 @@ examples/elf
      include the path to the genromfs executable.
 
   3. ELF size:  The ELF files in this example are, be default, quite large
-     because they include a lot of "build garbage".  You can greately reduce the
-     size of the ELF binaries are using the objcopy --strip-unneeded command to
+     because they include a lot of "build garbage".  You can greatly reduce the
+     size of the ELF binaries are using the 'objcopy --strip-unneeded' command to
      remove un-necessary information from the ELF files.
 
   4. Simulator.  You cannot use this example with the the NuttX simulator on

@@ -44,6 +44,10 @@ CMN_CSRCS	= up_allocateheap.c up_assert.c up_blocktask.c up_copystate.c \
 		  up_sigdeliver.c up_syscall.c up_unblocktask.c \
 		  up_undefinedinsn.c up_usestack.c
 
+ifeq ($(CONFIG_ELF),y)
+CMN_CSRCS += up_elf.c
+endif
+
 CHIP_ASRCS	= c5471_lowputc.S c5471_vectors.S
 CHIP_CSRCS	= c5471_irq.c c5471_serial.c c5471_timerisr.c c5471_watchdog.c \
 		  c5471_ethernet.c

@@ -50,6 +50,10 @@ ifeq ($(CONFIG_PAGING),y)
 CMN_CSRCS	+= up_pginitialize.c up_checkmapping.c up_allocpage.c up_va2pte.c
 endif
 
+ifeq ($(CONFIG_ELF),y)
+CMN_CSRCS += up_elf.c
+endif
+
 CGU_ASRCS	= 
 CGU_CSRCS	= lpc31_bcrndx.c lpc31_clkdomain.c lpc31_clkexten.c \
 		  lpc31_clkfreq.c lpc31_clkinit.c lpc31_defclk.c \

@@ -93,7 +93,7 @@ void sigusr1_sighandler(int signo)
 void sigusr2_sigaction(int signo, siginfo_t *siginfo, void *arg)
 {
   printf("sigusr2_sigaction: Received SIGUSR2, signo=%d siginfo=%p arg=%p\n",
-	 signo, siginfo, arg);
+         signo, siginfo, arg);
 
 #ifdef HAVE_SIGQUEUE
   if (siginfo)
@@ -163,7 +163,7 @@ int main(int argc, char **argv)
   if (old_sigusr1_sighandler == SIG_ERR)
     {
       fprintf(stderr, "Failed to install SIGUSR1 handler, errno=%d\n",
-	      errno);
+              errno);
       exit(1);
     }
 
@@ -182,7 +182,7 @@ int main(int argc, char **argv)
   if (status != 0)
     {
       fprintf(stderr, "Failed to install SIGUSR2 handler, errno=%d\n",
-	      errno);
+              errno);
       exit(2);
     }
 
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
   if (old_sigusr2_sighandler == SIG_ERR)
     {
       fprintf(stderr, "Failed to install SIGUSR2 handler, errno=%d\n",
-	      errno);
+              errno);
       exit(7);
     }
 
@@ -275,8 +275,8 @@ int main(int argc, char **argv)
   if ((void*)old_sigusr2_sighandler != (void*)sigusr2_sigaction)
     {
       fprintf(stderr,
-	      "Old SIGUSR2 signhanlder (%p) is not sigusr2_sigation (%p)\n",
-	      old_sigusr2_sighandler, sigusr2_sigaction);
+              "Old SIGUSR2 signhanlder (%p) is not sigusr2_sigation (%p)\n",
+              old_sigusr2_sighandler, sigusr2_sigaction);
       exit(8);
     }
 

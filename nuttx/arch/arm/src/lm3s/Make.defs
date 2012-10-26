@@ -48,6 +48,10 @@ ifeq ($(CONFIG_ARCH_MEMCPY),y)
 CMN_ASRCS	+= up_memcpy.S
 endif
 
+ifeq ($(CONFIG_ELF),y)
+CMN_CSRCS += up_elf.c
+endif
+
 CHIP_ASRCS	= 
 CHIP_CSRCS	= lm3s_start.c lm3s_syscontrol.c lm3s_irq.c \
 			  lm3s_gpio.c lm3s_gpioirq.c lm3s_timerisr.c lm3s_lowputc.c \

@@ -61,6 +61,10 @@ ifeq ($(CONFIG_DEBUG_STACK),y)
 CMN_CSRCS	+= up_checkstack.c
 endif
 
+ifeq ($(CONFIG_ELF),y)
+CMN_CSRCS += up_elf.c
+endif
+
 ifeq ($(CONFIG_ARCH_FPU),y)
 CMN_ASRCS	+= up_fpu.S
 endif

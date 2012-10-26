@@ -58,6 +58,10 @@ CMN_CSRCS	+= up_etherstub.c
 endif
 endif
 
+ifeq ($(CONFIG_ELF),y)
+CMN_CSRCS += up_elf.c
+endif
+
 # Required LPC17xx files
 
 CHIP_ASRCS	=

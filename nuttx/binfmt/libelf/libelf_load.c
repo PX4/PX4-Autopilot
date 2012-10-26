@@ -40,7 +40,6 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
-#include <sys/stat.h>
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -75,49 +74,6 @@
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: elf_filelen
- *
- * Description:
- *  Get the size of the ELF file
- *
- * Returned Value:
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
- *
- ****************************************************************************/
-
-static inline int elf_filelen(FAR struct elf_loadinfo_s *loadinfo)
-{
-  struct stat buf;
-  int ret;
-
-  /* Get the file stats */
-
-  ret = fstat(loadinfo->filfd, &buf);
-  if (ret < 0)
-    {
-      int errval = errno;
-      bdbg("Failed to fstat file: %d\n", errval);
-      return -errval;
-    }
-
-  /* Verify that it is a regular file */
-
-  if (!S_ISREG(buf.st_mode))
-    {
-      bdbg("Not a regular file.  mode: %d\n", buf.st_mode);
-      return -ENOENT;
-    }
-
-  /* TODO:  Verify that the file is readable */
-
-  /* Return the size of the file in the loadinfo structure */
-
-  loadinfo->filelen = buf.st_size;
-  return OK;
-}
 
 /****************************************************************************
  * Name: elf_loadshdrs
@@ -322,14 +278,6 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
 
   bvdbg("loadinfo: %p\n", loadinfo);
   DEBUGASSERT(loadinfo && loadinfo->filfd >= 0);
-
-  /* Get the length of the file. */
-
-  ret = elf_filelen(loadinfo);
-    {
-      bdbg("elf_filelen failed: %d\n", ret);
-      return ret;
-    }
 
   /* Load section headers into memory */
 

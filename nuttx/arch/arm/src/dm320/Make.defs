@@ -45,6 +45,10 @@ CMN_CSRCS	= up_assert.c up_blocktask.c up_copystate.c up_createstack.c \
 		  up_sigdeliver.c up_syscall.c up_unblocktask.c \
 		  up_undefinedinsn.c up_usestack.c
 
+ifeq ($(CONFIG_ELF),y)
+CMN_CSRCS += up_elf.c
+endif
+
 CHIP_ASRCS	= dm320_lowputc.S dm320_restart.S
 CHIP_CSRCS	= dm320_allocateheap.c dm320_boot.c dm320_decodeirq.c \
 		  dm320_irq.c dm320_serial.c dm320_timerisr.c dm320_framebuffer.c

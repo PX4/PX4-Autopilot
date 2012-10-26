@@ -45,6 +45,10 @@ CMN_CSRCS	= up_assert.c up_blocktask.c up_copystate.c up_createstack.c \
 		  up_sigdeliver.c up_syscall.c up_unblocktask.c \
 		  up_undefinedinsn.c up_usestack.c
 
+ifeq ($(CONFIG_ELF),y)
+CMN_CSRCS += up_elf.c
+endif
+
 CHIP_ASRCS	= imx_lowputc.S
 CHIP_CSRCS	= imx_boot.c imx_gpio.c imx_allocateheap.c imx_irq.c \
 		  imx_serial.c imx_timerisr.c  imx_decodeirq.c imx_spi.c

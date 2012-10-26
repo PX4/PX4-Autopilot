@@ -3517,4 +3517,8 @@
 	  for ELF modules.
 	* arch/arm/include/elf.h:  Added ARM ELF header file.
 	* include/elf32.h:  Renamed elf.h to elf32.h.
-
+	* configs/stm32f4discovery/ostest:  Converted to use the new
+	  Kconfig-based configuration system.
+	* configs/stm32f4discovery/elf and configs/stm32f4discovery/scripts/gnu-elf.ld
+	  Add a configuration for testing the ARM ELF loader.
+	* binfmt/libelf:  Can't use fstat(). NuttX does not yet support it.  Damn!

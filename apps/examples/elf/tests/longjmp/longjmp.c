@@ -74,6 +74,10 @@ static int leaf(int *some_arg)
   printf("leaf: Calling longjmp() with %d\n", some_local_variable);
 
   longjmp(env, some_local_variable);
+
+  /* We should not get here */
+
+  return -ERROR; 
 }
 
 static int function(int some_arg)

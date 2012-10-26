@@ -58,6 +58,10 @@ ifeq ($(CONFIG_NUTTX_KERNEL),y)
 CHIP_CSRCS	+= up_mpu.c
 endif
 
+ifeq ($(CONFIG_ELF),y)
+CMN_CSRCS += up_elf.c
+endif
+
 # Required SAM3U files
 
 CHIP_ASRCS	= 
