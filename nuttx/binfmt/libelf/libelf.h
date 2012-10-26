@@ -43,7 +43,7 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
-#include <elf.h>
+#include <elf32.h>
 
 #include <nuttx/binfmt/elf.h>
 

@@ -41,7 +41,7 @@
 
 #include <stdint.h>
 #include <string.h>
-#include <elf.h>
+#include <elf32.h>
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>

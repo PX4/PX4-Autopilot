@@ -174,7 +174,7 @@ int elf_main(int argc, char *argv[])
   /* Create a ROM disk for the ROMFS filesystem */
 
   message("Registering romdisk at /dev/ram%d\n", CONFIG_EXAMPLES_ELF_DEVMINOR);
-  ret = romdisk_register(CONFIG_EXAMPLES_ELF_DEVMINOR, romfs_img,
+  ret = romdisk_register(CONFIG_EXAMPLES_ELF_DEVMINOR, (FAR uint8_t *)romfs_img,
                          NSECTORS(romfs_img_len), SECTORSIZE);
   if (ret < 0)
     {

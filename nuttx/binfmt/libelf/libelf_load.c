@@ -45,7 +45,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <elf.h>
+#include <elf32.h>
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>

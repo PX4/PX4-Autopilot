@@ -167,7 +167,7 @@ int nxflat_main(int argc, char *argv[])
   /* Create a ROM disk for the ROMFS filesystem */
 
   message("Registering romdisk\n");
-  ret = romdisk_register(0, romfs_img, NSECTORS(romfs_img_len), SECTORSIZE);
+  ret = romdisk_register(0, (FAR uint8_t *)romfs_img, NSECTORS(romfs_img_len), SECTORSIZE);
   if (ret < 0)
     {
       err("ERROR: romdisk_register failed: %d\n", ret);

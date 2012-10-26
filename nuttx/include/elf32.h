@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/elf.h
+ * include/elf32.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -36,8 +36,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_ELF_H
-#define __INCLUDE_ELF_H
+#ifndef __INCLUDE_ELF32_H
+#define __INCLUDE_ELF32_H
 
 /****************************************************************************
  * Included Files
@@ -349,4 +349,4 @@ typedef struct
 
 //extern Elf32_Dyn _DYNAMIC[] ;
 
-#endif /* __INCLUDE_ELF_H */
+#endif /* __INCLUDE_ELF32_H */

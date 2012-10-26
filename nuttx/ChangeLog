@@ -3515,4 +3515,6 @@
 	  include/nuttx/binfmt/.
 	* arch/sim/src/up_elf.c and arch/x86/src/common/up_elf.c:  Add
 	  for ELF modules.
+	* arch/arm/include/elf.h:  Added ARM ELF header file.
+	* include/elf32.h:  Renamed elf.h to elf32.h.
 

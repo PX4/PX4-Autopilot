@@ -43,7 +43,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <fcntl.h>
-#include <elf.h>
+#include <elf32.h>
 #include <debug.h>
 #include <errno.h>
 

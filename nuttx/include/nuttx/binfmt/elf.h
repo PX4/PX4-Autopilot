@@ -45,7 +45,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <elf.h>
+#include <elf32.h>
 
 /****************************************************************************
  * Pre-processor Definitions

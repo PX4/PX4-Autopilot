@@ -50,7 +50,7 @@
  * e_ident[EI_DATA]  = ELFDATA2LSB (little endian) or ELFDATA2MSB (big endian)
  */
 
-#if 0 /* Defined in include/elf.h */
+#if 0 /* Defined in include/elf32.h */
 #define EM_ARM                   40
 #endif
 
