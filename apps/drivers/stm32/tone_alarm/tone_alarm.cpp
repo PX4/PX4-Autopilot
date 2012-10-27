@@ -84,7 +84,7 @@
 #include <systemlib/err.h>
 
 #ifndef CONFIG_HRT_TIMER
-# error CONFIG_TONE_ALARM requires CONFIG_HRT_TIMER
+# error This driver requires CONFIG_HRT_TIMER
 #endif
 
 /* Tone alarm configuration */
