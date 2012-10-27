@@ -47,7 +47,7 @@
 #include <math.h>
 #include <poll.h>
 #include <time.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
 
@@ -177,6 +177,7 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		pid_set_parameters(&yaw_rate_controller, p.yawrate_p, p.yawrate_i, 0, p.yawrate_awu, p.yawrate_lim);
 		parameters_update(&h, &p);
 	}
+
 
 	/* Roll Rate (PI) */
 	actuators->control[0] = pid_calculate(&roll_rate_controller, rate_sp->roll, rates[0], 0, deltaT);

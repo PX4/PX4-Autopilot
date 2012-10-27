@@ -47,7 +47,7 @@
 #include <math.h>
 #include <poll.h>
 #include <time.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
 

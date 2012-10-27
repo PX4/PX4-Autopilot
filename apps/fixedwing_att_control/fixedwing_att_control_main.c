@@ -46,7 +46,7 @@
 #include <math.h>
 #include <poll.h>
 #include <time.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -194,6 +194,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 		/* kill all outputs */
 		for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
 			actuators.control[i] = 0.0f;
+
 		orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 
 
