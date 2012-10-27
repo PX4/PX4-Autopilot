@@ -828,6 +828,7 @@ nuttx
 
 apps
  |- examples/
+ |   |- json/README.txt
  |   |- pashello/README.txt
  |   `- README.txt
  |- graphics/
@@ -842,6 +843,8 @@ apps
  |   |- discover
  |   |  `- README.txt
  |   |- ftpc
+ |   |  `- README.txt
+ |   |- json
  |   |  `- README.txt
  |   |- telnetd
  |   |  `- README.txt

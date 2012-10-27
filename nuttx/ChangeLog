@@ -3523,4 +3523,6 @@
 	  Add a configuration for testing the ARM ELF loader.
 	* binfmt/libelf:  Can't use fstat(). NuttX does not yet support it.  Damn!
 	* binfmt/libelf:  The basic ELF module execution appears fully functional.
+	* configs/shenzhou/src/up_relays.c:  Add support for relays from the
+	  Shenzhou board.  Contributed by Darcy Gong.
 

@@ -90,6 +90,10 @@ ifeq ($(CONFIG_EXAMPLES_IGMP),y)
 CONFIGURED_APPS += examples/igmp
 endif
 
+ifeq ($(CONFIG_EXAMPLES_JSON),y)
+CONFIGURED_APPS += examples/json
+endif
+
 ifeq ($(CONFIG_EXAMPLES_LCDRW),y)
 CONFIGURED_APPS += examples/lcdrw
 endif

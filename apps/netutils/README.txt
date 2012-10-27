@@ -47,6 +47,12 @@ highly influenced by uIP) include:
               device class so that groups of devices can be discovered.
               It is also possible to address all classes with a kind of
               broadcast discover. (Contributed by Max Holtzberg).
+  json      - cJSON is an ultra-lightweight, portable, single-file,
+              simple-as-can-be ANSI-C compliant JSON parser, under MIT
+              license. Embeddable Lightweight XML-RPC Server discussed at
+              http://www.drdobbs.com/web-development/an-embeddable-lightweight-xml-rpc-server/184405364.
+              This code was taken from http://sourceforge.net/projects/cjson/
+              and adapted for NuttX by Darcy Gong.
   tftpc     - TFTP client.  See apps/include/netutils/tftp.h
               for interface information.
   telnetd   - TELNET server.  This is the Telnet logic adapted from

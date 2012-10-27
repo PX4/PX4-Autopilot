@@ -1,0 +1,14 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_JSON
+	bool "JSON example"
+	default n
+	select NETUTILS_JSON
+	---help---
+		An example for the netutils/json library.
+
+if EXAMPLES_JSON
+endif

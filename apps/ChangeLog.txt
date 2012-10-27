@@ -384,4 +384,7 @@
 	  by one (Mike Smith).
 	* apps/examples/elf:  Test example for the ELF loader.
 	* apps/examples/elf:  The ELF module test example appears fully functional.
+	* apps/netutils/json:  Add a snapshot of the cJSON project.  Contributed by
+	  Darcy Gong.
+	* apps/examples/json:  Test example for cJSON from Darcy Gong
 
