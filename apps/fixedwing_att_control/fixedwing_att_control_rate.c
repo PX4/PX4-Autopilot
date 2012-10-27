@@ -170,7 +170,7 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	}
 
 	/* load new parameters with lower rate */
-	if (counter % 2500 == 0) {
+	if (counter % 100 == 0) {
 		/* update parameters from storage */
 		pid_set_parameters(&roll_rate_controller, p.rollrate_p, p.rollrate_i, 0, p.rollrate_awu, p.rollrate_lim);
 		pid_set_parameters(&pitch_rate_controller, p.pitchrate_p, p.pitchrate_i, 0, p.pitchrate_awu, p.pitchrate_lim);

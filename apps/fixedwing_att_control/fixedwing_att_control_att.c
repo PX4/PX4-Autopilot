@@ -121,7 +121,7 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 	}
 
 	/* load new parameters with lower rate */
-	if (counter % 2500 == 0) {
+	if (counter % 100 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
 	}
