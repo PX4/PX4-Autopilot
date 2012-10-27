@@ -611,7 +611,6 @@ play_pattern(unsigned pattern)
 	if (fd < 0)
 		err(1, "/dev/tone_alarm");
 
-	warnx("playing pattern %u", pattern);
 	ret = ioctl(fd, TONE_SET_ALARM, pattern);
 
 	if (ret != 0)
