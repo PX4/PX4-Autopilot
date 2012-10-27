@@ -1007,7 +1007,12 @@ Where <subdir> is one of the following:
     3. By default, this project assumes that you are *NOT* using the DFU
        bootloader.
  
-    4. This configuration requires that you have the genromfs tool installed
+    4. It appears that you cannot excute from CCM RAM.  This is why the
+       following definition appears in the defconfig file:
+
+       CONFIG_STM32_CCMEXCLUDE=y
+
+    5. This configuration requires that you have the genromfs tool installed
        on your system and that you have the full path to the installed genromfs
        executable in PATH variable (see apps/examples/README.txt)
 
