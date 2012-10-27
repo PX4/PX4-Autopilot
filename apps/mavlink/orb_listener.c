@@ -474,7 +474,6 @@ l_vehicle_attitude_controls(struct listener *l)
 
 	/* Only send in HIL mode */
 	if (mavlink_hil_enabled) {
-
 		/* translate the current syste state to mavlink state and mode */
 		uint8_t mavlink_state = 0;
 		uint8_t mavlink_mode = 0;
@@ -548,8 +547,12 @@ uorb_receive_thread(void *arg)
 			mavlink_missionlib_send_gcs_string("[mavlink] ERROR reading uORB data");
 		} else {
 
+			static bool updated = false;
 			for (unsigned i = 0; i < n_listeners; i++) {
-				if (fds[i].revents & POLLIN)
+				orb_check(*(listeners[i].subp), &updated);
+//					printf("revents: %d:%d", i, fds[i].revents);
+//				if (fds[i].revents & POLLIN)
+				if(updated)
 					listeners[i].callback(&listeners[i]);
 			}
 		}
