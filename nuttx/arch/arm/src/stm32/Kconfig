@@ -636,9 +636,11 @@ config ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG
 config STM32_CCMEXCLUDE
 	bool "Exclude CCM SRAM from the heap"
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
-	default y if  ARCH_DMA
+	default y if  ARCH_DMA || ELF
 	---help---
-		Exclude CCM SRAM from the HEAP because it cannot be used for DMA.
+		Exclude CCM SRAM from the HEAP because (1) it cannot be used for DMA
+		and (2) it appears to be impossible to execute ELF modules from CCM
+		RAM.
 
 config STM32_FSMC_SRAM
 	bool "External SRAM on FSMC"

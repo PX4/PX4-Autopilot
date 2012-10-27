@@ -154,6 +154,7 @@ int elf_init(FAR const char *filename, FAR struct elf_loadinfo_s *loadinfo)
   /* Get the length of the file. */
 
   ret = elf_filelen(loadinfo, filename);
+  if (ret < 0)
     {
       bdbg("elf_filelen failed: %d\n", ret);
       return ret;

@@ -383,4 +383,5 @@
 	* apps/Makefile: Small change that reduces the number of shell invocations
 	  by one (Mike Smith).
 	* apps/examples/elf:  Test example for the ELF loader.
+	* apps/examples/elf:  The ELF module test example appears fully functional.
 

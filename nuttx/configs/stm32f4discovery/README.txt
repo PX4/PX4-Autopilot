@@ -1007,6 +1007,10 @@ Where <subdir> is one of the following:
     3. By default, this project assumes that you are *NOT* using the DFU
        bootloader.
  
+    4. This configuration requires that you have the genromfs tool installed
+       on your system and that you have the full path to the installed genromfs
+       executable in PATH variable (see apps/examples/README.txt)
+
   ostest:
   ------
     This configuration directory, performs a simple OS test using

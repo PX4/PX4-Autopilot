@@ -45,7 +45,7 @@ all: $(BIN)
 
 $(OBJS): %.o: %.c
 	@echo "CC: $<"
-	@$(CC) -c $(CFLAGS) $< -o $@
+	@$(CC) -c $(CELFFLAGS) $< -o $@
 
 $(BIN): $(OBJS)
 	@echo "LD: $<"

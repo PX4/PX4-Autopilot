@@ -52,10 +52,10 @@
 #include <nuttx/ramdisk.h>
 #include <nuttx/binfmt/binfmt.h>
 #include <nuttx/binfmt/elf.h>
+#include <nuttx/binfmt/symtab.h>
 
 #include "tests/romfs.h"
 #include "tests/dirlist.h"
-#include "tests/symtab.h"
 
 /****************************************************************************
  * Definitions
@@ -135,6 +135,13 @@ static const char delimiter[] =
 static char path[128];
 
 /****************************************************************************
+ * Symbols from Auto-Generated Code
+ ****************************************************************************/
+
+extern const struct symtab_s exports[];
+extern const int nexports;
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -207,7 +214,7 @@ int elf_main(int argc, char *argv[])
 
       bin.filename = path;
       bin.exports  = exports;
-      bin.nexports = NEXPORTS;
+      bin.nexports = nexports;
 
       ret = load_module(&bin);
       if (ret < 0)

@@ -1,6 +1,24 @@
 #!/bin/bash
 
-usage="Usage: %0 <test-dir-path>"
+usage="Usage: $0 [-t <tmp-file>] <test-dir-path>"
+
+# Check for the optional tempory file name
+
+tmpfile=varlist.tmp
+if [ "X${1}" = "X-t" ]; then
+	shift
+	tmpfile=$1
+	shift
+
+	if [ -z "$tmpfile" ]; then
+		echo "ERROR: Missing <tmpfile>"
+		echo ""
+		echo $usage
+		exit 1
+	fi
+fi
+
+# Check for the required ROMFS directory path
 
 dir=$1
 if [ -z "$dir" ]; then
@@ -17,23 +35,33 @@ if [ ! -d "$dir" ]; then
 	exit 1
 fi
 
-varlist=`find $dir -name "*-thunk.S"| xargs grep -h asciz | cut -f3 | sort | uniq`
+# Extract all of the undefined symbols from the ELF files and create a
+# list of sorted, unique undefined variable names.
 
-echo "#ifndef __EXAMPLES_ELF_TESTS_SYMTAB_H"
-echo "#define __EXAMPLES_ELF_TESTS_SYMTAB_H"
-echo ""
+varlist=`find ${dir} -executable -type f | xargs nm | fgrep ' U ' | sed -e "s/^[ ]*//g" | cut -d' ' -f2 | sort | uniq`
+
+# Now output the symbol table as a structure in a C source file.  All
+# undefined symbols are declared as void* types.  If the toolchain does
+# any kind of checking for function vs. data objects, then this could
+# faile
+
+echo "#include <nuttx/compiler.h>"
 echo "#include <nuttx/binfmt/symtab.h>"
 echo ""
-echo "static const struct symtab_s exports[] = "
+
+for var in $varlist; do
+	echo "extern void *${var};"
+done
+
+echo ""
+echo "const struct symtab_s exports[] = "
 echo "{"
 
-for string in $varlist; do
-	var=`echo $string | sed -e "s/\"//g"`
-	echo "  {$string, $var},"
+for var in $varlist; do
+	echo "  {\"${var}\", &${var}},"
 done
 
 echo "};"
-echo "#define NEXPORTS (sizeof(exports)/sizeof(struct symtab_s))"
 echo ""
-echo "#endif /* __EXAMPLES_ELF_TESTS_SYMTAB_H */"
+echo "const int nexports = sizeof(exports) / sizeof(struct symtab_s);"
 

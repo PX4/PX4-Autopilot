@@ -318,7 +318,12 @@ examples/elf
 
   NOTES:
 
-  1. Your top-level nuttx/Make.defs file must include an approproate definition,
+  1. CFLAGS should be provided in CELFFLAGS.  RAM and FLASH memory regions
+     may require long allcs.  For ARM, this might be:
+
+       CELFFLAGS = $(CFLAGS) -mlong-calls
+
+  2. Your top-level nuttx/Make.defs file must alos include an approproate definition,
      LDELFFLAGS, to generate a relocatable ELF object.  With GNU LD, this should
      include '-r' and '-e main' (or _main on some platforms).
 
@@ -327,24 +332,24 @@ examples/elf
      If you use GCC to link, you make also need to include '-nostdlib' or 
      '-nostartfiles' and '-nodefaultlibs'.
 
-  2. This example also requires genromfs.  genromfs can be build as part of the
+  3. This example also requires genromfs.  genromfs can be build as part of the
      nuttx toolchain.  Or can built from the genromfs sources that can be found
      at misc/tools/genromfs-0.5.2.tar.gz.  In any event, the PATH variable must
      include the path to the genromfs executable.
 
-  3. ELF size:  The ELF files in this example are, be default, quite large
+  4. ELF size:  The ELF files in this example are, be default, quite large
      because they include a lot of "build garbage".  You can greatly reduce the
      size of the ELF binaries are using the 'objcopy --strip-unneeded' command to
      remove un-necessary information from the ELF files.
 
-  4. Simulator.  You cannot use this example with the the NuttX simulator on
+  5. Simulator.  You cannot use this example with the the NuttX simulator on
      Cygwin.  That is because the Cygwin GCC does not generate ELF file but
      rather some Windows-native binary format.
 
      If you really want to do this, you can create a NuttX x86 buildroot toolchain
      and use that be build the ELF executables for the ROMFS file system.
 
-  5. Linker scripts.  You might also want to use a linker scripts to combine
+  6. Linker scripts.  You might also want to use a linker scripts to combine
      sections better.  An example linker script is at nuttx/binfmt/libelf/gnu-elf.ld.
      That example might have to be tuned for your particular linker output to
      position additional sections correctly.  The GNU LD LDELFFLAGS then might

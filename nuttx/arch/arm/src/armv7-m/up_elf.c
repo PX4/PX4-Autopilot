@@ -218,8 +218,8 @@ int arch_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
          * The branch target is encoded in these bits:
          *
          *   S     = upper_insn[10]
-         *   imm10 = upper_insn[9:0]
-         *   imm11 = lower_insn[10:0]
+         *   imm10 = upper_insn[0:9]
+         *   imm11 = lower_insn[0:10]
          *   J1    = lower_insn[13]
          *   J2    = lower_insn[11]
          */
@@ -227,7 +227,7 @@ int arch_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
         upper_insn = (uint32_t)(*(uint16_t*)addr);
         lower_insn = (uint32_t)(*(uint16_t*)(addr + 2));
 
-        bvdbg("Performing JUMP24 [%d] link at addr=%08lx [%04x %04x] to sym=%p st_value=%08lx\n",
+        bvdbg("Performing THM_JUMP24 [%d] link at addr=%08lx [%04x %04x] to sym=%p st_value=%08lx\n",
               ELF32_R_TYPE(rel->r_info), (long)addr, (int)upper_insn, (int)lower_insn,
               sym, (long)sym->st_value);
 
@@ -235,9 +235,9 @@ int arch_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
          *
          *   offset[24]    = S
          *   offset[23]    = ~(J1 ^ S)
-         *   offset[22     = ~(J2 ^ S)]
-         *   offset[21:12] = imm10
-         *   offset[11:1]  = imm11
+         *   offset[22]    = ~(J2 ^ S)]
+         *   offset[12:21] = imm10
+         *   offset[1:11]  = imm11
          *   offset[0]     = 0
          */
 
@@ -245,11 +245,12 @@ int arch_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
         J1  = (lower_insn >> 13) & 1;
         J2  = (lower_insn >> 11) & 1;
 
-        offset = (S << 24) |
-                 ((~(J1 ^ S) & 1) << 23) |
-                 ((~(J2 ^ S) & 1) << 22) |
-                 ((upper_insn & 0x03ff) << 12) |
-                 ((lower_insn & 0x07ff) << 1);
+        offset = (S << 24) |                       /* S -   > offset[24] */
+                 ((~(J1 ^ S) & 1) << 23) |         /* J1    -> offset[23] */
+                 ((~(J2 ^ S) & 1) << 22) |         /* J2    -> offset[22] */
+                 ((upper_insn & 0x03ff) << 12) |   /* imm10 -> offset[12:21] */
+                 ((lower_insn & 0x07ff) << 1);     /* imm11 -> offset[1:11] */
+                                                   /* 0     -> offset[0] */
 
         /* Sign extend */
 
@@ -374,31 +375,31 @@ int arch_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
          *  5   4   3   2   1   0   9   8   7   6   5   4   3   2   1   0
          * +---+---------------------------------------------------------+
          * |OP |                                                         | 32-Bit Instructions
-         * +---+--+-------+--------------+-------------------------------+
-         * |0  |1 | imm3  |      Rd      |            imm8               | MOVT Instruction
-         * +---+--+-------+--------------+-------------------------------+
+         * +---+----------+--------------+-------------------------------+
+         * |0  |   imm3   |      Rd      |            imm8               | MOVT Instruction
+         * +---+----------+--------------+-------------------------------+
          *
          * The 16-bit immediate value is encoded in these bits:
          *
          *   i    = imm16[11]    = upper_insn[10]
          *   imm4 = imm16[12:15] = upper_insn[3:0]
-         *   imm3 = imm16[9:11]  = lower_insn[14:12]
-         *   imm8 = imm16[0:8]   = lower_insn[7:0]
+         *   imm3 = imm16[8:10]  = lower_insn[14:12]
+         *   imm8 = imm16[0:7]   = lower_insn[7:0]
          */
 
         upper_insn = (uint32_t)(*(uint16_t*)addr);
         lower_insn = (uint32_t)(*(uint16_t*)(addr + 2));
 
-        bvdbg("Performing MOVx [%d] link at addr=%08lx [%04x %04x] to sym=%p st_value=%08lx\n",
+        bvdbg("Performing THM_MOVx [%d] link at addr=%08lx [%04x %04x] to sym=%p st_value=%08lx\n",
               ELF32_R_TYPE(rel->r_info), (long)addr, (int)upper_insn, (int)lower_insn,
               sym, (long)sym->st_value);
 
         /* Extract the 16-bit offset from the 32-bit instruction */
 
-        offset = ((upper_insn & 0x000f) << 12) |
-                 ((upper_insn & 0x0400) << 1) |
-                 ((lower_insn & 0x7000) >> 4) |
-                  (lower_insn & 0x00ff);
+        offset = ((upper_insn & 0x000f) << 12) | /* imm4 -> imm16[8:10] */
+                 ((upper_insn & 0x0400) << 1) |  /* i    -> imm16[11] */
+                 ((lower_insn & 0x7000) >> 4) |  /* imm3 -> imm16[8:10] */
+                  (lower_insn & 0x00ff);         /* imm8 -> imm16[0:7] */
 
         /* Sign extend */
 
@@ -406,8 +407,8 @@ int arch_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
 
         /* And perform the relocation */
 
-        bvdbg("  S=%d J1=%d J2=%d offset=%08lx branch target=%08lx\n",
-              S, J1, J2, (long)offset, offset + sym->st_value);
+        bvdbg("  offset=%08lx branch target=%08lx\n",
+              (long)offset, offset + sym->st_value);
 
         offset += sym->st_value;
 

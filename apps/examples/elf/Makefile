@@ -39,29 +39,29 @@ include $(APPDIR)/Make.defs
 
 # ELF Example
 
-ASRCS		=
-CSRCS		= elf_main.c
+ASRCS =
+CSRCS = elf_main.c symtab.c
 
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
-COBJS		= $(CSRCS:.c=$(OBJEXT))
+AOBJS = $(ASRCS:.S=$(OBJEXT))
+COBJS = $(CSRCS:.c=$(OBJEXT))
 
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
+SRCS = $(ASRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
 
 ifeq ($(WINTOOL),y)
-  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
+  BIN = "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
 else
-  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
+  BIN = "$(APPDIR)/libapps$(LIBEXT)"
 endif
 
-ROOTDEPPATH	= --dep-path .
+ROOTDEPPATH	= --dep-path . --dep-path tests
 
-# Common build
+# Build targets
 
-VPATH		= 
+VPATH = tests
 
 all: .built
-.PHONY: headers clean_tests clean depend disclean
+.PHONY: really_build clean_tests clean depend disclean
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -69,14 +69,20 @@ $(AOBJS): %$(OBJEXT): %.S
 $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
-headers:
-	@$(MAKE) -C tests TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" CROSSDEV=$(CROSSDEV)
+# This is a little messy.  The build is broken into two pieces:  (1) the
+# tests/ subdir build that auto-generates several files, and (2) the real
+# build.  This is done because we need a fresh build context after auto-
+# generating the source files.
 
-.built: headers $(OBJS)
+really_build: $(OBJS)
 	@( for obj in $(OBJS) ; do \
 		$(call ARCHIVE, $(BIN), $${obj}); \
 	done ; )
 	@touch .built
+
+.built:
+	@$(MAKE) -C tests TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" CROSSDEV=$(CROSSDEV)
+	@$(MAKE) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" really_build
 
 context:
 

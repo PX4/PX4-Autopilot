@@ -1,6 +1,6 @@
 #!/bin/bash
 
-usage="Usage: %0 <test-dir-path>"
+usage="Usage: $0 <test-dir-path>"
 
 dir=$1
 if [ -z "$dir" ]; then

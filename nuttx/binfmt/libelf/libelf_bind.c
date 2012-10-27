@@ -142,7 +142,10 @@ static int elf_relocate(FAR struct elf_loadinfo_s *loadinfo, int relidx,
   int             ret;
   int             i;
 
-  /* Examine each relocation in the section */
+  /* Examine each relocation in the section.  'relsec' is the section
+   * containing the relations.  'dstsec' is the section containing the data
+   * to be relocated.
+   */
 
   for (i = 0; i < relsec->sh_size / sizeof(Elf32_Rel); i++)
     {

@@ -36,7 +36,7 @@
 -include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 
-CFLAGS += -I.
+CELFFLAGS += -I.
 
 BIN  = struct
 SRCS = struct_main.c struct_dummy.c
@@ -46,7 +46,7 @@ all: $(BIN)
 
 $(OBJS): %.o: %.c
 	@echo "CC: $<"
-	@$(CC) -c $(CFLAGS) $< -o $@
+	@$(CC) -c $(CELFFLAGS) $< -o $@
 
 $(BIN): $(OBJS)
 	@echo "LD: $<"
