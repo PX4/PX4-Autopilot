@@ -549,8 +549,7 @@ uorb_receive_thread(void *arg)
 		} else {
 
 			for (unsigned i = 0; i < n_listeners; i++) {
-				bool updated = false;
-				if(OK == orb_check(*(listeners[i].subp), &updated) && updated)
+				if (fds[i].revents & POLLIN)
 					listeners[i].callback(&listeners[i]);
 			}
 		}
