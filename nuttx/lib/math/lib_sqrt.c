@@ -1,4 +1,14 @@
-/*
+/************************************************************************
+ * lib/math/lib_sqrt.c
+ *
+ * This file is a part of NuttX:
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Ported by: Darcy Gong
+ *
+ * It derives from the Rhombs OS math library by Nick Johnson which has
+ * a compatibile, MIT-style license:
+ *
  * Copyright (C) 2009-2011 Nick Johnson <nickbjohnson4224 at gmail.com>
  * 
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,105 +22,78 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *
+ ************************************************************************/
 
-#include <stdint.h>
-#include <float.h>
+/************************************************************************
+ * Included Files
+ ************************************************************************/
+
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
+
+#include <math.h>
 #include <errno.h>
-#include <apps/math.h>
 
-static float __sqrt_approx(float x) {
-	int32_t i;
+#include "lib_internal.h"
 
-	// floats + bit manipulation = +inf fun!
-	i = *((int32_t*) &x);
-	i = 0x1FC00000 + (i >> 1);
-	x = *((float*) &i);
+/************************************************************************
+ * Public Functions
+ ************************************************************************/
 
-	return x;
+#if CONFIG_HAVE_DOUBLE
+double sqrt(double x)
+{
+  long double y, y1;
+
+  if (x < 0.0)
+    {
+      errno = EDOM;
+      return NAN;
+    }
+
+  if (isnan(x))
+    {
+      return NAN;
+    }
+
+  if (isinf(x))
+    {
+      return INFINITY;
+    }
+
+  if (x == 0.0)
+    {
+      return 0.0;
+    }
+
+  /* Guess square root (using bit manipulation) */
+
+  y = lib_sqrtapprox(x);
+
+  /* Perform four iterations of approximation.  This number (4) is
+   * definitely optimal
+   */
+
+  y = 0.5 * (y + x / y);
+  y = 0.5 * (y + x / y);
+  y = 0.5 * (y + x / y);
+  y = 0.5 * (y + x / y);
+
+  /* If guess was terribe (out of range of float).  Repeat approximation
+   * until convergence.
+   */
+
+  if (y * y < x - 1.0 || y * y > x + 1.0)
+    {
+      y1 = -1.0;
+      while (y != y1)
+        {
+          y1 = y;
+          y = 0.5 * (y + x / y);
+        }
+    }
+
+  return y;
 }
-
-float sqrtf(float x) {
-	float y;
-
-	// filter out invalid/trivial inputs
-	if (x < 0.0) { errno = EDOM; return NAN; }
-	if (isnan(x)) return NAN;
-	if (isinf(x)) return INFINITY;
-	if (x == 0.0) return 0.0;
-
-	// guess square root (using bit manipulation)
-	y = __sqrt_approx(x);
-
-	// perform three iterations of approximation
-	// this number (3) is definitely optimal
-	y = 0.5 * (y + x / y);
-	y = 0.5 * (y + x / y);
-	y = 0.5 * (y + x / y);
-
-	return y;
-}
-
-double sqrt(double x) {
-	long double y, y1;
-	
-	// filter out invalid/trivial inputs
-	if (x < 0.0) { errno = EDOM; return NAN; }
-	if (isnan(x)) return NAN;
-	if (isinf(x)) return INFINITY;
-	if (x == 0.0) return 0.0;
-
-	// guess square root (using bit manipulation)
-	y = __sqrt_approx(x);
-
-	// perform four iterations of approximation
-	// this number (4) is definitely optimal
-	y = 0.5 * (y + x / y);
-	y = 0.5 * (y + x / y);
-	y = 0.5 * (y + x / y);
-	y = 0.5 * (y + x / y);
-
-	// if guess was terribe (out of range of float)
-	// repeat approximation until convergence
-	if (y * y < x - 1.0 || y * y > x + 1.0) {
-		y1 = -1.0;
-		while (y != y1) {
-			y1 = y;
-			y = 0.5 * (y + x / y);
-		}
-	}
-
-	return y;
-}
-
-long double sqrtl(long double x) {
-	long double y, y1;
-
-	// filter out invalid/trivial inputs
-	if (x < 0.0) { errno = EDOM; return NAN; }
-	if (isnan(x)) return NAN;
-	if (isinf(x)) return INFINITY;
-	if (x == 0.0) return 0.0;
-
-	// guess square root (using bit manipulation)
-	y = __sqrt_approx(x);
-
-	// perform four iterations of approximation
-	// this number (4) is definitely optimal
-	y = 0.5 * (y + x / y);
-	y = 0.5 * (y + x / y);
-	y = 0.5 * (y + x / y);
-	y = 0.5 * (y + x / y);
-
-	// if guess was terribe (out of range of float)
-	// repeat approximation until convergence
-	if (y * y < x - 1.0 || y * y > x + 1.0) {
-		y1 = -1.0;
-		while (y != y1) {
-			y1 = y;
-			y = 0.5 * (y + x / y);
-		}
-	}
-
-	return y;
-}
+#endif

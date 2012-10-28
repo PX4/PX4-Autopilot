@@ -1,4 +1,14 @@
-/*
+/************************************************************************
+ * lib/math/lib_tan.c
+ *
+ * This file is a part of NuttX:
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Ported by: Darcy Gong
+ *
+ * It derives from the Rhombs OS math library by Nick Johnson which has
+ * a compatibile, MIT-style license:
+ *
  * Copyright (C) 2009, 2010 Nick Johnson <nickbjohnson4224 at gmail.com>
  * 
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,20 +22,25 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *
+ ************************************************************************/
 
-#include <stdint.h>
-#include <float.h>
-#include <apps/math.h>
+/************************************************************************
+ * Included Files
+ ************************************************************************/
 
-float tanf(float x) {
-	return (sinf(x) / cosf(x));
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
+
+#include <math.h>
+
+/************************************************************************
+ * Public Functions
+ ************************************************************************/
+
+#if CONFIG_HAVE_DOUBLE
+double tan(double x)
+{
+  return (sin(x) / cos(x));
 }
-
-double tan(double x) {
-	return (sin(x) / cos(x));
-}
-
-long double tanl(long double x) {
-	return (sinl(x) / cosl(x));
-}
+#endif

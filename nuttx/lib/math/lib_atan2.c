@@ -1,5 +1,15 @@
-/*
- * Copyright (C) 2009, 2010 Nick Johnson <nickbjohnson4224 at gmail.com>
+/************************************************************************
+ * lib/math/lib_atan2.c
+ *
+ * This file is a part of NuttX:
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Ported by: Darcy Gong
+ *
+ * It derives from the Rhombs OS math library by Nick Johnson which has
+ * a compatibile, MIT-style license:
+ *
+ * Copyright (C) 2009-2011 Nick Johnson <nickbjohnson4224 at gmail.com>
  * 
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,109 +22,65 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *
+ ************************************************************************/
 
-#include <apps/math.h>
-#include <float.h>
+/************************************************************************
+ * Included Files
+ ************************************************************************/
 
-float atan2f(float y, float x) {
-	
-	if (y == 0.0) {
-		if (x >= 0.0) {
-			return 0.0;
-		}
-		else {
-			return M_PI;
-		}
-	}
-	else if (y > 0.0) {
-		if (x == 0.0) {
-			return M_PI_2;
-		}
-		else if (x > 0.0) {
-			return atanf(y / x);
-		}
-		else {
-			return M_PI - atanf(y / x);
-		}
-	}
-	else {
-		if (x == 0.0) {
-			return M_PI + M_PI_2;
-		}
-		else if (x > 0.0) {
-			return 2 * M_PI - atanf(y / x);
-		}
-		else {
-			return M_PI + atanf(y / x);
-		}
-	}
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
+
+#include <math.h>
+
+/************************************************************************
+ * Public Functions
+ ************************************************************************/
+
+#if CONFIG_HAVE_DOUBLE
+double atan2(double y, double x)
+{
+  if (y == 0.0)
+    {
+      if (x >= 0.0)
+        {
+          return 0.0;
+        }
+      else
+        {
+          return M_PI;
+        }
+    }
+  else if (y > 0.0)
+    {
+      if (x == 0.0)
+        {
+          return M_PI_2;
+        }
+      else if (x > 0.0)
+        {
+          return atan(y / x);
+        }
+      else
+        {
+          return M_PI - atan(y / x);
+        }
+    }
+  else
+    {
+      if (x == 0.0)
+        {
+          return M_PI + M_PI_2;
+        }
+      else if (x > 0.0)
+        {
+          return 2 * M_PI - atan(y / x);
+        }
+      else
+        {
+          return M_PI + atan(y / x);
+        }
+    }
 }
-
-double atan2(double y, double x) {
-	
-	if (y == 0.0) {
-		if (x >= 0.0) {
-			return 0.0;
-		}
-		else {
-			return M_PI;
-		}
-	}
-	else if (y > 0.0) {
-		if (x == 0.0) {
-			return M_PI_2;
-		}
-		else if (x > 0.0) {
-			return atan(y / x);
-		}
-		else {
-			return M_PI - atan(y / x);
-		}
-	}
-	else {
-		if (x == 0.0) {
-			return M_PI + M_PI_2;
-		}
-		else if (x > 0.0) {
-			return 2 * M_PI - atan(y / x);
-		}
-		else {
-			return M_PI + atan(y / x);
-		}
-	}
-}
-
-long double atan2l(long double y, long double x) {
-	
-	if (y == 0.0) {
-		if (x >= 0.0) {
-			return 0.0;
-		}
-		else {
-			return M_PI;
-		}
-	}
-	else if (y > 0.0) {
-		if (x == 0.0) {
-			return M_PI_2;
-		}
-		else if (x > 0.0) {
-			return atanl(y / x);
-		}
-		else {
-			return M_PI - atanl(y / x);
-		}
-	}
-	else {
-		if (x == 0.0) {
-			return M_PI + M_PI_2;
-		}
-		else if (x > 0.0) {
-			return 2 * M_PI - atanl(y / x);
-		}
-		else {
-			return M_PI + atanl(y / x);
-		}
-	}
-}
+#endif

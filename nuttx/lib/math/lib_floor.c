@@ -1,4 +1,14 @@
-/*
+/************************************************************************
+ * lib/math/lib_floor.c
+ *
+ * This file is a part of NuttX:
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Ported by: Darcy Gong
+ *
+ * It derives from the Rhombs OS math library by Nick Johnson which has
+ * a compatibile, MIT-style license:
+ *
  * Copyright (C) 2009-2011 Nick Johnson <nickbjohnson4224 at gmail.com>
  * 
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,26 +22,31 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *
+ ************************************************************************/
 
-#include <apps/math.h>
-#include <float.h>
+/************************************************************************
+ * Included Files
+ ************************************************************************/
 
-float floorf(float x) {
-	modff(x, &x);
-	if (x < 0.0) x -= 1.0;
-	return x;
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
+
+#include <math.h>
+
+/************************************************************************
+ * Public Functions
+ ************************************************************************/
+
+#if CONFIG_HAVE_DOUBLE
+double floor(double x)
+{
+  modf(x, &x);
+  if (x < 0.0)
+    {
+      x -= 1.0;
+    }
+
+  return x;
 }
-
-double floor(double x) {
-	modf(x, &x);
-	if (x < 0.0) x -= 1.0;
-	return x;
-}
-
-long double floorl(long double x) {
-	modfl(x, &x);
-	if (x < 0.0) x -= 1.0;
-	return x;
-}
-
+#endif

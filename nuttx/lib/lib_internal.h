@@ -117,56 +117,56 @@ extern bool g_dbgenable;
 /* Defined in lib_streamsem.c */
 
 #if CONFIG_NFILE_STREAMS > 0
-extern void  stream_semtake(FAR struct streamlist *list);
-extern void  stream_semgive(FAR struct streamlist *list);
+void  stream_semtake(FAR struct streamlist *list);
+void  stream_semgive(FAR struct streamlist *list);
 #endif
 
 /* Defined in lib_libnoflush.c */
 
 #ifdef CONFIG_STDIO_LINEBUFFER
-extern int lib_noflush(FAR struct lib_outstream_s *this);
+int lib_noflush(FAR struct lib_outstream_s *this);
 #endif
 
 /* Defined in lib_libsprintf.c */
 
-extern int lib_sprintf(FAR struct lib_outstream_s *obj,
+int lib_sprintf(FAR struct lib_outstream_s *obj,
                        const char *fmt, ...);
 
 /* Defined lib_libvsprintf.c */
 
-extern int lib_vsprintf(FAR struct lib_outstream_s *obj,
-                        FAR const char *src, va_list ap);
+int lib_vsprintf(FAR struct lib_outstream_s *obj,
+                 FAR const char *src, va_list ap);
 
 /* Defined lib_rawprintf.c */
 
-extern int lib_rawvprintf(const char *src, va_list ap);
+int lib_rawvprintf(const char *src, va_list ap);
 
 /* Defined lib_lowprintf.c */
 
-extern int lib_lowvprintf(const char *src, va_list ap);
+int lib_lowvprintf(const char *src, va_list ap);
 
 /* Defined in lib_dtoa.c */
 
 #ifdef CONFIG_LIBC_FLOATINGPOINT
-extern char *__dtoa(double d, int mode, int ndigits,
-                    int *decpt, int *sign, char **rve);
+char *__dtoa(double d, int mode, int ndigits, int *decpt, int *sign,
+             char **rve);
 #endif
 
 /* Defined in lib_libwrite.c */
 
-extern ssize_t lib_fwrite(FAR const void *ptr, size_t count, FAR FILE *stream);
+ssize_t lib_fwrite(FAR const void *ptr, size_t count, FAR FILE *stream);
 
 /* Defined in lib_libfread.c */
 
-extern ssize_t lib_fread(FAR void *ptr, size_t count, FAR FILE *stream);
+ssize_t lib_fread(FAR void *ptr, size_t count, FAR FILE *stream);
 
 /* Defined in lib_libfflush.c */
 
-extern ssize_t lib_fflush(FAR FILE *stream, bool bforce);
+ssize_t lib_fflush(FAR FILE *stream, bool bforce);
 
 /* Defined in lib_rdflush.c */
 
-extern int lib_rdflush(FAR FILE *stream);
+int lib_rdflush(FAR FILE *stream);
 
 /* Defined in lib_wrflush.c */
 
@@ -175,25 +175,37 @@ int lib_wrflush(FAR FILE *stream);
 /* Defined in lib_sem.c */
 
 #if CONFIG_STDIO_BUFFER_SIZE > 0
-extern void lib_sem_initialize(FAR struct file_struct *stream);
-extern void lib_take_semaphore(FAR struct file_struct *stream);
-extern void lib_give_semaphore(FAR struct file_struct *stream);
+void lib_sem_initialize(FAR struct file_struct *stream);
+void lib_take_semaphore(FAR struct file_struct *stream);
+void lib_give_semaphore(FAR struct file_struct *stream);
 #endif
 
 /* Defined in lib_libgetbase.c */
 
-extern int lib_getbase(const char *nptr, const char **endptr);
+int lib_getbase(const char *nptr, const char **endptr);
 
 /* Defined in lib_skipspace.c */
 
-extern void lib_skipspace(const char **pptr);
+void lib_skipspace(const char **pptr);
 
 /* Defined in lib_isbasedigit.c */
 
-extern bool lib_isbasedigit(int ch, int base, int *value);
+bool lib_isbasedigit(int ch, int base, int *value);
 
 /* Defined in lib_checkbase.c */
 
-extern int lib_checkbase(int base, const char **pptr);
+int lib_checkbase(int base, const char **pptr);
+
+/* Defined in lib_expi.c */
+
+#ifdef CONFIG_LIBM
+double lib_expi(size_t n);
+#endif
+
+/* Defined in lib_libsqrtapprox.c */
+
+#ifdef CONFIG_LIBM
+float lib_sqrtapprox(float x);
+#endif
 
 #endif /* __LIB_LIB_INTERNAL_H */

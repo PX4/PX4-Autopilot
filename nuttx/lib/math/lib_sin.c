@@ -1,4 +1,14 @@
-/*
+/************************************************************************
+ * lib/math/lib_sin.c
+ *
+ * This file is a part of NuttX:
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Ported by: Darcy Gong
+ *
+ * It derives from the Rhombs OS math library by Nick Johnson which has
+ * a compatibile, MIT-style license:
+ *
  * Copyright (C) 2009-2011 Nick Johnson <nickbjohnson4224 at gmail.com>
  * 
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,141 +22,93 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *
+ ************************************************************************/
 
-#include <stdint.h>
-#include <unistd.h>
-#include <float.h>
-#include <apps/math.h>
+/************************************************************************
+ * Included Files
+ ************************************************************************/
 
-static float _flt_inv_fact[] = {
-	1.0 / 1.0,			// 1 / 1!
-	1.0 / 6.0,			// 1 / 3!
-	1.0 / 120.0,		// 1 / 5!
-	1.0 / 5040.0,		// 1 / 7!
-	1.0 / 362880.0,		// 1 / 9!
-	1.0 / 39916800.0,	// 1 / 11!
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
+
+#include <sys/types.h>
+#include <math.h>
+
+#if CONFIG_HAVE_DOUBLE
+
+/************************************************************************
+ * Private Data
+ ************************************************************************/
+
+static double _dbl_inv_fact[] =
+{
+  1.0 / 1.0,                    // 1 / 1!
+  1.0 / 6.0,                    // 1 / 3!
+  1.0 / 120.0,                  // 1 / 5!
+  1.0 / 5040.0,                 // 1 / 7!
+  1.0 / 362880.0,               // 1 / 9!
+  1.0 / 39916800.0,             // 1 / 11!
+  1.0 / 6227020800.0,           // 1 / 13!
+  1.0 / 1307674368000.0,        // 1 / 15!
+  1.0 / 355687428096000.0,      // 1 / 17!
+  1.0 / 121645100408832000.0,   // 1 / 19!
 };
 
-float sinf(float x) {
-	float x_squared;
-	float sin_x;
-	size_t i;
-	
-	/* move x to [-pi, pi) */
-	x = fmodf(x, 2 * M_PI);
-	if (x >= M_PI) x -= 2 * M_PI;
-	if (x < -M_PI) x += 2 * M_PI;
+/************************************************************************
+ * Public Functions
+ ************************************************************************/
 
-	/* move x to [-pi/2, pi/2) */
-	if (x >= M_PI_2) x =  M_PI - x;
-	if (x < -M_PI_2) x = -M_PI - x;
+double sin(double x)
+{
+  double x_squared;
+  double sin_x;
+  size_t i;
 
-	x_squared = x * x;
-	sin_x = 0.0;
+  /* Move x to [-pi, pi) */
 
-	/* perform Taylor series approximation for sin(x) with six terms */
-	for (i = 0; i < 6; i++) {
-		if (i % 2 == 0) {
-			sin_x += x * _flt_inv_fact[i];
-		}
-		else {
-			sin_x -= x * _flt_inv_fact[i];
-		}
+  x = fmod(x, 2 * M_PI);
+  if (x >= M_PI)
+    {
+      x -= 2 * M_PI;
+    }
 
-		x *= x_squared;
-	}
+  if (x < -M_PI)
+    {
+      x += 2 * M_PI;
+    }
 
-	return sin_x;
+  /* Move x to [-pi/2, pi/2) */
+
+  if (x >= M_PI_2)
+    {
+      x = M_PI - x;
+    }
+
+  if (x < -M_PI_2)
+    {
+      x = -M_PI - x;
+    }
+
+  x_squared = x * x;
+  sin_x = 0.0;
+
+  /* Perform Taylor series approximation for sin(x) with ten terms */
+
+  for (i = 0; i < 10; i++)
+    {
+      if (i % 2 == 0)
+        {
+          sin_x += x * _dbl_inv_fact[i];
+        }
+      else
+        {
+          sin_x -= x * _dbl_inv_fact[i];
+        }
+
+      x *= x_squared;
+    }
+
+  return sin_x;
 }
-	
-static double _dbl_inv_fact[] = {
-	1.0 / 1.0,						// 1 / 1!
-	1.0 / 6.0,						// 1 / 3!
-	1.0 / 120.0,					// 1 / 5!
-	1.0 / 5040.0,					// 1 / 7!
-	1.0 / 362880.0,					// 1 / 9!
-	1.0 / 39916800.0,				// 1 / 11!
-	1.0 / 6227020800.0,				// 1 / 13!
-	1.0 / 1307674368000.0,			// 1 / 15!
-	1.0 / 355687428096000.0,		// 1 / 17!
-	1.0 / 121645100408832000.0,		// 1 / 19!
-};
-
-double sin(double x) {
-	double x_squared;
-	double sin_x;
-	size_t i;
-	
-	/* move x to [-pi, pi) */
-	x = fmod(x, 2 * M_PI);
-	if (x >= M_PI) x -= 2 * M_PI;
-	if (x < -M_PI) x += 2 * M_PI;
-
-	/* move x to [-pi/2, pi/2) */
-	if (x >= M_PI_2) x =  M_PI - x;
-	if (x < -M_PI_2) x = -M_PI - x;
-
-	x_squared = x * x;
-	sin_x = 0.0;
-
-	/* perform Taylor series approximation for sin(x) with ten terms */
-	for (i = 0; i < 10; i++) {
-		if (i % 2 == 0) {
-			sin_x += x * _dbl_inv_fact[i];
-		}
-		else {
-			sin_x -= x * _dbl_inv_fact[i];
-		}
-
-		x *= x_squared;
-	}
-
-	return sin_x;
-}
-
-static long double _ldbl_inv_fact[] = {
-	1.0 / 1.0,						// 1 / 1!
-	1.0 / 6.0,						// 1 / 3!
-	1.0 / 120.0,					// 1 / 5!
-	1.0 / 5040.0,					// 1 / 7!
-	1.0 / 362880.0,					// 1 / 9!
-	1.0 / 39916800.0,				// 1 / 11!
-	1.0 / 6227020800.0,				// 1 / 13!
-	1.0 / 1307674368000.0,			// 1 / 15!
-	1.0 / 355687428096000.0,		// 1 / 17!
-	1.0 / 121645100408832000.0,		// 1 / 19!
-};
-
-long double sinl(long double x) {
-	long double x_squared;
-	long double sin_x;
-	size_t i;
-	
-	/* move x to [-pi, pi) */
-	x = fmodl(x, 2 * M_PI);
-	if (x >= M_PI) x -= 2 * M_PI;
-	if (x < -M_PI) x += 2 * M_PI;
-
-	/* move x to [-pi/2, pi/2) */
-	if (x >= M_PI_2) x =  M_PI - x;
-	if (x < -M_PI_2) x = -M_PI - x;
-
-	x_squared = x * x;
-	sin_x = 0.0;
-
-	/* perform Taylor series approximation for sin(x) with ten terms */
-	for (i = 0; i < 10; i++) {
-		if (i % 2 == 0) {
-			sin_x += x * _ldbl_inv_fact[i];
-		}
-		else {
-			sin_x -= x * _ldbl_inv_fact[i];
-		}
-
-		x *= x_squared;
-	}
-
-	return sin_x;
-}
-
+#endif

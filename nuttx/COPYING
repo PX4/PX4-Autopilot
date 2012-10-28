@@ -192,6 +192,28 @@ lib/string/lib_vikmemcpy.c
   3. This notice may not be removed or altered from any source
      distribution.
  
+lib/math
+^^^^^^^^
+
+  If you enable CONFIG_LIB, you will build the math library at lib/math.
+  This library was taken from the math library developed for the Rhombus
+  OS by Nick Johnson (https://github.com/nickbjohnson4224/rhombus).  This
+  port was contributed by Darcy Gong.  The Rhombus math library has this
+  compatible MIT license:
+
+    Copyright (C) 2009-2011 Nick Johnson <nickbjohnson4224 at gmail.com>
+  
+  Permission to use, copy, modify, and distribute this software for any
+  purpose with or without fee is hereby granted, provided that the above
+  copyright notice and this permission notice appear in all copies.
+ 
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+
 Documents/rss.gif
 ^^^^^^^^^^^^^^^^^
 

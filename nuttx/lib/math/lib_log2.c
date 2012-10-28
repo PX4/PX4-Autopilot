@@ -1,4 +1,14 @@
-/*
+/************************************************************************
+ * lib/math/lib_log2.c
+ *
+ * This file is a part of NuttX:
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Ported by: Darcy Gong
+ *
+ * It derives from the Rhombs OS math library by Nick Johnson which has
+ * a compatibile, MIT-style license:
+ *
  * Copyright (C) 2009, 2010 Nick Johnson <nickbjohnson4224 at gmail.com>
  * 
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,19 +22,25 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *
+ ************************************************************************/
 
-#include <apps/math.h>
-#include <float.h>
+/************************************************************************
+ * Included Files
+ ************************************************************************/
 
-float log2f(float x) {
-	return (logf(x) / M_LN2);
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
+
+#include <math.h>
+
+/************************************************************************
+ * Public Functions
+ ************************************************************************/
+
+#if CONFIG_HAVE_DOUBLE
+double log2(double x)
+{
+  return (log(x) / M_LN2);
 }
-
-double log2(double x) {
-	return (log(x) / M_LN2);
-}
-
-long double log2l(long double x) {
-	return (logl(x) / M_LN2);
-}
+#endif

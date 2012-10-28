@@ -3529,3 +3529,10 @@
 	  the math library from the Rhombus OS
 	* lib/math: Now contains the math library from the Rhombus OS by Nick Johnson
 	  (submitted by Darcy Gong).
+	* include/float.h:  Add a first cut at the float.h header file.  This
+	  really should be an architecture/toolchain-specific header file.  It
+	  is only used if CONFIG_ARCH_FLOAT_H is defined.
+	* lib/math: Files now conform to coding standards.  Separated float,
+	  double, and long double versions of code into separate files so that
+	  they don't draw in so much un-necessary code when doing a dumb link.
+

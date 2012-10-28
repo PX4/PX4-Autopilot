@@ -263,13 +263,45 @@ all: $(BIN)
 # Target used to copy include/nuttx/math.h.  If CONFIG_ARCH_MATH_H is
 # defined, then there is an architecture specific math.h header file
 # that will be included indirectly from include/math.h.  But first, we
-# have to copy math.h from include/nuttx/. to include/.
+# have to copy math.h from include/nuttx/. to include/.  Logic within
+# include/nuttx/math.h will hand the redirection to the architecture-
+# specific math.h header file.
+#
+# If the CONFIG_LIBM is defined, the Rhombus libm will be built at lib/math.
+# Definitions and prototypes for the Rhombus libm are also contained in
+# include/nuttx/math.h and so the file must also be copied in that case.
+#
+# If neither CONFIG_ARCH_MATH_H nor CONFIG_LIBM is defined, then no math.h
+# header file will be provided.  You would want that behavior if (1) you
+# don't use libm, or (2) you want to use the math.h and libm provided
+# within your toolchain.
 
 ifeq ($(CONFIG_ARCH_MATH_H),y)
+NEED_MATH_H = y
+else
+ifeq ($(CONFIG_LIBM),y)
+NEED_MATH_H = y
+endif
+endif
+
+ifeq ($(NEED_MATH_H),y)
 include/math.h: include/nuttx/math.h
 	@cp -f include/nuttx/math.h include/math.h
 else
 include/math.h:
+endif
+
+# The float.h header file defines the properties of your floating point
+# implementation.  It would always be best to use your toolchain's float.h
+# header file but if none is avaiable, a default float.h header file will
+# provided if this option is selected.  However there is no assurance that
+# the settings in this float.h are actually correct for your platform!
+
+ifeq ($(CONFIG_ARCH_FLOAT_H),y)
+include/float.h: include/nuttx/float.h
+	@cp -f include/nuttx/float.h include/float.h
+else
+include/float.h:
 endif
 
 # Target used to copy include/nuttx/stdarg.h.  If CONFIG_ARCH_STDARG_H is
@@ -364,7 +396,7 @@ dirlinks: include/arch include/arch/board include/arch/chip $(ARCH_SRC)/board $(
 # the config.h and version.h header files in the include/nuttx directory and
 # the establishment of symbolic links to configured directories.
 
-context: check_context include/nuttx/config.h include/nuttx/version.h include/math.h include/stdarg.h dirlinks
+context: check_context include/nuttx/config.h include/nuttx/version.h include/math.h include/float.h include/stdarg.h dirlinks
 	@for dir in $(CONTEXTDIRS) ; do \
 		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)" context; \
 	done

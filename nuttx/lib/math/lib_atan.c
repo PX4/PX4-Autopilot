@@ -1,5 +1,15 @@
-/*
- * Copyright (C) 2009-2011 Nick Johnson <nickbjohnson4224 at gmail.com>
+/************************************************************************
+ * lib/math/lib_atan.c
+ *
+ * This file is a part of NuttX:
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Ported by: Darcy Gong
+ *
+ * It derives from the Rhombs OS math library by Nick Johnson which has
+ * a compatibile, MIT-style license:
+ *
+ * Copyright (C) 2009, 2010 Nick Johnson <nickbjohnson4224 at gmail.com>
  * 
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -12,21 +22,27 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *
+ ************************************************************************/
 
-#include <apps/math.h>
-#include <float.h>
+/************************************************************************
+ * Included Files
+ ************************************************************************/
+
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
+
+#include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 
-float atanf(float x) {	
-	return asinf(x / sqrtf(x * x + 1));
-}
+/************************************************************************
+ * Public Functions
+ ************************************************************************/
 
-double atan(double x) {
-	return asin(x / sqrt(x * x + 1));
+#if CONFIG_HAVE_DOUBLE
+double atan(double x)
+{
+  return asin(x / sqrt(x * x + 1));
 }
-
-long double atanl(long double x) {
-	return asinl(x / sqrtl(x * x + 1));
-}
+#endif

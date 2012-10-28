@@ -1,4 +1,14 @@
-/*
+/************************************************************************
+ * lib/math/lib_frexp.c
+ *
+ * This file is a part of NuttX:
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Ported by: Darcy Gong
+ *
+ * It derives from the Rhombs OS math library by Nick Johnson which has
+ * a compatibile, MIT-style license:
+ *
  * Copyright (C) 2009-2011 Nick Johnson <nickbjohnson4224 at gmail.com>
  * 
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,23 +22,26 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *
+ ************************************************************************/
 
-#include <apps/math.h>
-#include <float.h>
+/************************************************************************
+ * Included Files
+ ************************************************************************/
 
-float frexpf(float x, int *exp) {
-	*exp = (int) ceilf(log2f(x));
-	return x / ldexpf(1.0, *exp);
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
+
+#include <math.h>
+
+/************************************************************************
+ * Public Functions
+ ************************************************************************/
+
+#if CONFIG_HAVE_DOUBLE
+double frexp(double x, int *exponent)
+{
+  *exponent = (int)ceil(log2(x));
+  return x / ldexp(1.0, *exponent);
 }
-
-double frexp(double x, int *exp) {
-	*exp = (int) ceil(log2(x));
-	return x / ldexp(1.0, *exp);
-}
-
-long double frexpl(long double x, int *exp) {
-	*exp = (int) ceill(log2(x));
-	return x / ldexpl(1.0, *exp);
-}
-
+#endif

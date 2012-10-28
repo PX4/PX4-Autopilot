@@ -192,6 +192,17 @@ config ARCH_MATH_H
 		that don't select ARCH_MATH_H, the redirecting math.h header file
 		will stay out-of-the-way in include/nuttx/.
 
+config ARCH_FLOAT_H
+	bool "float.h"
+	default n
+	---help---
+		The float.h header file defines the properties of your floating
+		point implementation.  It would always be best to use your
+		toolchain's float.h header file but if none is avaiable, a default
+		float.h header file will provided if this option is selected.  However
+ 		there is no assurance that the settings in this float.h are actually
+		correct for your platform!
+
 config ARCH_STDARG_H
 	bool "stdarg.h"
 	default n

@@ -196,8 +196,9 @@
 
 /* GCC supports both types double and long long */
 
-# define CONFIG_HAVE_DOUBLE 1
 # define CONFIG_HAVE_LONG_LONG 1
+# define CONFIG_HAVE_DOUBLE 1
+# define CONFIG_HAVE_LONG_DOUBLE 1
 
 /* Structures and unions can be assigned and passed as values */
 
@@ -301,6 +302,7 @@
 
 # undef  CONFIG_HAVE_LONG_LONG
 # undef  CONFIG_HAVE_DOUBLE
+# undef  CONFIG_HAVE_LONG_DOUBLE
 
 /* Structures and unions cannot be passed as values or used
  * in assignments.
@@ -403,8 +405,9 @@
  * simply do not support long long or double.
  */
 
-# undef  CONFIG_HAVE_DOUBLE
 # undef  CONFIG_HAVE_LONG_LONG
+# undef  CONFIG_HAVE_DOUBLE
+# undef  CONFIG_HAVE_LONG_DOUBLE
 
 /* Structures and unions can be assigned and passed as values */
 
@@ -441,6 +444,7 @@
 # define inline
 # undef  CONFIG_HAVE_LONG_LONG
 # undef  CONFIG_HAVE_DOUBLE
+# undef  CONFIG_HAVE_LONG_DOUBLE
 # undef  CONFIG_CAN_PASS_STRUCTS
 
 #endif

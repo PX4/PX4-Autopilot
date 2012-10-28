@@ -1,4 +1,14 @@
-/*
+/************************************************************************
+ * lib/math/lib_fmod.c
+ *
+ * This file is a part of NuttX:
+ *
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Ported by: Darcy Gong
+ *
+ * It derives from the Rhombs OS math library by Nick Johnson which has
+ * a compatibile, MIT-style license:
+ *
  * Copyright (C) 2009-2011 Nick Johnson <nickbjohnson4224 at gmail.com>
  * 
  * Permission to use, copy, modify, and distribute this software for any
@@ -12,56 +22,31 @@
  * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- */
+ *
+ ************************************************************************/
 
-#include <apps/math.h>
-#include <float.h>
+/************************************************************************
+ * Included Files
+ ************************************************************************/
 
-/* If GCC/CLang builtins are available, use them */
-#ifdef __GNUC__
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
 
-float fmodf(float x, float div) {
-	return __builtin_fmodf(x, div);
+#include <math.h>
+
+/************************************************************************
+ * Public Functions
+ ************************************************************************/
+
+#if CONFIG_HAVE_DOUBLE
+double fmod(double x, double div)
+{
+  double n0;
+
+  x /= div;
+  x = modf(x, &n0);
+  x *= div;
+
+  return x;
 }
-
-double fmod(double x, double div) {
-	return __builtin_fmod(x, div);
-}
-
-long double fmodl(long double x, long double div) {
-	return __builtin_fmodl(x, div);
-}
-
-#else
-
-float fmodf(float x, float div) {
-	float n0;
-
-	x /= div;
-	x = modff(x, &n0);
-	x *= div;
-
-	return x;
-}
-
-double fmod(double x, double div) {
-	double n0;
-
-	x /= div;
-	x = modf(x, &n0);
-	x *= div;
-
-	return x;
-}
-
-long double fmodl(long double x, long double div) {
-	long double n0;
-
-	x /= div;
-	x = modfl(x, &n0);
-	x *= div;
-
-	return x;
-}
-
 #endif
