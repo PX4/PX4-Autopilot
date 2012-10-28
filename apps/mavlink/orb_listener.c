@@ -547,12 +547,9 @@ uorb_receive_thread(void *arg)
 			mavlink_missionlib_send_gcs_string("[mavlink] ERROR reading uORB data");
 		} else {
 
-			static bool updated = false;
 			for (unsigned i = 0; i < n_listeners; i++) {
-				orb_check(*(listeners[i].subp), &updated);
-//					printf("revents: %d:%d", i, fds[i].revents);
-//				if (fds[i].revents & POLLIN)
-				if(updated)
+				bool updated = false;
+				if(OK == orb_check(*(listeners[i].subp), &updated) && updated)
 					listeners[i].callback(&listeners[i]);
 			}
 		}

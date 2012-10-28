@@ -113,10 +113,15 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 	static struct fw_att_control_params p;
 	static struct fw_att_control_params_handles h;
 
+	static PID_t roll_controller;
+	static PID_t pitch_controller;
+
 	if(!initialized)
 	{
 		parameters_init(&h);
 		parameters_update(&h, &p);
+		pid_init(&roll_controller, p.roll_p, 0, 0, 0, p.roll_lim, PID_MODE_DERIVATIV_NONE); //P Controller
+		pid_init(&pitch_controller, p.pitch_p, 0, 0, 0, p.pitch_lim, PID_MODE_DERIVATIV_NONE); //P Controller
 		initialized = true;
 	}
 
@@ -124,21 +129,18 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 	if (counter % 100 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
+		pid_set_parameters(&roll_controller, p.roll_p, 0, 0, 0, p.roll_lim);
+		pid_set_parameters(&pitch_controller, p.pitch_p, 0, 0, 0, p.pitch_lim);
 	}
 
 	/* Roll (P) */
-	float roll_error = att_sp->roll_tait_bryan - att->roll;
-	//TODO convert to body frame
-	rates_sp->roll = p.roll_p * roll_error; //TODO enabled for testing only
+	rates_sp->roll = pid_calculate(&roll_controller,att_sp->roll_tait_bryan, att->roll, 0, 0);
 
 	/* Pitch (P) */
-	float pitch_error = att_sp->pitch_tait_bryan - att->pitch;
-	//TODO convert to body frame
+	//rates_sp->pitch = pid_calculate(&pitch_controller,att_sp->pitch_tait_bryan, att->pitch, 0, 0);
 
-	/* Yaw (from coordinated turn constraint) */
+	/* Yaw (from coordinated turn constraint or lateral force) */
 	//TODO
-
-	//TODO Limits
 
 	counter++;
 

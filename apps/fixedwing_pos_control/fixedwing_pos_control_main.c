@@ -105,9 +105,9 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 		/* publish attitude setpoint */
 
-		attitude_setpoint.roll_body = 0.0f;
-		attitude_setpoint.pitch_body = 0.0f;
-		attitude_setpoint.yaw_body = 0.0f;
+		attitude_setpoint.roll_tait_bryan = 0.0f;
+		attitude_setpoint.pitch_tait_bryan = 0.0f;
+		attitude_setpoint.yaw_tait_bryan = 0.0f;
 		orb_advert_t attitude_setpoint_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &attitude_setpoint);
 
 
