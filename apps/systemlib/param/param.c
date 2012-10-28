@@ -600,7 +600,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 	 */
 
 	switch (node->type) {
-	case BSON_INT:
+	case BSON_INT32:
 		if (param_type(param) != PARAM_TYPE_INT32) {
 			debug("unexpected type for '%s", node->name);
 			goto out;
