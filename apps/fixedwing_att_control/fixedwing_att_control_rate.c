@@ -77,15 +77,15 @@ struct fw_rate_control_params {
 };
 
 struct fw_rate_control_param_handles {
-	float rollrate_p;
-	float rollrate_i;
-	float rollrate_awu;
-	float pitchrate_p;
-	float pitchrate_i;
-	float pitchrate_awu;
-	float yawrate_p;
-	float yawrate_i;
-	float yawrate_awu;
+	param_t rollrate_p;
+	param_t rollrate_i;
+	param_t rollrate_awu;
+	param_t pitchrate_p;
+	param_t pitchrate_i;
+	param_t pitchrate_awu;
+	param_t yawrate_p;
+	param_t yawrate_i;
+	param_t yawrate_awu;
 
 };
 

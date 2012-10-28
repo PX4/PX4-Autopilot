@@ -56,6 +56,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pid/pid.h>
 #include <systemlib/geo/geo.h>
@@ -65,17 +66,21 @@
  * Controller parameters, accessible via MAVLink
  *
  */
+PARAM_DEFINE_FLOAT(FW_HEADING_P, 0.1f);
 PARAM_DEFINE_FLOAT(FW_ROLL_LIM, 0.7f);	// Roll angle limit in radians
 PARAM_DEFINE_FLOAT(FW_PITCH_LIM, 0.35f);	// Pitch angle limit in radians
 
 struct fw_pos_control_params {
+	float heading_p;
 	float roll_lim;
 	float pitch_lim;
 };
 
 struct fw_pos_control_param_handles {
-	float roll_lim;
-	float pitch_lim;
+	param_t heading_p;
+	param_t roll_lim;
+	param_t pitch_lim;
+
 };
 
 
@@ -111,6 +116,7 @@ static int deamon_task;				/**< Handle of deamon task / thread */
 static int parameters_init(struct fw_pos_control_param_handles *h)
 {
 	/* PID parameters */
+	h->heading_p 	=	param_find("FW_HEADING_P");
 	h->roll_lim 	=	param_find("FW_ROLL_LIM");
 	h->pitch_lim 	=	param_find("FW_PITCH_LIM");
 
@@ -120,6 +126,7 @@ static int parameters_init(struct fw_pos_control_param_handles *h)
 
 static int parameters_update(const struct fw_pos_control_param_handles *h, struct fw_pos_control_params *p)
 {
+	param_get(h->heading_p, &(p->heading_p));
 	param_get(h->roll_lim, &(p->roll_lim));
 	param_get(h->pitch_lim, &(p->pitch_lim));
 
@@ -143,33 +150,35 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 		printf("[fixedwing att_control] started\n");
 
 		/* declare and safely initialize all structs */
-
+		struct vehicle_global_position_s global_pos;
+		memset(&global_pos, 0, sizeof(global_pos));
+		struct vehicle_global_position_setpoint_s global_setpoint;
+		memset(&global_setpoint, 0, sizeof(global_setpoint));
+		struct vehicle_attitude_s att;
+		memset(&att, 0, sizeof(att));
 
 		/* output structs */
 		struct vehicle_attitude_setpoint_s attitude_setpoint;
 		memset(&attitude_setpoint, 0, sizeof(attitude_setpoint));
 
 		/* publish attitude setpoint */
-
 		attitude_setpoint.roll_tait_bryan = 0.0f;
-		attitude_setpoint.pitch_tait_bryan = 0.2f; //TODO: for testing
+		attitude_setpoint.pitch_tait_bryan = 0.0f;
 		attitude_setpoint.yaw_tait_bryan = 0.0f;
 		orb_advert_t attitude_setpoint_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &attitude_setpoint);
 
-
-
-//		/* subscribe */
-//
+		/* subscribe */
+		int global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+		int global_setpoint_sub = orb_subscribe(ORB_ID(vehicle_global_position_setpoint));
+		int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
 		/* Setup of loop */
-//		struct pollfd fds = { .fd = att_sub, .events = POLLIN };
+		struct pollfd fds = { .fd = att_sub, .events = POLLIN };
 
 		while(!thread_should_exit)
 		{
 			/* wait for a sensor update, check for exit condition every 500 ms */
-//			poll(&fds, 1, 500);
-			sleep(500); //TODO removeme, this is for testing only
-
+			poll(&fds, 1, 500);
 
 			static int counter = 0;
 			static bool initialized = false;
@@ -177,23 +186,58 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 			static struct fw_pos_control_params p;
 			static struct fw_pos_control_param_handles h;
 
+			PID_t heading_controller;
+
 			if(!initialized)
-				{
-					parameters_init(&h);
-					parameters_update(&h, &p);
-					initialized = true;
-				}
+			{
+				parameters_init(&h);
+				parameters_update(&h, &p);
+				pid_init(&heading_controller, p.heading_p, 0.0f, 0.0f, 0.0f,p.roll_lim,PID_MODE_DERIVATIV_NONE);
+				initialized = true;
+			}
 
-				/* load new parameters with lower rate */
-				if (counter % 100 == 0) {
-					/* update parameters from storage */
-					parameters_update(&h, &p);
+			/* load new parameters with lower rate */
+			if (counter % 100 == 0) {
+				/* update parameters from storage */
+				parameters_update(&h, &p);
+				pid_set_parameters(&heading_controller, p.heading_p, 0, 0, 0, p.roll_lim);
 
-				}
+			}
 
-				/* Control */
-				//TODO: control here
+			/* Check if there is a new position or setpoint */
+			bool pos_updated;
+			orb_check(global_pos_sub, &pos_updated);
+			bool global_sp_updated;
+			orb_check(global_setpoint_sub, &global_sp_updated);
 
+
+			/* Load local copies */
+			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
+			if(pos_updated)
+				orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
+			if (global_sp_updated)
+				orb_copy(ORB_ID(vehicle_global_position_setpoint), global_setpoint_sub, &global_setpoint);
+
+			/* Control */
+
+			/* Simple Horizontal Control */
+			/* calculate bearing error */
+			float target_bearing = get_bearing_to_next_waypoint(global_pos.lat / (double)1e7d, global_pos.lon / (double)1e7d,
+				global_setpoint.lat / (double)1e7d, global_setpoint.lon / (double)1e7d);
+
+			/* shift error to prevent wrapping issues */
+			float bearing_error = target_bearing - att.yaw;
+
+			if (bearing_error < M_PI_F) {
+				bearing_error += 2.0f * M_PI_F;
+			}
+
+			if (bearing_error > M_PI_F) {
+				bearing_error -= 2.0f * M_PI_F;
+			}
+
+			/* calculate roll setpoint, do this artificially around zero */
+			attitude_setpoint.roll_tait_bryan = pid_calculate(&heading_controller, bearing_error, 0.0f, 0.0f, 0.0f);
 
 			orb_publish(ORB_ID(vehicle_attitude_setpoint), attitude_setpoint_pub, &attitude_setpoint);
 

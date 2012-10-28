@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(FW_ROLLR_P, 0.9f);
 PARAM_DEFINE_FLOAT(FW_ROLLR_I, 0.2f);
 PARAM_DEFINE_FLOAT(FW_ROLLR_AWU, 0.9f);
 PARAM_DEFINE_FLOAT(FW_ROLLR_LIM, 0.7f);   // Roll rate limit in radians/sec, applies to the roll controller
-PARAM_DEFINE_FLOAT(FW_ROLL_P, 9.0f);
+PARAM_DEFINE_FLOAT(FW_ROLL_P, 4.0f);
 PARAM_DEFINE_FLOAT(FW_PITCH_RCOMP, 0.1f);
 
 //Pitch control parameters

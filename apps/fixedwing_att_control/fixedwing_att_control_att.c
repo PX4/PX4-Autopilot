@@ -72,23 +72,23 @@ struct fw_att_control_params {
 	float pitch_roll_compensation_p;
 };
 
-struct fw_pos_control_params_handle {
-	float roll_p;
-	float rollrate_lim;
-	float pitch_p;
-	float pitch_lim;
-	float pitchrate_lim;
-	float yawrate_lim;
-	float pitch_roll_compensation_p;
+struct fw_pos_control_param_handles {
+	param_t roll_p;
+	param_t rollrate_lim;
+	param_t pitch_p;
+	param_t pitch_lim;
+	param_t pitchrate_lim;
+	param_t yawrate_lim;
+	param_t pitch_roll_compensation_p;
 };
 
 
 
 /* Internal Prototypes */
-static int parameters_init(struct fw_pos_control_params_handle *h);
-static int parameters_update(const struct fw_pos_control_params_handle *h, struct fw_att_control_params *p);
+static int parameters_init(struct fw_pos_control_param_handles *h);
+static int parameters_update(const struct fw_pos_control_param_handles *h, struct fw_att_control_params *p);
 
-static int parameters_init(struct fw_pos_control_params_handle *h)
+static int parameters_init(struct fw_pos_control_param_handles *h)
 {
 	/* PID parameters */
 	h->roll_p 		=	param_find("FW_ROLL_P");
@@ -102,7 +102,7 @@ static int parameters_init(struct fw_pos_control_params_handle *h)
 	return OK;
 }
 
-static int parameters_update(const struct fw_pos_control_params_handle *h, struct fw_att_control_params *p)
+static int parameters_update(const struct fw_pos_control_param_handles *h, struct fw_att_control_params *p)
 {
 	param_get(h->roll_p, &(p->roll_p));
 	param_get(h->rollrate_lim, &(p->rollrate_lim));
@@ -122,7 +122,7 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 	static bool initialized = false;
 
 	static struct fw_att_control_params p;
-	static struct fw_pos_control_params_handle h;
+	static struct fw_pos_control_param_handles h;
 
 	static PID_t roll_controller;
 	static PID_t pitch_controller;
