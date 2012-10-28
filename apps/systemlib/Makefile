@@ -42,7 +42,8 @@ CSRCS		 = err.c \
 		   bson/tinybson.c \
 		   conversions.c \
 		   cpuload.c \
-		   getopt_long.c
+		   getopt_long.c \
+		   up_cxxinitialize.c
 
 #		   ppm_decode.c \
 
