@@ -64,41 +64,48 @@
 
 struct fw_att_control_params {
 	float roll_p;
-	float roll_lim;
+	float rollrate_lim;
 	float pitch_p;
 	float pitch_lim;
+	float pitchrate_lim;
+	float yawrate_lim;
 };
 
-struct fw_att_control_params_handles {
+struct fw_pos_control_params_handle {
 	float roll_p;
-	float roll_lim;
+	float rollrate_lim;
 	float pitch_p;
 	float pitch_lim;
+	float pitchrate_lim;
+	float yawrate_lim;
 };
 
 
 
 /* Internal Prototypes */
-static int parameters_init(struct fw_att_control_params_handles *h);
-static int parameters_update(const struct fw_att_control_params_handles *h, struct fw_att_control_params *p);
+static int parameters_init(struct fw_pos_control_params_handle *h);
+static int parameters_update(const struct fw_pos_control_params_handle *h, struct fw_att_control_params *p);
 
-static int parameters_init(struct fw_att_control_params_handles *h)
+static int parameters_init(struct fw_pos_control_params_handle *h)
 {
 	/* PID parameters */
 	h->roll_p 		=	param_find("FW_ROLL_P");
-	h->roll_lim 	=	param_find("FW_ROLL_LIM");
+	h->rollrate_lim =	param_find("FW_ROLLR_LIM");
 	h->pitch_p 		=	param_find("FW_PITCH_P");
 	h->pitch_lim 	=	param_find("FW_PITCH_LIM");
+	h->pitchrate_lim =	param_find("FW_PITCHR_LIM");
+	h->yawrate_lim =	param_find("FW_YAWR_LIM");
 
 	return OK;
 }
 
-static int parameters_update(const struct fw_att_control_params_handles *h, struct fw_att_control_params *p)
+static int parameters_update(const struct fw_pos_control_params_handle *h, struct fw_att_control_params *p)
 {
 	param_get(h->roll_p, &(p->roll_p));
-	param_get(h->roll_lim, &(p->roll_lim));
+	param_get(h->rollrate_lim, &(p->rollrate_lim));
 	param_get(h->pitch_p, &(p->pitch_p));
-	param_get(h->pitch_lim, &(p->pitch_lim));
+	param_get(h->pitchrate_lim, &(p->pitchrate_lim));
+	param_get(h->yawrate_lim, &(p->yawrate_lim));
 
 	return OK;
 }
@@ -111,17 +118,18 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 	static bool initialized = false;
 
 	static struct fw_att_control_params p;
-	static struct fw_att_control_params_handles h;
+	static struct fw_pos_control_params_handle h;
 
 	static PID_t roll_controller;
 	static PID_t pitch_controller;
+
 
 	if(!initialized)
 	{
 		parameters_init(&h);
 		parameters_update(&h, &p);
-		pid_init(&roll_controller, p.roll_p, 0, 0, 0, p.roll_lim, PID_MODE_DERIVATIV_NONE); //P Controller
-		pid_init(&pitch_controller, p.pitch_p, 0, 0, 0, p.pitch_lim, PID_MODE_DERIVATIV_NONE); //P Controller
+		pid_init(&roll_controller, p.roll_p, 0, 0, 0, p.rollrate_lim, PID_MODE_DERIVATIV_NONE); //P Controller
+		pid_init(&pitch_controller, p.pitch_p, 0, 0, 0, p.pitchrate_lim, PID_MODE_DERIVATIV_NONE); //P Controller
 		initialized = true;
 	}
 
@@ -129,15 +137,16 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 	if (counter % 100 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-		pid_set_parameters(&roll_controller, p.roll_p, 0, 0, 0, p.roll_lim);
-		pid_set_parameters(&pitch_controller, p.pitch_p, 0, 0, 0, p.pitch_lim);
+		pid_set_parameters(&roll_controller, p.roll_p, 0, 0, 0, p.pitchrate_lim);
+		pid_set_parameters(&pitch_controller, p.pitch_p, 0, 0, 0, p.pitchrate_lim);
 	}
 
 	/* Roll (P) */
 	rates_sp->roll = pid_calculate(&roll_controller,att_sp->roll_tait_bryan, att->roll, 0, 0);
 
 	/* Pitch (P) */
-	//rates_sp->pitch = pid_calculate(&pitch_controller,att_sp->pitch_tait_bryan, att->pitch, 0, 0);
+
+	rates_sp->pitch = pid_calculate(&pitch_controller,att_sp->pitch_tait_bryan, att->pitch, 0, 0);
 
 	/* Yaw (from coordinated turn constraint or lateral force) */
 	//TODO

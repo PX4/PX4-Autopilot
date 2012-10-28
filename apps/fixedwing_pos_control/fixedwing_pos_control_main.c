@@ -1,7 +1,8 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Ivan Ovinnikov <oivan@ethz.ch>
+ *   Author: 	@author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *   			@author Doug Weibel <douglas.weibel@colorado.edu>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -60,7 +61,29 @@
 #include <systemlib/geo/geo.h>
 #include <systemlib/systemlib.h>
 
+/*
+ * Controller parameters, accessible via MAVLink
+ *
+ */
+PARAM_DEFINE_FLOAT(FW_ROLL_LIM, 0.7f);	// Roll angle limit in radians
+PARAM_DEFINE_FLOAT(FW_PITCH_LIM, 0.35f);	// Pitch angle limit in radians
+
+struct fw_pos_control_params {
+	float roll_lim;
+	float pitch_lim;
+};
+
+struct fw_pos_control_param_handles {
+	float roll_lim;
+	float pitch_lim;
+};
+
+
 /* Prototypes */
+/* Internal Prototypes */
+static int parameters_init(struct fw_pos_control_param_handles *h);
+static int parameters_update(const struct fw_pos_control_param_handles *h, struct fw_pos_control_params *p);
+
 /**
  * Deamon management function.
  */
@@ -80,6 +103,29 @@ static void usage(const char *reason);
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
+
+
+/**
+ * Parameter management
+ */
+static int parameters_init(struct fw_pos_control_param_handles *h)
+{
+	/* PID parameters */
+	h->roll_lim 	=	param_find("FW_ROLL_LIM");
+	h->pitch_lim 	=	param_find("FW_PITCH_LIM");
+
+
+	return OK;
+}
+
+static int parameters_update(const struct fw_pos_control_param_handles *h, struct fw_pos_control_params *p)
+{
+	param_get(h->roll_lim, &(p->roll_lim));
+	param_get(h->pitch_lim, &(p->pitch_lim));
+
+	return OK;
+}
+
 
 /* Main Thread */
 int fixedwing_pos_control_thread_main(int argc, char *argv[])
@@ -106,7 +152,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 		/* publish attitude setpoint */
 
 		attitude_setpoint.roll_tait_bryan = 0.0f;
-		attitude_setpoint.pitch_tait_bryan = 0.0f;
+		attitude_setpoint.pitch_tait_bryan = 0.2f; //TODO: for testing
 		attitude_setpoint.yaw_tait_bryan = 0.0f;
 		orb_advert_t attitude_setpoint_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &attitude_setpoint);
 
@@ -124,10 +170,34 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 //			poll(&fds, 1, 500);
 			sleep(500); //TODO removeme, this is for testing only
 
-			/* Control */
+
+			static int counter = 0;
+			static bool initialized = false;
+
+			static struct fw_pos_control_params p;
+			static struct fw_pos_control_param_handles h;
+
+			if(!initialized)
+				{
+					parameters_init(&h);
+					parameters_update(&h, &p);
+					initialized = true;
+				}
+
+				/* load new parameters with lower rate */
+				if (counter % 100 == 0) {
+					/* update parameters from storage */
+					parameters_update(&h, &p);
+
+				}
+
+				/* Control */
+				//TODO: control here
 
 
 			orb_publish(ORB_ID(vehicle_attitude_setpoint), attitude_setpoint_pub, &attitude_setpoint);
+
+			counter++;
 		}
 
 		printf("[fixedwing_pos_control] exiting.\n");

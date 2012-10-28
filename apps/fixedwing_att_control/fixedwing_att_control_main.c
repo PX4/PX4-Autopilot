@@ -1,7 +1,8 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Ivan Ovinnikov <oivan@ethz.ch>
+ *   Author: 	@author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *   			@author Doug Weibel <douglas.weibel@colorado.edu>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,6 +58,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/debug_key_value.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pid/pid.h>
 #include <systemlib/geo/geo.h>
@@ -70,26 +72,24 @@
  *
  */
 // Roll control parameters
-PARAM_DEFINE_FLOAT(FW_ROLLRATE_P, 0.3f);
-PARAM_DEFINE_FLOAT(FW_ROLLRATE_I, 0.0f);
-PARAM_DEFINE_FLOAT(FW_ROLLRATE_AWU, 0.0f);
-PARAM_DEFINE_FLOAT(FW_ROLLRATE_LIM, 0.7f);   // Roll rate limit in radians/sec
+PARAM_DEFINE_FLOAT(FW_ROLLR_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_ROLLR_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ROLLR_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(FW_ROLLR_LIM, 0.7f);   // Roll rate limit in radians/sec, applies to the roll controller
 PARAM_DEFINE_FLOAT(FW_ROLL_P, 0.3f);
-PARAM_DEFINE_FLOAT(FW_ROLL_LIM, 0.7f);	// Roll angle limit in radians
 
 //Pitch control parameters
-PARAM_DEFINE_FLOAT(FW_PITCHRATE_P, 0.3f);
-PARAM_DEFINE_FLOAT(FW_PITCHRATE_I, 0.0f);
-PARAM_DEFINE_FLOAT(FW_PITCHRATE_AWU, 0.0f);
-PARAM_DEFINE_FLOAT(FW_PITCHRATE_LIM, 0.35f);   // Pitch rate limit in radians/sec
+PARAM_DEFINE_FLOAT(FW_PITCHR_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_PITCHR_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_PITCHR_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(FW_PITCHR_LIM, 0.35f);   // Pitch rate limit in radians/sec, applies to the pitch controller
 PARAM_DEFINE_FLOAT(FW_PITCH_P, 0.3f);
-PARAM_DEFINE_FLOAT(FW_PITCH_LIM, 0.35f);	// Pitch angle limit in radians
 
 //Yaw control parameters					//XXX TODO this is copy paste, asign correct values
-PARAM_DEFINE_FLOAT(FW_YAWRATE_P, 0.3f);
-PARAM_DEFINE_FLOAT(FW_YAWRATE_I, 0.0f);
-PARAM_DEFINE_FLOAT(FW_YAWRATE_AWU, 0.0f);
-PARAM_DEFINE_FLOAT(FW_YAWRATE_LIM, 0.35f);   // Yaw rate limit in radians/sec
+PARAM_DEFINE_FLOAT(FW_YAWR_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_YAWR_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_YAWR_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(FW_YAWR_LIM, 0.35f);   // Yaw rate limit in radians/sec
 
 /* Prototypes */
 /**
@@ -134,16 +134,20 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 		memset(&att_sp, 0, sizeof(att_sp));
 		struct vehicle_rates_setpoint_s rates_sp;
 		memset(&rates_sp, 0, sizeof(rates_sp));
+//		static struct debug_key_value_s debug_output;
+//		memset(&debug_output, 0, sizeof(debug_output));
 
 		/* output structs */
 		struct actuator_controls_s actuators;
 		memset(&actuators, 0, sizeof(actuators));
 
+
 		/* publish actuator controls */
 		for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
 			actuators.control[i] = 0.0f;
 		orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
-
+//		orb_advert_t debug_pub = orb_advertise(ORB_ID(debug_key_value), &debug_output);
+//		debug_output.key[0] = '1';
 
 
 		/* subscribe  */
@@ -162,6 +166,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			/*Get Local Copies */
 			/* get a local copy of attitude */
 			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
+			orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &att_sp);
 
 			gyro[0] = att.rollspeed;
 			gyro[1] = att.pitchspeed;
@@ -170,14 +175,9 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			/* Control */
 
 			/* Attitude Control */
-			att_sp.roll_tait_bryan = 0.0f; //REMOVEME TODO
-			att_sp.pitch_tait_bryan = 0.0f;
-			att_sp.yaw_tait_bryan = 0.0f;
 			fixedwing_att_control_attitude(&att_sp,
 					&att,
 					&rates_sp);
-			rates_sp.pitch = 0.0f; //REMOVEME TODO
-			rates_sp.yaw = 0.0f;
 
 			/* Attitude Rate Control */
 			fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
@@ -186,6 +186,8 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			actuators.control[3] = 0.7f;
 
 			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+//			debug_output.value = rates_sp.pitch;
+//			orb_publish(ORB_ID(debug_key_value), debug_pub, &debug_output);
 		}
 
 		printf("[fixedwing_att_control] exiting, stopping all motors.\n");
@@ -196,6 +198,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			actuators.control[i] = 0.0f;
 
 		orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+
 
 
 		close(att_sub);

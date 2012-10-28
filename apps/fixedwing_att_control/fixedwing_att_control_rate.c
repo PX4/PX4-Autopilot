@@ -67,15 +67,12 @@ struct fw_rate_control_params {
 	float rollrate_p;
 	float rollrate_i;
 	float rollrate_awu;
-	float rollrate_lim;
 	float pitchrate_p;
 	float pitchrate_i;
 	float pitchrate_awu;
-	float pitchrate_lim;
 	float yawrate_p;
 	float yawrate_i;
 	float yawrate_awu;
-	float yawrate_lim;
 
 };
 
@@ -83,15 +80,13 @@ struct fw_rate_control_param_handles {
 	float rollrate_p;
 	float rollrate_i;
 	float rollrate_awu;
-	float rollrate_lim;
 	float pitchrate_p;
 	float pitchrate_i;
 	float pitchrate_awu;
-	float pitchrate_lim;
 	float yawrate_p;
 	float yawrate_i;
 	float yawrate_awu;
-	float yawrate_lim;
+
 };
 
 
@@ -103,18 +98,17 @@ static int parameters_update(const struct fw_rate_control_param_handles *h, stru
 static int parameters_init(struct fw_rate_control_param_handles *h)
 {
 	/* PID parameters */
-	h->rollrate_p 	=	param_find("FW_ROLLRATE_P");   //TODO define rate params for fixed wing
-	h->rollrate_i 	=	param_find("FW_ROLLRATE_I");
-	h->rollrate_awu =	param_find("FW_ROLLRATE_AWU");
-	h->rollrate_lim =	param_find("FW_ROLLRATE_LIM");
-	h->pitchrate_p 	=	param_find("FW_PITCHRATE_P");
-	h->pitchrate_i 	=	param_find("FW_PITCHRATE_I");
-	h->pitchrate_awu =	param_find("FW_PITCHRATE_AWU");
-	h->pitchrate_lim =	param_find("FW_PITCHRATE_LIM");
-	h->yawrate_p 	=	param_find("FW_YAWRATE_P");
-	h->yawrate_i 	=	param_find("FW_YAWRATE_I");
-	h->yawrate_awu =	param_find("FW_YAWRATE_AWU");
-	h->yawrate_lim =	param_find("FW_YAWRATE_LIM");
+	h->rollrate_p 	=	param_find("FW_ROLLR_P");   //TODO define rate params for fixed wing
+	h->rollrate_i 	=	param_find("FW_ROLLR_I");
+	h->rollrate_awu =	param_find("FW_ROLLR_AWU");
+
+	h->pitchrate_p 	=	param_find("FW_PITCHR_P");
+	h->pitchrate_i 	=	param_find("FW_PITCHR_I");
+	h->pitchrate_awu =	param_find("FW_PITCHR_AWU");
+
+	h->yawrate_p 	=	param_find("FW_YAWR_P");
+	h->yawrate_i 	=	param_find("FW_YAWR_I");
+	h->yawrate_awu =	param_find("FW_YAWR_AWU");
 
 	return OK;
 }
@@ -124,15 +118,13 @@ static int parameters_update(const struct fw_rate_control_param_handles *h, stru
 	param_get(h->rollrate_p, &(p->rollrate_p));
 	param_get(h->rollrate_i, &(p->rollrate_i));
 	param_get(h->rollrate_awu, &(p->rollrate_awu));
-	param_get(h->rollrate_lim, &(p->rollrate_lim));
 	param_get(h->pitchrate_p, &(p->pitchrate_p));
 	param_get(h->pitchrate_i, &(p->pitchrate_i));
 	param_get(h->pitchrate_awu, &(p->pitchrate_awu));
-	param_get(h->pitchrate_lim, &(p->pitchrate_lim));
 	param_get(h->yawrate_p, &(p->yawrate_p));
 	param_get(h->yawrate_i, &(p->yawrate_i));
 	param_get(h->yawrate_awu, &(p->yawrate_awu));
-	param_get(h->yawrate_lim, &(p->yawrate_lim));
+
 
 	return OK;
 }
@@ -159,9 +151,9 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	{
 		parameters_init(&h);
 		parameters_update(&h, &p);
-		pid_init(&roll_rate_controller, p.rollrate_p, p.rollrate_i, 0, p.rollrate_awu, p.rollrate_lim, PID_MODE_DERIVATIV_NONE); // set D part to 0 because the controller layout is with a PI rate controller
-		pid_init(&pitch_rate_controller, p.pitchrate_p, p.pitchrate_i, 0, p.pitchrate_awu, p.pitchrate_lim, PID_MODE_DERIVATIV_NONE); // set D part to 0 because the contpitcher layout is with a PI rate contpitcher
-		pid_init(&yaw_rate_controller, p.yawrate_p, p.yawrate_i, 0, p.yawrate_awu, p.yawrate_lim, PID_MODE_DERIVATIV_NONE); // set D part to 0 because the contpitcher layout is with a PI rate contpitcher
+		pid_init(&roll_rate_controller, p.rollrate_p, p.rollrate_i, 0, p.rollrate_awu, 1, PID_MODE_DERIVATIV_NONE); // set D part to 0 because the controller layout is with a PI rate controller
+		pid_init(&pitch_rate_controller, p.pitchrate_p, p.pitchrate_i, 0, p.pitchrate_awu, 1, PID_MODE_DERIVATIV_NONE); // set D part to 0 because the contpitcher layout is with a PI rate contpitcher
+		pid_init(&yaw_rate_controller, p.yawrate_p, p.yawrate_i, 0, p.yawrate_awu, 1, PID_MODE_DERIVATIV_NONE); // set D part to 0 because the contpitcher layout is with a PI rate contpitcher
 		initialized = true;
 	}
 
@@ -169,9 +161,9 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	if (counter % 100 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-		pid_set_parameters(&roll_rate_controller, p.rollrate_p, p.rollrate_i, 0, p.rollrate_awu, p.rollrate_lim);
-		pid_set_parameters(&pitch_rate_controller, p.pitchrate_p, p.pitchrate_i, 0, p.pitchrate_awu, p.pitchrate_lim);
-		pid_set_parameters(&yaw_rate_controller, p.yawrate_p, p.yawrate_i, 0, p.yawrate_awu, p.yawrate_lim);
+		pid_set_parameters(&roll_rate_controller, p.rollrate_p, p.rollrate_i, 0, p.rollrate_awu, 1);
+		pid_set_parameters(&pitch_rate_controller, p.pitchrate_p, p.pitchrate_i, 0, p.pitchrate_awu, 1);
+		pid_set_parameters(&yaw_rate_controller, p.yawrate_p, p.yawrate_i, 0, p.yawrate_awu, 1);
 	}
 
 
@@ -179,7 +171,7 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	actuators->control[0] = pid_calculate(&roll_rate_controller, rate_sp->roll, rates[0], 0, deltaT);
 
 	//XXX TODO disabled for now
-	actuators->control[1] = 0;//pid_calculate(&pitch_rate_controller, rate_sp->pitch, rates[1], 0, deltaT);
+	actuators->control[1] = pid_calculate(&pitch_rate_controller, rate_sp->pitch, rates[1], 0, deltaT);
 	actuators->control[2] = 0;//pid_calculate(&yaw_rate_controller, rate_sp->yaw, rates[2], 0, deltaT);
 
 	counter++;
