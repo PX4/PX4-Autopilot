@@ -202,9 +202,9 @@ static unsigned char *parse_name(unsigned char *query)
  */
 
 #ifdef CONFIG_NET_IPv6
-static int send_query(const char *name, struct sockaddr_in6 *addr)
+static int send_query_socket(int sockfd, const char *name, struct sockaddr_in6 *addr)
 #else
-static int send_query(const char *name, struct sockaddr_in *addr)
+static int send_query_socket(int sockfd, const char *name, struct sockaddr_in *addr)
 #endif
 {
   register struct dns_hdr *hdr;
@@ -247,7 +247,16 @@ static int send_query(const char *name, struct sockaddr_in *addr)
   DEBUGASSERT(((struct sockaddr *)addr)->sa_family == AF_INET);
 #endif
 
-  return sendto(g_sockfd, buffer, query + 5 - buffer, 0, (struct sockaddr*)addr, ADDRLEN);
+  return sendto(sockfd, buffer, query + 5 - buffer, 0, (struct sockaddr*)addr, ADDRLEN);
+}
+
+#ifdef CONFIG_NET_IPv6
+static int send_query(const char *name, struct sockaddr_in6 *addr)
+#else
+static int send_query(const char *name, struct sockaddr_in *addr)
+#endif
+{
+  return send_query_socket(g_sockfd, name, addr);
 }
 
 /* Called when new UDP data arrives */
@@ -255,7 +264,7 @@ static int send_query(const char *name, struct sockaddr_in *addr)
 #ifdef CONFIG_NET_IPv6
 #error "Not implemented"
 #else
-int recv_response(struct sockaddr_in *addr)
+int recv_response_socket(int sockfd, struct sockaddr_in *addr)
 #endif
 {
   unsigned char *nameptr;
@@ -268,7 +277,7 @@ int recv_response(struct sockaddr_in *addr)
 
   /* Receive the response */
 
-  ret = recv(g_sockfd, buffer, RECV_BUFFER_SIZE, 0);
+  ret = recv(sockfd, buffer, RECV_BUFFER_SIZE, 0);
   if (ret < 0)
     {
       return ret;
@@ -377,15 +386,24 @@ int recv_response(struct sockaddr_in *addr)
   return ERROR;
 }
 
+#ifdef CONFIG_NET_IPv6
+#error "Not implemented"
+#else
+int recv_response(struct sockaddr_in *addr)
+#endif
+{
+  return recv_response_socket(g_sockfd, addr);
+}
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: dns_gethostip
+ * Name: resolv_gethostip
  ****************************************************************************/
 
-int dns_gethostip(const char *hostname, in_addr_t *ipaddr)
+int resolv_gethostip_socket(int sockfd, const char *hostname, in_addr_t *ipaddr)
 {
 #ifdef CONFIG_HAVE_GETHOSTBYNAME
 
@@ -421,7 +439,7 @@ int dns_gethostip(const char *hostname, in_addr_t *ipaddr)
        *  the host name to an IP address.
        */
 
-      if (resolv_query(hostname, &addr) < 0)
+      if (resolv_query_socket(sockfd, hostname, &addr) < 0)
         {
           /* Needs to set the errno here */
 
@@ -437,12 +455,32 @@ int dns_gethostip(const char *hostname, in_addr_t *ipaddr)
 #endif
 }
 
+int resolv_gethostip(const char *hostname, in_addr_t *ipaddr)
+{
+  return resolv_gethostip_socket(g_sockfd, hostname, ipaddr);
+}
+
+int dns_gethostip(const char *hostname, in_addr_t *ipaddr)
+{
+  int sockfd = -1;
+  int ret=ERROR;
+
+  resolv_create(&sockfd);
+  if (sockfd >= 0)
+    {
+      ret = resolv_gethostip_socket(sockfd, hostname, ipaddr);
+      resolv_release(&sockfd);
+    }
+
+  return ret;
+}
+
 /* Get the binding for name. */
 
 #ifdef CONFIG_NET_IPv6
-int resolv_query(FAR const char *name, FAR struct sockaddr_in6 *addr)
+int resolv_query_socket(int sockfd, FAR const char *name, FAR struct sockaddr_in6 *addr)
 #else
-int resolv_query(FAR const char *name, FAR struct sockaddr_in *addr)
+int resolv_query_socket(int sockfd, FAR const char *name, FAR struct sockaddr_in *addr)
 #endif
 {
   int retries;
@@ -452,12 +490,12 @@ int resolv_query(FAR const char *name, FAR struct sockaddr_in *addr)
 
   for (retries = 0; retries < 3; retries++)
     {
-      if (send_query(name, &g_dnsserver) < 0)
+      if (send_query_socket(sockfd, name, &g_dnsserver) < 0)
         {
           return ERROR;
         }
 
-      ret = recv_response(addr);
+      ret = recv_response_socket(sockfd, addr);
       if (ret >= 0)
         {
           /* Response received successfully */
@@ -474,6 +512,15 @@ int resolv_query(FAR const char *name, FAR struct sockaddr_in *addr)
     }
 
   return ERROR;
+}
+
+#ifdef CONFIG_NET_IPv6
+int resolv_query(FAR const char *name, FAR struct sockaddr_in6 *addr)
+#else
+int resolv_query(FAR const char *name, FAR struct sockaddr_in *addr)
+#endif
+{
+  return resolv_query_socket(g_sockfd, name, addr);
 }
 
 /* Obtain the currently configured DNS server. */
@@ -508,13 +555,29 @@ void resolv_conf(const struct in_addr *dnsserver)
 #endif
 }
 
-/* Initalize the resolver. */
+/* Release the resolver. */
 
-int resolv_init(void)
+int resolv_release(int *sockfd)
+{
+  if (*sockfd >= 0)
+    {
+      close(*sockfd);
+      *sockfd = -1;
+    }
+
+  return OK;
+}
+
+/* Create the resolver. */
+
+int resolv_create(int *sockfd)
 {
   struct timeval tv;
-  g_sockfd = socket(PF_INET, SOCK_DGRAM, 0);
-  if (g_sockfd < 0)
+
+  if (*sockfd >= 0) resolv_release(sockfd);
+
+  *sockfd = socket(PF_INET, SOCK_DGRAM, 0);
+  if (*sockfd < 0)
     {
       return ERROR;
     }
@@ -523,12 +586,19 @@ int resolv_init(void)
 
   tv.tv_sec  = 30;
   tv.tv_usec = 0;
-  if (setsockopt(g_sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval)) < 0)
+  if (setsockopt(*sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval)) < 0)
     {
-      close(g_sockfd);
-      g_sockfd = -1;
+      close(*sockfd);
+      *sockfd = -1;
       return ERROR;
     }
 
   return OK;
+}
+
+/* Initalize the resolver. */
+
+int resolv_init(void)
+{
+  return resolv_create(&g_sockfd);
 }

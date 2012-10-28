@@ -490,7 +490,7 @@ config NSH_DHCPC
 
 config NSH_IPADDR
 	hex "Target IP address"
-	default 0x10000002
+	default 0xa0000002
 	depends on NSH_LIBRARY && NET && !NSH_DHCPC
 	---help---
 		If NSH_DHCPC is NOT set, then the static IP address must be provided.
@@ -499,7 +499,7 @@ config NSH_IPADDR
 
 config NSH_DRIPADDR
 	hex "Router IP address"
-	default 0x10000001
+	default 0xa0000001
 	depends on NSH_LIBRARY && NET && !NSH_DHCPC
 	---help---
 		Default router IP address (aka, Gateway).  This is a 32-bit integer
@@ -512,6 +512,21 @@ config NSH_NETMASK
 	---help---
 		Network mask.  This is a 32-bit integer value in host order.  So, as
 		an example, 0xffffff00 would be 255.255.255.0.
+
+config NSH_DNS
+	bool "Use DNS"
+	default n
+	depends on NSH_LIBRARY && NET && NET_UDP && NET_BROADCAST
+	---help---
+		Configure to use a DNS.
+
+config NSH_DNSIPADDR
+	hex "DNS IP address"
+	default 0xa0000001
+	depends on NSH_DNS
+	---help---
+		Configure the DNS address.  This is a 32-bit integer value in host
+		order.  So, as an example, 0xa0000001 would be 10.0.0.1.
 
 config NSH_NOMAC
 	bool "Hardware has no MAC address"

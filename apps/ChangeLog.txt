@@ -387,4 +387,6 @@
 	* apps/netutils/json:  Add a snapshot of the cJSON project.  Contributed by
 	  Darcy Gong.
 	* apps/examples/json:  Test example for cJSON from Darcy Gong
-
+	* apps/nshlib/nsh_netinit.c: Fix static IP DNS problem (Darcy Gong)
+	* apps/netutils/resolv/resolv.c: DNS fixes from Darcy Gong.
+	* COPYING: Licensing information added.

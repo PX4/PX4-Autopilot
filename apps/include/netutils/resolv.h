@@ -63,18 +63,29 @@ extern "C" {
 /* Functions. */
 
 EXTERN int resolv_init(void);
+EXTERN int resolv_create(int *sockfd);
+EXTERN int resolv_release(int *sockfd);
+EXTERN int resolv_gethostip_socket(int sockfd, const char *hostname, in_addr_t *ipaddr);
+EXTERN int resolv_gethostip(const char *hostname, in_addr_t *ipaddr);
 
 #ifdef CONFIG_NET_IPv6
 EXTERN void resolv_conf(FAR const struct in6_addr *dnsserver);
 EXTERN void resolv_getserver(FAR const struct in_addr *dnsserver);
 EXTERN int  resolv_query(FAR const char *name, FAR struct sockaddr_in6 *addr);
+EXTERN int  resolv_query_socket(int sockfd, FAR const char *name, FAR struct sockaddr_in6 *addr);
 #else
 EXTERN void resolv_conf(FAR const struct in_addr *dnsserver);
 EXTERN void resolv_getserver(FAR struct in_addr *dnsserver);
 EXTERN int  resolv_query(FAR const char *name, FAR struct sockaddr_in *addr);
+EXTERN int  resolv_query_socket(int sockfd, FAR const char *name, FAR struct sockaddr_in *addr);
 #endif
 
 EXTERN int  dns_gethostip(const char *hostname, in_addr_t *ipaddr);
+
+#define dns_init        resolv_init
+#define dns_bind        resolv_create
+#define dns_query       resolv_gethostip_socket
+#define dns_free        resolv_release
 
 #define dns_setserver   resolv_conf
 #define dns_getserver   resolv_getserver
