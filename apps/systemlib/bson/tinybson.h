@@ -75,6 +75,11 @@ typedef enum bson_binary_subtype {
 #define BSON_MAXNAME		32
 
 /**
+ * Buffer growth increment when writing to a buffer.
+ */
+#define BSON_BUF_INCREMENT	128
+
+/**
  * Node structure passed to the callback.
  */
 typedef struct bson_node_s {
@@ -92,11 +97,21 @@ typedef struct bson_decoder_s *bson_decoder_t;
 
 /**
  * Node callback.
+ *
+ * The node callback function's return value is returned by bson_decoder_next.
  */
 typedef int	(* bson_decoder_callback)(bson_decoder_t decoder, void *private, bson_node_t node);
 
 struct bson_decoder_s {
+	/* file reader state */
 	int			fd;
+
+	/* buffer reader state */
+	uint8_t			*buf;
+	size_t			bufsize;
+	unsigned		bufpos;
+
+	bool			dead;
 	bson_decoder_callback	callback;
 	void			*private;
 	unsigned		nesting;
@@ -105,7 +120,7 @@ struct bson_decoder_s {
 };
 
 /**
- * Initialise the decoder.
+ * Initialise the decoder to read from a file.
  *
  * @param decoder		Decoder state structure to be initialised.
  * @param fd			File to read BSON data from.
@@ -113,7 +128,19 @@ struct bson_decoder_s {
  * @param private		Callback private data, stored in node.
  * @return			Zero on success.
  */
-__EXPORT int bson_decoder_init(bson_decoder_t decoder, int fd, bson_decoder_callback callback, void *private);
+__EXPORT int bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback callback, void *private);
+
+/**
+ * Initialise the decoder to read from a buffer in memory.
+ *
+ * @param decoder		Decoder state structure to be initialised.
+ * @param buf			Buffer to read from.
+ * @param bufsize		Size of the buffer (BSON object may be smaller).
+ * @param callback		Callback to be invoked by bson_decoder_next
+ * @param private		Callback private data, stored in node.
+ * @return			Zero on success.
+ */
+__EXPORT int bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_decoder_callback callback, void *private);
 
 /**
  * Process the next node from the stream and invoke the callback.
@@ -142,19 +169,64 @@ __EXPORT size_t bson_decoder_data_pending(bson_decoder_t decoder);
  * Encoder state structure.
  */
 typedef struct bson_encoder_s {
+	/* file writer state */
 	int		fd;
+
+	/* buffer writer state */
+	uint8_t		*buf;
+	unsigned	bufsize;
+	unsigned	bufpos;
+
+	bool		realloc_ok;
+	bool		dead;
 
 } *bson_encoder_t;
 
 /**
- * Initialze the encoder.
+ * Initialze the encoder for writing to a file.
+ *
+ * @param encoder		Encoder state structure to be initialised.
+ * @param fd			File to write to.
+ * @return			Zero on success.
  */
-__EXPORT int bson_encoder_init(bson_encoder_t encoder, int fd);
+__EXPORT int bson_encoder_init_file(bson_encoder_t encoder, int fd);
+
+/**
+ * Initialze the encoder for writing to a buffer.
+ *
+ * @param encoder		Encoder state structure to be initialised.
+ * @param buf			Buffer pointer to use, or NULL if the buffer
+ *				should be allocated by the encoder.
+ * @param bufsize		Maximum buffer size, or zero for no limit. If 
+ *				the buffer is supplied, the size of the supplied buffer.
+ * @return			Zero on success.
+ */
+__EXPORT int bson_encoder_init_buf(bson_encoder_t encoder, void *buf, unsigned bufsize);
 
 /**
  * Finalise the encoded stream.
+ *
+ * @param encoder		The encoder to finalise.
  */
 __EXPORT int bson_encoder_fini(bson_encoder_t encoder);
+
+/**
+ * Fetch the size of the encoded object; only valid for buffer operations.
+ */
+__EXPORT int bson_encoder_buf_size(bson_encoder_t encoder);
+
+/**
+ * Get a pointer to the encoded object buffer.
+ *
+ * Note that if the buffer was allocated by the encoder, it is the caller's responsibility
+ * to free this buffer.
+ */
+__EXPORT void *bson_encoder_buf_data(bson_encoder_t encoder);
+
+/**
+ * Append a boolean to the encoded stream.
+ */
+__EXPORT int bson_encoder_append_bool(bson_encoder_t encoder, const char *name, bool value);
 
 /**
  * Append an integer to the encoded stream.
