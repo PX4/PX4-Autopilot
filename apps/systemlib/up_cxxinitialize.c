@@ -57,9 +57,6 @@
 #  undef CONFIG_DEBUG_CXX
 #endif
 
-#define CONFIG_DEBUG_CXX
-#define CONFIG_DEBUG_VERBOSE
-
 #ifdef CONFIG_DEBUG_CXX
 #  define cxxdbg              dbg
 #  define cxxlldbg            lldbg
