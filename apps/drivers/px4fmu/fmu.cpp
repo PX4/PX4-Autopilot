@@ -59,13 +59,13 @@
 #include <drivers/drv_gpio.h>
 #include <drivers/boards/px4fmu/px4fmu_internal.h>
 
+#include <systemlib/systemlib.h>
 #include <systemlib/mixer/mixer.h>
 #include <drivers/drv_mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 
-#include <systemlib/systemlib.h>
 #include <systemlib/err.h>
 
 class PX4FMU : public device::CDev

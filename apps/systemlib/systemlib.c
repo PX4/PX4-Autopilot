@@ -73,41 +73,6 @@ const struct __multiport_info multiport_info = {
 
 static void kill_task(FAR _TCB *tcb, FAR void *arg);
 
-/****************************************************************************
- * user_start
- ****************************************************************************/
-
-int reboot(void)
-{
-	sched_lock();
-	// print text
-	printf("\r\nRebooting system - ending tasks and performing hard reset\r\n\r\n");
-	fflush(stdout);
-	//usleep(5000);
-
-	/* Sending kill signal to other tasks */
-	//killall();
-
-	/* Waiting maximum time for all to exit */
-	//usleep(5000);
-	//sched_lock();
-
-	/* Resetting CPU */
-	// FIXME Need check for ARM architecture here
-#ifndef NVIC_AIRCR
-#define NVIC_AIRCR (*((uint32_t*)0xE000ED0C))
-#endif
-
-	/* Set the SYSRESETREQ bit to force a reset */
-	NVIC_AIRCR = 0x05fa0004;
-
-	/* Spinning until the board is really reset */
-	while (true);
-
-	/* Should never reach here */
-	return 0;
-}
-
 void killall()
 {
 //	printf("Sending SIGUSR1 to all processes now\n");

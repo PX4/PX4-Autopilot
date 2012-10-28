@@ -47,7 +47,11 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-#include "stm32_internal.h"
+__BEGIN_DECLS
+
+/* these headers are not C++ safe */
+#include <stm32_internal.h>
+
  
 /****************************************************************************************************
  * Definitions
@@ -153,3 +157,5 @@
 extern void stm32_spiinitialize(void);
 
 #endif /* __ASSEMBLY__ */
+
+__END_DECLS
