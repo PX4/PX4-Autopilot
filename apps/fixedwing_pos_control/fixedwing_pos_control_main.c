@@ -67,17 +67,21 @@
  *
  */
 PARAM_DEFINE_FLOAT(FW_HEADING_P, 0.1f);
+PARAM_DEFINE_FLOAT(FW_ALT_P, 0.1f);
 PARAM_DEFINE_FLOAT(FW_ROLL_LIM, 0.7f);	// Roll angle limit in radians
 PARAM_DEFINE_FLOAT(FW_PITCH_LIM, 0.35f);	// Pitch angle limit in radians
 
+
 struct fw_pos_control_params {
 	float heading_p;
+	float altitude_p;
 	float roll_lim;
 	float pitch_lim;
 };
 
 struct fw_pos_control_param_handles {
 	param_t heading_p;
+	param_t altitude_p;
 	param_t roll_lim;
 	param_t pitch_lim;
 
@@ -117,6 +121,7 @@ static int parameters_init(struct fw_pos_control_param_handles *h)
 {
 	/* PID parameters */
 	h->heading_p 	=	param_find("FW_HEADING_P");
+	h->altitude_p 	=	param_find("FW_ALT_P");
 	h->roll_lim 	=	param_find("FW_ROLL_LIM");
 	h->pitch_lim 	=	param_find("FW_PITCH_LIM");
 
@@ -127,6 +132,7 @@ static int parameters_init(struct fw_pos_control_param_handles *h)
 static int parameters_update(const struct fw_pos_control_param_handles *h, struct fw_pos_control_params *p)
 {
 	param_get(h->heading_p, &(p->heading_p));
+	param_get(h->altitude_p, &(p->altitude_p));
 	param_get(h->roll_lim, &(p->roll_lim));
 	param_get(h->pitch_lim, &(p->pitch_lim));
 
@@ -174,6 +180,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 		/* Setup of loop */
 		struct pollfd fds = { .fd = att_sub, .events = POLLIN };
+		bool global_sp_updated_set_once = false;
 
 		while(!thread_should_exit)
 		{
@@ -187,12 +194,14 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 			static struct fw_pos_control_param_handles h;
 
 			PID_t heading_controller;
+			PID_t altitude_controller;
 
 			if(!initialized)
 			{
 				parameters_init(&h);
 				parameters_update(&h, &p);
 				pid_init(&heading_controller, p.heading_p, 0.0f, 0.0f, 0.0f,p.roll_lim,PID_MODE_DERIVATIV_NONE);
+				pid_init(&altitude_controller, p.altitude_p, 0.0f, 0.0f, 0.0f,p.pitch_lim,PID_MODE_DERIVATIV_NONE);
 				initialized = true;
 			}
 
@@ -201,6 +210,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 				/* update parameters from storage */
 				parameters_update(&h, &p);
 				pid_set_parameters(&heading_controller, p.heading_p, 0, 0, 0, p.roll_lim);
+				pid_set_parameters(&altitude_controller, p.altitude_p, 0, 0, 0, p.pitch_lim);
 
 			}
 
@@ -209,6 +219,8 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 			orb_check(global_pos_sub, &pos_updated);
 			bool global_sp_updated;
 			orb_check(global_setpoint_sub, &global_sp_updated);
+			if(global_sp_updated)
+				global_sp_updated_set_once = true;
 
 
 			/* Load local copies */
@@ -220,25 +232,38 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 			/* Control */
 
+
 			/* Simple Horizontal Control */
-			/* calculate bearing error */
-			float target_bearing = get_bearing_to_next_waypoint(global_pos.lat / (double)1e7d, global_pos.lon / (double)1e7d,
-				global_setpoint.lat / (double)1e7d, global_setpoint.lon / (double)1e7d);
+			if(global_sp_updated_set_once)
+			{
+				/* calculate bearing error */
+				float target_bearing = get_bearing_to_next_waypoint(global_pos.lat / (double)1e7d, global_pos.lon / (double)1e7d,
+					global_setpoint.lat / (double)1e7d, global_setpoint.lon / (double)1e7d);
 
-			/* shift error to prevent wrapping issues */
-			float bearing_error = target_bearing - att.yaw;
+				/* shift error to prevent wrapping issues */
+				float bearing_error = target_bearing - att.yaw;
 
-			if (bearing_error < M_PI_F) {
-				bearing_error += 2.0f * M_PI_F;
+				if (bearing_error < M_PI_F) {
+					bearing_error += 2.0f * M_PI_F;
+				}
+
+				if (bearing_error > M_PI_F) {
+					bearing_error -= 2.0f * M_PI_F;
+				}
+
+				/* calculate roll setpoint, do this artificially around zero */
+				attitude_setpoint.roll_tait_bryan = pid_calculate(&heading_controller, bearing_error, 0.0f, 0.0f, 0.0f);
 			}
 
-			if (bearing_error > M_PI_F) {
-				bearing_error -= 2.0f * M_PI_F;
+			/* Very simple Altitude Control */
+			if(global_sp_updated_set_once && pos_updated)
+			{
+
+				//TODO: take care of relatie vs. ab. altitude
+				attitude_setpoint.pitch_tait_bryan = pid_calculate(&altitude_controller, global_setpoint.altitude, global_pos.alt, 0.0f, 0.0f);
+
 			}
-
-			/* calculate roll setpoint, do this artificially around zero */
-			attitude_setpoint.roll_tait_bryan = pid_calculate(&heading_controller, bearing_error, 0.0f, 0.0f, 0.0f);
-
+			/*Publish the attitude setpoint */
 			orb_publish(ORB_ID(vehicle_attitude_setpoint), attitude_setpoint_pub, &attitude_setpoint);
 
 			counter++;
