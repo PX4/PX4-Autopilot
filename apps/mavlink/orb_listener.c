@@ -532,6 +532,7 @@ uorb_receive_thread(void *arg)
 	struct pollfd fds[n_listeners];
 	for (unsigned i = 0; i < n_listeners; i++) {
 		fds[i].fd = *listeners[i].subp;
+		fds[i].events = POLLIN;
 
 		/* Invoke callback to set initial state */
 		//listeners[i].callback(&listener[i]);
