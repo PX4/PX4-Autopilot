@@ -59,9 +59,8 @@ typedef enum {
 	BSON_BOOL = 8,
 	BSON_DATE = 9,
 	BSON_NULL = 10,
-	BSON_INT = 16,
-	BSON_TIMESTAMP = 17,
-	BSON_LONG = 18
+	BSON_INT32 = 16,
+	BSON_INT64 = 18
 } bson_type_t;
 
 typedef enum bson_binary_subtype {
@@ -87,7 +86,7 @@ typedef struct bson_node_s {
 	bson_type_t		type;
 	bson_binary_subtype_t	subtype;
 	union {
-		int32_t		i;
+		int64_t		i;
 		double		d;
 		bool		b;
 	};
@@ -225,26 +224,48 @@ __EXPORT void *bson_encoder_buf_data(bson_encoder_t encoder);
 
 /**
  * Append a boolean to the encoded stream.
+ *
+ * @param encoder		Encoder state.
+ * @param name			Node name.
+ * @param value			Value to be encoded.
  */
 __EXPORT int bson_encoder_append_bool(bson_encoder_t encoder, const char *name, bool value);
 
 /**
  * Append an integer to the encoded stream.
+ *
+ * @param encoder		Encoder state.
+ * @param name			Node name.
+ * @param value			Value to be encoded. 
  */
-__EXPORT int bson_encoder_append_int(bson_encoder_t encoder, const char *name, int32_t value);
+__EXPORT int bson_encoder_append_int(bson_encoder_t encoder, const char *name, int64_t value);
 
 /**
  * Append a double to the encoded stream
+ *
+ * @param encoder		Encoder state.
+ * @param name			Node name.
+ * @param value			Value to be encoded.
  */
 __EXPORT int bson_encoder_append_double(bson_encoder_t encoder, const char *name, double value);
 
 /**
  * Append a string to the encoded stream.
+ *
+ * @param encoder		Encoder state.
+ * @param name			Node name.
+ * @param string		Nul-terminated C string.
  */
 __EXPORT int bson_encoder_append_string(bson_encoder_t encoder, const char *name, const char *string);
 
 /**
  * Append a binary blob to the encoded stream.
+ *
+ * @param encoder		Encoder state.
+ * @param name			Node name.
+ * @param subtype		Binary data subtype.
+ * @param size			Data size.
+ * @param data			Buffer containing data to be encoded.
  */
 __EXPORT int bson_encoder_append_binary(bson_encoder_t encoder, const char *name, bson_binary_subtype_t subtype, size_t size, const void *data);
 
