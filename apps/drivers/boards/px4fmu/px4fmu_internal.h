@@ -47,6 +47,12 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
+__BEGIN_DECLS
+
+/* these headers are not C++ safe */
+#include <stm32_internal.h>
+
+ 
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
@@ -150,17 +156,6 @@
 
 extern void stm32_spiinitialize(void);
 
-/****************************************************************************************************
- * Name: px4fmu_gpio_init
- *
- * Description:
- *   Called to configure the PX4FMU user GPIOs
- *
- ****************************************************************************************************/
-
-extern void px4fmu_gpio_init(void);
-
-
-// XXX additional SPI chipselect functions required?
-
 #endif /* __ASSEMBLY__ */
+
+__END_DECLS

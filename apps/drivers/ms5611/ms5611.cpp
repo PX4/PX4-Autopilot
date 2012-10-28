@@ -57,6 +57,8 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
+#include <arch/board/board.h>
+
 #include <drivers/drv_hrt.h>
 
 #include <systemlib/perf_counter.h>
@@ -240,7 +242,8 @@ private:
 #define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
 #define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
 
-#define MS5611_ADDRESS_1		0x76    /* address select pins pulled high (PX4FMU series v1.6+) */
+#define MS5611_BUS			PX4_I2C_BUS_ONBOARD
+#define MS5611_ADDRESS_1		PX4_I2C_OBDEV_MS5611 /* address select pins pulled high (PX4FMU series v1.6+) */
 #define MS5611_ADDRESS_2		0x77    /* address select pins pulled low (PX4FMU prototypes) */
 
 #define ADDR_RESET_CMD			0x1E	/* write to this address to reset chip */
@@ -937,8 +940,7 @@ start()
 		errx(1, "already started");
 
 	/* create the driver */
-	/* XXX HORRIBLE hack - the bus number should not come from here */
-	g_dev = new MS5611(2);
+	g_dev = new MS5611(MS5611_BUS);
 
 	if (g_dev == nullptr)
 		goto fail;

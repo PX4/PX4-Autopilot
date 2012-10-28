@@ -39,4 +39,6 @@ APPNAME		 = fmu
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 2048
 
+INCLUDES	 = $(TOPDIR)/arch/arm/src/stm32 $(TOPDIR)/arch/arm/src/common
+
 include $(APPDIR)/mk/app.mk

@@ -294,9 +294,6 @@ __EXPORT int nsh_archinitialize(void)
 
 	/* Get board information if available */
 
-	/* Initialize the user GPIOs */
-	px4fmu_gpio_init();
-
 #ifdef CONFIG_ADC
 	int adc_state = adc_devinit();
 

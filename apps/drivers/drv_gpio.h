@@ -40,25 +40,75 @@
 
 #include <sys/ioctl.h>
 
+#ifdef CONFIG_ARCH_BOARD_PX4FMU
 /*
- * GPIO defines come from a board-specific header, as they are shared
- * with board-specific logic.
+ * PX4FMU GPIO numbers.
  *
- * The board-specific header must define:
- * GPIO_DEVICE_PATH
- * GPIO_RESET
- * GPIO_SET_OUTPUT
- * GPIO_SET_INPUT
- * GPIO_SET_ALT_1
- * GPIO_SET_ALT_2
- * GPIO_SET_ALT_3
- * GPIO_SET_ALT_4
- * GPIO_SET
- * GPIO_CLEAR
- * GPIO_GET
+ * For shared pins, alternate function 1 selects the non-GPIO mode 
+ * (USART2, CAN2, etc.)
  */
+# define GPIO_EXT_1		(1<<0)		/**< high-power GPIO 1 */
+# define GPIO_EXT_2		(1<<1)		/**< high-power GPIO 1 */
+# define GPIO_MULTI_1		(1<<2)		/**< USART2 CTS */
+# define GPIO_MULTI_2		(1<<3)		/**< USART2 RTS */
+# define GPIO_MULTI_3		(1<<4)		/**< USART2 TX */
+# define GPIO_MULTI_4		(1<<5)		/**< USART2 RX */
+# define GPIO_CAN_TX		(1<<6)		/**< CAN2 TX */
+# define GPIO_CAN_RX		(1<<7)		/**< CAN2 RX */
 
-/* Include board-specific GPIO definitions as well. */
-#include <arch/board/drv_gpio.h>
+/**
+ * Default GPIO device - other devices may also support this protocol if
+ * they also export GPIO-like things.  This is always the GPIOs on the
+ * main board.
+ */
+# define GPIO_DEVICE_PATH	"/dev/px4fmu"
+
+#endif
+
+#ifndef GPIO_DEVICE_PATH
+#  error No GPIO support for this board.
+#endif
+
+/*
+ * IOCTL definitions.
+ *
+ * For all ioctls, the (arg) argument is a bitmask of GPIOs to be affected
+ * by the operation, with the LSB being the lowest-numbered GPIO.
+ *
+ * Note that there may be board-specific relationships between GPIOs;
+ * applications using GPIOs should be aware of this.
+ */
+#define _GPIOCBASE	0x6700
+#define GPIOC(_x)	_IOC(_GPIOCBASE, _x)
+
+/** reset all board GPIOs to their default state */
+#define GPIO_RESET	GPIOC(0)
+
+/** configure the board GPIOs in (arg) as outputs */
+#define GPIO_SET_OUTPUT	GPIOC(1)
+
+/** configure the board GPIOs in (arg) as inputs */
+#define GPIO_SET_INPUT	GPIOC(2)
+
+/** configure the board GPIOs in (arg) for the first alternate function (if supported) */
+#define GPIO_SET_ALT_1	GPIOC(3)
+
+/** configure the board GPIO (arg) for the second alternate function (if supported) */
+#define GPIO_SET_ALT_2	GPIOC(4)
+
+/** configure the board GPIO (arg) for the third alternate function (if supported) */
+#define GPIO_SET_ALT_3	GPIOC(5)
+
+/** configure the board GPIO (arg) for the fourth alternate function (if supported) */
+#define GPIO_SET_ALT_4	GPIOC(6)
+
+/** set the GPIOs in (arg) */
+#define GPIO_SET	GPIOC(10)
+
+/** clear the GPIOs in (arg) */
+#define GPIO_CLEAR	GPIOC(11)
+
+/** read all the GPIOs and return their values in *(uint32_t *)arg */
+#define GPIO_GET	GPIOC(12)
 
 #endif /* _DRV_GPIO_H */

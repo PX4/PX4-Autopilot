@@ -58,16 +58,20 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
-#include <drivers/drv_hrt.h>
+#include <arch/board/board.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
 #include <drivers/drv_mag.h>
+#include <drivers/drv_hrt.h>
 
 /*
  * HMC5883 internal constants and data structures.
  */
+
+#define HMC5883L_BUS			PX4_I2C_BUS_ONBOARD
+#define HMC5883L_ADDRESS		PX4_I2C_OBDEV_HMC5883
 
 /* Max measurement rate is 160Hz */
 #define HMC5883_CONVERSION_INTERVAL	(1000000 / 160)	/* microseconds */
@@ -85,8 +89,6 @@
 #define ADDR_ID_A			0x0a
 #define ADDR_ID_B			0x0b
 #define ADDR_ID_C			0x0c
-
-#define HMC5883L_ADDRESS		0x1E
 
 /* modes not changeable outside of driver */
 #define HMC5883L_MODE_NORMAL		(0 << 0)  /* default */
@@ -1100,8 +1102,7 @@ start()
 		errx(1, "already started");
 
 	/* create the driver */
-	/* XXX HORRIBLE hack - the bus number should not come from here */
-	g_dev = new HMC5883(2);
+	g_dev = new HMC5883(HMC5883L_BUS);
 
 	if (g_dev == nullptr)
 		goto fail;

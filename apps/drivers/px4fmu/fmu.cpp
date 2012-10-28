@@ -57,16 +57,18 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
+#include <drivers/boards/px4fmu/px4fmu_internal.h>
 
+#include <systemlib/systemlib.h>
 #include <systemlib/mixer/mixer.h>
 #include <drivers/drv_mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 
-#include <systemlib/systemlib.h>
+#include <systemlib/err.h>
 
-class FMUServo : public device::CDev
+class PX4FMU : public device::CDev
 {
 public:
 	enum Mode {
@@ -74,18 +76,22 @@ public:
 		MODE_4PWM,
 		MODE_NONE
 	};
-	FMUServo(Mode mode, int update_rate);
-	~FMUServo();
+	PX4FMU();
+	~PX4FMU();
 
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 
 	virtual int	init();
+
+	int		set_mode(Mode mode);
+	int		set_pwm_rate(unsigned rate);
 
 private:
 	static const unsigned _max_actuators = 4;
 
 	Mode		_mode;
 	int 		_update_rate;
+	int 		_current_update_rate;
 	int		_task;
 	int		_t_actuators;
 	int		_t_armed;
@@ -107,19 +113,50 @@ private:
 			uint8_t control_group,
 			uint8_t control_index,
 			float &input);
+
+	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
+
+	struct GPIOConfig {
+		uint32_t	input;
+		uint32_t	output;
+		uint32_t	alt;
+	};
+
+	static const GPIOConfig	_gpio_tab[];
+	static const unsigned	_ngpio;
+
+	void		gpio_reset(void);
+	void		gpio_set_function(uint32_t gpios, int function);
+	void		gpio_write(uint32_t gpios, int function);
+	uint32_t	gpio_read(void);
+	int		gpio_ioctl(file *filp, int cmd, unsigned long arg);
+
 };
+
+const PX4FMU::GPIOConfig PX4FMU::_gpio_tab[] = {
+	{GPIO_GPIO0_INPUT, GPIO_GPIO0_OUTPUT, 0},
+	{GPIO_GPIO1_INPUT, GPIO_GPIO1_OUTPUT, 0},
+	{GPIO_GPIO2_INPUT, GPIO_GPIO2_OUTPUT, GPIO_USART2_CTS_1},
+	{GPIO_GPIO3_INPUT, GPIO_GPIO3_OUTPUT, GPIO_USART2_RTS_1},
+	{GPIO_GPIO4_INPUT, GPIO_GPIO4_OUTPUT, GPIO_USART2_TX_1},
+	{GPIO_GPIO5_INPUT, GPIO_GPIO5_OUTPUT, GPIO_USART2_RX_1},
+	{GPIO_GPIO6_INPUT, GPIO_GPIO6_OUTPUT, GPIO_CAN2_TX_2},
+	{GPIO_GPIO7_INPUT, GPIO_GPIO7_OUTPUT, GPIO_CAN2_RX_2},
+};
+
+const unsigned PX4FMU::_ngpio = sizeof(PX4FMU::_gpio_tab) / sizeof(PX4FMU::_gpio_tab[0]);
 
 namespace
 {
 
-FMUServo	*g_servo;
+PX4FMU	*g_fmu;
 
 } // namespace
 
-FMUServo::FMUServo(Mode mode, int update_rate) :
+PX4FMU::PX4FMU() :
 	CDev("fmuservo", "/dev/px4fmu"),
-	_mode(mode),
-	_update_rate(update_rate),
+	_mode(MODE_NONE),
+	_update_rate(50),
 	_task(-1),
 	_t_actuators(-1),
 	_t_armed(-1),
@@ -130,9 +167,10 @@ FMUServo::FMUServo(Mode mode, int update_rate) :
 	_armed(false),
 	_mixers(nullptr)
 {
+	_debug_enabled = true;
 }
 
-FMUServo::~FMUServo()
+PX4FMU::~PX4FMU()
 {
 	if (_task != -1) {
 		/* tell the task we want it to go away */
@@ -156,11 +194,11 @@ FMUServo::~FMUServo()
 	if (_primary_pwm_device)
 		unregister_driver(PWM_OUTPUT_DEVICE_PATH);
 
-	g_servo = nullptr;
+	g_fmu = nullptr;
 }
 
 int
-FMUServo::init()
+PX4FMU::init()
 {
 	int ret;
 
@@ -179,12 +217,15 @@ FMUServo::init()
 		_primary_pwm_device = true;
 	}
 
+	/* reset GPIOs */
+	gpio_reset();
+
 	/* start the IO interface task */
 	_task = task_spawn("fmuservo",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
 			   1024,
-			   (main_t)&FMUServo::task_main_trampoline,
+			   (main_t)&PX4FMU::task_main_trampoline,
 			   nullptr);
 
 	if (_task < 0) {
@@ -196,44 +237,73 @@ FMUServo::init()
 }
 
 void
-FMUServo::task_main_trampoline(int argc, char *argv[])
+PX4FMU::task_main_trampoline(int argc, char *argv[])
 {
-	g_servo->task_main();
+	g_fmu->task_main();
 }
 
-void
-FMUServo::task_main()
+int
+PX4FMU::set_mode(Mode mode)
 {
-	/* configure for PWM output */
-	switch (_mode) {
+	/* 
+	 * Configure for PWM output.
+	 *
+	 * Note that regardless of the configured mode, the task is always
+	 * listening and mixing; the mode just selects which of the channels
+	 * are presented on the output pins.
+	 */
+	switch (mode) {
 	case MODE_2PWM:
+		debug("MODE_2PWM");
 		/* multi-port with flow control lines as PWM */
 		/* XXX magic numbers */
 		up_pwm_servo_init(0x3);
+		_update_rate = 50;	/* default output rate */
 		break;
 
 	case MODE_4PWM:
+		debug("MODE_4PWM");
 		/* multi-port as 4 PWM outs */
 		/* XXX magic numbers */
 		up_pwm_servo_init(0xf);
-		/* set the update rate for 4 PWM mode only for now */
-		up_pwm_servo_set_rate(_update_rate);
+		_update_rate = 50;	/* default output rate */
 		break;
 
 	case MODE_NONE:
-		/* we should never get here... */
+		debug("MODE_NONE");
+		/* disable servo outputs and set a very low update rate */
+		up_pwm_servo_deinit();
+		_update_rate = 10;
 		break;
-	}
 
+	default:
+		return -EINVAL;
+	}
+	_mode = mode;
+	return OK;
+}
+
+int
+PX4FMU::set_pwm_rate(unsigned rate)
+{
+	if ((rate > 500) || (rate < 10))
+		return -EINVAL;
+
+	_update_rate = rate;
+	return OK;
+}
+
+void
+PX4FMU::task_main()
+{
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
 	 * primary PWM output or not.
 	 */
 	_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
 				     ORB_ID(actuator_controls_1));
-	/* convert the update rate in hz to milliseconds, rounding down if necessary */
-	int update_rate_in_ms = int(1000 / _update_rate);
-	orb_set_interval(_t_actuators, update_rate_in_ms);
+	/* force a reset of the update rate */
+	_current_update_rate = 0;
 
 	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
 	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
@@ -258,7 +328,17 @@ FMUServo::task_main()
 	/* loop until killed */
 	while (!_task_should_exit) {
 
-		/* sleep waiting for data, but no more than 100ms */
+		/* handle update rate changes */
+		if (_current_update_rate != _update_rate) {
+			int update_rate_in_ms = int(1000 / _update_rate);
+			if (update_rate_in_ms < 2)
+				update_rate_in_ms = 2;
+			orb_set_interval(_t_actuators, update_rate_in_ms);
+			up_pwm_servo_set_rate(_update_rate);
+			_current_update_rate = _update_rate;
+		}
+
+		/* sleep waiting for data, but no more than a second */
 		int ret = ::poll(&fds[0], 2, 1000);
 
 		/* this would be bad... */
@@ -323,7 +403,7 @@ FMUServo::task_main()
 }
 
 int
-FMUServo::control_callback(uintptr_t handle,
+PX4FMU::control_callback(uintptr_t handle,
 				      uint8_t control_group,
 				      uint8_t control_index,
 				      float &input)
@@ -335,10 +415,42 @@ FMUServo::control_callback(uintptr_t handle,
 }
 
 int
-FMUServo::ioctl(file *filp, int cmd, unsigned long arg)
+PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
+{
+	int ret;
+
+	debug("ioctl 0x%04x 0x%08x", cmd, arg);
+
+	/* try it as a GPIO ioctl first */
+	ret = gpio_ioctl(filp, cmd, arg);
+	if (ret != -ENOTTY)
+		return ret;
+
+	/* if we are in valid PWM mode, try it as a PWM ioctl as well */
+	switch(_mode) {
+	case MODE_2PWM:
+	case MODE_4PWM:
+		ret = pwm_ioctl(filp, cmd, arg);
+		break;
+	default:
+		debug("not in a PWM mode");
+		break;
+	}
+
+	/* if nobody wants it, let CDev have it */
+	if (ret == -ENOTTY)
+		ret = CDev::ioctl(filp, cmd, arg);
+
+	return ret;
+}
+
+int
+PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 	int channel;
+
+	lock();
 
 	switch (cmd) {
 	case PWM_SERVO_ARM:
@@ -437,11 +549,19 @@ FMUServo::ioctl(file *filp, int cmd, unsigned long arg)
 			}
 
 			_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
+			if (_mixers == nullptr) {
+				ret = -ENOMEM;
+			} else {
 
-			if (_mixers->load_from_file(path) != 0) {
-				delete _mixers;
-				_mixers = nullptr;
-				ret = -EINVAL;
+				debug("loading mixers from %s", path);
+				ret = _mixers->load_from_file(path);
+
+				if (ret != 0) {
+					debug("mixer load failed with %d", ret);
+					delete _mixers;
+					_mixers = nullptr;
+					ret = -EINVAL;
+				}
 			}
 
 			break;
@@ -451,6 +571,125 @@ FMUServo::ioctl(file *filp, int cmd, unsigned long arg)
 		ret = -ENOTTY;
 		break;
 	}
+
+	unlock();
+
+	return ret;
+}
+
+void
+PX4FMU::gpio_reset(void)
+{
+	/*
+	 * Setup default GPIO config - all pins as GPIOs, GPIO driver chip 
+	 * to input mode.
+	 */
+	for (unsigned i = 0; i < _ngpio; i++)
+		stm32_configgpio(_gpio_tab[i].input);
+
+	stm32_gpiowrite(GPIO_GPIO_DIR, 0);
+	stm32_configgpio(GPIO_GPIO_DIR);
+}
+
+void
+PX4FMU::gpio_set_function(uint32_t gpios, int function)
+{
+	/*
+	 * GPIOs 0 and 1 must have the same direction as they are buffered
+	 * by a shared 2-port driver.  Any attempt to set either sets both.
+	 */
+	if (gpios & 3) {
+		gpios |= 3;
+
+		/* flip the buffer to output mode if required */
+		if (GPIO_SET_OUTPUT == function)
+			stm32_gpiowrite(GPIO_GPIO_DIR, 1);
+	}
+
+	/* configure selected GPIOs as required */
+	for (unsigned i = 0; i < _ngpio; i++) {
+		if (gpios & (1<<i)) {
+			switch (function) {
+			case GPIO_SET_INPUT:
+				stm32_configgpio(_gpio_tab[i].input);
+				break;
+			case GPIO_SET_OUTPUT:
+				stm32_configgpio(_gpio_tab[i].output);
+				break;
+			case GPIO_SET_ALT_1:
+				if (_gpio_tab[i].alt != 0)
+					stm32_configgpio(_gpio_tab[i].alt);
+				break;
+			}
+		}
+	}
+
+	/* flip buffer to input mode if required */
+	if ((GPIO_SET_INPUT == function) && (gpios & 3))
+		stm32_gpiowrite(GPIO_GPIO_DIR, 0);
+}
+
+void
+PX4FMU::gpio_write(uint32_t gpios, int function)
+{
+	int value = (function == GPIO_SET) ? 1 : 0;
+
+	for (unsigned i = 0; i < _ngpio; i++)
+		if (gpios & (1<<i))
+			stm32_gpiowrite(_gpio_tab[i].output, value);
+}
+
+uint32_t
+PX4FMU::gpio_read(void)
+{
+	uint32_t bits = 0;
+
+	for (unsigned i = 0; i < _ngpio; i++)
+		if (stm32_gpioread(_gpio_tab[i].input))
+			bits |= (1 << i);
+
+	return bits;
+}
+
+int
+PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
+{
+	int	ret = OK;
+
+	lock();
+
+	switch (cmd) {
+		
+	case GPIO_RESET:
+		gpio_reset();
+		break;
+
+	case GPIO_SET_OUTPUT:
+	case GPIO_SET_INPUT:
+	case GPIO_SET_ALT_1:
+		gpio_set_function(arg, cmd);
+		break;
+
+	case GPIO_SET_ALT_2:
+	case GPIO_SET_ALT_3:
+	case GPIO_SET_ALT_4:
+		ret = -EINVAL;
+		break;
+
+	case GPIO_SET:
+	case GPIO_CLEAR:
+		gpio_write(arg, cmd);
+		break;
+
+	case GPIO_GET:
+		*(uint32_t *)arg = gpio_read();
+		break;
+
+	default:
+		ret = -ENOTTY;
+	}
+
+	unlock();
 
 	return ret;
 }
@@ -473,28 +712,14 @@ PortMode g_port_mode;
 int
 fmu_new_mode(PortMode new_mode, int update_rate)
 {
-	int fd;
-	int ret = OK;
 	uint32_t gpio_bits;
-	FMUServo::Mode servo_mode;
-
-	/* get hold of the GPIO configuration descriptor */
-	fd = open(GPIO_DEVICE_PATH, 0);
-
-	if (fd < 0)
-		return -errno;
-
-	/* start by tearing down any existing state and revert to all-GPIO-inputs */
-	if (g_servo != nullptr) {
-		delete g_servo;
-		g_servo = nullptr;
-	}
+	PX4FMU::Mode servo_mode;
 
 	/* reset to all-inputs */
-	ioctl(fd, GPIO_RESET, 0);
+	g_fmu->ioctl(0, GPIO_RESET, 0);
 
 	gpio_bits = 0;
-	servo_mode = FMUServo::MODE_NONE;
+	servo_mode = PX4FMU::MODE_NONE;
 
 	switch (new_mode) {
 	case PORT_FULL_GPIO:
@@ -509,7 +734,7 @@ fmu_new_mode(PortMode new_mode, int update_rate)
 
 	case PORT_FULL_PWM:
 		/* select 4-pin PWM mode */
-		servo_mode = FMUServo::MODE_4PWM;
+		servo_mode = PX4FMU::MODE_4PWM;
 		break;
 
 	case PORT_GPIO_AND_SERIAL:
@@ -519,36 +744,47 @@ fmu_new_mode(PortMode new_mode, int update_rate)
 
 	case PORT_PWM_AND_SERIAL:
 		/* select 2-pin PWM mode */
-		servo_mode = FMUServo::MODE_2PWM;
+		servo_mode = PX4FMU::MODE_2PWM;
 		/* set RX/TX multi-GPIOs to serial mode */
 		gpio_bits = GPIO_MULTI_3 | GPIO_MULTI_4;
 		break;
 
 	case PORT_PWM_AND_GPIO:
 		/* select 2-pin PWM mode */
-		servo_mode = FMUServo::MODE_2PWM;
+		servo_mode = PX4FMU::MODE_2PWM;
 		break;
 	}
 
 	/* adjust GPIO config for serial mode(s) */
 	if (gpio_bits != 0)
-		ioctl(fd, GPIO_SET_ALT_1, gpio_bits);
+		g_fmu->ioctl(0, GPIO_SET_ALT_1, gpio_bits);
 
-	close(fd);
+	/* (re)set the PWM output mode */
+	g_fmu->set_mode(servo_mode);
+	if ((servo_mode != PX4FMU::MODE_NONE) && (update_rate != 0))
+		g_fmu->set_pwm_rate(update_rate);
 
-	/* create new PWM driver if required */
-	if (servo_mode != FMUServo::MODE_NONE) {
-		g_servo = new FMUServo(servo_mode, update_rate);
+	return OK;
+}
 
-		if (g_servo == nullptr) {
+int
+fmu_start(void)
+{
+	int ret = OK;
+
+	if (g_fmu == nullptr) {
+
+		g_fmu = new PX4FMU;
+
+		if (g_fmu == nullptr) {
 			ret = -ENOMEM;
 
 		} else {
-			ret = g_servo->init();
+			ret = g_fmu->init();
 
 			if (ret != OK) {
-				delete g_servo;
-				g_servo = nullptr;
+				delete g_fmu;
+				g_fmu = nullptr;
 			}
 		}
 	}
@@ -612,13 +848,16 @@ int
 fmu_main(int argc, char *argv[])
 {
 	PortMode new_mode = PORT_MODE_UNSET;
-	int pwm_update_rate_in_hz = 50;
+	int pwm_update_rate_in_hz = 0;
 
 	if (!strcmp(argv[1], "test"))
 		test();
 
 	if (!strcmp(argv[1], "fake"))
 		fake(argc - 1, argv + 1);
+
+	if (fmu_start() != OK)
+		errx(1, "failed to start the FMU driver");
 
 	/*
 	 * Mode switches.
@@ -674,6 +913,6 @@ fmu_main(int argc, char *argv[])
 	/* test, etc. here */
 
 	fprintf(stderr, "FMU: unrecognised command, try:\n");
-	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm [-r pwm_update_rate_in_hz], mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio\n");
+	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm [-u pwm_update_rate_in_hz], mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio\n");
 	return -EINVAL;
 }

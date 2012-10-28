@@ -84,7 +84,7 @@
 #include <systemlib/err.h>
 
 #ifndef CONFIG_HRT_TIMER
-# error CONFIG_TONE_ALARM requires CONFIG_HRT_TIMER
+# error This driver requires CONFIG_HRT_TIMER
 #endif
 
 /* Tone alarm configuration */
@@ -611,7 +611,6 @@ play_pattern(unsigned pattern)
 	if (fd < 0)
 		err(1, "/dev/tone_alarm");
 
-	warnx("playing pattern %u", pattern);
 	ret = ioctl(fd, TONE_SET_ALARM, pattern);
 
 	if (ret != 0)

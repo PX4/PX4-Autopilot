@@ -45,7 +45,7 @@
 __BEGIN_DECLS
 
 /** Reboots the board */
-__EXPORT int reboot(void);
+extern void up_systemreset(void) noreturn_function;
 
 /** Sends SIGUSR1 to all processes */
 __EXPORT void killall(void);
