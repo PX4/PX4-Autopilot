@@ -32,6 +32,7 @@
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
 
+#include <sys/types.h>
 #include <math.h>
 
 #include "lib_internal.h"
