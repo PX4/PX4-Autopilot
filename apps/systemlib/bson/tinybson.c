@@ -39,6 +39,7 @@
 
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
 #include <err.h>
 
 #include "tinybson.h"
@@ -58,7 +59,7 @@ read_x(bson_decoder_t decoder, void *p, size_t s)
 	CODER_CHECK(decoder);
 
 	if (decoder->fd > 0)
-		return (read(decoder->fd, p, s) == s) ? 0 : -1;
+		return (read(decoder->fd, p, s) == (int)s) ? 0 : -1;
 
 	if (decoder->buf != NULL) {
 		unsigned newpos = decoder->bufpos + s;
@@ -130,7 +131,7 @@ bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_
 	/* read and discard document size */
 	if (read_int32(decoder, &len))
 		CODER_KILL(decoder, "failed reading length");
-	if (len > bufsize)
+	if (len > (int)bufsize)
 		CODER_KILL(decoder, "document length larger than buffer");
 
 	/* ready for decoding */
@@ -203,7 +204,7 @@ bson_decoder_next(bson_decoder_t decoder)
 		case BSON_BOOL:
 			if (read_int8(decoder, &tbyte))
 				CODER_KILL(decoder, "read error on BSON_BOOL");
-			node->b = (tbyte != 0);
+			decoder->node.b = (tbyte != 0);
 			break;
 
 		case BSON_INT:
@@ -269,21 +270,21 @@ bson_decoder_data_pending(bson_decoder_t decoder)
 }
 
 static int
-write_x(bson_encoder_t encoder, void *p, size_t s)
+write_x(bson_encoder_t encoder, const void *p, size_t s)
 {
 	CODER_CHECK(encoder);
 
 	if (encoder->fd > -1)
-		return (write(encoder->fd, p, s) == s) ? 0 : -1;
+		return (write(encoder->fd, p, s) == (int)s) ? 0 : -1;
 
 	/* do we need to extend the buffer? */
 	while ((encoder->bufpos + s) > encoder->bufsize) {
 		if (!encoder->realloc_ok)
-			CODER_KILL(encoder);
+			CODER_KILL(encoder, "fixed-size buffer overflow");
 
 		int8_t *newbuf = realloc(encoder->buf, encoder->bufsize + BSON_BUF_INCREMENT);
 		if (newbuf == NULL)
-			CODER_KILL(encoder);
+			CODER_KILL(encoder, "could not grow buffer");
 
 		encoder->bufsize += BSON_BUF_INCREMENT;
 	}
@@ -385,7 +386,7 @@ bson_encoder_buf_size(bson_encoder_t encoder)
 	return encoder->bufpos;
 }
 
-int
+void *
 bson_encoder_buf_data(bson_encoder_t encoder)
 {
 	/* note, no CODER_CHECK here as the caller has to clean up dead buffers */
@@ -402,7 +403,7 @@ int bson_encoder_append_bool(bson_encoder_t encoder, const char *name, bool valu
 
 	if (write_int8(encoder, BSON_INT) ||
 	    write_name(encoder, name) ||
-	    write_int(encoder, value ? 1 : 0))
+	    write_int8(encoder, value ? 1 : 0))
 		CODER_KILL(encoder, "write error on BSON_BOOL");
 
 	return 0;
