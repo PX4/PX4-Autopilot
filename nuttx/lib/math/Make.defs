@@ -1,7 +1,7 @@
 ############################################################################
 # lib/math/Make.defs
 #
-#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,11 +33,17 @@
 #
 ############################################################################
 
-# Add the math C files to the build
+if ($(CONFIG_LIBM),y)
 
-CSRCS += lib_rint.c lib_fixedmath.c lib_b16sin.c lib_b16cos.c lib_b16atan2.c
+# Add the floating point math C files to the build
 
-# Add the math directory to the build
+CSRCS += lib_acos.c lib_asin.c lib_atan.c lib_atan2.c lib_ceil.c lib_cos.c
+CSRCS += lib_cosh.c lib_exp.c lib_fabs.c lib_floor.c lib_fmod.c lib_frexp.c
+CRRCS += lib_ldexp.c lib_log.c lib_log10.c lib_log2.c lib_modf.c lib_pow.c
+CSRCS += lib_sin.c lib_sinh.c lib_sqrt.c lib_tan.c lib_tanh.c
+
+# Add the floating point math directory to the build
 
 DEPPATH += --dep-path math
 VPATH += :math
+endif

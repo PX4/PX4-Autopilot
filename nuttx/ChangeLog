@@ -3525,4 +3525,7 @@
 	* binfmt/libelf:  The basic ELF module execution appears fully functional.
 	* configs/shenzhou/src/up_relays.c:  Add support for relays from the
 	  Shenzhou board.  Contributed by Darcy Gong.
-
+	* lib/fixedmath: Moved the old lib/math to lib/fixedmath to make room for
+	  the math library from the Rhombus OS
+	* lib/math: Now contains the math library from the Rhombus OS by Nick Johnson
+	  (submitted by Darcy Gong).

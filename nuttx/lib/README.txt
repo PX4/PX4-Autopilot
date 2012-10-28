@@ -26,7 +26,8 @@ in the include/ directory provides the prototype for library functions.  So
 we have:
 
   libgen    - libgen.h
-  math      - math.h and fixedmath.h
+  fixedmath - fixedmath.h
+  math      - math.h
   mqueue    - pthread.h
   net       - Various network-related header files: netinet/ether.h, arpa/inet.h
   pthread   - pthread.h

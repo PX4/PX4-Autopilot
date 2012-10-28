@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/math/lib_b16atan2.c
+ * lib/fixedmath/lib_b16atan2.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
