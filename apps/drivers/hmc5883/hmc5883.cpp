@@ -66,6 +66,8 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 
+#include <float.h>
+
 /*
  * HMC5883 internal constants and data structures.
  */
@@ -158,6 +160,10 @@ private:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 	perf_counter_t		_buffer_overflows;
+
+	/* status reporting */
+	bool			_sensor_ok;		/**< sensor was found and reports ok */
+	bool			_calibrated;		/**< the calibration is valid */
 
 	/**
 	 * Test whether the device supported by the driver is present at a
@@ -272,6 +278,13 @@ private:
 	 */
 	float			meas_to_float(uint8_t in[2]);
 
+	/**
+	 * Check the current calibration and update device status
+	 *
+	 * @return 0 if calibration is ok, 1 else
+	 */
+	 int 			check_calibration();
+
 };
 
 /* helper macro for handling report buffer indices */
@@ -295,7 +308,9 @@ HMC5883::HMC5883(int bus) :
 	_mag_topic(-1),
 	_sample_perf(perf_alloc(PC_ELAPSED, "hmc5883_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "hmc5883_comms_errors")),
-	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows"))
+	_buffer_overflows(perf_alloc(PC_COUNT, "hmc5883_buffer_overflows")),
+	_sensor_ok(false),
+	_calibrated(false)
 {
 	// enable debug() calls
 	_debug_enabled = true;
@@ -351,6 +366,8 @@ HMC5883::init()
 	set_range(_range_ga);
 
 	ret = OK;
+	/* sensor is ok, but not calibrated */
+	_sensor_ok = true;
 out:
 	return ret;
 }
@@ -998,6 +1015,36 @@ out:
 	}
 
 	return ret;
+}
+
+int HMC5883::check_calibration()
+{
+	bool scale_valid, offset_valid;
+
+	if ((-2.0f * FLT_EPSILON + 1.0f < _scale.x_scale && _scale.x_scale < 2.0f * FLT_EPSILON + 1.0f) &&
+		(-2.0f * FLT_EPSILON + 1.0f < _scale.y_scale && _scale.y_scale < 2.0f * FLT_EPSILON + 1.0f) &&
+		(-2.0f * FLT_EPSILON + 1.0f < _scale.z_scale && _scale.z_scale < 2.0f * FLT_EPSILON + 1.0f)) {
+		/* scale is different from one */
+		scale_valid = true;
+	} else {
+		scale_valid = false;
+	}
+
+	if ((-2.0f * FLT_EPSILON < _scale.x_offset && _scale.x_offset < 2.0f * FLT_EPSILON) &&
+		(-2.0f * FLT_EPSILON < _scale.y_offset && _scale.y_offset < 2.0f * FLT_EPSILON) &&
+		(-2.0f * FLT_EPSILON < _scale.z_offset && _scale.z_offset < 2.0f * FLT_EPSILON)) {
+		/* offset is different from zero */
+		offset_valid = true;
+	} else {
+		offset_valid = false;
+	}
+
+	if (_calibrated && !(offset_valid && scale_valid)) {
+		warnx("warning: mag %s%s", (scale_valid) ? "" : "scale invalid. ",
+					  (offset_valid) ? "" : "offset invalid.");
+		_calibrated = false;
+		// XXX Notify system via uORB
+	}
 }
 
 int HMC5883::set_excitement(unsigned enable)
