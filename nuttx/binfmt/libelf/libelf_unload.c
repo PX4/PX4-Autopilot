@@ -84,31 +84,34 @@ int elf_unload(struct elf_loadinfo_s *loadinfo)
 
   /* Release memory holding the relocated ELF image */
 
-  if (loadinfo->alloc)
+  if (loadinfo->elfalloc != 0)
     {
-      kfree((FAR void *)loadinfo->alloc);
-      loadinfo->alloc     = 0;
-      loadinfo->allocsize = 0;
+      kfree((FAR void *)loadinfo->elfalloc);
+      loadinfo->elfalloc = 0;
     }
 
-  /* Release any allocated constructor memory */
+   loadinfo->elfsize = 0;
+ 
+   /* Release memory used to hold static constructors and destructors */
 
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
-  if (loadinfo->ctors)
+  if (loadinfo->ctoralloc != 0)
     {
-      /* In the old ABI, the .ctors section is not make for allocation.  In
-       * that case, we need to free the working buffer that was used to hold
-       * the constructors.
-       */
-
-      if (!loadinfo->newabi)
-        {
-          kfree((FAR void *)loadinfo->ctors);
-        }
-
-      loadinfo->ctors     = NULL;
-      loadinfo->nctors    = 0;
+      kfree(loadinfo->ctoralloc);
+      loadinfo->ctoralloc = NULL;
     }
+
+   loadinfo->ctors   = NULL;
+   loadinfo->nctors  = 0;
+
+  if (loadinfo->dtoralloc != 0)
+    {
+      kfree(loadinfo->dtoralloc);
+      loadinfo->dtoralloc = NULL;
+    }
+
+   loadinfo->dtors   = NULL;
+   loadinfo->ndtors  = 0;
 #endif
 
   return OK;

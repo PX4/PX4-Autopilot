@@ -111,12 +111,16 @@ static void elf_dumploadinfo(FAR struct elf_loadinfo_s *loadinfo)
   int i;
 
   bdbg("LOAD_INFO:\n");
-  bdbg("  alloc:        %08lx\n", (long)loadinfo->alloc);
-  bdbg("  allocsize:    %ld\n",   (long)loadinfo->allocsize);
+  bdbg("  elfalloc:     %08lx\n", (long)loadinfo->elfalloc);
+  bdbg("  elfsize:      %ld\n",   (long)loadinfo->elfsize);
   bdbg("  filelen:      %ld\n",   (long)loadinfo->filelen);
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
+  bdbg("  ctoralloc:    %08lx\n", (long)loadinfo->ctoralloc);
   bdbg("  ctors:        %08lx\n", (long)loadinfo->ctors);
   bdbg("  nctors:       %d\n",    loadinfo->nctors);
+  bdbg("  dtoralloc:    %08lx\n", (long)loadinfo->dtoralloc);
+  bdbg("  dtors:        %08lx\n", (long)loadinfo->dtors);
+  bdbg("  ndtors:       %d\n",    loadinfo->ndtors);
 #endif
   bdbg("  filfd:        %d\n",    loadinfo->filfd);
   bdbg("  symtabidx:    %d\n",    loadinfo->symtabidx);
@@ -210,8 +214,8 @@ static int elf_loadbinary(struct binary_s *binp)
 
   /* Return the load information */
 
-  binp->entrypt   = (main_t)(loadinfo.alloc + loadinfo.ehdr.e_entry);
-  binp->alloc[0]  = (FAR void *)loadinfo.alloc;
+  binp->entrypt   = (main_t)(loadinfo.elfalloc + loadinfo.ehdr.e_entry);
+  binp->alloc[0]  = (FAR void *)loadinfo.elfalloc;
   binp->stacksize = CONFIG_ELF_STACKSIZE;
 
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
@@ -219,19 +223,13 @@ static int elf_loadbinary(struct binary_s *binp)
    * yet supported.
    */
 
-  binp->ctors      = loadinfo.ctors;
-  binp->nctors     = loadinfo.nctors;
+  binp->alloc[1]  = loadinfo.ctoralloc;
+  binp->ctors     = loadinfo.ctors;
+  binp->nctors    = loadinfo.nctors;
 
-  /* Was memory allocated for constructors? */
-
-  if (!loadinfo.newabi)
-    {
-      /* Yes.. save the allocation address so that it can be freed by
-       * unload module.
-       */
-
-      binp->alloc[1] = (FAR void *)loadinfo.ctors;
-    }
+  binp->alloc[2]  = loadinfo.dtoralloc;
+  binp->dtors     = loadinfo.dtors;
+  binp->ndtors    = loadinfo.ndtors;
 #endif
 
   elf_dumpbuffer("Entry code", (FAR const uint8_t*)binp->entrypt,

@@ -85,7 +85,7 @@
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
 static inline void exec_dtors(FAR const struct binary_s *binp)
 {
-  elf_dtor_t *dtor = binp->dtors;
+  binfmt_dtor_t *dtor = binp->dtors;
   int i;
 
   /* Execute each destructor */

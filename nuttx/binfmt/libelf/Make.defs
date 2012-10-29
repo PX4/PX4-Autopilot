@@ -46,7 +46,7 @@ BINFMT_CSRCS += libelf_bind.c libelf_init.c libelf_iobuffer.c libelf_load.c \
 			    libelf_unload.c libelf_verify.c
 
 ifeq ($(CONFIG_BINFMT_CONSTRUCTORS),y)
-BINFMT_CSRCS += libelf_ctors.c
+BINFMT_CSRCS += libelf_ctors.c libelf_dtors.c
 endif
 
 # Hook the libelf subdirectory into the build

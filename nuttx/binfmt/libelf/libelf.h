@@ -236,4 +236,23 @@ int elf_reallocbuffer(FAR struct elf_loadinfo_s *loadinfo, size_t increment);
 int elf_loadctors(FAR struct elf_loadinfo_s *loadinfo);
 #endif
 
+/****************************************************************************
+ * Name: elf_loaddtors
+ *
+ * Description:
+ *  Load pointers to static destructors into an in-memory array.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+int elf_loaddtors(FAR struct elf_loadinfo_s *loadinfo);
+#endif
+
 #endif /* __BINFMT_LIBELF_LIBELF_H */

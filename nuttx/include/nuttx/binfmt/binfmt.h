@@ -49,15 +49,15 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define BINFMT_NALLOC 2
+#define BINFMT_NALLOC 3
 
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 /* The type of one C++ constructor or destructor */
 
-typedef FAR void (*elf_ctor_t)(void);
-typedef FAR void (*elf_dtor_t)(void);
+typedef FAR void (*binfmt_ctor_t)(void);
+typedef FAR void (*binfmt_dtor_t)(void);
 
 /* This describes the file to be loaded */
 
@@ -79,8 +79,8 @@ struct binary_s
   FAR void *mapped;                    /* Memory-mapped, address space */
   FAR void *alloc[BINFMT_NALLOC];      /* Allocated address spaces */
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
-  elf_ctor_t *ctors;                   /* Pointer to a list of constructors */
-  elf_dtor_t *dtors;                   /* Pointer to a list of destructors */
+  FAR binfmt_ctor_t *ctors;            /* Pointer to a list of constructors */
+  FAR binfmt_dtor_t *dtors;            /* Pointer to a list of destructors */
   uint16_t nctors;                     /* Number of constructors in the list */
   uint16_t ndtors;                     /* Number of destructors in the list */
 #endif

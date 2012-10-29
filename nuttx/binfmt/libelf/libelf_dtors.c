@@ -1,5 +1,5 @@
 /****************************************************************************
- * binfmt/libelf/libelf_ctors.c
+ * binfmt/libelf/libelf_dtors.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -72,10 +72,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: elf_loadctors
+ * Name: elf_loaddtors
  *
  * Description:
- *  Load pointers to static constructors into an in-memory array.
+ *  Load pointers to static destructors into an in-memory array.
  *
  * Input Parameters:
  *   loadinfo - Load state information
@@ -86,15 +86,15 @@
  *
  ****************************************************************************/
 
-int elf_loadctors(FAR struct elf_loadinfo_s *loadinfo)
+int elf_loaddtors(FAR struct elf_loadinfo_s *loadinfo)
 {
   FAR Elf32_Shdr *shdr;
-  size_t ctorsize;
-  int ctoridx;
+  size_t dtorsize;
+  int dtoridx;
   int ret;
   int i;
 
-  DEBUGASSERT(loadinfo->ctors == NULL);
+  DEBUGASSERT(loadinfo->dtors == NULL);
 
   /* Allocate an I/O buffer if necessary.  This buffer is used by
    * elf_sectname() to accumulate the variable length symbol name.
@@ -107,52 +107,52 @@ int elf_loadctors(FAR struct elf_loadinfo_s *loadinfo)
       return -ENOMEM;
     }
 
-  /* Find the index to the section named ".ctors."  NOTE:  On old ABI system,
-   * .ctors is the name of the section containing the list of constructors;
-   * On newer systems, the similar section is called .init_array.  It is 
-   * expected that the linker script will force the section name to be ".ctors"
+  /* Find the index to the section named ".dtors."  NOTE:  On old ABI system,
+   * .dtors is the name of the section containing the list of destructors;
+   * On newer systems, the similar section is called .fini_array.  It is 
+   * expected that the linker script will force the section name to be ".dtors"
    * in either case.
    */
 
-  ctoridx = elf_findsection(loadinfo, ".ctors");
-  if (ctoridx < 0)
+  dtoridx = elf_findsection(loadinfo, ".dtors");
+  if (dtoridx < 0)
     {
       /* This may not be a failure.  -ENOENT indicates that the file has no
-       * static constructor section.
+       * static destructor section.
        */
 
-      bvdbg("elf_findsection .ctors section failed: %d\n", ctoridx);
+      bvdbg("elf_findsection .dtors section failed: %d\n", dtoridx);
       return ret == -ENOENT ? OK : ret;
     }
 
-  /* Now we can get a pointer to the .ctor section in the section header
+  /* Now we can get a pointer to the .dtor section in the section header
    * table.
    */
 
-  shdr = &loadinfo->shdr[ctoridx];
+  shdr = &loadinfo->shdr[dtoridx];
 
-  /* Get the size of the .ctor section and the number of constructors that
+  /* Get the size of the .dtor section and the number of destructors that
    * will need to be called.
    */
 
-  ctorsize         = shdr->sh_size;
-  loadinfo->nctors = ctorsize / sizeof(binfmt_ctor_t);
+  dtorsize         = shdr->sh_size;
+  loadinfo->ndtors = dtorsize / sizeof(binfmt_dtor_t);
 
-  bvdbg("ctoridx=%d ctorsize=%d sizeof(binfmt_ctor_t)=%d nctors=%d\n",
-        ctoridx, ctorsize,  sizeof(binfmt_ctor_t), loadinfo->nctors);
+  bvdbg("dtoridx=%d dtorsize=%d sizeof(binfmt_dtor_t)=%d ndtors=%d\n",
+        dtoridx, dtorsize,  sizeof(binfmt_dtor_t), loadinfo->ndtors);
 
-  /* Check if there are any constructors.  It is not an error if there
+  /* Check if there are any destructors.  It is not an error if there
    * are none.
    */
 
-  if (loadinfo->nctors > 0)
+  if (loadinfo->ndtors > 0)
     {
       /* Check an assumption that we made above */
 
-      DEBUGASSERT(shdr->sh_size == loadinfo->nctors * sizeof(binfmt_ctor_t));
+      DEBUGASSERT(shdr->sh_size == loadinfo->ndtors * sizeof(binfmt_dtor_t));
 
-      /* In the old ABI, the .ctors section is not allocated.  In that case,
-       * we need to allocate memory to hold the .ctors and then copy the
+      /* In the old ABI, the .dtors section is not allocated.  In that case,
+       * we need to allocate memory to hold the .dtors and then copy the
        * from the file into the allocated memory.
        *
        * SHF_ALLOC indicates that the section requires memory during
@@ -161,37 +161,37 @@ int elf_loadctors(FAR struct elf_loadinfo_s *loadinfo)
 
       if ((shdr->sh_flags & SHF_ALLOC) == 0)
         {
-          /* Allocate memory to hold a copy of the .ctor section */
+          /* Allocate memory to hold a copy of the .dtor section */
 
-          loadinfo->ctoralloc = (binfmt_ctor_t*)kmalloc(ctorsize);
+          loadinfo->ctoralloc = (binfmt_dtor_t*)kmalloc(dtorsize);
           if (!loadinfo->ctoralloc)
             {
-              bdbg("Failed to allocate memory for .ctors\n");
+              bdbg("Failed to allocate memory for .dtors\n");
               return -ENOMEM;
             }
 
-          loadinfo->ctors = (binfmt_ctor_t *)loadinfo->ctoralloc;
+          loadinfo->dtors = (binfmt_dtor_t *)loadinfo->ctoralloc;
 
           /* Read the section header table into memory */
 
-          ret = elf_read(loadinfo, (FAR uint8_t*)loadinfo->ctors, ctorsize,
+          ret = elf_read(loadinfo, (FAR uint8_t*)loadinfo->dtors, dtorsize,
                          shdr->sh_offset);
           if (ret < 0)
             {
-              bdbg("Failed to allocate .ctors: %d\n", ret);
+              bdbg("Failed to allocate .dtors: %d\n", ret);
               return ret;
             }
 
-          /* Fix up all of the .ctor addresses.  Since the addresses
+          /* Fix up all of the .dtor addresses.  Since the addresses
            * do not lie in allocated memory, there will be no relocation
            * section for them.
            */
 
-          for (i = 0; i < loadinfo->nctors; i++)
+          for (i = 0; i < loadinfo->ndtors; i++)
             {
-              FAR uintptr_t *ptr = (uintptr_t *)((FAR void *)(&loadinfo->ctors)[i]);
+              FAR uintptr_t *ptr = (uintptr_t *)((FAR void *)(&loadinfo->dtors)[i]);
 
-              bvdbg("ctor %d: %08lx + %08lx = %08lx\n",
+              bvdbg("dtor %d: %08lx + %08lx = %08lx\n",
                     i, *ptr, loadinfo->elfalloc, *ptr + loadinfo->elfalloc);
 
               *ptr += loadinfo->elfalloc;
@@ -200,12 +200,12 @@ int elf_loadctors(FAR struct elf_loadinfo_s *loadinfo)
       else
         {
 
-          /* Save the address of the .ctors (actually, .init_array) where it was
-           * loaded into memory.  Since the .ctors lie in allocated memory, they
+          /* Save the address of the .dtors (actually, .init_array) where it was
+           * loaded into memory.  Since the .dtors lie in allocated memory, they
            * will be relocated via the normal mechanism.
            */
  
-          loadinfo->ctors = (binfmt_ctor_t*)shdr->sh_addr;
+          loadinfo->dtors = (binfmt_dtor_t*)shdr->sh_addr;
         }
     }
 

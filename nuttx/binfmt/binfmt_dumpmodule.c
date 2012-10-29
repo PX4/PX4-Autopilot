@@ -91,7 +91,7 @@ int dump_module(FAR const struct binary_s *bin)
       bdbg("  argv:      %p\n", bin->argv);
       bdbg("  entrypt:   %p\n", bin->entrypt);
       bdbg("  mapped:    %p size=%d\n", bin->mapped, bin->mapsize);
-      bdbg("  alloc:     %p %p\n", bin->alloc[0], bin->alloc[1]);
+      bdbg("  alloc:     %p %p %p\n", bin->alloc[0], bin->alloc[1], bin->alloc[2]);
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
       bdbg("  ctors:     %p nctors=%d\n", bin->ctors, bin->nctors);
       bdbg("  dtors:     %p ndtors=%d\n", bin->dtors, bin->ndtors);

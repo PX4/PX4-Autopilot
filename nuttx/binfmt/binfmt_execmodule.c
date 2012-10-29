@@ -88,7 +88,7 @@
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
 static inline void exec_ctors(FAR const struct binary_s *binp)
 {
-  elf_ctor_t *ctor = binp->ctors;
+  binfmt_ctor_t *ctor = binp->ctors;
   int i;
 
   /* Execute each constructor */

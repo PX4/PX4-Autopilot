@@ -59,6 +59,17 @@
 #  define CONFIG_ELF_ALIGN_LOG2 2
 #endif
 
+/* Allocation array size and indices */
+
+#define LIBELF_ELF_ALLOC     0
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+#  define LIBELF_CTORS_ALLOC 1
+#  define LIBELF_CTPRS_ALLOC 2
+#  define LIBELF_NALLOC      3
+#else
+#  define LIBELF_NALLOC      1
+#endif
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -69,21 +80,28 @@
 
 struct elf_loadinfo_s
 {
-  uintptr_t       alloc;       /* Allocated memory with the ELF file is loaded */
-  size_t          allocsize;   /* Size of the memory allocation */
-  off_t           filelen;     /* Length of the entire ELF file */
-  Elf32_Ehdr      ehdr;        /* Buffered ELF file header */
-  FAR Elf32_Shdr *shdr;        /* Buffered ELF section headers */
-  uint8_t        *iobuffer;    /* File I/O buffer */
+  /* The alloc[] array holds memory that persists after the ELF module has
+   * been loaded.
+   */
+ 
+  uintptr_t         elfalloc;    /* Memory allocated when ELF file was loaded */
+  size_t            elfsize;     /* Size of the ELF memory allocation */
+  off_t             filelen;     /* Length of the entire ELF file */
+  Elf32_Ehdr        ehdr;        /* Buffered ELF file header */
+  FAR Elf32_Shdr    *shdr;       /* Buffered ELF section headers */
+  uint8_t           *iobuffer;   /* File I/O buffer */
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
-  elf_ctor_t     *ctors;       /* Pointer to a list of constructors */
-  bool            newabi;      /* True: ctors in 'alloc' */
-  uint16_t        nctors;      /* Number of constructors */
+  FAR void          *ctoralloc;  /* Memory allocated for ctors */
+  FAR void          *dtoralloc;  /* Memory allocated dtors */
+  FAR binfmt_ctor_t *ctors;      /* Pointer to a list of constructors */
+  FAR binfmt_dtor_t *dtors;      /* Pointer to a list of destructors */
+  uint16_t           nctors;     /* Number of constructors */
+  uint16_t           ndtors;     /* Number of destructors */
 #endif
-  uint16_t        symtabidx;   /* Symbol table section index */
-  uint16_t        strtabidx;   /* String table section index */
-  uint16_t        buflen;      /* size of iobuffer[] */
-  int             filfd;       /* Descriptor for the file being loaded */
+  uint16_t           symtabidx;  /* Symbol table section index */
+  uint16_t           strtabidx;  /* String table section index */
+  uint16_t           buflen;     /* size of iobuffer[] */
+  int                filfd;      /* Descriptor for the file being loaded */
 };
 
 /****************************************************************************

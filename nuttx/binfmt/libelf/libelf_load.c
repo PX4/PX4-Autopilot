@@ -76,7 +76,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: elf_allocsize
+ * Name: elf_elfsize
  *
  * Description:
  *   Calculate total memory allocation for the ELF file.
@@ -87,14 +87,14 @@
  *
  ****************************************************************************/
 
-static void elf_allocsize(struct elf_loadinfo_s *loadinfo)
+static void elf_elfsize(struct elf_loadinfo_s *loadinfo)
 {
-  size_t allocsize;
+  size_t elfsize;
   int i;
 
   /* Accumulate the size each section into memory that is marked SHF_ALLOC */
 
-  allocsize = 0;
+  elfsize = 0;
   for (i = 0; i < loadinfo->ehdr.e_shnum; i++)
     {
       FAR Elf32_Shdr *shdr = &loadinfo->shdr[i];
@@ -105,13 +105,13 @@ static void elf_allocsize(struct elf_loadinfo_s *loadinfo)
 
       if ((shdr->sh_flags & SHF_ALLOC) != 0)
         {
-          allocsize += ELF_ALIGNUP(shdr->sh_size);
+          elfsize += ELF_ALIGNUP(shdr->sh_size);
         }
     }
 
   /* Save the allocation size */
 
-  loadinfo->allocsize = allocsize;
+  loadinfo->elfsize = elfsize;
 }
 
 /****************************************************************************
@@ -136,8 +136,8 @@ static inline int elf_loadfile(FAR struct elf_loadinfo_s *loadinfo)
 
   /* Allocate (and zero) memory for the ELF file. */
   
-  loadinfo->alloc = (uintptr_t)kzalloc(loadinfo->allocsize);
-  if (!loadinfo->alloc)
+  loadinfo->elfalloc = (uintptr_t)kzalloc(loadinfo->elfsize);
+  if (!loadinfo->elfalloc)
     {
       return -ENOMEM;
     }
@@ -145,7 +145,7 @@ static inline int elf_loadfile(FAR struct elf_loadinfo_s *loadinfo)
   /* Read each section into memory that is marked SHF_ALLOC + SHT_NOBITS */
 
   bvdbg("Loaded sections:\n");
-  dest = (FAR uint8_t*)loadinfo->alloc;
+  dest = (FAR uint8_t*)loadinfo->elfalloc;
 
   for (i = 0; i < loadinfo->ehdr.e_shnum; i++)
     {
@@ -223,7 +223,7 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
 
   /* Determine total size to allocate */
 
-  elf_allocsize(loadinfo);
+  elf_elfsize(loadinfo);
 
   /* Allocate memory and load sections into memory */
 
@@ -234,13 +234,20 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
       goto errout_with_buffers;
     }
 
-  /* Find static constructors. */
+  /* Load static constructors and destructors. */
 
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
   ret = elf_loadctors(loadinfo);
   if (ret < 0)
     {
       bdbg("elf_loadctors failed: %d\n", ret);
+      goto errout_with_buffers;
+    }
+
+  ret = elf_loaddtors(loadinfo);
+  if (ret < 0)
+    {
+      bdbg("elf_loaddtors failed: %d\n", ret);
       goto errout_with_buffers;
     }
 #endif
@@ -250,7 +257,7 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
   /* Error exits */
 
 errout_with_buffers:
-  elf_freebuffers(loadinfo);
+  elf_unload(loadinfo);
   return ret;
 }
 
