@@ -424,10 +424,10 @@ defconfig -- This is a configuration file similar to the Linux
       than value).
     CONFIG_NXFLAT. Enable support for the NXFLAT binary format. This format
       will support execution of NuttX binaries located in a ROMFS filesystem
-      (see examples/nxflat).
+      (see apps/examples/nxflat).
     CONFIG_ELF - Enable support for the ELF binary format. This format will
       support execution of ELF binaries copied from a file system and
-      relocated into RAM.
+      relocated into RAM (see apps/examples/elf).
 
     If CONFIG_ELF is selected, then these additional options are available:
 

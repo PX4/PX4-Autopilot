@@ -3535,4 +3535,6 @@
 	* lib/math: Files now conform to coding standards.  Separated float,
 	  double, and long double versions of code into separate files so that
 	  they don't draw in so much un-necessary code when doing a dumb link.
+	* binfmt/libelf:  The ELF loader is working correctly with C++ static
+	  constructors and destructors and all.
 
