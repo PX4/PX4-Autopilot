@@ -116,6 +116,7 @@ static void elf_dumploadinfo(FAR struct elf_loadinfo_s *loadinfo)
   bdbg("  filelen:      %ld\n",   (long)loadinfo->filelen);
 #ifdef CONFIG_ELF_CONSTRUCTORS
   bdbg("  ctors:        %08lx\n", (long)loadinfo->ctors);
+  bdbg("  nctors:       %d\n",    loadinfo->nctors);
 #endif
   bdbg("  filfd:        %d\n",    loadinfo->filfd);
   bdbg("  symtabidx:    %d\n",    loadinfo->symtabidx);

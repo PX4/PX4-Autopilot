@@ -101,7 +101,6 @@ static int elf_symname(FAR struct elf_loadinfo_s *loadinfo,
 
   /* Loop until we get the entire symbol name into memory */
 
-  buffer    = loadinfo->iobuffer;
   bytesread = 0;
 
   for (;;)
@@ -125,7 +124,7 @@ static int elf_symname(FAR struct elf_loadinfo_s *loadinfo,
       ret = elf_read(loadinfo, buffer, readlen, offset);
       if (ret < 0)
         {
-          bdbg("Failed to read symbol name\n");
+          bdbg("elf_read failed: %d\n", ret);
           return ret;
         }
 
@@ -142,18 +141,12 @@ static int elf_symname(FAR struct elf_loadinfo_s *loadinfo,
 
       /* No.. then we have to read more */
 
-      buffer = realloc((FAR void *)loadinfo->iobuffer,
-                       loadinfo->buflen + CONFIG_ELF_BUFFERINCR);
-      if (!buffer)
+      ret = elf_reallocbuffer(loadinfo, CONFIG_ELF_BUFFERINCR);
+      if (ret < 0)
         {
-          bdbg("Failed to reallocate the I/O buffer\n");
-          return -ENOMEM;
+          bdbg("elf_reallocbuffer failed: %d\n", ret);
+          return ret;
         }
-
-      /* Save the new buffer info */
-
-      loadinfo->iobuffer = buffer;
-      loadinfo->buflen   += CONFIG_ELF_BUFFERINCR;
     }
 
   /* We will not get here */

@@ -1,5 +1,5 @@
 /****************************************************************************
- * binfmt/libelf/libelf_uninit.c
+ * binfmt/libelf/elf_iobuffer.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,7 +39,6 @@
 
 #include <nuttx/config.h>
 
-#include <unistd.h>
 #include <debug.h>
 #include <errno.h>
 
@@ -49,7 +48,7 @@
 #include "libelf.h"
 
 /****************************************************************************
- * Pre-Processor Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
@@ -65,11 +64,11 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: elf_uninit
+ * Name: elf_allocbuffer
  *
  * Description:
- *   Releases any resources committed by elf_init().  This essentially
- *   undoes the actions of elf_init.
+ *   Perform the initial allocation of the I/O buffer, if it has not already
+ *   been allocated.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -77,27 +76,32 @@
  *
  ****************************************************************************/
 
-int elf_uninit(struct elf_loadinfo_s *loadinfo)
+int elf_allocbuffer(FAR struct elf_loadinfo_s *loadinfo)
 {
-  /* Free all working buffers */
+  /* Has a buffer been allocated> */
 
-  elf_freebuffers(loadinfo);
-
-  /* Close the ELF file */
-
-  if (loadinfo->filfd >= 0)
+  if (!loadinfo->iobuffer)
     {
-      close(loadinfo->filfd);
+      /* No.. allocate one now */
+ 
+      loadinfo->iobuffer = (FAR uint8_t *)kmalloc(CONFIG_ELF_BUFFERSIZE);
+      if (!loadinfo->iobuffer)
+        {
+          bdbg("Failed to allocate an I/O buffer\n");
+          return -ENOMEM;
+        }
+
+      loadinfo->buflen = CONFIG_ELF_BUFFERSIZE;
     }
 
   return OK;
 }
 
 /****************************************************************************
- * Name: elf_freebuffers
+ * Name: elf_reallocbuffer
  *
  * Description:
- *  Release all working buffers.
+ *   Increase the size of I/O buffer by the specified buffer increment.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -105,31 +109,28 @@ int elf_uninit(struct elf_loadinfo_s *loadinfo)
  *
  ****************************************************************************/
 
-int elf_freebuffers(struct elf_loadinfo_s *loadinfo)
+int elf_reallocbuffer(FAR struct elf_loadinfo_s *loadinfo, size_t increment)
 {
-  /* Release all working allocations  */
+  FAR void *buffer;
+  size_t newsize;
 
-  if (loadinfo->shdr)
+  /* Get the new size of the allocation */
+
+  newsize = loadinfo->buflen + increment;
+
+  /* And perform the reallocation */
+
+   buffer = krealloc((FAR void *)loadinfo->iobuffer, newsize);
+   if (!buffer)
     {
-      kfree((FAR void *)loadinfo->shdr);
-      loadinfo->shdr      = NULL;
+      bdbg("Failed to reallocate the I/O buffer\n");
+      return -ENOMEM;
     }
 
-#ifdef CONFIG_ELF_CONSTRUCTORS
-  if (loadinfo->ctors)
-    {
-      kfree((FAR void *)loadinfo->ctors);
-      loadinfo->ctors     = NULL;
-      loadinfo->nctors    = 0;
-    }
-#endif
+  /* Save the new buffer info */
 
-  if (loadinfo->iobuffer)
-    {
-      kfree((FAR void *)loadinfo->iobuffer);
-      loadinfo->iobuffer  = NULL;
-      loadinfo->buflen    = 0;
-    }
-
+  loadinfo->iobuffer = buffer;
+  loadinfo->buflen   = newsize;
   return OK;
 }
+

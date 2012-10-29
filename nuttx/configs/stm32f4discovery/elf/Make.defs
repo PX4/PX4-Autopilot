@@ -161,6 +161,8 @@ LDNXFLATFLAGS = -e main -s 2048
 # ELF module definitions
 
 CELFFLAGS = $(CFLAGS) -mlong-calls
+CXXELFFLAGS = $(CXXFLAGS) -mlong-calls
+
 LDELFFLAGS = -r -e main
 ifeq ($(WINTOOL),y)
   LDELFFLAGS += -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/gnu-elf.ld}"

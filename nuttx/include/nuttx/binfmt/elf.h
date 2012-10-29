@@ -59,6 +59,9 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+/* The type of one C++ constructor */
+
+typedef FAR void (*elf_ctor_t)(void);
 
 /* This struct provides a desciption of the currently loaded instantiation
  * of an ELF binary.
@@ -71,7 +74,7 @@ struct elf_loadinfo_s
   off_t           filelen;     /* Length of the entire ELF file */
   int             filfd;       /* Descriptor for the file being loaded */
 #ifdef CONFIG_ELF_CONSTRUCTORS
-  uintptr_t       ctors;       /* Location of static constructors in memory */
+  elf_ctor_t      ctors;       /* Pointer to a list of constructors */
   uint16_t        nctors;      /* Number of constructors */
 #endif
   uint16_t        symtabidx;   /* Symbol table section index */

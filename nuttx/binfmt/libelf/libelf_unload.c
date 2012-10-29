@@ -45,6 +45,8 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/binfmt/elf.h>
 
+#include "libelf.h"
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -76,26 +78,17 @@
 
 int elf_unload(struct elf_loadinfo_s *loadinfo)
 {
-  /* Release the all allocated memory */
+  /* Free all working buffers */
+
+  elf_freebuffers(loadinfo);
+
+  /* Release memory holding the relocated ELF image */
 
   if (loadinfo->alloc)
     {
       kfree((FAR void *)loadinfo->alloc);
       loadinfo->alloc     = 0;
       loadinfo->allocsize = 0;
-    }
-
-  if (loadinfo->shdr)
-    {
-      kfree((FAR void *)loadinfo->shdr);
-      loadinfo->shdr      = NULL;
-    }
-
-  if (loadinfo->iobuffer)
-    {
-      kfree((FAR void *)loadinfo->iobuffer);
-      loadinfo->iobuffer  = NULL;
-      loadinfo->buflen    = 0;
     }
 
   return OK;

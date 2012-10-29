@@ -33,13 +33,15 @@
 #
 ############################################################################
 
-# Most of these do no build yet
+-include $(TOPDIR)/.config
+-include $(TOPDIR)/Make.defs
+include $(APPDIR)/Make.defs
 
-ALL_SUBDIRS = errno hello hello++ longjmp mutex pthread signal task struct
+ALL_SUBDIRS = errno hello helloxx longjmp mutex pthread signal task struct
 BUILD_SUBDIRS = errno hello task struct
 
 ifeq ($(CONFIG_HAVE_CXX),y)
-BUILD_SUBDIRS += hello++
+BUILD_SUBDIRS += helloxx
 endif
 
 ifeq ($(CONFIG_EXAMPLES_ELF_LONGJMP),y)

@@ -126,14 +126,8 @@ static inline int elf_loadshdrs(FAR struct elf_loadinfo_s *loadinfo)
   if (ret < 0)
     {
       bdbg("Failed to read section header table: %d\n", ret);
-      goto errout_with_alloc;
     }
 
-  return OK;
-
-errout_with_alloc:
-  kfree(loadinfo->shdr);
-  loadinfo->shdr = 0;
   return ret;
 }
 
@@ -233,7 +227,7 @@ static inline int elf_loadfile(FAR struct elf_loadinfo_s *loadinfo)
           if (ret < 0)
             {
               bdbg("Failed to read section %d: %d\n", i, ret);
-              goto errout_with_alloc;
+              return ret;
             }
         }
 
@@ -248,11 +242,6 @@ static inline int elf_loadfile(FAR struct elf_loadinfo_s *loadinfo)
     }
 
   return OK;
-
-errout_with_alloc:
-  kfree((FAR void*)loadinfo->alloc);
-  loadinfo->alloc = 0;
-  return ret;
 }
 
 /****************************************************************************
@@ -285,7 +274,7 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
   if (ret < 0)
     {
       bdbg("elf_loadshdrs failed: %d\n", ret);
-      return ret;
+      goto errout_with_buffers;
     }
 
   /* Determine total size to allocate */
@@ -298,16 +287,17 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
   if (ret < 0)
     {
       bdbg("elf_loadfile failed: %d\n", ret);
-      goto errout_with_shdrs;
+      goto errout_with_buffers;
     }
 
   /* Find static constructors. */
 
 #ifdef CONFIG_ELF_CONSTRUCTORS
-  ret = elf_findctors(loadinfo);
+  ret = elf_loadctors(loadinfo);
+  if (ret < 0)
     {
-      bdbg("elf_findctors failed: %d\n", ret);
-      goto errout_with_shdrs;
+      bdbg("elf_loadctors failed: %d\n", ret);
+      goto errout_with_buffers;
     }
 #endif
 
@@ -315,9 +305,8 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
 
   /* Error exits */
 
-errout_with_shdrs:
-  kfree(loadinfo->shdr);
-  loadinfo->shdr = NULL;
+errout_with_buffers:
+  elf_freebuffers(loadinfo);
   return ret;
 }
 

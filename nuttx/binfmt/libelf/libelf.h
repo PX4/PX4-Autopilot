@@ -142,6 +142,49 @@ int elf_symvalue(FAR struct elf_loadinfo_s *loadinfo, FAR Elf32_Sym *sym,
                  FAR const struct symtab_s *exports, int nexports);
 
 /****************************************************************************
+ * Name: elf_freebuffers
+ *
+ * Description:
+ *  Release all working buffers.
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+int elf_freebuffers(FAR struct elf_loadinfo_s *loadinfo);
+
+/****************************************************************************
+ * Name: elf_allocbuffer
+ *
+ * Description:
+ *   Perform the initial allocation of the I/O buffer, if it has not already
+ *   been allocated.
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+int elf_allocbuffer(FAR struct elf_loadinfo_s *loadinfo);
+
+/****************************************************************************
+ * Name: elf_reallocbuffer
+ *
+ * Description:
+ *   Increase the size of I/O buffer by the specified buffer increment.
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+int elf_reallocbuffer(FAR struct elf_loadinfo_s *loadinfo, size_t increment);
+
+/****************************************************************************
  * Name: elf_findctors
  *
  * Description:
@@ -157,7 +200,7 @@ int elf_symvalue(FAR struct elf_loadinfo_s *loadinfo, FAR Elf32_Sym *sym,
  ****************************************************************************/
 
 #ifdef CONFIG_ELF_CONSTRUCTORS
-int elf_findctors(FAR struct elf_loadinfo_s *loadinfo);
+int elf_loadctors(FAR struct elf_loadinfo_s *loadinfo);
 #endif
 
 /****************************************************************************

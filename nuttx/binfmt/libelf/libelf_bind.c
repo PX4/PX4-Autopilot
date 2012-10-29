@@ -46,7 +46,6 @@
 #include <assert.h>
 #include <debug.h>
 
-#include <nuttx/kmalloc.h>
 #include <nuttx/binfmt/elf.h>
 #include <nuttx/binfmt/symtab.h>
 
@@ -247,17 +246,16 @@ int elf_bind(FAR struct elf_loadinfo_s *loadinfo,
       return ret;
     }
 
-  /* Allocate an I/O buffer.  This buffer is used only by elf_symname() to
+  /* Allocate an I/O buffer.  This buffer is used by elf_symname() to
    * accumulate the variable length symbol name.
    */
 
-  loadinfo->iobuffer = (FAR uint8_t *)kmalloc(CONFIG_ELF_BUFFERSIZE);
-  if (!loadinfo->iobuffer)
+  ret = elf_allocbuffer(loadinfo);
+  if (ret < 0)
     {
-      bdbg("Failed to allocate an I/O buffer\n");
+      bdbg("elf_allocbuffer failed: %d\n", ret);
       return -ENOMEM;
     }
-  loadinfo->buflen = CONFIG_ELF_BUFFERSIZE;
 
   /* Process relocations in every allocated section */
 
@@ -303,11 +301,6 @@ int elf_bind(FAR struct elf_loadinfo_s *loadinfo,
   arch_flushicache((FAR void*)loadinfo->alloc, loadinfo->allocsize);
 #endif
 
-  /* Free the I/O buffer */
-
-  kfree(loadinfo->iobuffer);
-  loadinfo->iobuffer = NULL;
-  loadinfo->buflen   = 0;
   return ret;
 }
 

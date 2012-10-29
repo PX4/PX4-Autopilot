@@ -323,6 +323,8 @@ examples/elf
 
        CELFFLAGS = $(CFLAGS) -mlong-calls
 
+     Similarly for C++ flags which must be provided in CXXELFFLAGS.
+
   2. Your top-level nuttx/Make.defs file must alos include an approproate definition,
      LDELFFLAGS, to generate a relocatable ELF object.  With GNU LD, this should
      include '-r' and '-e main' (or _main on some platforms).

@@ -282,7 +282,7 @@ int arch_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
 
         if (offset <= (int32_t)0xff000000 || offset >= (int32_t)0x01000000)
           {
-            bdbg("  ERROR: JUMP24 [%d] relocation out of range, offset=%08lx\n",
+            bdbg("  ERROR: JUMP24 [%d] relocation out of range, branch taget=%08lx\n",
                  ELF32_R_TYPE(rel->r_info), offset);
 
             return -EINVAL;
