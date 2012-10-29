@@ -114,7 +114,7 @@ static void elf_dumploadinfo(FAR struct elf_loadinfo_s *loadinfo)
   bdbg("  alloc:        %08lx\n", (long)loadinfo->alloc);
   bdbg("  allocsize:    %ld\n",   (long)loadinfo->allocsize);
   bdbg("  filelen:      %ld\n",   (long)loadinfo->filelen);
-#ifdef CONFIG_ELF_CONSTRUCTORS
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
   bdbg("  ctors:        %08lx\n", (long)loadinfo->ctors);
   bdbg("  nctors:       %d\n",    loadinfo->nctors);
 #endif
@@ -211,13 +211,31 @@ static int elf_loadbinary(struct binary_s *binp)
   /* Return the load information */
 
   binp->entrypt   = (main_t)(loadinfo.alloc + loadinfo.ehdr.e_entry);
-  binp->ispace    = (void*)loadinfo.alloc;
-  binp->dspace    = NULL;
-  binp->isize     = loadinfo.allocsize;
+  binp->alloc[0]  = (FAR void *)loadinfo.alloc;
   binp->stacksize = CONFIG_ELF_STACKSIZE;
 
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+  /* Save information about constructors.  NOTE:  desctructors are not
+   * yet supported.
+   */
+
+  binp->ctors      = loadinfo.ctors;
+  binp->nctors     = loadinfo.nctors;
+
+  /* Was memory allocated for constructors? */
+
+  if (!loadinfo.newabi)
+    {
+      /* Yes.. save the allocation address so that it can be freed by
+       * unload module.
+       */
+
+      binp->alloc[1] = (FAR void *)loadinfo.ctors;
+    }
+#endif
+
   elf_dumpbuffer("Entry code", (FAR const uint8_t*)binp->entrypt,
-                 MIN(binp->isize - loadinfo.ehdr.e_entry, 512));
+                 MIN(loadinfo.allocsize - loadinfo.ehdr.e_entry, 512));
 
   elf_uninit(&loadinfo);
   return OK;

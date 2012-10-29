@@ -115,15 +115,6 @@ int elf_freebuffers(struct elf_loadinfo_s *loadinfo)
       loadinfo->shdr      = NULL;
     }
 
-#ifdef CONFIG_ELF_CONSTRUCTORS
-  if (loadinfo->ctors)
-    {
-      kfree((FAR void *)loadinfo->ctors);
-      loadinfo->ctors     = NULL;
-      loadinfo->nctors    = 0;
-    }
-#endif
-
   if (loadinfo->iobuffer)
     {
       kfree((FAR void *)loadinfo->iobuffer);

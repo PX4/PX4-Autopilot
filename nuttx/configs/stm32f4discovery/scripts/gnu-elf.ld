@@ -51,8 +51,8 @@ SECTIONS
        */
 
       *(.gnu.linkonce.t.*)
-      *(.init)
-      *(.fini)
+      *(.init)             /* Old ABI */
+      *(.fini)             /* Old ABI */
       _etext = . ;
     }
 
@@ -86,15 +86,17 @@ SECTIONS
 
   .ctors :
     {
-      _sctros = . ;
-      *(.ctors)
+      _sctors = . ;
+      *(.ctors)       /* Old ABI:  Unallocated */
+      *(.init_array)  /* New ABI:  Allocated */
       _edtors = . ;
     }
 
-  .ctors :
+  .dtors :
     {
       _sdtors = . ;
-      *(.dtors)
+      *(.dtors)       /* Old ABI:  Unallocated */
+      *(.fini_array)  /* New ABI:  Allocated */
       _edtors = . ;
     }
 

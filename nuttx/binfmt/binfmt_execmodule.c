@@ -71,6 +71,39 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: exec_ctors
+ *
+ * Description:
+ *   Execute C++ static constructors.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+static inline void exec_ctors(FAR const struct binary_s *binp)
+{
+  elf_ctor_t *ctor = binp->ctors;
+  int i;
+
+  /* Execute each constructor */
+
+  for (i = 0; i < binp->nctors; i++)
+    {
+      bvdbg("Calling ctor %d at %p\n", i, (FAR void *)ctor);
+
+      (*ctor)();
+      ctor++;
+    }
+}
+#endif
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -87,7 +120,7 @@
  *
  ****************************************************************************/
 
-int exec_module(FAR const struct binary_s *bin, int priority)
+int exec_module(FAR const struct binary_s *binp, int priority)
 {
   FAR _TCB     *tcb;
 #ifndef CONFIG_CUSTOM_STACK
@@ -100,14 +133,14 @@ int exec_module(FAR const struct binary_s *bin, int priority)
   /* Sanity checking */
 
 #ifdef CONFIG_DEBUG
-  if (!bin || !bin->ispace || !bin->entrypt || bin->stacksize <= 0)
+  if (!binp || !binp->entrypt || binp->stacksize <= 0)
     {
       err = EINVAL;
       goto errout;
     }
 #endif
 
-  bdbg("Executing %s\n", bin->filename);
+  bdbg("Executing %s\n", binp->filename);
 
   /* Allocate a TCB for the new task. */
 
@@ -121,7 +154,7 @@ int exec_module(FAR const struct binary_s *bin, int priority)
   /* Allocate the stack for the new task */
 
 #ifndef CONFIG_CUSTOM_STACK
-  stack = (FAR uint32_t*)malloc(bin->stacksize);
+  stack = (FAR uint32_t*)malloc(binp->stacksize);
   if (!tcb)
     {
       err = ENOMEM;
@@ -130,11 +163,13 @@ int exec_module(FAR const struct binary_s *bin, int priority)
 
   /* Initialize the task */
 
-  ret = task_init(tcb, bin->filename, priority, stack, bin->stacksize, bin->entrypt, bin->argv);
+  ret = task_init(tcb, binp->filename, priority, stack,
+                  binp->stacksize, binp->entrypt, binp->argv);
 #else
   /* Initialize the task */
 
-  ret = task_init(tcb, bin->filename, priority, stack, bin->entrypt, bin->argv);
+  ret = task_init(tcb, binp->filename, priority, stack,
+                  binp->entrypt, binp->argv);
 #endif
   if (ret < 0)
     {
@@ -143,10 +178,12 @@ int exec_module(FAR const struct binary_s *bin, int priority)
       goto errout_with_stack;
     }
 
-  /* Add the DSpace address as the PIC base address */
+  /* Add the D-Space address as the PIC base address.  By convention, this
+   * must be the first allocated address space.
+   */
 
 #ifdef CONFIG_PIC
-  tcb->dspace = bin->dspace;
+  tcb->dspace = binp->alloc[0];
 
   /* Re-initialize the task's initial state to account for the new PIC base */
 
@@ -157,6 +194,12 @@ int exec_module(FAR const struct binary_s *bin, int priority)
 
   pid = tcb->pid;
 
+  /* Execute all of the C++ static constructors */
+
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+  exec_ctors(binp);
+#endif
+
   /* Then activate the task at the provided priority */
 
   ret = task_activate(tcb);
@@ -166,6 +209,7 @@ int exec_module(FAR const struct binary_s *bin, int priority)
       bdbg("task_activate() failed: %d\n", err);
       goto errout_with_stack;
     }
+
   return (int)pid;
 
 errout_with_stack:

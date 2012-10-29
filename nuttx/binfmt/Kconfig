@@ -34,6 +34,13 @@ endif
 
 endif
 
+config BINFMT_CONSTRUCTORS
+	bool "C++ Static Constructor Support"
+	default n
+	depends on HAVE_CXX && ELF # FIX ME: Currently only supported for ELF
+	---help---
+		Build in support for C++ constructors in loaded modules.
+
 config SYMTAB_ORDEREDBYNAME
 	bool "Symbol Tables Ordered by Name"
 	default n

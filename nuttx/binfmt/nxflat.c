@@ -181,16 +181,18 @@ static int nxflat_loadbinary(struct binary_s *binp)
       goto errout_with_load;
     }
 
-  /* Return the load information */
+  /* Return the load information.  By convention, D-space address
+   * space is stored as the first allocated memory.
+   */
 
   binp->entrypt   = (main_t)(loadinfo.ispace + loadinfo.entryoffs);
-  binp->ispace    = (void*)loadinfo.ispace;
-  binp->dspace    = (void*)loadinfo.dspace;
-  binp->isize     = loadinfo.isize;
+  binp->mapped    = (void*)loadinfo.ispace;
+  binp->alloc[0]  = (void*)loadinfo.dspace;
+  binp->mapsize   = loadinfo.isize;
   binp->stacksize = loadinfo.stacksize;
 
   nxflat_dumpbuffer("Entry code", (FAR const uint8_t*)binp->entrypt,
-                    MIN(binp->isize - loadinfo.entryoffs,512));
+                    MIN(loadinfo.isize - loadinfo.entryoffs, 512));
 
   nxflat_uninit(&loadinfo);
   return OK;

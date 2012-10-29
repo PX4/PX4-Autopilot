@@ -49,9 +49,15 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define BINFMT_NALLOC 2
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+/* The type of one C++ constructor or destructor */
+
+typedef FAR void (*elf_ctor_t)(void);
+typedef FAR void (*elf_dtor_t)(void);
 
 /* This describes the file to be loaded */
 
@@ -70,9 +76,15 @@ struct binary_s
    */
 
   main_t entrypt;                      /* Entry point into a program module */
-  FAR void *ispace;                    /* Memory-mapped, I-space (.text) address */
-  FAR struct dspace_s *dspace;         /* Address of the allocated .data/.bss space */
-  size_t isize;                        /* Size of the I-space region (needed for munmap) */
+  FAR void *mapped;                    /* Memory-mapped, address space */
+  FAR void *alloc[BINFMT_NALLOC];      /* Allocated address spaces */
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+  elf_ctor_t *ctors;                   /* Pointer to a list of constructors */
+  elf_dtor_t *dtors;                   /* Pointer to a list of destructors */
+  uint16_t nctors;                     /* Number of constructors in the list */
+  uint16_t ndtors;                     /* Number of destructors in the list */
+#endif
+  size_t mapsize;                      /* Size of the mapped address region (needed for munmap) */
   size_t stacksize;                    /* Size of the stack in bytes (unallocated) */
 };
 
@@ -151,7 +163,12 @@ EXTERN int load_module(FAR struct binary_s *bin);
  *
  * Description:
  *   Unload a (non-executing) module from memory.  If the module has
- *   been started (via exec_module), calling this will be fatal.
+ *   been started (via exec_module) and has not exited, calling this will
+ *   be fatal.
+ *
+ *   However, this function must be called after the module exist.  How
+ *   this is done is up to your logic.  Perhaps you register it to be
+ *   called by on_exit()?
  *
  * Returned Value:
  *   This is a NuttX internal function so it follows the convention that

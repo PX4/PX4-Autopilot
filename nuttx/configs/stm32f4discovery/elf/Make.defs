@@ -160,8 +160,8 @@ LDNXFLATFLAGS = -e main -s 2048
 
 # ELF module definitions
 
-CELFFLAGS = $(CFLAGS) -mlong-calls
-CXXELFFLAGS = $(CXXFLAGS) -mlong-calls
+CELFFLAGS = $(CFLAGS) -mlong-calls # --target1-abs
+CXXELFFLAGS = $(CXXFLAGS) -mlong-calls # --target1-abs
 
 LDELFFLAGS = -r -e main
 ifeq ($(WINTOOL),y)

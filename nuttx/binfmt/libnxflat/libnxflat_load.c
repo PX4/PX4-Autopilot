@@ -62,24 +62,6 @@
  * Private Constant Data
  ****************************************************************************/
 
-#if defined(CONFIG_DEBUG_VERBOSE) && defined(CONFIG_DEBUG_BINFMT)
-static const char g_relocrel32i[]  = "RELOC_REL32I";
-static const char g_relocrel32d[]  = "RELOC_REL32D";
-static const char g_relocabs32[]   = "RELOC_AB32";
-static const char g_undefined[]    = "UNDEFINED";
-
-static const char *g_reloctype[] =
-{
-  g_relocrel32i,
-  g_relocrel32d,
-  g_relocabs32,
-  g_undefined
-};
-#  define RELONAME(rl) g_reloctype[NXFLAT_RELOC_TYPE(rl)]
-#else
-#  define RELONAME(rl) "(no name)"
-#endif
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/

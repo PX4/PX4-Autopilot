@@ -32,13 +32,6 @@ config ELF_BUFFERINCR
 		will need to be read (such as symbol names).  This value specifies the size
 		increment to use each time the buffer is reallocated.  Default: 32
 
-config ELF_CONSTRUCTORS
-	bool "C++ Static Constructor Support"
-	default n
-	depends on HAVE_CXX
-	---help---
-		Build in support for C++ constructors in ELF modules.
-
 config ELF_DUMPBUFFER
 	bool "Dump ELF buffers"
 	default n

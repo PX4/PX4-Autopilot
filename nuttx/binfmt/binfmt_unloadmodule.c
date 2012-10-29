@@ -1,7 +1,7 @@
 /****************************************************************************
  * binfmt/binfmt_loadmodule.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,6 +68,39 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: exec_dtors
+ *
+ * Description:
+ *   Execute C++ static constructors.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+static inline void exec_dtors(FAR const struct binary_s *binp)
+{
+  elf_dtor_t *dtor = binp->dtors;
+  int i;
+
+  /* Execute each destructor */
+
+  for (i = 0; i < binp->ndtors; i++)
+    {
+      bvdbg("Calling dtor %d at %p\n", i, (FAR void *)dtor);
+
+      (*dtor)();
+      dtor++;
+    }
+}
+#endif
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -76,7 +109,12 @@
  *
  * Description:
  *   Unload a (non-executing) module from memory.  If the module has
- *   been started (via exec_module), calling this will be fatal.
+ *   been started (via exec_module) and has not exited, calling this will
+ *   be fatal.
+ *
+ *   However, this function must be called after the module exist.  How
+ *   this is done is up to your logic.  Perhaps you register it to be
+ *   called by on_exit()?
  *
  * Returned Value:
  *   This is a NuttX internal function so it follows the convention that
@@ -85,22 +123,40 @@
  *
  ****************************************************************************/
 
-int unload_module(FAR const struct binary_s *bin)
+int unload_module(FAR const struct binary_s *binp)
 {
-  if (bin)
+  int i;
+ 
+  if (binp)
     {
-      if (bin->ispace)
+
+      /* Execute C++ desctructors */
+
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+      exec_dtors(binp);
+#endif
+
+      /* Unmap mapped address spaces */
+
+      if (binp->mapped)
         {
-          bvdbg("Unmapping ISpace: %p\n", bin->ispace);
-          munmap(bin->ispace, bin->isize);
+          bvdbg("Unmapping address space: %p\n", binp->mapped);
+
+          munmap(binp->mapped, binp->mapsize);
         }
 
-      if (bin->dspace)
+      /* Free allocated address spaces */
+
+      for (i = 0; i < BINFMT_NALLOC; i++)
         {
-          bvdbg("Freeing DSpace: %p\n", bin->dspace);
-          free(bin->dspace);
+          if (binp->alloc[i])
+            {
+              bvdbg("Freeing alloc[%d]: %p\n", i, binp->alloc[i]);
+              free(binp->alloc[i]);
+            }
         }
     }
+
   return OK;
 }
 

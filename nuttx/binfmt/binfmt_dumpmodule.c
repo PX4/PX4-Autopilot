@@ -1,7 +1,7 @@
 /****************************************************************************
  * binfmt/binfmt_dumpmodule.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -90,8 +90,12 @@ int dump_module(FAR const struct binary_s *bin)
       bdbg("  filename:  %s\n", bin->filename);
       bdbg("  argv:      %p\n", bin->argv);
       bdbg("  entrypt:   %p\n", bin->entrypt);
-      bdbg("  ispace:    %p size=%d\n", bin->ispace, bin->isize);
-      bdbg("  dspace:    %p\n", bin->dspace);
+      bdbg("  mapped:    %p size=%d\n", bin->mapped, bin->mapsize);
+      bdbg("  alloc:     %p %p\n", bin->alloc[0], bin->alloc[1]);
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+      bdbg("  ctors:     %p nctors=%d\n", bin->ctors, bin->nctors);
+      bdbg("  dtors:     %p ndtors=%d\n", bin->dtors, bin->ndtors);
+#endif
       bdbg("  stacksize: %d\n", bin->stacksize);
     }
   return OK;

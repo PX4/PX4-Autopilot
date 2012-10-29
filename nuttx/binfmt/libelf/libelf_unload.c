@@ -91,6 +91,26 @@ int elf_unload(struct elf_loadinfo_s *loadinfo)
       loadinfo->allocsize = 0;
     }
 
+  /* Release any allocated constructor memory */
+
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+  if (loadinfo->ctors)
+    {
+      /* In the old ABI, the .ctors section is not make for allocation.  In
+       * that case, we need to free the working buffer that was used to hold
+       * the constructors.
+       */
+
+      if (!loadinfo->newabi)
+        {
+          kfree((FAR void *)loadinfo->ctors);
+        }
+
+      loadinfo->ctors     = NULL;
+      loadinfo->nctors    = 0;
+    }
+#endif
+
   return OK;
 }
 

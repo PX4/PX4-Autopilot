@@ -41,6 +41,7 @@
 #include <nuttx/compiler.h>
 
 #include <sys/mount.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -129,6 +130,9 @@
  * Private Data
  ****************************************************************************/
 
+static unsigned int g_mminitial;  /* Initial memory usage */
+static unsigned int g_mmstep;     /* Memory Usage at beginning of test step */
+
 static const char delimiter[] =
   "****************************************************************************";
 
@@ -144,6 +148,53 @@ extern const int nexports;
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: mm_update
+ ****************************************************************************/
+
+static void mm_update(FAR unsigned int *previous, FAR const char *msg)
+{
+  struct mallinfo mmcurrent;
+
+  /* Get the current memory usage */
+
+#ifdef CONFIG_CAN_PASS_STRUCTS
+  mmcurrent = mallinfo();
+#else
+  (void)mallinfo(&mmcurrent);
+#endif
+
+  /* Show the change from the previous time */
+
+  printf("\nMemory Usage %s:\n", msg);
+  printf("  Before: %8u After: %8u Change: %8d\n",
+         *previous, mmcurrent.uordblks, (int)mmcurrent.uordblks - (int)*previous);
+
+  /* Set up for the next test */
+
+  *previous =  mmcurrent.uordblks;
+}
+
+/****************************************************************************
+ * Name: mm_initmonitor
+ ****************************************************************************/
+
+static void mm_initmonitor(void)
+{
+  struct mallinfo mmcurrent;
+
+#ifdef CONFIG_CAN_PASS_STRUCTS
+  mmcurrent = mallinfo();
+#else
+  (void)mallinfo(&mmcurrent);
+#endif
+
+  g_mminitial = mmcurrent.uordblks;
+  g_mmstep    = mmcurrent.uordblks;
+
+  printf("Initial memory usage: %d\n", mmcurrent.uordblks);
+}
 
 /****************************************************************************
  * Name: testheader
@@ -168,6 +219,10 @@ int elf_main(int argc, char *argv[])
   int ret;
   int i;
 
+  /* Initialize the memory monitor */
+
+  mm_initmonitor();
+
   /* Initialize the ELF binary loader */
 
   message("Initializing the ELF binary loader\n");
@@ -177,6 +232,8 @@ int elf_main(int argc, char *argv[])
       err("ERROR: Initialization of the ELF loader failed: %d\n", ret);
       exit(1);
     }
+
+  mm_update(&g_mmstep, "after elf_initialize");
 
   /* Create a ROM disk for the ROMFS filesystem */
 
@@ -189,6 +246,8 @@ int elf_main(int argc, char *argv[])
       elf_uninitialize();
       exit(1);
     }
+
+  mm_update(&g_mmstep, "after romdisk_register");
 
   /* Mount the file system */
 
@@ -203,7 +262,9 @@ int elf_main(int argc, char *argv[])
       elf_uninitialize();
     }
 
-  /* Now excercise every progrm in the ROMFS file system */
+  mm_update(&g_mmstep, "after mount");
+
+  /* Now excercise every program in the ROMFS file system */
 
   for (i = 0; dirlist[i]; i++)
     {
@@ -223,17 +284,26 @@ int elf_main(int argc, char *argv[])
           exit(1);
         }
 
+      mm_update(&g_mmstep, "after load_module");
+
       ret = exec_module(&bin, 50);
+
+      mm_update(&g_mmstep, "after exec_module");
+
       if (ret < 0)
         {
           err("ERROR: Failed to execute program '%s'\n", dirlist[i]);
-          unload_module(&bin);
+        }
+      else
+        {
+          message("Wait a bit for test completion\n");
+          sleep(4);
         }
 
-      message("Wait a bit for test completion\n");
-      sleep(4);
+      unload_module(&bin);
+      mm_update(&g_mmstep, "after unload_module");
     }
 
-  message("End-of-Test.. Exiting\n");
+  mm_update(&g_mmstep, "End-of-Test");
   return 0;
 }

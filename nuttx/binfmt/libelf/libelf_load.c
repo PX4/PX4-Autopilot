@@ -76,62 +76,6 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: elf_loadshdrs
- *
- * Description:
- *   Loads section headers into memory.
- *
- * Returned Value:
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
- *
- ****************************************************************************/
-
-static inline int elf_loadshdrs(FAR struct elf_loadinfo_s *loadinfo)
-{
-  size_t shdrsize;
-  int ret;
-
-  DEBUGASSERT(loadinfo->shdr == NULL);
-
-  /* Verify that there are sections */
-
-  if (loadinfo->ehdr.e_shnum < 1)
-    {
-      bdbg("No sections(?)\n");
-      return -EINVAL;
-    }
-
-  /* Get the total size of the section header table */
-
-  shdrsize = (size_t)loadinfo->ehdr.e_shentsize * (size_t)loadinfo->ehdr.e_shnum;
-  if(loadinfo->ehdr.e_shoff + shdrsize > loadinfo->filelen)
-    {
-      bdbg("Insufficent space in file for section header table\n");
-      return -ESPIPE;
-    }
-
-  /* Allocate memory to hold a working copy of the sector header table */
-
-  loadinfo->shdr = (FAR Elf32_Shdr*)kmalloc(shdrsize);
-  if (!loadinfo->shdr)
-    {
-      bdbg("Failed to allocate the section header table. Size: %ld\n", (long)shdrsize);
-      return -ENOMEM;
-    }
-
-  /* Read the section header table into memory */
-
-  ret = elf_read(loadinfo, (FAR uint8_t*)loadinfo->shdr, shdrsize, loadinfo->ehdr.e_shoff);
-  if (ret < 0)
-    {
-      bdbg("Failed to read section header table: %d\n", ret);
-    }
-
-  return ret;
-}
-
-/****************************************************************************
  * Name: elf_allocsize
  *
  * Description:
@@ -292,7 +236,7 @@ int elf_load(FAR struct elf_loadinfo_s *loadinfo)
 
   /* Find static constructors. */
 
-#ifdef CONFIG_ELF_CONSTRUCTORS
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
   ret = elf_loadctors(loadinfo);
   if (ret < 0)
     {

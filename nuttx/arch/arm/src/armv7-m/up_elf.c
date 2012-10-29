@@ -178,6 +178,7 @@ int arch_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
       break;
 
     case R_ARM_ABS32:
+    case R_ARM_TARGET1:  /* New ABI:  TARGET1 always treated as ABS32 */
       {
         bvdbg("Performing ABS32 link at addr=%08lx [%08lx] to sym=%p st_value=%08lx\n",
               (long)addr, (long)(*(uint32_t*)addr), sym, (long)sym->st_value);

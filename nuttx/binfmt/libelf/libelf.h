@@ -86,6 +86,39 @@ int elf_read(FAR struct elf_loadinfo_s *loadinfo, FAR uint8_t *buffer,
              size_t readsize, off_t offset);
 
 /****************************************************************************
+ * Name: elf_loadshdrs
+ *
+ * Description:
+ *   Loads section headers into memory.
+ *
+ * Returned Value:
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+int elf_loadshdrs(FAR struct elf_loadinfo_s *loadinfo);
+
+/****************************************************************************
+ * Name: elf_findsection
+ *
+ * Description:
+ *   A section by its name.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *   sectname - Name of the section to find
+ *
+ * Returned Value:
+ *   On success, the index to the section is returned; A negated errno value
+ *   is returned on failure.
+ *
+ ****************************************************************************/
+
+int elf_findsection(FAR struct elf_loadinfo_s *loadinfo,
+                    FAR const char *sectname);
+
+/****************************************************************************
  * Name: elf_findsymtab
  *
  * Description:
@@ -199,27 +232,8 @@ int elf_reallocbuffer(FAR struct elf_loadinfo_s *loadinfo, size_t increment);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_ELF_CONSTRUCTORS
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
 int elf_loadctors(FAR struct elf_loadinfo_s *loadinfo);
-#endif
-
-/****************************************************************************
- * Name: elf_doctors
- *
- * Description:
- *   Execute C++ static constructors.
- *
- * Input Parameters:
- *   loadinfo - Load state information
- *
- * Returned Value:
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_ELF_CONSTRUCTORS
-int elf_doctors(FAR struct elf_loadinfo_s *loadinfo);
 #endif
 
 #endif /* __BINFMT_LIBELF_LIBELF_H */

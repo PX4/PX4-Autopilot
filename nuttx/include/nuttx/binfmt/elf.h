@@ -43,9 +43,12 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <elf32.h>
+
+#include <nuttx/binfmt/binfmt.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -59,9 +62,6 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
-/* The type of one C++ constructor */
-
-typedef FAR void (*elf_ctor_t)(void);
 
 /* This struct provides a desciption of the currently loaded instantiation
  * of an ELF binary.
@@ -72,17 +72,18 @@ struct elf_loadinfo_s
   uintptr_t       alloc;       /* Allocated memory with the ELF file is loaded */
   size_t          allocsize;   /* Size of the memory allocation */
   off_t           filelen;     /* Length of the entire ELF file */
-  int             filfd;       /* Descriptor for the file being loaded */
-#ifdef CONFIG_ELF_CONSTRUCTORS
-  elf_ctor_t      ctors;       /* Pointer to a list of constructors */
+  Elf32_Ehdr      ehdr;        /* Buffered ELF file header */
+  FAR Elf32_Shdr *shdr;        /* Buffered ELF section headers */
+  uint8_t        *iobuffer;    /* File I/O buffer */
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+  elf_ctor_t     *ctors;       /* Pointer to a list of constructors */
+  bool            newabi;      /* True: ctors in 'alloc' */
   uint16_t        nctors;      /* Number of constructors */
 #endif
   uint16_t        symtabidx;   /* Symbol table section index */
   uint16_t        strtabidx;   /* String table section index */
   uint16_t        buflen;      /* size of iobuffer[] */
-  Elf32_Ehdr      ehdr;        /* Buffered ELF file header */
-  FAR Elf32_Shdr *shdr;        /* Buffered ELF section headers */
-  uint8_t        *iobuffer;    /* File I/O buffer */
+  int             filfd;       /* Descriptor for the file being loaded */
 };
 
 /****************************************************************************
