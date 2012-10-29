@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: October 20, 2012</p>
+      <p>Last Updated: October 29, 2012</p>
     </td>
   </tr>
 </table>
@@ -4071,11 +4071,6 @@ build
     If set, all sockets will appear to be closed in the new task.
   </li>
   <li>
-    <code>CONFIG_NXFLAT</code>: Enable support for the NXFLAT binary format.
-    This format will support execution of NuttX binaries located
-    in a ROMFS file system (see <code>apps/examples/nxflat</code>).
-  </li>
-  <li>
     <code>CONFIG_SCHED_WORKQUEUE</code>: Create a dedicated "worker" thread to
     handle delayed processing from interrupt handlers.  This feature
     is required for some drivers but, if there are not complaints,
@@ -4141,6 +4136,54 @@ build
     where <code>app</code> is the application name.
     If not defined, <code>CONFIG_USER_ENTRYPOINT</code> defaults to
     <code>user_start</code>.
+  </li>
+</ul>
+
+<p>
+  Binary Loaders:
+</p>
+<ul>
+  <li>
+    <code>CONFIG_BINFMT_DISABLE</code>: By default, support for loadable binary formats is built.
+    This logic may be suppressed be defining this setting.
+  </li>
+  <li>
+    <code>CONFIG_BINFMT_CONSTRUCTORS</code>: Build in support for C++ constructors in loaded modules.
+  </li>
+  <li>
+    <code>CONFIG_SYMTAB_ORDEREDBYNAME</code>: Symbol tables are order by name (rather than value).
+  </li>
+  <li>
+    <code>CONFIG_NXFLAT</code>: Enable support for the NXFLAT binary format.
+    This format will support execution of NuttX binaries located
+    in a ROMFS file system (see <code>apps/examples/nxflat</code>).
+  </li>
+  <li>
+    <code>CONFIG_ELF</code>: Enable support for the ELF binary format.
+    This format will support execution of ELF binaries copied from a file system and relocated into RAM (see <code>apps/examples/elf</code>).
+  </li>
+  <p>
+    If <code>CONFIG_ELF</code> is selected, then these additional options are available:
+  </p>
+  <li>
+    <code>CONFIG_ELF_ALIGN_LOG2</code>: Align all sections to this Log2 value:  0->1, 1->2, 2->4, etc.
+  </li>
+  <li>
+    <code>CONFIG_ELF_STACKSIZE</code>: This is the default stack size that will will be used when starting ELF binaries.
+  </li>
+  <li>
+    <code>CONFIG_ELF_BUFFERSIZE</code>: This is an I/O buffer that is used to access the ELF file.  Variable length items will need to be read (such as symbol names).
+    This is really just this initial size of the buffer; it will be reallocated as necessary to hold large symbol names).
+    Default: 128
+  </li>
+  <li>
+    <code>CONFIG_ELF_BUFFERINCR</code>: This is an I/O buffer that is used to access the ELF file.  Variable length items will need to be read (such as symbol names).
+    This value specifies the size increment to use each time the buffer is reallocated.
+    Default: 32
+  </li>
+  <li>
+    <code>CONFIG_ELF_DUMPBUFFER</code>: Dump various ELF buffers for debug purposes.
+    This option requires <code>CONFIG_DEBUG</code> and <code>CONFIG_DEBUG_VERBOSE</code>.
   </li>
 </ul>
 

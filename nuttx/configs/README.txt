@@ -371,9 +371,6 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_SDCLONE_DISABLE. Disable cloning of all socket
       desciptors by task_create() when a new task is started. If
       set, all sockets will appear to be closed in the new task.
-    CONFIG_NXFLAT. Enable support for the NXFLAT binary format.
-      This format will support execution of NuttX binaries located
-      in a ROMFS filesystem (see examples/nxflat).
     CONFIG_SCHED_WORKQUEUE.  Create a dedicated "worker" thread to
       handle delayed processing from interrupt handlers.  This feature
       is required for some drivers but, if there are not complaints,
@@ -416,6 +413,39 @@ defconfig -- This is a configuration file similar to the Linux
       applications.  For the example applications this is of the form 'app_main'
       where 'app' is the application name. If not defined, CONFIG_USER_ENTRYPOINT
       defaults to user_start.
+
+  Binary Loaders:
+    CONFIG_BINFMT_DISABLE - By default, support for loadable binary formats
+      is built.
+    This logic may be suppressed be defining this setting.
+    CONFIG_BINFMT_CONSTRUCTORS - Build in support for C++ constructors in
+      loaded modules.
+    CONFIG_SYMTAB_ORDEREDBYNAME - Symbol tables are order by name (rather
+      than value).
+    CONFIG_NXFLAT. Enable support for the NXFLAT binary format. This format
+      will support execution of NuttX binaries located in a ROMFS filesystem
+      (see examples/nxflat).
+    CONFIG_ELF - Enable support for the ELF binary format. This format will
+      support execution of ELF binaries copied from a file system and
+      relocated into RAM.
+
+    If CONFIG_ELF is selected, then these additional options are available:
+
+    CONFIG_ELF_ALIGN_LOG2 - Align all sections to this Log2 value:  0->1,
+      1->2, 2->4, etc.
+    CONFIG_ELF_STACKSIZE - This is the default stack size that will will
+      be used when starting ELF binaries.
+    CONFIG_ELF_BUFFERSIZE - This is an I/O buffer that is used to access
+      the ELF file.  Variable length items will need to be read (such as 
+      symbol names).  This is really just this initial size of the buffer;
+      it will be reallocated as necessary to hold large symbol names).
+      Default: 128
+    CONFIG_ELF_BUFFERINCR - This is an I/O buffer that is used to access
+      the ELF file.  Variable length items will need to be read (such as
+      symbol names). This value specifies the size increment to use each
+      time the buffer is reallocated. Default: 32
+    CONFIG_ELF_DUMPBUFFER - Dump various ELF buffers for debug purposes.
+      This option requires CONFIG_DEBUG and CONFIG_DEBUG_VERBOSE.
 
   System Logging:
     CONFIG_SYSLOG enables general system logging support.
