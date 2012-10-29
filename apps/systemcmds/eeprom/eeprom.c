@@ -118,9 +118,19 @@ eeprom_attach(void)
 	if (i2c == NULL)
 		errx(1, "failed to locate I2C bus");
 
-	/* start the MTD driver */
-	eeprom_mtd = at24c_initialize(i2c);
+	/* start the MTD driver, attempt 5 times */
+	for (int i = 0; i < 5; i++) {
+		eeprom_mtd = at24c_initialize(i2c);
+		if (eeprom_mtd) {
+			/* abort on first valid result */
+			if (i > 0) {
+				warnx("warning: EEPROM needed %d attempts to attach", i+1);
+			}
+			break;
+		}
+	}
 
+	/* if last attempt is still unsuccessful, abort */
 	if (eeprom_mtd == NULL)
 		errx(1, "failed to initialize EEPROM driver");
 
