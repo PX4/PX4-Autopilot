@@ -38,7 +38,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_LONG_DOUBLE
+#ifdef CONFIG_HAVE_LONG_DOUBLE
 long double cosl(long double x)
 {
   return sinl(x + M_PI_2);

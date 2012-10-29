@@ -38,7 +38,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_LONG_DOUBLE
+#ifdef CONFIG_HAVE_LONG_DOUBLE
 long double log10l(long double x)
 {
   return (logl(x) / M_LN10);

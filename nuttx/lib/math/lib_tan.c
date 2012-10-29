@@ -38,7 +38,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_DOUBLE
+#ifdef CONFIG_HAVE_DOUBLE
 double tan(double x)
 {
   return (sin(x) / cos(x));

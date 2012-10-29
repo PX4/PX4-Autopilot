@@ -36,7 +36,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_DOUBLE
+#ifdef CONFIG_HAVE_DOUBLE
 double modf(double x, double *iptr)
 {
   if (fabs(x) >= 4503599627370496.0)

@@ -38,7 +38,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_LONG_DOUBLE
+#ifdef CONFIG_HAVE_LONG_DOUBLE
 long double ceill(long double x)
 {
   modfl(x, &x);

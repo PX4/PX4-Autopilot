@@ -38,7 +38,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_LONG_DOUBLE
+#ifdef CONFIG_HAVE_LONG_DOUBLE
 long double acosl(long double x)
 {
   return (M_PI_2 - asinl(x));

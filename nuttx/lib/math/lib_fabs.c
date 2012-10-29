@@ -38,7 +38,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_DOUBLE
+#ifdef CONFIG_HAVE_DOUBLE
 double fabs(double x)
 {
   return ((x < 0) ? -x : x);

@@ -38,7 +38,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_DOUBLE
+#ifdef CONFIG_HAVE_DOUBLE
 double log2(double x)
 {
   return (log(x) / M_LN2);

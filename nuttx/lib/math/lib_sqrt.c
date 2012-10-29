@@ -41,7 +41,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_DOUBLE
+#ifdef CONFIG_HAVE_DOUBLE
 double sqrt(double x)
 {
   long double y, y1;

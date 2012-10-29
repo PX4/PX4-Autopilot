@@ -39,7 +39,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_LONG_DOUBLE
+#ifdef CONFIG_HAVE_LONG_DOUBLE
 long double asinl(long double x)
 {
   long double y, y_sin, y_cos;

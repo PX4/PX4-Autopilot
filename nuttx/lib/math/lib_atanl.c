@@ -40,7 +40,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_LONG_DOUBLE
+#ifdef CONFIG_HAVE_LONG_DOUBLE
 long double atanl(long double x)
 {
   return asinl(x / sqrtl(x * x + 1));

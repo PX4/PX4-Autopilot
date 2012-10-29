@@ -40,7 +40,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_DOUBLE
+#ifdef CONFIG_HAVE_DOUBLE
 double atan(double x)
 {
   return asin(x / sqrt(x * x + 1));

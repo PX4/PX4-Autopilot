@@ -77,7 +77,7 @@ static double _expi_square_tbl[11] =
  * Public Functions
  ************************************************************************/
 
-static double lib_expi(size_t n)
+double lib_expi(size_t n)
 {
   size_t i;
   double val;

@@ -37,7 +37,7 @@
 
 #include "lib_internal.h"
 
-#if CONFIG_HAVE_DOUBLE
+#ifdef CONFIG_HAVE_DOUBLE
 
 /************************************************************************
  * Private Data

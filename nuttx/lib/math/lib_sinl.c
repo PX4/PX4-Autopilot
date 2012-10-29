@@ -35,7 +35,7 @@
 #include <sys/types.h>
 #include <math.h>
 
-#if CONFIG_HAVE_LONG_DOUBLE
+#ifdef CONFIG_HAVE_LONG_DOUBLE
 
 /************************************************************************
  * Private Data

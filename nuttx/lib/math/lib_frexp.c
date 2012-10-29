@@ -38,7 +38,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_DOUBLE
+#ifdef CONFIG_HAVE_DOUBLE
 double frexp(double x, int *exponent)
 {
   *exponent = (int)ceil(log2(x));

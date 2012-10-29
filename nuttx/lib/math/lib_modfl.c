@@ -39,7 +39,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_LONG_DOUBLE
+#ifdef CONFIG_HAVE_LONG_DOUBLE
 long double modfl(long double x, long double *iptr)
 {
   if (fabs(x) >= 4503599627370496.0)

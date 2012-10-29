@@ -39,7 +39,7 @@
  * Public Functions
  ************************************************************************/
 
-#if CONFIG_HAVE_LONG_DOUBLE
+#ifdef CONFIG_HAVE_LONG_DOUBLE
 long double logl(long double x)
 {
   long double y, y_old, ey, epsilon;
