@@ -66,7 +66,6 @@ struct fw_att_control_params {
 	float roll_p;
 	float rollrate_lim;
 	float pitch_p;
-	float pitch_lim;
 	float pitchrate_lim;
 	float yawrate_lim;
 	float pitch_roll_compensation_p;
@@ -76,7 +75,6 @@ struct fw_pos_control_param_handles {
 	param_t roll_p;
 	param_t rollrate_lim;
 	param_t pitch_p;
-	param_t pitch_lim;
 	param_t pitchrate_lim;
 	param_t yawrate_lim;
 	param_t pitch_roll_compensation_p;
@@ -94,7 +92,6 @@ static int parameters_init(struct fw_pos_control_param_handles *h)
 	h->roll_p 		=	param_find("FW_ROLL_P");
 	h->rollrate_lim =	param_find("FW_ROLLR_LIM");
 	h->pitch_p 		=	param_find("FW_PITCH_P");
-	h->pitch_lim 	=	param_find("FW_PITCH_LIM");
 	h->pitchrate_lim =	param_find("FW_PITCHR_LIM");
 	h->yawrate_lim =	param_find("FW_YAWR_LIM");
 	h->pitch_roll_compensation_p = param_find("FW_PITCH_RCOMP");
@@ -141,7 +138,7 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 	if (counter % 100 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
-		pid_set_parameters(&roll_controller, p.roll_p, 0, 0, 0, p.pitchrate_lim);
+		pid_set_parameters(&roll_controller, p.roll_p, 0, 0, 0, p.rollrate_lim);
 		pid_set_parameters(&pitch_controller, p.pitch_p, 0, 0, 0, p.pitchrate_lim);
 	}
 
@@ -150,7 +147,7 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 
 	/* Pitch (P) */
 	float pitch_sp_rollcompensation = att_sp->pitch_tait_bryan + p.pitch_roll_compensation_p * att_sp->roll_tait_bryan;
-	rates_sp->pitch = pid_calculate(&pitch_controller, att_sp->pitch_tait_bryan, att->pitch, 0, 0);
+	rates_sp->pitch = pid_calculate(&pitch_controller, pitch_sp_rollcompensation, att->pitch, 0, 0);
 
 	/* Yaw (from coordinated turn constraint or lateral force) */
 	//TODO

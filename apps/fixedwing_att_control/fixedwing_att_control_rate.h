@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* @file Main system state machine definition */
+/* @file Fixed Wing Attitude Rate Control */
 
 #ifndef FIXEDWING_ATT_CONTROL_RATE_H_
 #define FIXEDWING_ATT_CONTROL_RATE_H_
