@@ -67,6 +67,7 @@
  *
  */
 PARAM_DEFINE_FLOAT(FW_HEADING_P, 0.1f);
+PARAM_DEFINE_FLOAT(FW_XTRACK_P, 0.01745f);		// Radians per meter off track
 PARAM_DEFINE_FLOAT(FW_ALT_P, 0.1f);
 PARAM_DEFINE_FLOAT(FW_ROLL_LIM, 0.7f);	// Roll angle limit in radians
 PARAM_DEFINE_FLOAT(FW_PITCH_LIM, 0.35f);	// Pitch angle limit in radians
@@ -74,6 +75,7 @@ PARAM_DEFINE_FLOAT(FW_PITCH_LIM, 0.35f);	// Pitch angle limit in radians
 
 struct fw_pos_control_params {
 	float heading_p;
+	float xtrack_p;
 	float altitude_p;
 	float roll_lim;
 	float pitch_lim;
@@ -81,6 +83,7 @@ struct fw_pos_control_params {
 
 struct fw_pos_control_param_handles {
 	param_t heading_p;
+	param_t xtrack_p;
 	param_t altitude_p;
 	param_t roll_lim;
 	param_t pitch_lim;
@@ -121,6 +124,7 @@ static int parameters_init(struct fw_pos_control_param_handles *h)
 {
 	/* PID parameters */
 	h->heading_p 	=	param_find("FW_HEADING_P");
+	h->xtrack_p 	=	param_find("FW_XTRACK_P");
 	h->altitude_p 	=	param_find("FW_ALT_P");
 	h->roll_lim 	=	param_find("FW_ROLL_LIM");
 	h->pitch_lim 	=	param_find("FW_PITCH_LIM");
@@ -132,6 +136,7 @@ static int parameters_init(struct fw_pos_control_param_handles *h)
 static int parameters_update(const struct fw_pos_control_param_handles *h, struct fw_pos_control_params *p)
 {
 	param_get(h->heading_p, &(p->heading_p));
+	param_get(h->xtrack_p, &(p->xtrack_p));
 	param_get(h->altitude_p, &(p->altitude_p));
 	param_get(h->roll_lim, &(p->roll_lim));
 	param_get(h->pitch_lim, &(p->pitch_lim));
@@ -158,11 +163,15 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 		/* declare and safely initialize all structs */
 		struct vehicle_global_position_s global_pos;
 		memset(&global_pos, 0, sizeof(global_pos));
+		struct vehicle_global_position_s start_pos;		// Temporary variable, replace with
+		memset(&start_pos, 0, sizeof(start_pos));		// previous waypoint when available
 		struct vehicle_global_position_setpoint_s global_setpoint;
 		memset(&global_setpoint, 0, sizeof(global_setpoint));
 		struct vehicle_attitude_s att;
 		memset(&att, 0, sizeof(att));
-
+		crosstrack_error_s xtrack_err;
+		//memset(&xtrack_err, 0, sizeof(xtrack_err));
+		
 		/* output structs */
 		struct vehicle_attitude_setpoint_s attitude_setpoint;
 		memset(&attitude_setpoint, 0, sizeof(attitude_setpoint));
@@ -181,6 +190,8 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 		/* Setup of loop */
 		struct pollfd fds = { .fd = att_sub, .events = POLLIN };
 		bool global_sp_updated_set_once = false;
+		bool start_point_set = false;		// This is a temporary flag till the
+											// previous waypoint is available for computations
 
 		while(!thread_should_exit)
 		{
@@ -221,7 +232,10 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 			orb_check(global_setpoint_sub, &global_sp_updated);
 			if(global_sp_updated)
 				global_sp_updated_set_once = true;
-
+			if(global_sp_updated_set_once && !start_point_set) {
+				start_pos = global_pos;
+				start_point_set = true;
+			}
 
 			/* Load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
@@ -239,17 +253,18 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 				/* calculate bearing error */
 				float target_bearing = get_bearing_to_next_waypoint(global_pos.lat / (double)1e7d, global_pos.lon / (double)1e7d,
 					global_setpoint.lat / (double)1e7d, global_setpoint.lon / (double)1e7d);
+				
+				/* calculate crosstrack error */
+				// Only the case of a straight line track following handled so far
+				xtrack_err = get_distance_to_line(global_pos.lat / (double)1e7d, global_pos.lon / (double)1e7d,
+									start_pos.lat / (double)1e7d, start_pos.lon / (double)1e7d,
+									global_setpoint.lat / (double)1e7d, global_setpoint.lon / (double)1e7d);
 
 				/* shift error to prevent wrapping issues */
 				float bearing_error = target_bearing - att.yaw;
-
-				if (bearing_error < M_PI_F) {
-					bearing_error += 2.0f * M_PI_F;
-				}
-
-				if (bearing_error > M_PI_F) {
-					bearing_error -= 2.0f * M_PI_F;
-				}
+				if(!(xtrack_err.error || xtrack_err.past_end))
+						bearing_error -= p.xtrack_p * xtrack_err.distance;
+				bearing_error = _wrapPI(bearing_error);
 
 				/* calculate roll setpoint, do this artificially around zero */
 				attitude_setpoint.roll_tait_bryan = pid_calculate(&heading_controller, bearing_error, 0.0f, 0.0f, 0.0f);
@@ -342,6 +357,64 @@ int fixedwing_pos_control_main(int argc, char *argv[])
 	usage("unrecognized command");
 	exit(1);
 }
+
+
+float _wrapPI(float bearing)
+{
+
+	while (bearing > M_PI_F) {
+		bearing = bearing - M_TWOPI_F;
+	}
+
+	while (bearing <=  -M_PI_F) {
+		bearing = bearing + M_TWOPI_F;
+	}
+
+	return bearing;
+}
+
+float _wrap2PI(float bearing)
+{
+
+	while (bearing >= M_TWOPI_F) {
+		bearing = bearing - M_TWOPI_F;
+	}
+
+	while (bearing <  0.0f) {
+		bearing = bearing + M_TWOPI_F;
+	}
+
+	return bearing;
+}
+
+float _wrap180(float bearing)
+{
+
+	while (bearing > 180.0f) {
+		bearing = bearing - 360.0f;
+	}
+
+	while (bearing <=  -180.0f) {
+		bearing = bearing + 360.0f;
+	}
+
+	return bearing;
+}
+
+float _wrap360(float bearing)
+{
+
+	while (bearing >= 360.0f) {
+		bearing = bearing - 360.0f;
+	}
+
+	while (bearing <  0.0f) {
+		bearing = bearing + 360.0f;
+	}
+
+	return bearing;
+}
+
 
 
 
