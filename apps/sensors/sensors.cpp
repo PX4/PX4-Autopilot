@@ -1030,6 +1030,10 @@ Sensors::task_main()
 		manual_control.pitch = 0.0f;
 		manual_control.yaw = 0.0f;
 		manual_control.throttle = 0.0f;
+		manual_control.aux1_cam_pan_flaps = 0.0f;
+		manual_control.aux2_cam_tilt = 0.0f;
+		manual_control.aux3_cam_zoom = 0.0f;
+		manual_control.aux4_cam_roll = 0.0f;
 
 		_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
 	}

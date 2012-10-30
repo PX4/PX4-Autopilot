@@ -502,6 +502,33 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_dev_s *dev) {
 		priv->perf_write_errors = perf_alloc(PC_COUNT, "EEPROM write errors");
 	}
 
+	/* attempt to read to validate device is present */
+	unsigned char buf[5];
+	uint8_t addrbuf[2] = {0, 0};
+
+	struct i2c_msg_s msgv[2] = {
+		{
+			.addr = priv->addr,
+			.flags = 0,
+			.buffer = &addrbuf[0],
+			.length = sizeof(addrbuf),
+		},
+		{
+			.addr = priv->addr,
+			.flags = I2C_M_READ,
+			.buffer = &buf[0],
+			.length = sizeof(buf),
+		}
+	};
+
+	perf_begin(priv->perf_reads);
+	int ret = I2C_TRANSFER(priv->dev, &msgv[0], 2);
+	perf_end(priv->perf_reads);
+
+	if (ret < 0) {
+		return NULL;
+	}
+
 	/* Return the implementation-specific state structure as the MTD device */
 
 	fvdbg("Return %p\n", priv);

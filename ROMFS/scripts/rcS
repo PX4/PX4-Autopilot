@@ -46,6 +46,8 @@ if [ -f /fs/microsd/etc/rc ]
 then
 	echo "[init] reading /fs/microsd/etc/rc"
 	sh /fs/microsd/etc/rc
+else
+	echo "[init] script /fs/microsd/etc/rc not present"
 fi
 
 #
