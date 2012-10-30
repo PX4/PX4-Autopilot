@@ -308,7 +308,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	uint64_t calibration_interval = 45 * 1000 * 1000;
 
 	/* maximum 2000 values */
-	const unsigned int calibration_maxcount = 2000;
+	const unsigned int calibration_maxcount = 500;
 	unsigned int calibration_counter = 0;
 
 	/* limit update rate to get equally spaced measurements over time (in ms) */
@@ -353,12 +353,18 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	uint64_t axis_deadline = hrt_absolute_time();
 	uint64_t calibration_deadline = hrt_absolute_time() + calibration_interval;
 
-	const char axislabels[3] = { 'Z', 'X', 'Y'};
+	const char axislabels[3] = { 'X', 'Z', 'Y'};
 	int axis_index = -1;
 
-	float *x = malloc(sizeof(float) * calibration_maxcount);
-	float *y = malloc(sizeof(float) * calibration_maxcount);
-	float *z = malloc(sizeof(float) * calibration_maxcount);
+	float *x = (float*)malloc(sizeof(float) * calibration_maxcount);
+	float *y = (float*)malloc(sizeof(float) * calibration_maxcount);
+	float *z = (float*)malloc(sizeof(float) * calibration_maxcount);
+
+	if (x == NULL || y == NULL || z == NULL) {
+		warnx("mag cal failed: out of memory");
+		mavlink_log_info(mavlink_fd, "mag cal failed: out of memory");
+		return;
+	}
 
 	tune_confirm();
 	sleep(2);
@@ -1095,7 +1101,7 @@ int commander_main(int argc, char *argv[])
 		daemon_task = task_spawn("commander",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 50,
-					 8000,
+					 9000,
 					 commander_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
