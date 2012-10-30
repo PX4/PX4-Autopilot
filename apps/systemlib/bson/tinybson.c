@@ -144,7 +144,7 @@ bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_
 	/* read and discard document size */
 	if (read_int32(decoder, &len))
 		CODER_KILL(decoder, "failed reading length");
-	if (len > (int)bufsize)
+	if ((len > 0) && (len > (int)bufsize))
 		CODER_KILL(decoder, "document length larger than buffer");
 
 	/* ready for decoding */

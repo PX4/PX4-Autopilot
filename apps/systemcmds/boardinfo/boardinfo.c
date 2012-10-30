@@ -37,17 +37,246 @@
  * autopilot and carrier board information app
  */
 
-
 #include <nuttx/config.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
-#include "systemlib/systemlib.h"
+#include <nuttx/i2c.h>
+
+#include <systemlib/systemlib.h>
+#include <systemlib/err.h>
+#include <systemlib/bson/tinybson.h>
 
 __EXPORT int boardinfo_main(int argc, char *argv[]);
 
+#if 1
+
+struct eeprom_info_s
+{
+	unsigned	bus;
+	unsigned	address;
+	unsigned	page_size;
+	unsigned	page_count;
+	unsigned	page_write_delay;
+};
+
+/* XXX currently code below only supports 8-bit addressing */
+const struct eeprom_info_s eeprom_info[] = {
+	{3, 0x57, 8, 16, 3300},
+	{0, 0, 0, 0, 0}
+};
+
+struct board_parameter_s {
+	const char	*name;
+	bson_type_t	type;
+};
+
+const struct board_parameter_s board_parameters[] = {
+	{"name",	BSON_STRING},	/* ascii board name */
+	{"vers",	BSON_INT32},	/* board version (major << 8) | minor */
+	{"date",	BSON_INT32},	/* manufacture date */
+	{"build",	BSON_INT32}	/* build code (fab << 8) | tester */
+};
+
+const unsigned num_parameters = sizeof(board_parameters) / sizeof(board_parameters[0]);
+
+static int
+eeprom_write(const struct eeprom_info_s *eeprom, uint8_t *buf, unsigned size)
+{
+	int result = -1;
+
+	struct i2c_dev_s *dev = up_i2cinitialize(eeprom->bus);
+	if (dev == NULL) {
+		warnx("failed to init bus %d for EEPROM", eeprom->bus);
+		goto out;
+	}
+	I2C_SETFREQUENCY(dev, 400000);
+
+	/* loop until all data has been transferred */
+	for (unsigned address = 0; address < size; ) {
+
+		uint8_t pagebuf[eeprom->page_size + 1];
+
+		/* how many bytes available to transfer? */
+		unsigned count = size - address;
+
+		/* constrain writes to the page size */
+		if (count > eeprom->page_size)
+			count = eeprom->page_size;
+
+		pagebuf[0] = address & 0xff;
+		memcpy(pagebuf + 1, buf + address, count);
+
+		struct i2c_msg_s msgv[1] = {
+			{
+				.addr = eeprom->address,
+				.flags = 0,
+				.buffer = pagebuf,
+				.length = count + 1
+			}
+		};
+
+		warnx("write 0x%02x/%u", address, count);
+		result = I2C_TRANSFER(dev, msgv, 1);
+		if (result != OK) {
+			warnx("EEPROM write failed: %d", result);
+			goto out;
+		}
+		usleep(eeprom->page_write_delay);
+		address += count;
+	}
+
+out:
+	if (dev != NULL)
+		up_i2cuninitialize(dev);
+	return result;
+}
+
+static int
+eeprom_read(const struct eeprom_info_s *eeprom, uint8_t *buf, unsigned size)
+{
+	int result = -1;
+
+	struct i2c_dev_s *dev = up_i2cinitialize(eeprom->bus);
+	if (dev == NULL) {
+		warnx("failed to init bus %d for EEPROM", eeprom->bus);
+		goto out;
+	}
+	I2C_SETFREQUENCY(dev, 400000);
+
+	/* loop until all data has been transferred */
+	for (unsigned address = 0; address < size; ) {
+
+		/* how many bytes available to transfer? */
+		unsigned count = size - address;
+
+		/* constrain transfers to the page size (bus anti-hog) */
+		if (count > eeprom->page_size)
+			count = eeprom->page_size;
+
+		uint8_t addr = address;
+		struct i2c_msg_s msgv[2] = {
+			{
+				.addr = eeprom->address,
+				.flags = 0,
+				.buffer = &addr,
+				.length = 1
+			},
+			{
+				.addr = eeprom->address,
+				.flags = I2C_M_READ,
+				.buffer = buf + address,
+				.length = count
+			}
+		};
+
+		warnx("read 0x%02x/%u", address, count);
+		result = I2C_TRANSFER(dev, msgv, 2);
+		if (result != OK) {
+			warnx("EEPROM read failed: %d", result);
+			goto out;
+		}
+		address += count;
+	}
+
+out:
+	if (dev != NULL)
+		up_i2cuninitialize(dev);
+	return result;
+}
+
+static void
+boardinfo_set(const struct eeprom_info_s *eeprom, char *spec)
+{
+	struct bson_encoder_s encoder;
+	int result = 1;
+	char *state, *token;
+	unsigned i;
+
+	/* create the encoder and make a writable copy of the spec */
+	bson_encoder_init_buf(&encoder, NULL, 0);
+
+	for (i = 0, token = strtok_r(spec, ",", &state);
+	     token && (i < num_parameters);
+	     i++, token = strtok_r(NULL, ",", &state)) {
+
+		switch (board_parameters[i].type) {
+		case BSON_STRING:
+			result = bson_encoder_append_string(&encoder, board_parameters[i].name, token);
+			break;
+		case BSON_INT32:
+			result = bson_encoder_append_int(&encoder, board_parameters[i].name, strtoul(token, NULL, 0));
+			break;
+		default:
+			result = 1;
+		}
+		if (result) {
+			warnx("bson append failed for %s<%s>", board_parameters[i].name, token);
+			goto out;
+		}
+	}
+	bson_encoder_fini(&encoder);
+	if (i != num_parameters) {
+		warnx("incorrect parameter list, expected: \"<name>,<version><date>,<buildcode>\"");
+		result = 1;
+		goto out;
+	}
+	if (bson_encoder_buf_size(&encoder) > (int)(eeprom->page_size * eeprom->page_count)) {
+		warnx("data too large for EEPROM");
+		result = 1;
+		goto out;
+	}
+	if (*(uint32_t *)bson_encoder_buf_data(&encoder) != bson_encoder_buf_size(&encoder)) {
+		warnx("buffer length mismatch");
+		result = 1;
+		goto out;
+	}
+	warnx("writing %p/%u", bson_encoder_buf_data(&encoder), bson_encoder_buf_size(&encoder));
+
+	result = eeprom_write(eeprom, (uint8_t *)bson_encoder_buf_data(&encoder), bson_encoder_buf_size(&encoder));
+	if (result < 0) {
+		warnc(-result, "error writing EEPROM");
+		result = 1;
+	} else {
+		result = 0;
+	}
+
+out:
+	free(bson_encoder_buf_data(&encoder));
+
+	exit(result);
+}
+
+static void
+boardinfo_show(const struct eeprom_info_s *eeprom)
+{
+	uint32_t size = 0xffffffff;
+	int result;
+
+	result = eeprom_read(eeprom, (uint8_t *)&size, sizeof(size));
+	if (result != 0) {
+		warnx("failed reading ID ROM length");
+	}
+	warnx("data length 0x%08x", size);
+
+	exit(0);
+}
+
+int
+boardinfo_main(int argc, char *argv[])
+{
+	if (!strcmp(argv[1], "set"))
+		boardinfo_set(&eeprom_info[0], argv[2]);
+
+	if (!strcmp(argv[1], "show"))
+		boardinfo_show(&eeprom_info[0]);
+
+	errx(1, "missing/unrecognised command, try one of 'set', 'show', 'test'");
+}
+
+#else
 /**
  * Reads out the board information
  *
@@ -265,3 +494,4 @@ int boardinfo_main(int argc, char *argv[])
 }
 
 
+#endif
