@@ -136,6 +136,10 @@ mc_thread_main(int argc, char *argv[])
 	/* welcome user */
 	printf("[multirotor_att_control] starting\n");
 
+	/* store last control mode to detect mode switches */
+	bool flag_control_manual_enabled = false;
+	bool flag_control_attitude_enabled = false;
+
 	while (!thread_should_exit) {
 
 		/* wait for a sensor update, check for exit condition every 500 ms */
@@ -197,14 +201,23 @@ mc_thread_main(int argc, char *argv[])
 				rates_sp.pitch = manual.pitch;
 				rates_sp.yaw = manual.yaw;
 				rates_sp.thrust = manual.throttle;
-				//printf("rates\n");
 				rates_sp.timestamp = hrt_absolute_time();
 			}
 
 			if (state.flag_control_attitude_enabled) {
+
+				/* initialize to current yaw if switching to manual or att control */
+				if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
+			 	    state.flag_control_manual_enabled != flag_control_manual_enabled) {
+					att_sp.yaw_body = att.yaw;
+				}
+
 				att_sp.roll_body = manual.roll;
 				att_sp.pitch_body = manual.pitch;
-				att_sp.yaw_body = att.yaw + manual.yaw * -2.0f;
+				/* only move setpoint if manual input is != 0 */
+				if (-3.0f * FLT_EPSILON < manual.yaw || manual.yaw > 3.0f * FLT_EPSILON) {
+					att_sp.yaw_body = att.yaw + manual.yaw * -2.0f;
+				}
 				att_sp.thrust = manual.throttle;
 				att_sp.timestamp = hrt_absolute_time();
 			}
@@ -250,6 +263,9 @@ mc_thread_main(int argc, char *argv[])
 			multirotor_control_rates(&rates_sp, gyro, &actuators);
 			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 		}
+
+		flag_control_attitude_enabled = state.flag_control_attitude_enabled;
+		flag_control_manual_enabled = state.flag_control_manual_enabled;
 
 		perf_end(mc_loop_perf);
 	}
