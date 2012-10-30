@@ -213,20 +213,17 @@ mc_thread_main(int argc, char *argv[])
 			 	    state.flag_control_manual_enabled != flag_control_manual_enabled ||
 			 	    state.flag_system_armed != flag_system_armed) {
 					att_sp.yaw_body = att.yaw;
-					man_yaw_zero_once = false;
 				}
 
 				att_sp.roll_body = manual.roll;
 				att_sp.pitch_body = manual.pitch;
 
-				if ((manual.yaw > -0.1f || 0.1f > manual.yaw)) {
-					man_yaw_zero_once = true;
-				}
-
 				/* only move setpoint if manual input is != 0 */
 				// XXX turn into param
-				if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && man_yaw_zero_once) {
+				if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.25f) {
 					att_sp.yaw_body = att_sp.yaw_body + manual.yaw * 0.0025f;
+				} else if (manual.throttle <= 0.25f) {
+					att_sp.yaw_body = att.yaw;
 				}
 				att_sp.thrust = manual.throttle;
 				att_sp.timestamp = hrt_absolute_time();
