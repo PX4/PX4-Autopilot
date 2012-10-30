@@ -118,7 +118,6 @@ eeprom_write(const struct eeprom_info_s *eeprom, uint8_t *buf, unsigned size)
 			}
 		};
 
-		warnx("write 0x%02x/%u", address, count);
 		result = I2C_TRANSFER(dev, msgv, 1);
 		if (result != OK) {
 			warnx("EEPROM write failed: %d", result);
@@ -172,7 +171,6 @@ eeprom_read(const struct eeprom_info_s *eeprom, uint8_t *buf, unsigned size)
 			}
 		};
 
-		warnx("read 0x%02x/%u", address, count);
 		result = I2C_TRANSFER(dev, msgv, 2);
 		if (result != OK) {
 			warnx("EEPROM read failed: %d", result);
@@ -185,6 +183,41 @@ out:
 	if (dev != NULL)
 		up_i2cuninitialize(dev);
 	return result;
+}
+
+static void *
+idrom_read(const struct eeprom_info_s *eeprom)
+{
+	uint32_t size = 0xffffffff;
+	int result;
+	void *buf = NULL;
+
+	result = eeprom_read(eeprom, (uint8_t *)&size, sizeof(size));
+	if (result != 0) {
+		warnx("failed reading ID ROM length");
+		goto fail;
+	}
+	if (size > (eeprom->page_size * eeprom->page_count)) {
+		warnx("ID ROM not programmed");
+		goto fail;
+	}
+
+	buf = malloc(size);
+	if (buf == NULL) {
+		warnx("could not allocate %d bytes for ID ROM", size);
+		goto fail;
+	}
+	result = eeprom_read(eeprom, buf, size);
+	if (result != 0) {
+		warnx("failed reading ID ROM");
+		goto fail;
+	}
+	return buf;
+
+fail:
+	if (buf != NULL)
+		free(buf);
+	return NULL;
 }
 
 static void
@@ -228,7 +261,7 @@ boardinfo_set(const struct eeprom_info_s *eeprom, char *spec)
 		result = 1;
 		goto out;
 	}
-	if (*(uint32_t *)bson_encoder_buf_data(&encoder) != bson_encoder_buf_size(&encoder)) {
+	if ((int)*(uint32_t *)bson_encoder_buf_data(&encoder) != bson_encoder_buf_size(&encoder)) {
 		warnx("buffer length mismatch");
 		result = 1;
 		goto out;
@@ -249,19 +282,119 @@ out:
 	exit(result);
 }
 
+static int
+boardinfo_print(bson_decoder_t decoder, void *private, bson_node_t node)
+{
+	switch (node->type) {
+	case BSON_INT32:
+		printf("%s: %d / 0x%08x\n", node->name, (int)node->i, (unsigned)node->i);
+		break;
+	case BSON_STRING: {
+		char buf[bson_decoder_data_pending(decoder)];
+		bson_decoder_copy_data(decoder, buf);
+		printf("%s: %s\n", node->name, buf);
+		break;
+	}
+	case BSON_EOO:
+		break;
+	default:
+		warnx("unexpected node type %d", node->type);
+		break;
+	}
+	return 1;
+}
+
 static void
 boardinfo_show(const struct eeprom_info_s *eeprom)
 {
-	uint32_t size = 0xffffffff;
-	int result;
+	struct bson_decoder_s decoder;
+	void *buf;
 
-	result = eeprom_read(eeprom, (uint8_t *)&size, sizeof(size));
-	if (result != 0) {
-		warnx("failed reading ID ROM length");
+	buf = idrom_read(eeprom);
+	if (buf == NULL)
+		errx(1, "ID ROM read failed");
+
+	if (bson_decoder_init_buf(&decoder, buf, 0, boardinfo_print, NULL) == 0) {
+		while (bson_decoder_next(&decoder) > 0)
+			;
+	} else {
+		warnx("failed to init decoder");
 	}
-	warnx("data length 0x%08x", size);
-
+	free(buf);
 	exit(0);
+}
+
+struct {
+	const char *property;
+	const char *value;
+} test_args;
+
+static int
+boardinfo_test_callback(bson_decoder_t decoder, void *private, bson_node_t node)
+{
+	/* reject nodes with non-matching names */
+	if (strcmp(node->name, test_args.property))
+		return 1;
+
+	/* compare node values to check for a match */
+	switch (node->type) {
+	case BSON_STRING: {
+		char buf[bson_decoder_data_pending(decoder)];
+		bson_decoder_copy_data(decoder, buf);
+
+		/* check for a match */
+		if (!strcmp(test_args.value, buf)) {
+			return 2;
+		}
+		break;
+	}
+
+	case BSON_INT32: {
+		int32_t val = strtol(test_args.value, NULL, 0);
+
+		/* check for a match */
+		if (node->i == val) {
+			return 2;
+		}
+		break;
+	}
+
+	default:
+		break;
+	}
+
+	return 1;
+}
+
+static void
+boardinfo_test(const struct eeprom_info_s *eeprom, const char *property, const char *value)
+{
+	struct bson_decoder_s decoder;
+	void *buf;
+	int result = -1;
+
+	if ((property == NULL) || (strlen(property) == 0) ||
+	    (value == NULL) || (strlen(value) == 0))
+		errx(1, "missing property name or value");
+
+	test_args.property = property;
+	test_args.value = value;
+
+	buf = idrom_read(eeprom);
+	if (buf == NULL)
+		errx(1, "ID ROM read failed");
+
+	if (bson_decoder_init_buf(&decoder, buf, 0, boardinfo_test_callback, NULL) == 0) {
+		do {
+			result = bson_decoder_next(&decoder);
+		} while (result == 1);
+	} else {
+		warnx("failed to init decoder");
+	}
+	free(buf);
+
+	/* if we matched, we exit with zero success */	
+	exit((result == 2) ? 0 : 1);
 }
 
 int
@@ -272,6 +405,9 @@ boardinfo_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "show"))
 		boardinfo_show(&eeprom_info[0]);
+
+	if (!strcmp(argv[1], "test"))
+		boardinfo_test(&eeprom_info[0], argv[2], argv[3]);
 
 	errx(1, "missing/unrecognised command, try one of 'set', 'show', 'test'");
 }

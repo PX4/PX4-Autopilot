@@ -134,7 +134,9 @@ __EXPORT int bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder
  *
  * @param decoder		Decoder state structure to be initialised.
  * @param buf			Buffer to read from.
- * @param bufsize		Size of the buffer (BSON object may be smaller).
+ * @param bufsize		Size of the buffer (BSON object may be smaller).  May be
+ *				passed as zero if the buffer size should be extracted from the
+ *				BSON header only.
  * @param callback		Callback to be invoked by bson_decoder_next
  * @param private		Callback private data, stored in node.
  * @return			Zero on success.

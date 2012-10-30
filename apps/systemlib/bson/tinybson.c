@@ -127,13 +127,18 @@ bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_
 	int32_t	len;
 
 	/* argument sanity */
-	if ((buf == NULL) || (bufsize < 5) || (callback == NULL))
+	if ((buf == NULL) || (callback == NULL))
 		return -1;
 
 	decoder->fd = -1;
 	decoder->buf = (uint8_t *)buf;
 	decoder->dead = false;
-	decoder->bufsize = bufsize;
+	if (bufsize == 0) {
+		decoder->bufsize = *(uint32_t *)buf;
+		debug("auto-detected %u byte object", decoder->bufsize);
+	} else {
+		decoder->bufsize = bufsize;
+	}
 	decoder->bufpos = 0;
 	decoder->callback = callback;
 	decoder->private = private;
@@ -144,7 +149,7 @@ bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_
 	/* read and discard document size */
 	if (read_int32(decoder, &len))
 		CODER_KILL(decoder, "failed reading length");
-	if ((len > 0) && (len > (int)bufsize))
+	if ((len > 0) && (len > (int)decoder->bufsize))
 		CODER_KILL(decoder, "document length larger than buffer");
 
 	/* ready for decoding */
