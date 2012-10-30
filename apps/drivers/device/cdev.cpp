@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Character device base class.
+ * @file cdev.cpp
+ *
+ * Character device base class.
  */
 
 #include "device.h"

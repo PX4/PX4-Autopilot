@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Definitions for the generic base classes in the device framework.
+ * @file device.h
+ *
+ * Definitions for the generic base classes in the device framework.
  */
 
 #ifndef _DEVICE_DEVICE_H

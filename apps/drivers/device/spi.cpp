@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Base class for devices connected via SPI.
+ * @file spi.cpp
+ *
+ * Base class for devices connected via SPI.
  *
  * @todo Work out if caching the mode/frequency would save any time.
  *

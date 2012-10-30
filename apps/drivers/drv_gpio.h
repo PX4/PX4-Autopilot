@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file	Generic GPIO ioctl interface.
+ * @file drv_gpio.h
+ *
+ * Generic GPIO ioctl interface.
  */
 
 #ifndef _DRV_GPIO_H
@@ -78,7 +80,7 @@
  * Note that there may be board-specific relationships between GPIOs;
  * applications using GPIOs should be aware of this.
  */
-#define _GPIOCBASE	0x6700
+#define _GPIOCBASE	0x2700
 #define GPIOC(_x)	_IOC(_GPIOCBASE, _x)
 
 /** reset all board GPIOs to their default state */
