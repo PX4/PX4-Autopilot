@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Base class for devices accessed via PIO to registers.
+ * @file pio.cpp
+ *
+ * Base class for devices accessed via PIO to registers.
  */
 
 #include "device.h"

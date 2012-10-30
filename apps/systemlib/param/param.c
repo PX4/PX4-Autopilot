@@ -452,7 +452,7 @@ param_reset(param_t param)
 
 		/* if we found one, erase it */
 		if (s != NULL) {
-			int pos = utarry_eltidx(param_values, s);
+			int pos = utarray_eltidx(param_values, s);
 			utarray_erase(param_values, pos, 1);
 		}
 	}
@@ -489,7 +489,7 @@ param_export(int fd, bool only_unsaved)
 
 	param_lock();
 
-	bson_encoder_init(&encoder, fd);
+	bson_encoder_init_file(&encoder, fd);
 
 	/* no modified parameters -> we are done */
 	if (param_values == NULL) {
@@ -600,7 +600,7 @@ param_import_callback(bson_decoder_t decoder, void *private, bson_node_t node)
 	 */
 
 	switch (node->type) {
-	case BSON_INT:
+	case BSON_INT32:
 		if (param_type(param) != PARAM_TYPE_INT32) {
 			debug("unexpected type for '%s", node->name);
 			goto out;
@@ -680,7 +680,7 @@ param_import_internal(int fd, bool mark_saved)
 	int result = -1;
 	struct param_import_state state;
 
-	if (bson_decoder_init(&decoder, fd, param_import_callback, &state)) {
+	if (bson_decoder_init_file(&decoder, fd, param_import_callback, &state)) {
 		debug("decoder init failed");
 		goto out;
 	}

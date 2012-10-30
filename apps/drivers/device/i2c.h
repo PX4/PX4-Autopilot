@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Base class for devices connected via I2C.
+ * @file i2c.h
+ *
+ * Base class for devices connected via I2C.
  */
 
 #ifndef _DEVICE_I2C_H

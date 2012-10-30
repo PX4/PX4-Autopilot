@@ -1045,6 +1045,7 @@ int HMC5883::check_calibration()
 		_calibrated = false;
 		// XXX Notify system via uORB
 	}
+	return 0;
 }
 
 int HMC5883::set_excitement(unsigned enable)

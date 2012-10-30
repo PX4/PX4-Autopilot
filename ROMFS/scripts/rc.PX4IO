@@ -11,6 +11,16 @@ echo "[init] doing PX4IO startup..."
 uorb start
 
 #
+# Init the EEPROM
+#
+echo "[init] eeprom"
+eeprom start
+if [ -f /eeprom/parameters ]
+then
+	param load
+fi
+
+#
 # Start the sensors.
 #
 sh /etc/init.d/rc.sensors
@@ -23,17 +33,12 @@ mavlink start -d /dev/ttyS0 -b 57600
 #
 # Start the commander.
 #
-# XXX this should be '<command> start'.
-#
-commander &
+commander start
 
 #
 # Start the attitude estimator
 #
-# XXX this should be '<command> start'.
-#
-attitude_estimator_bm &
-#position_estimator &
+attitude_estimator_ekf start
 
 #
 # Configure PX4FMU for operation with PX4IO
@@ -45,9 +50,7 @@ px4fmu start
 #
 # Start the fixed-wing controller
 #
-# XXX this should be '<command> start'.
-#
-fixedwing_control &
+fixedwing_control start
 
 #
 # Fire up the PX4IO interface.
@@ -57,9 +60,7 @@ px4io start
 #
 # Start looking for a GPS.
 #
-# XXX this should not need to be backgrounded
-#
-gps -d /dev/ttyS3 -m all &
+gps start
 
 #
 # Start logging to microSD if we can

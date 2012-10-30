@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Fundamental driver base class for the device framework.
+ * @file device.cpp
+ *
+ * Fundamental driver base class for the device framework.
  */
 
 #include "device.h"

@@ -73,8 +73,6 @@ test_param(int argc, char *argv[])
 	if ((uint32_t)val != 0xa5a5a5a5)
 		errx(1, "parameter value mismatch after write");
 
-	param_export(-1, false);
-
 	warnx("parameter test PASS");
 
 	return 0;

@@ -136,6 +136,12 @@ mc_thread_main(int argc, char *argv[])
 	/* welcome user */
 	printf("[multirotor_att_control] starting\n");
 
+	/* store last control mode to detect mode switches */
+	bool flag_control_manual_enabled = false;
+	bool flag_control_attitude_enabled = false;
+	bool flag_system_armed = false;
+	bool man_yaw_zero_once = false;
+
 	while (!thread_should_exit) {
 
 		/* wait for a sensor update, check for exit condition every 500 ms */
@@ -197,14 +203,28 @@ mc_thread_main(int argc, char *argv[])
 				rates_sp.pitch = manual.pitch;
 				rates_sp.yaw = manual.yaw;
 				rates_sp.thrust = manual.throttle;
-				//printf("rates\n");
 				rates_sp.timestamp = hrt_absolute_time();
 			}
 
 			if (state.flag_control_attitude_enabled) {
+
+				/* initialize to current yaw if switching to manual or att control */
+				if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
+			 	    state.flag_control_manual_enabled != flag_control_manual_enabled ||
+			 	    state.flag_system_armed != flag_system_armed) {
+					att_sp.yaw_body = att.yaw;
+				}
+
 				att_sp.roll_body = manual.roll;
 				att_sp.pitch_body = manual.pitch;
-				att_sp.yaw_body = att.yaw + manual.yaw * -2.0f;
+
+				/* only move setpoint if manual input is != 0 */
+				// XXX turn into param
+				if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.25f) {
+					att_sp.yaw_body = att_sp.yaw_body + manual.yaw * 0.0025f;
+				} else if (manual.throttle <= 0.25f) {
+					att_sp.yaw_body = att.yaw;
+				}
 				att_sp.thrust = manual.throttle;
 				att_sp.timestamp = hrt_absolute_time();
 			}
@@ -250,6 +270,11 @@ mc_thread_main(int argc, char *argv[])
 			multirotor_control_rates(&rates_sp, gyro, &actuators);
 			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 		}
+
+		/* update state */
+		flag_control_attitude_enabled = state.flag_control_attitude_enabled;
+		flag_control_manual_enabled = state.flag_control_manual_enabled;
+		flag_system_armed = state.flag_system_armed;
 
 		perf_end(mc_loop_perf);
 	}
@@ -318,7 +343,7 @@ int multirotor_att_control_main(int argc, char *argv[])
 		mc_task = task_spawn("multirotor_att_control",
 				     SCHED_DEFAULT,
 				     SCHED_PRIORITY_MAX - 15,
-				     6000,
+				     2048,
 				     mc_thread_main,
 				     NULL);
 		exit(0);
