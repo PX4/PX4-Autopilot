@@ -144,7 +144,7 @@ int sdlog_main(int argc, char *argv[])
 		deamon_task = task_spawn("sdlog",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT - 30,
-					 2048,
+					 4096,
 					 sdlog_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
