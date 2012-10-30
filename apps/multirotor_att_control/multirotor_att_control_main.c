@@ -139,6 +139,7 @@ mc_thread_main(int argc, char *argv[])
 	/* store last control mode to detect mode switches */
 	bool flag_control_manual_enabled = false;
 	bool flag_control_attitude_enabled = false;
+	bool flag_system_armed = false;
 
 	while (!thread_should_exit) {
 
@@ -208,15 +209,16 @@ mc_thread_main(int argc, char *argv[])
 
 				/* initialize to current yaw if switching to manual or att control */
 				if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
-			 	    state.flag_control_manual_enabled != flag_control_manual_enabled) {
+			 	    state.flag_control_manual_enabled != flag_control_manual_enabled ||
+			 	    state.flag_system_armed != flag_system_armed) {
 					att_sp.yaw_body = att.yaw;
 				}
 
 				att_sp.roll_body = manual.roll;
 				att_sp.pitch_body = manual.pitch;
 				/* only move setpoint if manual input is != 0 */
-				if (-3.0f * FLT_EPSILON < manual.yaw || manual.yaw > 3.0f * FLT_EPSILON) {
-					att_sp.yaw_body = att.yaw + manual.yaw * -2.0f;
+				if (manual.yaw < -0.02f || 0.02f < manual.yaw) {
+					att_sp.yaw_body = att_sp.yaw_body + manual.yaw * -0.0025f;
 				}
 				att_sp.thrust = manual.throttle;
 				att_sp.timestamp = hrt_absolute_time();
@@ -264,8 +266,10 @@ mc_thread_main(int argc, char *argv[])
 			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 		}
 
+		/* update state */
 		flag_control_attitude_enabled = state.flag_control_attitude_enabled;
 		flag_control_manual_enabled = state.flag_control_manual_enabled;
+		flag_system_armed = state.flag_system_armed;
 
 		perf_end(mc_loop_perf);
 	}
