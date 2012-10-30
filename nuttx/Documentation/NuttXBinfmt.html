@@ -50,8 +50,8 @@
 <p>
   <b>Binary Loaders</b>.
   The purpose of a <i>binary loader</i> is to load and execute modules in various <i>binary formats</i> that reside in a file system.
-  Loading refers instiating the binary module in some fashion, usually copy all or some of the binary module into memory and then linking the module with other components.
-  In most architectures, it is thebase FLASH code that is the primary component that the binary module must link with because that is where the RTOS and primary tasks reside.
+  Loading refers instantiating the binary module in some fashion, usually copy all or some of the binary module into memory and then linking the module with other components.
+  In most architectures, it is the base FLASH code that is the primary component that the binary module must link with because that is where the RTOS and primary tasks reside.
   Program modules can then be executed after they have been loaded.
 </p>
 
@@ -76,14 +76,14 @@
     <b>NXFLAT</b>.
     NuttX NXFLAT formatted files.
     More information about the NXFLAT binary format can be found in the
-    <href="NuttXNxFlat.html">NXFLAT documentation</a>.
+    <a href="NuttXNxFlat.html">NXFLAT documentation</a>.
 </ul>
 
 <p>
   <b>Executables and Libraries</b>
   The generic binary loader logic does not care what it is that it being loaded.  It could load an executable program or a library.
   There are no strict rules, but a library will tend to export symbols and a program will tend to import symbols:  The program will use the symbols exported by the library.
-  However, at this point in time, none of the supported binary formts support exporting of symbols.
+  However, at this point in time, none of the supported binary formats support exporting of symbols.
 </p>
 
 <p>
@@ -128,7 +128,7 @@ struct binfmt_s
 
 <p>
   The <code>load</code> method is used to load the binary format into memory.
-  It returns either <code>OK</code> (0) meaning that the binary object was loaded successfully, or a negater <code>errno</code> indicating why the object was not loaded.
+  It returns either <code>OK</code> (0) meaning that the binary object was loaded successfully, or a negated <code>errno</code> indicating why the object was not loaded.
 </p>
 
 <p>

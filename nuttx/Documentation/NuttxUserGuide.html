@@ -123,7 +123,7 @@ is discussed.
 <b>Input Parameters:</b> All input parameters are listed along
 with brief descriptions of each input parameter.
 <p>
-<b>Returned Values:</b> All possible values returned by the interface
+<b>Returned Value:</b> All possible values returned by the interface
 function are listed. Values returned as side-effects (through
 pointer input parameters or through global variables) will be
 addressed in the description of the interface function.
@@ -207,10 +207,10 @@ paragraphs.
 
 <p>
 <b>Function Prototype:</b> 
-<pre>
-   #include &lt;sched.h&gt;
-   int task_create(char *name, int priority, int stack_size, main_t entry, const char *argv[]);
-</pre>
+<ul><pre>
+#include &lt;sched.h&gt;
+int task_create(char *name, int priority, int stack_size, main_t entry, const char *argv[]);
+</pre></ul>
 
 <p>
 <b>Description:</b> 
@@ -249,18 +249,18 @@ paragraphs.
 <p>
 <b>Input Parameters:</b> 
   <ul>
-    <li><i>name</i>. Name of the new task</LI>
-    <li><i>priority</i>. Priority of the new task</LI>
-    <li><i>stack_size</i>. size (in bytes) of the stack needed</LI>
-    <li><i>entry</i>. Entry point of a new task</LI>
-    <li><i>argv</i>. A pointer to an array of input parameters.  Up to
+    <li><code>name</code>. Name of the new task</LI>
+    <li><code>priority</code>. Priority of the new task</LI>
+    <li><code>stack_size</code>. size (in bytes) of the stack needed</LI>
+    <li><code>entry</code>. Entry point of a new task</LI>
+    <li><code>argv</code>. A pointer to an array of input parameters.  Up to
        <code>CONFIG_MAX_TASK_ARG</code> parameters may be provided.
        If fewer than <code>CONFIG_MAX_TASK_ARG</code> parameters are
        passed, the list should be terminated with a NULL argv[] value.
        If no parameters are required, argv may be NULL.
   </ul>
 <p>
-  <b>Returned Values:</b> 
+  <b>Returned Value:</b> 
 </P>
 <ul>
 <li>
@@ -316,13 +316,13 @@ VxWorks provides the following similar interface:
 <p>
 <b>Input Parameters:</b> 
   <ul>
-    <li><i>tcb</i>. Address of the new task's TCB
-    <li><i>name</i>. Name of the new task (not used)
-    <li><i>priority</i>. Priority of the new task
-    <li><i>stack</i>. Start of the pre-allocated stack
-    <li><i>stack_size</i>. size (in bytes) of the pre-allocated stack
-    <li><i>entry</i>. Entry point of a new task
-    <li><i>argv</i>. A pointer to an array of input parameters.  Up to
+    <li><code>tcb</code>. Address of the new task's TCB
+    <li><code>name</code>. Name of the new task (not used)
+    <li><code>priority</code>. Priority of the new task
+    <li><code>stack</code>. Start of the pre-allocated stack
+    <li><code>stack_size</code>. size (in bytes) of the pre-allocated stack
+    <li><code>entry</code>. Entry point of a new task
+    <li><code>argv</code>. A pointer to an array of input parameters.  Up to
        <code>CONFIG_MAX_TASK_ARG</code> parameters may be provided.
        If fewer than <code>CONFIG_MAX_TASK_ARG</code> parameters are
        passed, the list should be terminated with a NULL argv[] value.
@@ -330,7 +330,7 @@ VxWorks provides the following similar interface:
   </ul>
 </p>
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 </p>
 <ul>
   <li><p>OK, or ERROR if the task cannot be initialized.</P>
@@ -370,7 +370,7 @@ VxWorks provides the following similar interface:
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;sched.h&gt;
-    int task_activate( _TCB *tcb );
+    int task_activate(_TCB *tcb);
 </pre>
 
 <p>
@@ -380,12 +380,12 @@ scheduler.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>tcb</i>. The TCB for the task for the task (same as the
+<li><code>tcb</code>. The TCB for the task for the task (same as the
 task_init argument).
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>OK, or ERROR if the task cannot be activated (<a href="#ErrnoAccess"><code>errno</code></a> is not set).
 </ul>
@@ -401,7 +401,7 @@ mechanism to initialize and start a new task.
 <b>POSIX Compatibility:</b> This is a NON-POSIX interface.
 VxWorks provides the following similar interface:
 <pre>
-    STATUS taskActivate( int tid );
+    STATUS taskActivate(int tid);
 </pre>
 
 <p>
@@ -418,50 +418,55 @@ the pointer to the WIND_TCB cast to an integer.
 
 <p>
 <b>Function Prototype:</b> 
-<pre>
-    #include &lt;sched.h&gt;
-    int task_delete( pid_t pid );
-</pre>
+<ul><pre>
+#include &lt;sched.h&gt;
+int task_delete(pid_t pid);
+</pre></ul>
 
 <p>
-<b>Description:</b> This function causes a specified task to cease
-to exist -- its stack and TCB will be deallocated. This function
-is the companion to task_create().
+  <b>Description:</b>
+  This function causes a specified task to cease to exist -- its stack and TCB will be deallocated.
+  This function is the companion to task_create().
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>pid</i>. The task ID of the task to delete. An ID of
-zero signifies the calling task.
+  <li>
+    <code>pid</code>.
+    The task ID of the task to delete.
+    An ID of zero signifies the calling task.
+    Any attempt by the calling task will be automatically re-directed to <code>exit()</code>.
 </ul>
-
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>OK, or ERROR if the task cannot be deleted.
-This function can fail if the provided pid does not correspond to a task (<a href="#ErrnoAccess"><code>errno</code></a> is not set)
+  <li>
+    <code>OK</code>, or <code>ERROR</code> if the task cannot be deleted.
+    This function can fail if the provided pid does not correspond to a task (<a href="#ErrnoAccess"><code>errno</code></a> is not set).
+  </li>
 </ul>
-
 <p>
 <b>Assumptions/Limitations:</b> 
 <p>
-task_delete() must be used with caution:  If the task holds resources
-(for example, allocated memory or semaphores needed by other tasks), then
-task_delete() can strand those resources.
+  <code>task_delete()</code> must be used with caution:
+  If the task holds resources (for example, allocated memory or semaphores needed by other tasks), then <code>task_delete()</code> can strand those resources.
+</p>
 <p>
-<b>POSIX Compatibility:</b> This is a NON-POSIX interface.
-VxWorks provides the following similar interface:
-<pre>
-    STATUS taskDelete( int tid );
-</pre>
+<b>POSIX Compatibility:</b>
+  This is a NON-POSIX interface.
+  VxWorks provides the following similar interface:
+</p>
+<ul><pre>
+STATUS taskDelete(int tid);
+</pre></ul>
 
 <p>
   The NuttX task_delete() differs from VxWorks' taskDelete() in
   the following ways:
 </p>
 <ul>
-<li>No support is provided for calling the tasks deletion routines
-(because taskDeleteHookAdd() is not supported).
-<li>Deletion of self is not supported.  Use _exit();
+  <li>No support is provided for calling the tasks deletion routines (because the VxWorks <code>taskDeleteHookAdd()</code> is not supported).
+  However, if <code>atexit()</code> or <code>on_exit</code> support is enabled, those will be called when the task deleted.
+  <li>Deletion of self is supported, but only because <code>task_delete()</code> will re-direct processing to <code>exit()</code>.
 </ul>
 
 <H3><a name="exit">2.1.5 exit</a></H3>
@@ -470,10 +475,10 @@ VxWorks provides the following similar interface:
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;sched.h&gt;
-    void exit( int code );
+    void exit(int code);
 
     #include &lt;nuttx/unistd.h&gt;
-    void _exit( int code );
+    void _exit(int code);
 </pre>
 
 <p>
@@ -484,11 +489,11 @@ execute any function registered with <code>atexit()</code> or <code>on_exit()</c
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>code</i>. (ignored)
+<li><code>code</code>. (ignored)
 </ul>
 
 <p>
-<b>Returned Values:</b>  None.
+<b>Returned Value:</b>  None.
 
 <p>
 <b>Assumptions/Limitations:</b> 
@@ -496,49 +501,59 @@ execute any function registered with <code>atexit()</code> or <code>on_exit()</c
 <p>
 <b>POSIX Compatibility:</b> This is equivalent to the ANSI interface:
 <pre>
-    void exit( int code );
+    void exit(int code);
 </pre>
 And the UNIX interface:
 <pre>
-    void _exit( int code );
+    void _exit(int code);
 </pre>
 
 <p>
   The NuttX exit() differs from ANSI exit() in the following ways:
 </p>
 <ul>
-<li>The <i>code</i> parameter is ignored.
+<li>The <code>code</code> parameter is ignored.
 </ul>
 
 <H3><a name="taskrestart">2.1.6 task_restart</a></H3>
-
 <p>
-<b>Function Prototype:</b> 
-<pre>
-    #include &lt;sched.h&gt;
-    int task_restart( pid_t pid );
-</pre>
-
+<b>Function Prototype:</b>
+<ul><pre>
+#include &lt;sched.h&gt;
+int task_restart(pid_t pid);
+</pre></ul>
 <p>
-<b>Description:</b> This function &quot;restarts&quot; a task.
-The task is first terminated and then reinitialized with same
-ID, priority, original entry point, stack size, and parameters
-it had when it was first started.
+  <b>Description:</b>
+  This function &quot;restarts&quot; a task.
+  The task is first terminated and then reinitialized with same ID, priority, original entry point, stack size, and parameters it had when it was first started.
 </p>
 <p>
-NOTE: The normal task exit clean up is not performed.
-For example, file descriptors are not closed;
-any files opened prior to the restart will remain opened after the task is restarted.
+  <b>NOTES:</b>
 </p>
+<ol>
+  <li>
+    The normal task exit clean up is not performed.
+    For example, file descriptors are not closed; any files opened prior to the restart will remain opened after the task is restarted.
+  </li>
+  <li>
+    Memory allocated by the task before it was restart is not freed.
+    A task that is subject to being restart must be designed in such a way as to avoid memory leaks.
+  </li>
+  <li>
+    Initialized data is not reset.
+    All global or static data is left in the same state as when the task was terminated.
+    This <i>feature</i> may be used by restart task to detect that it has been restarted, for example.
+  </li>
+</ol>
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>pid</i>. The task ID of the task to delete. An ID of
-zero signifies the calling task.
+  <li><code>pid</code>.
+  The task ID of the task to delete.
+  An ID of zero would signify the calling task (However, support for a task to restart itself has not been implemented).
 </ul>
-
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>
   OK, or ERROR if the task ID is invalid or the task could
@@ -546,9 +561,8 @@ zero signifies the calling task.
   This function can fail if:
   (1) A pid of zero or the pid of the calling task is provided (functionality not implemented)
   (2) The pid is not associated with any task known to the system.
-</LI>
+</li>
 </ul>
-
 <p>
 <b>Assumptions/Limitations:</b> 
 <p>
@@ -562,9 +576,13 @@ VxWorks provides the following similar interface:
   The NuttX task_restart() differs from VxWorks' taskRestart() in the following ways:
 </p>
 <ul>
-<li>Restart of the currently running task is not supported.
-<li>The VxWorks description says that the ID, priority, etc. take
-the value that they had when the task was <i>terminated</i>.
+  <li>
+    Restart of the currently running task is not supported by NuttX.
+  </li>
+  <li>
+    The VxWorks description says that the ID, priority, etc. take
+    the value that they had when the task was <i>terminated</i>.
+  </li>
 </ul>
 
 <H3><a name="getpid">2.1.7 getpid</a></H3>
@@ -573,7 +591,7 @@ the value that they had when the task was <i>terminated</i>.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;unistd.h&gt;
-    pid_t getpid( void );
+    pid_t getpid(void);
 </pre>
 
 <p>
@@ -583,7 +601,7 @@ level.
 <p>
 <b>Input Parameters:</b> None.
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>The task ID of the calling task.
 </ul>
@@ -663,9 +681,9 @@ Compatible with the POSIX interface of the same name.
   </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
-  On success, sched_setparam() returns 0 (OK).
-  On error, -1 (ERROR) is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately.
+  <b>Returned Value:</b>
+  On success, sched_setparam() returns 0 (<code>OK</code>).
+  On error, -1 (<code>ERROR</code>) is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately.
 </p>
 <ul>
 
@@ -721,9 +739,9 @@ of the task specified by pid.
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK) if successful, otherwise -1 (ERROR).
+<li>0 (<code>OK</code>) if successful, otherwise -1 (<code>ERROR</code>).
 </ul>
 
 <p>
@@ -734,101 +752,90 @@ interface of the same name.
 
 <H3><a name="schedsetscheduler">2.2.3 sched_setscheduler</a></H3>
 <p>
-<b>Function Prototype:</b> 
-<pre>
-    #include &lt;sched.h&gt;
-    int sched_setscheduler (pid_t pid, int policy, const struct sched_param *param);
-</pre>
+  <b>Function Prototype:</b> 
+</p>
+<ul><pre>
+#include &lt;sched.h&gt;
+int sched_setscheduler (pid_t pid, int policy, const struct sched_param *param);
+</pre></ul>
 <p>
   <b>Description:</b>
-  <i>sched_setscheduler()</i>  sets both the scheduling policy
-  and the priority for the task identified by pid.
-  If pid equals zero, the scheduler of the calling
-  thread will be set.
-  The parameter 'param' holds the priority of the thread under the new policy.
+  <code>sched_setscheduler()</code>  sets both the scheduling policyand the priority for the task identified by <code>pid</code>.
+  If <code>pid</code> equals zero, the scheduler of the calling thread will be set.
+  The parameter <code>param</code> holds the priority of the thread under the new policy.
 </p>
 <p>
-<b>Input Parameters:</b> 
+  <b>Input Parameters:</b> 
+</p>
 <ul>
   <li>
-    <i>pid</i>. The task ID of the task. If pid is zero, the
-    priority of the calling task is set.
+    <code>pid</code>.
+    The task ID of the task.
+    If <code>pid</code> is zero, the priority of the calling task is set.
   </li>
   <li>
-    <i>policy</i>. Scheduling policy requested (either <code>SCHED_FIFO</code> or <code>SCHED_RR</code>).
+    <code>policy</code>.
+    Scheduling policy requested (either <code>SCHED_FIFO</code> or <code>SCHED_RR</code>).
   </li>
   <li>
-    <code>param</code>. A structure whose member sched_priority is the
-    integer priority. The range of valid priority numbers is from
-    SCHED_PRIORITY_MIN through SCHED_PRIORITY_MAX.
+    <code>param</code>.
+    A structure whose member <code>sched_priority</code> is the integer priority.
+    The range of valid priority numbers is from <code>SCHED_PRIORITY_MIN</code> through <code>SCHED_PRIORITY_MAX</code>.
   </li>
 </ul>
 <p>
-  <b>Returned Values:</b> 
-  On success, <i>sched_setscheduler()</i> returns OK (zero).  On
-  error, ERROR (-1) is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately:
+  <b>Returned Value:</b> 
+  On success, <code>sched_setscheduler()</code> returns <code>OK</code> (zero).  On
+  error, <code>ERROR</code> (-1) is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately:
 </p>
 <ul>
-  <li>EINVAL The scheduling policy is not one of the
-    recognized policies.</li>
-  <li>ESRCH  The task whose ID is pid could not be found.</li>
+  <li><code>EINVAL</code>: The scheduling <code>policy</code> is not one of the recognized policies.</li>
+  <li><code>ESRCH</code>: The task whose ID is <code>pid</code> could not be found.</li>
 </ul>
-
 <p>
-<b>Assumptions/Limitations:</b> 
+  <b>Assumptions/Limitations:</b>
+</p>
 <p>
-<b>  POSIX  Compatibility:</b> Comparable to the POSIX
-interface of the same name.
+  <b>POSIX Compatibility:</b> Comparable to the POSIX interface of the same name.
+</p>
 
 <H3><a name="setgetscheduler">2.2.4 sched_getscheduler</a></H3>
 <p>
 <b>Function Prototype:</b> 
-<pre>
-    #include &lt;sched.h&gt;
-    int sched_getscheduler (pid_t pid);
-</pre>
+<ul><pre>
+#include &lt;sched.h&gt;
+int sched_getscheduler (pid_t pid);
+</pre></ul>
 <p>
   <b>Description:</b>
-  <i>sched_getscheduler()</i> returns the scheduling policy
-  currently applied to the task identified by pid. If
-  pid equals zero, the policy of the calling process will
+  <code>sched_getscheduler()</code> returns the scheduling policy
+  currently applied to the task identified by <code>pid</code>. If
+  <code>pid</code> equals zero, the policy of the calling process will
   be retrieved.
- *
- * Inputs:
- *
- * Return Value:
-
- This function returns the current scheduling
-policy.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-  <li><i>pid</i>.
+  <li><code>pid</code>.
     The task ID of the task to query.
-    If pid is zero, the calling task is queried.
+    If <code>pid</code> is zero, the calling task is queried.
   </LI>
 </ul>
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
   <li>
-    On success, <i>sched_getscheduler()</i> returns the policy for
-    the task (either SCHED_FIFO or SCHED_RR).
-    On error,  ERROR (-1) is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately:
+    On success, <code>sched_getscheduler()</code> returns the policy for
+    the task (either <code>SCHED_FIFO</code> or <code>SCHED_RR</code>).
+    On error,  <code>ERROR</code> (-1) is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately:
     <ul>
-      <li>ESRCH  The task whose ID is pid could not be found.</li>
+      <li><code>ESRCH</code>: The task whose ID is pid could not be found.</li>
     </ul>
   </li>
 </ul>
 <p>
 <b>Assumptions/Limitations:</b> 
 <p>
-<b>  POSIX  Compatibility:</b> Comparable to the POSIX
-interface of the same name.
-Differences from the full POSIX implementation include:
-<ul>
-<li>Does not report errors via <a href="#ErrnoAccess"><code>errno</code></a>.
-</ul>
+<b>  POSIX  Compatibility:</b> Comparable to the POSIX interface of the same name.
 
 <H3><a name="sched_yield">2.2.5 sched_yield</a></H3>
 
@@ -836,7 +843,7 @@ Differences from the full POSIX implementation include:
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;sched.h&gt;
-    int sched_yield( void );
+    int sched_yield(void);
 </pre>
 
 <p>
@@ -845,9 +852,9 @@ up the CPU (only to other tasks at the same priority).
 <p>
 <b>Input Parameters:</b> None.
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK) or -1 (ERROR)
+<li>0 (<code>OK</code>) or -1 (<code>ERROR</code>)
 </ul>
 
 <p>
@@ -871,13 +878,13 @@ possible task priority for a specified scheduling policy.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>policy</i>. Scheduling policy requested.
+<li><code>policy</code>. Scheduling policy requested.
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>The maximum priority value or -1 (ERROR).
+<li>The maximum priority value or -1 (<code>ERROR</code>).
 </ul>
 
 <p>
@@ -901,13 +908,13 @@ possible task priority for a specified scheduling policy.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>policy</i>. Scheduling policy requested.
+<li><code>policy</code>. Scheduling policy requested.
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>The minimum priority value or -1 (ERROR)
+<li>The minimum priority value or -1 (<code>ERROR</code>)
 </ul>
 
 <p>
@@ -927,9 +934,9 @@ interface of the same name.
 
 <p>
   <b>Description:</b> 
-  <i>sched_rr_get_interval()</i>  writes  the timeslice interval
-  for task identified by <i>pid</i> into  the timespec structure
-  pointed to by <i>interval</i>.  If pid is zero, the timeslice
+  <code>sched_rr_get_interval()</code>  writes  the timeslice interval
+  for task identified by <code>pid</code> into  the timespec structure
+  pointed to by <code>interval</code>.  If pid is zero, the timeslice
   for the calling process is written into 'interval.  The
   identified process should be running under the SCHED_RR
   scheduling policy.'
@@ -938,21 +945,21 @@ interface of the same name.
   <b>Input Parameters:</b> 
 </p>
 <ul>
-<li><i>pid</i>. The task ID of the task. If pid is zero, the
+<li><code>pid</code>. The task ID of the task. If pid is zero, the
 priority of the calling task is returned.
-<li><i>interval</i>. A structure used to return the time slice.
+<li><code>interval</code>. A structure used to return the time slice.
 </ul>
 
 <p>
-  <b>Returned Values:</b> 
+  <b>Returned Value:</b> 
   On success, sched_rr_get_interval() returns OK (0).  On
   error, ERROR (-1) is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set to:
 </p>
 <ul>
-  <li>EFAULT Cannot copy to interval</LI>
-  <li>EINVAL Invalid pid.</LI>
-  <li>ENOSYS The system call is not yet implemented.</LI>
-  <li>ESRCH  The process whose ID is pid could not be found.</LI>
+  <li><code>EFAULT</code>: Cannot copy to interval</LI>
+  <li><code>EINVAL</code>: Invalid pid.</LI>
+  <li><code>ENOSYS</code>: The system call is not yet implemented.</LI>
+  <li><code>ESRCH</code>: The process whose ID is pid could not be found.</LI>
 </ul>
 
 <p>
@@ -989,7 +996,7 @@ priority of the calling task is returned.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;sched.h&gt;
-    int sched_lock( void );
+    int sched_lock(void);
 </pre>
 
 <p>
@@ -1001,7 +1008,7 @@ number of times) or until it blocks itself.
 <p>
 <b>Input Parameters:</b> None.
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>OK or ERROR.
 </ul>
@@ -1012,7 +1019,7 @@ number of times) or until it blocks itself.
 <b>POSIX  Compatibility:</b> This is a NON-POSIX interface.
 VxWorks provides the comparable interface:
 <pre>
-    STATUS taskLock( void );
+    STATUS taskLock(void);
 </pre>
 
 <H3><a name="schedunlock">2.3.2 sched_unlock</a></H3>
@@ -1021,7 +1028,7 @@ VxWorks provides the comparable interface:
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;sched.h&gt;
-    int sched_unlock( void );
+    int sched_unlock(void);
 </pre>
 
 <p>
@@ -1034,7 +1041,7 @@ eligible to preempt the current task will execute.
 <p>
 <b>Input Parameters:</b> None.
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>OK or ERROR.
 </ul>
@@ -1045,7 +1052,7 @@ eligible to preempt the current task will execute.
 <b>POSIX  Compatibility:</b> This is a NON-POSIX interface.
 VxWorks provides the comparable interface:
 <pre>
-    STATUS taskUnlock( void );
+    STATUS taskUnlock(void);
 </pre>
 
 <H3><a name="schedlockcount">2.3.3 sched_lockcount</a></H3>
@@ -1054,7 +1061,7 @@ VxWorks provides the comparable interface:
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;sched.h&gt;
-    int32_t sched_lockcount( void )
+    int32_t sched_lockcount(void)
 </pre>
 
 <p>
@@ -1065,7 +1072,7 @@ on this thread of execution.
 <p>
 <b>Input Parameters:</b> None.
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>The current value of the lockCount.
 </ul>
@@ -1152,7 +1159,7 @@ on this thread of execution.
   </li>
 </ul>
 <p>
-  If the calling process has <code>SA_NOCLDWAIT</code> set or has <code>SIGCHLD</code> set to <code>SIG_IGN</code>, and the process has no unwaited-for children that were transformed into zombie processes, the calling thread will block until all of the children of the process containing the calling thread terminate, and <code>waitpid()</code> will fail and set errno to <code>ECHILD</code>. 
+  If the calling process has <code>SA_NOCLDWAIT</code> set or has <code>SIGCHLD</code> set to <code>SIG_IGN</code>, and the process has no unwaited-for children that were transformed into zombie processes, the calling thread will block until all of the children of the process containing the calling thread terminate, and <code>waitpid()</code> will fail and set <code>errno</code> to <code>ECHILD</code>. 
 </p>
 <p>
   If <code>waitpid()</code> returns because the status of a child process is available, these functions will return a value equal to the process ID of the child process.
@@ -1204,7 +1211,7 @@ on this thread of execution.
   </li>
 </ul>
 <p>
-  <b>Returned Values:</b> 
+  <b>Returned Value:</b> 
 </p>
 <p>
   If <code>waitpid()</code> returns because the status of a child process is available, it will return a value equal to the process ID of the child process for which status is reported.
@@ -1261,10 +1268,10 @@ on this thread of execution.
   <b>Input Parameters:</b> 
 </p>
 <ul>
-<li><i>func</i>. A pointer to the function to be called when the task exits.</li>
+<li><code>func</code>. A pointer to the function to be called when the task exits.</li>
 </ul>
 <p>
-  <b>Returned Values:</b> 
+  <b>Returned Value:</b> 
   On success, <code>atexit()</code> returns OK (0).
   On error, ERROR (-1) is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set to indicate the cause of the failure.
 </p>
@@ -1301,11 +1308,11 @@ on this thread of execution.
   <b>Input Parameters:</b> 
 </p>
 <ul>
-<li><i>func</i>. A pointer to the function to be called when the task exits.</li>
-<li><i>arg</i>. An argument that will be provided to the <code>on_exit()</code> function when the task exits.</li>
+<li><code>func</code>. A pointer to the function to be called when the task exits.</li>
+<li><code>arg</code>. An argument that will be provided to the <code>on_exit()</code> function when the task exits.</li>
 </ul>
 <p>
-  <b>Returned Values:</b> 
+  <b>Returned Value:</b> 
   On success, <code>on_exit()</code> returns OK (0).
   On error, ERROR (-1) is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set to indicate the cause of the failure.
 </p>
@@ -1355,7 +1362,7 @@ on this thread of execution.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;mqueue.h&gt;
-    mqd_t mq_open( const char *mqName, int oflags, ... );
+    mqd_t mq_open(const char *mqName, int oflags, ...);
 </pre>
 
 <p>
@@ -1367,27 +1374,27 @@ until it is closed by a successful call to mq_close().
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>mqName</i>. Name of the queue to open
-<li><i>oflags</i>. Open flags. These may be any combination of:
+<li><code>mqName</code>. Name of the queue to open
+<li><code>oflags</code>. Open flags. These may be any combination of:
 <ul>
-<li><i>O_RDONLY</i>. Open for read access.
-<li><i>O_WRONLY</i>. Open for write access.
-<li><i>O_RDWR</i>. Open for both read &amp; write access.
-<li><i>O_CREAT</i>. Create message queue if it does not already
+<li><code>O_RDONLY</code>. Open for read access.
+<li><code>O_WRONLY</code>. Open for write access.
+<li><code>O_RDWR</code>. Open for both read &amp; write access.
+<li><code>O_CREAT</code>. Create message queue if it does not already
 exist.
-<li><i>O_EXCL</i>. Name must not exist when opened.
-<li><i>O_NONBLOCK</i>. Don't wait for data.
+<li><code>O_EXCL</code>. Name must not exist when opened.
+<li><code>O_NONBLOCK</code>. Don't wait for data.
 </ul>
 
-<li><i>... Optional parameters</i>.
+<li><i><code>...</code> Optional parameters</i>.
 When the O_CREAT flag is specified, POSIX requires that a third
 and fourth parameter be supplied:
 <ul>
-<li><i>mode</i>.  The mode parameter is of type mode_t.  In the POSIX
+<li><code>mode</code>.  The mode parameter is of type mode_t.  In the POSIX
 specification, this mode value provides file permission bits for the
 message queue.  This parameter is required but not used in the present
 implementation.
-<li><i>attr</i>.  A pointer to an mq_attr that is provided to initialize.
+<li><code>attr</code>.  A pointer to an mq_attr that is provided to initialize.
 the message queue.  If attr is NULL, then the messages queue is created
 with implementation-defined default message queue attributes.  If attr is
 non-NULL, then the message queue mq_maxmsg attribute is set to the
@@ -1401,9 +1408,9 @@ message that can be sent or received.  Other elements of attr are ignored
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>A message queue descriptor or -1 (ERROR)
+<li>A message queue descriptor or -1 (<code>ERROR</code>)
 </ul>
 
 <p>
@@ -1424,7 +1431,7 @@ message size is limited at 22 bytes.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;mqueue.h&gt;
-    int mq_close( mqd_t mqdes );
+    int mq_close(mqd_t mqdes);
 </pre>
 
 <p>
@@ -1434,30 +1441,32 @@ The mq_close() deallocates any system resources allocated by the
 system for use by this task for its message queue.
 <p>
 If the calling task has attached a notification request to the message
-queue via this <i>mqdes</i> (see mq_notify()), this attachment will be
+queue via this <code>mqdes</code> (see <code>mq_notify()</code>), this attachment will be
 removed and the message queue is available for another task to attach
 for notification.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>mqdes</i>. Message queue descriptor.
+<li><code>mqdes</code>. Message queue descriptor.
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK) if the message queue is closed successfully, otherwise,
--1 (ERROR).
+<li>0 (<code>OK</code>) if the message queue is closed successfully, otherwise,
+-1 (<code>ERROR</code>).
 </ul>
 
 <p>
 <b>Assumptions/Limitations:</b> 
 <p>
 <ul>
-<li>The behavior of a task that is blocked on either a <code>mq_send()</code> or
-<code>mq_receive()</code> is undefined when <code>mq_close()</code> is called.
-<li>The result of using this message queue descriptor after successful
-return from mq_close() is undefined.
+  <li>
+    The behavior of a task that is blocked on either a <code>mq_send()</code> or <code>mq_receive()</code> is undefined when <code>mq_close()</code> is called.
+  </li>
+  <li>
+    The result of using this message queue descriptor after successful return from <code>mq_close()</code> is undefined.
+  </li>
 </ul>
 <p>
 <b>  POSIX  Compatibility:</b> Comparable to the POSIX interface
@@ -1469,7 +1478,7 @@ of the same name.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;mqueue.h&gt;
-    int mq_unlink( const char *mqName );
+    int mq_unlink(const char *mqName);
 </pre>
 
 <p>
@@ -1481,11 +1490,11 @@ closed.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>mqName</i>. Name of the message queue
+<li><code>mqName</code>. Name of the message queue
 </ul>
 
 <p>
-<b>Returned Values:</b> None.
+<b>Returned Value:</b> None.
 <p>
 <b>Assumptions/Limitations:</b> 
 <p>
@@ -1502,8 +1511,7 @@ interface of the same name.
 </pre>
 <p>
 <b>Description:</b>
-  This function adds the specified message, <code>msg</code>,
-  to the message queue, <code>mqdes</code>.
+  This function adds the specified message, <code>msg</code>, to the message queue, <code>mqdes</code>.
   The <code>msglen</code> parameter specifies the length of the message in bytes pointed to by <code>msg</code>.
   This length must not exceed the maximum message length from the <code>mq_getattr()</code>.
 </p>
@@ -1523,8 +1531,22 @@ interface of the same name.
   is not queued and <code>ERROR</code> is returned.
 </p>
 <p>
-<b>NOTE</b>: <i>mq_send()</i> may be called from an interrupt handler.
-<p>
+  <b>NOTE</b>:
+  <code>mq_send()</code> may be called from an interrupt handler.
+  However, it behaves differently when called from the interrupt level:
+</p>
+<ul>
+  <li>
+    It does not check the size of the queue.
+    It will always post the message, even if there is already too many messages in queue.
+    This is because the interrupt handler does not have the option of waiting for the message queue to become non-full.
+  </li>
+  <li>
+    It doesn't allocate new memory (because you cannot allocate memory from an interrup handler).
+    Instead, there are are pool of pre-allocated message structures that may be used just for sending messages from interrupt handlers.
+    The number of such pre-allocated messages is a configuration parameter.
+  </li>
+</ul>
 <p>
   <b>Input Parameters:</b> 
 </p>
@@ -1535,7 +1557,7 @@ interface of the same name.
   <li><code>prio</code>. The priority of the message.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   On success, <code>mq_send()</code> returns 0 (<code>OK</code>);
   on error, -1 (<code>ERROR</code>) is returned, with <a href="#ErrnoAccess"><code>errno</code></a> set
   to indicate the error:
@@ -1618,7 +1640,7 @@ interface of the same name.
   <li><code>prio</code>. The priority of the message.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   On success, <code>mq_send()</code> returns 0 (<code>OK</code>);
   on error, -1 (<code>ERROR</code>) is returned, with <a href="#ErrnoAccess"><code>errno</code></a> set
   to indicate the error:
@@ -1689,7 +1711,7 @@ interface of the same name.
   <li><code>prio</code>. If not NULL, the location to store message priority.
 </ul>
 <p>
-  <b>Returned Values:</b>.
+  <b>Returned Value:</b>.
   One success, the length of the selected message in bytes is returned.
   On failure, -1 (<code>ERROR</code>) is returned and the <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately:
 </p>
@@ -1770,7 +1792,7 @@ interface of the same name.
   <li><code>abstime</code>. The absolute time to wait until a timeout is declared.
 </ul>
 <p>
-  <b>Returned Values:</b>.
+  <b>Returned Value:</b>.
   One success, the length of the selected message in bytes is returned.
   On failure, -1 (<code>ERROR</code>) is returned and the <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately:
 </p>
@@ -1848,7 +1870,7 @@ interface of the same name.
   </ul>
 </p>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   On success <code>mq_notify()</code> returns 0; on error, -1 is returned, with
   <code>errno</code> set to indicate the error:
   <ul>
@@ -1881,10 +1903,10 @@ interface of the same name.
       another task is waiting for the message queue to become non-empty.  This is
       inconsistent with the POSIX specification which states, &quot;If a process
       has registered for notification of message arrival at a message queue and
-      some process is blocked in <i>mq_receive</i> waiting to receive a message
-      when a message arrives at the queue, the arriving message shall satisfy the
-      appropriate <i>mq_receive()</i> ... The resulting behavior is as if the
-      message queue remains empty, and no notification shall be sent.&quot;
+      some process is blocked in <code>mq_receive</code> waiting to receive a message
+      when a message arrives at the queue, the arriving message will satisfy the
+      appropriate <code>mq_receive()</code> ... The resulting behavior is as if the
+      message queue remains empty, and no notification will be sent.&quot;
     </li>
   </ul>
 </p>
@@ -1895,8 +1917,8 @@ interface of the same name.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;mqueue.h&gt;
-    int mq_setattr( mqd_t mqdes, const struct mq_attr *mqStat,
-                     struct mq_attr *oldMqStat);
+    int mq_setattr(mqd_t mqdes, const struct mq_attr *mqStat,
+                   struct mq_attr *oldMqStat);
 </pre>
 
 <p>
@@ -1910,16 +1932,16 @@ would have been returned by mq_getattr()).
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>mqdes</i>. Message queue descriptor
-<li><i>mqStat</i>. New attributes
-<li><i>oldMqState</i>. Old attributes
+<li><code>mqdes</code>. Message queue descriptor
+<li><code>mqStat</code>. New attributes
+<li><code>oldMqState</code>. Old attributes
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK) if attributes are set successfully, otherwise -1
-(ERROR).
+<li>0 (<code>OK</code>) if attributes are set successfully, otherwise -1
+(<code>ERROR</code>).
 </ul>
 
 <p>
@@ -1934,7 +1956,7 @@ interface of the same name.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;mqueue.h&gt;
-    int mq_getattr( mqd_t mqdes, struct mq_attr *mqStat);
+    int mq_getattr(mqd_t mqdes, struct mq_attr *mqStat);
 </pre>
 
 <p>
@@ -1943,22 +1965,22 @@ attributes associated with the specified message queue.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>mqdes</i>. Message queue descriptor
-<li><i>mqStat</i>. Buffer in which to return attributes. The returned
+<li><code>mqdes</code>. Message queue descriptor
+<li><code>mqStat</code>. Buffer in which to return attributes. The returned
 attributes include:
 <ul>
-<li><i>mq_maxmsg</i>. Max number of messages in queue.
-<li><i>mq_msgsize</i>. Max message size.
-<li><i>mq_flags</i>. Queue flags.
-<li><i>mq_curmsgs</i>. Number of messages currently in queue.
+<li><code>mq_maxmsg</code>. Max number of messages in queue.
+<li><code>mq_msgsize</code>. Max message size.
+<li><code>mq_flags</code>. Queue flags.
+<li><code>mq_curmsgs</code>. Number of messages currently in queue.
 </ul>
 
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK) if attributes provided, -1 (ERROR) otherwise.
+<li>0 (<code>OK</code>) if attributes provided, -1 (<code>ERROR</code>) otherwise.
 </ul>
 
 <p>
@@ -2121,7 +2143,7 @@ interface of the same name.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;semaphore.h&gt;
-    int sem_init ( sem_t *sem, int pshared, unsigned int value );
+    int sem_init(sem_t *sem, int pshared, unsigned int value);
 </pre>
 
 <p>
@@ -2130,22 +2152,22 @@ sem. Following a successful call to sem_init(), the semaphore
 may be used in subsequent calls to sem_wait(), sem_post(), and
 sem_trywait(). The semaphore remains usable until it is destroyed.
 <p>
-Only <i>sem</i> itself may be used for performing synchronization.  The
-result of referring to copies of <i>sem</i> in calls to <i>sem_wait()</i>,
-<i>sem_trywait()</i>, <i>sem_post()</i>, and <i>sem_destroy()</i>, is
+Only <code>sem</code> itself may be used for performing synchronization.  The
+result of referring to copies of <code>sem</code> in calls to <code>sem_wait()</code>,
+<code>sem_trywait()</code>, <code>sem_post()</code>, and <code>sem_destroy()</code>, is
 not defined.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>sem</i>. Semaphore to be initialized
-<li><i>pshared</i>. Process sharing (not used)
-<li><i>value</i>. Semaphore initialization value 
+<li><code>sem</code>. Semaphore to be initialized
+<li><code>pshared</code>. Process sharing (not used)
+<li><code>value</code>. Semaphore initialization value 
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK), or -1 (ERROR) if unsuccessful.
+<li>0 (<code>OK</code>), or -1 (<code>ERROR</code>) if unsuccessful.
 </ul>
 
 <p>
@@ -2164,29 +2186,29 @@ Differences from the full POSIX implementation include:
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;semaphore.h&gt;
-    int sem_destroy ( sem_t *sem );
+    int sem_destroy(sem_t *sem);
 </pre>
 
 <p>
 <b>Description:</b> This function is used to destroy the un-named semaphore
-indicated by <i>sem</i>.  Only a semaphore that was created using
-<i>sem_init()</i> may be destroyed using <i>sem_destroy()</i>.  The effect
-of calling <i>sem_destroy()</i> with a named semaphore is undefined.  The
-effect of subsequent use of the semaphore <i>sem</i> is undefined until
-<i>sem</i> is re-initialized by another call to <i>sem_init()</i>.
+indicated by <code>sem</code>.  Only a semaphore that was created using
+<code>sem_init()</code> may be destroyed using <code>sem_destroy()</code>.  The effect
+of calling <code>sem_destroy()</code> with a named semaphore is undefined.  The
+effect of subsequent use of the semaphore <code>sem</code> is undefined until
+<code>sem</code> is re-initialized by another call to <code>sem_init()</code>.
 <p>
 The effect of destroying a semaphore upon which other tasks are currently
 blocked is undefined.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>sem</i>. Semaphore to be destroyed.
+<li><code>sem</code>. Semaphore to be destroyed.
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK), or -1 (ERROR) if unsuccessful.
+<li>0 (<code>OK</code>), or -1 (<code>ERROR</code>) if unsuccessful.
 </ul>
 
 <p>
@@ -2201,7 +2223,7 @@ interface of the same name.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;semaphore.h&gt;
-    sem_t *sem_open ( const char *name, int oflag, ...);
+    sem_t *sem_open(const char *name, int oflag, ...);
 </pre>
 
 <p>
@@ -2219,35 +2241,35 @@ been no calls to sem_unlink()).
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>name</i>. Semaphore name
-<li><i>oflag</i>. Semaphore creation options. This may one of
+<li><code>name</code>. Semaphore name
+<li><code>oflag</code>. Semaphore creation options. This may one of
 the following bit settings:
 <ul>
-<li><i>oflag</i> = 0: Connect to the semaphore only if it already
+<li><code>oflag</code> = 0: Connect to the semaphore only if it already
 exists.
-<li><i>oflag</i> = O_CREAT: Connect to the semaphore if it exists,
+<li><code>oflag</code> = O_CREAT: Connect to the semaphore if it exists,
 otherwise create the semaphore.
-<li><i>oflag</i> = O_CREAT with O_EXCL (O_CREAT|O_EXCL): Create
+<li><code>oflag</code> = O_CREAT with O_EXCL (O_CREAT|O_EXCL): Create
 a new semaphore unless one of this name already exists.
 </ul>
 <li>... Optional parameters.
 NOTE:  When the O_CREAT flag is specified, POSIX requires that a third
 and fourth parameter be supplied:
 <ul>
-<li><i>mode</i>.  The mode parameter is of type mode_t.  
+<li><code>mode</code>.  The mode parameter is of type mode_t.  
 This parameter is required but not used in the present
 implementation.
-<li><i>value</i>.  The value parameter is type unsigned int.  The semaphore
-is created with an initial value of <i>value</i>.  Valid initial values for
-semaphores must be less than or equal to <i>SEM_VALUE_MAX</i> (defined in
+<li><code>value</code>.  The value parameter is type unsigned int.  The semaphore
+is created with an initial value of <code>value</code>.  Valid initial values for
+semaphores must be less than or equal to <code>SEM_VALUE_MAX</code> (defined in
 <CODE>include/limits.h</CODE>).
 </ul>
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>A pointer to sem_t or -1 (ERROR) if unsuccessful.
+<li>A pointer to sem_t or -1 (<code>ERROR</code>) if unsuccessful.
 </ul>
 
 <p>
@@ -2267,7 +2289,7 @@ just a counting semaphore.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;semaphore.h&gt;
-    int sem_close ( sem_t *sem );
+    int sem_close(sem_t *sem);
 </pre>
 
 <p>
@@ -2286,13 +2308,13 @@ that another calling task has already locked.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>sem</i>. Semaphore descriptor
+<li><code>sem</code>. Semaphore descriptor
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK), or -1 (ERROR) if unsuccessful.
+<li>0 (<code>OK</code>), or -1 (<code>ERROR</code>) if unsuccessful.
 </ul>
 
 <p>
@@ -2312,7 +2334,7 @@ interface of the same name.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;semaphore.h&gt;
-    int sem_unlink ( const char *name );
+    int sem_unlink(const char *name);
 </pre>
 
 <p>
@@ -2324,13 +2346,13 @@ sem_close().
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>name</i>. Semaphore name
+<li><code>name</code>. Semaphore name
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK), or -1 (ERROR) if unsuccessful.
+<li>0 (<code>OK</code>), or -1 (<code>ERROR</code>) if unsuccessful.
 </ul>
 
 <p>
@@ -2358,7 +2380,7 @@ same name should be created after sem_unlink() is called.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;semaphore.h&gt;
-    int sem_wait ( sem_t *sem );
+    int sem_wait(sem_t *sem);
 </pre>
 
 <p>
@@ -2369,23 +2391,23 @@ the lock or the call is interrupted by a signal.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>sem</i>. Semaphore descriptor.
+<li><code>sem</code>. Semaphore descriptor.
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK), or -1 (ERROR) is unsuccessful
+<li>0 (<code>OK</code>), or -1 (<code>ERROR</code>) is unsuccessful
 </ul>
 <p>
-If <i>sem_wait</i> returns -1 (ERROR) then the cause of the failure
+If <code>sem_wait</code> returns -1 (<code>ERROR</code>) then the cause of the failure
 will be indicated by the thread-specific <a href="#ErrnoAccess"><code>errno</code></a>.
 The following lists the possible values for <a href="#ErrnoAccess"><code>errno</code></a>:
 <p>
 <ul>
-<li><i>EINVAL</i>:  Indicates that the <i>sem</i> input parameter is
+<li><code>EINVAL</code>:  Indicates that the <code>sem</code> input parameter is
 not valid.
-<li><i>EINTR</i>:  Indicates that the wait was interrupt by a signal
+<li><code>EINTR</code>:  Indicates that the wait was interrupt by a signal
 received by this task.  In this case, the semaphore has not be acquired.
 </ul>
 <p>
@@ -2401,7 +2423,7 @@ interface of the same name.
 <pre>
     #include &lt;semaphore.h&gt;
     #include &lt;time.h&gt;
-    int sem_wait ( sem_t *sem, const struct timespec *abstime);
+    int sem_wait(sem_t *sem, const struct timespec *abstime);
 </pre>
 
 <p>
@@ -2416,20 +2438,20 @@ interface of the same name.
 <b>Input Parameters:</b> 
 <ul>
   <li>
-    <i>sem</i>. Semaphore descriptor.
+    <code>sem</code>. Semaphore descriptor.
   </li>
   <li>
-    <i>abstime</i>. The absolute time to wait until a timeout is declared.
+    <code>abstime</code>. The absolute time to wait until a timeout is declared.
   </li>
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK), or -1 (ERROR) is unsuccessful
+<li>0 (<code>OK</code>), or -1 (<code>ERROR</code>) is unsuccessful
 </ul>
 <p>
-If <i>sem_wait</i> returns -1 (ERROR) then the cause of the failure
+If <code>sem_wait</code> returns -1 (<code>ERROR</code>) then the cause of the failure
 will be indicated by the thread-specific <a href="#ErrnoAccess"><code>errno</code></a>.
 The following lists the possible values for <a href="#ErrnoAccess"><code>errno</code></a>:
 <p>
@@ -2437,7 +2459,7 @@ The following lists the possible values for <a href="#ErrnoAccess"><code>errno</
 </ul>
   <li>
     <code>EINVAL</code>:
-      Indicates that the <i>sem</i> input parameter is not valid or the
+      Indicates that the <code>sem</code> input parameter is not valid or the
       thread would have blocked, and the abstime parameter specified
       a nanoseconds field value less than zero or greater than or
       equal to 1000 million.
@@ -2469,7 +2491,7 @@ The following lists the possible values for <a href="#ErrnoAccess"><code>errno</
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;semaphore.h&gt;
-    int sem_trywait ( sem_t *sem );
+    int sem_trywait(sem_t *sem);
 </pre>
 
 <p>
@@ -2479,22 +2501,22 @@ returns without blocking.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>sem</i>. The semaphore descriptor
+<li><code>sem</code>. The semaphore descriptor
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK) or -1 (ERROR) if unsuccessful
+<li>0 (<code>OK</code>) or -1 (<code>ERROR</code>) if unsuccessful
 </ul>
-If <i>sem_wait</i> returns -1 (ERROR) then the cause of the failure
+If <code>sem_wait</code> returns -1 (<code>ERROR</code>) then the cause of the failure
 will be indicated by the thread-specific <a href="#ErrnoAccess"><code>errno</code></a>.
 The following lists the possible values for <a href="#ErrnoAccess"><code>errno</code></a>:
 <p>
 <ul>
-<li><i>EINVAL</i>:  Indicates that the <i>sem</i> input parameter is
+<li><code>EINVAL</code>:  Indicates that the <code>sem</code> input parameter is
 not valid.
-<li><i>EAGAIN</i>:  Indicates that the semaphore was not acquired.
+<li><code>EAGAIN</code>:  Indicates that the semaphore was not acquired.
 </ul>
 <p>
 
@@ -2510,13 +2532,13 @@ interface of the same name.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;semaphore.h&gt;
-    int sem_post ( sem_t *sem );
+    int sem_post(sem_t *sem);
 </pre>
 
 <p>
 <b>Description:</b> When a task has finished with a semaphore,
 it will call sem_post().  This function unlocks the semaphore referenced
-by <i>sem</i> by performing the semaphore unlock operation.
+by <code>sem</code> by performing the semaphore unlock operation.
 <p>
 If the semaphore value resulting from this operation is positive, then
 no tasks were blocked waiting for the semaphore to become unlocked;
@@ -2524,19 +2546,19 @@ The semaphore value is simply incremented.
 <p>
 If the value of the semaphore resulting from this operation is zero, then
 on of the tasks blocked waiting for the semaphore will be allowed to
-return successfully from its call to <i>sem_wait()</i>.
+return successfully from its call to <code>sem_wait()</code>.
 <p>
-<b>NOTE</b>: <i>sem_post()</i> may be called from an interrupt handler.
+<b>NOTE</b>: <code>sem_post()</code> may be called from an interrupt handler.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>sem</i>. Semaphore descriptor
+<li><code>sem</code>. Semaphore descriptor
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK) or -1 (ERROR) if unsuccessful.
+<li>0 (<code>OK</code>) or -1 (<code>ERROR</code>) if unsuccessful.
 </ul>
 
 <p>
@@ -2553,7 +2575,7 @@ interface of the same name.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;semaphore.h&gt;
-    int sem_getvalue ( sem_t *sem, int *sval );
+    int sem_getvalue(sem_t *sem, int *sval);
 </pre>
 
 <p>
@@ -2570,14 +2592,14 @@ number of tasks waiting for the semaphore.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>sem</i>. Semaphore descriptor
-<li><i>sval</i>. Buffer by which the value is returned
+<li><code>sem</code>. Semaphore descriptor
+<li><code>sval</code>. Buffer by which the value is returned
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK) or -1 (ERROR) if unsuccessful.
+<li>0 (<code>OK</code>) or -1 (<code>ERROR</code>) if unsuccessful.
 </ul>
 
 <p>
@@ -2618,7 +2640,7 @@ interface of the same name.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;wdog.h&gt;
-    WDOG_ID wd_create (void);
+    WDOG_ID wd_create(void);
 </pre>
 
 <p>
@@ -2627,7 +2649,7 @@ by allocating the appropriate resources for the watchdog.
 <p>
 <b>Input Parameters:</b> None.
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>Pointer to watchdog that may be used as a handle in subsequent
 NuttX calls (i.e., the watchdog ID), or NULL if insufficient resources
@@ -2656,7 +2678,7 @@ initialization time).
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;wdog.h&gt;
-    int wd_delete (WDOG_ID wdog);
+    int wd_delete(WDOG_ID wdog);
 </pre>
 
 <p>
@@ -2666,12 +2688,12 @@ has been started.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>wdog</i>. The watchdog ID to delete. This is actually a
+<li><code>wdog</code>. The watchdog ID to delete. This is actually a
 pointer to a watchdog structure.
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>OK or ERROR
 </ul>
@@ -2700,8 +2722,8 @@ before deallocating it (i.e., never returns ERROR).
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;wdog.h&gt;
-    int wd_start( WDOG_ID wdog, int delay, wdentry_t wdentry,
-                     intt argc, ....);
+    int wd_start(WDOG_ID wdog, int delay, wdentry_t wdentry,
+                 int argc, ....);
 </pre>
 
 <p>
@@ -2720,15 +2742,15 @@ wd_start() on a given watchdog ID has any effect.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>wdog</i>. Watchdog ID
-<li><i>delay</i>. Delay count in clock ticks
-<li><i>wdentry</i>. Function to call on timeout
-<li><i>argc</i>.  The number of uint32_t parameters to pass to wdentry.
-<li><i>...</i>. uint32_t size parameters to pass to wdentry
+<li><code>wdog</code>. Watchdog ID
+<li><code>delay</code>. Delay count in clock ticks
+<li><code>wdentry</code>. Function to call on timeout
+<li><code>argc</code>.  The number of uint32_t parameters to pass to wdentry.
+<li><code>...</code>. uint32_t size parameters to pass to wdentry
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>OK or ERROR
 </ul>
@@ -2757,7 +2779,7 @@ number of parameters is determined by
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;wdog.h&gt;
-    int wd_cancel (WDOG_ID wdog);
+    int wd_cancel(WDOG_ID wdog);
 </pre>
 
 <p>
@@ -2767,11 +2789,11 @@ level.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>wdog</i>. ID of the watchdog to cancel.
+<li><code>wdog</code>. ID of the watchdog to cancel.
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>OK or ERROR
 </ul>
@@ -2852,10 +2874,10 @@ VxWorks provides the following comparable interface:
   <li><code>parm</code>. </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
-  If successful, the <i>clock_settime()</i> function will return zero (<i>OK</i>).
+  If successful, the <code>clock_settime()</code> function will return zero (<code>OK</code>).
   Otherwise, an non-zero error number will be returned to indicate the error:
 </p>
 <ul>
@@ -2880,10 +2902,10 @@ VxWorks provides the following comparable interface:
   <li><code>parm</code>. </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
-  If successful, the <i>clock_gettime()</i> function will return zero (<i>OK</i>).
+  If successful, the <code>clock_gettime()</code> function will return zero (<code>OK</code>).
   Otherwise, an non-zero error number will be returned to indicate the error:
 </p>
 <ul>
@@ -2908,10 +2930,10 @@ VxWorks provides the following comparable interface:
   <li><code>parm</code>. </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
-  If successful, the <i>clock_getres()</i> function will return zero (<i>OK</i>).
+  If successful, the <code>clock_getres()</code> function will return zero (<code>OK</code>).
   Otherwise, an non-zero error number will be returned to indicate the error:
 </p>
 <ul>
@@ -2936,10 +2958,10 @@ VxWorks provides the following comparable interface:
   <li><code>parm</code>. </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
-  If successful, the <i>mktime()</i> function will return zero (<i>OK</i>).
+  If successful, the <code>mktime()</code> function will return zero (<code>OK</code>).
   Otherwise, an non-zero error number will be returned to indicate the error:
 </p>
 <ul>
@@ -2968,10 +2990,10 @@ VxWorks provides the following comparable interface:
 </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
-  If successful, the <i>gmtime()</i> function will return the pointer to a statically
+  If successful, the <code>gmtime()</code> function will return the pointer to a statically
   defined instance of <code>struct tim</code>.
   Otherwise, a NULL will be returned to indicate the error:
 </p>
@@ -3008,10 +3030,10 @@ VxWorks provides the following comparable interface:
   A user-provided buffer to receive the converted time structure.
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
-  If successful, the <i>gmtime_r()</i> function will return the pointer, <code>result</code>,
+  If successful, the <code>gmtime_r()</code> function will return the pointer, <code>result</code>,
   provided by the caller.
   Otherwise, a NULL will be returned to indicate the error:
 </p>
@@ -3055,7 +3077,7 @@ VxWorks provides the following comparable interface:
 </p>
 <p>
   Each implementation defines a set of clocks that can be used as timing bases
-  for per-thread timers. All implementations shall support a <code>clock_id</code> of
+  for per-thread timers. All implementations will support a <code>clock_id</code> of
   <code>CLOCK_REALTIME</code>.
 </p>
 <p>
@@ -3069,7 +3091,7 @@ VxWorks provides the following comparable interface:
   <li><code>timerid</code>. The pre-thread timer created by the call to timer_create().</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
   If the call succeeds, <code>timer_create()</code> will return 0 (<code>OK</code>) and update the
@@ -3119,11 +3141,11 @@ VxWorks provides the following comparable interface:
   The pre-thread timer, previously created by the call to timer_create(), to be deleted.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
-  If successful, the <i>timer_delete()</i> function will return zero (<i>OK</i>).
-  Otherwise, the function will return a value of -1 (ERROR) and set
+  If successful, the <code>timer_delete()</code> function will return zero (<code>OK</code>).
+  Otherwise, the function will return a value of -1 (<code>ERROR</code>) and set
   <a href="#ErrnoAccess"><code>errno</code></a> to indicate the error:
 </p>
 <ul>
@@ -3197,11 +3219,11 @@ VxWorks provides the following comparable interface:
  <li><code>ovalue</code>. A location in which to return the time remaining from the previous timer setting (ignored).</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
-  If the timer_gettime() succeeds, a value of 0 (OK) will be returned.
-  If an error occurs, the value -1 (ERROR) will be returned, and 
+  If the timer_gettime() succeeds, a value of 0 (<code>OK</code>) will be returned.
+  If an error occurs, the value -1 (<code>ERROR</code>) will be returned, and 
   <a href="#ErrnoAccess"><code>errno</code></a> set to indicate the error.
 </p>
 <ul>
@@ -3248,10 +3270,10 @@ VxWorks provides the following comparable interface:
  t<code>imer_create()</code>, whose remaining count will be returned.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
-  If successful, the <i>timer_gettime()</i> function will return zero (<i>OK</i>).
+  If successful, the <code>timer_gettime()</code> function will return zero (<code>OK</code>).
   Otherwise, an non-zero error number will be returned to indicate the error:
 </p>
 <ul>
@@ -3302,7 +3324,7 @@ VxWorks provides the following comparable interface:
  <code>timer_create()</code>, whose overrun count will be returned.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   If the <code>timer_getoverrun()</code> function succeeds, it will return the timer
   expiration overrun count as explained above. <code>timer_getoverrun()</code> will fail if:
 </p>
@@ -3348,7 +3370,7 @@ interface of the same name.
  <li><code>tzp</code>. A reference to the timezone -- <i>IGNORED</i>.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   See <a href="#clockgettime"><code>clock_gettime()</code></a>.
 </p>
 
@@ -3414,13 +3436,13 @@ by set such that all signals are excluded.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>set</i>. Signal set to initialize.
+<li><code>set</code>. Signal set to initialize.
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK), or -1 (ERROR) if the signal set cannot be initialized.
+<li>0 (<code>OK</code>), or -1 (<code>ERROR</code>) if the signal set cannot be initialized.
 </ul>
 
 <p>
@@ -3444,13 +3466,13 @@ by set such that all signals are included.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>set</i>. Signal set to initialize
+<li><code>set</code>. Signal set to initialize
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK), or -1 (ERROR) if the signal set cannot be initialized.
+<li>0 (<code>OK</code>), or -1 (<code>ERROR</code>) if the signal set cannot be initialized.
 </ul>
 
 <p>
@@ -3474,14 +3496,14 @@ signo to the signal set specified by set.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>set</i>. Signal set to add signal to
-<li><i>signo</i>. Signal to add
+<li><code>set</code>. Signal set to add signal to
+<li><code>signo</code>. Signal to add
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK), or -1 (ERROR) if the signal number is invalid.
+<li>0 (<code>OK</code>), or -1 (<code>ERROR</code>) if the signal number is invalid.
 </ul>
 
 <p>
@@ -3505,14 +3527,14 @@ by signo from the signal set specified by set.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>set</i>. Signal set to delete the signal from
-<li><i>signo</i>. Signal to delete
+<li><code>set</code>. Signal set to delete the signal from
+<li><code>signo</code>. Signal to delete
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK), or -1 (ERROR) if the signal number is invalid.
+<li>0 (<code>OK</code>), or -1 (<code>ERROR</code>) if the signal number is invalid.
 </ul>
 
 <p>
@@ -3536,16 +3558,16 @@ by signo is a member of the set specified by set.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>set</i>. Signal set to test
-<li><i>signo</i>. Signal to test for
+<li><code>set</code>. Signal set to test
+<li><code>signo</code>. Signal to test for
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>1 (TRUE), if the specified signal is a member of the set,
 <li>0 (OK or FALSE), if it is not, or
-<li>-1 (ERROR) if the signal number is invalid.
+<li>-1 (<code>ERROR</code>) if the signal number is invalid.
 </ul>
 
 <p>
@@ -3560,8 +3582,8 @@ interface of the same name.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;signal.h&gt;
-    int sigaction( int signo, const struct sigaction *act,
-                   struct sigaction *oact );
+    int sigaction(int signo, const struct sigaction *act,
+                  struct sigaction *oact);
 </pre>
 
 <p>
@@ -3572,12 +3594,12 @@ signal.
 The structure sigaction, used to describe an action to be taken, is defined
 to include the following members:
 <ul>
-<li><i>sa_u.sa_handler</i>.  A pointer to a signal-catching function.
-<li><i>sa_u.sa_sigaction</i>.  An alternative form for the signal catching
+<li><code>sa_u.sa_handler</code>.  A pointer to a signal-catching function.
+<li><code>sa_u.sa_sigaction</code>.  An alternative form for the signal catching
 function.
-<li><i>sa_mask</i>.  Additional set of signals to be blocked during
+<li><code>sa_mask</code>.  Additional set of signals to be blocked during
 execution of the signal-catching function.
-<li><i>sa_flags</i>:  Special flags to affect behavior of a signal.
+<li><code>sa_flags</code>:  Special flags to affect behavior of a signal.
 </ul>
 <p>
 If the argument act is not NULL, it points to a structure specifying the
@@ -3603,15 +3625,15 @@ sigaction().
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>sig</i>. Signal of interest
-<li><i>act</i>. Location of new handler
-<li><i>oact</i>. Location to store old handler
+<li><code>sig</code>. Signal of interest
+<li><code>act</code>. Location of new handler
+<li><code>oact</code>. Location to store old handler
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK), or -1 (ERROR) if the signal number is invalid.
+<li>0 (<code>OK</code>), or -1 (<code>ERROR</code>) if the signal number is invalid.
 </ul>
 
 <p>
@@ -3650,25 +3672,25 @@ If sigprocmask() fails, the signal mask of the task is not changed.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>how</i>. How the signal mast will be changed:
+<li><code>how</code>. How the signal mast will be changed:
 <ul>
-<li><i>SIG_BLOCK</i>. The resulting set is the union of the
-current set and the signal set pointed to by the <i>set</i> input parameter.
-<li><i>SIG_UNBLOCK</i>. The resulting set is the intersection
+<li><code>SIG_BLOCK</code>. The resulting set is the union of the
+current set and the signal set pointed to by the <code>set</code> input parameter.
+<li><code>SIG_UNBLOCK</code>. The resulting set is the intersection
 of the current set and the complement of the signal set pointed
-to by the <i>set</i> input parameter.
-<li><i>SIG_SETMASK</i>. The resulting set is the signal set
-pointed to by the <i>set</i> input parameter.
+to by the <code>set</code> input parameter.
+<li><code>SIG_SETMASK</code>. The resulting set is the signal set
+pointed to by the <code>set</code> input parameter.
 </ul>
 
-<li><i>set</i>. Location of the new signal mask
-<li><i>oset</i>. Location to store the old signal mask
+<li><code>set</code>. Location of the new signal mask
+<li><code>oset</code>. Location to store the old signal mask
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK), or -1 (ERROR) if how is invalid.
+<li>0 (<code>OK</code>), or -1 (<code>ERROR</code>) if how is invalid.
 </ul>
 
 <p>
@@ -3683,7 +3705,7 @@ interface of the same name.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;signal.h&gt;
-    int sigpending( sigset_t *set );
+    int sigpending(sigset_t *set);
 </pre>
 
 <p>
@@ -3700,13 +3722,13 @@ is delivered more than once.&quot;
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>set</i>. The location to return the pending signal set.
+<li><code>set</code>. The location to return the pending signal set.
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>0 (OK) or -1 (ERROR)
+<li>0 (<code>OK</code>) or -1 (<code>ERROR</code>)
 </ul>
 
 <p>
@@ -3721,7 +3743,7 @@ interface of the same name.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;signal.h&gt;
-    int sigsuspend( const sigset_t *set );
+    int sigsuspend(const sigset_t *set);
 </pre>
 
 <p>
@@ -3739,14 +3761,14 @@ resources (a very bad idea).
 <p>
 <b>Input Parameters:</b>
 <ul>
-<li><i>set</i>.  The value of the signal <b>mask</b> to use while
+<li><code>set</code>.  The value of the signal <b>mask</b> to use while
 suspended.
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
-<li>-1 (ERROR) always
+<li>-1 (<code>ERROR</code>) always
 </ul>
 
 <p>
@@ -3778,15 +3800,15 @@ with a NULL timeout parameter. (see below).
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>set</i>.  The set of pending signals to wait for.
-<li><i>info</i>. The returned signal values
+<li><code>set</code>.  The set of pending signals to wait for.
+<li><code>info</code>. The returned signal values
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>Signal number that cause the wait to be terminated, otherwise
--1 (ERROR) is returned.
+-1 (<code>ERROR</code>) is returned.
 </ul>
 
 <p>
@@ -3801,8 +3823,8 @@ interface of the same name.
 <b>Function Prototype:</b> 
 <pre>
     #include &lt;signal.h&gt;
-    int sigtimedwait( const sigset_t *set, struct siginfo *info,
-                      const struct timespec *timeout );
+    int sigtimedwait(const sigset_t *set, struct siginfo *info,
+                     const struct timespec *timeout);
 </pre>
 
 <p>
@@ -3821,26 +3843,26 @@ in the si_code member. The content of si_value is only meaningful
 if the signal was generated by sigqueue(). The following values
 for si_code are defined in signal.h:
 <ul>
-  <li><i>SI_USER</i>. Signal sent from kill, raise, or abort
-  <li><i>SI_QUEUE</i>. Signal sent from sigqueue
-  <li><i>SI_TIMER</i>. Signal is result of timer expiration
-  <li><i>SI_ASYNCIO</i>. Signal is the result of asynchronous IO completion 
-  <li><i>SI_MESGQ</i>. Signal generated by arrival of a message on an empty message queue.
+  <li><code>SI_USER</code>. Signal sent from kill, raise, or abort
+  <li><code>SI_QUEUE</code>. Signal sent from sigqueue
+  <li><code>SI_TIMER</code>. Signal is result of timer expiration
+  <li><code>SI_ASYNCIO</code>. Signal is the result of asynchronous IO completion 
+  <li><code>SI_MESGQ</code>. Signal generated by arrival of a message on an empty message queue.
 </ul>
 
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>set</i>.  The set of pending signals to wait for.
-<li><i>info</i>. The returned signal values
-<li><i>timeout</i>. The amount of time to wait
+<li><code>set</code>.  The set of pending signals to wait for.
+<li><code>info</code>. The returned signal values
+<li><code>timeout</code>. The amount of time to wait
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>Signal number that cause the wait to be terminated, otherwise
--1 (ERROR) is returned.
+-1 (<code>ERROR</code>) is returned.
 </ul>
 
 <p>
@@ -3854,7 +3876,7 @@ Differences from the POSIX interface include:
 <li>No mechanism to return cause of ERROR. (It can be inferred
 from si_code in a non-standard way).
 <li>POSIX states that &quot;If no signal is pending at the time of the
-call, the calling task shall be suspended until one or more signals
+call, the calling task will be suspended until one or more signals
 in set become pending or until it is interrupted by an unblocked,
 <i>caught</i> signal.&quot;  The present implementation does not require
 that the unblocked signal be caught; the task will be resumed even if
@@ -3884,17 +3906,17 @@ is delivered more than once.&quot;
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>tid</i>. ID of the task to receive signal
-<li><i>signo</i>. Signal number
-<li><i>value</i>. Value to pass to task with signal
+<li><code>tid</code>. ID of the task to receive signal
+<li><code>signo</code>. Signal number
+<li><code>value</code>. Value to pass to task with signal
 </ul>
 
 <p>
-<b>Returned Values:</b> 
+<b>Returned Value:</b> 
 <ul>
 <li>
-  On  success (at least one signal was sent), zero (OK) is returned.
-  On error, -1 (ERROR) is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately.
+  On  success (at least one signal was sent), zero (<code>OK</code>) is returned.
+  On error, -1 (<code>ERROR</code>) is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately.
   <ul>
     <li><code>EGAIN</code>. The limit of signals which may be queued has been reached.</li>
     <li><code>EINVAL</code>. signo was invalid.</li>
@@ -3944,17 +3966,17 @@ be sent.
 <p>
 <b>Input Parameters:</b> 
 <ul>
-<li><i>pid</i>. The id of the task to receive the signal.
+<li><code>pid</code>. The id of the task to receive the signal.
   The POSIX <code>kill()</code> specification encodes process group
   information as zero and negative pid values.
   Only positive, non-zero values of pid are supported by this
   implementation. ID of the task to receive signal
-<li><i>signo</i>. The signal number to send.
+<li><code>signo</code>. The signal number to send.
   If signo is zero, no signal is sent, but all error checking is performed.
 </ul>
 
 <p>
-  <b>Returned Values:</b> 
+  <b>Returned Value:</b> 
   <ul>
     <li>OK or ERROR
   </ul>
@@ -4064,9 +4086,6 @@ be sent.
   <li><code>pthread_attr_setscope</code>. get and set the contentionscope attribute.</li>
   <li><code>pthread_attr_setstack</code>. get and set stack attributes.</li>
   <li><code>pthread_attr_setstackaddr</code>. get and set the stackaddr attribute.</li>
-  <li><code>pthread_barrier_destroy</code>. destroy and initialize a barrier object.</li>
-  <li><code>pthread_barrier_init</code>. destroy and initialize a barrier object.</li>
-  <li><code>pthread_barrier_wait</code>. synchronize at a barrier.</li>
   <li><code>pthread_cleanup_pop</code>. establish cancellation handlers.</li>
   <li><code>pthread_cleanup_push</code>. establish cancellation handlers.</li>
   <li><code>pthread_condattr_getclock</code>. set the clock selection condition variable attribute.</li>
@@ -4124,10 +4143,10 @@ for all of the individual attributes used by the implementation.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_attr_init()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_attr_init()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4156,10 +4175,10 @@ An attributes object can be deleted when it is no longer needed.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_attr_destroy()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_attr_destroy()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4187,10 +4206,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_attr_setschedpolicy()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_attr_setschedpolicy()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4218,10 +4237,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_attr_getschedpolicy()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_attr_getschedpolicy()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4237,9 +4256,9 @@ interface of the same name.
 <b>Function Prototype:</b>
 <p>
 <pre>
-   #include &lt;pthread.h&gt;
+    #include &lt;pthread.h&gt;
     int pthread_attr_setschedparam(pthread_attr_t *attr,
-				      const struct sched_param *param);
+                                   const struct sched_param *param);
 </pre>
 <p>
 <b>Description:</b>
@@ -4250,10 +4269,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_attr_getschedpolicy()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_attr_getschedpolicy()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4269,9 +4288,9 @@ interface of the same name.
 <b>Function Prototype:</b>
 <p>
 <pre>
-   #include &lt;pthread.h&gt;
-     int pthread_attr_getschedparam(pthread_attr_t *attr,
-				      struct sched_param *param);
+    #include &lt;pthread.h&gt;
+    int pthread_attr_getschedparam(pthread_attr_t *attr,
+                                   struct sched_param *param);
 </pre>
 <p>
 <b>Description:</b>
@@ -4282,10 +4301,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_attr_getschedparam()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_attr_getschedparam()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4303,7 +4322,7 @@ interface of the same name.
 <pre>
    #include &lt;pthread.h&gt;
     int pthread_attr_setinheritsched(pthread_attr_t *attr,
-					int inheritsched);
+                                     int inheritsched);
 </pre>
 <p>
 <b>Description:</b>
@@ -4314,10 +4333,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_attr_setinheritsched()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_attr_setinheritsched()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4335,7 +4354,7 @@ interface of the same name.
 <pre>
    #include &lt;pthread.h&gt;
      int pthread_attr_getinheritsched(const pthread_attr_t *attr,
-					int *inheritsched);
+                                      int *inheritsched);
 </pre>
 <p>
 <b>Description:</b>
@@ -4346,10 +4365,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_attr_getinheritsched()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_attr_getinheritsched()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4365,7 +4384,7 @@ interface of the same name.
 <b>Function Prototype:</b>
 <p>
 <pre>
-   #include &lt;pthread.h&gt;
+    #include &lt;pthread.h&gt;
     int pthread_attr_setstacksize(pthread_attr_t *attr, long stacksize);
 </pre>
 <p>
@@ -4377,10 +4396,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_attr_setstacksize()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_attr_setstacksize()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4397,7 +4416,7 @@ interface of the same name.
 <p>
 <pre>
     #include &lt;pthread.h&gt;
-   int pthread_attr_getstacksize(pthread_attr_t *attr, long *stackaddr);
+    int pthread_attr_getstacksize(pthread_attr_t *attr, long *stackaddr);
 </pre>
 <p>
 <b>Description:</b>
@@ -4408,10 +4427,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_attr_getstacksize()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_attr_getstacksize()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4429,8 +4448,8 @@ interface of the same name.
 <pre>
     #include &lt;pthread.h&gt;
     int pthread_create(pthread_t *thread, pthread_attr_t *attr,
-			  pthread_startroutine_t startRoutine,
-			  pthread_addr_t arg);
+                       pthread_startroutine_t startRoutine,
+                       pthread_addr_t arg);
 </pre>
 <p>
 <b>Description:</b>
@@ -4447,10 +4466,10 @@ specify details about the kind of thread being created.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_create()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_create()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4480,10 +4499,10 @@ return value and completion status will not be requested.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_detach()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_detach()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4512,10 +4531,10 @@ A thread may terminate it's own execution.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_exit()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_exit()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4537,10 +4556,10 @@ interface of the same name.
 <p>
 <b>Description:</b>
 
-<p>The  pthread_cancel() function shall request that thread
+<p>The <code>pthread_cancel()</code> function will request that thread
 be canceled. The target thread's cancelability state determines
 when the cancellation takes effect. When the
-cancellation is acted on, thread shall be terminated.</p>
+cancellation is acted on, thread will be terminated.</p>
 
 <p>When cancelability is disabled, all cancels are held pending
 in the target thread until the thread changes the cancelability.
@@ -4555,17 +4574,17 @@ immediately (when enable), interrupting the thread with its processing.</p>
 <b>Input Parameters:</b>
 <p>
 <ul>
-<li><i>thread</i>.
+<li><code>thread</code>.
 Identifies the thread to be canceled.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_cancel()</i> function will return zero (<i>OK</i>).
+If successful, the <code>pthread_cancel()</code> function will return zero (<code>OK</code>).
 Otherwise, an error number will be returned to indicate the error:
 <p>
 <ul>
-<li><i>ESRCH</i>.
+<li><code>ESRCH</code>.
 No thread could be found corresponding to that specified by the given thread ID.</li>
 </ul>
 <b>Assumptions/Limitations:</b>
@@ -4573,7 +4592,7 @@ No thread could be found corresponding to that specified by the given thread ID.
 <b>POSIX Compatibility:</b> Comparable to the POSIX
 interface of the same name.  Except:</p>
 <ul>
-<li>The thread-specific data destructor functions shall be called for thread.
+<li>The thread-specific data destructor functions will be called for thread.
 However, these destructors are not currently supported.</li>
 <li>Cancellation types are not supported.  The thread will be canceled
 at the time that pthread_cancel() is called or, if cancellation is disabled, at
@@ -4592,7 +4611,7 @@ the time when cancellation is re-enabled.</li>
 </pre>
 <p>
 <b>Description:</b>
-<p>The <i>pthread_setcancelstate()</i> function atomically
+<p>The <code>pthread_setcancelstate()</code> function atomically
 sets both the calling thread's cancelability state to the indicated
 state and returns the previous cancelability  state at the location
 referenced by oldstate.
@@ -4604,19 +4623,19 @@ cancellation state is set to PTHREAD_CANCEL_ENABLE.</p>
 <b>Input Parameters:</b>
 <p>
 <ul>
-<li><i>state</i> 
+<li><code>state</code> 
 New cancellation state.  One of PTHREAD_CANCEL_ENABLE or PTHREAD_CANCEL_DISABLE.<.li>
-<li><i>oldstate</i>.
+<li><code>oldstate</code>.
 Location to return the previous cancellation state.
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_setcancelstate()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be returned to indicate the error:
+If successful, the <code>pthread_setcancelstate()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be returned to indicate the error:
 <p>
 <ul>
-<li><i>ESRCH</i>.
+<li><code>ESRCH</code>.
 No thread could be found corresponding to that specified by the given thread ID.</li>
 </ul>
 <b>Assumptions/Limitations:</b>
@@ -4641,10 +4660,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_setcancelstate()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_setcancelstate()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4674,10 +4693,10 @@ the return value of the thread.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_join()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_join()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4707,10 +4726,10 @@ made available.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_yield()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_yield()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4739,10 +4758,10 @@ A thread may obtain a copy of its own thread handle.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_self()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_self()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -4806,7 +4825,7 @@ interface of the same name.
   </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   0 (<code>OK</code>) if successful.
   Otherwise, the error code <code>ESRCH</code> if the value specified by
   <code>thread</code> does not refer to an existing thread.
@@ -4871,11 +4890,11 @@ interface of the same name.
   </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
-  If successful, the <i>pthread_setschedparam()</i> function will return
-  zero (<i>OK</i>).  Otherwise, an error number will be
+  If successful, the <code>pthread_setschedparam()</code> function will return
+  zero (<code>OK</code>).  Otherwise, an error number will be
   returned to indicate the error:
 </p>
 <ul>
@@ -4917,7 +4936,7 @@ interface of the same name.
 <p>
 <pre>
     #include &lt;pthread.h&gt;
-    int pthread_key_create( pthread_key_t *key, void (*destructor)(void*) )
+    int pthread_key_create(pthread_key_t *key, void (*destructor)(void*))
 </pre>
 <p>
 <b>Description:</b>
@@ -4925,38 +4944,38 @@ interface of the same name.
 This function creates a thread-specific data key visible
 to all threads in the system.  Although the same key value
 may be used by different threads, the values bound to
-the key by <i>pthread_setspecific()</i> are maintained on a
+the key by <code>pthread_setspecific()</code> are maintained on a
 per-thread basis and persist for the life of the calling
 thread.
 <p>
-Upon key creation, the value <i>NULL</i> will be associated with
+Upon key creation, the value <code>NULL</code> will be associated with
 the new key in all active threads.  Upon thread
-creation, the value <i>NULL</i> will be associated with all
+creation, the value <code>NULL</code> will be associated with all
 defined keys in the new thread.
 <p>
 <b>Input Parameters:</b>
 <p>
 <ul>
-<li><i>key</i> is a pointer to the key to create.
-<li><i>destructor</i> is an optional destructor() function that may
+<li><code>key</code> is a pointer to the key to create.
+<li><code>destructor</code> is an optional destructor() function that may
 be associated with each key that is invoked when a
 thread exits.  However, this argument is ignored in
 the current implementation.
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_key_create()</i> function will
-store the newly created key value at *<i>key</i> and return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_key_create()</code> function will
+store the newly created key value at <code>*key</code> and return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
-<li><i>EAGAIN</i>.  The system lacked sufficient resources
+<li><code>EAGAIN</code>.  The system lacked sufficient resources
 to create another thread-specific data key, or the
 system-imposed limit on the total number of keys
-per task {<i>PTHREAD_KEYS_MAX</i>} has been exceeded
-<li><i>ENONMEM</i>  Insufficient memory exists to create the key.
+per task {<code>PTHREAD_KEYS_MAX</code>} has been exceeded
+<li><code>ENONMEM</code>  Insufficient memory exists to create the key.
 </ul>
 <b>Assumptions/Limitations:</b>
 <p>
@@ -4972,39 +4991,39 @@ interface of the same name.
 <p>
 <pre>
     #include &lt;pthread.h&gt;
-    int pthread_setspecific( pthread_key_t key, void *value )
+    int pthread_setspecific(pthread_key_t key, void *value)
 </pre>
 <p>
 <b>Description:</b>
 <p>
-The <i>pthread_setspecific()</i> function associates a thread-
+The <code>pthread_setspecific()</code> function associates a thread-
 specific value with a key obtained via a previous call
-to <i>pthread_key_create()</i>.  Different threads may bind
+to <code>pthread_key_create()</code>.  Different threads may bind
 different values to the same key.  These values are
 typically pointers to blocks of dynamically allocated
 memory that have been reserved for use by the calling
 thread.
 <p>
-The effect of calling <i>pthread_setspecific()</i> with a key value
-not obtained from <i>pthread_key_create()</i> or after a key has been
-deleted with <i>pthread_key_delete()</i> is undefined.
+The effect of calling <code>pthread_setspecific()</code> with a key value
+not obtained from <code>pthread_key_create()</code> or after a key has been
+deleted with <code>pthread_key_delete()</code> is undefined.
 <p>
 <b>Input Parameters:</b>
 <p>
 <ul>
-<li><i>key</i>.  The data key to set the binding for.
-<li><i>value</i>. The value to bind to the key.
+<li><code>key</code>.  The data key to set the binding for.
+<li><code>value</code>. The value to bind to the key.
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, <i>pthread_setspecific()</i> will return zero (<i>OK</i>).
+If successful, <code>pthread_setspecific()</code> will return zero (<code>OK</code>).
 Otherwise, an error number will be returned:
 <p>
 <ul>
-<li><i>ENOMEM</i>.  Insufficient memory exists to associate the value
+<li><code>ENOMEM</code>.  Insufficient memory exists to associate the value
 with the key.
-<li><i>EINVAL</i>.  The key value is invalid.
+<li><code>EINVAL</code>.  The key value is invalid.
 </ul>
 <p>
 <b>Assumptions/Limitations:</b>
@@ -5022,31 +5041,31 @@ destructor function.
 <p>
 <pre>
     #include &lt;pthread.h&gt;
-    void *pthread_getspecific( pthread_key_t key )
+    void *pthread_getspecific(pthread_key_t key)
 </pre>
 <p>
 <b>Description:</b>
 <p>
-The <i>pthread_getspecific()</i> function returns the value
+The <code>pthread_getspecific()</code> function returns the value
 currently bound to the specified key on behalf of the
 calling thread.
 <p>
-The effect of calling <i>pthread_getspecific()</i> with a key value
-not obtained from <i>pthread_key_create()</i> or after a key has been
-deleted with <i>pthread_key_delete()</i> is undefined.
+The effect of calling <code>pthread_getspecific()</code> with a key value
+not obtained from <code>pthread_key_create()</code> or after a key has been
+deleted with <code>pthread_key_delete()</code> is undefined.
 <p>
 <b>Input Parameters:</b>
 <p>
 <ul>
-<li><i>key</i>.  The data key to get the binding for.
+<li><code>key</code>.  The data key to get the binding for.
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-The function <i>pthread_getspecific()</i> returns the thread-
+The function <code>pthread_getspecific()</code> returns the thread-
 specific data associated with the given key.  If no
 thread specific data is associated with the key, then
-the value <i>NULL</i> is returned.
+the value <code>NULL</code> is returned.
 <p>
 <b>Assumptions/Limitations:</b>
 <p>
@@ -5063,25 +5082,25 @@ destructor function.
 <p>
 <pre>
     #include &lt;pthread.h&gt;
-    int pthread_key_delete( pthread_key_t key )
+    int pthread_key_delete(pthread_key_t key)
 </pre>
 <p>
 <b>Description:</b>
 <p>
 This POSIX function should delete a thread-specific data
-key previously returned by <i>pthread_key_create()</i>.  However,
+key previously returned by <code>pthread_key_create()</code>.  However,
 this function does nothing in the present implementation.
 <p>
 <b>Input Parameters:</b>
 <p>
 <ul>
-<li><i>key</i>.  The key to delete
+<li><code>key</code>.  The key to delete
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
 <ul>
-<li>Always returns <i>EINVAL</i>.
+<li>Always returns <code>EINVAL</code>.
 </ul>
 <p>
 <b>Assumptions/Limitations:</b>
@@ -5106,10 +5125,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_mutexattr_init()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_mutexattr_init()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5137,10 +5156,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_mutexattr_destroy()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_mutexattr_destroy()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5158,7 +5177,7 @@ interface of the same name.
 <pre>
     #include &lt;pthread.h&gt;
     int pthread_mutexattr_getpshared(pthread_mutexattr_t *attr,
-					int *pshared);
+                                     int *pshared);
 </pre>
 <p>
 <b>Description:</b>
@@ -5169,10 +5188,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_mutexattr_getpshared()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_mutexattr_getpshared()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5190,7 +5209,7 @@ interface of the same name.
 <pre>
     #include &lt;pthread.h&gt;
    int pthread_mutexattr_setpshared(pthread_mutexattr_t *attr,
-					int pshared);
+                                    int pshared);
 </pre>
 <p>
 <b>Description:</b>
@@ -5201,10 +5220,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_mutexattr_setpshared()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_mutexattr_setpshared()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5237,10 +5256,10 @@ interface of the same name.
     for a description of possible mutex types that may be returned.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_mutexattr_settype()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_mutexattr_settype()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5291,10 +5310,10 @@ returned to indicate the error:
   </p>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_mutexattr_settype()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_mutexattr_settype()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5311,7 +5330,7 @@ returned to indicate the error:
 <pre>
     #include &lt;pthread.h&gt;
     int pthread_mutex_init(pthread_mutex_t *mutex,
-			      pthread_mutexattr_t *attr);
+                           pthread_mutexattr_t *attr);
 </pre>
 <p>
 <b>Description:</b>
@@ -5322,10 +5341,10 @@ returned to indicate the error:
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_mutex_init()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_mutex_init()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5353,10 +5372,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_mutex_destroy()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_mutex_destroy()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5419,9 +5438,9 @@ interface of the same name.
   <li><code>mutex</code>.  A reference to the mutex to be locked.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_mutex_lock()</i> function will return zero (<i>OK</i>).
+If successful, the <code>pthread_mutex_lock()</code> function will return zero (<code>OK</code>).
 Otherwise, an error number will be returned to indicate the error:
 <p>
 <ul>
@@ -5446,7 +5465,7 @@ interface of the same name.
    The function pthread_mutex_trylock() is identical to <a href="#pthreadmutexlock"><code>pthread_mutex_lock()</code></a>
    except that if the mutex object referenced by mutex is currently locked
    (by any thread, including the current thread), the call returns immediately
-   with the errno <code>EBUSY</code>.
+   with the <code>errno</code> <code>EBUSY</code>.
 <p>
    If a signal is delivered to a thread waiting for a mutex, upon return from
    the signal handler the thread resumes waiting for the mutex as if it was
@@ -5459,9 +5478,9 @@ interface of the same name.
   <li><code>mutex</code>.  A reference to the mutex to be locked.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_mutex_trylock()</i> function will return zero (<i>OK</i>).
+If successful, the <code>pthread_mutex_trylock()</code> function will return zero (<code>OK</code>).
 Otherwise, an error number will be returned to indicate the error:
 <p>
 <ul>
@@ -5489,7 +5508,7 @@ interface of the same name.
    mutex's type attribute. If there are threads blocked on the mutex object
    referenced by mutex when <code>pthread_mutex_unlock()</code> is called, resulting in
    the mutex becoming available, the scheduling policy is used to determine
-   which thread shall acquire the mutex. (In the case of <code>PTHREAD_MUTEX_RECURSIVE</code>
+   which thread will acquire the mutex. (In the case of <code>PTHREAD_MUTEX_RECURSIVE</code>
    mutexes, the mutex becomes available when the count reaches zero and the
    calling thread no longer has any locks on this mutex).
 </p>
@@ -5504,10 +5523,10 @@ interface of the same name.
   <li><code>mutex</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_mutex_unlock()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_mutex_unlock()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5536,10 +5555,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_condattr_init()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_condattr_init()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5567,10 +5586,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_condattr_destroy()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_condattr_destroy()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5598,10 +5617,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_cond_init()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_cond_init()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5629,10 +5648,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_cond_destroy()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_cond_destroy()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5660,10 +5679,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_cond_broadcast()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_cond_broadcast()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5691,10 +5710,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-<b>Returned Values:</b>
+<b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_cond_signal()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_cond_signal()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5722,10 +5741,10 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 <p>
-If successful, the <i>pthread_cond_wait()</i> function will return
-zero (<i>OK</i>).  Otherwise, an error number will be
+If successful, the <code>pthread_cond_wait()</code> function will return
+zero (<code>OK</code>).  Otherwise, an error number will be
 returned to indicate the error:
 <p>
 <ul>
@@ -5743,7 +5762,7 @@ interface of the same name.
 <pre>
     #include &lt;pthread.h&gt;
     int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
-				  const struct timespec *abstime);
+                               const struct timespec *abstime);
 </pre>
 <p>
   <b>Description:</b>
@@ -5756,7 +5775,7 @@ interface of the same name.
   <li><code>To be provided</code>.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
   If successful, the <code>pthread_cond_timedwait()</code> function will return
@@ -5796,7 +5815,7 @@ interface of the same name.
 </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   0 (<code>OK</code>) on success or <code>EINVAL</code> if <code>attr</code> is invalid.
 </p>
 <p>
@@ -5829,7 +5848,7 @@ interface of the same name.
 </li>
 </ul>
 <p>
-  <b>Returned Values:</b> 0 (OK) on success or EINVAL if attr is invalid.
+  <b>Returned Value:</b> 0 (<code>OK</code>) on success or <code>EINVAL</code> if attr is invalid.
 </p>
 <p>
   <b>Assumptions/Limitations:</b>
@@ -5865,7 +5884,7 @@ interface of the same name.
   <li><code>pshared</code>. The new value of the pshared attribute.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>  0 (<code>OK</code>) on success or <code>EINVAL</code> if either
+  <b>Returned Value:</b>  0 (<code>OK</code>) on success or <code>EINVAL</code> if either
   <code>attr</code> is invalid or <code>pshared</code> is not one of
   <code>PTHREAD_PROCESS_SHARED</code> or <code>PTHREAD_PROCESS_PRIVATE</code>.
 </p>
@@ -5898,7 +5917,7 @@ interface of the same name.
   <li><code>pshared</code>. The location to stored the current value of the pshared attribute.</li>
 </ul>
 <p>
-  <b>Returned Values:</b> 0 (<code>OK</code>) on success or <code>EINVAL</code> if
+  <b>Returned Value:</b> 0 (<code>OK</code>) on success or <code>EINVAL</code> if
   either <code>attr</code> or <code>pshared</code> is invalid.
 </p>
 <p>
@@ -5950,7 +5969,7 @@ interface of the same name.
   </li>
 </ul>
 <p>
-  <b>Returned Values:</b>0 (OK) on success or on of the following error numbers:
+  <b>Returned Value:</b>0 (<code>OK</code>) on success or on of the following error numbers:
 </p>
 <ul>
   <li>
@@ -6003,7 +6022,7 @@ interface of the same name.
   <li><code>barrier</code>. The barrier to be destroyed.</li>
 </ul>
 <p>
-  <b>Returned Values:</b> 0 (<code>OK</code>) on success or on of the following error numbers:
+  <b>Returned Value:</b> 0 (<code>OK</code>) on success or on of the following error numbers:
 </p>
 <ul>
   <li>
@@ -6072,7 +6091,7 @@ interface of the same name.
   <li><code>barrier</code>. The barrier on which to wait.</li>
 </ul>
 <p>
-  <b>Returned Values:</b> 0 (<code>OK</code>) on success or <code>EINVAL</code> if the barrier is not valid.
+  <b>Returned Value:</b> 0 (<code>OK</code>) on success or <code>EINVAL</code> if the barrier is not valid.
 </p>
 <p>
   <b>Assumptions/Limitations:</b>
@@ -6116,8 +6135,8 @@ interface of the same name.
   </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
-  0 (OK) on success or EINVAL if either once_control or init_routine are invalid.
+  <b>Returned Value:</b>
+  0 (<code>OK</code>) on success or <code>EINVAL</code> if either once_control or init_routine are invalid.
 </p>
 <p>
   <b>Assumptions/Limitations:</b>
@@ -6157,7 +6176,7 @@ interface of the same name.
   </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
   On success, the signal was sent and zero is returned.
@@ -6232,11 +6251,11 @@ interface of the same name.
   </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
-<p>
-  0 (OK) on success or EINVAL if <code>how</code> is invalid.
-</p>
+<ul>
+  0 (<code>OK</code>) on success or <code>EINVAL</code> if <code>how</code> is invalid.
+</ul>
 <p>
   <b>Assumptions/Limitations:</b>
 </p>
@@ -6314,7 +6333,7 @@ interface of the same name.
   </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
    The value of the variable (read-only) or NULL on failure.
 </p>
 
@@ -6341,11 +6360,11 @@ interface of the same name.
 <ul>
   <li>
     <code>string</code>
-    name=value string describing the environment setting to add/modify.
+    <i>name=value</i> string describing the environment setting to add/modify.
   </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   Zero on success.
 </p>
 
@@ -6367,7 +6386,7 @@ interface of the same name.
   None
 </p>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   Zero on success.
 </p>
 
@@ -6405,7 +6424,7 @@ interface of the same name.
   </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   Zero on success.
 </p>
 
@@ -6432,7 +6451,7 @@ interface of the same name.
   </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   Zero on success.
 </p>
 
@@ -6560,7 +6579,7 @@ interface of the same name.
 </p>
 <pre>
   #include &lt;poll.h&gt;
-  int     poll(struct pollfd *fds, nfds_t nfds, int timeout);
+  int poll(struct pollfd *fds, nfds_t nfds, int timeout);
 </pre>
 <p>
   <b>Description:</b>
@@ -6607,7 +6626,7 @@ interface of the same name.
     timeout.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <p>
   On success, the number of structures that have nonzero <code>revents</code> fields.
@@ -6629,11 +6648,11 @@ interface of the same name.
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;sys/select.h&gt;
-  int     select(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
-                 FAR fd_set *exceptfds, FAR struct timeval *timeout);
-</pre>
+<ul><pre>
+#include &lt;sys/select.h&gt;
+int select(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
+           FAR fd_set *exceptfds, FAR struct timeval *timeout);
+</pre></ul>
 <p>
   <b>Description:</b>
   <code>select()</code> allows a program to monitor multiple file descriptors, waiting
@@ -6660,7 +6679,7 @@ interface of the same name.
   <li><code>timeout</code>. Return at this time if none of these events of interest occur.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
 </p>
 <ul>
   <li><code>0:</code> Timer expired</li>
@@ -6802,10 +6821,10 @@ void  *memmove(void *dest, const void *src, size_t count);
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;unistd.h&gt;
-  int pipe(int filedes[2]);
-</pre>
+<ul><pre>
+#include &lt;unistd.h&gt;
+int pipe(int filedes[2]);
+</pre></ul>
 <p>
   <b>Description:</b>
   <ul>
@@ -6824,7 +6843,7 @@ void  *memmove(void *dest, const void *src, size_t count);
 </p>
 </p>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   <ul>
     <p>
       0 is returned on success; otherwise, -1 is returned with <code>errno</code> set appropriately.
@@ -6836,10 +6855,10 @@ void  *memmove(void *dest, const void *src, size_t count);
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;sys/stat.h&gt;
-  int mkfifo(FAR const char *pathname, mode_t mode);
-</pre>
+<ul><pre>
+#include &lt;sys/stat.h&gt;
+int mkfifo(FAR const char *pathname, mode_t mode);
+</pre></ul>
 <p>
   <b>Description:</b>
   <ul>
@@ -6871,7 +6890,7 @@ void  *memmove(void *dest, const void *src, size_t count);
   </ul>
 </p>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   <ul>
     <p>
       0 is returned on success; otherwise, -1 is returned with <code>errno</code> set appropriately.
@@ -6933,7 +6952,7 @@ struct fat_format_s
   </ul>
 </p>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   <ul>
     <p>
       Zero (<code>OK</code>) on success;
@@ -7189,7 +7208,7 @@ FAR void *mmap(FAR void *start, size_t length, int prot, int flags, int fd, off_
   </ul>
 </p>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   <ul>
     <p>
       On success, <code>mmap()</code> returns a pointer to the mapped area.
@@ -7246,10 +7265,10 @@ Those socket APIs are discussed in the following paragraphs.</p>
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;sys/socket.h&gt;
-  int socket(int domain, int type, int protocol);
-</pre>
+<ul><pre>
+#include &lt;sys/socket.h&gt;
+int socket(int domain, int type, int protocol);
+</pre></ul>
 <p>
   <b>Description:</b>
    socket() creates an endpoint for communication and returns a descriptor.
@@ -7264,7 +7283,7 @@ Those socket APIs are discussed in the following paragraphs.</p>
   <li><code>protocol</code>: (see sys/socket.h)</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   0 on success; -1 on error with <a href="#ErrnoAccess"><code>errno</code></a> set appropriately:
 </p>
 <ul>
@@ -7288,10 +7307,10 @@ Those socket APIs are discussed in the following paragraphs.</p>
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;sys/socket.h&gt;
-  int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
-</pre>
+<ul><pre>
+#include &lt;sys/socket.h&gt;
+int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+</pre></ul>
 <p>
   <b>Description:</b>
    <code>bind()</code> gives the socket sockfd the local address <code>addr</code>.
@@ -7310,7 +7329,7 @@ Those socket APIs are discussed in the following paragraphs.</p>
   <li><code>addrlen</code>: Length of <code>addr</code>.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   0 on success; -1 on error with <a href="#ErrnoAccess"><code>errno</code></a> set appropriately:
 </p>
 <ul>
@@ -7330,10 +7349,10 @@ Those socket APIs are discussed in the following paragraphs.</p>
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;sys/socket.h&gt;
-  int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
-</pre>
+<ul><pre>
+#include &lt;sys/socket.h&gt;
+int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+</pre></ul>
 <p>
   <b>Description:</b>
   <code>connect()</code> connects the socket referred to by the file descriptor
@@ -7365,7 +7384,7 @@ Those socket APIs are discussed in the following paragraphs.</p>
   <li><code>addrlen</code>: Length of actual <code>addr</code></li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   0 on success; -1 on error with <a href="#ErrnoAccess"><code>errno</code></a> set appropriately:
 </p>
   <li><code>EACCES</code> or </code>EPERM</code>:
@@ -7409,10 +7428,10 @@ Those socket APIs are discussed in the following paragraphs.</p>
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;sys/socket.h&gt;
-  int listen(int sockfd, int backlog);
-</pre>
+<ul><pre>
+#include &lt;sys/socket.h&gt;
+int listen(int sockfd, int backlog);
+</pre></ul>
 <p>
   <b>Description:</b>
   To accept connections, a socket is first created with <code>socket()</code>, a
@@ -7432,7 +7451,7 @@ Those socket APIs are discussed in the following paragraphs.</p>
     the request may be ignored so that retries succeed.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   On success, zero is returned. On error, -1 is returned, and
   <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately.
 </p>
@@ -7447,10 +7466,10 @@ Those socket APIs are discussed in the following paragraphs.</p>
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;sys/socket.h&gt;
-  int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
-</pre>
+<ul><pre>
+#include &lt;sys/socket.h&gt;
+int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+</pre></ul>
 <p>
   <b>Description:</b>
   The <code>accept()</code> function is used with connection-based socket types
@@ -7488,7 +7507,7 @@ Those socket APIs are discussed in the following paragraphs.</p>
   <li><code>addrlen</code>: Input: allocated size of <code>addr</code>, Return: returned size of <code>addr</code>.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   Returns -1 on error. If it succeeds, it returns a non-negative integer
   that is a descriptor for the accepted socket.
 </p>
@@ -7525,10 +7544,10 @@ Those socket APIs are discussed in the following paragraphs.</p>
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;sys/socket.h&gt;
-  ssize_t send(int sockfd, const void *buf, size_t len, int flags);
-</pre>
+<ul><pre>
+#include &lt;sys/socket.h&gt;
+ssize_t send(int sockfd, const void *buf, size_t len, int flags);
+</pre></ul>
 <p>
   <b>Description:</b>
   The <code>send()</code> call may be used only when the socket is in a connected state
@@ -7549,7 +7568,7 @@ Those socket APIs are discussed in the following paragraphs.</p>
   <li><code>flags</code>: Send flags
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   See <a href="#sendto"><code>sendto()</code></a>.
 </p>
 
@@ -7557,11 +7576,11 @@ Those socket APIs are discussed in the following paragraphs.</p>
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;sys/socket.h&gt;
-  ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
-                 const struct sockaddr *to, socklen_t tolen);
-</pre>
+<ul><pre>
+#include &lt;sys/socket.h&gt;
+ ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
+               const struct sockaddr *to, socklen_t tolen);
+</pre></ul>
 <p>
   <b>Description:</b>
   If <code>sendto()</code> is used on a connection-mode (SOCK_STREAM, SOCK_SEQPACKET)
@@ -7582,7 +7601,7 @@ Those socket APIs are discussed in the following paragraphs.</p>
   <li><code>tolen</code>: The length of the address structure
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   On success, returns the number of characters sent.  On  error, -1 is returned,
   and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately:
 </p>
@@ -7630,10 +7649,10 @@ Those socket APIs are discussed in the following paragraphs.</p>
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;sys/socket.h&gt;
-  ssize_t recv(int sockfd, void *buf, size_t len, int flags);
-</pre>
+<ul><pre>
+#include &lt;sys/socket.h&gt;
+ssize_t recv(int sockfd, void *buf, size_t len, int flags);
+</pre></ul>
 <p>
   <b>Description:</b>
   The <code>recv()</code> call is identical to
@@ -7652,7 +7671,7 @@ Those socket APIs are discussed in the following paragraphs.</p>
   <li>flags</code>: Receive flags </li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   See <a href="#recvfrom"><code>recvfrom()</code></a>.
 </p>
 
@@ -7660,11 +7679,11 @@ Those socket APIs are discussed in the following paragraphs.</p>
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;sys/socket.h&gt;
-  ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
-                   struct sockaddr *from, socklen_t *fromlen);
-</pre>
+<ul><pre>
+#include &lt;sys/socket.h&gt;
+ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
+                 struct sockaddr *from, socklen_t *fromlen);
+</pre></ul>
 <p>
   <b>Description:</b>
   <code>recvfrom()</code> receives messages from a socket, and may be used to receive
@@ -7688,7 +7707,7 @@ Those socket APIs are discussed in the following paragraphs.</p>
     <li><code>fromlen</code>: The length of the address structure.</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   On success, returns the number of characters sent.
   If no data is available to be received and the peer has performed an orderly shutdown, recv() will return 0.
   Othwerwise, on errors, -1 is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately:
@@ -7723,11 +7742,11 @@ Those socket APIs are discussed in the following paragraphs.</p>
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;sys/socket.h&gt;
-  int setsockopt(int sockfd, int level, int option,
-                 const void *value, socklen_t value_len);
-</pre>
+<ul><pre>
+#include &lt;sys/socket.h&gt;
+int setsockopt(int sockfd, int level, int option,
+               const void *value, socklen_t value_len);
+</pre></ul>
 <p>
   <b>Description:</b>
   <code>setsockopt()</code> sets the option specified by the <code>option</code> argument,
@@ -7753,7 +7772,7 @@ Those socket APIs are discussed in the following paragraphs.</p>
   <li><code>value_len</code>: The length of the argument value</li>
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   On success, returns the number of characters sent.
   On error, -1 is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately:
 </p>
@@ -7783,11 +7802,11 @@ Those socket APIs are discussed in the following paragraphs.</p>
 <p>
   <b>Function Prototype:</b>
 </p>
-<pre>
-  #include &lt;sys/socket.h&gt;
-  int getsockopt(int sockfd, int level, int option,
-                 void *value, socklen_t *value_len);
-</pre>
+<ul><pre>
+#include &lt;sys/socket.h&gt;
+int getsockopt(int sockfd, int level, int option,
+               void *value, socklen_t *value_len);
+</pre></ul>
 <p>
   <b>Description:</b>
   <code>getsockopt()</code> retrieve those value for the option specified by the
@@ -7816,7 +7835,7 @@ Those socket APIs are discussed in the following paragraphs.</p>
   <li><code>value_len</code>: The length of the argument value
 </ul>
 <p>
-  <b>Returned Values:</b>
+  <b>Returned Value:</b>
   On success, returns the number of characters sent.
   On error, -1 is returned, and <a href="#ErrnoAccess"><code>errno</code></a> is set appropriately:
 </p>
@@ -7904,9 +7923,11 @@ OS resources. These hidden structures include:
 <p>
   <b>Function Prototype:</b>
 <p>
-<pre>    #include &lt;errno.h&gt;
-    #define errno *get_errno_ptr()
-    int *get_errno_ptr( void )</pre>
+<ul><pre>
+#include &lt;errno.h&gt;
+#define errno *get_errno_ptr()
+int *get_errno_ptr(void);
+</pre></ul>
 <p>
   <b>Description</b>:
   <code>get_errno_ptr()</code> returns a pointer to the thread-specific <code>errno</code> value.
