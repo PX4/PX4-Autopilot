@@ -154,9 +154,15 @@ Notes about Header Files
 
     Even though you should not use a foreign C-Library, you may still need
     to use other, external libraries with NuttX.  In particular, you may
-    need to use the math library, libm.a.  The math libary header file,
-    math.h, is a special case.  If you do nothing, the standard math.h
-    header file that is provided with your toolchain will be used.
+    need to use the math library, libm.a.  NuttX supports a generic, built-in
+    math library that can be enabled using CONFIG_LIBM=y.  However, you may
+    still want to use a higher performance external math library that has
+    been tuned for your CPU.  Sometimes such such tuned math libraries are
+    bundled with your toolchain.
+
+    The math libary header file, math.h, is a then special case.  If you do
+    nothing, the standard math.h header file that is provided with your
+    toolchain will be used.
 
     If you have a custom, architecture specific math.h header file, then
     that header file should be placed at arch/<cpu>/include/math.h.  There
@@ -170,6 +176,16 @@ Notes about Header Files
     math.h header file.  The stub math.h header file does nothing other
     than to include that archicture-specific math.h header file as the
     system math.h header file.
+
+  float.h
+
+    If you enable the generic, built-in math library, then that math library
+    will expect your toolchain to provide the standard float.h header file.
+    The float.h header file defines the properties of your floating point
+    implementation.  It would always be best to use your toolchain's float.h
+    header file but if none is avaiable, a default float.h header file will
+    provided if this option is selected.  However, there is no assurance that
+    the settings in this float.h are actually correct for your platform!
 
   stdarg.h
 

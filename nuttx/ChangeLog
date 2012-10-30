@@ -3537,4 +3537,5 @@
 	  they don't draw in so much un-necessary code when doing a dumb link.
 	* binfmt/libelf:  The ELF loader is working correctly with C++ static
 	  constructors and destructors and all.
+	* Documentation/NuttXBinfmt.html:  Add documentionof the binary loader.
 

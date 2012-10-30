@@ -1,0 +1,467 @@
+<html>
+<head>
+<title>NuttX Binary Loader</title>
+</head>
+<body background="backgd.gif">
+<hr><hr>
+<table width ="100%">
+  <tr align="center" bgcolor="#e4e4e4">
+    <td>
+      <h1><big><font color="#3c34ec"><i>NuttX Binary Loader</i></font></big></h1>
+      <p>Last Updated: October 30, 2012</p>
+    </td>
+  </tr>
+</table>
+<hr><hr>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+      <h1>Table of Contents</h1>
+    </td>
+  </tr>
+</table>
+
+<ul>
+  <a href="#introduction">1.0 Introduction</a><br>
+  <a href="#binfmtif">2.0 Binary Loader Interface</a>
+  <ul>
+   <a href="#binfmthdr">2.1 Binary Loader Header Files</a><br>
+   <a href="#binfmtdata">2.2 Binary Loader Data Structures</a><br>
+   <a href="#binfmtfuncif">2.3 Binary Loader Function Interfaces</a>
+  </ul>
+  <a href="#symtab">3.0 Symbol Tables</a>
+  <ul>
+   <a href="#symtabhdr">3.1 Symbol Table Header Files</a><br>
+   <a href="#symtabdata">3.2 Symbol Table Data Structures</a><br>
+   <a href="#symtabfuncif">3.3 Symbol Table Function Interfaces</a>
+  </ul>
+  <a href="#configuration">4.0 Configuration Variables</a>
+</ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+      <h1>1.0 <a name="introduction">Introduction</a></h1>
+    </td>
+  </tr>
+</table>
+
+<p>
+  <b>Binary Loaders</b>.
+  The purpose of a <i>binary loader</i> is to load and execute modules in various <i>binary formats</i> that reside in a file system.
+  Loading refers instiating the binary module in some fashion, usually copy all or some of the binary module into memory and then linking the module with other components.
+  In most architectures, it is thebase FLASH code that is the primary component that the binary module must link with because that is where the RTOS and primary tasks reside.
+  Program modules can then be executed after they have been loaded.
+</p>
+
+<p>
+  <b>Binary Formats</b>.
+  The binary loader provides generic support for different binary formats.
+  It supports a <i>registration interface</i> that allows the number of support binary formats to be loaded at run time.
+  Each binary format provides a common, interface for use by the binary loader.
+  When asked to load a binary, the binary loader will query each registered binary format, providing it with the path of the binary object to be loaded.
+  The binary loader will stop when first binary format the recognizes the binary object and successfully loads it or when all registered binary formats have attempt loading the binary object and failed.
+</p>
+
+<p>
+  At present, the following binary formats are support by NuttX:
+</p>
+<ul>
+  <li>
+    <b>ELF</b>.
+    Standard ELF formatted files.
+  </li>
+  <li>
+    <b>NXFLAT</b>.
+    NuttX NXFLAT formatted files.
+    More information about the NXFLAT binary format can be found in the
+    <href="NuttXNxFlat.html">NXFLAT documentation</a>.
+</ul>
+
+<p>
+  <b>Executables and Libraries</b>
+  The generic binary loader logic does not care what it is that it being loaded.  It could load an executable program or a library.
+  There are no strict rules, but a library will tend to export symbols and a program will tend to import symbols:  The program will use the symbols exported by the library.
+  However, at this point in time, none of the supported binary formts support exporting of symbols.
+</p>
+
+<p>
+  <b>binfmt</b>.
+  In the NuttX source code, the short name <code>binfmt</code> is used to refer to the NuttX binary loader.
+  This is the name of the directory containing the binary loader and the name of the header files and variables used by the binary loader.
+</p>
+
+<p>
+  The name <code>binfmt</code> is the same name used by the Linux binary loader.
+  However, the NuttX binary loader is an independent development and shares nothing with the Linux binary loader other the same name and the same basic functionality.
+</p>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+      <h1>2.0 <a name="binfmtif">Binary Loader Interface</a></h1>
+    </td>
+  </tr>
+</table>
+
+<h2>2.1 <a name="binfmthdr">Binary Loader Header Files</a></h2>
+<p>
+  The interface to the binary loader is described in the header file 
+  <a href="http://svn.code.sf.net/p/nuttx/code/trunk/nuttx/include/nuttx/binfmt/binfmt.h?view=log">
+  <code>include/nuttx/binfmt/binfmt.h</code></a>.
+  A brief summary of the data structurs and interfaces prototyped in that header file are listed below.
+</p>
+
+<h2>2.2 <a name="binfmtdata">Binary Loader Data Structures</a></h2>
+
+<p>
+  When a binary format registers with the binary loader, it provides a pointer to a write-able instance of the following data structure:
+</p>
+<ul><pre>
+struct binfmt_s
+{
+  FAR struct binfmt_s *next;             /* Supports a singly-linked list */
+  int (*load)(FAR struct binary_s *bin); /* Verify and load binary into memory */
+};
+</pre></ul>
+
+<p>
+  The <code>load</code> method is used to load the binary format into memory.
+  It returns either <code>OK</code> (0) meaning that the binary object was loaded successfully, or a negater <code>errno</code> indicating why the object was not loaded.
+</p>
+
+<p>
+  The type <code>struct binary_s</code> is use both to (2) describe the binary object to be loaded, and if successfully loaded, (2) to provide information about where and how the binary object was loaded.
+  That structure is shown below:
+</p>
+<ul><pre>
+struct symtab_s;
+struct binary_s
+{
+  /* Information provided to the loader to load and bind a module */
+
+  FAR const char *filename;            /* Full path to the binary to be loaded */
+  FAR const char **argv;               /* Argument list */
+  FAR const struct symtab_s *exports;  /* Table of exported symbols */
+  int nexports;                        /* The number of symbols in exports[] */
+
+  /* Information provided from the loader (if successful) describing the
+   * resources used by the loaded module.
+   */
+
+  main_t entrypt;                      /* Entry point into a program module */
+  FAR void *mapped;                    /* Memory-mapped, address space */
+  FAR void *alloc[BINFMT_NALLOC];      /* Allocated address spaces */
+#ifdef CONFIG_BINFMT_CONSTRUCTORS
+  FAR binfmt_ctor_t *ctors;            /* Pointer to a list of constructors */
+  FAR binfmt_dtor_t *dtors;            /* Pointer to a list of destructors */
+  uint16_t nctors;                     /* Number of constructors in the list */
+  uint16_t ndtors;                     /* Number of destructors in the list */
+#endif
+  size_t mapsize;                      /* Size of the mapped address region (needed for munmap) */
+  size_t stacksize;                    /* Size of the stack in bytes (unallocated) */
+};
+</pre></ul>
+
+<p>
+  Where the types <code>binfmt_ctor_t</code> and <code>binfmt_dtor_t</code> define the type of one C++ constructor or destructor:
+</p>
+
+<ul><pre>
+typedef FAR void (*binfmt_ctor_t)(void);
+typedef FAR void (*binfmt_dtor_t)(void);
+</pre></ul>
+
+<h2>2.3 <a name="binfmtfuncif">Binary Loader Function Interfaces</a></h2>
+
+<ul>
+  <a href="#register_binfmt">2.3.1 <code>register_binfmt()</code></a><br>
+  <a href="#unregister_binfmt">2.3.2 <code>unregister_binfmt()</code></a><br>
+  <a href="#load_module">2.3.3 <code>load_module()</code></a><br>
+  <a href="#unload_module">2.3.4 <code>unload_module()</code></a><br>
+  <a href="#exec_module">2.3.5 <code>exec_module()</code></a><br>
+  <a href="#exec">2.3.6 <code>exec()</code></a><br>
+  <a href="#exec">2.3.7 <code>exec()</code></a>
+</ul>
+
+<h3>2.3.1 <a name="register_binfmt"><code>register_binfmt()</code></a></h3>
+
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt:nuttx/binfmt/binfmt.h&gt;
+int register_binfmt(FAR struct binfmt_s *binfmt);
+</pre></ul>
+<p><b>Description:</b></p>
+<ul>
+Register a loader for a binary format.
+</ul>
+<p><b>Returned Value:</b></p>
+<ul>
+This is a NuttX internal function so it follows the convention that 0 (<code>OK</code>) is returned on success and a negated <code>errno</code> is returned on failure.
+</ul>
+
+<h3>2.3.2 <a name="unregister_binfmt"><code>unregister_binfmt()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt:nuttx/binfmt/binfmt.h&gt;
+int unregister_binfmt(FAR struct binfmt_s *binfmt);
+</pre></ul>
+<p><b>Description:</b></p>
+<ul>
+Register a loader for a binary format.
+</ul>
+<p><b>Returned Value:</b></p>
+<ul>
+This is a NuttX internal function so it follows the convention that 0 (<code>OK</code>) is returned on success and a negated <code>errno</code> is returned on failure.
+</ul>
+
+<h3>2.3.3 <a name="load_module"><code>load_module()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt:nuttx/binfmt/binfmt.h&gt;
+int load_module(FAR struct binary_s *bin);
+</pre></ul>
+<p><b>Description:</b></p>
+<ul>
+Load a module into memory, bind it to an exported symbol take, and prep the module for execution.
+</ul>
+<p><b>Returned Value:</b></p>
+<ul>
+This is an end-user function, so it follows the normal convention:
+Returns 0 (<code>OK</code>) on success.
+On failure, it returns -1 (<code>ERROR</code>) with <code>errno</code> set appropriately.
+</ul>
+
+<h3>2.3.4 <a name="unload_module"><code>unload_module()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt:nuttx/binfmt/binfmt.h&gt;
+int unload_module(FAR const struct binary_s *bin);
+</pre></ul>
+<p><b>Description:</b></p>
+<ul>
+  <p>
+    Unload a (non-executing) module from memory.
+    If the module has been started (via <code>exec_module()</code>) and has not exited, calling this will be fatal.
+  </p>
+  <p>
+    However, this function must be called after the module exist.
+    How this is done is up to your logic.
+    Perhaps you register it to be called by <code>on_exit()</code>?
+</ul>
+<p><b>Returned Value:</b></p>
+<ul>
+This is a NuttX internal function so it follows the convention that 0 (<code>OK</code>) is returned on success and a negated <code>errno</code> is returned on failure.
+</ul>
+
+<h3>2.3.5 <a name="exec_module"><code>exec_module()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt:nuttx/binfmt/binfmt.h&gt;
+int exec_module(FAR const struct binary_s *bin, int priority);
+</pre></ul>
+<p><b>Description:</b></p>
+<ul>
+Execute a module that has been loaded into memory by <code>load_module()</code>.
+</ul>
+<p><b>Returned Value:</b></p>
+<ul>
+This is an end-user function, so it follows the normal convention:
+Returns 0 (<code>OK</code>) on success.
+On failure, it returns -1 (<code>ERROR</code>) with <code>errno</code> set appropriately.
+</ul>
+
+<h3>2.3.7 <a name="exec"><code>exec()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt:nuttx/binfmt/binfmt.h&gt;
+int exec(FAR const char *filename, FAR const char **argv,
+         FAR const struct symtab_s *exports, int nexports);
+</pre></ul>
+<p><b>Description:</b></p>
+<ul>
+This is a convenience function that wraps <code>load_</code> and <code>exec_module()</code> into one call.
+</ul>
+<p><b>Input Parameters:</b></p>
+<ul>
+  <li><code>filename</code>: Fulll path to the binary to be loaded.</li>
+  <li><code>argv</code>: Argument list.</li>
+  <li><code>exports</code>: Table of exported symbols.</li>
+  <li><code>exports</code>: The number of symbols in exports.</li>
+</ul>
+<p><b>Returned Value:</b></p>
+<ul>
+This is an end-user function, so it follows the normal convention:
+Returns 0 (<code>OK</code>) on success.
+On failure, it returns -1 (<code>ERROR</code>) with <code>errno</code> set appropriately.
+</ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+      <h1>3.0 <a name="symtab">Symbol Tables</a></h1>
+    </td>
+  </tr>
+</table>
+
+<p>
+  <b>Symbol Tables</b>.
+  Symbol tables are lists of name value mappings:
+  The name is a string that identifies a symbol, and the value is an address in memory where the symbol of that name has been positioned.
+  In most NuttX architectures symbol tables are required, as a minimum, in order to dynamically link the loaded binary object with the base code on FLASH.
+  Since the binary object was separately built and separately linked, these symbols will appear as <i>undefined</i> symbols in the binary object.
+  The binary loader will use the symbol table to look up the symbol by its name and to provide the address associated with the symbol as needed to perform the dynamic linking of the binary object to the base FLASH code.
+</p>
+
+<h2>3.1 <a name="symtabhdr">Symbol Table Header Files</a></h2>
+<p>
+  The interface to the symbol table logic is described in the header file 
+  <a href="http://svn.code.sf.net/p/nuttx/code/trunk/nuttx/include/nuttx/binfmt/symtab.h?view=log">
+  <code>include/nuttx/binfmt/symtab.h</code></a>.
+  A brief summary of the data structurs and interfaces prototyped in that header file are listed below.
+</p>
+
+<h2>3.2 <a name="symtabdata">Symbol Table Data Structures</a></h2>
+<p>
+  <code>struct symbtab_s</code> describes one entry in the symbol table.
+</p>
+
+<ul><pre>
+struct symtab_s
+{
+  FAR const char *sym_name;          /* A pointer to the symbol name string */
+  FAR const void *sym_value;         /* The value associated witht the string */
+};
+</pre></ul>
+
+</p>
+  A symbol table is a fixed size array of <code>struct symtab_s</code>. 
+  The information is intentionally minimal and supports only:
+</p>
+<ol>
+  <li>
+    Function pointers as <code>sym_values</code>.
+    Of other kinds of values need to be supported, then typing information would also need to be included in the structure.
+  </li>
+  <li>
+    Fixed size arrays.
+    There is no explicit provisional for dyanamically adding or removing entries from the symbol table (realloc might be used for that purpose if needed).
+    The intention is to support only fixed size arrays completely defined at compilation or link time.
+  </li>
+</ol>
+
+<h2>3.3 <a name="symtabfuncif">Symbol Table Function Interfaces</a></h2>
+
+<ul>
+  <a href="#symtab_findbyname">3.3.1 <code>symtab_findbyname()</code></a><br>
+  <a href="#symtab_findorderedbyname">3.3.2 <code>symtab_findorderedbyname()</code></a><br>
+  <a href="#symtab_findbyvalue">3.3.3 <code>symtab_findbyvalue()</code></a><br>
+  <a href="#symtab_findorderedbyvalue">3.3.4 <code>symtab_findorderedbyvalue()</code></a>
+</ul>
+
+<h3>3.3.1 <a name="symtab_findbyname"><code>symtab_findbyname()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt:nuttx/binfmt/symtab.h&gt;
+FAR const struct symtab_s *
+symtab_findbyname(FAR const struct symtab_s *symtab,
+                  FAR const char *name, int nsyms);
+</pre></ul>
+<p><b>Description:</b></p>
+<ul>
+  Find the symbol in the symbol table with the matching name.
+  This version assumes that table is not ordered with respect to symbol name and, hence, access time will be linear with respect to <code>nsyms</code>.
+</ul>
+<p><b>Returned Value:</b></p>
+<ul>
+  A reference to the symbol table entry if an entry with the matching name is found;
+<code>NULL</code> is returned if the entry is not found.
+</ul>
+
+<h3>3.3.2 <a name="symtab_findorderedbyname"><code>symtab_findorderedbyname()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt:nuttx/binfmt/symtab.h&gt;
+FAR const struct symtab_s *
+symtab_findorderedbyname(FAR const struct symtab_s *symtab,
+                         FAR const char *name, int nsyms);
+</pre></ul>
+<p><b>Description:</b></p>
+<ul>
+  Find the symbol in the symbol table with the matching name.
+  This version assumes that table ordered with respect to symbol name.
+</ul>
+<p><b>Returned Value:</b></p>
+<ul>
+  A reference to the symbol table entry if an entry with the matching name is found;
+  <code>NULL</code> is returned if the entry is not found.
+</ul>
+
+<h3>3.3.3 <a name="symtab_findbyvalue"><code>symtab_findbyvalue()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt:nuttx/binfmt/symtab.h&gt;
+FAR const struct symtab_s *
+symtab_findbyvalue(FAR const struct symtab_s *symtab,
+                   FAR void *value, int nsyms);
+</pre></ul>
+<p><b>Description:</b></p>
+<ul>
+  Find the symbol in the symbol table whose value closest (but not greater than), the provided value.
+  This version assumes that table is not ordered with respect to symbol name and, hence, access time will be linear with respect to <code>nsyms</code>.
+</ul>
+<p><b>Returned Value:</b></p>
+<ul>
+  A reference to the symbol table entry if an entry with the matching name is found;
+  <code>NULL</code> is returned if the entry is not found.
+</ul>
+
+<h3>3.3.4 <a name="symtab_findorderedbyvalue"><code>symtab_findorderedbyvalue()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt:nuttx/binfmt/symtab.h&gt;
+FAR const struct symtab_s *
+symtab_findorderedbyvalue(FAR const struct symtab_s *symtab,
+                          FAR void *value, int nsyms);
+</pre></ul>
+<p><b>Description:</b></p>
+<ul>
+  Find the symbol in the symbol table whose value closest (but not greater than), the provided value.
+  This version assumes that table is ordered with respect to symbol name.
+</ul>
+<p><b>Returned Value:</b></p>
+<ul>
+  A reference to the symbol table entry if an entry with the matching name is found;
+  <code>NULL</code> is returned if the entry is not found.
+</ul>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
+      <h1>4.0 <a name="configuration">Configuration Variables</a></h1>
+    </td>
+  </tr>
+</table>
+
+<ul>
+  <p>
+    <code>CONFIG_BINFMT_DISABLE</code>:
+    By default, support for loadable binary formats is built.
+    This logic may be suppressed be defining this setting.
+  </p>
+  <p>
+  <code>CONFIG_BINFMT_CONSTRUCTORS</code>:
+  Build in support for C++ constructors in loaded modules.
+  </p>
+  <p>
+  <code>CONFIG_SYMTAB_ORDEREDBYNAME</code>:
+  Symbol tables are order by name (rather than value).
+  </p>
+</ul>
+
+<p>
+  Additional configuration options may be required for the each enabled binary format.
+</p>
+</body>
+</html>

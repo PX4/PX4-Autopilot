@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: October 29, 2012</p>
+      <p>Last Updated: October 30, 2012</p>
     </td>
   </tr>
 </table>
@@ -4578,6 +4578,14 @@ build
       </pre></ul>
       <p>
         So for the architectures that define <code>CONFIG_ARCH_MATH_H=y</code>,  <code>include/math.h</code> will be the redirecting <code>math.h</code> header file; for the architectures that don't select <code>CONFIG_ARCH_MATH_H</code>, the redirecting <code>math.h</code> header file will stay out-of-the-way in <code>include/nuttx/</code>.
+      </p>
+    </li>
+    <li><b><code>CONFIG_ARCH_FLOAT_H</code></b>.
+      <p>
+        If you enable the generic, built-in math library, then that math library will expect your toolchain to provide the standard <code>float.h</code> header file.
+        The <code>float.h</code> header file defines the properties of your floating point implementation.
+        It would always be best to use your toolchain's <code>float.h</code> header file but if none is avaiable, a default <code>float.h</code> header file will provided if this option is selected.
+        However, there is no assurance that the settings in this float.h are actually correct for your platform!
       </p>
     </li>
     <li><b><code>CONFIG_ARCH_STDARG_H</code></b>.

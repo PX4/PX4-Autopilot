@@ -453,17 +453,14 @@
   <td>
     <p>
       <li>
-        Support for separately linked, loadable ELF modules.
-      </li>
-    </p>
-</tr>
-<tr>
-  <td><br></td>
-  <td>
-    <p>
-      <li>
-        <a href="NuttXNxFlat.html">NXFLAT</a>.
-        NXFLAT is a binary format that can be XIP from a file system.
+        A <a href="NuttXBinfmt.html">binary loader</a> with support for the following formats:
+        <ul>
+          <li>Separately linked ELF modules.</li>
+          <li>
+            Separately linked <a href="NuttXNxFlat.html">NXFLAT</a> modules.
+            NXFLAT is a binary format that can be XIP from a file system.
+          </li>
+        </ul>
       </li>
     </p>
 </tr>
@@ -630,7 +627,7 @@
     <p>
       <li>
         A NuttX port of Jeff Poskanzer's <a href="http://acme.com/software/thttpd">THTTPD</a> HTTP server
-        integrated with <a href="NuttXNxFlat.html">NXFLAT</a> to provide true, embedded CGI.
+        integrated with the NuttX <a href="NuttXBinfmt.html">binary loader</a> to provide true, embedded CGI.
       </li>
     </p>
   </td>
@@ -3691,7 +3688,11 @@ buildroot-1.10 2011-05-06 &lt;gnutt@nuttx.org&gt;
 </tr>
 <tr>
   <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
-  <td><a href="NuttXNxFlat.html">NXFLAT</a> Binary Format</td>
+  <td><a href="NuttXBinfmt.html">NuttX Binary Loader</a></td>
+</tr>
+<tr>
+  <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
+  <td><a href="NuttXNxFlat.html">NXFLAT Binary Format</a></td>
 </tr>
 <tr>
   <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>

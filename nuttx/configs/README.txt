@@ -723,6 +723,15 @@ defconfig -- This is a configuration file similar to the Linux
       don't select CONFIG_ARCH_MATH_H, the redirecting math.h header file will
       stay out-of-the-way in include/nuttx/.
 
+    CONFIG_ARCH_FLOAT_H
+      If you enable the generic, built-in math library, then that math library
+      will expect your toolchain to provide the standard float.h header file.
+      The float.h header file defines the properties of your floating point
+      implementation.  It would always be best to use your toolchain's float.h
+      header file but if none is avaiable, a default float.h header file will
+      provided if this option is selected.  However, there is no assurance that
+      the settings in this float.h are actually correct for your platform!
+
     CONFIG_ARCH_STDARG_H - There is also a redirecting version of stdarg.h in
       the source tree as well. It also resides out-of-the-way at include/nuttx/stdarg.h.
       This is because you should normally use your toolchain's stdarg.h file. But

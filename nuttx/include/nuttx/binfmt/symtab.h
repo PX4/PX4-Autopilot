@@ -54,7 +54,7 @@
  * is a fixed size array of struct symtab_s.  The information is intentionally
  * minimal and supports only:
  *
- * 1. Function points as sym_values.  Of other kinds of values need to be
+ * 1. Function pointers as sym_values.  Of other kinds of values need to be
  *    supported, then typing information would also need to be included in
  *    the structure.
  *

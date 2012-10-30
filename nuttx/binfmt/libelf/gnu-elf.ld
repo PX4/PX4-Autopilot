@@ -1,5 +1,5 @@
 /****************************************************************************
- * examples/elf/gnu-elf.ld
+ * binfmt/libelf/gnu-elf.ld
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -51,8 +51,8 @@ SECTIONS
        */
 
       *(.gnu.linkonce.t.*)
-      *(.init)
-      *(.fini)
+      *(.init)             /* Old ABI */
+      *(.fini)             /* Old ABI */
       _etext = . ;
     }
 
@@ -86,15 +86,17 @@ SECTIONS
 
   .ctors :
     {
-      _sctros = . ;
-      *(.ctors)
+      _sctors = . ;
+      *(.ctors)       /* Old ABI:  Unallocated */
+      *(.init_array)  /* New ABI:  Allocated */
       _edtors = . ;
     }
 
-  .ctors :
+  .dtors :
     {
       _sdtors = . ;
-      *(.dtors)
+      *(.dtors)       /* Old ABI:  Unallocated */
+      *(.fini_array)  /* New ABI:  Allocated */
       _edtors = . ;
     }
 
