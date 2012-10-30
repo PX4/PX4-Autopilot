@@ -117,11 +117,6 @@ struct __multiport_info {
 };
 __EXPORT extern const struct __multiport_info multiport_info;
 
-__EXPORT int carrier_store_board_info(const struct carrier_board_info_s *info);
-__EXPORT int carrier_get_board_info(struct carrier_board_info_s *info);
-
-__EXPORT int fmu_get_board_info(struct fmu_board_info_s *info);
-
 __END_DECLS
 
 #endif /* SYSTEMLIB_H_ */
