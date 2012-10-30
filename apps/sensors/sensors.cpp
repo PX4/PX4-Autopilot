@@ -543,9 +543,9 @@ Sensors::parameters_update()
 	param_get(_parameter_handles.mag_offset[1], &(_parameters.mag_offset[1]));
 	param_get(_parameter_handles.mag_offset[2], &(_parameters.mag_offset[2]));
 	/* mag scaling */
-	param_get(_parameter_handles.mag_offset[0], &(_parameters.mag_scale[0]));
-	param_get(_parameter_handles.mag_offset[1], &(_parameters.mag_scale[1]));
-	param_get(_parameter_handles.mag_offset[2], &(_parameters.mag_scale[2]));
+	param_get(_parameter_handles.mag_scale[0], &(_parameters.mag_scale[0]));
+	param_get(_parameter_handles.mag_scale[1], &(_parameters.mag_scale[1]));
+	param_get(_parameter_handles.mag_scale[2], &(_parameters.mag_scale[2]));
 
 	/* scaling of ADC ticks to battery voltage */
 	if (param_get(_parameter_handles.battery_voltage_scaling, &(_parameters.battery_voltage_scaling)) != OK) {
