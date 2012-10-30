@@ -117,7 +117,7 @@ int ardrone_interface_main(int argc, char *argv[])
 		ardrone_interface_task = task_spawn("ardrone_interface",
 						    SCHED_DEFAULT,
 						    SCHED_PRIORITY_MAX - 15,
-						    4096,
+						    2048,
 						    ardrone_interface_thread_main,
 						    (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);

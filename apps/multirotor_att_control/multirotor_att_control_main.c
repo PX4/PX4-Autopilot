@@ -217,8 +217,9 @@ mc_thread_main(int argc, char *argv[])
 				att_sp.roll_body = manual.roll;
 				att_sp.pitch_body = manual.pitch;
 				/* only move setpoint if manual input is != 0 */
-				if (manual.yaw < -0.02f || 0.02f < manual.yaw) {
-					att_sp.yaw_body = att_sp.yaw_body + manual.yaw * -0.0025f;
+				// XXX turn into param
+				if (manual.yaw < -0.01f || 0.01f < manual.yaw) {
+					att_sp.yaw_body = att_sp.yaw_body + manual.yaw * 0.01f;
 				}
 				att_sp.thrust = manual.throttle;
 				att_sp.timestamp = hrt_absolute_time();
@@ -338,7 +339,7 @@ int multirotor_att_control_main(int argc, char *argv[])
 		mc_task = task_spawn("multirotor_att_control",
 				     SCHED_DEFAULT,
 				     SCHED_PRIORITY_MAX - 15,
-				     6000,
+				     2048,
 				     mc_thread_main,
 				     NULL);
 		exit(0);
