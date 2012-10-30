@@ -363,6 +363,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	if (x == NULL || y == NULL || z == NULL) {
 		warnx("mag cal failed: out of memory");
 		mavlink_log_info(mavlink_fd, "mag cal failed: out of memory");
+		printf("x:%p y:%p z:%p\n", x, y, z);
 		return;
 	}
 
@@ -1101,7 +1102,7 @@ int commander_main(int argc, char *argv[])
 		daemon_task = task_spawn("commander",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 50,
-					 9000,
+					 4096,
 					 commander_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
