@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Base class for devices attached via the I2C bus.
+ * @file i2c.cpp
+ *
+ * Base class for devices attached via the I2C bus.
  *
  * @todo Bus frequency changes; currently we do nothing with the value
  *       that is supplied.  Should we just depend on the bus knowing?

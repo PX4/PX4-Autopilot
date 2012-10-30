@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Base class for devices connected via SPI.
+ * @file spi.h
+ *
+ * Base class for devices connected via SPI.
  */
 
 #ifndef _DEVICE_SPI_H
