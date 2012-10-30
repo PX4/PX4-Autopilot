@@ -360,6 +360,10 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	float *y = malloc(sizeof(float) * calibration_maxcount);
 	float *z = malloc(sizeof(float) * calibration_maxcount);
 
+	tune_confirm();
+	sleep(2);
+	tune_confirm();
+
 	while (hrt_absolute_time() < calibration_deadline &&
 		calibration_counter < calibration_maxcount) {
 
@@ -504,6 +508,13 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		mavlink_log_info(mavlink_fd, buf);
 
 		mavlink_log_info(mavlink_fd, "[commander] mag calibration done");
+
+		tune_confirm();
+		sleep(2);
+		tune_confirm();
+		sleep(2);
+		/* third beep by cal end routine */
+
 	} else {
 		mavlink_log_info(mavlink_fd, "[commander] mag calibration FAILED (NaN)");
 	}
@@ -607,6 +618,12 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 		// sprintf(buf, "cal: x:%8.4f y:%8.4f z:%8.4f", (double)gyro_offset[0], (double)gyro_offset[1], (double)gyro_offset[2]);
 		// mavlink_log_info(mavlink_fd, buf);
 		mavlink_log_info(mavlink_fd, "[commander] gyro calibration done");
+
+		tune_confirm();
+		sleep(2);
+		tune_confirm();
+		sleep(2);
+		/* third beep by cal end routine */
 	} else {
 		mavlink_log_info(mavlink_fd, "[commander] gyro calibration FAILED (NaN)");
 	}
@@ -721,6 +738,12 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 		//sprintf(buf, "[commander] accel cal: x:%8.4f y:%8.4f z:%8.4f\n", (double)accel_offset[0], (double)accel_offset[1], (double)accel_offset[2]);
 		//mavlink_log_info(mavlink_fd, buf);
 		mavlink_log_info(mavlink_fd, "[commander] accel calibration done");
+
+		tune_confirm();
+		sleep(2);
+		tune_confirm();
+		sleep(2);
+		/* third beep by cal end routine */
 	} else {
 		mavlink_log_info(mavlink_fd, "[commander] accel calibration FAILED (NaN)");
 	}
@@ -740,7 +763,7 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 	uint8_t result = MAV_RESULT_UNSUPPORTED;
 
 	/* announce command handling */
-	ioctl(buzzer, TONE_SET_ALARM, 1);
+	tune_confirm();
 
 
 	/* supported command handling start */
