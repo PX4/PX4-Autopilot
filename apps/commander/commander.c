@@ -61,7 +61,7 @@
 #include <sys/prctl.h>
 #include <v1.0/common/mavlink.h>
 #include <string.h>
-#include <arch/board/drv_led.h>
+#include <drivers/drv_led.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
@@ -194,7 +194,7 @@ static void buzzer_deinit()
 
 static int led_init()
 {
-	leds = open("/dev/led", O_RDONLY | O_NONBLOCK);
+	leds = open(LED_DEVICE_PATH, 0);
 
 	if (leds < 0) {
 		fprintf(stderr, "[commander] LED: open fail\n");

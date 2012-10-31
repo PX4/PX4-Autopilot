@@ -49,8 +49,6 @@
 
 #include <arch/board/board.h>
 
-#include <arch/board/drv_led.h>
-
 #include "tests.h"
 
 /****************************************************************************

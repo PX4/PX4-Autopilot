@@ -32,11 +32,7 @@
 ############################################################################
 
 #
-# Makefile to build ardrone interface
+# Makefile to build the LED driver.
 #
-
-APPNAME		 = led
-PRIORITY	 = SCHED_PRIORITY_MAX - 15
-STACKSIZE	 = 2048
 
 include $(APPDIR)/mk/app.mk
