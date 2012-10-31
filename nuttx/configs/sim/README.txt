@@ -192,7 +192,7 @@ cxxtest
 
   Description
   -----------
-  The C++ statndard libary test at apps/examples/cxxtest configuration.  This
+  The C++ standard libary test at apps/examples/cxxtest configuration.  This
   test is used to verify the uClibc++ port to NuttX.  This configuration may
   be selected as follows:
 
@@ -201,7 +201,12 @@ cxxtest
 
   NOTES
   -----
-  1. This configuration uses the mconf-based configuration tool.  To
+  1. Before you can use this example, you must first install the uClibc++
+     C++ library.  This is located outside of the NuttX source tree at
+     misc/uClibc++ in SVN.  See the README.txt file for instructions on
+     how to install uClibc++
+
+  2. This configuration uses the mconf-based configuration tool.  To
      change this configuration using that tool, you should:
 
      a. Build and install the mconf tool.  See nuttx/README.txt and
