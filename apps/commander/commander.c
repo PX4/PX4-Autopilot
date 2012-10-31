@@ -61,7 +61,7 @@
 #include <sys/prctl.h>
 #include <v1.0/common/mavlink.h>
 #include <string.h>
-#include <arch/board/drv_led.h>
+#include <drivers/drv_led.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
@@ -194,7 +194,7 @@ static void buzzer_deinit()
 
 static int led_init()
 {
-	leds = open("/dev/led", O_RDONLY | O_NONBLOCK);
+	leds = open(LED_DEVICE_PATH, 0);
 
 	if (leds < 0) {
 		fprintf(stderr, "[commander] LED: open fail\n");
@@ -268,33 +268,6 @@ void tune_confirm() {
 	ioctl(buzzer, TONE_SET_ALARM, 3);
 }
 
-static const char *parameter_file = "/eeprom/parameters";
-
-static int pm_save_eeprom(bool only_unsaved)
-{
-	/* delete the file in case it exists */
-	unlink(parameter_file);
-
-	/* create the file */
-	int fd = open(parameter_file, O_WRONLY | O_CREAT | O_EXCL);
-
-	if (fd < 0) {
-		warn("opening '%s' for writing failed", parameter_file);
-		return -1;
-	}
-
-	int result = param_export(fd, only_unsaved);
-	close(fd);
-
-	if (result != 0) {
-		unlink(parameter_file);
-		warn("error exporting parameters to '%s'", parameter_file);
-		return -2;
-	}
-
-	return 0;
-}
-
 void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 {
 	/* set to mag calibration mode */
@@ -363,6 +336,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	if (x == NULL || y == NULL || z == NULL) {
 		warnx("mag cal failed: out of memory");
 		mavlink_log_info(mavlink_fd, "mag cal failed: out of memory");
+		printf("x:%p y:%p z:%p\n", x, y, z);
 		return;
 	}
 
@@ -495,9 +469,9 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		}
 
 		/* auto-save to EEPROM */
-		int save_ret = pm_save_eeprom(false);
+		int save_ret = param_save_default();
 		if(save_ret != 0) {
-			warn("WARNING: auto-save of params to EEPROM failed");
+			warn("WARNING: auto-save of params to storage failed");
 		}
 
 		printf("[mag cal]\tscale: %.6f %.6f %.6f\n         \toffset: %.6f %.6f %.6f\nradius: %.6f GA\n",
@@ -615,9 +589,9 @@ void do_gyro_calibration(int status_pub, struct vehicle_status_s *status)
 		close(fd);
 
 		/* auto-save to EEPROM */
-		int save_ret = pm_save_eeprom(false);
+		int save_ret = param_save_default();
 		if(save_ret != 0) {
-			warn("WARNING: auto-save of params to EEPROM failed");
+			warn("WARNING: auto-save of params to storage failed");
 		}
 
 		// char buf[50];
@@ -735,9 +709,9 @@ void do_accel_calibration(int status_pub, struct vehicle_status_s *status)
 		close(fd);
 
 		/* auto-save to EEPROM */
-		int save_ret = pm_save_eeprom(false);
+		int save_ret = param_save_default();
 		if(save_ret != 0) {
-			warn("WARNING: auto-save of params to EEPROM failed");
+			warn("WARNING: auto-save of params to storage failed");
 		}
 
 		//char buf[50];
@@ -1101,7 +1075,7 @@ int commander_main(int argc, char *argv[])
 		daemon_task = task_spawn("commander",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 50,
-					 9000,
+					 4096,
 					 commander_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;

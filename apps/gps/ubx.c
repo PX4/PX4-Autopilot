@@ -479,6 +479,10 @@ int ubx_parse(uint8_t b,  char *gps_rx_buffer)
 					if (ubx_state->ck_a == packet->ck_a && ubx_state->ck_b == packet->ck_b) {
 
 						ubx_gps->vel = (uint16_t)packet->speed;
+						ubx_gps->vel_n = packet->velN / 100.0f;
+						ubx_gps->vel_e = packet->velE / 100.0f;
+						ubx_gps->vel_d = packet->velD / 100.0f;
+						ubx_gps->vel_ned_valid = true;
 						ubx_gps->cog = (uint16_t)((float)(packet->heading) * 1e-3f);
 
 						ubx_gps->timestamp = hrt_absolute_time();

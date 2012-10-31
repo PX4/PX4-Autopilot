@@ -45,7 +45,6 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <arch/board/drv_eeprom.h>
 #include <float.h>
 #include <string.h>
 

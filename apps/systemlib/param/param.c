@@ -47,6 +47,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <err.h>
+#include <errno.h>
 
 #include <sys/stat.h>
 
@@ -478,6 +479,83 @@ param_reset_all(void)
 	param_unlock();
 
 	param_notify_changes();
+}
+
+static const char *param_default_file = "/eeprom/parameters";
+static char *param_user_file;
+
+int
+param_set_default_file(const char* filename)
+{
+	if (param_user_file != NULL) {
+		free(param_user_file);
+		param_user_file = NULL;
+	}
+	if (filename)
+		param_user_file = strdup(filename);
+	return 0;
+}
+
+const char *
+param_get_default_file(void)
+{
+	return (param_user_file != NULL) ? param_user_file : param_default_file;
+}
+
+int
+param_save_default(void)
+{
+	/* delete the file in case it exists */
+	unlink(param_get_default_file());
+
+	/* create the file */
+	int fd = open(param_get_default_file(), O_WRONLY | O_CREAT | O_EXCL);
+
+	if (fd < 0) {
+		warn("opening '%s' for writing failed", param_get_default_file());
+		return -1;
+	}
+
+	int result = param_export(fd, false);
+	/* should not be necessary, over-careful here */
+	fsync(fd);
+	close(fd);
+
+	if (result != 0) {
+		unlink(param_get_default_file());
+		warn("error exporting parameters to '%s'", param_get_default_file());
+		return -2;
+	}
+
+	return 0;
+}
+
+/**
+ * @return 0 on success, 1 if all params have not yet been stored, -1 if device open failed, -2 if writing parameters failed
+ */
+int
+param_load_default(void)
+{
+	int fd = open(param_get_default_file(), O_RDONLY);
+
+	if (fd < 0) {
+		/* no parameter file is OK, otherwise this is an error */
+		if (errno != ENOENT) {
+			warn("open '%s' for reading failed", param_get_default_file());
+			return -1;
+		}
+		return 1;
+	}
+
+	int result = param_load(fd);
+	close(fd);
+
+	if (result != 0) {
+		warn("error reading parameters from '%s'", param_get_default_file());
+		return -2;
+	}
+
+	return 0;
 }
 
 int

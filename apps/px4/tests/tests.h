@@ -84,7 +84,6 @@ extern int	test_led(int argc, char *argv[]);
 extern int	test_adc(int argc, char *argv[]);
 extern int	test_int(int argc, char *argv[]);
 extern int	test_float(int argc, char *argv[]);
-extern int	test_eeproms(int argc, char *argv[]);
 extern int	test_ppm(int argc, char *argv[]);
 extern int	test_servo(int argc, char *argv[]);
 extern int	test_uart_loopback(int argc, char *argv[]);

@@ -172,64 +172,6 @@ int mavlink_pm_send_param(param_t param)
 	return ret;
 }
 
-static const char *mavlink_parameter_file = "/eeprom/parameters";
-
-/**
- * @return 0 on success, -1 if device open failed, -2 if writing parameters failed
- */
-static int mavlink_pm_save_eeprom()
-{
-	/* delete the file in case it exists */
-	unlink(mavlink_parameter_file);
-
-	/* create the file */
-	int fd = open(mavlink_parameter_file, O_WRONLY | O_CREAT | O_EXCL);
-
-	if (fd < 0) {
-		warn("opening '%s' for writing failed", mavlink_parameter_file);
-		return -1;
-	}
-
-	int result = param_export(fd, false);
-	close(fd);
-
-	if (result != 0) {
-		unlink(mavlink_parameter_file);
-		warn("error exporting parameters to '%s'", mavlink_parameter_file);
-		return -2;
-	}
-
-	return 0;
-}
-
-/**
- * @return 0 on success, 1 if all params have not yet been stored, -1 if device open failed, -2 if writing parameters failed
- */
-static int
-mavlink_pm_load_eeprom()
-{
-	int fd = open(mavlink_parameter_file, O_RDONLY);
-
-	if (fd < 0) {
-		/* no parameter file is OK, otherwise this is an error */
-		if (errno != ENOENT) {
-			warn("open '%s' for reading failed", mavlink_parameter_file);
-			return -1;
-		}
-		return 1;
-	}
-
-	int result = param_load(fd);
-	close(fd);
-
-	if (result != 0) {
-		warn("error reading parameters from '%s'", mavlink_parameter_file);
-		return -2;
-	}
-
-	return 0;
-}
-
 void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg)
 {
 	switch (msg->msgid) {
@@ -307,7 +249,7 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 					if (((int)(cmd_mavlink.param1)) == 0)	{
 
 						/* read all parameters from EEPROM to RAM */
-						int read_ret = mavlink_pm_load_eeprom();
+						int read_ret = param_load_default();
 						if (read_ret == OK) {
 							//printf("[mavlink pm] Loaded EEPROM params in RAM\n");
 							mavlink_missionlib_send_gcs_string("[mavlink pm] OK loaded EEPROM params");
@@ -327,7 +269,7 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 					} else if (((int)(cmd_mavlink.param1)) == 1)	{
 
 						/* write all parameters from RAM to EEPROM */
-						int write_ret = mavlink_pm_save_eeprom();
+						int write_ret = param_save_default();
 						if (write_ret == OK) {
 							mavlink_missionlib_send_gcs_string("[mavlink pm] OK params written to EEPROM");
 							result = MAV_RESULT_ACCEPTED;

@@ -32,29 +32,57 @@
  ****************************************************************************/
 
 /**
- * @file drv_eeprom.h
+ * @file px4fmu_led.c
  *
- * Config for the non-MTD EEPROM driver.
+ * PX4FMU LED backend.
  */
 
-/* IMPORTANT: Adjust this number! */
-#define MAX_EEPROMS					2
+#include <nuttx/config.h>
 
-/* FMU onboard */
-#define FMU_BASEBOARD_EEPROM_ADDRESS			0x57
-#define FMU_BASEBOARD_EEPROM_TOTAL_SIZE_BYTES		128
-#define FMU_BASEBOARD_EEPROM_PAGE_SIZE_BYTES		8
-#define FMU_BASEBOARD_EEPROM_PAGE_WRITE_TIME_US		3300
-#define FMU_BASEBOARD_EEPROM_BUS_CLOCK			400000    ///< 400 KHz max. clock
+#include <stdint.h>
+#include <stdbool.h>
+#include <debug.h>
 
-/**
- * @brief i2c I2C bus struct
- * @brief device_address The device address as stated in the datasheet, e.g. for a Microchip 24XX128 0x50 with all ID pins tied to GND
- * @brief total_size_bytes The total size in bytes, e.g. 16K = 16000 bytes for the Microchip 24XX128
- * @brief page_size_bytes The size of one page, e.g. 64 bytes for the Microchip 24XX128
- * @brief device_name The device name to register this device to, e.g. /dev/eeprom
- * @brief fail_if_missing Returns error if the EEPROM was not found. This is helpful if the EEPROM might be attached later when the board is running
- */
-extern int
-eeprom_attach(struct i2c_dev_s *i2c, uint8_t device_address, uint16_t total_size_bytes, uint16_t page_size_bytes, uint16_t page_write_time_us, const char* device_name, uint8_t fail_if_missing);
+#include <arch/board/board.h>
 
+#include "chip.h"
+#include "up_arch.h"
+#include "up_internal.h"
+#include "stm32_internal.h"
+#include "px4fmu_internal.h"
+
+__EXPORT void up_ledinit()
+{
+	/* Configure LED1-2 GPIOs for output */
+
+	stm32_configgpio(GPIO_LED1);
+	stm32_configgpio(GPIO_LED2);
+}
+
+__EXPORT void up_ledon(int led)
+{
+	if (led == 0)
+	{
+		/* Pull down to switch on */
+		stm32_gpiowrite(GPIO_LED1, false);
+	}
+	if (led == 1)
+	{
+		/* Pull down to switch on */
+		stm32_gpiowrite(GPIO_LED2, false);
+	}
+}
+
+__EXPORT void up_ledoff(int led)
+{
+	if (led == 0)
+	{
+		/* Pull up to switch off */
+		stm32_gpiowrite(GPIO_LED1, true);
+	}
+	if (led == 1)
+	{
+		/* Pull up to switch off */
+		stm32_gpiowrite(GPIO_LED2, true);
+	}
+}
