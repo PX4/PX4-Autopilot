@@ -34,6 +34,10 @@
 #
 ############################################################################
 
+ifeq ($(CONFIG_NETUTILS_CODECS),y)
+CONFIGURED_APPS += netutils/codecs
+endif
+
 ifeq ($(CONFIG_NETUTILS_DHCPC),y)
 CONFIGURED_APPS += netutils/dhcpc
 endif

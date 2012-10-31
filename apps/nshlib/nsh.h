@@ -650,4 +650,28 @@ void nsh_usbtrace(void);
 #  endif
 #endif /* CONFIG_DISABLE_SIGNALS */
 
+#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_BASE64)
+#  ifndef CONFIG_NSH_DISABLE_BASE64DEC
+      int cmd_base64decode(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
+#  ifndef CONFIG_NSH_DISABLE_BASE64ENC
+      int cmd_base64encode(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
+#endif
+
+#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_HASH_MD5)
+#  ifndef CONFIG_NSH_DISABLE_MD5
+      int cmd_md5(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
+#endif
+
+#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_URLCODE)
+#  ifndef CONFIG_NSH_DISABLE_URLDECODE
+      int cmd_urlencode(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
+#  ifndef CONFIG_NSH_DISABLE_URLENCODE
+      int cmd_urldecode(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
+#endif
+
 #endif /* __APPS_NSHLIB_NSH_H */

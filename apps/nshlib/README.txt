@@ -257,6 +257,10 @@ o cd [<dir-path>|-|~|..]
        'home' directory is '/'.
     'cd ..' sets the current working directory to the parent directory.
 
+o base64dec [-w] [-f] <string or filepath>
+
+o base64dec [-w] [-f] <string or filepath>
+
 o cp <source-path> <dest-path>
 
   Copy of the contents of the file at <source-path> to the location
@@ -448,6 +452,8 @@ o ls [-lRs] <dir-path>
         listing
      -l Show size and mode information along with the filenames
         in the listing.
+
+o md5 [-f] <string or filepath>
 
 o mb <hex-address>[=<hex-value>][ <hex-byte-count>]
 o mh <hex-address>[=<hex-value>][ <hex-byte-count>]
@@ -781,6 +787,10 @@ o unset <name>
 
     nsh>
 
+ o urldecode [-f] <string or filepath>
+ 
+ o urlencode [-f] <string or filepath>
+
 o usleep <usec>
 
   Pause execution (sleep) of <usec> microseconds.
@@ -826,6 +836,8 @@ Command Dependencies on Configuration Settings
   Command    Depends on Configuration
   ---------- --------------------------
   [          !CONFIG_NSH_DISABLESCRIPT
+  base64dec  CONFIG_NETUTILS_CODECS && CONFIG_CODECS_BASE64
+  base64enc  CONFIG_NETUTILS_CODECS && CONFIG_CODECS_BASE64
   cat        CONFIG_NFILE_DESCRIPTORS > 0
   cd         !CONFIG_DISABLE_ENVIRON && CONFIG_NFILE_DESCRIPTORS > 0
   cp         CONFIG_NFILE_DESCRIPTORS > 0
@@ -841,6 +853,7 @@ Command Dependencies on Configuration Settings
   kill       !CONFIG_DISABLE_SIGNALS
   losetup    !CONFIG_DISABLE_MOUNTPOINT && CONFIG_NFILE_DESCRIPTORS > 0
   ls         CONFIG_NFILE_DESCRIPTORS > 0
+  md5        CONFIG_NETUTILS_CODECS && CONFIG_CODECS_HASH_MD5
   mb,mh,mw   ---
   mkdir      !CONFIG_DISABLE_MOUNTPOINT && CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_FS_WRITABLE (see note 4)
   mkfatfs    !CONFIG_DISABLE_MOUNTPOINT && CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_FS_FAT
@@ -880,20 +893,21 @@ In addition, each NSH command can be individually disabled via one of the follow
 settings.  All of these settings make the configuration of NSH potentially complex but
 also allow it to squeeze into very small memory footprints.
 
-  CONFIG_NSH_DISABLE_CAT,      CONFIG_NSH_DISABLE_CD,       CONFIG_NSH_DISABLE_CP,
-  CONFIG_NSH_DISABLE_DD,       CONFIG_NSH_DISABLE_DF,       CONFIG_NSH_DISABLE_ECHO,
-  CONFIG_NSH_DISABLE_EXEC,     CONFIG_NSH_DISABLE_EXIT,     CONFIG_NSH_DISABLE_FREE,
-  CONFIG_NSH_DISABLE_GET,      CONFIG_NSH_DISABLE_HELP,     CONFIG_NSH_DISABLE_IFCONFIG,
-  CONFIG_NSH_DISABLE_KILL,     CONFIG_NSH_DISABLE_LOSETUP,  CONFIG_NSH_DISABLE_LS,
-  CONFIG_NSH_DISABLE_MB,       CONFIG_NSH_DISABLE_MKDIR,    CONFIG_NSH_DISABLE_MKFATFS,
-  CONFIG_NSH_DISABLE_MKFIFO,   CONFIG_NSH_DISABLE_MKRD,     CONFIG_NSH_DISABLE_MH,
-  CONFIG_NSH_DISABLE_MOUNT,    CONFIG_NSH_DISABLE_MW,       CONFIG_NSH_DISABLE_MV,
-  CONFIG_NSH_DISABLE_NFSMOUNT, CONFIG_NSH_DISABLE_PS,       CONFIG_NSH_DISABLE_PING,
-  CONFIG_NSH_DISABLE_PUT,      CONFIG_NSH_DISABLE_PWD,      CONFIG_NSH_DISABLE_RM,
-  CONFIG_NSH_DISABLE_RMDIR,    CONFIG_NSH_DISABLE_SET,      CONFIG_NSH_DISABLE_SH,
-  CONFIG_NSH_DISABLE_SLEEP,    CONFIG_NSH_DISABLE_TEST,     CONFIG_NSH_DISABLE_UMOUNT,
-  CONFIG_NSH_DISABLE_UNSET,    CONFIG_NSH_DISABLE_USLEEP,   CONFIG_NSH_DISABLE_WGET,
-  CONFIG_NSH_DISABLE_XD
+  CONFIG_NSH_DISABLE_BASE64DEC, CONFIG_NSH_DISABLE_BASE64ENC, CONFIG_NSH_DISABLE_CAT,
+  CONFIG_NSH_DISABLE_CD,        CONFIG_NSH_DISABLE_CP,        CONFIG_NSH_DISABLE_DD,
+  CONFIG_NSH_DISABLE_DF,        CONFIG_NSH_DISABLE_ECHO,      CONFIG_NSH_DISABLE_EXEC,
+  CONFIG_NSH_DISABLE_EXIT,      CONFIG_NSH_DISABLE_FREE,      CONFIG_NSH_DISABLE_GET,
+  CONFIG_NSH_DISABLE_HELP,      CONFIG_NSH_DISABLE_IFCONFIG,  CONFIG_NSH_DISABLE_KILL,
+  CONFIG_NSH_DISABLE_LOSETUP,   CONFIG_NSH_DISABLE_LS,        CONFIG_NSH_DISABLE_MD5
+  CONFIG_NSH_DISABLE_MB,        CONFIG_NSH_DISABLE_MKDIR,     CONFIG_NSH_DISABLE_MKFATFS,
+  CONFIG_NSH_DISABLE_MKFIFO,    CONFIG_NSH_DISABLE_MKRD,      CONFIG_NSH_DISABLE_MH,
+  CONFIG_NSH_DISABLE_MOUNT,     CONFIG_NSH_DISABLE_MW,        CONFIG_NSH_DISABLE_MV,
+  CONFIG_NSH_DISABLE_NFSMOUNT,  CONFIG_NSH_DISABLE_PS,        CONFIG_NSH_DISABLE_PING,
+  CONFIG_NSH_DISABLE_PUT,       CONFIG_NSH_DISABLE_PWD,       CONFIG_NSH_DISABLE_RM,
+  CONFIG_NSH_DISABLE_RMDIR,     CONFIG_NSH_DISABLE_SET,       CONFIG_NSH_DISABLE_SH,
+  CONFIG_NSH_DISABLE_SLEEP,     CONFIG_NSH_DISABLE_TEST,      CONFIG_NSH_DISABLE_UMOUNT,
+  CONFIG_NSH_DISABLE_UNSET,     CONFIG_NSH_DISABLE_URLDECODE, CONFIG_NSH_DISABLE_URLENCODE,
+  CONFIG_NSH_DISABLE_USLEEP,    CONFIG_NSH_DISABLE_WGET,      CONFIG_NSH_DISABLE_XD
 
 Verbose help output can be suppressed by defining CONFIG_NSH_HELP_TERSE.  In that
 case, the help command is still available but will be slightly smaller.

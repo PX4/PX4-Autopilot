@@ -37,7 +37,7 @@
 
 # Sub-directories
 
-SUBDIRS  = json
+SUBDIRS  = json codecs
 ifeq ($(CONFIG_NET),y)
 SUBDIRS += uiplib dhcpc dhcpd discover ftpc ftpd resolv smtp telnetd
 SUBDIRS += webclient webserver tftpc thttpd xmlrpc

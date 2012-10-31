@@ -153,6 +153,15 @@ static const struct cmdmap_s g_cmdmap[] =
   { "?",        cmd_help,     1, 1, NULL },
 #endif
 
+#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_BASE64)
+#  ifndef CONFIG_NSH_DISABLE_BASE64DEC
+  { "base64dec", cmd_base64decode, 2, 4, "[-w] [-f] <string or filepath>" },
+#  endif
+#  ifndef CONFIG_NSH_DISABLE_BASE64ENC
+  { "base64enc", cmd_base64encode, 2, 4, "[-w] [-f] <string or filepath>" },
+#  endif
+#endif
+
 #if CONFIG_NFILE_DESCRIPTORS > 0
 # ifndef CONFIG_NSH_DISABLE_CAT
   { "cat",      cmd_cat,      2, NSH_MAX_ARGUMENTS, "<path> [<path> [<path> ...]]" },
@@ -244,6 +253,12 @@ static const struct cmdmap_s g_cmdmap[] =
 
 #ifndef CONFIG_NSH_DISABLE_MB
   { "mb",       cmd_mb,       2, 3, "<hex-address>[=<hex-value>][ <hex-byte-count>]" },
+#endif
+
+#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_HASH_MD5)
+#  ifndef CONFIG_NSH_DISABLE_MD5
+  { "md5",      cmd_md5,      2, 3, "[-f] <string or filepath>" },
+#  endif
 #endif
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_WRITABLE)
@@ -363,6 +378,15 @@ static const struct cmdmap_s g_cmdmap[] =
 # endif
 #endif
 
+#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_URLCODE)
+#  ifndef CONFIG_NSH_DISABLE_URLDECODE
+  { "urldecode", cmd_urldecode, 2, 3, "[-f] <string or filepath>" },
+#  endif
+#  ifndef CONFIG_NSH_DISABLE_URLENCODE
+  { "urlencode", cmd_urlencode, 2, 3, "[-f] <string or filepath>" },
+#  endif
+#endif
+
 #ifndef CONFIG_DISABLE_SIGNALS
 # ifndef CONFIG_NSH_DISABLE_USLEEP
   { "usleep",   cmd_usleep,   2, 2, "<usec>" },
@@ -378,6 +402,7 @@ static const struct cmdmap_s g_cmdmap[] =
 #ifndef CONFIG_NSH_DISABLE_XD
   { "xd",       cmd_xd,       3, 3, "<hex-address> <byte-count>" },
 #endif
+
   { NULL,       NULL,         1, 1, NULL }
 };
 

@@ -5,6 +5,7 @@
 
 comment "Networking Utilities"
 
+source "$APPSDIR/netutils/codecs/Kconfig"
 source "$APPSDIR/netutils/dhcpc/Kconfig"
 source "$APPSDIR/netutils/dhcpd/Kconfig"
 source "$APPSDIR/netutils/ftpc/Kconfig"

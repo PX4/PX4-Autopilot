@@ -1,0 +1,59 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config NETUTILS_CODECS
+	bool "CODEC Library"
+	default n
+	---help---
+		Enables the netutils/code library: Base64 coding, URL coding, MD5.
+
+if NETUTILS_CODECS
+
+config CODECS_BASE64
+	bool "Base 64 Support"
+	default n
+	---help---
+		Enables support for the following interfaces: base64_encode(),
+		base64_decode(), base64w_encode(), and base64w_decode(),
+
+		Contributed NuttX by Darcy Gong.
+
+config CODECS_HASH_MD5
+	bool "MD5 Support"
+	default n
+	---help---
+		Enables support for the following interfaces: MD5Init(),
+		MD5Update(), MD5Final(), MD5Transform(), md5_sum() and md5_hash()
+
+		Contributed NuttX by Darcy Gong.
+
+config CODECS_URLCODE
+	bool "URL Decode Support"
+	default n
+	---help---
+		Enables support for the following interfaces: urlencode() and
+		urldecode()
+
+		Contributed NuttX by Darcy Gong.
+
+config CODECS_URLCODE_NEWMEMORY
+	bool "URL Allocating Decode Support"
+	default n
+	---help---
+		Enables support for the following interfaces: url_encode() and
+		url_decode()
+
+		Contributed NuttX by Darcy Gong.
+
+config CODECS_AVR_URLCODE
+	bool "URL Raw Decode Support"
+	default n
+	---help---
+		Enables support for the following interfaces: urlrawdecode() and
+		urlrawencode()
+
+		Contributed NuttX by Darcy Gong.
+
+endif

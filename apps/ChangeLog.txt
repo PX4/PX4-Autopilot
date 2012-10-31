@@ -390,3 +390,7 @@
 	* apps/nshlib/nsh_netinit.c: Fix static IP DNS problem (Darcy Gong)
 	* apps/netutils/resolv/resolv.c: DNS fixes from Darcy Gong.
 	* COPYING: Licensing information added.
+	* apps/netutils/codec and include/netutils/urldecode.h, base64.h, and md5.h:
+	  A port of the BASE46, MD5 and URL CODEC library from Darcy Gong.
+	* nslib/nsh_codeccmd.c:  NSH commands to use the CODEC library.
+	  Contributed by Darcy Gong.
