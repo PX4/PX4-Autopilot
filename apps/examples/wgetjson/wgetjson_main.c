@@ -58,7 +58,7 @@
  ****************************************************************************/
 
 #ifndef CONFIG_EXAMPLES_WGETJSON_MAXSIZE
-# define  CONFIG_EXAMPLES_WGETJSON_MAXSIZE 1024*10
+# define  CONFIG_EXAMPLES_WGETJSON_MAXSIZE 1024
 #endif
 
 #ifndef CONFIG_EXAMPLES_EXAMPLES_WGETJSON_URL

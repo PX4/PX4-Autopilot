@@ -14,7 +14,7 @@ if EXAMPLES_WGETJSON
 
 config EXAMPLES_WGETJSON_MAXSIZE
 	int "Max. JSON Buffer Size"
-	default 10240
+	default 1024
 
 config EXAMPLES_WGETJSON_URL
 	string "wget URL"

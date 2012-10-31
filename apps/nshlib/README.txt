@@ -235,6 +235,10 @@ o test <expression>
                       integer -gt integer | integer -le integer |
                       integer -lt integer | integer -ne integer
 
+o base64dec [-w] [-f] <string or filepath>
+
+o base64dec [-w] [-f] <string or filepath>
+
 o cat <path> [<path> [<path> ...]]
 
   This command copies and concatentates all of the files at <path>
@@ -256,10 +260,6 @@ o cd [<dir-path>|-|~|..]
        CONFIG_LIB_HOMEDIR in the configuration file.  The default
        'home' directory is '/'.
     'cd ..' sets the current working directory to the parent directory.
-
-o base64dec [-w] [-f] <string or filepath>
-
-o base64dec [-w] [-f] <string or filepath>
 
 o cp <source-path> <dest-path>
 
@@ -874,6 +874,8 @@ Command Dependencies on Configuration Settings
   test       !CONFIG_NSH_DISABLESCRIPT
   umount     !CONFIG_DISABLE_MOUNTPOINT && CONFIG_NFILE_DESCRIPTORS > 0 && CONFIG_FS_READABLE
   unset      !CONFIG_DISABLE_ENVIRON
+  urldecode  CONFIG_NETUTILS_CODECS && CONFIG_CODECS_URLCODE
+  urlencode  CONFIG_NETUTILS_CODECS && CONFIG_CODECS_URLCODE
   usleep     !CONFIG_DISABLE_SIGNALS
   get        CONFIG_NET && CONFIG_NET_TCP && CONFIG_NFILE_DESCRIPTORS > 0
   xd         ---
