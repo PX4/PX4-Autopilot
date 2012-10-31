@@ -239,6 +239,25 @@ examples/composite
   CONFIG_EXAMPLES_COMPOSITE_TRACEINTERRUPTS
     Show interrupt-related events.
 
+examples/cxxtest
+^^^^^^^^^^^^^^^^
+
+  This is a test of the C++ standard library.  At present a port of the uClibc++
+  C++ library is available.  Due to licensinging issues, the uClibc++ C++ library
+  is not included in the NuttX source tree by default, but must be installed
+  (see misc/uClibc++/README.txt for installation).
+
+  The only NuttX setting that is required is:
+
+    CONFIG_HAVE_CXX=y
+
+  The uClibc++ test includes simple test of:
+
+    - iostreams,
+    - STL,
+    - RTTI, and
+    - Exceptions
+
 examples/dhcpd
 ^^^^^^^^^^^^^^
 

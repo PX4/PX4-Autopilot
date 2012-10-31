@@ -37,12 +37,12 @@
 
 # Sub-directories
 
-SUBDIRS  = adc buttons can cdcacm composite dhcpd discover elf ftpc ftpd hello
-SUBDIRS += helloxx hidkbd igmp json lcdrw mm modbus mount nettest nsh null nx
-SUBDIRS += nxconsole nxffs nxflat nxhello nximage nxlines nxtext ostest
-SUBDIRS += pashello pipe poll pwm qencoder rgmp romfs serloop telnetd
-SUBDIRS += thttpd tiff touchscreen udp uip usbserial sendmail usbstorage
-SUBDIRS += usbterm watchdog wget wgetjson wlan
+SUBDIRS  = adc buttons can cdcacm composite cxxtest dhcpd discover elf ftpc
+SUBDIRS += ftpd hello helloxx hidkbd igmp json lcdrw mm modbus mount
+SUBDIRS += nettest nsh null nx nxconsole nxffs nxflat nxhello nximage
+SUBDIRS += nxlines nxtext ostest  pashello pipe poll pwm qencoder rgmp
+SUBDIRS += romfs serloop telnetd thttpd tiff touchscreen udp uip usbserial
+SUBDIRS += sendmail usbstorage usbterm watchdog wget wgetjson wlan
 
 # Sub-directories that might need context setup.  Directories may need
 # context setup for a variety of reasons, but the most common is because
@@ -57,8 +57,8 @@ SUBDIRS += usbterm watchdog wget wgetjson wlan
 CNTXTDIRS = pwm
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-CNTXTDIRS += adc can cdcacm composite dhcpd discover ftpd json modbus
-CNTXTDIRS += nettest qencoder telnetd watchdog wgetjson
+CNTXTDIRS += adc can cdcacm composite cxxtestdhcpd discover ftpd json
+CNTXTDIRS += modbus nettest qencoder telnetd watchdog wgetjson
 endif
 
 ifeq ($(CONFIG_EXAMPLES_HELLO_BUILTIN),y)

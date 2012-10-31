@@ -1,0 +1,14 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_CXXTEST
+	bool "C++ test program"
+	default n
+	depends on HAVE_CXX
+	---help---
+		Enable the C++ test program
+
+if EXAMPLES_CXXTEST
+endif

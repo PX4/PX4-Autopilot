@@ -395,3 +395,5 @@
 	* nsnlib/nsh_codeccmd.c:  NSH commands to use the CODEC library.
 	  Contributed by Darcy Gong.
 	* apps/examples/wgetjson: Test example contributed by Darcy Gong
+	* apps/examples/cxxtest:  A test for the uClibc++ library provided by
+	  Qiang Yu and the RGMP team.
