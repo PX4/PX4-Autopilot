@@ -56,36 +56,53 @@
 
 __EXPORT int param_main(int argc, char *argv[]);
 
-static void	do_save(void);
-static void	do_load(void);
-static void	do_import(void);
+static void	do_save(const char* param_file_name);
+static void	do_load(const char* param_file_name);
+static void	do_import(const char* param_file_name);
 static void	do_show(void);
 static void	do_show_print(void *arg, param_t param);
 
-static const char *param_file_name = "/eeprom/parameters";
+static const char *param_file_name_default = "/fs/microsd/parameters";
 
 int
 param_main(int argc, char *argv[])
 {
 	if (argc >= 2) {
-		if (!strcmp(argv[1], "save"))
-			do_save();
+		if (!strcmp(argv[1], "save")) {
+			if (argc >= 3) {
+				do_save(argv[2]);
+			} else {
+				do_save(param_file_name_default);
+			}
+		}
 
-		if (!strcmp(argv[1], "load"))
-			do_load();
+		if (!strcmp(argv[1], "load")) {
+			if (argc >= 3) {
+				do_load(argv[2]);
+			} else {
+				do_load(param_file_name_default);
+			}
+		}
 
-		if (!strcmp(argv[1], "import"))
-			do_import();
+		if (!strcmp(argv[1], "import")) {
+			if (argc >= 3) {
+				do_import(argv[2]);
+			} else {
+				do_import(param_file_name_default);
+			}
+		}
 
-		if (!strcmp(argv[1], "show"))
+		if (!strcmp(argv[1], "show")) {
 			do_show();
+		}
+			
 	}
 
 	errx(1, "expected a command, try 'load', 'import', 'show' or 'save'\n");
 }
 
 static void
-do_save(void)
+do_save(const char* param_file_name)
 {
 	/* delete the parameter file in case it exists */
 	unlink(param_file_name);
@@ -108,7 +125,7 @@ do_save(void)
 }
 
 static void
-do_load(void)
+do_load(const char* param_file_name)
 {
 	int fd = open(param_file_name, O_RDONLY);
 
@@ -118,14 +135,18 @@ do_load(void)
 	int result = param_load(fd);
 	close(fd);
 
-	if (result < 0)
+	if (result < 0) {
 		errx(1, "error importing from '%s'", param_file_name);
+	} else {
+		/* set default file name for next storage operation */
+		param_set_default_file(param_file_name);
+	}
 
 	exit(0);
 }
 
 static void
-do_import(void)
+do_import(const char* param_file_name)
 {
 	int fd = open(param_file_name, O_RDONLY);
 
