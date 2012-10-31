@@ -392,5 +392,6 @@
 	* COPYING: Licensing information added.
 	* apps/netutils/codec and include/netutils/urldecode.h, base64.h, and md5.h:
 	  A port of the BASE46, MD5 and URL CODEC library from Darcy Gong.
-	* nslib/nsh_codeccmd.c:  NSH commands to use the CODEC library.
+	* nsnlib/nsh_codeccmd.c:  NSH commands to use the CODEC library.
 	  Contributed by Darcy Gong.
+	* apps/examples/wgetjson: Test example contributed by Darcy Gong

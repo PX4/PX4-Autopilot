@@ -42,7 +42,7 @@ SUBDIRS += helloxx hidkbd igmp json lcdrw mm modbus mount nettest nsh null nx
 SUBDIRS += nxconsole nxffs nxflat nxhello nximage nxlines nxtext ostest
 SUBDIRS += pashello pipe poll pwm qencoder rgmp romfs serloop telnetd
 SUBDIRS += thttpd tiff touchscreen udp uip usbserial sendmail usbstorage
-SUBDIRS += usbterm watchdog wget wlan
+SUBDIRS += usbterm watchdog wget wgetjson wlan
 
 # Sub-directories that might need context setup.  Directories may need
 # context setup for a variety of reasons, but the most common is because
@@ -58,7 +58,7 @@ CNTXTDIRS = pwm
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
 CNTXTDIRS += adc can cdcacm composite dhcpd discover ftpd json modbus
-CNTXTDIRS += nettest qencoder telnetd watchdog
+CNTXTDIRS += nettest qencoder telnetd watchdog wgetjson
 endif
 
 ifeq ($(CONFIG_EXAMPLES_HELLO_BUILTIN),y)

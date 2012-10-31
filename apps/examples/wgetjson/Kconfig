@@ -1,0 +1,23 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_WGETJSON
+	bool "wget JSON Example"
+	default n
+	depends on NETUTILS_JSON
+	---help---
+		Enable the wget JSON example
+
+if EXAMPLES_WGETJSON
+
+config EXAMPLES_WGETJSON_MAXSIZE
+	int "Max. JSON Buffer Size"
+	default 10240
+
+config EXAMPLES_WGETJSON_URL
+	string "wget URL"
+	default "http://10.0.0.1/wgetjson/json_cmd.php"
+
+endif

@@ -234,6 +234,10 @@ ifeq ($(CONFIG_EXAMPLES_WGET),y)
 CONFIGURED_APPS += examples/wget
 endif
 
+ifeq ($(CONFIG_EXAMPLES_WGETJSON),y)
+CONFIGURED_APPS += examples/wgetjson
+endif
+
 ifeq ($(CONFIG_EXAMPLES_WLAN),y)
 CONFIGURED_APPS += examples/wlan
 endif

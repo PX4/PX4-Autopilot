@@ -1747,7 +1747,16 @@ examples/wget
     CONFIGURED_APPS += resolv
     CONFIGURED_APPS += webclient
 
+examples/wget
+^^^^^^^^^^^^^
+
+  Uses wget to get a JSON encoded file, then decodes the file.
+
+    CONFIG_EXAMPLES_WDGETJSON_MAXSIZE - Max. JSON Buffer Size
+    CONFIG_EXAMPLES_EXAMPLES_WGETJSON_URL - wget URL
+
 examples/xmlrpc
+^^^^^^^^^^^^^^^
 
   This example exercises the "Embeddable Lightweight XML-RPC Server" which
   is discussed at:
