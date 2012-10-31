@@ -40,9 +40,7 @@ CFLAGS		+= -I$(TOPDIR)/sched
 ASRCS		= 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
-CSRCS		= up_leds.c \
-		  drv_led.c
-
+CSRCS		= empty.c
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)
@@ -69,6 +67,7 @@ libboard$(LIBEXT): $(OBJS)
 	@( for obj in $(OBJS) ; do \
 		$(call ARCHIVE, $@, $${obj}); \
 	done ; )
+	touch $@
 
 .depend: Makefile $(SRCS)
 	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep

@@ -1,9 +1,6 @@
 /****************************************************************************
- * configs/px4fmu/src/up_leds.c
- * arch/arm/src/board/up_leds.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -34,9 +31,11 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
+/**
+ * @file px4fmu_led.c
+ *
+ * PX4FMU LED backend.
+ */
 
 #include <nuttx/config.h>
 
@@ -50,49 +49,17 @@
 #include "up_arch.h"
 #include "up_internal.h"
 #include "stm32_internal.h"
-#include "px4fmu-internal.h"
+#include "px4fmu_internal.h"
 
-/****************************************************************************
- * Definitions
- ****************************************************************************/
-
-/* Enables debug output from this file (needs CONFIG_DEBUG with
- * CONFIG_DEBUG_VERBOSE too)
- */
-
-#undef LED_DEBUG  /* Define to enable debug */
-
-#ifdef LED_DEBUG
-#  define leddbg  lldbg
-#  define ledvdbg llvdbg
-#else
-#  define leddbg(x...)
-#  define ledvdbg(x...)
-#endif
-
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: up_ledinit
- ****************************************************************************/
-
-#ifdef CONFIG_ARCH_LEDS
-void up_ledinit(void)
+__EXPORT void up_ledinit()
 {
-   /* Configure LED1-2 GPIOs for output */
+	/* Configure LED1-2 GPIOs for output */
 
-   stm32_configgpio(GPIO_LED1);
-   stm32_configgpio(GPIO_LED2);
+	stm32_configgpio(GPIO_LED1);
+	stm32_configgpio(GPIO_LED2);
 }
 
-/****************************************************************************
- * Name: up_ledon
- ****************************************************************************/
-
-void up_ledon(int led)
+__EXPORT void up_ledon(int led)
 {
 	if (led == 0)
 	{
@@ -106,11 +73,7 @@ void up_ledon(int led)
 	}
 }
 
-/****************************************************************************
- * Name: up_ledoff
- ****************************************************************************/
-
-void up_ledoff(int led)
+__EXPORT void up_ledoff(int led)
 {
 	if (led == 0)
 	{
@@ -123,5 +86,3 @@ void up_ledoff(int led)
 		stm32_gpiowrite(GPIO_LED2, true);
 	}
 }
-
-#endif /* CONFIG_ARCH_LEDS */
