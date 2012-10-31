@@ -62,7 +62,7 @@ static void	do_import(const char* param_file_name);
 static void	do_show(void);
 static void	do_show_print(void *arg, param_t param);
 
-static const char *param_file_name_default = "/fs/microsd/parameters";
+static const char *param_file_name_default = "/eeprom/parameters";
 
 int
 param_main(int argc, char *argv[])
