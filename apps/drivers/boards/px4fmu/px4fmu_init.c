@@ -65,7 +65,6 @@
 
 #include <arch/board/board.h>
 #include <arch/board/drv_led.h>
-#include <arch/board/drv_eeprom.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -220,6 +219,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	message("[boot] Successfully initialized SPI port 1\r\n");
 
+#if 0
 	/* initialize I2C2 bus */
 
 	i2c2 = up_i2cinitialize(2);
@@ -250,7 +250,7 @@ __EXPORT int nsh_archinitialize(void)
 			    FMU_BASEBOARD_EEPROM_TOTAL_SIZE_BYTES,
 			    FMU_BASEBOARD_EEPROM_PAGE_SIZE_BYTES,
 			    FMU_BASEBOARD_EEPROM_PAGE_WRITE_TIME_US, "/dev/baseboard_eeprom", 1);
-
+#endif
 #if defined(CONFIG_STM32_SPI3)
 	/* Get the SPI port */
 
@@ -276,7 +276,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	message("[boot] Successfully bound SPI port 3 to the MMCSD driver\n");
 #endif /* SPI3 */
-
+#if 0
 	/* initialize I2C1 bus */
 
 	i2c1 = up_i2cinitialize(1);
@@ -293,7 +293,7 @@ __EXPORT int nsh_archinitialize(void)
 	/* INIT 3: MULTIPORT-DEPENDENT INITIALIZATION */
 
 	/* Get board information if available */
-
+#endif
 #ifdef CONFIG_ADC
 	int adc_state = adc_devinit();
 

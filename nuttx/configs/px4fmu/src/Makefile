@@ -41,7 +41,7 @@ ASRCS		=
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
 CSRCS		= up_leds.c \
-		  drv_led.c drv_eeprom.c 
+		  drv_led.c
 
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
