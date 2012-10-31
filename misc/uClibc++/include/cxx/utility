@@ -1,0 +1,88 @@
+/*	Copyright (C) 2004 Garrett A. Kajmowicz
+	This file is part of the uClibc++ Library.
+
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+*/
+
+
+#include <basic_definitions>
+
+
+#ifndef __STD_HEADER_UTILITY
+#define __STD_HEADER_UTILITY 1
+
+#pragma GCC visibility push(default)
+
+namespace std{
+
+	namespace rel_ops {
+		template<class T> inline bool operator!=(const T& x, const T& y){
+			return !(x == y);
+		}
+
+		template<class T> inline bool operator> (const T& x, const T& y){
+			return ( y < x);
+		}
+
+		template<class T> inline bool operator<=(const T& x, const T& y){
+			return !( y < x );
+		}
+
+		template<class T> inline bool operator>=(const T& x, const T& y){
+			return !(x < y);
+		}
+	}
+
+	template <class T1, class T2> struct _UCXXEXPORT pair {
+		typedef T1 first_type;
+		typedef T2 second_type;
+
+		T1 first;
+		T2 second;
+		pair() : first(), second() {  }
+		pair(const T1& x, const T2& y) : first(x), second(y) {  }
+		template<class U, class V> pair(const pair<U, V> &p) : first(p.first), second(p.second) { }
+	};
+	
+	template <class T1, class T2> bool operator==(const pair<T1,T2>& x, const pair<T1,T2>& y){
+		using namespace rel_ops;
+		return (x.first == y.first && x.second==y.second);
+	}
+	template <class T1, class T2> bool operator< (const pair<T1,T2>& x, const pair<T1,T2>& y){
+		return x.first < y.first || (!(y.first < x.first) && x.second < y.second);
+	}
+	template <class T1, class T2> bool operator!=(const pair<T1,T2>& x, const pair<T1,T2>& y){
+		return !(x == y);
+	}
+	template <class T1, class T2> bool operator> (const pair<T1,T2>& x, const pair<T1,T2>& y){
+		return y < x;
+	}
+	template <class T1, class T2> bool operator>=(const pair<T1,T2>& x, const pair<T1,T2>& y){
+		return !(x < y);
+	}
+	template <class T1, class T2> bool operator<=(const pair<T1,T2>& x, const pair<T1,T2>& y){
+		return !(y < x);
+	}
+	template <class T1, class T2> pair<T1,T2> make_pair(const T1& x, const T2& y){
+		return pair<T1,T2>(x, y);
+	}
+
+
+}
+
+#pragma GCC visibility pop
+
+#endif	//__STD_HEADER_UTILITY

@@ -1,0 +1,500 @@
+/*	Copyright (C) 2004 Garrett A. Kajmowicz
+
+	This file is part of the uClibc++ Library.
+
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#include <basic_definitions>
+#include <cstddef>
+#include <locale>
+#include <iosfwd>
+
+#ifndef __HEADER_STD_IOS
+#define __HEADER_STD_IOS 1
+
+#pragma GCC visibility push(default)
+
+namespace std{
+	typedef signed long int streamoff;
+
+	template <class stateT> class fpos;
+
+	class _UCXXEXPORT ios_base {
+	public:
+		class failure;
+#ifdef __UCLIBCXX_EXCEPTION_SUPPORT__
+		class failure : public exception {
+		public:
+			explicit failure(const std::string&) { }
+			explicit failure() { }
+			virtual const char* what() const throw() {
+				return "std::ios_base failure exception";
+			}
+		};
+#endif
+#ifdef __UCLIBCXX_SUPPORT_CDIR__
+		class _UCXXLOCAL Init{
+		public:
+			_UCXXEXPORT Init();
+			_UCXXEXPORT ~Init();
+		private:
+			static int init_cnt;
+		};
+#endif
+
+	public:
+
+		typedef unsigned short int fmtflags;
+
+		static const fmtflags skipws 		= 0x0001;
+
+		static const fmtflags left		= 0x0002;
+		static const fmtflags right		= 0x0004;
+		static const fmtflags internal		= 0x0008;
+
+		static const fmtflags boolalpha		= 0x0010;
+
+		static const fmtflags dec	 	= 0x0020;
+		static const fmtflags oct 		= 0x0040;
+		static const fmtflags hex 		= 0x0080;
+
+		static const fmtflags scientific	= 0x0100;
+		static const fmtflags fixed 		= 0x0200;
+
+		static const fmtflags showbase 		= 0x0400;
+		static const fmtflags showpoint		= 0x0800;
+		static const fmtflags showpos		= 0x1000;
+		static const fmtflags uppercase		= 0x2000;
+
+		static const fmtflags adjustfield	= left | right | internal;
+		static const fmtflags basefield		= dec | oct | hex;
+		static const fmtflags floatfield	= fixed | scientific;
+
+		static const fmtflags unitbuf		= 0x4000;
+
+		typedef unsigned char iostate;
+		static const iostate goodbit		= 0x00;
+		static const iostate badbit		= 0x01;
+		static const iostate eofbit		= 0x02;
+		static const iostate failbit 		= 0x04;
+
+		typedef unsigned char openmode;
+		static const openmode app		= 0x01;
+		static const openmode ate		= 0x02;
+		static const openmode binary		= 0x04;
+		static const openmode in		= 0x08;
+		static const openmode out		= 0x10;
+		static const openmode trunc		= 0x20;
+
+		typedef unsigned char seekdir;
+		static const seekdir beg		= 0x01;
+		static const seekdir cur		= 0x02;
+		static const seekdir end		= 0x04;
+
+		_UCXXEXPORT fmtflags flags() const{
+			return mformat;
+		}
+		_UCXXEXPORT fmtflags flags(fmtflags fmtfl);
+
+		fmtflags setf(fmtflags fmtfl);
+		fmtflags setf(fmtflags fmtfl, fmtflags mask );
+
+		_UCXXEXPORT void unsetf(fmtflags mask){
+			mformat&= ~mask;
+		}
+
+		_UCXXEXPORT streamsize precision() const{
+			return mprecision;
+		}
+
+		_UCXXEXPORT streamsize precision(streamsize prec);
+
+		_UCXXEXPORT streamsize width() const{
+			return mwidth;
+		}
+
+		_UCXXEXPORT streamsize width(streamsize wide);
+
+		_UCXXEXPORT locale imbue(const locale& loc);
+
+		_UCXXEXPORT locale getloc() const{
+			return mLocale;
+		}
+
+//		FIXME - These need to be implemented
+//		static int xalloc();
+//		long&  iword(int index);
+//		void*& pword(int index);
+
+		_UCXXEXPORT ~ios_base() { }
+
+		enum event { erase_event, imbue_event, copyfmt_event };
+
+		typedef void (*event_callback)(event, ios_base&, int index);
+//		void register_callback(event_call_back fn, int index);
+
+		//We are going to wrap stdio so we don't need implementation of the following:
+		inline static bool sync_with_stdio(bool = true) { return true; }
+
+	protected:
+		_UCXXEXPORT ios_base() : mLocale(), mformat(dec | skipws ), mstate(goodbit),
+			mmode(), mdir(), mprecision(6), mwidth(0)
+#ifdef __UCLIBCXX_SUPPORT_CDIR__
+			,mInit()
+#endif
+		{
+
+		}
+		locale mLocale;
+		fmtflags mformat;
+		iostate mstate;
+		openmode mmode;
+		seekdir mdir;
+		streamsize mprecision;
+		streamsize mwidth;
+#ifdef __UCLIBCXX_SUPPORT_CDIR__
+		Init mInit;
+#endif
+	};
+
+
+	//ios_base manipulators
+
+
+	inline ios_base& boolalpha  (ios_base& str){
+		str.setf(ios_base::boolalpha);
+		return str;
+	}
+	inline ios_base& noboolalpha(ios_base& str){
+		str.unsetf(ios_base::boolalpha);
+		return str;
+	}
+	inline ios_base& showbase   (ios_base& str){
+		str.setf(ios_base::showbase);
+		return str;
+	}
+	inline ios_base& noshowbase (ios_base& str){
+		str.unsetf(ios_base::showbase);
+		return str;
+	}
+	inline ios_base& showpoint  (ios_base& str){
+		str.setf(ios_base::showpoint);
+		return str;
+	}
+	inline ios_base& noshowpoint(ios_base& str){
+		str.unsetf(ios_base::showpoint);
+		return str;
+	}
+	inline ios_base& showpos    (ios_base& str){
+		str.setf(ios_base::showpos);
+		return str;
+	}
+	inline ios_base& noshowpos  (ios_base& str){
+		str.unsetf(ios_base::showpos);
+		return str;
+	}
+	inline ios_base& skipws     (ios_base& str){
+		str.setf(ios_base::skipws);
+		return str;
+	}
+	inline ios_base& noskipws   (ios_base& str){
+		str.unsetf(ios_base::skipws);
+		return str;
+	}
+	inline ios_base& uppercase  (ios_base& str){
+		str.setf(ios_base::uppercase);
+		return str;
+	}
+	inline ios_base& nouppercase(ios_base& str){
+		str.unsetf(ios_base::uppercase);
+		return str;
+	}
+
+	inline ios_base& unitbuf    (ios_base& str){
+		str.setf(ios_base::unitbuf);
+		return str;
+	}
+	inline ios_base& nounitbuf  (ios_base& str){
+		str.unsetf(ios_base::unitbuf);
+		return str;
+	}
+	inline ios_base& internal   (ios_base& str){
+		str.setf(ios_base::internal, ios_base::adjustfield);
+		return str;
+	}
+	inline ios_base& left       (ios_base& str){
+		str.setf(ios_base::left, ios_base::adjustfield);
+		return str;
+	}
+	inline ios_base& right      (ios_base& str){
+		str.setf(ios_base::right, ios_base::adjustfield);
+		return str;
+	}
+
+	inline ios_base& dec        (ios_base& str){
+		str.setf(ios_base::dec, ios_base::basefield);
+		return str;
+	}
+	inline ios_base& hex        (ios_base& str){
+		str.setf(ios_base::hex, ios_base::basefield);
+		return str;
+	}
+	inline ios_base& oct        (ios_base& str){
+		str.setf(ios_base::oct, ios_base::basefield);
+		return str;
+	}
+
+	inline ios_base& fixed      (ios_base& str){
+		str.setf(ios_base::fixed, ios_base::floatfield);
+		return str;
+	}
+	inline ios_base& scientific (ios_base& str){
+		str.setf(ios_base::scientific, ios_base::floatfield);
+		return str;
+	}
+
+
+	//basic_ios class definition
+
+
+	template <class charT, class traits > class _UCXXEXPORT basic_ios
+		: public ios_base
+	{
+	public:
+	// Types:
+		typedef charT char_type;
+		typedef typename traits::int_type int_type;
+		typedef typename traits::pos_type pos_type;
+		typedef typename traits::off_type off_type;
+		typedef traits traits_type;
+
+		_UCXXEXPORT operator void*() const{
+			if(fail() ){
+				return 0;
+			}
+			return (void *)(1);	//Must return a non-NULL pointer (though it can be *any* pointer)
+		}
+
+		_UCXXEXPORT bool operator!() const{
+			return fail();
+		}
+		_UCXXEXPORT iostate rdstate() const{
+			return mstate;
+		}
+		_UCXXEXPORT void clear(iostate state = goodbit){
+			if(rdbuf()!=0){
+				mstate = state;
+			}else{
+				mstate = state|ios_base::badbit;
+			}
+		}
+		_UCXXEXPORT void setstate(iostate state) {
+			clear(rdstate()  | state);
+#ifdef __UCLIBCXX_EXCEPTION_SUPPORT__
+			if(rdstate() & throw_mask){
+				throw failure();
+			}
+#endif
+		}
+
+		_UCXXEXPORT bool good() const{
+			return (rdstate() == 0);
+		}
+		_UCXXEXPORT bool eof()  const{
+			if(rdstate() & eofbit){
+				return true;
+			}
+			return false;
+		}
+		_UCXXEXPORT bool fail() const{
+			if( mstate & (failbit | badbit) ){
+				return true;
+			}
+			return false;
+		}
+
+		_UCXXEXPORT bool bad()  const{
+			if(mstate & badbit){
+				return true;
+			}
+			return false;
+		}
+
+		_UCXXEXPORT iostate exceptions() const{
+			return throw_mask;
+		}
+		_UCXXEXPORT void exceptions(iostate except){
+			throw_mask = except;
+		}
+
+		explicit _UCXXEXPORT basic_ios(basic_streambuf<charT,traits>* sb) : fill_char(' '), mtied(0), mstreambuf(0){
+			init(sb);
+		}
+
+		basic_ios() : mtied(0), mstreambuf(0){ }
+
+		virtual _UCXXEXPORT ~basic_ios(){
+		}
+
+		_UCXXEXPORT basic_ostream<charT,traits>* tie() const{
+			return mtied;
+		}
+		_UCXXEXPORT basic_ostream<charT,traits>* tie(basic_ostream<charT,traits>* tiestr){
+			basic_ostream<charT,traits>* retval= mtied;
+			mtied = tiestr;
+			return retval;
+		}
+		_UCXXEXPORT basic_streambuf<charT,traits>* rdbuf() const{
+			return mstreambuf;
+		}
+		_UCXXEXPORT basic_streambuf<charT,traits>* rdbuf(basic_streambuf<charT,traits>* sb){
+			basic_streambuf<charT,traits>* retval = mstreambuf;
+			mstreambuf = sb;
+			return retval;
+		}
+		_UCXXEXPORT basic_ios& copyfmt(const basic_ios& rhs);
+		_UCXXEXPORT char_type fill() const{
+			return fill_char;
+		}
+		_UCXXEXPORT char_type fill(char_type ch){
+			char_type temp = fill_char;
+			fill_char = ch;
+			return temp;
+		}
+
+		_UCXXEXPORT locale imbue(const locale& loc){
+			return ios_base::imbue(loc);
+		}
+		_UCXXEXPORT char narrow(char_type c, char dfault) const;
+		_UCXXEXPORT char_type widen(char c) const;
+
+	protected:
+		char_type fill_char;
+		basic_ostream<charT,traits>* mtied;
+		basic_streambuf<charT,traits>* mstreambuf;
+		iostate throw_mask;
+		_UCXXEXPORT basic_ios(const basic_ios<charT,traits> &){ }
+		_UCXXEXPORT basic_ios<charT,traits> & operator=(const basic_ios<charT,traits> &){ return *this; }
+		_UCXXEXPORT void init(basic_streambuf<charT,traits>* sb){
+			ios_base::mformat = skipws|dec;
+			mstreambuf = sb;
+			mstate = goodbit;
+			throw_mask = goodbit;
+		}
+	};
+
+#ifdef __UCLIBCXX_EXPAND_IOS_CHAR__
+#ifndef __UCLIBCXX_COMPILE_IOS__
+
+	template <> _UCXXEXPORT void basic_ios<char, char_traits<char> >::clear(iostate state);
+	template <> _UCXXEXPORT void basic_ios<char, char_traits<char> >::setstate(iostate state);
+
+#endif
+#endif
+
+
+	template <class charT, class traits>
+		inline char basic_ios<charT, traits>::narrow(char_type c, char dfault) const
+	{
+		return dfault;
+	}
+
+	template <>
+		inline char basic_ios<char, char_traits<char> >::narrow(char_type c, char) const
+	{
+		return c;
+	}
+
+#ifdef __UCLIBCXX_HAS_WCHAR__
+
+	template <>
+		inline char basic_ios<wchar_t, char_traits<wchar_t> >::narrow(char_type c, char dfault) const
+	{
+		char retval = wctob (c);
+		if(retval == EOF){
+			retval = dfault;
+		}
+		return retval;
+	}
+
+#endif	//__UCLIBCXX_HAS_WCHAR__
+
+	template <class charT, class traits>
+		inline typename basic_ios<charT, traits>::char_type
+		basic_ios<charT, traits>::widen(char c) const
+	{
+		return c;
+	}
+
+	template <>
+		inline basic_ios<char, char_traits<char> >::char_type
+		basic_ios<char, char_traits<char> >::widen(char c) const
+	{
+		return c;
+	}
+
+#ifdef __UCLIBCXX_HAS_WCHAR__
+
+	template <>
+		inline basic_ios<wchar_t, char_traits<wchar_t> >::char_type
+		basic_ios<wchar_t, char_traits<wchar_t> >::widen(char c) const
+	{
+		return btowc(c);
+	}
+
+#endif //__UCLIBCXX_HAS_WCHAR__
+
+
+	template <class stateT> class _UCXXEXPORT fpos{
+	public:
+		_UCXXEXPORT fpos(stateT s){
+			st = s;
+		}
+		_UCXXEXPORT stateT state() const{
+			return st;
+		}
+		_UCXXEXPORT void state(stateT s){
+			st = s;
+		}
+		_UCXXEXPORT bool operator==(const fpos &rhs){
+			return st == rhs.st;
+		}
+		_UCXXEXPORT bool operator!=(const fpos &rhs){
+			return st != rhs.st;
+		}
+		_UCXXEXPORT fpos & operator+(const streamoff & o){
+			st += o;
+			return *this;
+		}
+		_UCXXEXPORT fpos & operator-(const streamoff & o){
+			st -= o;
+			return *this;
+		}
+		_UCXXEXPORT streamoff operator-(const fpos & rhs){
+			return st - rhs.st;
+		}
+
+	private:
+		stateT st;
+	};
+
+
+}
+
+#pragma GCC visibility pop
+
+#endif
+

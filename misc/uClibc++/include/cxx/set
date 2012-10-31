@@ -1,0 +1,406 @@
+/*	Copyright (C) 2004 Garrett A. Kajmowicz
+	This file is part of the uClibc++ Library.
+
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+
+
+#include<memory>
+#include<utility>
+#include<iterator>
+#include <deque>
+#include<functional>
+#include <associative_base>
+
+#ifndef __STD_HEADER_SET
+#define __STD_HEADER_SET
+
+#pragma GCC visibility push(default)
+
+namespace std{
+
+
+template<class Key, class Compare = less<Key>, class Allocator = allocator<Key> > class set;
+template<class Key, class Compare = less<Key>, class Allocator = allocator<Key> > class multiset;
+
+
+/* This is the implementation for the set container.  As noted above, it deviates
+ * from ISO spec by deriving from a base class in order to reduce code redundancy.
+ * More code could be reduced by convirting to virtual functions (thus allowing
+ * much of the erase and insert code to be duplicated), but that would deviate from
+ * the specifications too much to be worth the risk.
+ */
+
+
+//Implementation of set
+
+
+template<class Key, class Compare, class Allocator> class _UCXXEXPORT set
+	: public __single_associative<Key, Key, Compare, Allocator>
+{
+		//Default value of allocator does not meet C++ standard specs, but it works for this library
+		//Deal with it
+public:
+
+	typedef	__single_associative<Key, Key, Compare, Allocator>	base;
+	typedef typename base::key_type					key_type;
+	typedef typename base::value_type				value_type;
+	typedef typename base::key_compare				key_compare;
+	typedef typename base::allocator_type				allocator_type;
+	typedef typename base::reference				reference;
+	typedef typename base::const_reference				const_reference;
+	typedef typename base::iterator					iterator;
+	typedef typename base::const_iterator				const_iterator;
+	typedef typename base::size_type				size_type;
+	typedef typename base::difference_type				difference_type;
+	typedef typename base::pointer					pointer;
+	typedef typename base::const_pointer				const_pointer;
+	typedef typename base::reverse_iterator				reverse_iterator;
+	typedef typename base::const_reverse_iterator			const_reverse_iterator;
+
+//	using base::value_compare;
+
+	static const key_type v_t_k(const value_type v){
+		return v;
+	}
+
+	explicit set(const Compare& comp = Compare(), const Allocator& al = Allocator())
+		: base(comp, al, v_t_k) {  }
+
+	template <class InputIterator> set(InputIterator first, InputIterator last,
+		const Compare& comp = Compare(), const Allocator& al = Allocator())
+		: base(first, last, comp, al, v_t_k) {  }
+
+	set(const set<Key, Compare,Allocator>& x) : base(x) {  }
+	~set() {  }
+
+	using base::operator=;
+	using base::operator==;
+	using base::operator!=;
+
+	using base::insert;
+	using base::erase;
+
+	using base::begin;
+	using base::end;
+	using base::rbegin;
+	using base::rend;
+
+	using base::empty;
+	using base::size;
+	using base::max_size;
+
+
+	using base::find;
+	using base::count;
+	using base::lower_bound;
+	using base::upper_bound;
+	using base::equal_range;
+
+protected:
+
+};
+
+
+//Implementation of multiset
+
+
+template<class Key, class Compare, class Allocator> class _UCXXEXPORT multiset
+	: public __multi_associative<Key, Key, Compare, Allocator>
+{
+		//Default value of allocator does not meet C++ standard specs, but it works for this library
+		//Deal with it
+public:
+
+	typedef	__multi_associative<Key, Key, Compare, Allocator> 	base;
+	typedef typename base::key_type					key_type;
+	typedef typename base::value_type				value_type;
+	typedef typename base::key_compare				key_compare;
+	typedef typename base::allocator_type				allocator_type;
+	typedef typename base::reference				reference;
+	typedef typename base::const_reference				const_reference;
+	typedef typename base::iterator					iterator;
+	typedef typename base::const_iterator				const_iterator;
+	typedef typename base::size_type				size_type;
+	typedef typename base::difference_type				difference_type;
+	typedef typename base::pointer					pointer;
+	typedef typename base::const_pointer				const_pointer;
+	typedef typename base::reverse_iterator				reverse_iterator;
+	typedef typename base::const_reverse_iterator			const_reverse_iterator;
+
+	static const key_type v_t_k(const value_type v){
+		return v;
+	}
+
+	explicit multiset(const Compare& comp = Compare(), const Allocator& al = Allocator())
+		: base(comp, al, v_t_k) {  }
+
+	template <class InputIterator> multiset(InputIterator first, InputIterator last,
+		const Compare& comp = Compare(), const Allocator& al = Allocator())
+		: base(first, last, comp, al, v_t_k) {  }
+
+
+	multiset(const multiset<Key, Compare, Allocator>& x) : base(x) {  }
+	~multiset() {  }
+
+	using base::operator=;
+	using base::operator==;
+	using base::operator!=;
+
+	using base::insert;
+	using base::erase;
+
+	using base::begin;
+	using base::end;
+	using base::rbegin;
+	using base::rend;
+
+	using base::empty;
+	using base::size;
+	using base::max_size;
+
+	using base::find;
+	using base::count;
+	using base::lower_bound;
+	using base::upper_bound;
+	using base::equal_range;
+
+
+protected:
+
+};
+
+
+/* Non-member functions.  These are at the end because they are not associated with any
+   particular class.  These will be implemented as I figure out exactly what all of
+   them are supposed to do, and I have time.
+ */
+
+	template <class Key, class Compare, class Allocator> _UCXXEXPORT bool operator<
+		(const set<Key,Compare,Allocator>& x, const set<Key,Compare,Allocator>& y)
+	{
+		typename set<Key,Compare,Allocator>::const_iterator first1 = x.begin();
+		typename set<Key,Compare,Allocator>::const_iterator first2 = y.begin();
+		typename set<Key,Compare,Allocator>::const_iterator last1 = x.end();
+		typename set<Key,Compare,Allocator>::const_iterator last2 = y.end();
+
+		while(first1 != last1 && first2 != last2){
+			if( *first1 < *first2 ){
+				return true;
+			}
+			if( *first2 < *first1 ){
+				return false;
+			}
+			++first1;
+			++first2;
+		}
+		return first1==last1 && first2 != last2;
+	}
+
+	template <class Key, class Compare, class Allocator> _UCXXEXPORT bool operator>
+		(const set<Key,Compare,Allocator>& x, const set<Key,Compare,Allocator>& y)
+	{
+		typename set<Key,Compare,Allocator>::const_iterator first1 = x.begin();
+		typename set<Key,Compare,Allocator>::const_iterator first2 = y.begin();
+		typename set<Key,Compare,Allocator>::const_iterator last1 = x.end();
+		typename set<Key,Compare,Allocator>::const_iterator last2 = y.end();
+
+		while(first1 != last1 && first2 != last2){
+			if( *first1 > *first2 ){
+				return true;
+			}
+			if( *first2 > *first1 ){
+				return false;
+			}
+			++first1;
+			++first2;
+		}
+		return first1!=last1 && first2 == last2;
+	}
+
+	template <class Key, class Compare, class Allocator> _UCXXEXPORT bool operator>=
+		(const set<Key,Compare,Allocator>& x, const set<Key,Compare,Allocator>& y)
+	{
+		typename set<Key,Compare,Allocator>::const_iterator first1 = x.begin();
+		typename set<Key,Compare,Allocator>::const_iterator first2 = y.begin();
+		typename set<Key,Compare,Allocator>::const_iterator last1 = x.end();
+		typename set<Key,Compare,Allocator>::const_iterator last2 = y.end();
+
+		while(first1 != last1 && first2 != last2){
+			if( *first1 > *first2 ){
+				return true;
+			}
+			if( *first2 > *first1 ){
+				return false;
+			}
+			++first1;
+			++first2;
+		}
+		return first1!=last1;
+	}
+
+	template <class Key, class Compare, class Allocator> _UCXXEXPORT bool operator<=
+		(const set<Key,Compare,Allocator>& x, const set<Key,Compare,Allocator>& y)
+	{
+		typename set<Key,Compare,Allocator>::const_iterator first1 = x.begin();
+		typename set<Key,Compare,Allocator>::const_iterator first2 = y.begin();
+		typename set<Key,Compare,Allocator>::const_iterator last1 = x.end();
+		typename set<Key,Compare,Allocator>::const_iterator last2 = y.end();
+
+		while(first1 != last1 && first2 != last2){
+			if( *first1 < *first2 ){
+				return true;
+			}
+			if( *first2 < *first1 ){
+				return false;
+			}
+			++first1;
+			++first2;
+		}
+		return first2!=last2;
+	}
+	template <class Key, class Compare, class Allocator> _UCXXEXPORT void swap
+		(set<Key,Compare,Allocator>& x, set<Key,Compare,Allocator>& y)
+	{
+		x.swap(y);
+	}
+
+
+	template <class Key, class Compare, class Allocator> _UCXXEXPORT bool operator==
+		(const multiset<Key,Compare,Allocator>& x, const multiset<Key,Compare,Allocator>& y)
+	{
+		if(x.data == y.data){
+			return true;
+		}
+		return false;
+	}
+
+	template <class Key, class Compare, class Allocator> _UCXXEXPORT bool operator<
+		(const multiset<Key,Compare,Allocator>& x, const multiset<Key,Compare,Allocator>& y)
+	{
+		typename multiset<Key,Compare,Allocator>::const_iterator first1 = x.begin();
+		typename multiset<Key,Compare,Allocator>::const_iterator first2 = y.begin();
+		typename multiset<Key,Compare,Allocator>::const_iterator last1 = x.end();
+		typename multiset<Key,Compare,Allocator>::const_iterator last2 = y.end();
+
+		while(first1 != last1 && first2 != last2){
+			if( *first1 < *first2 ){
+				return true;
+			}
+			if( *first2 < *first1 ){
+				return false;
+			}
+			++first1;
+			++first2;
+		}
+		return first1==last1 && first2 != last2;
+	}
+
+	template <class Key, class Compare, class Allocator> _UCXXEXPORT bool operator!=
+		(const multiset<Key,Compare,Allocator>& x, const multiset<Key,Compare,Allocator>& y)
+	{
+		typename multiset<Key,Compare,Allocator>::const_iterator first1 = x.begin();
+		typename multiset<Key,Compare,Allocator>::const_iterator first2 = y.begin();
+		typename multiset<Key,Compare,Allocator>::const_iterator last1 = x.end();
+		typename multiset<Key,Compare,Allocator>::const_iterator last2 = y.end();
+
+		while(first1 != last1 && first2 != last2){
+			if( *first1 != *first2 ){
+				return true;
+			}
+			++first1;
+			++first2;
+		}
+		return first1!=last1 || first2 != last2;
+	}
+
+	template <class Key, class Compare, class Allocator> _UCXXEXPORT bool operator>
+		(const multiset<Key,Compare,Allocator>& x, const multiset<Key,Compare,Allocator>& y)
+	{
+		typename multiset<Key,Compare,Allocator>::const_iterator first1 = x.begin();
+		typename multiset<Key,Compare,Allocator>::const_iterator first2 = y.begin();
+		typename multiset<Key,Compare,Allocator>::const_iterator last1 = x.end();
+		typename multiset<Key,Compare,Allocator>::const_iterator last2 = y.end();
+
+		while(first1 != last1 && first2 != last2){
+			if( *first1 > *first2 ){
+				return true;
+			}
+			if( *first2 > *first1 ){
+				return false;
+			}
+			++first1;
+			++first2;
+		}
+		return first1!=last1 && first2 == last2;
+	}
+
+	template <class Key, class Compare, class Allocator> _UCXXEXPORT bool operator>=
+		(const multiset<Key,Compare,Allocator>& x, const multiset<Key,Compare,Allocator>& y)
+	{
+		typename multiset<Key,Compare,Allocator>::const_iterator first1 = x.begin();
+		typename multiset<Key,Compare,Allocator>::const_iterator first2 = y.begin();
+		typename multiset<Key,Compare,Allocator>::const_iterator last1 = x.end();
+		typename multiset<Key,Compare,Allocator>::const_iterator last2 = y.end();
+
+		while(first1 != last1 && first2 != last2){
+			if( *first1 > *first2 ){
+				return true;
+			}
+			if( *first2 > *first1 ){
+				return false;
+			}
+			++first1;
+			++first2;
+		}
+		return first1!=last1;
+	}
+
+	template <class Key, class Compare, class Allocator> _UCXXEXPORT bool operator<=
+		(const multiset<Key,Compare,Allocator>& x, const multiset<Key,Compare,Allocator>& y)
+	{
+		typename multiset<Key,Compare,Allocator>::const_iterator first1 = x.begin();
+		typename multiset<Key,Compare,Allocator>::const_iterator first2 = y.begin();
+		typename multiset<Key,Compare,Allocator>::const_iterator last1 = x.end();
+		typename multiset<Key,Compare,Allocator>::const_iterator last2 = y.end();
+
+		while(first1 != last1 && first2 != last2){
+			if( *first1 < *first2 ){
+				return true;
+			}
+			if( *first2 < *first1 ){
+				return false;
+			}
+			++first1;
+			++first2;
+		}
+		return first2!=last2;
+	}
+
+	template <class Key, class Compare, class Allocator> _UCXXEXPORT void swap
+		(multiset<Key,Compare,Allocator>& x, multiset<Key,Compare,Allocator>& y)
+	{
+		x.swap(y);
+	}
+
+
+
+}
+
+#pragma GCC visibility pop
+
+#endif
+

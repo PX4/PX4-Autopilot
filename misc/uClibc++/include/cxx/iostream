@@ -1,0 +1,101 @@
+/*	Copyright (C) 2004 Garrett A. Kajmowicz
+
+	This file is part of the uClibc++ Library.
+
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#include <basic_definitions>
+
+#ifndef __HEADER_STD_IOSTREAM
+#define __HEADER_STD_IOSTREAM 1
+
+#include <iosfwd>
+#include <ios>
+#include <istream>
+#include <ostream>
+#include <fstream>
+#include <string_iostream>
+
+#pragma GCC visibility push(default)
+
+namespace std{
+#ifdef __UCLIBCXX_SUPPORT_CIN__
+	extern istream cin;
+#endif
+#ifdef __UCLIBCXX_SUPPORT_COUT__
+	extern ostream cout;
+#endif
+#ifdef __UCLIBCXX_SUPPORT_CERR__
+	extern ostream cerr;
+#endif
+#ifdef __UCLIBCXX_SUPPORT_CLOG__
+	extern ostream clog;
+#endif
+#ifdef __UCLIBCXX_SUPPORT_WCIN__
+	extern wistream wcin;
+#endif
+#ifdef __UCLIBCXX_SUPPORT_WCOUT__
+	extern wostream wcout;
+#endif
+#ifdef __UCLIBCXX_SUPPORT_WCERR__
+	extern wostream wcerr;
+#endif
+#ifdef __UCLIBCXX_SUPPORT_WCLOG__
+	extern wostream wclog;
+#endif
+
+
+	template <class charT, class traits> class _UCXXEXPORT basic_iostream :
+		public basic_istream<charT,traits>, public basic_ostream<charT,traits> 
+	{
+	public:
+		// constructor/destructor
+		explicit _UCXXEXPORT basic_iostream(basic_streambuf<charT,traits>* sb);
+		virtual _UCXXEXPORT ~basic_iostream();	//Below
+	};
+
+	template <class charT, class traits> _UCXXEXPORT 
+		basic_iostream<charT, traits>:: basic_iostream(basic_streambuf<charT,traits>* sb)
+		: basic_ios<charT, traits>(sb), basic_istream<charT,traits>(sb), basic_ostream<charT,traits>(sb)
+	{
+		return;
+	}
+
+
+	template <class charT, class traits> _UCXXEXPORT basic_iostream<charT, traits>::~basic_iostream(){
+		return;
+	}
+
+
+#ifdef __UCLIBCXX_EXPAND_OSTREAM_CHAR__
+#ifdef __UCLIBCXX_EXPAND_ISTREAM_CHAR__
+#ifndef __UCLIBCXX_COMPILE_IOSTREAM__
+
+	template <> _UCXXEXPORT basic_iostream<char, char_traits<char> >::
+		basic_iostream(basic_streambuf<char, char_traits<char> >* sb);
+	template <> _UCXXEXPORT basic_iostream<char, char_traits<char> >::~basic_iostream();
+
+#endif
+#endif
+#endif
+
+
+
+}
+
+#pragma GCC visibility pop
+
+#endif

@@ -1,0 +1,161 @@
+/*	Copyright (C) 2004 Garrett A. Kajmowicz
+
+	This file is part of the uClibc++ Library.
+
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#include <basic_definitions>
+#include <exception>
+
+#ifndef __STD_NUMERIC_HEADER
+#define __STD_NUMERIC_HEADER 1
+
+#pragma GCC visibility push(default)
+
+namespace std{
+	template <class InputIterator, class T> _UCXXEXPORT 
+		T accumulate(InputIterator first, InputIterator last, T init)
+	{
+		while(first != last){
+			init = init + *first;
+			++first;
+		}
+		return init;
+	}
+
+	template <class InputIterator, class T, class BinaryOperation> _UCXXEXPORT 
+		T accumulate(InputIterator first, InputIterator last, T init, BinaryOperation binary_op)
+	{
+		while(first != last){
+			init = binary_op(init, *first);
+			++first;
+		}
+		return init;
+	}
+
+
+	template <class InputIterator1, class InputIterator2, class T> _UCXXEXPORT 
+		T inner_product(InputIterator1 first1, InputIterator1 last1,
+			InputIterator2 first2, T init)
+	{
+		while(first1 != last1){
+			init = init + *first1 * *first2;
+			++first1;
+			++first2;
+		}
+		return init;
+	}
+
+	template <class InputIterator1, class InputIterator2, class T,
+		class BinaryOperation1, class BinaryOperation2> _UCXXEXPORT 
+		T inner_product(InputIterator1 first1, InputIterator1 last1,
+			InputIterator2 first2, T init,
+			BinaryOperation1 binary_op1,
+			BinaryOperation2 binary_op2)
+	{
+		while(first1 != last1){
+			init = binary_op1(init, binary_op2(*first1, *first2));
+			++first1;
+			++first2;
+		}
+		return init;
+	}
+
+	template <class InputIterator, class OutputIterator> _UCXXEXPORT 
+		OutputIterator partial_sum(InputIterator first, InputIterator last,
+		OutputIterator result)
+	{
+		OutputIterator temp(result);
+		*result = *first;
+		++first;
+		++result;
+
+		while(first != last){
+			*result = *first + *temp;
+			temp = result;
+			++first;
+			++result;
+		}
+		return result;
+	}
+
+
+	template <class InputIterator, class OutputIterator, class BinaryOperation> _UCXXEXPORT 
+		OutputIterator partial_sum(InputIterator first, InputIterator last,
+		OutputIterator result, BinaryOperation binary_op)
+	{
+		OutputIterator temp(result);
+		*result = *first;
+		++first;
+		++result;
+
+		while(first != last){
+			*result = binary_op(*first, *temp);
+			temp = result;
+			++first;
+			++result;
+		}
+		return result;
+	}
+
+
+	template <class InputIterator, class OutputIterator> _UCXXEXPORT 
+		OutputIterator
+		adjacent_difference(InputIterator first, InputIterator last,
+			OutputIterator result)
+	{
+		OutputIterator temp(first);
+		*result = *first;
+		++first;
+		++result;
+
+		while(first != last){
+			*result = *first - *temp;
+			temp = first;
+			++first;
+			++result;
+		}
+
+		return result;
+	}
+
+
+	template <class InputIterator, class OutputIterator, class BinaryOperation> _UCXXEXPORT 
+		OutputIterator
+		adjacent_difference(InputIterator first, InputIterator last,
+			OutputIterator result, BinaryOperation binary_op)
+	{
+		OutputIterator temp(first);
+		*result = *first;
+		++first;
+		++result;
+
+		while(first != last){
+			*result = binary_op(*first, *temp);
+			temp = first;
+			++first;
+			++result;
+		}
+
+		return result;
+	}
+
+}
+
+#pragma GCC visibility pop
+
+#endif
+

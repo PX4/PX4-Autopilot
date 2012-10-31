@@ -1,0 +1,926 @@
+/*	Copyright (C) 2004 Garrett A. Kajmowicz
+
+	This file is part of the uClibc++ Library.
+
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#include <memory>
+#include <iterator>
+#include <algorithm>
+
+#ifndef __STD_HEADER_LIST
+#define __STD_HEADER_LIST 1
+
+#pragma GCC visibility push(default)
+
+namespace std{
+
+	template <class T, class Allocator = allocator<T> > class _UCXXEXPORT list {
+	public:
+		typedef typename Allocator::reference		reference;
+		typedef typename Allocator::const_reference	const_reference;
+		typedef typename Allocator::size_type		size_type;
+		typedef typename Allocator::difference_type	difference_type;
+		typedef T					value_type;
+		typedef Allocator				allocator_type;
+		typedef typename Allocator::pointer		pointer;
+		typedef typename Allocator::const_pointer	const_pointer;
+
+	protected:
+		class node;
+		class iter_list;
+
+		node * list_start;
+		node * list_end;
+		size_type elements;
+		Allocator a;
+
+	public:
+
+		typedef iter_list				iterator;
+		typedef iter_list				const_iterator;
+		typedef std::reverse_iterator<iterator>		reverse_iterator;
+		typedef std::reverse_iterator<const_iterator>	const_reverse_iterator;
+
+		explicit list(const Allocator& = Allocator());
+		explicit list(size_type n, const T& value = T(), const Allocator& = Allocator());
+		template <class InputIterator> list(InputIterator first, InputIterator last,
+			const Allocator& al= Allocator());
+		list(const list<T,Allocator>& x);
+		~list();
+
+		list<T,Allocator>& operator=(const list<T,Allocator>& x){
+			if(&x == this){
+				return *this;
+			}
+			clear();
+			iterator i = x.begin();
+			while(i != x.end()){
+				push_back(*i);
+				++i;
+			}
+			return *this;
+		}
+
+		template <class InputIterator> void assign(InputIterator first, InputIterator last);
+		template <class Size, class U> void assign(Size n, const U& u = U());
+		allocator_type get_allocator() const;
+
+		iterator		begin();
+		const_iterator		begin() const;
+		iterator		end();
+		const_iterator		end() const;
+		reverse_iterator	rbegin();
+		const_reverse_iterator	rbegin() const;
+		reverse_iterator	rend();
+		const_reverse_iterator	rend() const;
+
+		bool      empty() const;
+		size_type size() const;
+		size_type max_size() const;
+		void      resize(size_type sz, T c = T());
+
+		reference       front();
+		const_reference front() const;
+		reference       back();
+		const_reference back() const;
+
+		void push_front(const T& x);
+		void pop_front();
+		void push_back(const T& x);
+		void pop_back();
+		iterator insert(iterator position, const T& x = T());
+		void     insert(iterator position, size_type n, const T& x);
+		template <class InputIterator> void insert(iterator position, InputIterator first, InputIterator last);
+		iterator erase(iterator position);
+		iterator erase(iterator position, iterator last);
+		void     swap(list<T,Allocator>&);
+		void     clear();
+
+		void splice(iterator position, list<T,Allocator>& x);
+		void splice(iterator position, list<T,Allocator>& x, iterator i);
+		void splice(iterator position, list<T,Allocator>& x, iterator first, iterator last);
+		void remove(const T& value);
+		template <class Predicate> void remove_if(Predicate pred);
+		void unique();
+		template <class BinaryPredicate> void unique(BinaryPredicate binary_pred);
+		void merge(list<T,Allocator>& x);
+		template <class Compare> void merge(list<T,Allocator>& x, Compare comp);
+		void sort();
+		template <class Compare> void sort(Compare comp);
+		void reverse();
+	protected:
+		void swap_nodes(node * x, node * y);
+	};
+
+
+	//Implementations of List
+
+	//List node
+	template <class T, class Allocator> class _UCXXEXPORT list<T, Allocator>::node{
+	public:
+		node * previous;
+		node * next;
+		T * val;
+
+		node(): previous(0), next(0), val(0){ }
+		node(const T & t ): previous(0), next(0), val(0) {
+			val = new T(t);
+			//FIXME use allocator somehow but only call constructor once
+		}
+		node(const T & t, node * p, node * n): previous(p), next(n), val(0) {
+			val = new T(t);
+		}
+		~node(){ }
+	};
+
+	//List iterator
+	template <class T, class Allocator> class _UCXXEXPORT list<T, Allocator>::iter_list
+		: public std::iterator<
+			bidirectional_iterator_tag,
+			T,
+			typename Allocator::difference_type,
+			typename Allocator::pointer,
+			typename Allocator::reference
+		>
+	{
+	private:
+		node * current;
+	public:
+		iter_list():current(0) { }
+		iter_list( typename list<T, Allocator>::node * n): current(n) { }
+		iter_list(const list<T, Allocator>::iter_list & l): current(l.current) { }
+		~iter_list(){ }
+
+		iter_list & operator=(const list<T, Allocator>::iter_list & right ){
+			current = right.current;
+			return *this;
+		}
+
+		T & operator*(){
+			return *(current->val);
+		}
+		T * operator->(){
+			return current->val;
+		}
+		const T & operator*() const{
+			return *current->val;
+		}
+		const T * operator->() const{
+			return current->val;
+		}
+
+		bool operator==(const list<T, Allocator>::iter_list & right) const {
+			return (current == right.current);
+		}
+
+		bool operator!=(const list<T, Allocator>::iter_list & right) const {
+			return (current != right.current);
+		}
+
+		iter_list & operator++(){
+			current = current->next;
+			return *this;
+		}
+
+		iter_list operator++(int){
+			iter_list temp(current);
+			current = current->next;
+			return temp;
+		}
+		iter_list & operator--(){
+			current = current->previous;
+			return *this;
+		}
+
+		iter_list operator--(int){
+			iter_list temp(current);
+			current = current->previous;
+			return temp;
+		}
+		node * link_struct(){
+			return current;
+		}
+		iter_list & operator+=(unsigned int n){
+			for(unsigned int i = 0; i < n; ++i){
+				current = current->next;
+			}
+			return *this;
+		}
+		iter_list & operator-=(unsigned int n){
+			for(unsigned int i = 0; i < n; ++i){
+				current = current->previous;
+			}
+			return *this;
+		}
+	};
+
+
+	template<class T, class Allocator> list<T, Allocator>::list(const Allocator& al)
+		:list_start(0), list_end(0), elements(0), a(al)
+	{
+		//End node
+		list_start = new node();
+		list_end = list_start;
+		return;
+	}
+
+	template<class T, class Allocator> list<T, Allocator>::list
+		(typename Allocator::size_type n, const T& value, const Allocator& al)
+		:list_start(0), list_end(0), elements(0), a(al)
+	{
+		//End node
+		list_start = new node();
+		list_end = list_start;
+
+		for(typename Allocator::size_type i = 0; i < n ; ++i){
+			push_back(value);
+		}
+	}
+
+	template<class T, class Allocator> template <class InputIterator>
+		list<T, Allocator>::list
+		(InputIterator first, InputIterator last, const Allocator& al)
+		: list_start(0), list_end(0), elements(0), a(al)
+	{
+		list_start = new node();
+		list_end = list_start;
+		while(first != last){
+			push_back(*first);
+			++first;
+		}
+	}
+
+	template<class T, class Allocator> list<T, Allocator>::list(const list<T,Allocator>& x)
+		: list_start(0), list_end(0), elements(0), a(x.a)
+	{
+		list_start = new node();
+		list_end = list_start;
+
+		iterator i = x.begin();
+		while(i != x.end()){
+			push_back( *i);
+			++i;
+		}
+	}
+
+	template<class T, class Allocator> list<T, Allocator>::~list(){
+		while(elements > 0){
+			pop_front();
+		}
+		delete list_start->val;
+#if UCLIBCXX_DEBUG
+		list_start->val = 0;
+#endif
+		delete list_start;
+#if UCLIBCXX_DEBUG
+		list_start = 0;
+		list_end = 0;
+#endif
+	}
+
+
+	template<class T, class Allocator> void list<T, Allocator>::swap_nodes(node * x, node * y){
+		T * v = x->val;
+		x->val = y->val;
+		y->val = v;
+	}
+
+	template<class T, class Allocator> typename list<T, Allocator>::iterator
+		list<T, Allocator>::begin()
+	{
+		return iterator(list_start);
+	}
+
+
+	template<class T, class Allocator> typename list<T, Allocator>::const_iterator
+		list<T, Allocator>::begin() const
+	{
+		return const_iterator(list_start);
+	}
+
+
+	template<class T, class Allocator> typename list<T, Allocator>::iterator
+		list<T, Allocator>::end()
+	{
+		return iterator(list_end);
+	}
+
+	template<class T, class Allocator> typename list<T, Allocator>::const_iterator
+		list<T, Allocator>::end() const
+	{
+		return const_iterator(list_end);
+	}
+
+	template<class T, class Allocator> typename list<T, Allocator>::reverse_iterator
+		list<T, Allocator>::rbegin()
+	{
+		return reverse_iterator(end());
+	}
+
+	template<class T, class Allocator> typename list<T, Allocator>::const_reverse_iterator
+		list<T, Allocator>::rbegin() const
+	{
+		return const_reverse_iterator(end());
+	}
+
+	template<class T, class Allocator> typename list<T, Allocator>::reverse_iterator
+		list<T, Allocator>::rend()
+	{
+		return reverse_iterator(begin());
+	}
+
+	template<class T, class Allocator> typename list<T, Allocator>::const_reverse_iterator
+		list<T, Allocator>::rend() const
+	{
+		return const_reverse_iterator(begin());
+	}
+
+	template<class T, class Allocator> bool list<T, Allocator>::empty() const{
+		return (elements == 0);
+	}
+	template<class T, class Allocator> typename list<T, Allocator>::size_type list<T, Allocator>::size() const{
+		return elements;
+	}
+	template<class T, class Allocator> typename list<T, Allocator>::size_type list<T, Allocator>::max_size() const{
+		return ((size_type)(-1)) / (sizeof(T) + sizeof(node));
+	}
+	template<class T, class Allocator> void list<T, Allocator>::resize(typename Allocator::size_type sz, T c){
+//		if(sz > elements){
+			for(typename Allocator::size_type i = elements; i < sz; ++i){
+				push_back(c);
+			}
+//		}
+//		if(sz < elements){
+			for(typename Allocator::size_type i = elements; i > sz; --i){
+				pop_back();
+			}
+//		}
+	}
+
+	template<class T, class Allocator> typename list<T, Allocator>::reference list<T, Allocator>::front(){
+		return *(list_start->val);
+	}
+	template<class T, class Allocator> typename list<T, Allocator>::const_reference list<T, Allocator>::front() const{
+		return *(list_start->val);
+	}
+	template<class T, class Allocator> typename list<T, Allocator>::reference list<T, Allocator>::back(){
+		return *(list_end->previous->val);
+	}
+	template<class T, class Allocator> typename list<T, Allocator>::const_reference list<T, Allocator>::back() const{
+		return *(list_end->previous->val);
+	}
+
+
+	template<class T, class Allocator> void list<T, Allocator>::push_front(const T& x){
+		node * temp = new node(x);
+		list_start->previous = temp;
+		temp->previous = 0;
+		temp->next = list_start;
+		list_start = temp;
+		++elements;
+	}
+
+	template<class T, class Allocator> void list<T, Allocator>::pop_front(){
+		if(elements > 0){
+			list_start = list_start->next;
+			delete list_start->previous->val;
+#if UCLIBCXX_DEBUG
+			list_start->previous->val = 0;
+			list_start->previous->next = 0;
+			list_start->previous->previous = 0;
+#endif
+			delete list_start->previous;
+			list_start->previous = 0;
+			--elements;
+		}
+	}
+
+	template<class T, class Allocator> void list<T, Allocator>::push_back(const T& x){
+		if(elements == 0){
+			//The list is completely empty
+			list_start = new node(x);
+			list_end->previous = list_start;
+			list_start->previous = 0;
+			list_start->next = list_end;
+			elements = 1;
+		}else{
+			node * temp = new node(x);
+			temp->previous = list_end->previous;
+			temp->next = list_end;
+			list_end->previous->next = temp;
+			list_end->previous = temp;
+			++elements;
+		}
+	}
+
+	template<class T, class Allocator> void list<T, Allocator>::pop_back(){
+		if(elements > 0){
+			node * temp = list_end->previous;
+			if(temp == list_start){
+				list_end->previous = 0;
+				list_start = list_end;
+			}else{
+				temp->previous->next = temp->next;
+				list_end->previous = temp->previous;
+			}
+			delete temp->val;
+#if UCLIBCXX_DEBUG
+			temp->val = 0;
+			temp->next = 0;
+			temp->previous = 0;
+#endif
+			delete temp;
+#if UCLIBCXX_DEBUG
+			temp = 0;
+#endif
+			--elements;
+		}
+	}
+
+
+	template<class T, class Allocator> typename list<T, Allocator>::iterator
+		list<T, Allocator>::insert(iterator position, const T& x)
+	{
+		node * temp = new node(x);
+
+		temp->previous = position.link_struct()->previous;
+		temp->next = position.link_struct();
+
+		if(temp->previous == 0){
+			list_start = temp;
+		}else{
+			position.link_struct()->previous->next = temp;
+		}
+
+		position.link_struct()->previous = temp;
+
+		++elements;
+		--position;
+		return position;
+	}
+
+	template<class T, class Allocator> void list<T, Allocator>::insert(iterator position, size_type n, const T& x){
+		for(typename list<T, Allocator>::size_type i = 0; i < n; ++i){
+			position = insert(position, x);
+		}
+	}
+
+	template<class T, class Allocator> template <class InputIterator> void
+		list<T, Allocator>::insert(iterator position, InputIterator first, InputIterator last)
+	{
+		while(first !=last){
+			insert(position, *first);
+			++first;
+		}
+	}
+	template<class T, class Allocator> typename list<T, Allocator>::iterator
+		list<T, Allocator>::erase(iterator position)
+	{
+		if(position != end() ){
+			node * temp = position.link_struct();
+			if(temp == list_start){
+				++position;
+				temp->next->previous = 0;
+				list_start = temp->next;
+			}else{
+				--position;
+				temp->next->previous = temp->previous;
+				temp->previous->next = temp->next;
+				++position;
+			}
+			delete temp->val;
+#if UCLIBCXX_DEBUG
+			temp->next = 0;
+			temp->previous = 0;
+			temp->val = 0;
+#endif
+			delete temp;
+#if UCLIBCXX_DEBUG
+			temp = 0;
+#endif
+			--elements;
+		}
+		return position;
+	}
+	template<class T, class Allocator> typename list<T, Allocator>::iterator
+		list<T, Allocator>::erase(iterator position, iterator last)
+	{
+		iterator temp = position;
+		while(position !=last){
+			position = erase(position);
+		}
+		return position;
+	}
+	template<class T, class Allocator> void list<T, Allocator>::swap(list<T,Allocator>& l){
+		node * temp;
+		size_type tempel;
+
+		temp = list_start;
+		list_start = l.list_start;
+		l.list_start = temp;
+
+		temp = list_end;
+		list_end = l.list_end;
+		l.list_end = temp;
+
+		tempel = elements;
+		elements = l.elements;
+		l.elements = tempel;
+	}
+	template<class T, class Allocator> void list<T, Allocator>::clear(){
+		while(elements > 0){
+			pop_front();
+		}
+	}
+
+	template<class T, class Allocator>
+		void list<T, Allocator>::splice(iterator position, list<T,Allocator>& x)
+	{
+
+		//Can't add non-existant elements
+		if(x.elements == 0){
+			return;
+		}
+
+		elements += x.elements;
+		x.elements = 0;
+
+
+		//Chaining to the begining
+		if(position == begin()){
+			x.list_end->previous->next = list_start;
+			list_start->previous = x.list_end->previous;
+
+			list_start = x.list_start;
+
+			x.list_start = x.list_end;
+			x.list_end->previous = 0;
+
+			return;
+		}
+
+		//Link everything we need
+		x.list_start->previous = position.link_struct()->previous;
+		position.link_struct()->previous->next = x.list_start;
+
+		position.link_struct()->previous = x.list_end->previous;
+		x.list_end->previous->next = position.link_struct();
+
+		//Clean up the other list
+
+		x.list_start = x.list_end;
+		x.list_end->previous=0;
+
+	}
+
+	template<class T, class Allocator>
+		void list<T, Allocator>::splice(iterator position, list<T,Allocator>& x, iterator i)
+	{
+		//Invalid conditions
+		if( x.elements == 0 || i == position || position.link_struct() == i.link_struct()->next ){
+			return;
+		}
+
+		//Do we need to adjust the begining pointer?
+		if(i == x.begin()){
+			x.list_start = x.list_start->next;
+			x.list_start->previous = 0;
+		}
+
+
+		//Insert at begining special case
+		if(position == begin()){
+
+			i.link_struct()->previous->next = i.link_struct()->next;
+			i.link_struct()->next->previous = i.link_struct()->previous;
+
+			i.link_struct()->previous = 0;
+			i.link_struct()->next = position.link_struct();
+			position.link_struct()->previous = i.link_struct();
+
+			list_start = i.link_struct();
+
+			--x.elements;
+			++elements;
+			return;
+		}
+
+		if( i.link_struct()->previous != 0){
+			i.link_struct()->previous->next = i.link_struct()->next;
+			i.link_struct()->next->previous = i.link_struct()->previous;
+		}else{
+			i.link_struct()->next->previous = 0;
+			x.list_start = i.link_struct()->next;
+		}
+
+		i.link_struct()->previous = position.link_struct()->previous;
+		position.link_struct()->previous->next = i.link_struct();
+
+		i.link_struct()->next = position.link_struct();
+		position.link_struct()->previous = i.link_struct();
+
+		--x.elements;
+		++elements;
+	}
+
+	template<class T, class Allocator>
+		void list<T, Allocator>::splice(iterator position, list<T,Allocator>& x,
+			iterator first, iterator last)
+	{
+		if(x.elements == 0){
+			return;
+		}
+
+		iterator temp;
+		while(first != last){
+			temp = first;
+			++first;
+			splice(position, x, temp);
+		}
+	}
+
+
+	template<class T, class Allocator> void list<T, Allocator>::remove(const T& value){
+		iterator temp = begin();
+		while( temp != end() ){
+			if(*temp == value){
+				temp = erase(temp);
+			}else{
+				++temp;
+			}
+		}
+	}
+
+
+	template<class T, class Allocator> template <class Predicate> void list<T, Allocator>::remove_if(Predicate pred){
+		iterator temp = begin();
+		while( temp != end() ){
+			if( pred(*temp) ){
+				temp = erase(temp);
+			}else{
+				++temp;
+			}
+		}
+	}
+
+
+	template<class T, class Allocator> void list<T, Allocator>::unique(){
+		equal_to<typename iterator_traits<iterator>::value_type> p;
+		unique(p);
+	}
+
+	template<class T, class Allocator> template <class BinaryPredicate>
+		void list<T, Allocator>::unique(BinaryPredicate binary_pred)
+	{
+		iterator temp1 = begin();
+		iterator temp2;
+		++temp1;
+		while( temp1 != end() ){
+			temp2 = temp1;
+			--temp2;
+			if( binary_pred(*temp1, *temp2) ){
+				erase(temp1);
+				temp1 = temp2;
+			}
+			++temp1;
+		}
+	}
+
+	template<class T, class Allocator> void list<T, Allocator>::merge(list<T,Allocator>& x){
+		less<typename iterator_traits<typename list<T, Allocator>::iterator>::value_type> c;
+		merge(x, c);
+	}
+
+	template<class T, class Allocator> template <class Compare>
+		void list<T, Allocator>::merge(list<T,Allocator>& x, Compare comp)
+	{
+		iterator source = x.begin();
+		iterator temp;
+		iterator dest  = begin();
+
+		while(source != x.end()){
+			while( dest != end() && comp (*dest, *source) ){
+				++dest;
+			}
+			++elements;
+			--x.elements;
+
+			temp = source;
+			++temp;
+
+			if(dest == begin()){
+				dest.link_struct()->previous = source.link_struct();
+				source.link_struct()->next = dest.link_struct();
+				source.link_struct()->previous = 0;
+				list_start = source.link_struct();
+			}else{
+				source.link_struct()->previous = dest.link_struct()->previous;
+				dest.link_struct()->previous->next = source.link_struct();
+				source.link_struct()->next = dest.link_struct();
+				dest.link_struct()->previous = source.link_struct();
+			}
+			source = temp;
+		}
+
+		//Fix up x;
+		x.list_start = x.list_end;
+		x.list_start->previous = 0;
+	}
+
+	template<class T, class Allocator> void list<T, Allocator>::sort(){
+		less<typename iterator_traits<typename list<T, Allocator>::iterator>::value_type> c;
+		sort(c);
+	}
+
+	template<class T, class Allocator> template <class Compare>
+		void list<T, Allocator>::sort(Compare comp)
+	{
+		typename list<T, Allocator>::iterator i, j, k;
+
+		//FIXME - bubble sort
+
+		if(elements == 0){
+			return;
+		}
+
+		i = end();
+		--i;
+		while(i != begin()){
+			j = begin();
+			k = j;
+			++k;
+			while(j != i){
+				if( comp(*k, *j) ){
+					swap_nodes(k.link_struct(), j.link_struct());
+				}
+				++j;
+				++k;
+			}
+			--i;
+		}
+	}
+
+
+	template<class T, class Allocator> void list<T, Allocator>::reverse(){
+		if(elements == 0){
+			return;
+		}
+
+		node * current;
+		node * following;
+		node * temp;
+
+		//Need to move the list_end element to the begining
+
+		temp = list_end;
+		list_end = temp->previous;
+		list_end->next = 0;
+
+		list_start->previous = temp;
+		temp->previous = 0;
+		temp->next = list_start;
+		list_start = temp;
+
+		current = list_start;
+
+		while( current != list_end ){
+			following = current->next;
+
+			//Swap the values pointed to/at with the current node
+			temp = current->next;
+			current->next = current->previous;
+			current->previous = temp;
+
+			current = following;
+		}
+
+		//Swap pointers on the end node
+		temp = list_end->next;
+		list_end->next = list_end->previous;
+		list_end->previous = temp;
+
+
+		//Swap the fixed pointers
+		temp = list_start;
+		list_start = list_end;
+		list_end = temp;
+
+	}
+
+	template <class T, class Allocator>
+	bool operator==(const list<T,Allocator>& x, const list<T,Allocator>& y){
+		if(x.size() != y.size()){
+			return false;
+		}
+		typename list<T,Allocator>::const_iterator i = x.begin();
+		typename list<T,Allocator>::const_iterator j = y.begin();
+
+		while(i != x.end()){
+			if( *i != *j){
+				return false;
+			}
+			++i;
+			++j;
+		}
+		return true;
+	}
+
+	template <class T, class Allocator>
+	bool operator< (const list<T,Allocator>& x, const list<T,Allocator>& y){
+		typename list<T,Allocator>::const_iterator i = x.begin();
+		typename list<T,Allocator>::const_iterator j = y.begin();
+		while(i != x.end() && j != y.end()){
+			if( *i < *j){
+				return true;
+			}
+			if(*j < *i){
+				return false;
+			}
+			++i;
+			++j;
+		}
+		return (i == x.end() && j != y.end());
+	}
+
+	template <class T, class Allocator>
+	bool operator!=(const list<T,Allocator>& x, const list<T,Allocator>& y){
+		return !(x == y);
+	}
+
+	template <class T, class Allocator>
+	bool operator> (const list<T,Allocator>& x, const list<T,Allocator>& y){
+		typename list<T,Allocator>::const_iterator i = x.begin();
+		typename list<T,Allocator>::const_iterator j = y.begin();
+		while(i != x.end() && j != y.end()){
+			if( *i > *j){
+				return true;
+			}
+			if( *j > *i){
+				return false;
+			}
+			++i;
+			++j;
+		}
+		return (i != x.end() && j == y.end());
+	}
+
+	template <class T, class Allocator>
+	bool operator>=(const list<T,Allocator>& x, const list<T,Allocator>& y){
+		typename list<T,Allocator>::const_iterator i = x.begin();
+		typename list<T,Allocator>::const_iterator j = y.begin();
+		while(i != x.end() && j != y.end()){
+			if( *i >= *j){
+				return true;
+			}
+			if(*j >= *i){
+				return false;
+			}
+			++i;
+			++j;
+		}
+		return (i != x.end() && j == y.end());
+	}
+
+	template <class T, class Allocator>
+	bool operator<=(const list<T,Allocator>& x, const list<T,Allocator>& y){
+		typename list<T,Allocator>::const_iterator i = x.begin();
+		typename list<T,Allocator>::const_iterator j = y.begin();
+		while(i != x.end() && j != y.end()){
+			if( *i <= *j){
+				return true;
+			}
+			if(*j <= *i){
+				return false;
+			}
+			++i;
+			++j;
+		}
+		return (i == x.end());
+	}
+
+	template <class T, class Allocator>
+	void swap(list<T,Allocator>& x, list<T,Allocator>& y){
+		x.swap(y);
+	}
+
+}
+
+#pragma GCC visibility pop
+
+#endif
+
+

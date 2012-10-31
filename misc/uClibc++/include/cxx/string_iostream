@@ -1,0 +1,146 @@
+/*	Copyright (C) 2004 Garrett A. Kajmowicz
+
+	This file is part of the uClibc++ Library.
+
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#include <istream>
+#include <ostream>
+#include <string>
+
+#ifdef __UCLIBCXX_HAS_WCHAR__
+#include <cwchar>
+#include <cwctype>
+#endif
+
+#ifndef __HEADER_STD_STRING_IOSTREAM
+#define __HEADER_STD_STRING_IOSTREAM 1
+
+#pragma GCC visibility push(default)
+
+namespace std{
+
+
+
+template<class charT, class traits, class Allocator> _UCXXEXPORT basic_ostream<charT, traits>&
+	operator<<(basic_ostream<charT, traits>& os, const basic_string<charT,traits,Allocator>& str)
+{
+	return os.write(str.data(), str.length());
+}
+
+template<class charT, class traits, class Allocator> _UCXXEXPORT basic_istream<charT,traits>&
+	operator>>(basic_istream<charT,traits>& is, basic_string<charT,traits,Allocator>& str)
+{
+
+	typename basic_istream<charT, traits>::sentry s(is);
+	if(s == false){
+		return is;
+	}
+
+	str.clear();
+
+	typename basic_istream<charT, traits>::int_type c;
+	typename Allocator::size_type n = is.width();
+	bool exitnow = false;
+	if(n == 0){
+		n = str.max_size();
+	}
+
+//	//Clear out preliminary spaces first
+//	c = is.get();
+//	while(isspace(c)){
+//		c = is.get();
+//	}
+//
+//	is.putback(c);
+
+	do{
+		c = is.get();
+		if(c == traits::eof() || isspace(c) || n == 0){
+			is.putback(c);
+			exitnow = true;
+		}else{
+			str.append(1, traits::to_char_type(c) );
+			--n;
+		}
+	}while(exitnow == false);
+	return is;
+}
+
+template<class charT, class traits, class Allocator> _UCXXEXPORT basic_istream<charT,traits>&
+	getline(basic_istream<charT,traits>& is, basic_string<charT,traits,Allocator>& str, charT delim)
+{
+	typename basic_istream<charT,traits>::sentry s(is);
+	if(s == false){
+		return is;
+	}
+
+	str.erase();
+
+	streamsize i = 0;
+	typename basic_istream<charT,traits>::int_type c_i;
+	charT c;
+	unsigned int n = str.max_size();
+	for(i=0;i<n;++i){
+		c_i=is.get();
+		if(c_i == traits::eof() ){
+			return is;
+		}
+		c = traits::to_char_type(c_i);
+		if(c == delim){
+			return is;
+		}
+		str.append(1, c);
+	}
+	return is;	
+}
+
+template<class charT, class traits, class Allocator> _UCXXEXPORT basic_istream<charT,traits>&
+	getline(basic_istream<charT,traits>& is, basic_string<charT,traits,Allocator>& str)
+{
+	return getline(is, str, '\n');
+}
+
+
+#ifdef __UCLIBCXX_EXPAND_STRING_CHAR__
+#ifndef __UCLIBCXX_COMPILE_STRING__
+
+
+#ifdef __UCLIBCXX_EXPAND_ISTREAM_CHAR__
+template<> _UCXXEXPORT basic_istream<char, char_traits<char> >& operator>>(
+	basic_istream<char,char_traits<char> >& is,
+	basic_string<char, char_traits<char>, allocator<char> >& str);
+#endif
+
+
+#ifdef __UCLIBCXX_EXPAND_OSTREAM_CHAR__
+template<> _UCXXEXPORT basic_ostream<char, char_traits<char> >&
+	operator<<(basic_ostream<char, char_traits<char> >& os, 
+	const basic_string<char,char_traits<char>, std::allocator<char> >& str);
+
+#endif
+
+
+#endif
+#endif
+
+
+}
+
+#pragma GCC visibility pop
+
+#endif
+

@@ -1,8 +1,8 @@
 ############################################################################
-# libxx/Makefile
+# misc/uClibc++/libxx/uClibc++/Makefile
 #
-#   Copyright (C) 2009 Gregory Nutt. All rights reserved.
-#   Author: Gregory Nutt <gnutt@nuttx.org>
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,65 +33,20 @@
 #
 ###########################################################################
 
--include $(TOPDIR)/Make.defs
+# Add the uClibc++ sources
 
-# Sources
+CXXSRCS += algorithm.cxx associative_base.cxx bitset.cxx char_traits.cxx
+CXXSRCS += complex.cxx del_op.cxx del_opnt.cxx del_opv.cxx del_opvnt.cxx
+CXXSRCS += deque.cxx eh_alloc.cxx eh_globals.cxx exception.cxx
+CXXSRCS += stream.cxx func_exception.cxx iomanip.cxx ios.cxx
+CXXSRCS += iostream.cxx istream.cxx iterator.cxx limits.cxx list.cxx
+CXXSRCS += locale.cxx map.cxx new_handler.cxx new_op.cxx new_opnt.cxx
+CXXSRCS += new_opv.cxx new_opvnt.cxx numeric.cxx ostream.cxx queue.cxx
+CXXSRCS += set.cxx sstream.cxx stack.cxx stdexcept.cxx streambuf.cxx
+CXXSRCS += string.cxx support.cxx typeinfo.cxx utility.cxx valarray.cxx
+CXXSRCS += vector.cxx
 
-ASRCS = 
-CSRCS = 
-CXXSRCS = libxx_cxapurevirtual.cxx libxx_delete.cxx libxx_deletea.cxx
-CXXSRCS += libxx_eabi_atexit.cxx libxx_new.cxx libxx_newa.cxx 
+# Add the path to the uClibc++ subdirectory
 
-# Paths
-
-DEPPATH = --dep-path .
-VPATH = .
-
-# Include the uClibc++ Make.defs file (if it is present).  If is present,
-# the uClibc++/Make.defs file will add its files to the source file list,
-# add its DEPPATH info, and will add the appropriate paths to the VPATH
-# variable
-
--include/uClibc++/Make.defs
-
-# Object Files
-
-AOBJS = $(ASRCS:.S=$(OBJEXT))
-COBJS = $(CSRCS:.c=$(OBJEXT))
-CXXOBJS = $(CXXSRCS:.cxx=$(OBJEXT))
-
-SRCS = $(ASRCS) $(CSRCS) $(CXXSRCS)
-OBJS = $(AOBJS) $(COBJS) $(CXXOBJS)
-
-BIN = liblibxx$(LIBEXT)
-
-all: $(BIN)
-
-$(AOBJS): %$(OBJEXT): %.S
-	$(call ASSEMBLE, $<, $@)
-
-$(COBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-$(CXXOBJS): %$(OBJEXT): %.cxx
-	$(call COMPILEXX, $<, $@)
-
-$(BIN):	$(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
-
-.depend: Makefile $(SRCS)
-	@$(MKDEP) $(DEPPATH) $(CXX) -- $(CXXFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
-
-depend: .depend
-
-clean:
-	@rm -f $(BIN) *~ .*.swp
-	$(call CLEAN)
-
-distclean: clean
-	@rm -f Make.dep .depend
-
--include Make.dep
+DEPPATH += --dep-path .
+VPATH += uClibc++

@@ -1,0 +1,329 @@
+/*	Copyright (C) 2004 Garrett A. Kajmowicz
+
+	This file is part of the uClibc++ Library.
+
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#include <basic_definitions>
+#include <locale>
+#include <string>
+#include <iosfwd>
+
+#ifndef HEADER_STD_STREAMBUF
+#define HEADER_STD_STREAMBUF 1
+
+#include <ios>
+
+#pragma GCC visibility push(default)
+
+namespace std{
+
+	template <class charT, class traits> class _UCXXEXPORT basic_streambuf{
+	public:
+#ifdef __UCLIBCXX_SUPPORT_CDIR__
+		friend ios_base::Init::Init();
+#endif
+	// Types:
+		typedef charT				char_type;
+		typedef typename traits::int_type	int_type;
+		typedef typename traits::pos_type	pos_type;
+		typedef typename traits::off_type	off_type;
+		typedef traits				traits_type;
+
+		virtual ~basic_streambuf();
+
+		locale pubimbue(const locale &loc);
+
+		locale getloc() const{
+			return myLocale;
+		}
+
+		basic_streambuf<char_type,traits>* pubsetbuf(char_type* s, streamsize n){
+			return setbuf(s,n);
+		}
+		pos_type pubseekoff(off_type off, 
+			typename ios_base::seekdir way, 
+			ios_base::openmode which = ios_base::in |
+			ios_base::out
+			)
+		{
+			return seekoff(off,way,which);
+		}
+		pos_type pubseekpos(pos_type sp, ios_base::openmode which = ios_base::in | ios_base::out){
+			return seekpos(sp,which);
+		}
+		int pubsync(){
+			return sync();
+		}
+
+		streamsize in_avail();
+
+		int_type snextc();
+
+		int_type sbumpc();
+
+		int_type sgetc();
+
+		streamsize sgetn(char_type* s, streamsize n){
+			return xsgetn(s,n);
+		}
+
+		int_type sputbackc(char_type c);
+
+		int_type sungetc();
+
+		int_type sputc(char_type c);
+
+		streamsize sputn(const char_type* s, streamsize n){
+			if(openedFor & ios_base::app){
+				seekoff(0, ios_base::end, ios_base::out);
+			}
+			return xsputn(s, n);
+		}
+
+	protected:
+		locale myLocale;
+		//Pointers for the "get" buffers
+		charT * mgbeg;
+		charT * mgnext;
+		charT * mgend;
+
+		//Pointers for the "put" buffers	
+		charT * mpbeg;
+		charT * mpnext;
+		charT * mpend;
+
+		//In the event of null buffers Lets us know what the buffer is opened for
+		ios_base::openmode openedFor;
+		
+		basic_streambuf();
+
+		basic_streambuf(const basic_streambuf<char, char_traits<char> > &)
+			: myLocale(),
+			mgbeg(0), mgnext(0), mgend(0), mpbeg(0), mpnext(0), mpend(0),
+			openedFor(0)
+		{ }
+		basic_streambuf<char, char_traits<char> > & operator=(const basic_streambuf<char, char_traits<char> > &){
+			return *this;
+		}
+		
+		char_type* eback() const{
+			return mgbeg;
+		}
+		char_type* gptr()  const{
+			return mgnext;
+		}
+		char_type* egptr() const{
+			return mgend;
+		}
+		void gbump(int n){
+			mgnext+=n;
+		}
+		void setg(char_type* gbeg, char_type* gnext, char_type* gend){
+			mgbeg = gbeg;
+			mgnext = gnext;
+			mgend = gend;
+		}
+
+		char_type* pbase() const{
+			return mpbeg;
+		}
+		char_type* pptr() const{
+			return mpnext;
+		}
+		char_type* epptr() const{
+			return mpend;
+		}
+		void pbump(int n){
+			mpnext+=n;
+		}
+		void setp(char_type* pbeg, char_type* pend){
+			mpbeg = pbeg;
+			mpnext  = pbeg;
+			mpend = pend;
+		}
+
+		virtual void imbue(const locale &loc){
+			myLocale = loc;
+		}
+
+		//Virtual functions which we will not implement
+
+		virtual basic_streambuf<char_type,traits>* setbuf(char_type* , streamsize){
+			return 0;
+		}
+		virtual pos_type seekoff(off_type , ios_base::seekdir, 
+			ios_base::openmode = ios_base::in | ios_base::out)
+		{
+			return 0;
+		}
+		virtual pos_type seekpos(pos_type , ios_base::openmode = ios_base::in | ios_base::out){
+			return 0;
+		}
+		virtual int sync(){
+			return 0;
+		}
+
+		virtual int showmanyc(){
+			return 0;
+		}
+		virtual streamsize xsgetn(char_type* , streamsize ){
+			return 0;
+		}
+		virtual int_type underflow(){
+			return traits_type::eof();
+		}
+		virtual int_type uflow(){
+			int_type ret = underflow();
+			if (!traits_type::eq_int_type(ret, traits_type::eof()))
+				gbump(1);
+			return ret;
+		}
+
+		virtual int_type pbackfail(int_type c = traits::eof()){
+			return c;
+		}
+		virtual streamsize xsputn(const char_type* c, streamsize n){
+			//This function is designed to be replaced by subclasses
+			for(streamsize i = 0; i< n; ++i){
+				if(sputc(c[i]) == traits::eof()){
+					return i;
+				}
+			}
+			return n;
+		}
+		virtual int_type overflow (int_type c = traits::eof()){
+			return c;
+		}
+	};
+
+	typedef basic_streambuf<char>     streambuf;
+#ifdef __UCLIBCXX_HAS_WCHAR__
+	typedef basic_streambuf<wchar_t> wstreambuf;
+#endif
+
+
+//Definitions put below to allow for easy expansion of code
+
+	template <class C, class T> basic_streambuf<C, T>::~basic_streambuf(){  }
+
+	template <class C, class T> locale basic_streambuf<C, T>::pubimbue(const locale &loc){
+		locale temp = myLocale;
+		myLocale = loc;
+		return temp;
+	}
+
+	template <class C, class T> streamsize basic_streambuf<C, T>::in_avail(){
+		if(mgend !=0 && mgnext !=0){
+			return mgend - mgnext;
+		}
+		return showmanyc();
+	}
+
+	template <class C, class T> typename basic_streambuf<C, T>::int_type basic_streambuf<C, T>::sbumpc(){
+		if(mgbeg == 0 || mgnext == mgend){
+			return uflow();
+		}
+		int_type retval = T::to_int_type(*gptr());
+		gbump(1);
+		return retval;
+	}
+
+	template <class C, class T> typename basic_streambuf<C, T>::int_type basic_streambuf<C, T>::snextc(){
+		if(sbumpc() == T::eof() ){
+			return T::eof() ;
+		}
+		return sgetc();
+	}
+
+	template <class C, class T> typename basic_streambuf<C, T>::int_type basic_streambuf<C, T>::sgetc(){
+		if(mgbeg == 0 || mgnext == mgend){
+			return underflow();
+		}
+		return T::to_int_type(*gptr());
+	}
+
+	template <class C, class T> typename basic_streambuf<C, T>::int_type basic_streambuf<C, T>::sputbackc(char_type c){
+		if(mgbeg == 0 || mgnext == mgbeg || !T::eq(c, gptr()[-1] )){
+			return pbackfail(T::to_int_type(c));
+		}
+		gbump(-1);
+		return T::to_int_type(*gptr());
+	}
+
+	template <class C, class T> typename basic_streambuf<C, T>::int_type basic_streambuf<C, T>::sungetc(){
+		if(mgbeg == 0 || mgnext == mgbeg){
+			return ios_base::failbit;
+		}
+		gbump(-1);
+		return T::to_int_type(*gptr());
+	}
+
+	template <class C, class T> typename basic_streambuf<C, T>::int_type basic_streambuf<C, T>::sputc(char_type c){
+		if(openedFor & ios_base::app){
+			seekoff(0, ios_base::end, ios_base::out);
+		}
+		if(mpnext < mpend){
+			*mpnext = c;
+			++mpnext;
+		}else{
+			return overflow( T::to_int_type(c) );
+		}
+		return T::to_int_type(c);
+	}
+
+	template <class C, class T> basic_streambuf<C, T>::basic_streambuf() 
+		: myLocale(),
+		mgbeg(0), mgnext(0), mgend(0), mpbeg(0), mpnext(0), mpend(0),
+		openedFor(0)
+	{ }
+
+
+
+
+
+
+#ifdef __UCLIBCXX_EXPAND_STREAMBUF_CHAR__
+#ifndef __UCLIBCXX_COMPILE_STREAMBUF__
+
+#ifdef __UCLIBCXX_EXPAND_CONSTRUCTORS_DESTRUCTORS__
+
+	template <> _UCXXEXPORT streambuf::basic_streambuf();
+	template <> _UCXXEXPORT streambuf::~basic_streambuf();
+
+#endif //__UCLIBCXX_EXPAND_CONSTRUCTORS_DESTRUCTORS__
+
+	template <> _UCXXEXPORT locale streambuf::pubimbue(const locale &loc);
+	template <> _UCXXEXPORT streamsize streambuf::in_avail();
+	template <> _UCXXEXPORT streambuf::int_type streambuf::sbumpc();
+	template <> _UCXXEXPORT streambuf::int_type streambuf::snextc();
+	template <> _UCXXEXPORT streambuf::int_type streambuf::sgetc();
+	template <> _UCXXEXPORT streambuf::int_type streambuf::sputbackc(char_type c);
+	template <> _UCXXEXPORT streambuf::int_type streambuf::sungetc();
+	template <> _UCXXEXPORT streambuf::int_type streambuf::sputc(char_type c);
+
+#endif
+#endif
+
+
+
+
+
+}
+
+#pragma GCC visibility pop
+
+#endif

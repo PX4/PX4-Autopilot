@@ -1,0 +1,884 @@
+/*	Copyright (C) 2004 Garrett A. Kajmowicz
+	This file is part of the uClibc++ Library.
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+	
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+*/
+
+
+#include <memory>
+#include <iterator>
+#include <stdexcept>
+
+#pragma GCC visibility push(default)
+
+#ifndef __STD_HEADER_DEQUE
+#define __STD_HEADER_DEQUE
+
+
+namespace std{
+	template <class T, class Allocator = allocator<T> > class deque;
+	template <class T, class Allocator> bool operator==(const deque<T,Allocator>& x, const deque<T,Allocator>& y);
+	template <class T, class Allocator> bool operator< (const deque<T,Allocator>& x, const deque<T,Allocator>& y);
+	template <class T, class Allocator> bool operator!=(const deque<T,Allocator>& x, const deque<T,Allocator>& y);
+	template <class T, class Allocator> bool operator> (const deque<T,Allocator>& x, const deque<T,Allocator>& y);
+	template <class T, class Allocator> bool operator>=(const deque<T,Allocator>& x, const deque<T,Allocator>& y);
+	template <class T, class Allocator> bool operator<=(const deque<T,Allocator>& x, const deque<T,Allocator>& y);
+	template <class T, class Allocator> void swap(deque<T,Allocator>& x, deque<T,Allocator>& y);
+
+	template <class T, class Allocator> class _UCXXEXPORT deque {
+	public:
+		friend bool operator==<>(const deque<T, Allocator>& x, const deque<T, Allocator>& y);
+		friend class deque_iter;
+		friend class deque_citer;
+		class deque_iter;
+		class deque_citer;
+
+		typedef typename Allocator::reference		reference;
+		typedef typename Allocator::const_reference	const_reference;
+		typedef deque_iter				iterator;
+		typedef deque_citer				const_iterator;
+		typedef typename Allocator::size_type		size_type;
+		typedef typename Allocator::difference_type	difference_type;
+		typedef T					value_type;
+		typedef Allocator				allocator_type;
+		typedef typename Allocator::pointer		pointer;
+		typedef typename Allocator::const_pointer	const_pointer;
+		typedef std::reverse_iterator<iterator>		reverse_iterator;
+		typedef std::reverse_iterator<const_iterator>	const_reverse_iterator;
+
+		explicit deque(const Allocator& al = Allocator());
+		explicit deque(size_type n, const T& value = T(), const Allocator& al = Allocator());
+		template <class InputIterator> deque(InputIterator first, InputIterator last, const Allocator& = Allocator());
+		deque(const deque<T,Allocator>& x);
+		~deque();
+
+		deque<T,Allocator>& operator=(const deque<T,Allocator>& x);
+		template <class InputIterator> void assign(InputIterator first, InputIterator last);
+		template <class Size, class U> void assign(Size n, const U& u = U());
+		allocator_type get_allocator() const;
+
+		iterator		begin();
+		const_iterator		begin() const;
+		iterator		end();
+		const_iterator		end() const;
+		reverse_iterator	rbegin();
+		const_reverse_iterator	rbegin() const;
+		reverse_iterator	rend();
+		const_reverse_iterator	rend() const;
+
+		size_type		size() const;
+		size_type		max_size() const;
+		void			resize(size_type sz, T c = T());
+		bool			empty() const;
+
+		reference	operator[](size_type n);
+		const_reference	operator[](size_type n) const;
+		reference	at(size_type n);
+		const_reference	at(size_type n) const;
+		reference	front();
+		const_reference	front() const;
+		reference	back();
+		const_reference	back() const;
+
+		void push_front(const T& x);
+		void push_back(const T& x);
+		iterator insert(iterator position, const T& x = T());
+		void     insert(iterator position, size_type n, const T& x);
+		template <class InputIterator> void insert (iterator position, InputIterator first, InputIterator last);
+		void pop_front();
+		void pop_back();
+
+		iterator erase(iterator position);
+		iterator erase(iterator first, iterator last);
+		void     swap(deque<T,Allocator>&);
+		void     clear();
+
+	protected:
+		void reserve(size_type n);
+		inline size_type array_element(size_type deque_element) const{
+			if(deque_element < (data_size - first_element)){
+				return first_element + deque_element;
+			}
+			return deque_element - (data_size - first_element);
+		}
+		inline size_type first_subtract(size_type sub_size) const{
+			if(sub_size > first_element){
+				return (data_size - first_element) - sub_size;
+			}
+			return first_element - sub_size;
+		}
+
+		T * data;
+		size_type data_size;		//Physical size of array
+		size_type elements;		//Elements in array
+		size_type first_element;	//Element number of array 0..n
+		size_type last_element;		//Element number of array 0..n
+		Allocator a;
+
+	};
+
+
+	template<class T, class Allocator> class _UCXXEXPORT deque<T, Allocator>::deque_iter
+		: public std::iterator<
+			random_access_iterator_tag,
+			T,
+			typename Allocator::difference_type,
+			typename Allocator::pointer,
+			typename Allocator::reference
+		>
+	{
+	friend class deque<T, Allocator>;
+	protected:
+		deque<T, Allocator> * container;
+		typename Allocator::size_type element;
+
+	public:
+		deque_iter() : container(0), element(0) {  }
+		deque_iter(const deque_iter & d) : container (d.container), element(d.element) {  }
+		deque_iter(deque<T, Allocator> * c, typename Allocator::size_type e)
+			: container(c), element(e)
+		{
+			return;
+		}
+		~deque_iter() {  }
+		deque_iter & operator=(const deque_iter & d){
+			container = d.container;
+			element = d.element;
+			return *this;
+		}
+		T & operator*(){
+			return container->data[container->array_element(element)];
+		}
+		T * operator->(){
+			return container->data + container->array_element(element);
+		}
+		const T & operator*() const{
+			return container->data[container->array_element(element)];
+		}
+		const T * operator->() const{
+			return container->data + container->array_element(element);
+		}
+		bool operator==(const deque_iter & d) const{
+			if(container == d.container && element == d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator==(const deque_citer & d) const{
+			if(container == d.container && element == d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator!=(const deque_iter & d) const{
+			if(container != d.container || element  != d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator!=(const deque_citer & d) const{
+			if(container != d.container || element  != d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator<(const deque_iter & d) const{
+			if(element < d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator<(const deque_citer & d) const{
+			if(element < d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator<=(const deque_iter & d) const{
+			if(element <= d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator<=(const deque_citer & d) const{
+			if(element <= d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator>(const deque_iter & d) const{
+			if(element > d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator>(const deque_citer & d) const{
+			if(element > d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator>=(const deque_iter & d) const{
+			if(element >= d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator>=(const deque_citer & d) const{
+			if(element >= d.element){
+				return true;
+			}
+			return false;
+		}
+		deque_iter & operator++(){
+			++element;
+			return *this;
+		}
+		deque_iter operator++(int){
+			deque_iter temp(container, element);
+			++element;
+			return temp;
+		}
+		deque_iter operator+(typename Allocator::size_type n){
+			deque_iter temp(container, element + n);
+			return temp;
+		}
+		deque_iter & operator+=(typename Allocator::size_type n){
+			element += n;
+			return *this;
+		}
+		deque_iter & operator--(){
+			--element;
+			return *this;
+		}
+		deque_iter operator--(int){
+			deque_iter temp(container, element);
+			--element;
+			return temp;
+		}
+		deque_iter operator-(typename Allocator::size_type n){
+			deque_iter temp(container, element - n);
+			return temp;
+		}
+		deque_iter & operator-=(typename Allocator::size_type n){
+			element -= n;
+			return *this;
+		}
+		typename Allocator::size_type operator-(const deque_iter & d){
+			return element - d.element;
+		}
+
+	};
+
+	template<class T, class Allocator> class _UCXXEXPORT deque<T, Allocator>::deque_citer
+		: public std::iterator<
+			random_access_iterator_tag,
+			T,
+			typename Allocator::difference_type,
+			typename Allocator::const_pointer,
+			typename Allocator::const_reference
+		>
+	{
+	friend class deque<T, Allocator>;
+	protected:
+		const deque<T, Allocator> * container;
+		typename Allocator::size_type element;
+
+	public:
+		deque_citer() : container(0), element(0) {  }
+		deque_citer(const deque_citer & d) : container (d.container), element(d.element) {  }
+		deque_citer(const deque_iter & d) : container (d.container), element(d.element) {  }
+		deque_citer(const deque<T, Allocator> * c, typename Allocator::size_type e)
+			: container(c), element(e)
+		{
+			return;
+		}
+		~deque_citer() {  }
+		deque_citer & operator=(const deque_iter & d){
+			container = d.container;
+			element = d.element;
+			return *this;
+		}
+		const T & operator*() const{
+			return container->data[container->array_element(element)];
+		}
+		const T * operator->() const{
+			return container->data + container->array_element(element);
+		}
+		bool operator==(const deque_citer & d) const{
+			if(container == d.container && element == d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator==(const deque_iter & d) const{
+			if(container == d.container && element == d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator!=(const deque_citer & d) const{
+			if(container != d.container || element  != d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator!=(const deque_iter & d) const{
+			if(container != d.container || element  != d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator<(const deque_citer & d) const{
+			if(element < d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator<(const deque_iter & d) const{
+			if(element < d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator<=(const deque_citer & d) const{
+			if(element <= d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator<=(const deque_iter & d) const{
+			if(element <= d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator>(const deque_citer & d) const{
+			if(element > d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator>(const deque_iter & d) const{
+			if(element > d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator>=(const deque_citer & d){
+			if(element >= d.element){
+				return true;
+			}
+			return false;
+		}
+		bool operator>=(const deque_iter & d){
+			if(element >= d.element){
+				return true;
+			}
+			return false;
+		}
+		deque_citer & operator++(){
+			++element;
+			return *this;
+		}
+		deque_citer operator++(int){
+			deque_citer temp(container, element);
+			++element;
+			return temp;
+		}
+		deque_citer operator+(typename Allocator::size_type n){
+			deque_citer temp(container, element + n);
+			return temp;
+		}
+		deque_citer & operator+=(typename Allocator::size_type n){
+			element += n;
+			return *this;
+		}
+		deque_citer & operator--(){
+			--element;
+			return *this;
+		}
+		deque_citer operator--(int){
+			deque_citer temp(container, element);
+			--element;
+			return temp;
+		}
+		deque_citer operator-(typename Allocator::size_type n){
+			deque_citer temp(container, element - n);
+			return temp;
+		}
+		deque_citer & operator-=(typename Allocator::size_type n){
+			element -= n;
+			return *this;
+		}
+		typename Allocator::size_type operator-(const deque_citer & d){
+			return element - d.element;
+		}
+
+	};
+
+	template<class T, class Allocator> deque<T, Allocator>::deque(const Allocator& al)
+		: data(0), 
+		data_size(0), elements(0), first_element(0), last_element(0), a(al)
+	{
+		data_size = __UCLIBCXX_STL_BUFFER_SIZE__;
+		data = a.allocate(data_size);
+		first_element = data_size /2;
+		last_element = first_element;
+	}
+
+
+	template<class T, class Allocator> deque<T, Allocator>::deque(
+		size_type n, const T& value, const Allocator& al)
+		: data(0),
+		elements(n), first_element(0), last_element(0), a(al)
+	{
+		data_size = elements + __UCLIBCXX_STL_BUFFER_SIZE__;
+		data = a.allocate(data_size);
+		first_element = (data_size - elements) / 2;
+		last_element = first_element;
+
+		for(n=first_element ; n < last_element; ++n ){
+			a.construct(data+n, value);
+		}
+	}
+
+
+	template<class T, class Allocator> template <class InputIterator> 
+		deque<T, Allocator>::deque(InputIterator first, InputIterator last, const Allocator& al)
+		: data(0),
+		data_size(0), elements(0), first_element(0), last_element(0), a(al)
+	{
+		data_size = __UCLIBCXX_STL_BUFFER_SIZE__;
+		data = a.allocate(data_size);
+		first_element = data_size / 4;	//Note sure how big, but let's add a little space...
+		last_element = first_element;
+		while(first != last){
+			push_back(*first);
+			++first;
+		}
+	}
+
+
+	template<class T, class Allocator> deque<T, Allocator>::deque(const deque<T,Allocator>& x)
+		: data(0),
+		elements(0), first_element(0), last_element(0), a(x.a)
+	{
+		data_size = x.elements + __UCLIBCXX_STL_BUFFER_SIZE__;
+		data = a.allocate(data_size);
+		first_element = (data_size - x.elements) / 2;
+		last_element = first_element;
+		for(size_type i=0; i < x.elements; ++i){
+			push_back(x[i]);
+		}
+	}
+
+
+	template<class T, class Allocator> deque<T, Allocator>::~deque(){
+		clear();
+		a.deallocate(data, data_size);
+	}
+
+	template<class T, class Allocator> deque<T,Allocator>& deque<T, Allocator>::
+		operator=(const deque<T,Allocator>& x)
+	{
+		if(&x == this){
+			return *this;
+		}
+		resize(x.elements);
+		for(size_t i = 0; i < elements; ++i){
+			data[array_element(i)] = x[i];
+		}
+		return *this;
+	}
+
+
+	template<class T, class Allocator> template <class InputIterator> void
+		deque<T, Allocator>::assign(InputIterator first, InputIterator last)
+	{
+		clear();
+		while(first !=last){
+			push_back(*first);
+			++first;
+		}
+	}
+
+
+	template<class T, class Allocator> template <class Size, class U> void
+		deque<T, Allocator>::assign(Size n, const U& u)
+	{
+		if(&u == this){
+			return;
+		}
+		clear();
+		for(size_type i = 0; i < n; ++i){
+			push_back(u);
+		}
+	}
+
+
+	template<class T, class Allocator> typename deque<T, Allocator>::allocator_type 
+		deque<T, Allocator>::get_allocator() const
+	{
+		return a;
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::iterator deque<T, Allocator>::begin()
+	{
+		return deque_iter(this, 0);
+	}
+
+
+	template<class T, class Allocator> typename deque<T, Allocator>::const_iterator
+		deque<T, Allocator>::begin() const
+	{
+		return deque_citer(this, 0);
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::iterator deque<T, Allocator>::end()
+	{
+		return deque_iter(this, elements);
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::const_iterator deque<T, Allocator>::end() const
+	{
+		return deque_citer(this, elements);
+	}
+	
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::reverse_iterator deque<T, Allocator>::rbegin()
+	{
+		return reverse_iterator(end());
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::const_reverse_iterator deque<T, Allocator>::rbegin() const
+	{
+		return const_reverse_iterator(end());
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::reverse_iterator deque<T, Allocator>::rend()
+	{
+		return reverse_iterator(begin());
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::const_reverse_iterator deque<T, Allocator>::rend() const
+	{
+		return const_reverse_iterator(begin());
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::size_type deque<T, Allocator>::size() const
+	{
+		return elements;
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::size_type deque<T, Allocator>::max_size() const
+	{
+		return ((size_type)(-1)) / sizeof(T);
+	}
+
+	template<class T, class Allocator> void deque<T, Allocator>::resize(size_type sz, T c){
+		reserve(sz);
+		while(sz > size()){
+			push_back(c);
+		}
+		while(sz < size()){
+			pop_back();
+		}
+	}
+
+	template<class T, class Allocator> bool deque<T, Allocator>::empty() const{
+		return (elements == 0);
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::reference deque<T, Allocator>::operator[](size_type n)
+	{
+		return data[array_element(n)];
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::const_reference deque<T, Allocator>::operator[](size_type n) const
+	{
+		return data[array_element(n)];
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::reference deque<T, Allocator>::at(size_type n)
+	{
+		if(n > elements){
+			__throw_out_of_range("Out of deque range");
+		}
+		return data[array_element(n)];
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::const_reference deque<T, Allocator>::at(size_type n) const
+	{
+		if(n > elements){
+			__throw_out_of_range("Out of deque range");
+		}
+		return data[array_element(n)];
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::reference deque<T, Allocator>::front()
+	{
+		return data[first_element];
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::const_reference deque<T, Allocator>::front() const
+	{
+		return data[first_element];
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::reference deque<T, Allocator>::back()
+	{
+		return data[array_element(elements-1)];
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::const_reference deque<T, Allocator>::back() const
+	{
+		return data[array_element(elements-1)];
+	}
+	
+	template<class T, class Allocator> void deque<T, Allocator>::push_front(const T& x){
+		reserve(elements + 1);
+		first_element = first_subtract(1);
+		a.construct(data + first_element, x);
+		++elements;
+	}
+
+	template<class T, class Allocator> void deque<T, Allocator>::push_back(const T& x){
+		reserve(elements + 1);
+		a.construct(data + last_element, x);
+		++elements;
+		last_element = array_element(elements);
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::iterator deque<T, Allocator>::insert(iterator position, const T& x)
+	{
+		reserve(elements+1);
+		if(position.element > (elements/2)){
+			//Push all elements back 1
+			push_back(x);
+			for(size_type i = elements-1; i > position.element; --i){
+				at(i) = at(i-1);
+			}
+		}else{
+			//Push all elements forward 1
+			push_front(x);
+			for(size_type i = 0; i < position.element; ++i){
+				at(i) = at(i+1);
+			}
+		}
+		at(position.element) = x;
+		return deque_iter(this, position.element);
+	}
+
+	template<class T, class Allocator> void deque<T, Allocator>::
+		insert(typename deque<T, Allocator>::iterator position, size_type n, const T& x)
+	{
+		reserve(elements + n);
+		for(size_t i =0; i < n; ++i){
+			position = insert(position, x);
+		}
+	}
+
+	template<class T, class Allocator> template <class InputIterator> 
+		void deque<T, Allocator>::insert (iterator position, InputIterator first, InputIterator last)
+	{
+		while(first != last){
+			position = insert(position, *first);
+			++first;
+		}
+	}
+
+	template<class T, class Allocator> void deque<T, Allocator>::pop_front(){
+		if(elements == 0){
+			__throw_out_of_range("deque pop_front");
+		}
+		a.destroy(data + first_element);
+		first_element = array_element(1);
+		--elements;
+	}
+
+	template<class T, class Allocator> void deque<T, Allocator>::pop_back(){
+		last_element = array_element(elements - 1);
+		a.destroy(data + last_element);
+		--elements;
+	}
+
+	template<class T, class Allocator> typename
+		deque<T, Allocator>::iterator deque<T, Allocator>::erase(typename deque<T, Allocator>::iterator position)
+	{
+		if(position.element > (elements /2)){
+			for(size_type i = position.element; i < elements - 1; ++i){
+				at(i) = at(i+1);
+			}
+			pop_back();
+		}else{
+			for(size_type i = position.element; i > 0; --i){
+				at(i) = at(i-1);
+			}
+			pop_front();
+		}
+		return deque_iter(this, position.element);
+	}
+
+	template<class T, class Allocator> typename deque<T, Allocator>::iterator 
+		deque<T, Allocator>::
+		erase(typename deque<T, Allocator>::iterator first, typename deque<T, Allocator>::iterator last)
+	{
+		//Shift backwards
+		size_type num_move = last.element - first.element;
+		if( first.element > (elements - last.element) ){
+			for(size_type i = last.element; i < elements ; ++i){
+				at(i-num_move) = at(i);
+			}
+			for(size_type i = 0; i < num_move ; ++i){
+				pop_back();
+			}
+		}else{
+			for(size_type i = 0; i < first.element ; ++i){
+				at(last.element - i - 1) = at(first.element - i - 1);
+			}
+			for(size_type i = 0; i < num_move ; ++i){
+				pop_front();
+			}
+		}
+		return deque_iter(this, first.element);
+	}
+
+	template<class T, class Allocator> void deque<T, Allocator>::swap(deque<T,Allocator>& x)
+	{
+		T * temp_data;
+		typename deque<T,Allocator>::size_type temp_size;
+
+		//Swap data pointers
+		temp_data = x.data;
+		x.data = data;
+		data = temp_data;
+
+		//Swap array sizes
+		temp_size = x.data_size;
+		x.data_size = data_size;
+		data_size = temp_size;
+
+		//Swap num array elements
+		temp_size  = x.elements;
+		x.elements = elements;
+		elements = temp_size;
+
+		//Swap first_pointer
+		temp_size = x.first_element;
+		x.first_element = first_element;
+		first_element = temp_size;
+
+		//Swap last_pointer
+		temp_size = x.last_element;
+		x.last_element = last_element;
+		last_element = temp_size;
+	}
+
+	template<class T, class Allocator> void deque<T, Allocator>::clear()
+	{
+		while(elements > 0 ){
+			pop_back();
+		}
+	}
+
+
+	template<class T, class Allocator> void deque<T, Allocator>::reserve(typename deque<T, Allocator>::size_type n)
+	{
+		if(data_size >= n){
+			return;
+		}
+
+		size_type size_temp;
+		size_type first_temp;
+		T * data_temp;
+		size_temp = n + __UCLIBCXX_STL_BUFFER_SIZE__;		//Reserve extra 'cause we can
+		data_temp = a.allocate(size_temp);
+	
+		first_temp = (size_temp - elements) / 2;
+		for(size_type i = 0; i < elements; ++i){
+			a.construct(data_temp + first_temp + i, data[array_element(i)]);
+			a.destroy(data + array_element(i));
+		}
+
+		//Now shuffle pointers
+		a.deallocate(data, data_size);
+		data = data_temp;
+		data_size = size_temp;
+		first_element = first_temp;
+		last_element = first_element + elements;
+	}
+
+
+	template <class T, class Allocator> _UCXXEXPORT 
+		bool
+		operator==(const deque<T,Allocator>& x, const deque<T,Allocator>& y)
+	{
+		if(x.elements != y.elements){
+			return false;
+		}
+		for(typename deque<T,Allocator>::size_type i = 0; i < x.elements; ++i){
+			if(x[i] < y[i] || y[i] < x[i]){
+				return false;
+			}
+		}
+		return true;
+	}
+
+	template <class T, class Allocator> bool operator< (const deque<T,Allocator>& x, const deque<T,Allocator>& y);
+	template <class T, class Allocator> _UCXXEXPORT
+		bool
+		operator!=(const deque<T,Allocator>& x, const deque<T,Allocator>& y)
+	{
+		if(x == y){
+			return false;
+		}
+		return true;
+	}
+	template <class T, class Allocator> bool operator> (const deque<T,Allocator>& x, const deque<T,Allocator>& y);
+	template <class T, class Allocator> bool operator>=(const deque<T,Allocator>& x, const deque<T,Allocator>& y);
+	template <class T, class Allocator> bool operator<=(const deque<T,Allocator>& x, const deque<T,Allocator>& y);
+	template <class T, class Allocator> _UCXXEXPORT void swap(deque<T,Allocator>& x, deque<T,Allocator>& y){
+		x.swap(y);
+	}
+
+
+
+}
+
+#pragma GCC visibility pop
+
+#endif
+
+
+
+

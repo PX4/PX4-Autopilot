@@ -1,0 +1,423 @@
+/*	Copyright (C) 2004 Garrett A. Kajmowicz
+
+	This file is part of the uClibc++ Library.
+
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#include <basic_definitions>
+#include <cstddef>
+#include <climits>
+#include <func_exception>
+#include <string>
+#include <iosfwd>
+
+#ifndef __STD_BITSET_HEADER
+#define __STD_BITSET_HEADER 1
+
+#pragma GCC visibility push(default)
+
+namespace std{
+	template <size_t N> class bitset;
+
+
+	template <size_t N> bitset<N> operator&(const bitset<N>&, const bitset<N>&);
+	template <size_t N> bitset<N> operator|(const bitset<N>&, const bitset<N>&);
+	template <size_t N> bitset<N> operator^(const bitset<N>&, const bitset<N>&);
+	template <class charT, class traits, size_t N> basic_istream<charT, traits>& 
+		operator>>(basic_istream<charT, traits>& is, bitset<N>& x);
+
+	template <class charT, class traits, size_t N> basic_ostream<charT, traits>& 
+		operator<<(basic_ostream<charT, traits>& os, const bitset<N>& x);
+	
+	//Actual Code
+
+
+	template<size_t N> class _UCXXEXPORT bitset {
+	private:
+		//Number of characters allocated to hold the bits
+		static const size_t WORD_SIZE = CHAR_BIT;		//Use int maybe?
+		static const size_t num_bytes = (N + WORD_SIZE - 1) / WORD_SIZE;
+
+		//From the bit number, figure out which byte we are working with
+		size_t byte_num(size_t bit_num) const{ 
+			if(WORD_SIZE == 8){
+				return (bit_num >> 3);
+			}
+			if(WORD_SIZE == 16){
+				return (bit_num >> 4);
+			}
+			if(WORD_SIZE == 32){
+				return (bit_num >> 5);
+			}
+			if(WORD_SIZE == 64){
+				return (bit_num >> 6);
+			}
+			return bit_num / WORD_SIZE;
+		}
+		//From the bit number, figure out which bit inside the byte we need
+		size_t bit_num(const size_t bit_num) const{
+			return bit_num % WORD_SIZE;
+		}
+
+
+		//Point to the actual data
+		char data[num_bytes];
+	public:
+
+		class _UCXXEXPORT reference {
+			friend class bitset;
+			reference() : bit_num(0), parent(0) {  }
+			size_t bit_num;
+			bitset * parent;
+		public:
+			~reference() {  }
+			reference& operator=(bool x){			// for b[i] = x;
+				parent->set(bit_num, x);
+				return *this;
+			}
+			reference& operator=(const reference& x){	// for b[i] = b[j];
+				parent->set(bit_num, x);
+				return *this;
+			}
+			bool operator~() const{				// flips the bit
+				return !parent->test(bit_num);
+			}
+			operator bool() const{				// for x = b[i];
+				return parent->test(bit_num);
+			}
+			reference& flip(){				// for b[i].flip();
+				parent->flip(bit_num);
+				return *this;
+			}
+		};
+
+		bitset(){
+			reset();
+		}
+		bitset(unsigned long val){
+			reset();
+			size_t count = sizeof(val) * CHAR_BIT;
+			if(count > N){
+				count = N;
+			}
+			for(size_t i = 0; i < count; ++i){
+				set(i, ((val >> i) & 1));
+			}
+		}
+
+		bitset(const bitset & val){
+			for(size_t i = 0; i < num_bytes; ++i){
+				data[i] = val.data[i];
+			}
+		}
+
+		template<class charT, class traits, class Allocator> _UCXXEXPORT
+		explicit bitset(
+			const basic_string<charT,traits,Allocator>& str,
+			typename basic_string<charT,traits,Allocator>::size_type pos = 0,
+			typename basic_string<charT,traits,Allocator>::size_type n =
+			basic_string<charT>::npos
+			
+		){
+			reset();
+			if(n > str.length()){
+				n = str.length();
+			}
+			size_t width = n;
+			if (width + pos > str.length()){
+				width = str.length() - pos;
+			}
+
+			for(size_t i = 0; i < width; ++i){
+				switch(str[pos + width - i - 1]){
+					case '0':
+						break;
+					case '1':
+						set(i);
+						break;
+					default:
+						__throw_invalid_argument();
+				}
+			}
+		}
+
+		bitset<N>& operator&=(const bitset<N>& rhs){
+			for(size_t i =0; i < num_bytes; ++i){
+				data[i] &= rhs.data[i];
+			}
+			return *this;
+		}
+
+		bitset<N>& operator|=(const bitset<N>& rhs){
+			for(size_t i =0; i < num_bytes; ++i){
+				data[i] |= rhs.data[i];
+			}
+			return *this;
+		}
+		bitset<N>& operator^=(const bitset<N>& rhs){
+			for(size_t i=0; i < num_bytes; ++i){
+				data[i] ^= rhs.data[i];
+			}
+			return *this;
+		}
+
+		bitset<N>& operator<<=(size_t pos){
+			for(size_t i = N-1; i >=pos; --i){
+				set(i, test(i - pos));
+			}
+			for(size_t i = 0; i < pos; ++i){
+				reset(i);
+			}
+			return *this;
+		}
+
+		bitset<N>& operator>>=(size_t pos){
+			for(size_t i = 0; i < (N - pos); ++i){
+				set(i, test(i + pos));
+			}
+			for(size_t i = pos; i > 0; --i){
+				reset(N - i);
+			}
+			return *this;
+		}
+
+		bitset<N>& set(){
+			size_t i;
+			for(i = 0; i < N ; ++i){
+				data[byte_num(i)] |= (1<<bit_num(i));
+			}
+			return *this;
+		}
+		bitset<N>& set(size_t pos, int val = true){
+			if(val == true){
+				data[byte_num(pos)] |= (1<<bit_num(pos));
+			}else{
+				data[byte_num(pos)] &= ~(1<<bit_num(pos));
+			}
+			return *this;
+		}
+		bitset<N>& reset(){
+			for(size_t i = 0; i < num_bytes; ++i){
+				data[i] = 0;
+			}
+			return *this;
+		}
+		bitset<N>& reset(size_t pos){
+			data[byte_num(pos)] &= ~(1<<bit_num(pos));
+			return *this;
+		}
+		bitset<N>  operator~() const{
+			bitset<N> retval(*this);
+			retval.flip();
+			return retval;
+		}
+
+		bitset<N>& flip(){
+			for(size_t i = 0; i < num_bytes; ++i){
+				data[i] =  ~data[i];
+			}
+			return *this;
+		}
+		bitset<N>& flip(size_t pos){
+			char temp = data[byte_num(pos)] & (1 << bit_num(pos));
+			if(temp == 0){	//Bit was 0
+				data[byte_num(pos)] |= (1 << bit_num(pos));
+			}else{		//Bit was 1
+				data[byte_num(pos)] &= ~(1<<bit_num(pos));
+			}
+			return *this;
+		}
+
+		reference operator[](size_t pos){   // for b[i];
+			reference retval;
+			retval.parent = this;
+			retval.bit_num = pos;
+			return retval;
+		}
+
+		unsigned long to_ulong() const{
+			if(N > sizeof(unsigned long) * CHAR_BIT){
+				__throw_overflow_error();
+			}
+			unsigned long retval = 0;
+			size_t count = N;
+			for(size_t i = count; i > 0; --i){
+				if(test(i)){
+					retval +=1;
+				}
+				retval<<=1;
+			}
+			if(test(0)){
+				retval +=1;
+			}
+			return retval;
+		}
+
+		template <class charT, class traits, class Allocator>
+			basic_string<charT, traits, Allocator> to_string() const
+		{
+			basic_string<charT, traits, Allocator> retval;
+			retval.reserve(N);
+			for(size_t i = N ; i > 0; --i){
+				if(test(i-1) == true){
+					retval.append("1");
+				}else{
+					retval.append("0");
+				}
+			}
+			return retval;
+		}
+
+
+		size_t count() const{
+			size_t retval = 0;
+			for(size_t i =0; i < N; ++i){
+				if(test(i)){
+					++retval;
+				}
+			}
+			return retval;
+		}
+		size_t size()  const{
+			return N;
+		}
+
+		bitset<N>& operator=(const bitset<N> & rhs){
+			if(&rhs == this){
+				return *this;
+			}
+			for(size_t i = 0; i <= byte_num(N); ++i){
+				data[i] = rhs.data[i];
+			}
+			return *this;
+		}
+
+
+		bool operator==(const bitset<N>& rhs) const{
+			for(size_t i =0; i< N; ++i){
+				if(test(i) != rhs.test(i)){
+					return false;
+				}
+			}
+			return true;
+		}
+
+		bool operator!=(const bitset<N>& rhs) const{
+			for(size_t i =0; i< N; ++i){
+				if(test(i) != rhs.test(i)){
+					return true;
+				}
+			}
+			return false;
+		}
+
+		bool test(size_t pos) const{
+			return (data[byte_num(pos)] & (1<<bit_num(pos)) ) != 0;
+		}
+
+		bool any() const{
+			for(size_t i = 0; i< N; ++i){
+				if(test(i)==true){
+					return true;
+				}
+			}
+			return false;
+		}
+
+		bool none() const{
+			if(any() == true){
+				return false;
+			}
+			return true;
+		}
+
+		bitset<N> operator<<(size_t pos) const{
+			bitset retval(*this);
+			retval<<=pos;
+			return retval;
+		}
+		bitset<N> operator>>(size_t pos) const{
+			bitset retval(*this);
+			retval>>=pos;
+			return retval;
+		}
+	};
+
+	//Non-member functions
+
+
+	template <size_t N> _UCXXEXPORT bitset<N> operator&(const bitset<N>& lhs, const bitset<N>& rhs){
+		bitset<N> retval(lhs);
+		retval &= rhs;
+		return retval;
+	}
+
+	template <size_t N> _UCXXEXPORT bitset<N> operator|(const bitset<N>& lhs, const bitset<N>& rhs){
+		bitset<N> retval(lhs);
+		retval |= rhs;
+		return retval;
+	}
+
+	template <size_t N> _UCXXEXPORT bitset<N> operator^(const bitset<N>& lhs, const bitset<N>& rhs){
+		bitset<N> retval(lhs);
+		retval ^= rhs;
+		return retval;
+	}
+
+	template <class charT, class traits, size_t N> _UCXXEXPORT basic_istream<charT, traits>& 
+		operator>>(basic_istream<charT, traits>& is, bitset<N>& x)
+	{
+		string s;
+		charT c;
+		for(size_t i = 0; i < N; ++i){
+			is.get(c);
+			if(!is.good()){
+				break;
+			}
+			if(c != '1' && c !='0'){
+				is.putback(c);
+				break;
+			}
+			s+=c;
+		}
+		bitset<N> temp(s);
+		x = temp;
+		
+		return is;
+	}
+
+	template <class charT, class traits, size_t N> _UCXXEXPORT basic_ostream<charT, traits>& 
+		operator<<(basic_ostream<charT, traits>& os, const bitset<N>& x)
+	{
+		for(size_t i = N ; i > 0; --i){
+			if(x.test(i-1) == true){
+				os << "1";
+			}else{
+				os << "0";
+			}
+		}
+		return os;
+	}
+
+
+
+
+}
+
+#pragma GCC visibility pop
+
+#endif
+

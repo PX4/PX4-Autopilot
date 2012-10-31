@@ -1,0 +1,92 @@
+/*	Copyright (C) 2005 Garrett A. Kajmowicz
+
+	This file is part of the uClibc++ Library.
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#include <basic_definitions>
+#include <string.h>
+#include <exception>
+#include <memory>
+#include <char_traits>
+
+#ifndef __HEADER_TYPE_TRAITS
+#define __HEADER_TYPE_TRAITS 1
+
+#pragma GCC visibility push(default)
+
+namespace std{
+
+	struct _UCXXEXPORT __true_type{};
+	struct _UCXXEXPORT __false_type{};
+
+	template <class I> class _UCXXEXPORT __is_integer{
+	public:
+		typedef __false_type value;
+	};
+
+	template <> class _UCXXEXPORT __is_integer <unsigned int>{
+	public:
+		typedef __true_type value;
+	};
+
+	template <> class _UCXXEXPORT __is_integer <signed int>{
+	public:
+		typedef __true_type value;
+	};
+
+	template <> class _UCXXEXPORT __is_integer <short unsigned int>{
+	public:
+		typedef __true_type value;
+	};
+
+	template <> class _UCXXEXPORT __is_integer <short signed int>{
+	public:
+		typedef __true_type value;
+	};
+
+	template <> class _UCXXEXPORT __is_integer <char>{
+	public:
+		typedef __true_type value;
+	};
+
+	template <> class _UCXXEXPORT __is_integer <signed char>{
+	public:
+		typedef __true_type value;
+	};
+
+	template <> class _UCXXEXPORT __is_integer <unsigned char>{
+	public:
+		typedef __true_type value;
+	};
+
+	template <> class _UCXXEXPORT __is_integer <long unsigned int>{
+	public:
+		typedef __true_type value;
+	};
+
+	template <> class _UCXXEXPORT __is_integer <long signed int>{
+	public:
+		typedef __true_type value;
+	};
+
+
+
+}
+
+#pragma GCC visibility pop
+
+#endif
+

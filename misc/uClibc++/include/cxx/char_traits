@@ -1,0 +1,215 @@
+//***************************************************************************
+// include/cxx/cerrno
+//
+//   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+//   Author: Gregory Nutt <gnutt@nuttx.org>
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
+//
+// 1. Redistributions of source code must retain the above copyright
+//    notice, this list of conditions and the following disclaimer.
+// 2. Redistributions in binary form must reproduce the above copyright
+//    notice, this list of conditions and the following disclaimer in
+//    the documentation and/or other materials provided with the
+//    distribution.
+// 3. Neither the name NuttX nor the names of its contributors may be
+//    used to endorse or promote products derived from this software
+//    without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+// COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+// OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+// AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
+//
+//***************************************************************************
+//#ifndef __INCLUDE_CXX_CHAR1_TRAITS
+//#define __INCLUDE_CXX_CHAR1_TRAITS
+#include <basic_definitions>
+#include <string.h>
+#include <exception>
+#include <memory>
+
+#ifdef __UCLIBCXX_HAS_WCHAR__
+#include <cwchar>
+#include <cwctype>
+#endif
+
+#ifndef __HEADER_CHAR_TRAITS
+#define __HEADER_CHAR_TRAITS 1
+
+namespace std{
+	/* Inlining all wrapped function calls to shrink the amount of code generated*/	
+	//Typedefs to use for stuff
+	typedef signed int char_traits_off_type;
+
+	//Generic char_traits
+	template<class charT> struct _UCXXEXPORT char_traits { };
+
+	//Specialize for char
+	template<> struct _UCXXEXPORT char_traits<char> {
+		typedef char char_type;
+		typedef short int int_type;
+		typedef char_traits_off_type off_type;
+		typedef char_traits_off_type pos_type;
+		typedef char state_type;
+		
+		inline static void assign(char_type & c, const char_type & d) { c = d; }
+
+		static bool eq(const char_type& c1, const char_type& c2);
+
+		static char_type to_char_type(const int_type & i);
+
+		inline static int_type to_int_type(const char_type & c){
+			return (short int)(unsigned char)c;
+		}
+
+		inline static bool eq_int_type(const int_type & a, const int_type & b){
+			if(a==b){
+				return true;
+			}
+			return false;
+		}
+
+
+		inline static bool lt(const char_type& c1, const char_type& c2){
+			if(strncmp(&c1, &c2, 1) < 0){
+				return true;
+			}
+			return false;
+		}
+
+		inline static char_type* move(char_type* s1, const char_type* s2, size_t n){
+			return (char*) memmove(s1, s2, n);
+		}
+
+		inline static char_type* copy(char_type* s1, const char_type* s2, size_t n){
+			for(unsigned long int i=0; i< n; ++i){
+				assign(s1[i], s2[i]);
+			}
+			return s1 + n;
+		}
+
+		inline static char_type* assign(char_type* s, size_t n, char_type a){
+			return (char *)memset(s, a, n);
+		}
+
+		inline static int compare(const char_type* s1, const char_type* s2, size_t n){
+			return strncmp(s1, s2, n);
+		}
+
+		inline static size_t length(const char_type* s){
+			return wstrlen(s);
+		}
+
+		static const char_type* find(const char_type* s, int n, const char_type& a);
+
+		inline static char_type eos() { return 0; }
+		inline static int_type eof() { return -1; }
+		inline static int_type not_eof(const int_type & i) {
+			if(i == -1){
+				return 0;
+			} else {
+				return i;
+			}
+		}
+		static state_type get_state(pos_type p){
+			p = p;
+			state_type a;
+			return a;
+		}
+	};
+
+
+#ifdef __UCLIBCXX_HAS_WCHAR__
+	template<> struct _UCXXEXPORT char_traits<wchar_t> {
+		typedef wchar_t char_type;
+		typedef wint_t int_type;
+		typedef char_traits_off_type off_type;
+		typedef char_traits_off_type pos_type;
+		typedef mbstate_t state_type;
+
+		static void assign(char_type & c, const char_type & d){ c=d; }
+
+		static char_type to_char_type(const int_type & i){
+			return i;
+		}
+
+		static int_type to_int_type(const char_type & c){
+			return c;
+		}
+
+		inline static bool eq_int_type(const int_type & a, const int_type & b){
+			if(a==b){
+				return true;
+			}
+			return false;
+		}
+
+		inline static bool eq(const char_type& c1, const char_type& c2){
+			if(wcsncmp(&c1, &c2, 1) == 0){
+				return true;
+			}
+			return false;
+		}
+
+		inline static bool lt(const char_type& c1, const char_type& c2){
+			if(wcsncmp(&c1, &c2, 1) < 0){
+				return true;
+			}
+			return false;
+		}
+
+		inline static char_type* move(char_type* s1, const char_type* s2, size_t n){
+			return (char_type*) memmove(s1, s2, n * sizeof(char_type));
+		}
+
+		inline static char_type* copy(char_type* s1, const char_type* s2, size_t n){
+			for(unsigned long int i=0; i< n; ++i){
+				assign(s1[i], s2[i]);
+			}
+			return s1 + n;
+		}
+
+		inline static char_type* assign(char_type* s, size_t n, char_type a){
+			return (char_type *)memset(s, a, n);	/*FIXME*/
+		}
+
+		inline static int compare(const char_type* s1, const char_type* s2, size_t n){
+			return wcsncmp(s1, s2, n);
+		}
+
+		inline static size_t length(const char_type* s){
+			return wcslen(s);
+		}
+
+		static const char_type* find(const char_type* s, int n, const char_type& a);
+
+		inline static char_type eos() { return 0; }
+		inline static int_type eof() { return WEOF; }
+		inline static int_type not_eof(const int_type & i) {
+			if(i == WEOF){
+				return (int_type)0;
+			} else {
+				return i;
+			}
+		}
+		static state_type get_state(pos_type){
+			state_type a;
+			return a;
+		}
+	};
+#endif
+
+}
+
+#endif

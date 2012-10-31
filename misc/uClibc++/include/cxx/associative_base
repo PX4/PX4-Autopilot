@@ -1,0 +1,640 @@
+/*	Copyright (C) 2007 Garrett A. Kajmowicz
+	This file is part of the uClibc++ Library.
+
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+
+
+#include<memory>
+#include<utility>
+#include<iterator>
+#include<functional>
+#include<list>
+
+
+#ifndef __STD_HEADER_ASSOCIATIVE_BASE
+#define __STD_HEADER_ASSOCIATIVE_BASE
+
+#pragma GCC visibility push(default)
+
+namespace std{
+
+
+/*
+ *	The basic premise here is that most of the code used by map, multimap, set and
+ *	multiset is really common.  There are a number of interface additions, and
+ *	considerations about how to address multiple entries with the same key.
+ *	The goal is that the tree/storage code should be here, and managing
+ *	single or multiple counts will be left to subclasses.
+ *	Yes, inheritence for the purpose of code sharing is usually a bad idea.
+ *	However, since our goal is to reduce the total amount of code written
+ *	and the overall binary size, this seems to be the best approach possible.
+ */
+
+template<class Key, class ValueType, class Compare = less<Key>, class Allocator = allocator<ValueType> > class __base_associative;
+template<class ValueType, class Compare, class Allocator> class _associative_iter;
+template<class ValueType, class Compare, class Allocator> class _associative_citer;
+
+template<class Key, class ValueType, class Compare = less<Key>, class Allocator = allocator<ValueType> > class __single_associative;
+template<class Key, class ValueType, class Compare = less<Key>, class Allocator = allocator<ValueType> > class __multi_associative;
+
+template<class Key, class ValueType, class Compare, class Allocator> class _UCXXEXPORT __base_associative{
+
+protected:
+
+public:
+	typedef Key							key_type;
+	typedef ValueType						value_type;
+	typedef Compare							key_compare;
+	typedef Allocator						allocator_type;
+	typedef typename Allocator::reference				reference;
+	typedef typename Allocator::const_reference			const_reference;
+	typedef typename Allocator::size_type				size_type;
+	typedef typename Allocator::difference_type			difference_type;
+	typedef typename Allocator::pointer				pointer;
+	typedef typename Allocator::const_pointer			const_pointer;
+	typedef __base_associative<Key, ValueType, Compare, Allocator>	associative_type;
+
+	typedef _associative_iter<value_type, Compare, Allocator>	iterator;
+	typedef _associative_citer<value_type, Compare, Allocator>	const_iterator;
+	typedef typename std::reverse_iterator<iterator>		reverse_iterator;
+	typedef typename std::reverse_iterator<const_iterator>		const_reverse_iterator;
+
+
+	explicit __base_associative(const Compare& comp, const Allocator& A, const key_type (*v_to_k)(const value_type))
+		: c(comp), value_to_key(v_to_k) { }
+protected:
+	__base_associative(const associative_type& x)
+		: c(x.c), backing(x.backing), value_to_key(x.value_to_key) { }
+
+public:
+	~__base_associative(){
+	}
+
+	bool empty() const{
+		return backing.empty();
+	}
+	size_type size() const{
+		return backing.size();
+	}
+	size_type max_size() const{
+		return backing.max_size();
+	}
+
+	iterator begin(){
+		return iterator(backing.begin());
+	}
+
+	const_iterator begin() const{
+		return const_iterator(backing.begin());
+	}
+
+	iterator end() {
+		return iterator(backing.end());
+	}
+
+	const_iterator end() const{
+		return const_iterator(backing.end());
+	}
+
+	reverse_iterator rbegin(){
+		return reverse_iterator(end());
+	}
+
+	const_reverse_iterator rbegin() const{
+		return const_reverse_iterator(end());
+	}
+
+	reverse_iterator rend(){
+		return reverse_iterator(begin());
+	}
+
+	const_reverse_iterator rend() const{
+		return const_reverse_iterator(begin());
+	}
+
+
+	iterator lower_bound(const key_type &x);
+	const_iterator lower_bound(const key_type &x) const;
+	iterator upper_bound(const key_type &x);
+	const_iterator upper_bound(const key_type &x) const;
+
+	pair<iterator,iterator> equal_range(const key_type& x){
+		pair<iterator, iterator> retval;
+		retval.first = lower_bound(x);
+		retval.second = retval.first;
+		while(retval.second != end() && !c(x, value_to_key(*retval.second))){
+			++retval.second;
+		}
+		return retval;
+	}
+	pair<const_iterator,const_iterator> equal_range(const key_type& x) const{
+		pair<const_iterator, const_iterator> retval;
+		retval.first = lower_bound(x);
+		retval.second = retval.first;
+		while(retval.second != end() && !c(x, value_to_key(*retval.second))){
+			++retval.second;
+		}
+		return retval;
+	}
+
+	iterator find(const key_type& x){
+		iterator retval = lower_bound(x);
+		if(retval == end()){
+			return retval;
+		}
+		if(c(x, value_to_key(*retval))){
+			return end();
+		}
+		return retval;
+	}
+	const_iterator find(const key_type& x) const{
+		const_iterator retval = lower_bound(x);
+		if(retval == end()){
+			return retval;
+		}
+		if(c(x, value_to_key(*retval))){
+			return end();
+		}
+		return retval;
+	}
+	size_type count(const key_type& x) const{
+		size_type retval(0);
+		const_iterator first = lower_bound(x);
+		while(first != end() && !c(x, value_to_key(*first))){
+			++retval;
+			++first;
+		}
+		return retval;
+	}
+
+	void clear(){
+		backing.clear();
+	}
+
+	void erase(iterator pos){
+		backing.erase(pos.base_iterator());
+	}
+	size_type erase(const key_type& x){
+		size_type count(0);
+		iterator start = lower_bound(x);
+		iterator end = upper_bound(x);
+		while(start != end){
+			start = backing.erase(start.base_iterator());
+			++count;
+		}
+		return count;
+	}
+	void erase(iterator first, iterator last){
+		while(first != last){
+			backing.erase(first.base_iterator());
+			++first;
+		}
+	}
+
+	key_compare key_comp() const{
+		return c;
+	}
+
+	__base_associative &operator=(const __base_associative & x){
+		c = x.c;
+		backing = x.backing;
+		value_to_key = x.value_to_key;
+		return *this;
+	}
+	bool operator==(const __base_associative & x){
+		return x.backing == backing;
+	}
+	bool operator!=(const __base_associative & x){
+		return !(x.backing == backing);
+	}
+
+protected:
+	void swap(__base_associative & x);
+
+	Compare c;
+	std::list<value_type> backing;
+
+	const key_type (*value_to_key)(const value_type);
+
+};
+
+
+/*
+ * Tree iterators for the base associative class
+ */
+
+template<class ValueType, class Compare, class Allocator> class _associative_citer
+	: public std::iterator<
+		bidirectional_iterator_tag,
+		ValueType,
+		typename Allocator::difference_type,
+		ValueType*,
+		ValueType&
+	>
+{
+protected:
+	typedef std::list<ValueType> listtype;
+
+	typename listtype::const_iterator base_iter;
+	friend class _associative_iter<ValueType, Compare, Allocator>;
+public:
+	_associative_citer() { }
+	_associative_citer(const _associative_citer & m)
+		: base_iter(m.base_iter) { }
+	_associative_citer(const typename listtype::const_iterator & m)
+		: base_iter(m) { }
+	~_associative_citer() { }
+	ValueType operator*() const{
+		return *base_iter;
+	}
+	const ValueType * operator->() const{
+		return &(*base_iter);
+	}
+	_associative_citer & operator=(const _associative_citer & m){
+		base_iter = m.base_iter;
+		return *this;
+	}
+	bool operator==(const _associative_citer & m) const{
+		return m.base_iter == base_iter;
+	}
+	bool operator!=(const _associative_citer & m) const{
+		return m.base_iter != base_iter;
+	}
+	_associative_citer & operator++(){
+		++base_iter;
+		return *this;
+	}
+	_associative_citer operator++(int){
+		//The following approach ensures that we only need to
+		//provide code for ++ in one place (above)
+		_associative_citer temp(base_iter);
+		++base_iter;
+		return temp;
+	}
+	_associative_citer & operator--(){
+		--base_iter;
+		return *this;
+	}
+	_associative_citer operator--(int){
+		//The following approach ensures that we only need to
+		//provide code for -- in one place (above)
+		_associative_citer temp(base_iter);
+		--base_iter;
+		return temp;
+	}
+
+	//This is an implementation-defined function designed to make internals work correctly
+	typename listtype::const_iterator base_iterator(){
+		return base_iter;
+	}
+};
+
+
+template<class ValueType, class Compare, class Allocator> class _associative_iter
+	: public std::iterator<
+		bidirectional_iterator_tag,
+		ValueType,
+		typename Allocator::difference_type,
+		ValueType*,
+		ValueType&
+	>
+{
+protected:
+	typedef std::list<ValueType> listtype;
+
+	typename listtype::iterator base_iter;
+	typedef _associative_citer<ValueType, Compare, Allocator> __associative_citer;
+
+public:
+	_associative_iter() { }
+	_associative_iter(const _associative_iter & m)
+		: base_iter(m.base_iter) { }
+	_associative_iter(const typename listtype::iterator & m)
+		: base_iter(m) { }
+	~_associative_iter() { }
+	const ValueType & operator*() const{
+		return *base_iter;
+	}
+	ValueType & operator*(){
+		return *base_iter;
+	}
+	ValueType * operator->(){
+		return &(*base_iter);
+	}
+	const ValueType * operator->() const{
+		return &(*base_iter);
+	}
+	_associative_iter & operator=(const _associative_iter & m){
+		base_iter = m.base_iter;
+		return *this;
+	}
+	bool operator==(const _associative_iter & m) const{
+		return m.base_iter == base_iter;
+	}
+	bool operator==(const __associative_citer & m) const{
+		return m.base_iter == base_iter;
+	}
+	bool operator!=(const _associative_iter & m) const{
+		return m.base_iter != base_iter;
+	}
+	bool operator!=(const __associative_citer & m) const{
+		return m.base_iter != base_iter;
+	}
+	_associative_iter & operator++(){
+		++base_iter;
+		return *this;
+	}
+	_associative_iter operator++(int){
+		//The following approach ensures that we only need to
+		//provide code for ++ in one place (above)
+		_associative_iter temp(base_iter);
+		++base_iter;
+		return temp;
+	}
+	_associative_iter & operator--(){
+		--base_iter;
+		return *this;
+	}
+	_associative_iter operator--(int){
+		//The following approach ensures that we only need to
+		//provide code for -- in one place (above)
+		_associative_iter temp(base_iter);
+		--base_iter;
+		return temp;
+	}
+	operator __associative_citer() const{
+		return __associative_citer(base_iter);
+	}
+	typename listtype::iterator base_iterator(){
+		return base_iter;
+	}
+	const typename listtype::iterator base_iterator() const{
+		return base_iter;
+	}
+
+};
+
+
+	// The lower_bound code is really crappy linear search.  However, it is a dead
+	// simple implementation (easy to audit).  It can also be easily replaced.
+
+
+	template <class Key, class ValueType, class Compare, class Allocator>
+		typename __base_associative<Key, ValueType, Compare, Allocator>::iterator
+		__base_associative<Key, ValueType, Compare, Allocator>::lower_bound(const key_type &x)
+	{
+		iterator retval = begin();
+		while(retval != end() && c(value_to_key(*retval), x)){
+			++retval;
+		}
+		return retval;
+	}
+
+	template <class Key, class ValueType, class Compare, class Allocator>
+		typename __base_associative<Key, ValueType, Compare, Allocator>::const_iterator
+		__base_associative<Key, ValueType, Compare, Allocator>::lower_bound(const key_type &x) const
+	{
+		const_iterator retval = begin();
+		while(retval != end() && c(value_to_key(*retval), x)){
+			++retval;
+		}
+		return retval;
+	}
+
+	// Upper bound search is linear from the point of lower_bound.  This is likely the best solution
+	// in all but the most pathological of cases.
+
+	template <class Key, class ValueType, class Compare, class Allocator>
+		typename __base_associative<Key, ValueType, Compare, Allocator>::iterator
+		__base_associative<Key, ValueType, Compare, Allocator>::upper_bound(const key_type &x)
+	{
+		iterator retval = lower_bound(x);
+		while(retval != end() && !c(x, value_to_key(*retval))){
+			++retval;
+		}
+		return retval;
+	}
+
+	template <class Key, class ValueType, class Compare, class Allocator>
+		typename __base_associative<Key, ValueType, Compare, Allocator>::const_iterator
+		__base_associative<Key, ValueType, Compare, Allocator>::upper_bound(const key_type &x) const
+	{
+		const_iterator retval = begin();
+		while(retval != end() && !c(x, value_to_key(*retval))){
+			++retval;
+		}
+		return retval;
+	}
+
+
+	template <class Key, class ValueType, class Compare, class Allocator>
+		void __base_associative<Key, ValueType, Compare, Allocator>::swap(__base_associative<Key, ValueType, Compare, Allocator>& m)
+	{
+		Compare n = c;
+		c = m.c;
+		m.c = n;
+
+		m.backing.swap(backing);
+	}
+
+
+template<class Key, class ValueType, class Compare, class Allocator> class _UCXXEXPORT __single_associative :
+	public __base_associative<Key, ValueType, Compare, Allocator>
+{
+protected:
+	typedef __base_associative<Key, ValueType, Compare, Allocator> base;
+	using base::backing;
+
+	using base::c;
+
+public:
+	typedef typename base::key_type                         key_type;
+	typedef typename base::value_type                       value_type;
+	typedef typename base::key_compare                      key_compare;
+	typedef typename base::allocator_type                   allocator_type;
+	typedef typename base::reference                        reference;
+	typedef typename base::const_reference                  const_reference;
+	typedef typename base::iterator                         iterator;
+	typedef typename base::const_iterator                   const_iterator;
+	typedef typename base::size_type                        size_type;
+	typedef typename base::difference_type                  difference_type;
+	typedef typename base::pointer                          pointer;
+	typedef typename base::const_pointer                    const_pointer;
+	typedef typename base::reverse_iterator                 reverse_iterator;
+	typedef typename base::const_reverse_iterator           const_reverse_iterator;
+
+	using base::begin;
+	using base::end;
+	using base::rbegin;
+	using base::rend;
+
+	using base::empty;
+	using base::size;
+	using base::max_size;
+
+	using base::find;
+	using base::count;
+	using base::lower_bound;
+	using base::upper_bound;
+	using base::equal_range;
+
+	using base::operator=;
+	using base::operator==;
+	using base::operator!=;
+
+	explicit __single_associative(const Compare& comp, const Allocator& A, const key_type (*v_to_k)(const value_type))
+		: base(comp, A, v_to_k) { }
+
+	template <class InputIterator> __single_associative(
+		InputIterator first,
+		InputIterator last,
+		const Compare& comp,
+		const Allocator& A,
+		const key_type (*v_to_k)(const value_type)
+	) : base(comp, A, v_to_k) {
+		insert(first, last);
+	}
+
+	pair<iterator, bool> insert(const value_type& x){
+		pair<iterator, bool> retval;
+		iterator location = lower_bound(this->value_to_key(x));
+		retval.second = true;
+		//Empty list or need to insert at end
+		if(end() == location){
+			backing.push_back(x);
+			retval.first = --(end());
+			return retval;
+		}
+		//Something in the list
+		if(c(this->value_to_key(x), this->value_to_key(*location))){
+			location = backing.insert(location.base_iterator(), x);
+			retval.first = location;
+		}else{
+			retval.second = false;
+			retval.first = location;
+		}
+		return retval;
+	}
+
+	iterator insert(iterator position, const value_type& x){
+		// FIXME - this is cheating and probably should be more efficient since we are
+		// now log(n) to find for inserts
+		return insert(x).first;
+	}
+
+	template <class InputIterator> void insert(InputIterator first, InputIterator last){
+		while(first != last){
+			insert(*first);
+			++first;
+		}
+	}
+
+};
+
+
+template<class Key, class ValueType, class Compare, class Allocator> class _UCXXEXPORT __multi_associative :
+	public __base_associative<Key, ValueType, Compare, Allocator>
+{
+protected:
+	typedef __base_associative<Key, ValueType, Compare, Allocator> base;
+	using base::backing;
+
+	using base::c;
+
+public:
+	typedef typename base::key_type                         key_type;
+	typedef typename base::value_type                       value_type;
+	typedef typename base::key_compare                      key_compare;
+	typedef typename base::allocator_type                   allocator_type;
+	typedef typename base::reference                        reference;
+	typedef typename base::const_reference                  const_reference;
+	typedef typename base::iterator                         iterator;
+	typedef typename base::const_iterator                   const_iterator;
+	typedef typename base::size_type                        size_type;
+	typedef typename base::difference_type                  difference_type;
+	typedef typename base::pointer                          pointer;
+	typedef typename base::const_pointer                    const_pointer;
+	typedef typename base::reverse_iterator                 reverse_iterator;
+	typedef typename base::const_reverse_iterator           const_reverse_iterator;
+
+	using base::begin;
+	using base::end;
+	using base::rbegin;
+	using base::rend;
+
+	using base::empty;
+	using base::size;
+	using base::max_size;
+
+	using base::find;
+	using base::count;
+	using base::lower_bound;
+	using base::upper_bound;
+	using base::equal_range;
+
+	using base::operator=;
+	using base::operator==;
+
+
+	explicit __multi_associative(const Compare& comp, const Allocator& A, const key_type (*v_to_k)(const value_type))
+		: base(comp, A, v_to_k) { }
+
+	template <class InputIterator> __multi_associative(
+		InputIterator first,
+		InputIterator last,
+		const Compare& comp,
+		const Allocator& A,
+		const key_type (*v_to_k)(const value_type)
+	) : base(comp, A, v_to_k) {
+		insert(first, last);
+	}
+
+	iterator insert(const value_type& x){
+		iterator location = lower_bound(this->value_to_key(x));
+
+		if(location == begin()){
+			backing.push_front(x);
+			location = begin();
+		}else{
+			location = backing.insert(location.base_iterator(), x);
+		}
+		return location;
+	}
+
+	iterator insert(iterator position, const value_type& x){
+		// FIXME - this is cheating and probably should be more efficient since we are
+		// now log(n) to find for inserts
+		return insert(x);
+	}
+
+	template <class InputIterator> void insert(InputIterator first, InputIterator last){
+		while(first != last){
+			insert(*first);
+			++first;
+		}
+	}
+};
+
+
+
+
+}
+
+#pragma GCC visibility pop
+
+#endif	//__STD_HEADER_ASSOCIATIVE_BASE
+

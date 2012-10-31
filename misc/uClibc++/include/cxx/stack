@@ -1,0 +1,84 @@
+/*      Copyright (C) 2004 Garrett A. Kajmowicz
+	This file is part of the uClibc++ Library.
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#include <basic_definitions>
+#include <deque>
+
+#ifndef __HEADER_STD_STACK
+#define __HEADER_STD_STACK 1
+
+#pragma GCC visibility push(default)
+
+namespace std{
+
+	template <class T, class Container = deque<T> > class _UCXXEXPORT stack{
+	protected:
+		Container c;
+
+	public:
+		typedef typename Container::value_type	value_type;
+		typedef typename Container::size_type	size_type;
+		typedef Container			container_type;
+
+		explicit stack(const Container& a = Container()) : c(a) {  };
+		bool empty() const { return c.empty(); }
+		size_type size() const { return c.size(); }
+		value_type&       top() { return c.back(); }
+		const value_type& top() const { return c.back(); }
+		void push(const value_type& x) { c.push_back(x); }
+		void pop() { c.pop_back(); }
+
+		bool operator==(const stack<T, Container> &x) const{
+			return  x.c == c;
+		}
+
+	};
+
+
+	template <class T, class Container> _UCXXEXPORT bool
+		operator< (const stack<T, Container>& x, const stack<T, Container>& y)
+	{
+		return (x.c < y.c);
+	}
+	template <class T, class Container> _UCXXEXPORT bool
+		operator!=(const stack<T, Container>& x, const stack<T, Container>& y)
+	{
+		return (x.c != y.c);
+	}
+	template <class T, class Container> _UCXXEXPORT bool
+		operator> (const stack<T, Container>& x, const stack<T, Container>& y)
+	{
+		return (x.c > y.c);
+	}
+	template <class T, class Container> _UCXXEXPORT bool
+		operator>=(const stack<T, Container>& x, const stack<T, Container>& y)
+	{
+		return (x.c >= y.c);
+	}
+	template <class T, class Container> _UCXXEXPORT bool
+		operator<=(const stack<T, Container>& x, const stack<T, Container>& y)
+	{
+		return (x.c <= y.c);
+	}
+
+}
+
+#pragma GCC visibility pop
+
+#endif
+
+

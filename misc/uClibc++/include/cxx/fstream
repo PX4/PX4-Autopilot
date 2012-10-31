@@ -1,0 +1,676 @@
+/*	Copyright (C) 2004 Garrett A. Kajmowicz
+
+	This file is part of the uClibc++ Library.
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#ifndef __STD_HEADER_FSTREAM 
+#define __STD_HEADER_FSTREAM 1
+
+
+#include<basic_definitions>
+
+#include <cstdio>
+#include <cstdlib>
+#include <streambuf>
+#include <istream>
+#include <ostream>
+#include <char_traits>
+
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+
+#ifdef __UCLIBCXX_HAS_WCHAR__
+#include <cwchar>
+#include <cwctype>
+#endif //__UCLIBCXX_HAS_WCHAR__
+
+#pragma GCC visibility push(default)
+
+namespace std{
+
+	template <class C, class T> class basic_filebuf;
+
+	typedef basic_filebuf<char>    filebuf;
+#ifdef __UCLIBCXX_HAS_WCHAR__
+	typedef basic_filebuf<wchar_t> wfilebuf;
+#endif
+
+
+	template <class charT, class traits> class _UCXXEXPORT basic_filebuf
+		: public basic_streambuf<charT,traits>
+	{
+#ifdef __UCLIBCXX_SUPPORT_CDIR__
+		friend ios_base::Init::Init();	//Needed for cout/cin stuff
+#endif
+	public:
+		// Types (inherited from basic_streambuf:
+		typedef typename basic_streambuf<charT, traits>::char_type	char_type;
+		typedef typename basic_streambuf<charT, traits>::int_type 	int_type;
+		typedef typename basic_streambuf<charT, traits>::pos_type	pos_type;
+		typedef typename basic_streambuf<charT, traits>::off_type	off_type;
+		typedef traits							traits_type;
+
+		//Constructors/destructor:
+
+		_UCXXEXPORT basic_filebuf()	: basic_streambuf<charT, traits>(), fp(0), pbuffer(0), gbuffer(0)
+		{
+			append=false;
+			pbuffer = new char_type[__UCLIBCXX_IOSTREAM_BUFSIZE__];
+			gbuffer = new char_type[__UCLIBCXX_IOSTREAM_BUFSIZE__];
+
+			this->setp(pbuffer, pbuffer + __UCLIBCXX_IOSTREAM_BUFSIZE__);
+			//Position get buffer so that there is no data available
+			this->setg(gbuffer, gbuffer + __UCLIBCXX_IOSTREAM_BUFSIZE__,
+				gbuffer + __UCLIBCXX_IOSTREAM_BUFSIZE__);
+		}
+
+
+		_UCXXEXPORT virtual ~basic_filebuf(){
+			sync();
+			close();
+			delete [] pbuffer;
+			delete [] gbuffer;
+			pbuffer = 0;
+			gbuffer = 0;
+		}
+
+
+		//Members:
+
+		_UCXXEXPORT bool is_open() const{
+			if(fp == 0){
+				return false;
+			}
+			return true;
+		}
+
+		_UCXXEXPORT basic_filebuf<charT,traits>* open(const char* s, ios_base::openmode mode){
+			bool move_end = (mode & ios_base::ate) != 0;
+			if(is_open() !=false){	//Must call close() first
+				return 0;
+			}
+			basic_streambuf<charT,traits>::openedFor = mode;
+			mode = mode & ~ios_base::ate;
+
+			if(mode == ios_base::out || mode == (ios_base::out | ios_base::trunc)){
+				fp = fopen(s, "w" );
+			}else if((mode & ios_base::app) && ! (mode & ios_base::trunc)){
+				if(mode & ios_base::binary){
+					if(mode & ios_base::in){
+						fp = fopen(s, "a+b");
+					}else{
+						fp = fopen(s, "ab");
+					}
+				}else{
+					if(mode & ios_base::in){
+						fp = fopen(s, "a+");
+					}else{
+						fp = fopen(s, "a");
+					}
+				}
+			}else if(mode == ios_base::in){
+				fp = fopen(s, "r");
+			}else if(mode == (ios_base::in | ios_base::out)){
+				fp = fopen(s, "r+");
+			}else if(mode == (ios_base::in | ios_base::out | ios_base::trunc)){
+				fp = fopen(s, "w+");
+			}else if(mode == (ios_base::binary | ios_base::out)){
+				fp = fopen(s, "wb");
+			}else if(mode == (ios_base::in | ios_base::binary)){
+				fp = fopen(s, "rb");
+			}else if(mode == (ios_base::in | ios_base::binary | ios_base::out)){
+				fp = fopen(s, "r+b");
+			}else if(mode==(ios_base::binary | ios_base::out | ios_base::trunc)){
+				fp = fopen(s, "w+b");
+			}else if(mode == (ios_base::in | ios_base::binary | ios_base::out | ios_base::trunc)){
+				fp = fopen(s, "w+b");
+			}
+
+			if(fp == 0){
+				return 0;
+			}
+			if(ferror(fp)){
+				fclose(fp);
+				fp=0;
+				return 0;
+			}
+			int retval = 0;
+
+			//Check to make sure the stream is good
+			if(move_end == true){
+				retval = fseek(fp, 0, SEEK_END);
+			}else{
+				retval = fseek(fp, 0, SEEK_SET);
+			}
+			if(retval!=0){		//Seek error
+				fclose(fp);
+				fp=0;
+				return 0;
+			}
+
+			basic_streambuf<charT,traits>::mgnext = basic_streambuf<charT,traits>::mgend;
+
+			return this;
+		}
+		_UCXXEXPORT basic_filebuf<charT,traits>* close(){
+			if(fp != 0 && fp != stdin && fp != stdout && fp !=stderr ){
+				overflow();
+				sync();
+				int retval = fclose(fp);
+				if(retval !=0){		//Error of some sort
+					return 0;
+				}
+				fp=0;
+			}
+			return this;
+		}
+	protected:
+		_UCXXEXPORT basic_filebuf(const basic_filebuf<charT,traits> &){ }
+		_UCXXEXPORT basic_filebuf<charT,traits> & operator=(const basic_filebuf<charT,traits> &){ return *this; }
+
+		//Overridden virtual functions:
+
+		virtual _UCXXEXPORT int showmanyc(){
+			return basic_streambuf<charT,traits>::egptr() - basic_streambuf<charT,traits>::gptr();
+		}
+		virtual _UCXXEXPORT int_type underflow(){
+			/* Some variables used internally:
+			   Buffer pointers:
+			   charT * mgbeg;
+			   charT * mgnext;
+			   charT * mgend;
+
+			   eback() returns mgbeg
+			   gptr()  returns mgnext
+			   egptr() returns mgend
+
+			   gbump(int n) mgnext+=n
+
+			*/
+
+			if(!is_open()){
+				return traits::eof();
+			}
+
+			if(basic_streambuf<charT,traits>::eback() == 0){
+				//No buffer, so...
+				charT c;
+				int retval;
+				retval = fread(&c, sizeof(charT), 1, fp);
+
+				if(retval == 0 || feof(fp) || ferror(fp) ){
+					return traits::eof();
+				}
+				return traits::to_int_type(c);
+			}
+
+			if(basic_streambuf<charT,traits>::eback() == basic_streambuf<charT,traits>::gptr()){	//Buffer is full
+				return traits::to_int_type(*basic_streambuf<charT,traits>::gptr());
+			}
+			//Shift entire buffer back to the begining
+			size_t offset = basic_streambuf<charT,traits>::gptr() - basic_streambuf<charT,traits>::eback();
+			size_t amountData = basic_streambuf<charT,traits>::egptr() - basic_streambuf<charT,traits>::gptr();
+
+			for(charT * i = basic_streambuf<charT,traits>::gptr(); i < basic_streambuf<charT,traits>::egptr(); ++i){
+				*(i-offset) = *i;
+			}
+
+			size_t retval = 0;
+			//Save operating flags from file descriptor
+			int fcntl_flags = fcntl(fileno(fp), F_GETFL);
+			retval = 0;
+
+			//Set to non_blocking mode
+			fcntl(fileno(fp), F_SETFL, fcntl_flags | O_NONBLOCK);
+
+			//Fill rest of buffer
+			retval = fread(basic_streambuf<charT,traits>::egptr() - 
+				basic_streambuf<charT,traits>::gptr() + basic_streambuf<charT,traits>::eback(),
+				sizeof(charT),
+				offset,
+				fp
+			);
+
+			//Clear problems where we didn't read in enough characters
+			if(EAGAIN == errno){
+				clearerr(fp);
+			}
+
+			//Restore file descriptor clase
+			fcntl(fileno(fp), F_SETFL, fcntl_flags);
+
+			//Now we are going to make sure that we read in at least one character.  The hard way.
+			if(retval == 0){
+				fcntl_flags = fcntl(fileno(fp), F_GETFL);
+				//Set to blocking mode
+				fcntl(fileno(fp), F_SETFL, fcntl_flags & ~O_NONBLOCK);
+
+				retval = fread(basic_streambuf<charT,traits>::egptr() - 
+					basic_streambuf<charT,traits>::gptr() + basic_streambuf<charT,traits>::eback(),
+					sizeof(charT),
+					1,
+					fp
+				);
+
+				//Restore file descriptor clase
+				fcntl(fileno(fp), F_SETFL, fcntl_flags);
+
+			}
+
+			if(retval !=offset){ //Slide buffer forward again
+				for(size_t i = 0; i < amountData + retval; ++i){
+					*(basic_streambuf<charT,traits>::egptr() - i - 1) =
+						*(basic_streambuf<charT,traits>::eback() + amountData + retval - i - 1);
+				}
+			}
+
+			basic_streambuf<charT,traits>::mgnext -= retval;
+
+			if( (retval <= 0 && feof(fp)) || ferror(fp) ){
+				return traits::eof();
+			}
+
+			return traits::to_int_type(*basic_streambuf<charT,traits>::gptr());
+		}
+		virtual _UCXXEXPORT int_type uflow(){
+			bool dobump = (basic_streambuf<charT,traits>::gptr() != 0);
+			int_type retval = underflow();
+			if(dobump){
+				basic_streambuf<charT,traits>::gbump(1);
+			}
+			return retval;
+		}
+		virtual _UCXXEXPORT int_type pbackfail(int_type c = traits::eof()){
+			if(is_open() == false || 
+				basic_streambuf<charT,traits>::gptr() == basic_streambuf<charT,traits>::eback())
+			{
+				return traits::eof();
+			}
+			if(traits::eq_int_type(c,traits::eof()) == false){
+				if(traits::eq(traits::to_char_type(c), basic_streambuf<charT,traits>::gptr()[-1]) == true){
+					basic_streambuf<charT,traits>::gbump(-1);
+				}else{
+					basic_streambuf<charT,traits>::gbump(-1);
+					basic_streambuf<charT,traits>::gptr()[0] = c;
+				}
+				return c;
+			}else{
+				basic_streambuf<charT,traits>::gbump(-1);
+				return traits::not_eof(c);
+			}
+		}
+
+		virtual _UCXXEXPORT int_type overflow(int_type c = traits::eof()){
+			if(is_open() == false){
+				//Can't do much
+				return traits::eof();
+			}
+			if(basic_streambuf<charT,traits>::pbase() == 0){		//Unbuffered - elliminate dupe code below
+				if(fputc(c, fp) == EOF){
+					return traits::eof();
+				}
+				return c;
+			}
+			if(basic_streambuf<charT,traits>::pbase() == 0 && traits::eq_int_type(c,traits::eof()) ){
+				//Nothing to flush
+				return traits::not_eof(c);
+			}
+			size_t r = basic_streambuf<charT,traits>::pptr() - basic_streambuf<charT,traits>::pbase();
+
+			if( r == 0 && traits::eq_int_type(c,traits::eof()) ){
+				return traits::not_eof(c);
+			}else if (r == 0 ){
+				if(fputc(c, fp) == EOF){
+					return traits::eof();
+				}
+				return c;
+			}
+
+			size_t totalChars = r;
+
+			char_type *buffer = 0;
+			if(traits::eq_int_type(c,traits::eof())){
+				buffer = new char_type[r];
+			}else{
+				buffer = new char_type[r+1];
+				buffer[r] = c;
+				totalChars++;
+			}
+
+			traits::copy(buffer, basic_streambuf<charT,traits>::pbase(), r);
+//			memcpy(buffer, basic_streambuf<charT,traits>::pbase(), r);
+
+			size_t retval = fwrite(buffer, sizeof(charT), totalChars, fp);
+			if(retval !=totalChars){
+				if(retval == 0){
+					delete [] buffer;
+					return traits::eof();
+				}
+				basic_streambuf<charT,traits>::pbump(-retval);
+				fprintf(stderr, "***** Did not write the full buffer out.  Should be: %d, actually: %d\n",
+					 totalChars, retval);
+			}else{
+				basic_streambuf<charT,traits>::pbump(-r);
+			}
+
+			delete [] buffer;
+			return traits::not_eof(c);
+		}
+
+		virtual _UCXXEXPORT basic_streambuf<charT,traits>* setbuf(char_type* s, streamsize n){
+			if(s == 0 && n == 0){	//Unbuffered
+				if(pbuffer !=0){
+					delete [] pbuffer;
+				}
+				if(gbuffer !=0){
+					delete [] gbuffer;
+				}
+				pbuffer = 0;
+				gbuffer = 0;
+			}else if(basic_streambuf<charT,traits>::gptr() !=0 && 
+				basic_streambuf<charT,traits>::gptr()==basic_streambuf<charT,traits>::egptr())
+			{
+				delete [] pbuffer;
+				pbuffer = s;
+			}
+			return this;
+		}
+		virtual _UCXXEXPORT pos_type seekoff(off_type off, ios_base::seekdir way, 
+			ios_base::openmode = ios_base::in | ios_base::out)
+		{
+			if(is_open() == false){
+				return -1;
+			}
+			int whence = SEEK_SET;	// if(way == basic_ios<charT>::beg)
+			off_type position = off;
+
+			if(way == basic_ios<charT>::cur){
+				whence = SEEK_CUR;
+				position -= (basic_streambuf<charT,traits>::egptr() - basic_streambuf<charT,traits>::gptr());
+			}else if(way == basic_ios<charT>::end){
+				whence = SEEK_END;
+			}
+
+			sync();
+
+			int retval = fseek(
+				fp,
+				sizeof(charT)*(position),
+				whence
+			);
+
+			//Invalidate read buffer
+			basic_streambuf<charT,traits>::gbump(
+				basic_streambuf<charT,traits>::egptr() - basic_streambuf<charT,traits>::gptr()
+			);
+
+			if(-1 != retval){
+				retval = ftell(fp);
+			}
+
+			return retval;
+		}
+		virtual _UCXXEXPORT pos_type seekpos(pos_type sp, ios_base::openmode = ios_base::in | ios_base::out){
+			if(is_open() == false){
+				return -1;
+			}
+			sync();
+
+			int retval = fseek(fp,sizeof(charT)* sp, SEEK_SET);
+
+			//Invalidate read buffer
+			basic_streambuf<charT,traits>::gbump(basic_streambuf<charT,traits>::egptr() - basic_streambuf<charT,traits>::gptr());
+			if(retval > -1){
+				return sp;
+			}
+			return -1;
+		}
+		virtual _UCXXEXPORT int sync(){
+			if(pbuffer !=0){
+				if(overflow() == traits::eof()){
+					return -1;
+				}
+			}
+			if(0 != fp && 0 != fflush(fp)){
+				return -1;
+			}
+			return 0;
+		}
+		virtual _UCXXEXPORT void imbue(const locale&){
+			return;
+		}
+
+
+		virtual _UCXXEXPORT streamsize xsputn(const char_type* s, streamsize n){
+			if(is_open() == false){
+				return 0;
+			}
+			//Check to see if buffered
+
+			//Check to see if we can buffer the data
+			streamsize buffer_avail = basic_streambuf<charT,traits>::epptr() - basic_streambuf<charT,traits>::pptr();
+
+			if(n > buffer_avail){		//Flush buffer and write directly
+				overflow();	//Flush the buffer
+				return fwrite(s, sizeof(charT), n, fp);
+			}
+
+			//Add to buffer to be written later
+
+			traits::copy(basic_streambuf<charT,traits>::pptr(), s, n);
+			basic_streambuf<charT,traits>::pbump(n);
+
+			return n;
+		}
+
+		FILE * fp;
+		char_type * pbuffer;
+		char_type * gbuffer;
+		bool append;
+	};
+
+
+#ifdef __UCLIBCXX_HAS_WCHAR__
+
+template <> _UCXXEXPORT basic_filebuf<wchar_t, char_traits<wchar_t> >::int_type
+	basic_filebuf<wchar_t, char_traits<wchar_t> >::overflow(int_type c);
+
+template <> _UCXXEXPORT basic_filebuf<wchar_t, char_traits<wchar_t> >::int_type
+	basic_filebuf<wchar_t, char_traits<wchar_t> >::underflow();
+
+#endif //__UCLIBCXX_HAS_WCHAR__
+
+
+
+#ifdef __UCLIBCXX_EXPAND_FSTREAM_CHAR__
+#ifndef __UCLIBCXX_COMPILE_FSTREAM__
+
+#ifdef __UCLIBCXX_EXPAND_CONSTRUCTORS_DESTRUCTORS__
+
+	template <> _UCXXEXPORT filebuf::basic_filebuf();
+	template <> _UCXXEXPORT filebuf::~basic_filebuf();
+
+#endif // __UCLIBCXX_EXPAND_CONSTRUCTORS_DESTRUCTORS__
+
+	template <> _UCXXEXPORT filebuf::int_type filebuf::pbackfail(filebuf::int_type c);
+	template <> _UCXXEXPORT filebuf * filebuf::open(const char* s, ios_base::openmode mode);
+	template <> _UCXXEXPORT filebuf * filebuf::close();
+	template <> _UCXXEXPORT filebuf::int_type filebuf::overflow(filebuf::int_type c);
+	template <> _UCXXEXPORT filebuf::int_type filebuf::underflow ();
+
+	template <> _UCXXEXPORT basic_streambuf<char, char_traits<char> > * filebuf::setbuf(char * s, streamsize n);
+	template <> _UCXXEXPORT streamsize filebuf::xsputn(const char* s, streamsize n);
+
+#endif
+#endif
+
+
+	template <class charT, class traits> class _UCXXEXPORT basic_ifstream
+		: public basic_istream<charT,traits>
+	{
+	public:
+		typedef charT char_type;
+		typedef typename traits::int_type int_type;
+		typedef typename traits::pos_type pos_type;
+		typedef typename traits::off_type off_type;
+
+		_UCXXEXPORT basic_ifstream(): basic_ios<charT, traits>(&sb), basic_istream<charT,traits>(&sb){
+			//Passing the address of sb
+		}
+		explicit _UCXXEXPORT basic_ifstream(const char* s, ios_base::openmode mode = ios_base::in)
+			: basic_ios<charT, traits>(&sb), basic_istream<charT,traits>(&sb)
+		{
+			if(sb.open(s, mode) == 0){
+				basic_ios<charT,traits>::setstate(ios_base::failbit);
+			}
+		}
+
+		virtual _UCXXEXPORT ~basic_ifstream(){
+
+		}
+
+		_UCXXEXPORT basic_filebuf<charT,traits>* rdbuf() const{
+			return (basic_filebuf<charT,traits>*)&sb;
+		}
+		_UCXXEXPORT bool is_open() const{
+			return sb.is_open();
+		}
+		_UCXXEXPORT void open(const char* s, ios_base::openmode mode = ios_base::in){
+			if(sb.open(s, mode) == 0){
+				basic_ios<charT,traits>::setstate(ios_base::failbit);
+			}
+		}
+		_UCXXEXPORT void close(){
+			sb.close();
+		}
+	private:
+		basic_filebuf<charT,traits> sb;
+	};
+
+
+	template <class charT, class traits> class _UCXXEXPORT basic_ofstream
+		: public basic_ostream<charT,traits>
+	{
+	public:
+		typedef charT char_type;
+		typedef typename traits::int_type int_type;
+		typedef typename traits::pos_type pos_type;
+		typedef typename traits::off_type off_type;
+
+		_UCXXEXPORT basic_ofstream() : basic_ios<charT, traits>(&sb), basic_ostream<charT,traits>(&sb){
+
+		}
+
+		virtual _UCXXEXPORT ~basic_ofstream();
+
+		explicit _UCXXEXPORT basic_ofstream(const char* s, ios_base::openmode mode = ios_base::out | ios_base::trunc) :
+			basic_ios<charT, traits>(&sb), basic_ostream<charT,traits>(&sb)
+		{
+			if(sb.open(s, mode | ios_base::out ) == 0){
+				basic_ios<charT,traits>::setstate(ios_base::failbit);
+			}
+		}
+
+		_UCXXEXPORT basic_filebuf<charT,traits>* rdbuf() const{
+			return (basic_filebuf<charT,traits>*)&sb;
+		}
+
+		_UCXXEXPORT bool is_open() const{
+			return sb.is_open();
+		}
+		_UCXXEXPORT void open(const char* s, ios_base::openmode mode = ios_base::out | ios_base::trunc){
+			if(sb.open(s, mode) == 0){
+				basic_ios<charT,traits>::setstate(ios_base::failbit);
+			}
+		}
+		_UCXXEXPORT void close(){
+			sb.close();
+		}
+	private:
+		basic_filebuf<charT,traits> sb;
+	};
+
+	template <class charT, class traits> _UCXXEXPORT basic_ofstream<charT, traits>::~basic_ofstream(){
+		basic_ostream<charT, traits>::flush();
+	}
+
+
+	template <class charT, class traits> class _UCXXEXPORT basic_fstream
+		: public basic_iostream<charT,traits>
+	{
+	public:
+		typedef charT char_type;
+		typedef typename traits::int_type ins_type;
+		typedef typename traits::pos_type pos_type;
+		typedef typename traits::off_type off_type;
+
+		_UCXXEXPORT basic_fstream(): basic_ios<charT, traits>(&sb), basic_iostream<charT,traits>(&sb){ }
+
+		explicit _UCXXEXPORT basic_fstream(const char* s, ios_base::openmode mode = ios_base::in|ios_base::out):
+			basic_ios<charT, traits>(&sb), basic_iostream<charT,traits>(&sb)
+		{
+			if(sb.open(s, mode) == 0){
+				basic_ios<charT,traits>::setstate(ios_base::failbit);
+			}
+		}
+
+		_UCXXEXPORT basic_filebuf<charT,traits>* rdbuf() const{
+			return (basic_filebuf<charT,traits>*)&sb;
+		}
+		_UCXXEXPORT bool is_open() const{
+			return sb.is_open();
+		}
+		_UCXXEXPORT void open(const char* s, ios_base::openmode mode = ios_base::in|ios_base::out){
+			if(sb.open(s, mode) == 0){
+				basic_ios<charT,traits>::setstate(ios_base::failbit);
+			}
+		}
+		_UCXXEXPORT void close(){
+			sb.close();
+		}
+	private:
+		basic_filebuf<charT,traits> sb;
+	};
+
+
+
+#ifdef __UCLIBCXX_EXPAND_FSTREAM_CHAR__
+#ifndef __UCLIBCXX_COMPILE_FSTREAM__
+
+#ifdef __UCLIBCXX_EXPAND_CONSTRUCTORS_DESTRUCTORS__
+
+	template <> _UCXXEXPORT basic_ofstream<char, char_traits<char> >::basic_ofstream();
+	template <> _UCXXEXPORT basic_ofstream<char, char_traits<char> >::basic_ofstream(const char* s, ios_base::openmode mode);
+	template <> _UCXXEXPORT basic_ofstream<char, char_traits<char> >::~basic_ofstream();
+
+	template <> _UCXXEXPORT basic_ifstream<char, char_traits<char> >::basic_ifstream();
+	template <> _UCXXEXPORT basic_ifstream<char, char_traits<char> >::basic_ifstream(const char* s, ios_base::openmode mode);
+	template <> _UCXXEXPORT basic_ifstream<char, char_traits<char> >::~basic_ifstream();
+
+#endif // __UCLIBCXX_EXPAND_CONSTRUCTORS_DESTRUCTORS__
+
+#endif
+#endif
+
+
+
+}
+
+#pragma GCC visibility pop
+
+#endif
+

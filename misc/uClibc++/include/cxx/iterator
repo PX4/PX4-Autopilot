@@ -1,0 +1,229 @@
+/*	Copyright (C) 2004 Garrett A. Kajmowicz
+
+	This file is part of the uClibc++ Library.
+
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#include <basic_definitions>
+#include <iosfwd>
+#include <cstddef>
+#include <char_traits>
+#include <iterator_base>
+
+
+
+#ifndef __STD_HEADER_ITERATOR
+#define __STD_HEADER_ITERATOR 1
+
+#pragma GCC visibility push(default)
+
+namespace std{
+
+  // subclause _lib.stream.iterators_, stream iterators:
+	template <class T, class charT = char, class traits = char_traits<charT>, class Distance = ptrdiff_t> class istream_iterator;
+	template <class T, class charT, class traits, class Distance> bool
+		operator==(const istream_iterator<T,charT,traits,Distance>& x, const istream_iterator<T,charT,traits,Distance>& y);
+	template <class T, class charT, class traits, class Distance> bool
+		operator!=(const istream_iterator<T,charT,traits,Distance>& x, const istream_iterator<T,charT,traits,Distance>& y);
+	template <class T, class charT = char, class traits = char_traits<charT> > class ostream_iterator;
+	template<class charT, class traits = char_traits<charT> > class istreambuf_iterator;
+	template <class charT, class traits> bool
+		operator==(const istreambuf_iterator<charT,traits>& a, const istreambuf_iterator<charT,traits>& b);
+	template <class charT, class traits> bool
+		operator!=(const istreambuf_iterator<charT,traits>& a, const istreambuf_iterator<charT,traits>& b);
+	template <class charT, class traits = char_traits<charT> > class ostreambuf_iterator;
+
+
+	template < class T, class charT, class traits, class Distance >	class _UCXXEXPORT istream_iterator
+		: public iterator<input_iterator_tag,T,Distance,const T*, const T&>
+	{
+	public:
+		typedef charT char_type;
+		typedef traits traits_type;
+		typedef basic_istream<charT,traits> istream_type;
+		istream_iterator() : in_stream(0), value(0) {}
+		istream_iterator(istream_type& s) : in_stream(&s), value() {
+			*in_stream >> value;
+		}
+		istream_iterator(const istream_iterator<T,charT,traits,Distance>& x)
+			: in_stream(x.in_stream), value(x.value)
+		{ }
+		~istream_iterator() { }
+		const T& operator*() const{
+			return value;
+		}
+		const T* operator->() const{
+			return &value;
+		}
+		istream_iterator<T,charT,traits,Distance>& operator++() {
+			*in_stream >> value;
+			return *this;
+		}
+		istream_iterator<T,charT,traits,Distance>  operator++(int){
+			istream_iterator<T,charT,traits,Distance> tmp = *this;
+			*in_stream >> value;
+			return (tmp);
+		}
+		bool m_equal(const istream_iterator<T,charT,traits,Distance>& x) const{
+			return (in_stream == x.in_stream);
+		}
+	private:
+		basic_istream<charT,traits>* in_stream;
+		T value;
+	};
+
+	template <class T, class charT, class traits, class Distance> _UCXXEXPORT
+		bool operator==(const istream_iterator<T,charT,traits,Distance>& x,
+		const istream_iterator<T,charT,traits,Distance>& y)
+	{
+		return x.m_equal(y);
+	}
+
+	template <class T, class charT, class traits, class Distance> _UCXXEXPORT
+		bool operator!=(const istream_iterator<T,charT,traits,Distance>& x,
+		const istream_iterator<T,charT,traits,Distance>& y)
+	{
+		return !(x == y);
+	}
+
+	template <class T, class charT, class traits> class _UCXXEXPORT ostream_iterator
+		: public iterator<output_iterator_tag,void,void,void,void>
+	{
+	public:
+		typedef charT char_type;
+		typedef traits traits_type;
+		typedef basic_ostream<charT,traits> ostream_type;
+
+		ostream_iterator(ostream_type& s) : out_stream(&s), delim(0) { }
+		ostream_iterator(ostream_type& s, const charT* delimiter) : out_stream(&s), delim(delimiter) { }
+		ostream_iterator(const ostream_iterator<T,charT,traits>& x) : out_stream(x.out_stream), delim(x.delim) { }
+		~ostream_iterator() { }
+		ostream_iterator<T,charT,traits>& operator=(const T& value){
+			*out_stream << value;
+			if(delim != 0){
+				*out_stream << delim;
+			}
+			return (*this);
+		}
+		ostream_iterator<T,charT,traits>& operator*(){ return *this; }
+		ostream_iterator<T,charT,traits>& operator++() { return *this; }
+		ostream_iterator<T,charT,traits> operator++(int) { return *this; }
+	private:
+		basic_ostream<charT,traits>* out_stream;
+		const char* delim;
+	};
+
+	template<class charT, class traits > class _UCXXEXPORT istreambuf_iterator :
+		public iterator<input_iterator_tag, charT, typename traits::off_type, charT*, charT&>
+	{
+	public:
+		typedef charT				char_type;
+		typedef traits				traits_type;
+		typedef typename traits::int_type	int_type;
+		typedef basic_streambuf<charT,traits>	streambuf_type;
+		typedef basic_istream<charT,traits>	istream_type;
+
+		class _UCXXEXPORT proxy{
+			charT val;
+			basic_streambuf<charT, traits> * buf;
+
+			proxy(charT v, basic_streambuf<charT, traits> * b) : val(v), buf(b) { }
+		public:
+			charT operator*() { return val; }
+		};
+
+		istreambuf_iterator() throw() : sbuf(0) { }
+		istreambuf_iterator(istream_type& s) throw() : sbuf(s.rdbuf()) { }
+		istreambuf_iterator(streambuf_type* s) throw() : sbuf(s) { }
+		istreambuf_iterator(const proxy& p) throw() : sbuf(&p.buf) { }
+
+		charT operator*() const{
+			return sbuf->sgetc();
+		}
+		istreambuf_iterator<charT,traits>& operator++(){
+			sbuf->sbumpc();
+			return *this;
+		}
+		proxy operator++(int){
+			istreambuf_iterator<charT,traits> tmp = *this;
+			sbuf->sbumpc();
+			return(tmp);
+		}
+
+		bool equal(const istreambuf_iterator& b) const{
+			return sbuf == b.sbuf || is_eof() && b.is_eof();
+		}
+	private:
+		streambuf_type* sbuf;
+		inline bool is_eof() const{
+			return sbuf == 0 || sbuf->sgetc() == traits_type::eof();
+		}
+	};
+
+	template <class charT, class traits> _UCXXEXPORT bool
+		operator==(const istreambuf_iterator<charT,traits>& a,
+		const istreambuf_iterator<charT,traits>& b)
+	{
+		return a.equal(b);
+	}
+
+	template <class charT, class traits> bool _UCXXEXPORT
+		operator!=(const istreambuf_iterator<charT,traits>& a,
+		const istreambuf_iterator<charT,traits>& b)
+	{
+		return !a.equal(b);
+	}
+
+	template <class charT, class traits> class _UCXXEXPORT ostreambuf_iterator
+		: iterator<output_iterator_tag,void,void,void,void>
+	{
+	public:
+		typedef charT                         char_type;
+		typedef traits                        traits_type;
+		typedef basic_streambuf<charT,traits> streambuf_type;
+		typedef basic_ostream<charT,traits>   ostream_type;
+	public:
+		ostreambuf_iterator(ostream_type& s) throw() : sbuf(s.rdbuf()), f(false) { }
+		ostreambuf_iterator(streambuf_type* s) throw() : sbuf(s), f(false) { }
+		ostreambuf_iterator& operator=(charT c){
+			if(failed() == false){
+				if(sbuf->sputc(c) == traits::eof()){
+					f = true;
+				}
+			}
+			return *this;
+		}
+		ostreambuf_iterator& operator*(){
+			return *this;
+		}
+		ostreambuf_iterator& operator++() { return *this; }
+		ostreambuf_iterator operator++(int) { return *this; }
+		bool failed() const throw(){
+			return f;
+		}
+
+	private:
+		streambuf_type* sbuf;
+		bool f;
+	};
+
+}
+
+#pragma GCC visibility pop
+
+#endif
+
+

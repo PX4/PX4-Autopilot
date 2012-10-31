@@ -1,0 +1,663 @@
+/*	Copyright (C) 2006 Garrett A. Kajmowicz
+	This file is part of the uClibc++ Library.
+
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#include <climits>
+
+#ifndef __STD_HEADER_LIMITS
+#define __STD_HEADER_LIMITS 1
+
+#warning limits header is nowhere complete or accurate
+
+#pragma GCC visibility push(default)
+
+namespace std{
+
+enum float_round_style{
+	round_indeterminate		=-1,
+	round_toward_zero		= 0,
+	round_to_nearest		= 1,
+	round_toward_infinity		= 2,
+	round_toward_neg_infinity	= 3
+};
+
+template <int bitsize> struct __bits_to_base_10{
+	static const int size = -1;
+};
+template <> struct __bits_to_base_10<7>{
+	static const int size = 2;
+};
+template <> struct __bits_to_base_10<8>{
+	static const int size = 2;
+};
+template <> struct __bits_to_base_10<9>{
+	static const int size = 2;
+};
+template <> struct __bits_to_base_10<10>{
+	static const int size = 3;
+};
+template <> struct __bits_to_base_10<15>{
+	static const int size = 4;
+};
+template <> struct __bits_to_base_10<16>{
+	static const int size = 4;
+};
+template <> struct __bits_to_base_10<17>{
+	static const int size = 5;
+};
+template <> struct __bits_to_base_10<18>{
+	static const int size = 5;
+};
+template <> struct __bits_to_base_10<31>{
+	static const int size = 9;
+};
+template <> struct __bits_to_base_10<32>{
+	static const int size = 9;
+};
+template <> struct __bits_to_base_10<35>{
+	static const int size = 10;
+};
+template <> struct __bits_to_base_10<36>{
+	static const int size = 10;
+};
+template <> struct __bits_to_base_10<63>{
+	static const int size = 18;
+};
+template <> struct __bits_to_base_10<64>{
+	static const int size = 19;
+};
+template <> struct __bits_to_base_10<71>{
+	static const int size = 21;
+};
+template <> struct __bits_to_base_10<72>{
+	static const int size = 21;
+};
+template <> struct __bits_to_base_10<79>{
+	static const int size = 23;
+};
+template <> struct __bits_to_base_10<80>{
+	static const int size = 24;
+};
+template <> struct __bits_to_base_10<127>{
+	static const int size = 38;
+};
+template <> struct __bits_to_base_10<128>{
+	static const int size = 38;
+};
+
+
+
+
+
+
+template <class T> class numeric_limits {
+public:
+	// General -- meaningful for all specializations.
+
+	static const bool is_specialized = false;
+	static T min();
+	static T max();
+	static const int radix;
+	static const int digits;
+	static const int digits10;
+	static const bool is_signed;
+	static const bool is_integer;
+	static const bool is_exact;
+	static const bool traps;
+	static const bool is_modulo;
+	static const bool is_bounded;
+
+	// Floating point specific.
+
+	static T epsilon();
+	static T round_error();
+	static const int min_exponent10;
+	static const int max_exponent10;
+	static const int min_exponent;
+
+	static const int max_exponent;
+	static const bool has_infinity;
+	static const bool has_quiet_NaN;
+	static const bool has_signaling_NaN;
+	static const bool is_iec559;
+	static const bool has_denorm;
+	static const bool tinyness_before;
+	static const float_round_style round_style;
+	static T denorm_min();
+	static T infinity();
+	static T quiet_NaN();
+	static T signaling_NaN();
+};
+
+template <> class numeric_limits<bool> {
+public:
+	typedef bool T;
+	// General -- meaningful for all specializations.
+	static const bool is_specialized = true;
+	static T min(){
+		return false;
+	}
+	static T max(){
+		return true;
+	}
+	static const int radix = 2;
+	static const int digits = 1;
+	static const int digits10 = 0;
+	static const bool is_signed = false;
+	static const bool is_integer = true;
+	static const bool is_exact = true;
+	static const bool traps = false;
+	static const bool is_modulo = false;
+	static const bool is_bounded = true;
+
+	// Floating point specific.
+
+	static T epsilon(){
+		return 0;
+	}
+	static T round_error(){
+		return 0;
+	}
+	static const int min_exponent10 = 0;
+	static const int max_exponent10 = 0;
+	static const int min_exponent = 0;
+
+	static const int max_exponent = 0;
+	static const bool has_infinity = false;
+	static const bool has_quiet_NaN = false;
+	static const bool has_signaling_NaN = false;
+	static const bool is_iec559 = false;
+	static const bool has_denorm = false;
+	static const bool tinyness_before = false;
+	static const float_round_style round_style = round_indeterminate;
+	static T denorm_min();
+	static T infinity();
+	static T quiet_NaN();
+	static T signaling_NaN();
+};
+
+template <> class numeric_limits<unsigned char> {
+public:
+	typedef unsigned char T;
+	// General -- meaningful for all specializations.
+	static const bool is_specialized = true;
+	static T min(){
+		return 0;
+	}
+	static T max(){
+		return UCHAR_MAX;
+	}
+	static const int radix = 2;
+	static const int digits = CHAR_BIT;
+	static const int digits10 = __bits_to_base_10<digits>::size;
+	static const bool is_signed = false;
+	static const bool is_integer = true;
+	static const bool is_exact = true;
+	static const bool traps = false;
+	static const bool is_modulo = true;
+	static const bool is_bounded = true;
+
+	// Floating point specific.
+
+	static T epsilon(){
+		return 0;
+	}
+	static T round_error(){
+		return 0;
+	}
+	static const int min_exponent10 = 0;
+	static const int max_exponent10 = 0;
+	static const int min_exponent = 0;
+
+	static const int max_exponent = 0;
+	static const bool has_infinity = false;
+	static const bool has_quiet_NaN = false;
+	static const bool has_signaling_NaN = false;
+	static const bool is_iec559 = false;
+	static const bool has_denorm = false;
+	static const bool tinyness_before = false;
+	static const float_round_style round_style = round_indeterminate;
+	static T denorm_min();
+	static T infinity();
+	static T quiet_NaN();
+	static T signaling_NaN();
+};
+
+template <> class numeric_limits<signed char> {
+public:
+	typedef signed char T;
+	// General -- meaningful for all specializations.
+	static const bool is_specialized = true;
+	static T min(){
+		return SCHAR_MIN;
+	}
+	static T max(){
+		return SCHAR_MAX;
+	}
+	static const int radix = 2;
+	static const int digits = CHAR_BIT - 1;
+	static const int digits10 = __bits_to_base_10<digits>::size;
+	static const bool is_signed = true;
+	static const bool is_integer = true;
+	static const bool is_exact = true;
+	static const bool traps = false;
+	static const bool is_modulo = true;
+	static const bool is_bounded = true;
+
+	// Floating point specific.
+
+	static T epsilon(){
+		return 0;
+	}
+	static T round_error(){
+		return 0;
+	}
+	static const int min_exponent10 = 0;
+	static const int max_exponent10 = 0;
+	static const int min_exponent = 0;
+
+	static const int max_exponent = 0;
+	static const bool has_infinity = false;
+	static const bool has_quiet_NaN = false;
+	static const bool has_signaling_NaN = false;
+	static const bool is_iec559 = false;
+	static const bool has_denorm = false;
+	static const bool tinyness_before = false;
+	static const float_round_style round_style = round_indeterminate;
+	static T denorm_min();
+	static T infinity();
+	static T quiet_NaN();
+	static T signaling_NaN();
+};
+
+template <> class numeric_limits<char> {
+public:
+	typedef char T;
+	// General -- meaningful for all specializations.
+	static const bool is_specialized = true;
+	static T min(){
+		return CHAR_MIN;
+	}
+	static T max(){
+		return CHAR_MAX;
+	}
+	static const int radix = 2;
+	static const int digits = (CHAR_MIN != 0) ? CHAR_BIT - 1 : CHAR_BIT;
+	static const int digits10 = __bits_to_base_10<digits>::size;
+	static const bool is_signed = (CHAR_MIN != 0);
+	static const bool is_integer = true;
+	static const bool is_exact = true;
+	static const bool traps = false;
+	static const bool is_modulo = true;
+	static const bool is_bounded = true;
+
+	// Floating point specific.
+
+	static T epsilon(){
+		return 0;
+	}
+	static T round_error(){
+		return 0;
+	}
+	static const int min_exponent10 = 0;
+	static const int max_exponent10 = 0;
+	static const int min_exponent = 0;
+
+	static const int max_exponent = 0;
+	static const bool has_infinity = false;
+	static const bool has_quiet_NaN = false;
+	static const bool has_signaling_NaN = false;
+	static const bool is_iec559 = false;
+	static const bool has_denorm = false;
+	static const bool tinyness_before = false;
+	static const float_round_style round_style = round_indeterminate;
+	static T denorm_min();
+	static T infinity();
+	static T quiet_NaN();
+	static T signaling_NaN();
+};
+
+template <> class numeric_limits<unsigned short> {
+public:
+	typedef unsigned short T;
+	// General -- meaningful for all specializations.
+	static const bool is_specialized = true;
+	static T min(){
+		return 0;
+	}
+	static T max(){
+		return USHRT_MAX;
+	}
+	static const int radix = 2;
+	static const int digits = CHAR_BIT * sizeof(T);
+	static const int digits10 = __bits_to_base_10<digits>::size;
+	static const bool is_signed = false;
+	static const bool is_integer = true;
+	static const bool is_exact = true;
+	static const bool traps = false;
+	static const bool is_modulo = true;
+	static const bool is_bounded = true;
+
+	// Floating point specific.
+
+	static T epsilon(){
+		return 0;
+	}
+	static T round_error(){
+		return 0;
+	}
+	static const int min_exponent10 = 0;
+	static const int max_exponent10 = 0;
+	static const int min_exponent = 0;
+
+	static const int max_exponent = 0;
+	static const bool has_infinity = false;
+	static const bool has_quiet_NaN = false;
+	static const bool has_signaling_NaN = false;
+	static const bool is_iec559 = false;
+	static const bool has_denorm = false;
+	static const bool tinyness_before = false;
+	static const float_round_style round_style = round_indeterminate;
+	static T denorm_min();
+	static T infinity();
+	static T quiet_NaN();
+	static T signaling_NaN();
+};
+
+template <> class numeric_limits<signed short> {
+public:
+	typedef signed short T;
+	// General -- meaningful for all specializations.
+	static const bool is_specialized = true;
+	static T min(){
+		return SHRT_MIN;
+	}
+	static T max(){
+		return SHRT_MAX;
+	}
+	static const int radix = 2;
+	static const int digits = CHAR_BIT * sizeof(T);
+	static const int digits10 = __bits_to_base_10<digits>::size;
+	static const bool is_signed = true;
+	static const bool is_integer = true;
+	static const bool is_exact = true;
+	static const bool traps = false;
+	static const bool is_modulo = true;
+	static const bool is_bounded = true;
+
+	// Floating point specific.
+
+	static T epsilon(){
+		return 0;
+	}
+	static T round_error(){
+		return 0;
+	}
+	static const int min_exponent10 = 0;
+	static const int max_exponent10 = 0;
+	static const int min_exponent = 0;
+
+	static const int max_exponent = 0;
+	static const bool has_infinity = false;
+	static const bool has_quiet_NaN = false;
+	static const bool has_signaling_NaN = false;
+	static const bool is_iec559 = false;
+	static const bool has_denorm = false;
+	static const bool tinyness_before = false;
+	static const float_round_style round_style = round_indeterminate;
+	static T denorm_min();
+	static T infinity();
+	static T quiet_NaN();
+	static T signaling_NaN();
+};
+
+template <> class numeric_limits<unsigned int> {
+public:
+	typedef unsigned int T;
+	// General -- meaningful for all specializations.
+	static const bool is_specialized = true;
+	static T min(){
+		return 0;
+	}
+	static T max(){
+		return UINT_MAX;
+	}
+	static const int radix = 2;
+	static const int digits = CHAR_BIT * sizeof(T);
+	static const int digits10 = __bits_to_base_10<digits>::size;
+	static const bool is_signed = false;
+	static const bool is_integer = true;
+	static const bool is_exact = true;
+	static const bool traps = false;
+	static const bool is_modulo = true;
+	static const bool is_bounded = true;
+
+	// Floating point specific.
+
+	static T epsilon(){
+		return 0;
+	}
+	static T round_error(){
+		return 0;
+	}
+	static const int min_exponent10 = 0;
+	static const int max_exponent10 = 0;
+	static const int min_exponent = 0;
+
+	static const int max_exponent = 0;
+	static const bool has_infinity = false;
+	static const bool has_quiet_NaN = false;
+	static const bool has_signaling_NaN = false;
+	static const bool is_iec559 = false;
+	static const bool has_denorm = false;
+	static const bool tinyness_before = false;
+	static const float_round_style round_style = round_indeterminate;
+	static T denorm_min();
+	static T infinity();
+	static T quiet_NaN();
+	static T signaling_NaN();
+};
+
+template <> class numeric_limits<signed int> {
+public:
+	typedef signed int T;
+	// General -- meaningful for all specializations.
+	static const bool is_specialized = true;
+	static T min(){
+		return INT_MIN;
+	}
+	static T max(){
+		return INT_MAX;
+	}
+	static const int radix = 2;
+	static const int digits = CHAR_BIT * sizeof(T);
+	static const int digits10 = __bits_to_base_10<digits>::size;
+	static const bool is_signed = true;
+	static const bool is_integer = true;
+	static const bool is_exact = true;
+	static const bool traps = false;
+	static const bool is_modulo = true;
+	static const bool is_bounded = true;
+
+	// Floating point specific.
+
+	static T epsilon(){
+		return 0;
+	}
+	static T round_error(){
+		return 0;
+	}
+	static const int min_exponent10 = 0;
+	static const int max_exponent10 = 0;
+	static const int min_exponent = 0;
+
+	static const int max_exponent = 0;
+	static const bool has_infinity = false;
+	static const bool has_quiet_NaN = false;
+	static const bool has_signaling_NaN = false;
+	static const bool is_iec559 = false;
+	static const bool has_denorm = false;
+	static const bool tinyness_before = false;
+	static const float_round_style round_style = round_indeterminate;
+	static T denorm_min();
+	static T infinity();
+	static T quiet_NaN();
+	static T signaling_NaN();
+};
+
+template <> class numeric_limits<unsigned long int> {
+public:
+	typedef unsigned long int T;
+	// General -- meaningful for all specializations.
+	static const bool is_specialized = true;
+	static T min(){
+		return 0;
+	}
+	static T max(){
+		return ULONG_MAX;
+	}
+	static const int radix = 2;
+	static const int digits = CHAR_BIT * sizeof(T);
+	static const int digits10 = __bits_to_base_10<digits>::size;
+	static const bool is_signed = false;
+	static const bool is_integer = true;
+	static const bool is_exact = true;
+	static const bool traps = false;
+	static const bool is_modulo = true;
+	static const bool is_bounded = true;
+
+	// Floating point specific.
+
+	static T epsilon(){
+		return 0;
+	}
+	static T round_error(){
+		return 0;
+	}
+	static const int min_exponent10 = 0;
+	static const int max_exponent10 = 0;
+	static const int min_exponent = 0;
+
+	static const int max_exponent = 0;
+	static const bool has_infinity = false;
+	static const bool has_quiet_NaN = false;
+	static const bool has_signaling_NaN = false;
+	static const bool is_iec559 = false;
+	static const bool has_denorm = false;
+	static const bool tinyness_before = false;
+	static const float_round_style round_style = round_indeterminate;
+	static T denorm_min();
+	static T infinity();
+	static T quiet_NaN();
+	static T signaling_NaN();
+};
+
+template <> class numeric_limits<signed long int> {
+public:
+	typedef signed long int T;
+	// General -- meaningful for all specializations.
+	static const bool is_specialized = true;
+	static T min(){
+		return LONG_MIN;
+	}
+	static T max(){
+		return LONG_MAX;
+	}
+	static const int radix = 2;
+	static const int digits = CHAR_BIT * sizeof(T);
+	static const int digits10 = __bits_to_base_10<digits>::size;
+	static const bool is_signed = true;
+	static const bool is_integer = true;
+	static const bool is_exact = true;
+	static const bool traps = false;
+	static const bool is_modulo = true;
+	static const bool is_bounded = true;
+
+	// Floating point specific.
+
+	static T epsilon(){
+		return 0;
+	}
+	static T round_error(){
+		return 0;
+	}
+	static const int min_exponent10 = 0;
+	static const int max_exponent10 = 0;
+	static const int min_exponent = 0;
+
+	static const int max_exponent = 0;
+	static const bool has_infinity = false;
+	static const bool has_quiet_NaN = false;
+	static const bool has_signaling_NaN = false;
+	static const bool is_iec559 = false;
+	static const bool has_denorm = false;
+	static const bool tinyness_before = false;
+	static const float_round_style round_style = round_indeterminate;
+	static T denorm_min();
+	static T infinity();
+	static T quiet_NaN();
+	static T signaling_NaN();
+};
+
+template <> class numeric_limits<double> {
+public:
+	typedef double numeric_type;
+
+	static const bool is_specialized = true;
+	static numeric_type min () { return __DBL_MIN__; }
+	static numeric_type max () { return __DBL_MAX__; }
+	static const int radix = __FLT_RADIX__;
+	static const int digits = __DBL_MANT_DIG__;
+	static const int digits10 = __DBL_DIG__;
+	static const bool is_signed = true;
+	static const bool is_integer = false;
+	static const bool is_exact = false;
+	static const bool traps = false; // this is a guess
+	static const bool is_modulo = false;
+	static const bool is_bounded = true;
+
+	// Floating point specific.
+
+	static numeric_type epsilon () { return __DBL_EPSILON__; }
+	static numeric_type round_error () { return 0.5; }
+	static const int min_exponent10 = -1; //How do I properly get this?
+	static const int max_exponent10 = -1; //How do I properly get this?
+	static const int min_exponent   = -1; //How do I properly get this?
+	static const int max_exponent   = -1; //How do I properly get this?
+	static const bool has_infinity  = false; //I don't know, so until I can find out, I'm saying no
+	static const bool has_quiet_NaN = false; //I don't know, so until I can find out, I'm saying no
+	static const bool has_signaling_NaN = false; //I don't know, so until I can find out, I'm saying no
+	static const bool has_denorm = false; //I don't know, so until I can find out, I'm saying no
+
+	static const bool is_iec559 = false;  //I don't know, so until I can find out, I'm saying no
+	static const bool tinyness_before = false; // more questions
+	static const float_round_style round_style = round_to_nearest; // more questions
+	static numeric_type denorm_min () { return -1; } //How do I properly get this?
+	static numeric_type infinity () { return -1; } //How do I properly get this?
+	static numeric_type quiet_NaN () { return -1; } //How do I properly get this?
+	static numeric_type signaling_NaN () { return -1; } //How do I properly get this?
+};
+
+
+
+
+
+}
+
+#pragma GCC visibility pop
+
+#endif

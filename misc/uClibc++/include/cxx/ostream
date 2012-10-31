@@ -1,0 +1,510 @@
+/*	Copyright (C) 2004-2008 Garrett A. Kajmowicz
+
+	This file is part of the uClibc++ Library.
+
+	This library is free software; you can redistribute it and/or
+	modify it under the terms of the GNU Lesser General Public
+	License as published by the Free Software Foundation; either
+	version 2.1 of the License, or (at your option) any later version.
+
+	This library is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+	Lesser General Public License for more details.
+
+	You should have received a copy of the GNU Lesser General Public
+	License along with this library; if not, write to the Free Software
+	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+*/
+
+#include <basic_definitions>
+
+#ifndef STD_HEADER_OSTREAM
+#define STD_HEADER_OSTREAM 1
+
+#include <iosfwd>
+#include <streambuf>
+#include <cstdio>
+#include <ios>
+#include <ostream_helpers>
+
+#pragma GCC visibility push(default)
+
+namespace std {
+	template <class charT, class traits > class basic_ostream;
+	typedef basic_ostream<char> ostream;
+
+#ifdef __UCLIBCXX_HAS_WCHAR__
+	typedef basic_ostream<wchar_t> wostream;
+#endif
+
+	template <class charT, class traits> basic_ostream<charT,traits>& endl(basic_ostream<charT,traits>& os);
+	template <class charT, class traits> basic_ostream<charT,traits>& ends(basic_ostream<charT,traits>& os);
+	template <class charT, class traits> basic_ostream<charT,traits>& flush(basic_ostream<charT,traits>& os);
+
+	template <class charT, class traits > class _UCXXEXPORT basic_ostream
+		: virtual public basic_ios<charT,traits>
+	{
+	public:
+
+		typedef charT char_type;
+		typedef typename traits::int_type int_type;
+		typedef typename traits::pos_type pos_type;
+		typedef typename traits::off_type off_type;
+		typedef traits traits_type;
+
+
+		_UCXXEXPORT basic_ostream(basic_streambuf<charT,traits>* sb)
+			: basic_ios<charT, traits>(sb)
+		{
+			basic_ios<charT,traits>::init(sb);
+		}
+		virtual _UCXXEXPORT ~basic_ostream();
+
+		class sentry;
+
+		_UCXXEXPORT basic_ostream<charT,traits>& operator<<(basic_ostream<charT,traits>& (*pf)(basic_ostream<charT,traits>&)){
+			return pf(*this);
+		}
+		_UCXXEXPORT basic_ostream<charT,traits>& operator<<(basic_ios<charT,traits>& (*pf)(basic_ios<charT,traits>&)){
+			pf(*this);
+			return *this;
+		}
+		_UCXXEXPORT basic_ostream<charT,traits>& operator<<(ios_base& (*pf)(ios_base&)){
+			pf(*this);
+			return *this;
+		}
+		basic_ostream<charT,traits>& operator<<(bool n);
+		basic_ostream<charT,traits>& operator<<(short n);
+		basic_ostream<charT,traits>& operator<<(unsigned short n);
+		basic_ostream<charT,traits>& operator<<(int n);
+		basic_ostream<charT,traits>& operator<<(unsigned int n);
+		basic_ostream<charT,traits>& operator<<(long n);
+		basic_ostream<charT,traits>& operator<<(unsigned long n);
+		basic_ostream<charT,traits>& operator<<(float f);
+		basic_ostream<charT,traits>& operator<<(double f);
+		basic_ostream<charT,traits>& operator<<(long double f);
+		basic_ostream<charT,traits>& operator<<(void* p);
+		basic_ostream<charT,traits>& operator<<(basic_streambuf<char_type,traits>* sb);
+
+		_UCXXEXPORT basic_ostream<charT,traits>& put(char_type c){
+			if(basic_ostream<charT,traits>::traits_type::eq_int_type(
+				basic_ios<charT, traits>::mstreambuf->sputc(c),
+				basic_ostream<charT,traits>::traits_type::eof()))
+			{
+				basic_ios<charT,traits>::setstate(ios_base::eofbit);
+			}
+			return *this;
+		}
+		_UCXXEXPORT basic_ostream<charT,traits>& write(const char_type* s, streamsize n){
+			if(basic_ostream<charT,traits>::traits_type::eq_int_type(
+				basic_ios<charT, traits>::mstreambuf->sputn(s, n), 
+				basic_ostream<charT,traits>::traits_type::eof())
+			){
+				basic_ios<charT,traits>::setstate(ios_base::eofbit);
+			}
+			return *this;
+		}
+		_UCXXEXPORT basic_ostream<charT,traits>& flush(){
+			if(basic_ios<charT, traits>::mstreambuf->pubsync() == -1){
+				basic_ios<charT,traits>::setstate(ios_base::badbit);
+			}
+			return *this;
+		}
+		_UCXXEXPORT pos_type tellp(){
+			if(basic_ios<charT,traits>::fail() != false){
+				return pos_type(-1);
+			}
+			return basic_ios<charT,traits>::rdbuf()->pubseekoff(0, ios_base::cur, ios_base::out);
+		}
+		_UCXXEXPORT basic_ostream<charT,traits>& seekp(pos_type pos){
+			if( basic_ios<charT,traits>::fail() != true ){
+				basic_ios<charT,traits>::rdbuf()->pubseekpos(pos);
+			}
+			return *this;
+		}
+		_UCXXEXPORT basic_ostream<charT,traits>& seekp(off_type off, ios_base::seekdir dir){
+			if( basic_ios<charT,traits>::fail() != true){
+				basic_ios<charT,traits>::rdbuf()->pubseekoff(off, dir);
+			}
+			return *this;
+		}
+
+		_UCXXEXPORT void printout(const char_type* s, streamsize n){
+//david
+			streamsize extra = ios::width() - n;
+			if ((ios::flags()&ios::adjustfield) == ios::right){
+				while (extra > 0) {
+					--extra;
+					put(ios::fill());
+				}
+			}
+			write(s, n);
+			if ((ios::flags()&ios::adjustfield) == ios::left) {
+				while (extra > 0) {
+					--extra;
+					put(ios::fill());
+				}
+			}
+			// Width value only applies for the next output operation.  Reset to zero.
+			ios::width(0);
+		}
+
+	protected:
+		basic_ostream(const basic_ostream<charT,traits> &){ }
+		basic_ostream<charT,traits> & operator=(const basic_ostream<charT,traits> &){ return *this; }
+	};
+
+	//Implementations of template functions.  To allow for partial specialization
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>::~basic_ostream(){ }
+	
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>& basic_ostream<charT, traits>::operator<<(bool n){
+		sentry s(*this);
+		if( basic_ios<charT,traits>::flags() & ios_base::boolalpha){
+			if(n){
+				printout("true", 4);
+			}else{
+				printout("false", 5);
+			}
+		}else{
+			if(n){
+				printout("1", 1);
+			}else{
+				printout("0", 1);
+			}
+		}
+		if(basic_ios<charT,traits>::flags() & ios_base::unitbuf){
+			flush();
+		}
+		return *this;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>& 
+		basic_ostream<charT, traits>::operator<<(unsigned short n){
+		sentry s(*this);
+		__ostream_printout<traits, charT, unsigned long int>::printout(*this, n);
+		return *this;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>& basic_ostream<charT, traits>::operator<<(short n){
+		sentry s(*this);
+		__ostream_printout<traits, charT, long int>::printout(*this, n);
+		return *this;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>& basic_ostream<charT, traits>::operator<<(int n){
+		sentry s(*this);
+		__ostream_printout<traits, charT, long int>::printout(*this, n);
+		return *this;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>& basic_ostream<charT, traits>::operator<<(unsigned int n){
+		sentry s(*this);
+		__ostream_printout<traits, charT, unsigned long int>::printout(*this, n);
+		return *this;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>& basic_ostream<charT, traits>::operator<<(long n){
+		sentry s(*this);
+		__ostream_printout<traits, charT, long >::printout(*this, n);
+		return *this;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>& 
+		basic_ostream<charT, traits>::operator<<(unsigned long n)
+	{
+		sentry s(*this);
+		__ostream_printout<traits, charT, unsigned long >::printout(*this, n);
+		return *this;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>& basic_ostream<charT, traits>::operator<<(float f){
+		sentry s(*this);
+		__ostream_printout<traits, charT, double >::printout(*this, f);
+		return *this;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>& basic_ostream<charT, traits>::operator<<(double f){
+		sentry s(*this);
+		__ostream_printout<traits, charT, double >::printout(*this, f);
+		return *this;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>& basic_ostream<charT, traits>::operator<<(long double f){
+		sentry s(*this);
+		__ostream_printout<traits, charT, long double >::printout(*this, f);
+		return *this;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>& basic_ostream<charT, traits>::operator<<(void* p){
+		sentry s(*this);
+		char buffer[20];
+		printout(buffer, snprintf(buffer, 20, "%p", p) );
+		if(basic_ios<charT,traits>::flags() & ios_base::unitbuf){
+			flush();
+		}
+		return *this;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>& 
+		basic_ostream<charT, traits>::operator<<(basic_streambuf<charT,traits>* sb)
+	{
+		sentry s(*this);
+		if(sb == 0){
+			basic_ios<charT,traits>::setstate(ios_base::badbit);
+			return *this;
+		}
+
+		typename traits::int_type c;
+
+		while(basic_ios<charT,traits>::good() && (c = sb->sbumpc()) != traits::eof() ){
+			put(c);
+		}
+
+		if(basic_ios<charT,traits>::flags() & ios_base::unitbuf){
+			flush();
+		}
+		return *this;
+	}
+
+	/*Template Specializations*/
+
+#ifdef __UCLIBCXX_EXPAND_OSTREAM_CHAR__
+#ifndef __UCLIBCXX_COMPILE_OSTREAM__
+
+#ifdef __UCLIBCXX_EXPAND_CONSTRUCTORS_DESTRUCTORS__
+
+	template <> _UCXXEXPORT ostream::~basic_ostream();
+
+#endif // __UCLIBCXX_EXPAND_CONSTRUCTORS_DESTRUCTORS__
+
+	template <> _UCXXEXPORT ostream & ostream::flush();
+
+	template <> _UCXXEXPORT ostream & ostream::operator<<(bool n);
+	template <> _UCXXEXPORT ostream & ostream::operator<<(short int n);
+	template <> _UCXXEXPORT ostream & ostream::operator<<(unsigned short int n);
+	template <> _UCXXEXPORT ostream & ostream::operator<<(int n);
+	template <> _UCXXEXPORT ostream & ostream::operator<<(unsigned int n);
+	template <> _UCXXEXPORT ostream & ostream::operator<<(long n);
+	template <> _UCXXEXPORT ostream & ostream::operator<<(unsigned long n);
+	template <> _UCXXEXPORT ostream & ostream::operator<<(float f);
+	template <> _UCXXEXPORT ostream & ostream::operator<<(double f);
+	template <> _UCXXEXPORT ostream & ostream::operator<<(long double f);
+	template <> _UCXXEXPORT ostream & ostream::operator<<(void* p);
+	template <> _UCXXEXPORT ostream & ostream::operator<<(basic_streambuf<char, char_traits<char> >* sb);
+#endif
+#endif
+
+	template <class charT,class traits = char_traits<charT> >
+		class _UCXXEXPORT basic_ostream<charT,traits>::sentry
+	{
+		bool ok;
+	public:
+		explicit _UCXXEXPORT sentry(basic_ostream<charT,traits>& os): ok(true){
+//david
+			if(os.good() !=0){		//Prepare for output
+			}
+			//Flush any tied buffer
+			if(os.tie() !=0 ){
+				os.tie()->flush();
+			}
+		}
+		_UCXXEXPORT ~sentry() { }
+		_UCXXEXPORT operator bool() {
+			return ok;
+		}
+	};
+
+
+#ifdef __UCLIBCXX_EXPAND_OSTREAM_CHAR__
+#ifndef __UCLIBCXX_COMPILE_OSTREAM__
+#ifdef __UCLIBCXX_EXPAND_CONSTRUCTORS_DESTRUCTORS__
+
+	template <> _UCXXEXPORT ostream::sentry::sentry(ostream & os);
+	template <> _UCXXEXPORT ostream::sentry::~sentry();
+
+#endif //__UCLIBCXX_EXPAND_CONSTRUCTORS_DESTRUCTORS__
+#endif
+#endif
+
+
+	//Non - class functions
+
+
+	template<class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>&
+		operator<<(basic_ostream<charT,traits>& out, charT c)
+	{
+		typename basic_ostream<charT,traits>::sentry s(out);
+		out.put(c);
+		return out;
+	}
+	
+	template<class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>&
+		operator<<(basic_ostream<charT,traits>& out, char c)
+	{
+		typename basic_ostream<charT,traits>::sentry s(out);
+		out.put(c);
+		return out;
+	}
+    
+	template<class traits> _UCXXEXPORT basic_ostream<char,traits>&
+		operator<<(basic_ostream<char,traits>& out, char c)
+	{
+		typename basic_ostream<char,traits>::sentry s(out);
+		out.put(c);
+		return out;
+	}
+    
+    // signed and unsigned
+	template<class traits> _UCXXEXPORT basic_ostream<char,traits>&
+		operator<<(basic_ostream<char,traits>& out, signed char c)
+	{
+		typename basic_ostream<char,traits>::sentry s(out);
+		out.put(c);
+		return out;
+	}
+	
+	template<class traits> _UCXXEXPORT basic_ostream<char,traits>&
+		operator<<(basic_ostream<char,traits>& out, unsigned char c)
+	{
+		typename basic_ostream<char,traits>::sentry s(out);
+		out.put(c);
+		return out;
+	}
+	
+	template<class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>&
+		operator<<(basic_ostream<charT,traits>& out, const charT* c)
+	{
+		typename basic_ostream<charT,traits>::sentry s(out);
+		out.printout(c, traits::length(c) );
+		return out;
+	}
+	
+	template<class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>&
+		operator<<(basic_ostream<charT,traits>& out, const char* c)
+	{
+		typename basic_ostream<charT,traits>::sentry s(out);
+		out.printout(c, char_traits<char>::length(c) );
+		return out;
+	}
+//david
+    // partial specializations
+	template<class traits> _UCXXEXPORT basic_ostream<char,traits>&
+		operator<<(basic_ostream<char,traits>& out, const char* c)
+	{
+//add by david
+               /* printf("hello\n");
+                int i;
+                for(i=0;i<traits::length(c);i++)
+                    printf("%c",*(c+i));
+		traits::length(c);*/
+		typename basic_ostream<char,traits>::sentry s(out);
+		out.printout(c, traits::length(c));
+		return out;
+	}
+
+#ifdef __UCLIBCXX_HAS_WCHAR__
+	template<class traits> _UCXXEXPORT basic_ostream<wchar_t,traits>&
+		operator<<(basic_ostream<wchar_t,traits>& out, const char* c)
+	{
+		typename basic_ostream<wchar_t, traits>::sentry s(out);
+		size_t numChars = char_traits<char>::length(c);
+		wchar_t * temp = new wchar_t[numChars];
+
+		for(size_t i=0; i < numChars; ++i){
+			temp[i] = out.widen(c[i]);
+		}
+
+		out.printout(temp, numChars);
+		return out;
+	}
+#endif
+    
+    //  signed and unsigned
+	template<class traits> _UCXXEXPORT basic_ostream<char,traits>&
+		operator<<(basic_ostream<char,traits>& out, const signed char* c)
+	{
+		typename basic_ostream<char,traits>::sentry s(out);
+		out.printout(reinterpret_cast<const char *>(c), traits::length( reinterpret_cast<const char *>(c)));
+		return out;
+	}
+	
+	template<class traits> _UCXXEXPORT basic_ostream<char,traits>&
+		operator<<(basic_ostream<char,traits>& out, const unsigned char* c)
+	{
+		typename basic_ostream<char,traits>::sentry s(out);
+		out.printout(reinterpret_cast<const char *>(c), traits::length( reinterpret_cast<const char *>(c)));
+		return out;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>&
+		endl(basic_ostream<charT,traits>& os)
+	{
+		typename basic_ostream<charT,traits>::sentry s(os);
+		os.put('\n');
+		os.flush();
+		return os;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>&
+		ends(basic_ostream<charT,traits>& os)
+	{
+		typename basic_ostream<charT,traits>::sentry s(os);
+		os.put(traits::eos());
+		return os;
+	}
+
+	template <class charT, class traits> _UCXXEXPORT basic_ostream<charT,traits>& flush(basic_ostream<charT,traits>& os){
+		typename basic_ostream<charT,traits>::sentry s(os);
+		os.flush();
+		return os;
+	}
+
+
+#ifdef __UCLIBCXX_EXPAND_OSTREAM_CHAR__
+#ifndef __UCLIBCXX_COMPILE_OSTREAM__
+	template <> _UCXXEXPORT ostream & endl(ostream & os);
+	template <> _UCXXEXPORT ostream & flush(ostream & os);
+	template <> _UCXXEXPORT ostream & operator<<(ostream & out, char c);
+	template <> _UCXXEXPORT ostream & operator<<(ostream & out, const char* c);
+	template <> _UCXXEXPORT ostream & operator<<(ostream & out, unsigned char c);
+	template <> _UCXXEXPORT ostream & operator<<(ostream & out, unsigned const char* c);
+
+#endif
+#endif
+
+
+#ifndef __STRICT_ANSI__
+
+//Support for output of long long data types
+
+template<class Ch, class Tr> _UCXXEXPORT basic_ostream<Ch, Tr>& 
+	operator<<(basic_ostream<Ch, Tr>& os, signed long long int i)
+{
+	typename basic_ostream<Ch, Tr>::sentry s(os);
+	__ostream_printout<Tr, Ch, signed long long int>::printout(os, i);
+	return os;
+}
+
+
+template<class Ch, class Tr> _UCXXEXPORT basic_ostream<Ch, Tr>& 
+	operator<<(basic_ostream<Ch, Tr>& os, unsigned long long int i)
+{
+	typename basic_ostream<Ch, Tr>::sentry s(os);
+	__ostream_printout<Tr, Ch, unsigned long long int>::printout(os, i);
+	return os;
+}
+
+
+#endif	//__STRICT_ANSI__
+
+
+
+
+}
+
+#pragma GCC visibility pop
+
+#endif
+
