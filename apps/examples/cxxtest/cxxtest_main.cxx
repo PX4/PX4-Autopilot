@@ -86,22 +86,22 @@ public:
 
 static void test_iostream(void)
 {
-  int a;
-  string s;
-
   cout << "test iostream===========================" << endl;
   cout << "Hello, this is only a test" << endl;
   cout << "Print an int: "  <<  190  <<  endl;
-  cout  <<  "Print a char: "  <<  'd'  <<  endl;
+  cout <<  "Print a char: "  <<  'd'  <<  endl;
 
-/*
+#if 0
+  int a;
+  string s;
+
   cout << "Please type in an int:" << endl;
   cin >> a;
   cout << "You type in: " << a << endl;
   cout << "Please type in a string:" << endl;
   cin >> s;
   cout << "You type in: " << s << endl;
-*/
+#endif
 }
 
 //***************************************************************************

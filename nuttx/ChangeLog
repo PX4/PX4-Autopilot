@@ -3538,4 +3538,7 @@
 	* binfmt/libelf:  The ELF loader is working correctly with C++ static
 	  constructors and destructors and all.
 	* Documentation/NuttXBinfmt.html:  Add documentionof the binary loader.
+	* configs/sim/ostest:  Converted to use the mconfig configuration tool.
+	* configs/sim/cxxtest:  New test that will be used to verify the uClibc++
+	  port (eventually).
 

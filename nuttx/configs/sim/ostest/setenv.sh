@@ -1,5 +1,5 @@
 #!/bin/bash
-# sim/setenv.sh
+# configs/sim/ostest/setenv.sh
 #
 #   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

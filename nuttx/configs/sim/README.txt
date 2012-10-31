@@ -188,11 +188,33 @@ X11.  See the discussion "Stack Size Issues" above.
 Configurations
 ^^^^^^^^^^^^^^
 
+cxxtest
+
+  Description
+  -----------
+  The C++ statndard libary test at apps/examples/cxxtest configuration.  This
+  test is used to verify the uClibc++ port to NuttX.  This configuration may
+  be selected as follows:
+
+    cd <nuttx-directory>/tools
+    ./configure.sh sim/cxxtest
+
+  NOTES
+  -----
+  1. This configuration uses the mconf-based configuration tool.  To
+     change this configuration using that tool, you should:
+
+     a. Build and install the mconf tool.  See nuttx/README.txt and
+        misc/tools/
+
+     b. Execute 'make menuconfig' in nuttx/ in order to start the
+        reconfiguration process.
+
 mount
 
   Description
   -----------
-  Configures to use examples/mount.  This configuration may be
+  Configures to use apps/examples/mount.  This configuration may be
   selected as follows:
 
     cd <nuttx-directory>/tools
@@ -202,7 +224,7 @@ nettest
 
   Description
   -----------
-  Configures to use examples/nettest.  This configuration
+  Configures to use apps/examples/nettest.  This configuration
   enables networking using the network TAP device.  It may
   be selected via:
 
@@ -228,7 +250,7 @@ nsh
 
   Description
   -----------
-  Configures to use the NuttShell at examples/nsh.  This configuration
+  Configures to use the NuttShell at apps/examples/nsh.  This configuration
   may be selected as follows:
 
     cd <nuttx-directory>/tools
@@ -238,7 +260,7 @@ nsh2
 
   Description
   -----------
-  This is another example that configures to use the NuttShell at examples/nsh.
+  This is another example that configures to use the NuttShell at apps/examples/nsh.
   Unlike nsh, this version uses NSH built-in functions.  The nx, nxhello, and
   nxlines examples are included as built-in functions.
 
@@ -260,7 +282,7 @@ nx
 
   Description
   -----------
-  Configures to use examples/nx.  This configuration may be
+  Configures to use apps/examples/nx.  This configuration may be
   selected as follows:
 
     cd <nuttx-directory>/tools
@@ -297,7 +319,7 @@ nx11
 
   Description
   -----------
-  Configures to use examples/nx.  This configuration is similar
+  Configures to use apps/examples/nx.  This configuration is similar
   to the nx configuration except that it adds support for an X11-
   based framebuffer driver.  Of course, this configuration can only
   be used in environments that support X11!  (And it may not even
@@ -379,10 +401,10 @@ nx11
     CONFG_NX_MULTIUSER=y
     CONFIG_DISABLE_MQUEUE=n
 
-  examples/nxconsole
-  ------------------
-  This configuration is also set up to use the examples/nxconsole
-  test instead of examples/nx.  To enable this configuration,
+  apps/examples/nxconsole
+  -----------------------
+  This configuration is also set up to use the apps/examples/nxconsole
+  test instead of apps/examples/nx.  To enable this configuration,
   First, select Multi-User mode as described above.  Then add the
   following definitions to the defconfig file:
 
@@ -464,17 +486,28 @@ ostest
 
   Description
   -----------
-  The "standard" NuttX examples/ostest configuration.  This
+  The "standard" NuttX apps/examples/ostest configuration.  This
   configuration may be selected as follows:
 
     cd <nuttx-directory>/tools
     ./configure.sh sim/ostest
 
+  NOTES
+  -----
+  1. This configuration uses the mconf-based configuration tool.  To
+     change this configuration using that tool, you should:
+
+     a. Build and install the mconf tool.  See nuttx/README.txt and
+        misc/tools/
+
+     b. Execute 'make menuconfig' in nuttx/ in order to start the
+        reconfiguration process.
+
 pashello
 
   Description
   -----------
-  Configures to use examples/pashello.  This configuration may
+  Configures to use apps/examples/pashello.  This configuration may
   by selected as follows:
 
     cd <nuttx-directory>/tools

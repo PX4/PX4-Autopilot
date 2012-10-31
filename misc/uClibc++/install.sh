@@ -302,11 +302,17 @@ fi
 
 echo "Installing uClibc++ in the NuttX source tree"
 
-cp -a ./libxx/* ${libxx_srcdir}/. ||
-  { echo "Copy from ./libxx/* to ${libxx_srcdir}/. failed"; exit 1; }
+filelist=`find libxx -type f | fgrep -v '.svn'`
 
-cp -a ./include/* ${nuttx_incdir}/. ||
-  { echo "Copy from ./include/* ${nuttx_incdir}/. failed"; exit 1; }
+for file in $filelist; do
+  install -D $file ${nuttx_path}/${file}
+done
+
+filelist=`find include -type f | fgrep -v '.svn'`
+
+for file in $filelist; do
+  install -D $file ${nuttx_path}/${file}
+done
 
 echo "Installation suceeded"
 echo ""

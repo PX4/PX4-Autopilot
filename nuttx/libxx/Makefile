@@ -52,7 +52,7 @@ VPATH = .
 # add its DEPPATH info, and will add the appropriate paths to the VPATH
 # variable
 
--include/uClibc++/Make.defs
+-include uClibc++/Make.defs
 
 # Object Files
 
