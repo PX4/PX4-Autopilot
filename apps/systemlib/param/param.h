@@ -235,23 +235,38 @@ __EXPORT int		param_load(int fd);
 __EXPORT void		param_foreach(void (*func)(void *arg, param_t param), void *arg, bool only_changed);
 
 /**
- * Export parameters to the default file name.
- *
- *
- * @param 
- */
-__EXPORT int 		param_save_default(void);
-
-/**
  * Set the default parameter file name.
+ *
+ * @param filename	Path to the default parameter file.  The file is not require to
+ *			exist.
+ * @return		Zero on success.
  */
 __EXPORT int 		param_set_default_file(const char* filename);
 
 /**
- * Import parameters from the default file name.
+ * Get the default parameter file name.
+ *
+ * @return		The path to the current default parameter file; either as
+ *			a result of a call to param_set_default_file, or the 
+ *			built-in default.
+ */
+__EXPORT const char 	*param_get_default_file(void);
+
+/**
+ * Save parameters to the default file.
+ *
+ * This function saves all parameters with non-default values.
+ *
+ * @return		Zero on success.
+ */
+__EXPORT int 		param_save_default(void);
+
+/**
+ * Load parameters from the default parameter file.
+ *
+ * @return		Zero on success.
  */
 __EXPORT int 		param_load_default(void);
-
 
 /*
  * Macros creating static parameter definitions.

@@ -62,8 +62,6 @@ static void	do_import(const char* param_file_name);
 static void	do_show(void);
 static void	do_show_print(void *arg, param_t param);
 
-static const char *param_file_name_default = "/eeprom/parameters";
-
 int
 param_main(int argc, char *argv[])
 {
@@ -72,7 +70,7 @@ param_main(int argc, char *argv[])
 			if (argc >= 3) {
 				do_save(argv[2]);
 			} else {
-				do_save(param_file_name_default);
+				do_save(param_get_default_file());
 			}
 		}
 
@@ -80,7 +78,7 @@ param_main(int argc, char *argv[])
 			if (argc >= 3) {
 				do_load(argv[2]);
 			} else {
-				do_load(param_file_name_default);
+				do_load(param_get_default_file());
 			}
 		}
 
@@ -88,8 +86,17 @@ param_main(int argc, char *argv[])
 			if (argc >= 3) {
 				do_import(argv[2]);
 			} else {
-				do_import(param_file_name_default);
+				do_import(param_get_default_file());
 			}
+		}
+
+		if (!strcmp(argv[1], "select")) {
+			if (argc >= 3) {
+				param_set_default_file(argv[2]);
+			} else {
+				param_set_default_file(NULL);
+			}
+			warnx("selected parameter file %s", param_get_default_file());
 		}
 
 		if (!strcmp(argv[1], "show")) {
@@ -97,8 +104,8 @@ param_main(int argc, char *argv[])
 		}
 			
 	}
-
-	errx(1, "expected a command, try 'load', 'import', 'show' or 'save'\n");
+	
+	errx(1, "expected a command, try 'load', 'import', 'show', 'select' or 'save'");
 }
 
 static void
