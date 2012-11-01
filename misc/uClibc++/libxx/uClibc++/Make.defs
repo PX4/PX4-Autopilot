@@ -38,7 +38,7 @@
 CXXSRCS += algorithm.cxx associative_base.cxx bitset.cxx char_traits.cxx
 CXXSRCS += complex.cxx del_op.cxx del_opnt.cxx del_opv.cxx del_opvnt.cxx
 CXXSRCS += deque.cxx eh_alloc.cxx eh_globals.cxx exception.cxx
-CXXSRCS += stream.cxx func_exception.cxx iomanip.cxx ios.cxx
+CXXSRCS += fstream.cxx func_exception.cxx iomanip.cxx ios.cxx
 CXXSRCS += iostream.cxx istream.cxx iterator.cxx limits.cxx list.cxx
 CXXSRCS += locale.cxx map.cxx new_handler.cxx new_op.cxx new_opnt.cxx
 CXXSRCS += new_opv.cxx new_opvnt.cxx numeric.cxx ostream.cxx queue.cxx
@@ -48,5 +48,5 @@ CXXSRCS += vector.cxx
 
 # Add the path to the uClibc++ subdirectory
 
-DEPPATH += --dep-path .
+DEPPATH += --dep-path uClibc++
 VPATH += uClibc++

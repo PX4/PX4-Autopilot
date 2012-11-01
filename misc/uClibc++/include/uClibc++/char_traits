@@ -108,7 +108,7 @@ namespace std{
 		}
 
 		inline static size_t length(const char_type* s){
-			return wstrlen(s);
+			return strlen(s);
 		}
 
 		static const char_type* find(const char_type* s, int n, const char_type& a);

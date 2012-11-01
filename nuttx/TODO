@@ -32,7 +32,7 @@ nuttx/
   (0)  ARM/LPC43x (arch/arm/src/lpc43xx/)
   (3)  ARM/STR71x (arch/arm/src/str71x/)
   (3)  ARM/LM3S6918 (arch/arm/src/lm3s/)
-  (7)  ARM/STM32 (arch/arm/src/stm32/)
+  (6)  ARM/STM32 (arch/arm/src/stm32/)
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
   (4)  8051 / MCS51 (arch/8051/)
@@ -1416,14 +1416,6 @@ o ARM/STM32 (arch/arm/src/stm32/)
                prevent this now.
   Status:      Open
   Priority:    Low (I am not even sure if this is a problem yet).
-
-  Status:      UNFINISHED STM32 F4 OTG FS HOST DRIVER
-  Description: A quick-n-dirty leverage of the the LPC17xx host driver was put into
-               the STM32 source to support development of the STM32 F4 OTG FS host
-               driver.  It is non-functional and still waiting for STM32 F4 logic
-               to be added.  Don't use it!
-  Status:      Open
-  Priority:    Low (unless you need a host driver).
 
 o AVR (arch/avr)
   ^^^^^^^^^^^^^^

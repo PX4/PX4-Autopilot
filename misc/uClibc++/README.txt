@@ -30,6 +30,35 @@ understand that you have tainted the NuttX BSD license with LGPLv3, and (2)
 copy the uClibc++ sources files into nuttx/libxx/uClibc++, include/, and
 include/uClibc++.
 
+Dependencies
+^^^^^^^^^^^^
+
+1. The C++ runtime support is provided by GCC libgcc_eh.a and libsupc++.a
+  libraries.
+2. NuttX C++ support
+3. Math library
+4. TLS support is currenly provided only under RGMP
+
+NuttX Configuration File Changes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In order to build libxx (and hence libxx/uClibc++), C++ support must be
+enabled.  The following must be defined in your NuttX configuration file.
+
+  CONFIG_HAVE_CXX=y
+
+There are many ways to provide math library support (see nuttx/README.txt).
+If you choose to use the NuttX math library, that is enabled as follows:
+
+
+  CONFIG_LIBM=y
+
+The math libraries depend on the float.h header file that is normally
+provided by your tooltchain.  A dummy (and probably wrong) fload.h file
+can be installed by setting:
+
+  CONFIG_ARCH_FLOAT_H=y
+
 Make.defs File Changes
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -44,6 +73,10 @@ And, of course, you no long need to suppress exceptions or run-time typing:
 
   -ARCHCPUFLAGSXX = -fno-builtin -fno-exceptions -fno-rtti
   +ARCHCPUFLAGSXX = -fno-builtin
+
+
+I create the nuttx/configs/rgmp/x86/cxxtest/Make.def, add the two libs to EXTRA_LIBS to be linked
+to NUTTX. The  code.
 
 Building NuttX with uClibc++
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -67,15 +100,6 @@ This Make.defs file, if present, will add the uClibc++ source files to the
 build, add the uClibc++ subdirectory to the dependency list, and add the
 uClibc++ subdirectory to the VPATH. That should, in principle, be all it
 takes.
-
-Dependencies
-^^^^^^^^^^^^
-
-In order to build libxx (and hence libxx/uClibc++), CONFIG_HAVE_CXX must be
-defined in your NuttX configuration file.
-
-The C++ runtime support is provided by GCC libgcc_eh.a and libsupc++.a
-libraries.
 
 RGMP
 ^^^^
