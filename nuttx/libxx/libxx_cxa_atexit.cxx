@@ -38,7 +38,9 @@
 //***************************************************************************
 
 #include <nuttx/config.h>
+
 #include <cstdlib>
+#include <cassert>
 
 #include "libxx_internal.hxx"
 
@@ -47,32 +49,95 @@
 //***************************************************************************
 
 //***************************************************************************
-// Private Data
+// Private Types
 //***************************************************************************
 
+struct __cxa_atexit_s
+{
+  __cxa_exitfunc_t func;
+  FAR void *arg;
+};
+
 //***************************************************************************
-// Public Functions
+// Private Data
 //***************************************************************************
 
 extern "C"
 {
   //*************************************************************************
-  // Name: __aeabi_atexit
+  // Public Data
+  //*************************************************************************
+
+  FAR void *__dso_handle = NULL;
+
+  //*************************************************************************
+  // Private Functions
+  //*************************************************************************
+
+  //*************************************************************************
+  // Name: __cxa_callback
   //
   // Description:
-  //   Registers static object destructors.  Normally atexit(f) should call
-  //   __aeabi_atexit (NULL, f, NULL).  But in the usage model here, static
-  //   constructors are initialized at power up and are never destroyed
-  //   because they have global scope and must persist for as long as the
-  //   embedded device is powered on.
-  //
-  // Reference:
-  //   http://infocenter.arm.com/help/topic/com.arm.doc.ihi0041c/IHI0041C_cppabi.pdf
+  //   This is really just an "adaptor" function that matches the form of
+  //   the __cxa_exitfunc_t to an onexitfunc_t using an allocated structure
+  //   to marshall the call parameters.
   //
   //*************************************************************************
 
-  int __aeabi_atexit(FAR void *object, __cxa_exitfunc_t func, FAR void *dso_handle)
+#if CONFIG_SCHED_ONEXIT
+  static void __cxa_callback(int exitcode, FAR void *arg)
+  {
+    FAR struct __cxa_atexit_s *alloc = (FAR struct __cxa_atexit_s *)arg;
+    DEBUGASSERT(alloc && alloc->func);
+
+    alloc->func(alloc->arg);
+    free(alloc);
+  }
+#endif
+
+  //*************************************************************************
+  // Public Functions
+  //*************************************************************************
+
+  //*************************************************************************
+  // Name: __cxa_atexit
+  //
+  // Description:
+  //   __cxa_atexit() registers a destructor function to be called by exit().
+  //   On a call to exit(), the registered functions should be called with
+  //   the single argument 'arg'. Destructor functions shall always be
+  //   called in the reverse order to their registration (i.e. the most
+  //   recently registered function shall be called first),
+  //
+  //   If shared libraries were supported, the callbacks should be invoked
+  //   when the shared library is unloaded as well.
+  //
+  // Reference:
+  //   Linux base
+  //
+  //*************************************************************************
+
+  int __cxa_atexit(__cxa_exitfunc_t func, FAR void *arg, FAR void *dso_handle)
     {
-      return __cxa_atexit(func, object, dso_handle); // 0 ? OK; non-0 ? failed
+#if CONFIG_SCHED_ONEXIT
+      // Allocate memory to hold the marshaled __cxa_exitfunc_t call
+      // information.
+
+      FAR struct __cxa_atexit_s *alloc =
+        (FAR struct __cxa_atexit_s *)malloc(sizeof(struct __cxa_atexit_s));
+
+      if (alloc)
+        {
+          // Register the function to be called when the task/thread exists.
+
+          return on_exit(__cxa_callback, alloc);
+        }
+      else
+#endif
+        {
+          // What else can we do?
+
+          return 0;
+        }
     }
 }

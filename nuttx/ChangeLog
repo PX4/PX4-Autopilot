@@ -3547,4 +3547,10 @@
 	  is equivalent to !feof()); the others should be good.
 	* configs/stm32f4discovery/include/board.h:  Correct timer 2-7
 	  base frequency (provided by Freddie Chopin).
-
+	* include/nuttx/sched.h, sched/atexit.c, and sched/task_deletehook.c:
+	  If both atexit() and on_exit() are enabled, then implement atexit()
+	  as just a special caseof on_exit().  This assumes that the ABI can
+	  handle receipt of more call parameters than the receiving function
+	  expects.  That is usually the case if parameters are passed in
+	  registers.
+	* libxx/libxx_cxa_atexit():  Implements __cxa_atexit()

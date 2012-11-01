@@ -1,5 +1,5 @@
 //***************************************************************************
-// libxx/libxx_eabi_atexit.cxx
+// lib/libxx_internal.h
 //
 //   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 //   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,46 +33,35 @@
 //
 //***************************************************************************
 
+#ifndef __LIBXX_LIBXX_INTERNAL_HXX
+#define __LIBXX_LIBXX_INTERNAL_HXX
+
 //***************************************************************************
 // Included Files
 //***************************************************************************
 
 #include <nuttx/config.h>
-#include <cstdlib>
-
-#include "libxx_internal.hxx"
 
 //***************************************************************************
-// Pre-processor Definitions
+// Definitions
 //***************************************************************************
 
 //***************************************************************************
-// Private Data
-//***************************************************************************
+// Public Types
+//***************************************************************************/
+
+typedef CODE void (*__cxa_exitfunc_t)(void *arg);
 
 //***************************************************************************
-// Public Functions
+// Public Variables
 //***************************************************************************
 
-extern "C"
-{
-  //*************************************************************************
-  // Name: __aeabi_atexit
-  //
-  // Description:
-  //   Registers static object destructors.  Normally atexit(f) should call
-  //   __aeabi_atexit (NULL, f, NULL).  But in the usage model here, static
-  //   constructors are initialized at power up and are never destroyed
-  //   because they have global scope and must persist for as long as the
-  //   embedded device is powered on.
-  //
-  // Reference:
-  //   http://infocenter.arm.com/help/topic/com.arm.doc.ihi0041c/IHI0041C_cppabi.pdf
-  //
-  //*************************************************************************
+extern "C" FAR void *__dso_handle;
 
-  int __aeabi_atexit(FAR void *object, __cxa_exitfunc_t func, FAR void *dso_handle)
-    {
-      return __cxa_atexit(func, object, dso_handle); // 0 ? OK; non-0 ? failed
-    }
-}
+//***************************************************************************
+// Public Function Prototypes
+//***************************************************************************
+
+extern "C" int __cxa_atexit(__cxa_exitfunc_t func, void *arg, void *dso_handle);
+
+#endif // __LIBXX_LIBXX_INTERNAL_HXX

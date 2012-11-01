@@ -39,8 +39,10 @@
 
 ASRCS = 
 CSRCS = 
-CXXSRCS = libxx_cxapurevirtual.cxx libxx_delete.cxx libxx_deletea.cxx
-CXXSRCS += libxx_eabi_atexit.cxx libxx_new.cxx libxx_newa.cxx 
+
+CXXSRCS  = libxx_cxapurevirtual.cxx libxx_delete.cxx libxx_deletea.cxx
+CXXSRCS += libxx_eabi_atexit.cxx  libxx_cxa_atexit.cxx libxx_new.cxx
+CXXSRCS += libxx_newa.cxx 
 
 # Paths
 
