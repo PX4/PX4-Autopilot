@@ -3545,3 +3545,6 @@
 	  lib_feof.c, and lib_clearerr.c:  Add support for ferror(), feof(),
 	  and clearerror().  ferror() support is bogus at the moment (it
 	  is equivalent to !feof()); the others should be good.
+	* configs/stm32f4discovery/include/board.h:  Correct timer 2-7
+	  base frequency (provided by Freddie Chopin).
+

@@ -66,7 +66,7 @@
  *   AHB Prescaler                 : 1            (STM32_RCC_CFGR_HPRE)
  *   APB1 Prescaler                : 4            (STM32_RCC_CFGR_PPRE1)
  *   APB2 Prescaler                : 2            (STM32_RCC_CFGR_PPRE2)
- *   HSE Frequency(Hz)             : 25000000     (STM32_BOARD_XTAL)
+ *   HSE Frequency(Hz)             : 8000000      (STM32_BOARD_XTAL)
  *   PLLM                          : 8            (STM32_PLLCFG_PLLM)
  *   PLLN                          : 336          (STM32_PLLCFG_PLLN)
  *   PLLP                          : 2            (STM32_PLLCFG_PLLP)
@@ -82,7 +82,7 @@
 
 /* HSI - 16 MHz RC factory-trimmed
  * LSI - 32 KHz RC
- * HSE - On-board crystal frequency is 25MHz
+ * HSE - On-board crystal frequency is 8MHz
  * LSE - 32.768 kHz
  */
 
@@ -97,7 +97,7 @@
  *
  * PLL source is HSE
  * PLL_VCO = (STM32_HSE_FREQUENCY / PLLM) * PLLN
- *         = (25,000,000 / 25) * 336
+ *         = (8,000,000 / 8) * 336
  *         = 336,000,000
  * SYSCLK  = PLL_VCO / PLLP
  *         = 336,000,000 / 2 = 168,000,000
@@ -155,7 +155,7 @@
  */
 
 #define STM32_TIM18_FREQUENCY   STM32_HCLK_FREQUENCY
-#define STM32_TIM27_FREQUENCY   STM32_HCLK_FREQUENCY
+#define STM32_TIM27_FREQUENCY   (STM32_HCLK_FREQUENCY/2)
 
 /* LED definitions ******************************************************************/
 /* If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any
