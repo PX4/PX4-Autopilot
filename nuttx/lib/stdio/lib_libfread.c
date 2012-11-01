@@ -187,7 +187,10 @@ ssize_t lib_fread(FAR void *ptr, size_t count, FAR FILE *stream)
                     }
                   else if (bytes_read == 0)
                     {
-                      /* We are at the end of the file */
+                      /* We are at the end of the file.  But we may already
+                       * have buffered data.  In that case, we will report
+                       * the EOF indication later.
+                       */
 
                       goto shortread;
                     }
@@ -232,7 +235,10 @@ ssize_t lib_fread(FAR void *ptr, size_t count, FAR FILE *stream)
                     }
                   else if (bytes_read == 0)
                     {
-                      /* We are at the end of the file */
+                      /* We are at the end of the file.  But we may already
+                       * have buffered data.  In that case, we will report
+                       * the EOF indication later.
+                       */
 
                       goto shortread;
                     }
@@ -261,6 +267,11 @@ ssize_t lib_fread(FAR void *ptr, size_t count, FAR FILE *stream)
             }
           else if (bytes_read == 0)
             {
+              /* We are at the end of the file.  But we may already
+               * have buffered data.  In that case, we will report
+               * the EOF indication later.
+               */
+
               break;
             }
           else
@@ -270,12 +281,26 @@ ssize_t lib_fread(FAR void *ptr, size_t count, FAR FILE *stream)
             }
         }
 #endif
-    /* Here after a successful (but perhaps short) read */
+      /* Here after a successful (but perhaps short) read */
 
 #if CONFIG_STDIO_BUFFER_SIZE > 0
     shortread:
 #endif
       bytes_read = dest - (unsigned char*)ptr;
+
+      /* Set or clear the EOF indicator.  If we get here because of a
+       * short read and the total number of* bytes read is zero, then
+       * we must be at the end-of-file.
+       */
+
+      if (bytes_read > 0)
+        {
+          stream->fs_flags &= ~__FS_FLAG_EOF;
+        }
+      else
+        {
+          stream->fs_flags |= __FS_FLAG_EOF;
+        }
     }
 
   lib_give_semaphore(stream);

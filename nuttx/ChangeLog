@@ -3541,4 +3541,7 @@
 	* configs/sim/ostest:  Converted to use the mconfig configuration tool.
 	* configs/sim/cxxtest:  New test that will be used to verify the uClibc++
 	  port (eventually).
-
+	* include/nuttx/fs/fs.h, lib/stdio/lib_libfread.c, lib_ferror.c,
+	  lib_feof.c, and lib_clearerr.c:  Add support for ferror(), feof(),
+	  and clearerror().  ferror() support is bogus at the moment (it
+	  is equivalent to !feof()); the others should be good.
