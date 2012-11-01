@@ -31,83 +31,85 @@
  *
  ****************************************************************************/
 
-/*
- * led driver for PX4FMU
+/**
+ * @file led.cpp
  *
- * This is something of an experiment currently (ha, get it?)
+ * LED driver.
  */
 
 #include <nuttx/config.h>
+#include <drivers/device/device.h>
+#include <drivers/drv_led.h>
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <debug.h>
+/* Ideally we'd be able to get these from up_internal.h */
+//#include <up_internal.h>
+__BEGIN_DECLS
+extern void up_ledinit();
+extern void up_ledon(int led);
+extern void up_ledoff(int led);
+__END_DECLS
 
-#include <nuttx/spi.h>
-#include <arch/board/board.h>
+class LED : device::CDev
+{
+public:
+	LED();
+	~LED();
 
-#include "up_arch.h"
-#include "chip.h"
-#include "stm32_internal.h"
-#include "px4fmu-internal.h"
-
-#include <arch/board/drv_led.h>
-
-static int	px4fmu_led_ioctl(struct file *filep, int cmd, unsigned long arg);
-static ssize_t	px4fmu_led_pseudoread(struct file *filp, FAR char *buffer, size_t buflen);
-
-static const struct file_operations px4fmu_led_fops = {
-	.read  = px4fmu_led_pseudoread,
-	.ioctl = px4fmu_led_ioctl,
+	virtual int		init();
+	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 };
 
-int
-px4fmu_led_init(void)
+LED::LED() :
+	CDev("led", LED_DEVICE_PATH)
 {
-	/* register the driver */
-	return register_driver("/dev/led", &px4fmu_led_fops, 0666, NULL);
+	// force immediate init/device registration
+	init();
 }
 
-static ssize_t
-px4fmu_led_pseudoread(struct file *filp, FAR char *buffer, size_t buflen)
+LED::~LED()
 {
+}
+
+int
+LED::init()
+{
+	CDev::init();
+	up_ledinit();
+
 	return 0;
 }
 
-static int
-px4fmu_led_ioctl(struct file *filep, int cmd, unsigned long arg)
+int
+LED::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
-	int	result = 0;
+	int result = OK;
 
 	switch (cmd) {
-
 	case LED_ON:
-		switch (arg) {
-		case 0:
-		case 1:
-			up_ledon(arg);
-			break;
-		default:
-			result = -1;
-			break;
-		}
+		up_ledon(arg);
 		break;
 
 	case LED_OFF:
-		switch (arg) {
-		case 0:
-		case 1:
-			up_ledoff(arg);
-			break;
-		default:
-			result = -1;
-			break;
-		}
+		up_ledoff(arg);
 		break;
-		default:
-			result = -1;
-			break;
+
+	default:
+		result = CDev::ioctl(filp, cmd, arg);
 	}
 	return result;
 }
 
+namespace
+{
+LED	*gLED;
+}
+
+void
+drv_led_start()
+{
+	if (gLED == nullptr) {
+		gLED = new LED;
+		if (gLED != nullptr)
+			gLED->init();
+	}
+}

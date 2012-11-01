@@ -31,21 +31,34 @@
  *
  ****************************************************************************/
 
+/**
+ * @file drv_led.h
+ *
+ * LED driver API
+ */
+
+#pragma once
+
+#include <stdint.h>
 #include <sys/ioctl.h>
 
-#define _LEDCBASE	0x6800
-#define LEDC(_x)	_IOC(_LEDCBASE, _x)
+#define LED_DEVICE_PATH		"/dev/led"
 
-/* set the LED identified by the argument */
-#define LED_ON	LEDC(1)
+#define _LED_BASE		0x2800
 
-/* clear the LED identified by the argument */
-#define LED_OFF	LEDC(2)
+/* PX4 LED colour codes */
+#define LED_AMBER		0
+#define LED_RED			0	/* some boards have red rather than amber */
+#define LED_BLUE		1
 
-///* toggle the LED identified by the argument */
-//#define LED_TOGGLE	LEDC(3)
+#define LED_ON			_IOC(_LED_BASE, 0)
+#define LED_OFF			_IOC(_LED_BASE, 1)
 
-#define LED_BLUE		  0  /* Led on first port */
-#define LED_AMBER		  1  /* Led on second port */
+__BEGIN_DECLS
 
-extern int	px4fmu_led_init(void);
+/*
+ * Initialise the LED driver.
+ */
+__EXPORT extern void drv_led_start();
+
+__END_DECLS

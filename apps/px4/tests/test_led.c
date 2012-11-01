@@ -49,7 +49,7 @@
 
 #include <arch/board/board.h>
 
-#include <arch/board/drv_led.h>
+#include <drivers/drv_led.h>
 
 #include "tests.h"
 
@@ -91,7 +91,7 @@ int test_led(int argc, char *argv[])
 	int		fd;
 	int		ret = 0;
 
-	fd = open("/dev/led", O_RDONLY | O_NONBLOCK);
+	fd = open(LED_DEVICE_PATH, 0);
 
 	if (fd < 0) {
 		printf("\tLED: open fail\n");

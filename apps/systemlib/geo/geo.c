@@ -49,19 +49,19 @@
 
 __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next)
 {
-	double lat_now_rad = lat_now / 180.0 * M_PI;
-	double lon_now_rad = lon_now / 180.0 * M_PI;
-	double lat_next_rad = lat_next / 180.0 * M_PI;
-	double lon_next_rad = lon_next / 180.0 * M_PI;
+	double lat_now_rad = lat_now / 180.0d * M_PI;
+	double lon_now_rad = lon_now / 180.0d * M_PI;
+	double lat_next_rad = lat_next / 180.0d * M_PI;
+	double lon_next_rad = lon_next / 180.0d * M_PI;
 
 
 	double d_lat = lat_next_rad - lat_now_rad;
 	double d_lon = lon_next_rad - lon_now_rad;
 
-	double a = sin(d_lat / 2.0) * sin(d_lat / 2.0) + sin(d_lon / 2.0) * sin(d_lon / 2.0) * cos(lat_now_rad) * cos(lat_next_rad);
-	double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+	double a = sin(d_lat / 2.0d) * sin(d_lat / 2.0) + sin(d_lon / 2.0d) * sin(d_lon / 2.0d) * cos(lat_now_rad) * cos(lat_next_rad);
+	double c = 2.0d * atan2(sqrt(a), sqrt(1.0d - a));
 
-	const double radius_earth = 6371000.0;
+	const double radius_earth = 6371000.0d;
 
 	return radius_earth * c;
 }

@@ -64,10 +64,9 @@
 #include "stm32_uart.h"
 
 #include <arch/board/board.h>
-#include <arch/board/drv_led.h>
-#include <arch/board/drv_eeprom.h>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_led.h>
 
 #include <systemlib/cpuload.h>
 
@@ -132,9 +131,6 @@ __EXPORT void stm32_boardinitialize(void)
 
 static struct spi_dev_s *spi1;
 static struct spi_dev_s *spi3;
-static struct i2c_dev_s *i2c1;
-static struct i2c_dev_s *i2c2;
-static struct i2c_dev_s *i2c3;
 
 #include <math.h>
 
@@ -153,10 +149,6 @@ __EXPORT int matherr(struct exception *e)
 __EXPORT int nsh_archinitialize(void)
 {
 	int result;
-
-	/* INIT 1 Lowest level NuttX initialization has been done at this point, LEDs and UARTs are configured */
-
-	/* INIT 2 Configuring PX4 low-level peripherals, these will be always needed */
 
 	/* configure the high-resolution time/callout interface */
 #ifdef CONFIG_HRT_TIMER
@@ -191,13 +183,11 @@ __EXPORT int nsh_archinitialize(void)
 
 	message("\r\n");
 
+	// initial LED state
+	drv_led_start();
 	up_ledoff(LED_BLUE);
 	up_ledoff(LED_AMBER);
-
 	up_ledon(LED_BLUE);
-
-	/* Configure user-space led driver */
-	px4fmu_led_init();
 
 	/* Configure SPI-based devices */
 
@@ -219,37 +209,6 @@ __EXPORT int nsh_archinitialize(void)
 	up_udelay(20);
 
 	message("[boot] Successfully initialized SPI port 1\r\n");
-
-	/* initialize I2C2 bus */
-
-	i2c2 = up_i2cinitialize(2);
-
-	if (!i2c2) {
-		message("[boot] FAILED to initialize I2C bus 2\n");
-		up_ledon(LED_AMBER);
-		return -ENODEV;
-	}
-
-	/* set I2C2 speed */
-	I2C_SETFREQUENCY(i2c2, 400000);
-
-
-	i2c3 = up_i2cinitialize(3);
-
-	if (!i2c3) {
-		message("[boot] FAILED to initialize I2C bus 3\n");
-		up_ledon(LED_AMBER);
-		return -ENODEV;
-	}
-
-	/* set I2C3 speed */
-	I2C_SETFREQUENCY(i2c3, 400000);
-
-	/* try to attach, don't fail if device is not responding */
-	(void)eeprom_attach(i2c3, FMU_BASEBOARD_EEPROM_ADDRESS,
-			    FMU_BASEBOARD_EEPROM_TOTAL_SIZE_BYTES,
-			    FMU_BASEBOARD_EEPROM_PAGE_SIZE_BYTES,
-			    FMU_BASEBOARD_EEPROM_PAGE_WRITE_TIME_US, "/dev/baseboard_eeprom", 1);
 
 #if defined(CONFIG_STM32_SPI3)
 	/* Get the SPI port */
@@ -276,23 +235,6 @@ __EXPORT int nsh_archinitialize(void)
 
 	message("[boot] Successfully bound SPI port 3 to the MMCSD driver\n");
 #endif /* SPI3 */
-
-	/* initialize I2C1 bus */
-
-	i2c1 = up_i2cinitialize(1);
-
-	if (!i2c1) {
-		message("[boot] FAILED to initialize I2C bus 1\n");
-		up_ledon(LED_AMBER);
-		return -ENODEV;
-	}
-
-	/* set I2C1 speed */
-	I2C_SETFREQUENCY(i2c1, 400000);
-
-	/* INIT 3: MULTIPORT-DEPENDENT INITIALIZATION */
-
-	/* Get board information if available */
 
 #ifdef CONFIG_ADC
 	int adc_state = adc_devinit();

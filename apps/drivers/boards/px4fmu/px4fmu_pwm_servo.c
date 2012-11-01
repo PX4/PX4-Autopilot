@@ -46,13 +46,9 @@
 #include <arch/board/board.h>
 #include <drivers/drv_pwm_output.h>
 
-#include "chip.h"
-#include "up_internal.h"
-#include "up_arch.h"
-
-#include "stm32_internal.h"
-#include "stm32_gpio.h"
-#include "stm32_tim.h"
+#include <stm32_internal.h>
+#include <stm32_gpio.h>
+#include <stm32_tim.h>
 
 __EXPORT const struct pwm_servo_timer pwm_timers[PWM_SERVO_MAX_TIMERS] = {
 	{
