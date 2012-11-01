@@ -51,7 +51,7 @@ ARCHWARNINGS		= -Wall -Wstrict-prototypes -Wshadow
 ARCHWARNINGSXX		= -Wall -Wshadow
 ARCHDEFINES		=
 ARCHINCLUDES		= -I. -isystem $(TOPDIR)/include
-ARCHINCLUDESXX		= -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
+ARCHINCLUDESXX		= -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx -isystem $(TOPDIR)/include/uClibc++
 ARCHSCRIPT		=
 
 ifeq ($(CONFIG_SIM_M32),y)
@@ -100,7 +100,6 @@ ifeq ($(CONFIG_SIM_M32),y)
   CCLINKFLAGS		+= -m32
   LDFLAGS			+= -m32
 endif
-
 
 MKDEP			= $(TOPDIR)/tools/mkdeps.sh
 

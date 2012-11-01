@@ -28,7 +28,22 @@ using this command executed from the misc/uClibc++ directory:
 If you run the install.sh like this, then it will (1) make sure you
 understand that you have tainted the NuttX BSD license with LGPLv3, and (2)
 copy the uClibc++ sources files into nuttx/libxx/uClibc++, include/, and
-include/cxx.
+include/uClibc++.
+
+Make.defs File Changes
+^^^^^^^^^^^^^^^^^^^^^^
+
+The new files that appear in nuttx/include/uClibc++ must be include-able
+as system header files.  So you will need to add 'isystem $(TOPDIR)/include/uClibc++'
+to the ARCHINCLUDESXX definition in the NuttX Make.defs file, perhap like:
+
+  -ARCHINCLUDESXX = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
+  +ARCHINCLUDESXX = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx -isystem $(TOPDIR)/include/uClibc++
+
+And, of course, you no long need to suppress exceptions or run-time typing:
+
+  -ARCHCPUFLAGSXX = -fno-builtin -fno-exceptions -fno-rtti
+  +ARCHCPUFLAGSXX = -fno-builtin
 
 Building NuttX with uClibc++
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
