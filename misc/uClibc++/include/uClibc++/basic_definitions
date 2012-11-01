@@ -35,34 +35,20 @@
 #  define _UCXXLOCAL
 #endif
 
-#ifdef __GCC__
-#  define __UCLIBCXX_NORETURN __attribute__ ((__noreturn__))
-#else
-#  define __UCLIBCXX_NORETURN
-#endif
-
 #ifdef __UCLIBCXX_HAS_TLS__
 #  define __UCLIBCXX_TLS __thread
 #else
 #  define __UCLIBCXX_TLS
 #endif
 
+// Testing purposes
 
-
-//Testing purposes
 #define __STRING_MAX_UNITS 65535
 
-namespace std{
-	typedef signed long int streamsize;
+namespace std
+{
+  typedef signed long int streamsize;
 }
 
 #pragma GCC visibility pop
-
-#endif
-
-
-#ifdef __DODEBUG__
-	#define UCLIBCXX_DEBUG 1
-#else
-	#define UCLIBCXX_DEBUG 0
 #endif

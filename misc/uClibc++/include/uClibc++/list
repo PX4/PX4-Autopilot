@@ -282,16 +282,15 @@ namespace std{
 			pop_front();
 		}
 		delete list_start->val;
-#if UCLIBCXX_DEBUG
+#ifdef CONFIG_DEBUG_LIB
 		list_start->val = 0;
 #endif
 		delete list_start;
-#if UCLIBCXX_DEBUG
+#ifdef CONFIG_DEBUG_LIB
 		list_start = 0;
 		list_end = 0;
 #endif
 	}
-
 
 	template<class T, class Allocator> void list<T, Allocator>::swap_nodes(node * x, node * y){
 		T * v = x->val;
@@ -398,7 +397,7 @@ namespace std{
 		if(elements > 0){
 			list_start = list_start->next;
 			delete list_start->previous->val;
-#if UCLIBCXX_DEBUG
+#ifdef CONFIG_DEBUG_LIB
 			list_start->previous->val = 0;
 			list_start->previous->next = 0;
 			list_start->previous->previous = 0;
@@ -438,13 +437,13 @@ namespace std{
 				list_end->previous = temp->previous;
 			}
 			delete temp->val;
-#if UCLIBCXX_DEBUG
+#ifdef CONFIG_DEBUG_LIB
 			temp->val = 0;
 			temp->next = 0;
 			temp->previous = 0;
 #endif
 			delete temp;
-#if UCLIBCXX_DEBUG
+#ifdef CONFIG_DEBUG_LIB
 			temp = 0;
 #endif
 			--elements;
@@ -503,13 +502,13 @@ namespace std{
 				++position;
 			}
 			delete temp->val;
-#if UCLIBCXX_DEBUG
+#ifdef CONFIG_DEBUG_LIB
 			temp->next = 0;
 			temp->previous = 0;
 			temp->val = 0;
 #endif
 			delete temp;
-#if UCLIBCXX_DEBUG
+#ifdef CONFIG_DEBUG_LIB
 			temp = 0;
 #endif
 			--elements;
