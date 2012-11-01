@@ -59,7 +59,7 @@ __EXPORT int param_main(int argc, char *argv[]);
 static void	do_save(void);
 static void	do_load(void);
 static void	do_import(void);
-static void	do_show(void);
+static void	do_show(const char* search_string);
 static void	do_show_print(void *arg, param_t param);
 
 static const char *param_file_name = "/eeprom/parameters";
@@ -78,7 +78,11 @@ param_main(int argc, char *argv[])
 			do_import();
 
 		if (!strcmp(argv[1], "show"))
-			do_show();
+			if (argc >= 3) {
+				do_show(argv[2]);
+			} else {
+				do_show(NULL);
+			}
 	}
 
 	errx(1, "expected a command, try 'load', 'import', 'show' or 'save'\n");
@@ -142,10 +146,10 @@ do_import(void)
 }
 
 static void
-do_show(void)
+do_show(const char* search_string)
 {
 	printf(" + = saved, * = unsaved\n");
-	param_foreach(do_show_print, NULL, false);
+	param_foreach(do_show_print, search_string, false);
 
 	exit(0);
 }
@@ -155,6 +159,11 @@ do_show_print(void *arg, param_t param)
 {
 	int32_t i;
 	float f;
+	const char *search_string = (const char*)arg;
+
+	/* print nothing if search string valid and not matching */
+	if (arg != NULL && (strcmp(search_string, param_name(param) != 0)))
+		return;
 
 	printf("%c %s: ",
 	       param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
