@@ -1523,12 +1523,14 @@ int commander_thread_main(int argc, char *argv[])
 					current_status.flag_control_manual_enabled = false;
 					current_status.flag_control_offboard_enabled = true;
 					state_changed = true;
+					tune_confirm();
 					
-					mavlink_log_critical(mavlink_fd, "[commander] DETECTED OFFBOARD CONTROL SIGNAL FIRST TIME.");
+					mavlink_log_critical(mavlink_fd, "[commander] DETECTED OFFBOARD CONTROL SIGNAL FIRST");
 				} else {
 					if (current_status.offboard_control_signal_lost) {
-						mavlink_log_critical(mavlink_fd, "[commander] RECOVERY - OFFBOARD CONTROL SIGNAL GAINED!");
+						mavlink_log_critical(mavlink_fd, "[commander] OK:RECOVERY OFFBOARD CONTROL");
 						state_changed = true;
+						tune_confirm();
 					}
 				}
 
@@ -1550,7 +1552,7 @@ int commander_thread_main(int argc, char *argv[])
 				/* print error message for first RC glitch and then every 5 s / 5000 ms) */
 				if (!current_status.offboard_control_signal_weak || ((hrt_absolute_time() - last_print_time) > 5000000)) {
 					current_status.offboard_control_signal_weak = true;
-					mavlink_log_critical(mavlink_fd, "[commander] CRITICAL - NO OFFBOARD CONTROL SIGNAL!");
+					mavlink_log_critical(mavlink_fd, "[commander] CRIT:NO OFFBOARD CONTROL!");
 					last_print_time = hrt_absolute_time();
 				}
 				/* flag as lost and update interval since when the signal was lost (to initiate RTL after some time) */
@@ -1560,10 +1562,11 @@ int commander_thread_main(int argc, char *argv[])
 				if (current_status.offboard_control_signal_lost_interval > 100000) {
 					current_status.offboard_control_signal_lost = true;
 					current_status.failsave_lowlevel_start_time = hrt_absolute_time();
-					current_status.failsave_lowlevel = true;
+					tune_confirm();
 
 					/* kill motors after timeout */
 					if (hrt_absolute_time() - current_status.failsave_lowlevel_start_time > failsafe_lowlevel_timeout_ms*1000) {
+						current_status.failsave_lowlevel = true;
 						state_changed = true;
 					}
 				}
