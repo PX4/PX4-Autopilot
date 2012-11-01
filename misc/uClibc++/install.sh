@@ -217,7 +217,7 @@ if [ ! -d "${nuttx_path}" ]; then
 fi
 
 if [ ! -f "${nuttx_path}/Makefile" ]; then
-  echo "ERROR: Not Makefile in directory ${nuttx_path}"
+  echo "ERROR: No Makefile in directory ${nuttx_path}"
   echo $usage
   exit 1
 fi
