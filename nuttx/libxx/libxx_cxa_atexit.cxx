@@ -130,6 +130,9 @@ extern "C"
         {
           // Register the function to be called when the task/thread exists.
 
+          alloc->func = func;
+          alloc->arg  = arg;
+
           return on_exit(__cxa_callback, alloc);
         }
       else

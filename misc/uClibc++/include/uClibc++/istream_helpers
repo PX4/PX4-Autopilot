@@ -302,7 +302,7 @@ namespace std{
 	};
 
 
-#ifdef __UCLIBCXX_HAS_FLOATS__
+#ifdef CONFIG_HAVE_FLOAT
 
 	template <class traits> class _UCXXEXPORT __istream_readin<traits, char, float>{
 	public:
@@ -335,7 +335,7 @@ namespace std{
 		}
 	};
 
-#endif	// ifdef __UCLIBCXX_HAS_FLOATS__
+#endif	// ifdef CONFIG_HAVE_FLOAT
 
 	template <class traits> class _UCXXEXPORT __istream_readin<traits, char, void*>{
 	public:

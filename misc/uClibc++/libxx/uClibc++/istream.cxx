@@ -22,7 +22,6 @@
 
 #include <istream>
 
-
 namespace std{
 
 #ifdef __UCLIBCXX_EXPAND_ISTREAM_CHAR__
@@ -59,8 +58,7 @@ namespace std{
 	template _UCXXEXPORT istream & istream::operator>>(void *& p);
 	template _UCXXEXPORT istream & operator>>(istream & is, char & c);
 
-
-#ifdef __UCLIBCXX_HAS_FLOATS__
+#ifdef CONFIG_HAVE_FLOAT
 	template _UCXXEXPORT istream & istream::operator>>(float &f);
 	template _UCXXEXPORT istream & istream::operator>>(double &f);
 	template _UCXXEXPORT istream & istream::operator>>(long double &f);

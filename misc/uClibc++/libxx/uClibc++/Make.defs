@@ -43,8 +43,7 @@ CXXSRCS += iostream.cxx istream.cxx iterator.cxx limits.cxx list.cxx
 CXXSRCS += locale.cxx map.cxx new_handler.cxx new_op.cxx new_opnt.cxx
 CXXSRCS += new_opv.cxx new_opvnt.cxx numeric.cxx ostream.cxx queue.cxx
 CXXSRCS += set.cxx sstream.cxx stack.cxx stdexcept.cxx streambuf.cxx
-CXXSRCS += string.cxx support.cxx typeinfo.cxx utility.cxx valarray.cxx
-CXXSRCS += vector.cxx
+CXXSRCS += string.cxx typeinfo.cxx utility.cxx valarray.cxx vector.cxx
 
 # Add the path to the uClibc++ subdirectory
 

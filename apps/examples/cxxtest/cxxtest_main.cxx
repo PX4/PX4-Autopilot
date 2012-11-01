@@ -179,6 +179,7 @@ static void test_rtti(void)
 // Name: test_exception
 //***************************************************************************/
 
+#ifdef CONFIG_UCLIBCXX_EXCEPTION
 static void test_exception(void)
 {
   cout << "test exception==========================" << endl;
@@ -192,6 +193,7 @@ static void test_exception(void)
     cout << "Catch exception: " << e.what() << endl;
   }
 }
+#endif
 
 //***************************************************************************
 // Public Functions
@@ -213,7 +215,9 @@ int cxxtest_main(int argc, char *argv[])
   test_iostream();
   test_stl();
   test_rtti();
+#ifdef CONFIG_UCLIBCXX_EXCEPTION
   test_exception();
+#endif
     
   return 0;
 }

@@ -18,31 +18,33 @@
 #ifndef __BASIC_DEFINITIONS
 #define __BASIC_DEFINITIONS 1
 
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
+
 #include <system_configuration.h>
 
 #pragma GCC visibility push(default)
 
-//The following is used to support GCC symbol visibility patch
+// The following is used to support GCC symbol visibility patch
 
 #ifdef GCC_HASCLASSVISIBILITY
-	#define _UCXXEXPORT __attribute__ ((visibility("default")))
-	#define _UCXXLOCAL __attribute__ ((visibility("hidden")))
+#  define _UCXXEXPORT __attribute__ ((visibility("default")))
+#  define _UCXXLOCAL __attribute__ ((visibility("hidden")))
 #else
-	#define _UCXXEXPORT
-	#define _UCXXLOCAL
-
+#  define _UCXXEXPORT
+#  define _UCXXLOCAL
 #endif
 
 #ifdef __GCC__
-#define __UCLIBCXX_NORETURN __attribute__ ((__noreturn__))
+#  define __UCLIBCXX_NORETURN __attribute__ ((__noreturn__))
 #else
-#define __UCLIBCXX_NORETURN
+#  define __UCLIBCXX_NORETURN
 #endif
 
 #ifdef __UCLIBCXX_HAS_TLS__
-	#define __UCLIBCXX_TLS __thread
+#  define __UCLIBCXX_TLS __thread
 #else
-	#define __UCLIBCXX_TLS
+#  define __UCLIBCXX_TLS
 #endif
 
 

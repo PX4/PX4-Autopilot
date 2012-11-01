@@ -79,10 +79,10 @@ struct __cxa_exception
   _Unwind_Exception unwindHeader;
 };
 
-
 // A dependent C++ exception object consists of a header, which is a wrapper
 // around an unwind object header with additional C++ specific information,
 // followed by the exception object itself.
+
 struct __cxa_dependent_exception
 {
   // The primary exception
@@ -112,44 +112,52 @@ struct __cxa_dependent_exception
   _Unwind_Exception unwindHeader;
 };
 
-
 // Each thread in a C++ program has access to a __cxa_eh_globals object.
+
 struct __cxa_eh_globals
 {
   __cxa_exception *caughtExceptions;
   unsigned int uncaughtExceptions;
 };
 
-
 // The __cxa_eh_globals for the current thread can be obtained by using
 // either of the following functions.  The "fast" version assumes at least
 // one prior call of __cxa_get_globals has been made from the current
 // thread, so no initialization is necessary.
+
 extern "C" __cxa_eh_globals *__cxa_get_globals () throw();
 extern "C" __cxa_eh_globals *__cxa_get_globals_fast () throw();
 
 // Allocate memory for the primary exception plus the thrown object.
+
 extern "C" void *__cxa_allocate_exception(std::size_t thrown_size) throw();
+
 // Allocate memory for dependent exception.
+
 extern "C" __cxa_dependent_exception *__cxa_allocate_dependent_exception() throw();
 
 // Free the space allocated for the primary exception.
+
 extern "C" void __cxa_free_exception(void *thrown_exception) throw();
+
 // Free the space allocated for the dependent exception.
+
 extern "C" void __cxa_free_dependent_exception(__cxa_dependent_exception *dependent_exception) throw();
 
 // Throw the exception.
+
 extern "C" void __cxa_throw (void *thrown_exception,
-			     std::type_info *tinfo,
-			     void (*dest) (void *))
-     __attribute__((noreturn));
+                             std::type_info *tinfo,
+                             void (*dest) (void *))  __attribute__((noreturn));
 
 // Used to implement exception handlers.
+
 extern "C" void *__cxa_begin_catch (void *) throw();
 extern "C" void __cxa_end_catch ();
 extern "C" void __cxa_rethrow () __attribute__((noreturn));
 
 // These facilitate code generation for recurring situations.
+
 extern "C" void __cxa_bad_cast ();
 extern "C" void __cxa_bad_typeid ();
 
@@ -158,24 +166,28 @@ extern "C" void __cxa_bad_typeid ();
 // Handles re-checking the exception specification if unexpectedHandler
 // throws, and if bad_exception needs to be thrown.  Called from the
 // compiler.
+
 extern "C" void __cxa_call_unexpected (void *) __attribute__((noreturn));
 
 // Invokes given handler, dying appropriately if the user handler was
 // so inconsiderate as to return.
+
 extern void __terminate(std::terminate_handler) __attribute__((noreturn));
 extern void __unexpected(std::unexpected_handler) __attribute__((noreturn));
 
 // The current installed user handlers.
+
 extern std::terminate_handler __terminate_handler;
 extern std::unexpected_handler __unexpected_handler;
 
 // These are explicitly GNU C++ specific.
 
 // This is the exception class we report -- "GNUCC++\0".
-const _Unwind_Exception_Class __gxx_exception_class
-= ((((((((_Unwind_Exception_Class) 'G' 
-	 << 8 | (_Unwind_Exception_Class) 'N')
-	<< 8 | (_Unwind_Exception_Class) 'U')
+
+const _Unwind_Exception_Class __gxx_exception_class =
+  ((((((((_Unwind_Exception_Class) 'G' 
+         << 8 | (_Unwind_Exception_Class) 'N')
+        << 8 | (_Unwind_Exception_Class) 'U')
        << 8 | (_Unwind_Exception_Class) 'C')
       << 8 | (_Unwind_Exception_Class) 'C')
      << 8 | (_Unwind_Exception_Class) '+')
@@ -183,25 +195,27 @@ const _Unwind_Exception_Class __gxx_exception_class
    << 8 | (_Unwind_Exception_Class) '\0');
 
 // GNU C++ personality routine, Version 0.
+
 extern "C" _Unwind_Reason_Code __gxx_personality_v0
      (int, _Unwind_Action, _Unwind_Exception_Class,
       struct _Unwind_Exception *, struct _Unwind_Context *);
 
 // GNU C++ sjlj personality routine, Version 0.
+
 extern "C" _Unwind_Reason_Code __gxx_personality_sj0
      (int, _Unwind_Action, _Unwind_Exception_Class,
       struct _Unwind_Exception *, struct _Unwind_Context *);
 
 // Acquire the C++ exception header from the C++ object.
-static inline __cxa_exception *
-__get_exception_header_from_obj (void *ptr)
+
+static inline __cxa_exception *__get_exception_header_from_obj (void *ptr)
 {
   return reinterpret_cast<__cxa_exception *>(ptr) - 1;
 }
 
 // Acquire the C++ exception header from the generic exception header.
-static inline __cxa_exception *
-__get_exception_header_from_ue (_Unwind_Exception *exc)
+
+static inline __cxa_exception *__get_exception_header_from_ue (_Unwind_Exception *exc)
 {
   return reinterpret_cast<__cxa_exception *>(exc + 1) - 1;
 }

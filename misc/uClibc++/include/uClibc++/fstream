@@ -69,13 +69,13 @@ namespace std{
 		_UCXXEXPORT basic_filebuf()	: basic_streambuf<charT, traits>(), fp(0), pbuffer(0), gbuffer(0)
 		{
 			append=false;
-			pbuffer = new char_type[__UCLIBCXX_IOSTREAM_BUFSIZE__];
-			gbuffer = new char_type[__UCLIBCXX_IOSTREAM_BUFSIZE__];
+			pbuffer = new char_type[CONFIG_UCLIBCXX_IOSTREAM_BUFSIZE];
+			gbuffer = new char_type[CONFIG_UCLIBCXX_IOSTREAM_BUFSIZE];
 
-			this->setp(pbuffer, pbuffer + __UCLIBCXX_IOSTREAM_BUFSIZE__);
+			this->setp(pbuffer, pbuffer + CONFIG_UCLIBCXX_IOSTREAM_BUFSIZE);
 			//Position get buffer so that there is no data available
-			this->setg(gbuffer, gbuffer + __UCLIBCXX_IOSTREAM_BUFSIZE__,
-				gbuffer + __UCLIBCXX_IOSTREAM_BUFSIZE__);
+			this->setg(gbuffer, gbuffer + CONFIG_UCLIBCXX_IOSTREAM_BUFSIZE,
+				gbuffer + CONFIG_UCLIBCXX_IOSTREAM_BUFSIZE);
 		}
 
 

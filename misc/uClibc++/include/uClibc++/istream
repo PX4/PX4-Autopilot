@@ -72,7 +72,7 @@ namespace std{
 		basic_istream<charT,traits>& operator>>(void*& p);
 		basic_istream<charT,traits>& operator>>(basic_streambuf<char_type,traits>* sb);
 
-#ifdef __UCLIBCXX_HAS_FLOATS__
+#ifdef CONFIG_HAVE_FLOAT
 		basic_istream<charT,traits>& operator>>(float& f);
 		basic_istream<charT,traits>& operator>>(double& f);
 		basic_istream<charT,traits>& operator>>(long double& f);
@@ -447,7 +447,7 @@ namespace std{
 		return *this;
 	}
 
-#ifdef __UCLIBCXX_HAS_FLOATS__
+#ifdef CONFIG_HAVE_FLOAT
 	template <class charT, class traits> _UCXXEXPORT basic_istream<charT,traits>&
 		basic_istream<charT,traits>::operator>>(float& n)
 	{
@@ -578,7 +578,7 @@ namespace std{
 	template <> _UCXXEXPORT istream & istream::operator>>(long int &n);
 	template <> _UCXXEXPORT istream & istream::operator>>(void *& p);
 
-#ifdef __UCLIBCXX_HAS_FLOATS__
+#ifdef CONFIG_HAVE_FLOAT
 	template <> _UCXXEXPORT istream & istream::operator>>(float &f);
 	template <> _UCXXEXPORT istream & istream::operator>>(double &f);
 	template <> _UCXXEXPORT istream & istream::operator>>(long double &f);

@@ -49,12 +49,19 @@ CXXSRCS += libxx_newa.cxx
 DEPPATH = --dep-path .
 VPATH = .
 
-# Include the uClibc++ Make.defs file (if it is present).  If is present,
+# Include the uClibc++ Make.defs file if selected.  If it is included,
 # the uClibc++/Make.defs file will add its files to the source file list,
 # add its DEPPATH info, and will add the appropriate paths to the VPATH
 # variable
+#
+# Note that an error will occur if you select CONFIG_LIBXX_UCLIBCXX
+# without installing the uClibc++ package.  This is intentional to let
+# you know about the configuration problem.  Refer to misc/uClibc++/README.txt
+# for more information
 
--include uClibc++/Make.defs
+ifeq ($(CONFIG_UCLIBCXX),y)
+include uClibc++/Make.defs
+endif
 
 # Object Files
 

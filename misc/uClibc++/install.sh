@@ -261,6 +261,15 @@ if [ ! -d "${nuttxcxx_incdir}" ]; then
   exit 1
 fi
 
+uclibc_incdir=${nuttx_incdir}/uClibc++
+
+if [ -d "${uclibc_incdir}" ]; then
+  echo "ERROR: Directory ${uclibc_incdir} already exists"
+  echo "       Please remove the  ${uclibc_incdir} directory and try again"
+  echo $usage
+  exit 1
+fi
+
 # Licensing
 
 echo "You are about to install the uClibc++ library into the NuttX source"

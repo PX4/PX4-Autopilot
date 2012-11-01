@@ -24,8 +24,9 @@
 #ifndef HEADER_STD_EXCEPTIONS
 #define HEADER_STD_EXCEPTIONS 1
 
-//Don't include support if not needed
-#ifdef __UCLIBCXX_EXCEPTION_SUPPORT__
+// Don't include support if not needed
+
+#ifdef CONFIG_UCLIBCXX_EXCEPTION
 
 #pragma GCC visibility push(default)
 

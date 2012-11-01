@@ -35,7 +35,7 @@ namespace std{
 	class _UCXXEXPORT ios_base {
 	public:
 		class failure;
-#ifdef __UCLIBCXX_EXCEPTION_SUPPORT__
+#ifdef CONFIG_UCLIBCXX_EXCEPTION
 		class failure : public exception {
 		public:
 			explicit failure(const std::string&) { }
@@ -303,7 +303,7 @@ namespace std{
 		}
 		_UCXXEXPORT void setstate(iostate state) {
 			clear(rdstate()  | state);
-#ifdef __UCLIBCXX_EXCEPTION_SUPPORT__
+#ifdef CONFIG_UCLIBCXX_EXCEPTION
 			if(rdstate() & throw_mask){
 				throw failure();
 			}

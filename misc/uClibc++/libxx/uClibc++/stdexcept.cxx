@@ -20,7 +20,7 @@
 #include <exception>
 #include <stdexcept>
 
-#ifdef __UCLIBCXX_EXCEPTION_SUPPORT__
+#ifdef CONFIG_UCLIBCXX_EXCEPTION
 
 namespace std{
 
