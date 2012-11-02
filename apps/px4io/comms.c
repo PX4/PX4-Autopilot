@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <poll.h>
 
 #include <nuttx/clock.h>
 
@@ -81,7 +82,6 @@ comms_check(void)
 {
 	static hrt_abstime last_report_time;
 	hrt_abstime now, delta;
-	uint8_t c;
 
 	/* should we send a report to the FMU? */
 	now = hrt_absolute_time();
@@ -102,9 +102,19 @@ comms_check(void)
 		hx_stream_send(stream, &report, sizeof(report));
 	}
 
-	/* feed any received bytes to the HDLC receive engine */
-	while (read(fmu_fd, &c, 1) == 1)
-		hx_stream_rx(stream, c);
+	/*
+	 * Check for bytes and feed them to the RX engine.  
+	 * Limit the number of bytes we actually process on any one iteration.
+	 */
+	struct pollfd fds[1];
+	fds[0].fd = fmu_fd;
+	fds[0].revents = POLLIN;
+	if (poll(fds, 1, 0) > 0) {
+		char buf[8];
+		ssize_t count = read(fmu_fd, buf, sizeof(buf));
+		for (int i = 0; i < count; i++)
+			hx_stream_rx(stream, buf[i]);
+	}
 }
 
 static void
