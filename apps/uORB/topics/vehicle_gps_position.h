@@ -66,6 +66,9 @@ struct vehicle_gps_position_s
 	uint16_t eph;				/**< GPS HDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535 //LOGME   */
 	uint16_t epv;				/**< GPS VDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535   */
 	uint16_t vel;				/**< GPS ground speed (m/s * 100). If unknown, set to: 65535   */
+	float vel_n;				/**< GPS ground speed in m/s */
+	float vel_e;				/**< GPS ground speed in m/s */
+	float vel_d;				/**< GPS ground speed in m/s */
 	uint16_t cog;				/**< Course over ground (NOT heading, but direction of movement) in degrees * 100, 0.0..359.99 degrees. If unknown, set to: 65535   */
 	uint8_t fix_type; 			/**< 0-1: no fix, 2: 2D fix, 3: 3D fix. Some applications will not use the value of this field unless it is at least two, so always correctly fill in the fix.   */
 	uint8_t satellites_visible;		/**< Number of satellites visible. If unknown, set to 255   */
@@ -76,6 +79,9 @@ struct vehicle_gps_position_s
 	uint8_t satellite_azimuth[20];		/**< Direction of satellite, 0: 0 deg, 255: 360 deg.   */
 	uint8_t satellite_snr[20];		/**< Signal to noise ratio of satellite   */
 	uint8_t satellite_info_available;	/**< 0 for no info, 1 for info available   */
+
+	/* flags */
+	float vel_ned_valid;			/**< Flag to indicate if NED speed is valid */
 
 };
 

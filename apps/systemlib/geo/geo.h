@@ -42,8 +42,31 @@
  * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  * @author Julian Oes <joes@student.ethz.ch>
  * @author Lorenz Meier <lm@inf.ethz.ch>
+ * Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
  */
+
+
+#include <stdbool.h>
+
+typedef struct {
+	bool error;			// Flag that the calculation failed
+	bool past_end;		// Flag indicating we are past the end of the line/arc segment
+	float distance;		// Distance in meters to closest point on line/arc
+	float bearing;		// Bearing in radians to closest point on line/arc
+} crosstrack_error_s;
 
 __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 
 __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
+
+//
+
+__EXPORT crosstrack_error_s get_distance_to_line(double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end);
+
+__EXPORT crosstrack_error_s get_distance_to_arc(double lat_now, double lon_now, double lat_center, double lon_center,
+		float radius, float arc_start_bearing, float arc_sweep);
+
+float _wrap180(float bearing);
+float _wrap360(float bearing);
+float _wrapPI(float bearing);
+float _wrap2PI(float bearing);

@@ -46,8 +46,8 @@
 #include <string.h>
 #include <poll.h>
 
-#include <arch/board/up_cpuload.h>
-#include <arch/board/up_hrt.h>
+#include <systemlib/cpuload.h>
+#include <drivers/drv_hrt.h>
 
 /**
  * Start the top application.
@@ -135,9 +135,9 @@ int top_main(int argc, char *argv[])
 					memset(header_spaces, ' ', CONFIG_TASK_NAME_SIZE);
 					header_spaces[CONFIG_TASK_NAME_SIZE] = '\0';
 #if CONFIG_RR_INTERVAL > 0
-					printf("\033[KPID\tCOMMAND%s CPU TOTAL \t%%CPU CURR \tMIN STACK USE\tCURR (BASE) PRIO\tRR SLICE\n", header_spaces);
+					printf("\033[KPID\tCOMMAND%s CPU TOTAL \t%%CPU CURR \tSTACK USE\tCURR (BASE) PRIO\tRR SLICE\n", header_spaces);
 #else
-					printf("\033[KPID\tCOMMAND%s CPU TOTAL \t%%CPU CURR \tMIN STACK USE\tCURR (BASE) PRIO\n", header_spaces);
+					printf("\033[KPID\tCOMMAND%s CPU TOTAL \t%%CPU CURR \tSTACK USE\tCURR (BASE) PRIO\n", header_spaces);
 #endif
 
 				} else {
@@ -190,7 +190,28 @@ int top_main(int argc, char *argv[])
 						runtime_spaces = "";
 					}
 
-					printf("\033[K % 2d\t%s%s % 8lld ms%s  \t % 2d.%03d \t % 6d B", (int)system_load.tasks[i].tcb->pid, system_load.tasks[i].tcb->name, spaces, (system_load.tasks[i].total_runtime / 1000), runtime_spaces, (int)(curr_loads[i] * 100), (int)(curr_loads[i] * 100000.0f - (int)(curr_loads[i] * 1000.0f) * 100), (uint32_t)system_load.tasks[i].tcb->adj_stack_ptr - (uint32_t)system_load.tasks[i].tcb->xcp.regs[REG_R13]);
+					unsigned stack_size = (uintptr_t)system_load.tasks[i].tcb->adj_stack_ptr -
+							      (uintptr_t)system_load.tasks[i].tcb->stack_alloc_ptr;
+					unsigned stack_free = 0;
+					uint8_t *stack_sweeper = (uint8_t *)system_load.tasks[i].tcb->stack_alloc_ptr;
+
+					while (stack_free < stack_size) {
+						if (*stack_sweeper++ != 0xff)
+							break;
+
+						stack_free++;
+					}
+
+					printf("\033[K % 2d\t%s%s % 8lld ms%s  \t % 2d.%03d \t % 4u / % 4u",
+					       (int)system_load.tasks[i].tcb->pid,
+					       system_load.tasks[i].tcb->name,
+					       spaces,
+					       (system_load.tasks[i].total_runtime / 1000),
+					       runtime_spaces,
+					       (int)(curr_loads[i] * 100),
+					       (int)(curr_loads[i] * 100000.0f - (int)(curr_loads[i] * 1000.0f) * 100),
+					       stack_size - stack_free,
+					       stack_size);
 					/* Print scheduling info with RR time slice */
 #if CONFIG_RR_INTERVAL > 0
 					printf("\t%d\t(%d)\t\t%d\n", (int)system_load.tasks[i].tcb->sched_priority, (int)system_load.tasks[i].tcb->base_priority, (int)system_load.tasks[i].tcb->timeslice);

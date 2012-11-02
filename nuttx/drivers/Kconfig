@@ -11,6 +11,14 @@ config DEV_ZERO
 	bool "Enable /dev/zero"
 	default n
 
+config ARCH_HAVE_RNG
+	bool
+
+config DEV_RANDOM 
+	bool "Enable /dev/random"
+	default n
+	depends on ARCH_HAVE_RNG
+
 config LOOP
 	bool "Enable loop device"
 	default n

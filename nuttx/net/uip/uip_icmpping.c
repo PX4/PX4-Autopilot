@@ -148,122 +148,129 @@ static inline int ping_timeout(struct icmp_ping_s *pstate)
  ****************************************************************************/
 
 static uint16_t ping_interrupt(struct uip_driver_s *dev, void *conn,
-                             void *pvpriv, uint16_t flags)
+                               void *pvpriv, uint16_t flags)
 {
   struct icmp_ping_s *pstate = (struct icmp_ping_s *)pvpriv;
   uint8_t *ptr;
-  int failcode = -ETIMEDOUT;
   int i;
 
   nllvdbg("flags: %04x\n", flags);
   if (pstate)
     {
-      /* Check if this device is on the same network as the destination device. */
+      /* Check if this is a ICMP ECHO reply.  If so, return the sequence
+       * number to the caller.  NOTE: We may not even have sent the
+       * requested ECHO request; this could have been the delayed ECHO
+       * response from a previous ping.
+       */
 
-      if (!uip_ipaddr_maskcmp(pstate->png_addr, dev->d_ipaddr, dev->d_netmask))
+      if ((flags & UIP_ECHOREPLY) != 0 && conn != NULL)
         {
-          /* Destination address was not on the local network served by this
-           * device.  If a timeout occurs, then the most likely reason is
-           * that the destination address is not reachable.
-           */
+          struct uip_icmpip_hdr *icmp = (struct uip_icmpip_hdr *)conn;
+          nlldbg("ECHO reply: id=%d seqno=%d\n",
+                 ntohs(icmp->id), ntohs(icmp->seqno));
 
-          nllvdbg("Not reachable\n");
-          failcode = -ENETUNREACH;
-        }
-      else
-        {
-          /* Check if this is a ICMP ECHO reply.  If so, return the sequence
-           * number to the caller.  NOTE: We may not even have sent the
-           * requested ECHO request; this could have been the delayed ECHO
-           * response from a previous ping.
-           */
-
-          if ((flags & UIP_ECHOREPLY) != 0 && conn != NULL)
+          if (ntohs(icmp->id) == pstate->png_id)
             {
-              struct uip_icmpip_hdr *icmp = (struct uip_icmpip_hdr *)conn;
-              nlldbg("ECHO reply: id=%d seqno=%d\n", ntohs(icmp->id), ntohs(icmp->seqno));
+              /* Consume the ECHOREPLY */
 
-              if (ntohs(icmp->id) == pstate->png_id)
-                {
-                  /* Consume the ECHOREPLY */
+              flags     &= ~UIP_ECHOREPLY;
+              dev->d_len = 0;
 
-                  flags &= ~UIP_ECHOREPLY;
-                  dev->d_len = 0;
+              /* Return the result to the caller */
 
-                  /* Return the result to the caller */
-
-                  pstate->png_result = OK;
-                  pstate->png_seqno  = ntohs(icmp->seqno);
-                  goto end_wait;
-                }
+              pstate->png_result = OK;
+              pstate->png_seqno  = ntohs(icmp->seqno);
+              goto end_wait;
             }
+        }
 
-          /* Check:
-           *   If the outgoing packet is available (it may have been claimed
-           *   by a sendto interrupt serving a different thread
-           * -OR-
-           *   If the output buffer currently contains unprocessed incoming
-           *   data.
-           * -OR-
-           *   If we have alread sent the ECHO request
+      /* Check:
+       *   If the outgoing packet is available (it may have been claimed
+       *   by a sendto interrupt serving a different thread)
+       * -OR-
+       *   If the output buffer currently contains unprocessed incoming
+       *   data.
+       * -OR-
+       *   If we have alread sent the ECHO request
+       *
+       * In the first two cases, we will just have to wait for the next
+       * polling cycle.
+       */
+
+      if (dev->d_sndlen <= 0 &&           /* Packet available */
+          (flags & UIP_NEWDATA) == 0 &&   /* No incoming data */
+          !pstate->png_sent)              /* Request not sent */
+        {
+          struct uip_icmpip_hdr *picmp = ICMPBUF;
+
+          /* We can send the ECHO request now.
            *
-           * In the first two cases, we will just have to wait for the next
-           * polling cycle.
+           * Format the ICMP ECHO request packet
            */
 
-          if (dev->d_sndlen <= 0 &&           /* Packet available */
-              (flags & UIP_NEWDATA) == 0 &&   /* No incoming data */
-              !pstate->png_sent)              /* Request not sent */
-            {
-              struct uip_icmpip_hdr *picmp = ICMPBUF;
-
-              /* We can send the ECHO request now.
-               *
-               * Format the ICMP ECHO request packet
-               */
-
-              picmp->type  = ICMP_ECHO_REQUEST;
-              picmp->icode = 0;
+          picmp->type  = ICMP_ECHO_REQUEST;
+          picmp->icode = 0;
 #ifndef CONFIG_NET_IPv6
-              picmp->id    = htons(pstate->png_id);
-              picmp->seqno = htons(pstate->png_seqno);
+          picmp->id    = htons(pstate->png_id);
+          picmp->seqno = htons(pstate->png_seqno);
 #else
 # error "IPv6 ECHO Request not implemented"
 #endif
-              /* Add some easily verifiable data */
+          /* Add some easily verifiable data */
 
-              for (i = 0, ptr = ICMPDAT; i < pstate->png_datlen; i++)
-                {
-                  *ptr++ = i;
-                }
-
-              /* Send the ICMP echo request.  Note that d_sndlen is set to
-               * the size of the ICMP payload and does not include the size
-               * of the ICMP header.
-               */
-
-              nlldbg("Send ECHO request: seqno=%d\n", pstate->png_seqno);
-
-              dev->d_sndlen = pstate->png_datlen + 4;
-              uip_icmpsend(dev, &pstate->png_addr);
-              pstate->png_sent = true;
-              return flags;
+          for (i = 0, ptr = ICMPDAT; i < pstate->png_datlen; i++)
+            {
+              *ptr++ = i;
             }
+
+          /* Send the ICMP echo request.  Note that d_sndlen is set to
+           * the size of the ICMP payload and does not include the size
+           * of the ICMP header.
+           */
+
+          nlldbg("Send ECHO request: seqno=%d\n", pstate->png_seqno);
+
+          dev->d_sndlen = pstate->png_datlen + 4;
+          uip_icmpsend(dev, &pstate->png_addr);
+          pstate->png_sent = true;
+          return flags;
         }
 
       /* Check if the selected timeout has elapsed */
 
       if (ping_timeout(pstate))
         {
-          /* Yes.. report the timeout */
+          int failcode;
 
-          nlldbg("Ping timeout\n");
+          /* Check if this device is on the same network as the destination
+           * device.
+           */
+
+          if (!uip_ipaddr_maskcmp(pstate->png_addr, dev->d_ipaddr, dev->d_netmask))
+            {
+              /* Destination address was not on the local network served by this
+               * device.  If a timeout occurs, then the most likely reason is
+               * that the destination address is not reachable.
+               */
+
+              nlldbg("Not reachable\n");
+              failcode = -ENETUNREACH;
+            }
+          else
+            {
+              nlldbg("Ping timeout\n");
+              failcode = -ETIMEDOUT;
+            }
+
+          /* Report the failure */
+
           pstate->png_result = failcode;
           goto end_wait;
         }
 
       /* Continue waiting */
     }
+
   return flags;
 
 end_wait:

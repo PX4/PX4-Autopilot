@@ -21,6 +21,11 @@ set MODE autostart
 set USB autoconnect
 
 #
+# Start playing the startup tune
+#
+tone_alarm start
+
+#
 # Try to mount the microSD card.
 #
 echo "[init] looking for microSD..."
@@ -30,9 +35,6 @@ then
 else
 	echo "[init] no microSD card found"
 fi
-
-usleep 500
-
 
 #
 # Look for an init script on the microSD card.
@@ -44,6 +46,8 @@ if [ -f /fs/microsd/etc/rc ]
 then
 	echo "[init] reading /fs/microsd/etc/rc"
 	sh /fs/microsd/etc/rc
+else
+	echo "[init] script /fs/microsd/etc/rc not present"
 fi
 
 #
@@ -79,7 +83,7 @@ else
 	#
 	# Are we attached to a PX4IOAR (AR.Drone carrier board)?
 	#
-	if boardinfo -t 7
+	if boardinfo test name PX4IOAR
 	then
 		set BOARD PX4IOAR
 		if [ -f /etc/init.d/rc.PX4IOAR ]
@@ -95,7 +99,7 @@ else
 	#
 	# Are we attached to a PX4IO?
 	#
-	if boardinfo -t 6
+	if boardinfo test name PX4IO
 	then
 		set BOARD PX4IO
 		if [ -f /etc/init.d/rc.PX4IO ]

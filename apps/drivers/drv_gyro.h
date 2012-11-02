@@ -58,7 +58,7 @@ struct gyro_report {
 	float temperature;	/**< temperature in degrees celcius */
 	float range_rad_s;
 	float scaling;
-	
+
 	int16_t x_raw;
 	int16_t y_raw;
 	int16_t z_raw;

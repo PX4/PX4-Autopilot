@@ -45,7 +45,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <systemlib/systemlib.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <mavlink/mavlink_log.h>
 
 #include "state_machine_helper.h"
@@ -138,7 +138,7 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 			current_status->flag_system_armed = false;
 			mavlink_log_critical(mavlink_fd, "[commander] REBOOTING SYSTEM");
 			usleep(500000);
-			reboot();
+			up_systemreset();
 			/* SPECIAL CASE: NEVER RETURNS FROM THIS FUNCTION CALL */
 		} else {
 			invalid_state = true;
@@ -504,7 +504,7 @@ void update_state_machine_mode_manual(int status_pub, struct vehicle_status_s *c
 	current_status->flag_control_manual_enabled = true;
 	/* enable attitude control per default */
 	current_status->flag_control_attitude_enabled = true;
-	current_status->flag_control_rates_enabled = false; // XXX
+	current_status->flag_control_rates_enabled = true;
 	if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
 
 	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_STABILIZED || current_status->state_machine == SYSTEM_STATE_AUTO) {
@@ -519,7 +519,7 @@ void update_state_machine_mode_stabilized(int status_pub, struct vehicle_status_
 	current_status->flight_mode = VEHICLE_FLIGHT_MODE_STABILIZED;
 	current_status->flag_control_manual_enabled = true;
 	current_status->flag_control_attitude_enabled = true;
-	current_status->flag_control_rates_enabled = false; // XXX
+	current_status->flag_control_rates_enabled = true;
 	if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
 
 	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_AUTO) {
@@ -534,7 +534,7 @@ void update_state_machine_mode_auto(int status_pub, struct vehicle_status_s *cur
 	current_status->flight_mode = VEHICLE_FLIGHT_MODE_AUTO;
 	current_status->flag_control_manual_enabled = true;
 	current_status->flag_control_attitude_enabled = true;
-	current_status->flag_control_rates_enabled = false; // XXX
+	current_status->flag_control_rates_enabled = true;
 	if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
 
 	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_STABILIZED) {

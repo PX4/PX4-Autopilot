@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,13 +35,15 @@
 /**
  * @file mavlink_parameters.h
  * MAVLink parameter protocol definitions (BSD-relicensed).
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 /* This assumes you have the mavlink headers on your include path
  or in the same folder as this source file */
 
 
-#include "v1.0/common/mavlink.h"
+#include <v1.0/mavlink_types.h>
 #include <stdbool.h>
 #include <systemlib/param/param.h>
 

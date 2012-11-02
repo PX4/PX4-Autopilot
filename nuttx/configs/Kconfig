@@ -23,6 +23,7 @@ config ARCH_BOARD_PX4IO
 	depends on ARCH_CHIP_STM32F100C8
 	---help---
 		PX4 system I/O expansion board
+
 endchoice
 
 config ARCH_BOARD

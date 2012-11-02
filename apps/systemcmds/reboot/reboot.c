@@ -41,14 +41,13 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#include "systemlib/systemlib.h"
+#include <systemlib/systemlib.h>
 
 __EXPORT int reboot_main(int argc, char *argv[]);
 
 int reboot_main(int argc, char *argv[])
 {
-	reboot();
-	return 0;
+	up_systemreset();
 }
 
 

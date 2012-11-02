@@ -97,7 +97,6 @@ struct {
 	{"servo",		test_servo,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
 	{"adc",			test_adc,	OPT_NOJIGTEST, 0},
 	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST, 0},
-	{"eeproms",		test_eeproms,	0, 0},
 	{"uart_loopback",	test_uart_loopback,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
 	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
 	{"uart_send",		test_uart_send,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
@@ -109,6 +108,7 @@ struct {
 	{"all",			test_all,	OPT_NOALLTEST | OPT_NOJIGTEST, 0},
 	{"jig",			test_jig,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
 	{"param",		test_param,	0, 0},
+	{"bson",		test_bson,	0, 0},
 	{"file",		test_file,	0, 0},
 	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST, 0},
 	{NULL,			NULL, 		0, 0}

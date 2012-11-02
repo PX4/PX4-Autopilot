@@ -76,6 +76,7 @@
 
 // ************
 /** the structures of the binary packets */
+#pragma pack(push, 1)
 typedef struct {
 	uint32_t time_milliseconds; // GPS Millisecond Time of Week
 	int32_t lon;  // Longitude * 1e-7, deg
@@ -87,7 +88,7 @@ typedef struct {
 
 	uint8_t ck_a;
 	uint8_t ck_b;
-}  __attribute__((__packed__)) type_gps_bin_nav_posllh_packet;
+} type_gps_bin_nav_posllh_packet;
 
 typedef type_gps_bin_nav_posllh_packet gps_bin_nav_posllh_packet_t;
 
@@ -112,7 +113,7 @@ typedef struct {
 
 	uint8_t ck_a;
 	uint8_t ck_b;
-}  __attribute__((__packed__)) type_gps_bin_nav_sol_packet;
+} type_gps_bin_nav_sol_packet;
 
 typedef type_gps_bin_nav_sol_packet gps_bin_nav_sol_packet_t;
 
@@ -131,7 +132,7 @@ typedef struct {
 
 	uint8_t ck_a;
 	uint8_t ck_b;
-}  __attribute__((__packed__)) type_gps_bin_nav_timeutc_packet;
+} type_gps_bin_nav_timeutc_packet;
 
 typedef type_gps_bin_nav_timeutc_packet gps_bin_nav_timeutc_packet_t;
 
@@ -148,7 +149,7 @@ typedef struct {
 
 	uint8_t ck_a;
 	uint8_t ck_b;
-}  __attribute__((__packed__)) type_gps_bin_nav_dop_packet;
+} type_gps_bin_nav_dop_packet;
 
 typedef type_gps_bin_nav_dop_packet gps_bin_nav_dop_packet_t;
 
@@ -158,7 +159,7 @@ typedef struct {
 	uint8_t globalFlags;
 	uint16_t reserved2;
 
-}  __attribute__((__packed__)) type_gps_bin_nav_svinfo_part1_packet;
+} type_gps_bin_nav_svinfo_part1_packet;
 
 typedef type_gps_bin_nav_svinfo_part1_packet gps_bin_nav_svinfo_part1_packet_t;
 
@@ -172,7 +173,7 @@ typedef struct {
 	int16_t azim; //Azimuth in integer degrees
 	int32_t prRes; //Pseudo range residual in centimetres
 
-}  __attribute__((__packed__)) type_gps_bin_nav_svinfo_part2_packet;
+} type_gps_bin_nav_svinfo_part2_packet;
 
 typedef type_gps_bin_nav_svinfo_part2_packet gps_bin_nav_svinfo_part2_packet_t;
 
@@ -180,7 +181,7 @@ typedef struct {
 	uint8_t ck_a;
 	uint8_t ck_b;
 
-}  __attribute__((__packed__)) type_gps_bin_nav_svinfo_part3_packet;
+} type_gps_bin_nav_svinfo_part3_packet;
 
 typedef type_gps_bin_nav_svinfo_part3_packet gps_bin_nav_svinfo_part3_packet_t;
 
@@ -198,7 +199,7 @@ typedef struct {
 
 	uint8_t ck_a;
 	uint8_t ck_b;
-}  __attribute__((__packed__)) type_gps_bin_nav_velned_packet;
+} type_gps_bin_nav_velned_packet;
 
 typedef type_gps_bin_nav_velned_packet gps_bin_nav_velned_packet_t;
 
@@ -209,7 +210,7 @@ typedef struct {
 
 	//... rest of package is not used in this implementation
 
-}  __attribute__((__packed__)) type_gps_bin_rxm_svsi_packet;
+} type_gps_bin_rxm_svsi_packet;
 
 typedef type_gps_bin_rxm_svsi_packet gps_bin_rxm_svsi_packet_t;
 
@@ -219,7 +220,7 @@ typedef struct {
 
 	uint8_t ck_a;
 	uint8_t ck_b;
-}  __attribute__((__packed__)) type_gps_bin_ack_ack_packet;
+} type_gps_bin_ack_ack_packet;
 
 typedef type_gps_bin_ack_ack_packet gps_bin_ack_ack_packet_t;
 
@@ -229,7 +230,7 @@ typedef struct {
 
 	uint8_t ck_a;
 	uint8_t ck_b;
-}  __attribute__((__packed__)) type_gps_bin_ack_nak_packet;
+} type_gps_bin_ack_nak_packet;
 
 typedef type_gps_bin_ack_nak_packet gps_bin_ack_nak_packet_t;
 
@@ -283,9 +284,10 @@ typedef struct {
 	enum UBX_MESSAGE_IDS message_id;
 	uint64_t last_message_timestamps[UBX_NO_OF_MESSAGES];
 
-}  __attribute__((__packed__)) type_gps_bin_ubx_state;
+} type_gps_bin_ubx_state;
 
 typedef type_gps_bin_ubx_state gps_bin_ubx_state_t;
+#pragma pack(pop)
 
 extern pthread_mutex_t *ubx_mutex;
 extern gps_bin_ubx_state_t *ubx_state;

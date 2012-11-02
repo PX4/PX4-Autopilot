@@ -1,7 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2008-2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,8 @@
 /**
  * @file mavlink_bridge_header
  * MAVLink bridge header for UART access.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 /* MAVLink adapter header */
@@ -43,8 +45,11 @@
 
 #define MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
-//use efficient approach, see mavlink_helpers.h
+/* use efficient approach, see mavlink_helpers.h */
 #define MAVLINK_SEND_UART_BYTES mavlink_send_uart_bytes
+
+#define MAVLINK_GET_CHANNEL_BUFFER mavlink_get_channel_buffer
+#define MAVLINK_GET_CHANNEL_STATUS mavlink_get_channel_status
 
 #include "v1.0/mavlink_types.h"
 #include <unistd.h>
@@ -62,28 +67,15 @@
  */
 extern mavlink_system_t mavlink_system;
 
-
-mqd_t gps_queue;
-int uart;
-
-
 /**
  * @brief Send multiple chars (uint8_t) over a comm channel
  *
  * @param chan MAVLink channel to use, usually MAVLINK_COMM_0 = UART0
  * @param ch Character to send
  */
-static inline void mavlink_send_uart_bytes(mavlink_channel_t chan, uint8_t *ch, uint16_t length)
-{
-	ssize_t ret;
+extern void mavlink_send_uart_bytes(mavlink_channel_t chan, uint8_t *ch, int length);
 
-	if (chan == MAVLINK_COMM_0) {
-		ret = write(uart, ch, (size_t)(sizeof(uint8_t) * length));
-
-		if (ret != length) {
-			printf("[mavlink] Error: Written %u instead of %u\n", ret, length);
-		}
-	}
-}
+mavlink_status_t* mavlink_get_channel_status(uint8_t chan);
+mavlink_message_t* mavlink_get_channel_buffer(uint8_t chan);
 
 #endif /* MAVLINK_BRIDGE_HEADER_H */

@@ -853,9 +853,8 @@ apps
  |- system/
  |   |- i2c/README.txt
  |   |- free/README.txt
- |   `- install
- |      `- README.txt
- |- vsn/
+ |   |- install
+ |   |  `- README.txt
  |   |- poweroff
  |   |  `- README.txt
  |   |- ramtron

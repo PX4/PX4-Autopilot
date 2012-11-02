@@ -61,8 +61,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <poll.h>
 
-#include "codegen/position_estimator.h"
-
 #define N_STATES 6
 #define ERROR_COVARIANCE_INIT 3
 #define R_EARTH 6371000.0

@@ -45,7 +45,7 @@
 __BEGIN_DECLS
 
 /** Reboots the board */
-__EXPORT int reboot(void);
+extern void up_systemreset(void) noreturn_function;
 
 /** Sends SIGUSR1 to all processes */
 __EXPORT void killall(void);
@@ -116,11 +116,6 @@ struct __multiport_info {
 	const char *port_names[MULT_COUNT];
 };
 __EXPORT extern const struct __multiport_info multiport_info;
-
-__EXPORT int carrier_store_board_info(const struct carrier_board_info_s *info);
-__EXPORT int carrier_get_board_info(struct carrier_board_info_s *info);
-
-__EXPORT int fmu_get_board_info(struct fmu_board_info_s *info);
 
 __END_DECLS
 

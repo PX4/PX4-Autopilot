@@ -88,6 +88,15 @@ SECTIONS
 	} > flash
 
 	/*
+	 * Init functions (static constructors and the like)
+	 */
+        .init_section : {
+                _sinit = ABSOLUTE(.);
+                KEEP(*(.init_array .init_array.*))
+                _einit = ABSOLUTE(.);
+        } > flash
+
+	/*
 	 * Construction data for parameters.
 	 */
 	__param ALIGN(4): {

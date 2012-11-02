@@ -50,13 +50,11 @@
 
 #include <arch/board/board.h>
 
-#include <arch/board/drv_led.h>
-
 #include "tests.h"
 
 #include <math.h>
 #include <float.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 
 /****************************************************************************

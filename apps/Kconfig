@@ -34,7 +34,3 @@ endmenu
 menu "System NSH Add-Ons"
 source "$APPSDIR/system/Kconfig"
 endmenu
-
-menu "VSN board Add-Ons"
-source "$APPSDIR/vsn/Kconfig"
-endmenu

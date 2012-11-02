@@ -39,6 +39,8 @@
  * messages and the corresponding complexity involved.
  */
 
+#pragma once
+
 /*
  * XXX MUST BE KEPT IN SYNC WITH THE VERSION IN PX4FMU UNTIL
  * TREES ARE MERGED.

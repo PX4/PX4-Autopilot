@@ -51,7 +51,7 @@
 #include <string.h>
 #include <systemlib/err.h>
 #include <unistd.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
@@ -72,6 +72,7 @@ static int deamon_task;				/**< Handle of deamon task / thread */
 static const int MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log folders */
 
 static const char *mountpoint = "/fs/microsd";
+static const char *mfile_in = "/etc/logging/logconv.m";
 
 /**
  * SD log management function.
@@ -90,6 +91,13 @@ static void usage(const char *reason);
 
 static int file_exist(const char *filename);
 
+static int file_copy(const char* file_old, const char* file_new);
+
+/**
+ * Print the current status.
+ */
+static void print_sdlog_status(void);
+
 /**
  * Create folder for current logging session.
  */
@@ -102,6 +110,14 @@ usage(const char *reason)
 		fprintf(stderr, "%s\n", reason);
 	errx(1, "usage: sdlog {start|stop|status} [-p <additional params>]\n\n");
 }
+
+// XXX turn this into a C++ class
+unsigned sensor_combined_bytes = 0;
+unsigned actuator_outputs_bytes = 0;
+unsigned actuator_controls_bytes = 0;
+unsigned sysvector_bytes = 0;
+unsigned blackbox_file_bytes = 0;
+uint64_t starttime = 0;
 
 /**
  * The sd log deamon app only briefly exists to start
@@ -131,7 +147,6 @@ int sdlog_main(int argc, char *argv[])
 					 4096,
 					 sdlog_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
-		thread_running = true;
 		exit(0);
 	}
 
@@ -145,7 +160,7 @@ int sdlog_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tsdlog is running\n");
+			print_sdlog_status();
 		} else {
 			printf("\tsdlog not started\n");
 		}
@@ -169,7 +184,17 @@ int create_logfolder(char* folder_path) {
 		/* the result is -1 if the folder exists */
 
 		if (mkdir_ret == 0) {
-			/* folder does not exist */
+			/* folder does not exist, success */
+
+			/* now copy the Matlab/Octave file */
+			char mfile_out[100];
+			sprintf(mfile_out, "%s/session%04u/run_to_plot_data.m", mountpoint, foldernumber);
+			int ret = file_copy(mfile_in, mfile_out);
+			if (!ret) {
+				warnx("copied m file to %s", mfile_out);
+			} else {
+				warnx("failed copying m file from %s to\n %s", mfile_in, mfile_out);
+			}
 			break;
 
 		} else if (mkdir_ret == -1) {
@@ -194,7 +219,7 @@ int create_logfolder(char* folder_path) {
 
 int sdlog_thread_main(int argc, char *argv[]) {
 
-	printf("[sdlog] starting\n");
+	warnx("starting\n");
 
 	if (file_exist(mountpoint) != OK) {
 		errx(1, "logging mount point %s not present, exiting.", mountpoint);
@@ -202,25 +227,20 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	char folder_path[64];
 	if (create_logfolder(folder_path))
-		errx(1, "unable to create logging folder, exiting");
+		errx(1, "unable to create logging folder, exiting.");
 
 	/* create sensorfile */
 	int sensorfile = -1;
-	unsigned sensor_combined_bytes = 0;
 	int actuator_outputs_file = -1;
-	unsigned actuator_outputs_bytes = 0;
 	int actuator_controls_file = -1;
-	unsigned actuator_controls_bytes = 0;
 	int sysvector_file = -1;
-	unsigned sysvector_bytes = 0;
 	FILE *gpsfile;
-	unsigned blackbox_file_bytes = 0;
 	FILE *blackbox_file;
 	// FILE *vehiclefile;
 
 	char path_buf[64] = ""; // string to hold the path to the sensorfile
 
-	printf("[sdlog] logging to directory %s\n", folder_path);
+	warnx("logging to directory %s\n", folder_path);
 
 	/* set up file path: e.g. /mnt/sdcard/session0001/sensor_combined.bin */
 	sprintf(path_buf, "%s/%s.bin", folder_path, "sensor_combined");
@@ -347,14 +367,14 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	/* --- GLOBAL POSITION --- */
 	/* subscribe to ORB for global position */
-	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	fds[fdsc_count].fd = subs.global_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
 	/* --- GPS POSITION --- */
 	/* subscribe to ORB for global position */
-	subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	fds[fdsc_count].fd = subs.gps_pos_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
@@ -372,13 +392,13 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	 * set up poll to block for new data,
 	 * wait for a maximum of 1000 ms (1 second)
 	 */
-	const int timeout = 1000;
+	// const int timeout = 1000;
 
 	thread_running = true;
 
 	int poll_count = 0;
 
-	uint64_t starttime = hrt_absolute_time();
+	starttime = hrt_absolute_time();
 
 	while (!thread_should_exit) {
 
@@ -484,6 +504,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 			float vbat;
 			float adc[3];
 			float local_pos[3];
+			int32_t gps_pos[3];
 		} sysvector = {
 			.timestamp = buf.raw.timestamp,
 			.gyro = {buf.raw.gyro_rad_s[0], buf.raw.gyro_rad_s[1], buf.raw.gyro_rad_s[2]},
@@ -497,7 +518,8 @@ int sdlog_thread_main(int argc, char *argv[]) {
 					buf.act_outputs.output[4], buf.act_outputs.output[5], buf.act_outputs.output[6], buf.act_outputs.output[7]},
 			.vbat = buf.raw.battery_voltage_v,
 			.adc = {buf.raw.adc_voltage_v[0], buf.raw.adc_voltage_v[1], buf.raw.adc_voltage_v[2]},
-			.local_pos = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z}
+			.local_pos = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z},
+			.gps_pos = {buf.gps_pos.lat, buf.gps_pos.lon, buf.gps_pos.alt}
 		};
 		#pragma pack(pop)
 
@@ -506,13 +528,11 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		usleep(10000);
 	}
 
-	unsigned bytes = sensor_combined_bytes + actuator_outputs_bytes + blackbox_file_bytes + actuator_controls_bytes;
-	float mebibytes = bytes / 1024.0f / 1024.0f;
-	float seconds = ((float)(hrt_absolute_time() - starttime)) / 1000000.0f;
+	fsync(sysvector_file);
 
-	printf("[sdlog] wrote %4.2f MiB (average %5.3f MiB/s).\n", (double)mebibytes, (double)(mebibytes / seconds));
+	print_sdlog_status();
 
-	printf("[sdlog] exiting.\n");
+	warnx("exiting.\n");
 
 	close(sensorfile);
 	close(actuator_outputs_file);
@@ -525,6 +545,15 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	return 0;
 }
 
+void print_sdlog_status()
+{
+	unsigned bytes = sysvector_bytes + sensor_combined_bytes + actuator_outputs_bytes + blackbox_file_bytes + actuator_controls_bytes;
+	float mebibytes = bytes / 1024.0f / 1024.0f;
+	float seconds = ((float)(hrt_absolute_time() - starttime)) / 1000000.0f;
+
+	warnx("wrote %4.2f MiB (average %5.3f MiB/s).\n", (double)mebibytes, (double)(mebibytes / seconds));
+}
+
 /**
  * @return 0 if file exists
  */
@@ -532,5 +561,44 @@ int file_exist(const char *filename)
 {
 	struct stat buffer;
 	return stat(filename, &buffer);
+}
+
+int file_copy(const char* file_old, const char* file_new)
+{
+	FILE *source, *target;
+	source = fopen(file_old, "r");
+	int ret = 0;
+ 
+	if( source == NULL )
+	{
+		warnx("failed opening input file to copy");
+		return 1;
+	}
+
+	target = fopen(file_new, "w");
+ 
+	if( target == NULL )
+	{
+		fclose(source);
+		warnx("failed to open output file to copy");
+		return 1;
+	}
+ 
+	char buf[128];
+	int nread;
+	while ((nread = fread(buf, 1, sizeof(buf), source)) > 0) {
+		int ret = fwrite(buf, 1, nread, target);
+		if (ret <= 0) {
+			warnx("error writing file");
+			ret = 1;
+			break;
+		}
+	}
+	fsync(fileno(target));
+
+	fclose(source);
+	fclose(target);
+
+   return ret;
 }
 

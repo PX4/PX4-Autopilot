@@ -118,9 +118,19 @@ eeprom_attach(void)
 	if (i2c == NULL)
 		errx(1, "failed to locate I2C bus");
 
-	/* start the MTD driver */
-	eeprom_mtd = at24c_initialize(i2c);
+	/* start the MTD driver, attempt 5 times */
+	for (int i = 0; i < 5; i++) {
+		eeprom_mtd = at24c_initialize(i2c);
+		if (eeprom_mtd) {
+			/* abort on first valid result */
+			if (i > 0) {
+				warnx("warning: EEPROM needed %d attempts to attach", i+1);
+			}
+			break;
+		}
+	}
 
+	/* if last attempt is still unsuccessful, abort */
 	if (eeprom_mtd == NULL)
 		errx(1, "failed to initialize EEPROM driver");
 
@@ -143,13 +153,13 @@ eeprom_start(void)
 
 	if (ret < 0)
 		errx(1, "failed to initialize NXFFS - erase EEPROM to reformat");
-	
+
 	/* mount the EEPROM */
 	ret = mount(NULL, "/eeprom", "nxffs", 0, NULL);
 
 	if (ret < 0)
 		errx(1, "failed to mount /eeprom - erase EEPROM to reformat");
-	
+
 	started = true;
 	warnx("mounted EEPROM at /eeprom");
 	exit(0);
@@ -165,6 +175,7 @@ eeprom_erase(void)
 
 	if (at24c_nuke())
 		errx(1, "erase failed");
+
 	errx(0, "erase done, reboot now");
 }
 
@@ -190,7 +201,7 @@ eeprom_save(const char *name)
 	if (!started)
 		errx(1, "must be started first");
 
-	if (!name) 
+	if (!name)
 		err(1, "missing argument for device name, try '/eeprom/parameters'");
 
 	warnx("WARNING: 'eeprom save_param' deprecated - use 'param save' instead");
@@ -221,9 +232,9 @@ eeprom_load(const char *name)
 	if (!started)
 		errx(1, "must be started first");
 
-	if (!name) 
+	if (!name)
 		err(1, "missing argument for device name, try '/eeprom/parameters'");
-	
+
 	warnx("WARNING: 'eeprom load_param' deprecated - use 'param load' instead");
 
 	int fd = open(name, O_RDONLY);

@@ -128,6 +128,7 @@ static inline void stm32_gpioremap(void)
   val |= AFIO_MAPR_SPI1_REMAP;
 #endif
 #ifdef CONFIG_STM32_SPI3_REMAP
+  val |= AFIO_MAPR_SPI3_REMAP;
 #endif
 
 #ifdef CONFIG_STM32_I2C1_REMAP

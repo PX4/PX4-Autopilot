@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Character device base class.
+ * @file cdev.cpp
+ *
+ * Character device base class.
  */
 
 #include "device.h"
@@ -74,7 +76,7 @@ static int	cdev_poll(struct file *filp, struct pollfd *fds, bool setup);
  * Note that we use the GNU extension syntax here because we don't get designated
  * initialisers in gcc 4.6.
  */
-static const struct file_operations cdev_fops = {
+const struct file_operations CDev::fops = {
 open	: cdev_open,
 close	: cdev_close,
 read	: cdev_read,
@@ -118,7 +120,7 @@ CDev::init()
 		goto out;
 
 	// now register the driver
-	ret = register_driver(_devname, &cdev_fops, 0666, (void *)this);
+	ret = register_driver(_devname, &fops, 0666, (void *)this);
 
 	if (ret != OK)
 		goto out;

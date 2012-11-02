@@ -5,6 +5,5 @@
 
 if [ -d /fs/microsd ]
 then
-	# XXX this should be '<command> start'.
-	# sdlog &
+	sdlog start
 fi

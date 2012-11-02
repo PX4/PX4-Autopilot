@@ -40,24 +40,7 @@ CFLAGS		+= -I$(TOPDIR)/sched
 ASRCS		= 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
-CSRCS		= up_boot.c up_leds.c up_spi.c up_hrt.c \
-		  drv_gpio.c drv_bma180.c drv_l3gd20.c \
-		  drv_led.c drv_eeprom.c \
-		  drv_tone_alarm.c up_pwm_servo.c up_usbdev.c \
-		  up_cpuload.c
-
-ifeq ($(CONFIG_NSH_ARCHINIT),y)
-CSRCS		+= up_nsh.c
-endif
-
-ifeq ($(CONFIG_ADC),y)
-CSRCS		+= up_adc.c
-endif
-
-ifeq ($(CONFIG_CAN),y)
-CSRCS		+= up_can.c
-endif
-
+CSRCS		= empty.c
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)
@@ -84,6 +67,7 @@ libboard$(LIBEXT): $(OBJS)
 	@( for obj in $(OBJS) ; do \
 		$(call ARCHIVE, $@, $${obj}); \
 	done ; )
+	touch $@
 
 .depend: Makefile $(SRCS)
 	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep

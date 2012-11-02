@@ -40,7 +40,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/queue.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include "perf_counter.h"
 

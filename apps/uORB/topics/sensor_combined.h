@@ -77,33 +77,33 @@ struct sensor_combined_s {
 
 	/* NOTE: Ordering of fields optimized to align to 32 bit / 4 bytes Change with consideration only   */
 
-	uint64_t timestamp;			/**< Timestamp in microseconds since boot       LOGME  */
+	uint64_t timestamp;			/**< Timestamp in microseconds since boot         */
 
-	int16_t	gyro_raw[3];			/**< Raw sensor values of angular velocity      LOGME  */
-	uint16_t gyro_counter;			/**< Number of raw measurments taken            LOGME  */
-	float gyro_rad_s[3];			/**< Angular velocity in radian per seconds     LOGME  */
+	int16_t	gyro_raw[3];			/**< Raw sensor values of angular velocity        */
+	uint16_t gyro_counter;			/**< Number of raw measurments taken              */
+	float gyro_rad_s[3];			/**< Angular velocity in radian per seconds       */
 	
-	int16_t accelerometer_raw[3];		/**< Raw acceleration in NED body frame         LOGME  */
-	uint32_t accelerometer_counter;		/**< Number of raw acc measurements taken       LOGME  */
-	float accelerometer_m_s2[3];		/**< Acceleration in NED body frame, in m/s^2   LOGME  */
+	int16_t accelerometer_raw[3];		/**< Raw acceleration in NED body frame           */
+	uint32_t accelerometer_counter;		/**< Number of raw acc measurements taken         */
+	float accelerometer_m_s2[3];		/**< Acceleration in NED body frame, in m/s^2     */
 	int accelerometer_mode;			/**< Accelerometer measurement mode */
 	float accelerometer_range_m_s2;		/**< Accelerometer measurement range in m/s^2 */
 
-	int16_t	magnetometer_raw[3];		/**< Raw magnetic field in NED body frame       LOGME  */
-	float magnetometer_ga[3];		/**< Magnetic field in NED body frame, in Gauss LOGME  */
+	int16_t	magnetometer_raw[3];		/**< Raw magnetic field in NED body frame         */
+	float magnetometer_ga[3];		/**< Magnetic field in NED body frame, in Gauss   */
 	int magnetometer_mode;			/**< Magnetometer measurement mode */
 	float magnetometer_range_ga;		/**< ± measurement range in Gauss */
 	float magnetometer_cuttoff_freq_hz;	/**< Internal analog low pass frequency of sensor */
-	uint32_t magnetometer_counter;		/**< Number of raw mag measurements taken       LOGME  */
+	uint32_t magnetometer_counter;		/**< Number of raw mag measurements taken         */
 	
-	float baro_pres_mbar;			/**< Barometric pressure, already temp. comp.   LOGME  */
-	float baro_alt_meter;			/**< Altitude, already temp. comp.              LOGME  */
-	float baro_temp_celcius;		/**< Temperature in degrees celsius             LOGME  */
-	float battery_voltage_v;		/**< Battery voltage in volts, filtered         LOGME  */
-	float adc_voltage_v[3];			/**< ADC voltages of ADC Chan 11/12/13 or -1    LOGME  */
-	uint32_t baro_counter;			/**< Number of raw baro measurements taken      LOGME  */
-	uint32_t battery_voltage_counter;	/**< Number of voltage measurements taken       LOGME  */
-	bool battery_voltage_valid;		/**< True if battery voltage can be measured    LOGME  */
+	float baro_pres_mbar;			/**< Barometric pressure, already temp. comp.     */
+	float baro_alt_meter;			/**< Altitude, already temp. comp.                */
+	float baro_temp_celcius;		/**< Temperature in degrees celsius               */
+	float battery_voltage_v;		/**< Battery voltage in volts, filtered           */
+	float adc_voltage_v[3];			/**< ADC voltages of ADC Chan 11/12/13 or -1      */
+	uint32_t baro_counter;			/**< Number of raw baro measurements taken        */
+	uint32_t battery_voltage_counter;	/**< Number of voltage measurements taken         */
+	bool battery_voltage_valid;		/**< True if battery voltage can be measured      */
 
 };
 

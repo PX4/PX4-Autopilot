@@ -1,5 +1,5 @@
 .built
-.context
+*.context
 .depend
 .config
 .version
@@ -10,6 +10,7 @@ apps/namedapp/namedapp_proto.h
 Make.dep
 *.o
 *.a
+*~
 Images/*.bin
 Images/*.px4
 nuttx/Make.defs
@@ -38,3 +39,4 @@ Firmware.sublime-workspace
 nsh_romfsimg.h
 cscope.out
 .configX-e
+nuttx-export.zip

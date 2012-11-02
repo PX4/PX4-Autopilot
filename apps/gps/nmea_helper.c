@@ -44,7 +44,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <mavlink/mavlink_log.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #define NMEA_HEALTH_SUCCESS_COUNTER_LIMIT 2
 #define NMEA_HEALTH_FAIL_COUNTER_LIMIT 2

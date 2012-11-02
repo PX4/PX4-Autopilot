@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Definitions for the generic base classes in the device framework.
+ * @file device.h
+ *
+ * Definitions for the generic base classes in the device framework.
  */
 
 #ifndef _DEVICE_DEVICE_H
@@ -54,7 +56,7 @@
 /**
  * Namespace encapsulating all device framework classes, functions and data.
  */
-namespace device __EXPORT 
+namespace device __EXPORT
 {
 
 /**
@@ -276,16 +278,22 @@ public:
 	 */
 	virtual int	poll(struct file *filp, struct pollfd *fds, bool setup);
 
-       /**
-        * Test whether the device is currently open.
-        *
-        * This can be used to avoid tearing down a device that is still active.
-        *
-        * @return              True if the device is currently open.
-        */
-       bool            is_open() { return _open_count > 0; }
+	/**
+	 * Test whether the device is currently open.
+	 *
+	 * This can be used to avoid tearing down a device that is still active.
+	 *
+	 * @return              True if the device is currently open.
+	 */
+	bool            is_open() { return _open_count > 0; }
 
 protected:
+	/**
+	 * Pointer to the default cdev file operations table; useful for
+	 * registering clone devices etc.
+	 */
+	static const struct file_operations	fops;
+
 	/**
 	 * Check the current state of the device for poll events from the
 	 * perspective of the file.

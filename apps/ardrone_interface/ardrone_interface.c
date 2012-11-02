@@ -51,7 +51,7 @@
 #include <time.h>
 #include <systemlib/err.h>
 #include <sys/prctl.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
@@ -117,7 +117,7 @@ int ardrone_interface_main(int argc, char *argv[])
 		ardrone_interface_task = task_spawn("ardrone_interface",
 						    SCHED_DEFAULT,
 						    SCHED_PRIORITY_MAX - 15,
-						    4096,
+						    2048,
 						    ardrone_interface_thread_main,
 						    (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
@@ -286,7 +286,6 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 
 	/* close uarts */
 	close(ardrone_write);
-	//ar_multiplexing_deinit(gpios);
 
 	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
 	ardrone_write = ardrone_open_uart(device, &uart_config_original);

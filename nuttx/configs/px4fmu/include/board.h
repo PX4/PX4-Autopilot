@@ -45,9 +45,6 @@
 #ifndef __ASSEMBLY__
 # include <stdint.h>
 #endif
-//#include "stm32_rcc.h"
-//#include "stm32_sdio.h"
-//#include "stm32_internal.h"
 
 /************************************************************************************
  * Definitions
@@ -298,7 +295,7 @@
  * Note that these are unshifted addresses.
  */
 #define PX4_I2C_OBDEV_HMC5883	0x1e
-#define PX4_I2C_OBDEV_MS5611	NOTDEFINED
+#define PX4_I2C_OBDEV_MS5611	0x76
 #define PX4_I2C_OBDEV_EEPROM	NOTDEFINED
 
 #define PX4_I2C_OBDEV_PX4IO_BL	0x18
@@ -327,11 +324,9 @@
 /*
  * Tone alarm output
  */
-#ifdef CONFIG_TONE_ALARM
-# define TONE_ALARM_TIMER	3	/* timer 3 */
-# define TONE_ALARM_CHANNEL	3	/* channel 3 */
-# define GPIO_TONE_ALARM	(GPIO_ALT|GPIO_AF2|GPIO_SPEED_2MHz|GPIO_FLOAT|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN8)
-#endif
+#define TONE_ALARM_TIMER	3	/* timer 3 */
+#define TONE_ALARM_CHANNEL	3	/* channel 3 */
+#define GPIO_TONE_ALARM		(GPIO_ALT|GPIO_AF2|GPIO_SPEED_2MHz|GPIO_FLOAT|GPIO_PUSHPULL|GPIO_PORTC|GPIO_PIN8)
 
 /************************************************************************************
  * Public Data
@@ -361,37 +356,6 @@ extern "C" {
  ************************************************************************************/
 
 EXTERN void stm32_boardinitialize(void);
-
-/************************************************************************************
- * Button support.
- *
- * Description:
- *   up_buttoninit() must be called to initialize button resources.  After
- *   that, up_buttons() may be called to collect the current state of all
- *   buttons or up_irqbutton() may be called to register button interrupt
- *   handlers.
- *
- *   After up_buttoninit() has been called, up_buttons() may be called to
- *   collect the state of all buttons.  up_buttons() returns an 8-bit bit set
- *   with each bit associated with a button.  See the BUTTON_*_BIT
- *   definitions in board.h for the meaning of each bit.
- *
- *   up_irqbutton() may be called to register an interrupt handler that will
- *   be called when a button is depressed or released.  The ID value is a
- *   button enumeration value that uniquely identifies a button resource. See the
- *   BUTTON_* definitions in board.h for the meaning of enumeration
- *   value.  The previous interrupt handler address is returned (so that it may
- *   restored, if so desired).
- *
- ************************************************************************************/
-
-#ifdef CONFIG_ARCH_BUTTONS
-EXTERN void up_buttoninit(void);
-EXTERN uint8_t up_buttons(void);
-#ifdef CONFIG_ARCH_IRQBUTTONS
-EXTERN xcpt_t up_irqbutton(int id, xcpt_t irqhandler);
-#endif
-#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

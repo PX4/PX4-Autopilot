@@ -29,7 +29,7 @@ echo "[init] commander"
 commander start
 
 echo "[init] attitude control"
-attitude_estimator_bm &
+attitude_estimator_ekf start
 multirotor_att_control start
 
 echo "[init] starting PWM output"

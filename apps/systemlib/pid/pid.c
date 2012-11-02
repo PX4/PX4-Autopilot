@@ -43,12 +43,13 @@
 #include <math.h>
 
 __EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
-	      uint8_t mode)
+		       float limit, uint8_t mode)
 {
 	pid->kp = kp;
 	pid->ki = ki;
 	pid->kd = kd;
 	pid->intmax = intmax;
+	pid->limit = limit;
 	pid->mode = mode;
 	pid->count = 0;
 	pid->saturated = 0;
@@ -58,35 +59,45 @@ __EXPORT void pid_init(PID_t *pid, float kp, float ki, float kd, float intmax,
 	pid->error_previous = 0;
 	pid->integral = 0;
 }
-__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax)
+__EXPORT int pid_set_parameters(PID_t *pid, float kp, float ki, float kd, float intmax, float limit)
 {
 	int ret = 0;
 
 	if (isfinite(kp)) {
 		pid->kp = kp;
+
 	} else {
 		ret = 1;
 	}
 
 	if (isfinite(ki)) {
 		pid->ki = ki;
+
 	} else {
 		ret = 1;
 	}
 
 	if (isfinite(kd)) {
 		pid->kd = kd;
+
 	} else {
 		ret = 1;
 	}
 
 	if (isfinite(intmax)) {
 		pid->intmax = intmax;
+
 	}  else {
 		ret = 1;
 	}
 
-	// pid->limit = limit;
+	if (isfinite(limit)) {
+		pid->limit = limit;
+
+	}  else {
+		ret = 1;
+	}
+
 	return ret;
 }
 
@@ -115,39 +126,21 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	 goto start
 	 */
 
-	if (!isfinite(sp) || !isfinite(val) || !isfinite(val_dot) || !isfinite(dt))
-	{
+	if (!isfinite(sp) || !isfinite(val) || !isfinite(val_dot) || !isfinite(dt)) {
 		return pid->last_output;
 	}
 
 	float i, d;
 	pid->sp = sp;
+
+	// Calculated current error value
 	float error = pid->sp - val;
 
-	if (pid->saturated && (pid->integral * error > 0)) {
-		//Output is saturated and the integral would get bigger (positive or negative)
-		i = pid->integral;
-
-		//Reset saturation. If we are still saturated this will be set again at output limit check.
-		pid->saturated = 0;
-
-	} else {
-		i = pid->integral + (error * dt);
+	if (isfinite(error)) {				// Why is this necessary?  DEW
+		pid->error_previous = error;
 	}
 
-	// Anti-Windup. Needed if we don't use the saturation above.
-	if (pid->intmax != 0.0f) {
-		if (i > pid->intmax) {
-			pid->integral = pid->intmax;
-
-		} else if (i < -pid->intmax) {
-
-			pid->integral = -pid->intmax;
-
-		} else {
-			pid->integral = i;
-		}
-	}
+	// Calculate or measured current error derivative
 
 	if (pid->mode == PID_MODE_DERIVATIV_CALC) {
 		d = (error - pid->error_previous) / dt;
@@ -159,35 +152,34 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 		d = 0.0f;
 	}
 
-	if (pid->kd == 0.0f) {
-		d = 0.0f;
-	}
+	// Calculate the error integral and check for saturation
+	i = pid->integral + (error * dt);
 
-	if (pid->ki == 0.0f) {
-		i = 0;
-	}
+	if (fabsf((error * pid->kp) + (i * pid->ki) + (d * pid->kd)) > pid->limit ||
+	    fabsf(i) > pid->intmax) {
+		i = pid->integral;		// If saturated then do not update integral value
+		pid->saturated = 1;
 
-	float p;
-
-	if (pid->kp == 0.0f) {
-		p = 0.0f;
 	} else {
-		p = error;
+		if (!isfinite(i)) {
+			i = 0;
+		}
+
+		pid->integral = i;
+		pid->saturated = 0;
 	}
 
-	if (isfinite(error)) {
-		pid->error_previous = error;
-	}
-
+	// Calculate the output.  Limit output magnitude to pid->limit
 	float output = (pid->error_previous * pid->kp) + (i * pid->ki) + (d * pid->kd);
+
+	//if (output > pid->limit) output = pid->limit;
+
+	//if (output < -pid->limit) output = -pid->limit;
 
 	if (isfinite(output)) {
 		pid->last_output = output;
 	}
 
-	if (!isfinite(pid->integral)) {
-		pid->integral = 0;
-	}
 
 	return pid->last_output;
 }

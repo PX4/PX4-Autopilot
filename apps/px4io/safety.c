@@ -49,7 +49,7 @@
 #include <arch/board/up_boardinitialize.h>
 #include <arch/board/drv_gpio.h>
 #include <arch/board/drv_ppm_input.h>
-#include <arch/board/up_hrt.h>
+#include <drivers/drv_hrt.h>
 
 #include "px4io.h"
 

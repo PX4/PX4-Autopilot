@@ -57,7 +57,7 @@
 #define		CW		(-1.0f)
 #define		CCW		(1.0f)
 
-namespace 
+namespace
 {
 
 /*
@@ -167,17 +167,21 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 			    pitch * _rotors[i].pitch_scale +
 			    yaw   * _rotors[i].yaw_scale +
 			    thrust;
+
 		if (tmp > max)
 			max = tmp;
+
 		outputs[i] = tmp;
 	}
 
 	/* scale values into the -1.0 - 1.0 range */
 	if (max > 1.0f) {
 		fixup_scale = 2.0f / max;
+
 	} else {
 		fixup_scale = 2.0f;
 	}
+
 	for (unsigned i = 0; i < _rotor_count; i++)
 		outputs[i] = -1.0f + (outputs[i] * fixup_scale);
 

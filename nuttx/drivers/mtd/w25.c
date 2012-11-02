@@ -693,7 +693,7 @@ static void w25_pagewrite(struct w25_dev_s *priv, FAR const uint8_t *buffer,
   uint8_t status;
 
   fvdbg("address: %08lx nwords: %d\n", (long)address, (int)nbytes);
-  DEBUGASSERT(priv && buffer && ((uintptr_t)buffer & 0xff) == 0 &&
+  DEBUGASSERT(priv && buffer && (address & 0xff) == 0 &&
              (nbytes & 0xff) == 0);
 
   for (; nbytes > 0; nbytes -= W25_PAGE_SIZE)
@@ -955,36 +955,27 @@ static int w25_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks
 static ssize_t w25_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks,
                            FAR uint8_t *buffer)
 {
-#ifdef CONFIG_W25_SECTOR512
   ssize_t nbytes;
 
   fvdbg("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
   /* On this device, we can handle the block read just like the byte-oriented read */
 
+#ifdef CONFIG_W25_SECTOR512
   nbytes = w25_read(dev, startblock << W25_SECTOR512_SHIFT, nblocks << W25_SECTOR512_SHIFT, buffer);
   if (nbytes > 0)
     {
-      return nbytes >> W25_SECTOR512_SHIFT;
+      nbytes >>= W25_SECTOR512_SHIFT;
     }
-
-  return (int)nbytes;
 #else
-  FAR struct w25_dev_s *priv = (FAR struct w25_dev_s *)dev;
-  ssize_t nbytes;
-
-  fvdbg("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
-
-  /* On this device, we can handle the block read just like the byte-oriented read */
-
   nbytes = w25_read(dev, startblock << W25_SECTOR_SHIFT, nblocks << W25_SECTOR_SHIFT, buffer);
   if (nbytes > 0)
     {
-      return nbytes >> W25_SECTOR_SHIFT;
+      nbytes >>= W25_SECTOR_SHIFT;
     }
-
-  return (int)nbytes;
 #endif
+
+  return nbytes;
 }
 
 /************************************************************************************

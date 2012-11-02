@@ -57,7 +57,9 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
-#include <arch/board/up_hrt.h>
+#include <arch/board/board.h>
+
+#include <drivers/drv_hrt.h>
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
@@ -69,6 +71,10 @@
 # undef ERROR
 #endif
 static const int ERROR = -1;
+
+#ifndef CONFIG_SCHED_WORKQUEUE
+# error This requires CONFIG_SCHED_WORKQUEUE.
+#endif
 
 /**
  * Calibration PROM as reported by the device.
@@ -236,7 +242,8 @@ private:
 #define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
 #define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
 
-#define MS5611_ADDRESS_1		0x76    /* address select pins pulled high (PX4FMU series v1.6+) */
+#define MS5611_BUS			PX4_I2C_BUS_ONBOARD
+#define MS5611_ADDRESS_1		PX4_I2C_OBDEV_MS5611 /* address select pins pulled high (PX4FMU series v1.6+) */
 #define MS5611_ADDRESS_2		0x77    /* address select pins pulled low (PX4FMU prototypes) */
 
 #define ADDR_RESET_CMD			0x1E	/* write to this address to reset chip */
@@ -299,6 +306,7 @@ MS5611::init()
 	/* allocate basic report buffers */
 	_num_reports = 2;
 	_reports = new struct baro_report[_num_reports];
+
 	if (_reports == nullptr)
 		goto out;
 
@@ -307,6 +315,7 @@ MS5611::init()
 	/* get a publish handle on the baro topic */
 	memset(&_reports[0], 0, sizeof(_reports[0]));
 	_baro_topic = orb_advertise(ORB_ID(sensor_baro), &_reports[0]);
+
 	if (_baro_topic < 0)
 		debug("failed to create sensor_baro object");
 
@@ -319,9 +328,10 @@ int
 MS5611::probe()
 {
 	_retries = 10;
-	if((OK == probe_address(MS5611_ADDRESS_1)) ||
-	   (OK == probe_address(MS5611_ADDRESS_2))) {
-	   	_retries = 1;
+
+	if ((OK == probe_address(MS5611_ADDRESS_1)) ||
+	    (OK == probe_address(MS5611_ADDRESS_2))) {
+		_retries = 1;
 		return OK;
 	}
 
@@ -480,6 +490,7 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCGPOLLRATE:
 		if (_measure_ticks == 0)
 			return SENSOR_POLLRATE_MANUAL;
+
 		return (1000 / _measure_ticks);
 
 	case SENSORIOCSQUEUEDEPTH: {
@@ -514,9 +525,11 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return -EINVAL;
 
 	case BAROIOCSMSLPRESSURE:
+
 		/* range-check for sanity */
 		if ((arg < 80000) || (arg > 120000))
 			return -EINVAL;
+
 		_msl_pressure = arg;
 		return OK;
 
@@ -684,7 +697,7 @@ MS5611::collect()
 			int64_t SENS2 = 5 * f >> 2;
 
 			if (_TEMP < -1500) {
-				int64_t f2 = POW2(_TEMP + 1500); 
+				int64_t f2 = POW2(_TEMP + 1500);
 				OFF2 += 7 * f2;
 				SENS2 += 11 * f2 >> 1;
 			}
@@ -693,6 +706,7 @@ MS5611::collect()
 			_OFF  -= OFF2;
 			_SENS -= SENS2;
 		}
+
 	} else {
 
 		/* pressure calculation, result in Pa */
@@ -810,8 +824,8 @@ MS5611::read_prom()
 		uint16_t	w;
 	} cvt;
 
-	/* 
-	 * Wait for PROM contents to be in the device (2.8 ms) in the case we are 
+	/*
+	 * Wait for PROM contents to be in the device (2.8 ms) in the case we are
 	 * called immediately after reset.
 	 */
 	usleep(3000);
@@ -926,8 +940,7 @@ start()
 		errx(1, "already started");
 
 	/* create the driver */
-	/* XXX HORRIBLE hack - the bus number should not come from here */
-	g_dev = new MS5611(2);
+	g_dev = new MS5611(MS5611_BUS);
 
 	if (g_dev == nullptr)
 		goto fail;
@@ -937,17 +950,22 @@ start()
 
 	/* set the poll rate to default, starts automatic data collection */
 	fd = open(BARO_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		goto fail;
+
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		goto fail;
+
 	exit(0);
 
 fail:
+
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
 	}
+
 	errx(1, "driver start failed");
 }
 
@@ -964,11 +982,13 @@ test()
 	int ret;
 
 	int fd = open(BARO_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", BARO_DEVICE_PATH);
 
 	/* do a simple demand read */
 	sz = read(fd, &report, sizeof(report));
+
 	if (sz != sizeof(report))
 		err(1, "immediate read failed");
 
@@ -1021,10 +1041,13 @@ void
 reset()
 {
 	int fd = open(BARO_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		err(1, "failed ");
+
 	if (ioctl(fd, SENSORIOCRESET, 0) < 0)
 		err(1, "driver reset failed");
+
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0)
 		err(1, "driver poll restart failed");
 
@@ -1057,6 +1080,7 @@ calibrate(unsigned altitude)
 	float	p1;
 
 	int fd = open(BARO_DEVICE_PATH, O_RDONLY);
+
 	if (fd < 0)
 		err(1, "%s open failed (try 'ms5611 start' if the driver is not running)", BARO_DEVICE_PATH);
 
@@ -1066,6 +1090,7 @@ calibrate(unsigned altitude)
 
 	/* average a few measurements */
 	pressure = 0.0f;
+
 	for (unsigned i = 0; i < 20; i++) {
 		struct pollfd fds;
 		int ret;
@@ -1087,6 +1112,7 @@ calibrate(unsigned altitude)
 
 		pressure += report.pressure;
 	}
+
 	pressure /= 20;		/* average */
 	pressure /= 10;		/* scale from millibar to kPa */
 
@@ -1104,8 +1130,10 @@ calibrate(unsigned altitude)
 
 	/* save as integer Pa */
 	p1 *= 1000.0f;
+
 	if (ioctl(fd, BAROIOCSMSLPRESSURE, (unsigned long)p1) != OK)
 		err(1, "BAROIOCSMSLPRESSURE");
+
 	exit(0);
 }
 
@@ -1146,7 +1174,7 @@ ms5611_main(int argc, char *argv[])
 			errx(1, "missing altitude");
 
 		long altitude = strtol(argv[2], nullptr, 10);
-		
+
 		ms5611::calibrate(altitude);
 	}
 

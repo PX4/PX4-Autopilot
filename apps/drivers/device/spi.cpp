@@ -32,7 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Base class for devices connected via SPI.
+ * @file spi.cpp
+ *
+ * Base class for devices connected via SPI.
  *
  * @todo Work out if caching the mode/frequency would save any time.
  *
@@ -134,6 +136,7 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	/* do common setup */
 	if (!up_interrupt_context())
 		SPI_LOCK(_dev, true);
+
 	SPI_SETFREQUENCY(_dev, _frequency);
 	SPI_SETMODE(_dev, _mode);
 	SPI_SETBITS(_dev, 8);
@@ -144,6 +147,7 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 
 	/* and clean up */
 	SPI_SELECT(_dev, _device, false);
+
 	if (!up_interrupt_context())
 		SPI_LOCK(_dev, false);
 
