@@ -247,9 +247,13 @@ examples/cxxtest
   is not included in the NuttX source tree by default, but must be installed
   (see misc/uClibc++/README.txt for installation).
 
-  The only NuttX setting that is required is:
+  The  NuttX setting that are required include:
 
     CONFIG_HAVE_CXX=y
+    CONFIG_HAVE_CXXINITIALIZE=y
+    CONFIG_UCLIBCXX=y
+
+  Additional uClibc++ settings may be required in your build environment.
 
   The uClibc++ test includes simple test of:
 

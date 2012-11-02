@@ -215,6 +215,19 @@ cxxtest
      b. Execute 'make menuconfig' in nuttx/ in order to start the
         reconfiguration process.
 
+  3. At presenet (2012/11/02), this example builds only with exceptions
+     disabled (CONFIG_UCLIBCXX_EXCEPTIONS=n).  And even then, it will
+     not run.
+
+     The reason that the example will will not run on the simulator has
+     to do with when static constructors are enabled:  In the simulator
+     it will attempt to execute the static constructros before main()
+     starts. BUT... NuttX is not initialized and this results in a crash.
+
+     To really use this example, I will have to think of some way to
+     postpone running C++ static initializers until NuttX has been
+     initialied.
+
 mount
 
   Description

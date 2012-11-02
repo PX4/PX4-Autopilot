@@ -37,13 +37,16 @@
 
 CXXSRCS += algorithm.cxx associative_base.cxx bitset.cxx char_traits.cxx
 CXXSRCS += complex.cxx del_op.cxx del_opnt.cxx del_opv.cxx del_opvnt.cxx
-CXXSRCS += deque.cxx exception.cxx fstream.cxx func_exception.cxx
-CXXSRCS += iomanip.cxx ios.cxx iostream.cxx istream.cxx iterator.cxx
-CXXSRCS += limits.cxx list.cxx locale.cxx map.cxx new_handler.cxx
-CXXSRCS += new_op.cxx new_opnt.cxx new_opv.cxx new_opvnt.cxx numeric.cxx
-CXXSRCS += ostream.cxx queue.cxx set.cxx sstream.cxx stack.cxx 
-CXXSRCS += stdexcept.cxx streambuf.cxx string.cxx typeinfo.cxx utility.cxx
-CXXSRCS += valarray.cxx vector.cxx
+CXXSRCS += deque.cxx  fstream.cxx iomanip.cxx ios.cxx iostream.cxx 
+CXXSRCS += istream.cxx iterator.cxx limits.cxx list.cxx locale.cxx
+CXXSRCS += map.cxx new_handler.cxx new_op.cxx new_opnt.cxx new_opv.cxx
+CXXSRCS += new_opvnt.cxx numeric.cxx ostream.cxx queue.cxx set.cxx
+CXXSRCS += sstream.cxx stack.cxx streambuf.cxx string.cxx typeinfo.cxx
+CXXSRCS += utility.cxx valarray.cxx vector.cxx
+
+ifeq ($(CONFIG_UCLIBCXX_EXCEPTION),y)
+CXXSRCS += exception.cxx func_exception.cxx stdexcept.cxx
+endif
 
 ifneq ($(CONFIG_UCLIBCXX_HAVE_LIBSUPCXX),y)
 CXXSRCS += eh_alloc.cxx eh_globals.cxx eh_terminate.cxx 

@@ -22,8 +22,8 @@
 #include <stdexcept>
 #include <cstdlib>
 
-namespace std{
-
+namespace std
+{
 #ifdef CONFIG_UCLIBCXX_EXCEPTION
 
 _UCXXEXPORT void __throw_bad_alloc()
@@ -33,7 +33,7 @@ _UCXXEXPORT void __throw_bad_alloc()
 
 _UCXXEXPORT void __throw_out_of_range(const char * message)
 {
-  if(message == 0)
+  if (message == 0)
     {
       throw out_of_range();
     }
@@ -43,7 +43,7 @@ _UCXXEXPORT void __throw_out_of_range(const char * message)
 
 _UCXXEXPORT void __throw_overflow_error(const char * message)
 {
-  if(message == 0)
+  if (message == 0)
     {
       throw overflow_error();
     }
@@ -53,7 +53,7 @@ _UCXXEXPORT void __throw_overflow_error(const char * message)
 
 _UCXXEXPORT void __throw_length_error(const char * message)
 {
-  if(message == 0)
+  if (message == 0)
     {
       throw length_error();
     }
@@ -63,7 +63,7 @@ _UCXXEXPORT void __throw_length_error(const char * message)
 
 _UCXXEXPORT void __throw_invalid_argument(const char * message)
 {
-  if(message == 0)
+  if (message == 0)
     {
       throw invalid_argument();
     }
@@ -100,6 +100,4 @@ _UCXXEXPORT void __throw_invalid_argument(const char *)
 
 #endif
 
-
-
-}
+} // namespace

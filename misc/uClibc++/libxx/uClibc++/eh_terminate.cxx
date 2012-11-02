@@ -20,8 +20,6 @@
 #include <cstdlib>
 #include <exception>
 
-#ifdef CONFIG_UCLIBCXX_EXCEPTION
-
 namespace std
 {
   _UCXXEXPORT static terminate_handler __terminate_handler = abort;
@@ -71,5 +69,3 @@ namespace std
     terminate();
   }
 }
-
-#endif
