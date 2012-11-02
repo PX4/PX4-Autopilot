@@ -141,6 +141,9 @@ do_load(const char* param_file_name)
 	if (fd < 0)
 		err(1, "open '%s'", param_file_name);
 
+	/* set new default file name */
+	param_set_default_file(param_file_name);
+
 	int result = param_load(fd);
 	close(fd);
 

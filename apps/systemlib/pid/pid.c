@@ -172,9 +172,9 @@ __EXPORT float pid_calculate(PID_t *pid, float sp, float val, float val_dot, flo
 	// Calculate the output.  Limit output magnitude to pid->limit
 	float output = (pid->error_previous * pid->kp) + (i * pid->ki) + (d * pid->kd);
 
-	if (output > pid->limit) output = pid->limit;
+	//if (output > pid->limit) output = pid->limit;
 
-	if (output < -pid->limit) output = -pid->limit;
+	//if (output < -pid->limit) output = -pid->limit;
 
 	if (isfinite(output)) {
 		pid->last_output = output;
