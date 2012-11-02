@@ -1318,6 +1318,17 @@ int commander_thread_main(int argc, char *argv[])
 					update_state_machine_mode_stabilized(stat_pub, &current_status, mavlink_fd);
 				}
 
+				/* for now this is hardwired to simple mode but ideally we would look up the functions mapped
+				 * to each position of this switch (ie: simple mode, come home, etc.) 
+				 */
+				if (sp_man.custom_mode_switch > STICK_ON_OFF_LIMIT) {
+					//update_state_machine_mode_manual(stat_pub, &current_status, mavlink_fd);
+					printf("CUSTOM MODE: OFF\n");
+				} else if (sp_man.custom_mode_switch < -STICK_ON_OFF_LIMIT) {
+					//update_state_machine_mode_auto(stat_pub, &current_status, mavlink_fd);
+					printf("CUSTOM MODE: SIMPLE\n");
+				}
+
 				/* handle the case where RC signal was regained */
 				if (!current_status.rc_signal_found_once) {
 					current_status.rc_signal_found_once = true;

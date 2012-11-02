@@ -207,28 +207,23 @@ mc_thread_main(int argc, char *argv[])
 			if (state.flag_control_attitude_enabled) {
 				float roll = manual.roll;
 				float pitch = manual.pitch;
-				if (true || manual.mode == MANUAL_CONTROL_MODE_MULTIROTOR_SIMPLE) {
+				if (manual.custom_mode == MANUAL_CONTROL_CUSTOM_MODE_MULTIROTOR_SIMPLE) {
 					if (state.flag_system_armed) {
 						if (!heading_set) {
 							initial_heading = att.yaw;
 							heading_set = true;
 						}
 
-						if (att.yaw > M_PI_F) {
-							fprintf(stderr, "DELTA OVERRUN: %2.3f\n", att.yaw);
-						} else if (att.yaw < -M_PI_F) {
-							fprintf(stderr, "DELTA UNDERRUN: %2.3f\n", att.yaw);
-						}
 						float delta = att.yaw - initial_heading;
 						
-						float x = sin(M_PI_2_F - delta);
-						float y = cos(M_PI_2_F - delta);
+						float x = sinf(M_PI_2_F - delta);
+						float y = cosf(M_PI_2_F - delta);
 
 						/* rotate the roll/pitch inputs */
 						roll = manual.roll * x + manual.pitch * y;
-						pitch = -manual.roll * y + manual.pitch * x;
+						pitch = -(manual.roll * y - manual.pitch * x);
 						if (++debug_log_counter == 50) {
-							fprintf(stderr, "att.yaw: %2.3f init_head: %3.2f roll: %2.3f pitch: %2.3f newroll: %2.3f newpitch: %2.3f\n", att.yaw, initial_heading, manual.roll, manual.pitch, roll, pitch);
+							//fprintf(stderr, "att.yaw: %2.3f init_head: %3.2f delta: %3.2f roll: %2.3f pitch: %2.3f newroll: %2.3f newpitch: %2.3f\n", att.yaw, initial_heading, delta, manual.roll, manual.pitch, roll, pitch);
 							//fprintf(stderr, "roll: %2.3f pitch: %2.3f newroll: %2.3f newpitch: %2.3f\n", manual.roll, manual.pitch, roll, pitch);
 							debug_log_counter = 0;
 						}

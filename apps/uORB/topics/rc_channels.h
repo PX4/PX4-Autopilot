@@ -65,18 +65,18 @@ enum RC_CHANNELS_STATUS
  */
 enum RC_CHANNELS_FUNCTION
 {
-  THROTTLE = 0,
-  ROLL     = 1,
-  PITCH    = 2,
-  YAW      = 3,
-  OVERRIDE = 4,
-  FUNC_0   = 5,
-  FUNC_1   = 6,
-  FUNC_2   = 7,
-  FUNC_3   = 8,
-  FUNC_4   = 9,
-  FUNC_5   = 10,
-  FUNC_6   = 11,
+  THROTTLE                 = 0,
+  ROLL                     = 1,
+  PITCH                    = 2,
+  YAW                      = 3,
+  MODE_OVERRIDE            = 4,
+  CUSTOM_MODE_OVERRIDE     = 5,
+  FUNC_1                   = 6,
+  FUNC_2                   = 7,
+  FUNC_3                   = 8,
+  FUNC_4                   = 9,
+  FUNC_5                   = 10,
+  FUNC_6                   = 11,
   RC_CHANNELS_FUNCTION_MAX = 12
 };
 

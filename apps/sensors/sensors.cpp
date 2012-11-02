@@ -188,6 +188,7 @@ private:
 		int rc_map_yaw;
 		int rc_map_throttle;
 		int rc_map_mode_sw;
+		int rc_map_custom_mode_sw;
 
 		float rc_scale_roll;
 		float rc_scale_pitch;
@@ -215,6 +216,7 @@ private:
 		param_t rc_map_yaw;
 		param_t rc_map_throttle;
 		param_t rc_map_mode_sw;
+		param_t rc_map_custom_mode_sw;
 
 		param_t rc_scale_roll;
 		param_t rc_scale_pitch;
@@ -391,6 +393,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_yaw 	= param_find("RC_MAP_YAW");
 	_parameter_handles.rc_map_throttle = param_find("RC_MAP_THROTTLE");
 	_parameter_handles.rc_map_mode_sw = param_find("RC_MAP_MODE_SW");
+	_parameter_handles.rc_map_custom_mode_sw = param_find("RC_MAP_CUSTOM_MODE_SW");
 
 	_parameter_handles.rc_scale_roll = param_find("RC_SCALE_ROLL");
 	_parameter_handles.rc_scale_pitch = param_find("RC_SCALE_PITCH");
@@ -487,6 +490,7 @@ Sensors::parameters_update()
 	_rc.function[2] = _parameters.rc_map_pitch - 1;
 	_rc.function[3] = _parameters.rc_map_yaw - 1;
 	_rc.function[4] = _parameters.rc_map_mode_sw - 1;
+	_rc.function[5] = _parameters.rc_map_custom_mode_sw - 1;
 
 	/* remote control type */
 	if (param_get(_parameter_handles.rc_type, &(_parameters.rc_type)) != OK) {
@@ -508,6 +512,9 @@ Sensors::parameters_update()
 	}
 	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
 		warnx("Failed getting mode sw chan index");
+	}
+	if (param_get(_parameter_handles.rc_map_custom_mode_sw, &(_parameters.rc_map_custom_mode_sw)) != OK) {
+		warnx("Failed getting custom mode sw chan index");
 	}
 
 	if (param_get(_parameter_handles.rc_scale_roll, &(_parameters.rc_scale_roll)) != OK) {
@@ -945,9 +952,14 @@ Sensors::ppm_poll()
 	if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
 
 	/* mode switch input */
-	manual_control.override_mode_switch = _rc.chan[_rc.function[OVERRIDE]].scaled;
+	manual_control.override_mode_switch = _rc.chan[_rc.function[MODE_OVERRIDE]].scaled;
 	if (manual_control.override_mode_switch < -1.0f) manual_control.override_mode_switch = -1.0f;
 	if (manual_control.override_mode_switch >  1.0f) manual_control.override_mode_switch =  1.0f;
+
+	/* special custom mode switch input */
+	manual_control.custom_mode_switch = _rc.chan[_rc.function[CUSTOM_MODE_OVERRIDE]].scaled;
+	if (manual_control.custom_mode_switch < -1.0f) manual_control.custom_mode_switch = -1.0f;
+	if (manual_control.custom_mode_switch >  1.0f) manual_control.custom_mode_switch =  1.0f;
 
 	orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
 	orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual_control);
@@ -1016,6 +1028,7 @@ Sensors::task_main()
 	{
 		struct manual_control_setpoint_s manual_control;
 		manual_control.mode = MANUAL_CONTROL_MODE_ATT_YAW_RATE;
+		manual_control.custom_mode = MANUAL_CONTROL_CUSTOM_MODE_MULTIROTOR_SIMPLE;
 		manual_control.roll = 0.0f;
 		manual_control.pitch = 0.0f;
 		manual_control.yaw = 0.0f;
