@@ -32,37 +32,14 @@
 ############################################################################
 
 #
-# System utility library
+# Makefile to build the sensor data collector
 #
 
-CSRCS		 = err.c \
-		   hx_stream.c \
-		   perf_counter.c \
-		   param/param.c \
-		   bson/tinybson.c \
-		   conversions.c \
-		   cpuload.c \
-		   getopt_long.c \
-		   up_cxxinitialize.c
+APPNAME		= sensors
+PRIORITY	= SCHED_PRIORITY_MAX-5
+STACKSIZE	= 4096
 
-#		   ppm_decode.c \
-
-
-
-#
-# XXX this really should be a CONFIG_* test
-#
-ifeq ($(TARGET),px4fmu)
-CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
-endif
-ifeq ($(TARGET),px4fmu_sim)
-CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
-endif
-
-
+CXXSRCS		= sensors.cpp
+CSRCS		= sensor_params.c
 
 include $(APPDIR)/mk/app.mk

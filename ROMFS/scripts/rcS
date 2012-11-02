@@ -113,6 +113,24 @@ else
 	fi
 
 	#
+	# Are we running a simulation?
+	#
+    uname SIM
+    echo $?
+	if uname SIM
+	then
+        set BOARD PX4FMU_SIM
+		if [ -f /etc/init.d/rc.sim ]
+		then
+			echo "[init] reading /etc/init.d/rc.sim"
+			usleep 500
+			sh /etc/init.d/rc.sim
+		fi
+    else
+        echo "[init] simulation not detected"
+	fi
+
+	#
 	# Looks like we are stand-alone
 	#
 	if [ $BOARD == PX4FMU ]

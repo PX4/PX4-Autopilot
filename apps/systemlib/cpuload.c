@@ -111,6 +111,7 @@ void cpuload_initialize_once()
 
 void sched_note_start(FAR _TCB *tcb)
 {
+    if (!system_load.initialized) return;
 	/* search first free slot */
 	int i;
 
@@ -130,6 +131,7 @@ void sched_note_start(FAR _TCB *tcb)
 
 void sched_note_stop(FAR _TCB *tcb)
 {
+    if (!system_load.initialized) return;
 	int i;
 
 	for (i = 1; i < CONFIG_MAX_TASKS; i++) {
@@ -147,6 +149,7 @@ void sched_note_stop(FAR _TCB *tcb)
 
 void sched_note_switch(FAR _TCB *pFromTcb, FAR _TCB *pToTcb)
 {
+    if (!system_load.initialized) return;
 	uint64_t new_time = hrt_absolute_time();
 
 	/* Kind of inefficient: find both tasks and update times */

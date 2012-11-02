@@ -24,12 +24,22 @@ config ARCH_BOARD_PX4IO
 	---help---
 		PX4 system I/O expansion board
 
+config ARCH_BOARD_PX4FMU_SIM
+	bool "PX4FMU User mode simulation"
+	depends on ARCH_SIM
+	---help---
+		A user-mode port of NuttX to the x86 Linux/Cygwin platform is available.
+		The purpose of this port is primarily to support OS feature development.
+		This port does not support interrupts or a real timer (and hence no
+		round robin scheduler)  Otherwise, it is complete.
+
 endchoice
 
 config ARCH_BOARD
 	string
 	default "px4fmu"             if ARCH_BOARD_PX4FMU
 	default "px4io"              if ARCH_BOARD_PX4IO
+	default "px4fmu_sim"         if ARCH_BOARD_PX4FMU_SIM
 	default ""                   if ARCH_BOARD_CUSTOM
 
 if ARCH_BOARD_PX4FMU
@@ -37,4 +47,7 @@ source "configs/px4fmu/Kconfig"
 endif
 if ARCH_BOARD_PX4IO
 source "configs/px4io/Kconfig"
+endif
+if ARCH_BOARD_PX4FMU_SIM
+source "configs/sim/Kconfig"
 endif

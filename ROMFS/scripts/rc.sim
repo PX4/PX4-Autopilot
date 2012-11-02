@@ -1,0 +1,12 @@
+#!nsh
+#
+# Startup script for simulation configuration.
+#
+
+echo "[init] doing simulation startup..."
+
+uorb start
+mavlink start
+commander start
+
+echo "[init] simulation startup done"

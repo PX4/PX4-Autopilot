@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/nshlib/nsh_consolemain.c
+ * up_idle.c
  *
  *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -14,7 +14,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name Gregory Nutt nor the names of its contributors may be
+ * 3. Neither the name NuttX nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -39,33 +39,35 @@
 
 #include <nuttx/config.h>
 
-#include <stdio.h>
-#include <assert.h>
+#include <time.h>
 
-#include <apps/readline.h>
+#include <nuttx/arch.h>
+#include <nuttx/power/pm.h>
 
-#include "nsh.h"
-#include "nsh_console.h"
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
+#include "up_internal.h"
 
 /****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Function Prototypes
+ * Private Definitions
  ****************************************************************************/
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
+#ifdef CONFIG_SIM_X11FB
+static int g_x11refresh = 0;
+#endif
+
 /****************************************************************************
- * Public Data
+ * Public Function Prototypes
  ****************************************************************************/
+
+#if defined(CONFIG_SIM_WALLTIME) || defined(CONFIG_SIM_X11FB)
+extern int up_hostusleep(unsigned int usec);
+#ifdef CONFIG_SIM_X11FB
+extern void up_x11update(void);
+#endif
+#endif
 
 /****************************************************************************
  * Private Functions
@@ -76,101 +78,82 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nsh_consolemain
+ * Name: up_idle
  *
  * Description:
- *   This interfaces maybe to called or started with task_start to start a
- *   single an NSH instance that operates on stdin and stdout (/dev/console).
- *   This function does not return.
+ *   up_idle() is the logic that will be executed when their
+ *   is no other ready-to-run task.  This is processor idle
+ *   time and will continue until some interrupt occurs to
+ *   cause a context switch from the idle task.
  *
- * Input Parameters:
- *   Standard task start-up arguements.  These are not used.  argc may be
- *   zero and argv may be NULL.
+ *   Processing in this state may be processor-specific. e.g.,
+ *   this is where power management operations might be
+ *   performed.
  *
- * Returned Values:
- *   This function does not normally return.  exit() is usually called to
- *   terminate the NSH session.  This function will return in the event of
- *   an error.  In that case, a nonzero value is returned (1).
- *  
  ****************************************************************************/
 
-int nsh_consolemain(int argc, char *argv[])
+void up_idle(void)
 {
-  FAR struct console_stdio_s *pstate = nsh_newconsole();
-  int ret;
-
-  DEBUGASSERT(pstate);
-
-  /* If we are using a USB serial console, then we will have to wait for the
-   * USB to be connected to the host.
+  /* If the system is idle, then process "fake" timer interrupts.
+   * Hopefully, something will wake up.
    */
 
-#ifdef HAVE_USB_CONSOLE
-  ret = nsh_usbconsole();
-  DEBUGASSERT(ret == OK);
+  sched_process_timer();
+
+  /* Run the network if enabled */
+
+#ifdef CONFIG_NET
+  uipdriver_loop();
 #endif
 
-  /* Present a greeting */
+  /* Fake some power management stuff for testing purposes */
 
-  fputs(g_nshgreeting, pstate->cn_outstream);
-  fflush(pstate->cn_outstream);
+#ifdef CONFIG_PM
+  {
+    static enum pm_state_e state = PM_NORMAL;
+    enum pm_state_e newstate;
 
-  /* Execute the startup script */
-
-#ifdef CONFIG_NSH_ROMFSETC
-  (void)nsh_script(&pstate->cn_vtbl, "init", NSH_INITPATH);
+    newstate = pm_checkstate();
+    if (newstate != state)
+      {
+        if (pm_changestate(newstate) == OK)
+          {
+            state = newstate;
+          }
+      }
+  }
 #endif
 
-  /* Then enter the command line parsing loop */
-#ifdef CONFIG_ARCH_SIM
-  for (;;)
+  /* Wait a bit so that the sched_process_timer() is called close to the
+   * correct rate.
+   */
+
+#if defined(CONFIG_SIM_WALLTIME) || defined(CONFIG_SIM_X11FB)
+  (void)up_hostusleep(1000000 / CLK_TCK);
+
+  /* Handle X11-related events */
+
+#ifdef CONFIG_SIM_X11FB
+  if (g_x11initialized)
     {
-        sleep(1);
-    }
-#else
-  for (;;)
-    {
-      /* For the case of debugging the USB console... dump collected USB trace data */
+       /* Drive the X11 event loop */
 
-      nsh_usbtrace();
-
-      /* Display the prompt string */
-
-      fputs(g_nshprompt, pstate->cn_outstream);
-      fflush(pstate->cn_outstream);
-
-      /* Get the next line of input */
-
-      ret = readline(pstate->cn_line, CONFIG_NSH_LINELEN,
-                     INSTREAM(pstate), OUTSTREAM(pstate));
-      if (ret > 0)
+#ifdef CONFIG_SIM_TOUCHSCREEN
+      if (g_eventloop)
         {
-          /* Parse process the command */
-
-          (void)nsh_parse(&pstate->cn_vtbl, pstate->cn_line);
-          fflush(pstate->cn_outstream);
+          up_x11events();
         }
+#endif
 
-      /* Readline normally returns the number of characters read,
-       * but will return 0 on end of file or a negative value
-       * if an error occurs.  Either will cause the session to
-       * terminate.
-       */
+      /* Update the display periodically */
 
-      else
+      g_x11refresh += 1000000 / CLK_TCK;
+      if (g_x11refresh > 500000)
         {
-          fprintf(pstate->cn_outstream, g_fmtcmdfailed, "nsh_consolemain", 
-                  "readline", NSH_ERRNO_OF(-ret));
-          nsh_exit(&pstate->cn_vtbl, 1);
+          up_x11update();
         }
     }
 #endif
-
-  /* Clean up */
-
-  nsh_exit(&pstate->cn_vtbl, 0);
-
-  /* We do not get here, but this is necessary to keep some compilers happy */
-
-  return OK;
+#endif
 }
+

@@ -32,37 +32,12 @@
 ############################################################################
 
 #
-# System utility library
+# Tone alarm driver
 #
 
-CSRCS		 = err.c \
-		   hx_stream.c \
-		   perf_counter.c \
-		   param/param.c \
-		   bson/tinybson.c \
-		   conversions.c \
-		   cpuload.c \
-		   getopt_long.c \
-		   up_cxxinitialize.c
-
-#		   ppm_decode.c \
-
-
-
-#
-# XXX this really should be a CONFIG_* test
-#
-ifeq ($(TARGET),px4fmu)
-CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
-endif
-ifeq ($(TARGET),px4fmu_sim)
-CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
-endif
-
-
+APPNAME		 = tone_alarm
+PRIORITY	 = SCHED_PRIORITY_DEFAULT
+STACKSIZE	 = 2048
+INCLUDES	 = $(TOPDIR)/arch/sim/src
 
 include $(APPDIR)/mk/app.mk
