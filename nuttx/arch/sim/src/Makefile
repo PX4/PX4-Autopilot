@@ -100,11 +100,16 @@ ifeq ($(CONFIG_SIM_TOUCHSCREEN),y)
 endif
 endif
 
+EXTRA_LIBS ?=
+
 ifeq ($(CONFIG_FS_FAT),y)
 STDLIBS += -lz
 endif
 
 STDLIBS += -lc
+
+LIBGCC := "${shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name}"
+GCC_LIBDIR := ${shell dirname $(LIBGCC)}
 
 # Determine which objects are required in the link.  The
 # up_head object normally draws in all that is needed, but
@@ -129,7 +134,7 @@ LDLIBS = $(patsubst lib%,-l%,$(basename $(notdir $(LINKLIBS))))
 
 # Add the board-specific library and directory
 
-LDPATHS += -L board
+LDPATHS += -L board -L $(GCC_LIBDIR)
 LDLIBS += -lboard
 
 # Make targets begin here
@@ -145,13 +150,13 @@ $(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 $(HOSTOBJS): %$(OBJEXT): %.c
-	@echo "CC:  $<"
-	@$(CC) -c $(HOSTCFLAGS) $< -o $@
+	$(Q) echo "CC:  $<"
+	$(Q) $(CC) -c $(HOSTCFLAGS) $< -o $@
 
 # The architecture-specific library
 
 libarch$(LIBEXT): $(NUTTXOBJS)
-	@( for obj in $(NUTTXOBJS) ; do \
+	$(Q) ( for obj in $(NUTTXOBJS) ; do \
 		$(call ARCHIVE, $@, $${obj}); \
 	done ; )
 
@@ -160,35 +165,35 @@ libarch$(LIBEXT): $(NUTTXOBJS)
 # that are not hardware-related.
 
 board/libboard$(LIBEXT):
-	@$(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
 
 # A partially linked object containing only NuttX code (no interface to host OS)
 # Change the names of most symbols that conflict with libc symbols.
 
 GNU:
-	@mkdir ./GNU
+	$(Q) mkdir ./GNU
 
 GNU/Linux-names.dat: GNU nuttx-names.dat
-	@cp nuttx-names.dat $@
+	$(Q) cp nuttx-names.dat $@
 
 Cygwin-names.dat: nuttx-names.dat
-	@cat $^ | sed -e "s/^/_/g" >$@
+	$(Q) cat $^ | sed -e "s/^/_/g" >$@
 
 nuttx.rel : libarch$(LIBEXT) board/libboard$(LIBEXT) $(HOSTOS)-names.dat $(LINKOBJS)
-	@echo "LD:  nuttx.rel"
-	@$(LD) -r $(LDLINKFLAGS) $(LDPATHS) -o $@ $(REQUIREDOBJS) --start-group $(LDLIBS) $(EXTRA_LIBS) --end-group
-	@$(OBJCOPY) --redefine-syms=$(HOSTOS)-names.dat $@
+	$(Q) echo "LD:  nuttx.rel"
+	$(Q) $(LD) -r $(LDLINKFLAGS) $(LDPATHS) -o $@ $(REQUIREDOBJS) --start-group $(LDLIBS) $(EXTRA_LIBS) --end-group
+	$(Q) $(OBJCOPY) --redefine-syms=$(HOSTOS)-names.dat $@
 
 # Generate the final NuttX binary by linking the host-specific objects with the NuttX
 # specific objects (with munged names)
 
 nuttx$(EXEEXT): cleanrel nuttx.rel $(HOSTOBJS)
-	@echo "LD:  nuttx$(EXEEXT)"
-	@$(CC) $(CCLINKFLAGS) $(LDPATHS) -o $(TOPDIR)/$@ nuttx.rel $(HOSTOBJS) $(DRVLIB) $(STDLIBS)
-	@$(NM) $(TOPDIR)/$@ | \
+	$(Q) echo "LD:  nuttx$(EXEEXT)"
+	$(Q) $(CC) $(CCLINKFLAGS) $(LDPATHS) -o $(TOPDIR)/$@ nuttx.rel $(HOSTOBJS) $(DRVLIB) $(STDLIBS)
+	$(Q) $(NM) $(TOPDIR)/$@ | \
 		grep -v '\(compiled\)\|\(\.o$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
 		sort > $(TOPDIR)/System.map
-	@rm -f nuttx.rel
+	$(Q) rm -f nuttx.rel
 
 # This is part of the top-level export target
 
@@ -200,26 +205,26 @@ export_head: board/libboard$(LIBEXT) up_head.o $(HOSTOBJS)
 # Dependencies
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 cleanrel: 
-	@rm -f nuttx.rel GNU/Linux-names.dat Cygwin-names.dat
+	$(Q) rm -f nuttx.rel GNU/Linux-names.dat Cygwin-names.dat
 
 clean: cleanrel
-	@if [ -e board/Makefile ]; then \
+	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" clean ; \
 	fi
-	@rm -f nuttx.rel libarch$(LIBEXT) *~ .*.swp
+	$(Q) rm -f nuttx.rel libarch$(LIBEXT) *~ .*.swp
 	$(call CLEAN)
 
 distclean: clean
-	@if [ -e board/Makefile ]; then \
+	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" distclean ; \
 	fi
-	@rm -f Make.dep .depend
-	@rm -rf GNU
+	$(Q) rm -f Make.dep .depend
+	$(Q) rm -rf GNU
 
 -include Make.dep

@@ -3,6 +3,8 @@
 # see misc/tools/kconfig-language.txt.
 #
 
+comment "Basic CXX Support"
+
 config HAVE_CXX
 	bool "Have C++ compiler"
 	default n
@@ -11,8 +13,6 @@ config HAVE_CXX
 		defined in the configurations Make.defs file.
 
 if HAVE_CXX
-
-comment "Basic CXX Support"
 
 config HAVE_CXXINITIALIZE
 	bool "Have C++ initialization"
@@ -49,6 +49,13 @@ config UCLIBCXX_EXCEPTION
 config UCLIBCXX_IOSTREAM_BUFSIZE
 	int "IO Stream Buffer Size"
 	default 32
+
+config UCLIBCXX_HAVE_LIBSUPCXX
+	bool "Have libsupc++ (required)"
+	default y
+	---help---
+		Select if your toolchain provides libsupc++.  This option is required
+		at present because the built-in libsupc++ support is incomplete.
 
 endif
 endif

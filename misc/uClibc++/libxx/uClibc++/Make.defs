@@ -37,13 +37,17 @@
 
 CXXSRCS += algorithm.cxx associative_base.cxx bitset.cxx char_traits.cxx
 CXXSRCS += complex.cxx del_op.cxx del_opnt.cxx del_opv.cxx del_opvnt.cxx
-CXXSRCS += deque.cxx eh_alloc.cxx eh_globals.cxx eh_terminate.cxx exception.cxx
-CXXSRCS += fstream.cxx func_exception.cxx iomanip.cxx ios.cxx
-CXXSRCS += iostream.cxx istream.cxx iterator.cxx limits.cxx list.cxx
-CXXSRCS += locale.cxx map.cxx new_handler.cxx new_op.cxx new_opnt.cxx
-CXXSRCS += new_opv.cxx new_opvnt.cxx numeric.cxx ostream.cxx queue.cxx
-CXXSRCS += set.cxx sstream.cxx stack.cxx stdexcept.cxx streambuf.cxx
-CXXSRCS += string.cxx typeinfo.cxx utility.cxx valarray.cxx vector.cxx
+CXXSRCS += deque.cxx exception.cxx fstream.cxx func_exception.cxx
+CXXSRCS += iomanip.cxx ios.cxx iostream.cxx istream.cxx iterator.cxx
+CXXSRCS += limits.cxx list.cxx locale.cxx map.cxx new_handler.cxx
+CXXSRCS += new_op.cxx new_opnt.cxx new_opv.cxx new_opvnt.cxx numeric.cxx
+CXXSRCS += ostream.cxx queue.cxx set.cxx sstream.cxx stack.cxx 
+CXXSRCS += stdexcept.cxx streambuf.cxx string.cxx typeinfo.cxx utility.cxx
+CXXSRCS += valarray.cxx vector.cxx
+
+ifneq ($(CONFIG_UCLIBCXX_HAVE_LIBSUPCXX),y)
+CXXSRCS += eh_alloc.cxx eh_globals.cxx eh_terminate.cxx 
+endif
 
 # Add the path to the uClibc++ subdirectory
 
