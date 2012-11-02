@@ -101,15 +101,13 @@ endif
 endif
 
 EXTRA_LIBS ?=
+EXTRA_LIBPATHS ?=
 
 ifeq ($(CONFIG_FS_FAT),y)
 STDLIBS += -lz
 endif
 
 STDLIBS += -lc
-
-LIBGCC := "${shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name}"
-GCC_LIBDIR := ${shell dirname $(LIBGCC)}
 
 # Determine which objects are required in the link.  The
 # up_head object normally draws in all that is needed, but
@@ -134,7 +132,7 @@ LDLIBS = $(patsubst lib%,-l%,$(basename $(notdir $(LINKLIBS))))
 
 # Add the board-specific library and directory
 
-LDPATHS += -L board -L $(GCC_LIBDIR)
+LDPATHS += -L board 
 LDLIBS += -lboard
 
 # Make targets begin here
@@ -181,7 +179,7 @@ Cygwin-names.dat: nuttx-names.dat
 
 nuttx.rel : libarch$(LIBEXT) board/libboard$(LIBEXT) $(HOSTOS)-names.dat $(LINKOBJS)
 	$(Q) echo "LD:  nuttx.rel"
-	$(Q) $(LD) -r $(LDLINKFLAGS) $(LDPATHS) -o $@ $(REQUIREDOBJS) --start-group $(LDLIBS) $(EXTRA_LIBS) --end-group
+	$(Q) $(LD) -r $(LDLINKFLAGS) $(LDPATHS) $(EXTRA_LIBPATHS) -o $@ $(REQUIREDOBJS) --start-group $(LDLIBS) $(EXTRA_LIBS) --end-group
 	$(Q) $(OBJCOPY) --redefine-syms=$(HOSTOS)-names.dat $@
 
 # Generate the final NuttX binary by linking the host-specific objects with the NuttX

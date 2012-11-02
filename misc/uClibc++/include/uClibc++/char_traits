@@ -32,8 +32,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 //
 //***************************************************************************
-//#ifndef __INCLUDE_CXX_CHAR1_TRAITS
-//#define __INCLUDE_CXX_CHAR1_TRAITS
+
 #include <basic_definitions>
 #include <string.h>
 #include <exception>
@@ -47,169 +46,223 @@
 #ifndef __HEADER_CHAR_TRAITS
 #define __HEADER_CHAR_TRAITS 1
 
-namespace std{
-	/* Inlining all wrapped function calls to shrink the amount of code generated*/	
-	//Typedefs to use for stuff
-	typedef signed int char_traits_off_type;
+extern "C++"
+{
 
-	//Generic char_traits
-	template<class charT> struct _UCXXEXPORT char_traits { };
+namespace std
+{
+  /* Inlining all wrapped function calls to shrink the amount of code generated */
+  // Typedefs to use for stuff
 
-	//Specialize for char
-	template<> struct _UCXXEXPORT char_traits<char> {
-		typedef char char_type;
-		typedef short int int_type;
-		typedef char_traits_off_type off_type;
-		typedef char_traits_off_type pos_type;
-		typedef char state_type;
-		
-		inline static void assign(char_type & c, const char_type & d) { c = d; }
+  typedef signed int char_traits_off_type;
 
-		static bool eq(const char_type& c1, const char_type& c2);
+  // Generic char_traits
 
-		static char_type to_char_type(const int_type & i);
+  template<class charT> struct _UCXXEXPORT char_traits { };
 
-		inline static int_type to_int_type(const char_type & c){
-			return (short int)(unsigned char)c;
-		}
+  // Specialize for char
 
-		inline static bool eq_int_type(const int_type & a, const int_type & b){
-			if(a==b){
-				return true;
-			}
-			return false;
-		}
+  template<> struct _UCXXEXPORT char_traits<char> 
+  {
+    typedef char char_type;
+    typedef short int int_type;
+    typedef char_traits_off_type off_type;
+    typedef char_traits_off_type pos_type;
+    typedef char state_type;
+    
+    inline static void assign(char_type & c, const char_type & d) { c = d; }
 
+    static bool eq(const char_type& c1, const char_type& c2);
 
-		inline static bool lt(const char_type& c1, const char_type& c2){
-			if(strncmp(&c1, &c2, 1) < 0){
-				return true;
-			}
-			return false;
-		}
+    static char_type to_char_type(const int_type & i);
 
-		inline static char_type* move(char_type* s1, const char_type* s2, size_t n){
-			return (char*) memmove(s1, s2, n);
-		}
+    inline static int_type to_int_type(const char_type & c)
+    {
+      return (short int)(unsigned char)c;
+    }
 
-		inline static char_type* copy(char_type* s1, const char_type* s2, size_t n){
-			for(unsigned long int i=0; i< n; ++i){
-				assign(s1[i], s2[i]);
-			}
-			return s1 + n;
-		}
+    inline static bool eq_int_type(const int_type & a, const int_type & b)
+    {
+      if (a==b)
+      {
+        return true;
+      }
 
-		inline static char_type* assign(char_type* s, size_t n, char_type a){
-			return (char *)memset(s, a, n);
-		}
+      return false;
+    }
 
-		inline static int compare(const char_type* s1, const char_type* s2, size_t n){
-			return strncmp(s1, s2, n);
-		}
+    inline static bool lt(const char_type& c1, const char_type& c2)
+    {
+      if (strncmp(&c1, &c2, 1) < 0)
+      {
+        return true;
+      }
 
-		inline static size_t length(const char_type* s){
-			return strlen(s);
-		}
+      return false;
+    }
 
-		static const char_type* find(const char_type* s, int n, const char_type& a);
+    inline static char_type* move(char_type* s1, const char_type* s2, size_t n)
+    {
+      return (char*) memmove(s1, s2, n);
+    }
 
-		inline static char_type eos() { return 0; }
-		inline static int_type eof() { return -1; }
-		inline static int_type not_eof(const int_type & i) {
-			if(i == -1){
-				return 0;
-			} else {
-				return i;
-			}
-		}
-		static state_type get_state(pos_type p){
-			p = p;
-			state_type a;
-			return a;
-		}
-	};
+    inline static char_type* copy(char_type* s1, const char_type* s2, size_t n)
+    {
+      for (unsigned long int i=0; i< n; ++i)
+      {
+        assign(s1[i], s2[i]);
+      }
 
+      return s1 + n;
+    }
+
+    inline static char_type* assign(char_type* s, size_t n, char_type a)
+    {
+      return (char *)memset(s, a, n);
+    }
+
+    inline static int compare(const char_type* s1, const char_type* s2, size_t n)
+    {
+      return strncmp(s1, s2, n);
+    }
+
+    inline static size_t length(const char_type* s)
+    {
+      return strlen(s);
+    }
+
+    static const char_type* find(const char_type* s, int n, const char_type& a);
+
+    inline static char_type eos() { return 0; }
+    inline static int_type eof() { return -1; }
+
+    inline static int_type not_eof(const int_type & i)
+    {
+      if (i == -1)
+      {
+        return 0;
+      }
+      else 
+      {
+        return i;
+      }
+    }
+
+    static state_type get_state(pos_type p)
+    {
+      p = p;
+      state_type a;
+      return a;
+    }
+  };
 
 #ifdef __UCLIBCXX_HAS_WCHAR__
-	template<> struct _UCXXEXPORT char_traits<wchar_t> {
-		typedef wchar_t char_type;
-		typedef wint_t int_type;
-		typedef char_traits_off_type off_type;
-		typedef char_traits_off_type pos_type;
-		typedef mbstate_t state_type;
+  template<> struct _UCXXEXPORT char_traits<wchar_t> 
+  {
+    typedef wchar_t char_type;
+    typedef wint_t int_type;
+    typedef char_traits_off_type off_type;
+    typedef char_traits_off_type pos_type;
+    typedef mbstate_t state_type;
 
-		static void assign(char_type & c, const char_type & d){ c=d; }
+    static void assign(char_type & c, const char_type & d){ c=d; }
 
-		static char_type to_char_type(const int_type & i){
-			return i;
-		}
+    static char_type to_char_type(const int_type & i)
+    {
+      return i;
+    }
 
-		static int_type to_int_type(const char_type & c){
-			return c;
-		}
+    static int_type to_int_type(const char_type & c)
+    {
+      return c;
+    }
 
-		inline static bool eq_int_type(const int_type & a, const int_type & b){
-			if(a==b){
-				return true;
-			}
-			return false;
-		}
+    inline static bool eq_int_type(const int_type & a, const int_type & b)
+    {
+      if (a == b)
+      {
+        return true;
+      }
 
-		inline static bool eq(const char_type& c1, const char_type& c2){
-			if(wcsncmp(&c1, &c2, 1) == 0){
-				return true;
-			}
-			return false;
-		}
+      return false;
+    }
 
-		inline static bool lt(const char_type& c1, const char_type& c2){
-			if(wcsncmp(&c1, &c2, 1) < 0){
-				return true;
-			}
-			return false;
-		}
+    inline static bool eq(const char_type& c1, const char_type& c2)
+    {
+      if (wcsncmp(&c1, &c2, 1) == 0)
+      {
+        return true;
+      }
 
-		inline static char_type* move(char_type* s1, const char_type* s2, size_t n){
-			return (char_type*) memmove(s1, s2, n * sizeof(char_type));
-		}
+      return false;
+    }
 
-		inline static char_type* copy(char_type* s1, const char_type* s2, size_t n){
-			for(unsigned long int i=0; i< n; ++i){
-				assign(s1[i], s2[i]);
-			}
-			return s1 + n;
-		}
+    inline static bool lt(const char_type& c1, const char_type& c2)
+    {
+      if(wcsncmp(&c1, &c2, 1) < 0)
+      {
+        return true;
+      }
 
-		inline static char_type* assign(char_type* s, size_t n, char_type a){
-			return (char_type *)memset(s, a, n);	/*FIXME*/
-		}
+      return false;
+    }
 
-		inline static int compare(const char_type* s1, const char_type* s2, size_t n){
-			return wcsncmp(s1, s2, n);
-		}
+    inline static char_type* move(char_type* s1, const char_type* s2, size_t n)
+    {
+      return (char_type*) memmove(s1, s2, n * sizeof(char_type));
+    }
 
-		inline static size_t length(const char_type* s){
-			return wcslen(s);
-		}
+    inline static char_type* copy(char_type* s1, const char_type* s2, size_t n)
+    {
+      for (unsigned long int i = 0; i< n; ++i)
+      {
+        assign(s1[i], s2[i]);
+      }
 
-		static const char_type* find(const char_type* s, int n, const char_type& a);
+      return s1 + n;
+    }
 
-		inline static char_type eos() { return 0; }
-		inline static int_type eof() { return WEOF; }
-		inline static int_type not_eof(const int_type & i) {
-			if(i == WEOF){
-				return (int_type)0;
-			} else {
-				return i;
-			}
-		}
-		static state_type get_state(pos_type){
-			state_type a;
-			return a;
-		}
-	};
-#endif
+    inline static char_type* assign(char_type* s, size_t n, char_type a)
+    {
+      return (char_type *)memset(s, a, n);  /*FIXME*/
+    }
 
-}
+    inline static int compare(const char_type* s1, const char_type* s2, size_t n)
+    {
+      return wcsncmp(s1, s2, n);
+    }
 
-#endif
+    inline static size_t length(const char_type* s)
+    {
+      return wcslen(s);
+    }
+
+    static const char_type* find(const char_type* s, int n, const char_type& a);
+
+    inline static char_type eos() { return 0; }
+    inline static int_type eof() { return WEOF; }
+
+    inline static int_type not_eof(const int_type & i) 
+    {
+      if (i == WEOF)
+      {
+        return (int_type)0;
+      }
+      else
+      {
+        return i;
+      }
+    }
+
+    static state_type get_state(pos_type)
+    {
+      state_type a;
+      return a;
+    }
+  };
+#endif // __UCLIBCXX_HAS_WCHAR__
+
+} // namespace
+} // extern "C++"
+
+#endif // __HEADER_CHAR_TRAITS

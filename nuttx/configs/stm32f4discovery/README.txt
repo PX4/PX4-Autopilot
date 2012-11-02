@@ -982,6 +982,35 @@ can be selected as follow:
 
 Where <subdir> is one of the following:
 
+  cxxtest:
+  -------
+
+  The C++ standard libary test at apps/examples/cxxtest configuration.  This
+  test is used to verify the uClibc++ port to NuttX.  This configuration may
+  be selected as follows:
+
+    cd <nuttx-directory>/tools
+    ./configure.sh sim/cxxtest
+
+  NOTES:
+
+  1. Before you can use this example, you must first install the uClibc++
+     C++ library.  This is located outside of the NuttX source tree at
+     misc/uClibc++ in SVN.  See the README.txt file for instructions on
+     how to install uClibc++
+
+  2. This configuration uses the mconf-based configuration tool.  To
+     change this configuration using that tool, you should:
+
+     a. Build and install the mconf tool.  See nuttx/README.txt and
+        misc/tools/
+
+     b. Execute 'make menuconfig' in nuttx/ in order to start the
+        reconfiguration process.
+
+  3. At present (2012/11/02), this example builds only with exceptions
+     disabled (CONFIG_UCLIBCXX_EXCEPTIONS=n).
+
   elf:
   ---
 

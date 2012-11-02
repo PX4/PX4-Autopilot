@@ -35,6 +35,8 @@
 
 #pragma GCC visibility push(default)
 
+extern "C++"
+{
 namespace std
 {
   // Basic basic_string
@@ -1331,7 +1333,9 @@ template <> _UCXXEXPORT bool operator< (const string & lhs, const string & rhs);
 
 #endif
 #endif
+
 } // namespace
+} // extern "C++"
 
 #pragma GCC visibility pop
 

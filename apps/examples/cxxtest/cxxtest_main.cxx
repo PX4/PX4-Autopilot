@@ -203,21 +203,25 @@ static void test_exception(void)
 // Name: cxxtest_main
 //***************************************************************************/
 
-int cxxtest_main(int argc, char *argv[])
+extern "C"
 {
-  // If C++ initialization for static constructors is supported, then do
-  // that first
+  int cxxtest_main(int argc, char *argv[])
+  {
+    // If C++ initialization for static constructors is supported, then do
+    // that first
 
 #ifdef CONFIG_HAVE_CXXINITIALIZE
-  up_cxxinitialize();
+    up_cxxinitialize();
 #endif
 
-  test_iostream();
-  test_stl();
-  test_rtti();
+    test_iostream();
+    test_stl();
+    test_rtti();
 #ifdef CONFIG_UCLIBCXX_EXCEPTION
-  test_exception();
+    test_exception();
 #endif
     
-  return 0;
+    return 0;
+  }
 }
+

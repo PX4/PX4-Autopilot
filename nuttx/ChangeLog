@@ -3554,3 +3554,11 @@
 	  expects.  That is usually the case if parameters are passed in
 	  registers.
 	* libxx/libxx_cxa_atexit():  Implements __cxa_atexit()
+	* configs/stm32f4discovery/cxxtest:  New test that will be used to
+	  verify the uClibc++ port (eventually).  The sim platform turned not
+	  to be a good platform for testing uClibc++.  The sim example will not
+	  run because the simulator will attempt to execute the static
+	  constructors before main() starts. BUT... NuttX is not initialized
+	  and this results in a crash.  On the STM324Discovery, I will have
+	  better control over when the static constructors run.
+
