@@ -66,6 +66,9 @@
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 
+#include <uORB/uORB.h>
+#include <uORB/topics/subsystem_info.h>
+
 #include <float.h>
 
 /*
@@ -631,6 +634,7 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_scale, (mag_scale *)arg, sizeof(_scale));
+		(void)check_calibration();
 		return 0;
 
 	case MAGIOCGSCALE:
@@ -1039,11 +1043,17 @@ int HMC5883::check_calibration()
 		offset_valid = false;
 	}
 
-	if (_calibrated && !(offset_valid && scale_valid)) {
-		warnx("warning: mag %s%s", (scale_valid) ? "" : "scale invalid. ",
+	if (_calibrated != (offset_valid && scale_valid)) {
+		warnx("warning: mag cal changed: %s%s", (scale_valid) ? "" : "scale invalid. ",
 					  (offset_valid) ? "" : "offset invalid.");
-		_calibrated = false;
-		// XXX Notify system via uORB
+		_calibrated = (offset_valid && scale_valid);
+		/* notify about state change */
+		struct subsystem_info_s info = {
+			true,
+			true,
+			_calibrated,
+			SUBSYSTEM_TYPE_MAG};
+		orb_advert_t pub = orb_advertise(ORB_ID(subsystem_info), &info);
 	}
 	return 0;
 }

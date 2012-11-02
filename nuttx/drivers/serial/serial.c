@@ -328,7 +328,7 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer, size_t
       /* If the ONLCR flag is set, we should translate \n to \r\n */
 
       ret = OK;
-      if ((ch == '\n') && (dev->termios_s.c_oflag && ONLCR))
+      if ((ch == '\n') && (dev->termios_s.c_oflag & ONLCR))
         {
           ret = uart_putxmitchar(dev, '\r');
         }
