@@ -233,66 +233,68 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 
 		} break;
 
-		case MAVLINK_MSG_ID_COMMAND_LONG: {
-			mavlink_command_long_t cmd_mavlink;
-			mavlink_msg_command_long_decode(msg, &cmd_mavlink);
+		// case MAVLINK_MSG_ID_COMMAND_LONG: {
+		// 	mavlink_command_long_t cmd_mavlink;
+		// 	mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
-			uint8_t result = MAV_RESULT_UNSUPPORTED;
+		// 	uint8_t result = MAV_RESULT_UNSUPPORTED;
 
-			if (cmd_mavlink.target_system == mavlink_system.sysid &&
-				((cmd_mavlink.target_component == mavlink_system.compid) ||(cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
+		// 	if (cmd_mavlink.target_system == mavlink_system.sysid &&
+		// 		((cmd_mavlink.target_component == mavlink_system.compid) ||(cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
 
-				/* preflight parameter load / store */
-				if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_STORAGE) {
-					/* Read all parameters from EEPROM to RAM */
+		// 		// XXX move this to LOW PRIO THREAD of commander app
 
-					if (((int)(cmd_mavlink.param1)) == 0)	{
+		// 		/* preflight parameter load / store */
+		// 		if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_STORAGE) {
+		// 			/* Read all parameters from EEPROM to RAM */
 
-						/* read all parameters from EEPROM to RAM */
-						int read_ret = param_load_default();
-						if (read_ret == OK) {
-							//printf("[mavlink pm] Loaded EEPROM params in RAM\n");
-							mavlink_missionlib_send_gcs_string("[mavlink pm] OK loaded EEPROM params");
-							result = MAV_RESULT_ACCEPTED;
-						} else if (read_ret == 1) {
-							mavlink_missionlib_send_gcs_string("[mavlink pm] No stored parameters to load");
-							result = MAV_RESULT_ACCEPTED;
-						} else {
-							if (read_ret < -1) {
-								mavlink_missionlib_send_gcs_string("[mavlink pm] ERR loading params from EEPROM");
-							} else {
-								mavlink_missionlib_send_gcs_string("[mavlink pm] ERR loading params, no EEPROM found");
-							}
-							result = MAV_RESULT_FAILED;
-						}
+		// 			if (((int)(cmd_mavlink.param1)) == 0)	{
 
-					} else if (((int)(cmd_mavlink.param1)) == 1)	{
+		// 				/* read all parameters from EEPROM to RAM */
+		// 				int read_ret = param_load_default();
+		// 				if (read_ret == OK) {
+		// 					//printf("[mavlink pm] Loaded EEPROM params in RAM\n");
+		// 					mavlink_missionlib_send_gcs_string("[pm] OK loading %s", param_get_default_file());
+		// 					result = MAV_RESULT_ACCEPTED;
+		// 				} else if (read_ret == 1) {
+		// 					mavlink_missionlib_send_gcs_string("[pm] OK no changes %s", param_get_default_file());
+		// 					result = MAV_RESULT_ACCEPTED;
+		// 				} else {
+		// 					if (read_ret < -1) {
+		// 						mavlink_missionlib_send_gcs_string("[pm] ERR loading %s", param_get_default_file());
+		// 					} else {
+		// 						mavlink_missionlib_send_gcs_string("[pm] ERR no file %s", param_get_default_file());
+		// 					}
+		// 					result = MAV_RESULT_FAILED;
+		// 				}
 
-						/* write all parameters from RAM to EEPROM */
-						int write_ret = param_save_default();
-						if (write_ret == OK) {
-							mavlink_missionlib_send_gcs_string("[mavlink pm] OK params written to EEPROM");
-							result = MAV_RESULT_ACCEPTED;
+		// 			} else if (((int)(cmd_mavlink.param1)) == 1)	{
 
-						} else {
-							if (write_ret < -1) {
-								mavlink_missionlib_send_gcs_string("[mavlink pm] ERR writing params to EEPROM");
-							} else {
-								mavlink_missionlib_send_gcs_string("[mavlink pm] ERR writing params, no EEPROM found");
-							}
-							result = MAV_RESULT_FAILED;
-						}
+		// 				/* write all parameters from RAM to EEPROM */
+		// 				int write_ret = param_save_default();
+		// 				if (write_ret == OK) {
+		// 					mavlink_missionlib_send_gcs_string("[pm] OK saved %s", param_get_default_file());
+		// 					result = MAV_RESULT_ACCEPTED;
 
-					} else {
-						//fprintf(stderr, "[mavlink pm] refusing unsupported storage request\n");
-						mavlink_missionlib_send_gcs_string("[mavlink pm] refusing unsupported STOR request");
-						result = MAV_RESULT_UNSUPPORTED;
-					}
-				}
-			}
+		// 				} else {
+		// 					if (write_ret < -1) {
+		// 						mavlink_missionlib_send_gcs_string("[pm] ERR writing %s", param_get_default_file());
+		// 					} else {
+		// 						mavlink_missionlib_send_gcs_string("[pm] ERR writing %s", param_get_default_file());
+		// 					}
+		// 					result = MAV_RESULT_FAILED;
+		// 				}
 
-			/* send back command result */
-			//mavlink_msg_command_ack_send(chan, cmd.command, result);
-		} break;
+		// 			} else {
+		// 				//fprintf(stderr, "[mavlink pm] refusing unsupported storage request\n");
+		// 				mavlink_missionlib_send_gcs_string("[pm] refusing unsupp. STOR request");
+		// 				result = MAV_RESULT_UNSUPPORTED;
+		// 			}
+		// 		}
+		// 	}
+
+		// 	/* send back command result */
+		// 	//mavlink_msg_command_ack_send(chan, cmd.command, result);
+		// } break;
 	}
 }
