@@ -50,6 +50,7 @@
 #define LED_AMBER		0
 #define LED_RED			0	/* some boards have red rather than amber */
 #define LED_BLUE		1
+#define LED_SAFETY		2
 
 #define LED_ON			_IOC(_LED_BASE, 0)
 #define LED_OFF			_IOC(_LED_BASE, 1)
@@ -59,6 +60,6 @@ __BEGIN_DECLS
 /*
  * Initialise the LED driver.
  */
-__EXPORT extern void drv_led_start();
+__EXPORT extern void drv_led_start(void);
 
 __END_DECLS

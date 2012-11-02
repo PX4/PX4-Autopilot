@@ -67,6 +67,38 @@
 
 #endif
 
+#ifdef CONFIG_ARCH_BOARD_PX4IO
+/*
+ * PX4IO GPIO numbers.
+ *
+ * XXX note that these are here for reference/future use; currently
+ * there is no good way to wire these up without a common STM32 GPIO
+ * driver, which isn't implemented yet.
+ */
+/* outputs */
+# define GPIO_ACC1_POWER	(1<<0)		/**< accessory power 1 */
+# define GPIO_ACC2_POWER	(1<<1)		/**< accessory power 2 */
+# define GPIO_SERVO_POWER	(1<<2)		/**< servo power */
+# define GPIO_RELAY1		(1<<3)		/**< relay 1 */
+# define GPIO_RELAY2		(1<<4)		/**< relay 2 */
+# define GPIO_LED_BLUE		(1<<5)		/**< blue LED */
+# define GPIO_LED_AMBER		(1<<6)		/**< amber/red LED */
+# define GPIO_LED_SAFETY	(1<<7)		/**< safety LED */
+
+/* inputs */
+# define GPIO_ACC_OVERCURRENT	(1<<8)		/**< accessory 1/2 overcurrent detect */
+# define GPIO_SERVO_OVERCURRENT	(1<<9)		/**< servo overcurrent detect */
+# define GPIO_SAFETY_BUTTON	(1<<10)		/**< safety button pressed */
+
+/**
+ * Default GPIO device - other devices may also support this protocol if
+ * they also export GPIO-like things.  This is always the GPIOs on the
+ * main board.
+ */
+# define GPIO_DEVICE_PATH	"/dev/px4io"
+
+#endif
+
 #ifndef GPIO_DEVICE_PATH
 #  error No GPIO support for this board.
 #endif

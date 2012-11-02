@@ -276,6 +276,17 @@ static void		hrt_call_invoke(void);
  * Specific registers and bits used by PPM sub-functions
  */
 #ifdef CONFIG_HRT_PPM
+/* 
+ * If the timer hardware doesn't support GTIM_CCER_CCxNP, then we will work around it.
+ */
+# ifndef GTIM_CCER_CC1NP
+#  define GTIM_CCER_CC1NP 0
+#  define GTIM_CCER_CC2NP 0
+#  define GTIM_CCER_CC3NP 0
+#  define GTIM_CCER_CC4NP 0
+#  define PPM_EDGE_FLIP
+# endif
+
 # if HRT_PPM_CHANNEL == 1
 #  define rCCR_PPM	rCCR1			/* capture register for PPM */
 #  define DIER_PPM	GTIM_DIER_CC1IE		/* capture interrupt (non-DMA mode) */
@@ -284,6 +295,7 @@ static void		hrt_call_invoke(void);
 #  define CCMR1_PPM	1			/* not on TI1/TI2 */
 #  define CCMR2_PPM	0			/* on TI3, not on TI4 */
 #  define CCER_PPM	(GTIM_CCER_CC1E | GTIM_CCER_CC1P | GTIM_CCER_CC1NP) /* CC1, both edges */
+#  define CCER_PPM_FLIP	GTIM_CCER_CC1P
 # elif HRT_PPM_CHANNEL == 2
 #  define rCCR_PPM	rCCR2			/* capture register for PPM */
 #  define DIER_PPM	GTIM_DIER_CC2IE		/* capture interrupt (non-DMA mode) */
@@ -292,6 +304,7 @@ static void		hrt_call_invoke(void);
 #  define CCMR1_PPM	2			/* not on TI1/TI2 */
 #  define CCMR2_PPM	0			/* on TI3, not on TI4 */
 #  define CCER_PPM	(GTIM_CCER_CC2E | GTIM_CCER_CC2P | GTIM_CCER_CC2NP) /* CC2, both edges */
+#  define CCER_PPM_FLIP	GTIM_CCER_CC2P
 # elif HRT_PPM_CHANNEL == 3
 #  define rCCR_PPM	rCCR3			/* capture register for PPM */
 #  define DIER_PPM	GTIM_DIER_CC3IE		/* capture interrupt (non-DMA mode) */
@@ -300,6 +313,7 @@ static void		hrt_call_invoke(void);
 #  define CCMR1_PPM	0			/* not on TI1/TI2 */
 #  define CCMR2_PPM	1			/* on TI3, not on TI4 */
 #  define CCER_PPM	(GTIM_CCER_CC3E | GTIM_CCER_CC3P | GTIM_CCER_CC3NP) /* CC3, both edges */
+#  define CCER_PPM_FLIP	GTIM_CCER_CC3P
 # elif HRT_PPM_CHANNEL == 4
 #  define rCCR_PPM	rCCR4			/* capture register for PPM */
 #  define DIER_PPM	GTIM_DIER_CC4IE		/* capture interrupt (non-DMA mode) */
@@ -308,6 +322,7 @@ static void		hrt_call_invoke(void);
 #  define CCMR1_PPM	0			/* not on TI1/TI2 */
 #  define CCMR2_PPM	2			/* on TI3, not on TI4 */
 #  define CCER_PPM	(GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP) /* CC4, both edges */
+#  define CCER_PPM_FLIP	GTIM_CCER_CC4P
 # else
 #  error HRT_PPM_CHANNEL must be a value between 1 and 4 if CONFIG_HRT_PPM is set
 # endif
@@ -532,9 +547,14 @@ hrt_tim_isr(int irq, void *context)
 #ifdef CONFIG_HRT_PPM
 
 	/* was this a PPM edge? */
-	if (status & (SR_INT_PPM | SR_OVF_PPM))
-		hrt_ppm_decode(status);
+	if (status & (SR_INT_PPM | SR_OVF_PPM)) {
+		/* if required, flip edge sensitivity */
+# ifdef PPM_EDGE_FLIP
+		rCCER ^= CCER_PPM_FLIP;
+# endif
 
+		hrt_ppm_decode(status);
+	}
 #endif
 
 	/* was this a timer tick? */

@@ -188,18 +188,6 @@
 # define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 #endif
 
-/* LED definitions ******************************************************************/
-/* PX4 has two LEDs that we will encode as: */
-
-#define LED_STARTED       0  /* LED? */
-#define LED_HEAPALLOCATE  1  /* LED? */
-#define LED_IRQSENABLED   2  /* LED? + LED? */
-#define LED_STACKCREATED  3  /* LED? */
-#define LED_INIRQ         4  /* LED? + LED? */
-#define LED_SIGNAL        5  /* LED? + LED? */
-#define LED_ASSERTION     6  /* LED? + LED? + LED? */
-#define LED_PANIC         7  /* N/C  + N/C  + N/C + LED? */
-
 /* Alternate function pin selections ************************************************/
 
 /*

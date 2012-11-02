@@ -57,7 +57,6 @@
 #include <nuttx/i2c.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
-#include <nuttx/arch.h>
 
 #include "stm32_internal.h"
 #include "px4fmu_internal.h"

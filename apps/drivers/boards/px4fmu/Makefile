@@ -36,5 +36,6 @@
 #
 
 INCLUDES	 = $(TOPDIR)/arch/arm/src/stm32 $(TOPDIR)/arch/arm/src/common
+LIBNAME		 = brd_px4fmu
 
 include $(APPDIR)/mk/app.mk

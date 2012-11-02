@@ -47,9 +47,7 @@
 
 #include <nuttx/clock.h>
 
-#include <arch/board/up_boardinitialize.h>
-#include <arch/board/drv_gpio.h>
-#include <arch/board/drv_ppm_input.h>
+#include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
 
 #include "px4io.h"
@@ -73,8 +71,8 @@ int user_start(int argc, char *argv[])
 	bool	heartbeat = false;
 	bool	failsafe = false;
 
-	/* Do board init */
-	(void)up_boardinitialize();
+	/* configure the PWM outputs */
+	up_pwm_servo_init(0xff);
 
 	/* print some startup info */
 	lib_lowprintf("\nPX4IO: starting\n");
@@ -84,20 +82,13 @@ int user_start(int argc, char *argv[])
 	/* start the software timer service */
 	hrt_call_every(&timer_tick_call, 1000, 1000, timer_tick, NULL);
 
-	/* Open the GPIO driver so we can do LEDs and the like. */
-	gpio_fd = open("/dev/gpio", 0);
-	ASSERTCODE((gpio_fd >= 0), A_GPIO_OPEN_FAIL);
-
 	/* default all the LEDs to off while we start */
-	LED_AMBER(heartbeat);
-	LED_BLUE(failsafe);
+	LED_AMBER(false);
+	LED_BLUE(false);
 	LED_SAFETY(false);
 
 	/* turn on servo power */
 	POWER_SERVO(true);
-
-	/* configure the PPM input driver */
-	ppm_input_init(rc_input_mq_name);
 
 	/* start the mixer */
 	mixer_init(rc_input_mq_name);
@@ -123,18 +114,19 @@ int user_start(int argc, char *argv[])
 		/* blink the heartbeat LED */
 		if (timers[TIMER_BLINK_AMBER] == 0) {
 			timers[TIMER_BLINK_AMBER] = 250;
-			LED_AMBER((heartbeat = !heartbeat));
+			LED_AMBER(heartbeat = !heartbeat);
 		}
 
 		/* blink the failsafe LED if we don't have FMU input */
 		if (!system_state.mixer_use_fmu) {
 			if (timers[TIMER_BLINK_BLUE] == 0) {
 				timers[TIMER_BLINK_BLUE] = 125;
-				LED_BLUE((failsafe = !failsafe));
+				failsafe = !failsafe;
 			}
 		} else {
-			LED_BLUE((failsafe = false));
+			failsafe = false;
 		}
+		LED_BLUE(failsafe);
 		
 		/* print some simple status */
 		if (timers[TIMER_STATUS_PRINT] == 0) {
@@ -147,7 +139,6 @@ int user_start(int argc, char *argv[])
 				system_state.rc_channels
 			);
 		}
-
 	}
 
 	/* Should never reach here */

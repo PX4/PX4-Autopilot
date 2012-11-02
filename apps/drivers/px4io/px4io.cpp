@@ -73,7 +73,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/rc_channels.h>
 
-#include "px4io/protocol.h"
+#include <px4io/protocol.h>
 #include "uploader.h"
 
 

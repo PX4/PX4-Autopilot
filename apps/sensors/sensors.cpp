@@ -63,6 +63,7 @@
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/ppm_decode.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
@@ -89,19 +90,6 @@
 #define BAT_VOL_LOWPASS_1 0.99f
 #define BAT_VOL_LOWPASS_2 0.01f
 #define VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS 3.5f
-
-#ifdef CONFIG_HRT_PPM
-extern "C" {
-	extern uint16_t ppm_buffer[];
-	extern unsigned ppm_decoded_channels;
-	extern uint64_t ppm_last_valid_decode;
-}
-
-/* PPM Settings */
-#  define PPM_MIN 1000
-#  define PPM_MAX 2000
-#  define PPM_MID (PPM_MIN+PPM_MAX)/2
-#endif
 
 /**
  * Sensor app start / stop handling function

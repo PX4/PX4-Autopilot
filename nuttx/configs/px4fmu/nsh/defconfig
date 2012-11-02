@@ -306,25 +306,9 @@ CONFIG_USART6_RXDMA=y
 #   set HRT_PPM_CHANNEL to the timer capture/compare channel to be
 #   used, and define GPIO_PPM_IN to configure the appropriate timer
 #   GPIO.
-# CONFIG_TONE_ALARM
-#   Enables the tone alarm (buzzer) driver  The board definition must
-#   set TONE_ALARM_TIMER and TONE_ALARM_CHANNEL to the timer and
-#   capture/compare channels to be used.
-# CONFIG_PWM_SERVO
-#   Enables the PWM servo driver.  The driver configuration must be
-#   supplied by the board support at initialisation time.
-#   Note that USART2 must be disabled on the PX4 board for this to
-#   be available.
-# CONFIG_MULTIPORT
-#   Enabled support for run-time (or EEPROM based boot-time) configuration
-#   of ports for different functions (e.g. USART2 or ARDrone or PWM out)
-#
 #
 CONFIG_HRT_TIMER=y
 CONFIG_HRT_PPM=y
-CONFIG_TONE_ALARM=y
-CONFIG_PWM_SERVO=n
-CONFIG_MULTIPORT=n
 
 #
 # STM32F40xxx specific SPI device driver settings

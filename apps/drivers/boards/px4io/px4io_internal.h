@@ -35,8 +35,7 @@
  * @file PX4IO hardware definitions.
  */
 
-#ifndef __CONFIGS_PX4IO_SRC_PX4IO_INTERNAL_H
-#define __CONFIGS_PX4IO_SRC_PX4IO_INTERNAL_H
+#pragma once
 
 /************************************************************************************
  * Included Files
@@ -45,6 +44,8 @@
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
+
+#include <stm32_internal.h>
 
 /************************************************************************************
  * Definitions
@@ -97,21 +98,3 @@
 
 #define GPIO_RELAY1_EN (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN13)
 #define GPIO_RELAY2_EN (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN12)
-
-/************************************************************************************
- * Public Types
- ************************************************************************************/
-
-/************************************************************************************
- * Public data
- ************************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-/************************************************************************************
- * Public Functions
- ************************************************************************************/
-
-#endif /* __ASSEMBLY__ */
-#endif /* __CONFIGS_PX4IO_SRC_PX4IO_INTERNAL_H */
-

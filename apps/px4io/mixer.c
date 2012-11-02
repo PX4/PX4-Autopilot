@@ -45,17 +45,12 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#include <arch/board/drv_ppm_input.h>
-#include <arch/board/drv_pwm_servo.h>
+#include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
 
+#include <systemlib/ppm_decode.h>
+
 #include "px4io.h"
-
-#ifdef CONFIG_DISABLE_MQUEUE
-# error Mixer requires message queues - set CONFIG_DISABLE_MQUEUE=n and try again
-#endif
-
-static mqd_t	input_queue;
 
 /*
  * Count of periodic calls in which we have no data.
@@ -89,9 +84,6 @@ static void	mixer_get_rc_input(void);
  */
 static void	mixer_update(int mixer, uint16_t *inputs, int input_count);
 
-/* servo driver handle */
-int mixer_servo_fd;
-
 /* current servo arm/disarm state */
 bool mixer_servos_armed;
 
@@ -106,14 +98,6 @@ struct mixer {
 int
 mixer_init(const char *mq_name)
 {
-	/* open the control input queue; this should always exist */
-	input_queue = mq_open(mq_name, O_RDONLY | O_NONBLOCK);
-	ASSERTCODE((input_queue >= 0), A_INPUTQ_OPEN_FAIL);
-
-	/* open the servo driver */
-	mixer_servo_fd = open("/dev/pwm_servo", O_WRONLY);
-	ASSERTCODE((mixer_servo_fd >= 0), A_SERVO_OPEN_FAIL);
-
 	/* look for control data at 50Hz */
 	hrt_call_every(&mixer_input_call, 1000, 20000, mixer_tick, NULL);
 
@@ -176,9 +160,8 @@ mixer_tick(void *arg)
 			 * If we are armed, update the servo output.
 			 */
 			if (system_state.armed)
-				ioctl(mixer_servo_fd, PWM_SERVO_SET(i), mixers[i].current_value);
+				up_pwm_servo_set(i, mixers[i].current_value);
 		}
-
 	}
 
 	/*
@@ -187,12 +170,12 @@ mixer_tick(void *arg)
 	should_arm = system_state.armed && (control_count > 0);
 	if (should_arm && !mixer_servos_armed) {
 		/* need to arm, but not armed */
-		ioctl(mixer_servo_fd, PWM_SERVO_ARM, 0);
+		up_pwm_servo_arm(true);
 		mixer_servos_armed = true;
 
 	} else if (!should_arm && mixer_servos_armed) {
-		/* armed but need to disarm*/
-		ioctl(mixer_servo_fd, PWM_SERVO_DISARM, 0);		
+		/* armed but need to disarm */
+		up_pwm_servo_arm(false);
 		mixer_servos_armed = false;
 	}
 }
@@ -200,22 +183,20 @@ mixer_tick(void *arg)
 static void
 mixer_get_rc_input(void)
 {
-	ssize_t len;
-
 	/*
-	 * Pull channel data from the message queue into the system state structure.
+	 * XXX currently only supporting PPM
 	 *
+	 * XXX check timestamp to ensure current
 	 */
-	len = mq_receive(input_queue, &system_state.rc_channel_data, sizeof(system_state.rc_channel_data), NULL);
-
-	/*
-	 * If we have data, update the count and status.
-	 */
-	if (len > 0) {
-		system_state.rc_channels = len / sizeof(system_state.rc_channel_data[0]);
+	if (ppm_decoded_channels > 0) {
 		mixer_input_drops = 0;
-
 		system_state.fmu_report_due = true;
+
+		/* copy channel data */
+		system_state.rc_channels = ppm_decoded_channels;
+		for (unsigned i = 0; i < ppm_decoded_channels; i++)
+			system_state.rc_channel_data[i] = ppm_buffer[i];
+
 	} else {
 		/*
 		 * No data; count the 'frame drops' and once we hit the limit

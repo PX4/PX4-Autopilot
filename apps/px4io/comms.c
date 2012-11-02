@@ -93,7 +93,7 @@ comms_check(void)
 		last_report_time = now;
 
 		/* populate the report */
-		for (unsigned i = 0; i < system_state.rc_channels; i++)
+		for (int i = 0; i < system_state.rc_channels; i++)
 			report.rc_channel[i] = system_state.rc_channel_data[i];
 		report.channel_count = system_state.rc_channels;
 		report.armed = system_state.armed;

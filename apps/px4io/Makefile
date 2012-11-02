@@ -39,11 +39,10 @@
 # Note that we pull a couple of specific files from the systemlib, since
 # we can't support it all.
 #
-CSRCS	= comms.c \
-	  mixer.c \
-	  px4io.c \
-	  safety.c \
-	  ../systemlib/hx_stream.c \
-	  ../systemlib/perf_counter.c
+CSRCS		= $(wildcard *.c) \
+		  ../systemlib/hx_stream.c \
+		  ../systemlib/perf_counter.c
+
+INCLUDES	 = $(TOPDIR)/arch/arm/src/stm32 $(TOPDIR)/arch/arm/src/common
 
 include $(APPDIR)/mk/app.mk
