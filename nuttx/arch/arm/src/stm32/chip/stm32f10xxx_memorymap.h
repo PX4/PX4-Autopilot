@@ -60,7 +60,14 @@
 #define STM32_TIM5_BASE      0x40000c00     /* 0x40000c00 - 0x40000fff: TIM5 timer */
 #define STM32_TIM6_BASE      0x40001000     /* 0x40001000 - 0x400013ff: TIM6 timer */
 #define STM32_TIM7_BASE      0x40001400     /* 0x40001400 - 0x400007ff: TIM7 timer */
-                                            /* 0x40001800 - 0x40000fff: Reserved */
+#if defined(CONFIG_STM32_VALUELINE)
+#  define STM32_TIM12_BASE   0x40001800     /* 0x40001800 - 0x40001bff: TIM12 timer */
+#  define STM32_TIM13_BASE   0x40001c00     /* 0x40001c00 - 0x40001fff: TIM13 timer */
+#  define STM32_TIM14_BASE   0x40002000     /* 0x40002000 - 0x400023ff: TIM14 timer */
+                                            /* 0x40002400 - 0x400027ff: Reserved */
+#else
+                                            /* 0x40001800 - 0x40027fff: Reserved */
+#endif
 #define STM32_RTC_BASE       0x40002800     /* 0x40002800 - 0x40002bff: RTC */
 #define STM32_WWDG_BASE      0x40002c00     /* 0x40002C00 - 0x40002fff: Window watchdog (WWDG) */
 #define STM32_IWDG_BASE      0x40003000     /* 0x40003000 - 0x400033ff: Independent watchdog (IWDG) */
@@ -83,7 +90,12 @@
 #define STM32_BKP_BASE       0x40006c00     /* 0x40006c00 - 0x40006fff: Backup registers (BKP) */
 #define STM32_PWR_BASE       0x40007000     /* 0x40007000 - 0x400073ff: Power control PWR */
 #define STM32_DAC_BASE       0x40007400     /* 0x40007400 - 0x400077ff: DAC */
+#if defined(CONFIG_STM32_VALUELINE)
+#  define STM32_CEC_BASE     0x40007800     /* 0x40007800 - 0x40007bff: CEC */
+                                            /* 0x40007c00 - 0x4000ffff: Reserved */
+#else
                                             /* 0x40007800 - 0x4000ffff: Reserved */
+#endif
 
 /* APB2 bus */
 
@@ -102,44 +114,53 @@
 #define STM32_SPI1_BASE      0x40013000     /* 0x40013000 - 0x400133ff: SPI1 */
 #define STM32_TIM8_BASE      0x40013400     /* 0x40013400 - 0x400137ff: TIM8 timer */
 #define STM32_USART1_BASE    0x40013800     /* 0x40013800 - 0x40013bff: USART1 */
-#define STM32_ADC3_BASE      0x40012800     /* 0x40012800 - 0x40013fff: ADC3 */
-                                            /* 0x40014000 - 0x40017fff: Reserved */
+#define STM32_ADC3_BASE      0x40012800     /* 0x40012800 - 0x40013c00: ADC3 */
+#if defined(CONFIG_STM32_VALUELINE)
+                                            /* 0x40013c00 - 0x40013fff: Reserved */
+#  define STM32_TIM15_BASE   0x40014400     /* 0x40014400 - 0x400147ff: TIM15 */
+#  define STM32_TIM16_BASE   0x40014400     /* 0x40014400 - 0x400147ff: TIM16 */
+#  define STM32_TIM17_BASE   0x40014800     /* 0x40014800 - 0x40014bff: TIM17 */
+                                            /* 0x40014c00 - 0x4001ffff: Reserved */
+#else
+                                            /* 0x40013c00 - 0x4001ffff: Reserved */
+#endif
+
 /* AHB bus */
 
-#define STM32_SDIO_BASE     0x40018000     /* 0x40018000 - 0x400183ff: SDIO  */
-                                           /* 0x40018400 - 0x40017fff: Reserved */
-#define STM32_DMA1_BASE     0x40020000     /* 0x40020000 - 0x400203ff: DMA1  */
-#define STM32_DMA2_BASE     0x40020400     /* 0x40020000 - 0x400207ff: DMA2  */
-                                           /* 0x40020800 - 0x40020fff: Reserved */
-#define STM32_RCC_BASE      0x40021000     /* 0x40021000 - 0x400213ff: Reset and Clock control RCC */
-                                           /* 0x40021400 - 0x40021fff:  Reserved */
-#define STM32_OTGFS_BASE    0x50000000     /* 0x50000000 - 0x500003ff: USB OTG FS */
-#define STM32_FLASHIF_BASE  0x40022000     /* 0x40022000 - 0x400223ff: Flash memory interface */
-#define STM32_CRC_BASE      0x40028000     /* 0x40023000 - 0x400233ff: CRC */
-                                           /* 0x40023400 - 0x40027fff: Reserved */
-#define STM32_ETHERNET_BASE 0x40028000     /* 0x40028000 - 0x40029fff: Ethernet */
-                                           /* 0x40030000 - 0x4fffffff: Reserved */
+#define STM32_SDIO_BASE      0x40018000     /* 0x40018000 - 0x400183ff: SDIO  */
+                                            /* 0x40018400 - 0x40017fff: Reserved */
+#define STM32_DMA1_BASE      0x40020000     /* 0x40020000 - 0x400203ff: DMA1  */
+#define STM32_DMA2_BASE      0x40020400     /* 0x40020000 - 0x400207ff: DMA2  */
+                                            /* 0x40020800 - 0x40020fff: Reserved */
+#define STM32_RCC_BASE       0x40021000     /* 0x40021000 - 0x400213ff: Reset and Clock control RCC */
+                                            /* 0x40021400 - 0x40021fff:  Reserved */
+#define STM32_OTGFS_BASE     0x50000000     /* 0x50000000 - 0x500003ff: USB OTG FS */
+#define STM32_FLASHIF_BASE   0x40022000     /* 0x40022000 - 0x400223ff: Flash memory interface */
+#define STM32_CRC_BASE       0x40028000     /* 0x40023000 - 0x400233ff: CRC */
+                                            /* 0x40023400 - 0x40027fff: Reserved */
+#define STM32_ETHERNET_BASE  0x40028000     /* 0x40028000 - 0x40029fff: Ethernet */
+                                            /* 0x40030000 - 0x4fffffff: Reserved */
 
 /* Peripheral BB base */
 
-#define STM32_PERIPHBB_BASE 0x42000000
+#define STM32_PERIPHBB_BASE  0x42000000
 
 /* Flexible SRAM controller (FSMC) */
 
-#define STM32_FSMC_BANK1    0x60000000     /* 0x60000000-0x6fffffff: 256Mb NOR/SRAM */
-#define STM32_FSMC_BANK2    0x70000000     /* 0x70000000-0x7fffffff: 256Mb NAND FLASH */
-#define STM32_FSMC_BANK3    0x80000000     /* 0x80000000-0x8fffffff: 256Mb  NAND FLASH */
-#define STM32_FSMC_BANK4    0x90000000     /* 0x90000000-0x9fffffff: 256Mb PC CARD*/
-#define STM32_IS_EXTSRAM(a) ((((uint32_t)(a)) & STM32_REGION_MASK) == STM32_FSMC_BANK1)
+#define STM32_FSMC_BANK1     0x60000000     /* 0x60000000-0x6fffffff: 256Mb NOR/SRAM */
+#define STM32_FSMC_BANK2     0x70000000     /* 0x70000000-0x7fffffff: 256Mb NAND FLASH */
+#define STM32_FSMC_BANK3     0x80000000     /* 0x80000000-0x8fffffff: 256Mb  NAND FLASH */
+#define STM32_FSMC_BANK4     0x90000000     /* 0x90000000-0x9fffffff: 256Mb PC CARD*/
+#define STM32_IS_EXTSRAM(a)  ((((uint32_t)(a)) & STM32_REGION_MASK) == STM32_FSMC_BANK1)
 
-#define STM32_FSMC_BASE     0xa0000000     /* 0xa0000000-0xbfffffff: 512Mb FSMC register block */
+#define STM32_FSMC_BASE      0xa0000000     /* 0xa0000000-0xbfffffff: 512Mb FSMC register block */
 
 /* Other registers -- see armv7-m/nvic.h for standard Cortex-M3 registers in this
  * address range
  */
 
-#define STM32_SCS_BASE      0xe000e000
-#define STM32_DEBUGMCU_BASE 0xe0042000
+#define STM32_SCS_BASE       0xe000e000
+#define STM32_DEBUGMCU_BASE  0xe0042000
 
 #endif /* __ARCH_ARM_SRC_STM32_CHIP_STM32F10XXX_MEMORYMAP_H */
 

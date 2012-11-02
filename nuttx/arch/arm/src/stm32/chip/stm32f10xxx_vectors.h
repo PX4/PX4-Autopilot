@@ -49,15 +49,15 @@
  * definition that provides the number of supported vectors.
  */
 
-#ifdef CONFIG_ARMV7M_CMNVECTOR
+#  ifdef CONFIG_ARMV7M_CMNVECTOR
 
-/* Reserve 60 interrupt table entries for I/O interrupts. */
+/* Reserve 61 interrupt table entries for I/O interrupts. */
 
-#  define ARMV7M_PERIPHERAL_INTERRUPTS 60
+#    define ARMV7M_PERIPHERAL_INTERRUPTS 61
 
 #else
-#  error This target requires CONFIG_ARMV7M_CMNVECTOR
-#endif /* CONFIG_ARMV7M_CMNVECTOR */
+#    error This target requires CONFIG_ARMV7M_CMNVECTOR
+#  endif /* CONFIG_ARMV7M_CMNVECTOR */
 
 #elif defined(CONFIG_STM32_CONNECTIVITYLINE)
 
