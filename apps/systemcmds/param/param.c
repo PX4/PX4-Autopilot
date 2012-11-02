@@ -96,7 +96,8 @@ param_main(int argc, char *argv[])
 			} else {
 				param_set_default_file(NULL);
 			}
-			warnx("selected parameter file %s", param_get_default_file());
+			warnx("selected parameter default file %s", param_get_default_file());
+			exit(0);
 		}
 
 		if (!strcmp(argv[1], "show"))
@@ -141,17 +142,11 @@ do_load(const char* param_file_name)
 	if (fd < 0)
 		err(1, "open '%s'", param_file_name);
 
-	/* set new default file name */
-	param_set_default_file(param_file_name);
-
 	int result = param_load(fd);
 	close(fd);
 
 	if (result < 0) {
 		errx(1, "error importing from '%s'", param_file_name);
-	} else {
-		/* set default file name for next storage operation */
-		param_set_default_file(param_file_name);
 	}
 
 	exit(0);

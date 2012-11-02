@@ -220,9 +220,9 @@ mc_thread_main(int argc, char *argv[])
 
 				/* only move setpoint if manual input is != 0 */
 				// XXX turn into param
-				if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.25f) {
+				if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
 					att_sp.yaw_body = att_sp.yaw_body + manual.yaw * 0.0025f;
-				} else if (manual.throttle <= 0.25f) {
+				} else if (manual.throttle <= 0.3f) {
 					att_sp.yaw_body = att.yaw;
 				}
 				att_sp.thrust = manual.throttle;
