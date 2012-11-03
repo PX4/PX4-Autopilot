@@ -186,10 +186,8 @@ hx_stream_send(hx_stream_t stream,
 	const uint8_t *p = (const uint8_t *)data;
 	unsigned resid = count;
 
-	if (resid > HX_STREAM_MAX_FRAME) {
-		errno = EINVAL;
-		return -1;
-	}
+	if (resid > HX_STREAM_MAX_FRAME)
+		return -EINVAL;
 
 	/* start the frame */
 	hx_tx_raw(stream, FBO);
@@ -214,10 +212,11 @@ hx_stream_send(hx_stream_t stream,
 	/* check for transmit error */
 	if (stream->txerror) {
 		stream->txerror = false;
-		return -1;
+		return -EIO;
 	}
 
-	return -1;
+	perf_count(stream->pc_tx_frames);
+	return 0;
 }
 
 void
