@@ -95,6 +95,7 @@ private:
 
 	int			_task;		///< worker task
 	volatile bool		_task_should_exit;
+	volatile bool		_connected;	///< true once we have received a valid frame
 
 	int			_t_actuators;	///< actuator output topic
 	actuator_controls_s	_controls;	///< actuator outputs
@@ -168,6 +169,7 @@ PX4IO::PX4IO() :
 	_io_stream(nullptr),
 	_task(-1),
 	_task_should_exit(false),
+	_connected(false),
 	_t_actuators(-1),
 	_t_armed(-1),
 	_t_outputs(-1),
@@ -238,12 +240,24 @@ PX4IO::init()
 
 	/* start the IO interface task */
 	_task = task_create("px4io", SCHED_PRIORITY_DEFAULT, 4096, (main_t)&PX4IO::task_main_trampoline, nullptr);
-
 	if (_task < 0) {
 		debug("task start failed: %d", errno);
 		return -errno;
 	}
 
+	/* wait a second for it to detect IO */
+	for (unsigned i = 0; i < 10; i++) {
+		if (_connected) {
+			debug("PX4IO connected");
+			break;
+		}
+		usleep(100000);
+	}
+	if (!_connected) {
+		/* error here will result in everything being torn down */
+		log("PX4IO not responding");
+		return -EIO;
+	}
 	return OK;
 }
 
@@ -262,22 +276,20 @@ PX4IO::task_main()
 	_serial_fd = ::open("/dev/ttyS2", O_RDWR);
 
 	if (_serial_fd < 0) {
-		debug("failed to open serial port for IO: %d", errno);
-		_task = -1;
-		_exit(errno);
+		log("failed to open serial port: %d", errno);
+		goto out;
 	}
 
 	/* protocol stream */
 	_io_stream = hx_stream_init(_serial_fd, &PX4IO::rx_callback_trampoline, this);
-
-	perf_counter_t pc_tx_frames = perf_alloc(PC_COUNT, "PX4IO frames transmitted");
-	perf_counter_t pc_rx_frames = perf_alloc(PC_COUNT, "PX4IO frames received");
-	perf_counter_t pc_rx_errors = perf_alloc(PC_COUNT, "PX4IO receive errors");
-	hx_stream_set_counters(_io_stream, pc_tx_frames, pc_rx_frames, pc_rx_errors);
-
-	/* XXX send a who-are-you request */
-
-	/* XXX verify firmware/protocol version */
+	if (_io_stream == nullptr) {
+		log("failed to allocate HX protocol stream");
+		goto out;
+	}
+	hx_stream_set_counters(_io_stream,
+			       perf_alloc(PC_COUNT, "PX4IO frames transmitted"),
+			       perf_alloc(PC_COUNT, "PX4IO frames received"),
+			       perf_alloc(PC_COUNT, "PX4IO receive errors"));
 
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
@@ -311,7 +323,7 @@ PX4IO::task_main()
 	while (!_task_should_exit) {
 
 		/* sleep waiting for data, but no more than 100ms */
-		int ret = ::poll(&fds[0], sizeof(fds) / sizeof(fds[0]), 1000);
+		int ret = ::poll(&fds[0], sizeof(fds) / sizeof(fds[0]), 100);
 
 		/* this would be bad... */
 		if (ret < 0) {
@@ -363,6 +375,10 @@ PX4IO::task_main()
 		}
 	}
 
+out:
+	if (_io_stream != nullptr)
+		hx_stream_free(_io_stream);
+
 	/* tell the dtor that we are exiting */
 	_task = -1;
 	_exit(0);
@@ -409,15 +425,27 @@ PX4IO::rx_callback(const uint8_t *buffer, size_t bytes_received)
 {
 	const px4io_report *rep = (const px4io_report *)buffer;
 
+	lock();
+
 	/* sanity-check the received frame size */
-	if (bytes_received != sizeof(px4io_report))
-		return;
+	if (bytes_received != sizeof(px4io_report)) {
+		debug("got %u expected %u", bytes_received, sizeof(px4io_report));
+		goto out;
+	}
+	if (rep->i2f_magic != I2F_MAGIC) {
+		debug("bad magic");
+		goto out;
+	}
+	_connected = true;
 
 	/* XXX handle R/C inputs here ... needs code sharing/library */
 
 	/* remember the latched arming switch state */
 	_switch_armed = rep->armed;
 
+	_send_needed = true;
+
+out:
 	unlock();
 }
 
@@ -560,6 +588,38 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 extern "C" __EXPORT int px4io_main(int argc, char *argv[]);
 
+namespace
+{
+
+void
+test(void)
+{
+	int	fd;
+
+	fd = open(PWM_OUTPUT_DEVICE_PATH, 0);
+
+	if (fd < 0) {
+		puts("open fail");
+		exit(1);
+	}
+
+	ioctl(fd, PWM_SERVO_ARM, 0);
+	ioctl(fd, PWM_SERVO_SET(0), 1000);
+	ioctl(fd, PWM_SERVO_SET(1), 1100);
+	ioctl(fd, PWM_SERVO_SET(2), 1200);
+	ioctl(fd, PWM_SERVO_SET(3), 1300);
+	ioctl(fd, PWM_SERVO_SET(4), 1400);
+	ioctl(fd, PWM_SERVO_SET(5), 1500);
+	ioctl(fd, PWM_SERVO_SET(6), 1600);
+	ioctl(fd, PWM_SERVO_SET(7), 1700);
+
+	close(fd);
+
+	exit(0);
+}
+
+}
+
 int
 px4io_main(int argc, char *argv[])
 {
@@ -581,6 +641,9 @@ px4io_main(int argc, char *argv[])
 
 		exit(0);
 	}
+
+	if (!strcmp(argv[1], "test"))
+		test();
 
 	/* note, stop not currently implemented */
 
