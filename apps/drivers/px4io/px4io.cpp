@@ -425,6 +425,7 @@ void
 PX4IO::io_send()
 {
 	px4io_command	cmd;
+	int		ret;
 
 	cmd.f2i_magic = F2I_MAGIC;
 
@@ -439,7 +440,9 @@ PX4IO::io_send()
 
 	cmd.arm_ok = _armed.armed;
 
-	hx_stream_send(_io_stream, &cmd, sizeof(cmd));
+	ret = hx_stream_send(_io_stream, &cmd, sizeof(cmd));
+	if (ret)
+		debug("send error %d", ret);
 }
 
 int
