@@ -59,6 +59,7 @@
 #define STM32_AFIO_EXTICR2_OFFSET    0x000c  /* External interrupt configuration register 2 */
 #define STM32_AFIO_EXTICR3_OFFSET    0x0010  /* External interrupt configuration register 3 */
 #define STM32_AFIO_EXTICR4_OFFSET    0x0014  /* External interrupt configuration register 4 */
+#define STM32_AFIO_MAPR2_OFFSET      0x001c  /* AF remap and debug I/O configuration register 2 */
 
 /* Register Addresses ***************************************************************/
 
@@ -372,6 +373,28 @@
 #define AFIO_EXTICR4_EXTI14_MASK     (AFIO_EXTICR_PORT_MASK << AFIO_EXTICR4_EXTI14_SHIFT)
 #define AFIO_EXTICR4_EXTI15_SHIFT    (12)      /* Bits 15-12: EXTI 15 configuration */
 #define AFIO_EXTICR4_EXTI15_MASK     (AFIO_EXTICR_PORT_MASK << AFIO_EXTICR4_EXTI15_SHIFT)
+
+/* AF remap and debug I/O configuration register 2 */
+
+#ifdef CONFIG_STM32_VALUELINE
+#  define AFIO_MAPR2_TIM15_REMAP         (1 << 0)   /* Bit 0: TIM15 remapping */
+#  define AFIO_MAPR2_TIM16_REMAP         (1 << 1)   /* Bit 1: TIM16 remapping */
+#  define AFIO_MAPR2_TIM17_REMAP         (1 << 2)   /* Bit 2: TIM17 remapping */
+#  define AFIO_MAPR2_CEC_REMAP           (1 << 3)   /* Bit 3: CEC remapping */
+#  define AFIO_MAPR2_TIM1_DMA_REMAP      (1 << 4)   /* Bit 4: TIM1 DMA remapping */
+#else
+#  define AFIO_MAPR2_TIM9_REMAP          (1 << 5)   /* Bit 5: TIM9 remapping */
+#  define AFIO_MAPR2_TIM10_REMAP         (1 << 6)   /* Bit 6: TIM10 remapping */
+#  define AFIO_MAPR2_TIM11_REMAP         (1 << 7)   /* Bit 7: TIM11 remapping */
+#endif
+#define AFIO_MAPR2_TIM13_REMAP           (1 << 8)   /* Bit 8: TIM13 remapping */
+#define AFIO_MAPR2_TIM14_REMAP           (1 << 9)   /* Bit 9: TIM14 remapping */
+#define AFIO_MAPR2_FSMC_NADV             (1 << 10)  /* Bit 10: NADV connect/disconnect */
+#ifdef CONFIG_STM32_VALUELINE
+#  define AFIO_MAPR2_TIM76_DAC_DMA_REMAP (1 << 11)  /* Bit 11: TIM67_DAC DMA remapping */
+#  define AFIO_MAPR2_TIM12_REMAP         (1 << 12)  /* Bit 12: TIM12 remapping */
+#  define AFIO_MAPR2_MISC_REMAP          (1 << 13)  /* Bit 13: Miscellaneous features remapping */
+#endif
 
 #endif /* __ARCH_ARM_SRC_STM32_CHIP_STM32F10XXX_GPIO_H */
 

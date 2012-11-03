@@ -60,14 +60,9 @@
 #define STM32_TIM5_BASE      0x40000c00     /* 0x40000c00 - 0x40000fff: TIM5 timer */
 #define STM32_TIM6_BASE      0x40001000     /* 0x40001000 - 0x400013ff: TIM6 timer */
 #define STM32_TIM7_BASE      0x40001400     /* 0x40001400 - 0x400007ff: TIM7 timer */
-#if defined(CONFIG_STM32_VALUELINE)
-#  define STM32_TIM12_BASE   0x40001800     /* 0x40001800 - 0x40001bff: TIM12 timer */
-#  define STM32_TIM13_BASE   0x40001c00     /* 0x40001c00 - 0x40001fff: TIM13 timer */
-#  define STM32_TIM14_BASE   0x40002000     /* 0x40002000 - 0x400023ff: TIM14 timer */
-                                            /* 0x40002400 - 0x400027ff: Reserved */
-#else
-                                            /* 0x40001800 - 0x40027fff: Reserved */
-#endif
+#define STM32_TIM12_BASE     0x40001800     /* 0x40001800 - 0x40001bff: TIM12 timer */
+#define STM32_TIM13_BASE     0x40001c00     /* 0x40001c00 - 0x40001fff: TIM13 timer */
+#define STM32_TIM14_BASE     0x40002000     /* 0x40002000 - 0x400023ff: TIM14 timer */
 #define STM32_RTC_BASE       0x40002800     /* 0x40002800 - 0x40002bff: RTC */
 #define STM32_WWDG_BASE      0x40002c00     /* 0x40002C00 - 0x40002fff: Window watchdog (WWDG) */
 #define STM32_IWDG_BASE      0x40003000     /* 0x40003000 - 0x400033ff: Independent watchdog (IWDG) */
@@ -90,13 +85,8 @@
 #define STM32_BKP_BASE       0x40006c00     /* 0x40006c00 - 0x40006fff: Backup registers (BKP) */
 #define STM32_PWR_BASE       0x40007000     /* 0x40007000 - 0x400073ff: Power control PWR */
 #define STM32_DAC_BASE       0x40007400     /* 0x40007400 - 0x400077ff: DAC */
-#if defined(CONFIG_STM32_VALUELINE)
-#  define STM32_CEC_BASE     0x40007800     /* 0x40007800 - 0x40007bff: CEC */
+#define STM32_CEC_BASE       0x40007800     /* 0x40007800 - 0x40007bff: CEC */
                                             /* 0x40007c00 - 0x4000ffff: Reserved */
-#else
-                                            /* 0x40007800 - 0x4000ffff: Reserved */
-#endif
-
 /* APB2 bus */
 
 #define STM32_AFIO_BASE      0x40010000     /* 0x40010000 - 0x400103ff: AFIO */
@@ -115,15 +105,11 @@
 #define STM32_TIM8_BASE      0x40013400     /* 0x40013400 - 0x400137ff: TIM8 timer */
 #define STM32_USART1_BASE    0x40013800     /* 0x40013800 - 0x40013bff: USART1 */
 #define STM32_ADC3_BASE      0x40012800     /* 0x40012800 - 0x40013c00: ADC3 */
-#if defined(CONFIG_STM32_VALUELINE)
                                             /* 0x40013c00 - 0x40013fff: Reserved */
-#  define STM32_TIM15_BASE   0x40014400     /* 0x40014400 - 0x400147ff: TIM15 */
-#  define STM32_TIM16_BASE   0x40014400     /* 0x40014400 - 0x400147ff: TIM16 */
-#  define STM32_TIM17_BASE   0x40014800     /* 0x40014800 - 0x40014bff: TIM17 */
+#define STM32_TIM15_BASE     0x40014400     /* 0x40014400 - 0x400147ff: TIM15 */
+#define STM32_TIM16_BASE     0x40014400     /* 0x40014400 - 0x400147ff: TIM16 */
+#define STM32_TIM17_BASE     0x40014800     /* 0x40014800 - 0x40014bff: TIM17 */
                                             /* 0x40014c00 - 0x4001ffff: Reserved */
-#else
-                                            /* 0x40013c00 - 0x4001ffff: Reserved */
-#endif
 
 /* AHB bus */
 

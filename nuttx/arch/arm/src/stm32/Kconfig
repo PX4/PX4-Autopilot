@@ -138,6 +138,7 @@ config STM32_STM32F10XX
 
 config STM32_VALUELINE
 	bool
+	select ARMV7M_CMNVECTOR
 
 config STM32_HIGHDENSITY
 	bool

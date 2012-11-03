@@ -92,7 +92,11 @@ static inline void rcc_reset(void)
   putreg32(regval, STM32_RCC_CR);
 
   regval  = getreg32(STM32_RCC_CFGR);       /* Reset PLLSRC, PLLXTPRE, PLLMUL and USBPRE bits */
-  regval &= ~(RCC_CFGR_PLLSRC|RCC_CFGR_PLLXTPRE|RCC_CFGR_PLLMUL_MASK|RCC_CFGR_USBPRE);
+  regval &= ~(RCC_CFGR_PLLSRC|RCC_CFGR_PLLXTPRE|RCC_CFGR_PLLMUL_MASK
+#ifndef CONFIG_STM32_VALUELINE
+              |RCC_CFGR_USBPRE
+#endif
+              );
   putreg32(regval, STM32_RCC_CFGR);
 
   putreg32(0, STM32_RCC_CIR);               /* Disable all interrupts */
