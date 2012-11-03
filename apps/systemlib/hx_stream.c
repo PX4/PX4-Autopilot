@@ -160,6 +160,11 @@ hx_stream_init(int fd,
 void
 hx_stream_free(hx_stream_t stream)
 {
+	/* free perf counters (OK if they are NULL) */
+	perf_free(stream->pc_tx_frames);
+	perf_free(stream->pc_rx_frames);
+	perf_free(stream->pc_rx_errors);
+
 	free(stream);
 }
 
