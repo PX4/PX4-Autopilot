@@ -397,3 +397,5 @@
 	* apps/examples/wgetjson: Test example contributed by Darcy Gong
 	* apps/examples/cxxtest:  A test for the uClibc++ library provided by
 	  Qiang Yu and the RGMP team.
+	* apps/netutils/webclient, apps/netutils.codes, and apps/examples/wgetjson:
+	  Add support for wget POST interface.  Contributed by Darcy Gong.

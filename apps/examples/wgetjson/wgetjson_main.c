@@ -58,12 +58,18 @@
  ****************************************************************************/
 
 #ifndef CONFIG_EXAMPLES_WGETJSON_MAXSIZE
-# define  CONFIG_EXAMPLES_WGETJSON_MAXSIZE 1024
+# define CONFIG_EXAMPLES_WGETJSON_MAXSIZE 1024
 #endif
 
-#ifndef CONFIG_EXAMPLES_EXAMPLES_WGETJSON_URL
-# define  CONFIG_EXAMPLES_EXAMPLES_WGETJSON_URL "http://10.0.0.1/wgetjson/json_cmd.php"
+#ifndef CONFIG_EXAMPLES_WGETJSON_URL
+# define CONFIG_EXAMPLES_WGETJSON_URL "http://10.0.0.1/wgetjson/json_cmd.php"
 #endif
+
+#ifndef CONFIG_EXAMPLES_WGETPOST_URL
+# define CONFIG_EXAMPLES_WGETPOST_URL "http://10.0.0.1/wgetjson/post_cmd.php"
+#endif
+
+#define MULTI_POST_NDATA 3
 
 /****************************************************************************
  * Private Types
@@ -84,6 +90,21 @@ static bool  g_has_json     = false;
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+static void wgetjson_postdebug_callback(FAR char **buffer, int offset,
+                                        int datend, FAR int *buflen,
+                                        FAR void *arg)
+{
+  int len = datend - offset;
+  if (len <= 0)
+    {
+      printf("Callback No Data!\n");
+      return;
+    }
+
+  ((*buffer)[datend]) = '\0';
+  printf("Callback Data(Length:%d):\n%s\n", len, &((*buffer)[offset]));
+}
 
 /****************************************************************************
  * Name: wgetjson_callback
@@ -271,20 +292,102 @@ static int wgetjson_json_parse(char *text)
 int wgetjson_main(int argc, char *argv[])
 {
   char *buffer = NULL;
-  char *url = CONFIG_EXAMPLES_EXAMPLES_WGETJSON_URL;
-  int ret;
+  int buffer_len = 512;
+  char *url = CONFIG_EXAMPLES_WGETJSON_URL;
+  int ret = -1;
+  int option;
+  bool is_post = false;
+  bool is_post_multi = false;
+  bool badarg=false;
+  bool is_debug=false;
+  char *post_buff = NULL;
+  int post_buff_len = 0;
+  char *post_single_name  = "type";
+  char *post_single_value = "string";
+  char *post_multi_names[MULTI_POST_NDATA]  = {"name", "gender", "country"};
+  char *post_multi_values[MULTI_POST_NDATA] = {"darcy", "man", "china"};
+  wget_callback_t wget_cb = wgetjson_callback;
 
-  buffer = malloc(512);
+  while ((option = getopt(argc, argv, ":pPD")) != ERROR)
+    {
+      switch (option)
+        {
+          case 'p':
+            is_post = true;
+            break;
+
+          case 'P':
+            is_post = true;
+            is_post_multi = true;
+            break;
+
+          case 'D':
+            is_debug = true;
+            break;
+
+          case ':':
+            badarg = true;
+            break;
+
+          case '?':
+          default:
+            badarg = true;
+            break;
+        }
+    }
+
+  if (badarg)
+    {
+      printf("usage: wgetjson -p(single post) -P(multi post) -D(debug wget callback)\n");
+      return -1;
+    }
+
+  if (is_debug)
+    {
+      wget_cb = wgetjson_postdebug_callback;
+    }
+
+  if (is_post)
+    {
+      buffer_len = 512*2;
+    }
+
+  buffer = malloc(buffer_len);
   wgetjson_json_release();
 
   printf("URL: %s\n", url);
 
-  ret = wget(url, buffer, 512, wgetjson_callback, NULL);
+  if (is_post)
+    {
+      url = CONFIG_EXAMPLES_WGETPOST_URL;
+      if (is_post_multi)
+        {
+          post_buff_len = web_posts_strlen(post_multi_names, post_multi_values, MULTI_POST_NDATA);
+          post_buff = malloc(post_buff_len);
+          web_posts_str(post_buff, &post_buff_len, post_multi_names, post_multi_values, MULTI_POST_NDATA);
+        }
+      else
+        {
+          post_buff_len = web_post_strlen(post_single_name, post_single_value);
+          post_buff = malloc(post_buff_len);
+          web_post_str(post_buff, &post_buff_len, post_single_name, post_single_value);
+        }
+
+      if (post_buff)
+        {
+          ret = wget_post(url, post_buff, buffer, buffer_len, wget_cb, NULL);
+        }
+    }
+  else
+    {
+      ret = wget(url, buffer, buffer_len, wget_cb , NULL);
+    }
+
   if (ret < 0)
     {
       printf("get json size: %d\n",g_json_bufflen);
     }
-  else
+  else if (!is_debug)
     {
       g_has_json = false;
       if (wgetjson_json_parse(g_json_buff) == OK && g_has_json)
@@ -301,5 +404,10 @@ int wgetjson_main(int argc, char *argv[])
 
   wgetjson_json_release();
   free(buffer);
+  if (post_buff)
+    {
+      free(post_buff);
+    }
+
   return 0;
 }

@@ -20,4 +20,8 @@ config EXAMPLES_WGETJSON_URL
 	string "wget URL"
 	default "http://10.0.0.1/wgetjson/json_cmd.php"
 
+config EXAMPLES_WGETPOST_URL
+	string "wget_post URL"
+	default "http://10.0.0.1/wgetjson/post_cmd.php"
+
 endif

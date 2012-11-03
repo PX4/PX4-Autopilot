@@ -47,7 +47,7 @@
 #include <net/if.h>
 
 #include <apps/netutils/uiplib.h>
-#if defined(CONFIG_NSH_DHCPC)
+#if defined(CONFIG_NSH_DHCPC) || defined(CONFIG_NSH_DNS)
 #  include <apps/netutils/resolv.h>
 #  include <apps/netutils/dhcpc.h>
 #endif
@@ -135,7 +135,7 @@ int nsh_netinit(void)
   resolv_init();
 #if defined(CONFIG_NSH_DNS)
   addr.s_addr = HTONL(CONFIG_NSH_DNSIPADDR);
-  resolv_conf(&addr.s_addr);
+  resolv_conf(&addr);
 #endif
 #endif
 

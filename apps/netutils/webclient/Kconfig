@@ -10,4 +10,9 @@ config NETUTILS_WEBCLIENT
 		Enable support for the uIP web client.
 
 if NETUTILS_WEBCLIENT
+
+config NSH_WGET_USERAGENT
+	string "wget Usert Agent"
+	default "NuttX/6.xx.x (; http://www.nuttx.org/)"
+
 endif

@@ -351,6 +351,73 @@ char *urldecode(const char *src, const int src_len, char *dest, int *dest_len)
 #endif
 
 /****************************************************************************
+ * Name: urlencode_len
+ ****************************************************************************/
+
+#ifdef CONFIG_CODECS_URLCODE
+int urlencode_len(const char *src, const int src_len)
+{
+  const unsigned char *pSrc;
+  const unsigned char *pEnd;
+  int len = 0;
+
+  pEnd = (unsigned char *)src + src_len;
+  for (pSrc = (unsigned char *)src; pSrc < pEnd; pSrc++)
+    {
+      if ((*pSrc >= '0' && *pSrc <= '9') ||
+          (*pSrc >= 'a' && *pSrc <= 'z') ||
+          (*pSrc >= 'A' && *pSrc <= 'Z') ||
+          (*pSrc == '_' || *pSrc == '-' || *pSrc == '.' || *pSrc == '~' || *pSrc == ' '))
+        {
+          len++;
+        }
+      else
+        {
+          len+=3;
+        }
+    }
+
+  return len;
+}
+#endif
+
+/****************************************************************************
+ * Name: urldecode_len
+ ****************************************************************************/
+
+#ifdef CONFIG_CODECS_URLCODE
+int urldecode_len(const char *src, const int src_len)
+{
+  const unsigned char *pSrc;
+  const unsigned char *pEnd;
+  int len = 0;
+  unsigned char cHigh;
+  unsigned char cLow;
+
+  pSrc = (unsigned char *)src;
+  pEnd = (unsigned char *)src + src_len;
+  while (pSrc < pEnd)
+    {
+      if (*pSrc == '%' && pSrc + 2 < pEnd)
+        {
+          cHigh = *(pSrc + 1);
+          cLow = *(pSrc + 2);
+
+          if (IS_HEX_CHAR(cHigh) && IS_HEX_CHAR(cLow))
+            {
+              pSrc += 2;
+            }
+        }
+
+      len++;
+      pSrc++;
+    }
+
+  return len;
+}
+#endif
+
+/****************************************************************************
  * Name: urlrawdecode
  *
  * Description:

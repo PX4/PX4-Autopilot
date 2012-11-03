@@ -59,6 +59,8 @@ char *url_decode(char *str);
 #ifdef CONFIG_CODECS_URLCODE
 char *urlencode(const char *src, const int src_len, char *dest, int *dest_len);
 char *urldecode(const char *src, const int src_len, char *dest, int *dest_len);
+int urlencode_len(const char *src, const int src_len);
+int urldecode_len(const char *src, const int src_len);
 #endif /* CONFIG_CODECS_URLCODE */
 
 #ifdef CONFIG_CODECS_AVR_URLCODE
