@@ -1,4 +1,4 @@
-/*  Copyright (C) 2004 Garrett A. Kajmowicz
+/* Copyright (C) 2004 Garrett A. Kajmowicz
  *
  * This file is part of the uClibc++ Library.
  *

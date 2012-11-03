@@ -44,9 +44,13 @@ CXXSRCS += new_opvnt.cxx numeric.cxx ostream.cxx queue.cxx set.cxx
 CXXSRCS += sstream.cxx stack.cxx streambuf.cxx string.cxx typeinfo.cxx
 CXXSRCS += utility.cxx valarray.cxx vector.cxx
 
+# Exception handling logic
+
 ifeq ($(CONFIG_UCLIBCXX_EXCEPTION),y)
 CXXSRCS += exception.cxx func_exception.cxx stdexcept.cxx
 endif
+
+# libsupc++ replacement
 
 ifneq ($(CONFIG_UCLIBCXX_HAVE_LIBSUPCXX),y)
 CXXSRCS += eh_alloc.cxx eh_globals.cxx eh_terminate.cxx 

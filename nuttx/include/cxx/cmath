@@ -40,6 +40,9 @@
 // Included Files
 //***************************************************************************
 
+#include <nuttx/config.h>
+#include <nuttx/compiler.h>
+
 #include <math.h>
 
 //***************************************************************************
@@ -48,6 +51,33 @@
 
 namespace std
 {
+#if CONFIG_HAVE_FLOAT
+  using ::acosf;
+  using ::asinf;
+  using ::atanf;
+  using ::atan2f;
+  using ::ceilf;
+  using ::cosf;
+  using ::coshf;
+  using ::expf;
+  using ::fabsf;
+  using ::floorf;
+  using ::fmodf;
+  using ::frexpf;
+  using ::ldexpf;
+  using ::logf;
+  using ::log10f;
+  using ::log2f;
+  using ::modff;
+  using ::powf;
+  using ::sinf;
+  using ::sinhf;
+  using ::sqrtf;
+  using ::tanf;
+  using ::tanhf;
+#endif
+
+#if CONFIG_HAVE_DOUBLE
   using ::acos;
   using ::asin;
   using ::atan;
@@ -63,6 +93,7 @@ namespace std
   using ::ldexp;
   using ::log;
   using ::log10;
+  using ::log2;
   using ::modf;
   using ::pow;
   using ::sin;
@@ -70,6 +101,34 @@ namespace std
   using ::sqrt;
   using ::tan;
   using ::tanh;
+#endif
+
+#ifdef CONFIG_HAVE_LONG_DOUBLE
+  using ::acosl;
+  using ::asinl;
+  using ::atanl;
+  using ::atan2l;
+  using ::ceill;
+  using ::cosl;
+  using ::coshl;
+  using ::expl;
+  using ::fabsl;
+  using ::floorl;
+  using ::fmodl;
+  using ::frexpl;
+  using ::ldexpl;
+  using ::logl;
+  using ::log10l;
+  using ::log2l;
+  using ::modfl;
+  using ::powl;
+  using ::sinl;
+  using ::sinhl;
+  using ::sqrtl;
+  using ::tanl;
+  using ::tanhl;
+#endif
+
 }
 
 #endif // __INCLUDE_CXX_CMATH

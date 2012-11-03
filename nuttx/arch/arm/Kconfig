@@ -155,6 +155,9 @@ config ARCH_CHIP
 	default "stm32"		if ARCH_CHIP_STM32
 	default "str71x"	if ARCH_CHIP_STR71X
 
+config ARCH_HAVE_CMNVECTOR
+	bool
+
 config ARMV7M_CMNVECTOR
 	bool "Use common ARMv7-M vectors"
 	default n
