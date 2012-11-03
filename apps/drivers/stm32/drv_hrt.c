@@ -386,11 +386,11 @@ static void	hrt_ppm_decode(uint32_t status);
 static void
 hrt_tim_init(void)
 {
-	/* clock/power on our timer */
-	modifyreg32(HRT_TIMER_POWER_REG, 0, HRT_TIMER_POWER_BIT);
-
 	/* claim our interrupt vector */
 	irq_attach(HRT_TIMER_VECTOR, hrt_tim_isr);
+
+	/* clock/power on our timer */
+	modifyreg32(HRT_TIMER_POWER_REG, 0, HRT_TIMER_POWER_BIT);
 
 	/* disable and configure the timer */
 	rCR1 = 0;
@@ -582,7 +582,7 @@ hrt_absolute_time(void)
 {
 	hrt_abstime	abstime;
 	uint32_t	count;
-	uint32_t	flags;
+	irqstate_t	flags;
 
 	/*
 	 * Counter state.  Marked volatile as they may change
