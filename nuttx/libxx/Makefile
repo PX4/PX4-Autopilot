@@ -40,9 +40,14 @@
 ASRCS = 
 CSRCS = 
 
-CXXSRCS  = libxx_cxapurevirtual.cxx libxx_delete.cxx libxx_deletea.cxx
-CXXSRCS += libxx_eabi_atexit.cxx  libxx_cxa_atexit.cxx libxx_new.cxx
-CXXSRCS += libxx_newa.cxx 
+CXXSRCS  = libxx_cxapurevirtual.cxx libxx_eabi_atexit.cxx  libxx_cxa_atexit.cxx
+
+# Some of the libxx/ files are not need if uClibc++ is installed because
+# uClibx++ replaces them
+
+ifneq ($(CONFIG_UCLIBCXX),y)
+CXXSRCS += libxx_delete.cxx libxx_deletea.cxx libxx_new.cxx libxx_newa.cxx 
+endif
 
 # Paths
 

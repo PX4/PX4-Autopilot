@@ -6,9 +6,20 @@ originates from http://cxx.uclibc.org/ and has been adapted for NuttX by the
 RGMP team (http://rgmp.sourceforge.net/wiki/index.php/Main_Page).
 
 uClibc++ resides in the misc/ directory rather than in the main NuttX source
-tree due to licensing issues:  NuttX is licensed under the permissiv
- modified BSD License; uClibc, on the other hand, islicensed under the
- stricter GNU LGPL Version 3 license.
+tree due to licensing issues:  NuttX is licensed under the permissive
+modified BSD License; uClibc, on the other hand, is licensed under the
+stricter GNU LGPL Version 3 license.
+
+Contents:
+^^^^^^^^^
+
+  o Installation of uClibc++
+  o Dependencies
+  o NuttX Configuration File Changes
+  o Make.defs File Changes
+  o Building NuttX with uClibc++
+  o Callbacks
+  o RGMP
 
 Installation of uClibc++
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -50,7 +61,6 @@ enabled.  The following must be defined in your NuttX configuration file.
 There are many ways to provide math library support (see nuttx/README.txt).
 If you choose to use the NuttX math library, that is enabled as follows:
 
-
   CONFIG_LIBM=y
 
 The math libraries depend on the float.h header file that is normally
@@ -58,6 +68,10 @@ provided by your tooltchain.  A dummy (and probably wrong) fload.h file
 can be installed by setting:
 
   CONFIG_ARCH_FLOAT_H=y
+
+Exception support can be enabled with:
+
+  CONFIG_UCLIBCXX_EXCEPTION=y
 
 Make.defs File Changes
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -74,9 +88,25 @@ And, of course, you no long need to suppress exceptions or run-time typing:
   -ARCHCPUFLAGSXX = -fno-builtin -fno-exceptions -fno-rtti
   +ARCHCPUFLAGSXX = -fno-builtin
 
+If exceptions are disabled via CONFIG_UCLIBCXX_EXCEPTION=n, then -fno-exceptions
+is still required.  This logic would handle both cases:
 
-I create the nuttx/configs/rgmp/x86/cxxtest/Make.def, add the two libs to EXTRA_LIBS to be linked
-to NUTTX. The  code.
+  ifeq ($(CONFIG_UCLIBCXX_EXCEPTION),y)
+    ARCHCPUFLAGSXX = -fno-builtin
+  else
+    ARCHCPUFLAGSXX = -fno-builtin -fno-exceptions
+  endif
+
+To get the required libraries into to the NuttX build, it is necessary to add
+them to EXTRA_LIBS and to EXTRA_LIBPATHS.  
+
+  LIBSUPXX = ${shell $(CC) --print-file-name=libsupc++.a}
+  EXTRA_LIBPATHS = -L "${shell dirname "$(LIBSUPXX)"}"
+  EXTRA_LIBS = -lsupc++
+
+NOTE: This assumes that support for these options has been incorporated into
+arch/<architecture>/src/Makefile.  As of this writing that is true only for
+the ARM and simulation platforms.
 
 Building NuttX with uClibc++
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -100,6 +130,34 @@ This Make.defs file, if present, will add the uClibc++ source files to the
 build, add the uClibc++ subdirectory to the dependency list, and add the
 uClibc++ subdirectory to the VPATH. That should, in principle, be all it
 takes.
+
+Callbacks
+^^^^^^^^^
+
+The runtime will call this function if exception handling must be abandoned
+for any reason.
+
+  void std::terminate(void) throw();
+
+NOTE:  If exception handling is disabled via CONFIG_UCLIBCXX_EXCEPTION, then
+this function is always called when an exception would have been thrown.
+
+By default, std::terminate() just calls abort(), but that can be changed
+with std:terminate().  std::set_terminated takes a new handler function
+as an argument and returns the old handler:
+
+  typedef CODE void (*terminate_handler)(void);
+  terminate_handler std::set_terminate(std::terminate_handler func) throw();
+
+The runtime will call this function if an exception is thrown which violates
+the function's %exception specification:
+
+  void std::unexpected(void) throw()
+
+This handler defaults to std::terminate but can be re-directed with:
+
+  typedef CODE void (*unexpected_handler)(void);
+  unexpected_handler set_unexpected(unexpected_handler) throw();
 
 RGMP
 ^^^^
