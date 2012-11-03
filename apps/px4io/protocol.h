@@ -48,7 +48,7 @@
 
 #define PX4IO_OUTPUT_CHANNELS	8
 #define PX4IO_INPUT_CHANNELS	12
-#define PX4IO_RELAY_CHANNELS	2
+#define PX4IO_RELAY_CHANNELS	4
 
 #pragma pack(push, 1)
 
