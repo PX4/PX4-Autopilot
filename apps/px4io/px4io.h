@@ -95,6 +95,9 @@ struct sys_state_s
 
 extern struct sys_state_s system_state;
 
+extern int frame_rx;
+extern int frame_bad;
+
 /*
  * Software countdown timers.
  *

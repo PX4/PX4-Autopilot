@@ -80,11 +80,6 @@
 
 __EXPORT void stm32_boardinitialize(void)
 {
-	/* configure the high-resolution time/callout interface */
-#ifdef CONFIG_HRT_TIMER
-	hrt_init();
-#endif
-
 	/* configure GPIOs */
 	stm32_configgpio(GPIO_ACC1_PWR_EN);
 	stm32_configgpio(GPIO_ACC2_PWR_EN);

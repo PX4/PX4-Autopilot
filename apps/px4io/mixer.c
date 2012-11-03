@@ -62,7 +62,7 @@ static unsigned mixer_input_drops;
  * Count of periodic calls in which we have no FMU input.
  */
 static unsigned fmu_input_drops;
-#define FMU_INPUT_DROP_LIMIT	10
+#define FMU_INPUT_DROP_LIMIT	20
 
 /*
  * HRT periodic call used to check for control input data.

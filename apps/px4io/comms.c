@@ -106,27 +106,29 @@ comms_check(void)
 	 * Check for bytes and feed them to the RX engine.  
 	 * Limit the number of bytes we actually process on any one iteration.
 	 */
-	struct pollfd fds[1];
-	fds[0].fd = fmu_fd;
-	fds[0].revents = POLLIN;
-	if (poll(fds, 1, 0) > 0) {
-		char buf[8];
-		ssize_t count = read(fmu_fd, buf, sizeof(buf));
-		for (int i = 0; i < count; i++)
-			hx_stream_rx(stream, buf[i]);
-	}
+	char buf[32];
+	ssize_t count = read(fmu_fd, buf, sizeof(buf));
+	for (int i = 0; i < count; i++)
+		hx_stream_rx(stream, buf[i]);
 }
+
+int frame_rx;
+int frame_bad;
 
 static void
 comms_handle_frame(void *arg, const void *buffer, size_t length)
 {
-	struct px4io_command *cmd;
+	struct px4io_command *cmd = (struct px4io_command *)buffer;
 
 	/* make sure it's what we are expecting */
-	if (length != sizeof(struct px4io_command))
+	if ((length != sizeof(struct px4io_command)) || 
+	    (cmd->f2i_magic != F2I_MAGIC)) {
+	    	frame_bad++;
 		return;
+	}
+	frame_rx++;
 
-	cmd = (struct px4io_command *)buffer;
+	irqstate_t flags = irqsave();
 
 	/* fetch new PWM output values */
 	for (unsigned i = 0; i < PX4IO_OUTPUT_CHANNELS; i++)
@@ -143,4 +145,7 @@ comms_handle_frame(void *arg, const void *buffer, size_t length)
 	/* XXX do relay changes here */	
 	for (unsigned i = 0; i < PX4IO_RELAY_CHANNELS; i++)
 		system_state.relays[i] = cmd->relay_state[i];
+
+out:
+	irqrestore(flags);
 }

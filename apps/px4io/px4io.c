@@ -71,6 +71,9 @@ int user_start(int argc, char *argv[])
 	bool	heartbeat = false;
 	bool	failsafe = false;
 
+	/* configure the high-resolution time/callout interface */
+	hrt_init();
+
 	/* configure the PWM outputs */
 	up_pwm_servo_init(0xff);
 
@@ -131,12 +134,13 @@ int user_start(int argc, char *argv[])
 		/* print some simple status */
 		if (timers[TIMER_STATUS_PRINT] == 0) {
 			timers[TIMER_STATUS_PRINT] = 1000;
-			lib_lowprintf("%c %s | %s | %s | C=%d    \r",
+			lib_lowprintf("%c %s | %s | %s | C=%d F=%d B=%d   \r",
 				cursor[cycle++ & 3],
 				(system_state.armed         ? "ARMED"  : "SAFE"),
 				(system_state.rc_channels   ? "RC OK"  : "NO RC"),
 				(system_state.mixer_use_fmu ? "FMU OK" : "NO FMU"),
-				system_state.rc_channels
+				system_state.rc_channels,
+				frame_rx, frame_bad
 			);
 		}
 	}
