@@ -72,7 +72,7 @@ BOARDDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
 
 IRAM_SIZE	= 0x100
 DEF_STACK_BASE	= 0x24
-LDFLAGS		= --model-large --nostdlib \
+LDFLAGS		+= --model-large --nostdlib \
 		  --data-loc $(DEF_STACK_BASE) --iram-size $(IRAM_SIZE) \
 		  --code-loc 0x2100 --code-size 0x5f40 \
 		  --xram-loc $(IRAM_SIZE) --xram-size 0x1f00

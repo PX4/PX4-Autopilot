@@ -41,7 +41,7 @@ USRINCLUDES	= -usrinc:'.;$(WTOPDIR)\sched;$(WARCHSRCDIR);$(WARCHSRCDIR)\common'
 INCLUDES	= $(ARCHSTDINCLUDES) $(USRINCLUDES)
 CFLAGS		= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 CPPFLAGS	+= -I$(ARCHSRCDIR) -I$(ZDSSTDINCDIR) -I$(ZDSZILOGINCDIR)
-LDFLAGS 	= @"${shell cygpath -w $(ARCHSRCDIR)/nuttx.linkcmd}"
+LDFLAGS 	+= @"${shell cygpath -w $(ARCHSRCDIR)/nuttx.linkcmd}"
 
 ############################################################################
 # Files and directories

@@ -49,7 +49,7 @@ INCLUDES	= $(ARCHSTDINCLUDES) $(USRINCLUDES)
 CFLAGS		= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 CPPFLAGS	+= -I$(ARCHSRCDIR)
 ifeq ($(COMPILER),zneocc.exe)
-LDFLAGS 	= @"${shell cygpath -w $(ARCHSRCDIR)/nuttx.linkcmd}"
+LDFLAGS 	+= @"${shell cygpath -w $(ARCHSRCDIR)/nuttx.linkcmd}"
 endif
 
 HEAD_ASRC	= $(HEAD_SSRC:.S=$(ASMEXT))
