@@ -42,8 +42,11 @@
 
 #ifndef __ASSEMBLY__
 
-#include <rgmp/arch/hpet.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+#include <rgmp/arch/hpet.h>
 
 static inline void up_mdelay(uint32_t msec)
 {
@@ -52,8 +55,12 @@ static inline void up_mdelay(uint32_t msec)
 
 static inline void up_udelay(uint32_t usec)
 {
-    hpet_udelay(usec*1000);
+    hpet_ndelay(usec*1000);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !__ASSEMBLY__ */
 

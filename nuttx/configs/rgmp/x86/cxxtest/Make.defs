@@ -1,10 +1,10 @@
-############################################################################
+####################################################################################
 # configs/rgmp/default/Make.defs
 #
 #   Copyright (C) 2011 Yu Qiang. All rights reserved.
 #   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Authors: Yu Qiang <yuq825@gmail.com>
-#            Gregory Nutt <gnutt@nuttx.org>
+#            Gregory Nutt <spudmonkey@racsa.co.cr>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -36,7 +36,6 @@
 ############################################################################
 
 include ${TOPDIR}/.config
-include ${TOPDIR}/tools/Config.mk
 
 RGMPLIBDIR := $(RGMP_INST_DIR)/lib
 RGMPINCDIR := $(RGMP_INST_DIR)/include
@@ -50,27 +49,39 @@ else
   ARCHOPTIMIZATION	= -O2
 endif
 
-ARCHCPUFLAGS		= -fno-builtin -nostdinc -fno-stack-protector 
-ARCHPICFLAGS		= -fpic
-ARCHWARNINGS		= -Wall -Wstrict-prototypes -Wshadow
-ARCHDEFINES		= -D__RGMP_KERNEL__ -D__RTOS_KERNEL__ -D__SHARE_KERNEL__
-ARCHINCLUDES		= -I. -isystem $(TOPDIR)/include -I$(RGMPINCDIR) \
-			  -I$(TOPDIR)/configs/rgmp/include -I$(TOPDIR)/arch/rgmp/include/x86
-ARCHSCRIPT		=
+#ARCHCXXFLAGS   = -fno-builtin -fno-exceptions -fno-rtti
+ARCHCXXFLAGS    = -fno-builtin
+ARCHCPUFLAGS    = -fno-builtin -nostdinc -fno-stack-protector 
+ARCHPICFLAGS    = -fpic
+ARCHWARNINGS    = -Wall -Wstrict-prototypes -Wshadow
+ARCHWARNINGSXX  = -Wall -Wshadow
+ARCHDEFINES	    = -D__RGMP_KERNEL__ -D__RTOS_KERNEL__ -D__SHARE_KERNEL__
+ARCHINCLUDES    = -I. -isystem $(TOPDIR)/include -I$(RGMPINCDIR) \
+                  -I$(TOPDIR)/configs/rgmp/include -I$(TOPDIR)/arch/rgmp/include/x86
 
-CROSSDEV		=
+ARCHXXDEFINES   = 
+ARCHXXINCLUDES  = -I$(TOPDIR)/include/cxx -isystem $(TOPDIR)/include -I$(RGMPINCDIR) \
+                  -I$(TOPDIR)/configs/rgmp/include -I$(TOPDIR)/arch/rgmp/include/x86 \
+                  -I$(TOPDIR)/include/uClibc++
+
+CROSSDEV    =
 CC			= $(CROSSDEV)gcc
+CXX         = $(CROSSDEV)g++
 CPP			= $(CROSSDEV)gcc -E
 LD			= $(CROSSDEV)ld
 AR			= $(CROSSDEV)ar rcs
 NM			= $(CROSSDEV)nm
-OBJCOPY			= $(CROSSDEV)objcopy
-OBJDUMP			= $(CROSSDEV)objdump
+OBJCOPY	    = $(CROSSDEV)objcopy
+OBJDUMP	    = $(CROSSDEV)objdump
 
-CFLAGS			= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) \
+CFLAGS		= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) \
 			  $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) -pipe
-CPPFLAGS		= $(ARCHINCLUDES) $(ARCHDEFINES)
-AFLAGS			= $(CFLAGS) -D__ASSEMBLY__
+CPPFLAGS	= $(ARCHINCLUDES) $(ARCHDEFINES)
+CXXFLAGS    = $(ARCHCXXFLAGS) $(ARCHWARNINGSXX) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) \
+              $(ARCHXXDEFINES) $(ARCHXXINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)      \
+              -pipe -nodefaultlibs -nostdinc++
+CXXPICFLAGS = $(ARCHPICFLAGS) $(CXXFLAGS)
+AFLAGS		= $(CFLAGS) -D__ASSEMBLY__
 
 OBJEXT			= .o
 LIBEXT			= .a
@@ -81,14 +92,43 @@ else
   EXEEXT		=
 endif
 
-LDFLAGS                 += -nostdlib
-EXTRA_LIBS		= 
+LDFLAGS         += -nostdlib
+EXTRA_LIBS		= $(shell $(CC) -print-file-name=libsupc++.a) \
+                  $(shell $(CC) -print-file-name=libgcc_eh.a)
 
+define PREPROCESS
+	@echo "CPP: $1->$2"
+	@$(CPP) $(CPPFLAGS) $1 -o $2
+endef
+
+define COMPILE
+	@echo "CC: $1"
+	@$(CC) -c $(CFLAGS) $1 -o $2
+endef
+
+define COMPILEXX
+	@echo "CXX: $1"
+	@$(CXX) -c $(CXXFLAGS) $1 -o $2
+endef
+
+define ASSEMBLE
+	@echo "AS: $1"
+	@$(CC) -c $(AFLAGS) $1 -o $2
+endef
+
+define ARCHIVE
+	echo "AR: $2"; \
+	$(AR) $1 $2 || { echo "$(AR) $1 $2 FAILED!" ; exit 1 ; }
+endef
+
+define CLEAN
+	@rm -f *.o *.a
+endef
 
 MKDEP			= $(TOPDIR)/tools/mkdeps.sh
 
 HOSTCC			= gcc
-HOSTINCLUDES		= -I.
+HOSTINCLUDES	= -I.
 HOSTCFLAGS		= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) \
-			  $(ARCHCPUFLAGS) $(HOSTINCLUDES) $(ARCHDEFINES) -pipe
+                  $(ARCHCPUFLAGS) $(HOSTINCLUDES) $(ARCHDEFINES) -pipe
 HOSTLDFLAGS		=

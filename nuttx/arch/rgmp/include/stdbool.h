@@ -58,9 +58,6 @@
  * use _Bool8 as the underlying type.
  */
 
-#ifndef CONFIG_ARCH_RGMP
-#define bool  _Bool8
-#endif
 #define true  1
 #define false 0
 
@@ -82,8 +79,6 @@
  * as the underlying type.
  */
 
-#ifndef CONFIG_ARCH_RGMP
 typedef uint8_t _Bool8;
-#endif
 
 #endif /* __ARCH_RGMP_INCLUDE_STDBOOL_H */

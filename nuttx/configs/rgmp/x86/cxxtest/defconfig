@@ -1,0 +1,428 @@
+############################################################################
+# configs/rgmp/default/defconfig
+#
+#   Copyright (C) 2011 Yu Qiang. All rights reserved.
+#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Authors: Yu Qiang <yuq825@gmail.com>
+#            Gregory Nutt <spudmonkey@racsa.co.cr>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+#
+# Architecture selection
+#
+# CONFIG_ARCH - identifies the arch subdirectory and, hence, the
+#   processor architecture.
+# CONFIG_ARCH_name - for use in C code.  This identifies the particular
+#   processor architecture (CONFIG_ARCH_SIM).
+# CONFIG_ARCH_BOARD - identifies the configs subdirectory and, hence,
+#   the board that supports the particular chip or SoC.
+# CONFIG_ARCH_BOARD_name - for use in C code
+# CONFIG_ENDIAN_BIG - define if big endian (default is little endian)
+#
+CONFIG_ARCH="rgmp"
+CONFIG_ARCH_RGMP=y
+CONFIG_ARCH_BOARD="rgmp"
+CONFIG_ARCH_BOARD_RGMP=y
+
+#
+# General OS setup
+#
+# CONFIG_APPS_DIR - Identifies the relative path to the directory
+#   that builds the application to link with NuttX.  Default: ../apps
+# CONFIG_DEBUG - enables built-in debug options
+# CONFIG_DEBUG_VERBOSE - enables verbose debug output
+# CONFIG_DEBUG_SYMBOLS - build without optimization and with
+#   debug symbols (needed for use with a debugger).
+# CONFIG_MM_REGIONS - If the architecture includes multiple
+#   regions of memory to allocate from, this specifies the
+#   number of memory regions that the memory manager must
+#   handle and enables the API mm_addregion(start, end);
+# CONFIG_ARCH_LOWPUTC - architecture supports low-level, boot
+#   time console output
+# CONFIG_MSEC_PER_TICK - The default system timer is 100Hz
+#   or MSEC_PER_TICK=10.  This setting may be defined to
+#   inform NuttX that the processor hardware is providing
+#   system timer interrupts at some interrupt interval other
+#   than 10 msec.
+# CONFIG_RR_INTERVAL - The round robin timeslice will be set
+#   this number of milliseconds;  Round robin scheduling can
+#   be disabled by setting this value to zero.
+# CONFIG_SCHED_INSTRUMENTATION - enables instrumentation in 
+#   scheduler to monitor system performance
+# CONFIG_TASK_NAME_SIZE - Spcifies that maximum size of a
+#   task name to save in the TCB.  Useful if scheduler
+#   instrumentation is selected.  Set to zero to disable.
+# CONFIG_JULIAN_TIME - Enables Julian time conversions
+# CONFIG_START_YEAR, CONFIG_START_MONTH, CONFIG_START_DAY -
+#   Used to initialize the internal time logic.
+# CONFIG_DEV_CONSOLE - Set if architecture-specific logic
+#   provides /dev/console.  Enables stdout, stderr, stdin.
+# CONFIG_DEV_LOWCONSOLE - Use the simple, low-level serial console
+#   driver (minimul support)
+# CONFIG_MUTEX_TYPES: Set to enable support for recursive and
+#   errorcheck mutexes. Enables pthread_mutexattr_settype().
+# CONFIG_PRIORITY_INHERITANCE : Set to enable support for priority
+#   inheritance on mutexes and semaphores. 
+# CONFIG_SEM_PREALLOCHOLDERS: This setting is only used if priority
+#   inheritance is enabled.  It defines the maximum number of
+#   different threads (minus one) that can take counts on a
+#   semaphore with priority inheritance support.  This may be 
+#   set to zero if priority inheritance is disabled OR if you
+#   are only using semaphores as mutexes (only one holder) OR
+#   if no more than two threads participate using a counting
+#   semaphore.
+# CONFIG_SEM_NNESTPRIO.  If priority inheritance is enabled,
+#   then this setting is the maximum number of higher priority
+#   threads (minus 1) than can be waiting for another thread
+#   to release a count on a semaphore.  This value may be set
+#   to zero if no more than one thread is expected to wait for
+#   a semaphore.
+# CONFIG_FDCLONE_DISABLE. Disable cloning of all file descriptors
+#   by task_create() when a new task is started.  If set, all
+#   files/drivers will appear to be closed in the new task.
+# CONFIG_FDCLONE_STDIO. Disable cloning of all but the first
+#   three file descriptors (stdin, stdout, stderr) by task_create()
+#   when a new task is started. If set, all files/drivers will
+#   appear to be closed in the new task except for stdin, stdout,
+#   and stderr.
+# CONFIG_SDCLONE_DISABLE. Disable cloning of all socket
+#   desciptors by task_create() when a new task is started. If
+#   set, all sockets will appear to be closed in the new task.
+#
+#CONFIG_APPS_DIR=
+CONFIG_DEBUG=y
+CONFIG_DEBUG_VERBOSE=y
+CONFIG_DEBUG_SYMBOLS=y
+CONFIG_MM_REGIONS=1
+CONFIG_ARCH_LOWPUTC=y
+CONFIG_MSEC_PER_TICK=1
+CONFIG_RR_INTERVAL=0
+CONFIG_SCHED_INSTRUMENTATION=n
+CONFIG_TASK_NAME_SIZE=32
+CONFIG_START_YEAR=2007
+CONFIG_START_MONTH=2
+CONFIG_START_DAY=27
+CONFIG_JULIAN_TIME=n
+CONFIG_DEV_CONSOLE=y
+CONFIG_DEV_LOWCONSOLE=n
+CONFIG_MUTEX_TYPES=n
+CONFIG_PRIORITY_INHERITANCE=n
+CONFIG_SEM_PREALLOCHOLDERS=0
+CONFIG_SEM_NNESTPRIO=0
+CONFIG_FDCLONE_DISABLE=n
+CONFIG_FDCLONE_STDIO=n
+CONFIG_SDCLONE_DISABLE=y
+
+#
+# The following can be used to disable categories of
+# APIs supported by the OS.  If the compiler supports
+# weak functions, then it should not be necessary to
+# disable functions unless you want to restrict usage
+# of those APIs.
+#
+# There are certain dependency relationships in these
+# features.
+#
+# o mq_notify logic depends on signals to awaken tasks
+#   waiting for queues to become full or empty.
+# o pthread_condtimedwait() depends on signals to wake
+#   up waiting tasks.
+#
+CONFIG_DISABLE_CLOCK=n
+CONFIG_DISABLE_POSIX_TIMERS=n
+CONFIG_DISABLE_PTHREAD=n
+CONFIG_DISABLE_SIGNALS=n
+CONFIG_DISABLE_MQUEUE=n
+CONFIG_DISABLE_MOUNTPOINT=n
+CONFIG_DISABLE_ENVIRON=n
+CONFIG_DISABLE_POLL=y
+
+#
+# Misc libc settings
+#
+# CONFIG_NOPRINTF_FIELDWIDTH - sprintf-related logic is a
+#   little smaller if we do not support fieldwidthes
+#
+CONFIG_LIBC_FLOATINGPOINT=y
+CONFIG_NOPRINTF_FIELDWIDTH=n
+
+#
+# Allow for architecture optimized implementations
+#
+# The architecture can provide optimized versions of the
+# following to improve sysem performance
+#
+CONFIG_ARCH_MEMCPY=y
+CONFIG_ARCH_MEMCMP=y
+CONFIG_ARCH_MEMMOVE=y
+CONFIG_ARCH_MEMSET=y
+CONFIG_ARCH_STRCMP=y
+CONFIG_ARCH_STRCPY=y
+CONFIG_ARCH_STRNCPY=y
+CONFIG_ARCH_STRLEN=y
+CONFIG_ARCH_STRNLEN=y
+CONFIG_ARCH_STRCHR=y
+CONFIG_ARCH_BZERO=n
+CONFIG_ARCH_MATH_H=y
+CONFIG_ARCH_STDINT_H=y
+CONFIG_ARCH_STDBOOL_H=y
+
+#
+# General build options
+#
+# CONFIG_RRLOAD_BINARY - make the rrload binary format used with
+#   BSPs from www.ridgerun.com using the tools/mkimage.sh script
+# CONFIG_INTELHEX_BINARY - make the Intel HEX binary format
+#   used with many different loaders using the GNU objcopy program
+#   Should not be selected if you are not using the GNU toolchain.
+# CONFIG_RAW_BINARY - make a raw binary format file used with many
+#   different loaders using the GNU objcopy program.  This option
+#   should not be selected if you are not using the GNU toolchain.
+# CONFIG_HAVE_LIBM - toolchain supports libm.a
+#
+CONFIG_RRLOAD_BINARY=n
+CONFIG_INTELHEX_BINARY=n
+CONFIG_RAW_BINARY=n
+CONFIG_HAVE_LIBM=n
+CONFIG_HAVE_CXX=y
+CONFIG_HAVE_CXXINITIALIZE=y
+
+#
+# Sizes of configurable things (0 disables)
+#
+# CONFIG_MAX_TASKS - The maximum number of simultaneously
+#   active tasks. This value must be a power of two.
+# CONFIG_MAX_TASK_ARGS - This controls the maximum number of
+#   of parameters that a task may receive (i.e., maxmum value
+#   of 'argc')
+# CONFIG_NPTHREAD_KEYS - The number of items of thread-
+#   specific data that can be retained
+# CONFIG_NFILE_DESCRIPTORS - The maximum number of file
+#   descriptors (one for each open)
+# CONFIG_NFILE_STREAMS - The maximum number of streams that
+#   can be fopen'ed
+# CONFIG_NAME_MAX - The maximum size of a file name.
+# CONFIG_STDIO_BUFFER_SIZE - Size of the buffer to allocate
+#   on fopen. (Only if CONFIG_NFILE_STREAMS > 0)
+# CONFIG_NUNGET_CHARS - Number of characters that can be
+#   buffered by ungetc() (Only if CONFIG_NFILE_STREAMS > 0)
+# CONFIG_PREALLOC_MQ_MSGS - The number of pre-allocated message
+#   structures.  The system manages a pool of preallocated
+#   message structures to minimize dynamic allocations
+# CONFIG_MQ_MAXMSGSIZE - Message structures are allocated with
+#   a fixed payload size given by this settin (does not include
+#   other message structure overhead.
+# CONFIG_MAX_WDOGPARMS - Maximum number of parameters that
+#   can be passed to a watchdog handler
+# CONFIG_PREALLOC_WDOGS - The number of pre-allocated watchdog
+#   structures.  The system manages a pool of preallocated
+#   watchdog structures to minimize dynamic allocations
+# CONFIG_PREALLOC_TIMERS - The number of pre-allocated POSIX
+#   timer structures.  The system manages a pool of preallocated
+#   timer structures to minimize dynamic allocations.  Set to
+#   zero for all dynamic allocations.
+#
+CONFIG_MAX_TASKS=64
+CONFIG_MAX_TASK_ARGS=10
+CONFIG_NPTHREAD_KEYS=4
+CONFIG_NFILE_DESCRIPTORS=32
+CONFIG_NFILE_STREAMS=16
+CONFIG_NAME_MAX=32
+CONFIG_STDIO_BUFFER_SIZE=64
+CONFIG_NUNGET_CHARS=2
+CONFIG_PREALLOC_MQ_MSGS=32
+CONFIG_MQ_MAXMSGSIZE=32
+CONFIG_MAX_WDOGPARMS=4
+CONFIG_PREALLOC_WDOGS=32
+CONFIG_PREALLOC_TIMERS=8
+CONFIG_STDIO_LINEBUFFER=y
+
+#
+# FAT filesystem configuration
+# CONFIG_FS_FAT - Enable FAT filesystem support
+# CONFIG_FAT_SECTORSIZE - Max supported sector size
+# CONFIG_FS_ROMFS - Enable ROMFS filesystem support
+CONFIG_FS_FAT=n
+CONFIG_FS_ROMFS=n
+
+#
+# TCP/IP and UDP support via uIP
+# CONFIG_NET - Enable or disable all network features
+# CONFIG_NET_IPv6 - Build in support for IPv6
+# CONFIG_NSOCKET_DESCRIPTORS - Maximum number of socket descriptors per task/thread.
+# CONFIG_NET_SOCKOPTS - Enable or disable support for socket options
+# CONFIG_NET_BUFSIZE - uIP buffer size
+# CONFIG_NET_TCP - TCP support on or off
+# CONFIG_NET_TCP_CONNS - Maximum number of TCP connections (all tasks)
+# CONFIG_NET_TCP_READAHEAD_BUFSIZE - Size of TCP read-ahead buffers
+# CONFIG_NET_NTCP_READAHEAD_BUFFERS - Number of TCP read-ahead buffers (may be zero)
+# CONFIG_NET_TCPBACKLOG - Incoming connections pend in a backlog until
+#   accept() is called. The size of the backlog is selected when listen() is called.
+# CONFIG_NET_MAX_LISTENPORTS - Maximum number of listening TCP ports (all tasks)
+# CONFIG_NET_UDP - UDP support on or off
+# CONFIG_NET_UDP_CHECKSUMS - UDP checksums on or off
+# CONFIG_NET_UDP_CONNS - The maximum amount of concurrent UDP connections
+# CONFIG_NET_ICMP - ICMP ping response support on or off
+# CONFIG_NET_ICMP_PING - ICMP ping request support on or off
+# CONFIG_NET_PINGADDRCONF - Use "ping" packet for setting IP address
+# CONFIG_NET_STATISTICS - uIP statistics on or off
+# CONFIG_NET_RECEIVE_WINDOW - The size of the advertised receiver's window
+# CONFIG_NET_ARPTAB_SIZE - The size of the ARP table
+# CONFIG_NET_BROADCAST - Broadcast support
+# CONFIG_NET_LLH_LEN - The link level header length
+# CONFIG_NET_FWCACHE_SIZE - number of packets to remember when looking for duplicates
+CONFIG_NET=y
+CONFIG_NET_IPv6=n
+CONFIG_NSOCKET_DESCRIPTORS=5
+CONFIG_NET_SOCKOPTS=y
+CONFIG_NET_BUFSIZE=1514
+CONFIG_NET_TCP=y
+CONFIG_NET_TCP_CONNS=40
+CONFIG_NET_MAX_LISTENPORTS=40
+CONFIG_NET_UDP=y
+CONFIG_NET_UDP_CHECKSUMS=y
+#CONFIG_NET_UDP_CONNS=10
+CONFIG_NET_ICMP=y
+CONFIG_NET_ICMP_PING=y
+#CONFIG_NET_PINGADDRCONF=0
+CONFIG_NET_STATISTICS=y
+#CONFIG_NET_RECEIVE_WINDOW=128
+#CONFIG_NET_ARPTAB_SIZE=8
+CONFIG_NET_BROADCAST=n
+#CONFIG_NET_LLH_LEN=14
+#CONFIG_NET_FWCACHE_SIZE=2
+
+#
+# UIP Network Utilities
+# CONFIG_NET_DHCP_LIGHT - Reduces size of DHCP
+# CONFIG_NET_RESOLV_ENTRIES - Number of resolver entries
+CONFIG_NET_DHCP_LIGHT=n
+CONFIG_NET_RESOLV_ENTRIES=4
+
+#
+# Settings for examples/uip
+CONFIG_EXAMPLE_UIP_IPADDR=0xc0a80a02
+CONFIG_EXAMPLE_UIP_DRIPADDR=0xc0a80a01
+CONFIG_EXAMPLE_UIP_NETMASK=0xffffff00
+CONFIG_EXAMPLE_UIP_DHCPC=n
+
+#
+# Settings for examples/nettest
+CONFIG_EXAMPLE_NETTEST_SERVER=n
+CONFIG_EXAMPLE_NETTEST_PERFORMANCE=n
+CONFIG_EXAMPLE_NETTEST_NOMAC=n
+CONFIG_EXAMPLE_NETTEST_IPADDR=0xc0a80080
+CONFIG_EXAMPLE_NETTEST_DRIPADDR=0xc0a80001
+CONFIG_EXAMPLE_NETTEST_NETMASK=0xffffff00
+CONFIG_EXAMPLE_NETTEST_CLIENTIP=0xc0a8006a
+
+#
+# Settings for examples/nsh
+CONFIG_NSH_CONSOLE=y
+CONFIG_NSH_TELNET=n
+CONFIG_NSH_IOBUFFER_SIZE=512
+CONFIG_NSH_CMD_SIZE=40
+CONFIG_NSH_DHCPC=n
+CONFIG_NSH_NOMAC=n
+CONFIG_NSH_IPADDR=0x0a000002
+CONFIG_NSH_DRIPADDR=0x0a000001
+CONFIG_NSH_NETMASK=0xffffff00
+
+#
+# Stack and heap information
+#
+# CONFIG_BOOT_RUNFROMFLASH - Some configurations support XIP
+#   operation from FLASH but must copy initialized .data sections to RAM.
+# CONFIG_BOOT_COPYTORAM -  Some configurations boot in FLASH
+#   but copy themselves entirely into RAM for better performance.
+# CONFIG_CUSTOM_STACK - The up_ implementation will handle
+#   all stack operations outside of the nuttx model.
+# CONFIG_STACK_POINTER - The initial stack pointer
+# CONFIG_IDLETHREAD_STACKSIZE - The size of the initial stack.
+#  This is the thread that (1) performs the inital boot of the system up
+#  to the point where user_start() is spawned, and (2 after is the
+#  IDLE thread that executes only when there is no other thread ready to
+#  run.
+# CONFIG_USERMAIN_STACKSIZE - The size of the stack to allocate
+#  for the main user thread that begins at the user_start() entry point.
+# CONFIG_PTHREAD_STACK_MIN - Minimum pthread stack size
+# CONFIG_PTHREAD_STACK_DEFAULT - Default pthread stack size
+# CONFIG_HEAP_BASE - The beginning of the heap
+# CONFIG_HEAP_SIZE - The size of the heap
+#
+CONFIG_BOOT_RUNFROMFLASH=n
+CONFIG_BOOT_COPYTORAM=n
+CONFIG_CUSTOM_STACK=n
+CONFIG_IDLETHREAD_STACKSIZE=4096
+CONFIG_USERMAIN_STACKSIZE=4096
+CONFIG_PTHREAD_STACK_MIN=256
+CONFIG_PTHREAD_STACK_DEFAULT=8192
+CONFIG_HEAP_BASE=
+CONFIG_HEAP_SIZE=
+CONFIG_USER_ENTRYPOINT="cxxtest_main"
+
+#
+# uClibc++ Standard C++ Library
+#
+CONFIG_UCLIBCXX=y
+CONFIG_UCLIBCXX_EXCEPTION=y
+CONFIG_UCLIBCXX_IOSTREAM_BUFSIZE=32
+CONFIG_UCLIBCXX_HAVE_LIBSUPCXX=y
+
+##########################################
+# RGMP specific configuration
+##########################################
+
+#
+# arch
+#
+CONFIG_RGMP_SUBARCH=x86
+
+#
+# VNET
+#
+CONFIG_NET_VNET=y
+CONFIG_VNET_NINTERFACES=1
+
+#
+# Serial port
+#
+CONFIG_COM1=y
+CONFIG_COM2=y
+CONFIG_COM3=n
+CONFIG_COM4=n
+
+#
+# E1000
+#
+CONFIG_NET_E1000=n
+CONFIG_E1000_N_TX_DESC=128
+CONFIG_E1000_N_RX_DESC=128
+CONFIG_E1000_BUFF_SIZE=0x800

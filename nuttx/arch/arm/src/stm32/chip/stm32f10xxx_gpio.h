@@ -391,7 +391,7 @@
 #define AFIO_MAPR2_TIM14_REMAP           (1 << 9)   /* Bit 9: TIM14 remapping */
 #define AFIO_MAPR2_FSMC_NADV             (1 << 10)  /* Bit 10: NADV connect/disconnect */
 #ifdef CONFIG_STM32_VALUELINE
-#  define AFIO_MAPR2_TIM76_DAC_DMA_REMAP (1 << 11)  /* Bit 11: TIM67_DAC DMA remapping */
+#  define AFIO_MAPR2_TIM67_DAC_DMA_REMAP (1 << 11)  /* Bit 11: TIM67_DAC DMA remapping */
 #  define AFIO_MAPR2_TIM12_REMAP         (1 << 12)  /* Bit 12: TIM12 remapping */
 #  define AFIO_MAPR2_MISC_REMAP          (1 << 13)  /* Bit 13: Miscellaneous features remapping */
 #endif

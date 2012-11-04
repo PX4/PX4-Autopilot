@@ -46,7 +46,6 @@
 
 #include <nuttx/sched.h>
 
-
 struct up_wait {
     struct up_wait *next;
     _TCB *task;

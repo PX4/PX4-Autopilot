@@ -53,7 +53,7 @@ endif
 ARCHCPUFLAGS		= -fno-builtin -nostdinc -fno-stack-protector 
 ARCHPICFLAGS		= -fpic
 ARCHWARNINGS		= -Wall -Wstrict-prototypes -Wshadow
-ARCHDEFINES		=
+ARCHDEFINES		= -D__RGMP_KERNEL__ -D__RTOS_KERNEL__ -D__SHARE_KERNEL__
 ARCHINCLUDES		= -I. -isystem $(TOPDIR)/include -I$(RGMPINCDIR) \
 			  -I$(TOPDIR)/configs/rgmp/include -I$(TOPDIR)/arch/rgmp/include/x86
 ARCHSCRIPT		=

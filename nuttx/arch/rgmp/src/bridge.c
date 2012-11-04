@@ -44,25 +44,37 @@
 #include <fs_internal.h>
 #include <queue.h>
 #include <arch/irq.h>
+#include <rgmp/rtos.h>
 #include <rgmp/bridge.h>
 #include <rgmp/string.h>
 #include <rgmp/stdio.h>
 
+struct bridge {
+	struct rgmp_bridge *b;
+	sem_t rd_lock;
+	sem_t wr_lock;
+};
 
 static ssize_t up_bridge_read(struct file *filp, char *buffer, size_t len)
 {
-    struct rgmp_bridge *b;
+	ssize_t ret;
+    struct bridge *b = filp->f_inode->i_private;
 
-    b = filp->f_inode->i_private;
-    return rgmp_bridge_read(b, buffer, len);
+	sem_wait(&b->rd_lock);
+    ret = rgmp_bridge_read(b->b, buffer, len, 0);
+	sem_post(&b->rd_lock);
+	return ret;
 }
 
 static ssize_t up_bridge_write(struct file *filp, const char *buffer, size_t len)
 {
-    struct rgmp_bridge *b;
+	ssize_t ret;
+    struct bridge *b = filp->f_inode->i_private;
 
-    b = filp->f_inode->i_private;
-    return rgmp_bridge_write(b, (char *)buffer, len);
+	sem_wait(&b->wr_lock);
+    ret = rgmp_bridge_write(b->b, (char *)buffer, len, 0);
+	sem_post(&b->wr_lock);
+	return ret;
 }
 
 static int up_bridge_open(struct file *filp)
@@ -75,30 +87,45 @@ static int up_bridge_close(struct file *filp)
     return 0;
 }
 
-static const struct file_operations up_bridge_fops =
-{
+static const struct file_operations up_bridge_fops = {
     .read = up_bridge_read,
     .write = up_bridge_write,
     .open = up_bridge_open,
     .close = up_bridge_close,
 };
 
-void up_register_bridges(void)
+int rtos_bridge_init(struct rgmp_bridge *b)
 {
     int err;
+	struct bridge *bridge;
     char path[30] = {'/', 'd', 'e', 'v', '/'};
-    struct rgmp_bridge *b;
 
-    for (b=bridge_list.next; b!=NULL; b=b->next) {
+	if ((bridge = kmalloc(sizeof(*bridge))) == NULL)
+		goto err0;
+
+	bridge->b = b;
+	if ((err = sem_init(&bridge->rd_lock, 0, 1)) == ERROR)
+		goto err1;
+	if ((err = sem_init(&bridge->wr_lock, 0, 1)) == ERROR)
+		goto err1;
+
 	// make rgmp_bridge0 to be the console
 	if (strcmp(b->vdev->name, "rgmp_bridge0") == 0)
-	    strlcpy(path+5, "console", 25);
+	    strlcpy(path + 5, "console", 25);
 	else
-	    strlcpy(path+5, b->vdev->name, 25);
-	err = register_driver(path, &up_bridge_fops, 0666, b);
-	if (err == ERROR)
+	    strlcpy(path + 5, b->vdev->name, 25);
+
+	if ((err = register_driver(path, &up_bridge_fops, 0666, bridge)) == ERROR) {
 	    cprintf("NuttX: register bridge %s fail\n", b->vdev->name);
-    }
+		goto err1;
+	}
+
+	return 0;
+
+err1:
+	kfree(bridge);
+err0:
+	return -1;
 }
 
 

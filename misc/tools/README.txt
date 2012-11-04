@@ -41,6 +41,13 @@ kconfig-frontends-3.3.0-1-libintl.patch
     make
     make install
 
+  See: http://ymorin.is-a-geek.org/hg/kconfig-frontends/file/tip/docs/known-issues.txt
+
+  Update: According to the release notes, version 3.6.0 (and above)
+  will build on Cygwin with not patches: 
+
+    http://ymorin.is-a-geek.org/download/kconfig-frontends/
+
 kconfig-macos.path
 
   This is a patch to make the kconfig-frontends build on Mac OS X.

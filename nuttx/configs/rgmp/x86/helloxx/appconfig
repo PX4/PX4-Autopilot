@@ -1,7 +1,7 @@
 ############################################################################
-# misc/uClibc++/libxx/uClibc++/Makefile
+# configs/sim/default/appconfig
 #
-#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -22,6 +22,18 @@
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 # LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
 # FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# CONFIG_NFILE_DESCRIPTORS - The maximum number of file
+#   descriptors (one for each open)
+# CONFIG_NFILE_STREAMS - The maximum number of streams that
+#   can be fopen'ed
+# CONFIG_NAME_MAX - The maximum size of a file name.
+# CONFIG_STDIO_BUFFER_SIZE - Size of the buffer to allocate
+#   on fopen. (Only if CONFIG_NFILE_STREAMS > 0)
+# CONFIG_NUNGET_CHARS - Number of characters that can be
+#   buffered by ungetc() (Only if CONFIG_NFILE_STREAMS > 0)
+# CONFIG_PREALLOC_MQ_MSGS - The number of pre-allocated message
+#   structures.  The system manages a pool of preallocated
+#   message structures to minimize dyAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
 # COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
 # INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
 # BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
@@ -31,33 +43,9 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-###########################################################################
+############################################################################
 
-# Add the uClibc++ sources
+# Path to example in apps/examples containing the user_start entry point
 
-CXXSRCS += algorithm.cxx associative_base.cxx bitset.cxx char_traits.cxx
-CXXSRCS += complex.cxx del_op.cxx del_opnt.cxx del_opv.cxx del_opvnt.cxx
-CXXSRCS += deque.cxx  fstream.cxx iomanip.cxx ios.cxx iostream.cxx 
-CXXSRCS += istream.cxx iterator.cxx limits.cxx list.cxx locale.cxx
-CXXSRCS += map.cxx new_handler.cxx new_op.cxx new_opnt.cxx new_opv.cxx
-CXXSRCS += new_opvnt.cxx numeric.cxx ostream.cxx queue.cxx set.cxx
-CXXSRCS += sstream.cxx stack.cxx streambuf.cxx string.cxx typeinfo.cxx
-CXXSRCS += utility.cxx valarray.cxx vector.cxx
+CONFIGURED_APPS += examples/helloxx
 
-# Exception handling logic
-
-ifeq ($(CONFIG_UCLIBCXX_EXCEPTION),y)
-CXXSRCS += exception.cxx func_exception.cxx stdexcept.cxx
-endif
-
-# libsupc++ replacement
-
-# CXXSRCS += vterminate.C
-ifneq ($(CONFIG_UCLIBCXX_HAVE_LIBSUPCXX),y)
-CXXSRCS += eh_alloc.cxx eh_globals.cxx eh_terminate.cxx 
-endif
-
-# Add the path to the uClibc++ subdirectory
-
-DEPPATH += --dep-path uClibc++
-VPATH += uClibc++

@@ -57,7 +57,6 @@
 #include <arch/com.h>
 
 #include <rgmp/trap.h>
-#include <rgmp/arch/console.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -129,7 +128,7 @@ static int  up_setup(struct uart_dev_s *dev);
 static void up_shutdown(struct uart_dev_s *dev);
 static int  up_attach(struct uart_dev_s *dev);
 static void up_detach(struct uart_dev_s *dev);
-static irqreturn_t up_com_int_handler(struct Trapframe *tf, void *dev_id);
+static irqreturn_t up_com_int_handler(int irq, void *dev_id);
 static int  up_ioctl(struct file *filep, int cmd, unsigned long arg);
 static int  up_receive(struct uart_dev_s *dev, unsigned int *status);
 static void up_rxint(struct uart_dev_s *dev, bool enable);
@@ -345,7 +344,7 @@ static void up_detach(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static irqreturn_t up_com_int_handler(struct Trapframe *tf, void *dev_id)
+static irqreturn_t up_com_int_handler(int irq, void *dev_id)
 {
     struct uart_dev_s *dev = dev_id;
     struct up_dev_s   *priv = dev->priv;
@@ -622,6 +621,7 @@ void up_serialinit(void)
  *   writes
  *
  ****************************************************************************/
+extern void cons_putc(int c);
 
 int up_putc(int ch)
 {

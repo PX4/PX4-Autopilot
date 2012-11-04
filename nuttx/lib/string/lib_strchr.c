@@ -59,6 +59,7 @@
  *
  ****************************************************************************/
 
+#ifndef CONFIG_ARCH_STRCHR
 FAR char *strchr(FAR const char *s, int c)
 {
   if (s)
@@ -74,3 +75,4 @@ FAR char *strchr(FAR const char *s, int c)
 
   return NULL;
 }
+#endif

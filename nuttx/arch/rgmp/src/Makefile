@@ -42,18 +42,21 @@ RGMP_ARCH_CSRCS := $(addprefix $(CONFIG_RGMP_SUBARCH)/,$(RGMP_ARCH_CSRCS))
 CFLAGS		+= -I$(TOPDIR)/sched -I$(TOPDIR)/fs
 
 ASRCS		= $(RGMP_ARCH_ASRCS)
-CSRCS		= nuttx.c rgmp.c bridge.c $(RGMP_ARCH_CSRCS)
+CSRCS		= nuttx.c cxx.c $(RGMP_ARCH_CSRCS)
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)
 OBJS		= $(AOBJS) $(COBJS)
 
+LINKSRCS    = rgmp.c bridge.c
+LINKOBJS    = $(LINKSRCS:.c=$(OBJEXT))
+
 LDFLAGS		+= -T$(RGMPLKSCPT)
 LDPATHS		= $(addprefix -L$(TOPDIR)/,$(dir $(LINKLIBS)))
 LDLIBS		= $(patsubst lib%,-l%,$(basename $(notdir $(LINKLIBS))))
 LDPATHS		+= -L$(RGMPLIBDIR)
-LDLIBS		+= -lrgmp -lm -ltest $(shell gcc -print-libgcc-file-name)
+LDLIBS		+= -lrgmp $(shell $(CC) -print-libgcc-file-name)
 
 all: libarch$(LIBEXT)
 
@@ -74,9 +77,9 @@ libarch$(LIBEXT): $(OBJS)
 # Generate the final NuttX binary by linking the host-specific objects with the NuttX
 # specific objects (with munged names)
 
-nuttx$(EXEEXT):
+nuttx$(EXEEXT): $(LINKOBJS)
 	@echo "LD:  nuttx$(EXEEXT)"
-	@$(LD) $(LDFLAGS) $(LDPATHS) --start-group $(LDLIBS) --end-group -o $(TOPDIR)/$@
+	@$(LD) $(LDFLAGS) $(LDPATHS) $(LINKOBJS) --start-group $(LDLIBS) $(EXTRA_LIBS) --end-group -o $(TOPDIR)/$@
 	@$(OBJDUMP) -S $(TOPDIR)/$@ > $(TOPDIR)/nuttx.asm
 	@$(NM) -n $(TOPDIR)/$@ > $(TOPDIR)/nuttx.sym
 	@$(OBJCOPY) -S -O binary $(TOPDIR)/$@ nuttx.img
@@ -88,14 +91,15 @@ export_head:
 
 # Dependencies
 
-.depend: Makefile $(SRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+.depend: Makefile $(SRCS) $(LINKSRCS)
+	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) $(LINKSRCS) >Make.dep
 	@touch $@
 
 depend: .depend
 
 clean:
-	@rm $(TOPDIR)/kernel.img nuttx.img 
+	@rm -f $(TOPDIR)/arch/rgmp/src/x86/*.o
+	@rm -f $(TOPDIR)/kernel.img nuttx.img 
 	@rm -f libarch$(LIBEXT) *~ .*.swp
 	$(call CLEAN)
 

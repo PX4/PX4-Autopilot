@@ -37,7 +37,7 @@
  *
  ****************************************************************************/
 
-#include <rgmp/pmap.h>
+#include <rgmp/mmu.h>
 #include <rgmp/string.h>
 #include <rgmp/arch/fpu.h>
 
@@ -75,32 +75,27 @@ void up_initial_state(_TCB *tcb)
 {
     struct Trapframe *tf;
 
-    if (tcb->pid != 0) {
-	tf = (struct Trapframe *)tcb->adj_stack_ptr-1;
-	memset(tf, 0, sizeof(struct Trapframe));
-	tf->tf_fpu = rgmp_fpu_init_regs;
-	tf->tf_eflags = 0x00000202;
-	tf->tf_cs = GD_KT;
-	tf->tf_ds = GD_KD;
-	tf->tf_es = GD_KD;
-	tf->tf_eip = (uint32_t)tcb->start;
-	tcb->xcp.tf = tf;
+    if (tcb->pid) {
+		tf = (struct Trapframe *)tcb->adj_stack_ptr - 1;
+		rgmp_setup_context(&tcb->xcp.ctx, tf, tcb->start, 1);
     }
+	else
+		rgmp_setup_context(&tcb->xcp.ctx, NULL, NULL, 0);
 }
 
 void push_xcptcontext(struct xcptcontext *xcp)
 {
-    xcp->save_eip = xcp->tf->tf_eip;
-    xcp->save_eflags = xcp->tf->tf_eflags;
+    xcp->save_eip = xcp->ctx.tf->tf_eip;
+    xcp->save_eflags = xcp->ctx.tf->tf_eflags;
 
     // set up signal entry with interrupts disabled
-    xcp->tf->tf_eip = (uint32_t)up_sigentry;
-    xcp->tf->tf_eflags = 0;
+    xcp->ctx.tf->tf_eip = (uint32_t)up_sigentry;
+    xcp->ctx.tf->tf_eflags = 0;
 }
 
 void pop_xcptcontext(struct xcptcontext *xcp)
 {
-    xcp->tf->tf_eip = xcp->save_eip;
-    xcp->tf->tf_eflags = xcp->save_eflags;
+    xcp->ctx.tf->tf_eip = xcp->save_eip;
+    xcp->ctx.tf->tf_eflags = xcp->save_eflags;
 }
 

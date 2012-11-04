@@ -39,11 +39,11 @@
 
 	.globl up_sigentry
 up_sigentry:
-	subl $172, %esp    # 172 is the size of TrapFrame
+	subl $172, %esp    # 172 is the size of Trapframe without cross ring part
 	pushl %esp
 	movl %esp, %eax
 	call up_sigdeliver
-	addl $8, %esp      # skip parameter and current_task
+	addl $8, %esp      # skip parameter and tf_curregs
 	frstor 0(%esp)
   	addl $108, %esp
 	popal

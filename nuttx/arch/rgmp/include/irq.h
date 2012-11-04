@@ -44,12 +44,13 @@
 
 #ifndef __ASSEMBLY__
 
-#include <rgmp/spinlock.h>
 #include <arch/types.h>
+
 #include <rgmp/trap.h>
+#include <rgmp/arch/arch.h>
 
 struct xcptcontext {
-    struct Trapframe *tf;
+    struct rgmp_context ctx;
     // for signal using
     unsigned int save_eip;
     unsigned int save_eflags;
@@ -63,12 +64,14 @@ extern int nest_irq;
 
 static inline irqstate_t irqsave(void)
 {
-    return pushcli();
+	unsigned long flags;
+	local_irq_save(flags);
+    return flags;
 }
 
 static inline void irqrestore(irqstate_t flags)
 {
-    popcli(flags);
+    local_irq_restore(flags);
 }
 
 #endif /* !__ASSEMBLY__ */

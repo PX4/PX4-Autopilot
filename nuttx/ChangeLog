@@ -3561,4 +3561,5 @@
 	  constructors before main() starts. BUT... NuttX is not initialized
 	  and this results in a crash.  On the STM324Discovery, I will have
 	  better control over when the static constructors run.
+	* RGMP 4.0 updated from Qiany Yu.
 

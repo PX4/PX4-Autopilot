@@ -223,6 +223,13 @@ config MEMSET_64BIT
 		Compiles memset() for architectures that suppport 64-bit operations
 		efficiently.
 
+config ARCH_STRCHR
+	bool "strchr()"
+	default n
+	---help---
+		Select this option if the architecture provides an optimized version
+		of strchr().
+
 config ARCH_STRCMP
 	bool "strcmp()"
 	default n
