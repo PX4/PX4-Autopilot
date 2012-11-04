@@ -93,7 +93,7 @@ LDLINKFLAGS = $(ARCHSCRIPT) # Link flags used with $(LD)
 CCLINKFLAGS = $(ARCHSCRIPT) # Link flags used with $(CC)
 LDFLAGS = $(ARCHSCRIPT) # For backward compatibility, same as CCLINKFLAGS
 
-LIBSUPXX = ${shell $(CC) --print-file-name=libsupc++.a}
+LIBSUPXX = ${shell $(CC) $(CXXFLAGS) --print-file-name=libsupc++.a}
 EXTRA_LIBPATHS = -L "${shell dirname "$(LIBSUPXX)"}"
 EXTRA_LIBS = -lsupc++
 

@@ -1008,7 +1008,34 @@ Where <subdir> is one of the following:
      b. Execute 'make menuconfig' in nuttx/ in order to start the
         reconfiguration process.
 
-  3. At present (2012/11/02), this example builds only with exceptions
+  3. Ideally, you should build with a toolchain based on GLIBC or
+     uClibc++.  It you use a toolchain based on newlib, you may see
+     an error like the following:
+
+     .../lib/libsupc++.a(vterminate.o): In function `__gnu_cxx::__verbose_terminate_handler()':
+     vterminate.cc:(....): undefined reference to `_impure_ptr'
+
+     Here is a quick'n'dirty fix:
+
+     1. Get the directory where you can find libsupc++:
+
+        arm-none-eabi-gcc -mcpu=cortex-m4 -mthumb -print-file-name=libsupc++.a
+
+     2. Go to that directory and save a copy of vterminate.o (in case you
+        want to restore it later:
+
+        cd <the-directory-containing-libsupc++.a>
+        arm-none-eabi-ar.exe -x libsupc++.a vterminate.o
+
+     3. Then remove vterminate.o from the library.  At build time, the
+        uClibc++ package will provide a usable replacement vterminate.o.
+
+     Now NuttX should link with no problem.  If you want to restore the
+     vterminate.o that you removed from libsupc++, you can do that with:
+
+       arm-none-eabi-ar.exe rcs libsupc++.a vterminate.o
+        
+  4. At present (2012/11/02), this example builds only with exceptions
      disabled (CONFIG_UCLIBCXX_EXCEPTIONS=n).
 
   elf:

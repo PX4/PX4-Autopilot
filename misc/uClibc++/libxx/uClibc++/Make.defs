@@ -52,7 +52,8 @@ endif
 
 # libsupc++ replacement
 
-# CXXSRCS += vterminate.C
+CXXSRCS += vterminate.cxx
+
 ifneq ($(CONFIG_UCLIBCXX_HAVE_LIBSUPCXX),y)
 CXXSRCS += eh_alloc.cxx eh_globals.cxx eh_terminate.cxx 
 endif

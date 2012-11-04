@@ -114,7 +114,7 @@ ARCHCCVERSION = ${shell $(CC) -v 2>&1 | sed -n '/^gcc version/p' | sed -e 's/^gc
 ARCHCCMAJOR = ${shell echo $(ARCHCCVERSION) | cut -d'.' -f1}
 
 LDSCRIPT = ld.script
-LIBSUPXX = ${shell $(CC) --print-file-name=libsupc++.a}
+LIBSUPXX = ${shell $(CC) $(CXXFLAGS) --print-file-name=libsupc++.a}
 EXTRA_LIBPATHS = -L "${shell dirname "$(LIBSUPXX)"}"
 EXTRA_LIBS = -lsupc++
 
