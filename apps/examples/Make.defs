@@ -178,6 +178,10 @@ ifeq ($(CONFIG_EXAMPLES_QENCODER),y)
 CONFIGURED_APPS += examples/qencoder
 endif
 
+ifeq ($(CONFIG_EXAMPLES_RELAYS),y)
+CONFIGURED_APPS += examples/relays
+endif
+
 ifeq ($(CONFIG_EXAMPLES_RGMP),y)
 CONFIGURED_APPS += examples/rgmp
 endif

@@ -42,10 +42,12 @@
 
 #include <stdint.h>
 #include <unistd.h>
-
-#include <arch/board/board.h>
-#include "shenzhou-internal.h"
 #include <debug.h>
+
+#include <nuttx/arch.h>
+#include <arch/board/board.h>
+
+#include "shenzhou-internal.h"
 
 #ifdef CONFIG_ARCH_RELAYS
 
@@ -62,6 +64,7 @@
  ****************************************************************************/
 
 static uint32_t g_relays_stat = 0;
+static bool g_relays_init = false;
 
 static const uint16_t g_relays[NUM_RELAYS] =
 {
@@ -173,6 +176,11 @@ void up_relaysinit(void)
 {
   int i;
 
+  if (g_relays_init)
+    {
+      return;
+    }
+
   /* Configure the GPIO pins as inputs.  NOTE that EXTI interrupts are
    * configured for some pins but NOT used in this file
    */
@@ -180,7 +188,10 @@ void up_relaysinit(void)
   for (i = 0; i < NUM_RELAYS; i++)
     {
       stm32_configgpio(g_relays[i]);
+      stm32_gpiowrite(g_relays[i], false);
     }
+
+  g_relays_init = true;
 }
 
 void relays_setstat(int relays,bool stat)

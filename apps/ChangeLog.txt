@@ -399,3 +399,4 @@
 	  Qiang Yu and the RGMP team.
 	* apps/netutils/webclient, apps/netutils.codes, and apps/examples/wgetjson:
 	  Add support for wget POST interface.  Contributed by Darcy Gong.
+	* apps/examples/relays:  A relay example contributed by Darcy Gong.

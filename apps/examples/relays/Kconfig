@@ -1,0 +1,20 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_RELAYS
+	bool "wget JSON Example"
+	default n
+	depends on NETUTILS_JSON
+	---help---
+		Enable the wget JSON example
+
+if EXAMPLES_RELAYS
+
+config EXAMPLES_RELAYS_NRELAYS
+	int "Number of Relays"
+	default 2
+	depends on ARCH_RELAYS
+
+endif

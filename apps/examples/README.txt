@@ -1208,17 +1208,23 @@ examples/qencoder
 
   Specific configuration options for this example include:
  
-  CONFIG_EXAMPLES_QENCODER_DEVPATH - The path to the QE device. Default:
-    /dev/qe0
-  CONFIG_EXAMPLES_QENCODER_NSAMPLES - If CONFIG_NSH_BUILTIN_APPS
-    is defined, then the number of samples is provided on the command line
-    and this value is ignored.  Otherwise, this number of samples is
-    collected and the program terminates.  Default:  Samples are collected
-    indefinitely.
-  CONFIG_EXAMPLES_QENCODER_DELAY - This value provides the delay (in
-    milliseonds) between each sample.  If CONFIG_NSH_BUILTIN_APPS
-    is defined, then this value is the default delay if no other delay is
-    provided on the command line.  Default:  100 milliseconds
+    CONFIG_EXAMPLES_QENCODER_DEVPATH - The path to the QE device. Default:
+      /dev/qe0
+    CONFIG_EXAMPLES_QENCODER_NSAMPLES - If CONFIG_NSH_BUILTIN_APPS
+      is defined, then the number of samples is provided on the command line
+      and this value is ignored.  Otherwise, this number of samples is
+      collected and the program terminates.  Default:  Samples are collected
+      indefinitely.
+    CONFIG_EXAMPLES_QENCODER_DELAY - This value provides the delay (in
+      milliseonds) between each sample.  If CONFIG_NSH_BUILTIN_APPS
+      is defined, then this value is the default delay if no other delay is
+      provided on the command line.  Default:  100 milliseconds
+
+examples/relays
+^^^^^^^^^^^^^^^
+
+  Requires CONFIG_ARCH_RELAYS.
+  Contributed by Darcy Gong.
 
 examples/rgmp
 ^^^^^^^^^^^^^

@@ -49,6 +49,8 @@
 #include "stm32_sdio.h"
 #include "stm32_internal.h"
 
+#include <nuttx/arch.h>
+
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
@@ -173,6 +175,10 @@
 #define BUTTON_USERKEY_BIT  BUTTON_KEY2_BIT
 #define BUTTON_TAMPER_BIT   BUTTON_KEY3_BIT
 #define BUTTON_WAKEUP_BIT   BUTTON_KEY4_BIT
+
+/* Relays */
+
+#define NUM_RELAYS          2
 
 /* Pin selections ******************************************************************/
 /* Ethernet
@@ -426,18 +432,20 @@ EXTERN void stm32_lcdclear(uint16_t color);
  * Relay control functions
  *
  * Description:
- *   Non-standard fucntions for relay control from the Shenzhou board.
+ *   Non-standard functions for relay control from the Shenzhou board.
+ *
+ *   NOTE:  These must match the prototypes in include/nuttx/arch.h
  *
  ************************************************************************************/
 
 #ifdef CONFIG_ARCH_RELAYS
 EXTERN void up_relaysinit(void);
-EXTERN void relays_setstat(int relays,bool stat);
+EXTERN void relays_setstat(int relays, bool stat);
 EXTERN bool relays_getstat(int relays);
 EXTERN void relays_setstats(uint32_t relays_stat);
 EXTERN uint32_t relays_getstats(void);
-EXTERN void relays_onoff(int relays,uint32_t mdelay);
-EXTERN void relays_onoffs(uint32_t relays_stat,uint32_t mdelay);
+EXTERN void relays_onoff(int relays, uint32_t mdelay);
+EXTERN void relays_onoffs(uint32_t relays_stat, uint32_t mdelay);
 EXTERN void relays_resetmode(int relays);
 EXTERN void relays_powermode(int relays);
 EXTERN void relays_resetmodes(uint32_t relays_stat);

@@ -393,9 +393,11 @@
 
 /* Relays */
 
-#define NUM_RELAYS      1
+#define NUM_RELAYS      2
 #define GPIO_RELAYS_R00 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
                          GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN0)
+#define GPIO_RELAYS_R01 (GPIO_OUTPUT|GPIO_CNF_OUTPP|GPIO_MODE_50MHz|\
+                         GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN1)
 
 /****************************************************************************************************
  * Public Types

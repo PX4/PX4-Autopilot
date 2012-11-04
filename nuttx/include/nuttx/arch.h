@@ -616,6 +616,28 @@ EXTERN uint8_t up_buttons(void);
 EXTERN xcpt_t up_irqbutton(int id, xcpt_t irqhandler);
 #endif
 
+/************************************************************************************
+ * Relay control functions
+ *
+ * Description:
+ *   Non-standard functions for relay control.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_ARCH_RELAYS
+EXTERN void up_relaysinit(void);
+EXTERN void relays_setstat(int relays, bool stat);
+EXTERN bool relays_getstat(int relays);
+EXTERN void relays_setstats(uint32_t relays_stat);
+EXTERN uint32_t relays_getstats(void);
+EXTERN void relays_onoff(int relays, uint32_t mdelay);
+EXTERN void relays_onoffs(uint32_t relays_stat, uint32_t mdelay);
+EXTERN void relays_resetmode(int relays);
+EXTERN void relays_powermode(int relays);
+EXTERN void relays_resetmodes(uint32_t relays_stat);
+EXTERN void relays_powermodes(uint32_t relays_stat);
+#endif
+
 /****************************************************************************
  * Debug interfaces exported by the architecture-specific logic
  ****************************************************************************/
