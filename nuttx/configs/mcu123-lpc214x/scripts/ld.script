@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/mcu123-lpc214x/usbstorage/ld.script
+ * configs/mcu123-lpc214x/scripts/ld.script
  *
  *   Copyright (C) 2008-2009, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -70,13 +70,24 @@ SECTIONS
 		_etext = ABSOLUTE(.);
 	} > flash
 
-	/* This is where the .data section is relocated for execution out
-	 * FLASH.  The .data section will be relocated from _eronly
-	 * to _sdata at boot time.
-	 */
+	.init_section : {
+		_sinit = ABSOLUTE(.);
+		*(.init_array .init_array.*)
+		_einit = ABSOLUTE(.);
+	} > flash
 
-	_eronly = ABSOLUTE(.);	
-	
+	.ARM.extab : {
+		*(.ARM.extab*)
+	} > flash
+
+	__exidx_start = ABSOLUTE(.);
+	.ARM.exidx : {
+		*(.ARM.exidx*)
+	} > flash
+	__exidx_end = ABSOLUTE(.);
+
+	_eronly = ABSOLUTE(.);
+
 	.data : {
 		_sdata = ABSOLUTE(.);
 		*(.data .data.*)
@@ -84,16 +95,6 @@ SECTIONS
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
 	} > sram AT > flash
-
-	.ARM.extab : {
-		*(.ARM.extab*)
-	} >sram
-
-	__exidx_start = ABSOLUTE(.);
-	.ARM.exidx : {
-		*(.ARM.exidx*)
-	} >sram
-	__exidx_end = ABSOLUTE(.);
 
 	.bss : {
 		_sbss = ABSOLUTE(.);

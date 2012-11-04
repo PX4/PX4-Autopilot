@@ -39,7 +39,7 @@ MEMORY
 	/* The PIC32MX250F128D has 128Kb of program FLASH at physical address
 	 * 0x1d000000 but is always accessed at KSEG0 address 0x9d00:0000
 	 */
-	
+
 	kseg0_progmem  (rx) : ORIGIN = 0x9d000000, LENGTH = 128K
 
 	/* The PIC32MX250F128D has 3Kb of boot FLASH at physical addresses
@@ -179,7 +179,7 @@ SECTIONS
 		*(.gnu.linkonce.r.*)
 
 		/* Small initialized constant global and static data */
-	
+
 		*(.sdata2 .sdata2.*)
 		*(.gnu.linkonce.s2.*)
 

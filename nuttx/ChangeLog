@@ -3562,4 +3562,6 @@
 	  and this results in a crash.  On the STM324Discovery, I will have
 	  better control over when the static constructors run.
 	* RGMP 4.0 updated from Qiany Yu.
+	* configs/*/Make.defs and configs/*/ld.script:  Massive clean-up
+	  and standardization of linker scripts from Freddie Chopin.
 

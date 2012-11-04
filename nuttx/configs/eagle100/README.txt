@@ -100,7 +100,7 @@ CodeSourcery on Linux
     ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
     ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
     ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
-    ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/ostest/ld.script
+    ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/ld.script
     MAXOPTIMIZATION = -O2
 
   The values for TOPDIR is provided by the make system; the value for CONFIG_ARCH_BOARD

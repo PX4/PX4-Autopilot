@@ -60,7 +60,7 @@ ifeq ($(CROSSDEV),arm-nuttx-elf-)
   ARCHCPUFLAGS		= -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
   ARCHINCLUDES		= -I. -isystem $(TOPDIR)/include
   ARCHXXINCLUDES	= -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
-  ARCHSCRIPT		= -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/nsh/ld.script
+  ARCHSCRIPT		= -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/ld.script
   MAXOPTIMIZATION	= -Os
 else
   WINTOOL		= y
@@ -70,7 +70,7 @@ else
   ARCHCPUFLAGS		= -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
   ARCHINCLUDES		= -I. -isystem "${shell cygpath -w $(TOPDIR)/include}"
   ARCHXXINCLUDES	= -I. -isystem "${shell cygpath -w $(TOPDIR)/include}" -isystem "${shell cygpath -w $(TOPDIR)/include/cxx}"
-  ARCHSCRIPT		= -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/nsh/ld.script}"
+  ARCHSCRIPT		= -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/ld.script}"
   MAXOPTIMIZATION	= -O2
 endif
 

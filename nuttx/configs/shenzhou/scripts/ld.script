@@ -50,10 +50,10 @@ SECTIONS
 	.text : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
-		*(.text .text.*)        
+		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
-		*(.rodata .rodata.*)        
+		*(.rodata .rodata.*)
 		*(.gnu.linkonce.t.*)
 		*(.glue_7)
 		*(.glue_7t)
@@ -69,15 +69,15 @@ SECTIONS
 		_einit = ABSOLUTE(.);
 	} > flash
 
+	.ARM.extab : {
+		*(.ARM.extab*)
+	} > flash
+
 	__exidx_start = ABSOLUTE(.);
 	.ARM.exidx : {
 		*(.ARM.exidx*)
 	} > flash
 	__exidx_end = ABSOLUTE(.);
-	
-	.ARM.extab : {
-		*(.ARM.extab*)
-	} > flash
 
 	_eronly = ABSOLUTE(.);
 

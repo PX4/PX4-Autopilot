@@ -88,10 +88,10 @@ SECTIONS
 	.text : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
-		*(.text .text.*)        
+		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
-		*(.rodata .rodata.*)        
+		*(.rodata .rodata.*)
 		*(.gnu.linkonce.t.*)
 		*(.glue_7)
 		*(.glue_7t)
@@ -101,7 +101,23 @@ SECTIONS
 		_etext = ABSOLUTE(.);
 	} > progmem
 
-	_eronly = ABSOLUTE(.);		/* See below                    */
+	.init_section : {
+		_sinit = ABSOLUTE(.);
+		*(.init_array .init_array.*)
+		_einit = ABSOLUTE(.);
+	} > progmem
+
+	.ARM.extab : {
+		*(.ARM.extab*)
+	} > progmem
+
+	__exidx_start = ABSOLUTE(.);
+	.ARM.exidx : {
+		*(.ARM.exidx*)
+	} > progmem
+	__exidx_end = ABSOLUTE(.);
+
+	_eronly = ABSOLUTE(.);
 
 	.data : {
 		_sdata = ABSOLUTE(.);
@@ -110,16 +126,6 @@ SECTIONS
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
 	} > datamem AT > progmem
-
-	.ARM.extab : {
-		*(.ARM.extab*)
-	} >datamem
-
-	.ARM.exidx : {
-		__exidx_start = ABSOLUTE(.);
-		*(.ARM.exidx*)
-		__exidx_end = ABSOLUTE(.);
-	} >datamem
 
 	.bss : {			/* BSS				*/
 		_sbss = ABSOLUTE(.);

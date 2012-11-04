@@ -1,7 +1,7 @@
 /****************************************************************************
- * configs/mcu123-lpc214x/ostest/ld.script
+ * configs/sam3u-ek/scripts/ld.script
  *
- *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,21 +33,19 @@
  *
  ****************************************************************************/
 
-/* FLASH:
- *   The lpc2148 has 512Kb of non-volatile memory beginning at address
- *   0x00000000.  The OS entry point is via the reset vector at address
- *   0x00000000 (default MEMMAP mode assumed)
- *
- * SRAM:
- *   The lpc2148 has 32Kb of on-chip static RAM beginning at address
- *   0x40000000.  The .data section will be relocated from _eronly
- *   to _sdata at boot time.
+/* The AT91SAM3U-4 has 256Kb of FLASH beginning at address 0x0008:0000,
+ * 32Kb of SRAM beginning at address 0x2000:0000, and 16Kb of SRAM beginning
+ * at address 0x2008:000 (used only for heap).  When booting from FLASH,
+ * FLASH memory is aliased to address 0x0000:0000 where the code expects to
+ * begin execution by jumping to the entry point in the 0x0800:0000 address
+ * range.
  */
 
 MEMORY
 {
-	flash (rx) : ORIGIN = 0x00000000, LENGTH = 500K
-	sram  (rw) : ORIGIN = 0x40000000, LENGTH = 32K - 32
+    flash (rx)  : ORIGIN = 0x00080000, LENGTH = 256K
+    sram1 (rwx) : ORIGIN = 0x20000000, LENGTH = 32K
+    sram2 (rwx) : ORIGIN = 0x20080000, LENGTH = 16K
 }
 
 OUTPUT_ARCH(arm)
@@ -70,40 +68,34 @@ SECTIONS
 		_etext = ABSOLUTE(.);
 	} > flash
 
-	/* This is where the .data section is relocated for execution out
-	 * FLASH.  The .data section will be relocated from _eronly
-	 * to _sdata at boot time.
-	 */
+	_eronly = ABSOLUTE(.);		/* See below                    */
 
-	_eronly = ABSOLUTE(.);	
-	
 	.data : {
 		_sdata = ABSOLUTE(.);
 		*(.data .data.*)
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	} > sram AT > flash
+	} > sram1 AT > flash
 
 	.ARM.extab : {
 		*(.ARM.extab*)
-	} >sram
+	} >sram1
 
-	__exidx_start = ABSOLUTE(.);
 	.ARM.exidx : {
+		__exidx_start = ABSOLUTE(.);
 		*(.ARM.exidx*)
-	} >sram
-	__exidx_end = ABSOLUTE(.);
+		__exidx_end = ABSOLUTE(.);
+	} >sram1
 
-	.bss : {
+	.bss : {			/* BSS				*/
 		_sbss = ABSOLUTE(.);
 		*(.bss .bss.*)
 		*(.gnu.linkonce.b.*)
 		*(COMMON)
 		_ebss = ABSOLUTE(.);
-	} > sram
-
-	/* Stabs debugging sections.	*/
+	} > sram1
+					/* Stabs debugging sections.	*/
 	.stab 0 : { *(.stab) }
 	.stabstr 0 : { *(.stabstr) }
 	.stab.excl 0 : { *(.stab.excl) }

@@ -1,7 +1,12 @@
 /****************************************************************************
- * configs/eagle100/nettest/ld.script
+ * configs/olimex-lpc2378/scripts/ld.script
  *
- *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010 Rommel Marcelo. All rights reserved.
+ *   Author: Rommel Marcelo
+ *
+ * This is part of the NuttX RTOS and based on the LPC2148 port:
+ *
+ *   Copyright (C) 2010, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,18 +37,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-/* The LM3S6918 has 256Kb of FLASH beginning at address 0x0000:0000. However,
- * if the Eagle100 Ethernet bootloader is used, then the entry point must
- * be at the following offset in FLASH (and the size of the FLASH must be
- * reduced to 248Kb):
- */
-
 MEMORY
 {
-/*  flash (rx) : ORIGIN = 0x00000000, LENGTH = 256K */
-    flash (rx) : ORIGIN = 0x00002000, LENGTH = 248K
-    sram (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
+  ROM (rx) : ORIGIN = 0x00000000, LENGTH = (512k-8k)	/* Flash: 512k - boot code */
+  RAM (rw) : ORIGIN = 0x40000000, LENGTH = (32k-32)	/* SRAM: 32k - IAP work */
+  URAM (rw) : ORIGIN = 0x7FD00000, LENGTH = (8k)		/* USB RAM: 8k */
+  ERAM (rw) : ORIGIN = 0x7FE00000, LENGTH = (16k)	/* Ethernet RAM: 16k */
+  BRAM (rw) : ORIGIN = 0xE0084000, LENGTH = (2k)		/* Battery RAM: 2k */
 }
 
 OUTPUT_ARCH(arm)
@@ -53,10 +53,10 @@ SECTIONS
 	.text : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
-		*(.text .text.*)        
+		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
-		*(.rodata .rodata.*)        
+		*(.rodata .rodata.*)
 		*(.gnu.linkonce.t.*)
 		*(.glue_7)
 		*(.glue_7t)
@@ -64,39 +64,72 @@ SECTIONS
 		*(.gcc_except_table)
 		*(.gnu.linkonce.r.*)
 		_etext = ABSOLUTE(.);
-	} > flash
+	} > ROM
+
+	.init_section : {
+		_sinit = ABSOLUTE(.);
+		*(.init_array .init_array.*)
+		_einit = ABSOLUTE(.);
+	} > ROM
+
+	.ARM.extab : {
+		*(.ARM.extab*)
+	} > ROM
 
 	__exidx_start = ABSOLUTE(.);
 	.ARM.exidx : {
 		*(.ARM.exidx*)
-	} > flash
+	} > ROM
 	__exidx_end = ABSOLUTE(.);
 
 	_eronly = ABSOLUTE(.);
 
-	/* The LM3S6918 has 64Kb of SRAM beginning at the following address */
-
-	.data : {
+	.data :
+	{
 		_sdata = ABSOLUTE(.);
 		*(.data .data.*)
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	} > sram AT > flash
+	} > RAM AT > ROM
 
-	.ARM.extab : {
-		*(.ARM.extab*)
-	} >sram
+/* .bss section which is initialized by 0 */
+  /* This section will be filled with zero by startup code */
+  .bss (NOLOAD) :
+  {
+	_sbss = ABSOLUTE(.) ;
+	*(.bss)
+	*(.bss.*)
+	*(.gnu.linkonce.b*)
+	*(COMMON)
+	_ebss = ABSOLUTE(.);
+  } > RAM
 
-	.bss : {
-		_sbss = ABSOLUTE(.);
-		*(.bss .bss.*)
-		*(.gnu.linkonce.b.*)
-		*(COMMON)
-		_ebss = ABSOLUTE(.);
-	} > sram
+  .usbram (NOLOAD) :
+  {
+	__usbram_start = . ;
+	__usbram_start__ = . ;
+	*(.usbram)
+	. = ALIGN(4);
+  } > URAM
 
-	/* Stabs debugging sections. */
+  .etherram (NOLOAD) :
+  {
+	__etherram_start = . ;
+	__etherram_start__ = . ;
+	*(.etherram)
+	. = ALIGN(4);
+  } > ERAM
+
+  .batteryram (NOLOAD) :
+  {
+	__batteryram_start = . ;
+	__batteryram_start__ = . ;
+	*(.batteryram)
+	. = ALIGN(4);
+  } > BRAM
+
+	/* Stabs debugging sections.	*/
 	.stab 0 : { *(.stab) }
 	.stabstr 0 : { *(.stabstr) }
 	.stab.excl 0 : { *(.stab.excl) }
@@ -104,9 +137,29 @@ SECTIONS
 	.stab.index 0 : { *(.stab.index) }
 	.stab.indexstr 0 : { *(.stab.indexstr) }
 	.comment 0 : { *(.comment) }
-	.debug_abbrev 0 : { *(.debug_abbrev) }
-	.debug_info 0 : { *(.debug_info) }
-	.debug_line 0 : { *(.debug_line) }
+	/* DWARF debug sections.
+	Symbols in the DWARF debugging sections are relative to the beginning
+	of the section so we begin them at 0.  */
+	/* DWARF 1 */
+	.debug          0 : { *(.debug) }
+	.line           0 : { *(.line) }
+	/* GNU DWARF 1 extensions */
+	.debug_srcinfo  0 : { *(.debug_srcinfo) }
+	.debug_sfnames  0 : { *(.debug_sfnames) }
+	/* DWARF 1.1 and DWARF 2 */
+	.debug_aranges  0 : { *(.debug_aranges) }
 	.debug_pubnames 0 : { *(.debug_pubnames) }
-	.debug_aranges 0 : { *(.debug_aranges) }
+	/* DWARF 2 */
+	.debug_info     0 : { *(.debug_info .gnu.linkonce.wi.*) }
+	.debug_abbrev   0 : { *(.debug_abbrev) }
+	.debug_line     0 : { *(.debug_line) }
+	.debug_frame    0 : { *(.debug_frame) }
+	.debug_str      0 : { *(.debug_str) }
+	.debug_loc      0 : { *(.debug_loc) }
+	.debug_macinfo  0 : { *(.debug_macinfo) }
+	/* SGI/MIPS DWARF 2 extensions */
+	.debug_weaknames 0 : { *(.debug_weaknames) }
+	.debug_funcnames 0 : { *(.debug_funcnames) }
+	.debug_typenames 0 : { *(.debug_typenames) }
+	.debug_varnames  0 : { *(.debug_varnames) }
 }

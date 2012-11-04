@@ -41,14 +41,14 @@ SECTIONS
 
 	.text : {
 		_stext = ABSOLUTE(.);
-		*(.text .text.*)        
+		*(.text .text.*)
 		*(.gnu.linkonce.t.*)
 		_etext = ABSOLUTE(.);
 	}
 
 	.text ALIGN (0x1000) : {
 		_srodata = ABSOLUTE(.);
-		*(.rodata .rodata.*)        
+		*(.rodata .rodata.*)
 		*(.fixup)
 		*(.gnu.warning)
 		*(.glue_7)

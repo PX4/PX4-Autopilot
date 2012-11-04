@@ -1,7 +1,7 @@
 /****************************************************************************
- * configs/lm3s6432-s2e/nsh/ld.script
+ * configs/eagle100/scripts/ld.script
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,14 +33,17 @@
  *
  ****************************************************************************/
 
-/* The LM3S6432 has 96Kb of FLASH beginning at address 0x0000:0000 and 32Kb
- * of SRAM beginning at 0x2000:0000.
+/* The LM3S6918 has 256Kb of FLASH beginning at address 0x0000:0000. However,
+ * if the Eagle100 Ethernet bootloader is used, then the entry point must
+ * be at the following offset in FLASH (and the size of the FLASH must be
+ * reduced to 248Kb):
  */
 
 MEMORY
 {
-    flash (rx) : ORIGIN = 0x00000000, LENGTH = 96K
-    sram (rwx) : ORIGIN = 0x20000000, LENGTH = 32K
+/*  flash (rx) : ORIGIN = 0x00000000, LENGTH = 256K */
+    flash (rx) : ORIGIN = 0x00002000, LENGTH = 248K
+    sram (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
 }
 
 OUTPUT_ARCH(arm)
@@ -50,10 +53,10 @@ SECTIONS
 	.text : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
-		*(.text .text.*)        
+		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
-		*(.rodata .rodata.*)        
+		*(.rodata .rodata.*)
 		*(.gnu.linkonce.t.*)
 		*(.glue_7)
 		*(.glue_7t)
@@ -63,9 +66,25 @@ SECTIONS
 		_etext = ABSOLUTE(.);
 	} > flash
 
-	_eronly = ABSOLUTE(.);		/* See below                    */
+	.init_section : {
+		_sinit = ABSOLUTE(.);
+		*(.init_array .init_array.*)
+		_einit = ABSOLUTE(.);
+	} > flash
 
-	/* The LM3S6432 has 32Kb of SRAM beginning at the following address */
+	.ARM.extab : {
+		*(.ARM.extab*)
+	} > flash
+
+	__exidx_start = ABSOLUTE(.);
+	.ARM.exidx : {
+		*(.ARM.exidx*)
+	} > flash
+	__exidx_end = ABSOLUTE(.);
+
+	_eronly = ABSOLUTE(.);
+
+	/* The LM3S6918 has 64Kb of SRAM beginning at the following address */
 
 	.data : {
 		_sdata = ABSOLUTE(.);
@@ -75,24 +94,15 @@ SECTIONS
 		_edata = ABSOLUTE(.);
 	} > sram AT > flash
 
-	.ARM.extab : {
-		*(.ARM.extab*)
-	} >sram
-
-	.ARM.exidx : {
-		__exidx_start = ABSOLUTE(.);
-		*(.ARM.exidx*)
-		__exidx_end = ABSOLUTE(.);
-	} >sram
-
-	.bss : {			/* BSS				*/
+	.bss : {
 		_sbss = ABSOLUTE(.);
 		*(.bss .bss.*)
 		*(.gnu.linkonce.b.*)
 		*(COMMON)
 		_ebss = ABSOLUTE(.);
 	} > sram
-					/* Stabs debugging sections.	*/
+
+	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }
 	.stabstr 0 : { *(.stabstr) }
 	.stab.excl 0 : { *(.stab.excl) }

@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/kwikstik-k40/ostest/ld.script
+ * configs/kwikstik-k40/scripts/ld.script
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -70,10 +70,10 @@ SECTIONS
 
 	.text : {
 		_stext = ABSOLUTE(.);
-		*(.text .text.*)        
+		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
-		*(.rodata .rodata.*)        
+		*(.rodata .rodata.*)
 		*(.gnu.linkonce.t.*)
 		*(.glue_7)
 		*(.glue_7t)
@@ -82,6 +82,22 @@ SECTIONS
 		*(.gnu.linkonce.r.*)
 		_etext = ABSOLUTE(.);
 	} > progflash
+
+	.init_section : {
+		_sinit = ABSOLUTE(.);
+		*(.init_array .init_array.*)
+		_einit = ABSOLUTE(.);
+	} > progflash
+
+	.ARM.extab : {
+		*(.ARM.extab*)
+	} > progflash
+
+	__exidx_start = ABSOLUTE(.);
+	.ARM.exidx : {
+		*(.ARM.exidx*)
+	} > progflash
+	__exidx_end = ABSOLUTE(.);
 
 	.data : {
 		_sdata = ABSOLUTE(.);
@@ -100,16 +116,6 @@ SECTIONS
 	} > datasram AT > progflash
 
 	_framfuncs = LOADADDR(.ramfunc);
-
-	.ARM.extab : {
-		*(.ARM.extab*)
-	} > datasram
-
-	__exidx_start = ABSOLUTE(.);
-	.ARM.exidx : {
-		*(.ARM.exidx*)
-	} > datasram
-	__exidx_end = ABSOLUTE(.);
 
 	.bss : {
 		_sbss = ABSOLUTE(.);

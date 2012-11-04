@@ -32,7 +32,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
- 
+
 /* The LPC3131 has 192Kb of ISRAM beginning at virtual address 0x1102:8000.
  * LPC31xx boot ROM expects the boot image be compiled with entry point at
  * 0x1102:9000.  A 128b header will appear at this address (applied by
@@ -80,10 +80,10 @@ SECTIONS
 	.locked : {
 		_slocked = ABSOLUTE(.);
 		*(.vectors)
-		up_head.o locked.r (.text .text.*)        
+		up_head.o locked.r (.text .text.*)
 		up_head.o locked.r (.fixup)
 		up_head.o locked.r (.gnu.warning)
-		up_head.o locked.r (.rodata .rodata.*)        
+		up_head.o locked.r (.rodata .rodata.*)
 		up_head.o locked.r (.gnu.linkonce.t.*)
 		up_head.o locked.r (.glue_7)
 		up_head.o locked.r (.glue_7t)
@@ -93,14 +93,30 @@ SECTIONS
 		_elocked = ABSOLUTE(.);
 	} >locked
 
+	.init_section : {
+		_sinit = ABSOLUTE(.);
+		*(.init_array .init_array.*)
+		_einit = ABSOLUTE(.);
+	} > locked
+
+	.ARM.extab : {
+		*(.ARM.extab*)
+	} > locked
+
+	__exidx_start = ABSOLUTE(.);
+	.ARM.exidx : {
+		*(.ARM.exidx*)
+	} > locked
+	__exidx_end = ABSOLUTE(.);
+
 	_eronly = ABSOLUTE(.);
 
 	.paged : {
 		_spaged = ABSOLUTE(.);
-		*(.text .text.*)        
+		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
-		*(.rodata .rodata.*)        
+		*(.rodata .rodata.*)
 		*(.gnu.linkonce.t.*)
 		*(.glue_7)
 		*(.glue_7t)
@@ -117,16 +133,6 @@ SECTIONS
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
 	} > data AT > locked
-
-	.ARM.extab : {
-		*(.ARM.extab*)
-	} >data
-
-	.ARM.exidx : {
-		__exidx_start = ABSOLUTE(.);
-		*(.ARM.exidx*)
-		__exidx_end = ABSOLUTE(.);
-	} > data
 
 	.bss : {
 		_sbss = ABSOLUTE(.);

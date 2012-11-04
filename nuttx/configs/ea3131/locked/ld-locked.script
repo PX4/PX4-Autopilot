@@ -38,6 +38,6 @@ OUTPUT_ARCH(arm)
 SECTIONS
 {
 	.text.locked : { *(.text .text.*) }
-	.data : { *(.data) } 
-	.bss :  { *(.bss)  *(COMMON) } 
+	.data : { *(.data) }
+	.bss :  { *(.bss)  *(COMMON) }
 }

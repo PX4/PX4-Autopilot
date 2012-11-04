@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/nucleus2g/usbserial/ld.script
+ * configs/lm3s6432-s2e/scripts/ld.script
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,17 +33,14 @@
  *
  ****************************************************************************/
 
-/* The LPC1768 has 512Kb of FLASH beginning at address 0x0000:0000 and
- * 64Kb of total SRAM: 32Kb of SRAM in the CPU block beginning at address
- * 0x10000000 and 32Kb of AHB SRAM in two banks of 16Kb beginning at addresses
- * 0x20070000 and 0x20080000.  Here we assume that .data and .bss will all fit
- * into the 32Kb CPU SRAM address range.
+/* The LM3S6432 has 96Kb of FLASH beginning at address 0x0000:0000 and 32Kb
+ * of SRAM beginning at 0x2000:0000.
  */
 
 MEMORY
 {
-    flash (rx) : ORIGIN = 0x00000000, LENGTH = 512K
-    sram (rwx) : ORIGIN = 0x10000000, LENGTH = 32K
+    flash (rx) : ORIGIN = 0x00000000, LENGTH = 96K
+    sram (rwx) : ORIGIN = 0x20000000, LENGTH = 32K
 }
 
 OUTPUT_ARCH(arm)
@@ -53,10 +50,10 @@ SECTIONS
 	.text : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
-		*(.text .text.*)        
+		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
-		*(.rodata .rodata.*)        
+		*(.rodata .rodata.*)
 		*(.gnu.linkonce.t.*)
 		*(.glue_7)
 		*(.glue_7t)
@@ -66,7 +63,25 @@ SECTIONS
 		_etext = ABSOLUTE(.);
 	} > flash
 
-	_eronly = ABSOLUTE(.);		/* See below                    */
+	.init_section : {
+		_sinit = ABSOLUTE(.);
+		*(.init_array .init_array.*)
+		_einit = ABSOLUTE(.);
+	} > flash
+
+	.ARM.extab : {
+		*(.ARM.extab*)
+	} > flash
+
+	__exidx_start = ABSOLUTE(.);
+	.ARM.exidx : {
+		*(.ARM.exidx*)
+	} > flash
+	__exidx_end = ABSOLUTE(.);
+
+	_eronly = ABSOLUTE(.);
+
+	/* The LM3S6432 has 32Kb of SRAM beginning at the following address */
 
 	.data : {
 		_sdata = ABSOLUTE(.);
@@ -75,16 +90,6 @@ SECTIONS
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
 	} > sram AT > flash
-
-	.ARM.extab : {
-		*(.ARM.extab*)
-	} >sram
-
-	.ARM.exidx : {
-		__exidx_start = ABSOLUTE(.);
-		*(.ARM.exidx*)
-		__exidx_end = ABSOLUTE(.);
-	} >sram
 
 	.bss : {			/* BSS				*/
 		_sbss = ABSOLUTE(.);

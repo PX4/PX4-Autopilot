@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* The AT91SAM3U-4 has 256Kb of FLASH beginning at address 0x0008:0000, 
+/* The AT91SAM3U-4 has 256Kb of FLASH beginning at address 0x0008:0000,
  * 32Kb of SRAM beginning at address 0x2000:0000, and 16Kb of SRAM beginning
  * at address 0x2008:000 (used only for heap).  When booting from FLASH,
  * FLASH memory is aliased to address 0x0000:0000 where the code expects to
@@ -69,10 +69,10 @@ SECTIONS
 	.text : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
-		*(.text .text.*)        
+		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
-		*(.rodata .rodata.*)        
+		*(.rodata .rodata.*)
 		*(.gnu.linkonce.t.*)
 		*(.glue_7)
 		*(.glue_7t)
@@ -81,6 +81,22 @@ SECTIONS
 		*(.gnu.linkonce.r.*)
 		_etext = ABSOLUTE(.);
 	} > kflash
+
+	.init_section : {
+		_sinit = ABSOLUTE(.);
+		*(.init_array .init_array.*)
+		_einit = ABSOLUTE(.);
+	} > kflash
+
+	.ARM.extab : {
+		*(.ARM.extab*)
+	} > kflash
+
+	__exidx_start = ABSOLUTE(.);
+	.ARM.exidx : {
+		*(.ARM.exidx*)
+	} > kflash
+	__exidx_end = ABSOLUTE(.);
 
 	_eronly = ABSOLUTE(.);
 
@@ -91,16 +107,6 @@ SECTIONS
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
 	} > ksram1 AT > kflash
-
-	.ARM.extab : {
-		*(.ARM.extab*)
-	} >ksram1
-
-	.ARM.exidx : {
-		__exidx_start = ABSOLUTE(.);
-		*(.ARM.exidx*)
-		__exidx_end = ABSOLUTE(.);
-	} >ksram1
 
 	.bss : {
 		_sbss = ABSOLUTE(.);

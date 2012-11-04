@@ -1,7 +1,7 @@
 /****************************************************************************
- * configs/mcu123-lpc214x/composite/ld.script
+ * configs/lm3s6965-ek/scripts/ld.script
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,22 +33,14 @@
  *
  ****************************************************************************/
 
-/* FLASH:
- *   The lpc2148 has 512Kb of non-volatile memory beginning at address
- *   0x00000000.  The OS entry point is via the reset vector at address
- *   0x00000000 (default MEMMAP mode assumed)
- *
- * SRAM:
- *   The lpc2148 has 32Kb of on-chip static RAM beginning at address
- *   0x40000000. The first 512 bytes of RAM are reserved for used by
- *   the bootloader.  The .data section will be relocated from _eronly
- *   to _sdata at boot time.
+/* The LM3S6965 has 256Kb of FLASH beginning at address 0x0000:0000 and 64Kb
+ * of SRAM beginning at 0x2000:0000.
  */
 
 MEMORY
 {
-	flash (rx) : ORIGIN = 0x00000000, LENGTH = 500K
-	sram  (rw) : ORIGIN = 0x40000200, LENGTH = 32K - 512 - 32
+    flash (rx) : ORIGIN = 0x00000000, LENGTH = 256K
+    sram (rwx) : ORIGIN = 0x20000000, LENGTH = 64K
 }
 
 OUTPUT_ARCH(arm)
@@ -71,13 +63,26 @@ SECTIONS
 		_etext = ABSOLUTE(.);
 	} > flash
 
-	/* This is where the .data section is relocated for execution out
-	 * FLASH.  The .data section will be relocated from _eronly
-	 * to _sdata at boot time.
-	 */
+	.init_section : {
+		_sinit = ABSOLUTE(.);
+		*(.init_array .init_array.*)
+		_einit = ABSOLUTE(.);
+	} > flash
 
-	_eronly = ABSOLUTE(.);	
-	
+	.ARM.extab : {
+		*(.ARM.extab*)
+	} > flash
+
+	__exidx_start = ABSOLUTE(.);
+	.ARM.exidx : {
+		*(.ARM.exidx*)
+	} > flash
+	__exidx_end = ABSOLUTE(.);
+
+	_eronly = ABSOLUTE(.);
+
+	/* The LM3S6918 has 64Kb of SRAM beginning at the following address */
+
 	.data : {
 		_sdata = ABSOLUTE(.);
 		*(.data .data.*)
@@ -86,25 +91,14 @@ SECTIONS
 		_edata = ABSOLUTE(.);
 	} > sram AT > flash
 
-	.ARM.extab : {
-		*(.ARM.extab*)
-	} >sram
-
-	__exidx_start = ABSOLUTE(.);
-	.ARM.exidx : {
-		*(.ARM.exidx*)
-	} >sram
-	__exidx_end = ABSOLUTE(.);
-
-	.bss : {
+	.bss : {			/* BSS				*/
 		_sbss = ABSOLUTE(.);
 		*(.bss .bss.*)
 		*(.gnu.linkonce.b.*)
 		*(COMMON)
 		_ebss = ABSOLUTE(.);
 	} > sram
-
-	/* Stabs debugging sections.	*/
+					/* Stabs debugging sections.	*/
 	.stab 0 : { *(.stab) }
 	.stabstr 0 : { *(.stabstr) }
 	.stab.excl 0 : { *(.stab.excl) }

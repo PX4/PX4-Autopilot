@@ -67,7 +67,7 @@ ifeq ($(CROSSDEV),arm-nuttx-elf-)
   MKDEP			= $(TOPDIR)/tools/mkdeps.sh
   ARCHINCLUDES		= -I. -isystem $(TOPDIR)/include
   ARCHXXINCLUDES	= -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
-  ARCHSCRIPT		= -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/usbstorage/ld.script
+  ARCHSCRIPT		= -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/ld.script
   MAXOPTIMIZATION	= -Os
 else
   WINTOOL		= y
@@ -76,7 +76,7 @@ else
   MKDEP			= $(TOPDIR)/tools/mknulldeps.sh
   ARCHINCLUDES		= -I. -isystem "${shell cygpath -w $(TOPDIR)/include}"
   ARCHXXINCLUDES	= -I. -isystem "${shell cygpath -w $(TOPDIR)/include}" -isystem "${shell cygpath -w $(TOPDIR)/include/cxx}"
-  ARCHSCRIPT		= -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/usbstorage/ld.script}"
+  ARCHSCRIPT		= -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/ld.script}"
   MAXOPTIMIZATION	= -O2
 endif
 

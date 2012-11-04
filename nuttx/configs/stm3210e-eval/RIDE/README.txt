@@ -27,7 +27,7 @@ nuttx.*
 
   RIDE7 project files
   
-stm32-nuttx.ld
+../scripts/ld.scrip
 
   This is the linker script that replaces the RIDE7 linker script.
 

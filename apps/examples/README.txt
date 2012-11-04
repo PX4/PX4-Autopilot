@@ -594,6 +594,11 @@ examples/lcdrw
   * CONFIG_EXAMPLES_LDCRW_YRES
       LCD Y resolution.  Default: 320
   
+  NOTE: This test exercises internal lcd driver interfaces.  As such, it
+  relies on internal OS interfaces that are not normally available to a
+  user-space program.  As a result, this example cannot be used if a
+  NuttX is built as a protected, supervisor kernel (CONFIG_NUTTX_KERNEL).
+
 examples/mm
 ^^^^^^^^^^^
 
@@ -1225,6 +1230,11 @@ examples/relays
 
   Requires CONFIG_ARCH_RELAYS.
   Contributed by Darcy Gong.
+
+  NOTE: This test exercises internal relay driver interfaces.  As such, it
+  relies on internal OS interfaces that are not normally available to a
+  user-space program.  As a result, this example cannot be used if a
+  NuttX is built as a protected, supervisor kernel (CONFIG_NUTTX_KERNEL).
 
 examples/rgmp
 ^^^^^^^^^^^^^
