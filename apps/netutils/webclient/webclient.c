@@ -56,6 +56,7 @@
 
 #include <sys/socket.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <string.h>

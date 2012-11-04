@@ -102,6 +102,7 @@ extern "C" {
  */
 
 EXTERN bool uiplib_ipaddrconv(const char *addrstr, uint8_t *addr);
+EXTERN bool uiplib_hwmacconv(const char *hwstr, uint8_t *hw);
 
 /* Get and set IP/MAC addresses (Ethernet L2 only) */
 
@@ -134,6 +135,10 @@ EXTERN int  uip_parsehttpurl(const char *url, uint16_t *port,
 
 EXTERN int uip_listenon(uint16_t portno);
 EXTERN void uip_server(uint16_t portno, pthread_startroutine_t handler, int stacksize);
+
+EXTERN int uip_getifstatus(const char *ifname, bool *status);
+EXTERN int uip_ifup(const char *ifname);
+EXTERN int uip_ifdown(const char *ifname);
 
 #undef EXTERN
 #ifdef __cplusplus

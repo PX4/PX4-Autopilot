@@ -3564,4 +3564,6 @@
 	* RGMP 4.0 updated from Qiany Yu.
 	* configs/*/Make.defs and configs/*/ld.script:  Massive clean-up
 	  and standardization of linker scripts from Freddie Chopin.
+	* net/netdev_ioctl.c:  Add interface state flags and ioctl calls
+	  to bring network interfaces up and down (from Darcy Gong).
 

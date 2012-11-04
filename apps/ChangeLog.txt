@@ -400,3 +400,9 @@
 	* apps/netutils/webclient, apps/netutils.codes, and apps/examples/wgetjson:
 	  Add support for wget POST interface.  Contributed by Darcy Gong.
 	* apps/examples/relays:  A relay example contributed by Darcy Gong.
+	* apps/nshlib/nsh_netcmds: Add ifup and ifdown commands (from Darcy
+	  Gong).
+	* apps/nshlib/nsh_netcmds: Extend the ifconfig command so that it
+	  supports setting IP addresses, network masks, name server addresses,
+	  and hardware address (from Darcy Gong).
+

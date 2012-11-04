@@ -45,9 +45,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <debug.h>
 
 #include <nuttx/net/uip/uip.h>
 #include <apps/netutils/uiplib.h>
+
 
 /****************************************************************************
  * Public Functions
@@ -90,6 +92,61 @@ bool uiplib_ipaddrconv(const char *addrstr, uint8_t *ipaddr)
           ++addrstr;
         }
       while(c != '.' && c != 0);
+    }
+  return true;
+}
+
+bool uiplib_hwmacconv(const char *hwstr, uint8_t *hw)
+{
+  unsigned char tmp;
+  char c;
+  unsigned char i;
+  unsigned char j;
+
+  if (strlen(hwstr)!=17)
+    {
+      return false;
+    }
+
+  tmp = 0;
+
+  for (i = 0; i < 6; ++i)
+    {
+      j = 0;
+      do
+        {
+          c = *hwstr;
+          ++j;
+          if (j > 3)
+           {
+             return false;
+           }
+          if (c == ':' || c == 0)
+            {
+              *hw = tmp;
+              nvdbg("HWMAC[%d]%0.2X\n",i,tmp);
+              ++hw;
+              tmp = 0;
+            }
+          else if(c >= '0' && c <= '9')
+            {
+              tmp = (tmp << 4) + (c - '0');
+            }
+          else if(c >= 'a' && c <= 'f')
+            {
+              tmp = (tmp << 4) + (c - 'a' + 10);
+            }
+          else if(c >= 'A' && c <= 'F')
+            {
+              tmp = (tmp << 4) + (c - 'A' + 10);
+            }
+          else
+            {
+              return false;
+            }
+          ++hwstr;
+        }
+      while(c != ':' && c != 0);
     }
   return true;
 }

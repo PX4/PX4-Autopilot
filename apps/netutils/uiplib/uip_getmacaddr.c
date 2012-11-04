@@ -44,6 +44,7 @@
 #include <sys/ioctl.h>
 #include <stdint.h>
 #include <string.h>
+#include <unistd.h>
 #include <errno.h>
 
 #include <netinet/in.h>
@@ -96,6 +97,7 @@ int uip_getmacaddr(const char *ifname, uint8_t *macaddr)
 
               memcpy(macaddr, &req.ifr_hwaddr.sa_data, IFHWADDRLEN);
             }
+          close(sockfd);
         }
     }
   return ret;

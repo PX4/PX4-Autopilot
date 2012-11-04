@@ -267,9 +267,35 @@
 #  undef CONFIG_NSH_ROMFSSECTSIZE
 #endif
 
-/* This is the maximum number of arguments that will be accepted for a command */
+/* This is the maximum number of arguments that will be accepted for a
+ * command.  Here we attempt to select the smallest number possible depending
+ * upon the of commands that are available.  Most commands use six or fewer
+ * arguments, but there are a few that require more.
+ *
+ * This value is also configurable with CONFIG_NSH_MAXARGUMENTS.  This
+ * configurability is necessary since there may also be external, "built-in"
+ * commands that require more commands than NSH is aware of.
+ */
 
-#define NSH_MAX_ARGUMENTS 6
+#ifndef CONFIG_NSH_MAXARGUMENTS
+#  define CONFIG_NSH_MAXARGUMENTS 6
+#endif
+
+#if CONFIG_NSH_MAXARGUMENTS < 11
+#  if defined(CONFIG_NET) && !defined(CONFIG_NSH_DISABLE_IFCONFIG)
+#    undef CONFIG_NSH_MAXARGUMENTS
+#    define CONFIG_NSH_MAXARGUMENTS 11
+#  endif
+#endif
+
+#if CONFIG_NSH_MAXARGUMENTS < 7
+#  if defined(CONFIG_NET_UDP) && CONFIG_NFILE_DESCRIPTORS > 0
+#    if !defined(CONFIG_NSH_DISABLE_GET) || !defined(CONFIG_NSH_DISABLE_PUT)
+#      undef CONFIG_NSH_MAXARGUMENTS
+#      define CONFIG_NSH_MAXARGUMENTS 7
+#    endif
+# endif
+#endif
 
 /* strerror() produces much nicer output but is, however, quite large and
  * will only be used if CONFIG_NSH_STRERROR is defined.  Note that the strerror
@@ -601,6 +627,10 @@ void nsh_usbtrace(void);
 #if defined(CONFIG_NET)
 #  ifndef CONFIG_NSH_DISABLE_IFCONFIG
       int cmd_ifconfig(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+#  endif
+#  ifndef CONFIG_NSH_DISABLE_IFUPDOWN
+      int cmd_ifup(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
+      int cmd_ifdown(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 #  endif
 #if defined(CONFIG_NET_UDP) && CONFIG_NFILE_DESCRIPTORS > 0
 #  ifndef CONFIG_NSH_DISABLE_GET

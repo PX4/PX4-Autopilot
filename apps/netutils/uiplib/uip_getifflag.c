@@ -1,5 +1,5 @@
 /****************************************************************************
- * netutils/uiplib/uip_gethostaddr.c
+ * netutils/uiplib/uip_getifflag.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -42,10 +42,11 @@
 
 #include <sys/socket.h>
 #include <sys/ioctl.h>
-
+#include <stdint.h>
+#include <stdbool.h>
+#include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <unistd.h>
 
 #include <netinet/in.h>
 #include <net/if.h>
@@ -53,50 +54,60 @@
 #include <apps/netutils/uiplib.h>
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
  * Global Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: uip_gethostaddr
+ * Name: uip_getifstatus
  *
  * Description:
- *   Get the network driver IP address
+ *   Get the network driver ifup/ifdown status
  *
  * Parameters:
  *   ifname   The name of the interface to use
- *   ipaddr   The location to return the IP address
+ *   status   interface flag ifup or ifdown status
  *
  * Return:
  *   0 on sucess; -1 on failure
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IPv6
-int uip_gethostaddr(const char *ifname, struct in6_addr *addr)
-#else
-int uip_gethostaddr(const char *ifname, struct in_addr *addr)
-#endif
+int uip_getifstatus(const char *ifname, bool *status)
 {
   int ret = ERROR;
-  if (ifname && addr)
+  if (ifname)
     {
+      /* Get a socket (only so that we get access to the INET subsystem) */
+
       int sockfd = socket(PF_INET, UIPLIB_SOCK_IOCTL, 0);
       if (sockfd >= 0)
         {
           struct ifreq req;
+          memset (&req, 0, sizeof(struct ifreq));
+
+          /* Put the driver name into the request */
+
           strncpy(req.ifr_name, ifname, IFNAMSIZ);
-          ret = ioctl(sockfd, SIOCGIFADDR, (unsigned long)&req);
+
+          /* Perform the ioctl to ifup or ifdown status */
+
+          ret = ioctl(sockfd, SIOCGIFFLAGS, (unsigned long)&req);
           if (!ret)
             {
-#ifdef CONFIG_NET_IPv6
-              memcpy(addr, &req.ifr_addr, sizeof(struct in6_addr));
-#else
-              memcpy(addr, &req.ifr_addr, sizeof(struct in_addr));
-#endif
+              /* Return the ifup or ifdown status */
+
+              if ((req.ifr_flags & IF_FLAG_IFUP) == (req.ifr_flags & IF_FLAG_IFDOWN))
+                {
+                  ret = ERROR;
+                }
+              else if(req.ifr_flags & IF_FLAG_IFUP)
+                {
+                  *status = true;
+                }
+              else
+                {
+                  *status = false;
+                }
             }
           close(sockfd);
         }

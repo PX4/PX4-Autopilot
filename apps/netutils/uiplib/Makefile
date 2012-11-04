@@ -41,7 +41,8 @@ include $(APPDIR)/Make.defs
 
 ASRCS		=
 CSRCS		= uiplib.c uip_sethostaddr.c uip_gethostaddr.c uip_setdraddr.c \
-			  uip_setnetmask.c uip_parsehttpurl.c
+		  uip_setnetmask.c uip_parsehttpurl.c uip_setifflag.c \
+		  uip_getifflag.c
 
 # These require TCP support
 

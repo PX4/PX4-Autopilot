@@ -73,19 +73,19 @@
 /* Argument list size
  *
  *   argv[0]:      The command name. 
- *   argv[1]:      The beginning of argument (up to NSH_MAX_ARGUMENTS)
+ *   argv[1]:      The beginning of argument (up to CONFIG_NSH_MAXARGUMENTS)
  *   argv[argc-3]: Possibly '>' or '>>'
  *   argv[argc-2]: Possibly <file>
  *   argv[argc-1]: Possibly '&' (if pthreads are enabled)
  *   argv[argc]:   NULL terminating pointer
  *
- * Maximum size is NSH_MAX_ARGUMENTS+5
+ * Maximum size is CONFIG_NSH_MAXARGUMENTS+5
  */
 
 #ifndef CONFIG_NSH_DISABLEBG
-#  define MAX_ARGV_ENTRIES (NSH_MAX_ARGUMENTS+5)
+#  define MAX_ARGV_ENTRIES (CONFIG_NSH_MAXARGUMENTS+5)
 #else
-#  define MAX_ARGV_ENTRIES (NSH_MAX_ARGUMENTS+4)
+#  define MAX_ARGV_ENTRIES (CONFIG_NSH_MAXARGUMENTS+4)
 #endif
 
 /* Help command summary layout */
@@ -146,7 +146,7 @@ static const char g_failure[]    = "1";
 static const struct cmdmap_s g_cmdmap[] =
 {
 #if !defined(CONFIG_NSH_DISABLESCRIPT) && !defined(CONFIG_NSH_DISABLE_TEST)
-  { "[",        cmd_lbracket, 4, NSH_MAX_ARGUMENTS, "<expression> ]" },
+  { "[",        cmd_lbracket, 4, CONFIG_NSH_MAXARGUMENTS, "<expression> ]" },
 #endif
 
 #ifndef CONFIG_NSH_DISABLE_HELP
@@ -164,7 +164,7 @@ static const struct cmdmap_s g_cmdmap[] =
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
 # ifndef CONFIG_NSH_DISABLE_CAT
-  { "cat",      cmd_cat,      2, NSH_MAX_ARGUMENTS, "<path> [<path> [<path> ...]]" },
+  { "cat",      cmd_cat,      2, CONFIG_NSH_MAXARGUMENTS, "<path> [<path> [<path> ...]]" },
 # endif
 #ifndef CONFIG_DISABLE_ENVIRON
 # ifndef CONFIG_NSH_DISABLE_CD
@@ -196,9 +196,9 @@ static const struct cmdmap_s g_cmdmap[] =
 
 #ifndef CONFIG_NSH_DISABLE_ECHO
 # ifndef CONFIG_DISABLE_ENVIRON
-  { "echo",     cmd_echo,     0, NSH_MAX_ARGUMENTS, "[<string|$name> [<string|$name>...]]" },
+  { "echo",     cmd_echo,     0, CONFIG_NSH_MAXARGUMENTS, "[<string|$name> [<string|$name>...]]" },
 # else
-  { "echo",     cmd_echo,     0, NSH_MAX_ARGUMENTS, "[<string> [<string>...]]" },
+  { "echo",     cmd_echo,     0, CONFIG_NSH_MAXARGUMENTS, "[<string> [<string>...]]" },
 # endif
 #endif
 
@@ -229,7 +229,11 @@ static const struct cmdmap_s g_cmdmap[] =
 
 #ifdef CONFIG_NET
 # ifndef CONFIG_NSH_DISABLE_IFCONFIG
-  { "ifconfig", cmd_ifconfig, 1, 3, "[nic_name [ip]]" },
+  { "ifconfig", cmd_ifconfig, 1, 11, "[nic_name [ip]] [dr|gw|gateway <dr-address>] [netmask <net-mask>] [dns <dns-address>] [hw <hw-mac>]" },
+# endif
+# ifndef CONFIG_NSH_DISABLE_IFUPDOWN
+  { "ifdown",   cmd_ifdown,   2, 2,  "<nic_name>" },
+  { "ifup",     cmd_ifup,     2, 2,  "<nic_name>" },
 # endif
 #endif
 
@@ -363,7 +367,7 @@ static const struct cmdmap_s g_cmdmap[] =
 #endif
 
 #if !defined(CONFIG_NSH_DISABLESCRIPT) && !defined(CONFIG_NSH_DISABLE_TEST)
-  { "test",     cmd_test,     3, NSH_MAX_ARGUMENTS, "<expression>" },
+  { "test",     cmd_test,     3, CONFIG_NSH_MAXARGUMENTS, "<expression>" },
 #endif
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_READABLE)
@@ -736,7 +740,7 @@ static int nsh_execute(FAR struct nsh_vtbl_s *vtbl, int argc, char *argv[])
    *
    * argv[0]:      The command name.  This is argv[0] when the arguments
    *               are, finally, received by the command vtblr
-   * argv[1]:      The beginning of argument (up to NSH_MAX_ARGUMENTS)
+   * argv[1]:      The beginning of argument (up to CONFIG_NSH_MAXARGUMENTS)
    * argv[argc]:   NULL terminating pointer
    */
 
@@ -1343,13 +1347,13 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
    * of argv is:
    *
    *   argv[0]:      The command name. 
-   *   argv[1]:      The beginning of argument (up to NSH_MAX_ARGUMENTS)
+   *   argv[1]:      The beginning of argument (up to CONFIG_NSH_MAXARGUMENTS)
    *   argv[argc-3]: Possibly '>' or '>>'
    *   argv[argc-2]: Possibly <file>
    *   argv[argc-1]: Possibly '&'
    *   argv[argc]:   NULL terminating pointer
    *
-   * Maximum size is NSH_MAX_ARGUMENTS+5
+   * Maximum size is CONFIG_NSH_MAXARGUMENTS+5
    */
 
   argv[0] = cmd;
@@ -1423,7 +1427,7 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
 
   /* Check if the maximum number of arguments was exceeded */
 
-  if (argc > NSH_MAX_ARGUMENTS)
+  if (argc > CONFIG_NSH_MAXARGUMENTS)
     {
       nsh_output(vtbl, g_fmttoomanyargs, cmd);
     }
