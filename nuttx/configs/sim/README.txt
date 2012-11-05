@@ -215,9 +215,11 @@ cxxtest
      b. Execute 'make menuconfig' in nuttx/ in order to start the
         reconfiguration process.
 
-  3. At present (2012/11/02), this example builds only with exceptions
-     disabled (CONFIG_UCLIBCXX_EXCEPTIONS=n).  And even then, it will
-     not run.
+  3. At present (2012/11/02), exceptions are disabled in this example
+     CONFIG_UCLIBCXX_EXCEPTIONS=n).  It is probably not necessary to
+     disable exceptions.
+
+  4. Unfortunately, this example will not run now.
 
      The reason that the example will not run on the simulator has
      to do with when static constructors are enabled:  In the simulator

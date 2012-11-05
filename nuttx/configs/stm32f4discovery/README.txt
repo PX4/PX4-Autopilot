@@ -1035,8 +1035,7 @@ Where <subdir> is one of the following:
 
        arm-none-eabi-ar.exe rcs libsupc++.a vterminate.o
         
-  4. At present (2012/11/02), this example builds only with exceptions
-     disabled (CONFIG_UCLIBCXX_EXCEPTIONS=n).
+  4. Exceptions are enabled and workking (CONFIG_UCLIBCXX_EXCEPTIONS=y)
 
   elf:
   ---
