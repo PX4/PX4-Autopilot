@@ -170,7 +170,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 		struct vehicle_attitude_s att;
 		memset(&att, 0, sizeof(att));
 		crosstrack_error_s xtrack_err;
-		//memset(&xtrack_err, 0, sizeof(xtrack_err));
+		memset(&xtrack_err, 0, sizeof(xtrack_err));
 		
 		/* output structs */
 		struct vehicle_attitude_setpoint_s attitude_setpoint;
@@ -190,8 +190,8 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 		/* Setup of loop */
 		struct pollfd fds = { .fd = att_sub, .events = POLLIN };
 		bool global_sp_updated_set_once = false;
-		bool start_point_set = false;		// This is a temporary flag till the
-											// previous waypoint is available for computations
+
+		float psi_track = 0.0f;
 
 		while(!thread_should_exit)
 		{
@@ -230,12 +230,6 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 			orb_check(global_pos_sub, &pos_updated);
 			bool global_sp_updated;
 			orb_check(global_setpoint_sub, &global_sp_updated);
-			if(global_sp_updated)
-				global_sp_updated_set_once = true;
-			if(global_sp_updated_set_once && !start_point_set) {
-				start_pos = global_pos;
-				start_point_set = true;
-			}
 
 			/* Load local copies */
 			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
@@ -244,37 +238,70 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 			if (global_sp_updated)
 				orb_copy(ORB_ID(vehicle_global_position_setpoint), global_setpoint_sub, &global_setpoint);
 
+			if(global_sp_updated) {
+				start_pos = global_pos; //for now using the current position as the startpoint (= approx. last waypoint)
+				global_sp_updated_set_once = true;
+				psi_track = get_bearing_to_next_waypoint((double)global_pos.lat / (double)1e7d, (double)global_pos.lon / (double)1e7d,
+						(double)global_setpoint.lat / (double)1e7d, (double)global_setpoint.lon / (double)1e7d);
+				printf("psi_track: %0.4f\n", psi_track);
+			}
+
 			/* Control */
 
 
 			/* Simple Horizontal Control */
 			if(global_sp_updated_set_once)
 			{
+				if (counter % 100 == 0)
+					printf("lat_sp %d, ln_sp %d, lat: %d, lon: %d\n", global_setpoint.lat, global_setpoint.lon, global_pos.lat, global_pos.lon);
+
 				/* calculate bearing error */
-				float target_bearing = get_bearing_to_next_waypoint(global_pos.lat / (double)1e7d, global_pos.lon / (double)1e7d,
-					global_setpoint.lat / (double)1e7d, global_setpoint.lon / (double)1e7d);
+//				float target_bearing = get_bearing_to_next_waypoint(global_pos.lat / (double)1e7d, global_pos.lon / (double)1e7d,
+//					global_setpoint.lat / (double)1e7d, global_setpoint.lon / (double)1e7d);
 				
 				/* calculate crosstrack error */
 				// Only the case of a straight line track following handled so far
-				xtrack_err = get_distance_to_line(global_pos.lat / (double)1e7d, global_pos.lon / (double)1e7d,
-									start_pos.lat / (double)1e7d, start_pos.lon / (double)1e7d,
-									global_setpoint.lat / (double)1e7d, global_setpoint.lon / (double)1e7d);
+				xtrack_err = get_distance_to_line((double)global_pos.lat / (double)1e7d, (double)global_pos.lon / (double)1e7d,
+						(double)start_pos.lat / (double)1e7d, (double)start_pos.lon / (double)1e7d,
+						(double)global_setpoint.lat / (double)1e7d, (double)global_setpoint.lon / (double)1e7d);
 
-				/* shift error to prevent wrapping issues */
-				float bearing_error = target_bearing - att.yaw;
-				if(!(xtrack_err.error || xtrack_err.past_end))
-						bearing_error -= p.xtrack_p * xtrack_err.distance;
-				bearing_error = _wrapPI(bearing_error);
+				if(!(xtrack_err.error || xtrack_err.past_end)) {
 
-				/* calculate roll setpoint, do this artificially around zero */
-				attitude_setpoint.roll_tait_bryan = pid_calculate(&heading_controller, bearing_error, 0.0f, 0.0f, 0.0f);
+					float delta_psi_c = -p.xtrack_p * xtrack_err.distance; //(-) because z axis points downwards
+
+					if(delta_psi_c > 60.0f*M_DEG_TO_RAD)
+						delta_psi_c = 60.0f*M_DEG_TO_RAD;
+
+					if(delta_psi_c < -60.0f*M_DEG_TO_RAD)
+						delta_psi_c = -60.0f*M_DEG_TO_RAD;
+
+					float psi_c = psi_track + delta_psi_c;
+
+
+					float psi_e = psi_c - att.yaw;
+
+
+					/* shift error to prevent wrapping issues */
+					psi_e = _wrapPI(psi_e);
+
+					/* calculate roll setpoint, do this artificially around zero */
+					attitude_setpoint.roll_tait_bryan = pid_calculate(&heading_controller, psi_e, 0.0f, 0.0f, 0.0f);
+
+					if (counter % 100 == 0)
+						printf("xtrack_err.distance: %0.4f, delta_psi_c: %0.4f\n",xtrack_err.distance, delta_psi_c);
+				}
+				else {
+					if (counter % 100 == 0)
+						printf("error: %d, past_end %d\n", xtrack_err.error, xtrack_err.past_end);
+				}
+
 			}
 
 			/* Very simple Altitude Control */
 			if(global_sp_updated_set_once && pos_updated)
 			{
 
-				//TODO: take care of relatie vs. ab. altitude
+				//TODO: take care of relative vs. ab. altitude
 				attitude_setpoint.pitch_tait_bryan = pid_calculate(&altitude_controller, global_setpoint.altitude, global_pos.alt, 0.0f, 0.0f);
 
 			}
