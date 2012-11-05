@@ -87,6 +87,8 @@ public:
 
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
 
+	void			set_rx_mode(unsigned mode);
+
 private:
 	static const unsigned	_max_actuators = PX4IO_OUTPUT_CHANNELS;
 
@@ -114,6 +116,9 @@ private:
 	// XXX how should this work?
 
 	bool			_send_needed;	///< If true, we need to send a packet to IO
+	bool			_config_needed;	///< if true, we need to set a config update to IO
+
+	uint8_t			_rx_mode;	///< the current RX mode on IO
 
 	/**
 	 * Trampoline to the worker task
@@ -146,6 +151,11 @@ private:
 	void			io_send();
 
 	/**
+	 * Send a config packet to PX4IO
+	 */
+	void			config_send();
+
+	/**
 	 * Mixer control callback; invoked to fetch a control from a specific
 	 * group/index during mixing.
 	 */
@@ -176,7 +186,9 @@ PX4IO::PX4IO() :
 	_mixers(nullptr),
 	_primary_pwm_device(false),
 	_switch_armed(false),
-	_send_needed(false)
+	_send_needed(false),
+	_config_needed(false),
+	_rx_mode(RX_MODE_PPM_ONLY)
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
@@ -373,6 +385,12 @@ PX4IO::task_main()
 			_send_needed = false;
 			io_send();
 		}
+
+		/* send a config packet to IO if required */
+		if (_config_needed) {
+			_config_needed = false;
+			config_send();
+		}
 	}
 
 out:
@@ -471,6 +489,20 @@ PX4IO::io_send()
 	ret = hx_stream_send(_io_stream, &cmd, sizeof(cmd));
 	if (ret)
 		debug("send error %d", ret);
+}
+
+void
+PX4IO::config_send()
+{
+	px4io_config	cfg;
+	int		ret;
+
+	cfg.f2i_config_magic = F2I_CONFIG_MAGIC;
+	cfg.serial_rx_mode = _rx_mode;
+
+	ret = hx_stream_send(_io_stream, &cfg, sizeof(cfg));
+	if (ret)
+		debug("config error %d", ret);
 }
 
 int
@@ -586,6 +618,15 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	return ret;
 }
 
+void
+PX4IO::set_rx_mode(unsigned mode)
+{
+	if (mode != _rx_mode) {
+		_rx_mode = mode;
+		_config_needed = true;
+	}
+}
+
 extern "C" __EXPORT int px4io_main(int argc, char *argv[]);
 
 namespace
@@ -642,9 +683,6 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	if (!strcmp(argv[1], "test"))
-		test();
-
 	/* note, stop not currently implemented */
 
 	if (!strcmp(argv[1], "update")) {
@@ -690,5 +728,25 @@ px4io_main(int argc, char *argv[])
 		return ret;
 	}
 
-	errx(1, "need a verb, only support 'start' and 'update'");
+	if (!strcmp(argv[1], "rx_spektrum6")) {
+		if (g_dev == nullptr)
+			errx(1, "not started");
+		g_dev->set_rx_mode(RX_MODE_SPEKTRUM_6);
+	}
+	if (!strcmp(argv[1], "rx_spektrum7")) {
+		if (g_dev == nullptr)
+			errx(1, "not started");
+		g_dev->set_rx_mode(RX_MODE_SPEKTRUM_7);
+	}
+	if (!strcmp(argv[1], "rx_sbus")) {
+		if (g_dev == nullptr)
+			errx(1, "not started");
+		g_dev->set_rx_mode(RX_MODE_FUTABA_SBUS);
+	}
+
+	if (!strcmp(argv[1], "test"))
+		test();
+
+
+	errx(1, "need a command, try 'start', 'test', 'rx_spektrum6', 'rx_spektrum7', 'rx_sbus' or 'update'");
 }

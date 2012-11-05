@@ -102,7 +102,7 @@ int user_start(int argc, char *argv[])
 	safety_init();
 
 	/* set up some timers for the main loop */
-	timers[TIMER_BLINK_AMBER] = 250;	/* heartbeat blink @ 2Hz */
+	timers[TIMER_BLINK_BLUE] = 250;		/* heartbeat blink @ 2Hz */
 	timers[TIMER_STATUS_PRINT] = 1000;	/* print status message @ 1Hz */
 
 	/*
@@ -114,21 +114,21 @@ int user_start(int argc, char *argv[])
 		comms_check();
 
 		/* blink the heartbeat LED */
-		if (timers[TIMER_BLINK_AMBER] == 0) {
-			timers[TIMER_BLINK_AMBER] = 250;
-			LED_AMBER(heartbeat = !heartbeat);
+		if (timers[TIMER_BLINK_BLUE] == 0) {
+			timers[TIMER_BLINK_BLUE] = 250;
+			LED_BLUE(heartbeat = !heartbeat);
 		}
 
 		/* blink the failsafe LED if we don't have FMU input */
 		if (!system_state.mixer_use_fmu) {
-			if (timers[TIMER_BLINK_BLUE] == 0) {
-				timers[TIMER_BLINK_BLUE] = 125;
+			if (timers[TIMER_BLINK_AMBER] == 0) {
+				timers[TIMER_BLINK_AMBER] = 125;
 				failsafe = !failsafe;
 			}
 		} else {
 			failsafe = false;
 		}
-		LED_BLUE(failsafe);
+		LED_AMBER(failsafe);
 		
 		/* print some simple status */
 		if (timers[TIMER_STATUS_PRINT] == 0) {
