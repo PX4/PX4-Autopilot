@@ -171,10 +171,8 @@ pwm_channel_init(unsigned channel)
 int
 up_pwm_servo_set(unsigned channel, servo_position_t value)
 {
-	if (channel >= PWM_SERVO_MAX_CHANNELS) {
-		lldbg("pwm_channel_set: bogus channel %u\n", channel);
+	if (channel >= PWM_SERVO_MAX_CHANNELS)
 		return -1;
-	}
 
 	unsigned timer = pwm_channels[channel].timer_index;
 
@@ -214,17 +212,15 @@ up_pwm_servo_set(unsigned channel, servo_position_t value)
 servo_position_t
 up_pwm_servo_get(unsigned channel)
 {
-	if (channel >= PWM_SERVO_MAX_CHANNELS) {
-		lldbg("pwm_channel_get: bogus channel %u\n", channel);
+	if (channel >= PWM_SERVO_MAX_CHANNELS)
 		return 0;
-	}
 
 	unsigned timer = pwm_channels[channel].timer_index;
 	servo_position_t value = 0;
 
 	/* test timer for validity */
 	if ((pwm_timers[timer].base == 0) ||
-	    (pwm_channels[channel].gpio == 0))
+	    (pwm_channels[channel].timer_channel == 0))
 		return 0;
 
 	/* configure the channel */
@@ -246,7 +242,7 @@ up_pwm_servo_get(unsigned channel)
 		break;
 	}
 
-	return value;
+	return value + 1;
 }
 
 int
@@ -261,7 +257,7 @@ up_pwm_servo_init(uint32_t channel_mask)
 	/* now init channels */
 	for (unsigned i = 0; i < PWM_SERVO_MAX_CHANNELS; i++) {
 		/* don't do init for disabled channels; this leaves the pin configs alone */
-		if (((1 << i) & channel_mask) && (pwm_channels[i].gpio != 0))
+		if (((1 << i) & channel_mask) && (pwm_channels[i].timer_channel != 0))
 			pwm_channel_init(i);
 	}
 
