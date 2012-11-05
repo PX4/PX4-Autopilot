@@ -53,6 +53,16 @@
 #define IO_SERVO_COUNT		8
 
 /*
+ * Debug logging
+ */
+
+#if 1
+# define debug(fmt, ...)	lib_lowprintf(fmt "\n", ##args)
+#else
+# define debug(fmt, ...)	do {} while(0)
+#endif
+
+/*
  * System state structure.
  */
 struct sys_state_s 
@@ -130,7 +140,7 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
 /*
  * Mixer
  */
-extern int	mixer_init(const char *mq_name);
+extern int	mixer_init(void);
 
 /*
  * Safety switch/LED.

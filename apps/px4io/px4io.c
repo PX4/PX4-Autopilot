@@ -59,8 +59,6 @@ int			gpio_fd;
 
 static const char cursor[] = {'|', '/', '-', '\\'};
 
-static const char *rc_input_mq_name = "rc_input";
-
 static struct hrt_call timer_tick_call;
 volatile int timers[TIMER_NUM_TIMERS];
 static void timer_tick(void *arg);
@@ -74,7 +72,11 @@ int user_start(int argc, char *argv[])
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
-	/* configure the PWM outputs */
+	/* init the FMU link */
+	comms_init();
+
+	/* configure the first 8 PWM outputs (i.e. all of them) */
+	/* note, must do this after comms init to steal back PA0, which is CTS otherwise */
 	up_pwm_servo_init(0xff);
 
 	/* print some startup info */
@@ -94,13 +96,10 @@ int user_start(int argc, char *argv[])
 	POWER_SERVO(true);
 
 	/* start the mixer */
-	mixer_init(rc_input_mq_name);
+	mixer_init();
 
 	/* start the safety switch handler */
 	safety_init();
-
-	/* init the FMU link */
-	comms_init();
 
 	/* set up some timers for the main loop */
 	timers[TIMER_BLINK_AMBER] = 250;	/* heartbeat blink @ 2Hz */
