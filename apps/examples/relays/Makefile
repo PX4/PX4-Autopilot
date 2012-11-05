@@ -39,14 +39,14 @@ include $(APPDIR)/Make.defs
 
 # relays Example
 
-ASRC =
-CSRC = relays_main.c
+ASRCS =
+CSRCS = relays_main.c
 
-AOBJ = $(ASRCS:.S=$(OBJEXT))
-COBJ = $(CSRCS:.c=$(OBJEXT))
+AOBJS = $(ASRCS:.S=$(OBJEXT))
+COBJS = $(CSRCS:.c=$(OBJEXT))
 
-SRC = $(ASRCS) $(CSRCS)
-OBJ = $(AOBJS) $(COBJS)
+SRCS = $(ASRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
 
 ifeq ($(WINTOOL),y)
   BIN = "${shell cygpath -w $(APPDIR)/libapps$(LIBEXT)}"

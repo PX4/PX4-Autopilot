@@ -117,4 +117,4 @@ $(SYMTAB_SRC): build
 
 clean: $(foreach DIR, $(ALL_SUBDIRS), $(DIR)_clean)
 	@rm -f $(ROMFS_HDR) $(ROMFS_IMG) $(SYMTAB_SRC) varlist.tmp
-	@rm -rf $(ROMFS_DIR)
+	@rm -rf $(ROMFS_DIR) $(DIRLIST_HDR)

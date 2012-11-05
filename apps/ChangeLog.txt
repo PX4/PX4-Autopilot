@@ -407,3 +407,8 @@
 	  and hardware address (from Darcy Gong).
 
 6.24 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* apps/examples/ostest/roundrobin.c:  Replace large tables with
+	  algorithmic prime number generation.  This allows the roundrobin
+	  test to run on platforms with minimal SRAM (Freddie Chopin).
+
