@@ -253,12 +253,12 @@ handle_message(mavlink_message_t *msg)
 					break;
 			}
 
-			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid]   / (float)INT16_MAX;
-			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid]  / (float)INT16_MAX;
-			offboard_control_sp.p3= (float)quad_motors_setpoint.yaw[mavlink_system.sysid]    / (float)INT16_MAX;
-			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid]/(float)UINT16_MAX;
+			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid-1]   / (float)INT16_MAX;
+			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid-1]  / (float)INT16_MAX;
+			offboard_control_sp.p3= (float)quad_motors_setpoint.yaw[mavlink_system.sysid-1]    / (float)INT16_MAX;
+			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid-1]/(float)UINT16_MAX;
 
-			if (quad_motors_setpoint.thrust[mavlink_system.sysid] == 0) {
+			if (quad_motors_setpoint.thrust[mavlink_system.sysid-1] == 0) {
 				ml_armed = false;
 			}
 
@@ -397,10 +397,6 @@ handle_message(mavlink_message_t *msg)
 
 			rc_hil.timestamp = hrt_absolute_time();
 			rc_hil.chan_count = 4;
-			rc_hil.chan[0].raw = 1500 + man.x / 2;
-			rc_hil.chan[1].raw = 1500 + man.y / 2;
-			rc_hil.chan[2].raw = 1500 + man.r / 2;
-			rc_hil.chan[3].raw = 1500 + man.z / 2;
 
 			rc_hil.chan[0].scaled = man.x / 1000.0f;
 			rc_hil.chan[1].scaled = man.y / 1000.0f;

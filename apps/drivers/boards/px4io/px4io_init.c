@@ -1,9 +1,6 @@
 /****************************************************************************
- * config/stm3210e_eval/src/up_nsh.c
- * arch/arm/src/board/up_nsh.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <spudmonkey@racsa.co.cr>
+ *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +12,7 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
+ * 3. Neither the name PX4 nor the names of its contributors may be
  *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
@@ -34,6 +31,16 @@
  *
  ****************************************************************************/
 
+/**
+ * @file px4io_init.c
+ *
+ * PX4IO-specific early startup code.  This file implements the
+ * nsh_archinitialize() function that is called early by nsh during startup.
+ *
+ * Code here is run before the rcS script is invoked; it should start required
+ * subsystems and perform board-specific initialisation.
+ */
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -45,19 +52,44 @@
 #include <debug.h>
 #include <errno.h>
 
-#include "stm32_internal.h"
+#include <nuttx/arch.h>
 
-#include <arch/board/up_boardinitialize.h>
+#include "stm32_internal.h"
+#include "px4io_internal.h"
+#include "stm32_uart.h"
+
+#include <arch/board/board.h>
+
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_led.h>
+#include <drivers/drv_pwm_output.h>
 
 /****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization
- *
+ * Public Functions
  ****************************************************************************/
 
-int nsh_archinitialize(void)
+/************************************************************************************
+ * Name: stm32_boardinitialize
+ *
+ * Description:
+ *   All STM32 architectures must provide the following entry point.  This entry point
+ *   is called early in the intitialization -- after all memory has been configured
+ *   and mapped but before any devices have been initialized.
+ *
+ ************************************************************************************/
+
+__EXPORT void stm32_boardinitialize(void)
 {
-	return up_boardinitialize();
+	/* configure GPIOs */
+	stm32_configgpio(GPIO_ACC1_PWR_EN);
+	stm32_configgpio(GPIO_ACC2_PWR_EN);
+	stm32_configgpio(GPIO_SERVO_PWR_EN);
+	stm32_configgpio(GPIO_RELAY1_EN);
+	stm32_configgpio(GPIO_RELAY2_EN);
+	stm32_configgpio(GPIO_LED1);
+	stm32_configgpio(GPIO_LED2);
+	stm32_configgpio(GPIO_LED3);
+	stm32_configgpio(GPIO_ACC_OC_DETECT);
+	stm32_configgpio(GPIO_SERVO_OC_DETECT);
+	stm32_configgpio(GPIO_BTN_SAFETY);
 }

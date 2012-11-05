@@ -48,7 +48,7 @@
 
 #define PX4IO_OUTPUT_CHANNELS	8
 #define PX4IO_INPUT_CHANNELS	12
-#define PX4IO_RELAY_CHANNELS	2
+#define PX4IO_RELAY_CHANNELS	4
 
 #pragma pack(push, 1)
 
@@ -60,6 +60,18 @@ struct px4io_command {
 	uint16_t	servo_command[PX4IO_OUTPUT_CHANNELS];
 	bool		relay_state[PX4IO_RELAY_CHANNELS];
 	bool		arm_ok;
+};
+
+/* config message from FMU to IO */
+struct px4io_config {
+	uint16_t f2i_config_magic;
+#define F2I_CONFIG_MAGIC 0x6366
+
+	uint8_t		serial_rx_mode;
+#define RX_MODE_PPM_ONLY	0
+#define RX_MODE_SPEKTRUM_6	1
+#define RX_MODE_SPEKTRUM_7	2
+#define RX_MODE_FUTABA_SBUS	3
 };
 
 /* report from IO to FMU */

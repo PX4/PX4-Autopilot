@@ -42,7 +42,7 @@
 #include <drivers/drv_pwm_output.h>
 
 /* configuration limits */
-#define PWM_SERVO_MAX_TIMERS	2
+#define PWM_SERVO_MAX_TIMERS	4
 #define PWM_SERVO_MAX_CHANNELS	8
 
 /* array of timers dedicated to PWM servo use */
@@ -53,9 +53,6 @@ struct pwm_servo_timer {
 	uint32_t	clock_freq;
 };
 
-/* supplied by board-specific code */
-__EXPORT extern const struct pwm_servo_timer pwm_timers[PWM_SERVO_MAX_TIMERS];
-
 /* array of channels in logical order */
 struct pwm_servo_channel {
 	uint32_t	gpio;
@@ -64,4 +61,6 @@ struct pwm_servo_channel {
 	servo_position_t default_value;
 };
 
+/* supplied by board-specific code */
+__EXPORT extern const struct pwm_servo_timer pwm_timers[PWM_SERVO_MAX_TIMERS];
 __EXPORT extern const struct pwm_servo_channel pwm_channels[PWM_SERVO_MAX_CHANNELS];

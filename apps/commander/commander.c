@@ -143,7 +143,7 @@ int commander_thread_main(int argc, char *argv[]);
 
 static int buzzer_init(void);
 static void buzzer_deinit(void);
-static void tune_confirm();
+static void tune_confirm(void);
 static int led_init(void);
 static void led_deinit(void);
 static int led_toggle(int led);
@@ -264,7 +264,7 @@ int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, u
 	return 0;
 }
 
-void tune_confirm() {
+void tune_confirm(void) {
 	ioctl(buzzer, TONE_SET_ALARM, 3);
 }
 
@@ -914,17 +914,69 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		}
 		break;
 
-		/*
-		 * do not report an error for commands that are
-		 * handled directly by MAVLink.
-		 */
-		case MAV_CMD_PREFLIGHT_STORAGE:
+		case MAV_CMD_PREFLIGHT_STORAGE: {
+			if (current_status.flag_system_armed) {
+				mavlink_log_info(mavlink_fd, "[cmd] REJECTING param command while armed");
+			} else {
+
+				// XXX move this to LOW PRIO THREAD of commander app
+				/* Read all parameters from EEPROM to RAM */
+
+				if (((int)(cmd->param1)) == 0)	{
+
+					/* read all parameters from EEPROM to RAM */
+					int read_ret = param_load_default();
+					if (read_ret == OK) {
+						//printf("[mavlink pm] Loaded EEPROM params in RAM\n");
+						mavlink_log_info(mavlink_fd, "[cmd] OK loading params from");
+						mavlink_log_info(mavlink_fd, param_get_default_file());
+						result = MAV_RESULT_ACCEPTED;
+					} else if (read_ret == 1) {
+						mavlink_log_info(mavlink_fd, "[cmd] OK no changes in");
+						mavlink_log_info(mavlink_fd, param_get_default_file());
+						result = MAV_RESULT_ACCEPTED;
+					} else {
+						if (read_ret < -1) {
+							mavlink_log_info(mavlink_fd, "[cmd] ERR loading params from");
+							mavlink_log_info(mavlink_fd, param_get_default_file());
+						} else {
+							mavlink_log_info(mavlink_fd, "[cmd] ERR no param file named");
+							mavlink_log_info(mavlink_fd, param_get_default_file());
+						}
+						result = MAV_RESULT_FAILED;
+					}
+
+				} else if (((int)(cmd->param1)) == 1)	{
+
+					/* write all parameters from RAM to EEPROM */
+					int write_ret = param_save_default();
+					if (write_ret == OK) {
+						mavlink_log_info(mavlink_fd, "[cmd] OK saved param file");
+						mavlink_log_info(mavlink_fd, param_get_default_file());
+						result = MAV_RESULT_ACCEPTED;
+
+					} else {
+						if (write_ret < -1) {
+							mavlink_log_info(mavlink_fd, "[cmd] ERR params file does not exit:");
+							mavlink_log_info(mavlink_fd, param_get_default_file());
+						} else {
+							mavlink_log_info(mavlink_fd, "[cmd] ERR writing params to");
+							mavlink_log_info(mavlink_fd, param_get_default_file());
+						}
+						result = MAV_RESULT_FAILED;
+					}
+
+				} else {
+					mavlink_log_info(mavlink_fd, "[pm] refusing unsupp. STOR request");
+					result = MAV_RESULT_UNSUPPORTED;
+				}
+			}
+		}
 		break;
 
 		default: {
-			mavlink_log_critical(mavlink_fd, "[commander] refusing unsupported command");
+			mavlink_log_critical(mavlink_fd, "[cmd] refusing unsupported command");
 			result = MAV_RESULT_UNSUPPORTED;
-			usleep(200000);
 			/* announce command rejection */
 			ioctl(buzzer, TONE_SET_ALARM, 4);
 		}
@@ -932,7 +984,13 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 	}
 
 	/* supported command handling stop */
-
+	if (result == MAV_RESULT_FAILED ||
+		result == MAV_RESULT_DENIED ||
+		result == MAV_RESULT_UNSUPPORTED) {
+		ioctl(buzzer, TONE_SET_ALARM, 5);
+	} else if (result == MAV_RESULT_ACCEPTED) {
+		tune_confirm();
+	}
 
 	/* send any requested ACKs */
 	if (cmd->confirmation > 0) {
@@ -1523,12 +1581,14 @@ int commander_thread_main(int argc, char *argv[])
 					current_status.flag_control_manual_enabled = false;
 					current_status.flag_control_offboard_enabled = true;
 					state_changed = true;
+					tune_confirm();
 					
-					mavlink_log_critical(mavlink_fd, "[commander] DETECTED OFFBOARD CONTROL SIGNAL FIRST TIME.");
+					mavlink_log_critical(mavlink_fd, "[commander] DETECTED OFFBOARD CONTROL SIGNAL FIRST");
 				} else {
 					if (current_status.offboard_control_signal_lost) {
-						mavlink_log_critical(mavlink_fd, "[commander] RECOVERY - OFFBOARD CONTROL SIGNAL GAINED!");
+						mavlink_log_critical(mavlink_fd, "[commander] OK:RECOVERY OFFBOARD CONTROL");
 						state_changed = true;
+						tune_confirm();
 					}
 				}
 
@@ -1550,7 +1610,7 @@ int commander_thread_main(int argc, char *argv[])
 				/* print error message for first RC glitch and then every 5 s / 5000 ms) */
 				if (!current_status.offboard_control_signal_weak || ((hrt_absolute_time() - last_print_time) > 5000000)) {
 					current_status.offboard_control_signal_weak = true;
-					mavlink_log_critical(mavlink_fd, "[commander] CRITICAL - NO OFFBOARD CONTROL SIGNAL!");
+					mavlink_log_critical(mavlink_fd, "[commander] CRIT:NO OFFBOARD CONTROL!");
 					last_print_time = hrt_absolute_time();
 				}
 				/* flag as lost and update interval since when the signal was lost (to initiate RTL after some time) */
@@ -1560,10 +1620,11 @@ int commander_thread_main(int argc, char *argv[])
 				if (current_status.offboard_control_signal_lost_interval > 100000) {
 					current_status.offboard_control_signal_lost = true;
 					current_status.failsave_lowlevel_start_time = hrt_absolute_time();
-					current_status.failsave_lowlevel = true;
+					tune_confirm();
 
 					/* kill motors after timeout */
 					if (hrt_absolute_time() - current_status.failsave_lowlevel_start_time > failsafe_lowlevel_timeout_ms*1000) {
+						current_status.failsave_lowlevel = true;
 						state_changed = true;
 					}
 				}

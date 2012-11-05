@@ -102,8 +102,7 @@ __EXPORT extern void		hx_stream_set_counters(hx_stream_t stream,
  * @param stream	A handle returned from hx_stream_init.
  * @param data		Pointer to the data to send.
  * @param count		The number of bytes to send.
- * @return		Zero on success, nonzero with errno
- *			set on error.
+ * @return		Zero on success, -errno on error.
  */
 __EXPORT extern int		hx_stream_send(hx_stream_t stream,
 		const void *data,

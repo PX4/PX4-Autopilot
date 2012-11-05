@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <poll.h>
 
 #include <nuttx/clock.h>
 
@@ -81,7 +82,6 @@ comms_check(void)
 {
 	static hrt_abstime last_report_time;
 	hrt_abstime now, delta;
-	uint8_t c;
 
 	/* should we send a report to the FMU? */
 	now = hrt_absolute_time();
@@ -93,7 +93,7 @@ comms_check(void)
 		last_report_time = now;
 
 		/* populate the report */
-		for (unsigned i = 0; i < system_state.rc_channels; i++)
+		for (int i = 0; i < system_state.rc_channels; i++)
 			report.rc_channel[i] = system_state.rc_channel_data[i];
 		report.channel_count = system_state.rc_channels;
 		report.armed = system_state.armed;
@@ -102,21 +102,47 @@ comms_check(void)
 		hx_stream_send(stream, &report, sizeof(report));
 	}
 
-	/* feed any received bytes to the HDLC receive engine */
-	while (read(fmu_fd, &c, 1) == 1)
-		hx_stream_rx(stream, c);
+	/*
+	 * Check for bytes and feed them to the RX engine.  
+	 * Limit the number of bytes we actually process on any one iteration.
+	 */
+	char buf[32];
+	ssize_t count = read(fmu_fd, buf, sizeof(buf));
+	for (int i = 0; i < count; i++)
+		hx_stream_rx(stream, buf[i]);
+}
+
+int frame_rx;
+int frame_bad;
+
+static void
+comms_handle_config(const void *buffer, size_t length)
+{
+	const struct px4io_config *cfg = (struct px4io_config *)buffer;
+
+	if (length != sizeof(*cfg)) {
+		frame_bad++;
+		return;
+	}
+
+	frame_rx++;
+
+	mixer_set_serial_mode(cfg->serial_rx_mode);
+
 }
 
 static void
-comms_handle_frame(void *arg, const void *buffer, size_t length)
+comms_handle_command(const void *buffer, size_t length)
 {
-	struct px4io_command *cmd;
+	const struct px4io_command *cmd = (struct px4io_command *)buffer;
 
-	/* make sure it's what we are expecting */
-	if (length != sizeof(struct px4io_command))
+	if (length != sizeof(*cmd)) {
+		frame_bad++;
 		return;
+	}
 
-	cmd = (struct px4io_command *)buffer;
+	frame_rx++;
+	irqstate_t flags = irqsave();
 
 	/* fetch new PWM output values */
 	for (unsigned i = 0; i < PX4IO_OUTPUT_CHANNELS; i++)
@@ -133,4 +159,30 @@ comms_handle_frame(void *arg, const void *buffer, size_t length)
 	/* XXX do relay changes here */	
 	for (unsigned i = 0; i < PX4IO_RELAY_CHANNELS; i++)
 		system_state.relays[i] = cmd->relay_state[i];
+
+	irqrestore(flags);
 }
+
+
+static void
+comms_handle_frame(void *arg, const void *buffer, size_t length)
+{
+	const uint16_t *type = (const uint16_t *)buffer;
+
+
+	/* make sure it's what we are expecting */
+	if (length > 2) {
+		switch (*type) {
+		case F2I_MAGIC:
+			comms_handle_command(buffer, length);
+			break;
+		case F2I_CONFIG_MAGIC:
+			comms_handle_config(buffer, length);
+			break;
+		default:
+			break;
+		}
+	}
+    	frame_bad++;
+}
+

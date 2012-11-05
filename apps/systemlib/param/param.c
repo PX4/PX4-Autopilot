@@ -482,7 +482,7 @@ param_reset_all(void)
 }
 
 static const char *param_default_file = "/eeprom/parameters";
-static char *param_user_file;
+static char *param_user_file = NULL;
 
 int
 param_set_default_file(const char* filename)

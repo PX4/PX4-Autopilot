@@ -58,11 +58,14 @@
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_baro.h>
+#include <drivers/drv_rc_input.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
 #include <systemlib/err.h>
 #include <systemlib/perf_counter.h>
+
+#include <systemlib/ppm_decode.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
@@ -89,19 +92,6 @@
 #define BAT_VOL_LOWPASS_1 0.99f
 #define BAT_VOL_LOWPASS_2 0.01f
 #define VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS 3.5f
-
-#ifdef CONFIG_HRT_PPM
-extern "C" {
-	extern uint16_t ppm_buffer[];
-	extern unsigned ppm_decoded_channels;
-	extern uint64_t ppm_last_valid_decode;
-}
-
-/* PPM Settings */
-#  define PPM_MIN 1000
-#  define PPM_MAX 2000
-#  define PPM_MID (PPM_MIN+PPM_MAX)/2
-#endif
 
 /**
  * Sensor app start / stop handling function
@@ -155,6 +145,7 @@ private:
 	int		_gyro_sub;			/**< raw gyro data subscription */
 	int		_accel_sub;			/**< raw accel data subscription */
 	int		_mag_sub;			/**< raw mag data subscription */
+	int 		_rc_sub;			/**< raw rc channels data subscription */
 	int		_baro_sub;			/**< raw baro data subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
@@ -174,6 +165,7 @@ private:
 		float rev[_rc_max_chan_count];
 		float dz[_rc_max_chan_count];
 		float ex[_rc_max_chan_count];
+		float scaling_factor[_rc_max_chan_count];
 
 		float gyro_offset[3];
 		float mag_offset[3];
@@ -343,6 +335,7 @@ Sensors::Sensors() :
 	_gyro_sub(-1),
 	_accel_sub(-1),
 	_mag_sub(-1),
+	_rc_sub(-1),
 	_baro_sub(-1),
 	_vstatus_sub(-1),
 	_params_sub(-1),
@@ -476,14 +469,13 @@ Sensors::parameters_update()
 			warnx("Failed getting exponential gain for chan %d", i);
 		}
 
-		_rc.chan[i].scaling_factor = (1.0f / ((_parameters.max[i] - _parameters.min[i]) / 2.0f) * _parameters.rev[i]);
+		_parameters.scaling_factor[i] = (1.0f / ((_parameters.max[i] - _parameters.min[i]) / 2.0f) * _parameters.rev[i]);
 
 		/* handle blowup in the scaling factor calculation */
-		if (isnan(_rc.chan[i].scaling_factor) || isinf(_rc.chan[i].scaling_factor)) {
-			_rc.chan[i].scaling_factor = 0;
+		if (isnan(_parameters.scaling_factor[i]) || isinf(_parameters.scaling_factor[i])) {
+			_parameters.scaling_factor[i] = 0;
 		}
 
-		_rc.chan[i].mid = _parameters.trim[i];
 	}
 
 	/* update RC function mappings */
@@ -868,98 +860,125 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 void
 Sensors::ppm_poll()
 {
-	struct manual_control_setpoint_s manual_control;
+	/* fake low-level driver, directly pulling from driver variables */
+	static orb_advert_t rc_input_pub = -1;
+	struct rc_input_values raw;
 
-	/* check to see whether a new frame has been decoded */
-	if (_ppm_last_valid == ppm_last_valid_decode)
-		return;
-	/* require at least two chanels to consider the signal valid */
-	if (ppm_decoded_channels < 4)
-		return;
+	raw.timestamp = ppm_last_valid_decode;
 
-	unsigned channel_limit = ppm_decoded_channels;
-	if (channel_limit > _rc_max_chan_count)
-		channel_limit = _rc_max_chan_count;
+	if (ppm_decoded_channels > 1) {
 
-	/* we are accepting this decode */
-	_ppm_last_valid = ppm_last_valid_decode;
-
-	/* Read out values from HRT */
-	for (unsigned int i = 0; i < channel_limit; i++) {
-		_rc.chan[i].raw = ppm_buffer[i];
-
-		/* scale around the mid point differently for lower and upper range */
-		if (ppm_buffer[i] > (_parameters.trim[i] + _parameters.dz[i])) {
-			_rc.chan[i].scaled = (ppm_buffer[i] - _parameters.trim[i]) / (float)(_parameters.max[i] - _parameters.trim[i]);
-		} else if (ppm_buffer[i] < (_parameters.trim[i] - _parameters.dz[i])) {
-			/* division by zero impossible for trim == min (as for throttle), as this falls in the above if clause */
-			_rc.chan[i].scaled = -((_parameters.trim[i] - ppm_buffer[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
-			
-		} else {
-			/* in the configured dead zone, output zero */
-			_rc.chan[i].scaled = 0.0f;
+		for (int i = 0; i < ppm_decoded_channels; i++) {
+			raw.values[i] = ppm_buffer[i];
 		}
 
-		/* reverse channel if required */
-		if (i == _rc.function[THROTTLE]) {
-			if ((int)_parameters.rev[i] == -1) {
-				_rc.chan[i].scaled = 1.0f + -1.0f * _rc.chan[i].scaled;
+		raw.channel_count = ppm_decoded_channels;
+
+		/* publish to object request broker */
+		if (rc_input_pub <= 0) {
+			rc_input_pub = orb_advertise(ORB_ID(input_rc), &raw);
+		} else {
+			orb_publish(ORB_ID(input_rc), rc_input_pub, &raw);
+		}
+	}
+
+
+	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
+	bool rc_updated;
+	orb_check(_rc_sub, &rc_updated);
+
+	if (rc_updated) {
+		struct rc_input_values	rc_input;
+
+		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
+
+		struct manual_control_setpoint_s manual_control;
+
+		/* require at least two chanels to consider the signal valid */
+		if (rc_input.channel_count < 2)
+			return;
+
+		unsigned channel_limit = rc_input.channel_count;
+		if (channel_limit > _rc_max_chan_count)
+			channel_limit = _rc_max_chan_count;
+
+		/* we are accepting this message */
+		_ppm_last_valid = rc_input.timestamp;
+
+		/* Read out values from raw message */
+		for (unsigned int i = 0; i < channel_limit; i++) {
+
+			/* scale around the mid point differently for lower and upper range */
+			if (rc_input.values[i] > (_parameters.trim[i] + _parameters.dz[i])) {
+				_rc.chan[i].scaled = (rc_input.values[i] - _parameters.trim[i]) / (float)(_parameters.max[i] - _parameters.trim[i]);
+			} else if (rc_input.values[i] < (_parameters.trim[i] - _parameters.dz[i])) {
+				/* division by zero impossible for trim == min (as for throttle), as this falls in the above if clause */
+				_rc.chan[i].scaled = -((_parameters.trim[i] - rc_input.values[i]) / (float)(_parameters.trim[i] - _parameters.min[i]));
+				
+			} else {
+				/* in the configured dead zone, output zero */
+				_rc.chan[i].scaled = 0.0f;
 			}
-		} else {
-			_rc.chan[i].scaled *= _parameters.rev[i];
+
+			/* reverse channel if required */
+			if (i == _rc.function[THROTTLE]) {
+				if ((int)_parameters.rev[i] == -1) {
+					_rc.chan[i].scaled = 1.0f + -1.0f * _rc.chan[i].scaled;
+				}
+			} else {
+				_rc.chan[i].scaled *= _parameters.rev[i];
+			}
+
+			/* handle any parameter-induced blowups */
+			if (isnan(_rc.chan[i].scaled) || isinf(_rc.chan[i].scaled))
+				_rc.chan[i].scaled = 0.0f;
 		}
 
-		/* handle any parameter-induced blowups */
-		if (isnan(_rc.chan[i].scaled) || isinf(_rc.chan[i].scaled))
-			_rc.chan[i].scaled = 0.0f;
+		_rc.chan_count = rc_input.channel_count;
+		_rc.timestamp = rc_input.timestamp;
 
-		//_rc.chan[i].scaled = (ppm_buffer[i] - _rc.chan[i].mid) * _rc.chan[i].scaling_factor;
+		manual_control.timestamp = rc_input.timestamp;
+
+		/* roll input - rolling right is stick-wise and rotation-wise positive */
+		manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled;
+		if (manual_control.roll < -1.0f) manual_control.roll = -1.0f;
+		if (manual_control.roll >  1.0f) manual_control.roll =  1.0f;
+		if (!isnan(_parameters.rc_scale_roll) || !isinf(_parameters.rc_scale_roll)) {
+			manual_control.roll *= _parameters.rc_scale_roll;
+		}
+
+		/*
+		 * pitch input - stick down is negative, but stick down is pitching up (pos) in NED,
+		 * so reverse sign.
+		 */
+		manual_control.pitch = -1.0f * _rc.chan[_rc.function[PITCH]].scaled;
+		if (manual_control.pitch < -1.0f) manual_control.pitch = -1.0f;
+		if (manual_control.pitch >  1.0f) manual_control.pitch =  1.0f;
+		if (!isnan(_parameters.rc_scale_pitch) || !isinf(_parameters.rc_scale_pitch)) {
+			manual_control.pitch *= _parameters.rc_scale_pitch;
+		}
+
+		/* yaw input - stick right is positive and positive rotation */
+		manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled * _parameters.rc_scale_yaw;
+		if (manual_control.yaw < -1.0f) manual_control.yaw = -1.0f;
+		if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
+		if (!isnan(_parameters.rc_scale_yaw) || !isinf(_parameters.rc_scale_yaw)) {
+			manual_control.yaw *= _parameters.rc_scale_yaw;
+		}
+		
+		/* throttle input */
+		manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
+		if (manual_control.throttle < 0.0f) manual_control.throttle = 0.0f;
+		if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
+
+		/* mode switch input */
+		manual_control.override_mode_switch = _rc.chan[_rc.function[OVERRIDE]].scaled;
+		if (manual_control.override_mode_switch < -1.0f) manual_control.override_mode_switch = -1.0f;
+		if (manual_control.override_mode_switch >  1.0f) manual_control.override_mode_switch =  1.0f;
+
+		orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
+		orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual_control);
 	}
-
-	_rc.chan_count = ppm_decoded_channels;
-	_rc.timestamp = ppm_last_valid_decode;
-
-	manual_control.timestamp = ppm_last_valid_decode;
-
-	/* roll input - rolling right is stick-wise and rotation-wise positive */
-	manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled;
-	if (manual_control.roll < -1.0f) manual_control.roll = -1.0f;
-	if (manual_control.roll >  1.0f) manual_control.roll =  1.0f;
-	if (!isnan(_parameters.rc_scale_roll) || !isinf(_parameters.rc_scale_roll)) {
-		manual_control.roll *= _parameters.rc_scale_roll;
-	}
-
-	/*
-	 * pitch input - stick down is negative, but stick down is pitching up (pos) in NED,
-	 * so reverse sign.
-	 */
-	manual_control.pitch = -1.0f * _rc.chan[_rc.function[PITCH]].scaled;
-	if (manual_control.pitch < -1.0f) manual_control.pitch = -1.0f;
-	if (manual_control.pitch >  1.0f) manual_control.pitch =  1.0f;
-	if (!isnan(_parameters.rc_scale_pitch) || !isinf(_parameters.rc_scale_pitch)) {
-		manual_control.pitch *= _parameters.rc_scale_pitch;
-	}
-
-	/* yaw input - stick right is positive and positive rotation */
-	manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled * _parameters.rc_scale_yaw;
-	if (manual_control.yaw < -1.0f) manual_control.yaw = -1.0f;
-	if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
-	if (!isnan(_parameters.rc_scale_yaw) || !isinf(_parameters.rc_scale_yaw)) {
-		manual_control.yaw *= _parameters.rc_scale_yaw;
-	}
-	
-	/* throttle input */
-	manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
-	if (manual_control.throttle < 0.0f) manual_control.throttle = 0.0f;
-	if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
-
-	/* mode switch input */
-	manual_control.override_mode_switch = _rc.chan[_rc.function[OVERRIDE]].scaled;
-	if (manual_control.override_mode_switch < -1.0f) manual_control.override_mode_switch = -1.0f;
-	if (manual_control.override_mode_switch >  1.0f) manual_control.override_mode_switch =  1.0f;
-
-	orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
-	orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual_control);
 
 }
 #endif
@@ -991,6 +1010,7 @@ Sensors::task_main()
 	_gyro_sub = orb_subscribe(ORB_ID(sensor_gyro));
 	_accel_sub = orb_subscribe(ORB_ID(sensor_accel));
 	_mag_sub = orb_subscribe(ORB_ID(sensor_mag));
+	_rc_sub = orb_subscribe(ORB_ID(input_rc));
 	_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));

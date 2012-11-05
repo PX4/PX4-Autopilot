@@ -46,12 +46,17 @@
  */
 #define PPM_MAX_CHANNELS	12
 
+/* PPM input nominal min/max values */
+#define PPM_MIN 1000
+#define PPM_MAX 2000
+#define PPM_MID ((PPM_MIN + PPM_MAX) / 2)
+
 __BEGIN_DECLS
 
 /*
  * PPM decoder state
  */
-__EXPORT extern uint16_t	ppm_buffer[];		/**< decoded PPM channel values */
+__EXPORT extern uint16_t	ppm_buffer[PPM_MAX_CHANNELS];	/**< decoded PPM channel values */
 __EXPORT extern unsigned	ppm_decoded_channels;	/**< count of decoded channels */
 __EXPORT extern hrt_abstime	ppm_last_valid_decode;	/**< timestamp of the last valid decode */
 

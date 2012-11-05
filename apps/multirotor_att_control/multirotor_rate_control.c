@@ -58,28 +58,28 @@
 PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.1f); /* same on Flamewheel */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.0f);
-PARAM_DEFINE_FLOAT(MC_YAWRATE_AWU, 0.0f);
-PARAM_DEFINE_FLOAT(MC_YAWRATE_LIM, 1.0f);
+//PARAM_DEFINE_FLOAT(MC_YAWRATE_AWU, 0.0f);
+//PARAM_DEFINE_FLOAT(MC_YAWRATE_LIM, 1.0f);
 
 PARAM_DEFINE_FLOAT(MC_ATTRATE_P, 0.2f); /* 0.15 F405 Flamewheel */
 PARAM_DEFINE_FLOAT(MC_ATTRATE_D, 0.05f);
 PARAM_DEFINE_FLOAT(MC_ATTRATE_I, 0.0f);
-PARAM_DEFINE_FLOAT(MC_ATTRATE_AWU, 0.05f);
-PARAM_DEFINE_FLOAT(MC_ATTRATE_LIM, 1.0f);	/**< roughly < 500 deg/s limit */
+//PARAM_DEFINE_FLOAT(MC_ATTRATE_AWU, 0.05f);
+//PARAM_DEFINE_FLOAT(MC_ATTRATE_LIM, 1.0f);	/**< roughly < 500 deg/s limit */
 
 struct mc_rate_control_params {
 
 	float yawrate_p;
 	float yawrate_d;
 	float yawrate_i;
-	float yawrate_awu;
-	float yawrate_lim;
+	//float yawrate_awu;
+	//float yawrate_lim;
 
 	float attrate_p;
 	float attrate_d;
 	float attrate_i;
-	float attrate_awu;
-	float attrate_lim;
+	//float attrate_awu;
+	//float attrate_lim;
 
 	float rate_lim;
 };
@@ -89,14 +89,14 @@ struct mc_rate_control_param_handles {
 	param_t yawrate_p;
 	param_t yawrate_i;
 	param_t yawrate_d;
-	param_t yawrate_awu;
-	param_t yawrate_lim;
+	//param_t yawrate_awu;
+	//param_t yawrate_lim;
 
 	param_t attrate_p;
 	param_t attrate_i;
 	param_t attrate_d;
-	param_t attrate_awu;
-	param_t attrate_lim;
+	//param_t attrate_awu;
+	//param_t attrate_lim;
 };
 
 /**
@@ -118,14 +118,14 @@ static int parameters_init(struct mc_rate_control_param_handles *h)
 	h->yawrate_p 	=	param_find("MC_YAWRATE_P");
 	h->yawrate_i 	=	param_find("MC_YAWRATE_I");
 	h->yawrate_d 	=	param_find("MC_YAWRATE_D");
-	h->yawrate_awu 	=	param_find("MC_YAWRATE_AWU");
-	h->yawrate_lim 	=	param_find("MC_YAWRATE_LIM");
+	//h->yawrate_awu 	=	param_find("MC_YAWRATE_AWU");
+	//h->yawrate_lim 	=	param_find("MC_YAWRATE_LIM");
 
 	h->attrate_p 	= 	param_find("MC_ATTRATE_P");
 	h->attrate_i 	= 	param_find("MC_ATTRATE_I");
 	h->attrate_d 	= 	param_find("MC_ATTRATE_D");
-	h->attrate_awu 	= 	param_find("MC_ATTRATE_AWU");
-	h->attrate_lim 	= 	param_find("MC_ATTRATE_LIM");
+	//h->attrate_awu 	= 	param_find("MC_ATTRATE_AWU");
+	//h->attrate_lim 	= 	param_find("MC_ATTRATE_LIM");
 
 	return OK;
 }
@@ -135,14 +135,14 @@ static int parameters_update(const struct mc_rate_control_param_handles *h, stru
 	param_get(h->yawrate_p, &(p->yawrate_p));
 	param_get(h->yawrate_i, &(p->yawrate_i));
 	param_get(h->yawrate_d, &(p->yawrate_d));
-	param_get(h->yawrate_awu, &(p->yawrate_awu));
-	param_get(h->yawrate_lim, &(p->yawrate_lim));
+	//param_get(h->yawrate_awu, &(p->yawrate_awu));
+	//param_get(h->yawrate_lim, &(p->yawrate_lim));
 
 	param_get(h->attrate_p, &(p->attrate_p));
 	param_get(h->attrate_i, &(p->attrate_i));
 	param_get(h->attrate_d, &(p->attrate_d));
-	param_get(h->attrate_awu, &(p->attrate_awu));
-	param_get(h->attrate_lim, &(p->attrate_lim));
+	//param_get(h->attrate_awu, &(p->attrate_awu));
+	//param_get(h->attrate_lim, &(p->attrate_lim));
 
 	return OK;
 }

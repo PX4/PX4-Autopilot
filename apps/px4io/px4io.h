@@ -32,10 +32,18 @@
  ****************************************************************************/
 
  /**
-  * @file General defines and structures for the PX4IO module firmware.
+  * @file px4io.h
+  *
+  * General defines and structures for the PX4IO module firmware.
   */
 
-#include <arch/board/drv_gpio.h>
+#include <nuttx/config.h>
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include <drivers/boards/px4io/px4io_internal.h>
+
 #include "protocol.h"
 
 /*
@@ -43,6 +51,16 @@
  */
 #define MAX_CONTROL_CHANNELS	12
 #define IO_SERVO_COUNT		8
+
+/*
+ * Debug logging
+ */
+
+#if 1
+# define debug(fmt, ...)	lib_lowprintf(fmt "\n", ##args)
+#else
+# define debug(fmt, ...)	do {} while(0)
+#endif
 
 /*
  * System state structure.
@@ -83,9 +101,18 @@ struct sys_state_s
 	 * If true, new control data from the FMU has been received.
 	 */
 	bool		fmu_data_received;
+
+	/*
+	 * Current serial interface mode, per the serial_rx_mode parameter
+	 * in the config packet.
+	 */
+	uint8_t		serial_rx_mode;
 };
 
 extern struct sys_state_s system_state;
+
+extern int frame_rx;
+extern int frame_bad;
 
 /*
  * Software countdown timers.
@@ -102,26 +129,25 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
 /*
  * GPIO handling.
  */
-extern int gpio_fd;
+#define LED_BLUE(_s)		stm32_gpiowrite(GPIO_LED1, !(_s))
+#define LED_AMBER(_s)		stm32_gpiowrite(GPIO_LED2, !(_s))
+#define LED_SAFETY(_s)		stm32_gpiowrite(GPIO_LED3, !(_s))
 
-#define POWER_SERVO(_s)		ioctl(gpio_fd, GPIO_SET(GPIO_SERVO_POWER), (_s))
-#define POWER_ACC1(_s)		ioctl(gpio_fd, GPIO_SET(GPIO_SERVO_ACC1), (_s))
-#define POWER_ACC2(_s)		ioctl(gpio_fd, GPIO_SET(GPIO_SERVO_ACC2), (_s))
-#define POWER_RELAY1(_s)	ioctl(gpio_fd, GPIO_SET(GPIO_RELAY1, (_s))
-#define POWER_RELAY2(_s)	ioctl(gpio_fd, GPIO_SET(GPIO_RELAY2, (_s))
+#define POWER_SERVO(_s)		stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
+#define POWER_ACC1(_s)		stm32_gpiowrite(GPIO_SERVO_ACC1_EN, (_s))
+#define POWER_ACC2(_s)		stm32_gpiowrite(GPIO_SERVO_ACC2_EN, (_s))
+#define POWER_RELAY1(_s)	stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
+#define POWER_RELAY2(_s)	stm32_gpiowrite(GPIO_RELAY2_EN, (_s))
 
-#define LED_AMBER(_s)		ioctl(gpio_fd, GPIO_SET(GPIO_LED_AMBER), !(_s))
-#define LED_BLUE(_s)		ioctl(gpio_fd, GPIO_SET(GPIO_LED_BLUE), !(_s))
-#define LED_SAFETY(_s)		ioctl(gpio_fd, GPIO_SET(GPIO_LED_SAFETY), !(_s))
-
-#define OVERCURRENT_ACC		ioctl(gpio_fd, GPIO_GET(GPIO_ACC_OVERCURRENT), 0)
-#define OVERCURRENT_SERVO	ioctl(gpio_fd, GPIO_GET(GPIO_SERVO_OVERCURRENT), 0)
-#define BUTTON_SAFETY		ioctl(gpio_fd, GPIO_GET(GPIO_SAFETY_BUTTON), 0)
+#define OVERCURRENT_ACC		stm32_gpioread(GPIO_ACC_OC_DETECT)
+#define OVERCURRENT_SERVO	stm32_gpioread(GPIO_SERVO_OC_DETECT
+#define BUTTON_SAFETY		stm32_gpioread(GPIO_BTN_SAFETY)
 
 /*
  * Mixer
  */
-extern int	mixer_init(const char *mq_name);
+extern int	mixer_init(void);
+extern void	mixer_set_serial_mode(uint8_t newmode);
 
 /*
  * Safety switch/LED.
