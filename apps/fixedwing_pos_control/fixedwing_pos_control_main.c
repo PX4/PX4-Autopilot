@@ -239,7 +239,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 				orb_copy(ORB_ID(vehicle_global_position_setpoint), global_setpoint_sub, &global_setpoint);
 
 			if(global_sp_updated) {
-				start_pos = global_pos; //for now using the current position as the startpoint (= approx. last waypoint)
+				start_pos = global_pos; //for now using the current position as the startpoint (= approx. last waypoint because the setpoint switch occurs at the waypoint)
 				global_sp_updated_set_once = true;
 				psi_track = get_bearing_to_next_waypoint((double)global_pos.lat / (double)1e7d, (double)global_pos.lon / (double)1e7d,
 						(double)global_setpoint.lat / (double)1e7d, (double)global_setpoint.lon / (double)1e7d);
@@ -252,12 +252,8 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 			/* Simple Horizontal Control */
 			if(global_sp_updated_set_once)
 			{
-				if (counter % 100 == 0)
-					printf("lat_sp %d, ln_sp %d, lat: %d, lon: %d\n", global_setpoint.lat, global_setpoint.lon, global_pos.lat, global_pos.lon);
-
-				/* calculate bearing error */
-//				float target_bearing = get_bearing_to_next_waypoint(global_pos.lat / (double)1e7d, global_pos.lon / (double)1e7d,
-//					global_setpoint.lat / (double)1e7d, global_setpoint.lon / (double)1e7d);
+//				if (counter % 100 == 0)
+//					printf("lat_sp %d, ln_sp %d, lat: %d, lon: %d\n", global_setpoint.lat, global_setpoint.lon, global_pos.lat, global_pos.lon);
 				
 				/* calculate crosstrack error */
 				// Only the case of a straight line track following handled so far
@@ -277,9 +273,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 					float psi_c = psi_track + delta_psi_c;
 
-
 					float psi_e = psi_c - att.yaw;
-
 
 					/* shift error to prevent wrapping issues */
 					psi_e = _wrapPI(psi_e);
