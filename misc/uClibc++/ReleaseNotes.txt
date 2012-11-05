@@ -1,0 +1,32 @@
+uClibc++-1.0
+============
+
+This package is a version of the uClibc++ C++ library customized to work
+with NuttX.  This code originates from http://cxx.uclibc.org/ and has been
+adapted for NuttX by the RGMP team (http://rgmp.sourceforge.net/wiki/index.php/Main_Page).
+Thanks go to Qiang Yu and David.
+
+uClibc++ is released as a separate packet rather than being integrated with
+the core NuttX source code. This separation is due to differences in
+licensing betweein uClibc++ and NuttX:  NuttX is licensed under the
+permissive modified BSD License; uClibc, on the other hand, is licensed
+under the stricter GNU LGPL Version 3 license.
+
+A simple installation script is provided at misc/uClibc++/install.sh that
+can be used to install the uClibc++ components into the NuttX source tree.
+See the README file in the top-level uClibc++ directory for instructions on
+using the installation script.  If you wish to use uClibc++ with NuttX, you
+will be required to comply with the licensing requires of the GNU LGPL
+Version 3 license.
+
+uClibc++ release 1.0 corresponds to SVN revision r5313.
+
+Note that all SVN information has been stripped from the tarball.  If you
+need the SVN configuration, you should check out directly from SVN.  Revision
+r5313 should equivalent to release 1.0 of NuttX uClibc++:
+
+    svn checkout -r5313 svn://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+
+Or
+
+    svn checkout -r5313 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code

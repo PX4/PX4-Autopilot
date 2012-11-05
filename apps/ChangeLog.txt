@@ -349,7 +349,7 @@
 	* apps/NxWidgets/Kconfig:  Add option to turn on the memory monitor
 	  feature of the NxWidgets/NxWM unit tests.
 
-6.23 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.23 2012-11-05 Gregory Nutt <gnutt@nuttx.org>
 
 	* vsn: Moved all NSH commands from vsn/ to system/.  Deleted the vsn/
 	  directory.
@@ -406,3 +406,4 @@
 	  supports setting IP addresses, network masks, name server addresses,
 	  and hardware address (from Darcy Gong).
 
+6.24 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>

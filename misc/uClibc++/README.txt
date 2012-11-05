@@ -48,7 +48,7 @@ Dependencies
   libraries.
 2. NuttX C++ support
 3. Math library
-4. TLS support is currenly provided only under RGMP
+4. TLS support is currently provided only under RGMP
 
 NuttX Configuration File Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -64,7 +64,7 @@ If you choose to use the NuttX math library, that is enabled as follows:
   CONFIG_LIBM=y
 
 The math libraries depend on the float.h header file that is normally
-provided by your tooltchain.  A dummy (and probably wrong) fload.h file
+provided by your toolchain.  A dummy (and probably wrong) fload.h file
 can be installed by setting:
 
   CONFIG_ARCH_FLOAT_H=y

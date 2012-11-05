@@ -1030,6 +1030,8 @@ Where <subdir> is one of the following:
      3. Then remove vterminate.o from the library.  At build time, the
         uClibc++ package will provide a usable replacement vterminate.o.
 
+     Steps 2 and 3 will require root privileges on most systems (not Cygwin).
+
      Now NuttX should link with no problem.  If you want to restore the
      vterminate.o that you removed from libsupc++, you can do that with:
 

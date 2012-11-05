@@ -1,0 +1,7 @@
+uClibc++-1.0 2011-11-05 <gnutt@nuttx.org>
+
+    * The initial release of the uClibc++ implementation of the standard
+      C++ library for NuttX.  This package was contributed ay Qiang Yu and
+      David for the RGMP team.
+
+uClibc++-1.1 2011-xx-xx <gnutt@nuttx.org>

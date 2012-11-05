@@ -101,7 +101,7 @@ buildroot-1.10 2011-05-06 <gnutt@nuttx.org>
 	* configs/arm920t-eabi-defconfig-4.5.2 - Add a configuration to build a
 	  GCC 4.5.2 EABI ARM toolchain for the ARM920t.
 
-buildroot-1.11 2011-xx-xx <gnutt@nuttx.org>
+buildroot-1.11 2011-11-05 <gnutt@nuttx.org>
 
 	* configs/avr-defconfig-4.3.3 - Added --enable-long-long as a GCC
 	  option.
@@ -127,3 +127,4 @@ buildroot-1.11 2011-xx-xx <gnutt@nuttx.org>
 	  past the end of allocated memory.  Partial restoration of R_ARM_REL32
 	  logic.  There are lots of issues that I still do not understand here.
 
+buildroot-1.12 2011-xx-xx <gnutt@nuttx.org>

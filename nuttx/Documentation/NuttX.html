@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
-      <p>Last Updated: October 29, 2012</p>
+      <p>Last Updated: November 5, 2012</p>
     </td>
   </tr>
 </table>
@@ -537,14 +537,14 @@
 <tr>
   <td valign="top" width="22"><img height="20" width="20" src="favicon.ico"></td>
   <td bgcolor="#5eaee1">
-    <b>C Library</b>
+    <b>C/C++ Libraries</b>
   </td>
 </tr>
 <tr>
   <td><br></td>
   <td>
     <p>
-      <li>Fully integrated into the OS.</li>
+      <li>Standard C Library Fully integrated into the OS.</li>
     </p>
   </td>
 </tr>
@@ -552,7 +552,7 @@
   <td><br></td>
   <td>
     <p>
-      <li>Includes floating point math library.</li>
+      <li>Includes floating point support via a Standard Math Library.</li>
     </p>
   </td>
 </tr>
@@ -560,7 +560,7 @@
   <td><br></td>
   <td>
     <p>
-      <li>Add-on <a href="http://cxx.uclibc.org/">uClibc++</a> C++ Library is available (LGPL).</li>
+      <li>Add-on <a href="http://cxx.uclibc.org/">uClibc++</a> module provides Standard C++ Library(LGPL).</li>
     </p>
   </td>
 </tr>
@@ -1039,121 +1039,115 @@
   </tr>
 </table>
 
-<h2>NuttX-6.22 Release Notes</h2>
+<h2>NuttX-6.23 Release Notes</h2>
 <p>
-  The 89<sup>th</sup> release of NuttX, Version 6.22, was made on September 29, 2012, and is available for download from the
+  The 90<sup>th</sup> release of NuttX, Version 6.23, was made on November 5, 2012, and is available for download from the
   <a href="http://sourceforge.net/projects/nuttx/files/">SourceForge</a> website.
-  Note that the release consists of two tarballs:  <code>nuttx-6.22.tar.gz</code> and <code>apps-6.22.tar.gz</code>.
+  Note that the release consists of two tarballs:  <code>nuttx-6.23.tar.gz</code> and <code>apps-6.23.tar.gz</code>.
   Both may be needed (see the top-level <code>nuttx/README.txt</code> file for build information)
   The change log associated with the release is available <a href="#currentrelease">here</a>.
   Unreleased changes after this release are available in SVN.
   These unreleased changes are also listed <a href="#pendingchanges">here</a>.
 </p>
 <p>
-  This release corresponds with SVN release number: r5206,
+  This release corresponds with SVN release number: r5313,
   Note that all SVN information has been stripped from the tarballs.
   If you need the SVN configuration, you should check out directly from SVN.
-  Revision r5206 should equivalent to release 6.22 of NuttX 6.22:
+  Revision r5313 should equivalent to release 6.23 of NuttX:
 </p>
 <ul><pre>
-svn checkout -r5206 svn://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+svn checkout -r5313 svn://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
 </pre></ul>
 <p>Or</p>
 <ul><pre>
-svn checkout -r5206 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+svn checkout -r5313 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
 </pre></ul>
 
 <p>
   <b>Additional new features and extended functionality</b>
 </p>
+
 <ul>
   <li>
     <p>
       <b>RTOS</b>:
-      Application entry point is no longer user_start, but can be configured using <code>CONFIG_USER_ENTRYPOINT</code>.
-      NuttX now supports two work queues:  A lower priority work queue (for extended processing) and a higher priority work queue (for quick, high priority operations).
+      If both <code>atexit()</code> and  <code>on_exit()</code> are enabled, use <code>on_exit()</code> to implement <code>atexit()</code>. 
+      Updates for RGMP 4.0.
     </p>
   </li>
   <li>
     <p>
-      <b>Memory Management</b>:
-      Added a new granule-based allocated that can be used to manage, aligned and quantized DMA memory.
-    </p>
-  </li>
-  <li>
-    <p>
-      <b>File System</b>:
-      Add hooks to allocate I/O memory with and external allocated (need if required by DMA).
-    </p>
-  </li>
-  <li>
-    <p>
-      <b>Networking</b>:
-      ENC28J60 driver is (finally) verified.
+      <b>Binfmt</b>:
+      Add support for loading and executing ELF binary modules from a file system.
     </p>
   </li>
   <li>
     <p>
       <b>Drivers</b>:
-      Add hooks USB device drivers to allocate I/O memory with and external allocated (need if required by DMA).
-      Driver for the Windbond SPI FLASH family (W25x16, W25x32, W25x64, and others).
-      ADS7843E driver extended for TSC2046 and XPT2046 and verified.
+      Maxim MAX11802 touchscreen controller (Petteri Aimonen)
     </p>
   </li>
   <li>
     <p>
-      <b>ARMv7-M</b>:
-      Added logic to reset the MCU using the NVIC.
+      <b>STM32 Driver</b>:
+      Implementation of <code>/dev/random</code> using the STM32 Random Number Generator (RNG).
     </p>
   </li>
   <li>
     <p>
-      <b>STM32</b>:
-      Add support for STM32F103VET6.
+      <b>STM32 Boards</b>:
+      ADC support for the Shenzhou IV board.
+      Relay support for the Shenzhou IV board (both by Darcy Gong).
     </p>
   </li>
   <li>
     <p>
-      <b>STM32 Drivers</b>:
-      Add logic to re-initialize UARTs a second time to enable DMA (Mike Smith).
-      I2C driver error recovery (Mike Smith).
+      <b>C++ Standard Library</b>:
+      Support is now included for the add-on uClibc++ C++ standard library support.
+      This includes support for iostreams, strings, STL, RTTI, exceptions -- the complete C++ environment.
+      uClibc++ is provided as a separate add-on package due to licensing issues.
+      Contributed by Qiang Yu and David of the RGMP team.
+    </p>
+    <p>
+      Add support for  <code>__cxa_atexit()</code>.
     </p>
   </li>
   <li>
     <p>
-      <b>STM32 boards</b>:
-      Support for USB host added add to several configurations (or at least explained in README files).
-      Support for the Shenzhou STM32F107 board (see www.armjishu.com).
-      Support for M3 Wildfire STM32F103 board (v2 and v3).
+      <b>C Standard Library</b>:
+    <p>
+      Optimized generic and ARM-specific <code>memcpy()</code> function.
+      Optimized <code>memset()</code> function.
+    </p>
+    <p>
+      Add support for <code>ferror())</code>, <code>feof())</code>, and <code>clearerror())</code>.
     </p>
   </li>
   <li>
     <p>
-      <b>Build System:</b>:
-      Kconfig string de-quoting logic.
-      Remove comments from <code>defconfig</code> files (Kate).
-      Add tool to create NuttX-style symbol tables.
-      Numerous changes to configuration logic as needed for the new <code>mconf</code>-based configuration (much of this from Richard Cochran).
-      Refactor common <code>Make.defs</code> logic into <code>tools/Config.mk</code> (Richard Cochran).
-    </p>
-  </li>
-  <li>
+      <b>Standard Math Library</b>:
     <p>
-      <b>Library</b>:
-      Configurable terse output from <code>strerror()</code>.
-      Added <code>perror()</code> (Kate).
-      Add <code>%n</code> format to <code>sscanf()</code> (Kate).
+      Port of the math library from Rhombus OS by Nick Johnson (Darcy Gong).
     </p>
   </li>
   <li>
     <p>
       <b>Applications</b>:
-      Numerous changes and extensions to the old uIP web server (from Kate and Max Holtzberg, see the ChangeLog for specific extensions).
-      UDP network discovery utility (Max Holtzberg).
-      Embeddable Lightweight XML-RPC Server (http://www.drdobbs.com/web-development/an-embeddable-lightweight-xml-rpc-server/184405364, Max Holtzberg).
+      New NSH commands:  <code>ifup</code>, <code>ifdown</code>, <code>urlencode</code>, <code>urldecode</code>, <code>base64enc</code>, <code>bas64dec</code>, and <code>md5</code> (Darcy Gong).
+      Extensions to the <code>ifconfig</code> command (Darcy Gong),
+      Add support for NSH telnet login (Darcy Gong).
+      Enancements to NSH ping command to support pinging hosts with very long round-trip times. 
+    </p>
+    <p>    
+      Many extensions to the <code>webclient</code>/<code>wget</code> and DNS resolver logic from Darcy Gong. 
+      SON, Base64, URL encoding, and MD5 libraries contributed by Darcy Gong.
+    </p>
+    <p>    
+      New examples: ELF loader, JSON, wgetjson, cxxtest, relays.
     </p>
   </li>
 </ul>
+
 <p>
   <b>Bugfixes</b> (see the change log for details)
   Some of these are very important (marked <b><i>critical</i></b>):
@@ -1161,78 +1155,27 @@ svn checkout -r5206 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
 <ul>
   <li>
     <p>
-      <b>RTOS</b>:
-      Fixes to priority inheritance logic (<b><i>critical</i></b>).
-      <code>waitpid()</code> critical section.
-      Assertion in <code>work_cancel()</code> (Mike Smith).
-      <code>mmap()</code> (Kate).
-    </p>
-  </li>
-  <li>
-    <p>
-      <b>FAT File System</b>:
-      Improper Boolean expression caused un-necessary writes and performance issues (<b><i>critical</i></b>, Ronen Vainish).
-    </p>
-  </li>
-  <li>
-    <p>
-      <b>Networking</b>:
-      Remove an un-necessary delay from <code>recvfrom()</code>.
-      This greatly improves network performance (<b><i>critical</i></b>, Max Holtzberg).
-    </p>
-  </li>
-  <li>
-    <p>
-      <b>Graphics</b>:
-      NX parameter checking errors.
-    </p>
-  </li>
-  <li>
-    <p>
       <b>Drivers</b>:
-      Fix double release of memory in SDIO-based, MMC/SD driver (Ronen Vainish).
-    </p>
-  </li>
-  <li>
-    <p>
-      <b>LPC17xx</b>:
-      Ethernet driver fixes needed for certain PHYs (Kate).
-    </p>
-  </li>
-  <li>
-    <p>
-      <b>AVR</b>:
-      Fix build error (Richard Cochran).
-    </p>
-  </li>
-  <li>
-    <p>
-      <b>STM32</b>:
-      USB OTG FS host driver NAKing an retries.
-      Power management compilation errors (Diego Sanchez).
-      Missing SPI3 remap logic.
+      W25 SPI FLASH
     </p>
   </li>
   <li>
     <p>
       <b>STM32 Drivers</b>:
-      Fix for Ethernet errata for STM32F107 (<b><i>critical</i></b>).
-      Ethernet buffer alignment check.
-      Add &quot;kludge&quot; to Ethernet driver to handle DM9161 PHY which (at least on the Shenzhou board), sometimes does not come up correctly.
+      ADC reset
     </p>
   </li>
   <li>
     <p>
-      <b>Applications</b>:
-      THTTPD (Kate).
-      NSH <code>ping</code> when IP address is on a different network (Darcy Gong).
+      <b>Fraphics</b>:
+      Missing implementation of the blocked method (*critical*, Petteri Aimonen).
     </p>
   </li>
   <li>
     <p>
-      <b>Library</b>:
-      <code>fread()</code>, <code>fflush()</code>, <code>fdopen()</code>: Fix error handling logic (Ronen Vainish).
-      Fix some field-width handling issues in <code>sscanf()</code>
+      <b>C Library</b>:
+      Floating point numbers in <code>printf</code> and related formatting functions (Mike Smith),
+      <code>cf[get|set]speed()</code> (Mike Smith)
     </p>
   </li>
 </ul>
@@ -3238,351 +3181,179 @@ Other memory:
 </table>
 
 <ul><pre>
-nuttx-6.22 2012-09-29 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+nuttx-6.23 2012-11-05 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
-    * include/semaphore.h, sched/sem_holders.c, and lib/semaphore/sem_init.c:
-      Fix some strange (and probably wrong) list handling when
-      CONFIG_PRIORITY_INHERITANCE and CONFIG_SEM_PREALLOCHOLDERS are defined.
-      This list handling was probably causing errors reported by Mike Smith
-    * sched/sched_waitpid.c: Fix a possible issue with logic logic that
-      should be brought into a critical section (suggested by Mike Smith)
-    * sched/sched_setuptaskfiles.c: Should be 'struct socket' not
-      'struct sockets'.  How did this compile before? (found by Kate)
-    * syscall/syscall.csv:  Fix prototype for usleep() and prctl() (also
-      from Kate).
-    * arch/arm/src/lpc17xx/lpc17_ethernet.c:  Conditionally elide setting PHY
-      speed/duplex.  This does not work for certain PHYs.  Still some unresolved
-      issues (also from Kate).
-    * tools/Config.mk, Makefile, configs/*/Make.defs:  Add a new Makefile
-      fragment to de-quote certain strings from the Kconfig logic that
-      need to be used at path segments (Richard Cochran).
-    * arch/arm/src/stm32/stm32_usbotghost.c:  The STM32 USB host driver only
-      works with debug turned on.  The problem appears to be that with debug
-      OFF, there are more NAKs occuring in more places than before and this
-      reveals a variety of errors.  This check in improves NAK robustness
-      for control transfers but does not resolve all of the issues.
-    * configs/stm3220g-eval/*/defconfig:  Calibrated delay loop.  It had
-      never been calibrated was way off.
-    * sched/sem_holder.c: Add logic to handler some priority inheritance
-      cases when sem_post() is called from an interrupt handler.  The
-      logic is clearly wrong, but it is not known if this is the
-      cause of any known bugs.
-    * lib/stdio/lib_perror():  Add perror().  Contributed by Kate.
-    * lib/string/lib_strerror():  Add option CONFIG_LIBC_STRERROR that
-      is now required to enabled strerror().  Add an option
-      CONFIG_LIBC_STRERROR_SHORT that can be used to output shortened
-      strings by strerror().
-    * arch/arm/src/stm32/stm32_usbotghost.c:  Finally... the USB OTG FS
-      appears to handle NAKing correctly.
-    * configs/stm32f4discovery/*:  Added and verifed support for USB OTG FS
-      host on the STM32F4Discovery board.
-    * configs/*/defconfig: Remove configuration documentation from config
-      files.  It is redundant, error-prone, and difficult to maintain.
-      Configuration documentation is available in configs/README.txt for
-      common configurations and in configs/*/README.txt for board and MCU-
-      specific configurations.
-    * configs/stm3240g-eval: Add USB host support.
-    * sched/os_bring.c, configs/*/defconfig, tools/mkconfig.c, and others:  Added
-      configuration variable CONFIG_USER_ENTRYPOINT that may be used to change
-      the default entry from user_start to some other symbol.  Contributed by
-      Kate. NOTE: This change does introduce a minor backward incompatibility.
-      For example, if your application uses NSH as its start-up program, then your
-      build will now fail because it will be unable to find &quot;user_start&quot;.  The fix
-      for this link failure is to add the following to your configuration file:
-      CONFIG_USER_ENTRYPOINT=&quot;nsh_main&quot;.
-    * libs/stdio/lib_libfread.c and lib_*flush*.c:  Correct a couple of
-      error cases where the lib semaphore was not be released on error
-      exits (thanks Ronen Vainish).  Also, improved some error reporting:
-      the generic ERROR was being used instead of the specific errno
-      value; the errno variable was not always set correctly.
-    * tools/mkfsdata.pl: The uIP web server CGI image making perl script was
-      moved from apps/netutils/webserver/makefsdata to nuttx/tools/mkfsdata.pl
-      (Part of a larger change submitted by Max Holtzberg).
-    * configs/stm3240g-eval/script/ld.script:  All of the identical ld.script
-      files for the STM3240G-EVAL were replaced by one version in this directory.
-    * configs/stm3240g-eval/webserver:  Configuration submitted by Max Holtzberg
-      for testing the changes to the uIP web server (see apps/ChangeLog.txt).
-    * lib/stdio/lib_perror.c:  Remove CONFIG_LIBC_PERROR_DEVNAME.  What was I
-      thinking?  Arbitrary streams cannot be shared by different tasks.
-    * tools/mksyscall.c, csvparser.c, and csvparser.h: Separate CSV parsing
-      logic from mksyscall.c into files where it can be shared.
-    * tools/mksymtab.c:  Add a tool that can be used to convert a CSV file
-      into a NuttX-style symbol table.
-    * sched/work_cancel.c:  Fix a bad assertion (reported by Mike Smith)
-    * configs/stm3210e-eval/src/up_idle.c:  Correct some power management
-      compilation errors (reported by Diego Sanchez).
-    * include/nuttx/wqueue.h, sched/work*, and others:  Added logic to support
-      a second, lower priority work queue (CONFIG_SCHED_LPWORK).
-    * arch/arm/src/stm32/stm32_dma.c, chip/stm32*_memorymap.h:  FSMC SRAM is
-      only 16-bits wide and the SDIO DMA must be set up differently.
-    * arch/arm/src/stm32/stm32_dma.c:  Back out the 16-bit DMA change. It
-      is incorrect.
-    * configs/:  Make use of UART4/5 vs USART4/5 consistent in all places.
-    * Kconfig: Serial 2STOP setting must be integer 0/1, not a boolean.
-    * lib/misc/sendfile.c and include/sys/sendfile.h:  Add a Linux style
-      sendfile() (non-standard!)
-    * Kconfig: Refactor serial settings (moved from chip to drivers/serial).
-      AVR &quot;teensy&quot; now builds with Kconfig (contributed by Richard Cochran).
-    * Kconfig: Add configuration settings for the LPC17xx
-    * Kconfig: Add configuration settings for the LM3S (from Richard Cochran).
-    * Kconfig: Verify configuration settings for the STM32.  This includes
-      changes in the way that the external SRAM is configured:  Define
-      CONFIG_HEAP2_SIZE (decimal) instead of CONFIG_HEAP2_END (hex).
-    * tools/configure.sh:  Don't append the apps directory path setting
-      if the correct setting is already in defined in the defconfig file.
-    * fs/fat/fs_utils.c:  Improperly constructed bool expression.  This
-      would cause many unnecessary writes to FLASH (Thanks Ronen Vainish).
-    * Kconfig: Verify configuration settings for the LPC43xx.  This includes
-      some corrections to configuration variable names and defconfig settings.
-    * Kconfig: Add and verify configuration settings for the LPC31xx.
-    * arch/arm/src/stm32/stm32_uart.h and stm32_serial.c:  Add logic to
-      re-initialize the console UART as needed to enable DMA on the
-      console UART (contributed by Mike Smith).
-    * net/recvfrom.c, net/Kconfig, include/nuttx/net/uipopt.h: Remove delay
-      after receiving data.  That has historical reasons to be there (it
-      was needed before read-ahead buffering was added), but kills performance.
-      (Noted by Max Holtzberg).
-    * configs/shenzhou:  Add beginnings of a board configuration for the
-      Shenzhou STM32107 board (see www.armjishu.com).  Very little is in
-      place as of this initial check-in.
-    * QEMU: Fixes from Richard Cochran to build QEMU with Kconfig files.
-    * arch/*/src/Makefile:  Remove some old logic that was kicked off
-      when CONFIG_BOOT_RUNFROMFLASH=y.  The old logic used to use
-      objcopy to move sections.  Newer logic changes the load position
-      of sections in the the linker script.  As far as I can tell, there
-      is nothing in the source tree now that depends on the old way of
-      doing things (if I am wrong, they will need a change to the linker
-      script).
-    * configs/fire-stm32v2:  Configuration for the M3 Wildfire board.  I
-      don't know very much about this board other than is has an
-      STM32F103VET6 chip, LCD, touchscreen, and ENC28J60 network.  Very
-      little is in place on the initial check-in.
-    * configs/shenzhou: Coding for the Shenzhou board port is complete,
-      but tested has been deferred until I get the right tools.
-    * arch/arc/include/stm32/chip.h and arch/arm/src/stm32/chip.h:
-      Add support for the STM32F103VET6.
-    * fs/fs_fdopen.c: Bad check for failure to allocate memory.  (Noted
-      by Ronen Vainish).
-    * drivers/mmcsd/mmcsd_sdio.c: If the MMC/SD driver were ever
-      uninitialized then there would be a double release of memory
-      (Noted by Ronen Vainish).
-    * fs/mmap/fs_rammap.c:  Fix logic error and errno check (contributed
-      by Kate).
-    * arch/avr/src: Fixes from AVR32 build errors that have crept in
-      over the time; incorporated Kconfig for AVR3 (Richard Cochran).
-    * fs/fat and include/nuttx/fs/fat.h: The FAT file system allocates
-      memory for sector I/O buffers used to exchange data with the
-      configured block driver.  In some contexts, the block driver may
-      require DMA-capable memory.  If CONFIG_FAT_DMAMEMORY is defined,
-      then the FAT FS will use platform-provided DMA memory allocators
-      to allocate the block driver I/O buffers.
-    * CONFIG_NET_ENC28J60 renamed CONFIG_ENC28J60 to be consistent
-      in all places.
-    * drivers/enc28j60.c, include/nuttx/net/enc28j60.h, and 
-      olimex-strp711/src/up_enc28j60.c:  No longer passes IRQ number
-      as a parameter.  Instead now passes a call table to manage
-      ENC28J60 GPIO interrupts.  That is because GPIO interrupts are
-      handled in different ways by different MCUs and some do not
-      support IRQ numbers for GPIO interrupts.
-    * mm/mm_gran* and include/nuttx/gran.h:  Add a simple granule-
-      based allocator.  The intent of this allocator is to support
-      simple allocation of DMA I/O buffers.  The initial check-in
-      is code complete but untested (not event built into the
-      mm/Makefile yet.
-    * confgs/fire-stm32v2: The board port is basically functional.
-      Not all features have been verified.  The ENC28J60 network
-      is not yet functional.
-    * configs/stm3240g-eval/discover:  A configuration for testing
-      the UDP discovery utility.  Contributed by Max Holtzberg.
-    * mm/README.txt:  Add a new README file.
-    * include/nuttx/usb/usb.h, arch/*/src/*usb.c, and arch/*/src/*otg*.c:
-      Add hooks to to use common, external DMA buffer allocation
-      implementation.
-    * net/recvfrom.c: Don't block in recvfrom if (1) read-ahead buffering
-      is enabled and (2) some data was obtained from read-ahead buffers.
-      Blocking is a bad idea in that case because there is no timeout!
-      (submitted by Max Holtzberg).
-    * configs/stm3240g-eval/xmlrpc: An example configuration for the
-      Embeddable Lightweight XML-RPC Server at apps/examples/xmlrpc.
-      See http://www.drdobbs.com/web-development/\
-      an-embeddable-lightweight-xml-rpc-server/184405364 for more info.
-      Contributed by Max Holtzberg.
-    * configs/*/nxwm/defconfig and sched/task_exithook.c: Fixes for
-      bugs that crept in during recent changes.  (Submitted by Max
-      Holtzberg).
-    * arch/arm/include/armv7-m/irq.h:  Fix a critical bug in irqsave().
-      It looks like sometimes the compile will re-order some instructions
-      inapproapriately.  This end result is that interrupts will get
-      stuck off.
-    * drivers/mtd/w25.c:  Beginning of a driver for the Windbond SPI
-      FLASH family (W25x16, W25x32, and W25x64).  The initial check-in
-      is basically just the SST25 driver with some name changes.
-    * arch/arm/include/armv7-m/irq.h and arch/arm/src/stm32/stm32_spi.c:
-      Back out the last change in irq.h.  It is (most likely) fine the
-      way it was.  The really interrupt related problem was in stm32_spi.c:
-      When SPI3 is not enabled, then the irqrestore() falls in the
-      else clause.
-    * include/nuttx/compiler.h and other files:  Moved always_inline
-      and noinline __attributes__ here.  Also replaced all occurrences
-      of explicit __atributes__ in other files with definitions from
-      this header file.
-    * drivers/mtd/w25.c:  The Windbond SPI FLASH W25 FLASH driver is
-      code complete (but still untested).
-    * arch/arm/src/stm32/stm32_i2c.c:  I2C improvements from Mike Smith.
-      Unified configuration logic; dynamic timeout calculations;
-      I2C reset logic to recover from locked devices on the bus.
-    * configs/*/*/Make.defs, tools/Config.mk, Makefile:  Refactor all
-      common make definitions from the various Make.defs files into
-      the common tools/Config.mk.  Add support for a verbosity options:
-      Specify V=1 on the make command line in order to see the exact
-      commands used in the build (Contributed by Richard Cochran).
-    * drivers/net/enc28j60.c:  The ENC28J60 Ethernet driver is
-      now functional.
-    * configs/fire-stm32v2:  Add support or the fire-stm32v3 board as
-      well (untested because I do not have a v3 board).
-    * lib/stdio/lib_sscanf.c:  Add %n psuedo-format (from Kate).
-    * lib/stdio/lib_sscanf.c:  There is an issue of handling input
-      when (1) no fieldwidth is provided and (2) there is no space
-      seperating the input values.  No solutions is in place for this
-      case now (either space or a fieldwidth must be provided).  But
-      at least some of the bad logic that attempted to handle this
-      case has been removed (noted by Kate).
-    * arch/arm/src/stm32/stm32_eth.c:  DMA buffer sizes must be an
-      even multiple of 4, 8, or 16 bytes.
-    * arch/arm/src/stm32/stm32_idle.c:  Fixes STM32F107 DMA issues:
-      We cannot go into sleep mode while Ethernet is actively DMAing.
-    * configs/shenzhou/src/up_ssd1289.c:  Add infrastructure to support
-      SSD1289 LCD.  Initial checkin is just a clone of the
-      STM32F4Discovery's FSMC-based LCD interface.  The Shenzhou
-      will need a completely need bit-banging interface; this
-      initial check-in is only for the framework.
-    * configs/shenzhou/src/up_ssd1289.c:  Bit-banging driver is
-      code complete.
-    * configs/shenzhou/src/up_lcd.c:  Oops. Shenzhou LCD does not
-      have an SSD1289 controller.  Its an ILI93xx.  Ported the
-      STM3240G-EVAL ILI93xx driver to work on the Shenzhou board.
-    * configs/shenzhou/nxwm:  Added an NxWM configuration for the
-      Shenzhou board.  This is untested on initial check-in.  It will
-      be used to verify the Shenzhou LCD driver (and eventually the
-      touchscreen driver).
-    * configs/shenzhou/src/up_touchscreen.c:  Add ADS7843E touchscreen
-      support for the Shenzhou board.  The initial check-in is untested
-      and basically a clone of the the touchscreen support for the SAM-3U.
-    * tools/cfgparser.c: There are some NxWidget configuration
-      settings that must be de-quoted.
-    * arch/arm/src/stm32/Kconfig: There is no SPI4.  Some platforms
-      support SPI3 and some do not (still not clear).
-    * nuttx/configs/shenzhou: Various fixes to build new NxWM
-      configuration.
-    * configs/shenzhou:  Oops.  The Shenzhou LCD is and SSD1289,
-      not an ILI93xx.
-    * configs/shenzhou/src/up_ssd1289.c: The LCD is basically functional
-      on the Shenzhou board.
-    * graphics/nxmu:  Correct some bad parameter checking that caused
-      failures when DEBUG was enabled.
-    * arch/arm/src/armv7-m/nvic.h:  Add bit definitions for the AIRCR
-      register.
-    * drivers/input/ads7843.c:  Need semaphore protection in logic
-      that samples the position.
-    * drivers/lcd/ssd1289.c:  On some platforms we are unable to
-      read the device ID -- reason unknown; workaround in place.
-    * drivers/input/ads7843.c:  Add thresholding options and an
-      option to swap X and Y positions.  Fix some logic errors in
-      the SPI locking/selecting logic.
-    * arch/arm/src/armv7-m/up_systemreset.c:  Add logic to reset
-      the Cortex-Mx using the AIRCR register.  Contributed by Darcy
-      Gong.
-    * arch/arm/src/stm32/up_eth.c:  Add logic specifically for the
-      DM9161 PHY.  If the DM9161 failed to initialize, then use the
-      up_sysemreset() logic to reset the MCU.  Contributed by Darcy
-      Gong.
-    * arch/arm/src/stm32/stm32_gpio.c:  Add missing logic to set bit
-      for SPI3 remap.  This fixes the XPT2046 touchscreen driver using
-      drivers/input/ads7843.c
-    * configs/shenzhou/src/up_ssd1289.c:  Fix naming error in
-      conditional compilation.
-    * configs/shenzhou/nxwm/defconfig:  Disable reading from the LCD.
-      This does not work.  The hardware and the driver support the
-      capability, but there is some bug that causes memory corruption.
-      The work around for now:  Just disable reading from the LCD.
-    * drivers/lcd/ssd1289.c:  Add some logic to reduce the amount of
-      output when CONFIG_DEBUG_LCD is enabled.
-    * configs/shenzhou/nxwm/defconfig:  Bug found and fixed... The
-      original configuration had too much stuff turned on.  Reducing
-      stack sizes, some features, and buffer sizes made the
-      configuration reliable (Reading from the LCD is still disabled).
-    * net/uip/uip_icmpping.c:  Fix problem that prevented ping from
-      going outside of local network.  Submitted by Darcy Gong
+    * arch/arm/src/stm32/stm32_rng.c, chip/stm32_rng.h, and other files:
+      Implementation of /dev/random using the STM32 Random Number
+      Generator (RNG).
+    * board.h file for shenzhou, fire-stm32v2, and olimex-stm32-p107:
+      Add frequencies for HSE, HSI, LSE, and LSI.  These are needed
+      by the STM32 watchdog driver.
+    * CONFIG_EXAMPLES_*: To make things consistent, changed all occurrences
+      of CONFIG_EXAMPLE_* to CONFIG_EXAMPLES_*.
+    * drivers/mtd/w25.c and configs/*/src/up_w25.c:  Several fixes for the
+      W25 SPI FLASH.
+    * configs/*/Make.defs:  All buildroot tools now use the extension
+      xxx-nuttx-elf- vs. xxx-elf-
+    * configs/shenzhou/*/Make.defs:  Now uses the new buildroot 4.6.3
+      EABI toolchain.
+    * lib/stdio/lib_libdtoa.c:  Another dtoa() fix from Mike Smith.
+    * configs/shenzhou/src/up_adc.c:  Add ADC support for the Shenzhou
+      board (Darcy Gong).
+    * configs/shenzhou/thttpd:  Add a THTTPD configuration for the
+      Shenzhou board (Darcy Gong).
+    * include/termios.h and lib/termios/libcf*speed.c: The non-standard,
+      &quot;hidden&quot; c_speed cannot be type const or else static instantiations
+      of termios will be required to initialize it (Mike Smith).
+    * drivers/input/max11802.c/h, and include/nuttx/input max11802.h:  Adds
+      support for the Maxim MAX11802 touchscreen controller (contributed by
+      Petteri Aimonen).
+    * graphics/nxtk/nxtk_events.c:  Missing implementatin of the blocked
+      method.  This is a critical bugfix for graphics support (contributed
+      by Petteri Aimonen).
+    * drivers/usbdev/pl2303.c, drivers/usbdev/usbmsc.h, and
+      include/nuttx/usb/cdcacm.h: USB_CONFIG_ATTR_SELFPOWER vs.
+      USB_CONFIG_ATT_SELFPOWER (contributed by Petteri Aimonen).
+    * arch/arm/src/armv7-m/up_memcpy.S:  An optimized memcpy() function for
+      the ARMv7-M family contributed by Mike Smith.
+    * lib/strings/lib_vikmemcpy.c:  As an option, the larger but faster
+      implemementation of memcpy from Daniel Vik is now available (this is
+      from http://www.danielvik.com/2010/02/fast-memcpy-in-c.html).
+    * lib/strings/lib_memset.c: CONFIG_MEMSET_OPTSPEED will select a
+      version of memset() optimized for speed.  By default, memset() is
+      optimized for size.
+    * lib/strings/lib_memset.c: CONFIG_MEMSET_64BIT will perform 64-bit
+      aligned memset() operations.
+    * arch/arm/src/stm32/stm32_adc.c:  Need to put the ADC back into the
+      initial reset in the open/setup logic.  Opening the ADC driver works
+      the first time, but not the second because the device is left in a
+      powered down state on the last close.
+    * configs/olimex-lpc1766stck/scripts:  Replace all of the identical
+      ld.script files with the common one in this directory.
+    * configs/stm3220g-eval/scripts:  Replace all of the identical
+      ld.script files with the common one in this directory.
+    * configs/hymini-stm32v/scripts:  Replace all of the identical
+      ld.script files with the common one in this directory.
+    * configs/lpcxpresso-lpc1768/scripts:  Replace all of the identical
+      ld.script files with the common one in this directory.
+    * binfmt/elf.c, binfmt/libelf, include/elf.h, include/nuttx/elf.h: Add
+      basic framework for loadable ELF module support.  The initial check-
+      in is non-functional and is simply the framework for ELF support.
+    * include/nuttx/binfmt.h, nxflat.h, elf.h, and symtab.h:  Moved to
+      include/nuttx/binfmt/.
+    * arch/sim/src/up_elf.c and arch/x86/src/common/up_elf.c:  Add
+      for ELF modules.
+    * arch/arm/include/elf.h:  Added ARM ELF header file.
+    * include/elf32.h:  Renamed elf.h to elf32.h.
+    * configs/stm32f4discovery/ostest:  Converted to use the new
+      Kconfig-based configuration system.
+    * configs/stm32f4discovery/elf and configs/stm32f4discovery/scripts/gnu-elf.ld
+      Add a configuration for testing the ARM ELF loader.
+    * binfmt/libelf:  Can't use fstat(). NuttX does not yet support it.  Damn!
+    * binfmt/libelf:  The basic ELF module execution appears fully functional.
+    * configs/shenzhou/src/up_relays.c:  Add support for relays from the
+      Shenzhou board.  Contributed by Darcy Gong.
+    * lib/fixedmath: Moved the old lib/math to lib/fixedmath to make room for
+      the math library from the Rhombus OS
+    * lib/math: Now contains the math library from the Rhombus OS by Nick Johnson
+      (submitted by Darcy Gong).
+    * include/float.h:  Add a first cut at the float.h header file.  This
+      really should be an architecture/toolchain-specific header file.  It
+      is only used if CONFIG_ARCH_FLOAT_H is defined.
+    * lib/math: Files now conform to coding standards.  Separated float,
+      double, and long double versions of code into separate files so that
+      they don't draw in so much un-necessary code when doing a dumb link.
+    * binfmt/libelf:  The ELF loader is working correctly with C++ static
+      constructors and destructors and all.
+    * Documentation/NuttXBinfmt.html:  Add documentionof the binary loader.
+    * configs/sim/ostest:  Converted to use the mconfig configuration tool.
+    * configs/sim/cxxtest:  New test that will be used to verify the uClibc++
+      port (eventually).
+    * include/nuttx/fs/fs.h, lib/stdio/lib_libfread.c, lib_ferror.c,
+      lib_feof.c, and lib_clearerr.c:  Add support for ferror(), feof(),
+      and clearerror().  ferror() support is bogus at the moment (it
+      is equivalent to !feof()); the others should be good.
+    * configs/stm32f4discovery/include/board.h:  Correct timer 2-7
+      base frequency (provided by Freddie Chopin).
+    * include/nuttx/sched.h, sched/atexit.c, and sched/task_deletehook.c:
+      If both atexit() and on_exit() are enabled, then implement atexit()
+      as just a special caseof on_exit().  This assumes that the ABI can
+      handle receipt of more call parameters than the receiving function
+      expects.  That is usually the case if parameters are passed in
+      registers.
+    * libxx/libxx_cxa_atexit():  Implements __cxa_atexit()
+    * configs/stm32f4discovery/cxxtest:  New test that will be used to
+      verify the uClibc++ port (eventually).  The sim platform turned not
+      to be a good platform for testing uClibc++.  The sim example will not
+      run because the simulator will attempt to execute the static
+      constructors before main() starts. BUT... NuttX is not initialized
+      and this results in a crash.  On the STM324Discovery, I will have
+      better control over when the static constructors run.
+    * RGMP 4.0 updated from Qiany Yu.
+    * configs/*/Make.defs and configs/*/ld.script:  Massive clean-up
+      and standardization of linker scripts from Freddie Chopin.
+    * net/netdev_ioctl.c:  Add interface state flags and ioctl calls
+      to bring network interfaces up and down (from Darcy Gong).
+    * config/stm32f4discovery: Enable C++ exceptions.  Now the entire
+      apps/examples/cxxtest works -- meaning the the uClibc++ is
+      complete and verified for the STM32 platform.
 
-apps-6.22 2012-09-29 Gregory Nutt &lt;gnutt@nuttx.org&gt;
+apps-6.23 2012-11-05 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
-    * apps/netutils/thttpd/thttpd_cgi.c:  Missing NULL in argv[]
-      list (contributed by Kate).
-    * apps/nshlib/nsh_parse.c: CONFIG_NSH_DISABLE_WGET not CONFIG_NSH_DISABLE_GET
-      in one location (found by Kate).
-    * apps/examples/ostest/prioinherit.c:  Limit the number of test
-      threads to no more than 3 of each priority.  Bad things happen
-      when the existing logic tried to created several hundred test
-      treads!
-    * apps/nshlib/nsh.h:  Both CONFIG_LIBC_STRERROR and CONFIG_NSH_STRERROR
-      must be defined to use strerror() with NSH.
-    * apps/examples/*/*_main.c, system/i2c/i2c_main.c, and others:  Added
-      configuration variable CONFIG_USER_ENTRYPOINT that may be used to change
-      the default entry from user_start to some other symbol.  Contributed by
-      Kate.
-    * apps/netutils/webserver/httpd/c:  Fix a typo that as introduced in
-      version r4402:  'lese' instead of 'else' (Noted by Max Holtzberg).
-    * tools/mkfsdata.pl: The uIP web server CGI image making perl script was
-      moved from apps/netutils/webserver/makefsdata to nuttx/tools/mkfsdata.pl
-      (Part of a larger change submitted by Max Holtzberg).
-    * apps/netutils/webserver, apps/examples/uip, and apps/include/netutils/httpd.h:
-      The &quot;canned&quot; version of the uIP web servers content that was at 
-      netutils/webserver/httpd_fsdata.c has been replaced with a dynamically
-      built configuration located at apps/examples/uip (Contributed by
-      Max Holtzberg).
-    * apps/netutils/webserver:  Several inenhancements from Kate including the
-      ability to elide scripting and SERVER headers and the ability to map
-      files into memory before transferring them.
-    * apps/netutils/webserver:  Add ability to map a URL to CGI function.
-      Contributed by Kate.
-    * apps/nshlib/nsh_mntcmds.c: The changes of 6.21 introduced holes in the
-      error handling:  Now the number of arguments to mount can be 0 or 4.
-      Additional parameter checking is required to prevent mysterious errors
-      (submiteed by Kate).
-    * apps/netutils/webserver/httpd_mmap.c:  Fix errors when the mmap()
-      length is zero (submitted by Kate).
-    * apps/netutils/webserver/httpd_sendfile.c:  Add and option,
-      CONFIG_NETUTILS_HTTPD_SENDFILE to transfer files using the NuttX
-      sendfile() interface.
-    * apps/netutils/discover:  A UDP network discovery utility contributed
-      by Max Holtzberg.
-    * apps/examples/discover:  A test example for the UDP network discovery
-      utility (also contribed by Max Holtzberg).
-    * apps/examples/*/main.c:  Too many files called main.c.  Each renamed
-      to something unique so that they will not collide in the archive.
-    * apps/netutils/xmlrpc: The Embeddable Lightweight XML-RPC Server
-      discussed at http://www.drdobbs.com/web-development/\
-      an-embeddable-lightweight-xml-rpc-server/184405364.  Contributed by
-      Max Holtzberg.
-    * apps/netutils/uip_listenon.c:  Logic in uip_server.c that creates
-      the listening socket was moved to this new file to support re-use.
-      Contributed by Kate.
-    * apps/netutils/webserver/httpd.c:  The option CONFIG_NETUTILS_HTTPD_SINGLECONNECT
-      can now be used to limit the server to a single thread.  Option
-      CONFIG_NETUTILS_HTTPD_TIMEOUT can be used to generate HTTP 408 errors.
-      Both from Kate.
-    * apps/netutils/webserver/httpd.c:  Improvements to HTTP parser from
-      Kate.
-    * apps/netutils/webserver/httpd.c:  Add support for Keep-alive connections
-      (from Kate).
-    * apps/NxWidget/Kconfig:  This is a kludge.  I created this NxWidgets
-      directory that ONLY contains Kconfig.  NxWidgets does not live in
-      either the nuttx/ or the apps/ source trees.  This kludge makes it
-      possible to configure NxWidgets/NxWM without too much trouble (with
-      the tradeoff being a kind ugly structure and some maintenance issues).
-    * apps/examples/Make.defs: Missing support for apps/examples/watchdog.
-    * apps/NxWidgets/Kconfig:  Add option to turn on the memory monitor
-      feature of the NxWidgets/NxWM unit tests.
+    * vsn: Moved all NSH commands from vsn/ to system/.  Deleted the vsn/
+      directory.
+    * Makefile:  Change order of includes when CONFIG_NEWCONFIG=y.  In
+      that case, namedapp must be included first so that the namedapp
+      context is established first.  If the namedapp context is established
+      later, it will overwrite any existing namedapp_list.h and nameapp_proto.h
+      files.
+    * CONFIG_EXAMPLES_*: To make things consistent, changed all occurrences
+      of CONFIG_EXAMPLE_* to CONFIG_EXAMPLES_*.
+    * Kconfig:  Fleshed out apps/examples/adc/Kconfig and apps/examples/wget/Kconfig.
+      There are still a LOT of empty, stub Kconfig files.
+    * Kconfig:  Fleshed out apps/examples/buttons/Kconfig. There are still a LOT
+      of empty, stub Kconfig files.
+    * apps/netutils/webserver/httpd.c:  Fix a bug that I introduced in
+      recent check-ins (Darcy Gong).
+    * apps/netutils/webclient/webclient.c:  Fix another but that I introduced
+      when I was trying to add correct handling for loss of connection (Darcy Gong)
+    * apps/nshlib/nsh_telnetd.c:  Add support for login to Telnet session via
+      username and password (Darcy Gong).
+    * apps/netutils/resolv/resolv.c (and files using the DNS resolver): Various
+      DNS address resolution improvements from Darcy Gong.
+    * apps/nshlib/nsh_netcmds.c:  The ping command now passes a maximum round
+      trip time to uip_icmpping().  This allows pinging of hosts on complex
+      networks where the ICMP ECHO round trip time may exceed the ping interval.
+    * apps/examples/nxtext/nxtext_main.c:  Fix bad conditional compilation
+      when CONFIG_NX_KBD is not defined.  Submitted by Petteri Aimonen.
+    * apps/examples/nximage/nximage_main.c:  Add a 5 second delay after the
+      NX logo is presented so that there is time for the image to be verified.
+      Suggested by Petteri Aimonen.
+    * apps/Makefile: Small change that reduces the number of shell invocations
+      by one (Mike Smith).
+    * apps/examples/elf:  Test example for the ELF loader.
+    * apps/examples/elf:  The ELF module test example appears fully functional.
+    * apps/netutils/json:  Add a snapshot of the cJSON project.  Contributed by
+      Darcy Gong.
+    * apps/examples/json:  Test example for cJSON from Darcy Gong
+    * apps/nshlib/nsh_netinit.c: Fix static IP DNS problem (Darcy Gong)
+    * apps/netutils/resolv/resolv.c: DNS fixes from Darcy Gong.
+    * COPYING: Licensing information added.
+    * apps/netutils/codec and include/netutils/urldecode.h, base64.h, and md5.h:
+      A port of the BASE46, MD5 and URL CODEC library from Darcy Gong.
+    * nsnlib/nsh_codeccmd.c:  NSH commands to use the CODEC library.
+      Contributed by Darcy Gong.
+    * apps/examples/wgetjson: Test example contributed by Darcy Gong
+    * apps/examples/cxxtest:  A test for the uClibc++ library provided by
+      Qiang Yu and the RGMP team.
+    * apps/netutils/webclient, apps/netutils.codes, and apps/examples/wgetjson:
+      Add support for wget POST interface.  Contributed by Darcy Gong.
+    * apps/examples/relays:  A relay example contributed by Darcy Gong.
+    * apps/nshlib/nsh_netcmds: Add ifup and ifdown commands (from Darcy
+      Gong).
+    * apps/nshlib/nsh_netcmds: Extend the ifconfig command so that it
+      supports setting IP addresses, network masks, name server addresses,
+      and hardware address (from Darcy Gong).
 
 NxWidgets-1.3 2012-09-29 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
@@ -3597,36 +3368,44 @@ NxWidgets-1.3 2012-09-29 Gregory Nutt &lt;gnutt@nuttx.org&gt;
     * Kconfig:  Add option to turn on the memory monitor feature of the
       NxWidgets/NxWM unit tests.
 
+uClibc++-1.0 2011-11-05 &lt;gnutt@nuttx.org&gt;
+
+    * The initial release of the uClibc++ implementation of the standard
+      C++ library for NuttX.  This package was contributed ay Qiang Yu and
+      David for the RGMP team.
+
+buildroot-1.11 2011-11-05 &lt;gnutt@nuttx.org&gt;
+
+    * configs/avr-defconfig-4.3.3 - Added --enable-long-long as a GCC
+      option.
+    * configs/avr-defconfig-4.5.2 - New configuration.
+    * Config.in and almost all configurations in configs/ - Changed the
+      default nuttx path to $(TOPDIR)/../../nuttx
+    * Misc files.  Patch provided by Gerd v. Egidy that solves the following
+      problems
+      - binutils 2.21 is not available on the gnu servers anymore, they replaced
+        it with 2.21.1
+      - there is some assembler error when compiling gcc for arm, gcc bugzilla
+        43999
+      - you can't build nuttx for cortex m3/m4 because of a missing instruction
+        in the assembler, binutils bugzilla 12296
+    * Add support for binutils 2.22 and GCC 4.6.3.
+    * Change name of all tools from xxx-elf to xxx-nuttx-elf
+    * Added an ARM EABI GCC 4.6.3 configuration (tool name is arm-nuttx-eabi-).
+    * ldnxflat: Add support for the R_ARM_REL32 relocation.  This relocation
+      type was not generated by GCC/LD prior to gcc-4.6.3
+    * R_ARM_REL32 logic is conditionally disabled because it has not been
+      tested.
+    * ldnxflat: Correct a memory allocation error that could cause written
+      past the end of allocated memory.  Partial restoration of R_ARM_REL32
+      logic.  There are lots of issues that I still do not understand here.
+
 pascal-3.0 2011-05-15 Gregory Nutt &lt;gnutt@nuttx.org&gt;
 
     * nuttx/:  The Pascal add-on module now installs and builds under the
       apps/interpreters directory.  This means that the pascal-2.1 module is
       incompatible with will all releases of NuttX prior to nuttx-6.0 where the 
       apps/ module was introduced.
-
-buildroot-1.10 2011-05-06 &lt;gnutt@nuttx.org&gt;
-
-    * Add patch submitted by Dimiter Georgiev to work around problems in building
-      GDB 6.8 with versions of Cygwin &gt; 1.7.
-    * configs/i486-defconfig-4.3.3 - Builds an i486 cross development toolchain
-      using gcc 4.3.3.  Why wouldyou want such a thing?  On Linux, of course,
-      such a thing is not needed because you can use the installed GCC to build
-      i486 ELF binaries.  But that will not work under Cygwin!  The Cygwin
-      toolchain (and probably MinGW), build DOS MZ format executables (i.e.,
-      .exe files).  That is probably not usable for most NuttX targets.
-      Instead, you should use this i486-nuttx-elf-gcc to generate true ELF binaries
-      under Cygwin.
-    * Makefile - Alter copy arguments to avoid permissions problems when
-      copying NuttX header files.
-    * toolchain/nxflat/nxflat.mk and Makefile - Fix include paths.
-    * toolchain/gcc/3.3.6 - Added a patch to fixed compilation error on Ubuntu
-      9.10.
-    * toolchain/nxflat/Makefile - Correct static library link order.
-    * configs/arm920t-defconfig-4.3.3 - Enable support for NXFLAT tools.
-    * toolchain/binutils/2.21 and toolchain/gcc/4.5.2 - Add support for GCC
-      4.5.2 with binutils 2.21.
-    * configs/arm920t-eabi-defconfig-4.5.2 - Add a configuration to build a
-      GCC 4.5.2 EABI ARM toolchain for the ARM920t.
 </pre></ul>
 
 <table width ="100%">

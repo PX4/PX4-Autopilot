@@ -3453,7 +3453,7 @@
 	* net/uip/uip_icmpping.c:  Fix problem that prevented ping from
 	  going outside of local network.  Submitted by Darcy Gong
 
-6.23 2012-09-29 Gregory Nutt <gnutt@nuttx.org>
+6.23 2012-11-05 Gregory Nutt <gnutt@nuttx.org>
 
 	* arch/arm/src/stm32/stm32_rng.c, chip/stm32_rng.h, and other files:
 	  Implementation of /dev/random using the STM32 Random Number
@@ -3480,7 +3480,7 @@
 	* drivers/input/max11802.c/h, and include/nuttx/input max11802.h:  Adds
 	  support for the Maxim MAX11802 touchscreen controller (contributed by
 	  Petteri Aimonen).
-	* graphics/nxtk/nxtk_events.c:  Missing implementatin of the blocked
+	* graphics/nxtk/nxtk_events.c:  Missing implementation of the blocked
 	  method.  This is a critical bugfix for graphics support (contributed
 	  by Petteri Aimonen).
 	* drivers/usbdev/pl2303.c, drivers/usbdev/usbmsc.h, and
@@ -3537,7 +3537,7 @@
 	  they don't draw in so much un-necessary code when doing a dumb link.
 	* binfmt/libelf:  The ELF loader is working correctly with C++ static
 	  constructors and destructors and all.
-	* Documentation/NuttXBinfmt.html:  Add documentionof the binary loader.
+	* Documentation/NuttXBinfmt.html:  Add documentation of the binary loader.
 	* configs/sim/ostest:  Converted to use the mconfig configuration tool.
 	* configs/sim/cxxtest:  New test that will be used to verify the uClibc++
 	  port (eventually).
@@ -3566,4 +3566,8 @@
 	  and standardization of linker scripts from Freddie Chopin.
 	* net/netdev_ioctl.c:  Add interface state flags and ioctl calls
 	  to bring network interfaces up and down (from Darcy Gong).
+	* config/stm32f4discovery: Enable C++ exceptions.  Now the entire
+	  apps/examples/cxxtest works -- meaning the the uClibc++ is
+	  complete and verified for the STM32 platform.
 
+6.24 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
