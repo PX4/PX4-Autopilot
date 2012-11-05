@@ -123,8 +123,8 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
 /*
  * GPIO handling.
  */
-#define LED_AMBER(_s)		stm32_gpiowrite(GPIO_LED1, !(_s))
-#define LED_BLUE(_s)		stm32_gpiowrite(GPIO_LED2, !(_s))
+#define LED_BLUE(_s)		stm32_gpiowrite(GPIO_LED1, !(_s))
+#define LED_AMBER(_s)		stm32_gpiowrite(GPIO_LED2, !(_s))
 #define LED_SAFETY(_s)		stm32_gpiowrite(GPIO_LED3, !(_s))
 
 #define POWER_SERVO(_s)		stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
