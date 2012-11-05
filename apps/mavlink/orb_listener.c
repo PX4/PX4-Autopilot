@@ -67,6 +67,7 @@ struct vehicle_global_position_s global_pos;
 struct vehicle_local_position_s local_pos;
 struct vehicle_status_s v_status;
 struct rc_channels_s rc;
+struct rc_input_values rc_raw;
 struct actuator_armed_s armed;
 
 struct mavlink_subscriptions mavlink_subs;
@@ -99,6 +100,7 @@ static void	l_vehicle_attitude(struct listener *l);
 static void	l_vehicle_gps_position(struct listener *l);
 static void	l_vehicle_status(struct listener *l);
 static void	l_rc_channels(struct listener *l);
+static void	l_input_rc(struct listener *l);
 static void	l_global_position(struct listener *l);
 static void	l_local_position(struct listener *l);
 static void	l_global_position_setpoint(struct listener *l);
@@ -116,6 +118,7 @@ struct listener listeners[] = {
 	{l_vehicle_gps_position,	&mavlink_subs.gps_sub,		0},
 	{l_vehicle_status,		&status_sub,			0},
 	{l_rc_channels,			&rc_sub,			0},
+	{l_input_rc,			&mavlink_subs.input_rc_sub,	0},
 	{l_global_position,		&mavlink_subs.global_pos_sub,	0},
 	{l_local_position,		&mavlink_subs.local_pos_sub,	0},
 	{l_global_position_setpoint,	&mavlink_subs.spg_sub,		0},
@@ -274,21 +277,29 @@ l_rc_channels(struct listener *l)
 {
 	/* copy rc channels into local buffer */
 	orb_copy(ORB_ID(rc_channels), rc_sub, &rc);
+	// XXX Add RC channels scaled message here
+}
+
+void
+l_input_rc(struct listener *l)
+{
+	/* copy rc channels into local buffer */
+	orb_copy(ORB_ID(input_rc), mavlink_subs.input_rc_sub, &rc_raw);
 	
 	if (gcs_link)
 		/* Channels are sent in MAVLink main loop at a fixed interval */
 		mavlink_msg_rc_channels_raw_send(chan,
-					 rc.timestamp / 1000,
+					 rc_raw.timestamp / 1000,
 					 0,
-					 rc.chan[0].raw,
-					 rc.chan[1].raw,
-					 rc.chan[2].raw,
-					 rc.chan[3].raw,
-					 rc.chan[4].raw,
-					 rc.chan[5].raw,
-					 rc.chan[6].raw,
-					 rc.chan[7].raw,
-					 rc.rssi);
+					 (rc_raw.channel_count > 0) ? rc_raw.values[0] : UINT16_MAX,
+					 (rc_raw.channel_count > 1) ? rc_raw.values[1] : UINT16_MAX,
+					 (rc_raw.channel_count > 2) ? rc_raw.values[2] : UINT16_MAX,
+					 (rc_raw.channel_count > 3) ? rc_raw.values[3] : UINT16_MAX,
+					 (rc_raw.channel_count > 4) ? rc_raw.values[4] : UINT16_MAX,
+					 (rc_raw.channel_count > 5) ? rc_raw.values[5] : UINT16_MAX,
+					 (rc_raw.channel_count > 6) ? rc_raw.values[6] : UINT16_MAX,
+					 (rc_raw.channel_count > 7) ? rc_raw.values[7] : UINT16_MAX,
+					 255);
 }
 
 void
@@ -583,6 +594,10 @@ uorb_receive_start(void)
 	/* --- RC CHANNELS VALUE --- */
 	rc_sub = orb_subscribe(ORB_ID(rc_channels));
 	orb_set_interval(rc_sub, 100);			/* 10Hz updates */
+
+	/* --- RC RAW VALUE --- */
+	mavlink_subs.input_rc_sub = orb_subscribe(ORB_ID(input_rc));
+	orb_set_interval(mavlink_subs.input_rc_sub, 100);
 
 	/* --- GLOBAL POS VALUE --- */
 	mavlink_subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));

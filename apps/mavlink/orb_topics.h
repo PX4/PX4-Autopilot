@@ -57,6 +57,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/debug_key_value.h>
+#include <drivers/drv_rc_input.h>
 
 struct mavlink_subscriptions {
 	int sensor_sub;
@@ -75,6 +76,7 @@ struct mavlink_subscriptions {
 	int spl_sub;
 	int spg_sub;
 	int debug_key_value;
+	int input_rc_sub;
 };
 
 extern struct mavlink_subscriptions mavlink_subs;

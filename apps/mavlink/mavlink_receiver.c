@@ -397,10 +397,6 @@ handle_message(mavlink_message_t *msg)
 
 			rc_hil.timestamp = hrt_absolute_time();
 			rc_hil.chan_count = 4;
-			rc_hil.chan[0].raw = 1500 + man.x / 2;
-			rc_hil.chan[1].raw = 1500 + man.y / 2;
-			rc_hil.chan[2].raw = 1500 + man.r / 2;
-			rc_hil.chan[3].raw = 1500 + man.z / 2;
 
 			rc_hil.chan[0].scaled = man.x / 1000.0f;
 			rc_hil.chan[1].scaled = man.y / 1000.0f;

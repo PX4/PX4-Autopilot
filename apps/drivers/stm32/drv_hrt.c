@@ -338,7 +338,7 @@ static void		hrt_call_invoke(void);
 /* decoded PPM buffer */
 #define PPM_MAX_CHANNELS	12
 __EXPORT uint16_t ppm_buffer[PPM_MAX_CHANNELS];
-__EXPORT unsigned ppm_decoded_channels;
+__EXPORT unsigned ppm_decoded_channels = 0;
 __EXPORT uint64_t ppm_last_valid_decode = 0;
 
 /* PPM edge history */

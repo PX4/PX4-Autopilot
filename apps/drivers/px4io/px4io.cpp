@@ -61,9 +61,10 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
-#include <systemlib/mixer/mixer.h>
+#include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 
+#include <systemlib/mixer/mixer.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/hx_stream.h>
 #include <systemlib/err.h>
@@ -104,6 +105,9 @@ private:
 
 	int			_t_armed;	///< system armed control topic
 	actuator_armed_s	_armed;		///< system armed state
+
+	orb_advert_t 		_to_input_rc;	///< rc inputs from io
+	rc_input_values		_input_rc;	///< rc input values
 
 	orb_advert_t		_t_outputs;	///< mixed outputs topic
 	actuator_outputs_s	_outputs;	///< mixed outputs
@@ -317,8 +321,13 @@ PX4IO::task_main()
 	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
 
 	/* advertise the mixed control outputs */
+	memset(&_outputs, 0, sizeof(_outputs));
 	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
 				   &_outputs);
+
+	/* advertise the rc inputs */
+	memset(&_input_rc, 0, sizeof(_input_rc));
+	_to_input_rc = orb_advertise(ORB_ID(input_rc), &_input_rc);
 
 	/* poll descriptor */
 	pollfd fds[3];
@@ -456,7 +465,14 @@ PX4IO::rx_callback(const uint8_t *buffer, size_t bytes_received)
 	}
 	_connected = true;
 
-	/* XXX handle R/C inputs here ... needs code sharing/library */
+	/* publish raw rc channel values from IO */
+	_input_rc.timestamp = hrt_absolute_time();
+	for (int i = 0; i < rep->channel_count; i++)
+	{
+		_input_rc.values[i] = rep->rc_channel[i];
+	}
+
+	orb_publish(ORB_ID(input_rc), _to_input_rc, &_input_rc);
 
 	/* remember the latched arming switch state */
 	_switch_armed = rep->armed;
