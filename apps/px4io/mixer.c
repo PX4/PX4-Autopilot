@@ -96,7 +96,7 @@ struct mixer {
 } mixers[IO_SERVO_COUNT];
 
 int
-mixer_init(const char *mq_name)
+mixer_init(void)
 {
 	/* look for control data at 50Hz */
 	hrt_call_every(&mixer_input_call, 1000, 20000, mixer_tick, NULL);
