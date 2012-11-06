@@ -212,35 +212,6 @@ mc_thread_main(int argc, char *argv[])
 			}
 
 			if (state.flag_control_attitude_enabled) {
-				float roll = manual.roll;
-				float pitch = manual.pitch;
-				if (manual.custom_mode == MANUAL_CONTROL_CUSTOM_MODE_MULTIROTOR_SIMPLE) {
-					if (state.flag_system_armed) {
-						if (!heading_set) {
-							initial_heading = att.yaw;
-							heading_set = true;
-						}
-
-						float delta = att.yaw - initial_heading;
-						
-						float x = sinf(M_PI_2_F - delta);
-						float y = cosf(M_PI_2_F - delta);
-
-						/* rotate the roll/pitch inputs */
-						roll = manual.roll * x + manual.pitch * y;
-						pitch = -(manual.roll * y - manual.pitch * x);
-						if (++debug_log_counter == 50) {
-							//fprintf(stderr, "att.yaw: %2.3f init_head: %3.2f delta: %3.2f roll: %2.3f pitch: %2.3f newroll: %2.3f newpitch: %2.3f\n", att.yaw, initial_heading, delta, manual.roll, manual.pitch, roll, pitch);
-							//fprintf(stderr, "roll: %2.3f pitch: %2.3f newroll: %2.3f newpitch: %2.3f\n", manual.roll, manual.pitch, roll, pitch);
-							debug_log_counter = 0;
-						}
-					} else {
-						heading_set = false;
-					}
-    				}
-				att_sp.roll_body = roll;
-				att_sp.pitch_body = pitch;
-
 				/* initialize to current yaw if switching to manual or att control */
 				if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
 			 	    state.flag_control_manual_enabled != flag_control_manual_enabled ||
@@ -255,6 +226,37 @@ mc_thread_main(int argc, char *argv[])
 				} else if (manual.throttle <= 0.3f) {
 					att_sp.yaw_body = att.yaw;
 				}
+
+				float roll = manual.roll;
+				float pitch = manual.pitch;
+				if (true) { //) || manual.custom_mode == MANUAL_CONTROL_CUSTOM_MODE_MULTIROTOR_SIMPLE) {
+					if (state.flag_system_armed) {
+						if (!heading_set) {
+							initial_heading = att.yaw;
+							heading_set = true;
+						}
+
+						float theta = initial_heading - att.yaw;
+
+						float cos_theta = cosf(theta);						
+						float sin_theta = sinf(theta);
+
+						/* rotate the roll/pitch inputs */
+						roll  = manual.roll  * cos_theta - manual.pitch * sin_theta;
+						pitch = manual.pitch * cos_theta + manual.roll  * sin_theta;
+
+						if (++debug_log_counter == 50) {
+							fprintf(stderr, "att.yaw: %2.3f init_head: %2.3f delta: %2.3f roll: %2.3f newroll: %2.3f pitch: %2.3f newpitch: %2.3f\n", att.yaw, initial_heading, theta, manual.roll, roll, manual.pitch, pitch);
+							//fprintf(stderr, "roll: %2.3f pitch: %2.3f newroll: %2.3f newpitch: %2.3f\n", manual.roll, manual.pitch, roll, pitch);
+							debug_log_counter = 0;
+						}
+					} else {
+						heading_set = false;
+					}
+    				}
+				att_sp.roll_body = roll;
+				att_sp.pitch_body = pitch;
+
 				att_sp.thrust = manual.throttle;
 				att_sp.timestamp = hrt_absolute_time();
 			}

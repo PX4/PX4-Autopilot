@@ -394,7 +394,7 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_yaw 	= param_find("RC_MAP_YAW");
 	_parameter_handles.rc_map_throttle = param_find("RC_MAP_THROTTLE");
 	_parameter_handles.rc_map_mode_sw = param_find("RC_MAP_MODE_SW");
-	_parameter_handles.rc_map_custom_mode_sw = param_find("RC_MAP_CUSTOM_MODE_SW");
+	_parameter_handles.rc_map_custom_mode_sw = param_find("RC_MAP_AUX1");
 
 	_parameter_handles.rc_scale_roll = param_find("RC_SCALE_ROLL");
 	_parameter_handles.rc_scale_pitch = param_find("RC_SCALE_PITCH");
