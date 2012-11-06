@@ -264,6 +264,14 @@ CONFIG_FS_NXFFS=n
 CONFIG_FS_ROMFS=n
 
 #
+# Maintain legacy build behavior (revisit)
+#
+
+CONFIG_MMCSD=y
+CONFIG_MMCSD_SPI=y
+CONFIG_MMCSD_SDIO=y
+
+#
 # SPI-based MMC/SD driver
 #
 CONFIG_MMCSD_NSLOTS=1

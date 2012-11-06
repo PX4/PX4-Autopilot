@@ -33,14 +33,24 @@
 #
 ############################################################################
 
+if ($(CONFIG_MMCSD),y)
+
 # Include MMC/SD drivers
 
-CSRCS += mmcsd_sdio.c mmcsd_spi.c mmcsd_debug.c
+if ($(CONFIG_MMCSD_SDIO),y)
+CSRCS += mmcsd_sdio.c
+endif
+
+if ($(CONFIG_MMCSD_SPI),y)
+CSRCS += mmcsd_spi.c mmcsd_debug.c
+endif
 
 # Include MMC/SD driver build support
 
 DEPPATH += --dep-path mmcsd
 VPATH += :mmcsd
 CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/mmcsd}
+
+endif
 
 

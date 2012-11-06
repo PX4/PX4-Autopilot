@@ -222,6 +222,14 @@ CONFIG_FS_READAHEAD=n
 CONFIG_FS_WRITEBUFFER=n
 
 #
+# Maintain legacy build behavior (revisit)
+#
+
+CONFIG_MMCSD=y
+CONFIG_MMCSD_SPI=y
+CONFIG_MMCSD_SDIO=y
+
+#
 # SDIO-based MMC/SD driver
 #
 CONFIG_SDIO_DMA=n

@@ -38,6 +38,9 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#if defined (CONFIG_MMCSD) && defined (CONFIG_MMCSD_SPI)
+
 #include <sys/types.h>
 
 #include <stdint.h>
@@ -1878,3 +1881,5 @@ int mmcsd_spislotinitialize(int minor, int slotno, FAR struct spi_dev_s *spi)
   (void)SPI_REGISTERCALLBACK(spi, mmcsd_mediachanged, (void*)slot);
   return OK;
 }
+
+#endif /* defined (CONFIG_MMCSD) && defined (CONFIG_MMCSD_SPI) */

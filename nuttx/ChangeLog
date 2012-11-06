@@ -3571,3 +3571,9 @@
 	  complete and verified for the STM32 platform.
 
 6.24 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* arch/arm/src/stm32:  Support for STM32F100 high density chips
+	  added by Freddie Chopin.
+	* configs/stm32f100_generic:  Support for generic STM32F100RC board
+	  contributed by Freddie Chopin.
+

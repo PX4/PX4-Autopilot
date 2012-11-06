@@ -327,6 +327,14 @@ CONFIG_I2C_TRANSFER=y
 CONFIG_I2C_SLAVE=n
 
 #
+# Maintain legacy build behavior (revisit)
+#
+
+CONFIG_MMCSD=y
+CONFIG_MMCSD_SPI=y
+CONFIG_MMCSD_SDIO=y
+
+#
 # SPI-based MMC/SD driver
 #
 CONFIG_MMCSD_NSLOTS=0

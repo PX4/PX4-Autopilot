@@ -220,6 +220,13 @@ CONFIG_PTHREAD_STACK_DEFAULT=8192
 CONFIG_HEAP_BASE=
 CONFIG_HEAP_SIZE=
 
+#
+# Maintain legacy build behavior (revisit)
+#
+
+CONFIG_MMCSD=y
+CONFIG_MMCSD_SPI=y
+CONFIG_MMCSD_SDIO=y
 
 ##########################################
 # RGMP specific configuration

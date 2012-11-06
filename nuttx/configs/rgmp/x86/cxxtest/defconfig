@@ -74,7 +74,7 @@ CONFIG_ARCH_BOARD_RGMP=y
 # CONFIG_RR_INTERVAL - The round robin timeslice will be set
 #   this number of milliseconds;  Round robin scheduling can
 #   be disabled by setting this value to zero.
-# CONFIG_SCHED_INSTRUMENTATION - enables instrumentation in 
+# CONFIG_SCHED_INSTRUMENTATION - enables instrumentation in
 #   scheduler to monitor system performance
 # CONFIG_TASK_NAME_SIZE - Spcifies that maximum size of a
 #   task name to save in the TCB.  Useful if scheduler
@@ -89,11 +89,11 @@ CONFIG_ARCH_BOARD_RGMP=y
 # CONFIG_MUTEX_TYPES: Set to enable support for recursive and
 #   errorcheck mutexes. Enables pthread_mutexattr_settype().
 # CONFIG_PRIORITY_INHERITANCE : Set to enable support for priority
-#   inheritance on mutexes and semaphores. 
+#   inheritance on mutexes and semaphores.
 # CONFIG_SEM_PREALLOCHOLDERS: This setting is only used if priority
 #   inheritance is enabled.  It defines the maximum number of
 #   different threads (minus one) that can take counts on a
-#   semaphore with priority inheritance support.  This may be 
+#   semaphore with priority inheritance support.  This may be
 #   set to zero if priority inheritance is disabled OR if you
 #   are only using semaphores as mutexes (only one holder) OR
 #   if no more than two threads participate using a counting
@@ -325,6 +325,14 @@ CONFIG_NET_BROADCAST=n
 # CONFIG_NET_RESOLV_ENTRIES - Number of resolver entries
 CONFIG_NET_DHCP_LIGHT=n
 CONFIG_NET_RESOLV_ENTRIES=4
+
+#
+# Maintain legacy build behavior (revisit)
+#
+
+CONFIG_MMCSD=y
+CONFIG_MMCSD_SPI=y
+CONFIG_MMCSD_SDIO=y
 
 #
 # Settings for examples/uip
