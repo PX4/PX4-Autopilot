@@ -196,12 +196,14 @@ multirotor_pos_control_thread_main(int argc, char *argv[])
 
 			float x_setpoint = 0.0f;
 
+			// XXX enable switching between Vicon and local position estimate
 			/* local pos is the Vicon position */
 
-			att_sp.pitch_body = (local_pos.x - x_setpoint) * p.p * dT;
+			// XXX just an example, lacks rotation around world-body transformation
+			att_sp.pitch_body = (local_pos.x - x_setpoint) * p.p;
 			att_sp.roll_body = 0.0f;
 			att_sp.yaw_body = 0.0f;
-			att_sp.thrust = 0.4f;
+			att_sp.thrust = 0.3f;
 			att_sp.timestamp = hrt_absolute_time();
 
 			/* publish new attitude setpoint */

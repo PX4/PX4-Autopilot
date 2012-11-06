@@ -57,15 +57,23 @@
 #define RC_INPUT_DEVICE_PATH	"/dev/input_rc"
 
 /**
- * Maximum number of R/C input channels in the system.
+ * Maximum number of R/C input channels in the system. S.Bus has up to 18 channels.
  */
-#define RC_INPUT_MAX_CHANNELS	16
+#define RC_INPUT_MAX_CHANNELS	18
 
 /**
  * Input signal type, value is a control position from zero to 100
  * percent.
  */
-typedef uint8_t		rc_input_t;
+typedef uint16_t		rc_input_t;
+
+enum RC_INPUT_SOURCE {
+	RC_INPUT_SOURCE_UNKNOWN = 0,
+	RC_INPUT_SOURCE_PX4FMU_PPM,
+	RC_INPUT_SOURCE_PX4IO_PPM,
+	RC_INPUT_SOURCE_PX4IO_SPEKTRUM,
+	RC_INPUT_SOURCE_PX4IO_SBUS
+};
 
 /**
  * R/C input status structure.
@@ -74,10 +82,16 @@ typedef uint8_t		rc_input_t;
  * on the board involved.
  */
 struct rc_input_values {
+	/** decoding time */
+	uint64_t		timestamp;
+
 	/** number of channels actually being seen */
 	uint32_t		channel_count;
 
-	/** desired pulse widths for each of the supported channels */
+	/** Input source */
+	enum RC_INPUT_SOURCE 	input_source;
+
+	/** measured pulse widths for each of the supported channels */
 	rc_input_t		values[RC_INPUT_MAX_CHANNELS];
 };
 

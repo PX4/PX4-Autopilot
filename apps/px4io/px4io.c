@@ -47,9 +47,7 @@
 
 #include <nuttx/clock.h>
 
-#include <arch/board/up_boardinitialize.h>
-#include <arch/board/drv_gpio.h>
-#include <arch/board/drv_ppm_input.h>
+#include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
 
 #include "px4io.h"
@@ -61,8 +59,6 @@ int			gpio_fd;
 
 static const char cursor[] = {'|', '/', '-', '\\'};
 
-static const char *rc_input_mq_name = "rc_input";
-
 static struct hrt_call timer_tick_call;
 volatile int timers[TIMER_NUM_TIMERS];
 static void timer_tick(void *arg);
@@ -73,8 +69,15 @@ int user_start(int argc, char *argv[])
 	bool	heartbeat = false;
 	bool	failsafe = false;
 
-	/* Do board init */
-	(void)up_boardinitialize();
+	/* configure the high-resolution time/callout interface */
+	hrt_init();
+
+	/* init the FMU link */
+	comms_init();
+
+	/* configure the first 8 PWM outputs (i.e. all of them) */
+	/* note, must do this after comms init to steal back PA0, which is CTS otherwise */
+	up_pwm_servo_init(0xff);
 
 	/* print some startup info */
 	lib_lowprintf("\nPX4IO: starting\n");
@@ -84,32 +87,22 @@ int user_start(int argc, char *argv[])
 	/* start the software timer service */
 	hrt_call_every(&timer_tick_call, 1000, 1000, timer_tick, NULL);
 
-	/* Open the GPIO driver so we can do LEDs and the like. */
-	gpio_fd = open("/dev/gpio", 0);
-	ASSERTCODE((gpio_fd >= 0), A_GPIO_OPEN_FAIL);
-
 	/* default all the LEDs to off while we start */
-	LED_AMBER(heartbeat);
-	LED_BLUE(failsafe);
+	LED_AMBER(false);
+	LED_BLUE(false);
 	LED_SAFETY(false);
 
 	/* turn on servo power */
 	POWER_SERVO(true);
 
-	/* configure the PPM input driver */
-	ppm_input_init(rc_input_mq_name);
-
 	/* start the mixer */
-	mixer_init(rc_input_mq_name);
+	mixer_init();
 
 	/* start the safety switch handler */
 	safety_init();
 
-	/* init the FMU link */
-	comms_init();
-
 	/* set up some timers for the main loop */
-	timers[TIMER_BLINK_AMBER] = 250;	/* heartbeat blink @ 2Hz */
+	timers[TIMER_BLINK_BLUE] = 250;		/* heartbeat blink @ 2Hz */
 	timers[TIMER_STATUS_PRINT] = 1000;	/* print status message @ 1Hz */
 
 	/*
@@ -121,33 +114,34 @@ int user_start(int argc, char *argv[])
 		comms_check();
 
 		/* blink the heartbeat LED */
-		if (timers[TIMER_BLINK_AMBER] == 0) {
-			timers[TIMER_BLINK_AMBER] = 250;
-			LED_AMBER((heartbeat = !heartbeat));
+		if (timers[TIMER_BLINK_BLUE] == 0) {
+			timers[TIMER_BLINK_BLUE] = 250;
+			LED_BLUE(heartbeat = !heartbeat);
 		}
 
 		/* blink the failsafe LED if we don't have FMU input */
 		if (!system_state.mixer_use_fmu) {
-			if (timers[TIMER_BLINK_BLUE] == 0) {
-				timers[TIMER_BLINK_BLUE] = 125;
-				LED_BLUE((failsafe = !failsafe));
+			if (timers[TIMER_BLINK_AMBER] == 0) {
+				timers[TIMER_BLINK_AMBER] = 125;
+				failsafe = !failsafe;
 			}
 		} else {
-			LED_BLUE((failsafe = false));
+			failsafe = false;
 		}
+		LED_AMBER(failsafe);
 		
 		/* print some simple status */
 		if (timers[TIMER_STATUS_PRINT] == 0) {
 			timers[TIMER_STATUS_PRINT] = 1000;
-			lib_lowprintf("%c %s | %s | %s | C=%d    \r",
+			lib_lowprintf("%c %s | %s | %s | C=%d F=%d B=%d   \r",
 				cursor[cycle++ & 3],
 				(system_state.armed         ? "ARMED"  : "SAFE"),
 				(system_state.rc_channels   ? "RC OK"  : "NO RC"),
 				(system_state.mixer_use_fmu ? "FMU OK" : "NO FMU"),
-				system_state.rc_channels
+				system_state.rc_channels,
+				frame_rx, frame_bad
 			);
 		}
-
 	}
 
 	/* Should never reach here */

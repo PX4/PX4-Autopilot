@@ -47,9 +47,9 @@
 # include <stdint.h>
 # include <stdbool.h>
 #endif
-#include "stm32_rcc.h"
-#include "stm32_sdio.h"
-#include "stm32_internal.h"
+#include <stm32_rcc.h>
+#include <stm32_sdio.h>
+#include <stm32_internal.h>
 
 /************************************************************************************
  * Definitions
@@ -116,12 +116,6 @@
 # define GPIO_PPM_IN		GPIO_TIM1_CH1IN
 #endif
 
-/*
- * PWM
- *
- * PWM configuration is provided via the configuration structure in up_boardinitialize.c
- */
-
 /************************************************************************************
  * Public Data
  ************************************************************************************/
@@ -150,18 +144,6 @@ extern "C" {
  ************************************************************************************/
 
 EXTERN void stm32_boardinitialize(void);
-
-/************************************************************************************
- * Power switch support.
- */
-extern void up_power_init(void);
-extern void up_power_set(int port, bool state);
-extern bool up_power_error(int port);
-
-#undef EXTERN
-#if defined(__cplusplus)
-}
-#endif
 
 #endif /* __ASSEMBLY__ */
 #endif  /* __ARCH_BOARD_BOARD_H */

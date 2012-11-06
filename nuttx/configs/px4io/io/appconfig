@@ -31,4 +31,7 @@
 #
 ############################################################################
 
+CONFIGURED_APPS += drivers/boards/px4io
+CONFIGURED_APPS += drivers/stm32
+
 CONFIGURED_APPS += px4io

@@ -121,7 +121,6 @@ int test_ppm(int argc, char *argv[])
 
 int test_tone(int argc, char *argv[])
 {
-#ifdef CONFIG_TONE_ALARM
 	int fd, result;
 	unsigned long tone;
 
@@ -171,7 +170,6 @@ out:
 	if (fd >= 0)
 		close(fd);
 
-#endif
 	return 0;
 }
 

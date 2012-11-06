@@ -50,14 +50,6 @@
  * @{
  */
 
-enum RC_CHANNELS_STATUS
-{
-	UNKNOWN = 0,
-	KNOWN = 1,
-	SIGNAL = 2,
-	TIMEOUT = 3
-};
-
 /** 
  * This defines the mapping of the RC functions.
  * The value assigned to the specific function corresponds to the entry of
@@ -85,12 +77,7 @@ struct rc_channels_s {
 	uint64_t timestamp;                 /**< In microseconds since boot time. */
   uint64_t timestamp_last_valid;      /**< timestamp of last valid RC signal. */
   struct {
-    uint16_t mid;                     /**< midpoint (0). */
-    float scaling_factor;             /**< scaling factor from raw counts to -1..+1 */
-    uint16_t raw;                     /**< current raw value */
     float scaled;                     /**< Scaled to -1..1 (throttle: 0..1) */
-    uint16_t override;
-    enum RC_CHANNELS_STATUS status;   /**< status of the channel */
   } chan[RC_CHANNELS_FUNCTION_MAX];
   uint8_t chan_count;                 /**< maximum number of valid channels */
 
@@ -98,6 +85,7 @@ struct rc_channels_s {
   char function_name[RC_CHANNELS_FUNCTION_MAX][20];
   uint8_t function[RC_CHANNELS_FUNCTION_MAX];
   uint8_t rssi;                       /**< Overall receive signal strength */
+  bool is_valid;                      /**< Inputs are valid, no timeout */
 }; /**< radio control channels. */
 
 /**
