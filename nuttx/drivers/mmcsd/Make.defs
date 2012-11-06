@@ -33,15 +33,15 @@
 #
 ############################################################################
 
-if ($(CONFIG_MMCSD),y)
+ifeq ($(CONFIG_MMCSD),y)
 
 # Include MMC/SD drivers
 
-if ($(CONFIG_MMCSD_SDIO),y)
+ifeq ($(CONFIG_MMCSD_SDIO),y)
 CSRCS += mmcsd_sdio.c
 endif
 
-if ($(CONFIG_MMCSD_SPI),y)
+ifeq ($(CONFIG_MMCSD_SPI),y)
 CSRCS += mmcsd_spi.c mmcsd_debug.c
 endif
 

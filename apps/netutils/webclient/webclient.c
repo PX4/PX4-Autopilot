@@ -77,12 +77,15 @@
 
 #if defined(CONFIG_NETUTILS_CODECS)
 #  if defined(CONFIG_CODECS_URLCODE)
-#    define     WGET_USE_URLENCODE      1
+#    define WGET_USE_URLENCODE 1
 #    include <apps/netutils/urldecode.h>
 #  endif
 #  if defined(CONFIG_CODECS_BASE64)
 #    include <apps/netutils/base64.h>
 #  endif
+#else
+#  undef CONFIG_CODECS_URLCODE
+#  undef CONFIG_CODECS_BASE64
 #endif
 
 #ifndef CONFIG_NSH_WGET_USERAGENT
@@ -206,7 +209,7 @@ static char *wget_strcpy(char *dest, const char *src)
  * Name: wget_urlencode_strcpy
  ****************************************************************************/
 
-#ifdef  WGET_USE_URLENCODE
+#ifdef WGET_USE_URLENCODE
 static char *wget_urlencode_strcpy(char *dest, const char *src)
 {
   int len = strlen(src);
@@ -621,6 +624,7 @@ errout:
  * Name: web_post_str
  ****************************************************************************/
 
+#ifdef WGET_USE_URLENCODE
 char *web_post_str(FAR char *buffer, int *size, FAR char *name,
                    FAR char *value)
 {
@@ -631,20 +635,24 @@ char *web_post_str(FAR char *buffer, int *size, FAR char *name,
   *size  = buffer - dst;
   return dst;
 }
+#endif
 
 /****************************************************************************
  * Name: web_post_strlen
  ****************************************************************************/
 
+#ifdef WGET_USE_URLENCODE
 int web_post_strlen(FAR char *name, FAR char *value)
 {
   return strlen(name) + urlencode_len(value,strlen(value)) + 1;
 }
+#endif
 
 /****************************************************************************
  * Name: web_posts_str
  ****************************************************************************/
 
+#ifdef WGET_USE_URLENCODE
 char *web_posts_str(FAR char *buffer, int *size, FAR char **name,
                     FAR char **value, int len)
 {
@@ -667,11 +675,13 @@ char *web_posts_str(FAR char *buffer, int *size, FAR char **name,
   *size=buffer-dst;
   return dst;
 }
+#endif
 
 /****************************************************************************
  * Name: web_posts_strlen
  ****************************************************************************/
 
+#ifdef WGET_USE_URLENCODE
 int web_posts_strlen(FAR char **name, FAR char **value, int len)
 {
   int wlen = 0;
@@ -684,6 +694,7 @@ int web_posts_strlen(FAR char **name, FAR char **value, int len)
 
   return wlen + len - 1;
 }
+#endif
 
 /****************************************************************************
  * Name: wget
@@ -720,7 +731,7 @@ int wget(FAR const char *url, FAR char *buffer, int buflen,
 }
 
 /****************************************************************************
- * Name: web_posts_strlen
+ * Name: wget_post
  ****************************************************************************/
 
 int wget_post(FAR const char *url, FAR const char *posts, FAR char *buffer,

@@ -860,7 +860,7 @@ if ARCH_BOARD_STM3240G_EVAL
 source "configs/stm3240g-eval/Kconfig"
 endif
 if ARCH_BOARD_STM32F100RC_GENERIC
-source "configs/stm32f100_generic/Kconfig"
+source "configs/stm32f100rc_generic/Kconfig"
 endif
 if ARCH_BOARD_STM32F4_DISCOVERY
 source "configs/stm32f4discovery/Kconfig"

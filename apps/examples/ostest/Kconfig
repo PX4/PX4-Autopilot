@@ -43,7 +43,6 @@ config EXAMPLES_OSTEST_RR_RANGE
 	int "Round-robin test - end of search range"
 	default 10000
 	range 1 32767
-	depends on RR_INTERVAL > 0
 	---help---
 		During round-robin scheduling test two threads are created. Each of the threads
 		searches for prime numbers in the configurable range, doing that configurable
@@ -57,7 +56,6 @@ config EXAMPLES_OSTEST_RR_RUNS
 	int "Round-robin test - number of runs"
 	default 10
 	range 1 32767
-	depends on RR_INTERVAL > 0
 	---help---
 		During round-robin scheduling test two threads are created. Each of the threads
 		searches for prime numbers in the configurable range, doing that configurable
