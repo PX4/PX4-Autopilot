@@ -143,14 +143,9 @@ set_hil_on_off(bool hil_enabled)
 	/* Enable HIL */
 	if (hil_enabled && !mavlink_hil_enabled) {
 
-		//printf("\n HIL ON \n");
-
 		/* Advertise topics */
 		pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
 		pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
-
-		printf("\n pub_hil_attitude :%i\n", pub_hil_attitude);
-		printf("\n pub_hil_global_pos :%i\n", pub_hil_global_pos);
 
 		mavlink_hil_enabled = true;
 

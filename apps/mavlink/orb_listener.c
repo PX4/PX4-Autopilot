@@ -459,29 +459,9 @@ l_manual_control_setpoint(struct listener *l)
 void
 l_vehicle_attitude_controls(struct listener *l)
 {
-	struct actuator_controls_s actuators;
+	struct actuator_outputs_s actuators;
 
-	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, mavlink_subs.actuators_sub, &actuators);
-
-	if (gcs_link) {
-		/* send, add spaces so that string buffer is at least 10 chars long */
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-						   last_sensor_timestamp / 1000,
-						   "ctrl0       ",
-						   actuators.control[0]);
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-						   last_sensor_timestamp / 1000,
-						   "ctrl1       ",
-						   actuators.control[1]);
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-						   last_sensor_timestamp / 1000,
-						   "ctrl2       ",
-						   actuators.control[2]);
-		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
-						   last_sensor_timestamp / 1000,
-						   "ctrl3       ",
-						   actuators.control[3]);
-	}
+	orb_copy(ORB_ID_VEHICLE_CONTROLS, mavlink_subs.act_0_sub, &actuators);
 
 	/* Only send in HIL mode */
 	if (mavlink_hil_enabled) {
@@ -494,14 +474,14 @@ l_vehicle_attitude_controls(struct listener *l)
 		/* HIL message as per MAVLink spec */
 		mavlink_msg_hil_controls_send(chan,
 			hrt_absolute_time(),
-			actuators.control[0],
-			actuators.control[1],
-			actuators.control[2],
-			actuators.control[3],
-			0,
-			0,
-			0,
-			0,
+			actuators.output[0],
+			actuators.output[1],
+			actuators.output[2],
+			actuators.output[3],
+			actuators.output[4],
+			actuators.output[5],
+			actuators.output[6],
+			actuators.output[7],
 			mavlink_mode,
 			0);
 	}
