@@ -41,7 +41,7 @@ config ARCH_BOARD_C5471EVM
 	---help---
 		This is a port to the Spectrum Digital C5471 evaluation board.  The
 		TMS320C5471 is a dual core processor from TI with an ARM7TDMI general
-		purpose processor and a c54 DSP.  It is also known as TMS320DA180 or just DA180. 
+		purpose processor and a c54 DSP.  It is also known as TMS320DA180 or just DA180.
 		NuttX runs on the ARM core and is built with a GNU arm-nuttx-elf toolchain*.
 		This port is complete and verified.
 
@@ -79,7 +79,7 @@ config ARCH_BOARD_EA3131
 	select ARCH_HAVE_LEDS
 	select ARCH_HAVE_BUTTONS
 	---help---
-		Embedded Artists EA3131 Development board.  This board is based on the 
+		Embedded Artists EA3131 Development board.  This board is based on the
 		an NXP LPC3131 MCU. This OS is built with the arm-nuttx-elf toolchain*.
 		STATUS:  This port is complete and mature.
 
@@ -89,7 +89,7 @@ config ARCH_BOARD_EA3152
 	select ARCH_HAVE_LEDS
 	select ARCH_HAVE_BUTTONS
 	---help---
-		Embedded Artists EA3152 Development board.  This board is based on the 
+		Embedded Artists EA3152 Development board.  This board is based on the
 		an NXP LPC3152 MCU. This OS is built with the arm-nuttx-elf toolchain*.
 		STATUS:  This port is has not be exercised well, but since it is
 		a simple derivative of the ea3131, it should be fully functional.
@@ -99,7 +99,7 @@ config ARCH_BOARD_EAGLE100
 	depends on ARCH_CHIP_LM3S6918
 	select ARCH_HAVE_LEDS
 	---help---
-		Micromint Eagle-100 Development board.  This board is based on the 
+		Micromint Eagle-100 Development board.  This board is based on the
 		an ARM Cortex-M3 MCU, the Luminary LM3S6918. This OS is built with the
 		arm-nuttx-elf toolchain*.  STATUS:  This port is complete and mature.
 
@@ -108,7 +108,7 @@ config ARCH_BOARD_EKK_LM3S9B96
 	depends on ARCH_CHIP_LM3S9B96
 	select ARCH_HAVE_LEDS
 	---help---
-		TI/Stellaris EKK-LM3S9B96 board.  This board is based on the 
+		TI/Stellaris EKK-LM3S9B96 board.  This board is based on the
 		an EKK-LM3S9B96 which is a Cortex-M3.
 
 config ARCH_BOARD_EZ80F910200KITG
@@ -182,7 +182,7 @@ config ARCH_BOARD_LM3S6965EK
 	depends on ARCH_CHIP_LM3S6965
 	select ARCH_HAVE_LEDS
 	---help---
-		Stellaris LM3S6965 Evaluation Kit.  This board is based on the 
+		Stellaris LM3S6965 Evaluation Kit.  This board is based on the
 		an ARM Cortex-M3 MCU, the Luminary/TI LM3S6965. This OS is built with the
 		arm-nuttx-elf toolchain*.  STATUS:  This port is complete and mature.
 
@@ -274,7 +274,7 @@ config ARCH_BOARD_NTOSD_DM320
 		toolchain*: see
 
 			http://wiki.neurostechnology.com/index.php/OSD_1.0_Developer_Home
- 
+
 		There are some differences between the Dev Board and the currently
 		available commercial v1.0 Boards.  See
 
@@ -386,7 +386,7 @@ config ARCH_BOARD_RGMP
 	bool "RGMP"
 	depends on ARCH_RGMP
 	---help---
-		RGMP stands for RTOS and GPOS on Multi-Processor.  RGMP is a project for 
+		RGMP stands for RTOS and GPOS on Multi-Processor.  RGMP is a project for
 		running GPOS and RTOS simultaneously on multi-processor platforms. You can
 		port your favorite RTOS to RGMP together with an unmodified Linux to form a
 		hybrid operating system. This makes your application able to use both RTOS
@@ -457,6 +457,15 @@ config ARCH_BOARD_STM3240G_EVAL
 		microcontroller (ARM Cortex-M4 with FPU).  This port uses a GNU Cortex-M4
 		toolchain (such as CodeSourcery).
 
+config ARCH_BOARD_STM32F100RC_GENERIC
+	bool "STMicro STM32F100RC generic board"
+	depends on ARCH_CHIP_STM32F100RC
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		STMicro STM32F100RC generic board.
+
 config ARCH_BOARD_STM32F4_DISCOVERY
 	bool "STMicro STM32F4-Discovery board"
 	depends on ARCH_CHIP_STM32F407VG
@@ -464,7 +473,7 @@ config ARCH_BOARD_STM32F4_DISCOVERY
 	select ARCH_HAVE_BUTTONS
 	select ARCH_HAVE_IRQBUTTONS
 	---help---
-		STMicro STM32F4-Discovery board boased on the STMIcro STM32F407VGT6 MCU.
+		STMicro STM32F4-Discovery board based on the STMicro STM32F407VGT6 MCU.
 
 config ARCH_BOARD_SUREPIC32MX
 	bool "Sure PIC32MX boards"
@@ -534,7 +543,7 @@ config ARCH_BOARD_XTRS
 	depends on ARCH_CHIP_Z80
 	---help---
 		TRS80 Model 3.  This port uses a vintage computer based on the Z80.
-		An emulator for this computer is available to run TRS80 programs on a 
+		An emulator for this computer is available to run TRS80 programs on a
 		linux platform (http://www.tim-mann.org/xtrs.html).
 
 config ARCH_BOARD_Z16F2800100ZCOG
@@ -595,66 +604,67 @@ endchoice
 
 config ARCH_BOARD
 	string
-	default "amber"              if ARCH_BOARD_AMBER
-	default "avr32dev1"          if ARCH_BOARD_AVR32DEV1
-	default "c5471evm"           if ARCH_BOARD_C5471EVM
-	default "compal_e88"         if ARCH_BOARD_COMPALE88
-	default "compal_e99"         if ARCH_BOARD_COMPALE99
-	default "demo9s12ne64"       if ARCH_BOARD_DEMOS92S12NEC64
-	default "ea3131"             if ARCH_BOARD_EA3131
-	default "ea3152"             if ARCH_BOARD_EA3152
-	default "eagle100"           if ARCH_BOARD_EAGLE100
-	default "ekk-lm3s9b96"       if ARCH_BOARD_EKK_LM3S9B96
-	default "ez80f0910200kitg"   if ARCH_BOARD_EZ80F910200KITG
-	default "ez80f0910200zco"    if ARCH_BOARD_EZ80F910200ZCO
-	default "fire-stm32v2"       if ARCH_BOARD_FIRE_STM32
-	default "hymini-stm32v"      if ARCH_BOARD_HYMINI_STM32V
-	default "kwikstik-k40"       if ARCH_BOARD_KWIKSTIK_K40
-	default "lincoln60"          if ARCH_BOARD_LINCOLN60
-	default "lm3s6432-s2e"       if ARCH_BOARD_LM3S6432S2E
-	default "lm3s6965-ek"        if ARCH_BOARD_LM3S6965EK
-	default "lm3s8962-ek"        if ARCH_BOARD_LM3S8962EK
-	default "lpc4330-xplorer"    if ARCH_BOARD_LPC4330_XPLORER
-	default "lpcxpresso-lpc1768" if ARCH_BOARD_LPCXPRESSO
-	default "m68322evb"          if ARCH_BOARD_M68332EVB
-	default "mbed"               if ARCH_BOARD_MBED
-	default "mcu123-lpc214x"     if ARCH_BOARD_MCU123
-	default "micropendous3"      if ARCH_BOARD_MICROPENDOUS3
-	default "mirtoo"             if ARCH_BOARD_MIRTOO
-	default "mx1ads"             if ARCH_BOARD_MX1ADS
-	default "ne64badge"          if ARCH_BOARD_NE64BADGE
-	default "ntosd-dm320"        if ARCH_BOARD_NTOSD_DM320
-	default "nucleus2g"          if ARCH_BOARD_NUCLEUS2G
-	default "olimex-lpc1766stk"  if ARCH_BOARD_LPC1766STK
-	default "olimex-lpc2378"     if ARCH_BOARD_OLIMEXLPC2378
-	default "olimex-stm32-p107"  if ARCH_BOARD_OLIMEX_STM32P107
-	default "olimex-strp711"     if ARCH_BOARD_OLIMEX_STRP711
-	default "pcblogic-pic32mx"   if ARCH_BOARD_PCBLOGICPIC32MX
-	default "pic32-starterkit"   if ARCH_BOARD_PIC32_STARTERKIT
-	default "pic32mx7mmb"        if ARCH_BOARD_PIC32_PIC32MX7MMB
-	default "pjrc-8051"          if ARCH_BOARD_PJRC_87C52
-	default "qemu-i486"          if ARCH_BOARD_QEMU_I486
-	default "rgmp"               if ARCH_BOARD_RGMP
-	default "sam3u-ek"           if ARCH_BOARD_SAM3UEK
-	default "shenzhou"           if ARCH_BOARD_SHENZHOU
-	default "skp16c26"           if ARCH_BOARD_SKP16C26
-	default "stm3210e-eval"      if ARCH_BOARD_STM3210E_EVAL
-	default "stm3220g-eval"      if ARCH_BOARD_STM3220G_EVAL
-	default "stm3240g-eval"      if ARCH_BOARD_STM3240G_EVAL
-	default "stm32f4discovery"   if ARCH_BOARD_STM32F4_DISCOVERY
-	default "sure-pic32mx"       if ARCH_BOARD_SUREPIC32MX
-	default "teensy"             if ARCH_BOARD_TEENSY
-	default "twr-k60n512"        if ARCH_BOARD_TWR_K60N512
-	default "ubw32"              if ARCH_BOARD_UBW32
-	default "us7032evb1"         if ARCH_BOARD_US7032EVB1
-	default "vsn"                if ARCH_BOARD_VSN
-	default "xtrs"               if ARCH_BOARD_XTRS
-	default "z16f2800100zcog"    if ARCH_BOARD_Z16F2800100ZCOG
-	default "z80sim"             if ARCH_BOARD_Z80SIM
-	default "z8encore000zco"     if ARCH_BOARD_Z8ENCORE000ZCO
-	default "z8f64200100kit"     if ARCH_BOARD_Z8F64200100KI
-	default "sim"                if ARCH_BOARD_SIM
-	default ""                   if ARCH_BOARD_CUSTOM
+	default "amber"               if ARCH_BOARD_AMBER
+	default "avr32dev1"           if ARCH_BOARD_AVR32DEV1
+	default "c5471evm"            if ARCH_BOARD_C5471EVM
+	default "compal_e88"          if ARCH_BOARD_COMPALE88
+	default "compal_e99"          if ARCH_BOARD_COMPALE99
+	default "demo9s12ne64"        if ARCH_BOARD_DEMOS92S12NEC64
+	default "ea3131"              if ARCH_BOARD_EA3131
+	default "ea3152"              if ARCH_BOARD_EA3152
+	default "eagle100"            if ARCH_BOARD_EAGLE100
+	default "ekk-lm3s9b96"        if ARCH_BOARD_EKK_LM3S9B96
+	default "ez80f0910200kitg"    if ARCH_BOARD_EZ80F910200KITG
+	default "ez80f0910200zco"     if ARCH_BOARD_EZ80F910200ZCO
+	default "fire-stm32v2"        if ARCH_BOARD_FIRE_STM32
+	default "hymini-stm32v"       if ARCH_BOARD_HYMINI_STM32V
+	default "kwikstik-k40"        if ARCH_BOARD_KWIKSTIK_K40
+	default "lincoln60"           if ARCH_BOARD_LINCOLN60
+	default "lm3s6432-s2e"        if ARCH_BOARD_LM3S6432S2E
+	default "lm3s6965-ek"         if ARCH_BOARD_LM3S6965EK
+	default "lm3s8962-ek"         if ARCH_BOARD_LM3S8962EK
+	default "lpc4330-xplorer"     if ARCH_BOARD_LPC4330_XPLORER
+	default "lpcxpresso-lpc1768"  if ARCH_BOARD_LPCXPRESSO
+	default "m68322evb"           if ARCH_BOARD_M68332EVB
+	default "mbed"                if ARCH_BOARD_MBED
+	default "mcu123-lpc214x"      if ARCH_BOARD_MCU123
+	default "micropendous3"       if ARCH_BOARD_MICROPENDOUS3
+	default "mirtoo"              if ARCH_BOARD_MIRTOO
+	default "mx1ads"              if ARCH_BOARD_MX1ADS
+	default "ne64badge"           if ARCH_BOARD_NE64BADGE
+	default "ntosd-dm320"         if ARCH_BOARD_NTOSD_DM320
+	default "nucleus2g"           if ARCH_BOARD_NUCLEUS2G
+	default "olimex-lpc1766stk"   if ARCH_BOARD_LPC1766STK
+	default "olimex-lpc2378"      if ARCH_BOARD_OLIMEXLPC2378
+	default "olimex-stm32-p107"   if ARCH_BOARD_OLIMEX_STM32P107
+	default "olimex-strp711"      if ARCH_BOARD_OLIMEX_STRP711
+	default "pcblogic-pic32mx"    if ARCH_BOARD_PCBLOGICPIC32MX
+	default "pic32-starterkit"    if ARCH_BOARD_PIC32_STARTERKIT
+	default "pic32mx7mmb"         if ARCH_BOARD_PIC32_PIC32MX7MMB
+	default "pjrc-8051"           if ARCH_BOARD_PJRC_87C52
+	default "qemu-i486"           if ARCH_BOARD_QEMU_I486
+	default "rgmp"                if ARCH_BOARD_RGMP
+	default "sam3u-ek"            if ARCH_BOARD_SAM3UEK
+	default "shenzhou"            if ARCH_BOARD_SHENZHOU
+	default "skp16c26"            if ARCH_BOARD_SKP16C26
+	default "stm3210e-eval"       if ARCH_BOARD_STM3210E_EVAL
+	default "stm3220g-eval"       if ARCH_BOARD_STM3220G_EVAL
+	default "stm3240g-eval"       if ARCH_BOARD_STM3240G_EVAL
+	default "stm32f100rc_generic" if ARCH_BOARD_STM32F100RC_GENERIC
+	default "stm32f4discovery"    if ARCH_BOARD_STM32F4_DISCOVERY
+	default "sure-pic32mx"        if ARCH_BOARD_SUREPIC32MX
+	default "teensy"              if ARCH_BOARD_TEENSY
+	default "twr-k60n512"         if ARCH_BOARD_TWR_K60N512
+	default "ubw32"               if ARCH_BOARD_UBW32
+	default "us7032evb1"          if ARCH_BOARD_US7032EVB1
+	default "vsn"                 if ARCH_BOARD_VSN
+	default "xtrs"                if ARCH_BOARD_XTRS
+	default "z16f2800100zcog"     if ARCH_BOARD_Z16F2800100ZCOG
+	default "z80sim"              if ARCH_BOARD_Z80SIM
+	default "z8encore000zco"      if ARCH_BOARD_Z8ENCORE000ZCO
+	default "z8f64200100kit"      if ARCH_BOARD_Z8F64200100KI
+	default "sim"                 if ARCH_BOARD_SIM
+	default ""                    if ARCH_BOARD_CUSTOM
 
 comment "Common Board Options"
 
@@ -848,6 +858,9 @@ source "configs/stm3220g-eval/Kconfig"
 endif
 if ARCH_BOARD_STM3240G_EVAL
 source "configs/stm3240g-eval/Kconfig"
+endif
+if ARCH_BOARD_STM32F100RC_GENERIC
+source "configs/stm32f100_generic/Kconfig"
 endif
 if ARCH_BOARD_STM32F4_DISCOVERY
 source "configs/stm32f4discovery/Kconfig"

@@ -781,6 +781,8 @@ nuttx
  |   |   `- README.txt
  |   |- stm3240g-eval/
  |   |   `- README.txt
+ |   |- stm32f100rc_generic/
+ |   |   `- README.txt
  |   |- stm32f4discovery/
  |   |   `- README.txt
  |   |- sure-pic32mx/

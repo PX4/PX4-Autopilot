@@ -34,6 +34,27 @@ config ARCH_CHIP_STM32F100RB
 	select STM32_STM32F10XX
 	select STM32_VALUELINE
 
+config ARCH_CHIP_STM32F100RC
+	bool "STM32F100RC"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+	select STM32_HIGHDENSITY
+
+config ARCH_CHIP_STM32F100RD
+	bool "STM32F100RD"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+	select STM32_HIGHDENSITY
+
+config ARCH_CHIP_STM32F100RE
+	bool "STM32F100RE"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+	select STM32_HIGHDENSITY
+
 config ARCH_CHIP_STM32F100V8
 	bool "STM32F100V8"
 	select ARCH_CORTEXM3
@@ -45,6 +66,27 @@ config ARCH_CHIP_STM32F100VB
 	select ARCH_CORTEXM3
 	select STM32_STM32F10XX
 	select STM32_VALUELINE
+
+config ARCH_CHIP_STM32F100VC
+	bool "STM32F100VC"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+	select STM32_HIGHDENSITY
+
+config ARCH_CHIP_STM32F100VD
+	bool "STM32F100VD"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+	select STM32_HIGHDENSITY
+
+config ARCH_CHIP_STM32F100VE
+	bool "STM32F100VE"
+	select ARCH_CORTEXM3
+	select STM32_STM32F10XX
+	select STM32_VALUELINE
+	select STM32_HIGHDENSITY
 
 config ARCH_CHIP_STM32F103RET6
 	bool "STM32F103RET6"
@@ -183,6 +225,7 @@ endchoice
 config STM32_DFU
 	bool "DFU bootloader"
 	default n
+	depends on !STM32_VALUELINE
 	---help---
 		Configure and position code for use with the STMicro DFU bootloader.  Do
 		not select this option if you will load code using JTAG/SWM.
@@ -198,25 +241,13 @@ config STM32_ADC2
 	bool "ADC2"
 	default n
 	select STM32_ADC
+	depends on !STM32_VALUELINE
 
 config STM32_ADC3
 	bool "ADC3"
 	default n
 	select STM32_ADC
-
-config STM32_CRC
-	bool "CRC"
-	default n
-
-config STM32_DMA1
-	bool "DMA1"
-	default n
-	select ARCH_DMA
-
-config STM32_DMA2
-	bool "DMA2"
-	default n
-	select ARCH_DMA
+	depends on !STM32_VALUELINE
 
 config STM32_BKP
 	bool "BKP"
@@ -233,6 +264,7 @@ config STM32_CAN1
 	default n
 	select CAN
 	select STM32_CAN
+	depends on !STM32_VALUELINE
 
 config STM32_CAN2
 	bool "CAN2"
@@ -246,10 +278,30 @@ config STM32_CCMDATARAM
 	default n
 	depends on STM32_STM32F40XX
 
+config STM32_CEC
+	bool "CEC"
+	default n
+	depends on STM32_VALUELINE
+
+config STM32_CRC
+	bool "CRC"
+	default n
+
 config STM32_CRYP
 	bool "CRYP"
 	default n
 	depends on STM32_STM32F20XX || STM32_STM32F40XX
+
+config STM32_DMA1
+	bool "DMA1"
+	default n
+	select ARCH_DMA
+
+config STM32_DMA2
+	bool "DMA2"
+	default n
+	select ARCH_DMA
+	depends on !STM32_VALUELINE || (STM32_VALUELINE && STM32_HIGHDENSITY)
 
 config STM32_DAC1
 	bool "DAC1"
@@ -275,7 +327,7 @@ config STM32_ETHMAC
 config STM32_FSMC
 	bool "FSMC"
 	default n
-	depends on !STM32_CONNECTIVITYLINE
+	depends on !STM32_CONNECTIVITYLINE && STM32_HIGHDENSITY
 
 config STM32_HASH
 	bool "HASH"
@@ -326,7 +378,7 @@ config STM32_RNG
 config STM32_SDIO
 	bool "SDIO"
 	default n
-	depends on !STM32_CONNECTIVITYLINE
+	depends on !STM32_CONNECTIVITYLINE && !STM32_VALUELINE
 
 config STM32_SPI1
 	bool "SPI1"
@@ -343,7 +395,7 @@ config STM32_SPI2
 config STM32_SPI3
 	bool "SPI3"
 	default n
-	depends on STM32_CONNECTIVITYLINE || STM32_STM32F20XX || STM32_STM32F40XX
+	depends on STM32_CONNECTIVITYLINE || STM32_STM32F20XX || STM32_STM32F40XX || (STM32_VALUELINE && STM32_HIGHDENSITY)
 	select SPI
 	select STM32_SPI
 
@@ -383,6 +435,7 @@ config STM32_TIM7
 config STM32_TIM8
 	bool "TIM8"
 	default n
+	depends on !STM32_VALUELINE
 
 config STM32_TIM9
 	bool "TIM9"
@@ -402,17 +455,32 @@ config STM32_TIM11
 config STM32_TIM12
 	bool "TIM12"
 	default n
-	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	depends on STM32_STM32F20XX || STM32_STM32F40XX || STM32_VALUELINE
 
 config STM32_TIM13
 	bool "TIM13"
 	default n
-	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	depends on STM32_STM32F20XX || STM32_STM32F40XX || STM32_VALUELINE
 
 config STM32_TIM14
 	bool "TIM14"
 	default n
-	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	depends on STM32_STM32F20XX || STM32_STM32F40XX || STM32_VALUELINE
+
+config STM32_TIM15
+	bool "TIM15"
+	default n
+	depends on STM32_VALUELINE
+
+config STM32_TIM16
+	bool "TIM16"
+	default n
+	depends on STM32_VALUELINE
+
+config STM32_TIM17
+	bool "TIM17"
+	default n
+	depends on STM32_VALUELINE
 
 config STM32_USART1
 	bool "USART1"
@@ -448,7 +516,7 @@ config STM32_USART6
 config STM32_USB
 	bool "USB Device"
 	default n
-	depends on STM32_STM32F10XX
+	depends on STM32_STM32F10XX && !STM32_VALUELINE
 	select USBDEV
 
 config STM32_WWDG
@@ -474,6 +542,52 @@ config STM32_CAN
 	bool
 
 menu "Alternate Pin Mapping"
+
+choice
+	prompt "CAN1 Alternate Pin Mappings"
+	depends on STM32_STM32F10XX && STM32_CAN1
+	default STM32_CAN1_NO_REMAP
+
+config STM32_CAN1_NO_REMAP
+	bool "No pin remapping"
+
+config STM32_CAN1_REMAP1
+	bool "CAN1 alternate pin remapping #1"
+
+config STM32_CAN1_REMAP2
+	bool "CAN1 alternate pin remapping #2"
+
+endchoice
+
+config STM32_CAN2_REMAP
+	bool "CAN2 Alternate Pin Mapping"
+	default n
+	depends on STM32_CONNECTIVITYLINE && STM32_CAN2
+
+config STM32_CEC_REMAP
+	bool "CEC Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_CEC
+
+config STM32_ETH_REMAP
+	bool "Ethernet Alternate Pin Mapping"
+	default n
+	depends on STM32_CONNECTIVITYLINE && STM32_ETHMAC
+
+config STM32_I2C1_REMAP
+	bool "I2C1 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_I2C1
+
+config STM32_SPI1_REMAP
+	bool "SPI1 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_SPI1
+
+config STM32_SPI3_REMAP
+	bool "SPI3 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_SPI3 && !STM32_VALUELINE
 
 choice
 	prompt "TIM1 Alternate Pin Mappings"
@@ -531,6 +645,51 @@ config STM32_TIM4_REMAP
 	default n
 	depends on STM32_STM32F10XX && STM32_TIM4
 
+config STM32_TIM9_REMAP
+	bool "TIM9 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_TIM9
+
+config STM32_TIM10_REMAP
+	bool "TIM10 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_TIM10
+
+config STM32_TIM11_REMAP
+	bool "TIM11 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_TIM11
+
+config STM32_TIM12_REMAP
+	bool "TIM12 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_TIM12
+
+config STM32_TIM13_REMAP
+	bool "TIM13 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_TIM13
+
+config STM32_TIM14_REMAP
+	bool "TIM14 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_TIM14
+
+config STM32_TIM15_REMAP
+	bool "TIM15 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_TIM15
+
+config STM32_TIM16_REMAP
+	bool "TIM16 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_TIM16
+
+config STM32_TIM17_REMAP
+	bool "TIM17 Alternate Pin Mapping"
+	default n
+	depends on STM32_STM32F10XX && STM32_TIM17
+
 config STM32_USART1_REMAP
 	bool "USART1 Alternate Pin Mapping"
 	default n
@@ -556,47 +715,6 @@ config STM32_USART3_PARTIAL_REMAP
 	bool "Partial pin remapping"
 
 endchoice
-
-config STM32_SPI1_REMAP
-	bool "SPI1 Alternate Pin Mapping"
-	default n
-	depends on STM32_STM32F10XX && STM32_SPI1
-
-config STM32_SPI3_REMAP
-	bool "SPI3 Alternate Pin Mapping"
-	default n
-	depends on STM32_STM32F10XX && STM32_SPI3
-
-config STM32_I2C1_REMAP
-	bool "I2C1 Alternate Pin Mapping"
-	default n
-	depends on STM32_STM32F10XX && STM32_I2C1
-
-choice
-	prompt "CAN1 Alternate Pin Mappings"
-	depends on STM32_STM32F10XX && STM32_CAN1
-	default STM32_CAN1_NO_REMAP
-
-config STM32_CAN1_NO_REMAP
-	bool "No pin remapping"
-
-config STM32_CAN1_REMAP1
-	bool "CAN1 alternate pin remapping #1"
-
-config STM32_CAN1_REMAP2
-	bool "CAN1 alternate pin remapping #2"
-
-endchoice
-
-config STM32_CAN2_REMAP
-	bool "CAN2 Alternate Pin Mapping"
-	default n
-	depends on STM32_CONNECTIVITYLINE && STM32_CAN2
-
-config STM32_ETH_REMAP
-	bool "Ethernet Alternate Pin Mapping"
-	default n
-	depends on STM32_CONNECTIVITYLINE && STM32_ETHMAC
 
 endmenu
 
@@ -666,6 +784,7 @@ config STM32_TIM1_PWM
 config STM32_TIM1_CHANNEL
 	int "TIM1 PWM Output Channel"
 	default 1
+	range 1 4
 	depends on STM32_TIM1_PWM
 	---help---
 		If TIM1 is enabled for PWM usage, you also need specifies the timer output
@@ -676,7 +795,7 @@ config STM32_TIM2_PWM
 	default n
 	depends on STM32_TIM2
 	---help---
-		Reserve timer 1 for use by PWM
+		Reserve timer 2 for use by PWM
 
 		Timer devices may be used for different purposes.  One special purpose is
 		to generate modulated outputs for such things as motor control.  If STM32_TIM2
@@ -686,6 +805,7 @@ config STM32_TIM2_PWM
 config STM32_TIM2_CHANNEL
 	int "TIM2 PWM Output Channel"
 	default 1
+	range 1 4
 	depends on STM32_TIM2_PWM
 	---help---
 		If TIM2 is enabled for PWM usage, you also need specifies the timer output
@@ -696,7 +816,7 @@ config STM32_TIM3_PWM
 	default n
 	depends on STM32_TIM3
 	---help---
-		Reserve timer 1 for use by PWM
+		Reserve timer 3 for use by PWM
 
 		Timer devices may be used for different purposes.  One special purpose is
 		to generate modulated outputs for such things as motor control.  If STM32_TIM3
@@ -706,6 +826,7 @@ config STM32_TIM3_PWM
 config STM32_TIM3_CHANNEL
 	int "TIM3 PWM Output Channel"
 	default 1
+	range 1 4
 	depends on STM32_TIM3_PWM
 	---help---
 		If TIM3 is enabled for PWM usage, you also need specifies the timer output
@@ -716,7 +837,7 @@ config STM32_TIM4_PWM
 	default n
 	depends on STM32_TIM4
 	---help---
-		Reserve timer 1 for use by PWM
+		Reserve timer 4 for use by PWM
 
 		Timer devices may be used for different purposes.  One special purpose is
 		to generate modulated outputs for such things as motor control.  If STM32_TIM4
@@ -726,6 +847,7 @@ config STM32_TIM4_PWM
 config STM32_TIM4_CHANNEL
 	int "TIM4 PWM Output Channel"
 	default 1
+	range 1 4
 	depends on STM32_TIM4_PWM
 	---help---
 		If TIM4 is enabled for PWM usage, you also need specifies the timer output
@@ -736,7 +858,7 @@ config STM32_TIM5_PWM
 	default n
 	depends on STM32_TIM5
 	---help---
-		Reserve timer 1 for use by PWM
+		Reserve timer 5 for use by PWM
 
 		Timer devices may be used for different purposes.  One special purpose is
 		to generate modulated outputs for such things as motor control.  If STM32_TIM5
@@ -746,6 +868,7 @@ config STM32_TIM5_PWM
 config STM32_TIM5_CHANNEL
 	int "TIM5 PWM Output Channel"
 	default 1
+	range 1 4
 	depends on STM32_TIM5_PWM
 	---help---
 		If TIM5 is enabled for PWM usage, you also need specifies the timer output
@@ -756,7 +879,7 @@ config STM32_TIM8_PWM
 	default n
 	depends on STM32_TIM8
 	---help---
-		Reserve timer 1 for use by PWM
+		Reserve timer 8 for use by PWM
 
 		Timer devices may be used for different purposes.  One special purpose is
 		to generate modulated outputs for such things as motor control.  If STM32_TIM8
@@ -766,6 +889,7 @@ config STM32_TIM8_PWM
 config STM32_TIM8_CHANNEL
 	int "TIM8 PWM Output Channel"
 	default 1
+	range 1 4
 	depends on STM32_TIM8_PWM
 	---help---
 		If TIM8 is enabled for PWM usage, you also need specifies the timer output
@@ -776,7 +900,7 @@ config STM32_TIM9_PWM
 	default n
 	depends on STM32_TIM9
 	---help---
-		Reserve timer 1 for use by PWM
+		Reserve timer 9 for use by PWM
 
 		Timer devices may be used for different purposes.  One special purpose is
 		to generate modulated outputs for such things as motor control.  If STM32_TIM9
@@ -786,6 +910,7 @@ config STM32_TIM9_PWM
 config STM32_TIM9_CHANNEL
 	int "TIM9 PWM Output Channel"
 	default 1
+	range 1 4
 	depends on STM32_TIM9_PWM
 	---help---
 		If TIM9 is enabled for PWM usage, you also need specifies the timer output
@@ -796,7 +921,7 @@ config STM32_TIM10_PWM
 	default n
 	depends on STM32_TIM10
 	---help---
-		Reserve timer 1 for use by PWM
+		Reserve timer 10 for use by PWM
 
 		Timer devices may be used for different purposes.  One special purpose is
 		to generate modulated outputs for such things as motor control.  If STM32_TIM10
@@ -806,6 +931,7 @@ config STM32_TIM10_PWM
 config STM32_TIM10_CHANNEL
 	int "TIM10 PWM Output Channel"
 	default 1
+	range 1 4
 	depends on STM32_TIM10_PWM
 	---help---
 		If TIM10 is enabled for PWM usage, you also need specifies the timer output
@@ -816,7 +942,7 @@ config STM32_TIM11_PWM
 	default n
 	depends on STM32_TIM11
 	---help---
-		Reserve timer 1 for use by PWM
+		Reserve timer 11 for use by PWM
 
 		Timer devices may be used for different purposes.  One special purpose is
 		to generate modulated outputs for such things as motor control.  If STM32_TIM11
@@ -826,6 +952,7 @@ config STM32_TIM11_PWM
 config STM32_TIM11_CHANNEL
 	int "TIM11 PWM Output Channel"
 	default 1
+	range 1 4
 	depends on STM32_TIM11_PWM
 	---help---
 		If TIM11 is enabled for PWM usage, you also need specifies the timer output
@@ -836,7 +963,7 @@ config STM32_TIM12_PWM
 	default n
 	depends on STM32_TIM12
 	---help---
-		Reserve timer 1 for use by PWM
+		Reserve timer 12 for use by PWM
 
 		Timer devices may be used for different purposes.  One special purpose is
 		to generate modulated outputs for such things as motor control.  If STM32_TIM12
@@ -846,6 +973,7 @@ config STM32_TIM12_PWM
 config STM32_TIM12_CHANNEL
 	int "TIM12 PWM Output Channel"
 	default 1
+	range 1 4
 	depends on STM32_TIM12_PWM
 	---help---
 		If TIM12 is enabled for PWM usage, you also need specifies the timer output
@@ -856,7 +984,7 @@ config STM32_TIM13_PWM
 	default n
 	depends on STM32_TIM13
 	---help---
-		Reserve timer 1 for use by PWM
+		Reserve timer 13 for use by PWM
 
 		Timer devices may be used for different purposes.  One special purpose is
 		to generate modulated outputs for such things as motor control.  If STM32_TIM13
@@ -866,6 +994,7 @@ config STM32_TIM13_PWM
 config STM32_TIM13_CHANNEL
 	int "TIM13 PWM Output Channel"
 	default 1
+	range 1 4
 	depends on STM32_TIM13_PWM
 	---help---
 		If TIM13 is enabled for PWM usage, you also need specifies the timer output
@@ -876,7 +1005,7 @@ config STM32_TIM14_PWM
 	default n
 	depends on STM32_TIM14
 	---help---
-		Reserve timer 1 for use by PWM
+		Reserve timer 14 for use by PWM
 
 		Timer devices may be used for different purposes.  One special purpose is
 		to generate modulated outputs for such things as motor control.  If STM32_TIM14
@@ -886,10 +1015,74 @@ config STM32_TIM14_PWM
 config STM32_TIM14_CHANNEL
 	int "TIM14 PWM Output Channel"
 	default 1
+	range 1 4
 	depends on STM32_TIM14_PWM
 	---help---
 		If TIM14 is enabled for PWM usage, you also need specifies the timer output
 		channel {1,..,4}
+
+config STM32_TIM15_PWM
+	bool "TIM15 PWM"
+	default n
+	depends on STM32_TIM15
+	---help---
+		Reserve timer 15 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM15
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM15_CHANNEL
+	int "TIM15 PWM Output Channel"
+	default 1
+	range 1 2
+	depends on STM32_TIM15_PWM
+	---help---
+		If TIM15 is enabled for PWM usage, you also need specifies the timer output
+		channel {1,2}
+
+config STM32_TIM16_PWM
+	bool "TIM16 PWM"
+	default n
+	depends on STM32_TIM16
+	---help---
+		Reserve timer 16 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM16
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM16_CHANNEL
+	int "TIM16 PWM Output Channel"
+	default 1
+	range 1 1
+	depends on STM32_TIM16_PWM
+	---help---
+		If TIM16 is enabled for PWM usage, you also need specifies the timer output
+		channel {1}
+
+config STM32_TIM17_PWM
+	bool "TIM17 PWM"
+	default n
+	depends on STM32_TIM17
+	---help---
+		Reserve timer 17 for use by PWM
+
+		Timer devices may be used for different purposes.  One special purpose is
+		to generate modulated outputs for such things as motor control.  If STM32_TIM17
+		is defined then THIS following may also be defined to indicate that
+		the timer is intended to be used for pulsed output modulation.
+
+config STM32_TIM17_CHANNEL
+	int "TIM17 PWM Output Channel"
+	default 1
+	range 1 1
+	depends on STM32_TIM17_PWM
+	---help---
+		If TIM17 is enabled for PWM usage, you also need specifies the timer output
+		channel {1}
 
 config STM32_TIM1_ADC
 	bool "TIM1 ADC"
@@ -1233,7 +1426,7 @@ config STM32_TIM2_DAC
 	default n
 	depends on STM32_TIM2 && STM32_DAC
 	---help---
-		Reserve timer 1 for use by DAC
+		Reserve timer 2 for use by DAC
 
 		Timer devices may be used for different purposes.  If STM32_TIM2 is
 		defined then the following may also be defined to indicate that the
@@ -1264,7 +1457,7 @@ config STM32_TIM3_DAC
 	default n
 	depends on STM32_TIM3 && STM32_DAC
 	---help---
-		Reserve timer 1 for use by DAC
+		Reserve timer 3 for use by DAC
 
 		Timer devices may be used for different purposes.  If STM32_TIM3 is
 		defined then the following may also be defined to indicate that the
@@ -1295,7 +1488,7 @@ config STM32_TIM4_DAC
 	default n
 	depends on STM32_TIM4 && STM32_DAC
 	---help---
-		Reserve timer 1 for use by DAC
+		Reserve timer 4 for use by DAC
 
 		Timer devices may be used for different purposes.  If STM32_TIM4 is
 		defined then the following may also be defined to indicate that the
@@ -1326,7 +1519,7 @@ config STM32_TIM5_DAC
 	default n
 	depends on STM32_TIM5 && STM32_DAC
 	---help---
-		Reserve timer 1 for use by DAC
+		Reserve timer 5 for use by DAC
 
 		Timer devices may be used for different purposes.  If STM32_TIM5 is
 		defined then the following may also be defined to indicate that the
@@ -1357,7 +1550,7 @@ config STM32_TIM6_DAC
 	default n
 	depends on STM32_TIM6 && STM32_DAC
 	---help---
-		Reserve timer 1 for use by DAC
+		Reserve timer 6 for use by DAC
 
 		Timer devices may be used for different purposes.  If STM32_TIM6 is
 		defined then the following may also be defined to indicate that the
@@ -1388,7 +1581,7 @@ config STM32_TIM7_DAC
 	default n
 	depends on STM32_TIM7 && STM32_DAC
 	---help---
-		Reserve timer 1 for use by DAC
+		Reserve timer 7 for use by DAC
 
 		Timer devices may be used for different purposes.  If STM32_TIM7 is
 		defined then the following may also be defined to indicate that the
@@ -1419,7 +1612,7 @@ config STM32_TIM8_DAC
 	default n
 	depends on STM32_TIM8 && STM32_DAC
 	---help---
-		Reserve timer 1 for use by DAC
+		Reserve timer 8 for use by DAC
 
 		Timer devices may be used for different purposes.  If STM32_TIM8 is
 		defined then the following may also be defined to indicate that the
@@ -1450,7 +1643,7 @@ config STM32_TIM9_DAC
 	default n
 	depends on STM32_TIM9 && STM32_DAC
 	---help---
-		Reserve timer 1 for use by DAC
+		Reserve timer 9 for use by DAC
 
 		Timer devices may be used for different purposes.  If STM32_TIM9 is
 		defined then the following may also be defined to indicate that the
@@ -1481,7 +1674,7 @@ config STM32_TIM10_DAC
 	default n
 	depends on STM32_TIM10 && STM32_DAC
 	---help---
-		Reserve timer 1 for use by DAC
+		Reserve timer 10 for use by DAC
 
 		Timer devices may be used for different purposes.  If STM32_TIM10 is
 		defined then the following may also be defined to indicate that the
@@ -1512,7 +1705,7 @@ config STM32_TIM11_DAC
 	default n
 	depends on STM32_TIM11 && STM32_DAC
 	---help---
-		Reserve timer 1 for use by DAC
+		Reserve timer 11 for use by DAC
 
 		Timer devices may be used for different purposes.  If STM32_TIM11 is
 		defined then the following may also be defined to indicate that the
@@ -1543,7 +1736,7 @@ config STM32_TIM12_DAC
 	default n
 	depends on STM32_TIM12 && STM32_DAC
 	---help---
-		Reserve timer 1 for use by DAC
+		Reserve timer 12 for use by DAC
 
 		Timer devices may be used for different purposes.  If STM32_TIM12 is
 		defined then the following may also be defined to indicate that the
@@ -1574,7 +1767,7 @@ config STM32_TIM13_DAC
 	default n
 	depends on STM32_TIM13 && STM32_DAC
 	---help---
-		Reserve timer 1 for use by DAC
+		Reserve timer 13 for use by DAC
 
 		Timer devices may be used for different purposes.  If STM32_TIM13 is
 		defined then the following may also be defined to indicate that the
@@ -1605,7 +1798,7 @@ config STM32_TIM14_DAC
 	default n
 	depends on STM32_TIM14 && STM32_DAC
 	---help---
-		Reserve timer 1 for use by DAC
+		Reserve timer 14 for use by DAC
 
 		Timer devices may be used for different purposes.  If STM32_TIM14 is
 		defined then the following may also be defined to indicate that the
@@ -1992,14 +2185,14 @@ config STM32_OTGFS_NPTXFIFO_SIZE
 	depends on USBHOST && STM32_OTGFS
 	---help---
 		Size of the non-periodic Tx FIFO in 32-bit words.  Default 96 (384 bytes)
- 
+
 config STM32_OTGFS_PTXFIFO_SIZE
 	int "Periodic Tx FIFO size"
 	default 128
 	depends on USBHOST && STM32_OTGFS
 	---help---
 		Size of the periodic Tx FIFO in 32-bit words.  Default 96 (384 bytes)
- 
+
 config STM32_OTGFS_DESCSIZE
 	int "Descriptor Size"
 	default 128
@@ -2013,14 +2206,14 @@ config STM32_OTGFS_SOFINTR
 	depends on USBHOST && STM32_OTGFS
 	---help---
 		Enable SOF interrupts.  Why would you ever want to do that?
- 
+
 config STM32_USBHOST_REGDEBUG
 	bool "Register-Level Debug"
 	default n
 	depends on USBHOST && STM32_OTGFS
 	---help---
 		Enable very low-level register access debug.  Depends on DEBUG.
- 
+
 config STM32_USBHOST_PKTDUMP
 	bool "Packet Dump Debug"
 	default n
