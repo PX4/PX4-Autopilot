@@ -116,18 +116,32 @@ int frame_rx;
 int frame_bad;
 
 static void
-comms_handle_frame(void *arg, const void *buffer, size_t length)
+comms_handle_config(const void *buffer, size_t length)
 {
-	struct px4io_command *cmd = (struct px4io_command *)buffer;
+	const struct px4io_config *cfg = (struct px4io_config *)buffer;
 
-	/* make sure it's what we are expecting */
-	if ((length != sizeof(struct px4io_command)) || 
-	    (cmd->f2i_magic != F2I_MAGIC)) {
-	    	frame_bad++;
+	if (length != sizeof(*cfg)) {
+		frame_bad++;
 		return;
 	}
+
 	frame_rx++;
 
+	mixer_set_serial_mode(cfg->serial_rx_mode);
+
+}
+
+static void
+comms_handle_command(const void *buffer, size_t length)
+{
+	const struct px4io_command *cmd = (struct px4io_command *)buffer;
+
+	if (length != sizeof(*cmd)) {
+		frame_bad++;
+		return;
+	}
+
+	frame_rx++;
 	irqstate_t flags = irqsave();
 
 	/* fetch new PWM output values */
@@ -146,6 +160,29 @@ comms_handle_frame(void *arg, const void *buffer, size_t length)
 	for (unsigned i = 0; i < PX4IO_RELAY_CHANNELS; i++)
 		system_state.relays[i] = cmd->relay_state[i];
 
-out:
 	irqrestore(flags);
 }
+
+
+static void
+comms_handle_frame(void *arg, const void *buffer, size_t length)
+{
+	const uint16_t *type = (const uint16_t *)buffer;
+
+
+	/* make sure it's what we are expecting */
+	if (length > 2) {
+		switch (*type) {
+		case F2I_MAGIC:
+			comms_handle_command(buffer, length);
+			break;
+		case F2I_CONFIG_MAGIC:
+			comms_handle_config(buffer, length);
+			break;
+		default:
+			break;
+		}
+	}
+    	frame_bad++;
+}
+

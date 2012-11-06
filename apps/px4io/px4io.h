@@ -101,6 +101,12 @@ struct sys_state_s
 	 * If true, new control data from the FMU has been received.
 	 */
 	bool		fmu_data_received;
+
+	/*
+	 * Current serial interface mode, per the serial_rx_mode parameter
+	 * in the config packet.
+	 */
+	uint8_t		serial_rx_mode;
 };
 
 extern struct sys_state_s system_state;
@@ -123,8 +129,8 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
 /*
  * GPIO handling.
  */
-#define LED_AMBER(_s)		stm32_gpiowrite(GPIO_LED1, !(_s))
-#define LED_BLUE(_s)		stm32_gpiowrite(GPIO_LED2, !(_s))
+#define LED_BLUE(_s)		stm32_gpiowrite(GPIO_LED1, !(_s))
+#define LED_AMBER(_s)		stm32_gpiowrite(GPIO_LED2, !(_s))
 #define LED_SAFETY(_s)		stm32_gpiowrite(GPIO_LED3, !(_s))
 
 #define POWER_SERVO(_s)		stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
@@ -141,6 +147,7 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
  * Mixer
  */
 extern int	mixer_init(void);
+extern void	mixer_set_serial_mode(uint8_t newmode);
 
 /*
  * Safety switch/LED.

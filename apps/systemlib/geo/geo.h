@@ -55,6 +55,12 @@ typedef struct {
 	float bearing;		// Bearing in radians to closest point on line/arc
 } crosstrack_error_s;
 
+__EXPORT static void map_projection_init(double lat_0, double lon_0);
+
+__EXPORT static void map_projection_project(double lat, double lon, float *x, float *y);
+
+__EXPORT static void map_projection_reproject(float x, float y, double *lat, double *lon);
+
 __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 
 __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
