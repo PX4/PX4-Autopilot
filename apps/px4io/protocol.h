@@ -41,6 +41,11 @@
 
 #pragma once
 
+/*
+ * XXX MUST BE KEPT IN SYNC WITH THE VERSION IN PX4FMU UNTIL
+ * TREES ARE MERGED.
+ */
+
 #define PX4IO_OUTPUT_CHANNELS	8
 #define PX4IO_INPUT_CHANNELS	12
 #define PX4IO_RELAY_CHANNELS	4
@@ -64,8 +69,8 @@ struct px4io_config {
 
 	uint8_t		serial_rx_mode;
 #define RX_MODE_PPM_ONLY	0
-#define RX_MODE_DSM_10BIT	1
-#define RX_MODE_DSM_11BIT	2
+#define RX_MODE_SPEKTRUM_6	1
+#define RX_MODE_SPEKTRUM_7	2
 #define RX_MODE_FUTABA_SBUS	3
 };
 

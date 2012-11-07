@@ -44,7 +44,6 @@
 #include <debug.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <termios.h>
 #include <string.h>
 #include <poll.h>
 
@@ -61,126 +60,26 @@
 
 static int			fmu_fd;
 static hx_stream_t		stream;
-static int			rx_fd;
+
 static struct px4io_report	report;
 
 static void			comms_handle_frame(void *arg, const void *buffer, size_t length);
 
-static struct pollfd pollfds[2];
-static int pollcount;
-
 void
 comms_init(void)
 {
-	/* initialise the FMU interface */
 	fmu_fd = open("/dev/ttyS1", O_RDWR | O_NONBLOCK);
 	if (fmu_fd < 0)
 		lib_lowprintf("COMMS: fmu open failed %d\n", errno);
+
 	stream = hx_stream_init(fmu_fd, comms_handle_frame, NULL);
-	pollfds[0].fd = fmu_fd;
-	pollfds[0].events = POLLIN;
-	pollcount = 1;
 
-	/* default state in the report to FMU */
 	report.i2f_magic = I2F_MAGIC;
-
-}
-
-static void
-serial_rx_init(unsigned serial_mode)
-{
-	if (serial_mode == system_state.serial_rx_mode)
-		return;
-	system_state.serial_rx_mode = serial_mode;
-
-	if (serial_mode == RX_MODE_PPM_ONLY) {
-		if (rx_fd != -1) {
-			pollcount = 1;
-			close(rx_fd);
-			rx_fd = -1;
-		}
-		return;
-	}
-
-	/* open the serial port used for DSM and S.bus communication */
-	rx_fd = open("/dev/ttyS0", O_RDONLY | O_NONBLOCK);
-	pollfds[1].fd = rx_fd;
-	pollfds[1].events = POLLIN;
-	pollcount = 2;
-
-	struct termios t;
-	tcgetattr(rx_fd, &t);
-
-	switch (serial_mode) {
-	case RX_MODE_DSM_10BIT:
-	case RX_MODE_DSM_11BIT:
-
-		/* 115200, no parity, one stop bit */
-		cfsetspeed(&t, 115200);
-		t.c_cflag &= ~(CSTOPB | PARENB);
-
-		dsm_init(serial_mode);
-		break;
-
-	case RX_MODE_FUTABA_SBUS:
-		/* 100000, even parity, two stop bits */
-		cfsetspeed(&t, 100000);
-		t.c_cflag |= (CSTOPB | PARENB);
-
-		sbus_init(serial_mode);
-		break;
-
-	default:
-		break;
-	}
-
-	tcsetattr(rx_fd, TCSANOW, &t);
 }
 
 void
 comms_check(void)
 {
-	/*
-	 * Check for serial data
-	 */
-	int ret = poll(pollfds, pollcount, 0);
-
-	if (ret > 0) {
-		/*
-		 * Pull bytes from FMU and feed them to the HX engine.
-		 * Limit the number of bytes we actually process on any one iteration.
-		 */
-		if (pollfds[0].revents & POLLIN) {
-			char buf[32];
-			ssize_t count = read(fmu_fd, buf, sizeof(buf));
-			for (int i = 0; i < count; i++)
-				hx_stream_rx(stream, buf[i]);
-		}
-
-		/*
-		 * Pull bytes from the serial RX port and feed them to the decoder
-		 * if we care about serial RX data.
-		 */
-		if ((pollcount > 1) && (pollfds[1].revents & POLLIN)) {
-			switch (system_state.serial_rx_mode) {
-			case RX_MODE_DSM_10BIT:
-			case RX_MODE_DSM_11BIT:
-				dsm_input(rx_fd);
-				break;
-
-			case RX_MODE_FUTABA_SBUS:
-				sbus_input(rx_fd);
-				break;
-
-			default:
-				break;
-			}
-		}
-	}
-
-	/*
-	 * Decide if it's time to send an update to the FMU.
-	 */
 	static hrt_abstime last_report_time;
 	hrt_abstime now, delta;
 
@@ -188,7 +87,7 @@ comms_check(void)
 	now = hrt_absolute_time();
 	delta = now - last_report_time;
 	if ((delta > FMU_MIN_REPORT_INTERVAL) && 
-	    (system_state.fmu_report_due || (delta > FMU_MAX_REPORT_INTERVAL))) {
+		(system_state.fmu_report_due || (delta > FMU_MAX_REPORT_INTERVAL))) {
 
 		system_state.fmu_report_due = false;
 		last_report_time = now;
@@ -202,6 +101,15 @@ comms_check(void)
 		/* and send it */
 		hx_stream_send(stream, &report, sizeof(report));
 	}
+
+	/*
+	 * Check for bytes and feed them to the RX engine.  
+	 * Limit the number of bytes we actually process on any one iteration.
+	 */
+	char buf[32];
+	ssize_t count = read(fmu_fd, buf, sizeof(buf));
+	for (int i = 0; i < count; i++)
+		hx_stream_rx(stream, buf[i]);
 }
 
 int frame_rx;
@@ -219,7 +127,8 @@ comms_handle_config(const void *buffer, size_t length)
 
 	frame_rx++;
 
-	serial_rx_init(cfg->serial_rx_mode);
+	mixer_set_serial_mode(cfg->serial_rx_mode);
+
 }
 
 static void
