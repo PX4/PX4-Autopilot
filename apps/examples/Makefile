@@ -58,7 +58,7 @@ CNTXTDIRS = pwm
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
 CNTXTDIRS += adc can cdcacm composite cxxtestdhcpd discover ftpd json
-CNTXTDIRS += modbus nettest relays qencoder telnetd watchdog wgetjson
+CNTXTDIRS += modbus nettest nxlines relays qencoder telnetd watchdog wgetjson
 endif
 
 ifeq ($(CONFIG_EXAMPLES_HELLO_BUILTIN),y)
@@ -78,9 +78,6 @@ CNTXTDIRS += nxhello
 endif
 ifeq ($(CONFIG_EXAMPLES_NXIMAGE_BUILTIN),y)
 CNTXTDIRS += nximage
-endif
-ifeq ($(CONFIG_EXAMPLES_LINES_BUILTIN),y)
-CNTXTDIRS += nxlines
 endif
 ifeq ($(CONFIG_EXAMPLES_NXTEXT_BUILTIN),y)
 CNTXTDIRS += nxtext

@@ -1299,17 +1299,24 @@ Where <subdir> is one of the following:
 
     The STM32F4Discovery board does not have any graphics capability.  This
     configuration assumes that you have connected an SD1289-based LCD as
-    described about under "SSD1289".  NOTE:  At present, it has not been
+    described above under "SSD1289".  NOTE:  At present, it has not been
     proven that the STM32F4Discovery can actually drive an LCD.  There are
     some issues with how some of the dedicated FSMC pins are used on the
     boards.  This configuration may not be useful and may only serve as
     an illustration of how to build for th SSD1289 LCD.
 
-    Default toolchain:
+  NOTES:
 
-      CONFIG_STM32_CODESOURCERYW=y : CodeSourcery under Windows
+  1. As of this writing, I have not seen the LCD work!
 
-    NOTE: As of this writing, I have not seen the LCD work!
+  2. This configuration uses the mconf-based configuration tool.  To
+     change this configuration using that tool, you should:
+
+     a. Build and install the mconf tool.  See nuttx/README.txt and
+        misc/tools/
+
+     b. Execute 'make menuconfig' in nuttx/ in order to start the
+        reconfiguration process.
 
   pm:
   --

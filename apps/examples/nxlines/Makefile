@@ -82,7 +82,7 @@ $(COBJS): %$(OBJEXT): %.c
 	@touch .built
 
 .context:
-ifeq ($(CONFIG_EXAMPLES_NXLINES_BUILTIN),y)
+ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
 	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
 	@touch $@
 endif

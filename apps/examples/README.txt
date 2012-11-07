@@ -941,8 +941,6 @@ examplex/nxlines
 
   The following configuration options can be selected:
 
-    CONFIG_EXAMPLES_NXLINES_BUILTIN -- Build the NXLINES example as a "built-in"
-      that can be executed from the NSH command line    
     CONFIG_EXAMPLES_NXLINES_VPLANE -- The plane to select from the frame-
       buffer driver for use in the test.  Default: 0
     CONFIG_EXAMPLES_NXLINES_DEVNO - The LCD device to select from the LCD
@@ -979,6 +977,9 @@ examplex/nxlines
       #else
       FAR struct fb_vtable_s *up_nxdrvinit(unsigned int devno);
       #endif
+
+    CONFIG_NSH_BUILTIN_APPS - Build the NX lines examples as an NSH built-in
+      function.
 
 examples/nxtext
 ^^^^^^^^^^^^^^^

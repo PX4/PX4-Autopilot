@@ -10,4 +10,78 @@ config EXAMPLES_NXLINES
 		Enable the X graphics lines example
 
 if EXAMPLES_NXLINES
+
+config EXAMPLES_NXLINES_VPLANE
+	int "Graphics Plane"
+	default 0
+	---help---
+		The plane to select from the frame-buffer driver for use in the test.  Default: 0
+
+config EXAMPLES_NXLINES_DEVNO
+	int "Graphics Device Number"
+	default 0
+	---help---
+		The LCD device to select from the LCD driver for use in the test: Default: 0
+
+config EXAMPLES_NXLINES_BGCOLOR
+	hex "Background Color"
+	default 0x00
+	---help---
+		The color of the background.  Default depends on EXAMPLES_NXLINES_BPP.
+
+config EXAMPLES_NXLINES_LINEWIDTH
+	int "Line Width"
+	default 16
+	---help---
+		Selects the width of the lines in pixels (default: 16)
+
+config EXAMPLES_NXLINES_LINECOLOR
+	hex "Line Color"
+	default 0x00
+	---help---
+		The color of the central lines drawn in the background window. Default
+		depends on EXAMPLES_NXLINES_BPP (there really is no meaningful default).
+
+config EXAMPLES_NXLINES_BORDERWIDTH
+	int "Border Width"
+	default 16
+	---help---
+		The width of the circular border drawn in the background window. (default: 16).
+
+config EXAMPLES_NXLINES_BORDERCOLOR
+	hex "Border Color"
+	default 0x00
+	---help---
+		The color of the circular border drawn in the background window. Default
+		depends on EXAMPLES_NXLINES_BPP (there really is no meaningful default).
+
+config EXAMPLES_NXLINES_CIRCLECOLOR
+	hex "Circle Color"
+	default 0x00
+	---help---
+		The color of the circular region filled in the background window. Default
+		depends on EXAMPLES_NXLINES_BPP (there really is no meaningful default).
+
+config EXAMPLES_NXLINES_BPP
+	int "Bits Per Pixel"
+	default 8
+	---help---
+		Pixels per pixel to use.  Valid options include 2, 4, 8, 16, 24, and 32.
+		Default is 16.
+
+config EXAMPLES_NXLINES_EXTERNINIT
+	bool "External Device Initialization"
+	default false
+	---help---
+		The driver for the graphics device on this platform requires some unusual
+		initialization.  This is the for, for example, SPI LCD/OLED devices.  If
+		this configuration is selected, then the platform code must provide an LCD
+		initialization function with a prototype like:
+
+		#ifdef NX_LCDDRIVER
+		FAR struct lcd_dev_s *up_nxdrvinit(unsigned int devno);
+		#else
+		FAR struct fb_vtable_s *up_nxdrvinit(unsigned int devno);
+		#endif
+
 endif
