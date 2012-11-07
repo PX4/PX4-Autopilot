@@ -226,6 +226,14 @@ mc_thread_main(int argc, char *argv[])
 					att_sp.yaw_body = att.yaw;
 				}
 				att_sp.thrust = manual.throttle;
+
+				if(state.rc_signal_lost) {
+					att_sp.roll_body = 0.0f;
+					att_sp.pitch_body = 0.0f;
+					att_sp.yaw_body = 0.0f;
+					att_sp.thrust = 0.4f;
+				}
+
 				att_sp.timestamp = hrt_absolute_time();
 			}
 			/* STEP 2: publish the result to the vehicle actuators */
