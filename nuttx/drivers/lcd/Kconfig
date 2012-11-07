@@ -183,12 +183,95 @@ config NOKIA6100_RGBORD
 endif
 
 config LCD_UG9664HSWAG01
-	bool "9664HSWAG01 OLED Display Module"
+	bool "UG-9664HSWAG01 OLED Display Module"
 	default n
 	---help---
-		ug-9664hswag01.c.  OLED Display Module, UG-9664HSWAG01", Univision
-		Technology Inc.  Used with the LPC Xpresso and Embedded Artists
-		base board.
+		OLED Display Module, UG-9664HSWAG01, Univision Technology Inc.  Used
+		with the LPCXpresso and Embedded Artists base board.
+
+		Required LCD driver settings:
+		LCD_MAXCONTRAST should be 255, but any value >0 and <=255 will be accepted.
+		LCD_MAXPOWER should be 1:  0=off, 1=on
+
+		Required SPI driver settings:
+		SPI_CMDDATA - Include support for cmd/data selection.
+
+if LCD_UG9664HSWAG01
+
+config UG9664HSWAG01_SPIMODE
+	int "UG-9664HSWAG01 SPI Mode"
+	default 0
+	---help---
+		Controls the SPI mode
+
+config UG9664HSWAG01_FREQUENCY
+	int "UG-9664HSWAG01 SPI Frequency"
+	default 3500000
+	---help---
+		Define to use a different bus frequency
+
+config UG9664HSWAG01_NINTERFACES
+	int "Number of UG-9664HSWAG01 Devices"
+	default 1
+	---help---
+		Specifies the number of physical UG-9664HSWAG01 devices that will be
+		supported.  NOTE:  At present, this must be undefined or defined to be 1.
+
+config UG9664HSWAG01_POWER
+	bool "Power control"
+	default n
+	---help---
+		If the hardware supports a controllable OLED a power supply, this
+		configuration should be defined.  In this case the system must
+		provide an interface ug_power().
+
+endif
+
+config LCD_UG2864AMBAG01
+	bool "UG-2864AMBAG01 OLED Display Module"
+	default n
+	---help---
+		OLED Display Module, UG-2864AMBAG01, Univision Technology Inc. 
+
+		Required LCD driver settings:
+		LCD_MAXCONTRAST should be 255, but any value >0 and <=255 will be accepted.
+		LCD_MAXPOWER should be 1:  0=off, 1=on
+
+		Required SPI driver settings:
+		SPI_CMDDATA - Include support for cmd/data selection.
+
+if LCD_UG2864AMBAG01
+
+	config UG2864AMBAG01_SPIMODE
+	int "UG-2864AMBAG01 SPI Mode"
+	default 3
+	---help---
+		Controls the SPI mode
+
+config UG2864AMBAG01_FREQUENCY
+	int "UG-2864AMBAG01 SPI Frequency"
+	default 3500000
+	---help---
+		Define to use a different bus frequency
+
+config UG2864AMBAG01_NINTERFACES
+	int "Number of UG-2864AMBAG01 Devices"
+	default 1
+	---help---
+		Specifies the number of physical UG-9664HSWAG01 devices that will be
+		supported.  NOTE:  At present, this must be undefined or defined to be 1.
+
+config UG2864AMBAG01_FRAMEBUFFER
+	bool "UG-2864AMBAG01 Framebuffer"
+	default y
+	---help---
+		If defined, accesses will be performed using an in-memory copy of the
+		OLED's GRAM.  This cost of this buffer is 128 * 64 / 8 = 1Kb.
+
+		If G2864AMBAG01_FRAMEBUFFER is not defined and the LCD is a LANDSCAPE
+		mode, then a 128 byte buffer is still required.
+
+endif
 
 config LCD_SSD1289
 	bool "LCD Based on SSD1289 Controller"

@@ -3577,3 +3577,6 @@
 	* configs/stm32f100_generic:  Support for generic STM32F100RC board
 	  contributed by Freddie Chopin.
 	* arch/arm/src/stm32_otgfsdev.c:  Partial fix from Petteri Aimonen.
+	* drivers/lcd/ug-2864ambag01.c and include/nuttx/lcd/ug_2864ambag01.h:
+	  LCD driver for the Univision OLED of the same name.
+
