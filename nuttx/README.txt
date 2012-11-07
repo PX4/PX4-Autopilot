@@ -205,7 +205,8 @@ Instantiating "Canned" Configurations
 
 Where <board-name> is the name of your development board and <config-dir>.
 Configuring NuttX requires only copying three files from the <config-dir>
-to the directly where you installed NuttX (TOPDIR):
+to the directory where you installed NuttX (TOPDIR) (and sometimes one
+additional file to the directory the NuttX application package (APPSDIR)):
 
   Copy configs/<board-name>/<config-dir>/Make.def to ${TOPDIR}/Make.defs
 
@@ -226,6 +227,14 @@ to the directly where you installed NuttX (TOPDIR):
     file is included by all other make files to determine what is
     included in the build and what is not.  This file is also used
     to generate a C configuration header at include/nuttx/config.h.
+
+  Copy configs/<board-name>/<config-dir>/appconfig to ${APPSDIR}/.config
+
+    The appconfig file describes the applications that need to be
+    built in the appliction directory (APPSDIR).  Not all configurations
+    have an appconfig file.  This file is deprecated and will not be
+    used with new defconfig files produced with the mconf configuration
+    tool.
 
 General information about configuring NuttX can be found in:
 

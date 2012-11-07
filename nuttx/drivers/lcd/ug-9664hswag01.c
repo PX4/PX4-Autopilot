@@ -182,7 +182,7 @@
 #define UG_BPP          1
 #define UG_COLORFMT     FB_FMT_Y1
 
-/* Bytes per logical row andactual device row */
+/* Bytes per logical row and actual device row */
 
 #define UG_XSTRIDE      (UG_XRES >> 3) /* Pixels arrange "horizontally for user" */
 #define UG_YSTRIDE      (UG_YRES >> 3) /* But actual device arrangement is "vertical" */

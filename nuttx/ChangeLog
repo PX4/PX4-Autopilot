@@ -3576,4 +3576,4 @@
 	  added by Freddie Chopin.
 	* configs/stm32f100_generic:  Support for generic STM32F100RC board
 	  contributed by Freddie Chopin.
-
+	* arch/arm/src/stm32_otgfsdev.c:  Partial fix from Petteri Aimonen.
