@@ -743,15 +743,15 @@ px4io_main(int argc, char *argv[])
 		return ret;
 	}
 
-	if (!strcmp(argv[1], "rx_spektrum6")) {
+	if (!strcmp(argv[1], "rx_dsm_10bit")) {
 		if (g_dev == nullptr)
 			errx(1, "not started");
-		g_dev->set_rx_mode(RX_MODE_SPEKTRUM_6);
+		g_dev->set_rx_mode(RX_MODE_DSM_10BIT);
 	}
-	if (!strcmp(argv[1], "rx_spektrum7")) {
+	if (!strcmp(argv[1], "rx_dsm_11bit")) {
 		if (g_dev == nullptr)
 			errx(1, "not started");
-		g_dev->set_rx_mode(RX_MODE_SPEKTRUM_7);
+		g_dev->set_rx_mode(RX_MODE_DSM_11BIT);
 	}
 	if (!strcmp(argv[1], "rx_sbus")) {
 		if (g_dev == nullptr)
@@ -763,5 +763,5 @@ px4io_main(int argc, char *argv[])
 		test();
 
 
-	errx(1, "need a command, try 'start', 'test', 'rx_spektrum6', 'rx_spektrum7', 'rx_sbus' or 'update'");
+	errx(1, "need a command, try 'start', 'test', 'rx_dsm_10bit', 'rx_dsm_11bit', 'rx_sbus' or 'update'");
 }
