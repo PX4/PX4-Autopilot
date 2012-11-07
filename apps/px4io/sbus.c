@@ -32,51 +32,27 @@
  ****************************************************************************/
 
 /**
- * @file PX4FMU <-> PX4IO messaging protocol.
+ * @file sbus.c
  *
- * This initial version of the protocol is very simple; each side transmits a
- * complete update with each frame.  This avoids the sending of many small
- * messages and the corresponding complexity involved.
+ * Serial protocol decoder for the Futaba S.bus protocol.
  */
 
-#pragma once
+#include <nuttx/config.h>
 
-#define PX4IO_OUTPUT_CHANNELS	8
-#define PX4IO_INPUT_CHANNELS	12
-#define PX4IO_RELAY_CHANNELS	4
+#include <fcntl.h>
+#include <unistd.h>
 
-#pragma pack(push, 1)
+#include <drivers/drv_hrt.h>
 
-/* command from FMU to IO */
-struct px4io_command {
-	uint16_t	f2i_magic;
-#define F2I_MAGIC	0x636d
+#include "px4io.h"
+#include "protocol.h"
 
-	uint16_t	servo_command[PX4IO_OUTPUT_CHANNELS];
-	bool		relay_state[PX4IO_RELAY_CHANNELS];
-	bool		arm_ok;
-};
+void
+sbus_init(unsigned mode)
+{
+}
 
-/* config message from FMU to IO */
-struct px4io_config {
-	uint16_t f2i_config_magic;
-#define F2I_CONFIG_MAGIC 0x6366
-
-	uint8_t		serial_rx_mode;
-#define RX_MODE_PPM_ONLY	0
-#define RX_MODE_DSM_10BIT	1
-#define RX_MODE_DSM_11BIT	2
-#define RX_MODE_FUTABA_SBUS	3
-};
-
-/* report from IO to FMU */
-struct px4io_report {
-	uint16_t	i2f_magic;
-#define I2F_MAGIC		0x7570
-
-	uint16_t	rc_channel[PX4IO_INPUT_CHANNELS];
-	bool		armed;
-	uint8_t		channel_count;
-};
-
-#pragma pack(pop)
+void
+sbus_input(int fd)
+{
+}
