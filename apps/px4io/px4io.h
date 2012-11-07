@@ -68,7 +68,7 @@
 struct sys_state_s 
 {
 
-	bool		armed;		/* actually armed */
+	bool		armed;		/* IO armed */
 	bool		arm_ok;		/* FMU says OK to arm */
 
 	/*

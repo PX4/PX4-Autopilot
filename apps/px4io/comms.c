@@ -148,13 +148,19 @@ comms_handle_command(const void *buffer, size_t length)
 	for (unsigned i = 0; i < PX4IO_OUTPUT_CHANNELS; i++)
 		system_state.fmu_channel_data[i] = cmd->servo_command[i];
 
+	/* if the IO is armed and the FMU gets disarmed, the IO must also disarm */
+	if(system_state.arm_ok && !cmd->arm_ok) {
+		system_state.armed = false;
+	}
+
 	system_state.arm_ok = cmd->arm_ok;
 	system_state.mixer_use_fmu = true;
 	system_state.fmu_data_received = true;
 
+
 	/* handle changes signalled by FMU */
-	if (!system_state.arm_ok && system_state.armed)
-		system_state.armed = false;
+//	if (!system_state.arm_ok && system_state.armed)
+//		system_state.armed = false;
 
 	/* XXX do relay changes here */	
 	for (unsigned i = 0; i < PX4IO_RELAY_CHANNELS; i++)
