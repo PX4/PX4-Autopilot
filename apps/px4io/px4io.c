@@ -72,7 +72,7 @@ int user_start(int argc, char *argv[])
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
-	/* init the FMU link */
+	/* init the FMU and receiver links */
 	comms_init();
 
 	/* configure the first 8 PWM outputs (i.e. all of them) */
