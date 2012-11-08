@@ -139,10 +139,10 @@ mixer_tick(void *arg)
 			system_state.fmu_data_received = false;
 		}
 
-//	} else if (system_state.rc_channels > 0) {
-//		/* we have control data from an R/C input */
-//		control_count = system_state.rc_channels;
-//		control_values = &system_state.rc_channel_data[0];
+	} else if (system_state.rc_channels > 0) {
+		/* we have control data from an R/C input */
+		control_count = system_state.rc_channels;
+		control_values = &system_state.rc_channel_data[0];
 
 	} else {
 		/* we have no control input */
