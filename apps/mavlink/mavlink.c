@@ -714,7 +714,7 @@ int mavlink_thread_main(int argc, char *argv[])
 static void
 usage()
 {
-	fprintf(stderr, "usage: mavlink start [-d <devicename>] [-b <baud rate>] [-e] [-o]\n"
+	fprintf(stderr, "usage: mavlink start [-d <devicename>] [-b <baud rate>]\n"
 			"       mavlink stop\n"
 			"       mavlink status\n");
 	exit(1);
@@ -723,8 +723,10 @@ usage()
 int mavlink_main(int argc, char *argv[])
 {
 
-	if (argc < 1)
-		errx(1, "missing command");
+	if (argc < 2) {
+		warnx("missing command");
+		usage();
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -759,6 +761,9 @@ int mavlink_main(int argc, char *argv[])
 		}
 	}
 
-	errx(1, "unrecognized command");
+	warnx("unrecognized command");
+	usage();
+	/* not getting here */
+	return 0;
 }
 
