@@ -261,16 +261,6 @@ config UG2864AMBAG01_NINTERFACES
 		Specifies the number of physical UG-9664HSWAG01 devices that will be
 		supported.  NOTE:  At present, this must be undefined or defined to be 1.
 
-config UG2864AMBAG01_FRAMEBUFFER
-	bool "UG-2864AMBAG01 Framebuffer"
-	default y
-	---help---
-		If defined, accesses will be performed using an in-memory copy of the
-		OLED's GRAM.  This cost of this buffer is 128 * 64 / 8 = 1Kb.
-
-		If G2864AMBAG01_FRAMEBUFFER is not defined and the LCD is a LANDSCAPE
-		mode, then a 128 byte buffer is still required.
-
 endif
 
 config LCD_SSD1289

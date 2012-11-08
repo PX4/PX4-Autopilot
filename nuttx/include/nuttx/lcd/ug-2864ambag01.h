@@ -1,6 +1,7 @@
 /**************************************************************************************
  * include/nuttx/lcd/ug-2864ambag01.h
- * Driver for Univision UG-2864AMBAG01 OLED display (wih SH1101A controller)
+ * Driver for Univision UG-2864AMBAG01 OLED display (wih SH1101A controller) in SPI
+ * mode
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -53,8 +54,6 @@
 
 #include <nuttx/arch.h>
 
-#include "stm32_gpio.h"
-
 #ifdef CONFIG_LCD_UG2864AMBAG01
 
 /**************************************************************************************
@@ -67,12 +66,6 @@
  * CONFIG_UG2864AMBAG01_FREQUENCY - Define to use a different bus frequency
  * CONFIG_UG2864AMBAG01_NINTERFACES - Specifies the number of physical UG-2864AMBAG01
  *   devices that will be supported.
- * CONFIG_UG2864AMBAG01_FRAMEBUFFER - If defined, accesses will be performed using an
- *   in-memory copy of the OLEDs GDDRAM.  This cost of this buffer is 128 * 64 / 8 =
- *   1Kb.
- *
- *   If CONFIG_UG2864AMBAG01_FRAMEBUFFER is not defined and the LCD is a LANDSCAPE mode,
- *   then a 128 byte buffer is still required.
  *
  * Required LCD driver settings:
  *

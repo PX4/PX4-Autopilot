@@ -2,7 +2,7 @@ README
 ======
 
 This README discusses issues unique to NuttX configurations for the
-STMicro STM32F4 Discovery development board.
+STMicro STM32F4Discovery development board.
 
 Contents
 ========
@@ -20,6 +20,7 @@ Contents
   - FPU
   - FSMC SRAM
   - SSD1289
+  - UG-2864AMBAG01
   - STM32F4Discovery-specific Configuration Options
   - Configurations
 
@@ -564,7 +565,7 @@ by the "Lite" version of the Atollic toolchain.
 SSD1289
 =======
 
-I purchased an LCD display on eBay from china.  The LCD is 320x240 RGB565 and
+I purchased an LCD display on eBay from China.  The LCD is 320x240 RGB565 and
 is based on an SSD1289 LCD controller and an XPT2046 touch IC.  The pin out
 from the 2x16 connect on the LCD is labeled as follows:
 
@@ -701,6 +702,31 @@ The following summarize the bit banging oprations:
     Index(address);
     WriteData(data);
   }
+
+UG-2864AMBAG01
+==============
+
+I purchased an OLED display on eBay.  The OLDE is 128x64 monochrome and
+is based on an UG-2864AMBAG01 OLED controller.  The OLED can run in either
+parallel or SPI mode.  I am using SPI mode.  In SPI mode, the OLED is
+write only so the driver keeps a 128*64/8 = 1KB framebuffer to remember
+the display contents:
+
+Here is how I have the OLED connected.  But you can change this with the
+settings in include/board.h and src/stm324fdiscovery-internal.h:
+
+  Connector CON10 J1:   STM32F4Discovery
+
+  1  3v3                P2 3V
+  3  RESET              P2 PB6 (Arbitrary selection)
+  5  CS                 P3 PB7 (Arbitrary selection)
+  7  A0                 P2 PB8 (Arbitrary selection)
+  9  LED+ (N/C)         -----
+  2  5V Vcc             P2 5V
+  4  DI                 P1 PA7 (GPIO_SPI1_MOSI == GPIO_SPI1_MOSI_1)
+  6  SCLK               P1 PA5 (GPIO_SPI1_SCK == GPIO_SPI1_SCK_1)
+  8  LED- (N/C)         ------
+  10 GND                P2 GND
 
 STM32F4Discovery-specific Configuration Options
 ===============================================
@@ -1317,6 +1343,43 @@ Where <subdir> is one of the following:
 
      b. Execute 'make menuconfig' in nuttx/ in order to start the
         reconfiguration process.
+
+  3. This configured can be re-configured to use the UG-2864AMBAG01
+     0.96 inch OLED by adding or changing the following items int
+     the configuration (using 'make menuconfig'):
+
+     +CONFIG_SPI_CMDDATA=y
+
+     -CONFIG_LCD_MAXCONTRAST=1
+     -CONFIG_LCD_MAXPOWER=255
+     +CONFIG_LCD_MAXCONTRAST=255
+     +CONFIG_LCD_MAXPOWER=1
+
+     -CONFIG_LCD_SSD1289=y
+     -CONFIG_SSD1289_PROFILE1=y
+     +CONFIG_LCD_UG2864AMBAG01=y
+     +CONFIG_UG2864AMBAG01_SPIMODE=3
+     +CONFIG_UG2864AMBAG01_FREQUENCY=3500000
+     +CONFIG_UG2864AMBAG01_NINTERFACES=1
+
+     -CONFIG_NX_DISABLE_1BPP=y
+     +CONFIG_NX_DISABLE_16BPP=y
+
+     -CONFIG_EXAMPLES_NXLINES_BGCOLOR=0x0320
+     -CONFIG_EXAMPLES_NXLINES_LINEWIDTH=16
+     -CONFIG_EXAMPLES_NXLINES_LINECOLOR=0xffe0
+     -CONFIG_EXAMPLES_NXLINES_BORDERWIDTH=4
+     -CONFIG_EXAMPLES_NXLINES_BORDERCOLOR=0xffe0
+     -CONFIG_EXAMPLES_NXLINES_CIRCLECOLOR=0xf7bb
+     -CONFIG_EXAMPLES_NXLINES_BPP=16
+     +CONFIG_EXAMPLES_NXLINES_BGCOLOR=0x00
+     +CONFIG_EXAMPLES_NXLINES_LINEWIDTH=4
+     +CONFIG_EXAMPLES_NXLINES_LINECOLOR=0x01
+     +CONFIG_EXAMPLES_NXLINES_BORDERWIDTH=2
+     +CONFIG_EXAMPLES_NXLINES_BORDERCOLOR=0x01
+     +CONFIG_EXAMPLES_NXLINES_CIRCLECOLOR=0x00
+     +CONFIG_EXAMPLES_NXLINES_BPP=1
+     +CONFIG_EXAMPLES_NXLINES_EXTERNINIT=y
 
   pm:
   --

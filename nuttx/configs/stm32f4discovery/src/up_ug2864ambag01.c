@@ -40,23 +40,22 @@
 
 #include <nuttx/config.h>
 
-#include <stdio.h>
 #include <debug.h>
-#include <errno.h>
 
 #include <nuttx/spi.h>
 #include <nuttx/lcd/lcd.h>
 #include <nuttx/lcd/ug-2864ambag01.h>
 
+#include "stm32_gpio.h"
 #include "stm32f4discovery-internal.h"
+
+#ifdef CONFIG_LCD_UG2864AMBAG01
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
 /* Configuration ************************************************************/
-/* This module is only built if CONFIG_NX_LCDDRIVER is selected.  In this
- * case, it would be an error if SSP1 is not also enabled.
- */
+/* The pin configurations here require that SPI1 is selected */
 
 #ifndef CONFIG_STM32_SPI1
 #  error "The OLED driver requires CONFIG_STM32_SPI1 in the configuration"
@@ -67,42 +66,32 @@
 #endif
 
 /* Pin Configuration ********************************************************/
-/* Connector CON10 J1:
+/* Connector CON10 J1:   STM32F4Discovery
  *
- * 1 3v3        2 5V Vcc
- * 3 RESET      4 DI
- * 5 CS         6 SCLK
- * 7 A0         8 LED- (N/C)
- * 9 LED+ (N/C) 9 GND
+ * 1  3v3                P2 3V
+ * 3  RESET              P2 PB6 (Arbitrary selection)
+ * 5  CS                 P3 PB7 (Arbitrary selection)
+ * 7  A0                 P2 PB8 (Arbitrary selection)
+ * 9  LED+ (N/C)         -----
+ * 2  5V Vcc             P2 5V
+ * 4  DI                 P1 PA7 (GPIO_SPI1_MOSI == GPIO_SPI1_MOSI_1)
+ * 6  SCLK               P1 PA5 (GPIO_SPI1_SCK == GPIO_SPI1_SCK_1)
+ * 8  LED- (N/C)         ------
+ * 10 GND                P2 GND
+ *
+ * Note that the OLED CS and A0 are managed in the up_spi.c file.
  */
 
-#define STM32_OLED_RESET
-#define STM32_OLED_A0
+/* Definitions in stm32f4discovery-internal.h */
 
 /* Debug ********************************************************************/
-/* Define the CONFIG_DEBUG_LCD to enable detailed debug output (stuff you
- * would never want to see unless you are debugging this file).
- *
- * Verbose debug must also be enabled
- */
-
-#ifndef CONFIG_DEBUG
-#  undef CONFIG_DEBUG_VERBOSE
-#  undef CONFIG_DEBUG_GRAPHICS
-#endif
-
-#ifndef CONFIG_DEBUG_VERBOSE
-#  undef CONFIG_DEBUG_LCD
-#endif
 
 #ifdef CONFIG_DEBUG_LCD
-#  define lcddbg(format, arg...) vdbg(format, ##arg)
-#  define oleddc_dumpgpio(m)     stm32_dumpgpio(STM32_OLED_POWER, m)
-#  define oledcs_dumpgpio(m)     stm32_dumpgpio(STM32_OLED_CS, m)
+#  define lcddbg(format, arg...)   dbg(format, ##arg)
+#  define lcdvdbg(format, arg...)  vdbg(format, ##arg)
 #else
 #  define lcddbg(x...)
-#  define oleddc_dumpgpio(m)
-#  define oledcs_dumpgpio(m)
+#  define lcdvdbg(x...)
 #endif
 
 /****************************************************************************
@@ -122,42 +111,36 @@ FAR struct lcd_dev_s *up_nxdrvinit(unsigned int devno)
   FAR struct spi_dev_s *spi;
   FAR struct lcd_dev_s *dev;
 
-  /* Configure the OLED GPIOs. For the SPI interface, insert jumpers in J42,
-   * J43, J45 pin1-2 and J46 pin 1-2.
+  /* Configure the OLED GPIOs. This initial configuration is RESET low,
+   * putting the OLED into reset state.
    */
  
-  oledcs_dumpgpio("up_nxdrvinit: After OLED CS setup");
-  oleddc_dumpgpio("up_nxdrvinit: On entry");
-
-  (void)stm32_configgpio(STM32_OLED_RESET); /* OLED reset */
-  (void)stm32_configgpio(STM32_OLED_A0);    /* OLED Command/Data */
-
-  oleddc_dumpgpio("up_nxdrvinit: After OLED GPIO setup");
+  (void)stm32_configgpio(GPIO_OLED_RESET);
 
   /* Wait a bit then release the OLED from the reset state */
 
   up_mdelay(20);
-  stm32_gpiowrite(STM32_OLED_A0, true);
+  stm32_gpiowrite(GPIO_OLED_RESET, true);
 
-  /* Get the SSI port (configure as a Freescale SPI port) */
+  /* Get the SPI1 port interface */
 
   spi = up_spiinitialize(1);
   if (!spi)
     {
-      glldbg("Failed to initialize SSI port 1\n");
+      lcddbg("Failed to initialize SPI port 1\n");
     }
   else
     {
-      /* Bind the SSI port to the OLED */
+      /* Bind the SPI port to the OLED */
 
       dev = ug2864ambag01_initialize(spi, devno);
       if (!dev)
         {
-          glldbg("Failed to bind SSI port 1 to OLED %d: %d\n", devno);
+          lcddbg("Failed to bind SPI port 1 to OLED %d: %d\n", devno);
         }
      else
         {
-          gllvdbg("Bound SSI port 1 to OLED %d\n", devno);
+          lcdvdbg("Bound SPI port 1 to OLED %d\n", devno);
 
           /* And turn the OLED on */
 
@@ -168,39 +151,4 @@ FAR struct lcd_dev_s *up_nxdrvinit(unsigned int devno)
 
   return NULL;
 }
-
-/****************************************************************************
- * Name:  stm32_ssp1cmddata
- *
- * Description:
- *   Set or clear the SD1329 D/Cn bit to select data (true) or command
- *   (false).  This function must be provided by platform-specific logic.
- *   This is an implementation of the cmddata method of the SPI
- *   interface defined by struct spi_ops_s (see include/nuttx/spi.h).
- *
- * Input Parameters:
- *
- *   spi - SPI device that controls the bus the device that requires the CMD/
- *         DATA selection.
- *   devid - If there are multiple devices on the bus, this selects which one
- *         to select cmd or data.  NOTE:  This design restricts, for example,
- *         one one SPI display per SPI bus.
- *   cmd - true: select command; false: select data
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-int stm32_ssp1cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
-{
-  if (devid == SPIDEV_DISPLAY)
-    {
-      /* Set GPIO to 1 for data, 0 for command */
-
-      (void)stm32_gpiowrite(STM32_OLED_A0, !cmd);
-      return OK;
-    }
-
-  return -ENODEV;
-}
+#endif /* CONFIG_LCD_UG2864AMBAG01 */

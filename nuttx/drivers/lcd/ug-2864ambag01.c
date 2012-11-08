@@ -1,6 +1,7 @@
 /**************************************************************************************
  * drivers/lcd/ug-2864ambag01.c
- * Driver for Univision UG-2864AMBAG01 OLED display (wih SH1101A controller)
+ * Driver for Univision UG-2864AMBAG01 OLED display (wih SH1101A controller) in SPI
+ * mode
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -146,11 +147,6 @@
 #  define CONFIG_UG2864AMBAG01_NINTERFACES 1
 #endif
 
-#ifndef CONFIG_UG2864AMBAG01_FRAMEBUFFER
-#  warning "CONFIG_UG2864AMBAG01_FRAMEBUFFER is required"
-#  define CONFIG_UG2864AMBAG01_FRAMEBUFFER 1
-#endif
-
 #if defined(CONFIG_LCD_PORTRAIT) || defined(CONFIG_LCD_RPORTRAIT)
 #  warning "No support yet for portrait modes"
 #  define CONFIG_LCD_LANDSCAPE 1
@@ -206,19 +202,6 @@
 #define SH1101A_STATUS_ONOFF     (0x40)
 #define SH1101A_RDDATA(d)        (d)                    /* Read Display Data */
 
-/* Define the CONFIG_DEBUG_LCD to enable detailed debug output (stuff you would
- * never want to see unless you are debugging this file). Verbose debug must also be
- * enabled
- */
-
-#ifndef CONFIG_DEBUG
-#  undef CONFIG_DEBUG_VERBOSE
-#endif
-
-#ifndef CONFIG_DEBUG_VERBOSE
-#  undef CONFIG_DEBUG_LCD
-#endif
-
 /* Color Properties *******************************************************************/
 /* Display Resolution
  *
@@ -259,8 +242,8 @@
  * Row size:          128 columns x 8 rows-per-page / 8 bits-per-pixel
  */
 
-#define UG2864AMBAG01_FBSIZE       ((UG2864AMBAG01_XRES * UG2864AMBAG01_YRES) >> 3)
-#define UG2864AMBAG01_ROWSIZE      (UG2864AMBAG01_XRES)
+#define UG2864AMBAG01_FBSIZE       (UG2864AMBAG01_XSTRIDE * UG2864AMBAG01_YRES)
+#define UG2864AMBAG01_ROWSIZE      (UG2864AMBAG01_XSTRIDE)
 
 /* Bit helpers */
 
@@ -270,9 +253,11 @@
 /* Debug ******************************************************************************/
 
 #ifdef CONFIG_DEBUG_LCD
-#  define lcddbg(format, arg...)  vdbg(format, ##arg)
+#  define lcddbg(format, arg...)   dbg(format, ##arg)
+#  define lcdvdbg(format, arg...)  vdbg(format, ##arg)
 #else
 #  define lcddbg(x...)
+#  define lcdvdbg(x...)
 #endif
 
 /**************************************************************************************
@@ -292,20 +277,12 @@ struct ug2864ambag01_dev_s
   bool                   on;       /* true: display is on */
 
 
- /* If the SH1101A does not support reading from the display memory, then it will be
-  * necessary to keep a shadow copy of the framebuffer memory. At 128x64, this amounts
-  * to 1KB.
-  *
-  * If the SH1101A is writable but the display is in a landscape mode then a small
-  * 128 / 8 = 16 byte buffer is still required in order to perform the 90 degree
-  * rotation.
+ /* The SH1101A does not support reading from the display memory in SPI mode.
+  * Since there is 1 BPP and access is byte-by-byte, it is necessary to keep
+  * a shadow copy of the framebuffer memory. At 128x64, this amounts to 1KB.
   */
 
-#if CONFIG_UG2864AMBAG01_FRAMEBUFFER
   uint8_t fb[UG2864AMBAG01_FBSIZE];
-#elif defined(CONFIG_LCD_LANDSCAPE) || defined(CONFIG_LCD_RLANDSCAPE)
-  uint8_t buffer[UG2864AMBAG01_ROWSIZE];
-#endif
 };
 
 /**************************************************************************************
@@ -441,8 +418,8 @@ static struct ug2864ambag01_dev_s g_oleddev =
 #ifdef CONFIG_SPI_OWNBUS
 static inline void ug2864ambag01_configspi(FAR struct spi_dev_s *spi)
 {
-  lcddbg("Mode: %d Bits: 8 Frequency: %d\n",
-         CONFIG_UG2864AMBAG01_SPIMODE, CONFIG_UG2864AMBAG01_FREQUENCY);
+  lcdvdbg("Mode: %d Bits: 8 Frequency: %d\n",
+          CONFIG_UG2864AMBAG01_SPIMODE, CONFIG_UG2864AMBAG01_FREQUENCY);
 
   /* Configure SPI for the UG-2864AMBAG01.  But only if we own the SPI bus.  Otherwise,
    * don't bother because it might change.
@@ -543,7 +520,7 @@ static int ug2864ambag01_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_
   int pixlen;
   uint8_t i;
 
-  gvdbg("row: %d col: %d npixels: %d\n", row, col, npixels);
+  lcdvdbg("row: %d col: %d npixels: %d\n", row, col, npixels);
   DEBUGASSERT(buffer);
 
   /* Clip the run to the display */
@@ -717,7 +694,7 @@ static int ug2864ambag01_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buf
   int pixlen;
   uint8_t i;
 
-  gvdbg("row: %d col: %d npixels: %d\n", row, col, npixels);
+  lcdvdbg("row: %d col: %d npixels: %d\n", row, col, npixels);
   DEBUGASSERT(buffer);
 
   /* Clip the run to the display */
@@ -838,8 +815,8 @@ static int ug2864ambag01_getvideoinfo(FAR struct lcd_dev_s *dev,
                               FAR struct fb_videoinfo_s *vinfo)
 {
   DEBUGASSERT(dev && vinfo);
-  gvdbg("fmt: %d xres: %d yres: %d nplanes: %d\n",
-        g_videoinfo.fmt, g_videoinfo.xres, g_videoinfo.yres, g_videoinfo.nplanes);
+  lcdvdbg("fmt: %d xres: %d yres: %d nplanes: %d\n",
+          g_videoinfo.fmt, g_videoinfo.xres, g_videoinfo.yres, g_videoinfo.nplanes);
   memcpy(vinfo, &g_videoinfo, sizeof(struct fb_videoinfo_s));
   return OK;
 }
@@ -856,7 +833,7 @@ static int ug2864ambag01_getplaneinfo(FAR struct lcd_dev_s *dev, unsigned int pl
                               FAR struct lcd_planeinfo_s *pinfo)
 {
   DEBUGASSERT(pinfo && planeno == 0);
-  gvdbg("planeno: %d bpp: %d\n", planeno, g_planeinfo.bpp);
+  lcdvdbg("planeno: %d bpp: %d\n", planeno, g_planeinfo.bpp);
   memcpy(pinfo, &g_planeinfo, sizeof(struct lcd_planeinfo_s));
   return OK;
 }
@@ -875,7 +852,7 @@ static int ug2864ambag01_getpower(FAR struct lcd_dev_s *dev)
   FAR struct ug2864ambag01_dev_s *priv = (FAR struct ug2864ambag01_dev_s *)dev;
   DEBUGASSERT(priv);
 
-  gvdbg("power: %s\n", priv->on ? "ON" : "OFF");
+  lcdvdbg("power: %s\n", priv->on ? "ON" : "OFF");
   return priv->on ? CONFIG_LCD_MAXPOWER : 0;
 }
 
@@ -893,7 +870,7 @@ static int ug2864ambag01_setpower(struct lcd_dev_s *dev, int power)
   struct ug2864ambag01_dev_s *priv = (struct ug2864ambag01_dev_s *)dev;
   DEBUGASSERT(priv && (unsigned)power <= CONFIG_LCD_MAXPOWER && priv->spi);
 
-  gvdbg("power: %d [%d]\n", power, priv->on ? CONFIG_LCD_MAXPOWER : 0);
+  lcdvdbg("power: %d [%d]\n", power, priv->on ? CONFIG_LCD_MAXPOWER : 0);
 
   /* Lock and select device */
 
@@ -935,7 +912,7 @@ static int ug2864ambag01_getcontrast(struct lcd_dev_s *dev)
   struct ug2864ambag01_dev_s *priv = (struct ug2864ambag01_dev_s *)dev;
   DEBUGASSERT(priv);
 
-  gvdbg("contrast: %d\n", priv->contrast);
+  lcdvdbg("contrast: %d\n", priv->contrast);
   return priv->contrast;
 }
 
@@ -952,7 +929,7 @@ static int ug2864ambag01_setcontrast(struct lcd_dev_s *dev, unsigned int contras
   struct ug2864ambag01_dev_s *priv = (struct ug2864ambag01_dev_s *)dev;
   unsigned int scaled;
 
-  gvdbg("contrast: %d\n", contrast);
+  lcdvdbg("contrast: %d\n", contrast);
   DEBUGASSERT(priv);
 
   /* Verify the contrast value */
@@ -1025,7 +1002,7 @@ FAR struct lcd_dev_s *ug2864ambag01_initialize(FAR struct spi_dev_s *spi, unsign
 {
   FAR struct ug2864ambag01_dev_s  *priv = &g_oleddev;
 
-  gvdbg("Initializing\n");
+  lcdvdbg("Initializing\n");
   DEBUGASSERT(spi && devno == 0);
 
   /* Save the reference to the SPI device */
@@ -1117,9 +1094,7 @@ void ug2864ambag01_fill(FAR struct lcd_dev_s *dev, uint8_t color)
 
   /* Initialize the framebuffer */
 
-#ifdef CONFIG_UG2864AMBAG01_FRAMEBUFFER
   memset(priv->fb, color, UG2864AMBAG01_FBSIZE);
-#endif
 
   /* Lock and select device */
 

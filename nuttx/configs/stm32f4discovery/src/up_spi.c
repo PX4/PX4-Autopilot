@@ -42,6 +42,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <errno.h>
 #include <debug.h>
 
 #include <nuttx/spi.h>
@@ -95,7 +96,11 @@
 void weak_function stm32_spiinitialize(void)
 {
 #ifdef CONFIG_STM32_SPI1
-  stm32_configgpio(GPIO_CS_MEMS);
+  (void)stm32_configgpio(GPIO_CS_MEMS);
+#endif
+#ifdef CONFIG_LCD_UG2864AMBAG01
+  (void)stm32_configgpio(GPIO_OLED_CS);    /* OLED chip select */
+  (void)stm32_configgpio(GPIO_OLED_A0);    /* OLED Command/Data */
 #endif
 }
 
@@ -129,12 +134,21 @@ void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sele
 {
   spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 
-  stm32_gpiowrite(GPIO_CS_MEMS, !selected);
+#ifdef CONFIG_LCD_UG2864AMBAG01
+  if (devid == SPIDEV_DISPLAY)
+    {
+      stm32_gpiowrite(GPIO_OLED_CS, !selected);
+    }
+  else
+#endif
+    {
+      stm32_gpiowrite(GPIO_CS_MEMS, !selected);
+    }
 }
 
 uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-  return SPI_STATUS_PRESENT;
+  return 0;
 }
 #endif
 
@@ -146,7 +160,7 @@ void stm32_spi2select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sele
 
 uint8_t stm32_spi2status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-  return SPI_STATUS_PRESENT;
+  return 0;
 }
 #endif
 
@@ -158,8 +172,70 @@ void stm32_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sele
 
 uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-  return SPI_STATUS_PRESENT;
+  return 0;
 }
 #endif
+
+/****************************************************************************
+ * Name: stm32_spi1cmddata
+ *
+ * Description:
+ *   Set or clear the SD1329 D/Cn bit to select data (true) or command
+ *   (false).  This function must be provided by platform-specific logic.
+ *   This is an implementation of the cmddata method of the SPI
+ *   interface defined by struct spi_ops_s (see include/nuttx/spi.h).
+ *
+ * Input Parameters:
+ *
+ *   spi - SPI device that controls the bus the device that requires the CMD/
+ *         DATA selection.
+ *   devid - If there are multiple devices on the bus, this selects which one
+ *         to select cmd or data.  NOTE:  This design restricts, for example,
+ *         one one SPI display per SPI bus.
+ *   cmd - true: select command; false: select data
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SPI_CMDDATA
+#ifdef CONFIG_STM32_SPI1
+int stm32_spi1cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
+{
+#ifdef CONFIG_LCD_UG2864AMBAG01
+  if (devid == SPIDEV_DISPLAY)
+    {
+      /* "This is the Data/Command control pad which determines whether the
+       *  data bits are data or a command.
+       *
+       *  A0 = “H”: the inputs at D0 to D7 are treated as display data.
+       *  A0 = “L”: the inputs at D0 to D7 are transferred to the command
+       *       registers."
+       */
+
+      (void)stm32_gpiowrite(GPIO_OLED_A0, !cmd);
+      return OK;
+    }
+#endif
+
+  return -ENODEV;
+}
+#endif
+
+#ifdef CONFIG_STM32_SPI2
+int stm32_spi2cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
+{
+  return -ENODEV;
+}
+#endif
+
+#ifdef CONFIG_STM32_SPI3
+int stm32_spi3cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
+{
+  return -ENODEV;
+}
+#endif
+#endif /* CONFIG_SPI_CMDDATA */
 
 #endif /* CONFIG_STM32_SPI1 || CONFIG_STM32_SPI2 */

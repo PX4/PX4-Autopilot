@@ -3651,10 +3651,14 @@ static int stm32_epout_configure(FAR struct stm32_ep_s *privep, uint8_t eptype,
   regval  = stm32_getreg(regaddr);
   if ((regval & OTGFS_DOEPCTL_USBAEP) == 0)
     {
-      regval &= ~(OTGFS_DOEPCTL_MPSIZ_MASK | OTGFS_DIEPCTL_EPTYP_MASK | OTGFS_DIEPCTL_TXFNUM_MASK);
+      if (regval & OTGFS_DOEPCTL_NAKSTS)
+        {
+          regval |= OTGFS_DOEPCTL_CNAK;
+        }
+      
+      regval &= ~(OTGFS_DOEPCTL_MPSIZ_MASK | OTGFS_DOEPCTL_EPTYP_MASK);
       regval |= mpsiz;
       regval |= (eptype << OTGFS_DOEPCTL_EPTYP_SHIFT);
-      regval |= (eptype << OTGFS_DIEPCTL_TXFNUM_SHIFT);
       regval |= (OTGFS_DOEPCTL_SD0PID | OTGFS_DOEPCTL_USBAEP);
       stm32_putreg(regval, regaddr);
 
@@ -3743,6 +3747,11 @@ static int stm32_epin_configure(FAR struct stm32_ep_s *privep, uint8_t eptype,
   regval  = stm32_getreg(regaddr);
   if ((regval & OTGFS_DIEPCTL_USBAEP) == 0)
     {
+      if (regval & OTGFS_DIEPCTL_NAKSTS)
+        {
+          regval |= OTGFS_DIEPCTL_CNAK;
+        }
+      
       regval &= ~(OTGFS_DIEPCTL_MPSIZ_MASK | OTGFS_DIEPCTL_EPTYP_MASK | OTGFS_DIEPCTL_TXFNUM_MASK);
       regval |= mpsiz;
       regval |= (eptype << OTGFS_DIEPCTL_EPTYP_SHIFT);
