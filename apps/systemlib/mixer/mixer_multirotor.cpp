@@ -161,26 +161,26 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	float		max     = 0.0f;
 	float		fixup_scale;
 
+	/* use an output factor to prevent too strong control signals at low throttle */
 	float min_thrust = 0.05f;
 	float max_thrust = 1.0f;
-	float output_factor = 0.0f;
 	float startpoint_full_control = 0.20f;
-	float endpoint_full_control = 0.80f;
+	float output_factor;
 
+	/* keep roll, pitch and yaw control to 0 below min thrust */
 	if (thrust <= min_thrust) {
 		output_factor = 0.0f;
+	/* linearly increase the output factor from 0 to 1 between min_thrust and startpoint_full_control */
 	} else if (thrust < startpoint_full_control && thrust > min_thrust) {
-		output_factor = (thrust/max_thrust)/startpoint_full_control;
-	} else if (thrust >= startpoint_full_control && thrust < endpoint_full_control) {
+		output_factor = (thrust/max_thrust)/(startpoint_full_control-min_thrust);
+	/* and then stay at full control */
+	} else {
 		output_factor = max_thrust;
-	} else if (thrust >= endpoint_full_control) {
-		output_factor = max_thrust/(endpoint_full_control-max_thrust);
 	}
 
 	roll *= output_factor;
 	pitch *= output_factor;
 	yaw *= output_factor;
-
 
 
 	/* perform initial mix pass yielding un-bounded outputs */
