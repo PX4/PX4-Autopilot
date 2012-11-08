@@ -73,7 +73,7 @@
 #include "multirotor_attitude_control.h"
 #include "multirotor_rate_control.h"
 
-PARAM_DEFINE_FLOAT(MC_RCLOSS_THROT, 0.0f); // This defines the throttle when the RC signal is lost.
+PARAM_DEFINE_FLOAT(MC_RCLOSS_THR, 0.0f); // This defines the throttle when the RC signal is lost.
 
 __EXPORT int multirotor_att_control_main(int argc, char *argv[]);
 
@@ -146,7 +146,7 @@ mc_thread_main(int argc, char *argv[])
 	bool man_yaw_zero_once = false;
 
 	/* prepare the handle for the failsafe throttle */
-	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THROT");
+	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
 	float failsafe_throttle = 0.0f;
 
 	while (!thread_should_exit) {
