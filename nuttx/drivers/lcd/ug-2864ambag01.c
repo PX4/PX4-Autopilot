@@ -324,18 +324,6 @@ static void ug2864ambag01_lock(FAR struct spi_dev_s *spi);
 static void ug2864ambag01_unlock(FAR struct spi_dev_s *spi);
 #endif
 
-/* Buffer Management */
-
-static int ug2864ambag01_readdisplay(FAR struct ug2864ambag01_dev_s *priv,
-                                     fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
-                                     size_t npixels);
-static int ug2864ambag01_putbuffer(FAR struct ug2864ambag01_dev_s *priv,
-                                   fb_coord_t row, fb_coord_t col,
-                                   FAR const uint8_t *buffer, size_t npixels);
-static int ug2864ambag01_getbuffer(FAR struct ug2864ambag01_dev_s *priv,
-                                   fb_coord_t row, fb_coord_t col, FAR uint8_t *buffer,
-                                   size_t npixels);
-
 /* LCD Data Transfer Methods */
 
 static int ug2864ambag01_putrun(fb_coord_t row, fb_coord_t col,
@@ -1115,7 +1103,6 @@ void ug2864ambag01_fill(FAR struct lcd_dev_s *dev, uint8_t color)
 {
   FAR struct ug2864ambag01_dev_s  *priv = &g_oleddev;
   unsigned int page;
-  unsigned int col;
 
   /* Make an 8-bit version of the selected color */
 

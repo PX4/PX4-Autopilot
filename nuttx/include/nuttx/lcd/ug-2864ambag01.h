@@ -47,7 +47,15 @@
  * Included Files
  **************************************************************************************/
 
+#include <nuttx/config.h>
+
 #include <stdbool.h>
+
+#include <nuttx/arch.h>
+
+#include "stm32_gpio.h"
+
+#ifdef CONFIG_LCD_UG2864AMBAG01
 
 /**************************************************************************************
  * Pre-processor Definitions
@@ -214,8 +222,8 @@ extern "C"
  *
  **************************************************************************************/
 
-struct lcd_dev_s; /* See nuttx/lcd.h */
-struct spi_dev_s; /* See nuttx/spi.h */
+struct lcd_dev_s; /* See include/nuttx/lcd/lcd.h */
+struct spi_dev_s; /* See include/nuttx/spi.h */
 FAR struct lcd_dev_s *ug2864ambag01_initialize(FAR struct spi_dev_s *spi,
                                                unsigned int devno);
 
@@ -240,4 +248,5 @@ void ug2864ambag01_fill(FAR struct lcd_dev_s *dev, uint8_t color);
 }
 #endif
 
+#endif /* CONFIG_LCD_UG2864AMBAG01 */
 #endif /* __INCLUDE_NUTTX_UG_8264AMBAG01_H */

@@ -3578,7 +3578,9 @@
 	  contributed by Freddie Chopin.
 	* arch/arm/src/stm32_otgfsdev.c:  Partial fix from Petteri Aimonen.
 	* drivers/lcd/ug-2864ambag01.c and include/nuttx/lcd/ug_2864ambag01.h:
-	  LCD driver for the Univision OLED of the same name.
+	  LCD driver for the Univision OLED of the same name (untested on
+	  initial check-in).
 	* configs/stm32f4discovery/nxlines:  Configure to use mconf/Kconfig
 	  tool.
-
+	* configs/stm32f4discovery/src/up_ug2864ambag01.c:  Board-specific
+	  initialization for UG-2864AMBAG01 OLED connecte to STM32F4Disovery.

@@ -96,6 +96,10 @@ CSRCS		+= up_ssd1289.c
 endif
 endif
 
+ifeq ($(CONFIG_LCD_UG2864AMBAG01),y)
+CSRCS		+= up_ug2864ambag01.c
+endif
+
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)
