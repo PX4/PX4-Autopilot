@@ -74,6 +74,7 @@ public:
 	enum Mode {
 		MODE_2PWM,
 		MODE_4PWM,
+		MODE_HIL_8PWM,
 		MODE_NONE
 	};
 	PX4FMU();
@@ -269,6 +270,12 @@ PX4FMU::set_mode(Mode mode)
 		_update_rate = 50;	/* default output rate */
 		break;
 
+	case MODE_HIL_8PWM:
+		debug("MODE_HIL_8PWM");
+		/* do not actually start a pwm device */
+		_update_rate = 50;	/* default output rate */
+		break;
+
 	case MODE_NONE:
 		debug("MODE_NONE");
 		/* disable servo outputs and set a very low update rate */
@@ -321,7 +328,26 @@ PX4FMU::task_main()
 	fds[1].fd = _t_armed;
 	fds[1].events = POLLIN;
 
-	unsigned num_outputs = (_mode == MODE_2PWM) ? 2 : 4;
+	unsigned num_outputs;
+
+	/* select the number of (real or virtual) outputs */
+	switch (_mode) {
+	case MODE_2PWM:
+		num_outputs = 2;
+		break;
+
+	case MODE_4PWM:
+		num_outputs = 4;
+		break;
+
+	case MODE_HIL_8PWM:
+		num_outputs = 8;
+		break;
+
+	case MODE_NONE:
+		num_outputs = 0;
+		break;
+	}
 
 	log("starting");
 
@@ -334,7 +360,11 @@ PX4FMU::task_main()
 			if (update_rate_in_ms < 2)
 				update_rate_in_ms = 2;
 			orb_set_interval(_t_actuators, update_rate_in_ms);
-			up_pwm_servo_set_rate(_update_rate);
+
+			if (_mode != MODE_HIL_8PWM) {
+				/* do not attempt to set servos in HIL mode */
+				up_pwm_servo_set_rate(_update_rate);
+			}
 			_current_update_rate = _update_rate;
 		}
 
@@ -367,7 +397,11 @@ PX4FMU::task_main()
 					outputs.output[i] = 1500 + (600 * outputs.output[i]);
 
 					/* output to the servo */
-					up_pwm_servo_set(i, outputs.output[i]);
+					if (_mode != MODE_HIL_8PWM) {
+						/* do not attempt to set servos in HIL mode */
+						up_pwm_servo_set(i, outputs.output[i]);
+					}
+					
 				}
 
 				/* and publish for anyone that cares to see */
@@ -383,7 +417,14 @@ PX4FMU::task_main()
 			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
 
 			/* update PWM servo armed status */
-			up_pwm_servo_arm(aa.armed);
+
+			/*
+			 * armed  = system wants to fly
+			 * locked = there is a low-level safety lock
+			 *          in place, such as in hardware-in-the-loop
+			 *          simulation setups.
+			 */
+			up_pwm_servo_arm(aa.armed && !aa.lockdown);
 		}
 	}
 
@@ -419,7 +460,8 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
-	debug("ioctl 0x%04x 0x%08x", cmd, arg);
+	// XXX disable debug output, users got confused
+	//debug("ioctl 0x%04x 0x%08x", cmd, arg);
 
 	/* try it as a GPIO ioctl first */
 	ret = gpio_ioctl(filp, cmd, arg);
@@ -431,6 +473,10 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 	case MODE_2PWM:
 	case MODE_4PWM:
 		ret = pwm_ioctl(filp, cmd, arg);
+		break;
+	case MODE_HIL_8PWM:
+		/* do nothing */
+		debug("loading mixer for virtual HIL device");
 		break;
 	default:
 		debug("not in a PWM mode");
@@ -705,6 +751,7 @@ enum PortMode {
 	PORT_GPIO_AND_SERIAL,
 	PORT_PWM_AND_SERIAL,
 	PORT_PWM_AND_GPIO,
+	PORT_HIL_PWM
 };
 
 PortMode g_port_mode;
@@ -752,6 +799,11 @@ fmu_new_mode(PortMode new_mode, int update_rate)
 	case PORT_PWM_AND_GPIO:
 		/* select 2-pin PWM mode */
 		servo_mode = PX4FMU::MODE_2PWM;
+		break;
+
+	case PORT_HIL_PWM:
+		/* virtual PWM mode */
+		servo_mode = PX4FMU::MODE_HIL_8PWM;
 		break;
 	}
 
@@ -882,11 +934,14 @@ fmu_main(int argc, char *argv[])
 
 		} else if (!strcmp(argv[i], "mode_pwm_gpio")) {
 			new_mode = PORT_PWM_AND_GPIO;
+
+		} else if (!strcmp(argv[i], "mode_hil_pwm")) {
+			new_mode = PORT_HIL_PWM;
 		}
 
 		/* look for the optional pwm update rate for the supported modes */
 		if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--update-rate") == 0) {
-			if (new_mode == PORT_FULL_PWM || new_mode == PORT_PWM_AND_GPIO) {
+			if (new_mode == PORT_FULL_PWM || new_mode == PORT_PWM_AND_GPIO || PORT_HIL_PWM) {
 				if (argc > i + 1) {
 					pwm_update_rate_in_hz = atoi(argv[i + 1]);
 				} else {
@@ -912,7 +967,7 @@ fmu_main(int argc, char *argv[])
 
 	/* test, etc. here */
 
-	fprintf(stderr, "FMU: unrecognised command, try:\n");
-	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm [-u pwm_update_rate_in_hz], mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio\n");
+	fprintf(stderr, "FMU: unrecognized command, try:\n");
+	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm [-u pwm_update_rate_in_hz], mode_gpio_serial,\n  mode_pwm_serial, mode_pwm_gpio, mode_hil_pwm\n");
 	return -EINVAL;
 }
