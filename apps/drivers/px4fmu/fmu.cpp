@@ -477,6 +477,7 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 	case MODE_HIL_8PWM:
 		/* do nothing */
 		debug("loading mixer for virtual HIL device");
+		ret = 0;
 		break;
 	default:
 		debug("not in a PWM mode");
