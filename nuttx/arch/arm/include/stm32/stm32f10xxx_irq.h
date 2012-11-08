@@ -62,7 +62,7 @@
  */
 
  /* Value line devices */
- 
+
 #if defined(CONFIG_STM32_VALUELINE)
 #  define STM32_IRQ_WWDG        (16) /* 0:  Window Watchdog interrupt */
 #  define STM32_IRQ_PVD         (17) /* 1:  PVD through EXTI Line detection interrupt */
@@ -83,7 +83,10 @@
 #  define STM32_IRQ_DMA1CH6     (32) /* 16: DMA1 Channel 6 global interrupt */
 #  define STM32_IRQ_DMA1CH7     (33) /* 17: DMA1 Channel 7 global interrupt */
 #  define STM32_IRQ_ADC1        (34) /* 18: ADC1 global interrupt */
-                                     /* 19-22: reserved */
+#  define STM32_IRQ_RESERVED0   (35) /* 19: Reserved 0 */
+#  define STM32_IRQ_RESERVED1   (36) /* 20: Reserved 1 */
+#  define STM32_IRQ_RESERVED2   (37) /* 21: Reserved 2 */
+#  define STM32_IRQ_RESERVED3   (38) /* 22: Reserved 3 */
 #  define STM32_IRQ_EXTI95      (39) /* 23: EXTI Line[9:5] interrupts */
 #  define STM32_IRQ_TIM1BRK     (40) /* 24: TIM1 Break interrupt */
 #  define STM32_IRQ_TIM15       (40) /*     TIM15 global interrupt */
@@ -110,9 +113,10 @@
 #  define STM32_IRQ_TIM12       (59) /* 43: TIM12 global interrupt */
 #  define STM32_IRQ_TIM13       (60) /* 44: TIM13 global interrupt */
 #  define STM32_IRQ_TIM14       (61) /* 45: TIM14 global interrupt */
-                                     /* 46-47: reserved */
+#  define STM32_IRQ_RESERVED4   (62) /* 46: Reserved 4 */
+#  define STM32_IRQ_RESERVED5   (63) /* 47: Reserved 5 */
 #  define STM32_IRQ_FSMC        (64) /* 48: FSMC global interrupt */
-                                     /* 49: reserved */
+#  define STM32_IRQ_RESERVED6   (65) /* 49: Reserved 6 */
 #  define STM32_IRQ_TIM5        (66) /* 50: TIM5 global interrupt */
 #  define STM32_IRQ_SPI3        (67) /* 51: SPI3 global interrupt */
 #  define STM32_IRQ_UART4       (68) /* 52: USART2 global interrupt */

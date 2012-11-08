@@ -66,20 +66,27 @@
 #endif
 
 /* Pin Configuration ********************************************************/
-/* Connector CON10 J1:   STM32F4Discovery
+/* UG-2864AMBAG01 OLED Display:
  *
- * 1  3v3                P2 3V
- * 3  RESET              P2 PB6 (Arbitrary selection)
- * 5  CS                 P3 PB7 (Arbitrary selection)
- * 7  A0                 P2 PB8 (Arbitrary selection)
- * 9  LED+ (N/C)         -----
- * 2  5V Vcc             P2 5V
- * 4  DI                 P1 PA7 (GPIO_SPI1_MOSI == GPIO_SPI1_MOSI_1)
- * 6  SCLK               P1 PA5 (GPIO_SPI1_SCK == GPIO_SPI1_SCK_1)
- * 8  LED- (N/C)         ------
- * 10 GND                P2 GND
- *
- * Note that the OLED CS and A0 are managed in the up_spi.c file.
+ * --------------------------+----------------------------------------------
+ * Connector CON10 J1:      | STM32F4Discovery
+ * --------------+-----------+----------------------------------------------
+ * CON10 J1:     | CON20 J2: | P1/P2:
+ * --------------+-----------+----------------------------------------------
+ * 1  3v3        | 3,4 3v3   | P2 3V
+ * 3  /RESET     | 8 /RESET  | P2 PB6 (Arbitrary selection)
+ * 5  /CS        | 7 /CS     | P3 PB7 (Arbitrary selection)(2)
+ * 7  A0         | 9 A0      | P2 PB8 (Arbitrary selection)(2)
+ * 9  LED+ (N/C) | -----     | -----
+ * 2  5V Vcc     | 1,2 Vcc   | P2 5V
+ * 4  DI         | 18 D1/SI  | P1 PA7 (GPIO_SPI1_MOSI == GPIO_SPI1_MOSI_1 (1))
+ * 6  SCLK       | 19 D0/SCL | P1 PA5 (GPIO_SPI1_SCK == GPIO_SPI1_SCK_1 (2))
+ * 8  LED- (N/C) | -----     | ------
+ * 10 GND        | 20 GND    | P2 GND
+ * --------------+-----------+----------------------------------------------
+ * (1) Required because of on-board MEMS
+ * (2) Note that the OLED CS and A0 are managed in the up_spi.c file.
+ * -------------------------------------------------------------------------
  */
 
 /* Definitions in stm32f4discovery-internal.h */
