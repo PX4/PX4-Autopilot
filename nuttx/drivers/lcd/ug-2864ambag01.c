@@ -153,6 +153,8 @@
 #  undef CONFIG_LCD_PORTRAIT
 #  undef CONFIG_LCD_RLANDSCAPE
 #  undef CONFIG_LCD_RPORTRAIT
+#elif defined(CONFIG_LCD_RLANDSCAPE)
+#  warning "Reverse landscape mode is untested and, hence, probably buggy"
 #endif
 
 /* SH1101A Commands *******************************************************************/
@@ -574,7 +576,11 @@ static int ug2864ambag01_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_
 
   fbmask  = 1 << (row & 7);
   fbptr   = &priv->fb[page * UG2864AMBAG01_XRES + col];
+#ifdef CONFIG_LCD_RLANDSCAPE
+  ptr     = fbptr + pixlen - 1;
+#else
   ptr     = fbptr;
+#endif
 #ifdef CONFIG_NX_PACKEDMSFIRST
   usrmask = MS_BIT;
 #else
@@ -585,6 +591,16 @@ static int ug2864ambag01_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_
     {
       /* Set or clear the corresponding bit */
 
+#ifdef CONFIG_LCD_RLANDSCAPE
+      if ((*buffer & usrmask) != 0)
+        {
+          *ptr-- |= fbmask;
+        }
+      else
+        {
+          *ptr-- &= ~fbmask;
+        }
+#else
       if ((*buffer & usrmask) != 0)
         {
           *ptr++ |= fbmask;
@@ -593,6 +609,7 @@ static int ug2864ambag01_putrun(fb_coord_t row, fb_coord_t col, FAR const uint8_
         {
           *ptr++ &= ~fbmask;
         }
+#endif
 
       /* Inc/Decrement to the next source pixel */
 
@@ -748,7 +765,11 @@ static int ug2864ambag01_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buf
    */
 
   fbmask  = 1 << (row & 7);
+#ifdef CONFIG_LCD_RLANDSCAPE
+  fbptr   = &priv->fb[page * (UG2864AMBAG01_XRES-1) + col + pixlen];
+#else
   fbptr   = &priv->fb[page * UG2864AMBAG01_XRES + col];
+#endif
 #ifdef CONFIG_NX_PACKEDMSFIRST
   usrmask = MS_BIT;
 #else
@@ -760,7 +781,11 @@ static int ug2864ambag01_getrun(fb_coord_t row, fb_coord_t col, FAR uint8_t *buf
     {
       /* Set or clear the corresponding bit */
       
+#ifdef CONFIG_LCD_RLANDSCAPE
+      uint8_t byte = *fbptr--;
+#else
       uint8_t byte = *fbptr++;
+#endif
       if ((byte & fbmask) != 0)
         {
           *buffer |= usrmask;

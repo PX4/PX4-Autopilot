@@ -53,9 +53,27 @@ config WINDOWS_MSYS
 	bool "MSYS"
 
 config WINDOWS_OTHER
-	bool "Other"
+	bool "Other POSIX-like environment"
 
 endchoice
+
+config WINDOWS_MKLINK
+	bool "Use mklink"
+	default y
+	depends on HOST_WINDOWS
+	---help---
+		Use the mklink command to set up symbolic links when NuttX is
+		configured.  Otherwise, configuration directories will be copied to
+		establish the configuration.
+
+		If directories are copied, then some confusion can result ("Which
+		version of the file did I modify?").  In that case, it is recommended
+		that you re-build using 'make clean_context all'.  That will cause the
+		configured directories to be recopied on each build.
+
+		NOTE: This option also (1) that you have administrator privileges, (2)
+		that you are using Windows 2000 or better, and (3) that you are using
+		the NTFS file system.  Select 'n' is that is not the case.
 
 menu "Build Configuration"
 

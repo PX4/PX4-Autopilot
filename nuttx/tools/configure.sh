@@ -100,18 +100,36 @@ if [ ! -d "${configpath}" ]; then
   exit 3
 fi
 
-if [ ! -r "${configpath}/Make.defs" ]; then
-  echo "File \"${configpath}/Make.defs\" does not exist"
+src_makedefs="${configpath}/Make.defs"
+dest_makedefs="${TOPDIR}/Make.defs"
+
+if [ ! -r "${src_makedefs}" ]; then
+  echo "File \"${src_makedefs}\" does not exist"
   exit 4
 fi
 
-if [ ! -r "${configpath}/setenv.sh" ]; then
-  echo "File \"${configpath}/setenv.sh\" does not exist"
-  exit 5
+src_setenv="${configpath}/setenv.sh"
+unset have_setenv
+
+if [ -r "${src_setenv}" ]; then
+  dest_setenv=${TOPDIR}/setenv.sh
+  have_setenv=y
+else
+  src_setenv="${configpath}/setenv.bat"
+  if [ -r "${src_setenv}" ]; then
+    dest_setenv=${TOPDIR}/setenv.bat
+    have_setenv=y
+  else
+    unset src_setenv
+  fi
 fi
 
-if [ ! -r "${configpath}/defconfig" ]; then
-  echo "File \"${configpath}/defconfig\" does not exist"
+src_config="${configpath}/defconfig"
+tmp_config="${TOPDIR}/.configX"
+dest_config="${TOPDIR}/.config"
+
+if [ ! -r "${src_config}" ]; then
+  echo "File \"${src_config}\" does not exist"
   exit 6
 fi
 
@@ -121,11 +139,11 @@ fi
 # (2) The CONFIG_APPS_DIR to see if there is a configured location for the
 #     application directory.
 
-newconfig=`grep CONFIG_NUTTX_NEWCONFIG= "${configpath}/defconfig" | cut -d'=' -f2`
+newconfig=`grep CONFIG_NUTTX_NEWCONFIG= "${src_config}" | cut -d'=' -f2`
 
 defappdir=y
 if [ -z "${appdir}" ]; then
-  quoted=`grep "^CONFIG_APPS_DIR=" "${configpath}/defconfig" | cut -d'=' -f2`
+  quoted=`grep "^CONFIG_APPS_DIR=" "${src_config}" | cut -d'=' -f2`
   if [ ! -z "${appdir}" ]; then
     appdir=`echo ${quoted} | sed -e "s/\"//g"`
     defappdir=n
@@ -167,24 +185,26 @@ fi
 
 # Okay... Everything looks good.  Setup the configuration
 
-install -C "${configpath}/Make.defs" "${TOPDIR}/." || \
-  { echo "Failed to copy ${configpath}/Make.defs" ; exit 7 ; }
-install -C "${configpath}/setenv.sh" "${TOPDIR}/." || \
-  { echo "Failed to copy ${configpath}/setenv.sh" ; exit 8 ; }
-chmod 755 "${TOPDIR}/setenv.sh"
-install -C "${configpath}/defconfig" "${TOPDIR}/.configX" || \
-  { echo "Failed to copy ${configpath}/defconfig" ; exit 9 ; }
+install -C "${src_makedefs}" "${dest_makedefs}" || \
+  { echo "Failed to copy \"${src_makedefs}\"" ; exit 7 ; }
+if [ "X${have_setenv}" = "Xy" ]; then
+  install -C "${src_setenv}" "${dest_setenv}" || \
+    { echo "Failed to copy ${src_setenv}" ; exit 8 ; }
+  chmod 755 "${dest_setenv}"
+fi
+install -C "${src_config}" "${tmp_config}" || \
+  { echo "Failed to copy \"${src_config}\"" ; exit 9 ; }
 
 # If we did not use the CONFIG_APPS_DIR that was in the defconfig config file,
 # then append the correct application information to the tail of the .config
 # file
 
 if [ "X${defappdir}" = "Xy" ]; then
-  sed -i -e "/^CONFIG_APPS_DIR/d" "${TOPDIR}/.configX"
-  echo "" >> "${TOPDIR}/.configX"
-  echo "# Application configuration" >> "${TOPDIR}/.configX"
-  echo "" >> "${TOPDIR}/.configX"
-  echo "CONFIG_APPS_DIR=\"$appdir\"" >> "${TOPDIR}/.configX"
+  sed -i -e "/^CONFIG_APPS_DIR/d" "${tmp_config}"
+  echo "" >> "${tmp_config}"
+  echo "# Application configuration" >> "${tmp_config}"
+  echo "" >> "${tmp_config}"
+  echo "CONFIG_APPS_DIR=\"$appdir\"" >> "${tmp_config}"
 fi 
 
 # Copy appconfig file.  The appconfig file will be copied to ${appdir}/.config
@@ -203,6 +223,6 @@ fi
 # install the final .configX only if it differs from any existing
 # .config file.
 
-install -C "${TOPDIR}/.configX" "${TOPDIR}/.config"
-rm -f "${TOPDIR}/.configX"
+install -C "${tmp_config}" "${dest_config}"
+rm -f "${tmp_config}"
 
