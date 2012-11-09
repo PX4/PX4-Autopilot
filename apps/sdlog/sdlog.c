@@ -523,7 +523,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 			.local_position = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z},
 			.gps_raw_position = {buf.gps_pos.lat, buf.gps_pos.lon, buf.gps_pos.alt},
 			.attitude = {buf.att.pitch, buf.att.roll, buf.att.yaw},
-			.rotMatrix = {buf.att.R[1][1], buf.att.R[1][2], buf.att.R[1][3], buf.att.R[2][1], buf.att.R[2][2], buf.att.R[2][3], buf.att.R[3][1], buf.att.R[3][2], buf.att.R[3][3]}
+			.rotMatrix = {buf.att.R[0][0], buf.att.R[0][1], buf.att.R[0][2], buf.att.R[1][0], buf.att.R[1][1], buf.att.R[1][2], buf.att.R[2][0], buf.att.R[2][1], buf.att.R[2][2]}
 		};
 		#pragma pack(pop)
 
