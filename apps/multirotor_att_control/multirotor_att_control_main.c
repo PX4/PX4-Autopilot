@@ -68,9 +68,12 @@
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/param/param.h>
 
 #include "multirotor_attitude_control.h"
 #include "multirotor_rate_control.h"
+
+PARAM_DEFINE_FLOAT(MC_RCLOSS_THR, 0.0f); // This defines the throttle when the RC signal is lost.
 
 __EXPORT int multirotor_att_control_main(int argc, char *argv[]);
 
@@ -141,6 +144,10 @@ mc_thread_main(int argc, char *argv[])
 	bool flag_control_attitude_enabled = false;
 	bool flag_system_armed = false;
 	bool man_yaw_zero_once = false;
+
+	/* prepare the handle for the failsafe throttle */
+	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
+	float failsafe_throttle = 0.0f;
 
 	while (!thread_should_exit) {
 
@@ -226,6 +233,17 @@ mc_thread_main(int argc, char *argv[])
 					att_sp.yaw_body = att.yaw;
 				}
 				att_sp.thrust = manual.throttle;
+
+				/* if the RC signal is lost, try to stay level and go slowly back down to ground */
+				if(state.rc_signal_lost) {
+					/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
+					param_get(failsafe_throttle_handle, &failsafe_throttle);
+					att_sp.roll_body = 0.0f;
+					att_sp.pitch_body = 0.0f;
+					att_sp.yaw_body = 0.0f;
+					att_sp.thrust = failsafe_throttle;
+				}
+
 				att_sp.timestamp = hrt_absolute_time();
 			}
 			/* STEP 2: publish the result to the vehicle actuators */
