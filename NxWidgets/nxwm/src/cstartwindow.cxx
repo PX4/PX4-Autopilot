@@ -71,6 +71,8 @@ FAR const char *NxWM::g_startWindowMqName = CONFIG_NXWM_STARTWINDOW_MQNAME;
  * CStartWindow Method Implementations
  ********************************************************************************************/
 
+extern const struct NXWidgets::SRlePaletteBitmap CONFIG_NXWM_STARTWINDOW_ICON;
+
 using namespace NxWM;
 
 /**

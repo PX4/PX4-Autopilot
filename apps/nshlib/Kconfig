@@ -74,6 +74,10 @@ config NSH_DISABLE_HELP
 	bool "Disable help"
 	default n
 
+config NSH_DISABLE_HEXDUMP
+	bool "Disable hexdump"
+	default n
+
 config NSH_DISABLE_IFCONFIG
 	bool "Disable ifconfig"
 	default n

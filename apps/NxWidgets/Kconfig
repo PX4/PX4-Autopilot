@@ -308,6 +308,14 @@ config NXWM_TASKBAR_WIDTH
 	---help---
 		Task bar thickness (either vertical or horizontal).  Default: 25 + 2*spacing
 
+config NXWM_DISABLE_MINIMIZE
+	bool "Disable Minimize Button"
+	default n
+	---help---
+		If the "desktop" is empty, users have no need to minimize any windows. If the buttons
+		are small, it's easy to hit minimize button accidentally when trying to close an
+		application.
+
 comment "Tool Bar Configuration"
 
 config NXWM_TOOLBAR_HEIGHT
@@ -319,8 +327,16 @@ config NXWM_TOOLBAR_HEIGHT
 
 comment "Background Image"
 
+config NXWM_DISABLE_BACKGROUND_IMAGE
+	bool "Disable Background Image"
+	default n if !NXWM_DISABLE_MINIMIZE
+	default y if NXWM_DISABLE_MINIMIZE
+	---help---
+		Disable support for the "Desktop" background image.
+
 config NXWM_BACKGROUND_IMAGE
 	string "Background Image"
+	depends on !NXWM_DISABLE_BACKGROUND_IMAGE
 	---help---
 		The name of the image to use in the background window.  Default:
 		NXWidgets::g_nuttxBitmap

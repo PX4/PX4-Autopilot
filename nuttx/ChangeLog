@@ -3584,3 +3584,4 @@
 	  tool.
 	* configs/stm32f4discovery/src/up_ug2864ambag01.c:  Board-specific
 	  initialization for UG-2864AMBAG01 OLED connecte to STM32F4Disovery.
+	* libxx/libxx_stdthrow.cxx:  Exception stubs from Petteri Aimonen.

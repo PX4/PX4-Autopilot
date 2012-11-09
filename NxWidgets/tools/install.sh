@@ -40,6 +40,8 @@
 function ShowUsage()
 {
 	echo ""
+	echo "Install a unit test in the NuttX source tree"
+	echo ""
 	echo "USAGE: $0 <apps-directory-path> <test-sub-directory>"
 	echo ""
 	echo "Where:"

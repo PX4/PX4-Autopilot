@@ -191,6 +191,8 @@ namespace NxWM
  * CHexCalculator Method Implementations
  ********************************************************************************************/
 
+extern const struct NXWidgets::SRlePaletteBitmap CONFIG_NXWM_HEXCALCULATOR_ICON;
+
 using namespace NxWM;
 
 /**

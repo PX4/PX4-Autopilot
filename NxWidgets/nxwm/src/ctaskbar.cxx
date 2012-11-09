@@ -991,6 +991,7 @@ bool CTaskbar::createBackgroundWindow(void)
 
 bool CTaskbar::createBackgroundImage(void)
 {
+#ifndef CONFIG_NXWM_DISABLE_BACKGROUND_IMAGE
  // Get the size of the display
 
   struct nxgl_size_s windowSize;
@@ -1054,6 +1055,8 @@ bool CTaskbar::createBackgroundImage(void)
 
   m_backImage->setBorderless(true);
   m_backImage->setRaisesEvents(false);
+#endif
+  
   return true;
 }
 
@@ -1128,6 +1131,10 @@ bool CTaskbar::redrawTaskbarWindow(void)
           image->disableDrawing();
           image->setRaisesEvents(false);
 
+          // Highlight the icon for the top-most window
+          
+          image->highlight(m_slots.at(i).app == m_topApp);
+          
           // Get the size of the icon image
 
           NXWidgets::CRect rect;
@@ -1302,8 +1309,12 @@ bool CTaskbar::redrawBackgroundWindow(void)
 
   // Then re-draw the background image on the window
 
-  m_backImage->enableDrawing();
-  m_backImage->redraw();
+  if (m_backImage)
+    {
+      m_backImage->enableDrawing();
+      m_backImage->redraw();
+    }
+  
   return true;
 }
 
@@ -1330,6 +1341,10 @@ bool CTaskbar::redrawApplicationWindow(IApplication *app)
 
   raiseTopApplication();
 
+  // Redraw taskbar
+
+  redrawTaskbarWindow();
+  
   // Every application provides a method to obtain its application window
 
   IApplicationWindow *appWindow = app->getWindow();

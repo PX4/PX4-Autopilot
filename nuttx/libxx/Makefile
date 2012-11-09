@@ -46,7 +46,12 @@ CXXSRCS  = libxx_cxapurevirtual.cxx libxx_eabi_atexit.cxx  libxx_cxa_atexit.cxx
 # uClibx++ replaces them
 
 ifneq ($(CONFIG_UCLIBCXX),y)
-CXXSRCS += libxx_delete.cxx libxx_deletea.cxx libxx_new.cxx libxx_newa.cxx 
+CXXSRCS += libxx_delete.cxx libxx_deletea.cxx libxx_new.cxx libxx_newa.cxx
+CXXSRCS += libxx_stdthrow.cxx
+else
+ifneq ($(UCLIBCXX_EXCEPTION),y)
+CXXSRCS += libxx_stdthrow.cxx
+endif
 endif
 
 # Paths

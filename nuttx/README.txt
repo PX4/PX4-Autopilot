@@ -894,3 +894,12 @@ apps
  |   `- sysinfo
  |      `- README.txt
  `- README.txt
+
+ NxWidgets
+ |- Doxygen
+ |   `- README.txt
+ |- tools
+ |   `- README.txt
+ |- UnitTests
+ |   `- README.txt
+ `- README.txt

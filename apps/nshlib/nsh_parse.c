@@ -226,6 +226,12 @@ static const struct cmdmap_s g_cmdmap[] =
   { "help",     cmd_help,     1, 3, "[-v] [<cmd>]" },
 # endif
 #endif
+  
+#if CONFIG_NFILE_DESCRIPTORS > 0
+#ifndef CONFIG_NSH_DISABLE_HEXDUMP
+  { "hexdump",  cmd_hexdump,  2, 2, "<file or device>" },
+#endif
+#endif
 
 #ifdef CONFIG_NET
 # ifndef CONFIG_NSH_DISABLE_IFCONFIG

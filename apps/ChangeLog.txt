@@ -411,4 +411,7 @@
 	* apps/examples/ostest/roundrobin.c:  Replace large tables with
 	  algorithmic prime number generation.  This allows the roundrobin
 	  test to run on platforms with minimal SRAM (Freddie Chopin).
+	* apps/nshlib/nsh_dbgcmds.c:  Add hexdump command to dump the contents
+	  of a file (or character device) to the console  Contributed by Petteri
+	  Aimonen.
 
