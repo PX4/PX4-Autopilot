@@ -184,7 +184,13 @@ mc_thread_main(int argc, char *argv[])
 						rates_sp.roll = offboard_sp.p1;
 						rates_sp.pitch = offboard_sp.p2;
 						rates_sp.yaw = offboard_sp.p3;
-						rates_sp.thrust = offboard_sp.p4;
+						if (state.offboard_control_signal_lost) {
+							/* give up in rate mode on signal loss */
+							rates_sp.thrust = 0.0f;
+						} else {
+							/* no signal loss, normal throttle */
+							rates_sp.thrust = offboard_sp.p4;
+						}
 //						printf("thrust_rate=%8.4f\n",offboard_sp.p4);
 						rates_sp.timestamp = hrt_absolute_time();
 						orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
@@ -192,7 +198,17 @@ mc_thread_main(int argc, char *argv[])
 						att_sp.roll_body = offboard_sp.p1;
 						att_sp.pitch_body = offboard_sp.p2;
 						att_sp.yaw_body = offboard_sp.p3;
-						att_sp.thrust = offboard_sp.p4;
+
+						/* check if control signal is lost */
+						if (state.offboard_control_signal_lost) {
+							/* set failsafe thrust */
+							param_get(failsafe_throttle_handle, &failsafe_throttle);
+							att_sp.thrust = (failsafe_throttle < 0.6f) : failsafe_throttle ? 0.5f;
+						} else {
+							/* no signal loss, normal throttle */
+							att_sp.thrust = offboard_sp.p4;
+						}
+						
 //						printf("thrust_att=%8.4f\n",offboard_sp.p4);
 						att_sp.timestamp = hrt_absolute_time();
 						/* STEP 2: publish the result to the vehicle actuators */
