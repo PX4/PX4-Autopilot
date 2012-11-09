@@ -86,7 +86,7 @@
 #define BARO_HEALTH_COUNTER_LIMIT_OK 5
 #define ADC_HEALTH_COUNTER_LIMIT_OK  5
 
-#define ADC_BATTERY_VOLATGE_CHANNEL  10
+#define ADC_BATTERY_VOLTAGE_CHANNEL  10
 
 #define BAT_VOL_INITIAL 12.f
 #define BAT_VOL_LOWPASS_1 0.99f
@@ -838,7 +838,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	if (hrt_absolute_time() - _last_adc >= 10000) {
 		read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
-		if (ADC_BATTERY_VOLATGE_CHANNEL == buf_adc.am_channel1) {
+		if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc.am_channel1) {
 			/* Voltage in volts */
 			raw.battery_voltage_v = (BAT_VOL_LOWPASS_1 * (raw.battery_voltage_v + BAT_VOL_LOWPASS_2 * (buf_adc.am_data1 * _parameters.battery_voltage_scaling)));
 
