@@ -308,8 +308,8 @@ The STM32F4Discovery has no real on-board PWM devices, but the board can be
 configured to output a pulse train using TIM4 CH2 on PD3.  This pin is
 available next to the audio jack.
 
-UART
-====
+UARTs
+=====
 
 UART/USART PINS
 ---------------
@@ -713,7 +713,9 @@ write only so the driver keeps a 128*64/8 = 1KB framebuffer to remember
 the display contents:
 
 Here is how I have the OLED connected.  But you can change this with the
-settings in include/board.h and src/stm324fdiscovery-internal.h:
+settings in include/board.h and src/stm324fdiscovery-internal.h.  Connector
+pinout for the UG-2864AMBAG01 is specific to the theO.net display board
+that I am using:
 
   --------------------------+----------------------------------------------
   Connector CON10 J1:      | STM32F4Discovery
@@ -722,7 +724,7 @@ settings in include/board.h and src/stm324fdiscovery-internal.h:
   --------------+-----------+----------------------------------------------
   1  3v3        | 3,4 3v3   | P2 3V
   3  /RESET     | 8 /RESET  | P2 PB6 (Arbitrary selection)
-  5  /CS        | 7 /CS     | P3 PB7 (Arbitrary selection)
+  5  /CS        | 7 /CS     | P2 PB7 (Arbitrary selection)
   7  A0         | 9 A0      | P2 PB8 (Arbitrary selection)
   9  LED+ (N/C) | -----     | -----
   2  5V Vcc     | 1,2 Vcc   | P2 5V
@@ -1386,6 +1388,12 @@ Where <subdir> is one of the following:
      +CONFIG_EXAMPLES_NXLINES_CIRCLECOLOR=0x00
      +CONFIG_EXAMPLES_NXLINES_BPP=1
      +CONFIG_EXAMPLES_NXLINES_EXTERNINIT=y
+
+     There are some issues with with the presentation... some tuning of the
+     configuration could fix that.  Lower resolution displays are also more
+     subject to the "fat, flat line bug" that I need to fix someday.  See
+     http://www.nuttx.org/doku.php?id=wiki:graphics:nxgraphics for a description
+     of the fat, flat line bug.
 
   pm:
   --

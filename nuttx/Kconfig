@@ -20,7 +20,45 @@ menu "Build Setup"
 config EXPERIMENTAL
 	bool "Prompt for development and/or incomplete code/drivers"
 
+choice
+	prompt "Build Host Platform"
+	default HOST_LINUX
+
+config HOST_LINUX
+	bool "Linux"
+
+config HOST_OSX
+	bool "OSX"
+
+config HOST_WINDOWS
+	bool "Windows"
+
+config HOST_OTHER
+	bool "Other"
+
+endchoice
+
+choice
+	prompt "Windows Build Environment"
+	default WINDOWS_CYGWIN
+	depends on HOST_WINDOWS
+
+config WINDOWS_NATIVE
+	bool "Windows Native"
+
+config WINDOWS_CYGWIN
+	bool "Cygwin"
+
+config WINDOWS_MSYS
+	bool "MSYS"
+
+config WINDOWS_OTHER
+	bool "Other"
+
+endchoice
+
 menu "Build Configuration"
+
 config APPS_DIR
 	string "Application directory"
 	default "../apps"

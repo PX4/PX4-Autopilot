@@ -3585,3 +3585,9 @@
 	* configs/stm32f4discovery/src/up_ug2864ambag01.c:  Board-specific
 	  initialization for UG-2864AMBAG01 OLED connecte to STM32F4Disovery.
 	* libxx/libxx_stdthrow.cxx:  Exception stubs from Petteri Aimonen.
+	* configs/stm32f4discovery/src/up_ug2864ambag01.c: Driver has been
+	  verified on the STM32F4Discovery platform.  Some tuning of the
+	  configuration could improve the presentation.  Lower resolution displays
+	  are also more subject to the "fat, flat line bug" that I need to fix
+	  someday.  See http://www.nuttx.org/doku.php?id=wiki:graphics:nxgraphics
+	  for a description of the fat, flat line bug.

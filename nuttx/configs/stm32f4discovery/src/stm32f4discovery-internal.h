@@ -122,7 +122,7 @@
  * --------------+-----------+----------------------------------------------
  * 1  3v3        | 3,4 3v3   | P2 3V
  * 3  /RESET     | 8 /RESET  | P2 PB6 (Arbitrary selection)
- * 5  /CS        | 7 /CS     | P3 PB7 (Arbitrary selection)
+ * 5  /CS        | 7 /CS     | P2 PB7 (Arbitrary selection)
  * 7  A0         | 9 A0      | P2 PB8 (Arbitrary selection)
  * 9  LED+ (N/C) | -----     | -----
  * 2  5V Vcc     | 1,2 Vcc   | P2 5V

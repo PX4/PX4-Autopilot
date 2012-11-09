@@ -338,7 +338,6 @@ static int ug2864ambag01_setcontrast(struct lcd_dev_s *dev, unsigned int contras
  * Private Data
  **************************************************************************************/
 
-
 /* This is working memory allocated by the LCD driver for each LCD device
  * and for each color plane.  This memory will hold one raster line of data.
  * The size of the allocated run buffer must therefore be at least
