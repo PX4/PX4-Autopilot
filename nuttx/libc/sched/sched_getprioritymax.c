@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/sched/sched_getprioritymax.c
+ * libc/sched/sched_getprioritymax.c
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

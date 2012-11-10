@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/string/lib_isbasedigit.c
+ * libc/string/lib_isbasedigit.c
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

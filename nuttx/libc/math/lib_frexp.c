@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_frexp.c
+ * libc/math/lib_frexp.c
  *
  * This file is a part of NuttX:
  *

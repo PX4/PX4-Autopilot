@@ -1,5 +1,5 @@
 ############################################################################
-# lib/Makefile
+# libc/Makefile
 #
 #   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -66,9 +66,9 @@ COBJS = $(CSRCS:.c=$(OBJEXT))
 SRCS = $(ASRCS) $(CSRCS)
 OBJS = $(AOBJS) $(COBJS)
 
-UBIN = libulib$(LIBEXT)
-KBIN = libklib$(LIBEXT)
-BIN  = liblib$(LIBEXT)
+UBIN = libuc$(LIBEXT)
+KBIN = libkc$(LIBEXT)
+BIN  = libc$(LIBEXT)
 
 all: $(BIN)
 

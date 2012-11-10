@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/string/lib_strstr.c
+ * libc/string/lib_strstr.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

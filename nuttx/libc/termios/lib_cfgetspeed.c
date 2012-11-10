@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/termios/lib_cfgetspeed.c
+ * libc/termios/lib_cfgetspeed.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

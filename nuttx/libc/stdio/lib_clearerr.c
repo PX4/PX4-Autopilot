@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_clearerr.c
+ * libc/stdio/lib_clearerr.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

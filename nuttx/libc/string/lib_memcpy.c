@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/string/lib_memcpy.c
+ * libc/string/lib_memcpy.c
  *
  *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/unistd/lib_chdir.c
+ * libc/unistd/lib_chdir.c
  *
  *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/signal/sig_emptyset.c
+ * libc/signal/sig_emptyset.c
  *
  *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

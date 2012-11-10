@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/math/lib_fixedmath.c
+ * libc/math/lib_fixedmath.c
  *
  *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

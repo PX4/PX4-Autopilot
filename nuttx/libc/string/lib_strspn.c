@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/string/lib_strspn.c
+ * libc/string/lib_strspn.c
  *
  *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_logf.c
+ * libc/math/lib_logf.c
  *
  * This file is a part of NuttX:
  *

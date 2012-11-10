@@ -1,5 +1,5 @@
 /****************************************************************************
- * /lib/string/lib_strtoull.c
+ * /libc/string/lib_strtoull.c
  *
  *   Copyright (C) 2009, 2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

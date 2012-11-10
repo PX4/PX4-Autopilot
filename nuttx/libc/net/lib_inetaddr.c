@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/net/lib_inetaddr.c
+ * libc/net/lib_inetaddr.c
  *
  *   Copyright (C) 2011 Yu Qiang. All rights reserved.
  *   Author: Yu Qiang <yuq825@gmail.com>

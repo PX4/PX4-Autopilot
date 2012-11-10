@@ -1,12 +1,12 @@
 /****************************************************************************
- * lib/string/lib_strnlen.c
+ * libc/string/lib_strnlen.c
  *
  * This file is part of NuttX, contributed by Michael Hrabanek
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
  *   Author: Michael Hrabanek
  *
- * Derives from the file lib/lib_strlen.c:
+ * Derives from the file libc/lib_strlen.c:
  *
  *   Copyright (C) 2007, 2008, 2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

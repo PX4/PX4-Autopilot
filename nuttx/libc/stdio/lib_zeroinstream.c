@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_zeroinstream.c
+ * libc/stdio/lib_zeroinstream.c
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

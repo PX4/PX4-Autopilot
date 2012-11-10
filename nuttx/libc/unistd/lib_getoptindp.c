@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/unistd/lib_getoptindp.c
+ * libc/unistd/lib_getoptindp.c
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

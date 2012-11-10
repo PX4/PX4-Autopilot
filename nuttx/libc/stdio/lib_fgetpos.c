@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_fgetpos.c
+ * libc/stdio/lib_fgetpos.c
  *
  *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -1,5 +1,5 @@
 /************************************************************
- * lib/queue/sq_remlast.c
+ * libc/queue/sq_remlast.c
  *
  *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

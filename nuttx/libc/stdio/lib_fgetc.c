@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_fgetc.c
+ * libc/stdio/lib_fgetc.c
  *
  *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

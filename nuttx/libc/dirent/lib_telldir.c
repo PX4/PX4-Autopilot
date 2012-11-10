@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/dirent/fs_telldir.c
+ * libc/dirent/fs_telldir.c
  *
  *   Copyright (C) 2007-2008, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

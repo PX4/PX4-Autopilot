@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_fopen.c
+ * libc/stdio/lib_fopen.c
  *
  *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

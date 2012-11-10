@@ -1,5 +1,5 @@
 /************************************************************
- * lib/string/lib_memcmp.c
+ * libc/string/lib_memcmp.c
  *
  *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

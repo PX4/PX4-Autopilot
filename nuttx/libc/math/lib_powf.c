@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_powf.c
+ * libc/math/lib_powf.c
  *
  * This file is a part of NuttX:
  *

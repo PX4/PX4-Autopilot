@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/time/lib_daysbeforemonth.c
+ * libc/time/lib_daysbeforemonth.c
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

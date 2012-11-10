@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/misc/lib_dumpbuffer.c
+ * libc/misc/lib_dumpbuffer.c
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

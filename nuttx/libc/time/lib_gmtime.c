@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/time/lib_gmtime.c
+ * libc/time/lib_gmtime.c
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

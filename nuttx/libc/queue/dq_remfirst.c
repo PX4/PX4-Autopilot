@@ -1,5 +1,5 @@
 /************************************************************
- * lib/queue/dq_remfirst.c
+ * libc/queue/dq_remfirst.c
  *
  *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

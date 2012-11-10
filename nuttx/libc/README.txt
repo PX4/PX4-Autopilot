@@ -21,7 +21,7 @@ it is critical to separate the user-mode OS interfaces in this way.
 Sub-Directories
 ===============
 
-The files in the lib/ directory are organized (mostly) according which file
+The files in the libc/ directory are organized (mostly) according which file
 in the include/ directory provides the prototype for library functions.  So
 we have:
 

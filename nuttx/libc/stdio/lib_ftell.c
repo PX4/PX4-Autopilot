@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_ftell.c
+ * libc/stdio/lib_ftell.c
  *
  *   Copyright (C) 2008, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_frexpl.c
+ * libc/math/lib_frexpl.c
  *
  * This file is a part of NuttX:
  *

@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_avsprintf.c
+ * libc/stdio/lib_avsprintf.c
  *
  *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

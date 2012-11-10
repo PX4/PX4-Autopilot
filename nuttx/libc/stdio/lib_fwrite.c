@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_fwrite.c
+ * libc/stdio/lib_fwrite.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

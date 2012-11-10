@@ -1,5 +1,5 @@
 /************************************************************
- * lib/string/lib_strncat.c
+ * libc/string/lib_strncat.c
  *
  *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

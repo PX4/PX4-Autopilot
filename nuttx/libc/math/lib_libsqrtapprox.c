@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_libsqrtapprox.c
+ * libc/math/lib_libsqrtapprox.c
  *
  * This file is a part of NuttX:
  *

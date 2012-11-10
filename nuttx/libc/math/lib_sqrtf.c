@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_sqrtf.c
+ * libc/math/lib_sqrtf.c
  *
  * This file is a part of NuttX:
  *

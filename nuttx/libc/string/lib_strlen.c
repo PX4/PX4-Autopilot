@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/string/lib_strlen.c
+ * libc/string/lib_strlen.c
  *
  *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

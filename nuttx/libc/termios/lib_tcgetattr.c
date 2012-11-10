@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/termios/lib_tcgetattr.c
+ * libc/termios/lib_tcgetattr.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

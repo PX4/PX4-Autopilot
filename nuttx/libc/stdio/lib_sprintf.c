@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_sprintf.c
+ * libc/stdio/lib_sprintf.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

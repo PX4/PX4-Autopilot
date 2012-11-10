@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/semaphore/sem_getvalue.c
+ * libc/semaphore/sem_getvalue.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/fixedmath/lib_b16sin.c
+ * libc/fixedmath/lib_b16sin.c
  *
  *   Copyright (C) 2008, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

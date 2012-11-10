@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_sinh.c
+ * libc/math/lib_sinh.c
  *
  * This file is a part of NuttX:
  *

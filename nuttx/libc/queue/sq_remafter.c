@@ -1,5 +1,5 @@
 /************************************************************
- * lib/queue/sq_remafter.c
+ * libc/queue/sq_remafter.c
  *
  *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

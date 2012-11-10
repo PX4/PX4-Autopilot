@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_ldexpf.c
+ * libc/math/lib_ldexpf.c
  *
  * This file is a part of NuttX:
  *

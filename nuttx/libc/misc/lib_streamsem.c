@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/misc/lib_streamsem.c
+ * libc/misc/lib_streamsem.c
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

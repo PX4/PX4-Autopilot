@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_ldexp.c
+ * libc/math/lib_ldexp.c
  *
  * This file is a part of NuttX:
  *

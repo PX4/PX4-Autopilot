@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/mqueue/mq_setattr.c
+ * libc/mqueue/mq_setattr.c
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

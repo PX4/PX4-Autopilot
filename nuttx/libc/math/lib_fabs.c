@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_fabs.c
+ * libc/math/lib_fabs.c
  *
  * This file is a part of NuttX:
  *

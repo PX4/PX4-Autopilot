@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_floorf.c
+ * libc/math/lib_floorf.c
  *
  * This file is a part of NuttX:
  *

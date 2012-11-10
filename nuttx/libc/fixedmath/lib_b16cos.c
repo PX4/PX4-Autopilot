@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/fixedmath/lib_b16cos.c
+ * libc/fixedmath/lib_b16cos.c
  *
  *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

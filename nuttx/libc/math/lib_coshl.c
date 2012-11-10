@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_coshl.c
+ * libc/math/lib_coshl.c
  *
  * This file is a part of NuttX:
  *

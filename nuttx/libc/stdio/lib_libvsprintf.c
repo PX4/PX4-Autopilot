@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_libvsprintf.c
+ * libc/stdio/lib_libvsprintf.c
  *
  *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -1161,7 +1161,7 @@ static void postjustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
  ****************************************************************************/
 
 /****************************************************************************
- * lib/stdio/lib_vsprintf
+ * libc/stdio/lib_vsprintf
  ****************************************************************************/
 
 int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const char *src, va_list ap)

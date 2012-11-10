@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_fileno.c
+ * libc/stdio/lib_fileno.c
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

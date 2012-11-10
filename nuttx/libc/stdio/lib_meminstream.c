@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_meminstream.c
+ * libc/stdio/lib_meminstream.c
  *
  *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

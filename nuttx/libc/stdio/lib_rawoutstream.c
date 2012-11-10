@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_rawoutstream.c
+ * libc/stdio/lib_rawoutstream.c
  *
  *   Copyright (C) 2007-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

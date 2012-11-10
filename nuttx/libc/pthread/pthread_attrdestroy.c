@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/pthread/pthread_attrdestroy.c
+ * libc/pthread/pthread_attrdestroy.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

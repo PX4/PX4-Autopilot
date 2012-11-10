@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_tanh.c
+ * libc/math/lib_tanh.c
  *
  * This file is a part of NuttX:
  *

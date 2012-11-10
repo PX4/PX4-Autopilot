@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_wrflush.c
+ * libc/stdio/lib_wrflush.c
  *
  *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

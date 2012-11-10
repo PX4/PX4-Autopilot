@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_feof.c
+ * libc/stdio/lib_feof.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/string//lib_strndup.c
+ * libc/string//lib_strndup.c
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

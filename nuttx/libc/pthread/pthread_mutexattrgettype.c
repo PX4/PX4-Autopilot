@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/pthread/pthread_mutexattrgettype.c
+ * libc/pthread/pthread_mutexattrgettype.c
  *
  *   Copyright (C) 2008, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

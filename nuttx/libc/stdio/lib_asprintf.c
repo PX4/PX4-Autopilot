@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_asprintf.c
+ * libc/stdio/lib_asprintf.c
  *
  *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

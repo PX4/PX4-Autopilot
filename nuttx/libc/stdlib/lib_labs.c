@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/stdlib/lib_labs.c
+ * libc/stdlib/lib_labs.c
  *
  *   Copyright (C) 2010-2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

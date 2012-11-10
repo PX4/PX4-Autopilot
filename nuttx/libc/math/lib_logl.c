@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_lol.c
+ * libc/math/lib_lol.c
  *
  * This file is a part of NuttX:
  *

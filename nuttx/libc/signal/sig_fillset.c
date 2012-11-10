@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/signal/sig_fillset.c
+ * libc/signal/sig_fillset.c
  *
  *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

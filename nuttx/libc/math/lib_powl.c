@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_powl.c
+ * libc/math/lib_powl.c
  *
  * This file is a part of NuttX:
  *

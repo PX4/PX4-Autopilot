@@ -1,5 +1,5 @@
 /****************************************************************************
- * File: lib/string/lib_vikmemcpy.c
+ * File: libc/string/lib_vikmemcpy.c
  *
  * This is version of the optimized memcpy by Daniel Vik, adapted to the
  * NuttX environment.

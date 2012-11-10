@@ -1,6 +1,6 @@
 
 /****************************************************************************
- * lib/string/lib_memset.c
+ * libc/string/lib_memset.c
  *
  *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

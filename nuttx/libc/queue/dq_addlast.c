@@ -1,5 +1,5 @@
 /************************************************************
- * lib/queue/dq_addlast.c
+ * libc/queue/dq_addlast.c
  *
  *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

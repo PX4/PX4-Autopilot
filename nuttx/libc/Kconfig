@@ -30,7 +30,7 @@ config LIB_HOMEDIR
 	---help---
 		The home directory to use with operations like such as 'cd ~'
 
-source lib/math/Kconfig
+source libc/math/Kconfig
 
 config NOPRINTF_FIELDWIDTH
 	bool "Disable sprintf support fieldwidth"

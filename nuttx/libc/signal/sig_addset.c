@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/signal/sig_addset.c
+ * libc/signal/sig_addset.c
  *
  *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

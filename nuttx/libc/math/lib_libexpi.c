@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_libexpi.c
+ * libc/math/lib_libexpi.c
  *
  * This file is a part of NuttX:
  *

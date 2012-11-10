@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/signal/sig_ismember.c
+ * libc/signal/sig_ismember.c
  *
  *   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

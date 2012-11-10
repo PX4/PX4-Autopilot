@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_vsprintf.c
+ * libc/stdio/lib_vsprintf.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -84,7 +84,7 @@ int vsprintf(FAR char *dest, const char *src, va_list ap)
   struct lib_memoutstream_s memoutstream;
 
   /* Wrap the destination buffer in a stream object and let
-   * lib/stdio/lib_vsprintf do the work.
+   * libc/stdio/lib_vsprintf do the work.
    */
 
   lib_memoutstream((FAR struct lib_memoutstream_s *)&memoutstream, dest, LIB_BUFLEN_UNKNOWN);

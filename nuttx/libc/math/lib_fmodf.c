@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_fmodf.c
+ * libc/math/lib_fmodf.c
  *
  * This file is a part of NuttX:
  *

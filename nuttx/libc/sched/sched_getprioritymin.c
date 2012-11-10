@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/sched/sched_getprioritymin.c
+ * libc/sched/sched_getprioritymin.c
  *
  *   Copyright (C) 2007, 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

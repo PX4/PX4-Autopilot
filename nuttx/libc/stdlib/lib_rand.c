@@ -1,5 +1,5 @@
 /************************************************************
- * lib/stdlib/lib_rand.c
+ * libc/stdlib/lib_rand.c
  *
  *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

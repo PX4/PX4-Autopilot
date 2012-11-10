@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/lib_strncmp.c
+ * libc/lib_strncmp.c
  *
  *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

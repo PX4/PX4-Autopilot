@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_sscanf.c
+ * libc/stdio/lib_sscanf.c
  *
  *   Copyright (C) 2007, 2008, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

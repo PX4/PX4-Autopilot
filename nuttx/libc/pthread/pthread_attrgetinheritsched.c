@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/pthread/pthread_attrgetinheritsched.c
+ * libc/pthread/pthread_attrgetinheritsched.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

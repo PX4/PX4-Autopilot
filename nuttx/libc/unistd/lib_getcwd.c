@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/unistd/lib_getcwd.c
+ * libc/unistd/lib_getcwd.c
  *
  *   Copyright (C) 2008, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

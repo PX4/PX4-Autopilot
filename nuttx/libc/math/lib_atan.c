@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_atan.c
+ * libc/math/lib_atan.c
  *
  * This file is a part of NuttX:
  *

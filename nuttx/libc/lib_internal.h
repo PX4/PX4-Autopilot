@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/lib_internal.h
+ * libc/lib_internal.h
  *
  *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

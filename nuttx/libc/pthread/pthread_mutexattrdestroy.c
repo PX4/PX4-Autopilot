@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/pthread/pthread_mutexattrdestroy.c
+ * libc/pthread/pthread_mutexattrdestroy.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

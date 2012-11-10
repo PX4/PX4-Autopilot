@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_snprintf.c
+ * libc/stdio/lib_snprintf.c
  *
  *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

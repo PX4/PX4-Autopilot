@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_syslogstream.c
+ * libc/stdio/lib_syslogstream.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

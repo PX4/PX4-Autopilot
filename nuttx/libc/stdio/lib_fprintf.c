@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/stdio/lib_fprintf.c
+ * libc/stdio/lib_fprintf.c
  *
  *   Copyright (C) 2007, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

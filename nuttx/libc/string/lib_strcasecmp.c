@@ -1,5 +1,5 @@
 /****************************************************************************
- * lib/string/lib_strcasecmp.c
+ * libc/string/lib_strcasecmp.c
  *
  *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

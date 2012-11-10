@@ -1,5 +1,5 @@
 /************************************************************************
- * lib/math/lib_ceil.c
+ * libc/math/lib_ceil.c
  *
  * This file is a part of NuttX:
  *
