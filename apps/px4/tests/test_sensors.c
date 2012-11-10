@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +36,7 @@
  * @file test_sensors.c
  * Tests the onboard sensors.
  * 
- * The sensors app must not be running when performing this test.
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #include <nuttx/config.h>
@@ -56,7 +56,10 @@
 
 #include "tests.h"
 
+#include <drivers/drv_gyro.h>
 #include <drivers/drv_accel.h>
+#include <drivers/drv_mag.h>
+#include <drivers/drv_baro.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -70,8 +73,10 @@
  * Private Function Prototypes
  ****************************************************************************/
 
-//static int	lis331(int argc, char *argv[]);
-static int mpu6000(int argc, char *argv[]);
+static int accel(int argc, char *argv[]);
+static int gyro(int argc, char *argv[]);
+static int mag(int argc, char *argv[]);
+static int baro(int argc, char *argv[]);
 
 /****************************************************************************
  * Private Data
@@ -82,7 +87,10 @@ struct {
 	const char	*path;
 	int	(* test)(int argc, char *argv[]);
 } sensors[] = {
-	{"mpu6000",	"/dev/accel",	mpu6000},
+	{"accel",	"/dev/accel",	accel},
+	{"gyro",	"/dev/gyro",	gyro},
+	{"mag",		"/dev/mag",	mag},
+	{"baro",	"/dev/baro",	baro},
 	{NULL, NULL, NULL}
 };
 
@@ -95,9 +103,9 @@ struct {
  ****************************************************************************/
 
 static int
-mpu6000(int argc, char *argv[])
+accel(int argc, char *argv[])
 {
-	printf("\tMPU-6000: test start\n");
+	printf("\tACCEL: test start\n");
 	fflush(stdout);
 
 	int		fd;
@@ -107,7 +115,7 @@ mpu6000(int argc, char *argv[])
 	fd = open("/dev/accel", O_RDONLY);
 
 	if (fd < 0) {
-		printf("\tMPU-6000: open fail, run <mpu6000 start> first.\n");
+		printf("\tACCEL: open fail, run <mpu6000 start> or <lsm303 start> or <bma180 start> first.\n");
 		return ERROR;
 	}
 
@@ -118,11 +126,11 @@ mpu6000(int argc, char *argv[])
 	ret = read(fd, &buf, sizeof(buf));
 
 	if (ret < 3) {
-		printf("\tMPU-6000: read1 fail (%d)\n", ret);
+		printf("\tACCEL: read1 fail (%d)\n", ret);
 		return ERROR;
 
 	} else {
-		printf("\tMPU-6000 values: acc: x:%8.4f\ty:%8.4f\tz:%8.4f\n", (double)buf.x, (double)buf.y, (double)buf.z);//\tgyro: r:%d\tp:%d\ty:%d\n", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
+		printf("\tACCEL values: acc: x:%8.4f\ty:%8.4f\tz:%8.4f\n", (double)buf.x, (double)buf.y, (double)buf.z);
 	}
 
 	// /* wait at least 10ms, sensor should have data after no more than 2ms */
@@ -141,7 +149,118 @@ mpu6000(int argc, char *argv[])
 	/* XXX more tests here */
 
 	/* Let user know everything is ok */
-	printf("\tOK: MPU-6000 passed all tests successfully\n");
+	printf("\tOK: ACCEL passed all tests successfully\n");
+
+	return OK;
+}
+
+static int
+gyro(int argc, char *argv[])
+{
+	printf("\tGYRO: test start\n");
+	fflush(stdout);
+
+	int		fd;
+	struct gyro_report buf;
+	int		ret;
+
+	fd = open("/dev/gyro", O_RDONLY);
+
+	if (fd < 0) {
+		printf("\tGYRO: open fail, run <l3gd20 start> or <mpu6000 start> first.\n");
+		return ERROR;
+	}
+
+	/* wait at least 5 ms, sensor should have data after that */
+	usleep(5000);
+
+	/* read data - expect samples */
+	ret = read(fd, &buf, sizeof(buf));
+
+	if (ret < 3) {
+		printf("\tGYRO: read fail (%d)\n", ret);
+		return ERROR;
+
+	} else {
+		printf("\tGYRO values: rates: x:%8.4f\ty:%8.4f\tz:%8.4f\n", (double)buf.x, (double)buf.y, (double)buf.z);
+	}
+
+	/* Let user know everything is ok */
+	printf("\tOK: GYRO passed all tests successfully\n");
+
+	return OK;
+}
+
+static int
+mag(int argc, char *argv[])
+{
+	printf("\tMAG: test start\n");
+	fflush(stdout);
+
+	int		fd;
+	struct mag_report buf;
+	int		ret;
+
+	fd = open("/dev/mag", O_RDONLY);
+
+	if (fd < 0) {
+		printf("\tMAG: open fail, run <hmc5883 start> or <lsm303 start> first.\n");
+		return ERROR;
+	}
+
+	/* wait at least 5 ms, sensor should have data after that */
+	usleep(5000);
+
+	/* read data - expect samples */
+	ret = read(fd, &buf, sizeof(buf));
+
+	if (ret < 3) {
+		printf("\tMAG: read fail (%d)\n", ret);
+		return ERROR;
+
+	} else {
+		printf("\tMAG values: mag. field: x:%8.4f\ty:%8.4f\tz:%8.4f\n", (double)buf.x, (double)buf.y, (double)buf.z);
+	}
+
+	/* Let user know everything is ok */
+	printf("\tOK: MAG passed all tests successfully\n");
+
+	return OK;
+}
+
+static int
+baro(int argc, char *argv[])
+{
+	printf("\tBARO: test start\n");
+	fflush(stdout);
+
+	int		fd;
+	struct baro_report buf;
+	int		ret;
+
+	fd = open("/dev/baro", O_RDONLY);
+
+	if (fd < 0) {
+		printf("\tBARO: open fail, run <ms5611 start> or <lps331 start> first.\n");
+		return ERROR;
+	}
+
+	/* wait at least 5 ms, sensor should have data after that */
+	usleep(5000);
+
+	/* read data - expect samples */
+	ret = read(fd, &buf, sizeof(buf));
+
+	if (ret < 3) {
+		printf("\tBARO: read fail (%d)\n", ret);
+		return ERROR;
+
+	} else {
+		printf("\tBARO values: pressure: %8.4f mbar\taltitude: %8.4f m\ttemperature: %8.4f deg Celsius\n", (double)buf.pressure, (double)buf.altitude, (double)buf.temperature);
+	}
+
+	/* Let user know everything is ok */
+	printf("\tOK: BARO passed all tests successfully\n");
 
 	return OK;
 }
