@@ -421,7 +421,7 @@ l_actuator_outputs(struct listener *l)
 	/* copy actuator data into local buffer */
 	orb_copy(ids[l->arg], *l->subp, &act_outputs);
 
-	if (gcs_link)
+	if (gcs_link) {
 		mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000,
 					  l->arg /* port number */,
 					  act_outputs.output[0],
@@ -432,6 +432,30 @@ l_actuator_outputs(struct listener *l)
 					  act_outputs.output[5],
 					  act_outputs.output[6],
 					  act_outputs.output[7]);
+
+		/* only send in HIL mode */
+		if (mavlink_hil_enabled) {
+
+			/* translate the current syste state to mavlink state and mode */
+			uint8_t mavlink_state = 0;
+			uint8_t mavlink_mode = 0;
+			get_mavlink_mode_and_state(&mavlink_state, &mavlink_mode);
+
+			/* HIL message as per MAVLink spec */
+			mavlink_msg_hil_controls_send(chan,
+				hrt_absolute_time(),
+				act_outputs.output[0],
+				act_outputs.output[1],
+				act_outputs.output[2],
+				act_outputs.output[3],
+				act_outputs.output[4],
+				act_outputs.output[5],
+				act_outputs.output[6],
+				act_outputs.output[7],
+				mavlink_mode,
+				0);
+		}
+	}
 }
 
 void
@@ -483,29 +507,6 @@ l_vehicle_attitude_controls(struct listener *l)
 						   last_sensor_timestamp / 1000,
 						   "ctrl3       ",
 						   actuators.control[3]);
-	}
-
-	/* Only send in HIL mode */
-	if (mavlink_hil_enabled) {
-
-		/* translate the current syste state to mavlink state and mode */
-		uint8_t mavlink_state = 0;
-		uint8_t mavlink_mode = 0;
-		get_mavlink_mode_and_state(&mavlink_state, &mavlink_mode);
-
-		/* HIL message as per MAVLink spec */
-		mavlink_msg_hil_controls_send(chan,
-			hrt_absolute_time(),
-			actuators.control[0],
-			actuators.control[1],
-			actuators.control[2],
-			actuators.control[3],
-			0,
-			0,
-			0,
-			0,
-			mavlink_mode,
-			0);
 	}
 }
 
