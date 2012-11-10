@@ -218,8 +218,6 @@ handle_message(mavlink_message_t *msg)
 	if (msg->msgid == MAVLINK_MSG_ID_SET_QUAD_SWARM_ROLL_PITCH_YAW_THRUST) {
 		mavlink_set_quad_swarm_roll_pitch_yaw_thrust_t quad_motors_setpoint;
 		mavlink_msg_set_quad_swarm_roll_pitch_yaw_thrust_decode(msg, &quad_motors_setpoint);
-		//printf("got message\n");
-		//printf("got MAVLINK_MSG_ID_SET_QUAD_MOTORS_SETPOINT target_system=%u, sysid = %u\n", mavlink_system.sysid, quad_motors_setpoint.mode);
 
 		if (mavlink_system.sysid < 4) {
 
@@ -276,61 +274,6 @@ handle_message(mavlink_message_t *msg)
 				/* Publish */
 				orb_publish(ORB_ID(offboard_control_setpoint), offboard_control_sp_pub, &offboard_control_sp);
 			}
-
-			// /* change armed status if required */
-			// bool cmd_armed = (quad_motors_setpoint.mode & MAVLINK_OFFBOARD_CONTROL_FLAG_ARMED);
-
-			// bool cmd_generated = false;
-
-			// if (v_status.flag_control_offboard_enabled != cmd_armed) {
-			// 	vcmd.param1 = cmd_armed;
-			// 	vcmd.param2 = 0;
-			// 	vcmd.param3 = 0;
-			// 	vcmd.param4 = 0;
-			// 	vcmd.param5 = 0;
-			// 	vcmd.param6 = 0;
-			// 	vcmd.param7 = 0;
-			// 	vcmd.command = MAV_CMD_COMPONENT_ARM_DISARM;
-			// 	vcmd.target_system = mavlink_system.sysid;
-			// 	vcmd.target_component = MAV_COMP_ID_ALL;
-			// 	vcmd.source_system = msg->sysid;
-			// 	vcmd.source_component = msg->compid;
-			// 	vcmd.confirmation = 1;
-
-			// 	cmd_generated = true;
-			// }
-
-			// /* check if input has to be enabled */
-			// if ((v_status.flag_control_rates_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_RATES)) ||
-			// 	(v_status.flag_control_attitude_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_ATTITUDE)) ||
-			// 	(v_status.flag_control_velocity_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_VELOCITY)) ||
-			// 	(v_status.flag_control_position_enabled != (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_POSITION))) {
-			// 	vcmd.param1 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_RATES);
-			// 	vcmd.param2 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_ATTITUDE);
-			// 	vcmd.param3 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_VELOCITY);
-			// 	vcmd.param4 = (quad_motors_setpoint.mode == MAVLINK_OFFBOARD_CONTROL_MODE_POSITION);
-			// 	vcmd.param5 = 0;
-			// 	vcmd.param6 = 0;
-			// 	vcmd.param7 = 0;
-			// 	vcmd.command = PX4_CMD_CONTROLLER_SELECTION;
-			// 	vcmd.target_system = mavlink_system.sysid;
-			// 	vcmd.target_component = MAV_COMP_ID_ALL;
-			// 	vcmd.source_system = msg->sysid;
-			// 	vcmd.source_component = msg->compid;
-			// 	vcmd.confirmation = 1;
-
-			// 	cmd_generated = true;
-			// }
-
-			// if (cmd_generated) {
-			// 	/* check if topic is advertised */
-			// 	if (cmd_pub <= 0) {
-			// 		cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
-			// 	} else {
-			// 		/* create command */
-			// 		orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
-			// 	}
-			// }
 		}
 	}
 
@@ -342,28 +285,12 @@ handle_message(mavlink_message_t *msg)
 	 * COMMAND_LONG message or a SET_MODE message
 	 */
 
-	// printf("\n HIL ENABLED?: %s \n",(mavlink_hil_enabled)?"true":"false");
-
 	if (mavlink_hil_enabled) {
 
 		if (msg->msgid == MAVLINK_MSG_ID_HIL_STATE) {
 
 			mavlink_hil_state_t hil_state;
 			mavlink_msg_hil_state_decode(msg, &hil_state);
-
-			//	printf("\n HILSTATE : \n LAT: %i \n LON: %i \n ALT: %i \n "
-			//		"ROLL %i \n PITCH %i \n YAW %i \n"
-			//		"ROLLSPEED: %i \n PITCHSPEED: %i \n, YAWSPEED: %i \n",
-			//			hil_state.lat/1000000,	// 1e7
-			//			hil_state.lon/1000000,	// 1e7
-			//			hil_state.alt/1000,  // mm
-			//			hil_state.roll, // float rad
-			//			hil_state.pitch, // float rad
-			//			hil_state.yaw, // float rad
-			//			hil_state.rollspeed, // float rad/s
-			//			hil_state.pitchspeed, // float rad/s
-			//			hil_state.yawspeed); // float rad/s
-
 
 			hil_global_pos.lat = hil_state.lat;
 			hil_global_pos.lon = hil_state.lon;

@@ -211,8 +211,9 @@ HIL::init()
 	if (ret != OK)
 		return ret;
 
-	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
-	ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
+	// XXX already claimed with CDEV
+	///* try to claim the generic PWM output device node as well - it's OK if we fail at this */
+	//ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
 	if (ret == OK) {
 		log("default PWM output device");
 		_primary_pwm_device = true;
@@ -221,11 +222,11 @@ HIL::init()
 	/* reset GPIOs */
 	// gpio_reset();
 
-	/* start the IO interface task */
-	_task = task_spawn("fmuservo",
+	/* start the HIL interface task */
+	_task = task_spawn("fmuhil",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   1024,
+			   2048,
 			   (main_t)&HIL::task_main_trampoline,
 			   nullptr);
 
@@ -821,12 +822,12 @@ hil_main(int argc, char *argv[])
 		if (strcmp(argv[i], "-u") == 0 || strcmp(argv[i], "--update-rate") == 0) {
 			// if (new_mode == PORT1_FULL_PWM || new_mode == PORT1_PWM_AND_GPIO) {
 			// XXX all modes have PWM settings
-				if (argc > i + 1) {
-					pwm_update_rate_in_hz = atoi(argv[i + 1]);
-				} else {
-					fprintf(stderr, "missing argument for pwm update rate (-u)\n");
-					return 1;
-				}
+			if (argc > i + 1) {
+				pwm_update_rate_in_hz = atoi(argv[i + 1]);
+			} else {
+				fprintf(stderr, "missing argument for pwm update rate (-u)\n");
+				return 1;
+			}
 			// } else {
 			// 	fprintf(stderr, "pwm update rate currently only supported for mode_pwm, mode_pwm_gpio\n");
 			// }
