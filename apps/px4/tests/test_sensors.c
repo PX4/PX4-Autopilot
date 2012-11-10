@@ -130,7 +130,7 @@ accel(int argc, char *argv[])
 		return ERROR;
 
 	} else {
-		printf("\tACCEL values: acc: x:%8.4f\ty:%8.4f\tz:%8.4f\n", (double)buf.x, (double)buf.y, (double)buf.z);
+		printf("\tACCEL accel: x:%8.4f\ty:%8.4f\tz:%8.4f m/s^2\n", (double)buf.x, (double)buf.y, (double)buf.z);
 	}
 
 	// /* wait at least 10ms, sensor should have data after no more than 2ms */
@@ -182,7 +182,7 @@ gyro(int argc, char *argv[])
 		return ERROR;
 
 	} else {
-		printf("\tGYRO values: rates: x:%8.4f\ty:%8.4f\tz:%8.4f\n", (double)buf.x, (double)buf.y, (double)buf.z);
+		printf("\tGYRO rates: x:%8.4f\ty:%8.4f\tz:%8.4f rad/s\n", (double)buf.x, (double)buf.y, (double)buf.z);
 	}
 
 	/* Let user know everything is ok */
@@ -219,7 +219,7 @@ mag(int argc, char *argv[])
 		return ERROR;
 
 	} else {
-		printf("\tMAG values: mag. field: x:%8.4f\ty:%8.4f\tz:%8.4f\n", (double)buf.x, (double)buf.y, (double)buf.z);
+		printf("\tMAG values: x:%8.4f\ty:%8.4f\tz:%8.4f\n", (double)buf.x, (double)buf.y, (double)buf.z);
 	}
 
 	/* Let user know everything is ok */
@@ -256,7 +256,7 @@ baro(int argc, char *argv[])
 		return ERROR;
 
 	} else {
-		printf("\tBARO values: pressure: %8.4f mbar\taltitude: %8.4f m\ttemperature: %8.4f deg Celsius\n", (double)buf.pressure, (double)buf.altitude, (double)buf.temperature);
+		printf("\tBARO pressure: %8.4f mbar\talt: %8.4f m\ttemp: %8.4f deg C\n", (double)buf.pressure, (double)buf.altitude, (double)buf.temperature);
 	}
 
 	/* Let user know everything is ok */

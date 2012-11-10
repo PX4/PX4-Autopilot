@@ -436,7 +436,7 @@ l_actuator_outputs(struct listener *l)
 		/* only send in HIL mode */
 		if (mavlink_hil_enabled) {
 
-			/* translate the current system state to mavlink state and mode */
+			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
 			uint8_t mavlink_mode = 0;
 			get_mavlink_mode_and_state(&mavlink_state, &mavlink_mode);
