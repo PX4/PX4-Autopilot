@@ -3591,3 +3591,7 @@
 	  are also more subject to the "fat, flat line bug" that I need to fix
 	  someday.  See http://www.nuttx.org/doku.php?id=wiki:graphics:nxgraphics
 	  for a description of the fat, flat line bug.
+	* libc:  Renamed nuttx/lib to nuttx/libc to make space for a true lib/
+	  directory that will be forthcoming.  Also rename libraries:  liblib.a -> libc.a,
+	  libulib.a -> libuc.a, libklib.a -> libkc.a, liblibxx.a ->libcxx.a.
+	  (I will probably, eventually rename libxx to libcxx for consistency)

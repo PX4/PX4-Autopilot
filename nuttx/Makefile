@@ -115,14 +115,14 @@ ifeq ($(CONFIG_NUTTX_KERNEL),y)
 
 NONFSDIRS += syscall
 CONTEXTDIRS += syscall
-USERDIRS += syscall lib mm $(USER_ADDONS)
+USERDIRS += syscall libc mm $(USER_ADDONS)
 ifeq ($(CONFIG_HAVE_CXX),y)
 USERDIRS += libxx
 endif
 
 else
 
-NONFSDIRS += lib mm
+NONFSDIRS += libc mm
 OTHERDIRS += syscall $(USER_ADDONS)
 ifeq ($(CONFIG_HAVE_CXX),y)
 NONFSDIRS += libxx
@@ -197,10 +197,10 @@ USERLIBS =
 # is placed in user space (only).
 
 ifeq ($(CONFIG_NUTTX_KERNEL),y)
-NUTTXLIBS += syscall/libstubs$(LIBEXT) lib/libklib$(LIBEXT)
-USERLIBS += syscall/libproxies$(LIBEXT) lib/libulib$(LIBEXT) mm/libmm$(LIBEXT)
+NUTTXLIBS += syscall/libstubs$(LIBEXT) libc/libkc$(LIBEXT)
+USERLIBS += syscall/libproxies$(LIBEXT) libc/libuc$(LIBEXT) mm/libmm$(LIBEXT)
 else
-NUTTXLIBS += mm/libmm$(LIBEXT) lib/liblib$(LIBEXT)
+NUTTXLIBS += mm/libmm$(LIBEXT) libc/libc$(LIBEXT)
 endif
 
 # Add libraries for C++ support.  CXX, CXXFLAGS, and COMPILEXX must
@@ -208,9 +208,9 @@ endif
 
 ifeq ($(CONFIG_HAVE_CXX),y)
 ifeq ($(CONFIG_NUTTX_KERNEL),y)
-USERLIBS += libxx/liblibxx$(LIBEXT)
+USERLIBS += libxx/libcxx$(LIBEXT)
 else
-NUTTXLIBS += libxx/liblibxx$(LIBEXT)
+NUTTXLIBS += libxx/libcxx$(LIBEXT)
 endif
 endif
 
@@ -267,7 +267,7 @@ all: $(BIN)
 # include/nuttx/math.h will hand the redirection to the architecture-
 # specific math.h header file.
 #
-# If the CONFIG_LIBM is defined, the Rhombus libm will be built at lib/math.
+# If the CONFIG_LIBM is defined, the Rhombus libm will be built at libc/math.
 # Definitions and prototypes for the Rhombus libm are also contained in
 # include/nuttx/math.h and so the file must also be copied in that case.
 #
@@ -445,8 +445,8 @@ check_context:
 #
 # Possible kernel-mode builds
 
-lib/libklib$(LIBEXT): context
-	$(Q) $(MAKE) -C lib TOPDIR="$(TOPDIR)" libklib$(LIBEXT) EXTRADEFINES=$(KDEFINE)
+libc/libkc$(LIBEXT): context
+	$(Q) $(MAKE) -C libc TOPDIR="$(TOPDIR)" libkc$(LIBEXT) EXTRADEFINES=$(KDEFINE)
 
 sched/libsched$(LIBEXT): context
 	$(Q) $(MAKE) -C sched TOPDIR="$(TOPDIR)" libsched$(LIBEXT) EXTRADEFINES=$(KDEFINE)
@@ -474,11 +474,11 @@ syscall/libstubs$(LIBEXT): context
 
 # Possible user-mode builds
 
-lib/libulib$(LIBEXT): context
-	$(Q) $(MAKE) -C lib TOPDIR="$(TOPDIR)" libulib$(LIBEXT)
+libc/libuc$(LIBEXT): context
+	$(Q) $(MAKE) -C libc TOPDIR="$(TOPDIR)" libuc$(LIBEXT)
 
-libxx/liblibxx$(LIBEXT): context
-	$(Q) $(MAKE) -C libxx TOPDIR="$(TOPDIR)" liblibxx$(LIBEXT)
+libxx/libcxx$(LIBEXT): context
+	$(Q) $(MAKE) -C libxx TOPDIR="$(TOPDIR)" libcxx$(LIBEXT)
 
 mm/libmm$(LIBEXT): context
 	$(Q) $(MAKE) -C mm TOPDIR="$(TOPDIR)" libmm$(LIBEXT) EXTRADEFINES=$(KDEFINE)
@@ -491,8 +491,8 @@ syscall/libproxies$(LIBEXT): context
 
 # Possible non-kernel builds
 
-lib/liblib$(LIBEXT): context
-	$(Q) $(MAKE) -C lib TOPDIR="$(TOPDIR)" liblib$(LIBEXT)
+libc/libc$(LIBEXT): context
+	$(Q) $(MAKE) -C libc TOPDIR="$(TOPDIR)" libc$(LIBEXT)
 
 # pass1 and pass2
 #
@@ -649,7 +649,7 @@ distclean: clean subdir_distclean clean_context
 ifeq ($(CONFIG_BUILD_2PASS),y)
 	$(Q) $(MAKE) -C $(CONFIG_PASS1_BUILDIR) TOPDIR="$(TOPDIR)" distclean
 endif
-	$(Q) rm -f Make.defs setenv.sh .config .config.old
+	$(Q) rm -f Make.defs setenv.sh setenv.bat .config .config.old
 
 # Application housekeeping targets.  The APPDIR variable refers to the user
 # application directory.  A sample apps/ directory is included with NuttX,

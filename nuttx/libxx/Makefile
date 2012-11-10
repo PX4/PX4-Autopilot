@@ -82,7 +82,7 @@ CXXOBJS = $(CXXSRCS:.cxx=$(OBJEXT))
 SRCS = $(ASRCS) $(CSRCS) $(CXXSRCS)
 OBJS = $(AOBJS) $(COBJS) $(CXXOBJS)
 
-BIN = liblibxx$(LIBEXT)
+BIN = libcxx$(LIBEXT)
 
 all: $(BIN)
 

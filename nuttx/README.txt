@@ -842,7 +842,7 @@ nuttx
  |       `- README.txt
  |- graphics/
  |   `- README.txt
- |- lib/
+ |- libc/
  |   `- README.txt
  |- libxx/
  |   `- README.txt

@@ -467,7 +467,7 @@ source binfmt/Kconfig
 endmenu
 
 menu "Library Routines"
-source lib/Kconfig
+source libc/Kconfig
 source libxx/Kconfig
 endmenu
 

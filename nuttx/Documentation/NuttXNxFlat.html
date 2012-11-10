@@ -407,7 +407,7 @@ any following arguments.
     <code>nuttx/syscall/syscall.csv</code> that describes the NuttX RTOS interface, and
   </li>
   <li>
-    <code>nuttx/lib/lib/csv</code> that describes the NuttX C library interface.
+    <code>nuttx/libc/lib.csv</code> that describes the NuttX C library interface.
   </li>
 </ol>
 <ul><pre>
@@ -424,7 +424,7 @@ Where:
 </p>
 <ul><pre>
 cd nuttx/tools
-cat ../syscall/syscall.csv ../lib/lib.csv | sort >tmp.csv
+cat ../syscall/syscall.csv ../libc/lib.csv | sort >tmp.csv
 ./mksymtab.exe tmp.csv tmp.c
 </pre></ul>
 

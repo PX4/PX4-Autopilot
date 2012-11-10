@@ -8,6 +8,15 @@ CONFIG_NUTTX_NEWCONFIG=y
 # Build Setup
 #
 # CONFIG_EXPERIMENTAL is not set
+# CONFIG_HOST_LINUX is not set
+# CONFIG_HOST_OSX is not set
+CONFIG_HOST_WINDOWS=y
+# CONFIG_HOST_OTHER is not set
+# CONFIG_WINDOWS_NATIVE is not set
+CONFIG_WINDOWS_CYGWIN=y
+# CONFIG_WINDOWS_MSYS is not set
+# CONFIG_WINDOWS_OTHER is not set
+# CONFIG_WINDOWS_MKLINK is not set
 
 #
 # Build Configuration
@@ -28,6 +37,7 @@ CONFIG_RAW_BINARY=y
 #
 # CONFIG_ARCH_STDBOOL_H is not set
 # CONFIG_ARCH_MATH_H is not set
+# CONFIG_ARCH_FLOAT_H is not set
 # CONFIG_ARCH_STDARG_H is not set
 
 #
@@ -72,6 +82,8 @@ CONFIG_ARCH_CHIP_STM32=y
 CONFIG_ARCH_CORTEXM4=y
 CONFIG_ARCH_FAMILY="armv7-m"
 CONFIG_ARCH_CHIP="stm32"
+CONFIG_ARCH_HAVE_CMNVECTOR=y
+# CONFIG_ARMV7M_CMNVECTOR is not set
 # CONFIG_ARCH_FPU is not set
 CONFIG_ARCH_HAVE_MPU=y
 # CONFIG_ARMV7M_MPU is not set
@@ -87,8 +99,14 @@ CONFIG_BOARD_LOOPSPERMSEC=16717
 # CONFIG_ARCH_CHIP_STM32F100CB is not set
 # CONFIG_ARCH_CHIP_STM32F100R8 is not set
 # CONFIG_ARCH_CHIP_STM32F100RB is not set
+# CONFIG_ARCH_CHIP_STM32F100RC is not set
+# CONFIG_ARCH_CHIP_STM32F100RD is not set
+# CONFIG_ARCH_CHIP_STM32F100RE is not set
 # CONFIG_ARCH_CHIP_STM32F100V8 is not set
 # CONFIG_ARCH_CHIP_STM32F100VB is not set
+# CONFIG_ARCH_CHIP_STM32F100VC is not set
+# CONFIG_ARCH_CHIP_STM32F100VD is not set
+# CONFIG_ARCH_CHIP_STM32F100VE is not set
 # CONFIG_ARCH_CHIP_STM32F103RET6 is not set
 # CONFIG_ARCH_CHIP_STM32F103VCT6 is not set
 # CONFIG_ARCH_CHIP_STM32F103VET6 is not set
@@ -121,14 +139,14 @@ CONFIG_STM32_CODESOURCERYL=y
 # CONFIG_STM32_ADC1 is not set
 # CONFIG_STM32_ADC2 is not set
 # CONFIG_STM32_ADC3 is not set
-# CONFIG_STM32_CRC is not set
-# CONFIG_STM32_DMA1 is not set
-# CONFIG_STM32_DMA2 is not set
 # CONFIG_STM32_BKPSRAM is not set
 # CONFIG_STM32_CAN1 is not set
 # CONFIG_STM32_CAN2 is not set
 # CONFIG_STM32_CCMDATARAM is not set
+# CONFIG_STM32_CRC is not set
 # CONFIG_STM32_CRYP is not set
+# CONFIG_STM32_DMA1 is not set
+# CONFIG_STM32_DMA2 is not set
 # CONFIG_STM32_DAC1 is not set
 # CONFIG_STM32_DAC2 is not set
 # CONFIG_STM32_DCMI is not set
@@ -387,6 +405,7 @@ CONFIG_SYMTAB_ORDEREDBYNAME=y
 CONFIG_STDIO_BUFFER_SIZE=256
 CONFIG_STDIO_LINEBUFFER=y
 CONFIG_NUNGET_CHARS=2
+# CONFIG_LIBM is not set
 # CONFIG_NOPRINTF_FIELDWIDTH is not set
 # CONFIG_LIBC_FLOATINGPOINT is not set
 # CONFIG_EOL_IS_CR is not set
@@ -399,9 +418,11 @@ CONFIG_ARCH_LOWPUTC=y
 CONFIG_LIB_SENDFILE_BUFSIZE=512
 # CONFIG_ARCH_ROMGETC is not set
 # CONFIG_ARCH_OPTIMIZED_FUNCTIONS is not set
+
+#
+# Basic CXX Support
+#
 # CONFIG_HAVE_CXX is not set
-# CONFIG_HAVE_CXXINITIALIZE is not set
-# CONFIG_CXX_NEWLONG is not set
 
 #
 # Application Configuration
@@ -415,265 +436,60 @@ CONFIG_LIB_SENDFILE_BUFSIZE=512
 #
 # Examples
 #
-
-#
-# ADC Example
-#
-
-#
-# Buttons Example
-#
 # CONFIG_EXAMPLES_BUTTONS is not set
-
-#
-# CAN Example
-#
 # CONFIG_EXAMPLES_CAN is not set
-
-#
-# USB CDC/ACM Class Driver Example
-#
 # CONFIG_EXAMPLES_CDCACM is not set
-
-#
-# USB composite Class Driver Example
-#
 # CONFIG_EXAMPLES_COMPOSITE is not set
-
-#
-# DHCP Server Example
-#
 # CONFIG_EXAMPLES_DHCPD is not set
-
-#
-# ELF Loader Example
-#
 # CONFIG_EXAMPLES_ELF is not set
-
-#
-# FTP Client Example
-#
 # CONFIG_EXAMPLES_FTPC is not set
-
-#
-# FTP Server Example
-#
 # CONFIG_EXAMPLES_FTPD is not set
-
-#
-# "Hello, World!" Example
-#
 # CONFIG_EXAMPLES_HELLO is not set
-
-#
-# "Hello, World!" C++ Example
-#
 # CONFIG_EXAMPLES_HELLOXX is not set
-
-#
-# USB HID Keyboard Example
-#
+# CONFIG_EXAMPLES_JSON is not set
 # CONFIG_EXAMPLES_HIDKBD is not set
-
-#
-# IGMP Example
-#
 # CONFIG_EXAMPLES_IGMP is not set
-
-#
-# LCD Read/Write Example
-#
 # CONFIG_EXAMPLES_LCDRW is not set
-
-#
-# Memory Management Example
-#
 # CONFIG_EXAMPLES_MM is not set
-
-#
-# File System Mount Example
-#
 # CONFIG_EXAMPLES_MOUNT is not set
-
-#
-# FreeModBus Example
-#
 # CONFIG_EXAMPLES_MODBUS is not set
-
-#
-# Network Test Example
-#
 # CONFIG_EXAMPLES_NETTEST is not set
-
-#
-# NuttShell (NSH) Example
-#
 # CONFIG_EXAMPLES_NSH is not set
-
-#
-# NULL Example
-#
 # CONFIG_EXAMPLES_NULL is not set
-
-#
-# NX Graphics Example
-#
 # CONFIG_EXAMPLES_NX is not set
-
-#
-# NxConsole Example
-#
 # CONFIG_EXAMPLES_NXCONSOLE is not set
-
-#
-# NXFFS File System Example
-#
 # CONFIG_EXAMPLES_NXFFS is not set
-
-#
-# NXFLAT Example
-#
 # CONFIG_EXAMPLES_NXFLAT is not set
-
-#
-# NX Graphics "Hello, World!" Example
-#
 # CONFIG_EXAMPLES_NXHELLO is not set
-
-#
-# NX Graphics image Example
-#
 # CONFIG_EXAMPLES_NXIMAGE is not set
-
-#
-# NX Graphics lines Example
-#
 # CONFIG_EXAMPLES_NXLINES is not set
-
-#
-# NX Graphics Text Example
-#
 # CONFIG_EXAMPLES_NXTEXT is not set
-
-#
-# OS Test Example
-#
 CONFIG_EXAMPLES_OSTEST=y
 # CONFIG_EXAMPLES_OSTEST_BUILTIN is not set
 CONFIG_EXAMPLES_OSTEST_LOOPS=1
 CONFIG_EXAMPLES_OSTEST_STACKSIZE=2048
 CONFIG_EXAMPLES_OSTEST_NBARRIER_THREADS=3
-
-#
-# Pascal "Hello, World!"example
-#
+CONFIG_EXAMPLES_OSTEST_RR_RANGE=10000
+CONFIG_EXAMPLES_OSTEST_RR_RUNS=10
 # CONFIG_EXAMPLES_PASHELLO is not set
-
-#
-# Pipe Example
-#
 # CONFIG_EXAMPLES_PIPE is not set
-
-#
-# Poll Example
-#
 # CONFIG_EXAMPLES_POLL is not set
-
-#
-# Pulse Width Modulation (PWM) Example
-#
-
-#
-# Quadrature Encoder Example
-#
 # CONFIG_EXAMPLES_QENCODER is not set
-
-#
-# RGMP Example
-#
 # CONFIG_EXAMPLES_RGMP is not set
-
-#
-# ROMFS Example
-#
 # CONFIG_EXAMPLES_ROMFS is not set
-
-#
-# sendmail Example
-#
 # CONFIG_EXAMPLES_SENDMAIL is not set
-
-#
-# Serial Loopback Example
-#
 # CONFIG_EXAMPLES_SERLOOP is not set
-
-#
-# Telnet Daemon Example
-#
 # CONFIG_EXAMPLES_TELNETD is not set
-
-#
-# THTTPD Web Server Example
-#
 # CONFIG_EXAMPLES_THTTPD is not set
-
-#
-# TIFF Generation Example
-#
 # CONFIG_EXAMPLES_TIFF is not set
-
-#
-# Touchscreen Example
-#
 # CONFIG_EXAMPLES_TOUCHSCREEN is not set
-
-#
-# UDP Example
-#
 # CONFIG_EXAMPLES_UDP is not set
-
-#
-# UDP Discovery Daemon Example
-#
-
-#
-# uIP Web Server Example
-#
 # CONFIG_EXAMPLES_UIP is not set
-
-#
-# USB Serial Test Example
-#
 # CONFIG_EXAMPLES_USBSERIAL is not set
-
-#
-# USB Mass Storage Class Example
-#
 # CONFIG_EXAMPLES_USBMSC is not set
-
-#
-# USB Serial Terminal Example
-#
 # CONFIG_EXAMPLES_USBTERM is not set
-
-#
-# Watchdog timer Example
-#
 # CONFIG_EXAMPLES_WATCHDOG is not set
-
-#
-# wget Example
-#
-
-#
-# WLAN Example
-#
 # CONFIG_EXAMPLES_WLAN is not set
-
-#
-# XML RPC Example
-#
 
 #
 # Interpreters
@@ -692,73 +508,19 @@ CONFIG_EXAMPLES_OSTEST_NBARRIER_THREADS=3
 #
 # Networking Utilities
 #
-
-#
-# DHCP client
-#
+# CONFIG_NETUTILS_CODECS is not set
 # CONFIG_NETUTILS_DHCPC is not set
-
-#
-# DHCP server
-#
 # CONFIG_NETUTILS_DHCPD is not set
-
-#
-# FTP client
-#
 # CONFIG_NETUTILS_FTPC is not set
-
-#
-# FTP server
-#
 # CONFIG_NETUTILS_FTPD is not set
-
-#
-# Name resolution
-#
+# CONFIG_NETUTILS_JSON is not set
 # CONFIG_NETUTILS_RESOLV is not set
-
-#
-# SMTP
-#
 # CONFIG_NETUTILS_SMTP is not set
-
-#
-# TFTP client
-#
 # CONFIG_NETUTILS_TELNETD is not set
-
-#
-# TFTP client
-#
 # CONFIG_NETUTILS_TFTPC is not set
-
-#
-# THTTPD web server
-#
 # CONFIG_NETUTILS_THTTPD is not set
-
-#
-# uIP support library
-#
 # CONFIG_NETUTILS_UIPLIB is not set
-
-#
-# uIP web client
-#
 # CONFIG_NETUTILS_WEBCLIENT is not set
-
-#
-# uIP web server
-#
-
-#
-# UDP Discovery Utility
-#
-
-#
-# XML-RPC library
-#
 
 #
 # ModBus

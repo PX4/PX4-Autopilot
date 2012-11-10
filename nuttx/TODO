@@ -15,7 +15,7 @@ nuttx/
   (6)  Binary loaders (binfmt/)
  (17)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
- (11)  Libraries (lib/)
+ (11)  Libraries (libc/, )
   (9)  File system/Generic drivers (fs/, drivers/)
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
@@ -634,8 +634,8 @@ o USB (drivers/usbdev, drivers/usbhost)
   Status:      Open
   Priority:    Low/Unknown.  This is a feature enhancement.
 
-o Libraries (lib/)
-  ^^^^^^^^^^^^^^^^
+o Libraries (libc/)
+  ^^^^^^^^^^^^^^^^^
 
   Title:       ENVIRON
   Description: The definition of environ in stdlib.h is bogus and will not
@@ -648,7 +648,7 @@ o Libraries (lib/)
   Description: Need some minimal termios support... at a minimum, enough to
                switch between raw and "normal" modes to support behavior like
                that needed for readline().
-               UPDATE:  There is growing functionality in lib/termios/ and in the
+               UPDATE:  There is growing functionality in libc/termios/ and in the
                ioctl methods of several MCU serial drivers (stm32, lpc43, lpc17,
                pic32).  However, as phrased, this bug cannot yet be closed since
                this "growing functionality" does not address all termios.h
@@ -713,7 +713,7 @@ o Libraries (lib/)
   Priority:     
 
   Title:       OLD dtoa NEEDS TO BE UPDATED
-  Description: This implementation of dtoa in lib/stdio is old and will not
+  Description: This implementation of dtoa in libc/stdio is old and will not
                work with some newer compilers.  See 
                http://patrakov.blogspot.com/2009/03/dont-use-old-dtoac.html
   Status:      Open
@@ -721,7 +721,7 @@ o Libraries (lib/)
 
   Title:       SYSLOG INTEGRATION
   Description: There are the beginnings of some system logging capabilities (see
-               drivers/syslog, fs/fs_syslog.c, and lib/stdio/lib_librawprintf.c and
+               drivers/syslog, fs/fs_syslog.c, and libc/stdio/lib_librawprintf.c and
                lib_liblowprintf.c.  For NuttX, SYSLOG is a concept and includes,
                extends, and replaces the legacy NuttX debug ouput.  Some additional
                integration is required to formalized this.  For example:
@@ -958,7 +958,7 @@ o Build system
                built configuration, only the multiple user mode can be supported
                with the NX server residing inside of the kernel space.  In
                this case, most of the user end functions in graphics/nxmu
-               must be moved to lib/nx and those functions must be built into
+               must be moved to libc/nx and those functions must be built into
                libuser.a to be linked with the user-space code.
                A similar issue exists in NSH that uses some internal OS
                interfaces that would not be available in a kernel build

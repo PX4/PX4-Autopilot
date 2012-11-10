@@ -52,7 +52,7 @@
     <a href="#DirStructFs">2.6 nuttx/fs/</a><br>
     <a href="#DirStructGraphics">2.7 nuttx/graphics/</a><br>
     <a href="#DirStructInclude">2.8 nuttx/include/</a><br>
-    <a href="#DirStructLib">2.9 nuttx/lib/</a><br>
+    <a href="#DirStructLib">2.9 nuttx/libc/</a><br>
     <a href="#DirStructLibXX">2.10 nuttx/libxx/</a><br>
     <a href="#DirStructMm">2.11 nuttx/mm/</a><br>
     <a href="#DirStructNet">2.12 nuttx/net</a><br>
@@ -230,9 +230,9 @@
 |   |   |   `-- <i>(more standard header files)</i>
 |   |   |-- <i>(non-standard include sub-directories)</i>
 |   |       `-- <i>(non-standard header files)</i>
-|   |-- <a href="#DirStructLib">lib</a>/
+|   |-- <a href="#DirStructLib">libc</a>/
 |   |   |-- Makefile
-|   |   `-- <i>(lib source files)</i>
+|   |   `-- <i>(libc source files)</i>
 |   |-- <a href="#DirStructLibXX">libxx</a>/
 |   |   |-- Makefile
 |   |   `-- <i>(libxx management source files)</i>
@@ -1160,15 +1160,15 @@ include/
     `-- <i>(More standard header files)</i>
 </per></ul>
 
-<h2>2.9 <a name="DirStructLib">nuttx/lib</a></h2>
+<h2>2.9 <a name="DirStructLib">nuttx/libc</a></h2>
 <p>
   This directory holds a collection of standard libc-like functions with custom
   interfaces into NuttX.
 </p>
 <p>
-  Normally the logic in this file builds to a single library (<code>liblib.a</code>).
+  Normally the logic in this file builds to a single library (<code>libc.a</code>).
   However, if NuttX is built as a separately compiled kernel (with <code>CONFIG_NUTTX_KERNEL=y</code>), then the contents of this directory are built as two libraries:
-  One for use by user programs (<code>libulib.a</code>) and one for use only within the &lt;kernel&gt; space (<code>libklib.a</code>).
+  One for use by user programs (<code>libuc.a</code>) and one for use only within the &lt;kernel&gt; space (<code>libkc.a</code>).
 </p>
 <p>
   These user/kernel space libraries (along with the sycalls of <a href="#DirStructSyscall"><code>nuttx/syscall</code></a>) are needed to support the two differing protection domains.
@@ -1177,7 +1177,7 @@ include/
   Directory structure:
 </p>
 <ul><pre>
-lib/
+libc/
 |-- libgen/
 |   `-- <i>(Implementation of functions from libgen.h)</i>
 |-- math/

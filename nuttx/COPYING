@@ -163,8 +163,8 @@ dtoa():
   "This product includes software developed by the University of
    California, Berkeley and its contributors."
 
-lib/string/lib_vikmemcpy.c
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+libc/string/lib_vikmemcpy.c
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   If you enable CONFIG_MEMCPY_VIK, then you will build with the optimized
   version of memcpy from Daniel Vik.  Licensing information for that version
@@ -192,10 +192,10 @@ lib/string/lib_vikmemcpy.c
   3. This notice may not be removed or altered from any source
      distribution.
  
-lib/math
-^^^^^^^^
+libc/math
+^^^^^^^^^
 
-  If you enable CONFIG_LIB, you will build the math library at lib/math.
+  If you enable CONFIG_LIB, you will build the math library at libc/math.
   This library was taken from the math library developed for the Rhombus
   OS by Nick Johnson (https://github.com/nickbjohnson4224/rhombus).  This
   port was contributed by Darcy Gong.  The Rhombus math library has this
