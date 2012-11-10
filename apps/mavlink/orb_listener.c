@@ -448,11 +448,11 @@ l_actuator_outputs(struct listener *l)
 				&& act_outputs.output[3] > 800 && act_outputs.output[3] < 2200) {
 				/* throttle is fourth output */
 				rudder = (act_outputs.output[2] - 1500.0f) / 1000.0f;
-				throttle = (act_outputs.output[3] - 1500.0f) / 1000.0f;
+				throttle = (act_outputs.output[3] - 1000.0f) / 1000.0f;
 			} else {
 				/* only three outputs, put throttle on position 4 / index 3 */
 				rudder = 0;
-				throttle = (act_outputs.output[2] - 1500.0f) / 1000.0f;
+				throttle = (act_outputs.output[2] - 1000.0f) / 1000.0f;
 			}
 
 			/* HIL message as per MAVLink spec */
