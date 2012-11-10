@@ -419,7 +419,8 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
-	debug("ioctl 0x%04x 0x%08x", cmd, arg);
+	// XXX disabled, confusing users
+	//debug("ioctl 0x%04x 0x%08x", cmd, arg);
 
 	/* try it as a GPIO ioctl first */
 	ret = gpio_ioctl(filp, cmd, arg);
