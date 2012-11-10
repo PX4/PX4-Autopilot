@@ -222,11 +222,11 @@ HIL::init()
 	/* reset GPIOs */
 	// gpio_reset();
 
-	/* start the IO interface task */
-	_task = task_spawn("fmuservo",
+	/* start the HIL interface task */
+	_task = task_spawn("fmuhil",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   1024,
+			   2048,
 			   (main_t)&HIL::task_main_trampoline,
 			   nullptr);
 
