@@ -335,7 +335,30 @@ HIL::task_main()
 	fds[1].fd = _t_armed;
 	fds[1].events = POLLIN;
 
-	unsigned num_outputs = (_mode == MODE_2PWM) ? 2 : 4;
+	unsigned num_outputs;
+
+	/* select the number of virtual outputs */
+	switch (_mode) {
+	case MODE_2PWM:
+		num_outputs = 2;
+		break;
+
+	case MODE_4PWM:
+		num_outputs = 4;
+		break;
+
+	case MODE_8PWM:
+	case MODE_12PWM:
+	case MODE_16PWM:
+		// XXX only support the lower 8 - trivial to extend
+		num_outputs = 8;
+		break;
+
+	case MODE_NONE:
+	default:
+		num_outputs = 0;
+		break;
+	}
 
 	log("starting");
 
