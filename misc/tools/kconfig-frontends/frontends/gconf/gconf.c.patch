@@ -1,0 +1,40 @@
+diff --git a/frontends/gconf/gconf.c b/frontends/gconf/gconf.c
+--- a/frontends/gconf/gconf.c
++++ b/frontends/gconf/gconf.c
+@@ -11,7 +11,7 @@
+ #endif
+ 
+ #include "lkc.h"
+-#include "images.c"
++#include "images.h"
+ 
+ #include <glade/glade.h>
+ #include <gtk/gtk.h>
+@@ -1468,8 +1468,10 @@
+ int main(int ac, char *av[])
+ {
+ 	const char *name;
++#if 0
+ 	char *env;
++#endif
+-	gchar *glade_file;
++	gchar *glade_file = GUI_PATH;
+ 
+ 	bindtextdomain(PACKAGE, LOCALEDIR);
+ 	bind_textdomain_codeset(PACKAGE, "UTF-8");
+@@ -1483,6 +1485,7 @@
+ 	//add_pixmap_directory (PACKAGE_DATA_DIR "/" PACKAGE "/pixmaps");
+ 	//add_pixmap_directory (PACKAGE_SOURCE_DIR "/pixmaps");
+ 
++#if 0
+ 	/* Determine GUI path */
+ 	env = getenv(SRCTREE);
+ 	if (env)
+@@ -1491,6 +1494,7 @@
+ 		glade_file = g_strconcat(av[0], ".glade", NULL);
+ 	else
+ 		glade_file = g_strconcat(g_get_current_dir(), "/", av[0], ".glade", NULL);
++#endif
+ 
+ 	/* Conf stuffs */
+ 	if (ac > 1 && av[1][0] == '-') {

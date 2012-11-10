@@ -1,0 +1,29 @@
+--- a/libs/parser/yconf.y	2012-01-12 22:37:17.582339777 +0100
++++ b/libs/parser/yconf.y	2012-03-03 23:55:29.889737630 +0100
+@@ -96,7 +96,7 @@
+ 
+ %{
+ /* Include zconf.hash.c here so it can see the token constants. */
+-#include "zconf.hash.c"
++#include "hconf.c"
+ %}
+ 
+ %%
+@@ -496,7 +496,7 @@
+ 	modules_sym = sym_lookup(NULL, 0);
+ 	modules_sym->type = S_BOOLEAN;
+ 	modules_sym->flags |= SYMBOL_AUTO;
+-	rootmenu.prompt = menu_add_prompt(P_MENU, "Linux Kernel Configuration", NULL);
++	rootmenu.prompt = menu_add_prompt(P_MENU, ROOTMENU, NULL);
+ 
+ 	if (getenv("ZCONF_DEBUG"))
+ 		zconfdebug = 1;
+@@ -732,7 +732,7 @@
+ 	}
+ }
+ 
+-#include "zconf.lex.c"
++#include "lconf.c"
+ #include "util.c"
+ #include "confdata.c"
+ #include "expr.c"

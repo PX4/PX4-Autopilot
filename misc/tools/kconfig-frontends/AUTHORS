@@ -1,0 +1,14 @@
+Authors of kconfig-frontends.
+
+The developers of the Linux kernel are the original authors of the kconfig
+parser and frontends. The list is too long to reproduce here, but you can
+get a pretty complete list from the Linux kernel repository logs:
+    git shortlog scripts/kconfig
+
+The packaging uses the GNU autotools build system, of which I
+will not try to list the many authors here.
+
+The initial packaging was done by:
+    "Yann E. MORIN" <yann.morin.1998@free.fr>
+
+For a complete list, see the commit-logs of the kconfig repository.

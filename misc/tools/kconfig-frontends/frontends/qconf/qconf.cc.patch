@@ -1,0 +1,12 @@
+diff --git a/frontends/qconf/qconf.cc b/frontends/qconf/qconf.cc
+--- a/frontends/qconf/qconf.cc
++++ b/frontends/qconf/qconf.cc
+@@ -46,7 +46,7 @@
+ #include "qconf.h"
+ 
+ #include "qconf.moc"
+-#include "images.c"
++#include "images.h"
+ 
+ #ifdef _
+ # undef _

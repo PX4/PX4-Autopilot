@@ -1,0 +1,23 @@
+diff --git a/utils/tweak.in b/utils/tweak.in
+--- a/utils/tweak.in
++++ b/utils/tweak.in
+@@ -1,8 +1,8 @@
+ #!/bin/bash
+ # Manipulate options in a .config file from the command line
+ 
+-# If no prefix forced, use the default CONFIG_
+-CONFIG_="${CONFIG_-CONFIG_}"
++# If no prefix forced, use the default @CONFIG_@
++CONFIG_="${CONFIG_-@CONFIG_@}"
+ 
+ usage() {
+ 	cat >&2 <<EOL
+@@ -39,7 +39,7 @@
+ By default, config will upper-case the given symbol. Use --keep-case to keep
+ the case of all following symbols unchanged.
+ 
+-config uses 'CONFIG_' as the default symbol prefix. Set the environment
++config uses '@CONFIG_@' as the default symbol prefix. Set the environment
+ variable CONFIG_ to the prefix to use. Eg.: CONFIG_="FOO_" config ...
+ EOL
+ 	exit 1

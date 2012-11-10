@@ -10,15 +10,14 @@ genromfs-0.5.2.tar.gz
   This tool is also include in the buildroot and can be built automatically
   from the buildroot.
 
-kconfig-frontends-3.3.0-1.tar.gz
+kconfig-frontends
 
-  This is a snapshot of the kconfig-frontends tarball taken from
-  http://ymorin.is-a-geek.org/projects/kconfig-frontends on April 5, 2012.
-  This snapshot is provided so that a working version of the mconf
-  utility is always available.
+  This is a snapshot of the kconfig-frontends version 3.6.0 tarball taken
+  from http://ymorin.is-a-geek.org/projects/kconfig-frontends.
 
   General build instructions:
 
+    cd kconfig-frontends
     ./configure
     make
     make install
@@ -32,8 +31,8 @@ kconfig-frontends-3.3.0-1.tar.gz
 kconfig-frontends-3.3.0-1-libintl.patch
 
   The above build instructions did not work for me under my Cygwin
-  installation.  This patch is a awful hack but will successfully
-  build 'mconf' under Cygwin.
+  installation with kconfig-frontends-4.4.0.  This patch is a awful hack
+  but will successfully build 'mconf' under Cygwin.
 
     cat kconfig-frontends-3.3.0-1-libintl.patch | patch -p0
     cd kconfig-frontends-3.3.0-1
@@ -44,10 +43,10 @@ kconfig-frontends-3.3.0-1-libintl.patch
   See: http://ymorin.is-a-geek.org/hg/kconfig-frontends/file/tip/docs/known-issues.txt
 
   Update: According to the release notes, version 3.6.0 (and above)
-  will build on Cygwin with not patches: 
+  will build on Cygwin with no patches: 
 
     http://ymorin.is-a-geek.org/download/kconfig-frontends/
 
 kconfig-macos.path
 
-  This is a patch to make the kconfig-frontends build on Mac OS X.
+  This is a patch to make the kconfig-frontends-3.3.0 build on Mac OS X.

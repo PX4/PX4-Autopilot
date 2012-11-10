@@ -1,0 +1,39 @@
+This package contains the kconfig frontends and parser.
+
+Kconfig is the configuration language used by the Linux kernel. This package
+is a simple copy of the frontends and the parser found in the Linux kernel
+source tree, with very minor changes to adapt them to being built out of
+the kernel build infrastructure.
+
+This package does *not* take any change to the parser or frontends. Such
+changes shall be directed directly to the appropriate mailing list, and they
+will eventually find their way is this package at the next sync:
+    mailto:linux-kbuild@vger.kernel.org
+
+However, if there is a bug in the packaging infrastructure, patches are
+most welcome, of course! Most notably, because this is my very first
+autostuff-based package, I may have done mistakes here and there...
+
+As such, there are currently a few known limitations:
+
+- statically linking is much, much more complex than it should be. I have
+  been seemingly able to build part of the frontends with such incantations
+  of ./configure and make:
+    ./configure LDFLAGS=-static nconf_EXTRA_LIBS=-lgpm  \
+                --disable-shared --enable-static        \
+                --disable-gconf --disable-qconf
+    make LDFLAGS="-all-static -static-libtool-libs"
+
+- the nconf frontends requires (at least on my machine) to be linked against
+  GPM; this is not detected when staticaly linking (hence the nconf_EXTRA_LIBS
+  in the command above).
+
+- statically linking the graphical frontends (gconf and qconf) is *not*
+  supported: I am missing static libs for Qt3Support, so qconf does not link.
+  And there is a stupid bug in libtool that prevents properly linking against
+  installed static libraries (seemingly fixed in 2.4, but not quite yet, in
+  fact...), so gconf does not link. That's why they are disabled above.
+
+Note that, provided you have the required dependencies, all frontends are
+properly built if you link dynamicaly. The following just works as expected:
+    ./configure && make

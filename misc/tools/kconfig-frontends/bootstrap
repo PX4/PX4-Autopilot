@@ -1,0 +1,22 @@
+#!/bin/sh
+set -e
+
+printf "Running libtoolize...\n"
+libtoolize --copy --force
+
+printf "Running aclocal...\n"
+aclocal -Wall --force
+
+printf "Running autoconf...\n"
+autoconf -Wall --force
+
+printf "Running autoheader...\n"
+autoheader -Wall --force
+
+printf "Running automake...\n"
+automake --foreign --add-missing --copy -Wall --force
+
+# Cleanup the mess... :-(
+rm -rf autom4te.cache
+
+printf "Done. You may now run:\n    ./configure\n"
