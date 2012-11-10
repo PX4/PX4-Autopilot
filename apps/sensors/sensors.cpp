@@ -86,7 +86,8 @@
 #define BARO_HEALTH_COUNTER_LIMIT_OK 5
 #define ADC_HEALTH_COUNTER_LIMIT_OK  5
 
-#define ADC_BATTERY_VOLTAGE_CHANNEL  10
+/* choose 10 for PX4IOAR and 12 for PX4IOLite, channel 12 needs to be enabled in apps/drivers/boards/px4fmu/px4fmu_adc.c*/
+#define ADC_BATTERY_VOLTAGE_CHANNEL 12
 
 #define BAT_VOL_INITIAL 12.f
 #define BAT_VOL_LOWPASS_1 0.99f
@@ -838,18 +839,28 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 	if (hrt_absolute_time() - _last_adc >= 10000) {
 		read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
+#if ADC_BATTERY_VOLTAGE_CHANNEL == 10 /* for PX4IOAR */
 		if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc.am_channel1) {
 			/* Voltage in volts */
 			raw.battery_voltage_v = (BAT_VOL_LOWPASS_1 * (raw.battery_voltage_v + BAT_VOL_LOWPASS_2 * (buf_adc.am_data1 * _parameters.battery_voltage_scaling)));
 
+#elif ADC_BATTERY_VOLTAGE_CHANNEL == 12 /* for PX4IOLite */
+		if (ADC_BATTERY_VOLTAGE_CHANNEL == buf_adc.am_channel3) {
+			/* Voltage in volts */
+			raw.battery_voltage_v = (BAT_VOL_LOWPASS_1 * (raw.battery_voltage_v + BAT_VOL_LOWPASS_2 * (buf_adc.am_data3 * _parameters.battery_voltage_scaling)));
+#endif
+			/* never let value go to 0, otherwise filter will stay at 0 forever*/
+			if(raw.battery_voltage_v < FLT_MIN) {
+				raw.battery_voltage_v = FLT_MIN;
+			}
+
 			if ((raw.battery_voltage_v) < VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
 				raw.battery_voltage_valid = false;
-				raw.battery_voltage_v = 0.f;
+				//raw.battery_voltage_v = 0.f; //if we set it to 0, it will never recover
 
 			} else {
 				raw.battery_voltage_valid = true;
 			}
-
 			raw.battery_voltage_counter++;
 		}
 		_last_adc = hrt_absolute_time();
