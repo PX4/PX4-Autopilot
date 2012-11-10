@@ -34,9 +34,9 @@
 
 /**
  * @file sensors.cpp
- * @author Lorenz Meier <lm@inf.ethz.ch>
- *
  * Sensor readout process.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #include <nuttx/config.h>
