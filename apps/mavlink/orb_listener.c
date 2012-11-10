@@ -444,14 +444,14 @@ l_actuator_outputs(struct listener *l)
 			/* HIL message as per MAVLink spec */
 			mavlink_msg_hil_controls_send(chan,
 				hrt_absolute_time(),
-				act_outputs.output[0],
-				act_outputs.output[1],
-				act_outputs.output[2],
-				act_outputs.output[3],
-				act_outputs.output[4],
-				act_outputs.output[5],
-				act_outputs.output[6],
-				act_outputs.output[7],
+				(act_outputs.output[0] - 1000.0f) / 1000.0f,
+				(act_outputs.output[1] - 1000.0f) / 1000.0f,
+				(act_outputs.output[2] - 1000.0f) / 1000.0f,
+				(act_outputs.output[3] - 1000.0f) / 1000.0f,
+				(act_outputs.output[4] - 1000.0f) / 1000.0f,
+				(act_outputs.output[5] - 1000.0f) / 1000.0f,
+				(act_outputs.output[6] - 1000.0f) / 1000.0f,
+				(act_outputs.output[7] - 1000.0f) / 1000.0f,
 				mavlink_mode,
 				0);
 		}
