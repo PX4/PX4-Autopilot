@@ -81,18 +81,18 @@ int test_adc(int argc, char *argv[])
 	fd0 = open("/dev/adc0", O_RDONLY | O_NONBLOCK);
 
 	if (fd0 <= 0) {
-		message("/dev/adc0 open fail: %d", errno);
+		message("/dev/adc0 open fail: %d\n", errno);
 		return ERROR;
 
 	} else {
-		message("opened /dev/adc0 successfully");
+		message("opened /dev/adc0 successfully\n");
 	}
 	usleep(10000);
 
 	for (j = 0; j < 10; j++) {
 
-		/* sleep 1 millisecond */
-		usleep(1000);
+		/* sleep 20 milliseconds */
+		usleep(20000);
 		nbytes = read(fd0, &sample1, sizeof(sample1));
 
 		/* Handle unexpected return values */
@@ -101,15 +101,15 @@ int test_adc(int argc, char *argv[])
 			errval = errno;
 
 			if (errval != EINTR) {
-				message("reading /dev/adc0 failed: %d", errval);
+				message("reading /dev/adc0 failed: %d\n", errval);
 				errval = 3;
 				goto errout_with_dev;
 			}
 
-			message("\tinterrupted read..");
+			message("\tinterrupted read..\n");
 
 		} else if (nbytes == 0) {
-			message("\tno data read, ignoring.");
+			message("\tno data read, ignoring.\n");
 			ret = ERROR;
 		}
 
@@ -117,22 +117,22 @@ int test_adc(int argc, char *argv[])
 
 		else {
 			if (nbytes != sizeof(sample1)) {
-				message("\tsample 1 size %d is not matching struct size %d, ignoring",
+				message("\tsample 1 size %d is not matching struct size %d, ignoring\n",
 					nbytes, sizeof(sample1));
 				ret = ERROR;
 
 			} else {
 
-				message("CYCLE %d:", j);
+				message("CYCLE %d:\n", j);
 
+				message("channel: %d value: %d\n",
+					(int)sample1.am_channel1, sample1.am_data1);
 				message("channel: %d value: %d",
-					sample1.am_channel1, sample1.am_data1);
+					(int)sample1.am_channel2, sample1.am_data2);
 				message("channel: %d value: %d",
-					sample1.am_channel2, sample1.am_data2);
+					(int)sample1.am_channel3, sample1.am_data3);
 				message("channel: %d value: %d",
-					sample1.am_channel3, sample1.am_data3);
-				message("channel: %d value: %d",
-					sample1.am_channel4, sample1.am_data4);
+					(int)sample1.am_channel4, sample1.am_data4);
 			}
 		}
 		fflush(stdout);
