@@ -441,33 +441,79 @@ l_actuator_outputs(struct listener *l)
 			uint8_t mavlink_mode = 0;
 			get_mavlink_mode_and_state(&mavlink_state, &mavlink_mode);
 
-			float rudder, throttle;
-
-			// XXX very ugly, needs rework
-			if (isfinite(act_outputs.output[3])
-				&& act_outputs.output[3] > 800 && act_outputs.output[3] < 2200) {
-				/* throttle is fourth output */
-				rudder = (act_outputs.output[2] - 1500.0f) / 1000.0f;
-				throttle = (act_outputs.output[3] - 1000.0f) / 1000.0f;
-			} else {
-				/* only three outputs, put throttle on position 4 / index 3 */
-				rudder = 0;
-				throttle = (act_outputs.output[2] - 1000.0f) / 1000.0f;
-			}
-
 			/* HIL message as per MAVLink spec */
-			mavlink_msg_hil_controls_send(chan,
-				hrt_absolute_time(),
-				(act_outputs.output[0] - 1500.0f) / 1000.0f,
-				(act_outputs.output[1] - 1500.0f) / 1000.0f,
-				rudder,
-				throttle,
-				(act_outputs.output[4] - 1500.0f) / 1000.0f,
-				(act_outputs.output[5] - 1500.0f) / 1000.0f,
-				(act_outputs.output[6] - 1500.0f) / 1000.0f,
-				(act_outputs.output[7] - 1500.0f) / 1000.0f,
-				mavlink_mode,
-				0);
+
+			/* scale / assign outputs depending on system type */
+
+			if (mavlink_system.type == MAV_TYPE_QUADROTOR) {
+				mavlink_msg_hil_controls_send(chan,
+					hrt_absolute_time(),
+					((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
+					-1,
+					-1,
+					-1,
+					-1,
+					mavlink_mode,
+					0);
+			} else if (mavlink_system.type == MAV_TYPE_HEXAROTOR) {
+				mavlink_msg_hil_controls_send(chan,
+					hrt_absolute_time(),
+					((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[4] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[5] - 900.0f) / 600.0f) / 2.0f,
+					-1,
+					-1,
+					mavlink_mode,
+					0);
+			} else if (mavlink_system.type == MAV_TYPE_OCTOROTOR) {
+				mavlink_msg_hil_controls_send(chan,
+					hrt_absolute_time(),
+					((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[4] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[5] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[6] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[7] - 900.0f) / 600.0f) / 2.0f,
+					mavlink_mode,
+					0);
+			} else {
+				float rudder, throttle;
+
+				/* SCALING: PWM min: 900, PWM max: 2100, center: 1500 */
+
+				// XXX very ugly, needs rework
+				if (isfinite(act_outputs.output[3])
+					&& act_outputs.output[3] > 800 && act_outputs.output[3] < 2200) {
+					/* throttle is fourth output */
+					rudder = (act_outputs.output[2] - 1500.0f) / 600.0f;
+					throttle = (((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f);
+				} else {
+					/* only three outputs, put throttle on position 4 / index 3 */
+					rudder = 0;
+					throttle = (((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f);
+				}
+
+				mavlink_msg_hil_controls_send(chan,
+					hrt_absolute_time(),
+					(act_outputs.output[0] - 1500.0f) / 600.0f,
+					(act_outputs.output[1] - 1500.0f) / 600.0f,
+					rudder,
+					throttle,
+					(act_outputs.output[4] - 1500.0f) / 600.0f,
+					(act_outputs.output[5] - 1500.0f) / 600.0f,
+					(act_outputs.output[6] - 1500.0f) / 600.0f,
+					(act_outputs.output[7] - 1500.0f) / 600.0f,
+					mavlink_mode,
+					0);
+			}
 		}
 	}
 }
