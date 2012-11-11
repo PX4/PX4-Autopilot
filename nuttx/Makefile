@@ -252,7 +252,7 @@ endif
 
 # LINKLIBS derives from NUTTXLIBS and is simply the same list with the subdirectory removed
 
-LINKLIBS = $(patsubst lib/,,$(NUTTXLIBS))
+LINKLIBS = $(patsubst lib/%,%,$(NUTTXLIBS))
 
 # This is the name of the final target (relative to the top level directorty)
 
@@ -566,13 +566,13 @@ ifeq ($(CONFIG_BUILD_2PASS),y)
 		echo "ERROR: No Makefile in CONFIG_PASS1_BUILDIR"; \
 		exit 1; \
 	fi
-	$(Q) $(MAKE) -C $(CONFIG_PASS1_BUILDIR) TOPDIR="$(TOPDIR)" LINKLIBS="$(NUTTXLIBS)" USERLIBS="$(USERLIBS)" "$(CONFIG_PASS1_TARGET)"
+	$(Q) $(MAKE) -C $(CONFIG_PASS1_BUILDIR) TOPDIR="$(TOPDIR)" LINKLIBS="$(LINKLIBS)" USERLIBS="$(USERLIBS)" "$(CONFIG_PASS1_TARGET)"
 endif
 
 pass2deps: context pass2dep $(NUTTXLIBS)
 
 pass2: pass2deps
-	$(Q) $(MAKE) -C $(ARCH_SRC) TOPDIR="$(TOPDIR)" EXTRA_OBJS="$(EXTRA_OBJS)" LINKLIBS="$(NUTTXLIBS)" EXTRADEFINES=$(KDEFINE) $(BIN)
+	$(Q) $(MAKE) -C $(ARCH_SRC) TOPDIR="$(TOPDIR)" EXTRA_OBJS="$(EXTRA_OBJS)" LINKLIBS="$(LINKLIBS)" EXTRADEFINES=$(KDEFINE) $(BIN)
 	$(Q) if [ -w /tftpboot ] ; then \
 		cp -f $(BIN) /tftpboot/$(BIN).${CONFIG_ARCH}; \
 	fi

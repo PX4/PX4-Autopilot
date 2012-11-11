@@ -36,32 +36,39 @@
 -include $(TOPDIR)/Make.defs
 -include chip/Make.defs
 
-ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
-CFLAGS		+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(TOPDIR)/sched
+ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
+CFLAGS += -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(TOPDIR)/sched
 
-HEAD_OBJ	= $(HEAD_ASRC:.S=$(OBJEXT))
+HEAD_OBJ = $(HEAD_ASRC:.S=$(OBJEXT))
 
-ASRCS		= $(CHIP_ASRCS) $(CMN_ASRCS)
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
+ASRCS = $(CHIP_ASRCS) $(CMN_ASRCS)
+AOBJS = $(ASRCS:.S=$(OBJEXT))
 
-CSRCS		= $(CHIP_CSRCS) $(CMN_CSRCS)
-COBJS		= $(CSRCS:.c=$(OBJEXT))
+CSRCS = $(CHIP_CSRCS) $(CMN_CSRCS)
+COBJS = $(CSRCS:.c=$(OBJEXT))
 
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
+SRCS = $(ASRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
 
-LDFLAGS		+= $(ARCHSCRIPT)
-EXTRA_LIBS	?=
+LDFLAGS += $(ARCHSCRIPT)
+EXTRA_LIBS ?=
+LINKLIBS ?=
 
-LINKLIBS	=
-LDPATHES	= $(addprefix -L$(TOPDIR)/,$(dir $(LINKLIBS)))
-LDLIBS		= $(patsubst lib%,-l%,$(basename $(notdir $(LINKLIBS))))
+ifeq ($(WINTOOL),y)
+  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/lib"}"
+  LIBPATHS += -L"${shell cygpath -w $(BOARDDIR)}"
+else
+  LIBPATHS += -L"(TOPDIR)/lib"
+  LIBPATHS += -L"$(BOARDDIR)"
+endif
 
-BOARDDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
+LDLIBS = $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
 
-LIBGCC		= ${shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name}
+BOARDDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
 
-VPATH		= chip:common
+LIBGCC = ${shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name}
+
+VPATH = chip:common
 
 all: $(HEAD_OBJ) libarch$(LIBEXT)
 
@@ -83,7 +90,7 @@ board/libboard$(LIBEXT):
 
 nuttx: $(HEAD_OBJ) board/libboard$(LIBEXT)
 	@echo "LD: nuttx"
-	@$(LD) --entry=__start $(LDFLAGS) $(LDPATHES) -L$(BOARDDIR) -o $(TOPDIR)/$@ $(HEAD_OBJ) \
+	@$(LD) --entry=__start $(LDFLAGS) $(LDPATHS) -L$(BOARDDIR) -o $(TOPDIR)/$@ $(HEAD_OBJ) \
 		--start-group $(LDLIBS) -lboard $(EXTRA_LIBS) $(LIBGCC) --end-group
 	@$(NM) $(TOPDIR)/$@ | \
 	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \

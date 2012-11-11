@@ -38,42 +38,42 @@
 
 # Board-specific directory, board library, and application library
 
-PASS1_SRCDIR	= arch/$(CONFIG_ARCH)/src
-PASS1_BOARDDIR	= $(PASS1_SRCDIR)/board
-PASS1_LIBBOARD	= $(PASS1_BOARDDIR)/libboard$(LIBEXT)
+PASS1_SRCDIR = arch/$(CONFIG_ARCH)/src
+PASS1_BOARDDIR = $(PASS1_SRCDIR)/board
+PASS1_LIBBOARD = $(PASS1_BOARDDIR)/libboard$(LIBEXT)
 
 # Where is the application library?
 
 ifneq ($(CONFIG_APPS_DIR),)
-PASS1_LIBAPPS	= $(CONFIG_APPS_DIR)/libapps$(LIBEXT)
+PASS1_LIBAPPS = $(CONFIG_APPS_DIR)/libapps$(LIBEXT)
 else
 ifneq ($(APPDIR),)
-PASS1_LIBAPPS	= $(APPDIR)/libapps$(LIBEXT)
+PASS1_LIBAPPS = $(APPDIR)/libapps$(LIBEXT)
 endif
 endif
 
 # Remove the application library (libapps) from the list of libraries.  Add
 # the boad library (liboard)
 
-PASS1_LINKLIBS	= $(filter-out $(PASS1_LIBAPPS),$(LINKLIBS))
-PASS1_LINKLIBS	+= $(PASS1_LIBBOARD)
+PASS1_LINKLIBS = $(filter-out $(PASS1_LIBAPPS),$(LINKLIBS))
+PASS1_LINKLIBS += $(PASS1_LIBBOARD)
 
 # Get the paths to the libraries and the links script path in format that
 # is appropriate for the host OS
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains
-  PASS1_LIBPATHS	= ${shell for path in $(PASS1_LINKLIBS); do dir=`dirname $(TOPDIR)/$$path`;echo "-L\"`cygpath -w $$dir`\"";done}
-  PASS1_LDSCRIPT	= -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/locked/ld-locked.inc}"
+  PASS1_LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/lib"}"
+  PASS1_LDSCRIPT = -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/locked/ld-locked.inc}"
 else
   # Linux/Cygwin-native toolchain 
-  PASS1_LIBPATHS	= $(addprefix -L$(TOPDIR)/,$(dir $(PASS1_LINKLIBS)))
-  PASS1_LDSCRIPT	= -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/locked/ld-locked.inc
+  PASS1_LIBPATHS += -L"(TOPDIR)/lib"
+  PASS1_LDSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/locked/ld-locked.inc
 endif
 
-PASS1_LDFLAGS	= -r $(PASS1_LDSCRIPT)
-PASS1_LDLIBS	= $(patsubst lib%,-l%,$(basename $(notdir $(PASS1_LINKLIBS))))
-PASS1_LIBGCC	= "${shell $(CC) -print-libgcc-file-name}"
+PASS1_LDFLAGS = -r $(PASS1_LDSCRIPT)
+PASS1_LDLIBS = $(patsubst %.a,%,$(patsubst lib%,-l%,$(PASS1_LINKLIBS)))
+PASS1_LIBGCC = "${shell $(CC) -print-libgcc-file-name}"
 
 # Targets:
 

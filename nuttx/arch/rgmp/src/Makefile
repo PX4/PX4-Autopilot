@@ -53,9 +53,8 @@ LINKSRCS    = rgmp.c bridge.c
 LINKOBJS    = $(LINKSRCS:.c=$(OBJEXT))
 
 LDFLAGS		+= -T$(RGMPLKSCPT)
-LDPATHS		= $(addprefix -L$(TOPDIR)/,$(dir $(LINKLIBS)))
-LDLIBS		= $(patsubst lib%,-l%,$(basename $(notdir $(LINKLIBS))))
-LDPATHS		+= -L$(RGMPLIBDIR)
+LDLIBS		= $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
+LDPATHS		+= -L"$(TOPDIR)/lib -L$(RGMPLIBDIR)
 LDLIBS		+= -lrgmp $(shell $(CC) -print-libgcc-file-name)
 
 all: libarch$(LIBEXT)

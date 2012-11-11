@@ -36,38 +36,38 @@
 -include $(TOPDIR)/Make.defs
 -include chip/Make.defs
 
-COMPILER	= ${shell basename $(CC)}
-ARCHSRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
+COMPILER = ${shell basename $(CC)}
+ARCHSRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(COMPILER),zneocc.exe)
-WARCHSRCDIR	:= ${shell cygpath -w $(ARCHSRCDIR)}
-USRINCLUDES	= -usrinc:'.;$(WTOPDIR)\sched;$(WARCHSRCDIR);$(WARCHSRCDIR)\common'
+WARCHSRCDIR := ${shell cygpath -w $(ARCHSRCDIR)}
+USRINCLUDES = -usrinc:'.;$(WTOPDIR)\sched;$(WARCHSRCDIR);$(WARCHSRCDIR)\common'
 else
-WARCHSRCDIR	= $(ARCHSRCDIR)
-USRINCLUDES	= -I$(TOPDIR)/sched -I$(ARCHSRCDIR) -I$(ARCHSRCDIR)/common
+WARCHSRCDIR = $(ARCHSRCDIR)
+USRINCLUDES = -I$(TOPDIR)/sched -I$(ARCHSRCDIR) -I$(ARCHSRCDIR)/common
 endif
-INCLUDES	= $(ARCHSTDINCLUDES) $(USRINCLUDES)
-CFLAGS		= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
-CPPFLAGS	+= -I$(ARCHSRCDIR)
+INCLUDES = $(ARCHSTDINCLUDES) $(USRINCLUDES)
+CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+CPPFLAGS += -I$(ARCHSRCDIR)
 ifeq ($(COMPILER),zneocc.exe)
-LDFLAGS 	+= @"${shell cygpath -w $(ARCHSRCDIR)/nuttx.linkcmd}"
+LDFLAGS  += @"${shell cygpath -w $(ARCHSRCDIR)/nuttx.linkcmd}"
 endif
 
-HEAD_ASRC	= $(HEAD_SSRC:.S=$(ASMEXT))
-HEAD_OBJ	= $(HEAD_SSRC:.S=$(OBJEXT))
+HEAD_ASRC = $(HEAD_SSRC:.S=$(ASMEXT))
+HEAD_OBJ = $(HEAD_SSRC:.S=$(OBJEXT))
 
-SSRCS		= $(CHIP_SSRCS) $(CMN_SSRCS)
-ASRCS		= $(SSRCS:.S=$(ASMEXT))
-AOBJS		= $(SSRCS:.S=$(OBJEXT))
+SSRCS = $(CHIP_SSRCS) $(CMN_SSRCS)
+ASRCS = $(SSRCS:.S=$(ASMEXT))
+AOBJS = $(SSRCS:.S=$(OBJEXT))
 
-CSRCS		= $(CHIP_CSRCS) $(CMN_CSRCS)
-COBJS		= $(CSRCS:.c=$(OBJEXT))
+CSRCS = $(CHIP_CSRCS) $(CMN_CSRCS)
+COBJS = $(CSRCS:.c=$(OBJEXT))
 
-DEPSRCS 	= $(SSRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
+DEPSRCS = $(SSRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
 
-BOARDDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
+BOARDDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
 
-VPATH		= chip:common
+VPATH = chip:common
 
 all: $(HEAD_OBJ) libarch$(LIBEXT)
 
@@ -103,7 +103,7 @@ nuttx.linkcmd: $(LINKCMDTEMPLATE)
 	@echo "\"${shell cygpath -w $(TOPDIR)/nuttx}\"= \\" >>nuttx.linkcmd
 	@echo "  \"${shell cygpath -w $(ARCHSRCDIR)/$(HEAD_OBJ)}\", \\" >>nuttx.linkcmd
 	@( for lib in $(LINKLIBS); do \
-		echo "  \"`cygpath -w $(TOPDIR)/$${lib}`\", \\" >>nuttx.linkcmd; \
+		echo "  \"`cygpath -w $(TOPDIR)/lib/$${lib}`\", \\" >>nuttx.linkcmd; \
 	done ; )
 	@echo "  \"${shell cygpath -w $(ARCHSRCDIR)/board/libboard$(LIBEXT)}\", \\"  >>nuttx.linkcmd
 	@echo "  \"${shell cygpath -w $(ZDSSTDLIBDIR)/chelpld$(LIBEXT)}\", \\"  >>nuttx.linkcmd

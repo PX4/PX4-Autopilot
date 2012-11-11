@@ -40,11 +40,11 @@ CFLAGS += -I$(TOPDIR)/sched
 ASRCS = up_setjmp.S
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 CSRCS = up_initialize.c up_idle.c up_interruptcontext.c \
-		  up_initialstate.c up_createstack.c up_usestack.c \
-		  up_releasestack.c  up_unblocktask.c up_blocktask.c \
-		  up_releasepending.c up_reprioritizertr.c \
-		  up_exit.c up_schedulesigaction.c up_allocateheap.c \
-		  up_devconsole.c
+		up_initialstate.c up_createstack.c up_usestack.c \
+		up_releasestack.c  up_unblocktask.c up_blocktask.c \
+		up_releasepending.c up_reprioritizertr.c \
+		up_exit.c up_schedulesigaction.c up_allocateheap.c \
+		up_devconsole.c
 HOSTSRCS = up_stdio.c up_hostusleep.c
 
 ifeq ($(CONFIG_NX_LCDDRIVER),y)
@@ -126,9 +126,10 @@ endif
 # Determine which NuttX libraries will need to be linked in
 # Most are provided by LINKLIBS on the MAKE command line
 
-LINKLIBS =
-LDPATHS = $(addprefix -L$(TOPDIR)/,$(dir $(LINKLIBS)))
-LDLIBS = $(patsubst lib%,-l%,$(basename $(notdir $(LINKLIBS))))
+LINKLIBS ?=
+LIBPATHS += -L"(TOPDIR)/lib"
+LIBPATHS += -L"$(BOARDDIR)"
+LDLIBS = $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
 
 # Add the board-specific library and directory
 

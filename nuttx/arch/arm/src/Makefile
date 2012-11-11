@@ -74,16 +74,17 @@ LDFLAGS += $(ARCHSCRIPT)
 
 EXTRA_LIBS ?=
 EXTRA_LIBPATHS ?=
+LINKLIBS ?=
 
-LINKLIBS =
 ifeq ($(WINTOOL),y)
-  LIBPATHS = ${shell for path in $(LINKLIBS); do dir=`dirname $(TOPDIR)/$$path`;echo "-L\"`cygpath -w $$dir`\"";done}
+  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/lib"}"
   LIBPATHS += -L"${shell cygpath -w $(BOARDDIR)}"
 else
-  LIBPATHS = $(addprefix -L$(TOPDIR)/,$(dir $(LINKLIBS)))
+  LIBPATHS += -L"(TOPDIR)/lib"
   LIBPATHS += -L"$(BOARDDIR)"
 endif
-LDLIBS = $(patsubst lib%,-l%,$(basename $(notdir $(LINKLIBS))))
+
+LDLIBS = $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
 
 BOARDDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
 

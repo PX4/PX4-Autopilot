@@ -37,49 +37,49 @@
 # Tools
 # CFLAGS, CPPFLAGS, ASFLAGS, LDFLAGS are set in $(TOPDIR)/Make.defs
 
-CFLAGS		+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(TOPDIR)/sched
-CPPFLAGS	+= -D__ASSEMBLY__
+CFLAGS += -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(TOPDIR)/sched
+CPPFLAGS += -D__ASSEMBLY__
 
 ############################################################################
 # Files and directories
 
 # There should be one head source (.asm file)
 
-HEAD_OBJ	= $(HEAD_ASRC:$(ASMEXT)=$(OBJEXT))
+HEAD_OBJ = $(HEAD_ASRC:$(ASMEXT)=$(OBJEXT))
 
 # Assembly sources and objects
 
-ASRCS		= $(CHIP_ASRCS) $(CMN_ASRCS)
-AOBJS		= $(ASRCS:$(ASMEXT)=$(OBJEXT))
+ASRCS = $(CHIP_ASRCS) $(CMN_ASRCS)
+AOBJS = $(ASRCS:$(ASMEXT)=$(OBJEXT))
 
 # C sources and objects
 
-CSRCS		= $(CHIP_CSRCS) $(CMN_CSRCS)
-COBJS		= $(CSRCS:.c=$(OBJEXT))
+CSRCS = $(CHIP_CSRCS) $(CMN_CSRCS)
+COBJS = $(CSRCS:.c=$(OBJEXT))
 
 # All sources and objcts
 
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
+SRCS = $(ASRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
 
 # Sources that can have dependencies (no .asm files)
 
-DEPSRCS		= $(CSRCS)
+DEPSRCS = $(CSRCS)
 
 # Directories
 
-ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
-BOARDDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
+ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
+BOARDDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
 
-VPATH		= chip:common:board
+VPATH = chip:common:board
 
 # Libraries
 
-LIBGCC		= ${shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name}
+LIBGCC = ${shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name}
 
 # Supports dynamic sizing of HEAP.
 #
-HEAP_BASE	= ${shell ./mkhpbase.sh}
+HEAP_BASE = ${shell ./mkhpbase.sh}
 
 ############################################################################
 # Targets
@@ -152,7 +152,7 @@ pass1.hex: up_mem.h asm_mem.h $(SDCCLIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard
 	@echo "-k $(SDCCLIBDIR)" >>pass1.lnk		# Path to SDCC z80 library
 	@echo "-l libboard$(LIBEXT)" >>pass1.lnk	# Name of board library
 	@for LIB in $(LINKLIBS); do \
-		echo "-l $(TOPDIR)/$$LIB" >> pass1.lnk ;\
+		echo "-l $(TOPDIR)/lib/$$LIB" >> pass1.lnk ;\
 	done
 	@echo "-l myz80.lib" >>pass1.lnk		# Name of SDCC z80 library
 ifneq ($(CONFIG_LINKER_START_AREA),)
@@ -185,7 +185,7 @@ nuttx.hex: up_mem.h asm_mem.h $(SDCCLIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard
 	@echo "-k $(SDCCLIBDIR)" >>nuttx.lnk		# Path to SDCC z80 library
 	@echo "-l libboard$(LIBEXT)" >>nuttx.lnk	# Name of board library
 	@for LIB in $(LINKLIBS); do \
-		echo "-l $(TOPDIR)/$$LIB" >> nuttx.lnk ;\
+		echo "-l $(TOPDIR)/lib/$$LIB" >> nuttx.lnk ;\
 	done
 	@echo "-l myz80.lib" >>nuttx.lnk		# Name of SDCC z80 library
 ifneq ($(CONFIG_LINKER_START_AREA),)

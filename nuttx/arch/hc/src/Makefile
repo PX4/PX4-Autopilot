@@ -36,55 +36,56 @@
 -include $(TOPDIR)/Make.defs
 -include chip/Make.defs
 
-ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
+ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(CONFIG_ARCH_HC12),y)
-ARCH_SUBDIR	= hc12
+ARCH_SUBDIR = hc12
 endif
 ifeq ($(CONFIG_ARCH_HCS12),y)
-ARCH_SUBDIR	= hcs12
+ARCH_SUBDIR = hcs12
 endif
 
 ifeq ($(WINTOOL),y)
-  NUTTX		= "${shell cygpath -w $(TOPDIR)/nuttx}"
-  CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
+  NUTTX = "${shell cygpath -w $(TOPDIR)/nuttx}"
+  CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
+		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
 		   -I "${shell cygpath -w $(ARCH_SRCDIR)/$(ARCH_SUBDIR)}" \
 		   -I "${shell cygpath -w $(TOPDIR)/sched}"
 else
-  NUTTX		= $(TOPDIR)/nuttx
-  CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common \
-		   -I$(ARCH_SRCDIR)/$(ARCH_SUBDIR) -I$(TOPDIR)/sched
+  NUTTX = $(TOPDIR)/nuttx
+  CFLAGS += -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common \
+			-I$(ARCH_SRCDIR)/$(ARCH_SUBDIR) -I$(TOPDIR)/sched
 endif
 
-HEAD_OBJ	= $(HEAD_ASRC:.S=$(OBJEXT))
+HEAD_OBJ = $(HEAD_ASRC:.S=$(OBJEXT))
 
-ASRCS		= $(CHIP_ASRCS) $(CMN_ASRCS)
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
+ASRCS = $(CHIP_ASRCS) $(CMN_ASRCS)
+AOBJS = $(ASRCS:.S=$(OBJEXT))
 
-CSRCS		= $(CHIP_CSRCS) $(CMN_CSRCS)
-COBJS		= $(CSRCS:.c=$(OBJEXT))
+CSRCS = $(CHIP_CSRCS) $(CMN_CSRCS)
+COBJS = $(CSRCS:.c=$(OBJEXT))
 
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
+SRCS = $(ASRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
 
-LDFLAGS		+= $(ARCHSCRIPT)
-EXTRA_LIBS	?=
+LDFLAGS += $(ARCHSCRIPT)
+EXTRA_LIBS ?=
+LINKLIBS ?=
 
-LINKLIBS	=
 ifeq ($(WINTOOL),y)
-  LIBPATHS	= ${shell for path in $(LINKLIBS); do dir=`dirname $(TOPDIR)/$$path`;echo "-L\"`cygpath -w $$dir`\"";done}
-  LIBPATHS	+= -L"${shell cygpath -w $(BOARDDIR)}"
+  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/lib"}"
+  LIBPATHS += -L"${shell cygpath -w $(BOARDDIR)}"
 else
-  LIBPATHS	= $(addprefix -L$(TOPDIR)/,$(dir $(LINKLIBS)))
-  LIBPATHS	+= -L"$(BOARDDIR)"
+  LIBPATHS += -L"(TOPDIR)/lib"
+  LIBPATHS += -L"$(BOARDDIR)"
 endif
-LDLIBS		= $(patsubst lib%,-l%,$(basename $(notdir $(LINKLIBS))))
 
-BOARDDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
+LDLIBS = $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
 
-LIBGCC		= "${shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name}"
+BOARDDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
 
-VPATH		= chip:common:$(ARCH_SUBDIR)
+LIBGCC = "${shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name}"
+
+VPATH = chip:common:$(ARCH_SUBDIR)
 
 all: $(HEAD_OBJ) libarch$(LIBEXT)
 .PHONY: board/libboard$(LIBEXT)

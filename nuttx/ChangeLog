@@ -3601,4 +3601,5 @@
 	  additional logic is needed in the arch/*/src/Makefile's as well.  Right
 	  now that logic generate multiple library paths, all pointing to the lib/
 	  directory.
+	* arch/*/src/Makefile:  Now uses only the libraries in lib/
 

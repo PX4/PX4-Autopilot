@@ -35,51 +35,51 @@
 
 -include $(TOPDIR)/Make.defs
 
-CFLAGS		+= -I$(TOPDIR)/sched
-ASFLAGS		= -x -j -g -l -s -p
-CPPFLAGS	= $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES) -D__ASSEMBLY__
+CFLAGS += -I$(TOPDIR)/sched
+ASFLAGS = -x -j -g -l -s -p
+CPPFLAGS = $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES) -D__ASSEMBLY__
 
-SSRCS		= 
-ASRCS		= $(SSRCS:.S=$(ASMEXT))
-AOBJS		= $(ASRCS:$(ASMEXT)=$(OBJEXT))
-CSRCS		= up_initialize.c up_idle.c up_interruptcontext.c \
-		  up_initialstate.c up_unblocktask.c up_blocktask.c \
-		  up_releasepending.c up_reprioritizertr.c \
-		  up_exit.c up_assert.c up_allocateheap.c \
-		  up_irq.c up_savecontext.c up_restorecontext.c \
-		  up_timerisr.c up_putc.c up_debug.c up_delay.c
-COBJS		= $(CSRCS:.c=$(OBJEXT))
-SRCS		= $(SSRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
+SSRCS = 
+ASRCS = $(SSRCS:.S=$(ASMEXT))
+AOBJS = $(ASRCS:$(ASMEXT)=$(OBJEXT))
+CSRCS = up_initialize.c up_idle.c up_interruptcontext.c \
+		up_initialstate.c up_unblocktask.c up_blocktask.c \
+		up_releasepending.c up_reprioritizertr.c \
+		up_exit.c up_assert.c up_allocateheap.c \
+		up_irq.c up_savecontext.c up_restorecontext.c \
+		up_timerisr.c up_putc.c up_debug.c up_delay.c
+COBJS = $(CSRCS:.c=$(OBJEXT))
+SRCS = $(SSRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
 
-SDCCLIBDIR	= /usr/local/share/sdcc/lib/large-stack-auto
-SDCCPATH	= -L$(SDCCLIBDIR)
-SDCCLIBS	= -llibfloat.lib -llibint.lib -lliblong.lib -llibmysdcc.lib -lmcs51.lib
+SDCCLIBDIR = /usr/local/share/sdcc/lib/large-stack-auto
+SDCCPATH = -L$(SDCCLIBDIR)
+SDCCLIBS = -llibfloat.lib -llibint.lib -lliblong.lib -llibmysdcc.lib -lmcs51.lib
 
-LINKSSRCS	= up_head.S
-LINKASRCS	= $(LINKSSRCS:.S=$(ASMEXT))
-LINKOBJS	= $(LINKASRCS:$(ASMEXT)=$(OBJEXT))
-LINKLIBS	=
-LDPATHES	= $(addprefix -L$(TOPDIR)/,$(dir $(LINKLIBS)))
-LDLIBS		= $(addprefix -l,$(notdir $(LINKLIBS)))
+LINKSSRCS = up_head.S
+LINKASRCS = $(LINKSSRCS:.S=$(ASMEXT))
+LINKOBJS = $(LINKASRCS:$(ASMEXT)=$(OBJEXT))
+LINKLIBS ?=
+LDPATHS = -L"$(TOPDIR)/lib"
+LDLIBS =  $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
 
-TESTSRCS	= up_irqtest.c
-TESTOBJS	= $(TESTSRCS:.c=$(OBJEXT))
-TESTLINKOBJS	= up_head$(OBJEXT)
-TESTEXTRAOBJS	= up_savecontext$(OBJEXT) up_restorecontext$(OBJEXT)
+TESTSRCS = up_irqtest.c
+TESTOBJS = $(TESTSRCS:.c=$(OBJEXT))
+TESTLINKOBJS = up_head$(OBJEXT)
+TESTEXTRAOBJS = up_savecontext$(OBJEXT) up_restorecontext$(OBJEXT)
 
-BOARDDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
+BOARDDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
 
-IRAM_SIZE	= 0x100
-DEF_STACK_BASE	= 0x24
-LDFLAGS		+= --model-large --nostdlib \
-		  --data-loc $(DEF_STACK_BASE) --iram-size $(IRAM_SIZE) \
-		  --code-loc 0x2100 --code-size 0x5f40 \
-		  --xram-loc $(IRAM_SIZE) --xram-size 0x1f00
+IRAM_SIZE = 0x100
+DEF_STACK_BASE = 0x24
+LDFLAGS += --model-large --nostdlib \
+		--data-loc $(DEF_STACK_BASE) --iram-size $(IRAM_SIZE) \
+		--code-loc 0x2100 --code-size 0x5f40 \
+		--xram-loc $(IRAM_SIZE) --xram-size 0x1f00
 
-DEPSRCS		= $(SRCS) $(LINKSSRCS)
+DEPSRCS = $(SRCS) $(LINKSSRCS)
 
-HEAP1_BASE	= ${shell \
+HEAP1_BASE = ${shell \
 			if [ -e pass1.mem ]; then \
 				cat pass1.mem | grep "EXTERNAL RAM" | \
 				sed -e "s/[ ][ ]*/ /g" | cut -d' ' -f5 ; \
@@ -87,8 +87,8 @@ HEAP1_BASE	= ${shell \
 				echo $(IRAM_SIZE) ; \
 			fi \
 		   }
-DEF_HEAP2_BASE	= 0x6000
-HEAP2_BASE	= ${shell \
+DEF_HEAP2_BASE = 0x6000
+HEAP2_BASE = ${shell \
 			if [ -e pass1.mem ]; then \
 				cat pass1.mem | grep "ROM/EPROM/FLASH" | \
 				sed -e "s/[ ][ ]*/ /g" | cut -d' ' -f4 ; \
@@ -96,7 +96,7 @@ HEAP2_BASE	= ${shell \
 				echo $(DEF_HEAP2_BASE) ; \
 			fi \
 		   }
-STACK_BASE	= ${shell \
+STACK_BASE = ${shell \
 			if [ -e pass1.mem ]; then \
 				cat pass1.mem | grep "Stack starts" | \
 				cut -d' ' -f4 ; \
@@ -173,7 +173,7 @@ board/libboard$(LIBEXT):
 
 pass1.hex: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS) board/libboard$(LIBEXT)
 	@echo "LD:  $@"
-	@$(CC) $(LDFLAGS) $(LDPATHES) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
+	@$(CC) $(LDFLAGS) $(LDPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
 		$(LDLIBS) -llibboard$(LIBEXT) $(SDCCLIBS) -o $@
 	@rm -f up_mem.h
 	@rm -f up_allocateheap$(OBJEXT) libarch$(LIBEXT)
@@ -181,7 +181,7 @@ pass1.hex: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS) board/libboard$(LIBE
 
 nuttx.hex: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS)
 	@echo "LD:  $@"
-	@$(CC) $(LDFLAGS) $(LDPATHES) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
+	@$(CC) $(LDFLAGS) $(LDPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
 		$(LDLIBS) -llibboard$(LIBEXT) $(SDCCLIBS) -o $@
 
 nuttx$(EXEEXT): pass1.hex nuttx.hex
