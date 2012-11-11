@@ -99,7 +99,7 @@ $(BIN):	$(OBJS)
 	$(call ARCHIVE, $@, "$(OBJS)")
 
 .depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) $(DEPPATH) $(CXX) -- $(CXXFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) $(DEPPATH) "$(CXX)" -- $(CXXFLAGS) -- $(SRCS) >Make.dep
 	$(Q) touch $@
 
 depend: .depend

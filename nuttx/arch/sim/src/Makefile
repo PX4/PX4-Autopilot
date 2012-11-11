@@ -127,8 +127,8 @@ endif
 # Most are provided by LINKLIBS on the MAKE command line
 
 LINKLIBS ?=
-LIBPATHS += -L"(TOPDIR)/lib"
-LIBPATHS += -L"$(BOARDDIR)"
+LIBPATHS += -L"$(TOPDIR)/lib"
+LIBPATHS += -Lboard
 LDLIBS = $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
 
 # Add the board-specific library and directory
@@ -150,7 +150,7 @@ $(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
 
 $(HOSTOBJS): %$(OBJEXT): %.c
 	$(Q) echo "CC:  $<"
-	$(Q) $(CC) -c $(HOSTCFLAGS) $< -o $@
+	$(Q) "$(CC)" -c $(HOSTCFLAGS) $< -o $@
 
 # The architecture-specific library
 
@@ -186,7 +186,7 @@ nuttx.rel : libarch$(LIBEXT) board/libboard$(LIBEXT) $(HOSTOS)-names.dat $(LINKO
 
 nuttx$(EXEEXT): cleanrel nuttx.rel $(HOSTOBJS)
 	$(Q) echo "LD:  nuttx$(EXEEXT)"
-	$(Q) $(CC) $(CCLINKFLAGS) $(LDPATHS) -o $(TOPDIR)/$@ nuttx.rel $(HOSTOBJS) $(DRVLIB) $(STDLIBS)
+	$(Q) "$(CC)" $(CCLINKFLAGS) $(LDPATHS) -o $(TOPDIR)/$@ nuttx.rel $(HOSTOBJS) $(DRVLIB) $(STDLIBS)
 	$(Q) $(NM) $(TOPDIR)/$@ | \
 		grep -v '\(compiled\)\|\(\.o$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
 		sort > $(TOPDIR)/System.map
@@ -202,7 +202,7 @@ export_head: board/libboard$(LIBEXT) up_head.o $(HOSTOBJS)
 # Dependencies
 
 .depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 	$(Q) touch $@
 
 depend: .depend

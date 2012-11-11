@@ -55,32 +55,32 @@ EXTRA_LIBS ?=
 LINKLIBS ?=
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  BOARDDIR = $(dir "$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board\Makefile")
+  BOARDMAKE = $(dir "$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board\Makefile")
   LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)\lib"}"
-ifneq ($(BOARDDIR),)
-  LIBPATHS += -L"${shell cygpath -w $(BOARDDIR)}"
+ifdef BOARDMAKE
+  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board"}"
 endif
 
 else
-  BOARDDIR = $(dir "$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board/Makefile")
+  BOARDMAKE = $(dir "$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board/Makefile")
 
 ifeq ($(WINTOOL),y)
   LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/lib"}"
-ifneq ($(BOARDDIR),)
-  LIBPATHS += -L"${shell cygpath -w $(BOARDDIR)}"
+ifdef BOARDMAKE
+  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board"}"
 endif
 
 else
-  LIBPATHS += -L"(TOPDIR)/lib"
-ifneq ($(BOARDDIR),)
-  LIBPATHS += -L"$(BOARDDIR)"
+  LIBPATHS += -L"$(TOPDIR)/lib"
+ifdef BOARDMAKE
+  LIBPATHS += -L"$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board"
 endif
 endif
 endif
 
 LDLIBS = $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
 
-LIBGCC = ${shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name}
+LIBGCC = ${shell "$(CC)" $(ARCHCPUFLAGS) -print-libgcc-file-name}
 
 VPATH = chip:common
 
@@ -102,7 +102,7 @@ board/libboard$(LIBEXT):
 
 nuttx: $(HEAD_OBJ) board/libboard$(LIBEXT)
 	@echo "LD: nuttx"
-	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LDPATHS) -L$(BOARDDIR) -o $(TOPDIR)/$@ $(HEAD_OBJ) \
+	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LDPATHS) -L$(BOARDMAKE) -o $(TOPDIR)/$@ $(HEAD_OBJ) \
 		--start-group $(LDLIBS) -lboard $(EXTRA_LIBS) $(LIBGCC) --end-group
 	$(Q) $(NM) $(TOPDIR)/$@ | \
 	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
@@ -121,23 +121,23 @@ export_head: board/libboard$(LIBEXT) $(HEAD_OBJ)
 # Dependencies
 
 .depend: Makefile chip/Make.defs $(SRCS)
-ifneq ($(BOARDDIR),)
+ifdef BOARDMAKE
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" depend
 endif
-	$(Q) $(MKDEP) --dep-path chip --dep-path common $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 	$(Q) touch $@
 
 depend: .depend
 
 clean:
-ifneq ($(BOARDDIR),)
+ifdef BOARDMAKE
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" clean
 endif
 	$(Q) rm -f libarch$(LIBEXT) *~ .*.swp
 	$(call CLEAN)
 
 distclean: clean
-ifneq ($(BOARDDIR),)
+ifdef BOARDMAKE
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" distclean
 endif
 	$(Q) rm -f Make.dep .depend

@@ -1,7 +1,7 @@
 ############################################################################
 # configs/ez80f910200zco/httpd/Make.defs
 #
-#   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,23 +38,33 @@ include ${TOPDIR}/tools/Config.mk
 
 # These are the directories where the ZDS-II toolchain is installed
 
-ZDSVERSION		:= 4.11.1
-ZDSINSTALLDIR		:= C:/Program\ Files/ZiLOG/ZDSII_eZ80Acclaim!_$(ZDSVERSION)
-ZDSBINDIR		:= $(ZDSINSTALLDIR)/bin
-ZDSSTDINCDIR		:= $(ZDSINSTALLDIR)/include/std
-ZDSZILOGINCDIR		:= $(ZDSINSTALLDIR)/include/zilog
-ZDSSTDLIBDIR		:= $(ZDSINSTALLDIR)/lib/std
-ZDSZILOGLIBDIR		:= $(ZDSINSTALLDIR)/lib/zilog
+ZDSVERSION := 5.1.1
+ZDSINSTALLDIR := C:/Program Files (x86)/ZiLOG/ZDSII_eZ80Acclaim!_$(ZDSVERSION)
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  ZDSBINDIR := $(ZDSINSTALLDIR)\bin
+  ZDSSTDINCDIR := $(ZDSINSTALLDIR)\include\std
+  ZDSZILOGINCDIR := $(ZDSINSTALLDIR)\include\zilog
+  ZDSSTDLIBDIR := $(ZDSINSTALLDIR)\lib\std
+  ZDSZILOGLIBDIR := $(ZDSINSTALLDIR)\lib\zilog
+else
+  WINTOOL := y
+  INSTALLDIR = ${shell cygpath -u "$(ZDSINSTALLDIR)"}
+  ZDSBINDIR := $(INSTALLDIR)/bin
+  ZDSSTDINCDIR := $(INSTALLDIR)/include/std
+  ZDSZILOGINCDIR := $(INSTALLDIR)/include/zilog
+  ZDSSTDLIBDIR := $(INSTALLDIR)/lib/std
+  ZDSZILOGLIBDIR := $(INSTALLDIR)/lib/zilog
+endif
 
 # These are the same directories but with the directory separator
 # character swapped as needed by the ZDS-II compiler
 
-WINTOOL			:= y
-WTOPDIR 		:= ${shell cygpath -w $(TOPDIR)}
-WZDSSTDINCDIR		:= ${shell cygpath -w $(ZDSSTDINCDIR)}
-WZDSZILOGINCDIR 	:= ${shell cygpath -w $(ZDSZILOGINCDIR)}
-WZDSSTDLIBDIR		:= ${shell cygpath -w $(ZDSSTDLIBDIR)}
-WZDSZILOGLIBDIR 	:= ${shell cygpath -w $(ZDSZILOGLIBDIR)}
+WTOPDIR := ${shell cygpath -w "$(TOPDIR)"}
+WZDSSTDINCDIR := ${shell cygpath -w "$(ZDSSTDINCDIR)"}
+WZDSZILOGINCDIR := ${shell cygpath -w "$(ZDSZILOGINCDIR)"}
+WZDSSTDLIBDIR := ${shell cygpath -w "$(ZDSSTDLIBDIR)"}
+WZDSZILOGLIBDIR := ${shell cygpath -w "$(ZDSZILOGLIBDIR)"}
 
 # Escaped versions
 
@@ -140,35 +150,35 @@ HEXEXT			= .hex
 
 define PREPROCESS
 	@echo "CPP: $1->$2"
-	@$(CPP) $(CPPFLAGS) $1 -o $2
+	$(Q) "$(CPP)" $(CPPFLAGS) $1 -o $2
 endef
 
 define COMPILE
 	@#echo "CC: $1"
-	@(wfile=`cygpath -w $1`; $(CC) $(CFLAGS) $$wfile)
+	$(Q) (wfile=`cygpath -w "$1"`; "$(CC)" $(CFLAGS) $$wfile)
 endef
 
 define ASSEMBLE
 	@#echo "AS: $1"
-	@(wfile=`cygpath -w $1`; $(AS) $(AFLAGS) $$wfile)
+	$(Q) (wfile=`cygpath -w "$1"`; "$(AS)" $(AFLAGS) $$wfile)
 endef
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 define ARCHIVE
 	echo "AR: $2";
-	$(Q) for %%G in ($(subst ",,$(2))) do ( $(AR) $(ARFLAGS) $1=-+%%G )
+	$(Q) for %%G in ($(subst ",,$(2))) do ( "$(AR)" $(ARFLAGS) $1=-+%%G )
 endef
 else
 define ARCHIVE
-	$(Q) for __obj in $(2); do \
-		echo "AR: $(__obj)"; \
-		$(AR) $(ARFLAGS) $1=-+$(__obj) || { echo "$(AR) $1=-+$(__obj) FAILED!" ; exit 1 ; } \
+	$(Q) for __obj in $(subst ",,$(2)) ; do \
+		echo "AR: $$__obj"; \
+		"$(AR)" $(ARFLAGS) $1=-+$$__obj || { echo "$(AR) $1=-+$$__obj FAILED!" ; exit 1 ; } \
 	done
 endef
 endif
 
 define CLEAN
-	@rm -f *.obj *.src *.lib *.hex *.lod *.lst
+	$(Q) rm -f *.obj *.src *.lib *.hex *.lod *.lst
 endef
 
 # This is the tool to use for dependencies (i.e., none)

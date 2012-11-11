@@ -38,29 +38,45 @@ include ${TOPDIR}/tools/Config.mk
 
 # These are the directories where the ZDS-II toolchain is installed
 
-ZDSINSTALLDIR		:= C:/Program\ Files/ZiLOG/ZDSII_Z8Encore!_4.10.1
-ZDSBINDIR		:= $(ZDSINSTALLDIR)/bin
-ZDSSTDINCDIR		:= $(ZDSINSTALLDIR)/include/std
-ZDSZILOGINCDIR		:= $(ZDSINSTALLDIR)/include/zilog
+ZDSINSTALLDIR := C:/Program Files (x86)/ZiLOG/ZDSII_Z8Encore!_4.10.1
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  ZDSBINDIR := $(ZDSINSTALLDIR)\bin
+  ZDSSTDINCDIR := $(ZDSINSTALLDIR)\include\std
+  ZDSZILOGINCDIR := $(ZDSINSTALLDIR)\include\zilog
 ifeq ($(CONFIG_ARCH_CHIP_Z8F642X),y)
-ZDSDEVINCDIR		:= $(ZDSZILOGINCDIR)/Z8Encore_F642X
+  ZDSDEVINCDIR := $(ZDSZILOGINCDIR)\Z8Encore_F642X
 endif
 ifeq ($(CONFIG_ARCH_CHIP_Z8F640X),y)
-ZDSDEVINCDIR		:= $(ZDSZILOGINCDIR)/Z8Encore_F640X
+  ZDSDEVINCDIR := $(ZDSZILOGINCDIR)\Z8Encore_F640X
 endif
-ZDSSTDLIBDIR		:= $(ZDSINSTALLDIR)/lib/std
-ZDSZILOGLIBDIR		:= $(ZDSINSTALLDIR)/lib/zilog
+  ZDSSTDLIBDIR := $(ZDSINSTALLDIR)\lib\std
+  ZDSZILOGLIBDIR := $(ZDSINSTALLDIR)\lib\zilog
+else
+  WINTOOL := y
+  INSTALLDIR = ${shell cygpath -u "$(ZDSINSTALLDIR)"}
+  ZDSBINDIR := $(INSTALLDIR)/bin
+  ZDSSTDINCDIR := $(INSTALLDIR)/include/std
+  ZDSZILOGINCDIR := $(INSTALLDIR)/include/zilog
+ifeq ($(CONFIG_ARCH_CHIP_Z8F642X),y)
+  ZDSDEVINCDIR := $(ZDSZILOGINCDIR)/Z8Encore_F642X
+endif
+ifeq ($(CONFIG_ARCH_CHIP_Z8F640X),y)
+  ZDSDEVINCDIR := $(ZDSZILOGINCDIR)/Z8Encore_F640X
+endif
+  ZDSSTDLIBDIR := $(INSTALLDIR)/lib/std
+  ZDSZILOGLIBDIR := $(INSTALLDIR)/lib/zilog
+endif
 
 # These are the same directories but with the directory separator
 # character swapped as needed by the ZDS-II compiler
 
-WINTOOL			:= y
-WTOPDIR 		:= ${shell cygpath -w $(TOPDIR)}
-WZDSSTDINCDIR		:= ${shell cygpath -w $(ZDSSTDINCDIR)}
-WZDSZILOGINCDIR 	:= ${shell cygpath -w $(ZDSZILOGINCDIR)}
-WZDSDEVINCDIR		:= ${shell cygpath -w $(ZDSDEVINCDIR)}
-WZDSSTDLIBDIR		:= ${shell cygpath -w $(ZDSSTDLIBDIR)}
-WZDSZILOGLIBDIR 	:= ${shell cygpath -w $(ZDSZILOGLIBDIR)}
+WTOPDIR := ${shell cygpath -w "$(TOPDIR)"}
+WZDSSTDINCDIR := ${shell cygpath -w "$(ZDSSTDINCDIR)"}
+WZDSZILOGINCDIR := ${shell cygpath -w "$(ZDSZILOGINCDIR)"}
+WZDSDEVINCDIR := ${shell cygpath -w "$(ZDSDEVINCDIR)"}
+WZDSSTDLIBDIR := ${shell cygpath -w "$(ZDSSTDLIBDIR)"}
+WZDSZILOGLIBDIR := ${shell cygpath -w "$(ZDSZILOGLIBDIR)"}
 
 # Escaped versions
 
@@ -159,35 +175,35 @@ EXEEXT			= .hex
 
 define PREPROCESS
 	@echo "CPP: $1->$2"
-	@$(CPP) $(CPPFLAGS) $1 -o $2
+	$(Q) "$(CPP)" $(CPPFLAGS) $1 -o $2
 endef
 
 define COMPILE
 	@#echo "CC: $1"
-	@(wfile=`cygpath -w $1`; $(CC) $(CFLAGS) $$wfile)
+	$(Q) (wfile=`cygpath -w "$1"`; "$(CC)" $(CFLAGS) $$wfile)
 endef
 
 define ASSEMBLE
 	@#echo "AS: $1"
-	@(wfile=`cygpath -w $1`; $(AS) $(AFLAGS) $$wfile)
+	$(Q) (wfile=`cygpath -w "$1"`; "$(AS)" $(AFLAGS) $$wfile)
 endef
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 define ARCHIVE
 	echo "AR: $2";
-	$(Q) for %%G in ($(subst ",,$(2))) do ( $(AR) $(ARFLAGS) $1=-+%%G )
+	$(Q) for %%G in ($(subst ",,$(2))) do ( "$(AR)" $(ARFLAGS) $1=-+%%G )
 endef
 else
 define ARCHIVE
-	$(Q) for __obj in $(2); do \
-		echo "AR: $(__obj)"; \
-		$(AR) $(ARFLAGS) $1=-+$(__obj) || { echo "$(AR) $1=-+$(__obj) FAILED!" ; exit 1 ; } \
+	$(Q) for __obj in $(subst ",,$(2)) ; do \
+		echo "AR: $$__obj"; \
+		"$(AR)" $(ARFLAGS) $1=-+$$__obj || { echo "$(AR) $1=-+$$__obj FAILED!" ; exit 1 ; } \
 	done
 endef
 endif
 
 define CLEAN
-	@rm -f *.obj *.src *.lib *.hex *.lst
+	$(Q) rm -f *.obj *.src *.lib *.hex *.lst
 endef
 
 # This is the tool to use for dependencies (i.e., none)

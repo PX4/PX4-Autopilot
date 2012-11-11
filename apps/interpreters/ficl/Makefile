@@ -95,13 +95,13 @@ debug:
 	@#echo "CFLAGS: $(CFLAGS)"
 
 .built: debug $(OBJS)
-	$(call ARCHIVE, $@, "$(OBJS)")
+	$(call ARCHIVE, $(BIN), "$(OBJS)")
 	@touch .built
 
 context:
 
 .depend: debug Makefile $(SRCS)
-	@$(MKDEP) $(ROOT_DEPPATH) $(SRC_DEPPATH) $(FICL_DEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@$(MKDEP) $(ROOT_DEPPATH) $(SRC_DEPPATH) $(FICL_DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 	@touch $@
 
 depend: .depend

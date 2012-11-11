@@ -75,7 +75,7 @@ VPATH = chip:common:board
 
 # Libraries
 
-LIBGCC = ${shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name}
+LIBGCC = ${shell "$(CC)" $(ARCHCPUFLAGS) -print-libgcc-file-name}
 
 # Supports dynamic sizing of HEAP.
 #
@@ -97,11 +97,11 @@ $(COBJS): %$(OBJEXT): %.c
 # This is a kludge to work around some conflicting symbols in libsdcc.lib
 
 $(SDCCLIBDIR)/myz80.lib: $(SDCCLIBDIR)/$(SDCCLIB)
-	@cat $(SDCCLIBDIR)/$(SDCCLIB) | \
+	$(Q) cat $(SDCCLIBDIR)/$(SDCCLIB) | \
 		grep -v alloc | grep -v free | grep -v printf | \
 		grep -v _str  | grep -v _mem | grep -v crt0\.o \
 		> myz80.lib
-	@mv -f myz80.lib $(SDCCLIBDIR)/myz80.lib
+	$(Q) mv -f myz80.lib $(SDCCLIBDIR)/myz80.lib
 
 # Create a header file that contains addressing information needed by the code
 
@@ -139,7 +139,7 @@ libarch$(LIBEXT): up_mem.h asm_mem.h $(OBJS)
 # This builds the libboard library in the board/ subdirectory 
 
 board/libboard$(LIBEXT):
-	@$(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
 
 # This target builds the final executable
 
@@ -149,7 +149,7 @@ pass1.hex: up_mem.h asm_mem.h $(SDCCLIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard
 	@echo "-k $(BOARDDIR)" >>pass1.lnk		# Path to board library
 	@echo "-k $(SDCCLIBDIR)" >>pass1.lnk		# Path to SDCC z80 library
 	@echo "-l libboard$(LIBEXT)" >>pass1.lnk	# Name of board library
-	@for LIB in $(LINKLIBS); do \
+	$(Q) for LIB in $(LINKLIBS); do \
 		echo "-l $(TOPDIR)/lib/$$LIB" >> pass1.lnk ;\
 	done
 	@echo "-l myz80.lib" >>pass1.lnk		# Name of SDCC z80 library
@@ -170,11 +170,11 @@ endif
 	@echo "pass1.hex" >>pass1.lnk			# Path to head object
 	@echo "$(HEAD_OBJ)" >>pass1.lnk		# Path to head object
 	@echo "-e" >>pass1.lnk				# End of script
-	@$(LD) -f pass1.lnk
-	@rm -f up_mem.h asm_mem.h
-	@rm -f up_allocateheap$(OBJEXT) $(HEAD_OBJ) libarch$(LIBEXT)
-	@$(MAKE) TOPDIR="$(TOPDIR)" libarch$(LIBEXT)
-	@$(MAKE) TOPDIR="$(TOPDIR)" $(HEAD_OBJ)
+	$(Q) $(LD) -f pass1.lnk
+	$(Q) rm -f up_mem.h asm_mem.h
+	$(Q) rm -f up_allocateheap$(OBJEXT) $(HEAD_OBJ) libarch$(LIBEXT)
+	$(Q) $(MAKE) TOPDIR="$(TOPDIR)" libarch$(LIBEXT)
+	$(Q) $(MAKE) TOPDIR="$(TOPDIR)" $(HEAD_OBJ)
 
 nuttx.hex: up_mem.h asm_mem.h $(SDCCLIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard$(LIBEXT)
 	@echo "LD: nuttx.hex"
@@ -182,7 +182,7 @@ nuttx.hex: up_mem.h asm_mem.h $(SDCCLIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard
 	@echo "-k $(BOARDDIR)" >>nuttx.lnk		# Path to board library
 	@echo "-k $(SDCCLIBDIR)" >>nuttx.lnk		# Path to SDCC z80 library
 	@echo "-l libboard$(LIBEXT)" >>nuttx.lnk	# Name of board library
-	@for LIB in $(LINKLIBS); do \
+	$(Q) for LIB in $(LINKLIBS); do \
 		echo "-l $(TOPDIR)/lib/$$LIB" >> nuttx.lnk ;\
 	done
 	@echo "-l myz80.lib" >>nuttx.lnk		# Name of SDCC z80 library
@@ -203,22 +203,22 @@ endif
 	@echo "nuttx.hex" >>nuttx.lnk			# Path to head object
 	@echo "$(HEAD_OBJ)" >>nuttx.lnk		# Path to head object
 	@echo "-e" >>nuttx.lnk				# End of script
-	@$(LD) -f nuttx.lnk
+	$(Q) $(LD) -f nuttx.lnk
 
 nuttx$(EXEEXT): pass1.hex nuttx.hex
-	@rm -f pass1.*
-	@cp -f nuttx.map $(TOPDIR)/.
+	$(Q) rm -f pass1.*
+	$(Q) cp -f nuttx.map $(TOPDIR)/.
 ifeq ($(EXEEXT),.cmd)
 	sed s/:00000001FF/:00520001AD/ nuttx.hex | \
 	hex2cmd > $(TOPDIR)/nuttx.cmd
 else
-	@packihx nuttx.hex > $(TOPDIR)/nuttx$(EXEEXT)
+	$(Q) packihx nuttx.hex > $(TOPDIR)/nuttx$(EXEEXT)
 endif
 
 # This is part of the top-level export target
 
 export_head: board/libboard$(LIBEXT) $(HEAD_OBJ)
-	@if [ -d "$(EXPORT_DIR)/startup" ]; then \
+	$(Q) if [ -d "$(EXPORT_DIR)/startup" ]; then \
 		cp -f $(HEAD_OBJ) "$(EXPORT_DIR)/startup"; \
 	 else \
 		echo "$(EXPORT_DIR)/startup does not exist"; \
@@ -228,25 +228,25 @@ export_head: board/libboard$(LIBEXT) $(HEAD_OBJ)
 # Build dependencies
 
 .depend: Makefile up_mem.h asm_mem.h chip/Make.defs $(DEPSRCS)
-	@if [ -e board/Makefile ]; then \
+	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" depend ; \
 	fi
-	@$(MKDEP) --dep-path chip --dep-path common $(CC) -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@if [ -e board/Makefile ]; then \
+	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" clean ; \
 	fi
-	@rm -f libarch$(LIBEXT) up_mem.h asm_mem.h pass1.* nuttx.* *~ .*.swp
+	$(Q) rm -f libarch$(LIBEXT) up_mem.h asm_mem.h pass1.* nuttx.* *~ .*.swp
 	$(call CLEAN)
 
 distclean: clean
-	@if [ -e board/Makefile ]; then \
+	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" distclean ; \
 	fi
-	@rm -f Make.dep .depend
+	$(Q) rm -f Make.dep .depend
 
 -include Make.dep

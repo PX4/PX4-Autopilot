@@ -55,7 +55,7 @@ LINKOBJS    = $(LINKSRCS:.c=$(OBJEXT))
 LDFLAGS		+= -T$(RGMPLKSCPT)
 LDLIBS		= $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
 LDPATHS		+= -L"$(TOPDIR)/lib -L$(RGMPLIBDIR)
-LDLIBS		+= -lrgmp $(shell $(CC) -print-libgcc-file-name)
+LDLIBS		+= -lrgmp $(shell "$(CC)" -print-libgcc-file-name)
 
 all: libarch$(LIBEXT)
 
@@ -90,7 +90,7 @@ export_head:
 # Dependencies
 
 .depend: Makefile $(SRCS) $(LINKSRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) $(LINKSRCS) >Make.dep
+	@$(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) $(LINKSRCS) >Make.dep
 	@touch $@
 
 depend: .depend

@@ -36,7 +36,7 @@
 -include $(TOPDIR)/Make.defs
 -include chip/Make.defs
 
-COMPILER = ${shell basename $(CC)}
+COMPILER = ${shell basename "$(CC)"}
 ARCHSRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(COMPILER),zneocc.exe)
 WARCHSRCDIR := ${shell cygpath -w $(ARCHSRCDIR)}
@@ -64,8 +64,6 @@ COBJS = $(CSRCS:.c=$(OBJEXT))
 
 DEPSRCS = $(SSRCS) $(CSRCS)
 OBJS = $(AOBJS) $(COBJS)
-
-BOARDDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
 
 VPATH = chip:common
 
@@ -118,7 +116,7 @@ nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT) nuttx.linkcmd
 	@if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" depend ; \
 	fi
-	@$(MKDEP) --dep-path chip --dep-path common $(CC) -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
+	@$(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
 	@touch $@
 
 # This is part of the top-level export target

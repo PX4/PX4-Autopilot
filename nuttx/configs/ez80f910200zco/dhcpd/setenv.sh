@@ -1,7 +1,7 @@
 #!/bin/bash
 # configs/ez80f910200zco/dhcpd/setenv.sh
 #
-#   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,11 +42,11 @@ fi
 # The ZDS-II toolchain lies outside of the Cygwin "sandbox" and
 # attempts to set the PATH variable do not have the desired effect.
 # Instead, alias are provided for all of the ZDS-II command line tools.
-# Version 4.10.1 installed in the default location is assumed here.
+# Version 5.1.1 installed in the default location is assumed here.
 #
-ZDSBINDIR="C:/Program\ Files/ZiLOG/ZDSII_eZ80Acclaim!_4.11.1/bin"
-alias ez8asm="${ZDSBINDIR}/ez8asm.exe"
-alias ez8cc="${ZDSBINDIR}/ez8cc.exe"
-alias ez8lib="${ZDSBINDIR}/ez8lib.exe"
-alias ez8link="${ZDSBINDIR}/ez8link.exe"
+ZDSBINDIR="C:/Program\ Files\ \(x86\)/ZiLOG/ZDSII_eZ80Acclaim!_5.1.1/bin"
+alias ez80asm="${ZDSBINDIR}/ez80asm.exe"
+alias ez80cc="${ZDSBINDIR}/ez80cc.exe"
+alias ez80lib="${ZDSBINDIR}/ez80lib.exe"
+alias ez80link="${ZDSBINDIR}/ez80link.exe"
 

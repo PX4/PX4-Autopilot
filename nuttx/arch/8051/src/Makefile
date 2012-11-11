@@ -171,7 +171,7 @@ board/libboard$(LIBEXT):
 
 pass1.hex: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS) board/libboard$(LIBEXT)
 	@echo "LD:  $@"
-	@$(CC) $(LDFLAGS) $(LDPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
+	@"$(CC)" $(LDFLAGS) $(LDPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
 		$(LDLIBS) -llibboard$(LIBEXT) $(SDCCLIBS) -o $@
 	@rm -f up_mem.h
 	@rm -f up_allocateheap$(OBJEXT) libarch$(LIBEXT)
@@ -179,7 +179,7 @@ pass1.hex: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS) board/libboard$(LIBE
 
 nuttx.hex: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS)
 	@echo "LD:  $@"
-	@$(CC) $(LDFLAGS) $(LDPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
+	@"$(CC)" $(LDFLAGS) $(LDPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
 		$(LDLIBS) -llibboard$(LIBEXT) $(SDCCLIBS) -o $@
 
 nuttx$(EXEEXT): pass1.hex nuttx.hex
@@ -201,7 +201,7 @@ export_head: board/libboard$(LIBEXT) p_head$(OBJEXT)
 # a PHONY target that just sets upt the up_irqtest build correctly
 
 up_irqtest.hex: $(TESTOBJS)
-	$(CC) $(LDFLAGS) -L. $(SDCCPATH) $(TESTLINKOBJS) $(TESTOBJS) $(TESTEXTRAOBJS) $(SDCCLIBS) -o $@
+	"$(CC)" $(LDFLAGS) -L. $(SDCCPATH) $(TESTLINKOBJS) $(TESTOBJS) $(TESTEXTRAOBJS) $(SDCCLIBS) -o $@
 
 irqtest:
 	@$(MAKE) TOPDIR=../../.. up_irqtest.hex
@@ -212,7 +212,7 @@ irqtest:
 	@if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR=$(TOPDIR) depend ; \
 	fi	
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@$(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 	@touch $@
 
 depend: .depend

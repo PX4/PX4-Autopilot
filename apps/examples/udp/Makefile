@@ -106,7 +106,7 @@ $(HOST_BIN): $(HOST_OBJS)
 context:
 
 .depend: Makefile $(TARG_SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(TARG_SRCS) >Make.dep
+	@$(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(TARG_SRCS) >Make.dep
 	@touch $@
 
 depend: .depend

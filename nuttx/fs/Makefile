@@ -124,7 +124,7 @@ $(BIN):	$(OBJS)
 
 .depend: Makefile $(SRCS)
 	$(Q) $(MKDEP) --dep-path . $(MMAPDEPPATH) $(FATDEPPATH) $(ROMFSDEPPATH) $(NXFFSDEPPATH) $(NFSDEPPATH) \
-		$(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+		"$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 	$(Q) touch $@
 
 depend: .depend

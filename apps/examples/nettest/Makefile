@@ -112,7 +112,7 @@ $(HOST_BIN): $(HOST_OBJS)
 	@$(HOSTCC) $(HOSTLDFLAGS) $(HOST_OBJS) -o $@
 
 .built: $(TARG_OBJS)
-	$(call ARCHIVE, $@, "$(TARG_OBJS)")
+	$(call ARCHIVE, $(BIN), "$(TARG_OBJS)")
 	@touch .built
 
 .context:
@@ -124,7 +124,7 @@ endif
 context: .context
 
 .depend: Makefile $(TARG_SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(TARG_SRCS) >Make.dep
+	@$(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(TARG_SRCS) >Make.dep
 	@touch $@
 
 depend: .depend

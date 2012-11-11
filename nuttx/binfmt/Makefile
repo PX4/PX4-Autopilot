@@ -81,7 +81,7 @@ $(BIN): $(BINFMT_OBJS)
 	$(call ARCHIVE, $@, "$(BINFMT_OBJS)")
 
 .depend: Makefile $(BINFMT_SRCS)
-	$(Q) $(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(BINFMT_SRCS) >Make.dep
+	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(BINFMT_SRCS) >Make.dep
 	$(Q) touch $@
 
 depend: .depend

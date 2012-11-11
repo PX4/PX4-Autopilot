@@ -88,7 +88,7 @@ endif
 
 .built: $(OBJS)
 ifeq ($(CONFIG_MODBUS),y)
-	$(call ARCHIVE, $@, "$(OBJS)")
+	$(call ARCHIVE, $(BIN), "$(OBJS)")
 	@touch .built
 endif
 
@@ -96,8 +96,7 @@ context:
 
 .depend: Makefile $(SRCS)
 ifeq ($(CONFIG_MODBUS),y)
-	@$(MKDEP) $(DEPPATH) \
-	  $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@$(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 	@touch $@
 endif
 

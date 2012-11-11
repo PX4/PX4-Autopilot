@@ -75,7 +75,7 @@ $(COBJS): %$(OBJEXT): %.c
 # generating the source files.
 
 really_build: $(OBJS)
-	$(call ARCHIVE, $@, "$(OBJS)")
+	$(call ARCHIVE, $(BIN), "$(OBJS)")
 	@touch .built
 
 .built:

@@ -42,7 +42,7 @@
 
 ############################################################################
 # Compiler-Dependent Make
-COMPILER	= ${shell basename $(CC)}
+COMPILER	= ${shell basename "$(CC)"}
 ifeq ($(COMPILER),sdcc)
 include Makefile.sdcc
 else

@@ -56,7 +56,7 @@ endif
 # This define is passed as EXTRADEFINES for kernel-mode builds.  It is also passed
 # during PASS1 (but not PASS2) context and depend targets.
 
-KDEFINE = ${shell $(TOPDIR)/tools/define.sh $(CC) __KERNEL__}
+KDEFINE = ${shell $(TOPDIR)/tools/define.sh "$(CC)" __KERNEL__}
 
 # Process architecture and board-specific directories
 

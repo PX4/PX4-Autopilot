@@ -67,7 +67,7 @@ libboard$(LIBEXT): $(OBJS)
 	$(call ARCHIVE, $@, "$(OBJS)")
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@$(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 	@touch $@
 
 depend: .depend

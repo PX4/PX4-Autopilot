@@ -55,9 +55,9 @@ SRCS		= $(ASRCS) $(CSRCS)
 OBJS		= $(AOBJS) $(COBJS)
 
 ifeq ($(WINTOOL),y)
-  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
+  BIN		= ..\\libapps$(LIBEXT)
 else
-  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
+  BIN		= ../libapps$(LIBEXT)
 endif
 
 ROOTDEPPATH	= --dep-path .
@@ -75,30 +75,30 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 .built: $(OBJS)
-	$(call ARCHIVE, $@, "$(OBJS)")
-	@touch .built
+	$(call ARCHIVE, $(BIN), "$(OBJS)")
+	$(Q) touch .built
 
 .context:
 	@echo "/* List of application requirements, generated during make context. */" > namedapp_list.h
 	@echo "/* List of application entry points, generated during make context. */" > namedapp_proto.h
-	@touch $@
+	$(Q) touch $@
 
 context: .context
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(Q) rm -f *.o *~ .*.swp .built
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f .context Make.dep .depend
-	@rm -f namedapp_list.h
-	@rm -f namedapp_proto.h
+	$(Q) rm -f .context Make.dep .depend
+	$(Q) rm -f namedapp_list.h
+	$(Q) rm -f namedapp_proto.h
 
 -include Make.dep
 
