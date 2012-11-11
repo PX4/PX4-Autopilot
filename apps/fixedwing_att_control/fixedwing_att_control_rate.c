@@ -172,7 +172,7 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 
 	actuators->control[1] = pid_calculate(&pitch_rate_controller, rate_sp->pitch, rates[1], 0, deltaT); //TODO: (-) sign comes from the elevator (positive --> deflection downwards), this has to be moved to the mixer...
-	actuators->control[2] = 0;//pid_calculate(&yaw_rate_controller, rate_sp->yaw, rates[2], 0, deltaT); 	//XXX TODO disabled for now
+	actuators->control[2] = pid_calculate(&yaw_rate_controller, rate_sp->yaw, rates[2], 0, deltaT); 	//XXX TODO disabled for now
 
 	counter++;
 

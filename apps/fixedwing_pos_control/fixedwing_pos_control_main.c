@@ -248,7 +248,6 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 			/* Control */
 
-
 			/* Simple Horizontal Control */
 			if(global_sp_updated_set_once)
 			{

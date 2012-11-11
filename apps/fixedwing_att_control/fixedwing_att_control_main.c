@@ -58,6 +58,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/debug_key_value.h>
 #include <systemlib/param/param.h>
 #include <systemlib/pid/pid.h>
@@ -135,28 +136,33 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 		memset(&att_sp, 0, sizeof(att_sp));
 		struct vehicle_rates_setpoint_s rates_sp;
 		memset(&rates_sp, 0, sizeof(rates_sp));
-//		static struct debug_key_value_s debug_output;
-//		memset(&debug_output, 0, sizeof(debug_output));
+		struct vehicle_global_position_s global_pos;
+		memset(&global_pos, 0, sizeof(global_pos));
+
 
 		/* output structs */
 		struct actuator_controls_s actuators;
 		memset(&actuators, 0, sizeof(actuators));
+		static struct debug_key_value_s debug_output;
+		memset(&debug_output, 0, sizeof(debug_output));
 
 
 		/* publish actuator controls */
 		for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
 			actuators.control[i] = 0.0f;
 		orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
-//		orb_advert_t debug_pub = orb_advertise(ORB_ID(debug_key_value), &debug_output);
-//		debug_output.key[0] = '1';
+		orb_advert_t debug_pub = orb_advertise(ORB_ID(debug_key_value), &debug_output);
+		debug_output.key[0] = '1';
 
 
 		/* subscribe  */
 		int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 		int att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
+		int global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 
 		/* Setup of loop */
 		float gyro[3] = {0.0f, 0.0f, 0.0f};
+		float speed_body[3] = {0.0f, 0.0f, 0.0f};
 		struct pollfd fds = { .fd = att_sub, .events = POLLIN };
 
 		while(!thread_should_exit)
@@ -164,10 +170,35 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			/* wait for a sensor update, check for exit condition every 500 ms */
 			poll(&fds, 1, 500);
 
+			/* Check if there is a new position measurement or  attitude setpoint */
+			bool pos_updated;
+			orb_check(global_pos_sub, &pos_updated);
+			bool att_sp_updated;
+			orb_check(att_sp_sub, &att_sp_updated);
+
 			/*Get Local Copies */
 			/* get a local copy of attitude */
 			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
-			orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &att_sp);
+			if(att_sp_updated)
+				orb_copy(ORB_ID(vehicle_attitude_setpoint), att_sp_sub, &att_sp);
+			if(pos_updated)
+			{
+				orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
+				if(att.R_valid)
+				{
+					speed_body[0] = att.R[0][0] * global_pos.vx + att.R[0][1] * global_pos.vy + att.R[0][2] * global_pos.vz;
+					speed_body[1] = att.R[1][0] * global_pos.vx + att.R[1][1] * global_pos.vy + att.R[1][2] * global_pos.vz;
+					speed_body[2] = att.R[2][0] * global_pos.vx + att.R[2][1] * global_pos.vy + att.R[2][2] * global_pos.vz;
+				}
+				else
+				{
+					speed_body[0] = 0;
+					speed_body[1] = 0;
+					speed_body[2] = 0;
+
+					printf("FW ATT CONTROL: Did not get a valid R\n");
+				}
+			}
 
 			gyro[0] = att.rollspeed;
 			gyro[1] = att.pitchspeed;
@@ -178,6 +209,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			/* Attitude Control */
 			fixedwing_att_control_attitude(&att_sp,
 					&att,
+					&speed_body,
 					&rates_sp);
 
 			/* Attitude Rate Control */
@@ -187,8 +219,8 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			actuators.control[3] = 0.7f;
 
 			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
-//			debug_output.value = rates_sp.pitch;
-//			orb_publish(ORB_ID(debug_key_value), debug_pub, &debug_output);
+			debug_output.value = rates_sp.yaw;
+			orb_publish(ORB_ID(debug_key_value), debug_pub, &debug_output);
 		}
 
 		printf("[fixedwing_att_control] exiting, stopping all motors.\n");
