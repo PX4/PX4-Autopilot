@@ -35,7 +35,7 @@
 
 TOPDIR := ${shell pwd | sed -e 's/ /\\ /g'}
 -include ${TOPDIR}/.config
--include ${TOPDIR}/tools/Config.mk
+include ${TOPDIR}/tools/Config.mk
 -include ${TOPDIR}/Make.defs
 
 # Control build verbosity
@@ -83,7 +83,7 @@ APPDIR := ${shell if [ -r $(CONFIG_APPS_DIR)/Makefile ]; then echo "$(CONFIG_APP
 # NUTTX_ADDONS is the list of directories built into the NuttX kernel.
 # USER_ADDONS is the list of directories that will be built into the user application
 
-NUTTX_ADDONS := $(NX_DIR)
+NUTTX_ADDONS :=
 USER_ADDONS :=
 
 ifeq ($(CONFIG_NUTTX_KERNEL),y)
@@ -110,6 +110,7 @@ NONFSDIRS = sched $(ARCH_SRC) $(NUTTX_ADDONS)
 FSDIRS = fs drivers binfmt
 CONTEXTDIRS = $(APPDIR)
 USERDIRS =
+OTHERDIRS = lib
 
 ifeq ($(CONFIG_NUTTX_KERNEL),y)
 
@@ -189,7 +190,7 @@ endif
 # USERLIBS is the list of libraries used to build the final user-space
 #   application
 
-NUTTXLIBS = sched/libsched$(LIBEXT) $(ARCH_SRC)/libarch$(LIBEXT)
+NUTTXLIBS = lib/libsched$(LIBEXT) lib/libarch$(LIBEXT)
 USERLIBS =
 
 # Add libraries for syscall support.  The C library will be needed by
@@ -197,10 +198,10 @@ USERLIBS =
 # is placed in user space (only).
 
 ifeq ($(CONFIG_NUTTX_KERNEL),y)
-NUTTXLIBS += syscall/libstubs$(LIBEXT) libc/libkc$(LIBEXT)
-USERLIBS += syscall/libproxies$(LIBEXT) libc/libuc$(LIBEXT) mm/libmm$(LIBEXT)
+NUTTXLIBS += lib/libstubs$(LIBEXT) lib/libkc$(LIBEXT)
+USERLIBS += lib/libproxies$(LIBEXT) lib/libuc$(LIBEXT) lib/libmm$(LIBEXT)
 else
-NUTTXLIBS += mm/libmm$(LIBEXT) libc/libc$(LIBEXT)
+NUTTXLIBS += lib/libmm$(LIBEXT) lib/libc$(LIBEXT)
 endif
 
 # Add libraries for C++ support.  CXX, CXXFLAGS, and COMPILEXX must
@@ -208,9 +209,9 @@ endif
 
 ifeq ($(CONFIG_HAVE_CXX),y)
 ifeq ($(CONFIG_NUTTX_KERNEL),y)
-USERLIBS += libxx/libcxx$(LIBEXT)
+USERLIBS += lib/libcxx$(LIBEXT)
 else
-NUTTXLIBS += libxx/libcxx$(LIBEXT)
+NUTTXLIBS += lib/libcxx$(LIBEXT)
 endif
 endif
 
@@ -218,40 +219,40 @@ endif
 
 ifneq ($(APPDIR),)
 ifeq ($(CONFIG_NUTTX_KERNEL),y)
-USERLIBS += $(APPDIR)/libapps$(LIBEXT)
+USERLIBS += lib/libapps$(LIBEXT)
 else
-NUTTXLIBS += $(APPDIR)/libapps$(LIBEXT)
+NUTTXLIBS += lib/libapps$(LIBEXT)
 endif
 endif
 
 # Add libraries for network support
 
 ifeq ($(CONFIG_NET),y)
-NUTTXLIBS += net/libnet$(LIBEXT)
+NUTTXLIBS += lib/libnet$(LIBEXT)
 endif
 
 # Add libraries for file system support
 
 ifeq ($(CONFIG_NFILE_DESCRIPTORS),0)
 ifneq ($(CONFIG_NSOCKET_DESCRIPTORS),0)
-NUTTXLIBS += fs/libfs$(LIBEXT)
+NUTTXLIBS += lib/libfs$(LIBEXT)
 endif
 ifeq ($(CONFIG_NET),y)
-NUTTXLIBS += drivers/libdrivers$(LIBEXT)
+NUTTXLIBS += lib/libdrivers$(LIBEXT)
 endif
 else
-NUTTXLIBS += fs/libfs$(LIBEXT) drivers/libdrivers$(LIBEXT) binfmt/libbinfmt$(LIBEXT)
+NUTTXLIBS += lib/libfs$(LIBEXT) lib/libdrivers$(LIBEXT) lib/libbinfmt$(LIBEXT)
 endif
 
 # Add libraries for the NX graphics sub-system
 
-ifneq ($(NX_DIR),)
-NUTTXLIBS += $(NX_DIR)/libnx$(LIBEXT)
+ifeq ($(CONFIG_NX),y)
+NUTTXLIBS += lib/libgraphics$(LIBEXT)
 endif
 
-ifeq ($(CONFIG_NX),y)
-NUTTXLIBS += graphics/libgraphics$(LIBEXT)
-endif
+# LINKLIBS derives from NUTTXLIBS and is simply the same list with the subdirectory removed
+
+LINKLIBS = $(patsubst lib/,,$(NUTTXLIBS))
 
 # This is the name of the final target (relative to the top level directorty)
 
@@ -448,51 +449,96 @@ check_context:
 libc/libkc$(LIBEXT): context
 	$(Q) $(MAKE) -C libc TOPDIR="$(TOPDIR)" libkc$(LIBEXT) EXTRADEFINES=$(KDEFINE)
 
+lib/libkc$(LIBEXT): libc/libkc$(LIBEXT)
+	$(Q) install libc/libkc$(LIBEXT) lib/libkc$(LIBEXT)
+
 sched/libsched$(LIBEXT): context
 	$(Q) $(MAKE) -C sched TOPDIR="$(TOPDIR)" libsched$(LIBEXT) EXTRADEFINES=$(KDEFINE)
+
+lib/libsched$(LIBEXT): sched/libsched$(LIBEXT)
+	$(Q) install sched/libsched$(LIBEXT) lib/libsched$(LIBEXT)
 
 $(ARCH_SRC)/libarch$(LIBEXT): context
 	$(Q) $(MAKE) -C $(ARCH_SRC) TOPDIR="$(TOPDIR)" libarch$(LIBEXT) EXTRADEFINES=$(KDEFINE)
 
+lib/libarch$(LIBEXT): $(ARCH_SRC)/libarch$(LIBEXT)
+	$(Q) install $(ARCH_SRC)/libarch$(LIBEXT) lib/libarch$(LIBEXT)
+
 net/libnet$(LIBEXT): context
 	$(Q) $(MAKE) -C net TOPDIR="$(TOPDIR)" libnet$(LIBEXT) EXTRADEFINES=$(KDEFINE)
+
+lib/libnet$(LIBEXT): net/libnet$(LIBEXT)
+	$(Q) install net/libnet$(LIBEXT) lib/libnet$(LIBEXT)
 
 fs/libfs$(LIBEXT): context
 	$(Q) $(MAKE) -C fs TOPDIR="$(TOPDIR)" libfs$(LIBEXT) EXTRADEFINES=$(KDEFINE)
 
+lib/libfs$(LIBEXT): fs/libfs$(LIBEXT)
+	$(Q) install fs/libfs$(LIBEXT) lib/libfs$(LIBEXT)
+
 drivers/libdrivers$(LIBEXT): context
 	$(Q) $(MAKE) -C drivers TOPDIR="$(TOPDIR)" libdrivers$(LIBEXT) EXTRADEFINES=$(KDEFINE)
+
+lib/libdrivers$(LIBEXT): drivers/libdrivers$(LIBEXT)
+	$(Q) install drivers/libdrivers$(LIBEXT) lib/libdrivers$(LIBEXT)
 
 binfmt/libbinfmt$(LIBEXT): context
 	$(Q) $(MAKE) -C binfmt TOPDIR="$(TOPDIR)" libbinfmt$(LIBEXT) EXTRADEFINES=$(KDEFINE)
 
+lib/libbinfmt$(LIBEXT): binfmt/libbinfmt$(LIBEXT)
+	$(Q) install binfmt/libbinfmt$(LIBEXT) lib/libbinfmt$(LIBEXT)
+
 graphics/libgraphics$(LIBEXT): context
 	$(Q) $(MAKE) -C graphics TOPDIR="$(TOPDIR)" libgraphics$(LIBEXT) EXTRADEFINES=$(KDEFINE)
 
+lib/libgraphics$(LIBEXT): graphics/libgraphics$(LIBEXT)
+	$(Q) install graphics/libgraphics$(LIBEXT) lib/libgraphics$(LIBEXT)
+
 syscall/libstubs$(LIBEXT): context
 	$(Q) $(MAKE) -C syscall TOPDIR="$(TOPDIR)" libstubs$(LIBEXT) EXTRADEFINES=$(KDEFINE)
+
+lib/libstubs$(LIBEXT): syscall/libstubs$(LIBEXT)
+	$(Q) install syscall/libstubs$(LIBEXT) lib/libstubs$(LIBEXT)
 
 # Possible user-mode builds
 
 libc/libuc$(LIBEXT): context
 	$(Q) $(MAKE) -C libc TOPDIR="$(TOPDIR)" libuc$(LIBEXT)
 
+lib/libuc$(LIBEXT): libc/libuc$(LIBEXT)
+	$(Q) install libc/libuc$(LIBEXT) lib/libuc$(LIBEXT)
+
 libxx/libcxx$(LIBEXT): context
 	$(Q) $(MAKE) -C libxx TOPDIR="$(TOPDIR)" libcxx$(LIBEXT)
+
+lib/libcxx$(LIBEXT): libxx/libcxx$(LIBEXT)
+	$(Q) install libxx/libcxx$(LIBEXT) lib/libcxx$(LIBEXT)
 
 mm/libmm$(LIBEXT): context
 	$(Q) $(MAKE) -C mm TOPDIR="$(TOPDIR)" libmm$(LIBEXT) EXTRADEFINES=$(KDEFINE)
 
+lib/libmm$(LIBEXT): mm/libmm$(LIBEXT)
+	$(Q) install mm/libmm$(LIBEXT) lib/libmm$(LIBEXT)
+
 $(APPDIR)/libapps$(LIBEXT): context
 	$(Q) $(MAKE) -C $(APPDIR) TOPDIR="$(TOPDIR)" libapps$(LIBEXT)
 
+lib/libapps$(LIBEXT): $(APPDIR)/libapps$(LIBEXT)
+	$(Q) install $(APPDIR)/libapps$(LIBEXT) lib/libapps$(LIBEXT)
+
 syscall/libproxies$(LIBEXT): context
 	$(Q) $(MAKE) -C syscall TOPDIR="$(TOPDIR)" libproxies$(LIBEXT)
+
+lib/libproxies$(LIBEXT): syscall/libproxies$(LIBEXT)
+	$(Q) install syscall/libproxies$(LIBEXT) lib/libproxies$(LIBEXT)
 
 # Possible non-kernel builds
 
 libc/libc$(LIBEXT): context
 	$(Q) $(MAKE) -C libc TOPDIR="$(TOPDIR)" libc$(LIBEXT)
+
+lib/libc$(LIBEXT): libc/libc$(LIBEXT)
+	$(Q) install libc/libc$(LIBEXT) lib/libc$(LIBEXT)
 
 # pass1 and pass2
 #

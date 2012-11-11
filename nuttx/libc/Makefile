@@ -78,7 +78,7 @@ $(AOBJS): %$(OBJEXT): %.S
 $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
-$(BIN):	$(OBJS)
+$(BIN): $(OBJS)
 	@( for obj in $(OBJS) ; do \
 		$(call ARCHIVE, $@, $${obj}); \
 	done ; )
