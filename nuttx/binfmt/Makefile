@@ -78,9 +78,7 @@ $(BINFMT_COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 $(BIN): $(BINFMT_OBJS)
-	@( for obj in $(BINFMT_OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, "$(BINFMT_OBJS)")
 
 .depend: Makefile $(BINFMT_SRCS)
 	@$(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(BINFMT_SRCS) >Make.dep

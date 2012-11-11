@@ -134,9 +134,7 @@ endif
 # Combine all objects in this directory into a library
 
 libarch$(LIBEXT): up_mem.h asm_mem.h $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, "$(OBJS)")
 
 # This builds the libboard library in the board/ subdirectory 
 

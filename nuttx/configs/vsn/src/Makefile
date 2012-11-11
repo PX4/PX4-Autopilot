@@ -1,7 +1,7 @@
 ############################################################################
 # configs/vsn/src/Makefile
 #
-#   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2009-2010, 2012 Gregory Nutt. All rights reserved.
 #   Copyright (c) 2011 Uros Platise. All rights reserved.
 #
 #   Authors: Gregory Nutt <gnutt@nuttx.org>
@@ -81,9 +81,7 @@ $(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 libboard$(LIBEXT): $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, "$(OBJS)")
 
 # Register application
 

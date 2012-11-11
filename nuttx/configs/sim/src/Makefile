@@ -1,7 +1,7 @@
 ############################################################################
 # configs/sim/src/Makefile
 #
-#   Copyright (C) 2007, 2008, 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007, 2008, 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -62,9 +62,7 @@ $(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
 libboard$(LIBEXT): $(OBJS)
 	@$(AR) $@ # Create an empty archive
 ifneq ($(OBJS),)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, "$(OBJS)")
 endif
 
 .depend: Makefile $(SRCS)
