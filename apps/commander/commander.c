@@ -1510,11 +1510,9 @@ int commander_thread_main(int argc, char *argv[])
 				 * to each position of this switch (ie: simple mode, come home, etc.) 
 				 */
 				if (sp_man.custom_mode_switch > STICK_ON_OFF_LIMIT) {
-					//update_state_machine_mode_manual(stat_pub, &current_status, mavlink_fd);
-					//printf("CUSTOM MODE: OFF\n");
+					current_status.flag_control_simple_mode_enabled = false;
 				} else if (sp_man.custom_mode_switch < -STICK_ON_OFF_LIMIT) {
-					//update_state_machine_mode_auto(stat_pub, &current_status, mavlink_fd);
-					//printf("CUSTOM MODE: SIMPLE\n");
+					current_status.flag_control_simple_mode_enabled = true;
 				}
 
 				/* handle the case where RC signal was regained */

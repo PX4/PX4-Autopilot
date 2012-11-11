@@ -226,10 +226,10 @@ mc_thread_main(int argc, char *argv[])
 				} else if (manual.throttle <= 0.3f) {
 					att_sp.yaw_body = att.yaw;
 				}
-
+				
 				float roll = manual.roll;
 				float pitch = manual.pitch;
-				if (true) { //) || manual.custom_mode == MANUAL_CONTROL_CUSTOM_MODE_MULTIROTOR_SIMPLE) {
+				if (state.flag_control_simple_mode_enabled) {
 					if (state.flag_system_armed) {
 						if (!heading_set) {
 							initial_heading = att.yaw;
@@ -243,11 +243,10 @@ mc_thread_main(int argc, char *argv[])
 
 						/* rotate the roll/pitch inputs */
 						roll  = manual.roll  * cos_theta - manual.pitch * sin_theta;
-						pitch = manual.pitch * cos_theta + manual.roll  * sin_theta;
+						pitch = manual.roll  * sin_theta + manual.pitch * cos_theta;
 
-						if (++debug_log_counter == 50) {
-							fprintf(stderr, "att.yaw: %2.3f init_head: %2.3f delta: %2.3f roll: %2.3f newroll: %2.3f pitch: %2.3f newpitch: %2.3f\n", att.yaw, initial_heading, theta, manual.roll, roll, manual.pitch, pitch);
-							//fprintf(stderr, "roll: %2.3f pitch: %2.3f newroll: %2.3f newpitch: %2.3f\n", manual.roll, manual.pitch, roll, pitch);
+						if (++debug_log_counter % 50 = 0) {
+							printf("att.yaw: %2.3f init_head: %2.3f delta: %2.3f roll: %2.3f newroll: %2.3f pitch: %2.3f newpitch: %2.3f\n", att.yaw, initial_heading, theta, manual.roll, roll, manual.pitch, pitch);
 							debug_log_counter = 0;
 						}
 					} else {
