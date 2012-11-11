@@ -81,19 +81,19 @@ $(BIN): $(BINFMT_OBJS)
 	$(call ARCHIVE, $@, "$(BINFMT_OBJS)")
 
 .depend: Makefile $(BINFMT_SRCS)
-	@$(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(BINFMT_SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(BINFMT_SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f $(BIN) *~ .*.swp
+	$(Q) rm -f $(BIN) *~ .*.swp
 	$(call CLEAN)
-	@( for dir in $(SUBDIRS); do \
+	$(Q) ( for dir in $(SUBDIRS); do \
 		rm -f $${dir}/*~ $${dir}/.*.swp; \
 	done ; )
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(Q) rm -f Make.dep .depend
 
 -include Make.dep

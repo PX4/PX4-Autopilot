@@ -36,6 +36,7 @@
 ############################################################################
 
 include ${TOPDIR}/.config
+include ${TOPDIR}/tools/Config.mk
 
 RGMPLIBDIR := $(RGMP_INST_DIR)/lib
 RGMPINCDIR := $(RGMP_INST_DIR)/include
@@ -95,35 +96,6 @@ endif
 LDFLAGS         += -nostdlib
 EXTRA_LIBS		= $(shell $(CC) -print-file-name=libsupc++.a) \
                   $(shell $(CC) -print-file-name=libgcc_eh.a)
-
-define PREPROCESS
-	@echo "CPP: $1->$2"
-	@$(CPP) $(CPPFLAGS) $1 -o $2
-endef
-
-define COMPILE
-	@echo "CC: $1"
-	@$(CC) -c $(CFLAGS) $1 -o $2
-endef
-
-define COMPILEXX
-	@echo "CXX: $1"
-	@$(CXX) -c $(CXXFLAGS) $1 -o $2
-endef
-
-define ASSEMBLE
-	@echo "AS: $1"
-	@$(CC) -c $(AFLAGS) $1 -o $2
-endef
-
-define ARCHIVE
-	echo "AR: $2"; \
-	$(AR) $1 $2 || { echo "$(AR) $1 $2 FAILED!" ; exit 1 ; }
-endef
-
-define CLEAN
-	@rm -f *.o *.a
-endef
 
 MKDEP			= $(TOPDIR)/tools/mkdeps.sh
 

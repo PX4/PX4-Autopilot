@@ -3603,4 +3603,8 @@
 	  directory.
 	* arch/*/src/Makefile:  Now uses only the libraries in lib/
 	  Replace bash fragments that test for board/Makefile.
-
+	* Makefile.win:  The beginnings of a Windows-native build.  This is just
+	  the begining and not yet ready for prime time use.
+	* configs/stm32f4discovery/winbuild:  This is a version of the standard
+	  NuttX OS test, but configured to build natively on Windows.  Its only
+	  real purpose is to very the native Windows build logic.

@@ -44,34 +44,34 @@ CFLAGS = -O2 -Wall -I.
 # mkconfig - Convert a .config file into a C config.h file
 
 mkconfig: mkconfig.c cfgparser.c
-	@gcc $(CFLAGS) -o mkconfig mkconfig.c cfgparser.c
+	$(Q) gcc $(CFLAGS) -o mkconfig mkconfig.c cfgparser.c
 
 # cmpconfig - Compare the contents of two configuration files
 
 cmpconfig: cmpconfig.c
-	@gcc $(CFLAGS) -o cmpconfig cmpconfig.c
+	$(Q) gcc $(CFLAGS) -o cmpconfig cmpconfig.c
 
 # mkversion - Convert a .version file into a C version.h file
 
 mkversion: mkconfig.c cfgparser.c
-	@gcc $(CFLAGS) -o mkversion mkversion.c cfgparser.c
+	$(Q) gcc $(CFLAGS) -o mkversion mkversion.c cfgparser.c
 
 # mksyscall - Convert a CSV file into syscall stubs and proxies
 
 mksyscall: mksyscall.c csvparser.c
-	@gcc $(CFLAGS) -o mksyscall mksyscall.c csvparser.c
+	$(Q) gcc $(CFLAGS) -o mksyscall mksyscall.c csvparser.c
 
 # mksymtab - Convert a CSV file into a symbol table
 
 mksymtab: mksymtab.c csvparser.c
-	@gcc $(CFLAGS) -o mksymtab mksymtab.c csvparser.c
+	$(Q) gcc $(CFLAGS) -o mksymtab mksymtab.c csvparser.c
 
 # bdf-converter - Converts a BDF font to the NuttX font format
 
 bdf-converter: bdf-converter.c
-	@gcc $(CFLAGS) -o bdf-converter bdf-converter.c
+	$(Q) gcc $(CFLAGS) -o bdf-converter bdf-converter.c
 
 clean:
-	@rm -f *.o *.a *~ .*.swp
-	@rm -f mkconfig mksyscall mkversion bdf-converter
-	@rm -f mkconfig.exe mksyscall.exe mkversion.exe bdf-converter.exe
+	$(Q) rm -f *.o *.a *~ .*.swp
+	$(Q) rm -f mkconfig mksyscall mkversion bdf-converter
+	$(Q) rm -f mkconfig.exe mksyscall.exe mkversion.exe bdf-converter.exe

@@ -105,16 +105,16 @@ $(BIN):	$(OBJS)
 	$(call ARCHIVE, $@, "$(OBJS)")
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f $(BIN) *~ .*.swp
+	$(Q) rm -f $(BIN) *~ .*.swp
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(Q) rm -f Make.dep .depend
 
 -include Make.dep

@@ -112,9 +112,7 @@ $(APPDIR)/include/pcode/insn: $(APPDIR)/include/pcode insn/include
 	@$(DIRLINK) $(PCODEDIR)/insn/include $(APPDIR)/include/pcode/insn
 
 .built: $(APPDIR)/include/pcode $(APPDIR)/include/pcode/insn $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $(BIN), $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, "$(OBJS)")
 	@touch .built
 
 context: $(APPDIR)/include/pcode $(APPDIR)/include/pcode/insn

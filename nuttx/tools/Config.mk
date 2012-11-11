@@ -62,10 +62,18 @@ define ASSEMBLE
 	$(Q) $(CC) -c $(AFLAGS) $1 -o $2
 endef
 
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 define ARCHIVE
-	echo "AR: $2"; \
-	$(AR) $1 $2 || { echo "$(AR) $1 $2 FAILED!" ; exit 1 ; }
+	echo "AR: $2"
+	$(AR) $1
+	$(AR) $1 $(subst ",,$(2))
 endef
+else
+define ARCHIVE
+	echo "AR: $2"
+	$(AR) $1 $(subst ",,$(2)) || { echo "$(AR) $1 $2 FAILED!" ; exit 1 ; }
+endef
+endif
 
 define CLEAN
 	$(Q) rm -f *.o *.a

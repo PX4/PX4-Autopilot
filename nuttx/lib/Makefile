@@ -40,6 +40,6 @@ all:
 depend:
 
 clean:
-	@rm -f *$(LIBEXT)
+	$(Q) rm -f *$(LIBEXT)
 
 distclean: clean

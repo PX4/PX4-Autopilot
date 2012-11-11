@@ -104,18 +104,18 @@ $(BIN): $(OBJS)
 
 .depend: Makefile $(SRCS)
 ifeq ($(CONFIG_NET),y)
-	@$(MKDEP) --dep-path . --dep-path uip $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) --dep-path . --dep-path uip $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
 endif
-	@touch $@
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f $(BIN) *~ .*.swp
-	@rm -f uip/*~ uip/.*.swp
+	$(Q) rm -f $(BIN) *~ .*.swp
+	$(Q) rm -f uip/*~ uip/.*.swp
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(Q) rm -f Make.dep .depend
 
 -include Make.dep

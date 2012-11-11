@@ -83,23 +83,23 @@ $(BIN): $(OBJS)
 
 ifneq ($(BIN),$(UBIN))
 .userlib:
-	@$(MAKE) $(UBIN) BIN=$(UBIN) TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
-	@touch .userlib
+	$(Q) $(MAKE) $(UBIN) BIN=$(UBIN) TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) touch .userlib
 
 $(UBIN): kclean .userlib
 endif
 
 ifneq ($(BIN),$(KBIN))
 .kernlib:
-	@$(MAKE) $(KBIN) BIN=$(KBIN) TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
-	@touch .kernlib
+	$(Q) $(MAKE) $(KBIN) BIN=$(KBIN) TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) touch .kernlib
 
 $(KBIN): uclean .kernlib
 endif
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
@@ -108,27 +108,27 @@ depend: .depend
 
 uclean:
 ifneq ($(OBJEXT),)
-	@( if [ -f .userlib ]; then rm -f *$(OBJEXT); fi )
+	$(Q) ( if [ -f .userlib ]; then rm -f *$(OBJEXT); fi )
 endif
-	@rm -f .userlib *~ .*.swp
+	$(Q) rm -f .userlib *~ .*.swp
 
 # Clean kernel-mode temporary files (retaining the KBIN binary)
 
 kclean:
 ifneq ($(OBJEXT),)
-	@( if [ -f .kernlib ]; then rm -f *$(OBJEXT); fi )
+	$(Q) ( if [ -f .kernlib ]; then rm -f *$(OBJEXT); fi )
 endif
-	@rm -f .kernlib *~ .*.swp
+	$(Q) rm -f .kernlib *~ .*.swp
 
 # Really clean everything
 
 clean: uclean kclean
-	@rm -f $(BIN) $(UBIN) $(KBIN) *~ .*.swp
+	$(Q) rm -f $(BIN) $(UBIN) $(KBIN) *~ .*.swp
 	$(call CLEAN)
 
 # Deep clean -- removes all traces of the configuration
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(Q) rm -f Make.dep .depend
 
 -include Make.dep

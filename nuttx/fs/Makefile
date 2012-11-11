@@ -123,20 +123,20 @@ $(BIN):	$(OBJS)
 	$(call ARCHIVE, $@, "$(OBJS)")
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) --dep-path . $(MMAPDEPPATH) $(FATDEPPATH) $(ROMFSDEPPATH) $(NXFFSDEPPATH) $(NFSDEPPATH) \
+	$(Q) $(MKDEP) --dep-path . $(MMAPDEPPATH) $(FATDEPPATH) $(ROMFSDEPPATH) $(NXFFSDEPPATH) $(NFSDEPPATH) \
 		$(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f $(BIN) *~ .*.swp
+	$(Q) rm -f $(BIN) *~ .*.swp
 	$(call CLEAN)
-	@( for dir in $(SUBDIRS); do \
+	$(Q) ( for dir in $(SUBDIRS); do \
 		rm -f $${dir}/*~ $${dir}/.*.swp; \
 	done ; )
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(Q) rm -f Make.dep .depend
 
 -include Make.dep

@@ -37,8 +37,8 @@
 
 ASRCS	= 
 CSRCS	= mm_initialize.c mm_sem.c  mm_addfreechunk.c mm_size2ndx.c mm_shrinkchunk.c \
-	  mm_malloc.c mm_zalloc.c mm_calloc.c mm_realloc.c \
-	  mm_memalign.c mm_free.c mm_mallinfo.c
+		mm_malloc.c mm_zalloc.c mm_calloc.c mm_realloc.c \
+		mm_memalign.c mm_free.c mm_mallinfo.c
 
 ifeq ($(CONFIG_GRAN),y)
 CSRCS	+= mm_graninit.c mm_granalloc.c mm_granfree.c mm_grancritical.c
@@ -64,16 +64,16 @@ $(BIN):	$(OBJS)
 	$(call ARCHIVE, $@, "$(OBJS)")
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f $(BIN) *~ .*.swp
+	$(Q) rm -f $(BIN) *~ .*.swp
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(Q) rm -f Make.dep .depend
 
 -include Make.dep

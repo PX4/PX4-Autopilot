@@ -78,32 +78,32 @@ $(BIN2): $(STUB_OBJS)
 	$(call ARCHIVE, $@, "$(STUB_OBJS)")
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) $(PROXYDEPPATH) $(STUBDEPPATH) \
+	$(Q) $(MKDEP) $(ROOTDEPPATH) $(PROXYDEPPATH) $(STUBDEPPATH) \
 	  $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) touch $@
 
 depend: .depend
 
 $(MKSYSCALL):
-	@$(MAKE) -C $(TOPDIR)/tools -f Makefile.host mksyscall
+	$(Q) $(MAKE) -C $(TOPDIR)/tools -f Makefile.host mksyscall
 
 .context: syscall.csv
-	@(cd proxies; $(MKSYSCALL) -p $(CSVFILE);)
-	@(cd stubs; $(MKSYSCALL) -s $(CSVFILE);)
-	@touch $@
+	$(Q) (cd proxies; $(MKSYSCALL) -p $(CSVFILE);)
+	$(Q) (cd stubs; $(MKSYSCALL) -s $(CSVFILE);)
+	$(Q) touch $@
 
 context: $(MKSYSCALL) .context
 
 clean:
-	@rm -f $(BIN1) $(BIN2) *~ .*.swp
+	$(Q) rm -f $(BIN1) $(BIN2) *~ .*.swp
 ifneq ($(OBJEXT),)
-	@rm -f proxies/*$(OBJEXT) stubs/*$(OBJEXT)
+	$(Q) rm -f proxies/*$(OBJEXT) stubs/*$(OBJEXT)
 endif
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend .context
-	@rm -f proxies/*.c stubs/*.c
+	$(Q) rm -f Make.dep .depend .context
+	$(Q) rm -f proxies/*.c stubs/*.c
 
 -include Make.dep
 
