@@ -203,7 +203,7 @@ mc_thread_main(int argc, char *argv[])
 						if (state.offboard_control_signal_lost) {
 							/* set failsafe thrust */
 							param_get(failsafe_throttle_handle, &failsafe_throttle);
-							att_sp.thrust = (failsafe_throttle < 0.6f) : failsafe_throttle ? 0.5f;
+							att_sp.thrust = failsafe_throttle;
 						} else {
 							/* no signal loss, normal throttle */
 							att_sp.thrust = offboard_sp.p4;
@@ -252,28 +252,28 @@ mc_thread_main(int argc, char *argv[])
 
 				// XXX disable this for now until its better checked
 
-				// static bool rc_loss_first_time = true;
-				// /* if the RC signal is lost, try to stay level and go slowly back down to ground */
-				// if(state.rc_signal_lost) {
-				// 	/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
-				// 	param_get(failsafe_throttle_handle, &failsafe_throttle);
-				// 	att_sp.roll_body = 0.0f;
-				// 	att_sp.pitch_body = 0.0f;
+				 static bool rc_loss_first_time = true;
+				 /* if the RC signal is lost, try to stay level and go slowly back down to ground */
+				 if(state.rc_signal_lost) {
+				 	/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
+				 	param_get(failsafe_throttle_handle, &failsafe_throttle);
+				 	att_sp.roll_body = 0.0f;
+				 	att_sp.pitch_body = 0.0f;
 					
-				// 	/* keep current yaw, do not attempt to go to north orientation,
-				// 	 * since if the pilot regains RC control, he will be lost regarding
-				// 	 * the current orientation.
-				//	 */
+				 	/* keep current yaw, do not attempt to go to north orientation,
+				 	 * since if the pilot regains RC control, he will be lost regarding
+				 	 * the current orientation.
+					 */
 					 
-				// 	if (rc_loss_first_time)
-				// 		att_sp.yaw_body = att.yaw;
-				// 	// XXX hard-limit it to prevent ballistic mishaps - this is just supposed to
-				// 	// slow a crash down, not actually keep the system in-air.
-				// 	att_sp.thrust = (failsafe_throttle < 0.5f) : failsafe_throttle ? 0.5f;
-				// 	rc_loss_first_time = false;
-				// } else {
-				// 	rc_loss_first_time = true;
-				// }
+				 	if (rc_loss_first_time)
+				 		att_sp.yaw_body = att.yaw;
+				 	// XXX hard-limit it to prevent ballistic mishaps - this is just supposed to
+				 	// slow a crash down, not actually keep the system in-air.
+				 	att_sp.thrust = failsafe_throttle;
+				 	rc_loss_first_time = false;
+				 } else {
+				 	rc_loss_first_time = true;
+				 }
 
 				att_sp.timestamp = hrt_absolute_time();
 			}

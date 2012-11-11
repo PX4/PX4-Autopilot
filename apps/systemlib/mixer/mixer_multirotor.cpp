@@ -164,7 +164,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	/* use an output factor to prevent too strong control signals at low throttle */
 	float min_thrust = 0.05f;
 	float max_thrust = 1.0f;
-	float startpoint_full_control = 0.20f;
+	float startpoint_full_control = 0.40f;
 	float output_factor;
 
 	/* keep roll, pitch and yaw control to 0 below min thrust */
