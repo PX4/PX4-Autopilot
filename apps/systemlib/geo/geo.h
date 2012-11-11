@@ -48,12 +48,11 @@
 
 #include <stdbool.h>
 
-typedef struct {
-	bool error;			// Flag that the calculation failed
+struct crosstrack_error_s {
 	bool past_end;		// Flag indicating we are past the end of the line/arc segment
 	float distance;		// Distance in meters to closest point on line/arc
 	float bearing;		// Bearing in radians to closest point on line/arc
-} crosstrack_error_s;
+} ;
 
 __EXPORT static void map_projection_init(double lat_0, double lon_0);
 
@@ -67,9 +66,9 @@ __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, doub
 
 //
 
-__EXPORT crosstrack_error_s get_distance_to_line(double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end);
+__EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end);
 
-__EXPORT crosstrack_error_s get_distance_to_arc(double lat_now, double lon_now, double lat_center, double lon_center,
+__EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_center, double lon_center,
 		float radius, float arc_start_bearing, float arc_sweep);
 
 float _wrap180(float bearing);

@@ -169,7 +169,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 		memset(&global_setpoint, 0, sizeof(global_setpoint));
 		struct vehicle_attitude_s att;
 		memset(&att, 0, sizeof(att));
-		crosstrack_error_s xtrack_err;
+		struct crosstrack_error_s xtrack_err;
 		memset(&xtrack_err, 0, sizeof(xtrack_err));
 		
 		/* output structs */
@@ -257,11 +257,11 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 				
 				/* calculate crosstrack error */
 				// Only the case of a straight line track following handled so far
-				xtrack_err = get_distance_to_line((double)global_pos.lat / (double)1e7d, (double)global_pos.lon / (double)1e7d,
+				 int distance_res = get_distance_to_line(&xtrack_err, (double)global_pos.lat / (double)1e7d, (double)global_pos.lon / (double)1e7d,
 						(double)start_pos.lat / (double)1e7d, (double)start_pos.lon / (double)1e7d,
 						(double)global_setpoint.lat / (double)1e7d, (double)global_setpoint.lon / (double)1e7d);
 
-				if(!(xtrack_err.error || xtrack_err.past_end)) {
+				if(!(distance_res != OK || xtrack_err.past_end)) {
 
 					float delta_psi_c = -p.xtrack_p * xtrack_err.distance; //(-) because z axis points downwards
 
@@ -286,7 +286,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 				}
 				else {
 					if (counter % 100 == 0)
-						printf("error: %d, past_end %d\n", xtrack_err.error, xtrack_err.past_end);
+						printf("distance_res: %d, past_end %d\n", distance_res, xtrack_err.past_end);
 				}
 
 			}
