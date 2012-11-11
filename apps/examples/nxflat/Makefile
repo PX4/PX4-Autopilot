@@ -1,7 +1,7 @@
 ############################################################################
 # apps/examples/nxflat/Makefile
 #
-#   Copyright (C) 2008, 2010-2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2008, 2010-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -73,9 +73,7 @@ headers:
 	@$(MAKE) -C tests TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" CROSSDEV=$(CROSSDEV)
 
 .built: $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $(BIN), $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, "$(OBJS)")
 	@touch .built
 
 context:

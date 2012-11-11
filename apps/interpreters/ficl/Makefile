@@ -1,7 +1,7 @@
 ############################################################################
 # apps/interpreters/ficl/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -95,9 +95,7 @@ debug:
 	@#echo "CFLAGS: $(CFLAGS)"
 
 .built: debug $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $(BIN), $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, "$(OBJS)")
 	@touch .built
 
 context:

@@ -1,7 +1,7 @@
 ############################################################################
 # examples/nettest/Makefile
 #
-#   Copyright (C) 2007-2008, 2010-2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007-2008, 2010-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -112,9 +112,7 @@ $(HOST_BIN): $(HOST_OBJS)
 	@$(HOSTCC) $(HOSTLDFLAGS) $(HOST_OBJS) -o $@
 
 .built: $(TARG_OBJS)
-	@( for obj in $(TARG_OBJS) ; do \
-		$(call ARCHIVE, $(TARG_BIN), $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, "$(TARG_OBJS)")
 	@touch .built
 
 .context:

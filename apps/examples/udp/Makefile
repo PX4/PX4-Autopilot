@@ -1,7 +1,7 @@
 ############################################################################
 # apps/examples/udp/Makefile
 #
-#   Copyright (C) 2007-2008, 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007-2008, 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -92,9 +92,7 @@ $(TARG_COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 "$(TARG_BIN)": $(TARG_OBJS) $(HOST_BIN)
-	@( for obj in $(TARG_OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, "$(TARG_OBJS)")
 
 $(HOST_OBJS): %.o: %.c
 	$(HOSTCC) -c $(HOSTCFLAGS) $< -o $@

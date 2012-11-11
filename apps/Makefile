@@ -131,9 +131,6 @@ $(INSTALLED_APPS):
 	@$(MAKE) -C $@ TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)";
 
 $(BIN):	$(INSTALLED_APPS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
 
 .context:
 	@for dir in $(INSTALLED_APPS) ; do \

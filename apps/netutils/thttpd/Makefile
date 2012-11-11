@@ -1,7 +1,7 @@
 #############################################################################
 # apps/netutils/thttpd/Makefile
 #
-#   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -106,11 +106,9 @@ cgi-bin/$(SUBDIR_BIN3): cgi-bin cgi-src/$(SUBDIR_BIN3)
 endif
 
 .built: $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $(BIN), $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, "$(OBJS)")
 	@touch .built
-	
+
 context:
 
 .depend: Makefile $(SRCS)

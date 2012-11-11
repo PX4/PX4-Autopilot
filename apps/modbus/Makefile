@@ -88,9 +88,7 @@ endif
 
 .built: $(OBJS)
 ifeq ($(CONFIG_MODBUS),y)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $(BIN), $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, "$(OBJS)")
 	@touch .built
 endif
 
