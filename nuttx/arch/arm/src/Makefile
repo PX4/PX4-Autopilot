@@ -33,6 +33,7 @@
 #
 ############################################################################
 
+-include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 -include chip/Make.defs
 
@@ -76,17 +77,31 @@ EXTRA_LIBS ?=
 EXTRA_LIBPATHS ?=
 LINKLIBS ?=
 
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  BOARDDIR = $(dir "$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board\Makefile")
+  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)\lib"}"
+ifneq ($(BOARDDIR),)
+  LIBPATHS += -L"${shell cygpath -w $(BOARDDIR)}"
+endif
+
+else
+  BOARDDIR = $(dir "$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board/Makefile")
+
 ifeq ($(WINTOOL),y)
   LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/lib"}"
+ifneq ($(BOARDDIR),)
   LIBPATHS += -L"${shell cygpath -w $(BOARDDIR)}"
+endif
+
 else
   LIBPATHS += -L"(TOPDIR)/lib"
+ifneq ($(BOARDDIR),)
   LIBPATHS += -L"$(BOARDDIR)"
+endif
+endif
 endif
 
 LDLIBS = $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
-
-BOARDDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
 
 LIBGCC = "${shell $(CC) $(ARCHCPUFLAGS) -print-libgcc-file-name}"
 GCC_LIBDIR := ${shell dirname $(LIBGCC)}
@@ -137,9 +152,9 @@ endif
 # Dependencies
 
 .depend: Makefile chip/Make.defs $(SRCS)
-	$(Q) if [ -e board/Makefile ]; then \
-	$(MAKE) -C board TOPDIR="$(TOPDIR)" depend ; \
-	fi
+ifneq ($(BOARDDIR),)
+	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" depend
+endif
 	$(Q) $(MKDEP) --dep-path chip --dep-path common --dep-path $(ARCH_SUBDIR) \
 	 $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
 	$(Q) touch $@
@@ -147,16 +162,16 @@ endif
 depend: .depend
 
 clean:
-	$(Q) if [ -e board/Makefile ]; then \
-	$(MAKE) -C board TOPDIR="$(TOPDIR)" clean ; \
-	fi
+ifneq ($(BOARDDIR),)
+	$(MAKE) -C board TOPDIR="$(TOPDIR)" clean
+endif
 	$(Q) rm -f libarch$(LIBEXT) *~ .*.swp
 	$(call CLEAN)
 
 distclean: clean
-	$(Q) if [ -e board/Makefile ]; then \
-	$(MAKE) -C board TOPDIR="$(TOPDIR)" distclean ; \
-	fi
+ifneq ($(BOARDDIR),)
+	$(MAKE) -C board TOPDIR="$(TOPDIR)" distclean
+endif
 	$(Q) rm -f Make.dep .depend
 
 -include Make.dep

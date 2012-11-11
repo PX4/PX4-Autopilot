@@ -3602,4 +3602,5 @@
 	  now that logic generate multiple library paths, all pointing to the lib/
 	  directory.
 	* arch/*/src/Makefile:  Now uses only the libraries in lib/
+	  Replace bash fragments that test for board/Makefile.
 
