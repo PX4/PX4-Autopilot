@@ -488,23 +488,25 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
 		orb_copy(ORB_ID(vehicle_local_position), subs.local_pos_sub, &buf.local_pos);
 		orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
+		orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
 
 		#pragma pack(push, 1)
 		struct {
-			uint64_t timestamp;
-			float gyro[3];
-			float accel[3];
-			float mag[3];
-			float baro;
-			float baro_alt;
-			float baro_temp;
-			float control[4];
-
-			float actuators[8];
-			float vbat;
-			float adc[3];
-			float local_pos[3];
-			int32_t gps_pos[3];
+			uint64_t timestamp; //[us]
+			float gyro[3]; //[rad/s]
+			float accel[3]; //[m/s^2]
+			float mag[3]; //[gauss]
+			float baro; //pressure [millibar]
+			float baro_alt; //altitude above MSL [meter]
+			float baro_temp; //[degree celcius]
+			float control[4]; //roll, pitch, yaw [-1..1], thrust [0..1]
+			float actuators[8]; //motor 1-8, in motor units (PWM: 1000-2000,AR.Drone: 0-512)
+			float vbat; //battery voltage in [volt]
+			float adc[3]; //remaining auxiliary ADC ports [volt]
+			float local_position[3]; //tangent plane mapping into x,y,z [m]
+			int32_t gps_raw_position[3]; //latitude [degrees] north, longitude [degrees] east, altitude above MSL [millimeter]
+			float attitude[3]; //pitch, roll, yaw [rad]
+			float rotMatrix[9]; //unitvectors
 		} sysvector = {
 			.timestamp = buf.raw.timestamp,
 			.gyro = {buf.raw.gyro_rad_s[0], buf.raw.gyro_rad_s[1], buf.raw.gyro_rad_s[2]},
@@ -518,14 +520,16 @@ int sdlog_thread_main(int argc, char *argv[]) {
 					buf.act_outputs.output[4], buf.act_outputs.output[5], buf.act_outputs.output[6], buf.act_outputs.output[7]},
 			.vbat = buf.raw.battery_voltage_v,
 			.adc = {buf.raw.adc_voltage_v[0], buf.raw.adc_voltage_v[1], buf.raw.adc_voltage_v[2]},
-			.local_pos = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z},
-			.gps_pos = {buf.gps_pos.lat, buf.gps_pos.lon, buf.gps_pos.alt}
+			.local_position = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z},
+			.gps_raw_position = {buf.gps_pos.lat, buf.gps_pos.lon, buf.gps_pos.alt},
+			.attitude = {buf.att.pitch, buf.att.roll, buf.att.yaw},
+			.rotMatrix = {buf.att.R[0][0], buf.att.R[0][1], buf.att.R[0][2], buf.att.R[1][0], buf.att.R[1][1], buf.att.R[1][2], buf.att.R[2][0], buf.att.R[2][1], buf.att.R[2][2]}
 		};
 		#pragma pack(pop)
 
 		sysvector_bytes += write(sysvector_file, (const char*)&sysvector, sizeof(sysvector));
 
-		usleep(10000);
+		usleep(10000);   //10000 corresponds in reality to ca. 76 Hz
 	}
 
 	fsync(sysvector_file);
@@ -601,4 +605,5 @@ int file_copy(const char* file_old, const char* file_new)
 
    return ret;
 }
+
 
