@@ -245,7 +245,7 @@ mc_thread_main(int argc, char *argv[])
 						roll  = manual.roll  * cos_theta - manual.pitch * sin_theta;
 						pitch = manual.roll  * sin_theta + manual.pitch * cos_theta;
 
-						if (++debug_log_counter % 50 = 0) {
+						if (++debug_log_counter % 50 == 0) {
 							printf("att.yaw: %2.3f init_head: %2.3f delta: %2.3f roll: %2.3f newroll: %2.3f pitch: %2.3f newpitch: %2.3f\n", att.yaw, initial_heading, theta, manual.roll, roll, manual.pitch, pitch);
 							debug_log_counter = 0;
 						}
