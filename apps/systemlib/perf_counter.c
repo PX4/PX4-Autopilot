@@ -74,6 +74,20 @@ struct perf_ctr_elapsed {
 };
 
 /**
+ * PC_INTERVAL counter.
+ */
+struct perf_ctr_interval {
+	struct perf_ctr_header	hdr;
+	uint64_t		event_count;
+	uint64_t		time_event;
+	uint64_t		time_first;
+	uint64_t		time_last;
+	uint64_t		time_least;
+	uint64_t		time_most;
+
+};
+
+/**
  * List of all known counters.
  */
 static sq_queue_t	perf_counters;
@@ -91,6 +105,10 @@ perf_alloc(enum perf_counter_type type, const char *name)
 
 	case PC_ELAPSED:
 		ctr = (perf_counter_t)calloc(sizeof(struct perf_ctr_elapsed), 1);
+		break;
+
+	case PC_INTERVAL:
+		ctr = (perf_counter_t)calloc(sizeof(struct perf_ctr_interval), 1);
 		break;
 
 	default:
@@ -126,6 +144,32 @@ perf_count(perf_counter_t handle)
 	case PC_COUNT:
 		((struct perf_ctr_count *)handle)->event_count++;
 		break;
+
+	case PC_INTERVAL: {
+		struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+		hrt_abstime now = hrt_absolute_time();
+
+		switch (pci->event_count) {
+		case 0:
+			pci->time_first = now;
+			break;
+		case 1:
+			pci->time_least = now - pci->time_last;
+			pci->time_most = now - pci->time_last;
+			break;
+		default: {
+			hrt_abstime interval = now - pci->time_last;
+			if (interval < pci->time_least)
+				pci->time_least = interval;
+			if (interval > pci->time_most)
+				pci->time_most = interval;
+			break;
+		}
+		}
+		pci->time_last = now;
+		pci->event_count++;
+		break;
+	}
 
 	default:
 		break;
@@ -187,13 +231,29 @@ perf_print_counter(perf_counter_t handle)
 		       ((struct perf_ctr_count *)handle)->event_count);
 		break;
 
-	case PC_ELAPSED:
+	case PC_ELAPSED: {
+		struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+
 		printf("%s: %llu events, %lluus elapsed, min %lluus max %lluus\n",
 		       handle->name,
-		       ((struct perf_ctr_elapsed *)handle)->event_count,
-		       ((struct perf_ctr_elapsed *)handle)->time_total,
-		       ((struct perf_ctr_elapsed *)handle)->time_least,
-		       ((struct perf_ctr_elapsed *)handle)->time_most);
+		       pce->event_count,
+		       pce->time_total,
+		       pce->time_least,
+		       pce->time_most);
+		break;
+	}
+
+	case PC_INTERVAL: {
+		struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+
+		printf("%s: %llu events, %llu avg, min %lluus max %lluus\n",
+		       handle->name,
+		       pci->event_count,
+		       (pci->time_last - pci->time_first) / pci->event_count,
+		       pci->time_least,
+		       pci->time_most);
+		break;
+	}
 
 	default:
 		break;
