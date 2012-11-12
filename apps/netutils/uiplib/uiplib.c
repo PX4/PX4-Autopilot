@@ -45,6 +45,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include <debug.h>
 
 #include <nuttx/net/uip/uip.h>
@@ -103,7 +104,7 @@ bool uiplib_hwmacconv(const char *hwstr, uint8_t *hw)
   unsigned char i;
   unsigned char j;
 
-  if (strlen(hwstr)!=17)
+  if (strlen(hwstr) != 17)
     {
       return false;
     }
@@ -121,6 +122,7 @@ bool uiplib_hwmacconv(const char *hwstr, uint8_t *hw)
            {
              return false;
            }
+
           if (c == ':' || c == 0)
             {
               *hw = tmp;
@@ -144,6 +146,7 @@ bool uiplib_hwmacconv(const char *hwstr, uint8_t *hw)
             {
               return false;
             }
+
           ++hwstr;
         }
       while(c != ':' && c != 0);

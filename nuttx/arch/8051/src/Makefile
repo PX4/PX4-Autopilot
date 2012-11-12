@@ -60,7 +60,7 @@ LINKSSRCS = up_head.S
 LINKASRCS = $(LINKSSRCS:.S=$(ASMEXT))
 LINKOBJS = $(LINKASRCS:$(ASMEXT)=$(OBJEXT))
 LINKLIBS ?=
-LDPATHS = -L"$(TOPDIR)/lib"
+LIBPATHS = -L"$(TOPDIR)/lib"
 LDLIBS =  $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
 
 TESTSRCS = up_irqtest.c
@@ -171,7 +171,7 @@ board/libboard$(LIBEXT):
 
 pass1.hex: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS) board/libboard$(LIBEXT)
 	@echo "LD:  $@"
-	@"$(CC)" $(LDFLAGS) $(LDPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
+	@"$(CC)" $(LDFLAGS) $(LIBPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
 		$(LDLIBS) -llibboard$(LIBEXT) $(SDCCLIBS) -o $@
 	@rm -f up_mem.h
 	@rm -f up_allocateheap$(OBJEXT) libarch$(LIBEXT)
@@ -179,7 +179,7 @@ pass1.hex: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS) board/libboard$(LIBE
 
 nuttx.hex: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS)
 	@echo "LD:  $@"
-	@"$(CC)" $(LDFLAGS) $(LDPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
+	@"$(CC)" $(LDFLAGS) $(LIBPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
 		$(LDLIBS) -llibboard$(LIBEXT) $(SDCCLIBS) -o $@
 
 nuttx$(EXEEXT): pass1.hex nuttx.hex

@@ -72,30 +72,33 @@ EXTRA_LIBS ?=
 LINKLIBS ?=
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  BOARDMAKE = $(dir "$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board\Makefile")
+  BOARDMAKE = ${shell if exist "$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board\Makefile" (echo "y")}
   LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)\lib"}"
-ifdef BOARDMAKE
+ifeq ($(BOARDMAKE),y)
   LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board"}"
 endif
 
 else
-  BOARDMAKE = $(dir "$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board/Makefile")
+  BOARDMAKE = ${shell if [ -r "$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board/Makefile" ]; then echo "y"; fi}
 
 ifeq ($(WINTOOL),y)
   LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/lib"}"
-ifdef BOARDMAKE
+ifeq ($(BOARDMAKE),y)
   LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board"}"
 endif
 
 else
   LIBPATHS += -L"$(TOPDIR)/lib"
-ifdef BOARDMAKE
+ifeq ($(BOARDMAKE),y)
   LIBPATHS += -L"$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board"
 endif
 endif
 endif
 
 LDLIBS = $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
+ifeq ($(BOARDMAKE),y)
+  LDLIBS += -lboard
+endif
 
 LIBGCC = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-libgcc-file-name}"
 
@@ -119,7 +122,7 @@ board/libboard$(LIBEXT):
 nuttx: $(HEAD_OBJ) board/libboard$(LIBEXT)
 	$(Q) echo "LD: nuttx"
 	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) -o $(NUTTX)$(EXEEXT) $(HEAD_OBJ) \
-		--start-group $(LDLIBS) -lboard $(EXTRA_LIBS) $(LIBGCC) --end-group
+		--start-group $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
 	$(Q) $(NM) $(NUTTX)$(EXEEXT) | \
 	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
 	sort > $(TOPDIR)/System.map
@@ -137,7 +140,7 @@ export_head: board/libboard$(LIBEXT) $(HEAD_OBJ)
 # Dependencies
 
 .depend: Makefile chip/Make.defs $(SRCS)
-ifdef BOARDMAKE
+ifeq ($(BOARDMAKE),y)
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" depend
 endif
 	$(Q) $(MKDEP) --dep-path chip --dep-path common --dep-path $(ARCH_SUBDIR) \
@@ -147,14 +150,14 @@ endif
 depend: .depend
 
 clean:
-ifdef BOARDMAKE
+ifeq ($(BOARDMAKE),y)
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" clean
 endif
 	$(Q) rm -f libarch$(LIBEXT) *~ .*.swp
 	$(call CLEAN)
 
 distclean: clean
-ifdef BOARDMAKE
+ifeq ($(BOARDMAKE),y)
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" distclean
 endif
 	$(Q) rm -f Make.dep .depend

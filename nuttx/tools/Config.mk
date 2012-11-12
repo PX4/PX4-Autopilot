@@ -71,7 +71,7 @@ endef
 else
 define ARCHIVE
 	@echo "AR: $2"
-	$(Q) $(AR) $1 $(subst ",,$(2)) || { echo "$(AR) $1 $2 FAILED!" ; exit 1 ; }
+	$(Q) $(AR) $1 $(subst ",,$(2)) || { echo "$(AR) $1 FAILED!" ; exit 1 ; }
 endef
 endif
 
