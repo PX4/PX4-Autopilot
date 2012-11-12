@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +35,8 @@
 /**
  * @file orb_listener.c
  * Monitors ORB topics and sends update messages as appropriate.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 // XXX trim includes
@@ -419,7 +421,7 @@ l_actuator_outputs(struct listener *l)
 	/* copy actuator data into local buffer */
 	orb_copy(ids[l->arg], *l->subp, &act_outputs);
 
-	if (gcs_link)
+	if (gcs_link) {
 		mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000,
 					  l->arg /* port number */,
 					  act_outputs.output[0],
@@ -430,6 +432,90 @@ l_actuator_outputs(struct listener *l)
 					  act_outputs.output[5],
 					  act_outputs.output[6],
 					  act_outputs.output[7]);
+
+		/* only send in HIL mode */
+		if (mavlink_hil_enabled) {
+
+			/* translate the current syste state to mavlink state and mode */
+			uint8_t mavlink_state = 0;
+			uint8_t mavlink_mode = 0;
+			get_mavlink_mode_and_state(&mavlink_state, &mavlink_mode);
+
+			/* HIL message as per MAVLink spec */
+
+			/* scale / assign outputs depending on system type */
+
+			if (mavlink_system.type == MAV_TYPE_QUADROTOR) {
+				mavlink_msg_hil_controls_send(chan,
+					hrt_absolute_time(),
+					((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
+					-1,
+					-1,
+					-1,
+					-1,
+					mavlink_mode,
+					0);
+			} else if (mavlink_system.type == MAV_TYPE_HEXAROTOR) {
+				mavlink_msg_hil_controls_send(chan,
+					hrt_absolute_time(),
+					((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[4] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[5] - 900.0f) / 600.0f) / 2.0f,
+					-1,
+					-1,
+					mavlink_mode,
+					0);
+			} else if (mavlink_system.type == MAV_TYPE_OCTOROTOR) {
+				mavlink_msg_hil_controls_send(chan,
+					hrt_absolute_time(),
+					((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[4] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[5] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[6] - 900.0f) / 600.0f) / 2.0f,
+					((act_outputs.output[7] - 900.0f) / 600.0f) / 2.0f,
+					mavlink_mode,
+					0);
+			} else {
+				float rudder, throttle;
+
+				/* SCALING: PWM min: 900, PWM max: 2100, center: 1500 */
+
+				// XXX very ugly, needs rework
+				if (isfinite(act_outputs.output[3])
+					&& act_outputs.output[3] > 800 && act_outputs.output[3] < 2200) {
+					/* throttle is fourth output */
+					rudder = (act_outputs.output[2] - 1500.0f) / 600.0f;
+					throttle = (((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f);
+				} else {
+					/* only three outputs, put throttle on position 4 / index 3 */
+					rudder = 0;
+					throttle = (((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f);
+				}
+
+				mavlink_msg_hil_controls_send(chan,
+					hrt_absolute_time(),
+					(act_outputs.output[0] - 1500.0f) / 600.0f,
+					(act_outputs.output[1] - 1500.0f) / 600.0f,
+					rudder,
+					throttle,
+					(act_outputs.output[4] - 1500.0f) / 600.0f,
+					(act_outputs.output[5] - 1500.0f) / 600.0f,
+					(act_outputs.output[6] - 1500.0f) / 600.0f,
+					(act_outputs.output[7] - 1500.0f) / 600.0f,
+					mavlink_mode,
+					0);
+			}
+		}
+	}
 }
 
 void
@@ -481,29 +567,6 @@ l_vehicle_attitude_controls(struct listener *l)
 						   last_sensor_timestamp / 1000,
 						   "ctrl3       ",
 						   actuators.control[3]);
-	}
-
-	/* Only send in HIL mode */
-	if (mavlink_hil_enabled) {
-
-		/* translate the current syste state to mavlink state and mode */
-		uint8_t mavlink_state = 0;
-		uint8_t mavlink_mode = 0;
-		get_mavlink_mode_and_state(&mavlink_state, &mavlink_mode);
-
-		/* HIL message as per MAVLink spec */
-		mavlink_msg_hil_controls_send(chan,
-			hrt_absolute_time(),
-			actuators.control[0],
-			actuators.control[1],
-			actuators.control[2],
-			actuators.control[3],
-			0,
-			0,
-			0,
-			0,
-			mavlink_mode,
-			0);
 	}
 }
 
