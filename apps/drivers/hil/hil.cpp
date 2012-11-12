@@ -474,6 +474,7 @@ HIL::ioctl(file *filp, int cmd, unsigned long arg)
 		ret = HIL::pwm_ioctl(filp, cmd, arg);
 		break;
 	default:
+		ret = -ENOTTY;
 		debug("not in a PWM mode");
 		break;
 	}
@@ -489,7 +490,7 @@ int
 HIL::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
-	int channel;
+	// int channel;
 
 	lock();
 
