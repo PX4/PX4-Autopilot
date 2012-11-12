@@ -87,7 +87,7 @@
 #define ADC_HEALTH_COUNTER_LIMIT_OK  5
 
 /* choose 10 for PX4IOAR and 12 for PX4IOLite, channel 12 needs to be enabled in apps/drivers/boards/px4fmu/px4fmu_adc.c*/
-#define ADC_BATTERY_VOLTAGE_CHANNEL 12
+#define ADC_BATTERY_VOLTAGE_CHANNEL 10
 
 #define BAT_VOL_INITIAL 12.f
 #define BAT_VOL_LOWPASS_1 0.99f
