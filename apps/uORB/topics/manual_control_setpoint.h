@@ -62,16 +62,25 @@ enum MANUAL_CONTROL_MODE
 	MANUAL_CONTROL_MODE_ATT_YAW_POS = 2
 };
 
+enum MANUAL_CONTROL_CUSTOM_MODE
+{
+	MANUAL_CONTROL_CUSTOM_MODE_NONE = 0,
+	MANUAL_CONTROL_CUSTOM_MODE_MULTIROTOR_SIMPLE = 1, /**< roll / pitch rotated aligned to the takeoff orientation, throttle stabilized, yaw pos */
+	MANUAL_CONTROL_CUSTOM_MODE_MULTIROTOR_FLIP = 2
+};
+
 struct manual_control_setpoint_s {
 	uint64_t timestamp;
 
 	enum MANUAL_CONTROL_MODE mode;		 /**< The current control inputs mode */
+	enum MANUAL_CONTROL_CUSTOM_MODE custom_mode;
 	float roll;			 /**< ailerons roll / roll rate input */
 	float pitch;     /**< elevator / pitch / pitch rate */
 	float yaw;       /**< rudder / yaw rate / yaw */
 	float throttle;  /**< throttle / collective thrust / altitude */
 
 	float override_mode_switch;
+	float custom_mode_switch;	/**< Switch for assigning special flight functions to (simple mode, return home, etc.) */
 
 	float aux1_cam_pan_flaps;
 	float aux2_cam_tilt;
