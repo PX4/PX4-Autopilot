@@ -53,9 +53,6 @@ ORB_DEFINE(sensor_gyro, struct gyro_report);
 #include <drivers/drv_baro.h>
 ORB_DEFINE(sensor_baro, struct baro_report);
 
-#include <drivers/drv_sonar.h>
-ORB_DEFINE(sensor_sonar, struct sonar_report);
-
 #include <drivers/drv_pwm_output.h>
 ORB_DEFINE(output_pwm, struct pwm_output_values);
 
