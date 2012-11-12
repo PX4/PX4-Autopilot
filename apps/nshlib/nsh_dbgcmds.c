@@ -367,9 +367,10 @@ int cmd_xd(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 int cmd_hexdump(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
   uint8_t buffer[IOBUFFERSIZE];
+  char msg[32];
+  int position;
   int fd;
   int ret = OK;
-  char msg[32];
   
   /* Open the file for reading */
 
@@ -380,7 +381,7 @@ int cmd_hexdump(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       return ERROR;
     }
   
-  int position = 0;
+  position = 0;
   for (;;)
   {
     int nbytesread = read(fd, buffer, IOBUFFERSIZE);

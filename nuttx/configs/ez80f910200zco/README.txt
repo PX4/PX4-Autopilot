@@ -5,7 +5,7 @@ ZDS-II Compiler Versions
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Different configurations have been build for this board using ZDS-11
-Versions 4.11.0 and 4.11.1.  You have to check the files */Make.defs
+Versions 4.11.0, 4.11.1, and 5.1.1  You have to check the files */Make.defs
 to see how the build is configured:  Check the definitions of
 ZDSVERSION (if present) and ZDSINSTALLDIR.
 
@@ -14,6 +14,10 @@ different versions of .linkcmd and .zdsproj files as well.
 
 Version 4.11.0
 
+  The 5.1.1 version of the ZDS-II tools are currently configured for
+  all ez80 boards.  However, it is the older version 4.11.0 that this code
+  has been verified against.
+  
   Although it compiles without error, the 4.11.0 compiler generates
   bad code on one of the files, mm/mm_initialize.c.  Below is a simple work-
   around.
@@ -33,27 +37,27 @@ Version 4.11.0
 
    UPDATE:  I don't know if 4.11.1 has this same problem (I bet not since
    I submitted the bug to ZiLOG), but I have permanently worked around the
-   above problem for all ZiLOG compiler.
+   above problem for all ZiLOG compilers.
 
 Version 5.1.1
 
   On June 22, 2011 I verified that these configurations build successfully
-  with the 5.1.1 ZDS-II version.  All that is required to used ZDS-II is
-  to modify the Make.defs file so that the correct version is used.  That
-  version should also be changed in the (optional) setenv.sh file.
+  with the 5.1.1 ZDS-II version.  On November 12, 2012, all of the configurations
+  were converted to use 5.1.1, but have not been verified on a running target.
 
-  The above kludge for 4.11.0 is not required.
+  The above kludge for 4.11.0 is not required with 5.1.1.
 
-  I had to make additional changes to the ZDS path in Make.defs (and also
-  in setenv.sh) when the 32-bit ZDS-II tools are installed on my 64-bit
-  Windows 7 system.
+  Paths were also updated that are specific to a 32-bit toolchain running on
+  a 64 bit windows platform.  Change to a different toolchain, you will need
+  to modify the versioning in Make.defs and setenv.sh; if you want to build
+  on a different platform, you will need to change the path in the ZDS binaries
+  in those same files.
   
 Other Versions
-
-  If you use any version of ZDS-II other than 4.11.0 or if you install ZDS-II
+  If you use any version of ZDS-II other than 5.1.1 or if you install ZDS-II
   at any location other than the default location, you will have to modify
-  two files:  (1) configs/ez80f910200zco/*/setenv.sh and (2)
-  configs/ez80f910200zco/*/Make.defs.
+  two files:  (1) configs/ez80f910200kitg/*/setenv.sh and (2)
+  configs/ez80f910200kitg/*/Make.defs.
 
 Configuration Subdirectories
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

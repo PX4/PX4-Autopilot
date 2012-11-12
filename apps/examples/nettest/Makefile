@@ -54,11 +54,14 @@ TARG_COBJS	= $(TARG_CSRCS:.c=$(OBJEXT))
 TARG_SRCS	= $(TARG_ASRCS) $(TARG_CSRCS)
 TARG_OBJS	= $(TARG_AOBJS) $(TARG_COBJS)
 
-TARG_POSIX	= "$(APPDIR)/libapps$(LIBEXT)"
-ifeq ($(WINTOOL),y)
-  TARG_BIN	= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  TARG_BIN		= ..\..\libapps$(LIBEXT)
 else
-  TARG_BIN	= "$(TARG_POSIX)"
+ifeq ($(WINTOOL),y)
+  TARG_BIN		= ..\\..\\libapps$(LIBEXT)
+else
+  TARG_BIN		= ../../libapps$(LIBEXT)
+endif
 endif
 
 HOSTCFLAGS	+= -DCONFIG_EXAMPLES_NETTEST_HOST=1
@@ -69,8 +72,6 @@ endif
 ifeq ($(CONFIG_EXAMPLES_NETTEST_PERFORMANCE),y)
 HOSTCFLAGS	+= -DCONFIG_EXAMPLES_NETTEST_PERFORMANCE=1
 endif
-
-
 
 HOST_SRCS	= host.c
 ifeq ($(CONFIG_EXAMPLES_NETTEST_SERVER),y)
@@ -130,7 +131,7 @@ context: .context
 depend: .depend
 
 clean:
-	@rm -f $(TARG_POSIX) $(HOST_BIN) .built *.o *~ .*.swp
+	@rm -f $(HOST_BIN) .built *.o *~ .*.swp
 	$(call CLEAN)
 
 distclean: clean
