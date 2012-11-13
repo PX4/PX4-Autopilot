@@ -51,11 +51,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define MAX_COMMAND 256
-#ifndef MAX_PATH
-#  define MAX_PATH 4096
-#endif
-#define MAX_BUFFER  (MAX_COMMAND + MAX_PATH + 2)
+#define MAX_BUFFER  (4096)
 
 /****************************************************************************
  * Private Types
@@ -83,6 +79,8 @@ static bool  g_winpath  = false;
 static char *g_topdir   = NULL;
 #endif
 
+static char g_command[MAX_BUFFER];
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -90,7 +88,7 @@ static char *g_topdir   = NULL;
  /* MinGW does not seem to provide strtok_r */
 
 #ifndef HAVE_STRTOK_R
-static char *strtok_r(char *str, const char *delim, char **saveptr)
+static char *MY_strtok_r(char *str, const char *delim, char **saveptr)
 {
   char *pbegin;
   char *pend = NULL;
@@ -154,6 +152,8 @@ static char *strtok_r(char *str, const char *delim, char **saveptr)
     }
   return pbegin;
 }
+
+#define strtok_r MY_strtok_r
 #endif
 
 static void append(char **base, char *str)
@@ -198,7 +198,8 @@ static void show_usage(const char *progname, const char *msg, int exitcode)
     }
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "%s  [OPTIONS] CC -- CFLAGS -- file [file [file...]]\n", progname);
+  fprintf(stderr, "%s  [OPTIONS] CC -- CFLAGS -- file [file [file...]]\n",
+          progname);
   fprintf(stderr, "\n");
   fprintf(stderr, "Where:\n");
   fprintf(stderr, "  CC\n");
@@ -353,8 +354,8 @@ static void parse_args(int argc, char **argv)
 static void do_dependency(const char *file, char separator)
 {
   static const char moption[] = " -M ";
-  char command[MAX_BUFFER];
   struct stat buf;
+  char *alloc;
   char *altpath;
   char *path;
   char *lasts;
@@ -369,45 +370,60 @@ static void do_dependency(const char *file, char separator)
   cmdlen = strlen(g_cc);
   if (cmdlen >= MAX_BUFFER)
     {
-      fprintf(stderr, "ERROR: Compiler string is too long: %s\n", g_cc);
+      fprintf(stderr, "ERROR: Compiler string is too long [%d/%d]: %s\n",
+              cmdlen, MAX_BUFFER, g_cc);
       exit(EXIT_FAILURE);
     }
 
-  strcpy(command, g_cc);
+  strcpy(g_command, g_cc);
 
   /* Copy " -M " */
 
   cmdlen += strlen(moption);
   if (cmdlen >= MAX_BUFFER)
     {
-      fprintf(stderr, "ERROR: Option string is too long: %s\n", moption);
+      fprintf(stderr, "ERROR: Option string is too long [%d/%d]: %s\n",
+              cmdlen, MAX_BUFFER, moption);
       exit(EXIT_FAILURE);
     }
 
-  strcat(command, moption);
+  strcat(g_command, moption);
 
   /* Copy the CFLAGS into the command buffer */
 
   cmdlen += strlen(g_cflags);
   if (cmdlen >= MAX_BUFFER)
     {
-      fprintf(stderr, "ERROR: CFLAG string is too long: %s\n", g_cflags);
+      fprintf(stderr, "ERROR: CFLAG string is too long [%d/%d]: %s\n",
+              cmdlen, MAX_BUFFER, g_cflags);
       exit(EXIT_FAILURE);
     }
 
-  strcat(command, g_cflags);
+  strcat(g_command, g_cflags);
 
   /* Add a space */
 
-  command[cmdlen] = ' ';
+  g_command[cmdlen] = ' ';
   cmdlen++;
-  command[cmdlen] = '\0';
+  g_command[cmdlen] = '\0';
+
+  /* Make a copy of g_altpath. We need to do this because at least the version
+   * of strtok_r above does modifie it.
+   */
+
+  alloc = strdup(g_altpath);
+  if (!alloc)
+    {
+      fprintf(stderr, "ERROR: Failed to strdup paths\n");
+      exit(EXIT_FAILURE);
+    }
+
+  altpath = alloc;
 
   /* Try each path.  This loop will continue until each path has been tried
    * (failure) or until stat() finds the file
    */
 
-  altpath = g_altpath;
   while ((path = strtok_r(altpath, " ", &lasts)) != NULL)
     {
       /* Create a full path to the file */
@@ -416,22 +432,23 @@ static void do_dependency(const char *file, char separator)
       totallen = cmdlen + pathlen;
       if (totallen >= MAX_BUFFER)
         {
-          fprintf(stderr, "ERROR: Path is too long: %s\n", path);
+          fprintf(stderr, "ERROR: Path is too long [%d/%d]: %s\n",
+                  totallen, MAX_BUFFER, path);
           exit(EXIT_FAILURE);
         }
 
-      strcpy(&command[cmdlen], path);
+      strcpy(&g_command[cmdlen], path);
 
-      if (command[totallen] != '\0')
+      if (g_command[totallen] != '\0')
         {
           fprintf(stderr, "ERROR: Missing NUL terminator\n");
           exit(EXIT_FAILURE);
         }
 
-       if (command[totallen-1] != separator)
+       if (g_command[totallen-1] != separator)
         {
-          command[totallen] = separator;
-          command[totallen+1] = '\0';
+          g_command[totallen] = separator;
+          g_command[totallen+1] = '\0';
           pathlen++;
           totallen++;
         }
@@ -440,15 +457,22 @@ static void do_dependency(const char *file, char separator)
        totallen += filelen;
        if (totallen >= MAX_BUFFER)
          {
-          fprintf(stderr, "ERROR: Path+file is too long\n");
+          fprintf(stderr, "ERROR: Path+file is too long [%d/%d]\n",
+                  totallen, MAX_BUFFER);
           exit(EXIT_FAILURE);
          }
         
-       strcat(command, file);
+       strcat(g_command, file);
 
       /* Check that a file actually exists at this path */
 
-      ret = stat(&command[cmdlen], &buf);
+      if (g_debug)
+        {
+          fprintf(stderr, "Trying path=%s file=%s fullpath=%s\n",
+                  path, file, &g_command[cmdlen]);
+        }
+
+      ret = stat(&g_command[cmdlen], &buf);
       if (ret < 0)
         {
           altpath = NULL;
@@ -457,26 +481,39 @@ static void do_dependency(const char *file, char separator)
 
       if (!S_ISREG(buf.st_mode))
         {
-          fprintf(stderr, "ERROR: File %s exists but is not a regular file\n", &command[cmdlen]);
+          fprintf(stderr, "ERROR: File %s exists but is not a regular file\n",
+                  &g_command[cmdlen]);
           exit(EXIT_FAILURE);
         }
 
-      /* Okay.. we have.  Create the dependency */
+      /* Okay.. we have.  Create the dependency.  One a failure to start the
+       * compiler, system() will return -1;  Otherwise, the returned value
+       * from the compiler is in WEXITSTATUS(ret).
+       */
  
-      ret = system(command);
-      if (ret != 0)
+      ret = system(g_command);
+      if (ret < 0 || WEXITSTATUS(ret) != 0)
         {
-          fprintf(stderr, "ERROR: system failed: %s\n", strerror(errno));
-          fprintf(stderr, "       command: %s\n", command);
+          if (ret < 0)
+            {
+              fprintf(stderr, "ERROR: system failed: %s\n", strerror(errno));
+            }
+          else
+            {
+              fprintf(stderr, "ERROR: %s failed: %s\n", g_cc, WEXITSTATUS(ret));
+            }
+
+          fprintf(stderr, "       command: %s\n", g_command);
           exit(EXIT_FAILURE);
         }
  
       /* We don't really know that the command succeeded... Let's assume that it did */
  
+      free(alloc);
       return;
     }
 
-   printf("# ERROR: No readable file for \"%s\" found at any location\n", file);
+   printf("# ERROR: File \"%s\" not found at any location\n", file);
    exit(EXIT_FAILURE);
 }
 
@@ -577,7 +614,9 @@ static char *cywin2windows(const char *str, const char *append, enum slashmode_e
       *dest++ = ':';
     }
 
-  /* Copy each character from the source, making modifications for foward slashes as required */
+  /* Copy each character from the source, making modifications for foward
+   * slashes as required.
+   */
 
   lastchar = '\0';
   for (; *src; src++)
@@ -643,7 +682,10 @@ int main(int argc, char **argv, char **envp)
 
   parse_args(argc, argv);
 
-  /* Then generate dependencies for each path on the command line */
+  /* Then generate dependencies for each path on the command line.  NOTE
+   * strtok_r will clobber the files list.  But that is okay because we are
+   * only going to traverse it once.
+   */
 
   files = g_files;
   while ((file = strtok_r(files, " ", &lasts)) != NULL)
