@@ -314,8 +314,8 @@ endif
 # part of the overall NuttX configuration sequence. Notice that the
 # tools\mkversion tool is built and used to create include\nuttx\version.h
 
-tools\mkversion:
-	$(Q) $(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)"  mkversion
+tools\mkversion$(HOSTEXEEXT):
+	$(Q) $(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)"  mkversion$(HOSTEXEEXT)
 
 $(TOPDIR)\.version:
 	$(Q) if [ ! -f .version ]; then \
@@ -324,18 +324,23 @@ $(TOPDIR)\.version:
 		chmod 755 .version; \
 	fi
 
-include\nuttx\version.h: $(TOPDIR)\.version tools\mkversion
-	$(Q) tools\mkversion $(TOPDIR) > include\nuttx\version.h
+include\nuttx\version.h: $(TOPDIR)\.version tools\mkversion$(HOSTEXEEXT)
+	$(Q) tools\mkversion$(HOSTEXEEXT) $(TOPDIR) > include\nuttx\version.h
 
 # Targets used to build include\nuttx\config.h.  Creation of config.h is
 # part of the overall NuttX configuration sequence. Notice that the
 # tools\mkconfig tool is built and used to create include\nuttx\config.h
 
-tools\mkconfig:
-	$(Q) $(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)"  mkconfig
+tools\mkconfig$(HOSTEXEEXT):
+	$(Q) $(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)"  mkconfig$(HOSTEXEEXT)
 
-include\nuttx\config.h: $(TOPDIR)\.config tools\mkconfig
-	$(Q) tools\mkconfig $(TOPDIR) > include\nuttx\config.h
+include\nuttx\config.h: $(TOPDIR)\.config tools\mkconfig$(HOSTEXEEXT)
+	$(Q) tools\mkconfig$(HOSTEXEEXT) $(TOPDIR) > include\nuttx\config.h
+
+# Targets used to create dependencies
+
+tools/mkdeps$(HOSTEXEEXT):
+	$(Q) $(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)"  mkdeps$(HOSTEXEEXT)
 
 # dirlinks, and helpers
 #
@@ -566,7 +571,7 @@ lib\libc$(LIBEXT): libc\libc$(LIBEXT)
 # is an archive.  Exactly what is performed during pass1 or what it generates
 # is unknown to this makefule unless CONFIG_PASS1_OBJECT is defined.
 
-pass1deps: context pass1dep $(USERLIBS)
+pass1deps: pass1dep $(USERLIBS)
 
 pass1: pass1deps
 ifeq ($(CONFIG_BUILD_2PASS),y)
@@ -585,7 +590,7 @@ ifeq ($(CONFIG_BUILD_2PASS),y)
 	$(Q) $(MAKE) -C $(CONFIG_PASS1_BUILDIR) TOPDIR="$(TOPDIR)" LINKLIBS="$(LINKLIBS)" USERLIBS="$(USERLIBS)" "$(CONFIG_PASS1_TARGET)"
 endif
 
-pass2deps: context pass2dep $(NUTTXLIBS)
+pass2deps: pass2dep $(NUTTXLIBS)
 
 pass2: pass2deps
 	$(Q) $(MAKE) -C $(ARCH_SRC) TOPDIR="$(TOPDIR)" EXTRA_OBJS="$(EXTRA_OBJS)" LINKLIBS="$(LINKLIBS)" EXTRADEFINES=$(KDEFINE) $(BIN)
@@ -635,10 +640,10 @@ download: $(BIN)
 # pass1dep: Create pass1 build dependencies
 # pass2dep: Create pass2 build dependencies
 
-pass1dep: context
+pass1dep: context tools/mkdeps$(HOSTEXEEXT)
 	$(Q) for %%G in ($(USERDEPDIRS)) do ( $(MAKE) -C %%G TOPDIR="$(TOPDIR)" depend )
 
-pass2dep: context
+pass2dep: context tools/mkdeps$(HOSTEXEEXT)
 	$(Q) for %%G in ($(KERNDEPDIRS)) do ( $(MAKE) -C %%G TOPDIR="$(TOPDIR)" EXTRADEFINES=$(KDEFINE) depend )
 
 # Configuration targets

@@ -37,10 +37,10 @@ TOPDIR ?= ${shell pwd}/..
 -include $(TOPDIR)/Make.defs
 include ${TOPDIR}/tools/Config.mk
 
-all: mkconfig$(EXEEXT) mkversion$(EXEEXT) mksyscall$(EXEEXT) bdf-converter$(EXEEXT) mksymtab$(EXEEXT) mkdeps$(EXEEXT)
-default: mkconfig$(EXEEXT) mksyscall$(EXEEXT) mkdeps$(EXEEXT)
+all: mkconfig$(HOSTEXEEXT) mkversion$(HOSTEXEEXT) mksyscall$(HOSTEXEEXT) bdf-converter$(HOSTEXEEXT) mksymtab$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT)
+default: mkconfig$(HOSTEXEEXT) mksyscall$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT)
 
-ifdef EXEEXT
+ifdef HOSTEXEEXT
 .PHONY: clean mkconfig mkversion mksyscall bdf-converter mksymtab mkdeps
 else
 .PHONY: clean
@@ -53,11 +53,11 @@ HOSTCC ?= gcc
 
 # mkconfig - Convert a .config file into a C config.h file
 
-mkconfig$(EXEEXT): mkconfig.c cfgparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkconfig$(EXEEXT) mkconfig.c cfgparser.c
+mkconfig$(HOSTEXEEXT): mkconfig.c cfgparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkconfig$(HOSTEXEEXT) mkconfig.c cfgparser.c
 
-ifdef EXEEXT
-mkconfig: mkconfig$(EXEEXT)
+ifdef HOSTEXEEXT
+mkconfig: mkconfig$(HOSTEXEEXT)
 endif
 
 # cmpconfig - Compare the contents of two configuration files
@@ -65,53 +65,53 @@ endif
 cmpconfig: cmpconfig.c
 	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o cmpconfig cmpconfig.c
 
-ifdef EXEEXT
-cmpconfig: cmpconfig$(EXEEXT)
+ifdef HOSTEXEEXT
+cmpconfig: cmpconfig$(HOSTEXEEXT)
 endif
 
 # mkversion - Convert a .version file into a C version.h file
 
-mkversion$(EXEEXT): mkconfig.c cfgparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkversion$(EXEEXT) mkversion.c cfgparser.c
+mkversion$(HOSTEXEEXT): mkconfig.c cfgparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkversion$(HOSTEXEEXT) mkversion.c cfgparser.c
 
-ifdef EXEEXT
-mkversion: mkversion$(EXEEXT)
+ifdef HOSTEXEEXT
+mkversion: mkversion$(HOSTEXEEXT)
 endif
 
 # mksyscall - Convert a CSV file into syscall stubs and proxies
 
-mksyscall$(EXEEXT): mksyscall.c csvparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mksyscall$(EXEEXT) mksyscall.c csvparser.c
+mksyscall$(HOSTEXEEXT): mksyscall.c csvparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mksyscall$(HOSTEXEEXT) mksyscall.c csvparser.c
 
-ifdef EXEEXT
-mksyscall: mksyscall$(EXEEXT)
+ifdef HOSTEXEEXT
+mksyscall: mksyscall$(HOSTEXEEXT)
 endif
 
 # mksymtab - Convert a CSV file into a symbol table
 
-mksymtab$(EXEEXT): mksymtab.c csvparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mksymtab$(EXEEXT) mksymtab.c csvparser.c
+mksymtab$(HOSTEXEEXT): mksymtab.c csvparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mksymtab$(HOSTEXEEXT) mksymtab.c csvparser.c
 
-ifdef EXEEXT
-mksymtab: mksymtab$(EXEEXT)
+ifdef HOSTEXEEXT
+mksymtab: mksymtab$(HOSTEXEEXT)
 endif
 
 # bdf-converter - Converts a BDF font to the NuttX font format
 
-bdf-converter$(EXEEXT): bdf-converter.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o bdf-converter$(EXEEXT) bdf-converter.c
+bdf-converter$(HOSTEXEEXT): bdf-converter.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o bdf-converter$(HOSTEXEEXT) bdf-converter.c
 
-ifdef EXEEXT
-bdf-converter: bdf-converter$(EXEEXT)
+ifdef HOSTEXEEXT
+bdf-converter: bdf-converter$(HOSTEXEEXT)
 endif
 
 # Create dependencies for a list of files
 
-mkdeps$(EXEEXT): mkdeps.c csvparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkdeps$(EXEEXT) mkdeps.c
+mkdeps$(HOSTEXEEXT): mkdeps.c csvparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkdeps$(HOSTEXEEXT) mkdeps.c
 
-ifdef EXEEXT
-mkdeps: mkdeps$(EXEEXT)
+ifdef HOSTEXEEXT
+mkdeps: mkdeps$(HOSTEXEEXT)
 endif
 
 clean:

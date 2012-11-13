@@ -105,7 +105,7 @@ static void append(char **base, char *str)
     }
   else
     {
-      alloclen = strlen(newbase) + strlen(str) + 2;
+      alloclen = strlen(oldbase) + strlen(str) + 2;
       newbase = (char *)malloc(alloclen);
       if (!newbase)
         {
@@ -288,7 +288,6 @@ static void do_dependency(const char *file, char separator)
   struct stat buf;
   char *altpath;
   char *path;
-  char *bufptr;
   int cmdlen;
   int pathlen;
   int filelen;
@@ -300,7 +299,7 @@ static void do_dependency(const char *file, char separator)
   cmdlen = strlen(g_cc);
   if (cmdlen >= MAX_BUFFER)
     {
-      fprintf(stderr, "ERROR: Compiler string is too long: %s\n", path);
+      fprintf(stderr, "ERROR: Compiler string is too long: %s\n", g_cc);
       exit(EXIT_FAILURE);
     }
 
@@ -355,7 +354,7 @@ static void do_dependency(const char *file, char separator)
 
       if (command[totallen] != '\0')
         {
-          fprintf(stderr, "ERROR: Missing NUL terminator\n", path);
+          fprintf(stderr, "ERROR: Missing NUL terminator\n");
           exit(EXIT_FAILURE);
         }
 
@@ -379,7 +378,7 @@ static void do_dependency(const char *file, char separator)
 
       /* Check that a file actually exists at this path */
 
-      ret = stat(command, &buf);
+      ret = stat(&command[cmdlen], &buf);
       if (ret < 0)
         {
           altpath = NULL;
@@ -388,7 +387,7 @@ static void do_dependency(const char *file, char separator)
 
       if (!S_ISREG(buf.st_mode))
         {
-          fprintf(stderr, "ERROR: File %s exists but is not a regular file\n");
+          fprintf(stderr, "ERROR: File %s exists but is not a regular file\n", &command[cmdlen]);
           exit(EXIT_FAILURE);
         }
 
@@ -397,7 +396,7 @@ static void do_dependency(const char *file, char separator)
       ret = system(command);
       if (ret != 0)
         {
-          fprintf(stderr, "ERROR: ssystem(%s) failed\n");
+          fprintf(stderr, "ERROR: ssystem(%s) failed\n", command);
           exit(EXIT_FAILURE);
         }
  
