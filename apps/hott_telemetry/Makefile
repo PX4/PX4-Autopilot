@@ -32,7 +32,7 @@
 ############################################################################
 
 #
-# Basic example application
+# Graupner HoTT Telemetry application.
 #
 
 APPNAME		 = hott_telemetry
