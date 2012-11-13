@@ -474,6 +474,7 @@ HIL::ioctl(file *filp, int cmd, unsigned long arg)
 		ret = HIL::pwm_ioctl(filp, cmd, arg);
 		break;
 	default:
+		ret = -ENOTTY;
 		debug("not in a PWM mode");
 		break;
 	}
@@ -489,7 +490,7 @@ int
 HIL::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
-	int channel;
+	// int channel;
 
 	lock();
 
@@ -824,6 +825,7 @@ hil_main(int argc, char *argv[])
 			// XXX all modes have PWM settings
 			if (argc > i + 1) {
 				pwm_update_rate_in_hz = atoi(argv[i + 1]);
+				printf("pwm update rate: %d Hz\n", pwm_update_rate_in_hz);
 			} else {
 				fprintf(stderr, "missing argument for pwm update rate (-u)\n");
 				return 1;

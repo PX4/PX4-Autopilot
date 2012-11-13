@@ -272,7 +272,8 @@ int ubx_parse(uint8_t b,  char *gps_rx_buffer)
 
 						ubx_gps->timestamp = hrt_absolute_time();
 						ubx_gps->counter++;
-
+						ubx_gps->s_variance = packet->sAcc;
+						ubx_gps->p_variance = packet->pAcc;
 
 						//pthread_mutex_lock(ubx_mutex);
 						ubx_state->last_message_timestamps[NAV_SOL - 1] = hrt_absolute_time();
@@ -785,10 +786,6 @@ void *ubx_watchdog_loop(void *args)
 			sleep(1);
 
 		} else {
-			/* gps healthy */
-			ubx_success_count++;
-			ubx_healthy = true;
-			ubx_fail_count = 0;
 
 			if (!ubx_healthy && ubx_success_count == UBX_HEALTH_SUCCESS_COUNTER_LIMIT) {
 				//printf("[gps] ublox UBX module status ok (baud=%d)\r\n", current_gps_speed);
@@ -799,6 +796,10 @@ void *ubx_watchdog_loop(void *args)
 				once_ok = true;
 			}
 
+			/* gps healthy */
+			ubx_success_count++;
+			ubx_healthy = true;
+			ubx_fail_count = 0;
 		}
 
 		usleep(UBX_WATCHDOG_WAIT_TIME_MICROSECONDS);

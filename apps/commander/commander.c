@@ -149,7 +149,6 @@ static void led_deinit(void);
 static int led_toggle(int led);
 static int led_on(int led);
 static int led_off(int led);
-static int pm_save_eeprom(bool only_unsaved);
 static void do_gyro_calibration(int status_pub, struct vehicle_status_s *status);
 static void do_mag_calibration(int status_pub, struct vehicle_status_s *status);
 static void do_accel_calibration(int status_pub, struct vehicle_status_s *status);

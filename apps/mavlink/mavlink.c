@@ -163,8 +163,8 @@ set_hil_on_off(bool hil_enabled)
 			/* 20 Hz */
 			hil_rate_interval = 50;
 		} else {
-			/* 100 Hz */
-			hil_rate_interval = 10;
+			/* 200 Hz */
+			hil_rate_interval = 5;
 		}
 
 		orb_set_interval(mavlink_subs.spa_sub, hil_rate_interval);
