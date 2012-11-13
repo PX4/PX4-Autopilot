@@ -492,6 +492,7 @@ static void do_dependency(const char *file, char separator)
        */
  
       ret = system(g_command);
+#ifdef WEXITSTATUS
       if (ret < 0 || WEXITSTATUS(ret) != 0)
         {
           if (ret < 0)
@@ -506,6 +507,14 @@ static void do_dependency(const char *file, char separator)
           fprintf(stderr, "       command: %s\n", g_command);
           exit(EXIT_FAILURE);
         }
+#else
+      if (ret < 0)
+        {
+          fprintf(stderr, "ERROR: system failed: %s\n", strerror(errno));
+          fprintf(stderr, "       command: %s\n", g_command);
+          exit(EXIT_FAILURE);
+        }
+#endif
  
       /* We don't really know that the command succeeded... Let's assume that it did */
  

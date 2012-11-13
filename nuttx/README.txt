@@ -19,6 +19,7 @@ README
     - Re-building 
     - Build Targets and Options
     - Native Windows Build
+    - Installing GNUWin32
   o Cygwin Build Problems
     - Strange Path Problems
     - Window Native Toolchain Issues
@@ -522,6 +523,72 @@ Native Windows Build
   Host Compiler:  I use the MingGW compiler which can be downloaded from
   http://www.mingw.org/.  If you are using GNUWin32, then it is recommended
   the you not install the optional MSYS components as there may be conflicts.
+
+Installing GNUWin32
+-------------------
+
+The Windows native build will depend upon a few Unix-like tools that can be
+provided either by MSYS or GNUWin32.  The GNUWin32 are available from
+http://gnuwin32.sourceforge.net/.  GNUWin32 provides ports of tools with a
+GPL or similar open source license to modern MS-Windows (Microsoft Windows
+2000 / XP / 2003 / Vista / 2008 / 7).  See
+http://gnuwin32.sourceforge.net/packages.html for a list of all of the tools
+available in the GNUWin32 package.
+
+The SourceForge project is located here:
+http://sourceforge.net/projects/gnuwin32/.  The project is still being
+actively supported (although some of the Windows ports have gotten very old).
+
+Some commercial toolchains include a subset of the GNUWin32 tools in the
+installation.  My recommendation is that you download the GNUWin32 tools
+directly from the sourceforge.net website so that you will know what you are
+using and can reproduce your build environment.
+
+GNUWin32 Installation Steps:
+
+The following steps will download and execute the GNUWin32 installer.
+
+1. Download GetGNUWin32-x.x.x.exe from
+   http://sourceforge.net/projects/getgnuwin32/files/.  This is the
+   installer.  The current version as of this writing is 0.6.3.
+
+2. Run the installer.
+
+3. Accept the license.
+
+4. Select the installation directory.  My recommendation is the
+   directory that contains this README file (<this-directory>).
+
+5. After running GetGNUWin32-0.x.x.exe, you will have a new directory
+   <this-directory>/GetGNUWin32
+
+Note the the GNUWin32 installer didn't install GNUWin32.  Instead, it
+installed another, smarter downloader.  That downloader is the GNUWin32
+package management tool developed by the Open SSL project.
+
+The following steps probably should be performed from inside a DOS shell.
+
+6. Change to the directory created by GetGNUWin32-x.x.x.exe
+
+  cd GetGNUWin32
+
+7. Execute the download.bat script.  The download.bat script will download
+   about 446 packages!  Enough to have a very complete Linux-like environment
+   under the DOS shell.  This will take awhile.  This step only downloads
+   the packages and the next step will install the packages.
+
+   download
+
+8. This step will install the downloaded packages.  The argument of the
+   install.bat script is the installation location.  C:\gnuwin32 is the
+   standard install location:
+
+   install C:\gnuwin32
+
+NOTE:  This installation step will install *all* GNUWin32 packages... far
+more than you will ever need.  If disc space is a problem for you, you might
+need to perform a manual installation of the individual ZIP files that you
+will find in the <this directory>/GetGNUWin32/packages directory.
 
 CYGWIN BUILD PROBLEMS
 ^^^^^^^^^^^^^^^^^^^^^
