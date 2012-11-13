@@ -33,7 +33,6 @@
 #
 #################################################################################
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 
 # Control build verbosity
@@ -87,8 +86,8 @@ ifeq ($(WINTOOL),y)
 INCDIROPT = -w
 endif
 
-CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(NXWIDGETDIR)/include}
-CXXFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(NXWIDGETDIR)/include}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(NXWIDGETDIR)/include}
+CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(NXWIDGETDIR)/include}
 DEPPATH = --dep-path src
 VPATH = src
 

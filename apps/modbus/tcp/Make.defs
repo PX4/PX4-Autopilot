@@ -39,6 +39,6 @@ CSRCS += mbtcp.c
 
 DEPPATH += --dep-path tcp
 VPATH += :tcp
-CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(APPDIR)/modbus/tcp}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(APPDIR)/modbus/tcp}
 
 endif

@@ -35,13 +35,10 @@
 
 BUILDDIR := ${shell pwd | sed -e 's/ /\\ /g'}
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 include $(APPDIR)/Make.defs
 
 # Tools
-
-INCDIR = $(TOPDIR)/tools/incdir.sh
 
 ifeq ($(WINTOOL),y)
 INCDIROPT = -w

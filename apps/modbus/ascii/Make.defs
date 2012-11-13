@@ -39,6 +39,6 @@ CSRCS += mbascii.c
 
 DEPPATH += --dep-path ascii
 VPATH += :ascii
-CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(APPDIR)/modbus/ascii}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(APPDIR)/modbus/ascii}
 
 endif

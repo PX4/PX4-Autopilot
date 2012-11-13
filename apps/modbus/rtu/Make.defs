@@ -39,6 +39,6 @@ CSRCS += mbcrc.c mbrtu.c
 
 DEPPATH += --dep-path rtu
 VPATH += :rtu
-CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(APPDIR)/modbus/rtu}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(APPDIR)/modbus/rtu}
 
 endif

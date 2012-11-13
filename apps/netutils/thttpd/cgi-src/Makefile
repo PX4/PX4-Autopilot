@@ -1,7 +1,7 @@
 ############################################################################
 # apps/netutils/cgi-src/Makefile
 #
-#   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2009, 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -40,7 +40,7 @@ ifeq ($(WINTOOL),y)
 INCDIROPT	= -w
 endif
 
-CFLAGS		+= ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" "$(APPDIR)/netutils/thttpd" "$(APPDIR)/netutils/thttpd/cgi-src"}
+CFLAGS		+= ${shell $(INCDIR) $(INCDIROPT) "$(CC)" "$(APPDIR)/netutils/thttpd" "$(APPDIR)/netutils/thttpd/cgi-src"}
 CGIBINDIR	= $(APPDIR)/netutils/thttpd/cgi-bin
 CLEANFILES	= *.o redirect ssi phf
 

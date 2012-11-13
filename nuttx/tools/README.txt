@@ -1,5 +1,5 @@
 tools/README.txt
-^^^^^^^^^^^^^^^^
+================
 
 This README file addresses the contents of the NuttX tools/ directory.
 
@@ -8,22 +8,38 @@ that are necessary parts of the the NuttX build system.  These files
 include:
 
 README.txt
+----------
 
-  This file
+  This file!
+
+Config.mk
+---------
+
+  This file contains common definitions used by many configureation files.
+  This file (along with <nuttx>/.config) must be included at the top of
+  each configuration-specific Make.defs file like:
+
+    -include $(TOPDIR)/.config
+    include $(TOPDIR)/tools/Config.mk
+
+  Subsequent logic within the configuration-specific Make.defs file may then
+  override these default definitions as necessary.
 
 configure.sh
+------------
 
   This is a bash script that is used to configure NuttX for a given
   target board.  See configs/README.txt or Documentation/NuttxPortingGuide.html
   for a description of how to configure NuttX with this script.
 
 discover.py
+-----------
 
   Example script for discovering devices in the local network.
   It is the counter part to apps/netutils/discover
 
-
 mkconfig.c, cfgparser.c, and cfgparser.h
+----------------------------------------
 
   These are Cs file that are used to build mkconfig program.  The mkconfig
   program is used during the initial NuttX build.
@@ -38,11 +54,13 @@ mkconfig.c, cfgparser.c, and cfgparser.h
   NuttX configuration that can be included by C files.
 
 cmdconfig.c
+-----------
 
   This C file can be used to build a utility for comparing two NuttX
   configuration files.
 
 mkexport.sh and Makefile.export
+-------------------------------
 
   These implement part of the top-level Makefile's 'export' target.  That
   target will bundle up all of the NuttX libraries, header files, and the
@@ -51,6 +69,7 @@ mkexport.sh and Makefile.export
   options from the top-level Make.defs file.
 
 mkfsdata.pl
+-----------
 
   This perl script is used to build the "fake" file system and CGI support
   as needed for the apps/netutils/webserver.  It is currently used only
@@ -61,6 +80,7 @@ mkfsdata.pl
   by Adam Dunkels.  uIP has a license that is compatible with NuttX.
 
 mkversion.c, cfgparser.c, and cfgparser.h
+-----------------------------------------
 
   This is C file that is used to build mkversion program.  The mkversion
   program is used during the initial NuttX build.
@@ -74,6 +94,7 @@ mkversion.c, cfgparser.c, and cfgparser.h
   version.h provides version information that can be included by C files.
 
 mksyscall.c, cvsparser.c, and cvsparser.h
+-----------------------------------------
 
   This is a C file that is used to build mksyscall program.  The mksyscall
   program is used during the initial NuttX build by the logic in the top-
@@ -96,6 +117,7 @@ mksyscall.c, cvsparser.c, and cvsparser.h
   stub files as output.  See syscall/README.txt for additonal information.
 
 mksymtab.c, cvsparser.c, and cvsparser.h
+----------------------------------------
 
   This is a C file that is used to build symbol tables from common-separated
   value (CSV) files.  This tool is not used during the NuttX build, but
@@ -116,10 +138,12 @@ mksymtab.c, cvsparser.c, and cvsparser.h
     ./mksymtab.exe tmp.csv tmp.c
 
 pic32mx
+-------
 
   This directory contains build tools used only for PIC32MX platforms
 
 bdf-convert.c
+-------------
 
   This C file is used to build the bdf-converter program.  The bdf-converter
   program be used to convert fonts in Bitmap Distribution Format (BDF)
@@ -255,6 +279,7 @@ bdf-convert.c
        };
 
 Makefile.host
+-------------
 
   This is the makefile that is used to make the mkconfig program from
   the mkconfig.c C file, the cmpconfig program from cmpconfig.c C file
@@ -265,6 +290,7 @@ Makefile.host
   make -f Makefile.host <program>
 
 mkromfsimg.sh
+-------------
 
   This script may be used to automate the generate of a ROMFS file system
   image.  It accepts an rcS script "template" and generates and image that
@@ -274,6 +300,7 @@ mkdeps.sh
 mkdeps.bat
 mkdeps.c
 mknulldeps.sh
+-------------
 
   NuttX uses the GCC compilers capabilities to create Makefile dependencies.
   The bash script mkdeps.sh is used to run GCC in order to create the
@@ -317,6 +344,7 @@ mknulldeps.sh
   that mixed environment.
 
 define.sh
+---------
 
   Different compilers have different conventions for specifying pre-
   processor definitions on the compiler command line.  This bash
@@ -324,6 +352,7 @@ define.sh
   without concern for the particular compiler in use.
 
 incdir.sh
+---------
 
   Different compilers have different conventions for specifying lists
   of include file paths on the the compiler command line.  This bash
@@ -333,6 +362,7 @@ incdir.sh
 link.sh
 winlink.sh
 unlink.sh
+----------
 
   Different file system have different capabilities for symbolic links.
   Some windows file systems have no native support for symbolic links.
@@ -365,16 +395,19 @@ unlink.sh
   tried that
 
 mkimage.sh
+----------
 
   The creates a downloadable image as needed with the rrload bootloader.
 
 indent.sh
+---------
 
   This script can be used to indent .c and .h files in a manner similar
   to my coding NuttX coding style.  It doesn't do a really good job,
   however (see the comments at the top of the indent.sh file).
 
 zipme.sh
+--------
 
   I use this script to create the nuttx-xx.yy.tar.gz tarballs for
   release on SourceForge.  It is handy because it also does the

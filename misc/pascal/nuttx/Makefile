@@ -35,7 +35,6 @@
 
 PCODEDIR := ${shell pwd | sed -e 's/ /\\ /g'}
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 include $(APPDIR)/Make.defs
 
@@ -45,7 +44,6 @@ ifeq ($(DIRLINK),)
 DIRLINK = $(TOPDIR)/tools/link.sh
 DIRUNLINK = $(TOPDIR)/tools/unlink.sh
 endif
-INCDIR = $(TOPDIR)/tools/incdir.sh
 
 ifeq ($(WINTOOL),y)
 INCDIROPT = -w

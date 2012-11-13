@@ -67,6 +67,6 @@ endif
 
 DEPPATH += --dep-path lcd
 VPATH += :lcd
-CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/lcd}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/lcd}
 endif
 

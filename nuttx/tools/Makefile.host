@@ -37,6 +37,13 @@ TOPDIR ?= ${shell pwd}/..
 -include $(TOPDIR)/Make.defs
 include ${TOPDIR}/tools/Config.mk
 
+# strtok_r is used in some tools, but does not seem to be available in
+# the MinGW environment.
+
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
+  HOSTCFLAGS += -D HAVE_STRTOK_C
+endif
+
 all: mkconfig$(HOSTEXEEXT) mkversion$(HOSTEXEEXT) mksyscall$(HOSTEXEEXT) bdf-converter$(HOSTEXEEXT) mksymtab$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT)
 default: mkconfig$(HOSTEXEEXT) mksyscall$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT)
 

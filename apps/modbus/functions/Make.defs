@@ -38,4 +38,4 @@ CSRCS += mbfuncinput.c mbfuncother.c mbutils.c
 
 DEPPATH += --dep-path functions
 VPATH += :functions
-CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(APPDIR)/modbus/functions}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(APPDIR)/modbus/functions}

@@ -38,7 +38,7 @@
 ifeq ($(WINTOOL),y)
 INCDIROPT		= -w
 endif
-CFLAGS			+= ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/sched}
+CFLAGS			+= ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)/sched}
 
 # Basic BINFMT source files 
 

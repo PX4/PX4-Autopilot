@@ -3613,3 +3613,6 @@
 	  critical CFLAG values that cannot be passed on the CMD.exe command line
 	  (line '=').  mkdeps.c is a work in progress that will, hopefully,
 	  replace both mkdeps.sh and mkdeps.bat.
+	* tools/Config.mk:  Centralize the definition of the scrpt that will be
+	  used to generated header file include paths for the compiler.  This
+	  needs to be centralized in order to support the Windows native build.

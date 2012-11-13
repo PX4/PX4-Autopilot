@@ -35,7 +35,6 @@
 
 TESTDIR := ${shell pwd | sed -e 's/ /\\ /g'}
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 include $(APPDIR)/Make.defs
 
@@ -45,7 +44,6 @@ NXWIDGETS_DIR="$(TESTDIR)/../../libnxwidgets"
 NXWIDGETS_INC="$(NXWIDGETS_DIR)/include"
 NXWIDGETS_LIB="$(NXWIDGETS_DIR)/libnxwidgets$(LIBEXT)"
 
-INCDIR=$(TOPDIR)/tools/incdir.sh
 ifeq ($(WINTOOL),y)
   CFLAGS += ${shell $(INCDIR) -w "$(CC)" "$(NXWIDGETS_INC)"}
   CXXFLAGS += ${shell $(INCDIR) -w "$(CXX)" "$(NXWIDGETS_INC)"}
