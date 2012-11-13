@@ -45,7 +45,12 @@
  */
 
 #include <systemlib/geo/geo.h>
+#include <nuttx/config.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <stdio.h>
 #include <math.h>
+#include <stdbool.h>
 
 
 /* values for map projection */
@@ -230,25 +235,24 @@ __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, doub
 
 // Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
 
-__EXPORT crosstrack_error_s get_distance_to_line(double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end)
+__EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end)
 {
 // This function returns the distance to the nearest point on the track line.  Distance is positive if current
 // position is right of the track and negative if left of the track as seen from a point on the track line
 // headed towards the end point.
 
-	crosstrack_error_s return_var;
 	float dist_to_end;
 	float bearing_end;
 	float bearing_track;
 	float bearing_diff;
 
-	return_var.error = true;		// Set error flag, cleared when valid result calculated.
-	return_var.past_end = false;
-	return_var.distance = 0.0f;
-	return_var.bearing = 0.0f;
+	int return_value = ERROR;	// Set error flag, cleared when valid result calculated.
+	crosstrack_error->past_end = false;
+	crosstrack_error->distance = 0.0f;
+	crosstrack_error->bearing = 0.0f;
 
 	// Return error if arguments are bad
-	if (lat_now == 0.0d || lon_now == 0.0d || lat_start == 0.0d || lon_start == 0.0d || lat_end == 0.0d || lon_end == 0.0d) return return_var;
+	if (lat_now == 0.0d || lon_now == 0.0d || lat_start == 0.0d || lon_start == 0.0d || lat_end == 0.0d || lon_end == 0.0d) return return_value;
 
 	bearing_end = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 	bearing_track = get_bearing_to_next_waypoint(lat_start, lon_start, lat_end, lon_end);
@@ -257,35 +261,34 @@ __EXPORT crosstrack_error_s get_distance_to_line(double lat_now, double lon_now,
 
 	// Return past_end = true if past end point of line
 	if (bearing_diff > M_PI_2_F || bearing_diff < -M_PI_2_F) {
-		return_var.past_end = true;
-		return_var.error = false;
-		return return_var;
+		crosstrack_error->past_end = true;
+		return_value = OK;
+		return return_value;
 	}
 
 	dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
-	return_var.distance = (dist_to_end) * sin(bearing_diff);
+	crosstrack_error->distance = (dist_to_end) * sin(bearing_diff);
 
 	if (sin(bearing_diff) >= 0) {
-		return_var.bearing = _wrapPI(bearing_track - M_PI_2_F);
+		crosstrack_error->bearing = _wrapPI(bearing_track - M_PI_2_F);
 
 	} else {
-		return_var.bearing = _wrapPI(bearing_track + M_PI_2_F);
+		crosstrack_error->bearing = _wrapPI(bearing_track + M_PI_2_F);
 	}
 
-	return_var.error = false;
+	return_value = OK;
 
-	return return_var;
+	return return_value;
 
 }
 
 
-__EXPORT crosstrack_error_s get_distance_to_arc(double lat_now, double lon_now, double lat_center, double lon_center,
+__EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_center, double lon_center,
 		float radius, float arc_start_bearing, float arc_sweep)
 {
 	// This function returns the distance to the nearest point on the track arc.  Distance is positive if current
 	// position is right of the arc and negative if left of the arc as seen from the closest point on the arc and
 	// headed towards the end point.
-	crosstrack_error_s return_var;
 
 	// Determine if the current position is inside or outside the sector between the line from the center
 	// to the arc start and the line from the center to the arc end
@@ -294,13 +297,13 @@ __EXPORT crosstrack_error_s get_distance_to_arc(double lat_now, double lon_now, 
 	float	bearing_now = get_bearing_to_next_waypoint(lat_now, lon_now, lat_center, lon_center);
 	bool	in_sector;
 
-	return_var.error = true;		// Set error flag, cleared when valid result calculated.
-	return_var.past_end = false;
-	return_var.distance = 0.0f;
-	return_var.bearing = 0.0f;
+	int return_value = ERROR;		// Set error flag, cleared when valid result calculated.
+	crosstrack_error->past_end = false;
+	crosstrack_error->distance = 0.0f;
+	crosstrack_error->bearing = 0.0f;
 
 	// Return error if arguments are bad
-	if (lat_now == 0.0d || lon_now == 0.0d || lat_center == 0.0d || lon_center == 0.0d || radius == 0.0d) return return_var;
+	if (lat_now == 0.0d || lon_now == 0.0d || lat_center == 0.0d || lon_center == 0.0d || radius == 0.0d) return return_value;
 
 
 	if (arc_sweep >= 0) {
@@ -313,7 +316,7 @@ __EXPORT crosstrack_error_s get_distance_to_arc(double lat_now, double lon_now, 
 		bearing_sector_end = arc_start_bearing;
 		bearing_sector_start = arc_start_bearing - arc_sweep;
 
-		if (bearing_sector_start < 0.0) bearing_sector_start += M_TWOPI_F;
+		if (bearing_sector_start < 0.0f) bearing_sector_start += M_TWOPI_F;
 	}
 
 	in_sector = false;
@@ -326,16 +329,16 @@ __EXPORT crosstrack_error_s get_distance_to_arc(double lat_now, double lon_now, 
 
 	// If in the sector then calculate distance and bearing to closest point
 	if (in_sector) {
-		return_var.past_end = false;
+		crosstrack_error->past_end = false;
 		float dist_to_center = get_distance_to_next_waypoint(lat_now, lon_now, lat_center, lon_center);
 
 		if (dist_to_center <= radius) {
-			return_var.distance = radius - dist_to_center;
-			return_var.bearing = bearing_now + M_PI_F;
+			crosstrack_error->distance = radius - dist_to_center;
+			crosstrack_error->bearing = bearing_now + M_PI_F;
 
 		} else {
-			return_var.distance = dist_to_center - radius;
-			return_var.bearing = bearing_now;
+			crosstrack_error->distance = dist_to_center - radius;
+			crosstrack_error->bearing = bearing_now;
 		}
 
 		// If out of the sector then calculate dist and bearing to start or end point
@@ -359,21 +362,22 @@ __EXPORT crosstrack_error_s get_distance_to_arc(double lat_now, double lon_now, 
 		float dist_to_start = get_distance_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
 		float dist_to_end = get_distance_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 
+
 		if (dist_to_start < dist_to_end) {
-			return_var.distance = dist_to_start;
-			return_var.bearing = get_bearing_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
+			crosstrack_error->distance = dist_to_start;
+			crosstrack_error->bearing = get_bearing_to_next_waypoint(lat_now, lon_now, lat_start, lon_start);
 
 		} else {
-			return_var.past_end = true;
-			return_var.distance = dist_to_end;
-			return_var.bearing = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
+			crosstrack_error->past_end = true;
+			crosstrack_error->distance = dist_to_end;
+			crosstrack_error->bearing = get_bearing_to_next_waypoint(lat_now, lon_now, lat_end, lon_end);
 		}
 
 	}
 
-	return_var.bearing = _wrapPI(return_var.bearing);
-	return_var.error = false;
-	return return_var;
+	crosstrack_error->bearing = _wrapPI(crosstrack_error->bearing);
+	return_value = OK;
+	return return_value;
 }
 
 float _wrapPI(float bearing)

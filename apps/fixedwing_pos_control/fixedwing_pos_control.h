@@ -1,9 +1,9 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
- *           Julian Oes <joes@student.ethz.ch>
- *           Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @author Doug Weibel <douglas.weibel@colorado.edu>
+ *           @author Lorenz Meier <lm@inf.ethz.ch>
+ 			 @author Thomas Gubler <thomasgubler@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,44 +34,40 @@
  *
  ****************************************************************************/
 
-/**
- * @file geo.h
- *
- * Definition of geo / math functions to perform geodesic calculations
- *
- * @author Thomas Gubler <thomasgubler@student.ethz.ch>
- * @author Julian Oes <joes@student.ethz.ch>
- * @author Lorenz Meier <lm@inf.ethz.ch>
- * Additional functions - @author Doug Weibel <douglas.weibel@colorado.edu>
+/*
+ * @file fixedwing_pos_control.h
+ * Position control for fixed wing airframes.
  */
 
+#ifndef FIXEDWING_POS_CONTROL_H_
+#define FIXEDWING_POS_CONTROL_H_
 
-#include <stdbool.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/actuator_controls.h>
 
-struct crosstrack_error_s {
-	bool past_end;		// Flag indicating we are past the end of the line/arc segment
-	float distance;		// Distance in meters to closest point on line/arc
-	float bearing;		// Bearing in radians to closest point on line/arc
-} ;
+#endif 
 
-__EXPORT static void map_projection_init(double lat_0, double lon_0);
 
-__EXPORT static void map_projection_project(double lat, double lon, float *x, float *y);
+struct planned_path_segments_s {
+	bool segment_type;
+	double start_lat;			// Start of line or center of arc
+	double start_lon;
+	double end_lat;
+	double end_lon;
+	float radius;				// Radius of arc
+	float arc_start_bearing;		// Bearing from center to start of arc
+	float arc_sweep;				// Angle (radians) swept out by arc around center.  
+								// Positive for clockwise, negative for counter-clockwise
+};
 
-__EXPORT static void map_projection_reproject(float x, float y, double *lat, double *lon);
-
-__EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
-
-__EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
-
-//
-
-__EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end);
-
-__EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_center, double lon_center,
-		float radius, float arc_start_bearing, float arc_sweep);
 
 float _wrap180(float bearing);
 float _wrap360(float bearing);
 float _wrapPI(float bearing);
 float _wrap2PI(float bearing);
+
+/* FIXEDWING_CONTROL_H_ */
+
