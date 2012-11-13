@@ -467,6 +467,7 @@ PX4IO::rx_callback(const uint8_t *buffer, size_t bytes_received)
 
 	/* publish raw rc channel values from IO */
 	_input_rc.timestamp = hrt_absolute_time();
+	_input_rc.channel_count = rep->channel_count;
 	for (int i = 0; i < rep->channel_count; i++)
 	{
 		_input_rc.values[i] = rep->rc_channel[i];
