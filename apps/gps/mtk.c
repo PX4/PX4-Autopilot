@@ -418,10 +418,11 @@ void *mtk_watchdog_loop(void *args)
 				mtk_gps->satellite_info_available = 0;
 				// global_data_send_subsystem_info(&mtk_present_enabled_healthy);
 				mavlink_log_info(mavlink_fd, "[gps] MTK custom binary module found, status ok\n");
-				mtk_healthy = true;
-				mtk_fail_count = 0;
-				once_ok = true;
 			}
+
+			mtk_healthy = true;
+			mtk_fail_count = 0;
+			once_ok = true;
 		}
 
 		usleep(MTK_WATCHDOG_WAIT_TIME_MICROSECONDS);

@@ -58,6 +58,7 @@
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
@@ -204,6 +205,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	memset(&raw, 0, sizeof(raw));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
+	struct vehicle_status_s state;
+	memset(&state, 0, sizeof(state));
 
 	uint64_t last_data = 0;
 	uint64_t last_measurement = 0;
@@ -216,6 +219,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	/* subscribe to param changes */
 	int sub_params = orb_subscribe(ORB_ID(parameter_update));
 
+	/* subscribe to system state*/
+	int sub_state = orb_subscribe(ORB_ID(vehicle_status));
+
 	/* advertise attitude */
 	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
@@ -226,13 +232,15 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	/* advertise debug value */
-	struct debug_key_value_s dbg = { .key = "", .value = 0.0f };
-	orb_advert_t pub_dbg = -1;
+	// struct debug_key_value_s dbg = { .key = "", .value = 0.0f };
+	// orb_advert_t pub_dbg = -1;
+	
+	float sensor_update_hz[3] = {0.0f, 0.0f, 0.0f};
+	// XXX write this out to perf regs
 
 	/* keep track of sensor updates */
 	uint32_t sensor_last_count[3] = {0, 0, 0};
 	uint64_t sensor_last_timestamp[3] = {0, 0, 0};
-	float sensor_update_hz[3] = {0.0f, 0.0f, 0.0f};
 
 	struct attitude_estimator_ekf_params ekf_params;
 
@@ -259,8 +267,12 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 		if (ret < 0) {
 			/* XXX this is seriously bad - should be an emergency */
 		} else if (ret == 0) {
-			/* XXX this means no sensor data - should be critical or emergency */
-			printf("[attitude estimator ekf] WARNING: Not getting sensor data - sensor app running?\n");
+			/* check if we're in HIL - not getting sensor data is fine then */
+			orb_copy(ORB_ID(vehicle_status), sub_state, &state);
+			if (!state.flag_hil_enabled) {
+				fprintf(stderr, 
+					"[att ekf] WARNING: Not getting sensors - sensor app running?\n");
+			}
 		} else {
 
 			/* only update parameters if they changed */
@@ -347,9 +359,6 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						overloadcounter++;
 					}
 
-					int32_t z_k_sizes = 9;
-					// float u[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-
 					static bool const_initialized = false;
 
 					/* initialize with good values once we have a reasonable dt estimate */
@@ -392,7 +401,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						continue;
 					}
 					
-					uint64_t timing_diff = hrt_absolute_time() - timing_start;
+					// uint64_t timing_diff = hrt_absolute_time() - timing_start;
 
 					// /* print rotation matrix every 200th time */
 					if (printcounter % 200 == 0) {
