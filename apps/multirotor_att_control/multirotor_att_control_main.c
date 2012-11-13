@@ -83,10 +83,6 @@ static orb_advert_t actuator_pub;
 
 static struct vehicle_status_s state;
 
-static bool heading_set = false;
-static float initial_heading = 0.0f;
-static int debug_log_counter = 0;
-
 static int
 mc_thread_main(int argc, char *argv[])
 {
@@ -144,8 +140,12 @@ mc_thread_main(int argc, char *argv[])
 	/* store last control mode to detect mode switches */
 	bool flag_control_manual_enabled = false;
 	bool flag_control_attitude_enabled = false;
+	bool flag_control_simple_mode_enabled = false;
 	bool flag_system_armed = false;
 	bool man_yaw_zero_once = false;
+
+	float initial_heading = 0.0f;
+	int debug_log_counter = 0;
 
 	while (!thread_should_exit) {
 
@@ -230,32 +230,27 @@ mc_thread_main(int argc, char *argv[])
 				float roll = manual.roll;
 				float pitch = manual.pitch;
 				if (state.flag_control_simple_mode_enabled) {
-					if (state.flag_system_armed) {
-						if (!heading_set) {
-							initial_heading = att.yaw;
-							heading_set = true;
-						}
+					if (!flag_control_simple_mode_enabled || !flag_system_armed) {
+						initial_heading = att.yaw;
+						printf("init_head: %2.3f", initial_heading); 
+					}
 
-						float theta = initial_heading - att.yaw;
+					float theta = initial_heading - att.yaw;
 
-						float cos_theta = cosf(theta);						
-						float sin_theta = sinf(theta);
+					float cos_theta = cosf(theta);						
+					float sin_theta = sinf(theta);
 
-						/* rotate the roll/pitch inputs */
-						roll  = manual.roll  * cos_theta - manual.pitch * sin_theta;
-						pitch = manual.roll  * sin_theta + manual.pitch * cos_theta;
+					/* rotate the roll/pitch inputs */
+					roll  = manual.roll  * cos_theta - manual.pitch * sin_theta;
+					pitch = manual.roll  * sin_theta + manual.pitch * cos_theta;
 
-						if (++debug_log_counter % 50 == 0) {
-							printf("att.yaw: %2.3f init_head: %2.3f delta: %2.3f roll: %2.3f newroll: %2.3f pitch: %2.3f newpitch: %2.3f\n", att.yaw, initial_heading, theta, manual.roll, roll, manual.pitch, pitch);
-							debug_log_counter = 0;
-						}
-					} else {
-						heading_set = false;
+					if (++debug_log_counter % 50 == 0) {
+						printf("att.yaw: %2.3f init_head: %2.3f delta: %2.3f roll: %2.3f newroll: %2.3f pitch: %2.3f newpitch: %2.3f\n", att.yaw, initial_heading, theta, manual.roll, roll, manual.pitch, pitch);
 					}
     				}
+
 				att_sp.roll_body = roll;
 				att_sp.pitch_body = pitch;
-
 				att_sp.thrust = manual.throttle;
 				att_sp.timestamp = hrt_absolute_time();
 			}
@@ -306,6 +301,7 @@ mc_thread_main(int argc, char *argv[])
 		/* update state */
 		flag_control_attitude_enabled = state.flag_control_attitude_enabled;
 		flag_control_manual_enabled = state.flag_control_manual_enabled;
+		flag_control_simple_mode_enabled = state.flag_control_simple_mode_enabled;
 		flag_system_armed = state.flag_system_armed;
 
 		perf_end(mc_loop_perf);
