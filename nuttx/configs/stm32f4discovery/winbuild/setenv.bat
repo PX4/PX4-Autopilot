@@ -1,3 +1,5 @@
+@echo off
+
 rem configs/stm32f4discovery/winbuild/setenv.sh
 rem
 rem   Copyright (C) 2012 Gregory Nutt. All rights reserved.

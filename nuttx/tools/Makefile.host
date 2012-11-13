@@ -33,43 +33,86 @@
 #
 ############################################################################
 
-all: mkconfig mkversion mksyscall bdf-converter
-default: mkconfig mksyscall
+TOPDIR ?= ${shell pwd}/..
+-include $(TOPDIR)/Make.defs
+include ${TOPDIR}/tools/Config.mk
+
+all: mkconfig$(EXEEXT) mkversion$(EXEEXT) mksyscall$(EXEEXT) bdf-converter$(EXEEXT) mksymtab$(EXEEXT) mkdeps$(EXEEXT)
+default: mkconfig$(EXEEXT) mksyscall$(EXEEXT) mkdeps$(EXEEXT)
+
+ifdef EXEEXT
+.PHONY: clean mkconfig mkversion mksyscall bdf-converter mksymtab mkdeps
+else
 .PHONY: clean
+endif
 
-# Add CFLAGS=-g on the make command line build debug versions
+# Add HOSTCFLAGS=-g on the make command line build debug versions
 
-CFLAGS = -O2 -Wall -I.
+HOSTCFLAGS ?= -O2 -Wall -I.
+HOSTCC ?= gcc
 
 # mkconfig - Convert a .config file into a C config.h file
 
-mkconfig: mkconfig.c cfgparser.c
-	$(Q) gcc $(CFLAGS) -o mkconfig mkconfig.c cfgparser.c
+mkconfig$(EXEEXT): mkconfig.c cfgparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkconfig$(EXEEXT) mkconfig.c cfgparser.c
+
+ifdef EXEEXT
+mkconfig: mkconfig$(EXEEXT)
+endif
 
 # cmpconfig - Compare the contents of two configuration files
 
 cmpconfig: cmpconfig.c
-	$(Q) gcc $(CFLAGS) -o cmpconfig cmpconfig.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o cmpconfig cmpconfig.c
+
+ifdef EXEEXT
+cmpconfig: cmpconfig$(EXEEXT)
+endif
 
 # mkversion - Convert a .version file into a C version.h file
 
-mkversion: mkconfig.c cfgparser.c
-	$(Q) gcc $(CFLAGS) -o mkversion mkversion.c cfgparser.c
+mkversion$(EXEEXT): mkconfig.c cfgparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkversion$(EXEEXT) mkversion.c cfgparser.c
+
+ifdef EXEEXT
+mkversion: mkversion$(EXEEXT)
+endif
 
 # mksyscall - Convert a CSV file into syscall stubs and proxies
 
-mksyscall: mksyscall.c csvparser.c
-	$(Q) gcc $(CFLAGS) -o mksyscall mksyscall.c csvparser.c
+mksyscall$(EXEEXT): mksyscall.c csvparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mksyscall$(EXEEXT) mksyscall.c csvparser.c
+
+ifdef EXEEXT
+mksyscall: mksyscall$(EXEEXT)
+endif
 
 # mksymtab - Convert a CSV file into a symbol table
 
-mksymtab: mksymtab.c csvparser.c
-	$(Q) gcc $(CFLAGS) -o mksymtab mksymtab.c csvparser.c
+mksymtab$(EXEEXT): mksymtab.c csvparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mksymtab$(EXEEXT) mksymtab.c csvparser.c
+
+ifdef EXEEXT
+mksymtab: mksymtab$(EXEEXT)
+endif
 
 # bdf-converter - Converts a BDF font to the NuttX font format
 
-bdf-converter: bdf-converter.c
-	$(Q) gcc $(CFLAGS) -o bdf-converter bdf-converter.c
+bdf-converter$(EXEEXT): bdf-converter.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o bdf-converter$(EXEEXT) bdf-converter.c
+
+ifdef EXEEXT
+bdf-converter: bdf-converter$(EXEEXT)
+endif
+
+# Create dependencies for a list of files
+
+mkdeps$(EXEEXT): mkdeps.c csvparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkdeps$(EXEEXT) mkdeps.c
+
+ifdef EXEEXT
+mkdeps: mkdeps$(EXEEXT)
+endif
 
 clean:
 	$(Q) rm -f *.o *.a *~ .*.swp

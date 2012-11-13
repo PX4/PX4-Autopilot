@@ -271,6 +271,8 @@ mkromfsimg.sh
   may be mounted under /etc in the NuttX pseudo file system.
 
 mkdeps.sh
+mkdeps.bat
+mkdeps.c
 mknulldeps.sh
 
   NuttX uses the GCC compilers capabilities to create Makefile dependencies.
@@ -278,7 +280,8 @@ mknulldeps.sh
   dependencies.  If a NuttX configuration uses the GCC toolchain, its Make.defs
   file (see configs/README.txt) will include a line like:
 
-    MKDEP = $(TOPDIR)/tools/mkdeps.sh
+    MKDEP = $(TOPDIR)/tools/mkdeps.sh, or
+    MKDEP = $(TOPDIR)/tools/mkdeps[.exe] (See NOTE below)
 
   If the NuttX configuration does not use a GCC compatible toolchain, then
   it cannot use the dependencies and instead it uses mknulldeps.sh:
@@ -286,6 +289,21 @@ mknulldeps.sh
     MKDEP = $(TOPDIR)/tools/mknulldeps.sh
 
   The mknulldeps.sh is a stub script that does essentially nothing.
+
+  NOTE:  The mkdep.* files are undergoing change.  mkdeps.sh is a bash
+  script that produces dependencies well for POSIX style hosts (e..g.,
+  Linux and Cygwin).  It does not work well for mixed environments with
+  a Windows toolchain running in a POSIX style environemnt (hence, the
+  mknulldeps.sh script).
+
+  mkdeps.bat is a simple port of the bash script to run in a Windows
+  command shell.  However, it does not work well either because some
+  of the common CFLAGS use characters like '=' which are transformed
+  by the CMD.exe shell.
+
+  mkdeps.c generates mkdeps (on Linux) or mkdeps.exe (on Windows).
+  This C version should solve all of the issues.  However, this verison
+  is still under-development.
 
 define.sh
 

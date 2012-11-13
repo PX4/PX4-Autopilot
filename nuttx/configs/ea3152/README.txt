@@ -76,14 +76,7 @@ GNU Toolchain Options
      because the dependencies are generated using Windows pathes which do not
      work with the Cygwin make.
 
-     Support has been added for making dependencies with the windows-native toolchains.
-     That support can be enabled by modifying your Make.defs file as follows:
-
-    -  MKDEP                = $(TOPDIR)/tools/mknulldeps.sh
-    +  MKDEP                = $(TOPDIR)/tools/mkdeps.sh --winpaths "$(TOPDIR)"
-
-     If you have problems with the dependency build (for example, if you are not
-     building on C:), then you may need to modify tools/mkdeps.sh
+       MKDEP                = $(TOPDIR)/tools/mknulldeps.sh
 
   NOTE 1: The CodeSourcery toolchain (2009q1) does not work with default optimization
   level of -Os (See Make.defs).  It will work with -O0, -O1, or -O2, but not with

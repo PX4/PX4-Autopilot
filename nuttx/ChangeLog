@@ -3608,3 +3608,8 @@
 	* configs/stm32f4discovery/winbuild:  This is a version of the standard
 	  NuttX OS test, but configured to build natively on Windows.  Its only
 	  real purpose is to very the native Windows build logic.
+	* tools/mkdeps.bat and tools/mkdeps.c:  mkdeps.bat is a failed attempt
+	  to leverage mkdeps.sh to CMD.exe.  It fails because the are certain
+	  critical CFLAG values that cannot be passed on the CMD.exe command line
+	  (line '=').  mkdeps.c is a work in progress that will, hopefully,
+	  replace both mkdeps.sh and mkdeps.bat.

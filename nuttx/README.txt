@@ -578,18 +578,16 @@ Window Native Toolchain Issues
      is not a long as you might think because there is no dependency checking
      if you are using a native Windows toolchain.  That bring us to #3:
 
-  3. Dependencies are not made when using Windows versions of the GCC.  This is
-     because the dependencies are generated using Windows pathes which do not
-     work with the Cygwin make.
+  3. Dependencies are not made when using Windows versions of the GCC on a POSIX
+     platform (i.e., Cygwin).  This is because the dependencies are generated
+     using Windows paths which do not work with the Cygwin make.
 
-     Support has been added for making dependencies with the windows-native toolchains.
-     That support can be enabled by modifying your Make.defs file as follows:
+       MKDEP                = $(TOPDIR)/tools/mknulldeps.sh
 
-    -  MKDEP                = $(TOPDIR)/tools/mknulldeps.sh
-    +  MKDEP                = $(TOPDIR)/tools/mkdeps.sh --winpaths "$(TOPDIR)"
+     If you are building natively on Windows, then no such conflict exists
+     and the best selection is:
 
-     If you have problems with the dependency build (for example, if you are not
-     building on C:), then you may need to modify tools/mkdeps.sh
+       MKDEP                = $(TOPDIR)/tools/mkdeps.exe 
 
 General Pre-built Toolchain Issues
 
