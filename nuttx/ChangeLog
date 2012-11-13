@@ -3616,3 +3616,10 @@
 	* tools/Config.mk:  Centralize the definition of the scrpt that will be
 	  used to generated header file include paths for the compiler.  This
 	  needs to be centralized in order to support the Windows native build.
+	* tools/incdir.bat:  A replaced for tools/incdir.sh for use with the
+	  the Windows native build.
+	* Makefile.unix:  The existing top-level Makefile has been renamed
+	  Makefile.unix.
+	* Makefile:  This is a new top-level Makefile that just includes
+	  either Makefile.unix or Makefile.win
+

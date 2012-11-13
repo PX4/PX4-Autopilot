@@ -352,12 +352,17 @@ define.sh
   without concern for the particular compiler in use.
 
 incdir.sh
+incdir.bat
 ---------
 
   Different compilers have different conventions for specifying lists
-  of include file paths on the the compiler command line.  This bash
-  script allows the build system to create include file paths without
+  of include file paths on the the compiler command line.  This incdir.sh
+  bash script allows the build system to create include file paths without
   concern for the particular compiler in use.
+
+  The incdir.bat script is a counterpart for use in the native Windows
+  build.  However, their is currently only one compiler supported in
+  that context:  MinGW-GCC.
 
 link.sh
 winlink.sh
