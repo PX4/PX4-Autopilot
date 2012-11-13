@@ -396,7 +396,8 @@ static void do_dependency(const char *file, char separator)
       ret = system(command);
       if (ret != 0)
         {
-          fprintf(stderr, "ERROR: ssystem(%s) failed\n", command);
+          fprintf(stderr, "ERROR: system failed: %s\n", strerror(errno));
+          fprintf(stderr, "       command: %s\n", command);
           exit(EXIT_FAILURE);
         }
  

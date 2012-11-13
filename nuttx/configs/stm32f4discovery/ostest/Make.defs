@@ -172,4 +172,9 @@ HOSTCC = gcc
 HOSTINCLUDES = -I.
 HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -g -pipe
 HOSTLDFLAGS =
+ifeq ($(CONFIG_HOST_WINDOWS),y)
+  HOSTEXEEXT = .exe
+else
+  HOSTEXEEXT =
+endif
 

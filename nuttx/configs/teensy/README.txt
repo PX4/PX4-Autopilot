@@ -268,10 +268,6 @@ Windows Native Toolchains
      is because the dependencies are generated using Windows pathes which do
      not work with the Cygwin make.
 
-     Support has been added for making dependencies with the windows-native
-     toolchains.  That support can be enabled by modifying your Make.defs
-     file as follows:
-
        MKDEP = $(TOPDIR)/tools/mknulldeps.sh
 
   An additional issue with the WinAVR toolchain, in particular, is that it

@@ -91,9 +91,6 @@ GNU Toolchain Options
      because the dependencies are generated using Windows pathes which do not
      work with the Cygwin make.
 
-     Support has been added for making dependencies with the windows-native toolchains.
-     That support can be enabled by modifying your Make.defs file as follows:
-
        MKDEP                = $(TOPDIR)/tools/mknulldeps.sh
 
   The CodeSourcery Toolchain (2009q1)

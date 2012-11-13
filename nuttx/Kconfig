@@ -45,22 +45,30 @@ choice
 
 config WINDOWS_NATIVE
 	bool "Windows Native"
+	---help---
+		Build natively in a CMD.exe environment with Windows style paths (like C:\cgywin\home)
 
 config WINDOWS_CYGWIN
 	bool "Cygwin"
+-	--help---
+		Build natively in a Cygwin environment with POSIX style paths (like /cygdrive/c/cgywin/home)
 
 config WINDOWS_MSYS
 	bool "MSYS"
+	---help---
+		Build natively in a Cygwin environment with POSIX style paths (like /cygdrive/c/cgywin/home)
 
 config WINDOWS_OTHER
-	bool "Other POSIX-like environment"
+	bool "Windows POSIX-like environment"
+	---help---
+		Build natively in another POSIX-like environment.  Additional support may be necessary
 
 endchoice
 
 config WINDOWS_MKLINK
 	bool "Use mklink"
 	default y
-	depends on HOST_WINDOWS
+	depends on WINDOWS_NATIVE
 	---help---
 		Use the mklink command to set up symbolic links when NuttX is
 		configured.  Otherwise, configuration directories will be copied to
