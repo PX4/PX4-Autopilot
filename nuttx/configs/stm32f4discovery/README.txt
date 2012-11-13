@@ -1084,8 +1084,10 @@ Where <subdir> is one of the following:
        b. Execute 'make menuconfig' in nuttx/ in order to start the
           reconfiguration process.
 
-    2. Default toolchain:
+    2. Default platform/toolchain:
 
+       CONFIG_HOST_WINDOWS=y         : Windows
+       CONFIG_WINDOWS_CYGWIN=y       : Cygwin environment on Windows
        CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
 
     3. By default, this project assumes that you are *NOT* using the DFU
@@ -1459,6 +1461,10 @@ Where <subdir> is one of the following:
       be performed in a Windows CMD shell. Here is a better shell than than the
       standard issue, CMD shell:  ConEmu which can be downloaded from:
       http://code.google.com/p/conemu-maximus5/
+
+       CONFIG_HOST_WINDOWS=y         : Windows
+       CONFIG_WINDOWS_NATIVE=y       : Native Windows environment
+       CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
 
       Build Tools.  The build still relies on some Unix-like commands.  I use
       the GNUWin32 tools that can be downloaded from http://gnuwin32.sourceforge.net/.

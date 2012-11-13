@@ -288,6 +288,7 @@ static void do_dependency(const char *file, char separator)
   struct stat buf;
   char *altpath;
   char *path;
+  char *lasts;
   int cmdlen;
   int pathlen;
   int filelen;
@@ -330,15 +331,15 @@ static void do_dependency(const char *file, char separator)
   /* Add a space */
 
   command[cmdlen] = ' ';
-  command[cmdlen+1] = '\0';
   cmdlen++;
+  command[cmdlen] = '\0';
 
   /* Try each path.  This loop will continue until each path has been tried
    * (failure) or until stat() finds the file
    */
 
   altpath = g_altpath;
-  while ((path = strtok(altpath, " ")) != NULL)
+  while ((path = strtok_r(altpath, " ", &lasts)) != NULL)
     {
       /* Create a full path to the file */
 
@@ -565,6 +566,7 @@ static void do_winpath(char *file)
 
 int main(int argc, char **argv, char **envp)
 {
+  char *lasts;
   char *files;
   char *file;
 
@@ -575,7 +577,7 @@ int main(int argc, char **argv, char **envp)
   /* Then generate dependencies for each path on the command line */
 
   files = g_files;
-  while ((file = strtok(files, " ")) != NULL)
+  while ((file = strtok_r(files, " ", &lasts)) != NULL)
     {
       /* Check if we need to do path conversions for a Windows-natvie tool
        * being using in a POSIX/Cygwin environment.

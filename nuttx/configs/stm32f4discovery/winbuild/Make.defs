@@ -81,7 +81,6 @@ LDSCRIPT = ld.script
 
 # Windows-native toolchains
 
-MKDEP = $(TOPDIR)/tools/mkdeps.bat
 ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
 ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
 ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
@@ -136,4 +135,8 @@ HOSTINCLUDES = -I.
 HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -g -pipe
 HOSTLDFLAGS =
 HOSTEXEEXT = .exe
+
+# Windows-native host tools
+
+MKDEP = $(TOPDIR)/tools/mkdeps.exe
 

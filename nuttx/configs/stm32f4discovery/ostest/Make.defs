@@ -105,16 +105,12 @@ LDSCRIPT = ld.script
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains
-  DIRLINK = $(TOPDIR)/tools/winlink.sh
-  DIRUNLINK = $(TOPDIR)/tools/unlink.sh
-  MKDEP = $(TOPDIR)/tools/mknulldeps.sh
   ARCHINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}"
   ARCHXXINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}" -isystem "${shell cygpath -w $(TOPDIR)/include/cxx}"
   ARCHSCRIPT = -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)}"
   MAXOPTIMIZATION = -O2
 else
-  # Linux/Cygwin-native toolchain 
-  MKDEP = $(TOPDIR)/tools/mkdeps.sh
+  # Linux/Cygwin-native toolchain
   ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
   ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
   ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
@@ -176,5 +172,15 @@ ifeq ($(CONFIG_HOST_WINDOWS),y)
   HOSTEXEEXT = .exe
 else
   HOSTEXEEXT =
+endif
+
+ifeq ($(WINTOOL),y)
+  # Windows-native host tools
+  DIRLINK = $(TOPDIR)/tools/winlink.sh
+  DIRUNLINK = $(TOPDIR)/tools/unlink.sh
+  MKDEP = $(TOPDIR)/tools/mknulldeps.sh
+else
+  # Linux/Cygwin-native host tools 
+  MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
 endif
 
