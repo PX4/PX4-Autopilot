@@ -47,9 +47,9 @@
 #define _LED_BASE		0x2800
 
 /* PX4 LED colour codes */
-#define LED_AMBER		0
-#define LED_RED			0	/* some boards have red rather than amber */
-#define LED_BLUE		1
+#define LED_AMBER		1
+#define LED_RED			1	/* some boards have red rather than amber */
+#define LED_BLUE		0
 #define LED_SAFETY		2
 
 #define LED_ON			_IOC(_LED_BASE, 0)
