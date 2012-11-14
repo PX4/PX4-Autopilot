@@ -199,9 +199,9 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		/* update parameters from storage */
 		parameters_update(&h, &p);
 
-		/* apply parameters */
-		printf("att ctrl: delays: %d us sens->ctrl, rate: %d Hz, input: %d Hz\n", sensor_delay, (int)(1.0f/deltaT), (int)(1.0f/dT_input));
+		//printf("att ctrl: delays: %d us sens->ctrl, rate: %d Hz, input: %d Hz\n", sensor_delay, (int)(1.0f/deltaT), (int)(1.0f/dT_input));
 
+		/* apply parameters */
 		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
 		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
 	}
