@@ -46,27 +46,25 @@ CNTXTDIRS =
 all: nothing
 .PHONY: nothing context depend clean distclean
 
+define SDIR_template
+$(1)_$(2):
+	$(MAKE) -C $(1) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
+endef
+
+$(foreach SDIR, $(CNTXTDIRS), $(eval $(call SDIR_template,$(SDIR),context)))
+$(foreach SDIR, $(SUBDIRS), $(eval $(call SDIR_template,$(SDIR),depend)))
+$(foreach SDIR, $(SUBDIRS), $(eval $(call SDIR_template,$(SDIR),clean)))
+$(foreach SDIR, $(SUBDIRS), $(eval $(call SDIR_template,$(SDIR),disclean)))
+
 nothing:
 
-context:
-	@for dir in $(CNTXTDIRS) ; do \
-		$(MAKE) -C $$dir context TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
-	done
+context: $(foreach SDIR, $(CNTXTDIRS), $(SDIR)_context)
 
-depend:
-	@for dir in $(SUBDIRS) ; do \
-		$(MAKE) -C $$dir depend TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
-	done
+depend: $(foreach SDIR, $(SUBDIRS), $(SDIR)_depend)
 
-clean:
-	@for dir in $(SUBDIRS) ; do \
-		$(MAKE) -C $$dir clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
-	done
+clean: $(foreach SDIR, $(SUBDIRS), $(SDIR)_clean)
 
-distclean: clean
-	@for dir in $(SUBDIRS) ; do \
-		$(MAKE) -C $$dir distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
-	done
+distclean: clean $(foreach SDIR, $(SUBDIRS), $(SDIR)_distclean)
 
 -include Make.dep
 

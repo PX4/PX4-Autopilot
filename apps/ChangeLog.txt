@@ -417,4 +417,5 @@
 	* apps/examples/modbus:  Fixes from Freddie Chopin
 	* apps/examples/modbus/Kconfig: Kconfig logic for FreeModBus contributed
 	  by Freddie Chopin.
-
+	* Makefile, */Makefile:  Various fixes for Windows native build.  Now uses
+	  make foreach loops instead of shell loops.

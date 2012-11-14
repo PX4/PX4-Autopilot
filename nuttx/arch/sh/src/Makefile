@@ -130,9 +130,11 @@ nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT)
 	@echo "LD: nuttx"
 	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) -o $(TOPDIR)/$@ $(HEAD_OBJ) \
 		--start-group $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) $(NM) $(TOPDIR)/$@ | \
 	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
 	sort > $(TOPDIR)/System.map
+endif
 
 # This is part of the top-level export target
 

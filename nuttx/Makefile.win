@@ -457,8 +457,8 @@ clean_context:
 # configuration files have been installed and that NuttX is ready to be built.
 
 check_context:
-	if not exist $(TOPDIR)\.config echo "$(TOPDIR)\.config does not exist"
-	if not exist $(TOPDIR)\Make.defs echo "$(TOPDIR)\Make.defs does not exist"
+	$(Q) if not exist $(TOPDIR)\.config echo "$(TOPDIR)\.config does not exist"
+	$(Q) if not exist $(TOPDIR)\Make.defs echo "$(TOPDIR)\Make.defs does not exist"
 
 # Archive targets.  The target build sequency will first create a series of
 # libraries, one per configured source file directory.  The final NuttX
@@ -594,15 +594,9 @@ pass2deps: pass2dep $(NUTTXLIBS)
 
 pass2: pass2deps
 	$(Q) $(MAKE) -C $(ARCH_SRC) TOPDIR="$(TOPDIR)" EXTRA_OBJS="$(EXTRA_OBJS)" LINKLIBS="$(LINKLIBS)" EXTRADEFINES=$(KDEFINE) $(BIN)
-	$(Q) if [ -w \tftpboot ] ; then \
-		cp -f $(BIN) \tftpboot\$(BIN).${CONFIG_ARCH}; \
-	fi
 ifeq ($(CONFIG_RRLOAD_BINARY),y)
 	@echo "MK: $(BIN).rr"
 	$(Q) $(TOPDIR)\tools\mkimage.sh --Prefix $(CROSSDEV) $(BIN) $(BIN).rr
-	$(Q) if [ -w \tftpboot ] ; then \
-		cp -f $(BIN).rr \tftpboot\$\(BIN).rr.$(CONFIG_ARCH); \
-	fi
 endif
 ifeq ($(CONFIG_INTELHEX_BINARY),y)
 	@echo "CP: $(BIN).hex"

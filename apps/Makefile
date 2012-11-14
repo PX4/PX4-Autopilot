@@ -104,7 +104,7 @@ endif
 # Create the list of available applications (INSTALLED_APPS)
 
 define ADD_BUILTIN
-INSTALLED_APPS += ${shell if [ -r $1/Makefile ]; then echo "$1"; fi}
+INSTALLED_APPS += $(if $(wildcard $1\Makefile),$1,)
 endef
 
 $(foreach BUILTIN, $(CONFIGURED_APPS), $(eval $(call ADD_BUILTIN,$(BUILTIN))))
@@ -128,45 +128,78 @@ all: $(BIN)
 .PHONY: $(INSTALLED_APPS) context depend clean distclean
 
 $(INSTALLED_APPS):
-	@$(MAKE) -C $@ TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)";
+	$(Q) $(MAKE) -C $@ TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
 
 $(BIN):	$(INSTALLED_APPS)
 
 .context:
-	@for dir in $(INSTALLED_APPS) ; do \
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) for %%G in ($(INSTALLED_APPS)) do ( \
+		if exist %%G\.context del /f /q %%G\.context \
+		$(MAKE) -C %%G TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" context \
+	)
+else
+	$(Q) for dir in $(INSTALLED_APPS) ; do \
 		rm -f $$dir/.context ; \
-		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)"  APPDIR="$(APPDIR)" context ; \
+		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" context ; \
 	done
-	@touch $@
+endif
+	$(Q) touch $@
 
 context: .context
 
 .depend: context Makefile $(SRCS)
-	@for dir in $(INSTALLED_APPS) ; do \
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) for %%G in ($(INSTALLED_APPS)) do ( \
+		if exist %%G\.depend del /f /q %%G\.depend \
+		$(MAKE) -C %%G TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" depend \
+	)
+else
+	$(Q) for dir in $(INSTALLED_APPS) ; do \
 		rm -f $$dir/.depend ; \
-		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)"  APPDIR="$(APPDIR)" depend ; \
+		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" depend ; \
 	done
-	@touch $@
+endif
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@for dir in $(SUBDIRS) ; do \
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) for %%G in ($(SUBDIRS)) do ( \
+		$(MAKE) -C %%G clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" \
+	)
+	$(Q) rm -f $(BIN) *~ .*.swp *.o
+else
+	$(Q) for dir in $(SUBDIRS) ; do \
 		$(MAKE) -C $$dir clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
 	done
-	@rm -f $(BIN) *~ .*.swp *.o
+	$(Q) rm -f $(BIN) *~ .*.swp *.o
+endif
 	$(call CLEAN)
 
 distclean: # clean
-	@for dir in $(SUBDIRS) ; do \
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) for %%G in ($(SUBDIRS)) do ( \
+		$(MAKE) -C %%G distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" \
+	)
+	$(Q) rm -f .config .context .depend
+	$(Q) ( if exist  external ( \
+		echo ********************************************************" \
+		echo * The external directory/link must be removed manually *" \
+		echo ********************************************************" \
+	)
+else
+	$(Q) for dir in $(SUBDIRS) ; do \
 		$(MAKE) -C $$dir distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
 	done
-	@rm -f .config .context .depend
-	@( if [ -e external ]; then \
+	$(Q) rm -f .config .context .depend
+	$(Q) ( if [ -e external ]; then \
 		echo "********************************************************"; \
 		echo "* The external directory/link must be removed manually *"; \
 		echo "********************************************************"; \
 	   fi; \
 	) 
+endif
 
 

@@ -142,9 +142,11 @@ nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT)
 	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) $(EXTRA_LIBPATHS) \
 		-o $(NUTTX)$(EXEEXT) $(HEAD_OBJ) $(EXTRA_OBJS) \
 		--start-group $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) $(NM) $(NUTTX)$(EXEEXT) | \
 	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
 	sort > $(TOPDIR)/System.map
+endif
 
 # This is part of the top-level export target
 # Note that there may not be a head object if layout is handled

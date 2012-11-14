@@ -3625,4 +3625,7 @@
 	* configs/stm3240g-eval/src:  Qencoder fixes from Ryan Sundberg.
 	* arch/arm/src/stm32/stm32_qencoder.c: TIM3 bug fix from Ryan Sundberg.
 	* tools/mkromfsimg.sh: Correct typo in an error message (Ryan Sundberg)
+	* arch/*/src/Makefile:  Remove tftboot install and creation of System.map
+	  for Windows native build.  The fist is necessary, the second just needs
+	  re-implemented.
 
