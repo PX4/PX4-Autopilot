@@ -634,8 +634,7 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_scale, (mag_scale *)arg, sizeof(_scale));
-		(void)check_calibration();
-		return 0;
+		return check_calibration();
 
 	case MAGIOCGSCALE:
 		/* copy out scale factors */
@@ -1012,7 +1011,12 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 out:
 
 	if (ret == OK) {
-		warnx("mag scale calibration successfully finished.");
+		if (!check_calibration()) {
+			warnx("mag scale calibration successfully finished.");
+		} else {
+			warnx("mag scale calibration finished with invalid results.");
+			ret == ERROR;
+		}
 
 	} else {
 		warnx("mag scale calibration failed.");
