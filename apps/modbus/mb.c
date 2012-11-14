@@ -399,10 +399,12 @@ eMBPoll( void )
                     ucMBFrame[usLength++] = ( uint8_t )( ucFunctionCode | MB_FUNC_ERROR );
                     ucMBFrame[usLength++] = eException;
                 }
+#ifdef CONFIG_MB_ASCII_ENABLED
                 if( ( eMBCurrentMode == MB_ASCII ) && CONFIG_MB_ASCII_TIMEOUT_WAIT_BEFORE_SEND_MS )
                 {
                     vMBPortTimersDelay( CONFIG_MB_ASCII_TIMEOUT_WAIT_BEFORE_SEND_MS );
-                }                
+                }
+#endif
                 eStatus = peMBFrameSendCur( ucMBAddress, ucMBFrame, usLength );
             }
             break;

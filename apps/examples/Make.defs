@@ -106,6 +106,10 @@ ifeq ($(CONFIG_EXAMPLES_MM),y)
 CONFIGURED_APPS += examples/mm
 endif
 
+ifeq ($(CONFIG_EXAMPLES_MODBUS),y)
+CONFIGURED_APPS += examples/modbus
+endif
+
 ifeq ($(CONFIG_EXAMPLES_MOUNT),y)
 CONFIGURED_APPS += examples/mount
 endif
