@@ -92,6 +92,10 @@ ifeq ($(CONFIG_INPUT_STMPE811),y)
 CSRCS		+= up_stmpe811.c
 endif
 
+ifeq ($(CONFIG_QENCODER),y)
+CSRCS		+= up_qencoder.c
+endif
+
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)

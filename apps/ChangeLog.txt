@@ -414,4 +414,7 @@
 	* apps/nshlib/nsh_dbgcmds.c:  Add hexdump command to dump the contents
 	  of a file (or character device) to the console  Contributed by Petteri
 	  Aimonen.
+	* apps/examples/modbus:  Fixes from Freddie Chopin
+	* apps/examples/modbus/Kconfig: Kconfig logic for FreeModBus contributed
+	  by Freddie Chopin.
 

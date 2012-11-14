@@ -3622,4 +3622,7 @@
 	  Makefile.unix.
 	* Makefile:  This is a new top-level Makefile that just includes
 	  either Makefile.unix or Makefile.win
+	* configs/stm3240g-eval/src:  Qencoder fixes from Ryan Sundberg.
+	* arch/arm/src/stm32/stm32_qencoder.c: TIM3 bug fix from Ryan Sundberg.
+	* tools/mkromfsimg.sh: Correct typo in an error message (Ryan Sundberg)
 
