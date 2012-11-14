@@ -93,6 +93,8 @@
 #define BAT_VOL_LOWPASS_2 0.01f
 #define VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS 3.5f
 
+#define PPM_INPUT_TIMEOUT_INTERVAL	50000 /**< 50 ms timeout / 20 Hz */
+
 /**
  * Sensor app start / stop handling function
  *
@@ -865,8 +867,10 @@ Sensors::ppm_poll()
 	struct rc_input_values raw;
 
 	raw.timestamp = ppm_last_valid_decode;
+	/* we are accepting this message */
+	_ppm_last_valid = ppm_last_valid_decode;
 
-	if (ppm_decoded_channels > 1) {
+	if (ppm_decoded_channels > 2 && hrt_absolute_time() - _ppm_last_valid < PPM_INPUT_TIMEOUT_INTERVAL) {
 
 		for (int i = 0; i < ppm_decoded_channels; i++) {
 			raw.values[i] = ppm_buffer[i];
