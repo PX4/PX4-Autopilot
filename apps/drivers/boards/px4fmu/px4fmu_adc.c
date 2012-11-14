@@ -67,10 +67,10 @@
 /* Identifying number of each ADC channel: Variable Resistor. */
 
 #ifdef CONFIG_STM32_ADC3
-static const uint8_t  g_chanlist[ADC3_NCHANNELS] = {10, 11};// , 12, 13}; ADC12 and 13 are used by MPU on v1.5 boards
+static const uint8_t  g_chanlist[ADC3_NCHANNELS] = {10, 11, 12};// , 12, 13}; ADC12 and 13 are used by MPU on v1.5 boards
 
 /* Configurations of pins used byte each ADC channels */
-static const uint32_t g_pinlist[ADC3_NCHANNELS]  = {GPIO_ADC3_IN10, GPIO_ADC3_IN11}; // ADC12 and 13 are used by MPU on v1.5 boards, GPIO_ADC3_IN12, GPIO_ADC3_IN13};
+static const uint32_t g_pinlist[ADC3_NCHANNELS]  = {GPIO_ADC3_IN10, GPIO_ADC3_IN11, GPIO_ADC3_IN12}; // ADC12 and 13 are used by MPU on v1.5 boards, GPIO_ADC3_IN12, GPIO_ADC3_IN13};
 #endif
 
 /************************************************************************************

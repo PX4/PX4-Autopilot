@@ -76,9 +76,9 @@ safety_check_button(void *arg)
 	/* 
 	 * Debounce the safety button, change state if it has been held for long enough.
 	 *
-	 * Ignore the button if FMU has not said it's OK to arm yet.
 	 */
-	if (BUTTON_SAFETY && system_state.arm_ok) {
+
+	if (BUTTON_SAFETY) {
 		if (arm_counter < ARM_COUNTER_THRESHOLD) {
 			arm_counter++;
 		} else if (arm_counter == ARM_COUNTER_THRESHOLD) {

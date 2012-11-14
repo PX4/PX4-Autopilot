@@ -37,7 +37,6 @@
  *
  * PX4IO is connected via serial (or possibly some other interface at a later
  * point).
-
  */
 
 #include <nuttx/config.h>
@@ -384,7 +383,7 @@ PX4IO::task_main()
 
 			if (fds[2].revents & POLLIN) {
 
-				orb_copy(ORB_ID(actuator_armed), _t_armed, &_controls);
+				orb_copy(ORB_ID(actuator_armed), _t_armed, &_armed);
 				_send_needed = true;
 			}
 		}
@@ -539,7 +538,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 	case PWM_SERVO_DISARM:
 		/* fake a disarmed transition */
-		_armed.armed = true;
+		_armed.armed = false;
 		_send_needed = true;
 		break;
 
