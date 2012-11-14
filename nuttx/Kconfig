@@ -87,7 +87,8 @@ menu "Build Configuration"
 
 config APPS_DIR
 	string "Application directory"
-	default "../apps"
+	default "../apps" if !WINDOWS_NATIVE
+	default "..\apps" if WINDOWS_NATIVE
 	---help---
 		Identifies the directory that builds the
 		application to link with NuttX.  Default: ../apps This symbol must be assigned

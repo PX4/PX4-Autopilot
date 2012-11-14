@@ -10,4 +10,44 @@ config EXAMPLES_MODBUS
 		Enable the FreeModBus example
 
 if EXAMPLES_MODBUS
+
+config EXAMPLES_MODBUS_PORT
+	int "Port used for MODBUS transmissions"
+	default 0
+	---help---
+		Port used for MODBUS transmissions, default = 0 (i.e., /dev/ttyS0)
+
+config EXAMPLES_MODBUS_BAUD
+	int "MODBUS baudrate"
+	default 38400
+	range 50 3000000
+	---help---
+		MODBUS baudrate, allowed values {50, 75, 110, 134, 150, 200, 300, 600,
+		1200, 1800, 2400, 4800, 9600, 19200, 38400, 57600, 115200, 128000,
+		230400, 256000, 460800, 500000, 576000, 921600, 1000000, 1152000,
+		1500000, 2000000, 2500000, 3000000}
+
+config EXAMPLES_MODBUS_PARITY
+	int "MODBUS parity"
+	default 2
+	range 0 2
+	---help---
+		MODBUS parity, 0 - none, 1 - odd, 2 - even
+
+config EXAMPLES_MODBUS_REG_INPUT_START
+	int "Input registers start address"
+	default 1000
+
+config EXAMPLES_MODBUS_REG_INPUT_NREGS
+	int "Number of input registers"
+	default 4
+
+config EXAMPLES_MODBUS_REG_HOLDING_START
+	int "Holding registers start address"
+	default 2000
+
+config EXAMPLES_MODBUS_REG_HOLDING_NREGS
+	int "Number of holding registers"
+	default 130
+
 endif
