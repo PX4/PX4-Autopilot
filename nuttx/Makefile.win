@@ -69,7 +69,7 @@ BOARD_DIR = configs\$(CONFIG_ARCH_BOARD)
 ifeq ($(CONFIG_APPS_DIR),)
 CONFIG_APPS_DIR = ..\apps
 endif
-APPDIR := ${shell if [ -r $(CONFIG_APPS_DIR)\Makefile ]; then echo "$(CONFIG_APPS_DIR)"; fi}
+APPDIR := ${shell if exist "$(CONFIG_APPS_DIR)\Makefile"  echo "$(CONFIG_APPS_DIR)"}
 
 # All add-on directories.
 #
@@ -245,7 +245,7 @@ endif
 
 # LINKLIBS derives from NUTTXLIBS and is simply the same list with the subdirectory removed
 
-LINKLIBS = $(patsubst lib\%,%,$(NUTTXLIBS))
+LINKLIBS = $(patsubst lib\\%,%,$(NUTTXLIBS))
 
 # This is the name of the final target (relative to the top level directorty)
 
@@ -339,7 +339,7 @@ include\nuttx\config.h: $(TOPDIR)\.config tools\mkconfig$(HOSTEXEEXT)
 
 # Targets used to create dependencies
 
-tools/mkdeps$(HOSTEXEEXT):
+tools\mkdeps$(HOSTEXEEXT):
 	$(Q) $(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)"  mkdeps$(HOSTEXEEXT)
 
 # dirlinks, and helpers
@@ -348,7 +348,7 @@ tools/mkdeps$(HOSTEXEEXT):
 # setting up symbolic links with 'generic' directory names to specific,
 # configured directories.
 #
-# Link the apps/include directory to include\apps
+# Link the apps\include directory to include\apps
 
 include\apps: Make.defs
 ifneq ($(APPDIR),)
@@ -640,10 +640,10 @@ download: $(BIN)
 # pass1dep: Create pass1 build dependencies
 # pass2dep: Create pass2 build dependencies
 
-pass1dep: context tools/mkdeps$(HOSTEXEEXT)
+pass1dep: context tools\mkdeps$(HOSTEXEEXT)
 	$(Q) for %%G in ($(USERDEPDIRS)) do ( $(MAKE) -C %%G TOPDIR="$(TOPDIR)" depend )
 
-pass2dep: context tools/mkdeps$(HOSTEXEEXT)
+pass2dep: context tools\mkdeps$(HOSTEXEEXT)
 	$(Q) for %%G in ($(KERNDEPDIRS)) do ( $(MAKE) -C %%G TOPDIR="$(TOPDIR)" EXTRADEFINES=$(KDEFINE) depend )
 
 # Configuration targets
@@ -686,7 +686,7 @@ export: pass2deps
 depend: pass1dep pass2dep
 
 subdir_clean:
-	$(Q) for %%G in ($(CLEANDIRS)) do ( if exist %%G/Makefile $(MAKE) -C %%G TOPDIR="$(TOPDIR)" clean )
+	$(Q) for %%G in ($(CLEANDIRS)) do ( if exist %%G\Makefile $(MAKE) -C %%G TOPDIR="$(TOPDIR)" clean )
 	$(Q) $(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)" clean
 	$(Q) $(MAKE) -C mm -f Makefile.test TOPDIR="$(TOPDIR)" clean
 ifeq ($(CONFIG_BUILD_2PASS),y)
@@ -698,7 +698,7 @@ clean: subdir_clean
 	$(Q) rm -f nuttx-export*
 
 subdir_distclean:
-	$(Q) for %%G in ($(CLEANDIRS)) do ( if exist %%G/Makefile $(MAKE) -C %%G TOPDIR="$(TOPDIR)" distclean )
+	$(Q) for %%G in ($(CLEANDIRS)) do ( if exist %%G\Makefile $(MAKE) -C %%G TOPDIR="$(TOPDIR)" distclean )
 
 distclean: clean subdir_distclean clean_context
 ifeq ($(CONFIG_BUILD_2PASS),y)

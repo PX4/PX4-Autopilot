@@ -36,21 +36,32 @@
 -include $(TOPDIR)/Make.defs
 -include chip/Make.defs
 
-ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(CONFIG_ARCH_I486),y)
 ARCH_SUBDIR = i486
 endif
 
-ifeq ($(WINTOOL),y)
-  NUTTX = "${shell cygpath -w $(TOPDIR)/nuttx}"
-  CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
-		-I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
-		-I "${shell cygpath -w $(ARCH_SRCDIR)/$(ARCH_SUBDIR)}" \
-		-I "${shell cygpath -w $(TOPDIR)/sched}"
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  ARCH_SRCDIR = $(TOPDIR)\arch\$(CONFIG_ARCH)\src
+  NUTTX = $(TOPDIR)\nuttx$(EXEEXT)
+  CFLAGS += -I$(ARCH_SRCDIR)\chip
+  CFLAGS += -I$(ARCH_SRCDIR)\common
+  CFLAGS += -I$(ARCH_SRCDIR)\$(ARCH_SUBDIR)
+  CFLAGS += -I$(TOPDIR)\sched
 else
-  NUTTX = $(TOPDIR)/nuttx
-  CFLAGS += -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common \
-		-I$(ARCH_SRCDIR)/$(ARCH_SUBDIR) -I$(TOPDIR)/sched
+  ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
+ifeq ($(WINTOOL),y)
+  NUTTX = "${shell cygpath -w $(TOPDIR)/nuttx$(EXEEXT)}"
+  CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}"
+  CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/common}"
+  CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/$(ARCH_SUBDIR)}"
+  CFLAGS += -I "${shell cygpath -w $(TOPDIR)/sched}"
+else
+  NUTTX = $(TOPDIR)/nuttx$(EXEEXT)
+  CFLAGS += -I$(ARCH_SRCDIR)/chip
+  CFLAGS += -I$(ARCH_SRCDIR)/common
+  CFLAGS += -I$(ARCH_SRCDIR)/$(ARCH_SUBDIR)
+  CFLAGS += -I$(TOPDIR)/sched
+endif
 endif
 
 HEAD_OBJ = $(HEAD_ASRC:.S=$(OBJEXT))
@@ -69,14 +80,14 @@ EXTRA_LIBS ?=
 LINKLIBS ?=
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  BOARDMAKE = ${shell if exist "$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board\Makefile" (echo "y")}
-  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)\lib"}"
+  BOARDMAKE = $(if $(wildcard .\board\Makefile),y,)
+  LIBPATHS += -L"$(TOPDIR)\lib"
 ifeq ($(BOARDMAKE),y)
-  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board"}"
+  LIBPATHS += -L"$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board"
 endif
 
 else
-  BOARDMAKE = ${shell if [ -r "$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board/Makefile" ]; then echo "y"; fi}
+  BOARDMAKE = $(if $(wildcard ./board/Makefile),y,)
 
 ifeq ($(WINTOOL),y)
   LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/lib"}"

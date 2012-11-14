@@ -109,7 +109,7 @@ nuttx.linkcmd:
 endif
 
 nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT) nuttx.linkcmd
-	@echo "LD:  nuttx.hex"
+	@echo "LD:  nuttx$(EXEEXT)"
 	@$(LD) $(LDFLAGS)
 
 .depend: Makefile chip/Make.defs $(DEPSRCS)

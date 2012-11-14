@@ -122,7 +122,7 @@ ifeq ($(CONFIG_ARCH_CHIP_EZ80F91),y)
 endif
 
 nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT) nuttx.linkcmd
-	@echo "LD:  nuttx.hex"
+	@echo "LD:  nuttx$(EXEEXT)"
 	$(Q) "$(LD)" $(LDFLAGS)
 
 .depend: Makefile chip/Make.defs $(DEPSRCS)

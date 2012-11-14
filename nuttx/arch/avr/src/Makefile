@@ -37,25 +37,34 @@
 -include $(TOPDIR)/Make.defs
 -include chip/Make.defs
 
-ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(CONFIG_ARCH_AVR32),y)
 ARCH_SUBDIR = avr32
 else ifeq ($(CONFIG_ARCH_AVR),y)
 ARCH_SUBDIR = avr
 endif
 
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  ARCH_SRCDIR = $(TOPDIR)\arch\$(CONFIG_ARCH)\src
+  NUTTX = "$(TOPDIR)\nuttx$(EXEEXT)"
+  INCLUDES += -I "$(ARCH_SRCDIR)\chip"
+  INCLUDES += -I "$(ARCH_SRCDIR)\common"
+  INCLUDES += -I "$(ARCH_SRCDIR)\$(ARCH_SUBDIR)"
+  INCLUDES += -I "$(TOPDIR)\sched"
+else
+  ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(WINTOOL),y)
-  NUTTX = "${shell cygpath -w $(TOPDIR)/nuttx}"
+  NUTTX = "${shell cygpath -w $(TOPDIR)/nuttx$(EXEEXT)}"
   INCLUDES += -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}"
   INCLUDES += -I "${shell cygpath -w $(ARCH_SRCDIR)/common}"
   INCLUDES += -I "${shell cygpath -w $(ARCH_SRCDIR)/$(ARCH_SUBDIR)}"
   INCLUDES += -I "${shell cygpath -w $(TOPDIR)/sched}"
 else
-  NUTTX = "$(TOPDIR)/nuttx"
+  NUTTX = "$(TOPDIR)/nuttx$(EXEEXT)"
   INCLUDES += -I "$(ARCH_SRCDIR)/chip"
   INCLUDES += -I "$(ARCH_SRCDIR)/common"
   INCLUDES += -I "$(ARCH_SRCDIR)/$(ARCH_SUBDIR)"
   INCLUDES += -I "$(TOPDIR)/sched"
+endif
 endif
 
 CPPFLAGS += $(INCLUDES)
@@ -79,14 +88,14 @@ EXTRA_LIBS ?=
 LINKLIBS ?=
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  BOARDMAKE = ${shell if exist "$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board\Makefile" (echo "y")}
-  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)\lib"}"
+  BOARDMAKE = $(if $(wildcard .\board\Makefile),y,)
+  LIBPATHS += -L"$(TOPDIR)\lib"
 ifeq ($(BOARDMAKE),y)
-  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board"}"
+  LIBPATHS += -L"$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board"
 endif
 
 else
-  BOARDMAKE = ${shell if [ -r "$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board/Makefile" ]; then echo "y"; fi}
+  BOARDMAKE = $(if $(wildcard ./board/Makefile),y,)
 
 ifeq ($(WINTOOL),y)
   LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/lib"}"
@@ -127,7 +136,7 @@ libarch$(LIBEXT): $(OBJS)
 board/libboard$(LIBEXT):
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
 
-nuttx: $(HEAD_OBJ) board/libboard$(LIBEXT)
+nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT)
 	@echo "LD: nuttx"
 	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) -o $(NUTTX)$(EXEEXT) $(HEAD_OBJ) $(EXTRA_OBJS) \
 		--start-group $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group

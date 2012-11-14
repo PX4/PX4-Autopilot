@@ -33,8 +33,8 @@
 #
 ############################################################################
 
-include ${TOPDIR}/.config
-include ${TOPDIR}/tools/Config.mk
+include ${TOPDIR}\.config
+include ${TOPDIR}\tools\Config.mk
 
 # Setup for the selected toolchain
 
@@ -81,9 +81,9 @@ LDSCRIPT = ld.script
 
 # Windows-native toolchains
 
-ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
-ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
-ARCHSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/$(LDSCRIPT)
+ARCHINCLUDES = -I. -isystem $(TOPDIR)\include
+ARCHXXINCLUDES = -I. -isystem $(TOPDIR)\include -isystem $(TOPDIR)\include\cxx
+ARCHSCRIPT = -T$(TOPDIR)\configs\$(CONFIG_ARCH_BOARD)\scripts\$(LDSCRIPT)
 
 CC = $(CROSSDEV)gcc.exe
 CXX = $(CROSSDEV)g++.exe
@@ -118,12 +118,12 @@ CPPFLAGS = $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 AFLAGS = $(CFLAGS) -D__ASSEMBLY__
 
 NXFLATLDFLAGS1 = -r -d -warn-common
-NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T$(TOPDIR)/binfmt/libnxflat/gnu-nxflat-pcrel.ld -no-check-sections
+NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T$(TOPDIR)\binfmt\libnxflat\gnu-nxflat-pcrel.ld -no-check-sections
 LDNXFLATFLAGS = -e main -s 2048
 
 OBJEXT = .o
 LIBEXT = .a
-EXEEXT = .exe
+EXEEXT =
 
 LDFLAGS += -nostartfiles -nodefaultlibs
 ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
@@ -138,5 +138,5 @@ HOSTEXEEXT = .exe
 
 # Windows-native host tools
 
-MKDEP = $(TOPDIR)/tools/mkdeps.exe --winnative
+MKDEP = $(TOPDIR)\tools\mkdeps.exe --winnative
 
