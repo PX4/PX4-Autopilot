@@ -65,7 +65,7 @@ ROOTDEPPATH	= --dep-path . --dep-path tests
 VPATH = tests
 
 all: .built
-.PHONY: really_build clean_tests clean depend disclean
+.PHONY: really_build clean_tests clean depend distclean
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)

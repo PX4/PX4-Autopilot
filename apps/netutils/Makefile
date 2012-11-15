@@ -49,12 +49,12 @@ all: nothing
 
 define SDIR_template
 $(1)_$(2):
-	$(MAKE) -C $(1) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
+	$(MAKE) -C $(1) $(2) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
 endef
 
 $(foreach SDIR, $(SUBDIRS), $(eval $(call SDIR_template,$(SDIR),depend)))
 $(foreach SDIR, $(SUBDIRS), $(eval $(call SDIR_template,$(SDIR),clean)))
-$(foreach SDIR, $(SUBDIRS), $(eval $(call SDIR_template,$(SDIR),disclean)))
+$(foreach SDIR, $(SUBDIRS), $(eval $(call SDIR_template,$(SDIR),distclean)))
 
 nothing:
 

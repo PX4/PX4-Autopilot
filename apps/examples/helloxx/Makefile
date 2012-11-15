@@ -73,7 +73,7 @@ STACKSIZE	= 2048
 VPATH		= 
 
 all: .built
-.PHONY:	clean depend disclean chkcxx
+.PHONY:	clean depend distclean chkcxx
 
 chkcxx:
 ifneq ($(CONFIG_HAVE_CXX),y)

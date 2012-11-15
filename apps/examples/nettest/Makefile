@@ -96,7 +96,7 @@ STACKSIZE	= 2048
 VPATH		= 
 
 all: .built $(HOST_BIN)
-.PHONY:	clean depend disclean
+.PHONY:	clean depend distclean
 
 $(TARG_AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)

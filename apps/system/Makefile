@@ -41,9 +41,15 @@ SUBDIRS = free i2c install readline poweroff ramtron sdcard sysinfo
 
 # Create the list of installed runtime modules (INSTALLED_DIRS)
 
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 define ADD_DIRECTORY
-INSTALLED_DIRS  += ${shell if [ -r $1/Makefile ]; then echo "$1"; fi}
+  INSTALLED_DIRS  += $(if $(wildcard .\$1\Makefile),$1,)
 endef
+else
+define ADD_DIRECTORY
+  INSTALLED_DIRS  += $(if $(wildcard ./$1/Makefile),$1,)
+endef
+endif
 
 $(foreach DIR, $(SUBDIRS), $(eval $(call ADD_DIRECTORY,$(DIR))))
 
@@ -52,12 +58,12 @@ all: nothing
 
 define SDIR_template
 $(1)_$(2):
-	$(MAKE) -C $(1) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
+	$(MAKE) -C $(1) $(2) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
 endef
 
 $(foreach SDIR, $(INSTALLED_DIRS), $(eval $(call SDIR_template,$(SDIR),depend)))
 $(foreach SDIR, $(INSTALLED_DIRS), $(eval $(call SDIR_template,$(SDIR),clean)))
-$(foreach SDIR, $(INSTALLED_DIRS), $(eval $(call SDIR_template,$(SDIR),disclean)))
+$(foreach SDIR, $(INSTALLED_DIRS), $(eval $(call SDIR_template,$(SDIR),distclean)))
 
 nothing:
 

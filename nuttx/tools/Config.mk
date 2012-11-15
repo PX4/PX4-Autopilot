@@ -154,10 +154,12 @@ define ARCHIVE
 endef
 endif
 
-define CLEAN
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+define CLEAN
 	$(Q) rm -f *.o *.a
-else
-	$(Q) rm -f *.o *.a *~ .*.swp
-endif
 endef
+else
+define CLEAN
+	$(Q) rm -f *.o *.a *~ .*.swp
+endef
+endif

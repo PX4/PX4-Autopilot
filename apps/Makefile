@@ -35,7 +35,6 @@
 ############################################################################
 
 -include $(TOPDIR)/Make.defs
--include $(TOPDIR)/.config
 
 APPDIR = ${shell pwd}
 
