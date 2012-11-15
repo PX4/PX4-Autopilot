@@ -610,9 +610,17 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		return -EINVAL;
 
 	case ACCELIOCSSCALE:
-		/* copy scale in */
-		memcpy(&_accel_scale, (struct accel_scale *) arg, sizeof(_accel_scale));
-		return OK;
+		{
+			/* copy scale, but only if off by a few percent */
+			struct accel_scale *s = (struct accel_scale *) arg;
+			float sum = s->x_scale + s->y_scale + s->z_scale;
+			if (sum > 2.0f && sum < 4.0f) {
+				memcpy(&_accel_scale, s, sizeof(_accel_scale));
+				return OK;
+			} else {
+				return -EINVAL;
+			}
+		}
 
 	case ACCELIOCGSCALE:
 		/* copy scale out */

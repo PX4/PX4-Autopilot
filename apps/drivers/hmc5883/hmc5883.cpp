@@ -634,7 +634,9 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_scale, (mag_scale *)arg, sizeof(_scale));
-		return check_calibration();
+		/* check calibration, but not actually return an error */
+		(void)check_calibration();
+		return 0;
 
 	case MAGIOCGSCALE:
 		/* copy out scale factors */
