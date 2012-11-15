@@ -63,7 +63,6 @@
 #include <string.h>
 #include <drivers/drv_led.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include "state_machine_helper.h"
 #include "systemlib/systemlib.h"
