@@ -1032,9 +1032,9 @@ int HMC5883::check_calibration()
 {
 	bool scale_valid, offset_valid;
 
-	if ((-2.0f * FLT_EPSILON + 1.0f < _scale.x_scale && _scale.x_scale < 2.0f * FLT_EPSILON + 1.0f) &&
-		(-2.0f * FLT_EPSILON + 1.0f < _scale.y_scale && _scale.y_scale < 2.0f * FLT_EPSILON + 1.0f) &&
-		(-2.0f * FLT_EPSILON + 1.0f < _scale.z_scale && _scale.z_scale < 2.0f * FLT_EPSILON + 1.0f)) {
+	if ((-FLT_EPSILON + 1.0f < _scale.x_scale && _scale.x_scale < FLT_EPSILON + 1.0f) &&
+		(-FLT_EPSILON + 1.0f < _scale.y_scale && _scale.y_scale < FLT_EPSILON + 1.0f) &&
+		(-FLT_EPSILON + 1.0f < _scale.z_scale && _scale.z_scale < FLT_EPSILON + 1.0f)) {
 		/* scale is one */
 		scale_valid = false;
 	} else {

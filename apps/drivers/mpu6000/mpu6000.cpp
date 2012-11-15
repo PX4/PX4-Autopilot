@@ -260,6 +260,13 @@ private:
 	 */
 	uint16_t		swap16(uint16_t val) { return (val >> 8) | (val << 8);	}
 
+	/**
+	 * Self test
+	 *
+	 * @return 0 on success, 1 on failure
+	 */
+	 int 			self_test();
+
 };
 
 /**
@@ -494,6 +501,17 @@ MPU6000::read(struct file *filp, char *buffer, size_t buflen)
 	return ret;
 }
 
+int
+MPU6000::self_test()
+{
+	if (_reads == 0) {
+		measure();
+	}
+
+	/* return 0 on success, 1 else */
+	return (_reads > 0) ? 0 : 1;
+}
+
 ssize_t
 MPU6000::gyro_read(struct file *filp, char *buffer, size_t buflen)
 {
@@ -609,6 +627,9 @@ MPU6000::ioctl(struct file *filp, int cmd, unsigned long arg)
 		// _accel_range_rad_s = 8.0f * 9.81f;
 		return -EINVAL;
 
+	case ACCELIOCSELFTEST:
+		return self_test();
+
 	default:
 		/* give it to the superclass */
 		return SPI::ioctl(filp, cmd, arg);
@@ -655,6 +676,9 @@ MPU6000::gyro_ioctl(struct file *filp, int cmd, unsigned long arg)
 		// _gyro_range_scale = xx
 		// _gyro_range_m_s2 = xx
 		return -EINVAL;
+
+	case GYROIOCSELFTEST:
+		return self_test();
 
 	default:
 		/* give it to the superclass */
@@ -813,7 +837,11 @@ MPU6000::measure()
 	 * Fetch the full set of measurements from the MPU6000 in one pass.
 	 */
 	mpu_report.cmd = DIR_READ | MPUREG_INT_STATUS;
-	transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report));
+	if (OK != transfer((uint8_t *)&mpu_report, ((uint8_t *)&mpu_report), sizeof(mpu_report)))
+		return;
+
+	/* count measurement */
+	_reads++;
 
 	/*
 	 * Convert from big to little endian
