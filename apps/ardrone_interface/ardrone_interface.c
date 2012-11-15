@@ -340,7 +340,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 			}
 		}
 
-		if (counter % 16 == 0) {
+		if (counter % 24 == 0) {
 			if (led_counter == 0) ar_set_leds(ardrone_write, 0, 1, 0, 0, 0, 0, 0 , 0);
 
 			if (led_counter == 1) ar_set_leds(ardrone_write, 1, 1, 0, 0, 0, 0, 0 , 0);
@@ -371,7 +371,7 @@ int ardrone_interface_thread_main(int argc, char *argv[])
 		}
 
 		/* run at approximately 200 Hz */
-		usleep(5000);
+		usleep(4500);
 
 		counter++;
 	}

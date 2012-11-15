@@ -213,6 +213,24 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 	/* publish the new state */
 	current_status->counter++;
 	current_status->timestamp = hrt_absolute_time();
+
+	/* assemble state vector based on flag values */
+	if (current_status->flag_control_rates_enabled) {
+		current_status->onboard_control_sensors_present |= 0x400;
+	} else {
+		current_status->onboard_control_sensors_present &= ~0x400;
+	}
+	current_status->onboard_control_sensors_present |= (current_status->flag_control_attitude_enabled) ? 0x800 : 0;
+	current_status->onboard_control_sensors_present |= (current_status->flag_control_attitude_enabled) ? 0x1000 : 0;
+	current_status->onboard_control_sensors_present |= (current_status->flag_control_velocity_enabled || current_status->flag_control_position_enabled) ? 0x2000 : 0;
+	current_status->onboard_control_sensors_present |= (current_status->flag_control_velocity_enabled || current_status->flag_control_position_enabled) ? 0x4000 : 0;
+
+	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_rates_enabled) ? 0x400 : 0;
+	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_attitude_enabled) ? 0x800 : 0;
+	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_attitude_enabled) ? 0x1000 : 0;
+	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_velocity_enabled || current_status->flag_control_position_enabled) ? 0x2000 : 0;
+	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_velocity_enabled || current_status->flag_control_position_enabled) ? 0x4000 : 0;
+
 	orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
 	printf("[commander] new state: %s\n", system_state_txt[current_status->state_machine]);
 }

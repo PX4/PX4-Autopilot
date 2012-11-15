@@ -8,21 +8,26 @@
 #
 
 ms5611 start
-mpu6000 start
-hmc5883 start
+
+if mpu6000 start
+then
+	echo "using MPU6000 and HMC5883L"
+	hmc5883 start
+else
+	echo "using L3GD20 and LSM303D"
+	l3gd20 start
+	lsm303 start
+fi
 
 #
 # Start the sensor collection task.
+# IMPORTANT: this also loads param offsets
+# ALWAYS start this task before the
+# preflight_check.
 #
 sensors start
 
 #
-# Test sensor functionality
+# Check sensors - run AFTER 'sensors start'
 #
-# XXX integrate with 'sensors start' ?
-#
-#if sensors quicktest
-#then
-#	echo "[init] sensor initialisation FAILED."
-#	reboot
-#fi
+preflight_check

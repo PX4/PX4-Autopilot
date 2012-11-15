@@ -125,7 +125,7 @@ accel(int argc, char *argv[])
 	/* read data - expect samples */
 	ret = read(fd, &buf, sizeof(buf));
 
-	if (ret < 3) {
+	if (ret != sizeof(buf)) {
 		printf("\tACCEL: read1 fail (%d)\n", ret);
 		return ERROR;
 
@@ -177,7 +177,7 @@ gyro(int argc, char *argv[])
 	/* read data - expect samples */
 	ret = read(fd, &buf, sizeof(buf));
 
-	if (ret < 3) {
+	if (ret != sizeof(buf)) {
 		printf("\tGYRO: read fail (%d)\n", ret);
 		return ERROR;
 
@@ -214,7 +214,7 @@ mag(int argc, char *argv[])
 	/* read data - expect samples */
 	ret = read(fd, &buf, sizeof(buf));
 
-	if (ret < 3) {
+	if (ret != sizeof(buf)) {
 		printf("\tMAG: read fail (%d)\n", ret);
 		return ERROR;
 
@@ -251,7 +251,7 @@ baro(int argc, char *argv[])
 	/* read data - expect samples */
 	ret = read(fd, &buf, sizeof(buf));
 
-	if (ret < 3) {
+	if (ret != sizeof(buf)) {
 		printf("\tBARO: read fail (%d)\n", ret);
 		return ERROR;
 
