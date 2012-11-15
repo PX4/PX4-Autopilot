@@ -250,6 +250,7 @@ static int send_query_socket(int sockfd, const char *name, struct sockaddr_in *a
   return sendto(sockfd, buffer, query + 5 - buffer, 0, (struct sockaddr*)addr, ADDRLEN);
 }
 
+#if 0 /* Not used */
 #ifdef CONFIG_NET_IPv6
 static int send_query(const char *name, struct sockaddr_in6 *addr)
 #else
@@ -258,6 +259,7 @@ static int send_query(const char *name, struct sockaddr_in *addr)
 {
   return send_query_socket(g_sockfd, name, addr);
 }
+#endif 
 
 /* Called when new UDP data arrives */
 

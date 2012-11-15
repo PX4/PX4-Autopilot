@@ -102,9 +102,15 @@ endif
 
 # Create the list of available applications (INSTALLED_APPS)
 
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 define ADD_BUILTIN
-INSTALLED_APPS += $(if $(wildcard $1\Makefile),$1,)
+  INSTALLED_APPS += $(if $(wildcard $1\Makefile),$1,)
 endef
+else
+define ADD_BUILTIN
+  INSTALLED_APPS += $(if $(wildcard $1/Makefile),$1,)
+endef
+endif
 
 $(foreach BUILTIN, $(CONFIGURED_APPS), $(eval $(call ADD_BUILTIN,$(BUILTIN))))
 
