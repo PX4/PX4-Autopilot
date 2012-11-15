@@ -58,7 +58,7 @@ static struct hrt_call arming_call;
  */
 static unsigned counter;
 
-#define ARM_COUNTER_THRESHOLD	20
+#define ARM_COUNTER_THRESHOLD	10
 #define DISARM_COUNTER_THRESHOLD	2
 
 static bool safety_led_state;
@@ -68,8 +68,8 @@ static void safety_check_button(void *arg);
 void
 safety_init(void)
 {
-	/* arrange for the button handler to be called at 20Hz */
-	hrt_call_every(&arming_call, 1000, 50000, safety_check_button, NULL);
+	/* arrange for the button handler to be called at 10Hz */
+	hrt_call_every(&arming_call, 1000, 100000, safety_check_button, NULL);
 }
 
 static void
