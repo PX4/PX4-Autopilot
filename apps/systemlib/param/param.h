@@ -250,7 +250,7 @@ __EXPORT int 		param_set_default_file(const char* filename);
  *			a result of a call to param_set_default_file, or the 
  *			built-in default.
  */
-__EXPORT const char 	*param_get_default_file(void);
+__EXPORT const char*	param_get_default_file(void);
 
 /**
  * Save parameters to the default file.
