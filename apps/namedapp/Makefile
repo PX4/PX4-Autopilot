@@ -79,7 +79,7 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 .built: $(OBJS)
-	$(call ARCHIVE, $(BIN), "$(OBJS)")
+	$(call ARCHIVE, $(BIN), $(OBJS))
 	$(Q) touch .built
 
 .context:

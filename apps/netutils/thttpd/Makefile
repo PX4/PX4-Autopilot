@@ -110,7 +110,7 @@ cgi-bin/$(SUBDIR_BIN3): cgi-bin cgi-src/$(SUBDIR_BIN3)
 endif
 
 .built: $(OBJS)
-	$(call ARCHIVE, $(BIN), "$(OBJS)")
+	$(call ARCHIVE, $(BIN), $(OBJS))
 	@touch .built
 
 context:

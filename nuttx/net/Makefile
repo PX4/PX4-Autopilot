@@ -100,7 +100,7 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 $(BIN): $(OBJS)
-	$(call ARCHIVE, $@, "$(OBJS)")
+	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
 ifeq ($(CONFIG_NET),y)

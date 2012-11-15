@@ -701,17 +701,30 @@
     makefiles in the build (once it is installed).  This make fragment
     should define:
     <ul>
-      <li>Tools: CC, LD, AR, NM, OBJCOPY, OBJDUMP</li>
-      <li>Tool options: CFLAGS, LDFLAGS</li>
-      <li>COMPILE, ASSEMBLE, ARCHIVE, CLEAN, and MKDEP macros</li>
+      <li>Tools: <code>CC</code>, <code>LD</code>, <code>AR</code>, <code>NM</code>, <code>OBJCOPY</code>, <code>OBJDUMP</code></li>
+      <li>Tool options: <code>CFLAGS</code>, <code>LDFLAGS</code></li>
     </ul>
     <p>
-      When this makefile fragment runs, it will be passed TOPDIR which
+      When this makefile fragment runs, it will be passed <code>TOPDIR</code> which
       is the path to the root directory of the build.  This makefile
-      fragment may include ${TOPDIR}/.config to perform configuration
-      specific settings.  For example, the CFLAGS will most likely be
-      different if CONFIG_DEBUG=y.
+      fragment should include:
     </p>
+    <ul>
+      <li><code>$(TOPDIR)/.config </code> : Nuttx configuration</li>
+      <li><code>$(TOPDIR)/tools/Config.mk</code>  : Common definitions</li>
+    </ul>
+    <p>
+      Definitions in the <code>Make.defs</code> file probably depend on some of the
+      settings in the .<code>config</code> file.  For example, the <code>CFLAGS</code> will most likely be
+      different if <code>CONFIG_DEBUG=y</code>.
+    </p>
+    <p>
+      The included <code>tools/Config.mk</code> file contains additional definitions that may
+      be overriden in the architecture-specific Make.defs file as necessary:
+    </p>
+    <ul>
+      <li><code>COMPILE</code>, <code>ASSEMBLE</code>, <code>ARCHIVE</code>, <code>CLEAN</code>, and <code>MKDEP</code> macros</li>
+    </ul>
   </li>
   <li>
     <p>

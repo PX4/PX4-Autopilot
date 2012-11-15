@@ -113,7 +113,7 @@ $(HOST_BIN): $(HOST_OBJS)
 	@$(HOSTCC) $(HOSTLDFLAGS) $(HOST_OBJS) -o $@
 
 .built: $(TARG_OBJS)
-	$(call ARCHIVE, $(BIN), "$(TARG_OBJS)")
+	$(call ARCHIVE, $(BIN), $(TARG_OBJS))
 	@touch .built
 
 .context:

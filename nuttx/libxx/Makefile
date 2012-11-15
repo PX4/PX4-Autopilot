@@ -96,7 +96,7 @@ $(CXXOBJS): %$(OBJEXT): %.cxx
 	$(call COMPILEXX, $<, $@)
 
 $(BIN):	$(OBJS)
-	$(call ARCHIVE, $@, "$(OBJS)")
+	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
 	$(Q) $(MKDEP) $(DEPPATH) "$(CXX)" -- $(CXXFLAGS) -- $(SRCS) >Make.dep

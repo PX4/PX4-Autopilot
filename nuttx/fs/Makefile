@@ -120,7 +120,7 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 $(BIN):	$(OBJS)
-	$(call ARCHIVE, $@, "$(OBJS)")
+	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
 	$(Q) $(MKDEP) --dep-path . $(MMAPDEPPATH) $(FATDEPPATH) $(ROMFSDEPPATH) $(NXFFSDEPPATH) $(NFSDEPPATH) \

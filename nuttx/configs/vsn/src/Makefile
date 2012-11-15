@@ -81,7 +81,7 @@ $(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 libboard$(LIBEXT): $(OBJS)
-	$(call ARCHIVE, $@, "$(OBJS)")
+	$(call ARCHIVE, $@, $(OBJS))
 
 # Register application
 

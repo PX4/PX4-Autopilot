@@ -96,7 +96,7 @@ debug:
 	@#echo "CFLAGS: $(CFLAGS)"
 
 .built: debug $(OBJS)
-	$(call ARCHIVE, $(BIN), "$(OBJS)")
+	$(call ARCHIVE, $(BIN), $(OBJS))
 	@touch .built
 
 context:

@@ -77,7 +77,7 @@ headers:
 	@$(MAKE) -C content TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" CROSSDEV=$(CROSSDEV)
 
 .built: headers $(OBJS)
-	$(call ARCHIVE, $(BIN), "$(OBJS)")
+	$(call ARCHIVE, $(BIN), $(OBJS))
 	@touch .built
 
 context:

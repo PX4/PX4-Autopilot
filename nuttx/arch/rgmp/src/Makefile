@@ -70,7 +70,7 @@ $(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
 # The architecture-specific library
 
 libarch$(LIBEXT): $(OBJS)
-	$(call ARCHIVE, $@, "$(OBJS)")
+	$(call ARCHIVE, $@, $(OBJS))
 
 # Generate the final NuttX binary by linking the host-specific objects with the NuttX
 # specific objects (with munged names)

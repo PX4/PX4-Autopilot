@@ -148,7 +148,7 @@ up_mem.h: pass1.mem
 # Combine all objects in this directory into a library
 
 libarch$(LIBEXT): up_mem.h $(OBJS)
-	$(call ARCHIVE, $@, "$(OBJS)")
+	$(call ARCHIVE, $@, $(OBJS))
 
 # This is a kludge to work around some conflicting symbols in libsdcc.liXqueb
 

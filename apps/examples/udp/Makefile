@@ -96,7 +96,7 @@ $(TARG_COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 "$(TARG_BIN)": $(TARG_OBJS) $(HOST_BIN)
-	$(call ARCHIVE, $@, "$(TARG_OBJS)")
+	$(call ARCHIVE, $@, $(TARG_OBJS))
 
 $(HOST_OBJS): %.o: %.c
 	$(HOSTCC) -c $(HOSTCFLAGS) $< -o $@

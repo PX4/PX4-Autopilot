@@ -79,7 +79,7 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 $(BIN): $(OBJS)
-	$(call ARCHIVE, $@, "$(OBJS)")
+	$(call ARCHIVE, $@, $(OBJS))
 
 ifneq ($(BIN),$(UBIN))
 .userlib:
@@ -108,7 +108,11 @@ depend: .depend
 
 uclean:
 ifneq ($(OBJEXT),)
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) if exist .userlib ]; then del *$(OBJEXT)
+else
 	$(Q) ( if [ -f .userlib ]; then rm -f *$(OBJEXT); fi )
+endif
 endif
 	$(Q) rm -f .userlib *~ .*.swp
 
@@ -116,7 +120,11 @@ endif
 
 kclean:
 ifneq ($(OBJEXT),)
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) if exist .kernlib ]; then del *$(OBJEXT)
+else
 	$(Q) ( if [ -f .kernlib ]; then rm -f *$(OBJEXT); fi )
+endif
 endif
 	$(Q) rm -f .kernlib *~ .*.swp
 

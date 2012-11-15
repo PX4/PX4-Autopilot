@@ -196,7 +196,7 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 $(BIN): $(OBJS)
-	$(call ARCHIVE, $@, "$(OBJS)")
+	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
 	$(Q) $(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
@@ -205,7 +205,7 @@ $(BIN): $(OBJS)
 depend: .depend
 
 clean:
-	$(Q) rm -f $(BIN) *~ .*.swp
+	$(Q) rm -f $(BIN)
 	$(call CLEAN)
 
 distclean: clean

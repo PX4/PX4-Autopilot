@@ -103,13 +103,22 @@ Make.defs -- This makefile fragment provides architecture and
 
     Tools: CC, LD, AR, NM, OBJCOPY, OBJDUMP
     Tool options: CFLAGS, LDFLAGS
-    COMPILE, ASSEMBLE, ARCHIVE, CLEAN, and MKDEP macros
 
   When this makefile fragment runs, it will be passed TOPDIR which
   is the path to the root directory of the build.  This makefile
-  fragment may include ${TOPDIR}/.config to perform configuration
-  specific settings.  For example, the CFLAGS will most likely be
+  fragment should include:
+
+    $(TOPDIR)/.config          : Nuttx configuration
+    $(TOPDIR)/tools/Config.mk  : Common definitions
+
+  Definitions in the Make.defs file probably depend on some of the
+  settings in the .config file.  For example, the CFLAGS will most likely be
   different if CONFIG_DEBUG=y.
+
+  The included tools/Config.mk file contains additional definitions that may
+  be overriden in the architecture-specific Make.defs file as necessary:
+
+    COMPILE, ASSEMBLE, ARCHIVE, CLEAN, and MKDEP macros
 
 defconfig -- This is a configuration file similar to the Linux
   configuration file.  In contains variable/value pairs like:

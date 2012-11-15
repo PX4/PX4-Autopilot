@@ -62,7 +62,7 @@ $(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
 libboard$(LIBEXT): $(OBJS)
 	@$(AR) $@ # Create an empty archive
 ifneq ($(OBJS),)
-	$(call ARCHIVE, $@, "$(OBJS)")
+	$(call ARCHIVE, $@, $(OBJS))
 endif
 
 .depend: Makefile $(SRCS)
