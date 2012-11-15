@@ -82,7 +82,7 @@ static void	mixer_get_rc_input(void);
 static void	mixer_update(int mixer, uint16_t *inputs, int input_count);
 
 /* current servo arm/disarm state */
-bool mixer_servos_armed;
+bool mixer_servos_armed = false;
 
 /*
  * Each mixer consumes a set of inputs and produces a single output.
@@ -159,7 +159,7 @@ mixer_tick(void *arg)
 			/*
 			 * If we are armed, update the servo output.
 			 */
-			if (system_state.armed)
+			if (system_state.armed && system_state.arm_ok)
 				up_pwm_servo_set(i, mixers[i].current_value);
 		}
 	}
@@ -167,7 +167,8 @@ mixer_tick(void *arg)
 	/*
 	 * Decide whether the servos should be armed right now.
 	 */
-	should_arm = system_state.armed && (control_count > 0);
+
+	should_arm = system_state.armed && system_state.arm_ok && (control_count > 0) && system_state.mixer_use_fmu;
 	if (should_arm && !mixer_servos_armed) {
 		/* need to arm, but not armed */
 		up_pwm_servo_arm(true);

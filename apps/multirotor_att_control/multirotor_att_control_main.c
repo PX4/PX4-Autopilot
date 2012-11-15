@@ -69,9 +69,12 @@
 
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/param/param.h>
 
 #include "multirotor_attitude_control.h"
 #include "multirotor_rate_control.h"
+
+PARAM_DEFINE_FLOAT(MC_RCLOSS_THR, 0.0f); // This defines the throttle when the RC signal is lost.
 
 __EXPORT int multirotor_att_control_main(int argc, char *argv[]);
 
@@ -148,6 +151,10 @@ mc_thread_main(int argc, char *argv[])
 	bool flag_control_attitude_enabled = false;
 	bool flag_system_armed = false;
 
+	/* prepare the handle for the failsafe throttle */
+	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
+	float failsafe_throttle = 0.0f;
+
 	while (!thread_should_exit) {
 
 		/* wait for a sensor update, check for exit condition every 500 ms */
@@ -221,8 +228,8 @@ mc_thread_main(int argc, char *argv[])
 							/* decide wether we want rate or position input */
 						}
 				else if (state.flag_control_manual_enabled) {
-					/* manual inputs, from RC control or joystick */
 
+					/* manual inputs, from RC control or joystick */
 					if (state.flag_control_rates_enabled && !state.flag_control_attitude_enabled) {
 						rates_sp.roll = manual.roll;
 
@@ -241,18 +248,44 @@ mc_thread_main(int argc, char *argv[])
 							att_sp.yaw_body = att.yaw;
 						}
 
-						att_sp.roll_body = manual.roll;
-						att_sp.pitch_body = manual.pitch;
+						static bool rc_loss_first_time = true;
 
-						/* only move setpoint if manual input is != 0 */
-						// XXX turn into param
-						if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
-							att_sp.yaw_body = att_sp.yaw_body + manual.yaw * 0.0025f;
-						} else if (manual.throttle <= 0.3f) {
-							att_sp.yaw_body = att.yaw;
+						/* if the RC signal is lost, try to stay level and go slowly back down to ground */
+						if(state.rc_signal_lost) {
+							/* the failsafe throttle is stored as a parameter, as it depends on the copter and the payload */
+							param_get(failsafe_throttle_handle, &failsafe_throttle);
+							att_sp.roll_body = 0.0f;
+							att_sp.pitch_body = 0.0f;
+							att_sp.thrust = failsafe_throttle;
+
+							/* keep current yaw, do not attempt to go to north orientation,
+							 * since if the pilot regains RC control, he will be lost regarding
+							 * the current orientation.
+							 */
+							if (rc_loss_first_time)
+								att_sp.yaw_body = att.yaw;
+
+							// XXX hard-limit it to prevent ballistic mishaps - this is just supposed to
+							// slow a crash down, not actually keep the system in-air.
+
+							rc_loss_first_time = false;
+
+						} else {
+							rc_loss_first_time = true;
+
+							att_sp.roll_body = manual.roll;
+							att_sp.pitch_body = manual.pitch;
+
+							/* only move setpoint if manual input is != 0 */
+							// XXX turn into param
+							if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
+								att_sp.yaw_body = att_sp.yaw_body + manual.yaw * 0.0025f;
+							} else if (manual.throttle <= 0.3f) {
+								att_sp.yaw_body = att.yaw;
+							}
+							att_sp.thrust = manual.throttle;
+							att_sp.timestamp = hrt_absolute_time();
 						}
-						att_sp.thrust = manual.throttle;
-						att_sp.timestamp = hrt_absolute_time();
 					}
 					/* STEP 2: publish the result to the vehicle actuators */
 					orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
