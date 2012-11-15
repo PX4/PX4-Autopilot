@@ -199,19 +199,19 @@ PIN PIC32 SIGNAL(s)                                  BOARD SIGNAL/USAGE         
 --- ------------------------------------------------ ---------------------------------- ----------------------------------
 29  VSS                                              VSS                                Not available off module
 --- ------------------------------------------------ ---------------------------------- ----------------------------------
-30  OSC1/CLKI/RPA2/RA2                               SO                                 Not available off module
+30  OSC1/CLKI/RPA2/RA2                               SO (R1) DIN0 (R2)                  Not available off module
     OSC1     Oscillator crystal input                Not available
     CLKI     External clock source input             Not available
     RPRA2    Peripheral Selection PORTA, Pin 2       Used for SO
     RA2      PORTA, Pin 2                            Not available
 --- ------------------------------------------------ ---------------------------------- ----------------------------------
-31  OSC2/CLKO/RPA3/RA3                               DIN0                               PORT0, to X1, pin 2
+31  OSC2/CLKO/RPA3/RA3                               DIN0 (R1) DIN3 (R2)                PORT0, to X1, pin 2
     OSC2     Oscillator crystal output               Not available                       (also X13, pin1)
     CLKO     Oscillator crystal output               Not available
     RPA3     Peripheral Selection for PORTA, Pin 3   May be used for peripheral input
     RA3      PORTA, Pin 3                            May be used for GPIO input
 --- ------------------------------------------------ ---------------------------------- ----------------------------------
-32  TDO/RPA8/PMA8/RA8                                DIN3                               PORT3, to X5, pin 2
+32  TDO/RPA8/PMA8/RA8                                DIN3 (R1) S0 (R2)                  PORT3, to X5, pin 2
     TDO      JTAG test data output pin               Not available                       (also X13, pin7)
     RPA8     PORTA, Pin 8                            May be used for peripheral input
     PMA8     Parallel Master Port Address bit 8      Not available

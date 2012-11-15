@@ -10,4 +10,9 @@ config ARCH_LEDS
 	---help---
 		"Support control of board LEDs by NuttX to indicate system state"
 
+config MIRTOO_RELEASE
+	int "Mirtoo Release 1 (R1)"
+	default 2
+	---help---
+		Select the Mirtoo release number
 endif

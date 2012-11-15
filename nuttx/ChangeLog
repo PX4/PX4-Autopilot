@@ -3628,4 +3628,9 @@
 	* arch/*/src/Makefile:  Remove tftboot install and creation of System.map
 	  for Windows native build.  The fist is necessary, the second just needs
 	  re-implemented.
+	* configs/mirtoo: Update Mirtoo pin definitions for Release 2.  Provided
+	  by Konstantin Dimitrov.
+	* Fixed an uninitialized variable in the file system that can cause 
+	  assertions if DEBUG on (contributed by Lorenz Meier).
+
 

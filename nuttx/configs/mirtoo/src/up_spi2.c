@@ -74,7 +74,8 @@
  *  PIN   SIGNAL  BOARD CONNECTION           NOTES
  * ------ -------- ------------------------- --------------------------------
  *  RPA1   SI     PGA117 and SST25VF032B     SPI2 data OUT (SDO2)
- *  RPA2   SO     PGA117 and SST25VF032B     SPI2 data IN (SDI2)
+ *  RPA2   SO     PGA117 and SST25VF032B     R1, SPI2 data IN (SDI2)
+ *  RPA3   SO     PGA117 and SST25VF032B     R0, SPI2 data IN (SDI2)
  *  SCK2   SCK    PGA117 and SST25VF032B     SPI2 clock
  *
  *  RB7   ~CSAI   PGA117                     PGA117 chip select (active low)
@@ -82,8 +83,12 @@
  */
 
 #define GPIO_SI             (GPIO_OUTPUT|GPIO_PORTA|GPIO_PIN1)
-#define GPIO_SO             (GPIO_INPUT|GPIO_PORTA|GPIO_PIN1)
-#define GPIO_SCK            (GPIO_OUTPUT|GPIO_PORTA|GPIO_PIN1)
+#ifdef CONFIG_MIRTOO_RELEASE == 1
+#  define GPIO_SO           (GPIO_INPUT|GPIO_PORTA|GPIO_PIN2)
+#else
+#  define GPIO_SO           (GPIO_INPUT|GPIO_PORTA|GPIO_PIN3)
+#endif
+#define GPIO_SCK            (GPIO_OUTPUT|GPIO_PORTB|GPIO_PIN15)
 
 #define GPIO_PGA117_CS      (GPIO_OUTPUT|GPIO_VALUE_ONE|GPIO_PORTB|GPIO_PIN7)
 #define GPIO_SST25VF032B_CS (GPIO_OUTPUT|GPIO_VALUE_ONE|GPIO_PORTB|GPIO_PIN13)
