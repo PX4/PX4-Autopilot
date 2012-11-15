@@ -106,7 +106,7 @@ ARCHCPUDEF		= _Z8F6403
 endif
 endif
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHASMOPTIMIZATION	= -debug -sdiopt
 else
   ARCHASMOPTIMIZATION	= -nodebug -sdiopt
@@ -123,7 +123,7 @@ AFLAGS			= $(ARCHASMCPUFLAGS) $(ARCHASMINCLUDES) $(ARCHASMLIST) \
 
 # Compiler definitions
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHOPTIMIZATION	= -debug -NOregvar -reduceopt
 else
   ARCHOPTIMIZATION	= -nodebug -regvar

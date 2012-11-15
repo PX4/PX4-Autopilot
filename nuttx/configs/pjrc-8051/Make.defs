@@ -36,7 +36,7 @@
 include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHOPTIMIZATION	= --debug
 else
   ARCHOPTIMIZATION	=

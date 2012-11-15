@@ -48,7 +48,7 @@ OBJDUMP			= $(CROSSDEV)objdump
 ARCHCCVERSION		= ${shell $(CC) -v 2>&1 | sed -n '/^gcc version/p' | sed -e 's/^gcc version \([0-9\.]\)/\1/g' -e 's/[-\ ].*//g' -e '1q'}
 ARCHCCMAJOR		= ${shell echo $(ARCHCCVERSION) | cut -d'.' -f1}
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHOPTIMIZATION	= -g
 else
   ARCHOPTIMIZATION	= -Os -fno-strict-aliasing -fno-strength-reduce \
@@ -82,10 +82,9 @@ OBJEXT			= .o
 LIBEXT			= .a
 EXEEXT			=
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   LDFLAGS		+= -g
 endif
-
 
 MKDEP			= $(TOPDIR)/tools/mkdeps.sh
 

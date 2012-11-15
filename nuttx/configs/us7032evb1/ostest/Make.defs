@@ -36,7 +36,7 @@
 include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHOPTIMIZATION	= -g
 else
   ARCHOPTIMIZATION	= -Os -fno-strict-aliasing -fno-strength-reduce \
@@ -68,7 +68,7 @@ OBJEXT			= .o
 LIBEXT			= .a
 EXEEXT			=
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   LDFLAGS		+= -g
 endif
 

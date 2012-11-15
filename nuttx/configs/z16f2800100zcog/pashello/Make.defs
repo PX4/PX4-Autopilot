@@ -73,7 +73,7 @@ EZDSZILOGINCDIR 	:= ${shell echo "$(WZDSZILOGINCDIR)" | sed -e "s/ /%20/g"}
 
 # Assembler definitions
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHASMOPTIMIZATION	= -debug
 else
   ARCHASMOPTIMIZATION	= -nodebug
@@ -89,7 +89,7 @@ AFLAGS			= $(ARCHASMCPUFLAGS) $(ARCHASMINCLUDES) $(ARCHASMLIST) \
 
 # Compiler definitions
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHOPTIMIZATION	= -debug -NOregvar -reduceopt
 else
   ARCHOPTIMIZATION	= -nodebug -regvar

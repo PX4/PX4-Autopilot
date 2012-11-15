@@ -99,7 +99,7 @@ OBJEXT = .o
 LIBEXT = .a
 EXEEXT = .elf
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   LDFLAGS += -g
 endif
 

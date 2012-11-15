@@ -80,7 +80,7 @@ ARCHCPUDEF = _EZ80F91
 ARCHFAMILY = _EZ80ACCLAIM!
 endif
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHASMOPTIMIZATION = -debug -NOsdiopt
 else
   ARCHASMOPTIMIZATION = -nodebug -NOsdiopt
@@ -97,7 +97,7 @@ AFLAGS = $(ARCHASMCPUFLAGS) $(ARCHASMINCLUDES) $(ARCHASMLIST) \
 
 # Compiler definitions
 
-ifeq ("${CONFIG_DEBUG_SYMBOLS}","y")
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHOPTIMIZATION = -debug -reduceopt
 else
   ARCHOPTIMIZATION = -nodebug -optsize
