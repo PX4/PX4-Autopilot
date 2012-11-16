@@ -3632,5 +3632,7 @@
 	  by Konstantin Dimitrov.
 	* Fixed an uninitialized variable in the file system that can cause 
 	  assertions if DEBUG on (contributed by Lorenz Meier).
-
+	* Config.mk:  Defined DELIM to be either / or \, depending upon
+	  CONFIG_WINDOWS_NATIVE.  This will allow me to eliminate a lot of
+	  conditional logic elsewhere.
 

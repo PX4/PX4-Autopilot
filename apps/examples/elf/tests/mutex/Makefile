@@ -55,4 +55,5 @@ clean:
 	@rm -f $(BIN) *.o *~ .*.swp core
 
 install:
-	@install -D $(BIN) $(ROMFS_DIR)/$(BIN)
+	@mkdir -p $(ROMFS_DIR)
+	@install $(BIN) $(ROMFS_DIR)/$(BIN)

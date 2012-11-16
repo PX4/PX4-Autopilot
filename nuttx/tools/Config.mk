@@ -43,6 +43,19 @@ CONFIG_ARCH       := $(patsubst "%",%,$(strip $(CONFIG_ARCH)))
 CONFIG_ARCH_CHIP  := $(patsubst "%",%,$(strip $(CONFIG_ARCH_CHIP)))
 CONFIG_ARCH_BOARD := $(patsubst "%",%,$(strip $(CONFIG_ARCH_BOARD)))
 
+# DELIM - Path segment delimiter character
+#
+# Depends on this settings defined in board-specific defconfig file installed
+# at $(TOPDIR)/.config:
+#
+#   CONFIG_WINDOWS_NATIVE - Defined for a Windows native build
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  DELIM = $(strip \)
+else
+  DELIM = $(strip /)
+endif
+
 # INCDIR - Convert a list of directory paths to a list of compiler include
 #   directirves
 # Example: CFFLAGS += ${shell $(INCDIR) [options] "compiler" "dir1" "dir2" "dir2" ...}

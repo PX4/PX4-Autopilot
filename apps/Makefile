@@ -102,15 +102,9 @@ endif
 
 # Create the list of available applications (INSTALLED_APPS)
 
-ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 define ADD_BUILTIN
-  INSTALLED_APPS += $(if $(wildcard $1\Makefile),$1,)
+  INSTALLED_APPS += $(if $(wildcard $1$(DELIM)Makefile),$1,)
 endef
-else
-define ADD_BUILTIN
-  INSTALLED_APPS += $(if $(wildcard $1/Makefile),$1,)
-endef
-endif
 
 $(foreach BUILTIN, $(CONFIGURED_APPS), $(eval $(call ADD_BUILTIN,$(BUILTIN))))
 
@@ -119,7 +113,8 @@ $(foreach BUILTIN, $(CONFIGURED_APPS), $(eval $(call ADD_BUILTIN,$(BUILTIN))))
 # provided by the user (possibly as a symbolic link) to add libraries and
 # applications to the standard build from the repository.
 
-EXTERNAL_DIR := $(dir $(wildcard external/Makefile))
+EXTERNAL_DIR := $(dir $(wildcard external$(DELIM)Makefile))
+
 INSTALLED_APPS += $(EXTERNAL_DIR)
 SUBDIRS += $(EXTERNAL_DIR)
 

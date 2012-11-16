@@ -109,12 +109,13 @@ clean:
 	@rm -f $(ALL_BIN) *.o *~ .*.swp core
 
 install: $(ALL_BIN)
-	@install -D $(BIN1) $(ROMFS_DIR)/$(BIN1)
-	@install -D $(BIN2) $(ROMFS_DIR)/$(BIN2)
+	@mkdir -p $(ROMFS_DIR)
+	@install $(BIN1) $(ROMFS_DIR)/$(BIN1)
+	@install $(BIN2) $(ROMFS_DIR)/$(BIN2)
 ifeq ($(CONFIG_BINFMT_CONSTRUCTORS),y)
-	@install -D $(BIN3) $(ROMFS_DIR)/$(BIN3)
+	@install $(BIN3) $(ROMFS_DIR)/$(BIN3)
 endif
-#	@install -D $(BIN4) $(ROMFS_DIR)/$(BIN4)
+#	@install $(BIN4) $(ROMFS_DIR)/$(BIN4)
 
 
 

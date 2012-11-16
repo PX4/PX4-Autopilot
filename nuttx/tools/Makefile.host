@@ -123,5 +123,7 @@ endif
 
 clean:
 	$(Q) rm -f *.o *.a *~ .*.swp
-	$(Q) rm -f mkconfig mksyscall mkversion bdf-converter
-	$(Q) rm -f mkconfig.exe mksyscall.exe mkversion.exe bdf-converter.exe
+	$(Q) rm -f mkdeps mkconfig mksyscall mkversion bdf-converter
+	$(Q) rm -f mkdeps.exe mkconfig.exe mksyscall.exe mkversion.exe bdf-converter.exe
+	$(Q) rm -rf *.dSYM
+

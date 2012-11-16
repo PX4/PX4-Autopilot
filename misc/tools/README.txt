@@ -50,10 +50,16 @@ kconfig-frontends-3.3.0-1-libintl.patch
 
     http://ymorin.is-a-geek.org/download/kconfig-frontends/
 
-kconfig-macos.path
-------------------
+kconfig-macos.patch
+-------------------
 
   This is a patch to make the kconfig-frontends-3.3.0 build on Mac OS X.
+
+  To build the conf and mconf frontends, use the following commands:
+
+    ./configure --disable-shared --enable-static --disable-gconf --disable-qconf --disable-nconf --disable-utils
+    make
+    make install
 
 kconfig-frontends for Windows
 =============================

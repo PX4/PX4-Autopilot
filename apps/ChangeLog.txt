@@ -419,3 +419,6 @@
 	  by Freddie Chopin.
 	* Makefile, */Makefile:  Various fixes for Windows native build.  Now uses
 	  make foreach loops instead of shell loops.
+	* apps/examples/elf/test/*/Makefile: OSX doesn't support install -D, use
+	  mkdir -p then install without the -D.  From Mike Smith.
+
