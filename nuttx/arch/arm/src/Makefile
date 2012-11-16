@@ -155,11 +155,11 @@ endif
 export_head: board/libboard$(LIBEXT) $(HEAD_OBJ)
 ifneq ($(HEAD_OBJ),)
 	$(Q) if [ -d "$(EXPORT_DIR)/startup" ]; then \
-	cp -f $(HEAD_OBJ) "$(EXPORT_DIR)/startup"; \
+		cp -f $(HEAD_OBJ) "$(EXPORT_DIR)/startup"; \
 	 else \
-	echo "$(EXPORT_DIR)/startup does not exist"; \
+		echo "$(EXPORT_DIR)/startup does not exist"; \
 	exit 1; \
-	 fi
+	fi
 endif
 
 # Dependencies
@@ -176,14 +176,14 @@ depend: .depend
 
 clean:
 ifeq ($(BOARDMAKE),y)
-	$(MAKE) -C board TOPDIR="$(TOPDIR)" clean
+	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" clean
 endif
 	$(Q) rm -f libarch$(LIBEXT) *~ .*.swp
 	$(call CLEAN)
 
 distclean: clean
 ifeq ($(BOARDMAKE),y)
-	$(MAKE) -C board TOPDIR="$(TOPDIR)" distclean
+	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" distclean
 endif
 	$(Q) rm -f Make.dep .depend
 

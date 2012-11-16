@@ -69,7 +69,7 @@ BOARD_DIR = configs\$(CONFIG_ARCH_BOARD)
 ifeq ($(CONFIG_APPS_DIR),)
 CONFIG_APPS_DIR = ..\apps
 endif
-APPDIR := ${shell if exist "$(CONFIG_APPS_DIR)\Makefile"  echo "$(CONFIG_APPS_DIR)"}
+APPDIR := ${shell if exist "$(CONFIG_APPS_DIR)\Makefile" echo $(CONFIG_APPS_DIR)}
 
 # All add-on directories.
 #
@@ -364,7 +364,7 @@ endif
 # Link the arch\<arch-name>\include directory to include\arch
 
 include\arch: Make.defs
-	@echo "LN: include\arch -> $(TOPDIR)\$(ARCH_DIR)\include"
+	@echo "LN: include\arch -> $(ARCH_DIR)\include"
 ifeq ($(CONFIG_WINDOWS_MKLINK),y)
 	$(Q) /user:administrator mklink /d include\arch $(TOPDIR)\$(ARCH_DIR)\include
 else
@@ -375,7 +375,7 @@ endif
 # Link the configs\<board-name>\include directory to include\arch\board
 
 include\arch\board: include\arch Make.defs include\arch
-	@echo "LN: include\arch\board -> $(TOPDIR)\$(BOARD_DIR)\include"
+	@echo "LN: include\arch\board -> $(BOARD_DIR)\include"
 ifeq ($(CONFIG_WINDOWS_MKLINK),y)
 	$(Q) /user:administrator mklink /d include\arch\board $(TOPDIR)\$(BOARD_DIR)\include
 else
@@ -386,7 +386,7 @@ endif
 # Link the configs\<board-name>\src dir to arch\<arch-name>\src\board
 
 $(ARCH_SRC)\board: Make.defs
-	@echo "LN: $(ARCH_SRC)\board -> $(TOPDIR)\$(BOARD_DIR)\src"
+	@echo "LN: $(ARCH_SRC)\board -> $(BOARD_DIR)\src"
 ifeq ($(CONFIG_WINDOWS_MKLINK),y)
 	$(Q) /user:administrator mklink /d $(ARCH_SRC)\board $(TOPDIR)\$(BOARD_DIR)\src
 else
@@ -398,7 +398,7 @@ endif
 
 $(ARCH_SRC)\chip: Make.defs
 ifneq ($(CONFIG_ARCH_CHIP),)
-	@echo "LN: $(ARCH_SRC)\chip -> $(TOPDIR)\$(ARCH_SRC)\$(CONFIG_ARCH_CHIP)"
+	@echo "LN: $(ARCH_SRC)\chip -> $(ARCH_SRC)\$(CONFIG_ARCH_CHIP)"
 ifeq ($(CONFIG_WINDOWS_MKLINK),y)
 	$(Q) /user:administrator mklink /d $(ARCH_SRC)\chip $(TOPDIR)\$(ARCH_SRC)\$(CONFIG_ARCH_CHIP)
 else
@@ -411,7 +411,7 @@ endif
 
 include\arch\chip: include\arch Make.defs
 ifneq ($(CONFIG_ARCH_CHIP),)
-	@echo "LN: include\arch\chip -> $(TOPDIR)\$(ARCH_INC)\$(CONFIG_ARCH_CHIP)"
+	@echo "LN: include\arch\chip -> $(ARCH_INC)\$(CONFIG_ARCH_CHIP)"
 ifeq ($(CONFIG_WINDOWS_MKLINK),y)
 	$(Q) /user:administrator mklink /d include\arch\chip $(TOPDIR)\$(ARCH_INC)\$(CONFIG_ARCH_CHIP)
 else

@@ -49,7 +49,7 @@ INCLUDES = $(ARCHSTDINCLUDES) $(USRINCLUDES)
 CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 CPPFLAGS += -I$(ARCHSRCDIR)
 ifeq ($(COMPILER),zneocc.exe)
-LDFLAGS  += @"${shell cygpath -w $(ARCHSRCDIR)/nuttx.linkcmd}"
+LDFLAGS  += "${shell cygpath -w $(ARCHSRCDIR)/nuttx.linkcmd}"
 endif
 
 HEAD_ASRC = $(HEAD_SSRC:.S=$(ASMEXT))
@@ -73,9 +73,9 @@ all: $(HEAD_OBJ) libarch$(LIBEXT)
 
 ifeq ($(COMPILER),zneocc.exe)
 $(ASRCS) $(HEAD_ASRC): %$(ASMEXT): %.S
-	@$(CPP) $(CPPFLAGS) $< -o $@.tmp
-	@cat $@.tmp | sed -e "s/^#/;/g" > $@
-	@rm $@.tmp
+	$(Q) $(CPP) $(CPPFLAGS) $< -o $@.tmp
+	$(Q) cat $@.tmp | sed -e "s/^#/;/g" > $@
+	$(Q) rm $@.tmp
 
 $(AOBJS) $(HEAD_OBJ): %$(OBJEXT): %$(ASMEXT)
 	$(call ASSEMBLE, $<, $@)
@@ -91,14 +91,14 @@ libarch$(LIBEXT): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 board/libboard$(LIBEXT):
-	@$(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
 
 ifeq ($(COMPILER),zneocc.exe)
 nuttx.linkcmd: $(LINKCMDTEMPLATE)
-	@cp -f $(LINKCMDTEMPLATE) nuttx.linkcmd
+	$(Q) cp -f $(LINKCMDTEMPLATE) nuttx.linkcmd
 	@echo "\"${shell cygpath -w $(TOPDIR)/nuttx}\"= \\" >>nuttx.linkcmd
 	@echo "  \"${shell cygpath -w $(ARCHSRCDIR)/$(HEAD_OBJ)}\", \\" >>nuttx.linkcmd
-	@( for lib in $(LINKLIBS); do \
+	$(Q) ( for lib in $(LINKLIBS); do \
 		echo "  \"`cygpath -w $(TOPDIR)/lib/$${lib}`\", \\" >>nuttx.linkcmd; \
 	done ; )
 	@echo "  \"${shell cygpath -w $(ARCHSRCDIR)/board/libboard$(LIBEXT)}\", \\"  >>nuttx.linkcmd
@@ -110,19 +110,19 @@ endif
 
 nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT) nuttx.linkcmd
 	@echo "LD:  nuttx$(EXEEXT)"
-	@$(LD) $(LDFLAGS)
+	$(Q) $(LD) $(LDFLAGS)
 
 .depend: Makefile chip/Make.defs $(DEPSRCS)
-	@if [ -e board/Makefile ]; then \
+	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" depend ; \
 	fi
-	@$(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
+	$(Q) touch $@
 
 # This is part of the top-level export target
 
 export_head: board/libboard$(LIBEXT) $(HEAD_OBJ)
-	@if [ -d "$(EXPORT_DIR)/startup" ]; then \
+	$(Q) if [ -d "$(EXPORT_DIR)/startup" ]; then \
 		cp -f $(HEAD_OBJ) "$(EXPORT_DIR)/startup"; \
 	 else \
 		echo "$(EXPORT_DIR)/startup does not exist"; \
@@ -134,19 +134,19 @@ export_head: board/libboard$(LIBEXT) $(HEAD_OBJ)
 depend: .depend
 
 clean:
-	@if [ -e board/Makefile ]; then \
+	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" clean ; \
 	fi
-	@rm -f libarch$(LIBEXT) *~ .*.swp
+	$(Q) rm -f libarch$(LIBEXT) *~ .*.swp
 ifeq ($(COMPILER),zneocc.exe)
-	@rm -f nuttx.linkcmd *.asm *.tmp *.map
+	$(Q) rm -f nuttx.linkcmd *.asm *.tmp *.map
 endif
 	$(call CLEAN)
 
 distclean: clean
-	@if [ -e board/Makefile ]; then \
+	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" distclean ; \
 	fi
-	@rm -f Make.dep .depend
+	$(Q) rm -f Make.dep .depend
 
 -include Make.dep

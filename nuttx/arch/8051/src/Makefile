@@ -153,44 +153,44 @@ libarch$(LIBEXT): up_mem.h $(OBJS)
 # This is a kludge to work around some conflicting symbols in libsdcc.liXqueb
 
 $(SDCCLIBDIR)/libmysdcc.lib: $(SDCCLIBDIR)/libsdcc.lib
-	@cat $(SDCCLIBDIR)/libsdcc.lib | \
+	$(Q) cat $(SDCCLIBDIR)/libsdcc.lib | \
 		grep -v calloc  | grep -v malloc  | grep -v realloc  | \
 		grep -v free    | grep -v vprintf | grep -v _strncpy | \
 		grep -v _strchr | grep -v _strlen | grep -v _strcmp  | \
 		grep -v _strcpy | grep -v _memcmp | grep -v _memcpy  | \
 		grep -v _memset \
 		> libmysdcc.lib
-	@mv -f libmysdcc.lib $(SDCCLIBDIR)/libmysdcc.lib
+	$(Q) mv -f libmysdcc.lib $(SDCCLIBDIR)/libmysdcc.lib
 
 # This builds the libboard library in the board/ subdirectory 
 
 board/libboard$(LIBEXT):
-	$(MAKE) -C board TOPDIR=$(TOPDIR) libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C board TOPDIR=$(TOPDIR) libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
 
 # This target builds the final executable
 
 pass1.hex: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS) board/libboard$(LIBEXT)
 	@echo "LD:  $@"
-	@"$(CC)" $(LDFLAGS) $(LIBPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
+	$(Q) "$(CC)" $(LDFLAGS) $(LIBPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
 		$(LDLIBS) -llibboard$(LIBEXT) $(SDCCLIBS) -o $@
-	@rm -f up_mem.h
-	@rm -f up_allocateheap$(OBJEXT) libarch$(LIBEXT)
-	@$(MAKE) TOPDIR=$(TOPDIR) libarch$(LIBEXT)
+	$(Q) rm -f up_mem.h
+	$(Q) rm -f up_allocateheap$(OBJEXT) libarch$(LIBEXT)
+	$(Q) $(MAKE) TOPDIR=$(TOPDIR) libarch$(LIBEXT)
 
 nuttx.hex: up_mem.h $(SDCCLIBDIR)/libmysdcc.lib $(LINKOBJS)
 	@echo "LD:  $@"
-	@"$(CC)" $(LDFLAGS) $(LIBPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
+	$(Q) "$(CC)" $(LDFLAGS) $(LIBPATHS) -L$(BOARDDIR) $(SDCCPATH) $(LINKOBJS) \
 		$(LDLIBS) -llibboard$(LIBEXT) $(SDCCLIBS) -o $@
 
 nuttx$(EXEEXT): pass1.hex nuttx.hex
-	@rm -f pass1.*
-	@packihx nuttx.hex > $(TOPDIR)/nuttx$(EXEEXT)
-	@cp -f nuttx.map $(TOPDIR)/.
+	$(Q) rm -f pass1.*
+	$(Q) packihx nuttx.hex > $(TOPDIR)/nuttx$(EXEEXT)
+	$(Q) cp -f nuttx.map $(TOPDIR)/.
 
 # This is part of the top-level export target
 
 export_head: board/libboard$(LIBEXT) p_head$(OBJEXT)
-	@if [ -d "$(EXPORT_DIR)/startup" ]; then \
+	$(Q) if [ -d "$(EXPORT_DIR)/startup" ]; then \
 		cp -f up_head$(OBJEXT) "$(EXPORT_DIR)/startup"; \
 	 else \
 		echo "$(EXPORT_DIR)/startup does not exist"; \
@@ -201,31 +201,31 @@ export_head: board/libboard$(LIBEXT) p_head$(OBJEXT)
 # a PHONY target that just sets upt the up_irqtest build correctly
 
 up_irqtest.hex: $(TESTOBJS)
-	"$(CC)" $(LDFLAGS) -L. $(SDCCPATH) $(TESTLINKOBJS) $(TESTOBJS) $(TESTEXTRAOBJS) $(SDCCLIBS) -o $@
+	$(Q) "$(CC)" $(LDFLAGS) -L. $(SDCCPATH) $(TESTLINKOBJS) $(TESTOBJS) $(TESTEXTRAOBJS) $(SDCCLIBS) -o $@
 
 irqtest:
-	@$(MAKE) TOPDIR=../../.. up_irqtest.hex
+	$(Q) $(MAKE) TOPDIR=../../.. up_irqtest.hex
 
 # Build dependencies
 
 .depend: Makefile up_mem.h $(DEPSRCS)
-	@if [ -e board/Makefile ]; then \
+	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR=$(TOPDIR) depend ; \
 	fi	
-	@$(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@if [ -e board/Makefile ]; then \
+	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR=$(TOPDIR) clean ; \
 	fi
-	@rm -f libarch$(LIBEXT) up_mem.h *~ .*.swp
+	$(Q) rm -f libarch$(LIBEXT) up_mem.h *~ .*.swp
 	$(call CLEAN)
 
 distclean: clean
-	@if [ -e board/Makefile ]; then \
+	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR=$(TOPDIR) distclean ; \
 	fi
 	rm -f Make.dep .depend

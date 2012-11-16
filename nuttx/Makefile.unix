@@ -368,26 +368,26 @@ endif
 # Link the arch/<arch-name>/include directory to include/arch
 
 include/arch: Make.defs
-	@echo "LN: include/arch -> $(TOPDIR)/$(ARCH_DIR)/include"
+	@echo "LN: include/arch -> $(ARCH_DIR)/include"
 	$(Q) $(DIRLINK) $(TOPDIR)/$(ARCH_DIR)/include include/arch
 
 # Link the configs/<board-name>/include directory to include/arch/board
 
 include/arch/board: include/arch Make.defs include/arch
-	@echo "LN: include/arch/board -> $(TOPDIR)/$(BOARD_DIR)/include"
+	@echo "LN: include/arch/board -> $(BOARD_DIR)/include"
 	$(Q) $(DIRLINK) $(TOPDIR)/$(BOARD_DIR)/include include/arch/board
 
 # Link the configs/<board-name>/src dir to arch/<arch-name>/src/board
 
 $(ARCH_SRC)/board: Make.defs
-	@echo "LN: $(ARCH_SRC)/board -> $(TOPDIR)/$(BOARD_DIR)/src"
+	@echo "LN: $(ARCH_SRC)/board -> $(BOARD_DIR)/src"
 	$(Q) $(DIRLINK) $(TOPDIR)/$(BOARD_DIR)/src $(ARCH_SRC)/board
 
 # Link arch/<arch-name>/include/<chip-name> to arch/<arch-name>/include/chip
 
 $(ARCH_SRC)/chip: Make.defs
 ifneq ($(CONFIG_ARCH_CHIP),)
-	@echo "LN: $(ARCH_SRC)/chip -> $(TOPDIR)\$(ARCH_SRC)/$(CONFIG_ARCH_CHIP)"
+	@echo "LN: $(ARCH_SRC)/chip -> $(ARCH_SRC)/$(CONFIG_ARCH_CHIP)"
 	$(Q) $(DIRLINK) $(TOPDIR)/$(ARCH_SRC)/$(CONFIG_ARCH_CHIP) $(ARCH_SRC)/chip
 endif
 
@@ -395,7 +395,7 @@ endif
 
 include/arch/chip: include/arch Make.defs
 ifneq ($(CONFIG_ARCH_CHIP),)
-	@echo "LN: include/arch/chip -> $(TOPDIR)/$(ARCH_INC)/$(CONFIG_ARCH_CHIP)"
+	@echo "LN: include/arch/chip -> $(ARCH_INC)/$(CONFIG_ARCH_CHIP)"
 	$(Q) $(DIRLINK) $(TOPDIR)/$(ARCH_INC)/$(CONFIG_ARCH_CHIP) include/arch/chip
 endif
 
