@@ -180,12 +180,6 @@ namespace NXWidgets
     virtual inline void calculateTextPosition(void) { }
 
     /**
-     * Destructor.
-     */
-
-    virtual ~CCycleButton(void) { }
-
-    /**
      * Copy constructor is protected to prevent usage.
      */
 
@@ -212,6 +206,12 @@ namespace NXWidgets
                  nxgl_coord_t width, nxgl_coord_t height,
                  CWidgetStyle *style = (CWidgetStyle *)NULL);
 
+    /**
+     * Destructor.
+     */
+
+    virtual ~CCycleButton(void) { }
+    
     /**
      * Add a new option to the widget.
      *

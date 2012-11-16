@@ -1,8 +1,9 @@
 /****************************************************************************
- * NxWidgets/libnxwidgets/src/glyph_cycle.cxx
+ * NxWidgets/libnxwidgets/include/cnumericedit.hxx
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *           Petteri Aimonen <jpa@kapsi.fi>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +38,7 @@
  * portions are original efforts.  It is difficult to determine at this
  * point what parts are original efforts and which parts derive from Woopsi.
  * However, in any event, the work of  Antony Dzeryn will be acknowledged
- * in most NxWidget files.  Thanks Antony!
+ * in all NxWidget files.  Thanks Antony!
  *
  *   Copyright (c) 2007-2011, Antony Dzeryn
  *   All rights reserved.
@@ -67,89 +68,146 @@
  *
  ****************************************************************************/
 
+#ifndef __INCLUDE_CNUMERICEDIT_HXX
+#define __INCLUDE_CNUMERICEDIT_HXX
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
  
 #include <nuttx/config.h>
 
-#include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
 
 #include <nuttx/nx/nxglib.h>
-#include <nuttx/fb.h>
-#include <nuttx/rgbcolors.h>
 
-#include "nxconfig.hxx"
-#include "cbitmap.hxx"
-#include "glyphs.hxx"
-
-#if CONFIG_NXWIDGETS_BPP != 8 // No support for 8-bit color format
+#include "cnxwidget.hxx"
+#include "cwidgetstyle.hxx"
+#include "cnxstring.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
+ 
 /****************************************************************************
- * Private Bitmap Data
+ * Implementation Classes
  ****************************************************************************/
+ 
+#if defined(__cplusplus)
 
-using namespace NXWidgets;
-
-#if CONFIG_NXWIDGETS_BPP == 16
-#  define COLOR_FMT FB_FMT_RGB16_565
-#  define RGB16_TRANSP 0x0000
-
-static const uint16_t g_cycleGlyph[] =
+namespace NXWidgets
 {
-  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,
-  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_DARKRED, RGB16_DARKRED, RGB16_DARKRED, RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,
-  RGB16_TRANSP,  RGB16_DARKRED, RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_DARKRED, RGB16_TRANSP,  RGB16_TRANSP,
-  RGB16_TRANSP,  RGB16_DARKRED, RGB16_TRANSP,  RGB16_DARKRED, RGB16_DARKRED, RGB16_DARKRED, RGB16_DARKRED, RGB16_DARKRED,
-  RGB16_TRANSP,  RGB16_DARKRED, RGB16_TRANSP,  RGB16_TRANSP,  RGB16_DARKRED, RGB16_DARKRED, RGB16_DARKRED, RGB16_TRANSP,
-  RGB16_TRANSP,  RGB16_DARKRED, RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_DARKRED, RGB16_TRANSP,  RGB16_TRANSP,
-  RGB16_TRANSP,  RGB16_DARKRED, RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,
-  RGB16_TRANSP,  RGB16_DARKRED, RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_DARKRED, RGB16_TRANSP,  RGB16_TRANSP,
-  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_DARKRED, RGB16_DARKRED, RGB16_DARKRED, RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,
-  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,  RGB16_TRANSP,
-};
+  /**
+   * Forward references
+   */
 
-#elif CONFIG_NXWIDGETS_BPP == 24 || CONFIG_NXWIDGETS_BPP == 32
-#  define COLOR_FMT FB_FMT_RGB24
-#  define RGB24_TRANSP 0x00000000
+  class CWidgetControl;
+  class CRect;
+  class CLabel;
+  class CButton;
+  class CNxTimer;
 
-static const uint32_t g_cycleGlyph[] =
-{
-  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,
-  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_DARKRED, RGB24_DARKRED, RGB24_DARKRED, RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,
-  RGB24_TRANSP,  RGB24_DARKRED, RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_DARKRED, RGB24_TRANSP,  RGB24_TRANSP,
-  RGB24_TRANSP,  RGB24_DARKRED, RGB24_TRANSP,  RGB24_DARKRED, RGB24_DARKRED, RGB24_DARKRED, RGB24_DARKRED, RGB24_DARKRED,
-  RGB24_TRANSP,  RGB24_DARKRED, RGB24_TRANSP,  RGB24_TRANSP,  RGB24_DARKRED, RGB24_DARKRED, RGB24_DARKRED, RGB24_TRANSP,
-  RGB24_TRANSP,  RGB24_DARKRED, RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_DARKRED, RGB24_TRANSP,  RGB24_TRANSP,
-  RGB24_TRANSP,  RGB24_DARKRED, RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,
-  RGB24_TRANSP,  RGB24_DARKRED, RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_DARKRED, RGB24_TRANSP,  RGB24_TRANSP,
-  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_DARKRED, RGB24_DARKRED, RGB24_DARKRED, RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,
-  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,  RGB24_TRANSP,
-};
+  /**
+   * Numeric edit control, with plus and minus buttons.
+   */
 
-#else
-#  warning "Other pixel depths not yet supported"
-#endif
+  class CNumericEdit : public CNxWidget, public CWidgetEventHandler
+  {
+  protected:
+    CLabel *m_label;
+    CButton *m_button_minus;
+    CButton *m_button_plus;
+    CNxTimer *m_timer;
+    int m_value;
+    int m_minimum;
+    int m_maximum;
+    int m_increment;
+    int m_timercount;
 
-/****************************************************************************
- * Public Bitmap Structure Defintions
- ****************************************************************************/
+    /**
+     * Resize the widget to the new dimensions.
+     *
+     * @param width The new width.
+     * @param height The new height.
+     */
 
-const struct SBitmap NXWidgets::g_cycle =
-{
-  CONFIG_NXWIDGETS_BPP,              // bpp    - Bits per pixel
-  COLOR_FMT,                         // fmt    - Color format
-  8,                                 // width  - Width in pixels
-  10,                                // height - Height in rows
-  (8*CONFIG_NXWIDGETS_BPP + 7) / 8,  // stride - Width in bytes
-  g_cycleGlyph                       // data   - Pointer to the beginning of pixel data
-};
+    virtual void onResize(nxgl_coord_t width, nxgl_coord_t height);
 
-#endif // CONFIG_NXWIDGETS_BPP != 8
+    virtual void handleClickEvent(const CWidgetEventArgs &e);
+    
+    virtual void handleReleaseEvent(const CWidgetEventArgs &e);
 
+    virtual void handleReleaseOutsideEvent(const CWidgetEventArgs &e);
+    
+    virtual void handleActionEvent(const CWidgetEventArgs &e);
+    
+    virtual void handleDragEvent(const CWidgetEventArgs &e);
+    
+    /**
+     * Copy constructor is protected to prevent usage.
+     */
+
+    inline CNumericEdit(const CNumericEdit &num) : CNxWidget(num) { };
+
+  public:
+
+    /**
+     * Constructor for a numeric edit control.
+     *
+     * @param pWidgetControl The controlling widget for the display
+     * @param x The x coordinate of the text box, relative to its parent.
+     * @param y The y coordinate of the text box, relative to its parent.
+     * @param width The width of the textbox.
+     * @param height The height of the textbox.
+     * @param style The style that the button should use.  If this is not
+     *        specified, the button will use the global default widget
+     *        style.
+     */
+
+    CNumericEdit(CWidgetControl *pWidgetControl, nxgl_coord_t x, nxgl_coord_t y,
+           nxgl_coord_t width, nxgl_coord_t height,
+           CWidgetStyle *style = (CWidgetStyle *)NULL);
+
+    /**
+     * Destructor.
+     */
+
+    virtual ~CNumericEdit();
+
+    /**
+     * Insert the dimensions that this widget wants to have into the rect
+     * passed in as a parameter.  All coordinates are relative to the
+     * widget's parent.
+     *
+     * @param rect Reference to a rect to populate with data.
+     */
+
+    virtual void getPreferredDimensions(CRect &rect) const;
+
+    /**
+     * Sets the font.
+     *
+     * @param font A pointer to the font to use.
+     */
+
+    virtual void setFont(CNxFont *font);
+    
+    inline int getValue() const { return m_value; }
+    void setValue(int value);
+    
+    inline int getMaximum() const { return m_maximum; }
+    inline void setMaximum(int value) { m_maximum = value; setValue(m_value); }
+    
+    inline int getMinimum() const { return m_minimum; }
+    inline void setMinimum(int value) { m_minimum = value; setValue(m_value); }
+    
+    inline int getIncrement() const { return m_increment; }
+    inline void setIncrement(int value) { m_increment = value; setValue(m_value); }
+    
+  };
+}
+
+#endif // __cplusplus
+
+#endif // __INCLUDE_CLABEL_HXX

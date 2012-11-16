@@ -200,3 +200,7 @@
   Contributed by Petteri Aimonen.
 * NxWidgets/nxwm/src/ctaskbar.cxx: Highlight the current window in the task bar.
   Contributed by Petteri Aimonen.
+* NxWidgets/libnxwidgets/src/glyph_cycle.cxx:  Width of glyph_cycle was wrong;
+  Desctructor needs to by public.  From Petteri Aimonen.
+* CNumericEdit.  This is basically a label with plus and minus buttons.
+  Contributed by Petteri, Aimonen.
