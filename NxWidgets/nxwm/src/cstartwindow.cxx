@@ -654,8 +654,13 @@ int CStartWindow::startWindow(int argc, char *argv[])
             {
               gdbg("ERROR: mq_receive failed: %d\n", errval);
             }
+          else
+            {
+              gdbg("mq_receive interrupted by signal\n");
+            }
+          
+          continue;
         }
-      while (nbytes < 0);
 
       gvdbg("Received msgid=%d nbytes=%d\n", msg.msgId, nbytes);
       DEBUGASSERT(nbytes = sizeof(struct SStartWindowMessage) && msg.instance);

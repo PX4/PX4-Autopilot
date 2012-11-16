@@ -140,7 +140,7 @@ int nx_block(NXWINDOW hwnd, FAR void *arg)
        * that it will not be blocked.
        */
 
-      ret = nxmu_sendserver(wnd->conn, &outmsg, sizeof(struct nxbe_window_s));
+      ret = nxmu_sendserver(wnd->conn, &outmsg, sizeof(struct nxsvrmsg_blocked_s));
     }
 
   return ret;

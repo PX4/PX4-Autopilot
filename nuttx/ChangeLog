@@ -3635,4 +3635,10 @@
 	* Config.mk:  Defined DELIM to be either / or \, depending upon
 	  CONFIG_WINDOWS_NATIVE.  This will allow me to eliminate a lot of
 	  conditional logic elsewhere.
+	* nuttx/graphics: One a mouse button is pressed, continue to report all
+	  mouse button events to the first window that received the the initial
+	  button down event, even if the mouse attempts to dray outside the
+	  window. From Petteri Aimonen.
+	* nuttx/graphics/nxmu/nx_block.c:  One more fixe to the NX block message
+	  logic from Petteri Aimonen.
 
