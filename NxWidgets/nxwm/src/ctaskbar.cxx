@@ -90,7 +90,7 @@ CTaskbar::~CTaskbar(void)
 /**
  * Connect to the server
  */
- 
+
 bool CTaskbar::connect(void)
 {
   // Connect to the server
@@ -116,7 +116,7 @@ bool CTaskbar::connect(void)
 
 void CTaskbar::disconnect(void)
 {
-  // Stop all applications and remove them from the task bar.  Clearly, there 
+  // Stop all applications and remove them from the task bar.  Clearly, there
   // are some ordering issues here... On an orderly system shutdown, disconnection
   // should really occur priority to deleting instances
 
@@ -279,7 +279,7 @@ bool CTaskbar::startWindowManager(void)
 
       for (int i = 0; i < m_slots.size(); )
         {
-          IApplication *app = m_slots.at(i).app;         
+          IApplication *app = m_slots.at(i).app;
 
           gvdbg("Starting app[%d]\n", i);
           if (!app->run())
@@ -294,7 +294,7 @@ bool CTaskbar::startWindowManager(void)
               // Then continue with the next application.  Notice that i is
               // not incremented in this case and we will continue with the
               // next application which will not be at this same index
- 
+
               continue;
             }
 
@@ -631,7 +631,7 @@ bool CTaskbar::stopApplication(IApplication *app)
       app->setTopApplication(false);
       m_topApp = (IApplication *)0;
     }
-    
+
   // Hide the application window.  That will move the application to the
   // bottom of the hiearachy.
 
@@ -655,6 +655,7 @@ bool CTaskbar::stopApplication(IApplication *app)
           // Yes.. found it.  Delete the icon image and remove the entry
           // from the list of applications
 
+          delete m_slots.at(i).image->getBitmap();
           delete m_slots.at(i).image;
           m_slots.erase(i);
           break;
@@ -743,7 +744,7 @@ void CTaskbar::clickIcon(int index, bool click)
 #endif
 
 /**
- * Create a raw window. 
+ * Create a raw window.
  *
  * 1) Create a dumb CWigetControl instance (see note below)
  * 2) Pass the dumb CWidgetControl instance to the window constructor
@@ -796,7 +797,7 @@ NXWidgets::CNxWindow *CTaskbar::openRawWindow(void)
  *
  * @return A partially initialized application window instance.
  */
- 
+
 NXWidgets::CNxTkWindow *CTaskbar::openFramedWindow(void)
 {
   // Create the widget control (with the window messenger) using the default style
@@ -892,13 +893,13 @@ void CTaskbar::setApplicationGeometry(NXWidgets::INxWindow *window, bool fullscr
    * @param pPos The new position of the window.
    * @return True on success, false on failure.
    */
-     
+
   window->setPosition(&pos);
   window->setSize(&size);
 }
 
 /**
- * Create the task bar window. 
+ * Create the task bar window.
  *
  * @return true on success
  */
@@ -962,7 +963,7 @@ bool CTaskbar::createTaskbarWindow(void)
 }
 
 /**
- * Create the background window. 
+ * Create the background window.
  *
  * @return true on success
  */
@@ -984,7 +985,7 @@ bool CTaskbar::createBackgroundWindow(void)
 }
 
 /**
- * Create the background image. 
+ * Create the background image.
  *
  * @return true on success
  */
@@ -1056,7 +1057,7 @@ bool CTaskbar::createBackgroundImage(void)
   m_backImage->setBorderless(true);
   m_backImage->setRaisesEvents(false);
 #endif
-  
+
   return true;
 }
 
@@ -1132,9 +1133,9 @@ bool CTaskbar::redrawTaskbarWindow(void)
           image->setRaisesEvents(false);
 
           // Highlight the icon for the top-most window
-          
+
           image->highlight(m_slots.at(i).app == m_topApp);
-          
+
           // Get the size of the icon image
 
           NXWidgets::CRect rect;
@@ -1295,7 +1296,7 @@ bool CTaskbar::redrawBackgroundWindow(void)
   // Raise the background window to the top of the hierarchy
 
   m_background->raise();
- 
+
   // Fill the entire window with the background color
 
   port->drawFilledRect(0, 0, windowSize.w, windowSize.h,
@@ -1314,7 +1315,7 @@ bool CTaskbar::redrawBackgroundWindow(void)
       m_backImage->enableDrawing();
       m_backImage->redraw();
     }
-  
+
   return true;
 }
 
@@ -1344,7 +1345,7 @@ bool CTaskbar::redrawApplicationWindow(IApplication *app)
   // Redraw taskbar
 
   redrawTaskbarWindow();
-  
+
   // Every application provides a method to obtain its application window
 
   IApplicationWindow *appWindow = app->getWindow();

@@ -206,4 +206,10 @@
   Contributed by Petteri, Aimonen.
 * NxWM::CStartWindow:  Fix mq_receive error handling with signal is recieved.
   From Petteri Aimonen.
+* NxWidgets:CNxTimer:  Replace the original (apparently non-functional) signal-
+  based solution with a work queue-based solution.  This raises some isses about
+  using the internal work queues from user space.  I have decided to implemented
+  user-space work queues (someday) in order to accomplish that functionaliy.
+  Submitted by Petteri Aimonen.
 
+  solutions

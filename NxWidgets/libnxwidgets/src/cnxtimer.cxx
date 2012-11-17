@@ -70,18 +70,20 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
- 
+
 #include <nuttx/config.h>
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <cstring>
 #include <ctime>
-#include <csignal>
 #include <debug.h>
+#include <errno.h>
+
+#include <nuttx/clock.h>
+#include <nuttx/wqueue.h>
 
 #include "cnxtimer.hxx"
-#include "singletons.hxx"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -116,44 +118,9 @@ CNxTimer::CNxTimer(CWidgetControl *pWidgetControl, uint32_t timeout, bool repeat
   m_isRepeater = repeat;
   m_isRunning  = false;
 
-  // Create a POSIX timer (We can't do anything about failures here)
+  // Reset the work structure
 
-  int ret = timer_create(CLOCK_REALTIME, (FAR struct sigevent *)NULL, &m_timerid);
-  if (ret < 0)
-    {
-      gdbg("timer_create() failed\n");
-      return;
-    }
-
-  // If we are the first timer created in the whole system, then create
-  // the timer list and attach the SIGALRM timer handler.
-
-  if (!g_nxTimers)
-    {
-      if (!g_nxTimers)
-        {
-          gdbg("Failed to create the timer list\n");
-          return;
-        }
- 
-      // Attach the SIGALM signal handler (no harm if this is done multiple times)
-
-      struct sigaction sigact;
-      sigact.sa_handler = signalHandler;
-      sigact.sa_flags   = 0;
-      sigemptyset(&sigact.sa_mask);
-
-      ret = sigaction(SIGALRM, &sigact, (FAR struct sigaction *)NULL);
-      if (ret < 0)
-        {
-          gdbg("sigaction() failed\n");
-          return;
-        }
-    }
-
-  // Add ourself onto the array of timers
-#warning "Need to disable SIGALRM here"
-  g_nxTimers->push_back(this);
+  memset(&m_work, 0, sizeof(m_work));
 }
 
 /**
@@ -162,54 +129,6 @@ CNxTimer::CNxTimer(CWidgetControl *pWidgetControl, uint32_t timeout, bool repeat
 
 CNxTimer::~CNxTimer(void)
 {
-  // Locate ourself in the list of timers and remove ourselves
-
-#warning "Need to disable SIGALRM here"
-  for (int i = 0; i < g_nxTimers->size(); i++)
-    {
-      CNxTimer *timer = g_nxTimers->at(i);
-      if (timer == this)
-        {
-          g_nxTimers->erase(i);
-          break;
-        }
-    }
-
-  // Destroy the timer
-
-  (void)timer_delete(m_timerid);
-}
-
-/**
- * Return the timeout of this timer.
- *
- * @return The number of milliseconds that this timer will run before firing
- *   an event.
- */
-
-const uint32_t CNxTimer::getTimeout(void)
-{
-  // If the timer is not running, then just return the timeout value
-
-  if (!m_isRunning)
-    {
-      return m_timeout;
-    }
-  else
-    {
-      // Get the time remaining on the POSIX timer.  Of course, there
-      // are race conditions here.. the timer could expire at anytime
-
-      struct itimerspec remaining;
-      int ret = timer_gettime(m_timerid, &remaining);
-      if (ret < 0)
-        {
-          gdbg("timer_gettime() failed\n");
-          return 0;
-        }
-
-      return timespecToMilliseconds(&remaining.it_value);
-    }
 }
 
 /**
@@ -222,11 +141,7 @@ void CNxTimer::reset(void)
 
   if (m_isRunning)
     {
-      // If the specified timer was already armed when timer_settime() is
-      // called, this call will reset the time until next expiration to the
-      // value specified. 
-
-      m_isRunning = false;
+      stop();
       start();
     }
 }
@@ -241,23 +156,13 @@ void CNxTimer::start(void)
 
   if (!m_isRunning)
     {
-      // If the specified timer was already armed when timer_settime() is
-      // called, this call will reset the time until next expiration to the
-      // value specified. 
- 
-      struct itimerspec timerspec;
-      millisecondsToTimespec(m_timeout, &timerspec.it_value);
-      timerspec.it_interval.tv_sec  = 0;
-      timerspec.it_interval.tv_nsec = 0;
+      uint32_t ticks = m_timeout / MSEC_PER_TICK;
+      int ret = work_queue(USRWORK, &m_work, workQueueCallback, this, ticks);
 
-      int ret = timer_settime(m_timerid, 0, &timerspec,
-                             (FAR struct itimerspec *)NULL);
       if (ret < 0)
         {
-          gdbg("timer_settime() failed\n");
+          gdbg("work_queue failed: %d\n", ret);
         }
-
-      // The timer is now running
 
       m_isRunning = true;
     }
@@ -271,112 +176,33 @@ void CNxTimer::stop(void)
 {
   if (m_isRunning)
     {
-      // If the it_value member of value is zero, the timer will be disarmed.
-      // The effect of disarming or resetting a timer with pending expiration
-      // notifications is unspecified.
+      int ret = work_cancel(USRWORK, &m_work);
 
-      struct itimerspec nullTime;
-      memset(&nullTime, 0, sizeof(struct itimerspec));
-
-      int ret = timer_settime(m_timerid, 0, &nullTime,
-                              (FAR struct itimerspec *)NULL);
       if (ret < 0)
         {
-          gdbg("timer_settime failed\n");
+          gdbg("work_cancel failed: %d\n", ret);
         }
-
-      // The time is no longer running
 
       m_isRunning = false;
     }
 }
 
-/**
- * The SIGALM signal handler that will be called when the timer goes off
- *
- * @param signo The signal number call caused the handler to run (SIGALM)
- */
-
-void CNxTimer::signalHandler(int signo)
+void CNxTimer::workQueueCallback(FAR void *arg)
 {
-  // Call handlerTimerExpiration on every timer instance
+  CNxTimer* This = (CNxTimer*)arg;
 
-  for (int i = 0; i < g_nxTimers->size(); i++)
+  This->m_isRunning = false;
+
+  // Raise the action event.
+
+  This->m_widgetEventHandlers->raiseActionEvent();
+
+  // Restart the timer if this is a repeating timer
+
+  if (This->m_isRepeater)
     {
-      CNxTimer *timer = g_nxTimers->at(i);
-      timer->handleTimerExpiration();
+      This->start();
     }
 }
-
-/**
- * Handle an expired timer
- */
-
-void CNxTimer::handleTimerExpiration(void)
-{
-  // Do we think our timer is running?
-
-  if (m_isRunning)
-    {
-      // Is it running?  It the timer is not running, it will return an
-      // it_value of zero.
-
-      struct itimerspec status;
-      int ret = timer_gettime(m_timerid, &status);
-      if (ret < 0)
-        {
-          gdbg("timer_gettime() failed\n");
-          return;
-        }
-
-      // it_value == 0 means that timer is not running
-
-      if (status.it_value.tv_sec == 0 && status.it_value.tv_nsec == 0)
-        {
-          // It has expired
-
-          m_isRunning = false;
-
-          // Raise the action event.  Hmmm.. are there any issues with
-          // doing this from a signal handler?  We'll find out
-
-          m_widgetEventHandlers->raiseActionEvent();
-
-          // Restart the timer if this is a repeating timer
-
-          if (m_isRepeater)
-            {
-              start();
-            }
-        }
-    }
-}
- 
-/**
- * Convert a timespec to milliseconds
- *
- * @param tp The pointer to the timespec to convert
- * @return The corresponding time in milliseconds
- */
-
-uint32_t CNxTimer::timespecToMilliseconds(FAR const struct timespec *tp)
-{
-  return (uint32_t)tp->tv_sec * 1000 + (uint32_t)tp->tv_nsec / 10000000;
-}
-
-/**
- * Convert milliseconds to a timespec
- *
- * @param milliseconds The milliseconds to be converted
- * @param tp The pointer to the location to store the converted timespec
- */
-
- void CNxTimer::millisecondsToTimespec(uint32_t milliseconds,
-                                       FAR struct timespec *tp)
- {
-   tp->tv_sec         = milliseconds / 1000;
-   uint32_t remainder = milliseconds - (uint32_t)tp->tv_sec * 1000;
-   tp->tv_nsec        = remainder * 1000000;
- }
 
 

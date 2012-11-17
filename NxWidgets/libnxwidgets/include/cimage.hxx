@@ -73,7 +73,7 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
- 
+
 #include <nuttx/config.h>
 
 #include <stdint.h>
@@ -86,11 +86,11 @@
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
- 
+
 /****************************************************************************
  * Implementation Classes
  ****************************************************************************/
- 
+
 #if defined(__cplusplus)
 
 namespace NXWidgets
@@ -120,7 +120,7 @@ namespace NXWidgets
      * @param port The CGraphicsPort to draw to.
      * @see redraw()
      */
- 
+
     virtual void drawContents(CGraphicsPort *port);
 
     /**
@@ -150,7 +150,7 @@ namespace NXWidgets
      */
 
     virtual void onPreRelease(nxgl_coord_t x, nxgl_coord_t y);
-    
+
     /**
      * Redraws the image.
      *
@@ -200,6 +200,12 @@ namespace NXWidgets
      */
 
     virtual inline ~CImage() { }
+
+    /**
+     * Get pointer to the bitmap that this image contains.
+     */
+
+    inline FAR IBitmap *getBitmap() const { return m_bitmap; }
 
     /**
      * Insert the dimensions that this widget wants to have into the rect

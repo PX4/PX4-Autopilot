@@ -65,7 +65,7 @@ using namespace NXWidgets;
  * @param hNxServer Handle to the NX server.
  * @param widgetControl Controlling widget for this window.
  */
-  
+
 CNxTkWindow::CNxTkWindow(NXHANDLE hNxServer, CWidgetControl *widgetControl)
   : CCallback(widgetControl)
 {
@@ -101,6 +101,8 @@ CNxTkWindow::~CNxTkWindow(void)
   // constructed-us.
 
   (void)nxtk_closewindow(m_hNxTkWindow);
+
+  delete m_widgetControl;
 }
 
 /**
@@ -137,7 +139,7 @@ CWidgetControl *CNxTkWindow::getWidgetControl(void) const
 
 /**
  * Open a toolbar on the framed window.  This method both instantiates
- * the toolbar object AND calls the INxWindow::open() method to 
+ * the toolbar object AND calls the INxWindow::open() method to
  * create the toolbar.  The toolbar is ready for use upon return.
  *
  * @param height.  The height in rows of the tool bar
@@ -184,7 +186,7 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height, CWidgetControl *widget
       widgetControl->setWidgetStyle(&style);
 
       // And create the toolbar
-   
+
       m_toolbar = new CNxToolbar(this, m_hNxTkWindow,
                                  widgetControl, height);
       if (!m_toolbar)
@@ -218,7 +220,7 @@ CNxToolbar *CNxTkWindow::openToolbar(nxgl_coord_t height, CWidgetControl *widget
 
       // Provide parent widget control information to new widget control instance.
       // This information is reported by an NX callback for "normal" windows.  But
-      // the toolbar widget control does not get NX callbacks and has to get the 
+      // the toolbar widget control does not get NX callbacks and has to get the
       // window size through the setWindowBounds method.
 
       // Disable preemption so that we can be assured that all of the following
@@ -309,7 +311,7 @@ bool CNxTkWindow::getSize(FAR struct nxgl_size_s *size)
  * @param pos The new position of the window.
  * @return True on success, false on any failure.
  */
-     
+
 bool CNxTkWindow::setPosition(FAR const struct nxgl_point_s *pos)
 {
   // Set the window size and position
@@ -323,7 +325,7 @@ bool CNxTkWindow::setPosition(FAR const struct nxgl_point_s *pos)
  * @param size The new size of the window.
  * @return True on success, false on any failure.
  */
-    
+
 bool CNxTkWindow::setSize(FAR const struct nxgl_size_s *size)
 {
   // Set the window size

@@ -80,6 +80,8 @@
 #include <stdbool.h>
 #include <ctime>
 
+#include <nuttx/wqueue.h>
+
 #include "cnxwidget.hxx"
 
 /****************************************************************************
@@ -108,42 +110,18 @@ namespace NXWidgets
   class CNxTimer : public CNxWidget
   {
   protected:
-    FAR timer_t       m_timerid;    /**< POSIX timer */
+    struct work_s     m_work;       /**< Work queue entry */
     uint32_t          m_timeout;    /**< The timeout value in milliseconds */
     bool              m_isRunning;  /**< Indicates whether or not the timer is running */
     bool              m_isRepeater; /**< Indicates whether or not the timer repeats */
 
     /**
-     * The SIGALM signal handler that will be called when the timer goes off
+     * Static function called from work queue when the timeout expires.
      *
-     * @param signo The signal number call caused the handler to run (SIGALM)
+     * @param arg Pointer to the CNxTimer instance.
      */
 
-    static void signalHandler(int signo);
-
-    /**
-     * Handle an expired timer
-     */
-
-    void handleTimerExpiration(void);
- 
-    /**
-     * Convert a timespec to milliseconds
-     *
-     * @param tp The pointer to the timespec to convert
-     * @return The corresponding time in milliseconds
-     */
-
-    uint32_t timespecToMilliseconds(FAR const struct timespec *tp);
-
-   /**
-    * Convert milliseconds to a timespec
-    *
-    * @param milliseconds The milliseconds to be converted
-    * @param tp The pointer to the location to store the converted timespec
-    */
-
-    void millisecondsToTimespec(uint32_t milliseconds, FAR struct timespec *tp);
+    static void workQueueCallback(FAR void *arg);
 
     /**
      * Copy constructor is protected to prevent usage.
@@ -170,15 +148,6 @@ namespace NXWidgets
      */
 
     ~CNxTimer(void);
-
-    /**
-     * Return the time remaining on this timer.
-     *
-     * @return The number of milliseconds that this timer runs before
-     *   firing an event.  Zero is returned if the timer is not running.
-     */
-
-    const uint32_t getTimeout(void);
 
     /**
      * Resets the (running) timer to its initial timeout value.  This
@@ -211,6 +180,18 @@ namespace NXWidgets
     inline void setTimeout(uint32_t timeout)
     {
       m_timeout = timeout;
+    }
+    
+    /**
+     * Return the timeout of this timer.
+     *
+     * @return The number of milliseconds that this timer will run before
+     *   firing an event.
+     */
+
+    inline uint32_t getTimeout(void) const
+    {
+      return m_timeout;
     }
   };
 }
