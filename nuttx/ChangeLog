@@ -3641,4 +3641,11 @@
 	  window. From Petteri Aimonen.
 	* nuttx/graphics/nxmu/nx_block.c:  One more fixe to the NX block message
 	  logic from Petteri Aimonen.
+	* include/nuttx/wqueue.h: Some basic definitions to support a user-
+	  space work queue (someday in the future).
+	* graphics/nxmu:  Add semaphores so buffers messages that send buffers
+	  will block until the buffer data has been acted upon.
+	* graphics/nxmw:  Extended the blocked messages to cover mouse movement
+	  and redraw events.  These will also cause problems if sent to a window
+	  while it is closing.
 

@@ -130,7 +130,7 @@ int nxmu_mousereport(struct nxbe_window_s *wnd)
           outmsg.buttons = g_mbutton;
           nxgl_vectsubtract(&outmsg.pos, &g_mpos, &wnd->bounds.pt1);
 
-          return nxmu_sendclient(wnd->conn, &outmsg, sizeof(struct nxclimsg_mousein_s));
+          return nxmu_sendclientwindow(wnd, &outmsg, sizeof(struct nxclimsg_mousein_s));
         }
     }
 
@@ -202,7 +202,7 @@ int nxmu_mousein(FAR struct nxfe_state_s *fe,
           outmsg.buttons = g_mbutton;
           nxgl_vectsubtract(&outmsg.pos, &g_mpos, &g_mwnd->bounds.pt1);
 
-          return nxmu_sendclient(g_mwnd->conn, &outmsg, sizeof(struct nxclimsg_mousein_s));
+          return nxmu_sendclientwindow(g_mwnd, &outmsg, sizeof(struct nxclimsg_mousein_s));
         }
 
       /* Pick the window to receive the mouse event.  Start with the top
