@@ -34,11 +34,11 @@
 ###########################################################################
 
 -include $(TOPDIR)/Make.defs
-include proxies/Make.defs
-include stubs/Make.defs
+include proxies$(DELIM)Make.defs
+include stubs$(DELIM)Make.defs
 
-MKSYSCALL = "$(TOPDIR)/tools/mksyscall$(EXEEXT)"
-CSVFILE = "$(TOPDIR)/syscall/syscall.csv"
+MKSYSCALL = "$(TOPDIR)$(DELIM)tools$(DELIM)mksyscall$(EXEEXT)"
+CSVFILE = "$(TOPDIR)$(DELIM)syscall$(DELIM)syscall.csv"
 
 STUB_SRCS += stub_lookup.c
 
@@ -85,7 +85,7 @@ $(BIN2): $(STUB_OBJS)
 depend: .depend
 
 $(MKSYSCALL):
-	$(Q) $(MAKE) -C $(TOPDIR)/tools -f Makefile.host mksyscall
+	$(Q) $(MAKE) -C $(TOPDIR)$(DELIM)tools -f Makefile.host mksyscall
 
 .context: syscall.csv
 	$(Q) (cd proxies; $(MKSYSCALL) -p $(CSVFILE);)
@@ -95,15 +95,20 @@ $(MKSYSCALL):
 context: $(MKSYSCALL) .context
 
 clean:
-	$(Q) rm -f $(BIN1) $(BIN2) *~ .*.swp
+	$(call DELFILE $(BIN1))
+	$(call DELFILE $(BIN2))
 ifneq ($(OBJEXT),)
-	$(Q) rm -f proxies/*$(OBJEXT) stubs/*$(OBJEXT)
+	$(call DELFILE proxies$(DELIM)*$(OBJEXT))
+	$(call DELFILE stubs$(DELIM)*$(OBJEXT))
 endif
 	$(call CLEAN)
 
 distclean: clean
-	$(Q) rm -f Make.dep .depend .context
-	$(Q) rm -f proxies/*.c stubs/*.c
+	$(call DELFILE .context)
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
+	$(call DELFILE proxies$(DELIM)*.c)
+	$(call DELFILE stubs$(DELIM)*.c)
 
 -include Make.dep
 

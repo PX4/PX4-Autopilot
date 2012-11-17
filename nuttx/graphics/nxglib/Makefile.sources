@@ -33,7 +33,6 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 
 ifeq ($(NXGLIB_BITSPERPIXEL),1)
@@ -123,53 +122,54 @@ all:	$(GEN_CSRCS)
 
 $(SETP_CSRC) : $(BLITDIR)/nxglib_setpixel.c nxglib_bitblit.h
 ifneq ($(NXGLIB_BITSPERPIXEL),)
-	@$(call PREPROCESS, $(BLITDIR)/nxglib_setpixel.c, $(SETP_TMP))
-	@cat $(SETP_TMP) | sed -e "/^#/d" >$@
-	@rm -f  $(SETP_TMP)
+	$(call PREPROCESS, $(BLITDIR)/nxglib_setpixel.c, $(SETP_TMP))
+	$(Q) cat $(SETP_TMP) | sed -e "/^#/d" >$@
+	$(Q) rm -f  $(SETP_TMP)
 endif
 
 $(RFILL_CSRC) : $(BLITDIR)/nxglib_fillrectangle.c nxglib_bitblit.h
 ifneq ($(NXGLIB_BITSPERPIXEL),)
-	@$(call PREPROCESS, $(BLITDIR)/nxglib_fillrectangle.c, $(RFILL_TMP))
-	@cat $(RFILL_TMP) | sed -e "/^#/d" >$@
-	@rm -f  $(RFILL_TMP)
+	$(call PREPROCESS, $(BLITDIR)/nxglib_fillrectangle.c, $(RFILL_TMP))
+	$(Q) cat $(RFILL_TMP) | sed -e "/^#/d" >$@
+	$(Q) rm -f  $(RFILL_TMP)
 endif
 
 $(RGET_CSRC) : $(BLITDIR)/nxglib_getrectangle.c nxglib_bitblit.h
 ifneq ($(NXGLIB_BITSPERPIXEL),)
-	@$(call PREPROCESS, $(BLITDIR)/nxglib_getrectangle.c, $(RGET_TMP))
-	@cat $(RGET_TMP) | sed -e "/^#/d" >$@
-	@rm -f  $(RGET_TMP)
+	$(call PREPROCESS, $(BLITDIR)/nxglib_getrectangle.c, $(RGET_TMP))
+	$(Q) cat $(RGET_TMP) | sed -e "/^#/d" >$@
+	$(Q) rm -f  $(RGET_TMP)
 endif
 
 $(TFILL_CSRC) : $(BLITDIR)/nxglib_filltrapezoid.c nxglib_bitblit.h
 ifneq ($(NXGLIB_BITSPERPIXEL),)
-	@$(call PREPROCESS, $(BLITDIR)/nxglib_filltrapezoid.c, $(TFILL_TMP))
-	@cat $(TFILL_TMP) | sed -e "/^#/d" >$@
-	@rm -f  $(TFILL_TMP)
+	$(call PREPROCESS, $(BLITDIR)/nxglib_filltrapezoid.c, $(TFILL_TMP))
+	$(Q) cat $(TFILL_TMP) | sed -e "/^#/d" >$@
+	$(Q) rm -f  $(TFILL_TMP)
 endif
 
 $(RMOVE_CSRC) : $(BLITDIR)/nxglib_moverectangle.c nxglib_bitblit.h
 ifneq ($(NXGLIB_BITSPERPIXEL),)
-	@$(call PREPROCESS, $(BLITDIR)/nxglib_moverectangle.c, $(RMOVE_TMP))
-	@cat $(RMOVE_TMP) | sed -e "/^#/d" >$@
-	@rm -f  $(RMOVE_TMP)
+	$(call PREPROCESS, $(BLITDIR)/nxglib_moverectangle.c, $(RMOVE_TMP))
+	$(Q) cat $(RMOVE_TMP) | sed -e "/^#/d" >$@
+	$(Q) rm -f  $(RMOVE_TMP)
 endif
 
 $(RCOPY_CSRC) : $(BLITDIR)/nxglib_copyrectangle.c nxglib_bitblit.h
 ifneq ($(NXGLIB_BITSPERPIXEL),)
-	@$(call PREPROCESS, $(BLITDIR)/nxglib_copyrectangle.c, $(RCOPY_TMP))
-	@cat $(RCOPY_TMP) | sed -e "/^#/d" >$@
-	@rm -f  $(RCOPY_TMP)
+	$(call PREPROCESS, $(BLITDIR)/nxglib_copyrectangle.c, $(RCOPY_TMP))
+	$(Q) cat $(RCOPY_TMP) | sed -e "/^#/d" >$@
+	$(Q) rm -f  $(RCOPY_TMP)
 endif
 
 clean:
-	@rm -f *~ .*.swp *.i
+	$(call DELFILE *.i)
+	$(call CLEAN)
 
 distclean: clean
-	@rm -f nxglib_setpixel_*bpp.c
-	@rm -f nxglib_fillrectangle_*bpp.c
-	@rm -f nxglib_getrectangle_*bpp.c
-	@rm -f nxglib_filltrapezoid_*bpp.c
-	@rm -f nxglib_moverectangle_*bpp.c
-	@rm -f nxglib_copyrectangle_*bpp.c
+	$(call DELFILE nxglib_setpixel_*bpp.c)
+	$(call DELFILE nxglib_fillrectangle_*bpp.c)
+	$(call DELFILE nxglib_getrectangle_*bpp.c)
+	$(call DELFILE nxglib_filltrapezoid_*bpp.c)
+	$(call DELFILE nxglib_moverectangle_*bpp.c)
+	$(call DELFILE nxglib_copyrectangle_*bpp.c)

@@ -105,10 +105,11 @@ $(BIN):	$(OBJS)
 depend: .depend
 
 clean:
-	$(Q) rm -f $(BIN) *~ .*.swp
+	$(call DELFILE $(BIN))
 	$(call CLEAN)
 
 distclean: clean
-	$(Q) rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

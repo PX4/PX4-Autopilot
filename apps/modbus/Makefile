@@ -93,25 +93,28 @@ endif
 .built: $(OBJS)
 ifeq ($(CONFIG_MODBUS),y)
 	$(call ARCHIVE, $(BIN), $(OBJS))
-	@touch .built
+	$(Q) touch .built
 endif
 
 context:
 
 .depend: Makefile $(SRCS)
 ifeq ($(CONFIG_MODBUS),y)
-	@$(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 endif
 
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE .built)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE .context)
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
+    
 -include Make.dep
 

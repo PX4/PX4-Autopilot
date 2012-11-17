@@ -87,10 +87,12 @@ context:
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE .built)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend host
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
+	$(call DELFILE host$(HOSTEXEEXT))
 
 -include Make.dep

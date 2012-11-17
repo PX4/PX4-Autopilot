@@ -89,12 +89,13 @@ context:
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE .built)
 	@$(MAKE) -C content clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" CROSSDEV=$(CROSSDEV)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep
 

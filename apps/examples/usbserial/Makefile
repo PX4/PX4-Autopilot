@@ -33,7 +33,6 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 include $(APPDIR)/Make.defs
 
@@ -86,12 +85,13 @@ context:
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE .built)
 	$(call CLEAN)
 	@$(MAKE) -f Makefile.host clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep
 

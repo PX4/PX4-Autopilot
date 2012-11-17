@@ -188,6 +188,7 @@ OBJS		= $(AOBJS) $(COBJS)
 BIN		= libsched$(LIBEXT)
 
 all:	$(BIN)
+.PHONY: context depend clean distclean
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -205,10 +206,11 @@ $(BIN): $(OBJS)
 depend: .depend
 
 clean:
-	$(Q) rm -f $(BIN)
+	$(call DELFILE $(BIN))
 	$(call CLEAN)
 
 distclean: clean
-	$(Q) rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

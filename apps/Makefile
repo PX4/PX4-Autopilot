@@ -169,13 +169,12 @@ ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) for %%G in ($(SUBDIRS)) do ( \
 		$(MAKE) -C %%G clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" \
 	)
-	$(Q) rm -f $(BIN) *~ .*.swp *.o
 else
 	$(Q) for dir in $(SUBDIRS) ; do \
 		$(MAKE) -C $$dir clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
 	done
-	$(Q) rm -f $(BIN) *~ .*.swp *.o
 endif
+	$(call DELFILE $(BIN))
 	$(call CLEAN)
 
 distclean: # clean
@@ -183,7 +182,9 @@ ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) for %%G in ($(SUBDIRS)) do ( \
 		$(MAKE) -C %%G distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" \
 	)
-	$(Q) rm -f .config .context .depend
+	$(call DELFILE .config)
+	$(call DELFILE .context)
+	$(call DELFILE .depend)
 	$(Q) ( if exist  external ( \
 		echo ********************************************************" \
 		echo * The external directory/link must be removed manually *" \
@@ -193,7 +194,9 @@ else
 	$(Q) for dir in $(SUBDIRS) ; do \
 		$(MAKE) -C $$dir distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
 	done
-	$(Q) rm -f .config .context .depend
+	$(call DELFILE .config)
+	$(call DELFILE .context)
+	$(call DELFILE .depend)
 	$(Q) ( if [ -e external ]; then \
 		echo "********************************************************"; \
 		echo "* The external directory/link must be removed manually *"; \

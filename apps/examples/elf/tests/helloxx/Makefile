@@ -33,7 +33,6 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 
 BIN1 = hello++1
@@ -68,13 +67,13 @@ all: $(BIN1) $(BIN2) $(BIN3) $(BIN4)
 
 $(OBJS): %.o: %.cpp
 	@echo "CC: $<"
-	@$(CXX) -c $(CXXELFFLAGS) $< -o $@
+	$(Q) $(CXX) -c $(CXXELFFLAGS) $< -o $@
 
 # This contains libstdc++ stubs to that you can build C++ code
 # without actually having libstdc++
 
 $(LIBSTDC_STUBS_LIB):
-	@$(MAKE) -C $(LIBSTDC_STUBS_DIR) TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C $(LIBSTDC_STUBS_DIR) TOPDIR=$(TOPDIR)
 
 # BIN1 and BIN2 link just like C code because they contain no
 # static constructors.  BIN1 is equivalent to a C hello world;
@@ -83,18 +82,18 @@ $(LIBSTDC_STUBS_LIB):
 
 $(BIN1): $(OBJS1)
 	@echo "LD: $<"
-	@$(LD) $(LDELFFLAGS) -o $@ $^
+	$(Q) $(LD) $(LDELFFLAGS) -o $@ $^
 
 $(BIN2): $(OBJS2)
 	@echo "LD: $<"
-	@$(LD) $(LDELFFLAGS) -o $@ $^
+	$(Q) $(LD) $(LDELFFLAGS) -o $@ $^
 
 # BIN3 is equivalent to BIN2 except that is uses static initializers
 
 ifeq ($(CONFIG_BINFMT_CONSTRUCTORS),y)
 $(BIN3): $(OBJS3)
 	@echo "LD: $<"
-	@$(LD) $(LDELFFLAGS) -o $@ $^
+	$(Q) $(LD) $(LDELFFLAGS) -o $@ $^
 endif
 
 # BIN4 is similar to BIN3 except that it uses the streams code from libstdc++
@@ -103,19 +102,23 @@ endif
 #
 #$(BIN4): $(OBJS4)
 #	@echo "LD: $<"
-#	@$(LD) $(LDELFFLAGS) -o $@ $^
+#	$(Q) $(LD) $(LDELFFLAGS) -o $@ $^
 
 clean: 
-	@rm -f $(ALL_BIN) *.o *~ .*.swp core
+	$(call DELFILE $(BIN1))
+	$(call DELFILE $(BIN2))
+	$(call DELFILE $(BIN3))
+	$(call DELFILE $(BIN4))
+	$(call CLEAN)
 
 install: $(ALL_BIN)
-	@mkdir -p $(ROMFS_DIR)
-	@install $(BIN1) $(ROMFS_DIR)/$(BIN1)
-	@install $(BIN2) $(ROMFS_DIR)/$(BIN2)
+	$(Q) mkdir -p $(ROMFS_DIR)
+	$(Q) install $(BIN1) $(ROMFS_DIR)/$(BIN1)
+	$(Q) install $(BIN2) $(ROMFS_DIR)/$(BIN2)
 ifeq ($(CONFIG_BINFMT_CONSTRUCTORS),y)
-	@install $(BIN3) $(ROMFS_DIR)/$(BIN3)
+	$(Q) install $(BIN3) $(ROMFS_DIR)/$(BIN3)
 endif
-#	@install $(BIN4) $(ROMFS_DIR)/$(BIN4)
+#	$(Q) install $(BIN4) $(ROMFS_DIR)/$(BIN4)
 
 
 

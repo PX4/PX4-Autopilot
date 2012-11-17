@@ -100,10 +100,11 @@ clean_tests:
 	@$(MAKE) -C tests TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" CROSSDEV=$(CROSSDEV) clean
 
 clean: clean_tests
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE .built)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

@@ -88,44 +88,45 @@ $(COBJS): %$(OBJEXT): %.c
 
 ifeq ($(CONFIG_NXFLAT),y)
 cgi-bin:
-	@mkdir cgi-bin
+	$(Q) mkdir cgi-bin
 
 cgi-src/$(SUBDIR_BIN1):
-	@$(MAKE) -C cgi-src $(SUBDIR_BIN1)
+	$(Q) $(MAKE) -C cgi-src $(SUBDIR_BIN1)
 
 cgi-bin/$(SUBDIR_BIN1): cgi-bin cgi-src/$(SUBDIR_BIN1)
-	@cp -a cgi-src/$(SUBDIR_BIN1) $@
+	$(Q) cp -a cgi-src/$(SUBDIR_BIN1) $@
 
 cgi-src/$(SUBDIR_BIN2):
-	@$(MAKE) -C cgi-src $(SUBDIR_BIN2)
+	$(Q) $(MAKE) -C cgi-src $(SUBDIR_BIN2)
 
 cgi-bin/$(SUBDIR_BIN2): cgi-bin cgi-src/$(SUBDIR_BIN2)
-	@cp -a cgi-src/$(SUBDIR_BIN2) $@
+	$(Q) cp -a cgi-src/$(SUBDIR_BIN2) $@
 
 cgi-src/$(SUBDIR_BIN3):
-	@$(MAKE) -C cgi-src $(SUBDIR_BIN3)
+	$(Q) $(MAKE) -C cgi-src $(SUBDIR_BIN3)
 
 cgi-bin/$(SUBDIR_BIN3): cgi-bin cgi-src/$(SUBDIR_BIN3)
-	@cp -a cgi-src/$(SUBDIR_BIN3) $@
+	$(Q) cp -a cgi-src/$(SUBDIR_BIN3) $@
 endif
 
 .built: $(OBJS)
 	$(call ARCHIVE, $(BIN), $(OBJS))
-	@touch .built
+	$(Q) touch .built
 
 context:
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE .built)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

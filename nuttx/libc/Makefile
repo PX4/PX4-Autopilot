@@ -114,7 +114,7 @@ else
 	$(Q) ( if [ -f .userlib ]; then rm -f *$(OBJEXT); fi )
 endif
 endif
-	$(Q) rm -f .userlib *~ .*.swp
+	$(call DELFILE .userlib)
 
 # Clean kernel-mode temporary files (retaining the KBIN binary)
 
@@ -126,17 +126,20 @@ else
 	$(Q) ( if [ -f .kernlib ]; then rm -f *$(OBJEXT); fi )
 endif
 endif
-	$(Q) rm -f .kernlib *~ .*.swp
+	$(call DELFILE .kernlib)
 
 # Really clean everything
 
 clean: uclean kclean
-	$(Q) rm -f $(BIN) $(UBIN) $(KBIN) *~ .*.swp
+	$(call DELFILE $(BIN))
+	$(call DELFILE $(UBIN))
+	$(call DELFILE $(KBIN))
 	$(call CLEAN)
 
 # Deep clean -- removes all traces of the configuration
 
 distclean: clean
-	$(Q) rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

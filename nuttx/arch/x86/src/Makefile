@@ -172,13 +172,14 @@ clean:
 ifeq ($(BOARDMAKE),y)
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" clean
 endif
-	$(Q) rm -f libarch$(LIBEXT) *~ .*.swp
+	$(call DELFILE libarch$(LIBEXT))
 	$(call CLEAN)
 
 distclean: clean
 ifeq ($(BOARDMAKE),y)
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" distclean
 endif
-	$(Q) rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

@@ -122,8 +122,18 @@ mkdeps: mkdeps$(HOSTEXEEXT)
 endif
 
 clean:
-	$(Q) rm -f *.o *.a *~ .*.swp
-	$(Q) rm -f mkdeps mkconfig mksyscall mkversion bdf-converter
-	$(Q) rm -f mkdeps.exe mkconfig.exe mksyscall.exe mkversion.exe bdf-converter.exe
+	$(call DELFILE mkdeps)
+	$(call DELFILE mkdeps.exe)
+	$(call DELFILE mkconfig)
+	$(call DELFILE mkconfig.exe)
+	$(call DELFILE Make.dep)
+	$(call DELFILE mksyscall)
+	$(call DELFILE mksyscall.exe)
+	$(call DELFILE mkversion)
+	$(call DELFILE mkversion.exe)
+	$(call DELFILE bdf-converter)
+	$(call DELFILE  bdf-converter.exe)
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) rm -rf *.dSYM
-
+endif
+	$(call CLEAN)

@@ -96,12 +96,14 @@ export_head:
 depend: .depend
 
 clean:
-	@rm -f $(TOPDIR)/arch/rgmp/src/x86/*.o
-	@rm -f $(TOPDIR)/kernel.img nuttx.img 
-	@rm -f libarch$(LIBEXT) *~ .*.swp
+	$(call DELFILE "$(TOPDIR)/arch/rgmp/src/x86/*.o")
+	$(call DELFILE "$(TOPDIR)/kernel.img")
+	$(call DELFILE nuttx.img)
+	$(call DELFILE libarch$(LIBEXT))
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

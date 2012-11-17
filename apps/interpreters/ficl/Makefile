@@ -97,21 +97,23 @@ debug:
 
 .built: debug $(OBJS)
 	$(call ARCHIVE, $(BIN), $(OBJS))
-	@touch .built
+	$(Q) touch .built
 
 context:
 
 .depend: debug Makefile $(SRCS)
-	@$(MKDEP) $(ROOT_DEPPATH) $(SRC_DEPPATH) $(FICL_DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(ROOT_DEPPATH) $(SRC_DEPPATH) $(FICL_DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE .context)
+	$(call DELFILE .built)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

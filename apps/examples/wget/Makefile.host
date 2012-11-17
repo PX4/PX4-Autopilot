@@ -71,7 +71,9 @@ $(BIN): headers $(OBJS)
 	$(HOSTCC) $(HOSTLDFLAGS) $(OBJS) -o $@
 
 clean:
-	@rm -f $(BIN).* *.o1 *~
+	$(call DELFILE $(BIN).*)
+	$(call DELFILE *.o1)
+	$(call CLEAN)
 	@rm -rf net nuttx
 
 

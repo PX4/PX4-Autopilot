@@ -419,10 +419,10 @@ context: check_context include/nuttx/config.h include/nuttx/version.h include/ma
 # and symbolic links created by the context target.
 
 clean_context:
-	$(Q) rm -f include/nuttx/config.h
-	$(Q) rm -f include/nuttx/version.h
-	$(Q) rm -f include/math.h
-	$(Q) rm -f include/stdarg.h
+	$(call DELFILE include/nuttx/config.h)
+	$(call DELFILE include/nuttx/version.h)
+	$(call DELFILE include/math.h)
+	$(call DELFILE include/stdarg.h)
 	$(Q) $(DIRUNLINK) include/arch/board
 	$(Q) $(DIRUNLINK) include/arch/chip
 	$(Q) $(DIRUNLINK) include/arch
@@ -686,8 +686,13 @@ ifeq ($(CONFIG_BUILD_2PASS),y)
 endif
 
 clean: subdir_clean
-	$(Q) rm -f $(BIN) nuttx.* mm_test *.map _SAVED_APPS_config *~
-	$(Q) rm -f nuttx-export*
+	$(call DELFILE $(BIN))
+	$(call DELFILE nuttx.*)
+	$(call DELFILE mm_test)
+	$(call DELFILE *.map)
+	$(call DELFILE _SAVED_APPS_config)
+	$(call DELFILE nuttx-export*)
+	$(call CLEAN)
 
 subdir_distclean:
 	$(Q) for dir in $(CLEANDIRS) ; do \
@@ -700,7 +705,11 @@ distclean: clean subdir_distclean clean_context
 ifeq ($(CONFIG_BUILD_2PASS),y)
 	$(Q) $(MAKE) -C $(CONFIG_PASS1_BUILDIR) TOPDIR="$(TOPDIR)" distclean
 endif
-	$(Q) rm -f Make.defs setenv.sh setenv.bat .config .config.old
+	$(call DELFILE Make.defs)
+	$(call DELFILE setenv.sh)
+	$(call DELFILE setenv.bat)
+	$(call DELFILE .config)
+	$(call DELFILE .config.old)
 
 # Application housekeeping targets.  The APPDIR variable refers to the user
 # application directory.  A sample apps/ directory is included with NuttX,

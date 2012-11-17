@@ -78,26 +78,28 @@ $(COBJS): %$(OBJEXT): %.c
 
 .built: $(OBJS)
 	$(call ARCHIVE, $(BIN), $(OBJS))
-	@touch .built
+	$(Q) touch .built
 
 .context:
 	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
-	@touch $@
+	$(Q) touch $@
 
 context: .context
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE .built)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE .context)
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep
 

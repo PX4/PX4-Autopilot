@@ -137,16 +137,20 @@ clean:
 	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" clean ; \
 	fi
-	$(Q) rm -f libarch$(LIBEXT) *~ .*.swp
 ifeq ($(COMPILER),zneocc.exe)
-	$(Q) rm -f nuttx.linkcmd *.asm *.tmp *.map
+	$(call DELFILE nuttx.linkcmd)
+	$(call DELFILE *.asm)
+	$(call DELFILE *.tmp)
+	$(call DELFILE *.map)
 endif
+	$(call DELFILE libarch$(LIBEXT))
 	$(call CLEAN)
 
 distclean: clean
 	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" distclean ; \
 	fi
-	$(Q) rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

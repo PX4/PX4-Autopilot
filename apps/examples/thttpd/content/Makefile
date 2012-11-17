@@ -97,8 +97,10 @@ $(SYMTAB): build
 # Clean each subdirectory
 
 clean: $(foreach DIR, $(SUBDIRS), $(DIR)_clean)
-	@rm -f $(ROMFS_HDR) $(ROMFS_IMG) $(SYMTAB)
+	$(call DELFILE$(ROMFS_HDR))
+	$(call DELFILE $(ROMFS_IMG))
+	$(call DELFILE $(SYMTAB))
 	@rm -rf $(ROMFS_DIR)
-	@rm -f *~ .*.swp
+	$(call CLEAN)
 
 

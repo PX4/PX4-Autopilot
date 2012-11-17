@@ -33,8 +33,7 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config	# Current configuration
--include $(TOPDIR)/Make.defs	# Basic make info
+-include $(TOPDIR)/Make.defs
 
 BIN			= errno
 
@@ -48,31 +47,35 @@ all: $(BIN)
 
 $(R1OBJS): %.o: %.c
 	@echo "CC: $<"
-	@$(CC) -c $(CPICFLAGS) $< -o $@
+	$(Q) $(CC) -c $(CPICFLAGS) $< -o $@
 
 $(R2OBJ): %.o: %.S
 	@echo "AS: $<"
-	@$(CC) -c $(CPICFLAGS) $< -o $@
+	$(Q) $(CC) -c $(CPICFLAGS) $< -o $@
 
 $(BIN).r1: $(R1OBJS)
 	@echo "LD: $<"
-	@$(LD) $(NXFLATLDFLAGS1) -o $@ $^
+	$(Q) $(LD) $(NXFLATLDFLAGS1) -o $@ $^
 
 $(R2SRC): $(BIN).r1
 	@echo "MK: $<"
-	@$(MKNXFLAT) -o $@ $^
+	$(Q) $(MKNXFLAT) -o $@ $^
 
 $(BIN).r2: $(R2OBJ)
 	@echo "LD: $<"
-	@$(LD) $(NXFLATLDFLAGS2) -o $@ $(R1OBJS) $(R2OBJ)
+	$(Q) $(LD) $(NXFLATLDFLAGS2) -o $@ $(R1OBJS) $(R2OBJ)
 
 $(BIN): $(BIN).r2
 	@echo "LD: $<"
-	@$(LDNXFLAT) $(LDNXFLATFLAGS) -o $@ $^
+	$(Q) $(LDNXFLAT) $(LDNXFLATFLAGS) -o $@ $^
 
 clean: 
-	@rm -f $(BIN) $(R2SRC) *.o *.r1 *.r2 *~ .*.swp core
+	$(call DELFILE $(BIN))
+	$(call DELFILE $(R2SRC))
+	$(call DELFILE *.r1)
+	$(call DELFILE *.r2)
+	$(call CLEAN)
 
 install:
-	@install -D $(BIN) $(ROMFS_DIR)/$(BIN)
+	$(Q) install -D $(BIN) $(ROMFS_DIR)/$(BIN)
 

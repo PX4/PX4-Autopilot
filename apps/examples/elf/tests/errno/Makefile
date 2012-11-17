@@ -33,7 +33,6 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 
 BIN = errno
@@ -45,16 +44,17 @@ all: $(BIN)
 
 $(OBJS): %.o: %.c
 	@echo "CC: $<"
-	@$(CC) -c $(CELFFLAGS) $< -o $@
+	$(Q) $(CC) -c $(CELFFLAGS) $< -o $@
 
 $(BIN): $(OBJS)
 	@echo "LD: $<"
-	@$(LD) $(LDELFFLAGS) -o $@ $^
+	$(Q) $(LD) $(LDELFFLAGS) -o $@ $^
 
-clean: 
-	@rm -f $(BIN) *.o *~ .*.swp core
+clean:
+	$(call DELFILE $(BIN))
+	$(call CLEAN)
 
 install:
-	@mkdir -p $(ROMFS_DIR)
-	@install $(BIN) $(ROMFS_DIR)/$(BIN)
+	$(Q) mkdir -p $(ROMFS_DIR)
+	$(Q) install $(BIN) $(ROMFS_DIR)/$(BIN)
 

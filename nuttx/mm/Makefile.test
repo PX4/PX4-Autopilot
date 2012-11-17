@@ -33,12 +33,14 @@
 #
 ############################################################################
 
-SRCS		= mm_test.c mm_initialize.c mm_sem.c  mm_addfreechunk.c mm_size2ndx.c mm_shrinkchunk.c \
+-include $(TOPDIR)/Make.defs
+
+SRCS	= mm_test.c mm_initialize.c mm_sem.c  mm_addfreechunk.c mm_size2ndx.c mm_shrinkchunk.c \
 		  mm_malloc.c mm_zalloc.c mm_calloc.c mm_realloc.c \
 		  mm_memalign.c mm_free.c mm_mallinfo.c
-OBJS		= $(SRCS:.c=.o1)
+OBJS	= $(SRCS:.c=.o1)
 
-LIBS		= -lpthread -lc
+LIBS	= -lpthread -lc
 
 CC		= gcc
 LD		= gcc
@@ -48,17 +50,19 @@ WARNIGNS	= -Wall -Wstrict-prototypes -Wshadow
 CFLAGS		= -g $(DEFINES)
 LDFLAGS		=
 
-BIN		= ../mm_test
+BIN		= ..$(DELIM)mm_test
 
 all:	$(BIN)
 
 $(OBJS): %.o1: %.c
 	@echo "Compiling $<"
-	$(CC) -c $(CFLAGS) $< -o $@
+	$(Q) $(CC) -c $(CFLAGS) $< -o $@
 
 $(BIN):	$(OBJS)
 	@echo "Linking {$(OBJS)} to produce $@"
-	$(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
+	$(Q) $(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 
 clean:
-	@rm -f $(BIN) *.o1 *~
+	$(call DELFILE $(BIN))
+	$(call DELFILE *.o1)
+	$(call CLEAN)

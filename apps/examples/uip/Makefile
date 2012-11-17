@@ -89,12 +89,13 @@ context:
 epend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
-	@rm -f httpd_fsdata.c
+	$(call DELFILE .built)
+	$(call DELFILE httpd_fsdata.c)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep
 

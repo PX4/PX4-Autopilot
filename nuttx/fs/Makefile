@@ -130,13 +130,11 @@ $(BIN):	$(OBJS)
 depend: .depend
 
 clean:
-	$(Q) rm -f $(BIN) *~ .*.swp
+	$(call DELFILE $(BIN))
 	$(call CLEAN)
-	$(Q) ( for dir in $(SUBDIRS); do \
-		rm -f $${dir}/*~ $${dir}/.*.swp; \
-	done ; )
 
 distclean: clean
-	$(Q) rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

@@ -33,8 +33,7 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config	# Current configuration
--include $(TOPDIR)/Make.defs	# Basic make info
+-include $(TOPDIR)/Make.defs
 
 BIN1			= hello++1
 BIN2			= hello++2
@@ -74,17 +73,17 @@ all: $(BIN1) $(BIN2) $(BIN3) # $(BIN4)
 
 $(R1CXXOBJS): %.o: %.cpp
 	@echo "CC: $<"
-	@$(CXX) -c $(CXXPICFLAGS) $< -o $@
+	$(Q) $(CXX) -c $(CXXPICFLAGS) $< -o $@
 
 $(R2AOBJS): %.o: %.S
 	@echo "AS: $<"
-	@$(CC) -c $(CPICFLAGS) $< -o $@
+	$(Q) $(CC) -c $(CPICFLAGS) $< -o $@
 
 # This contains libstdc++ stubs to that you can build C++ code
 # without actually having libstdc++
 
 $(LIBSTDC_STUBS_LIB):
-	@$(MAKE) -C $(LIBSTDC_STUBS_DIR) TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C $(LIBSTDC_STUBS_DIR) TOPDIR=$(TOPDIR)
 
 # BIN1 and BIN2 link just like C code because they contain no
 # static constructors.  BIN1 is equivalent to a C hello world;
@@ -93,34 +92,34 @@ $(LIBSTDC_STUBS_LIB):
 
 $(BIN1).r1: $(R1OBJS1)
 	@echo "LD: $<"
-	@$(LD) $(NXFLATLDFLAGS1) -o $@ $^
+	$(Q) $(LD) $(NXFLATLDFLAGS1) -o $@ $^
 
 $(R2SRC1): $(BIN1).r1
 	@echo "MK: $<"
-	@$(MKNXFLAT) -o $@ $^
+	$(Q) $(MKNXFLAT) -o $@ $^
 
 $(BIN1).r2: $(R2OBJ1)
 	@echo "LD: $<"
-	@$(LD) $(NXFLATLDFLAGS2) -o $@ $(R1OBJS1) $(R2OBJ1)
+	$(Q) $(LD) $(NXFLATLDFLAGS2) -o $@ $(R1OBJS1) $(R2OBJ1)
 
 $(BIN1): $(BIN1).r2
 	@echo "LD: $<"
-	@$(LDNXFLAT) $(LDNXFLATFLAGS) -o $@ $^
+	$(Q) $(LDNXFLAT) $(LDNXFLATFLAGS) -o $@ $^
 
 $(BIN2).r1: $(R1OBJS2) $(LIBSTDC_STUBS_LIB)
 	@echo "LD: $<"
-	@$(LD) $(NXFLATLDFLAGS1) -o $@ $^
+	$(Q) $(LD) $(NXFLATLDFLAGS1) -o $@ $^
 
 $(R2SRC2): $(BIN2).r1
 	@echo "MK: $<"
-	@$(MKNXFLAT) -o $@ $^
+	$(Q) $(MKNXFLAT) -o $@ $^
 
 $(BIN2).r2: $(R2OBJ2)
-	@$(LD) $(NXFLATLDFLAGS2) -o $@ $(R1OBJS2) $(R2OBJ2)
+	$(Q) $(LD) $(NXFLATLDFLAGS2) -o $@ $(R1OBJS2) $(R2OBJ2)
 
 $(BIN2): $(BIN2).r2
 	@echo "LD: $<"
-	@$(LDNXFLAT) $(LDNXFLATFLAGS) -o $@ $^
+	$(Q) $(LDNXFLAT) $(LDNXFLATFLAGS) -o $@ $^
 
 # BIN3 and BIN4 require that we include --cxx in the xflat-ld command.
 # This will instruct xflat-ld that we want it to put together the correct
@@ -130,19 +129,19 @@ $(BIN2): $(BIN2).r2
 
 $(BIN3).r1: $(R1OBJS3) $(LIBSTDC_STUBS_LIB)
 	@echo "LD: $<"
-	@$(LD) $(NXFLATLDFLAGS1) -o $@ $^
+	$(Q) $(LD) $(NXFLATLDFLAGS1) -o $@ $^
 
 $(R2SRC3): $(BIN3).r1
 	@echo "MK: $<"
-	@$(MKNXFLAT) -o $@ $^
+	$(Q) $(MKNXFLAT) -o $@ $^
 
 $(BIN3).r2: $(R2OBJ3)
 	@echo "LD: $<"
-	@$(LD) $(NXFLATLDFLAGS2) -o $@ $(R1OBJS3) $(R2OBJ3)
+	$(Q) $(LD) $(NXFLATLDFLAGS2) -o $@ $(R1OBJS3) $(R2OBJ3)
 
 $(BIN3): $(BIN3).r2
 	@echo "LD: $<"
-	@$(LDNXFLAT) $(LDNXFLATFLAGS) -o $@ $^
+	$(Q) $(LDNXFLAT) $(LDNXFLATFLAGS) -o $@ $^
 
 # BIN4 is similar to BIN3 except that it uses the streams code from libstdc++
 #
@@ -164,13 +163,23 @@ $(BIN3): $(BIN3).r2
 #	$(LDNXFLAT) $(LDNXFLATFLAGS) -o $@ $^
 
 clean: 
-	@rm -f $(ALL_BIN) $(DERIVED) *.o *.r1 *.r2 *~ .*.swp core
+	$(call DELFILE $(BIN1))
+	$(call DELFILE $(BIN2))
+	$(call DELFILE $(BIN3))
+	$(call DELFILE $(BIN4))
+	$(call DELFILE $(R2SRC1))
+	$(call DELFILE $(R2SRC2))
+	$(call DELFILE $(R2SRC3))
+	$(call DELFILE $(R2SRC4))
+	$(call DELFILE *.r1)
+	$(call DELFILE *.r2)
+	$(call CLEAN)
 
 install: $(ALL_BIN)
-	@install -D $(BIN1) $(ROMFS_DIR)/$(BIN1)
-	@install -D $(BIN2) $(ROMFS_DIR)/$(BIN2)
-	@install -D $(BIN3) $(ROMFS_DIR)/$(BIN3)
-#	@install -D $(BIN4) $(ROMFS_DIR)/$(BIN4)
+	$(Q) install -D $(BIN1) $(ROMFS_DIR)/$(BIN1)
+	$(Q) install -D $(BIN2) $(ROMFS_DIR)/$(BIN2)
+	$(Q) install -D $(BIN3) $(ROMFS_DIR)/$(BIN3)
+#	$(Q) install -D $(BIN4) $(ROMFS_DIR)/$(BIN4)
 
 
 

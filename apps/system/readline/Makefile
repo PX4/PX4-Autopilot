@@ -79,7 +79,7 @@ $(COBJS): %$(OBJEXT): %.c
 
 .built: $(OBJS)
 	$(call ARCHIVE, $(BIN), $(OBJS))
-	@touch .built
+	$(Q) touch .built
 
 # Context build phase target
 
@@ -88,18 +88,20 @@ context:
 # Dependency build phase target
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 # Housekeeping targets
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE .built)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f .context Make.dep .depend
+	$(call DELFILE .context)
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

@@ -33,7 +33,6 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 
 ifdef NXFONTS_BITSPERPIXEL
@@ -177,13 +176,14 @@ all:	$(GEN_CSRC)
 .PHONY : clean distclean
 
 $(GEN_CSRC) : $(DEPENDENCY)
-	@$(call PREPROCESS, $<, $(GEN_TMP))
-	@cat $(GEN_TMP) | sed -e "/^#/d" >$@
-	@rm -f  $(GEN_TMP)
+	$(call PREPROCESS, $<, $(GEN_TMP))
+	$(Q) cat $(GEN_TMP) | sed -e "/^#/d" >$@
+	$(Q) rm -f  $(GEN_TMP)
 
 clean:
-	@rm -f *~ .*.swp *.i
+	$(call DELFILE *.i)
+	$(call CLEAN)
 
 distclean: clean
-	@rm -f nxfonts_convert_*bpp.c
-	@rm -f nxfonts_bitmaps_*.c
+	$(call DELFILE nxfonts_convert_*bpp.c)
+	$(call DELFILE nxfonts_bitmaps_*.c)

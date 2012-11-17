@@ -33,7 +33,6 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 
 DEPPATH		= --dep-path .
@@ -201,13 +200,14 @@ context: gensources
 clean:
 	$(Q) $(MAKE) -C nxglib -f Makefile.sources clean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
 	$(Q) $(MAKE) -C nxfonts -f Makefile.sources clean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
-	$(Q) rm -f $(BIN) *~ .*.swp
+	$(call DELFILE $(BIN))
 	$(call CLEAN)
 
 distclean: clean
 	$(Q) $(MAKE) -C nxglib -f Makefile.sources distclean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
 	$(Q) $(MAKE) -C nxfonts -f Makefile.sources distclean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
-	$(Q) rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep
 

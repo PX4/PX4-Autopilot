@@ -98,11 +98,14 @@ context: .context
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
-	@rm -f result.tif tmpfile1.dat tmpfile2.dat
+	$(call DELFILE .built)
+	$(call DELFILE result.tif)
+	$(call DELFILE tmpfile1.dat)
+	$(call DELFILE tmpfile2.dat)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

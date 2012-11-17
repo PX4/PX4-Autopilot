@@ -116,11 +116,14 @@ context:
 depend: .depend
 
 clean:
-	@rm -f $(TARG_BIN) $(HOST_BIN) *.o *~ .*.swp .built
+	$(call DELFILE .built)
+	$(call DELFILE $(TARG_BIN))
+	$(call DELFILE $(HOST_BIN))
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep
 

@@ -2,7 +2,9 @@
 # Config.mk
 # Global build rules and macros.
 #
+#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
 #   Author: Richard Cochran
+#           Gregory Nutt <gnutt@nuttx.org>
 #
 # This file (along with $(TOPDIR)/.config) must be included by every
 # configuration-specific Make.defs file.
@@ -42,6 +44,12 @@
 CONFIG_ARCH       := $(patsubst "%",%,$(strip $(CONFIG_ARCH)))
 CONFIG_ARCH_CHIP  := $(patsubst "%",%,$(strip $(CONFIG_ARCH_CHIP)))
 CONFIG_ARCH_BOARD := $(patsubst "%",%,$(strip $(CONFIG_ARCH_BOARD)))
+
+# Some defaults just to prohibit some bad behavior if for some reason they
+# are not defined
+
+OBJEXT ?= .o
+LIBEXT ?= .a
 
 # DELIM - Path segment delimiter character
 #
@@ -167,12 +175,30 @@ define ARCHIVE
 endef
 endif
 
+# DELFILE - Delete one file
+
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-define CLEAN
-	$(Q) rm -f *.o *.a
+define DELFILE
+	$(Q) if exist $1 (del /f /q $1)
 endef
 else
 define CLEAN
-	$(Q) rm -f *.o *.a *~ .*.swp
+	$(Q) rm -f $1
 endef
 endif
+
+# CLEAN - Default clean target
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+define CLEAN
+	$(Q) if exist *$(OBJEXT) (del /f /q *$(OBJEXT))
+	$(Q) if exist *$(LIBEXT) (del /f /q *$(LIBEXT))
+	$(Q) if exist *~ (del /f /q *~)
+	$(Q) if exist (del /f /q  .*.swp)
+endef
+else
+define CLEAN
+	$(Q) rm -f *$(OBJEXT) *$(LIBEXT) *~ .*.swp
+endef
+endif
+ 

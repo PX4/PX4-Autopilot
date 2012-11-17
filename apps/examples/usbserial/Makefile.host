@@ -35,7 +35,6 @@
 
 # TOPDIR must be defined on the make command line 
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 
 SRC	= host.c
@@ -61,7 +60,5 @@ $(BIN): $(SRC)
 	@$(HOSTCC) $(HOSTCFLAGS) $(DEFINES) $^ -o $@
 
 clean:
-	@rm -f $(BIN) *~ .*.swp *.o
+	$(call DELFILE  $(BIN))
 	$(call CLEAN)
-
-
