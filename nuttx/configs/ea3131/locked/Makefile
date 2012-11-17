@@ -33,22 +33,21 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 
 # Board-specific directory, board library, and application library
 
-PASS1_SRCDIR = arch/$(CONFIG_ARCH)/src
-PASS1_BOARDDIR = $(PASS1_SRCDIR)/board
-PASS1_LIBBOARD = $(PASS1_BOARDDIR)/libboard$(LIBEXT)
+PASS1_SRCDIR = arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src
+PASS1_BOARDDIR = $(PASS1_SRCDIR)$(DELIM)board
+PASS1_LIBBOARD = $(PASS1_BOARDDIR)$(DELIM)libboard$(LIBEXT)
 
 # Where is the application library?
 
 ifneq ($(CONFIG_APPS_DIR),)
-PASS1_LIBAPPS = $(CONFIG_APPS_DIR)/libapps$(LIBEXT)
+PASS1_LIBAPPS = $(CONFIG_APPS_DIR)$(DELIM)libapps$(LIBEXT)
 else
 ifneq ($(APPDIR),)
-PASS1_LIBAPPS = $(APPDIR)/libapps$(LIBEXT)
+PASS1_LIBAPPS = $(APPDIR)$(DELIM)libapps$(LIBEXT)
 endif
 endif
 
@@ -63,12 +62,12 @@ PASS1_LINKLIBS += $(PASS1_LIBBOARD)
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains
-  PASS1_LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/lib"}"
-  PASS1_LDSCRIPT = -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/locked/ld-locked.inc}"
+  PASS1_LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)$(DELIM)lib"}"
+  PASS1_LDSCRIPT = -T "${shell cygpath -w $(TOPDIR)$(DELIM)configs$(DELIM)$(CONFIG_ARCH_BOARD)$(DELIM)locked$(DELIM)ld-locked.inc}"
 else
   # Linux/Cygwin-native toolchain 
-  PASS1_LIBPATHS += -L"(TOPDIR)/lib"
-  PASS1_LDSCRIPT = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/locked/ld-locked.inc
+  PASS1_LIBPATHS += -L"(TOPDIR)$(DELIM)lib"
+  PASS1_LDSCRIPT = -T$(TOPDIR)$(DELIM)configs$(DELIM)$(CONFIG_ARCH_BOARD)$(DELIM)locked$(DELIM)ld-locked.inc
 endif
 
 PASS1_LDFLAGS = -r $(PASS1_LDSCRIPT)
@@ -77,23 +76,23 @@ PASS1_LIBGCC = "${shell $(CC) -print-libgcc-file-name}"
 
 # Targets:
 
-all: $(PASS1_SRCDIR)/locked.r
+all: $(PASS1_SRCDIR)$(DELIM)locked.r
 
 .PHONY:	depend clean distclean
 
 # Create include-able linker script that specifies all of the symbols to be
 # resolved in the locked.r file.
 
-ld-locked.inc: mklocked.sh $(TOPDIR)/.config
+ld-locked.inc: mklocked.sh $(TOPDIR)$(DELIM).config
 	@echo "MK:  ld-locked.inc"
-	@./mklocked.sh "$(TOPDIR)"
+	@.$(DELIM)mklocked.sh "$(TOPDIR)"
 
 # Make the board library. This is normally done in arch/arm/src/Makefile.
 # However, we need it earlier here when doing a two-pass build so that libboard.a
 # is available to link against.
 
 $(PASS1_LIBBOARD):
-	@$(MAKE) -C $(TOPDIR)/configs/ea3131/src TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
+	@$(MAKE) -C $(TOPDIR)$(DELIM)configs$(DELIM)ea3131$(DELIM)src TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
 
 # Create the locked.r file containing all of the code (except the start-up code)
 # that needs to lie in the locked text region.
@@ -105,16 +104,17 @@ locked.r: ld-locked.inc $(PASS1_LIBBOARD)
 	@fgrep " U " locked.map | grep -v os_start
 	@$(CROSSDEV)size $@
 
-$(PASS1_SRCDIR)/locked.r: locked.r
-	@cp -a locked.r $(TOPDIR)/$(PASS1_SRCDIR)/locked.r
+$(PASS1_SRCDIR)$(DELIM)locked.r: locked.r
+	@cp -a locked.r $(TOPDIR)$(DELIM)$(PASS1_SRCDIR)$(DELIM)locked.r
 
 .depend:
 
 depend: .depend
 
 clean:
-	@rm -f locked.r locked.map *~ .*.swp
+	$(call DELFILE locked.r)
+	$(call DELFILE locked.map)
+	$(call CLEAN)
 
 distclean: clean
-	@rm -f ld-locked.inc
-
+	$(call DELFILE ld-locked.inc)

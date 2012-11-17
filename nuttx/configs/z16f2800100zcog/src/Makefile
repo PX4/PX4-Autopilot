@@ -35,7 +35,7 @@
 
 -include $(TOPDIR)/Make.defs
 
-ARCHSRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
+ARCHSRCDIR	= $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src
 WARCHSRCDIR	= ${shell cygpath -w $(ARCHSRCDIR)}
 USRINCLUDES	= -usrinc:'.;$(WTOPDIR)\sched;$(WARCHSRCDIR);$(WARCHSRCDIR)\common'
 INCLUDES	= $(ARCHSTDINCLUDES) $(USRINCLUDES)
@@ -53,9 +53,9 @@ OBJS		= $(AOBJS) $(COBJS)
 all: libboard$(LIBEXT)
 
 $(ASRCS) $(HEAD_ASRC): %$(ASMEXT): %.S
-	@$(CPP) $(CPPFLAGS) $< -o $@.tmp
-	@cat $@.tmp | sed -e "s/^#/;/g" > $@
-	@rm $@.tmp
+	$(Q) $(CPP) $(CPPFLAGS) $< -o $@.tmp
+	$(Q) cat $@.tmp | sed -e "s/^#/;/g" > $@
+	$(Q) rm $@.tmp
 
 $(AOBJS): %$(OBJEXT): %$(ASMEXT)
 	$(call ASSEMBLE, $<, $@)
@@ -67,16 +67,17 @@ libboard$(LIBEXT): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f libboard$(LIBEXT) *~ .*.swp
+	$(call DELFILE libboard$(LIBEXT))
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

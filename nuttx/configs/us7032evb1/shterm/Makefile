@@ -33,19 +33,20 @@
 #
 ############################################################################
 
-include $(TOPDIR)/.config
 include $(TOPDIR)/Make.defs
 
 SRC	= shterm.c
 BIN	= shterm
 
-all:	../bin/$(BIN)$(EXEEXT)
+all: ..$(DELIM)bin$(DELIM)$(BIN)$(EXEEXT)
 
 $(BIN)$(EXEEXT): $(SRC)
 	$(HOSTCC) $(HOSTCFLAGS) $^ -o $@
 
-../bin/$(BIN)$(EXEEXT): $(BIN)$(EXEEXT)
+..$(DELIM)bin$(DELIM)$(BIN)$(EXEEXT): $(BIN)$(EXEEXT)
 	install --mode 0755 $^ $@
+ 
 clean:
-	@rm -f $(BIN)$(EXEEXT) ../bin/$(BIN)$(EXEEXT) *~ .*.swp *.o
+	$(call DELFILE $(BIN)$(EXEEXT))
+	$(call DELFILE..$(DELIM)bin$(DELIM)$(BIN)$(EXEEXT))
 	$(call CLEAN)

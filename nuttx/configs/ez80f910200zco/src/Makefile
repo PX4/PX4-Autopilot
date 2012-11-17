@@ -60,9 +60,9 @@ OBJS		= $(AOBJS) $(COBJS)
 all: libboard$(LIBEXT)
 
 $(ASRCS) $(HEAD_ASRC): %$(ASMEXT): %.S
-	@$(CPP) $(CPPFLAGS) `cygpath -w $<` -o $@.tmp
-	@cat $@.tmp | sed -e "s/^#/;/g" > $@
-	@rm $@.tmp
+	$(Q) $(CPP) $(CPPFLAGS) `cygpath -w $<` -o $@.tmp
+	$(Q) cat $@.tmp | sed -e "s/^#/;/g" > $@
+	$(Q) rm $@.tmp
 
 $(AOBJS): %$(OBJEXT): %$(ASMEXT)
 	$(call ASSEMBLE, $<, $@)
@@ -74,16 +74,17 @@ libboard$(LIBEXT): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f libboard$(LIBEXT) *~ .*.swp
+	$(call DELFILE libboard$(LIBEXT)))
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

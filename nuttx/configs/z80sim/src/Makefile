@@ -35,7 +35,9 @@
 
 -include $(TOPDIR)/Make.defs
 
-CFLAGS		+= -I$(TOPDIR)/sched -I$(TOPDIR)/arch/z80/src/common -I$(TOPDIR)/arch/z80/src/z80
+CFLAGS		+= -I$(TOPDIR)$(DELIM)sched
+CFLAGS		+= -I$(TOPDIR)$(DELIM)arch$(DELIM)z80$(DELIM)src$(DELIM)common -I$(TOPDIR)$(DELIM)arch$(DELIM)z80$(DELIM)src$(DELIM)z80
+CFLAGS		+= -I$(TOPDIR)$(DELIM)arch$(DELIM)z80$(DELIM)src$(DELIM)z80
 
 ASRCS		= 
 AOBJS		= $(ASRCS:$(ASMEXT)=$(OBJEXT))
@@ -45,7 +47,7 @@ COBJS		= $(CSRCS:.c=$(OBJEXT))
 SRCS		= $(ASRCS) $(CSRCS)
 OBJS		= $(AOBJS) $(COBJS)
 
-CFLAGS		+= -I $(TOPDIR)/arch/$(CONFIG_ARCH)/src
+CFLAGS		+= -I $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src
 
 all: libboard$(LIBEXT)
 
@@ -59,16 +61,17 @@ libboard$(LIBEXT): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f libboard$(LIBEXT) *~ .*.swp
+	$(call DELFILE libboard$(LIBEXT))
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

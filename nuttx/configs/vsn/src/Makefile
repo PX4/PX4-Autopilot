@@ -87,23 +87,24 @@ libboard$(LIBEXT): $(OBJS)
 
 .context:
 	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
-	@touch $@
+	$(Q) touch $@
 
 context: .context
 
 # Create dependencies
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f libboard$(LIBEXT) *~ .*.swp
+	$(call DELFILE libboard$(LIBEXT))
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend .context
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

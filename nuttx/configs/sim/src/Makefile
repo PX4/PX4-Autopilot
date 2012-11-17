@@ -60,22 +60,23 @@ $(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 libboard$(LIBEXT): $(OBJS)
-	@$(AR) $@ # Create an empty archive
+	$(Q) $(AR) $@ # Create an empty archive
 ifneq ($(OBJS),)
 	$(call ARCHIVE, $@, $(OBJS))
 endif
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f libboard$(LIBEXT) *~ .*.swp
+	$(call DELFILE libboard$(LIBEXT)))
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

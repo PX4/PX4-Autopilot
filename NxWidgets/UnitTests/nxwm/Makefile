@@ -36,13 +36,13 @@
 TESTDIR := ${shell pwd | sed -e 's/ /\\ /g'}
 
 -include $(TOPDIR)/Make.defs
-include $(APPDIR)/Make.defs
+include $(APPDIR)$(DELIM)Make.defs
 
 # Add the path to the NXWidget include directory to the CFLAGS
 
-NXWIDGETS_DIR="$(TESTDIR)/../../libnxwidgets"
-NXWIDGETS_INC="$(NXWIDGETS_DIR)/include"
-NXWIDGETS_LIB="$(NXWIDGETS_DIR)/libnxwidgets$(LIBEXT)"
+NXWIDGETS_DIR="$(TESTDIR)$(DELIM)..$(DELIM)..$(DELIM)libnxwidgets"
+NXWIDGETS_INC="$(NXWIDGETS_DIR)$(DELIM)include"
+NXWIDGETS_LIB="$(NXWIDGETS_DIR)$(DELIM)libnxwidgets$(LIBEXT)"
 
 ifeq ($(WINTOOL),y)
   CFLAGS += ${shell $(INCDIR) -w "$(CC)" "$(NXWIDGETS_INC)"}
@@ -54,9 +54,9 @@ endif
 
 # Add the path to the NxWM include directory to the CFLAGS
 
-NXWM_DIR="$(TESTDIR)/../../nxwm"
-NXWM_INC="$(NXWM_DIR)/include"
-NXWM_LIB="$(NXWM_DIR)/libnxwm$(LIBEXT)"
+NXWM_DIR="$(TESTDIR)$(DELIM)..$(DELIM)..$(DELIM)nxwm"
+NXWM_INC="$(NXWM_DIR)$(DELIM)include"
+NXWM_LIB="$(NXWM_DIR)$(DELIM)libnxwm$(LIBEXT)"
 
 ifeq ($(WINTOOL),y)
   CFLAGS += ${shell $(INCDIR) -w "$(CC)" "$(NXWM_INC)"}
@@ -68,8 +68,8 @@ endif
 
 # Get the path to the archiver tool
 
-TESTTOOL_DIR="$(TESTDIR)/../../tools"
-ARCHIVER=$(TESTTOOL_DIR)/addobjs.sh
+TESTTOOL_DIR="$(TESTDIR)$(DELIM)..$(DELIM)..$(DELIM)tools"
+ARCHIVER=$(TESTTOOL_DIR)$(DELIM)addobjs.sh
 
 # NxWM unit test
 
@@ -84,7 +84,7 @@ CXXOBJS		= $(CXXSRCS:.cxx=$(OBJEXT))
 SRCS		= $(ASRCS) $(CSRCS) $(CXXSRCS)
 OBJS		= $(AOBJS) $(COBJS) $(CXXOBJS)
 
-POSIX_BIN	= "$(APPDIR)/libapps$(LIBEXT)"
+POSIX_BIN	= "$(APPDIR)$(DELIM)libapps$(LIBEXT)"
 ifeq ($(WINTOOL),y)
   BIN		= "${shell cygpath -w  $(POSIX_BIN)}"
 else
@@ -134,7 +134,7 @@ endif
 # Verify that the NXWidget library has been built
 
 chklibnxwidgets:
-	@( \
+	$(Q) ( \
 		if [ ! -e "$(NXWIDGETS_LIB)" ]; then \
 			echo "$(NXWIDGETS_LIB) does not exist."; \
 			echo "Please go to $(NXWIDGETS_DIR)"; \
@@ -146,7 +146,7 @@ chklibnxwidgets:
 # Verify that the NxWM library has been built
 
 chklibnxwm:
-	@( \
+	$(Q) ( \
 		if [ ! -e "$(NXWM_LIB)" ]; then \
 			echo "$(NXWM_LIB) does not exist."; \
 			echo "Please go to $(NXWM_LIB)"; \
@@ -164,13 +164,13 @@ $(NXWM_LIB): # Just to keep make happy.  chklibnxwm does the work.
 .built: $(OBJS) $(NXWIDGETS_LIB)
 	$(call ARCHIVE, $@, $(OBJS))
 ifeq ($(WINTOOL),y)
-	@$(ARCHIVER) -w -p "$(CROSSDEV)" $(BIN) $(NXWIDGETS_DIR)
-	@$(ARCHIVER) -w -p "$(CROSSDEV)" $(BIN) $(NXWM_DIR)
+	$(Q) $(ARCHIVER) -w -p "$(CROSSDEV)" $(BIN) $(NXWIDGETS_DIR)
+	$(Q) $(ARCHIVER) -w -p "$(CROSSDEV)" $(BIN) $(NXWM_DIR)
 else
-	@$(ARCHIVER) -p "$(CROSSDEV)" $(BIN) $(NXWIDGETS_DIR)
-	@$(ARCHIVER) -p "$(CROSSDEV)" $(BIN) $(NXWM_DIR)
+	$(Q) $(ARCHIVER) -p "$(CROSSDEV)" $(BIN) $(NXWIDGETS_DIR)
+	$(Q) $(ARCHIVER) -p "$(CROSSDEV)" $(BIN) $(NXWM_DIR)
 endif
-	@touch .built
+	$(Q) touch .built
 
 # Standard housekeeping targets
 
@@ -178,21 +178,22 @@ endif
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
 	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
 endif
-	@touch $@
+	$(Q) touch $@
 
 context: .context
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) $(CXX) -- $(CXXFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(ROOTDEPPATH) $(CXX) -- $(CXXFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE .built)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 -include Make.dep

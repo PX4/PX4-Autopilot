@@ -87,8 +87,8 @@ ifeq ($(WINTOOL),y)
 INCDIROPT = -w
 endif
 
-CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(NXWIDGETDIR)/include}
-CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(NXWIDGETDIR)/include}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(NXWIDGETDIR)$(DELIM)include}
+CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(NXWIDGETDIR)$(DELIM)include}
 DEPPATH = --dep-path src
 VPATH = src
 
@@ -105,7 +105,7 @@ $(CXXOBJS): %$(OBJEXT): %.cxx
 	$(call COMPILEXX, $<, $@)
 
 check_nuttx:
-	@( \
+	$(Q) ( \
 		if [ -z "$(TOPDIR)" ]; then \
 			echo "The path to the nuttx directory must be provided on the command line."; \
 			echo "Usage: make -C $(NXWIDGETDIR) TOPDIR=\"<nuttx directory>\""; \
@@ -115,7 +115,7 @@ check_nuttx:
 			echo "The nuttx directory (TOPDIR) does not exist: $(TOPDIR)"; \
 			exit 1; \
 		fi; \
-		if [ ! -f "$(TOPDIR)/.config" ]; then \
+		if [ ! -f "$(TOPDIR)$(DELIM).config" ]; then \
 			echo "The nuttx directory (TOPDIR) has not been configured"; \
 			echo "Please configure NuttX and try again"; \
 			exit 1; \
@@ -126,17 +126,18 @@ $(BIN): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f $(BIN) *.a *.o *~ .*.sw*
+	$(call DELFILE $(BIN))
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
 
 export: $(BIN)
 	zip -r  nxwidgets-export.zip include $(BIN) COPYING

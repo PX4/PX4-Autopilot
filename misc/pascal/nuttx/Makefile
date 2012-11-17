@@ -36,20 +36,20 @@
 PCODEDIR := ${shell pwd | sed -e 's/ /\\ /g'}
 
 -include $(TOPDIR)/Make.defs
-include $(APPDIR)/Make.defs
+include $(APPDIR)$(DELIM)Make.defs
 
 # Default tools
 
 ifeq ($(DIRLINK),)
-DIRLINK = $(TOPDIR)/tools/link.sh
-DIRUNLINK = $(TOPDIR)/tools/unlink.sh
+DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)link.sh
+DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.sh
 endif
 
 ifeq ($(WINTOOL),y)
 INCDIROPT = -w
 endif
 
-USRINCLUDES = ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(PCODEDIR)/include $(PCODEDIR)/insn/include}
+USRINCLUDES = ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(PCODEDIR)$(DELIM)include $(PCODEDIR)$(DELIM)insn$(DELIM)include}
 
 COMPILER = ${shell basename $(CC)}
 ifeq ($(COMPILER),zneocc.exe)
@@ -60,9 +60,9 @@ endif
 
 CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHDEFINES)
 
-include insn/prun/Make.defs
-include libpoff/Make.defs
-include libpas/Make.defs
+include insn$(DELIM)prun$(DELIM)Make.defs
+include libpoff$(DELIM)Make.defs
+include libpas$(DELIM)Make.defs
 
 ASRCS = $(PRUN_ASRCS) $(POFF_ASRCS) $(PAS_ASRCS)
 AOBJS = $(ASRCS:.S=$(OBJEXT))
@@ -74,17 +74,17 @@ SRCS = $(ASRCS) $(CSRCS)
 OBJS = $(AOBJS) $(COBJS)
 
 ifeq ($(WINTOOL),y)
-  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
+  BIN		= "${shell cygpath -w  $(APPDIR)$(DELIM)libapps$(LIBEXT)}"
 else
-  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
+  BIN		= "$(APPDIR)$(DELIM)libapps$(LIBEXT)"
 endif
 
 ROOTDEPPATH	= --dep-path .
-PRUNDEPPATH	= --dep-path insn/prun
+PRUNDEPPATH	= --dep-path insn$(DELIM)prun
 POFFDEPPATH = --dep-path libpoff
 PASDEPPATH  = --dep-path libpas
 
-VPATH = insn/prun:libpoff:libpas
+VPATH = insn$(DELIM)prun:libpoff:libpas
 
 all: .built
 .PHONY: context depend clean distclean
@@ -103,17 +103,17 @@ else
 	$(call COMPILE, $<, $@)
 endif
 
-$(APPDIR)/include/pcode: include
-	@$(DIRLINK) $(PCODEDIR)/include $(APPDIR)/include/pcode
+$(APPDIR)$(DELIM)include$(DELIM)pcode: include
+	@$(DIRLINK) $(PCODEDIR)$(DELIM)include $(APPDIR)$(DELIM)include$(DELIM)pcode
 
-$(APPDIR)/include/pcode/insn: $(APPDIR)/include/pcode insn/include
-	@$(DIRLINK) $(PCODEDIR)/insn/include $(APPDIR)/include/pcode/insn
+$(APPDIR)$(DELIM)include$(DELIM)pcode$(DELIM)insn: $(APPDIR)$(DELIM)include$(DELIM)pcode insn$(DELIM)include
+	@$(DIRLINK) $(PCODEDIR)$(DELIM)insn$(DELIM)include $(APPDIR)$(DELIM)include$(DELIM)pcode$(DELIM)insn
 
-.built: $(APPDIR)/include/pcode $(APPDIR)/include/pcode/insn $(OBJS)
+.built: $(APPDIR)$(DELIM)include$(DELIM)pcode $(APPDIR)$(DELIM)include$(DELIM)pcode$(DELIM)insn $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 	@touch .built
 
-context: $(APPDIR)/include/pcode $(APPDIR)/include/pcode/insn
+context: $(APPDIR)$(DELIM)include$(DELIM)pcode $(APPDIR)$(DELIM)include$(DELIM)pcode$(DELIM)insn
 
 .depend: Makefile $(SRCS)
 	@$(MKDEP) $(ROOTDEPPATH) $(PRUNDEPPATH) $(POFFDEPPATH) $(PASDEPPATH) \
@@ -123,12 +123,13 @@ context: $(APPDIR)/include/pcode $(APPDIR)/include/pcode/insn
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE .built)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
-	@$(DIRUNLINK) $(APPDIR)/include/pcode/insn
-	@$(DIRUNLINK) $(APPDIR)/include/pcode
+	$(call DELFILE Make.dep)
+	$(call DELFILE .depend)
+	@$(DIRUNLINK) $(APPDIR)$(DELIM)include$(DELIM)pcode$(DELIM)insn
+	@$(DIRUNLINK) $(APPDIR)$(DELIM)include$(DELIM)pcode
 
 -include Make.dep
