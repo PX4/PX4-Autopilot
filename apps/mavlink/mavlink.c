@@ -547,6 +547,9 @@ int mavlink_thread_main(int argc, char *argv[])
 	/* print welcome text */
 	warnx("MAVLink v1.0 serial interface starting...");
 
+	/* inform about mode */
+	warnx((mavlink_link_mode == MAVLINK_INTERFACE_MODE_ONBOARD) ? "ONBOARD MODE" : "DOWNLINK MODE");
+
 	/* Flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
 
