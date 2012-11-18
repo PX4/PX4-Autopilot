@@ -182,8 +182,20 @@ define DELFILE
 	$(Q) if exist $1 (del /f /q $1)
 endef
 else
-define CLEAN
+define DELFILE
 	$(Q) rm -f $1
+endef
+endif
+
+# DELDIR - Delect one directory
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+define DELDIR
+	$(Q) if exist $1 (rmdir /q /s $1)
+endef
+else
+define DELDIR
+	$(Q) rm -rf $1
 endef
 endif
 

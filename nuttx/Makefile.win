@@ -442,12 +442,12 @@ clean_context:
 	$(call DELFILE include\nuttx\version.h)
 	$(call DELFILE include\math.h)
 	$(call DELFILE include\stdarg.h)
-	$(Q) $(DIRUNLINK) include\arch\board
-	$(Q) $(DIRUNLINK) include\arch\chip
-	$(Q) $(DIRUNLINK) include\arch
-	$(Q) $(DIRUNLINK) $(ARCH_SRC)\board
-	$(Q) $(DIRUNLINK) $(ARCH_SRC)\chip
-	$(Q) $(DIRUNLINK) include\apps
+	$(call DELDIR include\arch\board)
+	$(call DELDIR include\arch\chip)
+	$(call DELDIR include\arch)
+	$(call DELDIR $(ARCH_SRC)\board)
+	$(call DELDIR $(ARCH_SRC)\chip)
+	$(call DELDIR include\apps)
 
 # check_context
 #
