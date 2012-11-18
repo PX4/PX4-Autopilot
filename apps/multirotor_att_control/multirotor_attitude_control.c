@@ -158,7 +158,7 @@ static int parameters_update(const struct mc_att_control_param_handles *h, struc
 }
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
-		const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, struct actuator_controls_s *actuators)
+		const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, struct actuator_controls_s *actuators, bool control_yaw_position)
 {
 	static uint64_t last_run = 0;
 	static uint64_t last_input = 0;
@@ -216,9 +216,10 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	rates_sp->roll = pid_calculate(&roll_controller, att_sp->roll_body ,
 			att->roll, att->rollspeed, deltaT);
 
-	/* control yaw rate */
-	rates_sp->yaw = p.yaw_p * atan2f(cosf(att->yaw - att_sp->yaw_body), sinf(att->yaw - att_sp->yaw_body)) - (p.yaw_d * att->yawspeed);
-
+	if(control_yaw_position) {
+		/* control yaw rate */
+		rates_sp->yaw = p.yaw_p * atan2f(cosf(att->yaw - att_sp->yaw_body), sinf(att->yaw - att_sp->yaw_body)) - (p.yaw_d * att->yawspeed);
+	}
 	rates_sp->thrust = att_sp->thrust;
 
 	motor_skip_counter++;
