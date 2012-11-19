@@ -77,6 +77,7 @@ struct mavlink_subscriptions {
 	int spg_sub;
 	int debug_key_value;
 	int input_rc_sub;
+	int optical_flow;
 };
 
 extern struct mavlink_subscriptions mavlink_subs;

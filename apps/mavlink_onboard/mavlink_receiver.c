@@ -145,7 +145,7 @@ handle_message(mavlink_message_t *msg)
 
 		struct optical_flow_s f;
 
-		f.timestamp = flow.time_usec;
+		f.timestamp = hrt_absolute_time();
 		f.flow_raw_x = flow.flow_x;
 		f.flow_raw_y = flow.flow_y;
 		f.flow_comp_x_m = flow.flow_comp_m_x;
