@@ -447,7 +447,7 @@ check_context:
 # Archive targets.  The target build sequency will first create a series of
 # libraries, one per configured source file directory.  The final NuttX
 # execution will then be built from those libraries.  The following targets
-# built those libraries.
+# build those libraries.
 #
 # Possible kernel-mode builds
 

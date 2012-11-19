@@ -65,7 +65,7 @@ libboard$(LIBEXT): $(OBJS)
 depend: .depend
 
 clean:
-	$(call DELFILE libboard$(LIBEXT)))
+	$(call DELFILE libboard$(LIBEXT))
 	$(call CLEAN)
 
 distclean: clean

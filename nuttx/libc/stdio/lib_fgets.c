@@ -150,7 +150,7 @@ char *fgets(FAR char *buf, int buflen, FILE *stream)
       if (ch == '\n')
 #elif defined(CONFIG_EOL_IS_CR)
       if (ch == '\r')
-#elif CONFIG_EOL_IS_EITHER_CRLF
+#else /* elif CONFIG_EOL_IS_EITHER_CRLF */
       if (ch == '\n' || ch == '\r')
 #endif
         {
