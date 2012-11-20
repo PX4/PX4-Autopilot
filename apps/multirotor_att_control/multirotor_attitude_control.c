@@ -158,7 +158,7 @@ static int parameters_update(const struct mc_att_control_param_handles *h, struc
 }
 
 void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
-		const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, struct actuator_controls_s *actuators, bool control_yaw_position)
+		const struct vehicle_attitude_s *att, struct vehicle_rates_setpoint_s *rates_sp, bool control_yaw_position)
 {
 	static uint64_t last_run = 0;
 	static uint64_t last_input = 0;
@@ -201,8 +201,6 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		/* update parameters from storage */
 		parameters_update(&h, &p);
 
-		//printf("att ctrl: delays: %d us sens->ctrl, rate: %d Hz, input: %d Hz\n", sensor_delay, (int)(1.0f/deltaT), (int)(1.0f/dT_input));
-
 		/* apply parameters */
 		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
 		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
@@ -220,15 +218,19 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 	if(control_yaw_position) {
 		/* control yaw rate */
-		//rates_sp->yaw = p.yaw_p * atan2f(cosf(att->yaw - att_sp->yaw_tait_bryan), sinf(att->yaw - att_sp->yaw_tait_bryan)) - (p.yaw_d * att->yawspeed);
-		yaw_error = att->yaw - att_sp->yaw_tait_bryan;
-		if ((double)yaw_error > M_PI) {
-			yaw_error -= M_PI;
-		} else if ((double)yaw_error < -M_PI) {
-			yaw_error += M_PI;
+
+		/* positive error: rotate to right, negative error, rotate to left (NED frame) */
+		// yaw_error = _wrap_pi(att_sp->yaw_body - att->yaw);
+
+		yaw_error = att_sp->yaw_body - att->yaw;
+
+		if (yaw_error > M_PI_F) {
+			yaw_error -= M_TWOPI_F;
+		} else if (yaw_error < -M_PI_F) {
+			yaw_error += M_TWOPI_F;
 		}
 
-		rates_sp->yaw = - p.yaw_p * (yaw_error) - (p.yaw_d * att->yawspeed);
+		rates_sp->yaw = p.yaw_p * (yaw_error) - (p.yaw_d * att->yawspeed);
 	}
 	rates_sp->thrust = att_sp->thrust;
 

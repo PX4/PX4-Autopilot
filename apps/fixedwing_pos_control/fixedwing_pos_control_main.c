@@ -91,6 +91,19 @@ struct fw_pos_control_param_handles {
 };
 
 
+struct planned_path_segments_s {
+	bool segment_type;
+	double start_lat;			// Start of line or center of arc
+	double start_lon;
+	double end_lat;
+	double end_lon;
+	float radius;				// Radius of arc
+	float arc_start_bearing;		// Bearing from center to start of arc
+	float arc_sweep;				// Angle (radians) swept out by arc around center.  
+								// Positive for clockwise, negative for counter-clockwise
+};
+
+
 /* Prototypes */
 /* Internal Prototypes */
 static int parameters_init(struct fw_pos_control_param_handles *h);
@@ -177,9 +190,9 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 		memset(&attitude_setpoint, 0, sizeof(attitude_setpoint));
 
 		/* publish attitude setpoint */
-		attitude_setpoint.roll_tait_bryan = 0.0f;
-		attitude_setpoint.pitch_tait_bryan = 0.0f;
-		attitude_setpoint.yaw_tait_bryan = 0.0f;
+		attitude_setpoint.roll_body = 0.0f;
+		attitude_setpoint.pitch_body = 0.0f;
+		attitude_setpoint.yaw_body = 0.0f;
 		orb_advert_t attitude_setpoint_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &attitude_setpoint);
 
 		/* subscribe */
@@ -243,7 +256,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 				global_sp_updated_set_once = true;
 				psi_track = get_bearing_to_next_waypoint((double)global_pos.lat / (double)1e7d, (double)global_pos.lon / (double)1e7d,
 						(double)global_setpoint.lat / (double)1e7d, (double)global_setpoint.lon / (double)1e7d);
-				printf("psi_track: %0.4f\n", psi_track);
+				printf("psi_track: %0.4f\n", (double)psi_track);
 			}
 
 			/* Control */
@@ -265,21 +278,21 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 					float delta_psi_c = -p.xtrack_p * xtrack_err.distance; //(-) because z axis points downwards
 
-					if(delta_psi_c > 60.0f*M_DEG_TO_RAD)
-						delta_psi_c = 60.0f*M_DEG_TO_RAD;
+					if(delta_psi_c > 60.0f*M_DEG_TO_RAD_F)
+						delta_psi_c = 60.0f*M_DEG_TO_RAD_F;
 
-					if(delta_psi_c < -60.0f*M_DEG_TO_RAD)
-						delta_psi_c = -60.0f*M_DEG_TO_RAD;
+					if(delta_psi_c < -60.0f*M_DEG_TO_RAD_F)
+						delta_psi_c = -60.0f*M_DEG_TO_RAD_F;
 
 					float psi_c = psi_track + delta_psi_c;
 
 					float psi_e = psi_c - att.yaw;
 
 					/* shift error to prevent wrapping issues */
-					psi_e = _wrapPI(psi_e);
+					psi_e = _wrap_pi(psi_e);
 
 					/* calculate roll setpoint, do this artificially around zero */
-					attitude_setpoint.roll_tait_bryan = pid_calculate(&heading_controller, psi_e, 0.0f, 0.0f, 0.0f);
+					attitude_setpoint.roll_body = pid_calculate(&heading_controller, psi_e, 0.0f, 0.0f, 0.0f);
 
 //					if (counter % 100 == 0)
 //						printf("xtrack_err.distance: %0.4f, delta_psi_c: %0.4f\n",xtrack_err.distance, delta_psi_c);
@@ -296,7 +309,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 			{
 
 				//TODO: take care of relative vs. ab. altitude
-				attitude_setpoint.pitch_tait_bryan = pid_calculate(&altitude_controller, global_setpoint.altitude, global_pos.alt, 0.0f, 0.0f);
+				attitude_setpoint.pitch_body = pid_calculate(&altitude_controller, global_setpoint.altitude, global_pos.alt, 0.0f, 0.0f);
 
 			}
 			/*Publish the attitude setpoint */
@@ -378,64 +391,3 @@ int fixedwing_pos_control_main(int argc, char *argv[])
 	usage("unrecognized command");
 	exit(1);
 }
-
-
-float _wrapPI(float bearing)
-{
-
-	while (bearing > M_PI_F) {
-		bearing = bearing - M_TWOPI_F;
-	}
-
-	while (bearing <=  -M_PI_F) {
-		bearing = bearing + M_TWOPI_F;
-	}
-
-	return bearing;
-}
-
-float _wrap2PI(float bearing)
-{
-
-	while (bearing >= M_TWOPI_F) {
-		bearing = bearing - M_TWOPI_F;
-	}
-
-	while (bearing <  0.0f) {
-		bearing = bearing + M_TWOPI_F;
-	}
-
-	return bearing;
-}
-
-float _wrap180(float bearing)
-{
-
-	while (bearing > 180.0f) {
-		bearing = bearing - 360.0f;
-	}
-
-	while (bearing <=  -180.0f) {
-		bearing = bearing + 360.0f;
-	}
-
-	return bearing;
-}
-
-float _wrap360(float bearing)
-{
-
-	while (bearing >= 360.0f) {
-		bearing = bearing - 360.0f;
-	}
-
-	while (bearing <  0.0f) {
-		bearing = bearing + 360.0f;
-	}
-
-	return bearing;
-}
-
-
-
-

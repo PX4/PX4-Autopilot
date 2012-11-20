@@ -42,26 +42,7 @@
 #ifndef FIXEDWING_POS_CONTROL_H_
 #define FIXEDWING_POS_CONTROL_H_
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
 
-#endif 
-
-
-struct planned_path_segments_s {
-	bool segment_type;
-	double start_lat;			// Start of line or center of arc
-	double start_lon;
-	double end_lat;
-	double end_lon;
-	float radius;				// Radius of arc
-	float arc_start_bearing;		// Bearing from center to start of arc
-	float arc_sweep;				// Angle (radians) swept out by arc around center.  
-								// Positive for clockwise, negative for counter-clockwise
-};
 
 
 float _wrap180(float bearing);

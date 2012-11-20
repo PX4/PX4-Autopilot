@@ -252,7 +252,7 @@ mc_thread_main(int argc, char *argv[])
 						if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
 					 	    state.flag_control_manual_enabled != flag_control_manual_enabled ||
 					 	    state.flag_system_armed != flag_system_armed) {
-							att_sp.yaw_tait_bryan = att.yaw;
+							att_sp.yaw_body = att.yaw;
 						}
 
 						static bool rc_loss_first_time = true;
@@ -283,29 +283,28 @@ mc_thread_main(int argc, char *argv[])
 							att_sp.roll_body = manual.roll;
 							att_sp.pitch_body = manual.pitch;
 
+							/* set attitude if arming */
+							if (!flag_control_attitude_enabled && state.flag_system_armed) {
+								att_sp.yaw_body = att.yaw;
+							}
+
 							/* only move setpoint if manual input is != 0 */
 
 							if(manual.mode == MANUAL_CONTROL_MODE_ATT_YAW_POS) {
-								// XXX turn into param
-								if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
-									att_sp.yaw_body = att_sp.yaw_body + manual.yaw * 0.0025f;
-								} else if (manual.throttle <= 0.3f) {
-									att_sp.yaw_body = att.yaw;
-								}
-								control_yaw_position = true;
-							} else if (manual.mode == MANUAL_CONTROL_MODE_ATT_YAW_RATE) {
 								if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
 									rates_sp.yaw = manual.yaw;
 									control_yaw_position = false;
 									first_time_after_yaw_speed_control = true;
 								} else {
-									rates_sp.yaw = 0.0f;
-									if(first_time_after_yaw_speed_control) {
-										att_sp.yaw_tait_bryan = att.yaw;
+									if (first_time_after_yaw_speed_control) {
+										att_sp.yaw_body = att.yaw;
 										first_time_after_yaw_speed_control = false;
 									}
 									control_yaw_position = true;
 								}
+							} else if (manual.mode == MANUAL_CONTROL_MODE_ATT_YAW_RATE) {
+								rates_sp.yaw = manual.yaw;
+								control_yaw_position = false;
 							}
 
 							att_sp.thrust = manual.throttle;
@@ -330,9 +329,7 @@ mc_thread_main(int argc, char *argv[])
 
 				/** STEP 3: Identify the controller setup to run and set up the inputs correctly */
 				if (state.flag_control_attitude_enabled) {
-				 	multirotor_control_attitude(&att_sp, &att, &rates_sp, NULL, control_yaw_position);
-
-
+				 	multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position);
 
 				 	orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
 				}

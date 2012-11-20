@@ -1059,7 +1059,7 @@ Sensors::task_main()
 
 	/* advertise the manual_control topic */
 	struct manual_control_setpoint_s manual_control;
-	manual_control.mode = MANUAL_CONTROL_MODE_ATT_YAW_RATE;
+	manual_control.mode = MANUAL_CONTROL_MODE_ATT_YAW_POS;
 	manual_control.roll = 0.0f;
 	manual_control.pitch = 0.0f;
 	manual_control.yaw = 0.0f;
