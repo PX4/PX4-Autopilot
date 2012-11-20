@@ -217,7 +217,7 @@ static inline int modbus_initialize(void)
   /* Enable FreeModBus */
 
   mberr = eMBEnable();
-  if (mberr == MB_ENOERR)
+  if (mberr != MB_ENOERR)
     {
       fprintf(stderr, "modbus_main: "
               "ERROR: eMBEnable failed: %d\n", mberr);
@@ -266,6 +266,8 @@ static void *modbus_pollthread(void *pvarg)
               "ERROR: modbus_initialize failed: %d\n", ret);
       return NULL;
     }
+
+  srand(time(NULL));
 
   /* Then loop until we are commanded to shutdown */
 
