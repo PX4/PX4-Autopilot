@@ -72,7 +72,7 @@ following steps:
 
    cd <nuttx-top-directory>/tools
    ./configure.sh ez80f910200kitg/<sub-directory>
-   cd <nuttx-top-directgory>
+   cd <nuttx-top-directory>
    make
 
 Where <sub-directory> is the specific board configuration that you
@@ -82,5 +82,14 @@ available:
 - ostest
     This builds the examples/ostest application for execution from FLASH.
     See examples/README.txt for information about ostest.
+
+    This configuration uses the mconf-based configuration tool.  To
+    change this configuration using that tool, you should:
+
+    a. Build and install the mconf tool.  See nuttx/README.txt and
+       misc/tools/
+
+    b. Execute 'make menuconfig' in nuttx/ in order to start the
+       reconfiguration process.
 
 Check out any README.txt files in these <sub-directory>s.

@@ -112,21 +112,21 @@ config ARCH_BOARD_EKK_LM3S9B96
 		an EKK-LM3S9B96 which is a Cortex-M3.
 
 config ARCH_BOARD_EZ80F910200KITG
-	bool "ZiLOG ez80f0910200kitg development kit"
+	bool "ZiLOG ez80f910200kitg development kit"
 	depends on ARCH_CHIP_EZ80F91
 	select ARCH_HAVE_LEDS
 	---help---
-		ez80Acclaim! Microcontroller.  This port use the ZiLOG ez80f0910200kitg
+		ez80Acclaim! Microcontroller.  This port use the ZiLOG ez80f910200kitg
 		development kit, eZ80F091 part, and the Zilog ZDS-II Windows command line
 		tools.  The development environment is Cygwin under WinXP.
 
 config ARCH_BOARD_EZ80F910200ZCO
-	bool "ZiLOG ez80f0910200zco development kit"
+	bool "ZiLOG ez80f910200zco development kit"
 	depends on ARCH_CHIP_EZ80F91
 	select ARCH_HAVE_LEDS
 	select ARCH_HAVE_BUTTONS
 	---help---
-		ez80Acclaim! Microcontroller.  This port use the Zilog ez80f0910200zco
+		ez80Acclaim! Microcontroller.  This port use the Zilog ez80f910200zco
 		development kit, eZ80F091 part, and the Zilog ZDS-II Windows command line
 		tools.  The development environment is Cygwin under WinXP.
 
@@ -614,8 +614,8 @@ config ARCH_BOARD
 	default "ea3152"              if ARCH_BOARD_EA3152
 	default "eagle100"            if ARCH_BOARD_EAGLE100
 	default "ekk-lm3s9b96"        if ARCH_BOARD_EKK_LM3S9B96
-	default "ez80f0910200kitg"    if ARCH_BOARD_EZ80F910200KITG
-	default "ez80f0910200zco"     if ARCH_BOARD_EZ80F910200ZCO
+	default "ez80f910200kitg"     if ARCH_BOARD_EZ80F910200KITG
+	default "ez80f910200zco"      if ARCH_BOARD_EZ80F910200ZCO
 	default "fire-stm32v2"        if ARCH_BOARD_FIRE_STM32
 	default "hymini-stm32v"       if ARCH_BOARD_HYMINI_STM32V
 	default "kwikstik-k40"        if ARCH_BOARD_KWIKSTIK_K40

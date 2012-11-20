@@ -5,6 +5,8 @@
 
 if ARCH_CHIP_EZ80
 
+menu "ez80 Peripheral Support"
+
 config EZ80_UART0
 	bool "UART0"
 	select ARCH_HAVE_UART0
@@ -20,4 +22,84 @@ config EZ80_UART2
 	select ARCH_HAVE_UART2
 	default n
 
+config EZ80_EMAC
+	bool "Ethernet MAC"
+	default n
+	select ARCH_HAVE_PHY
+	---help---
+		Enables support for ez80 EMAC driver.
+
+endmenu
+
+config HAVE_LOWUARTINIT
+	bool "Low UART Init"
+	default y if !EZ80_UART0 && !EZ80_UART1 && !EZ80_UART2
+	default n if EZ80_UART0 || EZ80_UART1 || EZ80_UART2
+	---help---
+		Provides low-level UART initialization logic as up_lowuartinit (only needed if there is no serial driver).
+
+if EZ80_EMAC
+
+config EZ80_FIAD
+hex "PHY Address"
+	range 0x00 0x1f
+	default 0x1f
+	---help---
+		Provides the MII address of the PHY device
+
+# Belongs in net/Kconfig as PHY_AM79C874
+# EZ80_PHYAM79C874 - Define for Am79c874 PHY
+
+config EZ80_PHYCONFIG
+	int "PHY Configuration"
+	default 0
+	---help---
+		0:Autonegotiate, 1:100FD, 2:100HD, 3:10FD, 4:10HD
+
+config EZ80_RAMADDR
+	hex "Address of internal SRAM"
+	default 0xffc000
+	---help---
+		Address of internal SRAM (default is 0xffc000)
+
+config EZ80_PKTBUFSIZE
+	int "Packet Buffer Size"
+	default 64
+	---help---
+		The size of one packet buffer. EZ80_PKTBUFSIZE + (EZ80_NTXPKTBUFS+EZ80_NRXPKTBUFS)
+		must add up to exactly 8192 bytes.
+
+config EZ80_NTXPKTBUFS
+	int "Number of Tx Packets"
+	default 64
+	---help---
+		The number of Tx packets. EZ80_PKTBUFSIZE + (EZ80_NTXPKTBUFS+EZ80_NRXPKTBUFS)
+		must add up to exactly 8192 bytes.
+
+config EZ80_NRXPKTBUFS
+	int "Number of Rx Packets"
+	default 64
+	---help---
+		The number of Rx packets. EZ80_PKTBUFSIZE + (EZ80_NTXPKTBUFS+EZ80_NRXPKTBUFS)
+		must add up to exactly 8192 bytes.
+
+config EZ80_MDCDIV
+	int "SCLK Divider"
+	default 0
+	---help---
+		The value to use for the divider to derive the MII MDC clock from SCLK.  Options are 1->4; 2->6; 3->8; 4->10; 5->14; 6->20; and 7->28
+
+config EZ80_TXPOLLTIMERMS
+	int "Tx Poll Milliseconds"
+	default 10
+	---help---
+		Specifies how often the EMAC controller should poll for a Tx packet (milliseconds)
+
+config ARCH_MCFILTER
+	bool "Multicast Filtering"
+	default n
+	---help---
+		Enables multicast MAC address filtering (not fully implemented)
+
+endif
 endif

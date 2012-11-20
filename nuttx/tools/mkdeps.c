@@ -501,7 +501,7 @@ static void do_dependency(const char *file, char separator)
             }
           else
             {
-              fprintf(stderr, "ERROR: %s failed: %s\n", g_cc, WEXITSTATUS(ret));
+              fprintf(stderr, "ERROR: %s failed: %d\n", g_cc, WEXITSTATUS(ret));
             }
 
           fprintf(stderr, "       command: %s\n", g_command);
