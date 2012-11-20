@@ -35,6 +35,7 @@
 # Graupner HoTT Telemetry application.
 #
 
+# The following line is required for accessing UARTs directly.
 INCLUDES	 = $(TOPDIR)/arch/arm/src/stm32 $(TOPDIR)/arch/arm/src/common
 
 APPNAME		 = hott_telemetry
