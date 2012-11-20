@@ -65,6 +65,12 @@
 #  endif
 #endif
 
+/* Can't support MMC/SD features if MMC/SD driver support is not selected */
+
+#ifndef CONFIG_MMCSD
+#  undef HAVE_MMCSD
+#endif
+
 /* Can't support MMC/SD features if mountpoints are disabled */
 
 #ifdef CONFIG_DISABLE_MOUNTPOINT

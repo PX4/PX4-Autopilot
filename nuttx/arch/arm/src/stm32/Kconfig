@@ -1831,12 +1831,51 @@ config STM32_TIM14_DAC2
 
 endchoice
 
+menu "U[S]ART Configuration"
+	depends on STM32_USART1 || STM32_USART2 || STM32_USART3 || STM32_USART4 || STM32_USART5 || STM32_USART6
+
+config USART1_RS485
+	bool "RS-485 on USART1"
+	default n
+	depends on STM32_USART1
+	---help---
+		Enable RS-485 interface on USART1. Your board config will have to
+		provide GPIO_USART1_RS485_DIR pin definition. Currently it cannot be
+		used with USART1_RXDMA.
+
+config USART1_RS485_DIR_POLARITY
+	int "USART1 RS-485 DIR pin polarity"
+	default 1
+	range 0 1
+	depends on USART1_RS485
+	---help---
+		Polarity of DIR pin for RS-485 on USART1. Set to state on DIR pin which
+		enables TX (0 - low / nTXEN, 1 - high / TXEN).		
+
 config USART1_RXDMA
 	bool "USART1 Rx DMA"
 	default n
 	depends on STM32_STM32F40XX && STM32_DMA2
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
+
+config USART2_RS485
+	bool "RS-485 on USART2"
+	default n
+	depends on STM32_USART2
+	---help---
+		Enable RS-485 interface on USART2. Your board config will have to
+		provide GPIO_USART2_RS485_DIR pin definition. Currently it cannot be
+		used with USART2_RXDMA.
+
+config USART2_RS485_DIR_POLARITY
+	int "USART2 RS-485 DIR pin polarity"
+	default 1
+	range 0 1
+	depends on USART2_RS485
+	---help---
+		Polarity of DIR pin for RS-485 on USART2. Set to state on DIR pin which
+		enables TX (0 - low / nTXEN, 1 - high / TXEN).
 
 config USART2_RXDMA
 	bool "USART2 Rx DMA"
@@ -1845,12 +1884,48 @@ config USART2_RXDMA
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
+config USART3_RS485
+	bool "RS-485 on USART3"
+	default n
+	depends on STM32_USART3
+	---help---
+		Enable RS-485 interface on USART3. Your board config will have to
+		provide GPIO_USART3_RS485_DIR pin definition. Currently it cannot be
+		used with USART3_RXDMA.
+
+config USART3_RS485_DIR_POLARITY
+	int "USART3 RS-485 DIR pin polarity"
+	default 1
+	range 0 1
+	depends on USART3_RS485
+	---help---
+		Polarity of DIR pin for RS-485 on USART3. Set to state on DIR pin which
+		enables TX (0 - low / nTXEN, 1 - high / TXEN).
+
 config USART3_RXDMA
 	bool "USART3 Rx DMA"
 	default n
 	depends on STM32_STM32F40XX && STM32_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
+
+config UART4_RS485
+	bool "RS-485 on UART4"
+	default n
+	depends on STM32_UART4
+	---help---
+		Enable RS-485 interface on UART4. Your board config will have to
+		provide GPIO_UART4_RS485_DIR pin definition. Currently it cannot be
+		used with UART4_RXDMA.
+
+config UART4_RS485_DIR_POLARITY
+	int "UART4 RS-485 DIR pin polarity"
+	default 1
+	range 0 1
+	depends on UART4_RS485
+	---help---
+		Polarity of DIR pin for RS-485 on UART4. Set to state on DIR pin which
+		enables TX (0 - low / nTXEN, 1 - high / TXEN).
 
 config UART4_RXDMA
 	bool "UART4 Rx DMA"
@@ -1859,12 +1934,48 @@ config UART4_RXDMA
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
+config UART5_RS485
+	bool "RS-485 on UART5"
+	default n
+	depends on STM32_UART5
+	---help---
+		Enable RS-485 interface on UART5. Your board config will have to
+		provide GPIO_UART5_RS485_DIR pin definition. Currently it cannot be
+		used with UART5_RXDMA.
+
+config UART5_RS485_DIR_POLARITY
+	int "UART5 RS-485 DIR pin polarity"
+	default 1
+	range 0 1
+	depends on UART5_RS485
+	---help---
+		Polarity of DIR pin for RS-485 on UART5. Set to state on DIR pin which
+		enables TX (0 - low / nTXEN, 1 - high / TXEN).
+
 config UART5_RXDMA
 	bool "UART5 Rx DMA"
 	default n
 	depends on STM32_STM32F40XX && STM32_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
+
+config USART6_RS485
+	bool "RS-485 on USART6"
+	default n
+	depends on STM32_USART6
+	---help---
+		Enable RS-485 interface on USART6. Your board config will have to
+		provide GPIO_USART6_RS485_DIR pin definition. Currently it cannot be
+		used with USART6_RXDMA.
+
+config USART6_RS485_DIR_POLARITY
+	int "USART6 RS-485 DIR pin polarity"
+	default 1
+	range 0 1
+	depends on USART6_RS485
+	---help---
+		Polarity of DIR pin for RS-485 on USART6. Set to state on DIR pin which
+		enables TX (0 - low / nTXEN, 1 - high / TXEN).
 
 config USART6_RXDMA
 	bool "USART6 Rx DMA"
@@ -1881,6 +1992,8 @@ config SERIAL_TERMIOS
 		Serial driver supports termios.h interfaces (tcsetattr, tcflush, etc.).
 		If this is not defined, then the terminal settings (baud, parity, etc).
 		are not configurable at runtime; serial streams cannot be flushed, etc..
+
+endmenu
 
 menu "SPI Configuration"
 	depends on STM32_SPI

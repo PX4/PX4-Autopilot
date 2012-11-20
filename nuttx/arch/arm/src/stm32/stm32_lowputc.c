@@ -67,6 +67,14 @@
 #  define STM32_CONSOLE_2STOP    CONFIG_USART1_2STOP
 #  define STM32_CONSOLE_TX       GPIO_USART1_TX
 #  define STM32_CONSOLE_RX       GPIO_USART1_RX
+#  ifdef CONFIG_USART1_RS485
+#    define STM32_CONSOLE_RS485_DIR GPIO_USART1_RS485_DIR
+#    if (CONFIG_USART1_RS485_DIR_POLARITY == 0)
+#      define STM32_CONSOLE_RS485_DIR_POLARITY false
+#    else
+#      define STM32_CONSOLE_RS485_DIR_POLARITY true
+#    endif
+#  endif
 #elif defined(CONFIG_USART2_SERIAL_CONSOLE)
 #  define STM32_CONSOLE_BASE     STM32_USART2_BASE
 #  define STM32_APBCLOCK         STM32_PCLK1_FREQUENCY
@@ -76,6 +84,14 @@
 #  define STM32_CONSOLE_2STOP    CONFIG_USART2_2STOP
 #  define STM32_CONSOLE_TX       GPIO_USART2_TX
 #  define STM32_CONSOLE_RX       GPIO_USART2_RX
+#  ifdef CONFIG_USART2_RS485
+#    define STM32_CONSOLE_RS485_DIR GPIO_USART2_RS485_DIR
+#    if (CONFIG_USART2_RS485_DIR_POLARITY == 0)
+#      define STM32_CONSOLE_RS485_DIR_POLARITY false
+#    else
+#      define STM32_CONSOLE_RS485_DIR_POLARITY true
+#    endif
+#  endif
 #elif defined(CONFIG_USART3_SERIAL_CONSOLE)
 #  define STM32_CONSOLE_BASE     STM32_USART3_BASE
 #  define STM32_APBCLOCK         STM32_PCLK1_FREQUENCY
@@ -85,6 +101,14 @@
 #  define STM32_CONSOLE_2STOP    CONFIG_USART3_2STOP
 #  define STM32_CONSOLE_TX       GPIO_USART3_TX
 #  define STM32_CONSOLE_RX       GPIO_USART3_RX
+#  ifdef CONFIG_USART3_RS485
+#    define STM32_CONSOLE_RS485_DIR GPIO_USART3_RS485_DIR
+#    if (CONFIG_USART3_RS485_DIR_POLARITY == 0)
+#      define STM32_CONSOLE_RS485_DIR_POLARITY false
+#    else
+#      define STM32_CONSOLE_RS485_DIR_POLARITY true
+#    endif
+#  endif
 #elif defined(CONFIG_UART4_SERIAL_CONSOLE)
 #  define STM32_CONSOLE_BASE     STM32_UART4_BASE
 #  define STM32_APBCLOCK         STM32_PCLK1_FREQUENCY
@@ -94,6 +118,14 @@
 #  define STM32_CONSOLE_2STOP    CONFIG_UART4_2STOP
 #  define STM32_CONSOLE_TX       GPIO_UART4_TX
 #  define STM32_CONSOLE_RX       GPIO_UART4_RX
+#  ifdef CONFIG_UART4_RS485
+#    define STM32_CONSOLE_RS485_DIR GPIO_UART4_RS485_DIR
+#    if (CONFIG_UART4_RS485_DIR_POLARITY == 0)
+#      define STM32_CONSOLE_RS485_DIR_POLARITY false
+#    else
+#      define STM32_CONSOLE_RS485_DIR_POLARITY true
+#    endif
+#  endif
 #elif defined(CONFIG_UART5_SERIAL_CONSOLE)
 #  define STM32_CONSOLE_BASE     STM32_UART5_BASE
 #  define STM32_APBCLOCK         STM32_PCLK1_FREQUENCY
@@ -103,6 +135,14 @@
 #  define STM32_CONSOLE_2STOP    CONFIG_UART5_2STOP
 #  define STM32_CONSOLE_TX       GPIO_UART5_TX
 #  define STM32_CONSOLE_RX       GPIO_UART5_RX
+#  ifdef CONFIG_UART5_RS485
+#    define STM32_CONSOLE_RS485_DIR GPIO_UART5_RS485_DIR
+#    if (CONFIG_UART5_RS485_DIR_POLARITY == 0)
+#      define STM32_CONSOLE_RS485_DIR_POLARITY false
+#    else
+#      define STM32_CONSOLE_RS485_DIR_POLARITY true
+#    endif
+#  endif
 #elif defined(CONFIG_USART6_SERIAL_CONSOLE)
 #  define STM32_CONSOLE_BASE     STM32_USART6_BASE
 #  define STM32_APBCLOCK         STM32_PCLK2_FREQUENCY
@@ -112,6 +152,14 @@
 #  define STM32_CONSOLE_2STOP    CONFIG_USART6_2STOP
 #  define STM32_CONSOLE_TX       GPIO_USART6_TX
 #  define STM32_CONSOLE_RX       GPIO_USART6_RX
+#  ifdef CONFIG_USART6_RS485
+#    define STM32_CONSOLE_RS485_DIR GPIO_USART6_RS485_DIR
+#    if (CONFIG_USART6_RS485_DIR_POLARITY == 0)
+#      define STM32_CONSOLE_RS485_DIR_POLARITY false
+#    else
+#      define STM32_CONSOLE_RS485_DIR_POLARITY true
+#    endif
+#  endif
 #endif
 
 /* CR1 settings */
@@ -230,10 +278,19 @@ void up_lowputc(char ch)
   /* Wait until the TX data register is empty */
 
   while ((getreg32(STM32_CONSOLE_BASE + STM32_USART_SR_OFFSET) & USART_SR_TXE) == 0);
+#if STM32_CONSOLE_RS485_DIR
+  stm32_gpiowrite(STM32_CONSOLE_RS485_DIR, STM32_CONSOLE_RS485_DIR_POLARITY);
+#endif
 
   /* Then send the character */
 
   putreg32((uint32_t)ch, STM32_CONSOLE_BASE + STM32_USART_DR_OFFSET);
+
+#if STM32_CONSOLE_RS485_DIR
+  while ((getreg32(STM32_CONSOLE_BASE + STM32_USART_SR_OFFSET) & USART_SR_TC) == 0);
+  stm32_gpiowrite(STM32_CONSOLE_RS485_DIR, !STM32_CONSOLE_RS485_DIR_POLARITY);
+#endif
+
 #endif
 }
 
@@ -328,7 +385,14 @@ void stm32_lowsetup(void)
 
 #ifdef STM32_CONSOLE_TX
   stm32_configgpio(STM32_CONSOLE_TX);
-  stm32_configgpio(STM32_CONSOLE_TX);
+#endif
+#ifdef STM32_CONSOLE_RX
+  stm32_configgpio(STM32_CONSOLE_RX);
+#endif
+
+#if STM32_CONSOLE_RS485_DIR
+  stm32_configgpio(STM32_CONSOLE_RS485_DIR);
+  stm32_gpiowrite(STM32_CONSOLE_RS485_DIR, !STM32_CONSOLE_RS485_DIR_POLARITY);
 #endif
 
   /* Enable and configure the selected console device */
@@ -382,7 +446,14 @@ void stm32_lowsetup(void)
 
 #ifdef STM32_CONSOLE_TX
   stm32_configgpio(STM32_CONSOLE_TX);
-  stm32_configgpio(STM32_CONSOLE_TX);
+#endif
+#ifdef STM32_CONSOLE_RX
+  stm32_configgpio(STM32_CONSOLE_RX);
+#endif
+
+#if STM32_CONSOLE_RS485_DIR
+  stm32_configgpio(STM32_CONSOLE_RS485_DIR);
+  stm32_gpiowrite(STM32_CONSOLE_RS485_DIR, !STM32_CONSOLE_RS485_DIR_POLARITY);
 #endif
 
   /* Enable and configure the selected console device */
