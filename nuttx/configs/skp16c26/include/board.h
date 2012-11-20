@@ -57,7 +57,7 @@
  * To be safe, we will error out on either selection:
  */
 
-#if !defined(CONFIG_UART1_DISABLE) || !defined(CONFIG_UART2_DISABLE)
+#if defined(CONFIG_M16C_UART1) || defined(CONFIG_M16C_UART2)
 #  error "UART1/2 should not be used on SKP16C26"
 #endif
 

@@ -54,7 +54,7 @@
  * Definitions
  ************************************************************************************/
 
-#if !defined(CONFIG_UART1_DISABLE) && !defined(CONFIG_SSI0_DISABLE)
+#if defined(CONFIG_LM3S_UART1) && !defined(CONFIG_SSI0_DISABLE)
 #  error Only one of UART1 and SSI0 can be enabled on this board.
 #endif
 

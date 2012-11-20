@@ -63,7 +63,7 @@
  * not have serial ports but supports a console through, say, an LCD.
  */
 
-#if !defined(CONFIG_UART0_DISABLE) && !defined(CONFIG_UART1_DISABLE) && !defined(CONFIG_UART2_DISABLE)
+#if defined(CONFIG_M16C_UART0) || defined(CONFIG_M16C_UART1) || defined(CONFIG_M16C_UART2)
 
 /****************************************************************************
  * Definitions
@@ -100,24 +100,24 @@
 
 /* Are there any UARTs? */
 
-#if defined(CONFIG_UART0_DISABLE) && defined(CONFIG_UART1_DISABLE) && defined(CONFIG_UART2_DISABLE)
+#if !defined(CONFIG_M16C_UART0) && !defined(CONFIG_M16C_UART1) && !defined(CONFIG_M16C_UART2)
 #  ifdef USE_SERIALDRIVER
-#    error "Serial driver selected, but UARTs not enabled"
+#    error "Serial driver selected, but No UARTs is enabled"
 #    undef USE_SERIALDRIVER
 #  endif
 #endif
 
 /* Is there a serial console? */
 
-#if defined(CONFIG_UART0_SERIAL_CONSOLE) && !defined(CONFIG_UART0_DISABLE)
+#if defined(CONFIG_UART0_SERIAL_CONSOLE) && defined(CONFIG_M16C_UART0)
 #  define HAVE_SERIALCONSOLE 1
 #  undef CONFIG_UART1_SERIAL_CONSOLE
 #  undef CONFIG_UART2_SERIAL_CONSOLE
-#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && !defined(CONFIG_UART1_DISABLE)
+#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && defined(CONFIG_M16C_UART1)
 #  define HAVE_SERIALCONSOLE 1
 #  undef CONFIG_UART0_SERIAL_CONSOLE
 #  undef CONFIG_UART2_SERIAL_CONSOLE
-#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && !defined(CONFIG_UART2_DISABLE)
+#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && defined(CONFIG_M16C_UART2)
 #  define HAVE_SERIALCONSOLE 1
 #  undef CONFIG_UART0_SERIAL_CONSOLE
 #  undef CONFIG_UART1_SERIAL_CONSOLE
@@ -141,18 +141,18 @@
 
 /* Which UART with be tty0/console and which tty1 and tty2? */
 
-/* CONFIG_UART0_SERIAL_CONSOLE (implies CONFIG_UART0_DISABLE also un-defined) */
+/* CONFIG_UART0_SERIAL_CONSOLE (implies CONFIG_M16C_UART0 also defined) */
 
 #if defined(CONFIG_UART0_SERIAL_CONSOLE)
 #  define CONSOLE_DEV     g_uart0port     /* UART0 is console */
 #  define TTYS0_DEV       g_uart0port     /* UART0 is tty0 */
-#  ifndef CONFIG_UART1_DISABLE
+#  ifdef CONFIG_M16C_UART1
 #    define TTYS1_DEV     g_uart1port     /* UART1 is tty1 */
-#    ifndef CONFIG_UART2_DISABLE
+#    ifdef CONFIG_M16C_UART2
 #      define TTYS2_DEV   g_uart2port     /* UART2 is tty2 */
 #    endif
 #  else
-#    ifndef CONFIG_UART2_DISABLE
+#    ifdef CONFIG_M16C_UART2
 #      define TTYS2_DEV   g_uart2port     /* UART2 is tty1 */
 #    else
 #      undef TTYS1_DEV                    /* No tty1 */
@@ -160,18 +160,18 @@
 #    undef TTYS2_DEV                      /* No tty2 */
 #  endif
 
-/* CONFIG_UART1_SERIAL_CONSOLE (implies CONFIG_UART1_DISABLE also un-defined) */
+/* CONFIG_UART1_SERIAL_CONSOLE (implies CONFIG_M16C_UART1 also defined) */
 
 #elif defined(CONFIG_UART1_SERIAL_CONSOLE)
 #  define CONSOLE_DEV     g_uart1port     /* UART1 is console */
 #  define TTYS0_DEV       g_uart1port     /* UART1 is tty0 */
-#  ifndef CONFIG_UART0_DISABLE
+#  ifdef CONFIG_M16C_UART0
 #    define TTYS1_DEV     g_uart0port     /* UART0 is tty1 */
-#    ifndef CONFIG_UART2_DISABLE
+#    ifdef CONFIG_M16C_UART2
 #      define TTYS2_DEV   g_uart2port     /* UART2 is tty2 */
 #    endif
 #  else
-#    ifndef CONFIG_UART2_DISABLE
+#    ifdef CONFIG_M16C_UART2
 #      define TTYS2_DEV   g_uart2port     /* UART2 is tty1 */
 #    else
 #      undef TTYS1_DEV                    /* No tty1 */
@@ -179,18 +179,18 @@
 #    undef TTYS2_DEV                      /* No tty2 */
 #  endif
 
-/* CONFIG_UART2_SERIAL_CONSOLE (implies CONFIG_UART2_DISABLE also un-defined) */
+/* CONFIG_UART2_SERIAL_CONSOLE (implies CONFIG_M16C_UART2 also defined) */
 
 #elif defined(CONFIG_UART2_SERIAL_CONSOLE)
 #  define CONSOLE_DEV     g_uart2port     /* UART2 is console */
 #  define TTYS0_DEV       g_uart2port     /* UART2 is tty0 */
-#  ifndef CONFIG_UART0_DISABLE
+#  ifdef CONFIG_M16C_UART0
 #    define TTYS1_DEV     g_uart0port     /* UART0 is tty1 */
-#    ifndef CONFIG_UART1_DISABLE
+#    ifdef CONFIG_M16C_UART1
 #      define TTYS2_DEV   g_uart1port     /* UART1 is tty2 */
 #    endif
 #  else
-#    ifndef CONFIG_UART1_DISABLE
+#    ifdef CONFIG_M16C_UART1
 #      define TTYS1_DEV   g_uart1port     /* UART1 is tty1 */
 #    else
 #      undef TTYS1_DEV                    /* No tty1 */
@@ -198,18 +198,18 @@
 #    undef TTYS2_DEV                      /* No tty2 */
 #  endif
 
-/* No console, at least one of CONFIG_UART0/1/2_DISABLE defined */
+/* No console, at least one of CONFIG_M16C_UART0/1/2 defined */
 
-#elif !defined(CONFIG_UART0_DISABLE)
+#elif defined(CONFIG_M16C_UART0)
 #  undef  CONSOLE_DEV                     /* No console */
 #  define TTYS0_DEV       g_uart0port     /* UART0 is tty0 */
-#  ifndef CONFIG_UART1_DISABLE
+#  ifdef CONFIG_M16C_UART1
 #    define TTYS1_DEV     g_uart1port     /* UART1 is tty1 */
-#    ifndef CONFIG_UART2_DISABLE
+#    ifdef CONFIG_M16C_UART2
 #      define TTYS2_DEV   g_uart2port     /* UART2 is tty2 */
 #    endif
 #  else
-#    ifndef CONFIG_UART2_DISABLE
+#    ifdef CONFIG_M16C_UART2
 #      define TTYS1_DEV   g_uart1port     /* UART2 is tty1 */
 #    else
 #      undef TTYS1_DEV                    /* No tty1 */
@@ -217,17 +217,17 @@
 #    undef TTYS2_DEV                      /* No tty2 */
 #  endif
 
-elif !defined(CONFIG_UART1_DISABLE)
+elif defined(CONFIG_M16C_UART1)
 #  undef  CONSOLE_DEV                     /* No console */
 #  undef  TTYS2_DEV                       /* No tty2 */
 #  define TTYS0_DEV       g_uart1port     /* UART1 is tty0 */
-#  ifndef CONFIG_UART2_DISABLE
+#  ifdef CONFIG_M16C_UART2
 #    define TTYS1_DEV     g_uart2port     /* UART2 is tty1 */
 #  else
 #    undef TTYS1_DEV                      /* No tty1 */
 #  endif
 
-/* Otherwise, there is no console and only CONFIG_UART2_DISABLE is un-defined */
+/* Otherwise, there is no console and only CONFIG_M16C_UART2 is defined */
 
 #else
 #  undef  CONSOLE_DEV                    /* No console */
@@ -300,22 +300,22 @@ struct uart_ops_s g_uart_ops =
 
 /* I/O buffers */
 
-#ifndef CONFIG_UART0_DISABLE
+#ifdef CONFIG_M16C_UART0
 static char g_uart0rxbuffer[CONFIG_UART0_RXBUFSIZE];
 static char g_uart0txbuffer[CONFIG_UART0_TXBUFSIZE];
 #endif
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_M16C_UART1
 static char g_uart1rxbuffer[CONFIG_UART1_RXBUFSIZE];
 static char g_uart1txbuffer[CONFIG_UART1_TXBUFSIZE];
 #endif
-#ifndef CONFIG_UART2_DISABLE
+#ifdef CONFIG_M16C_UART2
 static char g_uart2rxbuffer[CONFIG_UART2_RXBUFSIZE];
 static char g_uart2txbuffer[CONFIG_UART2_TXBUFSIZE];
 #endif
 
 /* This describes the state of the M16C UART0 port. */
 
-#ifndef CONFIG_UART0_DISABLE
+#ifdef CONFIG_M16C_UART0
 static struct up_dev_s g_uart0priv =
 {
   .baud           = CONFIG_UART0_BAUD,
@@ -347,7 +347,7 @@ static uart_dev_t g_uart0port =
 
 /* This describes the state of the M16C UART1 port. */
 
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_M16C_UART1
 static struct up_dev_s g_uart1priv =
 {
   .baud           = CONFIG_UART1_BAUD,
@@ -379,7 +379,7 @@ static uart_dev_t g_uart1port =
 
 /* This describes the state of the M16C UART2 port. */
 
-#ifndef CONFIG_UART2_DISABLE
+#ifdef CONFIG_M16C_UART2
 static struct up_dev_s g_uart2priv =
 {
   .baud           = CONFIG_UART2_BAUD,
@@ -558,7 +558,7 @@ static int up_setup(struct uart_dev_s *dev)
 
 /* Set interrupt cause=TX complete and continuous receive mode */
 
-#ifndef CONFIG_UART0_DISABLE
+#ifdef CONFIG_M16C_UART0
   if (priv->uartno == 0)
     {
       regval  = getreg8(M16C_UCON);
@@ -567,7 +567,7 @@ static int up_setup(struct uart_dev_s *dev)
     }
   else
 #endif
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_M16C_UART1
   if (priv->uartno == 1)
     {
       regval  = getreg8(M16C_UCON);
@@ -576,7 +576,7 @@ static int up_setup(struct uart_dev_s *dev)
     }
   else
 #endif
-#ifndef CONFIG_UART2_DISABLE
+#ifdef CONFIG_M16C_UART2
   if (priv->uartno == 2)
     {
       regval  = getreg8(M16C_U2C1);
@@ -632,7 +632,7 @@ static int up_setup(struct uart_dev_s *dev)
 
   /* Set port direction registers for Rx/TX pins */
 
-#ifndef CONFIG_UART0_DISABLE
+#ifdef CONFIG_M16C_UART0
   if (priv->uartno == 0)
     {
       regval  = getreg8(M16C_PD6);
@@ -642,7 +642,7 @@ static int up_setup(struct uart_dev_s *dev)
     }
   else
 #endif
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_M16C_UART1
   if (priv->uartno == 1)
     {
       regval  = getreg8(M16C_PD6);
@@ -652,7 +652,7 @@ static int up_setup(struct uart_dev_s *dev)
     }
   else
 #endif
-#ifndef CONFIG_UART2_DISABLE
+#ifdef CONFIG_M16C_UART2
   if (priv->uartno == 2)
     {
       regval  = getreg8(M16C_PD7);
@@ -766,21 +766,21 @@ static int up_rcvinterrupt(int irq, void *context)
 {
   struct uart_dev_s *dev = NULL;
 
-#ifndef CONFIG_UART0_DISABLE
+#ifdef CONFIG_M16C_UART0
   if (irq == g_uart0priv.rcvirq)
     {
       dev = &g_uart0port;
     }
   else
 #endif
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_M16C_UART1
   if (irq == g_uart1priv.rcvirq)
     {
       dev = &g_uart1port;
     }
   else
 #endif
-#ifndef CONFIG_UART2_DISABLE
+#ifdef CONFIG_M16C_UART2
   if (irq = g_uart2priv.rcvirq)
     {
       dev = &g_uart2port;
@@ -845,7 +845,7 @@ static void m16c_rxint(struct up_dev_s *dev, bool enable)
 
   /* Pick the SxTIC register and enable interrupt priority */
 
-#ifndef CONFIG_UART0_DISABLE
+#ifdef CONFIG_M16C_UART0
   if (dev->uartno == 0)
     {
       regaddr  = M16C_S0RIC;
@@ -853,7 +853,7 @@ static void m16c_rxint(struct up_dev_s *dev, bool enable)
     }
   else
 #endif
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_M16C_UART1
   if (dev->uartno == 1)
     {
       regaddr  = M16C_S1RIC;
@@ -861,7 +861,7 @@ static void m16c_rxint(struct up_dev_s *dev, bool enable)
     }
   else
 #endif
-#ifndef CONFIG_UART2_DISABLE
+#ifdef CONFIG_M16C_UART2
   if (dev->uartno == 2)
     {
       regaddr  = M16C_S2RIC;
@@ -932,21 +932,21 @@ static int up_xmtinterrupt(int irq, void *context)
 {
   struct uart_dev_s *dev = NULL;
 
-#ifndef CONFIG_UART0_DISABLE
+#ifdef CONFIG_M16C_UART0
   if (irq == g_uart0priv.xmtirq)
     {
       dev = &g_uart0port;
     }
   else
 #endif
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_M16C_UART1
   if (irq == g_uart1priv.xmtirq)
     {
       dev = &g_uart1port;
     }
   else
 #endif
-#ifndef CONFIG_UART2_DISABLE
+#ifdef CONFIG_M16C_UART2
   if (irq == g_uart2priv.xmtirq)
     {
       dev = &g_uart1port;
@@ -1000,7 +1000,7 @@ static void m16c_txint(struct up_dev_s *dev, bool enable)
 
   /* Pick the SxTIC register and enable interrupt priority */
 
-#ifndef CONFIG_UART0_DISABLE
+#ifdef CONFIG_M16C_UART0
   if (dev->uartno == 0)
     {
       regaddr  = M16C_S0TIC;
@@ -1008,7 +1008,7 @@ static void m16c_txint(struct up_dev_s *dev, bool enable)
     }
   else
 #endif
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_M16C_UART1
   if (dev->uartno == 1)
     {
       regaddr  = M16C_S1TIC;
@@ -1016,7 +1016,7 @@ static void m16c_txint(struct up_dev_s *dev, bool enable)
     }
   else
 #endif
-#ifndef CONFIG_UART2_DISABLE
+#ifdef CONFIG_M16C_UART2
   if (dev->uartno == 2)
     {
       regaddr  = M16C_S2TIC;
@@ -1202,5 +1202,5 @@ int up_putc(int ch)
 #endif /* USE_SERIALDRIVER */
 #elif defined(CONFIG_UART0_SERIAL_CONSOLE) || defined(CONFIG_UART1_SERIAL_CONSOLE)|| defined(CONFIG_UART2_SERIAL_CONSOLE)
 #    error "A serial console selected, but corresponding UART not enabled"
-#endif /*  !CONFIG_UART0_DISABLE && !CONFIG_UART1_DISABLE && !CONFIG_UART2_DISABLE */
+#endif /* CONFIG_M16C_UART0 || CONFIG_M16C_UART1 || CONFIG_M16C_UART2 */
 

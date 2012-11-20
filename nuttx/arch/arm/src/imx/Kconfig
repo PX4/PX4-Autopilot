@@ -3,4 +3,21 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-comment "i.MX Configuration Options"
+if ARCH_CHIP_IMX
+
+config IMX_UART0
+	bool "UART0"
+	select ARCH_HAVE_UART0
+	default n
+
+config IMX_UART1
+	bool "UART1"
+	select ARCH_HAVE_UART1
+	default n
+
+config IMX_UART2
+	bool "UART2"
+	select ARCH_HAVE_UART2
+	default n
+
+endif

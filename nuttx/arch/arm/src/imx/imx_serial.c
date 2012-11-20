@@ -71,8 +71,8 @@
 
 /* The i.MXL chip has only two UARTs */
 
-#if defined(CONFIG_ARCH_CHIP_IMXL) && !defined(CONFIG_UART3_DISABLE)
-#  define CONFIG_UART3_DISABLE 1
+#if defined(CONFIG_ARCH_CHIP_IMXL) && defined(CONFIG_IMX_UART3)
+#  undef CONFIG_IMX_UART3
 #endif
 
 /****************************************************************************
@@ -144,24 +144,24 @@ struct uart_ops_s g_uart_ops =
 
 /* I/O buffers */
 
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_IMX_UART1
 static char g_uart1rxbuffer[CONFIG_UART1_RXBUFSIZE];
 static char g_uart1txbuffer[CONFIG_UART1_TXBUFSIZE];
 #endif
 
-#ifndef CONFIG_UART2_DISABLE
+#ifdef CONFIG_IMX_UART2
 static char g_uart2rxbuffer[CONFIG_UART2_RXBUFSIZE];
 static char g_uart2txbuffer[CONFIG_UART2_TXBUFSIZE];
 #endif
 
-#ifndef CONFIG_UART3_DISABLE
+#ifdef CONFIG_IMX_UART3
 static char g_uart3rxbuffer[CONFIG_UART2_RXBUFSIZE];
 static char g_uart3txbuffer[CONFIG_UART2_TXBUFSIZE];
 #endif
 
 /* This describes the state of the IMX uart1 port. */
 
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_IMX_UART1
 static struct up_dev_s g_uart1priv =
 {
   .uartbase       = IMX_UART1_VBASE,
@@ -196,7 +196,7 @@ static uart_dev_t g_uart1port =
 
 /* This describes the state of the IMX uart2 port. */
 
-#ifndef CONFIG_UART2_DISABLE
+#ifdef CONFIG_IMX_UART2
 static struct up_dev_s g_uart2priv =
 {
   .uartbase       = IMX_UART2_VBASE,
@@ -229,7 +229,7 @@ static uart_dev_t g_uart2port =
 };
 #endif
 
-#ifndef CONFIG_UART3_DISABLE
+#ifdef CONFIG_IMX_UART3
 static struct up_dev_s g_uart3priv =
 {
   .uartbase       = IMX_UART3_REGISTER_BASE,
@@ -264,19 +264,19 @@ static uart_dev_t g_uart3port =
 
 /* Now, which one with be tty0/console and which tty1 and tty2? */
 
-#if defined(CONFIG_UART1_SERIAL_CONSOLE) && !defined(CONFIG_UART1_DISABLE)
+#if defined(CONFIG_UART1_SERIAL_CONSOLE) && defined(CONFIG_IMX_UART1)
 # define CONSOLE_DEV     g_uart1port /* UART1 is /dev/console */
 # undef  CONFIG_UART2_SERIAL_CONSOLE
 # undef  CONFIG_UART3_SERIAL_CONSOLE
 # define TTYS0_DEV       g_uart1port /* UART1 is /dev/ttyS0 */
-# if !defined(CONFIG_UART2_DISABLE)
+# if defined(CONFIG_IMX_UART2)
 #   define TTYS1_DEV     g_uart2port /* UART2 is /dev/ttyS1 */
-#   if !defined(CONFIG_UART3_DISABLE)
+#   if defined(CONFIG_IMX_UART3)
 #     define TTYS2_DEV   g_uart3port /* UART3 is /dev/ttyS2 */
 #   else
 #     undef TTYS2_DEV                /* No /dev/ttyS2 */
 #   endif
-# elif !defined(CONFIG_UART3_DISABLE)
+# elif defined(CONFIG_IMX_UART3)
 #   define TTYS1_DEV     g_uart3port /* UART3 is /dev/ttyS1 */
 #   undef  TTYS2_DEV                 /* No /dev/ttyS2 */
 # else
@@ -284,38 +284,38 @@ static uart_dev_t g_uart3port =
 #   undef  TTYS2_DEV                 /* No /dev/ttyS2 */
 # endif
 
-#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && !defined(CONFIG_UART2_DISABLE)
+#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && defined(CONFIG_IMX_UART2)
 # define CONSOLE_DEV     g_uart2port  /* UART2 is /dev/console */
 # undef  CONFIG_UART1_SERIAL_CONSOLE
 # undef  CONFIG_UART3_SERIAL_CONSOLE
 # define TTYS0_DEV       g_uart2port  /* UART2 is /dev/ttyS0 */
-# if !defined(CONFIG_UART1_DISABLE)
+# if defined(CONFIG_IMX_UART1)
 #   define TTYS1_DEV     g_uart1port  /* UART1 is /dev/ttyS1 */
-#   if !defined(CONFIG_UART3_DISABLE)
+#   if defined(CONFIG_IMX_UART3)
 #     define TTYS2_DEV   g_uart3port  /* UART3 is /dev/ttyS2 */
 #   else
 #     undef TTYS2_DEV                 /* No /dev/ttyS2 */
 #   endif
-# elif !defined(CONFIG_UART3_DISABLE)
+# elif defined(CONFIG_IMX_UART3)
 #   define TTYS1_DEV     g_uart3port  /* UART3 is /dev/ttyS1 */
 # else
 #   undef TTYS1_DEV                   /* No /dev/ttyS1 */
 #   undef TTYS2_DEV                   /* No /dev/ttyS2 */
 # endif
 
-#elif defined(CONFIG_UART3_SERIAL_CONSOLE) && !defined(CONFIG_UART3_DISABLE)
+#elif defined(CONFIG_UART3_SERIAL_CONSOLE) && defined(CONFIG_IMX_UART3)
 # define CONSOLE_DEV     g_uart3port  /* UART3 is /dev/console */
 # undef CONFIG_UART1_SERIAL_CONSOLE
 # undef CONFIG_UART2_SERIAL_CONSOLE
 # define TTYS0_DEV       g_uart3port  /* UART3 is /dev/ttyS0 */
-# if !defined(CONFIG_UART1_DISABLE)
+# if defined(CONFIG_IMX_UART1)
 #   define TTYS1_DEV     g_uart1port  /* UART1 is /dev/ttyS1 */
-#   if !defined(CONFIG_UART2_DISABLE)
+#   if defined(CONFIG_IMX_UART2)
 #     define TTYS2_DEV   g_uart2port  /* UART2 is /dev/ttyS2 */
 #   else
 #     undef TTYS2_DEV                 /* No /dev/ttyS2 */
 #   endif
-# elif !defined(CONFIG_UART2_DISABLE)
+# elif defined(CONFIG_IMX_UART2)
 #   define TTYS1_DEV     g_uart2port  /* UART2 is /dev/ttyS1 */
 #   undef  TTYS2_DEV                  /* No /dev/ttyS2 */
 # else
@@ -329,16 +329,16 @@ static uart_dev_t g_uart3port =
 # undef CONFIG_UART2_SERIAL_CONSOLE
 # undef CONFIG_UART3_SERIAL_CONSOLE
 
-# if !defined(CONFIG_UART1_DISABLE)
+# if defined(CONFIG_IMX_UART1)
 #  define TTYS0_DEV       g_uart1port /* UART1 is /dev/ttyS0 */
-#  if !defined(CONFIG_UART2_DISABLE)
+#  if defined(CONFIG_IMX_UART2)
 #    define TTYS1_DEV     g_uart2port /* UART2 is /dev/ttyS1 */
-#    if !defined(CONFIG_UART3_DISABLE)
+#    if defined(CONFIG_IMX_UART3)
 #     define TTYS2_DEV   g_uart3port  /* UART3 is /dev/ttyS2 */
 #    else
 #     undef TTYS2_DEV                 /* No /dev/ttyS2 */
 #    endif
-#  elif !defined(CONFIG_UART3_DISABLE)
+#  elif defined(CONFIG_IMX_UART3)
 #    define TTYS1_DEV     g_uart3port /* UART3 is /dev/ttyS1 */
 #    undef TTYS2_DEV                  /* No /dev/ttyS2 */
 #  else
@@ -346,16 +346,16 @@ static uart_dev_t g_uart3port =
 #    undef TTYS2_DEV                  /* No /dev/ttyS2 */
 #  endif
 
-# elif !defined(CONFIG_UART2_DISABLE)
+# elif defined(CONFIG_IMX_UART2)
 #  define TTYS0_DEV       g_uart2port /* UART2 is /dev/ttyS0 */
 #  undef  TTYS2_DEV                   /* No /dev/ttyS2 */
-#  if !defined(CONFIG_UART3_DISABLE)
+#  if defined(CONFIG_IMX_UART3)
 #    define TTYS1_DEV     g_uart2port /* UART2 is /dev/ttyS1 */
 #  else
 #    undef TTYS1_DEV                  /* No /dev/ttyS1 */
 #  endif
 
-# elif !defined(CONFIG_UART3_DISABLE)
+# elif defined(CONFIG_IMX_UART3)
 #  define TTYS0_DEV       g_uart3port /* UART3 is /dev/ttyS0 */
 #  undef  TTYS1_DEV                   /* No /dev/ttyS1 */
 #  undef  TTYS2_DEV                   /* No /dev/ttyS2 */
@@ -765,7 +765,7 @@ static inline struct uart_dev_s *up_mapirq(int irq)
 
   switch (irq)
     {
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_IMX_UART1
 #if defined(CONFIG_ARCH_CHIP_IMX1) || defined(CONFIG_ARCH_CHIP_IMXL)
       case IMX_IRQ_UART1RX:
       case IMX_IRQ_UART1TX:
@@ -776,7 +776,7 @@ static inline struct uart_dev_s *up_mapirq(int irq)
         break;
 #endif
 
-#ifndef CONFIG_UART2_DISABLE
+#ifdef CONFIG_IMX_UART2
 #if defined(CONFIG_ARCH_CHIP_IMX1) || defined(CONFIG_ARCH_CHIP_IMXL)
       case IMX_IRQ_UART2RX:
       case IMX_IRQ_UART2TX:
@@ -787,7 +787,7 @@ static inline struct uart_dev_s *up_mapirq(int irq)
         break;
 #endif
 
-#ifndef CONFIG_UART3_DISABLE
+#ifdef CONFIG_IMX_UART3
 #if defined(CONFIG_ARCH_CHIP_IMX1) || defined(CONFIG_ARCH_CHIP_IMXL)
       case IMX_IRQ_UART3RX:
       case IMX_IRQ_UART3TX:
@@ -1068,7 +1068,7 @@ void up_earlyserialinit(void)
 {
    /* Configure and disable the UART1 */
 
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_IMX_UART1
    up_serialout(&g_uart1priv, UART_UCR1, 0);
    up_serialout(&g_uart1priv, UART_UCR2, 0);
 
@@ -1082,7 +1082,7 @@ void up_earlyserialinit(void)
 
    /* Configure and disable the UART2 */
 
-#ifndef CONFIG_UART2_DISABLE
+#ifdef CONFIG_IMX_UART2
    up_serialout(&g_uart2priv, UART_UCR1, 0);
    up_serialout(&g_uart2priv, UART_UCR2, 0);
 
@@ -1098,7 +1098,7 @@ void up_earlyserialinit(void)
 
    /* Configure and disable the UART3 */
 
-#ifndef CONFIG_UART3_DISABLE
+#ifdef CONFIG_IMX_UART3
    up_serialout(&g_uart3priv, UART_UCR1, 0);
    up_serialout(&g_uart3priv, UART_UCR2, 0);
 

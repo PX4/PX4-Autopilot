@@ -59,7 +59,7 @@
  * not have serial ports but supports stdout through, say, an LCD.
  */
 
-#if defined(CONFIG_UART0_DISABLE) || defined(CONFIG_UART1_DISABLE)
+#if defined(CONFIG_EZ80_UART0) || defined(CONFIG_EZ80_UART1)
 #  define HAVE_SERIAL
 #else
 #  undef HAVE_SERIAL
@@ -67,10 +67,10 @@
 
 /* Is one of the serial ports a console? */
 
-#if defined(CONFIG_UART0_SERIAL_CONSOLE) && !defined(CONFIG_UART0_DISABLE)
+#if defined(CONFIG_UART0_SERIAL_CONSOLE) && defined(CONFIG_EZ80_UART0)
 #  define HAVE_SERIALCONSOLE 1
 #  undef CONFIG_UART1_SERIAL_CONSOLE
-#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && !defined(CONFIG_UART1_DISABLE)
+#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && defined(CONFIG_EZ80_UART1)
 #  define HAVE_SERIALCONSOLE 1
 #  undef CONFIG_UART0_SERIAL_CONSOLE
 #else
@@ -186,7 +186,7 @@ void up_lowuartinit(void)
 
   /* Configure pins for usage of UARTs (whether or not we have a console) */
 
-#ifndef CONFIG_UART0_DISABLE
+#ifdef CONFIG_EZ80_UART0
   /* Set Port D, pins 0 and 1 for their alternate function (Mode 7) to enable UART0 */
 
   regval  = inp(EZ80_PD_DDR);
@@ -202,7 +202,7 @@ void up_lowuartinit(void)
   outp(EZ80_PD_ALT2, regval);
 #endif
 
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_EZ80_UART1
   /* Set Port C, pins 0 and 1 for their alternate function (Mode 7) to enable UART1 */
 
   regval  = inp(EZ80_PC_DDR);

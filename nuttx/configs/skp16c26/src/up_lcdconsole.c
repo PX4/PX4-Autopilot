@@ -46,11 +46,11 @@
 
 /* Only use the LCD as a console if there are is no serial console */
 
-#if defined(CONFIG_UART0_SERIAL_CONSOLE) && !defined(CONFIG_UART0_DISABLE)
+#if defined(CONFIG_UART0_SERIAL_CONSOLE) && defined(CONFIG_M16C_UART0)
 #  define HAVE_SERIALCONSOLE 1
-#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && !defined(CONFIG_UART1_DISABLE)
+#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && defined(CONFIG_M16C_UART1)
 #  define HAVE_SERIALCONSOLE 1
-#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && !defined(CONFIG_UART2_DISABLE)
+#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && defined(CONFIG_M16C_UART2)
 #  define HAVE_SERIALCONSOLE 1
 #else
 #  undef HAVE_SERIALCONSOLE

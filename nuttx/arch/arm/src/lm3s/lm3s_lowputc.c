@@ -55,28 +55,26 @@
 /* Configuration **********************************************************/
 
 #if LM3S_NUARTS < 2
-#  undef  CONFIG_UART1_DISABLE
+#  undef  CONFIG_LM3S_UART1
 #  undef  CONFIG_UART1_SERIAL_CONSOLE
-#  define CONFIG_UART1_DISABLE 1
 #endif
 
 #if LM3S_NUARTS < 3
-#  undef  CONFIG_UART2_DISABLE
+#  undef  CONFIG_LM3S_UART2
 #  undef  CONFIG_UART2_SERIAL_CONSOLE
-#  define CONFIG_UART2_DISABLE 1
 #endif
 
 /* Is there a serial console? */
 
-#if defined(CONFIG_UART0_SERIAL_CONSOLE) && !defined(CONFIG_UART0_DISABLE)
+#if defined(CONFIG_UART0_SERIAL_CONSOLE) && defined(CONFIG_LM3S_UART0)
 #  undef CONFIG_UART1_SERIAL_CONSOLE
 #  undef CONFIG_UART2_SERIAL_CONSOLE
 #  define HAVE_CONSOLE 1
-#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && !defined(CONFIG_UART1_DISABLE)
+#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && defined(CONFIG_LM3S_UART1)
 #  undef CONFIG_UART0_SERIAL_CONSOLE
 #  undef CONFIG_UART2_SERIAL_CONSOLE
 #  define HAVE_CONSOLE 1
-#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && !defined(CONFIG_UART2_DISABLE)
+#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && defined(CONFIG_LM3S_UART2)
 #  undef CONFIG_UART0_SERIAL_CONSOLE
 #  undef CONFIG_UART1_SERIAL_CONSOLE
 #  define HAVE_CONSOLE 1
@@ -258,7 +256,7 @@ void up_lowsetup(void)
    * this pin configuration -- whether or not a serial console is selected.
    */
 
-#ifndef CONFIG_UART0_DISABLE
+#ifdef CONFIG_LM3S_UART0
   regval  = getreg32(LM3S_SYSCON_RCGC1);
   regval |= SYSCON_RCGC1_UART0;
   putreg32(regval, LM3S_SYSCON_RCGC1);
@@ -267,7 +265,7 @@ void up_lowsetup(void)
   lm3s_configgpio(GPIO_UART0_TX);
 #endif
 
-#ifndef CONFIG_UART1_DISABLE
+#ifdef CONFIG_LM3S_UART1
   regval  = getreg32(LM3S_SYSCON_RCGC1);
   regval |= SYSCON_RCGC1_UART1;
   putreg32(regval, LM3S_SYSCON_RCGC1);

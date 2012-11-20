@@ -63,7 +63,7 @@
  * not have serial ports but supports stdout through, say, an LCD.
  */
 
-#if defined(CONFIG_UART0_DISABLE) || defined(CONFIG_UART1_DISABLE) || defined(CONFIG_UART2_DISABLE)
+#if defined(CONFIG_M16C_UART0) || defined(CONFIG_M16C_UART1) || defined(CONFIG_M16C_UART2)
 #  define HAVE_SERIAL
 #else
 #  undef HAVE_SERIAL
@@ -71,15 +71,15 @@
 
 /* Is one of the serial ports a console? */
 
-#if defined(CONFIG_UART0_SERIAL_CONSOLE) && !defined(CONFIG_UART0_DISABLE)
+#if defined(CONFIG_UART0_SERIAL_CONSOLE) && defined(CONFIG_M16C_UART0)
 #  define HAVE_SERIALCONSOLE 1
 #  undef CONFIG_UART1_SERIAL_CONSOLE
 #  undef CONFIG_UART2_SERIAL_CONSOLE
-#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && !defined(CONFIG_UART1_DISABLE)
+#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && defined(CONFIG_M16C_UART1)
 #  define HAVE_SERIALCONSOLE 1
 #  undef CONFIG_UART0_SERIAL_CONSOLE
 #  undef CONFIG_UART2_SERIAL_CONSOLE
-#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && !defined(CONFIG_UART2_DISABLE)
+#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && defined(CONFIG_M16C_UART2)
 #  define HAVE_SERIALCONSOLE 1
 #  undef CONFIG_UART0_SERIAL_CONSOLE
 #  undef CONFIG_UART1_SERIAL_CONSOLE
