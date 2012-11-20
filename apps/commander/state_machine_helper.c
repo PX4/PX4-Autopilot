@@ -257,7 +257,9 @@ void state_machine_emergency_always_critical(int status_pub, struct vehicle_stat
 		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_GROUND_ERROR);
 
 	} else if (current_status->state_machine == SYSTEM_STATE_AUTO || current_status->state_machine == SYSTEM_STATE_MANUAL) {
-		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MISSION_ABORT);
+		
+		// DO NOT abort mission
+		//do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MISSION_ABORT);
 
 	} else {
 		fprintf(stderr, "[commander] Unknown system state: #%d\n", current_status->state_machine);
