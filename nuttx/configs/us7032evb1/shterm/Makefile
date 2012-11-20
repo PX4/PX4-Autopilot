@@ -47,6 +47,6 @@ $(BIN)$(EXEEXT): $(SRC)
 	install --mode 0755 $^ $@
  
 clean:
-	$(call DELFILE $(BIN)$(EXEEXT))
+	$(call DELFILE, $(BIN)$(EXEEXT))
 	$(call DELFILE..$(DELIM)bin$(DELIM)$(BIN)$(EXEEXT))
 	$(call CLEAN)

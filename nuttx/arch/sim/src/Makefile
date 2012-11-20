@@ -214,16 +214,16 @@ clean: cleanrel
 	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" clean ; \
 	fi
-	$(call DELFILE nuttx.rel)
-	$(call DELFILE libarch$(LIBEXT))
+	$(call DELFILE, nuttx.rel)
+	$(call DELFILE, libarch$(LIBEXT))
 	$(call CLEAN)
 
 distclean: clean
 	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" distclean ; \
 	fi
-	$(call DELFILE Make.dep)
-	$(call DELFILE .depend)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 	$(Q) rm -rf GNU
 
 -include Make.dep

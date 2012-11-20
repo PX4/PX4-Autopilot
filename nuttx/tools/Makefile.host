@@ -122,17 +122,17 @@ mkdeps: mkdeps$(HOSTEXEEXT)
 endif
 
 clean:
-	$(call DELFILE mkdeps)
-	$(call DELFILE mkdeps.exe)
-	$(call DELFILE mkconfig)
-	$(call DELFILE mkconfig.exe)
-	$(call DELFILE Make.dep)
-	$(call DELFILE mksyscall)
-	$(call DELFILE mksyscall.exe)
-	$(call DELFILE mkversion)
-	$(call DELFILE mkversion.exe)
-	$(call DELFILE bdf-converter)
-	$(call DELFILE  bdf-converter.exe)
+	$(call DELFILE, mkdeps)
+	$(call DELFILE, mkdeps.exe)
+	$(call DELFILE, mkconfig)
+	$(call DELFILE, mkconfig.exe)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, mksyscall)
+	$(call DELFILE, mksyscall.exe)
+	$(call DELFILE, mkversion)
+	$(call DELFILE, mkversion.exe)
+	$(call DELFILE, bdf-converter)
+	$(call DELFILE, bdf-converter.exe)
 ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) rm -rf *.dSYM
 endif

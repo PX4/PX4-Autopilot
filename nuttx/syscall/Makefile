@@ -95,20 +95,20 @@ $(MKSYSCALL):
 context: $(MKSYSCALL) .context
 
 clean:
-	$(call DELFILE $(BIN1))
-	$(call DELFILE $(BIN2))
+	$(call DELFILE, $(BIN1))
+	$(call DELFILE, $(BIN2))
 ifneq ($(OBJEXT),)
-	$(call DELFILE proxies$(DELIM)*$(OBJEXT))
-	$(call DELFILE stubs$(DELIM)*$(OBJEXT))
+	$(call DELFILE, proxies$(DELIM)*$(OBJEXT))
+	$(call DELFILE, stubs$(DELIM)*$(OBJEXT))
 endif
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE .context)
-	$(call DELFILE Make.dep)
-	$(call DELFILE .depend)
-	$(call DELFILE proxies$(DELIM)*.c)
-	$(call DELFILE stubs$(DELIM)*.c)
+	$(call DELFILE, .context)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
+	$(call DELFILE, proxies$(DELIM)*.c)
+	$(call DELFILE, stubs$(DELIM)*.c)
 
 -include Make.dep
 

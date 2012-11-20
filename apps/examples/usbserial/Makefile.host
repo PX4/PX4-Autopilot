@@ -60,5 +60,5 @@ $(BIN): $(SRC)
 	@$(HOSTCC) $(HOSTCFLAGS) $(DEFINES) $^ -o $@
 
 clean:
-	$(call DELFILE  $(BIN))
+	$(call DELFILE,  $(BIN))
 	$(call CLEAN)

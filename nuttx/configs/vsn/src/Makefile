@@ -100,11 +100,11 @@ context: .context
 depend: .depend
 
 clean:
-	$(call DELFILE libboard$(LIBEXT))
+	$(call DELFILE, libboard$(LIBEXT))
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE Make.dep)
-	$(call DELFILE .depend)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep

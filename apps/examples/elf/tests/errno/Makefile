@@ -51,7 +51,7 @@ $(BIN): $(OBJS)
 	$(Q) $(LD) $(LDELFFLAGS) -o $@ $^
 
 clean:
-	$(call DELFILE $(BIN))
+	$(call DELFILE, $(BIN))
 	$(call CLEAN)
 
 install:

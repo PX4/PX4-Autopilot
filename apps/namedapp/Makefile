@@ -96,15 +96,15 @@ context: .context
 depend: .depend
 
 clean:
-	$(call DELFILE .built)
+	$(call DELFILE, .built)
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE .context)
-	$(call DELFILE Make.dep)
-	$(call DELFILE .depend)
-	$(call DELFILE namedapp_list.h)
-	$(call DELFILE namedapp_proto.h)
+	$(call DELFILE, .context)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
+	$(call DELFILE, namedapp_list.h)
+	$(call DELFILE, namedapp_proto.h)
 
 -include Make.dep
 

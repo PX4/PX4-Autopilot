@@ -98,14 +98,14 @@ context: .context
 depend: .depend
 
 clean:
-	$(call DELFILE .built)
-	$(call DELFILE result.tif)
-	$(call DELFILE tmpfile1.dat)
-	$(call DELFILE tmpfile2.dat)
+	$(call DELFILE, .built)
+	$(call DELFILE, result.tif)
+	$(call DELFILE, tmpfile1.dat)
+	$(call DELFILE, tmpfile2.dat)
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE Make.dep)
-	$(call DELFILE .depend)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep

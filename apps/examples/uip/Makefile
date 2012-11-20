@@ -89,13 +89,13 @@ context:
 epend: .depend
 
 clean:
-	$(call DELFILE .built)
-	$(call DELFILE httpd_fsdata.c)
+	$(call DELFILE, .built)
+	$(call DELFILE, httpd_fsdata.c)
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE Make.dep)
-	$(call DELFILE .depend)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep
 

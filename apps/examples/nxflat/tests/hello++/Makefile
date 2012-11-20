@@ -163,16 +163,16 @@ $(BIN3): $(BIN3).r2
 #	$(LDNXFLAT) $(LDNXFLATFLAGS) -o $@ $^
 
 clean: 
-	$(call DELFILE $(BIN1))
-	$(call DELFILE $(BIN2))
-	$(call DELFILE $(BIN3))
-	$(call DELFILE $(BIN4))
-	$(call DELFILE $(R2SRC1))
-	$(call DELFILE $(R2SRC2))
-	$(call DELFILE $(R2SRC3))
-	$(call DELFILE $(R2SRC4))
-	$(call DELFILE *.r1)
-	$(call DELFILE *.r2)
+	$(call DELFILE, $(BIN1))
+	$(call DELFILE, $(BIN2))
+	$(call DELFILE, $(BIN3))
+	$(call DELFILE, $(BIN4))
+	$(call DELFILE, $(R2SRC1))
+	$(call DELFILE, $(R2SRC2))
+	$(call DELFILE, $(R2SRC3))
+	$(call DELFILE, $(R2SRC4))
+	$(call DELFILE, *.r1)
+	$(call DELFILE, *.r2)
 	$(call CLEAN)
 
 install: $(ALL_BIN)

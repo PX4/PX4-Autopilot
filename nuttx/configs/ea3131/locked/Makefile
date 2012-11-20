@@ -112,9 +112,9 @@ $(PASS1_SRCDIR)$(DELIM)locked.r: locked.r
 depend: .depend
 
 clean:
-	$(call DELFILE locked.r)
-	$(call DELFILE locked.map)
+	$(call DELFILE, locked.r)
+	$(call DELFILE, locked.map)
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE ld-locked.inc)
+	$(call DELFILE, ld-locked.inc)

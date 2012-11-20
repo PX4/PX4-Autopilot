@@ -181,9 +181,9 @@ $(GEN_CSRC) : $(DEPENDENCY)
 	$(Q) rm -f  $(GEN_TMP)
 
 clean:
-	$(call DELFILE *.i)
+	$(call DELFILE, *.i)
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE nxfonts_convert_*bpp.c)
-	$(call DELFILE nxfonts_bitmaps_*.c)
+	$(call DELFILE, nxfonts_convert_*bpp.c)
+	$(call DELFILE, nxfonts_bitmaps_*.c)

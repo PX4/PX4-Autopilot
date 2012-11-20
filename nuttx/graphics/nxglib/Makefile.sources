@@ -163,13 +163,13 @@ ifneq ($(NXGLIB_BITSPERPIXEL),)
 endif
 
 clean:
-	$(call DELFILE *.i)
+	$(call DELFILE, *.i)
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE nxglib_setpixel_*bpp.c)
-	$(call DELFILE nxglib_fillrectangle_*bpp.c)
-	$(call DELFILE nxglib_getrectangle_*bpp.c)
-	$(call DELFILE nxglib_filltrapezoid_*bpp.c)
-	$(call DELFILE nxglib_moverectangle_*bpp.c)
-	$(call DELFILE nxglib_copyrectangle_*bpp.c)
+	$(call DELFILE, nxglib_setpixel_*bpp.c)
+	$(call DELFILE, nxglib_fillrectangle_*bpp.c)
+	$(call DELFILE, nxglib_getrectangle_*bpp.c)
+	$(call DELFILE, nxglib_filltrapezoid_*bpp.c)
+	$(call DELFILE, nxglib_moverectangle_*bpp.c)
+	$(call DELFILE, nxglib_copyrectangle_*bpp.c)

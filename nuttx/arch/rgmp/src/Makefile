@@ -96,14 +96,14 @@ export_head:
 depend: .depend
 
 clean:
-	$(call DELFILE "$(TOPDIR)/arch/rgmp/src/x86/*.o")
-	$(call DELFILE "$(TOPDIR)/kernel.img")
-	$(call DELFILE nuttx.img)
-	$(call DELFILE libarch$(LIBEXT))
+	$(call DELFILE, "$(TOPDIR)/arch/rgmp/src/x86/*.o")
+	$(call DELFILE, "$(TOPDIR)/kernel.img")
+	$(call DELFILE, nuttx.img)
+	$(call DELFILE, libarch$(LIBEXT))
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE Make.dep)
-	$(call DELFILE .depend)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep

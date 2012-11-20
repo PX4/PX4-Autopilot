@@ -221,15 +221,15 @@ clean:
 	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR=$(TOPDIR) clean ; \
 	fi
-	$(call DELFILE libarch$(LIBEXT))
-	$(call DELFILE up_mem.h)
+	$(call DELFILE, libarch$(LIBEXT))
+	$(call DELFILE, up_mem.h)
 	$(call CLEAN)
 
 distclean: clean
 	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR=$(TOPDIR) distclean ; \
 	fi
-	$(call DELFILE Make.dep)
-	$(call DELFILE .depend)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep

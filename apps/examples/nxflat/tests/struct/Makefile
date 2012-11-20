@@ -72,10 +72,10 @@ $(BIN): $(BIN).r2
 	$(Q) $(LDNXFLAT) $(LDNXFLATFLAGS) -o $@ $^
 
 clean: 
-	$(call DELFILE $(BIN))
-	$(call DELFILE $(R2SRC))
-	$(call DELFILE *.r1)
-	$(call DELFILE *.r2)
+	$(call DELFILE, $(BIN))
+	$(call DELFILE, $(R2SRC))
+	$(call DELFILE, *.r1)
+	$(call DELFILE, *.r2)
 	$(call CLEAN)
 
 install:

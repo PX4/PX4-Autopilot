@@ -87,12 +87,12 @@ context:
 depend: .depend
 
 clean:
-	$(call DELFILE .built)
+	$(call DELFILE, .built)
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE Make.dep)
-	$(call DELFILE .depend)
-	$(call DELFILE host$(HOSTEXEEXT))
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
+	$(call DELFILE, host$(HOSTEXEEXT))
 
 -include Make.dep

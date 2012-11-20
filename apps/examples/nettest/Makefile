@@ -131,13 +131,13 @@ context: .context
 depend: .depend
 
 clean:
-	$(call DELFILE $(HOST_BIN))
-	$(call DELFILE .built)
+	$(call DELFILE, $(HOST_BIN))
+	$(call DELFILE, .built)
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE Make.dep)
-	$(call DELFILE .depend)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep
 

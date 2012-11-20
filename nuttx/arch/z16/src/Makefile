@@ -138,19 +138,19 @@ clean:
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" clean ; \
 	fi
 ifeq ($(COMPILER),zneocc.exe)
-	$(call DELFILE nuttx.linkcmd)
-	$(call DELFILE *.asm)
-	$(call DELFILE *.tmp)
-	$(call DELFILE *.map)
+	$(call DELFILE, nuttx.linkcmd)
+	$(call DELFILE, *.asm)
+	$(call DELFILE, *.tmp)
+	$(call DELFILE, *.map)
 endif
-	$(call DELFILE libarch$(LIBEXT))
+	$(call DELFILE, libarch$(LIBEXT))
 	$(call CLEAN)
 
 distclean: clean
 	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" distclean ; \
 	fi
-	$(call DELFILE Make.dep)
-	$(call DELFILE .depend)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep

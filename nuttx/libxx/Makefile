@@ -105,11 +105,11 @@ $(BIN):	$(OBJS)
 depend: .depend
 
 clean:
-	$(call DELFILE $(BIN))
+	$(call DELFILE, $(BIN))
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE Make.dep)
-	$(call DELFILE .depend)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep

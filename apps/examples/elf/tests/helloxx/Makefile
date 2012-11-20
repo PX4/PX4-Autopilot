@@ -105,10 +105,10 @@ endif
 #	$(Q) $(LD) $(LDELFFLAGS) -o $@ $^
 
 clean: 
-	$(call DELFILE $(BIN1))
-	$(call DELFILE $(BIN2))
-	$(call DELFILE $(BIN3))
-	$(call DELFILE $(BIN4))
+	$(call DELFILE, $(BIN1))
+	$(call DELFILE, $(BIN2))
+	$(call DELFILE, $(BIN3))
+	$(call DELFILE, $(BIN4))
 	$(call CLEAN)
 
 install: $(ALL_BIN)

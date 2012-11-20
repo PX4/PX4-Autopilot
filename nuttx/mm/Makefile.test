@@ -63,6 +63,6 @@ $(BIN):	$(OBJS)
 	$(Q) $(LD) $(LDFLAGS) $(OBJS) $(LIBS) -o $@
 
 clean:
-	$(call DELFILE $(BIN))
-	$(call DELFILE *.o1)
+	$(call DELFILE, $(BIN))
+	$(call DELFILE, *.o1)
 	$(call CLEAN)

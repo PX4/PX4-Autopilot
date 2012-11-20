@@ -98,8 +98,8 @@ $(SYMTAB): build
 
 clean: $(foreach DIR, $(SUBDIRS), $(DIR)_clean)
 	$(call DELFILE$(ROMFS_HDR))
-	$(call DELFILE $(ROMFS_IMG))
-	$(call DELFILE $(SYMTAB))
+	$(call DELFILE, $(ROMFS_IMG))
+	$(call DELFILE, $(SYMTAB))
 	@rm -rf $(ROMFS_DIR)
 	$(call CLEAN)
 

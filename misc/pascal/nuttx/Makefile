@@ -123,12 +123,12 @@ context: $(APPDIR)$(DELIM)include$(DELIM)pcode $(APPDIR)$(DELIM)include$(DELIM)p
 depend: .depend
 
 clean:
-	$(call DELFILE .built)
+	$(call DELFILE, .built)
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE Make.dep)
-	$(call DELFILE .depend)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 	@$(DIRUNLINK) $(APPDIR)$(DELIM)include$(DELIM)pcode$(DELIM)insn
 	@$(DIRUNLINK) $(APPDIR)$(DELIM)include$(DELIM)pcode
 

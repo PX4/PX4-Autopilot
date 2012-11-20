@@ -71,8 +71,8 @@ $(BIN): headers $(OBJS)
 	$(HOSTCC) $(HOSTLDFLAGS) $(OBJS) -o $@
 
 clean:
-	$(call DELFILE $(BIN).*)
-	$(call DELFILE *.o1)
+	$(call DELFILE, $(BIN).*)
+	$(call DELFILE, *.o1)
 	$(call CLEAN)
 	@rm -rf include
 
