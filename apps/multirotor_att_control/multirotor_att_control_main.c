@@ -155,6 +155,9 @@ mc_thread_main(int argc, char *argv[])
 	/* store if yaw position or yaw speed has been changed */
 	bool control_yaw_position = true;
 
+	/* store if we stopped a yaw movement */
+	bool first_time_after_yaw_speed_control = true;
+
 	/* prepare the handle for the failsafe throttle */
 	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
 	float failsafe_throttle = 0.0f;
@@ -249,7 +252,7 @@ mc_thread_main(int argc, char *argv[])
 						if (state.flag_control_attitude_enabled != flag_control_attitude_enabled ||
 					 	    state.flag_control_manual_enabled != flag_control_manual_enabled ||
 					 	    state.flag_system_armed != flag_system_armed) {
-							att_sp.yaw_body = att.yaw;
+							att_sp.yaw_tait_bryan = att.yaw;
 						}
 
 						static bool rc_loss_first_time = true;
@@ -294,16 +297,19 @@ mc_thread_main(int argc, char *argv[])
 								if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
 									rates_sp.yaw = manual.yaw;
 									control_yaw_position = false;
+									first_time_after_yaw_speed_control = true;
 								} else {
-									att_sp.yaw_body = 0.0f;
+									rates_sp.yaw = 0.0f;
+									if(first_time_after_yaw_speed_control) {
+										att_sp.yaw_tait_bryan = att.yaw;
+										first_time_after_yaw_speed_control = false;
+									}
 									control_yaw_position = true;
 								}
 							}
 
 							att_sp.thrust = manual.throttle;
 							att_sp.timestamp = hrt_absolute_time();
-
-							//rates_sp.yaw = manual.yaw;
 						}
 					}
 					/* STEP 2: publish the result to the vehicle actuators */

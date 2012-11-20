@@ -181,6 +181,8 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 	static bool initialized = false;
 
+	static float yaw_error;
+
 	/* initialize the pid controllers when the function is called for the first time */
 	if (initialized == false) {
 		parameters_init(&h);
@@ -218,7 +220,15 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 
 	if(control_yaw_position) {
 		/* control yaw rate */
-		rates_sp->yaw = p.yaw_p * atan2f(cosf(att->yaw - att_sp->yaw_body), sinf(att->yaw - att_sp->yaw_body)) - (p.yaw_d * att->yawspeed);
+		//rates_sp->yaw = p.yaw_p * atan2f(cosf(att->yaw - att_sp->yaw_tait_bryan), sinf(att->yaw - att_sp->yaw_tait_bryan)) - (p.yaw_d * att->yawspeed);
+		yaw_error = att->yaw - att_sp->yaw_tait_bryan;
+		if ((double)yaw_error > M_PI) {
+			yaw_error -= M_PI;
+		} else if ((double)yaw_error < -M_PI) {
+			yaw_error += M_PI;
+		}
+
+		rates_sp->yaw = - p.yaw_p * (yaw_error) - (p.yaw_d * att->yawspeed);
 	}
 	rates_sp->thrust = att_sp->thrust;
 

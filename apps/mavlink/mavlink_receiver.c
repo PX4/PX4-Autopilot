@@ -335,6 +335,11 @@ handle_message(mavlink_message_t *msg)
 			struct manual_control_setpoint_s mc;
 			static orb_advert_t mc_pub = 0;
 
+			int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+
+			/* get a copy first, to prevent altering values that are not sent by the mavlink command */
+			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &mc);
+
 			mc.timestamp = rc_hil.timestamp;
 			mc.roll = man.x / 1000.0f;
 			mc.pitch = man.y / 1000.0f;
