@@ -35,6 +35,8 @@
 # Graupner HoTT Telemetry application.
 #
 
+INCLUDES	 = $(TOPDIR)/arch/arm/src/stm32 $(TOPDIR)/arch/arm/src/common
+
 APPNAME		 = hott_telemetry
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
 STACKSIZE	 = 2048
