@@ -344,12 +344,16 @@ mknulldeps.sh
   that mixed environment.
 
 define.sh
+define.bat
 ---------
 
   Different compilers have different conventions for specifying pre-
   processor definitions on the compiler command line.  This bash
   script allows the build system to create create command line definitions
   without concern for the particular compiler in use.
+
+  The define.bat script is a counterpart for use in the native Windows
+  build.
 
 incdir.sh
 incdir.bat
@@ -361,7 +365,7 @@ incdir.bat
   concern for the particular compiler in use.
 
   The incdir.bat script is a counterpart for use in the native Windows
-  build.  However, their is currently only one compiler supported in
+  build.  However, there is currently only one compiler supported in
   that context:  MinGW-GCC.
 
 link.sh

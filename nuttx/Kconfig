@@ -67,7 +67,7 @@ endchoice
 
 config WINDOWS_MKLINK
 	bool "Use mklink"
-	default y
+	default n
 	depends on WINDOWS_NATIVE
 	---help---
 		Use the mklink command to set up symbolic links when NuttX is

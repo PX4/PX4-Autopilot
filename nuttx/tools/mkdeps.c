@@ -314,18 +314,18 @@ static void parse_args(int argc, char **argv)
   if (g_debug)
     {
       fprintf(stderr, "SELECTIONS\n");
-      fprintf(stderr, "  CC             : \"%s\"\n", g_cc ? g_cc : "(None)");
-      fprintf(stderr, "  CFLAGS         : \"%s\"\n", g_cflags ? g_cflags : "(None)");
-      fprintf(stderr, "  FILES          : \"%s\"\n", g_files ? g_files : "(None)");
-      fprintf(stderr, "  PATHS          : \"%s\"\n", g_altpath ? g_altpath : "(None)");
+      fprintf(stderr, "  CC             : [%s]\n", g_cc ? g_cc : "(None)");
+      fprintf(stderr, "  CFLAGS         : [%s]\n", g_cflags ? g_cflags : "(None)");
+      fprintf(stderr, "  FILES          : [%s]\n", g_files ? g_files : "(None)");
+      fprintf(stderr, "  PATHS          : [%s]\n", g_altpath ? g_altpath : "(None)");
 #ifdef HAVE_WINPATH
-      fprintf(stderr, "  Windows Paths  : \"%s\"\n", g_winpath ? "TRUE" : "FALSE");
+      fprintf(stderr, "  Windows Paths  : [%s]\n", g_winpath ? "TRUE" : "FALSE");
       if (g_winpath)
         {
-          fprintf(stderr, "  TOPDIR         : \"%s\"\n", g_topdir);
+          fprintf(stderr, "  TOPDIR         : [%s]\n", g_topdir);
         }
 #endif
-      fprintf(stderr, "  Windows Native : \"%s\"\n", g_winnative ? "TRUE" : "FALSE");
+      fprintf(stderr, "  Windows Native : [%s]\n", g_winnative ? "TRUE" : "FALSE");
     }
 
   /* Check for required paramters */

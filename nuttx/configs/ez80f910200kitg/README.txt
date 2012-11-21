@@ -83,13 +83,28 @@ available:
     This builds the examples/ostest application for execution from FLASH.
     See examples/README.txt for information about ostest.
 
-    This configuration uses the mconf-based configuration tool.  To
-    change this configuration using that tool, you should:
+    NOTES:
 
-    a. Build and install the mconf tool.  See nuttx/README.txt and
-       misc/tools/
+    1. This configuration uses the mconf-based configuration tool.  To
+       change this configuration using that tool, you should:
 
-    b. Execute 'make menuconfig' in nuttx/ in order to start the
-       reconfiguration process.
+       a. Build and install the mconf tool.  See nuttx/README.txt and
+          misc/tools/
+
+       b. Execute 'make menuconfig' in nuttx/ in order to start the
+          reconfiguration process.
+
+    2. By default, this configuration assumes that you are using the
+       Cygwin environment on Windows.  An option is to use the native
+       CMD.exe window build as described in the top-level README.txt
+       file.  To set up that configuration:
+
+       -CONFIG_WINDOWS_CYGWIN=y
+       +CONFIG_WINDOWS_NATIVE=y
+
+       And after configuring, make sure that CONFIG_APPS_DIR uses
+       the back slash character.  For example:
+
+        CONFIG_APPS_DIR="..\apps"
 
 Check out any README.txt files in these <sub-directory>s.

@@ -1,6 +1,6 @@
 @echo off
 
-rem configs/stm32f4discovery/winbuild/setenv.bat
+rem configs/ez80f810200kitg/ostest/setenv.bat
 rem
 rem   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 rem   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -32,9 +32,6 @@ rem LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 rem ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 rem POSSIBILITY OF SUCH DAMAGE.
 
-rem This script is not needed for setting the path because the full path
-rem to the ZDI-II tools are used in Make.defs.
-
 rem This is the location where I installed in the MinGW compiler. With
 rem this configuration, it is recommended that you do NOT install the
 rem MSYS tools; they conflict with the GNUWin32 tools.  See
@@ -42,7 +39,12 @@ rem http://www.mingw.org/ for further info.
 
 set PATH=C:\MinGW\bin;%PATH%
 
+rem This is the location where I installed the ZDS-II toolchain.
+
+set PATH=C:\Program Files (x86)\ZiLOG\ZDSII_eZ80Acclaim!_5.1.1\bin;%PATH%
+
 rem This is the location where I installed the GNUWin32 tools.  See
 rem http://gnuwin32.sourceforge.net/.
 
 set PATH=C:\gnuwin32\bin;%PATH%
+echo %PATH%

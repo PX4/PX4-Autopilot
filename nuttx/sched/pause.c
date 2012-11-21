@@ -86,7 +86,7 @@
  *   suspend the calling thread until delivery of a signal whose action is
  *   either to execute a signal-catching function or to terminate the
  *   process.  This implementation only waits for any non-blocked signal
- *   to be recieved.
+ *   to be received.
  *
  ****************************************************************************/
 
@@ -96,7 +96,7 @@ int pause(void)
   struct siginfo value;
  
   /* Set up for the sleep.  Using the empty set means that we are not
-   * waiting for any particualar signal.  However, any unmasked signal
+   * waiting for any particular signal.  However, any unmasked signal
    * can still awaken sigtimedwait().
    */
 
