@@ -33,7 +33,7 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config	# Current configuration
+-include $(TOPDIR)/.config
 
 # Sub-directories containing interpreter runtime
 
@@ -41,9 +41,15 @@ SUBDIRS = pcode ficl
 
 # Create the list of installed runtime modules (INSTALLED_DIRS)
 
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+define ADD_DIRECTORY
+INSTALLED_DIRS  += ${shell if exist $1\Makefile (echo $1)}
+endef
+else
 define ADD_DIRECTORY
 INSTALLED_DIRS  += ${shell if [ -r $1/Makefile ]; then echo "$1"; fi}
 endef
+endif
 
 $(foreach DIR, $(SUBDIRS), $(eval $(call ADD_DIRECTORY,$(DIR))))
 

@@ -1,5 +1,5 @@
 ############################################################################
-# arch/z16/src/Makefile
+# arch/z80/src/Makefile.zdsii
 #
 #   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,13 +33,15 @@
 #
 ############################################################################
 
+-include $(TOPDIR)\Make.defs
+
 ############################################################################
 # Tools
 SCHEDSRCDIR = $(TOPDIR)$(DELIM)sched
 ARCHSRCDIR = $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  USRINCLUDES = -usrinc:'.;$(SCHEDSRCDIR);$(ARCHSRCDIR);$(ARCHSRCDIR)\common'
+  USRINCLUDES = -usrinc:".;$(SCHEDSRCDIR);$(ARCHSRCDIR);$(ARCHSRCDIR)\common"
 else
   WSCHEDSRCDIR = ${shell cygpath -w $(SCHEDSRCDIR)}
   WARCHSRCDIR = ${shell cygpath -w $(ARCHSRCDIR)}
@@ -102,32 +104,30 @@ board$(DELIM)libboard$(LIBEXT):
 nuttx.linkcmd: $(LINKCMDTEMPLATE)
 	$(Q) cp -f $(LINKCMDTEMPLATE) nuttx.linkcmd
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-	@echo "\"$(TOPDIR)/nuttx\"= \\" >>nuttx.linkcmd
-	@echo "  \"$(ARCHSRCDIR)/$(HEAD_OBJ)\", \\" >>nuttx.linkcmd
-	$(Q) ( for lib in $(LINKLIBS); do \
-		echo "  \"$(TOPDIR)/lib/$${lib}\", \\" >>nuttx.linkcmd; \
-	done ; )
-	@echo "  \"$(ARCHSRCDIR)/board/libboard$(LIBEXT)\", \\"  >>nuttx.linkcmd
+	@echo "$(TOPDIR)\nuttx"= \>>nuttx.linkcmd
+	@echo   "$(ARCHSRCDIR)\$(HEAD_OBJ)", \>>nuttx.linkcmd
+	$(Q) for %%G in ($(LINKLIBS)) do ( echo   "$(TOPDIR)\lib\%%G", \>>nuttx.linkcmd; )
+	@echo   "$(ARCHSRCDIR)\board\libboard$(LIBEXT)", \>>nuttx.linkcmd
 ifeq ($(CONFIG_ARCH_CHIP_Z8F640X),y)
-	@echo "  \"$(ZDSSTDLIBDIR)/chelprevaaD$(LIBEXT)\", \\"  >>nuttx.linkcmd
-	@echo "  \"$(ZDSSTDLIBDIR)/crtrevaaLDD$(LIBEXT)\", \\"  >>nuttx.linkcmd
-	@echo "  \"$(ZDSSTDLIBDIR)/fprevaaLDD$(LIBEXT)\", \\"  >>nuttx.linkcmd
-	@echo "  \"$(ZDSZILOGLIBDIR)/csiorevaaLDD$(LIBEXT)\", \\"  >>nuttx.linkcmd
-	@echo "  \"$(ZDSZILOGLIBDIR)/zsldevinitdummy$(LIBEXT)\""  >>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\chelprevaaD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\crtrevaaLDD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\fprevaaLDD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSZILOGLIBDIR)\csiorevaaLDD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSZILOGLIBDIR)\zsldevinitdummy$(LIBEXT)">>nuttx.linkcmd
 endif
 ifeq ($(CONFIG_ARCH_CHIP_Z8F642X),y)
-	@echo "  \"$(ZDSSTDLIBDIR)/chelpD$(LIBEXT)\", \\"  >>nuttx.linkcmd
-	@echo "  \"$(ZDSSTDLIBDIR)/crtLDD$(LIBEXT)\", \\"  >>nuttx.linkcmd
-	@echo "  \"$(ZDSSTDLIBDIR)/fpdumyLD$(LIBEXT)\", \\"  >>nuttx.linkcmd
-	@echo "  \"$(ZDSZILOGLIBDIR)/csioLDD$(LIBEXT)\", \\"  >>nuttx.linkcmd
-	@echo "  \"$(ZDSZILOGLIBDIR)/zsldevinitdummy$(LIBEXT)\""  >>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\chelpD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\crtLDD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\fpdumyLD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSZILOGLIBDIR)\csioLDD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSZILOGLIBDIR)\zsldevinitdummy$(LIBEXT)">>nuttx.linkcmd
 endif
 ifeq ($(CONFIG_ARCH_CHIP_EZ80F91),y)
-	@echo "  \"$(ZDSSTDLIBDIR)/chelp$(LIBEXT)\", \\"  >>nuttx.linkcmd
-	@echo "  \"$(ZDSSTDLIBDIR)/crt$(LIBEXT)\", \\"  >>nuttx.linkcmd
-	@echo "  \"$(ZDSSTDLIBDIR)/fplib$(LIBEXT)\", \\"  >>nuttx.linkcmd
-	@echo "  \"$(ZDSZILOGLIBDIR)/gpio$(LIBEXT)\", \\"  >>nuttx.linkcmd
-	@echo "  \"$(ZDSZILOGLIBDIR)/uartf91$(LIBEXT)\""  >>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\chelp$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\crt$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\fplib$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSZILOGLIBDIR)\gpio$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSZILOGLIBDIR)\uartf91$(LIBEXT)">>nuttx.linkcmd
 endif
 else
 	@echo "\"${shell cygpath -w "$(TOPDIR)/nuttx\"= \\" >>nuttx.linkcmd
@@ -193,9 +193,13 @@ endif
 depend: .depend
 
 clean:
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) if exist board$(DELIM)Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" clean )
+else
 	$(Q) if [ -e board$(DELIM)Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" clean ; \
 	fi
+endif
 	$(call DELFILE, nuttx.linkcmd)
 	$(call DELFILE, *.asm)
 	$(call DELFILE, *.tmp)
@@ -204,9 +208,13 @@ clean:
 	$(call CLEAN)
 
 distclean: clean
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) if exist board$(DELIM)Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" distclean )
+else
 	$(Q) if [ -e board$(DELIM)Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" distclean ; \
 	fi
+endif
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
 

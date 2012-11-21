@@ -39,30 +39,25 @@ include ${TOPDIR}/tools/Config.mk
 # These are the directories where the ZDS-II toolchain is installed
 
 ZDSVERSION := 5.1.1
-ZDSINSTALLDIR := C:/Program Files (x86)/ZiLOG/ZDSII_eZ80Acclaim!_$(ZDSVERSION)
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  ZDSBINDIR := $(ZDSINSTALLDIR)\bin
-  ZDSSTDINCDIR := $(ZDSINSTALLDIR)\include\std
-  ZDSZILOGINCDIR := $(ZDSINSTALLDIR)\include\zilog
-  ZDSSTDLIBDIR := $(ZDSINSTALLDIR)\lib\std
-  ZDSZILOGLIBDIR := $(ZDSINSTALLDIR)\lib\zilog
-
-  # Escaped versions
-
-  # ETOPDIR := ${shell echo "$(TOPDIR)" | sed -e "s/ /%%%%20/g"}
-  # EZDSSTDINCDIR := ${shell echo "$(ZDSSTDINCDIR)" | sed -e "s/ /%%%%20/g"}
-  # EZDSZILOGINCDIR := ${shell echo "$(ZDSZILOGINCDIR)" | sed -e "s/ /%%%%20/g"}
+  ZDSINSTALLDIR := C:/PROGRA~2/ZiLOG/ZDSII_eZ80Acclaim!_$(ZDSVERSION)
+  INSTALLDIR = ${shell echo $(ZDSINSTALLDIR)| sed -e "s/\//\\/g"}
+  ZDSBINDIR := $(INSTALLDIR)\bin
+  ZDSSTDINCDIR := $(INSTALLDIR)\include\std
+  ZDSZILOGINCDIR := $(INSTALLDIR)\include\zilog
+  ZDSSTDLIBDIR := $(INSTALLDIR)\lib\std
+  ZDSZILOGLIBDIR := $(INSTALLDIR)\lib\zilog
 
   # CFLAGs
 
   ARCHASMINCLUDES = -include:'$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)'
-  # EARCHASMINCLUDES = -include:'$(ETOPDIR)\include;$(EZDSSTDINCDIR);$(EZDSZILOGINCDIR)'
   EARCHASMINCLUDES = -include:'$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)'
-  ARCHSTDINCLUDES = -stdinc:'$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)'
-  ARCHUSRINCLUDES = -usrinc:'.'
+  ARCHSTDINCLUDES = -stdinc:"$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)"
+  ARCHUSRINCLUDES = -usrinc:.
 else
   WINTOOL := y
+  ZDSINSTALLDIR := C:/Program Files (x86)/ZiLOG/ZDSII_eZ80Acclaim!_$(ZDSVERSION)
   INSTALLDIR = ${shell cygpath -u "$(ZDSINSTALLDIR)"}
   ZDSBINDIR := $(INSTALLDIR)/bin
   ZDSSTDINCDIR := $(INSTALLDIR)/include/std
@@ -96,9 +91,9 @@ endif
 # Assembler definitions
 
 ifeq ($(CONFIG_ARCH_CHIP_EZ80F91),y)
-ARCHCPU = eZ80F91
-ARCHCPUDEF = _EZ80F91
-ARCHFAMILY = _EZ80ACCLAIM!
+  ARCHCPU = eZ80F91
+  ARCHCPUDEF = _EZ80F91
+  ARCHFAMILY = _EZ80ACCLAIM!
 endif
 
 ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
@@ -111,8 +106,7 @@ ARCHASMCPUFLAGS = -cpu:$(ARCHCPU) -NOigcase
 ARCHASMLIST = -list -NOlistmac -name -pagelen:56 -pagewidth:80 -quiet
 ARCHASMWARNINGS = -warn
 ARCHASMDEFINES = -define:$(ARCHCPUDEF)=1 -define:$(ARCHFAMILYDEF)=1 -define:__ASSEMBLY__
-AFLAGS = $(ARCHASMCPUFLAGS) $(ARCHASMINCLUDES) $(ARCHASMLIST) \
-		 $(ARCHASMWARNINGS) $(ARCHASMOPTIMIZATION)
+AFLAGS = $(ARCHASMCPUFLAGS) $(ARCHASMINCLUDES) $(ARCHASMLIST) $(ARCHASMWARNINGS) $(ARCHASMOPTIMIZATION)
 
 # Compiler definitions
 

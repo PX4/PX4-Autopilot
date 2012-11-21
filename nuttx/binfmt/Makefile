@@ -38,7 +38,7 @@
 ifeq ($(WINTOOL),y)
 INCDIROPT		= -w
 endif
-CFLAGS			+= ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)/sched}
+CFLAGS			+= ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)sched}
 
 # Basic BINFMT source files 
 
@@ -58,8 +58,8 @@ VPATH			=
 SUBDIRS			=
 DEPPATH			= --dep-path .
 
-include libnxflat/Make.defs
-include libelf/Make.defs
+include libnxflat$(DELIM)Make.defs
+include libelf$(DELIM)Make.defs
 
 BINFMT_AOBJS	= $(BINFMT_ASRCS:.S=$(OBJEXT))
 BINFMT_COBJS	= $(BINFMT_CSRCS:.c=$(OBJEXT))
