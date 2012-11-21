@@ -88,34 +88,6 @@ config ARCH_FAMILY_LPC4357
 	default y if ARCH_CHIP_LPC4357FET180 || ARCH_CHIP_LPC4357FBD208 || ARCH_CHIP_LPC4357FET256
 
 choice
-	prompt "Toolchain Selection"
-	default LPC43_CODEREDW
-	depends on ARCH_CHIP_LPC43XX
-
-config LPC43_CODEREDW
-	bool "CodeRed for Windows"
-
-config LPC43_CODESOURCERYW
-	bool "CodeSourcery for Windows"
-
-config LPC43_CODESOURCERYL
-	bool "CodeSourcery for Linux"
-
-config LPC43_ATOLLIC_LITE
-	bool "Atollic Lite for Windows"
-
-config LPC43_ATOLLIC_PRO
-	bool "Atollic Pro for Windows"
-
-config LPC43_DEVKITARM
-	bool "DevkitARM (Windows)"
-
-config LPC43_BUILDROOT
-	bool "NuttX buildroot (Cygwin or Linux)"
-
-endchoice
-
-choice
 	prompt "LPC43XX Boot Configuration"
 	default BOOT_SRAM
 	depends on ARCH_CHIP_LPC43XX

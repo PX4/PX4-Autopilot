@@ -35,37 +35,7 @@
 
 include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
-
-# Setup for the selected toolchain
-
-ifeq ($(CONFIG_LPC17_CODESOURCERYW),y)
-  # CodeSourcery under Windows
-  CROSSDEV = arm-none-eabi-
-  WINTOOL = y
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-endif
-ifeq ($(CONFIG_LPC17_CODESOURCERYL),y)
-  # CodeSourcery under Linux
-  CROSSDEV = arm-none-eabi-
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-  MAXOPTIMIZATION = -O2
-endif
-ifeq ($(CONFIG_LPC17_DEVKITARM),y)
-  # devkitARM under Windows
-  CROSSDEV = arm-eabi-
-  WINTOOL = y
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-endif
-ifeq ($(CONFIG_LPC17_BUILDROOT),y)
-  # NuttX buildroot under Linux or Cygwin
-  # OABI
-  # CROSSDEV = arm-nuttx-elf-
-  # ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
-  # EABI
-  CROSSDEV = arm-nuttx-eabi-
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-  MAXOPTIMIZATION = -Os
-endif
+include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains

@@ -6,4 +6,45 @@
 if ARCH_MIPS32
 comment "MIPS32 Configuration Options"
 
+choice
+	prompt "Toolchain Selection"
+	default MIPS32_TOOLCHAIN_MICROCHIPW_LITE if HOST_WINDOWS
+	default MIPS32_TOOLCHAIN_GNU_ELF if !HOST_WINDOWS
+
+config MIPS32_TOOLCHAIN_GNU_ELF
+	bool "Generic GNU ELF toolchain"
+	---help---
+		This option should work for any modern GNU toolchain (GCC 4.5 or newer)
+		configured for mips32-elf.
+
+config MIPS32_TOOLCHAIN_MICROCHIPL
+	bool "Microchip C32 toolchain under Linux"
+	depends on HOST_LINUX
+
+config MIPS32_TOOLCHAIN_MICROCHIPL_LITE
+	bool "Microchip C32 toolchain under Linux (Lite edition)"
+	depends on HOST_LINUX
+
+config MIPS32_TOOLCHAIN_MICROCHIPW
+	bool "Microchip C32 toolchain under Windows"
+	depends on HOST_WINDOWS
+
+config MIPS32_TOOLCHAIN_MICROCHIPW_LITE
+	bool "Microchip C32 toolchain under Windows (Lite edition)"
+	depends on HOST_WINDOWS
+
+config MIPS32_TOOLCHAIN_MICROCHIPOPENL
+	bool "microchipOpen toolchain under Linux"
+	depends on HOST_LINUX
+
+config MIPS32_TOOLCHAIN_PINGUINOW
+	bool "Pinguino mips-elf toolchain under Windows"
+	depends on HOST_WINDOWS
+
+config MIPS32_TOOLCHAIN_PINGUINOL
+	bool "Pinguino mips-elf toolchain under OS X or Linux"
+	depends on HOST_LINUX || HOST_OSX
+
+endchoice
+
 endif

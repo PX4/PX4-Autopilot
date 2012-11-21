@@ -253,6 +253,9 @@ config DEBUG_HARDFAULT
 		output is sometimes helpful when debugging difficult hard fault problems,
 		but may be more than you typcially want to see.
 
+if ARCH_CORTEXM3 || ARCH_CORTEXM4
+source arch/arm/src/armv7-m/Kconfig
+endif
 if ARCH_CHIP_C5471
 source arch/arm/src/c5471/Kconfig
 endif

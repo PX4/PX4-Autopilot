@@ -35,51 +35,12 @@
 
 include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
-
-# Setup for the selected toolchain
+include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
 
 ifeq ($(CONFIG_STM32_DFU),y)
   LDSCRIPT = ld.script.dfu
 else
   LDSCRIPT = ld.script
-endif
-
-ifeq ($(CONFIG_STM32_CODESOURCERYW),y)
-  # CodeSourcery under Windows
-  CROSSDEV = arm-none-eabi-
-  WINTOOL = y
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-  MAXOPTIMIZATION = -O1
-endif
-ifeq ($(CONFIG_STM32_CODESOURCERYL),y)
-  # CodeSourcery under Linux
-  CROSSDEV = arm-none-eabi-
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-  MAXOPTIMIZATION = -O1
-endif
-ifeq ($(CONFIG_STM32_DEVKITARM),y)
-  # devkitARM under Windows
-  CROSSDEV = arm-eabi-
-  WINTOOL = y
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-  MAXOPTIMIZATION = -O2
-endif
-ifeq ($(CONFIG_STM32_RAISONANCE),y)
-  # Raisonance RIDE7 under Windows
-  CROSSDEV = arm-none-eabi-
-  WINTOOL = y
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-  MAXOPTIMIZATION = -O2
-endif
-ifeq ($(CONFIG_STM32_BUILDROOT),y)
-  # NuttX buildroot under Linux or Cygwin
-  # OABI
-  # CROSSDEV = arm-nuttx-elf-
-  # ARCHCPUFLAGS = -mtune=cortex-m3 -march=armv7-m -mfloat-abi=soft
-  # EABI
-  CROSSDEV = arm-nuttx-eabi-
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-  MAXOPTIMIZATION = -Os
 endif
 
 ifeq ($(WINTOOL),y)
