@@ -162,7 +162,6 @@ handle_message(mavlink_message_t *msg)
 			orb_publish(ORB_ID(optical_flow), flow_pub, &f);
 		}
 
-		printf("GOT FLOW!\n");
 	}
 
 	if (msg->msgid == MAVLINK_MSG_ID_SET_MODE) {
