@@ -45,6 +45,13 @@ config ARCH_BOARD_C5471EVM
 		NuttX runs on the ARM core and is built with a GNU arm-nuttx-elf toolchain*.
 		This port is complete and verified.
 
+config ARCH_BOARD_CLOUDCTRL
+	bool "Darcy's CloudController stm32f10x board"
+	depends on ARCH_CHIP_STM32F107VC
+	---help---
+		Small network relay development board. Based on the Shenzhou IV development 
+		board design.
+
 config ARCH_BOARD_COMPALE88
 	bool "Compal e88 phone"
 	depends on ARCH_CHIP_CALYPSO

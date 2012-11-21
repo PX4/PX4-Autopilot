@@ -3652,5 +3652,11 @@
 	  match how they are enabled for other architectures.
 	* configs/ez80f910200kitg:  Convert to use mconf configuration.
 	* sched/pause.c:  Implements the POSIX pause() function.
-
+	* ez80: Lots of changes to ez80 configurations and build logic as I
+	  struggle to get a clean Windows build (still not working).
+	* tools/prebuild.py:  A Python script for Darcy Gong that can automate
+	  many build/configuration operations.
+	* configs/cloudctrl:   Darcy Gong's CloudController board.  This is a
+	  small network relay development board. Based on the Shenzhou IV development
+	  board design.  It is based on the STM32F107VC MCU.
 

@@ -1609,6 +1609,11 @@ configs/c5471evm
   NuttX runs on the ARM core and is built with a GNU arm-nuttx-elf toolchain*.
   This port is complete and verified.
 
+configs/cloudctrl
+  Darcy's CloudController board.  This is a small network relay development
+  board. Based on the Shenzhou IV development board design.  It is based on
+  the STM32F107VC MCU.
+
 configs/compal_e88 and compal_e99
   These directories contain the board support for compal e88 and e99 phones.
   These ports are based on patches contributed by Denis Carikli for both the
