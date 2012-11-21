@@ -209,6 +209,11 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	/* control yaw rate */
 	float yaw_rate_control = p.yawrate_p * (rate_sp->yaw - rates[2]);
+	/* increase resilience to faulty control inputs */
+	if (!isfinite(yaw_rate_control)) {
+		yaw_rate_control = 0.0f;
+		warnx("rej. NaN ctrl yaw");
+	}
 
 	actuators->control[0] = roll_control;
 	actuators->control[1] = pitch_control;

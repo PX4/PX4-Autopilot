@@ -48,13 +48,6 @@
  * @{
  */
 
-/**
- * Defines how RC channels map to control inputs.
- *
- * The default mode on quadrotors and fixed wing is
- * roll and pitch position of the right stick and
- * throttle and yaw rate on the left stick
- */
 enum MANUAL_CONTROL_MODE
 {
 	MANUAL_CONTROL_MODE_DIRECT = 0,

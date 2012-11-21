@@ -113,6 +113,7 @@ static void	l_actuator_armed(struct listener *l);
 static void	l_manual_control_setpoint(struct listener *l);
 static void	l_vehicle_attitude_controls(struct listener *l);
 static void	l_debug_key_value(struct listener *l);
+static void	l_optical_flow(struct listener *l);
 
 struct listener listeners[] = {
 	{l_sensor_combined,		&mavlink_subs.sensor_sub,	0},
@@ -134,6 +135,7 @@ struct listener listeners[] = {
 	{l_manual_control_setpoint,	&mavlink_subs.man_control_sp_sub, 0},
 	{l_vehicle_attitude_controls,	&mavlink_subs.actuators_sub,	0},
 	{l_debug_key_value,		&mavlink_subs.debug_key_value,	0},
+	{l_optical_flow,		&mavlink_subs.optical_flow,	0},
 };
 
 static const unsigned n_listeners = sizeof(listeners) / sizeof(listeners[0]);
@@ -586,6 +588,17 @@ l_debug_key_value(struct listener *l)
 					   debug.value);
 }
 
+void
+l_optical_flow(struct listener *l)
+{
+	struct optical_flow_s flow;
+
+	orb_copy(ORB_ID(optical_flow), mavlink_subs.optical_flow, &flow);
+
+	mavlink_msg_optical_flow_send(MAVLINK_COMM_0, flow.timestamp, flow.sensor_id, flow.flow_raw_x, flow.flow_raw_y,
+		flow.flow_comp_x_m, flow.flow_comp_y_m, flow.quality, flow.ground_distance_m);
+}
+
 static void *
 uorb_receive_thread(void *arg)
 {
@@ -709,6 +722,10 @@ uorb_receive_start(void)
 	/* --- DEBUG VALUE OUTPUT --- */
 	mavlink_subs.debug_key_value = orb_subscribe(ORB_ID(debug_key_value));
 	orb_set_interval(mavlink_subs.debug_key_value, 100);	/* 10Hz updates */
+
+	/* --- FLOW SENSOR --- */
+	mavlink_subs.optical_flow = orb_subscribe(ORB_ID(optical_flow));
+	orb_set_interval(mavlink_subs.optical_flow, 200); 	/* 5Hz updates */
 
 	/* start the listener loop */
 	pthread_attr_t uorb_attr;

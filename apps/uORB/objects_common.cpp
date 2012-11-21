@@ -95,6 +95,9 @@ ORB_DEFINE(vehicle_local_position_setpoint, struct vehicle_local_position_setpoi
 #include "topics/vehicle_global_position_setpoint.h"
 ORB_DEFINE(vehicle_global_position_setpoint, struct vehicle_global_position_setpoint_s);
 
+#include "topics/vehicle_global_position_set_triplet.h"
+ORB_DEFINE(vehicle_global_position_set_triplet, struct vehicle_global_position_set_triplet_s);
+
 #include "topics/vehicle_attitude_setpoint.h"
 ORB_DEFINE(vehicle_attitude_setpoint, struct vehicle_attitude_setpoint_s);
 
@@ -110,12 +113,20 @@ ORB_DEFINE(optical_flow, struct optical_flow_s);
 #include "topics/subsystem_info.h"
 ORB_DEFINE(subsystem_info, struct subsystem_info_s);
 
+/* actuator controls, as requested by controller */
 #include "topics/actuator_controls.h"
 ORB_DEFINE(actuator_controls_0, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_1, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_2, struct actuator_controls_s);
 ORB_DEFINE(actuator_controls_3, struct actuator_controls_s);
 ORB_DEFINE(actuator_armed, struct actuator_armed_s);
+
+/* actuator controls, as set by actuators / mixers after limiting */
+#include "topics/actuator_controls_effective.h"
+ORB_DEFINE(actuator_controls_effective_0, struct actuator_controls_effective_s);
+ORB_DEFINE(actuator_controls_effective_1, struct actuator_controls_effective_s);
+ORB_DEFINE(actuator_controls_effective_2, struct actuator_controls_effective_s);
+ORB_DEFINE(actuator_controls_effective_3, struct actuator_controls_effective_s);
 
 #include "topics/actuator_outputs.h"
 ORB_DEFINE(actuator_outputs_0, struct actuator_outputs_s);

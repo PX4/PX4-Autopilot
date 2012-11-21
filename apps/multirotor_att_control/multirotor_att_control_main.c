@@ -105,6 +105,7 @@ mc_thread_main(int argc, char *argv[])
 	memset(&rates_sp, 0, sizeof(rates_sp));
 
 	struct actuator_controls_s actuators;
+	memset(&actuators, 0, sizeof(actuators));
 
 	/* subscribe to attitude, motor setpoints and system state */
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -151,9 +152,16 @@ mc_thread_main(int argc, char *argv[])
 	bool flag_control_attitude_enabled = false;
 	bool flag_system_armed = false;
 
+	/* store if yaw position or yaw speed has been changed */
+	bool control_yaw_position = true;
+
+	/* store if we stopped a yaw movement */
+	bool first_time_after_yaw_speed_control = true;
+
 	/* prepare the handle for the failsafe throttle */
 	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
 	float failsafe_throttle = 0.0f;
+
 
 	while (!thread_should_exit) {
 
@@ -205,28 +213,27 @@ mc_thread_main(int argc, char *argv[])
 
 				/** STEP 1: Define which input is the dominating control input */
 				if (state.flag_control_offboard_enabled) {
-							/* offboard inputs */
-							if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES) {
-								rates_sp.roll = offboard_sp.p1;
-								rates_sp.pitch = offboard_sp.p2;
-								rates_sp.yaw = offboard_sp.p3;
-								rates_sp.thrust = offboard_sp.p4;
-		//						printf("thrust_rate=%8.4f\n",offboard_sp.p4);
-								rates_sp.timestamp = hrt_absolute_time();
-								orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
-							} else if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE) {
-								att_sp.roll_body = offboard_sp.p1;
-								att_sp.pitch_body = offboard_sp.p2;
-								att_sp.yaw_body = offboard_sp.p3;
-								att_sp.thrust = offboard_sp.p4;
-		//						printf("thrust_att=%8.4f\n",offboard_sp.p4);
-								att_sp.timestamp = hrt_absolute_time();
-								/* STEP 2: publish the result to the vehicle actuators */
-								orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
-							}
-
-							/* decide wether we want rate or position input */
-						}
+					/* offboard inputs */
+					if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_RATES) {
+						rates_sp.roll = offboard_sp.p1;
+						rates_sp.pitch = offboard_sp.p2;
+						rates_sp.yaw = offboard_sp.p3;
+						rates_sp.thrust = offboard_sp.p4;
+//						printf("thrust_rate=%8.4f\n",offboard_sp.p4);
+						rates_sp.timestamp = hrt_absolute_time();
+						orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
+					} else if (offboard_sp.mode == OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE) {
+						att_sp.roll_body = offboard_sp.p1;
+						att_sp.pitch_body = offboard_sp.p2;
+						att_sp.yaw_body = offboard_sp.p3;
+						att_sp.thrust = offboard_sp.p4;
+//						printf("thrust_att=%8.4f\n",offboard_sp.p4);
+						att_sp.timestamp = hrt_absolute_time();
+						/* STEP 2: publish the result to the vehicle actuators */
+						orb_publish(ORB_ID(vehicle_attitude_setpoint), att_sp_pub, &att_sp);
+					}
+					/* decide wether we want rate or position input */
+				}
 				else if (state.flag_control_manual_enabled) {
 
 					/* manual inputs, from RC control or joystick */
@@ -273,13 +280,30 @@ mc_thread_main(int argc, char *argv[])
 							att_sp.roll_body = manual.roll;
 							att_sp.pitch_body = manual.pitch;
 
-							/* only move setpoint if manual input is != 0 */
-							// XXX turn into param
-							if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
-								att_sp.yaw_body = att_sp.yaw_body + manual.yaw * 0.0025f;
-							} else if (manual.throttle <= 0.3f) {
+							/* set attitude if arming */
+							if (!flag_control_attitude_enabled && state.flag_system_armed) {
 								att_sp.yaw_body = att.yaw;
 							}
+
+							/* only move setpoint if manual input is != 0 */
+
+							if(manual.mode == MANUAL_CONTROL_MODE_ATT_YAW_POS) {
+								if ((manual.yaw < -0.01f || 0.01f < manual.yaw) && manual.throttle > 0.3f) {
+									rates_sp.yaw = manual.yaw;
+									control_yaw_position = false;
+									first_time_after_yaw_speed_control = true;
+								} else {
+									if (first_time_after_yaw_speed_control) {
+										att_sp.yaw_body = att.yaw;
+										first_time_after_yaw_speed_control = false;
+									}
+									control_yaw_position = true;
+								}
+							} else if (manual.mode == MANUAL_CONTROL_MODE_ATT_YAW_RATE) {
+								rates_sp.yaw = manual.yaw;
+								control_yaw_position = false;
+							}
+
 							att_sp.thrust = manual.throttle;
 							att_sp.timestamp = hrt_absolute_time();
 						}
@@ -302,7 +326,8 @@ mc_thread_main(int argc, char *argv[])
 
 				/** STEP 3: Identify the controller setup to run and set up the inputs correctly */
 				if (state.flag_control_attitude_enabled) {
-				 	multirotor_control_attitude(&att_sp, &att, &rates_sp, NULL);
+				 	multirotor_control_attitude(&att_sp, &att, &rates_sp, control_yaw_position);
+
 				 	orb_publish(ORB_ID(vehicle_rates_setpoint), rates_sp_pub, &rates_sp);
 				}
 

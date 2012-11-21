@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,46 +32,38 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_vicon_position.h
- * Definition of the raw VICON Motion Capture position
+ * @file actuator_controls.h
+ *
+ * Actuator control topics - mixer inputs.
+ *
+ * Values published to these topics are the outputs of the vehicle control
+ * system, and are expected to be mixed and used to drive the actuators
+ * (servos, speed controls, etc.) that operate the vehicle.
+ *
+ * Each topic can be published by a single controller
  */
 
-#ifndef TOPIC_VEHICLE_VICON_POSITION_H_
-#define TOPIC_VEHICLE_VICON_POSITION_H_
+#ifndef TOPIC_ACTUATOR_CONTROLS_EFFECTIVE_H
+#define TOPIC_ACTUATOR_CONTROLS_EFFECTIVE_H
 
 #include <stdint.h>
-#include <stdbool.h>
 #include "../uORB.h"
 
-/**
- * @addtogroup topics
- * @{
- */
+#define NUM_ACTUATOR_CONTROLS		8
+#define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
 
-/**
- * Fused local position in NED.
- */
-struct vehicle_vicon_position_s
-{
-	uint64_t timestamp;			/**< time of this estimate, in microseconds since system start */
-	bool valid;				/**< true if position satisfies validity criteria of estimator */
-
-	float x;				/**< X positin in meters in NED earth-fixed frame */
-	float y;				/**< X positin in meters in NED earth-fixed frame */
-	float z;				/**< Z positin in meters in NED earth-fixed frame (negative altitude) */
-	float roll;
-	float pitch;
-	float yaw;
-
-	// TODO Add covariances here
-
+struct actuator_controls_effective_s {
+	uint64_t timestamp;
+	float	control_effective[NUM_ACTUATOR_CONTROLS];
 };
 
-/**
- * @}
- */
+/* actuator control sets; this list can be expanded as more controllers emerge */
+ORB_DECLARE(actuator_controls_effective_0);
+ORB_DECLARE(actuator_controls_effective_1);
+ORB_DECLARE(actuator_controls_effective_2);
+ORB_DECLARE(actuator_controls_effective_3);
 
-/* register this as object request broker structure */
-ORB_DECLARE(vehicle_vicon_position);
+/* control sets with pre-defined applications */
+#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE	ORB_ID(actuator_controls_effective_0)
 
-#endif
+#endif /* TOPIC_ACTUATOR_CONTROLS_EFFECTIVE_H */

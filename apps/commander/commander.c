@@ -1393,7 +1393,7 @@ int commander_thread_main(int argc, char *argv[])
 		else if (battery_voltage_valid && (bat_remain < 0.1f /* XXX MAGIC NUMBER */) && (false == critical_battery_voltage_actions_done && true == low_battery_voltage_actions_done)) {
 			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				critical_battery_voltage_actions_done = true;
-				mavlink_log_critical(mavlink_fd, "[commander] EMERGENCY! CIRITICAL BATTERY!");
+				mavlink_log_critical(mavlink_fd, "[commander] EMERGENCY! CRITICAL BATTERY!");
 				state_machine_emergency(stat_pub, &current_status, mavlink_fd);
 			}
 

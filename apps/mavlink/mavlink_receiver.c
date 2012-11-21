@@ -206,6 +206,10 @@ handle_message(mavlink_message_t *msg)
 		vicon_position.y = pos.y;
 		vicon_position.z = pos.z;
 
+		vicon_position.roll = pos.roll;
+		vicon_position.pitch = pos.pitch;
+		vicon_position.yaw = pos.yaw;
+
 		if (vicon_position_pub <= 0) {
 			vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
 		} else {
@@ -334,6 +338,11 @@ handle_message(mavlink_message_t *msg)
 
 			struct manual_control_setpoint_s mc;
 			static orb_advert_t mc_pub = 0;
+
+			int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+
+			/* get a copy first, to prevent altering values that are not sent by the mavlink command */
+			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &mc);
 
 			mc.timestamp = rc_hil.timestamp;
 			mc.roll = man.x / 1000.0f;

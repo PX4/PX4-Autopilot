@@ -145,7 +145,7 @@ handle_message(mavlink_message_t *msg)
 
 		struct optical_flow_s f;
 
-		f.timestamp = flow.time_usec;
+		f.timestamp = hrt_absolute_time();
 		f.flow_raw_x = flow.flow_x;
 		f.flow_raw_y = flow.flow_y;
 		f.flow_comp_x_m = flow.flow_comp_m_x;
@@ -161,6 +161,8 @@ handle_message(mavlink_message_t *msg)
 			/* publish */
 			orb_publish(ORB_ID(optical_flow), flow_pub, &f);
 		}
+
+		printf("GOT FLOW!\n");
 	}
 
 	if (msg->msgid == MAVLINK_MSG_ID_SET_MODE) {
@@ -288,7 +290,7 @@ receive_thread(void *arg)
 
 	mavlink_message_t msg;
 
-	prctl(PR_SET_NAME, "mavlink uart rcv", getpid());
+	prctl(PR_SET_NAME, "mavlink offb rcv", getpid());
 
 	while (!thread_should_exit) {
 
