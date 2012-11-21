@@ -206,6 +206,10 @@ handle_message(mavlink_message_t *msg)
 		vicon_position.y = pos.y;
 		vicon_position.z = pos.z;
 
+		vicon_position.roll = pos.roll;
+		vicon_position.pitch = pos.pitch;
+		vicon_position.yaw = pos.yaw;
+
 		if (vicon_position_pub <= 0) {
 			vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
 		} else {
