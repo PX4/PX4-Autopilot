@@ -43,10 +43,10 @@
 
 #include <stdlib.h>
 
-// The HoTT receiver demands a minimum 5ms period of silence after delivering its request. 
+/* The HoTT receiver demands a minimum 5ms period of silence after delivering its request. */
 #define POST_READ_DELAY_IN_USECS	4500 
-// A pause of 3ms is required between each uint8_t sent back to the HoTT receiver. Much lower
-// values can be used in practise though.
+/* A pause of 3ms is required between each uint8_t sent back to the HoTT receiver. Much lower
+   values can be used in practise though. */
 #define POST_WRITE_DELAY_IN_USECS	1500
 
 // Protocol constants.
@@ -55,10 +55,11 @@
 #define STOP_BYTE		0x7d
 #define TEMP_ZERO_CELSIUS	0x14
 
-// Electric Air Module (EAM) constants.
+/* Electric Air Module (EAM) constants. */
 #define ELECTRIC_AIR_MODULE	0x8e
 #define EAM_SENSOR_ID		0xe0
 
+/* The Electric Air Module message. */
 struct eam_module_msg {
 	uint8_t start;			/**< Start byte   				*/
 	uint8_t eam_sensor_id;		/**< EAM sensor ID 				*/

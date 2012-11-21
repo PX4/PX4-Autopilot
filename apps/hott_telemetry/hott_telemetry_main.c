@@ -39,6 +39,15 @@
  *
  * The HoTT receiver polls each device at a regular interval at which point
  * a data packet can be returned if necessary.
+ *
+ * NOTE: Since HoTT telemetry works half-duplex over a single wire the wire
+ * is connected to both the UART TX and RX port. In order to send and receive
+ * we need to be able to disable one of these ports at a time. This level of
+ * control is currently not provided by Nuttx (yet) so we need to do this 
+ * at the hardware level for now.
+ *
+ * TODO: Add support for at least the vario and GPS sensors.  
+ *
  */
 
 #include <fcntl.h>
@@ -53,7 +62,7 @@
 
 #include "messages.h"
 
-// The following are equired for UART direct manipulation.
+/* The following are equired for UART direct manipulation. */
 #include <arch/board/board.h>
 #include "up_arch.h"
 #include "chip.h"
@@ -62,7 +71,7 @@
 static int thread_should_exit = false;		/**< Deamon exit flag */
 static int thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
-
+static uint32_t uart_addr;			/**< The regsitry address of the UART for direct access */
 /**
  * Deamon management function.
  */
@@ -77,6 +86,7 @@ static int read_data(int uart);
 static int send_data(int uart, const struct eam_module_msg *msg);
 static void uart_disable_rx(void);
 static void uart_disable_tx(void);
+static uint32_t get_uart_address(const char *device);
 
 static int open_uart(const char *uart_name, struct termios *uart_config_original)
 {
@@ -125,116 +135,6 @@ static int open_uart(const char *uart_name, struct termios *uart_config_original
 	return uart;
 }
 
-int hott_telemetry_thread_main(int argc, char *argv[]) 
-{
-	printf("[hott_telemetry] starting\n");
-
-	thread_running = true;
-
-	char *device = "/dev/ttyS2";  // UART5
-	char *commandline_usage = "\tusage: hott_telemetry start|status|stop [-d device]\n";
-
-	/* read commandline arguments */
-	for (int i = 0; i < argc && argv[i]; i++) {
-		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) { //device set
-			if (argc > i + 1) {
-				device = argv[i + 1];
-
-			} else {
-				thread_running = false;
-				errx(1, "missing parameter to -m 1..4\n %s", commandline_usage);
-			}
-		}
-	}
-
-	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
-	struct termios uart_config_original;
-	int uart = open_uart(device, &uart_config_original);
-
-	if (uart < 0) {
-		fprintf(stderr, "[hott_telemetry] Failed opening HoTT UART, exiting.\n");
-		thread_running = false;
-		exit(ERROR);
-	}
-
-	messages_init();
-
-	struct eam_module_msg msg;
-	while (!thread_should_exit) {
-		build_eam_response(&msg);
-		if (read_data(uart) == OK) {
-			send_data(uart, &msg);
-		}
-	}
-
-	printf("[hott_telemetry] exiting.\n");
-
-	/* close uarts */
-	close(uart);
-
-	thread_running = false;
-
-	return 0;
-}
-
-static void
-usage(const char *reason)
-{
-	if (reason)
-		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: deamon {start|stop|status} [-p <additional params>]\n\n");
-	exit(1);
-}
-
-/**
- * The deamon app only briefly exists to start
- * the background job. The stack size assigned in the
- * Makefile does only apply to this management task.
- * 
- * The actual stack size should be set in the call
- * to task_create().
- */
-int hott_telemetry_main(int argc, char *argv[])
-{
-	if (argc < 1)
-		usage("missing command");
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (thread_running) {
-			printf("deamon already running\n");
-			/* this is not an error */
-			exit(0);
-		}
-
-		thread_should_exit = false;
-		deamon_task = task_spawn("hott_telemetry",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_MAX - 20,
-					 2048,
-					 hott_telemetry_thread_main,
-					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		thread_should_exit = true;
-		exit(0);
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			printf("\thott_telemetry is running\n");
-		} else {
-			printf("\thott_telemetry not started\n");
-		}
-		exit(0);
-	}
-
-	usage("unrecognized command");
-	exit(1);
-}
-
 int read_data(int uart)
 {
         uart_disable_tx();
@@ -243,17 +143,15 @@ int read_data(int uart)
 	struct pollfd fds[] = { { .fd = uart, .events = POLLIN } };
 
 	if (poll(fds, 1, timeout) > 0) {
-		// get the mode: binary or text
+		/* get the mode: binary or text  */
 		char mode;
 		read(uart, &mode, 1);
 		
-		// read the poll ID (device ID being targetted)
+		/* read the poll ID (device ID being targetted) */
 		char id;
 		read(uart, &id, 1);
 
-		//printf("Reading: mode='%x' id='%x'\n", mode, id);
-
-		// if we have a binary mode request for our sensor ID let's run with it
+		/* if we have a binary mode request for our sensor ID let's run with it. */
 		if (mode != BINARY_MODE_REQUEST_ID || id != ELECTRIC_AIR_MODULE) {
 			return ERROR;	// not really an error, rather uninteresting.
 		}
@@ -278,38 +176,159 @@ int send_data(int uart, const struct eam_module_msg *msg)
 
 	for(int i = 0; i < size; i++) {
 		if (i == size - 1) {
-			// Set the checksum: the first uint8_t is taken as the checksum.
+			/* Set the checksum: the first uint8_t is taken as the checksum. */
 			buffer[i] = checksum & 0xff;
 		} else {
 			checksum += buffer[i];
 		}
 
-		//printf("%x ", buffer[i]);
 		write(uart, &buffer[i], 1);
 		
-		// Sleep before sending the next uint8_t.
+		/* Sleep before sending the next byte. */
 		usleep(POST_WRITE_DELAY_IN_USECS);
 	}
 
 	return OK;
 }
 
-void uart_disable_rx()
+void uart_disable_rx(void)
 {
 	uint32_t cr;
-	cr  = getreg32(STM32_UART5_CR1);
+	cr  = getreg32(uart_addr);
 	cr &= ~(USART_CR1_RE);	// turn off RX
 	cr |= (USART_CR1_TE);	// turn on TX
-        putreg32(cr, STM32_UART5_CR1);
+        putreg32(cr, uart_addr);
 }
 
-void uart_disable_tx()
+void uart_disable_tx(void)
 {
 	uint32_t cr;
-	cr  = getreg32(STM32_UART5_CR1);
+	cr  = getreg32(uart_addr);
 	cr |= (USART_CR1_RE);	// turn on RX
 	cr &= ~(USART_CR1_TE);	// turn off TX
-        putreg32(cr, STM32_UART5_CR1);
+        putreg32(cr, uart_addr);
 }
+
+uint32_t get_uart_address(const char *device)
+{
+	/* Map the tty device number to the UART address */
+	switch(device[strlen(device) - 1]) {
+		case '0':  return STM32_USART1_CR1;
+		case '1':  return STM32_USART2_CR1;
+		case '2':  return STM32_UART5_CR1;
+		case '3':  return STM32_USART6_CR1;
+		default:   return STM32_UART5_CR1; 
+	}	
+}
+
+int hott_telemetry_thread_main(int argc, char *argv[]) 
+{
+	printf("[hott_telemetry] starting\n");
+
+	thread_running = true;
+
+	char *commandline_usage = "\tusage: hott_telemetry start|status|stop [-d device]\n";
+	char *device = "/dev/ttyS2";		/**< Default telemetry port: UART5 */
+
+	/* read commandline arguments */
+	for (int i = 0; i < argc && argv[i]; i++) {
+		if (strcmp(argv[i], "-d") == 0 || strcmp(argv[i], "--device") == 0) { //device set
+			if (argc > i + 1) {
+				device = argv[i + 1];
+
+			} else {
+				thread_running = false;
+				errx(1, "missing parameter to -m 1..4\n %s", commandline_usage);
+			}
+		}
+	}
+
+	/* enable UART, writes potentially an empty buffer, but multiplexing is disabled */
+	struct termios uart_config_original;
+	int uart = open_uart(device, &uart_config_original);
+
+	if (uart < 0) {
+		fprintf(stderr, "[hott_telemetry] Failed opening HoTT UART, exiting.\n");
+		thread_running = false;
+		exit(ERROR);
+	}
+
+	/* Since we need to enable/disable both TX and RX on the UART at the device level
+	 * we need to know the register address of the UART we are working with. Making it
+	 * global so it's easy to remove later when TX/RX control is provided by Nuttx. */
+	uart_addr = get_uart_address(device);
+
+	messages_init();
+
+	struct eam_module_msg msg;
+	while (!thread_should_exit) {
+		build_eam_response(&msg);
+		if (read_data(uart) == OK) {
+			send_data(uart, &msg);
+		}
+	}
+
+	printf("[hott_telemetry] exiting.\n");
+
+	close(uart);
+
+	thread_running = false;
+
+	return 0;
+}
+
+static void
+usage(const char *reason)
+{
+	if (reason)
+		fprintf(stderr, "%s\n", reason);
+	fprintf(stderr, "usage: deamon {start|stop|status} [-p <additional params>]\n\n");
+	exit(1);
+}
+
+/**
+ * Process command line arguments and tart the daemon.
+ */
+int hott_telemetry_main(int argc, char *argv[])
+{
+	if (argc < 1)
+		usage("missing command");
+
+	if (!strcmp(argv[1], "start")) {
+
+		if (thread_running) {
+			printf("deamon already running\n");
+			/* this is not an error */
+			exit(0);
+		}
+
+		thread_should_exit = false;
+		deamon_task = task_spawn("hott_telemetry",
+					 SCHED_DEFAULT,
+					 SCHED_PRIORITY_MAX - 40,
+					 2048,
+					 hott_telemetry_thread_main,
+					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "stop")) {
+		thread_should_exit = true;
+		exit(0);
+	}
+
+	if (!strcmp(argv[1], "status")) {
+		if (thread_running) {
+			printf("\thott_telemetry is running\n");
+		} else {
+			printf("\thott_telemetry not started\n");
+		}
+		exit(0);
+	}
+
+	usage("unrecognized command");
+	exit(1);
+}
+
 
 
