@@ -3659,4 +3659,11 @@
 	* configs/cloudctrl:   Darcy Gong's CloudController board.  This is a
 	  small network relay development board. Based on the Shenzhou IV development
 	  board design.  It is based on the STM32F107VC MCU.
+	* Lots of build files:  ARMv7-M and MIPS32 Make.defs now include a common
+	  Toolchain.defs file that can be used to manage toolchains in a more
+	  configurable way.  Contributed by Mike Smith
+	* configs/stm32f4discovery/winbuild and configs/cloudctrl:  Adapted to use
+	  Mike's Toolchain.defs.
+	* tools/configure.sh:  Adapted to handle paths and setenv.bat files correctly
+	  for native Windows builds.
 

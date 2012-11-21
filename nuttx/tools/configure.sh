@@ -181,8 +181,8 @@ fi
 
 # For checking the apps dir path, we need a POSIX version of the relative path.
 
-posappdir=`echo "${appdir}" | sed -e "s/\\/\/g"`
-winappdir=`echo "${appdir}" | sed -e "s/\//\\/g"`
+posappdir=`echo "${appdir}" | sed -e 's/\\\\/\\//g'`
+winappdir=`echo "${appdir}" | sed -e 's/\\//\\\\/g'`
 
 # If appsdir was provided (or discovered) then make sure that the apps/
 # directory exists
@@ -213,7 +213,7 @@ if [ "X${defappdir}" = "Xy" ]; then
   echo "" >> "${tmp_config}"
   echo "# Application configuration" >> "${tmp_config}"
   echo "" >> "${tmp_config}"
-  if [ "X${winnative)" = "Xy" ]; then
+  if [ "X${winnative}" = "Xy" ]; then
     echo "CONFIG_APPS_DIR=\"$winappdir\"" >> "${tmp_config}"
   else
     echo "CONFIG_APPS_DIR=\"$posappdir\"" >> "${tmp_config}"

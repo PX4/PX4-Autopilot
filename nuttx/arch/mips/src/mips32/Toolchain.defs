@@ -131,7 +131,9 @@ endif
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),MICROCHIPW)
   CROSSDEV = pic32-
   # CROSSDEV = xc32-
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
   WINTOOL = y
+endif
   MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
@@ -156,7 +158,9 @@ endif
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),MICROCHIPW_LITE)
   CROSSDEV = pic32-
   # CROSSDEV = xc32-
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
   WINTOOL = y
+endif
   # MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
@@ -179,7 +183,9 @@ endif
 
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),PINGUINOW)
   CROSSDEV = mips-
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
   WINTOOL = y
+endif
   MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mlong32 -membedded-data -msoft-float -march=24kc -EL
   ARCHPICFLAGS = -fpic -membedded-pic

@@ -143,7 +143,9 @@ endif
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),ATOLLIC)
   CROSSDEV = arm-atollic-eabi-
   ARCROSSDEV = arm-atollic-eabi-
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
   WINTOOL = y
+endif
   ifeq ($(CONFIG_ARCH_CORTEXM4),y)
     ifeq ($(CONFIG_ARCH_FPU),y)
       ARCHCPUFLAGS = -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
@@ -190,7 +192,9 @@ endif
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),CODEREDW)
   CROSSDEV = arm-none-eabi-
   ARCROSSDEV = arm-none-eabi-
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
   WINTOOL = y
+endif
   ifeq ($(CONFIG_ARCH_CORTEXM4),y)
     ifeq ($(CONFIG_ARCH_FPU),y)
       ARCHCPUFLAGS = -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
@@ -216,7 +220,9 @@ endif
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),CODESOURCERYW)
   CROSSDEV = arm-none-eabi-
   ARCROSSDEV = arm-none-eabi-
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
   WINTOOL = y
+endif
   ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
 endif
 
@@ -225,7 +231,9 @@ endif
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),DEVKITARM)
   CROSSDEV = arm-eabi-
   ARCROSSDEV = arm-eabi-
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
   WINTOOL = y
+endif
   ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
 endif
 
@@ -251,6 +259,8 @@ endif
 ifeq ($(CONFIG_ARMV7M_TOOLCHAIN),RAISONANCE)
   CROSSDEV = arm-none-eabi-
   ARCROSSDEV = arm-none-eabi-
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
   WINTOOL = y
+endif
   ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
 endif

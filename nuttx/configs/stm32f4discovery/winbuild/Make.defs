@@ -35,51 +35,9 @@
 
 include ${TOPDIR}\.config
 include ${TOPDIR}\tools\Config.mk
-
-# Setup for the selected toolchain
-
-ifeq ($(CONFIG_STM32_CODESOURCERYW),y)
-  # CodeSourcery under Windows
-  CROSSDEV = arm-none-eabi-
-  ARCROSSDEV = arm-none-eabi-
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-endif
-ifeq ($(CONFIG_STM32_ATOLLIC_LITE),y)
-  # Atollic toolchain under Windows
-  CROSSDEV = arm-atollic-eabi-
-  ARCROSSDEV =
-ifeq ($(CONFIG_ARCH_FPU),y)
-  ARCHCPUFLAGS = -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
-else
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-endif
-endif
-ifeq ($(CONFIG_STM32_ATOLLIC_PRO),y)
-  # Atollic toolchain under Windows
-  CROSSDEV = arm-atollic-eabi-
-  ARCROSSDEV = arm-atollic-eabi-
-ifeq ($(CONFIG_ARCH_FPU),y)
-  ARCHCPUFLAGS = -mcpu=cortex-m4 -mthumb -march=armv7e-m -mfpu=fpv4-sp-d16 -mfloat-abi=hard
-else
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-endif
-endif
-ifeq ($(CONFIG_STM32_DEVKITARM),y)
-  # devkitARM under Windows
-  CROSSDEV = arm-eabi-
-  ARCROSSDEV = arm-eabi-
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-endif
-ifeq ($(CONFIG_STM32_RAISONANCE),y)
-  # Raisonance RIDE7 under Windows
-  CROSSDEV = arm-none-eabi-
-  ARCROSSDEV = arm-none-eabi-
-  ARCHCPUFLAGS = -mcpu=cortex-m3 -mthumb -mfloat-abi=soft
-endif
+include ${TOPDIR}\arch\arm\src\armv7-m\Toolchain.defs
 
 LDSCRIPT = ld.script
-
-# Windows-native toolchains
 
 ARCHINCLUDES = -I. -isystem $(TOPDIR)\include
 ARCHXXINCLUDES = -I. -isystem $(TOPDIR)\include -isystem $(TOPDIR)\include\cxx

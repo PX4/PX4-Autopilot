@@ -35,83 +35,87 @@
 
 -include $(TOPDIR)/Make.defs
 
-CFLAGS		+= -I$(TOPDIR)/sched
+CFLAGS += -I$(TOPDIR)/sched
 
-ASRCS		= 
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
+ASRCS = 
+AOBJS = $(ASRCS:.S=$(OBJEXT))
 
-CSRCS		= up_boot.c up_spi.c
+CSRCS = up_boot.c up_spi.c
 
 ifeq ($(CONFIG_HAVE_CXX),y)
-CSRCS		+= up_cxxinitialize.c
+CSRCS += up_cxxinitialize.c
 endif
 
 ifeq ($(CONFIG_ARCH_LEDS),y)
-CSRCS		+= up_autoleds.c
+CSRCS += up_autoleds.c
 else
-CSRCS		+= up_userleds.c
+CSRCS += up_userleds.c
 endif
 
 ifeq ($(CONFIG_ARCH_BUTTONS),y)
-CSRCS		+=  up_buttons.c
+CSRCS +=  up_buttons.c
 endif
 
 ifeq ($(CONFIG_STM32_OTGFS),y)
-CSRCS		+= up_usb.c
+CSRCS += up_usb.c
 endif
 
 ifeq ($(CONFIG_PWM),y)
-CSRCS		+= up_pwm.c
+CSRCS += up_pwm.c
 endif
 
 ifeq ($(CONFIG_QENCODER),y)
-CSRCS		+= up_qencoder.c
+CSRCS += up_qencoder.c
 endif
 
 ifeq ($(CONFIG_WATCHDOG),y)
-CSRCS		+= up_watchdog.c
+CSRCS += up_watchdog.c
 endif
 
 ifeq ($(CONFIG_NSH_ARCHINIT),y)
-CSRCS		+= up_nsh.c
+CSRCS += up_nsh.c
 endif
 
 ifeq ($(CONFIG_PM_CUSTOMINIT),y)
-CSRCS		+= up_pm.c
+CSRCS += up_pm.c
 endif
 
 ifeq ($(CONFIG_PM_BUTTONS),y)
-CSRCS		+= up_pmbuttons.c 
+CSRCS += up_pmbuttons.c 
 endif
 
 ifeq ($(CONFIG_IDLE_CUSTOM),y)
-CSRCS		+= up_idle.c
+CSRCS += up_idle.c
 endif
 
 ifeq ($(CONFIG_STM32_FSMC),y)
-CSRCS		+= up_extmem.c
+CSRCS += up_extmem.c
 
 ifeq ($(CONFIG_LCD_SSD1289),y)
-CSRCS		+= up_ssd1289.c
+CSRCS += up_ssd1289.c
 endif
 endif
 
 ifeq ($(CONFIG_LCD_UG2864AMBAG01),y)
-CSRCS		+= up_ug2864ambag01.c
+CSRCS += up_ug2864ambag01.c
 endif
 
-COBJS		= $(CSRCS:.c=$(OBJEXT))
+COBJS = $(CSRCS:.c=$(OBJEXT))
 
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
+SRCS = $(ASRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
 
-ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
-ifeq ($(WINTOOL),y)
-  CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
-  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
+ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  CFLAGS += -I$(ARCH_SRCDIR)\chip -I$(ARCH_SRCDIR)\common -I$(ARCH_SRCDIR)\armv7-m
 else
-  CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
+ifeq ($(WINTOOL),y)
+  CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
+			-I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
+			-I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
+else
+  CFLAGS += -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
+endif
 endif
 
 all: libboard$(LIBEXT)

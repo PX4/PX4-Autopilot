@@ -32,15 +32,17 @@ rem LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 rem ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 rem POSSIBILITY OF SUCH DAMAGE.
 
-rem This script is not needed for setting the path because the full path
-rem to the ZDI-II tools are used in Make.defs.
-
 rem This is the location where I installed in the MinGW compiler. With
 rem this configuration, it is recommended that you do NOT install the
 rem MSYS tools; they conflict with the GNUWin32 tools.  See
 rem http://www.mingw.org/ for further info.
 
 set PATH=C:\MinGW\bin;%PATH%
+
+rem This is the location where I installed the CodeSourcey toolchain.  See
+rem http://www.mentor.com/embedded-software/codesourcery
+
+set PATH=C:\Program Files (x86)\CodeSourcery\Sourcery G++ Lite\bin;%PATH%
 
 rem This is the location where I installed the GNUWin32 tools.  See
 rem http://gnuwin32.sourceforge.net/.
