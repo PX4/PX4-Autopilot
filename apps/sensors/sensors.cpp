@@ -870,7 +870,12 @@ Sensors::ppm_poll()
 	/* we are accepting this message */
 	_ppm_last_valid = ppm_last_valid_decode;
 
-	if (ppm_decoded_channels > 2 && hrt_absolute_time() - _ppm_last_valid < PPM_INPUT_TIMEOUT_INTERVAL) {
+	/*
+	 * relying on two decoded channels is very noise-prone,
+	 * in particular if nothing is connected to the pins.
+	 * requiring a minimum of four channels
+	 */
+	if (ppm_decoded_channels > 4 && hrt_absolute_time() - _ppm_last_valid < PPM_INPUT_TIMEOUT_INTERVAL) {
 
 		for (int i = 0; i < ppm_decoded_channels; i++) {
 			raw.values[i] = ppm_buffer[i];
@@ -898,8 +903,8 @@ Sensors::ppm_poll()
 
 		struct manual_control_setpoint_s manual_control;
 
-		/* require at least two chanels to consider the signal valid */
-		if (rc_input.channel_count < 2)
+		/* require at least four channels to consider the signal valid */
+		if (rc_input.channel_count < 4)
 			return;
 
 		unsigned channel_limit = rc_input.channel_count;

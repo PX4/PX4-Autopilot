@@ -127,18 +127,18 @@ int test_adc(int argc, char *argv[])
 
 				message("channel: %d value: %d\n",
 					(int)sample1.am_channel1, sample1.am_data1);
-				message("channel: %d value: %d",
+				message("channel: %d value: %d\n",
 					(int)sample1.am_channel2, sample1.am_data2);
-				message("channel: %d value: %d",
+				message("channel: %d value: %d\n",
 					(int)sample1.am_channel3, sample1.am_data3);
-				message("channel: %d value: %d",
+				message("channel: %d value: %d\n",
 					(int)sample1.am_channel4, sample1.am_data4);
 			}
 		}
 		fflush(stdout);
 	}
 
-	message("\t ADC test successful.");
+	message("\t ADC test successful.\n");
 
 errout_with_dev:
 

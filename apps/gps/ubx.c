@@ -49,7 +49,7 @@
 #include <mavlink/mavlink_log.h>
 
 #define UBX_HEALTH_SUCCESS_COUNTER_LIMIT 2
-#define UBX_HEALTH_FAIL_COUNTER_LIMIT 2
+#define UBX_HEALTH_FAIL_COUNTER_LIMIT 3
 #define UBX_HEALTH_PROBE_COUNTER_LIMIT 4
 
 #define UBX_BUFFER_SIZE 1000
@@ -786,22 +786,18 @@ void *ubx_watchdog_loop(void *args)
 			sleep(1);
 
 		} else {
+			/* gps healthy */
+			ubx_success_count++;
+			ubx_fail_count = 0;
+			once_ok = true; // XXX Should this be true on a single success, or on same criteria as ubx_healthy?
 
 			if (!ubx_healthy && ubx_success_count == UBX_HEALTH_SUCCESS_COUNTER_LIMIT) {
 				//printf("[gps] ublox UBX module status ok (baud=%d)\r\n", current_gps_speed);
 				// global_data_send_subsystem_info(&ubx_present_enabled_healthy);
 				mavlink_log_info(mavlink_fd, "[gps] UBX module found, status ok\n");
 				ubx_healthy = true;
-				ubx_fail_count = 0;
-				once_ok = true;
 			}
-
-			/* gps healthy */
-			ubx_success_count++;
-			ubx_healthy = true;
-			ubx_fail_count = 0;
 		}
-
 		usleep(UBX_WATCHDOG_WAIT_TIME_MICROSECONDS);
 	}
 

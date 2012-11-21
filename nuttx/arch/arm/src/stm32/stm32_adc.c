@@ -1427,15 +1427,12 @@ static void adc_shutdown(FAR struct adc_dev_s *dev)
   /* power down ADC */
   adc_enable(priv, false);
 
-  adc_rxint(priv, false);
+  adc_rxint(dev, false);
 
   /* Disable ADC interrupts and detach the ADC interrupt handler */
   up_disable_irq(priv->irq);
 //  irq_detach(priv->irq);
-
-
-
-
+  // XXX Why is irq_detach here commented out?
 }
 
 /****************************************************************************

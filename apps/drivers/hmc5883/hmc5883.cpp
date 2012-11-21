@@ -634,6 +634,7 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case MAGIOCSSCALE:
 		/* set new scale factors */
 		memcpy(&_scale, (mag_scale *)arg, sizeof(_scale));
+		/* check calibration, but not actually return an error */
 		(void)check_calibration();
 		return 0;
 
@@ -647,6 +648,9 @@ HMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case MAGIOCEXSTRAP:
 		return set_excitement(arg);
+
+	case MAGIOCSELFTEST:
+		return check_calibration();
 
 	default:
 		/* give it to the superclass */
@@ -1012,7 +1016,12 @@ int HMC5883::calibrate(struct file *filp, unsigned enable)
 out:
 
 	if (ret == OK) {
-		warnx("mag scale calibration successfully finished.");
+		if (!check_calibration()) {
+			warnx("mag scale calibration successfully finished.");
+		} else {
+			warnx("mag scale calibration finished with invalid results.");
+			ret == ERROR;
+		}
 
 	} else {
 		warnx("mag scale calibration failed.");
@@ -1025,27 +1034,27 @@ int HMC5883::check_calibration()
 {
 	bool scale_valid, offset_valid;
 
-	if ((-2.0f * FLT_EPSILON + 1.0f < _scale.x_scale && _scale.x_scale < 2.0f * FLT_EPSILON + 1.0f) &&
-		(-2.0f * FLT_EPSILON + 1.0f < _scale.y_scale && _scale.y_scale < 2.0f * FLT_EPSILON + 1.0f) &&
-		(-2.0f * FLT_EPSILON + 1.0f < _scale.z_scale && _scale.z_scale < 2.0f * FLT_EPSILON + 1.0f)) {
-		/* scale is different from one */
-		scale_valid = true;
-	} else {
+	if ((-FLT_EPSILON + 1.0f < _scale.x_scale && _scale.x_scale < FLT_EPSILON + 1.0f) &&
+		(-FLT_EPSILON + 1.0f < _scale.y_scale && _scale.y_scale < FLT_EPSILON + 1.0f) &&
+		(-FLT_EPSILON + 1.0f < _scale.z_scale && _scale.z_scale < FLT_EPSILON + 1.0f)) {
+		/* scale is one */
 		scale_valid = false;
+	} else {
+		scale_valid = true;
 	}
 
 	if ((-2.0f * FLT_EPSILON < _scale.x_offset && _scale.x_offset < 2.0f * FLT_EPSILON) &&
 		(-2.0f * FLT_EPSILON < _scale.y_offset && _scale.y_offset < 2.0f * FLT_EPSILON) &&
 		(-2.0f * FLT_EPSILON < _scale.z_offset && _scale.z_offset < 2.0f * FLT_EPSILON)) {
-		/* offset is different from zero */
-		offset_valid = true;
-	} else {
+		/* offset is zero */
 		offset_valid = false;
+	} else {
+		offset_valid = true;
 	}
 
 	if (_calibrated != (offset_valid && scale_valid)) {
-		warnx("warning: mag cal changed: %s%s", (scale_valid) ? "" : "scale invalid. ",
-					  (offset_valid) ? "" : "offset invalid.");
+		warnx("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
+					  (offset_valid) ? "" : "offset invalid");
 		_calibrated = (offset_valid && scale_valid);
 		/* notify about state change */
 		struct subsystem_info_s info = {
@@ -1055,7 +1064,9 @@ int HMC5883::check_calibration()
 			SUBSYSTEM_TYPE_MAG};
 		orb_advert_t pub = orb_advertise(ORB_ID(subsystem_info), &info);
 	}
-	return 0;
+
+	/* return 0 if calibrated, 1 else */
+	return (!_calibrated);
 }
 
 int HMC5883::set_excitement(unsigned enable)

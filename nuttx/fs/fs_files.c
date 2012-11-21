@@ -400,6 +400,7 @@ int files_allocate(FAR struct inode *inode, int oflags, off_t pos, int minfd)
                list->fl_files[i].f_oflags = oflags;
                list->fl_files[i].f_pos    = pos;
                list->fl_files[i].f_inode  = inode;
+               list->fl_files[i].f_priv   = NULL;
                _files_semgive(list);
                return i;
             }

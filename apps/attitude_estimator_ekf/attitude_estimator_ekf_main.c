@@ -63,6 +63,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <systemlib/systemlib.h>
+#include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
 #include "codegen/attitudeKalmanfilter_initialize.h"
@@ -255,6 +256,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	float gyro_offsets[3] = { 0.0f, 0.0f, 0.0f };
 	unsigned offset_count = 0;
 
+	/* register the perf counter */
+	perf_counter_t ekf_loop_perf = perf_alloc(PC_ELAPSED, "attitude_estimator_ekf");
+
 	/* Main loop*/
 	while (!thread_should_exit) {
 
@@ -305,6 +309,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						gyro_offsets[2] /= offset_count;
 					}
 				} else {
+
+					perf_begin(ekf_loop_perf);
 
 					/* Calculate data time difference in seconds */
 					dt = (raw.timestamp - last_measurement) / 1000000.0f;
@@ -400,41 +406,6 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						/* due to inputs or numerical failure the output is invalid, skip it */
 						continue;
 					}
-					
-					// uint64_t timing_diff = hrt_absolute_time() - timing_start;
-
-					// /* print rotation matrix every 200th time */
-					if (printcounter % 200 == 0) {
-						// printf("x apo:\n%8.4f\t%8.4f\t%8.4f\n%8.4f\t%8.4f\t%8.4f\n%8.4f\t%8.4f\t%8.4f\n",
-						// 	x_aposteriori[0], x_aposteriori[1], x_aposteriori[2],
-						// 	x_aposteriori[3], x_aposteriori[4], x_aposteriori[5],
-						// 	x_aposteriori[6], x_aposteriori[7], x_aposteriori[8]);
-
-
-						// }
-
-						//printf("EKF attitude iteration: %d, runtime: %d us, dt: %d us (%d Hz)\n", loopcounter, (int)timing_diff, (int)(dt * 1000000.0f), (int)(1.0f / dt));
-						//printf("roll: %8.4f\tpitch: %8.4f\tyaw:%8.4f\n", (double)euler[0], (double)euler[1], (double)euler[2]);
-						//printf("update rates gyro: %8.4f\taccel: %8.4f\tmag:%8.4f\n", (double)sensor_update_hz[0], (double)sensor_update_hz[1], (double)sensor_update_hz[2]);
-						// 	printf("\n%d\t%d\t%d\n%d\t%d\t%d\n%d\t%d\t%d\n", (int)(Rot_matrix[0] * 100), (int)(Rot_matrix[1] * 100), (int)(Rot_matrix[2] * 100),
-						// 	       (int)(Rot_matrix[3] * 100), (int)(Rot_matrix[4] * 100), (int)(Rot_matrix[5] * 100),
-						// 	       (int)(Rot_matrix[6] * 100), (int)(Rot_matrix[7] * 100), (int)(Rot_matrix[8] * 100));
-					}
-
-					// 				int i = printcounter % 9;
-
-					// 	// for (int i = 0; i < 9; i++) {
-					// 		char name[10];
-					// 		sprintf(name, "xapo #%d", i);
-					// 		memcpy(dbg.key, name, sizeof(dbg.key));
-					// 		dbg.value = x_aposteriori[i];
-					// if (pub_dbg < 0) {
-							// pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
-					// } else {
-					// 		orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
-					// }
-
-					printcounter++;
 
 					if (last_data > 0 && raw.timestamp - last_data > 12000) printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
 
@@ -463,6 +434,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					} else {
 						warnx("NaN in roll/pitch/yaw estimate!");
 					}
+
+					perf_end(ekf_loop_perf);
 				}
 			}
 		}
