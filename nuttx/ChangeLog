@@ -3651,4 +3651,6 @@
 	* arch/several:  Change UARTs are enabled for i.MX, LM3S, ez80, and M16C to
 	  match how they are enabled for other architectures.
 	* configs/ez80f910200kitg:  Convert to use mconf configuration.
+	* sched/pause.c:  Implements the POSIX pause() function.
+
 

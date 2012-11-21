@@ -13,7 +13,7 @@
       <h1><big><font color="#3c34ec"><i>NuttX Operating System<p>User's Manual</i></font></big></h1>
       <p><small>by</small></p>
       <p>Gregory Nutt<p>
-      <p>Last Updated: August 1, 2012</p>
+      <p>Last Updated: November 20, 2012</p>
     </td>
   </tr>
 </table>
@@ -3419,6 +3419,7 @@ interface of the same name.
   <li><a href="#sigtimedwait">2.8.11 sigtimedwait</a></li>
   <li><a href="#sigqueue">2.8.12 sigqueue</a></li>
   <li><a href="#kill">2.8.13 kill</a></li>
+  <li><a href="#pause">2.8.14 pause</a></li>
 </ul>
 
 <H3><a name="sigemptyset">2.8.1 sigemptyset</a></H3>
@@ -3946,7 +3947,7 @@ be sent.
 <b>Function Prototype:</b> 
 <pre>
    #include &lt;sys/types.h&gt;
-   #include &ltsignal.h&gt;
+   #include &lt;signal.h&gt;
    int kill(pid_t pid, int sig);
 </pre>
 
@@ -3995,6 +3996,39 @@ be sent.
   <li>Signals are processed one at a time in order </li>
   <li>Sending of signals to 'process groups' is not supported in NuttX.</li>
 </ul>
+
+<H3><a name="pause">2.8.14 pause</a></H3>
+
+<p>
+<b>Function Prototype:</b> 
+<pre>
+   #include &lt;unistd.h&gt;
+   int pause(void);
+</pre>
+
+<p>
+<b>Description:</b> 
+  The <code>pause()</code> function will suspend the calling thread until delivery of a non-blocked signal.
+</p>
+<b>Input Parameters:</b> 
+<ul>
+<li><i>None</i>
+</ul>
+
+<p>
+  <b>Returned Value:</b> 
+ Since <code>pause()</code> suspends thread execution indefinitely unless interrupted a signal, there is no successful completion return value.
+ A value of -1 (<code>ERROR</code> will always be returned and errno set to indicate the error (<code>EINTR</code>).
+</p>
+
+<p>
+  <b>Assumptions/Limitations:</b> 
+</p>
+<p>
+  <b>POSIX  Compatibility:</b>
+    In the POSIX description of this function is the <code>pause()</code> function will suspend the calling thread until delivery of a signal whose action is either to execute a signal-catching function or to terminate the process.
+    This implementation only waits for any non-blocked signal to be recieved.
+</p>
 
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
@@ -6711,6 +6745,7 @@ pid_t   getpid(void);
 void    _exit(int status) noreturn_function;
 unsigned int sleep(unsigned int seconds);
 void    usleep(unsigned long usec);
+int     pause(void);
 
 int     close(int fd);
 int     dup(int fd);
@@ -8187,6 +8222,7 @@ notify a task when a message is available on a queue.
 </td>
 <td valign="top" width="33%">
   <li><a href="#OS_Interfaces">OS Interfaces</a></li>
+  <li><a href="#pause">pause</a></li>
   <li><a href="#pipe">pipe</a></li>
   <li><a href="#poll">poll</a></li>
   <li><a href="#drvrpollops">poll.h</a></li>

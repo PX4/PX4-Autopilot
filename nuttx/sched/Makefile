@@ -94,7 +94,7 @@ SIGNAL_SRCS	= sig_initialize.c \
 		  sig_findaction.c sig_allocatependingsigaction.c \
 		  sig_releasependingsigaction.c sig_unmaskpendingsignal.c \
 		  sig_removependingsignal.c sig_releasependingsignal.c sig_lowest.c \
-		  sig_mqnotempty.c sig_cleanup.c sig_received.c sig_deliver.c
+		  sig_mqnotempty.c sig_cleanup.c sig_received.c sig_deliver.c pause.c
 
 MQUEUE_SRCS	= mq_open.c mq_close.c mq_unlink.c mq_send.c mq_timedsend.c\
 		  mq_sndinternal.c mq_receive.c mq_timedreceive.c mq_rcvinternal.c \
