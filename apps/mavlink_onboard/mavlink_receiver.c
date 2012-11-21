@@ -161,6 +161,8 @@ handle_message(mavlink_message_t *msg)
 			/* publish */
 			orb_publish(ORB_ID(optical_flow), flow_pub, &f);
 		}
+
+		printf("GOT FLOW!\n");
 	}
 
 	if (msg->msgid == MAVLINK_MSG_ID_SET_MODE) {
@@ -288,7 +290,7 @@ receive_thread(void *arg)
 
 	mavlink_message_t msg;
 
-	prctl(PR_SET_NAME, "mavlink uart rcv", getpid());
+	prctl(PR_SET_NAME, "mavlink offb rcv", getpid());
 
 	while (!thread_should_exit) {
 
