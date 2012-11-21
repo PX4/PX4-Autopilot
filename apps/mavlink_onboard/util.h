@@ -33,46 +33,22 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_vicon_position.h
- * Definition of the raw VICON Motion Capture position
+ * @file util.h
+ * Utility and helper functions and data.
  */
 
-#ifndef TOPIC_VEHICLE_VICON_POSITION_H_
-#define TOPIC_VEHICLE_VICON_POSITION_H_
+#pragma once
 
-#include <stdint.h>
-#include <stdbool.h>
-#include "../uORB.h"
+#include "orb_topics.h"
+
+/** MAVLink communications channel */
+extern uint8_t chan;
+
+/** Shutdown marker */
+extern volatile bool thread_should_exit;
 
 /**
- * @addtogroup topics
- * @{
+ * Translate the custom state into standard mavlink modes and state.
  */
-
-/**
- * Fused local position in NED.
- */
-struct vehicle_vicon_position_s
-{
-	uint64_t timestamp;			/**< time of this estimate, in microseconds since system start */
-	bool valid;				/**< true if position satisfies validity criteria of estimator */
-
-	float x;				/**< X positin in meters in NED earth-fixed frame */
-	float y;				/**< X positin in meters in NED earth-fixed frame */
-	float z;				/**< Z positin in meters in NED earth-fixed frame (negative altitude) */
-	float roll;
-	float pitch;
-	float yaw;
-
-	// TODO Add covariances here
-
-};
-
-/**
- * @}
- */
-
-/* register this as object request broker structure */
-ORB_DECLARE(vehicle_vicon_position);
-
-#endif
+extern void get_mavlink_mode_and_state(const struct vehicle_status_s *v_status, const struct actuator_armed_s *armed,
+	uint8_t *mavlink_state, uint8_t *mavlink_mode);

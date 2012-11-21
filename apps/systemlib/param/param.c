@@ -517,13 +517,11 @@ param_save_default(void)
 	}
 
 	int result = param_export(fd, false);
-	/* should not be necessary, over-careful here */
-	fsync(fd);
 	close(fd);
 
 	if (result != 0) {
-		unlink(param_get_default_file());
 		warn("error exporting parameters to '%s'", param_get_default_file());
+		unlink(param_get_default_file());
 		return -2;
 	}
 

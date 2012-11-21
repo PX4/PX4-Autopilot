@@ -77,7 +77,6 @@ struct mavlink_subscriptions {
 	int spg_sub;
 	int debug_key_value;
 	int input_rc_sub;
-	int optical_flow;
 };
 
 extern struct mavlink_subscriptions mavlink_subs;
@@ -89,13 +88,13 @@ extern struct vehicle_global_position_s global_pos;
 extern struct vehicle_local_position_s local_pos;
 
 /** Vehicle status */
-extern struct vehicle_status_s v_status;
+// extern struct vehicle_status_s v_status;
 
 /** RC channels */
 extern struct rc_channels_s rc;
 
 /** Actuator armed state */
-extern struct actuator_armed_s armed;
+// extern struct actuator_armed_s armed;
 
 /** Worker thread starter */
 extern pthread_t uorb_receive_start(void);

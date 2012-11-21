@@ -63,7 +63,6 @@
 #include <string.h>
 #include <drivers/drv_led.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include "state_machine_helper.h"
 #include "systemlib/systemlib.h"
@@ -269,6 +268,7 @@ void tune_confirm(void) {
 
 void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 {
+
 	/* set to mag calibration mode */
 	status->flag_preflight_mag_calibration = true;
 	state_machine_publish(status_pub, status, mavlink_fd);
@@ -325,7 +325,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 	uint64_t axis_deadline = hrt_absolute_time();
 	uint64_t calibration_deadline = hrt_absolute_time() + calibration_interval;
 
-	const char axislabels[3] = { 'X', 'Z', 'Y'};
+	const char axislabels[3] = { 'X', 'Y', 'Z'};
 	int axis_index = -1;
 
 	float *x = (float*)malloc(sizeof(float) * calibration_maxcount);
@@ -471,6 +471,7 @@ void do_mag_calibration(int status_pub, struct vehicle_status_s *status)
 		int save_ret = param_save_default();
 		if(save_ret != 0) {
 			warn("WARNING: auto-save of params to storage failed");
+			mavlink_log_info(mavlink_fd, "[cmd] FAILED storing calibration");
 		}
 
 		printf("[mag cal]\tscale: %.6f %.6f %.6f\n         \toffset: %.6f %.6f %.6f\nradius: %.6f GA\n",
@@ -1132,7 +1133,7 @@ int commander_main(int argc, char *argv[])
 		daemon_task = task_spawn("commander",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 50,
-					 4096,
+					 4000,
 					 commander_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;
@@ -1392,7 +1393,7 @@ int commander_thread_main(int argc, char *argv[])
 		else if (battery_voltage_valid && (bat_remain < 0.1f /* XXX MAGIC NUMBER */) && (false == critical_battery_voltage_actions_done && true == low_battery_voltage_actions_done)) {
 			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				critical_battery_voltage_actions_done = true;
-				mavlink_log_critical(mavlink_fd, "[commander] EMERGENCY! CIRITICAL BATTERY!");
+				mavlink_log_critical(mavlink_fd, "[commander] EMERGENCY! CRITICAL BATTERY!");
 				state_machine_emergency(stat_pub, &current_status, mavlink_fd);
 			}
 

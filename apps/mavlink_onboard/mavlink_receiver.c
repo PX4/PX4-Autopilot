@@ -65,13 +65,8 @@
 #include <systemlib/param/param.h>
 #include <systemlib/systemlib.h>
 
-#include "waypoints.h"
-#include "mavlink_log.h"
-#include "orb_topics.h"
-#include "missionlib.h"
-#include "mavlink_hil.h"
-#include "mavlink_parameters.h"
 #include "util.h"
+#include "orb_topics.h"
 
 /* XXX should be in a header somewhere */
 pthread_t receive_start(int uart);
@@ -150,7 +145,7 @@ handle_message(mavlink_message_t *msg)
 
 		struct optical_flow_s f;
 
-		f.timestamp = flow.time_usec;
+		f.timestamp = hrt_absolute_time();
 		f.flow_raw_x = flow.flow_x;
 		f.flow_raw_y = flow.flow_y;
 		f.flow_comp_x_m = flow.flow_comp_m_x;
@@ -166,6 +161,8 @@ handle_message(mavlink_message_t *msg)
 			/* publish */
 			orb_publish(ORB_ID(optical_flow), flow_pub, &f);
 		}
+
+		printf("GOT FLOW!\n");
 	}
 
 	if (msg->msgid == MAVLINK_MSG_ID_SET_MODE) {
@@ -205,10 +202,6 @@ handle_message(mavlink_message_t *msg)
 		vicon_position.x = pos.x;
 		vicon_position.y = pos.y;
 		vicon_position.z = pos.z;
-
-		vicon_position.roll = pos.roll;
-		vicon_position.pitch = pos.pitch;
-		vicon_position.yaw = pos.yaw;
 
 		if (vicon_position_pub <= 0) {
 			vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
@@ -281,112 +274,6 @@ handle_message(mavlink_message_t *msg)
 		}
 	}
 
-	/*
-	 * Only decode hil messages in HIL mode.
-	 *
-	 * The HIL mode is enabled by the HIL bit flag
-	 * in the system mode. Either send a set mode
-	 * COMMAND_LONG message or a SET_MODE message
-	 */
-
-	if (mavlink_hil_enabled) {
-
-		if (msg->msgid == MAVLINK_MSG_ID_HIL_STATE) {
-
-			mavlink_hil_state_t hil_state;
-			mavlink_msg_hil_state_decode(msg, &hil_state);
-
-			/* Calculate Rotation Matrix */
-			//TODO: better clarification which app does this, atm we have a ekf for quadrotors which does this, but there is no such thing if fly in fixed wing mode
-
-			if(mavlink_system.type == MAV_TYPE_FIXED_WING) {
-				//TODO: asuming low pitch and roll for now
-				hil_attitude.R[0][0] = cosf(hil_state.yaw);
-				hil_attitude.R[0][1] = sinf(hil_state.yaw);
-				hil_attitude.R[0][2] = 0.0f;
-
-				hil_attitude.R[1][0] = -sinf(hil_state.yaw);
-				hil_attitude.R[1][1] = cosf(hil_state.yaw);
-				hil_attitude.R[1][2] = 0.0f;
-
-				hil_attitude.R[2][0] = 0.0f;
-				hil_attitude.R[2][1] = 0.0f;
-				hil_attitude.R[2][2] = 1.0f;
-
-				hil_attitude.R_valid = true;
-			}
-
-			hil_global_pos.lat = hil_state.lat;
-			hil_global_pos.lon = hil_state.lon;
-			hil_global_pos.alt = hil_state.alt / 1000.0f;
-			hil_global_pos.vx = hil_state.vx / 100.0f;
-			hil_global_pos.vy = hil_state.vy / 100.0f;
-			hil_global_pos.vz = hil_state.vz / 100.0f;
-
-
-			/* set timestamp and notify processes (broadcast) */
-			hil_global_pos.timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
-
-			hil_attitude.roll = hil_state.roll;
-			hil_attitude.pitch = hil_state.pitch;
-			hil_attitude.yaw = hil_state.yaw;
-			hil_attitude.rollspeed = hil_state.rollspeed;
-			hil_attitude.pitchspeed = hil_state.pitchspeed;
-			hil_attitude.yawspeed = hil_state.yawspeed;
-
-			/* set timestamp and notify processes (broadcast) */
-			hil_attitude.counter++;
-			hil_attitude.timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(vehicle_attitude), pub_hil_attitude, &hil_attitude);
-		}
-
-		if (msg->msgid == MAVLINK_MSG_ID_MANUAL_CONTROL) {
-			mavlink_manual_control_t man;
-			mavlink_msg_manual_control_decode(msg, &man);
-
-			struct rc_channels_s rc_hil;
-			memset(&rc_hil, 0, sizeof(rc_hil));
-			static orb_advert_t rc_pub = 0;
-
-			rc_hil.timestamp = hrt_absolute_time();
-			rc_hil.chan_count = 4;
-
-			rc_hil.chan[0].scaled = man.x / 1000.0f;
-			rc_hil.chan[1].scaled = man.y / 1000.0f;
-			rc_hil.chan[2].scaled = man.r / 1000.0f;
-			rc_hil.chan[3].scaled = man.z / 1000.0f;
-
-			struct manual_control_setpoint_s mc;
-			static orb_advert_t mc_pub = 0;
-
-			int manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-
-			/* get a copy first, to prevent altering values that are not sent by the mavlink command */
-			orb_copy(ORB_ID(manual_control_setpoint), manual_sub, &mc);
-
-			mc.timestamp = rc_hil.timestamp;
-			mc.roll = man.x / 1000.0f;
-			mc.pitch = man.y / 1000.0f;
-			mc.yaw = man.r / 1000.0f;
-			mc.throttle = man.z / 1000.0f;
-
-			/* fake RC channels with manual control input from simulator */
-
-
-			if (rc_pub == 0) {
-				rc_pub = orb_advertise(ORB_ID(rc_channels), &rc_hil);
-			} else {
-				orb_publish(ORB_ID(rc_channels), rc_pub, &rc_hil);
-			}
-
-			if (mc_pub == 0) {
-				mc_pub = orb_advertise(ORB_ID(manual_control_setpoint), &mc);
-			} else {
-				orb_publish(ORB_ID(manual_control_setpoint), mc_pub, &mc);
-			}
-		}
-	}
 }
 
 
@@ -403,7 +290,7 @@ receive_thread(void *arg)
 
 	mavlink_message_t msg;
 
-	prctl(PR_SET_NAME, "mavlink uart rcv", getpid());
+	prctl(PR_SET_NAME, "mavlink offb rcv", getpid());
 
 	while (!thread_should_exit) {
 
@@ -419,12 +306,6 @@ receive_thread(void *arg)
 				if (mavlink_parse_char(chan, ch, &msg, &status)) { //parse the char
 					/* handle generic messages and commands */
 					handle_message(&msg);
-
-					/* Handle packet with waypoint component */
-					mavlink_wpm_message_handler(&msg, &global_pos, &local_pos);
-
-					/* Handle packet with parameter component */
-					mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
 				}
 			} while (nread > 0);
 		}

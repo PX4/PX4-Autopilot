@@ -32,7 +32,7 @@ if exist(filePath, 'file')
     fileSize = fileInfo.bytes;
     
     fid = fopen(filePath, 'r');
-    elements = int64(fileSize./(16*4+8))/4
+    elements = int64(fileSize./(8+(3+3+3+1+1+1+4+8+1+3+3+3+3+9+6+4+6)*4))
     
     for i=1:elements       
         % timestamp
@@ -79,6 +79,15 @@ if exist(filePath, 'file')
         
         % RotMatrix (9 channels)
         sensors(i,39:47) = fread(fid, 9, 'float', 0, 'ieee-le');
+
+        % vicon position (6 channels)
+        sensors(i,48:53) = fread(fid, 6, 'float', 0, 'ieee-le');
+
+        % actuator control effective (4 channels) 
+        sensors(i,54:57) = fread(fid, 4, 'float', 0, 'ieee-le');
+
+        % optical flow (6 values) 
+        sensors(i,58:63) = fread(fid, 6, 'float', 0, 'ieee-le');
     end
     time_us = sensors(elements,1) - sensors(1,1);
     time_s = time_us*1e-6

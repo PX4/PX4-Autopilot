@@ -1,7 +1,9 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *           @author Julian Oes <joes@student.ethz.ch>
+ *           @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,16 +35,18 @@
  ****************************************************************************/
 
 /**
- * @file vehicle_vicon_position.h
- * Definition of the raw VICON Motion Capture position
+ * @file vehicle_global_position_setpoint.h
+ * Definition of the global WGS84 position setpoint uORB topic.
  */
 
-#ifndef TOPIC_VEHICLE_VICON_POSITION_H_
-#define TOPIC_VEHICLE_VICON_POSITION_H_
+#ifndef TOPIC_VEHICLE_GLOBAL_POSITION_SET_TRIPLET_H_
+#define TOPIC_VEHICLE_GLOBAL_POSITION_SET_TRIPLET_H_
 
 #include <stdint.h>
 #include <stdbool.h>
 #include "../uORB.h"
+
+#include "vehicle_global_position_setpoint.h"
 
 /**
  * @addtogroup topics
@@ -50,22 +54,18 @@
  */
 
 /**
- * Fused local position in NED.
+ * Global position setpoint triplet in WGS84 coordinates.
+ *
+ * This are the three next waypoints (or just the next two or one).
  */
-struct vehicle_vicon_position_s
+struct vehicle_global_position_set_triplet_s
 {
-	uint64_t timestamp;			/**< time of this estimate, in microseconds since system start */
-	bool valid;				/**< true if position satisfies validity criteria of estimator */
+	bool previous_valid;
+	bool next_valid;
 
-	float x;				/**< X positin in meters in NED earth-fixed frame */
-	float y;				/**< X positin in meters in NED earth-fixed frame */
-	float z;				/**< Z positin in meters in NED earth-fixed frame (negative altitude) */
-	float roll;
-	float pitch;
-	float yaw;
-
-	// TODO Add covariances here
-
+	struct vehicle_global_position_setpoint_s previous;
+	struct vehicle_global_position_setpoint_s current;
+	struct vehicle_global_position_setpoint_s next;
 };
 
 /**
@@ -73,6 +73,6 @@ struct vehicle_vicon_position_s
  */
 
 /* register this as object request broker structure */
-ORB_DECLARE(vehicle_vicon_position);
+ORB_DECLARE(vehicle_global_position_set_triplet);
 
 #endif

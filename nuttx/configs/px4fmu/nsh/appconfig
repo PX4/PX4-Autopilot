@@ -54,6 +54,7 @@ CONFIGURED_APPS += systemcmds/mixer
 CONFIGURED_APPS += systemcmds/eeprom
 CONFIGURED_APPS += systemcmds/param
 CONFIGURED_APPS += systemcmds/bl_update
+CONFIGURED_APPS += systemcmds/preflight_check
 #CONFIGURED_APPS += systemcmds/calibration
 
 # Tutorial code from
@@ -68,6 +69,7 @@ CONFIGURED_APPS += systemcmds/bl_update
 CONFIGURED_APPS += uORB
 
 CONFIGURED_APPS += mavlink
+CONFIGURED_APPS += mavlink_onboard
 CONFIGURED_APPS += gps
 CONFIGURED_APPS += commander
 CONFIGURED_APPS += sdlog

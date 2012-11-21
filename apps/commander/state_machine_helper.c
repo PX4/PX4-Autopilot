@@ -238,11 +238,8 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 void publish_armed_status(const struct vehicle_status_s *current_status) {
 	struct actuator_armed_s armed;
 	armed.armed = current_status->flag_system_armed;
-	/* lock down actuators if required */
-	// XXX FIXME Currently any loss of RC will completely disable all actuators
-	// needs proper failsafe
-	armed.lockdown = ((current_status->rc_signal_lost && current_status->offboard_control_signal_lost)
-	 || current_status->flag_hil_enabled) ? true : false;
+	/* lock down actuators if required, only in HIL */
+	armed.lockdown = (current_status->flag_hil_enabled) ? true : false;
 	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 	orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 }
@@ -260,7 +257,9 @@ void state_machine_emergency_always_critical(int status_pub, struct vehicle_stat
 		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_GROUND_ERROR);
 
 	} else if (current_status->state_machine == SYSTEM_STATE_AUTO || current_status->state_machine == SYSTEM_STATE_MANUAL) {
-		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MISSION_ABORT);
+		
+		// DO NOT abort mission
+		//do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MISSION_ABORT);
 
 	} else {
 		fprintf(stderr, "[commander] Unknown system state: #%d\n", current_status->state_machine);

@@ -59,10 +59,13 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_vicon_position.h>
+#include <uORB/topics/optical_flow.h>
 
 #include <systemlib/systemlib.h>
 
@@ -295,10 +298,13 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		struct vehicle_attitude_setpoint_s att_sp;
 		struct actuator_outputs_s act_outputs;
 		struct actuator_controls_s act_controls;
+		struct actuator_controls_effective_s act_controls_effective;
 		struct vehicle_command_s cmd;
 		struct vehicle_local_position_s local_pos;
 		struct vehicle_global_position_s global_pos;
 		struct vehicle_gps_position_s gps_pos;
+		struct vehicle_vicon_position_s vicon_pos;
+		struct optical_flow_s flow;
 	} buf;
 	memset(&buf, 0, sizeof(buf));
 
@@ -308,10 +314,13 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		int att_sub;
 		int spa_sub;
 		int act_0_sub;
-		int controls0_sub;
+		int controls_0_sub;
+		int controls_effective_0_sub;
 		int local_pos_sub;
 		int global_pos_sub;
 		int gps_pos_sub;
+		int vicon_pos_sub;
+		int flow_sub;
 	} subs;
 
 	/* --- MANAGEMENT - LOGGING COMMAND --- */
@@ -353,8 +362,15 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	/* --- ACTUATOR CONTROL VALUE --- */
 	/* subscribe to ORB for actuator control */
-	subs.controls0_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
-	fds[fdsc_count].fd = subs.controls0_sub;
+	subs.controls_0_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	fds[fdsc_count].fd = subs.controls_0_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- ACTUATOR CONTROL EFFECTIVE VALUE --- */
+	/* subscribe to ORB for actuator control */
+	subs.controls_effective_0_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE);
+	fds[fdsc_count].fd = subs.controls_effective_0_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -376,6 +392,20 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	/* subscribe to ORB for global position */
 	subs.gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 	fds[fdsc_count].fd = subs.gps_pos_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- VICON POSITION --- */
+	/* subscribe to ORB for vicon position */
+	subs.vicon_pos_sub = orb_subscribe(ORB_ID(vehicle_vicon_position));
+	fds[fdsc_count].fd = subs.vicon_pos_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- FLOW measurements --- */
+	/* subscribe to ORB for flow measurements */
+	subs.flow_sub = orb_subscribe(ORB_ID(optical_flow));
+	fds[fdsc_count].fd = subs.flow_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -481,7 +511,8 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 		/* copy sensors raw data into local buffer */
 		orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.raw);
-		orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.controls0_sub, &buf.act_controls);
+		orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.controls_0_sub, &buf.act_controls);
+		orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, subs.controls_effective_0_sub, &buf.act_controls_effective);
 		/* copy actuator data into local buffer */
 		orb_copy(ORB_ID(actuator_outputs_0), subs.act_0_sub, &buf.act_outputs);
 		orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.spa_sub, &buf.att_sp);
@@ -489,6 +520,8 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		orb_copy(ORB_ID(vehicle_local_position), subs.local_pos_sub, &buf.local_pos);
 		orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
 		orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
+		orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
+		orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
 
 		#pragma pack(push, 1)
 		struct {
@@ -507,6 +540,9 @@ int sdlog_thread_main(int argc, char *argv[]) {
 			int32_t gps_raw_position[3]; //latitude [degrees] north, longitude [degrees] east, altitude above MSL [millimeter]
 			float attitude[3]; //pitch, roll, yaw [rad]
 			float rotMatrix[9]; //unitvectors
+			float vicon[6];
+			float control_effective[4]; //roll, pitch, yaw [-1..1], thrust [0..1]
+			float flow[6]; // flow raw x, y, flow metric x, y, flow ground dist, flow quality
 		} sysvector = {
 			.timestamp = buf.raw.timestamp,
 			.gyro = {buf.raw.gyro_rad_s[0], buf.raw.gyro_rad_s[1], buf.raw.gyro_rad_s[2]},
@@ -523,13 +559,16 @@ int sdlog_thread_main(int argc, char *argv[]) {
 			.local_position = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z},
 			.gps_raw_position = {buf.gps_pos.lat, buf.gps_pos.lon, buf.gps_pos.alt},
 			.attitude = {buf.att.pitch, buf.att.roll, buf.att.yaw},
-			.rotMatrix = {buf.att.R[0][0], buf.att.R[0][1], buf.att.R[0][2], buf.att.R[1][0], buf.att.R[1][1], buf.att.R[1][2], buf.att.R[2][0], buf.att.R[2][1], buf.att.R[2][2]}
+			.rotMatrix = {buf.att.R[0][0], buf.att.R[0][1], buf.att.R[0][2], buf.att.R[1][0], buf.att.R[1][1], buf.att.R[1][2], buf.att.R[2][0], buf.att.R[2][1], buf.att.R[2][2]},
+			.vicon = {buf.vicon_pos.x, buf.vicon_pos.y, buf.vicon_pos.z, buf.vicon_pos.roll, buf.vicon_pos.pitch, buf.vicon_pos.yaw},
+			.control_effective = {buf.act_controls_effective.control_effective[0], buf.act_controls_effective.control_effective[1], buf.act_controls_effective.control_effective[2], buf.act_controls_effective.control_effective[3]},
+			.flow = {buf.flow.flow_raw_x, buf.flow.flow_raw_y, buf.flow.flow_comp_x_m, buf.flow.flow_comp_y_m, buf.flow.ground_distance_m, buf.flow.quality}
 		};
 		#pragma pack(pop)
 
 		sysvector_bytes += write(sysvector_file, (const char*)&sysvector, sizeof(sysvector));
 
-		usleep(10000);   //10000 corresponds in reality to ca. 76 Hz
+		usleep(3500);   // roughly 150 Hz
 	}
 
 	fsync(sysvector_file);

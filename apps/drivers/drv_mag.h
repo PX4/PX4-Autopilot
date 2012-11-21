@@ -108,4 +108,7 @@ ORB_DECLARE(sensor_mag);
 /** excite strap */
 #define MAGIOCEXSTRAP		_MAGIOC(6)
 
+/** perform self test and report status */
+#define MAGIOCSELFTEST		_MAGIOC(7)
+
 #endif /* _DRV_MAG_H */

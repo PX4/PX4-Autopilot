@@ -151,6 +151,7 @@ private:
 	int		_baro_sub;			/**< raw baro data subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
+	int 		_manual_control_sub;			/**< notification of manual control updates */
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_manual_control_pub;		/**< manual control signal topic */
@@ -341,6 +342,7 @@ Sensors::Sensors() :
 	_baro_sub(-1),
 	_vstatus_sub(-1),
 	_params_sub(-1),
+	_manual_control_sub(-1),
 
 	/* publications */
 	_sensor_pub(-1),
@@ -903,6 +905,9 @@ Sensors::ppm_poll()
 
 		struct manual_control_setpoint_s manual_control;
 
+		/* get a copy first, to prevent altering values */
+		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sub, &manual_control);
+
 		/* require at least four channels to consider the signal valid */
 		if (rc_input.channel_count < 4)
 			return;
@@ -1023,6 +1028,7 @@ Sensors::task_main()
 	_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
+	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
@@ -1052,20 +1058,18 @@ Sensors::task_main()
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 
 	/* advertise the manual_control topic */
-	{
-		struct manual_control_setpoint_s manual_control;
-		manual_control.mode = MANUAL_CONTROL_MODE_ATT_YAW_RATE;
-		manual_control.roll = 0.0f;
-		manual_control.pitch = 0.0f;
-		manual_control.yaw = 0.0f;
-		manual_control.throttle = 0.0f;
-		manual_control.aux1_cam_pan_flaps = 0.0f;
-		manual_control.aux2_cam_tilt = 0.0f;
-		manual_control.aux3_cam_zoom = 0.0f;
-		manual_control.aux4_cam_roll = 0.0f;
+	struct manual_control_setpoint_s manual_control;
+	manual_control.mode = MANUAL_CONTROL_MODE_ATT_YAW_POS;
+	manual_control.roll = 0.0f;
+	manual_control.pitch = 0.0f;
+	manual_control.yaw = 0.0f;
+	manual_control.throttle = 0.0f;
+	manual_control.aux1_cam_pan_flaps = 0.0f;
+	manual_control.aux2_cam_tilt = 0.0f;
+	manual_control.aux3_cam_zoom = 0.0f;
+	manual_control.aux4_cam_roll = 0.0f;
 
-		_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
-	}
+	_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
 
 	/* advertise the rc topic */
 	{
