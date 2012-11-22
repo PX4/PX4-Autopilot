@@ -2058,6 +2058,16 @@ config STM32_PHYADDR
 	---help---
 		The 5-bit address of the PHY on the board.  Default: 1
 
+config STM32_PHYINIT
+	bool "Board-specific PHY Initialization"
+	default n
+	---help---
+		Some boards require specialized initialization of the PHY before it can be used.
+		This may include such things as configuring GPIOs, resetting the PHY, etc.  If
+		STM32_PHYINIT is defined in the configuration then the board specific logic must
+		provide stm32_phyinitialize();  The STM32 Ethernet driver will call this function
+		one time before it first uses the PHY.
+
 config STM32_MII
 	bool "Use MII interface"
 	default n

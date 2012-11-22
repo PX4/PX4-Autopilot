@@ -403,30 +403,6 @@ unlink.sh
   script so that it uses the NTFS mklink command.  But I have never
   tried that
 
-prebuild.py
------------
-
-  This is a Python script contributed by Darcy Gong that automates many
-  build actions:
-
-    Nuttx configure utils v 0.3
-      usage: tools/prebuild.py [-abcdfhmr] [-b boardname] [-l number]\n'%(program_name)
-        -c, --clean      : Will execute "make clean" command.
-        -d, --distclean  : Will execute "make distclean" command.
-        -l, --cleanlevel : Will execute "make clean"(value of 1) or "make distclean"(value of 2) command.
-        -f, --fixcfg     : The configuration correction nuttx.cfg defconfig configuration items.
-        -a, --auto       : Equivalent parameters -d and -f.
-        -b, --boardname  : The boardname configuration.
-        -r, --mkromfs    : Make Romfs.
-        -m, --make       : Make now.
-        -h, --help       : Help Message.
-
-      example:'
-         usage 1 :  tools/prebuild.py -b fire-stm32v2/nsh
-         usage 2 :  tools/prebuild.py -f -b fire-stm32v2/nsh
-         usage 3 :  tools/prebuild.py -a -b fire-stm32v2/nsh
-         usage 4 :  tools/prebuild.py -l 1 -f -b fire-stm32v2/nsh
-
 mkimage.sh
 ----------
 

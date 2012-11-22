@@ -65,6 +65,7 @@ while [ ! -z "$1" ]; do
 		echo "		Enable script debug"
 		echo "	-h"
 		echo "		Shows this help text and exits."
+		exit 0
 		;;
 	* )
 		break;

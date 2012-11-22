@@ -85,6 +85,9 @@ ifeq ($(CONFIG_WATCHDOG),y)
 CSRCS		+= up_watchdog.c
 endif
 
+ifeq ($(CONFIG_STM32_PHYINIT),y)
+CSRCS		+= up_phyinit.c
+endif
 
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 

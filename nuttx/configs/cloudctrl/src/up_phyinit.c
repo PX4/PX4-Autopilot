@@ -1,8 +1,10 @@
 /************************************************************************************
- * arch/arm/src/stm32/stm32_eth.h
+ * configs/cloudctrl/src/up_phyinit.c
+ * arch/arm/src/board/up_phyinit.c
  *
- *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *           Darcy Gong <darcy.gong@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,88 +35,37 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_STM32_STM32_ETH_H
-#define __ARCH_ARM_SRC_STM32_STM32_ETH_H
-
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
 
-#include "chip.h"
+#include "stm32_gpio.h"
+#include "stm32_eth.h"
 
-#if STM32_NETHERNET > 0
+#include "cloudctrl-internal.h"
 
-#include "chip/stm32_eth.h"
+/************************************************************************************
+ * Definitions
+ ************************************************************************************/
 
-#ifndef __ASSEMBLY__
+/************************************************************************************
+ * Private Functions
+ ************************************************************************************/
 
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
+#if defined(CONFIG_PHY_DM9161) && defined(CONFIG_STM32_PHYINIT)
+int stm32_phy_boardinitialize(int intf)
+{
+  /* Configure the DM9161 PHY reset pin and take it out of reset */
 
-/************************************************************************************
- * Function: stm32_ethinitialize
- *
- * Description:
- *   Initialize the Ethernet driver for one interface.  If the STM32 chip supports
- *   multiple Ethernet controllers, then board specific logic must implement
- *   up_netinitialize() and call this function to initialize the desired interfaces.
- *
- * Parameters:
- *   intf - In the case where there are multiple EMACs, this value identifies which
- *   EMAC is to be initialized.
- *
- * Returned Value:
- *   OK on success; Negated errno on failure.
- *
- * Assumptions:
- *
- ************************************************************************************/
-
-#if STM32_NETHERNET > 1
-EXTERN int stm32_ethinitialize(int intf);
-#endif
-
-/************************************************************************************
- * Function: stm32_phy_boardinitialize
- *
- * Description:
- *   Some boards require specialized initialization of the PHY before it can be used.
- *   This may include such things as configuring GPIOs, resetting the PHY, etc.  If
- *   CONFIG_STM32_PHYINIT is defined in the configuration then the board specific
- *   logic must provide stm32_phyinitialize();  The STM32 Ethernet driver will call
- *   this function one time before it first uses the PHY.
- *
- * Parameters:
- *   intf - Always zero for now.
- *
- * Returned Value:
- *   OK on success; Negated errno on failure.
- *
- * Assumptions:
- *
- ************************************************************************************/
-
-#ifdef CONFIG_STM32_PHYINIT
-EXTERN int stm32_phy_boardinitialize(int intf);
-#endif
-
-#undef EXTERN
-#if defined(__cplusplus)
+  stm32_configgpio(GPIO_DM9161_RET);
+  stm32_gpiowrite(GPIO_DM9161_RET, true);
+  return 0;
 }
 #endif
-
-#endif /* __ASSEMBLY__ */
-#endif /* STM32_NETHERNET > 0 */
-#endif /* __ARCH_ARM_SRC_STM32_STM32_ETH_H */
 

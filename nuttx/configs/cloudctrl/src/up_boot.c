@@ -56,16 +56,6 @@
  * Private Functions
  ************************************************************************************/
 
-#ifdef CONFIG_PHY_DM9161
-static inline void stm232_configdm9161(void)
-{
-  stm32_configgpio(GPIO_DM9161_RET);
-  stm32_gpiowrite(GPIO_DM9161_RET, true);
-}
-# else
-#  define stm232_configdm9161()
-#endif
-
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
@@ -93,10 +83,6 @@ void stm32_boardinitialize(void)
     }
 #endif
 
-  /* Configure the DM9161 PHY reset pin and take it out of reset */
-
-  stm232_configdm9161();
-  
   /* Initialize USB is 1) USBDEV is selected, 2) the USB controller is not
    * disabled, and 3) the weak function stm32_usbinitialize() has been brought
    * into the build.

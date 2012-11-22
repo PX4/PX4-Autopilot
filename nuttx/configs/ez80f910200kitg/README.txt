@@ -107,4 +107,8 @@ available:
 
         CONFIG_APPS_DIR="..\apps"
 
+      NOTE:  If you need to change the toolchain path used in Make.defs,
+      you will need to use the short 8.3 filenames to avoid spaces.  On
+      my change C:\PROGRA~1\ is C:\PROGRA~2\ is C:\Program Files (x86)\
+
 Check out any README.txt files in these <sub-directory>s.
