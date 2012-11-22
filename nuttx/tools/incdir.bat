@@ -55,16 +55,34 @@ if "%1"=="" (
   echo ERROR: Missing compiler name
   goto :Usage
 )
+
+set ccpath=%1
 shift
 
-rem Generate the compiler include path directives.  Easy since only MinGW is
-rem supported
+set compiler=
+for /F %%i in ("%ccpath%") do set compiler=%%~ni
 
 if "%1"=="" (
   echo ERROR: Missing directory paths
   goto :Usage
 )
 
+rem Check for some well known, non-GCC Windows native tools that require
+rem a special output format as well as special paths
+
+:GetFormat
+set fmt=std
+if "%compiler%"=="ez8cc" goto :SetZdsFormt
+if "%compiler%"=="zneocc" goto :SetZdsFormt
+if "%compiler%"=="ez80cc" goto :SetZdsFormt
+goto :GeneratePaths
+
+:SetZdsFormt
+set fmt=zds
+
+rem Generate the compiler include path directives.
+
+:GeneratePaths
 set response=
 
 :DirLoop
@@ -78,11 +96,24 @@ if not exist %1 (
   goto :Usage
 )
 
+if "%fmt%"=="zds" goto :GenerateZdsPath
+
 if "%response"=="" (
   set response=-I "%1"
 ) else (
   set response=%response% -I "%1"
 )
+goto :EndOfDirLoop
+
+:GenerateZdsPath
+
+if "%response"=="" (
+  set response=-usrinc:%1
+) else (
+  set response=%response%;%1
+)
+
+:EndOfDirLoop
 shift
 goto :DirLoop
 

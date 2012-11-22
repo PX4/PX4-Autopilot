@@ -51,9 +51,9 @@ ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 
   # CFLAGs
 
-  ARCHASMINCLUDES = -include:'$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)'
-  EARCHASMINCLUDES = -include:'$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)'
-  ARCHSTDINCLUDES = -stdinc:"$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)"
+  ARCHASMINCLUDES = -include:$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)
+  EARCHASMINCLUDES = -include:$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)
+  ARCHSTDINCLUDES = -stdinc:$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)
   ARCHUSRINCLUDES = -usrinc:.
 else
   WINTOOL := y
@@ -169,17 +169,18 @@ HEXEXT = .hex
 # object files into an archive
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+
 define PREPROCESS
 	@echo CPP: $1->$2
 	$(Q) "$(CPP)" $(CPPFLAGS) $1 -o $2
 endef
 
 define COMPILE
-	$(Q) "$(CC)" $(CFLAGS) $1
+	$(Q) "$(CC)" $(CFLAGS)  ${shell echo $1 | sed -e "s/\//\\/g"}
 endef
 
 define ASSEMBLE
-	$(Q) "$(AS)" $(AFLAGS) $1
+	$(Q) "$(AS)" $(AFLAGS) ${shell echo $1 | sed -e "s/\//\\/g"}
 endef
 
 define ARCHIVE
@@ -195,20 +196,20 @@ define CLEAN
 	$(Q) if exist *.lod (del /f /q *.lod)
 	$(Q) if exist *.lst (del /f /q *.lst)
 endef
+
 else
+
 define PREPROCESS
 	@echo "CPP: $1->$2"
 	$(Q) "$(CPP)" $(CPPFLAGS) $1 -o $2
 endef
 
 define COMPILE
-	@#echo "CC: $1"
-	$(Q) (wfile=`cygpath -w "$1"`; "$(CC)" $(CFLAGS) $$wfile)
+	$(Q) "$(CC)" $(CFLAGS)  ${shell echo $1 | sed -e "s/\//\\/g"}
 endef
 
 define ASSEMBLE
-	@#echo "AS: $1"
-	$(Q) (wfile=`cygpath -w "$1"`; "$(AS)" $(AFLAGS) $$wfile)
+	$(Q) "$(AS)" $(AFLAGS) ${shell echo $1 | sed -e "s/\//\\/g"}
 endef
 
 define ARCHIVE

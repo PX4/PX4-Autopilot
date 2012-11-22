@@ -36,38 +36,38 @@
 -include $(TOPDIR)/Make.defs
 
 ifeq ($(WINTOOL),y)
-INCDIROPT		= -w
+INCDIROPT = -w
 endif
-CFLAGS			+= ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)sched}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" "$(TOPDIR)$(DELIM)sched"}
 
 # Basic BINFMT source files 
 
-BINFMT_ASRCS	=
-BINFMT_CSRCS	= binfmt_globals.c binfmt_register.c binfmt_unregister.c \
-				  binfmt_loadmodule.c binfmt_unloadmodule.c binfmt_execmodule.c \
-				  binfmt_exec.c binfmt_dumpmodule.c
+BINFMT_ASRCS =
+BINFMT_CSRCS = binfmt_globals.c binfmt_register.c binfmt_unregister.c \
+			   binfmt_loadmodule.c binfmt_unloadmodule.c binfmt_execmodule.c \
+			   binfmt_exec.c binfmt_dumpmodule.c
 
 # Symbol table source files
 
-BINFMT_CSRCS	+= symtab_findbyname.c symtab_findbyvalue.c \
-				   symtab_findorderedbyname.c symtab_findorderedbyvalue.c
+BINFMT_CSRCS += symtab_findbyname.c symtab_findbyvalue.c \
+			    symtab_findorderedbyname.c symtab_findorderedbyvalue.c
 
 # Add configured binary modules
 
-VPATH			= 
-SUBDIRS			=
-DEPPATH			= --dep-path .
+VPATH = 
+SUBDIRS =
+DEPPATH = --dep-path .
 
 include libnxflat$(DELIM)Make.defs
 include libelf$(DELIM)Make.defs
 
-BINFMT_AOBJS	= $(BINFMT_ASRCS:.S=$(OBJEXT))
-BINFMT_COBJS	= $(BINFMT_CSRCS:.c=$(OBJEXT))
+BINFMT_AOBJS = $(BINFMT_ASRCS:.S=$(OBJEXT))
+BINFMT_COBJS = $(BINFMT_CSRCS:.c=$(OBJEXT))
 
-BINFMT_SRCS		= $(BINFMT_ASRCS) $(BINFMT_CSRCS)
-BINFMT_OBJS		= $(BINFMT_AOBJS) $(BINFMT_COBJS)
+BINFMT_SRCS = $(BINFMT_ASRCS) $(BINFMT_CSRCS)
+BINFMT_OBJS = $(BINFMT_AOBJS) $(BINFMT_COBJS)
 
-BIN				= libbinfmt$(LIBEXT)
+BIN = libbinfmt$(LIBEXT)
 
 all: $(BIN)
 

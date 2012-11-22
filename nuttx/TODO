@@ -32,7 +32,7 @@ nuttx/
   (0)  ARM/LPC43x (arch/arm/src/lpc43xx/)
   (3)  ARM/STR71x (arch/arm/src/str71x/)
   (3)  ARM/LM3S6918 (arch/arm/src/lm3s/)
-  (6)  ARM/STM32 (arch/arm/src/stm32/)
+  (4)  ARM/STM32 (arch/arm/src/stm32/)
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
   (4)  8051 / MCS51 (arch/8051/)
@@ -1349,11 +1349,6 @@ o ARM/LM3S6918 (arch/arm/src/lm3s/)
 o ARM/STM32 (arch/arm/src/stm32/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  Title:       NOR FLASH DRIVER
-  Description: NOR Flash driver with FTL layer to support a file system.
-  Status:      Open
-  Priority:    Low
-
   Title:       USBSERIAL ISSUES
   Description  A USB device-side driver is in place but not well tested.  At
                present, the apps/examples/usbserial test sometimes fails.  The situation
@@ -1376,23 +1371,12 @@ o ARM/STM32 (arch/arm/src/stm32/)
   Status:      Open
   Priority:    Medium-High
   
-  Title:       FSMC EXTERNAL MEMORY UNTESTED
-  Description: FSMC external memory support is untested
-  Status:      Open
-  Priority:    Low
-
   Title:       DMA EXTENSIONS
   Description: DMA logic needs to be extended.  DMA2, Channel 5, will not work
                because the DMA2 channels 4 & 5 share the same interrupt.
   Status:      Open
   Priority:    Low until someone needs DMA1, Channel 5 (ADC3, UART4_TX, TIM5_CH1, or
                TIM8_CH2).
-
-  Title:       UNFINISHED DRIVERS
-  Description: The following drivers are incomplete:  DAC.  The following drivers
-               are untested:  DMA on the F4, CAN.
-  Status:      Open
-  Priority:    Medium
 
   Title:       F4 SDIO MULTI-BLOCK TRANSFER FAILURES
   Description: If you use a large I/O buffer to access the file system, then the
@@ -1416,6 +1400,16 @@ o ARM/STM32 (arch/arm/src/stm32/)
                prevent this now.
   Status:      Open
   Priority:    Low (I am not even sure if this is a problem yet).
+
+  Title:       DMA FROM EXTERNAL, FSMC MEMORY
+  Description: I have seen a problem on F1 where all SDIO DMAs work exist for
+               write DMAs from FSMC memory (i.e., from FSMC memory to SDIO).
+               Read transfers work fine (SDIO to FSMC memory).  The failure is
+               a data underrun error with zero bytes of data transferred.  The
+               workaround for now is to use DMA buffers allocted from internal
+               SRAM.
+  Status:      Open
+  Priority:    Low
 
 o AVR (arch/avr)
   ^^^^^^^^^^^^^^
