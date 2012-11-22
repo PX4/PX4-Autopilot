@@ -43,8 +43,11 @@
 
 #include <stdlib.h>
 
-/* The HoTT receiver demands a minimum 5ms period of silence after delivering its request. */
-#define POST_READ_DELAY_IN_USECS	4500 
+/* The HoTT receiver demands a minimum 5ms period of silence after delivering its request. 
+ * Note that the value specified here is lower than 5000 (5ms) as time is lost constucting
+ * the message after the read which takes some milliseconds. 
+ */
+#define POST_READ_DELAY_IN_USECS	4000 
 /* A pause of 3ms is required between each uint8_t sent back to the HoTT receiver. Much lower
    values can be used in practise though. */
 #define POST_WRITE_DELAY_IN_USECS	1500
