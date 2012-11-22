@@ -51,25 +51,32 @@ void messages_init(void)
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 }
 
-void build_eam_response(struct eam_module_msg *msg)
+void build_eam_response(char **buffer, int *size)
 {
 	/* get a local copy of the current sensor values */
 	struct sensor_combined_s raw;
 	memset(&raw, 0, sizeof(raw));
 	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
 	
-	memset(msg, 0, sizeof(*msg));	
+	struct eam_module_msg msg;
+	*size = sizeof(msg);
+	memset(&msg, 0, *size);	
 
-	msg->start = START_BYTE;
-	msg->eam_sensor_id = ELECTRIC_AIR_MODULE;
-	msg->sensor_id = EAM_SENSOR_ID;
-	msg->temperature1 = (uint8_t)(raw.baro_temp_celcius + 20);
-	msg->temperature2 = TEMP_ZERO_CELSIUS;
-	msg->main_voltage_L = (uint8_t)(raw.battery_voltage_v * 10);
+	msg.start = START_BYTE;
+	msg.eam_sensor_id = ELECTRIC_AIR_MODULE;
+	msg.sensor_id = EAM_SENSOR_ID;
+	msg.temperature1 = (uint8_t)(raw.baro_temp_celcius + 20);
+	msg.temperature2 = TEMP_ZERO_CELSIUS;
+	msg.main_voltage_L = (uint8_t)(raw.battery_voltage_v * 10);
 
 	uint16_t alt = (uint16_t)(raw.baro_alt_meter + 500);
-	msg->altitude_L = (uint8_t)alt & 0xff;
-	msg->altitude_H = (uint8_t)(alt >> 8) & 0xff;
+	msg.altitude_L = (uint8_t)alt & 0xff;
+	msg.altitude_H = (uint8_t)(alt >> 8) & 0xff;
 	
-	msg->stop = STOP_BYTE;
+	msg.stop = STOP_BYTE;
+
+	//*chunk = malloc( sizeof(char) * length);
+	//char tmp_buffer[*size];
+	*buffer = malloc(sizeof(char) * *size);
+	memcpy(*buffer, &msg, *size);
 }

@@ -82,8 +82,8 @@ __EXPORT int hott_telemetry_main(int argc, char *argv[]);
  */
 int hott_telemetry_thread_main(int argc, char *argv[]);
 
-static int read_data(int uart);
-static int send_data(int uart, const struct eam_module_msg *msg);
+static int read_data(int uart, int *id);
+static int send_data(int uart, char *buffer, int size);
 static void uart_disable_rx(void);
 static void uart_disable_tx(void);
 static uint32_t get_uart_address(const char *device);
@@ -135,7 +135,7 @@ static int open_uart(const char *uart_name, struct termios *uart_config_original
 	return uart;
 }
 
-int read_data(int uart)
+int read_data(int uart, int *id)
 {
         uart_disable_tx();
 
@@ -148,12 +148,11 @@ int read_data(int uart)
 		read(uart, &mode, 1);
 		
 		/* read the poll ID (device ID being targetted) */
-		char id;
-		read(uart, &id, 1);
+		read(uart, id, 1);
 
-		/* if we have a binary mode request for our sensor ID let's run with it. */
-		if (mode != BINARY_MODE_REQUEST_ID || id != ELECTRIC_AIR_MODULE) {
-			return ERROR;	// not really an error, rather uninteresting.
+		/* if we have a binary mode request */
+		if (mode != BINARY_MODE_REQUEST_ID) {
+			return ERROR;
 		}
 	} else {
 		printf("Timeout\n");
@@ -162,18 +161,13 @@ int read_data(int uart)
 	return OK;
 }
 
-int send_data(int uart, const struct eam_module_msg *msg)
+int send_data(int uart, char *buffer, int size)
 {
 	usleep(POST_READ_DELAY_IN_USECS);
 
 	uart_disable_rx();
 
 	uint16_t checksum = 0;
-  	int size = sizeof(*msg);
-  	char buffer[size];
-
-	memcpy(buffer, msg, size);
-
 	for(int i = 0; i < size; i++) {
 		if (i == size - 1) {
 			/* Set the checksum: the first uint8_t is taken as the checksum. */
@@ -260,11 +254,19 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 
 	messages_init();
 
-	struct eam_module_msg msg;
+	char *buffer;
+	int size = 0;
+	int id = 0;
 	while (!thread_should_exit) {
-		build_eam_response(&msg);
-		if (read_data(uart) == OK) {
-			send_data(uart, &msg);
+		if (read_data(uart, &id) == OK) {
+			switch(id) {
+				case ELECTRIC_AIR_MODULE:
+					build_eam_response(&buffer, &size);
+					break;
+				default:
+					continue;	// Not a module we support.
+			}
+			send_data(uart, buffer, size);
 		}
 	}
 

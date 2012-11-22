@@ -35,7 +35,7 @@
 /**
  * @file messages.h
  *
- * Graupner HoTT Telemetry message generator.
+ * Graupner HoTT Telemetry message generation.
  *
  */
 #ifndef MESSAGES_H_
@@ -109,6 +109,6 @@ struct eam_module_msg {
 };
 
 void messages_init(void);
-void build_eam_response(struct eam_module_msg *msg);
+void build_eam_response(char **buffer, int *size);
 
 #endif /* MESSAGES_H_ */
