@@ -115,8 +115,8 @@ static int open_uart(const char *uart_name, struct termios *uart_config_original
 	int termios_state;
 
 	/* Back up the original uart configuration to restore it after exit */
+	char msg[80];
 	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-		char msg[80];
 		sprintf(msg, "Error getting baudrate / termios config for %s: %d\n", uart_name, termios_state);
 		close(uart);
 		FATAL_MSG(msg);
@@ -130,14 +130,13 @@ static int open_uart(const char *uart_name, struct termios *uart_config_original
 
 	/* Set baud rate */
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		char msg[80];
-		sprintf(msg, "Error setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+		sprintf(msg, "Error setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", 
+			uart_name, termios_state);
 		close(uart);
 		FATAL_MSG(msg);
 	}
 
 	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
-		char msg[80];
 		sprintf(msg, "Error setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
 		close(uart);
 		FATAL_MSG(msg);
