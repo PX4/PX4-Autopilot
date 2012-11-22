@@ -46,7 +46,7 @@
  * control is currently not provided by Nuttx (yet) so we need to do this 
  * at the hardware level for now.
  *
- * TODO: Add support for at least the vario and GPS sensors.  
+ * TODO: Add support for at least the vario and GPS sensor data.  
  *
  */
 
@@ -72,6 +72,13 @@ static int thread_should_exit = false;		/**< Deamon exit flag */
 static int thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
 static uint32_t uart_addr;			/**< The regsitry address of the UART for direct access */
+static char *daemon_name = "hott_telemetry";
+static char *commandline_usage = "usage: hott_telemetry start|status|stop [-d <device>]";
+
+/* A little console messaging experiment - console helper macro */
+#define FATAL_MSG(_msg)		fprintf(stderr, "[%s] %s\n", daemon_name, _msg); exit(1);
+#define ERROR_MSG(_msg)		fprintf(stderr, "[%s] %s\n", daemon_name, _msg);
+#define INFO_MSG(_msg)		printf("[%s] %s\n", daemon_name, _msg);
 /**
  * Deamon management function.
  */
@@ -98,8 +105,9 @@ static int open_uart(const char *uart_name, struct termios *uart_config_original
 	uart = open(uart_name, O_RDWR | O_NOCTTY);
 
 	if (uart < 0) {
-		fprintf(stderr, "[hott_telemetry] ERROR opening port: %s\n", uart_name);
-		return ERROR;
+		char msg[80];
+		sprintf(msg, "Error opening port: %s\n", uart_name);
+		FATAL_MSG(msg);
 	}
 
 	/* Try to set baud rate */
@@ -108,9 +116,10 @@ static int open_uart(const char *uart_name, struct termios *uart_config_original
 
 	/* Back up the original uart configuration to restore it after exit */
 	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-		fprintf(stderr, "[hott_telemetry] ERROR getting baudrate / termios config for %s: %d\n", uart_name, termios_state);
+		char msg[80];
+		sprintf(msg, "Error getting baudrate / termios config for %s: %d\n", uart_name, termios_state);
 		close(uart);
-		return ERROR;
+		FATAL_MSG(msg);
 	}
 
 	/* Fill the struct for the new configuration */
@@ -121,15 +130,17 @@ static int open_uart(const char *uart_name, struct termios *uart_config_original
 
 	/* Set baud rate */
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		fprintf(stderr, "[hott_telemetry] ERROR setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
+		char msg[80];
+		sprintf(msg, "Error setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", uart_name, termios_state);
 		close(uart);
-		return ERROR;
+		FATAL_MSG(msg);
 	}
 
 	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
-		fprintf(stderr, "[hott_telemetry] ERROR setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+		char msg[80];
+		sprintf(msg, "Error setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
 		close(uart);
-		return ERROR;
+		FATAL_MSG(msg);
 	}
 
 	return uart;
@@ -155,7 +166,7 @@ int read_data(int uart, int *id)
 			return ERROR;
 		}
 	} else {
-		printf("Timeout\n");
+		ERROR_MSG("UART timeout on TX/RX port");
 		return ERROR;
 	}
 	return OK;
@@ -217,11 +228,10 @@ uint32_t get_uart_address(const char *device)
 
 int hott_telemetry_thread_main(int argc, char *argv[]) 
 {
-	printf("[hott_telemetry] starting\n");
+	INFO_MSG("starting");
 
 	thread_running = true;
 
-	char *commandline_usage = "\tusage: hott_telemetry start|status|stop [-d device]\n";
 	char *device = "/dev/ttyS2";		/**< Default telemetry port: UART5 */
 
 	/* read commandline arguments */
@@ -232,7 +242,9 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 
 			} else {
 				thread_running = false;
-				errx(1, "missing parameter to -m 1..4\n %s", commandline_usage);
+				ERROR_MSG("missing parameter to -d");
+				ERROR_MSG(commandline_usage);
+				exit(1);
 			}
 		}
 	}
@@ -242,7 +254,7 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 	int uart = open_uart(device, &uart_config_original);
 
 	if (uart < 0) {
-		fprintf(stderr, "[hott_telemetry] Failed opening HoTT UART, exiting.\n");
+		ERROR_MSG("Failed opening HoTT UART, exiting.");
 		thread_running = false;
 		exit(ERROR);
 	}
@@ -270,7 +282,7 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 		}
 	}
 
-	printf("[hott_telemetry] exiting.\n");
+	INFO_MSG("exiting");
 
 	close(uart);
 
@@ -279,28 +291,21 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 	return 0;
 }
 
-static void
-usage(const char *reason)
-{
-	if (reason)
-		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: deamon {start|stop|status} [-p <additional params>]\n\n");
-	exit(1);
-}
-
 /**
  * Process command line arguments and tart the daemon.
  */
 int hott_telemetry_main(int argc, char *argv[])
 {
-	if (argc < 1)
-		usage("missing command");
+	if (argc < 1) {
+		ERROR_MSG("missing command");
+		ERROR_MSG(commandline_usage);
+		exit(1);
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("deamon already running\n");
-			/* this is not an error */
+			INFO_MSG("deamon already running");
 			exit(0);
 		}
 
@@ -321,14 +326,15 @@ int hott_telemetry_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\thott_telemetry is running\n");
+			INFO_MSG("daemon is running");
 		} else {
-			printf("\thott_telemetry not started\n");
+			INFO_MSG("daemon not started");
 		}
 		exit(0);
 	}
 
-	usage("unrecognized command");
+	ERROR_MSG("unrecognized command");
+	ERROR_MSG(commandline_usage);
 	exit(1);
 }
 
