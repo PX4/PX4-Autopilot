@@ -43,13 +43,19 @@
 
 #include <stdlib.h>
 
+/* The buffer size used to store messages. This must be at least as big as the number of
+ * fields in the largest message struct. 
+ */
+#define MESSAGE_BUFFER_SIZE 50
+
 /* The HoTT receiver demands a minimum 5ms period of silence after delivering its request. 
  * Note that the value specified here is lower than 5000 (5ms) as time is lost constucting
  * the message after the read which takes some milliseconds. 
  */
 #define POST_READ_DELAY_IN_USECS	4000 
 /* A pause of 3ms is required between each uint8_t sent back to the HoTT receiver. Much lower
-   values can be used in practise though. */
+ * values can be used in practise though. 
+ */
 #define POST_WRITE_DELAY_IN_USECS	1500
 
 // Protocol constants.
@@ -112,6 +118,6 @@ struct eam_module_msg {
 };
 
 void messages_init(void);
-void build_eam_response(char **buffer, int *size);
+void build_eam_response(uint8_t *buffer, int *size);
 
 #endif /* MESSAGES_H_ */

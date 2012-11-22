@@ -90,7 +90,7 @@ __EXPORT int hott_telemetry_main(int argc, char *argv[]);
 int hott_telemetry_thread_main(int argc, char *argv[]);
 
 static int read_data(int uart, int *id);
-static int send_data(int uart, char *buffer, int size);
+static int send_data(int uart, uint8_t *buffer, int size);
 static void uart_disable_rx(void);
 static void uart_disable_tx(void);
 static uint32_t get_uart_address(const char *device);
@@ -171,7 +171,7 @@ int read_data(int uart, int *id)
 	return OK;
 }
 
-int send_data(int uart, char *buffer, int size)
+int send_data(int uart, uint8_t *buffer, int size)
 {
 	usleep(POST_READ_DELAY_IN_USECS);
 
@@ -265,14 +265,14 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 
 	messages_init();
 
-	char *buffer;
+	uint8_t buffer[MESSAGE_BUFFER_SIZE];
 	int size = 0;
 	int id = 0;
 	while (!thread_should_exit) {
 		if (read_data(uart, &id) == OK) {
 			switch(id) {
 				case ELECTRIC_AIR_MODULE:
-					build_eam_response(&buffer, &size);
+					build_eam_response(buffer, &size);
 					break;
 				default:
 					continue;	// Not a module we support.

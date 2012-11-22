@@ -51,7 +51,7 @@ void messages_init(void)
 	sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 }
 
-void build_eam_response(char **buffer, int *size)
+void build_eam_response(uint8_t *buffer, int *size)
 {
 	/* get a local copy of the current sensor values */
 	struct sensor_combined_s raw;
@@ -75,8 +75,5 @@ void build_eam_response(char **buffer, int *size)
 	
 	msg.stop = STOP_BYTE;
 
-	//*chunk = malloc( sizeof(char) * length);
-	//char tmp_buffer[*size];
-	*buffer = malloc(sizeof(char) * *size);
-	memcpy(*buffer, &msg, *size);
+	memcpy(buffer, &msg, *size);
 }
