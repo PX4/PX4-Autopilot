@@ -89,6 +89,9 @@ CONFIG_ARCH_CALIBRATION=n
 CONFIG_ARCH_DMA=n
 CONFIG_ARMV7M_CMNVECTOR=y
 
+# default to a generic arm-none-eabi toolchain
+CONFIG_ARMV7M_TOOLCHAIN_GNU_EABI=y
+
 #
 # JTAG Enable settings (by default JTAG-DP and SW-DP are disabled):
 #
