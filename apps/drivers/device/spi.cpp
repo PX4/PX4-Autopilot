@@ -86,7 +86,7 @@ SPI::init()
 {
 	int ret = OK;
 
-	// attach to the spi bus
+	/* attach to the spi bus */
 	if (_dev == nullptr)
 		_dev = up_spiinitialize(_bus);
 
@@ -96,7 +96,10 @@ SPI::init()
 		goto out;
 	}
 
-	// call the probe function to check whether the device is present
+	/* deselect device to ensure high to low transition of pin select */
+	SPI_SELECT(_dev, _device, false);
+
+	/* call the probe function to check whether the device is present */
 	ret = probe();
 
 	if (ret != OK) {
@@ -104,7 +107,7 @@ SPI::init()
 		goto out;
 	}
 
-	// do base class init, which will create the device node, etc.
+	/* do base class init, which will create the device node, etc. */
 	ret = CDev::init();
 
 	if (ret != OK) {
@@ -112,7 +115,7 @@ SPI::init()
 		goto out;
 	}
 
-	// tell the workd where we are
+	/* tell the workd where we are */
 	log("on SPI bus %d at %d", _bus, _device);
 
 out:
