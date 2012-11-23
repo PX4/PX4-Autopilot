@@ -164,9 +164,10 @@ mc_thread_main(int argc, char *argv[])
 	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
 	float failsafe_throttle = 0.0f;
 
-
+	/* simple mode will only activate if the associated command line switch has been provided */
+	bool simple_mode_enabled = false;
+	/* store the heading at the moment simple mode is activated */
 	float initial_heading = 0.0f;
-	int debug_log_counter = 0;
 
 	while (!thread_should_exit) {
 
@@ -285,13 +286,15 @@ mc_thread_main(int argc, char *argv[])
 						} else {
 							rc_loss_first_time = true;
 
-							/* if simple mode is enabled then rotate roll/pitch with respect to the heading */
 							float roll = manual.roll;
 							float pitch = manual.pitch;
-							if (state.flag_control_simple_mode_enabled) {
+
+							/* if simple mode is enabled then rotate roll/pitch controls with respect to the
+							 * changing in heading from its original position. 
+							 */
+							if (simple_mode_enabled && state.flag_control_simple_mode_enabled) {
 								if (!flag_control_simple_mode_enabled || !flag_system_armed) {
 									initial_heading = att.yaw;
-									printf("init_head: %2.3f", initial_heading); 
 								}
 
 								float theta = initial_heading - att.yaw;
@@ -302,10 +305,6 @@ mc_thread_main(int argc, char *argv[])
 								/* rotate the roll/pitch inputs */
 								roll  = manual.roll  * cos_theta - manual.pitch * sin_theta;
 								pitch = manual.roll  * sin_theta + manual.pitch * cos_theta;
-
-								if (++debug_log_counter % 50 == 0) {
-									printf("att.yaw: %2.3f init_head: %2.3f delta: %2.3f roll: %2.3f newroll: %2.3f pitch: %2.3f newpitch: %2.3f\n", att.yaw, initial_heading, theta, manual.roll, roll, manual.pitch, pitch);
-								}
 			    				}
 
 							att_sp.roll_body = roll;
@@ -418,9 +417,10 @@ usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: multirotor_att_control [-m <mode>] [-t] {start|status|stop}\n");
+	fprintf(stderr, "usage: multirotor_att_control [-m <mode>] [-t] [-s] {start|status|stop}\n");
 	fprintf(stderr, "    <mode> is 'rates' or 'attitude'\n");
 	fprintf(stderr, "    -t enables motor test mode with 10%% thrust\n");
+	fprintf(stderr, "    -s enables simple mode\n");
 	exit(1);
 }
 
@@ -429,10 +429,14 @@ int multirotor_att_control_main(int argc, char *argv[])
 	int	ch;
 	unsigned int optioncount = 0;
 
-	while ((ch = getopt(argc, argv, "tm:")) != EOF) {
+	while ((ch = getopt(argc, argv, "tms:")) != EOF) {
 		switch (ch) {
 		case 't':
 			motor_test_mode = true;
+			optioncount += 1;
+			break;
+		case 's':
+			simple_mode_enabled = true;
 			optioncount += 1;
 			break;
 		case ':':
