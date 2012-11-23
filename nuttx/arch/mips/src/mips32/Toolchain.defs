@@ -42,6 +42,8 @@
 # command-line selection.
 #
 ifeq ($(filter y, \
+      $(CONFIG_PIC32MX_PINGUINOL) \
+      $(CONFIG_MIPS32_TOOLCHAIN_PINGUINOL) \
       $(CONFIG_MIPS32_TOOLCHAIN_GNU_ELF) \
     ),y)
   CONFIG_MIPS32_TOOLCHAIN ?= GNU_ELF
@@ -82,12 +84,6 @@ ifeq ($(filter y, \
     ),y)
   CONFIG_MIPS32_TOOLCHAIN ?= PINGUINOW
 endif
-ifeq ($(filter y, \
-      $(CONFIG_PIC32MX_PINGUINOL) \
-      $(CONFIG_MIPS32_TOOLCHAIN_PINGUINOL) \
-    ),y)
-  CONFIG_MIPS32_TOOLCHAIN ?= PINGUINOL
-endif
 
 #
 # Supported toolchains
@@ -104,6 +100,7 @@ endif
 #
 
 # Generic GNU mip32 toolchain on OS X or Linux
+# including Pinguino mips-elf toolchain
 
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),GNU_ELF)
   CROSSDEV = mips-elf-
@@ -131,9 +128,9 @@ endif
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),MICROCHIPW)
   CROSSDEV = pic32-
   # CROSSDEV = xc32-
-ifneq ($(CONFIG_WINDOWS_NATIVE),y)
-  WINTOOL = y
-endif
+  ifneq ($(CONFIG_WINDOWS_NATIVE),y)
+    WINTOOL = y
+  endif
   MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
@@ -158,9 +155,9 @@ endif
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),MICROCHIPW_LITE)
   CROSSDEV = pic32-
   # CROSSDEV = xc32-
-ifneq ($(CONFIG_WINDOWS_NATIVE),y)
-  WINTOOL = y
-endif
+  ifneq ($(CONFIG_WINDOWS_NATIVE),y)
+    WINTOOL = y
+  endif
   # MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mprocessor=elf32pic32mx -mno-float -mlong32 -membedded-data
   ARCHPICFLAGS = -fpic -membedded-pic
@@ -183,20 +180,9 @@ endif
 
 ifeq ($(CONFIG_MIPS32_TOOLCHAIN),PINGUINOW)
   CROSSDEV = mips-
-ifneq ($(CONFIG_WINDOWS_NATIVE),y)
-  WINTOOL = y
-endif
-  MAXOPTIMIZATION = -O2
-  ARCHCPUFLAGS = -mlong32 -membedded-data -msoft-float -march=24kc -EL
-  ARCHPICFLAGS = -fpic -membedded-pic
-  LDFLAGS += -nostartfiles -nodefaultlibs
-  LDSCRIPT = mips-elf-debug.ld
-endif
-
-# Pinguino mips-elf toolchain under OS X or Linux
-
-ifeq ($(CONFIG_MIPS32_TOOLCHAIN),PINGUINOL)
-  CROSSDEV = mips-elf-
+  ifneq ($(CONFIG_WINDOWS_NATIVE),y)
+    WINTOOL = y
+  endif
   MAXOPTIMIZATION = -O2
   ARCHCPUFLAGS = -mlong32 -membedded-data -msoft-float -march=24kc -EL
   ARCHPICFLAGS = -fpic -membedded-pic

@@ -35,33 +35,7 @@
 
 include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
-
-# Setup for the selected toolchain
-
-ifeq ($(CONFIG_AVR_WINAVR),y)
-  # WinAVR toolchain under Windows/Cygwin
-  CROSSDEV = avr-
-  WINTOOL = y
-  MAXOPTIMIZATION = -O2
-  ARCHCPUFLAGS = -mmcu=atmega128
-  LDFLAGS += -nostartfiles -nodefaultlibs
-endif
-
-ifeq ($(CONFIG_AVR_LINUXGCC),y)
-  # GCC toolchain under Linux
-  CROSSDEV = avr-
-  MAXOPTIMIZATION = -O2
-  ARCHCPUFLAGS = -mmcu=atmega128
-  LDFLAGS += -nostartfiles -nodefaultlibs
-endif
-
-ifeq ($(CONFIG_AVR_BUILDROOT),y)
-  # NuttX buildroot GCC toolchain under Linux or Cygwin
-  CROSSDEV = avr-nuttx-elf-
-  MAXOPTIMIZATION = -O2
-  ARCHCPUFLAGS = -mmcu=atmega128
-  LDFLAGS += -nostartfiles -nodefaultlibs
-endif
+include ${TOPDIR}/arch/avr/src/avr/Toolchain.defs
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains

@@ -323,6 +323,12 @@ Additional signals available via Peripheral Pin Selections (PPS)
 Toolchains
 ==========
 
+  Note that in addition to the configuration options listed below, the
+  toolchain can be configured using the mconf utility ('make menuconfig')
+  or by passing CONFIG_MIPS32_TOOLCHAIN=<toolchain> to make, where
+  <toolchain> is one of GNU_ELF, MICROCHIPL, MICROCHIPW, MICROCHIPL_LITE,
+  MICROCHIPW_LITE, MICROCHIPOPENL or PINGUINOW as described below.
+
   MPLAB/C32
   ---------
 
@@ -376,7 +382,7 @@ Toolchains
      Note that the tools will have the prefix, mypic32- so, for example, the
      compiler will be called mypic32-gcc.
 
-  Pinguino mips-elf Toolchain
+  Pinguino mips-elf / Generic mips-elf Toolchain
   ---------------------------
 
   Another option is the mips-elf toolchain used with the Pinguino project.  This
@@ -390,11 +396,14 @@ Toolchains
   configurations.  Use one of these configuration options to select the Pinguino
   mips-elf toolchain:
 
-    CONFIG_PIC32MX_PINGUINOW - Pinguino mips-elf toolchain for Windows
-    CONFIG_PIC32MX_PINGUINOL - Pinguino mips toolchain for Linux
+    CONFIG_PIC32MX_PINGUINOW        - Pinguino mips-elf toolchain for Windows
+    CONFIG_MIPS32_TOOLCHAIN_GNU_ELF - mips-elf toolchain for Linux or OS X
 
   And set the path appropriately in the setenv.sh file.  These tool configurations
   are untested -- expect some additional integration issues.  Good luck!
+
+  This configuration will also work with any generic mips-elf GCC past version
+  4.6 or so.
 
   MPLAB/C32 vs MPLABX/X32
   -----------------------

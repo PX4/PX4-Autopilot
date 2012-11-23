@@ -35,20 +35,7 @@
 
 include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
-
-# Setup for the selected toolchain
-
-ifeq ($(CONFIG_AVR32_AVRTOOLSW),y)
-  # AVR Tools under Windows
-  CROSSDEV = avr32-
-  WINTOOL = y
-  ARCHCPUFLAGS = -mpart=uc3b0256
-endif
-ifeq ($(CONFIG_AVR32_AVRTOOLSL),y)
-  # AVR Tools under Linux
-  CROSSDEV = avr32-
-  ARCHCPUFLAGS = -mpart=uc3b0256
-endif
+include ${TOPDIR}/arch/avr/src/avr32/Toolchain.defs
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains

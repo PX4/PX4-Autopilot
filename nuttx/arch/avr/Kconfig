@@ -6,43 +6,6 @@
 if ARCH_AVR
 
 choice
-	prompt "Toolchain"
-	default AVR_BUILDROOT
-
-config AVR_WINAVR
-	bool "WinAVR"
-	---help---
-		For Cygwin development environment on Windows machines, you
-		can use WinAVR: http://sourceforge.net/projects/winavr/files/
-
-		It is assumed in some places that WinAVR is installed at
-		C:/WinAVR. Edit the setenv.sh file if this is not the case.
-
-		WARNING: There is an incompatible version of cygwin.dll in
-		the WinAVR/bin directory! Make sure that the path to the
-		correct cygwin.dll file precedes the path to the WinAVR
-		binaries!
-
-config AVR_LINUXGCC
-	bool "Linux GCC"
-	---help---
-		For Linux, there are widely available avr-gcc packages. On
-		Ubuntu, use: sudo apt-get install gcc-avr gdb-avr avr-libc
-
-config AVR_BUILDROOT
-	bool "Buildroot"
-	---help---
-		There is a DIY buildroot version for the AVR boards here:
-		http://sourceforge.net/projects/nuttx/files/buildroot/. See
-		the following section for details on building this toolchain.
-
-		It is assumed in some places that buildroot toolchain is
-		available at ../misc/buildroot/build_avr. Edit the setenv.sh
-		file if this is not the case.
-
-endchoice
-
-choice
 	prompt "Atmel AVR chip selection"
 	default ARCH_CHIP_AT32UC3B0256
 
@@ -110,11 +73,16 @@ config ARCH_CHIP
 	default "at32uc3"	if ARCH_AT32UC3
 
 source arch/avr/src/common/Kconfig
+
+if ARCH_FAMILY_AVR
 source arch/avr/src/avr/Kconfig
 source arch/avr/src/at90usb/Kconfig
 source arch/avr/src/atmega/Kconfig
+endif
+if ARCH_FAMILY_AVR32
 source arch/avr/src/avr32/Kconfig
 source arch/avr/src/at32uc3/Kconfig
+endif
 
 config AVR_USART0
 	bool "USART0 specific serial device driver settings"

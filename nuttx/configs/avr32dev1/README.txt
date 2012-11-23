@@ -112,7 +112,7 @@ PA17 and PA23 are avaiable from the AVR32DEV1:
 Development Environment
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-  Either Linux or Cygwin on Windows can be used for the development environment.
+  Linux, Mac OS X or Cygwin on Windows can be used for the development environment.
   The source has been built only using the GNU toolchain (see below).  Other
   toolchains will likely cause problems. Testing was performed using the Cygwin
   environment.
@@ -139,6 +139,16 @@ WinAVR:
   http://sourceforge.net/projects/winavr/files/.  WinAVR includes the
   AVR32 toolchain as well as the AVR toolchain and various support
   libraries and header files.
+
+AVR32 Toolchain Builder:
+
+  A third option is to build the toolchain yourself. For OS X and Linux systems,
+  this Makefile will build a complete gcc-4.4.3 toolchain:
+
+    https://github.com/jsnyder/avr32-toolchain
+
+  By default the toolchain installs into ${HOME}/avr-32-tools-<somedate> and
+  the bin subdirectory must be added to your path before compiling.
 
 IDEs
 ^^^^

@@ -212,4 +212,3 @@
   user-space work queues (someday) in order to accomplish that functionaliy.
   Submitted by Petteri Aimonen.
 
-  solutions

@@ -35,30 +35,7 @@
 
 include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
-
-# Setup for the selected toolchain
-
-ifeq ($(CONFIG_LPC31_CODESOURCERYW),y)
-  # CodeSourcery under Windows
-  CROSSDEV = arm-none-eabi-
-  WINTOOL = y
-  MAXOPTIMIZATION = -O2
-endif
-ifeq ($(CONFIG_LPC31_CODESOURCERYL),y)
-  # CodeSourcery under Linux
-  CROSSDEV = arm-none-eabi-
-  MAXOPTIMIZATION = -O2
-endif
-ifeq ($(CONFIG_LPC31_DEVKITARM),y)
-  # devkitARM under Windows
-  CROSSDEV = arm-eabi-
-  WINTOOL = y
-endif
-ifeq ($(CONFIG_LPC31_BUILDROOT),y)
-  # NuttX buildroot under Linux or Cygwin
-  CROSSDEV = arm-nuttx-elf-
-  MAXOPTIMIZATION = -Os
-endif
+include ${TOPDIR}/arch/arm/src/arm/Toolchain.defs
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains

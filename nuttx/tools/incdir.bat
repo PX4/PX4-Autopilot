@@ -36,14 +36,21 @@ rem
 rem Handle command line options
 
 set progname=%0
+set pathtype=user
 
 :ArgLoop
 
-rem [-d] [-w] [-h]. [-w] and [-d] Ignored for compatibility with incdir.sh
+rem [-d] [-w] [-s] [-h]. [-w] and [-d] Ignored for compatibility with incdir.sh
 
 if "%1"=="-d" goto :NextArg
 if "%1"=="-w" goto :NextArg
 if "%1"=="-h" goto :Usage
+
+if "%1"=="-s" (
+  set pathtype=system
+  goto :NextArg
+)
+
 goto :CheckCompiler
 
 :NextArg
@@ -97,21 +104,43 @@ if not exist %1 (
 )
 
 if "%fmt%"=="zds" goto :GenerateZdsPath
+if "%response%"=="" goto :FirstStdPath
+if "%pathtype%"=="system" goto :NextStdSystemPath
 
-if "%response"=="" (
-  set response=-I "%1"
-) else (
-  set response=%response% -I "%1"
-)
+set response=%response% -I "%1"
+goto :EndOfDirLoop
+
+:NextStdSystemPath
+
+set response=%response% -isystem "%1"
+goto :EndOfDirLoop
+
+:FirstStdPath
+
+if "%pathtype%"=="system" goto :FirstStdSystemPath
+set response=-I "%1"
+goto :EndOfDirLoop
+
+:FirstStdSystemPath
+
+set response=-isystem "%1"
 goto :EndOfDirLoop
 
 :GenerateZdsPath
 
-if "%response"=="" (
-  set response=-usrinc:%1
-) else (
-  set response=%response%;%1
-)
+if "%response%"=="" goto :FirstZdsPath
+set response=%response%;%1
+goto :EndOfDirLoop
+
+:FirstZdsPath
+
+if "%pathtype%"=="system" goto :FirstZdsSystemPath
+set response=-usrinc:%1
+goto :EndOfDirLoop
+
+:FirstZdsSystemPath
+
+set response=-stdinc:%1
 
 :EndOfDirLoop
 shift
@@ -120,7 +149,7 @@ goto :DirLoop
 :Usage
 echo %progname% is a tool for flexible generation of include path arguments for a
 echo variety of different compilers in a variety of compilation environments
-echo USAGE: %progname% [-w] [-d] [-h] ^<compiler-path^> ^<dir1^> [^<dir2^> [^<dir3^> ...]]
+echo USAGE: %progname% [-w] [-d] [-s] [-h] ^<compiler-path^> ^<dir1^> [^<dir2^> [^<dir3^> ...]]
 echo Where:
 echo   ^<compiler-path^>
 echo       The full path to your compiler
@@ -128,6 +157,9 @@ echo   ^<dir1^> [^<dir2^> [^<dir3^> ...]]
 echo       A list of include directories
 echo   -w, -d
 echo       For compatibility with incdir.sh (ignored)
+echo   -s
+echo       Generate standard, system header file paths instead of normal user
+echo       header file paths.
 echo   -h
 echo       Shows this help text and exits.
 :End

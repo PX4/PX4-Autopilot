@@ -201,7 +201,13 @@ Toolchains
 
 There are several toolchain options.  However, testing has been performed
 using *only* the NuttX buildroot toolchain described below.  Therefore,
-the NuttX buildroot toolchain is the recommended choice:
+the NuttX buildroot toolchain is the recommended choice.
+
+The toolchain may be selected using the mconf tool (via 'make menuconfig'),
+by editing the existing configuration file (defconfig), or by overriding
+the toolchain on the make commandline with CONFIG_AVR_TOOLCHAIN=<toolchain>.
+
+The valid values for <toolchain> are BUILDROOT, CROSSPACK, LINUXGCC and WINAVR.
 
 Buildroot:
 
@@ -238,6 +244,14 @@ Linux:
 
   After configuring NuttX, make sure that CONFIG_AVR_LINUXGCC=y is set in your
   .config file.
+
+Mac OS X:
+
+  For Mac OS X, the CrossPack for AVR toolchain is available from:
+
+    http://www.obdev.at/products/crosspack/index.html
+
+  This toolchain is functionally equivalent to the Linux GCC toolchain.
 
 Windows Native Toolchains
 ^^^^^^^^^^^^^^^^^^^^^^^^^

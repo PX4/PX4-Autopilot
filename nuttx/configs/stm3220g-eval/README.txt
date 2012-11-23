@@ -26,7 +26,7 @@ Contents
 Development Environment
 =======================
 
-  Either Linux or Cygwin on Windows can be used for the development environment.
+  Linux, OS X or Cygwin on Windows can be used for the development environment.
   The source has been built only using the GNU toolchain (see below).  Other
   toolchains will likely cause problems. Testing was performed using the Cygwin
   environment because the Raisonance R-Link emulatator and some RIDE7 development tools
@@ -43,8 +43,9 @@ GNU Toolchain Options
   1. The CodeSourcery GNU toolchain,
   2. The Atollic Toolchain,
   3. The devkitARM GNU toolchain,
-  4. Raisonance GNU toolchain, or
-  5. The NuttX buildroot Toolchain (see below).
+  4. Raisonance GNU toolchain, 
+  5. The NuttX buildroot Toolchain (see below), or
+  6. Any generic arm-none-eabi GNU toolchain.
 
   Most testing has been conducted using the CodeSourcery toolchain for Windows and
   that is the default toolchain in most configurations.  To use the Atollic
@@ -59,9 +60,15 @@ GNU Toolchain Options
     CONFIG_STM32_DEVKITARM=y      : devkitARM under Windows
     CONFIG_STM32_RAISONANCE=y     : Raisonance RIDE7 under Windows
     CONFIG_STM32_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin (default)
+    CONFIG_ARMV7M_TOOLCHAIN_GNU_EABI : Generic arm-none-eabi toolchain
 
   If you change the default toolchain, then you may also have to modify the PATH in
   the setenv.h file if your make cannot find the tools.
+
+  The toolchain may also be set using the mconf utility (make menuconfig) or by
+  passing CONFIG_ARMV7M_TOOLCHAIN=<toolchain> to make, where <toolchain> is one
+  of CODESOURCERYW, CODESOURCERYL, ATOLLOC, DEVKITARM, RAISONANCE, BUILDROOT or
+  GNU_EABI as described above.
 
   NOTE: the CodeSourcery (for Windows), Atollic, devkitARM, and Raisonance toolchains are
   Windows native toolchains.  The CodeSourcey (for Linux) and NuttX buildroot
@@ -132,6 +139,26 @@ GNU Toolchain Options
   The devkitARM toolchain includes a version of MSYS make.  Make sure that the
   the paths to Cygwin's /bin and /usr/bin directories appear BEFORE the devkitARM
   path or will get the wrong version of make.
+
+  Generic arm-none-eabi GNU Toolchain
+  -----------------------------------
+  There are a number of toolchain projects providing support for the Cortex-M
+  class processors, including:
+
+    GCC ARM Embedded
+      https://launchpad.net/gcc-arm-embedded
+
+    Thumb2 Newlib Toolchain
+      https://github.com/EliasOenal/TNT
+
+    Summon ARM Toolchain
+      https://github.com/esden/summon-arm-toolchain
+
+    Yagarto
+      http://www.yagarto.de
+
+  Others exist for various Linux distributions, MacPorts, etc.  Any version
+  based on GCC 4.6.3 or later should work.
 
 IDEs
 ====

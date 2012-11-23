@@ -36,6 +36,7 @@
 
 progname=$0
 wintool=n
+pathtype=user
 usage="USAGE: $progname [-w] [-d] [-h] <compiler-path> <dir1> [<dir2> [<dir3> ...]]"
 advice="Try '$progname -h' for more information"
 
@@ -46,6 +47,9 @@ while [ ! -z "$1" ]; do
 		;;
 	-w )
 		wintool=y
+		;;
+	-s )
+		pathtype=system
 		;;
 	-h )
 		echo "$progname is a tool for flexible generation of include path arguments for a"
@@ -61,6 +65,9 @@ while [ ! -z "$1" ]; do
 		echo "	-w"
 		echo "		The compiler is a Windows native tool and requires Windows"
 		echo "		style pathnames like C:\\Program Files"
+		echo "	-s"
+		echo "		Generate standard, system header file paths instead of normal user"
+		echo "		header file paths."
 		echo "	-d"
 		echo "		Enable script debug"
 		echo "	-h"
@@ -158,9 +165,25 @@ exefile=`basename "$compiler"`
 # a special output format as well as special paths
 
 if [ "X$exefile" = "Xez8cc.exe" -o "X$exefile" = "Xzneocc.exe" -o "X$exefile" = "Xez80cc.exe" ]; then
-	fmt=userinc
+	fmt=zds
 else
 	fmt=std
+fi
+
+# Select system or user header file path command line option
+
+if [ "X$fmt" = "Xzds" ]; then
+	if [ "X$pathtype" = "Xsystem" ]; then
+		cmdarg=-stdinc:
+	else
+		cmdarg=-usrinc:
+	fi
+else
+	if [ "X$pathtype" = "Xsystem" ]; then
+		cmdarg=-isystem
+	else
+		cmdarg=-I
+	fi
 fi
 
 # Now process each directory in the directory list
@@ -186,26 +209,26 @@ for dir in $dirlist; do
 
 	# Handle the output using the selected format
 
-	if [ "X$fmt" = "Xuserinc" ]; then
+	if [ "X$fmt" = "Xzds" ]; then
 		# Treat the first directory differently
 
 		if [ -z "$response" ]; then
-			response="-usrinc:'"$path
+			response="${cmdarg}'"${path}
 		else
-			response=$response":$path"
+			response=${response}":${path}"
 		fi
 	else
 		# Treat the first directory differently
 
 		if [ -z "$response" ]; then
-			response=-I\"$path\"
+			response="${cmdarg} \"$path\""
 		else
-			response=$response" -I\"$path\""
+			response="${response} ${cmdarg} \"$path\""
 		fi
 	fi
 done
 
-if [ "X$fmt" = "Xuserinc" ]; then
+if [ "X$fmt" = "Xzds" ]; then
 	response=$response"'"
 fi
 

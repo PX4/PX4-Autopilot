@@ -6,4 +6,57 @@
 if ARCH_FAMILY_AVR
 comment "AVR Configuration Options"
 
+choice
+	prompt "Toolchain"
+	default AVR_WINAVR if HOST_WINDOWS
+	default AVR_BUILDROOT if HOST_LINUX
+	default AVR_CROSSPACK if HOST_OSX
+
+config AVR_WINAVR
+	bool "WinAVR"
+	depends on HOST_WINDOWS
+	---help---
+		For Cygwin development environment on Windows machines, you
+		can use WinAVR: http://sourceforge.net/projects/winavr/files/
+
+		It is assumed in some places that WinAVR is installed at
+		C:/WinAVR. Edit the setenv.sh file if this is not the case.
+
+		WARNING: There is an incompatible version of cygwin.dll in
+		the WinAVR/bin directory! Make sure that the path to the
+		correct cygwin.dll file precedes the path to the WinAVR
+		binaries!
+
+config AVR_LINUXGCC
+	bool "Linux GCC"
+	depends on HOST_LINUX
+	---help---
+		For Linux, there are widely available avr-gcc packages. On
+		Ubuntu, use: sudo apt-get install gcc-avr gdb-avr avr-libc
+
+config AVR_CROSSPACK
+	bool "CrossPack-AVR"
+	depends on HOST_OSX
+	---help---
+		For OS X, the AVR CrossPack toolchain is supported:
+		http://www.obdev.at/products/crosspack/index.html
+
+		It is assumed that /usr/local/CrossPack-AVR/bin is on the
+		user's path. Edit the setenv.sh file if this is not the
+		case.
+
+config AVR_BUILDROOT
+	bool "Buildroot"
+	depends on HOST_LINUX || HOST_WINDOWS
+	---help---
+		There is a DIY buildroot version for the AVR boards here:
+		http://sourceforge.net/projects/nuttx/files/buildroot/. See
+		the following section for details on building this toolchain.
+
+		It is assumed in some places that buildroot toolchain is
+		available at ../misc/buildroot/build_avr. Edit the setenv.sh
+		file if this is not the case.
+
+endchoice
+
 endif

@@ -34,8 +34,9 @@ GNU Toolchain Options
 
   1. The CodeSourcery GNU toolchain,
   2. The devkitARM GNU toolchain,
-  3. Raisonance GNU toolchain, or
-  4. The NuttX buildroot Toolchain (see below).
+  3. Raisonance GNU toolchain,
+  4. The NuttX buildroot Toolchain (see below), or
+  5. Any generic arm-none-eabi GNU toolchain.
 
   All testing has been conducted using the NuttX buildroot toolchain.  However,
   the make system is setup to default to use the devkitARM toolchain.  To use
@@ -47,9 +48,15 @@ GNU Toolchain Options
     CONFIG_LPC31_CODESOURCERYL=y  : CodeSourcery under Linux
     CONFIG_LPC31_DEVKITARM=y      : devkitARM under Windows
     CONFIG_LPC31_BUILDROOT=y      : NuttX buildroot under Linux or Cygwin (default)
+    CONFIG_ARM_TOOLCHAIN_GNU_EABI : Generic arm-none-eabi toolchain
 
   If you are not using CONFIG_LPC31_BUILDROOT, then you may also have to modify
   the PATH in the setenv.h file if your make cannot find the tools.
+
+  The toolchain may also be set using the mconf utility (make menuconfig) or by
+  passing CONFIG_ARM_TOOLCHAIN=<toolchain> to make, where <toolchain> is one
+  of CODESOURCERYW, CODESOURCERYL, DEVKITARM, BUILDROOT or GNU_EABI as described
+  above.
 
   NOTE: the CodeSourcery (for Windows), devkitARM, and Raisonance toolchains are
   Windows native toolchains.  The CodeSourcey (for Linux) and NuttX buildroot
@@ -86,6 +93,23 @@ GNU Toolchain Options
   NOTE 2: The devkitARM toolchain includes a version of MSYS make.  Make sure that
   the paths to Cygwin's /bin and /usr/bin directories appear BEFORE the devkitARM
   path or will get the wrong version of make.
+
+  Generic arm-none-eabi GNU Toolchain
+  -----------------------------------
+  There are a number of toolchain projects providing support for ARMv4/v5
+  class processors, including:
+
+    GCC ARM Embedded
+      https://launchpad.net/gcc-arm-embedded
+
+    Summon ARM Toolchain
+      https://github.com/esden/summon-arm-toolchain
+
+    Yagarto
+      http://www.yagarto.de
+
+  Others exist for various Linux distributions, MacPorts, etc.  Any version
+  based on GCC 4.6.3 or later should work.
 
 IDEs
 ^^^^
