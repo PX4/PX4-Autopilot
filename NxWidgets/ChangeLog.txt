@@ -211,4 +211,6 @@
   using the internal work queues from user space.  I have decided to implemented
   user-space work queues (someday) in order to accomplish that functionaliy.
   Submitted by Petteri Aimonen.
-
+* NxWidgets:CText and NxWidgets:CNumericEdite:  Fix some memory freeing bugs
+  (from Petteri Aimonen).
+  

@@ -101,11 +101,11 @@
  */
 
 #  if (defined(CONFIG_USART1_RXDMA) && defined(CONFIG_USART1_RS485)) || \
-      (defined(CONFIG_USART2_RXDMA) && defined(CONFIG_USART2_RS485)) ||  \
-      (defined(CONFIG_USART3_RXDMA) && defined(CONFIG_USART3_RS485)) ||  \
-      (defined(CONFIG_UART4_RXDMA) && defined(CONFIG_UART4_RS485)) ||  \
-      (defined(CONFIG_UART5_RXDMA) && defined(CONFIG_UART5_RS485)) ||  \
-      (defined(CONFIG_USART6_RXDMA) && defined(CONFIG_USART6_RS485)) \
+      (defined(CONFIG_USART2_RXDMA) && defined(CONFIG_USART2_RS485)) || \
+      (defined(CONFIG_USART3_RXDMA) && defined(CONFIG_USART3_RS485)) || \
+      (defined(CONFIG_UART4_RXDMA) && defined(CONFIG_UART4_RS485)) || \
+      (defined(CONFIG_UART5_RXDMA) && defined(CONFIG_UART5_RS485)) || \
+      (defined(CONFIG_USART6_RXDMA) && defined(CONFIG_USART6_RS485))
 #    error "RXDMA and RS-485 cannot be enabled at the same time for the same U[S]ART"
 #  endif
 

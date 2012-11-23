@@ -276,11 +276,14 @@ const int CText::getLineTrimmedLength(const int lineNumber) const
           length--;
         }
       while (iterator->moveToPrevious() && (length > 0));
+
+      delete iterator;
       return length;
     }
   
   // May occur if data has been horribly corrupted somewhere
 
+  delete iterator;
   return 0;
 }
 

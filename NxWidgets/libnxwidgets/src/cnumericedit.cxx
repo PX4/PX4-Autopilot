@@ -158,9 +158,11 @@ CNumericEdit::CNumericEdit(CWidgetControl *pWidgetControl, nxgl_coord_t x, nxgl_
 
 CNumericEdit::~CNumericEdit()
 {
-  delete m_label;
-  delete m_button_minus;
-  delete m_button_plus;
+  // CNxWidget destroys all children
+
+  m_label = 0;
+  m_button_minus = 0;
+  m_button_plus = 0;
 }
 
 void CNumericEdit::getPreferredDimensions(CRect &rect) const

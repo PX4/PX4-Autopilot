@@ -3675,3 +3675,9 @@
 	  file paths.
 	* nuttx/arch/arm/src/arm/Toolchain.defs: Add support for more ARM toolchains
 	  (from Mike Smith).
+	* arch/arm/src/stm32/stm32f40xxx_rcc.c:  Enabled FLASH prefetch (from Petteri
+	  Aimonen).
+	* graphics/nxtk/nxtk_filltrapwindow.c:  Correct an offset problem (from
+	  Peterri Aimonen).
+	* graphics/nxglib/nxglib_splitline.c:  Fix error in drawing of near horizontal
+	  lines (from Peterri Aimonen).
