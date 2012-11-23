@@ -51,6 +51,7 @@
 #include <fcntl.h>       /* Needed for open */
 #include <libgen.h>      /* Needed for basename */
 #include <errno.h>
+#include <debug.h>
 
 #include <nuttx/net/net.h>
 #include <nuttx/clock.h>
@@ -80,6 +81,12 @@
 #  endif
 #endif
 
+#ifdef CONFIG_HAVE_GETHOSTBYNAME
+#  include <netdb.h>
+#else
+#  include <apps/netutils/resolv.h>
+#endif
+
 #include "nsh.h"
 #include "nsh_console.h"
 
@@ -87,7 +94,15 @@
  * Definitions
  ****************************************************************************/
 
+/* Size of the ECHO data */
+
 #define DEFAULT_PING_DATALEN 56
+
+/* Get the larger value */
+
+#ifndef MAX
+#  define MAX(a,b) (a > b ? a : b)
+#endif
 
 /****************************************************************************
  * Private Types
@@ -262,14 +277,34 @@ int ifconfig_callback(FAR struct uip_driver_s *dev, void *arg)
 {
   struct nsh_vtbl_s *vtbl = (struct nsh_vtbl_s*)arg;
   struct in_addr addr;
+  bool is_running = false;
+  int ret;
 
-  nsh_output(vtbl, "%s\tHWaddr %s\n", dev->d_ifname, ether_ntoa(&dev->d_mac));
+  ret = uip_getifstatus(dev->d_ifname,&is_running);
+  if (ret != OK)
+    {
+      nsh_output(vtbl, "\tGet %s interface flags error: %d\n",
+                 dev->d_ifname, ret);
+    }
+
+  nsh_output(vtbl, "%s\tHWaddr %s at %s\n",
+             dev->d_ifname, ether_ntoa(&dev->d_mac), (is_running)?"UP":"DOWN");
+
   addr.s_addr = dev->d_ipaddr;
   nsh_output(vtbl, "\tIPaddr:%s ", inet_ntoa(addr));
+
   addr.s_addr = dev->d_draddr;
   nsh_output(vtbl, "DRaddr:%s ", inet_ntoa(addr));
+
   addr.s_addr = dev->d_netmask;
-  nsh_output(vtbl, "Mask:%s\n\n", inet_ntoa(addr));
+  nsh_output(vtbl, "Mask:%s\n", inet_ntoa(addr));
+
+#if defined(CONFIG_NSH_DHCPC) || defined(CONFIG_NSH_DNS)
+  resolv_getserver(&addr);
+  nsh_output(vtbl, "\tDNSaddr:%s\n", inet_ntoa(addr));
+#endif
+
+  nsh_output(vtbl, "\n");
   return OK;
 }
 
@@ -469,6 +504,54 @@ int cmd_get(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 #endif
 
 /****************************************************************************
+ * Name: cmd_ifup
+ ****************************************************************************/
+
+#ifndef CONFIG_NSH_DISABLE_IFUPDOWN
+int cmd_ifup(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
+{
+  FAR char *intf = NULL;
+  int ret;
+
+  if (argc != 2)
+    {
+      nsh_output(vtbl, "Please select nic_name:\n");
+      netdev_foreach(ifconfig_callback, vtbl);
+      return OK;
+    }
+
+  intf = argv[1];
+  ret  = uip_ifup(intf);
+  nsh_output(vtbl, "ifup %s...%s\n", intf, (ret == OK) ? "OK" : "Failed");
+  return ret;
+}
+#endif
+
+/****************************************************************************
+ * Name: cmd_ifdown
+ ****************************************************************************/
+
+#ifndef CONFIG_NSH_DISABLE_IFUPDOWN
+int cmd_ifdown(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
+{
+  FAR char *intf = NULL;
+  int ret;
+
+  if (argc != 2)
+    {
+      nsh_output(vtbl, "Please select nic_name:\n");
+      netdev_foreach(ifconfig_callback, vtbl);
+      return OK;
+    }
+
+  intf = argv[1];
+  ret = uip_ifdown(intf);
+  nsh_output(vtbl, "ifdown %s...%s\n", intf, (ret == OK) ? "OK" : "Failed");
+  return ret;
+}
+#endif
+
+/****************************************************************************
  * Name: cmd_ifconfig
  ****************************************************************************/
 
@@ -476,7 +559,17 @@ int cmd_get(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 int cmd_ifconfig(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
   struct in_addr addr;
-  in_addr_t ip;
+  in_addr_t gip;
+  int i;
+  FAR char *intf = NULL;
+  FAR char *hostip = NULL;
+  FAR char *gwip = NULL;
+  FAR char *mask = NULL;
+  FAR char *tmp = NULL;
+  FAR char *hw = NULL;
+  FAR char *dns = NULL;
+  bool badarg=false;
+  uint8_t mac[6];
 
   /* With one or no arguments, ifconfig simply shows the status of ethernet
    * device:
@@ -498,24 +591,142 @@ int cmd_ifconfig(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
    *    ifconfig nic_name ip_address
    */
 
+  if (argc > 2)
+    {
+      for(i = 0; i < argc; i++)
+        {
+          if (i == 1)
+            {
+              intf = argv[i];
+            }
+          else if (i == 2)
+            {
+              hostip = argv[i];
+            }
+          else
+            {
+              tmp = argv[i];
+              if (!strcmp(tmp, "dr") || !strcmp(tmp, "gw") || !strcmp(tmp, "gateway"))
+                {
+                  if (argc-1 >= i+1)
+                    {
+                      gwip = argv[i+1];
+                      i++;
+                    }
+                  else
+                    {
+                      badarg = true;
+                    }
+                }
+              else if(!strcmp(tmp, "netmask"))
+                {
+                  if (argc-1 >= i+1)
+                    {
+                      mask = argv[i+1];
+                      i++;
+                    }
+                  else
+                    {
+                      badarg = true;
+                    }
+                }
+              else if(!strcmp(tmp, "hw"))
+                {
+                  if (argc-1>=i+1)
+                    {
+                      hw = argv[i+1];
+                      i++;
+                      badarg = !uiplib_hwmacconv(hw, mac);
+                    }
+                  else
+                    {
+                      badarg = true;
+                    }
+                }
+              else if(!strcmp(tmp, "dns"))
+                {
+                  if (argc-1 >= i+1)
+                    {
+                      dns = argv[i+1];
+                      i++;
+                    }
+                  else
+                    {
+                      badarg = true;
+                    }
+                }
+            }
+        }
+    }
+
+  if (badarg)
+    {
+      nsh_output(vtbl, g_fmtargrequired, argv[0]);
+      return ERROR;
+    }
+
+  /* Set Hardware ethernet MAC addr */
+
+  if (hw)
+    {
+      ndbg("HW MAC: %s\n", hw);
+      uip_setmacaddr(intf, mac);
+    }
+
   /* Set host ip address */
 
-  ip = addr.s_addr = inet_addr(argv[2]);
-  uip_sethostaddr(argv[1], &addr);
+  ndbg("Host IP: %s\n", hostip);
+  gip = addr.s_addr = inet_addr(hostip);
+  uip_sethostaddr(intf, &addr);
 
   /* Set gateway */
 
-  ip = NTOHL(ip);
-  ip &= ~0x000000ff;
-  ip |= 0x00000001;
+  if (gwip)
+    {
+      ndbg("Gateway: %s\n", gwip);
+      gip = addr.s_addr = inet_addr(gwip);
+    }
+  else
+    {
+      ndbg("Gateway: default\n");
+      gip  = NTOHL(gip);
+      gip &= ~0x000000ff;
+      gip |= 0x00000001;
+      gip  = HTONL(gip);
+      addr.s_addr = gip;
+    }
 
-  addr.s_addr = HTONL(ip);
-  uip_setdraddr(argv[1], &addr);
+  uip_setdraddr(intf, &addr);
 
-  /* Set netmask */
+  /* Set network mask */
 
-  addr.s_addr = inet_addr("255.255.255.0");
-  uip_setnetmask(argv[1], &addr);
+  if (mask)
+    {
+      ndbg("Netmask: %s\n",mask);
+      addr.s_addr = inet_addr(mask);
+    }
+  else
+    {
+      ndbg("Netmask: Default\n");
+      addr.s_addr = inet_addr("255.255.255.0");
+    }
+
+  uip_setnetmask(intf, &addr);
+
+#if defined(CONFIG_NSH_DHCPC) || defined(CONFIG_NSH_DNS)
+  if (dns)
+    {
+      ndbg("DNS: %s\n", dns);
+      addr.s_addr = inet_addr(dns);
+    }
+  else
+    {
+      ndbg("DNS: Default\n");
+      addr.s_addr = gip;
+    }
+
+  resolv_conf(&addr);
+#endif
 
   return OK;
 }
@@ -536,6 +747,7 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   uint32_t start;
   uint32_t next;
   uint32_t dsec = 10;
+  uint32_t maxwait;
   uint16_t id;
   bool badarg = false;
   int count = 10;
@@ -599,7 +811,7 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   if (optind == argc-1)
     {
       staddr = argv[optind];
-      if (!uiplib_ipaddrconv(staddr, (FAR unsigned char*)&ipaddr))
+      if (dns_gethostip(staddr, &ipaddr) < 0)
         {
           goto errout;
         }
@@ -619,16 +831,26 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
   id = ping_newid();
 
+  /* The maximum wait for a response will be the larger of the inter-ping time and
+   * the configured maximum round-trip time.
+   */
+
+  maxwait = MAX(dsec, CONFIG_NSH_MAX_ROUNDTRIP);
+
   /* Loop for the specified count */
 
-  nsh_output(vtbl, "PING %s %d bytes of data\n", staddr, DEFAULT_PING_DATALEN);
+  nsh_output(vtbl, "PING %d.%d.%d.%d %d bytes of data\n",
+            (ipaddr       ) & 0xff, (ipaddr >> 8  ) & 0xff,
+            (ipaddr >> 16 ) & 0xff, (ipaddr >> 24 ) & 0xff,
+            DEFAULT_PING_DATALEN);
+
   start = g_system_timer;
   for (i = 1; i <= count; i++)
     {
       /* Send the ECHO request and wait for the response */
 
       next  = g_system_timer;
-      seqno = uip_ping(ipaddr, id, i, DEFAULT_PING_DATALEN, dsec);
+      seqno = uip_ping(ipaddr, id, i, DEFAULT_PING_DATALEN, maxwait);
 
       /* Was any response returned? We can tell if a non-negative sequence
        * number was returned.
@@ -636,7 +858,7 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 
       if (seqno >= 0 && seqno <= i)
         {
-          /* Get the elpased time from the time that the request was
+          /* Get the elapsed time from the time that the request was
            * sent until the response was received.  If we got a response
            * to an earlier request, then fudge the elpased time.
            */
@@ -644,7 +866,7 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
           elapsed = TICK2MSEC(g_system_timer - next);
           if (seqno < i)
             {
-              elapsed += 100*dsec*(i - seqno);
+              elapsed += 100 * dsec * (i - seqno);
             }
 
           /* Report the receipt of the reply */
@@ -662,7 +884,7 @@ int cmd_ping(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       elapsed = TICK2DSEC(g_system_timer - next);
       if (elapsed < dsec)
         {
-          usleep(100000*dsec);
+          usleep(100000 * (dsec - elapsed));
         }
     }
 

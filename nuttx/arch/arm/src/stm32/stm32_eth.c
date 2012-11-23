@@ -2594,6 +2594,17 @@ static int stm32_phyinit(FAR struct stm32_ethmac_s *priv)
     }
   up_mdelay(PHY_RESET_DELAY);
 
+  /* Perform any necessary, board-specific PHY initialization */
+
+#ifdef CONFIG_STM32_PHYINIT
+  ret = stm32_phy_boardinitialize(0);
+  if (ret < 0)
+    {
+      ndbg("Failed to initialize the PHY: %d\n", ret);
+      return ret;
+    }
+#endif
+
   /* Special workaround for the Davicom DM9161 PHY is required. */
 
 #ifdef CONFIG_PHY_DM9161

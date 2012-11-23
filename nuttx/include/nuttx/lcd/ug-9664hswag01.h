@@ -3,7 +3,7 @@
  * Driver for the Univision UG-9664HSWAG01 Display with the Solomon Systech
  * SSD1305 LCD controller.
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,8 +58,6 @@
  * CONFIG_UG9664HSWAG01_POWER
  *   If the hardware supports a controllable OLED a power supply, this
  *   configuration shold be defined.  (See ug_power() below).
- * CONFIG_LCD_UGDEBUG - Enable detailed UG-9664HSWAG01 debug output
- *   (CONFIG_DEBUG and CONFIG_VERBOSE must also be enabled).
  * 
  * Required LCD driver settings:
  * CONFIG_LCD_UG9664HSWAG01 - Enable UG-9664HSWAG01 support
@@ -90,10 +88,8 @@
  ****************************************************************************/
 
 #ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
+extern "C"
+{
 #endif
 
 /****************************************************************************
@@ -123,7 +119,7 @@ extern "C" {
 
 struct lcd_dev_s; /* see nuttx/lcd.h */
 struct spi_dev_s; /* see nuttx/spi.h */
-EXTERN FAR struct lcd_dev_s *ug_initialize(FAR struct spi_dev_s *spi, unsigned int devno);
+FAR struct lcd_dev_s *ug_initialize(FAR struct spi_dev_s *spi, unsigned int devno);
 
 /****************************************************************************
  * Name:  ug_power
@@ -145,12 +141,11 @@ EXTERN FAR struct lcd_dev_s *ug_initialize(FAR struct spi_dev_s *spi, unsigned i
  **************************************************************************************/
 
 #ifdef CONFIG_UG9664HSWAG01_POWER
-EXTERN void ug_power(unsigned int devno, bool on);
+void ug_power(unsigned int devno, bool on);
 #else
 #  define ug_power(a,b)
 #endif
 
-#undef EXTERN
 #ifdef __cplusplus
 }
 #endif

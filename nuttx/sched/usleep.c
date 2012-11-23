@@ -137,7 +137,7 @@ int usleep(useconds_t usec)
   if (usec)
     {
       /* Set up for the sleep.  Using the empty set means that we are not
-       * waiting for any particualar signal.  However, any unmasked signal
+       * waiting for any particular signal.  However, any unmasked signal
        * can still awaken sigtimedwait().
        */
 

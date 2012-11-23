@@ -60,6 +60,7 @@
 #include <rgmp/pmap.h>
 #include <rgmp/string.h>
 #include <rgmp/stdio.h>
+#include <rgmp/utils.h>
 #include <rgmp/arch/pci.h>
 #include <rgmp/memio.h>
 #include "e1000.h"
@@ -104,9 +105,9 @@ struct e1000_dev {
     uint32_t io_mem_base;
     uint32_t mem_size;
     int pci_dev_id;
+	uint16_t pci_addr;
     unsigned char src_mac[6];
     unsigned char dst_mac[6];
-    int irq;
     struct irq_action int_desc;
     struct tx_ring tx_ring;
     struct rx_ring rx_ring;
@@ -308,16 +309,16 @@ void e1000_init(struct e1000_dev *dev)
     e1000_outl(dev, E1000_FCRTH, pba*9/10);
 
     // setup tx rings
-    txd_phys = PADDR(dev->tx_ring.desc);
-    kmem_phys = PADDR(dev->tx_ring.buf);
+    txd_phys = PADDR((uintptr_t)dev->tx_ring.desc);
+    kmem_phys = PADDR((uintptr_t)dev->tx_ring.buf);
     for (i=0; i<CONFIG_E1000_N_TX_DESC; i++,kmem_phys+=CONFIG_E1000_BUFF_SIZE) {
-	dev->tx_ring.desc[i].base_address = kmem_phys;
-	dev->tx_ring.desc[i].packet_length = 0;
-	dev->tx_ring.desc[i].cksum_offset = 0;
-	dev->tx_ring.desc[i].cksum_origin = 0;
-	dev->tx_ring.desc[i].desc_status = 1;
-	dev->tx_ring.desc[i].desc_command = (1<<0)|(1<<1)|(1<<3);
-	dev->tx_ring.desc[i].special_info = 0;
+		dev->tx_ring.desc[i].base_address = kmem_phys;
+		dev->tx_ring.desc[i].packet_length = 0;
+		dev->tx_ring.desc[i].cksum_offset = 0;
+		dev->tx_ring.desc[i].cksum_origin = 0;
+		dev->tx_ring.desc[i].desc_status = 1;
+		dev->tx_ring.desc[i].desc_command = (1<<0)|(1<<1)|(1<<3);
+		dev->tx_ring.desc[i].special_info = 0;
     }
     dev->tx_ring.tail = 0;
     e1000_outl(dev, E1000_TDT, 0);
@@ -329,15 +330,15 @@ void e1000_init(struct e1000_dev *dev)
     e1000_outl(dev, E1000_TXDCTL, 0x01010000);
 
     // setup rx rings
-    rxd_phys = PADDR(dev->rx_ring.desc);
-    kmem_phys = PADDR(dev->rx_ring.buf);
+    rxd_phys = PADDR((uintptr_t)dev->rx_ring.desc);
+    kmem_phys = PADDR((uintptr_t)dev->rx_ring.buf);
     for (i=0; i<CONFIG_E1000_N_RX_DESC; i++,kmem_phys+=CONFIG_E1000_BUFF_SIZE) {
-	dev->rx_ring.desc[i].base_address = kmem_phys;
-	dev->rx_ring.desc[i].packet_length = 0;
-	dev->rx_ring.desc[i].packet_cksum = 0;
-	dev->rx_ring.desc[i].desc_status = 0;
-	dev->rx_ring.desc[i].desc_errors = 0;
-	dev->rx_ring.desc[i].vlan_tag = 0;
+		dev->rx_ring.desc[i].base_address = kmem_phys;
+		dev->rx_ring.desc[i].packet_length = 0;
+		dev->rx_ring.desc[i].packet_cksum = 0;
+		dev->rx_ring.desc[i].desc_status = 0;
+		dev->rx_ring.desc[i].desc_errors = 0;
+		dev->rx_ring.desc[i].vlan_tag = 0;
     }
     dev->rx_ring.head = 0;
     dev->rx_ring.tail = CONFIG_E1000_N_RX_DESC-1;
@@ -378,7 +379,7 @@ static int e1000_transmit(struct e1000_dev *e1000)
 {
     int tail = e1000->tx_ring.tail;
     unsigned char *cp = (unsigned char *)
-	(e1000->tx_ring.buf + tail * CONFIG_E1000_BUFF_SIZE);
+		(e1000->tx_ring.buf + tail * CONFIG_E1000_BUFF_SIZE);
     int count = e1000->uip_dev.d_len;
 
     /* Verify that the hardware is ready to send another packet.  If we get
@@ -387,7 +388,7 @@ static int e1000_transmit(struct e1000_dev *e1000)
      */
 
     if (!e1000->tx_ring.desc[tail].desc_status)
-	return -1;
+		return -1;
 
     /* Increment statistics */
 
@@ -445,14 +446,14 @@ static int e1000_uiptxpoll(struct uip_driver_s *dev)
      */
 
     if (e1000->uip_dev.d_len > 0) {
-	uip_arp_out(&e1000->uip_dev);
-	e1000_transmit(e1000);
+		uip_arp_out(&e1000->uip_dev);
+		e1000_transmit(e1000);
 
-	/* Check if there is room in the device to hold another packet. If not,
-	 * return a non-zero value to terminate the poll.
-	 */
-	if (!e1000->tx_ring.desc[tail].desc_status)
-	    return -1;
+		/* Check if there is room in the device to hold another packet. If not,
+		 * return a non-zero value to terminate the poll.
+		 */
+		if (!e1000->tx_ring.desc[tail].desc_status)
+			return -1;
     }
 
     /* If zero is returned, the polling will continue until all connections have
@@ -483,75 +484,75 @@ static void e1000_receive(struct e1000_dev *e1000)
 {
     int head = e1000->rx_ring.head;
     unsigned char *cp = (unsigned char *)
-	(e1000->rx_ring.buf + head * CONFIG_E1000_BUFF_SIZE);
+		(e1000->rx_ring.buf + head * CONFIG_E1000_BUFF_SIZE);
     int cnt;
 
     while (e1000->rx_ring.desc[head].desc_status) {
 
-	/* Check for errors and update statistics */
+		/* Check for errors and update statistics */
 	
-	// Here we do not handle packets that exceed packet-buffer size
-	if ((e1000->rx_ring.desc[head].desc_status & 3) == 1) {
-	    cprintf("NIC READ: Oversized packet\n");
-	    goto next;
-	}
+		// Here we do not handle packets that exceed packet-buffer size
+		if ((e1000->rx_ring.desc[head].desc_status & 3) == 1) {
+			cprintf("NIC READ: Oversized packet\n");
+			goto next;
+		}
 	
-	/* Check if the packet is a valid size for the uIP buffer configuration */
+		/* Check if the packet is a valid size for the uIP buffer configuration */
 	
-	// get the number of actual data-bytes in this packet
-	cnt = e1000->rx_ring.desc[head].packet_length;
+		// get the number of actual data-bytes in this packet
+		cnt = e1000->rx_ring.desc[head].packet_length;
 	
-	if (cnt > CONFIG_NET_BUFSIZE || cnt < 14) {
-	    cprintf("NIC READ: invalid package size\n");
-	    goto next;
-	}
+		if (cnt > CONFIG_NET_BUFSIZE || cnt < 14) {
+			cprintf("NIC READ: invalid package size\n");
+			goto next;
+		}
     
-	/* Copy the data data from the hardware to e1000->uip_dev.d_buf.  Set
-	 * amount of data in e1000->uip_dev.d_len
-	 */
+		/* Copy the data data from the hardware to e1000->uip_dev.d_buf.  Set
+		 * amount of data in e1000->uip_dev.d_len
+		 */
     
-	// now we try to copy these data-bytes to the UIP buffer
-	memcpy(e1000->uip_dev.d_buf, cp, cnt);
-	e1000->uip_dev.d_len = cnt;
+		// now we try to copy these data-bytes to the UIP buffer
+		memcpy(e1000->uip_dev.d_buf, cp, cnt);
+		e1000->uip_dev.d_len = cnt;
 
-	/* We only accept IP packets of the configured type and ARP packets */
+		/* We only accept IP packets of the configured type and ARP packets */
 
 #ifdef CONFIG_NET_IPv6
-	if (BUF->type == HTONS(UIP_ETHTYPE_IP6))
+		if (BUF->type == HTONS(UIP_ETHTYPE_IP6))
 #else
-	if (BUF->type == HTONS(UIP_ETHTYPE_IP))
+			if (BUF->type == HTONS(UIP_ETHTYPE_IP))
 #endif
-	{
-	    uip_arp_ipin(&e1000->uip_dev);
-	    uip_input(&e1000->uip_dev);
+			{
+				uip_arp_ipin(&e1000->uip_dev);
+				uip_input(&e1000->uip_dev);
 
-	    /* If the above function invocation resulted in data that should be
-	     * sent out on the network, the field  d_len will set to a value > 0.
-	     */
+				/* If the above function invocation resulted in data that should be
+				 * sent out on the network, the field  d_len will set to a value > 0.
+				 */
 
-	    if (e1000->uip_dev.d_len > 0) {
-		uip_arp_out(&e1000->uip_dev);
-		e1000_transmit(e1000);
-	    }
-	}
-	else if (BUF->type == htons(UIP_ETHTYPE_ARP)) {
-	    uip_arp_arpin(&e1000->uip_dev);
+				if (e1000->uip_dev.d_len > 0) {
+					uip_arp_out(&e1000->uip_dev);
+					e1000_transmit(e1000);
+				}
+			}
+			else if (BUF->type == htons(UIP_ETHTYPE_ARP)) {
+				uip_arp_arpin(&e1000->uip_dev);
 
-	    /* If the above function invocation resulted in data that should be
-	     * sent out on the network, the field  d_len will set to a value > 0.
-	     */
+				/* If the above function invocation resulted in data that should be
+				 * sent out on the network, the field  d_len will set to a value > 0.
+				 */
 
-	    if (e1000->uip_dev.d_len > 0) {
-		e1000_transmit(e1000);
-	    }
-	}
+				if (e1000->uip_dev.d_len > 0) {
+					e1000_transmit(e1000);
+				}
+			}
 
     next:
-	e1000->rx_ring.desc[head].desc_status = 0;
-	e1000->rx_ring.head = (head + 1) % CONFIG_E1000_N_RX_DESC;
-	e1000->rx_ring.free++;
-	head = e1000->rx_ring.head;
-	cp = (unsigned char *)(e1000->rx_ring.buf + head * CONFIG_E1000_BUFF_SIZE);
+		e1000->rx_ring.desc[head].desc_status = 0;
+		e1000->rx_ring.head = (head + 1) % CONFIG_E1000_N_RX_DESC;
+		e1000->rx_ring.free++;
+		head = e1000->rx_ring.head;
+		cp = (unsigned char *)(e1000->rx_ring.buf + head * CONFIG_E1000_BUFF_SIZE);
     }
 }
 
@@ -615,7 +616,7 @@ static void e1000_polltimer(int argc, uint32_t arg, ...)
      * the TX poll if he are unable to accept another packet for transmission.
      */
     if (!e1000->tx_ring.desc[tail].desc_status)
-	return;
+		return;
 
     /* If so, update TCP timing states and poll uIP for new XMIT data. Hmmm..
      * might be bug here.  Does this mean if there is a transmit in progress,
@@ -651,8 +652,8 @@ static int e1000_ifup(struct uip_driver_s *dev)
     struct e1000_dev *e1000 = (struct e1000_dev *)dev->d_private;
 
     ndbg("Bringing up: %d.%d.%d.%d\n",
-	 dev->d_ipaddr & 0xff, (dev->d_ipaddr >> 8) & 0xff,
-	 (dev->d_ipaddr >> 16) & 0xff, dev->d_ipaddr >> 24 );
+		 dev->d_ipaddr & 0xff, (dev->d_ipaddr >> 8) & 0xff,
+		 (dev->d_ipaddr >> 16) & 0xff, dev->d_ipaddr >> 24 );
 
     /* Initialize PHYs, the Ethernet interface, and setup up Ethernet interrupts */
     e1000_init(e1000);
@@ -662,9 +663,9 @@ static int e1000_ifup(struct uip_driver_s *dev)
     (void)wd_start(e1000->txpoll, E1000_WDDELAY, e1000_polltimer, 1, (uint32_t)e1000);
 
     if (e1000_inl(e1000, E1000_STATUS) & 2)
-	e1000->bifup = true;
+		e1000->bifup = true;
     else
-	e1000->bifup = false;
+		e1000->bifup = false;
 
     return OK;
 }
@@ -749,9 +750,9 @@ static int e1000_txavail(struct uip_driver_s *dev)
     /* Ignore the notification if the interface is not yet up */
 
     if (e1000->bifup) {
-	/* Check if there is room in the hardware to hold another outgoing packet. */
-	if (e1000->tx_ring.desc[tail].desc_status)
-	    (void)uip_poll(&e1000->uip_dev, e1000_uiptxpoll);
+		/* Check if there is room in the hardware to hold another outgoing packet. */
+		if (e1000->tx_ring.desc[tail].desc_status)
+			(void)uip_poll(&e1000->uip_dev, e1000_uiptxpoll);
     }
 
     irqrestore(flags);
@@ -779,11 +780,11 @@ static int e1000_txavail(struct uip_driver_s *dev)
 #ifdef CONFIG_NET_IGMP
 static int e1000_addmac(struct uip_driver_s *dev, const uint8_t *mac)
 {
-  struct e1000_dev *e1000 = (struct e1000_dev *)dev->d_private;
+	struct e1000_dev *e1000 = (struct e1000_dev *)dev->d_private;
 
-  /* Add the MAC address to the hardware multicast routing table */
+	/* Add the MAC address to the hardware multicast routing table */
 
-  return OK;
+	return OK;
 }
 #endif
 
@@ -808,15 +809,15 @@ static int e1000_addmac(struct uip_driver_s *dev, const uint8_t *mac)
 #ifdef CONFIG_NET_IGMP
 static int e1000_rmmac(struct uip_driver_s *dev, const uint8_t *mac)
 {
-  struct e1000_dev *e1000 = (struct e1000_dev *)dev->d_private;
+	struct e1000_dev *e1000 = (struct e1000_dev *)dev->d_private;
 
-  /* Add the MAC address to the hardware multicast routing table */
+	/* Add the MAC address to the hardware multicast routing table */
 
-  return OK;
+	return OK;
 }
 #endif
 
-irqreturn_t  e1000_interrupt_handler(struct Trapframe *tf, void *dev_id)
+static irqreturn_t e1000_interrupt_handler(int irq, void *dev_id)
 {
     struct e1000_dev *e1000 = (struct e1000_dev *)dev_id;
     
@@ -826,27 +827,27 @@ irqreturn_t  e1000_interrupt_handler(struct Trapframe *tf, void *dev_id)
 
     // not for me
     if (intr_cause == 0) 
-	return IRQ_NONE;
+		return IRQ_NONE;
 
     /* Handle interrupts according to status bit settings */
 
     // Link status change
     if (intr_cause & (1<<2)) {
-	if (e1000_inl(e1000, E1000_STATUS) & 2)
-	    e1000->bifup = true;
-	else
-	    e1000->bifup = false;
+		if (e1000_inl(e1000, E1000_STATUS) & 2)
+			e1000->bifup = true;
+		else
+			e1000->bifup = false;
     }
     
     /* Check if we received an incoming packet, if so, call skel_receive() */
 
     // Rx-descriptor Timer expired
     if (intr_cause & (1<<7))
-	e1000_receive(e1000);
+		e1000_receive(e1000);
 
     // Tx queue empty
     if (intr_cause & (1<<1))
-	wd_cancel(e1000->txtimeout);
+		wd_cancel(e1000->txtimeout);
 
     /* Check is a packet transmission just completed.  If so, call skel_txdone.
      * This may disable further Tx interrupts if there are no pending
@@ -855,17 +856,17 @@ irqreturn_t  e1000_interrupt_handler(struct Trapframe *tf, void *dev_id)
 
     // Tx-descriptor Written back
     if (intr_cause & (1<<0))
-	uip_poll(&e1000->uip_dev, e1000_uiptxpoll);
+		uip_poll(&e1000->uip_dev, e1000_uiptxpoll);
   
 
     // Rx-Descriptors Low
     if (intr_cause & (1<<4)) {
-	int tail;
-	tail = e1000->rx_ring.tail + e1000->rx_ring.free;
-	tail %= CONFIG_E1000_N_RX_DESC;
-	e1000->rx_ring.tail = tail;
-	e1000->rx_ring.free = 0;
-	e1000_outl(e1000, E1000_RDT, tail);
+		int tail;
+		tail = e1000->rx_ring.tail + e1000->rx_ring.free;
+		tail %= CONFIG_E1000_N_RX_DESC;
+		e1000->rx_ring.tail = tail;
+		e1000->rx_ring.free = 0;
+		e1000_outl(e1000, E1000_RDT, tail);
     }
 
     return IRQ_HANDLED;
@@ -885,20 +886,21 @@ static pci_id_t e1000_id_table[] = {
 static int e1000_probe(uint16_t addr, pci_id_t id)
 {
     uint32_t mmio_base, mmio_size;
-    uint32_t pci_cmd, size;
-    int err, irq, flags;
+    uint32_t size;
+    int err;
     void *kmem, *omem;
     struct e1000_dev *dev;
 
     // alloc e1000_dev memory
-    dev = kzalloc(sizeof(struct e1000_dev));
-    if (dev == NULL)
-	return -1;
+    if ((dev = kzalloc(sizeof(struct e1000_dev))) == NULL)
+		return -1;
+
+	// save pci addr
+	dev->pci_addr = addr;
 
     // enable device
-    err = pci_enable_device(addr, PCI_RESOURCE_MEM);
-    if (err)
-	goto error;
+	if ((err = pci_enable_device(addr, PCI_BUS_MASTER)) < 0)
+		goto error;
 
     // get e1000 device type
     dev->pci_dev_id = id.join;
@@ -908,33 +910,20 @@ static int e1000_probe(uint16_t addr, pci_id_t id)
     mmio_size = pci_resource_len(addr, 0);
     err = rgmp_memmap_nocache(mmio_base, mmio_size, mmio_base);
     if (err) 
-	goto error;
+		goto error;
     dev->phy_mem_base = mmio_base;
     dev->io_mem_base = mmio_base;
     dev->mem_size = mmio_size;
-
-    // make sure the controller's Bus Master capability is enabled
-    pci_cmd = pci_config_readl(addr, PCI_COMMAND);
-    pci_cmd |= (1<<2);
-    pci_config_writel(addr, PCI_COMMAND, pci_cmd);
 
     // MAC address
     memset(dev->dst_mac, 0xFF, 6);
     memcpy(dev->src_mac, (void *)(dev->io_mem_base+E1000_RA), 6);
 
-    // get e1000 IRQ
-    flags = 0;
-    irq = pci_enable_msi(addr);
-    if (irq == 0) {
-	irq = pci_read_irq(addr);
-	flags |= IDC_SHARE;
-    }
-    dev->irq = irq;
+    // IRQ setup
     dev->int_desc.handler = e1000_interrupt_handler;
     dev->int_desc.dev_id = dev;
-    err = rgmp_request_irq(irq, &dev->int_desc, flags);
-    if (err)
-	goto err0;
+	if ((err = pci_request_irq(addr, &dev->int_desc, 0)) < 0)
+		goto err0;
 
     // Here we alloc a big block of memory once and make it
     // aligned to page boundary and multiple of page size. This
@@ -942,15 +931,19 @@ static int e1000_probe(uint16_t addr, pci_id_t id)
     // should be mapped no-cache which will hugely reduce memory 
     // access performance. The page size alloc will restrict
     // this bad effect only within the memory we alloc here.
+	//
+	// NEED FIX: the memalign may alloc memory continous in
+	// virtual address but dis-continous in physical address
+	// due to RGMP memory setup.
     size = CONFIG_E1000_N_TX_DESC * sizeof(struct tx_desc) +
-	   CONFIG_E1000_N_TX_DESC * CONFIG_E1000_BUFF_SIZE +
-	   CONFIG_E1000_N_RX_DESC * sizeof(struct rx_desc) + 
-	   CONFIG_E1000_N_RX_DESC * CONFIG_E1000_BUFF_SIZE;
+		CONFIG_E1000_N_TX_DESC * CONFIG_E1000_BUFF_SIZE +
+		CONFIG_E1000_N_RX_DESC * sizeof(struct rx_desc) + 
+		CONFIG_E1000_N_RX_DESC * CONFIG_E1000_BUFF_SIZE;
     size = ROUNDUP(size, PGSIZE);
     omem = kmem = memalign(PGSIZE, size);
     if (kmem == NULL) {
-	err = -ENOMEM;
-	goto err1;
+		err = -ENOMEM;
+		goto err1;
     }
     rgmp_memremap_nocache((uintptr_t)kmem, size);
 
@@ -991,7 +984,7 @@ static int e1000_probe(uint16_t addr, pci_id_t id)
     /* Register the device with the OS so that socket IOCTLs can be performed */
     err = netdev_register(&dev->uip_dev);
     if (err)
-	goto err2;
+		goto err2;
 
     // insert into e1000_list
     dev->next = e1000_list.next;
@@ -1000,14 +993,14 @@ static int e1000_probe(uint16_t addr, pci_id_t id)
 
     return 0;
 
- err2:
+err2:
     rgmp_memremap((uintptr_t)omem, size);
     free(omem);
- err1:
-    rgmp_free_irq(irq, &dev->int_desc);
- err0:
+err1:
+    pci_free_irq(addr);
+err0:
     rgmp_memunmap(mmio_base, mmio_size);
- error:
+error:
     kfree(dev);
     cprintf("e1000 device probe fail: %d\n", err);
     return err;
@@ -1028,21 +1021,21 @@ void e1000_mod_exit(void)
     struct e1000_dev *dev;
 
     size = CONFIG_E1000_N_TX_DESC * sizeof(struct tx_desc) +
-	   CONFIG_E1000_N_TX_DESC * CONFIG_E1000_BUFF_SIZE +
-	   CONFIG_E1000_N_RX_DESC * sizeof(struct rx_desc) + 
-	   CONFIG_E1000_N_RX_DESC * CONFIG_E1000_BUFF_SIZE;
+		CONFIG_E1000_N_TX_DESC * CONFIG_E1000_BUFF_SIZE +
+		CONFIG_E1000_N_RX_DESC * sizeof(struct rx_desc) + 
+		CONFIG_E1000_N_RX_DESC * CONFIG_E1000_BUFF_SIZE;
     size = ROUNDUP(size, PGSIZE);
 
     for (dev=e1000_list.next; dev!=NULL; dev=dev->next) {
-	netdev_unregister(&dev->uip_dev);
-	e1000_reset(dev);
-	wd_delete(dev->txpoll);
-	wd_delete(dev->txtimeout);
-	rgmp_memremap((uintptr_t)dev->tx_ring.desc, size);
-	free(dev->tx_ring.desc);
-	rgmp_free_irq(dev->irq, &dev->int_desc);
-	rgmp_memunmap((uintptr_t)dev->io_mem_base, dev->mem_size);
-	kfree(dev);
+		netdev_unregister(&dev->uip_dev);
+		e1000_reset(dev);
+		wd_delete(dev->txpoll);
+		wd_delete(dev->txtimeout);
+		rgmp_memremap((uintptr_t)dev->tx_ring.desc, size);
+		free(dev->tx_ring.desc);
+		pci_free_irq(dev->pci_addr);
+		rgmp_memunmap((uintptr_t)dev->io_mem_base, dev->mem_size);
+		kfree(dev);
     }
 
     e1000_list.next = NULL;
