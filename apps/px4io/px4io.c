@@ -72,7 +72,7 @@ int user_start(int argc, char *argv[])
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
-	/* init the FMU link */
+	/* init the FMU and receiver links */
 	comms_init();
 
 	/* configure the first 8 PWM outputs (i.e. all of them) */
@@ -133,8 +133,9 @@ int user_start(int argc, char *argv[])
 		/* print some simple status */
 		if (timers[TIMER_STATUS_PRINT] == 0) {
 			timers[TIMER_STATUS_PRINT] = 1000;
-			lib_lowprintf("%c %s | %s | %s | C=%d F=%d B=%d   \r",
+			lib_lowprintf("%c %s | %s | %s | %s | C=%d F=%d B=%d   \r",
 				cursor[cycle++ & 3],
+				(system_state.arm_ok        ? "FMU_ARMED"  : "FMU_SAFE"),
 				(system_state.armed         ? "ARMED"  : "SAFE"),
 				(system_state.rc_channels   ? "RC OK"  : "NO RC"),
 				(system_state.mixer_use_fmu ? "FMU OK" : "NO FMU"),

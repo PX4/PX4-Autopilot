@@ -68,7 +68,7 @@
 struct sys_state_s 
 {
 
-	bool		armed;		/* actually armed */
+	bool		armed;		/* IO armed */
 	bool		arm_ok;		/* FMU says OK to arm */
 
 	/*
@@ -147,7 +147,6 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
  * Mixer
  */
 extern int	mixer_init(void);
-extern void	mixer_set_serial_mode(uint8_t newmode);
 
 /*
  * Safety switch/LED.
@@ -159,6 +158,14 @@ extern void	safety_init(void);
  */
 extern void	comms_init(void);
 extern void	comms_check(void);
+
+/*
+ * Serial receiver decoders.
+ */
+extern void	dsm_init(unsigned mode);
+extern void	dsm_input(int fd);
+extern void	sbus_init(unsigned mode);
+extern void	sbus_input(int fd);
 
 /*
  * Assertion codes

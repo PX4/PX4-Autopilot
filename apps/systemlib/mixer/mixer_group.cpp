@@ -168,6 +168,7 @@ mixer_load_simple(Mixer::ControlCallback control_cb, uintptr_t cb_handle, int fd
 
 	/* let's assume we're going to read a simple mixer */
 	mixinfo = (mixer_simple_s *)malloc(MIXER_SIMPLE_SIZE(inputs));
+	mixinfo->control_count = inputs;
 
 	/* first, get the output scaler */
 	ret = mixer_getline(fd, buf, sizeof(buf));

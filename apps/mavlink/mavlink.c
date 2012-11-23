@@ -132,6 +132,7 @@ static struct mavlink_logbuffer lb;
 static void mavlink_update_system(void);
 static int mavlink_open_uart(int baudrate, const char *uart_name, struct termios *uart_config_original, bool *is_usb);
 static void usage(void);
+int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int mavlink_msg_id, int min_interval);
 
 
 
@@ -143,14 +144,9 @@ set_hil_on_off(bool hil_enabled)
 	/* Enable HIL */
 	if (hil_enabled && !mavlink_hil_enabled) {
 
-		//printf("\n HIL ON \n");
-
 		/* Advertise topics */
 		pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
 		pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
-
-		printf("\n pub_hil_attitude :%i\n", pub_hil_attitude);
-		printf("\n pub_hil_global_pos :%i\n", pub_hil_global_pos);
 
 		mavlink_hil_enabled = true;
 
@@ -166,15 +162,13 @@ set_hil_on_off(bool hil_enabled)
 		} else if (baudrate < 115200) {
 			/* 20 Hz */
 			hil_rate_interval = 50;
-		} else if (baudrate < 460800) {
-			/* 50 Hz */
-			hil_rate_interval = 20;
 		} else {
-			/* 100 Hz */
-			hil_rate_interval = 10;
+			/* 200 Hz */
+			hil_rate_interval = 5;
 		}
 
 		orb_set_interval(mavlink_subs.spa_sub, hil_rate_interval);
+		set_mavlink_interval_limit(&mavlink_subs, MAVLINK_MSG_ID_SERVO_OUTPUT_RAW, hil_rate_interval);
 	}
 
 	if (!hil_enabled && mavlink_hil_enabled) {
@@ -268,7 +262,7 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 }
 
 
-static int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int mavlink_msg_id, int min_interval)
+int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int mavlink_msg_id, int min_interval)
 {
 	int ret = OK;
 
@@ -458,19 +452,19 @@ mavlink_send_uart_bytes(mavlink_channel_t channel, uint8_t *ch, int length)
 /*
  * Internal function to give access to the channel status for each channel
  */
-mavlink_status_t* mavlink_get_channel_status(uint8_t chan)
+mavlink_status_t* mavlink_get_channel_status(uint8_t channel)
 {
 	static mavlink_status_t m_mavlink_status[MAVLINK_COMM_NUM_BUFFERS];
-	return &m_mavlink_status[chan];
+	return &m_mavlink_status[channel];
 }
 
 /*
  * Internal function to give access to the channel buffer for each channel
  */
-mavlink_message_t* mavlink_get_channel_buffer(uint8_t chan)
+mavlink_message_t* mavlink_get_channel_buffer(uint8_t channel)
 {
 	static mavlink_message_t m_mavlink_buffer[MAVLINK_COMM_NUM_BUFFERS];
-	return &m_mavlink_buffer[chan];
+	return &m_mavlink_buffer[channel];
 }
 
 void mavlink_update_system(void)
@@ -552,6 +546,9 @@ int mavlink_thread_main(int argc, char *argv[])
 
 	/* print welcome text */
 	warnx("MAVLink v1.0 serial interface starting...");
+
+	/* inform about mode */
+	warnx((mavlink_link_mode == MAVLINK_INTERFACE_MODE_ONBOARD) ? "ONBOARD MODE" : "DOWNLINK MODE");
 
 	/* Flush stdout in case MAVLink is about to take it over */
 	fflush(stdout);
@@ -714,7 +711,7 @@ int mavlink_thread_main(int argc, char *argv[])
 static void
 usage()
 {
-	fprintf(stderr, "usage: mavlink start [-d <devicename>] [-b <baud rate>] [-e] [-o]\n"
+	fprintf(stderr, "usage: mavlink start [-d <devicename>] [-b <baud rate>]\n"
 			"       mavlink stop\n"
 			"       mavlink status\n");
 	exit(1);
@@ -723,8 +720,10 @@ usage()
 int mavlink_main(int argc, char *argv[])
 {
 
-	if (argc < 1)
-		errx(1, "missing command");
+	if (argc < 2) {
+		warnx("missing command");
+		usage();
+	}
 
 	if (!strcmp(argv[1], "start")) {
 
@@ -759,6 +758,9 @@ int mavlink_main(int argc, char *argv[])
 		}
 	}
 
-	errx(1, "unrecognized command");
+	warnx("unrecognized command");
+	usage();
+	/* not getting here */
+	return 0;
 }
 

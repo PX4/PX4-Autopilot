@@ -56,11 +56,13 @@ static struct hrt_call arming_call;
  * Count the number of times in a row that we see the arming button
  * held down.
  */
-static unsigned arm_counter;
+static unsigned counter;
+
 #define ARM_COUNTER_THRESHOLD	10
+#define DISARM_COUNTER_THRESHOLD	2
 
 static bool safety_led_state;
-
+static bool safety_button_pressed;
 static void safety_check_button(void *arg);
 
 void
@@ -76,19 +78,35 @@ safety_check_button(void *arg)
 	/* 
 	 * Debounce the safety button, change state if it has been held for long enough.
 	 *
-	 * Ignore the button if FMU has not said it's OK to arm yet.
 	 */
-	if (BUTTON_SAFETY && system_state.arm_ok) {
-		if (arm_counter < ARM_COUNTER_THRESHOLD) {
-			arm_counter++;
-		} else if (arm_counter == ARM_COUNTER_THRESHOLD) {
-			/* change our armed state and notify the FMU */
-			system_state.armed = !system_state.armed;
-			arm_counter++;
+	safety_button_pressed = BUTTON_SAFETY;
+
+	if(safety_button_pressed) {
+		//printf("Pressed, Arm counter: %d, Disarm counter: %d\n", arm_counter, disarm_counter);
+	}
+
+	/* Keep pressed for a while to arm */
+	if (safety_button_pressed && !system_state.armed) {
+		if (counter < ARM_COUNTER_THRESHOLD) {
+			counter++;
+		} else if (counter == ARM_COUNTER_THRESHOLD) {
+			/* change to armed state and notify the FMU */
+			system_state.armed = true;
+			counter++;
+			system_state.fmu_report_due = true;
+		}
+	/* Disarm quickly */
+	} else if (safety_button_pressed && system_state.armed) {
+		if (counter < DISARM_COUNTER_THRESHOLD) {
+			counter++;
+		} else if (counter == DISARM_COUNTER_THRESHOLD) {
+			/* change to disarmed state and notify the FMU */
+			system_state.armed = false;
+			counter++;
 			system_state.fmu_report_due = true;
 		}
 	} else {
-		arm_counter = 0;
+		counter = 0;
 	}
 
 	/* when armed, toggle the LED; when safe, leave it on */

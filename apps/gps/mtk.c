@@ -410,6 +410,8 @@ void *mtk_watchdog_loop(void *args)
 		} else {
 			/* gps healthy */
 			mtk_success_count++;
+			mtk_fail_count = 0;
+			once_ok = true; // XXX Should this be true on a single success, or on same criteria as mtk_healthy?
 
 			if (!mtk_healthy && mtk_success_count >= MTK_HEALTH_SUCCESS_COUNTER_LIMIT) {
 				printf("[gps] MTK module found, status ok (baud=%d)\r\n", current_gps_speed);
@@ -419,8 +421,6 @@ void *mtk_watchdog_loop(void *args)
 				// global_data_send_subsystem_info(&mtk_present_enabled_healthy);
 				mavlink_log_info(mavlink_fd, "[gps] MTK custom binary module found, status ok\n");
 				mtk_healthy = true;
-				mtk_fail_count = 0;
-				once_ok = true;
 			}
 		}
 

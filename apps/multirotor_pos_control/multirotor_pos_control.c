@@ -32,8 +32,10 @@
  *
  ****************************************************************************/
 
-/*
- * @file Implementation of AR.Drone 1.0 / 2.0 control interface
+/**
+ * @file multirotor_pos_control.c
+ *
+ * Skeleton for multirotor position controller
  */
 
 #include <nuttx/config.h>

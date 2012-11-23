@@ -37,7 +37,6 @@
  *
  * PX4IO is connected via serial (or possibly some other interface at a later
  * point).
-
  */
 
 #include <nuttx/config.h>
@@ -384,7 +383,7 @@ PX4IO::task_main()
 
 			if (fds[2].revents & POLLIN) {
 
-				orb_copy(ORB_ID(actuator_armed), _t_armed, &_controls);
+				orb_copy(ORB_ID(actuator_armed), _t_armed, &_armed);
 				_send_needed = true;
 			}
 		}
@@ -467,6 +466,7 @@ PX4IO::rx_callback(const uint8_t *buffer, size_t bytes_received)
 
 	/* publish raw rc channel values from IO */
 	_input_rc.timestamp = hrt_absolute_time();
+	_input_rc.channel_count = rep->channel_count;
 	for (int i = 0; i < rep->channel_count; i++)
 	{
 		_input_rc.values[i] = rep->rc_channel[i];
@@ -538,7 +538,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 	case PWM_SERVO_DISARM:
 		/* fake a disarmed transition */
-		_armed.armed = true;
+		_armed.armed = false;
 		_send_needed = true;
 		break;
 
@@ -744,15 +744,15 @@ px4io_main(int argc, char *argv[])
 		return ret;
 	}
 
-	if (!strcmp(argv[1], "rx_spektrum6")) {
+	if (!strcmp(argv[1], "rx_dsm_10bit")) {
 		if (g_dev == nullptr)
 			errx(1, "not started");
-		g_dev->set_rx_mode(RX_MODE_SPEKTRUM_6);
+		g_dev->set_rx_mode(RX_MODE_DSM_10BIT);
 	}
-	if (!strcmp(argv[1], "rx_spektrum7")) {
+	if (!strcmp(argv[1], "rx_dsm_11bit")) {
 		if (g_dev == nullptr)
 			errx(1, "not started");
-		g_dev->set_rx_mode(RX_MODE_SPEKTRUM_7);
+		g_dev->set_rx_mode(RX_MODE_DSM_11BIT);
 	}
 	if (!strcmp(argv[1], "rx_sbus")) {
 		if (g_dev == nullptr)
@@ -764,5 +764,5 @@ px4io_main(int argc, char *argv[])
 		test();
 
 
-	errx(1, "need a command, try 'start', 'test', 'rx_spektrum6', 'rx_spektrum7', 'rx_sbus' or 'update'");
+	errx(1, "need a command, try 'start', 'test', 'rx_dsm_10bit', 'rx_dsm_11bit', 'rx_sbus' or 'update'");
 }

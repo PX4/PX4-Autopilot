@@ -60,9 +60,9 @@ struct vehicle_vicon_position_s
 	float x;				/**< X positin in meters in NED earth-fixed frame */
 	float y;				/**< X positin in meters in NED earth-fixed frame */
 	float z;				/**< Z positin in meters in NED earth-fixed frame (negative altitude) */
-	float vx;
-	float vy;
-	float vz;
+	float roll;
+	float pitch;
+	float yaw;
 
 	// TODO Add covariances here
 

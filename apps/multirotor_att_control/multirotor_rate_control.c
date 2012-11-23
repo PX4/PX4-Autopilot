@@ -55,14 +55,14 @@
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 
-PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.1f); /* same on Flamewheel */
+PARAM_DEFINE_FLOAT(MC_YAWRATE_P, 0.0f); /* same on Flamewheel */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
 PARAM_DEFINE_FLOAT(MC_YAWRATE_I, 0.0f);
 //PARAM_DEFINE_FLOAT(MC_YAWRATE_AWU, 0.0f);
 //PARAM_DEFINE_FLOAT(MC_YAWRATE_LIM, 1.0f);
 
-PARAM_DEFINE_FLOAT(MC_ATTRATE_P, 0.2f); /* 0.15 F405 Flamewheel */
-PARAM_DEFINE_FLOAT(MC_ATTRATE_D, 0.05f);
+PARAM_DEFINE_FLOAT(MC_ATTRATE_P, 0.0f); /* 0.15 F405 Flamewheel */
+PARAM_DEFINE_FLOAT(MC_ATTRATE_D, 0.0f);
 PARAM_DEFINE_FLOAT(MC_ATTRATE_I, 0.0f);
 //PARAM_DEFINE_FLOAT(MC_ATTRATE_AWU, 0.05f);
 //PARAM_DEFINE_FLOAT(MC_ATTRATE_LIM, 1.0f);	/**< roughly < 500 deg/s limit */
@@ -209,6 +209,11 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	/* control yaw rate */
 	float yaw_rate_control = p.yawrate_p * (rate_sp->yaw - rates[2]);
+	/* increase resilience to faulty control inputs */
+	if (!isfinite(yaw_rate_control)) {
+		yaw_rate_control = 0.0f;
+		warnx("rej. NaN ctrl yaw");
+	}
 
 	actuators->control[0] = roll_control;
 	actuators->control[1] = pitch_control;

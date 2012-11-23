@@ -34,9 +34,9 @@
 
 /**
  * @file sensors.cpp
- * @author Lorenz Meier <lm@inf.ethz.ch>
- *
  * Sensor readout process.
+ *
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
 #include <nuttx/config.h>
@@ -92,6 +92,8 @@
 #define BAT_VOL_LOWPASS_1 0.99f
 #define BAT_VOL_LOWPASS_2 0.01f
 #define VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS 3.5f
+
+#define PPM_INPUT_TIMEOUT_INTERVAL	50000 /**< 50 ms timeout / 20 Hz */
 
 /**
  * Sensor app start / stop handling function
@@ -149,6 +151,7 @@ private:
 	int		_baro_sub;			/**< raw baro data subscription */
 	int		_vstatus_sub;			/**< vehicle status subscription */
 	int 		_params_sub;			/**< notification of parameter updates */
+	int 		_manual_control_sub;			/**< notification of manual control updates */
 
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_manual_control_pub;		/**< manual control signal topic */
@@ -341,6 +344,7 @@ Sensors::Sensors() :
 	_baro_sub(-1),
 	_vstatus_sub(-1),
 	_params_sub(-1),
+	_manual_control_sub(-1),
 
 	/* publications */
 	_sensor_pub(-1),
@@ -872,8 +876,15 @@ Sensors::ppm_poll()
 	struct rc_input_values raw;
 
 	raw.timestamp = ppm_last_valid_decode;
+	/* we are accepting this message */
+	_ppm_last_valid = ppm_last_valid_decode;
 
-	if (ppm_decoded_channels > 1) {
+	/*
+	 * relying on two decoded channels is very noise-prone,
+	 * in particular if nothing is connected to the pins.
+	 * requiring a minimum of four channels
+	 */
+	if (ppm_decoded_channels > 4 && hrt_absolute_time() - _ppm_last_valid < PPM_INPUT_TIMEOUT_INTERVAL) {
 
 		for (int i = 0; i < ppm_decoded_channels; i++) {
 			raw.values[i] = ppm_buffer[i];
@@ -901,8 +912,11 @@ Sensors::ppm_poll()
 
 		struct manual_control_setpoint_s manual_control;
 
-		/* require at least two chanels to consider the signal valid */
-		if (rc_input.channel_count < 2)
+		/* get a copy first, to prevent altering values */
+		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sub, &manual_control);
+
+		/* require at least four channels to consider the signal valid */
+		if (rc_input.channel_count < 4)
 			return;
 
 		unsigned channel_limit = rc_input.channel_count;
@@ -1026,6 +1040,7 @@ Sensors::task_main()
 	_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
+	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
 	/* rate limit vehicle status updates to 5Hz */
 	orb_set_interval(_vstatus_sub, 200);
@@ -1055,20 +1070,18 @@ Sensors::task_main()
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 
 	/* advertise the manual_control topic */
-	{
-		struct manual_control_setpoint_s manual_control;
-		manual_control.mode = MANUAL_CONTROL_MODE_ATT_YAW_RATE;
-		manual_control.roll = 0.0f;
-		manual_control.pitch = 0.0f;
-		manual_control.yaw = 0.0f;
-		manual_control.throttle = 0.0f;
-		manual_control.aux1_cam_pan_flaps = 0.0f;
-		manual_control.aux2_cam_tilt = 0.0f;
-		manual_control.aux3_cam_zoom = 0.0f;
-		manual_control.aux4_cam_roll = 0.0f;
+	struct manual_control_setpoint_s manual_control;
+	manual_control.mode = MANUAL_CONTROL_MODE_ATT_YAW_POS;
+	manual_control.roll = 0.0f;
+	manual_control.pitch = 0.0f;
+	manual_control.yaw = 0.0f;
+	manual_control.throttle = 0.0f;
+	manual_control.aux1_cam_pan_flaps = 0.0f;
+	manual_control.aux2_cam_tilt = 0.0f;
+	manual_control.aux3_cam_zoom = 0.0f;
+	manual_control.aux4_cam_roll = 0.0f;
 
-		_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
-	}
+	_manual_control_pub = orb_advertise(ORB_ID(manual_control_setpoint), &manual_control);
 
 	/* advertise the rc topic */
 	{

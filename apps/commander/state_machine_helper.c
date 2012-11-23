@@ -213,6 +213,24 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 	/* publish the new state */
 	current_status->counter++;
 	current_status->timestamp = hrt_absolute_time();
+
+	/* assemble state vector based on flag values */
+	if (current_status->flag_control_rates_enabled) {
+		current_status->onboard_control_sensors_present |= 0x400;
+	} else {
+		current_status->onboard_control_sensors_present &= ~0x400;
+	}
+	current_status->onboard_control_sensors_present |= (current_status->flag_control_attitude_enabled) ? 0x800 : 0;
+	current_status->onboard_control_sensors_present |= (current_status->flag_control_attitude_enabled) ? 0x1000 : 0;
+	current_status->onboard_control_sensors_present |= (current_status->flag_control_velocity_enabled || current_status->flag_control_position_enabled) ? 0x2000 : 0;
+	current_status->onboard_control_sensors_present |= (current_status->flag_control_velocity_enabled || current_status->flag_control_position_enabled) ? 0x4000 : 0;
+
+	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_rates_enabled) ? 0x400 : 0;
+	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_attitude_enabled) ? 0x800 : 0;
+	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_attitude_enabled) ? 0x1000 : 0;
+	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_velocity_enabled || current_status->flag_control_position_enabled) ? 0x2000 : 0;
+	current_status->onboard_control_sensors_enabled |= (current_status->flag_control_velocity_enabled || current_status->flag_control_position_enabled) ? 0x4000 : 0;
+
 	orb_publish(ORB_ID(vehicle_status), status_pub, current_status);
 	printf("[commander] new state: %s\n", system_state_txt[current_status->state_machine]);
 }
@@ -220,11 +238,8 @@ void state_machine_publish(int status_pub, struct vehicle_status_s *current_stat
 void publish_armed_status(const struct vehicle_status_s *current_status) {
 	struct actuator_armed_s armed;
 	armed.armed = current_status->flag_system_armed;
-	/* lock down actuators if required */
-	// XXX FIXME Currently any loss of RC will completely disable all actuators
-	// needs proper failsafe
-	armed.lockdown = ((current_status->rc_signal_lost && current_status->offboard_control_signal_lost)
-	 || current_status->flag_hil_enabled) ? true : false;
+	/* lock down actuators if required, only in HIL */
+	armed.lockdown = (current_status->flag_hil_enabled) ? true : false;
 	orb_advert_t armed_pub = orb_advertise(ORB_ID(actuator_armed), &armed);
 	orb_publish(ORB_ID(actuator_armed), armed_pub, &armed);
 }
@@ -242,7 +257,9 @@ void state_machine_emergency_always_critical(int status_pub, struct vehicle_stat
 		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_GROUND_ERROR);
 
 	} else if (current_status->state_machine == SYSTEM_STATE_AUTO || current_status->state_machine == SYSTEM_STATE_MANUAL) {
-		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MISSION_ABORT);
+		
+		// DO NOT abort mission
+		//do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MISSION_ABORT);
 
 	} else {
 		fprintf(stderr, "[commander] Unknown system state: #%d\n", current_status->state_machine);
@@ -579,6 +596,8 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 		state_machine_publish(status_pub, current_status, mavlink_fd);
 		publish_armed_status(current_status);
 		printf("[commander] Enabling HIL, locking down all actuators for safety.\n\t(Arming the system will not activate them while in HIL mode)\n");
+	} else if (current_status->state_machine != SYSTEM_STATE_STANDBY) {
+		mavlink_log_critical(mavlink_fd, "[commander] REJECTING switch to HIL, not in standby.")
 	}
 
 	/* NEVER actually switch off HIL without reboot */

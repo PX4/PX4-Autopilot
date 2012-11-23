@@ -58,10 +58,12 @@
 #include <uORB/topics/debug_key_value.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
 #include <systemlib/systemlib.h>
+#include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
 
 #include "codegen/attitudeKalmanfilter_initialize.h"
@@ -204,6 +206,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	memset(&raw, 0, sizeof(raw));
 	struct vehicle_attitude_s att;
 	memset(&att, 0, sizeof(att));
+	struct vehicle_status_s state;
+	memset(&state, 0, sizeof(state));
 
 	uint64_t last_data = 0;
 	uint64_t last_measurement = 0;
@@ -216,6 +220,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	/* subscribe to param changes */
 	int sub_params = orb_subscribe(ORB_ID(parameter_update));
 
+	/* subscribe to system state*/
+	int sub_state = orb_subscribe(ORB_ID(vehicle_status));
+
 	/* advertise attitude */
 	orb_advert_t pub_att = orb_advertise(ORB_ID(vehicle_attitude), &att);
 
@@ -226,13 +233,15 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	thread_running = true;
 
 	/* advertise debug value */
-	struct debug_key_value_s dbg = { .key = "", .value = 0.0f };
-	orb_advert_t pub_dbg = -1;
+	// struct debug_key_value_s dbg = { .key = "", .value = 0.0f };
+	// orb_advert_t pub_dbg = -1;
+	
+	float sensor_update_hz[3] = {0.0f, 0.0f, 0.0f};
+	// XXX write this out to perf regs
 
 	/* keep track of sensor updates */
 	uint32_t sensor_last_count[3] = {0, 0, 0};
 	uint64_t sensor_last_timestamp[3] = {0, 0, 0};
-	float sensor_update_hz[3] = {0.0f, 0.0f, 0.0f};
 
 	struct attitude_estimator_ekf_params ekf_params;
 
@@ -247,6 +256,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	float gyro_offsets[3] = { 0.0f, 0.0f, 0.0f };
 	unsigned offset_count = 0;
 
+	/* register the perf counter */
+	perf_counter_t ekf_loop_perf = perf_alloc(PC_ELAPSED, "attitude_estimator_ekf");
+
 	/* Main loop*/
 	while (!thread_should_exit) {
 
@@ -259,8 +271,12 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 		if (ret < 0) {
 			/* XXX this is seriously bad - should be an emergency */
 		} else if (ret == 0) {
-			/* XXX this means no sensor data - should be critical or emergency */
-			printf("[attitude estimator ekf] WARNING: Not getting sensor data - sensor app running?\n");
+			/* check if we're in HIL - not getting sensor data is fine then */
+			orb_copy(ORB_ID(vehicle_status), sub_state, &state);
+			if (!state.flag_hil_enabled) {
+				fprintf(stderr, 
+					"[att ekf] WARNING: Not getting sensors - sensor app running?\n");
+			}
 		} else {
 
 			/* only update parameters if they changed */
@@ -293,6 +309,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						gyro_offsets[2] /= offset_count;
 					}
 				} else {
+
+					perf_begin(ekf_loop_perf);
 
 					/* Calculate data time difference in seconds */
 					dt = (raw.timestamp - last_measurement) / 1000000.0f;
@@ -347,9 +365,6 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						overloadcounter++;
 					}
 
-					int32_t z_k_sizes = 9;
-					// float u[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-
 					static bool const_initialized = false;
 
 					/* initialize with good values once we have a reasonable dt estimate */
@@ -391,41 +406,6 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 						/* due to inputs or numerical failure the output is invalid, skip it */
 						continue;
 					}
-					
-					uint64_t timing_diff = hrt_absolute_time() - timing_start;
-
-					// /* print rotation matrix every 200th time */
-					if (printcounter % 200 == 0) {
-						// printf("x apo:\n%8.4f\t%8.4f\t%8.4f\n%8.4f\t%8.4f\t%8.4f\n%8.4f\t%8.4f\t%8.4f\n",
-						// 	x_aposteriori[0], x_aposteriori[1], x_aposteriori[2],
-						// 	x_aposteriori[3], x_aposteriori[4], x_aposteriori[5],
-						// 	x_aposteriori[6], x_aposteriori[7], x_aposteriori[8]);
-
-
-						// }
-
-						//printf("EKF attitude iteration: %d, runtime: %d us, dt: %d us (%d Hz)\n", loopcounter, (int)timing_diff, (int)(dt * 1000000.0f), (int)(1.0f / dt));
-						//printf("roll: %8.4f\tpitch: %8.4f\tyaw:%8.4f\n", (double)euler[0], (double)euler[1], (double)euler[2]);
-						//printf("update rates gyro: %8.4f\taccel: %8.4f\tmag:%8.4f\n", (double)sensor_update_hz[0], (double)sensor_update_hz[1], (double)sensor_update_hz[2]);
-						// 	printf("\n%d\t%d\t%d\n%d\t%d\t%d\n%d\t%d\t%d\n", (int)(Rot_matrix[0] * 100), (int)(Rot_matrix[1] * 100), (int)(Rot_matrix[2] * 100),
-						// 	       (int)(Rot_matrix[3] * 100), (int)(Rot_matrix[4] * 100), (int)(Rot_matrix[5] * 100),
-						// 	       (int)(Rot_matrix[6] * 100), (int)(Rot_matrix[7] * 100), (int)(Rot_matrix[8] * 100));
-					}
-
-					// 				int i = printcounter % 9;
-
-					// 	// for (int i = 0; i < 9; i++) {
-					// 		char name[10];
-					// 		sprintf(name, "xapo #%d", i);
-					// 		memcpy(dbg.key, name, sizeof(dbg.key));
-					// 		dbg.value = x_aposteriori[i];
-					// if (pub_dbg < 0) {
-							// pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
-					// } else {
-					// 		orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
-					// }
-
-					printcounter++;
 
 					if (last_data > 0 && raw.timestamp - last_data > 12000) printf("[attitude estimator ekf] sensor data missed! (%llu)\n", raw.timestamp - last_data);
 
@@ -454,6 +434,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					} else {
 						warnx("NaN in roll/pitch/yaw estimate!");
 					}
+
+					perf_end(ekf_loop_perf);
 				}
 			}
 		}

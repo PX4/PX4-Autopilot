@@ -54,6 +54,7 @@ CONFIGURED_APPS += systemcmds/mixer
 CONFIGURED_APPS += systemcmds/eeprom
 CONFIGURED_APPS += systemcmds/param
 CONFIGURED_APPS += systemcmds/bl_update
+CONFIGURED_APPS += systemcmds/preflight_check
 #CONFIGURED_APPS += systemcmds/calibration
 
 # Tutorial code from
@@ -68,6 +69,7 @@ CONFIGURED_APPS += systemcmds/bl_update
 CONFIGURED_APPS += uORB
 
 CONFIGURED_APPS += mavlink
+CONFIGURED_APPS += mavlink_onboard
 CONFIGURED_APPS += gps
 CONFIGURED_APPS += commander
 CONFIGURED_APPS += sdlog
@@ -75,7 +77,9 @@ CONFIGURED_APPS += sensors
 CONFIGURED_APPS += ardrone_interface
 CONFIGURED_APPS += multirotor_att_control
 CONFIGURED_APPS += multirotor_pos_control
-CONFIGURED_APPS += fixedwing_control
+#CONFIGURED_APPS += fixedwing_control
+CONFIGURED_APPS += fixedwing_att_control
+CONFIGURED_APPS += fixedwing_pos_control
 CONFIGURED_APPS += position_estimator
 CONFIGURED_APPS += attitude_estimator_ekf
 
@@ -96,6 +100,7 @@ CONFIGURED_APPS += drivers/stm32
 CONFIGURED_APPS += drivers/led
 CONFIGURED_APPS += drivers/stm32/tone_alarm
 CONFIGURED_APPS += drivers/px4fmu
+CONFIGURED_APPS += drivers/hil
 
 # Testing stuff
 CONFIGURED_APPS += px4/sensors_bringup

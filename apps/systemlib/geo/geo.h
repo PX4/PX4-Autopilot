@@ -48,31 +48,50 @@
 
 #include <stdbool.h>
 
-typedef struct {
-	bool error;			// Flag that the calculation failed
+struct crosstrack_error_s {
 	bool past_end;		// Flag indicating we are past the end of the line/arc segment
 	float distance;		// Distance in meters to closest point on line/arc
 	float bearing;		// Bearing in radians to closest point on line/arc
-} crosstrack_error_s;
+} ;
 
-__EXPORT static void map_projection_init(double lat_0, double lon_0);
+/**
+ * Initializes the map transformation.
+ *
+ * Initializes the transformation between the geographic coordinate system and the azimuthal equidistant plane
+ * @param lat in degrees (47.1234567°, not 471234567°)
+ * @param lon in degrees (8.1234567°, not 81234567°)
+ */
+__EXPORT void map_projection_init(double lat_0, double lon_0);
 
-__EXPORT static void map_projection_project(double lat, double lon, float *x, float *y);
+/**
+ * Transforms a point in the geographic coordinate system to the local azimuthal equidistant plane
+ * @param x north
+ * @param y east
+ * @param lat in degrees (47.1234567°, not 471234567°)
+ * @param lon in degrees (8.1234567°, not 81234567°)
+ */
+__EXPORT void map_projection_project(double lat, double lon, float *x, float *y);
 
-__EXPORT static void map_projection_reproject(float x, float y, double *lat, double *lon);
+/**
+ * Transforms a point in the local azimuthal equidistant plane to the geographic coordinate system
+ *
+ * @param x north
+ * @param y east
+ * @param lat in degrees (47.1234567°, not 471234567°)
+ * @param lon in degrees (8.1234567°, not 81234567°)
+ */
+__EXPORT void map_projection_reproject(float x, float y, double *lat, double *lon);
 
 __EXPORT float get_distance_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 
 __EXPORT float get_bearing_to_next_waypoint(double lat_now, double lon_now, double lat_next, double lon_next);
 
-//
+__EXPORT int get_distance_to_line(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end);
 
-__EXPORT crosstrack_error_s get_distance_to_line(double lat_now, double lon_now, double lat_start, double lon_start, double lat_end, double lon_end);
-
-__EXPORT crosstrack_error_s get_distance_to_arc(double lat_now, double lon_now, double lat_center, double lon_center,
+__EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, double lat_now, double lon_now, double lat_center, double lon_center,
 		float radius, float arc_start_bearing, float arc_sweep);
 
-float _wrap180(float bearing);
-float _wrap360(float bearing);
-float _wrapPI(float bearing);
-float _wrap2PI(float bearing);
+__EXPORT float _wrap_180(float bearing);
+__EXPORT float _wrap_360(float bearing);
+__EXPORT float _wrap_pi(float bearing);
+__EXPORT float _wrap_2pi(float bearing);

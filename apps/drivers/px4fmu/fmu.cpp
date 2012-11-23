@@ -224,7 +224,7 @@ PX4FMU::init()
 	_task = task_spawn("fmuservo",
 			   SCHED_DEFAULT,
 			   SCHED_PRIORITY_DEFAULT,
-			   1024,
+			   2048,
 			   (main_t)&PX4FMU::task_main_trampoline,
 			   nullptr);
 
@@ -419,7 +419,8 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret;
 
-	debug("ioctl 0x%04x 0x%08x", cmd, arg);
+	// XXX disabled, confusing users
+	//debug("ioctl 0x%04x 0x%08x", cmd, arg);
 
 	/* try it as a GPIO ioctl first */
 	ret = gpio_ioctl(filp, cmd, arg);
