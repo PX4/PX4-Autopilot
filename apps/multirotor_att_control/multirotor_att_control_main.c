@@ -82,7 +82,7 @@ __EXPORT int multirotor_att_control_main(int argc, char *argv[]);
 static bool thread_should_exit;
 static int mc_task;
 static bool motor_test_mode = false;
-
+static bool simple_mode_enabled = false;
 static orb_advert_t actuator_pub;
 
 static struct vehicle_status_s state;
@@ -164,8 +164,6 @@ mc_thread_main(int argc, char *argv[])
 	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
 	float failsafe_throttle = 0.0f;
 
-	/* simple mode will only activate if the associated command line switch has been provided */
-	bool simple_mode_enabled = false;
 	/* store the heading at the moment simple mode is activated */
 	float initial_heading = 0.0f;
 
@@ -294,6 +292,7 @@ mc_thread_main(int argc, char *argv[])
 							 */
 							if (simple_mode_enabled && state.flag_control_simple_mode_enabled) {
 								if (!flag_control_simple_mode_enabled || !flag_system_armed) {
+									/* this is the first time we enable simple mode or arm */
 									initial_heading = att.yaw;
 								}
 
@@ -384,6 +383,7 @@ mc_thread_main(int argc, char *argv[])
 				/* update state */
 				flag_control_attitude_enabled = state.flag_control_attitude_enabled;
 				flag_control_manual_enabled = state.flag_control_manual_enabled;
+				flag_control_simple_mode_enabled = state.flag_control_simple_mode_enabled;
 				flag_system_armed = state.flag_system_armed;
 
 				perf_end(mc_loop_perf);
