@@ -184,6 +184,10 @@ private:
 		int rc_map_throttle;
 		int rc_map_mode_sw;
 
+		int rc_map_aux1;
+		int rc_map_aux2;
+		int rc_map_aux3;
+
 		float rc_scale_roll;
 		float rc_scale_pitch;
 		float rc_scale_yaw;
@@ -211,6 +215,10 @@ private:
 		param_t rc_map_yaw;
 		param_t rc_map_throttle;
 		param_t rc_map_mode_sw;
+
+		param_t rc_map_aux1;
+		param_t rc_map_aux2;
+		param_t rc_map_aux3;
 
 		param_t rc_scale_roll;
 		param_t rc_scale_pitch;
@@ -389,6 +397,9 @@ Sensors::Sensors() :
 	_parameter_handles.rc_map_yaw 	= param_find("RC_MAP_YAW");
 	_parameter_handles.rc_map_throttle = param_find("RC_MAP_THROTTLE");
 	_parameter_handles.rc_map_mode_sw = param_find("RC_MAP_MODE_SW");
+	_parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
+	_parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
+	_parameter_handles.rc_map_aux3 = param_find("RC_MAP_AUX3");
 
 	_parameter_handles.rc_scale_roll = param_find("RC_SCALE_ROLL");
 	_parameter_handles.rc_scale_pitch = param_find("RC_SCALE_PITCH");
@@ -480,14 +491,20 @@ Sensors::parameters_update()
 			_parameters.scaling_factor[i] = 0;
 		}
 
+		/* handle wrong values */
+		// XXX TODO
+
 	}
 
 	/* update RC function mappings */
-	_rc.function[0] = _parameters.rc_map_throttle - 1;
-	_rc.function[1] = _parameters.rc_map_roll - 1;
-	_rc.function[2] = _parameters.rc_map_pitch - 1;
-	_rc.function[3] = _parameters.rc_map_yaw - 1;
-	_rc.function[4] = _parameters.rc_map_mode_sw - 1;
+	_rc.function[THROTTLE] = _parameters.rc_map_throttle - 1;
+	_rc.function[ROLL] = _parameters.rc_map_roll - 1;
+	_rc.function[PITCH] = _parameters.rc_map_pitch - 1;
+	_rc.function[YAW] = _parameters.rc_map_yaw - 1;
+	_rc.function[OVERRIDE] = _parameters.rc_map_mode_sw - 1;
+	_rc.function[FUNC_0] = _parameters.rc_map_aux1 - 1;
+	_rc.function[FUNC_1] = _parameters.rc_map_aux2 - 1;
+	_rc.function[FUNC_2] = _parameters.rc_map_aux3 - 1;
 
 	/* remote control type */
 	if (param_get(_parameter_handles.rc_type, &(_parameters.rc_type)) != OK) {
@@ -509,6 +526,15 @@ Sensors::parameters_update()
 	}
 	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
 		warnx("Failed getting mode sw chan index");
+	}
+	if (param_get(_parameter_handles.rc_map_aux1, &(_parameters.rc_map_aux1)) != OK) {
+		warnx("Failed getting mode aux 1 index");
+	}
+	if (param_get(_parameter_handles.rc_map_aux2, &(_parameters.rc_map_aux2)) != OK) {
+		warnx("Failed getting mode aux 2 index");
+	}
+	if (param_get(_parameter_handles.rc_map_aux3, &(_parameters.rc_map_aux3)) != OK) {
+		warnx("Failed getting mode aux 3 index");
 	}
 
 	if (param_get(_parameter_handles.rc_scale_roll, &(_parameters.rc_scale_roll)) != OK) {
@@ -973,7 +999,7 @@ Sensors::ppm_poll()
 		}
 
 		/* yaw input - stick right is positive and positive rotation */
-		manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled * _parameters.rc_scale_yaw;
+		manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled;
 		if (manual_control.yaw < -1.0f) manual_control.yaw = -1.0f;
 		if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
 		if (!isnan(_parameters.rc_scale_yaw) || !isinf(_parameters.rc_scale_yaw)) {
@@ -989,6 +1015,19 @@ Sensors::ppm_poll()
 		manual_control.override_mode_switch = _rc.chan[_rc.function[OVERRIDE]].scaled;
 		if (manual_control.override_mode_switch < -1.0f) manual_control.override_mode_switch = -1.0f;
 		if (manual_control.override_mode_switch >  1.0f) manual_control.override_mode_switch =  1.0f;
+
+		/* aux functions */
+		manual_control.aux1_cam_pan_flaps = _rc.chan[_rc.function[FUNC_0]].scaled;
+		if (manual_control.aux1_cam_pan_flaps < -1.0f) manual_control.aux1_cam_pan_flaps = -1.0f;
+		if (manual_control.aux1_cam_pan_flaps >  1.0f) manual_control.aux1_cam_pan_flaps =  1.0f;
+
+		manual_control.aux2_cam_tilt = _rc.chan[_rc.function[FUNC_1]].scaled;
+		if (manual_control.aux2_cam_tilt < -1.0f) manual_control.aux2_cam_tilt = -1.0f;
+		if (manual_control.aux2_cam_tilt >  1.0f) manual_control.aux2_cam_tilt =  1.0f;
+
+		manual_control.aux3_cam_zoom = _rc.chan[_rc.function[FUNC_2]].scaled;
+		if (manual_control.aux3_cam_zoom < -1.0f) manual_control.aux3_cam_zoom = -1.0f;
+		if (manual_control.aux3_cam_zoom >  1.0f) manual_control.aux3_cam_zoom =  1.0f;
 
 		orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
 		orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual_control);
