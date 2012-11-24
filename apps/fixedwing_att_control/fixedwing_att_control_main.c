@@ -138,7 +138,13 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 		memset(&rates_sp, 0, sizeof(rates_sp));
 		struct vehicle_global_position_s global_pos;
 		memset(&global_pos, 0, sizeof(global_pos));
+		struct manual_control_setpoint_s manual_sp;
+		memset(&manual_sp, 0, sizeof(manual_sp));
+		struct vehicle_status_s vstatus;
+		memset(&vstatus, 0, sizeof(vstatus));
 
+//		static struct debug_key_value_s debug_output;
+//		memset(&debug_output, 0, sizeof(debug_output));
 
 		/* output structs */
 		struct actuator_controls_s actuators;
@@ -148,17 +154,20 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 
 
 		/* publish actuator controls */
-		for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
+		for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++) {
 			actuators.control[i] = 0.0f;
+		}
 		orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
 		orb_advert_t debug_pub = orb_advertise(ORB_ID(debug_key_value), &debug_output);
 		debug_output.key[0] = '1';
 
 
-		/* subscribe  */
+		/* subscribe */
 		int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 		int att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 		int global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+		int manual_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
+		int vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 		/* Setup of loop */
 		float gyro[3] = {0.0f, 0.0f, 0.0f};
@@ -200,24 +209,39 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 				}
 			}
 
+			orb_copy(ORB_ID(manual_control_setpoint), manual_sp_sub, &manual_sp);
+			orb_copy(ORB_ID(vehicle_status), vstatus_sub, &vstatus);
+
 			gyro[0] = att.rollspeed;
 			gyro[1] = att.pitchspeed;
 			gyro[2] = att.yawspeed;
 
 			/* Control */
+			if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
+				/* Attitude Control */
+				fixedwing_att_control_attitude(&att_sp,
+						&att,
+						&speed_body,
+						&rates_sp);
 
-			/* Attitude Control */
-			fixedwing_att_control_attitude(&att_sp,
-					&att,
-					&speed_body,
-					&rates_sp);
+				/* Attitude Rate Control */
+				fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
 
-			/* Attitude Rate Control */
-			fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
+				//REMOVEME XXX
+				actuators.control[3] = 0.7f;
 
-			//REMOVEME XXX
-			actuators.control[3] = 0.7f;
+	//			debug_output.value = rates_sp.pitch;
+	//			orb_publish(ORB_ID(debug_key_value), debug_pub, &debug_output);
+			} else if (vstatus.state_machine == SYSTEM_STATE_MANUAL) {
+				/* directly pass through values */
+				actuators.control[0] = manual_sp.roll;
+				/* positive pitch means negative actuator -> pull up */
+				actuators.control[1] = -manual_sp.pitch;
+				actuators.control[2] = manual_sp.yaw;
+				actuators.control[3] = manual_sp.throttle;
+			}
 
+			/* publish output */
 			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
 			debug_output.value = rates_sp.yaw;
 			orb_publish(ORB_ID(debug_key_value), debug_pub, &debug_output);

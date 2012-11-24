@@ -272,9 +272,6 @@ mc_thread_main(int argc, char *argv[])
 							if (rc_loss_first_time)
 								att_sp.yaw_body = att.yaw;
 
-							// XXX hard-limit it to prevent ballistic mishaps - this is just supposed to
-							// slow a crash down, not actually keep the system in-air.
-
 							rc_loss_first_time = false;
 
 						} else {
