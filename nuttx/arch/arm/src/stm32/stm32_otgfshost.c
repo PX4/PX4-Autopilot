@@ -51,6 +51,7 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/clock.h>
 #include <nuttx/usb/usb.h>
 #include <nuttx/usb/usbhost.h>
 
@@ -149,8 +150,8 @@
 
 #define STM32_READY_DELAY         200000 /* In loop counts */
 #define STM32_FLUSH_DELAY         200000 /* In loop counts */
-#define STM32_SETUP_DELAY         5000   /* In frames */
-#define STM32_DATANAK_DELAY       5000   /* In frames */
+#define STM32_SETUP_DELAY         (5000 / MSEC_PER_TICK) /* 5 seconds in system ticks */
+#define STM32_DATANAK_DELAY       (5000 / MSEC_PER_TICK) /* 5 seconds in system ticks */
 
 /* Ever-present MIN/MAX macros */
 
@@ -305,7 +306,9 @@ static void stm32_chan_wakeup(FAR struct stm32_usbhost_s *priv,
 /* Control/data transfer logic *************************************************/
 
 static void stm32_transfer_start(FAR struct stm32_usbhost_s *priv, int chidx);
+#if 0 /* Not used */
 static inline uint16_t stm32_getframe(void);
+#endif
 static int stm32_ctrl_sendsetup(FAR struct stm32_usbhost_s *priv,
                                 FAR const struct usb_ctrlreq_s *req);
 static int stm32_ctrl_senddata(FAR struct stm32_usbhost_s *priv,
@@ -1182,14 +1185,18 @@ static void stm32_transfer_start(FAR struct stm32_usbhost_s *priv, int chidx)
  * Name: stm32_getframe
  *
  * Description:
- *   Get the current frame number.
+ *   Get the current frame number.  The frame number (FRNUM) field increments
+ *   when a new SOF is transmitted on the USB, and is cleared to 0 when it
+ *   reaches 0x3fff.
  *
  *******************************************************************************/
 
+#if 0 /* Not used */
 static inline uint16_t stm32_getframe(void)
 {
   return (uint16_t)(stm32_getreg(STM32_OTGFS_HFNUM) & OTGFS_HFNUM_FRNUM_MASK);
 }
+#endif
 
 /*******************************************************************************
  * Name: stm32_ctrl_sendsetup
@@ -1203,14 +1210,14 @@ static int stm32_ctrl_sendsetup(FAR struct stm32_usbhost_s *priv,
                                 FAR const struct usb_ctrlreq_s *req)
 {
   FAR struct stm32_chan_s *chan;
-  uint16_t start;
-  uint16_t elapsed;
+  uint32_t start;
+  uint32_t elapsed;
   int ret;
 
   /* Loop while the device reports NAK (and a timeout is not exceeded */
 
   chan  = &priv->chan[priv->ep0out];
-  start = stm32_getframe();
+  start = clock_systimer();
 
   do
     {
@@ -1258,7 +1265,7 @@ static int stm32_ctrl_sendsetup(FAR struct stm32_usbhost_s *priv,
 
      /* Get the elapsed time (in frames) */
 
-     elapsed = stm32_getframe() - start;
+     elapsed = clock_systimer() - start;
     }
   while (elapsed < STM32_SETUP_DELAY);
 
@@ -1367,8 +1374,8 @@ static int stm32_in_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
                              FAR uint8_t *buffer, size_t buflen)
 {
   FAR struct stm32_chan_s *chan;
-  uint16_t start;
-  uint16_t elapsed;
+  uint32_t start;
+  uint32_t elapsed;
   int ret = OK;
 
   /* Loop until the transfer completes (i.e., buflen is decremented to zero)
@@ -1379,7 +1386,7 @@ static int stm32_in_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
   chan->buffer = buffer;
   chan->buflen = buflen;
 
-  start = stm32_getframe();
+  start = clock_systimer();
   while (chan->buflen > 0)
     {
       /* Set up for the wait BEFORE starting the transfer */
@@ -1447,7 +1454,7 @@ static int stm32_in_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
            * buffer pointer and buffer size will be unaltered.
            */
 
-          elapsed = stm32_getframe() - start;
+          elapsed = clock_systimer() - start;
           if (ret != -EAGAIN ||                       /* Not a NAK condition OR */
               elapsed >= STM32_DATANAK_DELAY ||       /* Timeout has elapsed OR */
               chan->buflen != buflen)                 /* Data has been partially transferred */
@@ -1474,8 +1481,8 @@ static int stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
                               FAR uint8_t *buffer, size_t buflen)
 {
   FAR struct stm32_chan_s *chan;
-  uint16_t start;
-  uint16_t elapsed;
+  uint32_t start;
+  uint32_t elapsed;
   size_t xfrlen;
   int ret = OK;
 
@@ -1484,7 +1491,7 @@ static int stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
    */
 
   chan         = &priv->chan[chidx];
-  start        = stm32_getframe();
+  start        = clock_systimer();
 
   while (buflen > 0)
     {
@@ -1569,7 +1576,7 @@ static int stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
            * buffer pointer and buffer size will be unaltered.
            */
 
-          elapsed = stm32_getframe() - start;
+          elapsed = clock_systimer() - start;
           if (ret != -EAGAIN ||                       /* Not a NAK condition OR */
               elapsed >= STM32_DATANAK_DELAY ||       /* Timeout has elapsed OR */
               chan->buflen != xfrlen)                 /* Data has been partially transferred */
@@ -3540,8 +3547,8 @@ static int stm32_ctrlin(FAR struct usbhost_driver_s *drvr,
 {
   struct stm32_usbhost_s *priv = (struct stm32_usbhost_s *)drvr;
   uint16_t buflen;
-  uint16_t start;
-  uint16_t elapsed;
+  uint32_t start;
+  uint32_t elapsed;
   int retries;
   int ret;
 
@@ -3573,7 +3580,7 @@ static int stm32_ctrlin(FAR struct usbhost_driver_s *drvr,
 
       /* Get the start time.  Loop again until the timeout expires */
 
-      start = stm32_getframe();
+      start = clock_systimer();
       do
         {
           /* Handle the IN data phase (if any) */
@@ -3606,7 +3613,7 @@ static int stm32_ctrlin(FAR struct usbhost_driver_s *drvr,
 
           /* Get the elapsed time (in frames) */
 
-          elapsed = stm32_getframe() - start;
+          elapsed = clock_systimer() - start;
         }
       while (elapsed < STM32_DATANAK_DELAY);
     }
@@ -3623,8 +3630,8 @@ static int stm32_ctrlout(FAR struct usbhost_driver_s *drvr,
 {
   struct stm32_usbhost_s *priv = (struct stm32_usbhost_s *)drvr;
   uint16_t buflen;
-  uint16_t start;
-  uint16_t elapsed;
+  uint32_t start;
+  uint32_t elapsed;
   int retries;
   int ret;
 
@@ -3658,7 +3665,7 @@ static int stm32_ctrlout(FAR struct usbhost_driver_s *drvr,
 
       /* Get the start time.  Loop again until the timeout expires */
 
-      start = stm32_getframe();
+      start = clock_systimer();
       do
         {
           /* Handle the data OUT phase (if any) */
@@ -3693,7 +3700,7 @@ static int stm32_ctrlout(FAR struct usbhost_driver_s *drvr,
 
           /* Get the elapsed time (in frames) */
 
-          elapsed = stm32_getframe() - start;
+          elapsed = clock_systimer() - start;
         }
       while (elapsed < STM32_DATANAK_DELAY);
     }

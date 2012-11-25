@@ -3681,3 +3681,9 @@
 	  Peterri Aimonen).
 	* graphics/nxglib/nxglib_splitline.c:  Fix error in drawing of near horizontal
 	  lines (from Peterri Aimonen).
+	* sched/task_exithook.c:  Missing right bracket with certain conditional
+	  compilation (thanks James Goppert).
+	* arch/arm/srch/stm32/stm32_otgfshost.c:  Replace timeout handling; use
+	  system tick instead of frame counter.  The frame counter gets rset to
+	  zero at 0x3fff making it error prone.
+
