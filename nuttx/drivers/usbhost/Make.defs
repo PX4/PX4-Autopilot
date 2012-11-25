@@ -45,7 +45,7 @@ CSRCS  += usbhost_enumerate.c usbhost_storage.c usbhost_hidkbd.c
 # Include add-on USB host driver logic (see misc/drivers)
 
 ifeq ($(CONFIG_NET),y)
-  RTL8187_CSRC  := ${shell if [ -f usbhost/rtl8187x.c ]; then echo "rtl8187x.c"; fi}
+  RTL8187_CSRC  := ${shell if [ -f usbhost$(DELIM)rtl8187x.c ]; then echo "rtl8187x.c"; fi}
   CSRCS += $(RTL8187_CSRC)
 endif
 endif
@@ -54,4 +54,4 @@ endif
 
 DEPPATH += --dep-path usbhost
 VPATH += :usbhost
-CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/usbhost}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)usbhost}

@@ -71,6 +71,6 @@ endif
 
 DEPPATH += --dep-path input
 VPATH += :input
-CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/input}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)input}
 endif
 

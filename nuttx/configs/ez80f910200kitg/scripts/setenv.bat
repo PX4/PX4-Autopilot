@@ -1,6 +1,6 @@
 @echo off
 
-rem configs/ez80f810200kitg/ostest/setenv.bat
+rem configs/ez80f810200kitg/scripts/setenv.bat
 rem
 rem   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 rem   Author: Gregory Nutt <gnutt@nuttx.org>

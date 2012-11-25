@@ -46,7 +46,7 @@ CSRCS += bchlib_setup.c bchlib_teardown.c bchlib_read.c bchlib_write.c \
 
 DEPPATH += --dep-path bch
 VPATH += :bch
-CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/bch}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)bch}
 
 endif
 endif

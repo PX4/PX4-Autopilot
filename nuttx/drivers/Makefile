@@ -48,22 +48,22 @@ VPATH = .
 # files to the source file list, add its DEPPATH info, and will add
 # the appropriate paths to the VPATH variable
 
-include analog/Make.defs
-include bch/Make.defs
-include input/Make.defs
-include lcd/Make.defs
-include mmcsd/Make.defs
-include mtd/Make.defs
-include net/Make.defs
-include pipes/Make.defs
-include power/Make.defs
-include sensors/Make.defs
-include sercomm/Make.defs
-include serial/Make.defs
-include syslog/Make.defs
-include usbdev/Make.defs
-include usbhost/Make.defs
-include wireless/Make.defs
+include analog$(DELIM)Make.defs
+include bch$(DELIM)Make.defs
+include input$(DELIM)Make.defs
+include lcd$(DELIM)Make.defs
+include mmcsd$(DELIM)Make.defs
+include mtd$(DELIM)Make.defs
+include net$(DELIM)Make.defs
+include pipes$(DELIM)Make.defs
+include power$(DELIM)Make.defs
+include sensors$(DELIM)Make.defs
+include sercomm$(DELIM)Make.defs
+include serial$(DELIM)Make.defs
+include syslog$(DELIM)Make.defs
+include usbdev$(DELIM)Make.defs
+include usbhost$(DELIM)Make.defs
+include wireless$(DELIM)Make.defs
 
 ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
   CSRCS += dev_null.c dev_zero.c loop.c

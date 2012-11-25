@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated September 16, 2012)
+NuttX TODO List (Last updated November 25, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -895,23 +895,30 @@ o Build system
   Description: Need a NuttX configuration tool.  The number of configuration
                settings has become quite large and difficult to manage manually.
                Update:  This task is essentially completed.  But probably not for
-               all platforms and all features.  When do we know that the the
-               features is complete and that we can switch to exclusive use of
-               the tool?
+               all platforms and all features.  When do we know that the feature
+               is complete and that we can switch to exclusive use of the tool?
   Status:      Open
   Priority:    Medium-low
 
   Title:       NATIVE WINDOWS BUILD
-  Description: At present, NuttX builds only under Linux or Cygwin.
-               Investigate the possibility of a native Windows build using
-               something like the GNUWin32 tools (coreutils+make+grep+sed+uname).
+  Description: This effort is underway using MinGW-GCC and GNUWin32 tools
+               for (coreutils+make+grep+sed+uname).  Current status:
+
+               1. configs/stm32f4discovery/winbuild - builds okay natively
+               2. configs/ez80f910200kitg - Can be reconfigured to build natively.
+                  Requires some manual intervention to get a clean build.
+                  See configs/ez80f910200kitg/README.txt.
+
   Status:      Open
   Priority:    Low
 
   Title:       WINDOWS DEPENDENCY GENERATION
   Description: Dependency generation is currently disabled when a Windows native
-               toolchain is used.  I think that the only issue is that all of the
-               Windows dependencies needed to be quoted in the Make.dep files.
+               toolchain is used in a POSIX-like enviornment (like Cygwin).  The
+               issue is that the Windows tool generates dependencies use Windows
+               path formatting and this fails with the dependency file (Make.dep)
+               is include).  Perhaps the only issue is that all of the Windows
+               dependencies needed to be quoted in the Make.dep files.
   Status:      Open
   Priority:    Low -- unless some dependency-related build issues is discovered.
 

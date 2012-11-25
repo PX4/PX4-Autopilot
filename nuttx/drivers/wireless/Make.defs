@@ -41,7 +41,7 @@ CSRCS += cc1101.c ISM1_868MHzGFSK100kbps.c ISM2_905MHzGFSK250kbps.c
 
 # Include wireless build support
 
-DEPPATH += --dep-path wireless/cc1101
-VPATH += :wireless/cc1101
-CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/wireless/cc1101}
+DEPPATH += --dep-path wireless$(DELIM)cc1101
+VPATH += :wireless$(DELIM)cc1101
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)wireless$(DELIM)cc1101}
 endif

@@ -76,12 +76,12 @@ endif
 ifeq ($(CONFIG_DAC),y)
   DEPPATH += --dep-path analog
   VPATH += :analog
-  CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/analog}
+  CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)analog}
 else
 ifeq ($(CONFIG_ADC),y)
   DEPPATH += --dep-path analog
   VPATH += :analog
-  CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/analog}
+  CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)analog}
 endif
 endif
 

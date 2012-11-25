@@ -49,7 +49,7 @@ endif
 
 DEPPATH += --dep-path mmcsd
 VPATH += :mmcsd
-CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/mmcsd}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)mmcsd}
 
 endif
 
