@@ -291,8 +291,9 @@ mc_thread_main(int argc, char *argv[])
 							 * changing in heading from its original position. 
 							 */
 							if (simple_mode_enabled && state.flag_control_simple_mode_enabled) {
-								if (!flag_control_simple_mode_enabled || !flag_system_armed) {
-									/* this is the first time we enable simple mode or arm */
+								if (state.flag_control_simple_mode_enabled != flag_control_simple_mode_enabled || 
+									state.flag_system_armed != flag_system_armed) {
+									/* if arming state or simple mode switch state changes store current heading */
 									initial_heading = att.yaw;
 								}
 
@@ -436,6 +437,7 @@ int multirotor_att_control_main(int argc, char *argv[])
 			optioncount += 1;
 			break;
 		case 's':
+			printf("[multirotor att control] simple mode support enabled.\n");
 			simple_mode_enabled = true;
 			optioncount += 1;
 			break;

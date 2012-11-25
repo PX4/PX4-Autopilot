@@ -997,7 +997,7 @@ Sensors::ppm_poll()
 		if (manual_control.override_mode_switch < -1.0f) manual_control.override_mode_switch = -1.0f;
 		if (manual_control.override_mode_switch >  1.0f) manual_control.override_mode_switch =  1.0f;
 
-		/* special custom mode switch input */
+		/* aux1 input */
 		manual_control.aux1_cam_pan_flaps = _rc.chan[_rc.function[AUX1]].scaled;
 		if (manual_control.aux1_cam_pan_flaps < -1.0f) manual_control.aux1_cam_pan_flaps = -1.0f;
 		if (manual_control.aux1_cam_pan_flaps >  1.0f) manual_control.aux1_cam_pan_flaps =  1.0f;
