@@ -79,10 +79,13 @@ PARAM_DEFINE_FLOAT(MC_RCLOSS_THR, 0.0f); // This defines the throttle when the R
 
 __EXPORT int multirotor_att_control_main(int argc, char *argv[]);
 
+/**
+ * Print the correct usage.
+ */
+static void usage(const char *reason);
+
 static bool thread_should_exit;
 static int mc_task;
-static bool motor_test_mode = false;
-static bool simple_mode_enabled = false;
 static orb_advert_t actuator_pub;
 
 static struct vehicle_status_s state;
@@ -90,6 +93,32 @@ static struct vehicle_status_s state;
 static int
 mc_thread_main(int argc, char *argv[])
 {
+	bool motor_test_mode = false;
+	bool simple_mode_enabled = false;
+
+	int ch;
+	while ((ch = getopt(argc, argv, "st:")) != EOF) {
+		switch (ch) {
+		case 't':
+			motor_test_mode = true;
+			break;
+		case 's':
+			printf("[multirotor att control] simple mode support enabled.\n");
+			simple_mode_enabled = true;
+			break;
+		case ':':
+			usage("missing parameter");
+			break;
+		default:
+			fprintf(stderr, "option: -%c\n", ch);
+			usage("unrecognized option");
+			exit(1);
+		}
+	}
+
+	/* welcome user */
+	printf("[multirotor_att_control] starting\n");
+
 	/* declare and safely initialize all structs */
 	memset(&state, 0, sizeof(state));
 	struct vehicle_attitude_s att;
@@ -144,9 +173,6 @@ mc_thread_main(int argc, char *argv[])
 	perf_counter_t mc_loop_perf = perf_alloc(PC_ELAPSED, "multirotor_att_control_runtime");
 	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "multirotor_att_control_interval");
 	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "multirotor_att_control_err");
-
-	/* welcome user */
-	printf("[multirotor_att_control] starting\n");
 
 	/* store last control mode to detect mode switches */
 	bool flag_control_manual_enabled = false;
@@ -418,45 +444,18 @@ usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: multirotor_att_control [-m <mode>] [-t] [-s] {start|status|stop}\n");
-	fprintf(stderr, "    <mode> is 'rates' or 'attitude'\n");
+	fprintf(stderr, "usage: multirotor_att_control {start|status|stop} [-t] [-s]\n");
 	fprintf(stderr, "    -t enables motor test mode with 10%% thrust\n");
-	fprintf(stderr, "    -s enables simple mode\n");
+	fprintf(stderr, "    -s enables simple mode support\n");
 	exit(1);
 }
 
 int multirotor_att_control_main(int argc, char *argv[])
 {
-	int	ch;
-	unsigned int optioncount = 0;
-
-	while ((ch = getopt(argc, argv, "tms:")) != EOF) {
-		switch (ch) {
-		case 't':
-			motor_test_mode = true;
-			optioncount += 1;
-			break;
-		case 's':
-			printf("[multirotor att control] simple mode support enabled.\n");
-			simple_mode_enabled = true;
-			optioncount += 1;
-			break;
-		case ':':
-			usage("missing parameter");
-			break;
-		default:
-			fprintf(stderr, "option: -%c\n", ch);
-			usage("unrecognized option");
-			break;
-		}
-	}
-	argc -= optioncount;
-	//argv += optioncount;
-
 	if (argc < 1)
 		usage("missing command");
 
-	if (!strcmp(argv[1+optioncount], "start")) {
+	if (!strcmp(argv[1], "start")) {
 
 		thread_should_exit = false;
 		mc_task = task_spawn("multirotor_att_control",
@@ -464,11 +463,11 @@ int multirotor_att_control_main(int argc, char *argv[])
 				     SCHED_PRIORITY_MAX - 15,
 				     2048,
 				     mc_thread_main,
-				     NULL);
+				     (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}
 
-	if (!strcmp(argv[1+optioncount], "stop")) {
+	if (!strcmp(argv[1], "stop")) {
 		thread_should_exit = true;
 		exit(0);
 	}
