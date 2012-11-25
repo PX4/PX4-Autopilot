@@ -62,8 +62,8 @@
 #include <systemlib/param/param.h>
 #include <systemlib/pid/pid.h>
 #include <systemlib/geo/geo.h>
+#include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
-
 #include <fixedwing_att_control_rate.h>
 #include <fixedwing_att_control_att.h>
 
@@ -126,7 +126,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 		}
 
 		/* welcome user */
-		printf("[fixedwing att_control] started\n");
+		printf("[fixedwing att control] started\n");
 
 		/* declare and safely initialize all structs */
 		struct vehicle_attitude_s att;
@@ -153,6 +153,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			actuators.control[i] = 0.0f;
 		}
 		orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
+		orb_advert_t rates_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
 //		orb_advert_t debug_pub = orb_advertise(ORB_ID(debug_key_value), &debug_output);
 //		debug_output.key[0] = '1';
 
@@ -185,19 +186,51 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			/* Control */
 
 			if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
-				/* Attitude Control */
-				fixedwing_att_control_attitude(&att_sp,
-						&att,
-						&rates_sp);
+				/* attitude control */
+				fixedwing_att_control_attitude(&att_sp, &att, &rates_sp);
+				/* publish rate setpoint */
+				orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
 
-				/* Attitude Rate Control */
+				/* angular rate control */
 				fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
 
-				//REMOVEME XXX
-				actuators.control[3] = 0.7f;
+				/* pass through throttle */
+				actuators.control[3] = att_sp.thrust;
 
-	//			debug_output.value = rates_sp.pitch;
-	//			orb_publish(ORB_ID(debug_key_value), debug_pub, &debug_output);
+			} else if (vstatus.state_machine == SYSTEM_STATE_STABILIZED) {
+
+				/* if the RC signal is lost, try to stay level and go slowly back down to ground */
+				if(vstatus.rc_signal_lost) {
+					
+					// XXX define failsafe throttle param
+					//param_get(failsafe_throttle_handle, &failsafe_throttle);
+					att_sp.roll_body = 0.3f;
+					att_sp.pitch_body = 0.0f;
+					att_sp.thrust = 0.5f;
+
+					// XXX disable yaw control, loiter
+
+				} else {
+					
+					att_sp.roll_body = manual_sp.roll;
+					att_sp.pitch_body = manual_sp.pitch;
+					att_sp.yaw_body = 0;
+					att_sp.thrust = manual_sp.throttle;
+					att_sp.timestamp = hrt_absolute_time();
+				}
+
+				fixedwing_att_control_attitude(&att_sp, &att, &rates_sp);
+
+				/* publish rate setpoint */
+				orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
+
+				/* angular rate control */
+				fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
+
+				/* pass through throttle */
+				actuators.control[3] = att_sp.thrust;
+
+
 			} else if (vstatus.state_machine == SYSTEM_STATE_MANUAL) {
 				/* directly pass through values */
 				actuators.control[0] = manual_sp.roll;
@@ -224,6 +257,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 
 		close(att_sub);
 		close(actuator_pub);
+		close(rates_pub);
 
 		fflush(stdout);
 		exit(0);
@@ -268,7 +302,7 @@ int fixedwing_att_control_main(int argc, char *argv[])
 		deamon_task = task_spawn("fixedwing_att_control",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_MAX - 20,
-					 4096,
+					 2048,
 					 fixedwing_att_control_thread_main,
 					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		thread_running = true;

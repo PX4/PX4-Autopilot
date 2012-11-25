@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
+ *   Author: Thomas Gubler <thomasgubler@student.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,8 @@
 /**
  * @file fixedwing_att_control_rate.c
  * Implementation of a fixed wing attitude controller.
+ *
+ * @author Thomas Gubler <thomasgubler@student.ethz.ch>
  */
 #include <fixedwing_att_control_rate.h>
 
@@ -171,8 +173,8 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	actuators->control[0] = pid_calculate(&roll_rate_controller, rate_sp->roll, rates[0], 0, deltaT);
 
 
-	actuators->control[1] = pid_calculate(&pitch_rate_controller, rate_sp->pitch, rates[1], 0, deltaT); //TODO: (-) sign comes from the elevator (positive --> deflection downwards), this has to be moved to the mixer...
-	actuators->control[2] = 0;//pid_calculate(&yaw_rate_controller, rate_sp->yaw, rates[2], 0, deltaT); 	//XXX TODO disabled for now
+	actuators->control[1] = pid_calculate(&pitch_rate_controller, rate_sp->pitch, rates[1], 0, deltaT);
+	actuators->control[2] = 0.0f;//pid_calculate(&yaw_rate_controller, rate_sp->yaw, rates[2], 0, deltaT); 	//XXX TODO disabled for now
 
 	counter++;
 

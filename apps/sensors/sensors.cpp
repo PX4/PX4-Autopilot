@@ -973,7 +973,7 @@ Sensors::ppm_poll()
 		}
 
 		/* yaw input - stick right is positive and positive rotation */
-		manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled * _parameters.rc_scale_yaw;
+		manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled;
 		if (manual_control.yaw < -1.0f) manual_control.yaw = -1.0f;
 		if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
 		if (!isnan(_parameters.rc_scale_yaw) || !isinf(_parameters.rc_scale_yaw)) {
@@ -989,6 +989,21 @@ Sensors::ppm_poll()
 		manual_control.override_mode_switch = _rc.chan[_rc.function[OVERRIDE]].scaled;
 		if (manual_control.override_mode_switch < -1.0f) manual_control.override_mode_switch = -1.0f;
 		if (manual_control.override_mode_switch >  1.0f) manual_control.override_mode_switch =  1.0f;
+
+		/* aux inputs */
+		manual_control.aux1_cam_pan_flaps = _rc.chan[_rc.function[FUNC_0]].scaled;
+		if (manual_control.aux1_cam_pan_flaps < -1.0f) manual_control.aux1_cam_pan_flaps = -1.0f;
+		if (manual_control.aux1_cam_pan_flaps >  1.0f) manual_control.aux1_cam_pan_flaps =  1.0f;
+
+		/* aux inputs */
+		manual_control.aux2_cam_tilt = _rc.chan[_rc.function[FUNC_1]].scaled;
+		if (manual_control.aux2_cam_tilt < -1.0f) manual_control.aux2_cam_tilt = -1.0f;
+		if (manual_control.aux2_cam_tilt >  1.0f) manual_control.aux2_cam_tilt =  1.0f;
+
+		/* aux inputs */
+		manual_control.aux3_cam_zoom = _rc.chan[_rc.function[FUNC_2]].scaled;
+		if (manual_control.aux3_cam_zoom < -1.0f) manual_control.aux3_cam_zoom = -1.0f;
+		if (manual_control.aux3_cam_zoom >  1.0f) manual_control.aux3_cam_zoom =  1.0f;
 
 		orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
 		orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual_control);
