@@ -77,6 +77,8 @@ PARAM_DEFINE_FLOAT(FW_PITCH_LIM, 0.35f);	// Pitch angle limit in radians
 
 struct fw_pos_control_params {
 	float heading_p;
+	float headingr_p;
+	float headingr_i;
 	float xtrack_p;
 	float altitude_p;
 	float roll_lim;
@@ -85,6 +87,8 @@ struct fw_pos_control_params {
 
 struct fw_pos_control_param_handles {
 	param_t heading_p;
+	param_t headingr_p;
+	param_t headingr_i;
 	param_t xtrack_p;
 	param_t altitude_p;
 	param_t roll_lim;
@@ -139,6 +143,8 @@ static int parameters_init(struct fw_pos_control_param_handles *h)
 {
 	/* PID parameters */
 	h->heading_p 	=	param_find("FW_HEADING_P");
+	h->headingr_p 	=	param_find("FW_HEADINGR_P");
+	h->headingr_i 	=	param_find("FW_HEADINGR_I");
 	h->xtrack_p 	=	param_find("FW_XTRACK_P");
 	h->altitude_p 	=	param_find("FW_ALT_P");
 	h->roll_lim 	=	param_find("FW_ROLL_LIM");
@@ -151,6 +157,8 @@ static int parameters_init(struct fw_pos_control_param_handles *h)
 static int parameters_update(const struct fw_pos_control_param_handles *h, struct fw_pos_control_params *p)
 {
 	param_get(h->heading_p, &(p->heading_p));
+	param_get(h->headingr_p, &(p->headingr_p));
+	param_get(h->headingr_i, &(p->headingr_i));
 	param_get(h->xtrack_p, &(p->xtrack_p));
 	param_get(h->altitude_p, &(p->altitude_p));
 	param_get(h->roll_lim, &(p->roll_lim));
@@ -221,12 +229,16 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 		struct fw_pos_control_param_handles h;
 
 		PID_t heading_controller;
+		PID_t heading_rate_controller;
+		PID_t offtrack_controller;
 		PID_t altitude_controller;
 
 		parameters_init(&h);
 		parameters_update(&h, &p);
-		pid_init(&heading_controller, p.heading_p, 0.0f, 0.0f, 0.0f,p.roll_lim,PID_MODE_DERIVATIV_NONE);
-		pid_init(&altitude_controller, p.altitude_p, 0.0f, 0.0f, 0.0f,p.pitch_lim,PID_MODE_DERIVATIV_NONE);
+		pid_init(&heading_controller, p.heading_p, 0.0f, 0.0f, 0.0f, 10000.0f, PID_MODE_DERIVATIV_NONE); //arbitrary high limit
+		pid_init(&heading_rate_controller, p.headingr_p, p.headingr_i, 0.0f, 0.0f, p.roll_lim, PID_MODE_DERIVATIV_NONE);
+		pid_init(&altitude_controller, p.altitude_p, 0.0f, 0.0f, 0.0f, p.pitch_lim, PID_MODE_DERIVATIV_NONE);
+		pid_init(&offtrack_controller, p.xtrack_p, 0.0f, 0.0f, 0.0f , 60.0f*M_DEG_TO_RAD, PID_MODE_DERIVATIV_NONE); //TODO: remove hardcoded value
 
 		/* error and performance monitoring */
 		perf_counter_t fw_interval_perf = perf_alloc(PC_INTERVAL, "fixedwing_pos_control_interval");
@@ -252,8 +264,10 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 					/* update parameters from storage */
 					parameters_update(&h, &p);
-					pid_set_parameters(&heading_controller, p.heading_p, 0, 0, 0, p.roll_lim);
+					pid_set_parameters(&heading_controller, p.heading_p, 0, 0, 0, 10000.0f); //arbitrary high limit
+					pid_set_parameters(&heading_rate_controller, p.headingr_p, p.headingr_i, 0, 0, p.roll_lim);
 					pid_set_parameters(&altitude_controller, p.altitude_p, 0, 0, 0, p.pitch_lim);
+					pid_set_parameters(&offtrack_controller, p.xtrack_p, 0, 0, 0, 60.0f*M_DEG_TO_RAD); //TODO: remove hardcoded value
 				}
 
 				/* only run controller if attitude changed */
@@ -267,6 +281,11 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 					/* load local copies */
 					orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
+
+					static uint64_t last_run = 0;
+					const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
+					last_run = hrt_absolute_time();
+
 
 					if (pos_updated) {
 						orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
@@ -282,27 +301,21 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 						printf("psi_track: %0.4f\n", (double)psi_track);
 					}
 
-					/* simple horizontal control, execute if line between wps is known */
+					/* Simple Horizontal Control */
 					if(global_sp_updated_set_once)
 					{
 		//				if (counter % 100 == 0)
 		//					printf("lat_sp %d, ln_sp %d, lat: %d, lon: %d\n", global_setpoint.lat, global_setpoint.lon, global_pos.lat, global_pos.lon);
-						
+
 						/* calculate crosstrack error */
 						// Only the case of a straight line track following handled so far
-						 int distance_res = get_distance_to_line(&xtrack_err, (double)global_pos.lat / (double)1e7d, (double)global_pos.lon / (double)1e7d,
+						int distance_res = get_distance_to_line(&xtrack_err, (double)global_pos.lat / (double)1e7d, (double)global_pos.lon / (double)1e7d,
 								(double)start_pos.lat / (double)1e7d, (double)start_pos.lon / (double)1e7d,
 								(double)global_setpoint.lat / (double)1e7d, (double)global_setpoint.lon / (double)1e7d);
 
 						if(!(distance_res != OK || xtrack_err.past_end)) {
 
-							float delta_psi_c = -p.xtrack_p * xtrack_err.distance; //(-) because z axis points downwards
-
-							if(delta_psi_c > 60.0f*M_DEG_TO_RAD_F)
-								delta_psi_c = 60.0f*M_DEG_TO_RAD_F;
-
-							if(delta_psi_c < -60.0f*M_DEG_TO_RAD_F)
-								delta_psi_c = -60.0f*M_DEG_TO_RAD_F;
+							float delta_psi_c = -pid_calculate(&offtrack_controller, 0, xtrack_err.distance, 0.0f, 0.0f); //p.xtrack_p * xtrack_err.distance; //(-) because z axis points downwards
 
 							float psi_c = psi_track + delta_psi_c;
 
@@ -312,7 +325,18 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 							psi_e = _wrap_pi(psi_e);
 
 							/* calculate roll setpoint, do this artificially around zero */
-							attitude_setpoint.roll_body = pid_calculate(&heading_controller, psi_e, 0.0f, 0.0f, 0.0f);
+							//TODO: psi rate loop incomplete
+							float delta_psi_rate_c = pid_calculate(&heading_controller, psi_e, 0.0f, 0.0f, 0.0f);
+							float psi_rate_track = 0; //=V_gr/r_track , this will be needed for implementation of arc following
+							float psi_rate_c = delta_psi_rate_c + psi_rate_track;
+
+							//TODO limit turn rate
+
+							float psi_rate_e = psi_rate_c - att.yawspeed;
+
+							float psi_rate_e_scaled = psi_rate_e * sqrtf(pow(global_pos.vx,2) + pow(global_pos.vy,2)) / 9.81f; //* V_gr / g
+
+							attitude_setpoint.roll_body = pid_calculate(&heading_rate_controller, psi_rate_e_scaled, 0.0f, 0.0f, deltaT);
 
 		//					if (counter % 100 == 0)
 		//						printf("xtrack_err.distance: %0.4f, delta_psi_c: %0.4f\n",xtrack_err.distance, delta_psi_c);
@@ -322,10 +346,13 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 								printf("distance_res: %d, past_end %d\n", distance_res, xtrack_err.past_end);
 						}
 
-						// XXX SIMPLE ALTITUDE, BUT NO SPEED CONTROL
-						if (pos_updated) {
+						/* Very simple Altitude Control */
+						if(pos_updated)
+						{
+
 							//TODO: take care of relative vs. ab. altitude
 							attitude_setpoint.pitch_body = pid_calculate(&altitude_controller, global_setpoint.altitude, global_pos.alt, 0.0f, 0.0f);
+
 						}
 
 						// XXX need speed control
