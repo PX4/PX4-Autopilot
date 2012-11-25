@@ -230,8 +230,8 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 				//REMOVEME XXX
 				actuators.control[3] = 0.7f;
 
-	//			debug_output.value = rates_sp.pitch;
-	//			orb_publish(ORB_ID(debug_key_value), debug_pub, &debug_output);
+				debug_output.value = rates_sp.pitch;
+				orb_publish(ORB_ID(debug_key_value), debug_pub, &debug_output);
 			} else if (vstatus.state_machine == SYSTEM_STATE_MANUAL) {
 				/* directly pass through values */
 				actuators.control[0] = manual_sp.roll;

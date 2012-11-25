@@ -146,13 +146,16 @@ int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att
 	/* Roll (P) */
 	rates_sp->roll = pid_calculate(&roll_controller, att_sp->roll_body, att->roll, 0, 0);
 
+
 	/* Pitch (P) */
 	float pitch_sp_rollcompensation = att_sp->pitch_body + p.pitch_roll_compensation_p * att_sp->roll_body;
 	rates_sp->pitch = pid_calculate(&pitch_controller, pitch_sp_rollcompensation, att->pitch, 0, 0);
 
 	/* Yaw (from coordinated turn constraint or lateral force) */
 	rates_sp->yaw = (att->rollspeed * rates_sp->roll + 9.81f * sinf(att->roll) * cosf(att->pitch) + speed_body[0] * rates_sp->pitch * sinf(att->roll))
-			/ (speed_body[0] * cosf(att->roll) * cosf(att->pitch) + speed_body[1] * sinf(att->pitch));
+			/ (speed_body[0] * cosf(att->roll) * cosf(att->pitch) + speed_body[2] * sinf(att->pitch));
+
+//	printf("rates_sp->yaw %.4f \n", (double)rates_sp->yaw);
 
 	counter++;
 
