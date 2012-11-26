@@ -114,6 +114,7 @@ static void	l_manual_control_setpoint(struct listener *l);
 static void	l_vehicle_attitude_controls(struct listener *l);
 static void	l_debug_key_value(struct listener *l);
 static void	l_optical_flow(struct listener *l);
+static void	l_vehicle_rates_setpoint(struct listener *l);
 
 struct listener listeners[] = {
 	{l_sensor_combined,		&mavlink_subs.sensor_sub,	0},
@@ -136,6 +137,7 @@ struct listener listeners[] = {
 	{l_vehicle_attitude_controls,	&mavlink_subs.actuators_sub,	0},
 	{l_debug_key_value,		&mavlink_subs.debug_key_value,	0},
 	{l_optical_flow,		&mavlink_subs.optical_flow,	0},
+	{l_vehicle_rates_setpoint,	&mavlink_subs.rates_setpoint_sub,	0},
 };
 
 static const unsigned n_listeners = sizeof(listeners) / sizeof(listeners[0]);
@@ -406,6 +408,23 @@ l_attitude_setpoint(struct listener *l)
 							att_sp.pitch_body,
 							att_sp.yaw_body,
 							att_sp.thrust);
+}
+
+void
+l_vehicle_rates_setpoint(struct listener *l)
+{
+	struct vehicle_rates_setpoint_s rates_sp;
+
+	/* copy local position data into local buffer */
+	orb_copy(ORB_ID(vehicle_rates_setpoint), mavlink_subs.rates_setpoint_sub, &rates_sp);
+
+	if (gcs_link)
+		mavlink_msg_roll_pitch_yaw_rates_thrust_setpoint_send(MAVLINK_COMM_0,
+							rates_sp.timestamp/1000,
+							rates_sp.roll,
+							rates_sp.pitch,
+							rates_sp.yaw,
+							rates_sp.thrust);
 }
 
 void
@@ -694,6 +713,10 @@ uorb_receive_start(void)
 	/* --- ATTITUDE SETPOINT VALUE --- */
 	mavlink_subs.spa_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 	orb_set_interval(mavlink_subs.spa_sub, 2000);	/* 0.5 Hz updates */
+
+	/* --- RATES SETPOINT VALUE --- */
+	mavlink_subs.rates_setpoint_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
+	orb_set_interval(mavlink_subs.rates_setpoint_sub, 2000);  /* 0.5 Hz updates */
 
 	/* --- ACTUATOR OUTPUTS --- */
 	mavlink_subs.act_0_sub = orb_subscribe(ORB_ID(actuator_outputs_0));
