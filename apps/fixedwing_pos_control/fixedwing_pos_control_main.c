@@ -334,7 +334,7 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 							float psi_rate_e = psi_rate_c - att.yawspeed;
 
-							float psi_rate_e_scaled = psi_rate_e * sqrtf(pow(global_pos.vx,2) + pow(global_pos.vy,2)) / 9.81f; //* V_gr / g
+							float psi_rate_e_scaled = psi_rate_e * sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy) / 9.81f; //* V_gr / g
 
 							attitude_setpoint.roll_body = pid_calculate(&heading_rate_controller, psi_rate_e_scaled, 0.0f, 0.0f, deltaT);
 
