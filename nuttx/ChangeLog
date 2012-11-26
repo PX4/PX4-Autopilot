@@ -3689,4 +3689,6 @@
 	* arch/arm/src/stm32/stm32f20xx_rcc.c and stm32f40xx_rcc.c: Added option
 	  CONFIG_STM32_FLASH_PREFETCH.  FLASH prefetch will now only be enabled
 	  if this option is selected.
+	* confgs/ez80f910200zco/ostest:  Now used Kconfig/mconfig configuration
+	  tool.
 

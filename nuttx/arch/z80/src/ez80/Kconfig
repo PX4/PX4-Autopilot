@@ -87,7 +87,8 @@ config EZ80_MDCDIV
 	int "SCLK Divider"
 	default 0
 	---help---
-		The value to use for the divider to derive the MII MDC clock from SCLK.  Options are 1->4; 2->6; 3->8; 4->10; 5->14; 6->20; and 7->28
+		The value to use for the divider to derive the MII MDC clock from SCLK.  Options
+		are 1->4; 2->6; 3->8; 4->10; 5->14; 6->20; and 7->28
 
 config EZ80_TXPOLLTIMERMS
 	int "Tx Poll Milliseconds"
@@ -102,4 +103,14 @@ config ARCH_MCFILTER
 		Enables multicast MAC address filtering (not fully implemented)
 
 endif
+
+config ARCH_TIMERHOOK
+	bool "Timer Hook"
+	default n
+	---help---
+		Select this option to enabled a direct call-out from the ez80 timer interrupt
+		handler.  If this is enabled, the ez80 timer interrupt interrupt will call a
+		user provided function called up_timerhook().  At present, this timer hook is
+		only used for driving the segment LED on board certain ez80 boards.
+
 endif

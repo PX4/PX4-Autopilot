@@ -33,20 +33,31 @@
 #
 # Check how we were executed
 #
-if [ "$(basename $0)" = "setenv.sh" ] ; then
+if [ "$_" = "$0" ] ; then
   echo "You must source this script, not run it!" 1>&2
   exit 1
 fi
 
-#
-# The ZDS-II toolchain lies outside of the Cygwin "sandbox" and
-# attempts to set the PATH variable do not have the desired effect.
-# Instead, alias are provided for all of the ZDS-II command line tools.
-# Version 5.1.1 installed in the default location is assumed here.
-#
-ZDSBINDIR="C:/Program\ Files\ \(x86\)/ZiLOG/ZDSII_eZ80Acclaim!_5.1.1/bin"
-alias ez80asm="${ZDSBINDIR}/ez80asm.exe"
-alias ez80cc="${ZDSBINDIR}/ez80cc.exe"
-alias ez80lib="${ZDSBINDIR}/ez80lib.exe"
-alias ez80link="${ZDSBINDIR}/ez80link.exe"
+WD=`pwd`
+if [ ! -x "setenv.sh" ]; then
+  echo "This script must be executed from the top-level NuttX build directory"
+  exit 1
+fi
 
+if [ -z "${PATH_ORIG}" ]; then
+  export PATH_ORIG="${PATH}"
+fi
+
+#
+# This is the Cygwin path to location where the XDS-II tools were installed
+#
+TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/ZiLOG/ZDSII_eZ80Acclaim!_5.1.1\bin"
+
+#
+# Add the path to the toolchain to the PATH varialble.  NOTE that /bin and /usr/bin
+# preceded the toolchain bin directory.  This is because the ZDSII bin directory
+# includes binaries like make.exe that will interfere with the normal build process
+# if we do not give priority to the versions at /bin and /usr/bin.
+#
+export PATH="/bin:/usr/bin:${TOOLCHAIN_BIN}:/sbin:/usr/sbin:${PATH_ORIG}"
+echo "PATH : ${PATH}"
