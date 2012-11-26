@@ -993,7 +993,7 @@ Sensors::ppm_poll()
 		if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
 
 		/* mode switch input */
-		manual_control.override_mode_switch = _rc.chan[_rc.function[MODE_OVERRIDE]].scaled;
+		manual_control.override_mode_switch = _rc.chan[_rc.function[OVERRIDE]].scaled;
 		if (manual_control.override_mode_switch < -1.0f) manual_control.override_mode_switch = -1.0f;
 		if (manual_control.override_mode_switch >  1.0f) manual_control.override_mode_switch =  1.0f;
 

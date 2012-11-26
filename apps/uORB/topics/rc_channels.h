@@ -61,7 +61,7 @@ enum RC_CHANNELS_FUNCTION
   ROLL                     = 1,
   PITCH                    = 2,
   YAW                      = 3,
-  MODE_OVERRIDE            = 4,
+  OVERRIDE                 = 4,
   AUX1                     = 5,
   FUNC_1                   = 6,
   FUNC_2                   = 7,
