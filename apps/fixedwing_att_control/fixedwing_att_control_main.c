@@ -264,7 +264,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 				/* directly pass through values */
 				actuators.control[0] = manual_sp.roll;
 				/* positive pitch means negative actuator -> pull up */
-				actuators.control[1] = -manual_sp.pitch;
+				actuators.control[1] = manual_sp.pitch;
 				actuators.control[2] = manual_sp.yaw;
 				actuators.control[3] = manual_sp.throttle;
 			}
