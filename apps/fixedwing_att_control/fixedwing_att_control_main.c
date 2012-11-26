@@ -142,8 +142,6 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 		memset(&manual_sp, 0, sizeof(manual_sp));
 		struct vehicle_status_s vstatus;
 		memset(&vstatus, 0, sizeof(vstatus));
-		struct debug_key_value_s debug_output;
-		memset(&debug_output, 0, sizeof(debug_output));
 
 		/* output structs */
 		struct actuator_controls_s actuators;
@@ -156,8 +154,6 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 		}
 		orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
 		orb_advert_t rates_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
-		orb_advert_t debug_pub = orb_advertise(ORB_ID(debug_key_value), &debug_output);
-		strncpy(debug_output.key, "yaw_rate", sizeof(debug_output.key - 1));
 
 		/* subscribe */
 		int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
@@ -259,7 +255,6 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 				/* pass through throttle */
 				actuators.control[3] = att_sp.thrust;
 
-
 			} else if (vstatus.state_machine == SYSTEM_STATE_MANUAL) {
 				/* directly pass through values */
 				actuators.control[0] = manual_sp.roll;
@@ -269,10 +264,11 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 				actuators.control[3] = manual_sp.throttle;
 			}
 
-			/* publish output */
+			/* publish rates */
+			orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
+
+			/* publish actuator outputs */
 			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
-			debug_output.value = rates_sp.yaw;
-			orb_publish(ORB_ID(debug_key_value), debug_pub, &debug_output);
 		}
 
 		printf("[fixedwing_att_control] exiting, stopping all motors.\n");

@@ -169,9 +169,8 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	}
 
 
-	/* Roll Rate (PI) */
+	/* roll rate (PI) */
 	actuators->control[0] = pid_calculate(&roll_rate_controller, rate_sp->roll, rates[0], 0.0f, deltaT);
-
 	/* pitch rate (PI) */
 	actuators->control[1] = pid_calculate(&pitch_rate_controller, rate_sp->pitch, rates[1], 0.0f, deltaT);
 	/* yaw rate (PI) */

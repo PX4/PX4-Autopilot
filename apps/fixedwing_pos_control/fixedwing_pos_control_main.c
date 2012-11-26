@@ -68,10 +68,13 @@
  * Controller parameters, accessible via MAVLink
  *
  */
-PARAM_DEFINE_FLOAT(FW_HEADING_P, 0.1f);
+PARAM_DEFINE_FLOAT(FW_HEAD_P, 0.1f);
+PARAM_DEFINE_FLOAT(FW_HEADR_I, 0.1f);
+PARAM_DEFINE_FLOAT(FW_HEADR_LIM, 1.5f); //TODO: think about reasonable value
 PARAM_DEFINE_FLOAT(FW_XTRACK_P, 0.01745f);		// Radians per meter off track
 PARAM_DEFINE_FLOAT(FW_ALT_P, 0.1f);
 PARAM_DEFINE_FLOAT(FW_ROLL_LIM, 0.7f);	// Roll angle limit in radians
+PARAM_DEFINE_FLOAT(FW_HEADR_P, 0.1f);
 PARAM_DEFINE_FLOAT(FW_PITCH_LIM, 0.35f);	// Pitch angle limit in radians
 
 
@@ -79,6 +82,7 @@ struct fw_pos_control_params {
 	float heading_p;
 	float headingr_p;
 	float headingr_i;
+	float headingr_lim;
 	float xtrack_p;
 	float altitude_p;
 	float roll_lim;
@@ -89,6 +93,7 @@ struct fw_pos_control_param_handles {
 	param_t heading_p;
 	param_t headingr_p;
 	param_t headingr_i;
+	param_t headingr_lim;
 	param_t xtrack_p;
 	param_t altitude_p;
 	param_t roll_lim;
@@ -142,9 +147,10 @@ static int deamon_task;				/**< Handle of deamon task / thread */
 static int parameters_init(struct fw_pos_control_param_handles *h)
 {
 	/* PID parameters */
-	h->heading_p 	=	param_find("FW_HEADING_P");
-	h->headingr_p 	=	param_find("FW_HEADINGR_P");
-	h->headingr_i 	=	param_find("FW_HEADINGR_I");
+	h->heading_p 	=	param_find("FW_HEAD_P");
+	h->headingr_p 	=	param_find("FW_HEADR_P");
+	h->headingr_i 	=	param_find("FW_HEADR_I");
+	h->headingr_lim 	=	param_find("FW_HEADR_LIM");
 	h->xtrack_p 	=	param_find("FW_XTRACK_P");
 	h->altitude_p 	=	param_find("FW_ALT_P");
 	h->roll_lim 	=	param_find("FW_ROLL_LIM");
@@ -159,6 +165,7 @@ static int parameters_update(const struct fw_pos_control_param_handles *h, struc
 	param_get(h->heading_p, &(p->heading_p));
 	param_get(h->headingr_p, &(p->headingr_p));
 	param_get(h->headingr_i, &(p->headingr_i));
+	param_get(h->headingr_lim, &(p->headingr_lim));
 	param_get(h->xtrack_p, &(p->xtrack_p));
 	param_get(h->altitude_p, &(p->altitude_p));
 	param_get(h->roll_lim, &(p->roll_lim));
@@ -273,6 +280,11 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 				/* only run controller if attitude changed */
 				if (fds[1].revents & POLLIN) {
 
+
+					static uint64_t last_run = 0;
+					const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
+					last_run = hrt_absolute_time();
+
 					/* check if there is a new position or setpoint */
 					bool pos_updated;
 					orb_check(global_pos_sub, &pos_updated);
@@ -282,17 +294,17 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 					/* load local copies */
 					orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
 
-					static uint64_t last_run = 0;
-					const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
-					last_run = hrt_absolute_time();
-
-
 					if (pos_updated) {
 						orb_copy(ORB_ID(vehicle_global_position), global_pos_sub, &global_pos);
 					}
 
 					if (global_sp_updated) {
 						orb_copy(ORB_ID(vehicle_global_position_setpoint), global_setpoint_sub, &global_setpoint);
+	//					printf("xtrack_err.distance %.4f ", (double)xtrack_err.distance);
+
+						float delta_psi_c = pid_calculate(&offtrack_controller, 0, xtrack_err.distance, 0.0f, 0.0f); //p.xtrack_p * xtrack_err.distance
+
+	//					printf("delta_psi_c %.4f ", (double)delta_psi_c);
 
 						start_pos = global_pos; //for now using the current position as the startpoint (= approx. last waypoint because the setpoint switch occurs at the waypoint)
 						global_sp_updated_set_once = true;
@@ -309,34 +321,53 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 						/* calculate crosstrack error */
 						// Only the case of a straight line track following handled so far
-						int distance_res = get_distance_to_line(&xtrack_err, (double)global_pos.lat / (double)1e7d, (double)global_pos.lon / (double)1e7d,
+						 int distance_res = get_distance_to_line(&xtrack_err, (double)global_pos.lat / (double)1e7d, (double)global_pos.lon / (double)1e7d,
 								(double)start_pos.lat / (double)1e7d, (double)start_pos.lon / (double)1e7d,
 								(double)global_setpoint.lat / (double)1e7d, (double)global_setpoint.lon / (double)1e7d);
 
 						if(!(distance_res != OK || xtrack_err.past_end)) {
 
-							float delta_psi_c = -pid_calculate(&offtrack_controller, 0, xtrack_err.distance, 0.0f, 0.0f); //p.xtrack_p * xtrack_err.distance; //(-) because z axis points downwards
+		//					printf("xtrack_err.distance %.4f ", (double)xtrack_err.distance);
+
+							float delta_psi_c = pid_calculate(&offtrack_controller, 0, xtrack_err.distance, 0.0f, 0.0f); //p.xtrack_p * xtrack_err.distance
+
+		//					printf("delta_psi_c %.4f ", (double)delta_psi_c);
 
 							float psi_c = psi_track + delta_psi_c;
 
+		//					printf("psi_c %.4f ", (double)psi_c);
+
+		//					printf("att.yaw %.4f ", (double)att.yaw);
+
 							float psi_e = psi_c - att.yaw;
+
+		//					printf("psi_e %.4f ", (double)psi_e);
 
 							/* shift error to prevent wrapping issues */
 							psi_e = _wrap_pi(psi_e);
 
 							/* calculate roll setpoint, do this artificially around zero */
-							//TODO: psi rate loop incomplete
 							float delta_psi_rate_c = pid_calculate(&heading_controller, psi_e, 0.0f, 0.0f, 0.0f);
 							float psi_rate_track = 0; //=V_gr/r_track , this will be needed for implementation of arc following
 							float psi_rate_c = delta_psi_rate_c + psi_rate_track;
 
-							//TODO limit turn rate
+							//limit turn rate
+							if(psi_rate_c > p.headingr_lim)
+								psi_rate_c =  p.headingr_lim;
+							else if(psi_rate_c <  -p.headingr_lim)
+								psi_rate_c = - p.headingr_lim;
+
+		//					printf("psi_rate_c %.4f ", (double)psi_rate_c);
 
 							float psi_rate_e = psi_rate_c - att.yawspeed;
 
-							float psi_rate_e_scaled = psi_rate_e * sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy) / 9.81f; //* V_gr / g
+							float psi_rate_e_scaled = psi_rate_e * sqrtf(powf(global_pos.vx, 2.0f) + powf(global_pos.vy, 2.0f)) / 9.81f; //* V_gr / g
 
-							attitude_setpoint.roll_body = pid_calculate(&heading_rate_controller, psi_rate_e_scaled, 0.0f, 0.0f, deltaT);
+		//					printf("psi_rate_e_scaled %.4f ", (double)psi_rate_e_scaled);
+
+							attitude_setpoint.roll_body = pid_calculate(&heading_rate_controller, psi_rate_e_scaled, 0.0f, 0.0f, deltaT);\
+
+		//					printf("rollbody %.4f\n", (double)attitude_setpoint.roll_body);
 
 		//					if (counter % 100 == 0)
 		//						printf("xtrack_err.distance: %0.4f, delta_psi_c: %0.4f\n",xtrack_err.distance, delta_psi_c);
