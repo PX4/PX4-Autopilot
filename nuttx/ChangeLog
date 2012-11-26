@@ -3686,4 +3686,7 @@
 	* arch/arm/srch/stm32/stm32_otgfshost.c:  Replace timeout handling; use
 	  system tick instead of frame counter.  The frame counter gets rset to
 	  zero at 0x3fff making it error prone.
+	* arch/arm/src/stm32/stm32f20xx_rcc.c and stm32f40xx_rcc.c: Added option
+	  CONFIG_STM32_FLASH_PREFETCH.  FLASH prefetch will now only be enabled
+	  if this option is selected.
 

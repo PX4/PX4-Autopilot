@@ -689,6 +689,15 @@ endchoice
 
 endmenu
 
+config STM32_FLASH_PREFETCH
+	bool "Enable FLASH Pre-fetch"
+	depends on STM32_STM32F20XX || STM32_STM32F40XX
+	default n
+	---help---
+	Enable FLASH prefetch and F2 and F4 parts (FLASH pre-fetch is always enabled
+	on F1 parts).  Some early revisions of F4 parts do not support FLASH pre-fetch
+	properly and enabling this option may interfere with ADC accuracy.
+
 choice
 	prompt "JTAG Configuration"
 	default STM32_JTAG_DISABLE
