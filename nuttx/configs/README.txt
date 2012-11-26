@@ -1789,10 +1789,6 @@ configs/pic32mx7mmb
   Mikroelektronika PIC32MX7 Multimedia Board (MMB).  See
   http://www.mikroe.com/ for further information.
 
-  STATUS:  Basic OS test configuration is in place, but the board does not boot.
-  It looks like I will need an ICD3 in order to debug the code (PICkit3
-  doesn't work for debug with this board).  This effort is temporarily stalled.
-
 configs/pjrc-8051
   8051 Microcontroller.  This port uses the PJRC 87C52 development system
   and the SDCC toolchain.   This port is not quite ready for prime time.

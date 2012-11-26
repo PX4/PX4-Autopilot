@@ -3690,5 +3690,5 @@
 	  CONFIG_STM32_FLASH_PREFETCH.  FLASH prefetch will now only be enabled
 	  if this option is selected.
 	* confgs/ez80f910200zco/ostest:  Now used Kconfig/mconfig configuration
-	  tool.
-
+	  tool. Updated to build in native Windows environment.  Other ez80f910200zco
+	  build scripts also updated.
