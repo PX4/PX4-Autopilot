@@ -33,8 +33,8 @@
 #
 ############################################################################
 
-include ${TOPDIR}/.config
-include ${TOPDIR}/tools/Config.mk
+include $(TOPDIR)/.config
+include $(TOPDIR)/tools/Config.mk
 
 # These are the directories where the ZDS-II toolchain is installed
 
@@ -140,21 +140,11 @@ LINKCMDTEMPLATE = $(TOPDIR)$(DELIM)configs$(DELIM)ez80f910200kitg$(DELIM)ostest$
 # Tool names/pathes
 
 CROSSDEV =
+CC = ez80cc.exe
 CPP = gcc -E
-
-ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  # PATH varialble should be set
-  CC = ez80cc.exe
-  LD = ez80link.exe
-  AS = ez80asm.exe
-  AR = ez80lib.exe
-else
-  # Cygwin PATH variable is not sufficient
-  CC = "$(ZDSBINDIR)$(DELIM)ez80cc.exe"
-  LD = "$(ZDSBINDIR)$(DELIM)ez80link.exe"
-  AS = "$(ZDSBINDIR)$(DELIM)ez80asm.exe"
-  AR = "$(ZDSBINDIR)$(DELIM)ez80lib.exe"
-endif
+LD = ez80link.exe
+AS = ez80asm.exe
+AR = ez80lib.exe
 
 # File extensions
 
@@ -205,11 +195,11 @@ define PREPROCESS
 endef
 
 define COMPILE
-	$(Q) "$(CC)" $(CFLAGS)  ${shell echo $1 | sed -e "s/\//\\/g"}
+	$(Q) (wfile=`cygpath -w "$1"`; "$(CC)" $(CFLAGS) $$wfile)
 endef
 
 define ASSEMBLE
-	$(Q) "$(AS)" $(AFLAGS) ${shell echo $1 | sed -e "s/\//\\/g"}
+	$(Q) (wfile=`cygpath -w "$1"`; "$(AS)" $(AFLAGS) $$wfile)
 endef
 
 define ARCHIVE

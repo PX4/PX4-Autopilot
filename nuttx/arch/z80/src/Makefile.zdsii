@@ -106,7 +106,7 @@ nuttx.linkcmd: $(LINKCMDTEMPLATE)
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 	@echo "$(TOPDIR)\nuttx"= \>>nuttx.linkcmd
 	@echo   "$(ARCHSRCDIR)\$(HEAD_OBJ)", \>>nuttx.linkcmd
-	$(Q) for %%G in ($(LINKLIBS)) do ( echo "$(TOPDIR)\lib\%%G", \>>nuttx.linkcmd )
+	$(Q) for %%G in ($(LINKLIBS)) do ( echo   "$(TOPDIR)\lib\%%G", \>>nuttx.linkcmd )
 	@echo   "$(ARCHSRCDIR)\board\libboard$(LIBEXT)", \>>nuttx.linkcmd
 ifeq ($(CONFIG_ARCH_CHIP_Z8F640X),y)
 	@echo   "$(ZDSSTDLIBDIR)\chelprevaaD$(LIBEXT)", \>>nuttx.linkcmd
@@ -130,12 +130,12 @@ ifeq ($(CONFIG_ARCH_CHIP_EZ80F91),y)
 	@echo   "$(ZDSZILOGLIBDIR)\uartf91$(LIBEXT)">>nuttx.linkcmd
 endif
 else
-	@echo "\"${shell cygpath -w "$(TOPDIR)/nuttx\"= \\" >>nuttx.linkcmd
-	@echo "  \"${shell cygpath -w "$(ARCHSRCDIR)/$(HEAD_OBJ)\", \\" >>nuttx.linkcmd
+	@echo "\"${shell cygpath -w "$(TOPDIR)/nuttx"}\"= \\" >>nuttx.linkcmd
+	@echo "  \"${shell cygpath -w "$(ARCHSRCDIR)/$(HEAD_OBJ)"}\", \\" >>nuttx.linkcmd
 	$(Q) ( for lib in $(LINKLIBS); do \
 		echo "  \"`cygpath -w "$(TOPDIR)/lib/$${lib}"`\", \\" >>nuttx.linkcmd; \
 	done ; )
-	@echo "  \"${shell cygpath -w "$(ARCHSRCDIR)/board/libboard$(LIBEXT)\", \\"  >>nuttx.linkcmd
+	@echo "  \"${shell cygpath -w "$(ARCHSRCDIR)/board/libboard$(LIBEXT)"}\", \\"  >>nuttx.linkcmd
 ifeq ($(CONFIG_ARCH_CHIP_Z8F640X),y)
 	@echo "  \"${shell cygpath -w "$(ZDSSTDLIBDIR)/chelprevaaD$(LIBEXT)"}\", \\"  >>nuttx.linkcmd
 	@echo "  \"${shell cygpath -w "$(ZDSSTDLIBDIR)/crtrevaaLDD$(LIBEXT)"}\", \\"  >>nuttx.linkcmd

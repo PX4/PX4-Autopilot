@@ -75,7 +75,7 @@
 /* Configuration ***************************************************************/
 
 #ifndef CONFIG_LPC31_USBDEV_EP0_MAXSIZE
-#  define CONFIG_LPC31_LPC31_USBDEV_EP0_MAXSIZE 64
+#  define CONFIG_LPC31_USBDEV_EP0_MAXSIZE 64
 #endif
 
 #ifndef  CONFIG_USBDEV_MAXPOWER

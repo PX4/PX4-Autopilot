@@ -37,6 +37,12 @@ include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
 include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
 
+ifeq ($(CONFIG_STM32_DFU),y)
+  LDSCRIPT = ld.script.dfu
+else
+  LDSCRIPT = ld.script
+endif
+
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains
   DIRLINK = $(TOPDIR)/tools/winlink.sh
