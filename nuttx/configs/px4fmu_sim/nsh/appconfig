@@ -35,6 +35,7 @@
 
 # Path to example in apps/examples containing the user_start entry point
 
+CONFIGURED_APPS	+= examples/mqueue_test
 CONFIGURED_APPS	+= examples/nsh
 
 # The NSH application library
@@ -59,7 +60,7 @@ CONFIGURED_APPS += systemcmds/uname
 
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/hello_sky
-#CONFIGURED_APPS += examples/px4_simple_app
+CONFIGURED_APPS += examples/px4_simple_app
 
 # Tutorial code from
 # https://pixhawk.ethz.ch/px4/dev/deamon
