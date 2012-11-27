@@ -75,8 +75,7 @@ PARAM_DEFINE_FLOAT(FW_XTRACK_P, 0.01745f);		// Radians per meter off track
 PARAM_DEFINE_FLOAT(FW_ALT_P, 0.1f);
 PARAM_DEFINE_FLOAT(FW_ROLL_LIM, 0.7f);	// Roll angle limit in radians
 PARAM_DEFINE_FLOAT(FW_HEADR_P, 0.1f);
-PARAM_DEFINE_FLOAT(FW_PITCH_LIM, 0.35f);	// Pitch angle limit in radians
-
+PARAM_DEFINE_FLOAT(FW_PITCH_LIM, 0.35f);	/**< Pitch angle limit in radians per second */
 
 struct fw_pos_control_params {
 	float heading_p;
@@ -98,7 +97,6 @@ struct fw_pos_control_param_handles {
 	param_t altitude_p;
 	param_t roll_lim;
 	param_t pitch_lim;
-
 };
 
 
@@ -147,15 +145,14 @@ static int deamon_task;				/**< Handle of deamon task / thread */
 static int parameters_init(struct fw_pos_control_param_handles *h)
 {
 	/* PID parameters */
-	h->heading_p 	=	param_find("FW_HEAD_P");
-	h->headingr_p 	=	param_find("FW_HEADR_P");
-	h->headingr_i 	=	param_find("FW_HEADR_I");
+	h->heading_p 		=	param_find("FW_HEAD_P");
+	h->headingr_p 		=	param_find("FW_HEADR_P");
+	h->headingr_i 		=	param_find("FW_HEADR_I");
 	h->headingr_lim 	=	param_find("FW_HEADR_LIM");
-	h->xtrack_p 	=	param_find("FW_XTRACK_P");
-	h->altitude_p 	=	param_find("FW_ALT_P");
-	h->roll_lim 	=	param_find("FW_ROLL_LIM");
-	h->pitch_lim 	=	param_find("FW_PITCH_LIM");
-
+	h->xtrack_p 		=	param_find("FW_XTRACK_P");
+	h->altitude_p 		=	param_find("FW_ALT_P");
+	h->roll_lim 		=	param_find("FW_ROLL_LIM");
+	h->pitch_lim 		=	param_find("FW_PITCH_LIM");
 
 	return OK;
 }
@@ -325,7 +322,8 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 								(double)start_pos.lat / (double)1e7d, (double)start_pos.lon / (double)1e7d,
 								(double)global_setpoint.lat / (double)1e7d, (double)global_setpoint.lon / (double)1e7d);
 
-						if(!(distance_res != OK || xtrack_err.past_end)) {
+						 // XXX what is xtrack_err.past_end?
+						if(distance_res == OK /*&& !xtrack_err.past_end*/) {
 
 		//					printf("xtrack_err.distance %.4f ", (double)xtrack_err.distance);
 
@@ -360,19 +358,17 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 		//					printf("psi_rate_c %.4f ", (double)psi_rate_c);
 
 							float psi_rate_e = psi_rate_c - att.yawspeed;
-
-							float psi_rate_e_scaled = psi_rate_e * sqrtf(powf(global_pos.vx, 2.0f) + powf(global_pos.vy, 2.0f)) / 9.81f; //* V_gr / g
+							float psi_rate_e_scaled = psi_rate_e * sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy) / 9.81f; //* V_gr / g
 
 		//					printf("psi_rate_e_scaled %.4f ", (double)psi_rate_e_scaled);
 
-							attitude_setpoint.roll_body = pid_calculate(&heading_rate_controller, psi_rate_e_scaled, 0.0f, 0.0f, deltaT);\
+							attitude_setpoint.roll_body = pid_calculate(&heading_rate_controller, psi_rate_e_scaled, 0.0f, 0.0f, deltaT);
 
-		//					printf("rollbody %.4f\n", (double)attitude_setpoint.roll_body);
+							// printf("rollbody %.4f\n", (double)attitude_setpoint.roll_body);
 
-		//					if (counter % 100 == 0)
-		//						printf("xtrack_err.distance: %0.4f, delta_psi_c: %0.4f\n",xtrack_err.distance, delta_psi_c);
-						}
-						else {
+							if (counter % 100 == 0)
+								printf("xtrack_err.distance: %0.4f, delta_psi_c: %0.4f\n",xtrack_err.distance, delta_psi_c);
+						} else {
 							if (counter % 100 == 0)
 								printf("distance_res: %d, past_end %d\n", distance_res, xtrack_err.past_end);
 						}
@@ -394,6 +390,8 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 						/* measure in what intervals the controller runs */
 						perf_count(fw_interval_perf);
+
+						counter++;
 
 					} else {
 						// XXX no setpoint, decent default needed (loiter?)

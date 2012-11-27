@@ -61,9 +61,33 @@
 #include <systemlib/geo/geo.h>
 #include <systemlib/systemlib.h>
 
+/*
+ * Controller parameters, accessible via MAVLink
+ *
+ */
+// Roll control parameters
+PARAM_DEFINE_FLOAT(FW_ROLLR_P, 0.9f);
+PARAM_DEFINE_FLOAT(FW_ROLLR_I, 0.2f);
+PARAM_DEFINE_FLOAT(FW_ROLLR_AWU, 0.9f);
+PARAM_DEFINE_FLOAT(FW_ROLLR_LIM, 0.7f);   // Roll rate limit in radians/sec, applies to the roll controller
+PARAM_DEFINE_FLOAT(FW_ROLL_P, 4.0f);
+PARAM_DEFINE_FLOAT(FW_PITCH_RCOMP, 0.1f);
 
+//Pitch control parameters
+PARAM_DEFINE_FLOAT(FW_PITCHR_P, 0.8f);
+PARAM_DEFINE_FLOAT(FW_PITCHR_I, 0.2f);
+PARAM_DEFINE_FLOAT(FW_PITCHR_AWU, 0.8f);
+PARAM_DEFINE_FLOAT(FW_PITCHR_LIM, 0.35f);   // Pitch rate limit in radians/sec, applies to the pitch controller
+PARAM_DEFINE_FLOAT(FW_PITCH_P, 8.0f);
 
+//Yaw control parameters					//XXX TODO this is copy paste, asign correct values
+PARAM_DEFINE_FLOAT(FW_YAWR_P, 0.3f);
+PARAM_DEFINE_FLOAT(FW_YAWR_I, 0.0f);
+PARAM_DEFINE_FLOAT(FW_YAWR_AWU, 0.0f);
+PARAM_DEFINE_FLOAT(FW_YAWR_LIM, 0.35f);   // Yaw rate limit in radians/sec
 
+/* feedforward compensation */
+PARAM_DEFINE_FLOAT(FW_PITCH_THR_P, 0.1f);	/**< throttle to pitch coupling feedforward */
 
 struct fw_rate_control_params {
 	float rollrate_p;
@@ -75,7 +99,7 @@ struct fw_rate_control_params {
 	float yawrate_p;
 	float yawrate_i;
 	float yawrate_awu;
-
+	float pitch_thr_ff;
 };
 
 struct fw_rate_control_param_handles {
@@ -88,7 +112,7 @@ struct fw_rate_control_param_handles {
 	param_t yawrate_p;
 	param_t yawrate_i;
 	param_t yawrate_awu;
-
+	param_t pitch_thr_ff;
 };
 
 
@@ -100,17 +124,18 @@ static int parameters_update(const struct fw_rate_control_param_handles *h, stru
 static int parameters_init(struct fw_rate_control_param_handles *h)
 {
 	/* PID parameters */
-	h->rollrate_p 	=	param_find("FW_ROLLR_P");   //TODO define rate params for fixed wing
-	h->rollrate_i 	=	param_find("FW_ROLLR_I");
-	h->rollrate_awu =	param_find("FW_ROLLR_AWU");
+	h->rollrate_p 	 =	param_find("FW_ROLLR_P");   //TODO define rate params for fixed wing
+	h->rollrate_i 	 =	param_find("FW_ROLLR_I");
+	h->rollrate_awu  =	param_find("FW_ROLLR_AWU");
 
-	h->pitchrate_p 	=	param_find("FW_PITCHR_P");
-	h->pitchrate_i 	=	param_find("FW_PITCHR_I");
+	h->pitchrate_p 	 =	param_find("FW_PITCHR_P");
+	h->pitchrate_i 	 =	param_find("FW_PITCHR_I");
 	h->pitchrate_awu =	param_find("FW_PITCHR_AWU");
 
-	h->yawrate_p 	=	param_find("FW_YAWR_P");
-	h->yawrate_i 	=	param_find("FW_YAWR_I");
-	h->yawrate_awu =	param_find("FW_YAWR_AWU");
+	h->yawrate_p 	 =	param_find("FW_YAWR_P");
+	h->yawrate_i 	 =	param_find("FW_YAWR_I");
+	h->yawrate_awu   =	param_find("FW_YAWR_AWU");
+	h->pitch_thr_ff  =	param_find("FW_PITCH_THR_P");
 
 	return OK;
 }
@@ -126,7 +151,7 @@ static int parameters_update(const struct fw_rate_control_param_handles *h, stru
 	param_get(h->yawrate_p, &(p->yawrate_p));
 	param_get(h->yawrate_i, &(p->yawrate_i));
 	param_get(h->yawrate_awu, &(p->yawrate_awu));
-
+	param_get(h->pitch_thr_ff, &(p->pitch_thr_ff));
 
 	return OK;
 }
@@ -173,6 +198,8 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	actuators->control[0] = pid_calculate(&roll_rate_controller, rate_sp->roll, rates[0], 0.0f, deltaT);
 	/* pitch rate (PI) */
 	actuators->control[1] = pid_calculate(&pitch_rate_controller, rate_sp->pitch, rates[1], 0.0f, deltaT);
+	/* set pitch minus feedforward throttle compensation (nose pitches up from throttle */
+	actuators->control[1] += (-1.0f) * p.pitch_thr_ff * rate_sp->thrust;
 	/* yaw rate (PI) */
 	actuators->control[2] = pid_calculate(&yaw_rate_controller, rate_sp->yaw, rates[2], 0.0f, deltaT);
 
