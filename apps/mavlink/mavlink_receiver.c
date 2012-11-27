@@ -202,6 +202,8 @@ handle_message(mavlink_message_t *msg)
 		mavlink_vicon_position_estimate_t pos;
 		mavlink_msg_vicon_position_estimate_decode(msg, &pos);
 
+		vicon_position.timestamp = hrt_absolute_time();
+
 		vicon_position.x = pos.x;
 		vicon_position.y = pos.y;
 		vicon_position.z = pos.z;

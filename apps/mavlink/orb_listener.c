@@ -731,8 +731,8 @@ uorb_receive_start(void)
 	pthread_attr_t uorb_attr;
 	pthread_attr_init(&uorb_attr);
 
-	/* Set stack size, needs more than 8000 bytes */
-	pthread_attr_setstacksize(&uorb_attr, 4096);
+	/* Set stack size, needs less than 2k */
+	pthread_attr_setstacksize(&uorb_attr, 2048);
 
 	pthread_t thread;
 	pthread_create(&thread, &uorb_attr, uorb_receive_thread, NULL);

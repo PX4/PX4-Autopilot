@@ -48,13 +48,14 @@
 
 #include <stdint.h>
 #include "../uORB.h"
+#include "actuator_controls.h"
 
-#define NUM_ACTUATOR_CONTROLS		8
-#define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
+#define NUM_ACTUATOR_CONTROLS_EFFECTIVE		NUM_ACTUATOR_CONTROLS
+#define NUM_ACTUATOR_CONTROL_GROUPS_EFFECTIVE	NUM_ACTUATOR_CONTROL_GROUPS	/**< for sanity checking */
 
 struct actuator_controls_effective_s {
 	uint64_t timestamp;
-	float	control_effective[NUM_ACTUATOR_CONTROLS];
+	float	control_effective[NUM_ACTUATOR_CONTROLS_EFFECTIVE];
 };
 
 /* actuator control sets; this list can be expanded as more controllers emerge */
