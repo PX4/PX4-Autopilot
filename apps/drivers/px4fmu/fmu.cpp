@@ -64,6 +64,7 @@
 #include <drivers/drv_mixer.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
 
 #include <systemlib/err.h>
@@ -96,6 +97,7 @@ private:
 	int		_t_actuators;
 	int		_t_armed;
 	orb_advert_t	_t_outputs;
+	orb_advert_t	_t_actuators_effective;
 	unsigned	_num_outputs;
 	bool		_primary_pwm_device;
 
@@ -161,6 +163,7 @@ PX4FMU::PX4FMU() :
 	_t_actuators(-1),
 	_t_armed(-1),
 	_t_outputs(0),
+	_t_actuators_effective(0),
 	_num_outputs(0),
 	_primary_pwm_device(false),
 	_task_should_exit(false),
@@ -315,6 +318,13 @@ PX4FMU::task_main()
 	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
 				   &outputs);
 
+	/* advertise the effective control inputs */
+	actuator_controls_effective_s controls_effective;
+	memset(&controls_effective, 0, sizeof(controls_effective));
+	/* advertise the effective control inputs */
+	_t_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1),
+				   &controls_effective);
+
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
 	fds[0].events = POLLIN;
@@ -360,6 +370,11 @@ PX4FMU::task_main()
 				/* do mixing */
 				_mixers->mix(&outputs.output[0], num_outputs);
 
+				// XXX output actual limited values
+				memcpy(&controls_effective, &_controls, sizeof(controls_effective));
+
+				orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &controls_effective);
+
 				/* iterate actuators */
 				for (unsigned i = 0; i < num_outputs; i++) {
 
@@ -371,7 +386,7 @@ PX4FMU::task_main()
 				}
 
 				/* and publish for anyone that cares to see */
-				orb_publish(ORB_ID_VEHICLE_CONTROLS, _t_outputs, &outputs);
+				orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &outputs);
 			}
 		}
 
@@ -388,6 +403,7 @@ PX4FMU::task_main()
 	}
 
 	::close(_t_actuators);
+	::close(_t_actuators_effective);
 	::close(_t_armed);
 
 	/* make sure servos are off */

@@ -575,19 +575,19 @@ l_vehicle_attitude_controls(struct listener *l)
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
 						   "eff ctrl0    ",
-						   actuators.control[0]);
+						   actuators.control_effective[0]);
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
 						   "eff ctrl1    ",
-						   actuators.control[1]);
+						   actuators.control_effective[1]);
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
 						   "eff ctrl2     ",
-						   actuators.control[2]);
+						   actuators.control_effective[2]);
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
 						   "eff ctrl3     ",
-						   actuators.control[3]);
+						   actuators.control_effective[3]);
 	}
 }
 

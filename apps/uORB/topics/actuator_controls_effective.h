@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file actuator_controls.h
+ * @file actuator_controls_effective.h
  *
  * Actuator control topics - mixer inputs.
  *
@@ -48,9 +48,10 @@
 
 #include <stdint.h>
 #include "../uORB.h"
+#include "actuator_controls.h"
 
-#define NUM_ACTUATOR_CONTROLS		8
-#define NUM_ACTUATOR_CONTROL_GROUPS	4	/**< for sanity checking */
+#define NUM_ACTUATOR_CONTROLS_EFFECTIVE		NUM_ACTUATOR_CONTROLS
+#define NUM_ACTUATOR_CONTROL_GROUPS_EFFECTIVE	NUM_ACTUATOR_CONTROL_GROUPS	/**< for sanity checking */
 
 struct actuator_controls_effective_s {
 	uint64_t timestamp;

@@ -70,6 +70,7 @@
 #include <systemlib/systemlib.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/rc_channels.h>
 
@@ -101,6 +102,9 @@ private:
 
 	int			_t_actuators;	///< actuator output topic
 	actuator_controls_s	_controls;	///< actuator outputs
+
+	orb_advert_t 		_t_actuators_effective;	///< effective actuator controls topic
+	actuator_controls_effective_s _controls_effective; ///< effective controls
 
 	int			_t_armed;	///< system armed control topic
 	actuator_armed_s	_armed;		///< system armed state
@@ -184,6 +188,7 @@ PX4IO::PX4IO() :
 	_task_should_exit(false),
 	_connected(false),
 	_t_actuators(-1),
+	_t_actuators_effective(-1),
 	_t_armed(-1),
 	_t_outputs(-1),
 	_mixers(nullptr),
@@ -319,6 +324,11 @@ PX4IO::task_main()
 	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
 	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
 
+	/* advertise the limited control inputs */
+	memset(&_controls_effective, 0, sizeof(_controls_effective));
+	_t_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_1),
+				   &_controls_effective);
+
 	/* advertise the mixed control outputs */
 	memset(&_outputs, 0, sizeof(_outputs));
 	_t_outputs = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1),
@@ -371,6 +381,12 @@ PX4IO::task_main()
 				if (_mixers != nullptr) {
 					/* XXX is this the right count? */
 					_mixers->mix(&_outputs.output[0], _max_actuators);
+
+					// XXX output actual limited values
+					memcpy(&_controls_effective, &_controls, sizeof(_controls_effective));
+
+					orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &_controls_effective);
+
 
 					/* convert to PWM values */
 					for (unsigned i = 0; i < _max_actuators; i++)
@@ -496,7 +512,7 @@ PX4IO::io_send()
 		cmd.servo_command[i] = _outputs.output[i];
 
 	/* publish as we send */
-	orb_publish(ORB_ID_VEHICLE_CONTROLS, _t_outputs, &_outputs);
+	orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &_outputs);
 
 	// XXX relays
 
