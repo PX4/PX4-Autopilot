@@ -156,7 +156,7 @@ int nsh_netinit(void)
     {
         struct dhcpc_state ds;
         (void)dhcpc_request(handle, &ds);
-        uip_sethostaddr("eth1", &ds.ipaddr);
+        uip_sethostaddr("eth0", &ds.ipaddr);
         if (ds.netmask.s_addr != 0)
           {
             uip_setnetmask("eth0", &ds.netmask);

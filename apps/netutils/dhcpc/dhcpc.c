@@ -351,6 +351,7 @@ void *dhcpc_open(const void *macaddr, int maclen)
   struct dhcpc_state_s *pdhcpc;
   struct sockaddr_in addr;
   struct timeval tv;
+  int ret;
 
   ndbg("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
        ((uint8_t*)macaddr)[0], ((uint8_t*)macaddr)[1], ((uint8_t*)macaddr)[2],
@@ -369,21 +370,24 @@ void *dhcpc_open(const void *macaddr, int maclen)
 
       /* Create a UDP socket */
 
-      pdhcpc->sockfd    = socket(PF_INET, SOCK_DGRAM, 0);
+      pdhcpc->sockfd = socket(PF_INET, SOCK_DGRAM, 0);
       if (pdhcpc->sockfd < 0)
         {
+          nvdbg("socket handle %d\n",ret);
           free(pdhcpc);
           return NULL;
         }
 
-      /* bind the socket */
+      /* Bind the socket */
 
       addr.sin_family      = AF_INET;
       addr.sin_port        = HTONS(DHCPC_CLIENT_PORT);
       addr.sin_addr.s_addr = INADDR_ANY;
 
-      if (bind(pdhcpc->sockfd, (struct sockaddr*)&addr, sizeof(struct sockaddr_in)) < 0)
+      ret = bind(pdhcpc->sockfd, (struct sockaddr*)&addr, sizeof(struct sockaddr_in));
+      if (ret < 0)
         {
+          nvdbg("bind status %d\n",ret);
           close(pdhcpc->sockfd);
           free(pdhcpc);
           return NULL;
@@ -393,8 +397,11 @@ void *dhcpc_open(const void *macaddr, int maclen)
 
       tv.tv_sec  = 10;
       tv.tv_usec = 0;
-      if (setsockopt(pdhcpc->sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval)) < 0)
+
+      ret = setsockopt(pdhcpc->sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(struct timeval));
+      if (ret < 0)
         {
+          nvdbg("setsockopt status %d\n",ret);
           close(pdhcpc->sockfd);
           free(pdhcpc);
           return NULL;
@@ -410,9 +417,15 @@ void *dhcpc_open(const void *macaddr, int maclen)
 
 void dhcpc_close(void *handle)
 {
-  struct dchcpc_state_internal *pdhcpc = (struct dchcpc_state_internal *)handle;
+  struct dhcpc_state_s *pdhcpc = (struct dhcpc_state_s *)handle;
+
   if (pdhcpc)
     {
+      if (pdhcpc->sockfd)
+        {
+          close(pdhcpc->sockfd);
+        }
+
       free(pdhcpc);
     }
 }

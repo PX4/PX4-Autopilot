@@ -41,7 +41,7 @@ CFLAGS		+= -I$(TOPDIR)/sched
 ASRCS		= 
 AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
-CSRCS		= up_boot.c up_spi.c
+CSRCS		= up_boot.c up_spi.c up_chipid.c
 
 ifeq ($(CONFIG_HAVE_CXX),y)
 CSRCS		+= up_cxxinitialize.c

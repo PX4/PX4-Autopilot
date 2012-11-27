@@ -389,7 +389,7 @@ o hexdump <file or device>
 
   Dump data in hexadecimal format from a file or character device.
 
-o ifconfig [nic_name [ip]] [dr|gw|gateway <dr-address>] [netmask <net-mask>] [dns <dns-address>] [hw <hw-mac>]
+o ifconfig [nic_name [<ip-address>|dhcp]] [dr|gw|gateway <dr-address>] [netmask <net-mask>] [dns <dns-address>] [hw <hw-mac>]
 
   Show the current configuration of the network, for example:
 

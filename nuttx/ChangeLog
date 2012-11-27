@@ -3697,3 +3697,6 @@
 	  Windows build.
 	* nuttx/arch/arm/src/lpc17xx/lpc17_i2c.c: Resources not being released when
 	  I2C is uninitialized.
+	* cloudctrl/src/up_chipid.c and shenzhou/src/up_chipid.c:  Add functions to
+	  get chip ID.  Contributed by Darcy Gong.  These should not be board-dependent,
+	  but should be in arch/arm/src/stm32 where they can be used from any board.

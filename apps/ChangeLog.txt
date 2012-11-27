@@ -422,3 +422,5 @@
 	* apps/examples/elf/test/*/Makefile: OSX doesn't support install -D, use
 	  mkdir -p then install without the -D.  From Mike Smith.
 	* apps/examples/relays/Makefile: Reduced stack requirement (Darcy Gong).
+	* apps/nshlib and apps/netutils/dhcpc:  Extend the NSH ifconfig command plus
+	  various DHCPC improvements(Darcy Gong).

@@ -452,6 +452,17 @@ EXTERN void relays_resetmodes(uint32_t relays_stat);
 EXTERN void relays_powermodes(uint32_t relays_stat);
 #endif
 
+/************************************************************************************
+ * Chip ID functions
+ *
+ * Description:
+ *   Non-standard functions to obtain chip ID information.
+ *
+ ************************************************************************************/
+
+EXTERN const char *stm32_getchipid(void);
+EXTERN const char *stm32_getchipid_string(void);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }

@@ -81,10 +81,13 @@
 #  endif
 #endif
 
-#ifdef CONFIG_HAVE_GETHOSTBYNAME
-#  include <netdb.h>
-#else
-#  include <apps/netutils/resolv.h>
+#if defined(CONFIG_NSH_DHCPC) || defined(CONFIG_NSH_DNS)
+#  ifdef CONFIG_HAVE_GETHOSTBYNAME
+#    include <netdb.h>
+#  else
+#    include <apps/netutils/resolv.h>
+#  endif
+#  include <apps/netutils/dhcpc.h>
 #endif
 
 #include "nsh.h"
@@ -568,8 +571,11 @@ int cmd_ifconfig(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
   FAR char *tmp = NULL;
   FAR char *hw = NULL;
   FAR char *dns = NULL;
-  bool badarg=false;
-  uint8_t mac[6];
+  bool badarg = false;
+  uint8_t mac[IFHWADDRLEN];
+#if defined(CONFIG_NSH_DHCPC)
+  FAR void *handle;
+#endif
 
   /* With one or no arguments, ifconfig simply shows the status of ethernet
    * device:
@@ -673,10 +679,23 @@ int cmd_ifconfig(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
       uip_setmacaddr(intf, mac);
     }
 
-  /* Set host ip address */
+#if defined(CONFIG_NSH_DHCPC)
+  if (!strcmp(hostip, "dhcp"))
+    {
+      /* Set DHCP addr */
 
-  ndbg("Host IP: %s\n", hostip);
-  gip = addr.s_addr = inet_addr(hostip);
+      ndbg("DHCPC Mode\n");
+      gip = addr.s_addr = 0;
+    }
+  else
+#endif
+    {
+      /* Set host IP address */
+
+      ndbg("Host IP: %s\n", hostip);
+      gip = addr.s_addr = inet_addr(hostip);
+    }
+
   uip_sethostaddr(intf, &addr);
 
   /* Set gateway */
@@ -688,11 +707,15 @@ int cmd_ifconfig(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     }
   else
     {
-      ndbg("Gateway: default\n");
-      gip  = NTOHL(gip);
-      gip &= ~0x000000ff;
-      gip |= 0x00000001;
-      gip  = HTONL(gip);
+      if (gip)
+        {
+          ndbg("Gateway: default\n");
+          gip  = NTOHL(gip);
+          gip &= ~0x000000ff;
+          gip |= 0x00000001;
+          gip  = HTONL(gip);
+        }
+
       addr.s_addr = gip;
     }
 
@@ -726,6 +749,48 @@ int cmd_ifconfig(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
     }
 
   resolv_conf(&addr);
+#endif
+
+#if defined(CONFIG_NSH_DHCPC)
+  /* Get the MAC address of the NIC */
+
+  if (!gip)
+    {
+      uip_getmacaddr("eth0", mac);
+
+      /* Set up the DHCPC modules */
+
+      handle = dhcpc_open(&mac, IFHWADDRLEN);
+
+      /* Get an IP address.  Note that there is no logic for renewing the IP address in this
+       * example.  The address should be renewed in ds.lease_time/2 seconds.
+       */
+
+      if (handle)
+        {
+          struct dhcpc_state ds;
+
+          (void)dhcpc_request(handle, &ds);
+          uip_sethostaddr("eth0", &ds.ipaddr);
+
+          if (ds.netmask.s_addr != 0)
+            {
+              uip_setnetmask("eth0", &ds.netmask);
+            }
+
+          if (ds.default_router.s_addr != 0)
+            {
+              uip_setdraddr("eth0", &ds.default_router);
+            }
+
+          if (ds.dnsaddr.s_addr != 0)
+            {
+              resolv_conf(&ds.dnsaddr);
+            }
+
+          dhcpc_close(handle);
+        }
+    }
 #endif
 
   return OK;
