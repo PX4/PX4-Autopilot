@@ -60,6 +60,8 @@
 
 #include <drivers/drv_orb_dev.h>
 
+#include <systemlib/systemlib.h>
+
 #include "uORB.h"
 
 /**
@@ -636,20 +638,37 @@ test_note(const char *fmt, ...)
 
 ORB_DECLARE(sensor_combined);
 
-int
-test()
+int publisher_thread(int argc, char * argv[])
 {
-	struct orb_test t, u;
+	struct orb_test t;
 	int pfd, sfd;
-	bool updated;
 
 	t.val = 0;
 	pfd = orb_advertise(ORB_ID(orb_test), &t);
-
 	if (pfd < 0)
 		return test_fail("advertise failed: %d", errno);
 
 	test_note("publish handle 0x%08x", pfd);
+    test_note("publishing val 0");
+
+    sleep(1);
+
+	t.val = 2;
+    test_note("publishing val 2");
+
+	if (OK != orb_publish(ORB_ID(orb_test), pfd, &t))
+		return test_fail("publish failed");
+
+	close(pfd);
+    test_note("publisher complete");
+    return 0;
+}
+
+int subscriber_thread(int argc, char * argv[])
+{
+	struct orb_test u;
+	int sfd;
+	bool updated;
 	sfd = orb_subscribe(ORB_ID(orb_test));
 
 	if (sfd < 0)
@@ -657,12 +676,13 @@ test()
 
 	test_note("subscribe fd %d", sfd);
 	u.val = 1;
+    test_note("waiting for first value");
 
 	if (OK != orb_copy(ORB_ID(orb_test), sfd, &u))
 		return test_fail("copy(1) failed: %d", errno);
 
-	if (u.val != t.val)
-		return test_fail("copy(1) mismatch: %d expected %d", u.val, t.val);
+	if (u.val != 0)
+		return test_fail("copy(1) mismatch: %d expected %d", u.val, 0);
 
 	if (OK != orb_check(sfd, &updated))
 		return test_fail("check(1) failed");
@@ -670,11 +690,8 @@ test()
 	if (updated)
 		return test_fail("spurious updated flag");
 
-	t.val = 2;
-	test_note("try publish");
-
-	if (OK != orb_publish(ORB_ID(orb_test), pfd, &t))
-		return test_fail("publish failed");
+    sleep(1);
+    test_note("waiting for second value");
 
 	if (OK != orb_check(sfd, &updated))
 		return test_fail("check(2) failed");
@@ -685,11 +702,38 @@ test()
 	if (OK != orb_copy(ORB_ID(orb_test), sfd, &u))
 		return test_fail("copy(2) failed: %d", errno);
 
-	if (u.val != t.val)
-		return test_fail("copy(2) mismatch: %d expected %d", u.val, t.val);
+	if (u.val != 2)
+		return test_fail("copy(2) mismatch: %d expected %d", u.val, 2);
 
 	orb_unsubscribe(sfd);
-	close(pfd);
+
+	test_note("PASS");
+    return 0;
+}
+
+int
+test()
+{
+    sleep(1);
+    test_note("beginning uorb test");
+
+    task_spawn("test_publisher_task",
+        SCHED_DEFAULT,
+        SCHED_PRIORITY_MAX - 5,
+        4096,
+        publisher_thread,
+        NULL); 
+
+    sleep(0.5); 
+
+    task_spawn("test_subscriber_task",
+        SCHED_DEFAULT,
+        SCHED_PRIORITY_MAX - 5,
+        4096,
+        subscriber_thread,
+        NULL); 
+
+
 
 #if 0
 	/* this is a hacky test that exploits the sensors app to test rate-limiting */
@@ -733,8 +777,6 @@ test()
 
 	orb_unsubscribe(sfd);
 #endif
-
-	return test_note("PASS");
 }
 
 int
