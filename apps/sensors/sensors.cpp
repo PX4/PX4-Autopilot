@@ -1188,7 +1188,7 @@ Sensors::start()
 	_sensors_task = task_spawn("sensors_task",
 				   SCHED_DEFAULT,
 				   SCHED_PRIORITY_MAX - 5,
-				   6000,	/* XXX may be excesssive */
+				   2048,
 				   (main_t)&Sensors::task_main_trampoline,
 				   nullptr);
 

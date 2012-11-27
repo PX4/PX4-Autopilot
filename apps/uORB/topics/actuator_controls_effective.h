@@ -55,7 +55,7 @@
 
 struct actuator_controls_effective_s {
 	uint64_t timestamp;
-	float	control_effective[NUM_ACTUATOR_CONTROLS];
+	float	control_effective[NUM_ACTUATOR_CONTROLS_EFFECTIVE];
 };
 
 /* actuator control sets; this list can be expanded as more controllers emerge */
