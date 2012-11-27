@@ -54,75 +54,78 @@ extern size_t hosttcp_read(int fd, char * buffer, size_t len);
 extern size_t hosttcp_write(int fd, const char * buffer, size_t len);
 extern void hosttcp_close(int fd);
 
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-void up_serial(void);
-void down_serial(void);
-
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
-
-static ssize_t serial_read(struct file *, char *, size_t);
-static ssize_t serial_write(struct file *, const char *, size_t);
 #ifndef CONFIG_DISABLE_POLL
-static int     serial_poll(FAR struct file *filep, FAR struct pollfd *fds,
-                               bool setup);
+#define SERIAL_PORT_TCP_SIM(DEV) \
+    static int fd_##DEV = 0; \
+    void up_##DEV(const int port); \
+    void down_##DEV(void); \
+    static ssize_t read_##DEV(struct file *, char *, size_t); \
+    static ssize_t write_##DEV(struct file *, const char *, size_t); \
+    static int     poll_##DEV(FAR struct file *filep, FAR struct pollfd *fds, \
+                                   bool setup); \
+    static const struct file_operations fops_##DEV = \
+    { \
+      .read		= read_##DEV, \
+      .write	= write_##DEV, \
+      .poll     = poll_##DEV, \
+    }; \
+    static ssize_t read_##DEV(struct file *filp, char *buffer, size_t len) \
+    { \
+      return hosttcp_read(fd_##DEV,buffer, len); \
+    } \
+    static ssize_t write_##DEV(struct file *filp, const char *buffer, size_t len) \
+    { \
+      return hosttcp_write(fd_##DEV,buffer, len); \
+    } \ 
+    static int poll_##DEV(FAR struct file *filep, FAR struct pollfd *fds, \
+                               bool setup) \
+    { \
+      return OK; \
+    } \
+    void up_##DEV(const int portno) \
+    { \
+        fd_##DEV = hosttcp_init(portno); \
+        ASSERT(fd_##DEV != NULL); \
+        register_driver("/dev/" #DEV, &fops_##DEV, 0666, NULL); \
+    } \
+    void down_##DEV(void) \
+    { \
+        hosttcp_close(fd_##DEV); \
+    }
+#else
+#define SERIAL_PORT_TCP_SIM(DEV) \
+    static int fd_##DEV = 0; \
+    void up_##DEV(const int port); \
+    void down_##DEV(void); \
+    static ssize_t read_##DEV(struct file *, char *, size_t); \
+    static ssize_t write_##DEV(struct file *, const char *, size_t); \
+    static const struct file_operations fops_##DEV = \
+    { \
+      .read		= read_##DEV, \
+      .write	= write_##DEV, \
+    }; \
+    static ssize_t read_##DEV(struct file *filp, char *buffer, size_t len) \
+    { \
+      return hosttcp_read(fd_##DEV,buffer, len); \
+    } \
+    static ssize_t write_##DEV(struct file *filp, const char *buffer, size_t len) \
+    { \
+      return hosttcp_write(fd_##DEV,buffer, len); \
+    } \ 
+    void \
+    up_##DEV(const int portno) \
+    { \
+        fd_##DEV = hosttcp_init(portno); \
+        ASSERT(fd_##DEV != NULL); \
+        register_driver("/dev/" #DEV, &fops_##DEV, 0666, NULL); \
+    } \
+    void \
+    down_##DEV(void) \
+    { \
+        hosttcp_close(fd_##DEV); \
+    }
 #endif
 
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-static const struct file_operations serial_fops =
-{
-  .read		= serial_read,
-  .write	= serial_write,
-#ifndef CONFIG_DISABLE_POLL
-  .poll         = serial_poll,
-#endif
-};
-
-static int fd = 0;
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-static ssize_t serial_read(struct file *filp, char *buffer, size_t len)
-{
-  return hosttcp_read(fd,buffer, len);
-}
-
-static ssize_t serial_write(struct file *filp, const char *buffer, size_t len)
-{
-  return hosttcp_write(fd,buffer, len);
-}
-
-#ifndef CONFIG_DISABLE_POLL
-static int serial_poll(FAR struct file *filep, FAR struct pollfd *fds,
-                           bool setup)
-{
-  return OK;
-}
-#endif
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-void
-up_serial(void)
-{
-    fd = hosttcp_init(5501);
-    ASSERT(fd != NULL)
-    register_driver("/dev/ttyS1", &serial_fops, 0666, NULL);
-}
-
-void
-down_serial(void)
-{
-    hosttcp_close(fd);
-}
+SERIAL_PORT_TCP_SIM(ttyS0)
+SERIAL_PORT_TCP_SIM(ttyS1)
+SERIAL_PORT_TCP_SIM(ttyS2)

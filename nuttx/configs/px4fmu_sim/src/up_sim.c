@@ -66,8 +66,8 @@ uint64_t ppm_last_valid_decode = 0;
 /****************************************************************************
  * Extern functions
  ****************************************************************************/
-extern void up_serial(void);
-extern void down_serial(void);
+extern void up_ttyS1(int port);
+extern void down_ttyS1(void);
 extern void cpuload_initialize_once(void);
 
 
@@ -197,7 +197,7 @@ int
 nsh_archinitialize(void)
 {
     vdbg("initializing sim arch\n");
-    up_serial();
+    up_ttyS1(5501);
     atexit(uninit_arch);
     return 0;
 }
@@ -224,6 +224,6 @@ void
 uninit_arch(void)
 {
     vdbg("uninit");
-    down_serial();
+    down_ttyS1();
     ASSERT(0);
 }
