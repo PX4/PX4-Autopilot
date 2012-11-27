@@ -41,7 +41,7 @@ include $(TOPDIR)/tools/Config.mk
 ZDSVERSION := 5.0.0
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  ZDSINSTALLDIR := C:/PROGRA~2/ZiLOG/ZZDSII_Z8Encore!_$(ZDSVERSION)
+  ZDSINSTALLDIR := C:/PROGRA~2/ZiLOG/ZDSII_Z8Encore!_$(ZDSVERSION)
   INSTALLDIR = ${shell echo $(ZDSINSTALLDIR)| sed -e "s/\//\\/g"}
   ZDSBINDIR := $(INSTALLDIR)\bin
   ZDSSTDINCDIR := $(INSTALLDIR)\include\std
@@ -63,7 +63,7 @@ endif
   ARCHUSRINCLUDES = -usrinc:.
 else
   WINTOOL := y
-  ZDSINSTALLDIR := C:/Program Files (x86)/ZiLOG/ZZDSII_Z8Encore!_$(ZDSVERSION)
+  ZDSINSTALLDIR := C:/Program Files (x86)/ZiLOG/ZDSII_Z8Encore!_$(ZDSVERSION)
   INSTALLDIR = ${shell cygpath -u "$(ZDSINSTALLDIR)"}
   ZDSBINDIR := $(INSTALLDIR)/bin
   ZDSSTDINCDIR := $(INSTALLDIR)/include/std

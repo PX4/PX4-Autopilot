@@ -3700,3 +3700,6 @@
 	* cloudctrl/src/up_chipid.c and shenzhou/src/up_chipid.c:  Add functions to
 	  get chip ID.  Contributed by Darcy Gong.  These should not be board-dependent,
 	  but should be in arch/arm/src/stm32 where they can be used from any board.
+	* sched/work_thread.c: Fix backward conditional compilation.  This might
+	  has caused a memory leadk.  From Freddie Chopin.
+
