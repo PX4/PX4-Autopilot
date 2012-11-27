@@ -33,7 +33,7 @@
 
 6.3 2011-05-15 Gregory Nutt <gnutt@nuttx.org>
 
-    * apps/interpreter: Add a directory to hold interpreters.  The Pascal add-
+	* apps/interpreter: Add a directory to hold interpreters.  The Pascal add-
 	  on module now installs and builds under this directory.
 	* apps/interpreter/ficl: Added logic to build Ficl (the "Forth Inspired
 	  Command Language").  See http://ficl.sourceforge.net/.
@@ -421,4 +421,4 @@
 	  make foreach loops instead of shell loops.
 	* apps/examples/elf/test/*/Makefile: OSX doesn't support install -D, use
 	  mkdir -p then install without the -D.  From Mike Smith.
-
+	* apps/examples/relays/Makefile: Reduced stack requirement (Darcy Gong).

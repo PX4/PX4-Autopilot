@@ -1,7 +1,7 @@
 ############################################################################
 # configs/z8f64200100kit/ostest/Make.defs
 #
-#   Copyright (C) 2008 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2008, 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,27 +33,37 @@
 #
 ############################################################################
 
-include ${TOPDIR}/.config
-include ${TOPDIR}/tools/Config.mk
+include $(TOPDIR)/.config
+include $(TOPDIR)/tools/Config.mk
 
 # These are the directories where the ZDS-II toolchain is installed
 
-ZDSINSTALLDIR := C:/Program Files (x86)/ZiLOG/ZDSII_Z8Encore!_4.10.1
+ZDSVERSION := 5.0.0
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  ZDSBINDIR := $(ZDSINSTALLDIR)\bin
-  ZDSSTDINCDIR := $(ZDSINSTALLDIR)\include\std
-  ZDSZILOGINCDIR := $(ZDSINSTALLDIR)\include\zilog
+  ZDSINSTALLDIR := C:/PROGRA~2/ZiLOG/ZZDSII_Z8Encore!_$(ZDSVERSION)
+  INSTALLDIR = ${shell echo $(ZDSINSTALLDIR)| sed -e "s/\//\\/g"}
+  ZDSBINDIR := $(INSTALLDIR)\bin
+  ZDSSTDINCDIR := $(INSTALLDIR)\include\std
+  ZDSZILOGINCDIR := $(INSTALLDIR)\include\zilog
 ifeq ($(CONFIG_ARCH_CHIP_Z8F642X),y)
-  ZDSDEVINCDIR := $(ZDSZILOGINCDIR)\Z8Encore_F642X
+  ZDSDEVINCDIR := $(INSTALLDIR)\Z8Encore_F642X
 endif
 ifeq ($(CONFIG_ARCH_CHIP_Z8F640X),y)
-  ZDSDEVINCDIR := $(ZDSZILOGINCDIR)\Z8Encore_F640X
+  ZDSDEVINCDIR := $(INSTALLDIR)\Z8Encore_F640X
 endif
-  ZDSSTDLIBDIR := $(ZDSINSTALLDIR)\lib\std
-  ZDSZILOGLIBDIR := $(ZDSINSTALLDIR)\lib\zilog
+  ZDSSTDLIBDIR := $(INSTALLDIR)\lib\std
+  ZDSZILOGLIBDIR := $(INSTALLDIR)\lib\zilog
+
+  # CFLAGs
+
+  ARCHASMINCLUDES = -include:$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)
+  EARCHASMINCLUDES = -include:$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)
+  ARCHSTDINCLUDES = -stdinc:$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)
+  ARCHUSRINCLUDES = -usrinc:.
 else
   WINTOOL := y
+  ZDSINSTALLDIR := C:/Program Files (x86)/ZiLOG/ZZDSII_Z8Encore!_$(ZDSVERSION)
   INSTALLDIR = ${shell cygpath -u "$(ZDSINSTALLDIR)"}
   ZDSBINDIR := $(INSTALLDIR)/bin
   ZDSSTDINCDIR := $(INSTALLDIR)/include/std
@@ -66,43 +76,50 @@ ifeq ($(CONFIG_ARCH_CHIP_Z8F640X),y)
 endif
   ZDSSTDLIBDIR := $(INSTALLDIR)/lib/std
   ZDSZILOGLIBDIR := $(INSTALLDIR)/lib/zilog
+
+  # These are the same directories but with the directory separator
+  # character swapped as needed by the ZDS-II compiler
+
+  WTOPDIR := ${shell cygpath -w "$(TOPDIR)"}
+  WZDSSTDINCDIR := ${shell cygpath -w "$(ZDSSTDINCDIR)"}
+  WZDSZILOGINCDIR := ${shell cygpath -w "$(ZDSZILOGINCDIR)"}
+  WZDSDEVINCDIR := ${shell cygpath -w "$(ZDSDEVINCDIR)"}
+  WZDSSTDLIBDIR := ${shell cygpath -w "$(ZDSSTDLIBDIR)"}
+  WZDSZILOGLIBDIR := ${shell cygpath -w "$(ZDSZILOGLIBDIR)"}
+
+  # Escaped versions
+
+  ETOPDIR := ${shell echo "$(WTOPDIR)" | sed -e "s/ /%20/g"}
+  EZDSSTDINCDIR := ${shell echo "$(WZDSSTDINCDIR)" | sed -e "s/ /%20/g"}
+  EZDSZILOGINCDIR := ${shell echo "$(WZDSZILOGINCDIR)" | sed -e "s/ /%20/g"}
+
+  # CFLAGs
+
+  ARCHASMINCLUDES = -include:'$(WTOPDIR)\include;$(WZDSSTDINCDIR);$(WZDSZILOGINCDIR)'
+  EARCHASMINCLUDES = -include:'$(ETOPDIR)\include;$(EZDSSTDINCDIR);$(EZDSZILOGINCDIR)'
+  ARCHSTDINCLUDES = -stdinc:'$(WTOPDIR)\include;$(WZDSSTDINCDIR);$(WZDSZILOGINCDIR)'
+  ARCHUSRINCLUDES = -usrinc:'.'
 endif
-
-# These are the same directories but with the directory separator
-# character swapped as needed by the ZDS-II compiler
-
-WTOPDIR := ${shell cygpath -w "$(TOPDIR)"}
-WZDSSTDINCDIR := ${shell cygpath -w "$(ZDSSTDINCDIR)"}
-WZDSZILOGINCDIR := ${shell cygpath -w "$(ZDSZILOGINCDIR)"}
-WZDSDEVINCDIR := ${shell cygpath -w "$(ZDSDEVINCDIR)"}
-WZDSSTDLIBDIR := ${shell cygpath -w "$(ZDSSTDLIBDIR)"}
-WZDSZILOGLIBDIR := ${shell cygpath -w "$(ZDSZILOGLIBDIR)"}
-
-# Escaped versions
-
-ETOPDIR := ${shell echo "$(WTOPDIR)" | sed -e "s/ /%20/g"}
-EZDSSTDINCDIR := ${shell echo "$(WZDSSTDINCDIR)" | sed -e "s/ /%20/g"}
-EZDSZILOGINCDIR := ${shell echo "$(WZDSZILOGINCDIR)" | sed -e "s/ /%20/g"}
 
 # Assembler definitions
 
 ifeq ($(CONFIG_ARCH_CHIP_Z8F642X),y)
-ARCHFAMILYDEF = _Z8ENCORE_F642X
-ARCHSERIESDEF = _Z8ENCORE_64K_SERIES
-ARCHREVAA = -NOrevaa
+  ARCHFAMILYDEF = _Z8ENCORE_F642X
+  ARCHSERIESDEF = _Z8ENCORE_64K_SERIES
+  ARCHREVAA = -NOrevaa
 ifeq ($(CONFIG_ARCH_CHIP_Z8F6423),y)
-ARCHCPU = Z8F6423
-ARCHCPUDEF = _Z8F6423
+  ARCHCPU = Z8F6423
+  ARCHCPUDEF = _Z8F6423
 endif
 endif
 
 ifeq ($(CONFIG_ARCH_CHIP_Z8F640X),y)
-ARCHFAMILYDEF = _Z8ENCORE_F640X
-ARCHSERIESDEF = _Z8ENCORE_640_FAMILY
-ARCHREVAA = -revaa
+  ARCHFAMILYDEF = _Z8ENCORE_F640X
+  ARCHSERIESDEF = _Z8ENCORE_640_FAMILY
+  ARCHREVAA = -revaa
 ifeq ($(CONFIG_ARCH_CHIP_Z8F6403),y)
-ARCHCPU = Z8F6403
-ARCHCPUDEF = _Z8F6403
+  ARCHCPU = Z8F6403
+  ARCHCPUDEF = _Z8F6403
 endif
 endif
 
@@ -116,8 +133,6 @@ ARCHASMCPUFLAGS = -cpu:$(ARCHCPU) -NOigcase $(ARCHREVAA)
 ARCHASMLIST = -list -NOlistmac -name -pagelen:56 -pagewidth:80 -quiet
 ARCHASMWARNINGS = -warn
 ARCHASMDEFINES = -define:$(ARCHCPUDEF)=1 -define:$(ARCHSERIESDEF)=1 -define:$(ARCHFAMILYDEF)=1 -define:__ASSEMBLY__
-ARCHASMINCLUDES = -include:'$(WTOPDIR)\include;$(WZDSSTDINCDIR);$(WZDSZILOGINCDIR)'
-EARCHASMINCLUDES = -include:'$(ETOPDIR)\include;$(EZDSSTDINCDIR);$(EZDSZILOGINCDIR)'
 AFLAGS = $(ARCHASMCPUFLAGS) $(ARCHASMINCLUDES) $(ARCHASMLIST) $(ARCHASMWARNINGS) $(ARCHASMOPTIMIZATION)
 
 # Compiler definitions
@@ -135,12 +150,11 @@ ARCHPICFLAGS =
 ARCHWARNINGS = -warn
 ARCHDEFINES = -define:$(ARCHFAMILYDEF) -define:$(ARCHCPUDEF) -define:$(ARCHSERIESDEF)
 ARCHSTDINCLUDES = -stdinc:'$(WTOPDIR)\include;$(WZDSSTDINCDIR);$(WZDSZILOGINCDIR);$(WZDSDEVINCDIR)'
-ARCHUSRINCLUDES = -usrinc:'.'
 ARCHINCLUDES = $(ARCHSTDINCLUDES) $(ARCHUSRINCLUDES)
 CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHLIST) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 
 CPPDEFINES = -D$(ARCHFAMILYDEF) -D$(ARCHCPUDEF) -D$(ARCHSERIESDEF) -D__ASSEMBLY__
-CPPINCLUDES = -I$(TOPDIR)/include
+CPPINCLUDES = -I$(TOPDIR)$(DELIM)include
 CPPFLAGS = $(CPPDEFINES) $(CPPINCLUDES)
 
 # Librarian definitions
@@ -149,27 +163,58 @@ ARFLAGS = -quiet -warn
 
 # Linker definitions
 
-LINKCMDTEMPLATE = $(TOPDIR)/configs/z8f64200100kit/ostest/ostest.linkcmd
+LINKCMDTEMPLATE = $(TOPDIR)$(DELIM)configs$(DELIM)z8f64200100kit$(DELIM)ostest$(DELIM)ostest.linkcmd
 
 # Tool names/pathes
 
 CROSSDEV =
-CC = $(ZDSBINDIR)/ez8cc.exe
+CC = ez8cc.exe
 CPP = gcc -E
-LD = $(ZDSBINDIR)/ez8link.exe
-AS = $(ZDSBINDIR)/ez8asm.exe
-AR = $(ZDSBINDIR)/ez8lib.exe
+LD = ez8link.exe
+AS = ez8asm.exe
+AR = ez8lib.exe
 
 # File extensions
 
 ASMEXT = .asm
 OBJEXT = .obj
 LIBEXT = .lib
-EXEEXT = .hex
+EXEXT = .hex
 
 # These are the macros that will be used in the NuttX make system
 # to compile and assembly source files and to insert the resulting
 # object files into an archive
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+
+define PREPROCESS
+	@echo CPP: $1->$2
+	$(Q) "$(CPP)" $(CPPFLAGS) $1 -o $2
+endef
+
+define COMPILE
+	$(Q) "$(CC)" $(CFLAGS)  ${shell echo $1 | sed -e "s/\//\\/g"}
+endef
+
+define ASSEMBLE
+	$(Q) "$(AS)" $(AFLAGS) ${shell echo $1 | sed -e "s/\//\\/g"}
+endef
+
+define ARCHIVE
+	echo AR: $2
+	$(Q) for %%G in ($(2)) do ( "$(AR)" $(ARFLAGS) $1=-+%%G )
+endef
+
+define CLEAN
+	$(Q) if exist *.obj (del /f /q *.obj)
+	$(Q) if exist *.src (del /f /q *.src)
+	$(Q) if exist *.lib (del /f /q *.lib)
+	$(Q) if exist *.hex (del /f /q *.hex)
+	$(Q) if exist *.lod (del /f /q *.lod)
+	$(Q) if exist *.lst (del /f /q *.lst)
+endef
+
+else
 
 define PREPROCESS
 	@echo "CPP: $1->$2"
@@ -177,45 +222,52 @@ define PREPROCESS
 endef
 
 define COMPILE
-	@#echo "CC: $1"
 	$(Q) (wfile=`cygpath -w "$1"`; "$(CC)" $(CFLAGS) $$wfile)
 endef
 
 define ASSEMBLE
-	@#echo "AS: $1"
 	$(Q) (wfile=`cygpath -w "$1"`; "$(AS)" $(AFLAGS) $$wfile)
 endef
 
-ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-define ARCHIVE
-	echo "AR: $2";
-	$(Q) for %%G in ($(2)) do ( "$(AR)" $(ARFLAGS) $1=-+%%G )
-endef
-else
 define ARCHIVE
 	$(Q) for __obj in $(2) ; do \
 		echo "AR: $$__obj"; \
 		"$(AR)" $(ARFLAGS) $1=-+$$__obj || { echo "$(AR) $1=-+$$__obj FAILED!" ; exit 1 ; } \
 	done
 endef
-endif
 
 define CLEAN
-	$(Q) rm -f *.obj *.src *.lib *.hex *.lst
+	$(Q) rm -f *.obj *.src *.lib *.hex *.lod *.lst
 endef
+endif
 
-# This is the tool to use for dependencies (i.e., none)
+# Windows native host tool definitions
 
-MKDEP = $(TOPDIR)/tools/mknulldeps.sh
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  HOSTCC = mingw32-gcc.exe
+  HOSTINCLUDES = -I.
+  HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -g -pipe
+  HOSTLDFLAGS =
+  HOSTEXEEXT = .exe
 
-# ZDS-II cannot follow Cygwin soft links, so we will have to use directory copies
+  # Windows-native host tools
 
-DIRLINK = $(TOPDIR)/tools/winlink.sh
-DIRUNLINK = $(TOPDIR)/tools/unlink.sh
+  MKDEP = $(TOPDIR)\tools\mkdeps.exe --winnative
+else
 
 # Linux/Cygwin host tool definitions
 
-HOSTCC = gcc
-HOSTINCLUDES = -I.
-HOSTCFLAGS = -Wall -wstrict-prototypes -Wshadow -g -pipe
-HOSTLDFLAGS =
+  HOSTCC = gcc
+  HOSTINCLUDES = -I.
+  HOSTCFLAGS = -Wall -wstrict-prototypes -Wshadow -g -pipe
+  HOSTLDFLAGS =
+
+  # This is the tool to use for dependencies (i.e., none)
+
+  MKDEP = $(TOPDIR)$(DELIM)tools$(DELIM)mknulldeps.sh
+
+  # ZDS-II cannot follow Cygwin soft links, so we will have to use directory copies
+
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)winlink.sh
+  DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.sh
+endif

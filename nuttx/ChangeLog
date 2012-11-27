@@ -3692,3 +3692,8 @@
 	* confgs/ez80f910200zco/ostest:  Now used Kconfig/mconfig configuration
 	  tool. Updated to build in native Windows environment.  Other ez80f910200zco
 	  build scripts also updated.
+	* configs/z8f64200100kit/ostest: Update to same level as ez80 configurations.
+	* nuttx/configs/z8f64200100kit/scripts/setenv.bat: Add support for native
+	  Windows build.
+	* nuttx/arch/arm/src/lpc17xx/lpc17_i2c.c: Resources not being released when
+	  I2C is uninitialized.
