@@ -745,6 +745,7 @@ int mavlink_main(int argc, char *argv[])
 		thread_should_exit = true;
 		while (thread_running) {
 			usleep(200000);
+			printf(".");
 		}
 		warnx("terminated.");
 		exit(0);
