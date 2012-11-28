@@ -2,7 +2,7 @@
  * arch/z80/src/z80/switch.h
  * arch/z80/src/chip/switch.h
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -67,6 +67,9 @@
 #define IN_INTERRUPT()           (current_regs != NULL)
 
 /* The following macro is used when the system enters interrupt handling logic */
+
+#define DECL_SAVESTATE() \
+  FAR chipreg_t *savestate
 
 #define IRQ_ENTER(irq, regs) \
   do { \

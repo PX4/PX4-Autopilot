@@ -2,7 +2,7 @@
  * arch/z80/src/z8/switch.h
  * arch/z80/src/chip/switch.h
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -114,10 +114,8 @@
 
 /* The following macro is used when the system enters interrupt handling logic */
 
-#define IRQ_SAVE(irq, regs)      savestate    = (FAR chipreg_t *)current_regs;
-#define IRQ_ENTER(irq, regs)     current_regs = (regs)
-
-/* The following macro is used when the system exits interrupt handling logic */
+#define DECL_SAVESTATE() \
+  struct z8_irqstate_s savestate
 
 #define IRQ_ENTER(irq, regs) \
   do { \

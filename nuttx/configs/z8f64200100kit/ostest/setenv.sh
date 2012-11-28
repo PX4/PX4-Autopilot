@@ -1,7 +1,7 @@
 #!/bin/bash
-# configs/ez80f910200kitg/ostest/setenv.sh
+# configs/z8f64200100kit/ostest/setenv.sh
 #
-#   Copyright (C) 2008, 2009 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2008, 2009, 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without

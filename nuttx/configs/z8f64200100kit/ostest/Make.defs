@@ -36,7 +36,14 @@
 include $(TOPDIR)/.config
 include $(TOPDIR)/tools/Config.mk
 
-# These are the directories where the ZDS-II toolchain is installed
+# These are the directories where the ZDS-II toolchain is installed.  NOTE
+# that short 8.3 path names are used in order to avoid spaces.  On my machine
+# I have:
+#
+# C:\PROGRA~1\ = C:\Profram Files\
+# C:\PROGRA~2\ = C:\Program Files (x86)\
+#
+# Your PC may be configured differently.
 
 ZDSVERSION := 5.0.0
 
@@ -63,7 +70,7 @@ endif
   ARCHUSRINCLUDES = -usrinc:.
 else
   WINTOOL := y
-  ZDSINSTALLDIR := C:/Program Files (x86)/ZiLOG/ZDSII_Z8Encore!_$(ZDSVERSION)
+  ZDSINSTALLDIR := C:/PROGRA~2/ZiLOG/ZDSII_Z8Encore!_$(ZDSVERSION)
   INSTALLDIR = ${shell cygpath -u "$(ZDSINSTALLDIR)"}
   ZDSBINDIR := $(INSTALLDIR)/bin
   ZDSSTDINCDIR := $(INSTALLDIR)/include/std
@@ -179,7 +186,7 @@ AR = ez8lib.exe
 ASMEXT = .asm
 OBJEXT = .obj
 LIBEXT = .lib
-EXEXT = .hex
+EXEEXT = .hex
 
 # These are the macros that will be used in the NuttX make system
 # to compile and assembly source files and to insert the resulting

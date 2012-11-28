@@ -203,6 +203,7 @@ static int keypad_open(file_t * filep)
   register uint16_t reg;
 
   /* Unmask keypad interrupt */
+
   reg = readw(ARMIO_REG(KBD_GPIO_MASKIT));
   writew(reg & ~KBD_INT, ARMIO_REG(KBD_GPIO_MASKIT));
 

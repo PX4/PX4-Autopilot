@@ -50,7 +50,7 @@
  ************************************************************/
 
 #ifndef CONFIG_ARCH_MEMMOVE
-void *memmove(void *dest, const void *src, size_t count)
+FAR void *memmove(FAR void *dest, FAR const void *src, size_t count)
 {
   char *tmp, *s;
   if (dest <= src)
