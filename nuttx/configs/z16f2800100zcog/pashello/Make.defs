@@ -183,5 +183,5 @@ DIRUNLINK = $(TOPDIR)/tools/unlink.sh
 
 HOSTCC = gcc
 HOSTINCLUDES = -I.
-HOSTCFLAGS = -Wall -wstrict-prototypes -Wshadow -g -pipe
+HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -g -pipe
 HOSTLDFLAGS =

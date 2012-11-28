@@ -232,7 +232,7 @@ else
 
   HOSTCC = gcc
   HOSTINCLUDES = -I.
-  HOSTCFLAGS = -Wall -wstrict-prototypes -Wshadow -g -pipe
+  HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -g -pipe
   HOSTLDFLAGS =
 
   # This is the tool to use for dependencies (i.e., none)

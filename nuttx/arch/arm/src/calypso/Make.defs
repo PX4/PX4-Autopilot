@@ -36,22 +36,22 @@
 #
 ############################################################################
 
-HEAD_ASRC	= calypso_head.S
+HEAD_ASRC = calypso_head.S
 
-CMN_ASRCS	= up_saveusercontext.S up_fullcontextrestore.S up_vectors.S \
-		  up_nommuhead.S
-CMN_CSRCS	= up_allocateheap.c up_assert.c up_blocktask.c up_copystate.c \
-		  up_createstack.c up_dataabort.c up_mdelay.c up_udelay.c up_doirq.c \
-		  up_exit.c up_idle.c up_initialstate.c up_initialize.c \
-		  up_interruptcontext.c up_prefetchabort.c up_releasepending.c \
-		  up_releasestack.c up_reprioritizertr.c up_schedulesigaction.c \
-		  up_sigdeliver.c up_syscall.c up_unblocktask.c \
-		  up_undefinedinsn.c up_usestack.c calypso_power.c
+CMN_ASRCS = up_saveusercontext.S up_fullcontextrestore.S up_vectors.S \
+            up_nommuhead.S
+CMN_CSRCS = up_allocateheap.c up_assert.c up_blocktask.c up_copystate.c \
+            up_createstack.c up_dataabort.c up_mdelay.c up_udelay.c up_doirq.c \
+            up_exit.c up_idle.c up_initialstate.c up_initialize.c \
+            up_interruptcontext.c up_prefetchabort.c up_releasepending.c \
+            up_releasestack.c up_reprioritizertr.c up_schedulesigaction.c \
+            up_sigdeliver.c up_syscall.c up_unblocktask.c \
+            up_undefinedinsn.c up_usestack.c calypso_power.c
 
 ifeq ($(CONFIG_ELF),y)
 CMN_CSRCS += up_elf.c
 endif
 
-CHIP_ASRCS	= calypso_lowputc.S
-CHIP_CSRCS	= calypso_irq.c calypso_timer.c calypso_heap.c \
-		  calypso_serial.c calypso_spi.c clock.c calypso_uwire.c
+CHIP_ASRCS = calypso_lowputc.S
+CHIP_CSRCS = calypso_irq.c calypso_timer.c calypso_heap.c calypso_serial.c \
+             calypso_spi.c clock.c calypso_uwire.c calypso_armio.c calypso_keypad.c
