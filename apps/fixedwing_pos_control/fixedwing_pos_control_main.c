@@ -297,19 +297,12 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 					if (global_sp_updated) {
 						orb_copy(ORB_ID(vehicle_global_position_setpoint), global_setpoint_sub, &global_setpoint);
-	//					printf("xtrack_err.distance %.4f ", (double)xtrack_err.distance);
-
-						float delta_psi_c = pid_calculate(&offtrack_controller, 0, xtrack_err.distance, 0.0f, 0.0f); //p.xtrack_p * xtrack_err.distance
-
-	//					printf("delta_psi_c %.4f ", (double)delta_psi_c);
-
 						start_pos = global_pos; //for now using the current position as the startpoint (= approx. last waypoint because the setpoint switch occurs at the waypoint)
 						global_sp_updated_set_once = true;
 						psi_track = get_bearing_to_next_waypoint((double)global_pos.lat / (double)1e7d, (double)global_pos.lon / (double)1e7d,
 								(double)global_setpoint.lat / (double)1e7d, (double)global_setpoint.lon / (double)1e7d);
 						
-						if (verbose)
-							printf("psi_track: %0.4f\n", (double)psi_track);
+						printf("next wp direction: %0.4f\n", (double)psi_track);
 					}
 
 					/* Simple Horizontal Control */
@@ -331,6 +324,9 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 
 							float psi_c = psi_track + delta_psi_c;
 							float psi_e = psi_c - att.yaw;
+							
+							/* wrap difference back onto -pi..pi range */
+							psi_e = _wrap_pi(psi_e);
 
 							if (verbose) {
 								printf("xtrack_err.distance %.4f ", (double)xtrack_err.distance);
@@ -339,9 +335,6 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 								printf("att.yaw %.4f ", (double)att.yaw);
 								printf("psi_e %.4f ", (double)psi_e);
 							}
-
-							/* shift error to prevent wrapping issues */
-							psi_e = _wrap_pi(psi_e);
 
 							/* calculate roll setpoint, do this artificially around zero */
 							float delta_psi_rate_c = pid_calculate(&heading_controller, psi_e, 0.0f, 0.0f, 0.0f);
