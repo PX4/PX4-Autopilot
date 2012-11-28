@@ -13,54 +13,60 @@ config ARCH_CHIP_Z80
 	---help---
 		Classic ZiLOG z80 chip
 
-config ARCH_CHIP_Z8F640X
-	bool "Z8F640X"
-	select ARCH_CHIP_Z8
-	---help---
-		ZiLOG Z8F640X (z8 Encore)
-
 config ARCH_CHIP_Z8F6403
 	bool "Z8F6403"
 	select ARCH_CHIP_Z8
+	select ARCH_CHIP_Z8F640X
+	select ENDIAN_BIG
+	select HAVE_LOWUARTINIT
 	---help---
 		ZiLOG Z8F6403 (z8 Encore)
-
-config ARCH_CHIP_Z8F642X
-	bool "Z8F642X"
-	select ARCH_CHIP_Z8
-	---help---
-		ZiLOG Z8F642X (z8 Encore)
 
 config ARCH_CHIP_Z8F6423
 	bool "Z8F6423"
 	select ARCH_CHIP_Z8
+	select ARCH_CHIP_Z8F642X
+	select ENDIAN_BIG
+	select HAVE_LOWUARTINIT
 	---help---
 		ZiLOG Z8F6423 (z8 Encore)
 
 config ARCH_CHIP_EZ80F91
 	bool "EZ80F91"
 	select ARCH_CHIP_EZ80
+	select HAVE_LOWUARTINIT
 	---help---
 		ZiLOG EZ80F91 (ez80 Acclaim)
 
 config ARCH_CHIP_EZ80F92
 	bool "EZ80F92"
 	select ARCH_CHIP_EZ80
+	select HAVE_LOWUARTINIT
 	---help---
 		ZiLOG EZ80F92 (ez80 Acclaim)
 
 config ARCH_CHIP_EZ80F93
 	bool "EZ80F93"
 	select ARCH_CHIP_EZ80
+	select HAVE_LOWUARTINIT
 	---help---
 		ZiLOG EZ80F93 (ez80 Acclaim)
 
 endchoice
 
+config ARCH_CHIP_Z8F642X
+	bool
+
+config ARCH_CHIP_Z8F640X
+	bool
+
 config ARCH_CHIP_Z8
 	bool
 
 config ARCH_CHIP_EZ80
+	bool
+
+config HAVE_LOWUARTINIT
 	bool
 
 config ARCH_CHIP

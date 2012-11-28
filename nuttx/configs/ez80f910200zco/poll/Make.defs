@@ -36,7 +36,14 @@
 include $(TOPDIR)/.config
 include $(TOPDIR)/tools/Config.mk
 
-# These are the directories where the ZDS-II toolchain is installed
+# These are the directories where the ZDS-II toolchain is installed.  NOTE
+# that short 8.3 path names are used in order to avoid spaces.  On my machine
+# I have:
+#
+# C:\PROGRA~1\ = C:\Profram Files\
+# C:\PROGRA~2\ = C:\Program Files (x86)\
+#
+# Your PC may be configured differently.
 
 ZDSVERSION := 5.1.1
 
@@ -57,7 +64,7 @@ ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   ARCHUSRINCLUDES = -usrinc:.
 else
   WINTOOL := y
-  ZDSINSTALLDIR := C:/Program Files (x86)/ZiLOG/ZDSII_eZ80Acclaim!_$(ZDSVERSION)
+  ZDSINSTALLDIR := C:/PROGRA~2/ZiLOG/ZDSII_eZ80Acclaim!_$(ZDSVERSION)
   INSTALLDIR = ${shell cygpath -u "$(ZDSINSTALLDIR)"}
   ZDSBINDIR := $(INSTALLDIR)/bin
   ZDSSTDINCDIR := $(INSTALLDIR)/include/std

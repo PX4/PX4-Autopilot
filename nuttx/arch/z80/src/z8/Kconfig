@@ -4,4 +4,17 @@
 #
 
 if ARCH_CHIP_Z8
+
+# UART0/1 always enabled
+
+config Z8_UART0
+	bool
+	default y
+	select ARCH_HAVE_UART0
+
+config Z8_UART1
+	bool
+	default y
+	select ARCH_HAVE_UART1
+
 endif

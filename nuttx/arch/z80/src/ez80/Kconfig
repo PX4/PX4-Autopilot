@@ -31,13 +31,6 @@ config EZ80_EMAC
 
 endmenu
 
-config HAVE_LOWUARTINIT
-	bool "Low UART Init"
-	default y if !EZ80_UART0 && !EZ80_UART1 && !EZ80_UART2
-	default n if EZ80_UART0 || EZ80_UART1 || EZ80_UART2
-	---help---
-		Provides low-level UART initialization logic as up_lowuartinit (only needed if there is no serial driver).
-
 if EZ80_EMAC
 
 config EZ80_FIAD

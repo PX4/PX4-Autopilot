@@ -117,6 +117,12 @@ config ARCH_STACKDUMP
 	---help---
 		Enable to do stack dumps after assertions
 
+config ENDIAN_BIG
+	bool "Big Endian Architecture"
+	default n
+	---help---
+		Select if architecture operates using big-endian byte ordering.
+
 comment "Board Settings"
 
 config BOARD_LOOPSPERMSEC

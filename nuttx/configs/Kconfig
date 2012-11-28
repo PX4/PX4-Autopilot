@@ -573,20 +573,20 @@ config ARCH_BOARD_Z80SIM
 		(verified with version 2.6.0).
 
 config ARCH_BOARD_Z8ENCORE000ZCO
-	bool "ZiLOG z8encore000zco Development Kit"
+	bool "ZiLOG Z8ENCORE000ZCO Development Kit"
 	depends on ARCH_CHIP_Z8F6403
 	select ARCH_HAVE_LEDS
 	---help---
-		z8Encore! Microcontroller.  This port use the ZiLOG z8encore000zco
+		z8Encore! Microcontroller.  This port use the ZiLOG Z8ENCORE000ZCO
 		development kit, Z8F6403 part, and the Zilog ZDS-II Windows command line
 		tools.  The development environment is Cygwin under WinXP.
 
-config ARCH_BOARD_Z8F64200100KI
+config ARCH_BOARD_Z8F64200100KIT
 	bool "ZiLOG Z8F64200100KIT Development Kit"
-	depends on ARCH_CHIP_Z8F642X
+	depends on ARCH_CHIP_Z8F6423
 	select ARCH_HAVE_LEDS
 	---help---
-		z8Encore! Microcontroller.  This port use the Zilog z8f64200100kit
+		z8Encore! Microcontroller.  This port use the Zilog Z8F64200100KIT
 		development kit, Z8F6423 part, and the Zilog ZDS-II Windows command line
 		tools.  The development environment is Cygwin under WinXP.
 
@@ -669,7 +669,7 @@ config ARCH_BOARD
 	default "z16f2800100zcog"     if ARCH_BOARD_Z16F2800100ZCOG
 	default "z80sim"              if ARCH_BOARD_Z80SIM
 	default "z8encore000zco"      if ARCH_BOARD_Z8ENCORE000ZCO
-	default "z8f64200100kit"      if ARCH_BOARD_Z8F64200100KI
+	default "z8f64200100kit"      if ARCH_BOARD_Z8F64200100KIT
 	default "sim"                 if ARCH_BOARD_SIM
 	default ""                    if ARCH_BOARD_CUSTOM
 
@@ -902,7 +902,7 @@ endif
 if ARCH_BOARD_Z8ENCORE000ZCO
 source "configs/z8encore000zco/Kconfig"
 endif
-if ARCH_BOARD_Z8F64200100KI
+if ARCH_BOARD_Z8F64200100KIT
 source "configs/z8f64200100kit/Kconfig"
 endif
 if ARCH_BOARD_SIM

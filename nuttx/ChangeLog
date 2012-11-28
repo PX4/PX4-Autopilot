@@ -3706,4 +3706,5 @@
 	  -Wstrict-prototypes (From Denis Cariki).
 	* arch/arm/src/calapyso/calypso_keypad.c:  Add Calypso keypad driver.  From
 	  Denis Cariki.
-
+	* z8encore000zco/ostest and z8f64200100kit/ostest:  Converted to use Kconfig/
+	  mconf configuration tool.
