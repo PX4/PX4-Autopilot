@@ -176,13 +176,13 @@ static int parameters_update(const struct fw_pos_control_param_handles *h, struc
 int fixedwing_pos_control_thread_main(int argc, char *argv[])
 {
 	/* read arguments */
-		// bool verbose = false;
+		bool verbose = false;
 
-		// for (int i = 1; i < argc; i++) {
-		// 	if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
-		// 		verbose = true;
-		// 	}
-		// }
+		for (int i = 1; i < argc; i++) {
+			if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0) {
+				verbose = true;
+			}
+		}
 
 		/* welcome user */
 		printf("[fixedwing pos control] started\n");
@@ -307,7 +307,9 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 						global_sp_updated_set_once = true;
 						psi_track = get_bearing_to_next_waypoint((double)global_pos.lat / (double)1e7d, (double)global_pos.lon / (double)1e7d,
 								(double)global_setpoint.lat / (double)1e7d, (double)global_setpoint.lon / (double)1e7d);
-						printf("psi_track: %0.4f\n", (double)psi_track);
+						
+						if (verbose)
+							printf("psi_track: %0.4f\n", (double)psi_track);
 					}
 
 					/* Simple Horizontal Control */
@@ -325,21 +327,18 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 						 // XXX what is xtrack_err.past_end?
 						if(distance_res == OK /*&& !xtrack_err.past_end*/) {
 
-		//					printf("xtrack_err.distance %.4f ", (double)xtrack_err.distance);
-
 							float delta_psi_c = pid_calculate(&offtrack_controller, 0, xtrack_err.distance, 0.0f, 0.0f); //p.xtrack_p * xtrack_err.distance
 
-		//					printf("delta_psi_c %.4f ", (double)delta_psi_c);
-
 							float psi_c = psi_track + delta_psi_c;
-
-		//					printf("psi_c %.4f ", (double)psi_c);
-
-		//					printf("att.yaw %.4f ", (double)att.yaw);
-
 							float psi_e = psi_c - att.yaw;
 
-		//					printf("psi_e %.4f ", (double)psi_e);
+							if (verbose) {
+								printf("xtrack_err.distance %.4f ", (double)xtrack_err.distance);
+								printf("delta_psi_c %.4f ", (double)delta_psi_c);
+								printf("psi_c %.4f ", (double)psi_c);
+								printf("att.yaw %.4f ", (double)att.yaw);
+								printf("psi_e %.4f ", (double)psi_e);
+							}
 
 							/* shift error to prevent wrapping issues */
 							psi_e = _wrap_pi(psi_e);
@@ -349,27 +348,36 @@ int fixedwing_pos_control_thread_main(int argc, char *argv[])
 							float psi_rate_track = 0; //=V_gr/r_track , this will be needed for implementation of arc following
 							float psi_rate_c = delta_psi_rate_c + psi_rate_track;
 
-							//limit turn rate
-							if(psi_rate_c > p.headingr_lim)
-								psi_rate_c =  p.headingr_lim;
-							else if(psi_rate_c <  -p.headingr_lim)
-								psi_rate_c = - p.headingr_lim;
-
-		//					printf("psi_rate_c %.4f ", (double)psi_rate_c);
+							/* limit turn rate */
+							if(psi_rate_c > p.headingr_lim) {
+								psi_rate_c = p.headingr_lim;
+							} else if(psi_rate_c < -p.headingr_lim) {
+								psi_rate_c = -p.headingr_lim;
+							}
 
 							float psi_rate_e = psi_rate_c - att.yawspeed;
-							float psi_rate_e_scaled = psi_rate_e * sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy) / 9.81f; //* V_gr / g
 
-		//					printf("psi_rate_e_scaled %.4f ", (double)psi_rate_e_scaled);
+							// XXX sanity check: Assume 10 m/s stall speed and no stall condition
+							float ground_speed = sqrtf(global_pos.vx * global_pos.vx + global_pos.vy * global_pos.vy);
+
+							if (ground_speed < 10.0f) {
+								ground_speed = 10.0f;
+							}
+
+							float psi_rate_e_scaled = psi_rate_e * ground_speed / 9.81f; //* V_gr / g
 
 							attitude_setpoint.roll_body = pid_calculate(&heading_rate_controller, psi_rate_e_scaled, 0.0f, 0.0f, deltaT);
 
-							// printf("rollbody %.4f\n", (double)attitude_setpoint.roll_body);
+							if (verbose) {
+								printf("psi_rate_c %.4f ", (double)psi_rate_c);
+								printf("psi_rate_e_scaled %.4f ", (double)psi_rate_e_scaled);
+								printf("rollbody %.4f\n", (double)attitude_setpoint.roll_body);
+							}
 
-							if (counter % 100 == 0)
+							if (verbose && counter % 100 == 0)
 								printf("xtrack_err.distance: %0.4f, delta_psi_c: %0.4f\n",xtrack_err.distance, delta_psi_c);
 						} else {
-							if (counter % 100 == 0)
+							if (verbose && counter % 100 == 0)
 								printf("distance_res: %d, past_end %d\n", distance_res, xtrack_err.past_end);
 						}
 
