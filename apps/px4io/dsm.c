@@ -199,6 +199,13 @@ dsm_guess_format(bool reset)
 	/* 
 	 * Iterate the set of sensible sniffed channel sets and see whether
 	 * decoding in 10 or 11-bit mode has yielded anything we recognise.
+	 *
+	 * XXX Note that due to what seem to be bugs in the DSM2 high-resolution
+	 *     stream, we may want to sniff for longer in some cases when we think we
+	 *     are talking to a DSM2 receiver in high-resolution mode (so that we can
+	 *     reject it, ideally).
+	 *     See e.g. http://git.openpilot.org/cru/OPReview-116 for a discussion
+	 *     of this issue.
 	 */
 	static uint32_t masks[] = { 
 		0x3f,	/* 6 channels (DX6) */
@@ -255,14 +262,8 @@ dsm_decode(hrt_abstime frame_time)
 	}
 
 	/*
-	 * The encoding of the first byte is uncertain, so we're going
-	 * to ignore it for now.
-	 *
-	 * The second byte may tell us about the protocol, but it's not
-	 * actually very interesting since what we really want to know
-	 * is how the channel data is formatted, and there doesn't seem
-	 * to be a reliable way to determine this from the protocol ID
-	 * alone.
+	 * The encoding of the first two bytes is uncertain, so we're 
+	 * going to ignore them for now.
 	 *
 	 * Each channel is a 16-bit unsigned value containing either a 10-
 	 * or 11-bit channel value and a 4-bit channel number, shifted
