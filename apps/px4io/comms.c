@@ -112,9 +112,7 @@ serial_rx_init(unsigned serial_mode)
 	tcgetattr(rx_fd, &t);
 
 	switch (serial_mode) {
-	case RX_MODE_DSM_10BIT:
-	case RX_MODE_DSM_11BIT:
-
+	case RX_MODE_DSM:
 		/* 115200, no parity, one stop bit */
 		cfsetspeed(&t, 115200);
 		t.c_cflag &= ~(CSTOPB | PARENB);
@@ -163,8 +161,7 @@ comms_check(void)
 		 */
 		if ((pollcount > 1) && (pollfds[1].revents & POLLIN)) {
 			switch (system_state.serial_rx_mode) {
-			case RX_MODE_DSM_10BIT:
-			case RX_MODE_DSM_11BIT:
+			case RX_MODE_DSM:
 				dsm_input(rx_fd);
 				break;
 

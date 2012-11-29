@@ -64,9 +64,8 @@ struct px4io_config {
 
 	uint8_t		serial_rx_mode;
 #define RX_MODE_PPM_ONLY	0
-#define RX_MODE_DSM_10BIT	1
-#define RX_MODE_DSM_11BIT	2
-#define RX_MODE_FUTABA_SBUS	3
+#define RX_MODE_DSM		1
+#define RX_MODE_FUTABA_SBUS	2
 };
 
 /* report from IO to FMU */

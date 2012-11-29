@@ -637,10 +637,12 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 void
 PX4IO::set_rx_mode(unsigned mode)
 {
-	if (mode != _rx_mode) {
-		_rx_mode = mode;
-		_config_needed = true;
-	}
+	/*
+	 * Always (re)set the rx mode; makes testing
+	 * easier after PX4IO has been restarted.
+	 */
+	_rx_mode = mode;
+	_config_needed = true;
 }
 
 extern "C" __EXPORT int px4io_main(int argc, char *argv[]);
@@ -744,25 +746,29 @@ px4io_main(int argc, char *argv[])
 		return ret;
 	}
 
-	if (!strcmp(argv[1], "rx_dsm_10bit")) {
+	if (!strcmp(argv[1], "rx_dsm") ||
+	    !strcmp(argv[1], "rx_dsm_10bit") ||
+	    !strcmp(argv[1], "rx_dsm_11bit")) {
 		if (g_dev == nullptr)
 			errx(1, "not started");
-		g_dev->set_rx_mode(RX_MODE_DSM_10BIT);
-	}
-	if (!strcmp(argv[1], "rx_dsm_11bit")) {
-		if (g_dev == nullptr)
-			errx(1, "not started");
-		g_dev->set_rx_mode(RX_MODE_DSM_11BIT);
+		g_dev->set_rx_mode(RX_MODE_DSM);
+		exit(0);
 	}
 	if (!strcmp(argv[1], "rx_sbus")) {
 		if (g_dev == nullptr)
 			errx(1, "not started");
 		g_dev->set_rx_mode(RX_MODE_FUTABA_SBUS);
+		exit(0);
+	}
+	if (!strcmp(argv[1], "rx_ppm")) {
+		if (g_dev == nullptr)
+			errx(1, "not started");
+		g_dev->set_rx_mode(RX_MODE_PPM_ONLY);
+		exit(0);
 	}
 
 	if (!strcmp(argv[1], "test"))
 		test();
 
-
-	errx(1, "need a command, try 'start', 'test', 'rx_dsm_10bit', 'rx_dsm_11bit', 'rx_sbus' or 'update'");
+	errx(1, "need a command, try 'start', 'test', 'rx_ppm', 'rx_dsm', 'rx_sbus' or 'update'");
 }
