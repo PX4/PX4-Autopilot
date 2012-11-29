@@ -139,6 +139,9 @@ ostest
          the end of the lines after a line continuation (\ ^M).  If these
          trailing bad characters are manually eliminated, then the build
          will succeed on the next try.
+      d. Hmmm... when last tested, there some missing .obj files in arch/z16/src.
+         A little additional TLC might be needed to get a reliable Windows
+         native build.
 
 pashello
 --------

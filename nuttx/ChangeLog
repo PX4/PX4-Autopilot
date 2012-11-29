@@ -3712,7 +3712,10 @@
 	  From Freddie Chopin.
 	* z8encore000zco/ostest and z8f64200100kit/ostest:  Can now be modified to
 	  support the Windows native builds (see corresponding README.txt files).
-	* configures/z16f2800100zcog - All configurations updated to use the ZDS-II
+	* configs/z16f2800100zcog - All configurations updated to use the ZDS-II
 	  5.0.1 toolchain.
-	* configures/z16f2800100zcog - All configurations updated to use Kconfig/mconf
+	* configs/z16f2800100zcog - All configurations updated to use Kconfig/mconf
 	  configuration tools.
+	* configs/z16f2800100zcog/ostest - Now supports a native Windows build
+	  (other ZNEO configs may also support the native build, but this has not
+	  been verfiied).

@@ -56,10 +56,10 @@ CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHD
 CPPFLAGS += -I$(ARCHSRCDIR)
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  LDFLAGS  += @"$(ARCHSRCDIR)/nuttx.linkcmd"
+  LDFLAGS += @"$(ARCHSRCDIR)/nuttx.linkcmd"
 else
 ifeq ($(COMPILER),zneocc.exe)
-  LDFLAGS  += @"${shell cygpath -w $(ARCHSRCDIR)/nuttx.linkcmd}"
+  LDFLAGS += @"${shell cygpath -w $(ARCHSRCDIR)/nuttx.linkcmd}"
 endif
 endif
 
@@ -108,7 +108,7 @@ ifeq ($(COMPILER),zneocc.exe)
 nuttx.linkcmd: $(LINKCMDTEMPLATE)
 	$(Q) cp -f $(LINKCMDTEMPLATE) nuttx.linkcmd
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-	@echo "$(TOPDIR)\nuttx}"= \>>nuttx.linkcmd
+	@echo "$(TOPDIR)\nuttx"= \>>nuttx.linkcmd
 	@echo   "$(ARCHSRCDIR)\$(HEAD_OBJ)", \>>nuttx.linkcmd
 	$(Q) for %%G in ($(LINKLIBS)) do ( echo   "$(TOPDIR)\lib\%%G", \>>nuttx.linkcmd )
 	@echo   "$(ARCHSRCDIR)\board\libboard$(LIBEXT)", \>>nuttx.linkcmd
@@ -133,30 +133,42 @@ nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT) nuttx.linkcmd
 	$(Q) $(LD) $(LDFLAGS)
 
 .depend: Makefile chip/Make.defs $(DEPSRCS)
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) if exist board$(DELIM)Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" depend )
+else
 	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" depend ; \
 	fi
+endif
 	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
 	$(Q) touch $@
 
 # This is part of the top-level export target
 
 export_head: board/libboard$(LIBEXT) $(HEAD_OBJ)
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) if exist "$(EXPORT_DIR)$(DELIM)startup" ( copy $(HEAD_OBJ) "$(EXPORT_DIR)$(DELIM)startup$(DELIM)." /b /y)
+else
 	$(Q) if [ -d "$(EXPORT_DIR)/startup" ]; then \
 		cp -f $(HEAD_OBJ) "$(EXPORT_DIR)/startup"; \
 	 else \
 		echo "$(EXPORT_DIR)/startup does not exist"; \
 		exit 1; \
 	 fi
+endif
 
 # Dependencies
 
 depend: .depend
 
 clean:
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) if exist board$(DELIM)Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" clean )
+else
 	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" clean ; \
 	fi
+endif
 ifeq ($(COMPILER),zneocc.exe)
 	$(call DELFILE, nuttx.linkcmd)
 	$(call DELFILE, *.asm)
@@ -167,9 +179,13 @@ endif
 	$(call CLEAN)
 
 distclean: clean
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) if exist board$(DELIM)Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" distclean )
+else
 	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" distclean ; \
 	fi
+endif
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
 

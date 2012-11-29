@@ -174,7 +174,7 @@ define ASSEMBLE
 endef
 
 define ARCHIVE
-	echo AR: $2
+	@echo AR: $2
 	$(Q) for %%G in ($(2)) do ( "$(AR)" $(ARFLAGS) $1=-+%%G )
 endef
 

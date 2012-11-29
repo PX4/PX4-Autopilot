@@ -33,10 +33,15 @@
 #
 ############################################################################
 
-PCODEDIR := ${shell pwd | sed -e 's/ /\\ /g'}
-
 -include $(TOPDIR)/Make.defs
 include $(APPDIR)$(DELIM)Make.defs
+DELIM ?= $(strip /)
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  PCODEDIR := ${shell echo %CD%}
+else
+  PCODEDIR := ${shell pwd | sed -e 's/ /\\ /g'}
+endif
 
 # Default tools
 

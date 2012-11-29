@@ -34,6 +34,8 @@
 ###########################################################################
 
 -include $(TOPDIR)/Make.defs
+DELIM ?= $(strip /)
+
 include proxies$(DELIM)Make.defs
 include stubs$(DELIM)Make.defs
 
