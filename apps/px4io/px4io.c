@@ -131,6 +131,7 @@ int user_start(int argc, char *argv[])
 		LED_AMBER(failsafe);
 		
 		/* print some simple status */
+#if 0
 		if (timers[TIMER_STATUS_PRINT] == 0) {
 			timers[TIMER_STATUS_PRINT] = 1000;
 			lib_lowprintf("%c %s | %s | %s | %s | C=%d F=%d B=%d   \r",
@@ -143,6 +144,7 @@ int user_start(int argc, char *argv[])
 				frame_rx, frame_bad
 			);
 		}
+#endif
 	}
 
 	/* Should never reach here */
