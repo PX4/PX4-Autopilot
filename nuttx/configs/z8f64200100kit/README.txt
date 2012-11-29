@@ -29,7 +29,7 @@ Version 4.9.5
 
 Version 5.0.0
 
-  On November 18, 2012, all of the z8 configurations were converted to use 5.0.0,
+  On November 28, 2012, all of the z8 configurations were converted to use 5.0.0,
   but have not been verified on a running target.
 
   Paths were also updated that are specific to a 32-bit toolchain running on

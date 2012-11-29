@@ -38,18 +38,29 @@
 
 COMPILER = ${shell basename "$(CC)"}
 ARCHSRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
-ifeq ($(COMPILER),zneocc.exe)
-WARCHSRCDIR := ${shell cygpath -w $(ARCHSRCDIR)}
-USRINCLUDES = -usrinc:'.;$(WTOPDIR)\sched;$(WARCHSRCDIR);$(WARCHSRCDIR)\common'
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  USRINCLUDES = -usrinc:'.;$(TOPDIR)/sched;$(ARCHSRCDIR);$(ARCHSRCDIR)/common'
 else
-WARCHSRCDIR = $(ARCHSRCDIR)
-USRINCLUDES = -I$(TOPDIR)/sched -I$(ARCHSRCDIR) -I$(ARCHSRCDIR)/common
+ifeq ($(COMPILER),zneocc.exe)
+  WARCHSRCDIR := ${shell cygpath -w $(ARCHSRCDIR)}
+  USRINCLUDES = -usrinc:'.;$(WTOPDIR)\sched;$(WARCHSRCDIR);$(WARCHSRCDIR)\common'
+else
+  WARCHSRCDIR = $(ARCHSRCDIR)
+  USRINCLUDES = -I$(TOPDIR)/sched -I$(ARCHSRCDIR) -I$(ARCHSRCDIR)/common
 endif
+endif
+
 INCLUDES = $(ARCHSTDINCLUDES) $(USRINCLUDES)
 CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 CPPFLAGS += -I$(ARCHSRCDIR)
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  LDFLAGS  += @"$(ARCHSRCDIR)/nuttx.linkcmd"
+else
 ifeq ($(COMPILER),zneocc.exe)
-LDFLAGS  += "${shell cygpath -w $(ARCHSRCDIR)/nuttx.linkcmd}"
+  LDFLAGS  += @"${shell cygpath -w $(ARCHSRCDIR)/nuttx.linkcmd}"
+endif
 endif
 
 HEAD_ASRC = $(HEAD_SSRC:.S=$(ASMEXT))
@@ -96,6 +107,14 @@ board/libboard$(LIBEXT):
 ifeq ($(COMPILER),zneocc.exe)
 nuttx.linkcmd: $(LINKCMDTEMPLATE)
 	$(Q) cp -f $(LINKCMDTEMPLATE) nuttx.linkcmd
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	@echo "$(TOPDIR)\nuttx}"= \>>nuttx.linkcmd
+	@echo   "$(ARCHSRCDIR)\$(HEAD_OBJ)", \>>nuttx.linkcmd
+	$(Q) for %%G in ($(LINKLIBS)) do ( echo   "$(TOPDIR)\lib\%%G", \>>nuttx.linkcmd )
+	@echo   "$(ARCHSRCDIR)\board\libboard$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\chelpld$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\fpld$(LIBEXT)">>nuttx.linkcmd
+else
 	@echo "\"${shell cygpath -w $(TOPDIR)/nuttx}\"= \\" >>nuttx.linkcmd
 	@echo "  \"${shell cygpath -w $(ARCHSRCDIR)/$(HEAD_OBJ)}\", \\" >>nuttx.linkcmd
 	$(Q) ( for lib in $(LINKLIBS); do \
@@ -104,6 +123,7 @@ nuttx.linkcmd: $(LINKCMDTEMPLATE)
 	@echo "  \"${shell cygpath -w $(ARCHSRCDIR)/board/libboard$(LIBEXT)}\", \\"  >>nuttx.linkcmd
 	@echo "  \"${shell cygpath -w $(ZDSSTDLIBDIR)/chelpld$(LIBEXT)}\", \\"  >>nuttx.linkcmd
 	@echo "  \"${shell cygpath -w $(ZDSSTDLIBDIR)/fpld$(LIBEXT)}\""  >>nuttx.linkcmd
+endif
 else
 nuttx.linkcmd:
 endif

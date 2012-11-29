@@ -95,7 +95,7 @@ FAR chipreg_t *up_doirq(int irq, FAR chipreg_t *regs)
        * interrupt level context switches.
        */
 
-      savestate    = (uint32_t*)current_regs;
+      savestate    = (FAR chipreg_t *)current_regs;
       current_regs = regs;
 
       /* Mask and acknowledge the interrupt */
@@ -120,7 +120,9 @@ FAR chipreg_t *up_doirq(int irq, FAR chipreg_t *regs)
 
       up_enable_irq(irq);
     }
+
   up_ledoff(LED_INIRQ);
 #endif
+
   return ret;
 }

@@ -2600,7 +2600,8 @@ static int mmcsd_cardidentify(FAR struct mmcsd_state_s *priv)
    * operating condition. CMD 8 is reserved on SD version 1.0 and MMC.
    *
    * CMD8 Argument:
-   *    [31:12]: Reserved (shall be set to '0')   *    [11:8]: Supply Voltage (VHS) 0x1 (Range: 2.7-3.6 V)
+   *    [31:12]: Reserved (shall be set to '0')
+   *    [11:8]: Supply Voltage (VHS) 0x1 (Range: 2.7-3.6 V)
    *    [7:0]: Check Pattern (recommended 0xaa)
    * CMD8 Response: R7
    */

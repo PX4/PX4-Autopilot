@@ -2,7 +2,7 @@
  * arch/z16f/irq.h
  * arch/chip/irq.h
  *
- *   Copyright (C) 2008 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -188,8 +188,8 @@ struct xcptcontext
 
   /* The following retains that state during signal execution */
 
-  uint32_t saved_pc;	/* Saved return address */
-  uint16_t saved_i;		/* Saved interrupt state */
+  uint32_t saved_pc;  /* Saved return address */
+  uint16_t saved_i;   /* Saved interrupt state */
 #endif
 };
 #endif
@@ -231,7 +231,7 @@ extern "C" {
 EXTERN intrinsic void EI(void);
 EXTERN intrinsic void DI(void);
 EXTERN intrinsic void RI(unsigned short);
-EXTERN intrinsic SET_VECTOR(int,void (* func) (void));
+EXTERN intrinsic void SET_VECTOR(int,void (* func) (void));
 EXTERN intrinsic unsigned short TDI(void);
 
 #ifndef __ZILOG__
