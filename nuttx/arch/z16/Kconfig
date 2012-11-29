@@ -12,21 +12,29 @@ choice
 
 config ARCH_CHIP_Z16F2810
 	bool "Z16F2810"
+	select ARCH_CHIP_Z16F
+	select ARCH_IRQPRIO
 	---help---
 		ZiLOG Z16F2810
 
 config ARCH_CHIP_Z16F2811
 	bool "Z16F2811"
+	select ARCH_CHIP_Z16F
+	select ARCH_IRQPRIO
 	---help---
 		ZiLOG Z16F2811
 
 config ARCH_CHIP_Z16F3211
-	bool "Z16F321"
+	bool "Z16F3211"
+	select ARCH_CHIP_Z16F
+	select ARCH_IRQPRIO
 	---help---
 		ZiLOG Z16F321
 
 config ARCH_CHIP_Z16F6411
 	bool "Z16F6411"
+	select ARCH_CHIP_Z16F
+	select ARCH_IRQPRIO
 	---help---
 		ZiLOG Z16F6411
 
@@ -34,7 +42,6 @@ endchoice
 
 config ARCH_CHIP_Z16F
 	bool
-	default y			if ARCH_CHIP_Z16F2810 || ARCH_CHIP_Z16F2811 || ARCH_CHIP_Z16F3211 || ARCH_CHIP_Z16F6411
 
 config ARCH_CHIP
 	string

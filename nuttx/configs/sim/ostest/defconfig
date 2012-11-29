@@ -351,8 +351,8 @@ CONFIG_EXAMPLES_OSTEST_NBARRIER_THREADS=8
 #
 # Interpreters
 #
-# CONFIG_FICL is not set
-# CONFIG_PCODE is not set
+# CONFIG_INTERPRETERS_FICL is not set
+# CONFIG_INTERPRETERS_PCODE is not set
 
 #
 # Network Utilities

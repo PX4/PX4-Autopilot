@@ -498,8 +498,8 @@ CONFIG_EXAMPLES_OSTEST_RR_RUNS=10
 #
 # Interpreters
 #
-# CONFIG_FICL is not set
-# CONFIG_PCODE is not set
+# CONFIG_INTERPRETERS_FICL is not set
+# CONFIG_INTERPRETERS_PCODE is not set
 
 #
 # Network Utilities

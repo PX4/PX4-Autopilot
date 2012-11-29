@@ -41,21 +41,21 @@ include $(APPDIR)$(DELIM)Make.defs
 # Default tools
 
 ifeq ($(DIRLINK),)
-DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)link.sh
-DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.sh
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)link.sh
+  DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.sh
 endif
 
 ifeq ($(WINTOOL),y)
-INCDIROPT = -w
+  INCDIROPT = -w
 endif
 
 USRINCLUDES = ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(PCODEDIR)$(DELIM)include $(PCODEDIR)$(DELIM)insn$(DELIM)include}
 
 COMPILER = ${shell basename $(CC)}
 ifeq ($(COMPILER),zneocc.exe)
-INCLUDES = $(ARCHSTDINCLUDES) $(USRINCLUDES)
+  INCLUDES = $(ARCHSTDINCLUDES) $(USRINCLUDES)
 else
-INCLUDES = $(ARCHINCLUDES) $(USRINCLUDES)
+  INCLUDES = $(ARCHINCLUDES) $(USRINCLUDES)
 endif
 
 CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHDEFINES)
@@ -73,14 +73,18 @@ COBJS = $(CSRCS:.c=$(OBJEXT))
 SRCS = $(ASRCS) $(CSRCS)
 OBJS = $(AOBJS) $(COBJS)
 
-ifeq ($(WINTOOL),y)
-  BIN		= "${shell cygpath -w  $(APPDIR)$(DELIM)libapps$(LIBEXT)}"
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  BIN		= ..\..\libapps$(LIBEXT)
 else
-  BIN		= "$(APPDIR)$(DELIM)libapps$(LIBEXT)"
+ifeq ($(WINTOOL),y)
+  BIN		= ..\\..\\libapps$(LIBEXT)
+else
+  BIN		= ../../libapps$(LIBEXT)
+endif
 endif
 
-ROOTDEPPATH	= --dep-path .
-PRUNDEPPATH	= --dep-path insn$(DELIM)prun
+ROOTDEPPATH = --dep-path .
+PRUNDEPPATH = --dep-path insn$(DELIM)prun
 POFFDEPPATH = --dep-path libpoff
 PASDEPPATH  = --dep-path libpas
 
@@ -90,18 +94,10 @@ all: .built
 .PHONY: context depend clean distclean
 
 $(AOBJS): %$(OBJEXT): %.S
-ifeq ($(COMPILER),zneocc.exe)
-	$(call ASSEMBLE, `cygpath -w $<`, $@)
-else
 	$(call ASSEMBLE, $<, $@)
-endif
 
 $(COBJS): %$(OBJEXT): %.c
-ifeq ($(COMPILER),zneocc.exe)
-	$(call COMPILE, `cygpath -w $<`, $@)
-else
 	$(call COMPILE, $<, $@)
-endif
 
 $(APPDIR)$(DELIM)include$(DELIM)pcode: include
 	@$(DIRLINK) $(PCODEDIR)$(DELIM)include $(APPDIR)$(DELIM)include$(DELIM)pcode

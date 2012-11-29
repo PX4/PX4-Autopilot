@@ -46,6 +46,7 @@ config ARCH_CHIP_KINETIS
 	bool "Freescale Kinetis"
 	select ARCH_CORTEXM4
 	select ARCH_HAVE_MPU
+	select ARCH_IRQPRIO
 	---help---
 		Freescale Kinetis Architectures (ARM Cortex-M4)
 
@@ -53,6 +54,7 @@ config ARCH_CHIP_LM3S
 	bool "TI Stellaris"
 	select ARCH_CORTEXM3
 	select ARCH_HAVE_MPU
+	select ARCH_IRQPRIO
 	---help---
 		TI Stellaris LMS3 architecutres (ARM Cortex-M3)
 
@@ -60,6 +62,7 @@ config ARCH_CHIP_LPC17XX
 	bool "NXP LPC17xx"
 	select ARCH_CORTEXM3
 	select ARCH_HAVE_MPU
+	select ARCH_IRQPRIO
 	---help---
 		NXP LPC17xx architectures (ARM Cortex-M3)
 
@@ -91,6 +94,7 @@ config ARCH_CHIP_LPC43XX
 	select ARCH_HAVE_CMNVECTOR
 	select ARMV7M_CMNVECTOR
 	select ARCH_HAVE_MPU
+	select ARCH_IRQPRIO
 	---help---
 		NPX LPC43XX architectures (ARM Cortex-M4).
 
@@ -98,6 +102,7 @@ config ARCH_CHIP_SAM3U
 	bool "Atmel AT91SAM3U"
 	select ARCH_CORTEXM3
 	select ARCH_HAVE_MPU
+	select ARCH_IRQPRIO
 	---help---
 		Atmel AT91SAM3U architectures (ARM Cortex-M3)
 
@@ -221,12 +226,6 @@ config PAGING
 	---help---
 		If set =y in your configation file, this setting will enable the on-demand
 		paging feature as described in http://www.nuttx.org/NuttXDemandPaging.html.
-
-config ARCH_IRQPRIO
-	bool "Interrupt priority"
-	default y		if ARCH_CORTEXM3 || ARCH_CORTEXM4
-	---help---
-		Select if your board supports interrupt prioritization.
 
 config BOARD_LOOPSPERMSEC
 	int "Delay loops per millisecond"

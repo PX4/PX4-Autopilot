@@ -10,6 +10,8 @@ choice
 
 config ARCH_CHIP_PIC32MX
 	bool "PIC32MX"
+	select ARCH_MIPS32
+	select ARCH_IRQPRIO
 	---help---
 		Microchip PIC32MX320F032H (MIPS32)
 
@@ -17,7 +19,7 @@ endchoice
 
 config ARCH_MIPS32
 	bool
-	default y		if ARCH_CHIP_PIC32MX
+	default n
 
 config ARCH_FAMILY
 	string
@@ -26,12 +28,6 @@ config ARCH_FAMILY
 config ARCH_CHIP
 	string
 	default "pic32mx"	if ARCH_CHIP_PIC32MX
-
-config ARCH_IRQPRIO
-	bool "Interrupt priority"
-	default y		if ARCH_CHIP_PIC32MX
-	---help---
-		Select if your board supports interrupt prioritization.
 
 config BOARD_LOOPSPERMSEC
 	int "Delay loops per millisecond"

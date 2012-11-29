@@ -111,6 +111,10 @@ config ARCH_DMA
 	bool
 	default n
 
+config ARCH_IRQPRIO
+	bool
+	default n
+
 config ARCH_STACKDUMP
 	bool "Dump stack on assertions"
 	default n

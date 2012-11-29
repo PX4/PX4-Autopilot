@@ -215,7 +215,7 @@ for dir in $dirlist; do
 		if [ -z "$response" ]; then
 			response="${cmdarg}'"${path}
 		else
-			response=${response}":${path}"
+			response=${response}";${path}"
 		fi
 	else
 		# Treat the first directory differently

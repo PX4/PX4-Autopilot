@@ -43,8 +43,8 @@
 #include <stdlib.h>
 #include <debug.h>
 
-#include "apps/pcode/insn/pexec.h"
-#include "apps/pcode/pedefs.h"
+#include "pexec.h"
+#include "pedefs.h"
 #include "pashello.h"
 
 /****************************************************************************

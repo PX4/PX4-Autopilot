@@ -39,30 +39,38 @@ include $(APPDIR)/Make.defs
 
 # Pascal Add-On Example
 
-ASRCS		=
-CSRCS		= pashello.c device.c
+ifeq ($(WINTOOL),y)
+INCDIROPT = -w
+endif
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" \
+  "." \
+  "$(APPDIR)$(DELIM)interpreters$(DELIM)pcode$(DELIM)include" \
+  "$(APPDIR)$(DELIM)interpreters$(DELIM)pcode$(DELIM)insn$(DELIM)include"}
 
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
-COBJS		= $(CSRCS:.c=$(OBJEXT))
+ASRCS =
+CSRCS = pashello.c device.c
 
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
+AOBJS = $(ASRCS:.S=$(OBJEXT))
+COBJS = $(CSRCS:.c=$(OBJEXT))
+
+SRCS = $(ASRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  BIN		= ..\..\libapps$(LIBEXT)
+  BIN = ..\..\libapps$(LIBEXT)
 else
 ifeq ($(WINTOOL),y)
-  BIN		= ..\\..\\libapps$(LIBEXT)
+  BIN = ..\\..\\libapps$(LIBEXT)
 else
-  BIN		= ../../libapps$(LIBEXT)
+  BIN = ../../libapps$(LIBEXT)
 endif
 endif
 
-ROOTDEPPATH	= --dep-path .
+ROOTDEPPATH = --dep-path .
 
 # Common build
 
-VPATH		= 
+VPATH = 
 
 all: .built
 .PHONY: clean depend distclean

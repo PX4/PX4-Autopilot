@@ -812,8 +812,8 @@ CONFIG_EXAMPLES_USBMSC_DEVPATH3="/dev/mmcsd2"
 #
 # Interpreters
 #
-# CONFIG_FICL is not set
-# CONFIG_PCODE is not set
+# CONFIG_INTERPRETERS_FICL is not set
+# CONFIG_INTERPRETERS_PCODE is not set
 
 #
 # Network Utilities

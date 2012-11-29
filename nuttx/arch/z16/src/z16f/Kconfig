@@ -6,4 +6,16 @@
 if ARCH_CHIP_Z16F
 comment "Z16F Configuration Options"
 
+# UART0/1 always enabled
+
+config Z16F_UART0
+	bool
+	default y
+	select ARCH_HAVE_UART0
+
+config Z16F_UART1
+	bool
+	default y
+	select ARCH_HAVE_UART1
+
 endif

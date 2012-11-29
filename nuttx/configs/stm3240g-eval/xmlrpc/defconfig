@@ -760,8 +760,8 @@ CONFIG_EXAMPLES_XMLRPC_NETMASK=0xffffff00
 #
 # Interpreters
 #
-# CONFIG_FICL is not set
-# CONFIG_PCODE is not set
+# CONFIG_INTERPRETERS_FICL is not set
+# CONFIG_INTERPRETERS_PCODE is not set
 
 #
 # Network Utilities

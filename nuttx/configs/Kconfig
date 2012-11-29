@@ -555,7 +555,7 @@ config ARCH_BOARD_XTRS
 
 config ARCH_BOARD_Z16F2800100ZCOG
 	bool "Zilog Z16F2800100ZCOG Development Kit"
-	depends on ARCH_CHIP_Z16F281
+	depends on ARCH_CHIP_Z16F2811
 	select ARCH_HAVE_LEDS
 	---help---
 		z16f Microcontroller.  This port use the ZiLIG z16f2800100zcog

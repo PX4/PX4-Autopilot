@@ -426,3 +426,5 @@
 	  various DHCPC improvements(Darcy Gong).
 	* apps/nshlib/nsh_apps.c: Fix compilation errors whenCONFIG_NSH_DISABLEBG=y.
 	  From Freddie Chopin.
+	* Rename CONFIG_PCODE and CONFIG_FICL as CONFIG_INTERPRETERS_PCODE and
+	  CONFIG_INTERPRETERS_FICL for consistency with other configuration naming.
