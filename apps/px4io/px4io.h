@@ -56,10 +56,11 @@
  * Debug logging
  */
 
-#if 1
-# define debug(fmt, ...)	lib_lowprintf(fmt "\n", ##args)
+#ifdef DEBUG
+# include <debug.h>
+# define debug(fmt, args...)	lib_lowprintf(fmt "\n", ##args)
 #else
-# define debug(fmt, ...)	do {} while(0)
+# define debug(fmt, args...)	do {} while(0)
 #endif
 
 /*
