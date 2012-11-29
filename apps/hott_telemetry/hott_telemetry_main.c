@@ -173,15 +173,13 @@ int read_data(int uart, int *id)
 	const int timeout = 1000;
 	struct pollfd fds[] = { { .fd = uart, .events = POLLIN } };
 
+	char mode;
 	if (poll(fds, 1, timeout) > 0) {
-
-		/* get the mode: binary or text  */
-		char mode;
+		/* Get the mode: binary or text  */
 		read(uart, &mode, 1);
-
+		/* Read the device ID being polled */
 		read(uart, id, 1);
 
-		//printf("[%x %x]\n", mode, *id);
 		/* if we have a binary mode request */
 		if (mode != BINARY_MODE_REQUEST_ID) {
 			return ERROR;
@@ -266,10 +264,7 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 				default:
 					continue;	// Not a module we support.
 			}
-			//printf("Write start\n");
 			send_data(uart, buffer, size);
-		} else {
-			printf("NOK: %x\n", id);
 		}
 	}
 
