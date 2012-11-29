@@ -3708,3 +3708,7 @@
 	  Denis Cariki.
 	* z8encore000zco/ostest and z8f64200100kit/ostest:  Converted to use Kconfig/
 	  mconf configuration tool.
+	* arch/arm/src/armv7-m/up_exception.S: missing curly braces for push/pop
+	  From Freddie Chopin.
+	* z8encore000zco/ostest and z8f64200100kit/ostest:  Can now be modified to
+	  support the Windows native builds (see corresponding README.txt files).

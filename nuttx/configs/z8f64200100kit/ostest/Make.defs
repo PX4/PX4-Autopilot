@@ -45,66 +45,66 @@ include $(TOPDIR)/tools/Config.mk
 #
 # Your PC may be configured differently.
 
-ZDSVERSION := 5.0.0
+ZDSVERSION = 5.0.0
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  ZDSINSTALLDIR := C:/PROGRA~2/ZiLOG/ZDSII_Z8Encore!_$(ZDSVERSION)
+  ZDSINSTALLDIR = C:/PROGRA~2/ZiLOG/ZDSII_Z8Encore!_$(ZDSVERSION)
   INSTALLDIR = ${shell echo $(ZDSINSTALLDIR)| sed -e "s/\//\\/g"}
-  ZDSBINDIR := $(INSTALLDIR)\bin
-  ZDSSTDINCDIR := $(INSTALLDIR)\include\std
-  ZDSZILOGINCDIR := $(INSTALLDIR)\include\zilog
+  ZDSBINDIR = $(INSTALLDIR)\bin
+  ZDSSTDINCDIR = $(INSTALLDIR)\include\std
+  ZDSZILOGINCDIR = $(INSTALLDIR)\include\zilog
 ifeq ($(CONFIG_ARCH_CHIP_Z8F642X),y)
-  ZDSDEVINCDIR := $(INSTALLDIR)\Z8Encore_F642X
+  ZDSDEVINCDIR = $(INSTALLDIR)\Z8Encore_F642X
 endif
 ifeq ($(CONFIG_ARCH_CHIP_Z8F640X),y)
-  ZDSDEVINCDIR := $(INSTALLDIR)\Z8Encore_F640X
+  ZDSDEVINCDIR = $(INSTALLDIR)\Z8Encore_F640X
 endif
-  ZDSSTDLIBDIR := $(INSTALLDIR)\lib\std
-  ZDSZILOGLIBDIR := $(INSTALLDIR)\lib\zilog
+  ZDSSTDLIBDIR = $(INSTALLDIR)\lib\std
+  ZDSZILOGLIBDIR = $(INSTALLDIR)\lib\zilog
 
   # CFLAGs
 
   ARCHASMINCLUDES = -include:$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)
   EARCHASMINCLUDES = -include:$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)
-  ARCHSTDINCLUDES = -stdinc:$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR)
+  ARCHSTDINCLUDES = -stdinc:$(TOPDIR)\include;$(ZDSSTDINCDIR);$(ZDSZILOGINCDIR);$(ZDSDEVINCDIR)
   ARCHUSRINCLUDES = -usrinc:.
 else
-  WINTOOL := y
-  ZDSINSTALLDIR := C:/PROGRA~2/ZiLOG/ZDSII_Z8Encore!_$(ZDSVERSION)
+  WINTOOL = y
+  ZDSINSTALLDIR = C:/PROGRA~2/ZiLOG/ZDSII_Z8Encore!_$(ZDSVERSION)
   INSTALLDIR = ${shell cygpath -u "$(ZDSINSTALLDIR)"}
-  ZDSBINDIR := $(INSTALLDIR)/bin
-  ZDSSTDINCDIR := $(INSTALLDIR)/include/std
-  ZDSZILOGINCDIR := $(INSTALLDIR)/include/zilog
+  ZDSBINDIR = $(INSTALLDIR)/bin
+  ZDSSTDINCDIR = $(INSTALLDIR)/include/std
+  ZDSZILOGINCDIR = $(INSTALLDIR)/include/zilog
 ifeq ($(CONFIG_ARCH_CHIP_Z8F642X),y)
-  ZDSDEVINCDIR := $(ZDSZILOGINCDIR)/Z8Encore_F642X
+  ZDSDEVINCDIR = $(ZDSZILOGINCDIR)/Z8Encore_F642X
 endif
 ifeq ($(CONFIG_ARCH_CHIP_Z8F640X),y)
-  ZDSDEVINCDIR := $(ZDSZILOGINCDIR)/Z8Encore_F640X
+  ZDSDEVINCDIR = $(ZDSZILOGINCDIR)/Z8Encore_F640X
 endif
-  ZDSSTDLIBDIR := $(INSTALLDIR)/lib/std
-  ZDSZILOGLIBDIR := $(INSTALLDIR)/lib/zilog
+  ZDSSTDLIBDIR = $(INSTALLDIR)/lib/std
+  ZDSZILOGLIBDIR = $(INSTALLDIR)/lib/zilog
 
   # These are the same directories but with the directory separator
   # character swapped as needed by the ZDS-II compiler
 
-  WTOPDIR := ${shell cygpath -w "$(TOPDIR)"}
-  WZDSSTDINCDIR := ${shell cygpath -w "$(ZDSSTDINCDIR)"}
-  WZDSZILOGINCDIR := ${shell cygpath -w "$(ZDSZILOGINCDIR)"}
-  WZDSDEVINCDIR := ${shell cygpath -w "$(ZDSDEVINCDIR)"}
-  WZDSSTDLIBDIR := ${shell cygpath -w "$(ZDSSTDLIBDIR)"}
-  WZDSZILOGLIBDIR := ${shell cygpath -w "$(ZDSZILOGLIBDIR)"}
+  WTOPDIR = ${shell cygpath -w "$(TOPDIR)"}
+  WZDSSTDINCDIR = ${shell cygpath -w "$(ZDSSTDINCDIR)"}
+  WZDSZILOGINCDIR = ${shell cygpath -w "$(ZDSZILOGINCDIR)"}
+  WZDSDEVINCDIR = ${shell cygpath -w "$(ZDSDEVINCDIR)"}
+  WZDSSTDLIBDIR = ${shell cygpath -w "$(ZDSSTDLIBDIR)"}
+  WZDSZILOGLIBDIR = ${shell cygpath -w "$(ZDSZILOGLIBDIR)"}
 
   # Escaped versions
 
-  ETOPDIR := ${shell echo "$(WTOPDIR)" | sed -e "s/ /%20/g"}
-  EZDSSTDINCDIR := ${shell echo "$(WZDSSTDINCDIR)" | sed -e "s/ /%20/g"}
-  EZDSZILOGINCDIR := ${shell echo "$(WZDSZILOGINCDIR)" | sed -e "s/ /%20/g"}
+  ETOPDIR = ${shell echo "$(WTOPDIR)" | sed -e "s/ /%20/g"}
+  EZDSSTDINCDIR = ${shell echo "$(WZDSSTDINCDIR)" | sed -e "s/ /%20/g"}
+  EZDSZILOGINCDIR = ${shell echo "$(WZDSZILOGINCDIR)" | sed -e "s/ /%20/g"}
 
   # CFLAGs
 
   ARCHASMINCLUDES = -include:'$(WTOPDIR)\include;$(WZDSSTDINCDIR);$(WZDSZILOGINCDIR)'
   EARCHASMINCLUDES = -include:'$(ETOPDIR)\include;$(EZDSSTDINCDIR);$(EZDSZILOGINCDIR)'
-  ARCHSTDINCLUDES = -stdinc:'$(WTOPDIR)\include;$(WZDSSTDINCDIR);$(WZDSZILOGINCDIR)'
+  ARCHSTDINCLUDES = -stdinc:'$(WTOPDIR)\include;$(WZDSSTDINCDIR);$(WZDSZILOGINCDIR);$(WZDSDEVINCDIR)'
   ARCHUSRINCLUDES = -usrinc:'.'
 endif
 
@@ -156,7 +156,6 @@ ARCHLIST = -keeplst -NOlist -NOlistinc -keepasm
 ARCHPICFLAGS =
 ARCHWARNINGS = -warn
 ARCHDEFINES = -define:$(ARCHFAMILYDEF) -define:$(ARCHCPUDEF) -define:$(ARCHSERIESDEF)
-ARCHSTDINCLUDES = -stdinc:'$(WTOPDIR)\include;$(WZDSSTDINCDIR);$(WZDSZILOGINCDIR);$(WZDSDEVINCDIR)'
 ARCHINCLUDES = $(ARCHSTDINCLUDES) $(ARCHUSRINCLUDES)
 CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHLIST) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 
