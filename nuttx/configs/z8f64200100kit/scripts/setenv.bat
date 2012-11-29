@@ -41,7 +41,7 @@ set PATH=C:\MinGW\bin;%PATH%
 
 rem This is the location where I installed the ZDS-II toolchain.
 
-set PATH=C:\Program Files (x86)\ZiLOG\ZZDSII_Z8Encore!_5.0.0\bin;%PATH%
+set PATH=C:\Program Files (x86)\ZiLOG\ZDSII_Z8Encore!_5.0.0\bin;%PATH%
 
 rem This is the location where I installed the GNUWin32 tools.  See
 rem http://gnuwin32.sourceforge.net/.
