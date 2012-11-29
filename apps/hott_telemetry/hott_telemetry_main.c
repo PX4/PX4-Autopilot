@@ -40,12 +40,6 @@
  * The HoTT receiver polls each device at a regular interval at which point
  * a data packet can be returned if necessary.
  *
- * NOTE: Since HoTT telemetry works half-duplex over a single wire the wire
- * is connected to both the UART TX and RX port. In order to send and receive
- * we need to be able to disable one of these ports at a time. This level of
- * control is currently not provided by Nuttx (yet) so we need to do this 
- * at the hardware level for now.
- *
  * TODO: Add support for at least the vario and GPS sensor data.  
  *
  */
@@ -94,9 +88,6 @@ static int send_data(int uart, uint8_t *buffer, int size);
 
 static int open_uart(const char *device, struct termios *uart_config_original)
 {
-	/* Change the TX port to be open-drain */
-	stm32_configgpio(GPIO_UART5_TX | GPIO_OPENDRAIN);
-
 	/* baud rate */
 	int speed = B19200;
 	int uart;
@@ -142,12 +133,37 @@ static int open_uart(const char *device, struct termios *uart_config_original)
 		FATAL_MSG(msg);
 	}
 
-	
+	/* Get the appropriate GPIO pin and control register */
+	uint32_t gpio_uart;
+	uint32_t uart_cr3;
+	switch(device[strlen(device) - 1]) {
+		case '0':  
+			gpio_uart = GPIO_USART1_TX;
+			uart_cr3 = STM32_USART1_CR3;
+			break;
+		case '1':  
+			gpio_uart = GPIO_USART2_TX;
+			uart_cr3 = STM32_USART2_CR3;
+			break;
+		case '2':  
+			sprintf(msg, "/dev/ttyS3 is not supported.\n", device);
+			close(uart);
+			FATAL_MSG(msg);
+			break;
+		case '3':
+			gpio_uart = GPIO_USART6_TX;
+			uart_cr3 = STM32_USART6_CR3;
+			break;
+	}
+
+	/* Change the TX port to be open-drain */
+	stm32_configgpio(gpio_uart | GPIO_OPENDRAIN);
+
+	/* Turn on half-duplex mode */
 	uint32_t cr;
-	cr = getreg32(STM32_UART5_CR3);
+	cr = getreg32(uart_cr3);
 	cr |= (USART_CR3_HDSEL);
-	//cr &= ~(USART_CR2_LINEN|USART_CR2_CLKEN|USART_CR3_SCEN|USART_CR3_IREN);
-	putreg32(cr, STM32_UART5_CR3);
+	putreg32(cr, uart_cr3);
 	
 	return uart;
 }
@@ -157,7 +173,7 @@ int read_data(int uart, int *id)
 	const int timeout = 1000;
 	struct pollfd fds[] = { { .fd = uart, .events = POLLIN } };
 
-	//if (poll(fds, 1, timeout) > 0) {
+	if (poll(fds, 1, timeout) > 0) {
 
 		/* get the mode: binary or text  */
 		char mode;
@@ -165,14 +181,15 @@ int read_data(int uart, int *id)
 
 		read(uart, id, 1);
 
+		//printf("[%x %x]\n", mode, *id);
 		/* if we have a binary mode request */
 		if (mode != BINARY_MODE_REQUEST_ID) {
 			return ERROR;
 		}
-	//} else {
-	//	ERROR_MSG("UART timeout on TX/RX port");
-	//	return ERROR;
-	//}
+	} else {
+		ERROR_MSG("UART timeout on TX/RX port");
+		return ERROR;
+	}
 	return OK;
 }
 
@@ -190,14 +207,15 @@ int send_data(int uart, uint8_t *buffer, int size)
 		}
 		write(uart, &buffer[i], 1);
 
-		// THIS SHOULDN'T BE NECESSARY!
-		char dummy;
-		read(uart, &dummy, 1);	
-
 		/* Sleep before sending the next byte. */
 		usleep(POST_WRITE_DELAY_IN_USECS);
 	}
 
+	/* A hack the reads out what was written so the next read from the receiver doesn't get it. */
+	/* TODO: Fix this!! */
+	uint8_t dummy[size];
+	read(uart, &dummy, size);
+	
 	return OK;
 }
 
@@ -207,7 +225,7 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 
 	thread_running = true;
 
-	char *device = "/dev/ttyS2";		/**< Default telemetry port: UART5 */
+	char *device = "/dev/ttyS1";		/**< Default telemetry port: USART2 */
 
 	/* read commandline arguments */
 	for (int i = 0; i < argc && argv[i]; i++) {
@@ -250,7 +268,6 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 			}
 			//printf("Write start\n");
 			send_data(uart, buffer, size);
-			//printf("Write end\n");
 		} else {
 			printf("NOK: %x\n", id);
 		}
