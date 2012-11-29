@@ -56,7 +56,7 @@
 /* A pause of 3ms is required between each uint8_t sent back to the HoTT receiver. Much lower
  * values can be used in practise though. 
  */
-#define POST_WRITE_DELAY_IN_USECS	1500
+#define POST_WRITE_DELAY_IN_USECS	2000
 
 // Protocol constants.
 #define BINARY_MODE_REQUEST_ID	0x80	// Binary mode request.

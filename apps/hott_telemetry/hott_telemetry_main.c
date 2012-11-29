@@ -71,9 +71,9 @@
 static int thread_should_exit = false;		/**< Deamon exit flag */
 static int thread_running = false;		/**< Deamon status flag */
 static int deamon_task;				/**< Handle of deamon task / thread */
-static uint32_t uart_addr;			/**< The regsitry address of the UART for direct access */
 static char *daemon_name = "hott_telemetry";
 static char *commandline_usage = "usage: hott_telemetry start|status|stop [-d <device>]";
+
 
 /* A little console messaging experiment - console helper macro */
 #define FATAL_MSG(_msg)		fprintf(stderr, "[%s] %s\n", daemon_name, _msg); exit(1);
@@ -91,22 +91,22 @@ int hott_telemetry_thread_main(int argc, char *argv[]);
 
 static int read_data(int uart, int *id);
 static int send_data(int uart, uint8_t *buffer, int size);
-static void uart_disable_rx(void);
-static void uart_disable_tx(void);
-static uint32_t get_uart_address(const char *device);
 
-static int open_uart(const char *uart_name, struct termios *uart_config_original)
+static int open_uart(const char *device, struct termios *uart_config_original)
 {
+	/* Change the TX port to be open-drain */
+	stm32_configgpio(GPIO_UART5_TX | GPIO_OPENDRAIN);
+
 	/* baud rate */
 	int speed = B19200;
 	int uart;
 
 	/* open uart */
-	uart = open(uart_name, O_RDWR | O_NOCTTY);
+	uart = open(device, O_RDWR | O_NOCTTY);
 
 	if (uart < 0) {
 		char msg[80];
-		sprintf(msg, "Error opening port: %s\n", uart_name);
+		sprintf(msg, "Error opening port: %s\n", device);
 		FATAL_MSG(msg);
 	}
 
@@ -117,7 +117,7 @@ static int open_uart(const char *uart_name, struct termios *uart_config_original
 	/* Back up the original uart configuration to restore it after exit */
 	char msg[80];
 	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
-		sprintf(msg, "Error getting baudrate / termios config for %s: %d\n", uart_name, termios_state);
+		sprintf(msg, "Error getting baudrate / termios config for %s: %d\n", device, termios_state);
 		close(uart);
 		FATAL_MSG(msg);
 	}
@@ -131,51 +131,54 @@ static int open_uart(const char *uart_name, struct termios *uart_config_original
 	/* Set baud rate */
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
 		sprintf(msg, "Error setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", 
-			uart_name, termios_state);
+			device, termios_state);
 		close(uart);
 		FATAL_MSG(msg);
 	}
 
 	if ((termios_state = tcsetattr(uart, TCSANOW, &uart_config)) < 0) {
-		sprintf(msg, "Error setting baudrate / termios config for %s (tcsetattr)\n", uart_name);
+		sprintf(msg, "Error setting baudrate / termios config for %s (tcsetattr)\n", device);
 		close(uart);
 		FATAL_MSG(msg);
 	}
 
+	
+	uint32_t cr;
+	cr = getreg32(STM32_UART5_CR3);
+	cr |= (USART_CR3_HDSEL);
+	//cr &= ~(USART_CR2_LINEN|USART_CR2_CLKEN|USART_CR3_SCEN|USART_CR3_IREN);
+	putreg32(cr, STM32_UART5_CR3);
+	
 	return uart;
 }
 
 int read_data(int uart, int *id)
 {
-        uart_disable_tx();
-
 	const int timeout = 1000;
 	struct pollfd fds[] = { { .fd = uart, .events = POLLIN } };
 
-	if (poll(fds, 1, timeout) > 0) {
+	//if (poll(fds, 1, timeout) > 0) {
+
 		/* get the mode: binary or text  */
 		char mode;
 		read(uart, &mode, 1);
-		
-		/* read the poll ID (device ID being targetted) */
+
 		read(uart, id, 1);
 
 		/* if we have a binary mode request */
 		if (mode != BINARY_MODE_REQUEST_ID) {
 			return ERROR;
 		}
-	} else {
-		ERROR_MSG("UART timeout on TX/RX port");
-		return ERROR;
-	}
+	//} else {
+	//	ERROR_MSG("UART timeout on TX/RX port");
+	//	return ERROR;
+	//}
 	return OK;
 }
 
 int send_data(int uart, uint8_t *buffer, int size)
 {
 	usleep(POST_READ_DELAY_IN_USECS);
-
-	uart_disable_rx();
 
 	uint16_t checksum = 0;
 	for(int i = 0; i < size; i++) {
@@ -185,44 +188,17 @@ int send_data(int uart, uint8_t *buffer, int size)
 		} else {
 			checksum += buffer[i];
 		}
-
 		write(uart, &buffer[i], 1);
-		
+
+		// THIS SHOULDN'T BE NECESSARY!
+		char dummy;
+		read(uart, &dummy, 1);	
+
 		/* Sleep before sending the next byte. */
 		usleep(POST_WRITE_DELAY_IN_USECS);
 	}
 
 	return OK;
-}
-
-void uart_disable_rx(void)
-{
-	uint32_t cr;
-	cr  = getreg32(uart_addr);
-	cr &= ~(USART_CR1_RE);	// turn off RX
-	cr |= (USART_CR1_TE);	// turn on TX
-        putreg32(cr, uart_addr);
-}
-
-void uart_disable_tx(void)
-{
-	uint32_t cr;
-	cr  = getreg32(uart_addr);
-	cr |= (USART_CR1_RE);	// turn on RX
-	cr &= ~(USART_CR1_TE);	// turn off TX
-        putreg32(cr, uart_addr);
-}
-
-uint32_t get_uart_address(const char *device)
-{
-	/* Map the tty device number to the UART address */
-	switch(device[strlen(device) - 1]) {
-		case '0':  return STM32_USART1_CR1;
-		case '1':  return STM32_USART2_CR1;
-		case '2':  return STM32_UART5_CR1;
-		case '3':  return STM32_USART6_CR1;
-		default:   return STM32_UART5_CR1; 
-	}	
 }
 
 int hott_telemetry_thread_main(int argc, char *argv[]) 
@@ -258,11 +234,6 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 		exit(ERROR);
 	}
 
-	/* Since we need to enable/disable both TX and RX on the UART at the device level
-	 * we need to know the register address of the UART we are working with. Making it
-	 * global so it's easy to remove later when TX/RX control is provided by Nuttx. */
-	uart_addr = get_uart_address(device);
-
 	messages_init();
 
 	uint8_t buffer[MESSAGE_BUFFER_SIZE];
@@ -277,7 +248,11 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 				default:
 					continue;	// Not a module we support.
 			}
+			//printf("Write start\n");
 			send_data(uart, buffer, size);
+			//printf("Write end\n");
+		} else {
+			printf("NOK: %x\n", id);
 		}
 	}
 
