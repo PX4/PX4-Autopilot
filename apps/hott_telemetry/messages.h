@@ -44,17 +44,17 @@
 #include <stdlib.h>
 
 /* The buffer size used to store messages. This must be at least as big as the number of
- * fields in the largest message struct. 
+ * fields in the largest message struct.
  */
 #define MESSAGE_BUFFER_SIZE 50
 
-/* The HoTT receiver demands a minimum 5ms period of silence after delivering its request. 
+/* The HoTT receiver demands a minimum 5ms period of silence after delivering its request.
  * Note that the value specified here is lower than 5000 (5ms) as time is lost constucting
- * the message after the read which takes some milliseconds. 
+ * the message after the read which takes some milliseconds.
  */
-#define POST_READ_DELAY_IN_USECS	4000 
+#define POST_READ_DELAY_IN_USECS	4000
 /* A pause of 3ms is required between each uint8_t sent back to the HoTT receiver. Much lower
- * values can be used in practise though. 
+ * values can be used in practise though.
  */
 #define POST_WRITE_DELAY_IN_USECS	2000
 
@@ -74,10 +74,10 @@ struct eam_module_msg {
 	uint8_t eam_sensor_id;		/**< EAM sensor ID 				*/
 	uint8_t warning;
 	uint8_t sensor_id;		/**< Sensor ID, why different? 			*/
-	uint8_t alarm_inverse1;			
-	uint8_t alarm_inverse2;					
+	uint8_t alarm_inverse1;
+	uint8_t alarm_inverse2;
 	uint8_t cell1_L;		/**< Lipo cell voltages. Not supported. 	*/
-	uint8_t cell2_L;				
+	uint8_t cell2_L;
 	uint8_t cell3_L;
 	uint8_t cell4_L;
 	uint8_t cell5_L;

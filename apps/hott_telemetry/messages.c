@@ -36,7 +36,7 @@
  * @file messages.c
  *
  */
- 
+
 #include "messages.h"
 
 #include <string.h>
@@ -57,10 +57,10 @@ void build_eam_response(uint8_t *buffer, int *size)
 	struct sensor_combined_s raw;
 	memset(&raw, 0, sizeof(raw));
 	orb_copy(ORB_ID(sensor_combined), sensor_sub, &raw);
-	
+
 	struct eam_module_msg msg;
 	*size = sizeof(msg);
-	memset(&msg, 0, *size);	
+	memset(&msg, 0, *size);
 
 	msg.start = START_BYTE;
 	msg.eam_sensor_id = ELECTRIC_AIR_MODULE;
@@ -72,7 +72,7 @@ void build_eam_response(uint8_t *buffer, int *size)
 	uint16_t alt = (uint16_t)(raw.baro_alt_meter + 500);
 	msg.altitude_L = (uint8_t)alt & 0xff;
 	msg.altitude_H = (uint8_t)(alt >> 8) & 0xff;
-	
+
 	msg.stop = STOP_BYTE;
 
 	memcpy(buffer, &msg, *size);

@@ -40,7 +40,7 @@
  * The HoTT receiver polls each device at a regular interval at which point
  * a data packet can be returned if necessary.
  *
- * TODO: Add support for at least the vario and GPS sensor data.  
+ * TODO: Add support for at least the vario and GPS sensor data.
  *
  */
 
@@ -107,6 +107,7 @@ static int open_uart(const char *device, struct termios *uart_config_original)
 
 	/* Back up the original uart configuration to restore it after exit */
 	char msg[80];
+
 	if ((termios_state = tcgetattr(uart, uart_config_original)) < 0) {
 		sprintf(msg, "Error getting baudrate / termios config for %s: %d\n", device, termios_state);
 		close(uart);
@@ -121,7 +122,7 @@ static int open_uart(const char *device, struct termios *uart_config_original)
 
 	/* Set baud rate */
 	if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
-		sprintf(msg, "Error setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n", 
+		sprintf(msg, "Error setting baudrate / termios config for %s: %d (cfsetispeed, cfsetospeed)\n",
 			device, termios_state);
 		close(uart);
 		FATAL_MSG(msg);
@@ -136,24 +137,28 @@ static int open_uart(const char *device, struct termios *uart_config_original)
 	/* Get the appropriate GPIO pin and control register */
 	uint32_t gpio_uart;
 	uint32_t uart_cr3;
-	switch(device[strlen(device) - 1]) {
-		case '0':  
-			gpio_uart = GPIO_USART1_TX;
-			uart_cr3 = STM32_USART1_CR3;
-			break;
-		case '1':  
-			gpio_uart = GPIO_USART2_TX;
-			uart_cr3 = STM32_USART2_CR3;
-			break;
-		case '2':  
-			sprintf(msg, "/dev/ttyS3 is not supported.\n", device);
-			close(uart);
-			FATAL_MSG(msg);
-			break;
-		case '3':
-			gpio_uart = GPIO_USART6_TX;
-			uart_cr3 = STM32_USART6_CR3;
-			break;
+
+	switch (device[strlen(device) - 1]) {
+	case '0':
+		gpio_uart = GPIO_USART1_TX;
+		uart_cr3 = STM32_USART1_CR3;
+		break;
+
+	case '1':
+		gpio_uart = GPIO_USART2_TX;
+		uart_cr3 = STM32_USART2_CR3;
+		break;
+
+	case '2':
+		sprintf(msg, "/dev/ttyS3 is not supported.\n", device);
+		close(uart);
+		FATAL_MSG(msg);
+		break;
+
+	case '3':
+		gpio_uart = GPIO_USART6_TX;
+		uart_cr3 = STM32_USART6_CR3;
+		break;
 	}
 
 	/* Change the TX port to be open-drain */
@@ -164,7 +169,7 @@ static int open_uart(const char *device, struct termios *uart_config_original)
 	cr = getreg32(uart_cr3);
 	cr |= (USART_CR3_HDSEL);
 	putreg32(cr, uart_cr3);
-	
+
 	return uart;
 }
 
@@ -174,6 +179,7 @@ int read_data(int uart, int *id)
 	struct pollfd fds[] = { { .fd = uart, .events = POLLIN } };
 
 	char mode;
+
 	if (poll(fds, 1, timeout) > 0) {
 		/* Get the mode: binary or text  */
 		read(uart, &mode, 1);
@@ -184,10 +190,12 @@ int read_data(int uart, int *id)
 		if (mode != BINARY_MODE_REQUEST_ID) {
 			return ERROR;
 		}
+
 	} else {
 		ERROR_MSG("UART timeout on TX/RX port");
 		return ERROR;
 	}
+
 	return OK;
 }
 
@@ -196,13 +204,16 @@ int send_data(int uart, uint8_t *buffer, int size)
 	usleep(POST_READ_DELAY_IN_USECS);
 
 	uint16_t checksum = 0;
-	for(int i = 0; i < size; i++) {
+
+	for (int i = 0; i < size; i++) {
 		if (i == size - 1) {
 			/* Set the checksum: the first uint8_t is taken as the checksum. */
 			buffer[i] = checksum & 0xff;
+
 		} else {
 			checksum += buffer[i];
 		}
+
 		write(uart, &buffer[i], 1);
 
 		/* Sleep before sending the next byte. */
@@ -213,11 +224,11 @@ int send_data(int uart, uint8_t *buffer, int size)
 	/* TODO: Fix this!! */
 	uint8_t dummy[size];
 	read(uart, &dummy, size);
-	
+
 	return OK;
 }
 
-int hott_telemetry_thread_main(int argc, char *argv[]) 
+int hott_telemetry_thread_main(int argc, char *argv[])
 {
 	INFO_MSG("starting");
 
@@ -255,15 +266,18 @@ int hott_telemetry_thread_main(int argc, char *argv[])
 	uint8_t buffer[MESSAGE_BUFFER_SIZE];
 	int size = 0;
 	int id = 0;
+
 	while (!thread_should_exit) {
 		if (read_data(uart, &id) == OK) {
-			switch(id) {
-				case ELECTRIC_AIR_MODULE:
-					build_eam_response(buffer, &size);
-					break;
-				default:
-					continue;	// Not a module we support.
+			switch (id) {
+			case ELECTRIC_AIR_MODULE:
+				build_eam_response(buffer, &size);
+				break;
+
+			default:
+				continue;	// Not a module we support.
 			}
+
 			send_data(uart, buffer, size);
 		}
 	}
@@ -313,9 +327,11 @@ int hott_telemetry_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			INFO_MSG("daemon is running");
+
 		} else {
 			INFO_MSG("daemon not started");
 		}
+
 		exit(0);
 	}
 
