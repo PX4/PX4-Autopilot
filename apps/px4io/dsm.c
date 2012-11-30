@@ -66,7 +66,6 @@ static hrt_abstime last_frame_time;
 static uint8_t	frame[DSM_FRAME_SIZE];
 
 static unsigned partial_frame_count;
-static bool	insync;
 static unsigned	channel_shift;
 
 unsigned dsm_frame_drops;
@@ -91,7 +90,6 @@ dsm_init(const char *device)
 		tcsetattr(dsm_fd, TCSANOW, &t);
 
 		/* initialise the decoder */
-		insync = false;
 		partial_frame_count = 0;
 		last_rx_time = hrt_absolute_time();
 
@@ -321,5 +319,5 @@ dsm_decode(hrt_abstime frame_time)
 
 	/* and note that we have received data from the R/C controller */
 	/* XXX failsafe will cause problems here - need a strategy for detecting it */
-	ppm_last_valid_decode = hrt_absolute_time();
+	ppm_last_valid_decode = frame_time;
 }
