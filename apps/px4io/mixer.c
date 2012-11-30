@@ -60,17 +60,6 @@
  */
 static unsigned fmu_input_drops;
 #define FMU_INPUT_DROP_LIMIT	20
-
-/*
- * HRT periodic call used to check for control input data.
- */
-static struct hrt_call mixer_input_call;
-
-/*
- * Mixer periodic tick.
- */
-static void	mixer_tick(void *arg);
-
 /*
  * Collect RC input data from the controller source(s).
  */
@@ -92,20 +81,8 @@ struct mixer {
 	/* XXX more config here */
 } mixers[IO_SERVO_COUNT];
 
-int
-mixer_init(void)
-{
-
-
-	/* look for control data at 50Hz */
-	hrt_call_every(&mixer_input_call, 1000, 20000, mixer_tick, NULL);
-
-	return 0;
-}
-
-
-static void
-mixer_tick(void *arg)
+void
+mixer_tick(void)
 {
 	uint16_t *control_values;
 	int control_count;

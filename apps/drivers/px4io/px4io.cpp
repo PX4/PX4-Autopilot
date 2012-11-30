@@ -87,15 +87,13 @@ public:
 
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
 
-	void			set_rx_mode(unsigned mode);
-
 private:
 	static const unsigned	_max_actuators = PX4IO_OUTPUT_CHANNELS;
 
 	int			_serial_fd;	///< serial interface to PX4IO
 	hx_stream_t		_io_stream;	///< HX protocol stream
 
-	int			_task;		///< worker task
+	volatile int		_task;		///< worker task
 	volatile bool		_task_should_exit;
 	volatile bool		_connected;	///< true once we have received a valid frame
 
@@ -120,8 +118,6 @@ private:
 
 	bool			_send_needed;	///< If true, we need to send a packet to IO
 	bool			_config_needed;	///< if true, we need to set a config update to IO
-
-	uint8_t			_rx_mode;	///< the current RX mode on IO
 
 	/**
 	 * Trampoline to the worker task
@@ -190,8 +186,7 @@ PX4IO::PX4IO() :
 	_primary_pwm_device(false),
 	_switch_armed(false),
 	_send_needed(false),
-	_config_needed(false),
-	_rx_mode(RX_MODE_PPM_ONLY)
+	_config_needed(false)
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
@@ -201,33 +196,17 @@ PX4IO::PX4IO() :
 
 PX4IO::~PX4IO()
 {
-	if (_task != -1) {
-		/* tell the task we want it to go away */
-		_task_should_exit = true;
+	/* tell the task we want it to go away */
+	_task_should_exit = true;
 
-		/* spin waiting for the thread to stop */
-		unsigned i = 10;
-
-		do {
-			/* wait 50ms - it should wake every 100ms or so worst-case */
-			usleep(50000);
-
-			/* if we have given up, kill it */
-			if (--i == 0) {
-				task_delete(_task);
-				break;
-			}
-
-		} while (_task != -1);
+	/* spin waiting for the task to stop */
+	for (unsigned i = 0; (i < 10) && (_task != -1); i++) {
+		/* give it another 100ms */
+		usleep(100000);
 	}
-
-	/* clean up the alternate device node */
-	if (_primary_pwm_device)
-		unregister_driver(PWM_OUTPUT_DEVICE_PATH);
-
-	/* kill the HX stream */
-	if (_io_stream != nullptr)
-		hx_stream_free(_io_stream);
+	/* well, kill it anyway, though this will probably crash */
+	if (_task != -1)
+		task_delete(_task);
 
 	g_dev = nullptr;
 }
@@ -293,6 +272,16 @@ PX4IO::task_main()
 	if (_serial_fd < 0) {
 		log("failed to open serial port: %d", errno);
 		goto out;
+	}
+
+	/* 115200bps, no parity, one stop bit */
+	{
+		struct termios t;
+
+		tcgetattr(_serial_fd, &t);
+		cfsetspeed(&t, 115200);
+		t.c_cflag &= ~(CSTOPB | PARENB);
+		tcsetattr(_serial_fd, TCSANOW, &t);
 	}
 
 	/* protocol stream */
@@ -402,8 +391,16 @@ PX4IO::task_main()
 	}
 
 out:
+	debug("exiting");
+
+	/* kill the HX stream */
 	if (_io_stream != nullptr)
 		hx_stream_free(_io_stream);
+	::close(_serial_fd);
+
+	/* clean up the alternate device node */
+	if (_primary_pwm_device)
+		unregister_driver(PWM_OUTPUT_DEVICE_PATH);
 
 	/* tell the dtor that we are exiting */
 	_task = -1;
@@ -514,7 +511,6 @@ PX4IO::config_send()
 	int		ret;
 
 	cfg.f2i_config_magic = F2I_CONFIG_MAGIC;
-	cfg.serial_rx_mode = _rx_mode;
 
 	ret = hx_stream_send(_io_stream, &cfg, sizeof(cfg));
 	if (ret)
@@ -634,17 +630,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	return ret;
 }
 
-void
-PX4IO::set_rx_mode(unsigned mode)
-{
-	/*
-	 * Always (re)set the rx mode; makes testing
-	 * easier after PX4IO has been restarted.
-	 */
-	_rx_mode = mode;
-	_config_needed = true;
-}
-
 extern "C" __EXPORT int px4io_main(int argc, char *argv[]);
 
 namespace
@@ -748,25 +733,10 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "rx_dsm") ||
 	    !strcmp(argv[1], "rx_dsm_10bit") ||
-	    !strcmp(argv[1], "rx_dsm_11bit")) {
-		if (g_dev == nullptr)
-			errx(1, "not started");
-		g_dev->set_rx_mode(RX_MODE_DSM);
-		exit(0);
-	}
-	if (!strcmp(argv[1], "rx_sbus")) {
-		if (g_dev == nullptr)
-			errx(1, "not started");
-		g_dev->set_rx_mode(RX_MODE_FUTABA_SBUS);
-		exit(0);
-	}
-	if (!strcmp(argv[1], "rx_ppm")) {
-		if (g_dev == nullptr)
-			errx(1, "not started");
-		g_dev->set_rx_mode(RX_MODE_PPM_ONLY);
-		exit(0);
-	}
-
+	    !strcmp(argv[1], "rx_dsm_11bit") ||
+	    !strcmp(argv[1], "rx_sbus") ||
+	    !strcmp(argv[1], "rx_ppm"))
+		errx(0, "receiver type is automatically detected, option '%s' is deprecated", argv[1]);
 	if (!strcmp(argv[1], "test"))
 		test();
 

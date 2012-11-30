@@ -147,7 +147,7 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
 /*
  * Mixer
  */
-extern int	mixer_init(void);
+extern void	mixer_tick(void);
 
 /*
  * Safety switch/LED.
@@ -158,15 +158,16 @@ extern void	safety_init(void);
  * FMU communications
  */
 extern void	comms_init(void);
-extern void	comms_check(void);
+extern void	comms_main(void) __attribute__((noreturn));
 
 /*
- * Serial receiver decoders.
+ * R/C receiver handling.
  */
-extern void	dsm_init(unsigned mode);
-extern void	dsm_input(int fd);
-extern void	sbus_init(unsigned mode);
-extern void	sbus_input(int fd);
+extern void	controls_main(void);
+extern int	dsm_init(const char *device);
+extern void	dsm_input(void);
+extern int	sbus_init(const char *device);
+extern void	sbus_input(void);
 
 /*
  * Assertion codes

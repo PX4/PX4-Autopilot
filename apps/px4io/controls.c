@@ -32,48 +32,57 @@
  ****************************************************************************/
 
 /**
- * @file sbus.c
+ * @file controls.c
  *
- * Serial protocol decoder for the Futaba S.bus protocol.
+ * R/C inputs and servo outputs.
  */
 
-#include <nuttx/config.h>
 
+#include <nuttx/config.h>
+#include <stdio.h>
+#include <stdbool.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <debug.h>
+#include <stdlib.h>
+#include <errno.h>
 #include <termios.h>
+#include <string.h>
+#include <poll.h>
+
+#include <nuttx/clock.h>
 
 #include <drivers/drv_hrt.h>
+#include <systemlib/hx_stream.h>
+#include <systemlib/perf_counter.h>
 
 #define DEBUG
 #include "px4io.h"
 
-static int sbus_fd = -1;
-
-int
-sbus_init(const char *device)
-{
-	if (sbus_fd < 0)
-		sbus_fd = open(device, O_RDONLY);
-
-	if (sbus_fd >= 0) {
-		struct termios t;
-
-		/* 100000bps, even parity, two stop bits */
-		tcgetattr(sbus_fd, &t);
-		cfsetspeed(&t, 100000);
-		t.c_cflag |= (CSTOPB | PARENB);
-		tcsetattr(sbus_fd, TCSANOW, &t);
-
-		debug("Sbus: ready");
-	} else {
-		debug("Sbus: open failed");
-	}
-
-	return sbus_fd;
-}
-
 void
-sbus_input(void)
+controls_main(void)
 {
+	struct pollfd fds[2];
+
+	fds[0].fd = dsm_init("/dev/ttyS0");
+	fds[0].events = POLLIN;
+
+
+	fds[1].fd = sbus_init("/dev/ttyS2");
+	fds[1].events = POLLIN;
+
+	for (;;) {
+		/* run this loop at ~100Hz */
+		poll(fds, 2, 10);
+
+		if (fds[0].revents & POLLIN)
+			dsm_input();
+		if (fds[1].revents & POLLIN)
+			sbus_input();
+
+		/* XXX do ppm processing, bypass mode, etc. here */
+
+		/* do PWM output updates */
+		mixer_tick();
+	}
 }

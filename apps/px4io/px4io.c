@@ -55,37 +55,15 @@
 __EXPORT int user_start(int argc, char *argv[]);
 
 struct sys_state_s 	system_state;
-int			gpio_fd;
-
-static const char cursor[] = {'|', '/', '-', '\\'};
-
-static struct hrt_call timer_tick_call;
-volatile int timers[TIMER_NUM_TIMERS];
-static void timer_tick(void *arg);
 
 int user_start(int argc, char *argv[])
 {
-	int     cycle = 0;
-	bool	heartbeat = false;
-	bool	failsafe = false;
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
 
-	/* init the FMU and receiver links */
-	comms_init();
-
-	/* configure the first 8 PWM outputs (i.e. all of them) */
-	/* note, must do this after comms init to steal back PA0, which is CTS otherwise */
-	up_pwm_servo_init(0xff);
-
 	/* print some startup info */
 	lib_lowprintf("\nPX4IO: starting\n");
-	struct mallinfo minfo = mallinfo();
-	lib_lowprintf("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
-
-	/* start the software timer service */
-	hrt_call_every(&timer_tick_call, 1000, 1000, timer_tick, NULL);
 
 	/* default all the LEDs to off while we start */
 	LED_AMBER(false);
@@ -95,66 +73,27 @@ int user_start(int argc, char *argv[])
 	/* turn on servo power */
 	POWER_SERVO(true);
 
-	/* start the mixer */
-	mixer_init();
-
 	/* start the safety switch handler */
 	safety_init();
 
-	/* set up some timers for the main loop */
-	timers[TIMER_BLINK_BLUE] = 250;		/* heartbeat blink @ 2Hz */
-	timers[TIMER_STATUS_PRINT] = 1000;	/* print status message @ 1Hz */
+	/* start the flight control signal handler */
+	task_create("FCon", 
+		    SCHED_PRIORITY_DEFAULT,
+		    1024,
+		    (main_t)controls_main,
+		    NULL);
 
-	/*
-	 * Main loop servicing communication with FMU
-	 */
-	while(true) {
 
-		/* check for communication from FMU, send updates */
-		comms_check();
+	/* initialise the FMU communications interface */
+	comms_init();
 
-		/* blink the heartbeat LED */
-		if (timers[TIMER_BLINK_BLUE] == 0) {
-			timers[TIMER_BLINK_BLUE] = 250;
-			LED_BLUE(heartbeat = !heartbeat);
-		}
+	/* configure the first 8 PWM outputs (i.e. all of them) */
+	/* note, must do this after comms init to steal back PA0, which is CTS otherwise */
+	up_pwm_servo_init(0xff);
 
-		/* blink the failsafe LED if we don't have FMU input */
-		if (!system_state.mixer_use_fmu) {
-			if (timers[TIMER_BLINK_AMBER] == 0) {
-				timers[TIMER_BLINK_AMBER] = 125;
-				failsafe = !failsafe;
-			}
-		} else {
-			failsafe = false;
-		}
-		LED_AMBER(failsafe);
-		
-		/* print some simple status */
-#if 0
-		if (timers[TIMER_STATUS_PRINT] == 0) {
-			timers[TIMER_STATUS_PRINT] = 1000;
-			lib_lowprintf("%c %s | %s | %s | %s | C=%d F=%d B=%d   \r",
-				cursor[cycle++ & 3],
-				(system_state.arm_ok        ? "FMU_ARMED"  : "FMU_SAFE"),
-				(system_state.armed         ? "ARMED"  : "SAFE"),
-				(system_state.rc_channels   ? "RC OK"  : "NO RC"),
-				(system_state.mixer_use_fmu ? "FMU OK" : "NO FMU"),
-				system_state.rc_channels,
-				frame_rx, frame_bad
-			);
-		}
-#endif
-	}
+	struct mallinfo minfo = mallinfo();
+	lib_lowprintf("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
 
-	/* Should never reach here */
-	return ERROR;
-}
-
-static void
-timer_tick(void *arg)
-{
-	for (unsigned i = 0; i < TIMER_NUM_TIMERS; i++)
-		if (timers[i] > 0)
-			timers[i]--;
+	/* we're done here, go run the communications loop */
+	comms_main();
 }

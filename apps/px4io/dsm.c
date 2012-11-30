@@ -44,6 +44,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <termios.h>
 
 #include <systemlib/ppm_decode.h>
  
@@ -57,6 +58,8 @@
 #define DSM_FRAME_SIZE		16
 #define DSM_FRAME_CHANNELS	7
 
+static int dsm_fd = -1;
+
 static hrt_abstime last_rx_time;
 static hrt_abstime last_frame_time;
 
@@ -66,27 +69,46 @@ static unsigned partial_frame_count;
 static bool	insync;
 static unsigned	channel_shift;
 
+unsigned dsm_frame_drops;
+
 static bool dsm_decode_channel(uint16_t raw, unsigned shift, unsigned *channel, unsigned *value);
 static void dsm_guess_format(bool reset);
 static void dsm_decode(hrt_abstime now);
 
-void
-dsm_init(unsigned mode)
+int
+dsm_init(const char *device)
 {
-	insync = false;
-	partial_frame_count = 0;
-	last_rx_time = hrt_absolute_time();
+	if (dsm_fd < 0)
+		dsm_fd = open(device, O_RDONLY);
 
-	/* reset the format detector */
-	dsm_guess_format(true);
+	if (dsm_fd >= 0) {
+		struct termios t;
 
-	debug("DSM: enabled and waiting\n");
+		/* 115200bps, no parity, one stop bit */
+		tcgetattr(dsm_fd, &t);
+		cfsetspeed(&t, 115200);
+		t.c_cflag &= ~(CSTOPB | PARENB);
+		tcsetattr(dsm_fd, TCSANOW, &t);
+
+		/* initialise the decoder */
+		insync = false;
+		partial_frame_count = 0;
+		last_rx_time = hrt_absolute_time();
+
+		/* reset the format detector */
+		dsm_guess_format(true);
+
+		debug("DSM: ready");
+	} else {
+		debug("DSM: open failed");
+	}
+
+	return dsm_fd;
 }
 
 void
-dsm_input(int fd)
+dsm_input(void)
 {
-	uint8_t		buf[DSM_FRAME_SIZE];
 	ssize_t		ret;
 	hrt_abstime	now;
 
@@ -107,16 +129,17 @@ dsm_input(int fd)
 	 */
 	now = hrt_absolute_time();
 	if ((now - last_rx_time) > 5000) {
-		if (partial_frame_count > 0)
-			debug("DSM: reset @ %d", partial_frame_count);
-		partial_frame_count = 0;
+		if (partial_frame_count > 0) {
+			dsm_frame_drops++;
+			partial_frame_count = 0;
+		}
 	}
 
 	/*
 	 * Fetch bytes, but no more than we would need to complete
 	 * the current frame.
 	 */
-	ret = read(fd, buf, DSM_FRAME_SIZE - partial_frame_count);
+	ret = read(dsm_fd, &frame[partial_frame_count], DSM_FRAME_SIZE - partial_frame_count);
 
 	/* if the read failed for any reason, just give up here */
 	if (ret < 1)
@@ -126,7 +149,6 @@ dsm_input(int fd)
 	/*
 	 * Add bytes to the current frame
 	 */
-	memcpy(&frame[partial_frame_count], buf, ret);
 	partial_frame_count += ret;
 
 	/*
@@ -292,8 +314,12 @@ dsm_decode(hrt_abstime frame_time)
 		/* convert 0-1024 / 0-2048 values to 1000-2000 ppm encoding in a very sloppy fashion */
 		if (channel_shift == 11)
 			value /= 2;
+
+		/* stuff the decoded channel into the PPM input buffer */
 		ppm_buffer[channel] = 988 + value;
 	}
 
+	/* and note that we have received data from the R/C controller */
+	/* XXX failsafe will cause problems here - need a strategy for detecting it */
 	ppm_last_valid_decode = hrt_absolute_time();
 }
