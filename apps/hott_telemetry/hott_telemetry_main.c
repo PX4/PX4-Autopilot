@@ -135,8 +135,8 @@ static int open_uart(const char *device, struct termios *uart_config_original)
 	}
 
 	/* Get the appropriate GPIO pin and control register */
-	uint32_t gpio_uart;
-	uint32_t uart_cr3;
+	uint32_t gpio_uart = GPIO_USART2_TX;;
+	uint32_t uart_cr3 = STM32_USART2_CR3;
 
 	switch (device[strlen(device) - 1]) {
 	case '0':
@@ -149,15 +149,15 @@ static int open_uart(const char *device, struct termios *uart_config_original)
 		uart_cr3 = STM32_USART2_CR3;
 		break;
 
-	case '2':
-		sprintf(msg, "/dev/ttyS3 is not supported.\n", device);
-		close(uart);
-		FATAL_MSG(msg);
-		break;
-
 	case '3':
 		gpio_uart = GPIO_USART6_TX;
 		uart_cr3 = STM32_USART6_CR3;
+		break;
+
+	default:
+		sprintf(msg, "%s is not supported.\n", device);
+		close(uart);
+		FATAL_MSG(msg);
 		break;
 	}
 
