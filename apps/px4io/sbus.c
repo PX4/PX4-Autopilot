@@ -168,7 +168,7 @@ struct sbus_bit_pick {
 	uint8_t mask;
 	uint8_t lshift;
 };
-static struct sbus_bit_pick sbus_decoder[][3] = {	
+static const struct sbus_bit_pick sbus_decoder[][3] = {	
 /*  0 */ { { 0, 0, 0xff, 0},{ 1, 0, 0x07, 8},{ 0, 0, 0x00,  0} },
 /*  1 */ { { 1, 3, 0x1f, 0},{ 2, 0, 0x3f, 5},{ 0, 0, 0x00,  0} },
 /*  2 */ { { 2, 6, 0x03, 0},{ 3, 0, 0xff, 2},{ 4, 0, 0x01, 10} },
