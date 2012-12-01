@@ -32,32 +32,11 @@
 ############################################################################
 
 #
-# System utility library
+# Basic example application
 #
 
-CSRCS		 = err.c \
-		   hx_stream.c \
-		   perf_counter.c \
-		   param/param.c \
-		   bson/tinybson.c \
-		   conversions.c \
-		   cpuload.c \
-		   getopt_long.c \
-		   up_cxxinitialize.c
-
-#		   ppm_decode.c \
-
-
-CXXSRCS   = control/control.cpp
-
-
-#
-# XXX this really should be a CONFIG_* test
-#
-ifeq ($(TARGET),px4fmu)
-CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
-endif
+APPNAME		 = control_demo
+PRIORITY	 = SCHED_PRIORITY_DEFAULT
+STACKSIZE	 = 2048
 
 include $(APPDIR)/mk/app.mk
