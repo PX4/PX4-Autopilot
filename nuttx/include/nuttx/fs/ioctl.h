@@ -106,6 +106,10 @@
                                            * OUT: None
                                            */
 
+#define FIONREAD        _FIOC(0x0004)     /* IN:  Location to return value (int *)
+                                           * OUT: Bytes readable from this fd
+                                           */
+
 /* NuttX file system ioctl definitions **************************************/
 
 #define _DIOCVALID(c)   (_IOC_TYPE(c)==_DIOCBASE)
