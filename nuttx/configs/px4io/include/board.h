@@ -96,6 +96,18 @@
 #define STM32_APB1_TIM3_CLKIN   (STM32_PCLK1_FREQUENCY)
 #define STM32_APB1_TIM4_CLKIN   (STM32_PCLK1_FREQUENCY)
 
+/*
+ * Some of the USART pins are not available; override the GPIO
+ * definitions with an invalid pin configuration.
+ */
+#define GPIO_USART2_CTS	0xffffffff
+#define GPIO_USART2_RTS	0xffffffff
+#define GPIO_USART2_CK 	0xffffffff
+#define GPIO_USART3_TX 	0xffffffff
+#define GPIO_USART3_CK 	0xffffffff
+#define GPIO_USART3_CTS	0xffffffff
+#define GPIO_USART3_RTS	0xffffffff
+
 /* 
  * High-resolution timer
  */
