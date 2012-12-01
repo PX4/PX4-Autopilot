@@ -73,7 +73,7 @@ void
 comms_init(void)
 {
 	/* initialise the FMU interface */
-	fmu_fd = open("/dev/ttyS1", O_RDWR | O_NONBLOCK);
+	fmu_fd = open("/dev/ttyS1", O_RDWR);
 	stream = hx_stream_init(fmu_fd, comms_handle_frame, NULL);
 
 	/* default state in the report to FMU */
