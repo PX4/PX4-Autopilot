@@ -56,10 +56,11 @@
  * Debug logging
  */
 
-#if 1
-# define debug(fmt, ...)	lib_lowprintf(fmt "\n", ##args)
+#ifdef DEBUG
+# include <debug.h>
+# define debug(fmt, args...)	lib_lowprintf(fmt "\n", ##args)
 #else
-# define debug(fmt, ...)	do {} while(0)
+# define debug(fmt, args...)	do {} while(0)
 #endif
 
 /*
@@ -71,11 +72,16 @@ struct sys_state_s
 	bool		armed;		/* IO armed */
 	bool		arm_ok;		/* FMU says OK to arm */
 
+	bool		ppm_input_ok;	/* valid PPM input data */
+	bool		dsm_input_ok;	/* valid Spektrum DSM data */
+	bool		sbus_input_ok;	/* valid Futaba S.Bus data */
+
 	/*
 	 * Data from the remote control input(s)
 	 */
 	int		rc_channels;
 	uint16_t	rc_channel_data[PX4IO_INPUT_CHANNELS];
+	uint64_t	rc_channels_timestamp;
 
 	/*
 	 * Control signals from FMU.
@@ -146,7 +152,7 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
 /*
  * Mixer
  */
-extern int	mixer_init(void);
+extern void	mixer_tick(void);
 
 /*
  * Safety switch/LED.
@@ -157,15 +163,16 @@ extern void	safety_init(void);
  * FMU communications
  */
 extern void	comms_init(void);
-extern void	comms_check(void);
+extern void	comms_main(void) __attribute__((noreturn));
 
 /*
- * Serial receiver decoders.
+ * R/C receiver handling.
  */
-extern void	dsm_init(unsigned mode);
-extern void	dsm_input(int fd);
-extern void	sbus_init(unsigned mode);
-extern void	sbus_input(int fd);
+extern void	controls_main(void);
+extern int	dsm_init(const char *device);
+extern void	dsm_input(void);
+extern int	sbus_init(const char *device);
+extern void	sbus_input(void);
 
 /*
  * Assertion codes

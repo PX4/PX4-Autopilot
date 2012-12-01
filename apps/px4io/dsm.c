@@ -44,10 +44,13 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <termios.h>
 
 #include <systemlib/ppm_decode.h>
  
 #include <drivers/drv_hrt.h>
+
+#define DEBUG
 
 #include "px4io.h"
 #include "protocol.h"
@@ -55,35 +58,55 @@
 #define DSM_FRAME_SIZE		16
 #define DSM_FRAME_CHANNELS	7
 
+static int dsm_fd = -1;
+
+static hrt_abstime last_rx_time;
 static hrt_abstime last_frame_time;
 
 static uint8_t	frame[DSM_FRAME_SIZE];
 
 static unsigned partial_frame_count;
-static bool	insync;
 static unsigned	channel_shift;
 
-static void dsm_decode(void);
+unsigned dsm_frame_drops;
 
-void
-dsm_init(unsigned mode)
+static bool dsm_decode_channel(uint16_t raw, unsigned shift, unsigned *channel, unsigned *value);
+static void dsm_guess_format(bool reset);
+static void dsm_decode(hrt_abstime now);
+
+int
+dsm_init(const char *device)
 {
-	insync = false;
-	partial_frame_count = 0;
+	if (dsm_fd < 0)
+		dsm_fd = open(device, O_RDONLY);
 
-	if (mode == RX_MODE_DSM_10BIT) {
-		channel_shift = 10;
+	if (dsm_fd >= 0) {
+		struct termios t;
+
+		/* 115200bps, no parity, one stop bit */
+		tcgetattr(dsm_fd, &t);
+		cfsetspeed(&t, 115200);
+		t.c_cflag &= ~(CSTOPB | PARENB);
+		tcsetattr(dsm_fd, TCSANOW, &t);
+
+		/* initialise the decoder */
+		partial_frame_count = 0;
+		last_rx_time = hrt_absolute_time();
+
+		/* reset the format detector */
+		dsm_guess_format(true);
+
+		debug("DSM: ready");
 	} else {
-		channel_shift = 11;
+		debug("DSM: open failed");
 	}
 
-	last_frame_time = hrt_absolute_time();
+	return dsm_fd;
 }
 
 void
-dsm_input(int fd)
+dsm_input(void)
 {
-	uint8_t		buf[DSM_FRAME_SIZE];
 	ssize_t		ret;
 	hrt_abstime	now;
 
@@ -97,25 +120,33 @@ dsm_input(int fd)
 	 * We expect to only be called when bytes arrive for processing,
 	 * and if an interval of more than 5ms passes between calls, 
 	 * the first byte we read will be the first byte of a frame.
+	 *
+	 * In the case where byte(s) are dropped from a frame, this also
+	 * provides a degree of protection. Of course, it would be better
+	 * if we didn't drop bytes...
 	 */
 	now = hrt_absolute_time();
-	if ((now - last_frame_time) > 5000)
-		partial_frame_count = 0;
+	if ((now - last_rx_time) > 5000) {
+		if (partial_frame_count > 0) {
+			dsm_frame_drops++;
+			partial_frame_count = 0;
+		}
+	}
 
 	/*
 	 * Fetch bytes, but no more than we would need to complete
 	 * the current frame.
 	 */
-	ret = read(fd, buf, DSM_FRAME_SIZE - partial_frame_count);
+	ret = read(dsm_fd, &frame[partial_frame_count], DSM_FRAME_SIZE - partial_frame_count);
 
 	/* if the read failed for any reason, just give up here */
 	if (ret < 1)
 		return;
+	last_rx_time = now;
 
 	/*
 	 * Add bytes to the current frame
 	 */
-	memcpy(&frame[partial_frame_count], buf, ret);
 	partial_frame_count += ret;
 
 	/*
@@ -123,30 +154,137 @@ dsm_input(int fd)
 	 */
 	if (partial_frame_count < DSM_FRAME_SIZE)
 	 	return;
-	last_frame_time = now;
 
 	/*
 	 * Great, it looks like we might have a frame.  Go ahead and
 	 * decode it.
 	 */
-	dsm_decode();
+	dsm_decode(now);
 	partial_frame_count = 0;
 }
 
-static void
-dsm_decode(void)
+static bool
+dsm_decode_channel(uint16_t raw, unsigned shift, unsigned *channel, unsigned *value)
 {
-	uint16_t	data_mask = (1 << channel_shift) - 1;
+
+	if (raw == 0xffff)
+		return false;
+
+	*channel = (raw >> shift) & 0xf;
+
+	uint16_t data_mask = (1 << shift) - 1;
+	*value = raw & data_mask;
+
+	//debug("DSM: %d 0x%04x -> %d %d", shift, raw, *channel, *value);
+
+	return true;
+}
+
+static void
+dsm_guess_format(bool reset)
+{
+	static uint32_t	cs10;
+	static uint32_t	cs11;
+	static unsigned samples;
+
+	/* reset the 10/11 bit sniffed channel masks */
+	if (reset) {
+		cs10 = 0;
+		cs11 = 0;
+		samples = 0;
+		channel_shift = 0;
+		return;
+	}
+
+	/* scan the channels in the current frame in both 10- and 11-bit mode */
+	for (unsigned i = 0; i < DSM_FRAME_CHANNELS; i++) {
+
+		uint8_t *dp = &frame[2 + (2 * i)];
+		uint16_t raw = (dp[0] << 8) | dp[1];
+		unsigned channel, value;
+
+		/* if the channel decodes, remember the assigned number */
+		if (dsm_decode_channel(raw, 10, &channel, &value) && (channel < 31))
+			cs10 |= (1 << channel);
+		if (dsm_decode_channel(raw, 11, &channel, &value) && (channel < 31))
+			cs11 |= (1 << channel);
+
+		/* XXX if we cared, we could look for the phase bit here to decide 1 vs. 2-frame format */
+	}
+
+	/* wait until we have seen plenty of frames - 2 should normally be enough */
+	if (samples++ < 5)
+		return;
+
+	/* 
+	 * Iterate the set of sensible sniffed channel sets and see whether
+	 * decoding in 10 or 11-bit mode has yielded anything we recognise.
+	 *
+	 * XXX Note that due to what seem to be bugs in the DSM2 high-resolution
+	 *     stream, we may want to sniff for longer in some cases when we think we
+	 *     are talking to a DSM2 receiver in high-resolution mode (so that we can
+	 *     reject it, ideally).
+	 *     See e.g. http://git.openpilot.org/cru/OPReview-116 for a discussion
+	 *     of this issue.
+	 */
+	static uint32_t masks[] = { 
+		0x3f,	/* 6 channels (DX6) */
+		0x7f,	/* 7 channels (DX7) */
+		0xff,	/* 8 channels (DX8) */
+		0x3ff,	/* 10 channels (DX10) */
+		0x3fff	/* 18 channels (DX10) */
+	};
+	unsigned votes10 = 0;
+	unsigned votes11 = 0;
+
+	for (unsigned i = 0; i < (sizeof(masks) / sizeof(masks[0])); i++) {
+
+		if (cs10 == masks[i])
+			votes10++;
+		if (cs11 == masks[i])
+			votes11++;
+	}
+	if ((votes11 == 1) && (votes10 == 0)) {
+		channel_shift = 11;
+		debug("DSM: detected 11-bit format");
+		return;
+	}
+	if ((votes10 == 1) && (votes11 == 0)) {
+		channel_shift = 10;
+		debug("DSM: detected 10-bit format");
+		return;
+	}
+
+	/* call ourselves to reset our state ... we have to try again */
+	debug("DSM: format detector failed, 10: 0x%08x %d 11: 0x%08x %d", cs10, votes10, cs11, votes11);
+	dsm_guess_format(true);
+}
+
+static void
+dsm_decode(hrt_abstime frame_time)
+{
+
+/*
+	debug("DSM frame %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x",
+	      frame[0], frame[1], frame[2], frame[3], frame[4], frame[5], frame[6], frame[7],
+	      frame[8], frame[9], frame[10], frame[11], frame[12], frame[13], frame[14], frame[15]);
+*/
+	/*
+	 * If we have lost signal for at least a second, reset the 
+	 * format guessing heuristic.
+	 */
+	if (((frame_time - last_frame_time) > 1000000) && (channel_shift != 0))
+		dsm_guess_format(true);
+	last_frame_time = frame_time;
+	if (channel_shift == 0) {
+		dsm_guess_format(false);
+		system_state.dsm_input_ok = false;
+		return;
+	}
 
 	/*
-	 * The encoding of the first byte is uncertain, so we're going
-	 * to ignore it for now.
-	 *
-	 * The second byte may tell us about the protocol, but it's not
-	 * actually very interesting since what we really want to know
-	 * is how the channel data is formatted, and there doesn't seem
-	 * to be a reliable way to determine this from the protocol ID
-	 * alone.
+	 * The encoding of the first two bytes is uncertain, so we're 
+	 * going to ignore them for now.
 	 *
 	 * Each channel is a 16-bit unsigned value containing either a 10-
 	 * or 11-bit channel value and a 4-bit channel number, shifted
@@ -155,30 +293,49 @@ dsm_decode(void)
 	 * seven channels are being transmitted.
 	 */
 
+	const unsigned dsm_chancount = (DSM_FRAME_CHANNELS < PX4IO_INPUT_CHANNELS) ? DSM_FRAME_CHANNELS : PX4IO_INPUT_CHANNELS;
+
+	uint16_t dsm_channels[dsm_chancount];
+
 	for (unsigned i = 0; i < DSM_FRAME_CHANNELS; i++) {
 
 		uint8_t *dp = &frame[2 + (2 * i)];
 		uint16_t raw = (dp[0] << 8) | dp[1];
+		unsigned channel, value;
 
-		/* ignore pad channels */
-		if (raw == 0xffff)
+		if (!dsm_decode_channel(raw, channel_shift, &channel, &value))
 			continue;
-
-		unsigned channel = (raw >> channel_shift) & 0xf;
 
 		/* ignore channels out of range */
 		if (channel >= PX4IO_INPUT_CHANNELS)
 			continue;
 
+		/* update the decoded channel count */
 		if (channel > ppm_decoded_channels)
 			ppm_decoded_channels = channel;
 
 		/* convert 0-1024 / 0-2048 values to 1000-2000 ppm encoding in a very sloppy fashion */
-		unsigned data = raw & data_mask;
 		if (channel_shift == 11)
-			data /= 2;
-		ppm_buffer[channel] = 988 + data;
+			value /= 2;
 
+		/* stuff the decoded channel into the PPM input buffer */
+		dsm_channels[channel] = 988 + value;
 	}
-	ppm_last_valid_decode = hrt_absolute_time();
+
+	/* DSM input is valid */
+	system_state.dsm_input_ok = true;
+
+	/* check if no S.BUS data is available */
+	if (!system_state.sbus_input_ok) {
+
+		for (unsigned i = 0; i < dsm_chancount; i++) {
+			system_state.rc_channel_data[i] = dsm_channels[i];
+		}
+
+		/* and note that we have received data from the R/C controller */
+		/* XXX failsafe will cause problems here - need a strategy for detecting it */
+		system_state.rc_channels_timestamp = frame_time;
+		system_state.rc_channels = dsm_chancount;
+		system_state.fmu_report_due = true;
+	}
 }

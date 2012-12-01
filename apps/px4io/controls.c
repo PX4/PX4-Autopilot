@@ -32,9 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file px4io.c
- * Top-level logic for the PX4IO module.
+ * @file controls.c
+ *
+ * R/C inputs and servo outputs.
  */
+
 
 #include <nuttx/config.h>
 #include <stdio.h>
@@ -44,58 +46,43 @@
 #include <debug.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <termios.h>
+#include <string.h>
+#include <poll.h>
 
 #include <nuttx/clock.h>
 
-#include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
+#include <systemlib/hx_stream.h>
+#include <systemlib/perf_counter.h>
 
+#define DEBUG
 #include "px4io.h"
 
-__EXPORT int user_start(int argc, char *argv[]);
-
-struct sys_state_s 	system_state;
-
-int user_start(int argc, char *argv[])
+void
+controls_main(void)
 {
-	/* reset all to zero */
-	memset(&system_state, 0, sizeof(system_state));
+	struct pollfd fds[2];
 
-	/* configure the high-resolution time/callout interface */
-	hrt_init();
-
-	/* print some startup info */
-	lib_lowprintf("\nPX4IO: starting\n");
-
-	/* default all the LEDs to off while we start */
-	LED_AMBER(false);
-	LED_BLUE(false);
-	LED_SAFETY(false);
-
-	/* turn on servo power */
-	POWER_SERVO(true);
-
-	/* start the safety switch handler */
-	safety_init();
-
-	/* start the flight control signal handler */
-	task_create("FCon", 
-		    SCHED_PRIORITY_DEFAULT,
-		    1024,
-		    (main_t)controls_main,
-		    NULL);
+	fds[0].fd = dsm_init("/dev/ttyS0");
+	fds[0].events = POLLIN;
 
 
-	/* initialise the FMU communications interface */
-	comms_init();
+	fds[1].fd = sbus_init("/dev/ttyS2");
+	fds[1].events = POLLIN;
 
-	/* configure the first 8 PWM outputs (i.e. all of them) */
-	/* note, must do this after comms init to steal back PA0, which is CTS otherwise */
-	up_pwm_servo_init(0xff);
+	for (;;) {
+		/* run this loop at ~100Hz */
+		poll(fds, 2, 10);
 
-	struct mallinfo minfo = mallinfo();
-	lib_lowprintf("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
+		if (fds[0].revents & POLLIN)
+			dsm_input();
+		if (fds[1].revents & POLLIN)
+			sbus_input();
 
-	/* we're done here, go run the communications loop */
-	comms_main();
+		/* XXX do ppm processing, bypass mode, etc. here */
+
+		/* do PWM output updates */
+		mixer_tick();
+	}
 }
