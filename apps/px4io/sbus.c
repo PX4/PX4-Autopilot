@@ -52,6 +52,7 @@
 #include "protocol.h"
 
 #define SBUS_FRAME_SIZE		25
+#define SBUS_INPUT_CHANNELS	16
 
 static int sbus_fd = -1;
 
@@ -168,7 +169,7 @@ struct sbus_bit_pick {
 	uint8_t mask;
 	uint8_t lshift;
 };
-static const struct sbus_bit_pick sbus_decoder[][3] = {	
+static const struct sbus_bit_pick sbus_decoder[SBUS_INPUT_CHANNELS][3] = {	
 /*  0 */ { { 0, 0, 0xff, 0},{ 1, 0, 0x07, 8},{ 0, 0, 0x00,  0} },
 /*  1 */ { { 1, 3, 0x1f, 0},{ 2, 0, 0x3f, 5},{ 0, 0, 0x00,  0} },
 /*  2 */ { { 2, 6, 0x03, 0},{ 3, 0, 0xff, 2},{ 4, 0, 0x01, 10} },
@@ -201,11 +202,15 @@ sbus_decode(hrt_abstime frame_time)
 		return;
 
 	/* use the decoder matrix to extract channel data */
-	for (unsigned channel = 0; channel < 16; channel++) {
+	for (unsigned channel = 0; channel < SBUS_INPUT_CHANNELS; channel++) {
+
+		if (channel >= PX4IO_INPUT_CHANNELS)
+			break;
+
 		unsigned value = 0;
 
 		for (unsigned pick = 0; pick < 3; pick++) {
-			struct sbus_bit_pick *decode = &sbus_decoder[channel][pick];
+			const struct sbus_bit_pick *decode = &sbus_decoder[channel][pick];
 
 			if (decode->mask != 0) {
 				unsigned piece = frame[1 + decode->byte];
