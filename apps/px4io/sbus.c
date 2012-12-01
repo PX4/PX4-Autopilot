@@ -50,6 +50,7 @@
 #define DEBUG
 #include "px4io.h"
 #include "protocol.h"
+#include "debug.h"
 
 #define SBUS_FRAME_SIZE		25
 #define SBUS_INPUT_CHANNELS	16
@@ -192,21 +193,22 @@ static void
 sbus_decode(hrt_abstime frame_time)
 {
 	/* check frame boundary markers to avoid out-of-sync cases */
-	if ((frame[0] != 0xf0) || (frame[24] != 0x00)) {
+	if ((frame[0] != 0x0f) || (frame[24] != 0x00)) {
 		sbus_frame_drops++;
+		system_state.sbus_input_ok = false;
 		return;
 	}
 
 	/* if the failsafe bit is set, we consider that a loss of RX signal */
-	if (frame[23] & (1 << 4))
+	if (frame[23] & (1 << 4)) {
+		system_state.sbus_input_ok = false;
 		return;
+	}
+
+	unsigned chancount = (PX4IO_INPUT_CHANNELS > 16) ? 16 : PX4IO_INPUT_CHANNELS;
 
 	/* use the decoder matrix to extract channel data */
-	for (unsigned channel = 0; channel < SBUS_INPUT_CHANNELS; channel++) {
-
-		if (channel >= PX4IO_INPUT_CHANNELS)
-			break;
-
+	for (unsigned channel = 0; channel < chancount; channel++) {
 		unsigned value = 0;
 
 		for (unsigned pick = 0; pick < 3; pick++) {
@@ -222,8 +224,18 @@ sbus_decode(hrt_abstime frame_time)
 			}
 		}
 		/* convert 0-2048 values to 1000-2000 ppm encoding in a very sloppy fashion */
-		ppm_buffer[channel] = (value / 2) + 998;
+		system_state.rc_channel_data[channel] = (value / 2) + 998;
 	}
+
+	if (PX4IO_INPUT_CHANNELS >= 18) {
+		/* decode two switch channels */
+		chancount = 18;
+	}
+
+	system_state.rc_channels = chancount;
+	system_state.sbus_input_ok = true;
+	system_state.fmu_report_due = true;
+
 	/* and note that we have received data from the R/C controller */
-	ppm_last_valid_decode = frame_time;	
+	system_state.rc_channels_timestamp = frame_time;	
 }

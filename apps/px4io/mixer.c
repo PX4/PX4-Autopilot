@@ -170,17 +170,26 @@ mixer_update(int mixer, uint16_t *inputs, int input_count)
 static void
 mixer_get_rc_input(void)
 {
-
 	/* if we haven't seen any new data in 200ms, assume we have lost input and tell FMU */
 	if ((hrt_absolute_time() - ppm_last_valid_decode) > 200000) {
-		system_state.rc_channels = 0;
-		system_state.fmu_report_due = true;
+
+		/* input was ok and timed out, mark as update */
+		if (system_state.ppm_input_ok) {
+			system_state.ppm_input_ok = false;
+			system_state.fmu_report_due = true;
+		}
 		return;
 	}
 
-	/* otherwise, copy channel data */
-	system_state.rc_channels = ppm_decoded_channels;
-	for (unsigned i = 0; i < ppm_decoded_channels; i++)
-		system_state.rc_channel_data[i] = ppm_buffer[i];
-	system_state.fmu_report_due = true;
+	/* mark PPM as valid */
+	system_state.ppm_input_ok = true;
+
+	/* check if no DSM and S.BUS data is available */
+	if (!system_state.sbus_input_ok && !system_state.dsm_input_ok) {
+		/* otherwise, copy channel data */
+		system_state.rc_channels = ppm_decoded_channels;
+		for (unsigned i = 0; i < ppm_decoded_channels; i++)
+			system_state.rc_channel_data[i] = ppm_buffer[i];
+		system_state.fmu_report_due = true;
+	}
 }

@@ -58,6 +58,8 @@ struct sys_state_s 	system_state;
 
 int user_start(int argc, char *argv[])
 {
+	/* reset all to zero */
+	memset(&system_state, 0, sizeof(system_state));
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
