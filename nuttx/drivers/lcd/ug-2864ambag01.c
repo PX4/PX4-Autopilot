@@ -970,7 +970,7 @@ static int ug2864ambag01_setcontrast(struct lcd_dev_s *dev, unsigned int contras
    */
 
 #if CONFIG_LCD_MAXCONTRAST != 255
-  newcontrast = ((contrast << 8) - 1) / CONFIG_LCD_MAXCONTRAST;
+  scaled = ((contrast << 8) - 1) / CONFIG_LCD_MAXCONTRAST;
 #else
   scaled = contrast;
 #endif

@@ -175,13 +175,13 @@ static inline void fgenerate2(void)
   unsigned long randint;
 
   /* Second order congruential generator.  One may be added to the result of the
-   * generated value to avoid the value zero (I am not sure if this is necessor
+   * generated value to avoid the value zero (I am not sure if this is necessary
    * for higher order random number generators or how this may effect the quality
    * of the generated numbers).
    */
 
   randint    = (RND2_CONSTK1 * g_randint1 +
-                RND2_CONSTK2 * g_randint2) % RND2_CONSTP + 1;
+                RND2_CONSTK2 * g_randint2) % RND2_CONSTP;
 
   g_randint2 = g_randint1;
   g_randint1 = (randint == 0 ? 1 : randint);
@@ -208,14 +208,14 @@ static inline void fgenerate3(void)
   unsigned long randint;
 
   /* Third order congruential generator.  One may be added to the result of the
-   * generated value to avoid the value zero (I am not sure if this is necessor
+   * generated value to avoid the value zero (I am not sure if this is necessary
    * for higher order random number generators or how this may effect the quality
    * of the generated numbers).
    */
 
   randint    = (RND3_CONSTK1 * g_randint1 +
                 RND3_CONSTK2 * g_randint2 +
-                RND3_CONSTK2 * g_randint3) % RND3_CONSTP + 1;
+                RND3_CONSTK2 * g_randint3) % RND3_CONSTP;
 
   g_randint3 = g_randint2;
   g_randint2 = g_randint1;
