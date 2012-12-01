@@ -389,7 +389,7 @@ nx11
 
   NOTES:
 
-  1. If you do not have the call to sim_tcinitializE(0), the build
+  1. If you do not have the call to sim_tcinitialize(0), the build
      will mysteriously fail claiming that is can't find up_tcenter()
      and up_tcleave().  That is a consequence of the crazy way that
      the simulation is built and can only be eliminated by calling

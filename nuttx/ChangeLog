@@ -3722,3 +3722,5 @@
 	* include/nuttx/input/keypad.h, arch/arm/src/calypso/calypso_keypad.c, and
 	  configs/compal_e99/nsh_highram: First cut at a standard keypad interface
 	  definition.  Contributed by Denis Carikli.
+	* libc/stdlib/lib_rand.c:  Always add one to result congruential generators
+	  to avoid the value zero.  Suggested by Freddie Chopin.

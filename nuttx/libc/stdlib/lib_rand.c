@@ -1,4 +1,4 @@
-/************************************************************
+/****************************************************************************
  * libc/stdlib/lib_rand.c
  *
  *   Copyright (C) 2007, 2011 Gregory Nutt. All rights reserved.
@@ -31,25 +31,21 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************/
+ ****************************************************************************/
 
-/************************************************************
- * Compilation Switches
- ************************************************************/
-
-/************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************/
+ ****************************************************************************/
 
 #include <sys/types.h>
 #include <stdlib.h>
 
-/************************************************************
- * Definitions
- ************************************************************/
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
 
 #ifndef CONFIG_LIB_RAND_ORDER
-#define CONFIG_LIB_RAND_ORDER 1
+#  define CONFIG_LIB_RAND_ORDER 1
 #endif
 
 /* Values needed by the random number generator */
@@ -65,20 +61,16 @@
 #define RND3_CONSTP  997783
 
 #if CONFIG_LIB_RAND_ORDER == 1
-# define RND_CONSTP RND1_CONSTP
+#  define RND_CONSTP RND1_CONSTP
 #elif CONFIG_LIB_RAND_ORDER == 2
-# define RND_CONSTP RND2_CONSTP
+#  define RND_CONSTP RND2_CONSTP
 #else
-# define RND_CONSTP RND3_CONSTP
+#  define RND_CONSTP RND3_CONSTP
 #endif
 
-/************************************************************
- * Private Type Declarations
- ************************************************************/
-
-/************************************************************
+/****************************************************************************
  * Private Function Prototypes
- ************************************************************/
+ ****************************************************************************/
 
 static unsigned int nrand(unsigned int nLimit);
 static double_t frand1(void);
@@ -89,132 +81,133 @@ static double_t frand3(void);
 #endif
 #endif
 
-/**********************************************************
- * Global Constant Data
- **********************************************************/
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
 
-/************************************************************
- * Global Variables
- ************************************************************/
-
-/**********************************************************
- * Private Constant Data
- **********************************************************/
-
-/************************************************************
- * Private Variables
- ************************************************************/
-
-static unsigned long g_nRandInt1;
+static unsigned long g_randint1;
 #if (CONFIG_LIB_RAND_ORDER > 1)
-static unsigned long g_nRandInt2;
+static unsigned long g_randint2;
 #if (CONFIG_LIB_RAND_ORDER > 2)
-static unsigned long g_nRandInt3;
+static unsigned long g_randint3;
 #endif
 #endif
 
-/************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************/
- 
+ ****************************************************************************/
+
 static unsigned int nrand(unsigned int nLimit)
 {
-  unsigned long nResult;
-  double_t fRatio;
+  unsigned long result;
+  double_t ratio;
 
   /* Loop to be sure a legal random number is generated */
-  do {
 
-    /* Get a random integer in the requested range */
+  do
+    {
+      /* Get a random integer in the requested range */
+
 #if (CONFIG_LIB_RAND_ORDER == 1)
-    fRatio = frand1();
+      ratio = frand1();
 #elif (CONFIG_LIB_RAND_ORDER == 2)
-    fRatio = frand2();
+      ratio = frand2();
 #else
-    fRatio = frand3();
+      ratio = frand3();
 #endif
 
-    /* Then, produce the return-able value */
-    nResult = (unsigned long)(((double_t)nLimit) * fRatio);
+      /* Then, produce the return-able value */
 
-  } while (nResult >= (unsigned long)nLimit);
+      result = (unsigned long)(((double_t)nLimit) * ratio);
+    }
+  while (result >= (unsigned long)nLimit);
 
-  return (unsigned int)nResult;
-
-} /* end nrand */
+  return (unsigned int)result;
+}
 
 static double_t frand1(void)
 {
-  unsigned long nRandInt;
+  unsigned long randint;
 
-  /* First order congruential generator */
-  nRandInt = (RND1_CONSTK * g_nRandInt1) % RND1_CONSTP;
-  g_nRandInt1 = nRandInt;
+  /* First order congruential generator.  One is added to the result of the
+   * generated value to avoid the value zero which breaks the logic.
+   */
+
+  randint    = (RND1_CONSTK * g_randint1) % RND1_CONSTP + 1;
+  g_randint1 = randint;
 
   /* Construct an floating point value in the range from 0.0 up to 1.0 */
-  return ((double_t)nRandInt) / ((double_t)RND_CONSTP);
 
-} /* end frand */
+  return ((double_t)randint) / ((double_t)RND_CONSTP);
+}
 
 #if (CONFIG_LIB_RAND_ORDER > 1)
 static double_t frand2(void)
 {
-  unsigned long nRandInt;
+  unsigned long randint;
 
-  /* Second order congruential generator */
-  nRandInt = (RND2_CONSTK1 * g_nRandInt1 + RND2_CONSTK2 * g_nRandInt2) %
-    RND2_CONSTP;
-  g_nRandInt2 = g_nRandInt1;
-  g_nRandInt1 = nRandInt;
+  /* Second order congruential generator.  One is added to the result of the
+   * generated value to avoid the value zero which breaks the logic.
+   */
+
+  randint    = (RND2_CONSTK1 * g_randint1 +
+                RND2_CONSTK2 * g_randint2) % RND2_CONSTP + 1;
+
+  g_randint2 = g_randint1;
+  g_randint1 = randint;
 
   /* Construct an floating point value in the range from 0.0 up to 1.0 */
-  return ((double_t)nRandInt) / ((double_t)RND_CONSTP);
 
-} /* end frand */
+  return ((double_t)randint) / ((double_t)RND_CONSTP);
+
+}
 
 #if (CONFIG_LIB_RAND_ORDER > 2)
 static double_t frand3(void)
 {
-  unsigned long nRandInt;
+  unsigned long randint;
 
-  /* Third order congruential generator */
-  nRandInt = (RND3_CONSTK1 * g_nRandInt1 + RND3_CONSTK2 * g_nRandInt2 +
-	      RND3_CONSTK2 * g_nRandInt3) % RND3_CONSTP;
-  g_nRandInt3 = g_nRandInt2;
-  g_nRandInt2 = g_nRandInt1;
-  g_nRandInt1 = nRandInt;
+  /* Third order congruential generator.  One is added to the result of the
+   * generated value to avoid the value zero which breaks the logic.
+   */
+
+  randint    = (RND3_CONSTK1 * g_randint1 +
+                RND3_CONSTK2 * g_randint2 +
+                RND3_CONSTK2 * g_randint3) % RND3_CONSTP + 1;
+
+  g_randint3 = g_randint2;
+  g_randint2 = g_randint1;
+  g_randint1 = randint;
 
   /* Construct an floating point value in the range from 0.0 up to 1.0 */
-  return ((double_t)nRandInt) / ((double_t)RND_CONSTP);
 
-} /* end frand */
+  return ((double_t)randint) / ((double_t)RND_CONSTP);
+}
 #endif
 #endif
 
-/************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************/
-/************************************************************
+ ****************************************************************************/
+
+/****************************************************************************
  * Function:  srand, rand
- ************************************************************/
+ ****************************************************************************/
 
 void srand(unsigned int seed)
 {
-  g_nRandInt1 = seed;
+  g_randint1 = seed;
 #if (CONFIG_LIB_RAND_ORDER > 1)
-  g_nRandInt2 = seed;
+  g_randint2 = seed;
   (void)frand1();
 #if (CONFIG_LIB_RAND_ORDER > 2)
-  g_nRandInt3 = seed;
+  g_randint3 = seed;
   (void)frand2();
 #endif
 #endif
-
-} /* end srand */
+}
 
 int rand(void)
 {
   return (int)nrand(32768);
-
-} /* end rand */
-
+}
