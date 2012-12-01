@@ -47,6 +47,10 @@ class Integral
 public:
     Integral();
     virtual ~Integral();
+    float update(float input, uint16_t dt);
+    void set(float x) {_x = x;}
+private:
+    float _x;
 };
 
 class Derivative
@@ -54,20 +58,32 @@ class Derivative
 public:
     Derivative();
     virtual ~Derivative();
-};
-
-class Saturate
-{
-public:
-    Saturate();
-    virtual ~Saturate();
+    float update(float input, uint16_t dt);
+private:
+    float _x;
 };
 
 class Limit
 {
 public:
-    Limit();
+    Limit(float min, float max);
     virtual ~Limit();
+    float update(float input, uint16_t dt);
+    void set(float min, float max) {_min=min; _max=max;}
+private:
+    float _min;
+    float _max;
+};
+
+class PID
+{
+public:
+    PID(float kP, float kI, float kD);
+    virtual ~PID();
+private:
+    float _kP, _kI, _kD;
+    Integral i;
+    Derivative d;
 };
 
 

@@ -48,36 +48,75 @@
 namespace control
 {
 
-__EXPORT Integral::Integral() {
-    printf("ctor integral\n");
+__EXPORT Integral::Integral() :
+    _x(0)
+{
+    printf("ctor Integral\n");
 }
 
-__EXPORT Integral::~Integral() {
-    printf("dtor integral\n");
+__EXPORT float Integral::update(float input, uint16_t dt)
+{
+    printf("update Integral");
+    _x += input*dt;
+    return _x;
 }
 
-__EXPORT Derivative::Derivative() {
-    printf("ctor derivative\n");
+__EXPORT Integral::~Integral()
+{
+    printf("dtor Integral\n");
 }
 
-__EXPORT Derivative::~Derivative() {
-    printf("dtor derivative\n");
+__EXPORT Derivative::Derivative() :
+    _x(0)
+{
+    printf("ctor Derivative\n");
 }
 
-__EXPORT Saturate::Saturate() {
-    printf("ctor saturate\n");
+__EXPORT float Derivative::update(float input, uint16_t dt)
+{
+    printf("update Derivative\n");
+    return (input - _x)/dt;
 }
 
-__EXPORT Saturate::~Saturate() {
-    printf("dtor saturate\n");
+__EXPORT Derivative::~Derivative()
+{
+    printf("dtor Derivative\n");
 }
 
-__EXPORT Limit::Limit() {
-    printf("ctor limit\n");
+__EXPORT Limit::Limit(float min, float max) :
+    _min(min), _max(max)
+{
+    printf("ctor Limit\n");
 }
 
-__EXPORT Limit::~Limit() {
-    printf("dtor limit\n");
+__EXPORT float Limit::update(float input, uint16_t dt)
+{
+    printf("update Limit\n");
+    if (input > _max)
+    {
+        input = _max;
+    }
+    else if (input < _min)
+    {
+        input = _min;
+    }
+    return input;
+}
+
+__EXPORT Limit::~Limit()
+{
+    printf("dtor Limit\n");
+}
+
+__EXPORT PID::PID(float kP, float kI, float kD) :
+    _kP(kP), _kI(kI), _kD(kD)
+{
+    printf("ctor PID\n");
+}
+
+__EXPORT PID::~PID()
+{
+    printf("dtor PID\n");
 }
 
 

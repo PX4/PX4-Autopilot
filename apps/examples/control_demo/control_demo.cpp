@@ -129,6 +129,9 @@ int control_demo_thread_main(int argc, char *argv[]) {
 	printf("[control_Demo] starting\n");
 
     control::Derivative derivative;
+    control::Integral integral;
+    control::Limit limit(0,0);
+    control::PID pid(0,0,0);
 
 	thread_running = true;
 
