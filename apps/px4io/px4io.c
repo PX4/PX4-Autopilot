@@ -76,6 +76,9 @@ int user_start(int argc, char *argv[])
 	/* start the safety switch handler */
 	safety_init();
 
+	/* configure the first 8 PWM outputs (i.e. all of them) */
+	up_pwm_servo_init(0xff);
+
 	/* start the flight control signal handler */
 	task_create("FCon", 
 		    SCHED_PRIORITY_DEFAULT,
@@ -83,13 +86,6 @@ int user_start(int argc, char *argv[])
 		    (main_t)controls_main,
 		    NULL);
 
-
-	/* initialise the FMU communications interface */
-	comms_init();
-
-	/* configure the first 8 PWM outputs (i.e. all of them) */
-	/* note, must do this after comms init to steal back PA0, which is CTS otherwise */
-	up_pwm_servo_init(0xff);
 
 	struct mallinfo minfo = mallinfo();
 	lib_lowprintf("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);

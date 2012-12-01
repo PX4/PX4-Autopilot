@@ -47,6 +47,7 @@
 #include <errno.h>
 #include <string.h>
 #include <poll.h>
+#include <termios.h>
 
 #include <nuttx/clock.h>
 
@@ -69,7 +70,7 @@ static struct px4io_report	report;
 
 static void			comms_handle_frame(void *arg, const void *buffer, size_t length);
 
-void
+static void
 comms_init(void)
 {
 	/* initialise the FMU interface */
@@ -78,11 +79,20 @@ comms_init(void)
 
 	/* default state in the report to FMU */
 	report.i2f_magic = I2F_MAGIC;
+
+	struct termios t;
+
+	/* 115200bps, no parity, one stop bit */
+	tcgetattr(fmu_fd, &t);
+	cfsetspeed(&t, 115200);
+	t.c_cflag &= ~(CSTOPB | PARENB);
+	tcsetattr(fmu_fd, TCSANOW, &t);
 }
 
 void
 comms_main(void)
 {
+	comms_init();
 
 	struct pollfd fds;
 	fds.fd = fmu_fd;
