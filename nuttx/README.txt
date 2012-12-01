@@ -18,6 +18,8 @@ README
     - Building
     - Re-building 
     - Build Targets and Options
+    - Native Windows Build
+    - Installing GNUWin32
   o Cygwin Build Problems
     - Strange Path Problems
     - Window Native Toolchain Issues
@@ -154,9 +156,15 @@ Notes about Header Files
 
     Even though you should not use a foreign C-Library, you may still need
     to use other, external libraries with NuttX.  In particular, you may
-    need to use the math library, libm.a.  The math libary header file,
-    math.h, is a special case.  If you do nothing, the standard math.h
-    header file that is provided with your toolchain will be used.
+    need to use the math library, libm.a.  NuttX supports a generic, built-in
+    math library that can be enabled using CONFIG_LIBM=y.  However, you may
+    still want to use a higher performance external math library that has
+    been tuned for your CPU.  Sometimes such such tuned math libraries are
+    bundled with your toolchain.
+
+    The math libary header file, math.h, is a then special case.  If you do
+    nothing, the standard math.h header file that is provided with your
+    toolchain will be used.
 
     If you have a custom, architecture specific math.h header file, then
     that header file should be placed at arch/<cpu>/include/math.h.  There
@@ -170,6 +178,16 @@ Notes about Header Files
     math.h header file.  The stub math.h header file does nothing other
     than to include that archicture-specific math.h header file as the
     system math.h header file.
+
+  float.h
+
+    If you enable the generic, built-in math library, then that math library
+    will expect your toolchain to provide the standard float.h header file.
+    The float.h header file defines the properties of your floating point
+    implementation.  It would always be best to use your toolchain's float.h
+    header file but if none is avaiable, a default float.h header file will
+    provided if this option is selected.  However, there is no assurance that
+    the settings in this float.h are actually correct for your platform!
 
   stdarg.h
 
@@ -189,7 +207,8 @@ Instantiating "Canned" Configurations
 
 Where <board-name> is the name of your development board and <config-dir>.
 Configuring NuttX requires only copying three files from the <config-dir>
-to the directly where you installed NuttX (TOPDIR):
+to the directory where you installed NuttX (TOPDIR) (and sometimes one
+additional file to the directory the NuttX application package (APPSDIR)):
 
   Copy configs/<board-name>/<config-dir>/Make.def to ${TOPDIR}/Make.defs
 
@@ -210,6 +229,14 @@ to the directly where you installed NuttX (TOPDIR):
     file is included by all other make files to determine what is
     included in the build and what is not.  This file is also used
     to generate a C configuration header at include/nuttx/config.h.
+
+  Copy configs/<board-name>/<config-dir>/appconfig to ${APPSDIR}/.config
+
+    The appconfig file describes the applications that need to be
+    built in the appliction directory (APPSDIR).  Not all configurations
+    have an appconfig file.  This file is deprecated and will not be
+    used with new defconfig files produced with the mconf configuration
+    tool.
 
 General information about configuring NuttX can be found in:
 
@@ -468,6 +495,101 @@ Build Targets and Options
     useful when adding new boards or tracking down compile time errors and
     warnings (Contributed by Richard Cochran).
 
+Native Windows Build
+--------------------
+
+  The beginnings of a Windows native build are in place but still not full
+  usable as of this writing.  The windows native build logic is currently
+  separate and must be started by:
+
+    make -f Makefile.win
+
+  This build:
+
+    - Uses all Windows style paths
+    - Uses primarily Windows batch commands from cmd.exe, with
+    - A few extensions from GNUWin32 (or MSYS is you prefer)
+
+  In this build, you cannot use a Cygwin or MSYS shell. Rather the build must
+  be performed in a Windows CMD shell. Here is a better shell than than the
+  standard issue, CMD shell:  ConEmu which can be downloaded from:
+  http://code.google.com/p/conemu-maximus5/
+
+  Build Tools.  The build still relies on some Unix-like commands.  I use
+  the GNUWin32 tools that can be downloaded from http://gnuwin32.sourceforge.net/.
+  The MSYS tools are probably also a option but are likely lower performance
+  since they are based on Cygwin 1.3.
+
+  Host Compiler:  I use the MingGW compiler which can be downloaded from
+  http://www.mingw.org/.  If you are using GNUWin32, then it is recommended
+  the you not install the optional MSYS components as there may be conflicts.
+
+Installing GNUWin32
+-------------------
+
+The Windows native build will depend upon a few Unix-like tools that can be
+provided either by MSYS or GNUWin32.  The GNUWin32 are available from
+http://gnuwin32.sourceforge.net/.  GNUWin32 provides ports of tools with a
+GPL or similar open source license to modern MS-Windows (Microsoft Windows
+2000 / XP / 2003 / Vista / 2008 / 7).  See
+http://gnuwin32.sourceforge.net/packages.html for a list of all of the tools
+available in the GNUWin32 package.
+
+The SourceForge project is located here:
+http://sourceforge.net/projects/gnuwin32/.  The project is still being
+actively supported (although some of the Windows ports have gotten very old).
+
+Some commercial toolchains include a subset of the GNUWin32 tools in the
+installation.  My recommendation is that you download the GNUWin32 tools
+directly from the sourceforge.net website so that you will know what you are
+using and can reproduce your build environment.
+
+GNUWin32 Installation Steps:
+
+The following steps will download and execute the GNUWin32 installer.
+
+1. Download GetGNUWin32-x.x.x.exe from
+   http://sourceforge.net/projects/getgnuwin32/files/.  This is the
+   installer.  The current version as of this writing is 0.6.3.
+
+2. Run the installer.
+
+3. Accept the license.
+
+4. Select the installation directory.  My recommendation is the
+   directory that contains this README file (<this-directory>).
+
+5. After running GetGNUWin32-0.x.x.exe, you will have a new directory
+   <this-directory>/GetGNUWin32
+
+Note the the GNUWin32 installer didn't install GNUWin32.  Instead, it
+installed another, smarter downloader.  That downloader is the GNUWin32
+package management tool developed by the Open SSL project.
+
+The following steps probably should be performed from inside a DOS shell.
+
+6. Change to the directory created by GetGNUWin32-x.x.x.exe
+
+  cd GetGNUWin32
+
+7. Execute the download.bat script.  The download.bat script will download
+   about 446 packages!  Enough to have a very complete Linux-like environment
+   under the DOS shell.  This will take awhile.  This step only downloads
+   the packages and the next step will install the packages.
+
+   download
+
+8. This step will install the downloaded packages.  The argument of the
+   install.bat script is the installation location.  C:\gnuwin32 is the
+   standard install location:
+
+   install C:\gnuwin32
+
+NOTE:  This installation step will install *all* GNUWin32 packages... far
+more than you will ever need.  If disc space is a problem for you, you might
+need to perform a manual installation of the individual ZIP files that you
+will find in the <this directory>/GetGNUWin32/packages directory.
+
 CYGWIN BUILD PROBLEMS
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -523,18 +645,16 @@ Window Native Toolchain Issues
      is not a long as you might think because there is no dependency checking
      if you are using a native Windows toolchain.  That bring us to #3:
 
-  3. Dependencies are not made when using Windows versions of the GCC.  This is
-     because the dependencies are generated using Windows pathes which do not
-     work with the Cygwin make.
+  3. Dependencies are not made when using Windows versions of the GCC on a POSIX
+     platform (i.e., Cygwin).  This is because the dependencies are generated
+     using Windows paths which do not work with the Cygwin make.
 
-     Support has been added for making dependencies with the windows-native toolchains.
-     That support can be enabled by modifying your Make.defs file as follows:
+       MKDEP                = $(TOPDIR)/tools/mknulldeps.sh
 
-    -  MKDEP                = $(TOPDIR)/tools/mknulldeps.sh
-    +  MKDEP                = $(TOPDIR)/tools/mkdeps.sh --winpaths "$(TOPDIR)"
+     If you are building natively on Windows, then no such conflict exists
+     and the best selection is:
 
-     If you have problems with the dependency build (for example, if you are not
-     building on C:), then you may need to modify tools/mkdeps.sh
+       MKDEP                = $(TOPDIR)/tools/mkdeps.exe 
 
 General Pre-built Toolchain Issues
 
@@ -765,6 +885,8 @@ nuttx
  |   |   `- README.txt
  |   |- stm3240g-eval/
  |   |   `- README.txt
+ |   |- stm32f100rc_generic/
+ |   |   `- README.txt
  |   |- stm32f4discovery/
  |   |   `- README.txt
  |   |- sure-pic32mx/
@@ -817,6 +939,8 @@ nuttx
  |   `- README.txt
  |- lib/
  |   `- README.txt
+ |- libc/
+ |   `- README.txt
  |- libxx/
  |   `- README.txt
  |- mm/
@@ -828,6 +952,7 @@ nuttx
 
 apps
  |- examples/
+ |   |- json/README.txt
  |   |- pashello/README.txt
  |   `- README.txt
  |- graphics/
@@ -842,6 +967,8 @@ apps
  |   |- discover
  |   |  `- README.txt
  |   |- ftpc
+ |   |  `- README.txt
+ |   |- json
  |   |  `- README.txt
  |   |- telnetd
  |   |  `- README.txt
@@ -863,4 +990,13 @@ apps
  |   |  `- README.txt
  |   `- sysinfo
  |      `- README.txt
+ `- README.txt
+
+ NxWidgets
+ |- Doxygen
+ |   `- README.txt
+ |- tools
+ |   `- README.txt
+ |- UnitTests
+ |   `- README.txt
  `- README.txt

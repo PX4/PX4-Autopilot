@@ -87,11 +87,16 @@
 
 # define packed_struct __attribute__ ((packed))
 
-/* GCC does not support the reentrant or naked attributes */
+/* GCC does not support the reentrant attribute */
 
 # define reentrant_function
-# define naked_function
 
+/* The naked attribute informs GCC that the programmer will take care of
+ * the function prolog and epilog.
+ */
+
+# define naked_function __attribute__ ((naked,no_instrument_function))
+ 
 /* The inline_function attribute informs GCC that the function should always
  * be inlined, regardless of the level of optimization.  The noinline_function
  * indicates that the function should never be inlined.
@@ -191,8 +196,10 @@
 
 /* GCC supports both types double and long long */
 
-# define CONFIG_HAVE_DOUBLE 1
 # define CONFIG_HAVE_LONG_LONG 1
+# define CONFIG_HAVE_FLOAT 1
+# define CONFIG_HAVE_DOUBLE 1
+# define CONFIG_HAVE_LONG_DOUBLE 1
 
 /* Structures and unions can be assigned and passed as values */
 
@@ -295,7 +302,9 @@
 /* SDCC does not support type long long or type double */
 
 # undef  CONFIG_HAVE_LONG_LONG
+# define CONFIG_HAVE_FLOAT 1
 # undef  CONFIG_HAVE_DOUBLE
+# undef  CONFIG_HAVE_LONG_DOUBLE
 
 /* Structures and unions cannot be passed as values or used
  * in assignments.
@@ -398,8 +407,10 @@
  * simply do not support long long or double.
  */
 
-# undef  CONFIG_HAVE_DOUBLE
 # undef  CONFIG_HAVE_LONG_LONG
+# define CONFIG_HAVE_FLOAT 1
+# undef  CONFIG_HAVE_DOUBLE
+# undef  CONFIG_HAVE_LONG_DOUBLE
 
 /* Structures and unions can be assigned and passed as values */
 
@@ -433,9 +444,11 @@
 # undef  CONFIG_LONG_IS_NOT_INT
 # undef  CONFIG_PTR_IS_NOT_INT
 # undef  CONFIG_HAVE_INLINE
-# define inline
+# define inline 1
 # undef  CONFIG_HAVE_LONG_LONG
+# define CONFIG_HAVE_FLOAT 1
 # undef  CONFIG_HAVE_DOUBLE
+# undef  CONFIG_HAVE_LONG_DOUBLE
 # undef  CONFIG_CAN_PASS_STRUCTS
 
 #endif

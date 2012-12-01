@@ -100,7 +100,7 @@ void nxfe_reportposition(FAR struct nxbe_window_s *wnd)
 
   /* And provide this to the client */
 
-  ret = nxmu_sendclient(wnd->conn, &outmsg, sizeof(struct nxclimsg_newposition_s));
+  ret = nxmu_sendclientwindow(wnd, &outmsg, sizeof(struct nxclimsg_newposition_s));
   if (ret < 0)
     {
       gdbg("nxmu_sendclient failed: %d\n", errno);

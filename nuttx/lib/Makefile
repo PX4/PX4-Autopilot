@@ -1,7 +1,7 @@
 ############################################################################
 # lib/Makefile
 #
-#   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,101 +35,11 @@
 
 -include $(TOPDIR)/Make.defs
 
-ASRCS =
-CSRCS =
+all:
 
-DEPPATH := --dep-path .
-VPATH := .
+depend:
 
-include stdio/Make.defs
-include stdlib/Make.defs
-include unistd/Make.defs
-include sched/Make.defs
-include string/Make.defs
-include pthread/Make.defs
-include semaphore/Make.defs
-include signal/Make.defs
-include mqueue/Make.defs
-include math/Make.defs
-include net/Make.defs
-include time/Make.defs
-include libgen/Make.defs
-include dirent/Make.defs
-include termios/Make.defs
-include queue/Make.defs
-include misc/Make.defs
-
-AOBJS = $(ASRCS:.S=$(OBJEXT))
-COBJS = $(CSRCS:.c=$(OBJEXT))
-
-SRCS = $(ASRCS) $(CSRCS)
-OBJS = $(AOBJS) $(COBJS)
-
-UBIN = libulib$(LIBEXT)
-KBIN = libklib$(LIBEXT)
-BIN  = liblib$(LIBEXT)
-
-all: $(BIN)
-
-$(AOBJS): %$(OBJEXT): %.S
-	$(call ASSEMBLE, $<, $@)
-
-$(COBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-$(BIN):	$(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
-
-ifneq ($(BIN),$(UBIN))
-.userlib:
-	@$(MAKE) $(UBIN) BIN=$(UBIN) TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
-	@touch .userlib
-
-$(UBIN): kclean .userlib
-endif
-
-ifneq ($(BIN),$(KBIN))
-.kernlib:
-	@$(MAKE) $(KBIN) BIN=$(KBIN) TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
-	@touch .kernlib
-
-$(KBIN): uclean .kernlib
-endif
-
-.depend: Makefile $(SRCS)
-	@$(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
-
-depend: .depend
-
-# Clean Targets:
-# Clean user-mode temporary files (retaining the UBIN binary)
-
-uclean:
-ifneq ($(OBJEXT),)
-	@( if [ -f .userlib ]; then rm -f *$(OBJEXT); fi )
-endif
-	@rm -f .userlib *~ .*.swp
-
-# Clean kernel-mode temporary files (retaining the KBIN binary)
-
-kclean:
-ifneq ($(OBJEXT),)
-	@( if [ -f .kernlib ]; then rm -f *$(OBJEXT); fi )
-endif
-	@rm -f .kernlib *~ .*.swp
-
-# Really clean everything
-
-clean: uclean kclean
-	@rm -f $(BIN) $(UBIN) $(KBIN) *~ .*.swp
+clean:
 	$(call CLEAN)
 
-# Deep clean -- removes all traces of the configuration
-
 distclean: clean
-	@rm -f Make.dep .depend
-
--include Make.dep

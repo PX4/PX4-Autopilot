@@ -138,11 +138,11 @@ typedef union entry_u entry_t;
  */
 
 #ifdef CONFIG_SCHED_ATEXIT
-typedef void (*atexitfunc_t)(void);
+typedef CODE void (*atexitfunc_t)(void);
 #endif
 
 #ifdef CONFIG_SCHED_ONEXIT
-typedef void (*onexitfunc_t)(int exitcode, FAR void *arg);
+typedef CODE void (*onexitfunc_t)(int exitcode, FAR void *arg);
 #endif
 
 /* POSIX Message queue */
@@ -189,7 +189,7 @@ struct _TCB
   start_t  start;                        /* Thread start function               */
   entry_t  entry;                        /* Entry Point into the thread         */
 
-#ifdef CONFIG_SCHED_ATEXIT
+#if defined(CONFIG_SCHED_ATEXIT) && !defined(CONFIG_SCHED_ONEXIT)
 # if defined(CONFIG_SCHED_ATEXIT_MAX) && CONFIG_SCHED_ATEXIT_MAX > 1
   atexitfunc_t atexitfunc[CONFIG_SCHED_ATEXIT_MAX];
 # else
