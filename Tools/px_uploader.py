@@ -330,7 +330,7 @@ class uploader(object):
 	def upload(self, fw):
 		# Make sure we are doing the right thing
 		if self.board_type != fw.property('board_id'):
-			raise RuntimeError("Firmware not suitable for this board")
+			raise RuntimeError("Firmware not suitable for this board (run 'make configure_px4fmu && make clean' or 'make configure_px4io && make clean' to reconfigure).")
 		if self.fw_maxsize < fw.property('image_size'):
 			raise RuntimeError("Firmware image is too large for this board")
 
