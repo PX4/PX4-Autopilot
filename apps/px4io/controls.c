@@ -59,6 +59,10 @@
 #define DEBUG
 #include "px4io.h"
 
+#define RC_FAILSAFE_TIMEOUT		2000000		/**< two seconds failsafe timeout */
+#define RC_CHANNEL_HIGH_THRESH		1600
+#define RC_CHANNEL_LOW_THRESH		1400
+
 void
 controls_main(void)
 {
@@ -80,7 +84,22 @@ controls_main(void)
 		if (fds[1].revents & POLLIN)
 			sbus_input();
 
-		/* XXX do ppm processing, bypass mode, etc. here */
+		/* force manual input override */
+		if (system_state.rc_channel_data[4] > RC_CHANNEL_HIGH_THRESH) {
+			system_state.mixer_use_fmu = false;
+		} else {
+			/* override not engaged, use FMU */
+			system_state.mixer_use_fmu = true;
+		}
+
+		/* detect rc loss event */
+		if (hrt_absolute_time() - system_state.rc_channels_timestamp > RC_FAILSAFE_TIMEOUT) {
+			system_state.rc_lost = true;
+		}
+
+		/* XXX detect fmu loss event */
+
+		/* XXX handle failsave events - RC loss and FMU loss - here */
 
 		/* do PWM output updates */
 		mixer_tick();

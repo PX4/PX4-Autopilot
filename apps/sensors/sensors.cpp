@@ -95,6 +95,12 @@
 
 #define PPM_INPUT_TIMEOUT_INTERVAL	50000 /**< 50 ms timeout / 20 Hz */
 
+enum RC_DEMIX {
+	RC_DEMIX_NONE  = 0,
+	RC_DEMIX_AUTO  = 1,
+	RC_DEMIX_DELTA = 2
+};
+
 /**
  * Sensor app start / stop handling function
  *
@@ -178,6 +184,8 @@ private:
 
 		int rc_type;
 
+		int rc_demix;					/**< enabled de-mixing of RC mixers */
+
 		int rc_map_roll;
 		int rc_map_pitch;
 		int rc_map_yaw;
@@ -203,6 +211,8 @@ private:
 		param_t dz[_rc_max_chan_count];
 		param_t ex[_rc_max_chan_count];
 		param_t rc_type;
+
+		param_t rc_demix;
 
 		param_t gyro_offset[3];
 		param_t accel_offset[3];
@@ -392,6 +402,8 @@ Sensors::Sensors() :
 
 	_parameter_handles.rc_type = param_find("RC_TYPE");
 
+	_parameter_handles.rc_demix = param_find("RC_DEMIX");
+
 	_parameter_handles.rc_map_roll 	= param_find("RC_MAP_ROLL");
 	_parameter_handles.rc_map_pitch = param_find("RC_MAP_PITCH");
 	_parameter_handles.rc_map_yaw 	= param_find("RC_MAP_YAW");
@@ -496,19 +508,14 @@ Sensors::parameters_update()
 
 	}
 
-	/* update RC function mappings */
-	_rc.function[THROTTLE] = _parameters.rc_map_throttle - 1;
-	_rc.function[ROLL] = _parameters.rc_map_roll - 1;
-	_rc.function[PITCH] = _parameters.rc_map_pitch - 1;
-	_rc.function[YAW] = _parameters.rc_map_yaw - 1;
-	_rc.function[OVERRIDE] = _parameters.rc_map_mode_sw - 1;
-	_rc.function[FUNC_0] = _parameters.rc_map_aux1 - 1;
-	_rc.function[FUNC_1] = _parameters.rc_map_aux2 - 1;
-	_rc.function[FUNC_2] = _parameters.rc_map_aux3 - 1;
-
 	/* remote control type */
 	if (param_get(_parameter_handles.rc_type, &(_parameters.rc_type)) != OK) {
 		warnx("Failed getting remote control type");
+	}
+
+	/* de-mixing */
+	if (param_get(_parameter_handles.rc_demix, &(_parameters.rc_demix)) != OK) {
+		warnx("Failed getting demix setting");
 	}
 
 	/* channel mapping */
@@ -546,6 +553,16 @@ Sensors::parameters_update()
 	if (param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw)) != OK) {
 		warnx("Failed getting rc scaling for yaw");
 	}
+
+	/* update RC function mappings */
+	_rc.function[THROTTLE] = _parameters.rc_map_throttle - 1;
+	_rc.function[ROLL] = _parameters.rc_map_roll - 1;
+	_rc.function[PITCH] = _parameters.rc_map_pitch - 1;
+	_rc.function[YAW] = _parameters.rc_map_yaw - 1;
+	_rc.function[OVERRIDE] = _parameters.rc_map_mode_sw - 1;
+	_rc.function[FUNC_0] = _parameters.rc_map_aux1 - 1;
+	_rc.function[FUNC_1] = _parameters.rc_map_aux2 - 1;
+	_rc.function[FUNC_2] = _parameters.rc_map_aux3 - 1;
 
 	/* gyro offsets */
 	param_get(_parameter_handles.gyro_offset[0], &(_parameters.gyro_offset[0]));
@@ -905,7 +922,7 @@ Sensors::ppm_poll()
 	 */
 	if (ppm_decoded_channels > 4 && hrt_absolute_time() - _ppm_last_valid < PPM_INPUT_TIMEOUT_INTERVAL) {
 
-		for (int i = 0; i < ppm_decoded_channels; i++) {
+		for (unsigned int i = 0; i < ppm_decoded_channels; i++) {
 			raw.values[i] = ppm_buffer[i];
 		}
 
@@ -979,35 +996,54 @@ Sensors::ppm_poll()
 
 		manual_control.timestamp = rc_input.timestamp;
 
-		/* roll input - rolling right is stick-wise and rotation-wise positive */
-		manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled;
+		/* check if input needs to be de-mixed */
+		if (_parameters.rc_demix == (int)RC_DEMIX_DELTA) {
+			// XXX hardcoded for testing purposes, replace with inverted delta mixer from ROMFS
+
+			/* roll input - mixed roll and pitch channels */
+			manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled - _rc.chan[_rc.function[PITCH]].scaled;
+			/* pitch input - mixed roll and pitch channels */
+			manual_control.pitch = -0.5f * (_rc.chan[_rc.function[ROLL]].scaled + _rc.chan[_rc.function[PITCH]].scaled);
+			/* yaw input - stick right is positive and positive rotation */
+			manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled;
+			/* throttle input */
+			manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
+
+		/* direct pass-through of manual input */
+		} else {
+			/* roll input - rolling right is stick-wise and rotation-wise positive */
+			manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled;
+			/*
+			 * pitch input - stick down is negative, but stick down is pitching up (pos) in NED,
+			 * so reverse sign.
+			 */
+			manual_control.pitch = -1.0f * _rc.chan[_rc.function[PITCH]].scaled;
+			/* yaw input - stick right is positive and positive rotation */
+			manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled;
+			/* throttle input */
+			manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
+		}
+
+		/* limit outputs */
 		if (manual_control.roll < -1.0f) manual_control.roll = -1.0f;
 		if (manual_control.roll >  1.0f) manual_control.roll =  1.0f;
-		if (!isnan(_parameters.rc_scale_roll) || !isinf(_parameters.rc_scale_roll)) {
+		if (isfinite(_parameters.rc_scale_roll) && _parameters.rc_scale_roll > 0.0f) {
 			manual_control.roll *= _parameters.rc_scale_roll;
 		}
 
-		/*
-		 * pitch input - stick down is negative, but stick down is pitching up (pos) in NED,
-		 * so reverse sign.
-		 */
-		manual_control.pitch = -1.0f * _rc.chan[_rc.function[PITCH]].scaled;
+		
 		if (manual_control.pitch < -1.0f) manual_control.pitch = -1.0f;
 		if (manual_control.pitch >  1.0f) manual_control.pitch =  1.0f;
-		if (!isnan(_parameters.rc_scale_pitch) || !isinf(_parameters.rc_scale_pitch)) {
+		if (isfinite(_parameters.rc_scale_pitch) && _parameters.rc_scale_pitch > 0.0f) {
 			manual_control.pitch *= _parameters.rc_scale_pitch;
 		}
 
-		/* yaw input - stick right is positive and positive rotation */
-		manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled;
 		if (manual_control.yaw < -1.0f) manual_control.yaw = -1.0f;
 		if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
-		if (!isnan(_parameters.rc_scale_yaw) || !isinf(_parameters.rc_scale_yaw)) {
+		if (isfinite(_parameters.rc_scale_yaw) && _parameters.rc_scale_yaw > 0.0f) {
 			manual_control.yaw *= _parameters.rc_scale_yaw;
 		}
 		
-		/* throttle input */
-		manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
 		if (manual_control.throttle < 0.0f) manual_control.throttle = 0.0f;
 		if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
 

@@ -58,7 +58,7 @@ static struct hrt_call failsafe_call;
  * Count the number of times in a row that we see the arming button
  * held down.
  */
-static unsigned counter;
+static unsigned counter = 0;
 
 #define ARM_COUNTER_THRESHOLD	10
 #define DISARM_COUNTER_THRESHOLD	2
