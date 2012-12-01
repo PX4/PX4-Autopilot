@@ -197,7 +197,8 @@ int nxgl_splitline(FAR struct nxgl_vector_s *vector,
       abs(line.pt2.x - line.pt1.x) < (line.pt2.y - line.pt1.y))
     {
       /* A close to vertical line of width 1 is basically
-       * a single parallelogram of width 1 */
+       * a single parallelogram of width 1.
+       */
 
       traps[1].top.x1 = itob16(line.pt1.x);
       traps[1].top.x2 = traps[1].top.x1;

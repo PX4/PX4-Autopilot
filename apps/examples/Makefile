@@ -38,7 +38,7 @@
 # Sub-directories
 
 SUBDIRS  = adc buttons can cdcacm composite cxxtest dhcpd discover elf ftpc
-SUBDIRS += ftpd hello helloxx hidkbd igmp json lcdrw mm modbus mount
+SUBDIRS += ftpd hello helloxx hidkbd igmp json keypadtest lcdrw mm modbus mount
 SUBDIRS += nettest nsh null nx nxconsole nxffs nxflat nxhello nximage
 SUBDIRS += nxlines nxtext ostest  pashello pipe poll pwm qencoder relays
 SUBDIRS += rgmp romfs serloop telnetd thttpd tiff touchscreen udp uip
@@ -57,7 +57,7 @@ SUBDIRS += usbserial sendmail usbstorage usbterm watchdog wget wgetjson wlan
 CNTXTDIRS = pwm
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-CNTXTDIRS += adc can cdcacm composite cxxtestdhcpd discover ftpd json
+CNTXTDIRS += adc can cdcacm composite cxxtest dhcpd discover ftpd json keypadtest
 CNTXTDIRS += modbus nettest nxlines relays qencoder telnetd watchdog wgetjson
 endif
 

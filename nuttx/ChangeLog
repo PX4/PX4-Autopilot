@@ -3719,3 +3719,6 @@
 	* configs/z16f2800100zcog/ostest - Now supports a native Windows build
 	  (other ZNEO configs may also support the native build, but this has not
 	  been verfiied).
+	* include/nuttx/input/keypad.h, arch/arm/src/calypso/calypso_keypad.c, and
+	  configs/compal_e99/nsh_highram: First cut at a standard keypad interface
+	  definition.  Contributed by Denis Carikli.

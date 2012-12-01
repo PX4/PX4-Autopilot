@@ -1,7 +1,7 @@
 ############################################################################
-# configs/compal_e99/nsh_highram/appconfig
+# apps/examples/keypadtest/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,16 +33,76 @@
 #
 ############################################################################
 
-# NSH shell
-CONFIGURED_APPS += examples/nsh
-CONFIGURED_APPS += system/readline
-CONFIGURED_APPS += nshlib
+-include $(TOPDIR)/.config
+-include $(TOPDIR)/Make.defs
+include $(APPDIR)/Make.defs
 
+# Keypad Test Example
 
-# Path to example in apps/examples
-CONFIGURED_APPS += system/poweroff
-CONFIGURED_APPS += examples/keypadtest
-CONFIGURED_APPS += examples/nxtext
-CONFIGURED_APPS += examples/nxhello
-CONFIGURED_APPS += examples/nxlines
-CONFIGURED_APPS += examples/nximage
+ASRCS		=
+CSRCS		= keypadtest_main.c
+
+AOBJS		= $(ASRCS:.S=$(OBJEXT))
+COBJS		= $(CSRCS:.c=$(OBJEXT))
+
+SRCS		= $(ASRCS) $(CSRCS)
+OBJS		= $(AOBJS) $(COBJS)
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  BIN		= ..\..\libapps$(LIBEXT)
+else
+ifeq ($(WINTOOL),y)
+  BIN		= ..\\..\\libapps$(LIBEXT)
+else
+  BIN		= ../../libapps$(LIBEXT)
+endif
+endif
+
+# helloxx built-in application info
+
+APPNAME         = keypadtest
+PRIORITY        = SCHED_PRIORITY_DEFAULT
+STACKSIZE       = 2048
+
+ROOTDEPPATH	= --dep-path .
+
+# Common build
+
+VPATH		=
+
+all: .built
+.PHONY: clean depend distclean
+
+$(AOBJS): %$(OBJEXT): %.S
+	$(call ASSEMBLE, $<, $@)
+
+$(COBJS): %$(OBJEXT): %.c
+	$(call COMPILE, $<, $@)
+
+.built: $(OBJS)
+	$(call ARCHIVE, $(BIN), $(OBJS))
+	@touch .built
+
+.context:
+ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
+	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
+	@touch $@
+endif
+
+context: .context
+
+.depend: Makefile $(SRCS)
+	@$(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@touch $@
+
+depend: .depend
+
+clean:
+	$(call DELFILE, .built)
+	$(call CLEAN)
+
+distclean: clean
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
+
+-include Make.dep

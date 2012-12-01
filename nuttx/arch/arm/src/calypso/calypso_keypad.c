@@ -369,3 +369,11 @@ void up_keypad(void)
 
   (void)register_driver("/dev/keypad", &keypad_ops, 0444, NULL);
 }
+
+int keypad_kbdinit(void)
+{
+  calypso_armio();
+  up_keypad();
+
+  return OK;
+}

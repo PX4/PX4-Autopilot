@@ -98,6 +98,10 @@ ifeq ($(CONFIG_EXAMPLES_JSON),y)
 CONFIGURED_APPS += examples/json
 endif
 
+ifeq ($(CONFIG_EXAMPLES_KEYPADTEST),y)
+CONFIGURED_APPS += examples/keypadtest
+endif
+
 ifeq ($(CONFIG_EXAMPLES_LCDRW),y)
 CONFIGURED_APPS += examples/lcdrw
 endif

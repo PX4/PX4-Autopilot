@@ -580,6 +580,19 @@ examples/json
   on 2011-10-10 so I presume that the code is stable and there is no risk
   of maintaining duplicate logic in the NuttX repository.
 
+examples/keypadtest
+^^^^^^^^^^^^^^^^^^^
+
+  This is a generic keypad test example.  It is similar to the USB hidkbd
+  example, but makes no assumptions about the underlying keyboard interface.
+  It uses the interfaces of include/nuttx/input/keypad.h.
+
+  CONFIG_EXAMPLES_KEYPADTEST - Selects the keypadtest example (only need
+    if the mconf/Kconfig tool is used.
+
+  CONFIG_EXAMPLES_KEYPAD_DEVNAME - The name of the keypad device that will
+    be opened in order to perform the keypad test.  Default: "/dev/keypad"
+
 examples/lcdrw
 ^^^^^^^^^^^^^^
 

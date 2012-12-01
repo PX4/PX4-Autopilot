@@ -1,0 +1,21 @@
+#
+# For a description of the syntax of this configuration file,
+# see misc/tools/kconfig-language.txt.
+#
+
+config EXAMPLES_KEYPADTEST
+	bool "Keypad test example program"
+	default n
+	---help---
+		Enable the Keypad test example programe
+
+if EXAMPLES_KEYPADTEST
+
+	config EXAMPLES_KEYPAD_DEVNAME
+	string "Keypad Device Name"
+	default "/dev/keypad"
+	---help---
+		The name of the keypad device that will be opened in order to perform
+		the keypad test.  Default: "/dev/keypad"
+
+endif
