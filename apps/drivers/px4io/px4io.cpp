@@ -461,15 +461,17 @@ PX4IO::rx_callback(const uint8_t *buffer, size_t bytes_received)
 	}
 	_connected = true;
 
-	/* publish raw rc channel values from IO */
-	_input_rc.timestamp = hrt_absolute_time();
-	_input_rc.channel_count = rep->channel_count;
-	for (int i = 0; i < rep->channel_count; i++)
-	{
-		_input_rc.values[i] = rep->rc_channel[i];
-	}
+	/* publish raw rc channel values from IO if valid channels are present */
+	if (rep->channel_count > 0) {
+		_input_rc.timestamp = hrt_absolute_time();
+		_input_rc.channel_count = rep->channel_count;
+		for (int i = 0; i < rep->channel_count; i++)
+		{
+			_input_rc.values[i] = rep->rc_channel[i];
+		}
 
-	orb_publish(ORB_ID(input_rc), _to_input_rc, &_input_rc);
+		orb_publish(ORB_ID(input_rc), _to_input_rc, &_input_rc);
+	}
 
 	/* remember the latched arming switch state */
 	_switch_armed = rep->armed;

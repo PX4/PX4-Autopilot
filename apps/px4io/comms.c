@@ -132,7 +132,13 @@ comms_main(void)
 			/* populate the report */
 			for (int i = 0; i < system_state.rc_channels; i++)
 				report.rc_channel[i] = system_state.rc_channel_data[i];
-			report.channel_count = system_state.rc_channels;
+
+			if (system_state.sbus_input_ok || system_state.dsm_input_ok || system_state.ppm_input_ok) {
+				report.channel_count = system_state.rc_channels;
+			} else {
+				report.channel_count = 0;
+			}
+			
 			report.armed = system_state.armed;
 
 			/* and send it */
