@@ -43,9 +43,15 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+/* First, second, and thired order congruential generators are supported */
 
 #ifndef CONFIG_LIB_RAND_ORDER
 #  define CONFIG_LIB_RAND_ORDER 1
+#endif
+
+#if CONFIG_LIB_RAND_ORDER > 3
+#  undef CONFIG_LIB_RAND_ORDER
+#  define CONFIG_LIB_RAND_ORDER 3
 #endif
 
 /* Values needed by the random number generator */
@@ -60,23 +66,31 @@
 #define RND3_CONSTK3 616087
 #define RND3_CONSTP  997783
 
-#if CONFIG_LIB_RAND_ORDER == 1
-#  define RND_CONSTP RND1_CONSTP
-#elif CONFIG_LIB_RAND_ORDER == 2
-#  define RND_CONSTP RND2_CONSTP
-#else
-#  define RND_CONSTP RND3_CONSTP
-#endif
-
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
 static unsigned int nrand(unsigned int nLimit);
+
+/* First order congruential generators */
+
+static inline void fgenerate1(void);
+#if (CONFIG_LIB_RAND_ORDER == 1)
 static double_t frand1(void);
+#endif
+
+/* Second order congruential generators */
+
 #if (CONFIG_LIB_RAND_ORDER > 1)
+static inline void fgenerate2(void);
+#if (CONFIG_LIB_RAND_ORDER == 2)
 static double_t frand2(void);
+#endif
+
+/* Third order congruential generators */
+
 #if (CONFIG_LIB_RAND_ORDER > 2)
+static inline void fgenerate3(void);
 static double_t frand3(void);
 #endif
 #endif
@@ -112,7 +126,7 @@ static unsigned int nrand(unsigned int nLimit)
       ratio = frand1();
 #elif (CONFIG_LIB_RAND_ORDER == 2)
       ratio = frand2();
-#else
+#else /* if (CONFIG_LIB_RAND_ORDER > 2) */
       ratio = frand3();
 #endif
 
@@ -125,50 +139,78 @@ static unsigned int nrand(unsigned int nLimit)
   return (unsigned int)result;
 }
 
-static double_t frand1(void)
+/* First order congruential generators */
+
+static inline void fgenerate1(void)
 {
   unsigned long randint;
 
-  /* First order congruential generator.  One is added to the result of the
-   * generated value to avoid the value zero which breaks the logic.
+  /* First order congruential generator.  One may be added to the result of the
+   * generated value to avoid the value zero.  This would be fatal for the
+   * first order random number generator.
    */
 
-  randint    = (RND1_CONSTK * g_randint1) % RND1_CONSTP + 1;
-  g_randint1 = randint;
+  randint    = (RND1_CONSTK * g_randint1) % RND1_CONSTP;
+  g_randint1 = (randint == 0 ? 1 : randint);
+}
+
+#if (CONFIG_LIB_RAND_ORDER == 1)
+static double_t frand1(void)
+{
+  /* First order congruential generator. */
+
+  fgenerate1();
 
   /* Construct an floating point value in the range from 0.0 up to 1.0 */
 
-  return ((double_t)randint) / ((double_t)RND_CONSTP);
+  return ((double_t)g_randint1) / ((double_t)RND1_CONSTP);
 }
+#endif
+
+/* Second order congruential generators */
 
 #if (CONFIG_LIB_RAND_ORDER > 1)
-static double_t frand2(void)
+static inline void fgenerate2(void)
 {
   unsigned long randint;
 
-  /* Second order congruential generator.  One is added to the result of the
-   * generated value to avoid the value zero which breaks the logic.
+  /* Second order congruential generator.  One may be added to the result of the
+   * generated value to avoid the value zero (I am not sure if this is necessor
+   * for higher order random number generators or how this may effect the quality
+   * of the generated numbers).
    */
 
   randint    = (RND2_CONSTK1 * g_randint1 +
                 RND2_CONSTK2 * g_randint2) % RND2_CONSTP + 1;
 
   g_randint2 = g_randint1;
-  g_randint1 = randint;
+  g_randint1 = (randint == 0 ? 1 : randint);
+}
+
+#if (CONFIG_LIB_RAND_ORDER == 2)
+static double_t frand2(void)
+{
+  /* Second order congruential generator */
+
+  fgenerate2();
 
   /* Construct an floating point value in the range from 0.0 up to 1.0 */
 
-  return ((double_t)randint) / ((double_t)RND_CONSTP);
-
+  return ((double_t)g_randint1) / ((double_t)RND2_CONSTP);
 }
+#endif
+
+/* Third order congruential generators */
 
 #if (CONFIG_LIB_RAND_ORDER > 2)
-static double_t frand3(void)
+static inline void fgenerate3(void)
 {
   unsigned long randint;
 
-  /* Third order congruential generator.  One is added to the result of the
-   * generated value to avoid the value zero which breaks the logic.
+  /* Third order congruential generator.  One may be added to the result of the
+   * generated value to avoid the value zero (I am not sure if this is necessor
+   * for higher order random number generators or how this may effect the quality
+   * of the generated numbers).
    */
 
   randint    = (RND3_CONSTK1 * g_randint1 +
@@ -177,11 +219,18 @@ static double_t frand3(void)
 
   g_randint3 = g_randint2;
   g_randint2 = g_randint1;
-  g_randint1 = randint;
+  g_randint1 = (randint == 0 ? 1 : randint);
+}
+
+static double_t frand3(void)
+{
+  /* Third order congruential generator */
+
+  fgenerate3();
 
   /* Construct an floating point value in the range from 0.0 up to 1.0 */
 
-  return ((double_t)randint) / ((double_t)RND_CONSTP);
+  return ((double_t)g_randint1) / ((double_t)RND3_CONSTP);
 }
 #endif
 #endif
@@ -199,10 +248,10 @@ void srand(unsigned int seed)
   g_randint1 = seed;
 #if (CONFIG_LIB_RAND_ORDER > 1)
   g_randint2 = seed;
-  (void)frand1();
+  fgenerate1();
 #if (CONFIG_LIB_RAND_ORDER > 2)
   g_randint3 = seed;
-  (void)frand2();
+  fgenerate2();
 #endif
 #endif
 }
