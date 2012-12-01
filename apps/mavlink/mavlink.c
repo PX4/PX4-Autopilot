@@ -189,10 +189,6 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 	*mavlink_mode = 0;
 
 	/* set mode flags independent of system state */
-	if (v_status.flag_control_manual_enabled) {
-		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-	}
-
 	if (v_status.flag_hil_enabled) {
 		*mavlink_mode |= MAV_MODE_FLAG_HIL_ENABLED;
 	}
@@ -231,11 +227,14 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 	case SYSTEM_STATE_STABILIZED:
 		*mavlink_state = MAV_STATE_ACTIVE;
 		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
 		break;
 
 	case SYSTEM_STATE_AUTO:
 		*mavlink_state = MAV_STATE_ACTIVE;
 		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
+		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+		*mavlink_mode |= MAV_MODE_FLAG_AUTO_ENABLED;
 		break;
 
 	case SYSTEM_STATE_MISSION_ABORT:
