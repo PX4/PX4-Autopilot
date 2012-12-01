@@ -49,7 +49,6 @@
 #include <fcntl.h>
 
 #include <drivers/drv_pwm_output.h>
-#include <drivers/drv_hrt.h>
 
 #include <systemlib/ppm_decode.h>
 
@@ -125,12 +124,11 @@ mixer_tick(void)
 		/* we have no control input */
 		control_count = 0;
 	}
-
 	/*
 	 * Tickle each mixer, if we have control data.
 	 */
 	if (control_count > 0) {
-		for (i = 0; i < PX4IO_OUTPUT_CHANNELS; i++) {
+		for (i = 0; i < IO_SERVO_COUNT; i++) {
 			mixer_update(i, control_values, control_count);
 
 			/*
