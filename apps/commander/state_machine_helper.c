@@ -565,6 +565,28 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 {
 	printf("[commander] Requested new mode: %d\n", (int)mode);
 	uint8_t ret = 1;
+    
+    /* Switch on HIL if in standby and not already in HIL mode */
+	if ((current_status->state_machine == SYSTEM_STATE_STANDBY) && (mode & VEHICLE_MODE_FLAG_HIL_ENABLED)
+		&& !current_status->flag_hil_enabled) {
+		/* Enable HIL on request */
+		current_status->flag_hil_enabled = true;
+		ret = OK;
+		state_machine_publish(status_pub, current_status, mavlink_fd);
+		publish_armed_status(current_status);
+		printf("[commander] Enabling HIL, locking down all actuators for safety.\n\t(Arming the system will not activate them while in HIL mode)\n");
+	} else if (current_status->state_machine != SYSTEM_STATE_STANDBY) {
+		mavlink_log_critical(mavlink_fd, "[commander] REJECTING HIL, not in standby.")
+	}
+    
+	/* switch manual / auto */
+	if (mode & VEHICLE_MODE_FLAG_AUTO_ENABLED) {
+		update_state_machine_mode_auto(status_pub, current_status, mavlink_fd);
+	} else if (mode & VEHICLE_MODE_FLAG_STABILIZED_ENABLED) {
+		update_state_machine_mode_stabilized(status_pub, current_status, mavlink_fd);
+	} else if (mode & VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED) {
+		update_state_machine_mode_manual(status_pub, current_status, mavlink_fd);
+	}
 
 	/* vehicle is disarmed, mode requests arming */
 	if (!(current_status->flag_system_armed) && (mode & VEHICLE_MODE_FLAG_SAFETY_ARMED)) {
@@ -585,19 +607,6 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 			ret = OK;
 			printf("[commander] disarming due to command request\n");
 		}
-	}
-
-	/* Switch on HIL if in standby and not already in HIL mode */
-	if ((current_status->state_machine == SYSTEM_STATE_STANDBY) && (mode & VEHICLE_MODE_FLAG_HIL_ENABLED)
-		&& !current_status->flag_hil_enabled) {
-		/* Enable HIL on request */
-		current_status->flag_hil_enabled = true;
-		ret = OK;
-		state_machine_publish(status_pub, current_status, mavlink_fd);
-		publish_armed_status(current_status);
-		printf("[commander] Enabling HIL, locking down all actuators for safety.\n\t(Arming the system will not activate them while in HIL mode)\n");
-	} else if (current_status->state_machine != SYSTEM_STATE_STANDBY) {
-		mavlink_log_critical(mavlink_fd, "[commander] REJECTING HIL, not in standby.")
 	}
 
 	/* NEVER actually switch off HIL without reboot */
