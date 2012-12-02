@@ -499,7 +499,8 @@ PX4IO::io_send()
 
 	// XXX relays
 
-	cmd.arm_ok = _armed.armed;
+	/* armed and not locked down */
+	cmd.arm_ok = (_armed.armed && !_armed.lockdown);
 
 	ret = hx_stream_send(_io_stream, &cmd, sizeof(cmd));
 	if (ret)
