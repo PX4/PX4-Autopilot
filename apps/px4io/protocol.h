@@ -62,11 +62,7 @@ struct px4io_config {
 	uint16_t f2i_config_magic;
 #define F2I_CONFIG_MAGIC 0x6366
 
-	uint8_t		serial_rx_mode;
-#define RX_MODE_PPM_ONLY	0
-#define RX_MODE_DSM_10BIT	1
-#define RX_MODE_DSM_11BIT	2
-#define RX_MODE_FUTABA_SBUS	3
+	/* XXX currently nothing here */
 };
 
 /* report from IO to FMU */
