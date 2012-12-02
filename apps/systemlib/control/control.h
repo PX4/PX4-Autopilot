@@ -42,15 +42,36 @@
 namespace control
 {
 
+class Limit
+{
+public:
+    Limit();
+    virtual ~Limit();
+    float update(float input, uint16_t dt);
+    void setMin(float min) {_min=min;}
+    float getMin() {return _min;}
+    void setMax(float max) {_max=max;}
+    float getMax() {return _max;}
+private:
+    float _min;
+    float _max;
+};
+
 class Integral
 {
 public:
     Integral();
     virtual ~Integral();
     float update(float input, uint16_t dt);
-    void set(float x) {_x = x;}
+    void setState(float state) {_state = state;}
+    float getState() {return _state;}
+    void setMin(float min) {_limit.setMin(min);}
+    float getMin() {return _limit.getMin();}
+    void setMax(float max) {_limit.setMax(max);}
+    float getMax() {return _limit.getMax();}
 private:
-    float _x;
+    float _state;
+    Limit _limit;
 };
 
 class Derivative
@@ -59,31 +80,36 @@ public:
     Derivative();
     virtual ~Derivative();
     float update(float input, uint16_t dt);
+    void setState(float state) {_state = state;}
+    float getState() {return _state;}
 private:
-    float _x;
-};
-
-class Limit
-{
-public:
-    Limit(float min, float max);
-    virtual ~Limit();
-    float update(float input, uint16_t dt);
-    void set(float min, float max) {_min=min; _max=max;}
-private:
-    float _min;
-    float _max;
+    float _state;
 };
 
 class PID
 {
 public:
-    PID(float kP, float kI, float kD);
+    PID();
     virtual ~PID();
+    float update(float input, uint16_t dt);
+    void setKP(float kP) {_kP = kP;}
+    float getKP() {return _kP;}
+    void setKI(float kI) {_kI = kI;}
+    float getKI() {return _kI;}
+    void setKD(float kD) {_kD = kD;}
+    float getKD() {return _kD;}
+    void setIMin(float min) {getIntegral().setMin(min);}
+    float getIMin() {return getIntegral().getMin();}
+    void setIMax(float max) {getIntegral().setMax(max);}
+    float getIMax() {return getIntegral().getMax();}
 private:
-    float _kP, _kI, _kD;
-    Integral i;
-    Derivative d;
+    Integral & getIntegral() {return _integral;}
+    Derivative & getDerivative() {return _derivative;}
+    float _kP;
+    float _kI;
+    float _kD;
+    Integral _integral;
+    Derivative _derivative;
 };
 
 

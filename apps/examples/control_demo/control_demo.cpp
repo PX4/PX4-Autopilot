@@ -130,13 +130,14 @@ int control_demo_thread_main(int argc, char *argv[]) {
 
     control::Derivative derivative;
     control::Integral integral;
-    control::Limit limit(0,0);
-    control::PID pid(0,0,0);
+    control::Limit limit;
+    control::PID pid;
 
 	thread_running = true;
 
 	while (!thread_should_exit) {
 		printf("Control demo running!\n");
+        pid.update(1,1);
 		sleep(10);
 	}
 

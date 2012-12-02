@@ -48,43 +48,8 @@
 namespace control
 {
 
-__EXPORT Integral::Integral() :
-    _x(0)
-{
-    printf("ctor Integral\n");
-}
-
-__EXPORT float Integral::update(float input, uint16_t dt)
-{
-    printf("update Integral");
-    _x += input*dt;
-    return _x;
-}
-
-__EXPORT Integral::~Integral()
-{
-    printf("dtor Integral\n");
-}
-
-__EXPORT Derivative::Derivative() :
-    _x(0)
-{
-    printf("ctor Derivative\n");
-}
-
-__EXPORT float Derivative::update(float input, uint16_t dt)
-{
-    printf("update Derivative\n");
-    return (input - _x)/dt;
-}
-
-__EXPORT Derivative::~Derivative()
-{
-    printf("dtor Derivative\n");
-}
-
-__EXPORT Limit::Limit(float min, float max) :
-    _min(min), _max(max)
+__EXPORT Limit::Limit() :
+    _min(0), _max(0)
 {
     printf("ctor Limit\n");
 }
@@ -92,13 +57,13 @@ __EXPORT Limit::Limit(float min, float max) :
 __EXPORT float Limit::update(float input, uint16_t dt)
 {
     printf("update Limit\n");
-    if (input > _max)
+    if (input > getMax())
     {
-        input = _max;
+        input = getMax();
     }
-    else if (input < _min)
+    else if (input < getMin())
     {
-        input = _min;
+        input = getMin();
     }
     return input;
 }
@@ -108,10 +73,55 @@ __EXPORT Limit::~Limit()
     printf("dtor Limit\n");
 }
 
-__EXPORT PID::PID(float kP, float kI, float kD) :
-    _kP(kP), _kI(kI), _kD(kD)
+__EXPORT Integral::Integral() :
+    _state(0), _limit()
+{
+    printf("ctor Integral\n");
+}
+
+__EXPORT float Integral::update(float input, uint16_t dt)
+{
+    printf("update Integral");
+    setState(_limit.update(getState() + input*dt,dt));
+    return getState();
+}
+
+__EXPORT Integral::~Integral()
+{
+    printf("dtor Integral\n");
+}
+
+__EXPORT Derivative::Derivative() :
+    _state(0)
+{
+    printf("ctor Derivative\n");
+}
+
+__EXPORT float Derivative::update(float input, uint16_t dt)
+{
+    printf("update Derivative\n");
+    float output = (input - getState())/dt;
+    setState(input);
+    return output;
+}
+
+__EXPORT Derivative::~Derivative()
+{
+    printf("dtor Derivative\n");
+}
+
+__EXPORT PID::PID() :
+    _kP(0), _kI(0), _kD(0)
 {
     printf("ctor PID\n");
+}
+
+__EXPORT float PID::update(float input, uint16_t dt)
+{
+    printf("update PID\n");
+    return getKP()*input + 
+        getKI()*getIntegral().update(input,dt) +
+        getKD()*getDerivative().update(input,dt);
 }
 
 __EXPORT PID::~PID()
