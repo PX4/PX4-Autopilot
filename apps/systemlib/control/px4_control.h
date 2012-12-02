@@ -39,16 +39,40 @@
 
 #pragma once
 
+#include <systemlib/control/control.h>
+#include <systemlib/param/param.h>
+
 namespace control
 {
 namespace px4
 {
 
-class PID
+float getFloatParam(param_t param);
+
+class Named
 {
 public:
-    PID();
-    void setParams();
+    Named(const char * name);
+    const char * getName() { return _name; }
+    const char * prependName(const char * string);
+private:
+    const char * _name;
+};
+
+class PID :
+    public control::PID,
+    public Named
+{
+public:
+    PID(const char * name);
+    void updateParams();
+private:
+    param_t _handle_kP;
+    param_t _handle_kI;
+    param_t _handle_kD;
+    param_t _handle_iMin;
+    param_t _handle_iMax;
+    param_t _handle_fCut;
 };
 
 } // namespace px4

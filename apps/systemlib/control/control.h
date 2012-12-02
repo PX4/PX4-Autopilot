@@ -76,12 +76,12 @@ public:
 // accessors
     void setState(float state) {_state = state;}
     float getState() {return _state;}
-    void setCutFreq(float cutFreq) {_cutFreq=cutFreq;}
-    float getCutFreq() {return _cutFreq;}
+    void setFCut(float fCut) {_fCut=fCut;}
+    float getFCut() {return _fCut;}
 private:
 // attributes
     float _state; /**< previous output */
-    float _cutFreq; /**< cut-off frequency, Hz */
+    float _fCut; /**< cut-off frequency, Hz */
 };
 
 /**
@@ -128,8 +128,8 @@ public:
 // accessors
     void setState(float state) {_state = state;}
     float getState() {return _state;}
-    void setCutFreq(float cutFreq) {_lowPass.setCutFreq(cutFreq);}
-    float getCutFreq() {return _lowPass.getCutFreq();}
+    void setFCut(float fCut) {_lowPass.setFCut(fCut);}
+    float getFCut() {return _lowPass.getFCut();}
 private:
 // attributes
     float _state; /**< previous input */
@@ -162,6 +162,8 @@ public:
     float getIMin() {return getIntegral().getMin();}
     void setIMax(float max) {getIntegral().setMax(max);}
     float getIMax() {return getIntegral().getMax();}
+    void setFCut(float fCut) {getDerivative().setFCut(fCut);}
+    float getFCut() {return getDerivative().getFCut();}
 private:
 // accessors
     Integral & getIntegral() {return _integral;}

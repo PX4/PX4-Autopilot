@@ -51,11 +51,47 @@ namespace control
 namespace px4
 {
 
-PID::PID() {
+__EXPORT float getFloatParam(param_t param)
+{
+    float val;
+    if (param_get(param,&val))
+    {
+        printf("error loading param: %s", param_name(param));
+    }
+    return val;
 }
 
-void PID::setParams() {
+__EXPORT Named::Named(const char * name) :
+    _name(name)
+{
 }
+
+__EXPORT const char * Named::prependName(const char * string) 
+{
+    char buf[120];
+    snprintf(buf,120,"%s_%s",_name,string);
+    return buf;
+}
+
+__EXPORT PID::PID(const char * name) :
+    Named(name),
+    _handle_kP(param_find(prependName("P"))),
+    _handle_kI(param_find(prependName("I"))),
+    _handle_kD(param_find(prependName("D"))),
+    _handle_iMin(param_find(prependName("IMIN"))),
+    _handle_iMax(param_find(prependName("IMAX"))),
+    _handle_fCut(param_find(prependName("FCUT")))
+{
+}
+
+__EXPORT void PID::updateParams() { 
+    setKP(getFloatParam(_handle_kP));
+    setKI(getFloatParam(_handle_kI));
+    setKD(getFloatParam(_handle_kD));
+    setIMin(getFloatParam(_handle_iMin));
+    setIMax(getFloatParam(_handle_iMax));
+    setFCut(getFloatParam(_handle_fCut));
+} 
 
 } // namespace px4
 } // namespace control
