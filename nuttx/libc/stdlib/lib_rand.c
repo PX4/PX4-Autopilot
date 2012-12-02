@@ -174,17 +174,22 @@ static inline void fgenerate2(void)
 {
   unsigned long randint;
 
-  /* Second order congruential generator.  One may be added to the result of the
-   * generated value to avoid the value zero (I am not sure if this is necessary
-   * for higher order random number generators or how this may effect the quality
-   * of the generated numbers).
-   */
+  /* Second order congruential generator. */
 
   randint    = (RND2_CONSTK1 * g_randint1 +
                 RND2_CONSTK2 * g_randint2) % RND2_CONSTP;
 
   g_randint2 = g_randint1;
-  g_randint1 = (randint == 0 ? 1 : randint);
+  g_randint1 = randint;
+
+  /* We cannot permit both values to become zero.  That would be fatal for the
+   * second order random number generator.
+   */
+
+  if (g_randint2 == 0 && g_randint1 == 0)
+    {
+      g_randint2 = 1;
+    }
 }
 
 #if (CONFIG_LIB_RAND_ORDER == 2)
@@ -207,11 +212,7 @@ static inline void fgenerate3(void)
 {
   unsigned long randint;
 
-  /* Third order congruential generator.  One may be added to the result of the
-   * generated value to avoid the value zero (I am not sure if this is necessary
-   * for higher order random number generators or how this may effect the quality
-   * of the generated numbers).
-   */
+  /* Third order congruential generator. */
 
   randint    = (RND3_CONSTK1 * g_randint1 +
                 RND3_CONSTK2 * g_randint2 +
@@ -219,7 +220,16 @@ static inline void fgenerate3(void)
 
   g_randint3 = g_randint2;
   g_randint2 = g_randint1;
-  g_randint1 = (randint == 0 ? 1 : randint);
+  g_randint1 = randint;
+
+  /* We cannot permit all three values to become zero.  That would be fatal for the
+   * third order random number generator.
+   */
+
+  if (g_randint3 == 0 && g_randint2 == 0 && g_randint1 == 0)
+    {
+      g_randint3 = 1;
+    }
 }
 
 static double_t frand3(void)

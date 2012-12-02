@@ -3724,3 +3724,6 @@
 	  definition.  Contributed by Denis Carikli.
 	* libc/stdlib/lib_rand.c:  Always add one to result congruential generators
 	  to avoid the value zero.  Suggested by Freddie Chopin.
+	* tools/b16.c:  Fixed precision math conversion utility.
+	* graphics/nxglib/nxglib_splitlinex.c:  Fix the "fat, flat line bug"
+

@@ -44,11 +44,14 @@ ifneq ($(CONFIG_WINDOWS_NATIVE),y)
   HOSTCFLAGS += -D HAVE_STRTOK_C
 endif
 
-all: mkconfig$(HOSTEXEEXT) mkversion$(HOSTEXEEXT) mksyscall$(HOSTEXEEXT) bdf-converter$(HOSTEXEEXT) mksymtab$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT)
+all: b16$(HOSTEXEEXT) bdf-converter$(HOSTEXEEXT) cmpconfig$(HOSTEXEEXT) \
+    mkconfig$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT) mksymtab$(HOSTEXEEXT) \
+    mksyscall$(HOSTEXEEXT) mkversion$(HOSTEXEEXT) 
 default: mkconfig$(HOSTEXEEXT) mksyscall$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT)
 
 ifdef HOSTEXEEXT
-.PHONY: clean mkconfig mkversion mksyscall bdf-converter mksymtab mkdeps
+.PHONY: b16 bdf-converter cmpconfig clean mkconfig mkdeps mksymtab \
+    mksyscall mkversion
 else
 .PHONY: clean
 endif
@@ -57,6 +60,15 @@ endif
 
 HOSTCFLAGS ?= -O2 -Wall -I.
 HOSTCC ?= gcc
+
+# b16 - Fixed precision math converstion tool
+
+b16$(HOSTEXEEXT): b16.c 
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o b16$(HOSTEXEEXT) b16.c 
+
+ifdef HOSTEXEEXT
+b16: b16$(HOSTEXEEXT)
+endif
 
 # mkconfig - Convert a .config file into a C config.h file
 
@@ -69,8 +81,8 @@ endif
 
 # cmpconfig - Compare the contents of two configuration files
 
-cmpconfig: cmpconfig.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o cmpconfig cmpconfig.c
+cmpconfig$(HOSTEXEEXT): cmpconfig.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o cmpconfig$(HOSTEXEEXT) cmpconfig.c
 
 ifdef HOSTEXEEXT
 cmpconfig: cmpconfig$(HOSTEXEEXT)
