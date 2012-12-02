@@ -47,7 +47,7 @@ namespace control
  * The output of update is the input, bounded
  * by min/max.
  */
-class Limit
+class __EXPORT Limit
 {
 public:
     Limit();
@@ -66,7 +66,7 @@ private:
  * A low pass filter as described here: 
  * http://en.wikipedia.org/wiki/Low-pass_filter.
  */
-class LowPass
+class __EXPORT LowPass
 {
 public:
 // methods
@@ -92,7 +92,7 @@ private:
  * for windup protection.
  * @see Limit
  */
-class Integral
+class __EXPORT Integral
 {
 public: 
 // methods
@@ -118,7 +118,7 @@ private:
  * This has a built in low pass filter.
  * @see LowPass
  */
-class Derivative
+class __EXPORT Derivative
 {
 public:
 // methods
@@ -143,7 +143,7 @@ private:
  * and Derivative class.
  * @see Integral, Derivative
  */
-class PID
+class __EXPORT PID
 {
 public:
 // methods

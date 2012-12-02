@@ -51,46 +51,65 @@ namespace control
 namespace px4
 {
 
-__EXPORT float getFloatParam(param_t param)
+bool isValid(param_t param)
 {
-    float val;
+    return param != PARAM_INVALID;
+}
+
+float getFloatParam(param_t param)
+{
+    float val = 0;
+    if (isValid(param)) 
+    {
+        return 0;
+    }
     if (param_get(param,&val))
     {
-        printf("error loading param: %s", param_name(param));
+        printf("error loading param: %s\n", param_name(param));
     }
     return val;
 }
 
-__EXPORT Named::Named(const char * name) :
+param_t findParam(const char * name)
+{
+    param_t param = param_find(name);
+    if (param == PARAM_INVALID)
+    {
+        printf("error finding param: %s\n", name);
+    }
+    return param;
+}
+
+
+Named::Named(const char * name) :
     _name(name)
 {
 }
 
-__EXPORT const char * Named::prependName(const char * string) 
+const char * Named::prependName(const char * string) 
 {
-    char buf[120];
-    snprintf(buf,120,"%s_%s",_name,string);
-    return buf;
+    snprintf(_prependedName,_nameLength,"%s_%s",_name,string);
+    return _prependedName;
 }
 
-__EXPORT PID::PID(const char * name) :
+PID::PID(const char * name) :
     Named(name),
-    _handle_kP(param_find(prependName("P"))),
-    _handle_kI(param_find(prependName("I"))),
-    _handle_kD(param_find(prependName("D"))),
-    _handle_iMin(param_find(prependName("IMIN"))),
-    _handle_iMax(param_find(prependName("IMAX"))),
-    _handle_fCut(param_find(prependName("FCUT")))
+    _handle_kP(findParam(prependName("P"))),
+    _handle_kI(findParam(prependName("I"))),
+    _handle_kD(findParam(prependName("D"))),
+    _handle_iMin(findParam(prependName("IMIN"))),
+    _handle_iMax(findParam(prependName("IMAX"))),
+    _handle_fCut(findParam(prependName("FCUT")))
 {
 }
 
-__EXPORT void PID::updateParams() { 
-    setKP(getFloatParam(_handle_kP));
-    setKI(getFloatParam(_handle_kI));
-    setKD(getFloatParam(_handle_kD));
-    setIMin(getFloatParam(_handle_iMin));
-    setIMax(getFloatParam(_handle_iMax));
-    setFCut(getFloatParam(_handle_fCut));
+void PID::updateParams() { 
+    if (isValid(_handle_kP)) setKP(getFloatParam(_handle_kP));
+    if (isValid(_handle_kI)) setKI(getFloatParam(_handle_kI));
+    if (isValid(_handle_kD)) setKD(getFloatParam(_handle_kD));
+    if (isValid(_handle_iMin)) setIMin(getFloatParam(_handle_iMin));
+    if (isValid(_handle_iMax)) setIMax(getFloatParam(_handle_iMax));
+    if (isValid(_handle_fCut)) setFCut(getFloatParam(_handle_fCut));
 } 
 
 } // namespace px4

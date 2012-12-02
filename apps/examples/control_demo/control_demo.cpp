@@ -43,7 +43,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/control/control.h>
+#include <systemlib/control/px4_control.h>
+#include <systemlib/param/param.h>
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
@@ -72,7 +73,6 @@ usage(const char *reason)
 	fprintf(stderr, "usage: deamon {start|stop|status} [-p <additional params>]\n\n");
 	exit(1);
 }
-
 
 /**
  * The deamon app only briefly exists to start
@@ -132,7 +132,7 @@ int control_demo_thread_main(int argc, char *argv[]) {
     control::LowPass lowPass;
     control::Derivative derivative;
     control::Integral integral;
-    control::PID pid;
+    control::px4::PID pid("hello");
 
 	thread_running = true;
 
@@ -145,6 +145,7 @@ int control_demo_thread_main(int argc, char *argv[]) {
         derivative.update(input,dt);
         integral.update(input,dt);
         pid.update(input,dt);
+        pid.updateParams();
 		sleep(10);
 	}
 

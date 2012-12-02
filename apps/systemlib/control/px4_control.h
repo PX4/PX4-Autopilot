@@ -47,19 +47,25 @@ namespace control
 namespace px4
 {
 
-float getFloatParam(param_t param);
+bool isValid(param_t param);
 
-class Named
+float getFloatParam(param_t param);
+param_t findParam(const char * name);
+
+class __EXPORT Named
 {
 public:
     Named(const char * name);
     const char * getName() { return _name; }
     const char * prependName(const char * string);
 private:
+    enum { _nameLength = 80 };
     const char * _name;
+    char _prependedName[_nameLength];
 };
 
-class PID :
+
+class __EXPORT PID :
     public control::PID,
     public Named
 {

@@ -49,13 +49,13 @@ namespace control
 
 // Limit methods
 
-__EXPORT Limit::Limit() :
+Limit::Limit() :
     _min(0), _max(0)
 {
     printf("ctor Limit\n");
 }
 
-__EXPORT float Limit::update(float input, uint16_t dt)
+float Limit::update(float input, uint16_t dt)
 {
     printf("update Limit\n");
     if (input > getMax())
@@ -69,64 +69,64 @@ __EXPORT float Limit::update(float input, uint16_t dt)
     return input;
 }
 
-__EXPORT Limit::~Limit()
+Limit::~Limit()
 {
     printf("dtor Limit\n");
 }
 
 // LowPass methods
 
-__EXPORT LowPass::LowPass() :
-    _state(0), _cutFreq(0)
+LowPass::LowPass() :
+    _state(0), _fCut(0)
 {
     printf("ctor LowPass\n");
 }
 
-__EXPORT float LowPass::update(float input, uint16_t dt)
+float LowPass::update(float input, uint16_t dt)
 {
-    printf("update LowPass");
-    float b = 2*M_PI*getCutFreq()*dt;
+    printf("update LowPass\n");
+    float b = 2*M_PI*getFCut()*dt;
     float a = b/ (1 + b);
     setState(a*input + (1-a)*getState());
     return getState();
 }
 
-__EXPORT LowPass::~LowPass()
+LowPass::~LowPass()
 {
     printf("dtor LowPass\n");
 }
 
 // Integral methods
 
-__EXPORT Integral::Integral() :
+Integral::Integral() :
     _state(0), _limit()
 {
     printf("ctor Integral\n");
 }
 
-__EXPORT float Integral::update(float input, uint16_t dt)
+float Integral::update(float input, uint16_t dt)
 {
-    printf("update Integral");
+    printf("update Integral\n");
     // trapezoidal integration
     setState(_limit.update(getState() + 
                 (getState() + input)*dt/2,dt));
     return getState();
 }
 
-__EXPORT Integral::~Integral()
+Integral::~Integral()
 {
     printf("dtor Integral\n");
 }
 
 // Derivative methods
 
-__EXPORT Derivative::Derivative() :
+Derivative::Derivative() :
     _state(0)
 {
     printf("ctor Derivative\n");
 }
 
-__EXPORT float Derivative::update(float input, uint16_t dt)
+float Derivative::update(float input, uint16_t dt)
 {
     printf("update Derivative\n");
     float output = (input - getState())/dt;
@@ -134,20 +134,20 @@ __EXPORT float Derivative::update(float input, uint16_t dt)
     return output;
 }
 
-__EXPORT Derivative::~Derivative()
+Derivative::~Derivative()
 {
     printf("dtor Derivative\n");
 }
 
 // PID methods
 
-__EXPORT PID::PID() :
+PID::PID() :
     _kP(0), _kI(0), _kD(0), _integral(), _derivative()
 {
     printf("ctor PID\n");
 }
 
-__EXPORT float PID::update(float input, uint16_t dt)
+float PID::update(float input, uint16_t dt)
 {
     printf("update PID\n");
     return getKP()*input + 
@@ -155,7 +155,7 @@ __EXPORT float PID::update(float input, uint16_t dt)
         getKD()*getDerivative().update(input,dt);
 }
 
-__EXPORT PID::~PID()
+PID::~PID()
 {
     printf("dtor PID\n");
 }
