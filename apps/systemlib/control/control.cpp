@@ -82,7 +82,9 @@ __EXPORT Integral::Integral() :
 __EXPORT float Integral::update(float input, uint16_t dt)
 {
     printf("update Integral");
-    setState(_limit.update(getState() + input*dt,dt));
+    // trapezoidal integration
+    setState(_limit.update(getState() + 
+                (getState() + input)*dt/2,dt));
     return getState();
 }
 
