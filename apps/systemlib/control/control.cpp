@@ -42,11 +42,14 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "control.h"
 
 namespace control
 {
+
+// Limit methods
 
 __EXPORT Limit::Limit() :
     _min(0), _max(0)
@@ -73,6 +76,30 @@ __EXPORT Limit::~Limit()
     printf("dtor Limit\n");
 }
 
+// LowPass methods
+
+__EXPORT LowPass::LowPass() :
+    _state(0), _cutFreq(0)
+{
+    printf("ctor LowPass\n");
+}
+
+__EXPORT float LowPass::update(float input, uint16_t dt)
+{
+    printf("update LowPass");
+    float b = 2*M_PI*getCutFreq()*dt;
+    float a = b/ (1 + b);
+    setState(a*input + (1-a)*getState());
+    return getState();
+}
+
+__EXPORT LowPass::~LowPass()
+{
+    printf("dtor LowPass\n");
+}
+
+// Integral methods
+
 __EXPORT Integral::Integral() :
     _state(0), _limit()
 {
@@ -93,6 +120,8 @@ __EXPORT Integral::~Integral()
     printf("dtor Integral\n");
 }
 
+// Derivative methods
+
 __EXPORT Derivative::Derivative() :
     _state(0)
 {
@@ -112,8 +141,10 @@ __EXPORT Derivative::~Derivative()
     printf("dtor Derivative\n");
 }
 
+// PID methods
+
 __EXPORT PID::PID() :
-    _kP(0), _kI(0), _kD(0)
+    _kP(0), _kI(0), _kD(0), _integral(), _derivative()
 {
     printf("ctor PID\n");
 }

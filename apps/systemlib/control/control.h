@@ -42,6 +42,11 @@
 namespace control
 {
 
+/**
+ * A limiter/ saturation.
+ * The output of update is the input, bounded
+ * by min/max.
+ */
 class Limit
 {
 public:
@@ -53,16 +58,48 @@ public:
     void setMax(float max) {_max=max;}
     float getMax() {return _max;}
 private:
-    float _min;
-    float _max;
+    float _min; /**< output minimum */
+    float _max; /**< output maximum */
 };
 
-class Integral
+/**
+ * A low pass filter as described here: 
+ * http://en.wikipedia.org/wiki/Low-pass_filter.
+ */
+class LowPass
 {
 public:
+// methods
+    LowPass();
+    virtual ~LowPass();
+    float update(float input, uint16_t dt);
+// accessors
+    void setState(float state) {_state = state;}
+    float getState() {return _state;}
+    void setCutFreq(float cutFreq) {_cutFreq=cutFreq;}
+    float getCutFreq() {return _cutFreq;}
+private:
+// attributes
+    float _state; /**< previous output */
+    float _cutFreq; /**< cut-off frequency, Hz */
+};
+
+/**
+ * A trapezoidal integrator.
+ * http://en.wikipedia.org/wiki/Trapezoidal_rule
+ * A limiter is built into the class to bound the
+ * integral's internal state. This is important
+ * for windup protection.
+ * @see Limit
+ */
+class Integral
+{
+public: 
+// methods
     Integral();
     virtual ~Integral();
     float update(float input, uint16_t dt);
+// accessors
     void setState(float state) {_state = state;}
     float getState() {return _state;}
     void setMin(float min) {_limit.setMin(min);}
@@ -70,28 +107,51 @@ public:
     void setMax(float max) {_limit.setMax(max);}
     float getMax() {return _limit.getMax();}
 private:
-    float _state;
-    Limit _limit;
+// attributes
+    float _state; /**< previous output */
+    Limit _limit; /**< limiter */
 };
 
+/**
+ * A simple derivative approximation.
+ * This uses the previous and current input.
+ * This has a built in low pass filter.
+ * @see LowPass
+ */
 class Derivative
 {
 public:
+// methods
     Derivative();
     virtual ~Derivative();
     float update(float input, uint16_t dt);
+// accessors
     void setState(float state) {_state = state;}
     float getState() {return _state;}
+    void setCutFreq(float cutFreq) {_lowPass.setCutFreq(cutFreq);}
+    float getCutFreq() {return _lowPass.getCutFreq();}
 private:
-    float _state;
+// attributes
+    float _state; /**< previous input */
+    LowPass _lowPass; /**< low pass filter */
 };
 
+/**
+ * A proportional-integral-derivative controller.
+ * http://en.wikipedia.org/wiki/PID_controller
+ * This is built upon the Integral 
+ * and Derivative class.
+ * @see Integral, Derivative
+ */
 class PID
 {
 public:
+// methods
     PID();
     virtual ~PID();
     float update(float input, uint16_t dt);
+public:
+// accessors
     void setKP(float kP) {_kP = kP;}
     float getKP() {return _kP;}
     void setKI(float kI) {_kI = kI;}
@@ -103,15 +163,15 @@ public:
     void setIMax(float max) {getIntegral().setMax(max);}
     float getIMax() {return getIntegral().getMax();}
 private:
+// accessors
     Integral & getIntegral() {return _integral;}
     Derivative & getDerivative() {return _derivative;}
-    float _kP;
-    float _kI;
-    float _kD;
-    Integral _integral;
-    Derivative _derivative;
+// attributes
+    float _kP; /**< proportional gain */
+    float _kI; /**< integral gain */
+    float _kD; /**< derivative gain */
+    Integral _integral; /**< integral calculator */
+    Derivative _derivative; /**< derivative calculator */
 };
-
-
 
 } // namespace control

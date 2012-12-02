@@ -128,16 +128,23 @@ int control_demo_thread_main(int argc, char *argv[]) {
 
 	printf("[control_Demo] starting\n");
 
+    control::Limit limit;
+    control::LowPass lowPass;
     control::Derivative derivative;
     control::Integral integral;
-    control::Limit limit;
     control::PID pid;
 
 	thread_running = true;
 
 	while (!thread_should_exit) {
 		printf("Control demo running!\n");
-        pid.update(1,1);
+        float dt = 0.1;
+        float input = 1;
+        limit.update(input,dt);
+        lowPass.update(input,dt);
+        derivative.update(input,dt);
+        integral.update(input,dt);
+        pid.update(input,dt);
 		sleep(10);
 	}
 
