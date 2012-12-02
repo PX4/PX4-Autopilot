@@ -98,6 +98,7 @@ CONFIGURED_APPS += drivers/l3gd20
 CONFIGURED_APPS	+= drivers/px4io
 CONFIGURED_APPS += drivers/stm32
 CONFIGURED_APPS += drivers/led
+CONFIGURED_APPS += drivers/blinkm
 CONFIGURED_APPS += drivers/stm32/tone_alarm
 CONFIGURED_APPS += drivers/px4fmu
 CONFIGURED_APPS += drivers/hil
