@@ -114,10 +114,21 @@ endif
 
 upload:		$(FIRMWARE_BUNDLE) $(UPLOADER)
 	@python -u $(UPLOADER) --port $(SERIAL_PORTS) $(FIRMWARE_BUNDLE)
-	
+
+#
+# JTAG firmware uploading with OpenOCD
+#
+ifeq ($(JTAGCONFIG),)
+JTAGCONFIG=interface/olimex-jtag-tiny.cfg
+endif
+
 upload-jtag-px4fmu:
 	@echo Attempting to flash PX4FMU board via JTAG
-	@openocd -f interface/olimex-jtag-tiny.cfg -f ../Bootloader/stm32f4x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4fmu_bl.elf" -c "reset run" -c shutdown
+	@openocd -f $(JTAGCONFIG) -f ../Bootloader/stm32f4x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4fmu_bl.elf" -c "reset run" -c shutdown
+
+upload-jtag-px4io: all
+	@echo Attempting to flash PX4IO board via JTAG
+	@openocd -f $(JTAGCONFIG) -f ../Bootloader/stm32f1x.cfg -c init -c "reset halt" -c "flash write_image erase nuttx/nuttx" -c "flash write_image erase ../Bootloader/px4io_bl.elf" -c "reset run" -c shutdown
 
 #
 # Hacks and fixups
