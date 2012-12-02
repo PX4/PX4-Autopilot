@@ -178,6 +178,9 @@ BlinkM::init()
 		return ret;
 	}
 
+	/* set some sensible defaults */
+	set_fade_speed(25);
+
 	/* turn off by default */
 	play_script(BLACK);
 
@@ -433,6 +436,7 @@ blinkm_main(int argc, char *argv[])
 
 		if (OK != g_blinkm->init()) {
 			delete g_blinkm;
+			g_blinkm = nullptr;
 			errx(1, "init failed");
 		}
 
