@@ -128,10 +128,6 @@ int control_demo_thread_main(int argc, char *argv[]) {
 
 	printf("[control_Demo] starting\n");
 
-    control::Limit limit;
-    control::LowPass lowPass;
-    control::Derivative derivative;
-    control::Integral integral;
     control::px4::PID pid("hello");
 
 	thread_running = true;
@@ -140,10 +136,6 @@ int control_demo_thread_main(int argc, char *argv[]) {
 		printf("Control demo running!\n");
         float dt = 0.1;
         float input = 1;
-        limit.update(input,dt);
-        lowPass.update(input,dt);
-        derivative.update(input,dt);
-        integral.update(input,dt);
         pid.update(input,dt);
         pid.updateParams();
 		sleep(10);

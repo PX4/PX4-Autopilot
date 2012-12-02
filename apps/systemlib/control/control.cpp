@@ -52,12 +52,10 @@ namespace control
 Limit::Limit() :
     _min(0), _max(0)
 {
-    printf("ctor Limit\n");
 }
 
 float Limit::update(float input, uint16_t dt)
 {
-    printf("update Limit\n");
     if (input > getMax())
     {
         input = getMax();
@@ -71,7 +69,6 @@ float Limit::update(float input, uint16_t dt)
 
 Limit::~Limit()
 {
-    printf("dtor Limit\n");
 }
 
 // LowPass methods
@@ -79,12 +76,10 @@ Limit::~Limit()
 LowPass::LowPass() :
     _state(0), _fCut(0)
 {
-    printf("ctor LowPass\n");
 }
 
 float LowPass::update(float input, uint16_t dt)
 {
-    printf("update LowPass\n");
     float b = 2*M_PI*getFCut()*dt;
     float a = b/ (1 + b);
     setState(a*input + (1-a)*getState());
@@ -93,7 +88,6 @@ float LowPass::update(float input, uint16_t dt)
 
 LowPass::~LowPass()
 {
-    printf("dtor LowPass\n");
 }
 
 // Integral methods
@@ -101,12 +95,10 @@ LowPass::~LowPass()
 Integral::Integral() :
     _state(0), _limit()
 {
-    printf("ctor Integral\n");
 }
 
 float Integral::update(float input, uint16_t dt)
 {
-    printf("update Integral\n");
     // trapezoidal integration
     setState(_limit.update(getState() + 
                 (getState() + input)*dt/2,dt));
@@ -115,7 +107,6 @@ float Integral::update(float input, uint16_t dt)
 
 Integral::~Integral()
 {
-    printf("dtor Integral\n");
 }
 
 // Derivative methods
@@ -123,12 +114,10 @@ Integral::~Integral()
 Derivative::Derivative() :
     _state(0)
 {
-    printf("ctor Derivative\n");
 }
 
 float Derivative::update(float input, uint16_t dt)
 {
-    printf("update Derivative\n");
     float output = (input - getState())/dt;
     setState(input);
     return output;
@@ -136,7 +125,6 @@ float Derivative::update(float input, uint16_t dt)
 
 Derivative::~Derivative()
 {
-    printf("dtor Derivative\n");
 }
 
 // PID methods
@@ -144,12 +132,10 @@ Derivative::~Derivative()
 PID::PID() :
     _kP(0), _kI(0), _kD(0), _integral(), _derivative()
 {
-    printf("ctor PID\n");
 }
 
 float PID::update(float input, uint16_t dt)
 {
-    printf("update PID\n");
     return getKP()*input + 
         getKI()*getIntegral().update(input,dt) +
         getKD()*getDerivative().update(input,dt);
@@ -157,7 +143,6 @@ float PID::update(float input, uint16_t dt)
 
 PID::~PID()
 {
-    printf("dtor PID\n");
 }
 
 
