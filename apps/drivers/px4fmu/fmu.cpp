@@ -382,8 +382,8 @@ PX4FMU::task_main()
 			/* get new value */
 			orb_copy(ORB_ID(actuator_armed), _t_armed, &aa);
 
-			/* update PWM servo armed status */
-			up_pwm_servo_arm(aa.armed);
+			/* update PWM servo armed status if armed and not locked down */
+			up_pwm_servo_arm(aa.armed && !aa.lockdown);
 		}
 	}
 
