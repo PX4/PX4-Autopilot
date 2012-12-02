@@ -48,7 +48,8 @@ CSRCS		 = err.c \
 #		   ppm_decode.c \
 
 
-CXXSRCS   = control/control.cpp
+CXXSRCS   = control/control.cpp \
+			control/px4_control.cpp
 
 
 #

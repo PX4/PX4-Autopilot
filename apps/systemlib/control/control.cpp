@@ -37,8 +37,6 @@
  * Controller library code
  */
 
-#include <nuttx/config.h>
-
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
