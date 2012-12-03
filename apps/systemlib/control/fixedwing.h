@@ -44,6 +44,10 @@
 namespace control
 {
 
+/**
+ * Stability augmentation system.
+ * Aircraft Control and Simulation, Stevens and Lewis, pg. 292, 299
+ */
 template<class BLOCK_LOWPASS, class BLOCK_HIGHPASS, class BLOCK_P>
 class BlockFixedWingStabilization :
     public Block
@@ -92,6 +96,40 @@ public:
     float getAileronCmd() {return _aileronCmd;}
     float getElevatorCmd() {return _elevatorCmd;}
     float getRudderCmd() {return _rudderCmd;}
+};
+
+/**
+ * Heading hold autopilot block.
+ * Aircraft Control and Simulation, Stevens and Lewis, pg. 348
+ */
+template<class BLOCK_P, class BLOCK_LIMIT>
+class BlockFixedWingHeadingHold :
+    public Block
+{
+private:
+    BLOCK_P _psi2Phi;
+    BLOCK_P _p2Phi;
+    BLOCK_P _phi2Ail;
+    BLOCK_LIMIT _phiLimit;
+    float _aileronCmd;
+public:
+    BlockFixedWingHeadingHold(const char * name, Block * parent) :
+        Block(name, parent),
+        _psi2Phi("PSI2PHI",this),
+        _p2Phi("P2PHI",this),
+        _phi2Ail("PHI2AIL",this),
+        _phiLimit("PHI_LIM",this),
+        _aileronCmd(0)
+    {
+    }
+    virtual ~BlockFixedWingHeadingHold() {};
+    void update(float psiCmd, float phi, float psi, float p, uint16_t dt)
+    {
+        float psiError = psiCmd - psi;
+        float phiCmd = _phiLimit.update(_psi2Phi.update(psiError, dt), dt);
+        float phiError = phiCmd - phi;
+        _aileronCmd = _phi2Ail.update(phiError - _p2Phi.update(p, dt), dt);
+    }
 };
 
 } // namespace control

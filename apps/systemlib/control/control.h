@@ -279,6 +279,22 @@ protected:
 };
 
 /**
+ * A limiter/ satruation block.
+ * @link http://en.wikipedia.org/wiki/Low-Pass_filter
+ */
+class __EXPORT BlockLimit:
+    public Block,
+    public Limit
+{
+public:
+// methods
+    BlockLimit(const char * name, Block * parent) : Block(name, parent), Limit() {};
+    virtual ~BlockLimit() {};
+};
+
+
+
+/**
  * A low pass filter block.
  * @link http://en.wikipedia.org/wiki/Low-Pass_filter
  */

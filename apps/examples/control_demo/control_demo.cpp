@@ -131,6 +131,7 @@ int control_demo_thread_main(int argc, char *argv[]) {
 
     using namespace control::px4;
     BlockFixedWingStabilization fixedWingStabilization("FW_STAB", NULL);
+    BlockFixedWingHeadingHold fixedWingHeadingHold("FW_HEAD", NULL);
 
 	thread_running = true;
 
@@ -139,6 +140,8 @@ int control_demo_thread_main(int argc, char *argv[]) {
         float dt = 0.1;
         fixedWingStabilization.update(0,0,0,0,0,0,dt);
         fixedWingStabilization.updateParams();
+        fixedWingHeadingHold.update(0,0,0,0,dt);
+        fixedWingHeadingHold.updateParams();
 		sleep(10);
 	}
 

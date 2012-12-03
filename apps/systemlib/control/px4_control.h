@@ -52,6 +52,27 @@ bool isValid(param_t param);
 float getFloatParam(param_t param);
 param_t findParam(const char * prefix, const char * name);
 
+class __EXPORT BlockLimit :
+    public control::BlockLimit
+{
+public:
+    BlockLimit(const char * name, Block * parent) :
+        control::BlockLimit(name, parent),
+        _handle_min(findParam(getName(),"MIN")),
+        _handle_max(findParam(getName(),"MAX"))
+    {}
+    virtual ~BlockLimit() {}
+    void updateParams()
+    {
+        Block::updateParams();
+        if (isValid(_handle_min)) setMin(getFloatParam(_handle_min));
+        if (isValid(_handle_max)) setMax(getFloatParam(_handle_max));
+    }
+private:
+    param_t _handle_min;
+    param_t _handle_max;
+};
+
 class __EXPORT BlockLowPass :
     public control::BlockLowPass
 {
@@ -155,6 +176,7 @@ typedef control::BlockPI<PParam,IParam> BlockPD;
 typedef control::BlockPID<PParam,IParam,DParam> BlockPID;
 
 typedef control::BlockFixedWingStabilization<BlockLowPass, BlockHighPass, BlockP> BlockFixedWingStabilization;
+typedef control::BlockFixedWingHeadingHold<BlockP, BlockLimit> BlockFixedWingHeadingHold;
 
 } // namespace px4
 } // namespace control
