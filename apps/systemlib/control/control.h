@@ -42,6 +42,18 @@
 namespace control
 {
 
+class __EXPORT Named
+{
+public:
+    Named(const char * name);
+    const char * getName() { return _name; }
+    const char * prependName(const char * string);
+private:
+    enum { _nameLength = 80 };
+    const char * _name;
+    char _prependedName[_nameLength];
+};
+
 /**
  * A limiter/ saturation.
  * The output of update is the input, bounded
@@ -143,11 +155,12 @@ private:
  * and Derivative class.
  * @see Integral, Derivative
  */
-class __EXPORT PID
+class __EXPORT PID:
+    public Named
 {
 public:
 // methods
-    PID();
+    PID(const char * name);
     virtual ~PID();
     float update(float input, uint16_t dt);
 public:

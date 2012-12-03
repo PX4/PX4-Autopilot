@@ -32,41 +32,63 @@
  ****************************************************************************/
 
 /**
- * @file px4_control.h
+ * @file fixedwing.h
  *
  * Controller library code
  */
 
 #pragma once
 
-#include <systemlib/control/control.h>
-#include <systemlib/param/param.h>
+#include "control.h"
 
 namespace control
 {
-namespace px4
+
+template<class PID_CLASS>
+class FixedWingStabilization :
+    public Named
 {
-
-bool isValid(param_t param);
-
-float getFloatParam(param_t param);
-param_t findParam(const char * name);
-
-class __EXPORT PID :
-    public control::PID
-{
-public:
-    PID(const char * name);
-    void updateParams();
 private:
-    param_t _handle_kP;
-    param_t _handle_kI;
-    param_t _handle_kD;
-    param_t _handle_iMin;
-    param_t _handle_iMax;
-    param_t _handle_fCut;
+    PID_CLASS _pid_roll2Ail;
+    PID_CLASS _pid_pitch2Elv;
+    PID_CLASS _pid_yawR2Rdr;
+    float _aileronCmd;
+    float _elevatorCmd;
+    float _rudderCmd;
+public:
+    FixedWingStabilization(const char * name) :
+        Named(name),
+        _pid_roll2Ail(prependName("Roll_Ail")),
+        _pid_pitch2Elv(prependName("Pitch_Elv")),
+        _pid_yawR2Rdr(prependName("YawR_Rdr")),
+        _aileronCmd(0),
+        _elevatorCmd(0),
+        _rudderCmd(0)
+    {
+    }
+    void update(
+            float rollCmd,
+            float pitchCmd,
+            float yawRCmd,
+            float roll,
+            float pitch,
+            float yawR,
+            uint16_t dt)
+    {
+        _aileronCmd = _pid_roll2Ail.update(rollCmd - roll, dt);
+        _elevatorCmd = _pid_pitch2Elv.update(pitchCmd - pitch, dt);
+        _rudderCmd = _pid_yawR2Rdr.update(yawRCmd - yawR, dt);
+    }
+    void updateParams()
+    {
+        _pid_roll2Ail.updateParams();
+        _pid_pitch2Elv.updateParams();
+        _pid_yawR2Rdr.updateParams();
+    }
+    float getAileronCmd() {return _aileronCmd;}
+    float getElevatorCmd() {return _elevatorCmd;}
+    float getRudderCmd() {return _rudderCmd;}
 };
 
-} // namespace px4
 } // namespace control
 

@@ -44,6 +44,7 @@
 #include <string.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/control/px4_control.h>
+#include <systemlib/control/fixedwing.h>
 #include <systemlib/param/param.h>
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
@@ -70,7 +71,7 @@ usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: deamon {start|stop|status} [-p <additional params>]\n\n");
+	fprintf(stderr, "usage: control_demo {start|stop|status} [-p <additional params>]\n\n");
 	exit(1);
 }
 
@@ -91,13 +92,13 @@ int control_demo_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "start")) {
 
 		if (thread_running) {
-			printf("deamon already running\n");
+			printf("control_demo already running\n");
 			/* this is not an error */
 			exit(0);
 		}
 
 		thread_should_exit = false;
-		deamon_task = task_spawn("deamon",
+		deamon_task = task_spawn("control_demo",
 					 SCHED_DEFAULT,
 					 SCHED_PRIORITY_DEFAULT,
 					 4096,
@@ -113,9 +114,9 @@ int control_demo_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
-			printf("\tdeamon app is running\n");
+			printf("\tcontrol_demo app is running\n");
 		} else {
-			printf("\tdeamon app not started\n");
+			printf("\tcontrol_demo app not started\n");
 		}
 		exit(0);
 	}
@@ -128,7 +129,8 @@ int control_demo_thread_main(int argc, char *argv[]) {
 
 	printf("[control_Demo] starting\n");
 
-    control::px4::PID pid("hello");
+    using namespace control;
+    FixedWingStabilization<px4::PID> fixedWingStabilization("FW_STAB");
 
 	thread_running = true;
 
@@ -136,12 +138,12 @@ int control_demo_thread_main(int argc, char *argv[]) {
 		printf("Control demo running!\n");
         float dt = 0.1;
         float input = 1;
-        pid.update(input,dt);
-        pid.updateParams();
+        fixedWingStabilization.update(0,0,0,0,0,0,dt);
+        fixedWingStabilization.updateParams();
 		sleep(10);
 	}
 
-	printf("[deamon] exiting.\n");
+	printf("[control_demo] exiting.\n");
 
 	thread_running = false;
 

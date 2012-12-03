@@ -47,6 +47,19 @@
 namespace control
 {
 
+// Named methods
+
+Named::Named(const char * name) :
+    _name(name)
+{
+}
+
+const char * Named::prependName(const char * string) 
+{
+    snprintf(_prependedName,_nameLength,"%s_%s",_name,string);
+    return _prependedName;
+}
+
 // Limit methods
 
 Limit::Limit() :
@@ -129,8 +142,13 @@ Derivative::~Derivative()
 
 // PID methods
 
-PID::PID() :
-    _kP(0), _kI(0), _kD(0), _integral(), _derivative()
+PID::PID(const char * name) :
+    Named(name),
+    _kP(0),
+    _kI(0),
+    _kD(0),
+    _integral(),
+    _derivative()
 {
 }
 

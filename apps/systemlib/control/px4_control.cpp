@@ -81,19 +81,8 @@ param_t findParam(const char * name)
 }
 
 
-Named::Named(const char * name) :
-    _name(name)
-{
-}
-
-const char * Named::prependName(const char * string) 
-{
-    snprintf(_prependedName,_nameLength,"%s_%s",_name,string);
-    return _prependedName;
-}
-
 PID::PID(const char * name) :
-    Named(name),
+    control::PID(name),
     _handle_kP(findParam(prependName("P"))),
     _handle_kI(findParam(prependName("I"))),
     _handle_kD(findParam(prependName("D"))),
