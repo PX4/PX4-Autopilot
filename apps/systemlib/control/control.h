@@ -73,6 +73,7 @@ public:
         updateChildParams();
     };
     void setDt(float dt) {
+        _dt = dt;
         Block * child = _firstChild;
         int count = 0;
         while (1)
