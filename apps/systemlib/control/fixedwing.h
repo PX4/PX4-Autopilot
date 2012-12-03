@@ -127,5 +127,59 @@ public:
     float getAileronCmd() {return _aileronCmd;}
 };
 
+/**
+ * Backside velocity hold autopilot block.
+ */
+template<class BLOCK_PID, class BLOCK_LIMIT>
+class BlockFixedWingVelocityHoldBackside :
+    public Block
+{
+private:
+    BLOCK_PID _v2Elv;
+    float _elevatorCmd;
+public:
+    BlockFixedWingVelocityHoldBackside(const char * name, Block * parent) :
+        Block(name, parent),
+        _v2Elv("V2ELV",this),
+        _elevatorCmd(0)
+    {
+    }
+    virtual ~BlockFixedWingVelocityHoldBackside() {};
+    void update(float vCmd, float v)
+    {
+        _elevatorCmd = _v2Elv.update(vCmd - v);
+    }
+    float getElevatorCmd() {return _elevatorCmd;}
+};
+
+/**
+ * Frontside velocity hold autopilot block.
+ */
+template<class BLOCK_PID, class BLOCK_LIMIT>
+class BlockFixedWingVelocityHoldFrontside :
+    public Block
+{
+private:
+    BLOCK_PID _v2Thr;
+    float _thrCmd;
+public:
+    BlockFixedWingVelocityHoldFrontside(const char * name, Block * parent) :
+        Block(name, parent),
+        _v2Thr("V2THR",this),
+        _thrCmd(0)
+    {
+    }
+    virtual ~BlockFixedWingVelocityHoldFrontside() {};
+    void update(float vCmd, float v)
+    {
+        _thrCmd = _v2Thr.update(vCmd - v);
+    }
+    float getThrCmd() {return _thrCmd;}
+};
+
+
+
+
+
 } // namespace control
 
