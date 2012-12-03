@@ -130,7 +130,7 @@ public:
 /**
  * Backside velocity hold autopilot block.
  */
-template<class BLOCK_PID, class BLOCK_LIMIT>
+template<class BLOCK_PID>
 class BlockFixedWingVelocityHoldBackside :
     public Block
 {
@@ -155,7 +155,7 @@ public:
 /**
  * Frontside velocity hold autopilot block.
  */
-template<class BLOCK_PID, class BLOCK_LIMIT>
+template<class BLOCK_PID>
 class BlockFixedWingVelocityHoldFrontside :
     public Block
 {
