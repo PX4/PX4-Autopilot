@@ -51,12 +51,12 @@ namespace control
 namespace px4
 {
 
-bool isValid(param_t param)
+__EXPORT bool isValid(param_t param)
 {
     return param != PARAM_INVALID;
 }
 
-float getFloatParam(param_t param)
+__EXPORT float getFloatParam(param_t param)
 {
     float val = 0;
     if (isValid(param)) 
@@ -70,7 +70,7 @@ float getFloatParam(param_t param)
     return val;
 }
 
-param_t findParam(const char * name)
+__EXPORT param_t findParam(const char * name)
 {
     param_t param = param_find(name);
     if (param == PARAM_INVALID)
@@ -79,27 +79,6 @@ param_t findParam(const char * name)
     }
     return param;
 }
-
-
-PID::PID(const char * name) :
-    control::PID(name),
-    _handle_kP(findParam(prependName("P"))),
-    _handle_kI(findParam(prependName("I"))),
-    _handle_kD(findParam(prependName("D"))),
-    _handle_iMin(findParam(prependName("IMIN"))),
-    _handle_iMax(findParam(prependName("IMAX"))),
-    _handle_fCut(findParam(prependName("FCUT")))
-{
-}
-
-void PID::updateParams() { 
-    if (isValid(_handle_kP)) setKP(getFloatParam(_handle_kP));
-    if (isValid(_handle_kI)) setKI(getFloatParam(_handle_kI));
-    if (isValid(_handle_kD)) setKD(getFloatParam(_handle_kD));
-    if (isValid(_handle_iMin)) setIMin(getFloatParam(_handle_iMin));
-    if (isValid(_handle_iMax)) setIMax(getFloatParam(_handle_iMax));
-    if (isValid(_handle_fCut)) setFCut(getFloatParam(_handle_fCut));
-} 
 
 } // namespace px4
 } // namespace control

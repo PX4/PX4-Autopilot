@@ -41,6 +41,7 @@
 
 #include <systemlib/control/control.h>
 #include <systemlib/param/param.h>
+#include "fixedwing.h"
 
 namespace control
 {
@@ -48,25 +49,112 @@ namespace px4
 {
 
 bool isValid(param_t param);
-
 float getFloatParam(param_t param);
 param_t findParam(const char * name);
 
-class __EXPORT PID :
-    public control::PID
+class __EXPORT BlockLowPass :
+    public control::BlockLowPass
 {
 public:
-    PID(const char * name);
-    void updateParams();
+    BlockLowPass(const char * name, Block * parent) :
+        control::BlockLowPass(name, parent),
+        _handle_fCut(findParam(prependName(getName(),"FCUT")))
+    {}
+    virtual ~BlockLowPass() {}
+    void updateParams()
+    {
+        Block::updateParams();
+        if (isValid(_handle_fCut)) setFCut(getFloatParam(_handle_fCut));
+    }
 private:
-    param_t _handle_kP;
-    param_t _handle_kI;
-    param_t _handle_kD;
-    param_t _handle_iMin;
-    param_t _handle_iMax;
     param_t _handle_fCut;
 };
 
+class __EXPORT BlockHighPass :
+    public control::BlockHighPass
+{
+public:
+    BlockHighPass(const char * name, Block * parent) :
+        control::BlockHighPass(name, parent),
+        _handle_fCut(findParam(prependName(getName(),"FCUT")))
+    {}
+    virtual ~BlockHighPass() {}
+    void updateParams()
+    {
+        Block::updateParams();
+        if (isValid(_handle_fCut)) setFCut(getFloatParam(_handle_fCut));
+    }
+private:
+    param_t _handle_fCut;
+};
+
+class __EXPORT PParam :
+    public PBase
+{
+public:
+    PParam(const char * name) :
+        PBase(name),
+        _handle_kP(findParam(prependName(name,"P")))
+    {}
+    virtual ~PParam() {};
+    void pParamsUpdate()
+    {
+        if (isValid(_handle_kP)) setKP(getFloatParam(_handle_kP));
+    }
+private:
+    param_t _handle_kP;
+};
+
+class __EXPORT IParam :
+    public IBase
+{
+public:
+    IParam(const char * name) :
+        IBase(name),
+        _handle_kI(findParam(prependName(name,"I"))),
+        _handle_iMin(findParam(prependName(name,"IMIN"))),
+        _handle_iMax(findParam(prependName(name,"IMAX")))
+    {}
+    virtual ~IParam() {};
+    void iParamsUpdate()
+    {
+        if (isValid(_handle_kI)) setKI(getFloatParam(_handle_kI));
+        if (isValid(_handle_iMin)) setIMin(getFloatParam(_handle_iMin));
+        if (isValid(_handle_iMax)) setIMax(getFloatParam(_handle_iMax));
+    }
+private:
+    param_t _handle_kI;
+    param_t _handle_iMin;
+    param_t _handle_iMax;
+};
+
+class __EXPORT DParam :
+    public DBase
+{
+public:
+    DParam(const char * name) :
+        DBase(name),
+        _handle_kD(findParam(prependName(name,"D"))),
+        _handle_fCut(findParam(prependName(name,"FCUT")))
+    {
+    }
+    virtual ~DParam() {};
+    void dParamsUpdate()
+    {
+        if (isValid(_handle_kD)) setKD(getFloatParam(_handle_kD));
+        if (isValid(_handle_fCut)) setFCut(getFloatParam(_handle_fCut));
+    }
+private:
+    param_t _handle_kD;
+    param_t _handle_fCut;
+};
+
+typedef control::BlockP<PParam> BlockP;
+typedef control::BlockPI<PParam,IParam> BlockPI;
+typedef control::BlockPI<PParam,IParam> BlockPD;
+typedef control::BlockPID<PParam,IParam,DParam> BlockPID;
+
+typedef control::BlockFixedWingStabilization<BlockLowPass, BlockHighPass, BlockP> BlockFixedWingStabilization;
+
 } // namespace px4
 } // namespace control
-

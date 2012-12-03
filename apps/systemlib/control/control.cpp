@@ -47,24 +47,11 @@
 namespace control
 {
 
-// Named methods
-
-Named::Named(const char * name) :
-    _name(name)
+__EXPORT const char * prependName(const char * name, const char * string) 
 {
-}
-
-const char * Named::prependName(const char * string) 
-{
-    snprintf(_prependedName,_nameLength,"%s_%s",_name,string);
-    return _prependedName;
-}
-
-// Limit methods
-
-Limit::Limit() :
-    _min(0), _max(0)
-{
+    static char prependedName[80];
+    snprintf(prependedName,80,"%s_%s",name,string);
+    return prependedName;
 }
 
 float Limit::update(float input, uint16_t dt)
@@ -80,17 +67,6 @@ float Limit::update(float input, uint16_t dt)
     return input;
 }
 
-Limit::~Limit()
-{
-}
-
-// LowPass methods
-
-LowPass::LowPass() :
-    _state(0), _fCut(0)
-{
-}
-
 float LowPass::update(float input, uint16_t dt)
 {
     float b = 2*M_PI*getFCut()*dt;
@@ -99,15 +75,13 @@ float LowPass::update(float input, uint16_t dt)
     return getState();
 }
 
-LowPass::~LowPass()
+float HighPass::update(float input, uint16_t dt)
 {
-}
-
-// Integral methods
-
-Integral::Integral() :
-    _state(0), _limit()
-{
+    float b = 2*M_PI*getFCut()*dt;
+    float a = b/ (1 + b);
+    // input - low pass output
+    setState(input - (a*input + (1-a)*getState()));
+    return getState();
 }
 
 float Integral::update(float input, uint16_t dt)
@@ -118,50 +92,11 @@ float Integral::update(float input, uint16_t dt)
     return getState();
 }
 
-Integral::~Integral()
-{
-}
-
-// Derivative methods
-
-Derivative::Derivative() :
-    _state(0)
-{
-}
-
 float Derivative::update(float input, uint16_t dt)
 {
     float output = (input - getState())/dt;
     setState(input);
     return output;
 }
-
-Derivative::~Derivative()
-{
-}
-
-// PID methods
-
-PID::PID(const char * name) :
-    Named(name),
-    _kP(0),
-    _kI(0),
-    _kD(0),
-    _integral(),
-    _derivative()
-{
-}
-
-float PID::update(float input, uint16_t dt)
-{
-    return getKP()*input + 
-        getKI()*getIntegral().update(input,dt) +
-        getKD()*getDerivative().update(input,dt);
-}
-
-PID::~PID()
-{
-}
-
 
 } // namespace control

@@ -129,15 +129,14 @@ int control_demo_thread_main(int argc, char *argv[]) {
 
 	printf("[control_Demo] starting\n");
 
-    using namespace control;
-    FixedWingStabilization<px4::PID> fixedWingStabilization("FW_STAB");
+    using namespace control::px4;
+    BlockFixedWingStabilization fixedWingStabilization("FW_STAB", NULL);
 
 	thread_running = true;
 
 	while (!thread_should_exit) {
 		printf("Control demo running!\n");
         float dt = 0.1;
-        float input = 1;
         fixedWingStabilization.update(0,0,0,0,0,0,dt);
         fixedWingStabilization.updateParams();
 		sleep(10);

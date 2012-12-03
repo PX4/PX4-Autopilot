@@ -44,46 +44,50 @@
 namespace control
 {
 
-template<class PID_CLASS>
-class FixedWingStabilization :
-    public Named
+template<class BLOCK_LOWPASS, class BLOCK_HIGHPASS, class BLOCK_P>
+class BlockFixedWingStabilization :
+    public Block
 {
 private:
-    PID_CLASS _pid_roll2Ail;
-    PID_CLASS _pid_pitch2Elv;
-    PID_CLASS _pid_yawR2Rdr;
+    BLOCK_LOWPASS _pLowPass;
+    BLOCK_LOWPASS _qLowPass;
+    BLOCK_LOWPASS _rLowPass;
+    BLOCK_HIGHPASS _rWashout;
+    BLOCK_P _p2Ail;
+    BLOCK_P _q2Elv;
+    BLOCK_P _r2Rdr;
     float _aileronCmd;
     float _elevatorCmd;
     float _rudderCmd;
 public:
-    FixedWingStabilization(const char * name) :
-        Named(name),
-        _pid_roll2Ail(prependName("Roll_Ail")),
-        _pid_pitch2Elv(prependName("Pitch_Elv")),
-        _pid_yawR2Rdr(prependName("YawR_Rdr")),
+    BlockFixedWingStabilization(const char * name, Block * parent) :
+        Block(name, parent),
+        _pLowPass("P_LP", this),
+        _qLowPass("Q_LP", this),
+        _rLowPass("R_LP", this),
+        _rWashout("R_HP", this),
+        _p2Ail("P2AIL", this),
+        _q2Elv("Q2ELV", this),
+        _r2Rdr("R2RDR", this),
         _aileronCmd(0),
         _elevatorCmd(0),
         _rudderCmd(0)
     {
     }
+    virtual ~BlockFixedWingStabilization() {};
     void update(
-            float rollCmd,
-            float pitchCmd,
-            float yawRCmd,
-            float roll,
-            float pitch,
-            float yawR,
+            float pCmd,
+            float qCmd,
+            float rCmd,
+            float p,
+            float q,
+            float r,
             uint16_t dt)
     {
-        _aileronCmd = _pid_roll2Ail.update(rollCmd - roll, dt);
-        _elevatorCmd = _pid_pitch2Elv.update(pitchCmd - pitch, dt);
-        _rudderCmd = _pid_yawR2Rdr.update(yawRCmd - yawR, dt);
-    }
-    void updateParams()
-    {
-        _pid_roll2Ail.updateParams();
-        _pid_pitch2Elv.updateParams();
-        _pid_yawR2Rdr.updateParams();
+        _aileronCmd = _p2Ail.update(pCmd - _pLowPass.update(p,dt), dt);
+        _elevatorCmd = _q2Elv.update(qCmd - _qLowPass.update(q,dt), dt);
+        _rudderCmd = _r2Rdr.update(rCmd -
+                _rWashout.update(_rLowPass.update(r,dt),dt), dt);
     }
     float getAileronCmd() {return _aileronCmd;}
     float getElevatorCmd() {return _elevatorCmd;}
