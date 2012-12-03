@@ -61,7 +61,6 @@ public:
         {
             snprintf(_name,80,"%s_%s", getParent()->getName(), name);
             getParent()->addChild(this);
-            printf("name: %s\n", getName());
         }
     };
     Block * getParent() { return _parent; }
