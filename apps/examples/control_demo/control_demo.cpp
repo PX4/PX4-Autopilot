@@ -47,9 +47,9 @@
 #include <systemlib/control/fixedwing.h>
 #include <systemlib/param/param.h>
 
-static bool thread_should_exit = false;		/**< Deamon exit flag */
-static bool thread_running = false;		/**< Deamon status flag */
-static int deamon_task;				/**< Handle of deamon task / thread */
+static bool thread_should_exit = false;     /**< Deamon exit flag */
+static bool thread_running = false;     /**< Deamon status flag */
+static int deamon_task;             /**< Handle of deamon task / thread */
 
 /**
  * Deamon management function.
@@ -69,10 +69,10 @@ static void usage(const char *reason);
 static void
 usage(const char *reason)
 {
-	if (reason)
-		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: control_demo {start|stop|status} [-p <additional params>]\n\n");
-	exit(1);
+    if (reason)
+        fprintf(stderr, "%s\n", reason);
+    fprintf(stderr, "usage: control_demo {start|stop|status} [-p <additional params>]\n\n");
+    exit(1);
 }
 
 /**
@@ -86,72 +86,80 @@ usage(const char *reason)
 int control_demo_main(int argc, char *argv[])
 {
 
-	if (argc < 1)
-		usage("missing command");
+    if (argc < 1)
+        usage("missing command");
 
-	if (!strcmp(argv[1], "start")) {
+    if (!strcmp(argv[1], "start")) {
 
-		if (thread_running) {
-			printf("control_demo already running\n");
-			/* this is not an error */
-			exit(0);
-		}
+        if (thread_running) {
+            printf("control_demo already running\n");
+            /* this is not an error */
+            exit(0);
+        }
 
-		thread_should_exit = false;
-		deamon_task = task_spawn("control_demo",
-					 SCHED_DEFAULT,
-					 SCHED_PRIORITY_DEFAULT,
-					 4096,
-					 control_demo_thread_main,
-					 (argv) ? (const char **)&argv[2] : (const char **)NULL);
-		exit(0);
-	}
+        thread_should_exit = false;
+        deamon_task = task_spawn("control_demo",
+                     SCHED_DEFAULT,
+                     SCHED_PRIORITY_DEFAULT,
+                     4096,
+                     control_demo_thread_main,
+                     (argv) ? (const char **)&argv[2] : (const char **)NULL);
+        exit(0);
+    }
 
-	if (!strcmp(argv[1], "stop")) {
-		thread_should_exit = true;
-		exit(0);
-	}
+    if (!strcmp(argv[1], "stop")) {
+        thread_should_exit = true;
+        exit(0);
+    }
 
-	if (!strcmp(argv[1], "status")) {
-		if (thread_running) {
-			printf("\tcontrol_demo app is running\n");
-		} else {
-			printf("\tcontrol_demo app not started\n");
-		}
-		exit(0);
-	}
+    if (!strcmp(argv[1], "status")) {
+        if (thread_running) {
+            printf("\tcontrol_demo app is running\n");
+        } else {
+            printf("\tcontrol_demo app not started\n");
+        }
+        exit(0);
+    }
 
-	usage("unrecognized command");
-	exit(1);
+    usage("unrecognized command");
+    exit(1);
 }
 
 int control_demo_thread_main(int argc, char *argv[]) {
 
-	printf("[control_Demo] starting\n");
+    printf("[control_Demo] starting\n");
 
     using namespace control::px4;
     BlockFixedWingStabilization fixedWingStabilization("FW_STAB", NULL);
     BlockFixedWingHeadingHold fixedWingHeadingHold("FW_HEAD", NULL);
 
-	thread_running = true;
+    thread_running = true;
+    uint32_t loopCount = 0;
 
-	while (!thread_should_exit) {
-		printf("Control demo running!\n");
+    fixedWingStabilization.setDt(1.0f / 50.0f);
+    fixedWingHeadingHold.setDt(1.0f / 50.0f);
 
-        fixedWingStabilization.setDt(0.1);
+    while (!thread_should_exit) {
+
+        if (loopCount == 100)
+        {
+            loopCount = 0;
+            fixedWingStabilization.updateParams();
+            fixedWingHeadingHold.updateParams();
+        }
+
         fixedWingStabilization.update(0,0,0,0,0,0);
-        fixedWingStabilization.updateParams();
 
-        fixedWingHeadingHold.setDt(0.1);
         fixedWingHeadingHold.update(0,0,0,0);
-        fixedWingHeadingHold.updateParams();
 
-		sleep(10);
-	}
+        usleep(20000);
+        loopCount++;
 
-	printf("[control_demo] exiting.\n");
+    }
 
-	thread_running = false;
+    printf("[control_demo] exiting.\n");
 
-	return 0;
+    thread_running = false;
+
+    return 0;
 }
