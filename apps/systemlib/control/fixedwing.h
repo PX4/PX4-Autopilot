@@ -128,7 +128,25 @@ public:
 };
 
 /**
+ * Frontside/ Backside Control Systems
+ *
+ * Frontside : 
+ *   velocity error -> throttle
+ *   altitude error -> elevator
+ *
+ * Backside :
+ *   velocity error -> elevator
+ *   altitude error -> throttle
+ *
+ * Backside control systems are more resilient at 
+ * slow speeds on the back-side of the power 
+ * required curve/ landing etc. Less performance
+ * than frontside at high speeds.
+ */
+
+/**
  * Backside velocity hold autopilot block.
+ * velocity error -> elevator
  */
 template<class BLOCK_PID>
 class BlockFixedWingVelocityHoldBackside :
@@ -154,6 +172,7 @@ public:
 
 /**
  * Frontside velocity hold autopilot block.
+ * velocity error -> throttle
  */
 template<class BLOCK_PID>
 class BlockFixedWingVelocityHoldFrontside :
@@ -176,10 +195,6 @@ public:
     }
     float getThrCmd() {return _thrCmd;}
 };
-
-
-
-
 
 } // namespace control
 
