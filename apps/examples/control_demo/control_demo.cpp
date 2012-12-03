@@ -43,8 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/control/px4_control.h>
-#include <systemlib/control/fixedwing.h>
+#include <systemlib/control/px4_fixedwing.h>
 #include <systemlib/param/param.h>
 
 static bool thread_should_exit = false;     /**< Deamon exit flag */

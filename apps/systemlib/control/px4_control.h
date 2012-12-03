@@ -175,8 +175,5 @@ typedef control::BlockPI<PParam,IParam> BlockPI;
 typedef control::BlockPI<PParam,IParam> BlockPD;
 typedef control::BlockPID<PParam,IParam,DParam> BlockPID;
 
-typedef control::BlockFixedWingStabilization<BlockLowPass, BlockHighPass, BlockP> BlockFixedWingStabilization;
-typedef control::BlockFixedWingHeadingHold<BlockP, BlockLimit> BlockFixedWingHeadingHold;
-
 } // namespace px4
 } // namespace control
