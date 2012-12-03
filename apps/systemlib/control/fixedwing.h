@@ -94,7 +94,8 @@ public:
 
 /**
  * Heading hold autopilot block.
- * Aircraft Control and Simulation, Stevens and Lewis, pg. 348
+ * Aircraft Control and Simulation, Stevens and Lewis
+ * Heading hold, pg. 348
  */
 template<class BLOCK_P, class BLOCK_LIMIT>
 class BlockFixedWingHeadingHold :
@@ -146,33 +147,37 @@ public:
 
 /**
  * Backside velocity hold autopilot block.
- * velocity error -> elevator
+ * v -> theta -> q -> elevator
  */
 template<class BLOCK_PID>
 class BlockFixedWingVelocityHoldBackside :
     public Block
 {
 private:
-    BLOCK_PID _v2Elv;
+    BLOCK_PID _v2Theta;
+    BLOCK_PID _theta2Q;
     float _elevatorCmd;
 public:
     BlockFixedWingVelocityHoldBackside(const char * name, Block * parent) :
         Block(name, parent),
-        _v2Elv("V2ELV",this),
+        _v2Theta("V2THETA",this),
+        _theta2Q("THETA2Q",this),
         _elevatorCmd(0)
     {
     }
     virtual ~BlockFixedWingVelocityHoldBackside() {};
-    void update(float vCmd, float v)
+    void update(float vCmd, float v, float theta, float q)
     {
-        _elevatorCmd = _v2Elv.update(vCmd - v);
+        float thetaCmd = _v2Theta.update(vCmd - v);
+        float qCmd = _theta2Q.update(thetaCmd - theta);
+        _elevatorCmd = qCmd - q;
     }
     float getElevatorCmd() {return _elevatorCmd;}
 };
 
 /**
  * Frontside velocity hold autopilot block.
- * velocity error -> throttle
+ * v -> throttle
  */
 template<class BLOCK_PID>
 class BlockFixedWingVelocityHoldFrontside :
@@ -195,6 +200,63 @@ public:
     }
     float getThrCmd() {return _thrCmd;}
 };
+
+/**
+ * Backside altitude hold autopilot block.
+ * h -> throttle
+ */
+template<class BLOCK_PID>
+class BlockFixedWingAltitudeHoldBackside :
+    public Block
+{
+private:
+    BLOCK_PID _h2Thr;
+    float _thrCmd;
+public:
+    BlockFixedWingAltitudeHoldBackside(const char * name, Block * parent) :
+        Block(name, parent),
+        _h2Thr("H2THR",this),
+        _thrCmd(0)
+    {
+    }
+    virtual ~BlockFixedWingAltitudeHoldBackside() {};
+    void update(float hCmd, float h)
+    {
+        _thrCmd = _h2Thr.update(hCmd - h);
+    }
+    float getThrCmd() {return _thrCmd;}
+};
+
+/**
+ * Frontside altitude hold autopilot block.
+ * h -> theta > q -> elevator
+ */
+template<class BLOCK_PID>
+class BlockFixedWingAltitudeHoldFrontside :
+    public Block
+{
+private:
+    BLOCK_PID _h2Theta;
+    BLOCK_PID _theta2Q;
+    float _elevatorCmd;
+public:
+    BlockFixedWingAltitudeHoldFrontside(const char * name, Block * parent) :
+        Block(name, parent),
+        _h2Theta("H2THETA",this),
+        _theta2Q("THETA2Q",this),
+        _elevatorCmd(0)
+    {
+    }
+    virtual ~BlockFixedWingAltitudeHoldFrontside() {};
+    void update(float hCmd, float h, float theta, float q)
+    {
+        float thetaCmd = _h2Theta.update(hCmd - h);
+        float qCmd = _theta2Q(thetaCmd - theta);
+        _elevatorCmd = qCmd - q;
+    }
+    float getElevatorCmd() {return _elevatorCmd;}
+};
+
 
 } // namespace control
 
