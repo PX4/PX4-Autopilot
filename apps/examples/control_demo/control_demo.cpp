@@ -131,12 +131,16 @@ int control_demo_thread_main(int argc, char *argv[]) {
     using namespace control::px4;
     BlockFixedWingStabilization fixedWingStabilization("FW_STAB", NULL);
     BlockFixedWingHeadingHold fixedWingHeadingHold("FW_HEAD", NULL);
+    BlockFixedWingAltitudeHoldBackside fixedWingAltitudeHoldBackside("FW_ALTB", NULL);
+    BlockFixedWingVelocityHoldFrontside fixedWingVelocityHoldBackside("FW_VELB", NULL);
 
     thread_running = true;
     uint32_t loopCount = 0;
 
     fixedWingStabilization.setDt(1.0f / 50.0f);
     fixedWingHeadingHold.setDt(1.0f / 50.0f);
+    fixedWingAltitudeHoldBackside.setDt(1.0f / 50.0f);
+    fixedWingVelocityHoldBackside.setDt(1.0f / 50.0f);
 
     while (!thread_should_exit) {
 
@@ -145,11 +149,14 @@ int control_demo_thread_main(int argc, char *argv[]) {
             loopCount = 0;
             fixedWingStabilization.updateParams();
             fixedWingHeadingHold.updateParams();
+            fixedWingAltitudeHoldBackside.updateParams();
+            fixedWingVelocityHoldBackside.updateParams();
         }
 
         fixedWingStabilization.update(0,0,0,0,0,0);
-
         fixedWingHeadingHold.update(0,0,0,0);
+        fixedWingAltitudeHoldBackside.update(0,0);
+        fixedWingVelocityHoldBackside.update(0,0);
 
         usleep(20000);
         loopCount++;

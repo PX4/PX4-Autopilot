@@ -133,8 +133,8 @@ public:
     IParam(Block * parent) :
         IBase(parent),
         _handle_kI(findParam(parent->getName(),"I")),
-        _handle_iMin(findParam(parent->getName(),"IMIN")),
-        _handle_iMax(findParam(parent->getName(),"IMAX"))
+        _handle_iMin(findParam(parent->getName(),"I_MIN")),
+        _handle_iMax(findParam(parent->getName(),"I_MAX"))
     {}
     virtual ~IParam() {};
     void iParamsUpdate()
@@ -156,7 +156,7 @@ public:
     DParam(Block * parent) :
         DBase(parent),
         _handle_kD(findParam(parent->getName(),"D")),
-        _handle_fCut(findParam(parent->getName(),"FCUT"))
+        _handle_fCut(findParam(parent->getName(),"D_FCUT"))
     {
     }
     virtual ~DParam() {};

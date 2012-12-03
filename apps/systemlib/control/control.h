@@ -391,7 +391,7 @@ public:
     float update(float input)
     {
         return PBase::getKP()*input +
-            IBase::getKI()*IBase::getIntegral().update(input);
+            IBase::getKI()*IBase::getIntegral().update(input, getDt());
     }
     void updateParams()
     {
@@ -422,7 +422,7 @@ public:
     float update(float input)
     {
         return PBase::getKP()*input + 
-            DBase::getKD()*DBase::getDerivative().update(input);
+            DBase::getKD()*DBase::getDerivative().update(input, getDt());
     }
     void updateParams()
     {
@@ -455,8 +455,8 @@ public:
     float update(float input)
     {
         return PBase::getKP()*input + 
-            IBase::getKI()*IBase::getIntegral().update(input) +
-            DBase::getKD()*DBase::getDerivative().update(input);
+            IBase::getKI()*IBase::getIntegral().update(input, getDt()) +
+            DBase::getKD()*DBase::getDerivative().update(input, getDt());
     }
     void updateParams()
     {
