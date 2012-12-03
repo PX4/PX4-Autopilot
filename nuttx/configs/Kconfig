@@ -565,6 +565,7 @@ config ARCH_BOARD_Z16F2800100ZCOG
 config ARCH_BOARD_Z80SIM
 	bool "Z80 Instruction Set Simulator"
 	depends on ARCH_CHIP_Z80
+	select ARCH_HAVE_UART
 	---help---
 		z80 Microcontroller.  This port uses a Z80 instruction set simulator.
 		That simulator can be found in the NuttX SVN at

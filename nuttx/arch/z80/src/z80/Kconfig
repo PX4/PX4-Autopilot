@@ -4,4 +4,19 @@
 #
 
 if ARCH_CHIP_Z80
+
+choice
+        prompt "Toolchain Selection"
+        default Z80_TOOLCHAIN_SDCCW if HOST_WINDOWS
+        default Z80_TOOLCHAIN_SDCCL if !HOST_WINDOWS
+
+config Z80_TOOLCHAIN_SDCCL
+        bool "SDCC for Linux, MAC OSX, or Cygwin"
+
+config Z80_TOOLCHAIN_SDCCW
+        bool "SDCC for Windows"
+        depends on HOST_WINDOWS
+
+endchoice
+
 endif

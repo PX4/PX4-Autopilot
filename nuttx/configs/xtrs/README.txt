@@ -94,8 +94,8 @@ site: http://sourceforge.net/projects/sdcc/files/ .  Pre-built binaries are
 available for Linux, MAC OSX, and for Win32.  Various SDCC options can be
 selected with:
 
-  CONFIG_SDCC_POSIX=y   : SDCC for Linux, MAC OSX or Cygwin (see below)
-  CONFIG_SDCC_WINDOWS=y : SDCC for Win32
+  CONFIG_Z80_TOOLCHAIN_SDCCL=y : SDCC for Linux, MAC OSX or Cygwin (see below)
+  CONFIG_Z80_TOOLCHAIN_SDCCW=y : SDCC for Win32
 
 Building the SDCC toolchain
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

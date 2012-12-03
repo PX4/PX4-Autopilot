@@ -30,6 +30,23 @@ Configuring NuttX
        cd -
        . ./setenv.sh
 
+    NOTES:
+
+    1. This configuration uses the mconf-based configuration tool.  To
+       change this configuration using that tool, you should:
+
+       a. Build and install the mconf tool.  See nuttx/README.txt and
+          misc/tools/
+
+       b. Execute 'make menuconfig' in nuttx/ in order to start the
+          reconfiguration process.
+
+    2. The current configuration is untested.  When last attempted
+       on Ubuntu 12.10 with SDCC 3.2.0, the build failed with the
+       following internal error:
+
+       *** glibc detected *** sdcclib: malloc(): memory corruption: 0x09f09768 ***
+
   nsh
 
     This configuration file builds NSH (examples/nsh).  This
@@ -67,8 +84,8 @@ site: http://sourceforge.net/projects/sdcc/files/ .  Pre-built binaries are
 available for Linux, MAC OSX, and for Win32.  Various SDCC options can be
 selected with:
 
-  CONFIG_SDCC_POSIX=y   : SDCC for Linux, MAC OSX or Cygwin (see below)
-  CONFIG_SDCC_WINDOWS=y : SDCC for Win32
+  CONFIG_Z80_TOOLCHAIN_SDCCL=y : SDCC for Linux, MAC OSX or Cygwin (see below)
+  CONFIG_Z80_TOOLCHAIN_SDCCW=y : SDCC for Win32
 
 Building the SDCC toolchain
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

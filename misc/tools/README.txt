@@ -20,13 +20,17 @@ kconfig-frontends
   General build instructions:
 
     cd kconfig-frontends
-    ./configure
+    ./configure --program-prefix=
     make
     make install
 
+  If you do not specify --program-prefix= in the configuration, then the
+  current kconfig-frontends code will add the prefix kconfig- to the generated
+  tools.
+
   To suppress the graphical interfaces:
 
-    ./configure --disable-gconf --disable-qconf
+    ./configure --disable-gconf --disable-qconf --program-prefix=
     make
     make install
 

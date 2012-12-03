@@ -44,19 +44,19 @@
 # built to run on Windows as a POSIX toolchain.  The various SDCC options are
 # selected in the NuttX configuration with:
 #
-#  CONFIG_SDCC_POSIX=y   : SDCC for Linux, MAC OSX or Cygwin
-#  CONFIG_SDCC_WINDOWS=y : SDCC for Win32
+#  CONFIG_Z80_TOOLCHAIN_SDCCL=y : SDCC for Linux, MAC OSX or Cygwin
+#  CONFIG_Z80_TOOLCHAIN_SDCCW=y : SDCC for Win32
 #
 
 ifeq ($(filter y, \
-      $(CONFIG_SDCC_POSIX) \
+      $(CONFIG_Z80_TOOLCHAIN_SDCCL) \
     ),y)
-  CONFIG_Z80_TOOLCHAIN ?= POSIX
+  CONFIG_Z80_TOOLCHAIN ?= SDCCPOSIX
 endif
 ifeq ($(filter y, \
-      $(CONFIG_SDCC_WINDOWS) \
+      $(CONFIG_Z80_TOOLCHAIN_SDCCW) \
     ),y)
-  CONFIG_Z80_TOOLCHAIN ?= WINDOWS
+  CONFIG_Z80_TOOLCHAIN ?= SDCCWIN32
 endif
 
 # SDCC toolchain under Linux, MAC OSX or Cygwin
@@ -66,7 +66,7 @@ endif
 
 # SDCC  toolchain under Windows/Cygwin
 
-ifeq ($(CONFIG_AVR_TOOLCHAIN),WINAVR)
+ifeq ($(CONFIG_AVR_TOOLCHAIN),SDCCWIN32)
   ifneq ($(CONFIG_WINDOWS_NATIVE),y)
     WINTOOL = y
   endif

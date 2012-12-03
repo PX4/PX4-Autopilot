@@ -3726,4 +3726,9 @@
 	  to avoid the value zero.  Suggested by Freddie Chopin.
 	* tools/b16.c:  Fixed precision math conversion utility.
 	* graphics/nxglib/nxglib_splitlinex.c:  Fix the "fat, flat line bug"
+	* arch/z80/src/*/Toolchain.defs:  Add dummy Toolchain.defs files for the
+	  z80 family.
+	* configs/z80sim/ostest:  Converted to build with the Kconfig/mconf tool.
+	  Current configuration failed to build for me (Ubuntu 12.10, SDCC 3.2.0
+	  pre-built for Linux) due to a glibc memory corruptionerror in SDCC.
 
