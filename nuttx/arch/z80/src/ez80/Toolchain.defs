@@ -1,5 +1,5 @@
 ############################################################################
-# arch/avr/src/avr32/Toolchain.defs
+# arch/z80/src/ez80/Toolchain.defs
 #
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -36,33 +36,12 @@
 # Setup for the selected toolchain
 
 #
-# Since all of the supported toolchains are variants of the Atmel-patched
-# GCC, the only interesting question to answer here is whether or not
-# the build is hosted on Windows, and how to override the configuration.
+# The ZiLOG ZDS-II Windows toolchain is the only toolchain available for
+# the ez80.
 #
-# NOTE: There is a logic error in the following:  CONFIG_HOST_WINDOWS means
-# that we are operating on a Windows platform.  But in the case where we
-# have an AVR32 toolchain built under Cygwin, the correct setting would be
-# GNU, not AVRTOOLSW.
-# 
 
-CROSSDEV = avr32-
-ARCHCPUFLAGS = -mpart=uc3b0256
+CONFIG_EZ80_TOOLCHAIN ?= ZDSII
 
-ifeq ($(filter y, \
-      $(CONFIG_AVR32_AVRTOOLSW) \
-      $(CONFIG_HOST_WINDOWS) \
-    ),y)
-  # AVR Tools under Windows
-  CONFIG_AVR32_TOOLCHAIN ?= AVRTOOLSW
-else
-  CONFIG_AVR32_TOOLCHAIN ?= GNU
-endif
-
-ifeq ($(CONFIG_AVR32_TOOLCHAIN),AVRTOOLSW)
-  ifneq ($(CONFIG_WINDOWS_NATIVE),y)
-    WINTOOL = y
-  endif
-else
-  # AVR Tools or avr32-toolchain from https://github.com/jsnyder/avr32-toolchain
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
+  WINTOOL = y
 endif

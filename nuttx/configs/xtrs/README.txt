@@ -12,6 +12,7 @@ Contents
   o Getting a TRS80 emulator and DOS disks
   o Loading an executable into xtrs
   o Configuring NuttX
+  o SDCC
   o Building the SDCC toolchain
   o SDCC Update
   o Newer SDCC Versions
@@ -47,6 +48,7 @@ Configuring NuttX
 ^^^^^^^^^^^^^^^^^
 
   ostest
+
     This configuration performs a simple, minimal OS test using
     examples/ostest.  This can be configurated as follows:
 
@@ -56,6 +58,7 @@ Configuring NuttX
        . ./setenv.sh
 
   nsh
+
     This configuration file builds NSH (examples/nsh).  This
     configuration is not functional due to issues with use of the
     simulated serial driver (see the TODO list).
@@ -67,7 +70,8 @@ Configuring NuttX
        cd -
        . ./setenv.sh
 
- pashello
+  pashello
+
     Configures to use examples/pashello for execution from FLASH
     See examples/README.txt for information about pashello.
 
@@ -81,8 +85,24 @@ Configuring NuttX
        cd -
        . ./setenv.sh
 
+SDCC
+^^^^
+
+These z80 configurations all use the SDCC toolchain (http://sdcc.sourceforge.net/).
+Source and pre-built SDCC binaries can be downloaded from the SDCC SourceForge
+site: http://sourceforge.net/projects/sdcc/files/ .  Pre-built binaries are
+available for Linux, MAC OSX, and for Win32.  Various SDCC options can be
+selected with:
+
+  CONFIG_SDCC_POSIX=y   : SDCC for Linux, MAC OSX or Cygwin (see below)
+  CONFIG_SDCC_WINDOWS=y : SDCC for Win32
+
 Building the SDCC toolchain
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You may also want to build your own SDCC toolchain.  You might want to do this,
+for example, if you are running under Cygwin and want a Cygwin compatible
+SDCC toolchain.
 
 The SDCC toolchain is built with the standard configure/make/make install
 sequence.  However, some special actions are required to generate libraries
