@@ -44,8 +44,6 @@ namespace control
 
 static const uint16_t maxChildren = 100;
 
-__EXPORT const char * prependName(const char * name, const char * string);
-
 class __EXPORT Block
 {
 public:
@@ -62,7 +60,7 @@ public:
         }
         else
         {
-            _name = prependName(parent->getName(),name);
+            snprintf((char *)_name,80,"%s_%s",parent->getName(),name);
             _parent->addChild(this);
         }
     };
@@ -221,7 +219,7 @@ class __EXPORT PBase
 {
 public:
 // methods
-    PBase(const char * name) : _kP(0) {};
+    PBase(const char * name, Block * parent) : _kP(0) {};
     virtual ~PBase() {};
     virtual void pParamsUpdate() = 0;
 // accessors
@@ -239,7 +237,7 @@ class __EXPORT IBase
 {
 public:
 // methods
-    IBase(const char * name) : _kI(0), _integral() {};
+    IBase(const char * name, Block * parent) : _kI(0), _integral() {};
     virtual ~IBase() {};
     virtual void iParamsUpdate() = 0;
 // accessors
@@ -264,7 +262,7 @@ class __EXPORT DBase
 {
 public:
 // methods
-    DBase(const char * name) : _kD(0), _derivative() {};
+    DBase(const char * name, Block * parent) : _kD(0), _derivative() {};
     virtual ~DBase() {};
     virtual void dParamsUpdate() = 0;
 // accessors
@@ -321,7 +319,7 @@ public:
 // methods
     BlockP(const char * name, Block * parent) :
         Block(name, parent),
-        PBase(getName())
+        PBase(getName(), parent)
     {};
     virtual ~BlockP() {};
     float update(float input, uint16_t dt)

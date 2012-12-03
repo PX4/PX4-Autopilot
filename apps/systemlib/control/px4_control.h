@@ -50,7 +50,7 @@ namespace px4
 
 bool isValid(param_t param);
 float getFloatParam(param_t param);
-param_t findParam(const char * name);
+param_t findParam(const char * prefix, const char * name);
 
 class __EXPORT BlockLowPass :
     public control::BlockLowPass
@@ -58,7 +58,7 @@ class __EXPORT BlockLowPass :
 public:
     BlockLowPass(const char * name, Block * parent) :
         control::BlockLowPass(name, parent),
-        _handle_fCut(findParam(prependName(getName(),"FCUT")))
+        _handle_fCut(findParam(getName(),"FCUT"))
     {}
     virtual ~BlockLowPass() {}
     void updateParams()
@@ -76,7 +76,7 @@ class __EXPORT BlockHighPass :
 public:
     BlockHighPass(const char * name, Block * parent) :
         control::BlockHighPass(name, parent),
-        _handle_fCut(findParam(prependName(getName(),"FCUT")))
+        _handle_fCut(findParam(getName(),"FCUT"))
     {}
     virtual ~BlockHighPass() {}
     void updateParams()
@@ -92,9 +92,9 @@ class __EXPORT PParam :
     public PBase
 {
 public:
-    PParam(const char * name) :
-        PBase(name),
-        _handle_kP(findParam(prependName(name,"P")))
+    PParam(const char * name, Block * parent) :
+        PBase(name, parent),
+        _handle_kP(findParam(parent->getName(),"P"))
     {}
     virtual ~PParam() {};
     void pParamsUpdate()
@@ -109,11 +109,11 @@ class __EXPORT IParam :
     public IBase
 {
 public:
-    IParam(const char * name) :
-        IBase(name),
-        _handle_kI(findParam(prependName(name,"I"))),
-        _handle_iMin(findParam(prependName(name,"IMIN"))),
-        _handle_iMax(findParam(prependName(name,"IMAX")))
+    IParam(const char * name, Block * parent) :
+        IBase(name, parent),
+        _handle_kI(findParam(parent->getName(),"I")),
+        _handle_iMin(findParam(parent->getName(),"IMIN")),
+        _handle_iMax(findParam(parent->getName(),"IMAX"))
     {}
     virtual ~IParam() {};
     void iParamsUpdate()
@@ -132,10 +132,10 @@ class __EXPORT DParam :
     public DBase
 {
 public:
-    DParam(const char * name) :
-        DBase(name),
-        _handle_kD(findParam(prependName(name,"D"))),
-        _handle_fCut(findParam(prependName(name,"FCUT")))
+    DParam(const char * name, Block * parent) :
+        DBase(name, parent),
+        _handle_kD(findParam(parent->getName(),"D")),
+        _handle_fCut(findParam(parent->getName(),"FCUT"))
     {
     }
     virtual ~DParam() {};

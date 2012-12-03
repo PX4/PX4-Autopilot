@@ -47,13 +47,6 @@
 namespace control
 {
 
-__EXPORT const char * prependName(const char * name, const char * string) 
-{
-    static char prependedName[80];
-    snprintf(prependedName,80,"%s_%s",name,string);
-    return prependedName;
-}
-
 float Limit::update(float input, uint16_t dt)
 {
     if (input > getMax())

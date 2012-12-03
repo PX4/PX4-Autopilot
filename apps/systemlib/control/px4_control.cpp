@@ -70,12 +70,14 @@ __EXPORT float getFloatParam(param_t param)
     return val;
 }
 
-__EXPORT param_t findParam(const char * name)
+__EXPORT param_t findParam(const char * prefix, const char * name)
 {
-    param_t param = param_find(name);
+    char buf[80];
+    snprintf(buf,80,"%s_%s",prefix,name);
+    param_t param = param_find(buf);
     if (param == PARAM_INVALID)
     {
-        printf("error finding param: %s\n", name);
+        printf("error finding param: %s\n", buf);
     }
     return param;
 }
