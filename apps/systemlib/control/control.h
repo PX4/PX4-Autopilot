@@ -46,12 +46,14 @@ static const uint16_t maxChildren = 100;
 
 class __EXPORT Block
 {
+protected:
 public:
     Block(const char * name, Block * parent) :
         _name(),
         _parent(parent),
         _firstChild(NULL),
-        _firstSibling(NULL)
+        _firstSibling(NULL),
+        _dt(0)
     {
         if (getParent() == NULL)
         {
@@ -65,10 +67,26 @@ public:
     };
     Block * getParent() { return _parent; }
     const char * getName() { return _name; }
+    float getDt() { return _dt; }
     virtual void updateParams()
     {
         updateChildParams();
     };
+    void setDt(float dt) {
+        Block * child = _firstChild;
+        int count = 0;
+        while (1)
+        {
+            if (child == NULL) break;
+            if (count++ > maxChildren)
+            {
+                printf("exceeded max children for block: %s\n", getName());
+                break;
+            }
+            child->setDt(dt);
+            child = child->_firstSibling;
+        }
+    }
 protected:
     void updateChildParams() {
         Block * child = _firstChild;
@@ -94,6 +112,7 @@ protected:
     Block * _parent;
     Block * _firstChild;
     Block * _firstSibling;
+    float _dt;
 };
 
 /**
@@ -106,7 +125,7 @@ class __EXPORT Limit
 public:
     Limit() : _min(0), _max(0) {};
     virtual ~Limit() {};
-    float update(float input, uint16_t dt);
+    float update(float input);
     void setMin(float min) {_min=min;}
     float getMin() {return _min;}
     void setMax(float max) {_max=max;}
@@ -126,7 +145,7 @@ public:
 // methods
     LowPass() : _state(0), _fCut(0) {};
     virtual ~LowPass() {};
-    float update(float input, uint16_t dt);
+    float update(float input, float dt);
 // accessors
     void setState(float state) {_state = state;}
     float getState() {return _state;}
@@ -148,7 +167,7 @@ public:
 // methods
     HighPass() : _state(0), _fCut(0) {};
     virtual ~HighPass() {};
-    float update(float input, uint16_t dt);
+    float update(float input, float dt);
 // accessors
     void setState(float state) {_state = state;}
     float getState() {return _state;}
@@ -174,7 +193,7 @@ public:
 // methods
     Integral() : _state(0), _limit() {};
     virtual ~Integral() {};
-    float update(float input, uint16_t dt);
+    float update(float input, float dt);
 // accessors
     void setState(float state) {_state = state;}
     float getState() {return _state;}
@@ -200,7 +219,7 @@ public:
 // methods
     Derivative() : _state(0) {};
     virtual ~Derivative() {};
-    float update(float input, uint16_t dt);
+    float update(float input, float dt);
 // accessors
     void setState(float state) {_state = state;}
     float getState() {return _state;}
@@ -305,6 +324,7 @@ class __EXPORT BlockLowPass:
 public:
 // methods
     BlockLowPass(const char * name, Block * parent) : Block(name, parent), LowPass() {};
+    float update(float input) { return LowPass::update(input,getDt()); }
     virtual ~BlockLowPass() {};
 };
 
@@ -319,6 +339,7 @@ class __EXPORT BlockHighPass:
 public:
 // methods
     BlockHighPass(const char * name, Block * parent) : Block(name, parent), HighPass() {};
+    float update(float input) { return HighPass::update(input,getDt()); }
     virtual ~BlockHighPass() {};
 };
 
@@ -338,7 +359,7 @@ public:
         PBase(this)
     {};
     virtual ~BlockP() {};
-    float update(float input, uint16_t dt)
+    float update(float input)
     {
         return PBase::getKP()*input;
     }
@@ -367,10 +388,10 @@ public:
         IBase(this)
     {};
     virtual ~BlockPI() {};
-    float update(float input, uint16_t dt)
+    float update(float input)
     {
         return PBase::getKP()*input +
-            IBase::getKI()*IBase::getIntegral().update(input,dt);
+            IBase::getKI()*IBase::getIntegral().update(input);
     }
     void updateParams()
     {
@@ -398,10 +419,10 @@ public:
         DBase(this)
     {};
     virtual ~PDBlock() {};
-    float update(float input, uint16_t dt)
+    float update(float input)
     {
         return PBase::getKP()*input + 
-            DBase::getKD()*DBase::getDerivative().update(input,dt);
+            DBase::getKD()*DBase::getDerivative().update(input);
     }
     void updateParams()
     {
@@ -431,11 +452,11 @@ public:
         DBase(this)
     {};
     virtual ~BlockPID() {};
-    float update(float input, uint16_t dt)
+    float update(float input)
     {
         return PBase::getKP()*input + 
-            IBase::getKI()*IBase::getIntegral().update(input,dt) +
-            DBase::getKD()*DBase::getDerivative().update(input,dt);
+            IBase::getKI()*IBase::getIntegral().update(input) +
+            DBase::getKD()*DBase::getDerivative().update(input);
     }
     void updateParams()
     {

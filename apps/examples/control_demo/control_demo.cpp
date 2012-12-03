@@ -137,11 +137,15 @@ int control_demo_thread_main(int argc, char *argv[]) {
 
 	while (!thread_should_exit) {
 		printf("Control demo running!\n");
-        float dt = 0.1;
-        fixedWingStabilization.update(0,0,0,0,0,0,dt);
+
+        fixedWingStabilization.setDt(0.1);
+        fixedWingStabilization.update(0,0,0,0,0,0);
         fixedWingStabilization.updateParams();
-        fixedWingHeadingHold.update(0,0,0,0,dt);
+
+        fixedWingHeadingHold.setDt(0.1);
+        fixedWingHeadingHold.update(0,0,0,0);
         fixedWingHeadingHold.updateParams();
+
 		sleep(10);
 	}
 

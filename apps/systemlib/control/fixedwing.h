@@ -79,19 +79,13 @@ public:
     {
     }
     virtual ~BlockFixedWingStabilization() {};
-    void update(
-            float pCmd,
-            float qCmd,
-            float rCmd,
-            float p,
-            float q,
-            float r,
-            uint16_t dt)
+    void update(float pCmd, float qCmd, float rCmd,
+            float p, float q, float r)
     {
-        _aileronCmd = _p2Ail.update(pCmd - _pLowPass.update(p,dt), dt);
-        _elevatorCmd = _q2Elv.update(qCmd - _qLowPass.update(q,dt), dt);
+        _aileronCmd = _p2Ail.update(pCmd - _pLowPass.update(p));
+        _elevatorCmd = _q2Elv.update(qCmd - _qLowPass.update(q));
         _rudderCmd = _r2Rdr.update(rCmd -
-                _rWashout.update(_rLowPass.update(r,dt),dt), dt);
+                _rWashout.update(_rLowPass.update(r)));
     }
     float getAileronCmd() {return _aileronCmd;}
     float getElevatorCmd() {return _elevatorCmd;}
@@ -123,13 +117,14 @@ public:
     {
     }
     virtual ~BlockFixedWingHeadingHold() {};
-    void update(float psiCmd, float phi, float psi, float p, uint16_t dt)
+    void update(float psiCmd, float phi, float psi, float p)
     {
         float psiError = psiCmd - psi;
-        float phiCmd = _phiLimit.update(_psi2Phi.update(psiError, dt), dt);
+        float phiCmd = _phiLimit.update(_psi2Phi.update(psiError));
         float phiError = phiCmd - phi;
-        _aileronCmd = _phi2Ail.update(phiError - _p2Phi.update(p, dt), dt);
+        _aileronCmd = _phi2Ail.update(phiError - _p2Phi.update(p));
     }
+    float getAileronCmd() {return _aileronCmd;}
 };
 
 } // namespace control

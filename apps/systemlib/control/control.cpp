@@ -47,7 +47,7 @@
 namespace control
 {
 
-float Limit::update(float input, uint16_t dt)
+float Limit::update(float input)
 {
     if (input > getMax())
     {
@@ -60,7 +60,7 @@ float Limit::update(float input, uint16_t dt)
     return input;
 }
 
-float LowPass::update(float input, uint16_t dt)
+float LowPass::update(float input, float dt)
 {
     float b = 2*M_PI*getFCut()*dt;
     float a = b/ (1 + b);
@@ -68,7 +68,7 @@ float LowPass::update(float input, uint16_t dt)
     return getState();
 }
 
-float HighPass::update(float input, uint16_t dt)
+float HighPass::update(float input, float dt)
 {
     float b = 2*M_PI*getFCut()*dt;
     float a = b/ (1 + b);
@@ -77,15 +77,15 @@ float HighPass::update(float input, uint16_t dt)
     return getState();
 }
 
-float Integral::update(float input, uint16_t dt)
+float Integral::update(float input, float dt)
 {
     // trapezoidal integration
     setState(_limit.update(getState() + 
-                (getState() + input)*dt/2,dt));
+                (getState() + input)*dt/2));
     return getState();
 }
 
-float Derivative::update(float input, uint16_t dt)
+float Derivative::update(float input, float dt)
 {
     float output = (input - getState())/dt;
     setState(input);
