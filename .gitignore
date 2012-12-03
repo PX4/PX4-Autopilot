@@ -1,4 +1,5 @@
 .built
+*.swp
 *.context
 .depend
 .config
