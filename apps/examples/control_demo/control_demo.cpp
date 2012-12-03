@@ -45,6 +45,8 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/control/px4_fixedwing.h>
 #include <systemlib/param/param.h>
+#include <drivers/drv_hrt.h>
+#include <math.h>
 
 static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
@@ -132,7 +134,7 @@ int control_demo_thread_main(int argc, char *argv[]) {
     BlockFixedWingStabilization fixedWingStabilization("FW_STAB", NULL);
     BlockFixedWingHeadingHold fixedWingHeadingHold("FW_HEAD", NULL);
     BlockFixedWingAltitudeHoldBackside fixedWingAltitudeHoldBackside("FW_ALTB", NULL);
-    BlockFixedWingVelocityHoldFrontside fixedWingVelocityHoldBackside("FW_VELB", NULL);
+    BlockFixedWingVelocityHoldBackside fixedWingVelocityHoldBackside("FW_VELB", NULL);
 
     thread_running = true;
     uint32_t loopCount = 0;
@@ -144,23 +146,52 @@ int control_demo_thread_main(int argc, char *argv[]) {
 
     while (!thread_should_exit) {
 
+        struct timespec ts;
+        abstime_to_ts(&ts,hrt_absolute_time());
+        float t = ts.tv_sec + ts.tv_nsec/1.0e9;
+        float u = sin(t);
+
+        float p = u;
+        float q = u;
+        float r = u;
+
+        float h = u;
+        float v = u;
+        float phi = u;
+        float theta = u;
+        float psi = u;
+
+        float pCmd = 0;
+        float qCmd = 0;
+        float rCmd = 0;
+
+        float vCmd = 0;
+        float hCmd = 0;
+        float psiCmd = 0;
+
+        fixedWingStabilization.update(pCmd, qCmd, rCmd, p, q, r);
+        fixedWingHeadingHold.update(psiCmd, phi, psi, p);
+        fixedWingAltitudeHoldBackside.update(hCmd, h);
+        fixedWingVelocityHoldBackside.update(vCmd, v, theta, q);
+
+        usleep(20000);
+
         if (loopCount == 100)
         {
             loopCount = 0;
+
             fixedWingStabilization.updateParams();
             fixedWingHeadingHold.updateParams();
             fixedWingAltitudeHoldBackside.updateParams();
             fixedWingVelocityHoldBackside.updateParams();
+            printf("t: %8.4f, u: %8.4f\n", t, u);
+            printf("fixedWingStabilization, aileron: %8.4f, elevator: %8.4f, rudder: %8.4f\n",
+                    fixedWingStabilization.getAileronCmd(),
+                    fixedWingStabilization.getElevatorCmd(),
+                    fixedWingStabilization.getRudderCmd());
+            fflush(stdout);
         }
-
-        fixedWingStabilization.update(0,0,0,0,0,0);
-        fixedWingHeadingHold.update(0,0,0,0);
-        fixedWingAltitudeHoldBackside.update(0,0);
-        fixedWingVelocityHoldBackside.update(0,0);
-
-        usleep(20000);
         loopCount++;
-
     }
 
     printf("[control_demo] exiting.\n");
