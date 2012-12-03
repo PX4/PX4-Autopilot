@@ -41,11 +41,38 @@ Configuring NuttX
        b. Execute 'make menuconfig' in nuttx/ in order to start the
           reconfiguration process.
 
-    2. The current configuration is untested.  When last attempted
-       on Ubuntu 12.10 with SDCC 3.2.0, the build failed with the
-       following internal error:
+    2. The default setup for this configuration uses a windows native build.
+       NOTE that build does *NOT* work build successfully using SDCC 3.2.0:
+       Windows halts claiming that sdcclib is no long responding.  3.2.0 is
+       the latest released version as of this writing.  This problem has,
+       apparently been corrected in the repository; a snapshot data 11-23-2012
+       (3.2.1) did not have this problem.
 
-       *** glibc detected *** sdcclib: malloc(): memory corruption: 0x09f09768 ***
+       This configuration was last verified sucessfully prior to the
+       the configure to Kconfig/mconf tool using SDCC 2.6.0 built to run
+       natively under Cygwin.
+
+    3. This configuration can be converted to run under Linux (or Cygwin or
+       OSX), by modifying the configuration file as follows:
+
+        -CONFIG_HOST_WINDOWS=y
+        -CONFIG_WINDOWS_NATIVE=y
+        +CONFIG_HOST_LINUX=y
+ 
+        -CONFIG_Z80_TOOLCHAIN_SDCCW=y
+        +CONFIG_Z80_TOOLCHAIN_SDCCL=y
+
+       You make also have to change the value of CONFIG_APPS_DIR.  You cannot
+       use the default setenv.bat.  Use configs/z80sim/script/setenv.sh instead.
+
+       When last attempted on Ubuntu 12.10 with SDCC 3.2.0 for Linux, the build
+       failed with the following internal error:
+
+         *** glibc detected *** sdcclib: malloc(): memory corruption: 0x09f09768 ***
+
+       I believe that this is related to the sdcclib error also reported under
+       windows for SDCC 3.2.0.  It can probably also be avoided by updating to
+       a more recent snapshot.
 
   nsh
 

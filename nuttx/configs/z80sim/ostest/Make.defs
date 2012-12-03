@@ -36,56 +36,129 @@
 include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
 
-CROSSDEV		=
-CC				= sdcc
-CPP				= sdcpp
-AR				= sdcclib -a
+# These are the directories where the SDCC toolchain is installed.  NOTE
+# that short 8.3 path names are used in order to avoid spaces.  On my machine
+# I have:
+#
+# C:\PROGRA~1\ = C:\Profram Files\
+# C:\PROGRA~2\ = C:\Program Files (x86)\
+#
+# Your PC may be configured differently.
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  SDCC_INSTALLDIR = C:\PROGRA~2\SDCC
+  SDCC_BINDIR = $(SDCC_INSTALLDIR)\bin
+  SDCC_LIBDIR = $(SDCC_INSTALLDIR)\lib\z80
+else
+  SDCC_INSTALLDIR = /usr/local
+  SDCC_BINDIR = $(SDCC_INSTALLDIR)/bin
+  SDCC_LIBDIR = $(SDCC_INSTALLDIR)/share/sdcc/lib/z80
+endif
+
+CROSSDEV =
+CC = sdcc
+CPP = sdcpp
+AR = sdcclib -a
 
 ifeq ($(CONFIG_SDCC_OLD),y)
-
-LD				= link-z80
-AS				= as-z80
-ARCHCPUFLAGS	= -mz80 --stack-auto --int-long-reent --float-reent
-
+  LD = link-z80
+  AS = as-z80
+  ARCHCPUFLAGS = -mz80 --stack-auto --int-long-reent --float-reent
 else
-
-LD				= sdldz80
-AS				= sdasz80
-ARCHCPUFLAGS	= -mz80
-
+  LD = sdldz80
+  AS = sdasz80
+  ARCHCPUFLAGS = -mz80
 endif
 
 ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
-  ARCHOPTIMIZATION	= --debug
+  ARCHOPTIMIZATION = --debug
 else
-  ARCHOPTIMIZATION	=
+  ARCHOPTIMIZATION =
 endif
 
-ARCHPICFLAGS	=
-ARCHWARNINGS	=
-ARCHDEFINES		=
-ARCHINCLUDES	= -I. -I$(TOPDIR)/include
+ARCHPICFLAGS =
+ARCHWARNINGS =
+ARCHDEFINES =
+ARCHINCLUDES = -I. -I$(TOPDIR)$(DELIM)include
 
-CFLAGS			= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) \
-				  $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
-CPPFLAGS		= $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
-ASFLAGS			= -x -a -l -o -s
+CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+CPPFLAGS = $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+AFLAGS = -x -a -l -o -s
 
-SDCCLIBDIR		= /usr/local/share/sdcc/lib/z80
-SDCCLIB			= z80.lib
+SDCCLIB = z80.lib
 
-ASMEXT			= .asm
-OBJEXT			= .o
-LIBEXT			= .lib
-EXEEXT			= .hex
+ASMEXT = .asm
+OBJEXT = .o
+LIBEXT = .lib
+EXEEXT = .hex
 
-define CLEAN
-	@rm -f *.o *.asm *.rel *.lst *.rst *.sym *.adb *.lnk *.map *.mem *.hex
+# Custom ASSEMBLE definition.  The most common toolchain, GCC, uses the
+# compiler to assemble files because this has the advantage of running the C
+# Pre-Processor against.  This is not possible with other SDCC; we need to
+# define AS and over-ride the common definition in order to use the assembler
+# directly.
+
+define ASSEMBLE
+	@echo "AS: $1"
+	$(Q) $(AS) $(AFLAGS) $2 $1
 endef
 
-MKDEP			= $(TOPDIR)/tools/mkdeps.sh
+# Custom CLEAN definition
 
-HOSTCC			= gcc
-HOSTINCLUDES		= -I.
-HOSTCFLAGS		= -Wall -Wstrict-prototypes -Wshadow -g -pipe
-HOSTLDFLAGS		=
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+define CLEAN
+	$(Q) if exist *.o (del /f /q *.o)
+	$(Q) if exist *.asm (del /f /q *.asm)
+	$(Q) if exist *.rel (del /f /q *.rel)
+	$(Q) if exist *.lst (del /f /q *.lst)
+	$(Q) if exist *.rst (del /f /q *.rst)
+	$(Q) if exist *.sym (del /f /q *.sym)
+	$(Q) if exist *.adb (del /f /q *.adb)
+	$(Q) if exist *.lnk (del /f /q *.lnk)
+	$(Q) if exist *.map (del /f /q *.map)
+	$(Q) if exist *.mem (del /f /q *.mem)
+	$(Q) if exist *.hex (del /f /q *.hex)
+	$(Q) if exist *.cmd (del /f /q *.cmd)
+endef
+else
+define CLEAN
+	$(Q) rm -f *.o *.asm *.rel *.lst *.rst *.sym *.adb *.lnk *.map *.mem *.hex *.cmd
+endef
+endif
+
+# Windows native host tool definitions
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  HOSTCC = mingw32-gcc.exe
+  HOSTINCLUDES = -I.
+  HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -g -pipe
+  HOSTLDFLAGS =
+  HOSTEXEEXT = .exe
+
+  # Windows-native host tools
+
+  MKDEP = $(TOPDIR)\tools\mkdeps.exe --winnative
+else
+
+# Linux/Cygwin host tool definitions
+
+  HOSTCC = gcc
+  HOSTINCLUDES = -I.
+  HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -g -pipe
+  HOSTLDFLAGS =
+
+  # This is the tool to use for dependencies (i.e., none)
+
+  MKDEP = $(TOPDIR)$(DELIM)tools$(DELIM)mknulldeps.sh
+
+  # SDCC for Linux, OSX, or Cygwin understands symbolic links.  Windows SDCC
+  # running under Cygwin does not
+
+ifeq ($(WINTOOL),y)
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)winlink.sh
+  DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.sh
+else
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)link.sh
+  DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.sh
+endif
+endif

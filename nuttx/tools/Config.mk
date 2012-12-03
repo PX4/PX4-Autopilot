@@ -134,10 +134,16 @@ endef
 # ASSEMBLE - Default macro to assemble one assembly language file
 # Example: $(call ASSEMBLE, in-file, out-file)
 #
+# NOTE that the most common toolchain, GCC, uses the compiler to assemble
+# files because this has the advantage of running the C Pre-Processor against
+# the assembly language files.  This is not possible with other toolchains;
+# platforms using those other tools should define AS and over-ride this
+# definition in order to use the assembler directly.
+#
 # Depends on these settings defined in board-specific Make.defs file
 # installed at $(TOPDIR)/Make.defs:
 #
-#   CC - By default, the C compiler is used to compile assembly lagnuage
+#   CC - By default, the C compiler is used to compile assembly language
 #        files
 #   AFLAGS - Options to pass to the C+compiler
 
@@ -164,8 +170,7 @@ endef
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 define ARCHIVE
-	@echo "AR: $2"
-	$(AR) $1
+	@echo AR: $2
 	$(Q) $(AR) $1 $(2)
 endef
 else

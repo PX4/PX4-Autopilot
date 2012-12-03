@@ -3731,4 +3731,7 @@
 	* configs/z80sim/ostest:  Converted to build with the Kconfig/mconf tool.
 	  Current configuration failed to build for me (Ubuntu 12.10, SDCC 3.2.0
 	  pre-built for Linux) due to a glibc memory corruptionerror in SDCC.
+	* configs/z80sim/ostest: Default is now the Windows native build.  See
+	  configs/z80sim/README.txt for instructions to convert back to a Linux or
+	  or Cygwin build.
 

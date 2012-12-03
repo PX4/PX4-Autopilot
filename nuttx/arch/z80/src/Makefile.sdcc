@@ -96,12 +96,12 @@ $(COBJS): %$(OBJEXT): %.c
 
 # This is a kludge to work around some conflicting symbols in libsdcc.lib
 
-$(SDCCLIBDIR)/myz80.lib: $(SDCCLIBDIR)/$(SDCCLIB)
-	$(Q) cat $(SDCCLIBDIR)/$(SDCCLIB) | \
+$(SDCC_LIBDIR)/myz80.lib: $(SDCC_LIBDIR)/$(SDCCLIB)
+	$(Q) cat $(SDCC_LIBDIR)/$(SDCCLIB) | \
 		grep -v alloc | grep -v free | grep -v printf | \
 		grep -v _str  | grep -v _mem | grep -v crt0\.o \
 		> myz80.lib
-	$(Q) mv -f myz80.lib $(SDCCLIBDIR)/myz80.lib
+	$(Q) mv -f myz80.lib $(SDCC_LIBDIR)/myz80.lib
 
 # Create a header file that contains addressing information needed by the code
 
@@ -143,11 +143,11 @@ board/libboard$(LIBEXT):
 
 # This target builds the final executable
 
-pass1.hex: up_mem.h asm_mem.h $(SDCCLIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard$(LIBEXT)
+pass1.hex: up_mem.h asm_mem.h $(SDCC_LIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard$(LIBEXT)
 	@echo "LD: pass1.hex"
 	@echo "--" >pass1.lnk				# Non-interactive
 	@echo "-k $(BOARDDIR)" >>pass1.lnk		# Path to board library
-	@echo "-k $(SDCCLIBDIR)" >>pass1.lnk		# Path to SDCC z80 library
+	@echo "-k $(SDCC_LIBDIR)" >>pass1.lnk		# Path to SDCC z80 library
 	@echo "-l libboard$(LIBEXT)" >>pass1.lnk	# Name of board library
 	$(Q) for LIB in $(LINKLIBS); do \
 		echo "-l $(TOPDIR)/lib/$$LIB" >> pass1.lnk ;\
@@ -176,11 +176,11 @@ endif
 	$(Q) $(MAKE) TOPDIR="$(TOPDIR)" libarch$(LIBEXT)
 	$(Q) $(MAKE) TOPDIR="$(TOPDIR)" $(HEAD_OBJ)
 
-nuttx.hex: up_mem.h asm_mem.h $(SDCCLIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard$(LIBEXT)
+nuttx.hex: up_mem.h asm_mem.h $(SDCC_LIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard$(LIBEXT)
 	@echo "LD: nuttx.hex"
 	@echo "--" >nuttx.lnk				# Non-interactive
 	@echo "-k $(BOARDDIR)" >>nuttx.lnk		# Path to board library
-	@echo "-k $(SDCCLIBDIR)" >>nuttx.lnk		# Path to SDCC z80 library
+	@echo "-k $(SDCC_LIBDIR)" >>nuttx.lnk		# Path to SDCC z80 library
 	@echo "-l libboard$(LIBEXT)" >>nuttx.lnk	# Name of board library
 	$(Q) for LIB in $(LINKLIBS); do \
 		echo "-l $(TOPDIR)/lib/$$LIB" >> nuttx.lnk ;\

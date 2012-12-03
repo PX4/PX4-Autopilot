@@ -12,6 +12,7 @@ choice
 
 config Z80_TOOLCHAIN_SDCCL
         bool "SDCC for Linux, MAC OSX, or Cygwin"
+	depends on !WINDOWS_NATIVE
 
 config Z80_TOOLCHAIN_SDCCW
         bool "SDCC for Windows"
