@@ -92,8 +92,8 @@ class __EXPORT PParam :
     public PBase
 {
 public:
-    PParam(const char * name, Block * parent) :
-        PBase(name, parent),
+    PParam(Block * parent) :
+        PBase(parent),
         _handle_kP(findParam(parent->getName(),"P"))
     {}
     virtual ~PParam() {};
@@ -109,8 +109,8 @@ class __EXPORT IParam :
     public IBase
 {
 public:
-    IParam(const char * name, Block * parent) :
-        IBase(name, parent),
+    IParam(Block * parent) :
+        IBase(parent),
         _handle_kI(findParam(parent->getName(),"I")),
         _handle_iMin(findParam(parent->getName(),"IMIN")),
         _handle_iMax(findParam(parent->getName(),"IMAX"))
@@ -132,8 +132,8 @@ class __EXPORT DParam :
     public DBase
 {
 public:
-    DParam(const char * name, Block * parent) :
-        DBase(name, parent),
+    DParam(Block * parent) :
+        DBase(parent),
         _handle_kD(findParam(parent->getName(),"D")),
         _handle_fCut(findParam(parent->getName(),"FCUT"))
     {

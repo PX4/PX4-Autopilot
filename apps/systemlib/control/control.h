@@ -53,22 +53,24 @@ public:
         _firstChild(NULL),
         _firstSibling(NULL)
     {
-        if (_parent == NULL)
+        if (getParent() == NULL)
         {
-            _name = name;
-            _parent->addChild(this);
+            strncpy(_name,name,80);
         }
         else
         {
-            snprintf((char *)_name,80,"%s_%s",parent->getName(),name);
-            _parent->addChild(this);
+            snprintf(_name,80,"%s_%s", getParent()->getName(), name);
+            getParent()->addChild(this);
+            printf("name: %s\n", getName());
         }
     };
+    Block * getParent() { return _parent; }
     const char * getName() { return _name; }
     virtual void updateParams()
     {
         updateChildParams();
     };
+protected:
     void updateChildParams() {
         Block * child = _firstChild;
         int count = 0;
@@ -84,13 +86,12 @@ public:
             child = child->_firstSibling;
         }
     }
-protected:
     void addChild(Block * child) {
         child->_firstSibling = _firstChild;
         _firstChild = child;
     }
 // attributes
-    const char * _name;
+    char _name[80];
     Block * _parent;
     Block * _firstChild;
     Block * _firstSibling;
@@ -219,7 +220,7 @@ class __EXPORT PBase
 {
 public:
 // methods
-    PBase(const char * name, Block * parent) : _kP(0) {};
+    PBase(Block * parent) : _kP(0) {};
     virtual ~PBase() {};
     virtual void pParamsUpdate() = 0;
 // accessors
@@ -237,7 +238,7 @@ class __EXPORT IBase
 {
 public:
 // methods
-    IBase(const char * name, Block * parent) : _kI(0), _integral() {};
+    IBase(Block * parent) : _kI(0), _integral() {};
     virtual ~IBase() {};
     virtual void iParamsUpdate() = 0;
 // accessors
@@ -262,7 +263,7 @@ class __EXPORT DBase
 {
 public:
 // methods
-    DBase(const char * name, Block * parent) : _kD(0), _derivative() {};
+    DBase(Block * parent) : _kD(0), _derivative() {};
     virtual ~DBase() {};
     virtual void dParamsUpdate() = 0;
 // accessors
@@ -319,7 +320,7 @@ public:
 // methods
     BlockP(const char * name, Block * parent) :
         Block(name, parent),
-        PBase(getName(), parent)
+        PBase(this)
     {};
     virtual ~BlockP() {};
     float update(float input, uint16_t dt)
@@ -347,8 +348,8 @@ public:
 // methods
     BlockPI(const char * name, Block * parent) :
         Block(name, parent),
-        PBase(getName()),
-        IBase(getName())
+        PBase(this),
+        IBase(this)
     {};
     virtual ~BlockPI() {};
     float update(float input, uint16_t dt)
@@ -378,8 +379,8 @@ public:
 // methods
     PDBlock(const char * name, Block * parent) :
         Block(name, parent),
-        PBase(getName()),
-        DBase(getName())
+        PBase(this),
+        DBase(this)
     {};
     virtual ~PDBlock() {};
     float update(float input, uint16_t dt)
@@ -410,9 +411,9 @@ public:
 // methods
     BlockPID(const char * name, Block * parent) :
         Block(name, parent),
-        PBase(getName()),
-        IBase(getName()),
-        DBase(getName())
+        PBase(this),
+        IBase(this),
+        DBase(this)
     {};
     virtual ~BlockPID() {};
     float update(float input, uint16_t dt)
