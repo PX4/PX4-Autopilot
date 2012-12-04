@@ -63,6 +63,6 @@ typedef control::fixedwing::BlockAltitudeHoldBackside
 typedef control::fixedwing::BlockAltitudeHoldFrontside
     <BlockPID> BlockAltitudeHoldFrontside;
 
-} // namespace control
-} // namespace px4
 } // namespace fixedwing
+} // namespace px4
+} // namespace control
