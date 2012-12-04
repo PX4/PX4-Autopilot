@@ -43,10 +43,15 @@ Configuring NuttX
 
     2. The default setup for this configuration uses a windows native build.
        NOTE that build does *NOT* work build successfully using SDCC 3.2.0:
-       Windows halts claiming that sdcclib is no long responding.  3.2.0 is
+       Windows halts claiming that sdcclib is no longer responding.  3.2.0 is
        the latest released version as of this writing.  This problem has,
-       apparently been corrected in the repository; a snapshot data 11-23-2012
-       (3.2.1) did not have this problem.
+       apparently been corrected in the repository; a snapshot data Nov 23,
+       2012 (3.2.1) did not have this problem.
+
+       As of this writing, the native Windows build still does not work.  This
+       is due to issues in arch/z80/src/Makefile and in the Bash script
+       arch/z80/src/mkhpbase.sh which, of course, cannot be used in a Windows
+       CMD.exe shell.  These configuration is broken for the time being.
 
        This configuration was last verified sucessfully prior to the
        the configure to Kconfig/mconf tool using SDCC 2.6.0 built to run
@@ -71,8 +76,10 @@ Configuring NuttX
          *** glibc detected *** sdcclib: malloc(): memory corruption: 0x09f09768 ***
 
        I believe that this is related to the sdcclib error also reported under
-       windows for SDCC 3.2.0.  It can probably also be avoided by updating to
-       a more recent snapshot.
+       windows for SDCC 3.2.0.  It may be avoided by updating to a more recent
+       snapshot.  However, a Dec 4, 2012 still shows a similar error:
+
+         *** glibc detected *** sdcclib: free(): invalid next size (fast): 0x0000000001aaaab0 ***
 
   nsh
 
