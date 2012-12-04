@@ -297,7 +297,7 @@ protected:
 // attributes
     float _kD; /**< proportional gain */
     Derivative _derivative; /**< derivative calculator */
-// private methods
+// methods
     Derivative & getDerivative() {return _derivative;}
 };
 
@@ -311,7 +311,7 @@ public:
 // methods
     BlockConstant(const char * name, Block * parent) : Block(name, parent) {};
     virtual ~BlockConstant() {};
-private:
+protected:
 // accessors
    void set(float val) { _val = val; }
    float get() { return _val; }

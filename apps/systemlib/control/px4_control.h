@@ -52,6 +52,28 @@ bool isValid(param_t param);
 float getFloatParam(param_t param);
 param_t findParam(const char * prefix, const char * name);
 
+/**
+ * A constant block.
+ */
+class __EXPORT BlockConstant:
+    public control::BlockConstant
+{
+public:
+// methods
+    BlockConstant(const char * name, Block * parent) :
+        control::BlockConstant(name, parent),
+        _handle(param_find(getName()))
+    {};
+    virtual ~BlockConstant() {};
+    void updateParams()
+    {
+        Block::updateParams();
+        if (isValid(_handle)) set(getFloatParam(_handle));
+    }
+private:
+    param_t _handle;
+};
+
 class __EXPORT BlockLimit :
     public control::BlockLimit
 {

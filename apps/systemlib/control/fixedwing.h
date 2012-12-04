@@ -185,8 +185,8 @@ private:
 public:
     BlockVelocityHoldBackside(const char * name, Block * parent) :
         Block(name, parent),
-        _v2Theta("V2THETA",this),
-        _theta2Q("THETA2Q",this),
+        _v2Theta("V_2THETA",this),
+        _theta2Q("THETA_2Q",this),
         _elevatorCmd(0)
     {
     }
@@ -214,7 +214,7 @@ private:
 public:
     BlockVelocityHoldFrontside(const char * name, Block * parent) :
         Block(name, parent),
-        _v2Thr("V2THR",this),
+        _v2Thr("V_2THR",this),
         _thrCmd(0)
     {
     }
@@ -240,7 +240,7 @@ private:
 public:
     BlockAltitudeHoldBackside(const char * name, Block * parent) :
         Block(name, parent),
-        _h2Thr("H2THR",this),
+        _h2Thr("H_2THR",this),
         _thrCmd(0)
     {
     }
@@ -267,8 +267,8 @@ private:
 public:
     BlockAltitudeHoldFrontside(const char * name, Block * parent) :
         Block(name, parent),
-        _h2Theta("H2THETA",this),
-        _theta2Q("THETA2Q",this),
+        _h2Theta("H_2THETA",this),
+        _theta2Q("THETA_2Q",this),
         _elevatorCmd(0)
     {
     }
@@ -280,6 +280,15 @@ public:
         _elevatorCmd = qCmd - q;
     }
     float getElevatorCmd() {return _elevatorCmd;}
+};
+
+/**
+ * Backside autopilot
+ */
+class BacksideAutopilot
+{
+public:
+private:
 };
 
 } // namespace fixedwing
