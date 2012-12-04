@@ -46,8 +46,8 @@ static const uint16_t maxChildren = 100;
 
 class __EXPORT Block
 {
-protected:
 public:
+// methods
     Block(const char * name, Block * parent) :
         _name(),
         _parent(parent),
@@ -89,6 +89,7 @@ public:
         }
     }
 protected:
+// methods
     void updateChildParams() {
         Block * child = _firstChild;
         int count = 0;
@@ -124,14 +125,16 @@ protected:
 class __EXPORT Limit
 {
 public:
+// methods
     Limit() : _min(0), _max(0) {};
     virtual ~Limit() {};
     float update(float input);
+// accessors
     void setMin(float min) {_min=min;}
     float getMin() {return _min;}
     void setMax(float max) {_max=max;}
     float getMax() {return _max;}
-protected:
+// attributes
     float _min; /**< output minimum */
     float _max; /**< output maximum */
 };
@@ -169,12 +172,12 @@ public:
     HighPass() : _state(0), _fCut(0) {};
     virtual ~HighPass() {};
     float update(float input, float dt);
+protected:
 // accessors
     void setState(float state) {_state = state;}
     float getState() {return _state;}
     void setFCut(float fCut) {_fCut=fCut;}
     float getFCut() {return _fCut;}
-protected:
 // attributes
     float _state; /**< previous output */
     float _fCut; /**< cut-off frequency, Hz */
@@ -242,10 +245,10 @@ public:
     PBase(Block * parent) : _kP(0) {};
     virtual ~PBase() {};
     virtual void pParamsUpdate() = 0;
+protected:
 // accessors
     void setKP(float kP) {_kP = kP;}
     float getKP() {return _kP;}
-protected:
 // attributes
     float _kP; /**< proportional gain */
 };
@@ -260,6 +263,7 @@ public:
     IBase(Block * parent) : _kI(0), _integral() {};
     virtual ~IBase() {};
     virtual void iParamsUpdate() = 0;
+protected:
 // accessors
     void setKI(float kI) {_kI = kI;}
     float getKI() {return _kI;}
@@ -267,7 +271,6 @@ public:
     float getIMin() {return IBase::getIntegral().getMin();}
     void setIMax(float max) {IBase::getIntegral().setMax(max);}
     float getIMax() {return IBase::getIntegral().getMax();}
-protected:
 // protected methods
     Integral & getIntegral() {return _integral;}
 // attributes
@@ -285,12 +288,12 @@ public:
     DBase(Block * parent) : _kD(0), _derivative() {};
     virtual ~DBase() {};
     virtual void dParamsUpdate() = 0;
+protected:
 // accessors
     void setKD(float kD) {_kD = kD;}
     float getKD() {return _kD;}
     void setFCut(float fCut) {DBase::getDerivative().setFCut(fCut);}
     float getFCut() {return DBase::getDerivative().getFCut();}
-protected:
 // attributes
     float _kD; /**< proportional gain */
     Derivative _derivative; /**< derivative calculator */
@@ -299,8 +302,25 @@ protected:
 };
 
 /**
- * A limiter/ satruation block.
- * @link http://en.wikipedia.org/wiki/Low-Pass_filter
+ * A constant block.
+ */
+class __EXPORT BlockConstant:
+    public Block
+{
+public:
+// methods
+    BlockConstant(const char * name, Block * parent) : Block(name, parent) {};
+    virtual ~BlockConstant() {};
+private:
+// accessors
+   void set(float val) { _val = val; }
+   float get() { return _val; }
+// attributes
+    float _val;
+};
+
+/**
+ * A limiter/ saturation block.
  */
 class __EXPORT BlockLimit:
     public Block,

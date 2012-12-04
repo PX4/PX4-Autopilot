@@ -130,11 +130,11 @@ int control_demo_thread_main(int argc, char *argv[]) {
 
     printf("[control_Demo] starting\n");
 
-    using namespace control::px4;
-    BlockFixedWingStabilization fixedWingStabilization("FW_STAB", NULL);
-    BlockFixedWingHeadingHold fixedWingHeadingHold("FW_HEAD", NULL);
-    BlockFixedWingAltitudeHoldBackside fixedWingAltitudeHoldBackside("FW_ALTB", NULL);
-    BlockFixedWingVelocityHoldBackside fixedWingVelocityHoldBackside("FW_VELB", NULL);
+    using namespace control::px4::fixedwing;
+    BlockStabilization fixedWingStabilization("FW_STAB", NULL);
+    BlockHeadingHold fixedWingHeadingHold("FW_HEAD", NULL);
+    BlockAltitudeHoldBackside fixedWingAltitudeHoldBackside("FW_ALTB", NULL);
+    BlockVelocityHoldBackside fixedWingVelocityHoldBackside("FW_VELB", NULL);
 
     thread_running = true;
     uint32_t loopCount = 0;

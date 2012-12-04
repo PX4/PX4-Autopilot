@@ -42,18 +42,27 @@
 #include "px4_control.h"
 #include "fixedwing.h"
 
+
 namespace control
 {
 namespace px4
 {
+namespace fixedwing
+{
 
-typedef control::BlockFixedWingStabilization<BlockLowPass, BlockHighPass, BlockP> BlockFixedWingStabilization;
-typedef control::BlockFixedWingHeadingHold<BlockP, BlockLimit> BlockFixedWingHeadingHold;
-typedef control::BlockFixedWingVelocityHoldBackside<BlockPID> BlockFixedWingVelocityHoldBackside;
-typedef control::BlockFixedWingVelocityHoldFrontside<BlockPID> BlockFixedWingVelocityHoldFrontside;
-typedef control::BlockFixedWingAltitudeHoldBackside<BlockPID> BlockFixedWingAltitudeHoldBackside;
-typedef control::BlockFixedWingAltitudeHoldFrontside<BlockPID> BlockFixedWingAltitudeHoldFrontside;
+typedef control::fixedwing::BlockStabilization
+    <BlockLowPass, BlockHighPass, BlockP> BlockStabilization;
+typedef control::fixedwing::BlockHeadingHold
+    <BlockP, BlockLimit> BlockHeadingHold;
+typedef control::fixedwing::BlockVelocityHoldBackside
+    <BlockPID> BlockVelocityHoldBackside;
+typedef control::fixedwing::BlockVelocityHoldFrontside
+    <BlockPID> BlockVelocityHoldFrontside;
+typedef control::fixedwing::BlockAltitudeHoldBackside
+    <BlockPID> BlockAltitudeHoldBackside;
+typedef control::fixedwing::BlockAltitudeHoldFrontside
+    <BlockPID> BlockAltitudeHoldFrontside;
 
-
-} // namespace px4
 } // namespace control
+} // namespace px4
+} // namespace fixedwing

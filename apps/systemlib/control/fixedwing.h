@@ -44,48 +44,73 @@
 namespace control
 {
 
+namespace fixedwing
+{
+
+/**
+ * Yaw damper
+ */
+template<class BLOCK_LOWPASS, class BLOCK_HIGHPASS, class BLOCK_P>
+class BlockYawDamper :
+    public Block
+{
+private:
+    BLOCK_LOWPASS _rLowPass;
+    BLOCK_HIGHPASS _rWashout;
+    BLOCK_P _r2Rdr;
+public:
+    BlockYawDamper(const char * name, Block * parent) :
+        Block(name, parent),
+        _rLowPass("LP", this),
+        _rWashout("HP", this),
+        _r2Rdr("2RDR", this)
+    {
+    }
+    virtual ~BlockYawDamper() {};
+    float update(float rCmd, float r)
+    {
+        return _r2Rdr.update(rCmd -
+                _rWashout.update(_rLowPass.update(r)));
+    }
+};
+
 /**
  * Stability augmentation system.
  * Aircraft Control and Simulation, Stevens and Lewis, pg. 292, 299
  */
 template<class BLOCK_LOWPASS, class BLOCK_HIGHPASS, class BLOCK_P>
-class BlockFixedWingStabilization :
+class BlockStabilization :
     public Block
 {
 private:
+    BlockYawDamper<BLOCK_LOWPASS, BLOCK_HIGHPASS, BLOCK_P> _yawDamper;
     BLOCK_LOWPASS _pLowPass;
     BLOCK_LOWPASS _qLowPass;
-    BLOCK_LOWPASS _rLowPass;
-    BLOCK_HIGHPASS _rWashout;
     BLOCK_P _p2Ail;
     BLOCK_P _q2Elv;
-    BLOCK_P _r2Rdr;
     float _aileronCmd;
     float _elevatorCmd;
     float _rudderCmd;
 public:
-    BlockFixedWingStabilization(const char * name, Block * parent) :
+    BlockStabilization(const char * name, Block * parent) :
         Block(name, parent),
+        _yawDamper("R", this),
         _pLowPass("P_LP", this),
         _qLowPass("Q_LP", this),
-        _rLowPass("R_LP", this),
-        _rWashout("R_HP", this),
-        _p2Ail("P2AIL", this),
-        _q2Elv("Q2ELV", this),
-        _r2Rdr("R2RDR", this),
+        _p2Ail("P_2AIL", this),
+        _q2Elv("Q_2ELV", this),
         _aileronCmd(0),
         _elevatorCmd(0),
         _rudderCmd(0)
     {
     }
-    virtual ~BlockFixedWingStabilization() {};
+    virtual ~BlockStabilization() {};
     void update(float pCmd, float qCmd, float rCmd,
             float p, float q, float r)
     {
         _aileronCmd = _p2Ail.update(pCmd - _pLowPass.update(p));
         _elevatorCmd = _q2Elv.update(qCmd - _qLowPass.update(q));
-        _rudderCmd = _r2Rdr.update(rCmd -
-                _rWashout.update(_rLowPass.update(r)));
+        _rudderCmd = _yawDamper.update(rCmd,r);
     }
     float getAileronCmd() {return _aileronCmd;}
     float getElevatorCmd() {return _elevatorCmd;}
@@ -98,7 +123,7 @@ public:
  * Heading hold, pg. 348
  */
 template<class BLOCK_P, class BLOCK_LIMIT>
-class BlockFixedWingHeadingHold :
+class BlockHeadingHold :
     public Block
 {
 private:
@@ -108,16 +133,16 @@ private:
     BLOCK_LIMIT _phiLimit;
     float _aileronCmd;
 public:
-    BlockFixedWingHeadingHold(const char * name, Block * parent) :
+    BlockHeadingHold(const char * name, Block * parent) :
         Block(name, parent),
-        _psi2Phi("PSI2PHI",this),
-        _p2Phi("P2PHI",this),
-        _phi2Ail("PHI2AIL",this),
+        _psi2Phi("PSI_2PHI",this),
+        _p2Phi("P_2PHI",this),
+        _phi2Ail("PHI_2AIL",this),
         _phiLimit("PHI_LIM",this),
         _aileronCmd(0)
     {
     }
-    virtual ~BlockFixedWingHeadingHold() {};
+    virtual ~BlockHeadingHold() {};
     void update(float psiCmd, float phi, float psi, float p)
     {
         float psiError = psiCmd - psi;
@@ -150,7 +175,7 @@ public:
  * v -> theta -> q -> elevator
  */
 template<class BLOCK_PID>
-class BlockFixedWingVelocityHoldBackside :
+class BlockVelocityHoldBackside :
     public Block
 {
 private:
@@ -158,14 +183,14 @@ private:
     BLOCK_PID _theta2Q;
     float _elevatorCmd;
 public:
-    BlockFixedWingVelocityHoldBackside(const char * name, Block * parent) :
+    BlockVelocityHoldBackside(const char * name, Block * parent) :
         Block(name, parent),
         _v2Theta("V2THETA",this),
         _theta2Q("THETA2Q",this),
         _elevatorCmd(0)
     {
     }
-    virtual ~BlockFixedWingVelocityHoldBackside() {};
+    virtual ~BlockVelocityHoldBackside() {};
     void update(float vCmd, float v, float theta, float q)
     {
         float thetaCmd = _v2Theta.update(vCmd - v);
@@ -180,20 +205,20 @@ public:
  * v -> throttle
  */
 template<class BLOCK_PID>
-class BlockFixedWingVelocityHoldFrontside :
+class BlockVelocityHoldFrontside :
     public Block
 {
 private:
     BLOCK_PID _v2Thr;
     float _thrCmd;
 public:
-    BlockFixedWingVelocityHoldFrontside(const char * name, Block * parent) :
+    BlockVelocityHoldFrontside(const char * name, Block * parent) :
         Block(name, parent),
         _v2Thr("V2THR",this),
         _thrCmd(0)
     {
     }
-    virtual ~BlockFixedWingVelocityHoldFrontside() {};
+    virtual ~BlockVelocityHoldFrontside() {};
     void update(float vCmd, float v)
     {
         _thrCmd = _v2Thr.update(vCmd - v);
@@ -206,20 +231,20 @@ public:
  * h -> throttle
  */
 template<class BLOCK_PID>
-class BlockFixedWingAltitudeHoldBackside :
+class BlockAltitudeHoldBackside :
     public Block
 {
 private:
     BLOCK_PID _h2Thr;
     float _thrCmd;
 public:
-    BlockFixedWingAltitudeHoldBackside(const char * name, Block * parent) :
+    BlockAltitudeHoldBackside(const char * name, Block * parent) :
         Block(name, parent),
         _h2Thr("H2THR",this),
         _thrCmd(0)
     {
     }
-    virtual ~BlockFixedWingAltitudeHoldBackside() {};
+    virtual ~BlockAltitudeHoldBackside() {};
     void update(float hCmd, float h)
     {
         _thrCmd = _h2Thr.update(hCmd - h);
@@ -232,7 +257,7 @@ public:
  * h -> theta > q -> elevator
  */
 template<class BLOCK_PID>
-class BlockFixedWingAltitudeHoldFrontside :
+class BlockAltitudeHoldFrontside :
     public Block
 {
 private:
@@ -240,14 +265,14 @@ private:
     BLOCK_PID _theta2Q;
     float _elevatorCmd;
 public:
-    BlockFixedWingAltitudeHoldFrontside(const char * name, Block * parent) :
+    BlockAltitudeHoldFrontside(const char * name, Block * parent) :
         Block(name, parent),
         _h2Theta("H2THETA",this),
         _theta2Q("THETA2Q",this),
         _elevatorCmd(0)
     {
     }
-    virtual ~BlockFixedWingAltitudeHoldFrontside() {};
+    virtual ~BlockAltitudeHoldFrontside() {};
     void update(float hCmd, float h, float theta, float q)
     {
         float thetaCmd = _h2Theta.update(hCmd - h);
@@ -257,6 +282,7 @@ public:
     float getElevatorCmd() {return _elevatorCmd;}
 };
 
+} // namespace fixedwing
 
 } // namespace control
 
