@@ -104,7 +104,7 @@ dsm_init(const char *device)
 	return dsm_fd;
 }
 
-void
+bool
 dsm_input(void)
 {
 	ssize_t		ret;
@@ -141,7 +141,7 @@ dsm_input(void)
 
 	/* if the read failed for any reason, just give up here */
 	if (ret < 1)
-		return;
+		goto out;
 	last_rx_time = now;
 
 	/*
@@ -153,7 +153,7 @@ dsm_input(void)
 	 * If we don't have a full frame, return
 	 */
 	if (partial_frame_count < DSM_FRAME_SIZE)
-	 	return;
+	 	goto out;
 
 	/*
 	 * Great, it looks like we might have a frame.  Go ahead and
@@ -161,6 +161,12 @@ dsm_input(void)
 	 */
 	dsm_decode(now);
 	partial_frame_count = 0;
+
+out:
+	/*
+	 * If we have seen a frame in the last 200ms, we consider ourselves 'locked' 
+	 */
+	return (now - last_frame_time) < 200000;
 }
 
 static bool

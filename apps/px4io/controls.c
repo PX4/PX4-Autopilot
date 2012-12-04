@@ -86,15 +86,29 @@ controls_main(void)
 		 * one control input source, they're going to fight each
 		 * other.  Don't do that.
 		 */
+		bool locked = false;
+
 		if (fds[0].revents & POLLIN)
-			dsm_input();
+			locked |= dsm_input();
 		if (fds[1].revents & POLLIN)
-			sbus_input();
-		ppm_input();
+			locked |= sbus_input();
+
+		/*
+		 * If we don't have lock from one of the serial receivers,
+		 * look for PPM. It shares an input with S.bus, so there's
+		 * a possibility it will mis-parse an S.bus frame.
+		 *
+		 * XXX each S.bus frame will cause a PPM decoder interrupt
+		 * storm (lots of edges).  It might be sensible to actually
+		 * disable the PPM decoder completely if we have an alternate
+		 * receiver lock.
+		 */
+		if (!locked)
+			ppm_input();
 
 		/*
 		 * If we haven't seen any new control data in 200ms, assume we
-		 * have lost input and tell FMU 
+		 * have lost input and tell FMU.
 		 */
 		if ((hrt_absolute_time() - system_state.rc_channels_timestamp) > 200000) {
 

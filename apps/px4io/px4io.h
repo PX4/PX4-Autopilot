@@ -165,9 +165,9 @@ extern void	comms_main(void) __attribute__((noreturn));
  */
 extern void	controls_main(void);
 extern int	dsm_init(const char *device);
-extern void	dsm_input(void);
+extern bool	dsm_input(void);
 extern int	sbus_init(const char *device);
-extern void	sbus_input(void);
+extern bool	sbus_input(void);
 
 /*
  * Assertion codes
