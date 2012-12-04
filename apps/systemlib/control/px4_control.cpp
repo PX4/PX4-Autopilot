@@ -59,7 +59,7 @@ __EXPORT bool isValid(param_t param)
 __EXPORT float getFloatParam(param_t param)
 {
     float val = 0;
-    if (isValid(param)) 
+    if (!isValid(param)) 
     {
         return 0;
     }

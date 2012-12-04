@@ -70,7 +70,7 @@ public:
     float getDt() { return _dt; }
     virtual void updateParams()
     {
-        updateChildParams();
+        if (_firstChild != NULL) updateChildParams();
     };
     void setDt(float dt) {
         _dt = dt;
