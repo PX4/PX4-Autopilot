@@ -69,12 +69,8 @@
 struct sys_state_s 
 {
 
-	bool		armed;		/* IO armed */
-	bool		arm_ok;		/* FMU says OK to arm */
-
-	bool		ppm_input_ok;	/* valid PPM input data */
-	bool		dsm_input_ok;	/* valid Spektrum DSM data */
-	bool		sbus_input_ok;	/* valid Futaba S.Bus data */
+	bool		armed;			/* IO armed */
+	bool		arm_ok;			/* FMU says OK to arm */
 
 	/*
 	 * Data from the remote control input(s)

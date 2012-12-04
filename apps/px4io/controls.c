@@ -55,19 +55,23 @@
 #include <drivers/drv_hrt.h>
 #include <systemlib/hx_stream.h>
 #include <systemlib/perf_counter.h>
+#include <systemlib/ppm_decode.h>
 
 #define DEBUG
 #include "px4io.h"
+
+static void	ppm_input(void);
 
 void
 controls_main(void)
 {
 	struct pollfd fds[2];
 
+	/* DSM input */
 	fds[0].fd = dsm_init("/dev/ttyS0");
 	fds[0].events = POLLIN;
 
-
+	/* S.bus input */
 	fds[1].fd = sbus_init("/dev/ttyS2");
 	fds[1].events = POLLIN;
 
@@ -75,14 +79,62 @@ controls_main(void)
 		/* run this loop at ~100Hz */
 		poll(fds, 2, 10);
 
+		/*
+		 * Gather R/C control inputs from supported sources.
+		 *
+		 * Note that if you're silly enough to connect more than
+		 * one control input source, they're going to fight each
+		 * other.  Don't do that.
+		 */
 		if (fds[0].revents & POLLIN)
 			dsm_input();
 		if (fds[1].revents & POLLIN)
 			sbus_input();
+		ppm_input();
 
-		/* XXX do ppm processing, bypass mode, etc. here */
+		/*
+		 * If we haven't seen any new control data in 200ms, assume we
+		 * have lost input and tell FMU 
+		 */
+		if ((hrt_absolute_time() - system_state.rc_channels_timestamp) > 200000) {
+
+			/* set the number of channels to zero - no inputs */
+			system_state.rc_channels = 0;
+
+			/* trigger an immediate report to the FMU */
+			system_state.fmu_report_due = true;
+		}
+
+		/* XXX do bypass mode, etc. here */
 
 		/* do PWM output updates */
 		mixer_tick();
 	}
+}
+
+static void
+ppm_input(void)
+{
+	/*
+	 * Look for new PPM input.
+	 */
+	if (ppm_last_valid_decode != 0) {
+
+		/* avoid racing with PPM updates */
+		irqstate_t state = irqsave();
+
+		/* PPM data exists, copy it */
+		system_state.rc_channels = ppm_decoded_channels;
+		for (unsigned i = 0; i < ppm_decoded_channels; i++)
+			system_state.rc_channel_data[i] = ppm_buffer[i];
+
+		/* copy the timestamp and clear it */
+		system_state.rc_channels_timestamp = ppm_last_valid_decode;
+		ppm_last_valid_decode = 0;
+
+		irqrestore(state);
+
+		/* trigger an immediate report to the FMU */
+		system_state.fmu_report_due = true;
+	}	
 }

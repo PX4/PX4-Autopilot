@@ -195,17 +195,16 @@ sbus_decode(hrt_abstime frame_time)
 	/* check frame boundary markers to avoid out-of-sync cases */
 	if ((frame[0] != 0x0f) || (frame[24] != 0x00)) {
 		sbus_frame_drops++;
-		system_state.sbus_input_ok = false;
 		return;
 	}
 
-	/* if the failsafe bit is set, we consider that a loss of RX signal */
+	/* if the failsafe bit is set, we consider the frame invalid */
 	if (frame[23] & (1 << 4)) {
-		system_state.sbus_input_ok = false;
 		return;
 	}
 
-	unsigned chancount = (PX4IO_INPUT_CHANNELS > 16) ? 16 : PX4IO_INPUT_CHANNELS;
+	unsigned chancount = (PX4IO_INPUT_CHANNELS > SBUS_INPUT_CHANNELS) ? 
+		SBUS_INPUT_CHANNELS : PX4IO_INPUT_CHANNELS;
 
 	/* use the decoder matrix to extract channel data */
 	for (unsigned channel = 0; channel < chancount; channel++) {
@@ -228,14 +227,16 @@ sbus_decode(hrt_abstime frame_time)
 	}
 
 	if (PX4IO_INPUT_CHANNELS >= 18) {
-		/* decode two switch channels */
 		chancount = 18;
+		/* XXX decode the two switch channels */
 	}
 
+	/* note the number of channels decoded */
 	system_state.rc_channels = chancount;
-	system_state.sbus_input_ok = true;
-	system_state.fmu_report_due = true;
 
 	/* and note that we have received data from the R/C controller */
 	system_state.rc_channels_timestamp = frame_time;	
+
+	/* trigger an immediate report to the FMU */
+	system_state.fmu_report_due = true;
 }

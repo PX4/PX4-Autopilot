@@ -275,10 +275,13 @@ dsm_decode(hrt_abstime frame_time)
 	 */
 	if (((frame_time - last_frame_time) > 1000000) && (channel_shift != 0))
 		dsm_guess_format(true);
+
+	/* we have received something we think is a frame */
 	last_frame_time = frame_time;
+
+	/* if we don't know the frame format, update the guessing state machine */
 	if (channel_shift == 0) {
 		dsm_guess_format(false);
-		system_state.dsm_input_ok = false;
 		return;
 	}
 
@@ -292,10 +295,6 @@ dsm_decode(hrt_abstime frame_time)
 	 * second frame in variants of the protocol where more than
 	 * seven channels are being transmitted.
 	 */
-
-	const unsigned dsm_chancount = (DSM_FRAME_CHANNELS < PX4IO_INPUT_CHANNELS) ? DSM_FRAME_CHANNELS : PX4IO_INPUT_CHANNELS;
-
-	uint16_t dsm_channels[dsm_chancount];
 
 	for (unsigned i = 0; i < DSM_FRAME_CHANNELS; i++) {
 
@@ -311,31 +310,22 @@ dsm_decode(hrt_abstime frame_time)
 			continue;
 
 		/* update the decoded channel count */
-		if (channel > ppm_decoded_channels)
-			ppm_decoded_channels = channel;
+		if (channel >= system_state.rc_channels)
+			system_state.rc_channels = channel + 1;
 
 		/* convert 0-1024 / 0-2048 values to 1000-2000 ppm encoding in a very sloppy fashion */
 		if (channel_shift == 11)
 			value /= 2;
 
 		/* stuff the decoded channel into the PPM input buffer */
-		dsm_channels[channel] = 988 + value;
+		/* XXX check actual values */
+		system_state.rc_channel_data[channel] = 988 + value;
 	}
 
-	/* DSM input is valid */
-	system_state.dsm_input_ok = true;
+	/* and note that we have received data from the R/C controller */
+	/* XXX failsafe will cause problems here - need a strategy for detecting it */
+	system_state.rc_channels_timestamp = frame_time;
 
-	/* check if no S.BUS data is available */
-	if (!system_state.sbus_input_ok) {
-
-		for (unsigned i = 0; i < dsm_chancount; i++) {
-			system_state.rc_channel_data[i] = dsm_channels[i];
-		}
-
-		/* and note that we have received data from the R/C controller */
-		/* XXX failsafe will cause problems here - need a strategy for detecting it */
-		system_state.rc_channels_timestamp = frame_time;
-		system_state.rc_channels = dsm_chancount;
-		system_state.fmu_report_due = true;
-	}
+	/* trigger an immediate report to the FMU */
+	system_state.fmu_report_due = true;
 }
