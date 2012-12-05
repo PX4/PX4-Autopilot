@@ -96,40 +96,39 @@ $(COBJS): %$(OBJEXT): %.c
 
 # This is a kludge to work around some conflicting symbols in the SDCC libraries
 
-$(SDCC_LIBDIR)\myz80.lib: $(SDCC_LIBDIR)\$(SDCCLIB)
+$(TOPDIR)\lib\myz80.lib: $(SDCC_LIBDIR)\$(SDCCLIB)
 ifeq ($(CONFIG_SDCC_OLD),y)
 	$(Q) cat $(SDCC_LIBDIR)\$(SDCCLIB) | \
 		grep -v alloc | grep -v free | grep -v printf | \
 		grep -v _str  | grep -v _mem | grep -v crt0\.o \
-		> myz80.lib
-	$(Q) mv -f myz80.lib $(SDCC_LIBDIR)\myz80.lib
+		> $(TOPDIR)\lib\myz80.lib
 else
-	$(Q) cp $(SDCC_LIBDIR)\z80.lib $(SDCC_LIBDIR)\myz80.lib
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _calloc.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _malloc.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _realloc.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _free.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib printf_large.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib sprintf.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib vprintf.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib strcpy.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib strlen.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strcat.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strchr.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strcmp.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strcspn.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strncat.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strncmp.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strncpy.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strpbrk.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strrchr.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strspn.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strstr.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strtok.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _memchr.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _memcmp.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _memcpy.rel
-	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _memset.rel
+	$(Q) cp $(SDCC_LIBDIR)\z80.lib $(TOPDIR)\lib\myz80.lib
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _calloc.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _malloc.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _realloc.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _free.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib printf_large.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib sprintf.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib vprintf.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib strcpy.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib strlen.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strcat.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strchr.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strcmp.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strcspn.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strncat.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strncmp.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strncpy.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strpbrk.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strrchr.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strspn.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strstr.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strtok.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _memchr.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _memcmp.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _memcpy.rel
+	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _memset.rel
 endif
 
 # Create a header file that contains addressing information needed by the code
@@ -173,7 +172,7 @@ pass1.lnk:
 	@echo LD: pass1.lnk
 	@echo -->pass1.lnk
 	@echo -k $(BOARDDIR)>>pass1.lnk
-	@echo -k $(SDCC_LIBDIR)>>pass1.lnk
+	@echo -k  $(TOPDIR)\lib>>pass1.lnk
 	@echo -l libboard$(LIBEXT)>>pass1.lnk
 	$(Q) for %%G in ($(LINKLIBS)) do ( echo -l $(TOPDIR)\lib\%%G>> pass1.lnk )
 	@echo -l myz80.lib>>pass1.lnk
@@ -187,16 +186,19 @@ ifneq ($(CONFIG_LINKER_CODE_AREA),)
 else
 	@echo -b _CODE=256>>pass1.lnk
 endif
+ifneq ($(CONFIG_LINKER_DATA_AREA),)
+	@echo -b _CODE=$(CONFIG_LINKER_DATA_AREA)>>pass1.lnk
+endif
 	@echo -i>>pass1.lnk
 	@echo -x>>pass1.lnk
 	@echo -m>>pass1.lnk
 	@echo -j>>pass1.lnk
-	@echo pass1.hex>>pass1.lnk
+	@echo pass1.ihx>>pass1.lnk
 	@echo $(HEAD_OBJ)>>pass1.lnk
 	@echo -e>>pass1.lnk
 
-pass1.hex: up_mem.h asm_mem.h $(SDCC_LIBDIR)\myz80.lib $(HEAD_OBJ) board\libboard$(LIBEXT) pass1.lnk
-	@echo LD: pass1.hex
+pass1.ihx: up_mem.h asm_mem.h $(TOPDIR)\lib\myz80.lib $(HEAD_OBJ) board\libboard$(LIBEXT) pass1.lnk
+	@echo LD: pass1.ihx
 	$(Q) $(LD) -f pass1.lnk
 	$(Q) rm -f up_mem.h asm_mem.h
 	$(Q) rm -f up_allocateheap$(OBJEXT) $(HEAD_OBJ) libarch$(LIBEXT)
@@ -207,7 +209,7 @@ nuttx.lnk:
 	@echo LD: nuttx.lnk
 	@echo -->nuttx.lnk
 	@echo -k $(BOARDDIR)>>nuttx.lnk
-	@echo -k $(SDCC_LIBDIR)>>nuttx.lnk
+	@echo -k  $(TOPDIR)\lib>>nuttx.lnk
 	@echo -l libboard$(LIBEXT)>>nuttx.lnk
 	$(Q) for %%G in ($(LINKLIBS)) do ( echo -l $(TOPDIR)\lib\%%G>> nuttx.lnk )
 	@echo -l myz80.lib>>nuttx.lnk
@@ -221,6 +223,9 @@ ifneq ($(CONFIG_LINKER_CODE_AREA),)
 else
 	@echo -b _CODE=256>>nuttx.lnk
 endif
+ifneq ($(CONFIG_LINKER_DATA_AREA),)
+	@echo -b _CODE=$(CONFIG_LINKER_DATA_AREA)>>nuttx.lnk
+endif
 	@echo -i>>nuttx.lnk
 	@echo -x>>nuttx.lnk
 	@echo -m>>nuttx.lnk
@@ -229,7 +234,7 @@ endif
 	@echo $(HEAD_OBJ)>>nuttx.lnk
 	@echo -e>>nuttx.lnk
 
-nuttx$(EXEEXT): pass1.hex up_mem.h asm_mem.h $(SDCC_LIBDIR)\myz80.lib $(HEAD_OBJ) board\libboard$(LIBEXT) nuttx.lnk
+nuttx$(EXEEXT): pass1.ihx up_mem.h asm_mem.h $(TOPDIR)\lib\myz80.lib $(HEAD_OBJ) board\libboard$(LIBEXT) nuttx.lnk
 	@echo LD: nuttx.ihx
 	$(Q) $(LD) -f nuttx.lnk
 	$(call DELFILE, pass1.*)

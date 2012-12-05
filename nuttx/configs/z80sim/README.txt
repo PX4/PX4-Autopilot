@@ -42,12 +42,6 @@ Configuring NuttX
           reconfiguration process.
 
     2. The default setup for this configuration uses a windows native build.
-       NOTE that build does *NOT* work build successfully using SDCC 3.2.0:
-       Windows halts claiming that sdcclib is no longer responding.  3.2.0 is
-       the latest released version as of this writing.  This problem has,
-       apparently been corrected in the repository; a snapshot data Nov 23,
-       2012 (3.2.1) did not have this problem.
-
        As of this writing, the native Windows build still does not work.  This
        is due to issues in arch/z80/src/Makefile and in the Bash script
        arch/z80/src/mkhpbase.sh which, of course, cannot be used in a Windows
@@ -69,17 +63,6 @@ Configuring NuttX
 
        You make also have to change the value of CONFIG_APPS_DIR.  You cannot
        use the default setenv.bat.  Use configs/z80sim/script/setenv.sh instead.
-
-       When last attempted on Ubuntu 12.10 with SDCC 3.2.0 for Linux, the build
-       failed with the following internal error:
-
-         *** glibc detected *** sdcclib: malloc(): memory corruption: 0x09f09768 ***
-
-       I believe that this is related to the sdcclib error also reported under
-       windows for SDCC 3.2.0.  It may be avoided by updating to a more recent
-       snapshot.  However, a Dec 4, 2012 still shows a similar error:
-
-         *** glibc detected *** sdcclib: free(): invalid next size (fast): 0x0000000001aaaab0 ***
 
   nsh
 
