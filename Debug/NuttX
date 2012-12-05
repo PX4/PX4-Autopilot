@@ -168,17 +168,29 @@ define _showsemaphore
 	printf "\n"
 end
 
+#
+# Print information about a task's stack usage
+#
+define showtaskstack
+	set $task = (struct _TCB *)$arg0
+
+	set $stack_free = 0
+	while ($stack_free < $task->adj_stack_size) && *(uint8_t *)($task->stack_alloc_ptr + $stack_free)
+		set $stack_free = $stack_free + 1
+	end
+	printf"    stack 0x%08x-0x%08x (%d) %d free\n", $task->stack_alloc_ptr, $task->adj_stack_ptr, $task->adj_stack_size, $stack_free
+end
+
+#
+# Print details of a task
+#
 define showtask
 	set $task = (struct _TCB *)$arg0
 
 	printf "%p %.2d ", $task, $task->pid
 	_showtaskstate $task
 	printf " %s\n", $task->name
-	set $stack_free = 0
-	while ($stack_free < $task->adj_stack_size) && *(uint8_t *)($task->stack_alloc_ptr + $stack_free)
-		set $stack_free = $stack_free + 1
-	end
-	printf"    stack 0x%08x-0x%08x (%d) %d free\n", $task->stack_alloc_ptr, $task->adj_stack_ptr, $task->adj_stack_size, $stack_free
+	showtaskstack $task
 
 	if $task->task_state == TSTATE_WAIT_SEM
 		printf "    waiting on %p ", $task->waitsem

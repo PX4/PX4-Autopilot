@@ -32,47 +32,38 @@
  ****************************************************************************/
 
 /**
- * @file tests_param.c
+ * @file drv_blinkm.h
  *
- * Tests related to the parameter system.
+ * BlinkM driver API
+ *
+ * This could probably become a more generalised API for multi-colour LED
+ * driver systems, or be merged with the generic LED driver.
  */
 
-#include <stdio.h>
-#include "systemlib/err.h"
+#pragma once
 
-#include "systemlib/param/param.h"
-#include "tests.h"
+#include <stdint.h>
+#include <sys/ioctl.h>
 
-PARAM_DEFINE_INT32(test, 0x12345678);
+#define BLINKM_DEVICE_PATH	"/dev/blinkm"
 
-int
-test_param(int argc, char *argv[])
-{
-	param_t		p;
+/*
+ * ioctl() definitions
+ */
 
-	p = param_find("test");
-	if (p == PARAM_INVALID)
-		errx(1, "test parameter not found");
+#define _BLINKMIOCBASE		(0x2900)
+#define _BLINKMIOC(_n)		(_IOC(_BLINKMIOCBASE, _n))
 
-	param_type_t t = param_type(p);
-	if (t != PARAM_TYPE_INT32)
-		errx(1, "test parameter type mismatch (got %u)", (unsigned)t);
+/** play the named script in *(char *)arg, repeating forever */
+#define BLINKM_PLAY_SCRIPT_NAMED	_BLINKMIOC(1)
 
-	int32_t	val;
-	if (param_get(p, &val) != 0)
-		errx(1, "failed to read test parameter");
-	if (val != 0x12345678)
-		errx(1, "parameter value mismatch");
+/** play the numbered script in (arg), repeating forever */
+#define BLINKM_PLAY_SCRIPT		_BLINKMIOC(2)
 
-	val = 0xa5a5a5a5;
-	if (param_set(p, &val) != 0)
-		errx(1, "failed to write test parameter");
-	if (param_get(p, &val) != 0)
-		errx(1, "failed to re-read test parameter");
-	if ((uint32_t)val != 0xa5a5a5a5)
-		errx(1, "parameter value mismatch after write");
-
-	warnx("parameter test PASS");
-
-	return 0;
-}
+/** 
+ * Set the user script; (arg) is a pointer to an array of script lines,
+ * where each line is an array of four bytes giving <duration>, <command>, arg[0-2]
+ *
+ * The script is terminated by a zero command.
+ */
+#define BLINKM_SET_USER_SCRIPT		_BLINKMIOC(3)

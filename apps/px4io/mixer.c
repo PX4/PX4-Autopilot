@@ -50,8 +50,6 @@
 
 #include <drivers/drv_pwm_output.h>
 
-#include <systemlib/ppm_decode.h>
-
 #include "px4io.h"
 
 /*
@@ -59,10 +57,6 @@
  */
 static unsigned fmu_input_drops;
 #define FMU_INPUT_DROP_LIMIT	20
-/*
- * Collect RC input data from the controller source(s).
- */
-static void	mixer_get_rc_input(void);
 
 /*
  * Update a mixer based on the current control signals.
@@ -87,12 +81,6 @@ mixer_tick(void)
 	int control_count;
 	int i;
 	bool should_arm;
-
-	/*
-	 * Start by looking for R/C control inputs.
-	 * This updates system_state with any control inputs received.
-	 */
-	mixer_get_rc_input();
 
 	/*
 	 * Decide which set of inputs we're using.
@@ -122,8 +110,10 @@ mixer_tick(void)
 
 	} else {
 		/* we have no control input */
+		/* XXX builtin failsafe would activate here */
 		control_count = 0;
 	}
+
 	/*
 	 * Tickle each mixer, if we have control data.
 	 */
@@ -165,32 +155,5 @@ mixer_update(int mixer, uint16_t *inputs, int input_count)
 		mixers[mixer].current_value = inputs[mixer];
 	} else {
 		mixers[mixer].current_value = 0;
-	}
-}
-
-static void
-mixer_get_rc_input(void)
-{
-	/* if we haven't seen any new data in 200ms, assume we have lost input and tell FMU */
-	if ((hrt_absolute_time() - ppm_last_valid_decode) > 200000) {
-
-		/* input was ok and timed out, mark as update */
-		if (system_state.ppm_input_ok) {
-			system_state.ppm_input_ok = false;
-			system_state.fmu_report_due = true;
-		}
-		return;
-	}
-
-	/* mark PPM as valid */
-	system_state.ppm_input_ok = true;
-
-	/* check if no DSM and S.BUS data is available */
-	if (!system_state.sbus_input_ok && !system_state.dsm_input_ok) {
-		/* otherwise, copy channel data */
-		system_state.rc_channels = ppm_decoded_channels;
-		for (unsigned i = 0; i < ppm_decoded_channels; i++)
-			system_state.rc_channel_data[i] = ppm_buffer[i];
-		system_state.fmu_report_due = true;
 	}
 }

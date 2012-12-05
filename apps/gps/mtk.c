@@ -128,7 +128,7 @@ int mtk_parse(uint8_t b,  char *gps_rx_buffer)
 				mtk_gps->eph = packet->hdop;
 				mtk_gps->epv = 65535; //unknown in mtk custom mode
 				mtk_gps->vel = packet->ground_speed;
-				mtk_gps->cog = 65535; //unknown in mtk custom mode
+				mtk_gps->cog = (uint16_t)packet->heading; //mtk: degrees *1e2, mavlink/ubx: degrees *1e2
 				mtk_gps->satellites_visible = packet->satellites;
 
 				/* convert time and date information to unix timestamp */
