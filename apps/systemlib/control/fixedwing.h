@@ -58,11 +58,11 @@ private:
     BlockHighPass _rWashout;
     BlockP _r2Rdr;
 public:
-    BlockYawDamper(const char * name, Block * parent) :
-        Block(name, parent),
-        _rLowPass("LP", this),
-        _rWashout("HP", this),
-        _r2Rdr("2RDR", this)
+    BlockYawDamper(Block * parent, const char * name) :
+        Block(parent, name),
+        _rLowPass(this, "LP"),
+        _rWashout(this, "HP"),
+        _r2Rdr(this, "2RDR")
     {
     }
     virtual ~BlockYawDamper() {};
@@ -81,7 +81,7 @@ class BlockStabilization :
     public Block
 {
 private:
-    BlockYawDamper<BlockLowPass, BlockHighPass, BlockP> _yawDamper;
+    BlockYawDamper _yawDamper;
     BlockLowPass _pLowPass;
     BlockLowPass _qLowPass;
     BlockP _p2Ail;
@@ -90,13 +90,13 @@ private:
     float _elevatorCmd;
     float _rudderCmd;
 public:
-    BlockStabilization(const char * name, Block * parent) :
-        Block(name, parent),
-        _yawDamper("R", this),
-        _pLowPass("P_LP", this),
-        _qLowPass("Q_LP", this),
-        _p2Ail("P_2AIL", this),
-        _q2Elv("Q_2ELV", this),
+    BlockStabilization(Block * parent, const char * name) :
+        Block(parent, name),
+        _yawDamper(this, "R"),
+        _pLowPass(this, "P_LP"),
+        _qLowPass(this, "Q_LP"),
+        _p2Ail(this, "P_2AIL"),
+        _q2Elv(this, "Q_2ELV"),
         _aileronCmd(0),
         _elevatorCmd(0),
         _rudderCmd(0)
@@ -130,12 +130,12 @@ private:
     BlockLimit _phiLimit;
     float _aileronCmd;
 public:
-    BlockHeadingHold(const char * name, Block * parent) :
-        Block(name, parent),
-        _psi2Phi("PSI_2PHI",this),
-        _p2Phi("P_2PHI",this),
-        _phi2Ail("PHI_2AIL",this),
-        _phiLimit("PHI_LIM",this),
+    BlockHeadingHold(Block * parent, const char * name) :
+        Block(parent, name),
+        _psi2Phi(this, "PSI_2PHI"),
+        _p2Phi(this, "P_2PHI"),
+        _phi2Ail(this, "PHI_2AIL"),
+        _phiLimit(this, "PHI_LIM"),
         _aileronCmd(0)
     {
     }
@@ -179,10 +179,10 @@ private:
     BlockPID _theta2Q;
     float _elevatorCmd;
 public:
-    BlockVelocityHoldBackside(const char * name, Block * parent) :
-        Block(name, parent),
-        _v2Theta("V_2THETA",this),
-        _theta2Q("THETA_2Q",this),
+    BlockVelocityHoldBackside(Block * parent, const char * name) :
+        Block(parent, name),
+        _v2Theta(this,"V_2THETA"),
+        _theta2Q(this,"THETA_2Q"),
         _elevatorCmd(0)
     {
     }
@@ -207,9 +207,9 @@ private:
     BlockPID _v2Thr;
     float _thrCmd;
 public:
-    BlockVelocityHoldFrontside(const char * name, Block * parent) :
-        Block(name, parent),
-        _v2Thr("V_2THR",this),
+    BlockVelocityHoldFrontside(Block * parent, const char * name) :
+        Block(parent, name),
+        _v2Thr(this,"V_2THR"),
         _thrCmd(0)
     {
     }
@@ -232,9 +232,9 @@ private:
     BlockPID _h2Thr;
     float _thrCmd;
 public:
-    BlockAltitudeHoldBackside(const char * name, Block * parent) :
-        Block(name, parent),
-        _h2Thr("H_2THR",this),
+    BlockAltitudeHoldBackside(Block * parent, const char * name) :
+        Block(parent, name),
+        _h2Thr(this, "H_2THR"),
         _thrCmd(0)
     {
     }
@@ -258,10 +258,10 @@ private:
     BlockPID _theta2Q;
     float _elevatorCmd;
 public:
-    BlockAltitudeHoldFrontside(const char * name, Block * parent) :
-        Block(name, parent),
-        _h2Theta("H_2THETA",this),
-        _theta2Q("THETA_2Q",this),
+    BlockAltitudeHoldFrontside(Block * parent, const char * name) :
+        Block(parent, name),
+        _h2Theta(this, "H_2THETA"),
+        _theta2Q(this, "THETA_2Q"),
         _elevatorCmd(0)
     {
     }
@@ -269,7 +269,7 @@ public:
     void update(float hCmd, float h, float theta, float q)
     {
         float thetaCmd = _h2Theta.update(hCmd - h);
-        float qCmd = _theta2Q(thetaCmd - theta);
+        float qCmd = _theta2Q.update(thetaCmd - theta);
         _elevatorCmd = qCmd - q;
     }
     float getElevatorCmd() {return _elevatorCmd;}

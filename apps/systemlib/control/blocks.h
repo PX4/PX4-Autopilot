@@ -114,7 +114,7 @@ public:
         _fCut(this,"FCUT")
     {};
     virtual ~BlockHighPass() {};
-    float update(float input, float dt);
+    float update(float input);
 // accessors
     float getState() {return _state;}
     float getFCut() {return _fCut.get();}
