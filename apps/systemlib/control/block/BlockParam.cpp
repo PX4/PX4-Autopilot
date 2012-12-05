@@ -32,55 +32,41 @@
  ****************************************************************************/
 
 /**
- * @file control.cpp
+ * @file Blockparam.cpp
  *
  * Controller library code
  */
 
-#include <nuttx/config.h>
-
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
 
-#include "px4_control.h"
+#include "BlockParam.h"
 
 namespace control
 {
-namespace px4
-{
 
-__EXPORT bool isValid(param_t param)
+BlockParamBase::BlockParamBase(Block * parent, const char * name) :
+    _handle(PARAM_INVALID), 
+    _firstSibling(NULL)
 {
-    return param != PARAM_INVALID;
-}
-
-__EXPORT float getFloatParam(param_t param)
-{
-    float val = 0;
-    if (!isValid(param)) 
+    char fullname[80];
+    if (parent == NULL)
     {
-        return 0;
+        snprintf(fullname,80,"%s", name);
     }
-    if (param_get(param,&val))
+    else if (!strcmp(name,""))
     {
-        printf("error loading param: %s\n", param_name(param));
+        snprintf(fullname,80,"%s", parent->getName());
     }
-    return val;
-}
-
-__EXPORT param_t findParam(const char * prefix, const char * name)
-{
-    char buf[80];
-    snprintf(buf,80,"%s_%s",prefix,name);
-    param_t param = param_find(buf);
-    if (param == PARAM_INVALID)
+    else
     {
-        printf("error finding param: %s\n", buf);
+        snprintf(fullname,80,"%s_%s", parent->getName(), name);
     }
-    return param;
-}
 
-} // namespace px4
+    _handle = param_find(fullname);
+    if (_handle == PARAM_INVALID)
+        printf("error finding param: %s\n", fullname);
+};
+
 } // namespace control

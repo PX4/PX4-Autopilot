@@ -48,8 +48,8 @@ CSRCS		 = err.c \
 #		   ppm_decode.c \
 
 
-CXXSRCS   =  control/Block.cpp \
-			 control/BlockParam.cpp \
+CXXSRCS   =  control/block/Block.cpp \
+			 control/block/BlockParam.cpp \
 			 control/blocks.cpp
 
 #

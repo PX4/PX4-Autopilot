@@ -32,38 +32,99 @@
  ****************************************************************************/
 
 /**
- * @file Blockparam.cpp
+ * @file Block.cpp
  *
  * Controller library code
  */
 
 #include <math.h>
+#include <string.h>
+#include <stdio.h>
+
+#include "Block.h"
 #include "BlockParam.h"
 
 namespace control
 {
 
-BlockParamBase::BlockParamBase(Block * parent, const char * name) :
-    _handle(PARAM_INVALID), 
-    _firstSibling(NULL)
+Block::Block(Block * parent, const char * name) :
+    _name(),
+    _parent(parent),
+    _firstSibling(NULL),
+    _firstChild(NULL)
 {
-    char fullname[80];
     if (parent == NULL)
     {
-        snprintf(fullname,80,"%s", name);
-    }
-    else if (!strcmp(name,""))
-    {
-        snprintf(fullname,80,"%s", parent->getName());
+        strncpy(_name,name,80);
     }
     else
     {
-        snprintf(fullname,80,"%s_%s", parent->getName(), name);
+        snprintf(_name,80,"%s_%s", parent->getName(), name);
+        getParent()->addChild(this);
+    }
+}
+
+void Block::updateParams()
+{
+    BlockParamBase * param = _firstParam;
+    int count = 0;
+    while (1)
+    {
+        if (param == NULL) break;
+        if (count++ > maxParamsPerBlock)
+        {
+            printf("exceeded max params for block: %s\n", getName());
+            break;
+        }
+        param->update();
+        param = param->getFirstSibling();
     }
 
-    _handle = param_find(fullname);
-    if (_handle == PARAM_INVALID)
-        printf("error finding param: %s\n", fullname);
-};
+    if (_firstChild != NULL) updateChildParams();
+}
+
+void Block::setDt(float dt) {
+    _dt = dt;
+    Block * child = getFirstChild();
+    int count = 0;
+    while (1)
+    {
+        if (child == NULL) break;
+        if (count++ > maxChildrenPerBlock)
+        {
+            printf("exceeded max children for block: %s\n", getName());
+            break;
+        }
+        child->setDt(dt);
+        child = child->getFirstSibling();
+    }
+}
+
+void Block::updateChildParams() {
+    Block * child = getFirstChild();
+    int count = 0;
+    while (1)
+    {
+        if (child == NULL) break;
+        if (count++ > maxChildrenPerBlock)
+        {
+            printf("exceeded max children for block: %s\n", getName());
+            break;
+        }
+        child->updateParams();
+        child = child->getFirstSibling();
+    }
+}
+
+void Block::addChild(Block * child)
+{
+    child->setFirstSibling(_firstChild);
+    setFirstChild(child);
+}
+void Block::addParam(BlockParamBase * param)
+{
+    param->setFirstSibling(getFirstParam());
+    setFirstParam(param);
+}
 
 } // namespace control

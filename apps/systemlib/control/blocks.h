@@ -39,8 +39,8 @@
 
 #pragma once
 
-#include "Block.h"
-#include "BlockParam.h"
+#include "block/Block.h"
+#include "block/BlockParam.h"
 
 namespace control
 {

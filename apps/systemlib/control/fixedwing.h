@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include "control.h"
+#include "blocks.h"
 
 namespace control
 {
@@ -50,14 +50,13 @@ namespace fixedwing
 /**
  * Yaw damper
  */
-template<class BLOCK_LOWPASS, class BLOCK_HIGHPASS, class BLOCK_P>
 class BlockYawDamper :
     public Block
 {
 private:
-    BLOCK_LOWPASS _rLowPass;
-    BLOCK_HIGHPASS _rWashout;
-    BLOCK_P _r2Rdr;
+    BlockLowPass _rLowPass;
+    BlockHighPass _rWashout;
+    BlockP _r2Rdr;
 public:
     BlockYawDamper(const char * name, Block * parent) :
         Block(name, parent),
@@ -78,16 +77,15 @@ public:
  * Stability augmentation system.
  * Aircraft Control and Simulation, Stevens and Lewis, pg. 292, 299
  */
-template<class BLOCK_LOWPASS, class BLOCK_HIGHPASS, class BLOCK_P>
 class BlockStabilization :
     public Block
 {
 private:
-    BlockYawDamper<BLOCK_LOWPASS, BLOCK_HIGHPASS, BLOCK_P> _yawDamper;
-    BLOCK_LOWPASS _pLowPass;
-    BLOCK_LOWPASS _qLowPass;
-    BLOCK_P _p2Ail;
-    BLOCK_P _q2Elv;
+    BlockYawDamper<BlockLowPass, BlockHighPass, BlockP> _yawDamper;
+    BlockLowPass _pLowPass;
+    BlockLowPass _qLowPass;
+    BlockP _p2Ail;
+    BlockP _q2Elv;
     float _aileronCmd;
     float _elevatorCmd;
     float _rudderCmd;
@@ -122,15 +120,14 @@ public:
  * Aircraft Control and Simulation, Stevens and Lewis
  * Heading hold, pg. 348
  */
-template<class BLOCK_P, class BLOCK_LIMIT>
 class BlockHeadingHold :
     public Block
 {
 private:
-    BLOCK_P _psi2Phi;
-    BLOCK_P _p2Phi;
-    BLOCK_P _phi2Ail;
-    BLOCK_LIMIT _phiLimit;
+    BlockP _psi2Phi;
+    BlockP _p2Phi;
+    BlockP _phi2Ail;
+    BlockLimit _phiLimit;
     float _aileronCmd;
 public:
     BlockHeadingHold(const char * name, Block * parent) :
@@ -174,13 +171,12 @@ public:
  * Backside velocity hold autopilot block.
  * v -> theta -> q -> elevator
  */
-template<class BLOCK_PID>
 class BlockVelocityHoldBackside :
     public Block
 {
 private:
-    BLOCK_PID _v2Theta;
-    BLOCK_PID _theta2Q;
+    BlockPID _v2Theta;
+    BlockPID _theta2Q;
     float _elevatorCmd;
 public:
     BlockVelocityHoldBackside(const char * name, Block * parent) :
@@ -204,12 +200,11 @@ public:
  * Frontside velocity hold autopilot block.
  * v -> throttle
  */
-template<class BLOCK_PID>
 class BlockVelocityHoldFrontside :
     public Block
 {
 private:
-    BLOCK_PID _v2Thr;
+    BlockPID _v2Thr;
     float _thrCmd;
 public:
     BlockVelocityHoldFrontside(const char * name, Block * parent) :
@@ -230,12 +225,11 @@ public:
  * Backside altitude hold autopilot block.
  * h -> throttle
  */
-template<class BLOCK_PID>
 class BlockAltitudeHoldBackside :
     public Block
 {
 private:
-    BLOCK_PID _h2Thr;
+    BlockPID _h2Thr;
     float _thrCmd;
 public:
     BlockAltitudeHoldBackside(const char * name, Block * parent) :
@@ -256,13 +250,12 @@ public:
  * Frontside altitude hold autopilot block.
  * h -> theta > q -> elevator
  */
-template<class BLOCK_PID>
 class BlockAltitudeHoldFrontside :
     public Block
 {
 private:
-    BLOCK_PID _h2Theta;
-    BLOCK_PID _theta2Q;
+    BlockPID _h2Theta;
+    BlockPID _theta2Q;
     float _elevatorCmd;
 public:
     BlockAltitudeHoldFrontside(const char * name, Block * parent) :
