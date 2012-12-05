@@ -130,18 +130,16 @@ int control_demo_thread_main(int argc, char *argv[]) {
 
     printf("[control_Demo] starting\n");
 
-    //using namespace control::px4::fixedwing;
-    //BlockStabilization fixedWingStabilization("FW_STAB", NULL);
-    //BlockHeadingHold fixedWingHeadingHold("FW_HEAD", NULL);
-    //BlockAltitudeHoldBackside fixedWingAltitudeHoldBackside("FW_ALTB", NULL);
-    //BlockVelocityHoldBackside fixedWingVelocityHoldBackside("FW_VELB", NULL);
-
-    control::BlockLimit limit(NULL,"LIMIT");
+    using namespace control::fixedwing;
+    BlockStabilization fixedWingStabilization(NULL,"FW_STAB");
+    //BlockHeadingHold fixedWingHeadingHold(NULL,"FW_HEAD");
+    //BlockAltitudeHoldBackside fixedWingAltitudeHoldBackside(NULL,"FW_ALTB");
+    //BlockVelocityHoldBackside fixedWingVelocityHoldBackside(NULL,"FW_VELB");
 
     thread_running = true;
     uint32_t loopCount = 0;
 
-    //fixedWingStabilization.setDt(1.0f / 50.0f);
+    fixedWingStabilization.setDt(1.0f / 50.0f);
     //fixedWingHeadingHold.setDt(1.0f / 50.0f);
     //fixedWingAltitudeHoldBackside.setDt(1.0f / 50.0f);
     //fixedWingVelocityHoldBackside.setDt(1.0f / 50.0f);
@@ -175,30 +173,30 @@ int control_demo_thread_main(int argc, char *argv[]) {
         {
             loopCount = 100;
 
-            //fixedWingStabilization.updateParams();
+            fixedWingStabilization.updateParams();
             //fixedWingHeadingHold.updateParams();
             //fixedWingAltitudeHoldBackside.updateParams();
             //fixedWingVelocityHoldBackside.updateParams();
-            //printf("t: %8.4f, u: %8.4f\n", (double)t, (double)u);
-            //printf("fixedWingStabilization, aileron: %8.4f, elevator: %8.4f, rudder: %8.4f\n",
-                    //(double)fixedWingStabilization.getAileronCmd(),
-                    //(double)fixedWingStabilization.getElevatorCmd(),
-                    //(double)fixedWingStabilization.getRudderCmd());
+            printf("t: %8.4f, u: %8.4f\n", (double)t, (double)u);
+            printf("fixedWingStabilization, aileron: %8.4f, elevator: %8.4f, rudder: %8.4f\n",
+                    (double)fixedWingStabilization.getAileronCmd(),
+                    (double)fixedWingStabilization.getElevatorCmd(),
+                    (double)fixedWingStabilization.getRudderCmd());
             //printf("fixedWingHeadingHold, aileron: %8.4f\n",
                     //(double)fixedWingHeadingHold.getAileronCmd());
             //printf("fixedWingAltitudeHoldBackside, throttle: %8.4f\n",
                     //(double)fixedWingAltitudeHoldBackside.getThrCmd());
             //printf("fixedWingVelocityHoldBackside, elevator: %8.4f\n",
                     //(double)fixedWingVelocityHoldBackside.getElevatorCmd());
-            //fflush(stdout);
+            fflush(stdout);
         }
-        loopCount--;
 
-        //fixedWingStabilization.update(pCmd, qCmd, rCmd, p, q, r);
+        fixedWingStabilization.update(pCmd, qCmd, rCmd, p, q, r);
         //fixedWingHeadingHold.update(psiCmd, phi, psi, p);
         //fixedWingAltitudeHoldBackside.update(hCmd, h);
         //fixedWingVelocityHoldBackside.update(vCmd, v, theta, q);
 
+        loopCount--;
         usleep(20000);
     }
 

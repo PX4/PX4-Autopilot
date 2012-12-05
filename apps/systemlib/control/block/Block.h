@@ -57,6 +57,7 @@ public:
     Block(Block * parent, const char * name);
     virtual ~Block() {};
     virtual void updateParams();
+    void addParam(BlockParamBase * param);
 // accessors
     void setDt(float dt);
     char * getName() { return _name; }
@@ -65,7 +66,6 @@ protected:
 // methods
     void updateChildParams();
     void addChild(Block * child);
-    void addParam(BlockParamBase * param);
 // accessors
     Block * getParent() { return _parent; }
     Block * getFirstSibling() { return _firstSibling; }

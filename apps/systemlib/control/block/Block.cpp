@@ -51,7 +51,9 @@ Block::Block(Block * parent, const char * name) :
     _name(),
     _parent(parent),
     _firstSibling(NULL),
-    _firstChild(NULL)
+    _firstChild(NULL),
+    _firstParam(NULL),
+    _dt(0)
 {
     if (parent == NULL)
     {
@@ -68,9 +70,8 @@ void Block::updateParams()
 {
     BlockParamBase * param = _firstParam;
     int count = 0;
-    while (1)
+    while (param != NULL)
     {
-        if (param == NULL) break;
         if (count++ > maxParamsPerBlock)
         {
             printf("exceeded max params for block: %s\n", getName());
@@ -87,9 +88,8 @@ void Block::setDt(float dt) {
     _dt = dt;
     Block * child = getFirstChild();
     int count = 0;
-    while (1)
+    while (child != NULL)
     {
-        if (child == NULL) break;
         if (count++ > maxChildrenPerBlock)
         {
             printf("exceeded max children for block: %s\n", getName());
@@ -103,9 +103,8 @@ void Block::setDt(float dt) {
 void Block::updateChildParams() {
     Block * child = getFirstChild();
     int count = 0;
-    while (1)
+    while (child != NULL)
     {
-        if (child == NULL) break;
         if (count++ > maxChildrenPerBlock)
         {
             printf("exceeded max children for block: %s\n", getName());
@@ -118,7 +117,7 @@ void Block::updateChildParams() {
 
 void Block::addChild(Block * child)
 {
-    child->setFirstSibling(_firstChild);
+    child->setFirstSibling(getFirstChild());
     setFirstChild(child);
 }
 void Block::addParam(BlockParamBase * param)

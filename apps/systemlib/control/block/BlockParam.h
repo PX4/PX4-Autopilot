@@ -76,7 +76,7 @@ public:
     {
     }
     T get() { return _val; }
-    void set(T val) { _val == val; }
+    void set(T val) { _val=val; }
     void update()
     {
         if (_handle != PARAM_INVALID) param_get(_handle,&_val);
