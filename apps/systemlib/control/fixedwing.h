@@ -48,17 +48,98 @@ namespace fixedwing
 {
 
 /**
- * Yaw damper
+ * BlockYawDamper
+ *
+ * This block has more explations to help new developers
+ * add their own blocks. It includes a limited explanation
+ * of some C++ basics.
+ *
+ * BlockYawDamper inherits from Block publically, this
+ * means that any public function in Block are public within
+ * BlockYawDamper and may be called from outside the 
+ * class methods. Any protected function within block
+ * are private to the class and may not be called from 
+ * outside this class. Protected should be preferred 
+ * where possible to public as it is important to 
+ * limit access to the bare minimum to prevent
+ * accidental errors.
  */
-class BlockYawDamper :
-    public Block
+class BlockYawDamper : public Block
 {
 private:
+    /**
+     * Declaring other blocks used by this block
+     *
+     * In this section we declare all child blocks that
+     * this block is composed of. They are private
+     * members so only this block has direct access to
+     * them.
+     */
     BlockLowPass _rLowPass;
     BlockHighPass _rWashout;
     BlockP _r2Rdr;
+
+    /**
+     * Declaring output values and accessors
+     *
+     * If we have any output values for the block we
+     * declare them here. Output can be directly returned
+     * through the update function, but outputs should be
+     * declared here if the information will likely be requested
+     * again, or if there are multiple outputs. 
+     * 
+     * You should only be able to set outputs from this block,
+     * so the outputs are declared in the private section.
+     * A get accessor is provided
+     * in the public section for other blocks to get the
+     * value of the output.
+     */
     float _rudder;
 public:
+    /**
+     * BlockYawDamper Constructor
+     *
+     * The job of the constructor is to initialize all
+     * parameter in this block and initialize all child
+     * blocks. Note also, that the output values must be
+     * initialized here. The order of the members in the
+     * member initialization list should follow the
+     * order in which they are declared within the class.
+     * See the private member declarations above.
+     *
+     * Block Construction
+     *
+     * All blocks are constructed with their parent block
+     * and their name. This allows parameters within the
+     * block to construct a fully qualified name from 
+     * concatenating the two. If the name provided to the
+     * block is "", then the block will use the parent 
+     * name as it's name. This is useful in cases where
+     * you have a block that has parameters "MIN", "MAX", 
+     * such as BlockLimit and you do not want an extra name
+     * to qualify them since the parent block has no "MIN", 
+     * "MAX" parameters.
+     *
+     * Block Parameter Construction
+     *
+     * Block parameters are named constants, they are 
+     * constructed using:
+     * BlockParam::BlockParam(Block * parent, const char * name)
+     * This funciton takes both a parent block and a name.
+     * The constructore then uses the parent name and the name of 
+     * the paramter to ask the px4 param library if it has any
+     * parameters with this name. If it does, a handle to the
+     * parameter is retrieved.
+     *
+     * Block/ BlockParam Naming
+     *
+     * When desigining new blocks, the naming of the parameters and
+     * blocks determines the fully qualified name of the parameters
+     * within the ground station, so it is important to choose
+     * short, easily understandable names. Again, when a name of
+     * "" is passed, the parent block name is used as the value to
+     * prepend to paramters names.
+     */
     BlockYawDamper(Block * parent, const char * name) :
         Block(parent, name),
         _rLowPass(this, "LP"),
@@ -67,12 +148,43 @@ public:
         _rudder(0)
     {
     }
+    /**
+     * Block deconstructor
+     *
+     * It is always a good idea to declare a virtual 
+     * deconstructor so that upon calling delete for
+     * class that are derived from this, all of the
+     * deconstructors all called, the base class first, and
+     * then the derived class
+     */
     virtual ~BlockYawDamper() {};
+
+    /**
+     * Block update function
+     *
+     * The job of the update function is to compute the output 
+     * values for the block. In a simple block with one output,
+     * the output may be returned directly. If the output is
+     * required frequenly by other processses, it might be a 
+     * good idea to declare a member to store the temporary 
+     * variable.
+     */
     void update(float rCmd, float r)
     {
         _rudder = _r2Rdr.update(rCmd -
                 _rWashout.update(_rLowPass.update(r)));
     }
+
+    /**
+     * Rudder output value accessor
+     *
+     * This is a public accessor function, which means that the
+     * private value _rudder is returned to anyone calling
+     * BlockYawDamper::getRudder(). Note thate a setRudder() is
+     * not provided, this is because the updateParams() call
+     * for a block provides the mechanism for updating the 
+     * paramter.
+     */
     float getRudder() { return _rudder; }
 };
 
@@ -80,8 +192,7 @@ public:
  * Stability augmentation system.
  * Aircraft Control and Simulation, Stevens and Lewis, pg. 292, 299
  */
-class BlockStabilization :
-    public Block
+class BlockStabilization : public Block
 {
 private:
     BlockYawDamper _yawDamper;
@@ -123,8 +234,7 @@ public:
  * Aircraft Control and Simulation, Stevens and Lewis
  * Heading hold, pg. 348
  */
-class BlockHeadingHold :
-    public Block
+class BlockHeadingHold : public Block
 {
 private:
     BlockP _psi2Phi;
@@ -174,8 +284,7 @@ public:
  * Backside velocity hold autopilot block.
  * v -> theta -> q -> elevator
  */
-class BlockVelocityHoldBackside :
-    public Block
+class BlockVelocityHoldBackside : public Block
 {
 private:
     BlockPID _v2Theta;
@@ -203,8 +312,7 @@ public:
  * Frontside velocity hold autopilot block.
  * v -> throttle
  */
-class BlockVelocityHoldFrontside :
-    public Block
+class BlockVelocityHoldFrontside : public Block
 {
 private:
     BlockPID _v2Thr;
@@ -228,8 +336,7 @@ public:
  * Backside altitude hold autopilot block.
  * h -> throttle
  */
-class BlockAltitudeHoldBackside :
-    public Block
+class BlockAltitudeHoldBackside : public Block
 {
 private:
     BlockPID _h2Thr;
@@ -253,8 +360,7 @@ public:
  * Frontside altitude hold autopilot block.
  * h -> theta > q -> elevator
  */
-class BlockAltitudeHoldFrontside :
-    public Block
+class BlockAltitudeHoldFrontside : public Block
 {
 private:
     BlockPID _h2Theta;
@@ -317,8 +423,7 @@ public:
 /**
  * Output conditioning block
  */
-class BlockOutputs :
-    public Block
+class BlockOutputs : public Block
 {
 private:
     BlockOutput _aileron;
