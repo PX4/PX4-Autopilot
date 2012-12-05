@@ -39,6 +39,23 @@
 
 #pragma once
 
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_global_position_setpoint.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_controls.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#include <drivers/drv_hrt.h>
+#include <poll.h>
+
 #include "blocks.h"
 
 namespace control
@@ -224,9 +241,9 @@ public:
                     qCmd - _qLowPass.update(q));
         _yawDamper.update(rCmd, r);
     }
-    float getAileron() {return _aileron;}
-    float getElevator() {return _elevator;}
-    float getRudder() {return _yawDamper.getRudder();}
+    float getAileron() { return _aileron; }
+    float getElevator() { return _elevator; }
+    float getRudder() { return _yawDamper.getRudder(); }
 };
 
 /**
@@ -260,7 +277,7 @@ public:
         float phiError = phiCmd - phi;
         _aileron = _phi2Ail.update(phiError - _p2Phi.update(p));
     }
-    float getAileron() {return _aileron;}
+    float getAileron() { return _aileron; }
 };
 
 /**
@@ -305,7 +322,7 @@ public:
         float qCmd = _theta2Q.update(thetaCmd - theta);
         _elevator = qCmd - q;
     }
-    float getElevator() {return _elevator;}
+    float getElevator() { return _elevator; }
 };
 
 /**
@@ -329,7 +346,7 @@ public:
     {
         _throttle = _v2Thr.update(vCmd - v);
     }
-    float getThrottle() {return _throttle;}
+    float getThrottle() { return _throttle; }
 };
 
 /**
@@ -353,7 +370,7 @@ public:
     {
         _throttle = _h2Thr.update(hCmd - h);
     }
-    float getThrottle() {return _throttle;}
+    float getThrottle() { return _throttle; }
 };
 
 /**
@@ -381,7 +398,7 @@ public:
         float qCmd = _theta2Q.update(thetaCmd - theta);
         _elevator = qCmd - q;
     }
-    float getElevatorCmd() {return _elevator;}
+    float getElevatorCmd() { return _elevator; }
 };
 
 /**
@@ -414,10 +431,10 @@ public:
         _velocityHold.update(vCmd, v, theta, q);
         _altitudeHold.update(hCmd, h);
     };
-    float getRudder() {return _yawDamper.getRudder();}
-    float getAileron() {return _headingHold.getAileron();}
-    float getElevator() {return _velocityHold.getElevator();}
-    float getThrottle() {return _altitudeHold.getThrottle();}
+    float getRudder() { return _yawDamper.getRudder(); }
+    float getAileron() { return _headingHold.getAileron(); }
+    float getElevator() { return _velocityHold.getElevator(); }
+    float getThrottle() { return _altitudeHold.getThrottle(); }
 };
 
 /**
@@ -447,10 +464,206 @@ public:
         _rudder.update(rudder);
         _throttle.update(throttle);
     }
-    float getAileron() {return _aileron.get();}
-    float getElevator() {return _elevator.get();}
-    float getRudder() {return _rudder.get();}
-    float getThrottle() {return _throttle.get();}
+    float getAileron() { return _aileron.get(); }
+    float getElevator() { return _elevator.get(); }
+    float getRudder() { return _rudder.get(); }
+    float getThrottle() { return _throttle.get(); }
+};
+
+#define ORB_SUBSCRIBER(_name, _struct) \
+class #_name \
+{ \
+};\
+
+class UOrbSubscriptionBase
+{
+public:
+    /**
+     * Constructor
+     *
+     * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+     *			for the topic.
+     * @param interval	An interval period in milliseconds.
+     */
+    UOrbSubscriptionBase(const struct orb_metadata * meta, unsigned interval) :
+        _meta(meta),
+        _handle(orb_subscribe(meta))
+    {
+        orb_set_interval(_handle, interval);
+    }
+    bool updated() {
+        bool isUpdated = false;
+        orb_check(_handle, &isUpdated);
+        return isUpdated;
+    }
+    void update(void * buffer)
+    {
+        if (updated())
+        {
+            orb_copy(_meta, _handle, getDataVoidPtr());
+        }
+    }
+    virtual void * getDataVoidPtr() = 0;
+    virtual ~UOrbSubscriptionBase()
+    {
+        orb_unsubscribe(_handle);
+    }
+    const struct orb_metadata * getMeta() { return _meta; }
+    int getHandle() { return _handle; }
+private:
+    const struct orb_metadata * _meta;
+    int _handle;
+};
+
+template<class T>
+class UOrbSubscription : public UOrbSubscriptionBase
+{
+public:
+    UOrbSubscription(const struct orb_metadata * meta, unsigned interval) :
+        UOrbSubscriptionBase(meta, interval)
+    {
+    }
+    virtual ~UOrbSubscription() {}
+    void * getDataVoidPtr() { return (void *)(&_data); }
+    const T & get() { return _data; }
+private:
+    T _data;
+    UOrbSubscriptionBase * _firstSibling;
+};
+
+/**
+ * Multi-mode Autopilot
+ */
+class BlockMultiModeBacksideAutopilot : public Block
+{
+private:
+    BlockStabilization _stabilization;
+    BlockBacksideAutopilot _backsideAutopilot;
+    BlockOutputs _outputs;
+    uint8_t _mode;
+
+    // input uORB
+    UOrbSubscription<vehicle_attitude_s> _att;
+    UOrbSubscription<vehicle_attitude_setpoint_s> _attCmd;
+    UOrbSubscription<vehicle_rates_setpoint_s> _ratesCmd;
+    UOrbSubscription<vehicle_global_position_s> _pos;
+    UOrbSubscription<vehicle_global_position_setpoint_s> _posCmd;
+    UOrbSubscription<manual_control_setpoint_s> _manual;
+    UOrbSubscription<vehicle_status_s> _status;
+
+    // output uORB
+    //actuator_control_s _actuators;
+    uint8_t _loopCount;
+    struct pollfd _attPoll;
+public:
+    BlockMultiModeBacksideAutopilot(Block * parent, const char * name) :
+        Block(parent, name),
+        _stabilization(this,"STAB"),
+        _backsideAutopilot(this,"BS"),
+        _outputs(this,"OUT"),
+        _mode(0),
+        _att(ORB_ID(vehicle_attitude),20),
+        _attCmd(ORB_ID(vehicle_attitude_setpoint),20),
+        _ratesCmd(ORB_ID(vehicle_rates_setpoint),20),
+        _pos(ORB_ID(vehicle_global_position),20),
+        _posCmd(ORB_ID(vehicle_global_position_setpoint),20),
+        _manual(ORB_ID(manual_control_setpoint),20),
+        _status(ORB_ID(vehicle_status),20),
+        _loopCount(0),
+		_attPoll()
+    {
+        setDt(1.0f /50.0f);
+		_attPoll.fd = _att.getHandle();
+        _attPoll.events = POLLIN;
+    }
+    void update()
+    {
+        /* wait for a sensor update, check for exit condition every 500 ms */
+        //poll(&_attPoll, 1, 500);
+
+        struct timespec ts;
+        abstime_to_ts(&ts,hrt_absolute_time());
+        float t = ts.tv_sec + ts.tv_nsec/1.0e9;
+        float u = sin(t);
+
+        float p = u;
+        float q = u;
+        float r = u;
+
+        float h = u;
+        float v = u;
+        float phi = u;
+        float theta = u;
+        float psi = u;
+
+        float pCmd = 0;
+        float qCmd = 0;
+        float rCmd = 0;
+
+        float vCmd = 0;
+        float hCmd = 0;
+        float psiCmd = 0;
+
+        float manualAileron = 0.1;
+        float manualElevator = 0.2;
+        float manualRudder = 0.3;
+        float manualThrottle = 0.4;
+
+
+        if (getMode() == 0)
+        {
+            // stabilize
+            _stabilization.update(pCmd, qCmd, rCmd, p, q, r);
+            _outputs.update(_stabilization.getAileron(),
+                    _stabilization.getElevator(),
+                    _stabilization.getRudder(),
+                    manualThrottle);
+        }
+        else if (getMode() == 1)
+        {
+            // auto
+            _backsideAutopilot.update(hCmd, vCmd, rCmd, psiCmd,
+                h, v,
+                phi, theta, psi,
+                p, q, r);
+            _outputs.update(_backsideAutopilot.getAileron(),
+                    _backsideAutopilot.getElevator(),
+                    _backsideAutopilot.getRudder(),
+                    _backsideAutopilot.getThrottle());
+        }
+        else if (getMode() == 2)
+        {
+            // manual
+            _outputs.update(manualAileron,
+                    manualElevator,
+                    manualRudder,
+                    manualThrottle);
+        }
+
+        if (_loopCount-- <= 0)
+        {
+            _loopCount = 100;
+            _stabilization.updateParams();
+            _backsideAutopilot.updateParams();
+            _outputs.updateParams();
+            printf("t: %8.4f, u: %8.4f\n", (double)t, (double)u);
+            printf("control mode: %d\n", getMode());
+            printf("aileron: %8.4f, elevator: %8.4f, "
+                    "rudder: %8.4f, throttle: %8.4f\n",
+                    (double)_outputs.getAileron(),
+                    (double)_outputs.getElevator(),
+                    (double)_outputs.getRudder(),
+                    (double)_outputs.getThrottle());
+            setMode(getMode() + 1);
+            if (getMode() > 2) setMode(0);
+            fflush(stdout);
+        }
+        // sleep for approximately the right amount of time for update, 
+        // neglects lag from calculations
+        usleep(1000000*getDt());
+    }
+    void setMode(uint8_t mode) { _mode = mode; }
+    uint8_t getMode() { return _mode; }
 };
 
 

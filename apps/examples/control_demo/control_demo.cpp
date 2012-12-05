@@ -131,99 +131,13 @@ int control_demo_thread_main(int argc, char *argv[]) {
     printf("[control_Demo] starting\n");
 
     using namespace control;
-    Block fw(NULL,"FW");
-    fixedwing::BlockStabilization blockStabilization(&fw,"STAB");
-    fixedwing::BlockBacksideAutopilot blockBacksideAutopilot(&fw,"BS");
-    fixedwing::BlockOutputs blockOutputs(&fw,"OUT");
+    
+    fixedwing::BlockMultiModeBacksideAutopilot autopilot(NULL,"FW");
 
     thread_running = true;
-    uint32_t loopCount = 0;
-    uint32_t controlMode = 0;
-
-    fw.setDt(1.0f /50.0f);
 
     while (!thread_should_exit) {
-
-        struct timespec ts;
-        abstime_to_ts(&ts,hrt_absolute_time());
-        float t = ts.tv_sec + ts.tv_nsec/1.0e9;
-        float u = sin(t);
-
-        float p = u;
-        float q = u;
-        float r = u;
-
-        float h = u;
-        float v = u;
-        float phi = u;
-        float theta = u;
-        float psi = u;
-
-        float pCmd = 0;
-        float qCmd = 0;
-        float rCmd = 0;
-
-        float vCmd = 0;
-        float hCmd = 0;
-        float psiCmd = 0;
-
-        float manualAileron = 0.1;
-        float manualElevator = 0.2;
-        float manualRudder = 0.3;
-        float manualThrottle = 0.4;
-
-
-        if (controlMode == 0)
-        {
-            // stabilize
-            blockStabilization.update(pCmd, qCmd, rCmd, p, q, r);
-            blockOutputs.update(blockStabilization.getAileron(),
-                    blockStabilization.getElevator(),
-                    blockStabilization.getRudder(),
-                    manualThrottle);
-        }
-        else if (controlMode == 1)
-        {
-            // auto
-            blockBacksideAutopilot.update(hCmd, vCmd, rCmd, psiCmd,
-                h, v,
-                phi, theta, psi,
-                p, q, r);
-            blockOutputs.update(blockBacksideAutopilot.getAileron(),
-                    blockBacksideAutopilot.getElevator(),
-                    blockBacksideAutopilot.getRudder(),
-                    blockBacksideAutopilot.getThrottle());
-        }
-        else if (controlMode == 2)
-        {
-            // manual
-            blockOutputs.update(manualAileron,
-                    manualElevator,
-                    manualRudder,
-                    manualThrottle);
-        }
-
-        if (loopCount-- <= 0)
-        {
-            loopCount = 100;
-            blockStabilization.updateParams();
-            blockBacksideAutopilot.updateParams();
-            blockOutputs.updateParams();
-            printf("t: %8.4f, u: %8.4f\n", (double)t, (double)u);
-            printf("control mode: %d\n", controlMode);
-            printf("aileron: %8.4f, elevator: %8.4f, "
-                    "rudder: %8.4f, throttle: %8.4f\n",
-                    (double)blockOutputs.getAileron(),
-                    (double)blockOutputs.getElevator(),
-                    (double)blockOutputs.getRudder(),
-                    (double)blockOutputs.getThrottle());
-            controlMode++;
-            fflush(stdout);
-        }
-
-        if (controlMode > 2) controlMode = 0;
-
-        usleep(20000);
+        autopilot.update();
     }
 
     printf("[control_demo] exiting.\n");
