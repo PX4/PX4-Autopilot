@@ -37,9 +37,9 @@
  * Controller library code
  */
 
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
+//#include <stdint.h>
+//#include <string.h>
+//#include <stdio.h>
 #include <math.h>
 
 #include "control.h"
@@ -47,49 +47,49 @@
 namespace control
 {
 
-float Limit::update(float input)
+float BlockLimit::update(float input)
 {
-    if (input > getMax())
+    if (input > _max.get())
     {
-        input = getMax();
+        input = _max.get();
     }
-    else if (input < getMin())
+    else if (input < _min.get())
     {
-        input = getMin();
+        input = _min.get();
     }
     return input;
 }
 
-float LowPass::update(float input, float dt)
+float BlockLowPass::update(float input)
 {
-    float b = 2*M_PI*getFCut()*dt;
+    float b = 2*M_PI*_fCut.get()*getDt();
     float a = b/ (1 + b);
     setState(a*input + (1-a)*getState());
     return getState();
 }
 
-float HighPass::update(float input, float dt)
-{
-    float b = 2*M_PI*getFCut()*dt;
-    float a = b/ (1 + b);
-    // input - low pass output
-    setState(input - (a*input + (1-a)*getState()));
-    return getState();
-}
+//float HighPass::update(float input, float dt)
+//{
+    //float b = 2*M_PI*getFCut()*dt;
+    //float a = b/ (1 + b);
+    //// input - low pass output
+    //setState(input - (a*input + (1-a)*getState()));
+    //return getState();
+//}
 
-float Integral::update(float input, float dt)
-{
-    // trapezoidal integration
-    setState(_limit.update(getState() + 
-                (getState() + input)*dt/2));
-    return getState();
-}
+//float Integral::update(float input, float dt)
+//{
+    //// trapezoidal integration
+    //setState(_limit.update(getState() + 
+                //(getState() + input)*dt/2));
+    //return getState();
+//}
 
-float Derivative::update(float input, float dt)
-{
-    float output = (input - getState())/dt;
-    setState(input);
-    return output;
-}
+//float Derivative::update(float input, float dt)
+//{
+    //float output = (input - getState())/dt;
+    //setState(input);
+    //return output;
+//}
 
 } // namespace control
