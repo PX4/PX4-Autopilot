@@ -57,23 +57,23 @@ private:
     BlockLowPass _rLowPass;
     BlockHighPass _rWashout;
     BlockP _r2Rdr;
-    BlockOutput _rudder;
+    float _rudder;
 public:
     BlockYawDamper(Block * parent, const char * name) :
         Block(parent, name),
         _rLowPass(this, "LP"),
         _rWashout(this, "HP"),
         _r2Rdr(this, "2RDR"),
-        _rudder(this,"RDR")
+        _rudder(0)
     {
     }
     virtual ~BlockYawDamper() {};
     void update(float rCmd, float r)
     {
-        _rudder.update(_r2Rdr.update(rCmd -
-                _rWashout.update(_rLowPass.update(r))));
+        _rudder = _r2Rdr.update(rCmd -
+                _rWashout.update(_rLowPass.update(r)));
     }
-    float getRudder() { return _rudder.get(); }
+    float getRudder() { return _rudder; }
 };
 
 /**
@@ -89,8 +89,8 @@ private:
     BlockLowPass _qLowPass;
     BlockP _p2Ail;
     BlockP _q2Elv;
-    BlockOutput _aileron;
-    BlockOutput _elevator;
+    float _aileron;
+    float _elevator;
 public:
     BlockStabilization(Block * parent, const char * name) :
         Block(parent, name),
@@ -99,22 +99,22 @@ public:
         _qLowPass(this, "Q_LP"),
         _p2Ail(this, "P_2AIL"),
         _q2Elv(this, "Q_2ELV"),
-        _aileron(this,"AIL"),
-        _elevator(this,"ELV")
+        _aileron(0),
+        _elevator(0)
     {
     }
     virtual ~BlockStabilization() {};
     void update(float pCmd, float qCmd, float rCmd,
             float p, float q, float r)
     {
-        _aileron.update(_p2Ail.update(
-                    pCmd - _pLowPass.update(p)));
-        _elevator.update(_q2Elv.update(
-                    qCmd - _qLowPass.update(q)));
+        _aileron = _p2Ail.update(
+                    pCmd - _pLowPass.update(p));
+        _elevator = _q2Elv.update(
+                    qCmd - _qLowPass.update(q));
         _yawDamper.update(rCmd, r);
     }
-    float getAileron() {return _aileron.get();}
-    float getElevator() {return _elevator.get();}
+    float getAileron() {return _aileron;}
+    float getElevator() {return _elevator;}
     float getRudder() {return _yawDamper.getRudder();}
 };
 
@@ -131,7 +131,7 @@ private:
     BlockP _p2Phi;
     BlockP _phi2Ail;
     BlockLimit _phiLimit;
-    BlockOutput _aileron;
+    float _aileron;
 public:
     BlockHeadingHold(Block * parent, const char * name) :
         Block(parent, name),
@@ -139,7 +139,7 @@ public:
         _p2Phi(this, "P_2PHI"),
         _phi2Ail(this, "PHI_2AIL"),
         _phiLimit(this, "PHI_LIM"),
-        _aileron(this, "AIL")
+        _aileron(0)
     {
     }
     virtual ~BlockHeadingHold() {};
@@ -148,9 +148,9 @@ public:
         float psiError = psiCmd - psi;
         float phiCmd = _phiLimit.update(_psi2Phi.update(psiError));
         float phiError = phiCmd - phi;
-        _aileron.update(_phi2Ail.update(phiError - _p2Phi.update(p)));
+        _aileron = _phi2Ail.update(phiError - _p2Phi.update(p));
     }
-    float getAileron() {return _aileron.get();}
+    float getAileron() {return _aileron;}
 };
 
 /**
@@ -180,13 +180,13 @@ class BlockVelocityHoldBackside :
 private:
     BlockPID _v2Theta;
     BlockPID _theta2Q;
-    BlockOutput _elevator;
+    float _elevator;
 public:
     BlockVelocityHoldBackside(Block * parent, const char * name) :
         Block(parent, name),
         _v2Theta(this,"V_2THETA"),
         _theta2Q(this,"THETA_2Q"),
-        _elevator(this,"ELV")
+        _elevator(0)
     {
     }
     virtual ~BlockVelocityHoldBackside() {};
@@ -194,9 +194,9 @@ public:
     {
         float thetaCmd = _v2Theta.update(vCmd - v);
         float qCmd = _theta2Q.update(thetaCmd - theta);
-        _elevator.update(qCmd - q);
+        _elevator = qCmd - q;
     }
-    float getElevator() {return _elevator.get();}
+    float getElevator() {return _elevator;}
 };
 
 /**
@@ -208,20 +208,20 @@ class BlockVelocityHoldFrontside :
 {
 private:
     BlockPID _v2Thr;
-    BlockOutput _throttle;
+    float _throttle;
 public:
     BlockVelocityHoldFrontside(Block * parent, const char * name) :
         Block(parent, name),
         _v2Thr(this,"V_2THR"),
-        _throttle(this,"THR")
+        _throttle(0)
     {
     }
     virtual ~BlockVelocityHoldFrontside() {};
     void update(float vCmd, float v)
     {
-        _throttle.update(_v2Thr.update(vCmd - v));
+        _throttle = _v2Thr.update(vCmd - v);
     }
-    float getThrottle() {return _throttle.get();}
+    float getThrottle() {return _throttle;}
 };
 
 /**
@@ -233,20 +233,20 @@ class BlockAltitudeHoldBackside :
 {
 private:
     BlockPID _h2Thr;
-    BlockOutput _throttle;
+    float _throttle;
 public:
     BlockAltitudeHoldBackside(Block * parent, const char * name) :
         Block(parent, name),
         _h2Thr(this, "H_2THR"),
-        _throttle(this, "THR")
+        _throttle(0)
     {
     }
     virtual ~BlockAltitudeHoldBackside() {};
     void update(float hCmd, float h)
     {
-        _throttle.update(_h2Thr.update(hCmd - h));
+        _throttle = _h2Thr.update(hCmd - h);
     }
-    float getThrottle() {return _throttle.get();}
+    float getThrottle() {return _throttle;}
 };
 
 /**
@@ -259,13 +259,13 @@ class BlockAltitudeHoldFrontside :
 private:
     BlockPID _h2Theta;
     BlockPID _theta2Q;
-    BlockOutput _elevator;
+    float _elevator;
 public:
     BlockAltitudeHoldFrontside(Block * parent, const char * name) :
         Block(parent, name),
         _h2Theta(this, "H_2THETA"),
         _theta2Q(this, "THETA_2Q"),
-        _elevator(this, "ELV")
+        _elevator(0)
     {
     }
     virtual ~BlockAltitudeHoldFrontside() {};
@@ -273,9 +273,9 @@ public:
     {
         float thetaCmd = _h2Theta.update(hCmd - h);
         float qCmd = _theta2Q.update(thetaCmd - theta);
-        _elevator.update(qCmd - q);
+        _elevator = qCmd - q;
     }
-    float getElevatorCmd() {return _elevator.get();}
+    float getElevatorCmd() {return _elevator;}
 };
 
 /**
@@ -313,6 +313,41 @@ public:
     float getElevator() {return _velocityHold.getElevator();}
     float getThrottle() {return _altitudeHold.getThrottle();}
 };
+
+/**
+ * Output conditioning block
+ */
+class BlockOutputs :
+    public Block
+{
+private:
+    BlockOutput _aileron;
+    BlockOutput _elevator;
+    BlockOutput _rudder;
+    BlockOutput _throttle;
+public:
+    BlockOutputs(Block * parent, const char * name) :
+        Block(parent, name),
+        _aileron(this,"AIL"),
+        _elevator(this,"ELV"),
+        _rudder(this,"RDR"),
+        _throttle(this,"THR")
+    {
+    }
+    virtual ~BlockOutputs() {};
+    void update(float aileron, float elevator, float rudder, float throttle)
+    {
+        _aileron.update(aileron);
+        _elevator.update(elevator);
+        _rudder.update(rudder);
+        _throttle.update(throttle);
+    }
+    float getAileron() {return _aileron.get();}
+    float getElevator() {return _elevator.get();}
+    float getRudder() {return _rudder.get();}
+    float getThrottle() {return _throttle.get();}
+};
+
 
 } // namespace fixedwing
 

@@ -309,7 +309,9 @@ public:
         _trim(this,"TRIM"),
         _limit(this,""),
         _val(0)
-    {};
+    {
+        update(0);
+    };
     virtual ~BlockOutput() {};
     void update(float input)
     {

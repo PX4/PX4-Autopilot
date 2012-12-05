@@ -74,6 +74,7 @@ public:
         BlockParamBase(block, name),
         _val()
     {
+        update();
     }
     T get() { return _val; }
     void set(T val) { _val=val; }

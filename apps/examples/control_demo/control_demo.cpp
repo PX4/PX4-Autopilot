@@ -130,15 +130,17 @@ int control_demo_thread_main(int argc, char *argv[]) {
 
     printf("[control_Demo] starting\n");
 
-    using namespace control::fixedwing;
-    BlockStabilization fixedWingStabilization(NULL,"FW_STAB");
-    BlockBacksideAutopilot fixedWingBacksideAutopilot(NULL,"FW_BS");
+    using namespace control;
+    Block fw(NULL,"FW");
+    fixedwing::BlockStabilization blockStabilization(&fw,"STAB");
+    fixedwing::BlockBacksideAutopilot blockBacksideAutopilot(&fw,"BS");
+    fixedwing::BlockOutputs blockOutputs(&fw,"OUT");
 
     thread_running = true;
     uint32_t loopCount = 0;
+    uint32_t controlMode = 0;
 
-    fixedWingStabilization.setDt(1.0f / 50.0f);
-    fixedWingBacksideAutopilot.setDt(1.0f/ 50.0f);
+    fw.setDt(1.0f /50.0f);
 
     while (!thread_should_exit) {
 
@@ -165,33 +167,62 @@ int control_demo_thread_main(int argc, char *argv[]) {
         float hCmd = 0;
         float psiCmd = 0;
 
-        if (loopCount <= 0)
+        float manualAileron = 0.1;
+        float manualElevator = 0.2;
+        float manualRudder = 0.3;
+        float manualThrottle = 0.4;
+
+
+        if (controlMode == 0)
         {
-            loopCount = 100;
-
-            fixedWingStabilization.updateParams();
-            fixedWingBacksideAutopilot.updateParams();
-            printf("t: %8.4f, u: %8.4f\n", (double)t, (double)u);
-            printf("fixedWingStabilization, aileron: %8.4f, elevator: %8.4f, rudder: %8.4f\n",
-                    (double)fixedWingStabilization.getAileron(),
-                    (double)fixedWingStabilization.getElevator(),
-                    (double)fixedWingStabilization.getRudder());
-            printf("fixedWingBacksideAutopilot, aileron: %8.4f, elevator: %8.4f, "
-                    "rudder: %8.4f, throttle: %8.4f\n",
-                    (double)fixedWingBacksideAutopilot.getAileron(),
-                    (double)fixedWingBacksideAutopilot.getElevator(),
-                    (double)fixedWingBacksideAutopilot.getRudder(),
-                    (double)fixedWingBacksideAutopilot.getThrottle());
-            fflush(stdout);
+            // stabilize
+            blockStabilization.update(pCmd, qCmd, rCmd, p, q, r);
+            blockOutputs.update(blockStabilization.getAileron(),
+                    blockStabilization.getElevator(),
+                    blockStabilization.getRudder(),
+                    manualThrottle);
         }
-
-        fixedWingStabilization.update(pCmd, qCmd, rCmd, p, q, r);
-        fixedWingBacksideAutopilot.update(hCmd, vCmd, rCmd, psiCmd,
+        else if (controlMode == 1)
+        {
+            // auto
+            blockBacksideAutopilot.update(hCmd, vCmd, rCmd, psiCmd,
                 h, v,
                 phi, theta, psi,
                 p, q, r);
+            blockOutputs.update(blockBacksideAutopilot.getAileron(),
+                    blockBacksideAutopilot.getElevator(),
+                    blockBacksideAutopilot.getRudder(),
+                    blockBacksideAutopilot.getThrottle());
+        }
+        else if (controlMode == 2)
+        {
+            // manual
+            blockOutputs.update(manualAileron,
+                    manualElevator,
+                    manualRudder,
+                    manualThrottle);
+        }
 
-        loopCount--;
+        if (loopCount-- <= 0)
+        {
+            loopCount = 100;
+            blockStabilization.updateParams();
+            blockBacksideAutopilot.updateParams();
+            blockOutputs.updateParams();
+            printf("t: %8.4f, u: %8.4f\n", (double)t, (double)u);
+            printf("control mode: %d\n", controlMode);
+            printf("aileron: %8.4f, elevator: %8.4f, "
+                    "rudder: %8.4f, throttle: %8.4f\n",
+                    (double)blockOutputs.getAileron(),
+                    (double)blockOutputs.getElevator(),
+                    (double)blockOutputs.getRudder(),
+                    (double)blockOutputs.getThrottle());
+            controlMode++;
+            fflush(stdout);
+        }
+
+        if (controlMode > 2) controlMode = 0;
+
         usleep(20000);
     }
 
