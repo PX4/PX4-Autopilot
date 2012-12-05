@@ -57,6 +57,7 @@
 #include <poll.h>
 
 #include "blocks.h"
+#include "block/UOrbSubscription.h"
 
 namespace control
 {
@@ -468,67 +469,6 @@ public:
     float getElevator() { return _elevator.get(); }
     float getRudder() { return _rudder.get(); }
     float getThrottle() { return _throttle.get(); }
-};
-
-#define ORB_SUBSCRIBER(_name, _struct) \
-class #_name \
-{ \
-};\
-
-class UOrbSubscriptionBase
-{
-public:
-    /**
-     * Constructor
-     *
-     * @param meta		The uORB metadata (usually from the ORB_ID() macro)
-     *			for the topic.
-     * @param interval	An interval period in milliseconds.
-     */
-    UOrbSubscriptionBase(const struct orb_metadata * meta, unsigned interval) :
-        _meta(meta),
-        _handle(orb_subscribe(meta))
-    {
-        orb_set_interval(_handle, interval);
-    }
-    bool updated() {
-        bool isUpdated = false;
-        orb_check(_handle, &isUpdated);
-        return isUpdated;
-    }
-    void update(void * buffer)
-    {
-        if (updated())
-        {
-            orb_copy(_meta, _handle, getDataVoidPtr());
-        }
-    }
-    virtual void * getDataVoidPtr() = 0;
-    virtual ~UOrbSubscriptionBase()
-    {
-        orb_unsubscribe(_handle);
-    }
-    const struct orb_metadata * getMeta() { return _meta; }
-    int getHandle() { return _handle; }
-private:
-    const struct orb_metadata * _meta;
-    int _handle;
-};
-
-template<class T>
-class UOrbSubscription : public UOrbSubscriptionBase
-{
-public:
-    UOrbSubscription(const struct orb_metadata * meta, unsigned interval) :
-        UOrbSubscriptionBase(meta, interval)
-    {
-    }
-    virtual ~UOrbSubscription() {}
-    void * getDataVoidPtr() { return (void *)(&_data); }
-    const T & get() { return _data; }
-private:
-    T _data;
-    UOrbSubscriptionBase * _firstSibling;
 };
 
 /**

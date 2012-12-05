@@ -50,6 +50,7 @@ CSRCS		 = err.c \
 
 CXXSRCS   =  control/block/Block.cpp \
 			 control/block/BlockParam.cpp \
+			 control/block/UOrbSubscription.cpp \
 			 control/blocks.cpp
 
 #
