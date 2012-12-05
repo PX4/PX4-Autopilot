@@ -281,10 +281,37 @@ public:
 /**
  * Backside autopilot
  */
-class BacksideAutopilot
+class BlockBacksideAutopilot : public Block
 {
-public:
 private:
+    BlockYawDamper _yawDamper;
+    BlockHeadingHold _headingHold;
+    BlockVelocityHoldBackside _velocityHold;
+    BlockAltitudeHoldBackside _altitudeHold;
+public:
+    BlockBacksideAutopilot(Block * parent, const char * name) :
+        Block(parent, name),
+        _yawDamper(this,"R"),
+        _headingHold(this,"PSI"),
+        _velocityHold(this,"V"),
+        _altitudeHold(this,"H")
+    {
+    }
+    virtual ~BlockBacksideAutopilot() {};
+    void update(float hCmd, float vCmd, float rCmd, float psiCmd,
+            float h, float v,
+            float phi, float theta, float psi,
+            float p, float q, float r)
+    {
+        _yawDamper.update(rCmd, r);
+        _headingHold.update(psiCmd, phi, psi, p);
+        _velocityHold.update(vCmd, v, theta, q);
+        _altitudeHold.update(hCmd, h);
+    };
+    float getRudder() {return _yawDamper.getRudder();}
+    float getAileron() {return _headingHold.getAileron();}
+    float getElevator() {return _velocityHold.getElevator();}
+    float getThrottle() {return _altitudeHold.getThrottle();}
 };
 
 } // namespace fixedwing

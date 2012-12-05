@@ -102,7 +102,7 @@ int control_demo_main(int argc, char *argv[])
         deamon_task = task_spawn("control_demo",
                      SCHED_DEFAULT,
                      SCHED_PRIORITY_DEFAULT,
-                     4096,
+                     8192,
                      control_demo_thread_main,
                      (argv) ? (const char **)&argv[2] : (const char **)NULL);
         exit(0);
@@ -132,17 +132,13 @@ int control_demo_thread_main(int argc, char *argv[]) {
 
     using namespace control::fixedwing;
     BlockStabilization fixedWingStabilization(NULL,"FW_STAB");
-    //BlockHeadingHold fixedWingHeadingHold(NULL,"FW_HEAD");
-    //BlockAltitudeHoldBackside fixedWingAltitudeHoldBackside(NULL,"FW_ALTB");
-    //BlockVelocityHoldBackside fixedWingVelocityHoldBackside(NULL,"FW_VELB");
+    BlockBacksideAutopilot fixedWingBacksideAutopilot(NULL,"FW_BS");
 
     thread_running = true;
     uint32_t loopCount = 0;
 
     fixedWingStabilization.setDt(1.0f / 50.0f);
-    //fixedWingHeadingHold.setDt(1.0f / 50.0f);
-    //fixedWingAltitudeHoldBackside.setDt(1.0f / 50.0f);
-    //fixedWingVelocityHoldBackside.setDt(1.0f / 50.0f);
+    fixedWingBacksideAutopilot.setDt(1.0f/ 50.0f);
 
     while (!thread_should_exit) {
 
@@ -174,27 +170,26 @@ int control_demo_thread_main(int argc, char *argv[]) {
             loopCount = 100;
 
             fixedWingStabilization.updateParams();
-            //fixedWingHeadingHold.updateParams();
-            //fixedWingAltitudeHoldBackside.updateParams();
-            //fixedWingVelocityHoldBackside.updateParams();
+            fixedWingBacksideAutopilot.updateParams();
             printf("t: %8.4f, u: %8.4f\n", (double)t, (double)u);
             printf("fixedWingStabilization, aileron: %8.4f, elevator: %8.4f, rudder: %8.4f\n",
                     (double)fixedWingStabilization.getAileron(),
                     (double)fixedWingStabilization.getElevator(),
                     (double)fixedWingStabilization.getRudder());
-            //printf("fixedWingHeadingHold, aileron: %8.4f\n",
-                    //(double)fixedWingHeadingHold.getAileron());
-            //printf("fixedWingAltitudeHoldBackside, throttle: %8.4f\n",
-                    //(double)fixedWingAltitudeHoldBackside.getThrottle());
-            //printf("fixedWingVelocityHoldBackside, elevator: %8.4f\n",
-                    //(double)fixedWingVelocityHoldBackside.getElevator());
+            printf("fixedWingBacksideAutopilot, aileron: %8.4f, elevator: %8.4f, "
+                    "rudder: %8.4f, throttle: %8.4f\n",
+                    (double)fixedWingBacksideAutopilot.getAileron(),
+                    (double)fixedWingBacksideAutopilot.getElevator(),
+                    (double)fixedWingBacksideAutopilot.getRudder(),
+                    (double)fixedWingBacksideAutopilot.getThrottle());
             fflush(stdout);
         }
 
         fixedWingStabilization.update(pCmd, qCmd, rCmd, p, q, r);
-        //fixedWingHeadingHold.update(psiCmd, phi, psi, p);
-        //fixedWingAltitudeHoldBackside.update(hCmd, h);
-        //fixedWingVelocityHoldBackside.update(vCmd, v, theta, q);
+        fixedWingBacksideAutopilot.update(hCmd, vCmd, rCmd, psiCmd,
+                h, v,
+                phi, theta, psi,
+                p, q, r);
 
         loopCount--;
         usleep(20000);
