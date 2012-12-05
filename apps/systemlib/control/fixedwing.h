@@ -152,10 +152,10 @@ public:
      * Block deconstructor
      *
      * It is always a good idea to declare a virtual 
-     * deconstructor so that upon calling delete for
-     * class that are derived from this, all of the
-     * deconstructors all called, the base class first, and
-     * then the derived class
+     * deconstructor so that upon calling delete from
+     * a class derived from this, all of the
+     * deconstructors all called, the derived class first, and
+     * then the base class
      */
     virtual ~BlockYawDamper() {};
 
