@@ -43,8 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <systemlib/systemlib.h>
-//#include <systemlib/control/px4_fixedwing.h>
-#include <systemlib/control/control.h>
+#include <systemlib/control/blocks.h>
 #include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>

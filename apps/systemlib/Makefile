@@ -48,10 +48,9 @@ CSRCS		 = err.c \
 #		   ppm_decode.c \
 
 
-CXXSRCS   =  control/control.cpp
-#control/px4_control.cpp \
-
-
+CXXSRCS   =  control/Block.cpp \
+			 control/BlockParam.cpp \
+			 control/blocks.cpp
 
 #
 # XXX this really should be a CONFIG_* test

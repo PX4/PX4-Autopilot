@@ -32,64 +32,38 @@
  ****************************************************************************/
 
 /**
- * @file control.cpp
+ * @file Blockparam.cpp
  *
  * Controller library code
  */
 
-//#include <stdint.h>
-//#include <string.h>
-//#include <stdio.h>
 #include <math.h>
-
-#include "control.h"
+#include "BlockParam.h"
 
 namespace control
 {
 
-float BlockLimit::update(float input)
+BlockParamBase::BlockParamBase(Block * parent, const char * name) :
+    _handle(PARAM_INVALID), 
+    _firstSibling(NULL)
 {
-    if (input > _max.get())
+    char fullname[80];
+    if (parent == NULL)
     {
-        input = _max.get();
+        snprintf(fullname,80,"%s", name);
     }
-    else if (input < _min.get())
+    else if (!strcmp(name,""))
     {
-        input = _min.get();
+        snprintf(fullname,80,"%s", parent->getName());
     }
-    return input;
-}
+    else
+    {
+        snprintf(fullname,80,"%s_%s", parent->getName(), name);
+    }
 
-float BlockLowPass::update(float input)
-{
-    float b = 2*M_PI*_fCut.get()*getDt();
-    float a = b/ (1 + b);
-    setState(a*input + (1-a)*getState());
-    return getState();
-}
-
-//float HighPass::update(float input, float dt)
-//{
-    //float b = 2*M_PI*getFCut()*dt;
-    //float a = b/ (1 + b);
-    //// input - low pass output
-    //setState(input - (a*input + (1-a)*getState()));
-    //return getState();
-//}
-
-//float Integral::update(float input, float dt)
-//{
-    //// trapezoidal integration
-    //setState(_limit.update(getState() + 
-                //(getState() + input)*dt/2));
-    //return getState();
-//}
-
-//float Derivative::update(float input, float dt)
-//{
-    //float output = (input - getState())/dt;
-    //setState(input);
-    //return output;
-//}
+    _handle = param_find(fullname);
+    if (_handle == PARAM_INVALID)
+        printf("error finding param: %s\n", fullname);
+};
 
 } // namespace control
