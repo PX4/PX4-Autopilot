@@ -1,0 +1,274 @@
+############################################################################
+# arch/z80/src/Makefile.sdccw
+#
+#   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+############################################################################
+# Tools
+# CFLAGS, CPPFLAGS, ASFLAGS, LDFLAGS are set in $(TOPDIR)\Make.defs
+
+CFLAGS += -I$(ARCH_SRCDIR)\chip -I$(ARCH_SRCDIR)\common -I$(TOPDIR)\sched
+CPPFLAGS += -D__ASSEMBLY__
+
+############################################################################
+# Files and directories
+
+# There should be one head source (.asm file)
+
+HEAD_OBJ = $(HEAD_ASRC:$(ASMEXT)=$(OBJEXT))
+
+# Assembly sources and objects
+
+ASRCS = $(CHIP_ASRCS) $(CMN_ASRCS)
+AOBJS = $(ASRCS:$(ASMEXT)=$(OBJEXT))
+
+# C sources and objects
+
+CSRCS = $(CHIP_CSRCS) $(CMN_CSRCS)
+COBJS = $(CSRCS:.c=$(OBJEXT))
+
+# All sources and objcts
+
+SRCS = $(ASRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
+
+# Sources that can have dependencies (no .asm files)
+
+DEPSRCS = $(CSRCS)
+
+# Directories
+
+ARCH_SRCDIR = $(TOPDIR)\arch\$(CONFIG_ARCH)\src
+BOARDDIR = $(TOPDIR)\arch\$(CONFIG_ARCH)\src\board
+
+VPATH = chip:common:board
+
+# Libraries
+
+LIBGCC = ${shell "$(CC)" $(ARCHCPUFLAGS) -print-libgcc-file-name}
+
+# Supports dynamic sizing of HEAP.
+#
+HEAP_BASE = ${shell .\mkhpbase.bat}
+
+############################################################################
+# Targets
+
+all: $(HEAD_OBJ) libarch$(LIBEXT)
+
+.PHONY: board\libboard$(LIBEXT) pass1.lnk nuttx.lnk
+
+$(AOBJS) $(HEAD_OBJ): %$(OBJEXT): %$(ASMEXT)
+	$(call ASSEMBLE, $<, $@)
+
+$(COBJS): %$(OBJEXT): %.c
+	$(call COMPILE, $<, $@)
+
+# This is a kludge to work around some conflicting symbols in the SDCC libraries
+
+$(SDCC_LIBDIR)\myz80.lib: $(SDCC_LIBDIR)\$(SDCCLIB)
+ifeq ($(CONFIG_SDCC_OLD),y)
+	$(Q) cat $(SDCC_LIBDIR)\$(SDCCLIB) | \
+		grep -v alloc | grep -v free | grep -v printf | \
+		grep -v _str  | grep -v _mem | grep -v crt0\.o \
+		> myz80.lib
+	$(Q) mv -f myz80.lib $(SDCC_LIBDIR)\myz80.lib
+else
+	$(Q) cp $(SDCC_LIBDIR)\z80.lib $(SDCC_LIBDIR)\myz80.lib
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _calloc.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _malloc.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _realloc.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _free.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib printf_large.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib sprintf.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib vprintf.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib strcpy.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib strlen.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strcat.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strchr.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strcmp.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strcspn.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strncat.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strncmp.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strncpy.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strpbrk.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strrchr.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strspn.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strstr.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strtok.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _memchr.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _memcmp.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _memcpy.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _memset.rel
+endif
+
+# Create a header file that contains addressing information needed by the code
+
+up_mem.h:
+	@echo #ifndef __UP_MEM_H>up_mem.h
+	@echo #define __UP_MEM_H>>up_mem.h
+	@echo #include ^<nuttx/config.h^>>>up_mem.h
+	@echo #define CONFIG_STACK_END   $(CONFIG_DRAM_SIZE)>> up_mem.h
+	@echo #define CONFIG_STACK_BASE  (CONFIG_STACK_END - $(CONFIG_IDLETHREAD_STACKSIZE))>> up_mem.h
+	@echo #define CONFIG_HEAP1_END   CONFIG_STACK_BASE>> up_mem.h
+	@echo #define CONFIG_HEAP1_BASE  $(HEAP_BASE)>> up_mem.h
+	@echo #endif /* __UP_MEM_H */>>up_mem.h
+
+asm_mem.h:
+	@echo 	CONFIG_COMPILER_OTHER == ^0>asm_mem.h
+	@echo 	CONFIG_COMPILER_SDCC == ^1>>asm_mem.h
+ifeq ($(CC),sdcc)
+	@echo 	CONFIG_COMPILER == ^1>>asm_mem.h
+else
+	@echo 	CONFIG_COMPILER == ^0>>asm_mem.h
+endif
+	@echo 	CONFIG_STACK_END == ($(CONFIG_DRAM_SIZE) - 1)>>asm_mem.h
+	@echo 	CONFIG_STACK_BASE == (CONFIG_STACK_END - $(CONFIG_IDLETHREAD_STACKSIZE))>>asm_mem.h
+	@echo 	CONFIG_HEAP1_END == (CONFIG_STACK_END - $(CONFIG_IDLETHREAD_STACKSIZE) - 1)>>asm_mem.h
+	@echo 	CONFIG_HEAP1_BASE == $(HEAP_BASE)>>asm_mem.h
+
+# Combine all objects in this directory into a library
+
+libarch$(LIBEXT): up_mem.h asm_mem.h $(OBJS)
+	$(call ARCHIVE, $@, $(OBJS))
+
+# This builds the libboard library in the board\ subdirectory 
+
+board\libboard$(LIBEXT):
+	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
+
+# This target builds the final executable
+
+pass1.lnk:
+	@echo LD: pass1.lnk
+	@echo -->pass1.lnk
+	@echo -k $(BOARDDIR)>>pass1.lnk
+	@echo -k $(SDCC_LIBDIR)>>pass1.lnk
+	@echo -l libboard$(LIBEXT)>>pass1.lnk
+	$(Q) for %%G in ($(LINKLIBS)) do ( echo -l $(TOPDIR)\lib\%%G>> pass1.lnk )
+	@echo -l myz80.lib>>pass1.lnk
+ifneq ($(CONFIG_LINKER_START_AREA),)
+	@echo -b START=$(CONFIG_LINKER_START_AREA)>>pass1.lnk
+else
+	@echo -b START=0>>pass1.lnk
+endif
+ifneq ($(CONFIG_LINKER_CODE_AREA),)
+	@echo -b _CODE=$(CONFIG_LINKER_CODE_AREA)>>pass1.lnk
+else
+	@echo -b _CODE=256>>pass1.lnk
+endif
+	@echo -i>>pass1.lnk
+	@echo -x>>pass1.lnk
+	@echo -m>>pass1.lnk
+	@echo -j>>pass1.lnk
+	@echo pass1.hex>>pass1.lnk
+	@echo $(HEAD_OBJ)>>pass1.lnk
+	@echo -e>>pass1.lnk
+
+pass1.hex: up_mem.h asm_mem.h $(SDCC_LIBDIR)\myz80.lib $(HEAD_OBJ) board\libboard$(LIBEXT) pass1.lnk
+	@echo LD: pass1.hex
+	$(Q) $(LD) -f pass1.lnk
+	$(Q) rm -f up_mem.h asm_mem.h
+	$(Q) rm -f up_allocateheap$(OBJEXT) $(HEAD_OBJ) libarch$(LIBEXT)
+	$(Q) $(MAKE) TOPDIR="$(TOPDIR)" libarch$(LIBEXT)
+	$(Q) $(MAKE) TOPDIR="$(TOPDIR)" $(HEAD_OBJ)
+
+nuttx.lnk:
+	@echo LD: nuttx.lnk
+	@echo -->nuttx.lnk
+	@echo -k $(BOARDDIR)>>nuttx.lnk
+	@echo -k $(SDCC_LIBDIR)>>nuttx.lnk
+	@echo -l libboard$(LIBEXT)>>nuttx.lnk
+	$(Q) for %%G in ($(LINKLIBS)) do ( echo -l $(TOPDIR)\lib\%%G>> nuttx.lnk )
+	@echo -l myz80.lib>>nuttx.lnk
+ifneq ($(CONFIG_LINKER_START_AREA),)
+	@echo -b START=$(CONFIG_LINKER_START_AREA)>>nuttx.lnk
+else
+	@echo -b START=0>>nuttx.lnk
+endif
+ifneq ($(CONFIG_LINKER_CODE_AREA),)
+	@echo -b _CODE=$(CONFIG_LINKER_CODE_AREA)>>nuttx.lnk
+else
+	@echo -b _CODE=256>>nuttx.lnk
+endif
+	@echo -i>>nuttx.lnk
+	@echo -x>>nuttx.lnk
+	@echo -m>>nuttx.lnk
+	@echo -j>>nuttx.lnk
+	@echo nuttx.ihx>>nuttx.lnk
+	@echo $(HEAD_OBJ)>>nuttx.lnk
+	@echo -e>>nuttx.lnk
+
+nuttx$(EXEEXT): pass1.hex up_mem.h asm_mem.h $(SDCC_LIBDIR)\myz80.lib $(HEAD_OBJ) board\libboard$(LIBEXT) nuttx.lnk
+	@echo LD: nuttx.ihx
+	$(Q) $(LD) -f nuttx.lnk
+	$(call DELFILE, pass1.*)
+	$(Q) cp -f nuttx.map $(TOPDIR)\.
+ifeq ($(EXEEXT),.cmd)
+	sed s/:00000001FF/:00520001AD/ nuttx.ihx | \
+	hex2cmd > $(TOPDIR)\nuttx.cmd
+else
+	$(Q) packihx nuttx.ihx > $(TOPDIR)\nuttx$(EXEEXT)
+endif
+
+# This is part of the top-level export target
+
+export_head: board\libboard$(LIBEXT) $(HEAD_OBJ)
+	$(Q) if not exist board\Makefile ( echo $(EXPORT_DIR)\startup does not exist )
+	$(Q) if exist board\Makefile ( cp -f $(HEAD_OBJ) "$(EXPORT_DIR)\startup" )
+
+# Build dependencies
+
+.depend: Makefile up_mem.h asm_mem.h chip\Make.defs $(DEPSRCS)
+	$(Q) if exist board\Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" depend )
+	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
+	$(Q) touch $@
+
+depend: .depend
+
+clean:
+	$(Q) if exist board\Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" clean )
+	$(call DELFILE, up_mem.h)
+	$(call DELFILE, asm_mem.h)
+	$(call DELFILE, pass1.*)
+	$(call DELFILE, nuttx.*)
+	$(call DELFILE, libarch$(LIBEXT))
+	$(call CLEAN)
+
+
+distclean: clean
+	$(Q) if exist board\Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" distclean )
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
+
+-include Make.dep

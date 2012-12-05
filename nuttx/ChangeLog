@@ -3734,4 +3734,7 @@
 	* configs/z80sim/ostest: Default is now the Windows native build.  See
 	  configs/z80sim/README.txt for instructions to convert back to a Linux or
 	  or Cygwin build.
+	* arch/z80/src/Makefile.sdccw:  Renamed makefiles with extensions zdiil,
+	  zdiiw, sdccl, and sdccw for the ZDS-II vs SDCC compilers and for the
+	  POSIX vs Windows native builds.
 

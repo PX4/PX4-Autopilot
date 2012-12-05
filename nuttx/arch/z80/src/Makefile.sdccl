@@ -1,5 +1,5 @@
 ############################################################################
-# arch/z80/src/Makefile.sdcc
+# arch/z80/src/Makefile.sdccl
 #
 #   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -86,7 +86,7 @@ HEAP_BASE = ${shell ./mkhpbase.sh}
 
 all: $(HEAD_OBJ) libarch$(LIBEXT)
 
-.PHONY: board/libboard$(LIBEXT)
+.PHONY: board/libboard$(LIBEXT) pass1.lnk nuttx.lnk
 
 $(AOBJS) $(HEAD_OBJ): %$(OBJEXT): %$(ASMEXT)
 	$(call ASSEMBLE, $<, $@)
@@ -97,11 +97,40 @@ $(COBJS): %$(OBJEXT): %.c
 # This is a kludge to work around some conflicting symbols in libsdcc.lib
 
 $(SDCC_LIBDIR)/myz80.lib: $(SDCC_LIBDIR)/$(SDCCLIB)
-	$(Q) cat $(SDCC_LIBDIR)/$(SDCCLIB) | \
+ifeq ($(CONFIG_SDCC_OLD),y)
+	$(Q) cat $(SDCC_LIBDIR)\$(SDCCLIB) | \
 		grep -v alloc | grep -v free | grep -v printf | \
 		grep -v _str  | grep -v _mem | grep -v crt0\.o \
 		> myz80.lib
-	$(Q) mv -f myz80.lib $(SDCC_LIBDIR)/myz80.lib
+	$(Q) mv -f myz80.lib $(SDCC_LIBDIR)\myz80.lib
+else
+	$(Q) cp $(SDCC_LIBDIR)\z80.lib $(SDCC_LIBDIR)\myz80.lib
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _calloc.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _malloc.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _realloc.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _free.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib printf_large.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib sprintf.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib vprintf.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib strcpy.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib strlen.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strcat.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strchr.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strcmp.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strcspn.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strncat.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strncmp.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strncpy.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strpbrk.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strrchr.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strspn.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strstr.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _strtok.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _memchr.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _memcmp.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _memcpy.rel
+	$(Q) sdar d $(SDCC_LIBDIR)\myz80.lib _memset.rel
+endif
 
 # Create a header file that contains addressing information needed by the code
 
@@ -143,76 +172,79 @@ board/libboard$(LIBEXT):
 
 # This target builds the final executable
 
-pass1.hex: up_mem.h asm_mem.h $(SDCC_LIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard$(LIBEXT)
+pass1.lnk:
 	@echo "LD: pass1.hex"
-	@echo "--" >pass1.lnk				# Non-interactive
-	@echo "-k $(BOARDDIR)" >>pass1.lnk		# Path to board library
+	@echo "--" >pass1.lnk						# Non-interactive
+	@echo "-k $(BOARDDIR)" >>pass1.lnk			# Path to board library
 	@echo "-k $(SDCC_LIBDIR)" >>pass1.lnk		# Path to SDCC z80 library
 	@echo "-l libboard$(LIBEXT)" >>pass1.lnk	# Name of board library
 	$(Q) for LIB in $(LINKLIBS); do \
 		echo "-l $(TOPDIR)/lib/$$LIB" >> pass1.lnk ;\
 	done
-	@echo "-l myz80.lib" >>pass1.lnk		# Name of SDCC z80 library
+	@echo "-l myz80.lib" >>pass1.lnk			# Name of SDCC z80 library
 ifneq ($(CONFIG_LINKER_START_AREA),)
-	@echo "-b START=$(CONFIG_LINKER_START_AREA)" >>pass1.lnk		# Start of START area
+	@echo "-b START=$(CONFIG_LINKER_START_AREA)" >>pass1.lnk	# Start of START area
 else
-	@echo "-b START=0" >>pass1.lnk			# Start of START area
+	@echo "-b START=0" >>pass1.lnk				# Start of START area
 endif
 ifneq ($(CONFIG_LINKER_CODE_AREA),)
-	@echo "-b _CODE=$(CONFIG_LINKER_CODE_AREA)" >>pass1.lnk		# Start of _CODE area
+	@echo "-b _CODE=$(CONFIG_LINKER_CODE_AREA)" >>pass1.lnk	# Start of _CODE area
 else
-	@echo "-b _CODE=256" >>pass1.lnk		# Start of _CODE area
+	@echo "-b _CODE=256" >>pass1.lnk			# Start of _CODE area
 endif
-	@echo "-i" >>pass1.lnk				# Intel hex format
-	@echo "-x" >>pass1.lnk				# Hexadecimal
-	@echo "-m" >>pass1.lnk				# Generate a map file
-	@echo "-j" >>pass1.lnk				# Generate a symbol file
-	@echo "pass1.hex" >>pass1.lnk			# Path to head object
-	@echo "$(HEAD_OBJ)" >>pass1.lnk		# Path to head object
-	@echo "-e" >>pass1.lnk				# End of script
+	@echo "-i" >>pass1.lnk						# Intel hex format
+	@echo "-x" >>pass1.lnk						# Hexadecimal
+	@echo "-m" >>pass1.lnk						# Generate a map file
+	@echo "-j" >>pass1.lnk						# Generate a symbol file
+	@echo "pass1.hex" >>pass1.lnk				# Path to head object
+	@echo "$(HEAD_OBJ)" >>pass1.lnk				# Path to head object
+	@echo "-e" >>pass1.lnk						# End of script
+
+pass1.hex: up_mem.h asm_mem.h $(SDCC_LIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard$(LIBEXT) pass1.lnk
+	@echo "LD: pass1.hex"
 	$(Q) $(LD) -f pass1.lnk
 	$(Q) rm -f up_mem.h asm_mem.h
 	$(Q) rm -f up_allocateheap$(OBJEXT) $(HEAD_OBJ) libarch$(LIBEXT)
 	$(Q) $(MAKE) TOPDIR="$(TOPDIR)" libarch$(LIBEXT)
 	$(Q) $(MAKE) TOPDIR="$(TOPDIR)" $(HEAD_OBJ)
 
-nuttx.hex: up_mem.h asm_mem.h $(SDCC_LIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard$(LIBEXT)
-	@echo "LD: nuttx.hex"
-	@echo "--" >nuttx.lnk				# Non-interactive
-	@echo "-k $(BOARDDIR)" >>nuttx.lnk		# Path to board library
+nuttx.lnk:
+	@echo "--" >nuttx.lnk						# Non-interactive
+	@echo "-k $(BOARDDIR)" >>nuttx.lnk			# Path to board library
 	@echo "-k $(SDCC_LIBDIR)" >>nuttx.lnk		# Path to SDCC z80 library
 	@echo "-l libboard$(LIBEXT)" >>nuttx.lnk	# Name of board library
 	$(Q) for LIB in $(LINKLIBS); do \
 		echo "-l $(TOPDIR)/lib/$$LIB" >> nuttx.lnk ;\
 	done
-	@echo "-l myz80.lib" >>nuttx.lnk		# Name of SDCC z80 library
+	@echo "-l myz80.lib" >>nuttx.lnk			# Name of SDCC z80 library
 ifneq ($(CONFIG_LINKER_START_AREA),)
-	@echo "-b START=$(CONFIG_LINKER_START_AREA)" >>nuttx.lnk		# Start of START area
+	@echo "-b START=$(CONFIG_LINKER_START_AREA)" >>nuttx.lnk	# Start of START area
 else
-	@echo "-b START=0" >>nuttx.lnk			# Start of START area
+	@echo "-b START=0" >>nuttx.lnk				# Start of START area
 endif
 ifneq ($(CONFIG_LINKER_CODE_AREA),)
-	@echo "-b _CODE=$(CONFIG_LINKER_CODE_AREA)" >>nuttx.lnk		# Start of _CODE area
+	@echo "-b _CODE=$(CONFIG_LINKER_CODE_AREA)" >>nuttx.lnk	# Start of _CODE area
 else
-	@echo "-b _CODE=256" >>nuttx.lnk		# Start of _CODE area
+	@echo "-b _CODE=256" >>nuttx.lnk			# Start of _CODE area
 endif
-	@echo "-i" >>nuttx.lnk				# Intel hex format
-	@echo "-x" >>nuttx.lnk				# Hexadecimal
-	@echo "-m" >>nuttx.lnk				# Generate a map file
-	@echo "-j" >>nuttx.lnk				# Generate a symbol file
-	@echo "nuttx.hex" >>nuttx.lnk			# Path to head object
-	@echo "$(HEAD_OBJ)" >>nuttx.lnk		# Path to head object
-	@echo "-e" >>nuttx.lnk				# End of script
-	$(Q) $(LD) -f nuttx.lnk
+	@echo "-i" >>nuttx.lnk						# Intel hex format
+	@echo "-x" >>nuttx.lnk						# Hexadecimal
+	@echo "-m" >>nuttx.lnk						# Generate a map file
+	@echo "-j" >>nuttx.lnk						# Generate a symbol file
+	@echo "nuttx.ihx" >>nuttx.lnk				# Path to head object
+	@echo "$(HEAD_OBJ)" >>nuttx.lnk				# Path to head object
+	@echo "-e" >>nuttx.lnk						# End of script
 
-nuttx$(EXEEXT): pass1.hex nuttx.hex
+nuttx$(EXEEXT): pass1.hex up_mem.h asm_mem.h $(SDCC_LIBDIR)/myz80.lib $(HEAD_OBJ) board/libboard$(LIBEXT) nuttx.lnk
+	@echo "LD: nuttx.ihx"
+	$(Q) $(LD) -f nuttx.lnk
 	$(Q) rm -f pass1.*
 	$(Q) cp -f nuttx.map $(TOPDIR)/.
 ifeq ($(EXEEXT),.cmd)
-	sed s/:00000001FF/:00520001AD/ nuttx.hex | \
+	sed s/:00000001FF/:00520001AD/ nuttx.ihx | \
 	hex2cmd > $(TOPDIR)/nuttx.cmd
 else
-	$(Q) packihx nuttx.hex > $(TOPDIR)/nuttx$(EXEEXT)
+	$(Q) packihx nuttx.ihx > $(TOPDIR)/nuttx$(EXEEXT)
 endif
 
 # This is part of the top-level export target

@@ -33,18 +33,43 @@
 #
 ############################################################################
 
-############################################################################
 # Makefile fragments
 
 -include $(TOPDIR)/Make.defs
 -include chip/Make.defs
 -include board/Make.defs
 
-############################################################################
-# Compiler-Dependent Make
-COMPILER	= ${shell basename "$(CC)"}
+# Compiler-Dependent Make:  SDCC or ZiLOG ZDS-II
+
+COMPILER = ${shell basename "$(CC)"}
 ifeq ($(COMPILER),sdcc)
-include Makefile.sdcc
+
+  # Check for SDCC native windows build
+
+  ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+
+    # SDCC Windows native build
+
+    include Makefile.sdccw
+  else
+
+    # SDCC in a POSIX environment (Linux, OSX, or Cygwin/MSYS)
+
+    include Makefile.sdccl
+  endif
 else
-include Makefile.zdsii
+
+  # Check for ZDSII native windows build
+
+  ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+
+    # ZDSII Windows native build
+
+    include Makefile.zdsiiw
+  else
+
+    # ZDSII in a POSIX environment (Cygwin/MSYS)
+
+    include Makefile.zdsiil
+  endif
 endif

@@ -53,6 +53,7 @@ CC			= sdcc
 CPP			= sdcpp
 LD			= aslink
 AS			= asx8051
+#AR			= sdar -r
 AR			= sdcclib -a
 
 CFLAGS			= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) \

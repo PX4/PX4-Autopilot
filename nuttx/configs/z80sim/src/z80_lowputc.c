@@ -76,6 +76,7 @@
 
 void z80_lowputc(char ch) __naked
 {
+#ifdef CONFIG_SDCC_OLD
   _asm
 	ld	hl, #2
 	add	hl, sp
@@ -83,6 +84,15 @@ void z80_lowputc(char ch) __naked
 	out	(0xbe), a
 	ret
   _endasm;
+#else
+  __asm__ (
+  "\tld hl, #2\n"
+  "\tadd hl, sp\n"
+  "\tld a, (hl)\n"
+  "\tout (0xbe), a\n"
+  "\tret\n"
+  );
+#endif
 }
 
 /********************************************************************************
@@ -94,10 +104,19 @@ void z80_lowputc(char ch) __naked
 
 char z80_lowgetc(void) __naked
 {
+#ifdef CONFIG_SDCC_OLD
   _asm
 	in	a, (0xbe)
 	ld	l, a
 	ld	h, #0
 	ret
   _endasm;
+#else
+  __asm__ (
+  "\tin a, (0xbe)\n"
+  "\tld l, a\n"
+  "\tld h, #0\n"
+  "\tret\n"
+  );
+#endif
 }

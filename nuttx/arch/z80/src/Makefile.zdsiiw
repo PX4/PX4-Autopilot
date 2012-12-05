@@ -1,0 +1,156 @@
+############################################################################
+# arch/z80/src/Makefile.zdsiiw
+#
+#   Copyright (C) 2008, 2011-2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+-include $(TOPDIR)\Make.defs
+
+# Tools
+
+SCHEDSRCDIR = $(TOPDIR)$(DELIM)sched
+ARCHSRCDIR = $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src
+USRINCLUDES = -usrinc:".;$(SCHEDSRCDIR);$(ARCHSRCDIR);$(ARCHSRCDIR)\common"
+
+INCLUDES = $(ARCHSTDINCLUDES) $(USRINCLUDES)
+CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+CPPFLAGS += -I$(ARCHSRCDIR) -I$(ZDSSTDINCDIR) -I$(ZDSZILOGINCDIR)
+LDFLAGS  += @nuttx.linkcmd
+
+# Files and directories
+
+ifneq ($(HEAD_SSRC),)
+HEAD_GENSRC = $(HEAD_SSRC:.S=$(ASMEXT))
+HEAD_OBJ = $(HEAD_SSRC:.S=$(OBJEXT))
+else
+HEAD_OBJ = $(HEAD_ASRC:$(ASMEXT)=$(OBJEXT))
+endif
+
+SSRCS = $(CHIP_SSRCS) $(CMN_SSRCS)
+ASRCS = $(CHIP_ASRCS) $(CMN_ASRCS)
+GENSRCS = $(SSRCS:.S=$(ASMEXT))
+AOBJS = $(SSRCS:.S=$(OBJEXT)) $(ASRCS:$(ASMEXT)=$(OBJEXT))
+
+CSRCS = $(CHIP_CSRCS) $(CMN_CSRCS)
+COBJS = $(CSRCS:.c=$(OBJEXT))
+
+DEPSRCS  = $(SSRCS) $(CSRCS)
+OBJS = $(AOBJS) $(COBJS)
+
+BOARDDIR = $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)board
+
+VPATH = chip:common
+
+# Targets
+
+all: $(HEAD_OBJ) libarch$(LIBEXT)
+
+.PHONY: board$(DELIM)libboard$(LIBEXT)
+
+$(HEAD_GENSRC) $(GENSRCS) : %$(ASMEXT): %.S
+	$(Q) $(CPP) $(CPPFLAGS) $< -o $@.tmp
+	$(Q) cat $@.tmp | sed -e "s/^#/;/g" > $@
+	$(Q) rm $@.tmp
+
+$(AOBJS) $(HEAD_OBJ): %$(OBJEXT): %$(ASMEXT)
+	$(call ASSEMBLE, $<, $@)
+
+$(COBJS): %$(OBJEXT): %.c
+	$(call COMPILE, $<, $@)
+
+libarch$(LIBEXT): $(OBJS)
+	$(call ARCHIVE, $@, $(OBJS))
+
+board$(DELIM)libboard$(LIBEXT):
+	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
+
+nuttx.linkcmd: $(LINKCMDTEMPLATE)
+	$(Q) cp -f $(LINKCMDTEMPLATE) nuttx.linkcmd
+	@echo "$(TOPDIR)\nuttx"= \>>nuttx.linkcmd
+	@echo   "$(ARCHSRCDIR)\$(HEAD_OBJ)", \>>nuttx.linkcmd
+	$(Q) for %%G in ($(LINKLIBS)) do ( echo   "$(TOPDIR)\lib\%%G", \>>nuttx.linkcmd )
+	@echo   "$(ARCHSRCDIR)\board\libboard$(LIBEXT)", \>>nuttx.linkcmd
+ifeq ($(CONFIG_ARCH_CHIP_Z8F640X),y)
+	@echo   "$(ZDSSTDLIBDIR)\chelprevaaD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\crtrevaaLDD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\fprevaaLDD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSZILOGLIBDIR)\csiorevaaLDD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSZILOGLIBDIR)\zsldevinitdummy$(LIBEXT)">>nuttx.linkcmd
+endif
+ifeq ($(CONFIG_ARCH_CHIP_Z8F642X),y)
+	@echo   "$(ZDSSTDLIBDIR)\chelpD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\crtLDD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\fpdumyLD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSZILOGLIBDIR)\csioLDD$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSZILOGLIBDIR)\zsldevinitdummy$(LIBEXT)">>nuttx.linkcmd
+endif
+ifeq ($(CONFIG_ARCH_CHIP_EZ80F91),y)
+	@echo   "$(ZDSSTDLIBDIR)\chelp$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\crt$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSSTDLIBDIR)\fplib$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSZILOGLIBDIR)\gpio$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(ZDSZILOGLIBDIR)\uartf91$(LIBEXT)">>nuttx.linkcmd
+endif
+
+nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT) nuttx.linkcmd
+	@echo "LD:  nuttx$(EXEEXT)"
+	$(Q) "$(LD)" $(LDFLAGS)
+
+.depend: Makefile chip$(DELIM)Make.defs $(DEPSRCS)
+	$(Q) if exist board$(DELIM)Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" depend )
+	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
+	$(Q) touch $@
+
+# This is part of the top-level export target
+
+export_head: board$(DELIM)libboard$(LIBEXT) $(HEAD_OBJ)
+	$(Q) if exist "$(EXPORT_DIR)$(DELIM)startup" ( copy $(HEAD_OBJ) "$(EXPORT_DIR)$(DELIM)startup$(DELIM)." /b /y)
+
+# Dependencies
+
+depend: .depend
+
+clean:
+	$(Q) if exist board$(DELIM)Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" clean )
+	$(call DELFILE, nuttx.linkcmd)
+	$(call DELFILE, *.asm)
+	$(call DELFILE, *.tmp)
+	$(call DELFILE, *.map)
+	$(call DELFILE, libarch$(LIBEXT))
+	$(call CLEAN)
+
+distclean: clean
+	$(Q) if exist board$(DELIM)Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" distclean )
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
+
+-include Make.dep
