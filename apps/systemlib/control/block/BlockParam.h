@@ -56,11 +56,11 @@ public:
     virtual ~BlockParamBase() {};
     virtual void update() = 0;
     const char * getName() { return param_name(_handle); }
-    BlockParamBase * getFirstSibling() { return _firstSibling; }
-    void setFirstSibling(BlockParamBase * firstSibling) { _firstSibling = firstSibling; }
+    BlockParamBase * getSibling() { return _sibling; }
+    void setSibling(BlockParamBase * sibling) { _sibling = sibling; }
 protected:
     param_t _handle;
-    BlockParamBase * _firstSibling;
+    BlockParamBase * _sibling;
 };
 
 /**

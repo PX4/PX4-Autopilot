@@ -48,7 +48,7 @@ namespace control
 
 BlockParamBase::BlockParamBase(Block * parent, const char * name) :
     _handle(PARAM_INVALID), 
-    _firstSibling(NULL)
+    _sibling(NULL)
 {
     char fullname[80];
     if (parent == NULL)

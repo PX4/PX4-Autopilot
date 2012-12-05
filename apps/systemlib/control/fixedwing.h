@@ -502,13 +502,13 @@ public:
         _backsideAutopilot(this,"BS"),
         _outputs(this,"OUT"),
         _mode(0),
-        _att(ORB_ID(vehicle_attitude),20),
-        _attCmd(ORB_ID(vehicle_attitude_setpoint),20),
-        _ratesCmd(ORB_ID(vehicle_rates_setpoint),20),
-        _pos(ORB_ID(vehicle_global_position),20),
-        _posCmd(ORB_ID(vehicle_global_position_setpoint),20),
-        _manual(ORB_ID(manual_control_setpoint),20),
-        _status(ORB_ID(vehicle_status),20),
+        _att(this,ORB_ID(vehicle_attitude),20),
+        _attCmd(this,ORB_ID(vehicle_attitude_setpoint),20),
+        _ratesCmd(this,ORB_ID(vehicle_rates_setpoint),20),
+        _pos(this,ORB_ID(vehicle_global_position),20),
+        _posCmd(this,ORB_ID(vehicle_global_position_setpoint),20),
+        _manual(this,ORB_ID(manual_control_setpoint),20),
+        _status(this,ORB_ID(vehicle_status),20),
         _loopCount(0),
 		_attPoll()
     {
@@ -520,52 +520,37 @@ public:
     {
         /* wait for a sensor update, check for exit condition every 500 ms */
         //poll(&_attPoll, 1, 500);
+        updateSubscriptions();
 
-        struct timespec ts;
-        abstime_to_ts(&ts,hrt_absolute_time());
-        float t = ts.tv_sec + ts.tv_nsec/1.0e9;
-        float u = sin(t);
-
-        float p = u;
-        float q = u;
-        float r = u;
-
-        float h = u;
-        float v = u;
-        float phi = u;
-        float theta = u;
-        float psi = u;
-
-        float pCmd = 0;
-        float qCmd = 0;
-        float rCmd = 0;
-
+        //struct timespec ts;
+        //abstime_to_ts(&ts,hrt_absolute_time());
+        //float t = ts.tv_sec + ts.tv_nsec/1.0e9;
+        //float u = sin(t);
+        
+        // TODO, calculate v
+        float v = 0;
         float vCmd = 0;
-        float hCmd = 0;
-        float psiCmd = 0;
-
-        float manualAileron = 0.1;
-        float manualElevator = 0.2;
-        float manualRudder = 0.3;
-        float manualThrottle = 0.4;
-
+        float rCmd = 0;
 
         if (getMode() == 0)
         {
             // stabilize
-            _stabilization.update(pCmd, qCmd, rCmd, p, q, r);
+            _stabilization.update(
+                    _ratesCmd.get().roll, _ratesCmd.get().pitch, _ratesCmd.get().yaw,
+                    _att.get().rollspeed, _att.get().pitchspeed, _att.get().yawspeed);
             _outputs.update(_stabilization.getAileron(),
                     _stabilization.getElevator(),
                     _stabilization.getRudder(),
-                    manualThrottle);
+                    _manual.get().throttle);
         }
         else if (getMode() == 1)
         {
             // auto
-            _backsideAutopilot.update(hCmd, vCmd, rCmd, psiCmd,
-                h, v,
-                phi, theta, psi,
-                p, q, r);
+            _backsideAutopilot.update(_posCmd.get().altitude, vCmd, rCmd, _posCmd.get().yaw,
+                _pos.get().relative_alt, v,
+                _att.get().roll, _att.get().pitch, _att.get().yaw,
+                _att.get().rollspeed, _att.get().pitchspeed, _att.get().yawspeed
+                );
             _outputs.update(_backsideAutopilot.getAileron(),
                     _backsideAutopilot.getElevator(),
                     _backsideAutopilot.getRudder(),
@@ -574,10 +559,12 @@ public:
         else if (getMode() == 2)
         {
             // manual
-            _outputs.update(manualAileron,
-                    manualElevator,
-                    manualRudder,
-                    manualThrottle);
+            _outputs.update(
+                    _manual.get().roll,
+                    _manual.get().pitch,
+                    _manual.get().yaw,
+                    _manual.get().throttle
+                    );
         }
 
         if (_loopCount-- <= 0)
@@ -586,7 +573,7 @@ public:
             _stabilization.updateParams();
             _backsideAutopilot.updateParams();
             _outputs.updateParams();
-            printf("t: %8.4f, u: %8.4f\n", (double)t, (double)u);
+            //printf("t: %8.4f, u: %8.4f\n", (double)t, (double)u);
             printf("control mode: %d\n", getMode());
             printf("aileron: %8.4f, elevator: %8.4f, "
                     "rudder: %8.4f, throttle: %8.4f\n",

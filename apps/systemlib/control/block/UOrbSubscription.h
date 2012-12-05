@@ -39,9 +39,13 @@
 #pragma once
 
 #include <uORB/uORB.h>
+#include "Block.h"
+
 
 namespace control
 {
+
+class Block;
 
 class __EXPORT UOrbSubscriptionBase
 {
@@ -53,9 +57,10 @@ public:
      *			for the topic.
      * @param interval	An interval period in milliseconds.
      */
-    UOrbSubscriptionBase(const struct orb_metadata * meta, unsigned interval);
+    UOrbSubscriptionBase(Block * parent,
+            const struct orb_metadata * meta, unsigned interval);
     bool updated();
-    void update(void * buffer)
+    void update()
     {
         if (updated())
         {
@@ -69,17 +74,21 @@ public:
     }
     const struct orb_metadata * getMeta() { return _meta; }
     int getHandle() { return _handle; }
+    UOrbSubscriptionBase * getSibling() { return _sibling; }
+    void setSibling(UOrbSubscriptionBase * sibling) { _sibling = sibling; }
 private:
     const struct orb_metadata * _meta;
     int _handle;
+    UOrbSubscriptionBase * _sibling;
 };
 
 template<class T>
 class UOrbSubscription : public UOrbSubscriptionBase
 {
 public:
-    UOrbSubscription(const struct orb_metadata * meta, unsigned interval) :
-        UOrbSubscriptionBase(meta, interval)
+    UOrbSubscription(Block * parent,
+            const struct orb_metadata * meta, unsigned interval) :
+        UOrbSubscriptionBase(parent, meta, interval)
     {
     }
     virtual ~UOrbSubscription() {}
@@ -87,7 +96,6 @@ public:
     const T & get() { return _data; }
 private:
     T _data;
-    UOrbSubscriptionBase * _firstSibling;
 };
 
 } // namespace control

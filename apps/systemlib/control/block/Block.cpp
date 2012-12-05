@@ -43,6 +43,7 @@
 
 #include "Block.h"
 #include "BlockParam.h"
+#include "UOrbSubscription.h"
 
 namespace control
 {
@@ -50,24 +51,25 @@ namespace control
 Block::Block(Block * parent, const char * name) :
     _name(),
     _parent(parent),
-    _firstSibling(NULL),
-    _firstChild(NULL),
-    _firstParam(NULL),
+    _sibling(NULL),
+    _child(NULL),
+    _param(NULL),
+    _subscription(NULL),
     _dt(0)
 {
     if (parent == NULL)
     {
-        strncpy(_name,name,80);
+        strncpy(getName(),name,80);
     }
     else
     {
         if (!strcmp(name,""))
         {
-            strncpy(_name,parent->getName(),80);
+            strncpy(getName(),parent->getName(),80);
         }
         else
         {
-            snprintf(_name,80,"%s_%s", parent->getName(), name);
+            snprintf(getName(),80,"%s_%s", parent->getName(), name);
         }
         getParent()->addChild(this);
     }
@@ -75,7 +77,7 @@ Block::Block(Block * parent, const char * name) :
 
 void Block::updateParams()
 {
-    BlockParamBase * param = _firstParam;
+    BlockParamBase * param = getParam();
     int count = 0;
     while (param != NULL)
     {
@@ -85,15 +87,46 @@ void Block::updateParams()
             break;
         }
         param->update();
-        param = param->getFirstSibling();
+        param = param->getSibling();
     }
 
-    if (_firstChild != NULL) updateChildParams();
+    if (getChild() != NULL) updateChildParams();
+}
+
+void Block::addParam(BlockParamBase * param)
+{
+    param->setSibling(getParam());
+    setParam(param);
+}
+
+void Block::updateSubscriptions()
+{
+    UOrbSubscriptionBase * sub = getSubscription();
+    int count = 0;
+    while (sub != NULL)
+    {
+        if (count++ > maxSubscriptionsPerBlock)
+        {
+            printf("exceeded max subscriptions for block: %s\n", getName());
+            break;
+        }
+        sub->update();
+        sub = sub->getSibling();
+    }
+
+    if (getChild() != NULL) updateChildSubscriptions();
+
+}
+
+void Block::addSubscription(UOrbSubscriptionBase * sub)
+{
+    sub->setSibling(getSubscription());
+    setSubscription(sub);
 }
 
 void Block::setDt(float dt) {
     _dt = dt;
-    Block * child = getFirstChild();
+    Block * child = getChild();
     int count = 0;
     while (child != NULL)
     {
@@ -103,12 +136,12 @@ void Block::setDt(float dt) {
             break;
         }
         child->setDt(dt);
-        child = child->getFirstSibling();
+        child = child->getSibling();
     }
 }
 
 void Block::updateChildParams() {
-    Block * child = getFirstChild();
+    Block * child = getChild();
     int count = 0;
     while (child != NULL)
     {
@@ -118,19 +151,34 @@ void Block::updateChildParams() {
             break;
         }
         child->updateParams();
-        child = child->getFirstSibling();
+        child = child->getSibling();
+    }
+}
+
+void Block::updateChildSubscriptions() {
+    Block * child = getChild();
+    int count = 0;
+    while (child != NULL)
+    {
+        if (count++ > maxChildrenPerBlock)
+        {
+            printf("exceeded max children for block: %s\n", getName());
+            break;
+        }
+        child->updateSubscriptions();
+        child = child->getSibling();
     }
 }
 
 void Block::addChild(Block * child)
 {
-    child->setFirstSibling(getFirstChild());
-    setFirstChild(child);
+    child->setSibling(getChild());
+    setChild(child);
 }
-void Block::addParam(BlockParamBase * param)
-{
-    param->setFirstSibling(getFirstParam());
-    setFirstParam(param);
-}
+
+
+
+
+
 
 } // namespace control

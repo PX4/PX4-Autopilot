@@ -46,9 +46,11 @@ namespace control
 
 static const uint16_t maxChildrenPerBlock = 100;
 static const uint16_t maxParamsPerBlock = 100;
+static const uint16_t maxSubscriptionsPerBlock = 100;
 
 // forward declaration
 class BlockParamBase;
+class UOrbSubscriptionBase;
 
 class __EXPORT Block
 {
@@ -58,6 +60,8 @@ public:
     virtual ~Block() {};
     virtual void updateParams();
     void addParam(BlockParamBase * param);
+    virtual void updateSubscriptions();
+    void addSubscription(UOrbSubscriptionBase * sub);
 // accessors
     void setDt(float dt);
     char * getName() { return _name; }
@@ -65,22 +69,26 @@ public:
 protected:
 // methods
     void updateChildParams();
+    void updateChildSubscriptions();
     void addChild(Block * child);
 // accessors
     Block * getParent() { return _parent; }
-    Block * getFirstSibling() { return _firstSibling; }
-    void setFirstSibling(Block * firstSibling) { _firstSibling = firstSibling; }
-    Block * getFirstChild() { return _firstChild; }
-    void setFirstChild(Block * firstChild) { _firstChild = firstChild; }
-    BlockParamBase * getFirstParam() { return _firstParam; }
-    void setFirstParam(BlockParamBase * firstParam) { _firstParam = firstParam; }
+    Block * getSibling() { return _sibling; }
+    void setSibling(Block * sibling) { _sibling = sibling; }
+    Block * getChild() { return _child; }
+    void setChild(Block * child) { _child = child; }
+    BlockParamBase * getParam() { return _param; }
+    void setParam(BlockParamBase * param) { _param = param; }
+    UOrbSubscriptionBase * getSubscription() { return _subscription; }
+    void setSubscription(UOrbSubscriptionBase * sub) { _subscription = sub; }
 protected:
 // attributes
     char _name[80];
     Block * _parent;
-    Block * _firstSibling;
-    Block * _firstChild;
-    BlockParamBase * _firstParam;
+    Block * _sibling;
+    Block * _child;
+    BlockParamBase * _param;
+    UOrbSubscriptionBase * _subscription;
     float _dt;
 };
 
