@@ -65,9 +65,6 @@ public:
     float getMin() { return _min.get(); }
     float getMax() { return _max.get(); }
 protected:
-// accessors
-    void setMin(float min) { _min.set(min); }
-    void setMax(float max) { _max.set(max); }
 // attributes
     BlockParam<float> _min;
     BlockParam<float> _max;
@@ -93,8 +90,6 @@ public:
     float getFCut() { return _fCut.get(); }
     void setState(float state) { _state = state; }
 protected:
-// accessors
-    void setFCut(float fCut) { _fCut.set(fCut); }
 // attributes
     float _state;
     BlockParam<float> _fCut;
@@ -120,8 +115,6 @@ public:
     float getFCut() {return _fCut.get();}
     void setState(float state) {_state = state;}
 protected:
-// accessors
-    void setFCut(float fCut) { _fCut.set(fCut);}
 // attributes
     float _state; /**< previous output */
     BlockParam<float> _fCut; /**< cut-off frequency, Hz */
@@ -203,7 +196,6 @@ public:
 // accessors
     float getKP() { return _kP.get(); }
 protected:
-    void setKP(float kP) { _kP.set(kP); }
     BlockParam<float> _kP;
 };
 
@@ -232,8 +224,6 @@ public:
     float getKI() { return _kI.get(); }
     BlockIntegral & getIntegral() { return _integral; }
 private:
-    void setKP(float kP) { _kP.set(kP); }
-    void setKI(float kI) { _kI.set(kI); }
     BlockIntegral _integral;
     BlockParam<float> _kP;
     BlockParam<float> _kI;
@@ -264,8 +254,6 @@ public:
     float getKD() { return _kD.get(); }
     BlockDerivative & getDerivative() { return _derivative; }
 private:
-    void setKP(float kP) { _kP.set(kP); }
-    void setKD(float kD) { _kD.set(kD); }
     BlockDerivative _derivative;
     BlockParam<float> _kP;
     BlockParam<float> _kD;
@@ -301,16 +289,42 @@ public:
     BlockIntegral & getIntegral() { return _integral; }
     BlockDerivative & getDerivative() { return _derivative; }
 private:
-// accessors
-    void setKP(float kP) { _kP.set(kP); }
-    void setKI(float kI) { _kI.set(kI); }
-    void setKD(float kD) { _kD.set(kD); }
 // attributes
     BlockIntegral _integral;
     BlockDerivative _derivative;
     BlockParam<float> _kP;
     BlockParam<float> _kI;
     BlockParam<float> _kD;
+};
+
+/**
+ * An output trim/ saturation block
+ */
+class __EXPORT BlockOutput: public Block
+{
+public:
+// methods
+    BlockOutput(Block * parent, const char * name) :
+        Block(parent, name),
+        _trim(this,"TRIM"),
+        _limit(this,""),
+        _val(0)
+    {};
+    virtual ~BlockOutput() {};
+    void update(float input)
+    {
+        _val = _limit.update(input + getTrim());
+    }
+// accessors
+    float getMin() { return _limit.getMin(); }
+    float getMax() { return _limit.getMax(); }
+    float getTrim() { return _trim.get(); }
+    float get() { return _val; }
+private:
+// attributes
+    BlockParam<float> _trim;
+    BlockLimit _limit;
+    float _val;
 };
 
 } // namespace control

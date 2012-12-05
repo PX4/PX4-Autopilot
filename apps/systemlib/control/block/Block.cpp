@@ -61,7 +61,14 @@ Block::Block(Block * parent, const char * name) :
     }
     else
     {
-        snprintf(_name,80,"%s_%s", parent->getName(), name);
+        if (!strcmp(name,""))
+        {
+            strncpy(_name,parent->getName(),80);
+        }
+        else
+        {
+            snprintf(_name,80,"%s_%s", parent->getName(), name);
+        }
         getParent()->addChild(this);
     }
 }

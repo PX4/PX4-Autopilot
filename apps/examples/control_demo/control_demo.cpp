@@ -179,15 +179,15 @@ int control_demo_thread_main(int argc, char *argv[]) {
             //fixedWingVelocityHoldBackside.updateParams();
             printf("t: %8.4f, u: %8.4f\n", (double)t, (double)u);
             printf("fixedWingStabilization, aileron: %8.4f, elevator: %8.4f, rudder: %8.4f\n",
-                    (double)fixedWingStabilization.getAileronCmd(),
-                    (double)fixedWingStabilization.getElevatorCmd(),
-                    (double)fixedWingStabilization.getRudderCmd());
+                    (double)fixedWingStabilization.getAileron(),
+                    (double)fixedWingStabilization.getElevator(),
+                    (double)fixedWingStabilization.getRudder());
             //printf("fixedWingHeadingHold, aileron: %8.4f\n",
-                    //(double)fixedWingHeadingHold.getAileronCmd());
+                    //(double)fixedWingHeadingHold.getAileron());
             //printf("fixedWingAltitudeHoldBackside, throttle: %8.4f\n",
-                    //(double)fixedWingAltitudeHoldBackside.getThrCmd());
+                    //(double)fixedWingAltitudeHoldBackside.getThrottle());
             //printf("fixedWingVelocityHoldBackside, elevator: %8.4f\n",
-                    //(double)fixedWingVelocityHoldBackside.getElevatorCmd());
+                    //(double)fixedWingVelocityHoldBackside.getElevator());
             fflush(stdout);
         }
 

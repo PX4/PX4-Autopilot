@@ -57,16 +57,15 @@ BlockParamBase::BlockParamBase(Block * parent, const char * name) :
     }
     else
     {
-        parent->addParam(this);
-
         if (!strcmp(name,""))
         {
-            snprintf(fullname,80,"%s", parent->getName());
+            strncpy(fullname,parent->getName(),80);
         }
         else
         {
             snprintf(fullname,80,"%s_%s", parent->getName(), name);
         }
+        parent->addParam(this);
     }
 
     _handle = param_find(fullname);
