@@ -75,7 +75,7 @@ struct sys_state_s
 	/*
 	 * Data from the remote control input(s)
 	 */
-	int		rc_channels;
+	unsigned	rc_channels;
 	uint16_t	rc_channel_data[PX4IO_INPUT_CHANNELS];
 	uint64_t	rc_channels_timestamp;
 
