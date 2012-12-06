@@ -44,6 +44,7 @@
 #include "Block.h"
 #include "BlockParam.h"
 #include "UOrbSubscription.h"
+#include "UOrbPublication.h"
 
 namespace control
 {
@@ -118,6 +119,24 @@ void Block::updateSubscriptions()
     }
 }
 
+void Block::updatePublications()
+{
+    UOrbPublicationBase * sub = getPublications().getHead();
+    int count = 0;
+    while (sub != NULL)
+    {
+        if (count++ > maxPublicationsPerBlock)
+        {
+            char name[blockNameLengthMax];
+            getName(name, blockNameLengthMax);
+            printf("exceeded max subscriptions for block: %s\n", name);
+            break;
+        }
+        sub->update();
+        sub = sub->getSibling();
+    }
+}
+
 void SuperBlock::setDt(float dt) {
     Block::setDt(dt);
     Block * child = getChildren().getHead();
@@ -166,6 +185,23 @@ void SuperBlock::updateChildSubscriptions() {
             break;
         }
         child->updateSubscriptions();
+        child = child->getSibling();
+    }
+}
+
+void SuperBlock::updateChildPublications() {
+    Block * child = getChildren().getHead();
+    int count = 0;
+    while (child != NULL)
+    {
+        if (count++ > maxChildrenPerBlock)
+        {
+            char name[40];
+            getName(name, 40);
+            printf("exceeded max children for block: %s\n", name);
+            break;
+        }
+        child->updatePublications();
         child = child->getSibling();
     }
 }

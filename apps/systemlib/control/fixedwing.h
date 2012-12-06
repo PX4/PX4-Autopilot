@@ -58,6 +58,7 @@
 
 #include "blocks.h"
 #include "block/UOrbSubscription.h"
+#include "block/UOrbPublication.h"
 
 namespace control
 {
@@ -487,9 +488,8 @@ private:
     BlockStabilization _stabilization;
     BlockBacksideAutopilot _backsideAutopilot;
     BlockOutputs _outputs;
-    uint8_t _mode;
 
-    // input uORB
+    // subscriptions
     UOrbSubscription<vehicle_attitude_s> _att;
     UOrbSubscription<vehicle_attitude_setpoint_s> _attCmd;
     UOrbSubscription<vehicle_rates_setpoint_s> _ratesCmd;
@@ -498,24 +498,32 @@ private:
     UOrbSubscription<manual_control_setpoint_s> _manual;
     UOrbSubscription<vehicle_status_s> _status;
 
-    // output uORB
-    //actuator_control_s _actuators;
+    // publications
+    UOrbPublication<actuator_controls_s> _actuators;
+
+    uint8_t _mode;
     uint8_t _loopCount;
     struct pollfd _attPoll;
+
 public:
     BlockMultiModeBacksideAutopilot(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
+        // blocks
         _stabilization(this,"STAB"),
         _backsideAutopilot(this,"BS"),
         _outputs(this,"OUT"),
+        // subscriptions
+        _att(&getSubscriptions(), ORB_ID(vehicle_attitude),20),
+        _attCmd(&getSubscriptions(), ORB_ID(vehicle_attitude_setpoint),20),
+        _ratesCmd(&getSubscriptions(), ORB_ID(vehicle_rates_setpoint),20),
+        _pos(&getSubscriptions() ,ORB_ID(vehicle_global_position),20),
+        _posCmd(&getSubscriptions(), ORB_ID(vehicle_global_position_setpoint),20),
+        _manual(&getSubscriptions(), ORB_ID(manual_control_setpoint),20),
+        _status(&getSubscriptions(), ORB_ID(vehicle_status),20),
+        // publications
+        _actuators(&getPublications(), ORB_ID(actuator_controls_0)),
+        // misc
         _mode(0),
-        _att(getSubscriptions(), ORB_ID(vehicle_attitude),20),
-        _attCmd(getSubscriptions(), ORB_ID(vehicle_attitude_setpoint),20),
-        _ratesCmd(getSubscriptions(), ORB_ID(vehicle_rates_setpoint),20),
-        _pos(getSubscriptions() ,ORB_ID(vehicle_global_position),20),
-        _posCmd(getSubscriptions(), ORB_ID(vehicle_global_position_setpoint),20),
-        _manual(getSubscriptions(), ORB_ID(manual_control_setpoint),20),
-        _status(getSubscriptions(), ORB_ID(vehicle_status),20),
         _loopCount(0),
 		_attPoll()
     {
@@ -539,41 +547,48 @@ public:
         float vCmd = 0;
         float rCmd = 0;
 
-        if (getMode() == 0)
+        if (_status.state_machine == SYSTEM_STATE_STABILIZED)
         {
-            // stabilize
             _stabilization.update(
-                    _ratesCmd.get().roll, _ratesCmd.get().pitch, _ratesCmd.get().yaw,
-                    _att.get().rollspeed, _att.get().pitchspeed, _att.get().yawspeed);
+                    _ratesCmd.roll, _ratesCmd.pitch, _ratesCmd.yaw,
+                    _att.rollspeed, _att.pitchspeed, _att.yawspeed);
             _outputs.update(_stabilization.getAileron(),
                     _stabilization.getElevator(),
                     _stabilization.getRudder(),
-                    _manual.get().throttle);
+                    _manual.throttle);
         }
-        else if (getMode() == 1)
+        else if (_status.state_machine == SYSTEM_STATE_AUTO)
         {
-            // auto
-            _backsideAutopilot.update(_posCmd.get().altitude, vCmd, rCmd, _posCmd.get().yaw,
-                _pos.get().relative_alt, v,
-                _att.get().roll, _att.get().pitch, _att.get().yaw,
-                _att.get().rollspeed, _att.get().pitchspeed, _att.get().yawspeed
+            _backsideAutopilot.update(_posCmd.altitude, vCmd, rCmd, _posCmd.yaw,
+                _pos.relative_alt, v,
+                _att.roll, _att.pitch, _att.yaw,
+                _att.rollspeed, _att.pitchspeed, _att.yawspeed
                 );
             _outputs.update(_backsideAutopilot.getAileron(),
                     _backsideAutopilot.getElevator(),
                     _backsideAutopilot.getRudder(),
                     _backsideAutopilot.getThrottle());
         }
-        else if (getMode() == 2)
+        else if (_status.state_machine == SYSTEM_STATE_MANUAL)
         {
-            // manual
             _outputs.update(
-                    _manual.get().roll,
-                    _manual.get().pitch,
-                    _manual.get().yaw,
-                    _manual.get().throttle
+                    _manual.roll,
+                    _manual.pitch,
+                    _manual.yaw,
+                    _manual.throttle
                     );
         }
 
+        // publish actuators
+        _actuators.control[0] = _outputs.getAileron();
+        _actuators.control[1] = _outputs.getElevator();
+        _actuators.control[2] = _outputs.getRudder();
+        _actuators.control[3] = _outputs.getThrottle();
+
+        // update all publications
+        updatePublications();
+
+        // update parameters every 100 cycles
         if (_loopCount-- <= 0)
         {
             _loopCount = 100;
@@ -581,17 +596,16 @@ public:
             _backsideAutopilot.updateParams();
             _outputs.updateParams();
             //printf("t: %8.4f, u: %8.4f\n", (double)t, (double)u);
-            printf("control mode: %d\n", getMode());
+            printf("control mode: %d\n", _status.state_machine);
             printf("aileron: %8.4f, elevator: %8.4f, "
                     "rudder: %8.4f, throttle: %8.4f\n",
                     (double)_outputs.getAileron(),
                     (double)_outputs.getElevator(),
                     (double)_outputs.getRudder(),
                     (double)_outputs.getThrottle());
-            setMode(getMode() + 1);
-            if (getMode() > 2) setMode(0);
             fflush(stdout);
         }
+
         // sleep for approximately the right amount of time for update, 
         // neglects lag from calculations
         usleep(1000000*getDt());

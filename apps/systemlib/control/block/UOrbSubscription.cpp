@@ -42,13 +42,13 @@ namespace control
 {
 
 __EXPORT UOrbSubscriptionBase::UOrbSubscriptionBase(
-        List<UOrbSubscriptionBase *> & list,
+        List<UOrbSubscriptionBase *> * list,
         const struct orb_metadata * meta, unsigned interval) :
     _meta(meta),
     _handle(orb_subscribe(meta))
 {
     orb_set_interval(_handle, interval);
-    list.add(this);
+    if (list != NULL) list->add(this);
 }
 
 bool __EXPORT UOrbSubscriptionBase::updated() {

@@ -32,69 +32,22 @@
  ****************************************************************************/
 
 /**
- * @file UOrbSubscription.h
+ * @file UOrbPublication.cpp
  *
  */
 
-#pragma once
-
-#include <uORB/uORB.h>
-#include "Block.h"
-#include "List.h"
-
+#include "UOrbPublication.h"
 
 namespace control
 {
 
-class Block;
-
-class __EXPORT UOrbSubscriptionBase : public ListNode<control::UOrbSubscriptionBase *>
+__EXPORT UOrbPublicationBase::UOrbPublicationBase(
+        List<UOrbPublicationBase *> * list,
+        const struct orb_metadata * meta) :
+    _meta(meta),
+    _handle(orb_subscribe(meta))
 {
-public:
-    /**
-     * Constructor
-     *
-     * @param meta		The uORB metadata (usually from the ORB_ID() macro)
-     *			for the topic.
-     * @param interval	An interval period in milliseconds.
-     */
-    UOrbSubscriptionBase(
-            List<UOrbSubscriptionBase *> * list,
-            const struct orb_metadata * meta, unsigned interval);
-    bool updated();
-    void update()
-    {
-        if (updated())
-        {
-            orb_copy(_meta, _handle, getDataVoidPtr());
-        }
-    }
-    virtual void * getDataVoidPtr() = 0;
-    virtual ~UOrbSubscriptionBase()
-    {
-        orb_unsubscribe(_handle);
-    }
-    const struct orb_metadata * getMeta() { return _meta; }
-    int getHandle() { return _handle; }
-private:
-    const struct orb_metadata * _meta;
-    int _handle;
-};
-
-template<class T>
-class UOrbSubscription :
-    public UOrbSubscriptionBase,
-    public T
-{
-public:
-    UOrbSubscription(
-            List<UOrbSubscriptionBase *> * list,
-            const struct orb_metadata * meta, unsigned interval) :
-        UOrbSubscriptionBase(list, meta, interval)
-    {
-    }
-    virtual ~UOrbSubscription() {}
-    void * getDataVoidPtr() { return (void *)(this); }
-};
+    if (list != NULL) list->add(this);
+}
 
 } // namespace control

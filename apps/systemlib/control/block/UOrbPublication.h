@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file UOrbSubscription.h
+ * @file UOrbPublication.h
  *
  */
 
@@ -48,7 +48,7 @@ namespace control
 
 class Block;
 
-class __EXPORT UOrbSubscriptionBase : public ListNode<control::UOrbSubscriptionBase *>
+class __EXPORT UOrbPublicationBase : public ListNode<control::UOrbPublicationBase *>
 {
 public:
     /**
@@ -58,19 +58,15 @@ public:
      *			for the topic.
      * @param interval	An interval period in milliseconds.
      */
-    UOrbSubscriptionBase(
-            List<UOrbSubscriptionBase *> * list,
-            const struct orb_metadata * meta, unsigned interval);
-    bool updated();
+    UOrbPublicationBase(
+            List<UOrbPublicationBase *> * list,
+            const struct orb_metadata * meta);
     void update()
     {
-        if (updated())
-        {
-            orb_copy(_meta, _handle, getDataVoidPtr());
-        }
+        orb_publish(_meta, _handle, getDataVoidPtr());
     }
     virtual void * getDataVoidPtr() = 0;
-    virtual ~UOrbSubscriptionBase()
+    virtual ~UOrbPublicationBase()
     {
         orb_unsubscribe(_handle);
     }
@@ -78,22 +74,22 @@ public:
     int getHandle() { return _handle; }
 private:
     const struct orb_metadata * _meta;
-    int _handle;
+    orb_advert_t _handle;
 };
 
 template<class T>
-class UOrbSubscription :
-    public UOrbSubscriptionBase,
+class UOrbPublication :
+    public UOrbPublicationBase,
     public T
 {
 public:
-    UOrbSubscription(
-            List<UOrbSubscriptionBase *> * list,
-            const struct orb_metadata * meta, unsigned interval) :
-        UOrbSubscriptionBase(list, meta, interval)
+    UOrbPublication(
+            List<UOrbPublicationBase *> * list,
+            const struct orb_metadata * meta) :
+        UOrbPublicationBase(list, meta)
     {
     }
-    virtual ~UOrbSubscription() {}
+    virtual ~UOrbPublication() {}
     void * getDataVoidPtr() { return (void *)(this); }
 };
 
