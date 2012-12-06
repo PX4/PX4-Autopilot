@@ -79,8 +79,8 @@ private:
 
 template<class T>
 class UOrbPublication :
-    public UOrbPublicationBase,
-    public T
+    public T, // this must be first!
+    public UOrbPublicationBase
 {
 public:
     UOrbPublication(
@@ -91,7 +91,14 @@ public:
     {
     }
     virtual ~UOrbPublication() {}
-    void * getDataVoidPtr() { return (void *)(this); }
+    /*
+     * XXX
+     * This function gets the T struct, assuming
+     * the struct is the first base class, this
+     * should use dynamic cast, but doesn't
+     * seem to be available
+     */
+    void * getDataVoidPtr() { return (void *)this; }
 };
 
 } // namespace control
