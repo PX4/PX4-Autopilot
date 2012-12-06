@@ -687,6 +687,7 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
             *(int *)arg = count;
           }
+          break;
 
 #ifdef CONFIG_SERIAL_TERMIOS
           case TCGETS:

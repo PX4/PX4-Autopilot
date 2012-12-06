@@ -101,6 +101,7 @@ struct {
 	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
 	{"uart_send",		test_uart_send,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
 	{"uart_console",	test_uart_console,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
+    {"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
 	{"tone",		test_tone,	0, 0},
 	{"sleep",		test_sleep,	OPT_NOJIGTEST, 0},
 	{"time",		test_time,	OPT_NOJIGTEST, 0},
