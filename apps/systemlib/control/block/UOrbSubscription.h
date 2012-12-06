@@ -88,7 +88,8 @@ class UOrbSubscription : public UOrbSubscriptionBase
 public:
     UOrbSubscription(Block * parent,
             const struct orb_metadata * meta, unsigned interval) :
-        UOrbSubscriptionBase(parent, meta, interval)
+        UOrbSubscriptionBase(parent, meta, interval),
+        _data()
     {
     }
     virtual ~UOrbSubscription() {}
