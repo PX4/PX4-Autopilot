@@ -86,7 +86,8 @@ public:
     UOrbPublication(
             List<UOrbPublicationBase *> * list,
             const struct orb_metadata * meta) :
-        UOrbPublicationBase(list, meta)
+        UOrbPublicationBase(list, meta),
+        T() // initialize data structure to zero
     {
     }
     virtual ~UOrbPublication() {}

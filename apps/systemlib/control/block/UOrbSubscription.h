@@ -90,7 +90,8 @@ public:
     UOrbSubscription(
             List<UOrbSubscriptionBase *> * list,
             const struct orb_metadata * meta, unsigned interval) :
-        UOrbSubscriptionBase(list, meta, interval)
+        UOrbSubscriptionBase(list, meta, interval),
+        T() // initialize data structure to zero
     {
     }
     virtual ~UOrbSubscription() {}
