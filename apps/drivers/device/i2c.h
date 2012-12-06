@@ -97,7 +97,7 @@ protected:
 	 * @return		OK if the transfer was successful, -errno
 	 *			otherwise.
 	 */
-	int		transfer(uint8_t *send, unsigned send_len,
+	int		transfer(const uint8_t *send, unsigned send_len,
 				 uint8_t *recv, unsigned recv_len);
 
 	/**
