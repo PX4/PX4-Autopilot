@@ -72,8 +72,15 @@ namespace fixedwing
  * add their own blocks. It includes a limited explanation
  * of some C++ basics.
  *
- * BlockYawDamper inherits from Block publically, this
- * means that any public function in Block are public within
+ * Block: The generic class describing a typical block as you 
+ * would expect in Simulink or ScicosLab. A block can have 
+ * parameters. It cannot have other blocks.
+ *
+ * SuperBlock: A superblock is a block that can have other
+ * blocks. It has methods that manage the blocks beneath it.
+ *
+ * BlockYawDamper inherits from SuperBlock publically, this
+ * means that any public function in SuperBlock are public within
  * BlockYawDamper and may be called from outside the 
  * class methods. Any protected function within block
  * are private to the class and may not be called from 
@@ -82,7 +89,7 @@ namespace fixedwing
  * limit access to the bare minimum to prevent
  * accidental errors.
  */
-class BlockYawDamper : public Block
+class BlockYawDamper : public SuperBlock
 {
 private:
     /**
@@ -158,8 +165,8 @@ public:
      * "" is passed, the parent block name is used as the value to
      * prepend to paramters names.
      */
-    BlockYawDamper(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockYawDamper(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _rLowPass(this, "LP"),
         _rWashout(this, "HP"),
         _r2Rdr(this, "2RDR"),
@@ -210,7 +217,7 @@ public:
  * Stability augmentation system.
  * Aircraft Control and Simulation, Stevens and Lewis, pg. 292, 299
  */
-class BlockStabilization : public Block
+class BlockStabilization : public SuperBlock
 {
 private:
     BlockYawDamper _yawDamper;
@@ -221,8 +228,8 @@ private:
     float _aileron;
     float _elevator;
 public:
-    BlockStabilization(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockStabilization(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _yawDamper(this, "R"),
         _pLowPass(this, "P_LP"),
         _qLowPass(this, "Q_LP"),
@@ -252,7 +259,7 @@ public:
  * Aircraft Control and Simulation, Stevens and Lewis
  * Heading hold, pg. 348
  */
-class BlockHeadingHold : public Block
+class BlockHeadingHold : public SuperBlock
 {
 private:
     BlockP _psi2Phi;
@@ -261,8 +268,8 @@ private:
     BlockLimit _phiLimit;
     float _aileron;
 public:
-    BlockHeadingHold(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockHeadingHold(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _psi2Phi(this, "PSI_2PHI"),
         _p2Phi(this, "P_2PHI"),
         _phi2Ail(this, "PHI_2AIL"),
@@ -302,15 +309,15 @@ public:
  * Backside velocity hold autopilot block.
  * v -> theta -> q -> elevator
  */
-class BlockVelocityHoldBackside : public Block
+class BlockVelocityHoldBackside : public SuperBlock
 {
 private:
     BlockPID _v2Theta;
     BlockPID _theta2Q;
     float _elevator;
 public:
-    BlockVelocityHoldBackside(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockVelocityHoldBackside(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _v2Theta(this,"V_2THETA"),
         _theta2Q(this,"THETA_2Q"),
         _elevator(0)
@@ -330,14 +337,14 @@ public:
  * Frontside velocity hold autopilot block.
  * v -> throttle
  */
-class BlockVelocityHoldFrontside : public Block
+class BlockVelocityHoldFrontside : public SuperBlock
 {
 private:
     BlockPID _v2Thr;
     float _throttle;
 public:
-    BlockVelocityHoldFrontside(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockVelocityHoldFrontside(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _v2Thr(this,"V_2THR"),
         _throttle(0)
     {
@@ -354,14 +361,14 @@ public:
  * Backside altitude hold autopilot block.
  * h -> throttle
  */
-class BlockAltitudeHoldBackside : public Block
+class BlockAltitudeHoldBackside : public SuperBlock
 {
 private:
     BlockPID _h2Thr;
     float _throttle;
 public:
-    BlockAltitudeHoldBackside(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockAltitudeHoldBackside(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _h2Thr(this, "H_2THR"),
         _throttle(0)
     {
@@ -378,15 +385,15 @@ public:
  * Frontside altitude hold autopilot block.
  * h -> theta > q -> elevator
  */
-class BlockAltitudeHoldFrontside : public Block
+class BlockAltitudeHoldFrontside : public SuperBlock
 {
 private:
     BlockPID _h2Theta;
     BlockPID _theta2Q;
     float _elevator;
 public:
-    BlockAltitudeHoldFrontside(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockAltitudeHoldFrontside(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _h2Theta(this, "H_2THETA"),
         _theta2Q(this, "THETA_2Q"),
         _elevator(0)
@@ -405,7 +412,7 @@ public:
 /**
  * Backside autopilot
  */
-class BlockBacksideAutopilot : public Block
+class BlockBacksideAutopilot : public SuperBlock
 {
 private:
     BlockYawDamper _yawDamper;
@@ -413,8 +420,8 @@ private:
     BlockVelocityHoldBackside _velocityHold;
     BlockAltitudeHoldBackside _altitudeHold;
 public:
-    BlockBacksideAutopilot(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockBacksideAutopilot(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _yawDamper(this,"R"),
         _headingHold(this,"PSI"),
         _velocityHold(this,"V"),
@@ -441,7 +448,7 @@ public:
 /**
  * Output conditioning block
  */
-class BlockOutputs : public Block
+class BlockOutputs : public SuperBlock
 {
 private:
     BlockOutput _aileron;
@@ -449,8 +456,8 @@ private:
     BlockOutput _rudder;
     BlockOutput _throttle;
 public:
-    BlockOutputs(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockOutputs(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _aileron(this,"AIL"),
         _elevator(this,"ELV"),
         _rudder(this,"RDR"),
@@ -474,7 +481,7 @@ public:
 /**
  * Multi-mode Autopilot
  */
-class BlockMultiModeBacksideAutopilot : public Block
+class BlockMultiModeBacksideAutopilot : public SuperBlock
 {
 private:
     BlockStabilization _stabilization;
@@ -496,8 +503,8 @@ private:
     uint8_t _loopCount;
     struct pollfd _attPoll;
 public:
-    BlockMultiModeBacksideAutopilot(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockMultiModeBacksideAutopilot(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _stabilization(this,"STAB"),
         _backsideAutopilot(this,"BS"),
         _outputs(this,"OUT"),

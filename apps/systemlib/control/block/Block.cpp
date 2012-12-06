@@ -48,11 +48,10 @@
 namespace control
 {
 
-Block::Block(Block * parent, const char * name) :
+Block::Block(SuperBlock * parent, const char * name) :
     _name(name),
     _parent(parent),
     _sibling(NULL),
-    _child(NULL),
     _param(NULL),
     _subscription(NULL),
     _dt(0)
@@ -100,8 +99,6 @@ void Block::updateParams()
         param->update();
         param = param->getSibling();
     }
-
-    if (getChild() != NULL) updateChildParams();
 }
 
 void Block::addParam(BlockParamBase * param)
@@ -126,9 +123,6 @@ void Block::updateSubscriptions()
         sub->update();
         sub = sub->getSibling();
     }
-
-    if (getChild() != NULL) updateChildSubscriptions();
-
 }
 
 void Block::addSubscription(UOrbSubscriptionBase * sub)
@@ -137,8 +131,8 @@ void Block::addSubscription(UOrbSubscriptionBase * sub)
     setSubscription(sub);
 }
 
-void Block::setDt(float dt) {
-    _dt = dt;
+void SuperBlock::setDt(float dt) {
+    Block::setDt(dt);
     Block * child = getChild();
     int count = 0;
     while (child != NULL)
@@ -155,7 +149,13 @@ void Block::setDt(float dt) {
     }
 }
 
-void Block::updateChildParams() {
+void SuperBlock::addChild(Block * child)
+{
+    child->setSibling(getChild());
+    setChild(child);
+}
+
+void SuperBlock::updateChildParams() {
     Block * child = getChild();
     int count = 0;
     while (child != NULL)
@@ -172,7 +172,7 @@ void Block::updateChildParams() {
     }
 }
 
-void Block::updateChildSubscriptions() {
+void SuperBlock::updateChildSubscriptions() {
     Block * child = getChild();
     int count = 0;
     while (child != NULL)
@@ -188,16 +188,5 @@ void Block::updateChildSubscriptions() {
         child = child->getSibling();
     }
 }
-
-void Block::addChild(Block * child)
-{
-    child->setSibling(getChild());
-    setChild(child);
-}
-
-
-
-
-
 
 } // namespace control

@@ -54,7 +54,7 @@ class __EXPORT BlockLimit : public Block
 {
 public:
 // methods
-    BlockLimit(Block * parent, const char * name) : 
+    BlockLimit(SuperBlock * parent, const char * name) : 
         Block(parent, name),
         _min(this,"MIN"),
         _max(this,"MAX")
@@ -78,7 +78,7 @@ class __EXPORT BlockLowPass : public Block
 {
 public:
 // methods
-    BlockLowPass(Block * parent, const char * name) :
+    BlockLowPass(SuperBlock * parent, const char * name) :
         Block(parent, name),
         _state(0),
         _fCut(this,"FCUT")
@@ -103,7 +103,7 @@ class __EXPORT BlockHighPass : public Block
 {
 public:
 // methods
-    BlockHighPass(Block * parent, const char * name) :
+    BlockHighPass(SuperBlock * parent, const char * name) :
         Block(parent, name),
         _state(0),
         _fCut(this,"FCUT")
@@ -128,12 +128,12 @@ protected:
  * for windup protection.
  * @see Limit
  */
-class __EXPORT BlockIntegral : public Block
+class __EXPORT BlockIntegral : public SuperBlock
 {
 public: 
 // methods
-   BlockIntegral(Block * parent, const char * name) :
-        Block(parent, name),
+   BlockIntegral(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _state(0),
         _limit(this, "") {};
     virtual ~BlockIntegral() {};
@@ -155,12 +155,12 @@ protected:
  * This has a built in low pass filter.
  * @see LowPass
  */
-class __EXPORT BlockDerivative : public Block
+class __EXPORT BlockDerivative : public SuperBlock
 {
 public:
 // methods
-   BlockDerivative(Block * parent, const char * name) :
-        Block(parent, name),
+   BlockDerivative(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _state(0),
         _lowPass(this, "")
     {};
@@ -184,7 +184,7 @@ class __EXPORT BlockP: public Block
 {
 public:
 // methods
-    BlockP(Block * parent, const char * name) :
+    BlockP(SuperBlock * parent, const char * name) :
         Block(parent, name),
         _kP(this,"P")
     {};
@@ -203,12 +203,12 @@ protected:
  * A proportional-integral controller.
  * @link http://en.wikipedia.org/wiki/PID_controller
  */
-class __EXPORT BlockPI: public Block
+class __EXPORT BlockPI: public SuperBlock
 {
 public:
 // methods
-    BlockPI(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockPI(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _integral(this,"I"),
         _kP(this,"P"),
         _kI(this,"I")
@@ -233,12 +233,12 @@ private:
  * A proportional-derivative controller.
  * @link http://en.wikipedia.org/wiki/PID_controller
  */
-class __EXPORT BlockPD: public Block
+class __EXPORT BlockPD: public SuperBlock
 {
 public:
 // methods
-    BlockPD(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockPD(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _derivative(this,"D"),
         _kP(this,"P"),
         _kD(this,"D")
@@ -263,12 +263,12 @@ private:
  * A proportional-integral-derivative controller.
  * @link http://en.wikipedia.org/wiki/PID_controller
  */
-class __EXPORT BlockPID: public Block
+class __EXPORT BlockPID: public SuperBlock
 {
 public:
 // methods
-    BlockPID(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockPID(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _integral(this,"I"),
         _derivative(this,"D"),
         _kP(this,"P"),
@@ -300,12 +300,12 @@ private:
 /**
  * An output trim/ saturation block
  */
-class __EXPORT BlockOutput: public Block
+class __EXPORT BlockOutput: public SuperBlock
 {
 public:
 // methods
-    BlockOutput(Block * parent, const char * name) :
-        Block(parent, name),
+    BlockOutput(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
         _trim(this,"TRIM"),
         _limit(this,""),
         _val(0)

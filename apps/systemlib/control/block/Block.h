@@ -40,6 +40,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <inttypes.h>
 
 namespace control
 {
@@ -52,45 +53,71 @@ static const uint8_t blockNameLengthMax = 80;
 // forward declaration
 class BlockParamBase;
 class UOrbSubscriptionBase;
+class SuperBlock;
 
 class __EXPORT Block
 {
 public:
 // methods
-    Block(Block * parent, const char * name);
+    Block(SuperBlock * parent, const char * name);
     void getName(char * name, size_t n);
     virtual ~Block() {};
     virtual void updateParams();
     void addParam(BlockParamBase * param);
     virtual void updateSubscriptions();
     void addSubscription(UOrbSubscriptionBase * sub);
+    virtual void setDt(float dt) { _dt = dt; }
 // accessors
-    void setDt(float dt);
     float getDt() { return _dt; }
 protected:
-// methods
-    void updateChildParams();
-    void updateChildSubscriptions();
-    void addChild(Block * child);
 // accessors
-    Block * getParent() { return _parent; }
     Block * getSibling() { return _sibling; }
     void setSibling(Block * sibling) { _sibling = sibling; }
-    Block * getChild() { return _child; }
-    void setChild(Block * child) { _child = child; }
+    SuperBlock * getParent() { return _parent; }
     BlockParamBase * getParam() { return _param; }
     void setParam(BlockParamBase * param) { _param = param; }
     UOrbSubscriptionBase * getSubscription() { return _subscription; }
     void setSubscription(UOrbSubscriptionBase * sub) { _subscription = sub; }
-protected:
 // attributes
     const char * _name; 
-    Block * _parent;
+    SuperBlock * _parent;
     Block * _sibling;
-    Block * _child;
     BlockParamBase * _param;
     UOrbSubscriptionBase * _subscription;
     float _dt;
+};
+
+class __EXPORT SuperBlock : public Block
+{
+public:
+// methods
+    SuperBlock(SuperBlock * parent, const char * name) :
+        Block(parent, name),
+        _child(NULL)
+    {
+    }
+    virtual ~SuperBlock() {};
+    virtual void setDt(float dt);
+    virtual void updateParams()
+    {
+        Block::updateParams();
+        if (getChild() != NULL) updateChildParams();
+    }
+    virtual void updateSubscriptions()
+    {
+        Block::updateSubscriptions();
+        if (getChild() != NULL) updateChildSubscriptions();
+    }
+    void addChild(Block * child);
+protected:
+// methods
+    void updateChildParams();
+    void updateChildSubscriptions();
+// accessors
+    Block * getChild() { return _child; }
+    void setChild(Block * child) { _child = child; }
+// attributes
+    Block * _child;
 };
 
 } // namespace control
