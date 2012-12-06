@@ -55,6 +55,11 @@ fixedwing_pos_control start
 #gps start
 
 #
+# Start logging to microSD if we can
+#	  	
+sh /etc/init.d/rc.logging
+
+#
 # startup is done; we don't want the shell because we
 # use the same UART for telemetry
 #
