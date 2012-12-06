@@ -51,7 +51,6 @@ namespace control
 Block::Block(SuperBlock * parent, const char * name) :
     _name(name),
     _parent(parent),
-    _sibling(NULL),
     _param(NULL),
     _subscription(NULL),
     _dt(0)

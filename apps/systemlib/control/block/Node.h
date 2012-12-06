@@ -32,47 +32,26 @@
  ****************************************************************************/
 
 /**
- * @file Blockparam.cpp
+ * @file Node.h
  *
- * Controller library code
+ * A node of a linked list.
  */
 
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
+#pragma once
 
-#include "BlockParam.h"
-
-namespace control
+template<class T>
+class __EXPORT Node 
 {
-
-BlockParamBase::BlockParamBase(Block * parent, const char * name) :
-    _handle(PARAM_INVALID)
-{
-    char fullname[blockNameLengthMax];
-    if (parent == NULL)
+public:
+    Node() : _sibling(NULL)
     {
-        strncpy(fullname,name,blockNameLengthMax);
     }
-    else
+    void setSibling(T sibling) { _sibling = sibling; }
+    T getSibling() { return _sibling; }
+    T get()
     {
-        char parentName[blockNameLengthMax];
-        parent->getName(parentName, blockNameLengthMax);
-
-        if (!strcmp(name,""))
-        {
-            strncpy(fullname,parentName,blockNameLengthMax);
-        }
-        else
-        {
-            snprintf(fullname,blockNameLengthMax,"%s_%s", parentName, name);
-        }
-        parent->addParam(this);
+        return _sibling;
     }
-
-    _handle = param_find(fullname);
-    if (_handle == PARAM_INVALID)
-        printf("error finding param: %s\n", fullname);
+protected:
+    T _sibling;
 };
-
-} // namespace control

@@ -40,6 +40,7 @@
 
 #include <uORB/uORB.h>
 #include "Block.h"
+#include "Node.h"
 
 
 namespace control
@@ -47,7 +48,7 @@ namespace control
 
 class Block;
 
-class __EXPORT UOrbSubscriptionBase
+class __EXPORT UOrbSubscriptionBase : public Node<UOrbSubscriptionBase *>
 {
 public:
     /**
@@ -74,12 +75,9 @@ public:
     }
     const struct orb_metadata * getMeta() { return _meta; }
     int getHandle() { return _handle; }
-    UOrbSubscriptionBase * getSibling() { return _sibling; }
-    void setSibling(UOrbSubscriptionBase * sibling) { _sibling = sibling; }
 private:
     const struct orb_metadata * _meta;
     int _handle;
-    UOrbSubscriptionBase * _sibling;
 };
 
 template<class T>

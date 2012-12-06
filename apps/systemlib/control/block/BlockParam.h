@@ -42,6 +42,7 @@
 #include <systemlib/param/param.h>
 
 #include "Block.h"
+#include "Node.h"
 
 namespace control
 {
@@ -49,18 +50,15 @@ namespace control
 /**
  * A base class for block params that enables traversing linked list.
  */
-class __EXPORT BlockParamBase
+class __EXPORT BlockParamBase : public Node<BlockParamBase *>
 {
 public:
     BlockParamBase(Block * parent, const char * name);
     virtual ~BlockParamBase() {};
     virtual void update() = 0;
     const char * getName() { return param_name(_handle); }
-    BlockParamBase * getSibling() { return _sibling; }
-    void setSibling(BlockParamBase * sibling) { _sibling = sibling; }
 protected:
     param_t _handle;
-    BlockParamBase * _sibling;
 };
 
 /**

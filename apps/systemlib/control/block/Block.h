@@ -41,6 +41,7 @@
 
 #include <stdint.h>
 #include <inttypes.h>
+#include "Node.h"
 
 namespace control
 {
@@ -55,7 +56,9 @@ class BlockParamBase;
 class UOrbSubscriptionBase;
 class SuperBlock;
 
-class __EXPORT Block
+/**
+ */
+class __EXPORT Block : public Node<Block *>
 {
 public:
 // methods
@@ -71,8 +74,6 @@ public:
     float getDt() { return _dt; }
 protected:
 // accessors
-    Block * getSibling() { return _sibling; }
-    void setSibling(Block * sibling) { _sibling = sibling; }
     SuperBlock * getParent() { return _parent; }
     BlockParamBase * getParam() { return _param; }
     void setParam(BlockParamBase * param) { _param = param; }
@@ -81,7 +82,6 @@ protected:
 // attributes
     const char * _name; 
     SuperBlock * _parent;
-    Block * _sibling;
     BlockParamBase * _param;
     UOrbSubscriptionBase * _subscription;
     float _dt;
