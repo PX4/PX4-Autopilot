@@ -47,6 +47,7 @@ namespace control
 static const uint16_t maxChildrenPerBlock = 100;
 static const uint16_t maxParamsPerBlock = 100;
 static const uint16_t maxSubscriptionsPerBlock = 100;
+static const uint8_t blockNameLengthMax = 80;
 
 // forward declaration
 class BlockParamBase;
@@ -57,6 +58,7 @@ class __EXPORT Block
 public:
 // methods
     Block(Block * parent, const char * name);
+    void getName(char * name, size_t n);
     virtual ~Block() {};
     virtual void updateParams();
     void addParam(BlockParamBase * param);
@@ -64,7 +66,6 @@ public:
     void addSubscription(UOrbSubscriptionBase * sub);
 // accessors
     void setDt(float dt);
-    char * getName() { return _name; }
     float getDt() { return _dt; }
 protected:
 // methods
@@ -83,7 +84,7 @@ protected:
     void setSubscription(UOrbSubscriptionBase * sub) { _subscription = sub; }
 protected:
 // attributes
-    char _name[80];
+    const char * _name; 
     Block * _parent;
     Block * _sibling;
     Block * _child;

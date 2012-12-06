@@ -49,7 +49,7 @@ namespace control
 {
 
 Block::Block(Block * parent, const char * name) :
-    _name(),
+    _name(name),
     _parent(parent),
     _sibling(NULL),
     _child(NULL),
@@ -57,21 +57,30 @@ Block::Block(Block * parent, const char * name) :
     _subscription(NULL),
     _dt(0)
 {
-    if (parent == NULL)
+    if (getParent() != NULL)
     {
-        strncpy(getName(),name,80);
+        getParent()->addChild(this);
+    }
+}
+
+void Block::getName(char * buf, size_t n) {
+    if (getParent() == NULL)
+    {
+        strncpy(buf,_name,n);
     }
     else
     {
-        if (!strcmp(name,""))
+        char parentName[blockNameLengthMax];
+        getParent()->getName(parentName,n);
+
+        if (!strcmp(_name,""))
         {
-            strncpy(getName(),parent->getName(),80);
+            strncpy(buf,parentName,blockNameLengthMax);
         }
         else
         {
-            snprintf(getName(),80,"%s_%s", parent->getName(), name);
+            snprintf(buf,blockNameLengthMax,"%s_%s", parentName, _name);
         }
-        getParent()->addChild(this);
     }
 }
 
@@ -83,7 +92,9 @@ void Block::updateParams()
     {
         if (count++ > maxParamsPerBlock)
         {
-            printf("exceeded max params for block: %s\n", getName());
+            char name[blockNameLengthMax];
+            getName(name, blockNameLengthMax);
+            printf("exceeded max params for block: %s\n", name);
             break;
         }
         param->update();
@@ -107,7 +118,9 @@ void Block::updateSubscriptions()
     {
         if (count++ > maxSubscriptionsPerBlock)
         {
-            printf("exceeded max subscriptions for block: %s\n", getName());
+            char name[blockNameLengthMax];
+            getName(name, blockNameLengthMax);
+            printf("exceeded max subscriptions for block: %s\n", name);
             break;
         }
         sub->update();
@@ -132,7 +145,9 @@ void Block::setDt(float dt) {
     {
         if (count++ > maxChildrenPerBlock)
         {
-            printf("exceeded max children for block: %s\n", getName());
+            char name[40];
+            getName(name, 40);
+            printf("exceeded max children for block: %s\n", name);
             break;
         }
         child->setDt(dt);
@@ -147,7 +162,9 @@ void Block::updateChildParams() {
     {
         if (count++ > maxChildrenPerBlock)
         {
-            printf("exceeded max children for block: %s\n", getName());
+            char name[40];
+            getName(name, 40);
+            printf("exceeded max children for block: %s\n", name);
             break;
         }
         child->updateParams();
@@ -162,7 +179,9 @@ void Block::updateChildSubscriptions() {
     {
         if (count++ > maxChildrenPerBlock)
         {
-            printf("exceeded max children for block: %s\n", getName());
+            char name[40];
+            getName(name, 40);
+            printf("exceeded max children for block: %s\n", name);
             break;
         }
         child->updateSubscriptions();

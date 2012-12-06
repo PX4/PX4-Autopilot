@@ -50,20 +50,23 @@ BlockParamBase::BlockParamBase(Block * parent, const char * name) :
     _handle(PARAM_INVALID), 
     _sibling(NULL)
 {
-    char fullname[80];
+    char fullname[blockNameLengthMax];
     if (parent == NULL)
     {
-        snprintf(fullname,80,"%s", name);
+        strncpy(fullname,name,blockNameLengthMax);
     }
     else
     {
+        char parentName[blockNameLengthMax];
+        parent->getName(parentName, blockNameLengthMax);
+
         if (!strcmp(name,""))
         {
-            strncpy(fullname,parent->getName(),80);
+            strncpy(fullname,parentName,blockNameLengthMax);
         }
         else
         {
-            snprintf(fullname,80,"%s_%s", parent->getName(), name);
+            snprintf(fullname,blockNameLengthMax,"%s_%s", parentName, name);
         }
         parent->addParam(this);
     }
