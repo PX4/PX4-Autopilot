@@ -40,10 +40,10 @@
 #pragma once
 
 template<class T>
-class __EXPORT Node 
+class __EXPORT ListNode 
 {
 public:
-    Node() : _sibling(NULL)
+    ListNode() : _sibling(NULL)
     {
     }
     void setSibling(T sibling) { _sibling = sibling; }
@@ -54,4 +54,22 @@ public:
     }
 protected:
     T _sibling;
+};
+
+template<class T>
+class __EXPORT List
+{
+public:
+    List() : _head()
+    {
+    }
+    void add(T newNode)
+    {
+        newNode->setSibling(getHead());
+        setHead(newNode);
+    }
+    T getHead() { return _head; }
+private:
+    void setHead(T & head) { _head = head; }
+    T _head;
 };

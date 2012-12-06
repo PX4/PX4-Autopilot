@@ -40,7 +40,7 @@
 
 #include <uORB/uORB.h>
 #include "Block.h"
-#include "Node.h"
+#include "List.h"
 
 
 namespace control
@@ -48,7 +48,7 @@ namespace control
 
 class Block;
 
-class __EXPORT UOrbSubscriptionBase : public Node<UOrbSubscriptionBase *>
+class __EXPORT UOrbSubscriptionBase : public ListNode<control::UOrbSubscriptionBase *>
 {
 public:
     /**
@@ -58,7 +58,8 @@ public:
      *			for the topic.
      * @param interval	An interval period in milliseconds.
      */
-    UOrbSubscriptionBase(Block * parent,
+    UOrbSubscriptionBase(
+            List<UOrbSubscriptionBase *> & list,
             const struct orb_metadata * meta, unsigned interval);
     bool updated();
     void update()
@@ -84,9 +85,10 @@ template<class T>
 class UOrbSubscription : public UOrbSubscriptionBase
 {
 public:
-    UOrbSubscription(Block * parent,
+    UOrbSubscription(
+            List<UOrbSubscriptionBase *> & list,
             const struct orb_metadata * meta, unsigned interval) :
-        UOrbSubscriptionBase(parent, meta, interval),
+        UOrbSubscriptionBase(list, meta, interval),
         _data()
     {
     }

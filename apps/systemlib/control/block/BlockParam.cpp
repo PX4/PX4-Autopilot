@@ -67,7 +67,7 @@ BlockParamBase::BlockParamBase(Block * parent, const char * name) :
         {
             snprintf(fullname,blockNameLengthMax,"%s_%s", parentName, name);
         }
-        parent->addParam(this);
+        parent->getParams().add(this);
     }
 
     _handle = param_find(fullname);

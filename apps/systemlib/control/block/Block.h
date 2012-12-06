@@ -41,7 +41,7 @@
 
 #include <stdint.h>
 #include <inttypes.h>
-#include "Node.h"
+#include "List.h"
 
 namespace control
 {
@@ -58,42 +58,42 @@ class SuperBlock;
 
 /**
  */
-class __EXPORT Block : public Node<Block *>
+class __EXPORT Block :
+    public ListNode<Block *>
 {
 public:
+    friend class BlockParamBase;
 // methods
     Block(SuperBlock * parent, const char * name);
     void getName(char * name, size_t n);
     virtual ~Block() {};
     virtual void updateParams();
-    void addParam(BlockParamBase * param);
     virtual void updateSubscriptions();
-    void addSubscription(UOrbSubscriptionBase * sub);
     virtual void setDt(float dt) { _dt = dt; }
 // accessors
     float getDt() { return _dt; }
 protected:
 // accessors
     SuperBlock * getParent() { return _parent; }
-    BlockParamBase * getParam() { return _param; }
-    void setParam(BlockParamBase * param) { _param = param; }
-    UOrbSubscriptionBase * getSubscription() { return _subscription; }
-    void setSubscription(UOrbSubscriptionBase * sub) { _subscription = sub; }
+    List<UOrbSubscriptionBase *> & getSubscriptions() { return _subscriptions; }
+    List<BlockParamBase *> & getParams() { return _params; }
 // attributes
     const char * _name; 
     SuperBlock * _parent;
-    BlockParamBase * _param;
-    UOrbSubscriptionBase * _subscription;
     float _dt;
+    List<UOrbSubscriptionBase *> _subscriptions;
+    List<BlockParamBase *> _params;
 };
 
-class __EXPORT SuperBlock : public Block
+class __EXPORT SuperBlock :
+    public Block
 {
 public:
+    friend class Block;
 // methods
     SuperBlock(SuperBlock * parent, const char * name) :
         Block(parent, name),
-        _child(NULL)
+        _children()
     {
     }
     virtual ~SuperBlock() {};
@@ -101,23 +101,20 @@ public:
     virtual void updateParams()
     {
         Block::updateParams();
-        if (getChild() != NULL) updateChildParams();
+        if (getChildren().getHead() != NULL) updateChildParams();
     }
     virtual void updateSubscriptions()
     {
         Block::updateSubscriptions();
-        if (getChild() != NULL) updateChildSubscriptions();
+        if (getChildren().getHead() != NULL) updateChildSubscriptions();
     }
-    void addChild(Block * child);
 protected:
 // methods
+    List<Block *> & getChildren() { return _children; }
     void updateChildParams();
     void updateChildSubscriptions();
-// accessors
-    Block * getChild() { return _child; }
-    void setChild(Block * child) { _child = child; }
 // attributes
-    Block * _child;
+    List<Block *> _children;
 };
 
 } // namespace control

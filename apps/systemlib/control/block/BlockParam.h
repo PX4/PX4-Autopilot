@@ -42,7 +42,7 @@
 #include <systemlib/param/param.h>
 
 #include "Block.h"
-#include "Node.h"
+#include "List.h"
 
 namespace control
 {
@@ -50,7 +50,7 @@ namespace control
 /**
  * A base class for block params that enables traversing linked list.
  */
-class __EXPORT BlockParamBase : public Node<BlockParamBase *>
+class __EXPORT BlockParamBase : public ListNode<BlockParamBase *>
 {
 public:
     BlockParamBase(Block * parent, const char * name);

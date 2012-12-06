@@ -41,13 +41,14 @@
 namespace control
 {
 
-__EXPORT UOrbSubscriptionBase::UOrbSubscriptionBase(Block * parent,
+__EXPORT UOrbSubscriptionBase::UOrbSubscriptionBase(
+        List<UOrbSubscriptionBase *> & list,
         const struct orb_metadata * meta, unsigned interval) :
     _meta(meta),
     _handle(orb_subscribe(meta))
 {
     orb_set_interval(_handle, interval);
-    parent->addSubscription(this);
+    list.add(this);
 }
 
 bool __EXPORT UOrbSubscriptionBase::updated() {
