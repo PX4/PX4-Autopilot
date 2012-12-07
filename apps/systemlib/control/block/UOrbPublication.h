@@ -48,47 +48,65 @@ namespace control
 
 class Block;
 
+/**
+ * Base publication warapper class, used in list traversal
+ * of various publications.
+ */
 class __EXPORT UOrbPublicationBase : public ListNode<control::UOrbPublicationBase *>
 {
 public:
-    /**
-     * Constructor
-     *
-     * @param meta		The uORB metadata (usually from the ORB_ID() macro)
-     *			for the topic.
-     * @param interval	An interval period in milliseconds.
-     */
+
     UOrbPublicationBase(
             List<UOrbPublicationBase *> * list,
-            const struct orb_metadata * meta);
+            const struct orb_metadata * meta) :
+        _meta(meta),
+        _handle()
+    {
+        if (list != NULL) list->add(this);
+    }
     void update()
     {
-        orb_publish(_meta, _handle, getDataVoidPtr());
+        orb_publish(getMeta(), getHandle(), getDataVoidPtr());
     }
     virtual void * getDataVoidPtr() = 0;
     virtual ~UOrbPublicationBase()
     {
-        orb_unsubscribe(_handle);
+        orb_unsubscribe(getHandle());
     }
     const struct orb_metadata * getMeta() { return _meta; }
     int getHandle() { return _handle; }
-private:
+protected:
+    void setHandle(orb_advert_t handle) { _handle = handle; }
     const struct orb_metadata * _meta;
     orb_advert_t _handle;
 };
 
+/**
+ * UOrb Publication wrapper class
+ */
 template<class T>
 class UOrbPublication :
     public T, // this must be first!
     public UOrbPublicationBase
 {
 public:
+    /**
+     * Constructor
+     *
+     * @param list      A list interface for adding to list during construction
+     * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+     *			for the topic.
+     */
     UOrbPublication(
             List<UOrbPublicationBase *> * list,
             const struct orb_metadata * meta) :
-        UOrbPublicationBase(list, meta),
-        T() // initialize data structure to zero
+        T(), // initialize data structure to zero
+        UOrbPublicationBase(list, meta)
     {
+        // It is important that we call T()
+        // before we publish the data, so we 
+        // call this here instead of the base class
+        setHandle(orb_advertise(getMeta(),getDataVoidPtr()));
     }
     virtual ~UOrbPublication() {}
     /*
@@ -98,7 +116,7 @@ public:
      * should use dynamic cast, but doesn't
      * seem to be available
      */
-    void * getDataVoidPtr() { return (void *)this; }
+    void * getDataVoidPtr() { return (void *)(T*)(this); }
 };
 
 } // namespace control

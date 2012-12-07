@@ -37,17 +37,3 @@
  */
 
 #include "UOrbPublication.h"
-
-namespace control
-{
-
-__EXPORT UOrbPublicationBase::UOrbPublicationBase(
-        List<UOrbPublicationBase *> * list,
-        const struct orb_metadata * meta) :
-    _meta(meta),
-    _handle(orb_subscribe(meta))
-{
-    if (list != NULL) list->add(this);
-}
-
-} // namespace control

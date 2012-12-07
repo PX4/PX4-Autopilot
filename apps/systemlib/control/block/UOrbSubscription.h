@@ -48,19 +48,30 @@ namespace control
 
 class Block;
 
-class __EXPORT UOrbSubscriptionBase : public ListNode<control::UOrbSubscriptionBase *>
+/**
+ * Base subscription warapper class, used in list traversal
+ * of various subscriptions.
+ */
+class __EXPORT UOrbSubscriptionBase :
+    public ListNode<control::UOrbSubscriptionBase *>
 {
 public:
+// methods
+
     /**
      * Constructor
      *
      * @param meta		The uORB metadata (usually from the ORB_ID() macro)
      *			for the topic.
-     * @param interval	An interval period in milliseconds.
      */
     UOrbSubscriptionBase(
             List<UOrbSubscriptionBase *> * list,
-            const struct orb_metadata * meta, unsigned interval);
+            const struct orb_metadata * meta) :
+        _meta(meta),
+        _handle()
+    {
+        if (list != NULL) list->add(this);
+    }
     bool updated();
     void update()
     {
@@ -74,27 +85,49 @@ public:
     {
         orb_unsubscribe(_handle);
     }
+// accessors
     const struct orb_metadata * getMeta() { return _meta; }
     int getHandle() { return _handle; }
-private:
+protected:
+// accessors
+    void setHandle(int handle) { _handle = handle; }
+// attributes
     const struct orb_metadata * _meta;
     int _handle;
 };
 
+/**
+ * UOrb Subscription wrapper class
+ */
 template<class T>
 class UOrbSubscription :
     public T, // this must be first!
     public UOrbSubscriptionBase
 {
 public:
+    /**
+     * Constructor
+     *
+     * @param list      A list interface for adding to list during construction
+     * @param meta		The uORB metadata (usually from the ORB_ID() macro)
+     *			for the topic.
+     * @param interval  The minimum interval in milliseconds between updates
+     */
     UOrbSubscription(
             List<UOrbSubscriptionBase *> * list,
             const struct orb_metadata * meta, unsigned interval) :
-        UOrbSubscriptionBase(list, meta, interval),
-        T() // initialize data structure to zero
+        T(), // initialize data structure to zero
+        UOrbSubscriptionBase(list,meta)
     {
+        setHandle(orb_subscribe(getMeta()));
+        orb_set_interval(getHandle(), interval);
     }
+
+    /**
+     * Deconstructor
+     */
     virtual ~UOrbSubscription() {}
+
     /*
      * XXX
      * This function gets the T struct, assuming
@@ -102,7 +135,7 @@ public:
      * should use dynamic cast, but doesn't
      * seem to be available
      */
-    void * getDataVoidPtr() { return (void *)this; }
+    void * getDataVoidPtr() { return (void *)(T*)(this); }
 };
 
 } // namespace control

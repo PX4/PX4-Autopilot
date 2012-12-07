@@ -121,19 +121,19 @@ void Block::updateSubscriptions()
 
 void Block::updatePublications()
 {
-    UOrbPublicationBase * sub = getPublications().getHead();
+    UOrbPublicationBase * pub = getPublications().getHead();
     int count = 0;
-    while (sub != NULL)
+    while (pub != NULL)
     {
         if (count++ > maxPublicationsPerBlock)
         {
             char name[blockNameLengthMax];
             getName(name, blockNameLengthMax);
-            printf("exceeded max subscriptions for block: %s\n", name);
+            printf("exceeded max publications for block: %s\n", name);
             break;
         }
-        sub->update();
-        sub = sub->getSibling();
+        pub->update();
+        pub = pub->getSibling();
     }
 }
 
