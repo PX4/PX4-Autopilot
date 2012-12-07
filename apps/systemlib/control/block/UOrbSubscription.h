@@ -136,6 +136,7 @@ public:
      * seem to be available
      */
     void * getDataVoidPtr() { return (void *)(T*)(this); }
+    T getData() { return T(*this); }
 };
 
 } // namespace control

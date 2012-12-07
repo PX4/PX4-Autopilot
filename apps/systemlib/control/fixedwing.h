@@ -509,6 +509,7 @@ private:
     uint8_t _mode;
     uint8_t _loopCount;
     struct pollfd _attPoll;
+    vehicle_global_position_setpoint_s _lastPosCmd;
 
 public:
     BlockMultiModeBacksideAutopilot(SuperBlock * parent, const char * name) :
@@ -530,7 +531,8 @@ public:
         // misc
         _mode(0),
         _loopCount(0),
-		_attPoll()
+		_attPoll(),
+        _lastPosCmd()
     {
         setDt(1.0f /50.0f);
 		_attPoll.fd = _att.getHandle();
@@ -539,15 +541,18 @@ public:
     void update()
     {
         /* wait for a sensor update, check for exit condition every 500 ms */
-        //poll(&_attPoll, 1, 500);
+        poll(&_attPoll, 1, 500);
+
+        // store old position command before update if new command sent
+        if(_posCmd.updated())
+        {
+            _lastPosCmd = _posCmd.getData();
+        }
+        
+        // get new information from subscriptions
         updateSubscriptions();
 
-        //struct timespec ts;
-        //abstime_to_ts(&ts,hrt_absolute_time());
-        //float t = ts.tv_sec + ts.tv_nsec/1.0e9;
-        //float u = sin(t);
-
-
+        // handle autopilot modes
         if (_status.state_machine == SYSTEM_STATE_STABILIZED)
         {
             _stabilization.update(
@@ -561,27 +566,35 @@ public:
         else if (_status.state_machine == SYSTEM_STATE_AUTO)
         {
             // heading to waypoint
-			float psiTrack = get_bearing_to_next_waypoint((double)_pos.lat / (double)1e7d, (double)_pos.lon / (double)1e7d,
-			    (double)_posCmd.lat / (double)1e7d, (double)_posCmd.lon / (double)1e7d);
+			float psiTrack = get_bearing_to_next_waypoint((double)_pos.lat / (double)1e7d,
+                    (double)_pos.lon / (double)1e7d,
+			        (double)_posCmd.lat / (double)1e7d,
+                    (double)_posCmd.lon / (double)1e7d);
 
             // cross track
-			//struct crosstrack_error_s xtrack_err;
-            // TODO get position of last waypoint
-            //int distance_res = get_distance_to_line(&xtrack_err, (double)_pos.lat / (double)1e7d, (double)_pos.lon / (double)1e7d,
-                //(double)start_pos.lat / (double)1e7d, (double)start_pos.lon / (double)1e7d,
-                //(double)global_setpoint.lat / (double)1e7d, (double)global_setpoint.lon / (double)1e7d);
-
             // should move cross track calc to block TODO
-            //float crossTrackCorrect = distanceToLine*0.1; // 0.1 should be an adjustable gain
-            //if (crossTrackCorrect > 45) // limit should be adjustable
-                //crossTrackCorrect = 45;
-            //else if (crossTrackCorrect < 45)
-                //crossTrackCorrect = -45;
-            //float psiCmd = _wrap_2pi(psiTrack + crossTrackCorrect);
-            float psiCmd = psiTrack;
+            struct crosstrack_error_s xtrackError;
+            get_distance_to_line(&xtrackError,
+                    (double)_pos.lat / (double)1e7d,
+                    (double)_pos.lon / (double)1e7d,
+                    (double)_lastPosCmd.lat / (double)1e7d,
+                    (double)_lastPosCmd.lon / (double)1e7d,
+                    (double)_posCmd.lat / (double)1e7d,
+                    (double)_posCmd.lon / (double)1e7d);
+
+            // cross track gain should be a blockparam
+            static const float crossTrackGain = -0.01;
+            static const float crossTrackHeadLim = 45*M_PI/180;
+            float crossTrackCorrect = xtrackError.distance*crossTrackGain;
+            if (crossTrackCorrect > crossTrackHeadLim) // limit should be a block param
+                crossTrackCorrect = crossTrackHeadLim;
+            else if (crossTrackCorrect < crossTrackHeadLim)
+                crossTrackCorrect = -crossTrackHeadLim;
+
+            float psiCmd = _wrap_2pi(psiTrack + crossTrackCorrect);
 
             // calculate velocity, XXX should be airspeed, but using ground speed for now
-            float v = sqrtf(_pos.vx * _pos.vx + _pos.vy * _pos.vy);
+            float v = sqrtf(_pos.vx * _pos.vx + _pos.vy * _pos.vy + _pos.vz * _pos.vz);
 
             // commands
             float vCmd = 45;
