@@ -70,18 +70,18 @@
  * Private Function Prototypes
  ****************************************************************************/
 
-static int  up_setup(struct uart_dev_s *dev);
-static void up_shutdown(struct uart_dev_s *dev);
-static int  up_attach(struct uart_dev_s *dev);
-static void up_detach(struct uart_dev_s *dev);
-static int  up_ioctl(struct file *filep, int cmd, unsigned long arg);
-static int  up_receive(struct uart_dev_s *dev, uint32_t *status);
-static void up_rxint(struct uart_dev_s *dev, bool enable);
-static bool up_rxavailable(struct uart_dev_s *dev);
-static void up_send(struct uart_dev_s *dev, int ch);
-static void up_txint(struct uart_dev_s *dev, bool enable);
-static bool up_txready(struct uart_dev_s *dev);
-static bool up_txempty(struct uart_dev_s *dev);
+static int  up_setup(FAR struct uart_dev_s *dev);
+static void up_shutdown(FAR struct uart_dev_s *dev);
+static int  up_attach(FAR struct uart_dev_s *dev);
+static void up_detach(FAR struct uart_dev_s *dev);
+static int  up_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
+static int  up_receive(FAR struct uart_dev_s *dev, unsigned int *status);
+static void up_rxint(FAR struct uart_dev_s *dev, bool enable);
+static bool up_rxavailable(FAR struct uart_dev_s *dev);
+static void up_send(FAR struct uart_dev_s *dev, int ch);
+static void up_txint(FAR struct uart_dev_s *dev, bool enable);
+static bool up_txready(FAR struct uart_dev_s *dev);
+static bool up_txempty(FAR struct uart_dev_s *dev);
 
 /****************************************************************************
  * Private Variables
@@ -151,7 +151,7 @@ static uart_dev_t g_uartport =
  *
  ****************************************************************************/
 
-static int up_setup(struct uart_dev_s *dev)
+static int up_setup(FAR struct uart_dev_s *dev)
 {
   return OK;
 }
@@ -165,7 +165,7 @@ static int up_setup(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static void up_shutdown(struct uart_dev_s *dev)
+static void up_shutdown(FAR struct uart_dev_s *dev)
 {
 }
 
@@ -184,7 +184,7 @@ static void up_shutdown(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static int up_attach(struct uart_dev_s *dev)
+static int up_attach(FAR struct uart_dev_s *dev)
 {
   return OK;
 }
@@ -199,7 +199,7 @@ static int up_attach(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static void up_detach(struct uart_dev_s *dev)
+static void up_detach(FAR struct uart_dev_s *dev)
 {
 }
 
@@ -211,7 +211,7 @@ static void up_detach(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
+static int up_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
   *get_errno_ptr() = ENOTTY;
   return ERROR;
@@ -227,7 +227,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
  *
  ****************************************************************************/
 
-static int up_receive(struct uart_dev_s *dev, uint32_t *status)
+static int up_receive(FAR struct uart_dev_s *dev, unsigned int *status)
 {
   uint8_t ch = z80_lowgetc();
   *status = 0;
@@ -242,7 +242,7 @@ static int up_receive(struct uart_dev_s *dev, uint32_t *status)
  *
  ****************************************************************************/
 
-static void up_rxint(struct uart_dev_s *dev, bool enable)
+static void up_rxint(FAR struct uart_dev_s *dev, bool enable)
 {
 }
 
@@ -254,7 +254,7 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
  *
  ****************************************************************************/
 
-static bool up_rxavailable(struct uart_dev_s *dev)
+static bool up_rxavailable(FAR struct uart_dev_s *dev)
 {
   return true;
 }
@@ -267,7 +267,7 @@ static bool up_rxavailable(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static void up_send(struct uart_dev_s *dev, int ch)
+static void up_send(FAR struct uart_dev_s *dev, int ch)
 {
   z80_lowputc(ch);
 }
@@ -280,7 +280,7 @@ static void up_send(struct uart_dev_s *dev, int ch)
  *
  ****************************************************************************/
 
-static void up_txint(struct uart_dev_s *dev, bool enable)
+static void up_txint(FAR struct uart_dev_s *dev, bool enable)
 {
 }
 
@@ -292,7 +292,7 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
  *
  ****************************************************************************/
 
-static bool up_txready(struct uart_dev_s *dev)
+static bool up_txready(FAR struct uart_dev_s *dev)
 {
   return true;
 }
@@ -305,7 +305,7 @@ static bool up_txready(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-static bool up_txempty(struct uart_dev_s *dev)
+static bool up_txempty(FAR struct uart_dev_s *dev)
 {
   return true;
 }

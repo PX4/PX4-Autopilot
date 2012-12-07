@@ -3759,3 +3759,8 @@
 	  type. Requested by Freddie Chopin.
 	* include/stdlib/lib_rand.c:  Various additional changes so that the integer
 	  value zero can be returned.  Requested by Freddie Chopin.
+	* arch/z80/src/Makefile.sdcc*, z80/up_mem.h:  Redesign Z80 build so that it
+	  no longer depends on Bash scripts.
+	* configs/z80sim/nsh and pashello:  Converted to (1) used the kconfig-frontends
+	  configuration tool, and (2) to build natively under Windows.  The NSH
+	  configuration is verified; the pashello configuration needs a more TLC.

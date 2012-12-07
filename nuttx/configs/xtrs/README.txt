@@ -12,10 +12,10 @@ Contents
   o Getting a TRS80 emulator and DOS disks
   o Loading an executable into xtrs
   o Configuring NuttX
+  o Reconfiguring NuttX
+  o Reconfiguring for Linux, OSX, or Cygwin
   o SDCC
   o Building the SDCC toolchain
-  o SDCC Update
-  o Newer SDCC Versions
 
 Getting a TRS80 emulator and DOS disks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -84,6 +84,42 @@ Configuring NuttX
        ./configure.sh xtrs/pashello
        cd -
        . ./setenv.sh
+
+Reconfiguring NuttX
+^^^^^^^^^^^^^^^^^^^
+
+These configurations all use the kconfig-frontends, mconf-based configuration
+tool.  To change this configuration using that tool, you should:
+
+  a. Build and install the mconf tool.  See nuttx/README.txt and
+     misc/tools/README.txt
+
+  b. Execute 'make menuconfig' in nuttx/ in order to start the reconfiguration
+     process.
+
+Reconfiguring for Linux, OSX, or Cygwin
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+All of the z80 configurations in this this directory are set up to build in a
+Windows CMD.exe shell.  This configuration requires the MinGW host compiler
+and severl GNUWin32 tools (see discussion in the top-level NuttX/README.txt
+file).
+
+These configurations can be converted to run under Linux (or Cygwin or OSX),
+by modifying the configuration file as follows:
+
+  -CONFIG_HOST_WINDOWS=y
+  -CONFIG_WINDOWS_NATIVE=y
+  +CONFIG_HOST_LINUX=y
+ 
+  -CONFIG_Z80_TOOLCHAIN_SDCCW=y
+  +CONFIG_Z80_TOOLCHAIN_SDCCL=y
+
+You may need to first manually change the CONFIG_APPS_DIR="..\apps" definition
+in the .config file because the backslash may upset some Unix-based tools.
+
+You cannot use the default setenv.bat in these Unix-like enviroments because
+that is a Windows batch file.  Use configs/z80sim/script/setenv.sh instead.
 
 SDCC
 ^^^^
