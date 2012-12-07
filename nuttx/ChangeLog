@@ -3737,4 +3737,25 @@
 	* arch/z80/src/Makefile.sdccw:  Renamed makefiles with extensions zdiil,
 	  zdiiw, sdccl, and sdccw for the ZDS-II vs SDCC compilers and for the
 	  POSIX vs Windows native builds.
-
+	* nuttx/drivers/mtd/ftl.c:  Fix for the flash translation layer. Short
+	  unaligned writes were buggy.  From Petteri Aimonen.
+	* nuttx/libc/math/lib_round*.c:  Add rounding functions to the math
+	  library.  Contributed by Petteri Aimonen.
+	* include/cxx/cstdlib:  Add stroul().  From Petteri Aimonen.
+	* arch/*/include/limits.h:  Change signed minimum values from, for example,
+	  (-128) to (-127 - 1) to avoid overflows under certain conditions.  From
+	  Peterri Aimonen.
+	* graphics/nxtk/nxtk_subwindowmove.c: Previously it was very difficult to
+	  do e.g. "scroll by dx, dy". When given the full window area, nxtk_subwindowmove
+	  would clip the offset always to 0,0. It makes more sense for it to clip the
+	  source area and not modify the offset.  From Petteri Aimonen.
+	* graphics/nxtk/nxtk_getwindow.c: Clipping would change the offset of returned
+	  data, and caller has no way to know what the new offset would be. This messes
+	  up font drawing when the text is partially out of window, e.g. when scrolling.
+	  Also from Petteri Aimonen.
+	* include/stdbool.h: Can now be disabled for C++ files if CONFIG_C99_BOOL8 is
+	  defined.  CONFIG_C99_BOOL8 indicates (1) that the sizeof(_Bool) is one in both
+	  C and C++, and (2) the the C compiler is C99 and supports the _Bool intrinsic
+	  type. Requested by Freddie Chopin.
+	* include/stdlib/lib_rand.c:  Various additional changes so that the integer
+	  value zero can be returned.  Requested by Freddie Chopin.

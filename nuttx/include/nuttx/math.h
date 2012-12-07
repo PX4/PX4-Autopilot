@@ -141,6 +141,14 @@ double      floor (double x);
 long double floorl(long double x);
 #endif
 
+float       roundf(float x);
+#if CONFIG_HAVE_DOUBLE
+double      round (double x);
+#endif
+#ifdef CONFIG_HAVE_LONG_DOUBLE
+long double roundl(long double x);
+#endif
+
 float       fabsf (float x);
 #if CONFIG_HAVE_DOUBLE
 double      fabs  (double x);

@@ -74,7 +74,7 @@ static unsigned int nrand(unsigned int nLimit);
 
 /* First order congruential generators */
 
-static inline void fgenerate1(void);
+static inline unsigned long fgenerate1(void);
 #if (CONFIG_LIB_RAND_ORDER == 1)
 static double_t frand1(void);
 #endif
@@ -82,7 +82,7 @@ static double_t frand1(void);
 /* Second order congruential generators */
 
 #if (CONFIG_LIB_RAND_ORDER > 1)
-static inline void fgenerate2(void);
+static inline unsigned long fgenerate2(void);
 #if (CONFIG_LIB_RAND_ORDER == 2)
 static double_t frand2(void);
 #endif
@@ -90,7 +90,7 @@ static double_t frand2(void);
 /* Third order congruential generators */
 
 #if (CONFIG_LIB_RAND_ORDER > 2)
-static inline void fgenerate3(void);
+static inline unsigned long fgenerate3(void);
 static double_t frand3(void);
 #endif
 #endif
@@ -141,7 +141,7 @@ static unsigned int nrand(unsigned int nLimit)
 
 /* First order congruential generators */
 
-static inline void fgenerate1(void)
+static inline unsigned long fgenerate1(void)
 {
   unsigned long randint;
 
@@ -152,6 +152,7 @@ static inline void fgenerate1(void)
 
   randint    = (RND1_CONSTK * g_randint1) % RND1_CONSTP;
   g_randint1 = (randint == 0 ? 1 : randint);
+  return randint;
 }
 
 #if (CONFIG_LIB_RAND_ORDER == 1)
@@ -159,18 +160,18 @@ static double_t frand1(void)
 {
   /* First order congruential generator. */
 
-  fgenerate1();
+  unsigned long randint = fgenerate1();
 
   /* Construct an floating point value in the range from 0.0 up to 1.0 */
 
-  return ((double_t)g_randint1) / ((double_t)RND1_CONSTP);
+  return ((double_t)randint) / ((double_t)RND1_CONSTP);
 }
 #endif
 
 /* Second order congruential generators */
 
 #if (CONFIG_LIB_RAND_ORDER > 1)
-static inline void fgenerate2(void)
+static inline unsigned long fgenerate2(void)
 {
   unsigned long randint;
 
@@ -190,6 +191,8 @@ static inline void fgenerate2(void)
     {
       g_randint2 = 1;
     }
+
+  return randint;
 }
 
 #if (CONFIG_LIB_RAND_ORDER == 2)
@@ -197,18 +200,18 @@ static double_t frand2(void)
 {
   /* Second order congruential generator */
 
-  fgenerate2();
+  unsigned long randint = fgenerate2();
 
   /* Construct an floating point value in the range from 0.0 up to 1.0 */
 
-  return ((double_t)g_randint1) / ((double_t)RND2_CONSTP);
+  return ((double_t)randint) / ((double_t)RND2_CONSTP);
 }
 #endif
 
 /* Third order congruential generators */
 
 #if (CONFIG_LIB_RAND_ORDER > 2)
-static inline void fgenerate3(void)
+static inline unsigned long fgenerate3(void)
 {
   unsigned long randint;
 
@@ -230,17 +233,19 @@ static inline void fgenerate3(void)
     {
       g_randint3 = 1;
     }
+
+  return randint;
 }
 
 static double_t frand3(void)
 {
   /* Third order congruential generator */
 
-  fgenerate3();
+  unsigned long randint = fgenerate3();
 
   /* Construct an floating point value in the range from 0.0 up to 1.0 */
 
-  return ((double_t)g_randint1) / ((double_t)RND3_CONSTP);
+  return ((double_t)randint) / ((double_t)RND3_CONSTP);
 }
 #endif
 #endif
@@ -258,10 +263,10 @@ void srand(unsigned int seed)
   g_randint1 = seed;
 #if (CONFIG_LIB_RAND_ORDER > 1)
   g_randint2 = seed;
-  fgenerate1();
+  (void)fgenerate1();
 #if (CONFIG_LIB_RAND_ORDER > 2)
   g_randint3 = seed;
-  fgenerate2();
+  (void)fgenerate2();
 #endif
 #endif
 }

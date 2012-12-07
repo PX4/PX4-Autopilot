@@ -97,8 +97,8 @@ namespace NxWM
    */
 
   class CStartWindow : public IApplication,
-                       private IApplicationCallback,
-                       private NXWidgets::CWidgetEventHandler
+                       protected IApplicationCallback,
+                       protected NXWidgets::CWidgetEventHandler
   {
   protected:
     /**

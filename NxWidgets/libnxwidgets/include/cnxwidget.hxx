@@ -1058,7 +1058,7 @@ namespace NXWidgets
      * @return True if the click was successful.
      */
 
-    bool click(nxgl_coord_t x, nxgl_coord_t y);
+    virtual bool click(nxgl_coord_t x, nxgl_coord_t y);
 
     /**
      * Check if the click is a double-click.

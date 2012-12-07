@@ -213,4 +213,8 @@
   Submitted by Petteri Aimonen.
 * NxWidgets:CText and NxWidgets:CNumericEdite:  Fix some memory freeing bugs
   (from Petteri Aimonen).
-  
+* NxWidgets::CScrollingPanel:  Usability improvements.  It is borderless for now,
+  because there was no easy way to redraw only the required part of the border.
+  Contributed by Petteri Aimonen.
+* NxWidgets::CNxWidgets and NxWM::CStartWindow: Small changes to make sub-
+  classing easier (from Petteri Aimonen).

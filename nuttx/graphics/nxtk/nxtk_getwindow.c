@@ -110,12 +110,15 @@ int nxtk_getwindow(NXTKWINDOW hfwnd, FAR const struct nxgl_rect_s *rect,
     }
 #endif
 
-  /* Clip the rectangle so that it lies within the sub-window bounds
-   * then move the rectangle to that it is relative to the containing
-   * window.
+  /* Move the rectangle to that it is relative to the containing
+   * window. If part of the rectangle lies outside the window,
+   * it will contain garbage data, but the contained area will be
+   * valid.
    */
 
-  nxtk_subwindowclip(fwnd, &getrect, rect, &fwnd->fwrect);
+  nxgl_rectoffset(&getrect, rect,
+                  fwnd->fwrect.pt1.x - fwnd->wnd.bounds.pt1.x,
+                  fwnd->fwrect.pt1.y - fwnd->wnd.bounds.pt1.y);
 
   /* Then get it */
 

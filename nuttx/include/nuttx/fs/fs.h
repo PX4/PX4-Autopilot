@@ -176,7 +176,7 @@ struct mountpt_operations
 
   int     (*statfs)(FAR struct inode *mountpt, FAR struct statfs *buf);
 
-  /* Operations on pathes */
+  /* Operations on paths */
 
   int     (*unlink)(FAR struct inode *mountpt, FAR const char *relpath);
   int     (*mkdir)(FAR struct inode *mountpt, FAR const char *relpath, mode_t mode);

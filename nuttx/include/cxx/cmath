@@ -69,6 +69,7 @@ namespace std
   using ::log10f;
   using ::log2f;
   using ::modff;
+  using ::roundf;
   using ::powf;
   using ::sinf;
   using ::sinhf;
@@ -95,6 +96,7 @@ namespace std
   using ::log10;
   using ::log2;
   using ::modf;
+  using ::round;
   using ::pow;
   using ::sin;
   using ::sinh;
@@ -121,6 +123,7 @@ namespace std
   using ::log10l;
   using ::log2l;
   using ::modfl;
+  using ::roundl;
   using ::powl;
   using ::sinl;
   using ::sinhl;
