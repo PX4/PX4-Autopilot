@@ -40,7 +40,6 @@ CFLAGS += -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(TOPDIR)/sched
 CPPFLAGS += -D__ASSEMBLY__
 
 # Files and directories
-
 # There should be one head source (.asm file)
 
 HEAD_OBJ = $(HEAD_ASRC:$(ASMEXT)=$(OBJEXT))
@@ -87,7 +86,7 @@ $(AOBJS) $(HEAD_OBJ): %$(OBJEXT): %$(ASMEXT)
 $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
-# This is a kludge to work around some conflicting symbols in libsdcc.lib
+# This is a kludge to work around some conflicting symbols in the SDCC libraries
 
 $(TOPDIR)/lib/$(SDCCLIB): $(SDCC_LIBDIR)/$(SDCCLIB)
 	$(Q) cp $(SDCC_LIBDIR)/$(SDCCLIB) $(TOPDIR)/lib/$(SDCCLIB)
@@ -123,8 +122,8 @@ $(TOPDIR)/lib/$(SDCCLIB): $(SDCC_LIBDIR)/$(SDCCLIB)
 # IDLE thread stack
 
 asm_mem.h:
-	@echo "	CONFIG_STACK_END	== ($(CONFIG_DRAM_SIZE) - 1)" >> asm_mem.h
-	@echo "	CONFIG_STACK_BASE	== (CONFIG_STACK_END - $(CONFIG_IDLETHREAD_STACKSIZE))" >> asm_mem.h
+	@echo "	CONFIG_STACK_END == ($(CONFIG_DRAM_SIZE) - 1)" >> asm_mem.h
+	@echo "	CONFIG_STACK_BASE == (CONFIG_STACK_END - $(CONFIG_IDLETHREAD_STACKSIZE))" >> asm_mem.h
 
 # Combine all objects in this directory into a library
 
@@ -139,6 +138,7 @@ board/libboard$(LIBEXT):
 # This target builds the final executable
 
 nuttx.lnk:
+	@echo "LD: nuttx.lnk"
 	@echo "--" >nuttx.lnk						# Non-interactive
 	@echo "-k $(BOARDDIR)" >>nuttx.lnk			# Path to board library
 	@echo "-k $(TOPDIR)/lib" >>nuttx.lnk		# Path to top-level lib directory
@@ -156,18 +156,6 @@ ifneq ($(CONFIG_LINKER_DATA_AREA),)
 	@echo "-b _CODE=$(CONFIG_LINKER_DATA_AREA)" >>nuttx.lnk
 else
 	@echo "-b _DATA=0x8000" >>nuttx.lnk			# Start of _DATA area
-endif
-
-ifneq ($(CONFIG_LINKER_START_AREA),)
-	@echo "-b START=$(CONFIG_LINKER_START_AREA)" >>nuttx.lnk	# Start of START area
-endif
-ifneq ($(CONFIG_LINKER_CODE_AREA),)
-	@echo "-b _CODE=$(CONFIG_LINKER_CODE_AREA)" >>nuttx.lnk	# Start of _CODE area
-else
-	@echo "-b _CODE=256" >>nuttx.lnk			# Start of _CODE area
-endif
-ifneq ($(CONFIG_LINKER_DATA_AREA),)
-	@echo "-b _CODE=$(CONFIG_LINKER_DATA_AREA)" >>nuttx.lnk
 endif
 	@echo "-i" >>nuttx.lnk						# Intel hex format
 	@echo "-x" >>nuttx.lnk						# Hexadecimal

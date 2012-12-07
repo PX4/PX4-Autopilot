@@ -145,18 +145,15 @@ nuttx.lnk:
 	@echo -l libboard$(LIBEXT)>>nuttx.lnk
 	$(Q) for %%G in ($(LINKLIBS)) do ( echo -l $(TOPDIR)\lib\%%G>> nuttx.lnk )
 	@echo -l $(SDCCLIB)>>nuttx.lnk
-ifneq ($(CONFIG_LINKER_START_AREA),)
-	@echo -b START=$(CONFIG_LINKER_START_AREA)>>nuttx.lnk
-else
-	@echo -b START=0>>nuttx.lnk
-endif
 ifneq ($(CONFIG_LINKER_CODE_AREA),)
 	@echo -b _CODE=$(CONFIG_LINKER_CODE_AREA)>>nuttx.lnk
 else
-	@echo -b _CODE=256>>nuttx.lnk
+	@echo -b _CODE=0x0200>>nuttx.lnk
 endif
 ifneq ($(CONFIG_LINKER_DATA_AREA),)
 	@echo -b _CODE=$(CONFIG_LINKER_DATA_AREA)>>nuttx.lnk
+else
+	@echo -b _DATA=0x8000>>nuttx.lnk
 endif
 	@echo -i>>nuttx.lnk
 	@echo -x>>nuttx.lnk

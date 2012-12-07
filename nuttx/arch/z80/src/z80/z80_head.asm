@@ -1,7 +1,7 @@
 ;**************************************************************************
 ; arch/z80/src/z80/z80_head.asm
 ;
-;   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
+;   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
 ;   Author: Gregory Nutt <gnutt@nuttx.org>
 ;
 ; Redistribution and use in source and binary forms, with or without
@@ -92,70 +92,70 @@
 
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
-					; Offset 8: Return PC is already on the stack
-	push	af			; Offset 7: AF (retaining flags)
-	ld	a, #1			; 1 = Z80_RST1
-	jr	_up_rstcommon		; Remaining RST handling is common
+							; Offset 8: Return PC is already on the stack
+	push	af				; Offset 7: AF (retaining flags)
+	ld		a, #1			; 1 = Z80_RST1
+	jr		_up_rstcommon	; Remaining RST handling is common
 
 	.org	0x0010			; RST 2
 
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
-					; Offset 8: Return PC is already on the stack
-	push	af			; Offset 7: AF (retaining flags)
-	ld	a, #2			; 2 = Z80_RST2
-	jr	_up_rstcommon		; Remaining RST handling is common
+							; Offset 8: Return PC is already on the stack
+	push	af				; Offset 7: AF (retaining flags)
+	ld		a, #2			; 2 = Z80_RST2
+	jr		_up_rstcommon	; Remaining RST handling is common
 
 	.org	0x0018			; RST 3
 
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
-					; Offset 8: Return PC is already on the stack
-	push	af			; Offset 7: AF (retaining flags)
-	ld	a, #3			; 1 = Z80_RST3
-	jr	_up_rstcommon		; Remaining RST handling is common
+							; Offset 8: Return PC is already on the stack
+	push	af				; Offset 7: AF (retaining flags)
+	ld		a, #3			; 1 = Z80_RST3
+	jr		_up_rstcommon	; Remaining RST handling is common
 
 	.org	0x0020			; RST 4
 
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
-					; Offset 8: Return PC is already on the stack
-	push	af			; Offset 7: AF (retaining flags)
-	ld	a, #4			; 1 = Z80_RST4
-	jr	_up_rstcommon		; Remaining RST handling is common
+							; Offset 8: Return PC is already on the stack
+	push	af				; Offset 7: AF (retaining flags)
+	ld		a, #4			; 1 = Z80_RST4
+	jr		_up_rstcommon	; Remaining RST handling is common
 
 	.org	0x0028			; RST 5
 
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
-					; Offset 8: Return PC is already on the stack
-	push	af			; Offset 7: AF (retaining flags)
-	ld	a, #5			; 1 = Z80_RST5
-	jr	_up_rstcommon		; Remaining RST handling is common
+							; Offset 8: Return PC is already on the stack
+	push	af				; Offset 7: AF (retaining flags)
+	ld		a, #5			; 1 = Z80_RST5
+	jr		_up_rstcommon	; Remaining RST handling is common
 
 	.org	0x0030			; RST 6
 
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
-					; Offset 8: Return PC is already on the stack
-	push	af			; Offset 7: AF (retaining flags)
-	ld	a, #6			; 1 = Z80_RST6
-	jr	_up_rstcommon		; Remaining RST handling is common
+							; Offset 8: Return PC is already on the stack
+	push	af				; Offset 7: AF (retaining flags)
+	ld		a, #6			; 1 = Z80_RST6
+	jr		_up_rstcommon	; Remaining RST handling is common
 
 	.org   0x0038			; Int mode 1 / RST 7
 
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
-					; Offset 8: Return PC is already on the stack
-	push	af			; Offset 7: AF (retaining flags)
-	ld	a, #7			; 7 = Z80_RST7
-	jr	_up_rstcommon		; Remaining RST handling is common
+							; Offset 8: Return PC is already on the stack
+	push	af				; Offset 7: AF (retaining flags)
+	ld		a, #7			; 7 = Z80_RST7
+	jr		_up_rstcommon	; Remaining RST handling is common
 
 ;**************************************************************************
 ; NMI interrupt handler
 ;**************************************************************************
 
-	.org   0x0066
+	.org	0x0066
 	retn
 
 ;**************************************************************************
@@ -166,7 +166,7 @@ _up_reset:
 	; Set up the stack pointer at the location determined the Makefile
 	; and stored in asm_mem.h
 
-	ld	SP, #CONFIG_STACK_END	; Set stack pointer
+	ld		SP, #CONFIG_STACK_END	; Set stack pointer
 
 	; Performed initialization unique to the SDCC toolchain
 
@@ -179,8 +179,8 @@ _up_reset:
 	; NuttX will never return, but just in case...
 
 _up_halt::
-	halt				; We should never get here
-	jp	_up_halt
+	halt					; We should never get here
+	jp		_up_halt
 
 ;**************************************************************************
 ; Common Interrupt handler
@@ -195,98 +195,98 @@ _up_rstcommon::
 	;
 	; IRQ number is in A
 
-	push	hl			; Offset 6: HL
-	ld	hl, #(3*2)		;    HL is the value of the stack pointer before
-	add	hl, sp			;    the interrupt occurred
-	push	hl			; Offset 5: Stack pointer
-	push	iy			; Offset 4: IY
-	push	ix			; Offset 3: IX
-	push	de			; Offset 2: DE
-	push	bc			; Offset 1: BC
+	push	hl				; Offset 6: HL
+	ld		hl, #(3*2)		;    HL is the value of the stack pointer before
+	add		hl, sp			;    the interrupt occurred
+	push	hl				; Offset 5: Stack pointer
+	push	iy				; Offset 4: IY
+	push	ix				; Offset 3: IX
+	push	de				; Offset 2: DE
+	push	bc				; Offset 1: BC
 
-	ld	b, a			;   Save the reset number in B
-	ld	a, i			;   Parity bit holds interrupt state
-	push	af			; Offset 0: I with interrupt state in parity
+	ld		b, a			;   Save the reset number in B
+	ld		a, i			;   Parity bit holds interrupt state
+	push	af				; Offset 0: I with interrupt state in parity
 	di
 
-	; Call the interrupt decode logic. SP points to the beggining of the reg structure
+	; Call the interrupt decode logic. SP points to the beginning of the reg structure
 
-	ld	hl, #0			; Argument #2 is the beginning of the reg structure
-	add	hl, sp			;
-	push	hl			; Place argument #2 at the top of stack
-	push	bc			; Argument #1 is the Reset number
-	inc	sp			; (make byte sized)
+	ld		hl, #0			; Argument #2 is the beginning of the reg structure
+	add		hl, sp			;
+	push	hl				; Place argument #2 at the top of stack
+	push	bc				; Argument #1 is the Reset number
+	inc		sp				; (make byte sized)
 	call	_up_doirq		; Decode the IRQ
 
 	; On return, HL points to the beginning of the reg structure to restore
 	; Note that (1) the arguments pushed on the stack are not popped, and (2) the
 	; original stack pointer is lost.  In the normal case (no context switch),
-	; HL will contain the value of the SP before the arguments wer pushed.
+	; HL will contain the value of the SP before the arguments were pushed.
 
-	ld	sp, hl			; Use the new stack pointer
+	ld		sp, hl			; Use the new stack pointer
 
 	; Restore registers.  HL points to the beginning of the reg structure to restore
 
-	ex	af, af'			; Select alternate AF
-	pop	af			; Offset 0: AF' = I with interrupt state in carry
-	ex	af, af'			;   Restore original AF
-	pop	bc			; Offset 1: BC
-	pop	de			; Offset 2: DE
-	pop	ix			; Offset 3: IX
-	pop	iy			; Offset 4: IY
-	exx				;   Use alternate BC/DE/HL
-	ld	hl, #-2			;   Offset of SP to account for ret addr on stack
-	pop	de			; Offset 5: HL' = Stack pointer after return
-	add	hl, de			;   HL = Stack pointer value before return
-	exx				;   Restore original BC/DE/HL
-	pop	hl			; Offset 6: HL
-	pop	af			; Offset 7: AF
+	ex		af, af'			; Select alternate AF
+	pop		af				; Offset 0: AF' = I with interrupt state in carry
+	ex		af, af'			;   Restore original AF
+	pop		bc				; Offset 1: BC
+	pop		de				; Offset 2: DE
+	pop		ix				; Offset 3: IX
+	pop		iy				; Offset 4: IY
+	exx						;   Use alternate BC/DE/HL
+	ld		hl, #-2			;   Offset of SP to account for ret addr on stack
+	pop		de				; Offset 5: HL' = Stack pointer after return
+	add		hl, de			;   HL = Stack pointer value before return
+	exx						;   Restore original BC/DE/HL
+	pop		hl				; Offset 6: HL
+	pop		af				; Offset 7: AF
 
 	; Restore the stack pointer
 
-	exx				; Use alternate BC/DE/HL
-	ld	sp, hl			; Set SP = saved stack pointer value before return
-	exx				; Restore original BC/DE/HL
+	exx						; Use alternate BC/DE/HL
+	ld		sp, hl			; Set SP = saved stack pointer value before return
+	exx						; Restore original BC/DE/HL
 
 	; Restore interrupt state
 
-	ex	af, af'			; Recover interrupt state
-	jp	po, nointenable		; Odd parity, IFF2=0, means disabled
-	ex	af, af'			; Restore AF (before enabling interrupts)
-	ei				; yes
+	ex		af, af'			; Recover interrupt state
+	jp		po, nointenable	; Odd parity, IFF2=0, means disabled
+	ex		af, af'			; Restore AF (before enabling interrupts)
+	ei						; yes
 	reti
 nointenable::
-	ex	af, af'			; Restore AF
+	ex		af, af'			; Restore AF
 	reti
 
 ;**************************************************************************
 ; Ordering of segments for the linker (SDCC only)
 ;**************************************************************************
 
-	.area   _HOME
-	.area   _CODE
+	.area	_HOME
+	.area	_CODE
 	.area	_INITIALIZER
-	.area   _GSINIT
-	.area   _GSFINAL
+	.area	_GSINIT
+	.area	_GSFINAL
 
-	.area   _DATA
+	.area	_DATA
 	.area	_INITIALIZED
 	.area	_BSEG
-	.area   _BSS
-	.area   _HEAP
+	.area	_BSS
+	.area	_HEAP
 
 ;**************************************************************************
 ; Global data initialization logic (SDCC only)
 ;**************************************************************************
 
-	.area   _GSINIT
+	.area	_GSINIT
 gsinit::
-	ld	bc, #l__INITIALIZER
-	ld	a, b
-	or	a, c
-	jr	Z, gsinit_next
-	ld	de, #s__INITIALIZED
-	ld	hl, #s__INITIALIZER
+	ld		bc, #l__INITIALIZER
+	ld		a, b
+	or		a, c
+	jr		Z, gsinit_next
+	ld		de, #s__INITIALIZED
+	ld		hl, #s__INITIALIZER
 	ldir
 gsinit_next:
 
@@ -300,5 +300,5 @@ gsinit_next:
 
 	.area	_CODE
 _g_heapbase::
-	.dw	#s__HEAP
+	.dw		#s__HEAP
 
