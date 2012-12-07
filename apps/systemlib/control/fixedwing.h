@@ -48,6 +48,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_controls.h>
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -59,6 +60,10 @@
 #include "blocks.h"
 #include "block/UOrbSubscription.h"
 #include "block/UOrbPublication.h"
+
+extern "C" {
+#include <systemlib/geo/geo.h>
+}
 
 namespace control
 {
@@ -281,7 +286,7 @@ public:
     virtual ~BlockHeadingHold() {};
     void update(float psiCmd, float phi, float psi, float p)
     {
-        float psiError = psiCmd - psi;
+        float psiError = _wrap_pi(psiCmd - psi);
         float phiCmd = _phiLimit.update(_psi2Phi.update(psiError));
         float phiError = phiCmd - phi;
         _aileron = _phi2Ail.update(phiError - _p2Phi.update(p));
@@ -541,11 +546,7 @@ public:
         //abstime_to_ts(&ts,hrt_absolute_time());
         //float t = ts.tv_sec + ts.tv_nsec/1.0e9;
         //float u = sin(t);
-        
-        // TODO, calculate v
-        float v = 0;
-        float vCmd = 0;
-        float rCmd = 0;
+
 
         if (_status.state_machine == SYSTEM_STATE_STABILIZED)
         {
@@ -559,7 +560,34 @@ public:
         }
         else if (_status.state_machine == SYSTEM_STATE_AUTO)
         {
-            _backsideAutopilot.update(_posCmd.altitude, vCmd, rCmd, _posCmd.yaw,
+            // heading to waypoint
+			float psiTrack = get_bearing_to_next_waypoint((double)_pos.lat / (double)1e7d, (double)_pos.lon / (double)1e7d,
+			    (double)_posCmd.lat / (double)1e7d, (double)_posCmd.lon / (double)1e7d);
+
+            // cross track
+			//struct crosstrack_error_s xtrack_err;
+            // TODO get position of last waypoint
+            //int distance_res = get_distance_to_line(&xtrack_err, (double)_pos.lat / (double)1e7d, (double)_pos.lon / (double)1e7d,
+                //(double)start_pos.lat / (double)1e7d, (double)start_pos.lon / (double)1e7d,
+                //(double)global_setpoint.lat / (double)1e7d, (double)global_setpoint.lon / (double)1e7d);
+
+            // should move cross track calc to block TODO
+            //float crossTrackCorrect = distanceToLine*0.1; // 0.1 should be an adjustable gain
+            //if (crossTrackCorrect > 45) // limit should be adjustable
+                //crossTrackCorrect = 45;
+            //else if (crossTrackCorrect < 45)
+                //crossTrackCorrect = -45;
+            //float psiCmd = _wrap_2pi(psiTrack + crossTrackCorrect);
+            float psiCmd = psiTrack;
+
+            // calculate velocity, XXX should be airspeed, but using ground speed for now
+            float v = sqrtf(_pos.vx * _pos.vx + _pos.vy * _pos.vy);
+
+            // commands
+            float vCmd = 45;
+            float rCmd = 0;
+
+            _backsideAutopilot.update(_posCmd.altitude, vCmd, rCmd, psiCmd,
                 _pos.relative_alt, v,
                 _att.roll, _att.pitch, _att.yaw,
                 _att.rollspeed, _att.pitchspeed, _att.yawspeed
