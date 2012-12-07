@@ -58,18 +58,10 @@ endif
 CROSSDEV =
 CC = sdcc
 CPP = sdcpp
-
-ifeq ($(CONFIG_SDCC_OLD),y)
-  LD = link-z80
-  AS = as-z80
-  AR = sdcclib -a
-  ARCHCPUFLAGS = -mz80 --stack-auto --int-long-reent --float-reent
-else
-  LD = sdldz80
-  AS = sdasz80
-  AR = sdar -r
-  ARCHCPUFLAGS = -mz80
-endif
+LD = sdldz80
+AS = sdasz80
+AR = sdar -r
+ARCHCPUFLAGS = -mz80
 
 ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHOPTIMIZATION = --debug
@@ -84,7 +76,7 @@ ARCHINCLUDES = -I. -I$(TOPDIR)$(DELIM)include
 
 CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 CPPFLAGS = $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
-AFLAGS = -x -a -l -o -s
+AFLAGS = -x -a -l -o -s -g
 
 SDCCLIB = z80.lib
 

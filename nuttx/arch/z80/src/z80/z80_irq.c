@@ -48,14 +48,6 @@
  * Private Definitions
  ****************************************************************************/
 
-#ifdef CONFIG_SDCC_OLD
-#  define ASM    _asm
-#  define ENDASM _endasm
-#else
-#  define ASM    __asm
-#  define ENDASM __endasm
-#endif
-
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -88,13 +80,13 @@ volatile chipreg_t *current_regs;
 
 irqstate_t irqsave(void) __naked
 {
-  ASM
+  __asm
 	ld	a, i		; AF Parity bit holds interrupt state
 	di			; Interrupts are disabled
 	push	af		; Return AF in HL
 	pop	hl		;
 	ret			;
-  ENDASM;
+  __endasm;
 }
 
 /****************************************************************************
@@ -107,7 +99,7 @@ irqstate_t irqsave(void) __naked
 
 void irqrestore(irqstate_t flags) __naked
 {
-  ASM
+  __asm
 	di			; Assume disabled
 	pop	hl		; HL = return address
 	pop	af		; AF Parity bit holds interrupt state
@@ -117,5 +109,5 @@ statedisable:
 	push	af		; Restore stack
 	push	hl		;
 	ret			; and return
-  ENDASM;
+  __endasm;
 }

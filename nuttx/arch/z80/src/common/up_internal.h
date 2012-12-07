@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __UP_INTERNAL_H
-#define __UP_INTERNAL_H
+#ifndef __ARCH_Z80_SRC_COMMON_UP_INTERNAL_H
+#define __ARCH_Z80_SRC_COMMON_UP_INTERNAL_H
 
 /****************************************************************************
  * Conditional Compilation
@@ -209,4 +209,4 @@ EXTERN void up_stackdump(void);
 #endif
 #endif
 
-#endif  /* __UP_INTERNAL_H */
+#endif  /* __ARCH_Z80_SRC_COMMON_UP_INTERNAL_H */

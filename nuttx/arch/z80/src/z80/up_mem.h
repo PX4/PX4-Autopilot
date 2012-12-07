@@ -1,7 +1,7 @@
 /************************************************************************************
- * common/up_arch.h
+ * common/sdcc.h
  *
- *   Copyright (C) 2007, 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_Z80_SRC_COMMON_UP_ARCH_H
-#define __ARCH_Z80_SRC_COMMON_UP_ARCH_H
+#ifndef nuttx.lnk__ARCH_Z80_SRC_COMMON_UP_MEM_H
+#define nuttx.lnk__ARCH_Z80_SRC_COMMON_UP_MEM_H
 
 /************************************************************************************
  * Included Files
@@ -42,11 +42,34 @@
 
 #include <nuttx/config.h>
 
-#include <arch/board/board.h>
-#include "chip/chip.h"
-
 /************************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ************************************************************************************/
 
-#endif  /* __ARCH_Z80_SRC_COMMON_UP_ARCH_H */
+/* Locate the IDLE thread stack at the end of RAM. */
+
+#define CONFIG_STACK_END   CONFIG_DRAM_SIZE
+#define CONFIG_STACK_BASE  (CONFIG_STACK_END - CONFIG_IDLETHREAD_STACKSIZE)
+
+/* The heap then extends from the linker determined beginning of the heap (s__HEAP).
+ * to the bottom of the IDLE thread stack.  NOTE:  The symbol s__HEAP is not
+ * accessible from C because it does not begin with the _ character.  g_heapbase
+ * is defined in z80_head.asm to provide that value to the C code.
+ */
+
+#define CONFIG_HEAP1_END   CONFIG_STACK_BASE
+#define CONFIG_HEAP1_BASE  g_heapbase
+
+/************************************************************************************
+ * Public variables
+ ************************************************************************************/
+
+/* This is the bottom of the heap as provided by the linker symbol s__HEAP. NOTE:
+ * The symbol s__HEAP is not accessible from C because it does not begin with the _
+ * character.  g_heapbase is defined in z80_head.asm to provide that value to the C
+ * code.
+ */
+
+extern const uint16_t g_heapbase;
+
+#endif  /* nuttx.lnk__ARCH_Z80_SRC_COMMON_UP_MEM_H */

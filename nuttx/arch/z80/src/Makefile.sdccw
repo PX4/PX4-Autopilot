@@ -33,16 +33,13 @@
 #
 ############################################################################
 
-############################################################################
 # Tools
 # CFLAGS, CPPFLAGS, ASFLAGS, LDFLAGS are set in $(TOPDIR)\Make.defs
 
 CFLAGS += -I$(ARCH_SRCDIR)\chip -I$(ARCH_SRCDIR)\common -I$(TOPDIR)\sched
 CPPFLAGS += -D__ASSEMBLY__
 
-############################################################################
 # Files and directories
-
 # There should be one head source (.asm file)
 
 HEAD_OBJ = $(HEAD_ASRC:$(ASMEXT)=$(OBJEXT))
@@ -77,16 +74,11 @@ VPATH = chip:common:board
 
 LIBGCC = ${shell "$(CC)" $(ARCHCPUFLAGS) -print-libgcc-file-name}
 
-# Supports dynamic sizing of HEAP.
-#
-HEAP_BASE = ${shell .\mkhpbase.bat}
-
-############################################################################
 # Targets
 
 all: $(HEAD_OBJ) libarch$(LIBEXT)
 
-.PHONY: board\libboard$(LIBEXT) pass1.lnk nuttx.lnk
+.PHONY: board\libboard$(LIBEXT) nuttx.lnk
 
 $(AOBJS) $(HEAD_OBJ): %$(OBJEXT): %$(ASMEXT)
 	$(call ASSEMBLE, $<, $@)
@@ -96,69 +88,46 @@ $(COBJS): %$(OBJEXT): %.c
 
 # This is a kludge to work around some conflicting symbols in the SDCC libraries
 
-$(TOPDIR)\lib\myz80.lib: $(SDCC_LIBDIR)\$(SDCCLIB)
-ifeq ($(CONFIG_SDCC_OLD),y)
-	$(Q) cat $(SDCC_LIBDIR)\$(SDCCLIB) | \
-		grep -v alloc | grep -v free | grep -v printf | \
-		grep -v _str  | grep -v _mem | grep -v crt0\.o \
-		> $(TOPDIR)\lib\myz80.lib
-else
-	$(Q) cp $(SDCC_LIBDIR)\z80.lib $(TOPDIR)\lib\myz80.lib
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _calloc.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _malloc.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _realloc.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _free.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib printf_large.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib sprintf.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib vprintf.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib strcpy.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib strlen.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strcat.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strchr.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strcmp.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strcspn.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strncat.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strncmp.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strncpy.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strpbrk.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strrchr.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strspn.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strstr.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _strtok.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _memchr.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _memcmp.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _memcpy.rel
-	$(Q) sdar d $(TOPDIR)\lib\myz80.lib _memset.rel
-endif
+$(TOPDIR)\lib\$(SDCCLIB): $(SDCC_LIBDIR)\$(SDCCLIB)
+	$(Q) cp $(SDCC_LIBDIR)\$(SDCCLIB) $(TOPDIR)\lib\$(SDCCLIB)
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _calloc.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _malloc.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _realloc.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _free.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) printf_large.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) sprintf.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) vprintf.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) strcpy.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) strlen.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _strcat.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _strchr.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _strcmp.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _strcspn.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _strncat.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _strncmp.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _strncpy.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _strpbrk.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _strrchr.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _strspn.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _strstr.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _strtok.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _memchr.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _memcmp.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _memcpy.rel
+	$(Q) sdar d $(TOPDIR)\lib\$(SDCCLIB) _memset.rel
 
-# Create a header file that contains addressing information needed by the code
-
-up_mem.h:
-	@echo #ifndef __UP_MEM_H>up_mem.h
-	@echo #define __UP_MEM_H>>up_mem.h
-	@echo #include ^<nuttx/config.h^>>>up_mem.h
-	@echo #define CONFIG_STACK_END   $(CONFIG_DRAM_SIZE)>> up_mem.h
-	@echo #define CONFIG_STACK_BASE  (CONFIG_STACK_END - $(CONFIG_IDLETHREAD_STACKSIZE))>> up_mem.h
-	@echo #define CONFIG_HEAP1_END   CONFIG_STACK_BASE>> up_mem.h
-	@echo #define CONFIG_HEAP1_BASE  $(HEAP_BASE)>> up_mem.h
-	@echo #endif /* __UP_MEM_H */>>up_mem.h
+# Create a header file that contains addressing information needed by the
+# assemlby language start-up code.  Locate the IDLE thread stack at the
+# end of RAM.  The heap then extends from s__HEAP to the bottom of the
+# IDLE thread stack
 
 asm_mem.h:
-	@echo 	CONFIG_COMPILER_OTHER == ^0>asm_mem.h
-	@echo 	CONFIG_COMPILER_SDCC == ^1>>asm_mem.h
-ifeq ($(CC),sdcc)
-	@echo 	CONFIG_COMPILER == ^1>>asm_mem.h
-else
-	@echo 	CONFIG_COMPILER == ^0>>asm_mem.h
-endif
 	@echo 	CONFIG_STACK_END == ($(CONFIG_DRAM_SIZE) - 1)>>asm_mem.h
 	@echo 	CONFIG_STACK_BASE == (CONFIG_STACK_END - $(CONFIG_IDLETHREAD_STACKSIZE))>>asm_mem.h
-	@echo 	CONFIG_HEAP1_END == (CONFIG_STACK_END - $(CONFIG_IDLETHREAD_STACKSIZE) - 1)>>asm_mem.h
-	@echo 	CONFIG_HEAP1_BASE == $(HEAP_BASE)>>asm_mem.h
 
 # Combine all objects in this directory into a library
 
-libarch$(LIBEXT): up_mem.h asm_mem.h $(OBJS)
+libarch$(LIBEXT): asm_mem.h $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 # This builds the libboard library in the board\ subdirectory 
@@ -168,43 +137,6 @@ board\libboard$(LIBEXT):
 
 # This target builds the final executable
 
-pass1.lnk:
-	@echo LD: pass1.lnk
-	@echo -->pass1.lnk
-	@echo -k $(BOARDDIR)>>pass1.lnk
-	@echo -k  $(TOPDIR)\lib>>pass1.lnk
-	@echo -l libboard$(LIBEXT)>>pass1.lnk
-	$(Q) for %%G in ($(LINKLIBS)) do ( echo -l $(TOPDIR)\lib\%%G>> pass1.lnk )
-	@echo -l myz80.lib>>pass1.lnk
-ifneq ($(CONFIG_LINKER_START_AREA),)
-	@echo -b START=$(CONFIG_LINKER_START_AREA)>>pass1.lnk
-else
-	@echo -b START=0>>pass1.lnk
-endif
-ifneq ($(CONFIG_LINKER_CODE_AREA),)
-	@echo -b _CODE=$(CONFIG_LINKER_CODE_AREA)>>pass1.lnk
-else
-	@echo -b _CODE=256>>pass1.lnk
-endif
-ifneq ($(CONFIG_LINKER_DATA_AREA),)
-	@echo -b _CODE=$(CONFIG_LINKER_DATA_AREA)>>pass1.lnk
-endif
-	@echo -i>>pass1.lnk
-	@echo -x>>pass1.lnk
-	@echo -m>>pass1.lnk
-	@echo -j>>pass1.lnk
-	@echo pass1.ihx>>pass1.lnk
-	@echo $(HEAD_OBJ)>>pass1.lnk
-	@echo -e>>pass1.lnk
-
-pass1.ihx: up_mem.h asm_mem.h $(TOPDIR)\lib\myz80.lib $(HEAD_OBJ) board\libboard$(LIBEXT) pass1.lnk
-	@echo LD: pass1.ihx
-	$(Q) $(LD) -f pass1.lnk
-	$(Q) rm -f up_mem.h asm_mem.h
-	$(Q) rm -f up_allocateheap$(OBJEXT) $(HEAD_OBJ) libarch$(LIBEXT)
-	$(Q) $(MAKE) TOPDIR="$(TOPDIR)" libarch$(LIBEXT)
-	$(Q) $(MAKE) TOPDIR="$(TOPDIR)" $(HEAD_OBJ)
-
 nuttx.lnk:
 	@echo LD: nuttx.lnk
 	@echo -->nuttx.lnk
@@ -212,7 +144,7 @@ nuttx.lnk:
 	@echo -k  $(TOPDIR)\lib>>nuttx.lnk
 	@echo -l libboard$(LIBEXT)>>nuttx.lnk
 	$(Q) for %%G in ($(LINKLIBS)) do ( echo -l $(TOPDIR)\lib\%%G>> nuttx.lnk )
-	@echo -l myz80.lib>>nuttx.lnk
+	@echo -l $(SDCCLIB)>>nuttx.lnk
 ifneq ($(CONFIG_LINKER_START_AREA),)
 	@echo -b START=$(CONFIG_LINKER_START_AREA)>>nuttx.lnk
 else
@@ -234,10 +166,9 @@ endif
 	@echo $(HEAD_OBJ)>>nuttx.lnk
 	@echo -e>>nuttx.lnk
 
-nuttx$(EXEEXT): pass1.ihx up_mem.h asm_mem.h $(TOPDIR)\lib\myz80.lib $(HEAD_OBJ) board\libboard$(LIBEXT) nuttx.lnk
+nuttx$(EXEEXT): asm_mem.h $(TOPDIR)\lib\$(SDCCLIB) $(HEAD_OBJ) board\libboard$(LIBEXT) nuttx.lnk
 	@echo LD: nuttx.ihx
 	$(Q) $(LD) -f nuttx.lnk
-	$(call DELFILE, pass1.*)
 	$(Q) cp -f nuttx.map $(TOPDIR)\.
 ifeq ($(EXEEXT),.cmd)
 	sed s/:00000001FF/:00520001AD/ nuttx.ihx | \
@@ -254,7 +185,7 @@ export_head: board\libboard$(LIBEXT) $(HEAD_OBJ)
 
 # Build dependencies
 
-.depend: Makefile up_mem.h asm_mem.h chip\Make.defs $(DEPSRCS)
+.depend: Makefile asm_mem.h chip\Make.defs $(DEPSRCS)
 	$(Q) if exist board\Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" depend )
 	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
 	$(Q) touch $@
@@ -263,13 +194,10 @@ depend: .depend
 
 clean:
 	$(Q) if exist board\Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" clean )
-	$(call DELFILE, up_mem.h)
 	$(call DELFILE, asm_mem.h)
-	$(call DELFILE, pass1.*)
 	$(call DELFILE, nuttx.*)
 	$(call DELFILE, libarch$(LIBEXT))
 	$(call CLEAN)
-
 
 distclean: clean
 	$(Q) if exist board\Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" distclean )

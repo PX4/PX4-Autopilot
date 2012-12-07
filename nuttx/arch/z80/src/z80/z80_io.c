@@ -47,20 +47,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#undef ASM
-#undef ENDASM
-#undef NAKED
-
-#ifdef CONFIG_SDCC_OLD
-#  define ASM    _asm
-#  define ENDASM _endasm
-#  define NAKED
-#else
-#  define ASM    __asm
-#  define ENDASM __endasm
-#  define NAKED  __naked
-#endif
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -83,11 +69,11 @@
 
 void outp(char p, char c)
 {
-  ASM
+  __asm
 	ld      c, 4(ix)	; port
 	ld      a, 5(ix)	; value
 	out     (c), a
-  ENDASM;
+  __endasm;
 }
 
 
@@ -99,10 +85,10 @@ void outp(char p, char c)
  *
  ****************************************************************************/
 
-char inp(char p) NAKED
+char inp(char p) __naked
 {
-  ASM
+  __asm
 	ld      c, 4(ix)	;port
 	in      l, (c)
-  ENDASM;
+  __endasm;
 }
