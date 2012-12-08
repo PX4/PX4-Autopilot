@@ -236,20 +236,22 @@ public:
 // methods
    BlockDerivative(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
-        _state(0),
-        _lowPass(this, "FCUT")
+        _u(0),
+        _lowPass(this, "LP")
     {};
     virtual ~BlockDerivative() {};
     float update(float input);
 // accessors
-    void setState(float state) {_state = state;}
-    float getState() {return _state;}
-    float getFCut() {return _lowPass.getFCut();}
+    void setU(float u) {_u = u;}
+    float getU() {return _u;}
+    float getLP() {return _lowPass.getFCut();}
 protected:
 // attributes
-    float _state; /**< previous input */
+    float _u; /**< previous input */
     BlockLowPass _lowPass; /**< low pass filter */
 };
+
+int __EXPORT blockDerivativeTest();
 
 /**
  * A proportional controller.

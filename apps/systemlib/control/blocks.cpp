@@ -53,6 +53,7 @@ int basicBlocksTest()
     blockHighPassTest();
     blockIntegralTest();
     blockIntegralTrapTest();
+    blockDerivativeTest();
     return 0;
 }
 
@@ -294,9 +295,29 @@ int blockIntegralTrapTest()
 
 float BlockDerivative::update(float input)
 {
-    float output = (input - getState())/getDt();
-    setState(input);
+    float output = _lowPass.update((input - getU())/getDt());
+    setU(input);
     return output;
+}
+
+int blockDerivativeTest()
+{
+    printf("Test BlockDerivative\t\t: ");
+    BlockDerivative derivative(NULL,"TEST_D");
+    // test initial state
+    ASSERT(equal(0.0f,derivative.getU()));
+    ASSERT(equal(10.0f,derivative.getLP()));
+    // set dt
+    derivative.setDt(0.1f);
+    ASSERT(equal(0.1f,derivative.getDt()));
+    // set U
+    derivative.setU(1.0f);
+    ASSERT(equal(1.0f,derivative.getU()));
+    // test  update
+    ASSERT(equal(8.6269744f,derivative.update(2.0f)));
+    ASSERT(equal(2.0f,derivative.getU()));
+    printf("PASS\n");
+    return 0;
 }
 
 } // namespace control
