@@ -263,7 +263,7 @@ public:
 // methods
     BlockP(SuperBlock * parent, const char * name) :
         Block(parent, name),
-        _kP(this,"P")
+        _kP(this,"") // only one param, no need to name
     {};
     virtual ~BlockP() {};
     float update(float input)
@@ -275,6 +275,8 @@ public:
 protected:
     BlockParam<float> _kP;
 };
+
+int __EXPORT blockPTest();
 
 /**
  * A proportional-integral controller.

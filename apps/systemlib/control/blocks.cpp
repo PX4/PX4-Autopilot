@@ -54,6 +54,7 @@ int basicBlocksTest()
     blockIntegralTest();
     blockIntegralTrapTest();
     blockDerivativeTest();
+    blockPTest();
     return 0;
 }
 
@@ -319,5 +320,22 @@ int blockDerivativeTest()
     printf("PASS\n");
     return 0;
 }
+
+int blockPTest()
+{
+    printf("Test BlockP\t\t\t: ");
+    BlockP blockP(NULL,"TEST_P");
+    // test initial state
+    ASSERT(equal(0.2f,blockP.getKP()));
+    ASSERT(equal(0.0f,blockP.getDt()));
+    // set dt
+    blockP.setDt(0.1f);
+    ASSERT(equal(0.1f,blockP.getDt()));
+    // test  update
+    ASSERT(equal(0.4f,blockP.update(2.0f)));
+    printf("PASS\n");
+    return 0;
+}
+
 
 } // namespace control
