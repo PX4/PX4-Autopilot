@@ -51,6 +51,7 @@ int basicBlocksTest()
     blockLimitSymTest();
     blockLowPassTest();
     blockHighPassTest();
+    blockIntegralTest();
     return 0;
 }
 
@@ -80,6 +81,7 @@ float BlockLimit::update(float input)
 
 int blockLimitTest()
 {
+    printf("Test BlockLimit:\t");
     BlockLimit limit(NULL,"TEST");
     // initial state
     ASSERT(equal(1.0f,limit.getMax()));
@@ -89,7 +91,7 @@ int blockLimitTest()
     ASSERT(equal(-1.0f,limit.update(-2.0f)));
     ASSERT(equal(1.0f,limit.update(2.0f)));
     ASSERT(equal(0.0f,limit.update(0.0f)));
-    printf("BlockLimit:\ttest complete\n");
+    printf("PASS\n");
     return 0;
 }
 
@@ -108,6 +110,7 @@ float BlockLimitSym::update(float input)
 
 int blockLimitSymTest()
 {
+    printf("Test BlockLimitSym:\t");
     BlockLimitSym limit(NULL,"TEST");
     // initial state
     ASSERT(equal(1.0f,limit.getMax()));
@@ -116,7 +119,7 @@ int blockLimitSymTest()
     ASSERT(equal(-1.0f,limit.update(-2.0f)));
     ASSERT(equal(1.0f,limit.update(2.0f)));
     ASSERT(equal(0.0f,limit.update(0.0f)));
-    printf("BlockLimitSym:\ttest complete\n");
+    printf("PASS\n");
     return 0;
 }
 
@@ -130,6 +133,7 @@ float BlockLowPass::update(float input)
 
 int blockLowPassTest()
 {
+    printf("Test BlockLowPass:\t");
     BlockLowPass lowPass(NULL,"TEST_LP");
     // test initial state
     ASSERT(equal(10.0f,lowPass.getFCut()));
@@ -150,7 +154,7 @@ int blockLowPassTest()
     }
     ASSERT(equal(2.0f,lowPass.getState()));
     ASSERT(equal(2.0f,lowPass.update(2.0f)));
-    printf("BlockLowPass:\ttest complete\n");
+    printf("PASS\n");
     return 0;
 };
 
@@ -165,6 +169,7 @@ float BlockHighPass::update(float input)
 
 int blockHighPassTest()
 {
+    printf("Test BlockHighPass:\t");
     BlockHighPass highPass(NULL,"TEST_HP");
     // test initial state
     ASSERT(equal(10.0f,highPass.getFCut()));
@@ -188,16 +193,59 @@ int blockHighPassTest()
     }
     ASSERT(equal(0.0f,highPass.getY()));
     ASSERT(equal(0.0f,highPass.update(2.0f)));
-    printf("BlockHighPass:\ttest complete\n");
+    printf("PASS\n");
     return 0;
 }
 
 float BlockIntegral::update(float input)
 {
     // trapezoidal integration
-    setState(_limit.update(getState() + 
-                (getState() + input)*getDt()/2));
-    return getState();
+    setY(_limit.update(getY() + 
+                (getU() + input)/2.0f*getDt()));
+    setU(input);
+    return getY();
+}
+
+int blockIntegralTest()
+{
+    printf("Test BlockIntegral:\t");
+    BlockIntegral integral(NULL,"TEST_I");
+    // test initial state
+    ASSERT(equal(1.0f,integral.getMax()));
+    ASSERT(equal(-1.0f,integral.getMin()));
+    ASSERT(equal(0.0f,integral.getDt()));
+    // set dt
+    integral.setDt(0.1f);
+    ASSERT(equal(0.1f,integral.getDt()));
+    // set U
+    integral.setU(1.0f);
+    ASSERT(equal(1.0f,integral.getU()));
+    // set Y
+    integral.setY(1.0f);
+    ASSERT(equal(1.0f,integral.getY()));
+    // test exceed max
+    for (int i=0;i<100;i++)
+    {
+        integral.update(1.0f);
+    }
+    ASSERT(equal(1.0f,integral.update(1.0f)));
+    // test exceed min
+    integral.setU(-1.0f);
+    integral.setY(-1.0f);
+    ASSERT(equal(-1.0f,integral.getY()));
+    for (int i=0;i<100;i++)
+    {
+        integral.update(-1.0f);
+    }
+    ASSERT(equal(-1.0f,integral.update(-1.0f)));
+    // test update
+    integral.setU(2.0f);
+    integral.setY(1.0f);
+    ASSERT(equal(2.15f,integral.update(1.0)));
+    ASSERT(equal(2.15f,integral.getY()));
+    ASSERT(equal(1.0f,integral.getU()));
+    printf("PASS\n");
+    return 0;
 }
 
 float BlockDerivative::update(float input)

@@ -173,20 +173,26 @@ public:
 // methods
    BlockIntegral(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
-        _state(0),
+        _u(0),
+        _y(0),
         _limit(this, "") {};
     virtual ~BlockIntegral() {};
     float update(float input);
 // accessors
-    float getState() {return _state;}
+    float getU() {return _u;}
+    float getY() {return _y;}
     float getMin() {return _limit.getMin();}
     float getMax() {return _limit.getMax();}
-    void setState(float state) {_state = state;}
+    void setU(float u) {_u = u;}
+    void setY(float y) {_y = y;}
 protected:
 // attributes
-    float _state; /**< previous output */
+    float _u; /**< previous input */
+    float _y; /**< previous output */
     BlockLimit _limit; /**< limiter */
 };
+
+int __EXPORT blockIntegralTest();
 
 /**
  * A simple derivative approximation.
