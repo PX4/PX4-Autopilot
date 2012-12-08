@@ -1,6 +1,12 @@
 #include <systemlib/param/param.h>
+// WARNING:
+//  do not changes these unless
+//  you want to recompute the 
+//  answers for all of the unit tests
+
 PARAM_DEFINE_FLOAT(TEST_MIN,-1.0f);
 PARAM_DEFINE_FLOAT(TEST_MAX,1.0f);
+PARAM_DEFINE_FLOAT(TEST_TRIM,0.5f);
 PARAM_DEFINE_FLOAT(TEST_HP,10.0f);
 PARAM_DEFINE_FLOAT(TEST_LP,10.0f);
 

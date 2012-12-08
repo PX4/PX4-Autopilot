@@ -55,6 +55,10 @@ int basicBlocksTest()
     blockIntegralTrapTest();
     blockDerivativeTest();
     blockPTest();
+    blockPITest();
+    blockPDTest();
+    blockPIDTest();
+    blockOutputTest();
     return 0;
 }
 
@@ -337,5 +341,99 @@ int blockPTest()
     return 0;
 }
 
+int blockPITest()
+{
+    printf("Test BlockPI\t\t\t: ");
+    BlockPI blockPI(NULL,"TEST");
+    // test initial state
+    ASSERT(equal(0.2f,blockPI.getKP()));
+    ASSERT(equal(0.1f,blockPI.getKI()));
+    ASSERT(equal(0.0f,blockPI.getDt()));
+    ASSERT(equal(1.0f,blockPI.getIntegral().getMax()));
+    ASSERT(equal(-1.0f,blockPI.getIntegral().getMin()));
+    // set dt
+    blockPI.setDt(0.1f);
+    ASSERT(equal(0.1f,blockPI.getDt()));
+    // set integral state
+    blockPI.getIntegral().setY(0.1f);
+    ASSERT(equal(0.1f,blockPI.getIntegral().getY()));
+    // test  update
+    // 0.2*2 + 0.1*(2*0.1 + 0.1) = 0.43
+    ASSERT(equal(0.43f,blockPI.update(2.0f)));
+    printf("PASS\n");
+    return 0;
+}
+
+int blockPDTest()
+{
+    printf("Test BlockPD\t\t\t: ");
+    BlockPD blockPD(NULL,"TEST");
+    // test initial state
+    ASSERT(equal(0.2f,blockPD.getKP()));
+    ASSERT(equal(0.01f,blockPD.getKD()));
+    ASSERT(equal(0.0f,blockPD.getDt()));
+    ASSERT(equal(10.0f,blockPD.getDerivative().getLP()));
+    // set dt
+    blockPD.setDt(0.1f);
+    ASSERT(equal(0.1f,blockPD.getDt()));
+    // set derivative state
+    blockPD.getDerivative().setU(1.0f);
+    ASSERT(equal(1.0f,blockPD.getDerivative().getU()));
+    // test  update
+    // 0.2*2 + 0.1*(0.1*8.626...) = 0.486269744
+    ASSERT(equal(0.486269744f,blockPD.update(2.0f)));
+    printf("PASS\n");
+    return 0;
+}
+
+int blockPIDTest()
+{
+    printf("Test BlockPID\t\t\t: ");
+    BlockPID blockPID(NULL,"TEST");
+    // test initial state
+    ASSERT(equal(0.2f,blockPID.getKP()));
+    ASSERT(equal(0.1f,blockPID.getKI()));
+    ASSERT(equal(0.01f,blockPID.getKD()));
+    ASSERT(equal(0.0f,blockPID.getDt()));
+    ASSERT(equal(10.0f,blockPID.getDerivative().getLP()));
+    ASSERT(equal(1.0f,blockPID.getIntegral().getMax()));
+    ASSERT(equal(-1.0f,blockPID.getIntegral().getMin()));
+    // set dt
+    blockPID.setDt(0.1f);
+    ASSERT(equal(0.1f,blockPID.getDt()));
+    // set derivative state
+    blockPID.getDerivative().setU(1.0f);
+    ASSERT(equal(1.0f,blockPID.getDerivative().getU()));
+    // set integral state
+    blockPID.getIntegral().setY(0.1f);
+    ASSERT(equal(0.1f,blockPID.getIntegral().getY()));
+    // test  update
+    // 0.2*2 + 0.1*(2*0.1 + 0.1) + 0.1*(0.1*8.626...) = 0.5162697
+    ASSERT(equal(0.5162697f,blockPID.update(2.0f)));
+    printf("PASS\n");
+    return 0;
+}
+
+int blockOutputTest()
+{
+    printf("Test BlockOutput\t\t: ");
+    BlockOutput blockOutput(NULL,"TEST");
+    // test initial state
+    ASSERT(equal(0.0f,blockOutput.getDt()));
+    ASSERT(equal(0.5f,blockOutput.get()));
+    ASSERT(equal(-1.0f,blockOutput.getMin()));
+    ASSERT(equal(1.0f,blockOutput.getMax()));
+    // test update below min
+    blockOutput.update(-2.0f);
+    ASSERT(equal(-1.0f,blockOutput.get()));
+    // test update above max
+    blockOutput.update(2.0f);
+    ASSERT(equal(1.0f,blockOutput.get()));
+    // test trim
+    blockOutput.update(0.0f);
+    ASSERT(equal(0.5f,blockOutput.get()));
+    printf("PASS\n");
+    return 0;
+}
 
 } // namespace control

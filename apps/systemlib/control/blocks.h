@@ -308,6 +308,8 @@ private:
     BlockParam<float> _kI;
 };
 
+int __EXPORT blockPITest();
+
 /**
  * A proportional-derivative controller.
  * @link http://en.wikipedia.org/wiki/PID_controller
@@ -337,6 +339,8 @@ private:
     BlockParam<float> _kP;
     BlockParam<float> _kD;
 };
+
+int __EXPORT blockPDTest();
 
 /**
  * A proportional-integral-derivative controller.
@@ -376,6 +380,8 @@ private:
     BlockParam<float> _kD;
 };
 
+int __EXPORT blockPIDTest();
+
 /**
  * An output trim/ saturation block
  */
@@ -407,5 +413,7 @@ private:
     BlockLimit _limit;
     float _val;
 };
+
+int __EXPORT blockOutputTest();
 
 } // namespace control
