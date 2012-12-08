@@ -6,18 +6,50 @@
 if ARCH_CHIP_Z80
 
 choice
-        prompt "Toolchain Selection"
-        default Z80_TOOLCHAIN_SDCCW if HOST_WINDOWS
-        default Z80_TOOLCHAIN_SDCCL if !HOST_WINDOWS
+	prompt "Toolchain Selection"
+	default Z80_TOOLCHAIN_SDCCW if HOST_WINDOWS
+	default Z80_TOOLCHAIN_SDCCL if !HOST_WINDOWS
 
 config Z80_TOOLCHAIN_SDCCL
         bool "SDCC for Linux, MAC OSX, or Cygwin"
 	depends on !WINDOWS_NATIVE
 
 config Z80_TOOLCHAIN_SDCCW
-        bool "SDCC for Windows"
-        depends on HOST_WINDOWS
+	bool "SDCC for Windows"
+	depends on HOST_WINDOWS
 
 endchoice
+
+config LINKER_HOME_AREA
+	hex "Start of _HOME area"
+	default 0x0000
+	---help---
+		Start of the linker HOME area.  Default: 0x0000
+
+config LINKER_CODE_AREA
+	hex "Start of _CODE area"
+	default 0x0200
+	---help---
+		Start of the linker _CODE area.  Default: 0x0200
+
+config LINKER_DATA_AREA
+	hex "Start of _DATA area"
+	default 0x8000
+	---help---
+		Start of the linker _DATA area.  Default: 0x8000
+
+config LINKER_ROM_AT_0000
+	bool "ROM at 0x0000"
+	default n
+	---help---
+		Some architectures may have ROM located at address zero.  In this
+		case, a special version of the "head" file must be used.
+
+config ARCH_HAVEHEAD
+	bool "Board-specific Head File"
+	default n
+	---help---
+		Use a board-specific version of the "head" file in the
+		configs/<board-name>/src directory
 
 endif

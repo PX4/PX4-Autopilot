@@ -139,8 +139,13 @@ by modifying the configuration file as follows:
 You may need to first manually change the CONFIG_APPS_DIR="..\apps" definition
 in the .config file because the backslash may upset some Unix-based tools.
 
+This configuration will require a recent version of SDCC (ca. 3.2.1) for Linux
+or custom built for Cygwin (see below).
+
 You cannot use the default setenv.bat in these Unix-like enviroments because
 that is a Windows batch file.  Use configs/z80sim/script/setenv.sh instead.
+setenv.sh must include the path to the installation location of SDCC (probably
+/usr/local/bin).
 
 SDCC
 ^^^^

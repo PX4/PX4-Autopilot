@@ -17,4 +17,13 @@ config Z8_UART1
 	default y
 	select ARCH_HAVE_UART1
 
+# The ZiLOG ZDS-II Windows toolchain is the only toolchain available for
+# the ez80.
+#
+
+config Z8_TOOLCHAIN_ZDSII
+	bool
+	default y if ARCH_CHIP_Z8
+	default n if !ARCH_CHIP_Z8
+
 endif

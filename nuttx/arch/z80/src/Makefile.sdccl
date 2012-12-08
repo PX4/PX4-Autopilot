@@ -147,6 +147,9 @@ nuttx.lnk:
 		echo "-l $(TOPDIR)/lib/$$LIB" >> nuttx.lnk ;\
 	done
 	@echo "-l $(SDCCLIB)" >>nuttx.lnk			# Name of SDCC z80 library
+ifneq ($(CONFIG_LINKER_HOME_AREA),)
+	@echo "-b _HOME=$(CONFIG_LINKER_HOME_AREA)" >>nuttx.lnk	# Start of _HOME area
+endif
 ifneq ($(CONFIG_LINKER_CODE_AREA),)
 	@echo "-b _CODE=$(CONFIG_LINKER_CODE_AREA)" >>nuttx.lnk	# Start of _CODE area
 else

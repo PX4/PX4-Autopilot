@@ -3767,4 +3767,7 @@
 	* tools/copydir.sh:  Rename tools/winlink.sh to tools/copydir.sh
 	* tools/link.bat, unlink.bat, and copydir.bat:  Add Windows counterparts
 	  to the link.sh, unlink.sh, and copydir.sh Bash scripts.
+	* configs/z80sim/pashello:  Now builds correctly.
+	* configs/xtrs/ostest:  Converted to (1) used the kconfig-frontends
+	  configuration tool, and (2) to build natively under Windows.
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 # configs/xtrs/ostest/setenv.sh
 #
-#   Copyright (C) 2008 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,14 +32,41 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-if [ "$(basename $0)" = "setenv.sh" ] ; then
+if [ "$_" = "$0" ] ; then
   echo "You must source this script, not run it!" 1>&2
   exit 1
 fi
 
-if [ -z ${PATH_ORIG} ]; then export PATH_ORIG=${PATH}; fi
+WD=`pwd`
+if [ ! -x "setenv.sh" ]; then
+  echo "This script must be executed from the top-level NuttX build directory"
+  exit 1
+fi
 
-export SDCC_BIN=/usr/local/bin
-export PATH=${SDCC_BIN}:/sbin:/usr/sbin:${PATH_ORIG}
+if [ -z "${PATH_ORIG}" ]; then
+  export PATH_ORIG="${PATH}"
+fi
+
+#
+# This is the normal installation directory for SDCC under Linux, OSX
+# or Linux:
+#
+export TOOLCHAIN_BIN=/usr/local/bin
+
+#
+# This is the normal installation directory for SDCC under Windows
+#
+#export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/SDCC/bin"
+
+#
+# Add the path to the toolchain to the PATH varialble
+#
+export PATH="${TOOLCHAIN_BIN}":/sbin:/usr/sbin:${PATH_ORIG}
+
+#
+# This is the location where the XTRS hex2cmd program is available
+#
+# export HEX2CMD_BIN=????
+# export PATH="${HEX2CMD_BIN}":${PATH}
 
 echo "PATH : ${PATH}"

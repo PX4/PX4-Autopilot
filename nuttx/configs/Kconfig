@@ -548,6 +548,7 @@ config ARCH_BOARD_VSN
 config ARCH_BOARD_XTRS
 	bool "XTRS TRS80 Model 3 emulation"
 	depends on ARCH_CHIP_Z80
+	select ARCH_HAVE_UART
 	---help---
 		TRS80 Model 3.  This port uses a vintage computer based on the Z80.
 		An emulator for this computer is available to run TRS80 programs on a

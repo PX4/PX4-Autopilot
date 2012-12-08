@@ -31,6 +31,15 @@ config EZ80_EMAC
 
 endmenu
 
+# The ZiLOG ZDS-II Windows toolchain is the only toolchain available for
+# the ez80.
+#
+
+config EZ80_TOOLCHAIN_ZDSII
+	bool
+	default y if ARCH_CHIP_EZ80
+	default n if !ARCH_CHIP_EZ80
+
 if EZ80_EMAC
 
 config EZ80_FIAD

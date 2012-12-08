@@ -52,10 +52,29 @@ Configuring NuttX
     This configuration performs a simple, minimal OS test using
     examples/ostest.  This can be configurated as follows:
 
+    1) From a POSIX window:
        cd tools
-       ./configure.sh xtrs/ostest
-       cd -
-       . ./setenv.sh
+       ./configure.sh z80sim/pashello
+    2) From a CMD.exe window
+       setenv.bat
+
+    The setenv.bat will need to be updated to include the PATH to the XTRS
+    hex2cmd program.
+
+    NOTES:
+
+    1. This configuration uses the mconf-based configuration tool.  See the
+       "Reconfiguring" section below for information about changing this
+       configuration.
+
+    2. The default setup for this configuration uses a windows native build.
+       See the section entitled "Reconfiguring for Linux, OSX, or Cygwin"
+       which will give you the steps you would need to do to convert this
+       configuration to build in other, Unix-like environments.
+
+    3. This configuration was last verified sucessfully prior to the
+       the configure to Kconfig/mconf tool using SDCC 2.6.0 built to run
+       natively under Cygwin.  The current build requires ca. 3.2.1 SDCC.
 
   nsh
 
@@ -118,8 +137,13 @@ by modifying the configuration file as follows:
 You may need to first manually change the CONFIG_APPS_DIR="..\apps" definition
 in the .config file because the backslash may upset some Unix-based tools.
 
+This configuration will require a recent version of SDCC (ca. 3.2.1) for Linux
+or custom built for Cygwin (see below).
+
 You cannot use the default setenv.bat in these Unix-like enviroments because
 that is a Windows batch file.  Use configs/z80sim/script/setenv.sh instead.
+setenv.sh must include the path to the installation location of SDCC (probably
+/usr/local/bin).
 
 SDCC
 ^^^^

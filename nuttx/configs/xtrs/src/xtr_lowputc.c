@@ -53,7 +53,7 @@
 
 /* Includes trs80-m3.h for assembler call addresses */
 
-#include <board/board.h>
+#include <arch/board/board.h>
 
 /********************************************************************************
  * Definitions
@@ -81,13 +81,13 @@
 
 void z80_lowputc(char ch) __naked
 {
-  _asm
-	ld	hl, #2
-	add	hl, sp
-	ld	a, (hl)
-	call    _TRS80_M3_VDCHAR	;0x0033
+  __asm
+	ld		hl, #2
+	add		hl, sp
+	ld		a, (hl)
+	call	_TRS80_M3_VDCHAR	;0x0033
 	ret
-  _endasm;
+  __endasm;
 }
 
 /********************************************************************************
@@ -96,10 +96,10 @@ void z80_lowputc(char ch) __naked
 
 char z80_lowgetc(void) __naked
 {
-  _asm
-	call    _TRS80_M3_KBDSCN	;0x002b
-	ld	l, a
-	ld	h, #0
+  __asm
+	call	_TRS80_M3_KBDSCN	;0x002b
+	ld		l, a
+	ld		h, #0
 	ret
-  _endasm;
+  __endasm;
 }

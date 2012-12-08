@@ -145,6 +145,9 @@ nuttx.lnk:
 	@echo -l libboard$(LIBEXT)>>nuttx.lnk
 	$(Q) for %%G in ($(LINKLIBS)) do ( echo -l $(TOPDIR)\lib\%%G>> nuttx.lnk )
 	@echo -l $(SDCCLIB)>>nuttx.lnk
+ifneq ($(CONFIG_LINKER_HOME_AREA),)
+	@echo -b _HOME=$(CONFIG_LINKER_HOME_AREA)>>nuttx.lnk
+endif
 ifneq ($(CONFIG_LINKER_CODE_AREA),)
 	@echo -b _CODE=$(CONFIG_LINKER_CODE_AREA)>>nuttx.lnk
 else

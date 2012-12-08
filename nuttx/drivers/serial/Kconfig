@@ -422,7 +422,7 @@ config UART_TXBUFSIZE
 
 config UART_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the UART.
 
@@ -465,7 +465,7 @@ config UART0_TXBUFSIZE
 
 config UART0_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the UART.
 
@@ -508,7 +508,7 @@ config USART0_TXBUFSIZE
 
 config USART0_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the USART.
 
@@ -551,7 +551,7 @@ config UART1_TXBUFSIZE
 
 config UART1_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the UART.
 
@@ -594,7 +594,7 @@ config USART1_TXBUFSIZE
 
 config USART1_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the USART.
 
@@ -637,7 +637,7 @@ config UART2_TXBUFSIZE
 
 config UART2_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the UART.
 
@@ -680,7 +680,7 @@ config USART2_TXBUFSIZE
 
 config USART2_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the USART.
 
@@ -723,7 +723,7 @@ config UART3_TXBUFSIZE
 
 config UART3_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the UART.
 
@@ -766,7 +766,7 @@ config USART3_TXBUFSIZE
 
 config USART3_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the USART.
 
@@ -809,7 +809,7 @@ config UART4_TXBUFSIZE
 
 config UART4_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the UART.
 
@@ -852,7 +852,7 @@ config USART4_TXBUFSIZE
 
 config USART4_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the USART.
 
@@ -895,7 +895,7 @@ config UART5_TXBUFSIZE
 
 config UART5_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the UART.
 
@@ -938,7 +938,7 @@ config USART5_TXBUFSIZE
 
 config USART5_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the USART.
 
@@ -981,7 +981,7 @@ config USART6_TXBUFSIZE
 
 config USART6_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the USART.
 
@@ -1024,7 +1024,7 @@ config UART6_TXBUFSIZE
 
 config UART6_BAUD
 	int "baud rate"
-	default 11520
+	default 115200
 	help
 	  The configured BAUD of the UART.
 
