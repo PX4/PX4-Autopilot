@@ -112,7 +112,7 @@ endif
 
 ifeq ($(WINTOOL),y)
   # Windows-native host tools
-  DIRLINK = $(TOPDIR)/tools/winlink.sh
+  DIRLINK = $(TOPDIR)/tools/copydir.sh
   DIRUNLINK = $(TOPDIR)/tools/unlink.sh
   MKDEP = $(TOPDIR)/tools/mknulldeps.sh
 else

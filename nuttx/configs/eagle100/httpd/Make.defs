@@ -64,7 +64,7 @@ ifeq ($(CROSSDEV),arm-nuttx-elf-)
   MAXOPTIMIZATION	= -Os
 else
   WINTOOL		= y
-  DIRLINK 		= $(TOPDIR)/tools/winlink.sh
+  DIRLINK 		= $(TOPDIR)/tools/copydir.sh
   DIRUNLINK		= $(TOPDIR)/tools/unlink.sh
   MKDEP			= $(TOPDIR)/tools/mknulldeps.sh
   ARCHCPUFLAGS		= -mcpu=cortex-m3 -mthumb -mfloat-abi=soft

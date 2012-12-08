@@ -71,7 +71,7 @@ ifeq ($(CROSSDEV),arm-nuttx-elf-)
   MAXOPTIMIZATION	= -Os
 else
   WINTOOL		= y
-  DIRLINK		= $(TOPDIR)/tools/winlink.sh
+  DIRLINK		= $(TOPDIR)/tools/copydir.sh
   DIRUNLINK		= $(TOPDIR)/tools/unlink.sh
   MKDEP			= $(TOPDIR)/tools/mknulldeps.sh
   ARCHINCLUDES		= -I. -isystem "${shell cygpath -w $(TOPDIR)/include}"

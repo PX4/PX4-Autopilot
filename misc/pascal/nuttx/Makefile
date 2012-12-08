@@ -111,7 +111,7 @@ $(APPDIR)$(DELIM)include$(DELIM)pcode$(DELIM)insn: $(APPDIR)$(DELIM)include$(DEL
 	@$(DIRLINK) $(PCODEDIR)$(DELIM)insn$(DELIM)include $(APPDIR)$(DELIM)include$(DELIM)pcode$(DELIM)insn
 
 .built: $(APPDIR)$(DELIM)include$(DELIM)pcode $(APPDIR)$(DELIM)include$(DELIM)pcode$(DELIM)insn $(OBJS)
-	$(call ARCHIVE, $@, $(OBJS))
+	$(call ARCHIVE, $(BIN), $(OBJS))
 	@touch .built
 
 context: $(APPDIR)$(DELIM)include$(DELIM)pcode $(APPDIR)$(DELIM)include$(DELIM)pcode$(DELIM)insn

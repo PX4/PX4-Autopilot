@@ -369,8 +369,11 @@ incdir.bat
   that context:  MinGW-GCC.
 
 link.sh
-winlink.sh
+link.bat
+copydir.sh
+copydir.bat
 unlink.sh
+unlink.bat
 ----------
 
   Different file system have different capabilities for symbolic links.
@@ -390,18 +393,25 @@ unlink.sh
   default.  link.sh is a bash script that performs a normal, Linux-style
   symbolic link;  unlink.sh is a do-it-all unlinking script.
 
-  But if you are building under cygwin using a Windows native toolchain,
-  then you will need something like the following in you Make.defs file:
+  But if you are building under cygwin using a Windows native toolchain
+  within a POSIX framework (such as Cygwin), then you will need something
+  like the following in you Make.defs file:
 
-    DIRLINK = $(TOPDIR)/tools/winlink.sh
+    DIRLINK = $(TOPDIR)/tools/copydir.sh
     DIRUNLINK = (TOPDIR)/tools/unlink.sh
 
-  winlink.sh will copy the whole directory instead of linking it.
+  copydir.sh will copy the whole directory instead of linking it.
 
-  NOTE:  I have been told that some NuttX users have been able to build
-  successfully using the GnuWin32 tools and modifying the link.sh
-  script so that it uses the NTFS mklink command.  But I have never
-  tried that
+  Finally, if you are running in a pure native Windows environment with
+  a CMD.exe shell, then you will need something like this:
+
+    DIRLINK = $(TOPDIR)/tools/copydir.bat
+    DIRUNLINK = (TOPDIR)/tools/unlink.bat
+
+  Note that this will copy directories.  ;ink.bat might also be used in
+  this case.  link.bat will attempt to create a symbolic link using the
+  NTFS mklink.exe command instead of copying files.  That logic, however,
+  has not been verified as of this writing.
 
 mkimage.sh
 ----------

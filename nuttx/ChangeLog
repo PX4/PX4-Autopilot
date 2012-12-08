@@ -3764,3 +3764,7 @@
 	* configs/z80sim/nsh and pashello:  Converted to (1) used the kconfig-frontends
 	  configuration tool, and (2) to build natively under Windows.  The NSH
 	  configuration is verified; the pashello configuration needs a more TLC.
+	* tools/copydir.sh:  Rename tools/winlink.sh to tools/copydir.sh
+	* tools/link.bat, unlink.bat, and copydir.bat:  Add Windows counterparts
+	  to the link.sh, unlink.sh, and copydir.sh Bash scripts.
+

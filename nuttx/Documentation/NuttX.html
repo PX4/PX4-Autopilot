@@ -2957,7 +2957,7 @@ avr, m68k, m68hc11, m68hc12, m9s12, blackfin, m32c, h8, and SuperH ports.</block
       </p>
       <p><small>
         NOTE: In this environment, it should be possible to use the NTFS <code>mklink</code> command to create links.
-        This should only require a minor modification to the build scripts (see <code>tools/winlink.sh</code> script).
+        This should only require a minor modification to the build scripts (see <code>tools/copydir.sh</code> script).
       </small></p>
       <li>
         <b>Dependencies</b>
@@ -3057,7 +3057,7 @@ if [ -x "$WINELOADER" ]; then exec "$WINELOADER" "$appname" "$@"; fi
         NOTE: One of the members on the <a href="http://tech.groups.yahoo.com/group/nuttx/">NuttX forum</a>
         reported that they successful built NuttX using such a GNUWin32-based, Windows native environment.
         They reported that the only necessary change was to the use the NTFS mklink command to create links
-        (see <code>tools/winlink.sh</code> script).
+        (see <code>tools/copydir.sh</code> script).
       </small></p>
   </td>
 </tr>

@@ -56,7 +56,7 @@ EXTRA_LIBS = -lsupc++
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains
-  DIRLINK = $(TOPDIR)/tools/winlink.sh
+  DIRLINK = $(TOPDIR)/tools/copydir.sh
   DIRUNLINK = $(TOPDIR)/tools/unlink.sh
   MKDEP = $(TOPDIR)/tools/mknulldeps.sh
   ARCHINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}"

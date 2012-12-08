@@ -131,6 +131,16 @@ ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   # Windows-native host tools
 
   MKDEP = $(TOPDIR)\tools\mkdeps.exe --winnative
+
+  # Use NTFS links or directory copies
+
+ifeq ($(CONFIG_WINDOWS_MKLINK),y)
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)link.bat
+else
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)copydir.bat
+endif
+DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.bat
+
 else
 
 # Linux/Cygwin host tool definitions
@@ -148,10 +158,10 @@ else
   # running under Cygwin does not
 
 ifeq ($(WINTOOL),y)
-  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)winlink.sh
-  DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.sh
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)copydir.sh
 else
   DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)link.sh
-  DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.sh
 endif
+DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.sh
+
 endif
