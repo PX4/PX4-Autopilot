@@ -25,10 +25,11 @@ Configuring NuttX
     This configuration performs a simple, minimal OS test using
     examples/ostest.  This can be configurated as follows:
 
+    1) From a POSIX window:
        cd tools
-       ./configure.sh z80sim/ostest
-       cd -
-       . ./setenv.sh
+       ./configure.sh z80sim/pashello
+    2) From a CMD.exe window
+       setenv.bat
 
     NOTES:
 
@@ -43,7 +44,7 @@ Configuring NuttX
 
     3. This configuration was last verified sucessfully prior to the
        the configure to Kconfig/mconf tool using SDCC 2.6.0 built to run
-       natively under Cygwin.
+       natively under Cygwin.  The current build requires ca. 3.2.1 SDCC.
 
   nsh
 
@@ -53,10 +54,11 @@ Configuring NuttX
 
     This configuration can be selected by:
 
+    1) From a POSIX window:
        cd tools
-       ./configure.sh z80sim/nsh
-       cd -
-       . ./setenv.sh
+       ./configure.sh z80sim/pashello
+    2) From a CMD.exe window
+       setenv.bat
 
     NOTES:
 
@@ -71,7 +73,7 @@ Configuring NuttX
 
     3. This configuration was last verified sucessfully prior to the
        the configure to Kconfig/mconf tool using SDCC 2.6.0 built to run
-       natively under Cygwin.
+       natively under Cygwin.nsh/defconfig:CONFIG_BOARD_LOOPSPERMSEC
 
   pashello
 
@@ -83,10 +85,11 @@ Configuring NuttX
 
     This configuration can be selected by:
 
+    1) From a POSIX window:
        cd tools
        ./configure.sh z80sim/pashello
-       cd -
-       . ./setenv.sh
+    2) From a CMD.exe window
+       setenv.bat
 
     NOTES:
 
@@ -101,7 +104,7 @@ Configuring NuttX
 
     3. This configuration was last verified sucessfully prior to the
        the configure to Kconfig/mconf tool using SDCC 2.6.0 built to run
-       natively under Cygwin.
+       natively under Cygwin.nsh/defconfig:CONFIG_BOARD_LOOPSPERMSEC
 
 Reconfiguring NuttX
 ^^^^^^^^^^^^^^^^^^^
