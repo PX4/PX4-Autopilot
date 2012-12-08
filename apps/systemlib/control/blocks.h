@@ -41,9 +41,14 @@
 
 #include "block/Block.h"
 #include "block/BlockParam.h"
+#include "assert.h"
 
 namespace control
 {
+
+int __EXPORT basicBlocksTest();
+
+bool equal(float a, float b, float eps);
 
 /**
  * A limiter/ saturation.
@@ -70,6 +75,8 @@ protected:
     BlockParam<float> _max;
 };
 
+int __EXPORT blockLimitTest();
+
 /**
  * A symmetric limiter/ saturation.
  * Same as limiter but with only a max, is used for
@@ -91,6 +98,8 @@ protected:
 // attributes
     BlockParam<float> _max;
 };
+
+int __EXPORT blockLimitSymTest();
 
 /**
  * A low pass filter as described here: 
@@ -117,6 +126,8 @@ protected:
     BlockParam<float> _fCut;
 };
 
+int __EXPORT blockLowPassTest();
+
 /**
  * A high pass filter as described here: 
  * http://en.wikipedia.org/wiki/High-pass_filter.
@@ -141,6 +152,8 @@ protected:
     float _state; /**< previous output */
     BlockParam<float> _fCut; /**< cut-off frequency, Hz */
 };
+
+int __EXPORT blockHighPassTest();
 
 /**
  * A trapezoidal integrator.

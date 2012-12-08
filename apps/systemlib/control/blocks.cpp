@@ -38,11 +38,32 @@
  */
 
 #include <math.h>
+#include <stdio.h>
 
 #include "blocks.h"
 
 namespace control
 {
+
+int basicBlocksTest()
+{
+    blockLimitTest();
+    blockLimitSymTest();
+    blockLowPassTest();
+    blockHighPassTest();
+    return 0;
+}
+
+bool equal(float a, float b, float epsilon = 1e-7)
+{
+    float diff = fabs(a-b);
+    if (diff>epsilon)
+    {
+        printf("not equal ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b)); 
+        return false;
+    }
+    else return true;
+}
 
 float BlockLimit::update(float input)
 {
@@ -55,6 +76,21 @@ float BlockLimit::update(float input)
         input = getMin();
     }
     return input;
+}
+
+int blockLimitTest()
+{
+    BlockLimit limit(NULL,"TEST");
+    // initial state
+    ASSERT(equal(1.0f,limit.getMax()));
+    ASSERT(equal(-1.0f,limit.getMin()));
+    ASSERT(equal(0.0f,limit.getDt()));
+    // update
+    ASSERT(equal(-1.0f,limit.update(-2.0f)));
+    ASSERT(equal(1.0f,limit.update(2.0f)));
+    ASSERT(equal(0.0f,limit.update(0.0f)));
+    printf("BlockLimit:\ttest complete\n");
+    return 0;
 }
 
 float BlockLimitSym::update(float input)
@@ -70,21 +106,73 @@ float BlockLimitSym::update(float input)
     return input;
 }
 
+int blockLimitSymTest()
+{
+    BlockLimitSym limit(NULL,"TEST");
+    // initial state
+    ASSERT(equal(1.0f,limit.getMax()));
+    ASSERT(equal(0.0f,limit.getDt()));
+    // update
+    ASSERT(equal(-1.0f,limit.update(-2.0f)));
+    ASSERT(equal(1.0f,limit.update(2.0f)));
+    ASSERT(equal(0.0f,limit.update(0.0f)));
+    printf("BlockLimitSym:\ttest complete\n");
+    return 0;
+}
+
 float BlockLowPass::update(float input)
 {
-    float b = 2*M_PI*getFCut()*getDt();
+    float b = 2*float(M_PI)*getFCut()*getDt();
     float a = b/ (1 + b);
     setState(a*input + (1-a)*getState());
     return getState();
 }
 
+int blockLowPassTest()
+{
+    BlockLowPass lowPass(NULL,"TEST_LP");
+    // test initial state
+    ASSERT(equal(10.0f,lowPass.getFCut()));
+    ASSERT(equal(0.0f,lowPass.getState()));
+    ASSERT(equal(0.0f,lowPass.getDt()));
+    // set dt
+    lowPass.setDt(0.1f);
+    ASSERT(equal(0.1f,lowPass.getDt()));
+    // set state
+    lowPass.setState(1.0f);
+    ASSERT(equal(1.0f,lowPass.getState()));
+    // test update
+    ASSERT(equal(1.8626974,lowPass.update(2.0f)));
+    printf("BlockLowPass:\ttest complete\n");
+    return 0;
+};
+
 float BlockHighPass::update(float input)
 {
-    float b = 2*M_PI*getFCut()*getDt();
+    float b = 2*float(M_PI)*getFCut()*getDt();
     float a = b/ (1 + b);
     // input - low pass output
     setState(input - (a*input + (1-a)*getState()));
     return getState();
+}
+
+int blockHighPassTest()
+{
+    BlockHighPass highPass(NULL,"TEST_HP");
+    // test initial state
+    ASSERT(equal(10.0f,highPass.getFCut()));
+    ASSERT(equal(0.0f,highPass.getState()));
+    ASSERT(equal(0.0f,highPass.getDt()));
+    // set dt
+    highPass.setDt(0.1f);
+    ASSERT(equal(0.1f,highPass.getDt()));
+    // set state
+    highPass.setState(1.0f);
+    ASSERT(equal(1.0f,highPass.getState()));
+    // test update
+    ASSERT(equal(0.1373026,highPass.update(2.0f)));
+    printf("BlockHighPass:\ttest complete\n");
+    return 0;
 }
 
 float BlockIntegral::update(float input)

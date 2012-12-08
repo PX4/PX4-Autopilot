@@ -63,6 +63,11 @@ extern "C" __EXPORT int control_demo_main(int argc, char *argv[]);
 int control_demo_thread_main(int argc, char *argv[]);
 
 /**
+ * Test function
+ */
+void test();
+
+/**
  * Print the correct usage.
  */
 static void usage(const char *reason);
@@ -108,6 +113,11 @@ int control_demo_main(int argc, char *argv[])
         exit(0);
     }
 
+    if (!strcmp(argv[1], "test")) {
+        test();
+        exit(0);
+    }
+
     if (!strcmp(argv[1], "stop")) {
         thread_should_exit = true;
         exit(0);
@@ -126,7 +136,8 @@ int control_demo_main(int argc, char *argv[])
     exit(1);
 }
 
-int control_demo_thread_main(int argc, char *argv[]) {
+int control_demo_thread_main(int argc, char *argv[])
+{
 
     printf("[control_Demo] starting\n");
 
@@ -145,4 +156,10 @@ int control_demo_thread_main(int argc, char *argv[]) {
     thread_running = false;
 
     return 0;
+}
+
+void test()
+{
+    printf("beginning control lib test\n");
+    control::basicBlocksTest();
 }
