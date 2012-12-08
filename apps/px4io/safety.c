@@ -60,6 +60,11 @@ static struct hrt_call failsafe_call;
  */
 static unsigned counter;
 
+/*
+ * Used to coordinate a special blink pattern wheb both the FMU and IO are armed.
+ */
+static unsigned blink_count = 0;
+
 #define ARM_COUNTER_THRESHOLD	10
 #define DISARM_COUNTER_THRESHOLD	2
 
@@ -120,9 +125,25 @@ safety_check_button(void *arg)
 		counter = 0;
 	}
 
-	/* when armed, toggle the LED; when safe, leave it on */
+	/* 
+	 * When the IO is armed, toggle the LED; when IO and FMU armed use aircraft like 
+	 * pattern (long pause then 2 fast blinks); when safe, leave it on. 
+	 */
 	if (system_state.armed) {
-		safety_led_state = !safety_led_state;
+		if (system_state.arm_ok) {
+			/* FMU and IO are armed */
+			if (blink_count > 9) {
+				safety_led_state = !safety_led_state;
+			} else {
+				safety_led_state = false;
+			}
+			if (blink_count++ == 12) {
+				blink_count = 0;
+			}
+		} else {
+			/* Only the IO is armed so use a constant blink rate */
+			safety_led_state = !safety_led_state;
+		}
 	} else {
 		safety_led_state = true;
 	}
