@@ -138,18 +138,22 @@ public:
 // methods
     BlockHighPass(SuperBlock * parent, const char * name) :
         Block(parent, name),
-        _state(0),
+        _u(0),
+        _y(0),
         _fCut(this,"") // only one parameter, no need to name
     {};
     virtual ~BlockHighPass() {};
     float update(float input);
 // accessors
-    float getState() {return _state;}
+    float getU() {return _u;}
+    float getY() {return _y;}
     float getFCut() {return _fCut.get();}
-    void setState(float state) {_state = state;}
+    void setU(float u) {_u = u;}
+    void setY(float y) {_y = y;}
 protected:
 // attributes
-    float _state; /**< previous output */
+    float _u; /**< previous input */
+    float _y; /**< previous output */
     BlockParam<float> _fCut; /**< cut-off frequency, Hz */
 };
 

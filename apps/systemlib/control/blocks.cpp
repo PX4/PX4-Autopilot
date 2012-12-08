@@ -142,7 +142,14 @@ int blockLowPassTest()
     lowPass.setState(1.0f);
     ASSERT(equal(1.0f,lowPass.getState()));
     // test update
-    ASSERT(equal(1.8626974,lowPass.update(2.0f)));
+    ASSERT(equal(1.8626974f,lowPass.update(2.0f)));
+    // test end condition
+    for (int i=0;i<100;i++)
+    {
+        lowPass.update(2.0f);
+    }
+    ASSERT(equal(2.0f,lowPass.getState()));
+    ASSERT(equal(2.0f,lowPass.update(2.0f)));
     printf("BlockLowPass:\ttest complete\n");
     return 0;
 };
@@ -150,10 +157,10 @@ int blockLowPassTest()
 float BlockHighPass::update(float input)
 {
     float b = 2*float(M_PI)*getFCut()*getDt();
-    float a = b/ (1 + b);
-    // input - low pass output
-    setState(input - (a*input + (1-a)*getState()));
-    return getState();
+    float a = 1/ (1 + b);
+    setY(a * (getY() + input - getU()));
+    setU(input);
+    return getY();
 }
 
 int blockHighPassTest()
@@ -161,16 +168,26 @@ int blockHighPassTest()
     BlockHighPass highPass(NULL,"TEST_HP");
     // test initial state
     ASSERT(equal(10.0f,highPass.getFCut()));
-    ASSERT(equal(0.0f,highPass.getState()));
+    ASSERT(equal(0.0f,highPass.getU()));
+    ASSERT(equal(0.0f,highPass.getY()));
     ASSERT(equal(0.0f,highPass.getDt()));
     // set dt
     highPass.setDt(0.1f);
     ASSERT(equal(0.1f,highPass.getDt()));
     // set state
-    highPass.setState(1.0f);
-    ASSERT(equal(1.0f,highPass.getState()));
+    highPass.setU(1.0f);
+    ASSERT(equal(1.0f,highPass.getU()));
+    highPass.setY(1.0f);
+    ASSERT(equal(1.0f,highPass.getY()));
     // test update
-    ASSERT(equal(0.1373026,highPass.update(2.0f)));
+    ASSERT(equal(0.2746051f,highPass.update(2.0f)));
+    // test end condition
+    for (int i=0;i<100;i++)
+    {
+        highPass.update(2.0f);
+    }
+    ASSERT(equal(0.0f,highPass.getY()));
+    ASSERT(equal(0.0f,highPass.update(2.0f)));
     printf("BlockHighPass:\ttest complete\n");
     return 0;
 }
