@@ -58,6 +58,7 @@
 static int sbus_fd = -1;
 
 static hrt_abstime last_rx_time;
+static hrt_abstime last_frame_time;
 
 static uint8_t	frame[SBUS_FRAME_SIZE];
 
@@ -94,7 +95,7 @@ sbus_init(const char *device)
 	return sbus_fd;
 }
 
-void
+bool
 sbus_input(void)
 {
 	ssize_t		ret;
@@ -131,7 +132,7 @@ sbus_input(void)
 
 	/* if the read failed for any reason, just give up here */
 	if (ret < 1)
-		return;
+		goto out;
 	last_rx_time = now;
 
 	/*
@@ -143,7 +144,7 @@ sbus_input(void)
 	 * If we don't have a full frame, return
 	 */
 	if (partial_frame_count < SBUS_FRAME_SIZE)
-	 	return;
+	 	goto out;
 
 	/*
 	 * Great, it looks like we might have a frame.  Go ahead and
@@ -151,6 +152,12 @@ sbus_input(void)
 	 */
 	sbus_decode(now);
 	partial_frame_count = 0;
+
+out:
+	/*
+	 * If we have seen a frame in the last 200ms, we consider ourselves 'locked' 
+	 */
+	return (now - last_frame_time) < 200000;
 }
 
 /*
@@ -195,17 +202,19 @@ sbus_decode(hrt_abstime frame_time)
 	/* check frame boundary markers to avoid out-of-sync cases */
 	if ((frame[0] != 0x0f) || (frame[24] != 0x00)) {
 		sbus_frame_drops++;
-		system_state.sbus_input_ok = false;
 		return;
 	}
 
-	/* if the failsafe bit is set, we consider that a loss of RX signal */
+	/* if the failsafe bit is set, we consider the frame invalid */
 	if (frame[23] & (1 << 4)) {
-		system_state.sbus_input_ok = false;
 		return;
 	}
 
-	unsigned chancount = (PX4IO_INPUT_CHANNELS > 16) ? 16 : PX4IO_INPUT_CHANNELS;
+	/* we have received something we think is a frame */
+	last_frame_time = frame_time;
+
+	unsigned chancount = (PX4IO_INPUT_CHANNELS > SBUS_INPUT_CHANNELS) ? 
+		SBUS_INPUT_CHANNELS : PX4IO_INPUT_CHANNELS;
 
 	/* use the decoder matrix to extract channel data */
 	for (unsigned channel = 0; channel < chancount; channel++) {
@@ -228,14 +237,16 @@ sbus_decode(hrt_abstime frame_time)
 	}
 
 	if (PX4IO_INPUT_CHANNELS >= 18) {
-		/* decode two switch channels */
 		chancount = 18;
+		/* XXX decode the two switch channels */
 	}
 
+	/* note the number of channels decoded */
 	system_state.rc_channels = chancount;
-	system_state.sbus_input_ok = true;
-	system_state.fmu_report_due = true;
 
 	/* and note that we have received data from the R/C controller */
 	system_state.rc_channels_timestamp = frame_time;	
+
+	/* trigger an immediate report to the FMU */
+	system_state.fmu_report_due = true;
 }

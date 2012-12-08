@@ -89,6 +89,8 @@ public:
 
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
 
+	bool			dump_one;
+
 private:
 	static const unsigned	_max_actuators = PX4IO_OUTPUT_CHANNELS;
 
@@ -179,6 +181,7 @@ PX4IO	*g_dev;
 
 PX4IO::PX4IO() :
 	CDev("px4io", "/dev/px4io"),
+	dump_one(false),
 	_serial_fd(-1),
 	_io_stream(nullptr),
 	_task(-1),
@@ -494,6 +497,16 @@ PX4IO::rx_callback(const uint8_t *buffer, size_t bytes_received)
 
 	_send_needed = true;
 
+	/* if monitoring, dump the received info */
+	if (dump_one) {
+		dump_one = false;
+
+		printf("IO: %s armed ", rep->armed ? "" : "not");
+		for (unsigned i = 0; i < rep->channel_count; i++)
+			printf("%d: %d ", i, rep->rc_channel[i]);
+		printf("\n");
+	}
+
 out:
 	unlock();
 }
@@ -681,6 +694,30 @@ test(void)
 	exit(0);
 }
 
+void
+monitor(void)
+{
+	unsigned cancels = 4;
+	printf("Hit <enter> three times to exit monitor mode\n");
+
+	for (;;) {
+		pollfd fds[1];
+
+		fds[0].fd = 0;
+		fds[0].events = POLLIN;
+		poll(fds, 1, 500);
+
+		if (fds[0].revents == POLLIN) {
+			int c;
+			read(0, &c, 1);
+			if (cancels-- == 0)
+				exit(0);
+		}
+
+		if (g_dev != nullptr)
+			g_dev->dump_one = true;
+	}
+}
 }
 
 int
@@ -756,8 +793,11 @@ px4io_main(int argc, char *argv[])
 	    !strcmp(argv[1], "rx_sbus") ||
 	    !strcmp(argv[1], "rx_ppm"))
 		errx(0, "receiver type is automatically detected, option '%s' is deprecated", argv[1]);
+
 	if (!strcmp(argv[1], "test"))
 		test();
+	if (!strcmp(argv[1], "monitor"))
+		monitor();
 
-	errx(1, "need a command, try 'start', 'test', 'rx_ppm', 'rx_dsm', 'rx_sbus' or 'update'");
+	errx(1, "need a command, try 'start', 'test', 'monitor' or 'update'");
 }

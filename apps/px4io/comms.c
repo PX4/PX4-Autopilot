@@ -100,8 +100,8 @@ comms_main(void)
 	debug("FMU: ready");
 
 	for (;;) {
-		/* wait for serial data, but no more than 100ms */
-		poll(&fds, 1, 100);
+		/* wait for serial data, but no more than 10ms */
+		poll(&fds, 1, 10);
 
 		/*
 		 * Pull bytes from FMU and feed them to the HX engine.
@@ -130,15 +130,9 @@ comms_main(void)
 			last_report_time = now;
 
 			/* populate the report */
-			for (int i = 0; i < system_state.rc_channels; i++)
+			for (unsigned i = 0; i < system_state.rc_channels; i++)
 				report.rc_channel[i] = system_state.rc_channel_data[i];
-
-			if (system_state.sbus_input_ok || system_state.dsm_input_ok || system_state.ppm_input_ok) {
-				report.channel_count = system_state.rc_channels;
-			} else {
-				report.channel_count = 0;
-			}
-			
+			report.channel_count = system_state.rc_channels;
 			report.armed = system_state.armed;
 
 			/* and send it */
