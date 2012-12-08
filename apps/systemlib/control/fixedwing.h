@@ -173,9 +173,9 @@ public:
      */
     BlockYawDamper(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
-        _rLowPass(this, "LP"),
-        _rWashout(this, "HP"),
-        _r2Rdr(this, "2RDR"),
+        _rLowPass(this, "R_LP"),
+        _rWashout(this, "R_HP"),
+        _r2Rdr(this, "R2RDR"),
         _rudder(0)
     {
     }
@@ -236,11 +236,11 @@ private:
 public:
     BlockStabilization(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
-        _yawDamper(this, "R"),
+        _yawDamper(this, ""),
         _pLowPass(this, "P_LP"),
         _qLowPass(this, "Q_LP"),
-        _p2Ail(this, "P_2AIL"),
-        _q2Elv(this, "Q_2ELV"),
+        _p2Ail(this, "P2AIL"),
+        _q2Elv(this, "Q2ELV"),
         _aileron(0),
         _elevator(0)
     {
@@ -271,14 +271,14 @@ private:
     BlockP _psi2Phi;
     BlockP _p2Phi;
     BlockP _phi2Ail;
-    BlockLimit _phiLimit;
+    BlockLimitSym _phiLimit;
     float _aileron;
 public:
     BlockHeadingHold(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
-        _psi2Phi(this, "PSI_2PHI"),
-        _p2Phi(this, "P_2PHI"),
-        _phi2Ail(this, "PHI_2AIL"),
+        _psi2Phi(this, "PSI2PHI"),
+        _p2Phi(this, "P2PHI"),
+        _phi2Ail(this, "PHI2AIL"),
         _phiLimit(this, "PHI_LIM"),
         _aileron(0)
     {
@@ -324,8 +324,8 @@ private:
 public:
     BlockVelocityHoldBackside(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
-        _v2Theta(this,"V_2THETA"),
-        _theta2Q(this,"THETA_2Q"),
+        _v2Theta(this,"V2THE"),
+        _theta2Q(this,"THE2Q"),
         _elevator(0)
     {
     }
@@ -351,7 +351,7 @@ private:
 public:
     BlockVelocityHoldFrontside(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
-        _v2Thr(this,"V_2THR"),
+        _v2Thr(this,"V2THR"),
         _throttle(0)
     {
     }
@@ -375,7 +375,7 @@ private:
 public:
     BlockAltitudeHoldBackside(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
-        _h2Thr(this, "H_2THR"),
+        _h2Thr(this, "H2THR"),
         _throttle(0)
     {
     }
@@ -400,8 +400,8 @@ private:
 public:
     BlockAltitudeHoldFrontside(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
-        _h2Theta(this, "H_2THETA"),
-        _theta2Q(this, "THETA_2Q"),
+        _h2Theta(this, "H2THE"),
+        _theta2Q(this, "THE2Q"),
         _elevator(0)
     {
     }
@@ -428,10 +428,10 @@ private:
 public:
     BlockBacksideAutopilot(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
-        _yawDamper(this,"R"),
-        _headingHold(this,"PSI"),
-        _velocityHold(this,"V"),
-        _altitudeHold(this,"H")
+        _yawDamper(this,""),
+        _headingHold(this,""),
+        _velocityHold(this,""),
+        _altitudeHold(this,"")
     {
     }
     virtual ~BlockBacksideAutopilot() {};
@@ -478,6 +478,13 @@ public:
         _rudder.update(rudder);
         _throttle.update(throttle);
     }
+    void setActuators(actuator_controls_s & actuators)
+    {
+        actuators.control[0] = getAileron();
+        actuators.control[1] = getElevator();
+        actuators.control[2] = getRudder();
+        actuators.control[3] = getThrottle();
+    }
     float getAileron() { return _aileron.get(); }
     float getElevator() { return _elevator.get(); }
     float getRudder() { return _rudder.get(); }
@@ -485,15 +492,56 @@ public:
 };
 
 /**
- * Multi-mode Autopilot
+ * Waypoint Guidance block
  */
-class BlockMultiModeBacksideAutopilot : public SuperBlock
+class BlockWaypointGuidance : public SuperBlock
 {
 private:
-    BlockStabilization _stabilization;
-    BlockBacksideAutopilot _backsideAutopilot;
-    BlockOutputs _outputs;
+    BlockLimitSym _xtYawLimit;
+    BlockP _xt2Yaw;
+    float _psiCmd;
+public:
+    BlockWaypointGuidance(SuperBlock * parent, const char * name) :
+        SuperBlock(parent,name),
+        _xtYawLimit(this,"XT2YAW"),
+        _xt2Yaw(this,"XT2YAW"),
+        _psiCmd(0)
+    {
+    }
+    void update(vehicle_global_position_s & pos,
+            vehicle_attitude_s & att,
+            vehicle_global_position_setpoint_s & posCmd,
+            vehicle_global_position_setpoint_s & lastPosCmd) {
 
+        // heading to waypoint
+        float psiTrack = get_bearing_to_next_waypoint(
+                (double)pos.lat / (double)1e7d,
+                (double)pos.lon / (double)1e7d,
+                (double)posCmd.lat / (double)1e7d,
+                (double)posCmd.lon / (double)1e7d);
+
+        // cross track
+        struct crosstrack_error_s xtrackError;
+        get_distance_to_line(&xtrackError,
+                (double)pos.lat / (double)1e7d,
+                (double)pos.lon / (double)1e7d,
+                (double)lastPosCmd.lat / (double)1e7d,
+                (double)lastPosCmd.lon / (double)1e7d,
+                (double)posCmd.lat / (double)1e7d,
+                (double)posCmd.lon / (double)1e7d);
+
+        _psiCmd = _wrap_2pi(psiTrack + 
+            _xtYawLimit.update(_xt2Yaw.update(xtrackError.distance)));
+    }
+    float getPsiCmd() { return _psiCmd; }
+};
+
+/**
+ * UorbEnabledAutopilot
+ */
+class BlockUorbEnabledAutopilot : public SuperBlock
+{
+protected:
     // subscriptions
     UOrbSubscription<vehicle_attitude_s> _att;
     UOrbSubscription<vehicle_attitude_setpoint_s> _attCmd;
@@ -502,22 +550,11 @@ private:
     UOrbSubscription<vehicle_global_position_setpoint_s> _posCmd;
     UOrbSubscription<manual_control_setpoint_s> _manual;
     UOrbSubscription<vehicle_status_s> _status;
-
     // publications
     UOrbPublication<actuator_controls_s> _actuators;
-
-    uint8_t _mode;
-    uint8_t _loopCount;
-    struct pollfd _attPoll;
-    vehicle_global_position_setpoint_s _lastPosCmd;
-
 public:
-    BlockMultiModeBacksideAutopilot(SuperBlock * parent, const char * name) :
+    BlockUorbEnabledAutopilot(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
-        // blocks
-        _stabilization(this,"STAB"),
-        _backsideAutopilot(this,"BS"),
-        _outputs(this,"OUT"),
         // subscriptions
         _att(&getSubscriptions(), ORB_ID(vehicle_attitude),20),
         _attCmd(&getSubscriptions(), ORB_ID(vehicle_attitude_setpoint),20),
@@ -527,9 +564,33 @@ public:
         _manual(&getSubscriptions(), ORB_ID(manual_control_setpoint),20),
         _status(&getSubscriptions(), ORB_ID(vehicle_status),20),
         // publications
-        _actuators(&getPublications(), ORB_ID(actuator_controls_0)),
-        // misc
-        _mode(0),
+        _actuators(&getPublications(), ORB_ID(actuator_controls_0))
+    {
+    }
+};
+
+/**
+ * Multi-mode Autopilot
+ */
+class BlockMultiModeBacksideAutopilot : public BlockUorbEnabledAutopilot
+{
+private:
+    BlockStabilization _stabilization;
+    BlockBacksideAutopilot _backsideAutopilot;
+    BlockWaypointGuidance _guide;
+    BlockOutputs _outputs;
+    BlockParam<float> _spdCmd;
+    uint8_t _loopCount;
+    struct pollfd _attPoll;
+    vehicle_global_position_setpoint_s _lastPosCmd;
+public:
+    BlockMultiModeBacksideAutopilot(SuperBlock * parent, const char * name) :
+        BlockUorbEnabledAutopilot(parent, name),
+        _stabilization(this,""), // no name needed, already unique
+        _backsideAutopilot(this,""),
+        _guide(this,""),
+        _outputs(this,"OUT"),
+        _spdCmd(this,"SPDCMD"),
         _loopCount(0),
 		_attPoll(),
         _lastPosCmd()
@@ -565,43 +626,18 @@ public:
         }
         else if (_status.state_machine == SYSTEM_STATE_AUTO)
         {
-            // heading to waypoint
-			float psiTrack = get_bearing_to_next_waypoint((double)_pos.lat / (double)1e7d,
-                    (double)_pos.lon / (double)1e7d,
-			        (double)_posCmd.lat / (double)1e7d,
-                    (double)_posCmd.lon / (double)1e7d);
-
-            // cross track
-            // should move cross track calc to block TODO
-            struct crosstrack_error_s xtrackError;
-            get_distance_to_line(&xtrackError,
-                    (double)_pos.lat / (double)1e7d,
-                    (double)_pos.lon / (double)1e7d,
-                    (double)_lastPosCmd.lat / (double)1e7d,
-                    (double)_lastPosCmd.lon / (double)1e7d,
-                    (double)_posCmd.lat / (double)1e7d,
-                    (double)_posCmd.lon / (double)1e7d);
-
-            // cross track gain should be a blockparam
-            static const float crossTrackGain = -0.01;
-            static const float crossTrackHeadLim = 45*M_PI/180;
-            float crossTrackCorrect = xtrackError.distance*crossTrackGain;
-            if (crossTrackCorrect > crossTrackHeadLim) // limit should be a block param
-                crossTrackCorrect = crossTrackHeadLim;
-            else if (crossTrackCorrect < crossTrackHeadLim)
-                crossTrackCorrect = -crossTrackHeadLim;
-
-            float psiCmd = _wrap_2pi(psiTrack + crossTrackCorrect);
+            // update guidance
+            _guide.update(_pos, _att, _posCmd, _lastPosCmd);
 
             // calculate velocity, XXX should be airspeed, but using ground speed for now
             float v = sqrtf(_pos.vx * _pos.vx + _pos.vy * _pos.vy + _pos.vz * _pos.vz);
 
             // commands
-            float vCmd = 45;
             float rCmd = 0;
 
-            _backsideAutopilot.update(_posCmd.altitude, vCmd, rCmd, psiCmd,
-                _pos.relative_alt, v,
+            _backsideAutopilot.update(
+                _posCmd.altitude, _spdCmd.get(), rCmd, _guide.getPsiCmd(),
+                _pos.alt, v,
                 _att.roll, _att.pitch, _att.yaw,
                 _att.rollspeed, _att.pitchspeed, _att.yawspeed
                 );
@@ -620,13 +656,8 @@ public:
                     );
         }
 
-        // publish actuators
-        _actuators.control[0] = _outputs.getAileron();
-        _actuators.control[1] = _outputs.getElevator();
-        _actuators.control[2] = _outputs.getRudder();
-        _actuators.control[3] = _outputs.getThrottle();
-
         // update all publications
+        _outputs.setActuators(_actuators);
         updatePublications();
 
         // update parameters every 100 cycles
@@ -651,8 +682,6 @@ public:
         // neglects lag from calculations
         usleep(1000000*getDt());
     }
-    void setMode(uint8_t mode) { _mode = mode; }
-    uint8_t getMode() { return _mode; }
 };
 
 

@@ -132,7 +132,7 @@ int control_demo_thread_main(int argc, char *argv[]) {
 
     using namespace control;
     
-    fixedwing::BlockMultiModeBacksideAutopilot autopilot(NULL,"FW");
+    fixedwing::BlockMultiModeBacksideAutopilot autopilot(NULL,"FWB");
 
     thread_running = true;
 

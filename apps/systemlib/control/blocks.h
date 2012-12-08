@@ -103,7 +103,7 @@ public:
     BlockLowPass(SuperBlock * parent, const char * name) :
         Block(parent, name),
         _state(0),
-        _fCut(this,"FCUT")
+        _fCut(this,"") // only one parameter, no need to name
     {};
     virtual ~BlockLowPass() {};
     float update(float input);
@@ -128,7 +128,7 @@ public:
     BlockHighPass(SuperBlock * parent, const char * name) :
         Block(parent, name),
         _state(0),
-        _fCut(this,"FCUT")
+        _fCut(this,"") // only one parameter, no need to name
     {};
     virtual ~BlockHighPass() {};
     float update(float input);
@@ -184,7 +184,7 @@ public:
    BlockDerivative(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
         _state(0),
-        _lowPass(this, "")
+        _lowPass(this, "FCUT")
     {};
     virtual ~BlockDerivative() {};
     float update(float input);
