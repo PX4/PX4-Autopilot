@@ -52,6 +52,7 @@ int basicBlocksTest()
     blockLowPassTest();
     blockHighPassTest();
     blockIntegralTest();
+    blockIntegralTrapTest();
     return 0;
 }
 
@@ -81,7 +82,7 @@ float BlockLimit::update(float input)
 
 int blockLimitTest()
 {
-    printf("Test BlockLimit:\t");
+    printf("Test BlockLimit\t\t\t: ");
     BlockLimit limit(NULL,"TEST");
     // initial state
     ASSERT(equal(1.0f,limit.getMax()));
@@ -110,7 +111,7 @@ float BlockLimitSym::update(float input)
 
 int blockLimitSymTest()
 {
-    printf("Test BlockLimitSym:\t");
+    printf("Test BlockLimitSym\t\t: ");
     BlockLimitSym limit(NULL,"TEST");
     // initial state
     ASSERT(equal(1.0f,limit.getMax()));
@@ -133,7 +134,7 @@ float BlockLowPass::update(float input)
 
 int blockLowPassTest()
 {
-    printf("Test BlockLowPass:\t");
+    printf("Test BlockLowPass\t\t: ");
     BlockLowPass lowPass(NULL,"TEST_LP");
     // test initial state
     ASSERT(equal(10.0f,lowPass.getFCut()));
@@ -169,7 +170,7 @@ float BlockHighPass::update(float input)
 
 int blockHighPassTest()
 {
-    printf("Test BlockHighPass:\t");
+    printf("Test BlockHighPass\t\t: ");
     BlockHighPass highPass(NULL,"TEST_HP");
     // test initial state
     ASSERT(equal(10.0f,highPass.getFCut()));
@@ -200,16 +201,59 @@ int blockHighPassTest()
 float BlockIntegral::update(float input)
 {
     // trapezoidal integration
+    setY(_limit.update(getY() + input*getDt()));
+    return getY();
+}
+
+int blockIntegralTest()
+{
+    printf("Test BlockIntegral\t\t: ");
+    BlockIntegral integral(NULL,"TEST_I");
+    // test initial state
+    ASSERT(equal(1.0f,integral.getMax()));
+    ASSERT(equal(-1.0f,integral.getMin()));
+    ASSERT(equal(0.0f,integral.getDt()));
+    // set dt
+    integral.setDt(0.1f);
+    ASSERT(equal(0.1f,integral.getDt()));
+    // set Y
+    integral.setY(0.9f);
+    ASSERT(equal(0.9f,integral.getY()));
+    // test exceed max
+    for (int i=0;i<100;i++)
+    {
+        integral.update(1.0f);
+    }
+    ASSERT(equal(1.0f,integral.update(1.0f)));
+    // test exceed min
+    integral.setY(-0.9f);
+    ASSERT(equal(-0.9f,integral.getY()));
+    for (int i=0;i<100;i++)
+    {
+        integral.update(-1.0f);
+    }
+    ASSERT(equal(-1.0f,integral.update(-1.0f)));
+    // test update
+    integral.setY(0.1f);
+    ASSERT(equal(0.2f,integral.update(1.0)));
+    ASSERT(equal(0.2f,integral.getY()));
+    printf("PASS\n");
+    return 0;
+}
+
+float BlockIntegralTrap::update(float input)
+{
+    // trapezoidal integration
     setY(_limit.update(getY() + 
                 (getU() + input)/2.0f*getDt()));
     setU(input);
     return getY();
 }
 
-int blockIntegralTest()
+int blockIntegralTrapTest()
 {
-    printf("Test BlockIntegral:\t");
-    BlockIntegral integral(NULL,"TEST_I");
+    printf("Test BlockIntegralTrap\t\t: ");
+    BlockIntegralTrap integral(NULL,"TEST_I");
     // test initial state
     ASSERT(equal(1.0f,integral.getMax()));
     ASSERT(equal(-1.0f,integral.getMin()));
@@ -221,8 +265,8 @@ int blockIntegralTest()
     integral.setU(1.0f);
     ASSERT(equal(1.0f,integral.getU()));
     // set Y
-    integral.setY(1.0f);
-    ASSERT(equal(1.0f,integral.getY()));
+    integral.setY(0.9f);
+    ASSERT(equal(0.9f,integral.getY()));
     // test exceed max
     for (int i=0;i<100;i++)
     {
@@ -231,8 +275,8 @@ int blockIntegralTest()
     ASSERT(equal(1.0f,integral.update(1.0f)));
     // test exceed min
     integral.setU(-1.0f);
-    integral.setY(-1.0f);
-    ASSERT(equal(-1.0f,integral.getY()));
+    integral.setY(-0.9f);
+    ASSERT(equal(-0.9f,integral.getY()));
     for (int i=0;i<100;i++)
     {
         integral.update(-1.0f);
@@ -240,9 +284,9 @@ int blockIntegralTest()
     ASSERT(equal(-1.0f,integral.update(-1.0f)));
     // test update
     integral.setU(2.0f);
-    integral.setY(1.0f);
-    ASSERT(equal(2.15f,integral.update(1.0)));
-    ASSERT(equal(2.15f,integral.getY()));
+    integral.setY(0.1f);
+    ASSERT(equal(0.25f,integral.update(1.0)));
+    ASSERT(equal(0.25f,integral.getY()));
     ASSERT(equal(1.0f,integral.getU()));
     printf("PASS\n");
     return 0;

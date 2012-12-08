@@ -160,6 +160,36 @@ protected:
 int __EXPORT blockHighPassTest();
 
 /**
+ * A rectangular integrator.
+ * A limiter is built into the class to bound the
+ * integral's internal state. This is important
+ * for windup protection.
+ * @see Limit
+ */
+class __EXPORT BlockIntegral: public SuperBlock
+{
+public: 
+// methods
+   BlockIntegral(SuperBlock * parent, const char * name) :
+        SuperBlock(parent, name),
+        _y(0),
+        _limit(this, "") {};
+    virtual ~BlockIntegral() {};
+    float update(float input);
+// accessors
+    float getY() {return _y;}
+    float getMin() {return _limit.getMin();}
+    float getMax() {return _limit.getMax();}
+    void setY(float y) {_y = y;}
+protected:
+// attributes
+    float _y; /**< previous output */
+    BlockLimit _limit; /**< limiter */
+};
+
+int __EXPORT blockIntegralTest();
+
+/**
  * A trapezoidal integrator.
  * http://en.wikipedia.org/wiki/Trapezoidal_rule
  * A limiter is built into the class to bound the
@@ -167,16 +197,16 @@ int __EXPORT blockHighPassTest();
  * for windup protection.
  * @see Limit
  */
-class __EXPORT BlockIntegral : public SuperBlock
+class __EXPORT BlockIntegralTrap : public SuperBlock
 {
 public: 
 // methods
-   BlockIntegral(SuperBlock * parent, const char * name) :
+   BlockIntegralTrap(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
         _u(0),
         _y(0),
         _limit(this, "") {};
-    virtual ~BlockIntegral() {};
+    virtual ~BlockIntegralTrap() {};
     float update(float input);
 // accessors
     float getU() {return _u;}
@@ -192,7 +222,7 @@ protected:
     BlockLimit _limit; /**< limiter */
 };
 
-int __EXPORT blockIntegralTest();
+int __EXPORT blockIntegralTrapTest();
 
 /**
  * A simple derivative approximation.
