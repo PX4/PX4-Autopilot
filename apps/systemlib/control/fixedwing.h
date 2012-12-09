@@ -426,13 +426,21 @@ private:
     BlockHeadingHold _headingHold;
     BlockVelocityHoldBackside _velocityHold;
     BlockAltitudeHoldBackside _altitudeHold;
+    BlockParam<float> _trimAil;
+    BlockParam<float> _trimElv;
+    BlockParam<float> _trimRdr;
+    BlockParam<float> _trimThr;
 public:
     BlockBacksideAutopilot(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
         _yawDamper(this,""),
         _headingHold(this,""),
         _velocityHold(this,""),
-        _altitudeHold(this,"")
+        _altitudeHold(this,""),
+        _trimAil(this,"TRIM_AIL"),
+        _trimElv(this,"TRIM_ELV"),
+        _trimRdr(this,"TRIM_RDR"),
+        _trimThr(this,"TRIM_THR")
     {
     }
     virtual ~BlockBacksideAutopilot() {};
@@ -446,50 +454,10 @@ public:
         _velocityHold.update(vCmd, v, theta, q);
         _altitudeHold.update(hCmd, h);
     };
-    float getRudder() { return _yawDamper.getRudder(); }
-    float getAileron() { return _headingHold.getAileron(); }
-    float getElevator() { return _velocityHold.getElevator(); }
-    float getThrottle() { return _altitudeHold.getThrottle(); }
-};
-
-/**
- * Output conditioning block
- */
-class BlockOutputs : public SuperBlock
-{
-private:
-    BlockOutput _aileron;
-    BlockOutput _elevator;
-    BlockOutput _rudder;
-    BlockOutput _throttle;
-public:
-    BlockOutputs(SuperBlock * parent, const char * name) :
-        SuperBlock(parent, name),
-        _aileron(this,"AIL"),
-        _elevator(this,"ELV"),
-        _rudder(this,"RDR"),
-        _throttle(this,"THR")
-    {
-    }
-    virtual ~BlockOutputs() {};
-    void update(float aileron, float elevator, float rudder, float throttle)
-    {
-        _aileron.update(aileron);
-        _elevator.update(elevator);
-        _rudder.update(rudder);
-        _throttle.update(throttle);
-    }
-    void setActuators(actuator_controls_s & actuators)
-    {
-        actuators.control[0] = getAileron();
-        actuators.control[1] = getElevator();
-        actuators.control[2] = getRudder();
-        actuators.control[3] = getThrottle();
-    }
-    float getAileron() { return _aileron.get(); }
-    float getElevator() { return _elevator.get(); }
-    float getRudder() { return _rudder.get(); }
-    float getThrottle() { return _throttle.get(); }
+    float getRudder() { return _yawDamper.getRudder() + _trimRdr.get(); }
+    float getAileron() { return _headingHold.getAileron() + _trimAil.get(); }
+    float getElevator() { return _velocityHold.getElevator() + _trimElv.get(); }
+    float getThrottle() { return _altitudeHold.getThrottle() + _trimThr.get(); }
 };
 
 /**
@@ -579,18 +547,18 @@ private:
     BlockStabilization _stabilization;
     BlockBacksideAutopilot _backsideAutopilot;
     BlockWaypointGuidance _guide;
-    BlockOutputs _outputs;
     BlockParam<float> _spdCmd;
+
     uint8_t _loopCount;
     struct pollfd _attPoll;
     vehicle_global_position_setpoint_s _lastPosCmd;
+    enum {CH_AIL, CH_ELV, CH_RDR, CH_THR};
 public:
     BlockMultiModeBacksideAutopilot(SuperBlock * parent, const char * name) :
         BlockUorbEnabledAutopilot(parent, name),
         _stabilization(this,""), // no name needed, already unique
         _backsideAutopilot(this,""),
         _guide(this,""),
-        _outputs(this,"OUT"),
         _spdCmd(this,"SPDCMD"),
         _loopCount(0),
 		_attPoll(),
@@ -614,16 +582,20 @@ public:
         // get new information from subscriptions
         updateSubscriptions();
 
+        // default all output to zero unless handled by mode
+        for (unsigned i = 4; i < NUM_ACTUATOR_CONTROLS; i++)
+			_actuators.control[i] = 0.0f;
+
         // handle autopilot modes
         if (_status.state_machine == SYSTEM_STATE_STABILIZED)
         {
             _stabilization.update(
                     _ratesCmd.roll, _ratesCmd.pitch, _ratesCmd.yaw,
                     _att.rollspeed, _att.pitchspeed, _att.yawspeed);
-            _outputs.update(_stabilization.getAileron(),
-                    _stabilization.getElevator(),
-                    _stabilization.getRudder(),
-                    _manual.throttle);
+            _actuators.control[CH_AIL] = _stabilization.getAileron();
+            _actuators.control[CH_ELV] = _stabilization.getElevator();
+            _actuators.control[CH_RDR] = _stabilization.getRudder();
+            _actuators.control[CH_THR] = _manual.throttle;
         }
         else if (_status.state_machine == SYSTEM_STATE_AUTO)
         {
@@ -642,23 +614,20 @@ public:
                 _att.roll, _att.pitch, _att.yaw,
                 _att.rollspeed, _att.pitchspeed, _att.yawspeed
                 );
-            _outputs.update(_backsideAutopilot.getAileron(),
-                    _backsideAutopilot.getElevator(),
-                    _backsideAutopilot.getRudder(),
-                    _backsideAutopilot.getThrottle());
+            _actuators.control[CH_AIL] = _backsideAutopilot.getAileron();
+            _actuators.control[CH_ELV] = _backsideAutopilot.getElevator();
+            _actuators.control[CH_RDR] = _backsideAutopilot.getRudder();
+            _actuators.control[CH_THR] = _backsideAutopilot.getThrottle();
         }
         else if (_status.state_machine == SYSTEM_STATE_MANUAL)
         {
-            _outputs.update(
-                    _manual.roll,
-                    _manual.pitch,
-                    _manual.yaw,
-                    _manual.throttle
-                    );
+            _actuators.control[CH_AIL] = _manual.roll;
+            _actuators.control[CH_ELV] = _manual.pitch;
+            _actuators.control[CH_RDR] = _manual.yaw;
+            _actuators.control[CH_THR] = _manual.throttle;
         }
 
         // update all publications
-        _outputs.setActuators(_actuators);
         updatePublications();
 
         // update parameters every 100 cycles
@@ -670,16 +639,24 @@ public:
             printf("control mode: %d\n", _status.state_machine);
             printf("aileron: %8.4f, elevator: %8.4f, "
                     "rudder: %8.4f, throttle: %8.4f\n",
-                    (double)_outputs.getAileron(),
-                    (double)_outputs.getElevator(),
-                    (double)_outputs.getRudder(),
-                    (double)_outputs.getThrottle());
+                    (double)_actuators.control[CH_AIL],
+                    (double)_actuators.control[CH_ELV],
+                    (double)_actuators.control[CH_RDR],
+                    (double)_actuators.control[CH_THR]);
             fflush(stdout);
         }
 
         // sleep for approximately the right amount of time for update, 
         // neglects lag from calculations
         usleep(1000000*getDt());
+    }
+    virtual ~BlockMultiModeBacksideAutopilot()
+    {
+        // send one last publication when destroyed, setting
+        // all output to zero
+		for (unsigned i = 0; i < NUM_ACTUATOR_CONTROLS; i++)
+			_actuators.control[i] = 0.0f;
+        updatePublications();
     }
 };
 
