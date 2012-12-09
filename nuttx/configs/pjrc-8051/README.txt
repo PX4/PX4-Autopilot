@@ -35,3 +35,20 @@ Then
   cd sdcc
   make install
 
+Status
+^^^^^^
+
+On December 9, 2012, I made updates so that the 8051 port could use the
+newest SDCC toolchain (a pre-3.2.1 at that time).  However, when I attempted
+to build the PJRC-8051 configuration, I got type incompatibility errors
+from sched/os_bringup.c.
+
+I have not been successful working around those bugs and I believe that
+these are 8051-related bugs in the SDCC toolchain.  This needs to be
+revisited with a later version of SDCC.
+
+This configuration was last successfully built and tested with a ca.
+2.6.0 SDCC release.  Support for that older toolchain was removed in
+NuttX revision -r5423.  If you wanted to used those older toolchains,
+you would need to revert to a pre-r5423 revision.
+
