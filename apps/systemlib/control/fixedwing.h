@@ -332,7 +332,8 @@ public:
     virtual ~BlockVelocityHoldBackside() {};
     void update(float vCmd, float v, float theta, float q)
     {
-        float thetaCmd = _v2Theta.update(vCmd - v);
+        // negative sign because nose over to increase speed
+        float thetaCmd = -_v2Theta.update(vCmd - v);
         float qCmd = _theta2Q.update(thetaCmd - theta);
         _elevator = qCmd - q;
     }
@@ -530,7 +531,7 @@ public:
                 (double)posCmd.lat / (double)1e7d,
                 (double)posCmd.lon / (double)1e7d);
 
-        _psiCmd = _wrap_2pi(psiTrack + 
+        _psiCmd = _wrap_2pi(psiTrack - 
             _xtYawLimit.update(_xt2Yaw.update(xtrackError.distance)));
     }
     float getPsiCmd() { return _psiCmd; }
@@ -664,9 +665,7 @@ public:
         if (_loopCount-- <= 0)
         {
             _loopCount = 100;
-            _stabilization.updateParams();
-            _backsideAutopilot.updateParams();
-            _outputs.updateParams();
+            updateParams();
             //printf("t: %8.4f, u: %8.4f\n", (double)t, (double)u);
             printf("control mode: %d\n", _status.state_machine);
             printf("aileron: %8.4f, elevator: %8.4f, "
