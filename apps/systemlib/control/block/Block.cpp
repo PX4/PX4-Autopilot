@@ -96,7 +96,7 @@ void Block::updateParams()
             printf("exceeded max params for block: %s\n", name);
             break;
         }
-        printf("updating param: %s\n", param->getName());
+        //printf("updating param: %s\n", param->getName());
         param->update();
         param = param->getSibling();
     }
