@@ -36,49 +36,135 @@
 include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
 
-ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
-  ARCHOPTIMIZATION	= --debug
+# These are the directories where the SDCC toolchain is installed.  NOTE
+# that short 8.3 path names are used in order to avoid spaces.  On my machine
+# I have:
+#
+# C:\PROGRA~1\ = C:\Profram Files\
+# C:\PROGRA~2\ = C:\Program Files (x86)\
+#
+# Your PC may be configured differently.
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  SDCC_INSTALLDIR = C:\PROGRA~2\SDCC
+  SDCC_BINDIR = $(SDCC_INSTALLDIR)\bin
+  SDCC_LIBDIR =  $(SDCC_INSTALLDIR)\lib\large-stack-auto
 else
-  ARCHOPTIMIZATION	=
+  SDCC_INSTALLDIR = /usr/local
+  SDCC_BINDIR = $(SDCC_INSTALLDIR)/bin
+  SDCC_LIBDIR = $(SDCC_INSTALLDIR)/share/sdcc/lib/large-stack-auto
 endif
 
-ARCHCPUFLAGS		= -mmcs51 --stack-auto --model-large --int-long-reent --float-reent
-ARCHPICFLAGS		=
-ARCHWARNINGS		=
-ARCHDEFINES		=
-ARCHINCLUDES		= -I. -I$(TOPDIR)/include
+CROSSDEV =
+CC = sdcc
+CPP = sdcpp
+LD = sdld
+AS = sdas8051
+AR = sdar -r
 
-CROSSDEV		=
-CC			= sdcc
-CPP			= sdcpp
-LD			= aslink
-AS			= asx8051
-#AR			= sdar -r
-AR			= sdcclib -a
+IRAM_SIZE = 0x100
+DEF_STACK_BASE = 0x24
 
-CFLAGS			= $(ARCHWARNINGS) $(ARCHOPTIMIZATION) \
-			  $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
-CPPFLAGS		= $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
+  ARCHOPTIMIZATION = --debug
+else
+  ARCHOPTIMIZATION =
+endif
 
-ASMEXT			= .asm
-OBJEXT			= .rel
-LIBEXT			= .lib
-EXEEXT			= .hex
+ARCHCPUFLAGS = -mmcs51 --stack-auto --model-large --int-long-reent --float-reent
+ARCHPICFLAGS =
+ARCHWARNINGS =
+ARCHDEFINES =
+ARCHINCLUDES = -I. -I$(TOPDIR)/include
+
+CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+CPPFLAGS = $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+AFLAGS = -x -j -g -l -s -p
+
+SDCCLIB = libsdcc.lib
+
+ASMEXT = .asm
+OBJEXT = .rel
+LIBEXT = .lib
+EXEEXT = .hex
+
+# Custom ASSEMBLE definition.  The most common toolchain, GCC, uses the
+# compiler to assemble files because this has the advantage of running the C
+# Pre-Processor against.  This is not possible with other SDCC; we need to
+# define AS and over-ride the common definition in order to use the assembler
+# directly.
 
 define ASSEMBLE
 	@echo "AS: $1"
 	@$(AS) $(AFLAGS) $1
 endef
 
+# Custom CLEAN definition
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 define CLEAN
-	@rm -f *.asm *.rel *.lst *.rst *.sym *.adb *.lnk *.map *.mem *.hex
+	$(Q) if exist *.o (del /f /q *.o)
+	$(Q) if exist *.asm (del /f /q *.asm)
+	$(Q) if exist *.rel (del /f /q *.rel)
+	$(Q) if exist *.lst (del /f /q *.lst)
+	$(Q) if exist *.rst (del /f /q *.rst)
+	$(Q) if exist *.sym (del /f /q *.sym)
+	$(Q) if exist *.adb (del /f /q *.adb)
+	$(Q) if exist *.lnk (del /f /q *.lnk)
+	$(Q) if exist *.map (del /f /q *.map)
+	$(Q) if exist *.mem (del /f /q *.mem)
+	$(Q) if exist *.hex (del /f /q *.hex)
+	$(Q) if exist *.cmd (del /f /q *.cmd)
 endef
+else
+define CLEAN
+	$(Q) rm -f *.o *.asm *.rel *.lst *.rst *.sym *.adb *.lnk *.map *.mem *.hex *.cmd
+endef
+endif
 
-MKDEP			= $(TOPDIR)/tools/mkdeps.sh
+# Windows native host tool definitions
 
-HOSTCC			= gcc
-HOSTINCLUDES		= -I.
-HOSTCFLAGS		= -Wall -Wstrict-prototypes -Wshadow -g -pipe
-HOSTLDFLAGS		=
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  HOSTCC = mingw32-gcc.exe
+  HOSTINCLUDES = -I.
+  HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -g -pipe
+  HOSTLDFLAGS =
+  HOSTEXEEXT = .exe
 
+  # Windows-native host tools
 
+  MKDEP = $(TOPDIR)\tools\mkdeps.exe --winnative
+
+  # Use NTFS links or directory copies
+
+ifeq ($(CONFIG_WINDOWS_MKLINK),y)
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)link.bat
+else
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)copydir.bat
+endif
+DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.bat
+
+else
+
+# Linux/Cygwin host tool definitions
+
+  HOSTCC = gcc
+  HOSTINCLUDES = -I.
+  HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -g -pipe
+  HOSTLDFLAGS =
+
+  # This is the tool to use for dependencies (i.e., none)
+
+  MKDEP = $(TOPDIR)$(DELIM)tools$(DELIM)mknulldeps.sh
+
+  # SDCC for Linux, OSX, or Cygwin understands symbolic links.  Windows SDCC
+  # running under Cygwin does not
+
+ifeq ($(WINTOOL),y)
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)copydir.sh
+else
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)link.sh
+endif
+DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.sh
+
+endif
