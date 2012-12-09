@@ -21,7 +21,7 @@ PARAM_DEFINE_FLOAT(FWB_R2RDR,1.0f); // yaw rate 2 rudder
 PARAM_DEFINE_FLOAT(FWB_PSI2PHI,1.0f);       // heading 2 roll
 PARAM_DEFINE_FLOAT(FWB_PHI_LIM_MAX,0.7f);   // roll limit
 PARAM_DEFINE_FLOAT(FWB_P2PHI,0.1f);         // roll damping
-PARAM_DEFINE_FLOAT(FWB_PHI2AIL,10.0f);      // roll 2 aileron
+PARAM_DEFINE_FLOAT(FWB_PHI2AIL,5.0f);      // roll 2 aileron
 
 // velocity -> theta
 PARAM_DEFINE_FLOAT(FWB_V2THE_P,0.3f);
@@ -49,7 +49,7 @@ PARAM_DEFINE_FLOAT(FWB_H2THR_I_MAX,0.0f);
 
 // crosstrack
 PARAM_DEFINE_FLOAT(FWB_XT2YAW_MAX,1.0f);
-PARAM_DEFINE_FLOAT(FWB_XT2YAW,0.01f);
+PARAM_DEFINE_FLOAT(FWB_XT2YAW,0.005f);
 PARAM_DEFINE_FLOAT(FWB_SPDCMD,40.0f);
 
 /* output trim, min, max */
