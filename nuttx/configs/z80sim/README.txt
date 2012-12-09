@@ -27,7 +27,7 @@ Configuring NuttX
 
     1) From a POSIX window:
        cd tools
-       ./configure.sh z80sim/pashello
+       ./configure.sh z80sim/ostest
     2) From a CMD.exe window
        setenv.bat
 
@@ -56,7 +56,7 @@ Configuring NuttX
 
     1) From a POSIX window:
        cd tools
-       ./configure.sh z80sim/pashello
+       ./configure.sh z80sim/nsh
     2) From a CMD.exe window
        setenv.bat
 

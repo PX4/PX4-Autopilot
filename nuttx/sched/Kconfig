@@ -57,12 +57,6 @@ config DEV_CONSOLE
 		Set if architecture-specific logic provides /dev/console.  Enables
 		stdout, stderr, stdin.
 
-config DEV_LOWCONSOLE
-	bool "enable low-level serial console"
-	default n
-	---help---
-		Use the simple, low-level, write-only serial console driver (minimul support)
-
 config MUTEX_TYPES:
 	bool "Enable mutex types"
 	default n

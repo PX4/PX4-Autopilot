@@ -232,7 +232,9 @@ static int uart_putxmitchar(FAR uart_dev_t *dev, int ch)
         }
     }
 
-  /* We won't get here */
+  /* We won't get here.  Some compilers may complain that this code is
+   * unreachable.
+   */
 
   return OK;
 }

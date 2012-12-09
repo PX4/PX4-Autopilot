@@ -3768,6 +3768,9 @@
 	* tools/link.bat, unlink.bat, and copydir.bat:  Add Windows counterparts
 	  to the link.sh, unlink.sh, and copydir.sh Bash scripts.
 	* configs/z80sim/pashello:  Now builds correctly.
-	* configs/xtrs/ostest:  Converted to (1) used the kconfig-frontends
-	  configuration tool, and (2) to build natively under Windows.
+	* configs/xtrs/ostest, nsh, and pashello:  Converted to (1) used the kconfig-
+	  frontends configuration tool, and (2) to build natively under Windows.
+	* drivers/serial/Kconfig and sched/Kconfig:  Two names for same configuration:
+	  CONFIG_LOWLEVEL_CONSOLE is bogus and CONFIG_DEV_LOWCONSOLE is in the wrong
+	  Kconfig file.  Moved to drivers/serial/Kconfig replacing CONFIG_LOWLEVEL_CONSOLE.
 

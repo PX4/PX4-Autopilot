@@ -97,7 +97,9 @@ char *strstr(const char *str, const char *substr)
       candidate++;
     }
 
-  /* Won't get here, but some compilers might complain */
+  /* Won't get here, but some compilers might complain.  Other compilers
+   * might complain about this code being unreachable too.
+   */
 
   return NULL;
 }

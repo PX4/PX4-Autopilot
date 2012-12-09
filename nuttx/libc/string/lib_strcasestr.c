@@ -127,7 +127,9 @@ FAR char *strcasestr(FAR const char *str, FAR const char *substr)
       candidate++;
     }
 
-  /* Won't get here, but some compilers might complain */
+  /* Won't get here, but some compilers might complain.  Others might complain
+   * about this code being unreachable too.
+   */
 
   return NULL;
 }

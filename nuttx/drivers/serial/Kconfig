@@ -3,10 +3,12 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-config LOWLEVEL_CONSOLE
+config DEV_LOWCONSOLE
 	bool "Low-level console support"
 	default n
 	depends on ARCH_LOWPUTC
+	---help---
+		Use the simple, low-level, write-only serial console driver (minimal support)
 
 config 16550_UART
 	bool "16550 UART Chip support"
@@ -317,7 +319,7 @@ config STANDARD_SERIAL
 	bool "Enable standard \"upper-half\" serial driver"
 	default y if MCU_SERIAL
 	default n if !MCU_SERIAL
-	depends on !LOWLEVEL_CONSOLE
+	depends on !DEV_LOWCONSOLE
 	---help---
 		Enable the standard, upper-half serial driver used by most MCU serial peripherals.
 

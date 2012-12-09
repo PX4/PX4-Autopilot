@@ -55,12 +55,13 @@
 #include <nuttx/arch.h>
 #include <nuttx/serial/serial.h>
 #include <arch/serial.h>
+#include <arch/z80/io.h>
 
 #include "up_arch.h"
 #include "os_internal.h"
 #include "up_internal.h"
 
-#ifdef USE_SERIAL_DRIVER
+#ifdef USE_SERIALDRIVER
 
 /****************************************************************************
  * Definitions

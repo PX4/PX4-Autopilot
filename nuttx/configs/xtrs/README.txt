@@ -54,9 +54,10 @@ Configuring NuttX
 
     1) From a POSIX window:
        cd tools
-       ./configure.sh z80sim/pashello
+       ./configure.sh xtrs/ostest
     2) From a CMD.exe window
        setenv.bat
+       make
 
     The setenv.bat will need to be updated to include the PATH to the XTRS
     hex2cmd program.
@@ -72,9 +73,7 @@ Configuring NuttX
        which will give you the steps you would need to do to convert this
        configuration to build in other, Unix-like environments.
 
-    3. This configuration was last verified sucessfully prior to the
-       the configure to Kconfig/mconf tool using SDCC 2.6.0 built to run
-       natively under Cygwin.  The current build requires ca. 3.2.1 SDCC.
+    3. The current build requires ca. 3.2.1 SDCC.
 
   nsh
 
@@ -84,10 +83,33 @@ Configuring NuttX
 
     This configuration can be selected by:
 
+    1) From a POSIX window:
        cd tools
        ./configure.sh xtrs/nsh
-       cd -
-       . ./setenv.sh
+    2) From a CMD.exe window
+       setenv.bat
+       make
+
+    The setenv.bat will need to be updated to include the PATH to the XTRS
+    hex2cmd program.
+
+    NOTES:
+
+    1. This configuration uses the mconf-based configuration tool.  See the
+       "Reconfiguring" section below for information about changing this
+       configuration.
+
+    2. The default setup for this configuration uses a windows native build.
+       See the section entitled "Reconfiguring for Linux, OSX, or Cygwin"
+       which will give you the steps you would need to do to convert this
+       configuration to build in other, Unix-like environments.
+
+    3. The current build requires ca. 3.2.1 SDCC.
+
+    4. This configuration depends on configs/xtrs/src/xtrs_serial.c which
+       is incomplete.  At compile time, the following symbols are undefined:
+
+       ctrl, baud, rs232_xmtisr, rs232_recvisr, ch
 
   pashello
 
@@ -99,10 +121,28 @@ Configuring NuttX
 
     This configuration can be selected by:
 
+    1) From a POSIX window:
        cd tools
        ./configure.sh xtrs/pashello
-       cd -
-       . ./setenv.sh
+    2) From a CMD.exe window
+       setenv.bat
+       make
+
+    The setenv.bat will need to be updated to include the PATH to the XTRS
+    hex2cmd program.
+
+    NOTES:
+
+    1. This configuration uses the mconf-based configuration tool.  See the
+       "Reconfiguring" section below for information about changing this
+       configuration.
+
+    2. The default setup for this configuration uses a windows native build.
+       See the section entitled "Reconfiguring for Linux, OSX, or Cygwin"
+       which will give you the steps you would need to do to convert this
+       configuration to build in other, Unix-like environments.
+
+    3. The current build requires ca. 3.2.1 SDCC.
 
 Reconfiguring NuttX
 ^^^^^^^^^^^^^^^^^^^
