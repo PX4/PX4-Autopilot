@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/arch.h
+ * arch/z80/src/z180/z180_irq.c
  *
- *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,38 +33,81 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
- * through nuttx/arch.h
- */
-
-#ifndef __ARCH_Z80_INCLUDE_ARCH_H
-#define __ARCH_Z80_INCLUDE_ARCH_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <arch/chip/arch.h>
+#include <nuttx/config.h>
+#include <nuttx/arch.h>
+#include <nuttx/irq.h>
+
+#include "chip/switch.h"
+#include "up_internal.h"
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Private Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Inline functions
+ * Public Data
+ ****************************************************************************/
+
+/* This holds a references to the current interrupt level register storage
+ * structure.  If is non-NULL only during interrupt processing.
+ */
+
+volatile chipreg_t *current_regs;
+
+/****************************************************************************
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Function Prototypes
+ * Name: irqsave
+ *
+ * Description:
+ *   Disable all interrupts; return previous interrupt state
+ *
  ****************************************************************************/
 
-#endif /* __ARCH_Z80_INCLUDE_ARCH_H */
+irqstate_t irqsave(void) __naked
+{
+  __asm
+	ld	a, i		; AF Parity bit holds interrupt state
+	di			; Interrupts are disabled
+	push	af		; Return AF in HL
+	pop	hl		;
+	ret			;
+  __endasm;
+}
 
+/****************************************************************************
+ * Name: irqrestore
+ *
+ * Description:
+ *   Restore previous interrupt state
+ *
+ ****************************************************************************/
+
+void irqrestore(irqstate_t flags) __naked
+{
+  __asm
+	di			; Assume disabled
+	pop	hl		; HL = return address
+	pop	af		; AF Parity bit holds interrupt state
+	jp	po, statedisable
+	ei
+statedisable:
+	push	af		; Restore stack
+	push	hl		;
+	ret			; and return
+  __endasm;
+}

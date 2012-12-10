@@ -41,9 +41,35 @@
  * Included Files
  ****************************************************************************/
 
+#ifndef __ASSEMBLY__
+#  include <stdint.h>
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+/* Bits in the Z80 FLAGS register ***************************************************/
+
+#define Z180_C_FLAG      0x01       /* Bit 0: Carry flag */
+#define Z180_N_FLAG      0x02       /* Bit 1: Add/Subtract flag  */
+#define Z180_PV_FLAG     0x04       /* Bit 2: Parity/Overflow flag */
+#define Z180_H_FLAG      0x10       /* Bit 4: Half carry flag */
+#define Z180_Z_FLAG      0x40       /* Bit 5: Zero flag */
+#define Z180_S_FLAG      0x80       /* Bit 7: Sign flag */
+
+/* Register access macros ***********************************************************/
+
+#ifndef __ASSEMBLY__
+
+# define getreg8(a)      (*(volatile uint8_t *)(a))
+# define putreg8(v,a)    (*(volatile uint8_t *)(a) = (v))
+# define getreg16(a)     (*(volatile uint16_t *)(a))
+# define putreg16(v,a)   (*(volatile uint16_t *)(a) = (v))
+# define getreg32(a)     (*(volatile uint32_t *)(a))
+# define putreg32(v,a)   (*(volatile uint32_t *)(a) = (v))
+
+#endif
 
 /* Z800180
  *
@@ -71,12 +97,12 @@
  *   * Enhanced on the Z8S180 and Z8L180 MPUs
  */
 
-#if   defined(CONFIG_Z180_CHIP_Z8018006VSG) || /* 68-pin PLCC */ \
-      defined(CONFIG_Z180_CHIP_Z8018010VSG) || /* 68-pin PLCC */ \
-      defined(CONFIG_Z180_CHIP_Z8018008VSG) || /* 68-pin PLCC */ \
-      defined(CONFIG_Z180_CHIP_Z8018010FSG) || /* 80-pin QFP (11 pins N/C) */ \
-      defined(CONFIG_Z180_CHIP_Z8018008VEG) || /* 68-pin PLCC */ \
-      defined(CONFIG_Z180_CHIP_Z8018006VEG)    /* 68-pin PLCC */
+#if   defined(CONFIG_ARCH_CHIP_Z8018006VSG) || /* 68-pin PLCC */ \
+      defined(CONFIG_ARCH_CHIP_Z8018010VSG) || /* 68-pin PLCC */ \
+      defined(CONFIG_ARCH_CHIP_Z8018008VSG) || /* 68-pin PLCC */ \
+      defined(CONFIG_ARCH_CHIP_Z8018010FSG) || /* 80-pin QFP (11 pins N/C) */ \
+      defined(CONFIG_ARCH_CHIP_Z8018008VEG) || /* 68-pin PLCC */ \
+      defined(CONFIG_ARCH_CHIP_Z8018006VEG)    /* 68-pin PLCC */
 
 #  undef  HAVE_Z8S180                             /* Not Z8S180 (5V) or Z8L180 (3.3V) core */
 #  define HAVE ROM       0                        /* No on-chip ROM */
@@ -93,14 +119,14 @@
 #  define HAVE_NPAR8     0                        /* No 8-bit parallel ports */
 #  undef  HAVE_IEEE1284                           /* No bidirectional centronics interface (IEEE 1284) */
 
-#elif defined(CONFIG_Z180_CHIP_Z8018006PSG) || /* 64-pin DIP 6 MHz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8018008FSG) || /* 80-pin QFP (11 pins N/C) 8MHz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8018010PSG) || /* 64-pin DIP 10MHz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8018006PEG) || /* 64-pin DIP 6MHz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8018010VEG) || /* 68-pin PLCC 10MHz 5V*/ \
-      defined(CONFIG_Z180_CHIP_Z8018010PEG) || /* 64-pin DIP 10MHz 5V*/ \
-      defined(CONFIG_Z180_CHIP_Z8018008PSG) || /* 64-pin DIP 8MHz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8018006FSG)    /* 80-pin QFP (11 pins N/C) 6MHz 5V */
+#elif defined(CONFIG_ARCH_CHIP_Z8018006PSG) || /* 64-pin DIP 6 MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8018008FSG) || /* 80-pin QFP (11 pins N/C) 8MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8018010PSG) || /* 64-pin DIP 10MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8018006PEG) || /* 64-pin DIP 6MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8018010VEG) || /* 68-pin PLCC 10MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8018010PEG) || /* 64-pin DIP 10MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8018008PSG) || /* 64-pin DIP 8MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8018006FSG)    /* 80-pin QFP (11 pins N/C) 6MHz 5V */
 
 #  undef  HAVE_Z8S180                             /* Not Z8S180 (5V) or Z8L180 (3.3V) core */
 #  define HAVE ROM       0                        /* No on-chip ROM */
@@ -117,10 +143,10 @@
 #  define HAVE_NPAR8     0                        /* No 8-bit parallel ports */
 #  undef  HAVE_IEEE1284                           /* No bidirectional centronics interface (IEEE 1284) */
 
-#elif defined(CONFIG_Z180_CHIP_Z8018000XSO)
-      defined(CONFIG_Z180_CHIP_Z8018010FEG)
-      defined(CONFIG_Z180_CHIP_Z8018000WSO)
-      defined(CONFIG_Z180_CHIP_Z8018008PEG)
+#elif defined(CONFIG_ARCH_CHIP_Z8018000XSO)
+      defined(CONFIG_ARCH_CHIP_Z8018010FEG)
+      defined(CONFIG_ARCH_CHIP_Z8018000WSO)
+      defined(CONFIG_ARCH_CHIP_Z8018008PEG)
 
 #  undef  HAVE_Z8S180                             /* Not Z8S180 (5V) or Z8L180 (3.3V) core */
 #  define HAVE ROM       0                        /* No on-chip ROM */
@@ -158,7 +184,7 @@
  *   Emulation Mode
  */
 
-#elif defined(CONFIG_Z180_CHIP_Z8018110FEG)       /* 100 QFP */
+#elif defined(CONFIG_ARCH_CHIP_Z8018110FEG)       /* 100-pin QFP */
 
 #  undef  HAVE_Z8S180                             /* Not Z8S180 (5V) or Z8L180 (3.3V) core */
 #  define HAVE ROM       0                        /* No on-chip ROM */
@@ -199,11 +225,11 @@
  *   3.3 V and 5 V Version
  */
 
-#elif defined(CONFIG_Z180_CHIP_Z8018233FSG) ||    /* 100-pin QFP */ \
-      defined(CONFIG_Z180_CHIP_Z8018220AEG) ||    /* 100-pin LQFP 20MHz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8018216FSG) ||    /* 100-pin QFP 16MHz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8018216ASG) ||    /* 100-pin LQFP */ \
-      defined(CONFIG_Z180_CHIP_Z8018233ASG)       /* 100-pin LQFP 33MHz 5V */
+#elif defined(CONFIG_ARCH_CHIP_Z8018233FSG) ||    /* 100-pin QFP */ \
+      defined(CONFIG_ARCH_CHIP_Z8018220AEG) ||    /* 100-pin LQFP 20MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8018216FSG) ||    /* 100-pin QFP 16MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8018216ASG) ||    /* 100-pin LQFP */ \
+      defined(CONFIG_ARCH_CHIP_Z8018233ASG)       /* 100-pin LQFP 33MHz 5V */
 
 #  undef  HAVE_Z8S180                             /* Not Z8S180 (5V) or Z8L180 (3.3V) core */
 #  define HAVE ROM       0                        /* No on-chip ROM */
@@ -244,8 +270,8 @@
  *   7 or 24 Bits of I/O 
  */
 
-#elif defined(CONFIG_Z180_CHIP_Z8019520FSG) ||    /* 100-pin QFP 20MHz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8019533FSG)       /* 100-pin QFP 33MHz 5V */
+#elif defined(CONFIG_ARCH_CHIP_Z8019520FSG) ||    /* 100-pin QFP 20MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8019533FSG)       /* 100-pin QFP 33MHz 5V */
 
 #  undef  HAVE_Z8S180                             /* No Z8S180 (5V) or Z8L180 (3.3V) core */
 #  undef  HAVE ROM       0                        /* No 32KB on-chip ROM (z80185 only) */
@@ -285,9 +311,9 @@
  *   * Enhanced on the Z8S180 and Z8L180 MPUs.
  */
 
-#elif defined(CONFIG_Z180_CHIP_Z8L18020VSG) ||    /* 69-pin PLCC */ \
-      defined(CONFIG_Z180_CHIP_Z8L18020FSG) ||    /* 80-pin GFP 20MHz 3.3V */ \
-      defined(CONFIG_Z180_CHIP_Z8L18020PSG)
+#elif defined(CONFIG_ARCH_CHIP_Z8L18020VSG) ||    /* 68-pinn PLCC */ \
+      defined(CONFIG_ARCH_CHIP_Z8L18020FSG) ||    /* 80-pin GFP 20MHz 3.3V */ \
+      defined(CONFIG_ARCH_CHIP_Z8L18020PSG)
 
 #  define HAVE_Z8S180    1                        /* Uses Z8S180 (5V) or Z8L180 (3.3V) core */
 #  define HAVE ROM       0                        /* No on-chip ROM */
@@ -329,9 +355,9 @@
  *   3.3 V and 5 V Version
  */
 
-#elif defined(CONFIG_Z180_CHIP_Z8L18220ASG) ||    /* 100-pin LQFP */ \
-      defined(CONFIG_Z180_CHIP_Z8L18220FSG) ||    /* 100-pin QFP 20MHz 3.3V */ \
-      defined(CONFIG_Z180_CHIP_Z8L18220AEG)
+#elif defined(CONFIG_ARCH_CHIP_Z8L18220ASG) ||    /* 100-pin LQFP */ \
+      defined(CONFIG_ARCH_CHIP_Z8L18220FSG) ||    /* 100-pin QFP 20MHz 3.3V */ \
+      defined(CONFIG_ARCH_CHIP_Z8L18220AEG)
 
 #  define HAVE_Z8S180    1                        /* Uses Z8S180 (5V) or Z8L180 (3.3V) core */
 #  define HAVE ROM       0                        /* No on-chip ROM */
@@ -373,22 +399,22 @@
  *   Package - DIP, PLCC, QFP
  */
 
-#elif defined(CONFIG_Z180_CHIP_Z8S18020VSG) || /* 68-pin PLCC */ \
-      defined(CONFIG_Z180_CHIP_Z8S18020VSG1960) || /* 68-pin PLCC */ \
-      defined(CONFIG_Z180_CHIP_Z8S18033VSG) || /* 68-pin PLCC */ \
-      defined(CONFIG_Z180_CHIP_Z8S18010FSG) || /* 80-pin QFP */ \
-      defined(CONFIG_Z180_CHIP_Z8S18010VEG) || /* 68-pin PLCC */ \
-      defined(CONFIG_Z180_CHIP_Z8S18020VEG) || /* 68-pin PLCC */ \
-      defined(CONFIG_Z180_CHIP_Z8S18010VSG) || /* 68-pin PLCC */ \
-      defined(CONFIG_Z180_CHIP_Z8S18020PSG) || /* 64-pin DIP 10Mhz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8S18033FSG) || /* 80-pin QFP 33MHz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8S18033FEG) || /* 80-pin QFP 33MHz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8S18020FSG) || /* 80-pin QFP 20MHz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8S18033VEG) || /* 68-pin PLCC 33MHz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8S18010PSG) || /* 64-pin DIP 10MHz 5V */ \
-      defined(CONFIG_Z180_CHIP_Z8S18020FEG) || \
-      defined(CONFIG_Z180_CHIP_Z8S18010PEG) || \
-      defined(CONFIG_Z180_CHIP_Z8S18010FEG
+#elif defined(CONFIG_ARCH_CHIP_Z8S18020VSG) ||    /* 68-pin PLCC */ \
+      defined(CONFIG_ARCH_CHIP_Z8S18020VSG1960) || /* 68-pin PLCC */ \
+      defined(CONFIG_ARCH_CHIP_Z8S18033VSG) ||    /* 68-pin PLCC */ \
+      defined(CONFIG_ARCH_CHIP_Z8S18010FSG) ||    /* 80-pin QFP */ \
+      defined(CONFIG_ARCH_CHIP_Z8S18010VEG) ||    /* 68-pin PLCC */ \
+      defined(CONFIG_ARCH_CHIP_Z8S18020VEG) ||    /* 68-pin PLCC */ \
+      defined(CONFIG_ARCH_CHIP_Z8S18010VSG) ||    /* 68-pin PLCC */ \
+      defined(CONFIG_ARCH_CHIP_Z8S18020PSG) ||    /* 64-pin DIP 10Mhz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8S18033FSG) ||    /* 80-pin QFP 33MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8S18033FEG) ||    /* 80-pin QFP 33MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8S18020FSG) ||    /* 80-pin QFP 20MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8S18033VEG) ||    /* 68-pin PLCC 33MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8S18010PSG) ||    /* 64-pin DIP 10MHz 5V */ \
+      defined(CONFIG_ARCH_CHIP_Z8S18020FEG) || \
+      defined(CONFIG_ARCH_CHIP_Z8S18010PEG) || \
+      defined(CONFIG_ARCH_CHIP_Z8S18010FEG
 
 #  define HAVE_Z8S180    1                        /* Uses Z8S180 (5V) or Z8L180 (3.3V) core */
 #  define HAVE ROM       0                        /* No on-chip ROM */

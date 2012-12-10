@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/arch.h
+ * arch/z80/src/z180/z180_initialstate.c
  *
- *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,38 +33,59 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
- * through nuttx/arch.h
- */
-
-#ifndef __ARCH_Z80_INCLUDE_ARCH_H
-#define __ARCH_Z80_INCLUDE_ARCH_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <arch/chip/arch.h>
+#include <nuttx/config.h>
+
+#include <string.h>
+#include <nuttx/arch.h>
+
+#include "chip/chip.h"
+#include "up_internal.h"
+#include "up_arch.h"
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Private Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Inline functions
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Function Prototypes
+ * Name: up_initial_state
+ *
+ * Description:
+ *   A new thread is being started and a new TCB
+ *   has been created. This function is called to initialize
+ *   the processor specific portions of the new TCB.
+ *
+ *   This function must setup the initial architecture registers
+ *   and/or  stack so that execution will begin at tcb->start
+ *   on the next context switch.
+ *
  ****************************************************************************/
 
-#endif /* __ARCH_Z80_INCLUDE_ARCH_H */
+void up_initial_state(_TCB *tcb)
+{
+  struct xcptcontext *xcp = &tcb->xcp;
 
+  /* Initialize the initial exception register context structure */
+
+  memset(xcp, 0, sizeof(struct xcptcontext));
+#ifndef CONFIG_SUPPRESS_INTERRUPTS
+  xcp->regs[XCPT_I]  = Z180_PV_FLAG; /* Parity flag will enable interrupts */
+#endif
+  xcp->regs[XCPT_SP] = (chipreg_t)tcb->adj_stack_ptr;
+  xcp->regs[XCPT_PC] = (chipreg_t)tcb->start;
+}

@@ -1,0 +1,75 @@
+############################################################################
+# arch/z80/src/z180/Toolchain.defs
+#
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+# Setup for the selected toolchain
+
+#
+# SDCC is currently the only z180 toolchain supported.  See
+# http://sdcc.sourceforge.net/.  Source and pre-built SDCC binaries can be
+# downloaded from the SDCC SourceForge site:
+# http://sourceforge.net/projects/sdcc/files/.  Pre-built binaries are
+# available for Linux, MAC OSX, and for Win32.  In addition, SDCC can be
+# built to run on Windows as a POSIX toolchain.  The various SDCC options are
+# selected in the NuttX configuration with:
+#
+#  CONFIG_Z180_TOOLCHAIN_SDCCL=y : SDCC for Linux, MAC OSX or Cygwin
+#  CONFIG_Z180_TOOLCHAIN_SDCCW=y : SDCC for Win32
+#
+
+ifeq ($(filter y, \
+      $(CONFIG_Z180_TOOLCHAIN_SDCCL) \
+    ),y)
+  CONFIG_Z180_TOOLCHAIN ?= SDCCPOSIX
+endif
+ifeq ($(filter y, \
+      $(CONFIG_Z180_TOOLCHAIN_SDCCW) \
+    ),y)
+  CONFIG_Z180_TOOLCHAIN ?= SDCCWIN32
+endif
+
+# SDCC toolchain under Linux, MAC OSX or Cygwin
+
+ifeq ($(CONFIG_Z180_TOOLCHAIN),POSIX)
+endif
+
+# SDCC  toolchain under Windows/Cygwin
+
+ifeq ($(CONFIG_AVR_TOOLCHAIN),SDCCWIN32)
+  ifneq ($(CONFIG_WINDOWS_NATIVE),y)
+    WINTOOL = y
+  endif
+endif
+
+

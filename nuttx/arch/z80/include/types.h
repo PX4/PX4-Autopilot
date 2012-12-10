@@ -37,8 +37,8 @@
 * through sys/types.h
  */
 
-#ifndef __ARCH_TYPES_H
-#define __ARCH_TYPES_H
+#ifndef __ARCH_Z80_INCLUDE_TYPES_H
+#define __ARCH_Z80_INCLUDE_TYPES_H
 
 /****************************************************************************
  * Included Files
@@ -58,4 +58,4 @@
  * Global Function Prototypes
  ****************************************************************************/
 
-#endif /* __ARCH_TYPES_H */
+#endif /* __ARCH_Z80_INCLUDE_TYPES_H */

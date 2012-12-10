@@ -34,8 +34,8 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_IO_H
-#define __ARCH_IO_H
+#ifndef __ARCH_Z80_INCLUDE_IO_H
+#define __ARCH_Z80_INCLUDE_IO_H
 
 /****************************************************************************
  * Included Files
@@ -44,7 +44,7 @@
 #include <arch/chip/io.h>
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
@@ -59,18 +59,4 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
-#undef EXTERN
-#ifdef __cplusplus
-}
-#endif
-#endif
-
-#endif /* __ARCH_IO_H */
+#endif /* __ARCH_Z80_INCLUDE_IO_H */

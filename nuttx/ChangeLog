@@ -3775,4 +3775,6 @@
 	  Kconfig file.  Moved to drivers/serial/Kconfig replacing CONFIG_LOWLEVEL_CONSOLE.
 	* arch/z80/include/z180:  Add header files for z180 chips.  Initial versions
 	  are just clones of z80 header files.
+	* arch/z80/src/z180:  Add source files for z180 chips.  Initial versions
+	  are just clones of z80 source files.
 

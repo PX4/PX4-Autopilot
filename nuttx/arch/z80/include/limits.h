@@ -33,17 +33,17 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_LIMITS_H
-#define __ARCH_LIMITS_H
+#ifndef __ARCH_Z80_INCLUDE_LIMITS_H
+#define __ARCH_Z80_INCLUDE_LIMITS_H
 
 /****************************************************************************
- * Included Files
+ * Pre-processor Definitions
  ****************************************************************************/
 
 #include <arch/chip/limits.h>
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
-#endif /* __ARCH_LIMITS_H */
+#endif /* __ARCH_Z80_INCLUDE_LIMITS_H */

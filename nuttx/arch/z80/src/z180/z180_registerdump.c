@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/arch.h
+ * arch/z80/src/z180/z180_registerdump.c
  *
- *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,38 +33,59 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
- * through nuttx/arch.h
- */
-
-#ifndef __ARCH_Z80_INCLUDE_ARCH_H
-#define __ARCH_Z80_INCLUDE_ARCH_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <arch/chip/arch.h>
+#include <nuttx/config.h>
+
+#include <debug.h>
+
+#include <nuttx/irq.h>
+#include <nuttx/arch.h>
+
+#include "chip/switch.h"
+#include "os_internal.h"
+#include "up_internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* Output debug info if stack dump is selected -- even if 
+ * debug is not selected.
+ */
+
+#ifdef CONFIG_ARCH_STACKDUMP
+# undef  lldbg
+# define lldbg lib_lowprintf
+#endif
+
 /****************************************************************************
- * Inline functions
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Name: z180_registerdump
  ****************************************************************************/
 
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
-#endif /* __ARCH_Z80_INCLUDE_ARCH_H */
-
+#ifdef CONFIG_ARCH_STACKDUMP
+static void z180_registerdump(void)
+{
+  if (current_regs)
+    {
+      lldbg("AF: %04x  I: %04x\n",
+            current_regs[XCPT_AF], current_regs[XCPT_I]);
+      lldbg("BC: %04x DE: %04x HL: %04x\n",
+            current_regs[XCPT_BC], current_regs[XCPT_DE], current_regs[XCPT_HL]);
+      lldbg("IX: %04x IY: %04x\n",
+            current_regs[XCPT_IX], current_regs[XCPT_IY]);
+      lldbg("SP: %04x PC: %04x\n"
+            current_regs[XCPT_SP], current_regs[XCPT_PC]);
+    }
+}
+#endif

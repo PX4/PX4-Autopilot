@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/arch.h
+ * arch/z80/src/z180/z180_sigdeliver.c
  *
- *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,38 +33,107 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
- * through nuttx/arch.h
- */
-
-#ifndef __ARCH_Z80_INCLUDE_ARCH_H
-#define __ARCH_Z80_INCLUDE_ARCH_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <arch/chip/arch.h>
+#include <nuttx/config.h>
+
+#include <sched.h>
+#include <debug.h>
+
+#include <nuttx/irq.h>
+#include <nuttx/arch.h>
+
+#include "chip/switch.h"
+#include "os_internal.h"
+#include "up_internal.h"
+
+#ifndef CONFIG_DISABLE_SIGNALS
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Inline functions
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Function Prototypes
+ * Name: up_sigdeliver
+ *
+ * Description:
+ *   This is the a signal handling trampoline.  When a signal action was
+ *   posted.  The task context was mucked with and forced to branch to this
+ *   location with interrupts disabled.
+ *
  ****************************************************************************/
 
-#endif /* __ARCH_Z80_INCLUDE_ARCH_H */
+void up_sigdeliver(void)
+{
+#ifndef CONFIG_DISABLE_SIGNALS
+  FAR _TCB  *rtcb = (_TCB*)g_readytorun.head;
+  chipreg_t regs[XCPTCONTEXT_REGS];
+  sig_deliver_t sigdeliver;
 
+  /* Save the errno.  This must be preserved throughout the signal handling
+   * so that the user code final gets the correct errno value (probably
+   * EINTR).
+   */
+
+  int saved_errno = rtcb->pterrno;
+
+  up_ledon(LED_SIGNAL);
+
+  sdbg("rtcb=%p sigdeliver=%p sigpendactionq.head=%p\n",
+       rtcb, rtcb->xcp.sigdeliver, rtcb->sigpendactionq.head);
+  ASSERT(rtcb->xcp.sigdeliver != NULL);
+
+  /* Save the real return state on the stack. */
+
+  z180_copystate(regs, rtcb->xcp.regs);
+  regs[XCPT_PC] = rtcb->xcp.saved_pc;
+  regs[XCPT_I]  = rtcb->xcp.saved_i;
+
+  /* Get a local copy of the sigdeliver function pointer.  We do this so
+   * that we can nullify the sigdeliver function pointer in the TCB and
+   * accept more signal deliveries while processing the current pending
+   * signals.
+   */
+
+  sigdeliver           = rtcb->xcp.sigdeliver;
+  rtcb->xcp.sigdeliver = NULL;
+
+  /* Then restore the task interrupt state. */
+
+  irqrestore(regs[XCPT_I]);
+
+  /* Deliver the signals */
+
+  sigdeliver(rtcb);
+
+  /* Output any debug messages BEFORE restoring errno (because they may
+   * alter errno), then disable interrupts again and restore the original
+   * errno that is needed by the user logic (it is probably EINTR).
+   */
+
+  sdbg("Resuming\n");
+  (void)irqsave();
+  rtcb->pterrno = saved_errno;
+
+  /* Then restore the correct state for this thread of execution. */
+
+  up_ledoff(LED_SIGNAL);
+  z180_restoreusercontext(regs);
+#endif
+}
+
+#endif /* CONFIG_DISABLE_SIGNALS */

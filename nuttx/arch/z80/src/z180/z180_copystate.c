@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/arch.h
+ * arch/z80/src/z180/z180_copystate.c
  *
- *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,38 +33,46 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
- * through nuttx/arch.h
- */
-
-#ifndef __ARCH_Z80_INCLUDE_ARCH_H
-#define __ARCH_Z80_INCLUDE_ARCH_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <arch/chip/arch.h>
+#include <nuttx/config.h>
+
+#include <arch/irq.h>
+
+#include "chip/switch.h"
+#include "os_internal.h"
+#include "up_internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Inline functions
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Function Prototypes
+ * Name: z180_copystate
  ****************************************************************************/
 
-#endif /* __ARCH_Z80_INCLUDE_ARCH_H */
+/* Maybe a little faster than most memcpy's */
+
+void z180_copystate(FAR chipreg_t *dest, FAR const chipreg_t *src)
+{
+  int i;
+  for (i = 0; i < XCPTCONTEXT_REGS; i++)
+    {
+      *dest++ = *src++;
+    }
+}
 

@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/arch.h
+ * arch/z80/src/z180/z180_io.c
  *
- *   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,38 +33,62 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
- * through nuttx/arch.h
- */
-
-#ifndef __ARCH_Z80_INCLUDE_ARCH_H
-#define __ARCH_Z80_INCLUDE_ARCH_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <arch/chip/arch.h>
+#include <nuttx/config.h>
+#include <nuttx/arch.h>
+/* #include <nuttx/irq.h> */
+
+#include "up_internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Inline functions
+ * Private Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Function Prototypes
+ * Name: outb
+ *
+ * Description:
+ *   Output byte c on port p
+ *
  ****************************************************************************/
 
-#endif /* __ARCH_Z80_INCLUDE_ARCH_H */
+void outp(char p, char c)
+{
+  __asm
+	ld      c, 4(ix)	; port
+	ld      a, 5(ix)	; value
+	out     (c), a
+  __endasm;
+}
 
+
+/****************************************************************************
+ * Name: inpb
+ *
+ * Description:
+ *   Input byte from port p
+ *
+ ****************************************************************************/
+
+char inp(char p) __naked
+{
+  __asm
+	ld      c, 4(ix)	;port
+	in      l, (c)
+  __endasm;
+}

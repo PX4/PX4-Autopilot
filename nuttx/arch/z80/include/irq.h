@@ -48,7 +48,7 @@
 #include <arch/chip/irq.h>
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
@@ -62,20 +62,6 @@
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
-#undef EXTERN
-#ifdef __cplusplus
-}
-#endif
-#endif
 
 #endif /* __ARCH_Z80_INCLUDE_IRQ_H */
 
