@@ -42,6 +42,8 @@
 #include "block/Block.h"
 #include "block/BlockParam.h"
 #include "assert.h"
+#include <time.h>
+#include <stdlib.h>
 
 namespace control
 {
@@ -210,7 +212,6 @@ public:
 // accessors
     float getU() {return _u;}
     float getY() {return _y;}
-    float getMin() {return _limit.getMin();}
     float getMax() {return _limit.getMax();}
     void setU(float u) {_u = u;}
     void setY(float y) {_y = y;}
@@ -218,7 +219,7 @@ protected:
 // attributes
     float _u; /**< previous input */
     float _y; /**< previous output */
-    BlockLimit _limit; /**< limiter */
+    BlockLimitSym _limit; /**< limiter */
 };
 
 int __EXPORT blockIntegralTrapTest();
@@ -414,5 +415,86 @@ private:
 };
 
 int __EXPORT blockOutputTest();
+
+/**
+ * A uniform random number generator
+ */
+class __EXPORT BlockRandUniform: public Block
+{
+public:
+// methods
+    BlockRandUniform(SuperBlock * parent,
+            const char * name) :
+        Block(parent, name),
+        _min(this,"MIN"),
+        _max(this,"MAX")
+    {
+        // seed should be initialized somewhere
+        // in main program for all calls to rand
+        // XXX currently in nuttx if you seed to 0, rand breaks
+    };
+    virtual ~BlockRandUniform() {};
+    float update()
+    {
+        static float rand_max = MAX_RAND;
+        float rand_val = rand();
+        float bounds = getMax() - getMin();
+        return getMin() + (rand_val * bounds) / rand_max;
+    }
+// accessors
+    float getMin() { return _min.get(); }
+    float getMax() { return _max.get(); }
+private:
+// attributes
+    BlockParam<float> _min;
+    BlockParam<float> _max;
+};
+
+int __EXPORT blockRandUniformTest();
+
+class __EXPORT BlockRandGauss: public Block
+{
+public:
+// methods
+    BlockRandGauss(SuperBlock * parent,
+            const char * name) :
+        Block(parent, name),
+        _mean(this,"MEAN"),
+        _stdDev(this,"DEV")
+    {
+        // seed should be initialized somewhere
+        // in main program for all calls to rand
+        // XXX currently in nuttx if you seed to 0, rand breaks
+    };
+    virtual ~BlockRandGauss() {};
+    float update()
+    {
+        static float V1, V2, S;
+        static int phase = 0;
+        float X;
+        if(phase == 0) {
+            do {
+                float U1 = (float)rand() / MAX_RAND;
+                float U2 = (float)rand() / MAX_RAND;
+                V1 = 2 * U1 - 1;
+                V2 = 2 * U2 - 1;
+                S = V1 * V1 + V2 * V2;
+                } while(S >= 1 || fabs(S)<1e-8 );
+            X = V1 * float(sqrt(-2 * float(log(S)) / S));
+        } else
+            X = V2 * float(sqrt(-2 * float(log(S)) / S));
+        phase = 1 - phase;
+        return X*getStdDev() + getMean();
+    }
+// accessors
+    float getMean() { return _mean.get(); }
+    float getStdDev() { return _stdDev.get(); }
+private:
+// attributes
+    BlockParam<float> _mean;
+    BlockParam<float> _stdDev;
+};
+
+int __EXPORT blockRandGaussTest();
 
 } // namespace control

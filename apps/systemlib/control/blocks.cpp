@@ -59,6 +59,8 @@ int basicBlocksTest()
     blockPDTest();
     blockPIDTest();
     blockOutputTest();
+    blockRandUniformTest();
+    blockRandGaussTest();
     return 0;
 }
 
@@ -261,7 +263,6 @@ int blockIntegralTrapTest()
     BlockIntegralTrap integral(NULL,"TEST_I");
     // test initial state
     ASSERT(equal(1.0f,integral.getMax()));
-    ASSERT(equal(-1.0f,integral.getMin()));
     ASSERT(equal(0.0f,integral.getDt()));
     // set dt
     integral.setDt(0.1f);
@@ -432,5 +433,60 @@ int blockOutputTest()
     printf("PASS\n");
     return 0;
 }
+
+int blockRandUniformTest()
+{
+    srand(1234);
+    printf("Test BlockRandUniform\t\t: ");
+    BlockRandUniform blockRandUniform(NULL,"TEST");
+    // test initial state
+    ASSERT(equal(0.0f,blockRandUniform.getDt()));
+    ASSERT(equal(-1.0f,blockRandUniform.getMin()));
+    ASSERT(equal(1.0f,blockRandUniform.getMax()));
+    // test update
+    int n = 10000;
+    float mean = blockRandUniform.update();
+    for (int i=2;i<n+1;i++)
+    {
+        float val = blockRandUniform.update();
+        mean += (val - mean)/i;
+        ASSERT(val <= blockRandUniform.getMax());
+        ASSERT(val >= blockRandUniform.getMin());
+    }
+    ASSERT(equal(mean,(blockRandUniform.getMin() +
+                    blockRandUniform.getMax())/2,1e-1));
+    printf("PASS\n");
+    return 0;
+}
+
+int blockRandGaussTest()
+{
+    srand(1234);
+    printf("Test BlockRandGauss\t\t: ");
+    BlockRandGauss blockRandGauss(NULL,"TEST");
+    // test initial state
+    ASSERT(equal(0.0f,blockRandGauss.getDt()));
+    ASSERT(equal(1.0f,blockRandGauss.getMean()));
+    ASSERT(equal(2.0f,blockRandGauss.getStdDev()));
+    // test update
+    int n = 10000;
+    float mean = blockRandGauss.update();
+    float sum = 0;
+    for (int i=2;i<n+1;i++)
+    {
+        float val = blockRandGauss.update();
+        float newMean = mean + (val - mean)/i;
+        sum += (val-mean)*(val-newMean);
+        mean = newMean;
+    }
+    float stdDev = sqrt(sum/(n-1));
+    ASSERT(equal(mean,blockRandGauss.getMean(),1e-1));
+    ASSERT(equal(stdDev,blockRandGauss.getStdDev(),1e-1));
+    printf("PASS\n");
+    return 0;
+}
+
+
+
 
 } // namespace control
