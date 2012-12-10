@@ -217,7 +217,6 @@ int blockIntegralTest()
     BlockIntegral integral(NULL,"TEST_I");
     // test initial state
     ASSERT(equal(1.0f,integral.getMax()));
-    ASSERT(equal(-1.0f,integral.getMin()));
     ASSERT(equal(0.0f,integral.getDt()));
     // set dt
     integral.setDt(0.1f);
@@ -350,7 +349,6 @@ int blockPITest()
     ASSERT(equal(0.1f,blockPI.getKI()));
     ASSERT(equal(0.0f,blockPI.getDt()));
     ASSERT(equal(1.0f,blockPI.getIntegral().getMax()));
-    ASSERT(equal(-1.0f,blockPI.getIntegral().getMin()));
     // set dt
     blockPI.setDt(0.1f);
     ASSERT(equal(0.1f,blockPI.getDt()));
@@ -397,7 +395,6 @@ int blockPIDTest()
     ASSERT(equal(0.0f,blockPID.getDt()));
     ASSERT(equal(10.0f,blockPID.getDerivative().getLP()));
     ASSERT(equal(1.0f,blockPID.getIntegral().getMax()));
-    ASSERT(equal(-1.0f,blockPID.getIntegral().getMin()));
     // set dt
     blockPID.setDt(0.1f);
     ASSERT(equal(0.1f,blockPID.getDt()));

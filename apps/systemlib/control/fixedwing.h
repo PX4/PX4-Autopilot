@@ -269,29 +269,26 @@ class BlockHeadingHold : public SuperBlock
 {
 private:
     BlockP _psi2Phi;
-    BlockP _p2Phi;
-    BlockP _phi2Ail;
+    BlockP _phi2P;
     BlockLimitSym _phiLimit;
-    float _aileron;
 public:
     BlockHeadingHold(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
         _psi2Phi(this, "PSI2PHI"),
-        _p2Phi(this, "P2PHI"),
-        _phi2Ail(this, "PHI2AIL"),
-        _phiLimit(this, "PHI_LIM"),
-        _aileron(0)
+        _phi2P(this, "PHI2P"),
+        _phiLimit(this, "PHI_LIM")
     {
     }
     virtual ~BlockHeadingHold() {};
-    void update(float psiCmd, float phi, float psi, float p)
+    /**
+     * returns pCmd
+     */
+    float update(float psiCmd, float phi, float psi, float p)
     {
         float psiError = _wrap_pi(psiCmd - psi);
         float phiCmd = _phiLimit.update(_psi2Phi.update(psiError));
-        float phiError = phiCmd - phi;
-        _aileron = _phi2Ail.update(phiError - _p2Phi.update(p));
+        return _phi2P.update(phiCmd - phi);
     }
-    float getAileron() { return _aileron; }
 };
 
 /**
@@ -320,24 +317,27 @@ class BlockVelocityHoldBackside : public SuperBlock
 private:
     BlockPID _v2Theta;
     BlockPID _theta2Q;
-    float _elevator;
+    BlockLimit _theLimit;
+    BlockLimit _vLimit;
 public:
     BlockVelocityHoldBackside(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
         _v2Theta(this,"V2THE"),
         _theta2Q(this,"THE2Q"),
-        _elevator(0)
+        _theLimit(this,"THE"),
+        _vLimit(this,"V")
     {
     }
     virtual ~BlockVelocityHoldBackside() {};
-    void update(float vCmd, float v, float theta, float q)
+    /**
+     * returns qCmd
+     */
+    float update(float vCmd, float v, float theta, float q)
     {
         // negative sign because nose over to increase speed
-        float thetaCmd = -_v2Theta.update(vCmd - v);
-        float qCmd = _theta2Q.update(thetaCmd - theta);
-        _elevator = qCmd - q;
+        float thetaCmd = _theLimit.update(-_v2Theta.update(_vLimit.update(vCmd) - v));
+        return _theta2Q.update(thetaCmd - theta);
     }
-    float getElevator() { return _elevator; }
 };
 
 /**
@@ -348,20 +348,20 @@ class BlockVelocityHoldFrontside : public SuperBlock
 {
 private:
     BlockPID _v2Thr;
-    float _throttle;
 public:
     BlockVelocityHoldFrontside(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
-        _v2Thr(this,"V2THR"),
-        _throttle(0)
+        _v2Thr(this,"V2THR")
     {
     }
     virtual ~BlockVelocityHoldFrontside() {};
-    void update(float vCmd, float v)
+    /**
+     * returns throttle
+     */
+    float update(float vCmd, float v)
     {
-        _throttle = _v2Thr.update(vCmd - v);
+        return _v2Thr.update(vCmd - v);
     }
-    float getThrottle() { return _throttle; }
 };
 
 /**
@@ -397,23 +397,22 @@ class BlockAltitudeHoldFrontside : public SuperBlock
 private:
     BlockPID _h2Theta;
     BlockPID _theta2Q;
-    float _elevator;
 public:
     BlockAltitudeHoldFrontside(SuperBlock * parent, const char * name) :
         SuperBlock(parent, name),
         _h2Theta(this, "H2THE"),
-        _theta2Q(this, "THE2Q"),
-        _elevator(0)
+        _theta2Q(this, "THE2Q")
     {
     }
     virtual ~BlockAltitudeHoldFrontside() {};
-    void update(float hCmd, float h, float theta, float q)
+    /**
+     * return qCmd
+     */
+    float update(float hCmd, float h, float theta, float q)
     {
         float thetaCmd = _h2Theta.update(hCmd - h);
-        float qCmd = _theta2Q.update(thetaCmd - theta);
-        _elevator = qCmd - q;
+        return _theta2Q.update(thetaCmd - theta);
     }
-    float getElevatorCmd() { return _elevator; }
 };
 
 /**
@@ -422,7 +421,7 @@ public:
 class BlockBacksideAutopilot : public SuperBlock
 {
 private:
-    BlockYawDamper _yawDamper;
+    BlockStabilization * _stabilization;
     BlockHeadingHold _headingHold;
     BlockVelocityHoldBackside _velocityHold;
     BlockAltitudeHoldBackside _altitudeHold;
@@ -431,9 +430,11 @@ private:
     BlockParam<float> _trimRdr;
     BlockParam<float> _trimThr;
 public:
-    BlockBacksideAutopilot(SuperBlock * parent, const char * name) :
+    BlockBacksideAutopilot(SuperBlock * parent,
+            const char * name,
+            BlockStabilization * stabilization) :
         SuperBlock(parent, name),
-        _yawDamper(this,""),
+        _stabilization(stabilization),
         _headingHold(this,""),
         _velocityHold(this,""),
         _altitudeHold(this,""),
@@ -449,14 +450,16 @@ public:
             float phi, float theta, float psi,
             float p, float q, float r)
     {
-        _yawDamper.update(rCmd, r);
-        _headingHold.update(psiCmd, phi, psi, p);
-        _velocityHold.update(vCmd, v, theta, q);
         _altitudeHold.update(hCmd, h);
+        _stabilization->update(
+                _headingHold.update(psiCmd, phi, psi, p),
+                _velocityHold.update(vCmd, v, theta, q),
+                rCmd,
+                p, q, r);
     };
-    float getRudder() { return _yawDamper.getRudder() + _trimRdr.get(); }
-    float getAileron() { return _headingHold.getAileron() + _trimAil.get(); }
-    float getElevator() { return _velocityHold.getElevator() + _trimElv.get(); }
+    float getRudder() { return _stabilization->getRudder() + _trimRdr.get(); }
+    float getAileron() { return _stabilization->getAileron() + _trimAil.get(); }
+    float getElevator() { return _stabilization->getElevator() + _trimElv.get(); }
     float getThrottle() { return _altitudeHold.getThrottle() + _trimThr.get(); }
 };
 
@@ -547,7 +550,7 @@ private:
     BlockStabilization _stabilization;
     BlockBacksideAutopilot _backsideAutopilot;
     BlockWaypointGuidance _guide;
-    BlockParam<float> _spdCmd;
+    BlockParam<float> _vCmd;
 
     uint8_t _loopCount;
     struct pollfd _attPoll;
@@ -557,9 +560,9 @@ public:
     BlockMultiModeBacksideAutopilot(SuperBlock * parent, const char * name) :
         BlockUorbEnabledAutopilot(parent, name),
         _stabilization(this,""), // no name needed, already unique
-        _backsideAutopilot(this,""),
+        _backsideAutopilot(this,"",&_stabilization),
         _guide(this,""),
-        _spdCmd(this,"SPDCMD"),
+        _vCmd(this,"V_CMD"),
         _loopCount(0),
 		_attPoll(),
         _lastPosCmd()
@@ -609,7 +612,7 @@ public:
             float rCmd = 0;
 
             _backsideAutopilot.update(
-                _posCmd.altitude, _spdCmd.get(), rCmd, _guide.getPsiCmd(),
+                _posCmd.altitude, _vCmd.get(), rCmd, _guide.getPsiCmd(),
                 _pos.alt, v,
                 _att.roll, _att.pitch, _att.yaw,
                 _att.rollspeed, _att.pitchspeed, _att.yawspeed

@@ -178,13 +178,12 @@ public:
     float update(float input);
 // accessors
     float getY() {return _y;}
-    float getMin() {return _limit.getMin();}
     float getMax() {return _limit.getMax();}
     void setY(float y) {_y = y;}
 protected:
 // attributes
     float _y; /**< previous output */
-    BlockLimit _limit; /**< limiter */
+    BlockLimitSym _limit; /**< limiter */
 };
 
 int __EXPORT blockIntegralTest();
