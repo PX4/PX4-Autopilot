@@ -59,6 +59,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/debug_key_value.h>
+#include <uORB/topics/sensor_combined.h>
 #include <drivers/drv_rc_input.h>
 
 struct mavlink_subscriptions {

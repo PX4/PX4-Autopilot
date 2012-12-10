@@ -41,10 +41,20 @@
 
 extern bool mavlink_hil_enabled;
 
+// hil modes
+enum {
+    HIL_MODE_SENSORS, // raw sensors values are passed, navigation and control test
+    HIL_MODE_STATE // state is paseed, only control test
+};
+
 extern struct vehicle_global_position_s hil_global_pos;
 extern struct vehicle_attitude_s hil_attitude;
+extern struct sensor_combined_s hil_sensors;
 extern orb_advert_t pub_hil_global_pos;
 extern orb_advert_t pub_hil_attitude;
+extern orb_advert_t pub_hil_sensors;
+
+extern int hil_mode;
 
 /**
  * Enable / disable Hardware in the Loop simulation mode.

@@ -86,8 +86,10 @@ static struct offboard_control_setpoint_s offboard_control_sp;
 
 struct vehicle_global_position_s hil_global_pos;
 struct vehicle_attitude_s hil_attitude;
+struct sensor_combined_s hil_sensors;
 orb_advert_t pub_hil_global_pos = -1;
 orb_advert_t pub_hil_attitude = -1;
+orb_advert_t pub_hil_sensors = -1;
 
 static orb_advert_t cmd_pub = -1;
 static orb_advert_t flow_pub = -1;
@@ -96,6 +98,7 @@ static orb_advert_t offboard_control_sp_pub = -1;
 static orb_advert_t vicon_position_pub = -1;
 
 extern bool gcs_link;
+extern int hil_mode;
 
 static void
 handle_message(mavlink_message_t *msg)
@@ -301,46 +304,78 @@ handle_message(mavlink_message_t *msg)
 			/* Calculate Rotation Matrix */
 			//TODO: better clarification which app does this, atm we have a ekf for quadrotors which does this, but there is no such thing if fly in fixed wing mode
 
-			if(mavlink_system.type == MAV_TYPE_FIXED_WING) {
-				//TODO: assuming low pitch and roll values for now
-				hil_attitude.R[0][0] = cosf(hil_state.yaw);
-				hil_attitude.R[0][1] = sinf(hil_state.yaw);
-				hil_attitude.R[0][2] = 0.0f;
+            if (hil_mode == HIL_MODE_STATE)
+            {
+                if(mavlink_system.type == MAV_TYPE_FIXED_WING) {
+                    //TODO: assuming low pitch and roll values for now
+                    hil_attitude.R[0][0] = cosf(hil_state.yaw);
+                    hil_attitude.R[0][1] = sinf(hil_state.yaw);
+                    hil_attitude.R[0][2] = 0.0f;
 
-				hil_attitude.R[1][0] = -sinf(hil_state.yaw);
-				hil_attitude.R[1][1] = cosf(hil_state.yaw);
-				hil_attitude.R[1][2] = 0.0f;
+                    hil_attitude.R[1][0] = -sinf(hil_state.yaw);
+                    hil_attitude.R[1][1] = cosf(hil_state.yaw);
+                    hil_attitude.R[1][2] = 0.0f;
 
-				hil_attitude.R[2][0] = 0.0f;
-				hil_attitude.R[2][1] = 0.0f;
-				hil_attitude.R[2][2] = 1.0f;
+                    hil_attitude.R[2][0] = 0.0f;
+                    hil_attitude.R[2][1] = 0.0f;
+                    hil_attitude.R[2][2] = 1.0f;
 
-				hil_attitude.R_valid = true;
-			}
+                    hil_attitude.R_valid = true;
+                } 
+                hil_global_pos.lat = hil_state.lat;
+                hil_global_pos.lon = hil_state.lon;
+                hil_global_pos.alt = hil_state.alt / 1000.0f;
+                hil_global_pos.vx = hil_state.vx / 100.0f;
+                hil_global_pos.vy = hil_state.vy / 100.0f;
+                hil_global_pos.vz = hil_state.vz / 100.0f;
 
-			hil_global_pos.lat = hil_state.lat;
-			hil_global_pos.lon = hil_state.lon;
-			hil_global_pos.alt = hil_state.alt / 1000.0f;
-			hil_global_pos.vx = hil_state.vx / 100.0f;
-			hil_global_pos.vy = hil_state.vy / 100.0f;
-			hil_global_pos.vz = hil_state.vz / 100.0f;
 
+                /* set timestamp and notify processes (broadcast) */
+                hil_global_pos.timestamp = hrt_absolute_time();
+                orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
 
-			/* set timestamp and notify processes (broadcast) */
-			hil_global_pos.timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
+                hil_attitude.roll = hil_state.roll;
+                hil_attitude.pitch = hil_state.pitch;
+                hil_attitude.yaw = hil_state.yaw;
+                hil_attitude.rollspeed = hil_state.rollspeed;
+                hil_attitude.pitchspeed = hil_state.pitchspeed;
+                hil_attitude.yawspeed = hil_state.yawspeed;
 
-			hil_attitude.roll = hil_state.roll;
-			hil_attitude.pitch = hil_state.pitch;
-			hil_attitude.yaw = hil_state.yaw;
-			hil_attitude.rollspeed = hil_state.rollspeed;
-			hil_attitude.pitchspeed = hil_state.pitchspeed;
-			hil_attitude.yawspeed = hil_state.yawspeed;
+                /* set timestamp and notify processes (broadcast) */
+                hil_attitude.counter++;
+                hil_attitude.timestamp = hrt_absolute_time();
+                orb_publish(ORB_ID(vehicle_attitude), pub_hil_attitude, &hil_attitude);
+            }
+            else if (hil_mode == HIL_MODE_SENSORS)
+            {
+                /* hil timestamp, and packet counter */
+                hil_sensors.timestamp = hrt_absolute_time();
+                static uint16_t hil_counter = 0;
+                hil_counter +=1 ;
 
-			/* set timestamp and notify processes (broadcast) */
-			hil_attitude.counter++;
-			hil_attitude.timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(vehicle_attitude), pub_hil_attitude, &hil_attitude);
+                /* hil gyro */
+                hil_sensors.gyro_counter += hil_counter; 
+                hil_sensors.gyro_rad_s[0] = hil_state.rollspeed;
+                hil_sensors.gyro_rad_s[1] = hil_state.pitchspeed;
+                hil_sensors.gyro_rad_s[2] = hil_state.yawspeed;
+
+                /* hil accelerometer */
+                hil_sensors.accelerometer_counter += hil_counter; 
+                static const float mg_ms2 = 9.8f/1000.0f;
+                hil_sensors.accelerometer_m_s2[0] = mg_ms2*hil_state.xacc;
+                hil_sensors.accelerometer_m_s2[1] = mg_ms2*hil_state.yacc;
+                hil_sensors.accelerometer_m_s2[2] = mg_ms2*hil_state.zacc;
+
+                /* hil magnetometer */
+                hil_sensors.magnetometer_counter += hil_counter; 
+                // TODO, need mag model
+                hil_sensors.magnetometer_ga[0] = 0;
+                hil_sensors.magnetometer_ga[1] = 0;
+                hil_sensors.magnetometer_ga[2] = 0;
+
+                /* publish hil sensors */
+                orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
+            }
 		}
 
 		if (msg->msgid == MAVLINK_MSG_ID_MANUAL_CONTROL) {

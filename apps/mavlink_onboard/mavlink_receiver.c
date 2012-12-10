@@ -81,8 +81,10 @@ static struct offboard_control_setpoint_s offboard_control_sp;
 
 struct vehicle_global_position_s hil_global_pos;
 struct vehicle_attitude_s hil_attitude;
+struct sensor_combined_s hil_sensors;
 orb_advert_t pub_hil_global_pos = -1;
 orb_advert_t pub_hil_attitude = -1;
+orb_advert_t pub_hil_sensors = -1;
 
 static orb_advert_t cmd_pub = -1;
 static orb_advert_t flow_pub = -1;

@@ -271,12 +271,11 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 		if (ret < 0) {
 			/* XXX this is seriously bad - should be an emergency */
 		} else if (ret == 0) {
-			/* check if we're in HIL - not getting sensor data is fine then */
+			/* if you are running this app, you need to be publishing sensors
+             * even if in hil */
 			orb_copy(ORB_ID(vehicle_status), sub_state, &state);
-			if (!state.flag_hil_enabled) {
-				fprintf(stderr, 
-					"[att ekf] WARNING: Not getting sensors - sensor app running?\n");
-			}
+            fprintf(stderr, 
+                "[att ekf] WARNING: Not getting sensors - sensor app running?\n");
 		} else {
 
 			/* only update parameters if they changed */
