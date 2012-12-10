@@ -152,6 +152,7 @@ set_hil_on_off(bool hil_enabled)
         else if (hil_mode == HIL_MODE_SENSORS)
         {
 		    pub_hil_sensors = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
+		    pub_hil_gps = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
         }
 
 		mavlink_hil_enabled = true;

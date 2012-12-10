@@ -50,9 +50,11 @@ enum {
 extern struct vehicle_global_position_s hil_global_pos;
 extern struct vehicle_attitude_s hil_attitude;
 extern struct sensor_combined_s hil_sensors;
+extern struct vehicle_gps_position_s hil_gps;
 extern orb_advert_t pub_hil_global_pos;
 extern orb_advert_t pub_hil_attitude;
 extern orb_advert_t pub_hil_sensors;
+extern orb_advert_t pub_hil_gps;
 
 extern int hil_mode;
 

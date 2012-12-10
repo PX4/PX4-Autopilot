@@ -86,9 +86,11 @@ static struct offboard_control_setpoint_s offboard_control_sp;
 
 struct vehicle_global_position_s hil_global_pos;
 struct vehicle_attitude_s hil_attitude;
+struct vehicle_gps_position_s hil_gps;
 struct sensor_combined_s hil_sensors;
 orb_advert_t pub_hil_global_pos = -1;
 orb_advert_t pub_hil_attitude = -1;
+orb_advert_t pub_hil_gps = -1;
 orb_advert_t pub_hil_sensors = -1;
 
 static orb_advert_t cmd_pub = -1;
@@ -374,7 +376,19 @@ handle_message(mavlink_message_t *msg)
                 hil_sensors.magnetometer_ga[2] = 0;
 
                 /* publish hil sensors */
+                hil_gps.timestamp = hrt_absolute_time();
+                hil_gps.counter = hil_counter;
+                hil_gps.fix_type = 3;
+                hil_gps.lat = hil_state.lat;
+                hil_gps.lon = hil_state.lon;
+                hil_gps.alt = hil_state.alt;
+                hil_gps.vel_n = hil_state.vx/100.0f;
+                hil_gps.vel_e = hil_state.vy/100.0f;
+                hil_gps.vel_d = hil_state.vz/100.0f;
                 orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
+
+                /* hil gps */
+                orb_publish(ORB_ID(vehicle_gps_position), pub_hil_gps, &hil_gps);
             }
 		}
 
