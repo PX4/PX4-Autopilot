@@ -378,6 +378,30 @@ config ARCH_CHIP_Z8F642X
 config ARCH_CHIP_Z8F640X
 	bool
 
+config ARCH_CHIP_Z180
+	bool
+
+config ARCH_CHIP_Z80180
+	bool
+
+config ARCH_CHIP_Z80181
+	bool
+
+config ARCH_CHIP_Z80182
+	bool
+
+config ARCH_CHIP_Z80195
+	bool
+
+config ARCH_CHIP_Z8L180
+	bool
+
+config ARCH_CHIP_Z8L182
+	bool
+
+config ARCH_CHIP_Z8S180
+	bool
+
 config ARCH_CHIP_Z8
 	bool
 
@@ -390,11 +414,13 @@ config HAVE_LOWUARTINIT
 config ARCH_CHIP
 	string
 	default "z80"		if ARCH_CHIP_Z80
+	default "z180"		if ARCH_CHIP_Z180
 	default "z8"		if ARCH_CHIP_Z8
 	default "ez80"		if ARCH_CHIP_EZ80
 
 source "arch/z80/src/common/Kconfig"
 source "arch/z80/src/z80/Kconfig"
+source "arch/z80/src/z180/Kconfig"
 source "arch/z80/src/z8/Kconfig"
 source "arch/z80/src/ez80/Kconfig"
 
