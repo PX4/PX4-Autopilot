@@ -3773,4 +3773,6 @@
 	* drivers/serial/Kconfig and sched/Kconfig:  Two names for same configuration:
 	  CONFIG_LOWLEVEL_CONSOLE is bogus and CONFIG_DEV_LOWCONSOLE is in the wrong
 	  Kconfig file.  Moved to drivers/serial/Kconfig replacing CONFIG_LOWLEVEL_CONSOLE.
+	* arch/z80/include/z180:  Add header files for z180 chips.  Initial versions
+	  are just clones of z80 header files.
 

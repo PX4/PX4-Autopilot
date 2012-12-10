@@ -41,7 +41,8 @@ Status
 On December 9, 2012, I made updates so that the 8051 port could use the
 newest SDCC toolchain (a pre-3.2.1 at that time).  However, when I attempted
 to build the PJRC-8051 configuration, I got type incompatibility errors
-from sched/os_bringup.c.
+from sched/os_bringup.c.  From what I gather by googling, this is a compiler
+bug related to the --stack-auto option.
 
 I have not been successful working around those bugs and I believe that
 these are 8051-related bugs in the SDCC toolchain.  This needs to be
