@@ -446,6 +446,7 @@ int blockRandUniformTest()
     // test update
     int n = 10000;
     float mean = blockRandUniform.update();
+    // recursive mean algorithm from Knuth
     for (int i=2;i<n+1;i++)
     {
         float val = blockRandUniform.update();
@@ -472,6 +473,7 @@ int blockRandGaussTest()
     int n = 10000;
     float mean = blockRandGauss.update();
     float sum = 0;
+    // recursive mean, stdev algorithm from Knuth
     for (int i=2;i<n+1;i++)
     {
         float val = blockRandGauss.update();
@@ -485,8 +487,5 @@ int blockRandGaussTest()
     printf("PASS\n");
     return 0;
 }
-
-
-
 
 } // namespace control
