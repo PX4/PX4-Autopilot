@@ -23,6 +23,12 @@ fi
 px4io start
 
 #
+# Load an appropriate mixer. FMU_pass.mix is a passthru mixer.
+# See ROMFS/mixers for a full list of mixers.
+#
+mixer load /dev/pwm_output /etc/mixers/FMU_pass.mix
+
+#
 # Start the sensors.
 #
 sh /etc/init.d/rc.sensors
