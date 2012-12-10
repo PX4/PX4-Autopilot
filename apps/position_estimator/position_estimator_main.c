@@ -60,10 +60,10 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <poll.h>
+#include <systemlib/geo/geo.h>
 
 #define N_STATES 6
 #define ERROR_COVARIANCE_INIT 3
-#define R_EARTH 6371000.0
 
 #define PROJECTION_INITIALIZE_COUNTER_LIMIT 5000
 #define REPROJECTION_COUNTER_LIMIT 125
@@ -72,152 +72,7 @@ __EXPORT int position_estimator_main(int argc, char *argv[]);
 
 static uint16_t position_estimator_counter_position_information;
 
-/* values for map projection */
-static double phi_1;
-static double sin_phi_1;
-static double cos_phi_1;
-static double lambda_0;
-static double scale;
 
-static double deg2Rad = 1.7453292519943295474371680597d-02;
-static double rad2Deg = 57.295779513082322864647721871d;
-static double epsilon = 1.0d-8;
-/*static double pi_2 =    1.5707963267948965579989817342d;*/
-
-/**
- * Initializes the map transformation.
- *
- * Initializes the transformation between the geographic coordinate system and the azimuthal equidistant plane
- * @param lat in degrees (47.1234567°, not 471234567°)
- * @param lon in degrees (8.1234567°, not 81234567°)
- */
-static void map_projection_init(double lat_0, double lon_0) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
-{
-    /* notation and formulas according to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html */
-    phi_1 = lat_0 * deg2Rad;
-    lambda_0 = lon_0 * deg2Rad;
-
-    sin_phi_1 = sin(phi_1);
-    cos_phi_1 = cos(phi_1);
-
-    /* calculate local scale by using the relation of true distance and the distance on plane */ //TODO: this is a quick solution, there are probably easier ways to determine the scale
-
-    /* 1) calculate true distance d on sphere to a point: http://www.movable-type.co.uk/scripts/latlong.html */
-    const double r_earth = 6371000.0d;
-
-    double lat1 = phi_1;
-    double lon1 = lambda_0;
-
-    double lat2 = phi_1 + 0.5d * rad2Deg;
-    double lon2 = lambda_0 + 0.5d * rad2Deg;
-    double sin_lat_2 = sin(lat2);
-    double cos_lat_2 = cos(lat2);
-    double d = acos(sin(lat1) * sin_lat_2 + cos(lat1) * cos_lat_2 * cos(lon2 - lon1)) * r_earth;
-
-    /* 2) calculate distance rho on plane */
-    double k_bar = 0.0d;
-    double c =  acos(sin_phi_1 * sin_lat_2 + cos_phi_1 * cos_lat_2 * cos(lon2 - lambda_0));
-
-    if (fabs(c)>epsilon)
-        k_bar = c / sin(c);
-
-    double x2 = k_bar * (cos_lat_2 * sin(lon2 - lambda_0)); //Projection of point 2 on plane
-    double y2 = k_bar * ((cos_phi_1 * sin_lat_2 - sin_phi_1 * cos_lat_2 * cos(lon2 - lambda_0)));
-    double rho = sqrt(pow(x2, 2) + pow(y2, 2));
-
-    scale = d / rho;
-
-}
-
-/**
- * Transforms a point in the geographic coordinate system to the local azimuthal equidistant plane
- * @param x north
- * @param y east
- * @param lat in degrees (47.1234567°, not 471234567°)
- * @param lon in degrees (8.1234567°, not 81234567°)
- */
-static void map_projection_project(double lat, double lon, float *x, float *y)
-{
-    /* notation and formulas accoring to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html */
-    double phi = lat * deg2Rad;
-    double lambda = lon * deg2Rad;
-
-    double sin_phi = sin(phi);
-    double cos_phi = cos(phi);
-
-    double k_bar = 0.0d;
-    /* using small angle approximation (formula in comment is without aproximation) */
-    double c =  acos(sin_phi_1 * sin_phi + cos_phi_1 * cos_phi * (1 - pow((lambda - lambda_0), 2) / 2)); //double c =  acos( sin_phi_1 * sin_phi + cos_phi_1 * cos_phi * cos(lambda - lambda_0) );
-
-    if (fabs(c)>epsilon)
-        k_bar = c / sin(c);
-
-    /* using small angle approximation (formula in comment is without aproximation) */
-    *y = k_bar * (cos_phi * (lambda - lambda_0)) * scale;//*y = k_bar * (cos_phi * sin(lambda - lambda_0)) * scale;
-    *x = k_bar * ((cos_phi_1 * sin_phi - sin_phi_1 * cos_phi * (1 - pow((lambda - lambda_0), 2) / 2))) * scale; //  *x = k_bar * ((cos_phi_1 * sin_phi - sin_phi_1 * cos_phi * cos(lambda - lambda_0))) * scale;
-
-//  printf("%phi_1=%.10f, lambda_0 =%.10f\n", phi_1, lambda_0);
-}
-
-/**
- * Transforms a point in the local azimuthal equidistant plane to the geographic coordinate system
- *
- * @param x north
- * @param y east
- * @param lat in degrees (47.1234567°, not 471234567°)
- * @param lon in degrees (8.1234567°, not 81234567°)
- */
-/*static void map_projection_reproject(float x, float y, double *lat, double *lon)
-{
-    [> notation and formulas accoring to: http://mathworld.wolfram.com/AzimuthalEquidistantProjection.html <]
-
-    double x_descaled = (double)x / scale;
-    double y_descaled = (double)y / scale;
-
-    double c = sqrt(pow(x_descaled, 2) + pow(y_descaled, 2));
-    double sin_c = sin(c);
-    double cos_c = cos(c);
-
-    double lat_sphere = 0.0d;
-
-    if (fabs(c)>epsilon)
-        lat_sphere = asin(cos_c * sin_phi_1 + (x_descaled * sin_c * cos_phi_1) / c);
-    else
-        lat_sphere = asin(cos_c * sin_phi_1);
-
-//  printf("lat_sphere = %.10f\n",lat_sphere);
-
-    double lon_sphere = 0.0d;
-
-    if (fabs(phi_1- pi_2)< epsilon) {
-        //using small angle approximation (formula in comment is without aproximation)
-        lon_sphere = (lambda_0 - y_descaled / x_descaled); //lon_sphere = (lambda_0 + atan2(-y_descaled, x_descaled));
-
-    } else if (fabs(phi_1- pi_2) < epsilon) {
-        //using small angle approximation (formula in comment is without aproximation)
-        lon_sphere = (lambda_0 + y_descaled / x_descaled); //lon_sphere = (lambda_0 + atan2(y_descaled, x_descaled));
-
-    } else {
-
-        lon_sphere = (lambda_0 + atan2(y_descaled * sin_c , c * cos_phi_1 * cos_c - x_descaled * sin_phi_1 * sin_c));
-        //using small angle approximation
-//      double denominator = (c * cos_phi_1 * cos_c - x_descaled * sin_phi_1 * sin_c);
-//      if(denominator != 0)
-//      {
-//          lon_sphere = (lambda_0 + (y_descaled * sin_c) / denominator);
-//      }
-//      else
-//      {
-//      ...
-//      }
-    }
-
-//  printf("lon_sphere = %.10f\n",lon_sphere);
-
-    *lat = lat_sphere * rad2Deg;
-    *lon = lon_sphere * rad2Deg;
-
-}*/
 
 /****************************************************************************
  * main
@@ -292,9 +147,9 @@ int position_estimator_main(int argc, char *argv[])
 
     /* get gps value for first initialization */
     orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_sub, &gps);
-    lat_current = ((double)(gps.lat)) * 1.0d-7;
-    lon_current = ((double)(gps.lon)) * 1.0d-7;
-    alt_current = gps.alt * 1.0d-3;
+    lat_current = ((double)(gps.lat)) * 1.0e-7d;
+    lon_current = ((double)(gps.lon)) * 1.0e-7d;
+    alt_current = gps.alt * 1.0e-3d;
 
     /* initialize coordinates */
     map_projection_init(lat_current, lon_current);
@@ -343,7 +198,7 @@ int position_estimator_main(int argc, char *argv[])
             /* initialize map projection with the last estimate (not at full rate) */
             if (gps_valid) {
                 /* Project gps lat lon (Geographic coordinate system) to plane*/
-                map_projection_project(((double)(gps.lat)) * 1.0d-7, ((double)(gps.lon)) * 1.0d-7, &(z[0]), &(z[1]));
+                map_projection_project(((double)(gps.lat)) * 1.0e-7d, ((double)(gps.lon)) * 1.0e-7d, &(z[0]), &(z[1]));
 
                 local_pos.x = z[0];
                 local_pos.y = z[1];
@@ -355,7 +210,7 @@ int position_estimator_main(int argc, char *argv[])
                 /* global position */
                 global_pos.lat = gps.lat;
                 global_pos.lon = gps.lon;
-                global_pos.alt = gps.alt*1.0d-3;
+                global_pos.alt = gps.alt*1.0e-3d;
                 global_pos.vx = gps.vel_n;
                 global_pos.vy = gps.vel_e;
                 global_pos.vz = gps.vel_d;
