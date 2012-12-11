@@ -174,7 +174,7 @@ atexit.register(util.pexpect_close_all)
 setup_template(opts.home)
 
 # start child
-cmd = "JSBSim --realtime --suspend --nice --simulation-rate=200 --logdirectivefile=jsbsim/fgout.xml --script=%s" % opts.script
+cmd = "JSBSim --realtime --suspend --nice --simulation-rate=1000 --logdirectivefile=jsbsim/fgout.xml --script=%s" % opts.script
 if opts.options:
     cmd += ' %s' % opts.options
 
@@ -246,6 +246,7 @@ def main_loop():
     last_sim_input = tnow
     last_wind_update = tnow
     frame_count = 0
+    input_count = 0
     paused = False
 
     while True:
@@ -267,6 +268,7 @@ def main_loop():
             simbuf = sim_in.makefile().readline()
             process_sitl_input(simbuf)
             last_sim_input = tnow
+            input_count +=1
 
         # show any jsbsim console output
         if jsb_console.fileno() in rin:
@@ -274,7 +276,7 @@ def main_loop():
         if jsb.fileno() in rin:
             util.pexpect_drain(jsb)
 
-        if tnow - last_sim_input > 1.0:
+        if tnow - last_sim_input > 0.1:
             if not paused:
                 print("PAUSING SIMULATION")
                 paused = True
@@ -292,7 +294,8 @@ def main_loop():
             last_wind_update = tnow
 
         if tnow - last_report > 3:
-            print("FPS %u asl=%.1f agl=%.1f roll=%.1f pitch=%.1f a=(%.2f %.2f %.2f)" % (
+            print("IPS %u FPS %u asl=%.1f agl=%.1f roll=%.1f pitch=%.1f a=(%.2f %.2f %.2f)" % (
+                input_count/(time.time() - last_report),
                 frame_count / (time.time() - last_report),
                 fdm.get('altitude', units='meters'),
                 fdm.get('agl', units='meters'),
@@ -303,6 +306,7 @@ def main_loop():
                 fdm.get('A_Z_pilot', units='mpss')))
 
             frame_count = 0
+            input_count = 0
             last_report = time.time()
 
 def exit_handler():

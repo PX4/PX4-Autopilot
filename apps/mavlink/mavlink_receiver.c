@@ -350,10 +350,15 @@ handle_message(mavlink_message_t *msg)
             }
             else if (hil_mode == HIL_MODE_SENSORS)
             {
+                uint64_t timestamp = hrt_absolute_time();
+
                 /* hil timestamp, and packet counter */
-                hil_sensors.timestamp = hrt_absolute_time();
+                hil_sensors.timestamp = timestamp;
                 static uint16_t hil_counter = 0;
+                static uint16_t hil_frames = 0;
+                static uint64_t old_timestamp = 0;
                 hil_counter +=1 ;
+                hil_frames +=1 ;
 
                 /* hil gyro */
                 hil_sensors.gyro_counter += hil_counter; 
@@ -371,12 +376,12 @@ handle_message(mavlink_message_t *msg)
                 /* hil magnetometer */
                 hil_sensors.magnetometer_counter += hil_counter; 
                 // TODO, need mag model
-                hil_sensors.magnetometer_ga[0] = 0;
+                hil_sensors.magnetometer_ga[0] = 0.5;
                 hil_sensors.magnetometer_ga[1] = 0;
                 hil_sensors.magnetometer_ga[2] = 0;
 
                 /* hil gps */
-                hil_gps.timestamp = hrt_absolute_time();
+                hil_gps.timestamp = timestamp;
                 hil_gps.counter = hil_counter;
                 hil_gps.fix_type = 3;
                 hil_gps.lat = hil_state.lat;
@@ -386,7 +391,12 @@ handle_message(mavlink_message_t *msg)
                 hil_gps.vel_e = hil_state.vy/100.0f;
                 hil_gps.vel_d = hil_state.vz/100.0f;
 
-                /* printf("received hil at: %llu\n", hil_gps.timestamp);  */
+                if ((timestamp - old_timestamp) > 1000000)
+                {
+                    printf("received hil at: %llu\trate:%d Hz\n", timestamp, hil_frames);
+                    old_timestamp = timestamp;
+                    hil_frames = 0;
+                }
 
                 /* publish hil sensors */
                 orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
@@ -493,7 +503,7 @@ receive_start(int uart)
 	pthread_attr_init(&receiveloop_attr);
 
 	struct sched_param param;
-  	param.sched_priority = SCHED_PRIORITY_MAX - 40;
+  	param.sched_priority = SCHED_PRIORITY_MAX/* - 40*/;
   	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
 	pthread_attr_setstacksize(&receiveloop_attr, 2048);
