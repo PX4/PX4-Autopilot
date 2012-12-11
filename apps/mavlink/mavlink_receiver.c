@@ -386,6 +386,8 @@ handle_message(mavlink_message_t *msg)
                 hil_gps.vel_e = hil_state.vy/100.0f;
                 hil_gps.vel_d = hil_state.vz/100.0f;
 
+                /* printf("received hil at: %llu\n", hil_gps.timestamp);  */
+
                 /* publish hil sensors */
                 orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
                 orb_publish(ORB_ID(vehicle_gps_position), pub_hil_gps, &hil_gps);
