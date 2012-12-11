@@ -380,8 +380,8 @@ handle_message(mavlink_message_t *msg)
                 hil_sensors.accelerometer_range_m_s2 = 100.0f;
 
                 /* slower sensors */
-                if (!(hil_counter % 50)) // must run first time to create valid packet
-                {
+                /*if (!(hil_counter % 50)) // must run first time to create valid packet*/
+                /*{*/
                     static uint16_t hil_slow_counter = 0;
 
                     /* baro */
@@ -446,9 +446,9 @@ handle_message(mavlink_message_t *msg)
                     /* magnetometer */
                     hil_sensors.magnetometer_counter = hil_counter; 
                     // TODO, need better mag model
-                    hil_sensors.magnetometer_raw[0] = gauss2Adc*magFieldStrength*sin(hil_state.yaw);//gauss2Adc*magVectBody[0];
-                    hil_sensors.magnetometer_raw[1] = -gauss2Adc*magFieldStrength*cos(hil_state.yaw);//gauss2Adc*magVectBody[1];
-                    hil_sensors.magnetometer_raw[2] = 0;//gauss2Adc*magVectBody[2];
+                    hil_sensors.magnetometer_raw[0] = gauss2Adc*magVectBody[0];
+                    hil_sensors.magnetometer_raw[1] = gauss2Adc*magVectBody[1];
+                    hil_sensors.magnetometer_raw[2] = gauss2Adc*magVectBody[2];
                     hil_sensors.magnetometer_ga[0] = hil_sensors.magnetometer_raw[0]/(float)gauss2Adc;
                     hil_sensors.magnetometer_ga[1] = hil_sensors.magnetometer_raw[1]/(float)gauss2Adc;
                     hil_sensors.magnetometer_ga[2] = hil_sensors.magnetometer_raw[2]/(float)gauss2Adc;
@@ -471,7 +471,7 @@ handle_message(mavlink_message_t *msg)
 
                     // increment counter
                     hil_slow_counter += 1;
-                }
+                /*}*/
 
                 /* publish hil sensors, this must occur outside of the slow loop since both
                  * fast and slow sensors are published */
