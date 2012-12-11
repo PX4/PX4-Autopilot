@@ -400,6 +400,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
                         memcpy(x_aposteriori_k, x_aposteriori, sizeof(x_aposteriori_k));
                     } else {
                         /* due to inputs or numerical failure the output is invalid, skip it */
+                        printf("attitude: numerical faillure, skipping\n");
                         continue;
                     }
 

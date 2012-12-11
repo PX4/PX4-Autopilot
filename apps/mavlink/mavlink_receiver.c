@@ -357,8 +357,6 @@ handle_message(mavlink_message_t *msg)
                 static uint16_t hil_counter = 0;
                 static uint16_t hil_frames = 0;
                 static uint64_t old_timestamp = 0;
-                hil_counter +=1 ;
-                hil_frames +=1 ;
 
                 /* hil gyro */
                 hil_sensors.gyro_counter = hil_counter; 
@@ -381,56 +379,115 @@ handle_message(mavlink_message_t *msg)
                 hil_sensors.accelerometer_mode = 0; // TODO what is this?
                 hil_sensors.accelerometer_range_m_s2 = 100.0f;
 
-                /* magnetometer */
-                hil_sensors.magnetometer_counter = hil_counter; 
-                // TODO, need better mag model
-                hil_sensors.magnetometer_raw[0] = -1000*cos(hil_state.yaw);
-                hil_sensors.magnetometer_raw[1] = 1000*sin(hil_state.yaw);
-                hil_sensors.magnetometer_raw[2] = 0;
-                hil_sensors.magnetometer_ga[0] = hil_sensors.magnetometer_raw[0]/500.0f;
-                hil_sensors.magnetometer_ga[1] = hil_sensors.magnetometer_raw[1]/500.0f;
-                hil_sensors.magnetometer_ga[2] = hil_sensors.magnetometer_raw[2]/500.0f;
-                hil_sensors.magnetometer_range_ga = 1.0f;
-                hil_sensors.magnetometer_mode = 0; // TODO what is this
-                hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
+                /* slower sensors */
+                if (!(hil_counter % 50)) // must run first time to create valid packet
+                {
+                    static uint16_t hil_slow_counter = 0;
 
-                /* baro */
-                hil_sensors.baro_counter = hil_counter; 
-                hil_sensors.baro_pres_mbar = 1013.25f; // TODO should vary with alt
-                hil_sensors.baro_alt_meter = hil_state.alt/1000.0f;
-                hil_sensors.baro_temp_celcius = 23.0f;
+                    /* baro */
+                    hil_sensors.baro_counter = hil_slow_counter; 
+                    hil_sensors.baro_pres_mbar = 1013.25f; // todo should vary with alt
+                    hil_sensors.baro_alt_meter = hil_state.alt/1000.0f;
+                    hil_sensors.baro_temp_celcius = 23.0f;
 
-                /* adc */
-                hil_sensors.adc_voltage_v[0] = 0;
-                hil_sensors.adc_voltage_v[1] = 0;
-                hil_sensors.adc_voltage_v[2] = 0;
+                    /* adc */
+                    hil_sensors.adc_voltage_v[0] = 0;
+                    hil_sensors.adc_voltage_v[1] = 0;
+                    hil_sensors.adc_voltage_v[2] = 0;
 
-                /* battery */
-                hil_sensors.battery_voltage_counter = hil_counter;
-                hil_sensors.battery_voltage_v = 11.1f;
-                hil_sensors.battery_voltage_valid = true;
+                    /* battery */
+                    hil_sensors.battery_voltage_counter = hil_slow_counter;
+                    hil_sensors.battery_voltage_v = 11.1f;
+                    hil_sensors.battery_voltage_valid = true;
 
-                /* gps */
-                hil_gps.timestamp = timestamp;
-                hil_gps.counter = hil_counter;
-                hil_gps.fix_type = 3;
-                hil_gps.lat = hil_state.lat;
-                hil_gps.lon = hil_state.lon;
-                hil_gps.alt = hil_state.alt;
-                hil_gps.vel_n = hil_state.vx/100.0f;
-                hil_gps.vel_e = hil_state.vy/100.0f;
-                hil_gps.vel_d = hil_state.vz/100.0f;
+                    /* magnetometer */
+                    float cosThe = cos(hil_state.pitch);
+                    float sinThe = sin(hil_state.pitch);
+                    float cosPsi = cos(hil_state.yaw);
+                    float sinPsi = sin(hil_state.yaw);
+                    float cosPhi = cos(hil_state.roll);
+                    float sinPhi = sin(hil_state.roll);
 
+                    float R[3][3]; // the true rotation matrix from body to 
+
+                    R[0][0] = cosThe*cosPsi;
+                    R[1][0] = -cosPhi*sinPsi + sinPhi*sinThe*cosPsi;
+                    R[2][0] = sinPhi*sinPsi + cosPhi*sinThe*cosPsi;
+
+                    R[0][1] = cosThe*sinPsi;
+                    R[1][1] = cosPhi*cosPsi + sinPhi*sinThe*sinPsi;
+                    R[2][1] = -sinPhi*cosPsi + cosPhi*sinThe*sinPsi;
+
+                    R[0][2] = -sinThe;
+                    R[1][2] = sinPhi*cosThe;
+                    R[2][2] = cosPhi*cosThe;
+
+                    float magFieldStrength = 0.5f;
+                    uint16_t gauss2Adc = 1000;
+
+                    float magVectNed[3];
+                    // choosing some typical magnetic field properties,
+                    //  these depend on lat/ lon/ date
+                    float dip = 60.0f; // dip, inclination with level
+                    float dec = 0.0f; // declination, clockwise rotation from north
+                    float cosDip = cos(dip);
+                    float sinDip = sin(dip);
+                    float cosDec = cos(dec);
+                    float sinDec = sin(dec);
+                    magVectNed[0] = magFieldStrength*cosDip*cosDec;
+                    magVectNed[1] = magFieldStrength*cosDip*sinDec;
+                    magVectNed[2] = magFieldStrength*sinDip;
+
+                    float magVectBody[3];
+                    magVectBody[0] = R[0][0] * magVectNed[0] + R[0][1] * magVectNed[1] + R[0][2] * magVectNed[2];
+                    magVectBody[1] = R[1][0] * magVectNed[0] + R[1][1] * magVectNed[1] + R[1][2] * magVectNed[2];
+                    magVectBody[2] = R[2][0] * magVectNed[0] + R[2][1] * magVectNed[1] + R[2][2] * magVectNed[2];
+
+                    /* magnetometer */
+                    hil_sensors.magnetometer_counter = hil_counter; 
+                    // TODO, need better mag model
+                    hil_sensors.magnetometer_raw[0] = gauss2Adc*magFieldStrength*sin(hil_state.yaw);//gauss2Adc*magVectBody[0];
+                    hil_sensors.magnetometer_raw[1] = -gauss2Adc*magFieldStrength*cos(hil_state.yaw);//gauss2Adc*magVectBody[1];
+                    hil_sensors.magnetometer_raw[2] = 0;//gauss2Adc*magVectBody[2];
+                    hil_sensors.magnetometer_ga[0] = hil_sensors.magnetometer_raw[0]/(float)gauss2Adc;
+                    hil_sensors.magnetometer_ga[1] = hil_sensors.magnetometer_raw[1]/(float)gauss2Adc;
+                    hil_sensors.magnetometer_ga[2] = hil_sensors.magnetometer_raw[2]/(float)gauss2Adc;
+                    hil_sensors.magnetometer_range_ga = 1.0f;
+                    hil_sensors.magnetometer_mode = 0; // TODO what is this
+                    hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
+
+                    /* gps */
+                    hil_gps.timestamp = timestamp;
+                    hil_gps.counter = hil_counter;
+                    hil_gps.fix_type = 3;
+                    hil_gps.lat = hil_state.lat;
+                    hil_gps.lon = hil_state.lon;
+                    hil_gps.alt = hil_state.alt;
+                    hil_gps.vel_n = hil_state.vx/100.0f;
+                    hil_gps.vel_e = hil_state.vy/100.0f;
+                    hil_gps.vel_d = hil_state.vz/100.0f;
+                    /* can publish gps here */
+                    orb_publish(ORB_ID(vehicle_gps_position), pub_hil_gps, &hil_gps);
+
+                    // increment counter
+                    hil_slow_counter += 1;
+                }
+
+                /* publish hil sensors, this must occur outside of the slow loop since both
+                 * fast and slow sensors are published */
+                orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
+
+                // increment counters
+                hil_counter +=1 ;
+                hil_frames +=1 ;
+
+                // output
                 if ((timestamp - old_timestamp) > 1000000)
                 {
-                    printf("receiving hil at %d Hz\n", hil_frames);
+                    printf("receiving hil at %d hz\n", hil_frames);
                     old_timestamp = timestamp;
                     hil_frames = 0;
                 }
-
-                /* publish hil sensors */
-                orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
-                orb_publish(ORB_ID(vehicle_gps_position), pub_hil_gps, &hil_gps);
             }
 		}
 
