@@ -1780,14 +1780,36 @@ configs/pcblogic-pic32mx
   STATUS:  Code complete but testing has been stalled due to tool related problems
   (PICkit 2 does not work with the PIC32).
 
-configs/pic32-starterkit
+configs/p112
+  The P112 is notable because it was the first of the hobbyist single board
+  computers to reach the production stage. The P112 hobbyist computers
+  were relatively widespread and inspired other hobbyist centered home brew
+  computing projects such as N8VEM home brew computing project. The P112
+  project still maintains many devoted enthusiasts and has an online
+  repository of software and other information.
 
+  The P112 computer originated as a commercial product of "D-X Designs Pty
+  Ltd" of Australia. They describe the computer as "The P112 is a stand-alone
+  8-bit CPU board. Typically running CP/M (tm) or a similar operating system,
+  it provides a Z80182 (Z-80 upgrade) CPU with up to 1MB of memory, serial,
+  parallel and diskette IO, and realtime clock, in a 3.5-inch drive form factor.
+  Powered solely from 5V, it draws 150mA (nominal: not including disk drives)
+  with a 16MHz CPU clock. Clock speeds up to 24.576MHz are possible."
+
+  The P112 board was last available new in 1996 by Dave Brooks. In late 2004
+  on the Usenet Newsgroup comp.os.cpm, talk about making another run of P112
+  boards was discussed. David Griffith decided to produce additional P112 kits
+  with Dave Brooks blessing and the assistance of others. In addition Terry
+  Gulczynski makes additional P112 derivative hobbyist home brew computers.
+  Hal Bower was very active in the mid 1990's on the P112 project and ported
+  the "Banked/Portable BIOS".
+
+configs/pic32-starterkit
   This directory contains the port of NuttX to the Microchip PIC32 Ethernet
   Starter Kit (DM320004) with the Multimedia Expansion Board (MEB, DM320005).
   See www.microchip.com for further information.
 
 configs/pic32mx7mmb
-
   This directory will (eventually) contain the port of NuttX to the
   Mikroelektronika PIC32MX7 Multimedia Board (MMB).  See
   http://www.mikroe.com/ for further information.
@@ -1797,7 +1819,6 @@ configs/pjrc-8051
   and the SDCC toolchain.   This port is not quite ready for prime time.
 
 configs/qemu-i486
-
   Port of NuttX to QEMU in i486 mode.  This port will also run on real i486
   hardwared (Google the Bifferboard).
 

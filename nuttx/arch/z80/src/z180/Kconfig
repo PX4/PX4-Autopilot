@@ -137,4 +137,17 @@ config ARCH_HAVEHEAD
 		Use a board-specific version of the "head" file in the
 		configs/<board-name>/src directory
 
+menu "Z180 Peripheral Support"
+
+config Z180_UART0
+	bool "UART0"
+	default n
+	select ARCH_HAVE_UART0
+
+config Z180_UART1
+	bool "UART1"
+	default n
+	select ARCH_HAVE_UART1
+
+endmenu
 endif

@@ -171,6 +171,12 @@ int sched_releasetcb(FAR _TCB *tcb)
 
       (void)env_release(tcb);
 
+      /* Release this thread's reference to the address environment */
+
+#ifdef CONFIG_ADDRENV
+      ret = up_addrenv_release(tcb);
+#endif
+
       /* And, finally, release the TCB itself */
 
       sched_free(tcb);

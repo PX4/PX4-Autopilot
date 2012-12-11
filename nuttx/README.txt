@@ -849,6 +849,8 @@ nuttx
  |   |   |- include/README.txt
  |   |   |- src/README.txt
  |   |   `- README.txt
+ |   |- p112/
+ |   |   `- README.txt
  |   |- pcblogic-pic32mx/
  |   |   `- README.txt
  |   |- pic32-starterkit/

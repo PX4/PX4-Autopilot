@@ -102,6 +102,7 @@ FAR chipreg_t *up_doirq(uint8_t irq, FAR chipreg_t *regs)
 
        IRQ_LEAVE(irq);
     }
+
   up_ledoff(LED_INIRQ);
   return regs;
 #endif

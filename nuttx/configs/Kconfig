@@ -346,6 +346,33 @@ config ARCH_BOARD_OLIMEX_STM32P107
 		Linux or Cygwin. See the http://www.olimex.com for further information. This
 		board features the STMicro STM32F107VC MCU
 
+config ARCH_BOARD_P112
+	bool "P112 Z180-based platform"
+	depends on ARCH_CHIP_Z8018216FSG
+	---help---
+		The P112 is notable because it was the first of the hobbyist single board
+		computers to reach the production stage. The P112 hobbyist computers
+		were relatively widespread and inspired other hobbyist centered home brew
+		computing projects such as N8VEM home brew computing project. The P112
+		project still maintains many devoted enthusiasts and has an online
+		repository of software and other information.
+
+		The P112 computer originated as a commercial product of "D-X Designs Pty
+		Ltd" of Australia. They describe the computer as "The P112 is a stand-alone
+		8-bit CPU board. Typically running CP/M (tm) or a similar operating system,
+		it provides a Z80182 (Z-80 upgrade) CPU with up to 1MB of memory, serial,
+		parallel and diskette IO, and realtime clock, in a 3.5-inch drive form factor.
+		Powered solely from 5V, it draws 150mA (nominal: not including disk drives)
+		with a 16MHz CPU clock. Clock speeds up to 24.576MHz are possible."
+
+		The P112 board was last available new in 1996 by Dave Brooks. In late 2004
+		on the Usenet Newsgroup comp.os.cpm, talk about making another run of P112
+		boards was discussed. David Griffith decided to produce additional P112 kits
+		with Dave Brooks blessing and the assistance of others. In addition Terry
+		Gulczynski makes additional P112 derivative hobbyist home brew computers.
+		Hal Bower was very active in the mid 1990's on the P112 project and ported
+		the "Banked/Portable BIOS".
+
 config ARCH_BOARD_PCBLOGICPIC32MX
 	bool "PIC32MX board from PCB Logic Design Co"
 	depends on ARCH_CHIP_PIC32MX460F512L
@@ -647,6 +674,7 @@ config ARCH_BOARD
 	default "olimex-lpc2378"      if ARCH_BOARD_OLIMEXLPC2378
 	default "olimex-stm32-p107"   if ARCH_BOARD_OLIMEX_STM32P107
 	default "olimex-strp711"      if ARCH_BOARD_OLIMEX_STRP711
+	default "p112"                if ARCH_BOARD_P112
 	default "pcblogic-pic32mx"    if ARCH_BOARD_PCBLOGICPIC32MX
 	default "pic32-starterkit"    if ARCH_BOARD_PIC32_STARTERKIT
 	default "pic32mx7mmb"         if ARCH_BOARD_PIC32_PIC32MX7MMB

@@ -117,6 +117,12 @@ EXTERN FAR chipreg_t *up_doirq(uint8_t irq, FAR chipreg_t *regs);
 
 EXTERN void up_sigdeliver(void);
 
+/* Defined in CPU-specific logic (only for Z180) */
+
+#if CONFIG_ADDRENV
+int up_mmuinit(void);
+#endif
+
 /* Defined in up_allocateheap.c */
 
 #if CONFIG_MM_REGIONS > 1

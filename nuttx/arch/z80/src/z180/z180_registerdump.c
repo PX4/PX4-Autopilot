@@ -86,6 +86,8 @@ static void z180_registerdump(void)
             current_regs[XCPT_IX], current_regs[XCPT_IY]);
       lldbg("SP: %04x PC: %04x\n"
             current_regs[XCPT_SP], current_regs[XCPT_PC]);
+      lldbg("CBAR: %02x BBR: %02x CBR: %02x\n"
+            inp(Z180_MMU_CBAR), inp(Z180_MMU_BBR), inp(Z180_MMU_CBR));
     }
 }
 #endif

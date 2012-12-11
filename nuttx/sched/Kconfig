@@ -22,7 +22,13 @@ config SCHED_INSTRUMENTATION
 	bool "Monitor system performance"
 	default n
 	---help---
-		enables instrumentation in scheduler to monitor system performance.
+		Enables instrumentation in scheduler to monitor system performance.
+		If enabled, then the board-specific logic must provide the following
+		functions (see include/sched.h):
+
+		void sched_note_start(FAR _TCB *tcb);
+		void sched_note_stop(FAR _TCB *tcb);
+		void sched_note_switch(FAR _TCB *pFromTcb, FAR _TCB *pToTcb);
 
 config TASK_NAME_SIZE
 	int "Maximum task name size"

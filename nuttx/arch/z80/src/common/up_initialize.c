@@ -145,6 +145,14 @@ void up_initialize(void)
   up_timerinit();
 #endif
 
+  /* Initialize the CPU for those that use it (only for the Z180).  This
+   * needs to be done before any tasks are created).
+   */
+
+#if CONFIG_ADDRENV
+  (void)up_mmuinit();
+#endif
+
   /* Register devices */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0

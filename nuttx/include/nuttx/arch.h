@@ -403,7 +403,7 @@ int up_addrenv_create(FAR _TCB *tcb, size_t envsize);
 #endif
 
 /****************************************************************************
- * Name: up_addrenv_clone
+ * Name: up_addrenv_share
  *
  * Description:
  *   This function is called from the core scheduler logic when a thread
@@ -421,7 +421,7 @@ int up_addrenv_create(FAR _TCB *tcb, size_t envsize);
  ****************************************************************************/
 
 #ifdef CONFIG_ADDRENV
-int up_addrenv_clone(FAR const _TCB *ptcb, FAR _TCB *ctcb);
+int up_addrenv_share(FAR const _TCB *ptcb, FAR _TCB *ctcb);
 #endif
 
 /****************************************************************************
@@ -439,12 +439,32 @@ int up_addrenv_clone(FAR const _TCB *ptcb, FAR _TCB *ctcb);
  *     be instantiated.
  *
  * Returned Value:
+ *   A handle that may be used with up_addrenv_restore() to restore the
+ *   address environment before up_addrenv_instantiate() was called.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ADDRENV
+FAR void *up_addrenv_instantiate(FAR _TCB *tcb);
+#endif
+
+/****************************************************************************
+ * Name: up_addrenv_restore
+ *
+ * Description:
+ *   Restore an address environment using a handle previously returned by
+ *   up_addrenv_instantiate().
+ *
+ * Input Parameters:
+ *   handle - A handle previously returned by up_addrenv_instantiate.
+ *
+ * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
 #ifdef CONFIG_ADDRENV
-int up_addrenv_instantiate(FAR _TCB *tcb);
+int up_addrenv_restore(FAR void *handle);
 #endif
 
 /****************************************************************************

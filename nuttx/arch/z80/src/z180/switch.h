@@ -44,6 +44,7 @@
 #include <nuttx/sched.h>
 #include <nuttx/arch.h>
 
+#include "z180_iomap.h"
 #include "up_internal.h"
 
 /************************************************************************************
@@ -58,56 +59,116 @@
 
 /* Initialize the IRQ state */
 
-#define INIT_IRQCONTEXT()        current_regs = NULL
+#define INIT_IRQCONTEXT() \
+  current_regs = NULL
 
 /* IN_INTERRUPT returns true if the system is currently operating in the interrupt
  * context.  IN_INTERRUPT is the inline equivalent of up_interrupt_context().
  */
 
-#define IN_INTERRUPT()           (current_regs != NULL)
+#define IN_INTERRUPT() \
+  (current_regs != NULL)
 
-/* The following macro is used when the system enters interrupt handling logic */
+/* The following macro declares the variables need by IRQ_ENTER and IRQ_LEAVE.
+ * These variables are used to support nested interrupts.
+ *
+ * - savestate holds the previous value of current_state.
+ * - savecpr holds the previous value of current_cpr.
+ *
+ * TODO:  I think this logic is bad... I do not thing that this will really
+ * handle nested interrupts correctly.  What if we are nested and then a
+ * context switch occurs?  current_regs will not be updated correctly!
+ */
 
 #define DECL_SAVESTATE() \
-  FAR chipreg_t *savestate
+  FAR chipreg_t *savestate; \
+  uint8_t savecbr;
+
+/* The following macro is used when the system enters interrupt handling logic.
+ * The entry values of current_regs and current_cbr and stored in local variables.
+ * Then current_regs and current_cbr are set to the values of the interrupted
+ * task.
+ */
 
 #define IRQ_ENTER(irq, regs) \
-  do { \
-    savestate    = (FAR chipreg_t *)current_regs; \
-    current_regs = (regs); \
-  } while (0)
+  do \
+    { \
+      savestate    = (FAR chipreg_t *)current_regs; \
+      savecbr      = current_cbr; \
+      current_regs = (regs); \
+      current_cbr  = inp(Z180_MMU_CBR); \
+    } \
+  while (0)
 
-/* The following macro is used when the system exits interrupt handling logic */
+/* The following macro is used when the system exits interrupt handling logic.
+ * The value of current_regs is restored.  If we are not processing a nested
+ * interrupt (meaning that we going to return to the user task), then also
+ * set the MMU's CBR register.
+ */
 
-#define IRQ_LEAVE(irq)           current_regs = savestate
+#define IRQ_LEAVE(irq) \
+  do \
+    { \
+      current_regs = savestate; \
+      if (current_regs) \
+        { \
+          current_cbr  = savecbr; \
+        } \
+      else \
+        { \
+          outp(Z180_MMU_CBR, savecbr); \
+        } \
+    }
 
 /* The following macro is used to sample the interrupt state (as a opaque handle) */
 
-#define IRQ_STATE()              (current_regs)
+#define IRQ_STATE() \
+  (current_regs)
 
 /* Save the current IRQ context in the specified TCB */
 
-#define SAVE_IRQCONTEXT(tcb)     z180_copystate((tcb)->xcp.regs, (FAR chipreg_t*)current_regs)
+#define SAVE_IRQCONTEXT(tcb) \
+  z180_copystate((tcb)->xcp.regs, (FAR chipreg_t*)current_regs)
 
 /* Set the current IRQ context to the state specified in the TCB */
 
-#define SET_IRQCONTEXT(tcb)      z180_copystate((FAR chipreg_t*)current_regs, (tcb)->xcp.regs)
+#define SET_IRQCONTEXT(tcb) \
+  do \
+    { \
+      if ((tcb)->xcp.cbr.cbr) \
+        { \
+          current_cbr = (tcb)->xcp.cbr->cbr); \
+        } \
+      z180_copystate((FAR chipreg_t*)current_regs, (tcb)->xcp.regs); \
+    } \
+  while (0)
 
 /* Save the user context in the specified TCB.  User context saves can be simpler
  * because only those registers normally saved in a C called need be stored.
  */
 
-#define SAVE_USERCONTEXT(tcb)    z180_saveusercontext((tcb)->xcp.regs)
+#define SAVE_USERCONTEXT(tcb)  \
+  z180_saveusercontext((tcb)->xcp.regs)
 
 /* Restore the full context -- either a simple user state save or the full,
  * IRQ state save.
  */
 
-#define RESTORE_USERCONTEXT(tcb) z180_restoreusercontext((tcb)->xcp.regs)
+#define RESTORE_USERCONTEXT(tcb) \
+  do \
+    { \
+      if ((tcb)->xcp.cbr.cbr) \
+        { \
+          outp(Z180_MMU_CBR, (tcb)->xcp.cbr->cbr); \
+        } \
+      z180_restoreusercontext((tcb)->xcp.regs); \
+    } \
+  while (0)
 
 /* Dump the current machine registers */
 
-#define _REGISTER_DUMP()         z180_registerdump()
+#define _REGISTER_DUMP() \
+  z180_registerdump()
 
 /************************************************************************************
  * Public Types
@@ -123,6 +184,14 @@
  */
 
 extern volatile chipreg_t *current_regs;
+
+/* This holds the value of the MMU's CBR register.  This value is set to the
+ * interrupted tasks's CBR on interrupt entry, changed to the new task's CBR if
+ * an interrrupt level context switch occurs, and restored on interrupt exit.  In
+ * this way, the CBR is always correct on interrupt exit.
+ */
+
+extern uint8_t current_cbr;
 #endif
 
 /************************************************************************************

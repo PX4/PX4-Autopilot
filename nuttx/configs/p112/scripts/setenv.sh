@@ -1,5 +1,5 @@
-############################################################################
-# configs/z80sim/src/Makefile
+#!/bin/bash
+# configs/p112/ostest/setenv.sh
 #
 #   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -31,47 +31,36 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-############################################################################
 
--include $(TOPDIR)/Make.defs
+if [ "$_" = "$0" ] ; then
+  echo "You must source this script, not run it!" 1>&2
+  exit 1
+fi
 
-CFLAGS		+= -I$(TOPDIR)$(DELIM)sched
-CFLAGS		+= -I$(TOPDIR)$(DELIM)arch$(DELIM)z80$(DELIM)src$(DELIM)common
-CFLAGS		+= -I$(TOPDIR)$(DELIM)arch$(DELIM)z80$(DELIM)src$(DELIM)z80
+WD=`pwd`
+if [ ! -x "setenv.sh" ]; then
+  echo "This script must be executed from the top-level NuttX build directory"
+  exit 1
+fi
 
-ASRCS		= 
-AOBJS		= $(ASRCS:$(ASMEXT)=$(OBJEXT))
-CSRCS		= z80_irq.c z80_serial.c z80_timerisr.c z80_lowputc.c
-COBJS		= $(CSRCS:.c=$(OBJEXT))
+if [ -z "${PATH_ORIG}" ]; then
+  export PATH_ORIG="${PATH}"
+fi
 
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
+#
+# This is the normal installation directory for SDCC under Linux, OSX
+# or Linux:
+#
+export TOOLCHAIN_BIN=/usr/local/bin
 
-CFLAGS		+= -I $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src
+#
+# This is the normal installation directory for SDCC under Windows
+#
+#export TOOLCHAIN_BIN="/cygdrive/c/Program Files (x86)/SDCC/bin"
 
-all: libboard$(LIBEXT)
+#
+# Add the path to the toolchain to the PATH varialble
+#
+export PATH="${TOOLCHAIN_BIN}":/sbin:/usr/sbin:${PATH_ORIG}
 
-$(AOBJS): %$(OBJEXT): %$(ASMEXT)
-	$(call ASSEMBLE, $<, $@)
-
-$(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-libboard$(LIBEXT): $(OBJS)
-	$(call ARCHIVE, $@, $(OBJS))
-
-.depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	$(Q) touch $@
-
-depend: .depend
-
-clean:
-	$(call DELFILE, libboard$(LIBEXT))
-	$(call CLEAN)
-
-distclean: clean
-	$(call DELFILE, Make.dep)
-	$(call DELFILE, .depend)
-
--include Make.dep
+echo "PATH : ${PATH}"

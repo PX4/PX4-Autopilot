@@ -128,7 +128,7 @@
  *   called very early in the boot process to get the basic operating
  *   memory configuration correct.  This function does *not* perform all
  *   necessray MMU initialization... only the basics needed at power-up.
- *   z180_mmu_init() must be called later to complete the entire MMU
+ *   up_mmuinit() must be called later to complete the entire MMU
  *   initialization.
  *
  ****************************************************************************/
@@ -136,7 +136,7 @@
 void z180_mmu_lowinit(void) __naked;
 
 /****************************************************************************
- * Name: z180_mmu_init
+ * Name: up_mmuinit
  *
  * Description:
  *   Perform higher level initializatin of the MMU and physical memory
@@ -144,6 +144,6 @@ void z180_mmu_lowinit(void) __naked;
  *
  ****************************************************************************/
 
-void z180_mmu_init(void);
+void up_mmuinit(void);
 
 #endif /* __ARCH_Z80_SRC_Z180_Z180_MMU_H */

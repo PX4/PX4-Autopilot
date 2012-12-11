@@ -1,7 +1,7 @@
 ############################################################################
-# configs/z80sim/src/Makefile
+# configs/p112/src/Makefile
 #
-#   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,11 +37,11 @@
 
 CFLAGS		+= -I$(TOPDIR)$(DELIM)sched
 CFLAGS		+= -I$(TOPDIR)$(DELIM)arch$(DELIM)z80$(DELIM)src$(DELIM)common
-CFLAGS		+= -I$(TOPDIR)$(DELIM)arch$(DELIM)z80$(DELIM)src$(DELIM)z80
+CFLAGS		+= -I$(TOPDIR)$(DELIM)arch$(DELIM)z80$(DELIM)src$(DELIM)z180
 
 ASRCS		= 
 AOBJS		= $(ASRCS:$(ASMEXT)=$(OBJEXT))
-CSRCS		= z80_irq.c z80_serial.c z80_timerisr.c z80_lowputc.c
+CSRCS		= 
 COBJS		= $(CSRCS:.c=$(OBJEXT))
 
 SRCS		= $(ASRCS) $(CSRCS)

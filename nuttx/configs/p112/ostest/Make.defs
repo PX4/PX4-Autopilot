@@ -1,0 +1,167 @@
+############################################################################
+# configs/p112/ostest/Make.defs
+#
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+include ${TOPDIR}/.config
+include ${TOPDIR}/tools/Config.mk
+
+# These are the directories where the SDCC toolchain is installed.  NOTE
+# that short 8.3 path names are used in order to avoid spaces.  On my machine
+# I have:
+#
+# C:\PROGRA~1\ = C:\Profram Files\
+# C:\PROGRA~2\ = C:\Program Files (x86)\
+#
+# Your PC may be configured differently.
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  SDCC_INSTALLDIR = C:\PROGRA~2\SDCC
+  SDCC_BINDIR = $(SDCC_INSTALLDIR)\bin
+  SDCC_LIBDIR = $(SDCC_INSTALLDIR)\lib\z180
+else
+  SDCC_INSTALLDIR = /usr/local
+  SDCC_BINDIR = $(SDCC_INSTALLDIR)/bin
+  SDCC_LIBDIR = $(SDCC_INSTALLDIR)/share/sdcc/lib/z180
+endif
+
+CROSSDEV =
+CC = sdcc
+CPP = sdcpp
+LD = sdldz80
+AS = sdasz80
+AR = sdar -r
+ARCHCPUFLAGS = -mz180
+
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
+  ARCHOPTIMIZATION = --debug
+else
+  ARCHOPTIMIZATION =
+endif
+
+ARCHPICFLAGS =
+ARCHWARNINGS =
+ARCHDEFINES =
+ARCHINCLUDES = -I. -I$(TOPDIR)$(DELIM)include
+
+CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+CPPFLAGS = $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+AFLAGS = -x -a -l -o -s -g
+
+SDCCLIB = z180.lib
+
+ASMEXT = .asm
+OBJEXT = .o
+LIBEXT = .lib
+EXEEXT = .hex
+
+# Custom ASSEMBLE definition.  The most common toolchain, GCC, uses the
+# compiler to assemble files because this has the advantage of running the C
+# Pre-Processor against.  This is not possible with other SDCC; we need to
+# define AS and over-ride the common definition in order to use the assembler
+# directly.
+
+define ASSEMBLE
+	@echo "AS: $1"
+	$(Q) $(AS) $(AFLAGS) $2 $1
+endef
+
+# Custom CLEAN definition
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+define CLEAN
+	$(Q) if exist *.o (del /f /q *.o)
+	$(Q) if exist *.asm (del /f /q *.asm)
+	$(Q) if exist *.rel (del /f /q *.rel)
+	$(Q) if exist *.lst (del /f /q *.lst)
+	$(Q) if exist *.rst (del /f /q *.rst)
+	$(Q) if exist *.sym (del /f /q *.sym)
+	$(Q) if exist *.adb (del /f /q *.adb)
+	$(Q) if exist *.lnk (del /f /q *.lnk)
+	$(Q) if exist *.map (del /f /q *.map)
+	$(Q) if exist *.mem (del /f /q *.mem)
+	$(Q) if exist *.hex (del /f /q *.hex)
+	$(Q) if exist *.cmd (del /f /q *.cmd)
+endef
+else
+define CLEAN
+	$(Q) rm -f *.o *.asm *.rel *.lst *.rst *.sym *.adb *.lnk *.map *.mem *.hex *.cmd
+endef
+endif
+
+# Windows native host tool definitions
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  HOSTCC = mingw32-gcc.exe
+  HOSTINCLUDES = -I.
+  HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -g -pipe
+  HOSTLDFLAGS =
+  HOSTEXEEXT = .exe
+
+  # Windows-native host tools
+
+  MKDEP = $(TOPDIR)\tools\mkdeps.exe --winnative
+
+  # Use NTFS links or directory copies
+
+ifeq ($(CONFIG_WINDOWS_MKLINK),y)
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)link.bat
+else
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)copydir.bat
+endif
+DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.bat
+
+else
+
+# Linux/Cygwin host tool definitions
+
+  HOSTCC = gcc
+  HOSTINCLUDES = -I.
+  HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -g -pipe
+  HOSTLDFLAGS =
+
+  # This is the tool to use for dependencies (i.e., none)
+
+  MKDEP = $(TOPDIR)$(DELIM)tools$(DELIM)mknulldeps.sh
+
+  # SDCC for Linux, OSX, or Cygwin understands symbolic links.  Windows SDCC
+  # running under Cygwin does not
+
+ifeq ($(WINTOOL),y)
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)copydir.sh
+else
+  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)link.sh
+endif
+DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.sh
+
+endif

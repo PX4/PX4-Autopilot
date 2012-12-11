@@ -3780,4 +3780,6 @@
 	* include/nuttx/arch.h:  Add address environment control interfaces (for use
 	  with CPUs the provide MCUs and support process-like address environments).
 	* arch/z80/src/z180/z180_mmu.*:  Add MMU support for z180 tasks.
+	* configs/p112:  Add very basic board support and an examples/ostest
+	  configuration for the venerable P112 board.
 

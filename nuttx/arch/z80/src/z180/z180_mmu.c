@@ -120,15 +120,21 @@ static FAR struct z180_cbr_s *z180_mmu_findcbr(void)
  *   called very early in the boot process to get the basic operating
  *   memory configuration correct.  This function does *not* perform all
  *   necessray MMU initialization... only the basics needed at power-up.
- *   z180_mmu_init() must be called later to complete the entire MMU
+ *   up_mmuinit() must be called later to complete the entire MMU
  *   initialization.
  *
  ****************************************************************************/
 
 void z180_mmu_lowinit(void) __naked
 {
+  /* Set the CBAR register to set up the virtual address of the Bank Area and
+   * Common Area 1.  Set the BBR register to set up the physical mapping for
+   * the Bank Area (the physical mapping for Common Area 1 will not be done
+   * until the first task is started.
+   */
+
   __asm
-	ld	c, #Z180_MMU_CBR		; port
+	ld	c, #Z180_MMU_CBAR		; port
 	ld	a, #Z180_CBAR_VALUE		; value
 	out	(c), a
 
@@ -139,15 +145,15 @@ void z180_mmu_lowinit(void) __naked
 }
 
 /****************************************************************************
- * Name: z180_mmu_init
+ * Name: up_mmuinit
  *
  * Description:
- *   Perform higher level initializatin of the MMU and physical memory
+ *   Perform higher level initialization of the MMU and physical memory
  *   memory management logic.
  *
  ****************************************************************************/
 
-int z180_mmu_init(void)
+int up_mmuinit(void)
 {
   /* Here we use the granule allocator as a page allocator.  We lie and
    * say that 1 page is 1 byte.
@@ -257,7 +263,7 @@ errout_with_irq:
 }
 
 /****************************************************************************
- * Name: up_addrenv_clone
+ * Name: up_addrenv_share
  *
  * Description:
  *   This function is called from the core scheduler logic when a thread
@@ -274,8 +280,7 @@ errout_with_irq:
  *
  ****************************************************************************/
 
-#ifdef CONFIG_ADDRENV
-int up_addrenv_clone(FAR const _TCB *ptcb, FAR _TCB *ctcb)
+int up_addrenv_share(FAR const _TCB *ptcb, FAR _TCB *ctcb)
 {
   irqstate_t flags;
 
@@ -299,7 +304,6 @@ int up_addrenv_clone(FAR const _TCB *ptcb, FAR _TCB *ctcb)
   irqrestore(flags);
   return OK;
 }
-#endif
 
 /****************************************************************************
  * Name: up_addrenv_instantiate
@@ -316,35 +320,55 @@ int up_addrenv_clone(FAR const _TCB *ptcb, FAR _TCB *ctcb)
  *     be instantiated.
  *
  * Returned Value:
+ *   A handle that may be used with up_addrenv_restore() to restore the
+ *   address environment before up_addrenv_instantiate() was called.
+ *
+ ****************************************************************************/
+
+FAR void *up_addrenv_instantiate(FAR _TCB *tcb)
+{
+  uint8_t oldcbr;
+  irqstate_t flags;
+
+  /* Get the current CBR value from the CBR register */
+
+  flags = irqsave();
+  cbr = inp(Z180_MMU_CBR);
+
+  /* Check if the task has an address environment. */
+
+  if (tcb->xcp.cbr)
+    {
+      /* Yes.. Write the new CBR value into CBR register */
+
+      outp(Z180_MMU_CBR, tcb->xcp.cbr.cbr);
+    }
+
+  irqrestore(flags);
+  return (FAR void *)cbr;
+}
+
+/****************************************************************************
+ * Name: up_addrenv_restore
+ *
+ * Description:
+ *   Restore an address environment using a handle previously returned by
+ *   up_addrenv_instantiate().
+ *
+ * Input Parameters:
+ *   handle - A handle previously returned by up_addrenv_instantiate.
+ *
+ * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_ADDRENV
-int up_addrenv_instantiate(FAR _TCB *tcb)
+int up_addrenv_restore(FAR void *handle)
 {
-  irqstate_t flags;
+  /* Restore the CBR value */
 
-  /* Check if the task has an address environment. */
-
-  flags = irqsave();
-  if (tcb->xcp.cbr)
-    {
-      /* Yes... write the CBR value into CBR register */
-
-      outp(Z180_MMU_CBR, tcb->xcp.cbr.cbr);
-      /* Clone the CBR by incrementing the reference counting and saving a
-       * copy in the child thread's TCB.
-       */
-
-      ptcb->xcp.cbr.crefs++;
-      ctcb->xcp.cbr = ptcb->xcp.cbr;
-    }
-
-  irqrestore(flags);
-  return OK;
+  outp(Z180_MMU_CBR, (uint8_t)handle);
 }
-#endif
 
 /****************************************************************************
  * Name: up_addrenv_release
@@ -364,7 +388,6 @@ int up_addrenv_instantiate(FAR _TCB *tcb)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_ADDRENV
 int up_addrenv_release(FAR _TCB *tcb)
 {
   FAR struct z180_cbr_s *cbr;
@@ -401,5 +424,3 @@ int up_addrenv_release(FAR _TCB *tcb)
   irqrestore(flags);
   return OK;
 }
-#endif
-
