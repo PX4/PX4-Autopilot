@@ -206,7 +206,6 @@ gran_common_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gran,
 #ifdef CONFIG_GRAN_SINGLE
 int gran_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gran,
                     uint8_t log2align)
-int gran_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gran)
 {
   g_graninfo = gran_common_initialize(heapstart, heapsize, log2gran,
                                       log2align);

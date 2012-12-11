@@ -58,6 +58,14 @@
 
 volatile chipreg_t *current_regs;
 
+/* This holds the value of the MMU's CBR register.  This value is set to the
+ * interrupted tasks's CBR on interrupt entry, changed to the new task's CBR if
+ * an interrrupt level context switch occurs, and restored on interrupt exit.  In
+ * this way, the CBR is always correct on interrupt exit.
+ */
+
+uint8_t current_cbr;
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/

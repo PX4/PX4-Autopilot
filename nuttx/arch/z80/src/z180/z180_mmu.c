@@ -41,8 +41,15 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/gram.h>
+#include <errno.h>
+#include <debug.h>
 
+#include <nuttx/gran.h>
+
+#include <arch/irq.h>
+#include <arch/io.h>
+
+#include "up_internal.h"
 #include "z180_mmu.h"
 
 /****************************************************************************
@@ -223,7 +230,7 @@ int up_addrenv_create(FAR _TCB *tcb, size_t envsize)
     {
       sdbg("ERROR: No free CBR structures\n");
       ret = -ENOMEM;
-      goto errout_with_irq
+      goto errout_with_irq;
     }
 
   /* Now allocate the physical memory to back up the address environment */
@@ -297,7 +304,7 @@ int up_addrenv_share(FAR const _TCB *ptcb, FAR _TCB *ctcb)
        * copy in the child thread's TCB.
        */
 
-      ptcb->xcp.cbr.crefs++;
+      ptcb->xcp.cbr->crefs++;
       ctcb->xcp.cbr = ptcb->xcp.cbr;
     }
 
@@ -333,7 +340,7 @@ FAR void *up_addrenv_instantiate(FAR _TCB *tcb)
   /* Get the current CBR value from the CBR register */
 
   flags = irqsave();
-  cbr = inp(Z180_MMU_CBR);
+  oldcbr = inp(Z180_MMU_CBR);
 
   /* Check if the task has an address environment. */
 
@@ -341,11 +348,11 @@ FAR void *up_addrenv_instantiate(FAR _TCB *tcb)
     {
       /* Yes.. Write the new CBR value into CBR register */
 
-      outp(Z180_MMU_CBR, tcb->xcp.cbr.cbr);
+      outp(Z180_MMU_CBR, tcb->xcp.cbr->cbr);
     }
 
   irqrestore(flags);
-  return (FAR void *)cbr;
+  return (FAR void *)oldcbr;
 }
 
 /****************************************************************************
@@ -368,6 +375,7 @@ int up_addrenv_restore(FAR void *handle)
   /* Restore the CBR value */
 
   outp(Z180_MMU_CBR, (uint8_t)handle);
+  return OK;
 }
 
 /****************************************************************************

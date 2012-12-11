@@ -262,7 +262,7 @@
  * external RAM.
  */
 
-#if defined(__z80) || defined(__gbz80)
+#if defined(__SDCC_z80) || defined(__SDCC_z180) || defined(__SDCC_gbz80)
 #  define FAR
 #  define NEAR 
 #  define CODE

@@ -109,12 +109,10 @@
 
 /* MMU register values */
 
-#define Z180_CBAR_VALUE \
-  ((((CONFIG_Z180_BANKAREA_VIRTBASE >> 12) & 0x0f) << CBAR_BA_SHIFT) \
-   (((CONFIG_Z180_COMMON1AREA_VIRTBASE >> 12) & 0x0f) << CBAR_CA_SHIFT))
-
-#define Z180_BBR_VALUE \
-  ((CONFIG_Z180_BANKAREA_PHYSBASE >> 12) & 0xff)
+#define Z180_CBAR_BA_VALUE  (((CONFIG_Z180_BANKAREA_VIRTBASE >> 12) & 0x0f) << CBAR_BA_SHIFT)
+#define Z180_CBAR_CA_VALUE  (((CONFIG_Z180_COMMON1AREA_VIRTBASE >> 12) & 0x0f) << CBAR_CA_SHIFT)
+#define Z180_CBAR_VALUE     (Z180_CBAR_BA_VALUE | Z180_CBAR_CA_VALUE)
+#define Z180_BBR_VALUE      ((CONFIG_Z180_BANKAREA_PHYSBASE >> 12) & 0xff)
 
 /****************************************************************************
  * Public Functions
@@ -139,11 +137,11 @@ void z180_mmu_lowinit(void) __naked;
  * Name: up_mmuinit
  *
  * Description:
- *   Perform higher level initializatin of the MMU and physical memory
- *   memory management logic.
+ *   Perform higher level initialization of the MMU and physical memory
+ *   memory management logic.  More correctly prototypes in up_internal.h.
  *
  ****************************************************************************/
 
-void up_mmuinit(void);
+int up_mmuinit(void);
 
 #endif /* __ARCH_Z80_SRC_Z180_Z180_MMU_H */

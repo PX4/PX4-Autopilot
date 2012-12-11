@@ -42,7 +42,9 @@
  ************************************************************************************/
 
 #include <nuttx/sched.h>
+
 #include <nuttx/arch.h>
+#include <arch/io.h>
 
 #include "z180_iomap.h"
 #include "up_internal.h"
@@ -112,13 +114,14 @@
       current_regs = savestate; \
       if (current_regs) \
         { \
-          current_cbr  = savecbr; \
+          current_cbr = savecbr; \
         } \
       else \
         { \
           outp(Z180_MMU_CBR, savecbr); \
         } \
-    }
+    } \
+  while (0)
 
 /* The following macro is used to sample the interrupt state (as a opaque handle) */
 
@@ -135,9 +138,9 @@
 #define SET_IRQCONTEXT(tcb) \
   do \
     { \
-      if ((tcb)->xcp.cbr.cbr) \
+      if ((tcb)->xcp.cbr) \
         { \
-          current_cbr = (tcb)->xcp.cbr->cbr); \
+          current_cbr = (tcb)->xcp.cbr->cbr; \
         } \
       z180_copystate((FAR chipreg_t*)current_regs, (tcb)->xcp.regs); \
     } \
@@ -157,7 +160,7 @@
 #define RESTORE_USERCONTEXT(tcb) \
   do \
     { \
-      if ((tcb)->xcp.cbr.cbr) \
+      if ((tcb)->xcp.cbr) \
         { \
           outp(Z180_MMU_CBR, (tcb)->xcp.cbr->cbr); \
         } \

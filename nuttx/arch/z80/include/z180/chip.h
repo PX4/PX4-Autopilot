@@ -402,7 +402,7 @@
       defined(CONFIG_ARCH_CHIP_Z8S18010PSG) ||    /* 64-pin DIP 10MHz 5V */ \
       defined(CONFIG_ARCH_CHIP_Z8S18020FEG) || \
       defined(CONFIG_ARCH_CHIP_Z8S18010PEG) || \
-      defined(CONFIG_ARCH_CHIP_Z8S18010FEG
+      defined(CONFIG_ARCH_CHIP_Z8S18010FEG)
 
 #  define HAVE_Z8S180    1                        /* Uses Z8S180 (5V) or Z8L180 (3.3V) core */
 #  define HAVE ROM       0                        /* No on-chip ROM */

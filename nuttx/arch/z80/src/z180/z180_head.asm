@@ -62,7 +62,7 @@
 
 	.globl	_os_start			; OS entry point
 	.globl	_up_doirq			; Interrupt decoding logic
-	.globl	z180_mmu_lowinit	; MMU initialization logic
+	.globl	_z180_mmu_lowinit	; MMU initialization logic
 
 ;**************************************************************************
 ; Reset entry point
@@ -172,7 +172,7 @@ _up_reset:
 	; Configure the MMU so that things will lie at the addresses that we
 	; expect them to
 
-	call	z180_mmu_lowinit	; Initialize the MMU
+	call	_z180_mmu_lowinit	; Initialize the MMU
 
 	; Performed initialization unique to the SDCC toolchain
 
