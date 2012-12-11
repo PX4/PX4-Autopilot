@@ -121,7 +121,7 @@ static int uart;
 static int baudrate;
 bool gcs_link = true;
 
-int hil_mode = HIL_MODE_SENSORS;
+int hil_mode = HIL_MODE_STATE;
 
 /* interface mode */
 static enum {

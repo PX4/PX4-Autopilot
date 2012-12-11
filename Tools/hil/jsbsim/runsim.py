@@ -9,6 +9,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '..
 
 import util, fgFDM, atexit
 
+from math import sin, cos
+
 class control_state(object):
     def __init__(self):
         self.aileron = 0
@@ -120,17 +122,28 @@ def process_jsb_input(buf):
                          #fdm.get('vcas', units='mps'),
                          #0x4c56414e)
     px4Format = "{}\t"*16 + "{}\n"
+
+    phi = fdm.get('phi', units='radians')
+    theta = fdm.get('theta', units='radians')
+    psi = fdm.get('psi', units='radians')
+
+    phidot = fdm.get('phidot', units='rps')
+    thetadot = fdm.get('thetadot', units='rps')
+    psidot = fdm.get('psidot', units='rps')
+
+    p = phidot - psidot*sin(theta)
+    q = cos(phi)*thetadot + sin(phi)*cos(theta)*psidot
+    r = -sin(phi)*thetadot + cos(phi)*cos(theta)*psidot
+
     simbuf = px4Format.format(
          time.clock(),
          fdm.get('latitude', units='degrees'),
          fdm.get('longitude', units='degrees'),
          fdm.get('altitude', units='meters'),
-         fdm.get('phi', units='degrees'),
-         fdm.get('theta', units='degrees'),
-         fdm.get('psi', units='degrees'),
-         fdm.get('phidot', units='rps'),
-         fdm.get('thetadot', units='rps'),
-         fdm.get('psidot', units='rps'),
+         fdm.get('phi', units='radians'),
+         fdm.get('theta', units='radians'),
+         fdm.get('psi', units='radians'),
+         p, q, r,
          fdm.get('A_X_pilot', units='mpss'),
          fdm.get('A_Y_pilot', units='mpss'),
          fdm.get('A_Z_pilot', units='mpss'),
