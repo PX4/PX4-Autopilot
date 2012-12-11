@@ -154,7 +154,7 @@ int pic32mx_spi1cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cm
 #endif
 #endif
 
-#ifdef CONFIG_PIC31MX_SPI1
+#ifdef CONFIG_PIC32MX_SPI1
 void  pic31mx_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
   sspdbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
@@ -176,7 +176,7 @@ int pic31mx_spi1cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cm
 #endif
 #endif
 
-#ifdef CONFIG_PIC31MX_SPI3
+#ifdef CONFIG_PIC32MX_SPI3
 void  pic32mx_spi3select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
   sspdbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");

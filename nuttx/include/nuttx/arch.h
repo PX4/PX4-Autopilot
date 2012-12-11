@@ -67,10 +67,8 @@ typedef CODE void (*sig_deliver_t)(FAR _TCB *tcb);
  ****************************************************************************/
 
 #ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
+extern "C"
+{
 #endif
 
 /****************************************************************************
@@ -98,7 +96,7 @@ extern "C" {
  *
  ****************************************************************************/
 
-EXTERN void up_initialize(void);
+void up_initialize(void);
 
 /****************************************************************************
  * Name: up_idle
@@ -114,7 +112,7 @@ EXTERN void up_initialize(void);
  *
  ****************************************************************************/
 
-EXTERN void up_idle(void);
+void up_idle(void);
 
 /****************************************************************************
  * Name: up_initial_state
@@ -130,7 +128,7 @@ EXTERN void up_idle(void);
  *
  ****************************************************************************/
 
-EXTERN void up_initial_state(FAR _TCB *tcb);
+void up_initial_state(FAR _TCB *tcb);
 
 /****************************************************************************
  * Name: up_create_stack
@@ -155,7 +153,7 @@ EXTERN void up_initial_state(FAR _TCB *tcb);
  ****************************************************************************/
 
 #ifndef CONFIG_CUSTOM_STACK
-EXTERN int up_create_stack(FAR _TCB *tcb, size_t stack_size);
+int up_create_stack(FAR _TCB *tcb, size_t stack_size);
 #endif
 
 /****************************************************************************
@@ -180,7 +178,7 @@ EXTERN int up_create_stack(FAR _TCB *tcb, size_t stack_size);
  ****************************************************************************/
 
 #ifndef CONFIG_CUSTOM_STACK
-EXTERN int up_use_stack(FAR _TCB *tcb, FAR void *stack, size_t stack_size);
+int up_use_stack(FAR _TCB *tcb, FAR void *stack, size_t stack_size);
 #endif
 
 /****************************************************************************
@@ -193,7 +191,7 @@ EXTERN int up_use_stack(FAR _TCB *tcb, FAR void *stack, size_t stack_size);
  ****************************************************************************/
 
 #ifndef CONFIG_CUSTOM_STACK
-EXTERN void up_release_stack(FAR _TCB *dtcb);
+void up_release_stack(FAR _TCB *dtcb);
 #endif
 
 /****************************************************************************
@@ -216,7 +214,7 @@ EXTERN void up_release_stack(FAR _TCB *dtcb);
  *
  ****************************************************************************/
 
-EXTERN void up_unblock_task(FAR _TCB *tcb);
+void up_unblock_task(FAR _TCB *tcb);
 
 /****************************************************************************
  * Name: up_block_task
@@ -242,7 +240,7 @@ EXTERN void up_unblock_task(FAR _TCB *tcb);
  *
  ****************************************************************************/
 
-EXTERN void up_block_task(FAR _TCB *tcb, tstate_t task_state);
+void up_block_task(FAR _TCB *tcb, tstate_t task_state);
 
 /****************************************************************************
  * Name: up_release_pending
@@ -261,7 +259,7 @@ EXTERN void up_block_task(FAR _TCB *tcb, tstate_t task_state);
  *
  ****************************************************************************/
 
-EXTERN void up_release_pending(void);
+void up_release_pending(void);
 
 /****************************************************************************
  * Name: up_reprioritize_rtr
@@ -287,7 +285,7 @@ EXTERN void up_release_pending(void);
  *
  ****************************************************************************/
 
-EXTERN void up_reprioritize_rtr(FAR _TCB *tcb, uint8_t priority);
+void up_reprioritize_rtr(FAR _TCB *tcb, uint8_t priority);
 
 /****************************************************************************
  * Name: _exit
@@ -349,7 +347,7 @@ EXTERN void up_reprioritize_rtr(FAR _TCB *tcb, uint8_t priority);
  ****************************************************************************/
 
 #ifndef CONFIG_DISABLE_SIGNALS
-EXTERN void up_schedule_sigaction(FAR _TCB *tcb, sig_deliver_t sigdeliver);
+void up_schedule_sigaction(FAR _TCB *tcb, sig_deliver_t sigdeliver);
 #endif
 
 /****************************************************************************
@@ -363,7 +361,7 @@ EXTERN void up_schedule_sigaction(FAR _TCB *tcb, sig_deliver_t sigdeliver);
  ****************************************************************************/
 
 #ifndef CONFIG_HEAP_BASE
-EXTERN void up_allocate_heap(FAR void **heap_start, size_t *heap_size);
+void up_allocate_heap(FAR void **heap_start, size_t *heap_size);
 #endif
 
 /****************************************************************************
@@ -383,6 +381,95 @@ EXTERN void up_allocate_heap(FAR void **heap_start, size_t *heap_size);
 #endif
 
 /****************************************************************************
+ * Name: up_addrenv_create
+ *
+ * Description:
+ *   This function is called from the binary loader logic when a new
+ *   task is created in RAM in order to instantiate an address environment for
+ *   the task.
+ *
+ * Input Parameters:
+ *   tcb - The TCB of the task needing the address environment.
+ *   envsize - The size (in bytes) of the address environment needed by the
+ *     task.
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ADDRENV
+int up_addrenv_create(FAR _TCB *tcb, size_t envsize);
+#endif
+
+/****************************************************************************
+ * Name: up_addrenv_clone
+ *
+ * Description:
+ *   This function is called from the core scheduler logic when a thread
+ *   is created that needs to share the address ennvironment of its parent
+ *   task.  In this case, the parent's address environment needs to be
+ *   "cloned" for the child.
+ *
+ * Input Parameters:
+ *   ptcb - The TCB of the parent task that has the address environment.
+ *   ctcb - The TCB of the child thread needing the address environment.
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ADDRENV
+int up_addrenv_clone(FAR const _TCB *ptcb, FAR _TCB *ctcb);
+#endif
+
+/****************************************************************************
+ * Name: up_addrenv_instantiate
+ *
+ * Description:
+ *   After an address environment has been established for a task (via
+ *   up_addrenv_create().  This function may be called to to instantiate
+ *   that address environment in the virtual address space.  this might be
+ *   necessary, for example, to load the code for the task from a file or
+ *   to access address environment private data.
+ *
+ * Input Parameters:
+ *   tcb - The TCB of the task or thread whose the address environment will
+ *     be instantiated.
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ADDRENV
+int up_addrenv_instantiate(FAR _TCB *tcb);
+#endif
+
+/****************************************************************************
+ * Name: up_addrenv_release
+ *
+ * Description:
+ *   This function is called when a task or thread exits in order to release
+ *   its reference to an address environment.  When there are no further
+ *   references to an address environment, that address environment should
+ *   be destroyed.
+ *
+ * Input Parameters:
+ *   tcb - The TCB of the task or thread whose the address environment will
+ *     be released.
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ADDRENV
+int up_addrenv_release(FAR _TCB *tcb);
+#endif
+
+/****************************************************************************
  * Name: up_interrupt_context
  *
  * Description:
@@ -391,7 +478,7 @@ EXTERN void up_allocate_heap(FAR void **heap_start, size_t *heap_size);
  *
  ****************************************************************************/
 
-EXTERN bool up_interrupt_context(void);
+bool up_interrupt_context(void);
 
 /****************************************************************************
  * Name: up_enable_irq
@@ -413,7 +500,7 @@ EXTERN bool up_interrupt_context(void);
  ****************************************************************************/
 
 #ifndef CONFIG_ARCH_NOINTC
-EXTERN void up_enable_irq(int irq);
+void up_enable_irq(int irq);
 #endif
 
 /****************************************************************************
@@ -431,7 +518,7 @@ EXTERN void up_enable_irq(int irq);
  ****************************************************************************/
 
 #ifndef CONFIG_ARCH_NOINTC
-EXTERN void up_disable_irq(int irq);
+void up_disable_irq(int irq);
 #endif
 
 /****************************************************************************
@@ -446,7 +533,7 @@ EXTERN void up_disable_irq(int irq);
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_IRQPRIO
-EXTERN int up_prioritize_irq(int irq, int priority);
+int up_prioritize_irq(int irq, int priority);
 #endif
 
 /****************************************************************************
@@ -483,7 +570,7 @@ EXTERN int up_prioritize_irq(int irq, int priority);
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_ROMGETC
-EXTERN char up_romgetc(FAR const char *ptr);
+char up_romgetc(FAR const char *ptr);
 #else
 #  define up_romgetc(ptr) (*ptr)
 #endif
@@ -497,8 +584,8 @@ EXTERN char up_romgetc(FAR const char *ptr);
  *
  ***************************************************************************/
 
-EXTERN void up_mdelay(unsigned int milliseconds);
-EXTERN void up_udelay(useconds_t microseconds);
+void up_mdelay(unsigned int milliseconds);
+void up_udelay(useconds_t microseconds);
 
 /****************************************************************************
  * Name: up_cxxinitialize
@@ -517,7 +604,7 @@ EXTERN void up_udelay(useconds_t microseconds);
  ***************************************************************************/
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-EXTERN void up_cxxinitialize(void);
+void up_cxxinitialize(void);
 #endif
 
 /****************************************************************************
@@ -537,7 +624,7 @@ EXTERN void up_cxxinitialize(void);
  *
  ****************************************************************************/
 
-EXTERN void sched_process_timer(void);
+void sched_process_timer(void);
 
 /****************************************************************************
  * Name: irq_dispatch
@@ -549,7 +636,7 @@ EXTERN void sched_process_timer(void);
  *
  ***************************************************************************/
 
-EXTERN void irq_dispatch(int irq, FAR void *context);
+void irq_dispatch(int irq, FAR void *context);
 
 /****************************************************************************
  * Board-specific button interfaces exported by the board-specific logic
@@ -571,7 +658,7 @@ EXTERN void irq_dispatch(int irq, FAR void *context);
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_BUTTONS
-EXTERN void up_buttoninit(void);
+void up_buttoninit(void);
 #endif
 
 /****************************************************************************
@@ -592,7 +679,7 @@ EXTERN void up_buttoninit(void);
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_BUTTONS
-EXTERN uint8_t up_buttons(void);
+uint8_t up_buttons(void);
 #endif
 
 /****************************************************************************
@@ -613,7 +700,7 @@ EXTERN uint8_t up_buttons(void);
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_IRQBUTTONS
-EXTERN xcpt_t up_irqbutton(int id, xcpt_t irqhandler);
+xcpt_t up_irqbutton(int id, xcpt_t irqhandler);
 #endif
 
 /************************************************************************************
@@ -625,17 +712,17 @@ EXTERN xcpt_t up_irqbutton(int id, xcpt_t irqhandler);
  ************************************************************************************/
 
 #ifdef CONFIG_ARCH_RELAYS
-EXTERN void up_relaysinit(void);
-EXTERN void relays_setstat(int relays, bool stat);
-EXTERN bool relays_getstat(int relays);
-EXTERN void relays_setstats(uint32_t relays_stat);
-EXTERN uint32_t relays_getstats(void);
-EXTERN void relays_onoff(int relays, uint32_t mdelay);
-EXTERN void relays_onoffs(uint32_t relays_stat, uint32_t mdelay);
-EXTERN void relays_resetmode(int relays);
-EXTERN void relays_powermode(int relays);
-EXTERN void relays_resetmodes(uint32_t relays_stat);
-EXTERN void relays_powermodes(uint32_t relays_stat);
+void up_relaysinit(void);
+void relays_setstat(int relays, bool stat);
+bool relays_getstat(int relays);
+void relays_setstats(uint32_t relays_stat);
+uint32_t relays_getstats(void);
+void relays_onoff(int relays, uint32_t mdelay);
+void relays_onoffs(uint32_t relays_stat, uint32_t mdelay);
+void relays_resetmode(int relays);
+void relays_powermode(int relays);
+void relays_resetmodes(uint32_t relays_stat);
+void relays_powermodes(uint32_t relays_stat);
 #endif
 
 /****************************************************************************
@@ -650,9 +737,8 @@ EXTERN void relays_powermodes(uint32_t relays_stat);
  *
  ****************************************************************************/
 
-EXTERN int up_putc(int ch);
+int up_putc(int ch);
 
-#undef EXTERN
 #ifdef __cplusplus
 }
 #endif

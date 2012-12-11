@@ -40,7 +40,7 @@ config JULIAN_TIME
 
 config START_YEAR
 	int "start year"
-	default 2010
+	default 2013
 
 config START_MONTH
 	int "start month"
@@ -383,14 +383,6 @@ config PREALLOC_TIMERS
 		zero for all dynamic allocations.
 
 comment "Stack and heap information"
-
-config CUSTOM_STACK
-	bool "Enable custom stack"
-	default n
-	---help---
-		The up_ implementation will handle all stack operations outside of the
-		nuttx model.  This is necessary for certain architectures that have
-		have hardware stacks (such as the 8051 family).
 
 config IDLETHREAD_STACKSIZE
 	int "Idle thread stack size"

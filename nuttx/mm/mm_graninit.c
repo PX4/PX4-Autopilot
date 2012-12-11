@@ -74,7 +74,6 @@ FAR struct gran_s *g_graninfo;
  *   Perfrom common GRAN initialization.
  *
  * Input Parameters:
- *   info      - Private granule data structure pointer
  *   heapstart - Start of the granule allocation heap
  *   heapsize  - Size of heap in bytes
  *   log2gran  - Log base 2 of the size of one granule.  0->1 byte,

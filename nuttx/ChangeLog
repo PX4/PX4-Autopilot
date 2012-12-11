@@ -3777,4 +3777,7 @@
 	  are just clones of z80 header files.
 	* arch/z80/src/z180:  Add source files for z180 chips.  Initial versions
 	  are just clones of z80 source files.
+	* include/nuttx/arch.h:  Add address environment control interfaces (for use
+	  with CPUs the provide MCUs and support process-like address environments).
+	* arch/z80/src/z180/z180_mmu.*:  Add MMU support for z180 tasks.
 

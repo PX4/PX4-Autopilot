@@ -1,0 +1,114 @@
+The MMU translates every memory address from 16 to 20 bits.  The MMU uses
+three internal control registers. On reset the MMU gives a straight logical
+to physical mapping, simulating the Z80 and, of course, limiting the address
+space to 64k.
+
+Logical Address Spaces
+======================
+
+The 64KB CPU logical address space is interpreted by the MMU as consisting
+of up to three separate logical address areas:
+
+  Common Area 0,
+  Bank Area, and
+  Common Area 1.
+
+Common 0, if it exists, always starts at logical address 0000 and runs up
+to the Bank Area. The Bank Area then runs to the start of Common Area 1.
+
+Registers
+=========
+
+CBAR (Comman/Bank Area Register)
+
+  CBAR is an 8 bit I/O port that can be accessed by the processor's OUT and
+  IN instructions. The lower 4-bits of CBAR (BA) specify the starting logical
+  address of the Bank Area, and the upper 4-bits (CA) give the start of
+  Common Area 1. These bits determine the upper four bits of the 16-bit
+  address. If CBAR were 0xa8, then the Base Area starts at logical address
+  0x8000 and Common Area 1 starts at logical address 0xa000.  This gives a
+  mapping granualarity of 4Kb in the logical address space.
+
+  The CA and BA fields of CBAR may be freely programmed subject only to the
+  restriction that CA may never be less than BA.
+
+BBAR (Base Area Bank Register)
+
+  BBR  specifies the starting physical address of the base area (the logical
+  start address is in CBAR).
+
+CBR (Common Bank Register)
+
+  CBR provides the same information for Common Area 1.
+
+Both the BBAR and the CBR specify the upper 8-bits of the 20-bit physical
+address in the mapping.  Hence, mapping is performed with a granularity of
+4Kb in the physical address space.
+
+Physical to Logical Address Mapping
+===================================
+
+A simple formula gives the translation from logical to physical address for
+the Bank Area:
+
+  Physical = Logical + (BBR * 4096)
+
+The same formula gives Common Area 1:
+
+  Physical = Logical + (CBR * 4096)
+
+Reset Configuration
+===================
+
+On reset, the CBAR is set to 0xf0, and CBR and BBR are set to 0x00. This
+maps logical to physical with no translation; the Bank Area starts at
+logical address 0x0000 and Common 1 at 0xf000. The Bank Area starts at
+phsycial address 0x00000 (BBR=0), as does Common Area 1 (CBR=0). If the
+logical address is 0x1000, then the MMU allocates this to the Bank Area
+and adds the physical base of bank to it (0x00000), giving a translated
+address of 0x01000. Similarly, logical 0xf800 is in Common Area 1, and
+translates to 0x0f800.
+
+Configurations
+==============
+
+You can divide the logical address space into one, two, or three areas.
+
+1) Three areas:
+
+  CBAR:CA > CBAR:BA > 0x0000
+
+2a) Two areas (Bank Area and Common Area 1):
+
+  CBAR:CA > CBAR:BA = 0x0000
+
+2a) Two areas (Common Area 0 and Common Area 1):
+
+  CBAR:CA = CBAR:BA > 0x0000
+
+3) One area (Common Area 1):
+
+  CBAR:CA = CBAR:BA = 0x0000
+
+NuttX Memory Organization
+=========================
+
+Common Area 0:  This area holds the common NuttX code that is directly
+call-able from all application threads.  Common Area always starts at
+logical address 0x0000 and extends to the Bank Area
+
+Base Area: This area holds the common NuttX data (including the share-
+able heap) that is accessible from all applications and extends to
+Common Area 1.
+
+NOTE:  That is execution from RAM, the common NuttX code and data may
+be contiguous and lie in the same areas (either Common Area 0 or the
+Bank Area).  The two areas above would apply in a ROM'ed system, where
+Common Area 1 is ROM and the Base Area is RAM.
+
+Common Area 1:  This area holds the code and data that is unique to
+a particular task.  This area extends to the end of the logical address
+space.  All tasks share the same logical Common Area 2 logical address
+(in the CBAR), but each has a unique mapping to different, underlying
+physical addresses. Each task will then have its own, unique CBR value
+that must be restored with each context switch to the task.

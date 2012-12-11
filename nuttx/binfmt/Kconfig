@@ -15,6 +15,7 @@ if !BINFMT_DISABLE
 config NXFLAT
 	bool "Enable the NXFLAT Binary Format"
 	default n
+	select PIC
 	---help---
 		Enable support for the NXFLAT binary format.  Default: n
 
@@ -33,6 +34,10 @@ source binfmt/libelf/Kconfig
 endif
 
 endif
+
+config PIC
+	bool
+	default n
 
 config BINFMT_CONSTRUCTORS
 	bool "C++ Static Constructor Support"

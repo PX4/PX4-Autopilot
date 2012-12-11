@@ -9,6 +9,7 @@ choice
 
 config ARCH_8051
 	bool "8051"
+	select CUSTOM_STACK
 	---help---
 		Intel 8051 architectures and derivaties
 
@@ -112,6 +113,14 @@ config ARCH_DMA
 	default n
 
 config ARCH_IRQPRIO
+	bool
+	default n
+
+config CUSTOM_STACK
+	bool
+	default n
+
+config ADDRENV
 	bool
 	default n
 

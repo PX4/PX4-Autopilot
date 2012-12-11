@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: October 30, 2012</p>
+      <p>Last Updated: December 11, 2012</p>
     </td>
   </tr>
 </table>
@@ -3697,6 +3697,9 @@ void (*notify)(FAR struct pm_callback_s *cb, enum pm_state_e pmstate);
   <li><code>CONFIG_ARCH_IRQPRIO</code>:
      Define if the architecture supports prioritization of interrupts and the
      up_prioritize_irq() API.</li>
+  <li><code>CONFIG_ADDRENV</code>:
+     The CPU supports an MMU and CPU port supports provision of address
+     environments for tasks (making the, perhaps, processes).</li>
 </ul>
 
 <p>

@@ -160,6 +160,9 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_ARCH_IRQPRIO
       Define if the architecture suports prioritizaton of interrupts
       and the up_prioritize_irq() API.
+    CONFIG_ADDRENV
+      The CPU supports an MMU and CPU port supports provision of address
+      environments for tasks (making the, perhaps, processes).
 
   Some architectures require a description of the RAM configuration:
 

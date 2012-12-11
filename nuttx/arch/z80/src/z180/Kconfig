@@ -21,29 +21,114 @@ config Z180_TOOLCHAIN_SDCCW
 endchoice
 
 config LINKER_HOME_AREA
-	hex "Start of _HOME area"
+	hex "Physical start of _HOME area"
 	default 0x0000
 	---help---
-		Start of the linker HOME area.  Default: 0x0000
+		Physical address of the start of the linker HOME area.  Default: 0x0000
 
 config LINKER_CODE_AREA
-	hex "Start of _CODE area"
+	hex "Physical start of _CODE area"
 	default 0x0200
 	---help---
-		Start of the linker _CODE area.  Default: 0x0200
+		Physical address of the start of the linker _CODE area.  Default: 0x0200
 
 config LINKER_DATA_AREA
-	hex "Start of _DATA area"
+	hex "Physical start of _DATA area"
 	default 0x8000
 	---help---
-		Start of the linker _DATA area.  Default: 0x8000
+		Physical address of the start of the linker _DATA area.  Default: 0x8000
 
 config LINKER_ROM_AT_0000
-	bool "ROM at 0x0000"
+	bool "ROM at Physical 0x0000"
 	default n
 	---help---
-		Some architectures may have ROM located at address zero.  In this
+		Some architectures may have ROM located at physical address zero.  In this
 		case, a special version of the "head" file must be used.
+
+config Z180_BANKAREA_VIRTBASE
+	hex "Virtual Start of Bank Area"
+	default 0x8000
+	---help---
+		This setting provides the virtual address of the start of the Bank Area.
+		NOTE that 0x0000 <= Z180_BANKAREA_BASE <= Z180_COMMONAREA_BASE is required!
+		Default: 0x8000
+
+		NuttX Memory Organization:
+
+			Common Area 0:  This area holds the common NuttX code that is
+			directly call-able from all application threads.  Common Area
+			always starts at virtual address 0x0000 and extends to the
+			Bank Area
+
+			Base Area: This area holds the common NuttX data (including the
+			share-able heap) that is accessible from all applications and
+			extends to Common Area 1.
+
+			NOTE:  That is execution from RAM, the common NuttX code and
+			data may be contiguous and lie in the same region (either
+			Common Area 0 or the Bank Area).  The two regions above would
+			apply in a ROM'ed system, where Common Area 1 is ROM and the
+			Base Area is RAM.
+
+			Common Area 1:  This area holds the code and data that is unique
+			to a particular task.  his area extends to the end of the virtual
+			address space.  All tasks share the same virtual Common Area 2
+			virtual address (but each has a unique mapping to different,
+			underlying physical addresses).
+
+config Z180_BANKAREA_PHYSBASE
+	hex "Physical Start of Bank Area"
+	default 0x08000
+	---help---
+		This setting provides the physical address of the start of the Bank Area.
+		Default: 0x08000
+
+config Z180_COMMON1AREA_VIRTBASE
+	hex "Virtual Start of Common Area 1"
+	default 0xc000
+	---help---
+		This setting provides the virtual address of the start of the Common
+		Area 1. NOTE that 0x0000 <= Z180_BANKAREA_BASE <= Z180_COMMONAREA_BASE
+		is required! Default: 0xc000
+
+		NuttX Memory Organization:
+
+			Common Area 0:  This area holds the common NuttX code that is
+			directly call-able from all application threads.  Common Area
+			always starts at virtual address 0x0000 and extends to the
+			Bank Area
+
+			Base Area: This area holds the common NuttX data (including the
+			share-able heap) that is accessible from all applications and
+			extends to Common Area 1.
+
+			NOTE:  That is execution from RAM, the common NuttX code and
+			data may be contiguous and lie in the same region (either
+			Common Area 0 or the Bank Area).  The two regions above would
+			apply in a ROM'ed system, where Common Area 1 is ROM and the
+			Base Area is RAM.
+
+			Common Area 1:  This area holds the code and data that is unique
+			to a particular task.  his area extends to the end of the virtual
+			address space.  All tasks share the same virtual Common Area 2
+			virtual address (but each has a unique mapping to different,
+			underlying physical addresses).
+
+config Z180_PHYSHEAP_START
+	hex "Physical Start of Free Memory"
+	default 0x0c000
+	---help---
+		This setting provides the physical address of the start of free physical
+		memory that will be used to allocate memory for tasks (Common Area 1).
+		Default: 0x0c000
+
+config Z180_PHYSHEAP_END
+	hex "Physical End(+1) of Free Memory"
+	default 0x100000
+	---help---
+		This setting provides the physical address of the end(+1) of free physical
+		memory that will be used to allocate memory for tasks (Common Area 1).
+		Default: 0x100000
 
 config ARCH_HAVEHEAD
 	bool "Board-specific Head File"

@@ -60,8 +60,9 @@
 ; Global symbols used
 ;**************************************************************************
 
-	.globl	_os_start		; OS entry point
-	.globl	_up_doirq		; Interrupt decoding logic
+	.globl	_os_start			; OS entry point
+	.globl	_up_doirq			; Interrupt decoding logic
+	.globl	z180_mmu_lowinit	; MMU initialization logic
 
 ;**************************************************************************
 ; Reset entry point
@@ -70,9 +71,9 @@
 	.area	_HEADER	(ABS)
 	.org	0x0000
 
-	di				; Disable interrupts
-	im	1			; Set interrupt mode 1
-	jr	_up_reset		; And boot the system
+	di						; Disable interrupts
+	im	1					; Set interrupt mode 1
+	jr	_up_reset			; And boot the system
 
 ;**************************************************************************
 ; Other reset handlers
@@ -167,6 +168,11 @@ _up_reset:
 	; and stored in asm_mem.h
 
 	ld		SP, #CONFIG_STACK_END	; Set stack pointer
+
+	; Configure the MMU so that things will lie at the addresses that we
+	; expect them to
+
+	call	z180_mmu_lowinit	; Initialize the MMU
 
 	; Performed initialization unique to the SDCC toolchain
 
