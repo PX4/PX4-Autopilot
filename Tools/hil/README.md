@@ -20,11 +20,12 @@ Currently I have not modified qgroundcontrol to have a new JSBSim mode, but you 
 
 # TODO:
 
-* Magnetometer measurements from attitude.
+* Magnetometer measurement model from attitude needs to be improved.
+* Add noise.
 
 # BUGS:
 
-* QGC not showing attitude estimates.
+* jsbsim/runsim.py not starting with JSBSim in air.
 * Controller not stable with ekf navigator.
 
 # Source
