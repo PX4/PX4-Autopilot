@@ -25,7 +25,7 @@
 
     <event name="Trim">
       <condition>simulation/sim-time-sec ge 0.01</condition>
-      <set name="simulation/do_simple_trim" value="2"/>
+      <set name="simulation/do_simple_trim" value="1"/>
       <notify/>
     </event>
   </run>
