@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<initialize name="cruise with steady turn">
+    <altitude unit="FT">    1000.0 </altitude>
+    <elevation unit="FT">   0.0  </elevation>
+    <vt unit="FT/SEC">      120.0 </vt>
+    <gamma unit="DEG">      0.0 </gamma>
+    <latitude unit="DEG">   37.62872151 </latitude>
+    <longitude unit="DEG">  -122.3932853 </longitude>
+    <p unit="RAD/S">        0.0 </p>
+    <q unit="RAD/S">        0.0 </q>
+    <r unit="RAD/S">        1.0 </r>
+    <phi unit="DEG">        0.0 </phi>
+    <psi unit="DEG">        0.0 </psi>
+</initialize>

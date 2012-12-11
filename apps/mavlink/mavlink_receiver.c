@@ -384,8 +384,8 @@ handle_message(mavlink_message_t *msg)
                 /* magnetometer */
                 hil_sensors.magnetometer_counter = hil_counter; 
                 // TODO, need better mag model
-                hil_sensors.magnetometer_raw[0] = 1000*cos(hil_state.yaw);
-                hil_sensors.magnetometer_raw[1] = -1000*sin(hil_state.yaw);
+                hil_sensors.magnetometer_raw[0] = -1000*cos(hil_state.yaw);
+                hil_sensors.magnetometer_raw[1] = 1000*sin(hil_state.yaw);
                 hil_sensors.magnetometer_raw[2] = 0;
                 hil_sensors.magnetometer_ga[0] = hil_sensors.magnetometer_raw[0]/500.0f;
                 hil_sensors.magnetometer_ga[1] = hil_sensors.magnetometer_raw[1]/500.0f;

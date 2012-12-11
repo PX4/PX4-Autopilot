@@ -31,7 +31,7 @@ def jsb_set(variable, value):
     jsb_console.send('set %s %s\r\n' % (variable, value))
 
 def setup_template(home):
-    '''setup aircraft/Rascal/reset.xml'''
+    '''setup aircraft/easystar/reset.xml'''
     v = home.split(',')
     if len(v) != 4:
         print("home should be lat,lng,alt,hdg - '%s'" % home)
@@ -41,11 +41,12 @@ def setup_template(home):
     altitude = float(v[2])
     heading = float(v[3])
     sitl_state.ground_height = altitude
-    template = os.path.join('aircraft', 'Rascal', 'reset_template.xml')
-    reset = os.path.join('aircraft', 'Rascal', 'reset.xml')
+    template = os.path.join('aircraft', 'easystar', 'reset_template.xml')
+    reset = os.path.join('aircraft', 'easystar', 'reset.xml')
     xml = open(template).read() % { 'LATITUDE'  : str(latitude),
                                     'LONGITUDE' : str(longitude),
-                                    'HEADING'   : str(heading) }
+                                    'HEADING'   : str(heading),
+                                    'ALTITUDE'  : str(1000+altitude)}
     open(reset, mode='w').write(xml)
     print("Wrote %s" % reset)
     
@@ -294,6 +295,7 @@ def main_loop():
             last_wind_update = tnow
 
         if tnow - last_report > 3:
+
             print("IPS %u FPS %u asl=%.1f agl=%.1f roll=%.1f pitch=%.1f a=(%.2f %.2f %.2f)" % (
                 input_count/(time.time() - last_report),
                 frame_count / (time.time() - last_report),
