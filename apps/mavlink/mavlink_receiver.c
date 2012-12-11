@@ -375,7 +375,7 @@ handle_message(mavlink_message_t *msg)
                 hil_sensors.magnetometer_ga[1] = 0;
                 hil_sensors.magnetometer_ga[2] = 0;
 
-                /* publish hil sensors */
+                /* hil gps */
                 hil_gps.timestamp = hrt_absolute_time();
                 hil_gps.counter = hil_counter;
                 hil_gps.fix_type = 3;
@@ -385,9 +385,9 @@ handle_message(mavlink_message_t *msg)
                 hil_gps.vel_n = hil_state.vx/100.0f;
                 hil_gps.vel_e = hil_state.vy/100.0f;
                 hil_gps.vel_d = hil_state.vz/100.0f;
-                orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
 
-                /* hil gps */
+                /* publish hil sensors */
+                orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
                 orb_publish(ORB_ID(vehicle_gps_position), pub_hil_gps, &hil_gps);
             }
 		}
