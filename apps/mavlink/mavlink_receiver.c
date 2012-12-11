@@ -361,26 +361,56 @@ handle_message(mavlink_message_t *msg)
                 hil_frames +=1 ;
 
                 /* hil gyro */
-                hil_sensors.gyro_counter += hil_counter; 
-                hil_sensors.gyro_rad_s[0] = hil_state.rollspeed;
-                hil_sensors.gyro_rad_s[1] = hil_state.pitchspeed;
-                hil_sensors.gyro_rad_s[2] = hil_state.yawspeed;
+                hil_sensors.gyro_counter = hil_counter; 
+                hil_sensors.gyro_raw[0] = hil_state.rollspeed*1000;
+                hil_sensors.gyro_raw[1] = hil_state.pitchspeed*1000;
+                hil_sensors.gyro_raw[2] = hil_state.yawspeed*1000;
+                hil_sensors.gyro_rad_s[0] = hil_sensors.gyro_raw[0];
+                hil_sensors.gyro_rad_s[1] = hil_sensors.gyro_raw[1];
+                hil_sensors.gyro_rad_s[2] = hil_sensors.gyro_raw[2];
 
-                /* hil accelerometer */
-                hil_sensors.accelerometer_counter += hil_counter; 
+                /* accelerometer */
+                hil_sensors.accelerometer_counter = hil_counter; 
                 static const float mg_ms2 = 9.8f/1000.0f;
-                hil_sensors.accelerometer_m_s2[0] = mg_ms2*hil_state.xacc;
-                hil_sensors.accelerometer_m_s2[1] = mg_ms2*hil_state.yacc;
-                hil_sensors.accelerometer_m_s2[2] = mg_ms2*hil_state.zacc;
+                hil_sensors.accelerometer_raw[0] = hil_state.xacc;
+                hil_sensors.accelerometer_raw[1] = hil_state.yacc;
+                hil_sensors.accelerometer_raw[2] = hil_state.zacc;
+                hil_sensors.accelerometer_m_s2[0] = mg_ms2*hil_sensors.accelerometer_raw[0];
+                hil_sensors.accelerometer_m_s2[1] = mg_ms2*hil_sensors.accelerometer_raw[1];
+                hil_sensors.accelerometer_m_s2[2] = mg_ms2*hil_sensors.accelerometer_raw[2];
+                hil_sensors.accelerometer_mode = 0; // TODO what is this?
+                hil_sensors.accelerometer_range_m_s2 = 100.0f;
 
-                /* hil magnetometer */
-                hil_sensors.magnetometer_counter += hil_counter; 
-                // TODO, need mag model
-                hil_sensors.magnetometer_ga[0] = 0.5;
-                hil_sensors.magnetometer_ga[1] = 0;
-                hil_sensors.magnetometer_ga[2] = 0;
+                /* magnetometer */
+                hil_sensors.magnetometer_counter = hil_counter; 
+                // TODO, need better mag model
+                hil_sensors.magnetometer_raw[0] = 1000*cos(hil_state.yaw);
+                hil_sensors.magnetometer_raw[1] = -1000*sin(hil_state.yaw);
+                hil_sensors.magnetometer_raw[2] = 0;
+                hil_sensors.magnetometer_ga[0] = hil_sensors.magnetometer_raw[0]/500.0f;
+                hil_sensors.magnetometer_ga[1] = hil_sensors.magnetometer_raw[1]/500.0f;
+                hil_sensors.magnetometer_ga[2] = hil_sensors.magnetometer_raw[2]/500.0f;
+                hil_sensors.magnetometer_range_ga = 1.0f;
+                hil_sensors.magnetometer_mode = 0; // TODO what is this
+                hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
 
-                /* hil gps */
+                /* baro */
+                hil_sensors.baro_counter = hil_counter; 
+                hil_sensors.baro_pres_mbar = 1013.25f; // TODO should vary with alt
+                hil_sensors.baro_alt_meter = hil_state.alt/1000.0f;
+                hil_sensors.baro_temp_celcius = 23.0f;
+
+                /* adc */
+                hil_sensors.adc_voltage_v[0] = 0;
+                hil_sensors.adc_voltage_v[1] = 0;
+                hil_sensors.adc_voltage_v[2] = 0;
+
+                /* battery */
+                hil_sensors.battery_voltage_counter = hil_counter;
+                hil_sensors.battery_voltage_v = 11.1f;
+                hil_sensors.battery_voltage_valid = true;
+
+                /* gps */
                 hil_gps.timestamp = timestamp;
                 hil_gps.counter = hil_counter;
                 hil_gps.fix_type = 3;
@@ -393,7 +423,7 @@ handle_message(mavlink_message_t *msg)
 
                 if ((timestamp - old_timestamp) > 1000000)
                 {
-                    printf("received hil at: %llu\trate:%d Hz\n", timestamp, hil_frames);
+                    printf("receiving hil at %d Hz\n", hil_frames);
                     old_timestamp = timestamp;
                     hil_frames = 0;
                 }

@@ -276,7 +276,7 @@ def main_loop():
         if jsb.fileno() in rin:
             util.pexpect_drain(jsb)
 
-        if tnow - last_sim_input > 0.1:
+        if tnow - last_sim_input > 0.5:
             if not paused:
                 print("PAUSING SIMULATION")
                 paused = True
