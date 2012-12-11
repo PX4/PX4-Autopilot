@@ -228,7 +228,6 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 
     int loopcounter = 0;
-    int printcounter = 0;
 
     thread_running = true;
 
@@ -236,12 +235,12 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
     // struct debug_key_value_s dbg = { .key = "", .value = 0.0f };
     // orb_advert_t pub_dbg = -1;
     
-    float sensor_update_hz[3] = {0.0f, 0.0f, 0.0f};
+    /*float sensor_update_hz[3] = {0.0f, 0.0f, 0.0f};*/
     // XXX write this out to perf regs
 
     /* keep track of sensor updates */
     uint32_t sensor_last_count[3] = {0, 0, 0};
-    uint64_t sensor_last_timestamp[3] = {0, 0, 0};
+    /*uint64_t sensor_last_timestamp[3] = {0, 0, 0};*/
 
     struct attitude_estimator_ekf_params ekf_params;
 
@@ -320,8 +319,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
                     if (sensor_last_count[0] != raw.gyro_counter) {
                         update_vect[0] = 1;
                         sensor_last_count[0] = raw.gyro_counter;
-                        sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);
-                        sensor_last_timestamp[0] = raw.timestamp;
+                        /*sensor_update_hz[0] = 1e6f / (raw.timestamp - sensor_last_timestamp[0]);*/
+                        /*sensor_last_timestamp[0] = raw.timestamp;*/
                     }
 
                     z_k[0] =  raw.gyro_rad_s[0] - gyro_offsets[0];
@@ -332,8 +331,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
                     if (sensor_last_count[1] != raw.accelerometer_counter) {
                         update_vect[1] = 1;
                         sensor_last_count[1] = raw.accelerometer_counter;
-                        sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
-                        sensor_last_timestamp[1] = raw.timestamp;
+                        /*sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);*/
+                        /*sensor_last_timestamp[1] = raw.timestamp;*/
                     }
                     z_k[3] = raw.accelerometer_m_s2[0];
                     z_k[4] = raw.accelerometer_m_s2[1];
@@ -343,8 +342,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
                     if (sensor_last_count[2] != raw.magnetometer_counter) {
                         update_vect[2] = 1;
                         sensor_last_count[2] = raw.magnetometer_counter;
-                        sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);
-                        sensor_last_timestamp[2] = raw.timestamp;
+                        /*sensor_update_hz[2] = 1e6f / (raw.timestamp - sensor_last_timestamp[2]);*/
+                        /*sensor_last_timestamp[2] = raw.timestamp;*/
                     }
                     z_k[6] = raw.magnetometer_ga[0];
                     z_k[7] = raw.magnetometer_ga[1];
@@ -393,8 +392,6 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
                         continue;
                     }
 
-                    uint64_t timing_start = hrt_absolute_time();
-                    
                     attitudeKalmanfilter(update_vect, dt, z_k, x_aposteriori_k, P_aposteriori_k, ekf_params.q, ekf_params.r,
                             euler, Rot_matrix, x_aposteriori, P_aposteriori);
                     /* swap values for next iteration, check for fatal inputs */
