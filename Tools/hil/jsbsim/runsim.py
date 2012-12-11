@@ -158,37 +158,43 @@ def process_jsb_input(buf):
         if e.errno not in [ errno.ECONNREFUSED ]:
             raise
 
-def check_flight_env(fdm):
-    alt = fdm.get('altitude', units='meters')
+def check_flight_env(alt, p, q, r):
+    if math.fabs(p) > math.pi or math.fabs(q) > math.pi or math.fabs(r) > math.pi:
+        return False
     if alt <= 0:
         return False
 
     return True
 
-
-
 def check_mission_env(fdm, time):
-    theater_lat_origin = 0
-    theater_lon_origin = 0
-    alt_min = 500
-    alt_max = 1500
-    time_limit = 80
-    theater_size = 0 # Square of distance
-    lat_window_size = 0
-    lon_window_size = 0
-    target_lat = 0
-    target_lon = 0
-    target_start_time = 0
-    target_end_time = 0
+    latlonDiff = 0.0002
+    
+    lat0 = 0
+    lon0 = 0
 
-    lat = fdm.get('latitude', units='degrees')
-    lon = fdm.get('longitude', units='degrees')
+    destLat = lat0 + .6*latlonDiff
+    destLon =lon0 + .5*latlonDiff
+
+
+    theater_lat_origin = lat0
+    theater_lon_origin = lon0
+    alt_min = 750
+    alt_max = 1250
+    time_limit = 80
+    theater_size = (latlonDiff*.7)^2 # Square of distance
+    lat_window_size = latlonDiff/3
+    lon_window_size = latlonDiff/3
+    target_start_time = 70
+    target_end_time = 80
+
+    lat = fdm.get('latitude', units='radians')
+    lon = fdm.get('longitude', units='radians')
 
     # Check that the vehicle is within the target window for the specified interval
     if time > target_start_time and time < target_end_time:
-        if math.fabs(lat - target_lat) > lat_window_size:
+        if math.fabs(lat - destLat) > lat_window_size:
             return False
-        if math.fabs(lon - target_lon) > lon_window_size:
+        if math.fabs(lon - destLon) > lon_window_size:
             return False
 
     # Check that time has not run out
@@ -201,10 +207,8 @@ def check_mission_env(fdm, time):
         return False;
 
     # Check that the theater radius has not been breached.
-    lat_r = lat*math.pi/180;
-    lon_r = lon*math.pi/180;
-    y_dist = math.sin(theater_lon_origin - lon_r)*math.cos(theater_lat_origin)
-    x_dist = math.cos(lat_r)*math.sin(theater_lat_origin)-math.sin(lat_r)*math.cos(theater_lat_origin)*math.cos(theater_lon_origin-lon_r)
+    y_dist = math.sin(theater_lon_origin - lon)*math.cos(theater_lat_origin)
+    x_dist = math.cos(lat)*math.sin(theater_lat_origin)-math.sin(lat)*math.cos(theater_lat_origin)*math.cos(theater_lon_origin-lon_r)
     dist = y_dist^2+x_dist^2
     if dist > theater_size:
         return False;
