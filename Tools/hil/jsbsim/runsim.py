@@ -3,6 +3,7 @@
 
 import sys, os, pexpect, fdpexpect, socket
 import math, time, select, struct, signal, errno
+import random
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'pysim'))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', '..', '..', 'mavlink', 'pymavlink'))
@@ -305,18 +306,25 @@ jsb.expect("trim computation time")
 time.sleep(1.5)
 jsb_console.logfile = None
 
+tstart = time.time()
+
 print("Simulator ready to fly")
+
+def reset_sim():
+    jsb_set('simulation/reset',1)
+    return time.time()
 
 def main_loop():
     '''run main loop'''
     tnow = time.time()
-    tstart = tnow
     last_report = tnow
     last_sim_input = tnow
     last_wind_update = tnow
     frame_count = 0
     input_count = 0
     paused = False
+
+    tstart = tnow
 
     while True:
         rin = [jsb_in.fileno(), sim_in.fileno(), jsb_console.fileno(), jsb.fileno()]
@@ -362,9 +370,9 @@ def main_loop():
             update_wind(wind)
             last_wind_update = tnow
 
+        # mission/ flight envelope check
         if tnow - tstart > 10:
-            tstart = tnow
-            jsb_set('simulation/reset',1)
+            tstart = reset_sim()
 
         if tnow - last_report > 3:
             print("IPS %u FPS %u asl=%.1f agl=%.1f roll=%.1f pitch=%.1f a=(%.2f %.2f %.2f)" % (

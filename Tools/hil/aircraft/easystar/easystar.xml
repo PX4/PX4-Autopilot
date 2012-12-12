@@ -237,6 +237,7 @@
         -->
         <channel name="Yaw">
             <summer name="Yaw Trim Sum">
+                <input>fcs/rudder-cmd-norm</input>
                 <input>fcs/aileron-cmd-norm</input>
                 <input>fcs/yaw-trim-cmd-norm</input>
                 <clipto>
