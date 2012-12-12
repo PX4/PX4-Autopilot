@@ -51,7 +51,6 @@ def setup_template(home):
                                     'ALTITUDE'  : str(1000+altitude)}
     open(reset, mode='w').write(xml)
     print("Wrote %s" % reset)
-    
 
 def process_sitl_input(buf):
     '''process control changes from SITL sim'''
@@ -311,6 +310,7 @@ print("Simulator ready to fly")
 def main_loop():
     '''run main loop'''
     tnow = time.time()
+    tstart = tnow
     last_report = tnow
     last_sim_input = tnow
     last_wind_update = tnow
@@ -362,8 +362,11 @@ def main_loop():
             update_wind(wind)
             last_wind_update = tnow
 
-        if tnow - last_report > 3:
+        if tnow - tstart > 10:
+            tstart = tnow
+            jsb_set('simulation/reset',1)
 
+        if tnow - last_report > 3:
             print("IPS %u FPS %u asl=%.1f agl=%.1f roll=%.1f pitch=%.1f a=(%.2f %.2f %.2f)" % (
                 input_count/(time.time() - last_report),
                 frame_count / (time.time() - last_report),
