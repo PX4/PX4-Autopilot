@@ -38,10 +38,16 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#include <stdint.h>
+
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
-#include "chip/switch.h"
+#include <arch/io.h>
+
+#include "switch.h"
+#include "z180_iomap.h"
 #include "up_internal.h"
 
 /****************************************************************************
@@ -66,6 +72,12 @@ volatile chipreg_t *current_regs;
 
 uint8_t current_cbr;
 
+/* The interrupt vector table is exported by z180_vectors.asm or
+ * z180_romvectors.asm with the name up_vectors:
+ */
+
+extern uintptr_t up_vectors[16];
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -73,6 +85,22 @@ uint8_t current_cbr;
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: z180_seti
+ *
+ * Description:
+ *   Input byte from port p
+ *
+ ****************************************************************************/
+
+static void z180_seti(uint8_t value) __naked
+{
+  __asm
+	ld      a, 4(ix)	;value
+	ld      l, a
+  __endasm;
+}
 
 /****************************************************************************
  * Public Functions
@@ -118,4 +146,38 @@ statedisable:
 	push	hl		;
 	ret			; and return
   __endasm;
+}
+
+/****************************************************************************
+ * Name: up_irqinitialize
+ *
+ * Description:
+ *   Initialize and enable interrupts
+ *
+ ****************************************************************************/
+
+void up_irqinitialize(void)
+{
+  uint16_t vectaddr = (uint16_t)up_vectors;
+  uint8_t regval;
+
+  /* Initialize the I and IL registers so that the interrupt vector table
+   * is used.
+   */
+
+  regval = (uint8_t)(vectaddr >> 8);
+  z180_seti(regval);
+
+  regval = (uint8_t)(vectaddr & IL_MASK);
+  outp(Z180_INT_IL, regval);
+
+  /* Disable external interrupts */
+
+  outp(Z180_INT_ITC, 0);
+
+  /* And finally, enable interrupts (including the timer) */
+
+#ifndef CONFIG_SUPPRESS_INTERRUPTS
+  irqrestore(Z180_C_FLAG);
+#endif
 }

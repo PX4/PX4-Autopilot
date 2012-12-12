@@ -54,12 +54,6 @@
 	.globl	_up_asci0		; Vector offset 14: Async channel 0
 	.globl	_up_asci1		; Vector offset 16: Async channel 1
 	.globl	_up_unused		; Vector offset 18: Unused
-	.globl	_up_unused		; Vector offset 20: Unused
-	.globl	_up_unused		; Vector offset 22: Unused
-	.globl	_up_unused		; Vector offset 24: Unused
-	.globl	_up_unused		; Vector offset 26: Unused
-	.globl	_up_unused		; Vector offset 28: Unused
-	.globl	_up_unused		; Vector offset 30: Unused
 
 ;**************************************************************************
 ; Interrupt Vector Table
@@ -71,19 +65,19 @@
 	.area	_VECTORS
 
 _up_vectors::
-	.dw		up_int1			; Vector offset 0: External /INT1
-	.dw		up_int2			; Vector offset 2: External /INT2
-	.dw		up_prt0			; Vector offset 4: PRT channel 0
-	.dw		up_prt1			; Vector offset 6: PRT channel 1
-	.dw		up_dma0			; Vector offset 8: DMA channel 0
-	.dw		up_dma1			; Vector offset 8: DMA channel 1
-	.dw		up_csio			; Vector offset 12: Clocked serial I/O
-	.dw		up_asci0		; Vector offset 14: Async channel 0
-	.dw		up_asci1		; Vector offset 16: Async channel 1
-	.dw		up_unused		; Vector offset 18: Unused
-	.dw		up_unused		; Vector offset 20: Unused
-	.dw		up_unused		; Vector offset 22: Unused
-	.dw		up_unused		; Vector offset 24: Unused
-	.dw		up_unused		; Vector offset 26: Unused
-	.dw		up_unused		; Vector offset 28: Unused
-	.dw		up_unused		; Vector offset 30: Unused
+	.dw		_up_int1		; Vector offset 0: External /INT1
+	.dw		_up_int2		; Vector offset 2: External /INT2
+	.dw		_up_prt0		; Vector offset 4: PRT channel 0
+	.dw		_up_prt1		; Vector offset 6: PRT channel 1
+	.dw		_up_dma0		; Vector offset 8: DMA channel 0
+	.dw		_up_dma1		; Vector offset 8: DMA channel 1
+	.dw		_up_csio		; Vector offset 12: Clocked serial I/O
+	.dw		_up_asci0		; Vector offset 14: Async channel 0
+	.dw		_up_asci1		; Vector offset 16: Async channel 1
+	.dw		_up_unused		; Vector offset 18: Unused
+	.dw		_up_unused		; Vector offset 20: Unused
+	.dw		_up_unused		; Vector offset 22: Unused
+	.dw		_up_unused		; Vector offset 24: Unused
+	.dw		_up_unused		; Vector offset 26: Unused
+	.dw		_up_unused		; Vector offset 28: Unused
+	.dw		_up_unused		; Vector offset 30: Unused

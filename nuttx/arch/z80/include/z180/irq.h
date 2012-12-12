@@ -111,14 +111,10 @@
  *
  * Normal vector interrupts use a vector table with 16 entries (2 bytes
  * per entry).  Each entry holds the address of the interrupt handler.
- *
  * The vector table address is determined by 11-bits from the I and IL
  * registers.  The vector table must be aligned on 32-byte address
  * boundaries.
- * - Traps vector to logic address 0x0000 which may or may not be the same
- *   as the RST 0.
- * - INT0
-/* Interrupt vectors (offsets) for Z180 internal interrupts */
+ */
 
 #define Z180_INT1          (9)  /* Vector offset 0: External /INT1 */
 #define Z180_INT2          (10) /* Vector offset 2: External /INT2 */

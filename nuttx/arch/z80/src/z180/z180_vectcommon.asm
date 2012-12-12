@@ -58,14 +58,13 @@
 
 	.globl	_up_doirq			; Interrupt decoding logic
 
-
 ;**************************************************************************
 ; Vector Handlers
 ;**************************************************************************
 
 	.area _CODE
 
-up_int1::					; Vector offset 0: External /INT1
+_up_int1::					; Vector offset 0: External /INT1
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
@@ -73,7 +72,7 @@ up_int1::					; Vector offset 0: External /INT1
 	ld		a, #9			; 9 = Z180_INT1
 	jr		_up_vectcommon	; Remaining RST handling is common
 
-up_int2::					; Vector offset 2: External /INT2
+_up_int2::					; Vector offset 2: External /INT2
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
@@ -81,7 +80,7 @@ up_int2::					; Vector offset 2: External /INT2
 	ld		a, #10			; 10 = Z180_INT2
 	jr		_up_vectcommon	; Remaining RST handling is common
 
-up_prt0::					; Vector offset 4: PRT channel 0
+_up_prt0::					; Vector offset 4: PRT channel 0
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
@@ -89,7 +88,7 @@ up_prt0::					; Vector offset 4: PRT channel 0
 	ld		a, #11			; 11 = Z180_PRT0
 	jr		_up_vectcommon	; Remaining RST handling is common
 
-up_prt1::					; Vector offset 6: PRT channel 1
+_up_prt1::					; Vector offset 6: PRT channel 1
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
@@ -97,7 +96,7 @@ up_prt1::					; Vector offset 6: PRT channel 1
 	ld		a, #12			; 12 = Z180_PRT1
 	jr		_up_vectcommon	; Remaining RST handling is common
 
-up_dma0::					; Vector offset 8: DMA channel 0
+_up_dma0::					; Vector offset 8: DMA channel 0
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
@@ -105,7 +104,7 @@ up_dma0::					; Vector offset 8: DMA channel 0
 	ld		a, #13			; 13 = Z180_DMA0
 	jr		_up_vectcommon	; Remaining RST handling is common
 
-up_dma1::					; Vector offset 8: DMA channel 1
+_up_dma1::					; Vector offset 8: DMA channel 1
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
@@ -113,7 +112,7 @@ up_dma1::					; Vector offset 8: DMA channel 1
 	ld		a, #14			; 14 = Z180_DMA1
 	jr		_up_vectcommon	; Remaining RST handling is common
 
-up_csio::					; Vector offset 12: Clocked serial I/O
+_up_csio::					; Vector offset 12: Clocked serial I/O
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
@@ -121,7 +120,7 @@ up_csio::					; Vector offset 12: Clocked serial I/O
 	ld		a, #15			; 15 = Z180_CSIO
 	jr		_up_vectcommon	; Remaining RST handling is common
 
-up_asci0::					; Vector offset 14: Async channel 0
+_up_asci0::					; Vector offset 14: Async channel 0
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
@@ -129,7 +128,7 @@ up_asci0::					; Vector offset 14: Async channel 0
 	ld		a, #16			; 16 = Z180_ASCI0
 	jr		_up_vectcommon	; Remaining RST handling is common
 
-up_asci1::					; Vector offset 16: Async channel 1
+_up_asci1::					; Vector offset 16: Async channel 1
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
@@ -137,7 +136,7 @@ up_asci1::					; Vector offset 16: Async channel 1
 	ld		a, #17			; 17 = Z180_ASCI1
 	jr		_up_vectcommon	; Remaining RST handling is common
 
-up_unused::					; Vector offset 18: Unused
+_up_unused::				; Vector offset 18: Unused
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
