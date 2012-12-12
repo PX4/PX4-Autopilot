@@ -154,7 +154,7 @@ else
 	@echo -b _CODE=0x0200>>nuttx.lnk
 endif
 ifneq ($(CONFIG_LINKER_DATA_AREA),)
-	@echo -b _CODE=$(CONFIG_LINKER_DATA_AREA)>>nuttx.lnk
+	@echo -b _DATA=$(CONFIG_LINKER_DATA_AREA)>>nuttx.lnk
 else
 	@echo -b _DATA=0x8000>>nuttx.lnk
 endif
