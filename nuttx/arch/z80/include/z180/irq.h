@@ -54,18 +54,85 @@
  ****************************************************************************/
 
 /* Z180 Interrupts */
+/* Resets */
+                                /* RST 0 is the power-up interrupt vector */
+#define Z180_RST1          (0)  /* RST 1 */
+#define Z180_RST2          (1)  /* RST 2 */
+#define Z180_RST3          (2)  /* RST 3 */
+#define Z180_RST4          (3)  /* RST 4 */
+#define Z180_RST5          (4)  /* RST 5 */
+#define Z180_RST6          (5)  /* RST 6 */
+#define Z180_RST7          (6)  /* RST 7 */
 
-#define Z180_RST0          (0)
-#define Z180_RST1          (1)
-#define Z180_RST2          (2)
-#define Z180_RST3          (3)
-#define Z180_RST4          (4)
-#define Z180_RST5          (5)
-#define Z180_RST6          (6)
-#define Z180_RST7          (7)
+/* TRAP Interrupt
+ *
+ * The Z8X180 generates a non-maskable TRAP interrupt when an undefined Op
+ * Code fetch occurs. When a TRAP interrupt occurs the Z8X180 operates as
+ * follows:
+ *
+ * 1. The TRAP bit in the Interrupt TRAP/Control (ITC) register is set to 1.
+ * 2. The current PC (Program Counter) is saved on the stack.
+ * 3. The Z8X180 vectors to logical address 0 (which may or may not be the
+ *    same as reset which vectors to physical address 0x00000).
+ *
+ * The state of the UFO (Undefined Fetch Object) bit in ITC allows TRAP
+ * manipulation software to correctly adjust the stacked PC, depending on
+ * whether the second or third byte of the Op Code generated the TRAP. If
+ * UFO is 0, the starting address of the invalid instruction is equal to
+ * the stacked PC-1. If UFO is 1, the starting address of the invalid
+ * instruction is equal to the stacked PC-2.
+ */
+
+#define Z180_TRAP          (7)
+
+/* INT0
+ *
+ * INT0 (only) has 3 different software programmable interrupt response
+ * modes—Mode 0, Mode 1 and Mode 2.
+ *
+ * - INT0 Mode 0. During the interrupt acknowledge cycle, an instruction
+ *   is fetched from the data bus (DO–D7) at the rising edge of T3.
+ *
+ * - INT0 Mode 1. The PC is stacked and instruction execution restarts at
+ *   logical address 0x0038.
+ *
+ * - INT0 Mode 2. The restart address is obtained by reading the contents
+ *   of a table residing in memory. The vector table consists of up to
+ *   128 two-byte restart addresses stored in low byte, high byte order.
+ *
+ *   This is similar to normal vector mode interrupts (like INT1 and 2):
+ *   The 256-bit table address comes from I, however the lower-order 8
+ *   bits of the vector is fetched from the data bus.
+ */
+
+#define Z180_INT0          (8)
+
+/* Vector Interrupts
+ *
+ * Normal vector interrupts use a vector table with 16 entries (2 bytes
+ * per entry).  Each entry holds the address of the interrupt handler.
+ *
+ * The vector table address is determined by 11-bits from the I and IL
+ * registers.  The vector table must be aligned on 32-byte address
+ * boundaries.
+ * - Traps vector to logic address 0x0000 which may or may not be the same
+ *   as the RST 0.
+ * - INT0
+/* Interrupt vectors (offsets) for Z180 internal interrupts */
+
+#define Z180_INT1          (9)  /* Vector offset 0: External /INT1 */
+#define Z180_INT2          (10) /* Vector offset 2: External /INT2 */
+#define Z180_PRT0          (11) /* Vector offset 4: PRT channel 0 */
+#define Z180_PRT1          (12) /* Vector offset 6: PRT channel 1 */
+#define Z180_DMA0          (13) /* Vector offset 8: DMA channel 0 */
+#define Z180_DMA1          (14) /* Vector offset 10: DMA Channel 1 */
+#define Z180_CSIO          (15) /* Vector offset 12: Clocked serial I/O */
+#define Z180_ASCI0         (16) /* Vector offset 14: Async channel 0 */
+#define Z180_ASCI1         (18) /* Vector offset 16: Async channel 1 */
+#define Z180_UNUSED        (19) /* Vector offset 18-20: unused */
 
 #define Z180_IRQ_SYSTIMER Z180_RST7
-#define NR_IRQS            (8)
+#define NR_IRQS            (20)
 
 /* IRQ Stack Frame Format
  *
@@ -85,21 +152,6 @@
 
 #define XCPTCONTEXT_REGS   (9)
 #define XCPTCONTEXT_SIZE   (2 * XCPTCONTEXT_REGS)
-
-/* Interrupt vectors (offsets) for Z180 internal interrupts */
-
-#define Z180_INT1_VECTOR   0x00 /* External /INT1 */
-#define Z180_INT2_VECTOR   0x02 /* External /INT2 */
-#define Z180_PRT0_VECTOR   0x04 /* PRT channel 0 */
-#define Z180_PRT1_VECTOR   0x06 /* PRT channel 1 */
-#define Z180_DMA0_VECTOR   0x08 /* DMA channel 0 */
-#define Z180_DMA1_VECTOR   0x0a /* DMA Channel 1 */
-#define Z180_CSIO_VECTOR   0x0c /* Clocked serial I/O */
-#define Z180_ASCI0_VECTOR  0x0e /* Async channel 0 */
-#define Z180_ASCI1_VECTOR  0x10 /* Async channel 1 */
-#define Z180_INCAP_VECTOR  0x12 /* Input capture */
-#define Z180_OUTCMP_VECTOR 0x14 /* Output compare */
-#define Z180_TIMOV_VECTOR  0x16 /* Timer overflow */
 
 /****************************************************************************
  * Public Types

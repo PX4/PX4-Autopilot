@@ -40,18 +40,6 @@
 ; Constants
 ;**************************************************************************
 
-	; Register save area layout
-
-	XCPT_I 	==  0		; Offset 0: Saved I w/interrupt state in carry
-	XCPT_BC	==  2		; Offset 1: Saved BC register
-	XCPT_DE	==  4		; Offset 2: Saved DE register
-	XCPT_IX	==  6		; Offset 3: Saved IX register
-	XCPT_IY	==  8		; Offset 4: Saved IY register
-	XCPT_SP	== 10		; Offset 5: Offset to SP at time of interrupt
-	XCPT_HL	== 12		; Offset 6: Saved HL register
-	XCPT_AF	== 14		; Offset 7: Saved AF register
-	XCPT_PC	== 16		; Offset 8: Offset to PC at time of interrupt
-
 	; Default stack base (needs to be fixed)
 
 	.include	"asm_mem.h"
@@ -60,8 +48,10 @@
 ; Global symbols used
 ;**************************************************************************
 
-	.globl	_os_start		; OS entry point
-	.globl	_up_doirq		; Interrupt decoding logic
+	.globl	_os_start			; OS entry point
+	.globl	_up_vectcommon		; Common interrupt handling logic
+	.globl	_z180_mmu_lowinit	; MMU initialization logic
+	.globl	s__HEAP				; Start of the heap
 
 ;**************************************************************************
 ; System start logic
@@ -107,16 +97,6 @@ _up_rstvectors:
 
 ;**************************************************************************
 ; Other reset handlers
-;
-; Interrupt mode 1 behavior:
-; 
-; 1. M1 cycle: 7 ticks
-;    Acknowledge interrupt and decrements SP
-; 2. M2 cycle: 3 ticks
-;    Writes the MS byte of the PC onto the stack and decrements SP
-; 3. M3 cycle: 3 ticks
-;    Writes the LS byte of the PC onto the stack and sets the PC to 0x0038.
-;
 ;**************************************************************************
 
 _up_rst1:					; RST 1
@@ -124,133 +104,56 @@ _up_rst1:					; RST 1
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
 	push	af				; Offset 7: AF (retaining flags)
-	ld		a, #1			; 1 = Z180_RST1
-	jr		_up_rstcommon	; Remaining RST handling is common
+	ld		a, #0			; 0 = Z180_RST1
+	jp		_up_vectcommon	; Remaining RST handling is common
 
 _up_rst2:					; RST 2
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
 	push	af				; Offset 7: AF (retaining flags)
-	ld		a, #2			; 2 = Z180_RST2
-	jr		_up_rstcommon	; Remaining RST handling is common
+	ld		a, #1			; 1 = Z180_RST2
+	jp		_up_vectcommon	; Remaining RST handling is common
 
 _up_rst3:					; RST 3
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
 	push	af				; Offset 7: AF (retaining flags)
-	ld		a, #3			; 1 = Z180_RST3
-	jr		_up_rstcommon	; Remaining RST handling is common
+	ld		a, #2			; 2 = Z180_RST3
+	jp		_up_vectcommon	; Remaining RST handling is common
 
 _up_rst4:					; RST 4
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
 	push	af				; Offset 7: AF (retaining flags)
-	ld		a, #4			; 1 = Z180_RST4
-	jr		_up_rstcommon	; Remaining RST handling is common
+	ld		a, #3			; 3 = Z180_RST4
+	jp		_up_vectcommon	; Remaining RST handling is common
 
 _up_rst5:					; RST 5
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
 	push	af				; Offset 7: AF (retaining flags)
-	ld		a, #5			; 1 = Z180_RST5
-	jr		_up_rstcommon	; Remaining RST handling is common
+	ld		a, #4			; 4 = Z180_RST5
+	jp		_up_vectcommon	; Remaining RST handling is common
 
 _up_rst6:					; RST 6
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
 	push	af				; Offset 7: AF (retaining flags)
-	ld		a, #6			; 1 = Z180_RST6
-	jr		_up_rstcommon	; Remaining RST handling is common
+	ld		a, #5			; 5 = Z180_RST6
+	jp		_up_vectcommon	; Remaining RST handling is common
 
 _up_rst7:					; RST 7
 	; Save AF on the stack, set the interrupt number and jump to the
 	; common reset handling logic.
 							; Offset 8: Return PC is already on the stack
 	push	af				; Offset 7: AF (retaining flags)
-	ld		a, #7			; 7 = Z180_RST7
-	jr		_up_rstcommon	; Remaining RST handling is common
-
-;**************************************************************************
-; Common Interrupt handler
-;**************************************************************************
-
-_up_rstcommon:
-	; Create a register frame.  SP points to top of frame + 4, pushes
-	; decrement the stack pointer.  Already have
-	;
-	;   Offset 8: Return PC is already on the stack
-	;   Offset 7: AF (retaining flags)
-	;
-	; IRQ number is in A
-
-	push	hl				; Offset 6: HL
-	ld		hl, #(3*2)		;    HL is the value of the stack pointer before
-	add		hl, sp			;    the interrupt occurred
-	push	hl				; Offset 5: Stack pointer
-	push	iy				; Offset 4: IY
-	push	ix				; Offset 3: IX
-	push	de				; Offset 2: DE
-	push	bc				; Offset 1: BC
-
-	ld		b, a			;   Save the reset number in B
-	ld		a, i			;   Parity bit holds interrupt state
-	push	af				; Offset 0: I with interrupt state in parity
-	di
-
-	; Call the interrupt decode logic. SP points to the beginning of the reg structure
-
-	ld		hl, #0			; Argument #2 is the beginning of the reg structure
-	add		hl, sp			;
-	push	hl				; Place argument #2 at the top of stack
-	push	bc				; Argument #1 is the Reset number
-	inc		sp				; (make byte sized)
-	call	_up_doirq		; Decode the IRQ
-
-	; On return, HL points to the beginning of the reg structure to restore
-	; Note that (1) the arguments pushed on the stack are not popped, and (2) the
-	; original stack pointer is lost.  In the normal case (no context switch),
-	; HL will contain the value of the SP before the arguments were pushed.
-
-	ld		sp, hl			; Use the new stack pointer
-
-	; Restore registers.  HL points to the beginning of the reg structure to restore
-
-	ex		af, af'			; Select alternate AF
-	pop		af				; Offset 0: AF' = I with interrupt state in carry
-	ex		af, af'			;   Restore original AF
-	pop		bc				; Offset 1: BC
-	pop		de				; Offset 2: DE
-	pop		ix				; Offset 3: IX
-	pop		iy				; Offset 4: IY
-	exx						;   Use alternate BC/DE/HL
-	ld		hl, #-2			;   Offset of SP to account for ret addr on stack
-	pop		de				; Offset 5: HL' = Stack pointer after return
-	add		hl, de			;   HL = Stack pointer value before return
-	exx						;   Restore original BC/DE/HL
-	pop		hl				; Offset 6: HL
-	pop		af				; Offset 7: AF
-
-	; Restore the stack pointer
-
-	exx						; Use alternate BC/DE/HL
-	ld		sp, hl			; Set SP = saved stack pointer value before return
-	exx						; Restore original BC/DE/HL
-
-	; Restore interrupt state
-
-	ex		af, af'			; Recover interrupt state
-	jp		po, nointenable	; Odd parity, IFF2=0, means disabled
-	ex		af, af'			; Restore AF (before enabling interrupts)
-	ei						; yes
-	reti
-nointenable::
-	ex		af, af'			; Restore AF
-	reti
+	ld		a, #6			; 6 = Z180_RST7
+	jp		_up_vectcommon	; Remaining RST handling is common
 
 ;**************************************************************************
 ; Ordering of segments for the linker (SDCC only)
