@@ -164,10 +164,10 @@
 
 /* CTC Registers */
 
-#  define Z181_CTC0          0xe4 /* CTC Channel 0 Control Register */
-#  define Z181_CTC1          0xe5 /* CTC Channel 1 Control Register */
-#  define Z181_CTC2          0xe6 /* CTC Channel 2 Control Register */
-#  define Z181_CTC3          0xe7 /* CTC Channel 3 Control Register */
+#  define Z181_CTC0          0xe4 /* CTC Channel 0 Control/Vector Register */
+#  define Z181_CTC1          0xe5 /* CTC Channel 1 Control/Vector Register */
+#  define Z181_CTC2          0xe6 /* CTC Channel 2 Control/Vector Register */
+#  define Z181_CTC3          0xe7 /* CTC Channel 3 Control/Vector Register */
 
 /* SCC Registers */
 
@@ -177,7 +177,7 @@
 /* System Control Registers */
 
 #  define Z181_RAM_UBR       0xea /* RAM Upper Boundary Address Register */
-#  define Z181_RAM_LBR       0xeb /* RAM Lower Boundary Address Register*/
+#  define Z181_RAM_LBR       0xeb /* RAM Lower Boundary Address Register */
 #  define Z181_ROM_BR        0xec /* ROM Address Boundary Register */
 #  define Z181_SCR           0xed /* System Configuration Register */
 #endif
@@ -185,58 +185,57 @@
 /* Registers unique to Z8x182 class CPUs */
 
 #ifdef HAVE_Z8X182
-#  define Z182_WSGCS       0xd8 /* WSG Chip Select Register */
-#  define Z182_ENH182      0xd9 /* Z80182 Enhancements Register */
-#  define Z182_INTEDGE     0xdf /* Interrupt Edge/Pin MUX Control */
-#  define Z182_PINMUX      0xdf /* Interrupt Edge/Pin MUX Control */
+#  define Z182_WSGCS         0xd8 /* WSG Chip Select Register */
+#  define Z182_ENH182        0xd9 /* Z80182 Enhancements Register */
+#  define Z182_INTEDGE       0xdf /* Interrupt Edge/Pin MUX Control */
 
 /* PIA Registers */
 
-#  define Z182_PA_DDR      0xed /* PA Data Direction Register */
-#  define Z182_PA_DR       0xee /* PA Data Register */
-#  define Z182_PB_DDR      0xe4 /* PB Data Direction Register */
-#  define Z182_PB_DR       0xe5 /* PB Data Register */
-#  define Z182_PC_DDR      0xdd /* PC Data Direction Register */
-#  define Z182_PC_DR       0xde /* PC Data Register */
+#  define Z182_PA_DDR        0xed /* PA Data Direction Register */
+#  define Z182_PA_DR         0xee /* PA Data Register */
+#  define Z182_PB_DDR        0xe4 /* PB Data Direction Register */
+#  define Z182_PB_DR         0xe5 /* PB Data Register */
+#  define Z182_PC_DDR        0xdd /* PC Data Direction Register */
+#  define Z182_PC_DR         0xde /* PC Data Register */
 
 /* ESCC Registers */
 
-#  define Z182_ESCCA_CR    0xe0 /* ESCC Chan A Control Register */
-#  define Z182_ESCCA_DR    0xe1 /* ESCC Chan A Data Register */
-#  define Z182_ESCCB_CR    0xe2 /* ESCC Chan B Control Register */
-#  define Z182_ESCCB_DR    0xe3 /* ESCC Chan B Data Register */
+#  define Z182_ESCCA_CR      0xe0 /* ESCC Chan A Control Register */
+#  define Z182_ESCCA_DR      0xe1 /* ESCC Chan A Data Register */
+#  define Z182_ESCCB_CR      0xe2 /* ESCC Chan B Control Register */
+#  define Z182_ESCCB_DR      0xe3 /* ESCC Chan B Data Register */
 
 /* System Control Registers */
 
-#  define Z182_RAM_UBR     0xe6 /* RAMUBR RAM Upper Boundary Register */
-#  define Z182_RAM_LBR     0xe7 /* RAMLBR RAM Lower Boundary Register */
-#  define Z182_ROM_BR      0xe8 /* ROM Address Boundary Register */
-#  define Z182_SCR         0xef /* System Configuration Register */
+#  define Z182_RAM_UBR       0xe6 /* RAMUBR RAM Upper Boundary Register */
+#  define Z182_RAM_LBR       0xe7 /* RAMLBR RAM Lower Boundary Register */
+#  define Z182_ROM_BR        0xe8 /* ROM Address Boundary Register */
+#  define Z182_SCR           0xef /* System Configuration Register */
 
 /* 16550 MIMIC Registers */
 
-#  define Z182_MIMIC_FCR   0xe9 /* FIFO Control Register */
-#  define Z182_MIMIC_MM    0xe9 /* MM register */
-#  define Z182_MIMIC_RTTC  0xea /* Receive Timeout Time Constant */
-#  define Z182_MIMIC_TTTC  0xeb /* Transmit Timeout Time Constant */
-#  define Z182_MIMIC_FSCR  0xec /* FIFO Status and Control */
-#  define Z182_MIMIC_RBR   0xf0 /* Receive Buffer Register */
-#  define Z182_MIMIC_THR   0xf0 /* Transmit Holding Register */
-#  define Z182_MIMIC_IER   0xf1 /* Interrupt Enable Register */
-#  define Z182_MIMIC_LCR   0xf3 /* Line Control Register */
-#  define Z182_MIMIC_MCR   0xf4 /* Modem Control Register */
-#  define Z182_MIMIC_LSR   0xf5 /* Line Status Register */
-#  define Z182_MIMIC_MSR   0xf6 /* Modem Status Register */
-#  define Z182_MIMIC_SCR   0xf7 /* Scratch Register */
-#  define Z182_MIMIC_DLL   0xf8 /* Divisor Latch (LSByte) */
-#  define Z182_MIMIC_DLM   0xf9 /* Divisor Latch (MSByte) */
-#  define Z182_MIMIC_TTCR  0xfa /* Transmit Time Constant */
-#  define Z182_MIMIC_RTCR  0xfb /* Receive Time Constant */
-#  define Z182_MIMIC_IVEC  0xfc /* Interrupt Vector */
-#  define Z182_MIMIC_IE    0xfd /* Interrupt Enable */
+#  define Z182_MIMIC_FCR     0xe9 /* FIFO Control Register */
+#  define Z182_MIMIC_MM      0xe9 /* MM register */
+#  define Z182_MIMIC_RTTC    0xea /* Receive Timeout Time Constant */
+#  define Z182_MIMIC_TTTC    0xeb /* Transmit Timeout Time Constant */
+#  define Z182_MIMIC_FSCR    0xec /* FIFO Status and Control */
+#  define Z182_MIMIC_RBR     0xf0 /* Receive Buffer Register */
+#  define Z182_MIMIC_THR     0xf0 /* Transmit Holding Register */
+#  define Z182_MIMIC_IER     0xf1 /* Interrupt Enable Register */
+#  define Z182_MIMIC_LCR     0xf3 /* Line Control Register */
+#  define Z182_MIMIC_MCR     0xf4 /* Modem Control Register */
+#  define Z182_MIMIC_LSR     0xf5 /* Line Status Register */
+#  define Z182_MIMIC_MSR     0xf6 /* Modem Status Register */
+#  define Z182_MIMIC_SCR     0xf7 /* Scratch Register */
+#  define Z182_MIMIC_DLL     0xf8 /* Divisor Latch (LSByte) */
+#  define Z182_MIMIC_DLM     0xf9 /* Divisor Latch (MSByte) */
+#  define Z182_MIMIC_TTCR    0xfa /* Transmit Time Constant */
+#  define Z182_MIMIC_RTCR    0xfb /* Receive Time Constant */
+#  define Z182_MIMIC_IVEC    0xfc /* Interrupt Vector */
+#  define Z182_MIMIC_IE      0xfd /* Interrupt Enable */
 
-#  define Z182_MIMIC_IUSIP 0xfe /* Interrupt Under-Service/Interrupt Pending */
-#  define Z182_MIMIC_MMC   0xff /* MIMIC Master Control Register  */
+#  define Z182_MIMIC_IUSIP   0xfe /* Interrupt Under-Service/Interrupt Pending */
+#  define Z182_MIMIC_MMC     0xff /* MIMIC Master Control Register  */
 
 /* Some of the MIMIC registers are accessible to memory-mapped addresses */
 
@@ -255,33 +254,47 @@
 #endif
 
 /* [E]SCC Internal Register Definitions */
+/* Read Registers.  The SCC contains eight read registers. To read the contents
+ * of a register (rather than RR0), the program must first initialize a pointer
+ * to WR0 in exactly the same manner as a write operation. The next I/O read
+ * cycle will place the contents of the selected read registers onto the data bus
+ */
 
-#define Z18X_SCC_RR0       0x00
-#define Z18X_SCC_RR1       0x01
-#define Z18X_SCC_RR2       0x02
-#define Z18X_SCC_RR3       0x03
-#define Z18X_SCC_RR6       0x06
-#define Z18X_SCC_RR7       0x07
-#define Z18X_SCC_RR10      0x0a
-#define Z18X_SCC_RR12      0x0c
-#define Z18X_SCC_RR13      0x0d
-#define Z18X_SCC_RR15      0x0f
+#define Z18X_SCC_RR0         0x00 /* Transmit and Receive buffer status and external status */
+#define Z18X_SCC_RR1         0x01 /* Special Receive Condition status */
+#define Z18X_SCC_RR2         0x02 /* Interrupt vector (modified if VIS Bit in WR9 is set) */
+#define Z18X_SCC_RR3         0x03 /* Interrupt pending bits */
+#define Z18X_SCC_RR6         0x06 /* SDLC FIFO byte counter lower byte (only when enabled) */
+#define Z18X_SCC_RR7         0x07 /* SDLC FIFO byte count and status (only when enabled) */
+#define Z18X_SCC_RR8         0x08 /* Receive buffer */
+#define Z18X_SCC_RR10        0x0a /* Miscellaneous status bits */
+#define Z18X_SCC_RR12        0x0c /* Lower byte of baud rate generator time constant */
+#define Z18X_SCC_RR13        0x0d /* Upper byte of baud rate generator time constant */
+#define Z18X_SCC_RR15        0x0f /* External Status interrupt information */
 
-#define Z18X_SCC_WR0       0x00
-#define Z18X_SCC_WR1       0x01
-#define Z18X_SCC_WR2       0x02
-#define Z18X_SCC_WR3       0x03
-#define Z18X_SCC_WR4       0x04
-#define Z18X_SCC_WR5       0x05
-#define Z18X_SCC_WR6       0x06
-#define Z18X_SCC_WR7       0x07
-#define Z18X_SCC_WR9       0x09
-#define Z18X_SCC_WR10      0x0a
-#define Z18X_SCC_WR11      0x0b
-#define Z18X_SCC_WR12      0x0c
-#define Z18X_SCC_WR13      0x0d
-#define Z18X_SCC_WR14      0x0e
-#define Z18X_SCC_WR15      0x0f
+/* Write Registers. The SCC contains fifteen write registers that are programmed
+ * to configure the operating modes of the channel. With the exception of WR0, programming
+ * the write registers is a two step operation. The first operation is a pointer written to
+ * WR0 that points to the selected register. The second operation is the actual contro
+ * word that is written into the register to configure the SCC channel
+ */
+
+#define Z18X_SCC_WR0         0x00 /* Register Pointers, various initialization commands */
+#define Z18X_SCC_WR1         0x01 /* Transmit and Receive interrupt enables, WAIT/DMA commands */
+#define Z18X_SCC_WR2         0x02 /* Interrupt Vector */
+#define Z18X_SCC_WR3         0x03 /* Receive parameters and control modes */
+#define Z18X_SCC_WR4         0x04 /* Transmit and Receive modes and parameters */
+#define Z18X_SCC_WR5         0x05 /* Transmit parameters and control modes */
+#define Z18X_SCC_WR6         0x06 /* Sync Character or SDLC address */
+#define Z18X_SCC_WR7         0x07 /* Sync Character or SDLC flag */
+#define Z18X_SCC_WR8         0x08 /* Transmit buffer */
+#define Z18X_SCC_WR9         0x09 /* Master Interrupt control and reset commands */
+#define Z18X_SCC_WR10        0x0a /* Miscellaneous transmit and receive control bits */
+#define Z18X_SCC_WR11        0x0b /* Clock mode controls for receive and transmit */
+#define Z18X_SCC_WR12        0x0c /* Lower byte of baud rate generator */
+#define Z18X_SCC_WR13        0x0d /* Upper byte of baud rate generator */
+#define Z18X_SCC_WR14        0x0e /* Miscellaneous control bits */
+#define Z18X_SCC_WR15        0x0f /* External status interrupt enable control */
 
 /* Z180 Register Bit definitions ****************************************************/
 /* ASCI Registers *******************************************************************/
@@ -541,31 +554,335 @@
 /* Registers unique to Z8x181 class CPUs ********************************************/
 
 #ifdef HAVE_Z8X181
-/* To be provided */
-
 /* PIA Registers */
+/* PIAn Data Direction and Data Registers */
+
+#  define PIA(n)             (1 << (n))
 
 /* CTC Registers */
+/* CTC Channel Control/Vector Registers */
+/* Control Bit Definitions */
 
-/* SCC Registers */
+#  define CTC_IE             (0x80) /* Bit 7: Interrupt Enable */
+#  define CTC_MODE           (0x40) /* Bit 6: Mode bit */
+#  define CTC_PF             (0x20) /* Bit 5: Pre-scaler factor */
+#  define CTC_CTES           (0x10) /* Bit 4: Clock/Trigger Edge Selector */
+#  define CTC_TT             (0x08) /* Bit 3: Timer Trigger */
+#  define CTC_TC             (0x04) /* Bit 2: Time Constant */
+#  define CTC_SR             (0x02) /* Bit 1: Software Reset */
+
+/* Vector Bit Definitions */
+
+#  define CTC_CHAN_SHIFT     (1)    /* Bits 1-2: Channel Identifier */
+#  define CTC_CHAN_MASK      (3 << CTC_CHAN_SHIFT)
+#  define CTC_VECT_SHIFT     (3)    /* Bits 3-7: Vector word */
+#  define CTC_VECT_MASK      (31 << CTC_VECT_SHIFT)
+
+#  define CTC_CNTRL          (0x01) /* Bit 0: 0=Vector 1=Control */
+
+/* SCC Registers -- See interface description below */
 
 /* System Control Registers */
+/* RAM Upper Boundary Address Register -- 8-bit address (A12-A19) */
+/* RAM Lower Boundary Address Register -- 8-bit address (A12-A19) */
+/* ROM Address Boundary Register -- 8-bit address (A12-A19) */
+
+/* System Configuration Register */
+
+#define SCR_DCCONFIG         (0x40) /* Bit 6: Daisy Chain Configuration */
+#define SCR_ROMCSDIS         (0x20) /* Bit 5: Disable /ROMCS */
+#define SCR_REME             (0x04) /* Bit 2: ROM Emulator Mode */
+#define SCR_PIA1_CTIO        (0x01) /* Bit 0: PIA1 Functions as I/O port or CTC's I/O Pins */
 
 #endif
 
 /* Registers unique to Z8x182 class CPUs ********************************************/
 
 #ifdef HAVE_Z8X182
-/* To be provided */
-
 /* PIA Registers */
+/* Pn Data Direction and Data Register */
 
-/* ESCC Registers */
+#  define PIA(n)             (1 << (n))
+
+/* ESCC Registers -- See interface description below */
 
 /* System Control Registers */
 
-/* 16550 MIMIC Registers */
+#  define SCR_PCSEL          (0x80) /* Bit 7: Port C Select */
+#  define SCR_PB57SEL        (0x40) /* Bit 6: Port PB7-PB5 Selec */
+#  define SCR_PB04SEL        (0x20) /* Bit 5: Port PB4-PB0 Select */
+#  define SCR_DOUT           (0x10) /* Bit 4: Data Out */
+#  define SCR_ROMDIS         (0x08) /* Bit 3: Disable ROMs */
+#  define SCR_TRIMUX         (0x04) /* Bit 2: Tri-Muxed Pins */
+#  define SCR_MIMIC          (0x02) /* Bit 1: ESCC/MIMIC */
+#  define SCR_DC             (0x01) /* Bit 0: Daisy Chain */
 
+/* 16550 MIMIC Registers */
+/* To be provided */
+
+#endif
+
+/* [E]SCC Internal Register Definitions *********************************************/
+/* Read Registers */
+
+/* RR0: Transmit and Receive buffer status and external status */
+
+#define RR0_BA               (0x80) /* Bit 7: Break/abort*/
+#define RR0_TXUEOM           (0x40) /* Bit 6: Tx Underrun/EOM*/
+#define RR0_CTS              (0x20) /* Bit 5: CTS */
+#define RR0_SH               (0x10) /* Bit4: Sync/Hunt */
+#define RR0_DCD              (0x08) /* Bit 3: DCD */
+#define RR0_TXBE             (0x04) /* Bit 2: Tx Buffer Empty */
+#define RR0_ZC               (0x02) /* Bit 1: Zero Count*/
+#define RR0_RXA              (0x01) /* Bit 0: Rx Character Available */
+
+/* RR1: Special Receive Condition status */
+
+#define RR0_EOF              (0x80) /* Bit 7: End of Frame (SDLC)*/
+#define RR0_CRCFE            (0x40) /* Bit 6: CRC/Framing Error */
+#define RR0_RXOE             (0x20) /* Bit 5: Rx Overrun Error */
+#define RR0_PE               (0x10) /* Bit 4: Parity Error */
+#define RR0_RES0             (0x08) /* Bit 3: Residue Code 0 */
+#define RR0_RES1             (0x04) /* Bit 2: Residue Code 1 */
+#define RR0_RES2             (0x02) /* Bit 1: Residue Code 2 */
+#define RR0_ALL              (0x01) /* Bit 0: All Sent*/
+
+/* RR2: Interrupt vector (modified if VIS Bit in WR9 is set) -- 8-bit vector value */
+
+/* RR3: Interrupt pending bits */
+
+#define RR3_RX               (0x20) /* Bit 5: Rx IP */
+#define RR3_TX               (0x10) /* Bit 4: Tx IP */
+#define RR3_EXT              (0x08) /* Bit 3: Ext/Status IP */
+
+/* RR6: SDLC FIFO byte counter lower byte (only when enabled) -- 8-bit counter value */
+/* RR7: SDLC FIFO byte count and status (only when enabled) */
+
+#define RR7_BC_SHIFT         (0)   /* Bits 0-5 :  Upper 6-bits of counter */
+#define RR7_BC_MASK          (0x3f << RR7_BC_SHIFT)
+#define RR7_FDA              (0x40) /* Bit 6: FIFO Available Status */
+#define RR7_FOS              (0x80) /* Bit 7: FIFO Overflow Status */
+
+/* RR8: Receive buffer */
+/* RR10: Miscellaneous status bits */
+
+#define RR10_1MISS           (0x80) /* Bit 7: One Clock Missing */
+#define RR10_2MISS           (0x40) /* Bit 6: Two Clocks Mising */
+#define RR10_SEND            (0x10) /* Bit 4: Loop Sending */
+#define RR10_ON              (0x02) /* Bit 1: On Loop */
+
+/* RR12: Lower byte of baud rate generator time constant --  8-bit time constant value */
+/* RR13: Upper byte of baud rate generator time constant --  8-bit time constant value */
+
+/* RR15: External Status interrupt information */
+
+#define RR15_BAIE            (0x80) /* Bit 7: Break/Abort IE */
+#define RR15_TXUEOMIE        (0x40) /* Bit 6: Tx Underrun/EOM IE */
+#define RR15_CTSIE           (0x20) /* Bit 5: CTS IE */
+#define RR15_SHIE            (0x10) /* Bit 4: Sync/Hunt IE */
+#define RR15_DCDIE           (0x08) /* Bit 3: DCD IE */
+#ifdef HAVE_Z8X182                  /* ESCC only */
+#  define RR15_SDLCIE        (0x04) /* Bit 2:  SDLC Status FIFO Enable */
+#endif
+#define RR15_ZCIE            (0x02) /* Bit 1: Zero Count IE */
+
+/* Write Registers */
+
+/* WR0: Register Pointers, various initialization commands */
+
+#define WR0_CMD1_SHIFT       (6)   /* Bits 6-7: Command */
+#define WR0_CMD1_MASK        (3 << WR0_CMD1_SHIFT);
+#  define WR0_CMD1_NULL      (0 << WR0_CMD1_SHIFT); /* Null Code */
+#  define WR0_CMD1_RXCRCRST  (1 << WR0_CMD1_SHIFT); /* Reset Rx CRC Checker */
+#  define WR0_CMD1_TXCRCRST  (2 << WR0_CMD1_SHIFT); /* Reset Tx CRC Generator */
+#  define WR0_CMD1_TXURRST   (3 << WR0_CMD1_SHIFT); /* Reset Tx Underrun/EOM Latch */
+#define WR0_CMD2_SHIFT       (3)   /* Bits 3-5: Command */
+#define WR0_CMD2_MASK        (3 << WR0_CMD2_SHIFT);
+#  define WR0_CMD2_NULL      (0 << WR0_CMD2_SHIFT); /* Null Code */
+#  define WR0_CMD2_HP        (1 << WR0_CMD2_SHIFT); /* Point High */
+#  define WR0_CMD2_EXTRST    (2 << WR0_CMD2_SHIFT); /* Reset Ext/Status Interrupts */
+#  define WR0_CMD2_ABORT     (3 << WR0_CMD2_SHIFT); /* Send Abort (SDLC) */
+#  define WR0_CMD2_ENRX      (4 << WR0_CMD2_SHIFT); /* Enable Int on Next Rx Character */
+#  define WR0_CMD2_TXPRST    (5 << WR0_CMD2_SHIFT); /* Reset Tx Int Pending */
+#  define WR0_CMD2_ERRRST    (6 << WR0_CMD2_SHIFT); /* Error Reset */
+#  define WR0_CMD2_IUSRST    (7 << WR0_CMD2_SHIFT); /* Reset Highest IUS */
+#define WR0_REG_SHIFT        (0)   /* Bits 0-2 : Register address */
+#define WR0_REG_MASK         (7 << WR0_REG_SHIFT);
+
+/* WR1: Transmit and Receive interrupt enables, WAIT/DMA commands */
+
+#define WR1_WDMAEN           (0x80) /* Bit 7: WAIT/DMA Request Enable */
+#define WR1_WDMAFN           (0x40) /* Bit : /WAIT/DMA Request Function */
+#define WR1_WDMAXFR          (0x20) /* Bit : WAIT/DMA Request On Receive//Transmit */
+#define WR1_CMD_SHIFT        (3)    /* Bits 3-4: Command */
+#define WR1_CMD_MASK         (3 << WR1_CMD_SHIFT)
+#  define WR1_CMD_RXDIS      (0 << WR1_CMD_SHIFT) /* Rx Int Disable */
+#  define WR1_CMD_RXINT1ST   (1 << WR1_CMD_SHIFT) /* Rx Int On First Character or Special Condition */
+#  define WR1_CMD_RXINTALL   (2 << WR1_CMD_SHIFT) /* Int On All Rx Characters or Special Condition */
+#  define WR1_CMD_RXINTSPEC  (3 << WR1_CMD_SHIFT) /* Rx Int On Special Condition Only */
+#define WR1_PSPEC            (0x04) /* Bit 2: Parity is Special Condition */
+#define WR1_TXIE             (0x02) /* Bit 1: Tx Int Enable */
+#define WR1_EXTIE            (0x01) /* Bit 0: Ext Int Enable */
+
+/* WR2: Interrupt Vector -- 8-bit interrupt vector */
+
+/* WR3: Receive parameters and control modes */
+
+#define WR3_BPC_SHIFT        (6) /* Bit 6-7: Bits/character */
+#define WR3_BPC_MASK         (3 << WR3_BPC_SHIFT)
+#  define WR3_BPC_5          (0 << WR3_BPC_SHIFT) /* Rx 5 Bits/Character */
+#  define WR3_BPC_7          (1 << WR3_BPC_SHIFT) /* Rx 7 Bits/Character */
+#  define WR3_BPC_6          (2 << WR3_BPC_SHIFT) /* Rx 6 Bits/Character */
+#  define WR3_BPC_8          (3 << WR3_BPC_SHIFT) /* Rx 8 Bits/Character */
+#define WR3_AE               (0x20) /* Bit 5: Auto Enables */
+#define WR3_EHM              (0x10) /* Bit 4: Enter Hunt Mode */
+#define WR3_RXCRCEN          (0x08) /* Bit 3: Rx CRC Enable */
+#define WR3_ASM              (0x04) /* Bit 2: Address Search Mode (SDLC) */
+#define WR3_SCLI             (0x02) /* Bit 1: Sync Character Load Inhibit */
+#define WR3_RXEN             (0x01) /* Bit 0: Rx Enable */
+
+/* WR4: Transmit and Receive modes and parameters */
+
+#define WR4_CM_SHIFT         (6)   /* Bits 6-7: X1 Clock Mode */
+#define WR4_CM_MASK          (3 << WR4_CM_SHIFT)
+#  define WR4_CM_X1          (0 << WR4_CM_SHIFT) /* X1 Clock Mode */
+#  define WR4_CM_X16         (1 << WR4_CM_SHIFT) /* X16 Clock Mode */
+#  define WR4_CM_X32         (2 << WR4_CM_SHIFT) /* X32 Clock Mode */
+#  define WR4_CM_X64         (3 << WR4_CM_SHIFT) /* X64 Clock Mode */
+#define WR4_SM_SHIFT         (4)   /* Bits 4-5: Sync mode */
+#define WR4_SM_MASK          (3 << WR4_SM_SHIFT)
+#  define WR4_SM_8BIT        (0 << WR4_SM_SHIFT) /* 8-Bit Sync Character */
+#  define WR4_SM_16BIT       (1 << WR4_SM_SHIFT) /* 16-Bit Sync Character */
+#  define WR4_SM_SDLC        (2 << WR4_SM_SHIFT) /* SDLC Mode (01111110 Flag) */
+#  define WR4_SM_EXT         (3 << WR4_SM_SHIFT) /* External Sync Mode */
+#define WR4_SB_SHIFT         (2) /* Bits 2-3: Sync mode enables */
+#define WR4_SB_MASK          (3 << WR4_SB_SHIFT)
+#  define WR4_SB_SME         (0 << WR4_SB_SHIFT) /* Sync Modes Enable */
+#  define WR4_SB_STOP1       (1 << WR4_SB_SHIFT) /* 1 Stop Bit/Character */
+#  define WR4_SB_STOP1p5     (2 << WR4_SB_SHIFT) /* 1 1/2 Stop Bits/Character */
+#  define WR4_SB_STOP2       (3 << WR4_SB_SHIFT) /* 2 Stop Bits/Character */
+#define WR4_PEO              (0x02) /* Bit 1: Parity EVEN//ODD */
+#define WR4_PEN              (0x01) /* Bit : Parity Enable */
+
+/* WR5: Transmit parameters and control modes */
+
+#define WR5_DTR              (0x80) /* Bit 7: DTR */
+#define WR5_TXBITS_SHIFT     (5)    /* Bits 5-6: Number of Tx bits */
+#define WR5_TXBITS_MASK      (3 << WR5_TXBITS_SHIFT)
+#  define WR5_TXBITS_5       (0 << WR5_TXBITS_SHIFT) /* Tx 5 Bits(Or Less)/Character */
+#  define WR5_TXBITS_7       (1 << WR5_TXBITS_SHIFT) /* Tx 7 Bits/Character */
+#  define WR5_TXBITS_6       (2 << WR5_TXBITS_SHIFT) /* Tx 6 Bits/Character */
+#  define WR5_TXBITS_8       (3 << WR5_TXBITS_SHIFT) /* Tx 8 Bits/Character */
+#define WR5_SENDBRK          (0x10) /* Bit 4: Send Break */
+#define WR5_TXEN             (0x08) /* Bit 3: Tx Enable */
+#define WR5_CRC16            (0x04) /* Bit 2: /SDLC/CRC-16 */
+#define WR5_RTS              (0x02) /* Bit 1: RTS */
+#define WR5_TXCRCEN          (0x01) /* Bit 0: Tx CRC Enable */
+
+/* WR6: Sync Character or SDLC address -- 8-bit Monosync, Bisync, or SDLC value */
+/* WR7: Sync Character or SDLC flag -- 8-bit Monosync, Bisync, or SDLC value */
+
+#define WR7_SDLC_SYNC        (0x7e)
+
+#ifdef HAVE_Z8X182                  /* ESCC only */
+#  define WR7P_CRC32EN       (0x80) /* Bit 7: 32-bit CRC Enable */
+#  define WR7P_EXTRDEN       (0x40) /* Bit 6: Extended Read Enable */
+#  define WR7P_TXFLVL        (0x20) /* Bit 5: Tx FIFO Int Level */
+#  define WR7P_TMODE         (0x10) /* Bit 4: DTR/REQ Timing Mode */
+#  define WR7P_RXFLVL        (0x08) /* Bit 3: Rx FIFO Int Level */
+#  define WR7P_AUTORTS       (0x04) /* Bit 2: Auto RTS Deactivation */
+#  define WR7P_AUTOEOM       (0x02) /* Bit 1: Auto EOM Reset */
+#  define WR7P_AUTOTX        (0x01) /* Bit 0: Auto Tx Flag */
+#endif
+
+/* WR8: Transmit buffer */
+
+/* WR9: Master Interrupt control and reset commands */
+
+#define WR9_RST_SHIFT        (6)    /* Bits 6-7: Resets */
+#define WR9_RST_MASK         (3 << WR9_RST_SHIFT)
+#  define WR9_RST_NONE       (0 << WR9_RST_SHIFT) /* No Reset */
+#  define WR9_RST_CHAN       (2 << WR9_RST_SHIFT) /* Channel Reset */
+#  define WR9_RST_HWRST      (3 << WR9_RST_SHIFT) /* Force Hardware Reset */
+#ifdef HAVE_Z8X182                  /* ESCC only */
+#  define WR9_INTACKEN       (0x20) /* Bit 5: Software INTACK Enable */
+#endif
+#define WR9_SHL              (0x10) /* Bit 4: Status High//Status Low */
+#define WR9_MIE              (0x08) /* Bit 3: MIE */
+#define WR9_DLC              (0x04) /* Bit 2: DLC */
+#define WR9_NV               (0x02) /* Bit 1: NV */
+#define WR9_VIS              (0x01) /* Bit 0: VIS */
+
+/* WR10: Miscellaneous transmit and receive control bits */
+
+#define WR10_CRCPRE          (0x80) /* Bit 7: CRC Preset I/O */
+#define WR10_NRZFM_SHIFT     (5)    /* Bits 5-6: NRZ/FM */
+#define WR10_NRZFM_MASK      (3 << WR10_NRZFM_SHIFT)
+#  define WR10_NRZ           (0 << WR10_NRZFM_SHIFT) /* NRZ */
+#  define WR10_NRZI          (1 << WR10_NRZFM_SHIFT) /* NRZI */
+#  define WR10_FM1           (2 << WR10_NRZFM_SHIFT) /* FM1 (Transition = 1) */
+#  define WR10_FM0           (3 << WR10_NRZFM_SHIFT) /* FM0 (Transition = 0) */
+#define WR10_ACTPOLL         (0x10) /* Bit 4: Go Active On Poll */
+#define WR10_IDLE            (0x08) /* Bit 3: Mark/Flag Idle */
+#define WR10_URABORT         (0x04) /* Bit 2: Abort/Flag On Underrun */
+#define WR10_LOOP            (0x02) /* Bit 1: Loop Mode */
+#define WR10_68SYNC          (0x01) /* Bit 0: 6-Bit//8-Bit Sync */
+
+/* WR11: Clock mode controls for receive and transmit */
+
+#define WR11_XTAL            (0x80) /* Bit 7: /RTxC Xtal//No Xtal */
+#define WR11_RCLK_SHIFT      (5)    /* Bits 5-6: Receive Clock */
+#define WR11_RCLK_MASK       (3 << WR11_RCLK_SHIFT)
+#  define WR11_RCLK_RTXC     (0 << WR11_RCLK_SHIFT) /* Receive Clock = /RTxC Pin */
+#  define WR11_RCLK_TRXC     (1 << WR11_RCLK_SHIFT) /* Receive Clock = /TRxC Pin */
+#  define WR11_RCLK_BRG      (2 << WR11_RCLK_SHIFT) /* Receive Clock = BR Generator Output */
+#  define WR11_RCLK_DPLL     (3 << WR11_RCLK_SHIFT) /* Receive Clock = DPLL Output */
+#define WR11_TCLK_SHIFT      (3) /* Bits 3-4: Transmit Clock */
+#define WR11_TCLK_MASK       (3 << WR11_TCLK_SHIFT)
+#  define WR11_TCLK_RTXC     (0 << WR11_TCLK_SHIFT) /* Transmit Clock = /RTxC Pin */
+#  define WR11_TCLK_TRXC     (1 << WR11_TCLK_SHIFT) /* Transmit Clock = /TRxC Pin */
+#  define WR11_TCLK_BRG      (2 << WR11_TCLK_SHIFT) /* Transmit Clock = BR Generator Output */
+#  define WR11_TCLK_DPLL     (3 << WR11_TCLK_SHIFT) /* Transmit Clock = DPLL Output */
+#define WR11_TRXCIO          (0x04) /* Bit 2: /TRxC O/I */
+#define WR11_TRXCO_SHIFT     (0)    /* Bits 0-1 : /TRxC Out */
+#define WR11_TRXO_MASK       (3 << WR11_TRXCO_SHIFT)
+#  define WR11_TRXO_XTAL     (0 << WR11_TRXCO_SHIFT) /* /TRxC Out = Xtal Output */
+#  define WR11_TRXO_TCLK     (1 << WR11_TRXCO_SHIFT) /* /TRxC Out = Transmit Clock */
+#  define WR11_TRXO_BRG      (2 << WR11_TRXCO_SHIFT) /* /TRxC Out = BR Generator Output */
+#  define WR11_TRXO_DPLL     (3 << WR11_TRXCO_SHIFT) /* /TRxC Out = DPLL Output */
+
+/* WR12: Lower byte of baud rate generator -- 8-bit time constant value */
+/* WR13: Upper byte of baud rate generator -- 8-bit time constant value */
+
+/* WR14: Miscellaneous control bits */
+
+#define WR14_CMD_SHIFT       (5) /* Bits 5-7: Command */
+#define WR14_CMD_MASK        (7 << WR14_CMD_SHIFT)
+#  define WR14_CMD_NULL      (0 << WR14_CMD_SHIFT) /* Null Command */
+#  define WR14_CMD_ESM       (1 << WR14_CMD_SHIFT) /* Enter Search Mode */
+#  define WR14_CMD_RMCLK     (2 << WR14_CMD_SHIFT) /* Reset Missing Clock */
+#  define WR14_CMD_DPLLDIS   (3 << WR14_CMD_SHIFT) /* Disable DPLL */
+#  define WR14_CMD_SRCBRG    (4 << WR14_CMD_SHIFT) /* Set Source = BR Generator */
+#  define WR14_CMD_SRCRTXC   (5 << WR14_CMD_SHIFT) /* Set Source = /RTxC */
+#  define WR14_CMD_FM        (6 << WR14_CMD_SHIFT) /* Set FM Mode */
+#  define WR14_CMD_NRZI      (7 << WR14_CMD_SHIFT) /* Set NRZI Mode */
+#define WR14_LPBK            (0x10) /* Bit 4: Local Loopback */
+#define WR14_AUTOECHO        (0x08) /* Bit 3: Auto Echo */
+#define WR14_DTRREQ          (0x04) /* Bit 2: /DTR/Request Function */
+#define WR14_BRGSRC          (0x02) /* Bit 1: BR Generator Source */
+#define WR14_BRGEN           (0x01) /* Bit 0: BR Generator Enable */
+
+/* WR15: External status interrupt enable control */
+
+#define WR15_BAIE            (0x80) /* Bit 7: Break/Abort IE */
+#define WR15_TXUEOMIE        (0x40) /* Bit 6: Tx Underrun/EOM IE */
+#define WR15_CTSIS           (0x20) /* Bit 5: CTS IE */
+#define WR15_SHIE            (0x10) /* Bit 4: Sync/Hunt IE */
+#define WR15_DCDIE           (0x08) /* Bit 3: DCD IE */
+#define WR15_FIFOEN          (0x04) /* Bit 2: SDLC FIFO Enable */
+#define WR15_ZCIE            (0x02) /* Bit 1: Zero Count IE */
+#ifdef HAVE_Z8X182                  /* ESCC only */
+#  define WR15_WR7PEN        (0x01) /* Bit 0: WR7' SDLC Feature Enable */
 #endif
 
 #endif /* __ARCH_Z80_SRC_Z180_Z180_IOMAP_H */
