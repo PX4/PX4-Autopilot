@@ -93,6 +93,9 @@
       defined(CONFIG_ARCH_CHIP_Z8018006VEG)    /* 68-pin PLCC */
 
 #  undef  HAVE_Z8S180                             /* Not Z8S180 (5V) or Z8L180 (3.3V) core */
+#  define HAVE_Z8X180    1                        /* Z8x180 registers */
+#  undef  HAVE_Z8X181                             /* Z8x181 registers */
+#  undef  HAVE_Z8X182                             /* Z8x182 registers */
 #  define HAVE ROM       0                        /* No on-chip ROM */
 #  define HAVE_SERIALIO  1                        /* Have clocked serial I/O */
 #  undef  HAVE_WDT                                /* No Watchdog timer */
@@ -117,6 +120,9 @@
       defined(CONFIG_ARCH_CHIP_Z8018006FSG)    /* 80-pin QFP (11 pins N/C) 6MHz 5V */
 
 #  undef  HAVE_Z8S180                             /* Not Z8S180 (5V) or Z8L180 (3.3V) core */
+#  define HAVE_Z8X180    1                        /* Z8x180 registers */
+#  undef  HAVE_Z8X181                             /* Z8x181 registers */
+#  undef  HAVE_Z8X182                             /* Z8x182 registers */
 #  define HAVE ROM       0                        /* No on-chip ROM */
 #  undef  HAVE_SERIALIO                           /* No clocked serial I/O ? */
 #  undef  HAVE_WDT                                /* No Watchdog timer */
@@ -137,6 +143,9 @@
       defined(CONFIG_ARCH_CHIP_Z8018008PEG)
 
 #  undef  HAVE_Z8S180                             /* Not Z8S180 (5V) or Z8L180 (3.3V) core */
+#  define HAVE_Z8X180    1                        /* Z8x180 registers */
+#  undef  HAVE_Z8X181                             /* Z8x181 registers */
+#  undef  HAVE_Z8X182                             /* Z8x182 registers */
 #  define HAVE ROM       0                        /* No on-chip ROM */
 #  define HAVE_SERIALIO  1                        /* Have clocked serial I/O */
 #  undef  HAVE_WDT                                /* No Watchdog timer */
@@ -175,6 +184,9 @@
 #elif defined(CONFIG_ARCH_CHIP_Z8018110FEG)       /* 100-pin QFP */
 
 #  undef  HAVE_Z8S180                             /* Not Z8S180 (5V) or Z8L180 (3.3V) core */
+#  undef  HAVE_Z8X180                             /* Z8x180 registers */
+#  define HAVE_Z8X181    1                        /* Z8x181 registers */
+#  undef  HAVE_Z8X182                             /* Z8x182 registers */
 #  define HAVE ROM       0                        /* No on-chip ROM */
 #  define HAVE_SERIALIO  1                        /* Have clocked serial I/O */
 #  undef  HAVE_WDT                                /* No Watchdog timer */
@@ -220,6 +232,9 @@
       defined(CONFIG_ARCH_CHIP_Z8018233ASG)       /* 100-pin LQFP 33MHz 5V */
 
 #  undef  HAVE_Z8S180                             /* Not Z8S180 (5V) or Z8L180 (3.3V) core */
+#  undef  HAVE_Z8X180                             /* Z8x180 registers */
+#  undef  HAVE_Z8X181                             /* Z8x181 registers */
+#  define HAVE_Z8X182    1                        /* Z8x182 registers */
 #  define HAVE ROM       0                        /* No on-chip ROM */
 #  define HAVE_SERIALIO  1                        /* Have clocked serial I/O */
 #  undef  HAVE_WDT                                /* No Watchdog timer */
@@ -304,6 +319,9 @@
       defined(CONFIG_ARCH_CHIP_Z8L18020PSG)
 
 #  define HAVE_Z8S180    1                        /* Uses Z8S180 (5V) or Z8L180 (3.3V) core */
+#  define HAVE_Z8X180    1                        /* Z8x180 registers */
+#  undef  HAVE_Z8X181                             /* Z8x181 registers */
+#  undef  HAVE_Z8X182                             /* Z8x182 registers */
 #  define HAVE ROM       0                        /* No on-chip ROM */
 #  define HAVE_SERIALIO  1                        /* Have clocked serial I/O */
 #  undef  HAVE_WDT                                /* No Watchdog timer */
@@ -348,6 +366,9 @@
       defined(CONFIG_ARCH_CHIP_Z8L18220AEG)
 
 #  define HAVE_Z8S180    1                        /* Uses Z8S180 (5V) or Z8L180 (3.3V) core */
+#  undef  HAVE_Z8X180                             /* Z8x180 registers */
+#  undef  HAVE_Z8X181                             /* Z8x181 registers */
+#  define HAVE_Z8X182    1                        /* Z8x182 registers */
 #  define HAVE ROM       0                        /* No on-chip ROM */
 #  define HAVE_SERIALIO  1                        /* Have clocked serial I/O */
 #  undef  HAVE_WDT                                /* No Watchdog timer */
@@ -405,6 +426,9 @@
       defined(CONFIG_ARCH_CHIP_Z8S18010FEG)
 
 #  define HAVE_Z8S180    1                        /* Uses Z8S180 (5V) or Z8L180 (3.3V) core */
+#  define HAVE_Z8X180    1                        /* Z8x180 registers */
+#  undef  HAVE_Z8X181                             /* Z8x181 registers */
+#  undef  HAVE_Z8X182                             /* Z8x182 registers */
 #  define HAVE ROM       0                        /* No on-chip ROM */
 #  define HAVE_SERIALIO  1                        /* Have clocked serial I/O */
 #  undef  HAVE_WDT                                /* No Watchdog timer */

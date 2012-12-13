@@ -71,7 +71,7 @@
 
 void up_irqinitialize(void)
 {
-  /* Attach the timer interrupt -- There is not special timer interrupt
+  /* Attach the timer interrupt -- There is no special timer interrupt
    * enable in the simulation so it must be enabled here before interrupts
    * are enabled.
    *
@@ -97,10 +97,12 @@ void up_irqinitialize(void)
  *
  ****************************************************************************/
 
+#ifndef CONFIG_ARCH_NOINTC
 void up_disable_irq(int irq)
 {
   irqrestore(0);
 }
+#endif
 
 /****************************************************************************
  * Name: up_enable_irq
@@ -110,7 +112,9 @@ void up_disable_irq(int irq)
  *
  ****************************************************************************/
 
+#ifndef CONFIG_ARCH_NOINTC
 void up_enable_irq(int irq)
 {
- irqrestore(true);
+ irqrestore(Z80_C_FLAG);
 }
+#endif
