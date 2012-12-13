@@ -78,7 +78,43 @@ controls_main(void)
 		if (fds[0].revents & POLLIN)
 			dsm_input();
 		if (fds[1].revents & POLLIN)
+<<<<<<< Updated upstream
 			sbus_input();
+=======
+			locked |= sbus_input();
+
+		/*
+		 * If we don't have lock from one of the serial receivers,
+		 * look for PPM. It shares an input with S.bus, so there's
+		 * a possibility it will mis-parse an S.bus frame.
+		 *
+		 * XXX each S.bus frame will cause a PPM decoder interrupt
+		 * storm (lots of edges).  It might be sensible to actually
+		 * disable the PPM decoder completely if we have an alternate
+		 * receiver lock.
+		 */
+		if (!locked)
+			ppm_input();
+
+		/* check for manual override status */
+		if (system_state.rc_channel_data[4] > RC_CHANNEL_HIGH_THRESH) {
+			/* force manual input override */
+			system_state.mixer_manual_override = true;
+		} else {
+			/* override not engaged, use FMU */
+			system_state.mixer_manual_override = false;
+		}
+
+		/*
+		 * If we haven't seen any new control data in 200ms, assume we
+		 * have lost input and tell FMU.
+		 */
+		if ((hrt_absolute_time() - system_state.rc_channels_timestamp) > 200000) {
+
+			/* set the number of channels to zero - no inputs */
+			system_state.rc_channels = 0;
+			system_state.rc_lost = true;
+>>>>>>> Stashed changes
 
 		/* XXX do ppm processing, bypass mode, etc. here */
 

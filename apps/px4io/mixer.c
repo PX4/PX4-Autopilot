@@ -97,7 +97,11 @@ mixer_tick(void)
 	/*
 	 * Decide which set of inputs we're using.
 	 */
+<<<<<<< Updated upstream
 	if (system_state.mixer_use_fmu) {
+=======
+	if (!system_state.mixer_manual_override && system_state.mixer_fmu_available) {
+>>>>>>> Stashed changes
 		/* we have recent control data from the FMU */
 		control_count = PX4IO_OUTPUT_CHANNELS;
 		control_values = &system_state.fmu_channel_data[0];
@@ -108,20 +112,24 @@ mixer_tick(void)
 
 			/* too many frames without FMU input, time to go to failsafe */
 			if (fmu_input_drops >= FMU_INPUT_DROP_LIMIT) {
-				system_state.mixer_use_fmu = false;
+				system_state.mixer_manual_override = true;
+				system_state.mixer_fmu_available = false;
 			}
 		} else {
 			fmu_input_drops = 0;
 			system_state.fmu_data_received = false;
 		}
 
-	} else if (system_state.rc_channels > 0) {
+	} else if (system_state.rc_channels > 0 && system_state.manual_override_ok) {
 		/* we have control data from an R/C input */
 		control_count = system_state.rc_channels;
 		control_values = &system_state.rc_channel_data[0];
-
 	} else {
 		/* we have no control input */
+<<<<<<< Updated upstream
+=======
+		// XXX builtin failsafe would activate here 
+>>>>>>> Stashed changes
 		control_count = 0;
 	}
 	/*

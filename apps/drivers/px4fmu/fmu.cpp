@@ -331,8 +331,16 @@ PX4FMU::task_main()
 		/* handle update rate changes */
 		if (_current_update_rate != _update_rate) {
 			int update_rate_in_ms = int(1000 / _update_rate);
-			if (update_rate_in_ms < 2)
+			/* reject faster than 500 Hz updates */
+			if (update_rate_in_ms < 2) {
 				update_rate_in_ms = 2;
+				_update_rate = 500;
+			}
+			/* reject slower than 50 Hz updates */
+			if (update_rate_in_ms > 20) {
+				update_rate_in_ms = 20;
+				_update_rate = 50;
+			}
 			orb_set_interval(_t_actuators, update_rate_in_ms);
 			up_pwm_servo_set_rate(_update_rate);
 			_current_update_rate = _update_rate;

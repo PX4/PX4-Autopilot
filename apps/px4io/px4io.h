@@ -69,8 +69,14 @@
 struct sys_state_s 
 {
 
+<<<<<<< Updated upstream
 	bool		armed;		/* IO armed */
 	bool		arm_ok;		/* FMU says OK to arm */
+=======
+	bool		armed;			/* IO armed */
+	bool		arm_ok;			/* FMU says OK to arm */
+	uint16_t	servo_rate;		/* output rate of servos in Hz */
+>>>>>>> Stashed changes
 
 	bool		ppm_input_ok;	/* valid PPM input data */
 	bool		dsm_input_ok;	/* valid Spektrum DSM data */
@@ -96,7 +102,7 @@ struct sys_state_s
 	/*
 	 * If true, we are using the FMU controls.
 	 */
-	bool		mixer_use_fmu;
+	bool		mixer_manual_override;
 
 	/*
 	 * If true, state that should be reported to FMU has been updated.
@@ -113,6 +119,29 @@ struct sys_state_s
 	 * in the config packet.
 	 */
 	uint8_t		serial_rx_mode;
+<<<<<<< Updated upstream
+=======
+
+	/**
+	 * If true, the RC signal has been lost for more than a timeout interval
+	 */
+	bool		rc_lost;
+
+	/**
+	 * If true, the connection to FMU has been lost for more than a timeout interval
+	 */
+	bool		fmu_lost;
+
+	/**
+	 * If true, FMU is ready for autonomous position control. Only used for LED indication
+	 */
+	bool vector_flight_mode_ok;
+
+	/**
+	 * If true, IO performs an on-board manual override with the RC channel values
+	 */
+	bool manual_override_ok;
+>>>>>>> Stashed changes
 };
 
 extern struct sys_state_s system_state;

@@ -182,15 +182,45 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			gyro[1] = att.pitchspeed;
 			gyro[2] = att.yawspeed;
 
-			/* Control */
+			/* control */
 
 			if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
-				/* Attitude Control */
-				fixedwing_att_control_attitude(&att_sp,
-						&att,
-						&rates_sp);
+				/* attitude control */
+				fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
+				/* publish rate setpoint */
+				orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
 
-				/* Attitude Rate Control */
+				/* angular rate control */
+				fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
+
+				/* pass through throttle */
+				actuators.control[3] = att_sp.thrust;
+
+			} else if (vstatus.state_machine == SYSTEM_STATE_STABILIZED) {
+
+				/* if the RC signal is lost, try to stay level and go slowly back down to ground */
+				if(vstatus.rc_signal_lost) {
+					
+					// XXX define failsafe throttle param
+					//param_get(failsafe_throttle_handle, &failsafe_throttle);
+					att_sp.roll_body = 0.3f;
+					att_sp.pitch_body = 0.0f;
+					att_sp.thrust = 0.5f;
+
+					// XXX disable yaw control, loiter
+
+				} else {
+					
+					att_sp.roll_body = manual_sp.roll;
+					att_sp.pitch_body = manual_sp.pitch;
+					att_sp.yaw_body = 0;
+					att_sp.thrust = manual_sp.throttle;
+					att_sp.timestamp = hrt_absolute_time();
+				}
+
+				fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
+
+				/* angular rate control */
 				fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
 
 				//REMOVEME XXX
@@ -207,8 +237,17 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 				actuators.control[3] = manual_sp.throttle;
 			}
 
-			/* publish output */
-			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+			/* publish rates */
+			orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
+
+			/* sanity check and publish actuator outputs */
+			if (isfinite(actuators.control[0]) &&
+			    isfinite(actuators.control[1]) &&
+			    isfinite(actuators.control[2]) &&
+			    isfinite(actuators.control[3]))
+			{
+				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+			}
 		}
 
 		printf("[fixedwing_att_control] exiting, stopping all motors.\n");
