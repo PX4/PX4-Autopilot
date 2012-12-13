@@ -4,6 +4,7 @@
 import sys, os, pexpect, fdpexpect, socket
 import math, time, select, struct, signal, errno
 import random, numpy
+import plotting as plot
 from collections import defaultdict
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'pysim'))
@@ -357,8 +358,6 @@ def main_loop():
     input_count = 0
     paused = False
 
-    tstart = tnow
-
     attack1 = Attack(
             0,  # Nominal Value
             'Yaw Rate Noise Variance', # Attack Name
@@ -372,9 +371,9 @@ def main_loop():
 
     attack2 = Attack(
             0,  # Nominal Value
-            'Yaw Rate Noise Variance', # Attack Name
-            'rad^2/s^2', # Attack Units
-            'Yaw Rate Noise Variance (rad^2/s^2)', # Axis Label
+            'GPS Latitude Sine Frequency', # Attack Name
+            'Hz', # Attack Units
+            'GPS Latitude Sine Frequency (Hz)', # Axis Label
             '', # Scicoslab script (blank here)
             'digitalUpdateRate', # variable name (blank here)
             'attack.digitalUpdateRate', # more scicoslab stuff, not important
@@ -397,6 +396,8 @@ def main_loop():
         for innerIndex, innerValue in enumerate(attack2.attack_values):
             # Reset the vehicle state
             tstart = reset_sim()
+
+            tstart_sim = time.time() #fdm.get('time', units='seconds'),
 
             missionFailed = False
 
@@ -461,31 +462,34 @@ def main_loop():
                     last_report = time.time()
 
                 # mission/ flight envelope check
+                tsim = time.time()-tstart_sim #fdm.get('time', units='seconds') - tstart_sim,
                 if not missionFailed:
-                    if check_mission_env(fdm, tnow):
+                    if check_mission_env(fdm, tsim):
                         print 'Mission Envelope Failure!'
                         missionFailed = True
-                        iterResults['missionFail'].append(tnow-tstart)
+                        iterResults['missionFail'].append(tsim)
 
                 if not check_flight_env(fdm):
                     print 'Flight Envelope Failure!'
-                    iterResults['flightFail'].append(tnow - start)
+                    iterResults['flightFail'].append(tsim)
                     if not missionFailed:
-                        iterResults['missionFail'].append(tnow - tstart)
+                        iterResults['missionFail'].append(tsim)
                     break
 
-                if tnow - tstart > 1:
+                if tsim > 1:
                     print 'Time has ended.'
                     if not missionFailed:
-                        iterResults['missionFail'].append(tnow - tstart)
-                    iterResults['flightFail'].append(tnow - tstart)
+                        iterResults['missionFail'].append(tsim)
+                    iterResults['flightFail'].append(tsim)
                     break
 
         for key in resultKeys:
             results[key][outerIndex] = iterResults[key]
 
-    print results
-                    
+    plotStructs = plot.generatePlotStructs(results, [attack1, attack2], os.getcwd()+'/')
+    print plotStructs
+    plot.generatePlots(plotStructs)
+
 
 def exit_handler():
     '''exit the sim'''
