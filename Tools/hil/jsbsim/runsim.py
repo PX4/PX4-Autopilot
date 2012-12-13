@@ -137,14 +137,12 @@ def process_jsb_input(buf):
     q = cos(phi)*thetadot + sin(phi)*cos(theta)*psidot
     r = -sin(phi)*thetadot + cos(phi)*cos(theta)*psidot
 
-    vdown_gain = 10;
-    ran = random.gauss(0, 5)
-
-#    r = r + ran;
+    ran = random.gauss(0, rNoiseVar)
+    r = r + ran;
 
     simbuf = px4Format.format(
          time.clock(),
-         fdm.get('latitude', units='degrees'),#+.11*sin(time.time()),
+         fdm.get('latitude', units='degrees')*sin(2*math.pi*latFreq*time.time()),
          fdm.get('longitude', units='degrees'),
          fdm.get('altitude', units='meters'),
          fdm.get('phi', units='radians'),
@@ -276,6 +274,9 @@ atexit.register(util.pexpect_close_all)
 
 setup_template(opts.home)
 
+latFreq = 0
+rNoiseVar = 0
+
 # start child
 cmd = "JSBSim --realtime --suspend --nice --simulation-rate=1000 --logdirectivefile=jsbsim/fgout.xml --script=%s" % opts.script
 if opts.options:
@@ -346,6 +347,7 @@ print("Simulator ready to fly")
 
 def reset_sim():
     jsb_set('simulation/reset',1)
+    time.sleep(4)
     return time.time()
 
 def main_loop():
@@ -358,18 +360,8 @@ def main_loop():
     input_count = 0
     paused = False
 
-    attack1 = Attack(
-            0,  # Nominal Value
-            'Yaw Rate Noise Variance', # Attack Name
-            'rad^2/s^2', # Attack Units
-            'Yaw Rate Noise Variance (rad^2/s^2)', # Axis Label
-            '', # Scicoslab script (blank here)
-            'digitalUpdateRate', # variable name (blank here)
-            'attack.digitalUpdateRate', # more scicoslab stuff, not important
-            [0, 2, 4, 6], # attack values
-            '0') # attack comment
 
-    attack2 = Attack(
+    attack1 = Attack(
             0,  # Nominal Value
             'GPS Latitude Sine Frequency', # Attack Name
             'Hz', # Attack Units
@@ -380,7 +372,22 @@ def main_loop():
             [0, 2, 4, 6], # attack values
             '0') # attack comment
 
+    attack2 = Attack(
+            0,  # Nominal Value
+            'Yaw Rate Noise Variance', # Attack Name
+            'rad^2/s^2', # Attack Units
+            'Yaw Rate Noise Variance (rad^2/s^2)', # Axis Label
+            '', # Scicoslab script (blank here)
+            'digitalUpdateRate', # variable name (blank here)
+            'attack.digitalUpdateRate', # more scicoslab stuff, not important
+            [0, 2.5, 5, 7.5, 10], # attack values
+            '0') # attack comment
 
+    global latFreq
+    global rNoiseVar
+
+    latFreq = attack1.nominal
+    rNoiseVar = attack2.nominal
 
     resultKeys = ['flightFail', 'missionFail']
     innerSize = len(attack1.attack_values)
@@ -394,6 +401,9 @@ def main_loop():
         iterResults = defaultdict(list)
 
         for innerIndex, innerValue in enumerate(attack2.attack_values):
+            latFreq = attack1.attack_values[outerIndex]
+            rNoiseVar = attack2.attack_values[innerIndex]
+
             # Reset the vehicle state
             tstart = reset_sim()
 
@@ -476,7 +486,7 @@ def main_loop():
                         iterResults['missionFail'].append(tsim)
                     break
 
-                if tsim > 1:
+                if tsim > 3:
                     print 'Time has ended.'
                     if not missionFailed:
                         iterResults['missionFail'].append(tsim)
