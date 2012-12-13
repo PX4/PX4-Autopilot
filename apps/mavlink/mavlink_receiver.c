@@ -261,8 +261,8 @@ handle_message(mavlink_message_t *msg)
 
 			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid-1]   / (float)INT16_MAX;
 			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid-1]  / (float)INT16_MAX;
-			offboard_control_sp.p3= (float)quad_motors_setpoint.yaw[mavlink_system.sysid-1]    / (float)INT16_MAX;
-			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid-1]/(float)UINT16_MAX;
+			offboard_control_sp.p3 = (float)quad_motors_setpoint.yaw[mavlink_system.sysid-1]    / (float)INT16_MAX;
+			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid-1] / (float)UINT16_MAX;
 
 			if (quad_motors_setpoint.thrust[mavlink_system.sysid-1] == 0) {
 				ml_armed = false;
@@ -301,7 +301,7 @@ handle_message(mavlink_message_t *msg)
 			/* Calculate Rotation Matrix */
 			//TODO: better clarification which app does this, atm we have a ekf for quadrotors which does this, but there is no such thing if fly in fixed wing mode
 
-			if(mavlink_system.type == MAV_TYPE_FIXED_WING) {
+			if (mavlink_system.type == MAV_TYPE_FIXED_WING) {
 				//TODO: assuming low pitch and roll values for now
 				hil_attitude.R[0][0] = cosf(hil_state.yaw);
 				hil_attitude.R[0][1] = sinf(hil_state.yaw);

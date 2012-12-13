@@ -52,9 +52,12 @@ struct px4io_command {
 	uint16_t	f2i_magic;
 #define F2I_MAGIC	0x636d
 
-	uint16_t	servo_command[PX4IO_OUTPUT_CHANNELS];
-	bool		relay_state[PX4IO_RELAY_CHANNELS];
-	bool		arm_ok;
+	uint16_t	servo_command[PX4IO_OUTPUT_CHANNELS];	/**< servo output channels */
+	uint16_t	servo_rate;				/**< PWM output rate in Hz */
+	bool		relay_state[PX4IO_RELAY_CHANNELS];	/**< relay states as requested by FMU */
+	bool		arm_ok;					/**< FMU allows full arming */
+	bool		vector_flight_mode_ok;			/**< FMU aquired a valid position lock, ready for pos control */
+	bool		manual_override_ok;			/**< if true, IO performs a direct manual override */ 
 };
 
 /* config message from FMU to IO */

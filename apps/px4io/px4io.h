@@ -71,6 +71,7 @@ struct sys_state_s
 
 	bool		armed;			/* IO armed */
 	bool		arm_ok;			/* FMU says OK to arm */
+	uint16_t	servo_rate;		/* output rate of servos in Hz */
 
 	/**
 	 * Data from the remote control input(s)
@@ -92,7 +93,7 @@ struct sys_state_s
 	/**
 	 * If true, we are using the FMU controls, else RC input if available.
 	 */
-	bool		mixer_use_fmu;
+	bool		mixer_manual_override;
 
 	/**
 	 * If true, FMU input is available.
@@ -124,6 +125,16 @@ struct sys_state_s
 	 * If true, the connection to FMU has been lost for more than a timeout interval
 	 */
 	bool		fmu_lost;
+
+	/**
+	 * If true, FMU is ready for autonomous position control. Only used for LED indication
+	 */
+	bool vector_flight_mode_ok;
+
+	/**
+	 * If true, IO performs an on-board manual override with the RC channel values
+	 */
+	bool manual_override_ok;
 };
 
 extern struct sys_state_s system_state;

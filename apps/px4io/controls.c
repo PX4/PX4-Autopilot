@@ -110,12 +110,13 @@ controls_main(void)
 		if (!locked)
 			ppm_input();
 
-		/* force manual input override */
+		/* check for manual override status */
 		if (system_state.rc_channel_data[4] > RC_CHANNEL_HIGH_THRESH) {
-			system_state.mixer_use_fmu = false;
+			/* force manual input override */
+			system_state.mixer_manual_override = true;
 		} else {
 			/* override not engaged, use FMU */
-			system_state.mixer_use_fmu = true;
+			system_state.mixer_manual_override = false;
 		}
 
 		/*

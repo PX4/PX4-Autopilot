@@ -116,6 +116,7 @@ struct vehicle_status_s
 	commander_state_machine_t state_machine;	/**< current flight state, main state machine */
 	enum VEHICLE_FLIGHT_MODE flight_mode;		/**< current flight mode, as defined by mode switch */
 	enum VEHICLE_ATTITUDE_MODE attitute_mode;	/**< current attitude control mode, as defined by VEHICLE_ATTITUDE_MODE enum */
+	int32_t system_type;				/**< system type, inspired by MAVLinks MAV_TYPE enum */
 
 	// uint8_t mode;
 
@@ -165,8 +166,10 @@ struct vehicle_status_s
 	uint16_t errors_count4;
 
 //	bool remote_manual; /**< set to true by the commander when the manual-switch on the remote is set to manual */
-	bool gps_valid;     /**< set to true by the commander app if the quality of the gps signal is good enough to use it in the position estimator */
-
+	bool flag_global_position_valid;     /**< set to true by the commander app if the quality of the gps signal is good enough to use it in the position estimator */
+	bool flag_local_position_valid;
+	bool flag_vector_flight_mode_ok;			/**< position estimation, battery voltage and other critical subsystems are good for autonomous flight */
+	bool flag_external_manual_override_ok;
 };
 
 /**

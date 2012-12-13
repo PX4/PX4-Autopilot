@@ -72,10 +72,12 @@
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/offboard_control_setpoint.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/parameter_update.h>
 #include <mavlink/mavlink_log.h>
 
 #include <systemlib/param/param.h>
@@ -1167,6 +1169,8 @@ int commander_thread_main(int argc, char *argv[])
 	failsafe_lowlevel_timeout_ms = 0;
 	param_get(param_find("SYS_FAILSAVE_LL"), &failsafe_lowlevel_timeout_ms);
 
+	param_t _param_sys_type = param_find("MAV_TYPE");
+
 	/* welcome user */
 	printf("[commander] I am in command now!\n");
 
@@ -1199,6 +1203,8 @@ int commander_thread_main(int argc, char *argv[])
 	/* mark all signals lost as long as they haven't been found */
 	current_status.rc_signal_lost = true;
 	current_status.offboard_control_signal_lost = true;
+	/* allow manual override initially */
+	current_status.flag_external_manual_override_ok = true;
 
 	/* advertise to ORB */
 	stat_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
@@ -1249,9 +1255,15 @@ int commander_thread_main(int argc, char *argv[])
 	struct offboard_control_setpoint_s sp_offboard;
 	memset(&sp_offboard, 0, sizeof(sp_offboard));
 
-	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	struct vehicle_gps_position_s gps;
-	memset(&gps, 0, sizeof(gps));
+	int global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	struct vehicle_global_position_s global_position;
+	memset(&global_position, 0, sizeof(global_position));
+	uint64_t last_global_position_time = 0;
+
+	int local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	struct vehicle_local_position_s local_position;
+	memset(&local_position, 0, sizeof(local_position));
+	uint64_t last_local_position_time = 0;
 
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	struct sensor_combined_s sensors;
@@ -1261,6 +1273,11 @@ int commander_thread_main(int argc, char *argv[])
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	struct vehicle_command_s cmd;
 	memset(&cmd, 0, sizeof(cmd));
+
+	/* Subscribe to parameters changed topic */
+	int param_changed_sub = orb_subscribe(ORB_ID(parameter_update));
+	struct parameter_update_s param_changed;
+	memset(&param_changed, 0, sizeof(param_changed));
 
 	// uint8_t vehicle_state_previous = current_status.state_machine;
 	float voltage_previous = 0.0f;
@@ -1288,7 +1305,6 @@ int commander_thread_main(int argc, char *argv[])
 		if (new_data) {
 			orb_copy(ORB_ID(offboard_control_setpoint), sp_offboard_sub, &sp_offboard);
 		}
-		orb_copy(ORB_ID(vehicle_gps_position), gps_sub, &gps);
 		orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
 
 		orb_check(cmd_sub, &new_data);
@@ -1298,6 +1314,46 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* handle it */
 			handle_command(stat_pub, &current_status, &cmd);
+		}
+
+		/* update parameters */
+		orb_check(param_changed_sub, &new_data);
+		if (new_data) {
+			/* parameters changed */
+			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
+
+			/* update parameters */
+			if (!current_status.flag_system_armed) {
+				current_status.system_type = param_get(_param_sys_type, &(current_status.system_type));
+
+				/* disable manual override for all systems that rely on electronic stabilization */
+				if (current_status.system_type == MAV_TYPE_QUADROTOR ||
+				    current_status.system_type == MAV_TYPE_HEXAROTOR ||
+				    current_status.system_type == MAV_TYPE_OCTOROTOR) {
+					current_status.flag_external_manual_override_ok = false;
+				} else {
+					current_status.flag_external_manual_override_ok = true;
+				}
+				printf("param changed, val: %d, override: %s\n", current_status.system_type, (current_status.flag_external_manual_override_ok) ? "ON" : "OFF");
+			} else {
+				printf("ARMED, rejecting sys type change\n");
+			}
+		}
+
+		/* update global position estimate */
+		orb_check(global_position_sub, &new_data);
+		if (new_data) {
+			/* position changed */
+			orb_copy(ORB_ID(vehicle_global_position), global_position_sub, &global_position);
+			last_global_position_time = global_position.timestamp;
+		}
+
+		/* update local position estimate */
+		orb_check(local_position_sub, &new_data);
+		if (new_data) {
+			/* position changed */
+			orb_copy(ORB_ID(vehicle_local_position), local_position_sub, &local_position);
+			last_local_position_time = local_position.timestamp;
 		}
 
 		battery_voltage = sensors.battery_voltage_v;
@@ -1406,6 +1462,32 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* End battery voltage check */
 
+		bool vector_flight_mode_ok = current_status.flag_vector_flight_mode_ok;
+		bool global_pos_valid = current_status.flag_global_position_valid;
+		bool local_pos_valid = current_status.flag_local_position_valid;
+
+		/* check for global or local position updates, set a timeout of 2s */
+		if (hrt_absolute_time() - last_global_position_time < 2000000) {
+			current_status.flag_vector_flight_mode_ok = true;
+			current_status.flag_global_position_valid = true;
+			// XXX check for controller status and home position as well
+		}
+		
+		if (hrt_absolute_time() - last_local_position_time < 2000000) {
+			current_status.flag_vector_flight_mode_ok = true;
+			current_status.flag_local_position_valid = true;
+			// XXX check for controller status and home position as well
+		}
+
+		/* consolidate state change, flag as changed if required */
+		if (vector_flight_mode_ok != current_status.flag_vector_flight_mode_ok ||
+		    global_pos_valid != current_status.flag_global_position_valid ||
+		    local_pos_valid != current_status.flag_local_position_valid) {
+			state_changed = true;
+		}
+
+
+
 		/* Check if last transition deserved an audio event */
 // #warning This code depends on state that is no longer? maintained
 // #if 0
@@ -1496,7 +1578,7 @@ int commander_thread_main(int argc, char *argv[])
 				}
 				//printf("RC: y:%i/t:%i s:%i chans: %i\n", rc_yaw_scale, rc_throttle_scale, mode_switch_rc_value, rc.chan_count);
 
-				if (sp_man.aux1_cam_pan_flaps < -STICK_ON_OFF_LIMIT) {
+				if (sp_man.aux1_cam_pan_flaps > STICK_ON_OFF_LIMIT) {
 					update_state_machine_mode_manual(stat_pub, &current_status, mavlink_fd);
 				} else {
 					if (sp_man.override_mode_switch > STICK_ON_OFF_LIMIT) {
@@ -1675,7 +1757,7 @@ int commander_thread_main(int argc, char *argv[])
 	buzzer_deinit();
 	close(sp_man_sub);
 	close(sp_offboard_sub);
-	close(gps_sub);
+	close(global_position_sub);
 	close(sensor_sub);
 	close(cmd_sub);
 

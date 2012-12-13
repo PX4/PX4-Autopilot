@@ -183,13 +183,11 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			gyro[1] = att.pitchspeed;
 			gyro[2] = att.yawspeed;
 
-			/* Control */
-			if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
+			/* control */
 
+			if (vstatus.state_machine == SYSTEM_STATE_AUTO) {
 				/* attitude control */
 				fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
-				/* publish rate setpoint */
-				orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
 
 				/* angular rate control */
 				fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
@@ -219,10 +217,8 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 					att_sp.timestamp = hrt_absolute_time();
 				}
 
+				/* attitude control */
 				fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
-
-				/* publish rate setpoint */
-				orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
 
 				/* angular rate control */
 				fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
@@ -242,8 +238,14 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			/* publish rates */
 			orb_publish(ORB_ID(vehicle_rates_setpoint), rates_pub, &rates_sp);
 
-			/* publish actuator outputs */
-			orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+			/* sanity check and publish actuator outputs */
+			if (isfinite(actuators.control[0]) &&
+			    isfinite(actuators.control[1]) &&
+			    isfinite(actuators.control[2]) &&
+			    isfinite(actuators.control[3]))
+			{
+				orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+			}
 		}
 
 		printf("[fixedwing_att_control] exiting, stopping all motors.\n");

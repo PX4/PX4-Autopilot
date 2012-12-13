@@ -63,15 +63,16 @@ static unsigned counter = 0;
 /*
  * Define the various LED flash sequences for each system state.
  */
-#define LED_PATTERN_SAFE 			0xffff		// always on
-#define LED_PATTERN_FMU_ARMED 		0x4444		// slow blinking
-#define LED_PATTERN_IO_ARMED 		0x5555		// fast blinking 
-#define LED_PATTERN_IO_FMU_ARMED 	0x5050		// long off then double blink
+#define LED_PATTERN_SAFE 			0xffff		/**< always on 				*/
+#define LED_PATTERN_VECTOR_FLIGHT_MODE_OK 	0x3000		/**< always on with short break 	*/
+#define LED_PATTERN_FMU_ARMED 			0x4444		/**< slow blinking			*/
+#define LED_PATTERN_IO_ARMED 			0x5555		/**< fast blinking 			*/
+#define LED_PATTERN_IO_FMU_ARMED 		0x5050		/**< long off then double blink 	*/
 
 static unsigned blink_counter = 0;
 
 #define ARM_COUNTER_THRESHOLD	10
-#define DISARM_COUNTER_THRESHOLD	2
+#define DISARM_COUNTER_THRESHOLD	4
 
 static bool safety_button_pressed;
 
@@ -100,10 +101,6 @@ safety_check_button(void *arg)
 	 *
 	 */
 	safety_button_pressed = BUTTON_SAFETY;
-
-	if(safety_button_pressed) {
-		//printf("Pressed, Arm counter: %d, Disarm counter: %d\n", arm_counter, disarm_counter);
-	}
 
 	/* Keep pressed for a while to arm */
 	if (safety_button_pressed && !system_state.armed) {
@@ -139,6 +136,8 @@ safety_check_button(void *arg)
 		}
 	} else if (system_state.arm_ok) {
 		pattern = LED_PATTERN_FMU_ARMED;
+	} else if (system_state.vector_flight_mode_ok) {
+		pattern = LED_PATTERN_VECTOR_FLIGHT_MODE_OK;
 	}
 
 	/* Turn the LED on if we have a 1 at the current bit position */
@@ -165,7 +164,7 @@ failsafe_blink(void *arg)
 	static bool failsafe = false;
 
 	/* blink the failsafe LED if we don't have FMU input */
-	if (!system_state.mixer_use_fmu) {
+	if (!system_state.mixer_fmu_available) {
 		failsafe = !failsafe;
 	} else {
 		failsafe = false;
