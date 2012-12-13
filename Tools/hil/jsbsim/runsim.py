@@ -3,7 +3,8 @@
 
 import sys, os, pexpect, fdpexpect, socket
 import math, time, select, struct, signal, errno
-import random
+import random, numpy
+from collections import defaultdict
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'pysim'))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', '..', '..', 'mavlink', 'pymavlink'))
@@ -135,9 +136,14 @@ def process_jsb_input(buf):
     q = cos(phi)*thetadot + sin(phi)*cos(theta)*psidot
     r = -sin(phi)*thetadot + cos(phi)*cos(theta)*psidot
 
+    vdown_gain = 10;
+    ran = random.gauss(0, 5)
+
+#    r = r + ran;
+
     simbuf = px4Format.format(
          time.clock(),
-         fdm.get('latitude', units='degrees'),
+         fdm.get('latitude', units='degrees'),#+.11*sin(time.time()),
          fdm.get('longitude', units='degrees'),
          fdm.get('altitude', units='meters'),
          fdm.get('phi', units='radians'),
@@ -158,7 +164,21 @@ def process_jsb_input(buf):
         if e.errno not in [ errno.ECONNREFUSED ]:
             raise
 
-def check_flight_env(alt, p, q, r):
+def check_flight_env(fdm):
+    alt = fdm.get('altitude', units='meters')
+
+    phi = fdm.get('phi', units='radians')
+    theta = fdm.get('theta', units='radians')
+    psi = fdm.get('psi', units='radians')
+
+    phidot = fdm.get('phidot', units='rps')
+    thetadot = fdm.get('thetadot', units='rps')
+    psidot = fdm.get('psidot', units='rps')
+
+    p = phidot - psidot*sin(theta)
+    q = cos(phi)*thetadot + sin(phi)*cos(theta)*psidot
+    r = -sin(phi)*thetadot + cos(phi)*cos(theta)*psidot
+
     if math.fabs(p) > math.pi or math.fabs(q) > math.pi or math.fabs(r) > math.pi:
         return False
     if alt <= 0:
@@ -166,7 +186,8 @@ def check_flight_env(alt, p, q, r):
 
     return True
 
-def check_mission_env(fdm, time):
+def check_mission_env(fdm, tnow):
+    return False
     latlonDiff = 0.0002
     
     lat0 = 0
@@ -191,7 +212,7 @@ def check_mission_env(fdm, time):
     lon = fdm.get('longitude', units='radians')
 
     # Check that the vehicle is within the target window for the specified interval
-    if time > target_start_time and time < target_end_time:
+    if tnow > target_start_time and tnow < target_end_time:
         if math.fabs(lat - destLat) > lat_window_size:
             return False
         if math.fabs(lon - destLon) > lon_window_size:
@@ -214,6 +235,18 @@ def check_mission_env(fdm, time):
         return False;
 
     return True;
+
+class Attack(object):
+    def __init__(self,nominal,name,units,label,scripts,file_name,variable,attack_values,attack_comment):
+        self.nominal = nominal
+        self.name = name
+        self.units = units
+        self.label = label
+        self.scripts = scripts
+        self.file_name = file_name
+        self.variable = variable
+        self.attack_values = attack_values
+        self.attack_comment = attack_comment
 
 ##################
 # main program
@@ -326,69 +359,133 @@ def main_loop():
 
     tstart = tnow
 
-    while True:
-        rin = [jsb_in.fileno(), sim_in.fileno(), jsb_console.fileno(), jsb.fileno()]
-        try:
-            (rin, win, xin) = select.select(rin, [], [], 1.0)
-        except select.error:
-            util.check_parent()
-            continue
+    attack1 = Attack(
+            0,  # Nominal Value
+            'Yaw Rate Noise Variance', # Attack Name
+            'rad^2/s^2', # Attack Units
+            'Yaw Rate Noise Variance (rad^2/s^2)', # Axis Label
+            '', # Scicoslab script (blank here)
+            'digitalUpdateRate', # variable name (blank here)
+            'attack.digitalUpdateRate', # more scicoslab stuff, not important
+            [0, 2, 4, 6], # attack values
+            '0') # attack comment
 
-        tnow = time.time()
+    attack2 = Attack(
+            0,  # Nominal Value
+            'Yaw Rate Noise Variance', # Attack Name
+            'rad^2/s^2', # Attack Units
+            'Yaw Rate Noise Variance (rad^2/s^2)', # Axis Label
+            '', # Scicoslab script (blank here)
+            'digitalUpdateRate', # variable name (blank here)
+            'attack.digitalUpdateRate', # more scicoslab stuff, not important
+            [0, 2, 4, 6], # attack values
+            '0') # attack comment
 
-        if jsb_in.fileno() in rin:
-            buf = jsb_in.recv(fdm.packet_size())
-            process_jsb_input(buf)
-            frame_count += 1
 
-        if sim_in.fileno() in rin:
-            simbuf = sim_in.makefile().readline()
-            process_sitl_input(simbuf)
-            last_sim_input = tnow
-            input_count +=1
 
-        # show any jsbsim console output
-        if jsb_console.fileno() in rin:
-            util.pexpect_drain(jsb_console)
-        if jsb.fileno() in rin:
-            util.pexpect_drain(jsb)
+    resultKeys = ['flightFail', 'missionFail']
+    innerSize = len(attack1.attack_values)
+    outerSize = len(attack2.attack_values)
 
-        if tnow - last_sim_input > 0.5:
-            if not paused:
-                print("PAUSING SIMULATION")
-                paused = True
-                jsb_console.send('hold\n')
-        else:
-            if paused:
-                print("RESUMING SIMULATION")
-                paused = False
-                jsb_console.send('resume\n')
+    results = dict.fromkeys(resultKeys)
+    for key in results:
+        results[key] = numpy.empty(shape=(innerSize, outerSize))
+    
+    for outerIndex, outerValue in enumerate(attack1.attack_values):
+        iterResults = defaultdict(list)
 
-        # only simulate wind above 5 meters, to prevent crashes while
-        # waiting for takeoff
-        if tnow - last_wind_update > 0.1:
-            update_wind(wind)
-            last_wind_update = tnow
-
-        # mission/ flight envelope check
-        if tnow - tstart > 10:
+        for innerIndex, innerValue in enumerate(attack2.attack_values):
+            # Reset the vehicle state
             tstart = reset_sim()
 
-        if tnow - last_report > 3:
-            print("IPS %u FPS %u asl=%.1f agl=%.1f roll=%.1f pitch=%.1f a=(%.2f %.2f %.2f)" % (
-                input_count/(time.time() - last_report),
-                frame_count / (time.time() - last_report),
-                fdm.get('altitude', units='meters'),
-                fdm.get('agl', units='meters'),
-                fdm.get('phi', units='degrees'),
-                fdm.get('theta', units='degrees'),
-                fdm.get('A_X_pilot', units='mpss'),
-                fdm.get('A_Y_pilot', units='mpss'),
-                fdm.get('A_Z_pilot', units='mpss')))
+            missionFailed = False
 
-            frame_count = 0
-            input_count = 0
-            last_report = time.time()
+            while True:
+                rin = [jsb_in.fileno(), sim_in.fileno(), jsb_console.fileno(), jsb.fileno()]
+                try:
+                    (rin, win, xin) = select.select(rin, [], [], 1.0)
+                except select.error:
+                    util.check_parent()
+                    continue
+
+                tnow = time.time()
+
+                if jsb_in.fileno() in rin:
+                    buf = jsb_in.recv(fdm.packet_size())
+                    process_jsb_input(buf)
+                    frame_count += 1
+
+                if sim_in.fileno() in rin:
+                    simbuf = sim_in.makefile().readline()
+                    process_sitl_input(simbuf)
+                    last_sim_input = tnow
+                    input_count +=1
+
+                # show any jsbsim console output
+                if jsb_console.fileno() in rin:
+                    util.pexpect_drain(jsb_console)
+                if jsb.fileno() in rin:
+                    util.pexpect_drain(jsb)
+
+                if tnow - last_sim_input > 0.5:
+                    if not paused:
+                        print("PAUSING SIMULATION")
+                        paused = True
+                        jsb_console.send('hold\n')
+                else:
+                    if paused:
+                        print("RESUMING SIMULATION")
+                        paused = False
+                        jsb_console.send('resume\n')
+
+                # only simulate wind above 5 meters, to prevent crashes while
+                # waiting for takeoff
+                if tnow - last_wind_update > 0.1:
+                    update_wind(wind)
+                    last_wind_update = tnow
+
+                if tnow - last_report > 3:
+                    print("IPS %u FPS %u asl=%.1f agl=%.1f roll=%.1f pitch=%.1f a=(%.2f %.2f %.2f)" % (
+                        input_count/(time.time() - last_report),
+                        frame_count / (time.time() - last_report),
+                        fdm.get('altitude', units='meters'),
+                        fdm.get('agl', units='meters'),
+                        fdm.get('phi', units='degrees'),
+                        fdm.get('theta', units='degrees'),
+                        fdm.get('A_X_pilot', units='mpss'),
+                        fdm.get('A_Y_pilot', units='mpss'),
+                        fdm.get('A_Z_pilot', units='mpss')))
+
+                    frame_count = 0
+                    input_count = 0
+                    last_report = time.time()
+
+                # mission/ flight envelope check
+                if not missionFailed:
+                    if check_mission_env(fdm, tnow):
+                        print 'Mission Envelope Failure!'
+                        missionFailed = True
+                        iterResults['missionFail'].append(tnow-tstart)
+
+                if not check_flight_env(fdm):
+                    print 'Flight Envelope Failure!'
+                    iterResults['flightFail'].append(tnow - start)
+                    if not missionFailed:
+                        iterResults['missionFail'].append(tnow - tstart)
+                    break
+
+                if tnow - tstart > 1:
+                    print 'Time has ended.'
+                    if not missionFailed:
+                        iterResults['missionFail'].append(tnow - tstart)
+                    iterResults['flightFail'].append(tnow - tstart)
+                    break
+
+        for key in resultKeys:
+            results[key][outerIndex] = iterResults[key]
+
+    print results
+                    
 
 def exit_handler():
     '''exit the sim'''
