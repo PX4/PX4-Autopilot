@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/z80/src/common/up_initialize.c
+ * arch/z80/src/z180/z180_lowuart.c
  *
- *   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,31 +39,41 @@
 
 #include <nuttx/config.h>
 
-#include <debug.h>
+#include <stdint.h>
+#include <string.h>
 
+#include <arch/io.h>
 #include <nuttx/arch.h>
-#include <nuttx/fs/fs.h>
-#include <nuttx/mm.h>
-#include <arch/board/board.h>
+#include <nuttx/sched.h>
 
-#include "chip/switch.h"
-#include "up_internal.h"
+#include "chip/chip.h"
+#include "common/up_internal.h"
+#include "z180_config.h"
 
-/****************************************************************************
- * Definitions
- ****************************************************************************/
-
-/* Define to enable timing loop calibration */
-
-#undef CONFIG_ARCH_CALIBRATION
+#if defined(USE_LOWSERIALINIT) && defined(HAVE_UART)
 
 /****************************************************************************
- * Public Data
+ * Private Definitions
  ****************************************************************************/
 
-/****************************************************************************
- * Private Types
- ****************************************************************************/
+/* Select UART parameters for the selected console */
+
+#if defined(CONFIG_Z180_UART0_SERIAL_CONSOLE)
+#  define CONSOLE_CR           Z181_UART0_CR
+#  define CONSOLE_DR           Z181_UART0_DR
+#  define CONSOLE_BAUD         CONFIG_Z180_UART0_BAUD
+#  define CONSOLE_BITS         CONFIG_Z180_UART0_BITS
+#  define CONSOLE_2STOP        CONFIG_Z180_UART0_2STOP
+#  define CONSOLE_PARITY       CONFIG_Z180_UART0_PARITY
+
+#elif defined(CONFIG_Z180_UART1_SERIAL_CONSOLE)
+#  define CONSOLE_CR           Z182_UART1_CR
+#  define CONSOLE_DR           Z182_UART1_DR
+#  define CONSOLE_BAUD         CONFIG_Z180_UART1_BAUD
+#  define CONSOLE_BITS         CONFIG_Z180_UART1_BITS
+#  define CONSOLE_2STOP        CONFIG_Z180_UART1_2STOP
+#  define CONSOLE_PARITY       CONFIG_Z180_UART1_PARITY
+#endif
 
 /****************************************************************************
  * Private Data
@@ -74,109 +84,65 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_calibratedelay
+ * Name: z180_uart_setbaud
  *
  * Description:
- *   Delay loops are provided for short timing loops.  This function, if
- *   enabled, will just wait for 100 seconds.  Using a stopwatch, you can
- *   can then determine if the timing loops are properly calibrated.
  *
  ****************************************************************************/
 
-#if defined(CONFIG_ARCH_CALIBRATION) & defined(CONFIG_DEBUG)
-static void up_calibratedelay(void)
+#if defined(HAVE_UART_CONSOLE) && !defined(CONFIG_SUPPRESS_UART_CONFIG)
+static void z180_uart_setbaud(void)
 {
-  int i;
-  lldbg("Beginning 100s delay\n");
-  for (i = 0; i < 100; i++)
-    {
-      up_mdelay(1000);
-    }
-  lldbg("End 100s delay\n");
+#warning "Missing logic"
 }
-#else
-# define up_calibratedelay()
-#endif
+#endif /* HAVE_UART_CONSOLE && !CONFIG_SUPPRESS_UART_CONFIG */
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_initialize
+ * Name: z180_uart_lowinit
  *
  * Description:
- *   up_initialize will be called once during OS initialization after the
- *   basic OS services have been initialized.  The architecture specific
- *   details of initializing the OS will be handled here.  Such things as
- *   setting up interrupt service routines, starting the clock, and
- *   registering device drivers are some of the things that are different
- *   for each processor and hardware platform.
- *
- *   up_initialize is called after the OS initialized but before the user
- *   initialization logic has been started and before the libraries have
- *   been initialized.  OS services and driver services are available.
+ *   Called early in the boot sequence to initialize the [E]SCC channel(s)
  *
  ****************************************************************************/
 
-void up_initialize(void)
+void z180_uart_lowinit(void)
 {
-  /* Initialize global variables */
+#warning "Missing logic"
 
-  INIT_IRQCONTEXT();
+  /* Configure for usage of {E]SCC channels (whether or not we have a console) */
 
-  /* Calibrate the timing loop */
-
-  up_calibratedelay();
-
-  /* Add extra memory fragments to the memory manager */
-
-#if CONFIG_MM_REGIONS > 1
-  up_addregion();
+#ifdef CONFIG_Z180_UART0
+#warning "Missing logic"
 #endif
 
-  /* Initialize the interrupt subsystem */
-
-  up_irqinitialize();
-
-  /* Initialize the system timer interrupt */
-
-#if !defined(CONFIG_SUPPRESS_INTERRUPTS) && !defined(CONFIG_SUPPRESS_TIMER_INTS)
-  up_timerinit();
+#ifdef CONFIG_Z180_UART1
+#warning "Missing logic"
 #endif
 
-  /* Initialize the CPU for those that use it (only for the Z180).  This
-   * needs to be done before any tasks are created).
-   */
+  /* Configure the console for immediate usage */
 
-#if CONFIG_ADDRENV
-  (void)up_mmuinit();
-#endif
-
-  /* Register devices */
-
-#if CONFIG_NFILE_DESCRIPTORS > 0
-  devnull_register();   /* Standard /dev/null */
-#endif
-
-  /* Initialize the serial device driver */
-
-#ifdef USE_LOWSERIALINIT
-  up_lowserialinit();
-#endif
-
-  /* Initialize the console device driver */
-
-#if defined(USE_SERIALDRIVER)
-  up_serialinit();
-#elif defined(CONFIG_DEV_LOWCONSOLE)
-  lowconsole_init();
-#elif defined(CONFIG_RAMLOG_CONSOLE)
-  ramlog_consoleinit();
-#endif
-
-  /* Initialize the netwok */
-
-  up_netinitialize();
-  up_ledon(LED_IRQSENABLED);
+#if defined(HAVE_UART_CONSOLE) && !defined(CONFIG_SUPPRESS_UART_CONFIG)
+#warning "Missing logic"
+#endif /* HAVE_UART0_CONSOLE && !CONFIG_SUPPRESS_UART_CONFIG */
 }
+
+/****************************************************************************
+ * Name: z180_putc
+ *
+ * Description:
+ *   Low-level character output
+ *
+ ****************************************************************************/
+
+#ifdef HAVE_UART_CONSOLE
+void z180_putc(uint8_t ch)
+{
+#warning "Missing logic"
+}
+#endif
+
+#endif /* USE_LOWSERIALINIT && HAVE_UART*/

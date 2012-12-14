@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/z80/src/z180/z180_loweruart.c
+ * arch/z80/src/z180/z180_lowscc.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -48,9 +48,9 @@
 
 #include "chip/chip.h"
 #include "common/up_internal.h"
-#include "z80_config.h"
+#include "z180_config.h"
 
-#ifdef USE_LOWUARTINIT
+#if defined(USE_LOWSERIALINIT) && defined(HAVE_SCC)
 
 /****************************************************************************
  * Private Definitions
@@ -66,7 +66,7 @@
 #  define CONSOLE_2STOP        CONFIG_Z180_SCC_2STOP
 #  define CONSOLE_PARITY       CONFIG_Z180_SCC_PARITY
 
-#elif defined(CONFIG_Z180_ESCCB_SERIAL_CONSOLE)
+#elif defined(CONFIG_Z180_ESCCA_SERIAL_CONSOLE)
 #  define CONSOLE_CR           Z182_ESCCA_CR
 #  define CONSOLE_DR           Z182_ESCCA_DR
 #  define CONSOLE_BAUD         CONFIG_Z180_ESCCA_BAUD
@@ -90,24 +90,34 @@
  * Private Functions
  ****************************************************************************/
 
-#if defined(HAVE_SERIAL_CONSOLE) && !defined(CONFIG_SUPPRESS_UART_CONFIG)
-static void z180_setbaud(void)
+/****************************************************************************
+ * Name: z180_scc_setbaud
+ *
+ * Description:
+ *
+ ****************************************************************************/
+
+#if defined(HAVE_SCC_CONSOLE) && !defined(CONFIG_SUPPRESS_UART_CONFIG)
+static void z180_scc_setbaud(void)
 {
 #warning "Missing logic"
 }
-#endif /* HAVE_SERIAL_CONSOLE && !CONFIG_SUPPRESS_UART_CONFIG */
+#endif /* HAVE_SCC_CONSOLE && !CONFIG_SUPPRESS_UART_CONFIG */
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_lowuartinit
+ * Name: z180_scc_lowinit
+ *
+ * Description:
+ *   Called early in the boot sequence to initialize the [E]SCC channel(s)
+ *
  ****************************************************************************/
 
-void up_lowuartinit(void)
+void z180_scc_lowinit(void)
 {
-#ifdef HAVE_SERIAL
 #warning "Missing logic"
 
   /* Configure for usage of {E]SCC channels (whether or not we have a console) */
@@ -126,10 +136,33 @@ void up_lowuartinit(void)
 
   /* Configure the console for immediate usage */
 
-#if defined(HAVE_SERIAL_CONSOLE) && !defined(CONFIG_SUPPRESS_UART_CONFIG)
+#if defined(HAVE_SCC_CONSOLE) && !defined(CONFIG_SUPPRESS_UART_CONFIG)
 #warning "Missing logic"
-#endif /* HAVE_SERIAL_CONSOLE && !CONFIG_SUPPRESS_UART_CONFIG */
-#endif /* HAVE_SERIAL */
+#endif /* HAVE_SCC_CONSOLE && !CONFIG_SUPPRESS_UART_CONFIG */
 }
 
-#endif /* USE_LOWUARTINIT */
+/****************************************************************************
+ * Name: z180_putc
+ *
+ * Description:
+ *   Low-level character output
+ *
+ ****************************************************************************/
+
+#ifdef HAVE_SCC_CONSOLE
+void z180_putc(uint8_t ch) __naked
+{
+  __asm
+txbe:
+	in0		a,(CONSOLE_CR)		; Read RR0
+	bit		2, a				; Bit 2, Tx buffer empty?
+	jr		z, txbe				; No, wait until the Tx buffer is empty
+
+	ld		a, 4(ix)			; Character to output
+	out		(CONSOLE_DR), a		; Send it
+	ret
+  __endasm;
+}
+#endif
+
+#endif /* USE_LOWSERIALINIT && HAVE_SCC*/

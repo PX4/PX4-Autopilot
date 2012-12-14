@@ -49,7 +49,7 @@
 #include "chip/chip.h"
 #include "common/up_internal.h"
 
-#ifdef USE_LOWUARTINIT
+#ifdef USE_LOWSERIALINIT
 
 /****************************************************************************
  * Private Definitions
@@ -176,10 +176,10 @@ static void ez80_setbaud(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_lowuartinit
+ * Name: up_lowserialinit
  ****************************************************************************/
 
-void up_lowuartinit(void)
+void up_lowserialinit(void)
 {
 #ifdef HAVE_SERIAL
   uint8_t regval;
@@ -253,4 +253,4 @@ void up_lowuartinit(void)
 #endif /* HAVE_SERIAL */
 }
 
-#endif /* USE_LOWUARTINIT */
+#endif /* USE_LOWSERIALINIT */

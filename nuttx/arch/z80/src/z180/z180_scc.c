@@ -58,6 +58,9 @@
 #include "os_internal.h"
 #include "up_internal.h"
 
+#include "z180_config.h"
+#include "z180_serial.h"
+
 #ifdef USE_SERIALDRIVER
 
 /****************************************************************************
@@ -619,79 +622,12 @@ void up_serialinit(void)
 int up_putc(int ch)
 {
 #ifdef CONSOLE_DEV
-#warning "Missing logic"
+  /* Disable [E]SCC interrupts and perform the low-level output */
+
   z180_disableuartint(priv);
-
-  /* Check for LF */
-
-  if (ch == '\n')
-    {
-      /* Output CR before LF*/
-#warning "Missing logic"
-
-    }
-
-  /* Output the character */
-
-#warning "Missing logic"
-
-  /* Wait for the character to be sent before re-enabling interrupts */
- 
-#warning "Missing logic"
+  up_lowputc(ch);
+  z180_restoreuartint(priv);
   return ch;
 #endif
 }
-
-#else /* USE_SERIALDRIVER */
-
-/****************************************************************************
- * Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
-
-/****************************************************************************
- * Private Variables
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: z180_putc
- ****************************************************************************/
-
-static void z180_putc(int ch)
-{
-#warning "Missing logic"
-}
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: up_putc
- ****************************************************************************/
-
-int up_putc(int ch)
-{
-  /* Check for LF */
-
-  if (ch == '\n')
-    {
-      /* Output CR before LF */
-
-      z180_putc('\r');
-    }
-
-  /* Output character */
-
-  z180_putc(ch);
-  return ch;
-}
-
 #endif /* USE_SERIALDRIVER */

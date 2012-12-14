@@ -156,14 +156,14 @@ config Z180_UART1
 config Z180_SCC
 	bool "SCC"
 	default n
-	depends on ARCH_CHIP_Z8L181
+	depends on ARCH_CHIP_Z80181 || ARCH_CHIP_Z8L181
 	---help---
 		Select to enable a serial port on the SCC
 
 config Z180_ESCCA
 	bool "ESCC Channel A"
 	default n
-	depends on ARCH_CHIP_Z8L182 && !Z180_PORTC
+	depends on ARCH_CHIP_Z80182 || ARCH_CHIP_Z8L182
 	---help---
 		Select to enable a serial port on ESCC Channel A.  Not available
 		if port C is selected.
@@ -171,7 +171,7 @@ config Z180_ESCCA
 config Z180_ESCCB
 	bool "ESCC Channel B"
 	default n
-	depends on ARCH_CHIP_Z8L182 && !Z180_MIMIC
+	depends on (ARCH_CHIP_Z80182 || ARCH_CHIP_Z8L182) && !Z180_MIMIC
 	---help---
 		Select to enable a serial port on ESCC Channel B
 
@@ -196,14 +196,14 @@ config Z180_TMR1
 config Z180_PORTA
 	bool "PORT A"
 	default n
-	depends on ARCH_CHIP_Z8L181 || ARCH_CHIP_Z8L182 || !Z180_CTC
+	depends on (ARCH_CHIP_Z80181 || ARCH_CHIP_Z8L181 || ARCH_CHIP_Z80182 || ARCH_CHIP_Z8L182) && !Z180_CTC
 	---help---
 		Select to enable a Port A (called PIA1 on the Z8x181)
 
 config Z180_PORTB
 	bool "PORT B"
 	default n
-	depends on ARCH_CHIP_Z8L181 || ARCH_CHIP_Z8L182
+	depends on ARCH_CHIP_Z80181 || ARCH_CHIP_Z8L181 || ARCH_CHIP_Z80182 || ARCH_CHIP_Z8L182
 	---help---
 		Select to enable a Port B (called PIA2 on the Z8x181).  On the Z8x182,
 		Bits 5-7 will not be available if ASCI channel 1 is used; Bits 0-4 will
@@ -212,21 +212,21 @@ config Z180_PORTB
 config Z180_PORTC
 	bool "PORT C"
 	default n
-	depends on ARCH_CHIP_Z8L182 && !Z180_ESCCA
+	depends on (ARCH_CHIP_Z80182 || ARCH_CHIP_Z8L182) && !Z180_ESCCA
 	---help---
 		Select to enable a Port C.  Not available if ESCC channel A is selected.
 
 config Z180_CTC
 	bool "CTC"
 	default n
-	depends on ARCH_CHIP_Z8L181
+	depends on ARCH_CHIP_Z80181 || ARCH_CHIP_Z8L181
 	---help---
 		Select to enable the Counter/Timer (CTC)
 
 config Z180_MIMIC
 	bool "16550 MIMIC"
 	default n
-	depends on ARCH_CHIP_Z8L182 && !Z180_ESCCB
+	depends on ARCH_CHIP_Z80182 || ARCH_CHIP_Z8L182
 	---help---
 		Select to enable the 16550 MIMIC
 

@@ -70,14 +70,14 @@
 
 #if CONFIG_NFILE_DESCRIPTORS == 0 || defined(CONFIG_DEV_LOWCONSOLE)
 #  undef USE_SERIALDRIVER
-#  ifdef CONFIG_HAVE_LOWUARTINIT
-#    define USE_LOWUARTINIT 1
+#  ifdef CONFIG_HAVE_LOWSERIALINIT
+#    define USE_LOWSERIALINIT 1
 #  else
-#    undef USE_LOWUARTINIT
+#    undef USE_LOWSERIALINIT
 #  endif
 #elif defined(CONFIG_DEV_CONSOLE) && CONFIG_NFILE_DESCRIPTORS > 0
 #  define USE_SERIALDRIVER 1
-#  undef USE_LOWUARTINIT
+#  undef USE_LOWSERIALINIT
 #endif
 
 /****************************************************************************
@@ -105,8 +105,8 @@ extern "C" {
 EXTERN void up_irqinitialize(void);
 EXTERN int  up_timerisr(int irq, FAR chipreg_t *regs);
 
-#ifdef USE_LOWUARTINIT
-EXTERN void up_lowuartinit(void);
+#ifdef USE_LOWSERIALINIT
+EXTERN void up_lowserialinit(void);
 #endif
 
 /* Defined in up_doirq.c */

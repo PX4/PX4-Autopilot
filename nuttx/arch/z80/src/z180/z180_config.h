@@ -68,10 +68,18 @@
 
 /* Are any UARTs enabled? */
 
+#undef HAVE_UART
+#undef HAVE_SCC
 #undef HAVE_SERIAL
-#if defined(CONFIG_Z180_UART0) || defined(CONFIG_Z180_UART1) || \
-    defined(CONFIG_Z180_SCC) || defined(CONFIG_Z180_ESCCA) || \
+
+#if defined(CONFIG_Z180_UART0) || defined(CONFIG_Z180_UART1)
+#  define HAVE_UART   1
+#  define HAVE_SERIAL 1
+#endif
+
+#if defined(CONFIG_Z180_SCC) || defined(CONFIG_Z180_ESCCA) || \
     defined(CONFIG_Z180_ESCCB)
+#  define HAVE_SCC    1
 #  define HAVE_SERIAL 1
 #endif
 
@@ -101,28 +109,39 @@
 
 /* Is there a serial console? There should be at most one defined. */
 
+#undef HAVE_UART_CONSOLE
+#undef HAVE_SCC_CONSOLE
+#undef HAVE_SERIAL_CONSOLE
+
 #if defined(CONFIG_Z180_UART0_SERIAL_CONSOLE)
 #  undef CONFIG_Z180_UART1_SERIAL_CONSOLE
 #  undef CONFIG_Z180_SCC_SERIAL_CONSOLE
 #  undef CONFIG_Z180_ESCCA_SERIAL_CONSOLE
 #  undef CONFIG_Z180_ESCCB_SERIAL_CONSOLE
+#  define HAVE_UART_CONSOLE 1
 #  define HAVE_SERIAL_CONSOLE 1
+
 #elif defined(CONFIG_Z180_UART1_SERIAL_CONSOLE)
 #  undef CONFIG_Z180_SCC_SERIAL_CONSOLE
 #  undef CONFIG_Z180_ESCCA_SERIAL_CONSOLE
 #  undef CONFIG_Z180_ESCCB_SERIAL_CONSOLE
+#  define HAVE_UART_CONSOLE 1
 #  define HAVE_SERIAL_CONSOLE 1
+
 #elif defined(CONFIG_Z180_ESCC_SERIAL_CONSOLE)
 #  undef CONFIG_Z180_ESCCA_SERIAL_CONSOLE
 #  undef CONFIG_Z180_ESCCB_SERIAL_CONSOLE
+#  define HAVE_SCC_CONSOLE 1
 #  define HAVE_SERIAL_CONSOLE 1
+
 #elif defined(CONFIG_Z180_ESCCA_SERIAL_CONSOLE)
 #  undef CONFIG_Z180_ESCCB_SERIAL_CONSOLE
+#  define HAVE_SCC_CONSOLE 1
 #  define HAVE_SERIAL_CONSOLE 1
+
 #elif defined(CONFIG_Z180_ESCCB_SERIAL_CONSOLE)
+#  define HAVE_SCC_CONSOLE 1
 #  define HAVE_SERIAL_CONSOLE 1
-#else
-#  undef HAVE_SERIAL_CONSOLE
 #endif
 
 /************************************************************************************

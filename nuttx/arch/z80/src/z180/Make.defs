@@ -58,5 +58,5 @@ CHIP_ASRCS += z180_vectors.asm
 endif
 
 CHIP_CSRCS  = z180_copystate.c z180_initialstate.c z180_io.c z180_irq.c
-CHIP_CSRCS += z180_modifiyreg8.c z180_mmu.c z180_registerdump.c
-CHIP_CSRCS += z180_schedulesigaction.c z180_sigdeliver.c
+CHIP_CSRCS += z180_lowscc.c z180_lowserial.c z180_modifiyreg8.c z180_mmu.c
+CHIP_CSRCS += z180_registerdump.c z180_schedulesigaction.c z180_sigdeliver.c

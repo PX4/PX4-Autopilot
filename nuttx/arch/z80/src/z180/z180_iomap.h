@@ -629,13 +629,13 @@
 
 /* RR0: Transmit and Receive buffer status and external status */
 
-#define RR0_BA               (0x80) /* Bit 7: Break/abort*/
-#define RR0_TXUEOM           (0x40) /* Bit 6: Tx Underrun/EOM*/
+#define RR0_BA               (0x80) /* Bit 7: Break/abort */
+#define RR0_TXUEOM           (0x40) /* Bit 6: Tx Underrun/EOM */
 #define RR0_CTS              (0x20) /* Bit 5: CTS */
-#define RR0_SH               (0x10) /* Bit4: Sync/Hunt */
+#define RR0_SH               (0x10) /* Bit 4: Sync/Hunt */
 #define RR0_DCD              (0x08) /* Bit 3: DCD */
 #define RR0_TXBE             (0x04) /* Bit 2: Tx Buffer Empty */
-#define RR0_ZC               (0x02) /* Bit 1: Zero Count*/
+#define RR0_ZC               (0x02) /* Bit 1: Zero Count */
 #define RR0_RXA              (0x01) /* Bit 0: Rx Character Available */
 
 /* RR1: Special Receive Condition status */
@@ -647,7 +647,7 @@
 #define RR0_RES0             (0x08) /* Bit 3: Residue Code 0 */
 #define RR0_RES1             (0x04) /* Bit 2: Residue Code 1 */
 #define RR0_RES2             (0x02) /* Bit 1: Residue Code 2 */
-#define RR0_ALL              (0x01) /* Bit 0: All Sent*/
+#define RR0_ALL              (0x01) /* Bit 0: All Sent */
 
 /* RR2: Interrupt vector (modified if VIS Bit in WR9 is set) -- 8-bit vector value */
 
