@@ -92,8 +92,8 @@ def oneAttackPlot(plotStruct):
     plt.clf()
 
 def twoAttackPlot(plotStruct):
-    x = plotStruct['xdata']
-    y = plotStruct['ydata']
+    y = plotStruct['xdata']
+    x = plotStruct['ydata']
     X,Y = np.meshgrid(x,y)
     Z = plotStruct['zdata']
 
@@ -115,15 +115,18 @@ def twoAttackPlot(plotStruct):
     if not np.any(Z != Z[0,0]):
         Z[0,0] -= 0.00001
 
+    print X
+    print Y
+    print Z
     CS = plt.contour(X, Y, Z,5,colors='k')
     
     plt.clabel(CS, fontsize=9, inline=1)
     CBI = plt.colorbar(im, orientation='vertical', shrink=0.6)
 
-    plt.ylabel(plotStruct['ylabel'])
-    plt.xlabel(plotStruct['xlabel'])
+    plt.xlabel(plotStruct['ylabel'])
+    plt.ylabel(plotStruct['xlabel'])
     plt.title(plotStruct['title'])
     forceAspect(ax,1.2)
-    savePlots(fig, plotStruct['fileName'], transparent=True)
+    savePlots(fig, plotStruct['fileName'])#, transparent=True)
     plt.clf()
 

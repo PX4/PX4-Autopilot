@@ -142,7 +142,7 @@ def process_jsb_input(buf):
 
     simbuf = px4Format.format(
          time.clock(),
-         fdm.get('latitude', units='degrees')*sin(2*math.pi*latFreq*time.time()),
+         fdm.get('latitude', units='degrees')+ 0.1*sin(2*math.pi*latFreq*time.time()),
          fdm.get('longitude', units='degrees'),
          fdm.get('altitude', units='meters'),
          fdm.get('phi', units='radians'),
@@ -185,53 +185,52 @@ def check_flight_env(fdm):
 
     return True
 
-def check_mission_env(fdm, tnow):
-    return False
-    latlonDiff = 0.0002
+def great_circle_dist(lat1, lon1, lat2, lon2):
+    d2r = math.pi/180
+    R = 6371000
+    return math.acos(sin(lat1*d2r)*sin(lat2*d2r) + cos(lat1*d2r)*cos(lat2*d2r)*cos((lon2-lon1)*d2r)) * R;
+
+def check_mission_env(fdm, tsim):
     
-    lat0 = 0
-    lon0 = 0
+    lat0 = 37.616611
+    lon0 = -122.416105
 
-    destLat = lat0 + .6*latlonDiff
-    destLon =lon0 + .5*latlonDiff
+    destLat = 37.6082701666
+    destLon = -122.400064179
 
-
-    theater_lat_origin = lat0
-    theater_lon_origin = lon0
-    alt_min = 750
-    alt_max = 1250
-    time_limit = 80
-    theater_size = (latlonDiff*.7)^2 # Square of distance
-    lat_window_size = latlonDiff/3
-    lon_window_size = latlonDiff/3
     target_start_time = 70
     target_end_time = 80
 
-    lat = fdm.get('latitude', units='radians')
-    lon = fdm.get('longitude', units='radians')
+    lat = fdm.get('latitude', units='degrees')
+    lon = fdm.get('longitude', units='degrees')
+
+    theater_size = 2000 
+    target_window = 150
+
+    theaterDist = great_circle_dist(lat0, lon0, lat, lon)
+    targetDist = great_circle_dist(destLat, destLon, lat, lon)
+
+    #print 'Theater distance = %f' % theaterDist
+    #print 'Target distance = %f' % targetDist
 
     # Check that the vehicle is within the target window for the specified interval
-    if tnow > target_start_time and tnow < target_end_time:
-        if math.fabs(lat - destLat) > lat_window_size:
-            return False
-        if math.fabs(lon - destLon) > lon_window_size:
+    if tsim > target_start_time and tsim < target_end_time:
+        #print 'Target distance = %f' % targetDist
+        if targetDist > target_window:
+            print 'Target window Violated'
             return False
 
-    # Check that time has not run out
-    if(time > time_limit):
+    if theaterDist > theater_size:
+        print 'Theater Window Violated'
         return False
+
+    return True
 
     # Check that it is within the altitude range
     alt = fdm.get('altitude', units='meters')
     if(alt < alt_min or alt > alt_max):
         return False;
 
-    # Check that the theater radius has not been breached.
-    y_dist = math.sin(theater_lon_origin - lon)*math.cos(theater_lat_origin)
-    x_dist = math.cos(lat)*math.sin(theater_lat_origin)-math.sin(lat)*math.cos(theater_lat_origin)*math.cos(theater_lon_origin-lon_r)
-    dist = y_dist^2+x_dist^2
-    if dist > theater_size:
-        return False;
 
     return True;
 
@@ -347,7 +346,7 @@ print("Simulator ready to fly")
 
 def reset_sim():
     jsb_set('simulation/reset',1)
-    time.sleep(4)
+    #time.sleep(4)
     return time.time()
 
 def main_loop():
@@ -369,7 +368,7 @@ def main_loop():
             '', # Scicoslab script (blank here)
             'digitalUpdateRate', # variable name (blank here)
             'attack.digitalUpdateRate', # more scicoslab stuff, not important
-            [0, 2, 4, 6], # attack values
+            [0, 5, 10, 15, 20], # attack values
             '0') # attack comment
 
     attack2 = Attack(
@@ -467,6 +466,7 @@ def main_loop():
                         fdm.get('A_Y_pilot', units='mpss'),
                         fdm.get('A_Z_pilot', units='mpss')))
 
+                    print 'lat: %f lon: %f' % (fdm.get('latitude', units='degrees'),fdm.get('longitude', units='degrees'))
                     frame_count = 0
                     input_count = 0
                     last_report = time.time()
@@ -474,7 +474,7 @@ def main_loop():
                 # mission/ flight envelope check
                 tsim = time.time()-tstart_sim #fdm.get('time', units='seconds') - tstart_sim,
                 if not missionFailed:
-                    if check_mission_env(fdm, tsim):
+                    if not check_mission_env(fdm, tsim):
                         print 'Mission Envelope Failure!'
                         missionFailed = True
                         iterResults['missionFail'].append(tsim)
@@ -486,11 +486,13 @@ def main_loop():
                         iterResults['missionFail'].append(tsim)
                     break
 
-                if tsim > 3:
+                if tsim > 80:
                     print 'Time has ended.'
                     if not missionFailed:
                         iterResults['missionFail'].append(tsim)
                     iterResults['flightFail'].append(tsim)
+                    print 'lat: %f' % fdm.get('latitude', units='degrees'),
+                    print 'lon: %f' % fdm.get('longitude', units='degrees'),
                     break
 
         for key in resultKeys:
