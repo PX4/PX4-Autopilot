@@ -191,6 +191,9 @@ def great_circle_dist(lat1, lon1, lat2, lon2):
     return math.acos(sin(lat1*d2r)*sin(lat2*d2r) + cos(lat1*d2r)*cos(lat2*d2r)*cos((lon2-lon1)*d2r)) * R;
 
 def check_mission_env(fdm, tsim):
+
+    alt_min = 2500
+    alt_max = 3500
     
     lat0 = 37.616611
     lon0 = -122.416105
@@ -224,13 +227,10 @@ def check_mission_env(fdm, tsim):
         print 'Theater Window Violated'
         return False
 
-    return True
-
     # Check that it is within the altitude range
     alt = fdm.get('altitude', units='meters')
-    if(alt < alt_min or alt > alt_max):
-        return False;
-
+    #if(alt < alt_min or alt > alt_max):
+    #    return False;
 
     return True;
 
@@ -346,7 +346,7 @@ print("Simulator ready to fly")
 
 def reset_sim():
     jsb_set('simulation/reset',1)
-    #time.sleep(4)
+    time.sleep(2)
     return time.time()
 
 def main_loop():
@@ -368,7 +368,7 @@ def main_loop():
             '', # Scicoslab script (blank here)
             'digitalUpdateRate', # variable name (blank here)
             'attack.digitalUpdateRate', # more scicoslab stuff, not important
-            [0, 5, 10, 15, 20], # attack values
+            [0, 2, 4, 6, 8], # attack values
             '0') # attack comment
 
     attack2 = Attack(
