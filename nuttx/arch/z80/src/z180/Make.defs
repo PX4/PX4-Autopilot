@@ -41,14 +41,14 @@ HEAD_ASRC = z180_head.asm
 endif
 endif
 
-CMN_ASRCS = 
-CMN_CSRCS = up_allocateheap.c up_assert.c up_blocktask.c up_createstack.c 
+CMN_ASRCS  = 
+CMN_CSRCS  = up_allocateheap.c up_assert.c up_blocktask.c up_createstack.c 
 CMN_CSRCS += up_doirq.c up_exit.c up_idle.c up_initialize.c
 CMN_CSRCS += up_interruptcontext.c up_mdelay.c up_releasepending.c
 CMN_CSRCS += up_releasestack.c up_reprioritizertr.c up_unblocktask.c
 CMN_CSRCS += up_udelay.c up_usestack.c
 
-CHIP_ASRCS = z180_restoreusercontext.asm z180_saveusercontext.asm
+CHIP_ASRCS  = z180_restoreusercontext.asm z180_saveusercontext.asm
 CHIP_ASRCS += z180_vectcommon.asm
 
 ifeq ($(CONFIG_LINKER_ROM_AT_0000),y)
@@ -57,6 +57,6 @@ else
 CHIP_ASRCS += z180_vectors.asm
 endif
 
-CHIP_CSRCS = z180_copystate.c z180_initialstate.c z180_io.c z180_irq.c
-CHIP_CSRCS += z180_mmu.c z180_registerdump.c z180_schedulesigaction.c
-CHIP_CSRCS += z180_sigdeliver.c
+CHIP_CSRCS  = z180_copystate.c z180_initialstate.c z180_io.c z180_irq.c
+CHIP_CSRCS += z180_modifiyreg8.c z180_mmu.c z180_registerdump.c
+CHIP_CSRCS += z180_schedulesigaction.c z180_sigdeliver.c

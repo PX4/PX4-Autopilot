@@ -106,24 +106,26 @@
 
 /* DMA Registers */
 
-#define Z180_DMA_SAR0L       (SFR_OFFSET+0x20) /* DMA Source Address Register Ch 0L */
-#define Z180_DMA_SAR0H       (SFR_OFFSET+0x21) /* DMA Source Address Register Ch 0H */
-#define Z180_DMA_SAR0B       (SFR_OFFSET+0x22) /* DMA Source Address Register Ch 0B */
-#define Z180_DMA_DAR0L       (SFR_OFFSET+0x23) /* DMA Destination Address Register Ch 0L */
-#define Z180_DMA_DAR0H       (SFR_OFFSET+0x24) /* DMA Destination Address Register Ch 0H */
-#define Z180_DMA_DAR0B       (SFR_OFFSET+0x25) /* DMA Destination Address Register Ch 0B */
-#define Z180_DMA_BCR0L       (SFR_OFFSET+0x26) /* DMA Byte Count Register Ch 0L */
-#define Z180_DMA_BCR0H       (SFR_OFFSET+0x27) /* DMA Byte Count Register Ch 0H */
-#define Z180_DMA_MAR1L       (SFR_OFFSET+0x28) /* DMA Memory Address Register Ch 1L */
-#define Z180_DMA_MAR1H       (SFR_OFFSET+0x29) /* DMA Memory Address Register Ch 1H */
-#define Z180_DMA_MAR1B       (SFR_OFFSET+0x2a) /* DMA Memory Address Register Ch 1B */
-#define Z180_DMA_IAR1L       (SFR_OFFSET+0x2b) /* DMA I/0 Address Register Ch 1L */
-#define Z180_DMA_IAR1H       (SFR_OFFSET+0x2c) /* DMA I/0 Address Register Ch 1H */
+#define Z180_DMA0_SARL       (SFR_OFFSET+0x20) /* DMA Source Address Register Ch 0L */
+#define Z180_DMA0_SARH       (SFR_OFFSET+0x21) /* DMA Source Address Register Ch 0H */
+#define Z180_DMA0_SARB       (SFR_OFFSET+0x22) /* DMA Source Address Register Ch 0B */
+#define Z180_DMA0_DARL       (SFR_OFFSET+0x23) /* DMA Destination Address Register Ch 0L */
+#define Z180_DMA0_DARH       (SFR_OFFSET+0x24) /* DMA Destination Address Register Ch 0H */
+#define Z180_DMA0_DARB       (SFR_OFFSET+0x25) /* DMA Destination Address Register Ch 0B */
+#define Z180_DMA0_BCRL       (SFR_OFFSET+0x26) /* DMA Byte Count Register Ch 0L */
+#define Z180_DMA0_BCRH       (SFR_OFFSET+0x27) /* DMA Byte Count Register Ch 0H */
+
+#define Z180_DMA1_MARL       (SFR_OFFSET+0x28) /* DMA Memory Address Register Ch 1L */
+#define Z180_DMA1_MARH       (SFR_OFFSET+0x29) /* DMA Memory Address Register Ch 1H */
+#define Z180_DMA1_MARB       (SFR_OFFSET+0x2a) /* DMA Memory Address Register Ch 1B */
+#define Z180_DMA1_IARL       (SFR_OFFSET+0x2b) /* DMA I/0 Address Register Ch 1L */
+#define Z180_DMA1_IARH       (SFR_OFFSET+0x2c) /* DMA I/0 Address Register Ch 1H */
 #ifdef HAVE_Z8S180 /* Z8S180/Z8L180 class processors */
-#  define Z180_DMA_IAR1B     (SFR_OFFSET+0x2d) /* DMA I/O Address Register Ch 1B */
+#  define Z180_DMA1_IARB     (SFR_OFFSET+0x2d) /* DMA I/O Address Register Ch 1B */
 #endif
-#define Z180_DMA_BCR1L       (SFR_OFFSET+0x2e) /* DMA Byte Count Register Ch 1L */
-#define Z180_DMA_BCR1H       (SFR_OFFSET+0x2f) /* DMA Byte Count Register Ch 1H */
+#define Z180_DMA1_BCRL       (SFR_OFFSET+0x2e) /* DMA Byte Count Register Ch 1L */
+#define Z180_DMA1_BCRH       (SFR_OFFSET+0x2f) /* DMA Byte Count Register Ch 1H */
+
 #define Z180_DMA_DSTAT       (SFR_OFFSET+0x30) /* DMA Status Register */
 #define Z180_DMA_DMODE       (SFR_OFFSET+0x31) /* DMA Mode Register */
 #define Z180_DMA_DCNTL       (SFR_OFFSET+0x32) /* DMA/WAIT Control Register */
