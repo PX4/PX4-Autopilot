@@ -10,6 +10,7 @@ choice
 
 config ARCH_CHIP_Z80
 	bool "Classic z80"
+	select ARCH_NOINTC
 	---help---
 		Classic ZiLOG z80 chip
 
@@ -17,6 +18,7 @@ config ARCH_CHIP_Z8018006VSG
 	bool "Z8018006VSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -26,6 +28,7 @@ config ARCH_CHIP_Z8018010VSG
 	bool "Z8018010VSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -35,6 +38,7 @@ config ARCH_CHIP_Z8018008VSG
 	bool "Z8018008VSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -44,6 +48,7 @@ config ARCH_CHIP_Z8018010FSG
 	bool "Z8018010FSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -53,6 +58,7 @@ config ARCH_CHIP_Z8018008VEG
 	bool "Z8018008VEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -62,6 +68,7 @@ config ARCH_CHIP_Z8018006VEG
 	bool "Z8018006VEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -71,6 +78,7 @@ config ARCH_CHIP_Z8018006PSG
 	bool "Z8018006PSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -80,6 +88,7 @@ config ARCH_CHIP_Z8018008FSG
 	bool "Z8018008FSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -89,6 +98,7 @@ config ARCH_CHIP_Z8018010PSG
 	bool "Z8018010PSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -98,6 +108,7 @@ config ARCH_CHIP_Z8018006PEG
 	bool "Z8018006PEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -107,6 +118,7 @@ config ARCH_CHIP_Z8018010VEG
 	bool "Z8018010VEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -116,6 +128,7 @@ config ARCH_CHIP_Z8018010PEG
 	bool "Z8018010PEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -125,6 +138,7 @@ config ARCH_CHIP_Z8018008PSG
 	bool "Z8018008PSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -134,6 +148,7 @@ config ARCH_CHIP_Z8018006FSG
 	bool "Z8018006FSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -143,6 +158,7 @@ config ARCH_CHIP_Z8018000XSO
 	bool "Z8018000XSO"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 
@@ -150,6 +166,7 @@ config ARCH_CHIP_Z8018010FEG
 	bool "Z8018010FEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 
@@ -157,6 +174,7 @@ config ARCH_CHIP_Z8018000WSO
 	bool "Z8018000WSO"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 
@@ -164,6 +182,7 @@ config ARCH_CHIP_Z8018008PEG
 	bool "Z8018008PEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 
@@ -171,6 +190,7 @@ config ARCH_CHIP_Z8018110FEG
 	bool "Z8018110FEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80181
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -180,6 +200,7 @@ config ARCH_CHIP_Z8018233FSG
 	bool "Z8018233FSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80182
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -189,6 +210,7 @@ config ARCH_CHIP_Z8018220AEG
 	bool "Z8018220AEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80182
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -198,6 +220,7 @@ config ARCH_CHIP_Z8018216FSG
 	bool "Z8018216FSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80182
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -207,6 +230,7 @@ config ARCH_CHIP_Z8018216ASG
 	bool "Z8018216ASG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80182
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -216,6 +240,7 @@ config ARCH_CHIP_Z8018233ASG
 	bool "Z8018233ASG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80182
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -225,6 +250,7 @@ config ARCH_CHIP_Z8019520FSG
 	bool "Z8019520FSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80195
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -234,6 +260,7 @@ config ARCH_CHIP_Z8019533FSG
 	bool "Z8019533FSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z80195
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -243,6 +270,7 @@ config ARCH_CHIP_Z8L18020VSG
 	bool "Z8L18020VSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8L180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -252,6 +280,7 @@ config ARCH_CHIP_Z8L18020FSG
 	bool "Z8L18020FSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8L180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -261,6 +290,7 @@ config ARCH_CHIP_Z8L18020PSG
 	bool "Z8L18020PSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8L180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 
@@ -268,6 +298,7 @@ config ARCH_CHIP_Z8L18220ASG
 	bool "Z8L18220ASG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8L182
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -277,6 +308,7 @@ config ARCH_CHIP_Z8L18220FSG
 	bool "Z8L18220FSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8L182
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -286,6 +318,7 @@ config ARCH_CHIP_Z8L18220AEG
 	bool "Z8L18220AEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8L182
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 
@@ -293,6 +326,7 @@ config ARCH_CHIP_Z8S18020VSG
 	bool "Z8S18020VSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -302,6 +336,7 @@ config ARCH_CHIP_Z8S18020VSG1960
 	bool "Z8S18020VSG1960"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -311,6 +346,7 @@ config ARCH_CHIP_Z8S18033VSG
 	bool "Z8S18033VSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -320,6 +356,7 @@ config ARCH_CHIP_Z8S18010FSG
 	bool "Z8S18010FSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -329,6 +366,7 @@ config ARCH_CHIP_Z8S18010VEG
 	bool "Z8S18010VEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -338,6 +376,7 @@ config ARCH_CHIP_Z8S18020VEG
 	bool "Z8S18020VEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -347,6 +386,7 @@ config ARCH_CHIP_Z8S18010VSG
 	bool "Z8S18010VSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -356,6 +396,7 @@ config ARCH_CHIP_Z8S18020PSG
 	bool "Z8S18020PSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -365,6 +406,7 @@ config ARCH_CHIP_Z8S18033FSG
 	bool "Z8S18033FSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -374,6 +416,7 @@ config ARCH_CHIP_Z8S18033FEG
 	bool "Z8S18033FEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -383,6 +426,7 @@ config ARCH_CHIP_Z8S18020FSG
 	bool "Z8S18020FSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -392,6 +436,7 @@ config ARCH_CHIP_Z8S18033VEG
 	bool "Z8S18033VEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -401,6 +446,7 @@ config ARCH_CHIP_Z8S18010PSG
 	bool "Z8S18010PSG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 	---help---
@@ -410,6 +456,7 @@ config ARCH_CHIP_Z8S18020FEG
 	bool "Z8S18020FEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 
@@ -417,6 +464,7 @@ config ARCH_CHIP_Z8S18010PEG
 	bool "Z8S18010PEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 
@@ -424,6 +472,7 @@ config ARCH_CHIP_Z8S18010FEG
 	bool "Z8S18010FEG"
 	select ARCH_CHIP_Z180
 	select ARCH_CHIP_Z8S180
+	select ARCH_NOINTC
 	select ADDRENV
 	select HAVE_LOWSERIALINIT
 

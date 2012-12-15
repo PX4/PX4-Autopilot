@@ -84,20 +84,6 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: z180_uart_setbaud
- *
- * Description:
- *
- ****************************************************************************/
-
-#if defined(HAVE_UART_CONSOLE) && !defined(CONFIG_SUPPRESS_UART_CONFIG)
-static void z180_uart_setbaud(void)
-{
-#warning "Missing logic"
-}
-#endif /* HAVE_UART_CONSOLE && !CONFIG_SUPPRESS_UART_CONFIG */
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -105,30 +91,19 @@ static void z180_uart_setbaud(void)
  * Name: z180_uart_lowinit
  *
  * Description:
- *   Called early in the boot sequence to initialize the [E]SCC channel(s)
+ *   Called early in the boot sequence to initialize the uart console
+ *   channel (only).
  *
  ****************************************************************************/
 
+#ifdef USE_LOWSERIALINIT
 void z180_uart_lowinit(void)
 {
-#warning "Missing logic"
-
-  /* Configure for usage of {E]SCC channels (whether or not we have a console) */
-
-#ifdef CONFIG_Z180_UART0
+#ifdef HAVE_UART_CONSOLE
 #warning "Missing logic"
 #endif
-
-#ifdef CONFIG_Z180_UART1
-#warning "Missing logic"
-#endif
-
-  /* Configure the console for immediate usage */
-
-#if defined(HAVE_UART_CONSOLE) && !defined(CONFIG_SUPPRESS_UART_CONFIG)
-#warning "Missing logic"
-#endif /* HAVE_UART0_CONSOLE && !CONFIG_SUPPRESS_UART_CONFIG */
 }
+#endif
 
 /****************************************************************************
  * Name: z180_putc

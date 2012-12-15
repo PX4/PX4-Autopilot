@@ -175,11 +175,12 @@ config Z180_ESCCB
 	---help---
 		Select to enable a serial port on ESCC Channel B
 
-config Z180_TMR1
+config Z180_PRT1
 	bool "Timer 1"
 	default n
 	---help---
-		Select to enable a Timer 1 (Timer 0 is used by NuttX as the system timer)
+		Select to enable a Programmable Reload Timer 1 (PRT1, PRT0 is used
+		by NuttX as the system timer)
 
 # config Z180_DMA0
 #	bool "DMA0"

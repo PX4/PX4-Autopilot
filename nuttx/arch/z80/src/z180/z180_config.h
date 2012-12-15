@@ -44,6 +44,8 @@
 
 #include <arch/z180/chip.h>
 
+#include "up_internal.h"
+
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
@@ -103,7 +105,7 @@
 #  undef CONFIG_Z180_ESCCA_SERIAL_CONSOLE
 #endif
 
-#ifndef CONFIG_Z180_ESCCA
+#ifndef CONFIG_Z180_ESCCB
 #  undef CONFIG_Z180_ESCCB_SERIAL_CONSOLE
 #endif
 
@@ -114,34 +116,106 @@
 #undef HAVE_SERIAL_CONSOLE
 
 #if defined(CONFIG_Z180_UART0_SERIAL_CONSOLE)
+#  define HAVE_UART_CONSOLE 1
+#  define HAVE_SERIAL_CONSOLE 1
+
+  /* Disable other console selections */
+
 #  undef CONFIG_Z180_UART1_SERIAL_CONSOLE
 #  undef CONFIG_Z180_SCC_SERIAL_CONSOLE
 #  undef CONFIG_Z180_ESCCA_SERIAL_CONSOLE
 #  undef CONFIG_Z180_ESCCB_SERIAL_CONSOLE
+
+   /* If we are not using the serial driver, then the serial console is all
+    * that we will support.
+    */
+
+#  ifndef USE_SERIALDRIVER
+#    undef CONFIG_Z180_UART1
+#    undef CONFIG_Z180_SCC
+#    undef CONFIG_Z180_ESCCA
+#    undef CONFIG_Z180_ESCCB
+#  endif
+
+#elif defined(CONFIG_Z180_UART1_SERIAL_CONSOLE)
 #  define HAVE_UART_CONSOLE 1
 #  define HAVE_SERIAL_CONSOLE 1
 
-#elif defined(CONFIG_Z180_UART1_SERIAL_CONSOLE)
+  /* Disable other console selections */
+
 #  undef CONFIG_Z180_SCC_SERIAL_CONSOLE
 #  undef CONFIG_Z180_ESCCA_SERIAL_CONSOLE
 #  undef CONFIG_Z180_ESCCB_SERIAL_CONSOLE
-#  define HAVE_UART_CONSOLE 1
+
+   /* If we are not using the serial driver, then the serial console is all
+    * that we will support.
+    */
+
+#  ifndef USE_SERIALDRIVER
+#    undef CONFIG_Z180_UART0
+#    undef CONFIG_Z180_SCC
+#    undef CONFIG_Z180_ESCCA
+#    undef CONFIG_Z180_ESCCB
+#  endif
+
+#elif defined(CONFIG_Z180_SCC_SERIAL_CONSOLE)
+#  define HAVE_SCC_CONSOLE 1
 #  define HAVE_SERIAL_CONSOLE 1
 
-#elif defined(CONFIG_Z180_ESCC_SERIAL_CONSOLE)
+  /* Disable other console selections */
+
 #  undef CONFIG_Z180_ESCCA_SERIAL_CONSOLE
 #  undef CONFIG_Z180_ESCCB_SERIAL_CONSOLE
+
+   /* If we are not using the serial driver, then the serial console is all
+    * that we will support.
+    */
+
+#  ifndef USE_SERIALDRIVER
+#    undef CONFIG_Z180_UART0
+#    undef CONFIG_Z180_UART1
+#    undef CONFIG_Z180_ESCCA
+#    undef CONFIG_Z180_ESCCB
+#  endif
+
+#elif defined(CONFIG_Z180_ESCCA_SERIAL_CONSOLE)
 #  define HAVE_SCC_CONSOLE 1
 #  define HAVE_SERIAL_CONSOLE 1
 
-#elif defined(CONFIG_Z180_ESCCA_SERIAL_CONSOLE)
+  /* Disable other console selections */
+
 #  undef CONFIG_Z180_ESCCB_SERIAL_CONSOLE
-#  define HAVE_SCC_CONSOLE 1
-#  define HAVE_SERIAL_CONSOLE 1
+
+   /* If we are not using the serial driver, then the serial console is all
+    * that we will support.
+    */
+
+#  ifndef USE_SERIALDRIVER
+#    undef CONFIG_Z180_UART0
+#    undef CONFIG_Z180_UART1
+#    undef CONFIG_Z180_SCC
+#    undef CONFIG_Z180_ESCCB
+#  endif
+
+   /* If we are not using the serial driver, then the serial console is all
+    * that we will support.
+    */
 
 #elif defined(CONFIG_Z180_ESCCB_SERIAL_CONSOLE)
 #  define HAVE_SCC_CONSOLE 1
 #  define HAVE_SERIAL_CONSOLE 1
+
+   /* If we are not using the serial driver, then the serial console is all
+    * that we will support.
+    */
+
+#  ifndef USE_SERIALDRIVER
+#    undef CONFIG_Z180_UART0
+#    undef CONFIG_Z180_UART1
+#    undef CONFIG_Z180_SCC
+#    undef CONFIG_Z180_ESCCA
+#  endif
+
 #endif
 
 /************************************************************************************

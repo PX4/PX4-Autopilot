@@ -89,18 +89,18 @@
 #define Z180_CSIO_CNTR       (SFR_OFFSET+0x0a) /* CSI/O Control Register */
 #define Z180_CSIO_TRD        (SFR_OFFSET+0x0b) /* Transmit/Receive Data Register */
 
-/* Timer Registers */
+/* Programmable Reload Timer (PTR)  Registers */
 
-#define Z180_TMR0_DRL        (SFR_OFFSET+0x0c) /* Timer Data Register Ch 0 L */
-#define Z180_TMR0_DRH        (SFR_OFFSET+0x0d) /* Data Register Ch 0 H */
-#define Z180_TMR0_RLDRL      (SFR_OFFSET+0x0e) /* Reload Register Ch 0 L */
-#define Z180_TMR0_RLDRH      (SFR_OFFSET+0x0f) /* Reload Register Ch 0 H */
-#define Z180_TMR_TCR         (SFR_OFFSET+0x10) /* Timer Control Register */
+#define Z180_PRT0_DRL        (SFR_OFFSET+0x0c) /* Timer Data Register Ch 0 L */
+#define Z180_PRT0_DRH        (SFR_OFFSET+0x0d) /* Data Register Ch 0 H */
+#define Z180_PRT0_RLDRL      (SFR_OFFSET+0x0e) /* Reload Register Ch 0 L */
+#define Z180_PRT0_RLDRH      (SFR_OFFSET+0x0f) /* Reload Register Ch 0 H */
+#define Z180_PRT_TCR         (SFR_OFFSET+0x10) /* Timer Control Register */
 
-#define Z180_TMR1_DRL        (SFR_OFFSET+0x14) /* Data Register Ch 1 L */
-#define Z180_TMR1_DRH        (SFR_OFFSET+0x15) /* Data Register Ch 1 H */
-#define Z180_TMR1_RLDRL      (SFR_OFFSET+0x16) /* Reload Register Ch 1 L */
-#define Z180_TMR1_RLDRH      (SFR_OFFSET+0x17) /* Reload Register Ch 1 H */
+#define Z180_PRT1_DRL        (SFR_OFFSET+0x14) /* Data Register Ch 1 L */
+#define Z180_PRT1_DRH        (SFR_OFFSET+0x15) /* Data Register Ch 1 H */
+#define Z180_PRT1_RLDRL      (SFR_OFFSET+0x16) /* Reload Register Ch 1 L */
+#define Z180_PRT1_RLDRH      (SFR_OFFSET+0x17) /* Reload Register Ch 1 H */
 
 #define Z180_FRC             (SFR_OFFSET+0x18) /* Free Running Counter */
 
@@ -398,16 +398,16 @@
 /* Timer Reload Register Channel 0L (RLDR0L: 0x0e) -- 8-bit data */
 /* Timer Reload Register Channel 0H (RLDR0H: 0x0f) -- 8-bit data */
 
-/* Timer Control Register (TCR: 0x10) */
+/* Programmable Reload Timer (PTR) Control Register (TCR: 0x10) */
 
-#define TMR_TCR_TIF1         (0x80) /* Bit 7: Timer 1 Interrupt Flag */
-#define TMR_TCR_TIF0         (0x40) /* Bit 6: Timer 0 Interrupt Flag */
-#define TMR_TCR_TIE1         (0x20) /* Bit 5: Timer 1 Interrupt Enable */
-#define TMR_TCR_TIE0         (0x10) /* Bit 4: Timer 0 Interrupt Enable */
-#define TMR_TCR_TOC1         (0x08) /* Bit 3: Timer 1 Output Control */
-#define TMR_TCR_TOC0         (0x04) /* Bit 2: Timer 0 Output Control */
-#define TMR_TCR_TDE1         (0x02) /* Bit 1: Timer 1 Down Count Enable */
-#define TMR_TCR_TDE0         (0x01) /* Bit 0: Timer 0 Down Count Enable */
+#define PRT_TCR_TIF1         (0x80) /* Bit 7: Timer 1 Interrupt Flag */
+#define PRT_TCR_TIF0         (0x40) /* Bit 6: Timer 0 Interrupt Flag */
+#define PRT_TCR_TIE1         (0x20) /* Bit 5: Timer 1 Interrupt Enable */
+#define PRT_TCR_TIE0         (0x10) /* Bit 4: Timer 0 Interrupt Enable */
+#define PRT_TCR_TOC1         (0x08) /* Bit 3: Timer 1 Output Control */
+#define PRT_TCR_TOC0         (0x04) /* Bit 2: Timer 0 Output Control */
+#define PRT_TCR_TDE1         (0x02) /* Bit 1: Timer 1 Down Count Enable */
+#define PRT_TCR_TDE0         (0x01) /* Bit 0: Timer 0 Down Count Enable */
 
 /* Timer Data Register 1L (TMDR1L: 0x14) -- 8-bit data */
 /* Timer Data Register 1H (TMDR1H: 0x15) -- 8-bit data */

@@ -88,33 +88,3 @@ void up_irqinitialize(void)
   irqrestore(Z80_C_FLAG);
 #endif
 }
-
-/****************************************************************************
- * Name: up_disable_irq
- *
- * Description:
- *   Disable the IRQ specified by 'irq'
- *
- ****************************************************************************/
-
-#ifndef CONFIG_ARCH_NOINTC
-void up_disable_irq(int irq)
-{
-  irqrestore(0);
-}
-#endif
-
-/****************************************************************************
- * Name: up_enable_irq
- *
- * Description:
- *   Enable the IRQ specified by 'irq'
- *
- ****************************************************************************/
-
-#ifndef CONFIG_ARCH_NOINTC
-void up_enable_irq(int irq)
-{
- irqrestore(Z80_C_FLAG);
-}
-#endif

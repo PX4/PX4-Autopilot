@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/z80/src/z180/z180_serial.h
+ * arch/z80/src/z180/z180_timerisr.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,79 +33,125 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_Z80_SRC_Z180_Z180_SERIAL_H
-#define __ARCH_Z80_SRC_Z180_Z180_SERIAL_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
+#include <stdint.h>
+#include <time.h>
+#include <debug.h>
+
+#include <arch/board/board.h>
+
+#include "clock_internal.h"
 #include "up_internal.h"
-#include "z180_config.h"
+
+#include "chip.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+/* "The Z180 contains a two channel 16-bit Programmable Reload Timer. Each
+ * PRT channel contains a 16-bit down counter and a 16-bit reload register."
+ * Channel 0 is dedicated as the system timer.
+ */
 
- /****************************************************************************
- * Public Functions
+/* "The PRT input clock for both channels is equal to the system clock
+ * divided by 20."
+ */
+
+#define Z180_PRT_CLOCK   (Z180_SYSCLOCK / 20)
+
+/* The data Register "(TMDR) is decremented once every twenty clocks. When
+ * TMDR counts down to 0, it is automatically reloaded with the value
+ * contained in the Reload Register (RLDR)."
+ */
+
+#define A180_PRT0_RELOAD (Z180_PRT_CLOCK / CLK_TCK)
+
+/****************************************************************************
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
- * Name: z180_uart_lowinit
- *
- * Description:
- *   Called early in the boot sequence to initialize the uart console
- *   channel (only).
- *
+ * Private Function Prototypes
  ****************************************************************************/
-
-#if defined(HAVE_UART) && defined(USE_LOWSERIALINIT)
-void z180_uart_lowinit(void);
-#else
-#  define z180_uart_lowinit()
-#endif
 
 /****************************************************************************
- * Name: z180_scc_lowinit
- *
- * Description:
- *   Called early in the boot sequence to initialize the [E]SCC console
- *   channel (only).
- *
+ * Global Functions
  ****************************************************************************/
-
-#if defined(HAVE_SCC) && defined(USE_LOWSERIALINIT)
-void z180_scc_lowinit(void);
-#else
-#  define z180_scc_lowinit()
-#endif
 
 /****************************************************************************
- * Name: z180_putc
+ * Function: up_timerisr
  *
  * Description:
- *   Low-level character output
+ *   The timer ISR will perform a variety of services for various portions
+ *   of the systems.
  *
  ****************************************************************************/
 
-void z180_putc(uint8_t ch) __naked;
+int up_timerisr(int irq, chipreg_t *regs)
+{
+  volatile uint8_t regval;
+
+  /* "When TMDR0 decrements to 0, TIF0 is set to 1. This generates an interrupt
+   * request if enabled by TIE0 = 1. TIF0 is reset to 0 when TCR is read and
+   * the higher or lower byte of TMDR0 is read." 
+   */
+
+  regval = inp(Z180_PRT_TCR);
+  regval = inp(Z180_PRT0_DRL);
+  regval = inp(Z180_PRT0_DRH);
+
+  /* Process timer interrupt */
+
+  sched_process_timer();
+  return 0;
+}
 
 /****************************************************************************
- * Name: up_putc/up_lowputc
+ * Function: up_timerinit
  *
  * Description:
- *   Low-level console output
+ *   This function is called during start-up to initialize the timer
+ *   interrupt.
  *
  ****************************************************************************/
 
-#ifdef USE_SERIALDRIVER
-int up_lowputc(int ch);
-#else
-int up_putc(int ch);
-#  define up_lowputc(ch) up_putc(ch)
-#endif
+void up_timerinit(void)
+{
+  uint8_t regval;
 
-#endif /* __ARCH_Z80_SRC_Z180_Z180_SERIAL_H */
+  /* Configure PRT0 to interrupt at the requested rate */
+  /* First stop PRT0 and disable interrupts */
+
+  regval  = inp(Z180_PRT_TCR);
+  regval &= (PRT_TCR_TIF0|PRT_TCR_TIE0|PRT_TCR_TDE0);
+  outp(Z180_PRT_TCR, regval);
+
+  /* Set the timer reload value so that the timer will interrupt at the
+   * desired frequency.  "For writing, the TMDR down counting must be
+   * inhibited using the TDE (Timer Down Count Enable) bits in the TCR
+   * (Timer Control Register). Then, any or both higher and lower bytes of
+   * TMDR can be freely written (and read) in any order."
+   */
+
+  outp(Z180_PRT0_RLDRL, (A180_PRT0_RELOAD & 0xff));
+  outp(Z180_PRT0_RLDRH, (A180_PRT0_RELOAD >> 8));
+
+  /* Enable down-counting */
+
+  regval |= PRT_TCR_TDE0;
+  outp(Z180_PRT_TCR, regval);
+
+  /* Attach the timer interrupt vector */
+
+  (void)irq_attach(Z180_PRT0, (xcpt_t)up_timerisr);
+
+  /* And enable the timer interrupt */
+
+  regval |= PRT_TCR_TIE0;
+  outp(Z180_PRT_TCR, regval);
+}

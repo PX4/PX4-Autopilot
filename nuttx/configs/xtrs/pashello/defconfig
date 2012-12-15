@@ -80,7 +80,7 @@ CONFIG_LINKER_ROM_AT_0000=y
 #
 # Architecture Options
 #
-# CONFIG_ARCH_NOINTC is not set
+CONFIG_ARCH_NOINTC=y
 # CONFIG_ARCH_DMA is not set
 # CONFIG_ARCH_IRQPRIO is not set
 # CONFIG_ARCH_STACKDUMP is not set
