@@ -1804,6 +1804,9 @@ configs/p112
   Hal Bower was very active in the mid 1990's on the P112 project and ported
   the "Banked/Portable BIOS".
 
+  Dave Brooks was successfully funded through Kickstarter for and another
+  run of P112 boards in November of 2012.
+
 configs/pic32-starterkit
   This directory contains the port of NuttX to the Microchip PIC32 Ethernet
   Starter Kit (DM320004) with the Multimedia Expansion Board (MEB, DM320005).

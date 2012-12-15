@@ -499,16 +499,14 @@ Native Windows Build
 --------------------
 
   The beginnings of a Windows native build are in place but still not full
-  usable as of this writing.  The windows native build logic is currently
-  separate and must be started by:
-
-    make -f Makefile.win
+  usable as of this writing.  The windows native build logic initiatiated
+  if CONFIG_WINDOWS_NATIVE=y is defined in the NuttX configuration file:
 
   This build:
 
     - Uses all Windows style paths
     - Uses primarily Windows batch commands from cmd.exe, with
-    - A few extensions from GNUWin32 (or MSYS is you prefer)
+    - A few extensions from GNUWin32
 
   In this build, you cannot use a Cygwin or MSYS shell. Rather the build must
   be performed in a Windows CMD shell. Here is a better shell than than the
@@ -517,8 +515,6 @@ Native Windows Build
 
   Build Tools.  The build still relies on some Unix-like commands.  I use
   the GNUWin32 tools that can be downloaded from http://gnuwin32.sourceforge.net/.
-  The MSYS tools are probably also a option but are likely lower performance
-  since they are based on Cygwin 1.3.
 
   Host Compiler:  I use the MingGW compiler which can be downloaded from
   http://www.mingw.org/.  If you are using GNUWin32, then it is recommended

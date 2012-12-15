@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX RTOS</i></font></big></h1>
-      <p>Last Updated: November 5, 2012</p>
+      <p>Last Updated: December 15, 2012</p>
     </td>
   </tr>
 </table>
@@ -1234,12 +1234,13 @@ svn checkout -r5313 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
   </li>
   </td>
   <td bgcolor="#e4e4e4" valign="top">
-  <li>Zilog
+  <li>ZiLOG
     <ul>
-        <li><a href="#zilogz16f">Zilog Z16F</a> (1)</li>
-        <li><a href="#zilogez80acclaim">Zilog eZ80 Acclaim!</a> (1)</li>
-        <li><a href="#zilogz8encore">Zilog Z8Encore!</a> (2)</li>
-        <li><a href="#zilogz80">Zilog Z80</a> (2)</li>
+        <li><a href="#zilogz16f">ZiLOG Z16F</a> (1)</li>
+        <li><a href="#zilogez80acclaim">ZiLOG eZ80 Acclaim!</a> (1)</li>
+        <li><a href="#zilogz8encore">ZiLOG Z8Encore!</a> (2)</li>
+        <li><a href="#zilogz180">ZiLOG Z180</a> (1)</li>
+        <li><a href="#zilogz80">ZiLOG Z80</a> (2)</li>
     </ul>
   </li>
 </ul>
@@ -2777,6 +2778,35 @@ BFD_ASSERT (*plt_offset != (bfd_vma) -1);
 <tr>
   <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
   <td bgcolor="#5eaee1">
+    <a name="zilogz180"><b>Zilog Z180</b>.</a>
+  </td>
+</tr>
+<tr>
+  <td><br></td>
+  <td>
+    <p>
+      <b>P112</b>.
+      The P112 is a hobbyist single board computer based on a 16MHz Z80182 with up to 1MB of memory, serial,
+parallel and diskette IO, and realtime clock, in a 3.5-inch drive form factor..
+      The P112 computer originated as a commercial product of &quot;D-X Designs Pty Ltd&quot[ of Australia.
+    </p>
+    </p>
+      Dave Brooks was successfully funded through Kickstarter for and another run of P112 boards in November of 2012.
+      In addition Terry Gulczynski makes additional P112 derivative hobbyist home brew computers.
+    </p>
+    <ul>
+      <p>
+       <b>STATUS:</b>
+       Most of the NuttX is in port for both the Z80182 and for the P112 board.
+       Boards from Kickstarter project will not be available, however, until the first quarter of 2013.
+       So it will be some time before this port is verified on hardware.
+      </p>
+    <ul>
+  </td>
+</tr>
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
     <a name="zilogz80"><b>Zilog Z80</b>.</a>
   </td>
 </tr>
@@ -2842,7 +2872,7 @@ avr, m68k, m68hc11, m68hc12, m9s12, blackfin, m32c, h8, and SuperH ports.</block
 <tr>
   <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
   <td bgcolor="#5eaee1">
-    <b>Linux + GNU <code>make</code> + GCC/binutils</b>
+    <b>Linux + GNU <code>make</code> + GCC/binutils for Linux</b>
   </td>
 </tr>
 <tr>
@@ -2866,7 +2896,7 @@ avr, m68k, m68hc11, m68hc12, m9s12, blackfin, m32c, h8, and SuperH ports.</block
 <tr>
   <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
   <td bgcolor="#5eaee1">
-    <b>Linux + GNU <code>make</code> + SDCC</b>
+    <b>Linux + GNU <code>make</code> + SDCC for Linux</b>
   </td>
 </tr>
 <tr>
@@ -2885,7 +2915,7 @@ avr, m68k, m68hc11, m68hc12, m9s12, blackfin, m32c, h8, and SuperH ports.</block
 <tr>
   <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
   <td bgcolor="#5eaee1">
-    <b>Cygwin + GNU <code>make</code> + GCC/binutils</b>
+    <b>Windows with Cygwin + GNU <code>make</code> + GCC/binutils (custom built under Cygwin)</b>
   </td>
 </tr>
 <tr>
@@ -2893,10 +2923,8 @@ avr, m68k, m68hc11, m68hc12, m9s12, blackfin, m32c, h8, and SuperH ports.</block
   <td>
     <p>
       This combination works well too.
-      It works just as well as the native Linux environment except
-      that compilation and build times are a little longer.
-      The custom NuttX <a href="http://sourceforge.net/projects/nuttx/files/buildroot/">buildroot</a> referenced above may be build in
-      the Cygwin environment as well.
+      It works just as well as the native Linux environment except that compilation and build times are a little longer.
+      The custom NuttX <a href="http://sourceforge.net/projects/nuttx/files/buildroot/">buildroot</a> referenced above may be build in the Cygwin environment as well.
     </p>
   </td>
 </tr>
@@ -2904,7 +2932,7 @@ avr, m68k, m68hc11, m68hc12, m9s12, blackfin, m32c, h8, and SuperH ports.</block
 <tr>
   <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
   <td bgcolor="#5eaee1">
-    <b>Cygwin + GNU <code>make</code> + SDCC</b>
+    <b>Windows with Cygwin + GNU <code>make</code> + SDCC (custom built under Cygwin)</b>
   </td>
 </tr>
 <tr>
@@ -2919,7 +2947,7 @@ avr, m68k, m68hc11, m68hc12, m9s12, blackfin, m32c, h8, and SuperH ports.</block
 <tr>
   <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
   <td bgcolor="#5eaee1">
-    <b>Cygwin + GNU <code>make</code> + Windows Native Toolchain</b>
+    <b>Windows with Cygwin + GNU <code>make</code> + Windows Native Toolchain</b>
   </td>
 </tr>
 <tr>
@@ -2975,12 +3003,62 @@ avr, m68k, m68hc11, m68hc12, m9s12, blackfin, m32c, h8, and SuperH ports.</block
     </ul>
     <p>
       <b>Supported Windows Native Toolchains</b>.
-      At present, only the Zilog Z16F, z8Encore, and eZ80Acclaim ports use a non-GCC native Windows
-      toolchain(the Zilog ZDS-II toolchain).
-      Support for Windows native GCC toolchains (CodeSourcery and devkitARM) is currently implemented
-      for the NXP LPC214x, STMicro STR71x, and Luminary LMS6918 ARM ports.
-      (but could easily be extended to any other GCC-based platform with a small effort).
+      At present, the following Windows native toolchains are in use:
+      <ol>
+        <li>GCC built for Windows (such as CodeSourcery, Atollic, devkitARM, etc.),</li>
+        <li>SDCC built for Windows,</li>
+        <li> the ZiLOG XDS-II toolchain for Z16F, z8Encore, and eZ80Acclaim parts.</li>
+      </ol>
     </p>
+  </td>
+</tr>
+
+<tr>
+  <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
+  <td bgcolor="#5eaee1">
+    <b>Windows Native (<code>CMD.exe</code>) + GNUWin32 (including GNU <code>make</code>) + MinGW Host GCC compiler + Windows Native Toolchain</b>
+  </td>
+</tr>
+  <td><br></td>
+  <td>
+    <p>
+      Build support has been added to support building natively in a Windes <code>CMD.exe</code> rather than in a POSIX-like environment.
+    </p>
+    <p>
+      This build:
+    </p>
+    <ol>
+      <li>Uses all Windows style paths</li>
+      <li>Uses primarily Windows batch commands from cmd.exe, with</li>
+      <li>A few extensions from GNUWin32</li>
+    </ol>
+    <p>
+      This capability first appeared in NuttX-6.24 and should still be considered a work in progress because: (1) it has not been verfied on all targets and tools, and (2) still lacks some of the creature-comforts of the more mature environments.
+      The windows native build logic initiatiated if <code>CONFIG_WINDOWS_NATIVE=y</code> is defined in the NuttX configuration file:
+    </p>
+    <p>
+      At present, this build environment also requires:
+    </p>
+    <ul>
+      <li>
+        <b><code>CMD.exe</code> Shell</b>.
+        The build must be performed in a Windows <code>CMD.exe</code shell.
+        This may be the standard <code>cmd</code> shell that comes with Windows.
+        I prefer the ConEmu command shell which can be downloaded from:
+        http://code.google.com/p/conemu-maximus5/
+      </li>
+      <li>
+        <b>GNUWin32</b>.
+        The build still relies on some Unix-like commands.
+        I usethe GNUWin32 tools that can be downloaded from http://gnuwin32.sourceforge.net/.
+        See the top-level <code>nuttx/README.txt</code> file for some download, build, and installation notes.
+      </li>
+      <li>
+        <b>MinGW-GCC</b>.
+        MinGW-GCC is used to compiler the C tools in the <code>nuttx/tools</code> directory that are neede by the build.
+        MinGW-GCC can be downloaded from http://www.mingw.org/.
+        If you are using GNUWin32, then it is recommendedthe you not install the optional MSYS components as there may be conflicts.
+      </li>
   </td>
 </tr>
 
@@ -3028,8 +3106,7 @@ if [ -x "$WINELOADER" ]; then exec "$WINELOADER" "$appname" "$@"; fi
 <tr>
   <td valign="top"><img height="20" width="20" src="favicon.ico"></td>
   <td bgcolor="#5eaee1">
-    <b>Other Environments?
-    Windows Native <code>make</code> + Windows Native Toolchain?</b>
+    <b>Other Environments?</b>
   </td>
 </tr>
 <tr>
@@ -3046,19 +3123,15 @@ if [ -x "$WINELOADER" ]; then exec "$WINELOADER" "$appname" "$@"; fi
       modification of the Make system would be required.
     </p>
     <p>
-     <b>GNUWin32</b>.
-      For example, with suitable make system changes, it should be possible to
-      use native GNU tools (such as those from
-      <a href="http://sourceforge.net/projects/gnuwin32/">GNUWin32</a>)
-      to build NuttX.
-      However, that environment has not been used as of this writing.
-   </p>
-      <p><small>
-        NOTE: One of the members on the <a href="http://tech.groups.yahoo.com/group/nuttx/">NuttX forum</a>
-        reported that they successful built NuttX using such a GNUWin32-based, Windows native environment.
-        They reported that the only necessary change was to the use the NTFS mklink command to create links
-        (see <code>tools/copydir.sh</code> script).
-      </small></p>
+      <b>MSYS</b>.
+      I have not used MSYS but what I gather from talking with NuttX users is that MSYS can be used as an alternative to Cygwin in any of the above Cygwin environments.
+      This is not surprising since MSYS is based on an older version of Cygwin (cygwin-1.3).
+      MSYS has been modified, however, to interoperate in the Windows environment better than Cygwin and that may be of value to some users.
+    </p>
+    <p>
+      MSYS, however, cannot be used with the native Windows NuttX build because it will invoke the MSYS bash shell instead of the <code>CMD.exe</code> shell.
+      Use GNUWin32 in the native Windows build envionment.
+    </p>
   </td>
 </tr>
 </table></center>

@@ -24,6 +24,9 @@ Gulczynski makes additional P112 derivative hobbyist home brew computers.
 Hal Bower was very active in the mid 1990's on the P112 project and ported
 the "Banked/Portable BIOS".
 
+Dave Brooks was successfully funded through Kickstarter for and another
+run of P112 boards in November of 2012.
+
 Pin Configuration
 =================
 
