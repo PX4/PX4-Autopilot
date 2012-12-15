@@ -106,9 +106,9 @@ struct sys_state_s
 	bool		fmu_report_due;
 
 	/**
-	 * If true, new control data from the FMU has been received.
+	 * Last FMU receive time, in microseconds since system boot
 	 */
-	bool		fmu_data_received;
+	uint64_t	fmu_data_received_time;
 
 	/**
 	 * Current serial interface mode, per the serial_rx_mode parameter

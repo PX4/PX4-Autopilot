@@ -61,8 +61,8 @@
 #include "px4io.h"
 
 #define RC_FAILSAFE_TIMEOUT		2000000		/**< two seconds failsafe timeout */
-#define RC_CHANNEL_HIGH_THRESH		1600
-#define RC_CHANNEL_LOW_THRESH		1400
+#define RC_CHANNEL_HIGH_THRESH		1700
+#define RC_CHANNEL_LOW_THRESH		1300
 
 static void	ppm_input(void);
 
@@ -133,8 +133,7 @@ controls_main(void)
 			system_state.fmu_report_due = true;
 		}
 
-		/* do PWM output updates */
-		mixer_tick();
+		/* PWM output updates are performed directly on each comms update */
 	}
 }
 

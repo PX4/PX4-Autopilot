@@ -53,10 +53,9 @@
 #include "px4io.h"
 
 /*
- * Count of periodic calls in which we have no FMU input.
+ * Maximum interval in us before FMU signal is considered lost
  */
-static unsigned fmu_input_drops;
-#define FMU_INPUT_DROP_LIMIT	20
+#define FMU_INPUT_DROP_LIMIT_US		200000
 
 /*
  * Update a mixer based on the current control signals.
@@ -91,17 +90,11 @@ mixer_tick(void)
 		control_values = &system_state.fmu_channel_data[0];
 
 		/* check that we are receiving fresh data from the FMU */
-		if (!system_state.fmu_data_received) {
-			fmu_input_drops++;
+		if ((hrt_absolute_time() - system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
 
 			/* too many frames without FMU input, time to go to failsafe */
-			if (fmu_input_drops >= FMU_INPUT_DROP_LIMIT) {
-				system_state.mixer_manual_override = true;
-				system_state.mixer_fmu_available = false;
-			}
-		} else {
-			fmu_input_drops = 0;
-			system_state.fmu_data_received = false;
+			system_state.mixer_manual_override = true;
+			system_state.mixer_fmu_available = false;
 		}
 
 	} else if (system_state.rc_channels > 0 && system_state.manual_override_ok) {
@@ -109,7 +102,7 @@ mixer_tick(void)
 		control_count = system_state.rc_channels;
 		control_values = &system_state.rc_channel_data[0];
 	} else {
-		/* we have no control input */
+		/* we have no control input (no FMU, no RC) */
 
 		// XXX builtin failsafe would activate here 
 		control_count = 0;

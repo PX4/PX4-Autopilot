@@ -183,7 +183,7 @@ comms_handle_command(const void *buffer, size_t length)
 	system_state.vector_flight_mode_ok = cmd->vector_flight_mode_ok;
 	system_state.manual_override_ok = cmd->manual_override_ok;
 	system_state.mixer_fmu_available = true;
-	system_state.fmu_data_received = true;
+	system_state.fmu_data_received_time = hrt_absolute_time();
 
 	/* set PWM update rate if changed (after limiting) */
 	uint16_t new_servo_rate = cmd->servo_rate;
@@ -200,6 +200,9 @@ comms_handle_command(const void *buffer, size_t length)
 		up_pwm_servo_set_rate(new_servo_rate);
 		system_state.servo_rate = new_servo_rate;
 	}
+
+	/* update servo values immediately */
+	mixer_tick();
 
 	/* XXX do relay changes here */	
 	for (unsigned i = 0; i < PX4IO_RELAY_CHANNELS; i++) {
