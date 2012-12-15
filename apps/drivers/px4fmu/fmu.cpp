@@ -297,6 +297,7 @@ PX4FMU::set_pwm_rate(unsigned rate)
 	if ((rate > 500) || (rate < 10))
 		return -EINVAL;
 
+<<<<<<< HEAD:apps/drivers/px4fmu/fmu.cpp
 	_update_rate = rate;
 	return OK;
 }
@@ -312,6 +313,11 @@ PX4FMU::task_main()
 				     ORB_ID(actuator_controls_1));
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
+=======
+	/* subscribe to objects that we are interested in watching */
+	_t_actuators = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	orb_set_interval(_t_actuators, 5);		/* 200Hz update rate */
+>>>>>>> testing:apps/px4/fmu/fmu.cpp
 
 	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
 	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
