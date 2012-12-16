@@ -32,38 +32,11 @@
 ############################################################################
 
 #
-# System utility library
+# Basic example application
 #
 
-CSRCS		 = err.c \
-		   hx_stream.c \
-		   perf_counter.c \
-		   param/param.c \
-		   bson/tinybson.c \
-		   conversions.c \
-		   cpuload.c \
-		   getopt_long.c \
-		   up_cxxinitialize.c \
-		   control/test_params.c
-
-#		   ppm_decode.c \
-
-
-CXXSRCS   =  control/block/Block.cpp \
-			 control/block/BlockParam.cpp \
-			 control/block/UOrbPublication.cpp \
-			 control/block/UOrbSubscription.cpp \
-			 control/blocks.cpp \
-			 math/Vector.cpp \
-			 math/Matrix.cpp
-
-#
-# XXX this really should be a CONFIG_* test
-#
-ifeq ($(TARGET),px4fmu)
-CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
-endif
+APPNAME		 = math_demo
+PRIORITY	 = SCHED_PRIORITY_DEFAULT
+STACKSIZE	 = 2048
 
 include $(APPDIR)/mk/app.mk
