@@ -59,6 +59,12 @@ public:
         _data((T*)malloc(getSize()))
     {
     }
+    Vector(size_t rows, const T * data) :
+        _rows(rows),
+        _data((T*)malloc(getSize()))
+    {
+        memcpy(getData(),data,getSize());
+    }
     // deconstructor
     virtual ~Vector()
     {

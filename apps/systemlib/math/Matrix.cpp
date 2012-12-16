@@ -5,19 +5,22 @@ namespace math
 
 int testMatrix()
 {
-    MatrixFloat a(2,2);
-    const float data[] = {1,0,0,1};
-    a.set(data);
-    MatrixFloat b(2,2);
-    MatrixFloat c(2,2);
-    c = a+b;
+    const float data_a[] = 
+        {1,2,
+         3,4};
+    const float data_b[] = 
+        {5,6,
+         7,8};
+    const float data_c[] = 
+        {1,2};
+    MatrixFloat a(2,2,data_a);
+    MatrixFloat b(2,2,data_b);
+    VectorFloat c(2,data_c);
+
+    a.print();
+    b.print();
     c.print();
-    c = a-b;
-    c.print();
-    c = a*b;
-    c.print();
-    c = a/b;
-    c.print();
+
     return 0;
 }
 

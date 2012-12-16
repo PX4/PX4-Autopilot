@@ -62,6 +62,13 @@ public:
         _data((T*)malloc(getSize()))
     {
     }
+    Matrix(size_t rows, size_t cols, const T * data) :
+        _rows(rows),
+        _cols(cols),
+        _data((T*)malloc(getSize()))
+    {
+        memcpy(getData(),data,getSize());
+    }
     // deconstructor
     virtual ~Matrix()
     {
