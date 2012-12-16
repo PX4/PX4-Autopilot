@@ -469,14 +469,15 @@ mavlink_message_t* mavlink_get_channel_buffer(uint8_t channel)
 void mavlink_update_system(void)
 {
 	static bool initialized = false;
-	param_t param_system_id;
-	param_t param_component_id;
-	param_t param_system_type;
+	static param_t param_system_id;
+	static param_t param_component_id;
+	static param_t param_system_type;
 
 	if (!initialized) {
 		param_system_id = param_find("MAV_SYS_ID");
 		param_component_id = param_find("MAV_COMP_ID");
 		param_system_type = param_find("MAV_TYPE");
+		initialized = true;
 	}
 
 	/* update system and component id */
