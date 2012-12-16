@@ -35,12 +35,12 @@ nuttx/
   (4)  ARM/STM32 (arch/arm/src/stm32/)
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
-  (4)  8051 / MCS51 (arch/8051/)
+  (5)  8051 / MCS51 (arch/8051/)
   (3)  MIPS/PIC32 (arch/mips)
   (1)  Hitachi/Renesas SH-1 (arch/sh/src/sh1)
   (4)  Renesas M16C/26 (arch/sh/src/m16c)
  (10)  z80/z8/ez80 (arch/z80/)
-  (8)  z16 (arch/z16/)
+  (9)  z16 (arch/z16/)
   (1)  mc68hc1x (arch/hc)
 
 apps/
@@ -1505,6 +1505,16 @@ o 8051 / MCS51 (arch/8051/)
   Status:      Open
   Priority:    Low -- only because there as so many other issues with 8051
 
+  Title:       8051 BUILD BROKEN
+  Description: The last time I tried to build the pjrc-8051 configurtion using
+               the SDCC 3.2.1 toolchain (for Windows).  I got compilation
+               errors in sched/os_bringup.c.  It complained about type
+               mis-matches.  What I gather from Googling, this is a problem
+               with the --stack-auto option.  At any rate, this problem will
+               need to be fixed if you want to resurrect the 8051 NuttX port.
+ Status:       Open
+ Priority:     Low -- I don't think anyone uses the 8051 port.
+
 o MIPS/PIC32(arch/mips)
   ^^^^^^^^^^^^^^^^^^^^^
 
@@ -1833,9 +1843,17 @@ o z16 (arch/z16)
                Internal Error(0503) On line 2504 of "MMCSD\MMCSD_SDIO.C"
                    File <c3>, Args(562,46)
 
-  Status:     Open.  Recommended workaround: remove mmcsd_sdio.c from
-              drivers/mmcsd/Make.defs.  There is no SDIO support for the Z16 anyway
-  Priority:   Low
+  Status:      Open.  Recommended workaround: remove mmcsd_sdio.c from
+               drivers/mmcsd/Make.defs.  There is no SDIO support for the Z16 anyway
+  Priority:    Low
+
+  Title:       NATIVE BUILD PROBLEMS
+  Description: When last tested (ca.12/12), there were some missing .obj files in
+               arch/z16/src. A little additional TLC will be needed to get a
+               reliable Windows native build.  As of this writing, the Cygwin
+               based build has not been re-verified.
+  Status:      Open
+  Priority:    Low -- I don't think anyone uses the Z16 port.  
 
 o mc68hc1x (arch/hc)
   ^^^^^^^^^^^^^^^^^^

@@ -3782,4 +3782,13 @@
 	* arch/z80/src/z180/z180_mmu.*:  Add MMU support for z180 tasks.
 	* configs/p112:  Add very basic board support and an examples/ostest
 	  configuration for the venerable P112 board.
+	* sched/os_bringup.c: If CONFIG_PATH_INITIAL is defined, then the initial
+	  environment of the task started by os_bringup() will have the PATH
+	  environment variable defined to be that string.
+	* binfmt/binfmt_exepath.c:  If CONFIG_BINFMT_EXEPATH is defined, then this
+	  file will be built.  In contains logic to search for regular files at
+	  the absolutes paths found in the current PATH environment variable
+	  setting.  This is untested and not yet hooked into the binfmt exec()
+	  logic on initial check-in
+
 
