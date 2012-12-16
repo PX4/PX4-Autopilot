@@ -92,10 +92,22 @@ controls_main(void)
 		 */
 		bool locked = false;
 
+		/*
+		 * Store RC channel count to detect switch to RC loss sooner
+		 * than just by timeout
+		 */
+		unsigned rc_channels = system_state.rc_channels;
+
+		/*
+		 * Track if any input got an update in this round
+		 */
+		bool rc_updated;
+
 		if (fds[0].revents & POLLIN)
 			locked |= dsm_input();
 		if (fds[1].revents & POLLIN)
-			locked |= sbus_input();
+			locked |= sbus_input(fds[1].fd, PX4IO_INPUT_CHANNELS, &system_state.rc_channel_data,
+				&system_state.rc_channels, &system_state.rc_channels_timestamp, &rc_updated);
 
 		/*
 		 * If we don't have lock from one of the serial receivers,
@@ -127,13 +139,21 @@ controls_main(void)
 
 			/* set the number of channels to zero - no inputs */
 			system_state.rc_channels = 0;
-			system_state.rc_lost = true;
-
-			/* trigger an immediate report to the FMU */
-			system_state.fmu_report_due = true;
+			rc_updated = true;
 		}
 
-		/* PWM output updates are performed directly on each comms update */
+		/*
+		 * If there was a RC update OR the RC signal status (lost / present) has
+		 * just changed, request an update immediately.
+		 */
+		system_state.fmu_report_due |= rc_updated;
+
+		/*
+		 * PWM output updates are performed in addition on each comm update.
+		 * the updates here are required to ensure operation if FMU is not started
+		 * or stopped responding.
+		 */
+		mixer_tick();
 	}
 }
 

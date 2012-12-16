@@ -193,7 +193,8 @@ extern void	controls_main(void);
 extern int	dsm_init(const char *device);
 extern bool	dsm_input(void);
 extern int	sbus_init(const char *device);
-extern bool	sbus_input(void);
+extern bool	sbus_input(int fd, unsigned max_channels, uint16_t *channel_data, unsigned *channel_count,
+		uint64_t *receive_time, bool *updated);
 
 /*
  * Assertion codes

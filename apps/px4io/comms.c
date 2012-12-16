@@ -52,6 +52,7 @@
 #include <nuttx/clock.h>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
 #include <systemlib/hx_stream.h>
 #include <systemlib/perf_counter.h>
 
@@ -201,7 +202,12 @@ comms_handle_command(const void *buffer, size_t length)
 		system_state.servo_rate = new_servo_rate;
 	}
 
-	/* update servo values immediately */
+	/*
+	 * update servo values immediately.
+	 * the updates are done in addition also
+	 * in the mainloop, since this function will only
+	 * update with a connected FMU.
+	 */
 	mixer_tick();
 
 	/* XXX do relay changes here */	

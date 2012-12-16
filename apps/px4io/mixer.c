@@ -48,7 +48,10 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include <debug.h>
+
 #include <drivers/drv_pwm_output.h>
+#include <drivers/drv_hrt.h>
 
 #include "px4io.h"
 
@@ -95,6 +98,7 @@ mixer_tick(void)
 			/* too many frames without FMU input, time to go to failsafe */
 			system_state.mixer_manual_override = true;
 			system_state.mixer_fmu_available = false;
+			lib_lowprintf("\nRX timeout\n");
 		}
 
 	} else if (system_state.rc_channels > 0 && system_state.manual_override_ok) {
