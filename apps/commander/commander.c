@@ -1324,7 +1324,9 @@ int commander_thread_main(int argc, char *argv[])
 
 			/* update parameters */
 			if (!current_status.flag_system_armed) {
-				current_status.system_type = param_get(_param_sys_type, &(current_status.system_type));
+				if (param_get(_param_sys_type, &(current_status.system_type)) != OK) {
+					warnx("failed setting new system type");
+				}
 
 				/* disable manual override for all systems that rely on electronic stabilization */
 				if (current_status.system_type == MAV_TYPE_QUADROTOR ||
