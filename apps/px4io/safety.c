@@ -71,8 +71,14 @@ static unsigned counter = 0;
 
 static unsigned blink_counter = 0;
 
+/*
+ * IMPORTANT: The arming state machine critically
+ * 	      depends on using the same threshold
+ *            for arming and disarming. Since disarming
+ *            is quite deadly for the system, a similar
+ *            length can be justified.
+ */
 #define ARM_COUNTER_THRESHOLD	10
-#define DISARM_COUNTER_THRESHOLD	4
 
 static bool safety_button_pressed;
 
@@ -102,8 +108,16 @@ safety_check_button(void *arg)
 	 */
 	safety_button_pressed = BUTTON_SAFETY;
 
-	/* Keep pressed for a while to arm */
+	/*
+	 * Keep pressed for a while to arm.
+	 *
+	 * Note that the counting sequence has to be same length
+	 * for arming / disarming in order to end up as proper
+	 * state machine, keep ARM_COUNTER_THRESHOLD the same
+	 * length in all cases of the if/else struct below.
+	 */
 	if (safety_button_pressed && !system_state.armed) {
+
 		if (counter < ARM_COUNTER_THRESHOLD) {
 			counter++;
 		} else if (counter == ARM_COUNTER_THRESHOLD) {
@@ -114,9 +128,10 @@ safety_check_button(void *arg)
 		}
 	/* Disarm quickly */
 	} else if (safety_button_pressed && system_state.armed) {
-		if (counter < DISARM_COUNTER_THRESHOLD) {
+
+		if (counter < ARM_COUNTER_THRESHOLD) {
 			counter++;
-		} else if (counter == DISARM_COUNTER_THRESHOLD) {
+		} else if (counter == ARM_COUNTER_THRESHOLD) {
 			/* change to disarmed state and notify the FMU */
 			system_state.armed = false;
 			counter++;
