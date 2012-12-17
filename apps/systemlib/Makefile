@@ -49,7 +49,8 @@ CSRCS		 = err.c \
 #		   ppm_decode.c \
 
 
-CXXSRCS   =  control/block/Block.cpp \
+CXXSRCS   =  test/test.cpp \
+			 control/block/Block.cpp \
 			 control/block/BlockParam.cpp \
 			 control/block/UOrbPublication.cpp \
 			 control/block/UOrbSubscription.cpp \

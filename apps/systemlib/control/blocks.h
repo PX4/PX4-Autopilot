@@ -41,16 +41,15 @@
 
 #include "block/Block.h"
 #include "block/BlockParam.h"
-#include "assert.h"
+#include <assert.h>
 #include <time.h>
 #include <stdlib.h>
+#include <systemlib/test/test.h>
 
 namespace control
 {
 
 int __EXPORT basicBlocksTest();
-
-bool equal(float a, float b, float eps);
 
 /**
  * A limiter/ saturation.

@@ -233,15 +233,19 @@ public:
         result.setAll(0);
         for (size_t i=0; i<getRows(); i++)
         {
-            for (size_t j=0; j<getCols(); j++)
+            for (size_t j=0; j<right.getCols(); j++)
             {
-                result(i,j) += (*this)(i,j) * right(j,i);
+                for (size_t k=0; k<right.getRows(); k++)
+                {
+                    result(i,j) += (*this)(i,k) * right(k,j);
+                }
             }
         }
         return result;
     }
     MatrixType operator/(const MatrixType & right) const
     {
+        ASSERT(right.getRows()==right.getCols());
         ASSERT(getCols()==right.getCols());
         return (*this)*right.inverse();
     }
@@ -295,6 +299,10 @@ private:
 
 typedef Matrix<float> MatrixFloat;
 
-int testMatrix();
+int matrixTest();
+int matrixAddTest();
+int matrixSubTest();
+int matrixMultTest();
+int matrixDivTest();
 
 } // namespace math

@@ -1,4 +1,3 @@
-
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
@@ -175,6 +174,7 @@ public:
         {
             result(i) = (*this)(i) - right(i);
         }
+        return result;
     }
     // other functions
     void setAll(const T & val)
@@ -198,6 +198,8 @@ private:
 
 typedef Vector<float> VectorFloat;
 
-int testVector();
+int __EXPORT vectorTest();
+int __EXPORT vectorAddTest();
+int __EXPORT vectorSubTest();
 
 } // math

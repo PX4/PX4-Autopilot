@@ -96,6 +96,7 @@ int math_demo_main(int argc, char *argv[])
 void test()
 {
     printf("beginning math lib test\n");
-    math::testMatrix();
-    math::testVector();
+    using namespace math;
+    vectorTest();
+    matrixTest();
 }

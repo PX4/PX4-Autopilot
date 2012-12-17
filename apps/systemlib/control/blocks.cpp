@@ -64,17 +64,6 @@ int basicBlocksTest()
     return 0;
 }
 
-bool equal(float a, float b, float epsilon = 1e-7)
-{
-    float diff = fabs(a-b);
-    if (diff>epsilon)
-    {
-        printf("not equal ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b)); 
-        return false;
-    }
-    else return true;
-}
-
 float BlockLimit::update(float input)
 {
     if (input > getMax())

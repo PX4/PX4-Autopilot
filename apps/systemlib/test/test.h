@@ -32,51 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file Vector.cpp
+ * @file test.h
  *
- * math vector
+ * Controller library code
  */
 
-#include <systemlib/test/test.h>
+#pragma once
 
-#include "Vector.h"
+#include <assert.h>
+#include <time.h>
+#include <stdlib.h>
 
-namespace math
-{
-
-static const float data_a[] = {1,3};
-static const float data_b[] = {4,1};
-
-static VectorFloat a(2,data_a);
-static VectorFloat b(2,data_b);
-
-int __EXPORT vectorTest()
-{
-    vectorAddTest();
-    vectorSubTest();
-    return 0;
-}
-
-int vectorAddTest()
-{
-    printf("Test Vector Add\t\t: ");
-    VectorFloat r = a + b;
-    ASSERT(equal(r(0),5.0f))
-    ASSERT(equal(r(1),4.0f))
-    printf("PASS\n");
-    return 0;
-}
-
-int vectorSubTest()
-{
-    printf("Test Vector Sub\t\t: ");
-    VectorFloat c(2);
-    c = a - b;
-    ASSERT(equal(c(0),-3.0f))
-    ASSERT(equal(c(1),2.0f))
-    printf("PASS\n");
-    return 0;
-}
-
-
-} // namespace math
+bool equal(float a, float b, float eps = 1e-7);
