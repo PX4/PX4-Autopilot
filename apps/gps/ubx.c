@@ -76,6 +76,11 @@ uint8_t UBX_CONFIG_MESSAGE_MSG_NAV_SOL[] = {0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 
 uint8_t UBX_CONFIG_MESSAGE_MSG_NAV_VELNED[] = {0xB5, 0x62, 0x06, 0x01, 0x08, 0x00,   0x01, 0x12,   0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
 uint8_t UBX_CONFIG_MESSAGE_MSG_RXM_SVSI[] = {0xB5, 0x62, 0x06, 0x01, 0x08, 0x00,   0x02, 0x20,   0x00, 0x02, 0x00, 0x00, 0x00, 0x00};
 
+// Set dynamic model to 7: Airborne with <2g Acceleration
+uint8_t UBX_CONFIG_MESSAGE_MSG_CFG_NAV5[] = {0xB5, 0x62, 0x00, 0x01, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+
+
 void ubx_decode_init(void)
 {
 	ubx_state->ck_a = 0;
@@ -587,7 +592,10 @@ int configure_gps_ubx(int *fd)
 	//TODO: write this in a loop once it is tested
 	//UBX_CFG_PRT_PART:
 	write_config_message_ubx(UBX_CONFIG_MESSAGE_PRT, sizeof(UBX_CONFIG_MESSAGE_PRT) / sizeof(uint8_t) , *fd);
+	usleep(100000);
 
+	//CFG_NAV5
+	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_CFG_NAV5, sizeof(UBX_CONFIG_MESSAGE_MSG_CFG_NAV5) / sizeof(uint8_t), *fd);
 	usleep(100000);
 
 	//NAV_POSLLH:
@@ -606,7 +614,6 @@ int configure_gps_ubx(int *fd)
 	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_SOL, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_SOL) / sizeof(uint8_t) , *fd);
 	usleep(100000);
 
-
 	//NAV_SVINFO:
 	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_SVINFO, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_SVINFO) / sizeof(uint8_t) , *fd);
 	usleep(100000);
@@ -614,7 +621,6 @@ int configure_gps_ubx(int *fd)
 	//NAV_VELNED:
 	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_NAV_VELNED, sizeof(UBX_CONFIG_MESSAGE_MSG_NAV_VELNED) / sizeof(uint8_t) , *fd);
 	usleep(100000);
-
 
 	//RXM_SVSI:
 	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_RXM_SVSI, sizeof(UBX_CONFIG_MESSAGE_MSG_RXM_SVSI) / sizeof(uint8_t) , *fd);
