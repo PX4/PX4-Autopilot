@@ -37,10 +37,10 @@
  * matrix code
  */
 
-#include <systemlib/test/test.h>
+#include <systemlib/test/test.hpp>
 #include <math.h>
 
-#include "Matrix.h"
+#include "Matrix.hpp"
 
 namespace math
 {

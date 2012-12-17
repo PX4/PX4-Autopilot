@@ -40,7 +40,7 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "blocks.h"
+#include "blocks.hpp"
 
 namespace control
 {

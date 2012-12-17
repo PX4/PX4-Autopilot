@@ -37,7 +37,7 @@
  * kalman filter code
  */
 
-#include "Kalman.h"
+#include "Kalman.hpp"
 
 namespace math
 {
@@ -50,17 +50,21 @@ int __EXPORT kalmanTest()
 
 int __EXPORT kalmanNavTest()
 {
+    printf("Test Kalman Nav\t\t: ");
+    typedef Matrix<float> MatrixType;
+    typedef Vector<float> VectorType;
     KalmanNav<float> nav;
     for (int i=0;i<100;i++)
     {
-        nav.predict(0.01);
         Vector<float> zMag(3);
         zMag.setAll(1);
         Vector<float> zGps(6);
         zGps.setAll(1);
+        nav.predict(0.01);
         nav.correctMag(zMag);
         nav.correctGps(zGps);
     }
+    printf("PASS\n");
     return 0;
 }
 

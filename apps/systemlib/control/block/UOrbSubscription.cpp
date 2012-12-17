@@ -36,7 +36,7 @@
  *
  */
 
-#include "UOrbSubscription.h"
+#include "UOrbSubscription.hpp"
 
 namespace control
 {

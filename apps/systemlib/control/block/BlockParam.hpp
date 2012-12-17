@@ -41,8 +41,8 @@
 
 #include <systemlib/param/param.h>
 
-#include "Block.h"
-#include "List.h"
+#include "Block.hpp"
+#include "List.hpp"
 
 namespace control
 {

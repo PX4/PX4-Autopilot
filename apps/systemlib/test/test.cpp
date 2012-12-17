@@ -40,7 +40,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "test.h"
+#include "test.hpp"
 
 bool __EXPORT equal(float a, float b, float epsilon)
 {

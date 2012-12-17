@@ -39,8 +39,8 @@
 
 #pragma once
 
-#include "Vector.h"
-#include "Matrix.h"
+#include "Vector.hpp"
+#include "Matrix.hpp"
 
 namespace math
 {
@@ -62,7 +62,7 @@ public:
     virtual ~Kalman()
     {
     }
-    virtual void predict(float dt)
+    void predict(float dt)
     {
         setP(getF()*getP()*getF().transpose() + getQ());
     }
@@ -100,9 +100,9 @@ public:
     typedef Kalman<T> KalmanType;
     KalmanNav() :
         KalmanType(12),
-        _hMag(MatrixType::zero(3)),
+        _hMag(3,12),
         _rMag(MatrixType::zero(3)),
-        _hGps(MatrixType::zero(6)),
+        _hGps(3,6),
         _rGps(MatrixType::zero(6))
     {
         setP(MatrixType::identity(12)*0.001f);
@@ -115,24 +115,24 @@ public:
     {
         setF(MatrixType::identity(12));
         setX(KalmanType::getX() + 1.0f);
-        predict(dt);
+        KalmanType::predict(dt);
     }
     void correctMag(VectorType & zMag)
     {
-        setHMag(MatrixType::identity(3));
+        _hMag.setAll(1);
         setRMag(MatrixType::identity(3));
         correct(zMag,getHMag(),getRMag());
     }
     void correctGps(VectorType & zGps)
     {
-        setHGps(MatrixType::identity(6));
+        _hGps.setAll(1);
         setRGps(MatrixType::identity(6));
         correct(zGps,getHGps(),getRGps());
     }
-    const MatrixType & getHMag() { return _hMag; }
-    const MatrixType & getRMag() { return _rMag; }
-    const MatrixType & getHGps() { return _hGps; }
-    const MatrixType & getRGps() { return _rGps; }
+    const MatrixType & getHMag() const { return _hMag; }
+    const MatrixType & getRMag() const { return _rMag; }
+    const MatrixType & getHGps() const { return _hGps; }
+    const MatrixType & getRGps() const { return _rGps; }
 protected:
     void setHMag(const MatrixType & hMag) { _hMag = hMag; }
     void setRMag(const MatrixType & rMag) { _rMag = rMag; }

@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "BlockParam.h"
+#include "BlockParam.hpp"
 
 namespace control
 {

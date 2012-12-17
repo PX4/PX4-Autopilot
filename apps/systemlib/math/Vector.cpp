@@ -37,9 +37,9 @@
  * math vector
  */
 
-#include <systemlib/test/test.h>
+#include <systemlib/test/test.hpp>
 
-#include "Vector.h"
+#include "Vector.hpp"
 
 namespace math
 {

@@ -37,6 +37,6 @@
 
 APPNAME		 = math_demo
 PRIORITY	 = SCHED_PRIORITY_DEFAULT
-STACKSIZE	 = 2048
+STACKSIZE	 = 8192
 
 include $(APPDIR)/mk/app.mk

@@ -39,12 +39,13 @@
 
 #pragma once
 
-#include "block/Block.h"
-#include "block/BlockParam.h"
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
-#include <systemlib/test/test.h>
+#include <systemlib/test/test.hpp>
+
+#include "block/Block.hpp"
+#include "block/BlockParam.hpp"
 
 namespace control
 {

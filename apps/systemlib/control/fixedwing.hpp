@@ -57,9 +57,9 @@
 #include <drivers/drv_hrt.h>
 #include <poll.h>
 
-#include "blocks.h"
-#include "block/UOrbSubscription.h"
-#include "block/UOrbPublication.h"
+#include "blocks.hpp"
+#include "block/UOrbSubscription.hpp"
+#include "block/UOrbPublication.hpp"
 
 extern "C" {
 #include <systemlib/geo/geo.h>
