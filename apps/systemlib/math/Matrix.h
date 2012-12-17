@@ -187,7 +187,7 @@ public:
     {
         ASSERT(getCols()==right.getRows());
         MatrixType result(getRows(), right.getCols());
-        result.setAll(0);
+        result.set(0);
         for (size_t i=0; i<getRows(); i++)
         {
             for (size_t j=0; j<getCols(); j++)
@@ -230,7 +230,7 @@ public:
     {
         ASSERT(getCols()==right.getRows());
         MatrixType result(getRows(), right.getCols());
-        result.setAll(0);
+        result.set(0);
         for (size_t i=0; i<getRows(); i++)
         {
             for (size_t j=0; j<right.getCols(); j++)
@@ -255,28 +255,29 @@ public:
         ASSERT(getRows()==getCols());
         size_t n = getRows();
         MatrixType L(n,n);
-        L.setAll(0);
+        L.set(0);
         MatrixType U(n,n);
-        U.setAll(0);
+        U.set(0);
         MatrixType result(n,n);
-        for (size_t i=0; i<n; i++) {
-            for (size_t j=0; j<n; j++) {
-                U(i,j) = (*this)(i,j);
-                for (size_t k=0; k<(i-1); k++) {
-                    U(i,j) -= L(i,j)*U(k,j);
-                }
-            }
-            for (size_t j=i+1; j<n; j++) {
-                L(j,i) = (*this)(j,i);
-                for (size_t k = 0; k<(i-1); k++) {
-                    L(j,i) -= L(j,k)*U(k,i);
-                }
-                L(j,i) /= U(i,i);
-            }
-        }
+        result.set(0);
+        //for (size_t i=0; i<n; i++) {
+            //for (size_t j=0; j<n; j++) {
+                //U(i,j) = (*this)(i,j);
+                //for (size_t k=0; k<(i-1); k++) {
+                    //U(i,j) -= L(i,j)*U(k,j);
+                //}
+            //}
+            //for (size_t j=i+1; j<n; j++) {
+                //L(j,i) = (*this)(j,i);
+                //for (size_t k = 0; k<(i-1); k++) {
+                    //L(j,i) -= L(j,k)*U(k,i);
+                //}
+                //L(j,i) /= U(i,i);
+            //}
+        //}
         return result;
     }
-    void setAll(const T & val)
+    void set(const T & val)
     {
         memset(getData(),val,getSize());
     }
