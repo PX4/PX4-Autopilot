@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Example User <mail@example.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,72 +32,61 @@
  ****************************************************************************/
 
 /**
- * @file math_demo.cpp
- * Demonstration of math library
+ * @file Kalman.h
+ *
+ * kalman filter code
  */
 
-#include <nuttx/config.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <systemlib/systemlib.h>
-#include <systemlib/math/Vector.h>
-#include <systemlib/math/Matrix.h>
-#include <systemlib/math/Kalman.h>
+#pragma once
 
-/**
- * Management function.
- */
-extern "C" __EXPORT int math_demo_main(int argc, char *argv[]);
+#include "Vector.h"
+#include "Matrix.h"
 
-/**
- * Test function
- */
-void test();
-
-/**
- * Print the correct usage.
- */
-static void usage(const char *reason);
-
-static void
-usage(const char *reason)
-{
-    if (reason)
-        fprintf(stderr, "%s\n", reason);
-    fprintf(stderr, "usage: math_demo {test}\n\n");
-    exit(1);
-}
-
-/**
- * The deamon app only briefly exists to start
- * the background job. The stack size assigned in the
- * Makefile does only apply to this management task.
- * 
- * The actual stack size should be set in the call
- * to task_create().
- */
-int math_demo_main(int argc, char *argv[])
+namespace math
 {
 
-    if (argc < 1)
-        usage("missing command");
-
-    if (!strcmp(argv[1], "test")) {
-        test();
-        exit(0);
+template<class T>
+class Kalman {
+public:
+    typedef Matrix<T> MatrixType;
+    typedef Vector<T> VectorType;
+    // constructor
+    Kalman(size_t n) :
+        _x(n),
+        _P(n,n),
+        _Q(n,n)
+    {
     }
+    // deconstructor
+    virtual ~Kalman()
+    {
+    }
+    void predict(const MatrixType & F)
+    {
+        getP() = F*getP()*F.transpose() + getQ();
+    }
+    void correct(const VectorType & z,
+            const MatrixType & H, 
+            const MatrixType & R) 
+    {
+        MatrixType S = H*getP()*H.transpose() + R;
+        MatrixType K = getP()*H.transpose()*S.inverse();
+        getP() -= K*H*getP();
+        getX() +=  K*(z - H*getX());
+    }
+    VectorType getX() const { return _x; }
+    MatrixType getP() const { return _P; }
+    MatrixType getQ() const { return _Q; }
+protected:
+    VectorType getX() { return _x; }
+    MatrixType getP() { return _P; }
+    MatrixType getQ() { return _Q; }
+private:
+    Vector<T> _x;
+    Matrix<T> _P;
+    Matrix<T> _Q;
+};
 
-    usage("unrecognized command");
-    exit(1);
-}
+int kalmanTest();
 
-void test()
-{
-    printf("beginning math lib test\n");
-    using namespace math;
-    vectorTest();
-    matrixTest();
-    kalmanTest();
-}
+} // namespace math

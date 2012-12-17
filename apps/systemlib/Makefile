@@ -56,7 +56,8 @@ CXXSRCS   =  test/test.cpp \
 			 control/block/UOrbSubscription.cpp \
 			 control/blocks.cpp \
 			 math/Vector.cpp \
-			 math/Matrix.cpp
+			 math/Matrix.cpp \
+			 math/Kalman.cpp
 
 #
 # XXX this really should be a CONFIG_* test

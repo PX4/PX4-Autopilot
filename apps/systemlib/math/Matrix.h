@@ -250,6 +250,16 @@ public:
         return (*this)*right.inverse();
     }
     // other functions
+    MatrixType transpose() const
+    {
+        MatrixType result(getCols(),getRows());
+        for(int i=0;i<getRows();i++) {
+            for(int j=0;j<getCols();j++) {
+                result(j,i) = (*this)(i,j);
+            }
+        }
+        return result;
+    }
     MatrixType inverse() const
     {
         ASSERT(getRows()==getCols());
