@@ -38,6 +38,7 @@
  */
 
 #include <systemlib/test/test.h>
+#include <math.h>
 
 #include "Matrix.h"
 
@@ -126,15 +127,15 @@ int matrixDivTest()
 {
     printf("Test Matrix Div\t\t: ");
     MatrixFloat r = d / e;
-    ASSERT(equal(r(0,0),0.2222222f))
-    ASSERT(equal(r(0,1),0.5555556f))
-    ASSERT(equal(r(0,2),-0.1111111f))
-    ASSERT(equal(r(1,0),0.0f))
-    ASSERT(equal(r(1,1),1.0f))
-    ASSERT(equal(r(1,2),1.0f))
-    ASSERT(equal(r(2,0),-4.1111111f))
-    ASSERT(equal(r(2,1),1.2222222f))
-    ASSERT(equal(r(2,2),4.5555556f))
+    ASSERT(equal(r(0,0),0.2222222f,1e-6f))
+    ASSERT(equal(r(0,1),0.5555556f,1e-6f))
+    ASSERT(equal(r(0,2),-0.1111111f,1e-6f))
+    ASSERT(equal(r(1,0),0.0f,1e-6f))
+    ASSERT(equal(r(1,1),1.0f,1e-6f))
+    ASSERT(equal(r(1,2),1.0f,1e-6f))
+    ASSERT(equal(r(2,0),-4.1111111f,1e-6f))
+    ASSERT(equal(r(2,1),1.2222222f,1e-6f))
+    ASSERT(equal(r(2,2),4.5555556f,1e-6f))
     printf("PASS\n");
     return 0;
 }
