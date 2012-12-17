@@ -59,6 +59,17 @@ CXXSRCS   =  test/test.cpp \
 			 math/Matrix.cpp \
 			 math/Kalman.cpp
 
+CXXHDRS   =  test/test.hpp \
+			 control/block/Block.hpp \
+			 control/block/BlockParam.hpp \
+			 control/block/UOrbPublication.hpp \
+			 control/block/UOrbSubscription.hpp \
+			 control/blocks.hpp \
+			 control/fixedwing.hpp \
+			 math/Vector.hpp \
+			 math/Matrix.hpp \
+			 math/Kalman.hpp
+
 #
 # XXX this really should be a CONFIG_* test
 #

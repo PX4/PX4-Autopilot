@@ -102,7 +102,7 @@ public:
         KalmanType(12),
         _hMag(3,12),
         _rMag(MatrixType::zero(3)),
-        _hGps(3,6),
+        _hGps(6,12),
         _rGps(MatrixType::zero(6))
     {
         setP(MatrixType::identity(12)*0.001f);

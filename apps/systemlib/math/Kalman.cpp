@@ -56,13 +56,19 @@ int __EXPORT kalmanNavTest()
     KalmanNav<float> nav;
     for (int i=0;i<100;i++)
     {
-        Vector<float> zMag(3);
-        zMag.setAll(1);
-        Vector<float> zGps(6);
-        zGps.setAll(1);
+        if (i%10==0)
+        {
+            Vector<float> zGps(6);
+            zGps.setAll(1);
+            nav.correctGps(zGps);
+        }
+        if (i%5==0)
+        {
+            Vector<float> zMag(3);
+            zMag.setAll(1);
+            nav.correctMag(zMag);
+        }
         nav.predict(0.01);
-        nav.correctMag(zMag);
-        nav.correctGps(zGps);
     }
     printf("PASS\n");
     return 0;
