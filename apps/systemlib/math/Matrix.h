@@ -45,6 +45,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
+
 #include "Vector.h"
 
 namespace math
@@ -134,7 +136,7 @@ public:
         return true;
     }
     // scalar ops
-    T operator+(const T & right) const
+    MatrixType operator+(const T & right) const
     {
         MatrixType result(getRows(), getCols());
         for (size_t i=0; i<getRows(); i++)
@@ -146,7 +148,7 @@ public:
         }
         return result;
     }
-    T operator-(const T & right) const
+    MatrixType operator-(const T & right) const
     {
         MatrixType result(getRows(), getCols());
         for (size_t i=0; i<getRows(); i++)
@@ -158,9 +160,9 @@ public:
         }
         return result;
     }
-    T operator*(const T & right) const
+    MatrixType operator*(const T & right) const
     {
-        MatrixType result(getRows(), right.getCols());
+        MatrixType result(getRows(), getCols());
         for (size_t i=0; i<getRows(); i++)
         {
             for (size_t j=0; j<getCols(); j++)
@@ -170,9 +172,9 @@ public:
         }
         return result;
     }
-    T operator/(const T & right) const
+    MatrixType operator/(const T & right) const
     {
-        MatrixType result(getRows(), right.getCols());
+        MatrixType result(getRows(), getCols());
         for (size_t i=0; i<getRows(); i++)
         {
             for (size_t j=0; j<getCols(); j++)
@@ -186,13 +188,13 @@ public:
     VectorType operator*(const VectorType & right) const
     {
         ASSERT(getCols()==right.getRows());
-        MatrixType result(getRows(), right.getCols());
+        VectorType result(getRows());
         result.setAll(0);
         for (size_t i=0; i<getRows(); i++)
         {
             for (size_t j=0; j<getCols(); j++)
             {
-                result(i,j) += (*this)(i,j) * right(j);
+                result(i) += (*this)(i,j) * right(j);
             }
         }
         return result;
@@ -253,8 +255,8 @@ public:
     MatrixType transpose() const
     {
         MatrixType result(getCols(),getRows());
-        for(int i=0;i<getRows();i++) {
-            for(int j=0;j<getCols();j++) {
+        for(size_t i=0;i<getRows();i++) {
+            for(size_t j=0;j<getCols();j++) {
                 result(j,i) = (*this)(i,j);
             }
         }

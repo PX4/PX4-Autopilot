@@ -44,7 +44,23 @@ namespace math
 
 int __EXPORT kalmanTest()
 {
-    Kalman<float> a(10);
+    kalmanNavTest();
+    return 0;
+}
+
+int __EXPORT kalmanNavTest()
+{
+    KalmanNav<float> nav;
+    for (int i=0;i<100;i++)
+    {
+        nav.predict(0.01);
+        Vector<float> zMag(3);
+        zMag.setAll(1);
+        Vector<float> zGps(6);
+        zGps.setAll(1);
+        nav.correctMag(zMag);
+        nav.correctGps(zGps);
+    }
     return 0;
 }
 

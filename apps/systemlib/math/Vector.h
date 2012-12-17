@@ -119,7 +119,7 @@ public:
         return true;
     }
     // scalar ops
-    T operator+(const T & right) const
+    VectorType operator+(const T & right) const
     {
         VectorType result(getRows());
         for (size_t i=0; i<getRows(); i++)
@@ -128,7 +128,7 @@ public:
         }
         return result;
     }
-    T operator-(const T & right) const
+    VectorType operator-(const T & right) const
     {
         VectorType result(getRows());
         for (size_t i=0; i<getRows(); i++)
@@ -137,7 +137,7 @@ public:
         }
         return result;
     }
-    T operator*(const T & right) const
+    VectorType operator*(const T & right) const
     {
         VectorType result(right.getRows());
         for (size_t i=0; i<getRows(); i++)
@@ -146,7 +146,7 @@ public:
         }
         return result;
     }
-    T operator/(const T & right) const
+    VectorType operator/(const T & right) const
     {
         VectorType result(right.getRows());
         for (size_t i=0; i<getRows(); i++)
@@ -177,6 +177,12 @@ public:
         return result;
     }
     // other functions
+    static VectorType zero(size_t rows)
+    {
+        VectorType result(rows);
+        result.setAll(0);
+        return result;
+    }
     void setAll(const T & val)
     {
         memset(getData(),val,getSize());

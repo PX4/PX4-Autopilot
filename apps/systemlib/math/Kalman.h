@@ -52,18 +52,19 @@ public:
     typedef Vector<T> VectorType;
     // constructor
     Kalman(size_t n) :
-        _x(n),
-        _P(n,n),
-        _Q(n,n)
+        _x(VectorType::zero(n)),
+        _P(MatrixType::zero(n)),
+        _Q(MatrixType::zero(n)),
+        _F(MatrixType::zero(n))
     {
     }
     // deconstructor
     virtual ~Kalman()
     {
     }
-    void predict(const MatrixType & F)
+    virtual void predict(float dt)
     {
-        getP() = F*getP()*F.transpose() + getQ();
+        setP(getF()*getP()*getF().transpose() + getQ());
     }
     void correct(const VectorType & z,
             const MatrixType & H, 
@@ -71,22 +72,80 @@ public:
     {
         MatrixType S = H*getP()*H.transpose() + R;
         MatrixType K = getP()*H.transpose()*S.inverse();
-        getP() -= K*H*getP();
-        getX() +=  K*(z - H*getX());
+        setP(getP() - K*H*getP());
+        setX(getX() + K*(z - H*getX()));
     }
-    VectorType getX() const { return _x; }
-    MatrixType getP() const { return _P; }
-    MatrixType getQ() const { return _Q; }
+    const VectorType & getX() const { return _x; }
+    const MatrixType & getP() const { return _P; }
+    const MatrixType & getQ() const { return _Q; }
+    const MatrixType & getF() const { return _F; }
 protected:
-    VectorType getX() { return _x; }
-    MatrixType getP() { return _P; }
-    MatrixType getQ() { return _Q; }
+    void setX(const VectorType & x) { _x = x; }
+    void setP(const MatrixType & P) { _P = P; }
+    void setQ(const MatrixType & Q) { _Q = Q; }
+    void setF(const MatrixType & F) { _F = F; }
 private:
-    Vector<T> _x;
-    Matrix<T> _P;
-    Matrix<T> _Q;
+    VectorType _x;
+    MatrixType _P;
+    MatrixType _Q;
+    MatrixType _F;
+};
+
+template<class T>
+class KalmanNav : public Kalman<T>
+{
+public:
+    typedef Matrix<T> MatrixType;
+    typedef Vector<T> VectorType;
+    typedef Kalman<T> KalmanType;
+    KalmanNav() :
+        KalmanType(12),
+        _hMag(MatrixType::zero(3)),
+        _rMag(MatrixType::zero(3)),
+        _hGps(MatrixType::zero(6)),
+        _rGps(MatrixType::zero(6))
+    {
+        setP(MatrixType::identity(12)*0.001f);
+        setQ(MatrixType::identity(12)*0.001f);
+    }
+    virtual ~KalmanNav() 
+    {
+    }
+    void predict(float dt)
+    {
+        setF(MatrixType::identity(12));
+        setX(KalmanType::getX() + 1.0f);
+        predict(dt);
+    }
+    void correctMag(VectorType & zMag)
+    {
+        setHMag(MatrixType::identity(3));
+        setRMag(MatrixType::identity(3));
+        correct(zMag,getHMag(),getRMag());
+    }
+    void correctGps(VectorType & zGps)
+    {
+        setHGps(MatrixType::identity(6));
+        setRGps(MatrixType::identity(6));
+        correct(zGps,getHGps(),getRGps());
+    }
+    const MatrixType & getHMag() { return _hMag; }
+    const MatrixType & getRMag() { return _rMag; }
+    const MatrixType & getHGps() { return _hGps; }
+    const MatrixType & getRGps() { return _rGps; }
+protected:
+    void setHMag(const MatrixType & hMag) { _hMag = hMag; }
+    void setRMag(const MatrixType & rMag) { _rMag = rMag; }
+    void setHGps(const MatrixType & hGps) { _hGps = hGps; }
+    void setRGps(const MatrixType & rGps) { _rGps = rGps; }
+private:
+    MatrixType _hMag;
+    MatrixType _rMag;
+    MatrixType _hGps;
+    MatrixType _rGps;
 };
 
 int kalmanTest();
+int kalmanNavTest();
 
 } // namespace math
