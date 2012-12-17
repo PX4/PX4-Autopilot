@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttX Binary Loader</i></font></big></h1>
-      <p>Last Updated: October 30, 2012</p>
+      <p>Last Updated: December 17, 2012</p>
     </td>
   </tr>
 </table>
@@ -141,7 +141,7 @@ struct binary_s
 {
   /* Information provided to the loader to load and bind a module */
 
-  FAR const char *filename;            /* Full path to the binary to be loaded */
+  FAR const char *filename;            /* Full path to the binary to be loaded<sup>1</sup> */
   FAR const char **argv;               /* Argument list */
   FAR const struct symtab_s *exports;  /* Table of exported symbols */
   int nexports;                        /* The number of symbols in exports[] */
@@ -164,6 +164,14 @@ struct binary_s
 };
 </pre></ul>
 
+<ul><p><small>
+  <sup>1</sup>The <code>filename</code> must be the full, absolute path to the file to be executed unless <code>CONFIG_BINFMT_EXEPATH</code> is defined.
+  In that case, <code>filename</code> may be a relative path;
+  a set of candidate absolute paths will be generated using the <code>PATH</code> environment variable and <a href="#load_module"><code>load_module()</code></a> will attempt to load each file that is found at those absolute paths.
+</small></p></ul>
+
+</p>
+
 <p>
   Where the types <code>binfmt_ctor_t</code> and <code>binfmt_dtor_t</code> define the type of one C++ constructor or destructor:
 </p>
@@ -175,14 +183,30 @@ typedef FAR void (*binfmt_dtor_t)(void);
 
 <h2>2.3 <a name="binfmtfuncif">Binary Loader Function Interfaces</a></h2>
 
+<h3>
+  Binary format management:
+</h3>
 <ul>
   <a href="#register_binfmt">2.3.1 <code>register_binfmt()</code></a><br>
-  <a href="#unregister_binfmt">2.3.2 <code>unregister_binfmt()</code></a><br>
+  <a href="#unregister_binfmt">2.3.2 <code>unregister_binfmt()</code></a>
+</ul>
+<h3>
+  Basic module management:
+</h3>
+<ul>
   <a href="#load_module">2.3.3 <code>load_module()</code></a><br>
   <a href="#unload_module">2.3.4 <code>unload_module()</code></a><br>
   <a href="#exec_module">2.3.5 <code>exec_module()</code></a><br>
   <a href="#exec">2.3.6 <code>exec()</code></a><br>
   <a href="#exec">2.3.7 <code>exec()</code></a>
+</ul>
+<h3>
+  <code>PATH</code> traversal logic:
+</h3>
+<ul>
+  <a href="#exepath_init">2.3.8 <code>exepath_init()</code></a><br>
+  <a href="#exepath_next">2.3.9 <code>exepath_next()</code></a><br>
+  <a href="#exepath_release">2.3.10 <code>exepath_release()</code></a>
 </ul>
 
 <h3>2.3.1 <a name="register_binfmt"><code>register_binfmt()</code></a></h3>
@@ -224,7 +248,15 @@ int load_module(FAR struct binary_s *bin);
 </pre></ul>
 <p><b>Description:</b></p>
 <ul>
-Load a module into memory, bind it to an exported symbol take, and prep the module for execution.
+  <p>
+    Load a module into memory, bind it to an exported symbol take, and prep the module for execution.
+  </p>
+  <p>
+    <code>load_module()</code> will use the <code>filename</code> field in the <a href="#binfmtdata"><code>struct binary_s</code></a> in order to locate the module to be loaded from the file system.
+    The <code>filename</code> must be the full, absolute path to the file to be executed unless <code>CONFIG_BINFMT_EXEPATH</code> is defined.
+    In that case, <code>filename</code> may be a relative path;
+    a set of candidate absolute paths will be generated using the <code>PATH</code> environment variable and <code>load_module()</code> will attempt to load each file that is found at those absolute paths.
+  </p>
 </ul>
 <p><b>Returned Value:</b></p>
 <ul>
@@ -281,21 +313,110 @@ int exec(FAR const char *filename, FAR const char **argv,
 </pre></ul>
 <p><b>Description:</b></p>
 <ul>
-This is a convenience function that wraps <code>load_</code> and <code>exec_module()</code> into one call.
+  This is a convenience function that wraps <code>load_</code> and <code>exec_module()</code> into one call.
 </ul>
 <p><b>Input Parameters:</b></p>
 <ul>
-  <li><code>filename</code>: Fulll path to the binary to be loaded.</li>
+  <li><code>filename</code>: Full path to the binary to be loaded.</li>
   <li><code>argv</code>: Argument list.</li>
   <li><code>exports</code>: Table of exported symbols.</li>
   <li><code>exports</code>: The number of symbols in exports.</li>
 </ul>
 <p><b>Returned Value:</b></p>
 <ul>
-This is an end-user function, so it follows the normal convention:
-Returns 0 (<code>OK</code>) on success.
-On failure, it returns -1 (<code>ERROR</code>) with <code>errno</code> set appropriately.
+  This is an end-user function, so it follows the normal convention:
+  Returns 0 (<code>OK</code>) on success.
+  On failure, it returns -1 (<code>ERROR</code>) with <code>errno</code> set appropriately.
 </ul>
+
+<h3>2.3.8 <a name="exepath_init"><code>exepath_init()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt:nuttx/binfmt/binfmt.h&gt;
+#ifdef CONFIG_BINFMT_EXEPATH
+EXEPATH_HANDLE exepath_init(void);
+#endif
+</pre></ul>
+<p><b>Description:</b></p>
+<ul>
+  <p>
+    Initialize for the traversal of each value in the <code>PATH</code> variable.
+    The usage is sequence is as follows:
+  </p>
+  <ol>
+    <li>
+      Call <code>exepath_init()</code> to initialize for the traversal.
+      <code>exepath_init()</code> will return an opaque handle that can then be provided to <code>exepath_next()</code> and <code>exepath_release()</code>.
+    </li>
+    <li>
+      Call <code>exepath_next()</code> repeatedly to examine every file that lies in the directories of the <code>PATH</code> variable.
+    </li>
+    <li>
+      Call <code>exepath_release()</code> to free resources set aside by <code>exepath_init()</code>.
+    </li>
+  </ol>
+</ul>
+<p><b>Input Parameters:</b> <i>None</i></p>
+<p><b>Returned Value:</b></p>
+<ul>
+    On success, <code>exepath_init()</code> return a non-<code>NULL</code>, opaque handle that may subsequently be used in calls to <code>exepath_next()</code> and <code>exepath_release()</code>.
+    On error, a <code>NULL</code> handle value will be returned.
+    The most likely cause of an error would be that the there is no value associated with the <code>PATH</code> variable.
+</ul>
+
+<h3>2.3.9 <a name="exepath_next"><code>exepath_next()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt:nuttx/binfmt/binfmt.h&gt;
+#ifdef CONFIG_BINFMT_EXEPATH
+FAR char *exepath_next(EXEPATH_HANDLE handle, FAR const char *relpath);
+#endif
+</pre></ul>
+<p><b>Description:</b></p>
+<ul>
+    Traverse all possible values in the <code>PATH</code> variable in attempt to find the full path to an executable file when only a relative path is provided.
+</ul>
+<p><b>Input Parameters:</b></p>
+<ul>
+  <li><code>handle</code>: The handle value returned by <code>exepath_init()</code>.</li>
+  <li><code>relpath</code>: The relative path to the file to be found.</li>
+</ul>
+<p><b>Returned Value:</b></p>
+<ul>
+  <p>
+    On success, a non-<code>NULL</code> pointer to a null-terminated string is provided.
+    This is the full path to a file that exists in the file system.
+    This function will verify that the file exists (but will not verify that it is marked executable).
+  </p>
+  <p>
+    NOTE: The string pointer return in the success case points to allocated memory.
+    This memory must be freed by the called by calling <code>kfree()</code>.
+  </p>
+  <p>
+    <code>NULL</code is returned if no path is found to any file with the provided <code>relpath</colde> from any absolute path in the <code>PATH</code> variable.
+    In this case, there is no point in calling <code>exepath_next()</code> further; <code>exepath_release()</code> must be called to release resources set aside by <code>expath_init()</code>.
+  </p>
+</ul>
+
+<h3>2.3.10- <a name="exepath_release"><code>exepath_release()</code></a></h3>
+<p><b>Function Prototype:</b></p>
+<ul><pre>
+#include &lt:nuttx/binfmt/binfmt.h&gt;
+#ifdef CONFIG_BINFMT_EXEPATH
+void exepath_release(EXEPATH_HANDLE handle);
+#endif
+</pre></ul>
+<p><b>Description:</b></p>
+<ul>
+  Release all resources set aside by <code>exepath_init</code> when the handle value was created.
+  The handle value is invalid on return from this function.
+  Attempts to all <code>exepath_next()</code> or <code>exepath_release()</code> with such a <i>stale</i> handle will result in undefined (i.e., not good) behavior.
+</ul>
+<p><b>Input Parameters:</b></p>
+<ul>
+  <li><code>handle</code>: The handle value returned by <code>exepath_init()</code>.</li>
+</ul>
+<p><b>Returned Value:</b> <i>None</i></p>
 
 <table width ="100%">
   <tr bgcolor="#e4e4e4">

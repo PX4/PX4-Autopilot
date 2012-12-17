@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: December 11, 2012</p>
+      <p>Last Updated: December 17, 2012</p>
     </td>
   </tr>
 </table>
@@ -4162,6 +4162,12 @@ build
   <li>
     <code>CONFIG_BINFMT_DISABLE</code>: By default, support for loadable binary formats is built.
     This logic may be suppressed be defining this setting.
+  </li>
+  <li>
+    <code>CONFIG_BINFMT_EXEPATH</code>:  Use the contents of the <code>PATH</code> environment variable to locate executable files.  Default: n
+  </li>
+  <li>
+    <code>CONFIG_PATH_INITIAL</code>: The initial value of the <code>PATH</code> variable.  This is the colon-separated list of absolute paths.  E.g., <code>&quot;/bin:/usr/bin:/sbin&quot;</code>
   </li>
   <li>
     <code>CONFIG_BINFMT_CONSTRUCTORS</code>: Build in support for C++ constructors in loaded modules.

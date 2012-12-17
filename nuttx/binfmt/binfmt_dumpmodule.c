@@ -70,7 +70,7 @@
  ***********************************************************************/
 
 /***********************************************************************
- * Name: load_module
+ * Name: dump_module
  *
  * Description:
  *   Load a module into memory and prep it for execution.

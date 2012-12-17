@@ -3790,5 +3790,5 @@
 	  the absolutes paths found in the current PATH environment variable
 	  setting.  This is untested and not yet hooked into the binfmt exec()
 	  logic on initial check-in
-
-
+	* binfmt/binfmt_loadmodule.c: load_module() will now traverse the PATH
+	  variable to locate files from their relative path.

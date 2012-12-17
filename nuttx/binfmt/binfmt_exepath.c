@@ -85,7 +85,7 @@ struct exepath_s
  *   Initialize for the traversal of each value in the PATH variable.  The
  *   usage is sequence is as follows:
  *
- *   1) Call exepath_init() to initialze for the traversal.  exepath_init()
+ *   1) Call exepath_init() to initialize for the traversal.  exepath_init()
  *      will return an opaque handle that can then be provided to
  *      exepath_next() and exepath_release().
  *   2) Call exepath_next() repeatedly to examine every file that lies
@@ -163,7 +163,7 @@ EXEPATH_HANDLE exepath_init(void)
  *   memory.  This memory must be freed by the called by calling kfree().
  *
  *   NULL is returned if no path is found to any file with the provided
- *   'relpath' from any absolute path in the file variable.  In this case,
+ *   'relpath' from any absolute path in the PATH variable.  In this case,
  *   there is no point in calling exepath_next() further; exepath_release()
  *   must be called to release resources set aside by expath_init().
  *
@@ -263,7 +263,7 @@ FAR char *exepath_next(EXEPATH_HANDLE handle, FAR const char *relpath)
  * Name: exepath_release
  *
  * Description:
- *   Release all resources set aside by exepath_release when the handle value
+ *   Release all resources set aside by exepath_init() when the handle value
  *   was created.  The handle value is invalid on return from this function.
  *   Attempts to all exepath_next() or exepath_release() with such a 'stale'
  *   handle will result in undefined (i.e., not good) behavior.
