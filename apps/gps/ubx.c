@@ -54,6 +54,9 @@
 
 #define UBX_BUFFER_SIZE 1000
 
+// Set dynamic model to 7: Airborne with <2g Acceleration
+#define DYN_MODEL_NO 0x07
+
 extern bool gps_mode_try_all;
 extern bool gps_mode_success;
 extern bool terminate_gps_thread;
@@ -65,6 +68,7 @@ pthread_mutex_t *ubx_mutex;
 gps_bin_ubx_state_t *ubx_state;
 static struct vehicle_gps_position_s *ubx_gps;
 
+bool gps_nav5_conf_success = false;
 
 //Definitions for ubx, last two bytes are checksum which is calculated below
 uint8_t UBX_CONFIG_MESSAGE_PRT[] = {0xB5 , 0x62 , 0x06 , 0x00 , 0x14 , 0x00 , 0x01 , 0x00 , 0x00 , 0x00 , 0xD0 , 0x08 , 0x00 , 0x00 , 0x80 , 0x25 , 0x00 , 0x00 , 0x07 , 0x00 , 0x01 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00};
@@ -76,8 +80,8 @@ uint8_t UBX_CONFIG_MESSAGE_MSG_NAV_SOL[] = {0xB5, 0x62, 0x06, 0x01, 0x08, 0x00, 
 uint8_t UBX_CONFIG_MESSAGE_MSG_NAV_VELNED[] = {0xB5, 0x62, 0x06, 0x01, 0x08, 0x00,   0x01, 0x12,   0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
 uint8_t UBX_CONFIG_MESSAGE_MSG_RXM_SVSI[] = {0xB5, 0x62, 0x06, 0x01, 0x08, 0x00,   0x02, 0x20,   0x00, 0x02, 0x00, 0x00, 0x00, 0x00};
 
-// Set dynamic model to 7: Airborne with <2g Acceleration
-uint8_t UBX_CONFIG_MESSAGE_MSG_CFG_NAV5[] = {0xB5, 0x62, 0x06, 0x24, 0x00, 0x01, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+uint8_t UBX_CONFIG_MESSAGE_MSG_CFG_NAV5[] = {0xB5, 0x62, 0x06, 0x24, 0x00, 0x01, DYN_MODEL_NO, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+uint8_t UBX_CONFIG_MESSAGE_MSG_CFG_NAV5_POLL[] = {0xB5, 0x62, 0x06, 0x00, 0x00};
 
 
 
@@ -137,6 +141,10 @@ int ubx_parse(uint8_t b,  char *gps_rx_buffer)
 			ubx_state->message_class = RXM;
 			break;
 
+		case UBX_CLASS_CFG:
+			ubx_state->decode_state = UBX_DECODE_GOT_CLASS;
+			ubx_state->message_class = CFG;
+			break;
 		default: //unknown class: reset state machine
 			ubx_decode_init();
 			break;
@@ -198,7 +206,19 @@ int ubx_parse(uint8_t b,  char *gps_rx_buffer)
 				ubx_decode_init();
 				break;
 			}
+			break;
 
+		case CFG:
+			switch (b) {
+			case UBX_MESSAGE_CFG_NAV5:
+				ubx_state->decode_state = UBX_DECODE_GOT_MESSAGEID;
+				ubx_state->message_id = CFG_NAV5;
+				break;
+
+			default: //unknown class: reset state machine, should not happen
+				ubx_decode_init();
+				break;
+			}
 			break;
 
 		default: //should not happen
@@ -546,6 +566,36 @@ int ubx_parse(uint8_t b,  char *gps_rx_buffer)
 
 					break;
 				}
+			case CFG_NAV5: {
+				printf("GOT CFG_NAV5 MESSAGE\n");
+				type_gps_bin_cfg_nav5_packet_t *packet = (type_gps_bin_cfg_nav5_packet_t *) gps_rx_buffer;
+
+				//Check if checksum is valid
+				if (ubx_state->ck_a == gps_rx_buffer[ubx_state->rx_count - 1] && ubx_state->ck_b == gps_rx_buffer[ubx_state->rx_count]) {
+
+					// check if dynamic model number is correct
+					if (packet->dynModel == DYN_MODEL_NO) {
+						printf("[gps] ubx dynamic model set successful\n");
+						gps_nav5_conf_success = true;
+					}
+					else {
+						printf("[gps] ubx dynamic model set failed\n");
+						gps_nav5_conf_success = false;
+					}
+					ret = 1;
+
+				} else {
+					if (gps_verbose) printf("[gps] CFG_NAV5: checksum invalid\n");
+
+					ret = 0;
+				}
+
+				// Reset state machine to decode next packet
+				ubx_decode_init();
+				return ret;
+
+				break;
+			}
 
 			default: //something went wrong
 				ubx_decode_init();
@@ -624,6 +674,10 @@ int configure_gps_ubx(int *fd)
 
 	//RXM_SVSI:
 	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_RXM_SVSI, sizeof(UBX_CONFIG_MESSAGE_MSG_RXM_SVSI) / sizeof(uint8_t) , *fd);
+	usleep(100000);
+
+	//send CFG_NAV5_POLL to check whether previous CFG_NAV5 has been successful
+	write_config_message_ubx(UBX_CONFIG_MESSAGE_MSG_CFG_NAV5_POLL, sizeof(UBX_CONFIG_MESSAGE_MSG_CFG_NAV5_POLL) / sizeof(uint8_t) , *fd);
 	usleep(100000);
 
 	return 0;
@@ -756,6 +810,10 @@ void *ubx_watchdog_loop(void *args)
 				all_okay = false;
 			}
 		}
+
+		// check if CFG-NAV5 is correct
+		if (!gps_nav5_conf_success)
+			all_okay = false;
 
 		pthread_mutex_unlock(ubx_mutex);
 

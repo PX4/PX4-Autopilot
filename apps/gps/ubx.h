@@ -72,6 +72,8 @@
 #define UBX_MESSAGE_RXM_SVSI 0x20
 #define UBX_MESSAGE_ACK_ACK 0x01
 #define UBX_MESSAGE_ACK_NAK 0x00
+#define UBX_MESSAGE_CFG_NAV5 0x24
+
 
 
 // ************
@@ -234,6 +236,33 @@ typedef struct {
 
 typedef type_gps_bin_ack_nak_packet gps_bin_ack_nak_packet_t;
 
+typedef struct {
+	uint8_t clsID;
+	uint8_t msgId;
+
+	uint16_t mask;
+	uint8_t dynModel;
+	uint8_t fixMode;
+	int32_t fixedAlt;
+	uint32_t fixedAltVar;
+	int8_t minElev;
+	uint8_t drLimit;
+	uint16_t pDop;
+	uint16_t tDop;
+	uint16_t pAcc;
+	uint16_t tAcc;
+	uint8_t staticHoldThresh;
+	uint8_t dgpsTimeOut;
+	uint32_t reserved2;
+	uint32_t reserved3;
+	uint32_t reserved4;
+
+	uint8_t ck_a;
+	uint8_t ck_b;
+} type_gps_bin_cfg_nav5_packet;
+
+typedef type_gps_bin_cfg_nav5_packet type_gps_bin_cfg_nav5_packet_t;
+
 
 // END the structures of the binary packets
 // ************
@@ -242,7 +271,8 @@ enum UBX_MESSAGE_CLASSES {
 	CLASS_UNKNOWN = 0,
 	NAV = 1,
 	RXM = 2,
-	ACK = 3
+	ACK = 3,
+	CFG = 4
 };
 
 enum UBX_MESSAGE_IDS {
@@ -254,7 +284,8 @@ enum UBX_MESSAGE_IDS {
 	NAV_DOP = 4,
 	NAV_SVINFO = 5,
 	NAV_VELNED = 6,
-	RXM_SVSI = 7
+	RXM_SVSI = 7,
+	CFG_NAV5 = 8
 };
 
 enum UBX_DECODE_STATES {
