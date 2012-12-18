@@ -60,13 +60,13 @@
 
 #include "drv_pwm_servo.h"
 
-#include "chip.h"
-#include "up_internal.h"
-#include "up_arch.h"
+#include <chip.h>
+#include <up_internal.h>
+#include <up_arch.h>
 
-#include "stm32_internal.h"
-#include "stm32_gpio.h"
-#include "stm32_tim.h"
+#include <stm32_internal.h>
+#include <stm32_gpio.h>
+#include <stm32_tim.h>
 
 
 /* default rate (in Hz) of PWM updates */
@@ -143,27 +143,27 @@ pwm_channel_init(unsigned channel)
 	/* configure the channel */
 	switch (pwm_channels[channel].timer_channel) {
 	case 1:
-		rCCMR1(timer) |= (6 << 4);
+		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC1M_SHIFT) | GTIM_CCMR1_OC1PE;
 		rCCR1(timer) = pwm_channels[channel].default_value;
-		rCCER(timer) |= (1 << 0);
+		rCCER(timer) |= GTIM_CCER_CC1E;
 		break;
 
 	case 2:
-		rCCMR1(timer) |= (6 << 12);
+		rCCMR1(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR1_OC2M_SHIFT) | GTIM_CCMR1_OC2PE;
 		rCCR2(timer) = pwm_channels[channel].default_value;
-		rCCER(timer) |= (1 << 4);
+		rCCER(timer) |= GTIM_CCER_CC2E;
 		break;
 
 	case 3:
-		rCCMR2(timer) |= (6 << 4);
+		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC3M_SHIFT) | GTIM_CCMR2_OC3PE;
 		rCCR3(timer) = pwm_channels[channel].default_value;
-		rCCER(timer) |= (1 << 8);
+		rCCER(timer) |= GTIM_CCER_CC3E;
 		break;
 
 	case 4:
-		rCCMR2(timer) |= (6 << 12);
+		rCCMR2(timer) |= (GTIM_CCMR_MODE_PWM1 << GTIM_CCMR2_OC4M_SHIFT) | GTIM_CCMR2_OC4PE;
 		rCCR4(timer) = pwm_channels[channel].default_value;
-		rCCER(timer) |= (1 << 12);
+		rCCER(timer) |= GTIM_CCER_CC4E;
 		break;
 	}
 }
@@ -288,17 +288,20 @@ up_pwm_servo_set_rate(unsigned rate)
 void
 up_pwm_servo_arm(bool armed)
 {
-	/*
-	 * XXX this is inelgant and in particular will either jam outputs at whatever level
-	 * they happen to be at at the time the timers stop or generate runts.
-	 * The right thing is almost certainly to kill auto-reload on the timers so that
-	 * they just stop at the end of their count for disable, and to reset/restart them
-	 * for enable.
-	 */
-
 	/* iterate timers and arm/disarm appropriately */
 	for (unsigned i = 0; i < PWM_SERVO_MAX_TIMERS; i++) {
-		if (pwm_timers[i].base != 0)
-			rCR1(i) = armed ? GTIM_CR1_CEN : 0;
+		if (pwm_timers[i].base != 0) {
+			if (armed) {
+				/* force an update to preload all registers */
+				rEGR(i) = GTIM_EGR_UG;
+
+				/* arm requires the timer be enabled */
+				rCR1(i) |= GTIM_CR1_CEN | GTIM_CR1_ARPE;
+
+			} else {
+				/* on disarm, just stop auto-reload so we don't generate runts */
+				rCR1(i) &= ~GTIM_CR1_ARPE;
+			}
+		}
 	}
 }
