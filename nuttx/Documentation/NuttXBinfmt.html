@@ -164,13 +164,13 @@ struct binary_s
 };
 </pre></ul>
 
-<ul><p><small>
-  <sup>1</sup>The <code>filename</code> must be the full, absolute path to the file to be executed unless <code>CONFIG_BINFMT_EXEPATH</code> is defined.
-  In that case, <code>filename</code> may be a relative path;
-  a set of candidate absolute paths will be generated using the <code>PATH</code> environment variable and <a href="#load_module"><code>load_module()</code></a> will attempt to load each file that is found at those absolute paths.
-</small></p></ul>
-
-</p>
+<ul>
+  <p><small>
+    <sup>1</sup>The <code>filename</code> must be the full, absolute path to the file to be executed unless <code>CONFIG_BINFMT_EXEPATH</code> is defined.
+    In that case, <code>filename</code> may be a relative path;
+    a set of candidate absolute paths will be generated using the <code>PATH</code> environment variable and <a href="#load_module"><code>load_module()</code></a> will attempt to load each file that is found at those absolute paths.
+  </small></p>
+</ul>
 
 <p>
   Where the types <code>binfmt_ctor_t</code> and <code>binfmt_dtor_t</code> define the type of one C++ constructor or destructor:

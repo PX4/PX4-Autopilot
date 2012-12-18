@@ -45,6 +45,12 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
+#include <stdint.h>
+
+#include <arch/irq.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -52,6 +58,23 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+/* The z180 address environment is represented in hardware as the 8-bit
+ * Common Base Register (CBR).  CBR specifies the base address (on 4KB
+ * boundaries) used to generate a 20-bit physical address for Common Area 1
+ * accesses.  CBR is the upper 8-bits of the 20-bit address; the lower 14-bits
+ * of the base address are implicitly zero (hence the 4KB boundary alignment).
+ */
+
+#ifdef CONFIG_ADDRENV
+typedef uint8_t hw_addrenv_t;
+
+/* At the task-level, the z180 address environment is represented as struct
+ * z180_cbr_s which is defined in irq.h.
+ */
+
+struct z180_cbr_s;
+typedef FAR struct z180_cbr_s *task_addrenv_t;
+#endif
 
 /****************************************************************************
  * Public Variables

@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: December 17, 2012</p>
+      <p>Last Updated: December 18, 2012</p>
     </td>
   </tr>
 </table>
@@ -92,7 +92,8 @@
       <a href="#upenableirq">4.1.17 <code>up_enable_irq()</code></a><br>
       <a href="#upprioritizeirq">4.1.18 <code>up_prioritize_irq()</code></a></br>
       <a href="#upputc">4.1.19 <code>up_putc()</code></a></br>
-      <a href="#systemtime">4.1.20 System Time and Clock</a>
+      <a href="#systemtime">4.1.20 System Time and Clock</a><br>
+      <a href="#addrenv">4.1.21 Address Environments</a>
     </ul>
     <a href="#exports">4.2 APIs Exported by NuttX to Architecture-Specific Logic</a>
     <ul>
@@ -1622,7 +1623,7 @@ The system can be re-made subsequently by just typing <code>make</code>.
   is defined.
 </p>
 
-<p><b>Inputs</b>:</p>
+<p><b>Input Parameters</b>:</p>
 <ul>
   <li>
     <code>tcb</code>: The TCB of new task.
@@ -1658,7 +1659,7 @@ The system can be re-made subsequently by just typing <code>make</code>.
   is defined.
 </p>
 
-<p><b>Inputs:</b></p>
+<p><b>Input Parameters:</b></p>
 <ul>
   <li>
     <code>tcb</code>: The TCB of new task.
@@ -1694,7 +1695,7 @@ The system can be re-made subsequently by just typing <code>make</code>.
   function is called.
 </p>
 
-<p><b>Inputs</b>:
+<p><b>Input Parameters</b>:
 <ul>
   <li><code>tcb</code>: Refers to the tcb to be unblocked.  This tcb is
     in one of the waiting tasks lists.  It must be moved to
@@ -1715,7 +1716,7 @@ The system can be re-made subsequently by just typing <code>make</code>.
   logic.  Interrupts will always be disabled when this
   function is called.
 
-<p><b>Inputs:</b></p>
+<p><b>Input Parameters:</b></p>
 <ul>
   <li><code>tcb</code>: Refers to a task in the ready-to-run list (normally
     the task at the head of the list).  It most be
@@ -1771,7 +1772,7 @@ The system can be re-made subsequently by just typing <code>make</code>.
   function is called.
 </p>
 
-<p><b>Inputs:</b></p>
+<p><b>Input Parameters:</b></p>
 <ul>
   <li>
     <code>tcb</code>: The TCB of the task that has been reprioritized
@@ -2109,6 +2110,236 @@ else
   By comparing this time and RTC (actual time) one may determine the actual system active time.
   To retrieve that variable use:
 </p>
+
+<h3><a name="addrenv">4.1.21 Address Environments</a></h3>
+
+<p>
+  CPUs that support memory management units (MMUs) may provide <i>address environments</i> within which tasks and their child threads execute.
+  The configuration indicates the CPUs ability to support address environments by setting the configuration varabile <code>CONFIG_ADDRENV=y</code>.
+  These address environments are created only when tasks are created via <code>exec()</code> or <code>exec_module()</code> (see <code>include/nuttx/binfmt/binfmt.h</code>).
+</p>
+<p>
+  When <code>CONFIG_ADDRENV=y</code> is set in the board configuration, the CPU-specific logic must provide a set of interfaces as defined in the header file <code>include/nuttx/arch.h</code>.
+  These interfaces are listed below and described in detail in the following paragraphs.
+</p>
+<p>
+  The CPU-specific logic must provide two categories in interfaces:
+</p>
+<ol>
+  <li>
+    <p>
+      <b>Binary Loader Support</b>.
+      These are low-level interfaces used in <code>binfmt/</code> to instantiate tasks with address environments.
+      These interfaces all operate on type <code>task_addrenv_t</code> which is an abstract representation of a asks's address environment and must be defined in arch/arch.h if <code>CONFIG_ADDRENVM</code> is defined.
+      These low-level interfaces include:
+    </p>
+    <ul>
+      <li>
+        <a href="#up_addrenv_create">4.1.21.1 <code>up_addrenv_create()</code></a>:
+        Create an address environment.
+      </li>
+      <li>
+        <a href="#up_addrenv_vaddr">4.1.21.2 <code>up_addrenv_vaddr()</code></a>:
+        Returns the virtual base address of the address environment.
+      </li>
+      <li>
+        <a href="#up_addrenv_select">4.1.21.3 <code>up_addrenv_select()</code></a>: 
+        Instantiate an address environment.
+      </li>
+      <li>
+        <a href="#up_addrenv_restore">4.1.21.4 <code>up_addrenv_restore()</code></a>: 
+        Restore an address environment.
+      </li>
+      <li>
+        <a href="#up_addrenv_destroy">4.1.21.5 <code>up_addrenv_destroy()</code></a>:
+        Destroy an address environment.
+      </li>
+      <li>
+        <a href="#up_addrenv_assign">4.1.21.6 <code>up_addrenv_assign()</code></a>:
+        Assign an address environment to a TCB.
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Tasking Support</b>.
+      Other interfaces must be provided to support higher-level interfaces used by the NuttX tasking logic.
+      These interfaces are* used by the functions in <code>sched/</code> and all operate on the TCB which as been assigned an address environment by <code>up_addrenv_assign()</code>.
+    </p>
+    <ul>
+      <li>
+        <a href="#up_addrenv_share">4.1.21.7 <code>up_addrenv_share()</code></a>:
+        Clone the address environment assigned to one TCB to another.
+        This operation is done when a pthread is created that share's the same address environment.
+      </li>
+      <li>
+        <a href="#up_addrenv_release">4.1.21.8 <code>up_addrenv_release()</code></a>:
+        ARelease the TCBs reference to an address environment when a task/thread exits.
+      </li>
+    </ul>
+  </li>
+</ol>
+
+
+<h4><a name="up_addrenv_create">4.1.21.1 <code>up_addrenv_create()</code></a></h4>
+<p><b>Prototype</b>:</p>
+<ul>
+  <code>int up_addrenv_create(size_t envsize, FAR task_addrenv_t *addrenv);</code>
+</ul>
+<p><b>Description</b>:</p>
+<ul>
+  This function is called from the binary loader logic when a new task is created in order to instantiate an address environment for the task.
+  <code>up_addrenv_create()</code> is essentially the allocator of the physical memory for the new task.
+</ul>
+<p><b>Input Parameters</b>:</p>
+<ul>
+  <li><code>envsize</code>: The size (in bytes) of the address environment needed by the task.</li>
+  <li><code>addrenv</code>: The location to return the representation of the task address environment.</li>
+</ul>
+<p><b>Returned Value</b>:</p>
+<ul>
+  Zero (<code>OK</code>) on success; a negated <code>errno</code> value on failure.
+</ul>
+
+<h4><a name="up_addrenv_vaddr">4.1.21.2 <code>up_addrenv_vaddr()</code></a></h4>
+<p><b>Prototype</b>:<p>
+<ul>
+  <code>int up_addrenv_vaddr(FAR task_addrenv_t addrenv, FAR void **vaddr);</code>
+</ul>
+<p><b>Description</b>:</p>
+<ul>
+  Return the virtual address associated with the newly create address environment. 
+  This function is used by the binary loaders in order get an address that can be used to initialize the new task.
+</ul>
+<p><b>Input Parameters</b>:</p>
+<ul>
+  <li><code>addrenv</code>: The representation of the task address environment previously returned by up_addrenv_create.</li>
+  <li><code>vaddr</code>: The location to return the virtual address.</li>
+</ul>
+<p><b>Returned Value</b>:</p>
+<ul>
+  Zero (<code>OK</code>) on success; a negated <code>errno</code> value on failure.
+</ul>
+
+<h4><a name="up_addrenv_select">4.1.21.3 <code>up_addrenv_select()</code></a></h4>
+<p><b>Prototype</b>:<p>
+<ul>
+  <code>int up_addrenv_select(task_addrenv_t addrenv, hw_addrenv_t *oldenv);</code>
+</ul>
+<p><b>Description</b>:</p>
+<ul>
+  After an address environment has been established for a task (via <code>up_addrenv_create())</code>, this function may be called to to instantiate that address environment in the virtual address space.
+  This might be necessary, for example, to load the code for the task from a file or to access address environment private data.
+</ul>
+<p><b>Input Parameters</b>:</p>
+<ul>
+  <li><code>addrenv</code>: The representation of the task address environment previously returned by up_addrenv_create.</li>
+  <li><code>oldenv</code>:
+    The address environment that was in place before <code>up_addrenv_select()</code> was called.
+    This may be used with <code>up_addrenv_restore()</code> to restore the original  address environment that was in place before <code>up_addrenv_select()</code> was called.
+    Note that this may be a task agnostic, hardware representation that is different from <code>task_addrenv_t</code>.
+  </li>
+</ul>
+<p><b>Returned Value</b>:</p>
+<ul>
+  Zero (<code>OK</code>) on success; a negated <code>errno</code> value on failure.
+</ul>
+
+<h4><a name="up_addrenv_restore">4.1.21.4 <code>up_addrenv_restore()</code></a></h4>
+<p><b>Prototype</b>:<p>
+<ul>
+  <code>int up_addrenv_restore(hw_addrenv_t oldenv);</code>
+</ul>
+<p><b>Description</b>:</p>
+<ul>
+  After an address environment has been temporarilty instantiated by <code>up_addrenv_select</code>,
+  this function may be called to to restore the original address environment.
+</ul>
+<p><b>Input Parameters</b>:</p>
+<ul>
+  <li><code>oldenv</code>: The hardware representation of the address environment previously returned by <code>up_addrenv_select()</code>.</li>
+</ul>
+<p><b>Returned Value</b>:</p>
+<ul>
+  Zero (<code>OK</code>) on success; a negated <code>errno</code> value on failure.
+</ul>
+
+<h4><a name="up_addrenv_destroy">4.1.21.5 <code>up_addrenv_destroy()</code></a></h4>
+<p><b>Prototype</b>:<p>
+<ul>
+  <code>int up_addrenv_destroy(task_addrenv_t addrenv);</code>
+</ul>
+<p><b>Description</b>:</p>
+<ul>
+  Called from the binary loader loader during error handling to destroy the address environment previously created by <code>up_addrenv_create()</code>.
+</ul>
+<p><b>Input Parameters</b>:</p>
+<ul>
+  <li><code>addrenv</code>: The representation of the task address environment previously returned by up_addrenv_create.</li>
+</ul>
+<p><b>Returned Value</b>:</p>
+<ul>
+  Zero (<code>OK</code>) on success; a negated <code>errno</code> value on failure.
+</ul>
+
+<h4><a name="up_addrenv_assign">4.1.21.6 <code>up_addrenv_assign()</code></a></h4>
+<p><b>Prototype</b>:<p>
+<ul>
+  <code>int up_addrenv_assign(task_addrenv_t addrenv, FAR _TCB *tcb);</code>
+</ul>
+<p><b>Description</b>:</p>
+<ul>
+  Assign an address environment to a TCB.
+</ul>
+<p><b>Input Parameters</b>:</p>
+<ul>
+  <li><code>addrenv</code>: The representation of the task address environment previously returned by up_addrenv_create.</li>
+  <li><code>tcb</code>: The TCB of the task to receive the address environment.</li>
+</ul>
+<p><b>Returned Value</b>:</p>
+<ul>
+  Zero (<code>OK</code>) on success; a negated <code>errno</code> value on failure.
+</ul>
+
+<h4><a name="up_addrenv_share">4.1.21.7 <code>up_addrenv_share()</code></a></h4>
+<p><b>Prototype</b>:<p>
+<ul>
+  <code>int up_addrenv_share(FAR const _TCB *ptcb, FAR _TCB *ctcb);</code>
+</ul>
+<p><b>Description</b>:</p>
+<ul>
+  This function is called from the core scheduler logic when a thread is created that needs to share the address ennvironment of its parent task.
+  In this case, the parent's address environment needs to be &quot;cloned&quot; for the child thread.
+</ul>
+<p><b>Input Parameters</b>:</p>
+<ul>
+  <li><code>ptcb</code>: The TCB of the parent task that has the address environment.</li>
+  <li><code>ctcb</code>: The TCB of the child thread needing the address environment.</li>
+</ul>
+<p><b>Returned Value</b>:</p>
+<ul>
+  Zero (<code>OK</code>) on success; a negated <code>errno</code> value on failure.
+</ul>
+
+<h4><a name="up_addrenv_release">4.1.21.8 <code>up_addrenv_release()</code></a></h4>
+<p><b>Prototype</b>:<p>
+<ul>
+  <code>int up_addrenv_release(FAR _TCB *tcb);</code>
+</ul>
+<p><b>Description</b>:</p>
+<ul>
+  This function is called when a task or thread exits in order to release its reference to an address environment.
+  When there are no furtherreferences to an address environment, that address environment should
+  be destroyed.
+</ul>
+<p><b>Input Parameters</b>:</p>
+<ul>
+  <li><code>tcb</code>: The TCB of the task or thread whose the address environment will be released.</li>
+</ul>
+<p><b>Returned Value</b>:</p>
+<ul>
+  Zero (<code>OK</code>) on success; a negated <code>errno</code> value on failure.
+</ul>
 
 <h2><a name="exports">4.2 APIs Exported by NuttX to Architecture-Specific Logic</a></h2>
 <p>
@@ -3470,7 +3701,7 @@ extern void up_ledoff(int led);
   All PM interfaces are declared in the file <code>include/nuttx/power/pm.h</code>.
 </p>
 
-<h4><a name="pminitialize">6.4.2.1 pm_initialize()</a></h4>
+<h4><a name="pminitialize">6.4.2.1 <code>pm_initialize()</code></a></h4>
 <p><b>Function Prototype:</b></p>
 <ul><pre>
 #include &lt;nuttx/power/pm.h&gt;
@@ -3487,7 +3718,7 @@ None
 None
 </p>
 
-<h4><a name="pmregister">6.4.2.2 pm_register()</a></h4>
+<h4><a name="pmregister">6.4.2.2 <code>pm_register()</code></a></h4>
 <p><b>Function Prototype:</b></p>
 <ul><pre>
 #include &lt;nuttx/power/pm.h&gt;
@@ -3507,7 +3738,7 @@ int pm_register(FAR struct pm_callback_s *callbacks);
 Zero (<code>OK</code>) on success; otherwise a negater <code>errno</code> value is returned.
 </p>
 
-<h4><a name="pmactivity">6.4.2.3 pm_activity()</a></h4>
+<h4><a name="pmactivity">6.4.2.3 <code>pm_activity()</code></a></h4>
 <p><b>Function Prototype:</b></p>
 <ul><pre>
 #include &lt;nuttx/power/pm.h&gt;
@@ -3534,7 +3765,7 @@ void pm_activity(int priority);
   This function may be called from an interrupt handler (this is the ONLY PM function that may be called from an interrupt handler!).
 </p>
 
-<h4><a name="pmcheckstate">6.4.2.4 pm_checkstate()</a></h4>
+<h4><a name="pmcheckstate">6.4.2.4 <code>pm_checkstate()</code></a></h4>
 <p><b>Function Prototype:</b></p>
 <ul><pre>
 #include &lt;nuttx/power/pm.h&gt;
@@ -3561,7 +3792,7 @@ enum pm_state_e pm_checkstate(void);
   The recommended power management state.
 </p>
 
-<h4><a name="pmchangestate">6.4.2.5 pm_changestate()</a></h4>
+<h4><a name="pmchangestate">6.4.2.5 <code>pm_changestate()</code></a></h4>
 <p><b>Function Prototype:</b></p>
 <ul><pre>
 #include &lt;nuttx/power/pm.h&gt;
@@ -3596,7 +3827,7 @@ enum pm_state_e pm_checkstate(void);
   These callback functions can be used to provide power management information to the driver.
 </p>
 
-<h4><a name="pmprepare">6.4.3.1 prepare()</a></h4>
+<h4><a name="pmprepare">6.4.3.1 <code>prepare()</code></a></h4>
 <p><b>Function Prototype:</b></p>
 <ul><pre>
 int (*prepare)(FAR struct pm_callback_s *cb, enum pm_state_e pmstate);
@@ -3624,7 +3855,7 @@ int (*prepare)(FAR struct pm_callback_s *cb, enum pm_state_e pmstate);
    consumption modes!
 </p>
 
-<h4><a name="pmnotify">6.4.3.1 notify()</a></h4>
+<h4><a name="pmnotify">6.4.3.1 <code>notify()</code></a></h4>
 <p><b>Function Prototype:</b></p>
 <ul><pre>
 #include &lt;nuttx/power/pm.h&gt;

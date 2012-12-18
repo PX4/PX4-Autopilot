@@ -46,6 +46,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <sched.h>
+
 #include <arch/arch.h>
 
 /****************************************************************************
@@ -381,17 +382,47 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size);
 #endif
 
 /****************************************************************************
+ * Address Environment Interfaces
+ *
+ * Low-level interfaces used in binfmt/ to instantiate tasks with address
+ * environments.  These interfaces all operate on type task_addrenv_t which
+ * is an abstract representation of a task's address environment and must be
+ * defined in arch/arch.h if CONFIG_ADDRENV is defined.
+ *
+ *   up_addrenv_create  - Create an address environment
+ *   up_addrenv_vaddr   - Returns the virtual base address of the address
+ *                        environment
+ *   up_addrenv_select  - Instantiate an address environment
+ *   up_addrenv_restore - Restore an address environment
+ *   up_addrenv_destroy - Destroy an address environment.
+ *   up_addrenv_assign  - Assign an address environment to a TCB
+ *
+ * Higher-level interfaces used by the tasking logic.  These interfaces are
+ * used by the functions in sched/ and all operate on the TCB which as been
+ * assigned an address environment by up_addrenv_assign().
+ *
+ *   up_addrenv_share   - Clone the address environment assigned to one TCB
+ *                        to another.  This operation is done when a pthread
+ *                        is created that share's the same address
+ *                        environment.
+ *   up_addrenv_release - Release the TCBs reference to an address
+ *                        environment when a task/thread exits.
+ *
+ ****************************************************************************/
+/****************************************************************************
  * Name: up_addrenv_create
  *
  * Description:
  *   This function is called from the binary loader logic when a new
- *   task is created in RAM in order to instantiate an address environment for
- *   the task.
+ *   task is created in order to instantiate an address environment for the
+ *   task.  up_addrenv_create is essentially the allocator of the physical
+ *   memory for the new task.
  *
  * Input Parameters:
- *   tcb - The TCB of the task needing the address environment.
  *   envsize - The size (in bytes) of the address environment needed by the
  *     task.
+ *   addrenv - The location to return the representation of the task address
+ *     environment.
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
@@ -399,7 +430,119 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size);
  ****************************************************************************/
 
 #ifdef CONFIG_ADDRENV
-int up_addrenv_create(FAR _TCB *tcb, size_t envsize);
+int up_addrenv_create(size_t envsize, FAR task_addrenv_t *addrenv);
+#endif
+
+/****************************************************************************
+ * Name: up_addrenv_vaddr
+ *
+ * Description:
+ *   Return the virtual address associated with the newly create address
+ *   environment.  This function is used by the binary loaders in order
+ *   get an address that can be used to initialize the new task.
+ *
+ * Input Parameters:
+ *   addrenv - The representation of the task address environment previously
+ *      returned by up_addrenv_create.
+ *   vaddr - The location to return the virtual address.
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ADDRENV
+int up_addrenv_vaddr(FAR task_addrenv_t addrenv, FAR void **vaddr);
+#endif
+
+/****************************************************************************
+ * Name: up_addrenv_select
+ *
+ * Description:
+ *   After an address environment has been established for a task (via
+ *   up_addrenv_create().  This function may be called to to instantiate
+ *   that address environment in the virtual address space.  this might be
+ *   necessary, for example, to load the code for the task from a file or
+ *   to access address environment private data.
+ *
+ * Input Parameters:
+ *   addrenv - The representation of the task address environment previously
+ *     returned by up_addrenv_create.
+ *   oldenv
+ *     The address environment that was in place before up_addrenv_select().
+ *     This may be used with up_addrenv_restore() to restore the original
+ *     address environment that was in place before up_addrenv_select() was
+ *     called.  Note that this may be a task agnostic, hardware
+ *     representation that is different from task_addrenv_t.
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ADDRENV
+int up_addrenv_select(task_addrenv_t addrenv, hw_addrenv_t *oldenv);
+#endif
+
+/****************************************************************************
+ * Name: up_addrenv_restore
+ *
+ * Description:
+ *   After an address environment has been temporarilty instantiated by
+ *   up_addrenv_select, this function may be called to to restore the
+ *   original address environment.
+ *
+ * Input Parameters:
+ *   oldenv - The hardware representation of the address environment
+ *     previously returned by up_addrenv_select.
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ADDRENV
+int up_addrenv_restore(hw_addrenv_t oldenv);
+#endif
+
+/****************************************************************************
+ * Name: up_addrenv_destroy
+ *
+ * Description:
+ *   Called from the binary loader loader during error handling to destroy
+ *   the address environment previously created by up_addrenv_create().
+ *
+ * Input Parameters:
+ *   addrenv - The representation of the task address environment previously
+ *     returned by up_addrenv_create.
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ADDRENV
+int up_addrenv_destroy(task_addrenv_t addrenv);
+#endif
+
+/****************************************************************************
+ * Name: up_addrenv_assign
+ *
+ * Description:
+ *   Assign an address environment to a TCB.
+ *
+ * Input Parameters:
+ *   addrenv - The representation of the task address environment previously
+ *     returned by up_addrenv_create.
+ *   tcb - The TCB of the task to receive the address environment.
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ADDRENV
+int up_addrenv_assign(task_addrenv_t addrenv, FAR _TCB *tcb);
 #endif
 
 /****************************************************************************
@@ -422,49 +565,6 @@ int up_addrenv_create(FAR _TCB *tcb, size_t envsize);
 
 #ifdef CONFIG_ADDRENV
 int up_addrenv_share(FAR const _TCB *ptcb, FAR _TCB *ctcb);
-#endif
-
-/****************************************************************************
- * Name: up_addrenv_instantiate
- *
- * Description:
- *   After an address environment has been established for a task (via
- *   up_addrenv_create().  This function may be called to to instantiate
- *   that address environment in the virtual address space.  this might be
- *   necessary, for example, to load the code for the task from a file or
- *   to access address environment private data.
- *
- * Input Parameters:
- *   tcb - The TCB of the task or thread whose the address environment will
- *     be instantiated.
- *
- * Returned Value:
- *   A handle that may be used with up_addrenv_restore() to restore the
- *   address environment before up_addrenv_instantiate() was called.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_ADDRENV
-FAR void *up_addrenv_instantiate(FAR _TCB *tcb);
-#endif
-
-/****************************************************************************
- * Name: up_addrenv_restore
- *
- * Description:
- *   Restore an address environment using a handle previously returned by
- *   up_addrenv_instantiate().
- *
- * Input Parameters:
- *   handle - A handle previously returned by up_addrenv_instantiate.
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_ADDRENV
-int up_addrenv_restore(FAR void *handle);
 #endif
 
 /****************************************************************************
