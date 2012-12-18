@@ -60,6 +60,7 @@
 #include <drivers/boards/px4fmu/px4fmu_internal.h>
 
 #include <systemlib/systemlib.h>
+#include <systemlib/err.h>
 #include <systemlib/mixer/mixer.h>
 #include <drivers/drv_mixer.h>
 
@@ -800,13 +801,14 @@ test(void)
 
 	fd = open(PWM_OUTPUT_DEVICE_PATH, 0);
 
-	if (fd < 0) {
-		puts("open fail");
-		exit(1);
-	}
+	if (fd < 0)
+		errx(1, "open fail");
 
-	ioctl(fd, PWM_SERVO_ARM, 0);
-	ioctl(fd, PWM_SERVO_SET(0), 1000);
+	if (ioctl(fd, PWM_SERVO_ARM, 0) < 0)       err(1, "servo arm failed");
+	if (ioctl(fd, PWM_SERVO_SET(0), 1000) < 0) err(1, "servo 1 set failed");
+	if (ioctl(fd, PWM_SERVO_SET(1), 1200) < 0) err(1, "servo 2 set failed");
+	if (ioctl(fd, PWM_SERVO_SET(2), 1400) < 0) err(1, "servo 3 set failed");
+	if (ioctl(fd, PWM_SERVO_SET(3), 1600) < 0) err(1, "servo 4 set failed");
 
 	close(fd);
 
@@ -816,10 +818,8 @@ test(void)
 void
 fake(int argc, char *argv[])
 {
-	if (argc < 5) {
-		puts("fmu fake <roll> <pitch> <yaw> <thrust> (values -100 .. 100)");
-		exit(1);
-	}
+	if (argc < 5)
+		errx(1, "fmu fake <roll> <pitch> <yaw> <thrust> (values -100 .. 100)");
 
 	actuator_controls_s ac;
 
@@ -833,10 +833,8 @@ fake(int argc, char *argv[])
 
 	orb_advert_t handle = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &ac);
 
-	if (handle < 0) {
-		puts("advertise failed");
-		exit(1);
-	}
+	if (handle < 0)
+		errx(1, "advertise failed");
 
 	exit(0);
 }
@@ -891,11 +889,11 @@ fmu_main(int argc, char *argv[])
 				if (argc > i + 1) {
 					pwm_update_rate_in_hz = atoi(argv[i + 1]);
 				} else {
-					fprintf(stderr, "missing argument for pwm update rate (-u)\n");
+					errx(1, "missing argument for pwm update rate (-u)");
 					return 1;
 				}
 			} else {
-				fprintf(stderr, "pwm update rate currently only supported for mode_pwm, mode_pwm_gpio\n");
+				errx(1, "pwm update rate currently only supported for mode_pwm, mode_pwm_gpio");
 			}
 		}
         }
@@ -915,5 +913,5 @@ fmu_main(int argc, char *argv[])
 
 	fprintf(stderr, "FMU: unrecognised command, try:\n");
 	fprintf(stderr, "  mode_gpio, mode_serial, mode_pwm [-u pwm_update_rate_in_hz], mode_gpio_serial, mode_pwm_serial, mode_pwm_gpio\n");
-	return -EINVAL;
+	exit(1);
 }
