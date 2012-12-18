@@ -111,9 +111,9 @@ private:
 	void		task_main() __attribute__((noreturn));
 
 	static int	control_callback(uintptr_t handle,
-			uint8_t control_group,
-			uint8_t control_index,
-			float &input);
+					 uint8_t control_group,
+					 uint8_t control_index,
+					 float &input);
 
 	int		pwm_ioctl(file *filp, int cmd, unsigned long arg);
 
@@ -178,6 +178,7 @@ PX4FMU::~PX4FMU()
 		_task_should_exit = true;
 
 		unsigned i = 10;
+
 		do {
 			/* wait 50ms - it should wake every 100ms or so worst-case */
 			usleep(50000);
@@ -213,6 +214,7 @@ PX4FMU::init()
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
 	ret = register_driver(PWM_OUTPUT_DEVICE_PATH, &fops, 0666, (void *)this);
+
 	if (ret == OK) {
 		log("default PWM output device");
 		_primary_pwm_device = true;
@@ -246,7 +248,7 @@ PX4FMU::task_main_trampoline(int argc, char *argv[])
 int
 PX4FMU::set_mode(Mode mode)
 {
-	/* 
+	/*
 	 * Configure for PWM output.
 	 *
 	 * Note that regardless of the configured mode, the task is always
@@ -280,6 +282,7 @@ PX4FMU::set_mode(Mode mode)
 	default:
 		return -EINVAL;
 	}
+
 	_mode = mode;
 	return OK;
 }
@@ -332,8 +335,10 @@ PX4FMU::task_main()
 		/* handle update rate changes */
 		if (_current_update_rate != _update_rate) {
 			int update_rate_in_ms = int(1000 / _update_rate);
+
 			if (update_rate_in_ms < 2)
 				update_rate_in_ms = 2;
+
 			orb_set_interval(_t_actuators, update_rate_in_ms);
 			up_pwm_servo_set_rate(_update_rate);
 			_current_update_rate = _update_rate;
@@ -405,9 +410,9 @@ PX4FMU::task_main()
 
 int
 PX4FMU::control_callback(uintptr_t handle,
-				      uint8_t control_group,
-				      uint8_t control_index,
-				      float &input)
+			 uint8_t control_group,
+			 uint8_t control_index,
+			 float &input)
 {
 	const actuator_controls_s *controls = (actuator_controls_s *)handle;
 
@@ -425,15 +430,17 @@ PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
 
 	/* try it as a GPIO ioctl first */
 	ret = gpio_ioctl(filp, cmd, arg);
+
 	if (ret != -ENOTTY)
 		return ret;
 
 	/* if we are in valid PWM mode, try it as a PWM ioctl as well */
-	switch(_mode) {
+	switch (_mode) {
 	case MODE_2PWM:
 	case MODE_4PWM:
 		ret = pwm_ioctl(filp, cmd, arg);
 		break;
+
 	default:
 		debug("not in a PWM mode");
 		break;
@@ -551,8 +558,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			}
 
 			_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
+
 			if (_mixers == nullptr) {
 				ret = -ENOMEM;
+
 			} else {
 
 				debug("loading mixers from %s", path);
@@ -583,7 +592,7 @@ void
 PX4FMU::gpio_reset(void)
 {
 	/*
-	 * Setup default GPIO config - all pins as GPIOs, GPIO driver chip 
+	 * Setup default GPIO config - all pins as GPIOs, GPIO driver chip
 	 * to input mode.
 	 */
 	for (unsigned i = 0; i < _ngpio; i++)
@@ -610,17 +619,20 @@ PX4FMU::gpio_set_function(uint32_t gpios, int function)
 
 	/* configure selected GPIOs as required */
 	for (unsigned i = 0; i < _ngpio; i++) {
-		if (gpios & (1<<i)) {
+		if (gpios & (1 << i)) {
 			switch (function) {
 			case GPIO_SET_INPUT:
 				stm32_configgpio(_gpio_tab[i].input);
 				break;
+
 			case GPIO_SET_OUTPUT:
 				stm32_configgpio(_gpio_tab[i].output);
 				break;
+
 			case GPIO_SET_ALT_1:
 				if (_gpio_tab[i].alt != 0)
 					stm32_configgpio(_gpio_tab[i].alt);
+
 				break;
 			}
 		}
@@ -637,7 +649,7 @@ PX4FMU::gpio_write(uint32_t gpios, int function)
 	int value = (function == GPIO_SET) ? 1 : 0;
 
 	for (unsigned i = 0; i < _ngpio; i++)
-		if (gpios & (1<<i))
+		if (gpios & (1 << i))
 			stm32_gpiowrite(_gpio_tab[i].output, value);
 }
 
@@ -661,7 +673,7 @@ PX4FMU::gpio_ioctl(struct file *filp, int cmd, unsigned long arg)
 	lock();
 
 	switch (cmd) {
-		
+
 	case GPIO_RESET:
 		gpio_reset();
 		break;
@@ -763,6 +775,7 @@ fmu_new_mode(PortMode new_mode, int update_rate)
 
 	/* (re)set the PWM output mode */
 	g_fmu->set_mode(servo_mode);
+
 	if ((servo_mode != PX4FMU::MODE_NONE) && (update_rate != 0))
 		g_fmu->set_pwm_rate(update_rate);
 
@@ -805,9 +818,13 @@ test(void)
 		errx(1, "open fail");
 
 	if (ioctl(fd, PWM_SERVO_ARM, 0) < 0)       err(1, "servo arm failed");
+
 	if (ioctl(fd, PWM_SERVO_SET(0), 1000) < 0) err(1, "servo 1 set failed");
+
 	if (ioctl(fd, PWM_SERVO_SET(1), 1200) < 0) err(1, "servo 2 set failed");
+
 	if (ioctl(fd, PWM_SERVO_SET(2), 1400) < 0) err(1, "servo 3 set failed");
+
 	if (ioctl(fd, PWM_SERVO_SET(3), 1600) < 0) err(1, "servo 4 set failed");
 
 	close(fd);
@@ -835,6 +852,16 @@ fake(int argc, char *argv[])
 
 	if (handle < 0)
 		errx(1, "advertise failed");
+
+	actuator_armed_s aa;
+
+	aa.armed = true;
+	aa.lockdown = false;
+
+	handle = orb_advertise(ORB_ID(actuator_armed), &aa);
+
+	if (handle < 0)
+		errx(1, "advertise failed 2");
 
 	exit(0);
 }
@@ -888,15 +915,17 @@ fmu_main(int argc, char *argv[])
 			if (new_mode == PORT_FULL_PWM || new_mode == PORT_PWM_AND_GPIO) {
 				if (argc > i + 1) {
 					pwm_update_rate_in_hz = atoi(argv[i + 1]);
+
 				} else {
 					errx(1, "missing argument for pwm update rate (-u)");
 					return 1;
 				}
+
 			} else {
 				errx(1, "pwm update rate currently only supported for mode_pwm, mode_pwm_gpio");
 			}
 		}
-        }
+	}
 
 	/* was a new mode set? */
 	if (new_mode != PORT_MODE_UNSET) {
