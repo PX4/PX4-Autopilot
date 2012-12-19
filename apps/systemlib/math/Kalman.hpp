@@ -139,10 +139,10 @@ public:
     void predict(float dt, const VectorType & accelB, const VectorType & gyroB)
     {
         // constants
-        static const float omega = 1e-5f;
-        static const float R = 1e6f;
-        static const float RSq = 1e12f;
-        static const float g = 9.8f;
+        static const float omega = 7.2921150e-5f; // earth rotation rate, rad/s
+        static const float R = 6.371000e6f; // earth radius, m
+        static const float RSq = 4.0589641e13f; // radius squared
+        static const float g = 9.8f; // gravitational accel. m/s^2
 
         // state
         VectorType & x = KalmanType::getX();
