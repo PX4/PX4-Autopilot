@@ -108,10 +108,6 @@ public:
         MatrixType I6 = MatrixType::identity(6);
         MatrixType I9 = MatrixType::identity(9);
 
-        VectorType & x = this->_x;
-        x.setAll(1.0f);
-        x.print();
-
         // initial state covariance matrix
         setP(I9*1.0f);
 
