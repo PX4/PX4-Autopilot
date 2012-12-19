@@ -1476,21 +1476,45 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* End battery voltage check */
 
+
+		/*
+		 * Check for valid position information.
+		 *
+		 * If the system has a valid position source from an onboard
+		 * position estimator, it is safe to operate it autonomously.
+		 * The flag_vector_flight_mode_ok flag indicates that a minimum
+		 * set of position measurements is available.
+		 */
+
+		/* store current state to reason later about a state change */
 		bool vector_flight_mode_ok = current_status.flag_vector_flight_mode_ok;
 		bool global_pos_valid = current_status.flag_global_position_valid;
 		bool local_pos_valid = current_status.flag_local_position_valid;
 
 		/* check for global or local position updates, set a timeout of 2s */
 		if (hrt_absolute_time() - last_global_position_time < 2000000) {
-			current_status.flag_vector_flight_mode_ok = true;
 			current_status.flag_global_position_valid = true;
 			// XXX check for controller status and home position as well
+		} else {
+			current_status.flag_global_position_valid = false;
 		}
 		
 		if (hrt_absolute_time() - last_local_position_time < 2000000) {
-			current_status.flag_vector_flight_mode_ok = true;
 			current_status.flag_local_position_valid = true;
 			// XXX check for controller status and home position as well
+		} else {
+			current_status.flag_local_position_valid = false;
+		}
+
+		/*
+		 * Consolidate global position and local position valid flags
+		 * for vector flight mode.
+		 */
+		if (current_status.flag_local_position_valid ||
+			current_status.flag_global_position_valid) {
+			current_status.flag_vector_flight_mode_ok = true;
+		} else {
+			current_status.flag_vector_flight_mode_ok = false;
 		}
 
 		/* consolidate state change, flag as changed if required */

@@ -64,7 +64,7 @@ static unsigned counter = 0;
  * Define the various LED flash sequences for each system state.
  */
 #define LED_PATTERN_SAFE 			0xffff		/**< always on 				*/
-#define LED_PATTERN_VECTOR_FLIGHT_MODE_OK 	0x3000		/**< always on with short break 	*/
+#define LED_PATTERN_VECTOR_FLIGHT_MODE_OK 	0xFFFE		/**< always on with short break 	*/
 #define LED_PATTERN_FMU_ARMED 			0x4444		/**< slow blinking			*/
 #define LED_PATTERN_IO_ARMED 			0x5555		/**< fast blinking 			*/
 #define LED_PATTERN_IO_FMU_ARMED 		0x5050		/**< long off then double blink 	*/
