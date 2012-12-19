@@ -116,6 +116,9 @@ public:
         RMag = I3*0.001f;   // magnetometer
         RGps = I6*0.001f;   // gps
 
+        // Initialize F to identity
+        this->_F = I9;
+
         // HGps is constant
         HGps(0,3) = 1.0f;
         HGps(1,4) = 1.0f;
@@ -179,55 +182,59 @@ public:
         // F Matrix
         MatrixType & F = this->_F;
 
-        F(0,1) = -(omega*sinL + vE*tanL/R);
-        F(0,2) = vN/R;
-        F(0,4) = 1.0f/R;
-        F(0,6) = -omega*sinL;
-        F(0,8) = -vE/RSq;
-
-        F(1,0) = omega*sinL + vE*tanL/R;
-        F(1,2) = omega*cosL + vE/R;
-        F(1,3) = -1.0f/R;
-        F(1,8) = vN/RSq;
+        // difference from Jacobian
+        // multiplity by dt for all elements
+        // add 1.0 to diagonal elements
         
-        F(2,0) = -vN/R;
-        F(2,1) = -omega*cosL - vE/R;
-        F(2,4) = -tanL/R;
-        F(2,6) = -omega*cosL - vE/(R*cosLSq);
-        F(2,8) = vE*tanL/RSq;
+        F(0,1) = (-(omega*sinL + vE*tanL/R))*dt;
+        F(0,2) = (vN/R)*dt;
+        F(0,4) = (1.0f/R)*dt;
+        F(0,6) = (-omega*sinL)*dt;
+        F(0,8) = (-vE/RSq)*dt;
 
-        F(3,1) = -fD;
-        F(3,2) = fE;
-        F(3,3) = vD/R;
-        F(3,4) = -2*(omega*sinL + vE*tanL/R);
-        F(3,5) = vN/R;
-        F(3,6) = -vE*(2*omega*cosL + vE/(R*cosLSq));
-        F(3,8) = (vE*vE*tanL - vN*vD)/RSq;
+        F(1,0) = (omega*sinL + vE*tanL/R)*dt;
+        F(1,2) = (omega*cosL + vE/R)*dt;
+        F(1,3) = (-1.0f/R)*dt;
+        F(1,8) = (vN/RSq)*dt;
+        
+        F(2,0) = (-vN/R)*dt;
+        F(2,1) = (-omega*cosL - vE/R)*dt;
+        F(2,4) = (-tanL/R)*dt;
+        F(2,6) = (-omega*cosL - vE/(R*cosLSq))*dt;
+        F(2,8) = (vE*tanL/RSq)*dt;
 
-        F(4,0) = fD;
-        F(4,2) = -fN;
-        F(4,3) = 2*omega*sinL + vE*tanL/R;
-        F(4,4) = (vN*tanL + vD)/R;
-        F(4,5) = 2*omega*cosL + vE/R;
-        F(4,6) = 2*omega*(vN*cosL - vD*sinL) + 
-            vN*vE/(R*cosLSq);
-        F(4,8) = -vE*(vN*tanL + vD)/RSq;
+        F(3,1) = (-fD)*dt;
+        F(3,2) = (fE)*dt;
+        F(3,3) = 1.0f + (vD/R)*dt; // on diagonal
+        F(3,4) = (-2*(omega*sinL + vE*tanL/R))*dt;
+        F(3,5) = (vN/R)*dt;
+        F(3,6) = (-vE*(2*omega*cosL + vE/(R*cosLSq)))*dt;
+        F(3,8) = ((vE*vE*tanL - vN*vD)/RSq)*dt;
 
-        F(5,0) = -fE;
-        F(5,1) = fN;
-        F(5,3) = -2*vN/R;
-        F(5,4) = -2*(omega*cosL + vE/R);
-        F(5,6) = 2*omega*vE*sinL;
-        F(5,8) = (vN*vN + vE*vE)/RSq;
+        F(4,0) = (fD)*dt;
+        F(4,2) = (-fN)*dt;
+        F(4,3) = (2*omega*sinL + vE*tanL/R)*dt;
+        F(4,4) = 1.0f + ((vN*tanL + vD)/R)*dt; // on diagonal
+        F(4,5) = (2*omega*cosL + vE/R)*dt;
+        F(4,6) = (2*omega*(vN*cosL - vD*sinL) + 
+            vN*vE/(R*cosLSq))*dt;
+        F(4,8) = (-vE*(vN*tanL + vD)/RSq)*dt;
 
-        F(6,3) = 1/R;
-        F(6,8) = -vN/RSq;
+        F(5,0) = (-fE)*dt;
+        F(5,1) = (fN)*dt;
+        F(5,3) = (-2*vN/R)*dt;
+        F(5,4) = (-2*(omega*cosL + vE/R))*dt;
+        F(5,6) = (2*omega*vE*sinL)*dt;
+        F(5,8) = ((vN*vN + vE*vE)/RSq)*dt;
 
-        F(7,4) = 1/(R*cosL);
-        F(7,6) = vE*tanL/(R*cosL);
-        F(7,8) = -vE/(cosL*RSq);
+        F(6,3) = (1/R)*dt;
+        F(6,8) = (-vN/RSq)*dt;
 
-        F(8,5) = -1;
+        F(7,4) = (1/(R*cosL))*dt;
+        F(7,6) = (vE*tanL/(R*cosL))*dt;
+        F(7,8) = (-vE/(cosL*RSq))*dt;
+
+        F(8,5) = (-1)*dt;
 
         // G Matrix
         G(0,0) = -Dcm(0,0); 
@@ -255,6 +262,15 @@ public:
 
         // update x
         // TODO: need to add non-linear state prediction functions
+        // instead of using linearization
+        VectorType u(6);
+        u(0) = accelB(0);
+        u(1) = accelB(1);
+        u(2) = accelB(2);
+        u(3) = gyroB(0);
+        u(4) = gyroB(1);
+        u(5) = gyroB(2);
+        x = F*x + G*u;
 
         // predict equations for kalman filter
         KalmanType::predict(dt);
