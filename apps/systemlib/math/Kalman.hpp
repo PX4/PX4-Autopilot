@@ -275,10 +275,9 @@ public:
         float sinTheta = sinf(theta);
         float sinPsi = sinf(psi);
 
-        float magFieldStrength = 0.5f;
-
         // choosing some typical magnetic field properties,
         //  TODO dip/dec depend on lat/ lon/ time
+        static const float magFieldStrength = 0.5f;
         static const float dip = 60.0f; // dip, inclination with level
         static const float dec = 0.0f; // declination, clockwise rotation from north
         float bN = magFieldStrength*cosf(dip)*cosf(dec);
