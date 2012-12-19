@@ -111,6 +111,7 @@ config ARCH_CHIP_STM32
 	select ARCH_HAVE_CMNVECTOR
 	select ARCH_HAVE_MPU
 	select ARCH_HAVE_I2CRESET
+	select ARCH_IRQPRIO
 	---help---
 		STMicro STM32 architectures (ARM Cortex-M3/4).
 

@@ -65,7 +65,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nxflat_addrenv_create
+ * Name: nxflat_addrenv_alloc
  *
  * Description:
  *   Allocate memory for the ELF image (elfalloc). If CONFIG_ADDRENV=n,
@@ -84,7 +84,7 @@
  *
  ****************************************************************************/
 
-int nxflat_addrenv_create(FAR struct nxflat_loadinfo_s *loadinfo, size_t envsize)
+int nxflat_addrenv_alloc(FAR struct nxflat_loadinfo_s *loadinfo, size_t envsize)
 {
   FAR struct dspace_s *dspace;
 #ifdef CONFIG_ADDRENV

@@ -146,11 +146,11 @@ int load_module(FAR struct binary_s *bin)
 #endif
     {
       /* Were we given a relative path?  Or an absolute path to the file to
-       * be loaded.
+       * be loaded?  Absolute paths start with '/'.
        */
 
 #ifdef CONFIG_BINFMT_EXEPATH
-      if (bin->filename[0] == '/')
+      if (bin->filename[0] != '/')
         {
           FAR const char *relpath;
           FAR char *fullpath;
@@ -168,7 +168,7 @@ int load_module(FAR struct binary_s *bin)
             {
               /* Get the next absolute file path */
 
-              while ((fullpath = exepath_next(handle, relpath)))
+              while ((fullpath = exepath_next(handle, relpath)) != NULL)
                 {
                   /* Try to load the file at this path */
 

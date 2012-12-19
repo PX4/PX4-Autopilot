@@ -3799,3 +3799,5 @@
 	  address environment interfaces.  If CONFIG_ADDRENV=y, then binfmt/
 	  will now create an address environment for new tasks (instead of
 	  just malloc'ing the task memory).
+	* configs/stm32f4discovery/elf:  Enable support/test of the PATH
+	  to find executables using a relative path.

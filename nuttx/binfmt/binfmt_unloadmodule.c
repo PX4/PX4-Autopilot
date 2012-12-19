@@ -83,7 +83,7 @@
  ****************************************************************************/
 
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
-static inline void exec_dtors(FAR const struct binary_s *binp)
+static inline int exec_dtors(FAR const struct binary_s *binp)
 {
   binfmt_dtor_t *dtor = binp->dtors;
 #ifdef CONFIG_ADDRENV

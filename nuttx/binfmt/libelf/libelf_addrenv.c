@@ -64,7 +64,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: elf_addrenv_create
+ * Name: elf_addrenv_alloc
  *
  * Description:
  *   Allocate memory for the ELF image (elfalloc). If CONFIG_ADDRENV=n,
@@ -83,7 +83,7 @@
  *
  ****************************************************************************/
 
-int elf_addrenv_create(FAR struct elf_loadinfo_s *loadinfo, size_t envsize)
+int elf_addrenv_alloc(FAR struct elf_loadinfo_s *loadinfo, size_t envsize)
 {
 #ifdef CONFIG_ADDRENV
   FAR void *vaddr;
