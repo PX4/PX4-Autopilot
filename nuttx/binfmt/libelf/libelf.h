@@ -45,6 +45,7 @@
 #include <sys/types.h>
 #include <elf32.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/binfmt/elf.h>
 
 /****************************************************************************
@@ -74,7 +75,11 @@ int elf_verifyheader(FAR const Elf32_Ehdr *header);
  * Name: elf_read
  *
  * Description:
- *   Read 'readsize' bytes from the object file at 'offset'
+ *   Read 'readsize' bytes from the object file at 'offset'.  The data is
+ *   read into 'buffer.' If 'buffer' is part of the ELF address environment,
+ *   then the caller is responsibile for assuring that that address
+ *   environment is in place before calling this function (i.e., that
+ *   elf_addrenv_select() has been called if CONFIG_ADDRENV=y).
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -254,5 +259,83 @@ int elf_loadctors(FAR struct elf_loadinfo_s *loadinfo);
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
 int elf_loaddtors(FAR struct elf_loadinfo_s *loadinfo);
 #endif
+
+/****************************************************************************
+ * Name: elf_addrenv_alloc
+ *
+ * Description:
+ *   Allocate memory for the ELF image (elfalloc). If CONFIG_ADDRENV=n,
+ *   elfalloc will be allocated using kzalloc().  If CONFIG_ADDRENV-y, then
+ *   elfalloc will be allocated using up_addrenv_create().  In either case,
+ *   there will be a unique instance of elfalloc (and stack) for each
+ *   instance of a process.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *   envsize - The size (in bytes) of the address environment needed for the
+ *     ELF image.
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+int elf_addrenv_alloc(FAR struct elf_loadinfo_s *loadinfo, size_t envsize);
+
+/****************************************************************************
+ * Name: elf_addrenv_select
+ *
+ * Description:
+ *   Temporarity select the task's address environemnt.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ADDRENV
+#  define elf_addrenv_select(l) up_addrenv_select((l)->addrenv, &(l)->oldenv)
+#endif
+
+/****************************************************************************
+ * Name: elf_addrenv_restore
+ *
+ * Description:
+ *   Restore the address environment before elf_addrenv_select() was called..
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ADDRENV
+#  define elf_addrenv_restore(l) up_addrenv_restore((l)->oldenv)
+#endif
+
+/****************************************************************************
+ * Name: elf_addrenv_free
+ *
+ * Description:
+ *   Release the address environment previously created by
+ *   elf_addrenv_alloc().  This function  is called only under certain error
+ *   conditions after the the module has been loaded but not yet started.
+ *   After the module has been started, the address environment will
+ *   automatically be freed when the module exits.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+void elf_addrenv_free(FAR struct elf_loadinfo_s *loadinfo);
 
 #endif /* __BINFMT_LIBELF_LIBELF_H */

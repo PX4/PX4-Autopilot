@@ -209,8 +209,11 @@ static inline void ssi_putreg(struct lm3s_ssidev_s *priv, unsigned int offset,
 
 static uint32_t ssi_disable(struct lm3s_ssidev_s *priv);
 static void ssi_enable(struct lm3s_ssidev_s *priv, uint32_t enable);
+
+#ifndef CONFIG_SSI_POLLWAIT
 static void ssi_semtake(sem_t *sem);
 #define ssi_semgive(s) sem_post(s);
+#endif
 
 /* SSI data transfer */
 
@@ -446,6 +449,7 @@ static void ssi_enable(struct lm3s_ssidev_s *priv, uint32_t enable)
  *
  ****************************************************************************/
 
+#ifndef CONFIG_SSI_POLLWAIT
 static void ssi_semtake(sem_t *sem)
 {
   int ret;
@@ -456,6 +460,7 @@ static void ssi_semtake(sem_t *sem)
   while (ret < 0 && errno == EINTR);
   DEBUGASSERT(ret == 0);
 }
+#endif
 
 /****************************************************************************
  * Name: ssi_txnull, ssi_txuint16, and ssi_txuint8

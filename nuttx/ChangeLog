@@ -3792,3 +3792,10 @@
 	  logic on initial check-in
 	* binfmt/binfmt_loadmodule.c: load_module() will now traverse the PATH
 	  variable to locate files from their relative path.
+	* include/nuttx/arch.h and arch/z80/src/z180/z180_mmu.c:  Restructure the
+	  address environment interfaces so that they will better integrate with
+	  binfmt/.
+	* binfmt/libelf/*, binfmt/libnxflat/* and other files:  Integrate the
+	  address environment interfaces.  If CONFIG_ADDRENV=y, then binfmt/
+	  will now create an address environment for new tasks (instead of
+	  just malloc'ing the task memory).

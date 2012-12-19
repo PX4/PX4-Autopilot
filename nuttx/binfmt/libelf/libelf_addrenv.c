@@ -1,5 +1,5 @@
 /****************************************************************************
- * binfmt/libelf/libelf_unload.c
+ * binfmt/libelf/libelf_addrenv.c
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,11 +39,11 @@
 
 #include <nuttx/config.h>
 
-#include <stdlib.h>
+#include <errno.h>
 #include <debug.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
-#include <nuttx/binfmt/elf.h>
 
 #include "libelf.h"
 
@@ -64,51 +64,113 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: elf_unload
+ * Name: elf_addrenv_create
  *
  * Description:
- *   This function unloads the object from memory. This essentially undoes
- *   the actions of elf_load.  It is called only under certain error
- *   conditions after the the module has been loaded but not yet started.
+ *   Allocate memory for the ELF image (elfalloc). If CONFIG_ADDRENV=n,
+ *   elfalloc will be allocated using kzalloc().  If CONFIG_ADDRENV-y, then
+ *   elfalloc will be allocated using up_addrenv_create().  In either case,
+ *   there will be a unique instance of elfalloc (and stack) for each
+ *   instance of a process.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *   envsize - The size (in bytes) of the address environment needed for the
+ *     ELF image.
  *
  * Returned Value:
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
+ *   Zero (OK) on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
-int elf_unload(struct elf_loadinfo_s *loadinfo)
+int elf_addrenv_create(FAR struct elf_loadinfo_s *loadinfo, size_t envsize)
 {
-  /* Free all working buffers */
+#ifdef CONFIG_ADDRENV
+  FAR void *vaddr;
+  int ret;
 
-  elf_freebuffers(loadinfo);
+  /* Create an address environment for the new ELF task */
 
-  /* Release memory holding the relocated ELF image */
-
-  elf_addrenv_free(loadinfo);
- 
-   /* Release memory used to hold static constructors and destructors */
-
-#ifdef CONFIG_BINFMT_CONSTRUCTORS
-  if (loadinfo->ctoralloc != 0)
+  ret = up_addrenv_create(envsize, &loadinfo->addrenv);
+  if (ret < 0)
     {
-      kfree(loadinfo->ctoralloc);
-      loadinfo->ctoralloc = NULL;
+      bdbg("ERROR: up_addrenv_create failed: %d\n", ret);
+      return ret;
     }
 
-   loadinfo->ctors   = NULL;
-   loadinfo->nctors  = 0;
+  /* Get the virtual address associated with the start of the address
+   * environment.  This is the base address that we will need to use to
+   * access the ELF image (but only if the address environment has been
+   * selected.
+   */
 
-  if (loadinfo->dtoralloc != 0)
+  ret = up_addrenv_vaddr(loadinfo->addrenv, &vaddr);
+  if (ret < 0)
     {
-      kfree(loadinfo->dtoralloc);
-      loadinfo->dtoralloc = NULL;
+      bdbg("ERROR: up_addrenv_vaddr failed: %d\n", ret);
+      return ret;
     }
 
-   loadinfo->dtors   = NULL;
-   loadinfo->ndtors  = 0;
-#endif
+  loadinfo->elfalloc = (uintptr_t)vaddr;
+  return OK;
+#else
+  /* Allocate memory to hold the ELF image */
+
+  loadinfo->elfalloc = (uintptr_t)kzalloc(envsize);
+  if (!loadinfo->elfalloc)
+    {
+      return -ENOMEM;
+    }
 
   return OK;
+#endif
 }
 
+/****************************************************************************
+ * Name: elf_addrenv_free
+ *
+ * Description:
+ *   Release the address environment previously created by
+ *   elf_addrenv_create().  This function  is called only under certain error
+ *   conditions after the the module has been loaded but not yet started.
+ *   After the module has been started, the address environment will
+ *   automatically be freed when the module exits.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+void elf_addrenv_free(FAR struct elf_loadinfo_s *loadinfo)
+{
+#ifdef CONFIG_ADDRENV
+  int ret;
+
+  /* Free the address environemnt */
+
+  ret = up_addrenv_destroy(loadinfo->addrenv);
+  if (ret < 0)
+    {
+      bdbg("ERROR: up_addrenv_destroy failed: %d\n", ret);
+    }
+
+  /* Clear out all indications of the allocated address environment */
+
+  loadinfo->elfalloc = 0;
+  loadinfo->elfsize  = 0;
+  loadinfo->addrenv  = 0;
+#else
+  /* If there is an allocation for the ELF image, free it */
+
+  if (loadinfo->elfalloc != 0)
+    {
+      kfree((FAR void *)loadinfo->elfalloc);
+      loadinfo->elfalloc = 0;
+    }
+
+   loadinfo->elfsize = 0;
+#endif
+}

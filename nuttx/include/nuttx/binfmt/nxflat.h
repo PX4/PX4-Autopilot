@@ -44,7 +44,9 @@
 
 #include <stdint.h>
 #include <nxflat.h>
+
 #include <nuttx/sched.h>
+#include <nuttx/arch.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -61,17 +63,24 @@
 struct nxflat_loadinfo_s
 {
   /* Instruction Space (ISpace):  This region contains the nxflat file header
-   * plus everything from the text section.  Ideally, will have only one mmap'ed
-   * text section instance in the system for each module.
+   * plus everything from the text section.
+   *
+   * The ISpace region is allocated using mmap() and, thus, can be shared by
+   * multiple tasks.  Ideally, will have only one mmap'ed text section
+   * instance in the system for each module.
    */
 
-  uint32_t ispace;         /* Address where hdr/text is loaded */
+  uintptr_t ispace;        /* Address where hdr/text is loaded */
   uint32_t entryoffs;      /* Offset from ispace to entry point */
   uint32_t isize;          /* Size of ispace. */
 
-  /* Data Space (DSpace): This region contains all information that in referenced
-   * as data (other than the stack which is separately allocated).  There will be
-   * a unique instance of DSpace (and stack) for each instance of a process.
+  /* Data Space (DSpace): This region contains all information that is
+   * referenced as data (other than the stack which is separately allocated).
+   *
+   * If CONFIG_ADDRENV=n, DSpace will be allocated using kmalloc() (or
+   * kzalloc()).  If CONFIG_ADDRENV-y, then DSpace will be allocated using
+   * up_addrenv_create().  In either case, there will be a unique instance
+   * of DSpace (and stack) for each instance of a process.
    */
 
   struct dspace_s *dspace; /* Allocated D-Space (data/bss/etc) */
@@ -84,6 +93,19 @@ struct nxflat_loadinfo_s
 
   uint32_t relocstart;     /* Start of array of struct flat_reloc */
   uint16_t reloccount;     /* Number of elements in reloc array */
+
+  /* Address environment.
+   *
+   * addrenv - This is the handle created by up_addrenv_create() that can be
+   *   used to manage the tasks address space.
+   * oldenv  - This is a value returned by up_addrenv_select() that must be 
+   *   used to restore the current hardware address environment.
+   */
+
+#ifdef CONFIG_ADDRENV
+  task_addrenv_t addrenv;  /* Task address environment */
+  hw_addrenv_t   oldenv;   /* Saved hardware address environment */
+#endif
 
   /* File descriptors */
 
@@ -212,8 +234,9 @@ EXTERN int nxflat_bind(FAR struct nxflat_loadinfo_s *loadinfo,
  * Name: nxflat_unload
  *
  * Description:
- *   This function unloads the object from memory. This essentially
- *   undoes the actions of nxflat_load.
+ *   This function unloads the object from memory. This essentially undoes
+ *   the actions of nxflat_load.  It is called only under certain error
+ *   conditions after the the module has been loaded but not yet started.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on

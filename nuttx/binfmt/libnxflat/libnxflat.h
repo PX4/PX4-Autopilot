@@ -1,5 +1,5 @@
 /****************************************************************************
- * binfmt/libelf/libelf_unload.c
+ * binfmt/libnxflat/libnxflat.h
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,82 +33,104 @@
  *
  ****************************************************************************/
 
+#ifndef __BINFMT_LIBNXFLAT_LIBNXFLAT_H
+#define __BINFMT_LIBNXFLAT_LIBNXFLAT_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <stdlib.h>
-#include <debug.h>
+#include <sys/types.h>
 
-#include <nuttx/kmalloc.h>
-#include <nuttx/binfmt/elf.h>
-
-#include "libelf.h"
+#include <nuttx/arch.h>
+#include <nuttx/binfmt/nxflat.h>
 
 /****************************************************************************
- * Pre-Processor Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Private Constant Data
+ * Public Types
  ****************************************************************************/
 
 /****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: elf_unload
+ * Name: nxflat_addrenv_alloc
  *
  * Description:
- *   This function unloads the object from memory. This essentially undoes
- *   the actions of elf_load.  It is called only under certain error
- *   conditions after the the module has been loaded but not yet started.
+ *   Allocate memory for the ELF image (elfalloc). If CONFIG_ADDRENV=n,
+ *   elfalloc will be allocated using kzalloc().  If CONFIG_ADDRENV-y, then
+ *   elfalloc will be allocated using up_addrenv_create().  In either case,
+ *   there will be a unique instance of elfalloc (and stack) for each
+ *   instance of a process.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *   envsize - The size (in bytes) of the address environment needed for the
+ *     ELF image.
  *
  * Returned Value:
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
+ *   Zero (OK) on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
-int elf_unload(struct elf_loadinfo_s *loadinfo)
-{
-  /* Free all working buffers */
+int nxflat_addrenv_alloc(FAR struct nxflat_loadinfo_s *loadinfo, size_t envsize);
 
-  elf_freebuffers(loadinfo);
+/****************************************************************************
+ * Name: nxflat_addrenv_select
+ *
+ * Description:
+ *   Temporarity select the task's address environemnt.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
 
-  /* Release memory holding the relocated ELF image */
-
-  elf_addrenv_free(loadinfo);
- 
-   /* Release memory used to hold static constructors and destructors */
-
-#ifdef CONFIG_BINFMT_CONSTRUCTORS
-  if (loadinfo->ctoralloc != 0)
-    {
-      kfree(loadinfo->ctoralloc);
-      loadinfo->ctoralloc = NULL;
-    }
-
-   loadinfo->ctors   = NULL;
-   loadinfo->nctors  = 0;
-
-  if (loadinfo->dtoralloc != 0)
-    {
-      kfree(loadinfo->dtoralloc);
-      loadinfo->dtoralloc = NULL;
-    }
-
-   loadinfo->dtors   = NULL;
-   loadinfo->ndtors  = 0;
+#ifdef CONFIG_ADDRENV
+#  define nxflat_addrenv_select(l) up_addrenv_select((l)->addrenv, &(l)->oldenv)
 #endif
 
-  return OK;
-}
+/****************************************************************************
+ * Name: nxflat_addrenv_restore
+ *
+ * Description:
+ *   Restore the address environment before nxflat_addrenv_select() was called..
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
 
+#ifdef CONFIG_ADDRENV
+#  define nxflat_addrenv_restore(l) up_addrenv_restore((l)->oldenv)
+#endif
+
+/****************************************************************************
+ * Name: nxflat_addrenv_free
+ *
+ * Description:
+ *   Release the address environment previously created by
+ *   nxflat_addrenv_create().  This function  is called only under certain
+ *   error conditions after the the module has been loaded but not yet
+ *   started. After the module has been started, the address environment
+ *   will automatically be freed when the module exits.
+ *
+ * Input Parameters:
+ *   loadinfo - Load state information
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+void nxflat_addrenv_free(FAR struct nxflat_loadinfo_s *loadinfo);
+
+#endif /* __BINFMT_LIBNXFLAT_LIBNXFLAT_H */

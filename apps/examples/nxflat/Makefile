@@ -76,7 +76,7 @@ $(COBJS): %$(OBJEXT): %.c
 headers:
 	@$(MAKE) -C tests TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" CROSSDEV=$(CROSSDEV)
 
-.built: $(OBJS)
+.built: headers $(OBJS)
 	$(call ARCHIVE, $(BIN), $(OBJS))
 	@touch .built
 

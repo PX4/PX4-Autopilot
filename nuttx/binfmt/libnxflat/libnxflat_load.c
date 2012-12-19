@@ -41,6 +41,7 @@
 
 #include <sys/types.h>
 #include <sys/mman.h>
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <nxflat.h>
@@ -48,7 +49,10 @@
 #include <errno.h>
 
 #include <arpa/inet.h>
+
 #include <nuttx/binfmt/nxflat.h>
+
+#include "libnxflat.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -143,7 +147,7 @@ int nxflat_load(struct nxflat_loadinfo_s *loadinfo)
    */
 
   loadinfo->ispace = (uint32_t)mmap(NULL, loadinfo->isize, PROT_READ,
-                                  MAP_SHARED|MAP_FILE, loadinfo->filfd, 0);
+                                    MAP_SHARED|MAP_FILE, loadinfo->filfd, 0);
   if (loadinfo->ispace == (uint32_t)MAP_FAILED)
     {
       bdbg("Failed to map NXFLAT ISpace: %d\n", errno);
@@ -152,23 +156,37 @@ int nxflat_load(struct nxflat_loadinfo_s *loadinfo)
 
   bvdbg("Mapped ISpace (%d bytes) at %08x\n", loadinfo->isize, loadinfo->ispace);
 
-  /* The following call will give a pointer to the allocated but
-   * uninitialized ISpace memory.
+  /* The following call allocate D-Space memory and will provide a pointer
+   * to the allocated (but still uninitialized) D-Space memory.
    */
 
-  loadinfo->dspace = (struct dspace_s *)malloc(SIZEOF_DSPACE_S(loadinfo->dsize));
-  if (loadinfo->dspace == 0)
+  ret = nxflat_addrenv_alloc(loadinfo, loadinfo->dsize);
+  if (ret < 0)
     {
-      bdbg("Failed to allocate DSpace\n");
-      ret = -ENOMEM;
-      goto errout;
+      bdbg("ERROR: nxflat_addrenv_alloc() failed: %d\n", ret);
+      return ret;
     }
-  loadinfo->dspace->crefs = 1;
 
-  bvdbg("Allocated DSpace (%d bytes) at %p\n", loadinfo->dsize, loadinfo->dspace->region);
+  bvdbg("Allocated DSpace (%d bytes) at %p\n",
+        loadinfo->dsize, loadinfo->dspace->region);
 
-  /* Now, read the data into allocated DSpace at doffset into the
-   * allocated DSpace memory.
+  /* If CONFIG_ADDRENV=y, then the D-Space allocation lies in an address
+   * environment that may not be in place.  So, in that case, we must call
+   * nxflat_addrenv_select to temporarily instantiate that address space
+   * it can be initialized.
+   */
+
+#ifdef CONFIG_ADDRENV
+  ret = nxflat_addrenv_select(loadinfo);
+  if (ret < 0)
+    {
+      bdbg("ERROR: nxflat_addrenv_select() failed: %d\n", ret);
+      return ret;
+    }
+#endif
+
+  /* Now, read the data into allocated DSpace at doffset into the allocated
+   * DSpace memory.
    */
 
   ret = nxflat_read(loadinfo, (char*)loadinfo->dspace->region, dreadsize, doffset);
@@ -181,9 +199,23 @@ int nxflat_load(struct nxflat_loadinfo_s *loadinfo)
   bvdbg("TEXT: %08x Entry point offset: %08x Data offset: %08x\n",
       loadinfo->ispace, loadinfo->entryoffs, doffset);
 
+  /* Restore the original address environment */
+
+#ifdef CONFIG_ADDRENV
+  ret = nxflat_addrenv_restore(loadinfo);
+  if (ret < 0)
+    {
+      bdbg("ERROR: nxflat_addrenv_restore() failed: %d\n", ret);
+      return ret;
+    }
+#endif
+
   return OK;
 
 errout:
+#ifdef CONFIG_ADDRENV
+  (void)nxflat_addrenv_restore(loadinfo);
+#endif
   (void)nxflat_unload(loadinfo);
   return ret;
 }

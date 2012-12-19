@@ -41,9 +41,9 @@ BINFMT_CSRCS += elf.c
 
 # ELF library
 
-BINFMT_CSRCS += libelf_bind.c libelf_init.c libelf_iobuffer.c libelf_load.c \
-			    libelf_read.c libelf_sections.c libelf_symbols.c libelf_uninit.c \
-			    libelf_unload.c libelf_verify.c
+BINFMT_CSRCS += libelf_bind.c libelf_init.c libelf_addrenv.c libelf_iobuffer.c 
+BINFMT_CSRCS += libelf_load.c libelf_read.c libelf_sections.c libelf_symbols.c
+BINFMT_CSRCS += libelf_uninit.c libelf_unload.c libelf_verify.c
 
 ifeq ($(CONFIG_BINFMT_CONSTRUCTORS),y)
 BINFMT_CSRCS += libelf_ctors.c libelf_dtors.c

@@ -2130,7 +2130,7 @@ else
     <p>
       <b>Binary Loader Support</b>.
       These are low-level interfaces used in <code>binfmt/</code> to instantiate tasks with address environments.
-      These interfaces all operate on type <code>task_addrenv_t</code> which is an abstract representation of a asks's address environment and must be defined in arch/arch.h if <code>CONFIG_ADDRENVM</code> is defined.
+      These interfaces all operate on type <code>task_addrenv_t</code> which is an abstract representation of a asks's address environment and must be defined in arch/arch.h if <code>CONFIG_ADDRENV</code> is defined.
       These low-level interfaces include:
     </p>
     <ul>
@@ -2174,7 +2174,7 @@ else
       </li>
       <li>
         <a href="#up_addrenv_release">4.1.21.8 <code>up_addrenv_release()</code></a>:
-        ARelease the TCBs reference to an address environment when a task/thread exits.
+        Release the TCB's reference to an address environment when a task/thread exits.
       </li>
     </ul>
   </li>
@@ -3930,7 +3930,9 @@ void (*notify)(FAR struct pm_callback_s *cb, enum pm_state_e pmstate);
      up_prioritize_irq() API.</li>
   <li><code>CONFIG_ADDRENV</code>:
      The CPU supports an MMU and CPU port supports provision of address
-     environments for tasks (making the, perhaps, processes).</li>
+     environments for tasks (making the, perhaps, processes).
+     In this case, the CPU-specific logic must provide a set of address environment interfaces as defined in the <a href="#addrenv">Address Environments</a> paragraph.
+     </li>
 </ul>
 
 <p>

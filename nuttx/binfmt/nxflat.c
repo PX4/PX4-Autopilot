@@ -187,9 +187,30 @@ static int nxflat_loadbinary(struct binary_s *binp)
 
   binp->entrypt   = (main_t)(loadinfo.ispace + loadinfo.entryoffs);
   binp->mapped    = (void*)loadinfo.ispace;
-  binp->alloc[0]  = (void*)loadinfo.dspace;
   binp->mapsize   = loadinfo.isize;
   binp->stacksize = loadinfo.stacksize;
+
+  /* Add the ELF allocation to the alloc[] only if there is no address
+   * enironment.  If there is an address environment, it will automatically
+   * be freed when the function exits
+   *
+   * REVISIT:  If the module is loaded then unloaded, wouldn't this cause
+   * a memory leak?
+   */
+
+#ifdef CONFIG_ADDRENV
+#  warning "REVISIT"
+#else
+  binp->alloc[0]  = (void*)loadinfo.dspace;
+#endif
+
+#ifdef CONFIG_ADDRENV
+  /* Save the address environment.  This will be needed when the module is
+   * executed for the up_addrenv_assign() call.
+   */
+
+  binp->addrenv   = loadinfo.addrenv;
+#endif
 
   nxflat_dumpbuffer("Entry code", (FAR const uint8_t*)binp->entrypt,
                     MIN(loadinfo.isize - loadinfo.entryoffs, 512));

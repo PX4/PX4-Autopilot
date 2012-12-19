@@ -86,10 +86,10 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: elf_readsym
+ * Name: elf_readrel
  *
  * Description:
- *   Read the ELFT symbol structure at the specfied index into memory.
+ *   Read the ELF32_Rel structure into memory.
  *
  ****************************************************************************/
 
@@ -184,7 +184,7 @@ static int elf_relocate(FAR struct elf_loadinfo_s *loadinfo, int relidx,
           return ret;
         }
 
-      /* Calculate the relocation address */
+      /* Calculate the relocation address. */
 
       if (rel.r_offset < 0 || rel.r_offset > dstsec->sh_size - sizeof(uint32_t))
         {
@@ -195,14 +195,42 @@ static int elf_relocate(FAR struct elf_loadinfo_s *loadinfo, int relidx,
 
       addr = dstsec->sh_addr + rel.r_offset;
 
+      /* If CONFIG_ADDRENV=y, then 'addr' lies in a virtual address space that
+       * may not be in place now.  elf_addrenv_select() will temporarily
+       * instantiate that address space.
+       */
+
+#ifdef CONFIG_ADDRENV
+      ret = elf_addrenv_select(loadinfo);
+      if (ret < 0)
+        {
+          bdbg("ERROR: elf_addrenv_select() failed: %d\n", ret);
+          return ret;
+        }
+#endif
+
       /* Now perform the architecture-specific relocation */
 
       ret = arch_relocate(&rel, &sym, addr);
       if (ret < 0)
         {
-          bdbg("Section %d reloc %d: Relocation failed: %d\n", ret);
+#ifdef CONFIG_ADDRENV
+          (void)elf_addrenv_restore(loadinfo);
+#endif
+          bdbg("ERROR: Section %d reloc %d: Relocation failed: %d\n", ret);
           return ret;
         }
+
+      /* Restore the original address environment */
+
+#ifdef CONFIG_ADDRENV
+      ret = elf_addrenv_restore(loadinfo);
+      if (ret < 0)
+        {
+          bdbg("ERROR: elf_addrenv_restore() failed: %d\n", ret);
+          return ret;
+        }
+#endif
     }
 
   return OK;

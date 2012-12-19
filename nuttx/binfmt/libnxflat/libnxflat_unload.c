@@ -40,10 +40,14 @@
 #include <nuttx/config.h>
 
 #include <sys/mman.h>
+
 #include <stdlib.h>
 #include <debug.h>
 
+#include <nuttx/kmalloc.h>
 #include <nuttx/binfmt/nxflat.h>
+
+#include "libnxflat.h"
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -65,8 +69,9 @@
  * Name: nxflat_unload
  *
  * Description:
- *   This function unloads the object from memory. This essentially
- *   undoes the actions of nxflat_load.
+ *   This function unloads the object from memory. This essentially undoes
+ *   the actions of nxflat_load.  It is called only under certain error
+ *   conditions after the the module has been loaded but not yet started.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -76,9 +81,8 @@
 
 int nxflat_unload(struct nxflat_loadinfo_s *loadinfo)
 {
-  /* Reset the contents of the info structure. */
-
   /* Release the memory segments */
+  /* Release the I-Space mmap'ed file */
 
   if (loadinfo->ispace)
     {
@@ -86,12 +90,9 @@ int nxflat_unload(struct nxflat_loadinfo_s *loadinfo)
       loadinfo->ispace = 0;
     }
 
-  if (loadinfo->dspace)
-    {
-      free((void*)loadinfo->dspace);
-      loadinfo->dspace = 0;
-    }
+  /* Release the D-Space address environment */
 
+  nxflat_addrenv_free(loadinfo);
   return OK;
 }
 

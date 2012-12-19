@@ -49,7 +49,6 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/kmalloc.h>
 #include <nuttx/binfmt/elf.h>
 
 #include "libelf.h"
@@ -135,11 +134,12 @@ static inline int elf_loadfile(FAR struct elf_loadinfo_s *loadinfo)
   int i;
 
   /* Allocate (and zero) memory for the ELF file. */
-  
-  loadinfo->elfalloc = (uintptr_t)kzalloc(loadinfo->elfsize);
-  if (!loadinfo->elfalloc)
+
+  ret = elf_addrenv_alloc(loadinfo, loadinfo->elfsize);
+  if (ret < 0)
     {
-      return -ENOMEM;
+      bdbg("ERROR: elf_addrenv_alloc() failed: %d\n", ret);
+      return ret;
     }
 
   /* Read each section into memory that is marked SHF_ALLOC + SHT_NOBITS */
@@ -165,6 +165,20 @@ static inline int elf_loadfile(FAR struct elf_loadinfo_s *loadinfo)
 
       if (shdr->sh_type != SHT_NOBITS)
         {
+          /* If CONFIG_ADDRENV=y, then 'dest' lies in a virtual address space
+           * that may not be in place now.  elf_addrenv_select() will
+           * temporarily instantiate that address space.
+           */
+
+#ifdef CONFIG_ADDRENV
+          ret = elf_addrenv_select(loadinfo);
+          if (ret < 0)
+            {
+              bdbg("ERROR: elf_addrenv_select() failed: %d\n", ret);
+              return ret;
+            }
+#endif
+
           /* Read the section data from sh_offset to dest */
 
           ret = elf_read(loadinfo, dest, shdr->sh_size, shdr->sh_offset);
@@ -173,6 +187,17 @@ static inline int elf_loadfile(FAR struct elf_loadinfo_s *loadinfo)
               bdbg("Failed to read section %d: %d\n", i, ret);
               return ret;
             }
+
+          /* Restore the original address environment */
+
+#ifdef CONFIG_ADDRENV
+          ret = elf_addrenv_restore(loadinfo);
+          if (ret < 0)
+            {
+              bdbg("ERROR: elf_addrenv_restore() failed: %d\n", ret);
+             return ret;
+            }
+#endif
         }
 
       /* Update sh_addr to point to copy in memory */

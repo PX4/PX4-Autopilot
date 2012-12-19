@@ -59,6 +59,18 @@
 #  define CONFIG_ELF_ALIGN_LOG2 2
 #endif
 
+#ifndef CONFIG_ELF_STACKSIZE
+#  define CONFIG_ELF_STACKSIZE 2048
+#endif
+
+#ifndef CONFIG_ELF_BUFFERSIZE
+#  define CONFIG_ELF_BUFFERSIZE 128
+#endif
+
+#ifndef CONFIG_ELF_BUFFERINCR
+#  define CONFIG_ELF_BUFFERINCR 32
+#endif
+
 /* Allocation array size and indices */
 
 #define LIBELF_ELF_ALLOC     0
@@ -80,8 +92,16 @@
 
 struct elf_loadinfo_s
 {
-  /* The alloc[] array holds memory that persists after the ELF module has
-   * been loaded.
+  /* elfalloc is the base address of the memory that is allocated to hold the
+   * ELF program image.
+   *
+   * If CONFIG_ADDRENV=n, elfalloc will be allocated using kmalloc() (or
+   * kzalloc()).  If CONFIG_ADDRENV-y, then elfalloc will be allocated using
+   * up_addrenv_create().  In either case, there will be a unique instance
+   * of elfalloc (and stack) for each instance of a process.
+   *
+   * The alloc[] array in struct binary_s will hold memory that persists after
+   * the ELF module has been loaded.
    */
  
   uintptr_t         elfalloc;    /* Memory allocated when ELF file was loaded */
@@ -90,6 +110,9 @@ struct elf_loadinfo_s
   Elf32_Ehdr        ehdr;        /* Buffered ELF file header */
   FAR Elf32_Shdr    *shdr;       /* Buffered ELF section headers */
   uint8_t           *iobuffer;   /* File I/O buffer */
+
+  /* Constructors and destructors */
+  
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
   FAR void          *ctoralloc;  /* Memory allocated for ctors */
   FAR void          *dtoralloc;  /* Memory allocated dtors */
@@ -98,6 +121,20 @@ struct elf_loadinfo_s
   uint16_t           nctors;     /* Number of constructors */
   uint16_t           ndtors;     /* Number of destructors */
 #endif
+
+  /* Address environment.
+   *
+   * addrenv - This is the handle created by up_addrenv_create() that can be
+   *   used to manage the tasks address space.
+   * oldenv  - This is a value returned by up_addrenv_select() that must be 
+   *   used to restore the current hardware address environment.
+   */
+
+#ifdef CONFIG_ADDRENV
+  task_addrenv_t addrenv;  /* Task address environment */
+  hw_addrenv_t   oldenv;   /* Saved hardware address environment */
+#endif
+
   uint16_t           symtabidx;  /* Symbol table section index */
   uint16_t           strtabidx;  /* String table section index */
   uint16_t           buflen;     /* size of iobuffer[] */
@@ -187,8 +224,9 @@ EXTERN int elf_bind(FAR struct elf_loadinfo_s *loadinfo,
  * Name: elf_unload
  *
  * Description:
- *   This function unloads the object from memory. This essentially
- *   undoes the actions of elf_load.
+ *   This function unloads the object from memory. This essentially undoes
+ *   the actions of elf_load.  It is called only under certain error
+ *   conditions after the the module has been loaded but not yet started.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on

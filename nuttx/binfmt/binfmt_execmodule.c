@@ -86,10 +86,25 @@
  ****************************************************************************/
 
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
-static inline void exec_ctors(FAR const struct binary_s *binp)
+static inline int exec_ctors(FAR const struct binary_s *binp)
 {
   binfmt_ctor_t *ctor = binp->ctors;
+#ifdef CONFIG_ADDRENV
+  hw_addrenv_t oldenv;
+  int ret;
+#endif
   int i;
+
+  /* Instantiate the address enviroment containing the constructors */
+
+#ifdef CONFIG_ADDRENV
+  ret = up_addrenv_select(binp->addrenv, &oldenv);
+  if (ret < 0)
+    {
+      bdbg("up_addrenv_select() failed: %d\n", ret);
+      return ret;
+    }
+#endif
 
   /* Execute each constructor */
 
@@ -100,6 +115,14 @@ static inline void exec_ctors(FAR const struct binary_s *binp)
       (*ctor)();
       ctor++;
     }
+
+  /* Restore the address enviroment */
+
+#ifdef CONFIG_ADDRENV
+  return up_addrenv_restore(oldenv);
+#else
+  return OK;
+#endif
 }
 #endif
 
@@ -190,6 +213,18 @@ int exec_module(FAR const struct binary_s *binp, int priority)
   up_initial_state(tcb);
 #endif
 
+  /* Assign the address environment to the task */
+
+#ifdef CONFIG_ADDRENV
+  ret = up_addrenv_assign(binp->addrenv, tcb);
+  if (ret < 0)
+    {
+      err = -ret;
+      bdbg("up_addrenv_assign() failed: %d\n", ret);
+      goto errout_with_stack;
+    }
+#endif
+
   /* Get the assigned pid before we start the task */
 
   pid = tcb->pid;
@@ -197,7 +232,13 @@ int exec_module(FAR const struct binary_s *binp, int priority)
   /* Execute all of the C++ static constructors */
 
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
-  exec_ctors(binp);
+  ret = exec_ctors(binp);
+  if (ret < 0)
+    {
+      err = -ret;
+      bdbg("exec_ctors() failed: %d\n", ret);
+      goto errout_with_stack;
+    }
 #endif
 
   /* Then activate the task at the provided priority */

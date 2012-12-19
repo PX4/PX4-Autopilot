@@ -41,8 +41,11 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <sys/types.h>
 #include <nxflat.h>
+
+#include <nuttx/arch.h>
 #include <nuttx/sched.h>
 
 /****************************************************************************
@@ -93,12 +96,26 @@ struct binary_s
   main_t entrypt;                      /* Entry point into a program module */
   FAR void *mapped;                    /* Memory-mapped, address space */
   FAR void *alloc[BINFMT_NALLOC];      /* Allocated address spaces */
+
+  /* Constructors/destructors */
+
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
   FAR binfmt_ctor_t *ctors;            /* Pointer to a list of constructors */
   FAR binfmt_dtor_t *dtors;            /* Pointer to a list of destructors */
   uint16_t nctors;                     /* Number of constructors in the list */
   uint16_t ndtors;                     /* Number of destructors in the list */
 #endif
+
+  /* Address environment.
+   *
+   * addrenv - This is the handle created by up_addrenv_create() that can be
+   *   used to manage the tasks address space.
+   */
+
+#ifdef CONFIG_ADDRENV
+  task_addrenv_t addrenv;              /* Task address environment */
+#endif
+
   size_t mapsize;                      /* Size of the mapped address region (needed for munmap) */
   size_t stacksize;                    /* Size of the stack in bytes (unallocated) */
 };

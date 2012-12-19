@@ -215,8 +215,21 @@ static int elf_loadbinary(struct binary_s *binp)
   /* Return the load information */
 
   binp->entrypt   = (main_t)(loadinfo.elfalloc + loadinfo.ehdr.e_entry);
-  binp->alloc[0]  = (FAR void *)loadinfo.elfalloc;
   binp->stacksize = CONFIG_ELF_STACKSIZE;
+
+  /* Add the ELF allocation to the alloc[] only if there is no address
+   * enironment.  If there is an address environment, it will automatically
+   * be freed when the function exits
+   *
+   * REVISIT:  If the module is loaded then unloaded, wouldn't this cause
+   * a memory leak?
+   */
+
+#ifdef CONFIG_ADDRENV
+#  warning "REVISIT"
+#else
+  binp->alloc[0]  = (FAR void *)loadinfo.elfalloc;
+#endif
 
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
   /* Save information about constructors.  NOTE:  desctructors are not
@@ -230,6 +243,14 @@ static int elf_loadbinary(struct binary_s *binp)
   binp->alloc[2]  = loadinfo.dtoralloc;
   binp->dtors     = loadinfo.dtors;
   binp->ndtors    = loadinfo.ndtors;
+#endif
+
+#ifdef CONFIG_ADDRENV
+  /* Save the address environment.  This will be needed when the module is
+   * executed for the up_addrenv_assign() call.
+   */
+
+  binp->addrenv   = loadinfo.addrenv;
 #endif
 
   elf_dumpbuffer("Entry code", (FAR const uint8_t*)binp->entrypt,
