@@ -69,6 +69,10 @@
 #  error "You must provide file descriptors via CONFIG_NFILE_DESCRIPTORS in your configuration file"
 #endif
 
+#ifdef CONFIG_BINFMT_DISABLE
+#  error "The binary loader is disabled (CONFIG_BINFMT_DISABLE)!"
+#endif
+
 #ifndef CONFIG_NXFLAT
 #  error "You must select CONFIG_NXFLAT in your configuration file"
 #endif
@@ -125,7 +129,9 @@
 static const char delimiter[] =
   "****************************************************************************";
 
-static char path[128];
+#ifndef CONFIG_BINFMT_EXEPATH
+static char fullpath[128];
+#endif
 
 /****************************************************************************
  * Private Functions
@@ -188,18 +194,45 @@ int nxflat_main(int argc, char *argv[])
       nxflat_uninitialize();
     }
 
+  /* Does the system support the PATH variable?  Has the PATH variable
+   * already been set?  If YES and NO, then set the PATH variable to
+   * the ROMFS mountpoint.
+   */
+
+#if defined(CONFIG_BINFMT_EXEPATH) && !defined(CONFIG_PATH_INITIAL)
+  (void)setenv("PATH", MOUNTPT, 1);
+#endif
+
   /* Now excercise every progrm in the ROMFS file system */
 
   for (i = 0; dirlist[i]; i++)
     {
+      /* Output a seperated so that we can clearly discrinmate the output of
+       * this program from the others.
+       */
+
       testheader(dirlist[i]);
 
-      memset(&bin, 0, sizeof(struct binary_s));
-      snprintf(path, 128, "%s/%s", MOUNTPT, dirlist[i]);
+      /* Initialize the binary_s structure */
 
-      bin.filename = path;
+      memset(&bin, 0, sizeof(struct binary_s));
+
+      /* If the binary loader does not support the PATH variable, then
+       * create the full path to the executable program.  Otherwise,
+       * use the relative path so that the binary loader will have to
+       * search the PATH variable to find the executable.
+       */
+
+#ifdef CONFIG_BINFMT_EXEPATH
+      bin.filename = dirlist[i];
+#else
+      snprintf(fullpath, 128, "%s/%s", MOUNTPT, dirlist[i]);
+      bin.filename = fullpath;
+#endif
       bin.exports  = exports;
       bin.nexports = NEXPORTS;
+
+      /* Load the NXFLAT module */
 
       ret = load_module(&bin);
       if (ret < 0)
@@ -207,6 +240,8 @@ int nxflat_main(int argc, char *argv[])
           err("ERROR: Failed to load program '%s'\n", dirlist[i]);
           exit(1);
         }
+
+      /* Execute the ELF module */
 
       ret = exec_module(&bin, 50);
       if (ret < 0)

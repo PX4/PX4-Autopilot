@@ -429,4 +429,7 @@
 	* Rename CONFIG_PCODE and CONFIG_FICL as CONFIG_INTERPRETERS_PCODE and
 	  CONFIG_INTERPRETERS_FICL for consistency with other configuration naming.
 	* apps/examples/keypadtest:  A keypad test example contributed by Denis
-	  Carikli
+	  Carikli.
+	* apps/examples/elf and nxflat:  If CONFIG_BINFMT_EXEPATH is defined, these
+	  tests will now use a relative path to the program and expect the binfmt/
+	  logic to find the absolute path to the program using the PATH variable.

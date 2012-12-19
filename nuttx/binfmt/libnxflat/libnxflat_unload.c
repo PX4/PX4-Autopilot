@@ -95,4 +95,3 @@ int nxflat_unload(struct nxflat_loadinfo_s *loadinfo)
   nxflat_addrenv_free(loadinfo);
   return OK;
 }
-

@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/compiler.h>
 
 #include <stdint.h>
 #include <string.h>
@@ -248,7 +249,7 @@ static inline int nxflat_gotrelocs(FAR struct nxflat_loadinfo_s *loadinfo)
   DEBUGASSERT(offset + nrelocs * sizeof(struct nxflat_reloc_s)
               <= (loadinfo->isize + loadinfo->dsize));
 
-  relocs = (FAR struct nxflat_reloc_s*)
+  relocs = (FAR struct nxflat_reloc_s *)
         (offset - loadinfo->isize + loadinfo->dspace->region);
   bvdbg("isize: %08lx dpsace: %p relocs: %p\n", 
         (long)loadinfo->isize, loadinfo->dspace->region, relocs);
@@ -276,7 +277,13 @@ static inline int nxflat_gotrelocs(FAR struct nxflat_loadinfo_s *loadinfo)
     {
       /* Handle the relocation by the relocation type */
 
+#ifdef CONFIG_CAN_PASS_STRUCTS
       reloc = *relocs++;
+#else
+      memcpy(&reloc, relocs, sizeof(struct nxflat_reloc_s));
+      relocs++;
+#endif
+
       result = OK;
       switch (NXFLAT_RELOC_TYPE(reloc.r_info))
         {

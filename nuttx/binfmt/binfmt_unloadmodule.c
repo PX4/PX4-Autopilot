@@ -183,7 +183,7 @@ int unload_module(FAR const struct binary_s *binp)
           if (binp->alloc[i])
             {
               bvdbg("Freeing alloc[%d]: %p\n", i, binp->alloc[i]);
-              free(binp->alloc[i]);
+              free((FAR void *)binp->alloc[i]);
             }
         }
 
