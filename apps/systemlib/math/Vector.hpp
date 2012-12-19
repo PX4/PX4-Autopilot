@@ -55,7 +55,7 @@ public:
     // constructor
     Vector(size_t rows) :
         _rows(rows),
-        _data((T*)malloc(getSize()))
+        _data((T*)calloc(rows,sizeof(T)))
     {
     }
     Vector(size_t rows, const T * data) :

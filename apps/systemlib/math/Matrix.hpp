@@ -61,7 +61,7 @@ public:
     Matrix(size_t rows, size_t cols) :
         _rows(rows),
         _cols(cols),
-        _data((T*)malloc(getSize()))
+        _data((T*)calloc(rows*cols,sizeof(T)))
     {
     }
     Matrix(size_t rows, size_t cols, const T * data) :
