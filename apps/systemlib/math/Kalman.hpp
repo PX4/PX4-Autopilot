@@ -112,9 +112,23 @@ public:
         setP(I9*1.0f);
 
         // noise
-        V = I6*1.0f;      // accel/ gyro
-        RMag = I3*0.001f;   // magnetometer
-        RGps = I6*0.001f;   // gps
+        V(0,0) = 0.01f;    // gyro x, rad/s
+        V(1,1) = 0.01f;    // gyro y
+        V(2,2) = 0.01f;    // gyro z
+        V(3,3) = 0.01f;    // accel x, m/s^2
+        V(4,4) = 0.01f;    // accel y
+        V(5,5) = 0.01f;    // accel z
+
+        // magnetometer noise
+        RMag = I3*0.01f;   // gauss
+
+        // gps noise
+        RGps(0,0) = 0.1f;        // vn, m/s
+        RGps(1,1) = 0.1f;        // ve
+        RGps(2,2) = 0.1f;        // vd
+        RGps(3,3) = 0.000001f;   // L, rad
+        RGps(4,4) = 0.000001f;   // l, rad
+        RGps(5,5) = 10.0f;       // h, m
 
         // Initialize F to identity
         this->_F = I9;
@@ -270,10 +284,10 @@ public:
         u(3) = accelB(0);
         u(4) = accelB(1);
         u(5) = accelB(2);
-        //x = F*x + G*u;
+        x = F*x + G*u;
 
         // predict equations for kalman filter
-        //KalmanType::predict(dt);
+        KalmanType::predict(dt);
     }
     void correctMag(VectorType & zMag)
     {

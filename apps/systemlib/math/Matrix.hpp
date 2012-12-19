@@ -268,10 +268,11 @@ public:
         const MatrixType & A = (*this);
         MatrixType U = A;
 
-        //printf("A:\n"); A.print();
+        printf("A:\n"); A.print();
 
         // for all diagonal elements
         for (size_t n=0; n<N; n++) {
+
             // for all rows below diagonal
             for (size_t i=(n+1); i<N; i++) {
                 ASSERT(fabs(U(n,n))>1e-8);
@@ -280,8 +281,6 @@ public:
                 // multiplied by: -a(i,n)/a(n,n)
                 for (size_t k=n; k<N; k++) {
                     U(i,k) -= L(i,n) * U(n,k);       
-                    // TODO, know that nth col is zero
-                    // can optimize here
                 }
             }
         }
@@ -300,8 +299,6 @@ public:
                     // for all existing y
                     // subtract the component they 
                     // contribute to the solution
-                    // TODO, is Y always lower
-                    // triag? if so we can optim. 
                     Y(i,c) -= L(i,j)*Y(j,c); 
                 }
                 // divide by the factor 

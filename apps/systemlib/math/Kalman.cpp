@@ -38,6 +38,7 @@
  */
 
 #include "Kalman.hpp"
+#include <drivers/drv_hrt.h>
 
 namespace math
 {
@@ -54,26 +55,52 @@ int __EXPORT kalmanNavTest()
     typedef Matrix<float> MatrixType;
     typedef Vector<float> VectorType;
     KalmanNav<float> nav;
+
     VectorType accelB(3);
-    accelB.setAll(1.0f);
+    accelB.setAll(0.0f);
+
     VectorType gyroB(3);
-    gyroB.setAll(1.0f);
-    for (int i=0;i<100;i++)
+    gyroB.setAll(0.0f);
+
+    Vector<float> zGps(6);
+    zGps.setAll(0.0f);
+
+    uint64_t old_timestamp = hrt_absolute_time();
+    uint16_t nav_frames = 0;
+    float dt = 0.01;
+
+    printf("\n");
+
+    for (int i=0;i<1000;i++)
     {
         if (i%10==0)
         {
-            Vector<float> zGps(6);
-            zGps.setAll(1);
+            zGps(0) = 1.0f; // vn
+            zGps(1) = 1.0f; // ve
+            zGps(2) = -1.0f; // vd
+            zGps(3) += zGps(0)*dt*10;  // L
+            zGps(4) += zGps(1)*dt*10;  // l
+            zGps(5) += -zGps(2)*dt*10; // h
             nav.correctGps(zGps);
         }
         if (i%5==0)
         {
             Vector<float> zMag(3);
-            zMag.setAll(1);
+            zMag.setAll(0.1f);
             nav.correctMag(zMag);
         }
         nav.predict(0.01,accelB,gyroB);
-        nav.getX().print();
+
+        // output
+        uint64_t timestamp = hrt_absolute_time();
+        nav_frames += 1;
+        if ((timestamp - old_timestamp) > 1000000)
+        {
+            printf("nav running at %d hz\n", nav_frames);
+            nav.getX().print();
+            old_timestamp = timestamp;
+            nav_frames = 0;
+        }
     }
     printf("PASS\n");
     return 0;
