@@ -410,7 +410,6 @@ PX4IO::task_main()
 
 					orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_effective_1), _t_actuators_effective, &_controls_effective);
 
-
 					/* convert to PWM values */
 					for (unsigned i = 0; i < _max_actuators; i++) {
 						/* last resort: catch NaN, INF and out-of-band errors */
@@ -425,6 +424,9 @@ PX4IO::task_main()
 							_outputs.output[i] = 900;
 						}
 					}
+
+					/* publish actuator outputs */
+					orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &_outputs);
 
 					/* and flag for update */
 					_send_needed = true;
@@ -569,9 +571,6 @@ PX4IO::io_send()
 	/* set outputs */
 	for (unsigned i = 0; i < _max_actuators; i++)
 		cmd.servo_command[i] = _outputs.output[i];
-
-	/* publish as we send */
-	orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &_outputs);
 
 	// XXX relays
 

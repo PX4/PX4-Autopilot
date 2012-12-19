@@ -1001,9 +1001,9 @@ Sensors::ppm_poll()
 			// XXX hardcoded for testing purposes, replace with inverted delta mixer from ROMFS
 
 			/* roll input - mixed roll and pitch channels */
-			manual_control.roll = -0.5f * (_rc.chan[_rc.function[ROLL]].scaled - _rc.chan[_rc.function[PITCH]].scaled);
+			manual_control.roll = 0.5f * (_rc.chan[_rc.function[ROLL]].scaled - _rc.chan[_rc.function[PITCH]].scaled);
 			/* pitch input - mixed roll and pitch channels */
-			manual_control.pitch = -0.5f * (_rc.chan[_rc.function[ROLL]].scaled + _rc.chan[_rc.function[PITCH]].scaled);
+			manual_control.pitch = 0.5f * (_rc.chan[_rc.function[ROLL]].scaled + _rc.chan[_rc.function[PITCH]].scaled);
 			/* yaw input - stick right is positive and positive rotation */
 			manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled;
 			/* throttle input */

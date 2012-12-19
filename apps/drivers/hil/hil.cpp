@@ -382,7 +382,6 @@ HIL::task_main()
 		/* this would be bad... */
 		if (ret < 0) {
 			log("poll error %d", errno);
-			usleep(1000000);
 			continue;
 		}
 

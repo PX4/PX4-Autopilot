@@ -1268,6 +1268,8 @@ int commander_thread_main(int argc, char *argv[])
 	int sensor_sub = orb_subscribe(ORB_ID(sensor_combined));
 	struct sensor_combined_s sensors;
 	memset(&sensors, 0, sizeof(sensors));
+	sensors.battery_voltage_v = 0.0f;
+	sensors.battery_voltage_valid = false;
 
 	/* Subscribe to command topic */
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -1305,7 +1307,13 @@ int commander_thread_main(int argc, char *argv[])
 		if (new_data) {
 			orb_copy(ORB_ID(offboard_control_setpoint), sp_offboard_sub, &sp_offboard);
 		}
-		orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
+
+		orb_check(sensor_sub, &new_data);
+		if (new_data) {
+			orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
+		} else {
+			sensors.battery_voltage_valid = false;
+		}
 
 		orb_check(cmd_sub, &new_data);
 		if (new_data) {
@@ -1434,7 +1442,11 @@ int commander_thread_main(int argc, char *argv[])
 
 		/* Check battery voltage */
 		/* write to sys_status */
-		current_status.voltage_battery = battery_voltage;
+		if (battery_voltage_valid) {
+			current_status.voltage_battery = battery_voltage;
+		} else {
+			current_status.voltage_battery = 0.0f;
+		}
 
 		/* if battery voltage is getting lower, warn using buzzer, etc. */
 		if (battery_voltage_valid && (bat_remain < 0.15f /* XXX MAGIC NUMBER */) && (false == low_battery_voltage_actions_done)) { //TODO: add filter, or call emergency after n measurements < VOLTAGE_BATTERY_MINIMAL_MILLIVOLTS
