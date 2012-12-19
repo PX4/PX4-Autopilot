@@ -340,7 +340,11 @@ public:
     }
     void setAll(const T & val)
     {
-        memset(getData(),val,getSize());
+        for (size_t i=0;i<getRows();i++) {
+            for (size_t j=0;j<getCols();j++) {
+                (*this)(i,j) = val;
+            }
+        }
     }
     void set(const T * data)
     {

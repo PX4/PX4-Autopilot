@@ -108,11 +108,15 @@ public:
         MatrixType I6 = MatrixType::identity(6);
         MatrixType I9 = MatrixType::identity(9);
 
+        VectorType & x = this->_x;
+        x.setAll(1.0f);
+        x.print();
+
         // initial state covariance matrix
-        setP(I9*0.001f);
+        setP(I9*1.0f);
 
         // noise
-        V = I6*0.001f;      // accel/ gyro
+        V = I6*1.0f;      // accel/ gyro
         RMag = I3*0.001f;   // magnetometer
         RGps = I6*0.001f;   // gps
 
@@ -270,10 +274,10 @@ public:
         u(3) = accelB(0);
         u(4) = accelB(1);
         u(5) = accelB(2);
-        x = F*x + G*u;
+        //x = F*x + G*u;
 
         // predict equations for kalman filter
-        KalmanType::predict(dt);
+        //KalmanType::predict(dt);
     }
     void correctMag(VectorType & zMag)
     {

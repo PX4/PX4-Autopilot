@@ -180,12 +180,15 @@ public:
     static VectorType zero(size_t rows)
     {
         VectorType result(rows);
-        result.setAll(0);
+        // calloc returns zeroed memory
         return result;
     }
     void setAll(const T & val)
     {
-        memset(getData(),val,getSize());
+        for (size_t i=0;i<getRows();i++)
+        {
+            (*this)(i) = val;
+        }
     }
     void set(const T * data)
     {
