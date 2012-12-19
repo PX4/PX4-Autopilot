@@ -73,6 +73,7 @@ int __EXPORT kalmanNavTest()
             nav.correctMag(zMag);
         }
         nav.predict(0.01,accelB,gyroB);
+        nav.getX().print();
     }
     printf("PASS\n");
     return 0;

@@ -82,12 +82,6 @@ public:
     void setX(const VectorType & x) { _x = x; }
     void setP(const MatrixType & P) { _P = P; }
 protected:
-    VectorType & getX() { return _x; }
-    MatrixType & getP() { return _P; }
-    MatrixType & getF() { return _F; }
-    MatrixType & getG() { return _G; }
-    MatrixType & getQ() { return _Q; }
-    MatrixType & getV() { return _V; }
     void setQ(const MatrixType & Q) { _Q = Q; }
     void setV(const MatrixType & V) { _V = V; }
     VectorType _x;
@@ -145,7 +139,7 @@ public:
         static const float g = 9.8f; // gravitational accel. m/s^2
 
         // state
-        VectorType & x = KalmanType::getX();
+        VectorType & x = this->_x;
         float & phi = x(0);
         float & theta = x(1);
         float & psi = x(2);
@@ -186,7 +180,7 @@ public:
         float fD = accelN(2) - g;
 
         // F Matrix
-        MatrixType & F = KalmanType::getF();
+        MatrixType & F = this->_F;
 
         F(0,1) = -(omega*sinL + vE*tanL/R);
         F(0,2) = vN/R;
@@ -239,7 +233,7 @@ public:
         F(8,5) = -1;
 
         // G Matrix
-        MatrixType & G = KalmanType::getG();
+        MatrixType & G = this->_G;
 
         G(0,0) = -Dcm(0,0); 
         G(0,1) = -Dcm(0,1); 
@@ -270,7 +264,7 @@ public:
     void correctMag(VectorType & zMag)
     {
         // state
-        VectorType & x = KalmanType::getX();
+        VectorType & x = this->_x;
         float & phi = x(0);
         float & theta = x(1);
         float & psi = x(2);
