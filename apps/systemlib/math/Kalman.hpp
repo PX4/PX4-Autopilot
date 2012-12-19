@@ -51,13 +51,11 @@ public:
     typedef Matrix<T> MatrixType;
     typedef Vector<T> VectorType;
     // constructor
-    Kalman(size_t n, size_t m) :
+    Kalman(size_t n) :
         _x(VectorType::zero(n)),
         _P(MatrixType::zero(n)),
         _F(MatrixType::zero(n)),
-        _G(MatrixType::zero(n,m)),
-        _Q(MatrixType::zero(n)),
-        _V(MatrixType::zero(m))
+        _Q(MatrixType::zero(n))
     {
     }
     // deconstructor
@@ -66,7 +64,7 @@ public:
     }
     virtual void predict(float dt)
     {
-        _P = _F*_P*_F.transpose() + _G*_V*_G.transpose() + _Q;
+        _P = _F*_P*_F.transpose() + _Q;
     }
     virtual void correct(const VectorType & z,
             const MatrixType & H, 
@@ -83,13 +81,10 @@ public:
     void setP(const MatrixType & P) { _P = P; }
 protected:
     void setQ(const MatrixType & Q) { _Q = Q; }
-    void setV(const MatrixType & V) { _V = V; }
     VectorType _x;
     MatrixType _P;
     MatrixType _F;
-    MatrixType _G;
     MatrixType _Q;
-    MatrixType _V;
 };
 
 template<class T>
@@ -100,7 +95,9 @@ public:
     typedef Vector<T> VectorType;
     typedef Kalman<T> KalmanType;
     KalmanNav() :
-        KalmanType(9,6),
+        KalmanType(9),
+        G(MatrixType::zero(9,6)),
+        V(MatrixType::zero(6)),
         HMag(3,9),
         RMag(3,3),
         HGps(6,9),
@@ -111,13 +108,13 @@ public:
         MatrixType I6 = MatrixType::identity(6);
         MatrixType I9 = MatrixType::identity(9);
 
+        // initial state covariance matrix
         setP(I9*0.001f);
-        setQ(I9*0.001f);
-        setV(I6*0.001f);
 
-        // RMag is constant
-        RMag = I3*0.001f;
-        RGps = I6*0.001f;
+        // noise
+        V = I6*0.001f;      // accel/ gyro
+        RMag = I3*0.001f;   // magnetometer
+        RGps = I6*0.001f;   // gps
 
         // HGps is constant
         HGps(0,3) = 1.0f;
@@ -233,8 +230,6 @@ public:
         F(8,5) = -1;
 
         // G Matrix
-        MatrixType & G = this->_G;
-
         G(0,0) = -Dcm(0,0); 
         G(0,1) = -Dcm(0,1); 
         G(0,2) = -Dcm(0,2); 
@@ -254,6 +249,9 @@ public:
         G(5,3) = Dcm(2,0); 
         G(5,4) = Dcm(2,1); 
         G(5,5) = Dcm(2,2); 
+
+        MatrixType & Q = this->_Q;
+        Q = G*V*G.transpose();
 
         // update x
         // TODO: need to add non-linear state prediction functions
@@ -324,6 +322,8 @@ public:
         correct(zGps,HGps,RGps);
     }
 protected:
+    MatrixType G;
+    MatrixType V;
     MatrixType HMag;
     MatrixType RMag;
     MatrixType HGps;
