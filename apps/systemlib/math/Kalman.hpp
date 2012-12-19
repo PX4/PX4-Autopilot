@@ -237,39 +237,39 @@ public:
         F(8,5) = (-1)*dt;
 
         // G Matrix
-        G(0,0) = -Dcm(0,0); 
-        G(0,1) = -Dcm(0,1); 
-        G(0,2) = -Dcm(0,2); 
-        G(1,0) = -Dcm(1,0); 
-        G(1,1) = -Dcm(1,1); 
-        G(1,2) = -Dcm(1,2); 
-        G(2,0) = -Dcm(2,0); 
-        G(2,1) = -Dcm(2,1); 
-        G(2,2) = -Dcm(2,2); 
+        G(0,0) = -Dcm(0,0)*dt; 
+        G(0,1) = -Dcm(0,1)*dt; 
+        G(0,2) = -Dcm(0,2)*dt; 
+        G(1,0) = -Dcm(1,0)*dt; 
+        G(1,1) = -Dcm(1,1)*dt; 
+        G(1,2) = -Dcm(1,2)*dt; 
+        G(2,0) = -Dcm(2,0)*dt; 
+        G(2,1) = -Dcm(2,1)*dt; 
+        G(2,2) = -Dcm(2,2)*dt; 
 
-        G(3,3) = Dcm(0,0); 
-        G(3,4) = Dcm(0,1); 
-        G(3,5) = Dcm(0,2); 
-        G(4,3) = Dcm(1,0); 
-        G(4,4) = Dcm(1,1); 
-        G(4,5) = Dcm(1,2); 
-        G(5,3) = Dcm(2,0); 
-        G(5,4) = Dcm(2,1); 
-        G(5,5) = Dcm(2,2); 
+        G(3,3) = Dcm(0,0)*dt; 
+        G(3,4) = Dcm(0,1)*dt; 
+        G(3,5) = Dcm(0,2)*dt; 
+        G(4,3) = Dcm(1,0)*dt; 
+        G(4,4) = Dcm(1,1)*dt; 
+        G(4,5) = Dcm(1,2)*dt; 
+        G(5,3) = Dcm(2,0)*dt; 
+        G(5,4) = Dcm(2,1)*dt; 
+        G(5,5) = Dcm(2,2)*dt; 
 
         MatrixType & Q = this->_Q;
         Q = G*V*G.transpose();
 
         // update x
-        // TODO: need to add non-linear state prediction functions
+        // TODO: should use non-linear state prediction functions
         // instead of using linearization
         VectorType u(6);
-        u(0) = accelB(0);
-        u(1) = accelB(1);
-        u(2) = accelB(2);
-        u(3) = gyroB(0);
-        u(4) = gyroB(1);
-        u(5) = gyroB(2);
+        u(0) = gyroB(0);
+        u(1) = gyroB(1);
+        u(2) = gyroB(2);
+        u(3) = accelB(0);
+        u(4) = accelB(1);
+        u(5) = accelB(2);
         x = F*x + G*u;
 
         // predict equations for kalman filter
