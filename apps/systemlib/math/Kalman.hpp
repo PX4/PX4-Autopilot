@@ -52,10 +52,10 @@ public:
     typedef Vector<T> VectorType;
     // constructor
     Kalman(size_t n) :
-        _x(VectorType::zero(n)),
-        _P(MatrixType::zero(n)),
-        _F(MatrixType::zero(n)),
-        _Q(MatrixType::zero(n))
+        _x(n),
+        _P(n,n),
+        _F(n,n),
+        _Q(n,n)
     {
     }
     // deconstructor
@@ -96,8 +96,8 @@ public:
     typedef Kalman<T> KalmanType;
     KalmanNav() :
         KalmanType(9),
-        G(MatrixType::zero(9,6)),
-        V(MatrixType::zero(6)),
+        G(9,6),
+        V(6,6),
         HMag(3,9),
         RMag(3,3),
         HGps(6,9),

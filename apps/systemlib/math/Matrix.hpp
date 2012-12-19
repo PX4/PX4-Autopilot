@@ -189,7 +189,6 @@ public:
     {
         ASSERT(getCols()==right.getRows());
         VectorType result(getRows());
-        result.setAll(0);
         for (size_t i=0; i<getRows(); i++)
         {
             for (size_t j=0; j<getCols(); j++)
@@ -232,7 +231,6 @@ public:
     {
         ASSERT(getCols()==right.getRows());
         MatrixType result(getRows(), right.getCols());
-        result.setAll(0);
         for (size_t i=0; i<getRows(); i++)
         {
             for (size_t j=0; j<right.getCols(); j++)
@@ -352,7 +350,6 @@ public:
     size_t getCols() const { return _cols; }
     static MatrixType identity(size_t size) {
         MatrixType result(size,size);
-        result.setAll(0.0f);
         for (size_t i=0; i<size; i++) {
             result(i,i) = 1.0f; 
         }
