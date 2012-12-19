@@ -5,6 +5,7 @@ import sys, os, pexpect, fdpexpect, socket
 import math, time, select, struct, signal, errno
 import random, numpy
 import plotting as plot
+import pickle
 from collections import defaultdict
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'pysim'))
@@ -499,6 +500,9 @@ def main_loop():
             results[key][outerIndex] = iterResults[key]
 
     plotStructs = plot.generatePlotStructs(results, [attack1, attack2], os.getcwd()+'/')
+    write = open('plotStructs.pkl', 'wb')
+    pickle.dump(plotStructs)
+    write.close()
     print plotStructs
     plot.generatePlots(plotStructs)
 

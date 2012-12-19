@@ -2,9 +2,11 @@
 
 import matplotlib 
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.cm as cm
 import matplotlib.mlab as mlab
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as pyplot
 import pickle
 
 def forceAspect(ax,aspect=1):
@@ -20,30 +22,38 @@ def serializePlotStructs(plotStructs, fileName):
 
 def generatePlotStructs(results, attacks, saveDir):
     
-    resultKeys = ['flightFail','missionFail']
+    resultKeys = ['flightFailNoFault','missionFailNoFault','flightFailFault','missionFailFault','faultDetect']
     plotData = dict.fromkeys(resultKeys)
 
-    attackSize = len(attacks)
-    xdata = attacks[0].attack_values
-    xlabel = attacks[0].label
-
+    xdata = dict.fromkeys(resultKeys)
     ydata = dict.fromkeys(resultKeys)
     zdata = dict.fromkeys(resultKeys)
     titles = dict.fromkeys(resultKeys)
 
-    titles['flightFail'] = 'Flight Envelope Failure Time'
-    titles['missionFail'] = 'Mission Envelope Failure Time'
+    titles['flightFailNoFault'] = 'Flight Envelope Failure Time (no Fault Detection)'
+    titles['flightFailFault'] = 'Flight Envelope Failure Time (with Fault Detection)'
+
+    titles['missionFailNoFault'] = 'Mission Envelope Failure Time (no Fault Detection)'
+    titles['missionFailFault'] = 'Mission Envelope Failure Time (with Fault Detection)'
+
+    titles['faultDetect'] = 'Fault Detection Time'
 
     # Generate size-dependent values
+    attackSize = len(attacks)
     if attackSize == 1:
+        xlabel = attacks[0].label
         ylabel= 'Failure Time (s)'
         for key in resultKeys:
+            xdata[key] = attacks[0].attack_values
             ydata[key] = results[key]
             zdata[key] = 0
     elif attackSize == 2:
-        ylabel = attacks[1].label
+        # The first attack is the outer loop and the second is the inner loop. The data in this loop was saved as a row after each execution of the outer loop, making the first attack y and the second attack x. Make sure this is followed.
+        xlabel = attacks[1].label
+        ylabel = attacks[0].label
         for key in resultKeys:
-            ydata[key] = attacks[1].attack_values
+            xdata[key] = attacks[1].attack_values
+            ydata[key] = attacks[0].attack_values
             zdata[key] = results[key]
 
     # Create the plotting dictionary
@@ -51,7 +61,7 @@ def generatePlotStructs(results, attacks, saveDir):
         plotData[key] = dict(
                 size = attackSize,
                 fileName = saveDir + key,
-                xdata = xdata,
+                xdata = xdata[key],
                 xlabel = xlabel,
                 ydata = ydata[key],
                 ylabel = ylabel,
@@ -74,26 +84,26 @@ def generatePlots(plotStructs):
     for key in plotStructs:
         functionDict[plotStructs[key]['size']](plotStructs[key])
 
-    plt.close('all')
+    pyplot.close('all')
 
 def savePlots(fig, fileName, transparent=True):
-    filetypes = ['.png','.eps']
+    filetypes = ['.png', '.pdf']
     for ext in filetypes:
         fig.savefig(fileName + ext,bbox_inches='tight', transparent=transparent)
 
 def oneAttackPlot(plotStruct):
-    fig = plt.figure()
-    plt.plot(plotStruct['xdata'],plotStruct['ydata'])
-    plt.ylabel(plotStruct['ylabel'])
-    plt.xlabel(plotStruct['xlabel'])
-    plt.title(plotStruct['title']+'\n')
+    fig = pyplot.figure()
+    pyplot.plot(plotStruct['xdata'],plotStruct['ydata'])
+    pyplot.ylabel(plotStruct['ylabel'])
+    pyplot.xlabel(plotStruct['xlabel'])
+    pyplot.title(plotStruct['title']+'\n')
     savePlots(fig, plotStruct['fileName'])
 
-    plt.clf()
+    pyplot.clf()
 
 def twoAttackPlot(plotStruct):
-    y = plotStruct['xdata']
-    x = plotStruct['ydata']
+    x = plotStruct['xdata']
+    y = plotStruct['ydata']
     X,Y = np.meshgrid(x,y)
     Z = plotStruct['zdata']
 
@@ -104,29 +114,45 @@ def twoAttackPlot(plotStruct):
 
     #levels = np.arrange(np.min(Z), np.max(Z), 10)
 
-    #fig = plt.figure()
-    fig = plt.figure(figsize=(8,8))
+    #fig = pyplot.figure()
+    fig = pyplot.figure(figsize=(8,8))
     ax = fig.add_subplot(111)
     matplotlib.rcParams['contour.negative_linestyle'] = 'solid'
-    im = plt.imshow(Z, interpolation='bilinear', origin='lower',cmap=cm.jet_r, extent=(minx,maxx,miny,maxy))
+    im = pyplot.imshow(Z, interpolation='bilinear', origin='lower',cmap=cm.jet_r, extent=(minx,maxx,miny,maxy))
 
     # If all of the elements of Z are equal, pyplot will be angry. So we test for that condition
     # and reduce one element very slightly.
+    contourCount = 5
+    flat = False
     if not np.any(Z != Z[0,0]):
         Z[0,0] -= 0.00001
+        contourCount = 1
+        flat = True
 
-    print X
-    print Y
-    print Z
-    CS = plt.contour(X, Y, Z,5,colors='k')
+    CS = pyplot.contour(X, Y, Z, contourCount, colors='k')
     
-    plt.clabel(CS, fontsize=9, inline=1)
-    CBI = plt.colorbar(im, orientation='vertical', shrink=0.6)
+    CBI = pyplot.colorbar(im, orientation='vertical', shrink=0.6)
+    CBI.set_label('Time (s)')
+    if flat:
+        #pass
+        CBI.set_ticks([Z[0,1]])
+    else:
+        pyplot.clabel(CS, fontsize=9, inline=1)
 
-    plt.xlabel(plotStruct['ylabel'])
-    plt.ylabel(plotStruct['xlabel'])
-    plt.title(plotStruct['title'])
+    pyplot.show()
+    pyplot.ylabel(plotStruct['ylabel'])
+    pyplot.xlabel(plotStruct['xlabel'])
+    pyplot.title(plotStruct['title'])
     forceAspect(ax,1.2)
-    savePlots(fig, plotStruct['fileName'])#, transparent=True)
-    plt.clf()
+    savePlots(fig, plotStruct['fileName'], transparent=True)
+    pyplot.clf()
+
+def checkIfInteresting(plotStructs):
+    for key in plotStructs:
+        if plotStructs[key]['size'] <= 1:
+            return False
+        Z = plotStructs[key]['zdata']
+        if np.any(Z != Z[0,0]):
+            return True
+    return False
 
