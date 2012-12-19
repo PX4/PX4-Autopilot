@@ -54,6 +54,10 @@ int __EXPORT kalmanNavTest()
     typedef Matrix<float> MatrixType;
     typedef Vector<float> VectorType;
     KalmanNav<float> nav;
+    VectorType accelB(3);
+    accelB.setAll(1.0f);
+    VectorType gyroB(3);
+    gyroB.setAll(1.0f);
     for (int i=0;i<100;i++)
     {
         if (i%10==0)
@@ -68,7 +72,7 @@ int __EXPORT kalmanNavTest()
             zMag.setAll(1);
             nav.correctMag(zMag);
         }
-        nav.predict(0.01);
+        nav.predict(0.01,accelB,gyroB);
     }
     printf("PASS\n");
     return 0;

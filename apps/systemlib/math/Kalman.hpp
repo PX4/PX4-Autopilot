@@ -52,46 +52,50 @@ public:
     typedef Vector<T> VectorType;
     // constructor
     Kalman(size_t n, size_t m) :
-        x(VectorType::zero(n)),
-        P(MatrixType::zero(n)),
-        F(MatrixType::zero(n)),
-        G(MatrixType::zero(m)),
-        Q(MatrixType::zero(n)),
-        V(MatrixType::zero(m))
+        _x(VectorType::zero(n)),
+        _P(MatrixType::zero(n)),
+        _F(MatrixType::zero(n)),
+        _G(MatrixType::zero(m)),
+        _Q(MatrixType::zero(n)),
+        _V(MatrixType::zero(m))
     {
     }
     // deconstructor
     virtual ~Kalman()
     {
     }
-    void predict(float dt)
+    virtual void predict(float dt)
     {
-        P = F*P*F.transpose() + G*V*G.transpose() + Q;
+        _P = _F*_P*_F.transpose() + _G*_V*_G.transpose() + _Q;
     }
-    void correct(const VectorType & z,
+    virtual void correct(const VectorType & z,
             const MatrixType & H, 
             const MatrixType & R) 
     {
-        MatrixType S = H*getP()*H.transpose() + R;
-        MatrixType K = getP()*H.transpose()*S.inverse();
-        P = P - P*K*H;
-        x = x + K*(z - H*x);
+        MatrixType S = H*_P*H.transpose() + R;
+        MatrixType K = _P*H.transpose()*S.inverse();
+        _P = _P - _P*K*H;
+        _x = _x + K*(z - H*_x);
     }
-    const VectorType & getX() const { return x; }
-    const MatrixType & getP() const { return P; }
-    const MatrixType & getF() const { return F; }
-    const MatrixType & getG() const { return G; }
-    const MatrixType & getQ() const { return Q; }
-    const MatrixType & getV() const { return V; }
-    void setX(const VectorType & val) { x = val; }
-    void setP(const MatrixType & val) { P = val; }
+    const VectorType & getX() const { return _x; }
+    const MatrixType & getP() const { return _P; }
+    void setX(const VectorType & x) { _x = x; }
+    void setP(const MatrixType & P) { _P = P; }
 protected:
-    VectorType x;
-    MatrixType P;
-    MatrixType F;
-    MatrixType G;
-    MatrixType Q;
-    MatrixType V;
+    VectorType & getX() { return _x; }
+    MatrixType & getP() { return _P; }
+    MatrixType & getF() { return _F; }
+    MatrixType & getG() { return _G; }
+    MatrixType & getQ() { return _Q; }
+    MatrixType & getV() { return _V; }
+    void setQ(const MatrixType & Q) { _Q = Q; }
+    void setV(const MatrixType & V) { _V = V; }
+    VectorType _x;
+    MatrixType _P;
+    MatrixType _F;
+    MatrixType _G;
+    MatrixType _Q;
+    MatrixType _V;
 };
 
 template<class T>
@@ -103,20 +107,22 @@ public:
     typedef Kalman<T> KalmanType;
     KalmanNav() :
         KalmanType(12,6),
-        KalmanType::P(MatrixType::identity(12)*0.001f),
-        KalmanType::Q(MatrixType::identity(12)*0.001f),
-        KalmanType::V(MatrixType::identity(6)*0.001f),
         HMag(3,12),
         RMag(MatrixType::identity(3)),
         HGps(6,12),
         RGps(MatrixType::identity(6)),
         Dcm(3,3)
     {
+        MatrixType I12 = MatrixType::identity(12);
+        MatrixType I6 = MatrixType::identity(6);
+        setP(I12*0.001f);
+        setQ(I12*0.001f);
+        setV(I6*0.001f);
     }
     virtual ~KalmanNav() 
     {
     }
-    void predict(float dt)
+    void predict(float dt, const VectorType & accelB, const VectorType & gyroB)
     {
         // constants
         static const float omega = 1e-5f;
@@ -159,17 +165,11 @@ public:
         Dcm(2,1) = sinPhi*cosTheta;
         Dcm(2,2) = cosPhi*cosTheta;
 
-        // accelerometer
-        VectorType aB(3);
-        aB(0) = 1;
-        aB(1) = 1;
-        aB(2) = 1;
-
         // specific acceleration in nav frame
-        VectorType aN = Dcm*aB;
-        float fN = aN(0);
-        float fE = aN(1);
-        float fD = aN(2) - g;
+        VectorType accelN = Dcm*accelB;
+        float fN = accelN(0);
+        float fE = accelN(1);
+        float fD = accelN(2) - g;
 
         // F Matrix
         MatrixType & F = KalmanType::getF();
@@ -259,12 +259,6 @@ public:
         float & phi = x(0);
         float & theta = x(1);
         float & psi = x(2);
-        float & vN = x(3);
-        float & vE = x(4);
-        float & vD = x(5);
-        float & L = x(6);
-        float & l = x(7);
-        float & h = x(8);
 
         // trig
         float cosPhi = cosf(phi);
