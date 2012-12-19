@@ -363,6 +363,11 @@ public:
         result.setAll(0.0f);
         return result;
     }
+    static MatrixType zero(size_t m, size_t n) {
+        MatrixType result(m,n);
+        result.setAll(0.0f);
+        return result;
+    }
 protected:
     size_t getSize() const { return sizeof(T)*getRows()*getCols(); }
     T * getData() const { return _data; }

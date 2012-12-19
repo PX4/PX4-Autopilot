@@ -55,7 +55,7 @@ public:
         _x(VectorType::zero(n)),
         _P(MatrixType::zero(n)),
         _F(MatrixType::zero(n)),
-        _G(MatrixType::zero(m)),
+        _G(MatrixType::zero(n,m)),
         _Q(MatrixType::zero(n)),
         _V(MatrixType::zero(m))
     {
@@ -106,17 +106,17 @@ public:
     typedef Vector<T> VectorType;
     typedef Kalman<T> KalmanType;
     KalmanNav() :
-        KalmanType(12,6),
-        HMag(3,12),
+        KalmanType(9,6),
+        HMag(3,9),
         RMag(MatrixType::identity(3)),
-        HGps(6,12),
+        HGps(6,9),
         RGps(MatrixType::identity(6)),
         Dcm(3,3)
     {
-        MatrixType I12 = MatrixType::identity(12);
+        MatrixType I9 = MatrixType::identity(9);
         MatrixType I6 = MatrixType::identity(6);
-        setP(I12*0.001f);
-        setQ(I12*0.001f);
+        setP(I9*0.001f);
+        setQ(I9*0.001f);
         setV(I6*0.001f);
     }
     virtual ~KalmanNav() 
@@ -139,8 +139,8 @@ public:
         float & vE = x(4);
         float & vD = x(5);
         float & L = x(6);
-        float & l = x(7);
-        float & h = x(8);
+        //float & l = x(7);
+        //float & h = x(8);
 
         // trig
         float cosPhi = cosf(phi);
@@ -307,12 +307,12 @@ public:
     }
     void correctGps(VectorType & zGps)
     {
-        HGps(3,0) = 1.0f;
-        HGps(4,1) = 1.0f;
-        HGps(5,2) = 1.0f;
-        HGps(6,3) = 1.0f;
-        HGps(7,4) = 1.0f;
-        HGps(8,5) = 1.0f;
+        HGps(0,3) = 1.0f;
+        HGps(1,4) = 1.0f;
+        HGps(2,5) = 1.0f;
+        HGps(3,6) = 1.0f;
+        HGps(4,7) = 1.0f;
+        HGps(5,8) = 1.0f;
         correct(zGps,HGps,RGps);
     }
 protected:
