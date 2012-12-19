@@ -51,11 +51,13 @@ public:
     typedef Matrix<T> MatrixType;
     typedef Vector<T> VectorType;
     // constructor
-    Kalman(size_t n) :
-        _x(VectorType::zero(n)),
-        _P(MatrixType::zero(n)),
-        _Q(MatrixType::zero(n)),
-        _F(MatrixType::zero(n))
+    Kalman(size_t n, size_t m) :
+        x(VectorType::zero(n)),
+        P(MatrixType::zero(n)),
+        F(MatrixType::zero(n)),
+        G(MatrixType::zero(m)),
+        Q(MatrixType::zero(n)),
+        V(MatrixType::zero(m))
     {
     }
     // deconstructor
@@ -64,7 +66,7 @@ public:
     }
     void predict(float dt)
     {
-        setP(getF()*getP()*getF().transpose() + getQ());
+        P = F*P*F.transpose() + G*V*G.transpose() + Q;
     }
     void correct(const VectorType & z,
             const MatrixType & H, 
@@ -72,23 +74,24 @@ public:
     {
         MatrixType S = H*getP()*H.transpose() + R;
         MatrixType K = getP()*H.transpose()*S.inverse();
-        setP(getP() - K*H*getP());
-        setX(getX() + K*(z - H*getX()));
+        P = P - P*K*H;
+        x = x + K*(z - H*x);
     }
-    const VectorType & getX() const { return _x; }
-    const MatrixType & getP() const { return _P; }
-    const MatrixType & getQ() const { return _Q; }
-    const MatrixType & getF() const { return _F; }
+    const VectorType & getX() const { return x; }
+    const MatrixType & getP() const { return P; }
+    const MatrixType & getF() const { return F; }
+    const MatrixType & getG() const { return G; }
+    const MatrixType & getQ() const { return Q; }
+    const MatrixType & getV() const { return V; }
+    void setX(const VectorType & val) { x = val; }
+    void setP(const MatrixType & val) { P = val; }
 protected:
-    void setX(const VectorType & x) { _x = x; }
-    void setP(const MatrixType & P) { _P = P; }
-    void setQ(const MatrixType & Q) { _Q = Q; }
-    void setF(const MatrixType & F) { _F = F; }
-private:
-    VectorType _x;
-    MatrixType _P;
-    MatrixType _Q;
-    MatrixType _F;
+    VectorType x;
+    MatrixType P;
+    MatrixType F;
+    MatrixType G;
+    MatrixType Q;
+    MatrixType V;
 };
 
 template<class T>
@@ -99,50 +102,231 @@ public:
     typedef Vector<T> VectorType;
     typedef Kalman<T> KalmanType;
     KalmanNav() :
-        KalmanType(12),
-        _hMag(3,12),
-        _rMag(MatrixType::zero(3)),
-        _hGps(6,12),
-        _rGps(MatrixType::zero(6))
+        KalmanType(12,6),
+        KalmanType::P(MatrixType::identity(12)*0.001f),
+        KalmanType::Q(MatrixType::identity(12)*0.001f),
+        KalmanType::V(MatrixType::identity(6)*0.001f),
+        HMag(3,12),
+        RMag(MatrixType::identity(3)),
+        HGps(6,12),
+        RGps(MatrixType::identity(6)),
+        Dcm(3,3)
     {
-        setP(MatrixType::identity(12)*0.001f);
-        setQ(MatrixType::identity(12)*0.001f);
     }
     virtual ~KalmanNav() 
     {
     }
     void predict(float dt)
     {
-        setF(MatrixType::identity(12));
-        setX(KalmanType::getX() + 1.0f);
+        // constants
+        static const float omega = 1e-5f;
+        static const float R = 1e6f;
+        static const float RSq = 1e12f;
+        static const float g = 9.8f;
+
+        // state
+        VectorType & x = KalmanType::getX();
+        float & phi = x(0);
+        float & theta = x(1);
+        float & psi = x(2);
+        float & vN = x(3);
+        float & vE = x(4);
+        float & vD = x(5);
+        float & L = x(6);
+        float & l = x(7);
+        float & h = x(8);
+
+        // trig
+        float cosPhi = cosf(phi);
+        float cosTheta = cosf(theta);
+        float cosPsi = cosf(psi);
+        float sinPhi = sinf(phi);
+        float sinTheta = sinf(theta);
+        float sinPsi = sinf(psi);
+        float sinL = sinf(L);
+        float cosL = cosf(L);
+        float cosLSq = cosL*cosL;
+        float tanL = tanf(L);
+
+        // dcm update
+        Dcm(0,0) = cosTheta*cosPsi;
+        Dcm(0,1) = -cosPhi*sinPsi + sinPhi*sinTheta*cosPsi;
+        Dcm(0,2) = sinPhi*sinPsi + cosPhi*sinTheta*cosPsi;
+        Dcm(1,0) = cosTheta*sinPsi;
+        Dcm(1,1) = cosPhi*cosPsi + sinPhi*sinTheta*sinPsi;
+        Dcm(1,2) = -sinPhi*cosPsi + cosPhi*sinTheta*sinPsi;
+        Dcm(2,0) = -sinTheta;
+        Dcm(2,1) = sinPhi*cosTheta;
+        Dcm(2,2) = cosPhi*cosTheta;
+
+        // accelerometer
+        VectorType aB(3);
+        aB(0) = 1;
+        aB(1) = 1;
+        aB(2) = 1;
+
+        // specific acceleration in nav frame
+        VectorType aN = Dcm*aB;
+        float fN = aN(0);
+        float fE = aN(1);
+        float fD = aN(2) - g;
+
+        // F Matrix
+        MatrixType & F = KalmanType::getF();
+
+        F(0,1) = -(omega*sinL + vE*tanL/R);
+        F(0,2) = vN/R;
+        F(0,4) = 1.0f/R;
+        F(0,6) = -omega*sinL;
+        F(0,8) = -vE/RSq;
+
+        F(1,0) = omega*sinL + vE*tanL/R;
+        F(1,2) = omega*cosL + vE/R;
+        F(1,3) = -1.0f/R;
+        F(1,8) = vN/RSq;
+        
+        F(2,0) = -vN/R;
+        F(2,1) = -omega*cosL - vE/R;
+        F(2,4) = -tanL/R;
+        F(2,6) = -omega*cosL - vE/(R*cosLSq);
+        F(2,8) = vE*tanL/RSq;
+
+        F(3,1) = -fD;
+        F(3,2) = fE;
+        F(3,3) = vD/R;
+        F(3,4) = -2*(omega*sinL + vE*tanL/R);
+        F(3,5) = vN/R;
+        F(3,6) = -vE*(2*omega*cosL + vE/(R*cosLSq));
+        F(3,8) = (vE*vE*tanL - vN*vD)/RSq;
+
+        F(4,0) = fD;
+        F(4,2) = -fN;
+        F(4,3) = 2*omega*sinL + vE*tanL/R;
+        F(4,4) = (vN*tanL + vD)/R;
+        F(4,5) = 2*omega*cosL + vE/R;
+        F(4,6) = 2*omega*(vN*cosL - vD*sinL) + 
+            vN*vE/(R*cosLSq);
+        F(4,8) = -vE*(vN*tanL + vD)/RSq;
+
+        F(5,0) = -fE;
+        F(5,1) = fN;
+        F(5,3) = -2*vN/R;
+        F(5,4) = -2*(omega*cosL + vE/R);
+        F(5,6) = 2*omega*vE*sinL;
+        F(5,8) = (vN*vN + vE*vE)/RSq;
+
+        F(6,3) = 1/R;
+        F(6,8) = -vN/RSq;
+
+        F(7,4) = 1/(R*cosL);
+        F(7,6) = vE*tanL/(R*cosL);
+        F(7,8) = -vE/(cosL*RSq);
+
+        F(8,5) = -1;
+
+        // G Matrix
+        MatrixType & G = KalmanType::getG();
+
+        G(0,0) = -Dcm(0,0); 
+        G(0,1) = -Dcm(0,1); 
+        G(0,2) = -Dcm(0,2); 
+        G(1,0) = -Dcm(1,0); 
+        G(1,1) = -Dcm(1,1); 
+        G(1,2) = -Dcm(1,2); 
+        G(2,0) = -Dcm(2,0); 
+        G(2,1) = -Dcm(2,1); 
+        G(2,2) = -Dcm(2,2); 
+
+        G(3,3) = Dcm(0,0); 
+        G(3,4) = Dcm(0,1); 
+        G(3,5) = Dcm(0,2); 
+        G(4,3) = Dcm(1,0); 
+        G(4,4) = Dcm(1,1); 
+        G(4,5) = Dcm(1,2); 
+        G(5,3) = Dcm(2,0); 
+        G(5,4) = Dcm(2,1); 
+        G(5,5) = Dcm(2,2); 
+
+        // update x
+
+        // predict equations for kalman filter
         KalmanType::predict(dt);
     }
     void correctMag(VectorType & zMag)
     {
-        _hMag.setAll(1);
-        setRMag(MatrixType::identity(3));
-        correct(zMag,getHMag(),getRMag());
+        // state
+        VectorType & x = KalmanType::getX();
+        float & phi = x(0);
+        float & theta = x(1);
+        float & psi = x(2);
+        float & vN = x(3);
+        float & vE = x(4);
+        float & vD = x(5);
+        float & L = x(6);
+        float & l = x(7);
+        float & h = x(8);
+
+        // trig
+        float cosPhi = cosf(phi);
+        float cosTheta = cosf(theta);
+        float cosPsi = cosf(psi);
+        float sinPhi = sinf(phi);
+        float sinTheta = sinf(theta);
+        float sinPsi = sinf(psi);
+
+        // expected field in nav frame
+        float bN = 1;
+        float bE = 1;
+        float bD = 1;
+
+        // HMag
+        float tmp1 =
+            cosPsi*cosTheta*bN +
+            sinPsi*cosTheta*bE -
+            sinTheta*bD;
+        HMag(0,1) = -(
+            cosPsi*sinTheta*bN +
+            sinPsi*sinTheta*bE +
+            cosTheta*bD
+            );
+        HMag(0,2) = -cosTheta*(sinPsi*bN - cosPsi*bE);
+        HMag(1,0) = 
+            (cosPhi*cosPsi*sinTheta + sinPhi*sinPsi)*bN + 
+            (cosPhi*sinPsi*sinTheta - sinPhi*cosPsi)*bE +
+            cosPhi*cosTheta*bD;
+        HMag(1,1) = sinPhi*tmp1;
+        HMag(1,2) = -(
+            (sinPhi*sinPsi*sinTheta + cosPhi*cosPsi)*bN - 
+            (sinPhi*cosPsi*sinTheta - cosPhi*sinPsi)*bE
+            );
+        HMag(2,0) = -(
+            (sinPhi*cosPsi*sinTheta - cosPhi*sinPsi)*bN +
+            (sinPhi*sinPsi*sinTheta + cosPhi*cosPsi)*bE +
+            (sinPhi*cosTheta)*bD
+            );
+        HMag(2,1) = cosPhi*tmp1;
+        HMag(2,2) = -(
+            (cosPhi*sinPsi*sinTheta - sinPhi*cosTheta)*bN -
+            (cosPhi*cosPsi*sinTheta + sinPhi*sinPsi)*bE
+            );
+        correct(zMag,HMag,RMag);
     }
     void correctGps(VectorType & zGps)
     {
-        _hGps.setAll(1);
-        setRGps(MatrixType::identity(6));
-        correct(zGps,getHGps(),getRGps());
+        HGps(3,0) = 1.0f;
+        HGps(4,1) = 1.0f;
+        HGps(5,2) = 1.0f;
+        HGps(6,3) = 1.0f;
+        HGps(7,4) = 1.0f;
+        HGps(8,5) = 1.0f;
+        correct(zGps,HGps,RGps);
     }
-    const MatrixType & getHMag() const { return _hMag; }
-    const MatrixType & getRMag() const { return _rMag; }
-    const MatrixType & getHGps() const { return _hGps; }
-    const MatrixType & getRGps() const { return _rGps; }
 protected:
-    void setHMag(const MatrixType & hMag) { _hMag = hMag; }
-    void setRMag(const MatrixType & rMag) { _rMag = rMag; }
-    void setHGps(const MatrixType & hGps) { _hGps = hGps; }
-    void setRGps(const MatrixType & rGps) { _rGps = rGps; }
-private:
-    MatrixType _hMag;
-    MatrixType _rMag;
-    MatrixType _hGps;
-    MatrixType _rGps;
+    MatrixType HMag;
+    MatrixType RMag;
+    MatrixType HGps;
+    MatrixType RGps;
+    MatrixType Dcm;
 };
 
 int kalmanTest();
