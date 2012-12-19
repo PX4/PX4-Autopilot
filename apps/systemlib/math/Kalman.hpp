@@ -108,16 +108,30 @@ public:
     KalmanNav() :
         KalmanType(9,6),
         HMag(3,9),
-        RMag(MatrixType::identity(3)),
+        RMag(3,3),
         HGps(6,9),
-        RGps(MatrixType::identity(6)),
+        RGps(6,6),
         Dcm(3,3)
     {
-        MatrixType I9 = MatrixType::identity(9);
+        MatrixType I3 = MatrixType::identity(3);
         MatrixType I6 = MatrixType::identity(6);
+        MatrixType I9 = MatrixType::identity(9);
+
         setP(I9*0.001f);
         setQ(I9*0.001f);
         setV(I6*0.001f);
+
+        // RMag is constant
+        RMag = I3*0.001f;
+        RGps = I6*0.001f;
+
+        // HGps is constant
+        HGps(0,3) = 1.0f;
+        HGps(1,4) = 1.0f;
+        HGps(2,5) = 1.0f;
+        HGps(3,6) = 1.0f;
+        HGps(4,7) = 1.0f;
+        HGps(5,8) = 1.0f;
     }
     virtual ~KalmanNav() 
     {
@@ -248,6 +262,7 @@ public:
         G(5,5) = Dcm(2,2); 
 
         // update x
+        // TODO: need to add non-linear state prediction functions
 
         // predict equations for kalman filter
         KalmanType::predict(dt);
@@ -268,10 +283,15 @@ public:
         float sinTheta = sinf(theta);
         float sinPsi = sinf(psi);
 
-        // expected field in nav frame
-        float bN = 1;
-        float bE = 1;
-        float bD = 1;
+        float magFieldStrength = 0.5f;
+
+        // choosing some typical magnetic field properties,
+        //  TODO dip/dec depend on lat/ lon/ time
+        static const float dip = 60.0f; // dip, inclination with level
+        static const float dec = 0.0f; // declination, clockwise rotation from north
+        float bN = magFieldStrength*cosf(dip)*cosf(dec);
+        float bE = magFieldStrength*cosf(dip)*sinf(dec);
+        float bD = magFieldStrength*sinf(dip);
 
         // HMag
         float tmp1 =
@@ -307,12 +327,6 @@ public:
     }
     void correctGps(VectorType & zGps)
     {
-        HGps(0,3) = 1.0f;
-        HGps(1,4) = 1.0f;
-        HGps(2,5) = 1.0f;
-        HGps(3,6) = 1.0f;
-        HGps(4,7) = 1.0f;
-        HGps(5,8) = 1.0f;
         correct(zGps,HGps,RGps);
     }
 protected:
