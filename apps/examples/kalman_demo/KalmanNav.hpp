@@ -76,8 +76,9 @@ public:
         _pos(&getPublications(), ORB_ID(vehicle_global_position)),
         _att(&getPublications(), ORB_ID(vehicle_attitude)),
         _timeStamp(hrt_absolute_time()),
-        _navFrames(0),
-        _dtActual(0)
+        _gpsTimeStamp(hrt_absolute_time()),
+        _magTimeStamp(hrt_absolute_time()),
+        _outTimeStamp(hrt_absolute_time())
     {
         setDt(1.0f /10.0f);
 
@@ -123,36 +124,36 @@ public:
     }
     void update()
     {
-        if (_navFrames%50==0)
+        uint64_t newTimeStamp = hrt_absolute_time();
+        if (newTimeStamp - _gpsTimeStamp > 1e6/2) // 2 Hz
         {
             correctGps();
+            _gpsTimeStamp = newTimeStamp;
         }
-        if (_navFrames%10==0)
+        if (newTimeStamp - _magTimeStamp > 1e6/5) // 5 Hz
         {
             correctMag();
         }
         predict();
 
-        // output
-        uint64_t newTimeStamp = hrt_absolute_time();
-        _navFrames += 1;
-        if ((newTimeStamp - _timeStamp) > 1000000)
+        _timeStamp = hrt_absolute_time();
+        float dtActual = (newTimeStamp - _timeStamp)/1.0e6f;
+
+        if (newTimeStamp - _outTimeStamp > 1e6) // 1 Hz
         {
-            _dtActual = 1.0f/_navFrames;
-            printf("nav running at %d hz, dt: %f sec\n",
-                    _navFrames,(double)_dtActual);
+            printf("nav dt: %8.4f sec\n",(double)dtActual);
             _kalman.getX().print();
-            _timeStamp = newTimeStamp;
-            _navFrames = 0;
+            _outTimeStamp = newTimeStamp;
         }
+
         // sleep for approximately the right amount of time for update, 
         // neglects lag from calculations
-        float timeSleep = getDt() - _dtActual;
-        if (timeSleep >= 0) {
-            usleep(1000000*timeSleep);
-        } else {
-            printf("kalman_demo: missed deadline by %f seconds", (double)(-timeSleep));
-        }
+        //float timeSleep = getDt() - dtActual;
+        //if (timeSleep >= 0) {
+            //usleep(1e6*timeSleep);
+        //} else {
+            //printf("kalman_demo: missed deadline by %8.4f sec\n", (double)(-timeSleep));
+        //}
     }
     void predict()
     {
@@ -396,6 +397,7 @@ protected:
     control::UOrbPublication<vehicle_global_position_s> _pos;
     control::UOrbPublication<vehicle_attitude_s> _att;
     uint64_t _timeStamp;
-    uint16_t _navFrames;
-    float _dtActual;
+    uint64_t _gpsTimeStamp;
+    uint64_t _magTimeStamp;
+    uint64_t _outTimeStamp;
 };
