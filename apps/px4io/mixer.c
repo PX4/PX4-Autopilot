@@ -84,9 +84,6 @@ mixer_tick(void)
 	int i;
 	bool should_arm;
 
-	// XXX for now
-	system_state.mixer_manual_override = false;
-
 	/*
 	 * Decide which set of inputs we're using.
 	 */
