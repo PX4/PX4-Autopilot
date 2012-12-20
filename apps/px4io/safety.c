@@ -60,10 +60,19 @@ static struct hrt_call failsafe_call;
  */
 static unsigned counter;
 
+/*
+ * Define the various LED flash sequences for each system state.
+ */
+#define LED_PATTERN_SAFE 			0xffff		// always on
+#define LED_PATTERN_FMU_ARMED 		0x4444		// slow blinking
+#define LED_PATTERN_IO_ARMED 		0x5555		// fast blinking 
+#define LED_PATTERN_IO_FMU_ARMED 	0x5050		// long off then double blink
+
+static unsigned blink_counter = 0;
+
 #define ARM_COUNTER_THRESHOLD	10
 #define DISARM_COUNTER_THRESHOLD	2
 
-static bool safety_led_state;
 static bool safety_button_pressed;
 
 static void safety_check_button(void *arg);
@@ -120,15 +129,25 @@ safety_check_button(void *arg)
 		counter = 0;
 	}
 
-	/* when armed, toggle the LED; when safe, leave it on */
+	/* Select the appropriate LED flash pattern depending on the current IO/FMU arm state */
+	uint16_t pattern = LED_PATTERN_SAFE;
 	if (system_state.armed) {
-		safety_led_state = !safety_led_state;
-	} else {
-		safety_led_state = true;
+		if (system_state.arm_ok) {
+			pattern = LED_PATTERN_IO_FMU_ARMED;
+		} else {
+			pattern = LED_PATTERN_IO_ARMED;
+		}
+	} else if (system_state.arm_ok) {
+		pattern = LED_PATTERN_FMU_ARMED;
 	}
-	LED_SAFETY(safety_led_state);
-}
 
+	/* Turn the LED on if we have a 1 at the current bit position */
+	LED_SAFETY(pattern & (1 << blink_counter++));
+
+	if (blink_counter > 15) {
+		blink_counter = 0;
+	}
+}
 
 static void
 heartbeat_blink(void *arg)

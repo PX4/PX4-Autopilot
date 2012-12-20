@@ -1080,10 +1080,10 @@ int HMC5883::check_offset()
 
 int HMC5883::check_calibration()
 {
-	bool offset_valid = !(check_offset() == OK);
-	bool scale_valid  = !(check_scale() == OK);
+	bool offset_valid = (check_offset() == OK);
+	bool scale_valid  = (check_scale() == OK);
 
-	if (_calibrated != (offset_valid && scale_valid == OK)) {
+	if (_calibrated != (offset_valid && scale_valid)) {
 		warnx("mag cal status changed %s%s", (scale_valid) ? "" : "scale invalid ",
 					  (offset_valid) ? "" : "offset invalid");
 		_calibrated = (offset_valid && scale_valid);
