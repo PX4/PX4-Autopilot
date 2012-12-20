@@ -20,7 +20,7 @@ nuttx/
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
   (1)  Documentation (Documentation/)
-  (6)  Build system / Toolchains
+  (8)  Build system / Toolchains
   (5)  Linux/Cywgin simulation (arch/sim)
   (6)  ARM (arch/arm/)
   (1)  ARM/C5471 (arch/arm/src/c5471/)
@@ -973,6 +973,48 @@ o Build system
   Status:      Open
   Priority:    Low -- the kernel build configuration is not fully fielded
                yet.
+
+  Title:       mconf NOT AVAILABLE IN NATIVE WINDOWS BUILD
+  Description: NuttX is migrating to the use of the kconfig-frontends mconf
+               tool for all configurations.  In NuttX 6.24, support for native
+               Windows builds was added.  However, the mconf tool does not
+               build to run natively under Windows.
+
+               Some effort was spent trying to get a clean mconf build under
+               Windows.  This is documented in the message thread beginning
+               here: http://tech.groups.yahoo.com/group/nuttx/message/2900.
+               The build was successfully completed using:  MinGW-GCC, MSYS,
+               additional Windows libraries, and additional MSYS libraries
+               (MSYS is a variant of Cygwin so, presumeably, Cygwin could
+               have been used as well).  However, on final testing, it was
+               found that there are problems with text and numeric entry:
+               http://tech.groups.yahoo.com/group/nuttx/message/2953.  This
+               was considered a show stopper and the changs were not checked
+               in.
+
+               Options:  (1) Use conf (not mconf).  confis the text-only
+               configuration tool, (2) fix mconf, (3) write another variant
+               of the configuration tool for windows, or (4) do all configuration
+               under Cygwin or MSYS.  I am doing (4) now, but this is very
+               awkward because I have to set the apps path to ../apps (vs
+               ..\apps) and CONFIG_WINDOWS_NATIVE=n for the 'make menuconfig'
+               to run error free under windows.  Very awkward!
+  Status:      Open, there are some workarounds, but none are good.
+  Priority:    High
+
+  Title:       configure.sh NOT AVAILABLE IN NATIVE WINDOWS BUILD
+  Description: configure.sh is a Bash script and cannot be used from a Windows
+               CMD.exe window.  I started a configure.bat script, but I do
+               not have the batch file programming skills to duplicate some
+               of the more complex operations.
+
+               I also considered adding a configure.c file that could be 
+               compiled and then executed by configure.bat (and configure.sh?).
+               But I have not gone down that path yet.
+
+               The current work-around is to configure under Cygwin.
+  Status:      Open
+  Priority:    High
 
 o Linux/Cywgin simulation (arch/sim)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
