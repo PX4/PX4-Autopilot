@@ -49,6 +49,8 @@
 
 #include "Vector.hpp"
 
+//#define MATRIX_ASSERT
+
 namespace math
 {
 
@@ -86,10 +88,12 @@ public:
                     right.getSize());
     }
     // assignment
-    MatrixType & operator=(const MatrixType & right)
+    inline MatrixType & operator=(const MatrixType & right)
     {
+#ifdef MATRIX_ASSERT
         ASSERT(getRows()==right.getRows());
         ASSERT(getCols()==right.getCols());
+#endif
         if (this != &right)
         {
             memcpy(getData(),right.getData(),
@@ -98,32 +102,40 @@ public:
         return *this;
     }
     // element accessors
-    T& operator()(size_t i, size_t j)
+    inline T & operator()(size_t i, size_t j)
     {
+#ifdef MATRIX_ASSERT
         ASSERT(i<getRows());
         ASSERT(j<getCols());
+#endif
         return getData()[i*getCols() + j];
     }
-    T operator()(size_t i, size_t j) const
+    inline const T & operator()(size_t i, size_t j) const
     {
+#ifdef MATRIX_ASSERT
         ASSERT(i<getRows());
         ASSERT(j<getCols());
+#endif
         return getData()[i*getCols() + j];
     }
     // output
-    void print() const
+    inline void print() const
     {
         for (size_t i=0; i<getRows(); i++)
         {
             for (size_t j=0; j<getCols(); j++)
             {
-                printf("%8.4f\t",(double)(*this)(i,j));
+                float sig;
+                int exp;
+                float num = (*this)(i,j);
+                float2SigExp(num,sig,exp);
+                printf ("%6.3fe%03.3d,", (double)sig, exp);
             }
             printf("\n");
         }
     }
     // boolean ops
-    bool operator==(const T & right) const
+    inline bool operator==(const T & right) const
     {
         for (size_t i=0; i<getRows(); i++)
         {
@@ -136,7 +148,7 @@ public:
         return true;
     }
     // scalar ops
-    MatrixType operator+(const T & right) const
+    inline MatrixType operator+(const T & right) const
     {
         MatrixType result(getRows(), getCols());
         for (size_t i=0; i<getRows(); i++)
@@ -148,7 +160,7 @@ public:
         }
         return result;
     }
-    MatrixType operator-(const T & right) const
+    inline MatrixType operator-(const T & right) const
     {
         MatrixType result(getRows(), getCols());
         for (size_t i=0; i<getRows(); i++)
@@ -160,7 +172,7 @@ public:
         }
         return result;
     }
-    MatrixType operator*(const T & right) const
+    inline MatrixType operator*(const T & right) const
     {
         MatrixType result(getRows(), getCols());
         for (size_t i=0; i<getRows(); i++)
@@ -172,7 +184,7 @@ public:
         }
         return result;
     }
-    MatrixType operator/(const T & right) const
+    inline MatrixType operator/(const T & right) const
     {
         MatrixType result(getRows(), getCols());
         for (size_t i=0; i<getRows(); i++)
@@ -185,9 +197,11 @@ public:
         return result;
     }
     // vector ops
-    VectorType operator*(const VectorType & right) const
+    inline VectorType operator*(const VectorType & right) const
     {
+#ifdef MATRIX_ASSERT
         ASSERT(getCols()==right.getRows());
+#endif
         VectorType result(getRows());
         for (size_t i=0; i<getRows(); i++)
         {
@@ -199,10 +213,12 @@ public:
         return result;
     }
     // matrix ops
-    MatrixType operator+(const MatrixType & right) const
+    inline MatrixType operator+(const MatrixType & right) const
     {
+#ifdef MATRIX_ASSERT
         ASSERT(getRows()==right.getRows());
         ASSERT(getCols()==right.getCols());
+#endif
         MatrixType result(getRows(), getCols());
         for (size_t i=0; i<getRows(); i++)
         {
@@ -213,10 +229,12 @@ public:
         }
         return result;
     }
-    MatrixType operator-(const MatrixType & right) const
+    inline MatrixType operator-(const MatrixType & right) const
     {
+#ifdef MATRIX_ASSERT
         ASSERT(getRows()==right.getRows());
         ASSERT(getCols()==right.getCols());
+#endif
         MatrixType result(getRows(), getCols());
         for (size_t i=0; i<getRows(); i++)
         {
@@ -227,9 +245,11 @@ public:
         }
         return result;
     }
-    MatrixType operator*(const MatrixType & right) const
+    inline MatrixType operator*(const MatrixType & right) const
     {
+#ifdef MATRIX_ASSERT
         ASSERT(getCols()==right.getRows());
+#endif
         MatrixType result(getRows(), right.getCols());
         for (size_t i=0; i<getRows(); i++)
         {
@@ -243,14 +263,16 @@ public:
         }
         return result;
     }
-    MatrixType operator/(const MatrixType & right) const
+    inline MatrixType operator/(const MatrixType & right) const
     {
+#ifdef MATRIX_ASSERT
         ASSERT(right.getRows()==right.getCols());
         ASSERT(getCols()==right.getCols());
+#endif
         return (*this)*right.inverse();
     }
     // other functions
-    MatrixType transpose() const
+    inline MatrixType transpose() const
     {
         MatrixType result(getCols(),getRows());
         for(size_t i=0;i<getRows();i++) {
@@ -260,22 +282,69 @@ public:
         }
         return result;
     }
+    inline void swapRows(size_t a, size_t b)
+    {
+        if (a==b) return;
+        for(size_t j=0;j<getCols();j++) {
+            T tmp = (*this)(a,j);
+            (*this)(a,j) = (*this)(b,j);
+            (*this)(b,j) = tmp;
+        }
+    }
+    inline void swapCols(size_t a, size_t b)
+    {
+        if (a==b) return;
+        for(size_t i=0;i<getRows();i++) {
+            T tmp = (*this)(i,a);
+            (*this)(i,a) = (*this)(i,b);
+            (*this)(i,b) = tmp;
+        }
+    }
+    /**
+     * inverse based on LU factorization with partial pivotting
+     */
     MatrixType inverse() const
     {
+#ifdef MATRIX_ASSERT
         ASSERT(getRows()==getCols());
+#endif
         size_t N = getRows();
         MatrixType L = identity(N);
         const MatrixType & A = (*this);
         MatrixType U = A;
+        MatrixType P = identity(N);
 
         printf("A:\n"); A.print();
 
         // for all diagonal elements
         for (size_t n=0; n<N; n++) {
 
+            // if diagonal is zero, swap with row below
+            if (fabs(U(n,n))<1e-8) {
+                printf("trying pivot for row %d\n",n);
+                for (size_t i=0; i<N; i++) {
+                    if (i==n) continue;
+                    printf("\ttrying row %d\n",i);
+                    if (fabs(U(i,n))>1e-8) {
+                        printf("swapped %d\n",i);
+                        U.swapRows(i,n);
+                        P.swapRows(i,n);
+                    }
+                }
+            }
+            printf("U:\n"); U.print();
+            printf("P:\n"); P.print();
+#ifdef MATRIX_ASSERT
+            ASSERT(fabs(U(n,n))>1e-8);
+#endif
+            // failsafe, return zero matrix
+            if (fabs(U(n,n))>1e-8)
+            {
+                return MatrixType::zero(n);
+            }
+
             // for all rows below diagonal
             for (size_t i=(n+1); i<N; i++) {
-                ASSERT(fabs(U(n,n))>1e-8);
                 L(i,n) = U(i,n)/U(n,n);
                 // add i-th row and n-th row
                 // multiplied by: -a(i,n)/a(n,n)
@@ -285,11 +354,11 @@ public:
             }
         }
 
-        //printf("L:\n"); L.print();
-        //printf("U:\n"); U.print();
+        printf("L:\n"); L.print();
+        printf("U:\n"); U.print();
 
-        // solve LY=I for Y by forward subst
-        MatrixType Y = identity(N);
+        // solve LY=P*I for Y by forward subst
+        MatrixType Y = P;
         // for all columns of Y
         for (size_t c=0; c<N; c++) {
             // for all rows of L
@@ -335,7 +404,7 @@ public:
         //printf("X:\n"); X.print();
         return X;
     }
-    void setAll(const T & val)
+    inline void setAll(const T & val)
     {
         for (size_t i=0;i<getRows();i++) {
             for (size_t j=0;j<getCols();j++) {
@@ -343,34 +412,34 @@ public:
             }
         }
     }
-    void set(const T * data)
+    inline void set(const T * data)
     {
         memcpy(getData(),data,getSize());
     }
-    size_t getRows() const { return _rows; }
-    size_t getCols() const { return _cols; }
-    static MatrixType identity(size_t size) {
+    inline size_t getRows() const { return _rows; }
+    inline size_t getCols() const { return _cols; }
+    inline static MatrixType identity(size_t size) {
         MatrixType result(size,size);
         for (size_t i=0; i<size; i++) {
             result(i,i) = 1.0f; 
         }
         return result;
     }
-    static MatrixType zero(size_t size) {
+    inline static MatrixType zero(size_t size) {
         MatrixType result(size,size);
         result.setAll(0.0f);
         return result;
     }
-    static MatrixType zero(size_t m, size_t n) {
+    inline static MatrixType zero(size_t m, size_t n) {
         MatrixType result(m,n);
         result.setAll(0.0f);
         return result;
     }
 protected:
-    size_t getSize() const { return sizeof(T)*getRows()*getCols(); }
-    T * getData() const { return _data; }
-    T * getData() { return _data; }
-    void setData(T * data) { _data = data; }
+    inline size_t getSize() const { return sizeof(T)*getRows()*getCols(); }
+    inline T * getData() { return _data; }
+    inline const T * getData() const { return _data; }
+    inline void setData(T * data) { _data = data; }
 private:
     size_t _rows;
     size_t _cols;
@@ -383,6 +452,7 @@ int matrixTest();
 int matrixAddTest();
 int matrixSubTest();
 int matrixMultTest();
+int matrixInvTest();
 int matrixDivTest();
 
 } // namespace math

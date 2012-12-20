@@ -44,9 +44,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
+
+//#define VECTOR_ASSERT
 
 namespace math
 {
+
+void float2SigExp(
+        const float & num,
+        float & sig,
+        int & exp);
 
 template<class T>
 class Vector {
@@ -78,9 +86,11 @@ public:
                     right.getSize());
     }
     // assignment
-    VectorType & operator=(const VectorType & right)
+    inline VectorType & operator=(const VectorType & right)
     {
+#ifdef VECTOR_ASSERT
         ASSERT(getRows()==right.getRows());
+#endif
         if (this != &right)
         {
             memcpy(getData(),right.getData(),
@@ -89,27 +99,35 @@ public:
         return *this;
     }
     // element accessors
-    T& operator()(size_t i)
+    inline T& operator()(size_t i)
     {
+#ifdef VECTOR_ASSERT
         ASSERT(i<getRows());
+#endif
         return getData()[i];
     }
-    T operator()(size_t i) const
+    inline const T& operator()(size_t i) const
     {
+#ifdef VECTOR_ASSERT
         ASSERT(i<getRows());
+#endif
         return getData()[i];
     }
     // output
-    void print() const
+    inline void print() const
     {
         for (size_t i=0; i<getRows(); i++)
         {
-            printf("%8.4f\t",(double)(*this)(i));
+            float sig;
+            int exp;
+            float num = (*this)(i);
+            float2SigExp(num,sig,exp);
+            printf ("%6.3fe%03.3d,", (double)sig, exp);
         }
         printf("\n");
     }
     // boolean ops
-    bool operator==(const T & right) const
+    inline bool operator==(const T & right) const
     {
         for (size_t i=0; i<getRows(); i++)
         {
@@ -119,7 +137,7 @@ public:
         return true;
     }
     // scalar ops
-    VectorType operator+(const T & right) const
+    inline VectorType operator+(const T & right) const
     {
         VectorType result(getRows());
         for (size_t i=0; i<getRows(); i++)
@@ -128,7 +146,7 @@ public:
         }
         return result;
     }
-    VectorType operator-(const T & right) const
+    inline VectorType operator-(const T & right) const
     {
         VectorType result(getRows());
         for (size_t i=0; i<getRows(); i++)
@@ -137,7 +155,7 @@ public:
         }
         return result;
     }
-    VectorType operator*(const T & right) const
+    inline VectorType operator*(const T & right) const
     {
         VectorType result(right.getRows());
         for (size_t i=0; i<getRows(); i++)
@@ -146,7 +164,7 @@ public:
         }
         return result;
     }
-    VectorType operator/(const T & right) const
+    inline VectorType operator/(const T & right) const
     {
         VectorType result(right.getRows());
         for (size_t i=0; i<getRows(); i++)
@@ -156,9 +174,11 @@ public:
         return result;
     }
     // vector ops
-    VectorType operator+(const VectorType & right) const
+    inline VectorType operator+(const VectorType & right) const
     {
+#ifdef VECTOR_ASSERT
         ASSERT(getRows()==right.getRows());
+#endif
         VectorType result(getRows());
         for (size_t i=0; i<getRows(); i++)
         {
@@ -166,9 +186,11 @@ public:
         }
         return result;
     }
-    VectorType operator-(const VectorType & right) const
+    inline VectorType operator-(const VectorType & right) const
     {
+#ifdef VECTOR_ASSERT
         ASSERT(getRows()==right.getRows());
+#endif
         VectorType result(getRows());
         for (size_t i=0; i<getRows(); i++)
         {
@@ -177,29 +199,29 @@ public:
         return result;
     }
     // other functions
-    static VectorType zero(size_t rows)
+    inline static VectorType zero(size_t rows)
     {
         VectorType result(rows);
         // calloc returns zeroed memory
         return result;
     }
-    void setAll(const T & val)
+    inline void setAll(const T & val)
     {
         for (size_t i=0;i<getRows();i++)
         {
             (*this)(i) = val;
         }
     }
-    void set(const T * data)
+    inline void set(const T * data)
     {
         memcpy(getData(),data,getSize());
     }
-    size_t getRows() const { return _rows; }
+    inline size_t getRows() const { return _rows; }
 protected:
-    size_t getSize() const { return sizeof(T)*getRows(); }
-    T * getData() const { return _data; }
-    T * getData() { return _data; }
-    void setData(T * data) { _data = data; }
+    inline size_t getSize() const { return sizeof(T)*getRows(); }
+    inline T * getData() { return _data; }
+    inline const T * getData() const { return _data; }
+    inline void setData(T * data) { _data = data; }
 private:
     size_t _rows;
     T * _data;

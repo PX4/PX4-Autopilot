@@ -44,6 +44,38 @@
 namespace math
 {
 
+void __EXPORT float2SigExp(
+        const float & num,
+        float & sig,
+        int & exp)
+{
+    if (isnan(num) || isinf(num))
+    {
+        sig = 9.99999f;
+        exp = -99;
+        return;
+    }
+    if (num < 1.0e-38f)
+    {
+        sig = 0;
+        exp = 0;
+        return;
+    }
+    exp = log10(fabs(num));
+    if (exp>0) {
+        exp = ceil(exp);
+    } else {
+        exp = floor(exp);
+    }
+    sig = num;
+    // cheap power since it is integer
+    if (exp>0) {
+        for (int i=0;i<abs(exp);i++) sig /= 10;
+    } else {
+        for (int i=0;i<abs(exp);i++) sig *= 10;
+    }
+}
+
 static const float data_a[] = {1,3};
 static const float data_b[] = {4,1};
 

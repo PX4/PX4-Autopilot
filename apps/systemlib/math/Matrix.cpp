@@ -63,17 +63,24 @@ static const float data_e[] =
     {1,-1,2,
      0,2,3,
      2,-1,1};
+static const float data_f[] = 
+    {3.777e006f, 2.915e007f, 0.000e000f,
+     2.938e007f, 2.267e008f, 0.000e000f,
+     0.000e000f, 0.000e000f, 6.033e008f};
+
 static MatrixFloat a(2,3,data_a);
 static MatrixFloat b(2,3,data_b);
 static MatrixFloat c(3,2,data_c);
 static MatrixFloat d(3,3,data_d);
 static MatrixFloat e(3,3,data_e);
+static MatrixFloat f(3,3,data_f);
 
 int __EXPORT matrixTest()
 {
     matrixAddTest();
     matrixSubTest();
     matrixMultTest();
+    matrixInvTest();
     matrixDivTest();
     return 0;
 }
@@ -119,6 +126,25 @@ int matrixMultTest()
     ASSERT(equal(r(2,0),14.0f))
     ASSERT(equal(r(2,1),1.0f))
     ASSERT(equal(r(2,2),13.0f))
+    printf("PASS\n");
+    return 0;
+}
+
+int matrixInvTest()
+{
+    printf("Test Matrix Inv\t: ");
+    MatrixFloat r = f.inverse();
+    f.print();
+    r.print();
+    ASSERT(equal(r(0,0),-0.0012518f,1e-6f))
+    ASSERT(equal(r(0,1),0.0001610f,1e-6f))
+    ASSERT(equal(r(0,2),0.0000000f,1e-6f))
+    ASSERT(equal(r(1,0),0.0001622f,1e-6f))
+    ASSERT(equal(r(1,1),-0.0000209f,1e-6f))
+    ASSERT(equal(r(1,2),0.0000000f,1e-6f))
+    ASSERT(equal(r(2,0),0.0000000f,1e-6f))
+    ASSERT(equal(r(2,1),0.0000000f,1e-6f))
+    ASSERT(equal(r(2,2),1.6580e-9f,1e-6f))
     printf("PASS\n");
     return 0;
 }
