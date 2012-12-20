@@ -3184,8 +3184,8 @@ file for build information).
 This release corresponds with SVN release number: r5313
 
 Note that all SVN information has been stripped from the tarballs.  If you
-r5313 the SVN configuration, you should check out directly from SVN.  Revision
-r5206 should equivalent to release 6.22 of NuttX 6.22:
+need the SVN configuration, you should check out directly from SVN.  Revision
+r5313 should equivalent to release 6.23 of NuttX 6.23:
 
     svn checkout -r5313 svn://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
 
@@ -3247,5 +3247,196 @@ Bugfixes (see the change log for details).  Some of these are very important
 
     * C Library: Floating point numbers in printf and related formatting functions
      (Mike Smith), cf[get|set]speed() (Mike Smith)
+
+As well as other, less critical bugs (see the ChangeLog for details)
+
+NuttX-6.24
+^^^^^^^^^^
+
+The 91st release of NuttX, Version 6.24, was made on December 20, 2012,
+and is available for download from the SourceForge website.  Note
+that release consists of two tarballs:  nuttx-6.24.tar.gz and
+apps-6.24.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
+file for build information).
+
+This release corresponds with SVN release number: r5447
+
+Note that all SVN information has been stripped from the tarballs.  If you
+need the SVN configuration information, you should check out directly from
+SVN.  Revision r5447 should equivalent to release 6.24 of NuttX 6.24:
+
+    svn checkout -r5447 svn://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+
+Or (HTTP):
+
+    svn checkout -r5447 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+
+Additional new features and extended functionality:
+
+  * RTOS:
+
+    - Implemented the POSIX pause() function (still has some compiance
+      issues).
+    - Tasking logic is extended to support the notion of address
+      environments.  An address environment is the key notion underlying
+      "process" vs. tasks.  If tasks are created with address environments
+      (by binfmt), the OS will propogate that environment to child threads
+      and will destroy the address environment when the "process" exists.
+    - If support for the PATH variable is enabled, the OS start up logic
+      will create an initial environment containing the default PATH
+      setting (CONFIG_PATH_INITIAL).  This initial PATH will then be
+      inherited by all tasks.
+
+  * Binfmt
+
+    - The NuttX binary loaders have been updated to support the PATH
+      environment variable.  Now, if the PATH is properly defined, programs
+      can be executed from mass storage using only the file name.  This
+      feature is added to support more standard behavior (eventually, NSH
+      will support execution of programs in file systems by just entering
+      the file name, perhaps in 6.25?).
+    - The NXFLAT and ELF binary loaders have been extended to create
+      address environments for any new tasks executed from the file system.
+      This feature requires that the architecture support a memory management
+      unit (MMU) and the address environment interfaces declared in
+      include/nuttx/arch.h (currently, this is only supported by the z180).
+
+    * Drivers: LCD driver for the Univision UG-2864AMBAG01 OLED
+
+    * STM32: Support for STM32F100 high density chips contributed by Freddie
+      Chopin.
+
+    * STM32 Drivers:  Added optional RS-485 direction bit control (from
+      Freddie Chopin).
+
+    * STM32 Boards:
+
+      - Support for generic STM32F100RC board contributed by Freddie Chopin.
+      - stm32f4discovery/nxlines: STM32F4Discovery support for the
+        UG-2864AMBAG01 OLED.
+      - stm32f4discovery/winbuild:  A version of the NuttX OS test
+        configured to build natively on Windows.
+      - stm32f4discovery/elf: Now uses the PATH variable to find ELF
+        executables.
+      - configs/cloudctrl: Added for Darcy Gong's CloudController board
+
+    * PIC32 Boards: Update the Mirtool configuration for Release 2 of the
+      Mirtoo module.
+
+    * Calypso: Add Calypso keypad driver.  From Denis Cariki.
+
+    * ZiLOG:
+
+      - Add support for the z180 chip family and, specifically, for
+        the P112 retro hardware (see http://p112.feedle.net/).
+      - All ZiLOG configurations updated to use the current ZDS-II
+        and/or SDCC toolchains.
+
+    * Graphics:
+
+      - Add a semaphore handshake so that operations on buffers from
+        the NXMU client will be blocked until the NX server operates on the
+        buffer data (from Petteri Aimonen).
+      - nxtk_subwindowmove() and nxtk_getwindow(): Improvements to clipping
+        logic from Petteri Aimonen.
+
+    * C Library: lib/ sub-directory renamed libc/ (there is a new lib/ sub-
+      directory that is used to hold all archives).
+
+    * C++: Exception stubs from Petteri Aimonen.
+
+    * Applications:
+
+      - Add NSH hexdump command to dump the contents of a file (or character
+        device) to the console (contributed by Petteri Aimonen).
+      - Extend the NSH ifconfig command plus various DHCPC improvements
+        (from Darcy Gong).
+
+    * apps/examples:
+
+      - ostest: Replace large tables with algorithmic prime number
+        generation.  This allows the roundrobin test to run on platforms
+        with minimal SRAM (Freddie Chopin).
+      - keypadtest:  A new keypad test example contributed by Denis Carikli.
+      - elf and nxflat:  If CONFIG_BINFMT_EXEPATH is defined, these examples
+        will now use a relative path to the program and expect the binfmt/
+        logic to find the absolute path to the program using the PATH
+        variable.
+
+    * Build system:
+
+      - New top-level Makefiles: Makefile.unix and Makefile.win (along with
+        numerous changes to other make-related files).  This adds basic
+        support for building NuttX natively under Windows from a CMD.exe
+        window (rather than in a POSIX-like environment). This build: (1)
+        Uses all Windows style paths, (2) Uses primarily Windows batch
+        commands from cmd.exe, with (3) a few extensions from GNUWin32.
+
+        This capability should still be considered a work in progress
+        because: (1) it has not been verfied on all targets and tools,
+        and (2) still lacks some of the creature-comforts of the more
+        mature environments (like a function configure.sh script and
+        'make menuconfig' support).
+
+      - Example Windows native builds for STM32F4Discovery, eZ80, z16f, z8,
+        Z80, and Z180.
+      - Several configurations have been converted to work the kconfig-
+        frontends mconf configuration tool: stm32f4discovery/nxlines, and
+        all eZ80, z16f, z8, Z80, and Z180 configurations.
+      - Architectures now include a common Toolchain.defs file that can be
+        used to manage toolchains in a more configurable way (most of this
+        contributed by Mike Smith).
+
+    * Build tools: 
+
+      - Renamed tools/winlink.sh to tools/copydir.sh.
+      - Several new tools/scripts to support the Windows native build:
+        tools/mkdeps.bat, tools/mkdeps.c, tools/link.bat, unlink.bat, and
+        copydir.bat.
+      - tools/incdir.sh and incdir.bat now support an -s option to generate
+        system header file paths.
+      - tools/b16.c: Fixed precision math conversion utility.
+
+Bugfixes (see the change log for details).  Some of these are very important
+(marked *critical*):
+
+    * RTOS: Fix some backward conditional compilation in the work queue
+      logic (Freddie Chopin).
+
+    * File System: Uninitialized variable caused assertions (from Lorenz
+      Meier).
+
+    * Drivers: Partial fix for STM32 OTGFS device drivers and fix for short,
+      unaligned writes in the flash translation layer (drivers/mtd/ftl.c),
+      both from Petteri Aimonen.
+
+    * STM32 Drivers:
+
+      - Qencoder driver and TIM3 driver fixes from Ryan Sundberg.
+      - Fix timeout delay calculation in the STM32 OTG FS host driver.
+
+    * LPC17xx Drivers:  Resources not being properly released when I2C
+      driver is un-initialized.
+
+    * Graphics:
+
+      - Fix logic when the mouse drags outside of the window; fix
+        another "blocked message" handling case (both from Petteri Aimonen).
+      - nxtk_filltrapwindow():  Correct an offset problem (also from Peterri
+        Aimonen).
+      - nxglib_splitline():  Correct the "fat flat line" bug.
+
+    * C Library:
+
+      - nrand() changes to prevent coefficients from becoming zero which
+        would "lock up" the random number generate.
+      - Add rounding functions to the math library (contributed by Petteri
+        Aimonen).
+
+    * Build system:  Changes to MIN definitions in all limit.h header files
+      to avoid integer overflows.  For example from (-128) to (-127 - 1)
+      (from Petteri Aimonen).
+
+    * Applications: Modbus fixes from Freddie Chopin.
 
 As well as other, less critical bugs (see the ChangeLog for details)

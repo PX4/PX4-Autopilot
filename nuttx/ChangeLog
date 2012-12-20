@@ -3538,7 +3538,7 @@
 	* binfmt/libelf:  The ELF loader is working correctly with C++ static
 	  constructors and destructors and all.
 	* Documentation/NuttXBinfmt.html:  Add documentation of the binary loader.
-	* configs/sim/ostest:  Converted to use the mconfig configuration tool.
+	* configs/sim/ostest:  Converted to use the mconf configuration tool.
 	* configs/sim/cxxtest:  New test that will be used to verify the uClibc++
 	  port (eventually).
 	* include/nuttx/fs/fs.h, lib/stdio/lib_libfread.c, lib_ferror.c,
@@ -3570,7 +3570,7 @@
 	  apps/examples/cxxtest works -- meaning the the uClibc++ is
 	  complete and verified for the STM32 platform.
 
-6.24 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.24 2012-12-20 Gregory Nutt <gnutt@nuttx.org>
 
 	* arch/arm/src/stm32:  Support for STM32F100 high density chips
 	  added by Freddie Chopin.
@@ -3604,19 +3604,19 @@
 	* arch/*/src/Makefile:  Now uses only the libraries in lib/
 	  Replace bash fragments that test for board/Makefile.
 	* Makefile.win:  The beginnings of a Windows-native build.  This is just
-	  the begining and not yet ready for prime time use.
+	  the beginning and not yet ready for prime time use.
 	* configs/stm32f4discovery/winbuild:  This is a version of the standard
 	  NuttX OS test, but configured to build natively on Windows.  Its only
 	  real purpose is to very the native Windows build logic.
 	* tools/mkdeps.bat and tools/mkdeps.c:  mkdeps.bat is a failed attempt
 	  to leverage mkdeps.sh to CMD.exe.  It fails because the are certain
 	  critical CFLAG values that cannot be passed on the CMD.exe command line
-	  (line '=').  mkdeps.c is a work in progress that will, hopefully,
+	  (like '=').  mkdeps.c is a work in progress that will, hopefully,
 	  replace both mkdeps.sh and mkdeps.bat.
-	* tools/Config.mk:  Centralize the definition of the scrpt that will be
+	* tools/Config.mk:  Centralize the definition of the script that will be
 	  used to generated header file include paths for the compiler.  This
 	  needs to be centralized in order to support the Windows native build.
-	* tools/incdir.bat:  A replaced for tools/incdir.sh for use with the
+	* tools/incdir.bat:  A replacement for tools/incdir.sh for use with the
 	  the Windows native build.
 	* Makefile.unix:  The existing top-level Makefile has been renamed
 	  Makefile.unix.
@@ -3626,8 +3626,8 @@
 	* arch/arm/src/stm32/stm32_qencoder.c: TIM3 bug fix from Ryan Sundberg.
 	* tools/mkromfsimg.sh: Correct typo in an error message (Ryan Sundberg)
 	* arch/*/src/Makefile:  Remove tftboot install and creation of System.map
-	  for Windows native build.  The fist is necessary, the second just needs
-	  re-implemented.
+	  for Windows native build.  The first is a necessary change, the second
+	  just needs re-implemented.
 	* configs/mirtoo: Update Mirtoo pin definitions for Release 2.  Provided
 	  by Konstantin Dimitrov.
 	* Fixed an uninitialized variable in the file system that can cause 
@@ -3637,9 +3637,9 @@
 	  conditional logic elsewhere.
 	* nuttx/graphics: One a mouse button is pressed, continue to report all
 	  mouse button events to the first window that received the the initial
-	  button down event, even if the mouse attempts to dray outside the
+	  button down event, even if the mouse attempts to drag outside the
 	  window. From Petteri Aimonen.
-	* nuttx/graphics/nxmu/nx_block.c:  One more fixe to the NX block message
+	* nuttx/graphics/nxmu/nx_block.c:  One more fix to the NX block message
 	  logic from Petteri Aimonen.
 	* include/nuttx/wqueue.h: Some basic definitions to support a user-
 	  space work queue (someday in the future).
@@ -3654,8 +3654,6 @@
 	* sched/pause.c:  Implements the POSIX pause() function.
 	* ez80: Lots of changes to ez80 configurations and build logic as I
 	  struggle to get a clean Windows build (still not working).
-	* tools/prebuild.py:  A Python script for Darcy Gong that can automate
-	  many build/configuration operations.
 	* configs/cloudctrl:   Darcy Gong's CloudController board.  This is a
 	  small network relay development board. Based on the Shenzhou IV development
 	  board design.  It is based on the STM32F107VC MCU.
@@ -3684,12 +3682,12 @@
 	* sched/task_exithook.c:  Missing right bracket with certain conditional
 	  compilation (thanks James Goppert).
 	* arch/arm/srch/stm32/stm32_otgfshost.c:  Replace timeout handling; use
-	  system tick instead of frame counter.  The frame counter gets rset to
+	  system tick instead of frame counter.  The frame counter gets reset to
 	  zero at 0x3fff making it error prone.
 	* arch/arm/src/stm32/stm32f20xx_rcc.c and stm32f40xx_rcc.c: Added option
 	  CONFIG_STM32_FLASH_PREFETCH.  FLASH prefetch will now only be enabled
 	  if this option is selected.
-	* confgs/ez80f910200zco/ostest:  Now used Kconfig/mconfig configuration
+	* confgs/ez80f910200zco/ostest:  Now uses Kconfig/mconf configuration
 	  tool. Updated to build in native Windows environment.  Other ez80f910200zco
 	  build scripts also updated.
 	* configs/z8f64200100kit/ostest: Update to same level as ez80 configurations.
@@ -3701,11 +3699,11 @@
 	  get chip ID.  Contributed by Darcy Gong.  These should not be board-dependent,
 	  but should be in arch/arm/src/stm32 where they can be used from any board.
 	* sched/work_thread.c: Fix backward conditional compilation.  This might
-	  has caused a memory leadk.  From Freddie Chopin.
+	  has caused a memory leak.  From Freddie Chopin.
 	* configs/<many>/Make.defs:  Fix typo -wstrict-prototypes should be
-	  -Wstrict-prototypes (From Denis Cariki).
+	  -Wstrict-prototypes (From Denis Carilki).
 	* arch/arm/src/calapyso/calypso_keypad.c:  Add Calypso keypad driver.  From
-	  Denis Cariki.
+	  Denis Carilki.
 	* z8encore000zco/ostest and z8f64200100kit/ostest:  Converted to use Kconfig/
 	  mconf configuration tool.
 	* arch/arm/src/armv7-m/up_exception.S: missing curly braces for push/pop
@@ -3725,7 +3723,7 @@
 	* libc/stdlib/lib_rand.c:  Always add one to result congruential generators
 	  to avoid the value zero.  Suggested by Freddie Chopin.
 	* tools/b16.c:  Fixed precision math conversion utility.
-	* graphics/nxglib/nxglib_splitlinex.c:  Fix the "fat, flat line bug"
+	* graphics/nxglib/nxglib_splitline.c:  Fix the "fat, flat line bug"
 	* arch/z80/src/*/Toolchain.defs:  Add dummy Toolchain.defs files for the
 	  z80 family.
 	* configs/z80sim/ostest:  Converted to build with the Kconfig/mconf tool.
@@ -3761,14 +3759,14 @@
 	  value zero can be returned.  Requested by Freddie Chopin.
 	* arch/z80/src/Makefile.sdcc*, z80/up_mem.h:  Redesign Z80 build so that it
 	  no longer depends on Bash scripts.
-	* configs/z80sim/nsh and pashello:  Converted to (1) used the kconfig-frontends
+	* configs/z80sim/nsh and pashello:  Converted to (1) use the kconfig-frontends
 	  configuration tool, and (2) to build natively under Windows.  The NSH
 	  configuration is verified; the pashello configuration needs a more TLC.
 	* tools/copydir.sh:  Rename tools/winlink.sh to tools/copydir.sh
 	* tools/link.bat, unlink.bat, and copydir.bat:  Add Windows counterparts
 	  to the link.sh, unlink.sh, and copydir.sh Bash scripts.
 	* configs/z80sim/pashello:  Now builds correctly.
-	* configs/xtrs/ostest, nsh, and pashello:  Converted to (1) used the kconfig-
+	* configs/xtrs/ostest, nsh, and pashello:  Converted to (1) use the kconfig-
 	  frontends configuration tool, and (2) to build natively under Windows.
 	* drivers/serial/Kconfig and sched/Kconfig:  Two names for same configuration:
 	  CONFIG_LOWLEVEL_CONSOLE is bogus and CONFIG_DEV_LOWCONSOLE is in the wrong
@@ -3786,7 +3784,7 @@
 	  environment of the task started by os_bringup() will have the PATH
 	  environment variable defined to be that string.
 	* binfmt/binfmt_exepath.c:  If CONFIG_BINFMT_EXEPATH is defined, then this
-	  file will be built.  In contains logic to search for regular files at
+	  file will be built.  It contains logic to search for regular files at
 	  the absolutes paths found in the current PATH environment variable
 	  setting.  This is untested and not yet hooked into the binfmt exec()
 	  logic on initial check-in
@@ -3801,3 +3799,5 @@
 	  just malloc'ing the task memory).
 	* configs/stm32f4discovery/elf:  Enable support/test of the PATH
 	  to find executables using a relative path.
+
+6.25 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>

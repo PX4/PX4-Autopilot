@@ -9,7 +9,7 @@ features have been fully verified).
 NxWidgets-1.1
 =============
 
-The 2nd release of the NxWidgets package as made on May 19, 2012.  The
+The 2nd release of the NxWidgets package was made on May 19, 2012.  The
 headline new feature in this release is:
 
 * NxWM, the tiny window manager based on NX and NxWidgets. NxWM is true
@@ -69,7 +69,7 @@ Bug fixes include changes to the following (see the ChangeLog for details):
 NxWidgets-1.2
 =============
 
-The 3rd release of the NxWidgets package as made on June 15, 2012.  This
+The 3rd release of the NxWidgets package was made on June 15, 2012.  This
 release depends on NuttX-6.19 or above and should not be used with older
 NuttX releases.
 
@@ -100,7 +100,7 @@ As well as other, less critical bugs (see the ChangeLog for details)
 NxWidgets-1.3
 =============
 
-The 4th release of the NxWidgets package as made on September 29, 2012.  This
+The 4th release of the NxWidgets package was made on September 29, 2012.  This
 release depends on NuttX-6.22 or above and should not be used with older
 NuttX releases.
 
@@ -112,3 +112,35 @@ of NuttX.  These comptibility changes include:
 * Build system changes
 * Changes needed for the NuttX configuration tool
 
+NxWidgets-1.4
+=============
+
+The 5th release of the NxWidgets package was made on December 20, 2012.  This
+release depends on NuttX-6.22 or above and should not be used with older
+NuttX releases.  This release corresponds to SVN revision r5447.
+
+Note: Nearly all changes between 1.3 and 1.4 were the result of the efforts
+of Petteri Aimonen.
+
+Additional new features and extended functionality in Version 1.4:
+
+* NxWdigets::CNxServer: Reduce start-up delay
+* NxWM::CApplicationWindow: Option to eliminate minimize button.
+* NxWM::CTaskbar: Option to eliminte the background image; highlight current
+  icon in the task bar.
+* NxWidgets::CNumericEdit: New widget. Basically a CLabel with +/- buttons.
+* NxWidgets::CNxTimer:  Replace the original signal-based solution with a
+  work queue-based solution.  This raises some isses about using the
+  internal work queues from user space.
+* Build System:  Misc improvements.
+* Tools: bitmap_converter.py will convert images to NxWidgets RLE-encoded format.
+
+Bugfixes (see the change log for details).  Some of these are very important
+(marked *critical*):
+
+* NxWidgets::CCallback: Misplaced #endif
+* NxWM::CCalculator and NxWM::CStartWindow: Add forward declaration for icon images.
+* glych_cycle:  Correct width, destructor needs to be public.
+* NxWidgets:CText and NxWidgets:CNumericEdite:  Fix some memory freeing bugs
+* NxWidgets::CScrollingPanel:  It is borderless for now because there was no
+  easy way to redraw only the required part of the border.

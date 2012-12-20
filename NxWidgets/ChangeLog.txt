@@ -171,7 +171,7 @@
 * Kconfig:  Add option to turn on the memory monitor feature of the
   NxWidgets/NxWM unit tests.
 
-1.4 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+1.4 2012-12-20 Gregory Nutt <gnutt@nuttx.org>
 
 * libnxwidgets/Makefile, NxWidgets/nxwm/Makefile, and
   NxWidgets/UnitTests/nxwm/Makefile:  Makefile improvements from
@@ -206,7 +206,7 @@
   Contributed by Petteri, Aimonen.
 * NxWM::CStartWindow:  Fix mq_receive error handling with signal is recieved.
   From Petteri Aimonen.
-* NxWidgets:CNxTimer:  Replace the original (apparently non-functional) signal-
+* NxWidgets::CNxTimer:  Replace the original (apparently non-functional) signal-
   based solution with a work queue-based solution.  This raises some isses about
   using the internal work queues from user space.  I have decided to implemented
   user-space work queues (someday) in order to accomplish that functionaliy.
@@ -218,3 +218,5 @@
   Contributed by Petteri Aimonen.
 * NxWidgets::CNxWidgets and NxWM::CStartWindow: Small changes to make sub-
   classing easier (from Petteri Aimonen).
+
+1.5 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>

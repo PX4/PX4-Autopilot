@@ -406,7 +406,7 @@
 	  supports setting IP addresses, network masks, name server addresses,
 	  and hardware address (from Darcy Gong).
 
-6.24 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
+6.24 2012-12-20 Gregory Nutt <gnutt@nuttx.org>
 
 	* apps/examples/ostest/roundrobin.c:  Replace large tables with
 	  algorithmic prime number generation.  This allows the roundrobin
@@ -424,7 +424,7 @@
 	* apps/examples/relays/Makefile: Reduced stack requirement (Darcy Gong).
 	* apps/nshlib and apps/netutils/dhcpc:  Extend the NSH ifconfig command plus
 	  various DHCPC improvements(Darcy Gong).
-	* apps/nshlib/nsh_apps.c: Fix compilation errors whenCONFIG_NSH_DISABLEBG=y.
+	* apps/nshlib/nsh_apps.c: Fix compilation errors when CONFIG_NSH_DISABLEBG=y.
 	  From Freddie Chopin.
 	* Rename CONFIG_PCODE and CONFIG_FICL as CONFIG_INTERPRETERS_PCODE and
 	  CONFIG_INTERPRETERS_FICL for consistency with other configuration naming.
@@ -433,3 +433,5 @@
 	* apps/examples/elf and nxflat:  If CONFIG_BINFMT_EXEPATH is defined, these
 	  tests will now use a relative path to the program and expect the binfmt/
 	  logic to find the absolute path to the program using the PATH variable.
+
+6.25 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>
