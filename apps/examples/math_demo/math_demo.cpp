@@ -45,7 +45,6 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/math/Vector.hpp>
 #include <systemlib/math/Matrix.hpp>
-#include <systemlib/math/Kalman.hpp>
 
 /**
  * Management function.

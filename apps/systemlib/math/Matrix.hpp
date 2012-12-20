@@ -55,7 +55,7 @@ namespace math
 {
 
 template<class T>
-class Matrix {
+class __EXPORT Matrix {
 public:
     typedef Matrix<T> MatrixType;
     typedef Vector<T> VectorType;

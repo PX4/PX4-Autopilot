@@ -32,61 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Kalman.h
+ * @file KalmanNav.cpp
  *
- * kalman filter code
+ * kalman filter navigation code
  */
 
-#pragma once
-
-#include "Vector.hpp"
-#include "Matrix.hpp"
-
-namespace math
-{
-
-template<class T>
-class __EXPORT Kalman {
-public:
-    typedef Matrix<T> MatrixType;
-    typedef Vector<T> VectorType;
-    // constructor
-    Kalman(size_t n) :
-        _x(n),
-        _P(n,n),
-        _F(n,n),
-        _Q(n,n)
-    {
-    }
-    // deconstructor
-    virtual ~Kalman()
-    {
-    }
-    virtual void predict(float dt)
-    {
-        _P = _F*_P*_F.transpose() + _Q;
-    }
-    virtual void correct(const VectorType & z,
-            const MatrixType & H, 
-            const MatrixType & R) 
-    {
-        MatrixType S = H*_P*H.transpose() + R;
-        MatrixType K = _P*H.transpose()*S.inverse();
-        _P = _P - K*H*_P;
-        _x = _x + K*(z - H*_x);
-    }
-    VectorType & getX() { return _x; }
-    MatrixType & getP() { return _P; }
-    MatrixType & getF() { return _F; }
-    MatrixType & getQ() { return _Q; }
-    void setX(const VectorType & x) { _x = x; }
-    void setP(const MatrixType & P) { _P = P; }
-protected:
-    void setQ(const MatrixType & Q) { _Q = Q; }
-    VectorType _x;
-    MatrixType _P;
-    MatrixType _F;
-    MatrixType _Q;
-};
-
-} // namespace math
+#include "KalmanNav.hpp"

@@ -46,7 +46,7 @@
 #include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>
-#include <systemlib/math/Kalman.hpp>
+#include "KalmanNav.hpp"
 
 static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
@@ -135,8 +135,11 @@ int kalman_demo_thread_main(int argc, char *argv[])
     
     thread_running = true;
 
-    //while (!thread_should_exit) {
-    //}
+    KalmanNav nav(NULL,"NAV");
+
+    while (!thread_should_exit) {
+        nav.update();
+    }
 
     printf("[kalman_demo] exiting.\n");
 

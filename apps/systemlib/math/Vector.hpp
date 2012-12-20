@@ -57,7 +57,7 @@ void float2SigExp(
         int & exp);
 
 template<class T>
-class Vector {
+class __EXPORT Vector {
 public:
     typedef Vector<T> VectorType;
     // constructor
