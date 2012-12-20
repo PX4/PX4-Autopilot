@@ -1,3 +1,3 @@
 #!/bin/bash
 rm apps/systemlib/math/*.o
-make
+make upload

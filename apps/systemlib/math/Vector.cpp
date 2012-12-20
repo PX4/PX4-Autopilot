@@ -51,11 +51,11 @@ void __EXPORT float2SigExp(
 {
     if (isnan(num) || isinf(num))
     {
-        sig = 9.99999f;
+        sig = 0.0f;
         exp = -99;
         return;
     }
-    if (num < 1.0e-38f)
+    if ((float)fabs(num) < 1.0e-38f)
     {
         sig = 0;
         exp = 0;

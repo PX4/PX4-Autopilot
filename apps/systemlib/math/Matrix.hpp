@@ -314,31 +314,33 @@ public:
         MatrixType U = A;
         MatrixType P = identity(N);
 
-        printf("A:\n"); A.print();
+        //printf("A:\n"); A.print();
 
         // for all diagonal elements
         for (size_t n=0; n<N; n++) {
 
             // if diagonal is zero, swap with row below
             if (fabs(U(n,n))<1e-8) {
-                printf("trying pivot for row %d\n",n);
+                //printf("trying pivot for row %d\n",n);
                 for (size_t i=0; i<N; i++) {
                     if (i==n) continue;
-                    printf("\ttrying row %d\n",i);
+                    //printf("\ttrying row %d\n",i);
                     if (fabs(U(i,n))>1e-8) {
-                        printf("swapped %d\n",i);
+                        //printf("swapped %d\n",i);
                         U.swapRows(i,n);
                         P.swapRows(i,n);
                     }
                 }
             }
-            printf("U:\n"); U.print();
-            printf("P:\n"); P.print();
 #ifdef MATRIX_ASSERT
+            //printf("A:\n"); A.print();
+            //printf("U:\n"); U.print();
+            //printf("P:\n"); P.print();
+            //fflush(stdout);
             ASSERT(fabs(U(n,n))>1e-8);
 #endif
             // failsafe, return zero matrix
-            if (fabs(U(n,n))>1e-8)
+            if (fabs(U(n,n))<1e-8)
             {
                 return MatrixType::zero(n);
             }
@@ -354,8 +356,8 @@ public:
             }
         }
 
-        printf("L:\n"); L.print();
-        printf("U:\n"); U.print();
+        //printf("L:\n"); L.print();
+        //printf("U:\n"); U.print();
 
         // solve LY=P*I for Y by forward subst
         MatrixType Y = P;

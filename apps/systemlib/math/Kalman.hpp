@@ -72,7 +72,7 @@ public:
     {
         MatrixType S = H*_P*H.transpose() + R;
         MatrixType K = _P*H.transpose()*S.inverse();
-        _P = _P - _P*K*H;
+        _P = _P - K*H*_P;
         _x = _x + K*(z - H*_x);
     }
     const VectorType & getX() const { return _x; }

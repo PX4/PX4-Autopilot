@@ -132,10 +132,8 @@ int matrixMultTest()
 
 int matrixInvTest()
 {
-    printf("Test Matrix Inv\t: ");
+    printf("Test Matrix Inv\t\t: ");
     MatrixFloat r = f.inverse();
-    f.print();
-    r.print();
     ASSERT(equal(r(0,0),-0.0012518f,1e-6f))
     ASSERT(equal(r(0,1),0.0001610f,1e-6f))
     ASSERT(equal(r(0,2),0.0000000f,1e-6f))

@@ -56,14 +56,10 @@ int __EXPORT kalmanNavTest()
     typedef Vector<float> VectorType;
     KalmanNav<float> nav;
 
-    VectorType accelB(3);
-    accelB.setAll(0.0f);
-
     VectorType gyroB(3);
-    gyroB.setAll(0.0f);
-
-    Vector<float> zGps(6);
-    zGps.setAll(0.0f);
+    VectorType accelB(3);
+    VectorType zGps(6);
+    VectorType zMag(3);
 
     uint64_t old_timestamp = hrt_absolute_time();
     uint16_t nav_frames = 0;
@@ -73,20 +69,28 @@ int __EXPORT kalmanNavTest()
 
     for (int i=0;i<1000;i++)
     {
+        gyroB(0)  = 0.1f*dt;
+        gyroB(1)  = 0.1f*dt;
+        gyroB(2)  = 0.1f*dt;
+        accelB(0) = 0.1f*dt;
+        accelB(1) = 0.1f*dt;
+        accelB(2) = 0.1f*dt;
+
         if (i%10==0)
         {
-            zGps(0) = 1.0f; // vn
-            zGps(1) = 1.0f; // ve
-            zGps(2) = -1.0f; // vd
-            zGps(3) += zGps(0)*dt*10;  // L
-            zGps(4) += zGps(1)*dt*10;  // l
-            zGps(5) += -zGps(2)*dt*10; // h
+            zGps(0) = 0.1f; // vn
+            zGps(1) = 0.1f; // ve
+            zGps(2) = 0.1f; // vd
+            zGps(3) = 0.1f; // L
+            zGps(4) = 0.1f; // l
+            zGps(5) = 0.1f; // h
             nav.correctGps(zGps);
         }
         if (i%5==0)
         {
-            Vector<float> zMag(3);
-            zMag.setAll(0.1f);
+            zMag(0) = 0.1f;
+            zMag(1) = 0.1f;
+            zMag(2) = 0.1f;
             nav.correctMag(zMag);
         }
         nav.predict(0.01,accelB,gyroB);
