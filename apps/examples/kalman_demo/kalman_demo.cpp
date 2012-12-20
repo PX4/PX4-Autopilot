@@ -33,8 +33,8 @@
  ****************************************************************************/
 
 /**
- * @file math_demo.cpp
- * Demonstration of math library
+ * @file kalman_demo.cpp
+ * Demonstration of control library
  */
 
 #include <nuttx/config.h>
@@ -43,19 +43,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/math/Vector.hpp>
-#include <systemlib/math/Matrix.hpp>
+#include <systemlib/param/param.h>
+#include <drivers/drv_hrt.h>
+#include <math.h>
 #include <systemlib/math/Kalman.hpp>
 
-/**
- * Management function.
- */
-extern "C" __EXPORT int math_demo_main(int argc, char *argv[]);
+static bool thread_should_exit = false;     /**< Deamon exit flag */
+static bool thread_running = false;     /**< Deamon status flag */
+static int deamon_task;             /**< Handle of deamon task / thread */
 
 /**
- * Test function
+ * Deamon management function.
  */
-void test();
+extern "C" __EXPORT int kalman_demo_main(int argc, char *argv[]);
+
+/**
+ * Mainloop of deamon.
+ */
+int kalman_demo_thread_main(int argc, char *argv[]);
 
 /**
  * Print the correct usage.
@@ -67,7 +72,7 @@ usage(const char *reason)
 {
     if (reason)
         fprintf(stderr, "%s\n", reason);
-    fprintf(stderr, "usage: math_demo {test}\n\n");
+    fprintf(stderr, "usage: kalman_demo {start|stop|status} [-p <additional params>]\n\n");
     exit(1);
 }
 
@@ -79,14 +84,41 @@ usage(const char *reason)
  * The actual stack size should be set in the call
  * to task_create().
  */
-int math_demo_main(int argc, char *argv[])
+int kalman_demo_main(int argc, char *argv[])
 {
 
     if (argc < 1)
         usage("missing command");
 
-    if (!strcmp(argv[1], "test")) {
-        test();
+    if (!strcmp(argv[1], "start")) {
+
+        if (thread_running) {
+            printf("kalman_demo already running\n");
+            /* this is not an error */
+            exit(0);
+        }
+
+        thread_should_exit = false;
+        deamon_task = task_spawn("kalman_demo",
+                     SCHED_DEFAULT,
+                     SCHED_PRIORITY_DEFAULT,
+                     8192,
+                     kalman_demo_thread_main,
+                     (argv) ? (const char **)&argv[2] : (const char **)NULL);
+        exit(0);
+    }
+
+    if (!strcmp(argv[1], "stop")) {
+        thread_should_exit = true;
+        exit(0);
+    }
+
+    if (!strcmp(argv[1], "status")) {
+        if (thread_running) {
+            printf("\tkalman_demo app is running\n");
+        } else {
+            printf("\tkalman_demo app not started\n");
+        }
         exit(0);
     }
 
@@ -94,10 +126,21 @@ int math_demo_main(int argc, char *argv[])
     exit(1);
 }
 
-void test()
+int kalman_demo_thread_main(int argc, char *argv[])
 {
-    printf("beginning math lib test\n");
+
+    printf("[kalman_demo] starting\n");
+
     using namespace math;
-    vectorTest();
-    matrixTest();
+    
+    thread_running = true;
+
+    //while (!thread_should_exit) {
+    //}
+
+    printf("[kalman_demo] exiting.\n");
+
+    thread_running = false;
+
+    return 0;
 }

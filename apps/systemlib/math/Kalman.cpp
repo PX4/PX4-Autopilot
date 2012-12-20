@@ -76,7 +76,7 @@ int __EXPORT kalmanNavTest()
         accelB(1) = 0.1f*dt;
         accelB(2) = 0.1f*dt;
 
-        if (i%10==0)
+        if (i%50==0)
         {
             zGps(0) = 0.1f; // vn
             zGps(1) = 0.1f; // ve
@@ -86,7 +86,7 @@ int __EXPORT kalmanNavTest()
             zGps(5) = 0.1f; // h
             nav.correctGps(zGps);
         }
-        if (i%5==0)
+        if (i%10==0)
         {
             zMag(0) = 0.1f;
             zMag(1) = 0.1f;
