@@ -51,6 +51,12 @@
 
 //#define MATRIX_ASSERT
 
+#define ARM_MATH
+
+#ifdef ARM_MATH
+#include "arm_math.h"
+#endif
+
 namespace math
 {
 
@@ -456,5 +462,6 @@ int matrixSubTest();
 int matrixMultTest();
 int matrixInvTest();
 int matrixDivTest();
+int matrixArmTest();
 
 } // namespace math

@@ -82,6 +82,7 @@ int __EXPORT matrixTest()
     matrixMultTest();
     matrixInvTest();
     matrixDivTest();
+    matrixArmTest();
     return 0;
 }
 
@@ -162,6 +163,11 @@ int matrixDivTest()
     ASSERT(equal(r(2,2),4.5555556f,1e-6f))
     printf("PASS\n");
     return 0;
+}
+
+int matrixArmTest()
+{
+    arm_matrix_instance_f32 A;		/* Matrix A Instance */ 
 }
 
 } // namespace math
