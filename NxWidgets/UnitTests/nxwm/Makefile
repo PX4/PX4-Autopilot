@@ -162,7 +162,7 @@ $(NXWIDGETS_LIB): # Just to keep make happy.  chklibnxwidgets does the work.
 $(NXWM_LIB): # Just to keep make happy.  chklibnxwm does the work.
 
 .built: $(OBJS) $(NXWIDGETS_LIB)
-	$(call ARCHIVE, $@, $(OBJS))
+	$(call ARCHIVE, $(BIN), $(OBJS))
 ifeq ($(WINTOOL),y)
 	$(Q) $(ARCHIVER) -w -p "$(CROSSDEV)" $(BIN) $(NXWIDGETS_DIR)
 	$(Q) $(ARCHIVER) -w -p "$(CROSSDEV)" $(BIN) $(NXWM_DIR)

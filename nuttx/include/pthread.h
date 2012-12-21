@@ -41,15 +41,15 @@
  ********************************************************************************/
 
 #include <nuttx/config.h>   /* Default settings */
-#include <nuttx/compiler.h> /* Compiler settings */
+#include <nuttx/compiler.h> /* Compiler settings, noreturn_function */
 
 #include <sys/types.h>      /* Needed for general types */
 #include <stdint.h>         /* C99 fixed width integer types */
 #include <stdbool.h>        /* C99 boolean types */
+#include <unistd.h>         /* For getpid */
 #include <semaphore.h>      /* Needed for sem_t */
 #include <signal.h>         /* Needed for sigset_t */
 #include <time.h>           /* Needed for struct timespec */
-#include <nuttx/compiler.h> /* For noreturn_function */
 
 /********************************************************************************
  * Compilation Switches

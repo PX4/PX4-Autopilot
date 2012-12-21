@@ -3801,3 +3801,10 @@
 	  to find executables using a relative path.
 
 6.25 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* graphics/: Adds 5x8 monospace font. This tiny font is useful for graph
+	  labels and for small bitmapped display.  Contributed by Petteri
+	  Aimonen.
+	* configs/stm3220g-eval/nxwm:  Converted to use the kconfig-fronteds
+	  configuration tool.
+

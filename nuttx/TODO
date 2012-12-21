@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated November 25, 2012)
+NuttX TODO List (Last updated December 20, 2012)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -15,7 +15,7 @@ nuttx/
   (6)  Binary loaders (binfmt/)
  (17)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
- (11)  Libraries (libc/, )
+ (12)  Libraries (libc/, )
   (9)  File system/Generic drivers (fs/, drivers/)
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
@@ -636,6 +636,15 @@ o USB (drivers/usbdev, drivers/usbhost)
 
 o Libraries (libc/)
   ^^^^^^^^^^^^^^^^^
+
+  Title:       SIGNED time_t
+  Description: The NuttX time_t is type uint32_t. I think this is consistent
+               with all standards and with normal usage of time_t.  However,
+               according to Wikipedia, time_t is usually implemented as a
+               signed 32-bit value.
+  Status:      Open
+  Priority:    Very low unless there is some compelling issue that I do not
+               know about.
 
   Title:       ENVIRON
   Description: The definition of environ in stdlib.h is bogus and will not

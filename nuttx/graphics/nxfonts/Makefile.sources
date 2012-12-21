@@ -72,6 +72,13 @@ endif
 
 ifdef NXFONTS_FONTID
 
+# MONO
+
+ifeq ($(NXFONTS_FONTID),18)
+NXFONTS_PREFIX	:= g_mono5x8_
+GEN_CSRC	= nxfonts_bitmaps_mono5x8.c
+endif
+
 # SANS
 
 ifeq ($(NXFONTS_FONTID),14)

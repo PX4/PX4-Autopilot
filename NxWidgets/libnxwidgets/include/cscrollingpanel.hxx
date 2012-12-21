@@ -168,9 +168,10 @@ namespace NXWidgets
      *
      * @param dx The horizontal distance to scroll.
      * @param dy The vertical distance to scroll.
+     * @param do_redraw Redraw widgets after moving.
      */
 
-    void scrollChildren(int32_t dx, int32_t dy);
+    void scrollChildren(int32_t dx, int32_t dy, bool do_redraw);
 
     /**
      * Destructor.

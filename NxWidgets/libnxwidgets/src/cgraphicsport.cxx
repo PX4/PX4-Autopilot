@@ -654,6 +654,55 @@ void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
                              CNxFont *font, const CNxString &string,
                              int startIndex, int length)
 {
+  drawText(pos, bound, font, string, startIndex, length, 0, true);
+}
+
+/**
+ * Draw a portion of a string to the window and fill the background
+ * in one go.
+ * @param pos The window-relative x/y coordinate of the string.
+ * @param bound The window-relative bounds of the string.
+ * @param font The font to draw with.
+ * @param string The string to output.
+ * @param startIndex The start index within the string from which
+ * drawing will commence.
+ * @param length The number of characters to draw.
+ * @param color Foreground color
+ * @param background Background color
+ */
+
+void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
+                             CNxFont *font, const CNxString &string,
+                             int startIndex, int length,
+                             nxgl_mxpixel_t color,
+                             nxgl_mxpixel_t background)
+{
+  nxgl_mxpixel_t savedColor = font->getColor();
+  font->setColor(color);
+  
+  drawText(pos, bound, font, string, startIndex, length, background, false);
+  
+  font->setColor(savedColor);
+}
+
+/**
+ * The underlying implementation for drawText functions
+ * @param pos The window-relative x/y coordinate of the string.
+ * @param bound The window-relative bounds of the string.
+ * @param font The font to draw with.
+ * @param string The string to output.
+ * @param startIndex The start index within the string from which
+ * drawing will commence.
+ * @param length The number of characters to draw.
+ * @param background Color to use for background if transparent is false.
+ * @param transparent Whether to fill the background.
+ */
+void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
+                             CNxFont *font, const CNxString &string,
+                             int startIndex, int length,
+                             nxgl_mxpixel_t background,
+                             bool transparent)
+{
   // Verify index and length
 
   int stringLength = string.getLength();
@@ -668,6 +717,16 @@ void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
       endIndex = stringLength;
     }
 
+#ifdef CONFIG_NX_WRITEONLY
+  if (transparent)
+    {
+      // Can't render transparently without reading memory.
+
+      transparent = false;
+      background = m_backColor;
+    }
+#endif
+    
   // Allocate a bit of memory to hold the largest rendered font
 
   unsigned int bmWidth   = ((unsigned int)font->getMaxWidth() * CONFIG_NXWIDGETS_BPP + 7) >> 3;
@@ -680,7 +739,7 @@ void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
 
   struct nxgl_rect_s boundingBox;
   bound->getNxRect(&boundingBox);
-
+  
   // Loop setup
 
   struct SBitmap bitmap;
@@ -707,16 +766,12 @@ void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
 
       // Does the letter have height?  Spaces have width, but no height
 
-      if (metrics.height > 0)
+      if (metrics.height > 0 || !transparent)
         {
-          // Get the height of the font
-
-          nxgl_coord_t fontHeight = (nxgl_coord_t)(metrics.height + metrics.yoffset);
-
           // Set the current, effective size of the bitmap
 
           bitmap.width  = fontWidth;
-          bitmap.height = fontHeight;
+          bitmap.height = bmHeight;
           bitmap.stride = (fontWidth * bitmap.bpp + 7) >> 3;
 
           // Describe the destination of the font as a bounding box
@@ -725,7 +780,7 @@ void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
           dest.pt1.x = pos->x;
           dest.pt1.y = pos->y;
           dest.pt2.x = pos->x + fontWidth - 1;
-          dest.pt2.y = pos->y + fontHeight - 1;
+          dest.pt2.y = pos->y + bmHeight - 1;
 
           // Get the interection of the font box and the bounding box
 
@@ -737,25 +792,28 @@ void CGraphicsPort::drawText(struct nxgl_point_s *pos, CRect *bound,
 
           if (!nxgl_nullrect(&intersection))
             {
-              // Initialize the bitmap memory by reading from the display.  The
-              // font renderer always renders the fonts on a transparent background.
-              // Sometimes a solid background works, sometimes not.  But reading
-              // from graphics memory always works.
-
-#ifdef CONFIG_NX_WRITEONLY
-              // Set the glyph memory to the background color
-
-              nxwidget_pixel_t *bmPtr   = (nxwidget_pixel_t *)bitmap.data;
-              unsigned int      npixels = fontWidth * fontHeight;
-              for (unsigned int j = 0; j < npixels; j++)
+              // If we have been given a background color, use it to fill the array.
+              // Otherwise initialize the bitmap memory by reading from the display.
+              // The font renderer always renders the fonts on a transparent background.
+              
+              if (!transparent)
                 {
-                  *bmPtr++ = m_backColor;
-                }
-#else
-              // Read the current contents of the destination into the glyph memory
+                  // Set the glyph memory to the background color
 
-              m_pNxWnd->getRectangle(&dest, &bitmap);
-#endif
+                  nxwidget_pixel_t *bmPtr   = (nxwidget_pixel_t *)bitmap.data;
+                  unsigned int      npixels = fontWidth * bmHeight;
+                  for (unsigned int j = 0; j < npixels; j++)
+                    {
+                      *bmPtr++ = background;
+                    }
+                }
+              else
+                {
+                  // Read the current contents of the destination into the glyph memory
+
+                  m_pNxWnd->getRectangle(&dest, &bitmap);
+                }
+
               // Render the font into the initialized bitmap
 
               font->drawChar(&bitmap, letter);
@@ -827,7 +885,7 @@ void CGraphicsPort::move(nxgl_coord_t x, nxgl_coord_t y,
   rect.pt1.x = x;
   rect.pt1.y = y;
   rect.pt2.x = x + width - 1;
-  rect.pt2.y = y = height -1;
+  rect.pt2.y = y + height - 1;
 
   struct nxgl_point_s offset;
   offset.x = deltaX;

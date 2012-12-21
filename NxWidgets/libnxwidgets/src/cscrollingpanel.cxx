@@ -215,10 +215,13 @@ void CScrollingPanel::scroll(int32_t dx, int32_t dy)
           m_canvasY += dy;
           m_canvasX += dx;
 
+          // Move children but do not redraw.
+          
+          scrollChildren(dx, dy, false);
+          
           if (revealedRects.size() > 0)
             {
               // Draw background to revealed sections
-              // Children will redraw themselves in moveTo.
 
               for (int i = 0; i < revealedRects.size(); ++i)
                 {
@@ -231,6 +234,18 @@ void CScrollingPanel::scroll(int32_t dx, int32_t dy)
                   port->drawFilledRect(rrect.getX(), rrect.getY(),
                                        rrect.getWidth(), rrect.getHeight(),
                                        getBackgroundColor());
+                  
+                  // Check if any children intersect this region.
+                  // If it does, it should be redrawn.
+
+                  for (int j = 0; j < m_children.size(); ++j)
+                    {
+                      CRect crect = m_children[j]->getBoundingBox();
+                      if (crect.intersects(rrect))
+                        {
+                          m_children[j]->redraw();
+                        }
+                    }
                 }
             }
         }
@@ -240,11 +255,11 @@ void CScrollingPanel::scroll(int32_t dx, int32_t dy)
 
           m_canvasY += dy;
           m_canvasX += dx;
+          
+          // Scroll all child widgets and redraw them
+
+          scrollChildren(dx, dy, true);
         }
-
-      // Scroll all child widgets
-
-      scrollChildren(dx, dy);
 
       // Notify event handlers
 
@@ -332,9 +347,10 @@ void CScrollingPanel::onClick(nxgl_coord_t x, nxgl_coord_t y)
  *
  * @param dx The horizontal distance to scroll.
  * @param dy The vertical distance to scroll.
+ * @param do_redraw Redraw widgets after moving.
  */
 
-void CScrollingPanel::scrollChildren(int32_t dx, int32_t dy)
+void CScrollingPanel::scrollChildren(int32_t dx, int32_t dy, bool do_redraw)
 {
   nxgl_coord_t widgetX = 0;
   nxgl_coord_t widgetY = 0;
@@ -345,8 +361,20 @@ void CScrollingPanel::scrollChildren(int32_t dx, int32_t dy)
   for (int32_t i = 0; i < m_children.size(); i++)
     {
       widget  = m_children[i];
+      bool oldstate = widget->isDrawingEnabled();
+      
+      if (!do_redraw)
+        {
+          widget->disableDrawing();
+        }
+      
       widgetX = (widget->getX() - thisX) + dx;
       widgetY = (widget->getY() - thisY) + dy;
       widget->moveTo(widgetX, widgetY);
+      
+      if (!do_redraw && oldstate)
+        {
+          widget->enableDrawing();
+        }
     }
 }

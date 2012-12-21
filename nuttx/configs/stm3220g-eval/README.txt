@@ -1077,6 +1077,21 @@ Where <subdir> is one of the following:
        $ cd ~/nuttx-code/nuttx
        $ make
 
+    NOTES:
+ 
+    1. This configuration uses the mconf-based configuration tool.  To
+       change this configuration using that tool, you should:
+
+       a. Build and install the mconf tool.  See nuttx/README.txt and
+          misc/tools/
+
+       b. Execute 'make menuconfig' in nuttx/ in order to start the
+          reconfiguration process.
+
+    2. This configuration is currently set up to build under Cygwin on
+       a Windows machine using the CodeSourcery Windows toolchain.
+       That configuration can be easy changed as described in Note 1.
+
   ostest:
   ------
     This configuration directory, performs a simple OS test using

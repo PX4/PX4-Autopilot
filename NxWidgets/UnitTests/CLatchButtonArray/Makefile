@@ -134,7 +134,7 @@ chklib:
 $(NXWIDGETS_LIB): # Just to keep make happy.  chklib does the work.
 
 .built: chkcxx chklib $(OBJS) $(NXWIDGETS_LIB)
-	$(call ARCHIVE, $@, $(OBJS))
+	$(call ARCHIVE, $(BIN), $(OBJS))
 ifeq ($(WINTOOL),y)
 	$(Q) $(ARCHIVER) -w -p "$(CROSSDEV)" $(BIN) $(NXWIDGETS_DIR)
 else

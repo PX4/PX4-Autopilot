@@ -220,3 +220,35 @@
   classing easier (from Petteri Aimonen).
 
 1.5 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+* NxWidgets::CGraphicsPort::move():  Fix typo bug in bounding rectangle
+  calculation (from Petteri Aimonen).
+* NxWM::CScrollingPanel::scrollChildren(): Avoid unnecessary redraws in
+  CScrollingPanel (contributed by Petteri Aimonen).
+* NxWM::CCycleButton:  Remove the separator from CCycleButton. It draws in
+  wrong place, and doesnt look very good in the correct place either.
+  (from Petteri Aimonen).
+* NxWidgets::CGraphicsPort: Many times we only want a constant background.
+  In that case the old code fills the background, reads it back, renders
+  the text and then writes it back. When used with LCD's (instead of
+  framebuffers) this causes unnecessary delay and screen flicker.
+  This commit adds a variant of drawText that takes background color,
+  so that the background and text can both be rendered at one go.
+  The old functions still function as before (Petteri Aimonen).
+* NxWidgets::CLabel: The label was drawn as a single rectangular region,
+  then a text was added to the on top of this.  The result is that the
+  text would flicker when the CLabel was updated. With this change, the
+  two step update is replaced with a five step update:  The background
+  is updated as four rectangulear regions (leaving the previous text in
+  place), then the new text is updated.  This eliminates the flicker
+  (Petteri Aimonen).
+* Kconfig: Many NxWidgets/NxWM settings do not have meaningful, generic
+  default values.  Colors, for example, depend on pixel depth.  Some
+  geometry settings depending on other geometry settings.  Font IDs are
+  not know-able by the configuration system.  etc.  In these cases, it
+  is best if the settings are just not undefined so that the system can
+  calculate a reasonable default.  however, if no default is provided
+  in the .config file, mconf will complain and generate errors.  So work
+  around this, I added several "enabling" settings to override the
+  default setting.  This is awkward and I preferred the configuration as
+  it was before, but this avoids the mconf errors and warnings.

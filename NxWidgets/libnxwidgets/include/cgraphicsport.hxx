@@ -111,6 +111,22 @@ namespace NXWidgets
     nxgl_mxpixel_t m_backColor;  /**< The background color to use */
 #endif
 
+    /**
+     * The underlying implementation for drawText functions
+     * @param pos The window-relative x/y coordinate of the string.
+     * @param bound The window-relative bounds of the string.
+     * @param font The font to draw with.
+     * @param string The string to output.
+     * @param startIndex The start index within the string from which
+     * drawing will commence.
+     * @param length The number of characters to draw.
+     * @param background Color to use for background if transparent is false.
+     * @param transparent Whether to fill the background.
+     */
+    void drawText(struct nxgl_point_s *pos, CRect *bound, CNxFont *font,
+                  const CNxString &string, int startIndex, int length,
+                  nxgl_mxpixel_t background, bool transparent);
+
   public:
     /**
      * Constructor.
@@ -329,6 +345,24 @@ namespace NXWidgets
     void drawText(struct nxgl_point_s *pos, CRect *bound, CNxFont *font,
                   const CNxString &string, int startIndex, int length);
 
+    /**
+     * Draw a portion of a string to the window and fill the background
+     * in one go.
+     * @param pos The window-relative x/y coordinate of the string.
+     * @param bound The window-relative bounds of the string.
+     * @param font The font to draw with.
+     * @param string The string to output.
+     * @param startIndex The start index within the string from which
+     * drawing will commence.
+     * @param length The number of characters to draw.
+     * @param color Foreground color
+     * @param background Background color
+     */
+
+    void drawText(struct nxgl_point_s *pos, CRect *bound, CNxFont *font,
+                  const CNxString &string, int startIndex, int length,
+                  nxgl_mxpixel_t color, nxgl_mxpixel_t background);
+    
     /**
      * Draw an opaque bitmap to the window.
      *

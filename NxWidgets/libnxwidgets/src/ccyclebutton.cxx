@@ -309,30 +309,21 @@ void CCycleButton::drawContents(CGraphicsPort *port)
   CRect rect;
   getRect(rect);
 
-  nxgl_coord_t glyphSpace   = m_borderSize.left - 1;
   nxgl_coord_t glyphYOffset = (rect.getHeight() - g_cycle.height) >> 1;
 
   nxwidget_pixel_t textColor;
-  nxwidget_pixel_t separatorLeftColor;
-  nxwidget_pixel_t separatorRightColor;
 
   if (!isEnabled())
     {
       textColor           = getDisabledTextColor();
-      separatorLeftColor  = getShadowEdgeColor();
-      separatorRightColor = getShineEdgeColor();
     }
   else if (!isClicked())
     {
       textColor           = getEnabledTextColor();
-      separatorLeftColor  = getShadowEdgeColor();
-      separatorRightColor = getShineEdgeColor();
     }
   else
     {
       textColor           = getSelectedTextColor();
-      separatorLeftColor  = getShineEdgeColor();
-      separatorRightColor = getShadowEdgeColor();
     }
 
   // Draw cycle glyph
@@ -340,16 +331,6 @@ void CCycleButton::drawContents(CGraphicsPort *port)
   port->drawBitmap(rect.getX(), rect.getY() + glyphYOffset,
                    g_cycle.width, g_cycle.height, &g_cycle,
                    0, 0, CONFIG_NXWIDGETS_TRANSPARENT_COLOR);
-
-  // Draw separator
-
-  nxgl_coord_t x = getX() + glyphSpace + g_cycle.width;
-  nxgl_coord_t y = getY();
-  nxgl_coord_t w = glyphSpace + g_cycle.width;
-  nxgl_coord_t h = rect.getHeight() - 1;
-
-  port->drawLine(x, y, w, h, separatorLeftColor);
-  port->drawLine(x+1, y, w+1, h, separatorRightColor);
 
   // Only draw text if option is selected
 

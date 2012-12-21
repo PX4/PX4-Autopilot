@@ -125,6 +125,12 @@ enum nx_fontid_e
 {
   FONTID_DEFAULT     = 0         /* The default font */
 
+/* Monospace fonts */
+
+#ifdef CONFIG_NXFONT_MONO5X8
+  , FONTID_MONO5X8 = 18          /* The 5x8 monospace font */
+#endif
+  
 /* Sans Serif fonts */
 
 #ifdef CONFIG_NXFONT_SANS17X22
