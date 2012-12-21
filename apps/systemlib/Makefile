@@ -75,8 +75,17 @@ CXXHDRS   =  test/test.hpp \
 #
 ifeq ($(TARGET),px4fmu)
 CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
+		pid/pid.c \
+		geo/geo.c
+CXXSRCS     += math/arm/Vector.cpp \
+		math/arm/Matrix.cpp
+CXXHDRS     += math/arm/Vector.hpp \
+	    math/arm/Matrix.hpp
+else
+CXXSRCS     += math/generic/Vector.cpp \
+		math/generic/Matrix.cpp
+CXXHDRS     += math/generic/Vector.hpp \
+	    math/generic/Matrix.hpp
 endif
 
 include $(APPDIR)/mk/app.mk

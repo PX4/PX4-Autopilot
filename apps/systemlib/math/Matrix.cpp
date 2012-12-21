@@ -68,12 +68,12 @@ static const float data_f[] =
      2.938e007f, 2.267e008f, 0.000e000f,
      0.000e000f, 0.000e000f, 6.033e008f};
 
-static MatrixFloat a(2,3,data_a);
-static MatrixFloat b(2,3,data_b);
-static MatrixFloat c(3,2,data_c);
-static MatrixFloat d(3,3,data_d);
-static MatrixFloat e(3,3,data_e);
-static MatrixFloat f(3,3,data_f);
+static Matrix a(2,3,data_a);
+static Matrix b(2,3,data_b);
+static Matrix c(3,2,data_c);
+static Matrix d(3,3,data_d);
+static Matrix e(3,3,data_e);
+static Matrix f(3,3,data_f);
 
 int __EXPORT matrixTest()
 {
@@ -82,14 +82,13 @@ int __EXPORT matrixTest()
     matrixMultTest();
     matrixInvTest();
     matrixDivTest();
-    matrixArmTest();
     return 0;
 }
 
 int matrixAddTest()
 {
     printf("Test Matrix Add\t\t: ");
-    MatrixFloat r = a + b;
+    Matrix r = a + b;
     ASSERT(equal(r(0,0),1.0f))
     ASSERT(equal(r(0,1),3.0f))
     ASSERT(equal(r(0,2),6.0f))
@@ -103,7 +102,7 @@ int matrixAddTest()
 int matrixSubTest()
 {
     printf("Test Matrix Sub\t\t: ");
-    MatrixFloat r = a - b;
+    Matrix r = a - b;
     ASSERT(equal(r(0,0),1.0f))
     ASSERT(equal(r(0,1),1.0f))
     ASSERT(equal(r(0,2),0.0f))
@@ -117,7 +116,7 @@ int matrixSubTest()
 int matrixMultTest()
 {
     printf("Test Matrix Mult\t: ");
-    MatrixFloat r = c * b;
+    Matrix r = c * b;
     ASSERT(equal(r(0,0),7.0f))
     ASSERT(equal(r(0,1),-1.0f))
     ASSERT(equal(r(0,2),2.0f))
@@ -134,7 +133,7 @@ int matrixMultTest()
 int matrixInvTest()
 {
     printf("Test Matrix Inv\t\t: ");
-    MatrixFloat r = f.inverse();
+    Matrix r = f.inverse();
     ASSERT(equal(r(0,0),-0.0012518f,1e-6f))
     ASSERT(equal(r(0,1),0.0001610f,1e-6f))
     ASSERT(equal(r(0,2),0.0000000f,1e-6f))
@@ -151,7 +150,7 @@ int matrixInvTest()
 int matrixDivTest()
 {
     printf("Test Matrix Div\t\t: ");
-    MatrixFloat r = d / e;
+    Matrix r = d / e;
     ASSERT(equal(r(0,0),0.2222222f,1e-6f))
     ASSERT(equal(r(0,1),0.5555556f,1e-6f))
     ASSERT(equal(r(0,2),-0.1111111f,1e-6f))
@@ -163,11 +162,6 @@ int matrixDivTest()
     ASSERT(equal(r(2,2),4.5555556f,1e-6f))
     printf("PASS\n");
     return 0;
-}
-
-int matrixArmTest()
-{
-    arm_matrix_instance_f32 A;		/* Matrix A Instance */ 
 }
 
 } // namespace math

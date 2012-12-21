@@ -59,9 +59,6 @@
 class KalmanNav : public control::SuperBlock
 {
 public:
-    typedef math::Matrix<float> MatrixType;
-    typedef math::Vector<float> VectorType;
-    typedef math::Kalman<float> KalmanType;
     KalmanNav(SuperBlock * parent, const char * name) :
         SuperBlock(parent,name),
         _kalman(9),
@@ -81,11 +78,12 @@ public:
         _outTimeStamp(hrt_absolute_time()),
         _navFrames(0)
     {
+        using namespace math;
         setDt(1.0f /50.0f);
 
-        MatrixType I3 = MatrixType::identity(3);
-        MatrixType I6 = MatrixType::identity(6);
-        MatrixType I9 = MatrixType::identity(9);
+        Matrix I3 = Matrix::identity(3);
+        Matrix I6 = Matrix::identity(6);
+        Matrix I9 = Matrix::identity(9);
 
         // initial state covariance matrix
         _kalman.setP(I9*1.0f);
@@ -164,8 +162,10 @@ public:
     }
     void predict()
     {
-        VectorType gyroB(3);
-        VectorType accelB(3);
+        using namespace math;
+        using namespace math;
+        Vector gyroB(3);
+        Vector accelB(3);
         for (int i=0;i<3;i++)
         {
             gyroB(i)  = _sensors.gyro_rad_s[i];
@@ -180,7 +180,7 @@ public:
 
         // state
         float dt = getDt();
-        VectorType & x = _kalman.getX();
+        Vector & x = _kalman.getX();
         float & phi = x(0);
         float & theta = x(1);
         float & psi = x(2);
@@ -215,13 +215,13 @@ public:
         Dcm(2,2) = cosPhi*cosTheta;
 
         // specific acceleration in nav frame
-        VectorType accelN = Dcm*accelB;
+        Vector accelN = Dcm*accelB;
         float fN = accelN(0);
         float fE = accelN(1);
         float fD = accelN(2) - g;
 
         // F Matrix
-        MatrixType & F = _kalman.getF();
+        Matrix & F = _kalman.getF();
 
         // difference from Jacobian
         // multiplity by dt for all elements
@@ -298,13 +298,13 @@ public:
         G(5,4) = Dcm(2,1)*dt; 
         G(5,5) = Dcm(2,2)*dt; 
 
-        MatrixType & Q = _kalman.getQ();
+        Matrix & Q = _kalman.getQ();
         Q = G*V*G.transpose();
 
         // update x
         // TODO: should use non-linear state prediction functions
         // instead of using linearization
-        VectorType u(6);
+        Vector u(6);
         u(0) = gyroB(0);
         u(1) = gyroB(1);
         u(2) = gyroB(2);
@@ -318,12 +318,13 @@ public:
     }
     void correctMag()
     {
-        VectorType zMag(3);
+        using namespace math;
+        Vector zMag(3);
         for (int i=0;i<3;i++) {
             zMag(i) = _sensors.magnetometer_raw[i];
         }
         // state
-        VectorType & x = _kalman.getX();
+        Vector & x = _kalman.getX();
         float & phi = x(0);
         float & theta = x(1);
         float & psi = x(2);
@@ -379,7 +380,8 @@ public:
     }
     void correctGps()
     {
-        VectorType zGps(6);
+        using namespace math;
+        Vector zGps(6);
         zGps(0) = _pos.vx; // vn
         zGps(1) = _pos.vy; // ve
         zGps(2) = _pos.vy; // vd
@@ -389,14 +391,14 @@ public:
         _kalman.correct(zGps,HGps,RGps);
     }
 protected:
-    KalmanType _kalman;
-    MatrixType G;
-    MatrixType V;
-    MatrixType HMag;
-    MatrixType RMag;
-    MatrixType HGps;
-    MatrixType RGps;
-    MatrixType Dcm;
+    math::Kalman _kalman;
+    math::Matrix G;
+    math::Matrix V;
+    math::Matrix HMag;
+    math::Matrix RMag;
+    math::Matrix HGps;
+    math::Matrix RGps;
+    math::Matrix Dcm;
     control::UOrbSubscription<sensor_combined_s> _sensors;
     control::UOrbPublication<vehicle_global_position_s> _pos;
     control::UOrbPublication<vehicle_attitude_s> _att;

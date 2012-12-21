@@ -37,200 +37,21 @@
  * math vector
  */
 
-#pragma once
+//#pragma once
 
-#include <inttypes.h>
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <math.h>
+#ifdef ARM_MATH_CM4
+#include "arm/Vector.hpp"
+#else
+#include "generic/Vector.hpp"
+#endif
 
-//#define VECTOR_ASSERT
-
-namespace math
-{
-
-void float2SigExp(
+namespace math {
+void __EXPORT float2SigExp(
         const float & num,
         float & sig,
         int & exp);
-
-template<class T>
-class __EXPORT Vector {
-public:
-    typedef Vector<T> VectorType;
-    // constructor
-    Vector(size_t rows) :
-        _rows(rows),
-        _data((T*)calloc(rows,sizeof(T)))
-    {
-    }
-    Vector(size_t rows, const T * data) :
-        _rows(rows),
-        _data((T*)malloc(getSize()))
-    {
-        memcpy(getData(),data,getSize());
-    }
-    // deconstructor
-    virtual ~Vector()
-    {
-        delete [] getData();
-    }
-    // copy constructor (deep)
-    Vector(const VectorType & right) :
-        _rows(right.getRows()),
-        _data((T*)malloc(getSize()))
-    {
-        memcpy(getData(),right.getData(),
-                    right.getSize());
-    }
-    // assignment
-    inline VectorType & operator=(const VectorType & right)
-    {
-#ifdef VECTOR_ASSERT
-        ASSERT(getRows()==right.getRows());
-#endif
-        if (this != &right)
-        {
-            memcpy(getData(),right.getData(),
-                        right.getSize());
-        }
-        return *this;
-    }
-    // element accessors
-    inline T& operator()(size_t i)
-    {
-#ifdef VECTOR_ASSERT
-        ASSERT(i<getRows());
-#endif
-        return getData()[i];
-    }
-    inline const T& operator()(size_t i) const
-    {
-#ifdef VECTOR_ASSERT
-        ASSERT(i<getRows());
-#endif
-        return getData()[i];
-    }
-    // output
-    inline void print() const
-    {
-        for (size_t i=0; i<getRows(); i++)
-        {
-            float sig;
-            int exp;
-            float num = (*this)(i);
-            float2SigExp(num,sig,exp);
-            printf ("%6.3fe%03.3d,", (double)sig, exp);
-        }
-        printf("\n");
-    }
-    // boolean ops
-    inline bool operator==(const T & right) const
-    {
-        for (size_t i=0; i<getRows(); i++)
-        {
-            if ((*this)(i) != right(i))
-                return false;
-        }
-        return true;
-    }
-    // scalar ops
-    inline VectorType operator+(const T & right) const
-    {
-        VectorType result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) + right;
-        }
-        return result;
-    }
-    inline VectorType operator-(const T & right) const
-    {
-        VectorType result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) - right;
-        }
-        return result;
-    }
-    inline VectorType operator*(const T & right) const
-    {
-        VectorType result(right.getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) * right;
-        }
-        return result;
-    }
-    inline VectorType operator/(const T & right) const
-    {
-        VectorType result(right.getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) / right;
-        }
-        return result;
-    }
-    // vector ops
-    inline VectorType operator+(const VectorType & right) const
-    {
-#ifdef VECTOR_ASSERT
-        ASSERT(getRows()==right.getRows());
-#endif
-        VectorType result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) + right(i);
-        }
-        return result;
-    }
-    inline VectorType operator-(const VectorType & right) const
-    {
-#ifdef VECTOR_ASSERT
-        ASSERT(getRows()==right.getRows());
-#endif
-        VectorType result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) - right(i);
-        }
-        return result;
-    }
-    // other functions
-    inline static VectorType zero(size_t rows)
-    {
-        VectorType result(rows);
-        // calloc returns zeroed memory
-        return result;
-    }
-    inline void setAll(const T & val)
-    {
-        for (size_t i=0;i<getRows();i++)
-        {
-            (*this)(i) = val;
-        }
-    }
-    inline void set(const T * data)
-    {
-        memcpy(getData(),data,getSize());
-    }
-    inline size_t getRows() const { return _rows; }
-protected:
-    inline size_t getSize() const { return sizeof(T)*getRows(); }
-    inline T * getData() { return _data; }
-    inline const T * getData() const { return _data; }
-    inline void setData(T * data) { _data = data; }
-private:
-    size_t _rows;
-    T * _data;
-};
-
-typedef Vector<float> VectorFloat;
-
 int __EXPORT vectorTest();
 int __EXPORT vectorAddTest();
 int __EXPORT vectorSubTest();
-
 } // math
+

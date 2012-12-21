@@ -32,26 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Matrix.h
+ * @file Vector.cpp
  *
- * matrix code
+ * math vector
  */
 
-#pragma once
-
-#ifdef ARM_MATH_CM4
-#include "arm/Matrix.hpp"
-#else
-#include "generic/Matrix.hpp"
-#endif
-
-namespace math {
-int matrixTest();
-int matrixAddTest();
-int matrixSubTest();
-int matrixMultTest();
-int matrixInvTest();
-int matrixDivTest();
-int matrixArmTest();
-} // namespace math
-
+#include "Vector.hpp"
