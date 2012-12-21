@@ -138,37 +138,33 @@ public:
     inline Vector operator+(float right) const
     {
         Vector result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) + right;
-        }
+        arm_offset_f32((float*)getData(),
+                right, result.getData(),
+                getRows());
         return result;
     }
     inline Vector operator-(float right) const
     {
         Vector result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) - right;
-        }
+        arm_offset_f32((float*)getData(),
+                -right, result.getData(),
+                getRows());
         return result;
     }
     inline Vector operator*(float right) const
     {
         Vector result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) * right;
-        }
+        arm_scale_f32((float*)getData(),
+                right, result.getData(),
+                getRows());
         return result;
     }
     inline Vector operator/(float right) const
     {
         Vector result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) / right;
-        }
+        arm_scale_f32((float*)getData(),
+                1.0f/right, result.getData(),
+                getRows());
         return result;
     }
     // vector ops
@@ -178,10 +174,10 @@ public:
         ASSERT(getRows()==right.getRows());
 #endif
         Vector result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) + right(i);
-        }
+        arm_add_f32((float*)getData(),
+                (float*)right.getData(),
+                result.getData(),
+                getRows());
         return result;
     }
     inline Vector operator-(const Vector & right) const
@@ -190,10 +186,10 @@ public:
         ASSERT(getRows()==right.getRows());
 #endif
         Vector result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) - right(i);
-        }
+        arm_sub_f32((float*)getData(),
+                (float*)right.getData(),
+                result.getData(),
+                getRows());
         return result;
     }
     // other functions

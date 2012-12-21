@@ -51,6 +51,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_gps_position.h>
 
 #include <drivers/drv_hrt.h>
 #include <poll.h>
@@ -70,6 +71,7 @@ public:
         RGps(6,6),
         Dcm(3,3),
         _sensors(&getSubscriptions(), ORB_ID(sensor_combined),20),
+        _gps(&getSubscriptions(), ORB_ID(vehicle_gps_position),20),
         _pos(&getPublications(), ORB_ID(vehicle_global_position)),
         _att(&getPublications(), ORB_ID(vehicle_attitude)),
         _timeStamp(hrt_absolute_time()),
@@ -123,12 +125,14 @@ public:
     }
     void update()
     {
+        using namespace math;
+
         // get new information from subscriptions
         updateSubscriptions();
         _navFrames += 1;
 
         uint64_t newTimeStamp = hrt_absolute_time();
-        if (newTimeStamp - _gpsTimeStamp > 1e6/2) // 2 Hz
+        if (newTimeStamp - _gpsTimeStamp > 1e6/5) // 5 Hz
         {
             correctGps();
             _gpsTimeStamp = newTimeStamp;
@@ -136,16 +140,71 @@ public:
         if (newTimeStamp - _magTimeStamp > 1e6/5) // 5 Hz
         {
             correctMag();
+            _magTimeStamp = newTimeStamp;
         }
         predict();
+
+        // state
+        Vector & x = _kalman.getX();
+        float & phi = x(0);
+        float & theta = x(1);
+        float & psi = x(2);
+        float & vN = x(3);
+        float & vE = x(4);
+        float & vD = x(5);
+        float & L = x(6);
+        float & l = x(7);
+        float & h = x(8);
+
+        // position publication
+        _pos.timestamp = newTimeStamp;
+        _pos.valid = true;
+        _pos.lat = L;
+        _pos.lon = l;
+        _pos.alt = h;
+        _pos.relative_alt = h; // TODO, make relative
+        _pos.vx = vN;
+        _pos.vy = vE;
+        _pos.vz = vD;
+        _pos.hdg = psi;
+
+        // attitude publication
+        _att.roll = phi;
+        _att.pitch = theta;
+        _att.yaw = psi;
+        _att.rollspeed = _sensors.gyro_rad_s[0];
+        _att.pitchspeed = _sensors.gyro_rad_s[1];
+        _att.yawspeed = _sensors.gyro_rad_s[2];
+        // TODO, add gyro offsets to filter
+        _att.rate_offsets[0] = 0.0f;
+        _att.rate_offsets[1] = 0.0f;
+        _att.rate_offsets[2] = 0.0f;
+        for (int i=0;i<3;i++) for (int j=0;j<3;j++)
+            _att.R[i][j] = Dcm(i,j);
+        // TODO q
+        _att.q[0] = 1;
+        _att.q[1] = 0;
+        _att.q[2] = 0;
+        _att.q[3] = 0;
+        _att.R_valid = true;
+        _att.q_valid = true;
+        _att.counter = _navFrames;
+
+        // update publications
+        updatePublications();
 
         _timeStamp = hrt_absolute_time();
         float dtActual = (_timeStamp - newTimeStamp)/1.0e6f;
 
         if (newTimeStamp - _outTimeStamp > 1e6) // 1 Hz
         {
-            printf("nav: sched %4d Hz, actual %4d Hz\n",
-                    (int)(1/getDt()),_navFrames);
+            uint16_t actRate = _navFrames;
+            uint16_t schedRate = 1.0f/getDt();
+            if (float(actRate)/schedRate < 0.99f)
+            {
+                printf("WARNING: nav: sched %4d Hz, actual %4d Hz\n",
+                        schedRate, actRate);
+            }
             _kalman.getX().print();
             _outTimeStamp = newTimeStamp;
             _navFrames = 0;
@@ -159,6 +218,7 @@ public:
         else if (timeSleep < -0.001f) {
             printf("kalman_demo: missed deadline by %8.4f sec\n", (double)(-timeSleep));
         }
+
     }
     void predict()
     {
@@ -382,12 +442,12 @@ public:
     {
         using namespace math;
         Vector zGps(6);
-        zGps(0) = _pos.vx; // vn
-        zGps(1) = _pos.vy; // ve
-        zGps(2) = _pos.vy; // vd
-        zGps(3) = _pos.lat; // L
-        zGps(4) = _pos.lon; // l
-        zGps(5) = _pos.alt; // h
+        zGps(0) = _gps.vel_n; // vn
+        zGps(1) = _gps.vel_e; // ve
+        zGps(2) = _gps.vel_d; // vd
+        zGps(3) = _gps.lat; // L
+        zGps(4) = _gps.lon; // l
+        zGps(5) = _gps.alt; // h
         _kalman.correct(zGps,HGps,RGps);
     }
 protected:
@@ -400,6 +460,7 @@ protected:
     math::Matrix RGps;
     math::Matrix Dcm;
     control::UOrbSubscription<sensor_combined_s> _sensors;
+    control::UOrbSubscription<vehicle_gps_position_s> _gps;
     control::UOrbPublication<vehicle_global_position_s> _pos;
     control::UOrbPublication<vehicle_attitude_s> _att;
     uint64_t _timeStamp;
