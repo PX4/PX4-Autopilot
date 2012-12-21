@@ -3805,6 +3805,9 @@
 	* graphics/: Adds 5x8 monospace font. This tiny font is useful for graph
 	  labels and for small bitmapped display.  Contributed by Petteri
 	  Aimonen.
-	* configs/stm3220g-eval/nxwm:  Converted to use the kconfig-fronteds
+	* configs/stm3220g-eval/nxwm:  Converted to use the kconfig-frontends
 	  configuration tool.
-
+	* configs/sim/nxwm:  Converted to use the kconfig-frontends configuration
+	  tool.
+	* include/pthread.h:  In sys/prctl.h because it is needed by
+	  pthread_[set|get]name_np()

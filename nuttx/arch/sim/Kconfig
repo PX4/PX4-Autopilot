@@ -50,7 +50,7 @@ config SIM_FRAMEBUFFER
 config SIM_X11FB
 	bool "Use X11 window"
 	default n
-	depends on NX && FB_CMAP
+	depends on NX
 	---help---
 		Use an X11 graphics window to simulate the graphics device"
 
