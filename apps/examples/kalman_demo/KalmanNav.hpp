@@ -78,9 +78,10 @@ public:
         _timeStamp(hrt_absolute_time()),
         _gpsTimeStamp(hrt_absolute_time()),
         _magTimeStamp(hrt_absolute_time()),
-        _outTimeStamp(hrt_absolute_time())
+        _outTimeStamp(hrt_absolute_time()),
+        _navFrames(0)
     {
-        setDt(1.0f /10.0f);
+        setDt(1.0f /50.0f);
 
         MatrixType I3 = MatrixType::identity(3);
         MatrixType I6 = MatrixType::identity(6);
@@ -124,6 +125,10 @@ public:
     }
     void update()
     {
+        // get new information from subscriptions
+        updateSubscriptions();
+        _navFrames += 1;
+
         uint64_t newTimeStamp = hrt_absolute_time();
         if (newTimeStamp - _gpsTimeStamp > 1e6/2) // 2 Hz
         {
@@ -137,35 +142,35 @@ public:
         predict();
 
         _timeStamp = hrt_absolute_time();
-        float dtActual = (newTimeStamp - _timeStamp)/1.0e6f;
+        float dtActual = (_timeStamp - newTimeStamp)/1.0e6f;
 
         if (newTimeStamp - _outTimeStamp > 1e6) // 1 Hz
         {
-            printf("nav dt: %8.4f sec\n",(double)dtActual);
+            printf("nav: sched %4d Hz, actual %4d Hz\n",
+                    (int)(1/getDt()),_navFrames);
             _kalman.getX().print();
             _outTimeStamp = newTimeStamp;
+            _navFrames = 0;
         }
 
-        // sleep for approximately the right amount of time for update, 
-        // neglects lag from calculations
-        //float timeSleep = getDt() - dtActual;
-        //if (timeSleep >= 0) {
-            //usleep(1e6*timeSleep);
-        //} else {
-            //printf("kalman_demo: missed deadline by %8.4f sec\n", (double)(-timeSleep));
-        //}
+        // sleep for approximately the right amount of time
+        float timeSleep = getDt() - dtActual;
+        if (timeSleep > 0.0f) {
+            usleep((double)(1e6f*timeSleep));
+        } 
+        else if (timeSleep < -0.001f) {
+            printf("kalman_demo: missed deadline by %8.4f sec\n", (double)(-timeSleep));
+        }
     }
     void predict()
     {
-        // TODO correct dt
         VectorType gyroB(3);
         VectorType accelB(3);
-        gyroB(0)  = 0.1f*getDt();
-        gyroB(1)  = 0.1f*getDt();
-        gyroB(2)  = 0.1f*getDt();
-        accelB(0) = 0.1f*getDt();
-        accelB(1) = 0.1f*getDt();
-        accelB(2) = 0.1f*getDt();
+        for (int i=0;i<3;i++)
+        {
+            gyroB(i)  = _sensors.gyro_rad_s[i];
+            accelB(i) = _sensors.accelerometer_m_s2[i];
+        }
 
         // constants
         static const float omega = 7.2921150e-5f; // earth rotation rate, rad/s
@@ -314,10 +319,9 @@ public:
     void correctMag()
     {
         VectorType zMag(3);
-        zMag(0) = 0.1f;
-        zMag(1) = 0.1f;
-        zMag(2) = 0.1f;
-
+        for (int i=0;i<3;i++) {
+            zMag(i) = _sensors.magnetometer_raw[i];
+        }
         // state
         VectorType & x = _kalman.getX();
         float & phi = x(0);
@@ -376,12 +380,12 @@ public:
     void correctGps()
     {
         VectorType zGps(6);
-        zGps(0) = 0.1f; // vn
-        zGps(1) = 0.1f; // ve
-        zGps(2) = 0.1f; // vd
-        zGps(3) = 0.1f; // L
-        zGps(4) = 0.1f; // l
-        zGps(5) = 0.1f; // h
+        zGps(0) = _pos.vx; // vn
+        zGps(1) = _pos.vy; // ve
+        zGps(2) = _pos.vy; // vd
+        zGps(3) = _pos.lat; // L
+        zGps(4) = _pos.lon; // l
+        zGps(5) = _pos.alt; // h
         _kalman.correct(zGps,HGps,RGps);
     }
 protected:
@@ -400,4 +404,5 @@ protected:
     uint64_t _gpsTimeStamp;
     uint64_t _magTimeStamp;
     uint64_t _outTimeStamp;
+    uint16_t _navFrames;
 };
