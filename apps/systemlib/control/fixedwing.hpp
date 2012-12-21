@@ -639,14 +639,14 @@ public:
             _loopCount = 100;
             updateParams();
             //printf("t: %8.4f, u: %8.4f\n", (double)t, (double)u);
-            printf("control mode: %d\n", _status.state_machine);
-            printf("aileron: %8.4f, elevator: %8.4f, "
-                    "rudder: %8.4f, throttle: %8.4f\n",
-                    (double)_actuators.control[CH_AIL],
-                    (double)_actuators.control[CH_ELV],
-                    (double)_actuators.control[CH_RDR],
-                    (double)_actuators.control[CH_THR]);
-            fflush(stdout);
+            //printf("control mode: %d\n", _status.state_machine);
+            //printf("aileron: %8.4f, elevator: %8.4f, "
+                    //"rudder: %8.4f, throttle: %8.4f\n",
+                    //(double)_actuators.control[CH_AIL],
+                    //(double)_actuators.control[CH_ELV],
+                    //(double)_actuators.control[CH_RDR],
+                    //(double)_actuators.control[CH_THR]);
+            //fflush(stdout);
         }
 
         // sleep for approximately the right amount of time for update, 
