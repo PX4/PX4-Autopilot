@@ -48,6 +48,9 @@
 
 #include <systemlib/math/Vector.hpp>
 
+// arm specific
+#include "arm_math.h"
+
 //#define VECTOR_ASSERT
 
 namespace math
@@ -132,7 +135,7 @@ public:
         return true;
     }
     // scalar ops
-    inline Vector operator+(const float & right) const
+    inline Vector operator+(float right) const
     {
         Vector result(getRows());
         for (size_t i=0; i<getRows(); i++)
@@ -141,7 +144,7 @@ public:
         }
         return result;
     }
-    inline Vector operator-(const float & right) const
+    inline Vector operator-(float right) const
     {
         Vector result(getRows());
         for (size_t i=0; i<getRows(); i++)
@@ -150,7 +153,7 @@ public:
         }
         return result;
     }
-    inline Vector operator*(const float & right) const
+    inline Vector operator*(float right) const
     {
         Vector result(getRows());
         for (size_t i=0; i<getRows(); i++)
@@ -159,7 +162,7 @@ public:
         }
         return result;
     }
-    inline Vector operator/(const float & right) const
+    inline Vector operator/(float right) const
     {
         Vector result(getRows());
         for (size_t i=0; i<getRows(); i++)
@@ -212,10 +215,10 @@ public:
         memcpy(getData(),data,getSize());
     }
     inline size_t getRows() const { return _rows; }
+    inline const float * getData() const { return _data; }
 protected:
     inline size_t getSize() const { return sizeof(float)*getRows(); }
     inline float * getData() { return _data; }
-    inline const float * getData() const { return _data; }
     inline void setData(float * data) { _data = data; }
 private:
     size_t _rows;

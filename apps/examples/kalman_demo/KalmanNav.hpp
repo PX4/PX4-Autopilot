@@ -79,7 +79,7 @@ public:
         _navFrames(0)
     {
         using namespace math;
-        setDt(1.0f /50.0f);
+        setDt(1.0f /200.0f);
 
         Matrix I3 = Matrix::identity(3);
         Matrix I6 = Matrix::identity(6);

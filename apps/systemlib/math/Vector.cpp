@@ -79,8 +79,8 @@ void __EXPORT float2SigExp(
 static const float data_a[] = {1,3};
 static const float data_b[] = {4,1};
 
-static VectorFloat a(2,data_a);
-static VectorFloat b(2,data_b);
+static Vector a(2,data_a);
+static Vector b(2,data_b);
 
 int __EXPORT vectorTest()
 {
@@ -92,7 +92,7 @@ int __EXPORT vectorTest()
 int vectorAddTest()
 {
     printf("Test Vector Add\t\t: ");
-    VectorFloat r = a + b;
+    Vector r = a + b;
     ASSERT(equal(r(0),5.0f))
     ASSERT(equal(r(1),4.0f))
     printf("PASS\n");
@@ -102,7 +102,7 @@ int vectorAddTest()
 int vectorSubTest()
 {
     printf("Test Vector Sub\t\t: ");
-    VectorFloat c(2);
+    Vector c(2);
     c = a - b;
     ASSERT(equal(c(0),-3.0f))
     ASSERT(equal(c(1),2.0f))

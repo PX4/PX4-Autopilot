@@ -68,8 +68,8 @@ INSTRUMENTATIONDEFINES	 = -finstrument-functions \
 			   -ffixed-r10
 
 #CMSIS
-CMSIS_INCLUDE = $(TOPDIR)/../CMSIS/CMSIS/Include
-CMSIS_LIB = $(TOPDIR)/../CMSIS/CMSIS/Lib/ARM/arm_cortexM4lf_math.lib
+CMSIS_INCLUDE = $(TOPDIR)/../CMSIS/Include
+CMSIS_LIB = $(TOPDIR)/../CMSIS/Lib/GCC/libarm_cortexM4lf_math.a
 EXTRA_LIBS		+= $(CMSIS_LIB)
 
 # pull in *just* libm from the toolchain ... this is grody
