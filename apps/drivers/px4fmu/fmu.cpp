@@ -58,6 +58,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_gpio.h>
 #include <drivers/boards/px4fmu/px4fmu_internal.h>
+#include <drivers/drv_hrt.h>
 
 #include <systemlib/systemlib.h>
 #include <systemlib/err.h>
@@ -382,7 +383,8 @@ PX4FMU::task_main()
 			if (_mixers != nullptr) {
 
 				/* do mixing */
-				_mixers->mix(&outputs.output[0], num_outputs);
+				outputs.noutputs = _mixers->mix(&outputs.output[0], num_outputs);
+				outputs.timestamp = hrt_absolute_time();
 
 				// XXX output actual limited values
 				memcpy(&controls_effective, &_controls, sizeof(controls_effective));
@@ -392,8 +394,21 @@ PX4FMU::task_main()
 				/* iterate actuators */
 				for (unsigned i = 0; i < num_outputs; i++) {
 
-					/* scale for PWM output 900 - 2100us */
-					outputs.output[i] = 1500 + (600 * outputs.output[i]);
+					/* last resort: catch NaN, INF and out-of-band errors */
+					if (i < outputs.noutputs &&
+						isfinite(outputs.output[i]) &&
+						outputs.output[i] >= -1.0f &&
+						outputs.output[i] <= 1.0f) {
+						/* scale for PWM output 900 - 2100us */
+						outputs.output[i] = 1500 + (600 * outputs.output[i]);
+					} else {
+						/*
+						 * Value is NaN, INF or out of band - set to the minimum value.
+						 * This will be clearly visible on the servo status and will limit the risk of accidentally
+						 * spinning motors. It would be deadly in flight.
+						 */
+						outputs.output[i] = 900;
+					}
 
 					/* output to the servo */
 					up_pwm_servo_set(i, outputs.output[i]);

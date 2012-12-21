@@ -402,8 +402,8 @@ PX4IO::task_main()
 
 				/* mix */
 				if (_mixers != nullptr) {
-					/* XXX is this the right count? */
-					_mixers->mix(&_outputs.output[0], _max_actuators);
+					_outputs.timestamp = hrt_absolute_time();
+					_outputs.noutputs = _mixers->mix(&_outputs.output[0], _max_actuators);
 
 					// XXX output actual limited values
 					memcpy(&_controls_effective, &_controls, sizeof(_controls_effective));
@@ -413,7 +413,11 @@ PX4IO::task_main()
 					/* convert to PWM values */
 					for (unsigned i = 0; i < _max_actuators; i++) {
 						/* last resort: catch NaN, INF and out-of-band errors */
-						if (isfinite(_outputs.output[i]) && _outputs.output[i] >= -1.0f && _outputs.output[i] <= 1.0f) {
+						if (i < _outputs.noutputs &&
+							isfinite(_outputs.output[i]) &&
+							_outputs.output[i] >= -1.0f &&
+							_outputs.output[i] <= 1.0f) {
+							/* scale for PWM output 900 - 2100us */
 							_outputs.output[i] = 1500 + (600 * _outputs.output[i]);
 						} else {
 							/*
