@@ -7,7 +7,7 @@ mainmenu "Nuttx/$ARCH Configuration"
 
 config APPSDIR
 	string
-	default "../apps"
+	option env="APPSDIR"
 
 # This is a temporary kludge to let the build system know that we are using the new
 # configuration system
