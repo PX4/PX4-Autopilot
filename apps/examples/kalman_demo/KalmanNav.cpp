@@ -39,6 +39,12 @@
 
 #include "KalmanNav.hpp"
 
+// constants
+static const float omega = 7.2921150e-5f; // earth rotation rate, rad/s
+static const float R = 6.371000e6f; // earth radius, m
+static const float RSq = 4.0589641e13f; // radius squared
+static const float g = 9.8f; // gravitational accel. m/s^2
+
 KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     SuperBlock(parent,name),
     _kalman(9),
@@ -49,18 +55,22 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     HGps(6,9),
     RGps(6,6),
     Dcm(3,3),
+    q(4),
     _sensors(&getSubscriptions(), ORB_ID(sensor_combined),20),
     _gps(&getSubscriptions(), ORB_ID(vehicle_gps_position),20),
     _pos(&getPublications(), ORB_ID(vehicle_global_position)),
     _att(&getPublications(), ORB_ID(vehicle_attitude)),
-    _gpsTimeStamp(hrt_absolute_time()),
-    _magTimeStamp(hrt_absolute_time()),
-    _outTimeStamp(hrt_absolute_time()),
     _pubTimeStamp(hrt_absolute_time()),
-    _navFrames(0)
+    _navFrames(0),
+    fN(0), fE(0), fD(0),
+    x(_kalman.getX()),
+    phi(x(0)), theta(x(1)), psi(x(2)),
+    vN(x(3)), vE(x(4)), vD(x(5)),
+    L(x(6)), l(x(7)), h(x(8)),
+    a(q(0)), b(q(1)), c(q(2)), d(q(3))
 {
     using namespace math;
-    setDt(1.0f /200.0f);
+    setDt(1.0f /500.0f);
 
     Matrix I3 = Matrix::identity(3);
     Matrix I6 = Matrix::identity(6);
@@ -110,34 +120,36 @@ void KalmanNav::update()
     updateSubscriptions();
     _navFrames += 1;
 
-    // prediciton step
-    predict();
+    // fast prediciton step
+    predictFast(); // 500 Hz
+
+    if (_navFrames % 5 == 0) // 100 Hz 
+    {
+        predictSlow();
+    }
 
     // gps correction step
-    if (newTimeStamp - _gpsTimeStamp > 1e6/10) // 10 Hz
+    if (_navFrames % 50 == 0) // 10 Hz
     {
-        _gpsTimeStamp = newTimeStamp;
         correctGps();
     }
 
     // mag correction step
-    if (newTimeStamp - _magTimeStamp > 1e6/20) // 20 Hz
+    if (_navFrames % 25 == 0) // 20 Hz 
     {
-        _magTimeStamp = newTimeStamp;
         correctMag();
     }
 
     // publication
-    if (newTimeStamp - _pubTimeStamp > 1e6/50) // 50 Hz
+    if (_navFrames % 10 == 0) // 50 Hz
     {
         _pubTimeStamp = newTimeStamp;
         updatePublications();
     }
 
     // output
-    if (newTimeStamp - _outTimeStamp > 1e6) // 1 Hz
+    if (_navFrames % 500 == 0) // 1 Hz
     {
-        _outTimeStamp = newTimeStamp;
         uint16_t schedRate = 1.0f/getDt();
         if (float(_navFrames)/schedRate < 0.99f)
         {
@@ -164,18 +176,6 @@ void KalmanNav::update()
 void KalmanNav::updatePublications()
 {
     using namespace math;
-
-    // state
-    Vector & x = _kalman.getX();
-    float & phi = x(0);
-    float & theta = x(1);
-    float & psi = x(2);
-    float & vN = x(3);
-    float & vE = x(4);
-    float & vD = x(5);
-    float & L = x(6);
-    float & l = x(7);
-    float & h = x(8);
 
     // position publication
     _pos.timestamp = _pubTimeStamp;
@@ -204,11 +204,7 @@ void KalmanNav::updatePublications()
     _att.rate_offsets[2] = 0.0f;
     for (int i=0;i<3;i++) for (int j=0;j<3;j++)
         _att.R[i][j] = Dcm(i,j);
-    // TODO q
-    _att.q[0] = 1;
-    _att.q[1] = 0;
-    _att.q[2] = 0;
-    _att.q[3] = 0;
+    for (int i=0;i<4;i++) _att.q[i] = q(i);
     _att.R_valid = true;
     _att.q_valid = true;
     _att.counter = _navFrames;
@@ -217,65 +213,99 @@ void KalmanNav::updatePublications()
     SuperBlock::updatePublications();
 }
 
-void KalmanNav::predict()
+void KalmanNav::predictFast()
 {
     using namespace math;
-    using namespace math;
-    Vector gyroB(3);
-    Vector accelB(3);
-    for (int i=0;i<3;i++)
+    Vector w(4);
+    float dt = getDt(); // TODO, could make this actual dt, 
+    // instead of scheduled dt
+
+    for (int i=0;i<3;i++) w(i+1)  = _sensors.gyro_rad_s[i];
+    // attitude
+    float dataQ[] = 
+        {a, -b, -c, -d,
+         b,  a, -d,  c,
+         c,  d,  a, -b,
+         d, -c,  b,  a};
+    Matrix Q(4,4,dataQ);
+    q = q + Q*w*0.5*getDt();
+
+    // dcm update
+    float aSq = a*a, bSq = b*b, cSq = c*c, dSq = d*d;
+    Dcm(0,0) = aSq + bSq - cSq - dSq;
+    Dcm(0,1) = 2*(b*c - a*d);
+    Dcm(0,2) = 2*(b*d - a*c);
+    Dcm(1,0) = 2*(b*c + a*d);
+    Dcm(1,1) = aSq - bSq + cSq - dSq;
+    Dcm(1,2) = 2*(c*d - a*b);
+    Dcm(2,0) = 2*(b*d - a*c);
+    Dcm(2,1) = 2*(c*d + a*b);
+    Dcm(2,2) = aSq - bSq - cSq + dSq;
+
+    // attitude update
+    theta = asin(-Dcm(2,0));
+    if (fabs(theta-M_PI_2_F)<0.01)
     {
-        gyroB(i)  = _sensors.gyro_rad_s[i];
-        accelB(i) = _sensors.accelerometer_m_s2[i];
+        // leave phi the same
+        psi = atanf((Dcm(1,2) - Dcm(0,1))/
+                (Dcm(0,2) + Dcm(1,1))) + phi;
+    }
+    else if (fabs(theta + M_PI_2_F)<0.01)
+    {
+        // leave phi the same
+        psi = atanf((Dcm(1,2) - Dcm(0,1))/
+                (Dcm(0,2) + Dcm(1,1))) - phi;
+    }
+    else
+    {
+        phi = atanf(Dcm(2,1)/Dcm(2,2));
+        psi = atanf(Dcm(1,0)/Dcm(0,0));
     }
 
-    // constants
-    static const float omega = 7.2921150e-5f; // earth rotation rate, rad/s
-    static const float R = 6.371000e6f; // earth radius, m
-    static const float RSq = 4.0589641e13f; // radius squared
-    static const float g = 9.8f; // gravitational accel. m/s^2
-
-    // state
-    float dt = getDt();
-    Vector & x = _kalman.getX();
-    float & phi = x(0);
-    float & theta = x(1);
-    float & psi = x(2);
-    float & vN = x(3);
-    float & vE = x(4);
-    float & vD = x(5);
-    float & L = x(6);
-    //float & l = x(7);
-    //float & h = x(8);
+    // specific acceleration in nav frame
+    Vector accelB(3,_sensors.accelerometer_m_s2);
+    Vector accelN = Dcm*accelB;
+    fN = accelN(0);
+    fE = accelN(1);
+    fD = accelN(2);
 
     // trig
-    float cosPhi = cosf(phi);
-    float cosTheta = cosf(theta);
-    float cosPsi = cosf(psi);
-    float sinPhi = sinf(phi);
-    float sinTheta = sinf(theta);
-    float sinPsi = sinf(psi);
+    float sinL = sinf(L);
+    float cosL = cosf(L);
+
+    // position update
+    // neglects angular deflections in local gravity
+    // see Titerton pg. 70
+    float LDot = vN/(R+h);
+    float lDot = vE/(cosL*(R+h));
+    float vNDot = fN - vE*(2*omega +
+        lDot)*sinL +
+        vD*LDot;
+    float vDDot = fD - vE*(2*omega + lDot)*cosL -
+        vN*LDot + g;
+    float vEDot = fE + vN*(2*omega + lDot)*sinL + 
+        vDDot*(2*omega*cosL);
+
+    // rectangular integration
+    vN += vNDot*dt;
+    vE += vEDot*dt;
+    vD += vDDot*dt;
+    L  += LDot*dt;
+    l  += lDot*dt;
+    h  += -vD*dt;
+}
+
+void KalmanNav::predictSlow()
+{
+    using namespace math;
+    // state
+    float dt = getDt();
+
+    // trig
     float sinL = sinf(L);
     float cosL = cosf(L);
     float cosLSq = cosL*cosL;
     float tanL = tanf(L);
-
-    // dcm update
-    Dcm(0,0) = cosTheta*cosPsi;
-    Dcm(0,1) = -cosPhi*sinPsi + sinPhi*sinTheta*cosPsi;
-    Dcm(0,2) = sinPhi*sinPsi + cosPhi*sinTheta*cosPsi;
-    Dcm(1,0) = cosTheta*sinPsi;
-    Dcm(1,1) = cosPhi*cosPsi + sinPhi*sinTheta*sinPsi;
-    Dcm(1,2) = -sinPhi*cosPsi + cosPhi*sinTheta*sinPsi;
-    Dcm(2,0) = -sinTheta;
-    Dcm(2,1) = sinPhi*cosTheta;
-    Dcm(2,2) = cosPhi*cosTheta;
-
-    // specific acceleration in nav frame
-    Vector accelN = Dcm*accelB;
-    float fN = accelN(0);
-    float fE = accelN(1);
-    float fD = accelN(2) - g;
 
     // F Matrix
     Matrix & F = _kalman.getF();
@@ -358,18 +388,6 @@ void KalmanNav::predict()
     Matrix & Q = _kalman.getQ();
     Q = G*V*G.transpose();
 
-    // update x
-    // TODO: should use non-linear state prediction functions
-    // instead of using linearization
-    Vector u(6);
-    u(0) = gyroB(0);
-    u(1) = gyroB(1);
-    u(2) = gyroB(2);
-    u(3) = accelB(0);
-    u(4) = accelB(1);
-    u(5) = accelB(2);
-    x = F*x + G*u;
-
     // predict equations for kalman filter
     _kalman.predict(dt);
 }
@@ -380,12 +398,6 @@ void KalmanNav::correctMag()
     for (int i=0;i<3;i++) {
         zMag(i) = _sensors.magnetometer_raw[i];
     }
-    // state
-    Vector & x = _kalman.getX();
-    float & phi = x(0);
-    float & theta = x(1);
-    float & psi = x(2);
-
     // trig
     float cosPhi = cosf(phi);
     float cosTheta = cosf(theta);

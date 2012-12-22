@@ -64,7 +64,8 @@ public:
     virtual ~KalmanNav() {};
     void update();
     virtual void updatePublications();
-    void predict();
+    void predictFast();
+    void predictSlow();
     void correctMag();
     void correctGps();
 protected:
@@ -76,13 +77,17 @@ protected:
     math::Matrix HGps;
     math::Matrix RGps;
     math::Matrix Dcm;
+    math::Vector q;
     control::UOrbSubscription<sensor_combined_s> _sensors;
     control::UOrbSubscription<vehicle_gps_position_s> _gps;
     control::UOrbPublication<vehicle_global_position_s> _pos;
     control::UOrbPublication<vehicle_attitude_s> _att;
-    uint64_t _gpsTimeStamp;
-    uint64_t _magTimeStamp;
-    uint64_t _outTimeStamp;
     uint64_t _pubTimeStamp;
     uint16_t _navFrames;
+    float fN, fE, fD;
+    math::Vector & x;
+    float & phi, theta, psi;
+    float & vN, vE, vD;
+    float & L, l, h;
+    float & a, b, c, d;
 };
