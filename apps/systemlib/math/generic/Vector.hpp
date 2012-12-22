@@ -126,7 +126,7 @@ public:
     {
         for (size_t i=0; i<getRows(); i++)
         {
-            if ((float)fabs(((*this)(i) - right(i))) > 1e-30f)
+            if (fabsf(((*this)(i) - right(i))) > 1e-30f)
                 return false;
         }
         return true;

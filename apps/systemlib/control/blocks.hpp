@@ -479,7 +479,7 @@ public:
                 V1 = 2 * U1 - 1;
                 V2 = 2 * U2 - 1;
                 S = V1 * V1 + V2 * V2;
-                } while(S >= 1 || fabs(S)<1e-8 );
+                } while(S >= 1 || fabsf(S)<1e-8f);
             X = V1 * float(sqrt(-2 * float(log(S)) / S));
         } else
             X = V2 * float(sqrt(-2 * float(log(S)) / S));

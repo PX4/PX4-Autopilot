@@ -55,13 +55,13 @@ void __EXPORT float2SigExp(
         exp = -99;
         return;
     }
-    if ((float)fabs(num) < 1.0e-38f)
+    if (fabsf(num) < 1.0e-38f)
     {
         sig = 0;
         exp = 0;
         return;
     }
-    exp = log10(fabs(num));
+    exp = log10f(fabsf(num));
     if (exp>0) {
         exp = ceil(exp);
     } else {

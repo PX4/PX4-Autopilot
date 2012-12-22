@@ -44,7 +44,7 @@
 
 bool __EXPORT equal(float a, float b, float epsilon)
 {
-    float diff = fabs(a-b);
+    float diff = fabsf(a-b);
     if (diff>epsilon)
     {
         printf("not equal ->\n\ta: %12.8f\n\tb: %12.8f\n", double(a), double(b)); 

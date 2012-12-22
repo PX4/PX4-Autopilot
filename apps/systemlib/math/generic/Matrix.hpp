@@ -139,7 +139,7 @@ public:
         {
             for (size_t j=0; j<getCols(); j++)
             {
-                if ((float)fabs((*this)(i,j)-right(i,j)) > 1e-30f)
+                if (fabsf((*this)(i,j)-right(i,j)) > 1e-30f)
                     return false;
             }
         }
@@ -318,12 +318,12 @@ public:
         for (size_t n=0; n<N; n++) {
 
             // if diagonal is zero, swap with row below
-            if (fabs(U(n,n))<1e-8) {
+            if (fabsf(U(n,n))<1e-8f) {
                 //printf("trying pivot for row %d\n",n);
                 for (size_t i=0; i<N; i++) {
                     if (i==n) continue;
                     //printf("\ttrying row %d\n",i);
-                    if (fabs(U(i,n))>1e-8) {
+                    if (fabsf(U(i,n))>1e-8f) {
                         //printf("swapped %d\n",i);
                         U.swapRows(i,n);
                         P.swapRows(i,n);
@@ -335,10 +335,10 @@ public:
             //printf("U:\n"); U.print();
             //printf("P:\n"); P.print();
             //fflush(stdout);
-            ASSERT(fabs(U(n,n))>1e-8);
+            ASSERT(fabsf(U(n,n))>1e-8f);
 #endif
             // failsafe, return zero matrix
-            if (fabs(U(n,n))<1e-8)
+            if (fabsf(U(n,n))<1e-8f)
             {
                 return Matrix::zero(n);
             }

@@ -230,8 +230,13 @@ void KalmanNav::predictFast()
     Matrix Q(4,4,dataQ);
     q = q + Q*w*0.5*getDt();
 
-    // dcm update
+    // renormalize quaternion if needed
     float aSq = a*a, bSq = b*b, cSq = c*c, dSq = d*d;
+    float norm = sqrtf(aSq + bSq + cSq + dSq);
+    if (fabsf(norm-1.0f) > 1e-4f)
+        q = q/norm;
+
+    // dcm update
     Dcm(0,0) = aSq + bSq - cSq - dSq;
     Dcm(0,1) = 2*(b*c - a*d);
     Dcm(0,2) = 2*(b*d - a*c);
@@ -244,13 +249,13 @@ void KalmanNav::predictFast()
 
     // attitude update
     theta = asin(-Dcm(2,0));
-    if (fabs(theta-M_PI_2_F)<0.01)
+    if (fabsf(theta-M_PI_2_F)<0.01f)
     {
         // leave phi the same
         psi = atanf((Dcm(1,2) - Dcm(0,1))/
                 (Dcm(0,2) + Dcm(1,1))) + phi;
     }
-    else if (fabs(theta + M_PI_2_F)<0.01)
+    else if (fabsf(theta + M_PI_2_F) < 0.01f)
     {
         // leave phi the same
         psi = atanf((Dcm(1,2) - Dcm(0,1))/

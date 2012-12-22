@@ -146,7 +146,7 @@ public:
         {
             for (size_t j=0; j<getCols(); j++)
             {
-                if ((float)fabs((*this)(i,j)-right(i,j)) > 1e-30f)
+                if (fabsf((*this)(i,j)-right(i,j)) > 1e-30f)
                     return false;
             }
         }
