@@ -3811,3 +3811,5 @@
 	  tool.
 	* include/pthread.h:  In sys/prctl.h because it is needed by
 	  pthread_[set|get]name_np()
+	* tools/kconfig.bat:  Kludge to run kconfig-frontends from a DOS shell.
+

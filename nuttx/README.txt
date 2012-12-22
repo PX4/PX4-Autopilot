@@ -10,6 +10,7 @@ README
   o Configuring NuttX
     - Instantiating "Canned" Configurations
     - NuttX Configuration Tool
+    - NuttX Configuration Tool from DOS
   o Toolchains
     - Cross-Development Toolchains
     - NuttX Buildroot Toolchain
@@ -249,7 +250,6 @@ easier.  It is used as follows:
   cd ${TOPDIR}/tools
   ./configure.sh <board-name>/<config-dir>
 
-
 NuttX Configuration Tool
 ------------------------
 
@@ -291,6 +291,52 @@ NuttX Configuration Tool
      tool at /usr/local/bin/mconf.  Where ever you choose to
      install 'mconf', make certain that your PATH variable includes
      a path to that installation directory.
+
+NuttX Configuration Tool from DOS
+---------------------------------
+
+Recent versions of NuttX support building NuttX from a native Windows
+CMD.exe shell (see "Native Windows Build" below).  But kconfig-frontends
+is a Linux tool.  There have been some successes building a Windows
+native version of the kconfig-frontends tool, but that is not ready
+for prime time.
+
+At this point, there are only a few options for the Windows user:
+
+  1. You can run the configuration tool using Cygwin.  However, the
+     Cygwin Makefile.win will complain so to do this will, you have
+     to manually edit the .config file:
+
+      a. Delete the line: CONFIG_WINDOWS_NATIVE=y
+      b. Change the apps/ directory path, CONFIG_APPS_DIR to use Unix
+         style delimiters.  For example, change "..\apps" to "../apps"
+
+     And of course, after you use the configuration tool you need to
+     restore CONFIG_WINDOWS_NATIVE=y and the correct CONFIG_APPS_DIR.
+
+  2) You can, with some effort, run the the Cygwin mconf tool directly
+     in the CMD.exe shell.  In this case, you do not have to modify the
+     .config file, but there are other complexities:
+
+      a. You need to temporarily set the Cgywin directories in the PATH
+         variable then run mconf manually like:
+
+          mconf Kconfig
+
+         There is a Windows bacht file at tools/kconfig.bat that automates
+         these steps:
+
+         tools/kconfig menuconfig
+
+       b. There is an issue with accessing DOS environment variables from
+          the Cygwin mconf running in the CMD.exe shell.  The following
+          change to the top-level Kconfig file seems to work around these
+          problems:
+  
+          config APPSDIR
+              string
+          -   option env="APPSDIR"
+          +   default "../apps"
 
 TOOLCHAINS
 ^^^^^^^^^^
@@ -523,68 +569,68 @@ Native Windows Build
 Installing GNUWin32
 -------------------
 
-The Windows native build will depend upon a few Unix-like tools that can be
-provided either by MSYS or GNUWin32.  The GNUWin32 are available from
-http://gnuwin32.sourceforge.net/.  GNUWin32 provides ports of tools with a
-GPL or similar open source license to modern MS-Windows (Microsoft Windows
-2000 / XP / 2003 / Vista / 2008 / 7).  See
-http://gnuwin32.sourceforge.net/packages.html for a list of all of the tools
-available in the GNUWin32 package.
+  The Windows native build will depend upon a few Unix-like tools that can be
+  provided either by MSYS or GNUWin32.  The GNUWin32 are available from
+  http://gnuwin32.sourceforge.net/.  GNUWin32 provides ports of tools with a
+  GPL or similar open source license to modern MS-Windows (Microsoft Windows
+  2000 / XP / 2003 / Vista / 2008 / 7).  See
+  http://gnuwin32.sourceforge.net/packages.html for a list of all of the tools
+  available in the GNUWin32 package.
 
-The SourceForge project is located here:
-http://sourceforge.net/projects/gnuwin32/.  The project is still being
-actively supported (although some of the Windows ports have gotten very old).
+  The SourceForge project is located here:
+  http://sourceforge.net/projects/gnuwin32/.  The project is still being
+  actively supported (although some of the Windows ports have gotten very old).
 
-Some commercial toolchains include a subset of the GNUWin32 tools in the
-installation.  My recommendation is that you download the GNUWin32 tools
-directly from the sourceforge.net website so that you will know what you are
-using and can reproduce your build environment.
+  Some commercial toolchains include a subset of the GNUWin32 tools in the
+  installation.  My recommendation is that you download the GNUWin32 tools
+  directly from the sourceforge.net website so that you will know what you are
+  using and can reproduce your build environment.
 
-GNUWin32 Installation Steps:
+  GNUWin32 Installation Steps:
 
-The following steps will download and execute the GNUWin32 installer.
+  The following steps will download and execute the GNUWin32 installer.
 
-1. Download GetGNUWin32-x.x.x.exe from
-   http://sourceforge.net/projects/getgnuwin32/files/.  This is the
-   installer.  The current version as of this writing is 0.6.3.
+  1. Download GetGNUWin32-x.x.x.exe from
+     http://sourceforge.net/projects/getgnuwin32/files/.  This is the
+     installer.  The current version as of this writing is 0.6.3.
 
-2. Run the installer.
+  2. Run the installer.
 
-3. Accept the license.
+  3. Accept the license.
 
-4. Select the installation directory.  My recommendation is the
-   directory that contains this README file (<this-directory>).
+  4. Select the installation directory.  My recommendation is the
+     directory that contains this README file (<this-directory>).
 
-5. After running GetGNUWin32-0.x.x.exe, you will have a new directory
-   <this-directory>/GetGNUWin32
+  5. After running GetGNUWin32-0.x.x.exe, you will have a new directory
+     <this-directory>/GetGNUWin32
 
-Note the the GNUWin32 installer didn't install GNUWin32.  Instead, it
-installed another, smarter downloader.  That downloader is the GNUWin32
-package management tool developed by the Open SSL project.
+  Note the the GNUWin32 installer didn't install GNUWin32.  Instead, it
+  installed another, smarter downloader.  That downloader is the GNUWin32
+  package management tool developed by the Open SSL project.
 
-The following steps probably should be performed from inside a DOS shell.
+  The following steps probably should be performed from inside a DOS shell.
 
-6. Change to the directory created by GetGNUWin32-x.x.x.exe
+  6. Change to the directory created by GetGNUWin32-x.x.x.exe
 
-  cd GetGNUWin32
+    cd GetGNUWin32
 
-7. Execute the download.bat script.  The download.bat script will download
-   about 446 packages!  Enough to have a very complete Linux-like environment
-   under the DOS shell.  This will take awhile.  This step only downloads
-   the packages and the next step will install the packages.
+  7. Execute the download.bat script.  The download.bat script will download
+     about 446 packages!  Enough to have a very complete Linux-like environment
+     under the DOS shell.  This will take awhile.  This step only downloads
+     the packages and the next step will install the packages.
 
-   download
+     download
 
-8. This step will install the downloaded packages.  The argument of the
-   install.bat script is the installation location.  C:\gnuwin32 is the
-   standard install location:
+  8. This step will install the downloaded packages.  The argument of the
+     install.bat script is the installation location.  C:\gnuwin32 is the
+     standard install location:
 
-   install C:\gnuwin32
+     install C:\gnuwin32
 
-NOTE:  This installation step will install *all* GNUWin32 packages... far
-more than you will ever need.  If disc space is a problem for you, you might
-need to perform a manual installation of the individual ZIP files that you
-will find in the <this directory>/GetGNUWin32/packages directory.
+  NOTE:  This installation step will install *all* GNUWin32 packages... far
+  more than you will ever need.  If disc space is a problem for you, you might
+  need to perform a manual installation of the individual ZIP files that you
+  will find in the <this directory>/GetGNUWin32/packages directory.
 
 CYGWIN BUILD PROBLEMS
 ^^^^^^^^^^^^^^^^^^^^^
