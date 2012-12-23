@@ -66,7 +66,14 @@
 
 #define IN_INTERRUPT()           (current_regs != NULL)
 
-/* The following macro is used when the system enters interrupt handling logic */
+/* The following macro is used when the system enters interrupt handling logic
+ *
+ * NOTE: Nested interrupts are not supported in this implementation.  If you want
+ * to implement nested interrupts, you would have to change the way that
+ * current_regs is handled.  The savestate variable would not work for
+ * that purpose as implemented here because only the outermost nested
+ * interrupt can result in a context switch (it can probably be deleted).
+ */
 
 #define DECL_SAVESTATE() \
   FAR chipreg_t *savestate
@@ -131,33 +138,30 @@ extern volatile chipreg_t *current_regs;
 
 #ifndef __ASSEMBLY__
 #ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
+extern "C"
+{
 #endif
 
 /* Defined in z80_copystate.c */
 
-EXTERN void z80_copystate(FAR chipreg_t *dest, FAR const chipreg_t *src);
+void z80_copystate(FAR chipreg_t *dest, FAR const chipreg_t *src);
 
 /* Defined in z80_saveusercontext.asm */
 
-EXTERN int z80_saveusercontext(FAR chipreg_t *regs);
+int z80_saveusercontext(FAR chipreg_t *regs);
 
 /* Defined in z80_restoreusercontext.asm */
 
-EXTERN void z80_restoreusercontext(FAR chipreg_t *regs);
+void z80_restoreusercontext(FAR chipreg_t *regs);
 
 /* Defined in z80_sigsetup.c */
 
-EXTERN void z80_sigsetup(FAR _TCB *tcb, sig_deliver_t sigdeliver, FAR chipreg_t *regs);
+void z80_sigsetup(FAR _TCB *tcb, sig_deliver_t sigdeliver, FAR chipreg_t *regs);
 
 /* Defined in z80_registerdump.c */
 
-EXTERN void z80_registerdump(void);
+void z80_registerdump(void);
 
-#undef EXTERN
 #ifdef __cplusplus
 }
 #endif

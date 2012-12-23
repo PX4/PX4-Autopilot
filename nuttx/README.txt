@@ -10,7 +10,7 @@ README
   o Configuring NuttX
     - Instantiating "Canned" Configurations
     - NuttX Configuration Tool
-    - NuttX Configuration Tool from DOS
+    - NuttX Configuration Tool under DOS
   o Toolchains
     - Cross-Development Toolchains
     - NuttX Buildroot Toolchain
@@ -292,16 +292,16 @@ NuttX Configuration Tool
      install 'mconf', make certain that your PATH variable includes
      a path to that installation directory.
 
-NuttX Configuration Tool from DOS
----------------------------------
+NuttX Configuration Tool under DOS
+----------------------------------
 
-Recent versions of NuttX support building NuttX from a native Windows
-CMD.exe shell (see "Native Windows Build" below).  But kconfig-frontends
-is a Linux tool.  There have been some successes building a Windows
-native version of the kconfig-frontends tool, but that is not ready
-for prime time.
+  Recent versions of NuttX support building NuttX from a native Windows
+  CMD.exe shell (see "Native Windows Build" below).  But kconfig-frontends
+  is a Linux tool.  There have been some successes building a Windows
+  native version of the kconfig-frontends tool, but that is not ready
+  for prime time.
 
-At this point, there are only a few options for the Windows user:
+  At this point, there are only a few options for the Windows user:
 
   1. You can run the configuration tool using Cygwin.  However, the
      Cygwin Makefile.win will complain so to do this will, you have
@@ -565,6 +565,12 @@ Native Windows Build
   Host Compiler:  I use the MingGW compiler which can be downloaded from
   http://www.mingw.org/.  If you are using GNUWin32, then it is recommended
   the you not install the optional MSYS components as there may be conflicts.
+
+  This capability should still be considered a work in progress because:
+  (1) It has not been verfied on all targets and tools, and
+  (2) itstill lacks some of the creature-comforts of the more mature environments
+  (like a functional configure.sh script and 'make menuconfig' support.
+  See the section "NuttX Configuration Tool under DOS" above).
 
 Installing GNUWin32
 -------------------

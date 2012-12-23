@@ -94,28 +94,26 @@
 
 #ifndef __ASSEMBLY__
 #ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
+extern "C"
+{
 #endif
 
 /* Supplied by chip- or board-specific logic */
 
-EXTERN void up_irqinitialize(void);
-EXTERN int  up_timerisr(int irq, FAR chipreg_t *regs);
+void up_irqinitialize(void);
+int  up_timerisr(int irq, FAR chipreg_t *regs);
 
 #ifdef USE_LOWSERIALINIT
-EXTERN void up_lowserialinit(void);
+void up_lowserialinit(void);
 #endif
 
 /* Defined in up_doirq.c */
 
-EXTERN FAR chipreg_t *up_doirq(uint8_t irq, FAR chipreg_t *regs);
+FAR chipreg_t *up_doirq(uint8_t irq, FAR chipreg_t *regs);
 
 /* Define in up_sigdeliver */
 
-EXTERN void up_sigdeliver(void);
+void up_sigdeliver(void);
 
 /* Defined in CPU-specific logic (only for Z180) */
 
@@ -132,7 +130,7 @@ void up_addregion(void);
 /* Defined in up_serial.c */
 
 #ifdef USE_SERIALDRIVER
-EXTERN void up_serialinit(void);
+void up_serialinit(void);
 #else
 # define up_serialinit()
 #endif
@@ -140,7 +138,7 @@ EXTERN void up_serialinit(void);
 /* Defined in drivers/lowconsole.c */
 
 #ifdef CONFIG_DEV_LOWCONSOLE
-EXTERN void lowconsole_init(void);
+void lowconsole_init(void);
 #else
 # define lowconsole_init()
 #endif
@@ -159,14 +157,14 @@ extern void up_puts(const char *str);
 
 /* Defined in up_timerisr.c */
 
-EXTERN void up_timerinit(void);
+void up_timerinit(void);
 
 /* Defined in board/up_leds.c */
 
 #ifdef CONFIG_ARCH_LEDS
-EXTERN void up_ledinit(void);
-EXTERN void up_ledon(int led);
-EXTERN void up_ledoff(int led);
+void up_ledinit(void);
+void up_ledon(int led);
+void up_ledoff(int led);
 #else
 # define up_ledinit()
 # define up_ledon(led)
@@ -176,16 +174,16 @@ EXTERN void up_ledoff(int led);
 /* Architecture specific hook into the timer interrupt handler */
 
 #ifdef CONFIG_ARCH_TIMERHOOK
-EXTERN void up_timerhook(void);
+void up_timerhook(void);
 #endif
 
 /* Defined in board/up_network.c */
 
 #ifdef CONFIG_NET
-EXTERN int  up_netinitialize(void);
-EXTERN void up_netuninitialize(void);
+int  up_netinitialize(void);
+void up_netuninitialize(void);
 # ifdef CONFIG_ARCH_MCFILTER
-EXTERN int up_multicastfilter(FAR struct uip_driver_s *dev, FAR uint8_t *mac, bool enable);
+int up_multicastfilter(FAR struct uip_driver_s *dev, FAR uint8_t *mac, bool enable);
 # else
 #   define up_multicastfilter(dev, mac, enable)
 # endif
@@ -197,19 +195,18 @@ EXTERN int up_multicastfilter(FAR struct uip_driver_s *dev, FAR uint8_t *mac, bo
 
 /* Return the current value of the stack pointer (used in stack dump logic) */
 
-EXTERN uint16_t up_getsp(void);
+uint16_t up_getsp(void);
 
 /* Dump stack and registers */
 
 #ifdef CONFIG_ARCH_STACKDUMP
-EXTERN void up_stackdump(void);
+void up_stackdump(void);
 # define REGISTER_DUMP() _REGISTER_DUMP()
 #else
 # define up_stackdump()
 # define REGISTER_DUMP()
 #endif
 
-#undef EXTERN
 #ifdef __cplusplus
 }
 #endif

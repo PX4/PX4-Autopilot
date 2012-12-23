@@ -112,7 +112,14 @@
 #define IN_INTERRUPT() \
   (g_z8irqstate.state != Z8_IRQSTATE_NONE)
 
-/* The following macro is used when the system enters interrupt handling logic */
+/* The following macro is used when the system enters interrupt handling logic
+ *
+ * NOTE: Nested interrupts are not supported in this implementation.  If you want
+ * to implement nested interrupts, you would have to change the way that
+ * current_regs is handled.  The savestate variable would not work for
+ * that purpose as implemented here because only the outermost nested
+ * interrupt can result in a context switch (it can probably be deleted).
+ */
 
 #define DECL_SAVESTATE() \
   struct z8_irqstate_s savestate
@@ -216,37 +223,34 @@ extern struct z8_irqstate_s g_z8irqstate;
 
 #ifndef __ASSEMBLY__
 #ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
+extern "C"
+{
 #endif
 
 /* Defined in z8_irq.c */
 
-EXTERN void up_maskack_irq(int irq);
+void up_maskack_irq(int irq);
 
 /* Defined in z8_saveusercontext.asm */
 
-EXTERN int z8_saveusercontext(FAR chipreg_t *regs);
+int z8_saveusercontext(FAR chipreg_t *regs);
 
 /* Defined in z8_saveirqcontext.c */
 
-EXTERN void z8_saveirqcontext(FAR chipreg_t *regs);
+void z8_saveirqcontext(FAR chipreg_t *regs);
 
 /* Defined in z8_restorecontext.asm */
 
-EXTERN void z8_restorecontext(FAR chipreg_t *regs);
+void z8_restorecontext(FAR chipreg_t *regs);
 
 /* Defined in z8_sigsetup.c */
 
-EXTERN void z8_sigsetup(FAR _TCB *tcb, sig_deliver_t sigdeliver, FAR chipreg_t *regs);
+void z8_sigsetup(FAR _TCB *tcb, sig_deliver_t sigdeliver, FAR chipreg_t *regs);
 
 /* Defined in z8_registerdump.c */
 
-EXTERN void z8_registerdump(void);
+void z8_registerdump(void);
 
-#undef EXTERN
 #ifdef __cplusplus
 }
 #endif

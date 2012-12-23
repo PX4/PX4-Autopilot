@@ -77,9 +77,11 @@
  * - savestate holds the previous value of current_state.
  * - savecpr holds the previous value of current_cpr.
  *
- * TODO:  I think this logic is bad... I do not thing that this will really
- * handle nested interrupts correctly.  What if we are nested and then a
- * context switch occurs?  current_regs will not be updated correctly!
+ * NOTE: Nested interrupts are not supported in this implementation.  If you want
+ * to implement nested interrupts, you would have to change the way that
+ * current_regs/cbr is handled.  The savestate/savecbr variables would not work
+ * for that purpose as implemented here because only the outermost nested
+ * interrupt can result in a context switch (they can probabaly be deleted).
  */
 
 #define DECL_SAVESTATE() \
@@ -203,33 +205,30 @@ extern uint8_t current_cbr;
 
 #ifndef __ASSEMBLY__
 #ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
+extern "C"
+{
 #endif
 
 /* Defined in z180_copystate.c */
 
-EXTERN void z180_copystate(FAR chipreg_t *dest, FAR const chipreg_t *src);
+void z180_copystate(FAR chipreg_t *dest, FAR const chipreg_t *src);
 
 /* Defined in z180_saveusercontext.asm */
 
-EXTERN int z180_saveusercontext(FAR chipreg_t *regs);
+int z180_saveusercontext(FAR chipreg_t *regs);
 
 /* Defined in z180_restoreusercontext.asm */
 
-EXTERN void z180_restoreusercontext(FAR chipreg_t *regs);
+void z180_restoreusercontext(FAR chipreg_t *regs);
 
 /* Defined in z180_sigsetup.c */
 
-EXTERN void z180_sigsetup(FAR _TCB *tcb, sig_deliver_t sigdeliver, FAR chipreg_t *regs);
+void z180_sigsetup(FAR _TCB *tcb, sig_deliver_t sigdeliver, FAR chipreg_t *regs);
 
 /* Defined in z180_registerdump.c */
 
-EXTERN void z180_registerdump(void);
+void z180_registerdump(void);
 
-#undef EXTERN
 #ifdef __cplusplus
 }
 #endif

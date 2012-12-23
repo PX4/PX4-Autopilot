@@ -1078,7 +1078,6 @@ svn checkout -r5447 svn://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
 svn checkout -r5447 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
 </pre></ul>
 
-
 <p>
   <b>Additional new features and extended functionality</b>
 </p>
@@ -1244,7 +1243,7 @@ svn checkout -r5447 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
           This build: (1) Uses all Windows style paths, (2) Uses primarily Windows batch commands from <code>CMD.exe</code>, with (3) a few extensions from <i>GNUWin32</i>.
         </p>
         <p>
-          This capability should still be considered a work in progress because: (1) it has not been verfied on all targets and tools, and (2) still lacks some of the creature-comforts of the more mature environments (like a function <code>configure.sh</code> script and <code>make menuconfig</code> support).
+          This capability should still be considered a work in progress because: (1) It has not been verfied on all targets and tools, and (2) it still lacks some of the creature-comforts of the more mature environments (like a functional <code>configure.sh</code> script and <code>make menuconfig</code> support).
       </li>
       <li>
         Example Windows native builds for STM32F4Discovery, eZ80, z16f, z8, Z80, and Z180.
@@ -1890,8 +1889,7 @@ svn checkout -r5447 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
       </li>
     </ol>
     <p>
-      These ports uses a GNU arm-nuttx-elf toolchain* under either Linux or Cygwin (with native Windows GNU
-      tools or Cygwin-based GNU tools).
+      These ports uses a GNU arm-nuttx-elf toolchain* under either Linux or Cygwin (with native Windows GNU tools or Cygwin-based GNU tools).
     </p>
     <ul>
       <p>
@@ -1999,8 +1997,7 @@ svn checkout -r5447 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
       <b>Atmel AT91SAM3U</b>.
       This port uses the <a href="http://www.atmel.com/">Atmel</a> SAM3U-EK
       development board that features the AT91SAM3U4E MCU.
-      This port uses a GNU arm-nuttx-elf or arm-eabi toolchain* under either Linux or Cygwin (with native Windows GNU
-      tools or Cygwin-based GNU tools).
+      This port uses a GNU arm-nuttx-elf or arm-eabi toolchain* under either Linux or Cygwin (with native Windows GNU tools or Cygwin-based GNU tools).
     </p>
     <ul>
       <p>
@@ -2884,7 +2881,7 @@ BFD_ASSERT (*plt_offset != (bfd_vma) -1);
       <b>Zilog z16f Microncontroller</b>.
       This port use the Zilog z16f2800100zcog development kit and the Zilog
       ZDS-II Windows command line tools.
-      The development environment is Cygwin under WinXP.
+      The development environment is either Windows native or Cygwin under Windows.
     </p>
     <ul>
       <p>
@@ -2914,7 +2911,7 @@ BFD_ASSERT (*plt_offset != (bfd_vma) -1);
     <p>
       Both boards are based on the eZ80F091 part and both use the Zilog ZDS-II
       Windows command line tools.
-      The development environment is Cygwin under WinXP.
+      The development environment is either Windows native or Cygwin under Windows.
     </p>
     <ul>
       <p>
@@ -2946,7 +2943,7 @@ BFD_ASSERT (*plt_offset != (bfd_vma) -1);
     </ul>
     <p>
       and the Zilog ZDS-II Windows command line tools.
-      The development environment is Cygwin under WinXP.
+      The development environment is either Windows native or Cygwin under Windows.
     </p>
     <ul>
        <p>

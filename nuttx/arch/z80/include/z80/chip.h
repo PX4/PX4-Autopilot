@@ -34,8 +34,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_Z80_SRC_Z80_CHIP_H
-#define __ARCH_Z80_SRC_Z80_CHIP_H
+#ifndef __ARCH_Z80_INCLUDE_Z80_CHIP_H
+#define __ARCH_Z80_INCLUDE_Z80_CHIP_H
 
 /************************************************************************************
  * Included Files
@@ -76,4 +76,4 @@ extern "C" {
 #endif
 #endif
 
-#endif  /* __ARCH_Z80_SRC_Z80_CHIP_H */
+#endif  /* __ARCH_Z80_INCLUDE_Z80_CHIP_H */
