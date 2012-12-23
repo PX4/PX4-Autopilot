@@ -70,7 +70,7 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     a(q(0)), b(q(1)), c(q(2)), d(q(3))
 {
     using namespace math;
-    setDt(1.0f /500.0f);
+    setDt(1.0f /100.0f);
 
     Matrix I3 = Matrix::identity(3);
     Matrix I6 = Matrix::identity(6);
@@ -79,13 +79,49 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     // initial state covariance matrix
     _kalman.setP(I9*1.0f);
 
+    // update subscriptions
+    while(1)
+    {
+        updateSubscriptions();
+        if (_gps.fix_type>2) break;
+        printf("[kalman_demo] waiting for gps lock\n");
+        usleep(1000000);
+    }
+
+    // initial state
+    phi = 0.0f;
+    theta = 0.0f;
+    psi = 0.0f;
+    vN = _gps.vel_n;
+    vE = _gps.vel_e;
+    vD = _gps.vel_d;
+    L = _gps.lat;
+    l = _gps.lon;
+    h = _gps.alt;
+
+    // initialize quaternions
+    float cosPhi_2 = cosf(phi/2.0f);
+    float cosTheta_2 = cosf(theta/2.0f);
+    float cosPsi_2 = cosf(psi/2.0f);
+    float sinPhi_2 = sinf(phi/2.0f);
+    float sinTheta_2 = sinf(theta/2.0f);
+    float sinPsi_2 = sinf(psi/2.0f);
+    a = cosPhi_2*cosTheta_2*cosPsi_2 + 
+        sinPhi_2*sinTheta_2*sinPsi_2;
+    b = sinPhi_2*cosTheta_2*cosPsi_2 -
+        cosPhi_2*sinTheta_2*sinPsi_2;
+    c = cosPhi_2*sinTheta_2*cosPsi_2 +
+        sinPhi_2*cosTheta_2*sinPsi_2;
+    d = cosPhi_2*cosTheta_2*sinPsi_2 +
+        sinPhi_2*sinTheta_2*cosPsi_2;
+
     // noise
-    V(0,0) = 0.01f;    // gyro x, rad/s
-    V(1,1) = 0.01f;    // gyro y
-    V(2,2) = 0.01f;    // gyro z
-    V(3,3) = 0.01f;    // accel x, m/s^2
-    V(4,4) = 0.01f;    // accel y
-    V(5,5) = 0.01f;    // accel z
+    V(0,0) = 10000.0f; //0.01f;    // gyro x, rad/s
+    V(1,1) = 10000.0f; //0.01f;    // gyro y
+    V(2,2) = 10000.0f; //0.01f;    // gyro z
+    V(3,3) = 10000.0f; //0.01f;    // accel x, m/s^2
+    V(4,4) = 10000.0f; //0.01f;    // accel y
+    V(5,5) = 10000.0f; //0.01f;    // accel z
 
     // magnetometer noise
     RMag = I3*0.01f;   // gauss
@@ -313,6 +349,7 @@ void KalmanNav::predictSlow()
     float tanL = tanf(L);
 
     // F Matrix
+    // Titterton pg. 291
     Matrix & F = _kalman.getF();
 
     // difference from Jacobian
@@ -370,6 +407,7 @@ void KalmanNav::predictSlow()
     F(8,5) = (-1)*dt;
 
     // G Matrix
+    // Titterton pg. 291
     G(0,0) = -Dcm(0,0)*dt; 
     G(0,1) = -Dcm(0,1)*dt; 
     G(0,2) = -Dcm(0,2)*dt; 
@@ -456,11 +494,17 @@ void KalmanNav::correctGps()
 {
     using namespace math;
     Vector zGps(6);
-    zGps(0) = _gps.vel_n; // vn
-    zGps(1) = _gps.vel_e; // ve
-    zGps(2) = _gps.vel_d; // vd
-    zGps(3) = _gps.lat; // L
-    zGps(4) = _gps.lon; // l
-    zGps(5) = _gps.alt; // h
-    _kalman.correct(zGps,HGps,RGps);
+    //zGps(0) = _gps.vel_n; // vn
+    //zGps(1) = _gps.vel_e; // ve
+    //zGps(2) = _gps.vel_d; // vd
+    //zGps(3) = _gps.lat; // L
+    //zGps(4) = _gps.lon; // l
+    //zGps(5) = _gps.alt; // h
+    //_kalman.correct(zGps,HGps,RGps);
+    vN = _gps.vel_n;
+    vE = _gps.vel_e;
+    vD = _gps.vel_d;
+    L = _gps.lat;
+    l = _gps.lon;
+    h = _gps.alt;
 }
