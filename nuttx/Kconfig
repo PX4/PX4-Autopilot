@@ -20,10 +20,75 @@ menu "Build Setup"
 config EXPERIMENTAL
 	bool "Prompt for development and/or incomplete code/drivers"
 
+choice
+	prompt "Build Host Platform"
+	default HOST_LINUX
+
+config HOST_LINUX
+	bool "Linux"
+
+config HOST_OSX
+	bool "OSX"
+
+config HOST_WINDOWS
+	bool "Windows"
+
+config HOST_OTHER
+	bool "Other"
+
+endchoice
+
+choice
+	prompt "Windows Build Environment"
+	default WINDOWS_CYGWIN
+	depends on HOST_WINDOWS
+
+config WINDOWS_NATIVE
+	bool "Windows Native"
+	---help---
+		Build natively in a CMD.exe environment with Windows style paths (like C:\cgywin\home)
+
+config WINDOWS_CYGWIN
+	bool "Cygwin"
+-	--help---
+		Build natively in a Cygwin environment with POSIX style paths (like /cygdrive/c/cgywin/home)
+
+config WINDOWS_MSYS
+	bool "MSYS"
+	---help---
+		Build natively in a Cygwin environment with POSIX style paths (like /cygdrive/c/cgywin/home)
+
+config WINDOWS_OTHER
+	bool "Windows POSIX-like environment"
+	---help---
+		Build natively in another POSIX-like environment.  Additional support may be necessary
+
+endchoice
+
+config WINDOWS_MKLINK
+	bool "Use mklink"
+	default n
+	depends on WINDOWS_NATIVE
+	---help---
+		Use the mklink command to set up symbolic links when NuttX is
+		configured.  Otherwise, configuration directories will be copied to
+		establish the configuration.
+
+		If directories are copied, then some confusion can result ("Which
+		version of the file did I modify?").  In that case, it is recommended
+		that you re-build using 'make clean_context all'.  That will cause the
+		configured directories to be recopied on each build.
+
+		NOTE: This option also (1) that you have administrator privileges, (2)
+		that you are using Windows 2000 or better, and (3) that you are using
+		the NTFS file system.  Select 'n' is that is not the case.
+
 menu "Build Configuration"
+
 config APPS_DIR
 	string "Application directory"
-	default "../apps"
+	default "../apps" if !WINDOWS_NATIVE
+	default "..\apps" if WINDOWS_NATIVE
 	---help---
 		Identifies the directory that builds the
 		application to link with NuttX.  Default: ../apps This symbol must be assigned
@@ -192,6 +257,17 @@ config ARCH_MATH_H
 		that don't select ARCH_MATH_H, the redirecting math.h header file
 		will stay out-of-the-way in include/nuttx/.
 
+config ARCH_FLOAT_H
+	bool "float.h"
+	default n
+	---help---
+		The float.h header file defines the properties of your floating
+		point implementation.  It would always be best to use your
+		toolchain's float.h header file but if none is avaiable, a default
+		float.h header file will provided if this option is selected.  However
+ 		there is no assurance that the settings in this float.h are actually
+		correct for your platform!
+
 config ARCH_STDARG_H
 	bool "stdarg.h"
 	default n
@@ -244,17 +320,24 @@ config DEBUG_ENABLE
 
 comment "Subsystem Debug Options"
 
+config DEBUG_MM
+	bool "Enable Memory Manager Debug Output"
+	default n
+	---help---
+		Enable memory management debug output (disabled by default)
+
 config DEBUG_SCHED
 	bool "Enable Scheduler Debug Output"
 	default n
 	---help---
 		Enable OS debug output (disabled by default)
 
-config DEBUG_MM
-	bool "Enable Memory Manager Debug Output"
+config DEBUG_PAGING
+	bool "Enable Demand Paging Debug Output"
 	default n
+	depends on PAGING
 	---help---
-		Enable memory management debug output (disabled by default)
+		Enable demand paging debug output (disabled by default)
 
 config DEBUG_NET
 	bool "Enable Network Debug Output"
@@ -311,6 +394,13 @@ config DEBUG_INPUT
 		Enable low level debug output from the input device drivers such as
  		mice and touchscreens (disabled by default)
 
+config DEBUG_ANALOG
+	bool "Enable Analog Device Debug Output"
+	default n
+	---help---
+		Enable low level debug output from the analog device drivers such as
+ 		A/D and D/A converters (disabled by default)
+
 config DEBUG_I2C
 	bool "Enable I2C Debug Output"
 	default n
@@ -325,12 +415,18 @@ config DEBUG_SPI
 	---help---
 		Enable I2C driver debug output (disabled by default)
 
+config DEBUG_DMA
+	bool "Enable DMA Debug Output"
+	default n
+	---help---
+		Enable DMA-releated debug output (disabled by default)
+
 config DEBUG_WATCHDOG
 	bool "Enable Watchdog Timer Debug Output"
 	default n
 	depends on WATCHDOG
 	---help---
-		Enable  watchdog timer debug output (disabled by default)
+		Enable watchdog timer debug output (disabled by default)
 
 endif
 
@@ -375,8 +471,12 @@ menu "Memory Management"
 source mm/Kconfig
 endmenu
 
+menu "Binary Formats"
+source binfmt/Kconfig
+endmenu
+
 menu "Library Routines"
-source lib/Kconfig
+source libc/Kconfig
 source libxx/Kconfig
 endmenu
 

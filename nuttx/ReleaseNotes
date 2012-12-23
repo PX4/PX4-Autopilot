@@ -3171,3 +3171,81 @@ Bugfixes (see the change log for details).  Some of these are very important
       Vainish). Fix some field-width handling issues in sscanf()
 
 As well as other, less critical bugs (see the ChangeLog for details)
+
+NuttX-6.23
+^^^^^^^^^^
+
+The 90th release of NuttX, Version 6.23, was made on November 5, 2012,
+and is available for download from the SourceForge website.  Note
+that release consists of two tarballs:  nuttx-6.23.tar.gz and
+apps-6.23.tar.gz.  Both may be needed (see the top-level nuttx/README.txt
+file for build information).
+
+This release corresponds with SVN release number: r5313
+
+Note that all SVN information has been stripped from the tarballs.  If you
+r5313 the SVN configuration, you should check out directly from SVN.  Revision
+r5206 should equivalent to release 6.22 of NuttX 6.22:
+
+    svn checkout -r5313 svn://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+
+Or
+
+    svn checkout -r5313 http://svn.code.sf.net/p/nuttx/code/trunk nuttx-code
+
+Additional new features and extended functionality:
+
+    * RTOS:  If both atexit() and on_exit() are enabled, use on_exit() to
+      implement atexit().  Updates for RGMP 4.0.
+
+    * Binfmt:  Add support for loading and executing ELF binary modules from
+      a file system.
+
+    * Drivers:  Maxim MAX11802 touchscreen controller (Petteri Aimonen)
+
+    * STM32 Driver:  Implementation of /dev/random using the STM32 Random Number
+      Generator (RNG).
+
+    * STM32 Boards:  ADC support for the Shenzhou IV board.  Relay support for
+      the Shenzhou IV board.
+
+    * C Library:  Support is now included for the add-on uClibc++ C++
+      standard library support.  This includes support for iostreams, strings,
+      STL, RTTI, exceptions -- the complete C++ environment.  (uClibc++ is
+      provided as a separate add-on package due to licensing issues).
+
+      Optimized generic and ARM-specific memcpy() function.  Optimized
+      memset() function.
+
+      Add support for ferror(), feof(), and clearerror().   Add support for
+      __cxa_atexit().
+ 
+      Math Library:  Port of the math library from Rhombus OS by Nick Johnson
+      (Darcy Gong).
+
+    * Applications: New NSH commands:  ifup, ifdown, urlencode, urldecode,
+      base64enc, bas64dec, md5 (Darcy Gong).  Add support for NSH telnet login
+      (Darcy Gong).  Enancements to NSH ping command to support pinging hosts
+      with very long round-trip times.  Extensions to the ifconfig command 
+      Darcy Gong),
+      
+      Many extensions to the webclient/wget and DNS resolver logic from Darcy
+      Gong.  JSON, Base64, URL encoding, and MD5 libraries contributed by Darcy
+      Gong.
+
+      New examples: ELF loader, JSON, wgetjson, cxxtest, relays.
+
+Bugfixes (see the change log for details).  Some of these are very important
+(marked *critical*):
+
+    * Drivers: W25 SPI FLASH
+
+    * STM32 Drivers: ADC reset
+
+    * Graphics: Missing implementation of the blocked method (*critical*,
+      Petteri Aimonen).
+
+    * C Library: Floating point numbers in printf and related formatting functions
+     (Mike Smith), cf[get|set]speed() (Mike Smith)
+
+As well as other, less critical bugs (see the ChangeLog for details)

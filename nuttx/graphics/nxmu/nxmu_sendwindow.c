@@ -112,3 +112,47 @@ int nxmu_sendwindow(FAR struct nxbe_window_s *wnd, FAR const void *msg,
 
   return ret;
 }
+
+/****************************************************************************
+ * Name: nxmu_sendclientwindow
+ *
+ * Description:
+ *  Send a message to the client at NX_CLIMSG_PRIO priority
+ *
+ * Input Parameters:
+ *   wnd    - A pointer to the back-end window structure
+ *   msg    - A pointer to the message to send
+ *   msglen - The length of the message in bytes.
+ *
+ * Return:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nxmu_sendclientwindow(FAR struct nxbe_window_s *wnd, FAR const void *msg,
+                    size_t msglen)
+{
+    int ret = OK;
+
+  /* Sanity checking */
+
+#ifdef CONFIG_DEBUG
+  if (!wnd || !wnd->conn)
+    {
+      errno = EINVAL;
+      return ERROR;
+    }
+#endif
+
+  /* Ignore messages destined to a blocked window (no errors reported) */
+
+  if (!NXBE_ISBLOCKED(wnd))
+    {
+      /* Send the message to the server */
+
+      ret = nxmu_sendclient(wnd->conn, msg, msglen);
+    }
+
+  return ret;
+}
+

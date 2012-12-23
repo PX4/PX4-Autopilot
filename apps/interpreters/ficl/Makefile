@@ -1,7 +1,7 @@
 ############################################################################
 # apps/interpreters/ficl/Makefile
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,13 +35,10 @@
 
 BUILDDIR := ${shell pwd | sed -e 's/ /\\ /g'}
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 include $(APPDIR)/Make.defs
 
 # Tools
-
-INCDIR = $(TOPDIR)/tools/incdir.sh
 
 ifeq ($(WINTOOL),y)
 INCDIROPT = -w
@@ -69,10 +66,14 @@ COBJS = $(CSRCS:.c=$(OBJEXT))
 SRCS = $(ASRCS) $(CSRCS)
 OBJS = $(AOBJS) $(COBJS)
 
-ifeq ($(WINTOOL),y)
-  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  BIN		= ..\..\libapps$(LIBEXT)
 else
-  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
+ifeq ($(WINTOOL),y)
+  BIN		= ..\\..\\libapps$(LIBEXT)
+else
+  BIN		= ../../libapps$(LIBEXT)
+endif
 endif
 
 ROOT_DEPPATH = --dep-path .
@@ -95,24 +96,24 @@ debug:
 	@#echo "CFLAGS: $(CFLAGS)"
 
 .built: debug $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $(BIN), $${obj}); \
-	done ; )
-	@touch .built
+	$(call ARCHIVE, $(BIN), $(OBJS))
+	$(Q) touch .built
 
 context:
 
 .depend: debug Makefile $(SRCS)
-	@$(MKDEP) $(ROOT_DEPPATH) $(SRC_DEPPATH) $(FICL_DEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-	@touch $@
+	$(Q) $(MKDEP) $(ROOT_DEPPATH) $(SRC_DEPPATH) $(FICL_DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE, .context)
+	$(call DELFILE, .built)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep

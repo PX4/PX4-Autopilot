@@ -14,8 +14,8 @@ nuttx/
   (2)  C++ Support
   (6)  Binary loaders (binfmt/)
  (17)  Network (net/, drivers/net)
-  (3)  USB (drivers/usbdev, drivers/usbhost)
- (11)  Libraries (lib/)
+  (4)  USB (drivers/usbdev, drivers/usbhost)
+ (11)  Libraries (libc/, )
   (9)  File system/Generic drivers (fs/, drivers/)
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
@@ -32,7 +32,7 @@ nuttx/
   (0)  ARM/LPC43x (arch/arm/src/lpc43xx/)
   (3)  ARM/STR71x (arch/arm/src/str71x/)
   (3)  ARM/LM3S6918 (arch/arm/src/lm3s/)
-  (7)  ARM/STM32 (arch/arm/src/stm32/)
+  (4)  ARM/STM32 (arch/arm/src/stm32/)
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
   (4)  8051 / MCS51 (arch/8051/)
@@ -421,7 +421,7 @@ o Binary loaders (binfmt/)
                   .word   .LC3-(.LPIC4+4)
                   .word   .LC4-(.LPIC5+4)
 
-               This is good and bad.  This is good because it means that .rodata.str1.1 can not
+               This is good and bad.  This is good because it means that .rodata.str1.1 can now
                reside in FLASH with .text and can be accessed using PC-relative addressing. 
                That can be accomplished by simply moving the .rodata from the .data section to
                the .text section in the linker script.  (The NXFLAT linker script is located at
@@ -629,8 +629,13 @@ o USB (drivers/usbdev, drivers/usbhost)
                CDC/ACM serial driver might need the line coding data (that
                data is not used currenly, but it might be).
 
-o Libraries (lib/)
-  ^^^^^^^^^^^^^^^^
+  Title:       USB HUB SUPPORT
+  Description: Add support for USB hubs
+  Status:      Open
+  Priority:    Low/Unknown.  This is a feature enhancement.
+
+o Libraries (libc/)
+  ^^^^^^^^^^^^^^^^^
 
   Title:       ENVIRON
   Description: The definition of environ in stdlib.h is bogus and will not
@@ -643,7 +648,7 @@ o Libraries (lib/)
   Description: Need some minimal termios support... at a minimum, enough to
                switch between raw and "normal" modes to support behavior like
                that needed for readline().
-               UPDATE:  There is growing functionality in lib/termios/ and in the
+               UPDATE:  There is growing functionality in libc/termios/ and in the
                ioctl methods of several MCU serial drivers (stm32, lpc43, lpc17,
                pic32).  However, as phrased, this bug cannot yet be closed since
                this "growing functionality" does not address all termios.h
@@ -708,7 +713,7 @@ o Libraries (lib/)
   Priority:     
 
   Title:       OLD dtoa NEEDS TO BE UPDATED
-  Description: This implementation of dtoa in lib/stdio is old and will not
+  Description: This implementation of dtoa in libc/stdio is old and will not
                work with some newer compilers.  See 
                http://patrakov.blogspot.com/2009/03/dont-use-old-dtoac.html
   Status:      Open
@@ -716,7 +721,7 @@ o Libraries (lib/)
 
   Title:       SYSLOG INTEGRATION
   Description: There are the beginnings of some system logging capabilities (see
-               drivers/syslog, fs/fs_syslog.c, and lib/stdio/lib_librawprintf.c and
+               drivers/syslog, fs/fs_syslog.c, and libc/stdio/lib_librawprintf.c and
                lib_liblowprintf.c.  For NuttX, SYSLOG is a concept and includes,
                extends, and replaces the legacy NuttX debug ouput.  Some additional
                integration is required to formalized this.  For example:
@@ -953,7 +958,7 @@ o Build system
                built configuration, only the multiple user mode can be supported
                with the NX server residing inside of the kernel space.  In
                this case, most of the user end functions in graphics/nxmu
-               must be moved to lib/nx and those functions must be built into
+               must be moved to libc/nx and those functions must be built into
                libuser.a to be linked with the user-space code.
                A similar issue exists in NSH that uses some internal OS
                interfaces that would not be available in a kernel build
@@ -1344,11 +1349,6 @@ o ARM/LM3S6918 (arch/arm/src/lm3s/)
 o ARM/STM32 (arch/arm/src/stm32/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  Title:       NOR FLASH DRIVER
-  Description: NOR Flash driver with FTL layer to support a file system.
-  Status:      Open
-  Priority:    Low
-
   Title:       USBSERIAL ISSUES
   Description  A USB device-side driver is in place but not well tested.  At
                present, the apps/examples/usbserial test sometimes fails.  The situation
@@ -1371,23 +1371,12 @@ o ARM/STM32 (arch/arm/src/stm32/)
   Status:      Open
   Priority:    Medium-High
   
-  Title:       FSMC EXTERNAL MEMORY UNTESTED
-  Description: FSMC external memory support is untested
-  Status:      Open
-  Priority:    Low
-
   Title:       DMA EXTENSIONS
   Description: DMA logic needs to be extended.  DMA2, Channel 5, will not work
                because the DMA2 channels 4 & 5 share the same interrupt.
   Status:      Open
   Priority:    Low until someone needs DMA1, Channel 5 (ADC3, UART4_TX, TIM5_CH1, or
                TIM8_CH2).
-
-  Title:       UNFINISHED DRIVERS
-  Description: The following drivers are incomplete:  DAC.  The following drivers
-               are untested:  DMA on the F4, CAN.
-  Status:      Open
-  Priority:    Medium
 
   Title:       F4 SDIO MULTI-BLOCK TRANSFER FAILURES
   Description: If you use a large I/O buffer to access the file system, then the
@@ -1412,13 +1401,15 @@ o ARM/STM32 (arch/arm/src/stm32/)
   Status:      Open
   Priority:    Low (I am not even sure if this is a problem yet).
 
-  Status:      UNFINISHED STM32 F4 OTG FS HOST DRIVER
-  Description: A quick-n-dirty leverage of the the LPC17xx host driver was put into
-               the STM32 source to support development of the STM32 F4 OTG FS host
-               driver.  It is non-functional and still waiting for STM32 F4 logic
-               to be added.  Don't use it!
+  Title:       DMA FROM EXTERNAL, FSMC MEMORY
+  Description: I have seen a problem on F1 where all SDIO DMAs work exist for
+               write DMAs from FSMC memory (i.e., from FSMC memory to SDIO).
+               Read transfers work fine (SDIO to FSMC memory).  The failure is
+               a data underrun error with zero bytes of data transferred.  The
+               workaround for now is to use DMA buffers allocted from internal
+               SRAM.
   Status:      Open
-  Priority:    Low (unless you need a host driver).
+  Priority:    Low
 
 o AVR (arch/avr)
   ^^^^^^^^^^^^^^

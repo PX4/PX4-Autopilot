@@ -93,6 +93,9 @@ CONFIG_ARCH_MATH_H=y
 
 CONFIG_ARMV7M_CMNVECTOR=y
 
+# default to a generic arm-none-eabi toolchain
+CONFIG_ARMV7M_TOOLCHAIN_GNU_EABI=y
+
 #
 # JTAG Enable settings (by default JTAG-DP and SW-DP are enabled):
 #
@@ -767,6 +770,8 @@ CONFIG_FS_ROMFS=y
 # CONFIG_MMCSD_SPICLOCK - Maximum SPI clock to drive MMC/SD card.
 #   Default is 20MHz, current setting 24 MHz
 #
+CONFIG_MMCSD=y
+CONFIG_MMCSD_SPI=y
 CONFIG_MMCSD_NSLOTS=1
 CONFIG_MMCSD_READONLY=n
 CONFIG_MMCSD_SPICLOCK=24000000

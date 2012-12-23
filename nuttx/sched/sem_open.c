@@ -120,7 +120,6 @@ FAR sem_t *sem_open (FAR const char *name, int oflag, ...)
   FAR nsem_t  *psem;
   FAR sem_t   *sem = (FAR sem_t*)ERROR;
   va_list      arg;          /* Points to each un-named argument */
-  mode_t       mode;         /* Creation mode parameter (ignored) */
   unsigned int value;        /* Semaphore value parameter */
 
   /* Make sure that a non-NULL name is supplied */
@@ -165,7 +164,7 @@ FAR sem_t *sem_open (FAR const char *name, int oflag, ...)
                */
 
               va_start(arg, oflag);
-              mode = va_arg(arg, mode_t);
+              (void)va_arg(arg, mode_t); /* Creation mode parameter (ignored) */
               value = va_arg(arg, unsigned int);
 
               /* Verify that a legal initial value was selected. */

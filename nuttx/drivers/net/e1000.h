@@ -44,9 +44,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <rgmp/types.h>
-#include <rgmp/trap.h>
-#include <rgmp/arch/arch.h>
+#include <stdint.h>
 
 /****************************************************************************
  * Pre-processor Definitions
