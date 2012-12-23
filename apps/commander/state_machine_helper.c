@@ -611,7 +611,7 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 
 	/* NEVER actually switch off HIL without reboot */
 	if (current_status->flag_hil_enabled && !(mode & VEHICLE_MODE_FLAG_HIL_ENABLED)) {
-		fprintf(stderr, "[commander] DENYING request to switch of HIL. Please power cycle (safety reasons)\n");
+		fprintf(stderr, "[commander] DENYING request to switch off HIL. Please power cycle (safety reasons)\n");
 		ret = ERROR;
 	}
 
