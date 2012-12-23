@@ -157,34 +157,34 @@ void KalmanNav::update()
     _navFrames += 1;
 
     // fast prediciton step
-    predictFast(); // 500 Hz
+    predictFast(); // 250 Hz
 
-    if (_navFrames % 5 == 0) // 100 Hz 
+    if (_navFrames % 2 == 0) // 125 Hz 
     {
         predictSlow();
     }
 
     // gps correction step
-    if (_navFrames % 50 == 0) // 10 Hz
+    if (_navFrames % 25 == 0) // 10 Hz
     {
         correctGps();
     }
 
     // mag correction step
-    if (_navFrames % 25 == 0) // 20 Hz 
+    if (_navFrames % 25 == 0) // 10 Hz 
     {
         correctMag();
     }
 
     // publication
-    if (_navFrames % 10 == 0) // 50 Hz
+    if (_navFrames % 5 == 0) // 50 Hz
     {
         _pubTimeStamp = newTimeStamp;
         updatePublications();
     }
 
     // output
-    if (_navFrames % 500 == 0) // 1 Hz
+    if (_navFrames % 250 == 0) // 1 Hz
     {
         uint16_t schedRate = 1.0f/getDt();
         if (float(_navFrames)/schedRate < 0.99f)

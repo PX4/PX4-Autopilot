@@ -474,18 +474,18 @@ def main_loop():
 
                 # mission/ flight envelope check
                 tsim = time.time()-tstart_sim #fdm.get('time', units='seconds') - tstart_sim,
-                if not missionFailed:
-                    if not check_mission_env(fdm, tsim):
-                        print 'Mission Envelope Failure!'
-                        missionFailed = True
-                        iterResults['missionFail'].append(tsim)
+                #if not missionFailed:
+                    #if not check_mission_env(fdm, tsim):
+                        #print 'Mission Envelope Failure!'
+                        #missionFailed = True
+                        #iterResults['missionFail'].append(tsim)
 
-                if not check_flight_env(fdm):
-                    print 'Flight Envelope Failure!'
-                    iterResults['flightFail'].append(tsim)
-                    if not missionFailed:
-                        iterResults['missionFail'].append(tsim)
-                    break
+                #if not check_flight_env(fdm):
+                    #print 'Flight Envelope Failure!'
+                    #iterResults['flightFail'].append(tsim)
+                    #if not missionFailed:
+                        #iterResults['missionFail'].append(tsim)
+                    #break
 
                 if tsim > 80:
                     print 'Time has ended.'
