@@ -177,7 +177,7 @@ endif
 	$(call DELFILE, $(BIN))
 	$(call CLEAN)
 
-distclean: # clean
+distclean:
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) for %%G in ($(SUBDIRS)) do ( \
 		$(MAKE) -C %%G distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" \

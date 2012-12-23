@@ -64,4 +64,4 @@ depend: $(foreach SDIR, $(SUBDIRS), $(SDIR)_depend)
 
 clean: $(foreach SDIR, $(SUBDIRS), $(SDIR)_clean)
 
-distclean: clean $(foreach SDIR, $(SUBDIRS), $(SDIR)_distclean)
+distclean: $(foreach SDIR, $(SUBDIRS), $(SDIR)_distclean)

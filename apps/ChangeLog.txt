@@ -435,3 +435,8 @@
 	  logic to find the absolute path to the program using the PATH variable.
 
 6.25 2013-xx-xx Gregory Nutt <gnutt@nuttx.org>
+
+	* Makefiles: Removed dependency of distclean on clean in most top-level
+	  files.  It makes sense for 'leaf' Makefiles to have this dependency,
+	  but it does not make sense for upper-level Makefiles.
+
