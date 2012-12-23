@@ -22,7 +22,7 @@ def serializePlotStructs(plotStructs, fileName):
 
 def generatePlotStructs(results, attacks, saveDir):
     
-    resultKeys = ['flightFailNoFault','missionFailNoFault','flightFailFault','missionFailFault','faultDetect']
+    resultKeys = ['flightFail','missionFail']
     plotData = dict.fromkeys(resultKeys)
 
     xdata = dict.fromkeys(resultKeys)
@@ -30,13 +30,8 @@ def generatePlotStructs(results, attacks, saveDir):
     zdata = dict.fromkeys(resultKeys)
     titles = dict.fromkeys(resultKeys)
 
-    titles['flightFailNoFault'] = 'Flight Envelope Failure Time (no Fault Detection)'
-    titles['flightFailFault'] = 'Flight Envelope Failure Time (with Fault Detection)'
-
-    titles['missionFailNoFault'] = 'Mission Envelope Failure Time (no Fault Detection)'
-    titles['missionFailFault'] = 'Mission Envelope Failure Time (with Fault Detection)'
-
-    titles['faultDetect'] = 'Fault Detection Time'
+    titles['flightFail'] = 'Flight Envelope Failure Time (without Fault Detection)'
+    titles['missionFail'] = 'Mission Envelope Failure Time (without Fault Detection)'
 
     # Generate size-dependent values
     attackSize = len(attacks)
