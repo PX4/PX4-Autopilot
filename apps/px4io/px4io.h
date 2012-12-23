@@ -69,17 +69,13 @@
 struct sys_state_s 
 {
 
-	bool		armed;		/* IO armed */
-	bool		arm_ok;		/* FMU says OK to arm */
-
-	bool		ppm_input_ok;	/* valid PPM input data */
-	bool		dsm_input_ok;	/* valid Spektrum DSM data */
-	bool		sbus_input_ok;	/* valid Futaba S.Bus data */
+	bool		armed;			/* IO armed */
+	bool		arm_ok;			/* FMU says OK to arm */
 
 	/*
 	 * Data from the remote control input(s)
 	 */
-	int		rc_channels;
+	unsigned	rc_channels;
 	uint16_t	rc_channel_data[PX4IO_INPUT_CHANNELS];
 	uint64_t	rc_channels_timestamp;
 
@@ -169,9 +165,9 @@ extern void	comms_main(void) __attribute__((noreturn));
  */
 extern void	controls_main(void);
 extern int	dsm_init(const char *device);
-extern void	dsm_input(void);
+extern bool	dsm_input(void);
 extern int	sbus_init(const char *device);
-extern void	sbus_input(void);
+extern bool	sbus_input(void);
 
 /*
  * Assertion codes
