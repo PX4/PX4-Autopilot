@@ -1,8 +1,7 @@
 ############################################################################
-# apps/namedapps/Make.defs
-# Adds selected applications to apps/ build
+# apps/builtin/Makefile
 #
-#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,7 +33,78 @@
 #
 ############################################################################
 
-ifeq ($(CONFIG_NAMEDAPP),y)
-CONFIGURED_APPS += namedapp
+-include $(TOPDIR)/.config
+-include $(TOPDIR)/Make.defs
+include $(APPDIR)/Make.defs
+
+# NSH Library
+
+# Source and object files
+
+ASRCS		=
+CSRCS		= builtin.c exec_builtin.c
+
+ifeq ($(CONFIG_APPS_BINDIR),y)
+CSRCS		+= binfs.c
 endif
+
+AOBJS		= $(ASRCS:.S=$(OBJEXT))
+COBJS		= $(CSRCS:.c=$(OBJEXT))
+
+SRCS		= $(ASRCS) $(CSRCS)
+OBJS		= $(AOBJS) $(COBJS)
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  BIN		= ..\libapps$(LIBEXT)
+else
+ifeq ($(WINTOOL),y)
+  BIN		= ..\\libapps$(LIBEXT)
+else
+  BIN		= ../libapps$(LIBEXT)
+endif
+endif
+
+ROOTDEPPATH	= --dep-path .
+VPATH		= 
+
+# Build Targets
+
+all:	.built
+.PHONY: .context context depend clean distclean
+
+$(AOBJS): %$(OBJEXT): %.S
+	$(call ASSEMBLE, $<, $@)
+
+$(COBJS): %$(OBJEXT): %.c
+	$(call COMPILE, $<, $@)
+
+.built: $(OBJS)
+	$(call ARCHIVE, $(BIN), $(OBJS))
+	$(Q) touch .built
+
+.context:
+	@echo "/* List of application requirements, generated during make context. */" > builtin_list.h
+	@echo "/* List of application entry points, generated during make context. */" > builtin_proto.h
+	$(Q) touch $@
+
+context: .context
+
+.depend: Makefile $(SRCS)
+	$(Q) $(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) touch $@
+
+depend: .depend
+
+clean:
+	$(call DELFILE, .built)
+	$(call CLEAN)
+
+distclean: clean
+	$(call DELFILE, .context)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
+	$(call DELFILE, builtin_list.h)
+	$(call DELFILE, builtin_proto.h)
+
+-include Make.dep
 

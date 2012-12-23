@@ -439,4 +439,5 @@
 	* Makefiles: Removed dependency of distclean on clean in most top-level
 	  files.  It makes sense for 'leaf' Makefiles to have this dependency,
 	  but it does not make sense for upper-level Makefiles.
+	* namedapp/: Renamed to builtins in preparation for another change.
 

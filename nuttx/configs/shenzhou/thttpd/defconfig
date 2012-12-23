@@ -474,7 +474,7 @@ CONFIG_HAVE_CXX=y
 #
 # Named Applications
 #
-CONFIG_NAMEDAPP=y
+CONFIG_BUILTIN=y
 
 #
 # Examples

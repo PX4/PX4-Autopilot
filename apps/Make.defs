@@ -36,6 +36,6 @@
 
 define REGISTER
 	@echo "Register: $1"
-	@echo "{ \"$1\", $2, $3, $4 }," >> "$(APPDIR)/namedapp/namedapp_list.h"
-	@echo "EXTERN int $4(int argc, char *argv[]);" >> "$(APPDIR)/namedapp/namedapp_proto.h"
+	@echo "{ \"$1\", $2, $3, $4 }," >> "$(APPDIR)/builtin/builtin_list.h"
+	@echo "EXTERN int $4(int argc, char *argv[]);" >> "$(APPDIR)/builtin/builtin_proto.h"
 endef

@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/namedaps/namedapp.h
+ * apps/builtin/builtin.h
  *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
@@ -35,8 +35,8 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_NAMEDAPP_NAMEDAPP_H
-#define __APPS_NAMEDAPP_NAMEDAPP_H
+#ifndef __APPS_BUILTIN_BUILTIN_H
+#define __APPS_BUILTIN_BUILTIN_H
 
 /****************************************************************************
  * Included Files
@@ -53,7 +53,6 @@
  * Public Data
  ****************************************************************************/
 
-#undef EXTERN
 #if defined(__cplusplus)
 #define EXTERN extern "C"
 extern "C" {
@@ -61,18 +60,18 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-EXTERN const struct namedapp_s namedapps[];
+EXTERN const struct builtin_s builtins[];
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-EXTERN int number_namedapps(void);
+EXTERN int number_builtins(void);
 
 #undef EXTERN
 #if defined(__cplusplus)
 }
 #endif
 
-#endif /* __APPS_NAMEDAPP_NAMEDAPP_H */
+#endif /* __APPS_BUILTIN_BUILTIN_H */
 

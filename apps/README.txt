@@ -6,12 +6,12 @@ Contents
 
   General
   Directory Location
-  Named Applications
-  Named Startup main() function
+  Built-In Applications
+  Built-In Startup main() function
   NuttShell (NSH) Built-In Commands
   Synchronous Built-In Commands
   Application Configuration File
-  Example Named Application
+  Example Built-In Application
   Building NuttX with Board-Specific Pieces Outside the Source Tree
 
 General
@@ -47,14 +47,14 @@ ways to do that:
    path to the application directory on the configuration command line
    like: ./configure.sh -a <app-dir> <board-name>/<config-name>
 
-Named Applications
-------------------
+Built-In Applications
+---------------------
 NuttX also supports applications that can be started using a name string.
 In this case, application entry points with their requirements are gathered
 together in two files:
 
-  - namedapp/namedapp_proto.h  Entry points, prototype function
-  - namedapp/namedapp_list.h  Application specific information and requirements
+  - builtin/builtin_proto.h  Entry points, prototype function
+  - builtin/builtin_list.h  Application specific information and requirements
 
 The build occurs in several phases as different build targets are executed:
 (1) context, (2) depend, and (3) default (all). Application information is
@@ -62,18 +62,18 @@ collected during the make context build phase.
 
 To execute an application function:
 
-  exec_namedapp() is defined in the nuttx/include/apps/apps.h 
+  exec_builtin() is defined in the nuttx/include/apps/apps.h 
 
 NuttShell (NSH) Built-In Commands
 ---------------------------------
-One use of named applications is to provide a way of invoking your custom
+One use of builtin applications is to provide a way of invoking your custom
 application through the NuttShell (NSH) command line.  NSH will support
 a seamless method invoking the applications, when the following option is
 enabled in the NuttX configuration file:
 
   CONFIG_NSH_BUILTIN_APPS=y
 
-Applications registered in the apps/namedapp/namedapp_list.h file will then
+Applications registered in the apps/builtin/builtin_list.h file will then
 be accessible from the NSH command line.  If you type 'help' at the NSH
 prompt, you will see a list of the registered commands.
 
@@ -109,9 +109,9 @@ CONFIGURED_APPS list like:
 
   CONFIGURED_APPS  += examples/hello system/poweroff
 
-Named Start-Up main() function
+Built-In Start-Up main() function
 ------------------------------
-A named application can even be used as the main, start-up entry point
+A builtin application can even be used as the main, start-up entry point
 into your embedded software.  When the user defines this option in
 the NuttX configuration file:
 
@@ -124,10 +124,10 @@ will call:
 
   int hello_main(int argc, char *argv[])
 
-Example Named Application
--------------------------
+Example Built-In Application
+----------------------------
 An example application skeleton can be found under the examples/hello
-sub-directory.  This example shows how a named application can be added
+sub-directory.  This example shows how a builtin application can be added
 to the project. One must define:
 
  1. create sub-directory as: appname

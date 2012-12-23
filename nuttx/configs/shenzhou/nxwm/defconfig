@@ -630,7 +630,7 @@ CONFIG_HAVE_CXXINITIALIZE=y
 #
 # Named Applications
 #
-CONFIG_NAMEDAPP=y
+CONFIG_BUILTIN=y
 
 #
 # Examples

@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/namedapps/binfs.c
+ * apps/builtin/binfs.c
  *
  *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -55,7 +55,7 @@
 #include <nuttx/fs/fs.h>
 #include <nuttx/fs/dirent.h>
 
-#include "namedapp.h"
+#include "builtin.h"
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && defined(CONFIG_APPS_BINDIR)
 
@@ -362,7 +362,7 @@ static int binfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
   /* Have we reached the end of the directory */
 
   index = dir->u.binfs.fb_index;
-  if (namedapps[index].name == NULL)
+  if (builtins[index].name == NULL)
     {
       /* We signal the end of the directory by returning the
        * special error -ENOENT
@@ -375,9 +375,9 @@ static int binfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
     {
       /* Save the filename and file type */
 
-      fvdbg("Entry %d: \"%s\"\n", index, namedapps[index].name);
+      fvdbg("Entry %d: \"%s\"\n", index, builtins[index].name);
       dir->fd_dir.d_type = DTYPE_FILE;
-      strncpy(dir->fd_dir.d_name, namedapps[index].name, NAME_MAX+1);
+      strncpy(dir->fd_dir.d_name, builtins[index].name, NAME_MAX+1);
 
       /* The application list is terminated by an entry with a NULL name.
        * Therefore, there is at least one more entry in the list.
@@ -559,7 +559,7 @@ static int binfs_stat(struct inode *mountpt, const char *relpath, struct stat *b
     {
       /* Check if there is a file with this name. */
 
-      if (namedapp_isavail(relpath) < 0)
+      if (builtin_isavail(relpath) < 0)
         {
           ret = -ENOENT;
           goto errout_with_semaphore;

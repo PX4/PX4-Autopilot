@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/namedaps/namedapp.c
+ * apps/builtin/builtin.c
  *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
@@ -62,11 +62,11 @@ extern "C" {
 #define EXTERN extern
 #endif
 
-#include "namedapp_proto.h"
+#include "builtin_proto.h"
 
-const struct namedapp_s namedapps[] =
+const struct builtin_s builtins[] =
 {
-# include "namedapp_list.h"
+# include "builtin_list.h"
   { NULL, 0, 0, 0 }
 };
 
@@ -88,9 +88,9 @@ const struct namedapp_s namedapps[] =
  * Public Functions
  ****************************************************************************/
 
-int number_namedapps(void)
+int number_builtins(void)
 {
-  return sizeof(namedapps)/sizeof(struct namedapp_s) - 1;
+  return sizeof(builtins)/sizeof(struct builtin_s) - 1;
 }
 
 

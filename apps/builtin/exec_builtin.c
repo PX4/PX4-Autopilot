@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/namedaps/exec_namedapp.c
+ * apps/builtin/exec_builtin.c
  *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
@@ -49,7 +49,7 @@
 #include <string.h>
 #include <errno.h>
 
-#include "namedapp.h"
+#include "builtin.h"
 
 /****************************************************************************
  * Private Types
@@ -72,26 +72,26 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: namedapp_getname
+ * Name: builtin_getname
  *
  * Description:
- *   Return the name of the application at index in the table of named
+ *   Return the name of the application at index in the table of builtin
  *   applications.
  *
  ****************************************************************************/
 
-const char *namedapp_getname(int index)
+const char *builtin_getname(int index)
 {
-  if (index < 0 || index >= number_namedapps())
+  if (index < 0 || index >= number_builtins())
    {
      return NULL;
    }
     
-  return namedapps[index].name;
+  return builtins[index].name;
 }
  
 /****************************************************************************
- * Name: namedapp_isavail
+ * Name: builtin_isavail
  *
  * Description:
  *   Return the index into the table of applications for the applicaiton with
@@ -99,13 +99,13 @@ const char *namedapp_getname(int index)
  *
  ****************************************************************************/
 
-int namedapp_isavail(FAR const char *appname)
+int builtin_isavail(FAR const char *appname)
 {
   int i;
     
-  for (i = 0; namedapps[i].name; i++) 
+  for (i = 0; builtins[i].name; i++) 
     {
-      if (!strcmp(namedapps[i].name, appname))
+      if (!strcmp(builtins[i].name, appname))
         {
           return i;
         }
@@ -116,39 +116,39 @@ int namedapp_isavail(FAR const char *appname)
 }
  
 /****************************************************************************
- * Name: namedapp_isavail
+ * Name: builtin_isavail
  *
  * Description:
  *   Execute the application with name 'appname', providing the arguments
  *   in the argv[] array.
  *
  * Returned Value:
- *   On success, the task ID of the named application is returned.  On
+ *   On success, the task ID of the builtin application is returned.  On
  *   failure, -1 (ERROR) is returned an the errno value is set appropriately.
  *
  ****************************************************************************/
 
-int exec_namedapp(FAR const char *appname, FAR const char **argv)
+int exec_builtin(FAR const char *appname, FAR const char **argv)
 {
   pid_t pid;
   int index;
 
   /* Verify that an application with this name exists */
 
-  index = namedapp_isavail(appname);
+  index = builtin_isavail(appname);
   if (index >= 0)
     {
-      /* Disable pre-emption.  This means that although we start the named
+      /* Disable pre-emption.  This means that although we start the builtin
        * application here, it will not actually run until pre-emption is
        * re-enabled below.
        */
 
       sched_lock();
 
-      /* Start the named application task */
+      /* Start the builtin application task */
 
-      pid = TASK_CREATE(namedapps[index].name, namedapps[index].priority, 
-                        namedapps[index].stacksize, namedapps[index].main, 
+      pid = TASK_CREATE(builtins[index].name, builtins[index].priority, 
+                        builtins[index].stacksize, builtins[index].main, 
                         (argv) ? &argv[1] : (const char **)NULL);
 
       /* If robin robin scheduling is enabled, then set the scheduling policy
@@ -165,11 +165,11 @@ int exec_namedapp(FAR const char *appname, FAR const char **argv)
            * new task cannot yet have changed from its initial value.
            */
 
-          param.sched_priority = namedapps[index].priority;
+          param.sched_priority = builtins[index].priority;
           sched_setscheduler(pid, SCHED_RR, &param);
         }
 #endif
-      /* Now let the named application run */
+      /* Now let the builtin application run */
 
       sched_unlock();
 

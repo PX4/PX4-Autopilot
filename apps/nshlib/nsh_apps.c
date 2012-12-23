@@ -90,7 +90,7 @@
  *    Attempt to execute the application task whose name is 'cmd'
  *
  * Returned Value:
- *   <0          If exec_namedapp() fails, then the negated errno value
+ *   <0          If exec_builtin() fails, then the negated errno value
  *               is returned.
  *   -1 (ERROR)  if the application task corresponding to 'cmd' could not
  *               be started (possibly because it doesn not exist).
@@ -119,7 +119,7 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
    * applications.
    */
 
-  ret = exec_namedapp(cmd, (FAR const char **)argv);
+  ret = exec_builtin(cmd, (FAR const char **)argv);
   if (ret >= 0)
     {
       /* The application was successfully started (but still blocked because
@@ -205,7 +205,7 @@ int nsh_execapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
 
   sched_unlock();
 
-  /* If exec_namedapp() or waitpid() failed, then return the negated errno
+  /* If exec_builtin() or waitpid() failed, then return the negated errno
    * value.
    */
 

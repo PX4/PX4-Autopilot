@@ -3,13 +3,13 @@
 # see misc/tools/kconfig-language.txt.
 #
 
-config NAMEDAPP
-	bool "Support named applications"
+config BUILTIN
+	bool "Support Builtin Applications"
 	default n
 	---help---
-		Enable support for named applications.  This features assigns a string
+		Enable support for builtin applications.  This features assigns a string
 		name to an application.  This feature is also the underlying requirement
 		to support built-in applications in the NuttShell (NSH).
 
-if NAMEDAPP
+if BUILTIN
 endif

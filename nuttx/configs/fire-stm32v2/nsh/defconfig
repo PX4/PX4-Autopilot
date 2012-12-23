@@ -531,7 +531,7 @@ CONFIG_LIB_SENDFILE_BUFSIZE=512
 #
 # Named Applications
 #
-CONFIG_NAMEDAPP=y
+CONFIG_BUILTIN=y
 
 #
 # Examples

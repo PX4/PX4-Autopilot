@@ -605,7 +605,7 @@ static inline void help_builtins(FAR struct nsh_vtbl_s *vtbl)
   /* List the set of available built-in commands */
 
   nsh_output(vtbl, "\nBuiltin Apps:\n");
-  for (i = 0; (name = namedapp_getname(i)) != NULL; i++)
+  for (i = 0; (name = builtin_getname(i)) != NULL; i++)
     {
       nsh_output(vtbl, "  %s\n", name);
     }
@@ -726,7 +726,7 @@ static int cmd_exit(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
  *   Exectue the command in argv[0]
  *
  * Returned Value:
- *   <0          If exec_namedapp() fails, then the negated errno value
+ *   <0          If exec_builtin() fails, then the negated errno value
  *               is returned.
  *   -1 (ERRROR) if the command was unsuccessful
  *    0 (OK)     if the command was successful
@@ -1439,13 +1439,13 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
     }
 
   /* Handle the case where the command is executed in background.
-   * However is app is to be started as namedapp new process will
+   * However is app is to be started as builtin new process will
    * be created anyway, so skip this step. */
 
 #ifndef CONFIG_NSH_DISABLEBG
   if (vtbl->np.np_bg
 #ifdef CONFIG_NSH_BUILTIN_APPS
-      && namedapp_isavail(argv[0]) < 0     
+      && builtin_isavail(argv[0]) < 0     
 #endif
   )
     {

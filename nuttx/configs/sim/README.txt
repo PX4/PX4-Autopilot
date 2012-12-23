@@ -148,9 +148,9 @@ If you are running X11 applications as NSH add-on programs, then the stack
 size of the add-on program is controlled in another way.  Here are the
 steps for increasing the stack size in that case:
 
-  cd ../apps/namedapps  # Go to the namedapps directory
-  vi namedapps_list.h   # Edit this file and increase the stack size of the add-on
-  rm .built *.o         # This will force the namedapps logic to rebuild
+  cd ../apps/builtin    # Go to the builtin apps directory
+  vi builtin_list.h     # Edit this file and increase the stack size of the add-on
+  rm .built *.o         # This will force the builtin apps logic to rebuild
 
 Buffered I/O Issues
 -------------------

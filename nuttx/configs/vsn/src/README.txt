@@ -12,7 +12,7 @@ Execution starts in the following order:
    is set. It must be set for the VSN board.
    
  - boot, performs initial chip and board initialization
- - sched/os_bringup.c then calls either user_start or exec_namedapp()
+ - sched/os_bringup.c then calls either user_start or exec_builtin()
    with application as set in the .config
 
 
@@ -55,4 +55,5 @@ Compile notes
 To link-in the sif_main() utility do, in this folder:
  - make context TOPDIR=<path to nuttx top dir>
  
-This will result in registering the application into the namedapp.
+This will result in registering the application into the builtin application
+registry.

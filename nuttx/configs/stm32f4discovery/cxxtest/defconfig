@@ -426,7 +426,7 @@ CONFIG_UCLIBCXX_HAVE_LIBSUPCXX=y
 #
 # Named Applications
 #
-# CONFIG_NAMEDAPP is not set
+# CONFIG_BUILTIN is not set
 
 #
 # Examples

@@ -460,7 +460,7 @@ CONFIG_HAVE_CXX=y
 #
 # Named Applications
 #
-# CONFIG_NAMEDAPP is not set
+# CONFIG_BUILTIN is not set
 
 #
 # Examples

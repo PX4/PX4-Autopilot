@@ -52,7 +52,7 @@
  * Public Types
  ****************************************************************************/
 
-struct namedapp_s
+struct builtin_s
 {
   const char *name;         /* Invocation name and as seen under /sbin/ */
   int         priority;     /* Use: SCHED_PRIORITY_DEFAULT */
@@ -64,7 +64,7 @@ struct namedapp_s
  * Public Data
  ****************************************************************************/
 
-/* The "bindir" is file system that supports access to the named applications.
+/* The "bindir" is file system that supports access to the builtin applications.
  * It is typically mounted under /bin.
  */
 
@@ -86,7 +86,7 @@ extern "C" {
 #endif
 
 /****************************************************************************
- * Name: namedapp_isavail
+ * Name: builtin_isavail
  *
  * Description:
  *   Checks for availabiliy of application registerred during compile time.
@@ -101,10 +101,10 @@ extern "C" {
  *
  ****************************************************************************/
 
-EXTERN int namedapp_isavail(FAR const char *appname);
+EXTERN int builtin_isavail(FAR const char *appname);
 
 /****************************************************************************
- * Name: namedapp_getname
+ * Name: builtin_getname
  *
  * Description:
  *   Returns pointer to a name of built-in application pointed by the
@@ -119,13 +119,13 @@ EXTERN int namedapp_isavail(FAR const char *appname);
  *
  ****************************************************************************/
 
-EXTERN const char *namedapp_getname(int index);
+EXTERN const char *builtin_getname(int index);
 
 /****************************************************************************
- * Name: exec_namedapp
+ * Name: exec_builtin
  *
  * Description:
- *   Executes builtin named application registered during compile time.
+ *   Executes builtin applications registered during 'make context' time.
  *   New application is run in a separate task context (and thread).
  *
  * Input Parameter:
@@ -139,7 +139,7 @@ EXTERN const char *namedapp_getname(int index);
  *
  ****************************************************************************/
 
-EXTERN int exec_namedapp(FAR const char *appname, FAR const char **argv);
+EXTERN int exec_builtin(FAR const char *appname, FAR const char **argv);
 
 #undef EXTERN
 #if defined(__cplusplus)

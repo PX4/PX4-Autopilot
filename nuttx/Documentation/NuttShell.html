@@ -2515,7 +2515,7 @@ nsh>
   <tr>
     <td valign="top"><b><code>CONFIG_NSH_BUILTIN_APPS</code></b></td>
     <td>
-      Support external registered, &quot;named&quot; applications that can be
+      Support external registered, &quot;builtin&quot; applications that can be
       executed from the NSH command line (see apps/README.txt for
       more information).
     </td>
@@ -3239,48 +3239,48 @@ Builtin Apps:
   Note that no detailed help information beyond the name of the built-in application is provided.
 </p>
 
-<h3>4.3.1 Named Applications</h3>
+<h3>4.3.1 Built-In Applications</h3>
 
 <p>
   <b>Overview.</b>
-  The underlying logic that supports the NSH built-in applications is called &quot;Named Applications&quot;.
-  The named application logic can be found at <code>apps/namedapp</code>.
+  The underlying logic that supports the NSH built-in applications is called &quot;Built-In Applications&quot;.
+  The builtin application logic can be found at <code>apps/builtin</code>.
   This logic simply does the following:
 </p>
 
 <ol>
   <li>
     <p>
-      It supports registration mechanism so that named applications can dynamically register themselves at build time, and
+      It supports registration mechanism so that builtin applications can dynamically register themselves at build time, and
     </p>
   <li>
     <p>
-      Utility functions to look up, list, and execute the named applications.
+      Utility functions to look up, list, and execute the builtin applications.
     </p>
 </ol>
 
 <p>
-  <b>Named Application Utility Functions</b>.
-  The utility functions exported by the named application logic are prototyped in <code>apps/include/apps.h</code>.
+  <b>Built-In Application Utility Functions</b>.
+  The utility functions exported by the builtin application logic are prototyped in <code>apps/include/apps.h</code>.
   These utility functions include:
 </p>
 
 <ul>
   <li>
     <p>
-      <code>int namedapp_isavail(FAR const char *appname);</code>
+      <code>int builtin_isavail(FAR const char *appname);</code>
       Checks for availability of application registered as <code>appname</code> during build time.
     </p>
   <li>
     <p>
-      <code>const char *namedapp_getname(int index);</code>
+      <code>const char *builtin_getname(int index);</code>
       Returns a pointer to a name of built-in application pointed by the <code>index</code>.
       This is the utility function that is used by NSH in order to list the available built-in applications when &quot;<code>nsh&gt; help</code>&quot; is entered.
     </p>
   <li>
     <p>
-      <code>int exec_namedapp(FAR const char *appname, FAR const char **argv);</code>
-      Executes built-in named application registered during compile time.
+      <code>int exec_builtin(FAR const char *appname, FAR const char **argv);</code>
+      Executes built-in builtin application registered during compile time.
       This is the utility function used by NSH to execute the built-in application.
     </p>
 </ul>
@@ -3292,23 +3292,23 @@ Builtin Apps:
 <ol>
   <li>
     <p>
-      <code>apps/namedapp/namedapp_proto.h</code>:
+      <code>apps/builtin/builtin_proto.h</code>:
       Prototypes of application task entry points.
     </p>
   <li>
     <p>
-      <code>apps/namedapp/namedapp_list.h</code>:
+      <code>apps/builtin/builtin_list.h</code>:
       Application specific information and start-up requirements
     </p>
 </ol>
 
 <p>
-  <b>Registration of Named Applications</b>.
+  <b>Registration of Built-In Applications</b>.
   The NuttX build occurs in several phases as different build targets are executed:
   (1) <i>context</i> when the configuration is established,
   (2) <i>depend </i>when target dependencies are generated, and
   (3) <i>default</i> (<code>all</code>) when the normal compilation and link operations are performed.  
-  Named application information is collected during the make <i>context</i> build phase.
+  Built-in application information is collected during the make <i>context</i> build phase.
 </p>
 
 <p>
@@ -3376,7 +3376,7 @@ make apps_distclean
 </pre></ul>
 
 <p>
-  Logic for the <code>context</code> target in <code>apps/examples/hello/Makefile</code> registers the <code>hello_main()</code> application in the <code>namedapp</code>'s <code>namedapp_proto.h</code>and <code>namedapp_list.h</code> files.
+  Logic for the <code>context</code> target in <code>apps/examples/hello/Makefile</code> registers the <code>hello_main()</code> application in the <code>builtin</code>'s <code>builtin_proto.h</code>and <code>builtin_list.h</code> files.
   That logic that does that in  <code>apps/examples/hello/Makefile</code> is abstracted below:
 </p>
 <ol>
@@ -3388,13 +3388,13 @@ make apps_distclean
 include $(APPDIR)/Make.defs
 </pre></ul>
     <p>
-      This defines a macro called <code>REGISTER</code> that adds data to the <i>namedapp</i> header files:
+      This defines a macro called <code>REGISTER</code> that adds data to the <i>builtin</i> header files:
     </p>
 <ul><pre>
 define REGISTER
     @echo &quot;Register: $1&quot;
-    @echo &quot;{ \&quot;$1\&quot;, $2, $3, $4 },&quot; &gt;&gt; &quot;$(APPDIR)/namedapp/namedapp_list.h&quot;
-    @echo &quot;EXTERN int $4(int argc, char *argv[]);&quot; &gt;&gt; &quot;$(APPDIR)/namedapp/namedapp_proto.h&quot;
+    @echo &quot;{ \&quot;$1\&quot;, $2, $3, $4 },&quot; &gt;&gt; &quot;$(APPDIR)/builtin/builtin_list.h&quot;
+    @echo &quot;EXTERN int $4(int argc, char *argv[]);&quot; &gt;&gt; &quot;$(APPDIR)/builtin/builtin_proto.h&quot;
 endef
 </pre></ul>
     <p>
@@ -3412,7 +3412,7 @@ STACKSIZE       = 2048
 
   <li>
     <p>
-      And finally, the <code>Makefile</code> invokes the <code>REGISTER</code> macro to added the <code>hello_main()</code> named application.
+      And finally, the <code>Makefile</code> invokes the <code>REGISTER</code> macro to added the <code>hello_main()</code> builtin application.
       Then, when the system build completes, the <code>hello</code> command can be executed from the NSH command line.
       When the <code>hello</code> command is executed, it will start the task with entry point <code>hello_main()</code> with the default priority and with a stack size of 2K.
    </p>
@@ -3424,16 +3424,16 @@ STACKSIZE       = 2048
 </ol>
 
 <p>
-  <b>Other Uses of Named Application.</b>
-  The primary purpose of named applications is to support command line execution of applications from NSH.
-  However, there are two other uses of named applications that should be mentioned.
+  <b>Other Uses of Built-In Application.</b>
+  The primary purpose of builtin applications is to support command line execution of applications from NSH.
+  However, there are two other uses of builtin applications that should be mentioned.
 </p>
 
 <ol>
   <li>
     <p>
-      <b>Named Application Start-Up <code>main()</code> function</b>.
-      A named application can even be used as the main, start-up entry point into your embedded software. 
+      <b>Built-In Application Start-Up <code>main()</code> function</b>.
+      A builtin application can even be used as the main, start-up entry point into your embedded software. 
       When the user defines this option in the NuttX configuration file:
     </p>
 <ul><pre>
@@ -3451,11 +3451,11 @@ CONFIG_BUILTIN_APP_START=&lt;application name&gt;
 
   <li>
     <p><b><i>binfs</i></b>.
-    <i>binfs</i> is a tiny file system located at <code>apps/namedapp/binfs.c</code>.
-     This provides an alternative what of visualizing installed named applications.
-     Without <i>binfs</i>, you can see the installed named applications using the NSH help command.
+    <i>binfs</i> is a tiny file system located at <code>apps/builtin/binfs.c</code>.
+     This provides an alternative what of visualizing installed builtin applications.
+     Without <i>binfs</i>, you can see the installed builtin applications using the NSH help command.
      <i>binfs</i> will create a tiny pseudo-file system mounted at <code>/bin</code>.
-     Using <i>binfs</i>, you can see the available named applications by listing the contents of  <code>/bin</code> directory.
+     Using <i>binfs</i>, you can see the available builtin applications by listing the contents of  <code>/bin</code> directory.
      This gives some superficial Unix compatibility, but does not really add any new functionality.
    </p>
 </ol>
@@ -3762,7 +3762,12 @@ mount -t vfat /dev/ram1 /tmp
   <li><a href="#cmdoverview">Background command priority</a></li>
   <li><a href="#custapps"><code>binfs</code></a></li>
   <li><a href="#custapps">Built-In applications</a></li>
+  <li><a href="#custapps">Built-In application start-up <code>main()</code></a></li>
   <li><a href="#builtinvars">Built-in variables</a></li>
+  <li><a href="#custapps"><code>builtin_getname()</code></a></li>
+  <li><a href="#custapps"><code>builtin_isavail()</code></a></li>
+  <li><a href="#custapps"><code>builtin_list.h</code></a></li>
+  <li><a href="#custapps"><code>builtin_proto.h</code></a></li>
   <li><a href="#cmdbase64dec"><code>base64dec</code></a></li>
   <li><a href="#cmdbase64enc"><code>base64enc</code></a></li>
   <li><a href="#cmdcat"><code>cat</code></a></li>
@@ -3827,12 +3832,12 @@ mount -t vfat /dev/ram1 /tmp
   <li><a href="#cmdecho"><code>echo</code></a></li>
   <li><a href="#environvars">Environment Variables</a></li>
   <li><a href="#startupscript"><code>/etc/init.d/rcS</code></a>
-  <li><a href="#cmdexec"><code>exec</code></a></li>
-  <li><a href="#custapps"><code>exec_namedapp()</code></a></li>
-  <li><a href="#cmdexit"><code>exit</code></a></li>
-  <li><a href="#cmdfree"><code>free</code></a></li>
 </ul></td>
 <td></ul>
+  <li><a href="#cmdexec"><code>exec</code></a></li>
+  <li><a href="#custapps"><code>exec_builtin()</code></a></li>
+  <li><a href="#cmdexit"><code>exit</code></a></li>
+  <li><a href="#cmdfree"><code>free</code></a></li>
   <li><a href="#custoncmds"><code>g_cmdmap</code></a></li>
   <li><a href="#custinit"><code>genromfs</code></a></li>
   <li><a href="#cmdget"><code>get</code></a></li>
@@ -3858,12 +3863,6 @@ mount -t vfat /dev/ram1 /tmp
   <li><a href="#custinit"><code>mkromfsimg.sh</code></a></li>
   <li><a href="#cmdmount"><code>mount</code></a></li>
   <li><a href="#cmdmv"><code>mv</code></a></li>
-  <li><a href="#custapps">Named application start-up <code>main()</code></a></li>
-  <li><a href="#custapps">Named applications</a></li>
-  <li><a href="#custapps"><code>namedapp_getname()</code></a></li>
-  <li><a href="#custapps"><code>namedapp_isavail()</code></a></li>
-  <li><a href="#custapps"><code>namedapp_list.h</code></a></li>
-  <li><a href="#custapps"><code>namedapp_proto.h</code></a></li>
   <li><a href="#cmdnfsmount"><code>nfsmount</code></a></li>
   <li><a href="#cmdoverview"><code>nice</code></a></li>
   <li><a href="#custonshlib">NSH library (<code>nshlib</code>)</a></li>
@@ -3887,7 +3886,7 @@ mount -t vfat /dev/ram1 /tmp
   <li><a href="#environvars"><code>PWD</code></a></li>
   <li><a href="#custinit"><code>rcS.template</code></a></li>
   <li><a href="#cmdoverview">Re-directed commands</a></li>
-  <li><a href="#custapps">Registration of named applications</a></li>
+  <li><a href="#custapps">Registration of builtin applications</a></li>
   <li><a href="#cmdrm"><code>rm</code></a></li>
   <li><a href="#cmdrmdir"><code>rmdir</code></a></li>
   <li><a href="#custinit">ROMFS, Modifying the ROMFS image</a></li>
