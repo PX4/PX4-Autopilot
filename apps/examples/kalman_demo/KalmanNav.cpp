@@ -115,12 +115,12 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
         sinPhi_2*sinTheta_2*cosPsi_2;
 
     // noise
-    V(0,0) = 10000.0f; //0.01f;    // gyro x, rad/s
-    V(1,1) = 10000.0f; //0.01f;    // gyro y
-    V(2,2) = 10000.0f; //0.01f;    // gyro z
-    V(3,3) = 10000.0f; //0.01f;    // accel x, m/s^2
-    V(4,4) = 10000.0f; //0.01f;    // accel y
-    V(5,5) = 10000.0f; //0.01f;    // accel z
+    V(0,0) = 0.01f;    // gyro x, rad/s
+    V(1,1) = 0.01f;    // gyro y
+    V(2,2) = 0.01f;    // gyro z
+    V(3,3) = 0.01f;    // accel x, m/s^2
+    V(4,4) = 0.01f;    // accel y
+    V(5,5) = 0.01f;    // accel z
 
     // magnetometer noise
     RMag = I3*0.01f;   // gauss
@@ -164,10 +164,10 @@ void KalmanNav::update()
     }
 
     // gps correction step
-    if (_navFrames % 25 == 0) // 10 Hz
-    {
-        correctGps();
-    }
+    //if (_navFrames % 25 == 0) // 10 Hz
+    //{
+        //correctGps();
+    //}
 
     // mag correction step
     //if (_navFrames % 25 == 0) // 10 Hz 
@@ -257,8 +257,6 @@ void KalmanNav::predictFast()
 
     for (int i=0;i<3;i++) w(i+1)  = _sensors.gyro_rad_s[i];
     // attitude
-    printf("q: %8.4f %8.4f %8.4f %8.4f\n",a,b,c,d);
-    printf("q: %8.4f %8.4f %8.4f %8.4f\n",q(0),q(1),q(2),q(3));
     float dataQ[] = 
         {a, -b, -c, -d,
          b,  a, -d,  c,
@@ -266,17 +264,18 @@ void KalmanNav::predictFast()
          d, -c,  b,  a};
     Matrix Q(4,4,dataQ);
     q = q + Q*w*0.5*getDt();
-    printf("w:\n"); w.print();
-    printf("Q:\n"); Q.print();
-    printf("q:\n"); q.print();
 
     // renormalize quaternion if needed
     float aSq = a*a, bSq = b*b, cSq = c*c, dSq = d*d;
     float norm = sqrtf(aSq + bSq + cSq + dSq);
-    if (fabsf(norm-1.0f) > 1e-4f)
+    if (fabsf(norm-1.0f) > 1e-2f)
     {
-        printf("renormalizing q\n");
+        printf("renormalizing\n");
+        printf("q: %8.4f %8.4f %8.4f %8.4f\n",
+                (double)a,(double)b,(double)c,(double)d);
         q = q/norm;
+        printf("q: %8.4f %8.4f %8.4f %8.4f\n",
+                (double)a,(double)b,(double)c,(double)d);
     }
 
     // dcm update
