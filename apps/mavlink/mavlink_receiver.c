@@ -363,9 +363,9 @@ handle_message(mavlink_message_t *msg)
                 hil_sensors.gyro_raw[0] = hil_state.rollspeed*1000;
                 hil_sensors.gyro_raw[1] = hil_state.pitchspeed*1000;
                 hil_sensors.gyro_raw[2] = hil_state.yawspeed*1000;
-                hil_sensors.gyro_rad_s[0] = hil_sensors.gyro_raw[0];
-                hil_sensors.gyro_rad_s[1] = hil_sensors.gyro_raw[1];
-                hil_sensors.gyro_rad_s[2] = hil_sensors.gyro_raw[2];
+                hil_sensors.gyro_rad_s[0] = hil_state.rollspeed;
+                hil_sensors.gyro_rad_s[1] = hil_state.pitchspeed;
+                hil_sensors.gyro_rad_s[2] = hil_state.yawspeed;
 
                 /* accelerometer */
                 hil_sensors.accelerometer_counter = hil_counter; 

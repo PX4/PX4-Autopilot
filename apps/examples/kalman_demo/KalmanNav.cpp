@@ -97,8 +97,7 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     vD = _gps.vel_d;
     L = _gps.lat;
     l = _gps.lon;
-    h = _gps.alt;
-
+    h = _gps.alt/1.0e3f; 
     // initialize quaternions
     float cosPhi_2 = cosf(phi/2.0f);
     float cosTheta_2 = cosf(theta/2.0f);
@@ -171,10 +170,10 @@ void KalmanNav::update()
     }
 
     // mag correction step
-    if (_navFrames % 25 == 0) // 10 Hz 
-    {
-        correctMag();
-    }
+    //if (_navFrames % 25 == 0) // 10 Hz 
+    //{
+        //correctMag();
+    //}
 
     // publication
     if (_navFrames % 5 == 0) // 50 Hz
@@ -258,6 +257,8 @@ void KalmanNav::predictFast()
 
     for (int i=0;i<3;i++) w(i+1)  = _sensors.gyro_rad_s[i];
     // attitude
+    printf("q: %8.4f %8.4f %8.4f %8.4f\n",a,b,c,d);
+    printf("q: %8.4f %8.4f %8.4f %8.4f\n",q(0),q(1),q(2),q(3));
     float dataQ[] = 
         {a, -b, -c, -d,
          b,  a, -d,  c,
@@ -265,12 +266,18 @@ void KalmanNav::predictFast()
          d, -c,  b,  a};
     Matrix Q(4,4,dataQ);
     q = q + Q*w*0.5*getDt();
+    printf("w:\n"); w.print();
+    printf("Q:\n"); Q.print();
+    printf("q:\n"); q.print();
 
     // renormalize quaternion if needed
     float aSq = a*a, bSq = b*b, cSq = c*c, dSq = d*d;
     float norm = sqrtf(aSq + bSq + cSq + dSq);
     if (fabsf(norm-1.0f) > 1e-4f)
+    {
+        printf("renormalizing q\n");
         q = q/norm;
+    }
 
     // dcm update
     Dcm(0,0) = aSq + bSq - cSq - dSq;
@@ -331,8 +338,8 @@ void KalmanNav::predictFast()
     vN += vNDot*dt;
     vE += vEDot*dt;
     vD += vDDot*dt;
-    L  += LDot*dt;
-    l  += lDot*dt;
+    L  += 1e7f*LDot*dt;
+    l  += 1e7f*lDot*dt;
     h  += -vD*dt;
 }
 
@@ -506,5 +513,5 @@ void KalmanNav::correctGps()
     vD = _gps.vel_d;
     L = _gps.lat;
     l = _gps.lon;
-    h = _gps.alt;
+    h = _gps.alt/1.0e3f;
 }

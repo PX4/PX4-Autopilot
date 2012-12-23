@@ -86,8 +86,8 @@ protected:
     uint16_t _navFrames;
     float fN, fE, fD;
     math::Vector & x;
-    float & phi, theta, psi;
-    float & vN, vE, vD;
-    float & L, l, h;
-    float & a, b, c, d;
+    float & phi, & theta, & psi;
+    float & vN, & vE, & vD;
+    float & L, & l, & h;
+    float & a, & b, & c, & d;
 };
