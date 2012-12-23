@@ -85,11 +85,14 @@ libboard$(LIBEXT): $(OBJS)
 
 # Register application
 
-.context:
+ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
+$(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat: $(TOPDIR)$(DELIM).config Makefile
 	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
-	$(Q) touch $@
 
-context: .context
+context: $(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat
+else
+context:
+endif
 
 # Create dependencies
 

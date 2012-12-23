@@ -33,11 +33,8 @@
 #
 ############################################################################
 
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 include $(APPDIR)/Make.defs
-
-# NSH Library
 
 # Source and object files
 
@@ -70,7 +67,7 @@ VPATH		=
 # Build Targets
 
 all:	.built
-.PHONY: .context context depend clean distclean
+.PHONY: context depend clean distclean
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -78,16 +75,27 @@ $(AOBJS): %$(OBJEXT): %.S
 $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
-.built: $(OBJS)
+builtin_list.h: registry/.updated
+	$(call DELFILE, builtin_list.h)
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) for /f %%G in ('dir /b registry\*.bdat`) do ( type registry\%%G >> builtin_list.h )
+else
+	$(Q) for file in `ls registry/*.bdat`; do cat $$file >> builtin_list.h; done
+endif
+
+builtin_proto.h: registry/.updated
+	$(call DELFILE, builtin_proto.h)
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) for /f %%G in ('dir /b registry\*.pdat`) do ( type registry\%%G >> builtin_proto.h )
+else
+	$(Q) for file in `ls registry/*.pdat`; do cat $$file >> builtin_proto.h; done
+endif
+
+.built: builtin_list.h builtin_proto.h $(OBJS)
 	$(call ARCHIVE, $(BIN), $(OBJS))
 	$(Q) touch .built
 
-.context:
-	@echo "/* List of application requirements, generated during make context. */" > builtin_list.h
-	@echo "/* List of application entry points, generated during make context. */" > builtin_proto.h
-	$(Q) touch $@
-
-context: .context
+context:
 
 .depend: Makefile $(SRCS)
 	$(Q) $(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
@@ -100,11 +108,10 @@ clean:
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE, .context)
+	$(Q) $(MAKE) -C registry distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
 	$(call DELFILE, builtin_list.h)
 	$(call DELFILE, builtin_proto.h)
 
 -include Make.dep
-

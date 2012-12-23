@@ -132,21 +132,16 @@ $(INSTALLED_APPS):
 
 $(BIN):	$(INSTALLED_APPS)
 
-.context:
+context:
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) for %%G in ($(INSTALLED_APPS)) do ( \
-		if exist %%G\.context del /f /q %%G\.context \
 		$(MAKE) -C %%G TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" context \
 	)
 else
 	$(Q) for dir in $(INSTALLED_APPS) ; do \
-		rm -f $$dir/.context ; \
 		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" context ; \
 	done
 endif
-	$(Q) touch $@
-
-context: .context
 
 .depend: context Makefile $(SRCS)
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
@@ -183,7 +178,6 @@ ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 		$(MAKE) -C %%G distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" \
 	)
 	$(call DELFILE, .config)
-	$(call DELFILE, .context)
 	$(call DELFILE, .depend)
 	$(Q) ( if exist  external ( \
 		echo ********************************************************" \
@@ -195,7 +189,6 @@ else
 		$(MAKE) -C $$dir distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
 	done
 	$(call DELFILE, .config)
-	$(call DELFILE, .context)
 	$(call DELFILE, .depend)
 	$(Q) ( if [ -e external ]; then \
 		echo "********************************************************"; \

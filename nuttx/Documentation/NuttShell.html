@@ -3349,11 +3349,7 @@ int hello_main(int argc, char *argv[])
     </p>
   <li>
     <p>
-      And finally, the <code>apps/examples/Makefile</code>will execute the <i>context</i> target in all configured <code>example</code>sub-directores, getting us finally to <code>apps/examples/Makefile</code> (which is covered below).</p>
-  <li>
-    <p>
-      At the conclusion of the <i>context</i> phase, the <code> apps/Makefile</code> will touch a file called <code>.context</code> in the <code>apps/</code> directory, preventing any further configurations during any subsequent <i>context</i> phase build attempts.
-    </p>
+      And finally, the <code>apps/examples/Makefile</code> will execute the <i>context</i> target in all configured <code>example</code>sub-directores, getting us finally to <code>apps/examples/Makefile</code> which is covered below.</p>
 </ol>
 
 <p>
@@ -3417,9 +3413,8 @@ STACKSIZE       = 2048
       When the <code>hello</code> command is executed, it will start the task with entry point <code>hello_main()</code> with the default priority and with a stack size of 2K.
    </p>
 <ul><pre>
-.context:
+context:
   $(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
-  @touch $@
 </pre></ul>
 </ol>
 

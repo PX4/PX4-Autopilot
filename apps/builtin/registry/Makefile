@@ -1,10 +1,8 @@
 ############################################################################
-# apps/system/poweroff/Makefile
+# apps/builtin/registry/Makefile
 #
-#   Copyright (C) 2011 Uros Platise. All rights reserved.
 #   Copyright (C) 2012 Gregory Nutt. All rights reserved.
-#   Author: Uros Platise <uros.platise@isotel.eu>
-#           Gregory Nutt <gnutt@nuttx.org>
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,87 +33,22 @@
 #
 ############################################################################
 
-# TODO, this makefile should run make under the app dirs, instead of
-# sourcing the Make.defs!
-
--include $(TOPDIR)/.config
 -include $(TOPDIR)/Make.defs
 include $(APPDIR)/Make.defs
 
-ifeq ($(WINTOOL),y)
-INCDIROPT	= -w
-endif
+# NSH Library
 
-# Hello Application
-# TODO: appname can be automatically extracted from the directory name
-
-APPNAME		= poweroff
-PRIORITY	= SCHED_PRIORITY_DEFAULT
-STACKSIZE	= 768
-
-ASRCS		=
-CSRCS		= poweroff.c
-
-AOBJS		= $(ASRCS:.S=$(OBJEXT))
-COBJS		= $(CSRCS:.c=$(OBJEXT))
-
-SRCS		= $(ASRCS) $(CSRCS)
-OBJS		= $(AOBJS) $(COBJS)
-
-ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  BIN		= ..\..\libapps$(LIBEXT)
-else
-ifeq ($(WINTOOL),y)
-  BIN		= ..\\..\\libapps$(LIBEXT)
-else
-  BIN		= ../../libapps$(LIBEXT)
-endif
-endif
-
-ROOTDEPPATH	= --dep-path .
-
-# Common build
-
-VPATH		= 
-
-all:	.built
+all:
 .PHONY: context depend clean distclean
 
-$(AOBJS): %$(OBJEXT): %.S
-	$(call ASSEMBLE, $<, $@)
-
-$(COBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-.built: $(OBJS)
-	$(call ARCHIVE, $(BIN), $(OBJS))
-	$(Q) touch .built
-
-# Register application
-
-ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
-$(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat: $(TOPDIR)$(DELIM).config Makefile
-	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
-
-context: $(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat
-else
 context:
-endif
 
-# Create dependencies
-
-.depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
-	$(Q) touch $@
-
-depend: .depend
+depend:
 
 clean:
-	$(call DELFILE, .built)
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE, Make.dep)
-	$(call DELFILE, .depend)
-
--include Make.dep
+	$(call DELFILE, *.bdat)
+	$(call DELFILE, *.pdat)
+	$(call DELFILE, .updated)
