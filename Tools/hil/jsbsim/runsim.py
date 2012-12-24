@@ -501,7 +501,7 @@ def main_loop():
 
     plotStructs = plot.generatePlotStructs(results, [attack1, attack2], os.getcwd()+'/')
     write = open('plotStructs.pkl', 'wb')
-    pickle.dump(plotStructs)
+    pickle.dump(plotStructs, write)
     write.close()
     print plotStructs
     plot.generatePlots(plotStructs)
