@@ -76,7 +76,7 @@ protected:
     math::Matrix RMag;
     math::Matrix HGps;
     math::Matrix RGps;
-    math::Matrix Dcm;
+    math::Matrix C_nb;
     math::Vector q;
     control::UOrbSubscription<sensor_combined_s> _sensors;
     control::UOrbSubscription<vehicle_gps_position_s> _gps;

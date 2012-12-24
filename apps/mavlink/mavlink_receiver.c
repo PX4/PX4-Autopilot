@@ -408,19 +408,19 @@ handle_message(mavlink_message_t *msg)
                     float cosPhi = cos(hil_state.roll);
                     float sinPhi = sin(hil_state.roll);
 
-                    float R[3][3]; // the true rotation matrix from body to 
+                    float C_nb[3][3]; // the true rotation matrix from body to 
 
-                    R[0][0] = cosThe*cosPsi;
-                    R[1][0] = -cosPhi*sinPsi + sinPhi*sinThe*cosPsi;
-                    R[2][0] = sinPhi*sinPsi + cosPhi*sinThe*cosPsi;
+                    C_nb[0][0] = cosThe*cosPsi;
+                    C_nb[1][0] = -cosPhi*sinPsi + sinPhi*sinThe*cosPsi;
+                    C_nb[2][0] = sinPhi*sinPsi + cosPhi*sinThe*cosPsi;
 
-                    R[0][1] = cosThe*sinPsi;
-                    R[1][1] = cosPhi*cosPsi + sinPhi*sinThe*sinPsi;
-                    R[2][1] = -sinPhi*cosPsi + cosPhi*sinThe*sinPsi;
+                    C_nb[0][1] = cosThe*sinPsi;
+                    C_nb[1][1] = cosPhi*cosPsi + sinPhi*sinThe*sinPsi;
+                    C_nb[2][1] = -sinPhi*cosPsi + cosPhi*sinThe*sinPsi;
 
-                    R[0][2] = -sinThe;
-                    R[1][2] = sinPhi*cosThe;
-                    R[2][2] = cosPhi*cosThe;
+                    C_nb[0][2] = -sinThe;
+                    C_nb[1][2] = sinPhi*cosThe;
+                    C_nb[2][2] = cosPhi*cosThe;
 
                     float magFieldStrength = 0.5f;
                     uint16_t gauss2Adc = 1000;
@@ -439,9 +439,10 @@ handle_message(mavlink_message_t *msg)
                     magVectNed[2] = magFieldStrength*sinDip;
 
                     float magVectBody[3];
-                    magVectBody[0] = R[0][0] * magVectNed[0] + R[0][1] * magVectNed[1] + R[0][2] * magVectNed[2];
-                    magVectBody[1] = R[1][0] * magVectNed[0] + R[1][1] * magVectNed[1] + R[1][2] * magVectNed[2];
-                    magVectBody[2] = R[2][0] * magVectNed[0] + R[2][1] * magVectNed[1] + R[2][2] * magVectNed[2];
+                    // note magVectBody = C_nb^T*magVectNed
+                    magVectBody[0] = C_nb[0][0] * magVectNed[0] + C_nb[1][0] * magVectNed[1] + C_nb[2][0] * magVectNed[2];
+                    magVectBody[1] = C_nb[0][1] * magVectNed[0] + C_nb[1][1] * magVectNed[1] + C_nb[2][1] * magVectNed[2];
+                    magVectBody[2] = C_nb[0][2] * magVectNed[0] + C_nb[1][2] * magVectNed[1] + C_nb[2][2] * magVectNed[2];
 
                     /* magnetometer */
                     hil_sensors.magnetometer_counter = hil_counter; 

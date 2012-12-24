@@ -193,6 +193,23 @@ public:
         return result;
     }
     // other functions
+    inline float dot(const Vector & right)
+    {
+        float result = 0;
+        arm_dot_prod_f32((float*)getData(),
+                (float*)right.getData(),
+                getRows(),
+                &result);
+        return result;
+    }
+    inline float norm()
+    {
+        return sqrtf(dot(*this));
+    }
+    inline Vector unit()
+    {
+        return (*this)/norm();
+    }
     inline static Vector zero(size_t rows)
     {
         Vector result(rows);

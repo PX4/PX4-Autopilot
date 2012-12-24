@@ -54,7 +54,7 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     RMag(3,3),
     HGps(6,9),
     RGps(6,6),
-    Dcm(3,3),
+    C_nb(3,3),
     q(4),
     _sensors(&getSubscriptions(), ORB_ID(sensor_combined),20),
     _gps(&getSubscriptions(), ORB_ID(vehicle_gps_position),20),
@@ -70,7 +70,7 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     a(q(0)), b(q(1)), c(q(2)), d(q(3))
 {
     using namespace math;
-    setDt(1.0f /100.0f);
+    setDt(1.0f /250.0f);
 
     Matrix I3 = Matrix::identity(3);
     Matrix I6 = Matrix::identity(6);
@@ -164,16 +164,16 @@ void KalmanNav::update()
     }
 
     // gps correction step
-    //if (_navFrames % 25 == 0) // 10 Hz
-    //{
-        //correctGps();
-    //}
+    if (_navFrames % 25 == 0) // 10 Hz
+    {
+        correctGps();
+    }
 
     // mag correction step
-    //if (_navFrames % 25 == 0) // 10 Hz 
-    //{
-        //correctMag();
-    //}
+    if (_navFrames % 25 == 0) // 10 Hz 
+    {
+        correctMag();
+    }
 
     // publication
     if (_navFrames % 5 == 0) // 50 Hz
@@ -186,7 +186,7 @@ void KalmanNav::update()
     if (_navFrames % 250 == 0) // 1 Hz
     {
         uint16_t schedRate = 1.0f/getDt();
-        if (float(_navFrames)/schedRate < 0.99f)
+        if (fabsf(float(_navFrames)/schedRate - 1.0f) > 0.01f)
         {
             printf("WARNING: nav: sched %4d Hz, actual %4d Hz\n",
                     schedRate, _navFrames);
@@ -238,7 +238,7 @@ void KalmanNav::updatePublications()
     _att.rate_offsets[1] = 0.0f;
     _att.rate_offsets[2] = 0.0f;
     for (int i=0;i<3;i++) for (int j=0;j<3;j++)
-        _att.R[i][j] = Dcm(i,j);
+        _att.R[i][j] = C_nb(i,j);
     for (int i=0;i<4;i++) _att.q[i] = q(i);
     _att.R_valid = true;
     _att.q_valid = true;
@@ -278,40 +278,40 @@ void KalmanNav::predictFast()
                 (double)a,(double)b,(double)c,(double)d);
     }
 
-    // dcm update
-    Dcm(0,0) = aSq + bSq - cSq - dSq;
-    Dcm(0,1) = 2*(b*c - a*d);
-    Dcm(0,2) = 2*(b*d - a*c);
-    Dcm(1,0) = 2*(b*c + a*d);
-    Dcm(1,1) = aSq - bSq + cSq - dSq;
-    Dcm(1,2) = 2*(c*d - a*b);
-    Dcm(2,0) = 2*(b*d - a*c);
-    Dcm(2,1) = 2*(c*d + a*b);
-    Dcm(2,2) = aSq - bSq - cSq + dSq;
+    // C_nb update
+    C_nb(0,0) = aSq + bSq - cSq - dSq;
+    C_nb(0,1) = 2*(b*c - a*d);
+    C_nb(0,2) = 2*(b*d - a*c);
+    C_nb(1,0) = 2*(b*c + a*d);
+    C_nb(1,1) = aSq - bSq + cSq - dSq;
+    C_nb(1,2) = 2*(c*d - a*b);
+    C_nb(2,0) = 2*(b*d - a*c);
+    C_nb(2,1) = 2*(c*d + a*b);
+    C_nb(2,2) = aSq - bSq - cSq + dSq;
 
     // attitude update
-    theta = asin(-Dcm(2,0));
+    theta = asin(-C_nb(2,0));
     if (fabsf(theta-M_PI_2_F)<0.01f)
     {
         // leave phi the same
-        psi = atanf((Dcm(1,2) - Dcm(0,1))/
-                (Dcm(0,2) + Dcm(1,1))) + phi;
+        psi = atanf((C_nb(1,2) - C_nb(0,1))/
+                (C_nb(0,2) + C_nb(1,1))) + phi;
     }
     else if (fabsf(theta + M_PI_2_F) < 0.01f)
     {
         // leave phi the same
-        psi = atanf((Dcm(1,2) - Dcm(0,1))/
-                (Dcm(0,2) + Dcm(1,1))) - phi;
+        psi = atanf((C_nb(1,2) - C_nb(0,1))/
+                (C_nb(0,2) + C_nb(1,1))) - phi;
     }
     else
     {
-        phi = atanf(Dcm(2,1)/Dcm(2,2));
-        psi = atanf(Dcm(1,0)/Dcm(0,0));
+        phi = atanf(C_nb(2,1)/C_nb(2,2));
+        psi = atanf(C_nb(1,0)/C_nb(0,0));
     }
 
     // specific acceleration in nav frame
     Vector accelB(3,_sensors.accelerometer_m_s2);
-    Vector accelN = Dcm*accelB;
+    Vector accelN = C_nb*accelB;
     fN = accelN(0);
     fE = accelN(1);
     fD = accelN(2);
@@ -414,25 +414,25 @@ void KalmanNav::predictSlow()
 
     // G Matrix
     // Titterton pg. 291
-    G(0,0) = -Dcm(0,0)*dt; 
-    G(0,1) = -Dcm(0,1)*dt; 
-    G(0,2) = -Dcm(0,2)*dt; 
-    G(1,0) = -Dcm(1,0)*dt; 
-    G(1,1) = -Dcm(1,1)*dt; 
-    G(1,2) = -Dcm(1,2)*dt; 
-    G(2,0) = -Dcm(2,0)*dt; 
-    G(2,1) = -Dcm(2,1)*dt; 
-    G(2,2) = -Dcm(2,2)*dt; 
+    G(0,0) = -C_nb(0,0)*dt; 
+    G(0,1) = -C_nb(0,1)*dt; 
+    G(0,2) = -C_nb(0,2)*dt; 
+    G(1,0) = -C_nb(1,0)*dt; 
+    G(1,1) = -C_nb(1,1)*dt; 
+    G(1,2) = -C_nb(1,2)*dt; 
+    G(2,0) = -C_nb(2,0)*dt; 
+    G(2,1) = -C_nb(2,1)*dt; 
+    G(2,2) = -C_nb(2,2)*dt; 
 
-    G(3,3) = Dcm(0,0)*dt; 
-    G(3,4) = Dcm(0,1)*dt; 
-    G(3,5) = Dcm(0,2)*dt; 
-    G(4,3) = Dcm(1,0)*dt; 
-    G(4,4) = Dcm(1,1)*dt; 
-    G(4,5) = Dcm(1,2)*dt; 
-    G(5,3) = Dcm(2,0)*dt; 
-    G(5,4) = Dcm(2,1)*dt; 
-    G(5,5) = Dcm(2,2)*dt; 
+    G(3,3) = C_nb(0,0)*dt; 
+    G(3,4) = C_nb(0,1)*dt; 
+    G(3,5) = C_nb(0,2)*dt; 
+    G(4,3) = C_nb(1,0)*dt; 
+    G(4,4) = C_nb(1,1)*dt; 
+    G(4,5) = C_nb(1,2)*dt; 
+    G(5,3) = C_nb(2,0)*dt; 
+    G(5,4) = C_nb(2,1)*dt; 
+    G(5,5) = C_nb(2,2)*dt; 
 
     Matrix & Q = _kalman.getQ();
     Q = G*V*G.transpose();
@@ -445,8 +445,10 @@ void KalmanNav::correctMag()
     using namespace math;
     Vector zMag(3);
     for (int i=0;i<3;i++) {
-        zMag(i) = _sensors.magnetometer_raw[i];
+        zMag(i) = _sensors.magnetometer_ga[i];
     }
+    // normalize
+    Vector zMagUnit = zMag.unit();
     // trig
     float cosPhi = cosf(phi);
     float cosTheta = cosf(theta);
@@ -457,12 +459,16 @@ void KalmanNav::correctMag()
 
     // choosing some typical magnetic field properties,
     //  TODO dip/dec depend on lat/ lon/ time
-    static const float magFieldStrength = 0.5f;
     static const float dip = 60.0f; // dip, inclination with level
     static const float dec = 0.0f; // declination, clockwise rotation from north
-    float bN = magFieldStrength*cosf(dip)*cosf(dec);
-    float bE = magFieldStrength*cosf(dip)*sinf(dec);
-    float bD = magFieldStrength*sinf(dip);
+    float bN = cosf(dip)*cosf(dec);
+    float bE = cosf(dip)*sinf(dec);
+    float bD = sinf(dip);
+    Vector bNav(3);
+    bNav(0) = bN;
+    bNav(1) = bE;
+    bNav(2) = bD;
+    Vector zMagHat = (C_nb.transpose()*bNav).unit();
 
     // HMag
     float tmp1 =
@@ -494,7 +500,7 @@ void KalmanNav::correctMag()
         (cosPhi*sinPsi*sinTheta - sinPhi*cosTheta)*bN -
         (cosPhi*cosPsi*sinTheta + sinPhi*sinPsi)*bE
         );
-    _kalman.correct(zMag,HMag,RMag);
+    _kalman.correct(zMagUnit,HMag,RMag,zMagHat);
 }
 void KalmanNav::correctGps()
 {
@@ -506,7 +512,8 @@ void KalmanNav::correctGps()
     //zGps(3) = _gps.lat; // L
     //zGps(4) = _gps.lon; // l
     //zGps(5) = _gps.alt; // h
-    //_kalman.correct(zGps,HGps,RGps);
+    //Vector zGpsHat = HGps*_x;
+    //_kalman.correct(zGps,HGps,RGps,zGpsHat);
     vN = _gps.vel_n;
     vE = _gps.vel_e;
     vD = _gps.vel_d;

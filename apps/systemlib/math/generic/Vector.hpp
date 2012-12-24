@@ -194,6 +194,23 @@ public:
         return result;
     }
     // other functions
+    inline float dot(const Vector & right)
+    {
+        float result = 0;
+        for (size_t i=0; i<getRows(); i++)
+        {
+            result += (*this)(i)*(*this)(i);
+        }
+        return result;
+    }
+    inline float norm()
+    {
+        return sqrtf(dot(*this));
+    }
+    inline Vector unit()
+    {
+        return (*this)/norm();
+    }
     inline static Vector zero(size_t rows)
     {
         Vector result(rows);
