@@ -57,6 +57,7 @@ CXXSRCS   =  test/test.cpp \
 			 control/blocks.cpp \
 			 math/Vector.cpp \
 			 math/Quaternion.cpp \
+			 math/Dcm.cpp \
 			 math/Matrix.cpp \
 			 math/Kalman.cpp
 
@@ -69,6 +70,7 @@ CXXHDRS   =  test/test.hpp \
 			 control/fixedwing.hpp \
 			 math/Vector.hpp \
 			 math/Quaternion.hpp \
+			 math/Dcm.hpp \
 			 math/Matrix.hpp \
 			 math/Kalman.hpp
 

@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file Quaternion.hpp
+ * @file Dcm.hpp
  *
- * math quaternion lib
+ * math direction cosine matrix
  */
 
 //#pragma once
@@ -44,73 +44,28 @@
 
 namespace math {
 
-class Quaternion : public Vector
+class Dcm : public Matrix
 {
     // constructor
-    Quaternion(4) :
-        Vector(4)
+    Dcm() :
+        Matrix(3,3)
     {
     }
-    Quaternion(const float * data) :
-        Vector(4,data)
+    Dcm(const float * data) :
+        Matrix(3,3,data)
     {
     }
     // deconstructor
-    virtual ~Quaternion()
+    virtual ~Dcm()
     {
     }
     // copy constructor (deep)
-    Quaternion(const Quaternion & right) :
-        Vector(right)
+    Dcm(const Dcm & right) :
+        Matrix(right)
     {
-    }
-    // derivative
-    Quaternion derivative(const Vector & w) :
-    {
-#ifdef QUATERNION_ASSERT
-        ASSERT(w.getRows()==3);
-#endif
-        float dataQ[] = 
-        {a, -b, -c, -d,
-         b,  a, -d,  c,
-         c,  d,  a, -b,
-         d, -c,  b,  a};
-        Vector v(4);
-        v(0) = 0.0f;
-        v(1) = w(0);
-        v(2) = w(1);
-        v(3) = w(2);
-        Matrix Q(4,4,dataQ);
-        return Q*v*0.5f; 
-    }
-    // from euler angles
-    static Quaternion fromEuler(const Vector & euler)
-    {
-        // euler angles
-        float phi = euler(0);
-        float theta = euler(1);
-        float psi = euler(2);
-
-        // initialize quaternions
-        float cosPhi_2 = cosf(phi/2.0f);
-        float cosTheta_2 = cosf(theta/2.0f);
-        float cosPsi_2 = cosf(psi/2.0f);
-        float sinPhi_2 = sinf(phi/2.0f);
-        float sinTheta_2 = sinf(theta/2.0f);
-        float sinPsi_2 = sinf(psi/2.0f);
-        Quaternion result;
-        result(0) = cosPhi_2*cosTheta_2*cosPsi_2 + 
-            sinPhi_2*sinTheta_2*sinPsi_2;
-        result(1) = sinPhi_2*cosTheta_2*cosPsi_2 -
-            cosPhi_2*sinTheta_2*sinPsi_2;
-        result(2) = cosPhi_2*sinTheta_2*cosPsi_2 +
-            sinPhi_2*cosTheta_2*sinPsi_2;
-        result(3) = cosPhi_2*cosTheta_2*sinPsi_2 +
-            sinPhi_2*sinTheta_2*cosPsi_2;
-        return result;
     }
 };
 
-int __EXPORT quaternionTest();
+int __EXPORT dcmTest();
 } // math
 
