@@ -1293,6 +1293,8 @@ int commander_thread_main(int argc, char *argv[])
 	uint64_t failsave_ll_start_time = 0;
 
 	bool state_changed = true;
+	bool param_init_forced = true;
+
 
 	while (!thread_should_exit) {
 
@@ -1323,10 +1325,10 @@ int commander_thread_main(int argc, char *argv[])
 			/* handle it */
 			handle_command(stat_pub, &current_status, &cmd);
 		}
-
 		/* update parameters */
 		orb_check(param_changed_sub, &new_data);
-		if (new_data) {
+		if (new_data || param_init_forced) {
+			param_init_forced = false;
 			/* parameters changed */
 			orb_copy(ORB_ID(parameter_update), param_changed_sub, &param_changed);
 
@@ -1335,7 +1337,6 @@ int commander_thread_main(int argc, char *argv[])
 				if (param_get(_param_sys_type, &(current_status.system_type)) != OK) {
 					warnx("failed setting new system type");
 				}
-
 				/* disable manual override for all systems that rely on electronic stabilization */
 				if (current_status.system_type == MAV_TYPE_QUADROTOR ||
 				    current_status.system_type == MAV_TYPE_HEXAROTOR ||
