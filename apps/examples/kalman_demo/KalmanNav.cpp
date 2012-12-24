@@ -281,7 +281,7 @@ void KalmanNav::predictFast()
     // C_nb update
     C_nb(0,0) = aSq + bSq - cSq - dSq;
     C_nb(0,1) = 2*(b*c - a*d);
-    C_nb(0,2) = 2*(b*d - a*c);
+    C_nb(0,2) = 2*(b*d + a*c);
     C_nb(1,0) = 2*(b*c + a*d);
     C_nb(1,1) = aSq - bSq + cSq - dSq;
     C_nb(1,2) = 2*(c*d - a*b);
@@ -290,26 +290,26 @@ void KalmanNav::predictFast()
     C_nb(2,2) = aSq - bSq - cSq + dSq;
 
     // attitude update
-    theta = asin(-C_nb(2,0));
+    theta = asinf(-C_nb(2,0));
     if (fabsf(theta-M_PI_2_F)<0.01f)
     {
         // leave phi the same
-        psi = atanf((C_nb(1,2) - C_nb(0,1))/
-                (C_nb(0,2) + C_nb(1,1))) + phi;
+        psi = atan2f(C_nb(1,2) - C_nb(0,1),
+                C_nb(0,2) + C_nb(1,1)) + phi;
     }
     else if (fabsf(theta + M_PI_2_F) < 0.01f)
     {
         // leave phi the same
-        psi = atanf((C_nb(1,2) - C_nb(0,1))/
-                (C_nb(0,2) + C_nb(1,1))) - phi;
+        psi = atan2f(C_nb(1,2) + C_nb(0,1),
+                C_nb(0,2) - C_nb(1,1)) - phi;
     }
     else
     {
-        phi = atanf(C_nb(2,1)/C_nb(2,2));
-        psi = atanf(C_nb(1,0)/C_nb(0,0));
+        phi = atan2f(C_nb(2,1),C_nb(2,2));
+        psi = atan2f(C_nb(1,0),C_nb(0,0));
     }
 
-    // specific acceleration in nav frame
+   // specific acceleration in nav frame
     Vector accelB(3,_sensors.accelerometer_m_s2);
     Vector accelN = C_nb*accelB;
     fN = accelN(0);
@@ -506,18 +506,12 @@ void KalmanNav::correctGps()
 {
     using namespace math;
     Vector zGps(6);
-    //zGps(0) = _gps.vel_n; // vn
-    //zGps(1) = _gps.vel_e; // ve
-    //zGps(2) = _gps.vel_d; // vd
-    //zGps(3) = _gps.lat; // L
-    //zGps(4) = _gps.lon; // l
-    //zGps(5) = _gps.alt; // h
-    //Vector zGpsHat = HGps*_x;
-    //_kalman.correct(zGps,HGps,RGps,zGpsHat);
-    vN = _gps.vel_n;
-    vE = _gps.vel_e;
-    vD = _gps.vel_d;
-    L = _gps.lat;
-    l = _gps.lon;
-    h = _gps.alt/1.0e3f;
+    zGps(0) = _gps.vel_n; // vn
+    zGps(1) = _gps.vel_e; // ve
+    zGps(2) = _gps.vel_d; // vd
+    zGps(3) = _gps.lat; // L
+    zGps(4) = _gps.lon; // l
+    zGps(5) = _gps.alt/1.0e3f; // h
+    Vector zGpsHat = HGps*_kalman.getX();
+    _kalman.correct(zGps,HGps,RGps,zGpsHat);
 }

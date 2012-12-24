@@ -401,25 +401,24 @@ handle_message(mavlink_message_t *msg)
                     hil_sensors.battery_voltage_valid = true;
 
                     /* magnetometer */
-                    float cosThe = cos(hil_state.pitch);
-                    float sinThe = sin(hil_state.pitch);
-                    float cosPsi = cos(hil_state.yaw);
-                    float sinPsi = sin(hil_state.yaw);
-                    float cosPhi = cos(hil_state.roll);
-                    float sinPhi = sin(hil_state.roll);
-
+                    float cosPhi = cosf(hil_state.roll);
+                    float sinPhi = sinf(hil_state.roll);
+                    float cosThe = cosf(hil_state.pitch);
+                    float sinThe = sinf(hil_state.pitch);
+                    float cosPsi = cosf(hil_state.yaw);
+                    float sinPsi = sinf(hil_state.yaw);
                     float C_nb[3][3]; // the true rotation matrix from body to 
 
                     C_nb[0][0] = cosThe*cosPsi;
-                    C_nb[1][0] = -cosPhi*sinPsi + sinPhi*sinThe*cosPsi;
-                    C_nb[2][0] = sinPhi*sinPsi + cosPhi*sinThe*cosPsi;
+                    C_nb[0][1] = -cosPhi*sinPsi + sinPhi*sinThe*cosPsi;
+                    C_nb[0][2] = sinPhi*sinPsi + cosPhi*sinThe*cosPsi;
 
-                    C_nb[0][1] = cosThe*sinPsi;
+                    C_nb[1][0] = cosThe*sinPsi;
                     C_nb[1][1] = cosPhi*cosPsi + sinPhi*sinThe*sinPsi;
-                    C_nb[2][1] = -sinPhi*cosPsi + cosPhi*sinThe*sinPsi;
+                    C_nb[1][2] = -sinPhi*cosPsi + cosPhi*sinThe*sinPsi;
 
-                    C_nb[0][2] = -sinThe;
-                    C_nb[1][2] = sinPhi*cosThe;
+                    C_nb[2][0] = -sinThe;
+                    C_nb[2][1] = sinPhi*cosThe;
                     C_nb[2][2] = cosPhi*cosThe;
 
                     float magFieldStrength = 0.5f;
@@ -430,10 +429,10 @@ handle_message(mavlink_message_t *msg)
                     //  these depend on lat/ lon/ date
                     float dip = 60.0f; // dip, inclination with level
                     float dec = 0.0f; // declination, clockwise rotation from north
-                    float cosDip = cos(dip);
-                    float sinDip = sin(dip);
-                    float cosDec = cos(dec);
-                    float sinDec = sin(dec);
+                    float cosDip = cosf(dip);
+                    float sinDip = sinf(dip);
+                    float cosDec = cosf(dec);
+                    float sinDec = sinf(dec);
                     magVectNed[0] = magFieldStrength*cosDip*cosDec;
                     magVectNed[1] = magFieldStrength*cosDip*sinDec;
                     magVectNed[2] = magFieldStrength*sinDip;
