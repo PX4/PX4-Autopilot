@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/compiler.h>
 
 #include <stdint.h>
 #include <string.h>
@@ -244,8 +245,8 @@ int sigtimedwait(FAR const sigset_t *set, FAR struct siginfo *info,
            */
 
 #ifdef CONFIG_HAVE_LONG_LONG
-          uint64_t waitticks64 = (timeout->tv_sec * NSEC_PER_SEC +
-                                  timeout->tv_nsec + NSEC_PER_TICK - 1) /
+          uint64_t waitticks64 = ((uint64_t)timeout->tv_sec * NSEC_PER_SEC +
+                                  (uint64_t)timeout->tv_nsec + NSEC_PER_TICK - 1) /
                                   NSEC_PER_TICK;
           DEBUGASSERT(waitticks64 <= UINT32_MAX);
           waitticks = (uint32_t)waitticks64;

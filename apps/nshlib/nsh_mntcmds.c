@@ -45,9 +45,12 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <debug.h>
+
+#include <nuttx/fs/nfs.h>
 
 #include "nsh.h"
 #include "nsh_console.h"

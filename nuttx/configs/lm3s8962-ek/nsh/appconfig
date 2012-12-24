@@ -40,7 +40,7 @@ CONFIGURED_APPS += examples/nsh
 # NSH library
 
 CONFIGURED_APPS += system/readline
-CONFIGURED_APPS += nshlibO
+CONFIGURED_APPS += nshlib
 
 # Networking support
 

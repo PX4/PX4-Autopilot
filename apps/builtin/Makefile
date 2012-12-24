@@ -77,18 +77,30 @@ $(COBJS): %$(OBJEXT): %.c
 
 builtin_list.h: registry/.updated
 	$(call DELFILE, builtin_list.h)
+	$(Q) touch builtin_list.h
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) for /f %%G in ('dir /b registry\*.bdat`) do ( type registry\%%G >> builtin_list.h )
 else
-	$(Q) for file in `ls registry/*.bdat`; do cat $$file >> builtin_list.h; done
+	$(Q) ( \
+		filelist=`ls registry/*.bdat 2>/dev/null || echo ""`; \
+		for file in $$filelist; \
+			do cat $$file >> builtin_list.h; \
+		done; \
+	)
 endif
 
 builtin_proto.h: registry/.updated
 	$(call DELFILE, builtin_proto.h)
+	$(Q) touch builtin_proto.h
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) for /f %%G in ('dir /b registry\*.pdat`) do ( type registry\%%G >> builtin_proto.h )
 else
-	$(Q) for file in `ls registry/*.pdat`; do cat $$file >> builtin_proto.h; done
+	$(Q) ( \
+		filelist=`ls registry/*.pdat 2>/dev/null || echo ""`; \
+		for file in $$filelist; \
+			do cat $$file >> builtin_proto.h; \
+		done; \
+	)
 endif
 
 .built: builtin_list.h builtin_proto.h $(OBJS)
