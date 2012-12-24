@@ -128,7 +128,7 @@ $(COBJS): %$(OBJEXT): %.c
 	@touch .built
 
 ifeq ($(CONFIG_EXAMPLES_OSTEST_BUILTIN),y)
-$(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat: $(TOPDIR)$(DELIM).config Makefile
+$(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat: $(DEPCONFIG) Makefile
 	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
 
 context: $(BUILTIN_REGISTRY)$(DELIM)$(APPNAME)_main.bdat

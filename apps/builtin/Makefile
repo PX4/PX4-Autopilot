@@ -96,6 +96,7 @@ endif
 	$(Q) touch .built
 
 context:
+	$(Q) $(MAKE) -C registry context TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
 
 .depend: Makefile $(SRCS)
 	$(Q) $(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
@@ -104,6 +105,7 @@ context:
 depend: .depend
 
 clean:
+	$(Q) $(MAKE) -C registry clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
 	$(call DELFILE, .built)
 	$(call CLEAN)
 

@@ -41,7 +41,14 @@ include $(APPDIR)/Make.defs
 all:
 .PHONY: context depend clean distclean
 
-context:
+.updated: $(DEPCONFIG)
+	$(call DELFILE, *.bdat)
+	$(call DELFILE, *.pdat)
+	$(Q) touch .updated
+
+# This must run before any other context target
+
+context: .updated
 
 depend:
 
