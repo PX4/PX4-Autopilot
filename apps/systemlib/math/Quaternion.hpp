@@ -46,9 +46,15 @@ namespace math {
 
 class Quaternion : public Vector
 {
+public:
+    float & a, & b, & c, & d;
     // constructor
     Quaternion(4) :
-        Vector(4)
+        Vector(4),
+        a((*this)(0)),
+        b((*this)(1)),
+        c((*this)(2)),
+        d((*this)(3)),
     {
     }
     Quaternion(const float * data) :
@@ -99,15 +105,33 @@ class Quaternion : public Vector
         float sinTheta_2 = sinf(theta/2.0f);
         float sinPsi_2 = sinf(psi/2.0f);
         Quaternion result;
-        result(0) = cosPhi_2*cosTheta_2*cosPsi_2 + 
+        result.a = cosPhi_2*cosTheta_2*cosPsi_2 + 
             sinPhi_2*sinTheta_2*sinPsi_2;
-        result(1) = sinPhi_2*cosTheta_2*cosPsi_2 -
+        result.b = sinPhi_2*cosTheta_2*cosPsi_2 -
             cosPhi_2*sinTheta_2*sinPsi_2;
-        result(2) = cosPhi_2*sinTheta_2*cosPsi_2 +
+        result.c = cosPhi_2*sinTheta_2*cosPsi_2 +
             sinPhi_2*cosTheta_2*sinPsi_2;
-        result(3) = cosPhi_2*cosTheta_2*sinPsi_2 +
+        result.d = cosPhi_2*cosTheta_2*sinPsi_2 +
             sinPhi_2*sinTheta_2*cosPsi_2;
         return result;
+    }
+    // to euler angles
+    Vector toEuler()
+    {
+        Quaternion & q =(*this);
+        Vector result(3);
+        float aSq = a*a;
+        float bSq = b*b;
+        float cSq = c*c;
+        float dSq = d*d;
+        float theta = asinf(2*(a*c - b*d));
+        float phi  = atan2f(2*(a*b + c*d),
+                aSq - bSq - cSq + dSq);
+        float psi = atan2f(2*(a*d + b*c),
+                aSq + bSq - cSq - dSq);
+        result(0) = phi;
+        result(1) = theta;
+        result(2) = psi;
     }
 };
 
