@@ -75,6 +75,9 @@ $(AOBJS): %$(OBJEXT): %.S
 $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
+registry/.updated:
+	$(V) $(MAKE) -C registry .updated TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
+
 builtin_list.h: registry/.updated
 	$(call DELFILE, builtin_list.h)
 	$(Q) touch builtin_list.h
@@ -110,7 +113,7 @@ endif
 context:
 	$(Q) $(MAKE) -C registry context TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
 
-.depend: Makefile $(SRCS)
+.depend: Makefile $(SRCS) builtin_list.h builtin_proto.h
 	$(Q) $(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 	$(Q) touch $@
 

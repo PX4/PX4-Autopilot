@@ -39,64 +39,64 @@ include $(APPDIR)/Make.defs
 
 # Basic TCP networking test
 
-TARG_ASRCS	= 
-TARG_AOBJS	= $(TARG_ASRCS:.S=$(OBJEXT))
+TARG_ASRCS = 
+TARG_AOBJS = $(TARG_ASRCS:.S=$(OBJEXT))
 
-TARG_CSRCS	= nettest.c
+TARG_CSRCS = nettest.c
 ifeq ($(CONFIG_EXAMPLES_NETTEST_SERVER),y)
-TARG_CSRCS	+= nettest_server.c
+TARG_CSRCS += nettest_server.c
 else
-TARG_CSRCS	+= nettest_client.c
+TARG_CSRCS += nettest_client.c
 endif
 
-TARG_COBJS	= $(TARG_CSRCS:.c=$(OBJEXT))
+TARG_COBJS = $(TARG_CSRCS:.c=$(OBJEXT))
 
-TARG_SRCS	= $(TARG_ASRCS) $(TARG_CSRCS)
-TARG_OBJS	= $(TARG_AOBJS) $(TARG_COBJS)
+TARG_SRCS = $(TARG_ASRCS) $(TARG_CSRCS)
+TARG_OBJS = $(TARG_AOBJS) $(TARG_COBJS)
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  TARG_BIN		= ..\..\libapps$(LIBEXT)
+  TARG_BIN = ..\..\libapps$(LIBEXT)
 else
 ifeq ($(WINTOOL),y)
-  TARG_BIN		= ..\\..\\libapps$(LIBEXT)
+  TARG_BIN = ..\\..\\libapps$(LIBEXT)
 else
-  TARG_BIN		= ../../libapps$(LIBEXT)
+  TARG_BIN = ../../libapps$(LIBEXT)
 endif
 endif
 
-HOSTCFLAGS	+= -DCONFIG_EXAMPLES_NETTEST_HOST=1
+HOSTCFLAGS += -DCONFIG_EXAMPLES_NETTEST_HOST=1
 ifeq ($(CONFIG_EXAMPLES_NETTEST_SERVER),y)
-HOSTCFLAGS	+= -DCONFIG_EXAMPLES_NETTEST_SERVER=1 \
-		   -DCONFIG_EXAMPLES_NETTEST_CLIENTIP="$(CONFIG_EXAMPLES_NETTEST_CLIENTIP)"
+HOSTCFLAGS += -DCONFIG_EXAMPLES_NETTEST_SERVER=1 -DCONFIG_EXAMPLES_NETTEST_CLIENTIP="$(CONFIG_EXAMPLES_NETTEST_CLIENTIP)"
 endif
 ifeq ($(CONFIG_EXAMPLES_NETTEST_PERFORMANCE),y)
-HOSTCFLAGS	+= -DCONFIG_EXAMPLES_NETTEST_PERFORMANCE=1
+HOSTCFLAGS += -DCONFIG_EXAMPLES_NETTEST_PERFORMANCE=1
 endif
 
-HOST_SRCS	= host.c
+HOST_SRCS = host.c
 ifeq ($(CONFIG_EXAMPLES_NETTEST_SERVER),y)
-HOST_SRCS	+= nettest_client.c
+HOST_SRCS += nettest_client.c
 else
-HOST_SRCS	+= nettest_server.c
+HOST_SRCS += nettest_server.c
 endif
 
-HOST_OBJS	= $(HOST_SRCS:.c=.o)
-HOST_BIN	= host
+HOSTOBJEXT ?= .hobj
+HOST_OBJS = $(HOST_SRCS:.c=$(HOSTOBJEXT))
+HOST_BIN = host
 
-ROOTDEPPATH	= --dep-path .
+ROOTDEPPATH = --dep-path .
 
 # NET test built-in application info
 
-APPNAME		= nettest
-PRIORITY	= SCHED_PRIORITY_DEFAULT
-STACKSIZE	= 2048
+APPNAME = nettest
+PRIORITY = SCHED_PRIORITY_DEFAULT
+STACKSIZE = 2048
 
 # Common build
 
-VPATH		= 
+VPATH = 
 
 all: .built $(HOST_BIN)
-.PHONY:	clean depend distclean
+.PHONY: clean depend distclean
 
 $(TARG_AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -104,7 +104,7 @@ $(TARG_AOBJS): %$(OBJEXT): %.S
 $(TARG_COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
-$(HOST_OBJS): %.o: %.c
+$(HOST_OBJS): %$(HOSTOBJEXT): %.c
 	@echo "CC:  $<"
 	@$(HOSTCC) -c $(HOSTCFLAGS) $< -o $@
 
@@ -113,7 +113,7 @@ $(HOST_BIN): $(HOST_OBJS)
 	@$(HOSTCC) $(HOSTLDFLAGS) $(HOST_OBJS) -o $@
 
 .built: $(TARG_OBJS)
-	$(call ARCHIVE, $(BIN), $(TARG_OBJS))
+	$(call ARCHIVE, $(TARG_BIN), $(TARG_OBJS))
 	@touch .built
 
 ifeq ($(CONFIG_NSH_BUILTIN_APPS),y)
@@ -132,6 +132,7 @@ endif
 depend: .depend
 
 clean:
+	$(call DELFILE, *$(HOSTOBJEXT))
 	$(call DELFILE, $(HOST_BIN))
 	$(call DELFILE, .built)
 	$(call CLEAN)

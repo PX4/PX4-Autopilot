@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/arm/up_head.S
+ * arch/arm/src/arm/up_pghead.S
  *
  *   Copyright (C) 2007, 2009-2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -78,6 +78,10 @@
    * beginning of FLASH.
    */
 
+#  if !defined(CONFIG_FLASH_START) || !defined(CONFIG_FLASH_VSTART)
+#    error "CONFIG_FLASH_START or CONFIG_FLASH_VSTART is not defined"
+#  endif
+
 #  if CONFIG_FLASH_START == CONFIG_FLASH_VSTART
 #    define CONFIG_IDENTITY_TEXTMAP 1
 #  endif
@@ -102,6 +106,10 @@
    * beginning of FLASH.
    */
 
+#  if !defined(CONFIG_FLASH_START) || !defined(CONFIG_FLASH_VSTART)
+#    error "CONFIG_FLASH_START or CONFIG_FLASH_VSTART is not defined"
+#  endif
+
 #  if CONFIG_FLASH_START == CONFIG_FLASH_VSTART
 #    define CONFIG_IDENTITY_TEXTMAP 1
 #  endif
@@ -119,6 +127,10 @@
    * the case where the virtual beginning of RAM is the same as the physical
    * beginning of RAM.
    */
+
+#  if !defined(CONFIG_DRAM_START) || !defined(CONFIG_DRAM_VSTART)
+#    error "CONFIG_DRAM_START or CONFIG_DRAM_VSTART is not defined"
+#  endif
 
 #  if CONFIG_DRAM_START == CONFIG_DRAM_VSTART
 #    define CONFIG_IDENTITY_TEXTMAP 1
@@ -162,26 +174,37 @@
  * Assembly Macros
  ****************************************************************************/
 
-/* The ARM9 L1 page table can be placed at the beginning or at the end of the
- * RAM space.  This decision is based on the placement of the vector area:
- * If the vectors are place in low memory at address 0x0000 0000, then the
- * page table is placed in high memory; if the vectors are placed in high
- * memory at address 0xfff0 0000, then the page table is locating at the
- * beginning of RAM.
+/* The ARM9 L1 page table can be placed at the beginning or at the end of
+ * the RAM space.  This decision is based on the placement of the vector
+ * area: If the vectors are place in low memory at address 0x0000 0000, then
+ * the page table is placed in high memory; if the vectors are placed in
+ * high memory at address 0xfff0 0000, then the page table is locating at
+ * the beginning of RAM.
  *
- * For the special case where (1) the program executes out of RAM, and (2) the
- * page is located at the beginning of RAM, then the following macro can
- * easily find the physical address of the section that includes the first
- * part of the text region:  Since the page table is closely related to the
- * NuttX base address in this case, we can convert the page table base address
- * to the base address of the section containing both.
+ * For the special case where (1) the program executes out of RAM, and (2)
+ * the page is located at the beginning of RAM (i.e., the high vector case),
+ * then the following macro can easily find the physical address of the
+ * section that includes the first part of the text region:  Since the page
+ * table is closely related to the NuttX base address in this case, we can
+ * convert the page table base address to the base address of the section
+ * containing both.
+ */
+
+/* REVISIT:  This works now of the low vector case only because the RAM
+ * sizes that we have been dealing with are less then 1MB so that both the
+ * page table and the vector table are in the same 1MB RAM block.  But
+ * this will certainly break later. Hence, the annoying warning.
  */
 
 #ifdef CONFIG_ARCH_LOWVECTORS
+#  warning "REVISIT"
+#endif
+
+//#ifndef CONFIG_ARCH_LOWVECTORS
 	.macro	mksection, section, pgtable
 	bic	\section, \pgtable, #0x000ff000
 	.endm
-#endif
+//#endif
 
 /* This macro will modify r0, r1, r2 and r14 */
 

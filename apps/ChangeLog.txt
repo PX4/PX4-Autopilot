@@ -439,12 +439,18 @@
 	* Makefiles: Removed dependency of distclean on clean in most top-level
 	  files.  It makes sense for 'leaf' Makefiles to have this dependency,
 	  but it does not make sense for upper-level Makefiles.
-	* namedapp/: Renamed to builtins in preparation for another change.
+	* apps/namedapp/: Renamed to builtins in preparation for another change.
 	* .context:  Removed the .context kludge.  This caused lots of problems
 	  when changing configurations because there is no easy way to get the
 	  system to rebuild the context.  Now, the context will be rebuilt
 	  whenever there is a change in either .config or the Makefile.
-	* builtin/registry:  Updated new built-in registration logic to handle
+	* apps/builtin/registry:  Updated new built-in registration logic to handle
 	  cases where (1) old apps/.config is used, and (2) applications ared
 	  removed, not just added.
+	* apps/examples/nettest/Makefile:  Fix an error that crept in during
+	  some of the recent, massive build system changes.
+	* apps/builtin/Makefile:  Need to have auto-generated header files
+	  in place early in the dependency generation phase to avoid warnings.
+	  It is not important if they are only stubbed out header files at
+	  this build phase.
 

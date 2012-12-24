@@ -3815,4 +3815,7 @@
 	* sched/sig_timedwait.c:  Should always move the time up to the next
 	  largest number of system ticks.  The logic was rounding.  Noted by
 	  Petteri Aimonen.
+	* arch/arm/src/up_head.S:  Fix backward conditional compilation.  NOTE
+	  there is a issue of ARM9 systems with low vectors and large memories
+	  that will have to be addressed in the future.
 
