@@ -83,6 +83,10 @@ protected:
     control::UOrbPublication<vehicle_global_position_s> _pos;
     control::UOrbPublication<vehicle_attitude_s> _att;
     uint64_t _pubTimeStamp;
+    uint64_t _slowTimeStamp;
+    uint64_t _gpsTimeStamp;
+    uint64_t _magTimeStamp;
+    uint64_t _outTimeStamp;
     uint16_t _navFrames;
     float fN, fE, fD;
     math::Vector & x;

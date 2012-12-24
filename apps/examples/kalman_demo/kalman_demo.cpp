@@ -101,7 +101,7 @@ int kalman_demo_main(int argc, char *argv[])
         thread_should_exit = false;
         deamon_task = task_spawn("kalman_demo",
                      SCHED_DEFAULT,
-                     SCHED_PRIORITY_DEFAULT,
+                     SCHED_PRIORITY_MAX - 30,
                      8192,
                      kalman_demo_thread_main,
                      (argv) ? (const char **)&argv[2] : (const char **)NULL);

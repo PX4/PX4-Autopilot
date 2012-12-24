@@ -61,6 +61,10 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     _pos(&getPublications(), ORB_ID(vehicle_global_position)),
     _att(&getPublications(), ORB_ID(vehicle_attitude)),
     _pubTimeStamp(hrt_absolute_time()),
+    _slowTimeStamp(hrt_absolute_time()),
+    _gpsTimeStamp(hrt_absolute_time()),
+    _magTimeStamp(hrt_absolute_time()),
+    _outTimeStamp(hrt_absolute_time()),
     _navFrames(0),
     fN(0), fE(0), fD(0),
     x(_kalman.getX()),
@@ -70,7 +74,7 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     a(q(0)), b(q(1)), c(q(2)), d(q(3))
 {
     using namespace math;
-    setDt(1.0f /250.0f);
+    setDt(1.0f /200.0f);
 
     Matrix I3 = Matrix::identity(3);
     Matrix I6 = Matrix::identity(6);
@@ -95,9 +99,10 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     vN = _gps.vel_n;
     vE = _gps.vel_e;
     vD = _gps.vel_d;
-    L = _gps.lat;
-    l = _gps.lon;
+    L = _gps.lat/1.0e7f;
+    l = _gps.lon/1.0e7f;
     h = _gps.alt/1.0e3f; 
+
     // initialize quaternions
     float cosPhi_2 = cosf(phi/2.0f);
     float cosTheta_2 = cosf(theta/2.0f);
@@ -156,35 +161,40 @@ void KalmanNav::update()
     _navFrames += 1;
 
     // fast prediciton step
-    predictFast(); // 250 Hz
+    predictFast(); // 200 Hz
 
-    if (_navFrames % 2 == 0) // 125 Hz 
+    // slow prediction step
+    if (newTimeStamp - _slowTimeStamp > 1e6/200) // 200 Hz
     {
+        _slowTimeStamp = newTimeStamp;
         predictSlow();
     }
 
     // gps correction step
-    if (_navFrames % 25 == 0) // 10 Hz
+    if (newTimeStamp - _gpsTimeStamp > 1e6/1) // 1 Hz
     {
+        _gpsTimeStamp = newTimeStamp;
         correctGps();
     }
 
     // mag correction step
-    if (_navFrames % 25 == 0) // 10 Hz 
-    {
-        correctMag();
-    }
+    //if (newTimeStamp - _magTimeStamp > 1e6/10) // 1 Hz
+    //{
+        //_magTimeStamp = newTimeStamp;
+        //correctMag();
+    //}
 
     // publication
-    if (_navFrames % 5 == 0) // 50 Hz
+    if (newTimeStamp - _pubTimeStamp > 1e6/50) // 50 Hz
     {
         _pubTimeStamp = newTimeStamp;
         updatePublications();
     }
 
     // output
-    if (_navFrames % 250 == 0) // 1 Hz
+    if (newTimeStamp - _outTimeStamp > 1e6) // 1 Hz
     {
+        _outTimeStamp = newTimeStamp;
         uint16_t schedRate = 1.0f/getDt();
         if (fabsf(float(_navFrames)/schedRate - 1.0f) > 0.01f)
         {
@@ -199,7 +209,7 @@ void KalmanNav::update()
     float calcTime = (hrt_absolute_time() - newTimeStamp)/1.0e6f;
 
     // sleep for approximately the right amount of time
-    float timeSleep = 0.95f*(getDt() - calcTime);
+    float timeSleep = 0.95*(getDt() - calcTime);
     if (timeSleep > 0.0f) {
         usleep((double)(1e6f*timeSleep));
     } 
@@ -216,8 +226,8 @@ void KalmanNav::updatePublications()
     _pos.timestamp = _pubTimeStamp;
     _pos.time_gps_usec = _gps.timestamp;
     _pos.valid = true;
-    _pos.lat = L;
-    _pos.lon = l;
+    _pos.lat = L*1e7;
+    _pos.lon = l*1e7;
     _pos.alt = h;
     _pos.relative_alt = h; // TODO, make relative
     _pos.vx = vN;
@@ -270,12 +280,7 @@ void KalmanNav::predictFast()
     float norm = sqrtf(aSq + bSq + cSq + dSq);
     if (fabsf(norm-1.0f) > 1e-2f)
     {
-        printf("renormalizing\n");
-        printf("q: %8.4f %8.4f %8.4f %8.4f\n",
-                (double)a,(double)b,(double)c,(double)d);
         q = q/norm;
-        printf("q: %8.4f %8.4f %8.4f %8.4f\n",
-                (double)a,(double)b,(double)c,(double)d);
     }
 
     // C_nb update
@@ -337,8 +342,8 @@ void KalmanNav::predictFast()
     vN += vNDot*dt;
     vE += vEDot*dt;
     vD += vDDot*dt;
-    L  += 1e7f*LDot*dt;
-    l  += 1e7f*lDot*dt;
+    L  += LDot*dt;
+    l  += lDot*dt;
     h  += -vD*dt;
 }
 
@@ -501,6 +506,23 @@ void KalmanNav::correctMag()
         (cosPhi*cosPsi*sinTheta + sinPhi*sinPsi)*bE
         );
     _kalman.correct(zMagUnit,HMag,RMag,zMagHat);
+
+    // update quaternions from euler 
+    // angle correction
+    float cosPhi_2 = cosf(phi/2.0f);
+    float cosTheta_2 = cosf(theta/2.0f);
+    float cosPsi_2 = cosf(psi/2.0f);
+    float sinPhi_2 = sinf(phi/2.0f);
+    float sinTheta_2 = sinf(theta/2.0f);
+    float sinPsi_2 = sinf(psi/2.0f);
+    a = cosPhi_2*cosTheta_2*cosPsi_2 + 
+        sinPhi_2*sinTheta_2*sinPsi_2;
+    b = sinPhi_2*cosTheta_2*cosPsi_2 -
+        cosPhi_2*sinTheta_2*sinPsi_2;
+    c = cosPhi_2*sinTheta_2*cosPsi_2 +
+        sinPhi_2*cosTheta_2*sinPsi_2;
+    d = cosPhi_2*cosTheta_2*sinPsi_2 +
+        sinPhi_2*sinTheta_2*cosPsi_2;
 }
 void KalmanNav::correctGps()
 {
@@ -509,8 +531,8 @@ void KalmanNav::correctGps()
     zGps(0) = _gps.vel_n; // vn
     zGps(1) = _gps.vel_e; // ve
     zGps(2) = _gps.vel_d; // vd
-    zGps(3) = _gps.lat; // L
-    zGps(4) = _gps.lon; // l
+    zGps(3) = _gps.lat/1.0e7f; // L
+    zGps(4) = _gps.lon/1.0e7f; // l
     zGps(5) = _gps.alt/1.0e3f; // h
     Vector zGpsHat = HGps*_kalman.getX();
     _kalman.correct(zGps,HGps,RGps,zGpsHat);
