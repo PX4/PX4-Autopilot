@@ -3,7 +3,11 @@
 # Flight startup script for PX4FMU on PX4IOAR carrier board.
 #
  
+# Disable the USB interface
 set USB no
+ 
+# Disable autostarting other apps
+set MODE ardrone
  
 echo "[init] doing PX4IOAR startup..."
  
@@ -13,25 +17,25 @@ echo "[init] doing PX4IOAR startup..."
 uorb start
  
 #
-# Init the EEPROM
+# Load microSD params
 #
-echo "[init] eeprom"
-eeprom start
-if [ -f /eeprom/parameters ]
+echo "[init] loading microSD params"
+param select /fs/microsd/parameters
+if [ -f /fs/microsd/parameters ]
 then
-	param load
+	param load /fs/microsd/parameters
 fi
- 
-#
-# Start the sensors.
-#
-sh /etc/init.d/rc.sensors
  
 #
 # Start MAVLink
 #
 mavlink start -d /dev/ttyS0 -b 57600
 usleep 5000
+ 
+#
+# Start the sensors and test them.
+#
+sh /etc/init.d/rc.sensors
  
 #
 # Start the commander.
@@ -56,13 +60,13 @@ multirotor_att_control start
 #
 # Fire up the AR.Drone interface.
 #
-ardrone_interface start
-
+ardrone_interface start -d /dev/ttyS1
+ 
 #
-# Start logging to microSD if we can
+# Start logging
 #
-#sh /etc/init.d/rc.logging
-
+#sdlog start
+ 
 #
 # Start GPS capture
 #

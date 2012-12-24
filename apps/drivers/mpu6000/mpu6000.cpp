@@ -450,7 +450,6 @@ MPU6000::init()
 	int gyro_ret = _gyro->init();
 
 	if (gyro_ret != OK) {
-		::close(_gyro_topic);
 		_gyro_topic = -1;
 	}
 
