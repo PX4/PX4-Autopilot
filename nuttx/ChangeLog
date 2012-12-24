@@ -3812,4 +3812,7 @@
 	* include/pthread.h:  In sys/prctl.h because it is needed by
 	  pthread_[set|get]name_np()
 	* tools/kconfig.bat:  Kludge to run kconfig-frontends from a DOS shell.
+	* sched/sig_timedwait.c:  Should always move the time up to the next
+	  largest number of system ticks.  The logic was rounding.  Noted by
+	  Petteri Aimonen.
 
