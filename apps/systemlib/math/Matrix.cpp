@@ -129,12 +129,15 @@ int matrixMultTest()
 int matrixInvTest()
 {
     printf("Test Matrix Inv\t\t: ");
+    Matrix origF = testF;
     Matrix r = testF.inverse();
     float data_test[] =
         { -0.0012518f,  0.0001610f, 0.0000000f,
            0.0001622f, -0.0000209f, 0.0000000f,
            0.0000000f,  0.0000000f, 1.6580e-9f};
     ASSERT(matrixEqual(Matrix(3,3,data_test),r,1.0e-5f));
+    // make sure F in unchanged
+    ASSERT(matrixEqual(origF,testF));
     printf("PASS\n");
     return 0;
 }

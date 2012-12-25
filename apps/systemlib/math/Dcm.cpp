@@ -115,7 +115,7 @@ Dcm::~Dcm()
 
 int __EXPORT dcmTest()
 {
-    printf("Test DCM\t\t\t:");
+    printf("Test DCM\t\t: ");
     Dcm C_nb;
     Vector3 vN;
     Vector3 vB(1,2,3);
@@ -124,6 +124,7 @@ int __EXPORT dcmTest()
     C_nb = Dcm(EulerAngles(0,0,M_PI_2_F));
     vN = C_nb*vB;
     ASSERT(vectorEqual(Vector3(-2,1,3),vN));
+    printf("PASS\n");
     return 0;
 }
 } // namespace math

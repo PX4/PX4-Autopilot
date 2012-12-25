@@ -42,6 +42,7 @@
 #include "EulerAngles.hpp"
 #include "Quaternion.hpp"
 #include "Dcm.hpp"
+#include "Vector3.hpp"
 
 namespace math
 {
@@ -99,6 +100,23 @@ int __EXPORT eulerAnglesTest()
 {
     printf("Test EulerAngles\t: ");
     EulerAngles euler(1,2,3);
+
+    // test ctor
+    ASSERT(vectorEqual(Vector3(1,2,3),euler));
+    ASSERT(equal(euler.getPhi(),1));
+    ASSERT(equal(euler.getTheta(),2));
+    ASSERT(equal(euler.getPsi(),3));
+
+    // test dcm ctor
+
+    // test assignment
+    euler.setPhi(4);
+    ASSERT(equal(euler.getPhi(),4));
+    euler.setTheta(5);
+    ASSERT(equal(euler.getTheta(),5));
+    euler.setPsi(6);
+    ASSERT(equal(euler.getPsi(),6));
+    
     printf("PASS\n");
     return 0;
 }

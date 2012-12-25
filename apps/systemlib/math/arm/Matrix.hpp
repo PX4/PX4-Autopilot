@@ -266,7 +266,8 @@ public:
         ASSERT(getRows()==getCols());
 #endif
         Matrix result(getRows(), getCols());
-        arm_mat_inverse_f32(&_matrix,
+        Matrix work = (*this);
+        arm_mat_inverse_f32(&(work._matrix),
                 &(result._matrix));
         return result;
     }
