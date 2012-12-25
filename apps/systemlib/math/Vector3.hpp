@@ -32,54 +32,27 @@
  ****************************************************************************/
 
 /**
- * @file Dcm.hpp
+ * @file Vector3.hpp
  *
- * math direction cosine matrix
+ * math 3 vector
  */
 
-//#pragma once
+#pragma once
 
 #include "Vector.hpp"
-#include "Matrix.hpp"
 
-namespace math {
-
-class Quaternion;
-class EulerAngles;
-
-class Dcm : public Matrix
+namespace math
 {
-    /**
-     * default ctor
-     */
-    Dcm();
 
-    /**
-     * data ctor
-     */
-    Dcm(const float * data);
-
-    /**
-     * quaternion ctor
-     */
-    Dcm(const Quaternion & q);
-
-    /**
-     * euler angles ctor
-     */
-    Dcm(const EulerAngles & euler);
-
-    /**
-     * copy ctor (deep)
-     */
-    Dcm(const Dcm & right);
-
-    /**
-     * dtor
-     */
-    virtual ~Dcm();
+class Vector3 :
+    public Vector
+{
+public:
+    Vector3();
+    Vector3(const float * data);
+    virtual ~Vector3();
+    Vector3 cross();
 };
 
-int __EXPORT dcmTest();
 } // math
 

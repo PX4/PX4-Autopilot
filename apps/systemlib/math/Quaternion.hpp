@@ -44,95 +44,49 @@
 
 namespace math {
 
+class Dcm;
+class EulerAngles;
+
 class Quaternion : public Vector
 {
 public:
     float & a, & b, & c, & d;
-    // constructor
-    Quaternion(4) :
-        Vector(4),
-        a((*this)(0)),
-        b((*this)(1)),
-        c((*this)(2)),
-        d((*this)(3)),
-    {
-    }
-    Quaternion(const float * data) :
-        Vector(4,data)
-    {
-    }
-    // deconstructor
-    virtual ~Quaternion()
-    {
-    }
-    // copy constructor (deep)
-    Quaternion(const Quaternion & right) :
-        Vector(right)
-    {
-    }
-    // derivative
-    Quaternion derivative(const Vector & w) :
-    {
-#ifdef QUATERNION_ASSERT
-        ASSERT(w.getRows()==3);
-#endif
-        float dataQ[] = 
-        {a, -b, -c, -d,
-         b,  a, -d,  c,
-         c,  d,  a, -b,
-         d, -c,  b,  a};
-        Vector v(4);
-        v(0) = 0.0f;
-        v(1) = w(0);
-        v(2) = w(1);
-        v(3) = w(2);
-        Matrix Q(4,4,dataQ);
-        return Q*v*0.5f; 
-    }
-    // from euler angles
-    static Quaternion fromEuler(const Vector & euler)
-    {
-        // euler angles
-        float phi = euler(0);
-        float theta = euler(1);
-        float psi = euler(2);
 
-        // initialize quaternions
-        float cosPhi_2 = cosf(phi/2.0f);
-        float cosTheta_2 = cosf(theta/2.0f);
-        float cosPsi_2 = cosf(psi/2.0f);
-        float sinPhi_2 = sinf(phi/2.0f);
-        float sinTheta_2 = sinf(theta/2.0f);
-        float sinPsi_2 = sinf(psi/2.0f);
-        Quaternion result;
-        result.a = cosPhi_2*cosTheta_2*cosPsi_2 + 
-            sinPhi_2*sinTheta_2*sinPsi_2;
-        result.b = sinPhi_2*cosTheta_2*cosPsi_2 -
-            cosPhi_2*sinTheta_2*sinPsi_2;
-        result.c = cosPhi_2*sinTheta_2*cosPsi_2 +
-            sinPhi_2*cosTheta_2*sinPsi_2;
-        result.d = cosPhi_2*cosTheta_2*sinPsi_2 +
-            sinPhi_2*sinTheta_2*cosPsi_2;
-        return result;
-    }
-    // to euler angles
-    Vector toEuler()
-    {
-        Quaternion & q =(*this);
-        Vector result(3);
-        float aSq = a*a;
-        float bSq = b*b;
-        float cSq = c*c;
-        float dSq = d*d;
-        float theta = asinf(2*(a*c - b*d));
-        float phi  = atan2f(2*(a*b + c*d),
-                aSq - bSq - cSq + dSq);
-        float psi = atan2f(2*(a*d + b*c),
-                aSq + bSq - cSq - dSq);
-        result(0) = phi;
-        result(1) = theta;
-        result(2) = psi;
-    }
+    /**
+     * default ctor
+     */
+    Quaternion();
+
+    /**
+     * ctor from data
+     */
+    Quaternion(const float * data);
+
+    /**
+     * ctor from EulerAngles
+     */
+    Quaternion(const EulerAngles & euler);
+
+    /**
+     * ctor from Dcm
+     */
+    Quaternion(const Dcm & dcm);
+
+    /**
+     * deep copy ctor
+     */
+    Quaternion(const Quaternion & right);
+
+    /**
+     * dtor
+     */
+    virtual ~Quaternion();
+    
+    /**
+     * derivative
+     */
+    Vector derivative(const Vector & w);
+
 };
 
 int __EXPORT quaternionTest();

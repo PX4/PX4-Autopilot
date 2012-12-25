@@ -32,54 +32,59 @@
  ****************************************************************************/
 
 /**
- * @file Dcm.hpp
+ * @file Vector.cpp
  *
- * math direction cosine matrix
+ * math vector
  */
 
-//#pragma once
+#include <systemlib/test/test.hpp>
 
-#include "Vector.hpp"
-#include "Matrix.hpp"
+#include "EulerAngles.hpp"
+#include "Quaternion.hpp"
+#include "Dcm.hpp"
 
-namespace math {
-
-class Quaternion;
-class EulerAngles;
-
-class Dcm : public Matrix
+namespace math
 {
-    /**
-     * default ctor
-     */
-    Dcm();
 
-    /**
-     * data ctor
-     */
-    Dcm(const float * data);
+EulerAngles::EulerAngles() :
+    Vector(3),
+    phi((*this)(0)),
+    theta((*this)(1)),
+    psi((*this)(2))
+{
+    phi = 0.0f;
+    theta = 0.0f;
+    psi = 0.0f;
+}
 
-    /**
-     * quaternion ctor
-     */
-    Dcm(const Quaternion & q);
+EulerAngles::EulerAngles(const Quaternion & q) :
+    Vector(3),
+    phi((*this)(0)),
+    theta((*this)(1)),
+    psi((*this)(2))
+{
+    float a = q.a;
+    float b = q.b;
+    float c = q.c;
+    float d = q.d;
+    float aSq = a*a;
+    float bSq = b*b;
+    float cSq = c*c;
+    float dSq = d*d;
+    theta = asinf(2*(a*c - b*d));
+    phi  = atan2f(2*(a*b + c*d),
+            aSq - bSq - cSq + dSq);
+    psi = atan2f(2*(a*d + b*c),
+            aSq + bSq - cSq - dSq);
+}
 
-    /**
-     * euler angles ctor
-     */
-    Dcm(const EulerAngles & euler);
+EulerAngles::EulerAngles(const Dcm & dcm) :
+    Vector(3),
+    phi((*this)(0)),
+    theta((*this)(1)),
+    psi((*this)(2))
+{
+    // TODO
+}
 
-    /**
-     * copy ctor (deep)
-     */
-    Dcm(const Dcm & right);
-
-    /**
-     * dtor
-     */
-    virtual ~Dcm();
-};
-
-int __EXPORT dcmTest();
-} // math
-
+} // namespace math

@@ -44,6 +44,37 @@
 namespace math
 {
 
+Dcm::Dcm() :
+    Matrix(3,3)
+{
+}
+
+Dcm::Dcm(const float * data) :
+    Matrix(3,3,data)
+{
+}
+
+Dcm::Dcm(const Quaternion & q) :
+    Matrix(3,3)
+{
+    // TODO
+}
+
+Dcm::Dcm(const EulerAngles & euler) :
+    Matrix(3,3)
+{
+    // TODO
+}
+
+Dcm::Dcm(const Dcm & right) :
+    Matrix(right)
+{
+}
+
+Dcm::~Dcm()
+{
+}
+
 int __EXPORT dcmTest()
 {
     return 0;
