@@ -46,6 +46,7 @@
 #endif
 
 namespace math {
+class Matrix;
 int matrixTest();
 int matrixAddTest();
 int matrixSubTest();
@@ -53,5 +54,5 @@ int matrixMultTest();
 int matrixInvTest();
 int matrixDivTest();
 int matrixArmTest();
-bool matrixEqual(const Matrix & a, const Matrix & b, float eps=1.0e-7f);
+bool matrixEqual(const Matrix & a, const Matrix & b, float eps=1.0e-5f);
 } // namespace math

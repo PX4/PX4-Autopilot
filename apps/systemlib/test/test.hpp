@@ -43,7 +43,7 @@
 #include <time.h>
 #include <stdlib.h>
 
-bool equal(float a, float b, float eps = 1e-7);
+bool equal(float a, float b, float eps = 1e-5);
 void float2SigExp(
         const float & num,
         float & sig,

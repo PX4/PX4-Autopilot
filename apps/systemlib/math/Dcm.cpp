@@ -116,14 +116,18 @@ Dcm::~Dcm()
 int __EXPORT dcmTest()
 {
     printf("Test DCM\t\t: ");
-    Dcm C_nb;
-    Vector3 vN;
     Vector3 vB(1,2,3);
-    C_nb = Dcm(EulerAngles(0,0,0));
-    ASSERT(matrixEqual(C_nb,Matrix::identity(3)));
-    C_nb = Dcm(EulerAngles(0,0,M_PI_2_F));
-    vN = C_nb*vB;
-    ASSERT(vectorEqual(Vector3(-2,1,3),vN));
+    ASSERT(matrixEqual(Dcm(EulerAngles(0,0,0)),
+                    Matrix::identity(3)));
+    ASSERT(vectorEqual(Vector3(-2,1,3),
+        Dcm(EulerAngles(0,0,M_PI_2_F))*vB));
+    ASSERT(vectorEqual(Vector3(3,2,-1),
+        Dcm(EulerAngles(0,M_PI_2_F,0))*vB));
+    ASSERT(vectorEqual(Vector3(1,-3,2),
+        Dcm(EulerAngles(M_PI_2_F,0,0))*vB));
+    ASSERT(vectorEqual(Vector3(2,3,1),
+        Dcm(EulerAngles(
+                M_PI_2_F,M_PI_2_F,M_PI_2_F))*vB));
     printf("PASS\n");
     return 0;
 }

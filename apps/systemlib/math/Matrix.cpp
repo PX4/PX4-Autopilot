@@ -135,7 +135,7 @@ int matrixInvTest()
         { -0.0012518f,  0.0001610f, 0.0000000f,
            0.0001622f, -0.0000209f, 0.0000000f,
            0.0000000f,  0.0000000f, 1.6580e-9f};
-    ASSERT(matrixEqual(Matrix(3,3,data_test),r,1.0e-5f));
+    ASSERT(matrixEqual(Matrix(3,3,data_test),r));
     // make sure F in unchanged
     ASSERT(matrixEqual(origF,testF));
     printf("PASS\n");
@@ -150,7 +150,7 @@ int matrixDivTest()
          0.2222222f, 0.5555556f, -0.1111111f,
                0.0f,       1.0f,         1.0,
         -4.1111111f, 1.2222222f,  4.5555556f};
-    ASSERT(matrixEqual(Matrix(3,3,data_test),r,1.0e-5f));
+    ASSERT(matrixEqual(Matrix(3,3,data_test),r));
     printf("PASS\n");
     return 0;
 }
