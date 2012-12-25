@@ -56,6 +56,16 @@ Quaternion::Quaternion() :
     setD(0.0f);
 }
 
+Quaternion::Quaternion(float a, float b,
+        float c, float d) :
+    Vector(4)
+{
+    setA(a);
+    setB(b);
+    setC(c);
+    setD(d);
+}
+
 Quaternion::Quaternion(const float * data) :
     Vector(4,data)
 {

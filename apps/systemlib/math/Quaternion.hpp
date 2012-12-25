@@ -57,6 +57,11 @@ public:
     Quaternion();
 
     /**
+     * ctor from floats
+     */
+    Quaternion(float a, float b, float c, float d);
+
+    /**
      * ctor from data
      */
     Quaternion(const float * data);

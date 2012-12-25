@@ -117,6 +117,8 @@ int __EXPORT dcmTest()
 {
     printf("Test DCM\t\t: ");
     Vector3 vB(1,2,3);
+    ASSERT(matrixEqual(Dcm(Quaternion(1,0,0,0)),
+                    Matrix::identity(3)));
     ASSERT(matrixEqual(Dcm(EulerAngles(0,0,0)),
                     Matrix::identity(3)));
     ASSERT(vectorEqual(Vector3(-2,1,3),
@@ -125,7 +127,7 @@ int __EXPORT dcmTest()
         Dcm(EulerAngles(0,M_PI_2_F,0))*vB));
     ASSERT(vectorEqual(Vector3(1,-3,2),
         Dcm(EulerAngles(M_PI_2_F,0,0))*vB));
-    ASSERT(vectorEqual(Vector3(2,3,1),
+    ASSERT(vectorEqual(Vector3(3,2,-1),
         Dcm(EulerAngles(
                 M_PI_2_F,M_PI_2_F,M_PI_2_F))*vB));
     printf("PASS\n");
