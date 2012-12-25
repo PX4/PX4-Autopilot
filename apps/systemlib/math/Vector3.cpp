@@ -84,4 +84,12 @@ Vector3 Vector3::cross(const Vector3 & b)
     return result;
 }
 
+int __EXPORT vector3Test()
+{
+    printf("Test Vector3\t\t: ");
+    Vector3 v(1,2,3);
+    printf("PASS\n");
+    return 0;
+}
+
 } // namespace math

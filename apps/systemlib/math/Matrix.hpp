@@ -53,5 +53,5 @@ int matrixMultTest();
 int matrixInvTest();
 int matrixDivTest();
 int matrixArmTest();
+bool matrixEqual(const Matrix & a, const Matrix & b, float eps=1.0e-7f);
 } // namespace math
-

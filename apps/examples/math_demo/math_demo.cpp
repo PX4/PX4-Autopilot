@@ -45,6 +45,10 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/math/Vector.hpp>
 #include <systemlib/math/Matrix.hpp>
+#include <systemlib/math/Quaternion.hpp>
+#include <systemlib/math/Vector3.hpp>
+#include <systemlib/math/Dcm.hpp>
+#include <systemlib/math/EulerAngles.hpp>
 
 /**
  * Management function.
@@ -99,4 +103,8 @@ void test()
     using namespace math;
     vectorTest();
     matrixTest();
+    vector3Test();
+    eulerAnglesTest();
+    quaternionTest();
+    dcmTest();
 }

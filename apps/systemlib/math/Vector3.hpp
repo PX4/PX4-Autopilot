@@ -66,5 +66,6 @@ public:
     const float & getZ() const { return (*this)(2); }
 };
 
+int __EXPORT vector3Test();
 } // math
 

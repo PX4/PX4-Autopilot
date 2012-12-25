@@ -91,4 +91,16 @@ EulerAngles::EulerAngles(const Dcm & dcm) :
     }
 }
 
+EulerAngles::~EulerAngles()
+{
+}
+
+int __EXPORT eulerAnglesTest()
+{
+    printf("Test EulerAngles\t: ");
+    EulerAngles euler(1,2,3);
+    printf("PASS\n");
+    return 0;
+}
+
 } // namespace math

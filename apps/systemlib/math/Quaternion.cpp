@@ -123,6 +123,9 @@ Vector Quaternion::derivative(const Vector & w)
 
 int __EXPORT quaternionTest()
 {
+    printf("Test Quaternion\t\t: ");
+    Quaternion q;
+    printf("PASS\n");
     return 0;
 }
 

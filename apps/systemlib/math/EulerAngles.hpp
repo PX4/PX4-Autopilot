@@ -67,5 +67,7 @@ public:
 
 };
 
+int __EXPORT eulerAnglesTest();
+
 } // math
 

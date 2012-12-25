@@ -45,35 +45,39 @@
 namespace math
 {
 
-static const float data_a[] = 
+static const float data_testA[] = 
     {1,2,3,
      4,5,6};
-static const float data_b[] = 
+static Matrix testA(2,3,data_testA);
+
+static const float data_testB[] = 
     {0,1,3,
      7,-1,2};
-static const float data_c[] = 
+static Matrix testB(2,3,data_testB);
+
+static const float data_testC[] = 
     {0,1,
      2,1,
      3,2};
-static const float data_d[] = 
+static Matrix testC(3,2,data_testC);
+
+static const float data_testD[] = 
     {0,1,2,
      2,1,4,
      5,2,0};
-static const float data_e[] = 
+static Matrix testD(3,3,data_testD);
+
+static const float data_testE[] = 
     {1,-1,2,
      0,2,3,
      2,-1,1};
-static const float data_f[] = 
+static Matrix testE(3,3,data_testE);
+
+static const float data_testF[] = 
     {3.777e006f, 2.915e007f, 0.000e000f,
      2.938e007f, 2.267e008f, 0.000e000f,
      0.000e000f, 0.000e000f, 6.033e008f};
-
-static Matrix a(2,3,data_a);
-static Matrix b(2,3,data_b);
-static Matrix c(3,2,data_c);
-static Matrix d(3,3,data_d);
-static Matrix e(3,3,data_e);
-static Matrix f(3,3,data_f);
+static Matrix testF(3,3,data_testF);
 
 int __EXPORT matrixTest()
 {
@@ -88,13 +92,11 @@ int __EXPORT matrixTest()
 int matrixAddTest()
 {
     printf("Test Matrix Add\t\t: ");
-    Matrix r = a + b;
-    ASSERT(equal(r(0,0),1.0f))
-    ASSERT(equal(r(0,1),3.0f))
-    ASSERT(equal(r(0,2),6.0f))
-    ASSERT(equal(r(1,0),11.0f))
-    ASSERT(equal(r(1,1),4.0f))
-    ASSERT(equal(r(1,2),8.0f))
+    Matrix r = testA + testB;
+    float data_test[] =
+        { 1.0f, 3.0f, 6.0f,
+         11.0f, 4.0f, 8.0f};
+    ASSERT(matrixEqual(Matrix(2,3,data_test),r));
     printf("PASS\n");
     return 0;
 }
@@ -102,13 +104,11 @@ int matrixAddTest()
 int matrixSubTest()
 {
     printf("Test Matrix Sub\t\t: ");
-    Matrix r = a - b;
-    ASSERT(equal(r(0,0),1.0f))
-    ASSERT(equal(r(0,1),1.0f))
-    ASSERT(equal(r(0,2),0.0f))
-    ASSERT(equal(r(1,0),-3.0f))
-    ASSERT(equal(r(1,1),6.0f))
-    ASSERT(equal(r(1,2),4.0f))
+    Matrix r = testA - testB;
+    float data_test[] =
+        { 1.0f, 1.0f, 0.0f,
+         -3.0f, 6.0f, 4.0f};
+    ASSERT(matrixEqual(Matrix(2,3,data_test),r));
     printf("PASS\n");
     return 0;
 }
@@ -116,16 +116,12 @@ int matrixSubTest()
 int matrixMultTest()
 {
     printf("Test Matrix Mult\t: ");
-    Matrix r = c * b;
-    ASSERT(equal(r(0,0),7.0f))
-    ASSERT(equal(r(0,1),-1.0f))
-    ASSERT(equal(r(0,2),2.0f))
-    ASSERT(equal(r(1,0),7.0f))
-    ASSERT(equal(r(1,1),1.0f))
-    ASSERT(equal(r(1,2),8.0f))
-    ASSERT(equal(r(2,0),14.0f))
-    ASSERT(equal(r(2,1),1.0f))
-    ASSERT(equal(r(2,2),13.0f))
+    Matrix r = testC * testB;
+    float data_test[] =
+        { 7.0f, -1.0f,  2.0f,
+          7.0f,  1.0f,  8.0f,
+         14.0f,  1.0f, 13.0f};
+    ASSERT(matrixEqual(Matrix(3,3,data_test),r));
     printf("PASS\n");
     return 0;
 }
@@ -133,16 +129,12 @@ int matrixMultTest()
 int matrixInvTest()
 {
     printf("Test Matrix Inv\t\t: ");
-    Matrix r = f.inverse();
-    ASSERT(equal(r(0,0),-0.0012518f,1e-6f))
-    ASSERT(equal(r(0,1),0.0001610f,1e-6f))
-    ASSERT(equal(r(0,2),0.0000000f,1e-6f))
-    ASSERT(equal(r(1,0),0.0001622f,1e-6f))
-    ASSERT(equal(r(1,1),-0.0000209f,1e-6f))
-    ASSERT(equal(r(1,2),0.0000000f,1e-6f))
-    ASSERT(equal(r(2,0),0.0000000f,1e-6f))
-    ASSERT(equal(r(2,1),0.0000000f,1e-6f))
-    ASSERT(equal(r(2,2),1.6580e-9f,1e-6f))
+    Matrix r = testF.inverse();
+    float data_test[] =
+        { -0.0012518f,  0.0001610f, 0.0000000f,
+           0.0001622f, -0.0000209f, 0.0000000f,
+           0.0000000f,  0.0000000f, 1.6580e-9f};
+    ASSERT(matrixEqual(Matrix(3,3,data_test),r,1.0e-5f));
     printf("PASS\n");
     return 0;
 }
@@ -150,18 +142,37 @@ int matrixInvTest()
 int matrixDivTest()
 {
     printf("Test Matrix Div\t\t: ");
-    Matrix r = d / e;
-    ASSERT(equal(r(0,0),0.2222222f,1e-6f))
-    ASSERT(equal(r(0,1),0.5555556f,1e-6f))
-    ASSERT(equal(r(0,2),-0.1111111f,1e-6f))
-    ASSERT(equal(r(1,0),0.0f,1e-6f))
-    ASSERT(equal(r(1,1),1.0f,1e-6f))
-    ASSERT(equal(r(1,2),1.0f,1e-6f))
-    ASSERT(equal(r(2,0),-4.1111111f,1e-6f))
-    ASSERT(equal(r(2,1),1.2222222f,1e-6f))
-    ASSERT(equal(r(2,2),4.5555556f,1e-6f))
+    Matrix r = testD / testE;
+    float data_test1[] = {
+         0.2222222f, 0.5555556f, -0.1111111f,
+               0.0f,       1.0f,         1.0,
+        -4.1111111f, 1.2222222f,  4.5555556f};
+    Matrix test1(3,3,data_test1);
+    ASSERT(matrixEqual(test1,r,1.0e-5f));
     printf("PASS\n");
     return 0;
 }
 
+bool matrixEqual(const Matrix & a, const Matrix & b, float eps)
+{
+    if (a.getRows() != b.getRows()) {
+        printf("row number not equal a: %d, b:%d\n", a.getRows(), b.getRows());
+        return false;
+    } else if (a.getCols() != b.getCols()) {
+        printf("column number not equal a: %d, b:%d\n", a.getCols(), b.getCols());
+        return false;
+    }
+    bool ret = true;
+    for (size_t i=0;i<a.getRows();i++)
+        for (size_t j =0;j<a.getCols();j++)
+    {
+        if (!equal(a(i,j),b(i,j),eps))
+        {
+            printf("element mismatch (%d, %d)\n", i, j);
+            ret = false;
+        }
+    }
+    return ret;
+}
+ 
 } // namespace math
