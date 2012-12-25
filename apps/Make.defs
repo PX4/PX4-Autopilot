@@ -37,9 +37,9 @@
 BUILTIN_REGISTRY = $(APPDIR)$(DELIM)builtin$(DELIM)registry
 
 ifeq ($(CONFIG_NUTTX_NEWCONFIG),y)
-DEPCONFIG = $(TOPDIR)/.config
+DEPCONFIG = $(TOPDIR)$(DELIM).config
 else
-DEPCONFIG = $(TOPDIR)/.config $(APPDIR)/.config
+DEPCONFIG = $(TOPDIR)$(DELIM).config $(APPDIR)$(DELIM).config
 endif
 
 define REGISTER

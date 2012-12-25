@@ -75,10 +75,10 @@ $(AOBJS): %$(OBJEXT): %.S
 $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
-registry/.updated:
+registry$(DELIM).updated:
 	$(V) $(MAKE) -C registry .updated TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
 
-builtin_list.h: registry/.updated
+builtin_list.h: registry$(DELIM).updated
 	$(call DELFILE, builtin_list.h)
 	$(Q) touch builtin_list.h
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
@@ -92,7 +92,7 @@ else
 	)
 endif
 
-builtin_proto.h: registry/.updated
+builtin_proto.h: registry$(DELIM).updated
 	$(call DELFILE, builtin_proto.h)
 	$(Q) touch builtin_proto.h
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)

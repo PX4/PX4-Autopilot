@@ -35,7 +35,7 @@
 
 # Add the internal C files to the build
 
-CSRCS += lib_init.c lib_filesem.c
+CSRCS += lib_init.c lib_filesem.c lib_kbdencode.c lib_kbddecode.c
 
 # Add C files that depend on file OR socket descriptors
 

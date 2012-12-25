@@ -3818,4 +3818,6 @@
 	* arch/arm/src/up_head.S:  Fix backward conditional compilation.  NOTE
 	  there is a issue of ARM9 systems with low vectors and large memories
 	  that will have to be addressed in the future.
-
+	* libc/misc/lib_kbdencode.c and lib_kbddecode.c:  Add logic to marshal
+	  and serialized "out-of-band" keyboard commands intermixed with normal
+	  ASCII data (not yet hooked into anything).
