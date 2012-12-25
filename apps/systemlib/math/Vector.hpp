@@ -37,7 +37,7 @@
  * math vector
  */
 
-//#pragma once
+#pragma once
 
 #ifdef ARM_MATH_CM4
 #include "arm/Vector.hpp"
@@ -46,12 +46,7 @@
 #endif
 
 namespace math {
-void __EXPORT float2SigExp(
-        const float & num,
-        float & sig,
-        int & exp);
 int __EXPORT vectorTest();
 int __EXPORT vectorAddTest();
 int __EXPORT vectorSubTest();
 } // math
-

@@ -209,7 +209,7 @@ void KalmanNav::update()
     float calcTime = (hrt_absolute_time() - newTimeStamp)/1.0e6f;
 
     // sleep for approximately the right amount of time
-    float timeSleep = 0.95*(getDt() - calcTime);
+    float timeSleep = 0.95f*(getDt() - calcTime);
     if (timeSleep > 0.0f) {
         usleep((double)(1e6f*timeSleep));
     } 
@@ -226,8 +226,8 @@ void KalmanNav::updatePublications()
     _pos.timestamp = _pubTimeStamp;
     _pos.time_gps_usec = _gps.timestamp;
     _pos.valid = true;
-    _pos.lat = L*1e7;
-    _pos.lon = l*1e7;
+    _pos.lat = L*1.0e7f;
+    _pos.lon = l*1.0e7f;
     _pos.alt = h;
     _pos.relative_alt = h; // TODO, make relative
     _pos.vx = vN;

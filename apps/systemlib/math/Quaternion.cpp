@@ -139,24 +139,6 @@ Vector Quaternion::derivative(const Vector & w)
     return Q*v*0.5f; 
 }
 
-//Vector Quaternion::toEuler()
-//{
-    //Quaternion & q =(*this);
-    //Vector result(3);
-    //float aSq = a*a;
-    //float bSq = b*b;
-    //float cSq = c*c;
-    //float dSq = d*d;
-    //float theta = asinf(2*(a*c - b*d));
-    //float phi  = atan2f(2*(a*b + c*d),
-            //aSq - bSq - cSq + dSq);
-    //float psi = atan2f(2*(a*d + b*c),
-            //aSq + bSq - cSq - dSq);
-    //result(0) = phi;
-    //result(1) = theta;
-    //result(2) = psi;
-//}
-
 int __EXPORT quaternionTest()
 {
     return 0;

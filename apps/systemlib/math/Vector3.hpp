@@ -51,7 +51,7 @@ public:
     Vector3();
     Vector3(const float * data);
     virtual ~Vector3();
-    Vector3 cross();
+    Vector3 cross(const Vector3 & b);
 };
 
 } // math

@@ -58,10 +58,13 @@ Vector3::~Vector3()
 {
 }
 
-Vector3 Vector3::cross()
+Vector3 Vector3::cross(const Vector3 & b)
 {
+    Vector3 & a = *this;
     Vector3 result;
-    // TODO
+    result(0) = a(1)*b(2) - a(2)*b(1);
+    result(1) = a(2)*b(0) - a(0)*b(2);
+    result(2) = a(0)*b(1) - a(1)*b(0);
     return result;
 }
 

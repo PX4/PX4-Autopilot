@@ -47,6 +47,7 @@
 #include <math.h>
 
 #include <systemlib/math/Vector.hpp>
+#include <systemlib/test/test.hpp>
 
 // arm specific
 #include "arm_math.h"

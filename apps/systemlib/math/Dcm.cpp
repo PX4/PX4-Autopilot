@@ -40,6 +40,8 @@
 #include <systemlib/test/test.hpp>
 
 #include "Dcm.hpp"
+#include "Quaternion.hpp"
+#include "EulerAngles.hpp"
 
 namespace math
 {
@@ -57,13 +59,47 @@ Dcm::Dcm(const float * data) :
 Dcm::Dcm(const Quaternion & q) :
     Matrix(3,3)
 {
-    // TODO
+    Dcm & dcm = *this;
+    float a = q.a;
+    float b = q.b;
+    float c = q.c;
+    float d = q.d;
+    float aSq = a*a;
+    float bSq = b*b;
+    float cSq = c*c;
+    float dSq = d*d;
+    dcm(0,0) = aSq + bSq - cSq - dSq;
+    dcm(0,1) = 2*(b*c - a*d);
+    dcm(0,2) = 2*(a*c + b*d);
+    dcm(1,0) = 2*(b*c + a*d);
+    dcm(1,1) = aSq - bSq + cSq - dSq;
+    dcm(1,2) = 2*(c*d - a*b);
+    dcm(2,0) = 2*(b*d - a*c);
+    dcm(2,1) = 2*(a*b + c*d);
+    dcm(2,2) = aSq - bSq - cSq + dSq;
 }
 
 Dcm::Dcm(const EulerAngles & euler) :
     Matrix(3,3)
 {
-    // TODO
+    Dcm & dcm = *this;
+    float cosPhi = cosf(euler.phi);
+    float sinPhi = sinf(euler.phi);
+    float cosThe = cosf(euler.theta);
+    float sinThe = sinf(euler.theta);
+    float cosPsi = cosf(euler.psi);
+    float sinPsi = sinf(euler.psi);
+    dcm(0,0) = cosThe*cosPsi;
+    dcm(0,1) = -cosPhi*sinPsi + sinPhi*sinThe*cosPsi;
+    dcm(0,2) = sinPhi*sinPsi + cosPhi*sinThe*cosPsi;
+
+    dcm(1,0) = cosThe*sinPsi;
+    dcm(1,1) = cosPhi*cosPsi + sinPhi*sinThe*sinPsi;
+    dcm(1,2) = -sinPhi*cosPsi + cosPhi*sinThe*sinPsi;
+
+    dcm(2,0) = -sinThe;
+    dcm(2,1) = sinPhi*cosThe;
+    dcm(2,2) = cosPhi*cosThe;
 }
 
 Dcm::Dcm(const Dcm & right) :
