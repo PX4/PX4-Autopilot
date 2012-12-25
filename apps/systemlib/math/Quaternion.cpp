@@ -48,71 +48,50 @@ namespace math
 {
 
 Quaternion::Quaternion() :
-    Vector(4),
-    a((*this)(0)),
-    b((*this)(1)),
-    c((*this)(2)),
-    d((*this)(3))
+    Vector(4)
 {
-    a = 1.0f;
-    b = 0.0f;
-    c = 0.0f;
-    d = 0.0f;
+    a() = 1.0f;
+    b() = 0.0f;
+    c() = 0.0f;
+    d() = 0.0f;
 }
 
 Quaternion::Quaternion(const float * data) :
-    Vector(4,data),
-    a((*this)(0)),
-    b((*this)(1)),
-    c((*this)(2)),
-    d((*this)(3))
+    Vector(4,data)
 {
 }
 
 Quaternion::Quaternion(const Dcm & dcm) :
-    Vector(4),
-    a((*this)(0)),
-    b((*this)(1)),
-    c((*this)(2)),
-    d((*this)(3))
+    Vector(4)
 {
-    // TODO
-    a = 1.0f;
-    b = 0.0f;
-    c = 0.0f;
-    d = 0.0f;
+    a() = 0.5f*sqrtf(1 + dcm(0,0) + 
+            dcm(1,1) + dcm(2,2));
+    b() = (dcm(2,1) - dcm(1,2))/(4*a());
+    c() = (dcm(0,2) - dcm(2,0))/(4*a());
+    d() = (dcm(1,0) - dcm(0,1))/(4*a());
 }
 
 Quaternion::Quaternion(const EulerAngles & euler) :
-    Vector(4),
-    a((*this)(0)),
-    b((*this)(1)),
-    c((*this)(2)),
-    d((*this)(3))
+    Vector(4)
 {
-    // initialize quaternions
-    float cosPhi_2 = cosf(euler.phi/2.0f);
-    float cosTheta_2 = cosf(euler.theta/2.0f);
-    float cosPsi_2 = cosf(euler.psi/2.0f);
-    float sinPhi_2 = sinf(euler.phi/2.0f);
-    float sinTheta_2 = sinf(euler.theta/2.0f);
-    float sinPsi_2 = sinf(euler.psi/2.0f);
-    a = cosPhi_2*cosTheta_2*cosPsi_2 + 
+    float cosPhi_2 = cosf(euler.getPhi()/2.0f);
+    float cosTheta_2 = cosf(euler.getTheta()/2.0f);
+    float cosPsi_2 = cosf(euler.getPsi()/2.0f);
+    float sinPhi_2 = sinf(euler.getPhi()/2.0f);
+    float sinTheta_2 = sinf(euler.getTheta()/2.0f);
+    float sinPsi_2 = sinf(euler.getPsi()/2.0f);
+    a() = cosPhi_2*cosTheta_2*cosPsi_2 + 
         sinPhi_2*sinTheta_2*sinPsi_2;
-    b = sinPhi_2*cosTheta_2*cosPsi_2 -
+    b() = sinPhi_2*cosTheta_2*cosPsi_2 -
         cosPhi_2*sinTheta_2*sinPsi_2;
-    c = cosPhi_2*sinTheta_2*cosPsi_2 +
+    c() = cosPhi_2*sinTheta_2*cosPsi_2 +
         sinPhi_2*cosTheta_2*sinPsi_2;
-    d = cosPhi_2*cosTheta_2*sinPsi_2 +
+    d() = cosPhi_2*cosTheta_2*sinPsi_2 +
         sinPhi_2*sinTheta_2*cosPsi_2;
 }
 
 Quaternion::Quaternion(const Quaternion & right) :
-    Vector(right),
-    a((*this)(0)),
-    b((*this)(1)),
-    c((*this)(2)),
-    d((*this)(3))
+    Vector(right)
 {
 }
 
@@ -126,10 +105,10 @@ Vector Quaternion::derivative(const Vector & w)
     ASSERT(w.getRows()==3);
 #endif
     float dataQ[] = 
-    {a, -b, -c, -d,
-     b,  a, -d,  c,
-     c,  d,  a, -b,
-     d, -c,  b,  a};
+    {a(), -b(), -c(), -d(),
+     b(),  a(), -d(),  c(),
+     c(),  d(),  a(), -b(),
+     d(), -c(),  b(),  a()};
     Vector v(4);
     v(0) = 0.0f;
     v(1) = w(0);

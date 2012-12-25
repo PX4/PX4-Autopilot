@@ -47,7 +47,7 @@ namespace math
 {
 
 Dcm::Dcm() :
-    Matrix(3,3)
+    Matrix(Matrix::identity(3))
 {
 }
 
@@ -60,10 +60,10 @@ Dcm::Dcm(const Quaternion & q) :
     Matrix(3,3)
 {
     Dcm & dcm = *this;
-    float a = q.a;
-    float b = q.b;
-    float c = q.c;
-    float d = q.d;
+    float a = q.getA();
+    float b = q.getB();
+    float c = q.getC();
+    float d = q.getD();
     float aSq = a*a;
     float bSq = b*b;
     float cSq = c*c;
@@ -83,12 +83,13 @@ Dcm::Dcm(const EulerAngles & euler) :
     Matrix(3,3)
 {
     Dcm & dcm = *this;
-    float cosPhi = cosf(euler.phi);
-    float sinPhi = sinf(euler.phi);
-    float cosThe = cosf(euler.theta);
-    float sinThe = sinf(euler.theta);
-    float cosPsi = cosf(euler.psi);
-    float sinPsi = sinf(euler.psi);
+    float cosPhi = cosf(euler.getPhi());
+    float sinPhi = sinf(euler.getPhi());
+    float cosThe = cosf(euler.getTheta());
+    float sinThe = sinf(euler.getTheta());
+    float cosPsi = cosf(euler.getPsi());
+    float sinPsi = sinf(euler.getPsi());
+
     dcm(0,0) = cosThe*cosPsi;
     dcm(0,1) = -cosPhi*sinPsi + sinPhi*sinThe*cosPsi;
     dcm(0,2) = sinPhi*sinPsi + cosPhi*sinThe*cosPsi;

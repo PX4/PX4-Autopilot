@@ -53,7 +53,17 @@ public:
     EulerAngles(const Quaternion & q);
     EulerAngles(const Dcm & dcm);
     virtual ~EulerAngles();
-    float & phi, & theta, & psi;
+
+    // alias
+    float & phi() { return (*this)(0); }
+    float & theta() { return (*this)(1); }
+    float & psi() { return (*this)(2); }
+
+    // const accessors
+    const float & getPhi() const { return (*this)(0); }
+    const float & getTheta() const { return (*this)(1); }
+    const float & getPsi() const { return (*this)(2); }
+
 };
 
 } // math

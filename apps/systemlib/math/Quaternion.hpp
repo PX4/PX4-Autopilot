@@ -50,7 +50,6 @@ class EulerAngles;
 class Quaternion : public Vector
 {
 public:
-    float & a, & b, & c, & d;
 
     /**
      * default ctor
@@ -87,6 +86,21 @@ public:
      */
     Vector derivative(const Vector & w);
 
+    /**
+     * aliases
+     */
+    float & a() { return (*this)(0); }
+    float & b() { return (*this)(1); }
+    float & c() { return (*this)(2); }
+    float & d() { return (*this)(3); }
+
+    /**
+     * accessors
+     */
+    const float & getA() const { return (*this)(0); }
+    const float & getB() const { return (*this)(1); }
+    const float & getC() const { return (*this)(2); }
+    const float & getD() const { return (*this)(3); }
 };
 
 int __EXPORT quaternionTest();

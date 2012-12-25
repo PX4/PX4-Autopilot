@@ -47,44 +47,40 @@ namespace math
 {
 
 EulerAngles::EulerAngles() :
-    Vector(3),
-    phi((*this)(0)),
-    theta((*this)(1)),
-    psi((*this)(2))
+    Vector(3)
 {
-    phi = 0.0f;
-    theta = 0.0f;
-    psi = 0.0f;
+    phi() = 0.0f;
+    theta() = 0.0f;
+    psi() = 0.0f;
 }
 
 EulerAngles::EulerAngles(const Quaternion & q) :
-    Vector(3),
-    phi((*this)(0)),
-    theta((*this)(1)),
-    psi((*this)(2))
+    Vector(3)
 {
-    float a = q.a;
-    float b = q.b;
-    float c = q.c;
-    float d = q.d;
-    float aSq = a*a;
-    float bSq = b*b;
-    float cSq = c*c;
-    float dSq = d*d;
-    theta = asinf(2*(a*c - b*d));
-    phi  = atan2f(2*(a*b + c*d),
-            aSq - bSq - cSq + dSq);
-    psi = atan2f(2*(a*d + b*c),
-            aSq + bSq - cSq - dSq);
+    (*this) = EulerAngles(Dcm(q));
 }
 
 EulerAngles::EulerAngles(const Dcm & dcm) :
-    Vector(3),
-    phi((*this)(0)),
-    theta((*this)(1)),
-    psi((*this)(2))
+    Vector(3)
 {
-    // TODO
+    theta() = asinf(-dcm(2,0)); 
+    if (fabsf(theta() - M_PI_2_F) > 1.0e-3f)
+    {
+        phi() = 0.0f;
+        psi() = atan2f(dcm(1,2) - dcm(0,1),
+            dcm(0,2) + dcm(1,1)) + phi();
+    }
+    else if (fabsf(theta() + M_PI_2_F) > 1.0e-3f)
+    {
+        phi() = 0.0f;
+        psi() = atan2f(dcm(1,2) - dcm(0,1),
+            dcm(0,2) + dcm(1,1)) - phi();
+    }
+    else
+    {
+        phi() = atan2f(dcm(2,1),dcm(2,2));
+        psi() = atan2f(dcm(1,0),dcm(0,0));
+    }
 }
 
 } // namespace math

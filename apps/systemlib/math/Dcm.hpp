@@ -49,6 +49,7 @@ class EulerAngles;
 
 class Dcm : public Matrix
 {
+public:
     /**
      * default ctor
      */
