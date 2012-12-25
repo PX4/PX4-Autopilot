@@ -87,16 +87,12 @@ public:
     Vector derivative(const Vector & w);
 
     /**
-     * aliases
-     */
-    float & a() { return (*this)(0); }
-    float & b() { return (*this)(1); }
-    float & c() { return (*this)(2); }
-    float & d() { return (*this)(3); }
-
-    /**
      * accessors
      */
+    void setA(float a) { (*this)(0) = a; }
+    void setB(float b) { (*this)(1) = b; }
+    void setC(float c) { (*this)(2) = c; }
+    void setD(float d) { (*this)(3) = d; }
     const float & getA() const { return (*this)(0); }
     const float & getB() const { return (*this)(1); }
     const float & getC() const { return (*this)(2); }

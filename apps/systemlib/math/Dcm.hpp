@@ -47,6 +47,14 @@ namespace math {
 class Quaternion;
 class EulerAngles;
 
+/**
+ * This is a Tait Bryan, Body 3-2-1 sequence.
+ * (yaw)-(pitch)-(roll)
+ * The Dcm transforms a vector in the body frame
+ * to the navigation frame, typically represented
+ * as C_nb. C_bn can be obtained through use 
+ * of the transpose() method.
+ */
 class Dcm : public Matrix
 {
 public:
@@ -82,5 +90,6 @@ public:
 };
 
 int __EXPORT dcmTest();
+
 } // math
 

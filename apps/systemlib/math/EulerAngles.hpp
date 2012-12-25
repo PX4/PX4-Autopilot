@@ -50,14 +50,15 @@ class EulerAngles : public Vector
 {
 public:
     EulerAngles();
+    EulerAngles(float phi, float theta, float psi);
     EulerAngles(const Quaternion & q);
     EulerAngles(const Dcm & dcm);
     virtual ~EulerAngles();
 
     // alias
-    float & phi() { return (*this)(0); }
-    float & theta() { return (*this)(1); }
-    float & psi() { return (*this)(2); }
+    void setPhi(float phi) { (*this)(0) = phi; }
+    void setTheta(float theta) { (*this)(0) = theta; }
+    void setPsi(float psi) { (*this)(0) = psi; }
 
     // const accessors
     const float & getPhi() const { return (*this)(0); }

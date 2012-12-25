@@ -42,6 +42,7 @@
 #include "Dcm.hpp"
 #include "Quaternion.hpp"
 #include "EulerAngles.hpp"
+#include "Vector3.hpp"
 
 namespace math
 {
@@ -114,6 +115,15 @@ Dcm::~Dcm()
 
 int __EXPORT dcmTest()
 {
+    printf("Test DCM\t\t\t:");
+    Dcm C_nb;
+    Vector3 vN;
+    Vector3 vB(1,2,3);
+    C_nb = Dcm(EulerAngles(0,0,0));
+    ASSERT(C_nb == Matrix::identity(3))
+    C_nb = Dcm(EulerAngles(0,0,M_PI_2_F));
+    vN = C_nb*vB;
+    ASSERT(vN == Vector3(-2,1,3))
     return 0;
 }
 

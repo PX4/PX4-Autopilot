@@ -49,6 +49,22 @@ Vector3::Vector3() :
 {
 }
 
+Vector3::Vector3(const Vector & right) :
+    Vector(right)
+{
+#ifdef VECTOR_ASSERT
+    ASSERT(right.getRows()==3);
+#endif
+}
+
+Vector3::Vector3(float x, float y, float z) :
+    Vector(3)
+{
+    setX(x);
+    setY(y);
+    setZ(z);
+}
+
 Vector3::Vector3(const float * data) :
     Vector(3,data)
 {

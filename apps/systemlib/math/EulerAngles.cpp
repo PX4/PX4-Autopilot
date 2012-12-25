@@ -49,9 +49,17 @@ namespace math
 EulerAngles::EulerAngles() :
     Vector(3)
 {
-    phi() = 0.0f;
-    theta() = 0.0f;
-    psi() = 0.0f;
+    setPhi(0.0f);
+    setTheta(0.0f);
+    setPsi(0.0f);
+}
+
+EulerAngles::EulerAngles(float phi, float theta, float psi) :
+    Vector(3)
+{
+    setPhi(phi);
+    setTheta(theta);
+    setPsi(psi);
 }
 
 EulerAngles::EulerAngles(const Quaternion & q) :
@@ -63,23 +71,23 @@ EulerAngles::EulerAngles(const Quaternion & q) :
 EulerAngles::EulerAngles(const Dcm & dcm) :
     Vector(3)
 {
-    theta() = asinf(-dcm(2,0)); 
-    if (fabsf(theta() - M_PI_2_F) > 1.0e-3f)
+    setTheta(asinf(-dcm(2,0))); 
+    if (fabsf(getTheta() - M_PI_2_F) > 1.0e-3f)
     {
-        phi() = 0.0f;
-        psi() = atan2f(dcm(1,2) - dcm(0,1),
-            dcm(0,2) + dcm(1,1)) + phi();
+        setPhi(0.0f);
+        setPsi(atan2f(dcm(1,2) - dcm(0,1),
+            dcm(0,2) + dcm(1,1)) + getPhi());
     }
-    else if (fabsf(theta() + M_PI_2_F) > 1.0e-3f)
+    else if (fabsf(getTheta() + M_PI_2_F) > 1.0e-3f)
     {
-        phi() = 0.0f;
-        psi() = atan2f(dcm(1,2) - dcm(0,1),
-            dcm(0,2) + dcm(1,1)) - phi();
+        setPhi(0.0f);
+        setPsi(atan2f(dcm(1,2) - dcm(0,1),
+            dcm(0,2) + dcm(1,1)) - getPhi());
     }
     else
     {
-        phi() = atan2f(dcm(2,1),dcm(2,2));
-        psi() = atan2f(dcm(1,0),dcm(0,0));
+        setPhi(atan2f(dcm(2,1),dcm(2,2)));
+        setPsi(atan2f(dcm(1,0),dcm(0,0)));
     }
 }
 

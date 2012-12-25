@@ -50,10 +50,10 @@ namespace math
 Quaternion::Quaternion() :
     Vector(4)
 {
-    a() = 1.0f;
-    b() = 0.0f;
-    c() = 0.0f;
-    d() = 0.0f;
+    setA(1.0f);
+    setB(0.0f);
+    setC(0.0f);
+    setD(0.0f);
 }
 
 Quaternion::Quaternion(const float * data) :
@@ -64,11 +64,14 @@ Quaternion::Quaternion(const float * data) :
 Quaternion::Quaternion(const Dcm & dcm) :
     Vector(4)
 {
-    a() = 0.5f*sqrtf(1 + dcm(0,0) + 
-            dcm(1,1) + dcm(2,2));
-    b() = (dcm(2,1) - dcm(1,2))/(4*a());
-    c() = (dcm(0,2) - dcm(2,0))/(4*a());
-    d() = (dcm(1,0) - dcm(0,1))/(4*a());
+    setA(0.5f*sqrtf(1 + dcm(0,0) + 
+            dcm(1,1) + dcm(2,2)));
+    setB((dcm(2,1) - dcm(1,2))/
+            (4*getA()));
+    setC((dcm(0,2) - dcm(2,0))/
+        (4*getA()));
+    setD((dcm(1,0) - dcm(0,1))/
+        (4*getA()));
 }
 
 Quaternion::Quaternion(const EulerAngles & euler) :
@@ -80,14 +83,14 @@ Quaternion::Quaternion(const EulerAngles & euler) :
     float sinPhi_2 = sinf(euler.getPhi()/2.0f);
     float sinTheta_2 = sinf(euler.getTheta()/2.0f);
     float sinPsi_2 = sinf(euler.getPsi()/2.0f);
-    a() = cosPhi_2*cosTheta_2*cosPsi_2 + 
-        sinPhi_2*sinTheta_2*sinPsi_2;
-    b() = sinPhi_2*cosTheta_2*cosPsi_2 -
-        cosPhi_2*sinTheta_2*sinPsi_2;
-    c() = cosPhi_2*sinTheta_2*cosPsi_2 +
-        sinPhi_2*cosTheta_2*sinPsi_2;
-    d() = cosPhi_2*cosTheta_2*sinPsi_2 +
-        sinPhi_2*sinTheta_2*cosPsi_2;
+    setA(cosPhi_2*cosTheta_2*cosPsi_2 + 
+        sinPhi_2*sinTheta_2*sinPsi_2);
+    setB(sinPhi_2*cosTheta_2*cosPsi_2 -
+        cosPhi_2*sinTheta_2*sinPsi_2);
+    setC(cosPhi_2*sinTheta_2*cosPsi_2 +
+        sinPhi_2*cosTheta_2*sinPsi_2);
+    setD(cosPhi_2*cosTheta_2*sinPsi_2 +
+        sinPhi_2*sinTheta_2*cosPsi_2);
 }
 
 Quaternion::Quaternion(const Quaternion & right) :
@@ -105,10 +108,10 @@ Vector Quaternion::derivative(const Vector & w)
     ASSERT(w.getRows()==3);
 #endif
     float dataQ[] = 
-    {a(), -b(), -c(), -d(),
-     b(),  a(), -d(),  c(),
-     c(),  d(),  a(), -b(),
-     d(), -c(),  b(),  a()};
+    {getA(), -getB(), -getC(), -getD(),
+     getB(),  getA(), -getD(),  getC(),
+     getC(),  getD(),  getA(), -getB(),
+     getD(), -getC(),  getB(),  getA()};
     Vector v(4);
     v(0) = 0.0f;
     v(1) = w(0);

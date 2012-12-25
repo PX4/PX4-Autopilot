@@ -49,9 +49,21 @@ class Vector3 :
 {
 public:
     Vector3();
+    Vector3(const Vector & right);
+    Vector3(float x, float y, float z);
     Vector3(const float * data);
     virtual ~Vector3();
     Vector3 cross(const Vector3 & b);
+
+    /**
+     * accessors
+     */
+    void setX(float x) { (*this)(0) = x; }
+    void setY(float y) { (*this)(1) = y; }
+    void setZ(float z) { (*this)(2) = z; }
+    const float & getX() const { return (*this)(0); }
+    const float & getY() const { return (*this)(1); }
+    const float & getZ() const { return (*this)(2); }
 };
 
 } // math
