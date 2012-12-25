@@ -143,12 +143,11 @@ int matrixDivTest()
 {
     printf("Test Matrix Div\t\t: ");
     Matrix r = testD / testE;
-    float data_test1[] = {
+    float data_test[] = {
          0.2222222f, 0.5555556f, -0.1111111f,
                0.0f,       1.0f,         1.0,
         -4.1111111f, 1.2222222f,  4.5555556f};
-    Matrix test1(3,3,data_test1);
-    ASSERT(matrixEqual(test1,r,1.0e-5f));
+    ASSERT(matrixEqual(Matrix(3,3,data_test),r,1.0e-5f));
     printf("PASS\n");
     return 0;
 }

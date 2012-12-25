@@ -44,11 +44,11 @@
 namespace math
 {
 
-static const float data_a[] = {1,3};
-static const float data_b[] = {4,1};
+static const float data_testA[] = {1,3};
+static const float data_testB[] = {4,1};
 
-static Vector a(2,data_a);
-static Vector b(2,data_b);
+static Vector testA(2,data_testA);
+static Vector testB(2,data_testB);
 
 int __EXPORT vectorTest()
 {
@@ -60,9 +60,9 @@ int __EXPORT vectorTest()
 int vectorAddTest()
 {
     printf("Test Vector Add\t\t: ");
-    Vector r = a + b;
-    ASSERT(equal(r(0),5.0f))
-    ASSERT(equal(r(1),4.0f))
+    Vector r = testA + testB;
+    float data_test[] = {5.0f, 4.0f};
+    ASSERT(vectorEqual(Vector(2,data_test),r));
     printf("PASS\n");
     return 0;
 }
@@ -70,13 +70,30 @@ int vectorAddTest()
 int vectorSubTest()
 {
     printf("Test Vector Sub\t\t: ");
-    Vector c(2);
-    c = a - b;
-    ASSERT(equal(c(0),-3.0f))
-    ASSERT(equal(c(1),2.0f))
+    Vector r(2);
+    r = testA - testB;
+    float data_test[] = {-3.0f, 2.0f};
+    ASSERT(vectorEqual(Vector(2,data_test),r));
     printf("PASS\n");
     return 0;
 }
 
+bool vectorEqual(const Vector & a, const Vector & b, float eps)
+{
+    if (a.getRows() != b.getRows()) {
+        printf("row number not equal a: %d, b:%d\n", a.getRows(), b.getRows());
+        return false;
+    }
+    bool ret = true;
+    for (size_t i=0;i<a.getRows();i++)
+    {
+        if (!equal(a(i),b(i),eps))
+        {
+            printf("element mismatch (%d)\n", i);
+            ret = false;
+        }
+    }
+    return ret;
+}
 
 } // namespace math

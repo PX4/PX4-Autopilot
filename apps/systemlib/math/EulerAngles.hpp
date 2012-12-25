@@ -57,8 +57,8 @@ public:
 
     // alias
     void setPhi(float phi) { (*this)(0) = phi; }
-    void setTheta(float theta) { (*this)(0) = theta; }
-    void setPsi(float psi) { (*this)(0) = psi; }
+    void setTheta(float theta) { (*this)(1) = theta; }
+    void setPsi(float psi) { (*this)(2) = psi; }
 
     // const accessors
     const float & getPhi() const { return (*this)(0); }
