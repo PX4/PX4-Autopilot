@@ -115,14 +115,14 @@ def process_jsb_input(buf):
     alt = fdm.get('altitude', units='meters')
 
     # attitude
-    #phi = fdm.get('phi', units='radians')
-    #theta = fdm.get('theta', units='radians')
-    #psi = fdm.get('psi', units='radians')
+    phi = fdm.get('phi', units='radians')
+    theta = fdm.get('theta', units='radians')
+    psi = fdm.get('psi', units='radians')
 
     # test values
-    phi = 0.1
-    theta = 0.2
-    psi = 0.3
+    #phi = 0
+    #theta = 0
+    #psi = 0
 
     # rotation rates
     phidot = fdm.get('phidot', units='rps')
@@ -137,15 +137,15 @@ def process_jsb_input(buf):
     r = r + ran;
 
     # acceleration
-    ax = fdm.get('A_X_pilot', units='mpss'),
-    ay = fdm.get('A_Y_pilot', units='mpss'),
-    az = fdm.get('A_Z_pilot', units='mpss'),
+    ax = fdm.get('A_X_pilot', units='mpss')
+    ay = fdm.get('A_Y_pilot', units='mpss')
+    az = fdm.get('A_Z_pilot', units='mpss')
 
     # velocitiy
-    vN = fdm.get('v_north', units='mps'),
-    vE = fdm.get('v_east', units='mps'),
-    vD = fdm.get('v_down', units='mps'),
-    vC = fdm.get('vcas', units='mps'),
+    vN = fdm.get('v_north', units='mps')
+    vE = fdm.get('v_east', units='mps')
+    vD = fdm.get('v_down', units='mps')
+    vC = fdm.get('vcas', units='mps')
 
     simbuf = px4Format.format(
         time.clock(),

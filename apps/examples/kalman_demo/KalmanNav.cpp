@@ -150,7 +150,7 @@ void KalmanNav::update()
     }
 
     // mag correction step
-    if (newTimeStamp - _magTimeStamp > 1e6/1) // 20 Hz
+    if (newTimeStamp - _magTimeStamp > 1e6/1) // 1 Hz
     {
         _magTimeStamp = newTimeStamp;
         correctMag();
