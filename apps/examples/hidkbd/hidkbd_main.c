@@ -206,7 +206,7 @@ int hidkbd_main(int argc, char *argv[])
           printf("Device %s opened\n", CONFIG_EXAMPLES_HIDKBD_DEVNAME);
           fflush(stdout);
 
-          /* Loop until there is a read failure */
+          /* Loop until there is a read failure (or EOF?) */
 
           do
             {
@@ -220,7 +220,7 @@ int hidkbd_main(int argc, char *argv[])
                   (void)write(1, buffer, nbytes);
                 }
             }
-          while (nbytes >= 0);
+          while (nbytes > 0);
 
           printf("Closing device %s: %d\n", CONFIG_EXAMPLES_HIDKBD_DEVNAME, (int)nbytes);
           fflush(stdout);

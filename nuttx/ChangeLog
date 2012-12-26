@@ -3821,3 +3821,9 @@
 	* libc/misc/lib_kbdencode.c and lib_kbddecode.c:  Add logic to marshal
 	  and serialized "out-of-band" keyboard commands intermixed with normal
 	  ASCII data (not yet hooked into anything).
+	* drivers/usbhost/usbhost_hidkbd.c:  If CONFIG_HIDKBD_ENCODED is
+	  defined, this driver will now use libc/misc/lib_kbdencode.c to
+	  encode special function keys.
+	* configs/olimex-lpc1766stk/hidkbd:  This configuration has been
+	  converted to use the kconfig-frontends configuration tool.
+

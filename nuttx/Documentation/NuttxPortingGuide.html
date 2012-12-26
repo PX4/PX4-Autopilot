@@ -131,7 +131,8 @@
        <a href="#pwmdrivers">6.3.12 PWM Drivers</a><br>
        <a href="#candrivers">6.3.13 CAN Drivers</a><br>
        <a href="#quadencoder">6.3.14 Quadrature Encoder Drivers</a><br>
-       <a href="#wdogdriver">6.3.15 Watchdog Timer Drivers</a>
+       <a href="#wdogdriver">6.3.15 Watchdog Timer Drivers</a><br>
+       <a href="#kbddriver">6.3.16 Keyboard/Keypad Drivers</a><br>
     </ul>
     <a href="#pwrmgmt">6.4 Power Management</a>
     <ul>
@@ -3619,6 +3620,151 @@ extern void up_ledoff(int led);
     Platform-specific watchdog timer drivers reside in <code>arch/</code><i>&lt;architecture&gt;</i><code>/src/</code><i>&lt;chip&gt;</i> directory for the specific processor <i>&lt;architecture&gt;</i> and for the specific <i>&lt;chip&gt;</i> watchdog timer peripheral devices.
   </li>
 </ul>
+
+<h3><a name="kbddriver">6.3.16 Keyboard/Keypad Drivers</a></h3>
+<p>
+  <b>&quot;Out-of-Band&quot; Commands</b>.
+  Keyboards and keypads are the same device for NuttX.
+  A keypad is thought of as simply a keyboard with fewer keys.
+  In NuttX, a keyboard/keypad driver is simply a character driver that may have an (optional) encoding/decoding layer on the data returned by the character driver.
+  A keyboard may return simple text data (alphabetic, numeric, and punctuaction) or control characters (enter,  control-C, etc.).
+  We can think about this the normal &quot;in-band&quot; keyboard data stream.
+  However, in addition, most keyboards support actions that cannot be represented as text data.
+  Such actions include things like cursor controls (home, up arrow, page down, etc.), editing functions (insert, delete, etc.), volume controls, (mute, volume up, etc.) and other special functions.
+  We can think about this as special, &quot;out-of-band&quot; keyboard commands.
+  In this case, some special encoding may be required to multiplex the in-band text data and out-of-band command streams.
+</p>
+<p>
+  <b>Encoding/Decoding</b> Layer</b>.
+  An optional encoding/decoding layer can be used with the basic character driver to encode the out-of-band commands into the text data stream.
+  The function interfaces that comprise that encoding/decoding layer are defined in the header file <code>include/nuttx/input/kbd_code.h</code>.
+  These functions provide an matched set of (a) driver encoding interfaces, and (b) application decoding interfaces.
+</p>
+<ol>
+  <li>
+    <p>
+      <b>Driver Encoding Interfaces</b>.
+    </p>
+    <ul>
+      <li>
+        <p>
+          <b><code>kbd_puttext()</code></b>
+        </p>
+        <p><b>Function Prototype:</b></p>
+          <ul><pre>
+#include &lt;nuttx/streams.h&gt;
+#include &lt;nuttx/input/kbd_codec.h&gt;
+void kbd_puttext(int ch, FAR struct lib_outstream_s *stream);
+</pre></ul>
+        <p><b>Description:</b></p>
+        <ul>
+          Put one byte of normal, &quot;in-band&quot; ASCII data into the output stream.
+        </ul>
+        <p><b>Input Pameters:</b></p>
+        <ul>
+          <li>
+            <code>ch</code>:  The character to be added to the output stream.
+          </li>
+          <li>
+            <code>stream</code>:  An instance of <code>lib_outstream_s</code> to perform the actual low-level put operation.
+          </li>
+        </ul>
+        <p><b>Returned Value:</b></p>
+        <ul>
+          None.
+        </ul>
+      </li>
+      <li>
+        <p>
+          <b><code>kbd_putspecial()</code></b>
+        </p>
+        <p><b>Function Prototype:</b></p>
+          <ul><pre>
+#include &lt;nuttx/streams.h&gt;
+#include &lt;nuttx/input/kbd_codec.h&gt;
+void kbd_putspecial(enum kbd_keycode_e keycode, FAR struct lib_outstream_s *stream);
+</pre></ul>
+        <p><b>Description:</b></p>
+        <ul>
+          Put one special, &quot;out-of-band&quot; command into the output stream.
+        </ul>
+        <p><b>Input Pameters:</b></p>
+        <ul>
+          <li>
+            <code>keycode</code>:  The command to be added to the output stream.
+            The enumeration <code>enum kbd_keycode_e keycode</code> identifies all commands known to the system.
+          </li>
+          <li>
+            <code>stream</code>:  An instance of <code>lib_outstream_s</code> to perform the actual low-level put operation.
+          </li>
+        </ul>
+        <p><b>Returned Value:</b></p>
+        <ul>
+          None.
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>
+    <p>
+      <b>Application Decoding Interfaces</b>.
+      </p>
+    <ul>
+      <li>
+        <p>
+          <b><code>kbd_get()</code></b>
+        </p>
+        <p><b>Function Prototype:</b></p>
+          <ul><pre>
+#include &lt;nuttx/streams.h&gt;
+#include &lt;nuttx/input/kbd_codec.h&gt;
+int kbd_get(FAR struct lib_instream_s *stream, FAR struct kbd_getstate_s *state, FAR uint8_t *pch);
+</pre></ul>
+        <p><b>Description:</b></p>
+        <ul>
+           Get one byte of data or special command from the driver provided input buffer.
+        </ul>
+        <p><b>Input Pameters:</b></p>
+        <ul>
+          <li>
+            <code>stream</code>:  An instance of <code>lib_instream_s</code> to perform the actual low-level get operation.
+          </li>
+          <li>
+            <code>pch</code>:  The location character to save the returned value. 
+            This may be either a normal, &quot;in-band&quot; ASCII characer or a special, "out-of-band" command (i.e., a value from <code>enum kbd_getstate_s</code>.
+          </li>
+          <li>
+            <code>state</code>:  A user provided buffer to support parsing. 
+            This structure should be cleared the first time that <code>kbd_get</code> is called.
+          </li>
+        </ul>
+        <p><b>Returned Value:</b></p>
+        <ul>
+          <li>
+            <b>1</b>:
+            Indicates the successful receipt of a special, &quot;out-of-band&quot; command.
+            The returned value in <code>pch</code> is a value from <code>enum kbd_getstate_s</code>.
+          </li>
+          <li>
+            <b>0</b>:
+            Indicates the successful receipt of normal, &quot;in-band&quot; ASCII data.
+            The returned value in <code>pch</code> is a simple byte of text or control data.
+          </li>
+          <li>
+            <b><code>EOF</code></b>:
+              An error has getting the next character (reported by the <code>stream</code>).
+              Normally indicates the end of file.
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ol>
+<p>
+  <b>I/O Streams</b>.
+  Notice the use of the abstract I/O streams in these interfaces.
+  These stream interfaces are defined in <code>include/nuttx/streams.h</code>.
+</p>
 
 <h2><a name="pwrmgmt">6.4 Power Management</a></h2>
 

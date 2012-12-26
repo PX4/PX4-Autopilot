@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/usbhost/usbhost_hidkbd.c
  *
- *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,6 +61,11 @@
 #include <nuttx/usb/usb.h>
 #include <nuttx/usb/usbhost.h>
 #include <nuttx/usb/hid.h>
+
+#ifdef CONFIG_HIDKBD_ENCODED
+#  include <nuttx/streams.h>
+#  include <nuttx/input/kbd_codec.h>
+#endif
 
 /* Don't compile if prerequisites are not met */
 
@@ -126,6 +131,14 @@
 #  endif
 #endif
 
+/* If we are using raw scancodes, then we cannot support encoding of
+ * special characters either.
+ */
+
+#ifdef CONFIG_HIDKBD_RAWSCANCODES
+#  undef CONFIG_HIDKBD_ENCODED
+#endif
+
 /* Driver support ***********************************************************/
 /* This format is used to construct the /dev/kbd[n] device driver path.  It
  * defined here so that it will be used consistently in all places.
@@ -143,6 +156,23 @@
 #define USBHOST_ALLFOUND    (USBHOST_RQDFOUND|USBHOST_EPOUTFOUND)
 
 #define USBHOST_MAX_CREFS   0x7fff
+
+/* Debug ********************************************************************/
+/* Both CONFIG_DEBUG_INPUT and CONFIG_DEBUG_USB could apply to this file.
+ * We assume here that CONFIG_DEBUG_INPUT might be enabled separately, but
+ * CONFIG_DEBUG_USB implies both.
+ */
+
+#ifndef CONFIG_DEBUG_INPUT
+#  undef  idbg
+#  define idbg    udbg
+#  undef  illdbg
+#  define illdbg  ulldbg
+#  undef  ivdbg
+#  define ivdbg   uvdbg
+#  undef  illvdbg
+#  define illvdbg ullvdbg
+#endif
 
 /****************************************************************************
  * Private Types
@@ -209,6 +239,16 @@ struct usbhost_state_s
   uint8_t                 kbdbuffer[CONFIG_HIDKBD_BUFSIZE];
 };
 
+/* This type is used for encoding special characters */
+
+#ifdef CONFIG_HIDKBD_ENCODED
+struct usbhost_outstream_s
+{
+  struct lib_outstream_s stream;
+  FAR struct usbhost_state_s *priv;
+};
+#endif
+
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -240,7 +280,15 @@ static inline void usbhost_mkdevname(FAR struct usbhost_state_s *priv, char *dev
 /* Keyboard polling thread */
 
 static void usbhost_destroy(FAR void *arg);
+static void usbhost_putbuffer(FAR struct usbhost_state_s *priv, uint8_t keycode);
+#ifdef CONFIG_HIDKBD_ENCODED
+static void usbhost_putstream(FAR struct lib_outstream_s *this, int ch);
+#endif
 static inline uint8_t usbhost_mapscancode(uint8_t scancode, uint8_t modifier);
+#ifdef CONFIG_HIDKBD_ENCODED
+static inline void usbhost_encodescancode(FAR struct usbhost_state_s *priv,
+                                          uint8_t scancode, uint8_t modifier);
+#endif
 static int usbhost_kbdpoll(int argc, char *argv[]);
 
 /* Helpers for usbhost_connect() */
@@ -346,6 +394,121 @@ static struct usbhost_state_s *g_priv;    /* Data passed to thread */
  */
 
 #ifndef CONFIG_HIDKBD_RAWSCANCODES
+#ifdef CONFIG_HIDKBD_ENCODED
+
+/* The first and last scancode values with encode-able values */
+
+#define FIRST_ENCODING      USBHID_KBDUSE_ENTER         /* 0x28 Keyboard Return (ENTER) */
+#ifdef CONFIG_HIDKBD_ALLSCANCODES
+#  define LAST_ENCODING     USBHID_KBDUSE_POWER         /* 0x66 Keyboard Power */
+#else
+#define LAST_ENCODING       USBHID_KBDUSE_KPDHEXADECIMAL /* 0xdd Keypad Hexadecimal */
+#endif
+
+#define USBHID_NUMENCODINGS (LAST_ENCODING - FIRST_ENCODING + 1)
+
+static const uint8_t encoding[USBHID_NUMENCODINGS] =
+{
+  /* 0x28-0x2f: Enter,escape,del,back-tab,space,_,+,{ */
+
+  KEYCODE_ENTER,   0,                   KEYCODE_FWDDEL,     KEYCODE_BACKDEL,  0,                   0,             0,                0,
+
+  /* 0x30-0x37: },|,Non-US tilde,:,",grave tidle,<,> */
+
+  0,               0,                   0,                 0,                0,                   0,             0,                0,
+
+  /* 0x38-0x3f: /,CapsLock,F1,F2,F3,F4,F5,F6 */
+
+  0,               KEYCODE_CAPSLOCK,    KEYCODE_F1,        KEYCODE_F2,       KEYCODE_F3,          KEYCODE_F4,    KEYCODE_F5,       KEYCODE_F6,
+
+  /* 0x40-0x47: F7,F8,F9,F10,F11,F12,PrtScn,ScrollLock */
+
+  KEYCODE_F7,      KEYCODE_F8,          KEYCODE_F9,        KEYCODE_F10,      KEYCODE_F11,         KEYCODE_F12,   KEYCODE_PRTSCRN,  KEYCODE_SCROLLLOCK,
+
+  /* 0x48-0x4f: Pause,Insert,Home,PageUp,DeleteForward,End,PageDown,RightArrow */
+
+  KEYCODE_PAUSE,   KEYCODE_INSERT,      KEYCODE_HOME,      KEYCODE_PAGEUP,   KEYCODE_FWDDEL,      KEYCODE_END,   KEYCODE_PAGEDOWN, KEYCODE_RIGHT,
+
+  /* 0x50-0x57: LeftArrow,DownArrow,UpArrow,Num Lock,/,*,-,+ */
+
+  KEYCODE_LEFT,    KEYCODE_DOWN,        KEYCODE_UP,        KEYCODE_NUMLOCK,  0,                   0,             0,                0,
+
+  /* 0x58-0x5f: Enter,1-7 */
+
+  KEYCODE_ENTER,   0,                   0,                 0,                0,                   0,             0,                0,
+
+  /* 0x60-0x66: 8-9,0,.,Non-US \,Application,Power */
+
+  0,               0,                   0,                 0,                0,                   0,             KEYCODE_POWER,
+
+#ifdef CONFIG_HIDKBD_ALLSCANCODES
+
+  0, /* 0x67 = */
+
+  /* 0x68-0x6f: F13,F14,F15,F16,F17,F18,F19,F20 */
+
+  KEYCODE_F13,     KEYCODE_F14,         KEYCODE_F15,       KEYCODE_F16,      KEYCODE_F17,         KEYCODE_F18,   KEYCODE_F19,      KEYCODE_F20,
+
+  /* 0x70-0x77: F21,F22,F23,F24,Execute,Help,Menu,Select */
+
+  KEYCODE_F21,     KEYCODE_F22,         KEYCODE_F23,       KEYCODE_F24,      KEYCODE_EXECUTE,     KEYCODE_HELP,  KEYCODE_MENU,     KEYCODE_SELECT,
+
+  /* 0x78-0x7f: Stop,Again,Undo,Cut,Copy,Paste,Find,Mute */
+
+  KEYCODE_STOP,    KEYCODE_AGAIN,       KEYCODE_UNDO,      KEYCODE_CUT,      KEYCODE_COPY,        KEYCODE_PASTE, KEYCODE_FIND,     KEYCODE_MUTE,
+
+  /* 0x80-0x87: VolUp,VolDown,LCapsLock,lNumLock,LScrollLock,,,=,International1 */
+
+  KEYCODE_VOLUP,   KEYCODE_VOLDOWN,     KEYCODE_LCAPSLOCK, KEYCODE_LNUMLOCK, KEYCODE_LSCROLLLOCK, 0,             0,                0,
+
+  /* 0x88-0x8f: International 2-9 */
+
+  0,               0,                   0,                 0,                0,                   0,             0,                0,
+
+  /* 0x90-0x97: LAN 1-8 */
+
+  KEYCODE_LANG1,   KEYCODE_LANG2,       KEYCODE_LANG3,     KEYCODE_LANG4,    KEYCODE_LANG5,       KEYCODE_LANG6, KEYCODE_LANG7,    KEYCODE_LANG8,
+
+  /* 0x98-0x9f: LAN 9,Erase,SysReq,Cancel,Clear,Prior,Return,Separator */
+
+  0,               0,                   KEYCODE_SYSREQ,    KEYCODE_CANCEL,   KEYCODE_CLEAR,       0,             KEYCODE_ENTER,    0,
+
+  /* 0xa0-0xa7: Out,Oper,Clear,CrSel,Excel,(reserved) */
+
+  0,               0,                   0,                 0,                0,                   0,             0,                 0,
+
+  /* 0xa8-0xaf: (reserved) */
+
+  0,               0,                   0,                 0,                0,                   0,             0,                 0,
+
+  /* 0xb0-0xb7: 00,000,ThouSeparator,DecSeparator,CurrencyUnit,SubUnit,(,) */
+
+  0,               0,                   0,                 0,                0,                   0,             0,                 0,
+
+  /* 0xb8-0xbf: {,},tab,backspace,A-D */
+
+  0,               0,                   0,                 KEYCODE_BACKDEL,  0,                   0,             0,                 0,
+
+  /* 0xc0-0xc7: E-F,XOR,^,%,<,>,& */
+
+  0,               0,                   0,                 0,                0,                   0,             0,                 0,
+
+  /* 0xc8-0xcf: &&,|,||,:,#, ,@,! */
+
+  0,               0,                   0,                 0,                0,                   0,             0,                 0,
+
+  /* 0xd0-0xd7: Memory Store,Recall,Clear,Add,Subtract,Muliply,Divide,+/- */
+
+  KEYCODE_MEMSTORE, KEYCODE_MEMRECALL,  KEYCODE_MEMCLEAR,  KEYCODE_MEMADD,   KEYCODE_MEMSUB,     KEYCODE_MEMMUL, KEYCODE_MEMDIV,    KEYCODE_NEGATE,
+
+  /* 0xd8-0xdd: Clear,ClearEntry,Binary,Octal,Decimal,Hexadecimal */
+
+  KEYCODE_CLEAR,    KEYCODE_CLEARENTRY, KEYCODE_BINARY,    KEYCODE_OCTAL,    KEYCODE_DECIMAL,    KEYCODE_HEXADECIMAL
+#endif
+};
+
+#endif
+
 static const uint8_t ucmap[USBHID_NUMSCANCODES] =
 {
   0,    0,      0,      0,       'A',  'B',  'C',    'D',  /* 0x00-0x07: Reserved, errors, A-D */
@@ -356,7 +519,7 @@ static const uint8_t ucmap[USBHID_NUMSCANCODES] =
   '\n', '\033', '\177', 0,       ' ',  '_',  '+',    '{',  /* 0x28-0x2f: Enter,escape,del,back-tab,space,_,+,{ */
   '}',  '|',    0,      ':',     '"',  0,    '<',    '>',  /* 0x30-0x37: },|,Non-US tilde,:,",grave tidle,<,> */
   '?',  0,       0,      0,      0,    0,    0,      0,    /* 0x38-0x3f: /,CapsLock,F1,F2,F3,F4,F5,F6 */
-  0,    0,       0,      0,      0,    0,    0,      0,    /* 0x40-0x47: F7,F8,F9,F10,F11,F12,PrtScn,sScrollLock */
+  0,    0,       0,      0,      0,    0,    0,      0,    /* 0x40-0x47: F7,F8,F9,F10,F11,F12,PrtScn,ScrollLock */
   0,    0,       0,      0,      0,    0,    0,      0,    /* 0x48-0x4f: Pause,Insert,Home,PageUp,DeleteForward,End,PageDown,RightArrow */
   0,    0,       0,      0,      '/',  '*',  '-',    '+',  /* 0x50-0x57: LeftArrow,DownArrow,UpArrow,Num Lock,/,*,-,+ */
   '\n', '1',     '2',    '3',    '4',  '4',  '6',    '7',  /* 0x58-0x5f: Enter,1-7 */
@@ -368,7 +531,7 @@ static const uint8_t ucmap[USBHID_NUMSCANCODES] =
   0,    0,       0,      0,      0,    ',',  0,      0,    /* 0x80-0x87: VolUp,VolDown,LCapsLock,lNumLock,LScrollLock,,,=,International1 */
   0,    0,       0,      0,      0,    0,    0,      0,    /* 0x88-0x8f: International 2-9 */
   0,    0,       0,      0,      0,    0,    0,      0,    /* 0x90-0x97: LAN 1-8 */
-  0,    0,       0,      0,      0,    0,    '\n',   0,    /* 0x98-0x9f: LAN 9,Ease,SysReq,Cancel,Clear,Prior,Return,Separator */
+  0,    0,       0,      0,      0,    0,    '\n',   0,    /* 0x98-0x9f: LAN 9,Erase,SysReq,Cancel,Clear,Prior,Return,Separator */
   0,    0,       0,      0,      0,    0,    0,      0,    /* 0xa0-0xa7: Out,Oper,Clear,CrSel,Excel,(reserved) */
   0,    0,       0,      0,      0,    0,    0,      0,    /* 0xa8-0xaf: (reserved) */
   0,    0,       0,      0,      0,    0,    '(',    ')',  /* 0xb0-0xb7: 00,000,ThouSeparator,DecSeparator,CurrencyUnit,SubUnit,(,) */
@@ -403,7 +566,7 @@ static const uint8_t lcmap[USBHID_NUMSCANCODES] =
   0,    0,       0,      0,      0,    ',', 0,       0,    /* 0x80-0x87: VolUp,VolDown,LCapsLock,lNumLock,LScrollLock,,,=,International1 */
   0,    0,       0,      0,      0,    0,   0,       0,    /* 0x88-0x8f: International 2-9 */
   0,    0,       0,      0,      0,    0,   0,       0,    /* 0x90-0x97: LAN 1-8 */
-  0,    0,       0,      0,      0,    0,   '\n',    0,    /* 0x98-0x9f: LAN 9,Ease,SysReq,Cancel,Clear,Prior,Return,Separator */
+  0,    0,       0,      0,      0,    0,   '\n',    0,    /* 0x98-0x9f: LAN 9,Erase,SysReq,Cancel,Clear,Prior,Return,Separator */
   0,    0,       0,      0,      0,    0,   0,       0,    /* 0xa0-0xa7: Out,Oper,Clear,CrSel,Excel,(reserved) */
   0,    0,       0,      0,      0,    0,   0,       0,    /* 0xa8-0xaf: (reserved) */
   0,    0,       0,      0,      0,    0,   '(',     ')',  /* 0xb0-0xb7: 00,000,ThouSeparator,DecSeparator,CurrencyUnit,SubUnit,(,) */
@@ -638,6 +801,88 @@ static void usbhost_destroy(FAR void *arg)
 }
 
 /****************************************************************************
+ * Name: usbhost_putbuffer
+ *
+ * Description:
+ *   Add one character to the user buffer.
+ *
+ * Input Parameters:
+ *   priv - Driver internal state
+ *   keycode - The value to add to the user buffer
+ *
+ * Returned Values:
+ *   None
+ *
+ ****************************************************************************/
+
+static void usbhost_putbuffer(FAR struct usbhost_state_s *priv,
+                              uint8_t keycode)
+{
+  register unsigned int head;
+  register unsigned int tail;
+
+  /* Copy the next keyboard character into the user buffer. */
+
+  head = priv->headndx;
+  priv->kbdbuffer[head] = keycode;
+
+  /* Increment the head index */
+
+  if (++head >= CONFIG_HIDKBD_BUFSIZE)
+    {
+      head = 0;
+    }
+
+  /* If the buffer is full, then increment the tail index to make space.  Is
+   * it better to lose old keystrokes or new?
+   */
+
+  tail = priv->tailndx;
+  if (tail == head)
+    {
+      if (++tail >= CONFIG_HIDKBD_BUFSIZE)
+        {
+          tail = 0;
+        }
+
+      /* Save the updated tail index */
+
+      priv->tailndx = tail;
+    }
+
+  /* Save the updated head index */
+
+  priv->headndx = head;
+}
+
+/****************************************************************************
+ * Name: usbhost_putstream
+ *
+ * Description:
+ *   A wrapper for usbhost_putc that is compatibile with the lib_outstream_s
+ *   putc methos.
+ *
+ * Input Parameters:
+ *   stream - The struct lib_outstream_s reference
+ *   ch - The character to add to the user buffer
+ *
+ * Returned Values:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_HIDKBD_ENCODED
+static void usbhost_putstream(FAR struct lib_outstream_s *stream, int ch)
+{
+  FAR struct usbhost_outstream_s *privstream = (FAR struct lib_outstream_s *)stream;
+
+  DEBUGASSERT(privstream && privstream->priv);
+  usbhost_putbuffer(privstream->priv), (uint8_t)ch);
+  stream->nput++;
+}
+#endif
+
+/****************************************************************************
  * Name: usbhost_mapscancode
  *
  * Description:
@@ -680,6 +925,58 @@ static inline uint8_t usbhost_mapscancode(uint8_t scancode, uint8_t modifier)
 }
 
 /****************************************************************************
+ * Name: usbhost_encodescancode
+ *
+ * Description:
+ *  Check if the key has a special function encoding and, if it does, add
+ *  the encoded value to the user buffer.
+ *
+ * Input Parameters:
+ *   priv - Driver internal state
+ *   scancode - Scan code to be mapped.
+ *   modifier - Ctrl,Alt,Shift,GUI modifier bits
+ *
+ * Returned Values:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_HIDKBD_ENCODED
+static inline void usbhost_encodescancode(FAR struct usbhost_state_s *priv,
+                                          uint8_t scancode, uint8_t modifier)
+{
+  struct usbhost_outstream_s stream;
+  uint8_t encoded;
+
+  /* Check if the raw scancode is in a valid range */
+
+  if (scancode >= FIRST_ENCODING && scancode <= LAST_ENCODING)
+    {
+      /* Yes the value is within range */
+
+      encoded = encoding(scancode - FIRST_ENCODING);
+      ivdbg("  scancode: %02x modifier: %02x encoded: %d\n",
+            scancode, modifier, encoded);
+
+      if (encoded)
+        {
+          struct usbhost_outstream_s usbstream;
+
+          /* And it does correspond to a special function key */
+
+          usbstream->stream.put  = usbhost_putstream;
+          usbstream->stream.nput = 0;
+          usbstream->priv        = priv;
+
+          /* Add the special function value to the user buffer */
+
+          kbd_putspecial((enum kbd_keycode_e)encoded, &usbstream);
+        }
+    }
+}
+#endif
+
+/****************************************************************************
  * Name: usbhost_kbdpoll
  *
  * Description:
@@ -704,6 +1001,8 @@ static int usbhost_kbdpoll(int argc, char *argv[])
   unsigned int                npolls = 0;
 #endif
   unsigned int                nerrors = 0;
+  bool                        empty = true;
+  bool                        newstate;
   int                         ret;
 
   uvdbg("Started\n");
@@ -717,13 +1016,13 @@ static int usbhost_kbdpoll(int argc, char *argv[])
    * running.
    */
 
-   priv = g_priv;
-   DEBUGASSERT(priv != NULL);
+  priv = g_priv;
+  DEBUGASSERT(priv != NULL);
  
-   priv->polling = true;
-   priv->crefs++;
-   usbhost_givesem(&g_syncsem);
-   sleep(1);
+  priv->polling = true;
+  priv->crefs++;
+  usbhost_givesem(&g_syncsem);
+  sleep(1);
   
   /* Loop here until the device is disconnected */
 
@@ -784,17 +1083,12 @@ static int usbhost_kbdpoll(int argc, char *argv[])
       else if (priv->open)
         {
           struct usbhid_kbdreport_s *rpt = (struct usbhid_kbdreport_s *)priv->tbuffer;
-          unsigned int               head;
-          unsigned int               tail;
-          uint8_t                    ascii;
+          uint8_t                    keycode;
           int                        i;
 
           /* Add the newly received keystrokes to our internal buffer */
 
           usbhost_takesem(&priv->exclsem);
-          head = priv->headndx;
-          tail = priv->tailndx;
-
           for (i = 0; i < 6; i++)
             {
               /* Is this key pressed?  But not pressed last time?
@@ -828,15 +1122,15 @@ static int usbhost_kbdpoll(int argc, char *argv[])
                    * or cursor controls in this version of the driver.
                    */
 
-                  ascii = usbhost_mapscancode(rpt->key[i], rpt->modifier);
-                  uvdbg("Key %d: %02x ASCII:%c modifier: %02x\n",
-                         i, rpt->key[i], ascii ? ascii : ' ', rpt->modifier);
+                  keycode = usbhost_mapscancode(rpt->key[i], rpt->modifier);
+                  ivdbg("Key %d: %02x keycode:%c modifier: %02x\n",
+                         i, rpt->key[i], keycode ? keycode : ' ', rpt->modifier);
 
                   /* Zero at this point means that the key does not map to a
                    * printable character.
                    */
 
-                  if (ascii != 0)
+                  if (keycode != 0)
                     {
                       /* Handle control characters.  Zero after this means
                        * a valid, NUL character.
@@ -844,36 +1138,28 @@ static int usbhost_kbdpoll(int argc, char *argv[])
 
                       if ((rpt->modifier & (USBHID_MODIFER_LCTRL|USBHID_MODIFER_RCTRL)) != 0)
                         {
-                          ascii &= 0x1f;
+                          keycode &= 0x1f;
                         }
  
                       /* Copy the next keyboard character into the user
                        * buffer.
                        */
 
-                      priv->kbdbuffer[head] = ascii;
-
-                      /* Increment the head index */
-
-                      if (++head >= CONFIG_HIDKBD_BUFSIZE)
-                        {
-                          head = 0;
-                        }
-
-                      /* If the buffer is full, then increment the tail
-                       * index to make space.  Is it better to lose old
-                       * keystrokes or new?
-                       */
-
-                      if (tail == head)
-                       {
-                          if (++tail >= CONFIG_HIDKBD_BUFSIZE)
-                            {
-                              tail = 0;
-                            }
-                        }
+                      usbhost_putbuffer(priv, keycode);
                     }
+
+                  /* The zero might, however, map to a special keyboard action (such as a
+                   * cursor movement or function key).  Attempt to encode the special key.
+                   */
+
+#ifdef CONFIG_HIDKBD_ENCODED
+                  else
+                    {
+                      usbhost_encodescancode(priv, rpt->key[i], rpt->modifier));
+                    }
+#endif
                 }
+
               /* Save the scancode (or lack thereof) for key debouncing on
                * next keyboard report.
                */
@@ -885,7 +1171,8 @@ static int usbhost_kbdpoll(int argc, char *argv[])
 
           /* Did we just transition from no data available to data available? */
 
-          if (head != tail && priv->headndx == priv->tailndx)
+          newstate = (priv->headndx == priv->tailndx);
+          if (empty && !newstate)
             {
               /* Yes.. Is there a thread waiting for keyboard data now? */
 
@@ -902,10 +1189,7 @@ static int usbhost_kbdpoll(int argc, char *argv[])
               usbhost_pollnotify(priv);
             }
 
-          /* Update the head/tail indices */
-
-          priv->headndx = head;
-          priv->tailndx = tail;
+          empty = newstate;
           usbhost_givesem(&priv->exclsem);
         }
 
@@ -958,6 +1242,7 @@ static int usbhost_kbdpoll(int argc, char *argv[])
 
       usbhost_givesem(&priv->exclsem);
     }
+
   return 0;
 }
 

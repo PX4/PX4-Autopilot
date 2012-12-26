@@ -113,7 +113,7 @@ enum kbd_keycode_e
   KEYCODE_PAUSE,               /* Pause */
   KEYCODE_BREAK,               /* Break */
   KEYCODE_CANCEL,              /* Cancel */
-  KEYCODE_PRINTSCN,            /* PrintScreen */
+  KEYCODE_PRTSCRN,             /* PrintScreen */
   KEYCODE_SYSREQ,              /* SysReq/Attention */
 
   /* Audio */
@@ -131,14 +131,15 @@ enum kbd_keycode_e
 
   KEYCODE_CLEAR,               /* Clear */
   KEYCODE_CLEARENTRY,          /* Clear entry */
+  KEYCODE_NEGATE,              /* +/- */
 
-  KEYCODE_MEMSET,              /* Memory set */
+  KEYCODE_MEMSTORE,            /* Memory store */
   KEYCODE_MEMCLEAR,            /* Memory clear */
   KEYCODE_MEMRECALL,           /* Memory recall */
   KEYCODE_MEMADD,              /* Memory add */
-  KEYCODE_MEMSUBTRACT,         /* Memory substract */
-  KEYCODE_MEMMULTIPY,          /* Memory multiply */
-  KEYCODE_MEMDIVIDE,           /* Memory divide */
+  KEYCODE_MEMSUB,              /* Memory substract */
+  KEYCODE_MEMMUL,              /* Memory multiply */
+  KEYCODE_MEMDIV,              /* Memory divide */
 
   KEYCODE_BINARY,              /* Binary mode */
   KEYCODE_OCTAL,               /* Octal mode */
@@ -197,7 +198,7 @@ enum kbd_keycode_e
  * Public Types
  ****************************************************************************/
 
-struct kget_getstate_s
+struct kbd_getstate_s
 {
   uint8_t nch;                 /* Number of characters in the buffer */
   uint8_t ndx;                 /* Index to next character in the buffer */
@@ -225,7 +226,7 @@ extern "C"
  *   Put one byte of normal, "in-band" ASCII data into the output stream.
  *
  * Input Parameters:
- *   ch - The character to be into the output stream.
+ *   ch - The character to be added to the output stream.
  *   stream - An instance of lib_outstream_s to do the low-level put
  *     operation.
  *
@@ -243,6 +244,9 @@ extern "C"
  *   Put one special, "out-of-band" command into the output stream.
  *
  * Input Parameters:
+ *   keycode - The command to be added to the output stream.
+ *   stream - An instance of lib_outstream_s to do the low-level put
+ *     operation.
  *
  * Returned Value:
  *   None
@@ -261,7 +265,7 @@ void kbd_putspecial(enum kbd_keycode_e keycode,
  * Name: kbd_get
  *
  * Description:
- *   Put one byte of data or special command from the driver provided input
+ *   Get one byte of data or special command from the driver provided input
  *   buffer.
  *
  * Input Parameters:
@@ -274,15 +278,17 @@ void kbd_putspecial(enum kbd_keycode_e keycode,
  *     should be cleared the first time that kbd_get is called.
  *
  * Returned Value:
- *   1  - Indicates the successful receipt of a special, "out-of-band" command
+ *   1  - Indicates the successful receipt of a special, "out-of-band" command.
+ *        The returned value in pch is a value from enum kbd_getstate_s.
  *   0  - Indicates the successful receipt of normal, "in-band" ASCII data.
+ *        The returned value in pch is a simple byte of text or control data.
  *  EOF - An error has getting the next character (reported by the stream).
  *        Normally indicates the end of file.
  *
  ****************************************************************************/
 
 int kbd_get(FAR struct lib_instream_s *stream,
-            FAR struct kget_getstate_s *state, FAR uint8_t *pch);
+            FAR struct kbd_getstate_s *state, FAR uint8_t *pch);
 
 #ifdef __cplusplus
 }

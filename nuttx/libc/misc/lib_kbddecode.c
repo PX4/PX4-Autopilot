@@ -89,7 +89,7 @@
  *
  ****************************************************************************/
 
-static int kbd_reget(FAR struct kget_getstate_s *state, FAR uint8_t *pch)
+static int kbd_reget(FAR struct kbd_getstate_s *state, FAR uint8_t *pch)
 {
   /* Return the next character */
 
@@ -107,7 +107,7 @@ static int kbd_reget(FAR struct kget_getstate_s *state, FAR uint8_t *pch)
  * Name: kbd_get
  *
  * Description:
- *   Put one byte of data or special command from the driver provided input
+ *   Get one byte of data or special command from the driver provided input
  *   buffer.
  *
  * Input Parameters:
@@ -120,15 +120,17 @@ static int kbd_reget(FAR struct kget_getstate_s *state, FAR uint8_t *pch)
  *     should be cleared the first time that kbd_get is called.
  *
  * Returned Value:
- *   1  - Indicates the successful receipt of a special, "out-of-band" command
+ *   1  - Indicates the successful receipt of a special, "out-of-band" command.
+ *        The returned value in pch is a value from enum kbd_getstate_s.
  *   0  - Indicates the successful receipt of normal, "in-band" ASCII data.
+ *        The returned value in pch is a simple byte of text or control data.
  *  EOF - An error has getting the next character (reported by the stream).
  *        Normally indicates the end of file.
  *
  ****************************************************************************/
 
 int kbd_get(FAR struct lib_instream_s *stream,
-            FAR struct kget_getstate_s *state, FAR uint8_t *pch)
+            FAR struct kbd_getstate_s *state, FAR uint8_t *pch)
 {
   int ch;
 

@@ -899,7 +899,25 @@ Where <subdir> is one of the following:
     This configuration directory, performs a simple test of the USB host
     HID keyboard class driver using the test logic in apps/examples/hidkbd.
 
-  nettest:
+    NOTES:
+ 
+    1. This configuration uses the mconf-based configuration tool.  To
+       change this configuration using that tool, you should:
+
+       a. Build and install the mconf tool.  See nuttx/README.txt and
+          misc/tools/
+
+       b. Execute 'make menuconfig' in nuttx/ in order to start the
+          reconfiguration process.
+
+    2. Default platform/toolchain: This is how the build is configured by
+       be default.  These options can easily be re-confured, however.
+
+       CONFIG_HOST_WINDOWS=y         : Windows
+       CONFIG_WINDOWS_CYGWIN=y       : Cygwin environment on Windows
+       CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
+
+   nettest:
     This configuration directory may be used to enable networking using the
     LPC17xx's Ethernet controller. It uses apps/examples/nettest to excercise the
     TCP/IP network.

@@ -62,6 +62,9 @@
  *   Put one special, "out-of-band" command into the output stream.
  *
  * Input Parameters:
+ *   keycode - The command to be added to the output stream.
+ *   stream - An instance of lib_outstream_s to do the low-level put
+ *     operation.
  *
  * Returned Value:
  *   None
