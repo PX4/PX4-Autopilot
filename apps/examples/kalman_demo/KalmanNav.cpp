@@ -52,6 +52,8 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     V(6,6),
     HMag(3,9),
     RMag(3,3),
+    HAccel(3,9),
+    RAccel(3,3),
     HGps(6,9),
     RGps(6,6),
     C_nb(),
@@ -77,7 +79,8 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     _rMag(this,"R_MAG"),
     _rGpsV(this,"R_GPS_V"),
     _rGpsGeo(this,"R_GPS_GEO"),
-    _rGpsAlt(this,"R_GPS_ALT")
+    _rGpsAlt(this,"R_GPS_ALT"),
+    _rAccel(this,"R_ACCEL")
 {
     using namespace math;
     setDt(1.0f /200.0f);
@@ -153,6 +156,7 @@ void KalmanNav::update()
     if (newTimeStamp - _magTimeStamp > 1e6/1) // 1 Hz
     {
         _magTimeStamp = newTimeStamp;
+        correctAccel();
         correctMag();
     }
 
@@ -389,6 +393,7 @@ void KalmanNav::predictSlow()
     // predict equations for kalman filter
     _kalman.predict(dt);
 }
+
 void KalmanNav::correctMag()
 {
     using namespace math;
@@ -464,11 +469,50 @@ void KalmanNav::correctMag()
 
     // update quaternions from euler 
     // angle correction
-    //printf("phi: %8.4f theta: %8.4f psi: %8.4f\n",phi,theta,psi);
-    //printf("euler: \n"); EulerAngles(phi,theta,psi).print();
-    //printf("q: \n"); q.print();
     q = Quaternion(EulerAngles(phi,theta,psi));
 }
+
+void KalmanNav::correctAccel()
+{
+    using namespace math;
+    Vector zAccel(3);
+    for (int i=0;i<3;i++) {
+        zAccel(i) = _sensors.accelerometer_m_s2[i];
+    }
+    // normalize
+    zAccel = zAccel.unit();
+    // trig
+    float cosPhi = cosf(phi);
+    float cosTheta = cosf(theta);
+    float sinPhi = sinf(phi);
+    float sinTheta = sinf(theta);
+
+    Vector zAccelHat = (C_nb.transpose()*Vector3(0,0,-1)).unit();
+
+    // HAccel
+    HAccel(0,1) = cosTheta;
+    HAccel(1,0) = -cosPhi*cosTheta;
+    HAccel(1,1) = sinPhi*sinTheta;
+    HAccel(2,0) = sinPhi*cosTheta;
+    HAccel(2,1) = cosPhi*sinTheta;
+    Vector y = zAccel - zAccelHat; // residual
+    Matrix S(3,3); // residual covariance
+    _kalman.correct(y,HAccel,RAccel,S);
+
+    // fault detetcion
+    float beta = y.dot(S.inverse()*y);
+    if (beta > 10.0f) {
+        printf("fault in accelerometer: beta = %8.4f\n", (double)beta);
+        printf("y:\n"); y.print();
+        printf("zAccel:\n"); zAccel.print();
+        printf("zAccelHat:\n"); zAccelHat.print();
+    }
+
+    // update quaternions from euler 
+    // angle correction
+    q = Quaternion(EulerAngles(phi,theta,psi));
+}
+
 void KalmanNav::correctGps()
 {
     using namespace math;
@@ -529,4 +573,8 @@ void KalmanNav::updateParams()
     RGps(3,3) = _rGpsGeo.get(); // L, rad
     RGps(4,4) = _rGpsGeo.get(); // l, rad
     RGps(5,5) = _rGpsAlt.get(); // h, m
+
+    // accel measurement noise
+    // this is for correcting attitude
+    RAccel = Matrix::identity(3)*_rAccel.get();   // gauss
 }

@@ -72,6 +72,7 @@ public:
     void predictFast();
     void predictSlow();
     void correctMag();
+    void correctAccel();
     void correctGps();
     virtual void updateParams();
 protected:
@@ -80,6 +81,8 @@ protected:
     math::Matrix V;
     math::Matrix HMag;
     math::Matrix RMag;
+    math::Matrix HAccel;
+    math::Matrix RAccel;
     math::Matrix HGps;
     math::Matrix RGps;
     math::Dcm C_nb;
@@ -106,4 +109,5 @@ protected:
     control::BlockParam<float> _rGpsV;
     control::BlockParam<float> _rGpsGeo;
     control::BlockParam<float> _rGpsAlt;
+    control::BlockParam<float> _rAccel;
 };
