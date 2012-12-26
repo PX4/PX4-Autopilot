@@ -46,7 +46,7 @@ namespace math {
 class Quaternion;
 class Dcm;
 
-class EulerAngles : public Vector
+class __EXPORT EulerAngles : public Vector
 {
 public:
     EulerAngles();

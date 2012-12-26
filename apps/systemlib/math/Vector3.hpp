@@ -44,7 +44,7 @@
 namespace math
 {
 
-class Vector3 :
+class __EXPORT Vector3 :
     public Vector
 {
 public:

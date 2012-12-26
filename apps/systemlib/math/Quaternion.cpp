@@ -71,6 +71,11 @@ Quaternion::Quaternion(const float * data) :
 {
 }
 
+Quaternion::Quaternion(const Vector & v) :
+    Vector(v)
+{
+}
+
 Quaternion::Quaternion(const Dcm & dcm) :
     Vector(4)
 {
@@ -134,7 +139,40 @@ Vector Quaternion::derivative(const Vector & w)
 int __EXPORT quaternionTest()
 {
     printf("Test Quaternion\t\t: ");
+    // test default ctor
     Quaternion q;
+    ASSERT(equal(q.getA(),1));  
+    ASSERT(equal(q.getB(),0));  
+    ASSERT(equal(q.getC(),0));  
+    ASSERT(equal(q.getD(),0));  
+    // test float ctor
+    q = Quaternion(0,1,0,0);
+    ASSERT(equal(q.getA(),0));  
+    ASSERT(equal(q.getB(),1));  
+    ASSERT(equal(q.getC(),0));  
+    ASSERT(equal(q.getD(),0));  
+    // test euler ctor
+    q = Quaternion(EulerAngles(0,0,0));
+    ASSERT(equal(q.getA(),1));  
+    ASSERT(equal(q.getB(),0));  
+    ASSERT(equal(q.getC(),0));  
+    ASSERT(equal(q.getD(),0));     
+    // test dcm ctor
+    q = Quaternion(Dcm());
+    ASSERT(equal(q.getA(),1));  
+    ASSERT(equal(q.getB(),0));  
+    ASSERT(equal(q.getC(),0));  
+    ASSERT(equal(q.getD(),0));     
+    // TODO test derivative
+    // test accessors
+    q.setA(0.1);
+    q.setB(0.2);
+    q.setC(0.3);
+    q.setD(0.4);
+    ASSERT(equal(q.getA(),0.1));  
+    ASSERT(equal(q.getB(),0.2));  
+    ASSERT(equal(q.getC(),0.3));  
+    ASSERT(equal(q.getD(),0.4));  
     printf("PASS\n");
     return 0;
 }

@@ -87,7 +87,11 @@ Vector3 Vector3::cross(const Vector3 & b)
 int __EXPORT vector3Test()
 {
     printf("Test Vector3\t\t: ");
+    // test float ctor
     Vector3 v(1,2,3);
+    ASSERT(equal(v(0),1)); 
+    ASSERT(equal(v(1),2)); 
+    ASSERT(equal(v(2),3)); 
     printf("PASS\n");
     return 0;
 }

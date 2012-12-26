@@ -42,8 +42,12 @@
 #include <nuttx/config.h>
 
 #include <systemlib/math/Vector.hpp>
+#include <systemlib/math/Vector3.hpp>
 #include <systemlib/math/Matrix.hpp>
 #include <systemlib/math/Kalman.hpp>
+#include <systemlib/math/Quaternion.hpp>
+#include <systemlib/math/Dcm.hpp>
+#include <systemlib/math/EulerAngles.hpp>
 #include <systemlib/control/blocks.hpp>
 #include <systemlib/control/block/UOrbSubscription.hpp>
 #include <systemlib/control/block/UOrbPublication.hpp>
@@ -76,8 +80,8 @@ protected:
     math::Matrix RMag;
     math::Matrix HGps;
     math::Matrix RGps;
-    math::Matrix C_nb;
-    math::Vector q;
+    math::Dcm C_nb;
+    math::Quaternion q;
     control::UOrbSubscription<sensor_combined_s> _sensors;
     control::UOrbSubscription<vehicle_gps_position_s> _gps;
     control::UOrbPublication<vehicle_global_position_s> _pos;

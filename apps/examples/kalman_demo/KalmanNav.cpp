@@ -54,8 +54,8 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     RMag(3,3),
     HGps(6,9),
     RGps(6,6),
-    C_nb(3,3),
-    q(4),
+    C_nb(),
+    q(),
     _sensors(&getSubscriptions(), ORB_ID(sensor_combined),20),
     _gps(&getSubscriptions(), ORB_ID(vehicle_gps_position),20),
     _pos(&getPublications(), ORB_ID(vehicle_global_position)),
@@ -104,20 +104,7 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     h = _gps.alt/1.0e3f; 
 
     // initialize quaternions
-    float cosPhi_2 = cosf(phi/2.0f);
-    float cosTheta_2 = cosf(theta/2.0f);
-    float cosPsi_2 = cosf(psi/2.0f);
-    float sinPhi_2 = sinf(phi/2.0f);
-    float sinTheta_2 = sinf(theta/2.0f);
-    float sinPsi_2 = sinf(psi/2.0f);
-    a = cosPhi_2*cosTheta_2*cosPsi_2 + 
-        sinPhi_2*sinTheta_2*sinPsi_2;
-    b = sinPhi_2*cosTheta_2*cosPsi_2 -
-        cosPhi_2*sinTheta_2*sinPsi_2;
-    c = cosPhi_2*sinTheta_2*cosPsi_2 +
-        sinPhi_2*cosTheta_2*sinPsi_2;
-    d = cosPhi_2*cosTheta_2*sinPsi_2 +
-        sinPhi_2*sinTheta_2*cosPsi_2;
+    q = Quaternion(EulerAngles(phi,theta,psi)); 
 
     // noise
     V(0,0) = 0.01f;    // gyro x, rad/s
@@ -261,58 +248,31 @@ void KalmanNav::updatePublications()
 void KalmanNav::predictFast()
 {
     using namespace math;
-    Vector w(4);
+    Vector3 w;
     float dt = getDt(); // TODO, could make this actual dt, 
     // instead of scheduled dt
 
-    for (int i=0;i<3;i++) w(i+1)  = _sensors.gyro_rad_s[i];
+    for (int i=0;i<3;i++) w(i)  = _sensors.gyro_rad_s[i];
+
     // attitude
-    float dataQ[] = 
-        {a, -b, -c, -d,
-         b,  a, -d,  c,
-         c,  d,  a, -b,
-         d, -c,  b,  a};
-    Matrix Q(4,4,dataQ);
-    q = q + Q*w*0.5*getDt();
+    q = q + q.derivative(w)*getDt();
 
     // renormalize quaternion if needed
     float aSq = a*a, bSq = b*b, cSq = c*c, dSq = d*d;
     float norm = sqrtf(aSq + bSq + cSq + dSq);
     if (fabsf(norm-1.0f) > 1e-2f)
     {
-        q = q/norm;
+        q = q.unit();
     }
 
     // C_nb update
-    C_nb(0,0) = aSq + bSq - cSq - dSq;
-    C_nb(0,1) = 2*(b*c - a*d);
-    C_nb(0,2) = 2*(b*d + a*c);
-    C_nb(1,0) = 2*(b*c + a*d);
-    C_nb(1,1) = aSq - bSq + cSq - dSq;
-    C_nb(1,2) = 2*(c*d - a*b);
-    C_nb(2,0) = 2*(b*d - a*c);
-    C_nb(2,1) = 2*(c*d + a*b);
-    C_nb(2,2) = aSq - bSq - cSq + dSq;
+    C_nb = Dcm(q);
 
     // attitude update
-    theta = asinf(-C_nb(2,0));
-    if (fabsf(theta-M_PI_2_F)<0.01f)
-    {
-        // leave phi the same
-        psi = atan2f(C_nb(1,2) - C_nb(0,1),
-                C_nb(0,2) + C_nb(1,1)) + phi;
-    }
-    else if (fabsf(theta + M_PI_2_F) < 0.01f)
-    {
-        // leave phi the same
-        psi = atan2f(C_nb(1,2) + C_nb(0,1),
-                C_nb(0,2) - C_nb(1,1)) - phi;
-    }
-    else
-    {
-        phi = atan2f(C_nb(2,1),C_nb(2,2));
-        psi = atan2f(C_nb(1,0),C_nb(0,0));
-    }
+    EulerAngles euler(C_nb);
+    phi = euler.getPhi();
+    theta = euler.getPhi();
+    psi = euler.getPsi();
 
    // specific acceleration in nav frame
     Vector accelB(3,_sensors.accelerometer_m_s2);

@@ -55,7 +55,7 @@ class EulerAngles;
  * as C_nb. C_bn can be obtained through use 
  * of the transpose() method.
  */
-class Dcm : public Matrix
+class __EXPORT Dcm : public Matrix
 {
 public:
     /**

@@ -47,7 +47,7 @@ namespace math {
 class Dcm;
 class EulerAngles;
 
-class Quaternion : public Vector
+class __EXPORT Quaternion : public Vector
 {
 public:
 
@@ -65,6 +65,11 @@ public:
      * ctor from data
      */
     Quaternion(const float * data);
+
+    /**
+     * ctor from Vector
+     */
+    Quaternion(const Vector & v);
 
     /**
      * ctor from EulerAngles
