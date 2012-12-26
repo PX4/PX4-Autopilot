@@ -106,30 +106,25 @@ def process_jsb_input(buf):
             if e.errno not in [ errno.ECONNREFUSED ]:
                 raise
 
-    #simbuf = struct.pack('<16dI',
-                         #fdm.get('latitude', units='degrees'),
-                         #fdm.get('longitude', units='degrees'),
-                         #fdm.get('altitude', units='meters'),
-                         #fdm.get('psi', units='degrees'),
-                         #fdm.get('v_north', units='mps'),
-                         #fdm.get('v_east', units='mps'),
-                         #fdm.get('A_X_pilot', units='mpss'),
-                         #fdm.get('A_Y_pilot', units='mpss'),
-                         #fdm.get('A_Z_pilot', units='mpss'),
-                         #fdm.get('phidot', units='dps'),
-                         #fdm.get('thetadot', units='dps'),
-                         #fdm.get('psidot', units='dps'),
-                         #fdm.get('phi', units='degrees'),
-                         #fdm.get('theta', units='degrees'),
-                         #fdm.get('psi', units='degrees'),
-                         #fdm.get('vcas', units='mps'),
-                         #0x4c56414e)
     px4Format = "{}\t"*16 + "{}\n"
 
-    phi = fdm.get('phi', units='radians')
-    theta = fdm.get('theta', units='radians')
-    psi = fdm.get('psi', units='radians')
+    # position
+    lat = fdm.get('latitude', units='degrees') + \
+        0.1*sin(2*math.pi*latFreq*time.time())
+    lon = fdm.get('longitude', units='degrees')
+    alt = fdm.get('altitude', units='meters')
 
+    # attitude
+    #phi = fdm.get('phi', units='radians')
+    #theta = fdm.get('theta', units='radians')
+    #psi = fdm.get('psi', units='radians')
+
+    # test values
+    phi = 0.1
+    theta = 0.2
+    psi = 0.3
+
+    # rotation rates
     phidot = fdm.get('phidot', units='rps')
     thetadot = fdm.get('thetadot', units='rps')
     psidot = fdm.get('psidot', units='rps')
@@ -141,22 +136,24 @@ def process_jsb_input(buf):
     ran = random.gauss(0, rNoiseVar)
     r = r + ran;
 
+    # acceleration
+    ax = fdm.get('A_X_pilot', units='mpss'),
+    ay = fdm.get('A_Y_pilot', units='mpss'),
+    az = fdm.get('A_Z_pilot', units='mpss'),
+
+    # velocitiy
+    vN = fdm.get('v_north', units='mps'),
+    vE = fdm.get('v_east', units='mps'),
+    vD = fdm.get('v_down', units='mps'),
+    vC = fdm.get('vcas', units='mps'),
+
     simbuf = px4Format.format(
-         time.clock(),
-         fdm.get('latitude', units='degrees')+ 0.1*sin(2*math.pi*latFreq*time.time()),
-         fdm.get('longitude', units='degrees'),
-         fdm.get('altitude', units='meters'),
-         fdm.get('phi', units='radians'),
-         fdm.get('theta', units='radians'),
-         fdm.get('psi', units='radians'),
-         p, q, r,
-         fdm.get('A_X_pilot', units='mpss'),
-         fdm.get('A_Y_pilot', units='mpss'),
-         fdm.get('A_Z_pilot', units='mpss'),
-         fdm.get('v_north', units='mps'),
-         fdm.get('v_east', units='mps'),
-         fdm.get('v_down', units='mps'),
-         fdm.get('vcas', units='mps'),
+        time.clock(),
+        lat, lon, alt,
+        phi, theta, psi,
+        p, q, r,
+        ax, ay, az,
+        vN, vE, vD, vC
         )
     try:
         sim_out.send(simbuf)

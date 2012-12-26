@@ -242,7 +242,7 @@ void KalmanNav::predictFast()
 
     // attitude
     q = q + q.derivative(w)*getDt();
-
+    
     // renormalize quaternion if needed
     if (fabsf(q.norm()-1.0f) > 1e-4f)
     {
@@ -255,7 +255,7 @@ void KalmanNav::predictFast()
     // euler update
     EulerAngles euler(C_nb);
     phi = euler.getPhi();
-    theta = euler.getPhi();
+    theta = euler.getTheta();
     psi = euler.getPsi();
 
    // specific acceleration in nav frame
@@ -464,6 +464,9 @@ void KalmanNav::correctMag()
 
     // update quaternions from euler 
     // angle correction
+    //printf("phi: %8.4f theta: %8.4f psi: %8.4f\n",phi,theta,psi);
+    //printf("euler: \n"); EulerAngles(phi,theta,psi).print();
+    //printf("q: \n"); q.print();
     q = Quaternion(EulerAngles(phi,theta,psi));
 }
 void KalmanNav::correctGps()
