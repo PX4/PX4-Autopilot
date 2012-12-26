@@ -158,18 +158,18 @@ void KalmanNav::update()
     }
 
     // gps correction step
-    if (newTimeStamp - _gpsTimeStamp > 1e6/1) // 1 Hz
+    if (newTimeStamp - _gpsTimeStamp > 1e6/10) // 10 Hz
     {
         _gpsTimeStamp = newTimeStamp;
         correctGps();
     }
 
     // mag correction step
-    //if (newTimeStamp - _magTimeStamp > 1e6/10) // 1 Hz
-    //{
-        //_magTimeStamp = newTimeStamp;
-        //correctMag();
-    //}
+    if (newTimeStamp - _magTimeStamp > 1e6/20) // 20 Hz
+    {
+        _magTimeStamp = newTimeStamp;
+        correctMag();
+    }
 
     // publication
     if (newTimeStamp - _pubTimeStamp > 1e6/50) // 50 Hz
@@ -258,9 +258,7 @@ void KalmanNav::predictFast()
     q = q + q.derivative(w)*getDt();
 
     // renormalize quaternion if needed
-    float aSq = a*a, bSq = b*b, cSq = c*c, dSq = d*d;
-    float norm = sqrtf(aSq + bSq + cSq + dSq);
-    if (fabsf(norm-1.0f) > 1e-2f)
+    if (fabsf(q.norm()-1.0f) > 1e-4f)
     {
         q = q.unit();
     }
@@ -268,7 +266,7 @@ void KalmanNav::predictFast()
     // C_nb update
     C_nb = Dcm(q);
 
-    // attitude update
+    // euler update
     EulerAngles euler(C_nb);
     phi = euler.getPhi();
     theta = euler.getPhi();
@@ -469,20 +467,7 @@ void KalmanNav::correctMag()
 
     // update quaternions from euler 
     // angle correction
-    float cosPhi_2 = cosf(phi/2.0f);
-    float cosTheta_2 = cosf(theta/2.0f);
-    float cosPsi_2 = cosf(psi/2.0f);
-    float sinPhi_2 = sinf(phi/2.0f);
-    float sinTheta_2 = sinf(theta/2.0f);
-    float sinPsi_2 = sinf(psi/2.0f);
-    a = cosPhi_2*cosTheta_2*cosPsi_2 + 
-        sinPhi_2*sinTheta_2*sinPsi_2;
-    b = sinPhi_2*cosTheta_2*cosPsi_2 -
-        cosPhi_2*sinTheta_2*sinPsi_2;
-    c = cosPhi_2*sinTheta_2*cosPsi_2 +
-        sinPhi_2*cosTheta_2*sinPsi_2;
-    d = cosPhi_2*cosTheta_2*sinPsi_2 +
-        sinPhi_2*sinTheta_2*cosPsi_2;
+    q = Quaternion(EulerAngles(phi,theta,psi));
 }
 void KalmanNav::correctGps()
 {
