@@ -63,14 +63,13 @@ public:
     {
         _P = _F*_P*_F.transpose() + _Q;
     }
-    virtual void correct(const Vector & z,
+    virtual void correct(const Vector & y,
             const Matrix & H, 
-            const Matrix & R, const Vector & zHat) 
+            const Matrix & R, Matrix & S) 
     {
-        Matrix S = H*_P*H.transpose() + R;
+        S = H*_P*H.transpose() + R;
         Matrix K = _P*H.transpose()*S.inverse();
         _P = _P - K*H*_P;
-        Vector y = z - zHat;
         _x = _x + K*y;
     }
     Vector & getX() { return _x; }

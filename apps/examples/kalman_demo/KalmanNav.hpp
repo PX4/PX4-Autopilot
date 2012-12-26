@@ -49,6 +49,7 @@
 #include <systemlib/math/Dcm.hpp>
 #include <systemlib/math/EulerAngles.hpp>
 #include <systemlib/control/blocks.hpp>
+#include <systemlib/control/block/BlockParam.hpp>
 #include <systemlib/control/block/UOrbSubscription.hpp>
 #include <systemlib/control/block/UOrbPublication.hpp>
 
@@ -72,6 +73,7 @@ public:
     void predictSlow();
     void correctMag();
     void correctGps();
+    virtual void updateParams();
 protected:
     math::Kalman _kalman;
     math::Matrix G;
@@ -98,4 +100,10 @@ protected:
     float & vN, & vE, & vD;
     float & L, & l, & h;
     float & a, & b, & c, & d;
+    control::BlockParam<float> _vGyro;
+    control::BlockParam<float> _vAccel;
+    control::BlockParam<float> _rMag;
+    control::BlockParam<float> _rGpsV;
+    control::BlockParam<float> _rGpsGeo;
+    control::BlockParam<float> _rGpsAlt;
 };

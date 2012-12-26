@@ -71,17 +71,19 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     phi(x(0)), theta(x(1)), psi(x(2)),
     vN(x(3)), vE(x(4)), vD(x(5)),
     L(x(6)), l(x(7)), h(x(8)),
-    a(q(0)), b(q(1)), c(q(2)), d(q(3))
+    a(q(0)), b(q(1)), c(q(2)), d(q(3)),
+    _vGyro(this,"V_GYRO"),
+    _vAccel(this,"V_ACCEL"),
+    _rMag(this,"R_MAG"),
+    _rGpsV(this,"R_GPS_V"),
+    _rGpsGeo(this,"R_GPS_GEO"),
+    _rGpsAlt(this,"R_GPS_ALT")
 {
     using namespace math;
     setDt(1.0f /200.0f);
 
-    Matrix I3 = Matrix::identity(3);
-    Matrix I6 = Matrix::identity(6);
-    Matrix I9 = Matrix::identity(9);
-
     // initial state covariance matrix
-    _kalman.setP(I9*1.0f);
+    _kalman.setP(Matrix::identity(9)*1.0f);
 
     // update subscriptions
     while(1)
@@ -106,27 +108,10 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     // initialize quaternions
     q = Quaternion(EulerAngles(phi,theta,psi)); 
 
-    // noise
-    V(0,0) = 0.01f;    // gyro x, rad/s
-    V(1,1) = 0.01f;    // gyro y
-    V(2,2) = 0.01f;    // gyro z
-    V(3,3) = 0.01f;    // accel x, m/s^2
-    V(4,4) = 0.01f;    // accel y
-    V(5,5) = 0.01f;    // accel z
-
-    // magnetometer noise
-    RMag = I3*0.01f;   // gauss
-
-    // gps noise
-    RGps(0,0) = 0.1f;        // vn, m/s
-    RGps(1,1) = 0.1f;        // ve
-    RGps(2,2) = 0.1f;        // vd
-    RGps(3,3) = 0.000001f;   // L, rad
-    RGps(4,4) = 0.000001f;   // l, rad
-    RGps(5,5) = 10.0f;       // h, m
+    updateParams();
 
     // Initialize F to identity
-    _kalman.getF() = I9;
+    _kalman.getF() = Matrix::identity(9);
 
     // HGps is constant
     HGps(0,3) = 1.0f;
@@ -165,7 +150,7 @@ void KalmanNav::update()
     }
 
     // mag correction step
-    if (newTimeStamp - _magTimeStamp > 1e6/20) // 20 Hz
+    if (newTimeStamp - _magTimeStamp > 1e6/1) // 20 Hz
     {
         _magTimeStamp = newTimeStamp;
         correctMag();
@@ -188,6 +173,7 @@ void KalmanNav::update()
             printf("WARNING: nav: sched %4d Hz, actual %4d Hz\n",
                     schedRate, _navFrames);
         }
+        updateParams();
         //_kalman.getX().print();
         _navFrames = 0;
     }
@@ -411,7 +397,7 @@ void KalmanNav::correctMag()
         zMag(i) = _sensors.magnetometer_ga[i];
     }
     // normalize
-    Vector zMagUnit = zMag.unit();
+    zMag= zMag.unit();
     // trig
     float cosPhi = cosf(phi);
     float cosTheta = cosf(theta);
@@ -463,7 +449,18 @@ void KalmanNav::correctMag()
         (cosPhi*sinPsi*sinTheta - sinPhi*cosTheta)*bN -
         (cosPhi*cosPsi*sinTheta + sinPhi*sinPsi)*bE
         );
-    _kalman.correct(zMagUnit,HMag,RMag,zMagHat);
+    Vector y = zMag - zMagHat; // residual
+    Matrix S(3,3); // residual covariance
+    _kalman.correct(y,HMag,RMag,S);
+
+    // fault detetcion
+    float beta = y.dot(S.inverse()*y);
+    if (beta > 10.0f) {
+        printf("fault in magnetometer: beta = %8.4f\n", (double)beta);
+        printf("y:\n"); y.print();
+        printf("zMag:\n"); zMag.print();
+        printf("zMagHat:\n"); zMagHat.print();
+    }
 
     // update quaternions from euler 
     // angle correction
@@ -473,6 +470,14 @@ void KalmanNav::correctGps()
 {
     using namespace math;
     Vector zGps(6);
+    // force state to gps values for testing
+    vN = _gps.vel_n;
+    vE = _gps.vel_e;
+    vD = _gps.vel_d;
+    L = _gps.lat/1.0e7f;
+    l = _gps.lon/1.0e7f;
+    h = _gps.alt/1.0e3f;
+    // set measurement vector
     zGps(0) = _gps.vel_n; // vn
     zGps(1) = _gps.vel_e; // ve
     zGps(2) = _gps.vel_d; // vd
@@ -480,5 +485,45 @@ void KalmanNav::correctGps()
     zGps(4) = _gps.lon/1.0e7f; // l
     zGps(5) = _gps.alt/1.0e3f; // h
     Vector zGpsHat = HGps*_kalman.getX();
-    _kalman.correct(zGps,HGps,RGps,zGpsHat);
+    Vector y = zGps - zGpsHat; // residual
+    Matrix S(6,6); // residual covariance
+    _kalman.correct(y,HGps,RGps,S);
+
+    // fault detetcion
+    float beta = y.dot(S.inverse()*y);
+    if (beta > 100.0f) {
+        printf("fault in gps: beta = %8.4f\n", (double)beta);
+        printf("y:\n"); y.print();
+        printf("zGps:\n"); zGps.print();
+        printf("zGpsHat:\n"); zGpsHat.print();
+
+    }
+}
+
+void KalmanNav::updateParams()
+{
+    using namespace math;
+    using namespace control;
+    SuperBlock::updateParams();
+
+    // gyro noise
+    V(0,0) = _vGyro.get();    // gyro x, rad/s
+    V(1,1) = _vGyro.get();    // gyro y
+    V(2,2) = _vGyro.get();    // gyro z
+
+    // accel noise
+    V(3,3) = _vAccel.get();    // accel x, m/s^2
+    V(4,4) = _vAccel.get();    // accel y
+    V(5,5) = _vAccel.get();    // accel z
+
+    // magnetometer noise
+    RMag = Matrix::identity(3)*_rMag.get();   // gauss
+
+    // gps noise
+    RGps(0,0) = _rGpsV.get(); // vn, m/s
+    RGps(1,1) = _rGpsV.get(); // ve
+    RGps(2,2) = _rGpsV.get(); // vd
+    RGps(3,3) = _rGpsGeo.get(); // L, rad
+    RGps(4,4) = _rGpsGeo.get(); // l, rad
+    RGps(5,5) = _rGpsAlt.get(); // h, m
 }

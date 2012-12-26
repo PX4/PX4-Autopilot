@@ -401,6 +401,11 @@ handle_message(mavlink_message_t *msg)
                     hil_sensors.battery_voltage_valid = true;
 
                     /* magnetometer */
+
+                    // test
+                    hil_state.roll = 0;
+                    hil_state.pitch = 0;
+                    hil_state.yaw = 0;
                     float cosPhi = cosf(hil_state.roll);
                     float sinPhi = sinf(hil_state.roll);
                     float cosThe = cosf(hil_state.pitch);

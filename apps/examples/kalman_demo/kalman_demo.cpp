@@ -102,7 +102,7 @@ int kalman_demo_main(int argc, char *argv[])
         deamon_task = task_spawn("kalman_demo",
                      SCHED_DEFAULT,
                      SCHED_PRIORITY_MAX - 30,
-                     8192,
+                     16384,
                      kalman_demo_thread_main,
                      (argv) ? (const char **)&argv[2] : (const char **)NULL);
         exit(0);
@@ -135,7 +135,7 @@ int kalman_demo_thread_main(int argc, char *argv[])
     
     thread_running = true;
 
-    KalmanNav nav(NULL,"NAV");
+    KalmanNav nav(NULL,"KF");
 
     while (!thread_should_exit) {
         nav.update();

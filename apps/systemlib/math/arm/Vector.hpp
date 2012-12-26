@@ -52,8 +52,6 @@
 // arm specific
 #include "arm_math.h"
 
-//#define VECTOR_ASSERT
-
 namespace math
 {
 
