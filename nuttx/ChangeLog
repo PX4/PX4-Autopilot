@@ -3826,4 +3826,10 @@
 	  encode special function keys.
 	* configs/olimex-lpc1766stk/hidkbd:  This configuration has been
 	  converted to use the kconfig-frontends configuration tool.
+	* drivers/lcd/ug-2864hsweg01.c and include/nuttx/lcd/ug-2864hsweg01.h:
+	  Driver for UG-2864HSWEG01 OLED contributed by Darcy Gong.
+	* configs/stm32f4discovery/src/up_ug2864hsweg01.c: Support for the
+	  UG-2864HSWEG01 OLED for the STM32F4Discovery board.
+	* drivers/usbhost/usbhost_hidkbd.c:  Correct a logic error in how
+	  tasks waiting for read data are awakened.
 

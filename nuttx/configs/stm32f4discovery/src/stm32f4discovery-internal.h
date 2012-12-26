@@ -113,7 +113,7 @@
 #  define GPIO_OTGFS_OVER  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTD|GPIO_PIN5)
 #endif
 
-/* UG-2864AMBAG01 OLED Display:
+/* UG-2864AMBAG01 or UG-2864HSWEG01 OLED Display:
  *
  * --------------------------+----------------------------------------------
  * Connector CON10 J1:      | STM32F4Discovery
@@ -135,7 +135,7 @@
  * -------------------------------------------------------------------------
  */
  
-#ifdef CONFIG_LCD_UG2864AMBAG01
+#if defined(CONFIG_LCD_UG2864AMBAG01) || defined(CONFIG_LCD_UG2864HSWEG01)
 #  define GPIO_OLED_RESET (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
                            GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN6)
 #  define GPIO_OLED_CS    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\

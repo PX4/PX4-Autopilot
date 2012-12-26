@@ -711,7 +711,7 @@ pinout for the UG-2864AMBAG01 is specific to the theO.net display board
 that I am using:
 
   --------------------------+----------------------------------------------
-  Connector CON10 J1:      | STM32F4Discovery
+  Connector CON10 J1:       | STM32F4Discovery
   --------------+-----------+----------------------------------------------
   CON10 J1:     | CON20 J2: | P1/P2:
   --------------+-----------+----------------------------------------------

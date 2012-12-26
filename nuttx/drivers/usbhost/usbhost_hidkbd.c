@@ -1027,6 +1027,7 @@ static int usbhost_kbdpoll(int argc, char *argv[])
   /* Loop here until the device is disconnected */
 
   uvdbg("Entering poll loop\n");
+
   while (!priv->disconnected)
     {
       /* Make sure that we have exclusive access to the private data
@@ -1169,10 +1170,10 @@ static int usbhost_kbdpoll(int argc, char *argv[])
 #endif
             }
 
-          /* Did we just transition from no data available to data available? */
+          /* Is there data available? */
 
           newstate = (priv->headndx == priv->tailndx);
-          if (empty && !newstate)
+          if (!newstate)
             {
               /* Yes.. Is there a thread waiting for keyboard data now? */
 
@@ -1184,9 +1185,15 @@ static int usbhost_kbdpoll(int argc, char *argv[])
                   priv->waiting = false;
                 }
 
-              /* And wake up any threads waiting for the POLLIN event */
+              /* Did we just transition from no data available to data
+               * available?  If so, wake up any threads waiting for the
+               * POLLIN event.
+               */
 
-              usbhost_pollnotify(priv);
+              if (empty)
+                {
+                  usbhost_pollnotify(priv);
+                }
             }
 
           empty = newstate;
@@ -2146,6 +2153,7 @@ static ssize_t usbhost_read(FAR struct file *filep, FAR char *buffer, size_t len
           /* Wait for data to be available */
 
           uvdbg("Waiting...\n");
+
           priv->waiting = true;
           usbhost_givesem(&priv->exclsem);
           usbhost_takesem(&priv->waitsem);
