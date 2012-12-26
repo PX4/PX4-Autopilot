@@ -50,8 +50,6 @@
 #include <systemlib/math/Vector.hpp>
 #include <systemlib/math/Matrix.hpp>
 
-//#define MATRIX_ASSERT
-
 namespace math
 {
 

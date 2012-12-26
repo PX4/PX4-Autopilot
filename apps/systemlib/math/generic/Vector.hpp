@@ -48,8 +48,6 @@
 
 #include <systemlib/math/Vector.hpp>
 
-//#define VECTOR_ASSERT
-
 namespace math
 {
 
