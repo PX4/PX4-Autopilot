@@ -131,6 +131,14 @@
 #  endif
 #endif
 
+/* We cant support encoding of special characters of unless the Keyboard
+ * CODEC is enabled.
+ */
+
+#ifndef CONFIG_LIB_KBDCODEC
+#  undef CONFIG_HIDKBD_ENCODED
+#endif
+
 /* If we are using raw scancodes, then we cannot support encoding of
  * special characters either.
  */
@@ -398,11 +406,11 @@ static struct usbhost_state_s *g_priv;    /* Data passed to thread */
 
 /* The first and last scancode values with encode-able values */
 
-#define FIRST_ENCODING      USBHID_KBDUSE_ENTER         /* 0x28 Keyboard Return (ENTER) */
-#ifdef CONFIG_HIDKBD_ALLSCANCODES
-#  define LAST_ENCODING     USBHID_KBDUSE_POWER         /* 0x66 Keyboard Power */
+#define FIRST_ENCODING   USBHID_KBDUSE_ENTER          /* 0x28 Keyboard Return (ENTER) */
+#ifndef CONFIG_HIDKBD_ALLSCANCODES
+#  define LAST_ENCODING  USBHID_KBDUSE_POWER          /* 0x66 Keyboard Power */
 #else
-#define LAST_ENCODING       USBHID_KBDUSE_KPDHEXADECIMAL /* 0xdd Keypad Hexadecimal */
+#  define LAST_ENCODING  USBHID_KBDUSE_KPDHEXADECIMAL /* 0xdd Keypad Hexadecimal */
 #endif
 
 #define USBHID_NUMENCODINGS (LAST_ENCODING - FIRST_ENCODING + 1)
@@ -874,10 +882,10 @@ static void usbhost_putbuffer(FAR struct usbhost_state_s *priv,
 #ifdef CONFIG_HIDKBD_ENCODED
 static void usbhost_putstream(FAR struct lib_outstream_s *stream, int ch)
 {
-  FAR struct usbhost_outstream_s *privstream = (FAR struct lib_outstream_s *)stream;
+  FAR struct usbhost_outstream_s *privstream = (FAR struct usbhost_outstream_s *)stream;
 
   DEBUGASSERT(privstream && privstream->priv);
-  usbhost_putbuffer(privstream->priv), (uint8_t)ch);
+  usbhost_putbuffer(privstream->priv, (uint8_t)ch);
   stream->nput++;
 }
 #endif
@@ -945,7 +953,6 @@ static inline uint8_t usbhost_mapscancode(uint8_t scancode, uint8_t modifier)
 static inline void usbhost_encodescancode(FAR struct usbhost_state_s *priv,
                                           uint8_t scancode, uint8_t modifier)
 {
-  struct usbhost_outstream_s stream;
   uint8_t encoded;
 
   /* Check if the raw scancode is in a valid range */
@@ -954,7 +961,7 @@ static inline void usbhost_encodescancode(FAR struct usbhost_state_s *priv,
     {
       /* Yes the value is within range */
 
-      encoded = encoding(scancode - FIRST_ENCODING);
+      encoded = encoding[scancode - FIRST_ENCODING];
       ivdbg("  scancode: %02x modifier: %02x encoded: %d\n",
             scancode, modifier, encoded);
 
@@ -964,13 +971,14 @@ static inline void usbhost_encodescancode(FAR struct usbhost_state_s *priv,
 
           /* And it does correspond to a special function key */
 
-          usbstream->stream.put  = usbhost_putstream;
-          usbstream->stream.nput = 0;
-          usbstream->priv        = priv;
+          usbstream.stream.put  = usbhost_putstream;
+          usbstream.stream.nput = 0;
+          usbstream.priv        = priv;
 
           /* Add the special function value to the user buffer */
 
-          kbd_putspecial((enum kbd_keycode_e)encoded, &usbstream);
+          kbd_putspecial((enum kbd_keycode_e)encoded,
+                         (FAR struct lib_outstream_s *)&usbstream);
         }
     }
 }
@@ -1156,7 +1164,7 @@ static int usbhost_kbdpoll(int argc, char *argv[])
 #ifdef CONFIG_HIDKBD_ENCODED
                   else
                     {
-                      usbhost_encodescancode(priv, rpt->key[i], rpt->modifier));
+                      usbhost_encodescancode(priv, rpt->key[i], rpt->modifier);
                     }
 #endif
                 }

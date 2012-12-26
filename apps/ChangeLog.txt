@@ -453,4 +453,6 @@
 	  in place early in the dependency generation phase to avoid warnings.
 	  It is not important if they are only stubbed out header files at
 	  this build phase.
+	* apps/examples/hidbkd: Now supports decoding of encoded special keys
+	  if CONFIG_EXAMPLES_HIDKBD_ENCODED is defined.
 

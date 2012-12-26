@@ -89,10 +89,10 @@ config HIDKBD_RAWSCANCODES
 config HIDKBD_ENCODED
 	bool "Enocode Special Keys"
 	default n
-	depends on !HIDKBD_RAWSCANCODES
+	depends on !HIDKBD_RAWSCANCODES && LIB_KBDCODEC
 	---help---
 		Encode special key press events in the user buffer.  In this case,
-		the use end must decode the encoded special key values using the
+		the user end must decode the encoded special key values using the
 		interfaces defined in include/nuttx/input/kbd_codec.h.  These
 		special keys include such things as up/down arrows, home and end
 		keys, etc.  If this not defined, only 7-bit print-able and control

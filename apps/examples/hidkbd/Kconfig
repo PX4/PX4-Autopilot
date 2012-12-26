@@ -10,4 +10,35 @@ config EXAMPLES_HIDKBD
 		Enable the USB HID keyboard example
 
 if EXAMPLES_HIDKBD
+
+config EXAMPLES_HIDKBD_DEFPRIO
+	int "Waiter Thread Priority"
+	default 50
+	---help---
+		Priority of "waiter" thread.  Default: 50
+
+config EXAMPLES_HIDKBD_STACKSIZE
+	int "Waiter Thread Stack Size"
+	default 1024
+	---help---
+		Stacksize of "waiter" thread. Default 1024
+
+config EXAMPLES_HIDKBD_DEVNAME
+	string "Keyboard Device Name"
+	default "/dev/kbda"
+	---help---
+		Name of keyboard device to be used. Default: "/dev/kbda"
+
+config EXAMPLES_HIDKBD_ENCODED
+	bool "Encode Special Keys"
+	default y
+	depends on HIDKBD_ENCODED && LIB_KBDCODEC
+	---help---
+		Decode special key press events in the user buffer.  In this case,
+		the example coded will use the interfaces defined in
+		include/nuttx/input/kbd_codec.h to decode the returned keyboard
+		data.  These special keys include such things as up/down arrows,
+		home and end keys, etc.  If this not defined, only 7-bit print-able
+		and control ASCII characters will be provided to the user.
+
 endif

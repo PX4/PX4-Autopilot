@@ -35,7 +35,7 @@
 
 # Add the internal C files to the build
 
-CSRCS += lib_init.c lib_filesem.c lib_kbdencode.c lib_kbddecode.c
+CSRCS += lib_init.c lib_filesem.c
 
 # Add C files that depend on file OR socket descriptors
 
@@ -62,6 +62,12 @@ endif
 CSRCS += lib_match.c
 CSRCS += lib_crc32.c
 CSRCS += lib_dbg.c lib_dumpbuffer.c
+
+# Keyboard driver encoder/decoder
+
+ifneq ($(CONFIG_LIB_KBDCODEC),0)
+CSRCS += lib_kbdencode.c lib_kbddecode.c
+endif
 
 # Add the misc directory to the build
 

@@ -44,6 +44,8 @@
 #include <nuttx/config.h>
 #include <nuttx/streams.h>
 
+#ifdef CONFIG_LIB_KBDCODEC
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -87,7 +89,7 @@ enum kbd_keycode_e
   KEYCODE_CUT,                 /* Cut */
   KEYCODE_COPY,                /* Copy */
   KEYCODE_PASTE,               /* Paste */
-  KEYCODE_FIND ,               /* Find */
+  KEYCODE_FIND,                /* Find */
 
   /* Selection codes */
 
@@ -294,5 +296,6 @@ int kbd_get(FAR struct lib_instream_s *stream,
 }
 #endif
 
+#endif /* CONFIG_LIB_KBDCODEC */
 #endif /* __INCLUDE_NUTTX_INPUT_KBD_CODEC_H */
 
