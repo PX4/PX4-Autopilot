@@ -140,6 +140,8 @@ def process_jsb_input(buf):
     ax = fdm.get('A_X_pilot', units='mpss')
     ay = fdm.get('A_Y_pilot', units='mpss')
     az = fdm.get('A_Z_pilot', units='mpss')
+    
+    #print "ax: {} ay: {} az: {}\n".format(ax,ay,az)
 
     # velocitiy
     vN = fdm.get('v_north', units='mps')
@@ -350,6 +352,7 @@ def reset_sim():
 def main_loop():
     '''run main loop'''
     tnow = time.time()
+    tFinal = 1000000
     last_report = tnow
     last_sim_input = tnow
     last_wind_update = tnow
@@ -484,7 +487,7 @@ def main_loop():
                         #iterResults['missionFail'].append(tsim)
                     #break
 
-                if tsim > 80:
+                if tsim > tFinal:
                     print 'Time has ended.'
                     if not missionFailed:
                         iterResults['missionFail'].append(tsim)
