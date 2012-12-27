@@ -210,9 +210,25 @@ comms_handle_command(const void *buffer, size_t length)
 	 */
 	mixer_tick();
 
-	/* XXX do relay changes here */	
+	/* handle relay state changes here */	
 	for (unsigned i = 0; i < PX4IO_RELAY_CHANNELS; i++) {
-		system_state.relays[i] = cmd->relay_state[i];
+		if (system_state.relays[i] != cmd->relay_state[i]) {
+			switch (i) {
+			case 0:
+				POWER_ACC1(cmd->relay_state[i]);
+				break;
+			case 1:
+				POWER_ACC2(cmd->relay_state[i]);
+				break;
+			case 2:
+				POWER_RELAY1(cmd->relay_state[i]);
+				break;
+			case 3:
+				POWER_RELAY2(cmd->relay_state[i]);
+				break;
+			}
+		}
+		system_state.relays[i] != cmd->relay_state[i]
 	}
 
 	irqrestore(flags);
