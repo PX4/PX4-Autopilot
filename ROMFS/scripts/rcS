@@ -46,8 +46,12 @@ if [ -f /fs/microsd/etc/rc ]
 then
 	echo "[init] reading /fs/microsd/etc/rc"
 	sh /fs/microsd/etc/rc
-else
-	echo "[init] script /fs/microsd/etc/rc not present"
+fi
+# Also consider rc.txt files
+if [ -f /fs/microsd/etc/rc.txt ]
+then
+	echo "[init] reading /fs/microsd/etc/rc.txt"
+	sh /fs/microsd/etc/rc.txt
 fi
 
 #
