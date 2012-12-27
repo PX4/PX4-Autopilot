@@ -170,9 +170,10 @@ struct vehicle_status_s
 	uint16_t errors_count3;
 	uint16_t errors_count4;
 
-	bool flag_global_position_valid;     /**< set to true by the commander app if the quality of the gps signal is good enough to use it in the position estimator */
+	bool flag_global_position_valid;		/**< set to true by the commander app if the quality of the gps signal is good enough to use it in the position estimator */
 	bool flag_local_position_valid;
-	bool flag_vector_flight_mode_ok;			/**< position estimation, battery voltage and other critical subsystems are good for autonomous flight */
+	bool flag_vector_flight_mode_ok;		/**< position estimation, battery voltage and other critical subsystems are good for autonomous flight */
+	bool flag_auto_flight_mode_ok;			/**< conditions of vector flight mode apply plus a valid takeoff position lock has been aquired */
 	bool flag_external_manual_override_ok;		/**< external override non-fatal for system. Only true for fixed wing */
 	bool flag_valid_launch_position;		/**< indicates a valid launch position */
 };

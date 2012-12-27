@@ -1589,6 +1589,26 @@ int commander_thread_main(int argc, char *argv[])
 			state_changed = true;
 		}
 
+		/*
+		 * Mark the position of the first position lock as return to launch (RTL)
+		 * position. The MAV will return here on command or emergency.
+		 *
+		 * Conditions:
+		 * 
+		 * 	1) The system aquired position lock just now
+		 *	2) The system has not aquired position lock before
+		 *	3) The system is not armed (on the ground)
+		 */
+		if (!current_status.flag_valid_launch_position &&
+			!vector_flight_mode_ok && current_status.flag_vector_flight_mode_ok &&
+			!current_status.flag_system_armed) {
+			/* first time a valid position, store it and emit it */
+
+			// XXX implement storage and publication of RTL position
+			current_status.flag_valid_launch_position = true;
+			current_status.flag_auto_flight_mode_ok = true;
+			state_changed = true;
+		}
 
 
 		/* Check if last transition deserved an audio event */
