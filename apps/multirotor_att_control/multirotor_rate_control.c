@@ -150,13 +150,16 @@ static int parameters_update(const struct mc_rate_control_param_handles *h, stru
 void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	const float rates[], struct actuator_controls_s *actuators)
 {
+	static float roll_control_last  = 0;
+	static float pitch_control_last = 0;
 	static uint64_t last_run = 0;
 	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
 	static uint64_t last_input = 0;
 
-	static PID_t pitch_rate_controller;
-	static PID_t roll_rate_controller;
-
+	float dT_input = (hrt_absolute_time() - last_input) / 1000000.0f;
+	if (last_input != rate_sp->timestamp) {
+		last_input = rate_sp->timestamp;
+	}
 
 	last_run = hrt_absolute_time();
 
@@ -172,32 +175,37 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 		parameters_init(&h);
 		parameters_update(&h, &p);
 		initialized = true;
-
-		pid_init(&pitch_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1000.0f,1000.0f, PID_MODE_DERIVATIV_CALC);
-		pid_init(&roll_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1000.0f,1000.0f, PID_MODE_DERIVATIV_CALC);
-
 	}
 
 	/* load new parameters with lower rate */
-	if (motor_skip_counter % 500 == 0) {
+	if (motor_skip_counter % 2500 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
 		// warnx("rate ctrl: p.yawrate_p: %8.4f, loop: %d Hz, input: %d Hz",
 		// 	(double)p.yawrate_p, (int)(1.0f/deltaT), (int)(1.0f/dT_input));
-
-		/* load new parameters with lower rate */
-		parameters_update(&h, &p);
-
-		/* apply parameters */
-		pid_set_parameters(&pitch_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1000.0f, 1000.0f);
-		pid_set_parameters(&roll_rate_controller, p.attrate_p, p.attrate_i, p.attrate_d, 1000.0f, 1000.0f);
 	}
 
+	/* calculate current control outputs */
+	
+	/* control pitch (forward) output */
+	float pitch_control = p.attrate_p * (rate_sp->pitch - rates[1]) - (p.attrate_d * pitch_control_last);
+	/* increase resilience to faulty control inputs */
+	if (isfinite(pitch_control)) {
+		pitch_control_last = pitch_control;
+	} else {
+		pitch_control = 0.0f;
+		warnx("rej. NaN ctrl pitch");
+	}
 
 	/* control roll (left/right) output */
-	float roll_control = pid_calculate(&roll_rate_controller, rate_sp->roll , rates[0], 0.0f, deltaT);
-	float pitch_control = pid_calculate(&pitch_rate_controller, rate_sp->pitch , rates[1], 0.0f, deltaT);
-
+	float roll_control = p.attrate_p * (rate_sp->roll - rates[0]) - (p.attrate_d * roll_control_last);
+	/* increase resilience to faulty control inputs */
+	if (isfinite(roll_control)) {
+		roll_control_last = roll_control;
+	} else {
+		roll_control = 0.0f;
+		warnx("rej. NaN ctrl roll");
+	}
 
 	/* control yaw rate */
 	float yaw_rate_control = p.yawrate_p * (rate_sp->yaw - rates[2]);
