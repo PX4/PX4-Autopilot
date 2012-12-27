@@ -3832,4 +3832,8 @@
 	  UG-2864HSWEG01 OLED for the STM32F4Discovery board.
 	* drivers/usbhost/usbhost_hidkbd.c:  Correct a logic error in how
 	  tasks waiting for read data are awakened.
+	* libc/misc/lib_kbdencode.c and lib_kbddecode.c:  Now handles keypress
+	  events too.  However, the USB HID keyboard drier has not yet been
+	  updated to detect key release events.  That is kind of tricky in
+	  the USB HID keyboard report data.
 

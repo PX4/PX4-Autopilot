@@ -455,4 +455,7 @@
 	  this build phase.
 	* apps/examples/hidbkd: Now supports decoding of encoded special keys
 	  if CONFIG_EXAMPLES_HIDKBD_ENCODED is defined.
-
+	* apps/examples/hidbkd:  Add support for decoding key release events
+	  as well.  However, the USB HID keyboard drier has not yet been
+	  updated to detect key release events.  That is kind of tricky in
+	  the USB HID keyboard report data.

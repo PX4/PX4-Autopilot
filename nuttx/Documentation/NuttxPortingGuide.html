@@ -3623,20 +3623,27 @@ extern void up_ledoff(int led);
 
 <h3><a name="kbddriver">6.3.16 Keyboard/Keypad Drivers</a></h3>
 <p>
-  <b>&quot;Out-of-Band&quot; Commands</b>.
-  Keyboards and keypads are the same device for NuttX.
+  <b>Keypads vs. Keyboards</b>
+  Keyboards and keypads are really the same devices for NuttX.
   A keypad is thought of as simply a keyboard with fewer keys.
+</p>
+<p>
+  <b>Special Commands</b>.
   In NuttX, a keyboard/keypad driver is simply a character driver that may have an (optional) encoding/decoding layer on the data returned by the character driver.
-  A keyboard may return simple text data (alphabetic, numeric, and punctuaction) or control characters (enter,  control-C, etc.).
-  We can think about this the normal &quot;in-band&quot; keyboard data stream.
-  However, in addition, most keyboards support actions that cannot be represented as text data.
+  A keyboard may return simple text data (alphabetic, numeric, and punctuaction) or control characters (enter,  control-C, etc.) when a key is pressed.
+  We can think about this the &quot;normal&quot; keyboard data stream.
+  However, in addition, most keyboards support actions that cannot be represented as text or control data.
   Such actions include things like cursor controls (home, up arrow, page down, etc.), editing functions (insert, delete, etc.), volume controls, (mute, volume up, etc.) and other special functions.
-  We can think about this as special, &quot;out-of-band&quot; keyboard commands.
-  In this case, some special encoding may be required to multiplex the in-band text data and out-of-band command streams.
+  In this case, some special encoding may be required to multiplex the normal text data and special command key press data streams.
+</p>
+<p>
+  <b>Key Press and Release Events</b>
+  Sometimes the time that a key is released is needed by applications as well.
+  Thus, in addition to normal and special key press events, it may also be necessary to encode normal and special key release events.
 </p>
 <p>
   <b>Encoding/Decoding</b> Layer</b>.
-  An optional encoding/decoding layer can be used with the basic character driver to encode the out-of-band commands into the text data stream.
+  An optional encoding/decoding layer can be used with the basic character driver to encode the keyboard events into the text data stream.
   The function interfaces that comprise that encoding/decoding layer are defined in the header file <code>include/nuttx/input/kbd_code.h</code>.
   These functions provide an matched set of (a) driver encoding interfaces, and (b) application decoding interfaces.
 </p>
@@ -3644,21 +3651,23 @@ extern void up_ledoff(int led);
   <li>
     <p>
       <b>Driver Encoding Interfaces</b>.
+      These are interfaces used by the keyboard/keypad driver to encode keyboard events and data.
     </p>
     <ul>
       <li>
         <p>
-          <b><code>kbd_puttext()</code></b>
+          <b><code>kbd_press()</code></b>
         </p>
         <p><b>Function Prototype:</b></p>
           <ul><pre>
 #include &lt;nuttx/streams.h&gt;
 #include &lt;nuttx/input/kbd_codec.h&gt;
-void kbd_puttext(int ch, FAR struct lib_outstream_s *stream);
+void kbd_press(int ch, FAR struct lib_outstream_s *stream);
 </pre></ul>
         <p><b>Description:</b></p>
         <ul>
-          Put one byte of normal, &quot;in-band&quot; ASCII data into the output stream.
+          Indicates a normal key press event.
+          Put one byte of normal keyboard  data into the output stream.
         </ul>
         <p><b>Input Pameters:</b></p>
         <ul>
@@ -3676,18 +3685,77 @@ void kbd_puttext(int ch, FAR struct lib_outstream_s *stream);
       </li>
       <li>
         <p>
-          <b><code>kbd_putspecial()</code></b>
+          <b><code>kbd_release()</code></b>
         </p>
         <p><b>Function Prototype:</b></p>
           <ul><pre>
 #include &lt;nuttx/streams.h&gt;
 #include &lt;nuttx/input/kbd_codec.h&gt;
-void kbd_putspecial(enum kbd_keycode_e keycode, FAR struct lib_outstream_s *stream);
+void kbd_release(uint8_t ch, FAR struct lib_outstream_s *stream);
 </pre></ul>
         <p><b>Description:</b></p>
         <ul>
-          Put one special, &quot;out-of-band&quot; command into the output stream.
+          Encode the release of a normal key.
         </ul>
+        <p><b>Input Pameters:</b></p>
+        <ul>
+          <li>
+            <code>ch</code>:  The character associated with the key that was releared.
+          </li>
+          <li>
+            <code>stream</code>:  An instance of <code>lib_outstream_s</code> to perform the actual low-level put operation.
+          </li>
+        </ul>
+        <p><b>Returned Value:</b></p>
+        <ul>
+          None.
+        </ul>
+      </li>
+      <li>
+        <p>
+          <b><code>kbd_specpress()</code></b>
+        </p>
+        <p><b>Function Prototype:</b></p>
+          <ul><pre>
+#include &lt;nuttx/streams.h&gt;
+#include &lt;nuttx/input/kbd_codec.h&gt;
+void kbd_specpress(enum kbd_keycode_e keycode, FAR struct lib_outstream_s *stream);
+</pre></ul>
+        <p><b>Description:</b></p>
+        <ul>
+           Denotes a special key press event.
+           Put one special keyboard command into the output stream.
+         </ul>
+        <p><b>Input Pameters:</b></p>
+        <ul>
+          <li>
+            <code>keycode</code>:  The command to be added to the output stream.
+            The enumeration <code>enum kbd_keycode_e keycode</code> identifies all commands known to the system.
+          </li>
+          <li>
+            <code>stream</code>:  An instance of <code>lib_outstream_s</code> to perform the actual low-level put operation.
+          </li>
+        </ul>
+        <p><b>Returned Value:</b></p>
+        <ul>
+          None.
+        </ul>
+      </li>
+      <li>
+        <p>
+          <b><code>kbd_specrel()</code></b>
+        </p>
+        <p><b>Function Prototype:</b></p>
+          <ul><pre>
+#include &lt;nuttx/streams.h&gt;
+#include &lt;nuttx/input/kbd_codec.h&gt;
+void kbd_specrel(enum kbd_keycode_e keycode, FAR struct lib_outstream_s *stream);
+</pre></ul>
+        <p><b>Description:</b></p>
+        <ul>
+           Denotes a special key release event.
+           Put one special keyboard command into the output stream.
+         </ul>
         <p><b>Input Pameters:</b></p>
         <ul>
           <li>
@@ -3708,17 +3776,18 @@ void kbd_putspecial(enum kbd_keycode_e keycode, FAR struct lib_outstream_s *stre
   <li>
     <p>
       <b>Application Decoding Interfaces</b>.
-      </p>
+      These are user interfaces to decode the values returned by the keyboard/keypad driver.
+    </p>
     <ul>
       <li>
         <p>
-          <b><code>kbd_get()</code></b>
+          <b><code>kbd_decode()</code></b>
         </p>
         <p><b>Function Prototype:</b></p>
           <ul><pre>
 #include &lt;nuttx/streams.h&gt;
 #include &lt;nuttx/input/kbd_codec.h&gt;
-int kbd_get(FAR struct lib_instream_s *stream, FAR struct kbd_getstate_s *state, FAR uint8_t *pch);
+int kbd_decode(FAR struct lib_instream_s *stream, FAR struct kbd_getstate_s *state, FAR uint8_t *pch);
 </pre></ul>
         <p><b>Description:</b></p>
         <ul>
@@ -3730,30 +3799,41 @@ int kbd_get(FAR struct lib_instream_s *stream, FAR struct kbd_getstate_s *state,
             <code>stream</code>:  An instance of <code>lib_instream_s</code> to perform the actual low-level get operation.
           </li>
           <li>
-            <code>pch</code>:  The location character to save the returned value. 
-            This may be either a normal, &quot;in-band&quot; ASCII characer or a special, "out-of-band" command (i.e., a value from <code>enum kbd_getstate_s</code>.
+            <code>pch</code>:  The location to save the returned value. 
+            This may be either a normal, character code or a special command (i.e., a value from <code>enum kbd_getstate_s</code>.
           </li>
           <li>
             <code>state</code>:  A user provided buffer to support parsing. 
-            This structure should be cleared the first time that <code>kbd_get</code> is called.
+            This structure should be cleared the first time that <code>kbd_decode()</code> is called.
           </li>
         </ul>
         <p><b>Returned Value:</b></p>
         <ul>
           <li>
-            <b>1</b>:
-            Indicates the successful receipt of a special, &quot;out-of-band&quot; command.
-            The returned value in <code>pch</code> is a value from <code>enum kbd_getstate_s</code>.
-          </li>
-          <li>
-            <b>0</b>:
-            Indicates the successful receipt of normal, &quot;in-band&quot; ASCII data.
+            <b><code>KBD_PRESS</code> (0)</b>:
+            Indicates the successful receipt of normal, keyboard data.
+            This corresponds to a keypress event.
             The returned value in <code>pch</code> is a simple byte of text or control data.
           </li>
           <li>
-            <b><code>EOF</code></b>:
-              An error has getting the next character (reported by the <code>stream</code>).
-              Normally indicates the end of file.
+            <b><code>KBD_RELEASE</code> (1)</b>:
+            Indicates a key release event.
+            The returned value in <code>pch</code> is the byte of text or control data corresponding to the released key.
+          </li>
+          <li>
+            <b><code>KBD_SPECPRESS</code> (2)</b>:
+             Indicates the successful receipt of a special keyboard command.
+             The returned value in <code>pch</code> is a value from <code>enum kbd_getstate_s</code>.
+          </li>
+          <li>
+            <b><code>KBD_SPECREL</code> (3)</b>:
+            Indicates a special command key release event.
+             The returned value in <code>pch</code> is a value from <code>enum kbd_getstate_s</code>.
+          </li>
+          <li>
+            <b><code>KBD_ERROR</code> (<code>EOF</code>)</b>:
+            An error has getting the next character (reported by the <code>stream</code>).
+            Normally indicates the end of file.
           </li>
         </ul>
       </li>

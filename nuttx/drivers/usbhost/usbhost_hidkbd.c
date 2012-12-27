@@ -530,7 +530,7 @@ static const uint8_t ucmap[USBHID_NUMSCANCODES] =
   0,    0,       0,      0,      0,    0,    0,      0,    /* 0x40-0x47: F7,F8,F9,F10,F11,F12,PrtScn,ScrollLock */
   0,    0,       0,      0,      0,    0,    0,      0,    /* 0x48-0x4f: Pause,Insert,Home,PageUp,DeleteForward,End,PageDown,RightArrow */
   0,    0,       0,      0,      '/',  '*',  '-',    '+',  /* 0x50-0x57: LeftArrow,DownArrow,UpArrow,Num Lock,/,*,-,+ */
-  '\n', '1',     '2',    '3',    '4',  '4',  '6',    '7',  /* 0x58-0x5f: Enter,1-7 */
+  '\n', '1',     '2',    '3',    '4',  '5',  '6',    '7',  /* 0x58-0x5f: Enter,1-7 */
   '8',  '9',     '0',    '.',    0,    0,    0,      '=',  /* 0x60-0x67: 8-9,0,.,Non-US \,Application,Power,= */
 #ifdef CONFIG_HIDKBD_ALLSCANCODES
   0,    0,       0,      0,      0,    0,    0,      0,    /* 0x68-0x6f: F13,F14,F15,F16,F17,F18,F19,F20 */
@@ -565,7 +565,7 @@ static const uint8_t lcmap[USBHID_NUMSCANCODES] =
   0,    0,       0,      0,      0,    0,   0,       0,    /* 0x40-0x47: F7,F8,F9,F10,F11,F12,PrtScn,ScrollLock */
   0,    0,       0,      0,      0,    0,   0,       0,    /* 0x48-0x4f: Pause,Insert,Home,PageUp,DeleteForward,End,PageDown,RightArrow */
   0,    0,       0,      0,      '/',  '*', '-',     '+',  /* 0x50-0x57: LeftArrow,DownArrow,UpArrow,Num Lock,/,*,-,+ */
-  '\n', '1',     '2',    '3',    '4',  '4', '6',     '7',  /* 0x58-0x5f: Enter,1-7 */
+  '\n', '1',     '2',    '3',    '4',  '5', '6',     '7',  /* 0x58-0x5f: Enter,1-7 */
   '8',  '9',     '0',    '.',    0,    0,   0,       '=',  /* 0x60-0x67: 8-9,0,.,Non-US \,Application,Power,= */
 #ifdef CONFIG_HIDKBD_ALLSCANCODES
   0,    0,       0,      0,      0,    0,   0,       0,    /* 0x68-0x6f: F13,F14,F15,F16,F17,F18,F19,F20 */
@@ -977,8 +977,8 @@ static inline void usbhost_encodescancode(FAR struct usbhost_state_s *priv,
 
           /* Add the special function value to the user buffer */
 
-          kbd_putspecial((enum kbd_keycode_e)encoded,
-                         (FAR struct lib_outstream_s *)&usbstream);
+          kbd_specpress((enum kbd_keycode_e)encoded,
+                        (FAR struct lib_outstream_s *)&usbstream);
         }
     }
 }

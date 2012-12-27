@@ -176,7 +176,7 @@ static void hidkbd_decode(FAR char *buffer, ssize_t nbytes)
     {
       /* Decode the next thing from the buffer */
 
-      ret = kbd_get((FAR struct lib_instream_s *)&kbdstream, &state, &ch);
+      ret = kbd_decode((FAR struct lib_instream_s *)&kbdstream, &state, &ch);
       if (ret == KBD_ERROR)
         {
           break;
@@ -184,14 +184,31 @@ static void hidkbd_decode(FAR char *buffer, ssize_t nbytes)
 
       /* Normal data?  Or special key? */
 
-      if (ret == KBD_NORMAL)
+      switch (ret)
         {
-          printf("Data:   %c [%02x]\n", isprint(ch) ? ch : '.', ch);
-        }
-      else
-        {
-          DEBUGASSERT(ret == KBD_SPECIAL);
-          printf("Special: %d\n", ch);
+        case KBD_PRESS: /* Key press event */
+          printf("Normal Press:    %c [%02x]\n", isprint(ch) ? ch : '.', ch);
+          break;
+
+        case KBD_RELEASE: /* Key release event */
+          printf("Normal Release:  %c [%02x]\n", isprint(ch) ? ch : '.', ch);
+          break;
+
+        case KBD_SPECPRESS: /* Special key press event */
+          printf("Special Press:   %d\n", ch);
+          break;
+
+        case KBD_SPECREL: /* Special key release event */
+          printf("Special Release: %d\n", ch);
+          break;
+
+        case KBD_ERROR: /* Error or end-of-file */
+          printf("EOF:             %d\n", ret);
+          break;
+
+        default:
+          printf("Unexpected:      %d\n", ret);
+          break;
         }
     }
 }

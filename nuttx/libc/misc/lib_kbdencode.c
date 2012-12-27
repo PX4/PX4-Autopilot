@@ -1,4 +1,4 @@
-/********************************************************************************************
+/****************************************************************************
  * libc/msic/lib_kbdencode.c
  * Encoding side of the Keyboard CODEC
  *
@@ -32,11 +32,11 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ********************************************************************************************/
+ ****************************************************************************/
 
-/********************************************************************************************
+/****************************************************************************
  * Included Files
- ********************************************************************************************/
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 
@@ -47,19 +47,67 @@
 #include <nuttx/ascii.h>
 #include <nuttx/input/kbd_codec.h>
 
-/********************************************************************************************
+/****************************************************************************
  * Pre-Processor Definitions
- ********************************************************************************************/
-
-/********************************************************************************************
- * Public Functions
- ********************************************************************************************/
+ ****************************************************************************/
 
 /****************************************************************************
- * Name: kbd_putspecial
+ * Name: kbd_encode
  *
  * Description:
- *   Put one special, "out-of-band" command into the output stream.
+ *   Encode one special special sequence command into the output stream.
+ *
+ * Input Parameters:
+ *   keycode - The command to be added to the output stream.
+ *   stream - An instance of lib_outstream_s to do the low-level put
+ *     operation.
+ *   terminator - Escape sequence terminating character.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static void kbd_encode(uint8_t keycode, FAR struct lib_outstream_s *stream,
+                       uint8_t terminator)
+{
+  stream->put(stream, ASCII_ESC);
+  stream->put(stream, '[');
+  stream->put(stream, (int)keycode);
+  stream->put(stream, terminator);
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: kbd_release
+ *
+ * Description:
+ *   Encode the release of a normal key.
+ *
+ * Input Parameters:
+ *   ch - The character associated with the key that was releared.
+ *   stream - An instance of lib_outstream_s to do the low-level put
+ *     operation.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void kbd_release(uint8_t ch, FAR struct lib_outstream_s *stream)
+{
+  kbd_encode(ch, stream, ('a' + KBD_RELEASE)); 
+}
+
+/****************************************************************************
+ * Name: kbd_specpress
+ *
+ * Description:
+ *   Denotes a special key press event.  Put one special keyboard command
+ *   into the output stream.
  *
  * Input Parameters:
  *   keycode - The command to be added to the output stream.
@@ -71,14 +119,33 @@
  *
  ****************************************************************************/
 
-void kbd_putspecial(enum kbd_keycode_e keycode,
-                    FAR struct lib_outstream_s *stream)
+void kbd_specpress(enum kbd_keycode_e keycode,
+                   FAR struct lib_outstream_s *stream)
 {
   DEBUGASSERT(stream && keycode >= KEYCODE_FWDDEL && keycode <= LAST_KEYCODE);
-
-  stream->put(stream, ASCII_ESC);
-  stream->put(stream, '[');
-  stream->put(stream, (int)keycode);
-  stream->put(stream, ';');
+  kbd_encode((uint8_t)keycode, stream, ('a' + KBD_SPECPRESS)); 
 }
 
+/****************************************************************************
+ * Name: kbd_specrel
+ *
+ * Description:
+ *   Denotes a special key release event.  Put one special keyboard
+ *   command into the output stream.
+ *
+ * Input Parameters:
+ *   keycode - The command to be added to the output stream.
+ *   stream - An instance of lib_outstream_s to do the low-level put
+ *     operation.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void kbd_specrel(enum kbd_keycode_e keycode,
+                 FAR struct lib_outstream_s *stream)
+{
+  DEBUGASSERT(stream && keycode >= KEYCODE_FWDDEL && keycode <= LAST_KEYCODE);
+  kbd_encode((uint8_t)keycode, stream, ('a' + KBD_SPECREL)); 
+}

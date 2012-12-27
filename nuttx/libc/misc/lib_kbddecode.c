@@ -1,4 +1,4 @@
-/********************************************************************************************
+/****************************************************************************
  * libc/msic/lib_kbddecode.c
  * Decoding side of the Keyboard CODEC
  *
@@ -32,38 +32,43 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ********************************************************************************************/
+ ****************************************************************************/
 
-/********************************************************************************************
+/****************************************************************************
  * Included Files
- ********************************************************************************************/
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 
 #include <stdint.h>
 #include <assert.h>
+#include <debug.h>
 
 #include <nuttx/streams.h>
 #include <nuttx/ascii.h>
 #include <nuttx/input/kbd_codec.h>
 
-/********************************************************************************************
+/****************************************************************************
  * Pre-Processor Definitions
- ********************************************************************************************/
+ ****************************************************************************/
 
-#define NDX_ESC       0
-#define NDX_BRACKET   1
-#define NDX_CODE      2
-#define NCX_SEMICOLON 3
+#define NDX_ESC        0
+#define NDX_BRACKET    1
+#define NDX_CODE       2
+#define NDX_TERMINATOR 3
 
-#define NCH_ESC       1
-#define NCH_BRACKET   2
-#define NCH_CODE      3
-#define NCH_SEMICOLON 4
+#define NCH_ESC        1
+#define NCH_BRACKET    2
+#define NCH_CODE       3
+#define NCH_TERMINATOR 4
 
-/********************************************************************************************
+#define TERM_MIN       ('a' + KBD_RELEASE)
+#define TERM_MAX       ('a' + KBD_SPECREL)
+#define TERM_RETURN(a) ((a) - 'a')
+
+/****************************************************************************
  * Private Functions
- ********************************************************************************************/
+ ****************************************************************************/
 
 /****************************************************************************
  * Name: kbd_reget
@@ -76,16 +81,11 @@
  *   stream - An instance of lib_instream_s to do the low-level get
  *     operation.
  *   pch - The location character to save the returned value.  This may be
- *     either a normal, "in-band" ASCII characer or a special, "out-of-band"
- *     command.
- *   state - A user provided buffer to support parsing.  This structure
- *     should be cleared the first time that kbd_get is called.
+ *     either a normal, character code or a special command from enum
+ *     kbd_keycode_e
  *
  * Returned Value:
- *   2  - Indicates the successful receipt of a special, "out-of-band" command
- *   1  - Indicates the successful receipt of normal, "in-band" ASCII data.
- *   0  - Indicates end-of-file or that the stream has been closed
- *  EOF - An error has getting the next character (reported by the stream).
+ *   KBD_PRESS - Indicates the successful receipt of norma keyboard data.
  *
  ****************************************************************************/
 
@@ -96,15 +96,15 @@ static int kbd_reget(FAR struct kbd_getstate_s *state, FAR uint8_t *pch)
   *pch = state->buf[state->ndx];
    state->ndx++;
    state->nch--;
-   return KBD_NORMAL;
+   return KBD_PRESS;
 }
 
-/********************************************************************************************
+/****************************************************************************
  * Public Functions
- ********************************************************************************************/
+ ****************************************************************************/
 
 /****************************************************************************
- * Name: kbd_get
+ * Name: kbd_decode
  *
  * Description:
  *   Get one byte of data or special command from the driver provided input
@@ -113,24 +113,30 @@ static int kbd_reget(FAR struct kbd_getstate_s *state, FAR uint8_t *pch)
  * Input Parameters:
  *   stream - An instance of lib_instream_s to do the low-level get
  *     operation.
- *   pch - The location character to save the returned value.  This may be
- *     either a normal, "in-band" ASCII characer or a special, "out-of-band"
- *     command.
+ *   pch - The location to save the returned value.  This may be
+ *     either a normal, character code or a special command from enum
+ *     kbd_keycode_e
  *   state - A user provided buffer to support parsing.  This structure
- *     should be cleared the first time that kbd_get is called.
+ *     should be cleared the first time that kbd_decode is called.
  *
  * Returned Value:
- *   1  - Indicates the successful receipt of a special, "out-of-band" command.
- *        The returned value in pch is a value from enum kbd_getstate_s.
- *   0  - Indicates the successful receipt of normal, "in-band" ASCII data.
- *        The returned value in pch is a simple byte of text or control data.
+ *
+ *  KBD_PRESS  - Indicates the successful receipt of normal, keyboard data.
+ *    This corresponds to a keypress event.  The returned value in pch is a
+ *    simple byte of text or control data corresponding to the pressed key.
+ *  KBD_RELEASE - Indicates a key release event.  The returned value in pch
+ *    is the byte of text or control data corresponding to the released key.
+ *  KBD_SPECPRESS - Indicates the successful receipt of a special keyboard
+ *    command. The returned value in pch is a value from enum kbd_getstate_s.
+ *  KBD_SPECREL - Indicates a special key release event.  The returned value
+ *    in pch is a value from enum kbd_getstate_s.
  *  EOF - An error has getting the next character (reported by the stream).
- *        Normally indicates the end of file.
+ *    Normally indicates the end of file.
  *
  ****************************************************************************/
 
-int kbd_get(FAR struct lib_instream_s *stream,
-            FAR struct kbd_getstate_s *state, FAR uint8_t *pch)
+int kbd_decode(FAR struct lib_instream_s *stream,
+               FAR struct kbd_getstate_s *state, FAR uint8_t *pch)
 {
   int ch;
 
@@ -147,7 +153,7 @@ int kbd_get(FAR struct lib_instream_s *stream,
 
   state->ndx = 0;
 
-  /* No, ungotten characters.  Check for the beginning of an esc sequence. */
+  /* No, ungotten characters.  Check for the beginning of an ESC sequence. */
 
   ch = stream->get(stream);
   if (ch == EOF)
@@ -195,7 +201,7 @@ int kbd_get(FAR struct lib_instream_s *stream,
         }
     }
 
-  /* Get and verify the special, "out-of-band" command code */
+  /* Get and verify the special keyboard data to decode */
 
   ch = stream->get(stream);
   if (ch == EOF)
@@ -234,12 +240,12 @@ int kbd_get(FAR struct lib_instream_s *stream,
     }
   else
     {
-      state->buf[NCX_SEMICOLON] = (uint8_t)ch;
-      state->nch = NCH_SEMICOLON;
+      state->buf[NDX_TERMINATOR] = (uint8_t)ch;
+      state->nch = NCH_TERMINATOR;
 
       /* Check for a valid special command code */
 
-      if (ch != ';')
+      if (ch < TERM_MIN || ch > TERM_MAX)
         {
           /* Not a special command code, return the ESC now and the next two
            * characters later.
@@ -250,11 +256,12 @@ int kbd_get(FAR struct lib_instream_s *stream,
     }
 
   /* We have successfully parsed the the entire escape sequence.  Return the
-   * special code in pch and the value 2.
+   * keyboard value in pch and the value an indication determined by the
+   * terminating character.
    */
 
   *pch = state->buf[NDX_CODE];
   state->nch = 0;
-  return KBD_SPECIAL;
+  return TERM_RETURN(state->buf[NDX_TERMINATOR]);
 }
 

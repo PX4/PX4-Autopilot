@@ -1,6 +1,6 @@
 /************************************************************************************
  * include/nuttx/input/kbd_codec.h
- * Serialize and marshaling out-of-band keyboard data
+ * Serialize and marshaling keyboard data and events
  *
  *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -54,9 +54,7 @@
  * Public Types
  ****************************************************************************/
 
-/* These are the special, "out-of-band" keyboard commands recognized by the
- * CODEC.
- */
+/* These are the special keyboard commands recognized by the CODEC. */
 
 enum kbd_keycode_e
 {
@@ -190,11 +188,13 @@ enum kbd_keycode_e
 #define FIRST_KEYCODE KEYCODE_FWDDEL
 #define LAST_KEYCODE  KEYCODE_F24
 
-/* kbd_get return values */
+/* kbd_decode() return values */
 
-#define KBD_NORMAL  0
-#define KBD_SPECIAL 1
-#define KBD_ERROR   EOF
+#define KBD_PRESS     0    /* Key press event */
+#define KBD_RELEASE   1    /* Key release event */
+#define KBD_SPECPRESS 2    /* Special key press event */
+#define KBD_SPECREL   3    /* Special key release event */
+#define KBD_ERROR     EOF  /* Error or end-of-file */
 
 /****************************************************************************
  * Public Types
@@ -222,10 +222,11 @@ extern "C"
  ****************************************************************************/
 
 /****************************************************************************
- * Name: kbd_puttext
+ * Name: kbd_press
  *
  * Description:
- *   Put one byte of normal, "in-band" ASCII data into the output stream.
+ *   Indicates a normal key press event.  Put one byte of normal keyboard
+ *   data into the output stream.
  *
  * Input Parameters:
  *   ch - The character to be added to the output stream.
@@ -237,13 +238,32 @@ extern "C"
  *
  ****************************************************************************/
 
-#define kbd_puttext(ch, stream) (stream)->put((stream), (int)(ch))
+#define kbd_press(ch, stream) (stream)->put((stream), (int)(ch))
 
 /****************************************************************************
- * Name: kbd_putspecial
+ * Name: kbd_release
  *
  * Description:
- *   Put one special, "out-of-band" command into the output stream.
+ *   Encode the release of a normal key.
+ *
+ * Input Parameters:
+ *   ch - The character associated with the key that was releared.
+ *   stream - An instance of lib_outstream_s to do the low-level put
+ *     operation.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void kbd_release(uint8_t ch, FAR struct lib_outstream_s *stream);
+
+/****************************************************************************
+ * Name: kbd_specpress
+ *
+ * Description:
+ *   Denotes a special key press event.  Put one special keyboard command
+ *   into the output stream.
  *
  * Input Parameters:
  *   keycode - The command to be added to the output stream.
@@ -255,8 +275,28 @@ extern "C"
  *
  ****************************************************************************/
 
-void kbd_putspecial(enum kbd_keycode_e keycode,
-                    FAR struct lib_outstream_s *stream);
+void kbd_specpress(enum kbd_keycode_e keycode,
+                   FAR struct lib_outstream_s *stream);
+
+/****************************************************************************
+ * Name: kbd_specrel
+ *
+ * Description:
+ *   Denotes a special key release event.  Put one special keyboard
+ *   command into the output stream.
+ *
+ * Input Parameters:
+ *   keycode - The command to be added to the output stream.
+ *   stream - An instance of lib_outstream_s to do the low-level put
+ *     operation.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void kbd_specrel(enum kbd_keycode_e keycode,
+                 FAR struct lib_outstream_s *stream);
 
 /****************************************************************************
  * The following functions are intended for use by "consumer" applications
@@ -264,7 +304,7 @@ void kbd_putspecial(enum kbd_keycode_e keycode,
  ****************************************************************************/
 
 /****************************************************************************
- * Name: kbd_get
+ * Name: kbd_decode
  *
  * Description:
  *   Get one byte of data or special command from the driver provided input
@@ -273,24 +313,30 @@ void kbd_putspecial(enum kbd_keycode_e keycode,
  * Input Parameters:
  *   stream - An instance of lib_instream_s to do the low-level get
  *     operation.
- *   pch - The location character to save the returned value.  This may be
- *     either a normal, "in-band" ASCII characer or a special, "out-of-band"
- *     command.
+ *   pch - The location to save the returned value.  This may be
+ *     either a normal, character code or a special command from enum
+ *     kbd_keycode_e
  *   state - A user provided buffer to support parsing.  This structure
- *     should be cleared the first time that kbd_get is called.
+ *     should be cleared the first time that kbd_decode is called.
  *
  * Returned Value:
- *   1  - Indicates the successful receipt of a special, "out-of-band" command.
- *        The returned value in pch is a value from enum kbd_getstate_s.
- *   0  - Indicates the successful receipt of normal, "in-band" ASCII data.
- *        The returned value in pch is a simple byte of text or control data.
+ *
+ *  KBD_PRESS  - Indicates the successful receipt of normal, keyboard data.
+ *    This corresponds to a keypress event.  The returned value in pch is a
+ *    simple byte of text or control data corresponding to the pressed key.
+ *  KBD_RELEASE - Indicates a key release event.  The returned value in pch
+ *    is the byte of text or control data corresponding to the released key.
+ *  KBD_SPECPRESS - Indicates the successful receipt of a special keyboard
+ *    command. The returned value in pch is a value from enum kbd_getstate_s.
+ *  KBD_SPECREL - Indicates a special key release event.  The returned value
+ *    in pch is a value from enum kbd_getstate_s.
  *  EOF - An error has getting the next character (reported by the stream).
- *        Normally indicates the end of file.
+ *    Normally indicates the end of file.
  *
  ****************************************************************************/
 
-int kbd_get(FAR struct lib_instream_s *stream,
-            FAR struct kbd_getstate_s *state, FAR uint8_t *pch);
+int kbd_decode(FAR struct lib_instream_s *stream,
+               FAR struct kbd_getstate_s *state, FAR uint8_t *pch);
 
 #ifdef __cplusplus
 }
