@@ -48,29 +48,33 @@
  * @{
  */
 
-enum MANUAL_CONTROL_MODE
-{
-	MANUAL_CONTROL_MODE_DIRECT = 0,
-	MANUAL_CONTROL_MODE_ATT_YAW_RATE = 1,
-	MANUAL_CONTROL_MODE_ATT_YAW_POS = 2,
-	MANUAL_CONTROL_MODE_MULTIROTOR_SIMPLE = 3 /**< roll / pitch rotated aligned to the takeoff orientation, throttle stabilized, yaw pos */
-};
-
 struct manual_control_setpoint_s {
 	uint64_t timestamp;
 
-	enum MANUAL_CONTROL_MODE mode;		 /**< The current control inputs mode */
-	float roll;			 /**< ailerons roll / roll rate input */
-	float pitch;     /**< elevator / pitch / pitch rate */
-	float yaw;       /**< rudder / yaw rate / yaw */
-	float throttle;  /**< throttle / collective thrust / altitude */
+	float roll;			 	/**< ailerons roll / roll rate input */
+	float pitch;				/**< elevator / pitch / pitch rate */
+	float yaw;				/**< rudder / yaw rate / yaw */
+	float throttle;				/**< throttle / collective thrust / altitude */
 
-	float override_mode_switch;
+	float manual_override_switch;		/**< manual override mode (mandatory) */
+	float auto_mode_switch;			/**< auto mode switch (mandatory) */
 
-	float aux1_cam_pan_flaps;
-	float aux2_cam_tilt;
-	float aux3_cam_zoom;
-	float aux4_cam_roll;
+	/**
+	 * Any of the channels below may not be available and be set to NaN
+	 * to indicate that it does not contain valid data.
+	 */
+	float manual_mode_switch;		/**< manual mode (man, sas, alt) switch (optional) */
+	float manual_sas_switch;		/**< sas mode (rates / attitude) switch (optional) */
+	float return_to_launch_switch;		/**< return to launch switch (0 = disabled, 1 = enabled) */
+	float auto_offboard_input_switch;	/**< controller setpoint source (0 = onboard, 1 = offboard) */
+
+	float flaps;				/**< flap position */
+
+	float aux1;				/**< default function: camera yaw / azimuth */
+	float aux2;				/**< default function: camera pitch / tilt */
+	float aux3;				/**< default function: camera trigger */
+	float aux4;				/**< default function: camera roll */
+	float aux5;				/**< default function: payload drop */
 
 }; /**< manual control inputs */
 

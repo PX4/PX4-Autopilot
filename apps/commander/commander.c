@@ -1268,6 +1268,8 @@ int commander_thread_main(int argc, char *argv[])
 	current_status.offboard_control_signal_lost = true;
 	/* allow manual override initially */
 	current_status.flag_external_manual_override_ok = true;
+	/* flag position info as bad, do not allow auto mode */
+	current_status.flag_vector_flight_mode_ok = false;
 
 	/* advertise to ORB */
 	stat_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
@@ -1655,6 +1657,72 @@ int commander_thread_main(int argc, char *argv[])
 			if ((hrt_absolute_time() - sp_man.timestamp) < 100000) {
 
 				/*
+				 * Check if manual control modes have to be switched
+				 */
+				if (!isfinite(sp_man.manual_mode_switch)) {
+
+					/* this switch is not properly mapped, set default */
+					if ((current_status.system_type == MAV_TYPE_QUADROTOR) ||
+						(current_status.system_type == MAV_TYPE_HEXAROTOR) ||
+						(current_status.system_type == MAV_TYPE_OCTOROTOR)) {
+
+						/* assuming a rotary wing, fall back to SAS */
+						current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
+					} else {
+
+						/* assuming a fixed wing, fall back to direct pass-through */
+						current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_DIRECT;
+					}
+
+				} else if (sp_man.manual_sas_switch < -STICK_ON_OFF_LIMIT) {
+
+					/* bottom stick position, set direct mode for vehicles supporting it */
+					if ((current_status.system_type == MAV_TYPE_QUADROTOR) ||
+						(current_status.system_type == MAV_TYPE_HEXAROTOR) ||
+						(current_status.system_type == MAV_TYPE_OCTOROTOR)) {
+
+						/* assuming a rotary wing, fall back to SAS */
+						current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
+					} else {
+
+						/* assuming a fixed wing, fall back to direct pass-through */
+						current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_DIRECT;
+					}
+
+				} else if (sp_man.manual_sas_switch > STICK_ON_OFF_LIMIT) {
+
+					/* top stick position, set SAS for all vehicle types */
+					current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
+
+				} else {
+					/* center stick position, set rate control */
+					current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_RATES;
+				}
+
+				/*
+				 * Check if manual stability control modes have to be switched
+				 */
+				if (!isfinite(sp_man.manual_sas_switch)) {
+
+					/* this switch is not properly mapped, set default */
+					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS;
+
+				} else if (sp_man.manual_sas_switch < -STICK_ON_OFF_LIMIT) {
+
+					/* bottom stick position, set altitude hold */
+					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_ALTITUDE;
+
+				} else if (sp_man.manual_sas_switch > STICK_ON_OFF_LIMIT) {
+
+					/* top stick position */
+					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_SIMPLE;
+
+				} else {
+					/* center stick position, set default */
+					current_status.manual_sas_mode = VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS;
+				}
+
+				/*
 				 * Check if left stick is in lower left position --> switch to standby state.
 				 * Do this only for multirotors, not for fixed wing aircraft.
 				 */
@@ -1686,19 +1754,21 @@ int commander_thread_main(int argc, char *argv[])
 					}
 				}
 
+				/* check manual override switch - switch to manual or auto mode */
 				if (sp_man.manual_override_switch > STICK_ON_OFF_LIMIT) {
+					/* enable manual override */
 					update_state_machine_mode_manual(stat_pub, &current_status, mavlink_fd);
 				} else {
+					/* check auto mode switch for correct mode */
 					if (sp_man.auto_mode_switch > STICK_ON_OFF_LIMIT) {
-						//update_state_machine_mode_manual(stat_pub, &current_status, mavlink_fd);
-						// XXX hack
+						/* enable stabilized mode */
 						update_state_machine_mode_stabilized(stat_pub, &current_status, mavlink_fd);
 
 					} else if (sp_man.auto_mode_switch < -STICK_ON_OFF_LIMIT) {
 						update_state_machine_mode_auto(stat_pub, &current_status, mavlink_fd);
 
 					} else {
-						update_state_machine_mode_stabilized(stat_pub, &current_status, mavlink_fd);
+						update_state_machine_mode_hold(stat_pub, &current_status, mavlink_fd);
 					}
 				}
 
