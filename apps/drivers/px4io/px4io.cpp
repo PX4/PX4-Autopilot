@@ -70,6 +70,7 @@
 #include <systemlib/hx_stream.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/scheduling_priorities.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_effective.h>
@@ -255,7 +256,7 @@ PX4IO::init()
 	}
 
 	/* start the IO interface task */
-	_task = task_create("px4io", SCHED_PRIORITY_DEFAULT, 4096, (main_t)&PX4IO::task_main_trampoline, nullptr);
+	_task = task_create("px4io", SCHED_PRIORITY_ACTUATOR_OUTPUTS, 4096, (main_t)&PX4IO::task_main_trampoline, nullptr);
 	if (_task < 0) {
 		debug("task start failed: %d", errno);
 		return -errno;
