@@ -73,6 +73,8 @@
  * CONFIG_UG9664HSWAG01_POWER
  *   If the hardware supports a controllable OLED a power supply, this
  *   configuration shold be defined.  (See ug_power() below).
+ * CONFIG_LCD_UGDEBUG - Enable detailed UG-9664HSWAG01 debug output
+ *   (CONFIG_DEBUG and CONFIG_VERBOSE must also be enabled).
  * 
  * Required LCD driver settings:
  * CONFIG_LCD_UG9664HSWAG01 - Enable UG-9664HSWAG01 support
@@ -117,10 +119,11 @@
 
 #ifndef CONFIG_DEBUG
 #  undef CONFIG_DEBUG_VERBOSE
+#  undef CONFIG_DEBUG_GRAPHICS
 #endif
 
 #ifndef CONFIG_DEBUG_VERBOSE
-#  undef CONFIG_DEBUG_LCD
+#  undef CONFIG_LCD_UGDEBUG
 #endif
 
 /* Check contrast selection */
@@ -179,7 +182,7 @@
 #define UG_BPP          1
 #define UG_COLORFMT     FB_FMT_Y1
 
-/* Bytes per logical row and actual device row */
+/* Bytes per logical row andactual device row */
 
 #define UG_XSTRIDE      (UG_XRES >> 3) /* Pixels arrange "horizontally for user" */
 #define UG_YSTRIDE      (UG_YRES >> 3) /* But actual device arrangement is "vertical" */
@@ -195,10 +198,10 @@
 
 /* Debug ******************************************************************************/
 
-#ifdef CONFIG_DEBUG_LCD
-# define lcddbg(format, arg...)  vdbg(format, ##arg)
+#ifdef CONFIG_LCD_UGDEBUG
+# define ugdbg(format, arg...)  vdbg(format, ##arg)
 #else
-# define lcddbg(x...)
+# define ugdbg(x...)
 #endif
 
 /**************************************************************************************
@@ -994,7 +997,7 @@ FAR struct lcd_dev_s *ug_initialize(FAR struct spi_dev_s *spi, unsigned int devn
 
   SPI_CMDDATA(spi, SPIDEV_DISPLAY, true);
 
-  /* Configure the device */
+  /* Set the starting position for the run */
 
   (void)SPI_SEND(spi, SSD1305_SETCOLL + 2);       /* Set low column address */
   (void)SPI_SEND(spi, SSD1305_SETCOLH + 2);       /* Set high column address */

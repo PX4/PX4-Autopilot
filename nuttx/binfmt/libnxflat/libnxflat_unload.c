@@ -43,7 +43,7 @@
 #include <stdlib.h>
 #include <debug.h>
 
-#include <nuttx/binfmt/nxflat.h>
+#include <nuttx/nxflat.h>
 
 /****************************************************************************
  * Pre-Processor Definitions

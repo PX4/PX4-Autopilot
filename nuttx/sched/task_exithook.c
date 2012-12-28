@@ -81,8 +81,8 @@
  *   Call any registerd atexit function(s)
  *
  ****************************************************************************/
-
-#if defined(CONFIG_SCHED_ATEXIT) && !defined(CONFIG_SCHED_ONEXIT)
+ 
+#ifdef CONFIG_SCHED_ATEXIT
 static inline void task_atexit(FAR _TCB *tcb)
 {
 #if defined(CONFIG_SCHED_ATEXIT_MAX) && CONFIG_SCHED_ATEXIT_MAX > 1

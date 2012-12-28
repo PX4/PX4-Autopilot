@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/binfmt/binfmt.h>
+#include <nuttx/binfmt.h>
 
 #ifndef CONFIG_BINFMT_DISABLE
 

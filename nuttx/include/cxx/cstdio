@@ -52,8 +52,6 @@ namespace std
   using ::FILE;
   using ::fpos_t;
   using ::size_t;
-
-  using ::clearerr;
   using ::fclose;
   using ::fflush;
   using ::feof;
@@ -71,24 +69,16 @@ namespace std
   using ::ftell;
   using ::fwrite;
   using ::gets;
-  using ::ungetc;
-
   using ::printf;
   using ::puts;
   using ::rename;
   using ::sprintf;
-  using ::asprintf;
   using ::snprintf;
-  using ::sscanf;
-  using ::perror;
-
+  using ::ungetc;
   using ::vprintf;
   using ::vfprintf;
   using ::vsprintf;
-  using ::avsprintf;
   using ::vsnprintf;
-  using ::vsscanf;
-
   using ::fdopen;
   using ::statfs;
 }

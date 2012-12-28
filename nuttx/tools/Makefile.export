@@ -61,7 +61,7 @@ endif
 	@echo "ARCHCFLAGS=\"$(ARCHCFLAGS) $(ARCHCPUFLAGS)\"" >> $(EXPORTDIR)/makeinfo.sh
 	@echo "ARCHCXXFLAGS=\"$(ARCHCXXFLAGS) $(ARCHCPUFLAGS)\"" >> $(EXPORTDIR)/makeinfo.sh
 	@echo "CROSSDEV=\"$(CROSSDEV)\"" >> $(EXPORTDIR)/makeinfo.sh
-	$(Q) chmod 755 $(EXPORTDIR)/makeinfo.sh
+	@chmod 755 $(EXPORTDIR)/makeinfo.sh
 
 clean:
-	$(Q) rm -f $(EXPORTDIR)/makeinfo.sh
+	@rm -f $(EXPORTDIR)/makeinfo.sh

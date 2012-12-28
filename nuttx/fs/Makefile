@@ -120,21 +120,25 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 $(BIN):	$(OBJS)
-	$(call ARCHIVE, $@, $(OBJS))
+	@( for obj in $(OBJS) ; do \
+		$(call ARCHIVE, $@, $${obj}); \
+	done ; )
 
 .depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) --dep-path . $(MMAPDEPPATH) $(FATDEPPATH) $(ROMFSDEPPATH) $(NXFFSDEPPATH) $(NFSDEPPATH) \
-		"$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
-	$(Q) touch $@
+	@$(MKDEP) --dep-path . $(MMAPDEPPATH) $(FATDEPPATH) $(ROMFSDEPPATH) $(NXFFSDEPPATH) $(NFSDEPPATH) \
+		$(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@touch $@
 
 depend: .depend
 
 clean:
-	$(call DELFILE, $(BIN))
+	@rm -f $(BIN) *~ .*.swp
 	$(call CLEAN)
+	@( for dir in $(SUBDIRS); do \
+		rm -f $${dir}/*~ $${dir}/.*.swp; \
+	done ; )
 
 distclean: clean
-	$(call DELFILE, Make.dep)
-	$(call DELFILE, .depend)
+	@rm -f Make.dep .depend
 
 -include Make.dep

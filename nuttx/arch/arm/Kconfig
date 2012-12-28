@@ -4,8 +4,6 @@
 #
 
 if ARCH_ARM
-comment "ARM Options"
-
 choice
 	prompt "ARM chip selection"
 	default ARCH_CHIP_STM32
@@ -155,9 +153,6 @@ config ARCH_CHIP
 	default "stm32"		if ARCH_CHIP_STM32
 	default "str71x"	if ARCH_CHIP_STR71X
 
-config ARCH_HAVE_CMNVECTOR
-	bool
-
 config ARMV7M_CMNVECTOR
 	bool "Use common ARMv7-M vectors"
 	default n
@@ -244,18 +239,6 @@ config ARCH_CALIBRATION
 		watch to measure the 100 second delay then adjust BOARD_LOOPSPERMSEC until
 		the delay actually is 100 seconds.
 
-config DEBUG_HARDFAULT
-	bool "Verbose Hard-Fault Debug"
-	default n
-	depends on DEBUG && (ARCH_CORTEXM3 || ARCH_CORTEXM4)
-	---help---
-		Enables verbose debug output when a hard fault is occurs.  This verbose
-		output is sometimes helpful when debugging difficult hard fault problems,
-		but may be more than you typcially want to see.
-
-if ARCH_CORTEXM3 || ARCH_CORTEXM4
-source arch/arm/src/armv7-m/Kconfig
-endif
 if ARCH_CHIP_C5471
 source arch/arm/src/c5471/Kconfig
 endif

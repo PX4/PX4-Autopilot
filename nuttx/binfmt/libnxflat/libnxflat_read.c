@@ -48,7 +48,7 @@
 #include <errno.h>
 
 #include <arpa/inet.h>
-#include <nuttx/binfmt/nxflat.h>
+#include <nuttx/nxflat.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -129,9 +129,8 @@ int nxflat_read(struct nxflat_loadinfo_s *loadinfo, char *buffer, int readsize, 
       rpos = lseek(loadinfo->filfd, offset, SEEK_SET);
       if (rpos != offset)
         {
-          int errval = errno;
-          bdbg("Failed to seek to position %d: %d\n", offset, errval);
-          return -errval;
+          bdbg("Failed to seek to position %d: %d\n", offset, errno);
+          return -errno;
         }
 
       /* Read the file data at offset into the user buffer */
@@ -139,11 +138,10 @@ int nxflat_read(struct nxflat_loadinfo_s *loadinfo, char *buffer, int readsize, 
        nbytes = read(loadinfo->filfd, bufptr, bytesleft);
        if (nbytes < 0)
          {
-           int errval = errno;
-           if (errval != EINTR)
+           if (errno != EINTR)
              {
-               bdbg("Read of .data failed: %d\n", errval);
-               return -errval;
+               bdbg("Read of .data failed: %d\n", errno);
+               return -errno;
              }
          }
        else if (nbytes == 0)

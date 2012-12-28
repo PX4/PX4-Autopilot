@@ -117,7 +117,7 @@ int on_exit(CODE void (*func)(int, FAR void *), FAR void *arg)
 #if defined(CONFIG_SCHED_ONEXIT_MAX) && CONFIG_SCHED_ONEXIT_MAX > 1
   _TCB *tcb = (_TCB*)g_readytorun.head;
   int   index;
-  int   ret = ENOSPC;
+  int   ret = ERROR;
 
   /* The following must be atomic */
 
@@ -131,6 +131,7 @@ int on_exit(CODE void (*func)(int, FAR void *), FAR void *arg)
        * indices.
        */
 
+      available = -1;
       for (index = 0; index < CONFIG_SCHED_ONEXIT_MAX; index++)
         {
           if (!tcb->onexitfunc[index])
@@ -148,7 +149,7 @@ int on_exit(CODE void (*func)(int, FAR void *), FAR void *arg)
   return ret;
 #else
   _TCB *tcb = (_TCB*)g_readytorun.head;
-  int   ret = ENOSPC;
+  int   ret = ERROR;
 
   /* The following must be atomic */
 

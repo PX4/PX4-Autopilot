@@ -35,6 +35,7 @@
 ############################################################################
 
 -include $(TOPDIR)/Make.defs
+-include $(TOPDIR)/.config
 
 APPDIR = ${shell pwd}
 
@@ -106,7 +107,7 @@ endif
 # Create the list of available applications (INSTALLED_APPS)
 
 define ADD_BUILTIN
-  INSTALLED_APPS += $(if $(wildcard $1$(DELIM)Makefile),$1,)
+INSTALLED_APPS += ${shell if [ -r $1/Makefile ]; then echo "$1"; fi}
 endef
 
 $(foreach BUILTIN, $(CONFIGURED_APPS), $(eval $(call ADD_BUILTIN,$(BUILTIN))))
@@ -116,10 +117,8 @@ $(foreach BUILTIN, $(CONFIGURED_APPS), $(eval $(call ADD_BUILTIN,$(BUILTIN))))
 # provided by the user (possibly as a symbolic link) to add libraries and
 # applications to the standard build from the repository.
 
-EXTERNAL_DIR := $(dir $(wildcard external$(DELIM)Makefile))
-
-INSTALLED_APPS += $(EXTERNAL_DIR)
-SUBDIRS += $(EXTERNAL_DIR)
+INSTALLED_APPS += ${shell if [ -r external/Makefile ]; then echo "external"; fi}
+SUBDIRS += ${shell if [ -r external/Makefile ]; then echo "external"; fi}
 
 # The final build target
 
@@ -131,81 +130,48 @@ all: $(BIN)
 .PHONY: $(INSTALLED_APPS) context depend clean distclean
 
 $(INSTALLED_APPS):
-	$(Q) $(MAKE) -C $@ TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"
+	@$(MAKE) -C $@ TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)";
 
 $(BIN):	$(INSTALLED_APPS)
+	@( for obj in $(OBJS) ; do \
+		$(call ARCHIVE, $@, $${obj}); \
+	done ; )
 
 .context:
-ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-	$(Q) for %%G in ($(INSTALLED_APPS)) do ( \
-		if exist %%G\.context del /f /q %%G\.context \
-		$(MAKE) -C %%G TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" context \
-	)
-else
-	$(Q) for dir in $(INSTALLED_APPS) ; do \
+	@for dir in $(INSTALLED_APPS) ; do \
 		rm -f $$dir/.context ; \
-		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" context ; \
+		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)"  APPDIR="$(APPDIR)" context ; \
 	done
-endif
-	$(Q) touch $@
+	@touch $@
 
 context: .context
 
 .depend: context Makefile $(SRCS)
-ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-	$(Q) for %%G in ($(INSTALLED_APPS)) do ( \
-		if exist %%G\.depend del /f /q %%G\.depend \
-		$(MAKE) -C %%G TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" depend \
-	)
-else
-	$(Q) for dir in $(INSTALLED_APPS) ; do \
+	@for dir in $(INSTALLED_APPS) ; do \
 		rm -f $$dir/.depend ; \
-		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" depend ; \
+		$(MAKE) -C $$dir TOPDIR="$(TOPDIR)"  APPDIR="$(APPDIR)" depend ; \
 	done
-endif
-	$(Q) touch $@
+	@touch $@
 
 depend: .depend
 
 clean:
-ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-	$(Q) for %%G in ($(SUBDIRS)) do ( \
-		$(MAKE) -C %%G clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" \
-	)
-else
-	$(Q) for dir in $(SUBDIRS) ; do \
+	@for dir in $(SUBDIRS) ; do \
 		$(MAKE) -C $$dir clean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
 	done
-endif
-	$(call DELFILE, $(BIN))
+	@rm -f $(BIN) *~ .*.swp *.o
 	$(call CLEAN)
 
 distclean: # clean
-ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-	$(Q) for %%G in ($(SUBDIRS)) do ( \
-		$(MAKE) -C %%G distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" \
-	)
-	$(call DELFILE, .config)
-	$(call DELFILE, .context)
-	$(call DELFILE, .depend)
-	$(Q) ( if exist  external ( \
-		echo ********************************************************" \
-		echo * The external directory/link must be removed manually *" \
-		echo ********************************************************" \
-	)
-else
-	$(Q) for dir in $(SUBDIRS) ; do \
+	@for dir in $(SUBDIRS) ; do \
 		$(MAKE) -C $$dir distclean TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)"; \
 	done
-	$(call DELFILE, .config)
-	$(call DELFILE, .context)
-	$(call DELFILE, .depend)
-	$(Q) ( if [ -e external ]; then \
+	@rm -f .config .context .depend
+	@( if [ -e external ]; then \
 		echo "********************************************************"; \
 		echo "* The external directory/link must be removed manually *"; \
 		echo "********************************************************"; \
 	   fi; \
 	) 
-endif
 
 

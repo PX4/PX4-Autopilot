@@ -1,7 +1,7 @@
 ############################################################################
 # nxflat/Makefile
 #
-#   Copyright (C) 2007-2009, 2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,62 +36,67 @@
 -include $(TOPDIR)/Make.defs
 
 ifeq ($(WINTOOL),y)
-INCDIROPT = -w
+INCDIROPT	= -w
 endif
-CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" "$(TOPDIR)$(DELIM)sched"}
+CFLAGS		+= ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/sched}
 
-# Basic BINFMT source files 
+ifeq ($(CONFIG_NXFLAT),y)
+include libnxflat/Make.defs
+LIBNXFLAT_CSRCS	+= nxflat.c 
+endif
 
-BINFMT_ASRCS =
-BINFMT_CSRCS = binfmt_globals.c binfmt_register.c binfmt_unregister.c \
-			   binfmt_loadmodule.c binfmt_unloadmodule.c binfmt_execmodule.c \
-			   binfmt_exec.c binfmt_dumpmodule.c
+BINFMT_ASRCS	=
+BINFMT_CSRCS	= binfmt_globals.c binfmt_register.c binfmt_unregister.c \
+		  binfmt_loadmodule.c binfmt_unloadmodule.c binfmt_execmodule.c \
+		  binfmt_exec.c binfmt_dumpmodule.c
 
-# Symbol table source files
+SYMTAB_ASRCS	=
+SYMTAB_CSRCS	= symtab_findbyname.c symtab_findbyvalue.c \
+		  symtab_findorderedbyname.c symtab_findorderedbyvalue.c
 
-BINFMT_CSRCS += symtab_findbyname.c symtab_findbyvalue.c \
-			    symtab_findorderedbyname.c symtab_findorderedbyvalue.c
+SUBDIRS		= libnxflat
 
-# Add configured binary modules
+ASRCS		= $(BINFMT_ASRCS) $(SYMTAB_ASRCS) $(LIBNXFLAT_ASRCS)
+AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
-VPATH = 
-SUBDIRS =
-DEPPATH = --dep-path .
+CSRCS		= $(BINFMT_CSRCS) $(SYMTAB_CSRCS) $(LIBNXFLAT_CSRCS)
+COBJS		= $(CSRCS:.c=$(OBJEXT))
 
-include libnxflat$(DELIM)Make.defs
-include libelf$(DELIM)Make.defs
+SRCS		= $(ASRCS) $(CSRCS)
+OBJS		= $(AOBJS) $(COBJS)
 
-BINFMT_AOBJS = $(BINFMT_ASRCS:.S=$(OBJEXT))
-BINFMT_COBJS = $(BINFMT_CSRCS:.c=$(OBJEXT))
+BIN		= libbinfmt$(LIBEXT)
 
-BINFMT_SRCS = $(BINFMT_ASRCS) $(BINFMT_CSRCS)
-BINFMT_OBJS = $(BINFMT_AOBJS) $(BINFMT_COBJS)
+VPATH		= libnxflat
 
-BIN = libbinfmt$(LIBEXT)
+all:	$(BIN)
 
-all: $(BIN)
-
-$(BINFMT_AOBJS): %$(OBJEXT): %.S
+$(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
 
-$(BINFMT_COBJS): %$(OBJEXT): %.c
+$(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
-$(BIN): $(BINFMT_OBJS)
-	$(call ARCHIVE, $@, $(BINFMT_OBJS))
+$(BIN): $(OBJS)
+	@( for obj in $(OBJS) ; do \
+		$(call ARCHIVE, $@, $${obj}); \
+	done ; )
 
-.depend: Makefile $(BINFMT_SRCS)
-	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(BINFMT_SRCS) >Make.dep
-	$(Q) touch $@
+.depend: Makefile $(SRCS)
+	@$(MKDEP) --dep-path . --dep-path libnxflat \
+		$(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@touch $@
 
 depend: .depend
 
 clean:
-	$(call DELFILE, $(BIN))
+	@rm -f $(BIN) *~ .*.swp
 	$(call CLEAN)
+	@( for dir in $(SUBDIRS); do \
+		rm -f $${dir}/*~ $${dir}/.*.swp; \
+	done ; )
 
 distclean: clean
-	$(call DELFILE, Make.dep)
-	$(call DELFILE, .depend)
+	@rm -f Make.dep .depend
 
 -include Make.dep

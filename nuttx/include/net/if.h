@@ -52,10 +52,6 @@
 #define IF_NAMESIZE     6   /* Newer naming standard */
 #define IFHWADDRLEN     6
 
-#define IFF_RUNNING     (1 << 0)
-#define IF_FLAG_IFUP    (1 << 0)
-#define IF_FLAG_IFDOWN  (2 << 0)
-
 /*******************************************************************************************
  * Public Type Definitions
  *******************************************************************************************/
@@ -76,7 +72,6 @@ struct lifreq
     struct sockaddr         lifru_hwaddr;             /* MAC address */
     int                     lifru_count;              /* Number of devices */
     int                     lifru_mtu;                /* MTU size */
-    uint8_t                 lifru_flags;              /* Interface flags */
   } lifr_ifru;
 };
 
@@ -87,7 +82,6 @@ struct lifreq
 #define lifr_hwaddr         lifr_ifru.lifru_hwaddr    /* MAC address */
 #define lifr_mtu            lifr_ifru.lifru_mtu       /* MTU */
 #define lifr_count          lifr_ifru.lifru_count     /* Number of devices */
-#define lifr_flags          lifr_ifru.lifru_flags     /* interface flags */
 
 /* This is the older I/F request that should only be used with IPv4.  However, since
  * NuttX only supports IPv4 or 6 (not both), we can force the older structure to
@@ -107,7 +101,6 @@ struct ifreq
     struct sockaddr         ifru_hwaddr;              /* MAC address */
     int                     ifru_count;               /* Number of devices */
     int                     ifru_mtu;                 /* MTU size */
-    uint8_t                 ifru_flags;               /* Interface flags */
   } ifr_ifru;
 };
 
@@ -118,7 +111,6 @@ struct ifreq
 #define ifr_hwaddr          ifr_ifru.ifru_hwaddr      /* MAC address */
 #define ifr_mtu             ifr_ifru.ifru_mtu         /* MTU */
 #define ifr_count           ifr_ifru.ifru_count       /* Number of devices */
-#define ifr_flags           ifr_ifru.ifru_flags       /* interface flags */
 
 #else /* CONFIG_NET_IPv6 */
 
@@ -131,7 +123,6 @@ struct ifreq
 #define ifr_hwaddr          lifr_ifru.lifru_hwaddr    /* MAC address */
 #define ifr_mtu             lifr_ifru.lifru_mtu       /* MTU */
 #define ifr_count           lifr_ifru.lifru_count     /* Number of devices */
-#define ifr_flags           lifr_ifru.lifru_flags     /* interface flags */
 
 #endif /* CONFIG_NET_IPv6 */
 

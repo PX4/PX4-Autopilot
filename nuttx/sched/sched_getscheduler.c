@@ -129,4 +129,3 @@ int sched_getscheduler(pid_t pid)
       return SCHED_FIFO;
     }
 }
-
