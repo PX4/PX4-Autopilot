@@ -40,7 +40,3 @@ nsh_romfsimg.h
 cscope.out
 .configX-e
 nuttx-export.zip
-nuttx/tools/mkconfig.dSYM
-nuttx/tools/mkversion.dSYM
-nuttx/tools/mkdeps.dSYM
-nuttx/tools/mkdeps
