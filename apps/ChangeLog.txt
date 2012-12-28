@@ -349,7 +349,7 @@
 	* apps/NxWidgets/Kconfig:  Add option to turn on the memory monitor
 	  feature of the NxWidgets/NxWM unit tests.
 
-6.23 2012-11-05 Gregory Nutt <gnutt@nuttx.org>
+6.23 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
 
 	* vsn: Moved all NSH commands from vsn/ to system/.  Deleted the vsn/
 	  directory.
@@ -368,57 +368,3 @@
 	  recent check-ins (Darcy Gong).
 	* apps/netutils/webclient/webclient.c:  Fix another but that I introduced
 	  when I was trying to add correct handling for loss of connection (Darcy Gong)
-	* apps/nshlib/nsh_telnetd.c:  Add support for login to Telnet session via
-	  username and password (Darcy Gong).
-	* apps/netutils/resolv/resolv.c (and files using the DNS resolver): Various
-	  DNS address resolution improvements from Darcy Gong.
-	* apps/nshlib/nsh_netcmds.c:  The ping command now passes a maximum round
-	  trip time to uip_icmpping().  This allows pinging of hosts on complex
-	  networks where the ICMP ECHO round trip time may exceed the ping interval.
-	* apps/examples/nxtext/nxtext_main.c:  Fix bad conditional compilation
-	  when CONFIG_NX_KBD is not defined.  Submitted by Petteri Aimonen.
-	* apps/examples/nximage/nximage_main.c:  Add a 5 second delay after the
-	  NX logo is presented so that there is time for the image to be verified.
-	  Suggested by Petteri Aimonen.
-	* apps/Makefile: Small change that reduces the number of shell invocations
-	  by one (Mike Smith).
-	* apps/examples/elf:  Test example for the ELF loader.
-	* apps/examples/elf:  The ELF module test example appears fully functional.
-	* apps/netutils/json:  Add a snapshot of the cJSON project.  Contributed by
-	  Darcy Gong.
-	* apps/examples/json:  Test example for cJSON from Darcy Gong
-	* apps/nshlib/nsh_netinit.c: Fix static IP DNS problem (Darcy Gong)
-	* apps/netutils/resolv/resolv.c: DNS fixes from Darcy Gong.
-	* COPYING: Licensing information added.
-	* apps/netutils/codec and include/netutils/urldecode.h, base64.h, and md5.h:
-	  A port of the BASE46, MD5 and URL CODEC library from Darcy Gong.
-	* nsnlib/nsh_codeccmd.c:  NSH commands to use the CODEC library.
-	  Contributed by Darcy Gong.
-	* apps/examples/wgetjson: Test example contributed by Darcy Gong
-	* apps/examples/cxxtest:  A test for the uClibc++ library provided by
-	  Qiang Yu and the RGMP team.
-	* apps/netutils/webclient, apps/netutils.codes, and apps/examples/wgetjson:
-	  Add support for wget POST interface.  Contributed by Darcy Gong.
-	* apps/examples/relays:  A relay example contributed by Darcy Gong.
-	* apps/nshlib/nsh_netcmds: Add ifup and ifdown commands (from Darcy
-	  Gong).
-	* apps/nshlib/nsh_netcmds: Extend the ifconfig command so that it
-	  supports setting IP addresses, network masks, name server addresses,
-	  and hardware address (from Darcy Gong).
-
-6.24 2012-xx-xx Gregory Nutt <gnutt@nuttx.org>
-
-	* apps/examples/ostest/roundrobin.c:  Replace large tables with
-	  algorithmic prime number generation.  This allows the roundrobin
-	  test to run on platforms with minimal SRAM (Freddie Chopin).
-	* apps/nshlib/nsh_dbgcmds.c:  Add hexdump command to dump the contents
-	  of a file (or character device) to the console  Contributed by Petteri
-	  Aimonen.
-	* apps/examples/modbus:  Fixes from Freddie Chopin
-	* apps/examples/modbus/Kconfig: Kconfig logic for FreeModBus contributed
-	  by Freddie Chopin.
-	* Makefile, */Makefile:  Various fixes for Windows native build.  Now uses
-	  make foreach loops instead of shell loops.
-	* apps/examples/elf/test/*/Makefile: OSX doesn't support install -D, use
-	  mkdir -p then install without the -D.  From Mike Smith.
-
