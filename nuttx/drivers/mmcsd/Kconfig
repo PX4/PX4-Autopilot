@@ -2,6 +2,7 @@
 # For a description of the syntax of this configuration file,
 # see misc/tools/kconfig-language.txt.
 #
+
 config MMCSD_NSLOTS
 	int "Number of MMC/SD slots"
 	default 1

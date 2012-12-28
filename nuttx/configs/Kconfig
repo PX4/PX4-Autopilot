@@ -619,6 +619,14 @@ config ARCH_BOARD_Z8F64200100KIT
 		development kit, Z8F6423 part, and the Zilog ZDS-II Windows command line
 		tools.  The development environment is Cygwin under WinXP.
 
+config ARCH_BOARD_ZP214XPA
+	bool "The0.net LPC2148 Development Board"
+	depends on ARCH_CHIP_LPC2148
+	---help---
+		This port is for the NXP LPC2148 as provided on the The0.net
+		ZPA213X/4XPA development board. Includes support for the
+		UG-2864AMBAG01 OLED also from The0.net
+
 config ARCH_BOARD_SIM
 	bool "User mode simulation"
 	depends on ARCH_SIM
@@ -700,6 +708,7 @@ config ARCH_BOARD
 	default "z80sim"              if ARCH_BOARD_Z80SIM
 	default "z8encore000zco"      if ARCH_BOARD_Z8ENCORE000ZCO
 	default "z8f64200100kit"      if ARCH_BOARD_Z8F64200100KIT
+	default "zp214xpa"            if ARCH_BOARD_ZP214XPA
 	default "sim"                 if ARCH_BOARD_SIM
 	default ""                    if ARCH_BOARD_CUSTOM
 
@@ -709,7 +718,7 @@ config ARCH_HAVE_LEDS
 	bool
 
 config ARCH_LEDS
-	bool "Board LEDs support"
+	bool "Board LED support"
 	default y
 	depends on ARCH_HAVE_LEDS
 	---help---
@@ -934,6 +943,9 @@ source "configs/z8encore000zco/Kconfig"
 endif
 if ARCH_BOARD_Z8F64200100KIT
 source "configs/z8f64200100kit/Kconfig"
+endif
+if ARCH_BOARD_ZP214XPA
+source "configs/zp214xpa/Kconfig"
 endif
 if ARCH_BOARD_SIM
 source "configs/sim/Kconfig"

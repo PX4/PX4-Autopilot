@@ -3836,4 +3836,10 @@
 	  events too.  However, the USB HID keyboard drier has not yet been
 	  updated to detect key release events.  That is kind of tricky in
 	  the USB HID keyboard report data.
+	* configs/mcu123-214x/nsh:  Converted to use the kconfig-frontends
+	  configuration tool.
+	* configs/zp214xpa:  Add basic support for the The0.net ZP213x/4xPA
+	  board (with the LPC2148 and the UG_2864AMBAG01).
+	* configs/sim/nxlines:  Add an nxlines configuration for the
+	  simulator.
 

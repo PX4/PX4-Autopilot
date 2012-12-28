@@ -4,3 +4,137 @@
 #
 
 comment "LPC214x Configuration Options"
+
+# Fragments of LPC214x chip selection logic.  The LPC2148 is the only chip
+# supported for now.
+
+config ARCH_CHIP_LPC2148
+	bool
+	default y
+
+comment "LPC214x Initialization Options"
+
+choice
+	prompt "Memory Execution Mode"
+	default DEFAULT_MODE
+
+config EXTMEM_MODE
+	bool "External Memory Mode"
+	---help---
+		Code executes from external memory starting at address 0x8000:0000.
+
+config RAM_MODE
+	bool "RAM Memory Mode"
+	---help---
+		Code executes from on-chip RAM at address 0x4000:0000.
+
+config DEFAULT_MODE
+	bool "Default Memory Mode"
+	---help---
+		Executes from 0x0000:0000.  In non-default modes, the MEMAP register
+		is set override the settings of the CPU configuration pins.
+
+endchoice
+
+config CODE_BASE
+	hex "Execuation Base Address"
+	default 0x00000000
+	---help---
+		This must match the expected address for the selected "Memory
+		Execution Address":
+
+		EXTMEM_MODE:  0x8000:0000
+		RAM_MODE:     0x4000:0000
+		DEFAULT)MODE: 0x0000:0000
+
+config PLL_SETUP
+	bool "Configure the PLL"
+	default y
+
+config MAM_SETUP
+	bool "Configure the Memory Accelerator Module (MAM)"
+	default y
+
+config APBDIV_SETUP
+	bool "Configure the APB Divider"
+	default y
+
+config APBDIV_VALUE
+	int "APB Divisor"
+	default 1
+
+config EMC_SETUP
+	bool "Configure EMC"
+	default n
+
+config BCFG0_SETUP
+	bool "Configure BCFG0"
+	default n
+
+config BCFG1_SETUP
+	bool "Configure BCFG1"
+	default n
+
+config BCFG2_SETUP
+	bool "Configure BCFG2"
+	default n
+
+config BCFG3_SETUP
+	bool "Configure BCFG3"
+	default n
+
+config ADC_SETUP
+	bool "Configure ADC"
+	default y
+
+menu "LPC214x Peripheral Support"
+
+config LPC214X_UART0
+	bool
+	default y
+	select ARCH_HAVE_UART0
+
+config LPC214X_UART1
+	bool
+	default y
+	select ARCH_HAVE_UART1
+
+config LPC214X_USBDEV
+	bool "USB Device"
+	default y
+	depends on USBDEV
+
+endmenu
+
+config LPC214x_FIO
+	bool "Fast GPIO"
+	default n
+
+if LPC214X_USBDEV
+menu "LPC214x USB Device Configuration"
+
+config LPC214X_USBDEV_DMA
+	bool "USB Device DMA Support"
+	default n
+
+config CONFIG_LPC214X_USBDEV_NDMADESCRIPTORS
+	int "Number of USB DMA Descriptors"
+	default 8
+	depends on LPC214X_USBDEV_DMA
+
+config LPC214X_USBDEV_EPFAST_INTERRUPT
+	bool "USB Device Fast Endpoint Interrupts"
+	default n
+
+config LPC214X_USBDEV_FRAME_INTERRUPT
+	bool "USB Device Frame Interrupts"
+	default n
+
+config LPC214X_USBDEV_REGDEBUG
+	bool "USB Device Register-Level Debug Output"
+	default n
+	depends on DEBUG
+
+endmenu
+endif
+

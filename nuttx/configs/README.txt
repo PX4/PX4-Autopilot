@@ -1936,6 +1936,11 @@ configs/z8f64200100kit
   development kit, Z8F6423 part, and the Zilog ZDS-II Windows command line
   tools.  The development environment is Cygwin under WinXP.
 
+configs/zp214xpa
+  This port is for the NXP LPC2148 as provided on the The0.net
+  ZPA213X/4XPA development board. Includes support for the
+  UG-2864AMBAG01 OLED also from The0.net
+
 Configuring NuttX
 ^^^^^^^^^^^^^^^^^
 

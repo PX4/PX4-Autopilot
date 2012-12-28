@@ -177,12 +177,14 @@ static void hidkbd_decode(FAR char *buffer, ssize_t nbytes)
       /* Decode the next thing from the buffer */
 
       ret = kbd_decode((FAR struct lib_instream_s *)&kbdstream, &state, &ch);
-      if (ret == KBD_ERROR)
+      if (ret == KBD_ERROR) /* Error or end-of-file */
         {
+          /* Break out when all of the data has been processed */
+
           break;
         }
 
-      /* Normal data?  Or special key? */
+      /* Normal data?  Or special key?  Press?  Or release? */
 
       switch (ret)
         {
@@ -202,10 +204,7 @@ static void hidkbd_decode(FAR char *buffer, ssize_t nbytes)
           printf("Special Release: %d\n", ch);
           break;
 
-        case KBD_ERROR: /* Error or end-of-file */
-          printf("EOF:             %d\n", ret);
-          break;
-
+        case KBD_ERROR: /* Error or end-of-file, already handled */
         default:
           printf("Unexpected:      %d\n", ret);
           break;

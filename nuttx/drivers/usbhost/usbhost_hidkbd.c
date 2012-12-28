@@ -421,7 +421,7 @@ static const uint8_t encoding[USBHID_NUMENCODINGS] =
 
   KEYCODE_ENTER,   0,                   KEYCODE_FWDDEL,     KEYCODE_BACKDEL,  0,                   0,             0,                0,
 
-  /* 0x30-0x37: },|,Non-US tilde,:,",grave tidle,<,> */
+  /* 0x30-0x37: },|,Non-US tilde,:,",grave tilde,<,> */
 
   0,               0,                   0,                 0,                0,                   0,             0,                0,
 
@@ -525,7 +525,7 @@ static const uint8_t ucmap[USBHID_NUMSCANCODES] =
   'U',  'V',    'W',    'X',     'Y',  'Z',  '!',    '@',  /* 0x18-0x1f: U-Z,!,@  */
   '#',  '$',    '%',    '^',     '&',  '*',  '(',    ')',  /* 0x20-0x27: #,$,%,^,&,*,(,) */
   '\n', '\033', '\177', 0,       ' ',  '_',  '+',    '{',  /* 0x28-0x2f: Enter,escape,del,back-tab,space,_,+,{ */
-  '}',  '|',    0,      ':',     '"',  0,    '<',    '>',  /* 0x30-0x37: },|,Non-US tilde,:,",grave tidle,<,> */
+  '}',  '|',    0,      ':',     '"',  '~',  '<',    '>',  /* 0x30-0x37: },|,Non-US tilde,:,",grave tilde,<,> */
   '?',  0,       0,      0,      0,    0,    0,      0,    /* 0x38-0x3f: /,CapsLock,F1,F2,F3,F4,F5,F6 */
   0,    0,       0,      0,      0,    0,    0,      0,    /* 0x40-0x47: F7,F8,F9,F10,F11,F12,PrtScn,ScrollLock */
   0,    0,       0,      0,      0,    0,    0,      0,    /* 0x48-0x4f: Pause,Insert,Home,PageUp,DeleteForward,End,PageDown,RightArrow */
@@ -560,7 +560,7 @@ static const uint8_t lcmap[USBHID_NUMSCANCODES] =
   'u',  'v',     'w',    'x',    'y',  'z', '1',     '2',  /* 0x18-0x1f: u-z,1-2  */
   '3',  '4',     '5',    '6',    '7',  '8', '9',     '0',  /* 0x20-0x27: 3-9,0 */
   '\n', '\033',  '\177', '\t',   ' ',  '-', '=',     '[',  /* 0x28-0x2f: Enter,escape,del,tab,space,-,=,[ */
-  ']',  '\\',    '\234', ';',    '\'', 0,   ',',     '.',  /* 0x30-0x37: ],\,Non-US pound,;,',grave accent,,,. */
+  ']',  '\\',    '\234', ';',    '\'', '`', ',',     '.',  /* 0x30-0x37: ],\,Non-US pound,;,',grave accent,,,. */
   '/',  0,       0,      0,      0,    0,   0,       0,    /* 0x38-0x3f: /,CapsLock,F1,F2,F3,F4,F5,F6 */
   0,    0,       0,      0,      0,    0,   0,       0,    /* 0x40-0x47: F7,F8,F9,F10,F11,F12,PrtScn,ScrollLock */
   0,    0,       0,      0,      0,    0,   0,       0,    /* 0x48-0x4f: Pause,Insert,Home,PageUp,DeleteForward,End,PageDown,RightArrow */

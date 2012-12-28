@@ -349,8 +349,22 @@ nsh:
   Configures the NuttShell (nsh) located at examples/nsh.  The
   Configuration enables only the serial NSH interfaces.
 
-  Default toolchain:  Buildroot
-  Output format:  ELF and binary
+    NOTES:
+ 
+    1. This configuration uses the mconf-based configuration tool.  To
+       change this configuration using that tool, you should:
+
+       a. Build and install the mconf tool.  See nuttx/README.txt and
+          misc/tools/
+
+       b. Execute 'make menuconfig' in nuttx/ in order to start the
+          reconfiguration process.
+
+    2. Default platform/toolchain:
+
+       CONFIG_HOST_LINUX=y             : Windows
+       CONFIG_ARM_TOOLCHAIN_GNU_EABI=y : Buildroot (arm-nuttx-elf-gcc)
+       CONFIG_RAW_BINARY=y             : Output formats: ELF and raw binary
 
 ostest:
 -------
