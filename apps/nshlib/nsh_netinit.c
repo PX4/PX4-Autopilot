@@ -47,7 +47,7 @@
 #include <net/if.h>
 
 #include <apps/netutils/uiplib.h>
-#if defined(CONFIG_NSH_DHCPC) || defined(CONFIG_NSH_DNS)
+#if defined(CONFIG_NSH_DHCPC)
 #  include <apps/netutils/resolv.h>
 #  include <apps/netutils/dhcpc.h>
 #endif
@@ -59,10 +59,6 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
-
-#if defined(CONFIG_NSH_DRIPADDR) && !defined(CONFIG_NSH_DNSIPADDR)
-#  define CONFIG_NSH_DNSIPADDR CONFIG_NSH_DRIPADDR
-#endif
 
 /****************************************************************************
  * Private Types
@@ -129,14 +125,10 @@ int nsh_netinit(void)
   addr.s_addr = HTONL(CONFIG_NSH_NETMASK);
   uip_setnetmask("eth0", &addr);
 
-#if defined(CONFIG_NSH_DHCPC) || defined(CONFIG_NSH_DNS)
+#if defined(CONFIG_NSH_DHCPC)
   /* Set up the resolver */
 
   resolv_init();
-#if defined(CONFIG_NSH_DNS)
-  addr.s_addr = HTONL(CONFIG_NSH_DNSIPADDR);
-  resolv_conf(&addr);
-#endif
 #endif
 
 #if defined(CONFIG_NSH_DHCPC)

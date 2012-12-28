@@ -1,7 +1,7 @@
 ############################################################################
 # apps/system/free/Makefile
 #
-#   Copyright (C) 2011-2012 Uros Platise. All rights reserved.
+#   Copyright (C) 2011 Uros Platise. All rights reserved.
 #   Author: Uros Platise <uros.platise@isotel.eu>
 #           Gregory Nutt <gnutt@nuttx.org>
 #
@@ -61,14 +61,10 @@ COBJS		= $(CSRCS:.c=$(OBJEXT))
 SRCS		= $(ASRCS) $(CSRCS)
 OBJS		= $(AOBJS) $(COBJS)
 
-ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  BIN		= ..\..\libapps$(LIBEXT)
-else
 ifeq ($(WINTOOL),y)
-  BIN		= ..\\..\\libapps$(LIBEXT)
+  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
 else
-  BIN		= ../../libapps$(LIBEXT)
-endif
+  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
 endif
 
 ROOTDEPPATH	= --dep-path .
@@ -87,32 +83,32 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 .built: $(OBJS)
-	$(call ARCHIVE, $(BIN), $(OBJS))
-	$(Q) touch .built
+	@( for obj in $(OBJS) ; do \
+		$(call ARCHIVE, $(BIN), $${obj}); \
+	done ; )
+	@touch .built
 
 # Register application
 
 .context:
 	$(call REGISTER,$(APPNAME),$(PRIORITY),$(STACKSIZE),$(APPNAME)_main)
-	$(Q) touch $@
+	@touch $@
 
 context: .context
 
 # Create dependencies
 
 .depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
-	$(Q) touch $@
+	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@touch $@
 
 depend: .depend
 
 clean:
-	$(call DELFILE, .built)
+	@rm -f *.o *~ .*.swp .built
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE, .context)
-	$(call DELFILE, Make.dep)
-	$(call DELFILE, .depend)
+	@rm -f .context Make.dep .depend
 
 -include Make.dep

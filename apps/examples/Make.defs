@@ -54,20 +54,12 @@ ifeq ($(CONFIG_EXAMPLES_COMPOSITE),y)
 CONFIGURED_APPS += examples/composite
 endif
 
-ifeq ($(CONFIG_EXAMPLES_CXXTEST),y)
-CONFIGURED_APPS += examples/cxxtest
-endif
-
 ifeq ($(CONFIG_EXAMPLES_DHCPD),y)
 CONFIGURED_APPS += examples/dhcpd
 endif
 
 ifeq ($(CONFIG_EXAMPLES_DISCOVER),y)
 CONFIGURED_APPS += examples/discover
-endif
-
-ifeq ($(CONFIG_EXAMPLES_ELF),y)
-CONFIGURED_APPS += examples/elf
 endif
 
 ifeq ($(CONFIG_EXAMPLES_FTPC),y)
@@ -94,20 +86,12 @@ ifeq ($(CONFIG_EXAMPLES_IGMP),y)
 CONFIGURED_APPS += examples/igmp
 endif
 
-ifeq ($(CONFIG_EXAMPLES_JSON),y)
-CONFIGURED_APPS += examples/json
-endif
-
 ifeq ($(CONFIG_EXAMPLES_LCDRW),y)
 CONFIGURED_APPS += examples/lcdrw
 endif
 
 ifeq ($(CONFIG_EXAMPLES_MM),y)
 CONFIGURED_APPS += examples/mm
-endif
-
-ifeq ($(CONFIG_EXAMPLES_MODBUS),y)
-CONFIGURED_APPS += examples/modbus
 endif
 
 ifeq ($(CONFIG_EXAMPLES_MOUNT),y)
@@ -182,10 +166,6 @@ ifeq ($(CONFIG_EXAMPLES_QENCODER),y)
 CONFIGURED_APPS += examples/qencoder
 endif
 
-ifeq ($(CONFIG_EXAMPLES_RELAYS),y)
-CONFIGURED_APPS += examples/relays
-endif
-
 ifeq ($(CONFIG_EXAMPLES_RGMP),y)
 CONFIGURED_APPS += examples/rgmp
 endif
@@ -244,10 +224,6 @@ endif
 
 ifeq ($(CONFIG_EXAMPLES_WGET),y)
 CONFIGURED_APPS += examples/wget
-endif
-
-ifeq ($(CONFIG_EXAMPLES_WGETJSON),y)
-CONFIGURED_APPS += examples/wgetjson
 endif
 
 ifeq ($(CONFIG_EXAMPLES_WLAN),y)

@@ -73,19 +73,19 @@
 /* Argument list size
  *
  *   argv[0]:      The command name. 
- *   argv[1]:      The beginning of argument (up to CONFIG_NSH_MAXARGUMENTS)
+ *   argv[1]:      The beginning of argument (up to NSH_MAX_ARGUMENTS)
  *   argv[argc-3]: Possibly '>' or '>>'
  *   argv[argc-2]: Possibly <file>
  *   argv[argc-1]: Possibly '&' (if pthreads are enabled)
  *   argv[argc]:   NULL terminating pointer
  *
- * Maximum size is CONFIG_NSH_MAXARGUMENTS+5
+ * Maximum size is NSH_MAX_ARGUMENTS+5
  */
 
 #ifndef CONFIG_NSH_DISABLEBG
-#  define MAX_ARGV_ENTRIES (CONFIG_NSH_MAXARGUMENTS+5)
+#  define MAX_ARGV_ENTRIES (NSH_MAX_ARGUMENTS+5)
 #else
-#  define MAX_ARGV_ENTRIES (CONFIG_NSH_MAXARGUMENTS+4)
+#  define MAX_ARGV_ENTRIES (NSH_MAX_ARGUMENTS+4)
 #endif
 
 /* Help command summary layout */
@@ -146,25 +146,16 @@ static const char g_failure[]    = "1";
 static const struct cmdmap_s g_cmdmap[] =
 {
 #if !defined(CONFIG_NSH_DISABLESCRIPT) && !defined(CONFIG_NSH_DISABLE_TEST)
-  { "[",        cmd_lbracket, 4, CONFIG_NSH_MAXARGUMENTS, "<expression> ]" },
+  { "[",        cmd_lbracket, 4, NSH_MAX_ARGUMENTS, "<expression> ]" },
 #endif
 
 #ifndef CONFIG_NSH_DISABLE_HELP
   { "?",        cmd_help,     1, 1, NULL },
 #endif
 
-#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_BASE64)
-#  ifndef CONFIG_NSH_DISABLE_BASE64DEC
-  { "base64dec", cmd_base64decode, 2, 4, "[-w] [-f] <string or filepath>" },
-#  endif
-#  ifndef CONFIG_NSH_DISABLE_BASE64ENC
-  { "base64enc", cmd_base64encode, 2, 4, "[-w] [-f] <string or filepath>" },
-#  endif
-#endif
-
 #if CONFIG_NFILE_DESCRIPTORS > 0
 # ifndef CONFIG_NSH_DISABLE_CAT
-  { "cat",      cmd_cat,      2, CONFIG_NSH_MAXARGUMENTS, "<path> [<path> [<path> ...]]" },
+  { "cat",      cmd_cat,      2, NSH_MAX_ARGUMENTS, "<path> [<path> [<path> ...]]" },
 # endif
 #ifndef CONFIG_DISABLE_ENVIRON
 # ifndef CONFIG_NSH_DISABLE_CD
@@ -196,9 +187,9 @@ static const struct cmdmap_s g_cmdmap[] =
 
 #ifndef CONFIG_NSH_DISABLE_ECHO
 # ifndef CONFIG_DISABLE_ENVIRON
-  { "echo",     cmd_echo,     0, CONFIG_NSH_MAXARGUMENTS, "[<string|$name> [<string|$name>...]]" },
+  { "echo",     cmd_echo,     0, NSH_MAX_ARGUMENTS, "[<string|$name> [<string|$name>...]]" },
 # else
-  { "echo",     cmd_echo,     0, CONFIG_NSH_MAXARGUMENTS, "[<string> [<string>...]]" },
+  { "echo",     cmd_echo,     0, NSH_MAX_ARGUMENTS, "[<string> [<string>...]]" },
 # endif
 #endif
 
@@ -226,20 +217,10 @@ static const struct cmdmap_s g_cmdmap[] =
   { "help",     cmd_help,     1, 3, "[-v] [<cmd>]" },
 # endif
 #endif
-  
-#if CONFIG_NFILE_DESCRIPTORS > 0
-#ifndef CONFIG_NSH_DISABLE_HEXDUMP
-  { "hexdump",  cmd_hexdump,  2, 2, "<file or device>" },
-#endif
-#endif
 
 #ifdef CONFIG_NET
 # ifndef CONFIG_NSH_DISABLE_IFCONFIG
-  { "ifconfig", cmd_ifconfig, 1, 11, "[nic_name [ip]] [dr|gw|gateway <dr-address>] [netmask <net-mask>] [dns <dns-address>] [hw <hw-mac>]" },
-# endif
-# ifndef CONFIG_NSH_DISABLE_IFUPDOWN
-  { "ifdown",   cmd_ifdown,   2, 2,  "<nic_name>" },
-  { "ifup",     cmd_ifup,     2, 2,  "<nic_name>" },
+  { "ifconfig", cmd_ifconfig, 1, 3, "[nic_name [ip]]" },
 # endif
 #endif
 
@@ -263,12 +244,6 @@ static const struct cmdmap_s g_cmdmap[] =
 
 #ifndef CONFIG_NSH_DISABLE_MB
   { "mb",       cmd_mb,       2, 3, "<hex-address>[=<hex-value>][ <hex-byte-count>]" },
-#endif
-
-#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_HASH_MD5)
-#  ifndef CONFIG_NSH_DISABLE_MD5
-  { "md5",      cmd_md5,      2, 3, "[-f] <string or filepath>" },
-#  endif
 #endif
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_WRITABLE)
@@ -373,7 +348,7 @@ static const struct cmdmap_s g_cmdmap[] =
 #endif
 
 #if !defined(CONFIG_NSH_DISABLESCRIPT) && !defined(CONFIG_NSH_DISABLE_TEST)
-  { "test",     cmd_test,     3, CONFIG_NSH_MAXARGUMENTS, "<expression>" },
+  { "test",     cmd_test,     3, NSH_MAX_ARGUMENTS, "<expression>" },
 #endif
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_FS_READABLE)
@@ -386,15 +361,6 @@ static const struct cmdmap_s g_cmdmap[] =
 # ifndef CONFIG_NSH_DISABLE_UNSET
   { "unset",    cmd_unset,    2, 2, "<name>" },
 # endif
-#endif
-
-#if defined(CONFIG_NETUTILS_CODECS) && defined(CONFIG_CODECS_URLCODE)
-#  ifndef CONFIG_NSH_DISABLE_URLDECODE
-  { "urldecode", cmd_urldecode, 2, 3, "[-f] <string or filepath>" },
-#  endif
-#  ifndef CONFIG_NSH_DISABLE_URLENCODE
-  { "urlencode", cmd_urlencode, 2, 3, "[-f] <string or filepath>" },
-#  endif
 #endif
 
 #ifndef CONFIG_DISABLE_SIGNALS
@@ -412,7 +378,6 @@ static const struct cmdmap_s g_cmdmap[] =
 #ifndef CONFIG_NSH_DISABLE_XD
   { "xd",       cmd_xd,       3, 3, "<hex-address> <byte-count>" },
 #endif
-
   { NULL,       NULL,         1, 1, NULL }
 };
 
@@ -746,7 +711,7 @@ static int nsh_execute(FAR struct nsh_vtbl_s *vtbl, int argc, char *argv[])
    *
    * argv[0]:      The command name.  This is argv[0] when the arguments
    *               are, finally, received by the command vtblr
-   * argv[1]:      The beginning of argument (up to CONFIG_NSH_MAXARGUMENTS)
+   * argv[1]:      The beginning of argument (up to NSH_MAX_ARGUMENTS)
    * argv[argc]:   NULL terminating pointer
    */
 
@@ -1353,13 +1318,13 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
    * of argv is:
    *
    *   argv[0]:      The command name. 
-   *   argv[1]:      The beginning of argument (up to CONFIG_NSH_MAXARGUMENTS)
+   *   argv[1]:      The beginning of argument (up to NSH_MAX_ARGUMENTS)
    *   argv[argc-3]: Possibly '>' or '>>'
    *   argv[argc-2]: Possibly <file>
    *   argv[argc-1]: Possibly '&'
    *   argv[argc]:   NULL terminating pointer
    *
-   * Maximum size is CONFIG_NSH_MAXARGUMENTS+5
+   * Maximum size is NSH_MAX_ARGUMENTS+5
    */
 
   argv[0] = cmd;
@@ -1433,7 +1398,7 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, char *cmdline)
 
   /* Check if the maximum number of arguments was exceeded */
 
-  if (argc > CONFIG_NSH_MAXARGUMENTS)
+  if (argc > NSH_MAX_ARGUMENTS)
     {
       nsh_output(vtbl, g_fmttoomanyargs, cmd);
     }

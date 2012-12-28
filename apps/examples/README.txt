@@ -239,29 +239,6 @@ examples/composite
   CONFIG_EXAMPLES_COMPOSITE_TRACEINTERRUPTS
     Show interrupt-related events.
 
-examples/cxxtest
-^^^^^^^^^^^^^^^^
-
-  This is a test of the C++ standard library.  At present a port of the uClibc++
-  C++ library is available.  Due to licensinging issues, the uClibc++ C++ library
-  is not included in the NuttX source tree by default, but must be installed
-  (see misc/uClibc++/README.txt for installation).
-
-  The  NuttX setting that are required include:
-
-    CONFIG_HAVE_CXX=y
-    CONFIG_HAVE_CXXINITIALIZE=y
-    CONFIG_UCLIBCXX=y
-
-  Additional uClibc++ settings may be required in your build environment.
-
-  The uClibc++ test includes simple test of:
-
-    - iostreams,
-    - STL,
-    - RTTI, and
-    - Exceptions
-
 examples/dhcpd
 ^^^^^^^^^^^^^^
 
@@ -319,68 +296,6 @@ examples/discover
     CONFIG_EXAMPLES_DISCOVER_IPADDR - Target IP address
     CONFIG_EXAMPLES_DISCOVER_DRIPADDR - Router IP address
     CONFIG_EXAMPLES_DISCOVER_NETMASK - Network Mask
-
-examples/elf
-^^^^^^^^^^^^
-
-  This example builds a small ELF loader test case.  This includes several
-  test programs under examples/elf tests.  These tests are build using
-  the relocatable ELF format and installed in a ROMFS file system.  At run time,
-  each program in the ROMFS file system is executed.  Requires CONFIG_ELF.
-  Other configuration options:
-
-    CONFIG_EXAMPLES_ELF_DEVMINOR - The minor device number of the ROMFS block.
-      For example, the N in /dev/ramN. Used for registering the RAM block driver
-      that will hold the ROMFS file system containing the ELF executables to be
-      tested.  Default: 0
-
-    CONFIG_EXAMPLES_ELF_DEVPATH - The path to the ROMFS block driver device.  This
-      must match EXAMPLES_ELF_DEVMINOR. Used for registering the RAM block driver
-      that will hold the ROMFS file system containing the ELF executables to be
-      tested.  Default: "/dev/ram0"
-
-  NOTES:
-
-  1. CFLAGS should be provided in CELFFLAGS.  RAM and FLASH memory regions
-     may require long allcs.  For ARM, this might be:
-
-       CELFFLAGS = $(CFLAGS) -mlong-calls
-
-     Similarly for C++ flags which must be provided in CXXELFFLAGS.
-
-  2. Your top-level nuttx/Make.defs file must alos include an approproate definition,
-     LDELFFLAGS, to generate a relocatable ELF object.  With GNU LD, this should
-     include '-r' and '-e main' (or _main on some platforms).
-
-       LDELFFLAGS = -r -e main
-
-     If you use GCC to link, you make also need to include '-nostdlib' or 
-     '-nostartfiles' and '-nodefaultlibs'.
-
-  3. This example also requires genromfs.  genromfs can be build as part of the
-     nuttx toolchain.  Or can built from the genromfs sources that can be found
-     at misc/tools/genromfs-0.5.2.tar.gz.  In any event, the PATH variable must
-     include the path to the genromfs executable.
-
-  4. ELF size:  The ELF files in this example are, be default, quite large
-     because they include a lot of "build garbage".  You can greatly reduce the
-     size of the ELF binaries are using the 'objcopy --strip-unneeded' command to
-     remove un-necessary information from the ELF files.
-
-  5. Simulator.  You cannot use this example with the the NuttX simulator on
-     Cygwin.  That is because the Cygwin GCC does not generate ELF file but
-     rather some Windows-native binary format.
-
-     If you really want to do this, you can create a NuttX x86 buildroot toolchain
-     and use that be build the ELF executables for the ROMFS file system.
-
-  6. Linker scripts.  You might also want to use a linker scripts to combine
-     sections better.  An example linker script is at nuttx/binfmt/libelf/gnu-elf.ld.
-     That example might have to be tuned for your particular linker output to
-     position additional sections correctly.  The GNU LD LDELFFLAGS then might
-     be:
-
-       LDELFFLAGS = -r -e main -T$(TOPDIR)/binfmt/libelf/gnu-elf.ld
 
 examples/ftpc
 ^^^^^^^^^^^^^
@@ -567,19 +482,6 @@ examples/igmp
 
   CONFIGURED_APPS += uiplib
 
-examples/json
-^^^^^^^^^^^^^
-
-  This example exercises the cJSON implementation at apps/netutils/json.
-  This example contains logic taken from the cJSON project:
-
-    http://sourceforge.net/projects/cjson/
-
-  The example corresponds to SVN revision r42 (with lots of changes for
-  NuttX coding standards).  As of r42, the SVN repository was last updated
-  on 2011-10-10 so I presume that the code is stable and there is no risk
-  of maintaining duplicate logic in the NuttX repository.
-
 examples/lcdrw
 ^^^^^^^^^^^^^^
 
@@ -594,11 +496,6 @@ examples/lcdrw
   * CONFIG_EXAMPLES_LDCRW_YRES
       LCD Y resolution.  Default: 320
   
-  NOTE: This test exercises internal lcd driver interfaces.  As such, it
-  relies on internal OS interfaces that are not normally available to a
-  user-space program.  As a result, this example cannot be used if a
-  NuttX is built as a protected, supervisor kernel (CONFIG_NUTTX_KERNEL).
-
 examples/mm
 ^^^^^^^^^^^
 
@@ -941,6 +838,8 @@ examplex/nxlines
 
   The following configuration options can be selected:
 
+    CONFIG_EXAMPLES_NXLINES_BUILTIN -- Build the NXLINES example as a "built-in"
+      that can be executed from the NSH command line    
     CONFIG_EXAMPLES_NXLINES_VPLANE -- The plane to select from the frame-
       buffer driver for use in the test.  Default: 0
     CONFIG_EXAMPLES_NXLINES_DEVNO - The LCD device to select from the LCD
@@ -977,9 +876,6 @@ examplex/nxlines
       #else
       FAR struct fb_vtable_s *up_nxdrvinit(unsigned int devno);
       #endif
-
-    CONFIG_NSH_BUILTIN_APPS - Build the NX lines examples as an NSH built-in
-      function.
 
 examples/nxtext
 ^^^^^^^^^^^^^^^
@@ -1088,17 +984,6 @@ examples/ostest
       Specifies the number of threads to create in the barrier
       test.  The default is 8 but a smaller number may be needed on
       systems without sufficient memory to start so many threads.
-  * CONFIG_EXAMPLES_OSTEST_RR_RANGE
-      During round-robin scheduling test two threads are created. Each of the threads
-      searches for prime numbers in the configurable range, doing that configurable
-      number of times.
-      This value specifies the end of search range and together with number of runs
-      allows to configure the length of this test - it should last at least a few
-      tens of seconds. Allowed values [1; 32767], default 10000
-  * CONFIG_EXAMPLES_OSTEST_RR_RUNS
-      During round-robin scheduling test two threads are created. Each of the threads
-      searches for prime numbers in the configurable range, doing that configurable
-      number of times.
 
 examples/pashello
 ^^^^^^^^^^^^^^^^^
@@ -1225,28 +1110,17 @@ examples/qencoder
 
   Specific configuration options for this example include:
  
-    CONFIG_EXAMPLES_QENCODER_DEVPATH - The path to the QE device. Default:
-      /dev/qe0
-    CONFIG_EXAMPLES_QENCODER_NSAMPLES - If CONFIG_NSH_BUILTIN_APPS
-      is defined, then the number of samples is provided on the command line
-      and this value is ignored.  Otherwise, this number of samples is
-      collected and the program terminates.  Default:  Samples are collected
-      indefinitely.
-    CONFIG_EXAMPLES_QENCODER_DELAY - This value provides the delay (in
-      milliseonds) between each sample.  If CONFIG_NSH_BUILTIN_APPS
-      is defined, then this value is the default delay if no other delay is
-      provided on the command line.  Default:  100 milliseconds
-
-examples/relays
-^^^^^^^^^^^^^^^
-
-  Requires CONFIG_ARCH_RELAYS.
-  Contributed by Darcy Gong.
-
-  NOTE: This test exercises internal relay driver interfaces.  As such, it
-  relies on internal OS interfaces that are not normally available to a
-  user-space program.  As a result, this example cannot be used if a
-  NuttX is built as a protected, supervisor kernel (CONFIG_NUTTX_KERNEL).
+  CONFIG_EXAMPLES_QENCODER_DEVPATH - The path to the QE device. Default:
+    /dev/qe0
+  CONFIG_EXAMPLES_QENCODER_NSAMPLES - If CONFIG_NSH_BUILTIN_APPS
+    is defined, then the number of samples is provided on the command line
+    and this value is ignored.  Otherwise, this number of samples is
+    collected and the program terminates.  Default:  Samples are collected
+    indefinitely.
+  CONFIG_EXAMPLES_QENCODER_DELAY - This value provides the delay (in
+    milliseonds) between each sample.  If CONFIG_NSH_BUILTIN_APPS
+    is defined, then this value is the default delay if no other delay is
+    provided on the command line.  Default:  100 milliseconds
 
 examples/rgmp
 ^^^^^^^^^^^^^
@@ -1798,16 +1672,7 @@ examples/wget
     CONFIGURED_APPS += resolv
     CONFIGURED_APPS += webclient
 
-examples/wget
-^^^^^^^^^^^^^
-
-  Uses wget to get a JSON encoded file, then decodes the file.
-
-    CONFIG_EXAMPLES_WDGETJSON_MAXSIZE - Max. JSON Buffer Size
-    CONFIG_EXAMPLES_EXAMPLES_WGETJSON_URL - wget URL
-
 examples/xmlrpc
-^^^^^^^^^^^^^^^
 
   This example exercises the "Embeddable Lightweight XML-RPC Server" which
   is discussed at:

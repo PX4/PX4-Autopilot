@@ -1,7 +1,7 @@
 ############################################################################
 # apps/examples/helloxx/Makefile
 #
-#   Copyright (C) 2009-2012 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -50,14 +50,10 @@ CXXOBJS		= $(CXXSRCS:.cxx=$(OBJEXT))
 SRCS		= $(ASRCS) $(CSRCS) $(CXXSRCS)
 OBJS		= $(AOBJS) $(COBJS) $(CXXOBJS)
 
-ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  BIN		= ..\..\libapps$(LIBEXT)
-else
 ifeq ($(WINTOOL),y)
-  BIN		= ..\\..\\libapps$(LIBEXT)
+  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
 else
-  BIN		= ../../libapps$(LIBEXT)
-endif
+  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
 endif
 
 ROOTDEPPATH	= --dep-path .
@@ -73,7 +69,7 @@ STACKSIZE	= 2048
 VPATH		= 
 
 all: .built
-.PHONY:	clean depend distclean chkcxx
+.PHONY:	clean depend disclean chkcxx
 
 chkcxx:
 ifneq ($(CONFIG_HAVE_CXX),y)
@@ -97,7 +93,9 @@ $(CXXOBJS): %$(OBJEXT): %.cxx
 	$(call COMPILEXX, $<, $@)
 
 .built: chkcxx $(OBJS)
-	$(call ARCHIVE, $(BIN), $(OBJS))
+	@( for obj in $(OBJS) ; do \
+		$(call ARCHIVE, $(BIN), $${obj}); \
+	done ; )
 	@touch .built
 
 .context:
@@ -109,17 +107,16 @@ endif
 context: .context
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
 	@touch $@
 
 depend: .depend
 
 clean:
-	$(call DELFILE, .built)
+	@rm -f *.o *~ .*.swp .built
 	$(call CLEAN)
 
 distclean: clean
-	$(call DELFILE, Make.dep)
-	$(call DELFILE, .depend)
+	@rm -f Make.dep .depend
 
 -include Make.dep
