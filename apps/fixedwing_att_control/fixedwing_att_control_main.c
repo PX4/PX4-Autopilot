@@ -198,6 +198,48 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 				/* set flaps to zero */
 				actuators.control[4] = 0.0f;
 
+			} else if (vstatus.state_machine == SYSTEM_STATE_STABILIZED) {
+
+				/* if the RC signal is lost, try to stay level and go slowly back down to ground */
+				if(vstatus.rc_signal_lost) {
+					
+					// XXX define failsafe throttle param
+					//param_get(failsafe_throttle_handle, &failsafe_throttle);
+					att_sp.roll_body = 0.3f;
+					att_sp.pitch_body = 0.0f;
+					att_sp.yaw_body = 0;
+					att_sp.thrust = 0.4f;
+
+					// XXX disable yaw control, loiter
+
+				} else {
+					
+					att_sp.roll_body = manual_sp.roll;
+					att_sp.pitch_body = manual_sp.pitch;
+					att_sp.yaw_body = 0;
+					att_sp.thrust = manual_sp.throttle;
+				}
+
+				att_sp.timestamp = hrt_absolute_time();
+
+				// XXX: Stop copying setpoint / reference from bus, instead keep position
+				// and mix RC inputs in.
+				// XXX: For now just stabilize attitude, not anything else
+				// proper implementation should do stabilization in position controller
+				// and just check for stabilized or auto state
+
+				/* attitude control */
+				fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
+
+				/* angular rate control */
+				fixedwing_att_control_rates(&rates_sp, gyro, &actuators);
+
+				/* pass through throttle */
+				actuators.control[3] = att_sp.thrust;
+
+				/* set flaps to zero */
+				actuators.control[4] = 0.0f;
+
 			} else {
 				if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
 
@@ -208,7 +250,8 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 						//param_get(failsafe_throttle_handle, &failsafe_throttle);
 						att_sp.roll_body = 0.3f;
 						att_sp.pitch_body = 0.0f;
-						att_sp.thrust = 0.5f;
+						att_sp.thrust = 0.4f;
+						att_sp.yaw_body = 0;
 
 						// XXX disable yaw control, loiter
 
@@ -218,8 +261,9 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 						att_sp.pitch_body = manual_sp.pitch;
 						att_sp.yaw_body = 0;
 						att_sp.thrust = manual_sp.throttle;
-						att_sp.timestamp = hrt_absolute_time();
 					}
+
+					att_sp.timestamp = hrt_absolute_time();
 
 					/* attitude control */
 					fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
