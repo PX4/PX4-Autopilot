@@ -881,10 +881,10 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_PREFLIGHT);
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
-					mavlink_log_info(mavlink_fd, "[cmd] CMD starting gyro calibration");
+					mavlink_log_info(mavlink_fd, "[cmd] starting gyro calibration");
 					tune_confirm();
 					do_gyro_calibration(status_pub, &current_status);
-					mavlink_log_info(mavlink_fd, "[cmd] CMD finished gyro calibration");
+					mavlink_log_info(mavlink_fd, "[cmd] finished gyro calibration");
 					tune_confirm();
 					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
@@ -901,15 +901,15 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_PREFLIGHT);
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
-					mavlink_log_info(mavlink_fd, "[cmd] CMD starting mag calibration");
+					mavlink_log_info(mavlink_fd, "[cmd] starting mag calibration");
 					tune_confirm();
 					do_mag_calibration(status_pub, &current_status);
-					mavlink_log_info(mavlink_fd, "[cmd] CMD finished mag calibration");
+					mavlink_log_info(mavlink_fd, "[cmd] finished mag calibration");
 					tune_confirm();
 					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
 				} else {
-					mavlink_log_critical(mavlink_fd, "[cmd] CMD REJECTING mag calibration");
+					mavlink_log_critical(mavlink_fd, "[cmd] REJECTING mag calibration");
 					result = MAV_RESULT_DENIED;
 				}
 				handled = true;
@@ -921,10 +921,10 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_PREFLIGHT);
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
-					mavlink_log_info(mavlink_fd, "[cmd] zero altitude not implemented");
+					mavlink_log_info(mavlink_fd, "[cmd] zero altitude cal. not implemented");
 					tune_confirm();
 				} else {
-					mavlink_log_critical(mavlink_fd, "[cmd] CMD REJECTING mag calibration");
+					mavlink_log_critical(mavlink_fd, "[cmd] REJECTING altitude calibration");
 					result = MAV_RESULT_DENIED;
 				}
 				handled = true;
@@ -936,15 +936,15 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 				do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_PREFLIGHT);
 
 				if (current_status.state_machine == SYSTEM_STATE_PREFLIGHT) {
-					mavlink_log_info(mavlink_fd, "[cmd] CMD starting mag calibration");
+					mavlink_log_info(mavlink_fd, "[cmd] starting trim calibration");
 					tune_confirm();
 					do_rc_calibration(status_pub, &current_status);
-					mavlink_log_info(mavlink_fd, "[cmd] CMD finished mag calibration");
+					mavlink_log_info(mavlink_fd, "[cmd] finished trim calibration");
 					tune_confirm();
 					do_state_update(status_pub, &current_status, mavlink_fd, SYSTEM_STATE_STANDBY);
 					result = MAV_RESULT_ACCEPTED;
 				} else {
-					mavlink_log_critical(mavlink_fd, "[cmd] CMD REJECTING mag calibration");
+					mavlink_log_critical(mavlink_fd, "[cmd] REJECTING trim calibration");
 					result = MAV_RESULT_DENIED;
 				}
 				handled = true;
