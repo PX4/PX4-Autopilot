@@ -87,16 +87,23 @@ enum VEHICLE_MODE_FLAG {
 }; /**< Same as MAV_MODE_FLAG of MAVLink 1.0 protocol */
 
 enum VEHICLE_FLIGHT_MODE {
-	VEHICLE_FLIGHT_MODE_MANUAL = 0,	/**< direct manual control, same as VEHICLE_FLIGHT_MODE_ATTITUDE for multirotors */
-	VEHICLE_FLIGHT_MODE_ATTITUDE,	/**< attitude or rate stabilization, as defined by VEHICLE_ATTITUDE_MODE */
-	VEHICLE_FLIGHT_MODE_STABILIZED,	/**< attitude or rate stabilization plus velocity or position stabilization */
-	VEHICLE_FLIGHT_MODE_AUTO	/**< attitude or rate stabilization plus absolute position control and waypoints */
+	VEHICLE_FLIGHT_MODE_MANUAL = 0,		/**< direct manual control, exact mode determined by VEHICLE_MANUAL_CONTROL_MODE */
+	VEHICLE_FLIGHT_MODE_STAB,		/**< attitude or rate stabilization plus velocity or position stabilization */
+	VEHICLE_FLIGHT_MODE_HOLD,		/**< hold current position (hover or loiter around position when switched) */
+	VEHICLE_FLIGHT_MODE_AUTO		/**< attitude or rate stabilization plus absolute position control and waypoints */
 };
 
-enum VEHICLE_ATTITUDE_MODE {
-	VEHICLE_ATTITUDE_MODE_DIRECT,	/**< no attitude control, direct stick input mixing (only fixed wing) */
-	VEHICLE_ATTITUDE_MODE_RATES,	/**< body rates control mode */
-	VEHICLE_ATTITUDE_MODE_ATTITUDE	/**< tait-bryan attitude control mode */
+enum VEHICLE_MANUAL_CONTROL_MODE {
+	VEHICLE_MANUAL_CONTROL_MODE_DIRECT = 0,	/**< no attitude control, direct stick input mixing (only fixed wing) */
+	VEHICLE_MANUAL_CONTROL_MODE_RATES,	/**< body rates control mode */
+	VEHICLE_MANUAL_CONTROL_MODE_SAS		/**< stability augmented system (SAS) mode */
+};
+
+enum VEHICLE_MANUAL_SAS_MODE {
+	VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_ABS = 0,	/**< roll, pitch and yaw absolute */
+	VEHICLE_MANUAL_SAS_MODE_ROLL_PITCH_ABS_YAW_RATE,	/**< roll and pitch absolute, yaw rate */
+	VEHICLE_MANUAL_SAS_MODE_SIMPLE,				/**< simple mode (includes altitude hold) */
+	VEHICLE_MANUAL_SAS_MODE_ALTITUDE			/**< altitude hold */
 };
 
 /**
@@ -115,11 +122,9 @@ struct vehicle_status_s
 
 	commander_state_machine_t state_machine;	/**< current flight state, main state machine */
 	enum VEHICLE_FLIGHT_MODE flight_mode;		/**< current flight mode, as defined by mode switch */
-	enum VEHICLE_ATTITUDE_MODE attitute_mode;	/**< current attitude control mode, as defined by VEHICLE_ATTITUDE_MODE enum */
+	enum VEHICLE_MANUAL_CONTROL_MODE manual_control_mode;	/**< current attitude control mode, as defined by VEHICLE_ATTITUDE_MODE enum */
+	enum VEHICLE_MANUAL_SAS_MODE	manual_sas_mode;	/**< current stabilization mode */
 	int32_t system_type;				/**< system type, inspired by MAVLinks MAV_TYPE enum */
-
-	// uint8_t mode;
-
 
 	/* system flags - these represent the state predicates */
 
@@ -165,11 +170,12 @@ struct vehicle_status_s
 	uint16_t errors_count3;
 	uint16_t errors_count4;
 
-//	bool remote_manual; /**< set to true by the commander when the manual-switch on the remote is set to manual */
-	bool flag_global_position_valid;     /**< set to true by the commander app if the quality of the gps signal is good enough to use it in the position estimator */
+	bool flag_global_position_valid;		/**< set to true by the commander app if the quality of the gps signal is good enough to use it in the position estimator */
 	bool flag_local_position_valid;
-	bool flag_vector_flight_mode_ok;			/**< position estimation, battery voltage and other critical subsystems are good for autonomous flight */
-	bool flag_external_manual_override_ok;
+	bool flag_vector_flight_mode_ok;		/**< position estimation, battery voltage and other critical subsystems are good for autonomous flight */
+	bool flag_auto_flight_mode_ok;			/**< conditions of vector flight mode apply plus a valid takeoff position lock has been aquired */
+	bool flag_external_manual_override_ok;		/**< external override non-fatal for system. Only true for fixed wing */
+	bool flag_valid_launch_position;		/**< indicates a valid launch position */
 };
 
 /**

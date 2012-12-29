@@ -106,9 +106,9 @@ struct sys_state_s
 	bool		fmu_report_due;
 
 	/**
-	 * If true, new control data from the FMU has been received.
+	 * Last FMU receive time, in microseconds since system boot
 	 */
-	bool		fmu_data_received;
+	uint64_t	fmu_data_received_time;
 
 	/**
 	 * Current serial interface mode, per the serial_rx_mode parameter
@@ -162,8 +162,8 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
 #define LED_SAFETY(_s)		stm32_gpiowrite(GPIO_LED3, !(_s))
 
 #define POWER_SERVO(_s)		stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
-#define POWER_ACC1(_s)		stm32_gpiowrite(GPIO_SERVO_ACC1_EN, (_s))
-#define POWER_ACC2(_s)		stm32_gpiowrite(GPIO_SERVO_ACC2_EN, (_s))
+#define POWER_ACC1(_s)		stm32_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
+#define POWER_ACC2(_s)		stm32_gpiowrite(GPIO_ACC2_PWR_EN, (_s))
 #define POWER_RELAY1(_s)	stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
 #define POWER_RELAY2(_s)	stm32_gpiowrite(GPIO_RELAY2_EN, (_s))
 
@@ -193,7 +193,8 @@ extern void	controls_main(void);
 extern int	dsm_init(const char *device);
 extern bool	dsm_input(void);
 extern int	sbus_init(const char *device);
-extern bool	sbus_input(void);
+extern bool	sbus_input(int fd, unsigned max_channels, uint16_t *channel_data, unsigned *channel_count,
+		uint64_t *receive_time, bool *updated);
 
 /*
  * Assertion codes

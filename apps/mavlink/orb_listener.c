@@ -455,7 +455,7 @@ l_actuator_outputs(struct listener *l)
 					  act_outputs.output[7]);
 
 		/* only send in HIL mode */
-		if (mavlink_hil_enabled) {
+		if (mavlink_hil_enabled && armed.armed) {
 
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
@@ -506,20 +506,19 @@ l_actuator_outputs(struct listener *l)
 					mavlink_mode,
 					0);
 			} else {
+
+				/*
+				 * Catch the case where no rudder is in use and throttle is not
+				 * on output four
+				 */
 				float rudder, throttle;
 
-				/* SCALING: PWM min: 900, PWM max: 2100, center: 1500 */
-
-				// XXX very ugly, needs rework
-				if (isfinite(act_outputs.output[3])
-					&& act_outputs.output[3] > 800 && act_outputs.output[3] < 2200) {
-					/* throttle is fourth output */
-					rudder = (act_outputs.output[2] - 1500.0f) / 600.0f;
-					throttle = (((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f);
+				if (act_outputs.noutputs < 4) {
+					rudder = 0.0f;
+					throttle = (act_outputs.output[2] - 900.0f) / 1200.0f;
 				} else {
-					/* only three outputs, put throttle on position 4 / index 3 */
-					rudder = 0;
-					throttle = (((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f);
+					rudder = (act_outputs.output[2] - 1500.0f) / 600.0f;
+					throttle = (act_outputs.output[3] - 900.0f) / 1200.0f;
 				}
 
 				mavlink_msg_hil_controls_send(chan,

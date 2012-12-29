@@ -52,6 +52,7 @@
 #include <nuttx/clock.h>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
 #include <systemlib/hx_stream.h>
 #include <systemlib/perf_counter.h>
 
@@ -183,7 +184,7 @@ comms_handle_command(const void *buffer, size_t length)
 	system_state.vector_flight_mode_ok = cmd->vector_flight_mode_ok;
 	system_state.manual_override_ok = cmd->manual_override_ok;
 	system_state.mixer_fmu_available = true;
-	system_state.fmu_data_received = true;
+	system_state.fmu_data_received_time = hrt_absolute_time();
 
 	/* set PWM update rate if changed (after limiting) */
 	uint16_t new_servo_rate = cmd->servo_rate;
@@ -201,9 +202,32 @@ comms_handle_command(const void *buffer, size_t length)
 		system_state.servo_rate = new_servo_rate;
 	}
 
-	/* XXX do relay changes here */	
+	/*
+	 * update servo values immediately.
+	 * the updates are done in addition also
+	 * in the mainloop, since this function will only
+	 * update with a connected FMU.
+	 */
+	mixer_tick();
+
+	/* handle relay state changes here */	
 	for (unsigned i = 0; i < PX4IO_RELAY_CHANNELS; i++) {
-		system_state.relays[i] = cmd->relay_state[i];
+		if (system_state.relays[i] != cmd->relay_state[i]) {
+			switch (i) {
+			case 0:
+				POWER_ACC1(cmd->relay_state[i]);
+				break;
+			case 1:
+				POWER_ACC2(cmd->relay_state[i]);
+				break;
+			case 2:
+				POWER_RELAY1(cmd->relay_state[i]);
+				break;
+			case 3:
+				POWER_RELAY2(cmd->relay_state[i]);
+				break;
+			}
+		}
 	}
 
 	irqrestore(flags);
