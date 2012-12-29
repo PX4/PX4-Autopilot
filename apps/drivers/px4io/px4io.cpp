@@ -609,11 +609,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		}
 		break;
 
-	case MIXERIOCADDMULTIROTOR:
-		/* XXX not yet supported */
-		ret = -ENOTTY;
-		break;
-
 	case MIXERIOCLOADFILE: {
 			MixerGroup *newmixers;
 			const char *path = (const char *)arg;

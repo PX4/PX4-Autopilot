@@ -100,24 +100,6 @@ struct mixer_simple_s {
  */
 #define MIXERIOCADDSIMPLE	_MIXERIOC(2)
 
-/** multirotor output definition */
-struct mixer_rotor_output_s {
-	float			angle;		/**< rotor angle clockwise from forward in radians */
-	float			distance;	/**< motor distance from centre in arbitrary units */
-};
-
-/** multirotor mixer */
-struct mixer_multirotor_s {
-	uint8_t			rotor_count;
-	struct mixer_control_s	controls[4];	/**< controls are roll, pitch, yaw, thrust */
-	struct mixer_rotor_output_s rotors[0];	/**< actual size of the array is set by rotor_count */
-};
-
-/**
- * Add a multirotor mixer in (struct mixer_multirotor_s *)arg
- */
-#define MIXERIOCADDMULTIROTOR	_MIXERIOC(3)
-
 /**
  * Add mixers(s) from a the file in (const char *)arg
  */

@@ -544,11 +544,6 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOCADDMULTIROTOR:
-		/* XXX not yet supported */
-		ret = -ENOTTY;
-		break;
-
 	case MIXERIOCLOADFILE: {
 			const char *path = (const char *)arg;
 
