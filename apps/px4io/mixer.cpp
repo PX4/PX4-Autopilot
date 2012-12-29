@@ -126,7 +126,7 @@ mixer_tick(void)
 		for (unsigned i = 0; i < IO_SERVO_COUNT; i++) {
 			if (i < mixed) {
 				/* scale to servo output */
-				system_state.servos[i] = (outputs[i] * 1000.0f) + 1000;
+				system_state.servos[i] = (outputs[i] * 500.0f) + 1500;
 			} else {
 				/* set to zero to inhibit PWM pulse output */
 				system_state.servos[i] = 0;
@@ -168,7 +168,7 @@ mixer_callback(uintptr_t handle,
 
 	/* scale from current PWM units (1000-2000) to mixer input values */
 	/* XXX this presents some ugly problems w.r.t failsafe and R/C input scaling that have to be addressed */
-	control = ((float)control_values[control_index] - 1000.0f) / 1000.0f;
+	control = ((float)control_values[control_index] - 1500.0f) / 500.0f;
 
 	return 0;
 }
