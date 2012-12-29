@@ -85,6 +85,11 @@ struct sys_state_s
 	uint16_t	fmu_channel_data[PX4IO_OUTPUT_CHANNELS];
 
 	/*
+	 * Mixed servo outputs
+	 */
+	uint16_t	servos[IO_SERVO_COUNT];
+
+	/*
 	 * Relay controls
 	 */
 	bool		relays[PX4IO_RELAY_CHANNELS];
@@ -149,6 +154,7 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
  * Mixer
  */
 extern void	mixer_tick(void);
+extern void	mixer_handle_text(const void *buffer, size_t length);
 
 /*
  * Safety switch/LED.
