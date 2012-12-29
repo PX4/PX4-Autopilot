@@ -100,10 +100,13 @@ struct mixer_simple_s {
  */
 #define MIXERIOCADDSIMPLE	_MIXERIOC(2)
 
+/* _MIXERIOC(3) was deprecated */
+/* _MIXERIOC(4) was deprecated */
+
 /**
- * Add mixers(s) from a the file in (const char *)arg
+ * Add mixer(s) from the buffer in (const char *)arg
  */
-#define MIXERIOCLOADFILE	_MIXERIOC(4)
+#define MIXERIOCLOADBUF		_MIXERIOC(5)
 
 /*
  * XXX Thoughts for additional operations:

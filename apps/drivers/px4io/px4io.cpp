@@ -609,27 +609,29 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		}
 		break;
 
-	case MIXERIOCLOADFILE: {
-			MixerGroup *newmixers;
-			const char *path = (const char *)arg;
+	case MIXERIOCLOADBUF: {
+			const char *buf = (const char *)arg;
+			unsigned buflen = strnlen(buf, 1024);
 
-			/* allocate a new mixer group and load it from the file */
-			newmixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
+			if (_mixers == nullptr)
+				_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
 
-			if (newmixers->load_from_file(path) != 0) {
-				delete newmixers;
-				ret = -EINVAL;
+			if (_mixers == nullptr) {
+				ret = -ENOMEM;
+
+			} else {
+
+				ret = _mixers->load_from_buf(buf, buflen);
+
+				if (ret != 0) {
+					debug("mixer load failed with %d", ret);
+					delete _mixers;
+					_mixers = nullptr;
+					ret = -EINVAL;
+				}
 			}
-
-			/* swap the new mixers in for the old */
-			if (_mixers != nullptr) {
-				delete _mixers;
-			}
-
-			_mixers = newmixers;
-
+			break;
 		}
-		break;
 
 	default:
 		/* not a recognised value */
