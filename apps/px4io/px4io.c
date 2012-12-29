@@ -55,10 +55,15 @@
 
 __EXPORT int user_start(int argc, char *argv[]);
 
+extern void up_cxxinitialize(void);
+
 struct sys_state_s 	system_state;
 
 int user_start(int argc, char *argv[])
 {
+	/* run C++ ctors before we go any further */
+	up_cxxinitialize();
+
 	/* reset all to zero */
 	memset(&system_state, 0, sizeof(system_state));
 
