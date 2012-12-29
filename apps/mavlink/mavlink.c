@@ -189,8 +189,32 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 	*mavlink_mode = 0;
 
 	/* set mode flags independent of system state */
+
+	/* HIL */
 	if (v_status.flag_hil_enabled) {
 		*mavlink_mode |= MAV_MODE_FLAG_HIL_ENABLED;
+	}
+
+	/* manual input */
+	if (v_status.flag_control_manual_enabled) {
+		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+	}
+
+	/* attitude or rate control */
+	if (v_status.flag_control_attitude_enabled ||
+		v_status.flag_control_rates_enabled) {
+		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+	}
+
+	/* vector control */
+	if (v_status.flag_control_velocity_enabled ||
+		v_status.flag_control_position_enabled) {
+		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
+	}
+
+	/* autonomous mode */
+	if (v_status.state_machine == SYSTEM_STATE_AUTO) {
+		*mavlink_mode |= MAV_MODE_FLAG_AUTO_ENABLED;
 	}
 
 	/* set arming state */
@@ -221,20 +245,14 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 
 	case SYSTEM_STATE_MANUAL:
 		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
 		break;
 
 	case SYSTEM_STATE_STABILIZED:
 		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
-		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
 		break;
 
 	case SYSTEM_STATE_AUTO:
 		*mavlink_state = MAV_STATE_ACTIVE;
-		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
-		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
-		*mavlink_mode |= MAV_MODE_FLAG_AUTO_ENABLED;
 		break;
 
 	case SYSTEM_STATE_MISSION_ABORT:

@@ -1088,24 +1088,8 @@ Sensors::ppm_poll()
 
 		manual_control.timestamp = rc_input.timestamp;
 
-		// /* check if input needs to be de-mixed */
-		// if (_parameters.rc_demix == (int)RC_DEMIX_DELTA) {
-		// 	// XXX hardcoded for testing purposes, replace with inverted delta mixer from ROMFS
-
-		// 	/* roll input - mixed roll and pitch channels */
-		// 	manual_control.roll = 0.5f * (_rc.chan[_rc.function[ROLL]].scaled - _rc.chan[_rc.function[PITCH]].scaled);
-		// 	 pitch input - mixed roll and pitch channels 
-		// 	manual_control.pitch = 0.5f * (_rc.chan[_rc.function[ROLL]].scaled + _rc.chan[_rc.function[PITCH]].scaled);
-		// 	/* yaw input - stick right is positive and positive rotation */
-		// 	manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled;
-		// 	/* throttle input */
-		// 	manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
-
-		// /* direct pass-through of manual input */
-		// } else {
-
 		/* roll input - rolling right is stick-wise and rotation-wise positive */
-		manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled;
+		manual_control.roll = limit_minus_one_to_one(_rc.chan[_rc.function[ROLL]].scaled);
 		/*
 		 * pitch input - stick down is negative, but stick down is pitching up (pos) in NED,
 		 * so reverse sign.

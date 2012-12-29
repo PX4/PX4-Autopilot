@@ -535,6 +535,7 @@ void update_state_machine_mode_stabilized(int status_pub, struct vehicle_status_
 {
 	if (!current_status->flag_vector_flight_mode_ok) {
 		mavlink_log_critical(mavlink_fd, "NO POS LOCK, REJ. STAB MODE");
+		tune_error();
 		return;
 	}
 	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_AUTO) {

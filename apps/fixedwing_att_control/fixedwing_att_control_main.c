@@ -201,7 +201,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 			} else if (vstatus.state_machine == SYSTEM_STATE_STABILIZED) {
 
 				/* if the RC signal is lost, try to stay level and go slowly back down to ground */
-				if(vstatus.rc_signal_lost) {
+				if (vstatus.rc_signal_lost) {
 					
 					// XXX define failsafe throttle param
 					//param_get(failsafe_throttle_handle, &failsafe_throttle);
@@ -244,7 +244,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 				if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
 
 					/* if the RC signal is lost, try to stay level and go slowly back down to ground */
-					if(vstatus.rc_signal_lost) {
+					if (vstatus.rc_signal_lost) {
 						
 						// XXX define failsafe throttle param
 						//param_get(failsafe_throttle_handle, &failsafe_throttle);

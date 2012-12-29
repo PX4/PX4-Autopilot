@@ -147,7 +147,6 @@ int commander_thread_main(int argc, char *argv[]);
 
 static int buzzer_init(void);
 static void buzzer_deinit(void);
-static void tune_confirm(void);
 static int led_init(void);
 static void led_deinit(void);
 static int led_toggle(int led);
@@ -270,6 +269,10 @@ int trigger_audio_alarm(uint8_t old_mode, uint8_t old_state, uint8_t new_mode, u
 
 void tune_confirm(void) {
 	ioctl(buzzer, TONE_SET_ALARM, 3);
+}
+
+void tune_error(void) {
+	ioctl(buzzer, TONE_SET_ALARM, 4);
 }
 
 void do_rc_calibration(int status_pub, struct vehicle_status_s *status)
@@ -980,8 +983,13 @@ void handle_command(int status_pub, struct vehicle_status_s *current_vehicle_sta
 		break;
 
 		case MAV_CMD_PREFLIGHT_STORAGE: {
-			if (current_status.flag_system_armed) {
-				mavlink_log_info(mavlink_fd, "[cmd] REJECTING param command while armed");
+			if (current_status.flag_system_armed &&
+				((current_status.system_type == MAV_TYPE_QUADROTOR) ||
+						(current_status.system_type == MAV_TYPE_HEXAROTOR) ||
+						(current_status.system_type == MAV_TYPE_OCTOROTOR))) {
+				/* do not perform expensive memory tasks on multirotors in flight */
+				// XXX this is over-safe, as soon as cmd is in low prio thread this can be allowed
+				mavlink_log_info(mavlink_fd, "[cmd] REJECTING save cmd while multicopter armed");
 			} else {
 
 				// XXX move this to LOW PRIO THREAD of commander app
@@ -1680,6 +1688,7 @@ int commander_thread_main(int argc, char *argv[])
 				 * Check if manual control modes have to be switched
 				 */
 				if (!isfinite(sp_man.manual_mode_switch)) {
+					printf("man mode sw not finite\n");
 
 					/* this switch is not properly mapped, set default */
 					if ((current_status.system_type == MAV_TYPE_QUADROTOR) ||
@@ -1688,13 +1697,17 @@ int commander_thread_main(int argc, char *argv[])
 
 						/* assuming a rotary wing, fall back to SAS */
 						current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
+						current_status.flag_control_attitude_enabled = true;
+						current_status.flag_control_rates_enabled = true;
 					} else {
 
 						/* assuming a fixed wing, fall back to direct pass-through */
 						current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_DIRECT;
+						current_status.flag_control_attitude_enabled = false;
+						current_status.flag_control_rates_enabled = false;
 					}
 
-				} else if (sp_man.manual_sas_switch < -STICK_ON_OFF_LIMIT) {
+				} else if (sp_man.manual_mode_switch < -STICK_ON_OFF_LIMIT) {
 
 					/* bottom stick position, set direct mode for vehicles supporting it */
 					if ((current_status.system_type == MAV_TYPE_QUADROTOR) ||
@@ -1703,21 +1716,31 @@ int commander_thread_main(int argc, char *argv[])
 
 						/* assuming a rotary wing, fall back to SAS */
 						current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
+						current_status.flag_control_attitude_enabled = true;
+						current_status.flag_control_rates_enabled = true;
 					} else {
 
-						/* assuming a fixed wing, fall back to direct pass-through */
+						/* assuming a fixed wing, set to direct pass-through as requested */
 						current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_DIRECT;
+						current_status.flag_control_attitude_enabled = false;
+						current_status.flag_control_rates_enabled = false;
 					}
 
-				} else if (sp_man.manual_sas_switch > STICK_ON_OFF_LIMIT) {
+				} else if (sp_man.manual_mode_switch > STICK_ON_OFF_LIMIT) {
 
 					/* top stick position, set SAS for all vehicle types */
 					current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
+					current_status.flag_control_attitude_enabled = true;
+					current_status.flag_control_rates_enabled = true;
 
 				} else {
 					/* center stick position, set rate control */
 					current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_RATES;
+					current_status.flag_control_attitude_enabled = false;
+					current_status.flag_control_rates_enabled = true;
 				}
+
+				printf("man ctrl mode: %d\n", (int)current_status.manual_control_mode);
 
 				/*
 				 * Check if manual stability control modes have to be switched
