@@ -240,7 +240,7 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 				/* set flaps to zero */
 				actuators.control[4] = 0.0f;
 
-			} else {
+			} else if (vstatus.state_machine == SYSTEM_STATE_MANUAL) {
 				if (vstatus.manual_control_mode == VEHICLE_MANUAL_CONTROL_MODE_SAS) {
 
 					/* if the RC signal is lost, try to stay level and go slowly back down to ground */
