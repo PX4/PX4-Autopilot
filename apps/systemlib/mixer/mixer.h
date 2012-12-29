@@ -234,6 +234,11 @@ public:
 	void				add_mixer(Mixer *mixer);
 
 	/**
+	 * Remove all the mixers from the group.
+	 */
+	void				reset();
+
+	/**
 	 * Adds mixers to the group based on a text description in a buffer.
 	 *
 	 * Mixer definitions begin with a single capital letter and a colon.
@@ -269,10 +274,11 @@ public:
 	 * R: <geometry> <roll scale> <pitch scale> <yaw scale> <deadband>
 	 *
 	 * @param buf			The mixer configuration buffer.
-	 * @param buflen		The length of the buffer.
+	 * @param buflen		The length of the buffer, updated to reflect
+	 *				bytes as they are consumed.
 	 * @return			Zero on successful load, nonzero otherwise.
 	 */
-	int				load_from_buf(const char *buf, unsigned buflen);
+	int				load_from_buf(const char *buf, unsigned &buflen);
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */

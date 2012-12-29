@@ -64,14 +64,7 @@ MixerGroup::MixerGroup(ControlCallback control_cb, uintptr_t cb_handle) :
 
 MixerGroup::~MixerGroup()
 {
-	Mixer *mixer;
-
-	/* discard sub-mixers */
-	while (_first != nullptr) {
-		mixer = _first;
-		_first = mixer->_next;
-		delete mixer;
-	}
+	reset();
 }
 
 void
@@ -86,6 +79,19 @@ MixerGroup::add_mixer(Mixer *mixer)
 
 	*mpp = mixer;
 	mixer->_next = nullptr;
+}
+
+void
+MixerGroup::reset()
+{
+	Mixer *mixer;
+
+	/* discard sub-mixers */
+	while (_first != nullptr) {
+		mixer = _first;
+		_first = mixer->_next;
+		delete mixer;
+	}	
 }
 
 unsigned
@@ -114,7 +120,7 @@ MixerGroup::groups_required(uint32_t &groups)
 }
 
 int
-MixerGroup::load_from_buf(const char *buf, unsigned buflen)
+MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 {
 	int ret = -1;
 	const char *end = buf + buflen;
