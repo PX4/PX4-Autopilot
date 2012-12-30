@@ -220,11 +220,11 @@ mixer_handle_text(const void *buffer, size_t length)
 		if (resid != mixer_text_length) {
 			debug("used %u", mixer_text_length - resid);
 
-		// 	 copy any leftover text to the base of the buffer for re-use 
-		// 	if (resid > 0)
-		// 		memcpy(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
+			/* copy any leftover text to the base of the buffer for re-use */
+			if (resid > 0)
+				memcpy(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
 
-		// 	mixer_text_length = resid;
+			mixer_text_length = resid;
 		}
 
 		break;
