@@ -171,8 +171,8 @@ comms_handle_command(const void *buffer, size_t length)
 	irqstate_t flags = irqsave();
 
 	/* fetch new PWM output values */
-	for (unsigned i = 0; i < PX4IO_OUTPUT_CHANNELS; i++)
-		system_state.fmu_channel_data[i] = cmd->servo_command[i];
+	for (unsigned i = 0; i < PX4IO_CONTROL_CHANNELS; i++)
+		system_state.fmu_channel_data[i] = cmd->output_control[i];
 
 	/* if the IO is armed and the FMU gets disarmed, the IO must also disarm */
 	if (system_state.arm_ok && !cmd->arm_ok) {

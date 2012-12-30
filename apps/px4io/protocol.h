@@ -41,7 +41,7 @@
 
 #pragma once
 
-#define PX4IO_OUTPUT_CHANNELS	8
+#define PX4IO_CONTROL_CHANNELS	8
 #define PX4IO_INPUT_CHANNELS	12
 #define PX4IO_RELAY_CHANNELS	4
 
@@ -54,7 +54,7 @@ struct px4io_command {
 	uint16_t	f2i_magic;
 #define F2I_MAGIC		0x636d
 
-	uint16_t	servo_command[PX4IO_OUTPUT_CHANNELS];
+	uint16_t	output_control[PX4IO_CONTROL_CHANNELS];
 	bool		relay_state[PX4IO_RELAY_CHANNELS];
 	bool		arm_ok;
 };

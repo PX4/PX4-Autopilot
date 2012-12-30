@@ -85,7 +85,7 @@ mixer_tick(void)
 	 */
 	if (system_state.mixer_use_fmu) {
 		/* we have recent control data from the FMU */
-		control_count = PX4IO_OUTPUT_CHANNELS;
+		control_count = PX4IO_CONTROL_CHANNELS;
 		control_values = &system_state.fmu_channel_data[0];
 
 		/* check that we are receiving fresh data from the FMU */
@@ -170,7 +170,6 @@ mixer_callback(uintptr_t handle,
 		return -1;
 
 	/* scale from current PWM units (1000-2000) to mixer input values */
-	/* XXX this presents some ugly problems w.r.t failsafe and R/C input scaling that have to be addressed */
 	control = ((float)control_values[control_index] - 1500.0f) / 500.0f;
 
 	return 0;

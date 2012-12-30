@@ -81,7 +81,7 @@ struct sys_state_s {
 	/*
 	 * Control signals from FMU.
 	 */
-	uint16_t	fmu_channel_data[PX4IO_OUTPUT_CHANNELS];
+	uint16_t	fmu_channel_data[PX4IO_CONTROL_CHANNELS];
 
 	/*
 	 * Mixed servo outputs
