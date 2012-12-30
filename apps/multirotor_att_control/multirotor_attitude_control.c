@@ -197,7 +197,7 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 	}
 
 	/* load new parameters with lower rate */
-	if (motor_skip_counter % 1000 == 0) {
+	if (motor_skip_counter % 500 == 0) {
 		/* update parameters from storage */
 		parameters_update(&h, &p);
 
@@ -205,6 +205,13 @@ void multirotor_control_attitude(const struct vehicle_attitude_setpoint_s *att_s
 		pid_set_parameters(&pitch_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
 		pid_set_parameters(&roll_controller, p.att_p, p.att_i, p.att_d, 1000.0f, 1000.0f);
 	}
+
+	/* reset integral if on ground */
+	if(att_sp->thrust < 0.1f) {
+		pid_reset_integral(&pitch_controller);
+		pid_reset_integral(&roll_controller);
+	}
+
 
 	/* calculate current control outputs */
 

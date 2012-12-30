@@ -65,6 +65,7 @@
 #include <systemlib/systemlib.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/err.h>
+#include <systemlib/conversions.h>
 
 #include "codegen/attitudeKalmanfilter_initialize.h"
 #include "codegen/attitudeKalmanfilter.h"
@@ -254,6 +255,7 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 	bool initialized = false;
 
 	float gyro_offsets[3] = { 0.0f, 0.0f, 0.0f };
+	float accel_magnitude = CONSTANTS_ONE_G;
 	unsigned offset_count = 0;
 
 	/* register the perf counter */
@@ -329,13 +331,34 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 					z_k[1] =  raw.gyro_rad_s[1] - gyro_offsets[1];
 					z_k[2] =  raw.gyro_rad_s[2] - gyro_offsets[2];
 
-					/* update accelerometer measurements */
-					if (sensor_last_count[1] != raw.accelerometer_counter) {
+					/*
+					 * Check if assumption of zero acceleration roughly holds.
+					 * If not, do not update the accelerometer, predict only with gyroscopes.
+					 * The violation of the zero acceleration assumption can only hold shortly,
+					 * and predicting the angle with the gyros is safe for 
+					 */
+					bool acceleration_stationary = true;
+
+					/* lowpass accel magnitude to prevent threshold aliasing in presence of vibrations */
+					accel_magnitude = accel_magnitude * 0.95f + 0.05f * sqrtf(raw.accelerometer_m_s2[0] * raw.accelerometer_m_s2[0]
+											+ raw.accelerometer_m_s2[1] * raw.accelerometer_m_s2[1]
+											+ raw.accelerometer_m_s2[2] * raw.accelerometer_m_s2[2]);
+
+					/* check if length of gravity vector differs in more than 15 % from expected result */
+					if (fabsf(accel_magnitude - CONSTANTS_ONE_G) > (CONSTANTS_ONE_G * 0.15f)) {
+						/* acceleration violates assumptions, disable updates */
+						acceleration_stationary = false;
+					}
+
+					/* update accelerometer measurements, reject if vector norm ends up being weird */
+					if (sensor_last_count[1] != raw.accelerometer_counter &&
+						acceleration_stationary) {
 						update_vect[1] = 1;
 						sensor_last_count[1] = raw.accelerometer_counter;
 						sensor_update_hz[1] = 1e6f / (raw.timestamp - sensor_last_timestamp[1]);
 						sensor_last_timestamp[1] = raw.timestamp;
 					}
+
 					z_k[3] = raw.accelerometer_m_s2[0];
 					z_k[4] = raw.accelerometer_m_s2[1];
 					z_k[5] = raw.accelerometer_m_s2[2];

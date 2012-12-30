@@ -150,9 +150,7 @@ __EXPORT int nsh_archinitialize(void)
 	int result;
 
 	/* configure the high-resolution time/callout interface */
-#ifdef CONFIG_HRT_TIMER
 	hrt_init();
-#endif
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
@@ -160,27 +158,21 @@ __EXPORT int nsh_archinitialize(void)
 #endif
 
 	/* set up the serial DMA polling */
-#ifdef SERIAL_HAVE_DMA
-	{
-		static struct hrt_call serial_dma_call;
-		struct timespec ts;
+	static struct hrt_call serial_dma_call;
+	struct timespec ts;
 
-		/*
-		 * Poll at 1ms intervals for received bytes that have not triggered
-		 * a DMA event.
-		 */
-		ts.tv_sec = 0;
-		ts.tv_nsec = 1000000;
+	/*
+	 * Poll at 1ms intervals for received bytes that have not triggered
+	 * a DMA event.
+	 */
+	ts.tv_sec = 0;
+	ts.tv_nsec = 1000000;
 
-		hrt_call_every(&serial_dma_call,
-			       ts_to_abstime(&ts),
-			       ts_to_abstime(&ts),
-			       (hrt_callout)stm32_serial_dma_poll,
-			       NULL);
-	}
-#endif
-
-	message("\r\n");
+	hrt_call_every(&serial_dma_call,
+		       ts_to_abstime(&ts),
+		       ts_to_abstime(&ts),
+		       (hrt_callout)stm32_serial_dma_poll,
+		       NULL);
 
 	// initial LED state
 	drv_led_start();
@@ -209,8 +201,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	message("[boot] Successfully initialized SPI port 1\r\n");
 
-#if defined(CONFIG_STM32_SPI3)
-	/* Get the SPI port */
+	/* Get the SPI port for the microsd slot */
 
 	message("[boot] Initializing SPI port 3\n");
 	spi3 = up_spiinitialize(3);
@@ -233,7 +224,6 @@ __EXPORT int nsh_archinitialize(void)
 	}
 
 	message("[boot] Successfully bound SPI port 3 to the MMCSD driver\n");
-#endif /* SPI3 */
 
 #ifdef CONFIG_ADC
 	int adc_state = adc_devinit();

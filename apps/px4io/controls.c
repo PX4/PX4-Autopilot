@@ -60,6 +60,10 @@
 #define DEBUG
 #include "px4io.h"
 
+#define RC_FAILSAFE_TIMEOUT		2000000		/**< two seconds failsafe timeout */
+#define RC_CHANNEL_HIGH_THRESH		1700
+#define RC_CHANNEL_LOW_THRESH		1300
+
 static void	ppm_input(void);
 
 void
@@ -88,11 +92,23 @@ controls_main(void)
 		 */
 		bool locked = false;
 
+		/*
+		 * Store RC channel count to detect switch to RC loss sooner
+		 * than just by timeout
+		 */
+		unsigned rc_channels = system_state.rc_channels;
+
+		/*
+		 * Track if any input got an update in this round
+		 */
+		bool rc_updated;
+
 		if (fds[0].revents & POLLIN)
 			locked |= dsm_input();
 
 		if (fds[1].revents & POLLIN)
-			locked |= sbus_input();
+			locked |= sbus_input(fds[1].fd, PX4IO_INPUT_CHANNELS, &system_state.rc_channel_data,
+				&system_state.rc_channels, &system_state.rc_channels_timestamp, &rc_updated);
 
 		/*
 		 * If we don't have lock from one of the serial receivers,
@@ -107,6 +123,15 @@ controls_main(void)
 		if (!locked)
 			ppm_input();
 
+		/* check for manual override status */
+		if (system_state.rc_channel_data[4] > RC_CHANNEL_HIGH_THRESH) {
+			/* force manual input override */
+			system_state.mixer_manual_override = true;
+		} else {
+			/* override not engaged, use FMU */
+			system_state.mixer_manual_override = false;
+		}
+
 		/*
 		 * If we haven't seen any new control data in 200ms, assume we
 		 * have lost input and tell FMU.
@@ -115,14 +140,20 @@ controls_main(void)
 
 			/* set the number of channels to zero - no inputs */
 			system_state.rc_channels = 0;
-
-			/* trigger an immediate report to the FMU */
-			system_state.fmu_report_due = true;
+			rc_updated = true;
 		}
 
-		/* XXX do bypass mode, etc. here */
+		/*
+		 * If there was a RC update OR the RC signal status (lost / present) has
+		 * just changed, request an update immediately.
+		 */
+		system_state.fmu_report_due |= rc_updated;
 
-		/* do PWM output updates */
+		/*
+		 * PWM output updates are performed in addition on each comm update.
+		 * the updates here are required to ensure operation if FMU is not started
+		 * or stopped responding.
+		 */
 		mixer_tick();
 	}
 }
