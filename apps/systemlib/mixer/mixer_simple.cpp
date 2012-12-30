@@ -72,17 +72,25 @@ SimpleMixer::~SimpleMixer()
 }
 
 static const char *
-skipspace(const char *p, unsigned &len)
+findtag(const char *buf, unsigned &buflen, char tag)
 {
-	while (isspace(*p)) {
-		if (len == 0)
-			return nullptr;
-
-		len--;
-		p++;
+	while (buflen >= 2) {
+		if ((buf[0] == tag) && (buf[1] == ':'))
+			return buf;
+		buf++;
+		buflen--;
 	}
+	return nullptr;
+}
 
-	return p;
+static void
+skipline(const char *buf, unsigned &buflen)
+{
+	const char *p;
+
+	/* if we can find a CR or NL in the buffer, skip up to it */
+	if ((p = (const char *)memchr(buf, '\r', buflen)) || (p = (const char *)memchr(buf, '\n', buflen)))
+		buflen -= (p - buf);
 }
 
 int
@@ -90,20 +98,17 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 {
 	int ret;
 	int s[5];
-	int used;
-
-	buf = skipspace(buf, buflen);
-
-	if (buflen < 16)
+	
+	buf = findtag(buf, buflen, 'O');
+	if ((buf == nullptr) || (buflen < 12))
 		return -1;
 
-	if ((ret = sscanf(buf, "O: %d %d %d %d %d%n",
-			  &s[0], &s[1], &s[2], &s[3], &s[4], &used)) != 5) {
+	if ((ret = sscanf(buf, "O: %d %d %d %d %d",
+			  &s[0], &s[1], &s[2], &s[3], &s[4])) != 5) {
 		debug("scaler parse failed on '%s' (got %d)", buf, ret);
 		return -1;
 	}
-
-	buflen -= used;
+	skipline(buf, buflen);
 
 	scaler.negative_scale	= s[0] / 10000.0f;
 	scaler.positive_scale	= s[1] / 10000.0f;
@@ -119,20 +124,17 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 {
 	unsigned u[2];
 	int s[5];
-	int used;
 
-	buf = skipspace(buf, buflen);
-
-	if (buflen < 16)
+	buf = findtag(buf, buflen, 'S');
+	if ((buf == nullptr) || (buflen < 16))
 		return -1;
 
-	if (sscanf(buf, "S: %u %u %d %d %d %d %d%n",
-		   &u[0], &u[1], &s[0], &s[1], &s[2], &s[3], &s[4], &used) != 7) {
+	if (sscanf(buf, "S: %u %u %d %d %d %d %d",
+		   &u[0], &u[1], &s[0], &s[1], &s[2], &s[3], &s[4]) != 7) {
 		debug("control parse failed on '%s'", buf);
 		return -1;
 	}
-
-	buflen -= used;
+	skipline(buf, buflen);
 
 	control_group		= u[0];
 	control_index		= u[1];
