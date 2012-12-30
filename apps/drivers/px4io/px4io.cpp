@@ -91,7 +91,7 @@ public:
 	bool			dump_one;
 
 private:
-	static const unsigned	_max_actuators = PX4IO_OUTPUT_CHANNELS;
+	static const unsigned	_max_actuators = PX4IO_CONTROL_CHANNELS;
 
 	int			_serial_fd;	///< serial interface to PX4IO
 	hx_stream_t		_io_stream;	///< HX protocol stream
@@ -112,7 +112,8 @@ private:
 	orb_advert_t		_t_outputs;	///< mixed outputs topic
 	actuator_outputs_s	_outputs;	///< mixed outputs
 
-	MixerGroup		*_mixers;	///< loaded mixers
+	const char *volatile	_mix_buf;	///< mixer text buffer
+	volatile unsigned	_mix_buf_len;	///< size of the mixer text buffer
 
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
 
@@ -158,6 +159,11 @@ private:
 	void			config_send();
 
 	/**
+	 * Send a buffer containing mixer text to PX4IO
+	 */
+	int			mixer_send(const char *buf, unsigned buflen);
+
+	/**
 	 * Mixer control callback; invoked to fetch a control from a specific
 	 * group/index during mixing.
 	 */
@@ -186,7 +192,8 @@ PX4IO::PX4IO() :
 	_t_actuators(-1),
 	_t_armed(-1),
 	_t_outputs(-1),
-	_mixers(nullptr),
+	_mix_buf(nullptr),
+	_mix_buf_len(0),
 	_primary_pwm_device(false),
 	_switch_armed(false),
 	_send_needed(false),
@@ -208,6 +215,7 @@ PX4IO::~PX4IO()
 		/* give it another 100ms */
 		usleep(100000);
 	}
+
 	/* well, kill it anyway, though this will probably crash */
 	if (_task != -1)
 		task_delete(_task);
@@ -238,6 +246,7 @@ PX4IO::init()
 
 	/* start the IO interface task */
 	_task = task_create("px4io", SCHED_PRIORITY_DEFAULT, 4096, (main_t)&PX4IO::task_main_trampoline, nullptr);
+
 	if (_task < 0) {
 		debug("task start failed: %d", errno);
 		return -errno;
@@ -249,13 +258,16 @@ PX4IO::init()
 			debug("PX4IO connected");
 			break;
 		}
+
 		usleep(100000);
 	}
+
 	if (!_connected) {
 		/* error here will result in everything being torn down */
 		log("PX4IO not responding");
 		return -EIO;
 	}
+
 	return OK;
 }
 
@@ -268,7 +280,7 @@ PX4IO::task_main_trampoline(int argc, char *argv[])
 void
 PX4IO::task_main()
 {
-	log("starting");
+	debug("starting");
 
 	/* open the serial port */
 	_serial_fd = ::open("/dev/ttyS2", O_RDWR);
@@ -290,10 +302,12 @@ PX4IO::task_main()
 
 	/* protocol stream */
 	_io_stream = hx_stream_init(_serial_fd, &PX4IO::rx_callback_trampoline, this);
+
 	if (_io_stream == nullptr) {
 		log("failed to allocate HX protocol stream");
 		goto out;
 	}
+
 	hx_stream_set_counters(_io_stream,
 			       perf_alloc(PC_COUNT, "PX4IO frames transmitted"),
 			       perf_alloc(PC_COUNT, "PX4IO frames received"),
@@ -330,13 +344,18 @@ PX4IO::task_main()
 	fds[2].fd = _t_armed;
 	fds[2].events = POLLIN;
 
-	log("ready");
+	debug("ready");
+
+	/* lock against the ioctl handler */
+	lock();
 
 	/* loop handling received serial bytes */
 	while (!_task_should_exit) {
 
 		/* sleep waiting for data, but no more than 100ms */
+		unlock();
 		int ret = ::poll(&fds[0], sizeof(fds) / sizeof(fds[0]), 100);
+		lock();
 
 		/* this would be bad... */
 		if (ret < 0) {
@@ -353,26 +372,21 @@ PX4IO::task_main()
 			if (fds[0].revents & POLLIN)
 				io_recv();
 
-			/* if we have new data from the ORB, go handle it */
+			/* if we have new control data from the ORB, handle it */
 			if (fds[1].revents & POLLIN) {
 
 				/* get controls */
 				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
 
-				/* mix */
-				if (_mixers != nullptr) {
-					/* XXX is this the right count? */
-					_mixers->mix(&_outputs.output[0], _max_actuators);
+				/* scale controls to PWM (temporary measure) */
+				for (unsigned i = 0; i < _max_actuators; i++)
+					_outputs.output[i] = 1500 + (600 * _controls.control[i]);
 
-					/* convert to PWM values */
-					for (unsigned i = 0; i < _max_actuators; i++)
-						_outputs.output[i] = 1500 + (600 * _outputs.output[i]);
-
-					/* and flag for update */
-					_send_needed = true;
-				}
+				/* and flag for update */
+				_send_needed = true;
 			}
 
+			/* if we have an arming state update, handle it */
 			if (fds[2].revents & POLLIN) {
 
 				orb_copy(ORB_ID(actuator_armed), _t_armed, &_armed);
@@ -391,7 +405,18 @@ PX4IO::task_main()
 			_config_needed = false;
 			config_send();
 		}
+
+		/* send a mixer update if needed */
+		if (_mix_buf != nullptr) {
+			mixer_send(_mix_buf, _mix_buf_len);
+
+			/* clear the buffer record so the ioctl handler knows we're done */
+			_mix_buf = nullptr;
+			_mix_buf_len = 0;
+		}
 	}
+
+	unlock();
 
 out:
 	debug("exiting");
@@ -399,6 +424,7 @@ out:
 	/* kill the HX stream */
 	if (_io_stream != nullptr)
 		hx_stream_free(_io_stream);
+
 	::close(_serial_fd);
 
 	/* clean up the alternate device node */
@@ -451,25 +477,27 @@ PX4IO::rx_callback(const uint8_t *buffer, size_t bytes_received)
 {
 	const px4io_report *rep = (const px4io_report *)buffer;
 
-	lock();
+//	lock();
 
 	/* sanity-check the received frame size */
 	if (bytes_received != sizeof(px4io_report)) {
 		debug("got %u expected %u", bytes_received, sizeof(px4io_report));
 		goto out;
 	}
+
 	if (rep->i2f_magic != I2F_MAGIC) {
 		debug("bad magic");
 		goto out;
 	}
+
 	_connected = true;
 
 	/* publish raw rc channel values from IO if valid channels are present */
 	if (rep->channel_count > 0) {
 		_input_rc.timestamp = hrt_absolute_time();
 		_input_rc.channel_count = rep->channel_count;
-		for (int i = 0; i < rep->channel_count; i++)
-		{
+
+		for (int i = 0; i < rep->channel_count; i++) {
 			_input_rc.values[i] = rep->rc_channel[i];
 		}
 
@@ -486,13 +514,16 @@ PX4IO::rx_callback(const uint8_t *buffer, size_t bytes_received)
 		dump_one = false;
 
 		printf("IO: %s armed ", rep->armed ? "" : "not");
+
 		for (unsigned i = 0; i < rep->channel_count; i++)
 			printf("%d: %d ", i, rep->rc_channel[i]);
+
 		printf("\n");
 	}
 
 out:
-	unlock();
+//	unlock();
+	return;
 }
 
 void
@@ -505,9 +536,10 @@ PX4IO::io_send()
 
 	/* set outputs */
 	for (unsigned i = 0; i < _max_actuators; i++)
-		cmd.servo_command[i] = _outputs.output[i];
+		cmd.output_control[i] = _outputs.output[i];
 
 	/* publish as we send */
+	/* XXX needs to be based off post-mix values from the IO side */
 	orb_publish(ORB_ID_VEHICLE_CONTROLS, _t_outputs, &_outputs);
 
 	// XXX relays
@@ -516,6 +548,7 @@ PX4IO::io_send()
 	cmd.arm_ok = (_armed.armed && !_armed.lockdown);
 
 	ret = hx_stream_send(_io_stream, &cmd, sizeof(cmd));
+
 	if (ret)
 		debug("send error %d", ret);
 }
@@ -529,8 +562,44 @@ PX4IO::config_send()
 	cfg.f2i_config_magic = F2I_CONFIG_MAGIC;
 
 	ret = hx_stream_send(_io_stream, &cfg, sizeof(cfg));
+
 	if (ret)
 		debug("config error %d", ret);
+}
+
+int
+PX4IO::mixer_send(const char *buf, unsigned buflen)
+{
+	uint8_t	frame[HX_STREAM_MAX_FRAME];
+	px4io_mixdata *msg = (px4io_mixdata *)&frame[0];
+
+	msg->f2i_mixer_magic = F2I_MIXER_MAGIC;
+	msg->action = F2I_MIXER_ACTION_RESET;
+
+	do {
+		unsigned count = buflen;
+
+		if (count > F2I_MIXER_MAX_TEXT)
+			count = F2I_MIXER_MAX_TEXT;
+
+		if (count > 0) {
+			memcpy(&msg->text[0], buf, count);
+			buf += count;
+			buflen -= count;
+		}
+
+		int ret = hx_stream_send(_io_stream, msg, sizeof(px4io_mixdata) + count);
+
+		if (ret) {
+			log("mixer send error %d", ret);
+			return ret;
+		}
+
+		msg->action = F2I_MIXER_ACTION_APPEND;
+
+	} while (buflen > 0);
+
+	return 0;
 }
 
 int
@@ -556,7 +625,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(_max_actuators - 1):
 
-		/* fake an update to the selected servo channel */
+		/* fake an update to the selected 'servo' channel */
 		if ((arg >= 900) && (arg <= 2100)) {
 			_outputs.output[cmd - PWM_SERVO_SET(0)] = arg;
 			_send_needed = true;
@@ -573,65 +642,29 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		break;
 
 	case MIXERIOCGETOUTPUTCOUNT:
-		*(unsigned *)arg = _max_actuators;
+		*(unsigned *)arg = PX4IO_CONTROL_CHANNELS;
 		break;
 
 	case MIXERIOCRESET:
-		if (_mixers != nullptr) {
-			delete _mixers;
-			_mixers = nullptr;
-		}
-
+		ret = 0;	/* load always resets */
 		break;
 
-	case MIXERIOCADDSIMPLE: {
-			mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
+	case MIXERIOCLOADBUF:
 
-			/* build the new mixer from the supplied argument */
-			SimpleMixer *mixer = new SimpleMixer(control_callback,
-							     (uintptr_t)&_controls, mixinfo);
+		/* set the buffer up for transfer */
+		_mix_buf = (const char *)arg;
+		_mix_buf_len = strnlen(_mix_buf, 1024);
 
-			/* validate the new mixer */
-			if (mixer->check()) {
-				delete mixer;
-				ret = -EINVAL;
+		/* drop the lock and wait for the thread to clear the transmit */
+		unlock();
 
-			} else {
-				/* if we don't have a group yet, allocate one */
-				if (_mixers == nullptr)
-					_mixers = new MixerGroup(control_callback,
-								 (uintptr_t)&_controls);
+		while (_mix_buf != nullptr)
+			usleep(1000);
 
-				/* add the new mixer to the group */
-				_mixers->add_mixer(mixer);
-			}
+		lock();
 
-		}
+		ret = 0;
 		break;
-
-	case MIXERIOCLOADBUF: {
-			const char *buf = (const char *)arg;
-			unsigned buflen = strnlen(buf, 1024);
-
-			if (_mixers == nullptr)
-				_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
-
-			if (_mixers == nullptr) {
-				ret = -ENOMEM;
-
-			} else {
-
-				ret = _mixers->load_from_buf(buf, buflen);
-
-				if (ret != 0) {
-					debug("mixer load failed with %d", ret);
-					delete _mixers;
-					_mixers = nullptr;
-					ret = -EINVAL;
-				}
-			}
-			break;
-		}
 
 	default:
 		/* not a recognised value */
@@ -691,6 +724,7 @@ monitor(void)
 		if (fds[0].revents == POLLIN) {
 			int c;
 			read(0, &c, 1);
+
 			if (cancels-- == 0)
 				exit(0);
 		}
@@ -777,6 +811,7 @@ px4io_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "test"))
 		test();
+
 	if (!strcmp(argv[1], "monitor"))
 		monitor();
 

@@ -190,6 +190,7 @@ PX4IO_Uploader::drain()
 
 	do {
 		ret = recv(c, 250);
+
 		if (ret == OK) {
 			//log("discard 0x%02x", c);
 		}

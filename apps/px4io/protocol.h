@@ -99,6 +99,6 @@ struct px4io_mixdata {
 };
 
 /* maximum size is limited by the HX frame size */
-#define F2I_MIXER_MAX_TEXT	(sizeof(struct px4io_mixdata) - HX_STREAM_MAX_FRAME)
+#define F2I_MIXER_MAX_TEXT	(HX_STREAM_MAX_FRAME - sizeof(struct px4io_mixdata))
 
 #pragma pack(pop)

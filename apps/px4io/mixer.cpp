@@ -52,6 +52,7 @@
 #include <systemlib/mixer/mixer.h>
 
 extern "C" {
+//#define DEBUG
 #include "px4io.h"
 }
 
@@ -175,13 +176,16 @@ mixer_callback(uintptr_t handle,
 	return 0;
 }
 
+static char mixer_text[256];
+static unsigned mixer_text_length = 0;
+
 void
 mixer_handle_text(const void *buffer, size_t length)
 {
-	static char mixer_text[256];
-	static unsigned mixer_text_length = 0;
 
 	px4io_mixdata	*msg = (px4io_mixdata *)buffer;
+
+	debug("mixer text %u", length);
 
 	if (length < sizeof(px4io_mixdata))
 		return;
@@ -190,11 +194,13 @@ mixer_handle_text(const void *buffer, size_t length)
 
 	switch (msg->action) {
 	case F2I_MIXER_ACTION_RESET:
+		debug("reset");
 		mixer_group.reset();
 		mixer_text_length = 0;
 
 		/* FALLTHROUGH */
 	case F2I_MIXER_ACTION_APPEND:
+		debug("append %d", length);
 
 		/* check for overflow - this is really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text))
@@ -204,14 +210,22 @@ mixer_handle_text(const void *buffer, size_t length)
 		memcpy(&mixer_text[mixer_text_length], msg->text, text_length);
 		mixer_text_length += text_length;
 		mixer_text[mixer_text_length] = '\0';
+		debug("buflen %u", mixer_text_length);
 
 		/* process the text buffer, adding new mixers as their descriptions can be parsed */
-		char *end = &mixer_text[mixer_text_length];
-		mixer_group.load_from_buf(&mixer_text[0], mixer_text_length);
+		unsigned resid = mixer_text_length;
+		mixer_group.load_from_buf(&mixer_text[0], resid);
 
-		/* copy any leftover text to the base of the buffer for re-use */
-		if (mixer_text_length > 0)
-			memcpy(&mixer_text[0], end - mixer_text_length, mixer_text_length);
+		/* if anything was parsed */
+		if (resid != mixer_text_length) {
+			debug("used %u", mixer_text_length - resid);
+
+			/* copy any leftover text to the base of the buffer for re-use */
+			if (resid > 0)
+				memcpy(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
+
+			mixer_text_length = resid;
+		}
 
 		break;
 	}
