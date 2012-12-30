@@ -166,10 +166,12 @@ MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 		debug("multirotor parse failed on '%s'", buf);
 		return nullptr;
 	}
+
 	if (used > (int)buflen) {
 		debug("multirotor spec used %d of %u", used, buflen);
 		return nullptr;
 	}
+
 	buflen -= used;
 
 	if (!strcmp(geomname, "4+")) {
@@ -226,10 +228,12 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	/* keep roll, pitch and yaw control to 0 below min thrust */
 	if (thrust <= min_thrust) {
 		output_factor = 0.0f;
-	/* linearly increase the output factor from 0 to 1 between min_thrust and startpoint_full_control */
+		/* linearly increase the output factor from 0 to 1 between min_thrust and startpoint_full_control */
+
 	} else if (thrust < startpoint_full_control && thrust > min_thrust) {
-		output_factor = (thrust/max_thrust)/(startpoint_full_control-min_thrust);
-	/* and then stay at full control */
+		output_factor = (thrust / max_thrust) / (startpoint_full_control - min_thrust);
+		/* and then stay at full control */
+
 	} else {
 		output_factor = max_thrust;
 	}

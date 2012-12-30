@@ -88,7 +88,7 @@ int user_start(int argc, char *argv[])
 	up_pwm_servo_init(0xff);
 
 	/* start the flight control signal handler */
-	task_create("FCon", 
+	task_create("FCon",
 		    SCHED_PRIORITY_DEFAULT,
 		    1024,
 		    (main_t)controls_main,

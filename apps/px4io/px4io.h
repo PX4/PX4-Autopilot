@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
- /**
-  * @file px4io.h
-  *
-  * General defines and structures for the PX4IO module firmware.
-  */
+/**
+ * @file px4io.h
+ *
+ * General defines and structures for the PX4IO module firmware.
+ */
 
 #include <nuttx/config.h>
 
@@ -66,8 +66,7 @@
 /*
  * System state structure.
  */
-struct sys_state_s 
-{
+struct sys_state_s {
 
 	bool		armed;			/* IO armed */
 	bool		arm_ok;			/* FMU says OK to arm */

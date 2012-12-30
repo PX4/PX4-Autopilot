@@ -110,6 +110,7 @@ comms_main(void)
 		if (fds.revents & POLLIN) {
 			char buf[32];
 			ssize_t count = read(fmu_fd, buf, sizeof(buf));
+
 			for (int i = 0; i < count; i++)
 				hx_stream_rx(stream, buf[i]);
 		}
@@ -123,7 +124,8 @@ comms_main(void)
 		/* should we send a report to the FMU? */
 		now = hrt_absolute_time();
 		delta = now - last_report_time;
-		if ((delta > FMU_MIN_REPORT_INTERVAL) && 
+
+		if ((delta > FMU_MIN_REPORT_INTERVAL) &&
 		    (system_state.fmu_report_due || (delta > FMU_MAX_REPORT_INTERVAL))) {
 
 			system_state.fmu_report_due = false;
@@ -132,6 +134,7 @@ comms_main(void)
 			/* populate the report */
 			for (unsigned i = 0; i < system_state.rc_channels; i++)
 				report.rc_channel[i] = system_state.rc_channel_data[i];
+
 			report.channel_count = system_state.rc_channels;
 			report.armed = system_state.armed;
 
@@ -172,7 +175,7 @@ comms_handle_command(const void *buffer, size_t length)
 		system_state.fmu_channel_data[i] = cmd->servo_command[i];
 
 	/* if the IO is armed and the FMU gets disarmed, the IO must also disarm */
-	if(system_state.arm_ok && !cmd->arm_ok) {
+	if (system_state.arm_ok && !cmd->arm_ok) {
 		system_state.armed = false;
 	}
 
@@ -185,7 +188,7 @@ comms_handle_command(const void *buffer, size_t length)
 //	if (!system_state.arm_ok && system_state.armed)
 //		system_state.armed = false;
 
-	/* XXX do relay changes here */	
+	/* XXX do relay changes here */
 	for (unsigned i = 0; i < PX4IO_RELAY_CHANNELS; i++)
 		system_state.relays[i] = cmd->relay_state[i];
 
@@ -204,14 +207,17 @@ comms_handle_frame(void *arg, const void *buffer, size_t length)
 		case F2I_MAGIC:
 			comms_handle_command(buffer, length);
 			break;
+
 		case F2I_CONFIG_MAGIC:
 			comms_handle_config(buffer, length);
 			break;
+
 		case F2I_MIXER_MAGIC:
 			mixer_handle_text(buffer, length);
 			break;
+
 		default:
-		    	frame_bad++;
+			frame_bad++;
 			break;
 		}
 	}

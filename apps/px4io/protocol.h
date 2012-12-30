@@ -60,7 +60,7 @@ struct px4io_command {
 };
 
 /**
- * Periodic report from IO to FMU 
+ * Periodic report from IO to FMU
  */
 struct px4io_report {
 	uint16_t	i2f_magic;
@@ -72,7 +72,7 @@ struct px4io_report {
 };
 
 /**
- * As-needed config message from FMU to IO 
+ * As-needed config message from FMU to IO
  */
 struct px4io_config {
 	uint16_t	f2i_config_magic;

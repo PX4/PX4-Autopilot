@@ -69,9 +69,9 @@ static uint16_t *control_values;
 static int control_count;
 
 static int	mixer_callback(uintptr_t handle,
-			uint8_t control_group,
-			uint8_t control_index,
-			float &control);
+			       uint8_t control_group,
+			       uint8_t control_index,
+			       float &control);
 
 static MixerGroup mixer_group(mixer_callback, 0);
 
@@ -96,6 +96,7 @@ mixer_tick(void)
 			if (fmu_input_drops >= FMU_INPUT_DROP_LIMIT) {
 				system_state.mixer_use_fmu = false;
 			}
+
 		} else {
 			fmu_input_drops = 0;
 			system_state.fmu_data_received = false;
@@ -127,6 +128,7 @@ mixer_tick(void)
 			if (i < mixed) {
 				/* scale to servo output */
 				system_state.servos[i] = (outputs[i] * 500.0f) + 1500;
+
 			} else {
 				/* set to zero to inhibit PWM pulse output */
 				system_state.servos[i] = 0;
@@ -144,6 +146,7 @@ mixer_tick(void)
 	 * Decide whether the servos should be armed right now.
 	 */
 	should_arm = system_state.armed && system_state.arm_ok && (control_count > 0);
+
 	if (should_arm && !mixer_servos_armed) {
 		/* need to arm, but not armed */
 		up_pwm_servo_arm(true);
@@ -180,6 +183,7 @@ mixer_handle_text(const void *buffer, size_t length)
 	static unsigned mixer_text_length = 0;
 
 	px4io_mixdata	*msg = (px4io_mixdata *)buffer;
+
 	if (length < sizeof(px4io_mixdata))
 		return;
 
@@ -189,8 +193,10 @@ mixer_handle_text(const void *buffer, size_t length)
 	case F2I_MIXER_ACTION_RESET:
 		mixer_group.reset();
 		mixer_text_length = 0;
+
 		/* FALLTHROUGH */
 	case F2I_MIXER_ACTION_APPEND:
+
 		/* check for overflow - this is really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text))
 			return;
@@ -207,6 +213,7 @@ mixer_handle_text(const void *buffer, size_t length)
 		/* copy any leftover text to the base of the buffer for re-use */
 		if (mixer_text_length > 0)
 			memcpy(&mixer_text[0], end - mixer_text_length, mixer_text_length);
+
 		break;
 	}
 }

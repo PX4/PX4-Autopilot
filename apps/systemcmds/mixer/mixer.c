@@ -117,6 +117,8 @@ load(const char *devname, const char *fname)
 		if ((strlen(line) < 2) || !isupper(line[0]) || (line[1] != ':'))
 			continue;
 
+		/* XXX an optimisation here would be to strip extra whitespace */
+
 		/* if the line is too long to fit in the buffer, bail */
 		if ((strlen(line) + strlen(buf) + 1) >= sizeof(buf))
 			break;

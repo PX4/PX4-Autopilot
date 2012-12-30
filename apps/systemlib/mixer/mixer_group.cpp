@@ -91,7 +91,7 @@ MixerGroup::reset()
 		mixer = _first;
 		_first = mixer->_next;
 		delete mixer;
-	}	
+	}
 }
 
 unsigned
@@ -132,26 +132,32 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 
 		/* use the next character as a hint to decide which mixer class to construct */
 		switch (*p) {
-			case 'Z':
-				m = NullMixer::from_text(p, buflen);
-				break;
-			case 'M':
-				m = SimpleMixer::from_text(_control_cb, _cb_handle, p, buflen);
-				break;
-			case 'R':
-				m = MultirotorMixer::from_text(_control_cb, _cb_handle, p, buflen);
-				break;
-			default:
-				/* it's probably junk or whitespace */
-				break;
+		case 'Z':
+			m = NullMixer::from_text(p, buflen);
+			break;
+
+		case 'M':
+			m = SimpleMixer::from_text(_control_cb, _cb_handle, p, buflen);
+			break;
+
+		case 'R':
+			m = MultirotorMixer::from_text(_control_cb, _cb_handle, p, buflen);
+			break;
+
+		default:
+			/* it's probably junk or whitespace */
+			break;
 		}
+
 		if (m != nullptr) {
 			add_mixer(m);
 			ret = 0;
+
 		} else {
 			/* skip whitespace or junk in the buffer */
 			buflen--;
 		}
 	}
+
 	return ret;
 }
