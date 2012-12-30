@@ -548,13 +548,33 @@ void update_state_machine_mode_manual(int status_pub, struct vehicle_status_s *c
 
 void update_state_machine_mode_stabilized(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
+	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_STABILIZED || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_AUTO) {
+		printf("[cmd] att stabilized mode\n");
+		int old_mode = current_status->flight_mode;
+		int old_manual_control_mode = current_status->manual_control_mode;
+		current_status->flight_mode = VEHICLE_FLIGHT_MODE_MANUAL;
+		current_status->manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
+		current_status->flag_control_attitude_enabled = true;
+		current_status->flag_control_rates_enabled = true;
+		current_status->flag_control_manual_enabled = true;
+		if (old_mode != current_status->flight_mode ||
+			old_manual_control_mode != current_status->manual_control_mode) {
+			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MANUAL);
+			state_machine_publish(status_pub, current_status, mavlink_fd);
+		}
+
+	}
+}
+
+void update_state_machine_mode_guided(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
+{
 	if (!current_status->flag_vector_flight_mode_ok) {
-		mavlink_log_critical(mavlink_fd, "NO POS LOCK, REJ. STAB MODE");
+		mavlink_log_critical(mavlink_fd, "NO POS LOCK, REJ. GUIDED MODE");
 		tune_error();
 		return;
 	}
 	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_AUTO) {
-		printf("[cmd] stabilized mode\n");
+		printf("[cmd] position guided mode\n");
 		int old_mode = current_status->flight_mode;
 		current_status->flight_mode = VEHICLE_FLIGHT_MODE_STAB;
 		current_status->flag_control_manual_enabled = false;
@@ -563,25 +583,6 @@ void update_state_machine_mode_stabilized(int status_pub, struct vehicle_status_
 		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_STABILIZED);
 		if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
 
-	}
-}
-
-void update_state_machine_mode_hold(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
-{
-	if (!current_status->flag_vector_flight_mode_ok) {
-		mavlink_log_critical(mavlink_fd, "NO POS LOCK, REJ. HOLD MODE");
-		return;
-	}
-	
-	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_AUTO) {
-		printf("[cmd] stabilized mode\n");
-		int old_mode = current_status->flight_mode;
-		current_status->flight_mode = VEHICLE_FLIGHT_MODE_HOLD;
-		current_status->flag_control_manual_enabled = false;
-		current_status->flag_control_attitude_enabled = true;
-		current_status->flag_control_rates_enabled = true;
-		do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_STABILIZED);
-		if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
 	}
 }
 
@@ -634,6 +635,8 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 		update_state_machine_mode_auto(status_pub, current_status, mavlink_fd);
 	} else if (mode & VEHICLE_MODE_FLAG_STABILIZED_ENABLED) {
 		update_state_machine_mode_stabilized(status_pub, current_status, mavlink_fd);
+	} else if (mode & VEHICLE_MODE_FLAG_GUIDED_ENABLED) {
+		update_state_machine_mode_guided(status_pub, current_status, mavlink_fd);
 	} else if (mode & VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED) {
 		update_state_machine_mode_manual(status_pub, current_status, mavlink_fd);
 	}

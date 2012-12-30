@@ -128,13 +128,13 @@ void update_state_machine_mode_manual(int status_pub, struct vehicle_status_s *c
 void update_state_machine_mode_stabilized(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
 /**
- * Handle state machine if mode switch is hold
+ * Handle state machine if mode switch is guided
  *
  * @param status_pub file descriptor for state update topic publication
  * @param current_status pointer to the current state machine to operate on
  * @param mavlink_fd file descriptor for MAVLink statustext messages
  */
-void update_state_machine_mode_hold(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
+void update_state_machine_mode_guided(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd);
 
 /**
  * Handle state machine if mode switch is auto

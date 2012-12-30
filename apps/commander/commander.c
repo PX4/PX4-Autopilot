@@ -1778,20 +1778,16 @@ int commander_thread_main(int argc, char *argv[])
 				} else if (sp_man.manual_override_switch < -STICK_ON_OFF_LIMIT) {
 					/* check auto mode switch for correct mode */
 					if (sp_man.auto_mode_switch > STICK_ON_OFF_LIMIT) {
-						/* enable stabilized mode */
-						update_state_machine_mode_stabilized(stat_pub, &current_status, mavlink_fd);
+						/* enable guided mode */
+						update_state_machine_mode_guided(stat_pub, &current_status, mavlink_fd);
 
 					} else if (sp_man.auto_mode_switch < -STICK_ON_OFF_LIMIT) {
 						update_state_machine_mode_auto(stat_pub, &current_status, mavlink_fd);
 
-					} else {
-						update_state_machine_mode_hold(stat_pub, &current_status, mavlink_fd);
 					}
 				} else {
 					/* center stick position, set SAS for all vehicle types */
-					current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
-					current_status.flag_control_attitude_enabled = true;
-					current_status.flag_control_rates_enabled = true;
+					update_state_machine_mode_stabilized(stat_pub, &current_status, mavlink_fd);
 				}
 
 				/* handle the case where RC signal was regained */
