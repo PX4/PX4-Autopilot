@@ -71,18 +71,15 @@ public:
     virtual void updatePublications();
     void predictFast();
     void predictSlow();
-    void correctMag();
-    void correctAccel();
+    void correctAtt();
     void correctGps();
     virtual void updateParams();
 protected:
     math::Kalman _kalman;
     math::Matrix G;
     math::Matrix V;
-    math::Matrix HMag;
-    math::Matrix RMag;
-    math::Matrix HAccel;
-    math::Matrix RAccel;
+    math::Matrix HAtt;
+    math::Matrix RAtt;
     math::Matrix HGps;
     math::Matrix RGps;
     math::Dcm C_nb;
@@ -94,7 +91,7 @@ protected:
     uint64_t _pubTimeStamp;
     uint64_t _slowTimeStamp;
     uint64_t _gpsTimeStamp;
-    uint64_t _magTimeStamp;
+    uint64_t _attTimeStamp;
     uint64_t _outTimeStamp;
     uint16_t _navFrames;
     float fN, fE, fD;

@@ -50,10 +50,8 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     _kalman(9),
     G(9,6),
     V(6,6),
-    HMag(3,9),
-    RMag(3,3),
-    HAccel(3,9),
-    RAccel(3,3),
+    HAtt(6,9),
+    RAtt(6,6),
     HGps(6,9),
     RGps(6,6),
     C_nb(),
@@ -65,7 +63,7 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     _pubTimeStamp(hrt_absolute_time()),
     _slowTimeStamp(hrt_absolute_time()),
     _gpsTimeStamp(hrt_absolute_time()),
-    _magTimeStamp(hrt_absolute_time()),
+    _attTimeStamp(hrt_absolute_time()),
     _outTimeStamp(hrt_absolute_time()),
     _navFrames(0),
     fN(0), fE(0), fD(0),
@@ -152,12 +150,11 @@ void KalmanNav::update()
         correctGps();
     }
 
-    // mag correction step
-    if (newTimeStamp - _magTimeStamp > 1e6/1) // 1 Hz
+    // attitude correction step
+    if (newTimeStamp - _attTimeStamp > 1e6/1) // 1 Hz
     {
-        _magTimeStamp = newTimeStamp;
-        correctAccel();
-        correctMag();
+        _attTimeStamp = newTimeStamp;
+        correctAtt();
     }
 
     // publication
@@ -394,15 +391,10 @@ void KalmanNav::predictSlow()
     _kalman.predict(dt);
 }
 
-void KalmanNav::correctMag()
+void KalmanNav::correctAtt()
 {
     using namespace math;
-    Vector zMag(3);
-    for (int i=0;i<3;i++) {
-        zMag(i) = _sensors.magnetometer_ga[i];
-    }
-    // normalize
-    zMag= zMag.unit();
+
     // trig
     float cosPhi = cosf(phi);
     float cosTheta = cosf(theta);
@@ -411,6 +403,14 @@ void KalmanNav::correctMag()
     float sinTheta = sinf(theta);
     float sinPsi = sinf(psi);
 
+    // mag measurement
+    Vector zMag(3);
+    for (int i=0;i<3;i++) {
+        zMag(i) = _sensors.magnetometer_ga[i];
+    }
+    zMag = zMag.unit();
+
+    // mag predicted measurement
     // choosing some typical magnetic field properties,
     //  TODO dip/dec depend on lat/ lon/ time
     static const float dip = 60.0f; // dip, inclination with level
@@ -424,88 +424,76 @@ void KalmanNav::correctMag()
     bNav(2) = bD;
     Vector zMagHat = (C_nb.transpose()*bNav).unit();
 
-    // HMag
-    float tmp1 =
-        cosPsi*cosTheta*bN +
-        sinPsi*cosTheta*bE -
-        sinTheta*bD;
-    HMag(0,1) = -(
-        cosPsi*sinTheta*bN +
-        sinPsi*sinTheta*bE +
-        cosTheta*bD
-        );
-    HMag(0,2) = -cosTheta*(sinPsi*bN - cosPsi*bE);
-    HMag(1,0) = 
-        (cosPhi*cosPsi*sinTheta + sinPhi*sinPsi)*bN + 
-        (cosPhi*sinPsi*sinTheta - sinPhi*cosPsi)*bE +
-        cosPhi*cosTheta*bD;
-    HMag(1,1) = sinPhi*tmp1;
-    HMag(1,2) = -(
-        (sinPhi*sinPsi*sinTheta + cosPhi*cosPsi)*bN - 
-        (sinPhi*cosPsi*sinTheta - cosPhi*sinPsi)*bE
-        );
-    HMag(2,0) = -(
-        (sinPhi*cosPsi*sinTheta - cosPhi*sinPsi)*bN +
-        (sinPhi*sinPsi*sinTheta + cosPhi*cosPsi)*bE +
-        (sinPhi*cosTheta)*bD
-        );
-    HMag(2,1) = cosPhi*tmp1;
-    HMag(2,2) = -(
-        (cosPhi*sinPsi*sinTheta - sinPhi*cosTheta)*bN -
-        (cosPhi*cosPsi*sinTheta + sinPhi*sinPsi)*bE
-        );
-    Vector y = zMag - zMagHat; // residual
-    Matrix S(3,3); // residual covariance
-    _kalman.correct(y,HMag,RMag,S);
-
-    // fault detetcion
-    float beta = y.dot(S.inverse()*y);
-    if (beta > 10.0f) {
-        printf("fault in magnetometer: beta = %8.4f\n", (double)beta);
-        printf("y:\n"); y.print();
-        printf("zMag:\n"); zMag.print();
-        printf("zMagHat:\n"); zMagHat.print();
-    }
-
-    // update quaternions from euler 
-    // angle correction
-    q = Quaternion(EulerAngles(phi,theta,psi));
-}
-
-void KalmanNav::correctAccel()
-{
-    using namespace math;
+    // accel measurement
     Vector zAccel(3);
     for (int i=0;i<3;i++) {
         zAccel(i) = _sensors.accelerometer_m_s2[i];
     }
-    // normalize
     zAccel = zAccel.unit();
-    // trig
-    float cosPhi = cosf(phi);
-    float cosTheta = cosf(theta);
-    float sinPhi = sinf(phi);
-    float sinTheta = sinf(theta);
 
+    // accel predicted measurement
     Vector zAccelHat = (C_nb.transpose()*Vector3(0,0,-1)).unit();
 
-    // HAccel
-    HAccel(0,1) = cosTheta;
-    HAccel(1,0) = -cosPhi*cosTheta;
-    HAccel(1,1) = sinPhi*sinTheta;
-    HAccel(2,0) = sinPhi*cosTheta;
-    HAccel(2,1) = cosPhi*sinTheta;
-    Vector y = zAccel - zAccelHat; // residual
-    Matrix S(3,3); // residual covariance
-    _kalman.correct(y,HAccel,RAccel,S);
+    // combined measurement
+    Vector zAtt(6);
+    Vector zAttHat(6);
+    for (int i=0;i<3;i++) {
+        zAtt(i) = zMag(i);
+        zAtt(i+3) = zAccel(i);
+        zAttHat(i) = zMagHat(i);
+        zAttHat(i+3) = zAccelHat(i);
+    }
 
-    // fault detetcion
+    // HMag , HAtt (0-2,:)
+    float tmp1 =
+        cosPsi*cosTheta*bN +
+        sinPsi*cosTheta*bE -
+        sinTheta*bD;
+    HAtt(0,1) = -(
+        cosPsi*sinTheta*bN +
+        sinPsi*sinTheta*bE +
+        cosTheta*bD
+        );
+    HAtt(0,2) = -cosTheta*(sinPsi*bN - cosPsi*bE);
+    HAtt(1,0) = 
+        (cosPhi*cosPsi*sinTheta + sinPhi*sinPsi)*bN + 
+        (cosPhi*sinPsi*sinTheta - sinPhi*cosPsi)*bE +
+        cosPhi*cosTheta*bD;
+    HAtt(1,1) = sinPhi*tmp1;
+    HAtt(1,2) = -(
+        (sinPhi*sinPsi*sinTheta + cosPhi*cosPsi)*bN - 
+        (sinPhi*cosPsi*sinTheta - cosPhi*sinPsi)*bE
+        );
+    HAtt(2,0) = -(
+        (sinPhi*cosPsi*sinTheta - cosPhi*sinPsi)*bN +
+        (sinPhi*sinPsi*sinTheta + cosPhi*cosPsi)*bE +
+        (sinPhi*cosTheta)*bD
+        );
+    HAtt(2,1) = cosPhi*tmp1;
+    HAtt(2,2) = -(
+        (cosPhi*sinPsi*sinTheta - sinPhi*cosTheta)*bN -
+        (cosPhi*cosPsi*sinTheta + sinPhi*sinPsi)*bE
+        );
+
+    // HAccel , HAtt (3-5,:)
+    HAtt(3,1) = cosTheta;
+    HAtt(4,0) = -cosPhi*cosTheta;
+    HAtt(4,1) = sinPhi*sinTheta;
+    HAtt(5,0) = sinPhi*cosTheta;
+    HAtt(5,1) = cosPhi*sinTheta;
+
+    // Kalman correction
+    Vector y = zAtt - zAttHat; // residual
+    Matrix S(6,6); // residual covariance
+    _kalman.correct(y,HAtt,RAtt,S);
+
+    // fault in attitude
     float beta = y.dot(S.inverse()*y);
     if (beta > 10.0f) {
-        printf("fault in accelerometer: beta = %8.4f\n", (double)beta);
+        printf("fault in attitude: beta = %8.4f\n", (double)beta);
         printf("y:\n"); y.print();
-        printf("zAccel:\n"); zAccel.print();
-        printf("zAccelHat:\n"); zAccelHat.print();
+        printf("zAtt:\n"); zAtt.print();
+        printf("zAttHat:\n"); zAttHat.print();
     }
 
     // update quaternions from euler 
@@ -564,7 +552,14 @@ void KalmanNav::updateParams()
     V(5,5) = _vAccel.get();    // accel z
 
     // magnetometer noise
-    RMag = Matrix::identity(3)*_rMag.get();   // gauss
+    RAtt(0,0) = _rMag.get(); // normalized direction
+    RAtt(1,1) = _rMag.get();
+    RAtt(2,2) = _rMag.get();
+
+    // accelerometer noise
+    RAtt(3,3) = _rAccel.get(); // normalized direction
+    RAtt(4,4) = _rAccel.get();
+    RAtt(5,5) = _rAccel.get();
 
     // gps noise
     RGps(0,0) = _rGpsV.get(); // vn, m/s
@@ -573,8 +568,4 @@ void KalmanNav::updateParams()
     RGps(3,3) = _rGpsGeo.get(); // L, rad
     RGps(4,4) = _rGpsGeo.get(); // l, rad
     RGps(5,5) = _rGpsAlt.get(); // h, m
-
-    // accel measurement noise
-    // this is for correcting attitude
-    RAccel = Matrix::identity(3)*_rAccel.get();   // gauss
 }
