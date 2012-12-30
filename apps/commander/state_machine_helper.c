@@ -522,20 +522,20 @@ void update_state_machine_mode_manual(int status_pub, struct vehicle_status_s *c
 	current_status->flag_control_manual_enabled = true;
 
 	/* set behaviour based on airframe */
-	if ((current_status.system_type == MAV_TYPE_QUADROTOR) ||
-		(current_status.system_type == MAV_TYPE_HEXAROTOR) ||
-		(current_status.system_type == MAV_TYPE_OCTOROTOR)) {
+	if ((current_status->system_type == VEHICLE_TYPE_QUADROTOR) ||
+		(current_status->system_type == VEHICLE_TYPE_HEXAROTOR) ||
+		(current_status->system_type == VEHICLE_TYPE_OCTOROTOR)) {
 
 		/* assuming a rotary wing, set to SAS */
-		current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
-		current_status.flag_control_attitude_enabled = true;
-		current_status.flag_control_rates_enabled = true;
+		current_status->manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
+		current_status->flag_control_attitude_enabled = true;
+		current_status->flag_control_rates_enabled = true;
 	} else {
 
 		/* assuming a fixed wing, set to direct pass-through */
-		current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_DIRECT;
-		current_status.flag_control_attitude_enabled = false;
-		current_status.flag_control_rates_enabled = false;
+		current_status->manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_DIRECT;
+		current_status->flag_control_attitude_enabled = false;
+		current_status->flag_control_rates_enabled = false;
 	}
 
 	if (old_mode != current_status->flight_mode) state_machine_publish(status_pub, current_status, mavlink_fd);
