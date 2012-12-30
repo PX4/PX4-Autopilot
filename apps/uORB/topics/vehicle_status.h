@@ -107,6 +107,31 @@ enum VEHICLE_MANUAL_SAS_MODE {
 };
 
 /**
+ * Should match 1:1 MAVLink's MAV_TYPE ENUM
+ */
+enum VEHICLE_TYPE {
+	VEHICLE_TYPE_GENERIC=0, /* Generic micro air vehicle. | */
+	VEHICLE_TYPE_FIXED_WING=1, /* Fixed wing aircraft. | */
+	VEHICLE_TYPE_QUADROTOR=2, /* Quadrotor | */
+	VEHICLE_TYPE_COAXIAL=3, /* Coaxial helicopter | */
+	VEHICLE_TYPE_HELICOPTER=4, /* Normal helicopter with tail rotor. | */
+	VEHICLE_TYPE_ANTENNA_TRACKER=5, /* Ground installation | */
+	VEHICLE_TYPE_GCS=6, /* Operator control unit / ground control station | */
+	VEHICLE_TYPE_AIRSHIP=7, /* Airship, controlled | */
+	VEHICLE_TYPE_FREE_BALLOON=8, /* Free balloon, uncontrolled | */
+	VEHICLE_TYPE_ROCKET=9, /* Rocket | */
+	VEHICLE_TYPE_GROUND_ROVER=10, /* Ground rover | */
+	VEHICLE_TYPE_SURFACE_BOAT=11, /* Surface vessel, boat, ship | */
+	VEHICLE_TYPE_SUBMARINE=12, /* Submarine | */
+	VEHICLE_TYPE_HEXAROTOR=13, /* Hexarotor | */
+	VEHICLE_TYPE_OCTOROTOR=14, /* Octorotor | */
+	VEHICLE_TYPE_TRICOPTER=15, /* Octorotor | */
+	VEHICLE_TYPE_FLAPPING_WING=16, /* Flapping wing | */
+	VEHICLE_TYPE_KITE=17, /* Kite | */
+	VEHICLE_TYPE_ENUM_END=18, /*  | */
+};
+
+/**
  * state machine / state of vehicle.
  *
  * Encodes the complete system state and is set by the commander app.
@@ -124,7 +149,7 @@ struct vehicle_status_s
 	enum VEHICLE_FLIGHT_MODE flight_mode;		/**< current flight mode, as defined by mode switch */
 	enum VEHICLE_MANUAL_CONTROL_MODE manual_control_mode;	/**< current attitude control mode, as defined by VEHICLE_ATTITUDE_MODE enum */
 	enum VEHICLE_MANUAL_SAS_MODE	manual_sas_mode;	/**< current stabilization mode */
-	int32_t system_type;				/**< system type, inspired by MAVLinks MAV_TYPE enum */
+	int32_t system_type;				/**< system type, inspired by MAVLinks VEHICLE_TYPE enum */
 
 	/* system flags - these represent the state predicates */
 
