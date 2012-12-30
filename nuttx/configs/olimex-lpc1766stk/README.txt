@@ -439,12 +439,12 @@ LEDs
      that interrupt).  So a brighter LED1 means that the processor is spending
      less time sleeping.
 
-  When my STM32 sits IDLE -- doing absolutely nothing but processing timer interrupts --
+  When my LPC1766 sits IDLE -- doing absolutely nothing but processing timer interrupts --
   I see the following:
   
   1. LED1 glows dimly due to the timer interrupts.
   2. But LED2 is even more dim!  The LED ON time excludes the time processing the
-     interrupt that re-awakens the processing.  So this tells me that the STM32 is
+     interrupt that re-awakens the processing.  So this tells me that the LPC1766 is
      spending more time processing timer interrupts than doing any other kind of
      processing.  That, of course, makes sense if the system is truly idle and only
      processing timer interrupts.
@@ -913,9 +913,9 @@ Where <subdir> is one of the following:
     2. Default platform/toolchain: This is how the build is configured by
        be default.  These options can easily be re-confured, however.
 
-       CONFIG_HOST_WINDOWS=y         : Windows
-       CONFIG_WINDOWS_CYGWIN=y       : Cygwin environment on Windows
-       CONFIG_STM32_CODESOURCERYW=y  : CodeSourcery under Windows
+       CONFIG_HOST_WINDOWS=y                   : Windows
+       CONFIG_WINDOWS_CYGWIN=y                 : Cygwin environment on Windows
+       CONFIG_ARMV7M_TOOLCHAIN_CODESOURCERYW=y : CodeSourcery under Windows
 
    nettest:
     This configuration directory may be used to enable networking using the

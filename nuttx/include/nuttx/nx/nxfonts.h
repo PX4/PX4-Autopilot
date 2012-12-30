@@ -113,6 +113,11 @@
 #elif defined(CONFIG_NXFONT_SERIF38X49B)
 # define NXFONT_DEFAULT FONTID_SERIF38X49B
 
+/* Mono-space fonts */
+
+#elif defined(CONFIG_NXFONT_MONO5X8)
+# define NXFONT_DEFAULT FONTID_MONO5X8
+
 #endif
 
 /****************************************************************************

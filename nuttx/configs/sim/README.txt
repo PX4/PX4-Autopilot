@@ -446,6 +446,21 @@ nx11
 
   See apps/examples/README.txt for further details.
 
+nxlines
+
+  This is the apps/examples/nxlines test.
+
+  NOTES:
+  ------ 
+  1. This configuration uses the mconf-based configuration tool.  To
+     change this configuration using that tool, you should:
+
+     a. Build and install the mconf tool.  See nuttx/README.txt and
+        misc/tools/
+
+     b. Execute 'make menuconfig' in nuttx/ in order to start the
+        reconfiguration process.
+
 nxwm
 
   This is a special configuration setup for the NxWM window manager

@@ -3842,4 +3842,7 @@
 	  board (with the LPC2148 and the UG_2864AMBAG01).
 	* configs/sim/nxlines:  Add an nxlines configuration for the
 	  simulator.
-
+	* configs/zp214xpa/nxlines:  Add an nxlines configuration for the
+	  ZP213x/4xPA (with the LPC2148 and the UG_2864AMBAG01).  As of this
+	  writing (2012-12-30), I see only garbage on the display each time
+	  the display is updated.

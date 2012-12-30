@@ -1,6 +1,6 @@
 /****************************************************************************
- * config/mcu123-lpc214x/src/up_spi.c
- * arch/arm/src/board/up_spi.c
+ * config/zp214xpa/src/up_spi1.c
+ * arch/arm/src/board/up_spi1.c
  *
  *   Copyright (C) 2008-2010, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -35,25 +35,26 @@
  ****************************************************************************/
 
 /****************************************************************************
- * One the mcu123.com lpc214x board, the MMC slot is connect via SPI with the
- * following SPI mode pinout:
+ * LCD Interface
  *
- *   1 CS: Chip select (low) - SSEL1      5 SCLK: Clock         - SCK1
- *   2 DI: Data input        - MOSI1      6 Vss2: Supply Voltage- GRND
- *   3 Vss: Supply Voltage   - GRND       7 DO: Data Output     - MISO1
- *   4 Vdd: Power Supply     - Vcc        8 - N/C
+ *   PIN NAME PIN CONFIGURATION
+ *    3  RESET P0.18/CAP1.3/MISO1/MAT1.3P0.18  - General purpose output
+ *    4  DI    P0.19/MAT1.2/MOSI1/CAP1.2P0.19  - Alternate function 2
+ *    5  CS    P0.20/MAT1.3/SSEL1/EINT3        - General purpose output
+ *    6  SCK   P0.17/CAP1.2/SCK1/MAT1.2        - Alternate function 2
+ *    7  A0    P0.23/VBUS                      - General purpose output
  *
- * The LPC214x supports one SPI port (SPI0) and one SSP port (SPI1).  SPI1
- * is used to interface with the MMC connect
+ * ENC29J60 Interface
  *
- *   SCK1  - pin 47, P0.17/CAP1.2/SCK1/MAT1.2
- *   MISO1 - pin 53, P0.18/CAP1.3/MISO1/MAT1.3
- *   MOSI1 - pin 54, P0.19/MAT1.2/MOSI1/CAP1.2
- *   SSEL1 - pin 55, P0.20/MAT1.3/SSEL1/EINT3
+ *   PIN NAME PIN CONFIGURATION
+ *    1  /CS  P0.7/SSEL0/PWM2/EINT2            - General purpose output
+ *    2  SCK  P0.4/SCK0/CAP0.1/AD0.6           - Alternate function 1
+ *    3  SI   P0.6/MOSI0/CAP0.2/AD1.0          - Alternate function 1
+ *    4  SO   P0.5/MISO0/MAT0.1/AD0.7          - Alternate function 1
+ *    7  INT  P1.25/EXTIN0                     - Alternal function 1
+ *    9  RST  P1.24/TRACECLK  
  *
- * SPI0 is available on the mcu123.com board (pins 27, 29, 30, and 31).
- * Pin 27 is dedicated to a chip select, pins 30 and 31 connect to keys, nd
- * pin 29 is unconnected.
+ * This file provides support only for the LCD interface on SPI1.
  *
  ****************************************************************************/
 
@@ -125,17 +126,17 @@
  ****************************************************************************/
 
 #ifndef CONFIG_SPI_OWNBUS
-static int    spi_lock(FAR struct spi_dev_s *dev, bool lock);
+static int spi_lock(FAR struct spi_dev_s *dev, bool lock);
 #endif
-static void   spi_select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
+static void spi_select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
 static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency);
 static uint8_t  spi_status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
 #ifdef CONFIG_SPI_CMDDATA
-static int    spi_cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
+static int spi_cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
 #endif
 static uint16_t spi_send(FAR struct spi_dev_s *dev, uint16_t ch);
-static void   spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer, size_t nwords);
-static void   spi_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer, size_t nwords);
+static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer, size_t nwords);
+static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer, size_t nwords);
 
 /****************************************************************************
  * Private Data
@@ -219,6 +220,10 @@ static int spi_lock(FAR struct spi_dev_s *dev, bool lock)
 static void spi_select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
   uint32_t bit = 1 << 20;
+
+  /* We do not bother to check if devid == SPIDEV_DISPLAY because that is the
+   * only thing on the bus.
+   */
 
   if (selected)
     {
@@ -309,12 +314,8 @@ static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency)
 
 static uint8_t spi_status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
-  /* I don't think there is anyway to determine these things on the mcu123.com
-   * board.
-   */
-
-  spidbg("Return SPI_STATUS_PRESENT\n");
-  return SPI_STATUS_PRESENT;
+  spidbg("Return 0\n");
+  return 0;
 }
 
 /****************************************************************************
@@ -341,11 +342,38 @@ static uint8_t spi_status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
  *
  ****************************************************************************/
 
- #ifdef CONFIG_SPI_CMDDATA
+#ifdef CONFIG_SPI_CMDDATA
 static int spi_cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
 {
-#  error "spi_cmddata not implemented"
-  return -ENOSYS;
+  uint32_t bit = 1 << 23;
+
+  /* We do not bother to check if devid == SPIDEV_DISPLAY because that is the
+   * only thing on the bus.
+   */
+
+  /* "This is the Data/Command control pad which determines whether the
+   *  data bits are data or a command.
+   *
+   *  A0 = H: the inputs at D0 to D7 are treated as display data.
+   *  A0 = L: the inputs at D0 to D7 are transferred to the command registers."
+   */
+
+  if (cmd)
+    {
+      /* L: the inputs at D0 to D7 are transferred to the command registers */
+
+      spidbg("Command\n");
+      putreg32(bit, CS_CLR_REGISTER);
+    }
+  else
+    {
+      /* H: the inputs at D0 to D7 are treated as display data. */
+
+      spidbg("CD de-asserted\n");
+      putreg32(bit, CS_SET_REGISTER);
+    }
+
+  return OK;
 }
 #endif
 
@@ -547,24 +575,38 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
     }
 #endif
 
-  /* Configure multiplexed pins as connected on the mcu123.com board:
+  /* Configure multiplexed pins as connected on the ZP213X/4XPA board:
    *
    *   PINSEL1 P0.17/CAP1.2/SCK1/MAT1.2  Bits 2-3=10 for SCK1
    *   PINSEL1 P0.18/CAP1.3/MISO1/MAT1.3 Bits 4-5=10 for MISO1
+   *                                     (This is the RESET line for the UG_2864AMBAG01,
+   *                                      although it is okay to configure it as an input too)
    *   PINSEL1 P0.19/MAT1.2/MOSI1/CAP1.2 Bits 6-7=10 for MOSI1
-   *   PINSEL1 P0.20/MAT1.3/SSEL1/EINT3  Bits 8-9=10 for P0.20 (we'll control it via GPIO or FIO)
+   *   PINSEL1 P0.20/MAT1.3/SSEL1/EINT3  Bits 8-9=00 for P0.20 (we'll control it via GPIO or FIO)
+   *   PINSEL1 P0.23/VBUS                Bits 12-13=00 for P0.21 (we'll control it via GPIO or FIO)
    */
 
   regval32  = getreg32(LPC214X_PINSEL1);
-  regval32 &= ~(LPC214X_PINSEL1_P017_MASK|LPC214X_PINSEL1_P018_MASK|
-                LPC214X_PINSEL1_P019_MASK|LPC214X_PINSEL1_P020_MASK);
+#ifdef CONFIG_LCD_UG2864AMBAG01
+  regval32 &= ~(LPC214X_PINSEL1_P017_MASK|LPC214X_PINSEL1_P019_MASK|
+                LPC214X_PINSEL1_P020_MASK|LPC214X_PINSEL1_P023_MASK);
+  regval32 |= (LPC214X_PINSEL1_P017_SCK1|LPC214X_PINSEL1_P019_MOSI1|
+               LPC214X_PINSEL1_P020_GPIO|LPC214X_PINSEL1_P023_GPIO);
+#else
+  regval32 &= ~(LPC214X_PINSEL1_P017_MASK|LPC214X_PINSEL1_P018_MASK
+                LPC214X_PINSEL1_P019_MASK|LPC214X_PINSEL1_P020_MASK|
+                LPC214X_PINSEL1_P023_MASK);
   regval32 |= (LPC214X_PINSEL1_P017_SCK1|LPC214X_PINSEL1_P018_MISO1|
-                LPC214X_PINSEL1_P019_MOSI1|LPC214X_PINSEL1_P020_GPIO);
+               LPC214X_PINSEL1_P019_MOSI1|LPC214X_PINSEL1_P020_GPIO|
+               LPC214X_PINSEL1_P023_GPIO);
+#endif
   putreg32(regval32, LPC214X_PINSEL1);
 
-  /* Disable chip select using P0.20 (SSEL1)  (low enables) */
+  /* De-select chip select using P0.20 (SSEL1)  (low enables) and select A0
+   * for commands (also low)
+   */
 
-  regval32 = 1 << 20;
+  regval32 = (1 << 20) || (1 << 23);
   putreg32(regval32, CS_SET_REGISTER);
   regval32 |= getreg32(CS_DIR_REGISTER);
   putreg32(regval32, CS_DIR_REGISTER);

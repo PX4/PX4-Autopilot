@@ -178,6 +178,12 @@ config NXFONTS_CHARBITS
 		The number of bits in the character set.  Current options are only 7 and 8.
 		The default is 7.
 
+config NXFONT_MONO5X8
+	bool "Mono 5x8"
+	default n
+	---help---
+	Tiny mono-spaced 5x8 font (font ID FONTID_MONO5X8 = 18)
+ 
 config NXFONT_SANS17X22
 	bool "Sans 17x22"
 	default n
