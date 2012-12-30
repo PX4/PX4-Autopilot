@@ -54,7 +54,6 @@ struct px4io_command {
 	uint16_t	f2i_magic;
 #define F2I_MAGIC		0x636d
 
-	uint16_t	servo_command[PX4IO_OUTPUT_CHANNELS];	/**< servo output channels */
 	uint16_t	servo_rate;
 	uint16_t	output_control[PX4IO_CONTROL_CHANNELS]; /**< PWM output rate in Hz */
 	bool		relay_state[PX4IO_RELAY_CHANNELS];	/**< relay states as requested by FMU */
