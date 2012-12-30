@@ -85,13 +85,15 @@
 /* Use either FIO or legacy GPIO */
 
 #ifdef CONFIG_LPC214x_FIO
-#  define CS_SET_REGISTER (LPC214X_FIO0_BASE+LPC214X_FIO_SET_OFFSET)
-#  define CS_CLR_REGISTER (LPC214X_FIO0_BASE+LPC214X_FIO_CLR_OFFSET)
-#  define CS_DIR_REGISTER (LPC214X_FIO0_BASE+LPC214X_FIO_DIR_OFFSET)
+#  define RESET_PIN_REGISTER (LPC214X_FIO0_BASE+LPC214X_FIO_PIN_OFFSET)
+#  define RESET_SET_REGISTER (LPC214X_FIO0_BASE+LPC214X_FIO_SET_OFFSET)
+#  define RESET_CLR_REGISTER (LPC214X_FIO0_BASE+LPC214X_FIO_CLR_OFFSET)
+#  define RESET_DIR_REGISTER (LPC214X_FIO0_BASE+LPC214X_FIO_DIR_OFFSET)
 #else
-#  define CS_SET_REGISTER (LPC214X_GPIO0_BASE+LPC214X_GPIO_SET_OFFSET)
-#  define CS_CLR_REGISTER (LPC214X_GPIO0_BASE+LPC214X_GPIO_CLR_OFFSET)
-#  define CS_DIR_REGISTER (LPC214X_GPIO0_BASE+LPC214X_GPIO_DIR_OFFSET)
+#  define RESET_PIN_REGISTER (LPC214X_GPIO0_BASE+LPC214X_GPIO_PIN_OFFSET)
+#  define RESET_SET_REGISTER (LPC214X_GPIO0_BASE+LPC214X_GPIO_SET_OFFSET)
+#  define RESET_CLR_REGISTER (LPC214X_GPIO0_BASE+LPC214X_GPIO_CLR_OFFSET)
+#  define RESET_DIR_REGISTER (LPC214X_GPIO0_BASE+LPC214X_GPIO_DIR_OFFSET)
 #endif
 
 /* Debug ********************************************************************/
@@ -136,14 +138,21 @@ FAR struct lcd_dev_s *up_nxdrvinit(unsigned int devno)
   /* Set the RESET line low, putting the OLED into the reset state. */
 
   bits32 = (1 << 18);
-  putreg32(bits32, CS_CLR_REGISTER);
-  regval32 = getreg32(CS_DIR_REGISTER);
-  putreg32(regval32 | bits32, CS_DIR_REGISTER);
+  putreg32(bits32, RESET_CLR_REGISTER);
+  regval32 = getreg32(RESET_DIR_REGISTER);
+  putreg32(regval32 | bits32, RESET_DIR_REGISTER);
+
+  lcdvdbg("RESET Pin Config: PINSEL1: %08x PIN: %08x DIR: %08x\n",
+          getreg32(LPC214X_PINSEL1), getreg32(RESET_PIN_REGISTER),
+          getreg32(RESET_DIR_REGISTER));
 
   /* Wait a bit then release the OLED from the reset state */
 
   up_mdelay(20);
-  putreg32(bits32, CS_SET_REGISTER);
+  putreg32(bits32, RESET_SET_REGISTER);
+
+  lcdvdbg("RESET release: PIN: %08x DIR: %08x\n",
+          getreg32(RESET_PIN_REGISTER), getreg32(RESET_DIR_REGISTER));
 
   /* Get the SPI1 port interface */
 

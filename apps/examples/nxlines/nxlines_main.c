@@ -191,6 +191,7 @@ static inline int nxlines_initialize(void)
       g_nxlines.code = NXEXIT_NXOPEN;
       return ERROR;
     }
+
   return OK;
 }
 

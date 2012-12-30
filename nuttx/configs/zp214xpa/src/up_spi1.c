@@ -86,20 +86,16 @@
  * Definitions
  ****************************************************************************/
 
-/* Enables debug output from this file (needs CONFIG_DEBUG too) */
+/* Enables debug output from this file */
 
-#undef SPI_DEBUG     /* Define to enable debug */
-#undef SPI_VERBOSE   /* Define to enable verbose debug */
-
-#ifdef SPI_DEBUG
+#ifdef CONFIG_DEBUG_SPI
 #  define spidbg  lldbg
-#  ifdef SPI_VERBOSE
+#  ifdef CONFIG_DEBUG_VERBOSE
 #    define spivdbg lldbg
 #  else
 #    define spivdbg(x...)
 #  endif
 #else
-#  undef SPI_VERBOSE
 #  define spidbg(x...)
 #  define spivdbg(x...)
 #endif
@@ -112,10 +108,12 @@
 /* Use either FIO or legacy GPIO */
 
 #ifdef CONFIG_LPC214x_FIO
+#  define CS_PIN_REGISTER (LPC214X_FIO0_BASE+LPC214X_FIO_PIN_OFFSET)
 #  define CS_SET_REGISTER (LPC214X_FIO0_BASE+LPC214X_FIO_SET_OFFSET)
 #  define CS_CLR_REGISTER (LPC214X_FIO0_BASE+LPC214X_FIO_CLR_OFFSET)
 #  define CS_DIR_REGISTER (LPC214X_FIO0_BASE+LPC214X_FIO_DIR_OFFSET)
 #else
+#  define CS_PIN_REGISTER (LPC214X_GPIO0_BASE+LPC214X_GPIO_PIN_OFFSET)
 #  define CS_SET_REGISTER (LPC214X_GPIO0_BASE+LPC214X_GPIO_SET_OFFSET)
 #  define CS_CLR_REGISTER (LPC214X_GPIO0_BASE+LPC214X_GPIO_CLR_OFFSET)
 #  define CS_DIR_REGISTER (LPC214X_GPIO0_BASE+LPC214X_GPIO_DIR_OFFSET)
@@ -130,7 +128,7 @@ static int spi_lock(FAR struct spi_dev_s *dev, bool lock);
 #endif
 static void spi_select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
 static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency);
-static uint8_t  spi_status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
+static uint8_t spi_status(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
 #ifdef CONFIG_SPI_CMDDATA
 static int spi_cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
 #endif
@@ -193,7 +191,7 @@ static struct spi_dev_s g_spidev = { &g_spiops };
 #ifndef CONFIG_SPI_OWNBUS
 static int spi_lock(FAR struct spi_dev_s *dev, bool lock)
 {
-  /* Not implemented */
+  /* Not implemented -- the UG_2864AMBAG01 is the only device on SPI1 */
 
   return -ENOSYS;
 }
@@ -219,25 +217,32 @@ static int spi_lock(FAR struct spi_dev_s *dev, bool lock)
 
 static void spi_select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
+#ifdef CONFIG_DEBUG_SPI
+  uint32_t regval;
+#endif
   uint32_t bit = 1 << 20;
 
   /* We do not bother to check if devid == SPIDEV_DISPLAY because that is the
    * only thing on the bus.
    */
 
+#ifdef CONFIG_DEBUG_SPI
+  regval = getreg32(CS_PIN_REGISTER);
+#endif
+
   if (selected)
     {
       /* Enable slave select (low enables) */
 
-      spidbg("CD asserted\n");
       putreg32(bit, CS_CLR_REGISTER);
+      spidbg("CS asserted: %08x->%08x\n", regval, getreg32(CS_PIN_REGISTER));
     }
   else
     {
       /* Disable slave select (low enables) */
 
-      spidbg("CD de-asserted\n");
       putreg32(bit, CS_SET_REGISTER);
+      spidbg("CS de-asserted: %08x->%08x\n", regval, getreg32(CS_PIN_REGISTER));
 
       /* Wait for the TX FIFO not full indication */
 
@@ -345,6 +350,9 @@ static uint8_t spi_status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 #ifdef CONFIG_SPI_CMDDATA
 static int spi_cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
 {
+#ifdef CONFIG_DEBUG_SPI
+  uint32_t regval;
+#endif
   uint32_t bit = 1 << 23;
 
   /* We do not bother to check if devid == SPIDEV_DISPLAY because that is the
@@ -358,19 +366,23 @@ static int spi_cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd
    *  A0 = L: the inputs at D0 to D7 are transferred to the command registers."
    */
 
+#ifdef CONFIG_DEBUG_SPI
+  regval = getreg32(CS_PIN_REGISTER);
+#endif
+
   if (cmd)
     {
       /* L: the inputs at D0 to D7 are transferred to the command registers */
 
-      spidbg("Command\n");
       putreg32(bit, CS_CLR_REGISTER);
+      spidbg("Command: %08x->%08x\n", regval, getreg32(CS_PIN_REGISTER));
     }
   else
     {
       /* H: the inputs at D0 to D7 are treated as display data. */
 
-      spidbg("CD de-asserted\n");
       putreg32(bit, CS_SET_REGISTER);
+      spidbg("Data: %08x->%08x\n", regval, getreg32(CS_PIN_REGISTER));
     }
 
   return OK;
@@ -606,10 +618,14 @@ FAR struct spi_dev_s *up_spiinitialize(int port)
    * for commands (also low)
    */
 
-  regval32 = (1 << 20) || (1 << 23);
+  regval32 = (1 << 20) | (1 << 23);
   putreg32(regval32, CS_SET_REGISTER);
   regval32 |= getreg32(CS_DIR_REGISTER);
   putreg32(regval32, CS_DIR_REGISTER);
+
+  spidbg("CS Pin Config: PINSEL1: %08x PIN: %08x DIR: %08x\n",
+         getreg32(LPC214X_PINSEL1), getreg32(CS_PIN_REGISTER),
+         getreg32(CS_DIR_REGISTER));
 
   /* Enable peripheral clocking to SPI1 */
 

@@ -1148,8 +1148,8 @@ void ug2864ambag01_fill(FAR struct lcd_dev_s *dev, uint8_t color)
 
       /* Transfer one page of the selected color */
 
-       (void)SPI_SNDBLOCK(priv->spi, &priv->fb[page * UG2864AMBAG01_XRES],
-                          UG2864AMBAG01_XRES);
+      (void)SPI_SNDBLOCK(priv->spi, &priv->fb[page * UG2864AMBAG01_XRES],
+                         UG2864AMBAG01_XRES);
     }
 
   /* De-select and unlock the device */

@@ -338,3 +338,5 @@ Configurations:
        CONFIG_HOST_LINUX=y             : Linux (Cygwin under Windows okay too).
        CONFIG_ARM_TOOLCHAIN_GNU_EABI=y : Buildroot (arm-nuttx-elf-gcc)
        CONFIG_RAW_BINARY=y             : Output formats: ELF and raw binary
+
+    3. Verified as of this writing (2012-12-30).
