@@ -705,6 +705,13 @@ test(void)
 
 	close(fd);
 
+	actuator_armed_s aa;
+
+	aa.armed = true;
+	aa.lockdown = false;
+
+	orb_advertise(ORB_ID(actuator_armed), &aa);
+
 	exit(0);
 }
 
