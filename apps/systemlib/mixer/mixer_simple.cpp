@@ -77,9 +77,11 @@ skipspace(const char *p, unsigned &len)
 	while (isspace(*p)) {
 		if (len == 0)
 			return nullptr;
+
 		len--;
 		p++;
 	}
+
 	return p;
 }
 
@@ -91,14 +93,16 @@ SimpleMixer::parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler
 	int used;
 
 	buf = skipspace(buf, buflen);
+
 	if (buflen < 16)
 		return -1;
 
 	if ((ret = sscanf(buf, "O: %d %d %d %d %d%n",
-		   &s[0], &s[1], &s[2], &s[3], &s[4], &used)) != 5) {
+			  &s[0], &s[1], &s[2], &s[3], &s[4], &used)) != 5) {
 		debug("scaler parse failed on '%s' (got %d)", buf, ret);
 		return -1;
 	}
+
 	buflen -= used;
 
 	scaler.negative_scale	= s[0] / 10000.0f;
@@ -118,6 +122,7 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 	int used;
 
 	buf = skipspace(buf, buflen);
+
 	if (buflen < 16)
 		return -1;
 
@@ -126,6 +131,7 @@ SimpleMixer::parse_control_scaler(const char *buf, unsigned &buflen, mixer_scale
 		debug("control parse failed on '%s'", buf);
 		return -1;
 	}
+
 	buflen -= used;
 
 	control_group		= u[0];
@@ -153,13 +159,16 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 		debug("simple parse failed on '%s'", buf);
 		goto out;
 	}
+
 	buflen -= used;
 
 	mixinfo = (mixer_simple_s *)malloc(MIXER_SIMPLE_SIZE(inputs));
+
 	if (mixinfo == nullptr) {
 		debug("could not allocate memory for mixer info");
 		goto out;
 	}
+
 	mixinfo->control_count = inputs;
 
 	if (parse_output_scaler(end - buflen, buflen, mixinfo->output_scaler))
@@ -167,21 +176,84 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 
 	for (unsigned i = 0; i < inputs; i++) {
 		if (parse_control_scaler(end - buflen, buflen,
-			mixinfo->controls[i].scaler,
-			mixinfo->controls[i].control_group,
-			mixinfo->controls[i].control_index))
+					 mixinfo->controls[i].scaler,
+					 mixinfo->controls[i].control_group,
+					 mixinfo->controls[i].control_index))
 			goto out;
 	}
 
 	sm = new SimpleMixer(control_cb, cb_handle, mixinfo);
+
 	if (sm != nullptr) {
 		mixinfo = nullptr;
 		debug("loaded mixer with %d inputs", inputs);
+
 	} else {
 		debug("could not allocate memory for mixer");
 	}
 
 out:
+
+	if (mixinfo != nullptr)
+		free(mixinfo);
+
+	return sm;
+}
+
+SimpleMixer *
+SimpleMixer::pwm_input(Mixer::ControlCallback *control_cb, uintptr_t cb_handle, unsigned input, uint16_t min, uint16_t mid, uint16_t max)
+{
+	SimpleMixer *sm = nullptr;
+	mixer_simple_s *mixinfo = nullptr;
+
+	mixinfo = (mixer_simple_s *)malloc(MIXER_SIMPLE_SIZE(1));
+
+	if (mixinfo == nullptr) {
+		debug("could not allocate memory for mixer info");
+		goto out;
+	}
+
+	mixinfo->control_count = 1;
+
+	/*
+	 * Always pull from group 0, with the input value giving the channel.
+	 */
+	mixinfo->controls[0].control_group = 0;
+	mixinfo->controls[0].control_index = input;
+
+	/*
+	 * Conversion uses both the input and output side of the mixer.
+	 *
+	 * The input side is used to slide the control value such that the min argument
+	 * results in a value of zero.
+	 *
+	 * The output side is used to apply the scaling for the min/max values so that
+	 * the resulting output is a -1.0 ... 1.0 value for the min...max range.
+	 */
+	mixinfo->controls[0].scaler.negative_scale = 1.0f;
+	mixinfo->controls[0].scaler.positive_scale = 1.0f;
+	mixinfo->controls[0].scaler.offset = -mid;
+	mixinfo->controls[0].scaler.lower_limit = -(mid - min);
+	mixinfo->controls[0].scaler.upper_limit = (max - mid);
+
+	mixinfo->output_scaler.negative_scale = 500.0f / (mid - min);
+	mixinfo->output_scaler.positive_scale = 500.0f / (max - mid);
+	mixinfo->output_scaler.offset = 0.0f;
+	mixinfo->output_scaler.min_output = -1.0f;
+	mixinfo->output_scaler.max_output = 1.0f;
+
+	sm = new SimpleMixer(control_cb, cb_handle, mixinfo);
+
+	if (sm != nullptr) {
+		mixinfo = nullptr;
+		debug("PWM input mixer for %d", input);
+
+	} else {
+		debug("could not allocate memory for PWM input mixer");
+	}
+
+out:
+
 	if (mixinfo != nullptr)
 		free(mixinfo);
 

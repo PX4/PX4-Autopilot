@@ -243,34 +243,34 @@ public:
 	 *
 	 * Mixer definitions begin with a single capital letter and a colon.
 	 * The actual format of the mixer definition varies with the individual
-	 * mixers; they are summarised here, but see ROMFS/mixers/README for 
+	 * mixers; they are summarised here, but see ROMFS/mixers/README for
 	 * more details.
 	 *
 	 * Null Mixer
 	 * ..........
-	 * 
+	 *
 	 * The null mixer definition has the form:
-	 * 
+	 *
 	 *   Z:
-	 * 
+	 *
 	 * Simple Mixer
 	 * ............
-	 * 
+	 *
 	 * A simple mixer definition begins with:
-	 * 
+	 *
 	 *   M: <control count>
 	 *   O: <-ve scale> <+ve scale> <offset> <lower limit> <upper limit>
-	 * 
+	 *
 	 * The definition continues with <control count> entries describing the control
 	 * inputs and their scaling, in the form:
-	 * 
+	 *
 	 *   S: <group> <index> <-ve scale> <+ve scale> <offset> <lower limit> <upper limit>
-	 * 
+	 *
 	 * Multirotor Mixer
 	 * ................
-	 * 
+	 *
 	 * The multirotor mixer definition is a single line of the form:
-	 * 
+	 *
 	 * R: <geometry> <roll scale> <pitch scale> <yaw scale> <deadband>
 	 *
 	 * @param buf			The mixer configuration buffer.
@@ -335,7 +335,7 @@ public:
 	~SimpleMixer();
 
 	/**
-	 * Factory method.
+	 * Factory method with full external configuration.
 	 *
 	 * Given a pointer to a buffer containing a text description of the mixer,
 	 * returns a pointer to a new instance of the mixer.
@@ -351,9 +351,29 @@ public:
 	 *				if the text format is bad.
 	 */
 	static SimpleMixer		*from_text(Mixer::ControlCallback control_cb,
-						uintptr_t cb_handle,
-						const char *buf,
-						unsigned &buflen);
+			uintptr_t cb_handle,
+			const char *buf,
+			unsigned &buflen);
+
+	/**
+	 * Factory method for PWM/PPM input to internal float representation.
+	 *
+	 * @param control_cb		The callback to invoke when fetching a
+	 *				control value.
+	 * @param cb_handle		Handle passed to the control callback.
+	 * @param input			The control index used when fetching the input.
+	 * @param min			The PWM/PPM value considered to be "minimum" (gives -1.0 out)
+	 * @param mid			The PWM/PPM value considered to be the midpoint (gives 0.0 out)
+	 * @param max			The PWM/PPM value considered to be "maximum" (gives 1.0 out)
+	 * @return			A new SimpleMixer instance, or nullptr if one could not be
+	 *				allocated.
+	 */
+	static SimpleMixer		*pwm_input(Mixer::ControlCallback *control_cb,
+			uintptr_t cb_handle,
+			unsigned input,
+			uint16_t min,
+			uint16_t mid,
+			uint16_t max);
 
 	virtual unsigned		mix(float *outputs, unsigned space);
 	virtual void			groups_required(uint32_t &groups);
@@ -375,10 +395,10 @@ private:
 
 	static int			parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler);
 	static int			parse_control_scaler(const char *buf,
-						unsigned &buflen,
-						mixer_scaler_s &scaler,
-						uint8_t &control_group,
-						uint8_t &control_index);
+			unsigned &buflen,
+			mixer_scaler_s &scaler,
+			uint8_t &control_group,
+			uint8_t &control_index);
 };
 
 /**
@@ -457,9 +477,9 @@ public:
 	 *				if the text format is bad.
 	 */
 	static MultirotorMixer		*from_text(Mixer::ControlCallback control_cb,
-						uintptr_t cb_handle,
-						const char *buf,
-						unsigned &buflen);
+			uintptr_t cb_handle,
+			const char *buf,
+			unsigned &buflen);
 
 	virtual unsigned		mix(float *outputs, unsigned space);
 	virtual void			groups_required(uint32_t &groups);
