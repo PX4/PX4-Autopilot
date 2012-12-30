@@ -549,7 +549,7 @@ receive_thread(void *arg)
 	int uart_fd = *((int*)arg);
 
 	const int timeout = 1000;
-	uint8_t ch;
+	uint8_t buf[512];
 
 	mavlink_message_t msg;
 
@@ -560,13 +560,10 @@ receive_thread(void *arg)
 		struct pollfd fds[] = { { .fd = uart_fd, .events = POLLIN } };
 
 		if (poll(fds, 1, timeout) > 0) {
-			/* non-blocking read until buffer is empty */
-			int nread = 0;
-
-			do {
-				nread = read(uart_fd, &ch, 1);
-
-				if (mavlink_parse_char(chan, ch, &msg, &status)) { //parse the char
+			/* non-blocking read */
+			int nread = read(uart_fd, buf, sizeof(buf));
+            for (size_t i=0;i<nread;i++) {
+				if (mavlink_parse_char(chan, buf[i], &msg, &status)) { //parse the char
 					/* handle generic messages and commands */
 					handle_message(&msg);
 
@@ -576,7 +573,7 @@ receive_thread(void *arg)
 					/* Handle packet with parameter component */
 					mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
 				}
-			} while (nread > 0);
+            }
 		}
 	}
 
@@ -589,11 +586,15 @@ receive_start(int uart)
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
 
+    // set to non-blocking read
+    int flags = fcntl(uart, F_GETFL, 0);
+    fcntl(uart, F_SETFL, flags | O_NONBLOCK);
+
 	struct sched_param param;
-  	param.sched_priority = SCHED_PRIORITY_MAX - 40;
+  	param.sched_priority = SCHED_PRIORITY_MAX;
   	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
-	pthread_attr_setstacksize(&receiveloop_attr, 2048);
+	pthread_attr_setstacksize(&receiveloop_attr, 4096);
 
 	pthread_t thread;
 	pthread_create(&thread, &receiveloop_attr, receive_thread, &uart);
