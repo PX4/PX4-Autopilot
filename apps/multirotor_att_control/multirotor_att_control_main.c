@@ -253,7 +253,20 @@ mc_thread_main(int argc, char *argv[])
 							param_get(failsafe_throttle_handle, &failsafe_throttle);
 							att_sp.roll_body = 0.0f;
 							att_sp.pitch_body = 0.0f;
-							att_sp.thrust = failsafe_throttle;
+
+							/*
+							 * Only go to failsafe throttle if last known throttle was
+							 * high enough to create some lift to make hovering state likely.
+							 * 
+							 * This is to prevent that someone landing, but not disarming his
+							 * multicopter (throttle = 0) does not make it jump up in the air
+							 * if shutting down his remote.
+							 */
+							if (isfinite(manual.throttle) && manual.throttle > 0.2f) {
+								att_sp.thrust = failsafe_throttle;
+							} else {
+								att_sp.thrust = 0.0f;
+							}
 
 							/* keep current yaw, do not attempt to go to north orientation,
 							 * since if the pilot regains RC control, he will be lost regarding

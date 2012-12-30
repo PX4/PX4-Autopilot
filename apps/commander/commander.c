@@ -1684,63 +1684,63 @@ int commander_thread_main(int argc, char *argv[])
 
 			if ((hrt_absolute_time() - sp_man.timestamp) < 100000) {
 
-				/*
-				 * Check if manual control modes have to be switched
-				 */
-				if (!isfinite(sp_man.manual_mode_switch)) {
-					printf("man mode sw not finite\n");
+				// /*
+				//  * Check if manual control modes have to be switched
+				//  */
+				// if (!isfinite(sp_man.manual_mode_switch)) {
+				// 	printf("man mode sw not finite\n");
 
-					/* this switch is not properly mapped, set default */
-					if ((current_status.system_type == MAV_TYPE_QUADROTOR) ||
-						(current_status.system_type == MAV_TYPE_HEXAROTOR) ||
-						(current_status.system_type == MAV_TYPE_OCTOROTOR)) {
+				// 	/* this switch is not properly mapped, set default */
+				// 	if ((current_status.system_type == MAV_TYPE_QUADROTOR) ||
+				// 		(current_status.system_type == MAV_TYPE_HEXAROTOR) ||
+				// 		(current_status.system_type == MAV_TYPE_OCTOROTOR)) {
 
-						/* assuming a rotary wing, fall back to SAS */
-						current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
-						current_status.flag_control_attitude_enabled = true;
-						current_status.flag_control_rates_enabled = true;
-					} else {
+				// 		/* assuming a rotary wing, fall back to SAS */
+				// 		current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
+				// 		current_status.flag_control_attitude_enabled = true;
+				// 		current_status.flag_control_rates_enabled = true;
+				// 	} else {
 
-						/* assuming a fixed wing, fall back to direct pass-through */
-						current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_DIRECT;
-						current_status.flag_control_attitude_enabled = false;
-						current_status.flag_control_rates_enabled = false;
-					}
+				// 		/* assuming a fixed wing, fall back to direct pass-through */
+				// 		current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_DIRECT;
+				// 		current_status.flag_control_attitude_enabled = false;
+				// 		current_status.flag_control_rates_enabled = false;
+				// 	}
 
-				} else if (sp_man.manual_mode_switch < -STICK_ON_OFF_LIMIT) {
+				// } else if (sp_man.manual_mode_switch < -STICK_ON_OFF_LIMIT) {
 
-					/* bottom stick position, set direct mode for vehicles supporting it */
-					if ((current_status.system_type == MAV_TYPE_QUADROTOR) ||
-						(current_status.system_type == MAV_TYPE_HEXAROTOR) ||
-						(current_status.system_type == MAV_TYPE_OCTOROTOR)) {
+				// 	/* bottom stick position, set direct mode for vehicles supporting it */
+				// 	if ((current_status.system_type == MAV_TYPE_QUADROTOR) ||
+				// 		(current_status.system_type == MAV_TYPE_HEXAROTOR) ||
+				// 		(current_status.system_type == MAV_TYPE_OCTOROTOR)) {
 
-						/* assuming a rotary wing, fall back to SAS */
-						current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
-						current_status.flag_control_attitude_enabled = true;
-						current_status.flag_control_rates_enabled = true;
-					} else {
+				// 		/* assuming a rotary wing, fall back to SAS */
+				// 		current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
+				// 		current_status.flag_control_attitude_enabled = true;
+				// 		current_status.flag_control_rates_enabled = true;
+				// 	} else {
 
-						/* assuming a fixed wing, set to direct pass-through as requested */
-						current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_DIRECT;
-						current_status.flag_control_attitude_enabled = false;
-						current_status.flag_control_rates_enabled = false;
-					}
+				// 		/* assuming a fixed wing, set to direct pass-through as requested */
+				// 		current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_DIRECT;
+				// 		current_status.flag_control_attitude_enabled = false;
+				// 		current_status.flag_control_rates_enabled = false;
+				// 	}
 
-				} else if (sp_man.manual_mode_switch > STICK_ON_OFF_LIMIT) {
+				// } else if (sp_man.manual_mode_switch > STICK_ON_OFF_LIMIT) {
 
-					/* top stick position, set SAS for all vehicle types */
-					current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
-					current_status.flag_control_attitude_enabled = true;
-					current_status.flag_control_rates_enabled = true;
+				// 	/* top stick position, set SAS for all vehicle types */
+				// 	current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
+				// 	current_status.flag_control_attitude_enabled = true;
+				// 	current_status.flag_control_rates_enabled = true;
 
-				} else {
-					/* center stick position, set rate control */
-					current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_RATES;
-					current_status.flag_control_attitude_enabled = false;
-					current_status.flag_control_rates_enabled = true;
-				}
+				// } else {
+				// 	/* center stick position, set rate control */
+				// 	current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_RATES;
+				// 	current_status.flag_control_attitude_enabled = false;
+				// 	current_status.flag_control_rates_enabled = true;
+				// }
 
-				printf("man ctrl mode: %d\n", (int)current_status.manual_control_mode);
+				// printf("man ctrl mode: %d\n", (int)current_status.manual_control_mode);
 
 				/*
 				 * Check if manual stability control modes have to be switched
@@ -1801,7 +1801,7 @@ int commander_thread_main(int argc, char *argv[])
 				if (sp_man.manual_override_switch > STICK_ON_OFF_LIMIT) {
 					/* enable manual override */
 					update_state_machine_mode_manual(stat_pub, &current_status, mavlink_fd);
-				} else {
+				} else if (sp_man.manual_override_switch < -STICK_ON_OFF_LIMIT) {
 					/* check auto mode switch for correct mode */
 					if (sp_man.auto_mode_switch > STICK_ON_OFF_LIMIT) {
 						/* enable stabilized mode */
@@ -1813,6 +1813,11 @@ int commander_thread_main(int argc, char *argv[])
 					} else {
 						update_state_machine_mode_hold(stat_pub, &current_status, mavlink_fd);
 					}
+				} else {
+					/* center stick position, set SAS for all vehicle types */
+					current_status.manual_control_mode = VEHICLE_MANUAL_CONTROL_MODE_SAS;
+					current_status.flag_control_attitude_enabled = true;
+					current_status.flag_control_rates_enabled = true;
 				}
 
 				/* handle the case where RC signal was regained */

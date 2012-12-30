@@ -208,7 +208,13 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 					att_sp.roll_body = 0.3f;
 					att_sp.pitch_body = 0.0f;
 					att_sp.yaw_body = 0;
-					att_sp.thrust = 0.4f;
+					
+					/* limit throttle to 60 % of last value */
+					if (isfinite(manual_sp.throttle)) {
+						att_sp.thrust = 0.6f * manual_sp.throttle;
+					} else {
+						att_sp.thrust = 0.0f;
+					}
 
 					// XXX disable yaw control, loiter
 
@@ -250,7 +256,13 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 						//param_get(failsafe_throttle_handle, &failsafe_throttle);
 						att_sp.roll_body = 0.3f;
 						att_sp.pitch_body = 0.0f;
-						att_sp.thrust = 0.4f;
+
+						/* limit throttle to 60 % of last value */
+						if (isfinite(manual_sp.throttle)) {
+							att_sp.thrust = 0.6f * manual_sp.throttle;
+						} else {
+							att_sp.thrust = 0.0f;
+						}
 						att_sp.yaw_body = 0;
 
 						// XXX disable yaw control, loiter
