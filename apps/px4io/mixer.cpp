@@ -56,6 +56,7 @@
 #include <systemlib/mixer/mixer.h>
 
 extern "C" {
+//#define DEBUG
 #include "px4io.h"
 }
 
@@ -94,15 +95,17 @@ mixer_tick(void)
 	/*
 	 * Decide which set of inputs we're using.
 	 */
+	 
 	/* this is for planes, where manual override makes sense */
 	if(system_state.manual_override_ok) {
 		/* if everything is ok */
 		if (!system_state.mixer_manual_override && system_state.mixer_fmu_available) {
 			/* we have recent control data from the FMU */
-			control_count = PX4IO_OUTPUT_CHANNELS;
+			control_count = PX4IO_CONTROL_CHANNELS;
 			control_values = &system_state.fmu_channel_data[0];
-		/* when override is on or the fmu is not available */
+
 		} else if (system_state.rc_channels > 0) {
+			/* when override is on or the fmu is not available, but RC is present */
 			control_count = system_state.rc_channels;
 			control_values = &system_state.rc_channel_data[0];
 		} else {
@@ -116,7 +119,7 @@ mixer_tick(void)
 	} else {
 		/* if the fmu is available whe are good */
 		if(system_state.mixer_fmu_available) {
-			control_count = PX4IO_OUTPUT_CHANNELS;
+			control_count = PX4IO_CONTROL_CHANNELS;
 			control_values = &system_state.fmu_channel_data[0];
 		/* we better shut everything off */
 		} else {
@@ -183,19 +186,21 @@ mixer_callback(uintptr_t handle,
 		return -1;
 
 	/* scale from current PWM units (1000-2000) to mixer input values */
-	/* XXX this presents some ugly problems w.r.t failsafe and R/C input scaling that have to be addressed */
 	control = ((float)control_values[control_index] - 1500.0f) / 500.0f;
 
 	return 0;
 }
 
+static char mixer_text[256];
+static unsigned mixer_text_length = 0;
+
 void
 mixer_handle_text(const void *buffer, size_t length)
 {
-	static char mixer_text[256];
-	static unsigned mixer_text_length = 0;
 
 	px4io_mixdata	*msg = (px4io_mixdata *)buffer;
+
+	debug("mixer text %u", length);
 
 	if (length < sizeof(px4io_mixdata))
 		return;
@@ -204,11 +209,13 @@ mixer_handle_text(const void *buffer, size_t length)
 
 	switch (msg->action) {
 	case F2I_MIXER_ACTION_RESET:
+		debug("reset");
 		mixer_group.reset();
 		mixer_text_length = 0;
 
 		/* FALLTHROUGH */
 	case F2I_MIXER_ACTION_APPEND:
+		debug("append %d", length);
 
 		/* check for overflow - this is really fatal */
 		if ((mixer_text_length + text_length + 1) > sizeof(mixer_text))
@@ -218,14 +225,22 @@ mixer_handle_text(const void *buffer, size_t length)
 		memcpy(&mixer_text[mixer_text_length], msg->text, text_length);
 		mixer_text_length += text_length;
 		mixer_text[mixer_text_length] = '\0';
+		debug("buflen %u", mixer_text_length);
 
 		/* process the text buffer, adding new mixers as their descriptions can be parsed */
-		char *end = &mixer_text[mixer_text_length];
-		mixer_group.load_from_buf(&mixer_text[0], mixer_text_length);
+		unsigned resid = mixer_text_length;
+		mixer_group.load_from_buf(&mixer_text[0], resid);
 
-		/* copy any leftover text to the base of the buffer for re-use */
-		if (mixer_text_length > 0)
-			memcpy(&mixer_text[0], end - mixer_text_length, mixer_text_length);
+		/* if anything was parsed */
+		if (resid != mixer_text_length) {
+			debug("used %u", mixer_text_length - resid);
+
+			/* copy any leftover text to the base of the buffer for re-use */
+			if (resid > 0)
+				memcpy(&mixer_text[0], &mixer_text[mixer_text_length - resid], resid);
+
+			mixer_text_length = resid;
+		}
 
 		break;
 	}

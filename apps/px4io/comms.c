@@ -71,12 +71,17 @@ static struct px4io_report	report;
 
 static void			comms_handle_frame(void *arg, const void *buffer, size_t length);
 
+perf_counter_t			comms_rx_errors;
+
 static void
 comms_init(void)
 {
 	/* initialise the FMU interface */
 	fmu_fd = open("/dev/ttyS1", O_RDWR);
 	stream = hx_stream_init(fmu_fd, comms_handle_frame, NULL);
+
+	comms_rx_errors = perf_alloc(PC_COUNT, "rx_err");
+	hx_stream_set_counters(stream, 0, 0, comms_rx_errors);
 
 	/* default state in the report to FMU */
 	report.i2f_magic = I2F_MAGIC;
@@ -173,14 +178,12 @@ comms_handle_command(const void *buffer, size_t length)
 	irqstate_t flags = irqsave();
 
 	/* fetch new PWM output values */
-	for (unsigned i = 0; i < PX4IO_OUTPUT_CHANNELS; i++) {
-		system_state.fmu_channel_data[i] = cmd->servo_command[i];
-	}
+	for (unsigned i = 0; i < PX4IO_CONTROL_CHANNELS; i++)
+		system_state.fmu_channel_data[i] = cmd->output_control[i];
 
-	/* if IO is armed and FMU gets disarmed, IO must also disarm */
-	if (system_state.arm_ok && !cmd->arm_ok) {
+	/* if the IO is armed and the FMU gets disarmed, the IO must also disarm */
+	if (system_state.arm_ok && !cmd->arm_ok)
 		system_state.armed = false;
-	}
 
 	system_state.arm_ok = cmd->arm_ok;
 	system_state.vector_flight_mode_ok = cmd->vector_flight_mode_ok;

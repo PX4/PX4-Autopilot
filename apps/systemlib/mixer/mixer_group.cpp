@@ -125,39 +125,58 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 	int ret = -1;
 	const char *end = buf + buflen;
 
-	/* loop until we have consumed the buffer */
+	/*
+	 * Loop until either we have emptied the buffer, or we have failed to
+	 * allocate something when we expected to.
+	 */
 	while (buflen > 0) {
 		Mixer *m = nullptr;
 		const char *p = end - buflen;
+		unsigned resid = buflen;
 
-		/* use the next character as a hint to decide which mixer class to construct */
+		/*
+		 * Use the next character as a hint to decide which mixer class to construct.
+		 */
 		switch (*p) {
 		case 'Z':
-			m = NullMixer::from_text(p, buflen);
+			m = NullMixer::from_text(p, resid);
 			break;
 
 		case 'M':
-			m = SimpleMixer::from_text(_control_cb, _cb_handle, p, buflen);
+			m = SimpleMixer::from_text(_control_cb, _cb_handle, p, resid);
 			break;
 
 		case 'R':
-			m = MultirotorMixer::from_text(_control_cb, _cb_handle, p, buflen);
+			m = MultirotorMixer::from_text(_control_cb, _cb_handle, p, resid);
 			break;
 
 		default:
-			/* it's probably junk or whitespace */
-			break;
+			/* it's probably junk or whitespace, skip a byte and retry */
+			buflen--;
+			continue;
 		}
 
+		/*
+		 * If we constructed something, add it to the group.
+		 */
 		if (m != nullptr) {
 			add_mixer(m);
+
+			/* we constructed something */
 			ret = 0;
 
+			/* only adjust buflen if parsing was successful */
+			buflen = resid;
 		} else {
-			/* skip whitespace or junk in the buffer */
-			buflen--;
+
+			/*
+			 * There is data in the buffer that we expected to parse, but it didn't,
+			 * so give up for now.
+			 */
+			break;
 		}
 	}
 
+	/* nothing more in the buffer for us now */
 	return ret;
 }

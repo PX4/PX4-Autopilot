@@ -41,7 +41,7 @@
 
 #pragma once
 
-#define PX4IO_OUTPUT_CHANNELS	8
+#define PX4IO_CONTROL_CHANNELS	8
 #define PX4IO_INPUT_CHANNELS	12
 #define PX4IO_RELAY_CHANNELS	4
 
@@ -55,7 +55,8 @@ struct px4io_command {
 #define F2I_MAGIC		0x636d
 
 	uint16_t	servo_command[PX4IO_OUTPUT_CHANNELS];	/**< servo output channels */
-	uint16_t	servo_rate;				/**< PWM output rate in Hz */
+	uint16_t	servo_rate;
+	uint16_t	output_control[PX4IO_CONTROL_CHANNELS]; /**< PWM output rate in Hz */
 	bool		relay_state[PX4IO_RELAY_CHANNELS];	/**< relay states as requested by FMU */
 	bool		arm_ok;					/**< FMU allows full arming */
 	bool		vector_flight_mode_ok;			/**< FMU aquired a valid position lock, ready for pos control */
@@ -102,6 +103,6 @@ struct px4io_mixdata {
 };
 
 /* maximum size is limited by the HX frame size */
-#define F2I_MIXER_MAX_TEXT	(sizeof(struct px4io_mixdata) - HX_STREAM_MAX_FRAME)
+#define F2I_MIXER_MAX_TEXT	(HX_STREAM_MAX_FRAME - sizeof(struct px4io_mixdata))
 
 #pragma pack(pop)
