@@ -368,7 +368,7 @@ public:
 	 * @return			A new SimpleMixer instance, or nullptr if one could not be
 	 *				allocated.
 	 */
-	static SimpleMixer		*pwm_input(Mixer::ControlCallback *control_cb,
+	static SimpleMixer		*pwm_input(Mixer::ControlCallback control_cb,
 			uintptr_t cb_handle,
 			unsigned input,
 			uint16_t min,

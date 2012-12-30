@@ -201,7 +201,7 @@ out:
 }
 
 SimpleMixer *
-SimpleMixer::pwm_input(Mixer::ControlCallback *control_cb, uintptr_t cb_handle, unsigned input, uint16_t min, uint16_t mid, uint16_t max)
+SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min, uint16_t mid, uint16_t max)
 {
 	SimpleMixer *sm = nullptr;
 	mixer_simple_s *mixinfo = nullptr;
@@ -233,8 +233,8 @@ SimpleMixer::pwm_input(Mixer::ControlCallback *control_cb, uintptr_t cb_handle, 
 	mixinfo->controls[0].scaler.negative_scale = 1.0f;
 	mixinfo->controls[0].scaler.positive_scale = 1.0f;
 	mixinfo->controls[0].scaler.offset = -mid;
-	mixinfo->controls[0].scaler.lower_limit = -(mid - min);
-	mixinfo->controls[0].scaler.upper_limit = (max - mid);
+	mixinfo->controls[0].scaler.min_output = -(mid - min);
+	mixinfo->controls[0].scaler.max_output = (max - mid);
 
 	mixinfo->output_scaler.negative_scale = 500.0f / (mid - min);
 	mixinfo->output_scaler.positive_scale = 500.0f / (max - mid);
