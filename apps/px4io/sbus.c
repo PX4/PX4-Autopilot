@@ -53,7 +53,7 @@
 #include "debug.h"
 
 #define SBUS_FRAME_SIZE		25
-#define SBUS_INPUT_CHANNELS	16
+#define SBUS_INPUT_CHANNELS	18
 
 static int sbus_fd = -1;
 
@@ -87,9 +87,9 @@ sbus_init(const char *device)
 		partial_frame_count = 0;
 		last_rx_time = hrt_absolute_time();
 
-		debug("Sbus: ready");
+		debug("S.Bus: ready");
 	} else {
-		debug("Sbus: open failed");
+		debug("S.Bus: open failed");
 	}
 
 	return sbus_fd;
@@ -205,9 +205,13 @@ sbus_decode(hrt_abstime frame_time)
 		return;
 	}
 
-	/* if the failsafe bit is set, we consider the frame invalid */
-	if (frame[23] & (1 << 4)) {
-		return;
+	/* if the failsafe or connection lost bit is set, we consider the frame invalid */
+	if ((frame[23] & (1 << 2)) && /* signal lost */
+		(frame[23] & (1 << 3))) { /* failsafe */
+
+		/* actively announce signal loss */
+		system_state.rc_channels = 0;
+		return 1;
 	}
 
 	/* we have received something we think is a frame */
@@ -236,9 +240,12 @@ sbus_decode(hrt_abstime frame_time)
 		system_state.rc_channel_data[channel] = (value / 2) + 998;
 	}
 
-	if (PX4IO_INPUT_CHANNELS >= 18) {
-		chancount = 18;
-		/* XXX decode the two switch channels */
+	/* decode switch channels if data fields are wide enough */
+	if (chancount > 17) {
+		/* channel 17 (index 16) */
+		system_state.rc_channel_data[16] = (frame[23] & (1 << 0)) * 1000 + 998;
+		/* channel 18 (index 17) */
+		system_state.rc_channel_data[17] = (frame[23] & (1 << 1)) * 1000 + 998;
 	}
 
 	/* note the number of channels decoded */
