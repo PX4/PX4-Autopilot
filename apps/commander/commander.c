@@ -1214,7 +1214,7 @@ int commander_thread_main(int argc, char *argv[])
 	failsafe_lowlevel_timeout_ms = 0;
 	param_get(param_find("SYS_FAILSAVE_LL"), &failsafe_lowlevel_timeout_ms);
 
-	param_t _param_sys_type = param_find("VEHICLE_TYPE");
+	param_t _param_sys_type = param_find("MAV_TYPE");
 
 	/* welcome user */
 	printf("[cmd] I am in command now!\n");
