@@ -1452,7 +1452,7 @@
 	  complex:  'uname -o 2>/dev/null || echo "Other"'
 	* drivers/usbhost/usbhost_enumerate.c: Add logic to get the VID and PID.  This
 	  is necessary in order to support vendor-specific USB devices.
-	* examplex/wlan, configs/olimex-lpc1766stk/wlan, drivers/usbhost/usbhost_rtl8187.c,
+	* examples/wlan, configs/olimex-lpc1766stk/wlan, drivers/usbhost/usbhost_rtl8187.c,
 	  Add infrastructure to support RTL18187 wireless USB.
 	* configs/nucleus2g: backed out USB host changes... wrong board.
 	* Renamed arc/hc/include/mc9s12ne64 and src/mc9s12ne64 to m9s12.  That name is
@@ -1920,7 +1920,7 @@
 	  CONFIG_FAT_LCNAMES is not selected, all filenames are strictly upper
 	  case.
 	* configs/stm3210e-eval/nsh2:  Console is back on UART1; Added
-	  examplex/nx as an NSH "built-in" command as a demonstration.
+	  examples/nx as an NSH "built-in" command as a demonstration.
 	* fs/fat/fs_fat32dirent.c:  Fix an important bug in the directory
 	  allocation (fat_allocatedirentry()).  I looks like it could be
 	  initializing the wrong sectors! NOTE:  This function was in
@@ -3845,4 +3845,6 @@
 	* configs/zp214xpa/nxlines:  Add an nxlines configuration for the
 	  ZP213x/4xPA (with the LPC2148 and the UG_2864AMBAG01).  Working
 	  as of 2012-12-30.
+	* config/olimex-lpc1766stk/wlan:  Remove non-functional
+	  configuration.
 

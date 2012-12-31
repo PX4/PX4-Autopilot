@@ -459,3 +459,5 @@
 	  as well.  However, the USB HID keyboard drier has not yet been
 	  updated to detect key release events.  That is kind of tricky in
 	  the USB HID keyboard report data.
+	* apps/examples/wlan: Remove non-functional example.
+

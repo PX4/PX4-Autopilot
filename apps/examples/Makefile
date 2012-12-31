@@ -42,7 +42,7 @@ SUBDIRS += ftpd hello helloxx hidkbd igmp json keypadtest lcdrw mm modbus mount
 SUBDIRS += nettest nsh null nx nxconsole nxffs nxflat nxhello nximage
 SUBDIRS += nxlines nxtext ostest  pashello pipe poll pwm qencoder relays
 SUBDIRS += rgmp romfs serloop telnetd thttpd tiff touchscreen udp uip
-SUBDIRS += usbserial sendmail usbstorage usbterm watchdog wget wgetjson wlan
+SUBDIRS += usbserial sendmail usbstorage usbterm watchdog wget wgetjson
 
 # Sub-directories that might need context setup.  Directories may need
 # context setup for a variety of reasons, but the most common is because
