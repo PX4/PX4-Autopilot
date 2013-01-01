@@ -39,6 +39,9 @@
 
 #pragma once
 
+//#define MATRIX_ASSERT
+//#define VECTOR_ASSERT
+
 #include <nuttx/config.h>
 
 #include <systemlib/math/Vector.hpp>
@@ -93,7 +96,6 @@ protected:
     uint64_t _pubTimeStamp;
     uint64_t _fastTimeStamp;
     uint64_t _slowTimeStamp;
-    uint64_t _gpsTimeStamp;
     uint64_t _attTimeStamp;
     uint64_t _outTimeStamp;
     uint16_t _navFrames;

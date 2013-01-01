@@ -64,7 +64,7 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     C_nb(),
     q(),
     // subscriptions
-    _sensors(&getSubscriptions(), ORB_ID(sensor_combined),1), // limit to 1000 Hz
+    _sensors(&getSubscriptions(), ORB_ID(sensor_combined),5), // limit to 200 Hz
     _gps(&getSubscriptions(), ORB_ID(vehicle_gps_position),100), // limit to 10 Hz
     _param_update(&getSubscriptions(), ORB_ID(parameter_update),1000), // limit to 1 Hz
     // publications
@@ -74,7 +74,6 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     _pubTimeStamp(hrt_absolute_time()),
     _fastTimeStamp(hrt_absolute_time()),
     _slowTimeStamp(hrt_absolute_time()),
-    _gpsTimeStamp(hrt_absolute_time()),
     _attTimeStamp(hrt_absolute_time()),
     _outTimeStamp(hrt_absolute_time()),
     // frame count
@@ -98,9 +97,8 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     // initial state covariance matrix
     P = Matrix::identity(9)*1.0f;
 
-    // update subscriptions
-    while(1)
-    {
+    // wait for gps lock
+    while(1) {
         updateSubscriptions();
         if (_gps.fix_type>2) break;
         printf("[kalman_demo] waiting for gps lock\n");
@@ -121,7 +119,10 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     // initialize quaternions
     q = Quaternion(EulerAngles(phi,theta,psi)); 
 
-    // Initialize F to identity
+    // initialize dcm
+    C_nb = Dcm(q);
+
+    // initialize F to identity
     F = Matrix::identity(9);
 
     // HGps is constant
@@ -131,6 +132,9 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     HGps(3,6) = 1.0f;
     HGps(4,7) = 1.0f;
     HGps(5,8) = 1.0f;
+
+    // initialize all parameters
+    updateParams();
 }
 
 void KalmanNav::update()
@@ -143,8 +147,8 @@ void KalmanNav::update()
     fds[1].fd = _param_update.getHandle();
     fds[1].events = POLLIN;
 
-    // poll for 0.1 seconds for new data
-    int ret = poll(fds, 2, 1000);
+    // poll 20 milliseconds for new data
+    int ret = poll(fds, 2, 20);
 
     // check return value
     if (ret < 0) {
@@ -152,8 +156,6 @@ void KalmanNav::update()
         return;
     } else if (ret == 0) { // timeout
         // run anyway
-        fprintf(stderr, 
-            "[kalman_demo] WARNING: Not getting sensors - sensor app running?\n");
     } else if (ret > 0) {
         // update params when requested
         if (fds[1].revents & POLLIN) {
@@ -167,40 +169,40 @@ void KalmanNav::update()
     // get new timestamp
     uint64_t newTimeStamp = hrt_absolute_time();
 
+    // check updated subscriptions
+    bool gpsUpdate = _gps.updated();
+
     // get new information from subscriptions
     // this clears update flag
     updateSubscriptions();
 
-    // count number of frames
+    // count fast frames
     _navFrames += 1;
 
     // fast prediciton step
-    float dtFast = (newTimeStamp - _fastTimeStamp)/1.0e6f;
-    if (dtFast > 1.0f/1000) // 1000 Hz
-    {
-        _fastTimeStamp = newTimeStamp;
-        if (dtFast > 0.0f && dtFast < 1.0f) predictFast(dtFast);
-    }
+    // note, using sensors timestamp so we can account
+    // for packet lag
+    float dtFast = (_sensors.timestamp - _fastTimeStamp)/1.0e6f;
+    _fastTimeStamp = _sensors.timestamp;
+    predictFast(dtFast);
 
     // slow prediction step
-    float dtSlow = (newTimeStamp - _slowTimeStamp)/1.0e6f;
+    float dtSlow = (_sensors.timestamp - _slowTimeStamp)/1.0e6f;
     if (dtSlow > 1.0f/200) // 200 Hz
     {
-        _slowTimeStamp = newTimeStamp;
-        if (dtSlow > 0.0f && dtSlow < 1.0f) predictSlow(dtSlow);
+        _slowTimeStamp = _sensors.timestamp;
+        predictSlow(dtSlow);
     }
 
     // gps correction step
-    if (newTimeStamp - _gpsTimeStamp > 1e6/10) // 10 Hz
-    {
-        _gpsTimeStamp = newTimeStamp;
+    if (gpsUpdate) {
         correctGps();
     }
 
     // attitude correction step
-    if (newTimeStamp - _attTimeStamp > 1e6/1) // 1 Hz
+    if (_sensors.timestamp - _attTimeStamp > 1e6/1) // 1 Hz
     {
-        _attTimeStamp = newTimeStamp;
+        _attTimeStamp = _sensors.timestamp;
         correctAtt();
     }
 
@@ -266,7 +268,7 @@ void KalmanNav::predictFast(float dt)
     Vector3 w(_sensors.gyro_rad_s);
 
     // attitude
-    q = q + q.derivative(w)*getDt();
+    q = q + q.derivative(w)*dt;
     
     // renormalize quaternion if needed
     if (fabsf(q.norm()-1.0f) > 1e-4f)
@@ -499,7 +501,7 @@ void KalmanNav::correctAtt()
     Vector xCorrect = K*y;
 
     // check correciton is sane
-    for (int i=0;i<xCorrect.getRows();i++) {
+    for (size_t i=0;i<xCorrect.getRows();i++) {
         float val = xCorrect(i);
         if (isnan(val) || isinf(val)) {
             // abort correction and return
@@ -543,7 +545,7 @@ void KalmanNav::correctGps()
     Vector xCorrect = K*y;
 
     // check correction is sane
-    for (int i=0;i<xCorrect.getRows();i++) {
+    for (size_t i=0;i<xCorrect.getRows();i++) {
         float val = xCorrect(i);
         if (isnan(val) || isinf(val)) {
             // abort correction and return

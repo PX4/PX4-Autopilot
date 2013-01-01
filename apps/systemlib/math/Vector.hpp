@@ -39,9 +39,6 @@
 
 #pragma once
 
-//#define VECTOR_ASSERT
-//#define MATRIX_ASSERT
-
 #ifdef ARM_MATH_CM4
 #include "arm/Vector.hpp"
 #else
