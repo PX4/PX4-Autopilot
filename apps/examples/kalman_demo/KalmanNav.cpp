@@ -550,6 +550,12 @@ void KalmanNav::correctGps()
         if (isnan(val) || isinf(val)) {
             // abort correction and return
             printf("[kalman_demo] numerical failure in gps correction\n");
+            vN = _gps.vel_n;
+            vE = _gps.vel_e;
+            vD = _gps.vel_d;
+            latE7 = _gps.lat;
+            lonE7 = _gps.lon;
+            altE3 = _gps.alt;
             return;
         }
     }
