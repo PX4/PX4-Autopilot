@@ -105,17 +105,25 @@ struct sys_state_s
 	bool		fmu_data_received;
 
 	/*
-	 * Current serial interface mode, per the serial_rx_mode parameter
-	 * in the config packet.
+	 * Measured battery voltage in mV
 	 */
-	uint8_t		serial_rx_mode;
+	uint16_t	battery_mv;
+
+	/*
+	 * ADC IN5 measurement
+	 */
+	uint16_t	adc_in5;
+
+	/*
+	 * Power supply overcurrent status bits.
+	 */
+	uint8_t		overcurrent;
+
 };
 
 extern struct sys_state_s system_state;
 
-extern int frame_rx;
-extern int frame_bad;
-
+#if 0
 /*
  * Software countdown timers.
  *
@@ -127,6 +135,7 @@ extern int frame_bad;
 #define TIMER_SANITY		7
 #define TIMER_NUM_TIMERS	8
 extern volatile int	timers[TIMER_NUM_TIMERS];
+#endif
 
 /*
  * GPIO handling.
@@ -141,9 +150,12 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
 #define POWER_RELAY1(_s)	stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
 #define POWER_RELAY2(_s)	stm32_gpiowrite(GPIO_RELAY2_EN, (_s))
 
-#define OVERCURRENT_ACC		stm32_gpioread(GPIO_ACC_OC_DETECT)
-#define OVERCURRENT_SERVO	stm32_gpioread(GPIO_SERVO_OC_DETECT
+#define OVERCURRENT_ACC		(!stm32_gpioread(GPIO_ACC_OC_DETECT))
+#define OVERCURRENT_SERVO	(!stm32_gpioread(GPIO_SERVO_OC_DETECT))
 #define BUTTON_SAFETY		stm32_gpioread(GPIO_BTN_SAFETY)
+
+#define ADC_VBATT		4
+#define ADC_IN5			5
 
 /*
  * Mixer
