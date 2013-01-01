@@ -556,6 +556,7 @@ private:
     struct pollfd _attPoll;
     vehicle_global_position_setpoint_s _lastPosCmd;
     enum {CH_AIL, CH_ELV, CH_RDR, CH_THR};
+    uint64_t _timeStamp;
 public:
     BlockMultiModeBacksideAutopilot(SuperBlock * parent, const char * name) :
         BlockUorbEnabledAutopilot(parent, name),
@@ -565,16 +566,27 @@ public:
         _vCmd(this,"V_CMD"),
         _loopCount(0),
 		_attPoll(),
-        _lastPosCmd()
+        _lastPosCmd(),
+        _timeStamp(0)
     {
-        setDt(1.0f /50.0f);
 		_attPoll.fd = _att.getHandle();
         _attPoll.events = POLLIN;
     }
     void update()
     {
-        /* wait for a sensor update, check for exit condition every 500 ms */
-        poll(&_attPoll, 1, 500);
+        // wait for a sensor update, check for exit condition every 100 ms
+        if (poll(&_attPoll, 1, 100) < 0) return; // poll error
+
+        uint64_t newTimeStamp = hrt_absolute_time();
+        float dt = (newTimeStamp - _timeStamp)/1.0e6f;
+        _timeStamp = newTimeStamp;
+
+        // check for sane values of dt
+        // to prevent large control responses
+        if (dt > 1.0f || dt < 0) return;
+
+        // set dt for all child blocks
+        setDt(dt);
 
         // store old position command before update if new command sent
         if(_posCmd.updated())
@@ -648,10 +660,6 @@ public:
                     //(double)_actuators.control[CH_THR]);
             //fflush(stdout);
         }
-
-        // sleep for approximately the right amount of time for update, 
-        // neglects lag from calculations
-        usleep(1000000*getDt());
     }
     virtual ~BlockMultiModeBacksideAutopilot()
     {

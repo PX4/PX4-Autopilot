@@ -120,9 +120,9 @@ def process_jsb_input(buf):
     psi = fdm.get('psi', units='radians')
 
     # test values
-    #phi = 0
-    #theta = 0
-    #psi = 0
+    #phi = 10*math.pi/180
+    #theta = 20*math.pi/180
+    #psi = 30*math.pi/180
 
     # rotation rates
     phidot = fdm.get('phidot', units='rps')
@@ -152,6 +152,7 @@ def process_jsb_input(buf):
     vE = fdm.get('v_east', units='mps')
     vD = fdm.get('v_down', units='mps')
     vC = fdm.get('vcas', units='mps')
+    #print "vN: {} vE: {} vD: {}\n".format(vN,vE,vD)
 
     simbuf = px4Format.format(
         time.clock(),
@@ -442,16 +443,16 @@ def main_loop():
                 if jsb.fileno() in rin:
                     util.pexpect_drain(jsb)
 
-                if tnow - last_sim_input > 0.5:
-                    if not paused:
-                        print("PAUSING SIMULATION")
-                        paused = True
-                        jsb_console.send('hold\n')
-                else:
-                    if paused:
-                        print("RESUMING SIMULATION")
-                        paused = False
-                        jsb_console.send('resume\n')
+                #if tnow - last_sim_input > 0.5:
+                    #if not paused:
+                        #print("PAUSING SIMULATION")
+                        #paused = True
+                        #jsb_console.send('hold\n')
+                #else:
+                    #if paused:
+                        #print("RESUMING SIMULATION")
+                        #paused = False
+                        #jsb_console.send('resume\n')
 
                 # only simulate wind above 5 meters, to prevent crashes while
                 # waiting for takeoff

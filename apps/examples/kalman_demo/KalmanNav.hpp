@@ -56,6 +56,7 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/parameter_update.h>
 
 #include <drivers/drv_hrt.h>
 #include <poll.h>
@@ -68,8 +69,8 @@ public:
     virtual ~KalmanNav() {};
     void update();
     virtual void updatePublications();
-    void predictFast();
-    void predictSlow();
+    void predictFast(float dt);
+    void predictSlow(float dt);
     void correctAtt();
     void correctGps();
     virtual void updateParams();
@@ -86,9 +87,11 @@ protected:
     math::Quaternion q;
     control::UOrbSubscription<sensor_combined_s> _sensors;
     control::UOrbSubscription<vehicle_gps_position_s> _gps;
+    control::UOrbSubscription<parameter_update_s> _param_update;
     control::UOrbPublication<vehicle_global_position_s> _pos;
     control::UOrbPublication<vehicle_attitude_s> _att;
     uint64_t _pubTimeStamp;
+    uint64_t _fastTimeStamp;
     uint64_t _slowTimeStamp;
     uint64_t _gpsTimeStamp;
     uint64_t _attTimeStamp;

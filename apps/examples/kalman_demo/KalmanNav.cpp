@@ -37,6 +37,8 @@
  * kalman filter navigation code
  */
 
+#include <poll.h>
+
 #include "KalmanNav.hpp"
 
 // constants
@@ -47,30 +49,42 @@ static const float g = 9.8f; // gravitational accel. m/s^2
 
 KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     SuperBlock(parent,name),
+    // ekf matrices
     F(9,9),
     G(9,6),
     P(9,9),
     V(6,6),
+    // attitude measurement ekf matrices
     HAtt(6,9),
     RAtt(6,6),
+    // gps measurement ekf matrices
     HGps(6,9),
     RGps(6,6),
+    // attitude representations
     C_nb(),
     q(),
-    _sensors(&getSubscriptions(), ORB_ID(sensor_combined),20),
-    _gps(&getSubscriptions(), ORB_ID(vehicle_gps_position),20),
+    // subscriptions
+    _sensors(&getSubscriptions(), ORB_ID(sensor_combined),1), // limit to 1000 Hz
+    _gps(&getSubscriptions(), ORB_ID(vehicle_gps_position),100), // limit to 10 Hz
+    _param_update(&getSubscriptions(), ORB_ID(parameter_update),1000), // limit to 1 Hz
+    // publications
     _pos(&getPublications(), ORB_ID(vehicle_global_position)),
     _att(&getPublications(), ORB_ID(vehicle_attitude)),
+    // timestamps
     _pubTimeStamp(hrt_absolute_time()),
+    _fastTimeStamp(hrt_absolute_time()),
     _slowTimeStamp(hrt_absolute_time()),
     _gpsTimeStamp(hrt_absolute_time()),
     _attTimeStamp(hrt_absolute_time()),
     _outTimeStamp(hrt_absolute_time()),
+    // frame count
     _navFrames(0),
+    // state
     fN(0), fE(0), fD(0),
     phi(0), theta(0), psi(0),
     vN(0), vE(0), vD(0),
     latE7(0), lonE7(0), altE3(0),
+    // parameters for ground station
     _vGyro(this,"V_GYRO"),
     _vAccel(this,"V_ACCEL"),
     _rMag(this,"R_MAG"),
@@ -80,7 +94,6 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     _rAccel(this,"R_ACCEL")
 {
     using namespace math;
-    setDt(1.0f /200.0f);
 
     // initial state covariance matrix
     P = Matrix::identity(9)*1.0f;
@@ -108,8 +121,6 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     // initialize quaternions
     q = Quaternion(EulerAngles(phi,theta,psi)); 
 
-    updateParams();
-
     // Initialize F to identity
     F = Matrix::identity(9);
 
@@ -126,20 +137,56 @@ void KalmanNav::update()
 {
     using namespace math;
 
+    struct pollfd fds[2];
+    fds[0].fd = _sensors.getHandle();
+    fds[0].events = POLLIN;
+    fds[1].fd = _param_update.getHandle();
+    fds[1].events = POLLIN;
+
+    // poll for 0.1 seconds for new data
+    int ret = poll(fds, 2, 100);
+
+    // check return value
+    if (ret < 0) {
+        // XXX this is seriously bad - should be an emergency
+        return;
+    } else if (ret == 0) { // timeouut
+        fprintf(stderr, 
+            "[att ekf] WARNING: Not getting sensors - sensor app running?\n");
+    } else if (ret > 0) {
+        // update params when requested
+        if (fds[1].revents & POLLIN) {
+            printf("updating params\n");
+            updateParams();
+        }
+        // if no new sensor data, return
+        if (!(fds[0].revents & POLLIN)) return;
+    }
+
+    // get new timestamp
     uint64_t newTimeStamp = hrt_absolute_time();
 
     // get new information from subscriptions
+    // this clears update flag
     updateSubscriptions();
+
+    // count number of frames
     _navFrames += 1;
 
     // fast prediciton step
-    predictFast(); // 200 Hz
+    float dtFast = (newTimeStamp - _fastTimeStamp)/1.0e6f;
+    if (dtFast > 1.0f/1000) // 1000 Hz
+    {
+        _fastTimeStamp = newTimeStamp;
+        predictSlow(dtFast);
+    }
 
     // slow prediction step
-    if (newTimeStamp - _slowTimeStamp > 1e6/200) // 200 Hz
+    float dtSlow = (newTimeStamp - _slowTimeStamp)/1.0e6f;
+    if (dtSlow > 1.0f/200) // 200 Hz
     {
         _slowTimeStamp = newTimeStamp;
-        predictSlow();
+        predictSlow(dtSlow);
     }
 
     // gps correction step
@@ -167,26 +214,8 @@ void KalmanNav::update()
     if (newTimeStamp - _outTimeStamp > 1e6) // 1 Hz
     {
         _outTimeStamp = newTimeStamp;
-        uint16_t schedRate = 1.0f/getDt();
-        if (fabsf(float(_navFrames)/schedRate - 1.0f) > 0.01f)
-        {
-            printf("WARNING: nav: sched %4d Hz, actual %4d Hz\n",
-                    schedRate, _navFrames);
-        }
-        updateParams();
+        printf("nav: %4d Hz\n", _navFrames);
         _navFrames = 0;
-    }
-
-    // monitor speed
-    float calcTime = (hrt_absolute_time() - newTimeStamp)/1.0e6f;
-
-    // sleep for approximately the right amount of time
-    float timeSleep = 0.95f*(getDt() - calcTime);
-    if (timeSleep > 0.0f) {
-        usleep((double)(1e6f*timeSleep));
-    } 
-    else if (timeSleep < -0.001f) {
-        printf("kalman_demo: missed deadline by %8.4f sec\n", (double)(-timeSleep));
     }
 }
 
@@ -230,14 +259,10 @@ void KalmanNav::updatePublications()
     SuperBlock::updatePublications();
 }
 
-void KalmanNav::predictFast()
+void KalmanNav::predictFast(float dt)
 {
     using namespace math;
-    Vector3 w;
-    float dt = getDt(); // TODO, could make this actual dt, 
-    // instead of scheduled dt
-
-    for (int i=0;i<3;i++) w(i)  = _sensors.gyro_rad_s[i];
+    Vector3 w(_sensors.gyro_rad_s);
 
     // attitude
     q = q + q.derivative(w)*getDt();
@@ -258,8 +283,8 @@ void KalmanNav::predictFast()
     psi = euler.getPsi();
 
     // specific acceleration in nav frame
-    Vector accelB(3,_sensors.accelerometer_m_s2);
-    Vector accelN = C_nb*accelB;
+    Vector3 accelB(_sensors.accelerometer_m_s2);
+    Vector3 accelN = C_nb*accelB;
     fN = accelN(0);
     fE = accelN(1);
     fD = accelN(2);
@@ -290,11 +315,9 @@ void KalmanNav::predictFast()
     altE3 += int32_t(-1.0e3f*vD*dt);
 }
 
-void KalmanNav::predictSlow()
+void KalmanNav::predictSlow(float dt)
 {
     using namespace math;
-    // state
-    float dt = getDt();
 
     // trig
     float sinL = sinf(getLat());
@@ -398,10 +421,7 @@ void KalmanNav::correctAtt()
     float sinPsi = sinf(psi);
 
     // mag measurement
-    Vector zMag(3);
-    for (int i=0;i<3;i++) {
-        zMag(i) = _sensors.magnetometer_ga[i];
-    }
+    Vector3 zMag(_sensors.magnetometer_ga);
     zMag = zMag.unit();
 
     // mag predicted measurement
@@ -412,21 +432,15 @@ void KalmanNav::correctAtt()
     float bN = cosf(dip)*cosf(dec);
     float bE = cosf(dip)*sinf(dec);
     float bD = sinf(dip);
-    Vector bNav(3);
-    bNav(0) = bN;
-    bNav(1) = bE;
-    bNav(2) = bD;
-    Vector zMagHat = (C_nb.transpose()*bNav).unit();
+    Vector3 bNav(bN,bE,bD);
+    Vector3 zMagHat = (C_nb.transpose()*bNav).unit();
 
     // accel measurement
-    Vector zAccel(3);
-    for (int i=0;i<3;i++) {
-        zAccel(i) = _sensors.accelerometer_m_s2[i];
-    }
+    Vector3 zAccel(_sensors.accelerometer_m_s2);
     zAccel = zAccel.unit();
 
     // accel predicted measurement
-    Vector zAccelHat = (C_nb.transpose()*Vector3(0,0,-1)).unit();
+    Vector3 zAccelHat = (C_nb.transpose()*Vector3(0,0,-1)).unit();
 
     // combined measurement
     Vector zAtt(6);
@@ -517,12 +531,7 @@ void KalmanNav::correctGps()
     vN += xCorrect(VN);
     vE += xCorrect(VE);
     vD += xCorrect(VD);
-    printf("LAT: %d\n", LAT);
-    printf("xCorrect(LAT): %18.10f\n", xCorrect(LAT));
-    printf("1.0e7*xCorrect(LAT): %18.10f\n", 1.0e7f*xCorrect(LAT));
-    printf("latE7 before: %ld\n", latE7);
     latE7 += int32_t(1.0e7f*xCorrect(LAT));
-    printf("latE7 after: %ld\n", latE7);
     lonE7 += int32_t(1.0e7f*xCorrect(LON));
     altE3 += int32_t(1.0e3f*xCorrect(ALT));
 
