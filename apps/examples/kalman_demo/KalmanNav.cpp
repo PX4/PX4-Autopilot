@@ -497,7 +497,6 @@ void KalmanNav::correctAtt()
     Vector y = zAtt - zAttHat; // residual
     Matrix S = HAtt*P*HAtt.transpose() + RAtt; // residual covariance
     Matrix K = P*HAtt.transpose()*S.inverse();
-    P = P - K*HAtt*P; 
     Vector xCorrect = K*y;
 
     // check correciton is sane
@@ -514,6 +513,9 @@ void KalmanNav::correctAtt()
     phi += xCorrect(PHI);
     theta += xCorrect(THETA);
     psi += xCorrect(PSI);
+    
+    // update state covariance
+    P = P - K*HAtt*P; 
 
     // fault in attitude
     float beta = y.dot(S.inverse()*y);
@@ -541,7 +543,6 @@ void KalmanNav::correctGps()
     // compute correction
     Matrix S = HGps*P*HGps.transpose() + RGps; // residual covariance
     Matrix K = P*HGps.transpose()*S.inverse();
-    P = P - K*HGps*P; 
     Vector xCorrect = K*y;
 
     // check correction is sane
@@ -560,13 +561,16 @@ void KalmanNav::correctGps()
         }
     }
 
-    // correct values
+    // correct state
     vN += xCorrect(VN);
     vE += xCorrect(VE);
     vD += xCorrect(VD);
     latDegE7 += int32_t(1.0e7f*xCorrect(LAT)*M_RAD_TO_DEG_F);
     lonDegE7 += int32_t(1.0e7f*xCorrect(LON)*M_RAD_TO_DEG_F);
     altE3 += int32_t(1.0e3f*xCorrect(ALT));
+
+    // update state covariance
+    P = P - K*HGps*P; 
 
     // fault detetcion
     float beta = y.dot(S.inverse()*y);

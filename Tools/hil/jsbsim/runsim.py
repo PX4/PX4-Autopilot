@@ -122,7 +122,7 @@ def process_jsb_input(buf):
     # test values
     #phi = 10*math.pi/180
     #theta = 20*math.pi/180
-    #psi = 30*math.pi/180
+    #psi = -90*math.pi/180
 
     # rotation rates
     phidot = fdm.get('phidot', units='rps')
