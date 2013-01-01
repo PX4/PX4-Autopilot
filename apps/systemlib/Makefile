@@ -60,8 +60,7 @@ CXXSRCS   =  test/test.cpp \
 			 math/EulerAngles.cpp \
 			 math/Quaternion.cpp \
 			 math/Dcm.cpp \
-			 math/Matrix.cpp \
-			 math/Kalman.cpp
+			 math/Matrix.cpp
 
 CXXHDRS   =  test/test.hpp \
 			 control/block/Block.hpp \
@@ -75,8 +74,7 @@ CXXHDRS   =  test/test.hpp \
 			 math/EulerAngles.hpp \
 			 math/Quaternion.hpp \
 			 math/Dcm.hpp \
-			 math/Matrix.hpp \
-			 math/Kalman.hpp
+			 math/Matrix.hpp
 
 #
 # XXX this really should be a CONFIG_* test

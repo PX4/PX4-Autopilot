@@ -140,7 +140,11 @@ def process_jsb_input(buf):
     ax = fdm.get('A_X_pilot', units='mpss')
     ay = fdm.get('A_Y_pilot', units='mpss')
     az = fdm.get('A_Z_pilot', units='mpss')
-    
+
+    # test values 
+    #ax = 0
+    #ay = 0
+    #az = -9.8
     #print "ax: {} ay: {} az: {}\n".format(ax,ay,az)
 
     # velocitiy

@@ -47,8 +47,9 @@ static const float g = 9.8f; // gravitational accel. m/s^2
 
 KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     SuperBlock(parent,name),
-    _kalman(9),
+    F(9,9),
     G(9,6),
+    P(9,9),
     V(6,6),
     HAtt(6,9),
     RAtt(6,6),
@@ -67,11 +68,9 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     _outTimeStamp(hrt_absolute_time()),
     _navFrames(0),
     fN(0), fE(0), fD(0),
-    x(_kalman.getX()),
-    phi(x(0)), theta(x(1)), psi(x(2)),
-    vN(x(3)), vE(x(4)), vD(x(5)),
-    L(x(6)), l(x(7)), h(x(8)),
-    a(q(0)), b(q(1)), c(q(2)), d(q(3)),
+    phi(0), theta(0), psi(0),
+    vN(0), vE(0), vD(0),
+    latE7(0), lonE7(0), altE3(0),
     _vGyro(this,"V_GYRO"),
     _vAccel(this,"V_ACCEL"),
     _rMag(this,"R_MAG"),
@@ -84,7 +83,7 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     setDt(1.0f /200.0f);
 
     // initial state covariance matrix
-    _kalman.setP(Matrix::identity(9)*1.0f);
+    P = Matrix::identity(9)*1.0f;
 
     // update subscriptions
     while(1)
@@ -102,9 +101,9 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     vN = _gps.vel_n;
     vE = _gps.vel_e;
     vD = _gps.vel_d;
-    L = _gps.lat/1.0e7f;
-    l = _gps.lon/1.0e7f;
-    h = _gps.alt/1.0e3f; 
+    latE7 = _gps.lat;
+    lonE7 = _gps.lon;
+    altE3 = _gps.alt;
 
     // initialize quaternions
     q = Quaternion(EulerAngles(phi,theta,psi)); 
@@ -112,7 +111,7 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     updateParams();
 
     // Initialize F to identity
-    _kalman.getF() = Matrix::identity(9);
+    F = Matrix::identity(9);
 
     // HGps is constant
     HGps(0,3) = 1.0f;
@@ -175,7 +174,6 @@ void KalmanNav::update()
                     schedRate, _navFrames);
         }
         updateParams();
-        //_kalman.getX().print();
         _navFrames = 0;
     }
 
@@ -200,10 +198,10 @@ void KalmanNav::updatePublications()
     _pos.timestamp = _pubTimeStamp;
     _pos.time_gps_usec = _gps.timestamp;
     _pos.valid = true;
-    _pos.lat = L*1.0e7f;
-    _pos.lon = l*1.0e7f;
-    _pos.alt = h;
-    _pos.relative_alt = h; // TODO, make relative
+    _pos.lat = latE7;
+    _pos.lon = lonE7;
+    _pos.alt = getAlt();
+    _pos.relative_alt = getAlt(); // TODO, make relative
     _pos.vx = vN;
     _pos.vy = vE;
     _pos.vz = vD;
@@ -259,7 +257,7 @@ void KalmanNav::predictFast()
     theta = euler.getTheta();
     psi = euler.getPsi();
 
-   // specific acceleration in nav frame
+    // specific acceleration in nav frame
     Vector accelB(3,_sensors.accelerometer_m_s2);
     Vector accelN = C_nb*accelB;
     fN = accelN(0);
@@ -267,14 +265,14 @@ void KalmanNav::predictFast()
     fD = accelN(2);
 
     // trig
-    float sinL = sinf(L);
-    float cosL = cosf(L);
+    float sinL = sinf(getLat());
+    float cosL = cosf(getLat());
 
     // position update
     // neglects angular deflections in local gravity
     // see Titerton pg. 70
-    float LDot = vN/(R+h);
-    float lDot = vE/(cosL*(R+h));
+    float LDot = vN/(R+getAlt());
+    float lDot = vE/(cosL*(R+getAlt()));
     float vNDot = fN - vE*(2*omega +
         lDot)*sinL +
         vD*LDot;
@@ -287,9 +285,9 @@ void KalmanNav::predictFast()
     vN += vNDot*dt;
     vE += vEDot*dt;
     vD += vDDot*dt;
-    L  += LDot*dt;
-    l  += lDot*dt;
-    h  += -vD*dt;
+    latE7 += int32_t(1.0e7f*LDot*dt);
+    lonE7 += int32_t(1.0e7f*lDot*dt);
+    altE3 += int32_t(-1.0e3f*vD*dt);
 }
 
 void KalmanNav::predictSlow()
@@ -299,15 +297,14 @@ void KalmanNav::predictSlow()
     float dt = getDt();
 
     // trig
-    float sinL = sinf(L);
-    float cosL = cosf(L);
+    float sinL = sinf(getLat());
+    float cosL = cosf(getLat());
     float cosLSq = cosL*cosL;
-    float tanL = tanf(L);
+    float tanL = tanf(getLat());
 
     // F Matrix
     // Titterton pg. 291
-    Matrix & F = _kalman.getF();
-
+    //
     // difference from Jacobian
     // multiplity by dt for all elements
     // add 1.0 to diagonal elements
@@ -384,11 +381,8 @@ void KalmanNav::predictSlow()
     G(5,4) = C_nb(2,1)*dt; 
     G(5,5) = C_nb(2,2)*dt; 
 
-    Matrix & Q = _kalman.getQ();
-    Q = G*V*G.transpose();
-
     // predict equations for kalman filter
-    _kalman.predict(dt);
+    P = F*P*F.transpose() + G*V*G.transpose();
 }
 
 void KalmanNav::correctAtt()
@@ -484,16 +478,19 @@ void KalmanNav::correctAtt()
 
     // Kalman correction
     Vector y = zAtt - zAttHat; // residual
-    Matrix S(6,6); // residual covariance
-    _kalman.correct(y,HAtt,RAtt,S);
+    Matrix S = HAtt*P*HAtt.transpose() + RAtt; // residual covariance
+    Matrix K = P*HAtt.transpose()*S.inverse();
+    P = P - K*HAtt*P; 
+    Vector xCorrect = K*y;
+    phi += xCorrect(PHI);
+    theta += xCorrect(THETA);
+    psi += xCorrect(PSI);
 
     // fault in attitude
     float beta = y.dot(S.inverse()*y);
     if (beta > 10.0f) {
-        printf("fault in attitude: beta = %8.4f\n", (double)beta);
-        printf("y:\n"); y.print();
-        printf("zAtt:\n"); zAtt.print();
-        printf("zAttHat:\n"); zAttHat.print();
+        //printf("fault in attitude: beta = %8.4f\n", (double)beta);
+        //printf("y:\n"); y.print();
     }
 
     // update quaternions from euler 
@@ -504,34 +501,36 @@ void KalmanNav::correctAtt()
 void KalmanNav::correctGps()
 {
     using namespace math;
-    Vector zGps(6);
-    // force state to gps values for testing
-    vN = _gps.vel_n;
-    vE = _gps.vel_e;
-    vD = _gps.vel_d;
-    L = _gps.lat/1.0e7f;
-    l = _gps.lon/1.0e7f;
-    h = _gps.alt/1.0e3f;
-    // set measurement vector
-    zGps(0) = _gps.vel_n; // vn
-    zGps(1) = _gps.vel_e; // ve
-    zGps(2) = _gps.vel_d; // vd
-    zGps(3) = _gps.lat/1.0e7f; // L
-    zGps(4) = _gps.lon/1.0e7f; // l
-    zGps(5) = _gps.alt/1.0e3f; // h
-    Vector zGpsHat = HGps*_kalman.getX();
-    Vector y = zGps - zGpsHat; // residual
-    Matrix S(6,6); // residual covariance
-    _kalman.correct(y,HGps,RGps,S);
+    Vector y(6);
+    y(0) = _gps.vel_n - vN;
+    y(1) = _gps.vel_e - vE;
+    y(2) = _gps.vel_d - vD;
+    y(3) = (_gps.lat - latE7)/1.0e7f;
+    y(4) = (_gps.lon - lonE7)/1.0e7f;
+    y(5) = (_gps.alt - altE3)/1.0e3f;
+
+    // Kalman correction
+    Matrix S = HGps*P*HGps.transpose() + RGps; // residual covariance
+    Matrix K = P*HGps.transpose()*S.inverse();
+    P = P - K*HGps*P; 
+    Vector xCorrect = K*y;
+    vN += xCorrect(VN);
+    vE += xCorrect(VE);
+    vD += xCorrect(VD);
+    printf("LAT: %d\n", LAT);
+    printf("xCorrect(LAT): %18.10f\n", xCorrect(LAT));
+    printf("1.0e7*xCorrect(LAT): %18.10f\n", 1.0e7f*xCorrect(LAT));
+    printf("latE7 before: %ld\n", latE7);
+    latE7 += int32_t(1.0e7f*xCorrect(LAT));
+    printf("latE7 after: %ld\n", latE7);
+    lonE7 += int32_t(1.0e7f*xCorrect(LON));
+    altE3 += int32_t(1.0e3f*xCorrect(ALT));
 
     // fault detetcion
     float beta = y.dot(S.inverse()*y);
     if (beta > 100.0f) {
-        printf("fault in gps: beta = %8.4f\n", (double)beta);
-        printf("y:\n"); y.print();
-        printf("zGps:\n"); zGps.print();
-        printf("zGpsHat:\n"); zGpsHat.print();
-
+        //printf("fault in gps: beta = %8.4f\n", (double)beta);
+        //printf("y:\n"); y.print();
     }
 }
 

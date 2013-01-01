@@ -44,7 +44,6 @@
 #include <systemlib/math/Vector.hpp>
 #include <systemlib/math/Vector3.hpp>
 #include <systemlib/math/Matrix.hpp>
-#include <systemlib/math/Kalman.hpp>
 #include <systemlib/math/Quaternion.hpp>
 #include <systemlib/math/Dcm.hpp>
 #include <systemlib/math/EulerAngles.hpp>
@@ -75,8 +74,9 @@ public:
     void correctGps();
     virtual void updateParams();
 protected:
-    math::Kalman _kalman;
+    math::Matrix F;
     math::Matrix G;
+    math::Matrix P;
     math::Matrix V;
     math::Matrix HAtt;
     math::Matrix RAtt;
@@ -95,11 +95,11 @@ protected:
     uint64_t _outTimeStamp;
     uint16_t _navFrames;
     float fN, fE, fD;
-    math::Vector & x;
-    float & phi, & theta, & psi;
-    float & vN, & vE, & vD;
-    float & L, & l, & h;
-    float & a, & b, & c, & d;
+    // states
+    enum {PHI=0,THETA,PSI,VN,VE,VD,LAT,LON,ALT};
+    float phi, theta, psi;
+    float vN, vE, vD;
+    int32_t latE7, lonE7, altE3;
     control::BlockParam<float> _vGyro;
     control::BlockParam<float> _vAccel;
     control::BlockParam<float> _rMag;
@@ -107,4 +107,7 @@ protected:
     control::BlockParam<float> _rGpsGeo;
     control::BlockParam<float> _rGpsAlt;
     control::BlockParam<float> _rAccel;
+    float getLat() { return latE7/1.0e7f; }
+    float getLon() { return lonE7/1.0e7f; }
+    float getAlt() { return altE3/1.0e3f; }
 };
