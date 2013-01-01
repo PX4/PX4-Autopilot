@@ -587,9 +587,9 @@ PX4IO::io_send()
 	cmd.f2i_magic = F2I_MAGIC;
 
 	/* set outputs */
-	for (unsigned i = 0; i < _max_actuators; i++)
-		cmd.output_control[i] = _outputs.output[i];
-
+	for (unsigned i = 0; i < _max_actuators; i++) {
+		cmd.output_control[i] = (uint16_t)_outputs.output[i];
+	}
 	/* publish as we send */
 	_outputs.timestamp = hrt_absolute_time();
 	/* XXX needs to be based off post-mix values from the IO side */
