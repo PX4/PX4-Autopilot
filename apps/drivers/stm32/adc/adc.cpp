@@ -62,13 +62,13 @@
 #include <stm32_gpio.h>
 
 #include <systemlib/err.h>
-
-#define ADC_BASE	STM32_ADC1_BASE
+#include <systemlib/perf_counter.h>
 
 /*
  * Register accessors.
+ * For now, no reason not to just use ADC1.
  */
-#define REG(_reg)	(*(volatile uint32_t *)(_base + _reg))
+#define REG(_reg)	(*(volatile uint32_t *)(STM32_ADC1_BASE + _reg))
 
 #define rSR		REG(STM32_ADC_SR_OFFSET)
 #define rCR1		REG(STM32_ADC_CR1_OFFSET)
@@ -94,7 +94,7 @@
 class ADC : public device::CDev
 {
 public:
-	ADC();
+	ADC(uint32_t channels);
 	~ADC();
 
 	virtual int		init();
@@ -107,27 +107,64 @@ protected:
 	virtual int		close_last(struct file *filp);
 
 private:
-	static const hrt_abstime _tickrate = 10000;	/* 100Hz base rate */
-	static const uint32_t	_base = ADC_BASE;
-
+	static const hrt_abstime _tickrate = 10000;	/**< 100Hz base rate */
+	
 	hrt_call		_call;
+	perf_counter_t		_sample_perf;
 
+	unsigned		_channel_count;
+	adc_msg_s		*_samples;		/**< sample buffer */
+
+	/** work trampoline */
 	static void		_tick_trampoline(void *arg);
+
+	/** worker function */
 	void			_tick();
 
+	/**
+	 * Sample a single channel and return the measured value.
+	 *
+	 * @param channel		The channel to sample.
+	 * @return			The sampled value, or 0xffff if
+	 *				sampling failed.
+	 */
 	uint16_t		_sample(unsigned channel);
 
-	uint16_t		_result;
 };
 
-ADC::ADC() :
-	CDev("adc", ADC_DEVICE_PATH)
+ADC::ADC(uint32_t channels) :
+	CDev("adc", ADC_DEVICE_PATH),
+	_sample_perf(perf_alloc(PC_ELAPSED, "ADC samples")),
+	_channel_count(0),
+	_samples(nullptr)
 {
 	_debug_enabled = true;
+
+	/* allocate the sample array */
+	for (unsigned i = 0; i < 32; i++) {
+		if (channels & (1 << i)) {
+			_channel_count++;
+		}
+	}
+	_samples = new adc_msg_s[_channel_count];
+
+	/* prefill the channel numbers in the sample array */
+	if (_samples != nullptr) {
+		unsigned index = 0;
+		for (unsigned i = 0; i < 32; i++) {
+			if (channels & (1 << i)) {
+				_samples[index].am_channel = i;
+				_samples[index].am_data = 0;
+				index++;
+			}
+		}
+	}
 }
 
 ADC::~ADC()
 {
+	if (_samples != nullptr)
+		delete _samples;
 }
 
 int
@@ -158,7 +195,7 @@ ADC::init()
 	/* configure for a single-channel sequence */
 	rSQR1 = 0;
 	rSQR2 = 0;
-	rSQR3 = 11;	/* will be updated with the channel each tick */ 
+	rSQR3 = 0;	/* will be updated with the channel each tick */ 
 
 	/* power-cycle the ADC and turn it on */
 	rCR2 &= ~ADC_CR2_ADON;
@@ -180,6 +217,8 @@ ADC::init()
 			return 0xffff;
 		}
 	}
+
+
 	debug("init done");
 
 	/* create the device node */
@@ -195,18 +234,26 @@ ADC::ioctl(file *filp, int cmd, unsigned long arg)
 ssize_t
 ADC::read(file *filp, char *buffer, size_t len)
 {
-	if (len > sizeof(_result))
-		len = sizeof(_result);
+	const size_t maxsize = sizeof(adc_msg_s) * _channel_count;
 
-//	_result = _sample(11);
+	if (len > maxsize)
+		len = maxsize;
 
-	memcpy(buffer, &_result, len);
+	/* block interrupts while copying samples to avoid racing with an update */
+	irqstate_t flags = irqsave();
+	memcpy(buffer, _samples, len);
+	irqrestore(flags);
+
 	return len;
 }
 
 int
 ADC::open_first(struct file *filp)
 {
+	/* get fresh data */
+	_tick();
+
+	/* and schedule regular updates */
 	hrt_call_every(&_call, _tickrate, _tickrate, _tick_trampoline, this);
 
 	return 0;
@@ -228,12 +275,20 @@ ADC::_tick_trampoline(void *arg)
 void
 ADC::_tick()
 {
-	_result = _sample(11);
+	/* scan the channel set and sample each */
+	for (unsigned i = 0; i < _channel_count; i++)
+		_samples[i].am_data = _sample(_samples[i].am_channel);
 }
 
 uint16_t
 ADC::_sample(unsigned channel)
 {
+	perf_begin(_sample_perf);
+
+	/* clear any previous EOC */
+	if (rSR & ADC_SR_EOC)
+		rSR &= ~ADC_SR_EOC;
+
 	/* run a single conversion right now - should take about 60 cycles (a few microseconds) max */
 	rSQR3 = channel;
 	rCR2 |= ADC_CR2_SWSTART;
@@ -252,6 +307,7 @@ ADC::_sample(unsigned channel)
 	/* read the result and clear EOC */
 	uint16_t result = rDR;
 
+	perf_end(_sample_perf);
 	return result;
 }
 
@@ -267,18 +323,25 @@ ADC	*g_adc;
 void
 test(void)
 {
-	int fd;
 
-	fd = open(ADC_DEVICE_PATH, O_RDONLY);
+	int fd = open(ADC_DEVICE_PATH, O_RDONLY);
 	if (fd < 0)
 		err(1, "can't open ADC device");
 
-	uint16_t value;
-
 	for (unsigned i = 0; i < 50; i++) {
-		if (read(fd, &value, sizeof(value)) != sizeof(value))
-			errx(1, "short read");
-		printf("  %d\n", value);
+		adc_msg_s data[8];
+		ssize_t count = read(fd, data, sizeof(data));
+
+		if (count < 0)
+			errx(1, "read error");
+
+		unsigned channels = count / sizeof(data[0]);
+
+		for (unsigned j = 0; j < channels; j++) {
+			printf ("%d: %u  ", data[j].am_channel, data[j].am_data);
+		}
+
+		printf("\n");
 		usleep(500000);
 	}
 
@@ -290,7 +353,8 @@ int
 adc_main(int argc, char *argv[])
 {
 	if (g_adc == nullptr) {
-		g_adc = new ADC;
+		/* XXX this hardcodes the minimum channel set for PX4FMU - should be configurable */
+		g_adc = new ADC((1 << 10) | (1 << 11));
 
 		if (g_adc == nullptr)
 			errx(1, "couldn't allocate the ADC driver");

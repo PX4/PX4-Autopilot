@@ -45,8 +45,6 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-#include <nuttx/compiler.h>
-
 #define ADC_DEVICE_PATH		"/dev/adc0"
 
 /*
