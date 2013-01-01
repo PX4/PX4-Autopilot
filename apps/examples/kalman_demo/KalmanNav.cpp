@@ -144,15 +144,16 @@ void KalmanNav::update()
     fds[1].events = POLLIN;
 
     // poll for 0.1 seconds for new data
-    int ret = poll(fds, 2, 100);
+    int ret = poll(fds, 2, 1000);
 
     // check return value
     if (ret < 0) {
         // XXX this is seriously bad - should be an emergency
         return;
-    } else if (ret == 0) { // timeouut
+    } else if (ret == 0) { // timeout
+        // run anyway
         fprintf(stderr, 
-            "[att ekf] WARNING: Not getting sensors - sensor app running?\n");
+            "[kalman_demo] WARNING: Not getting sensors - sensor app running?\n");
     } else if (ret > 0) {
         // update params when requested
         if (fds[1].revents & POLLIN) {
@@ -178,7 +179,7 @@ void KalmanNav::update()
     if (dtFast > 1.0f/1000) // 1000 Hz
     {
         _fastTimeStamp = newTimeStamp;
-        predictSlow(dtFast);
+        if (dtFast > 0.0f && dtFast < 1.0f) predictFast(dtFast);
     }
 
     // slow prediction step
@@ -186,7 +187,7 @@ void KalmanNav::update()
     if (dtSlow > 1.0f/200) // 200 Hz
     {
         _slowTimeStamp = newTimeStamp;
-        predictSlow(dtSlow);
+        if (dtSlow > 0.0f && dtSlow < 1.0f) predictSlow(dtSlow);
     }
 
     // gps correction step
@@ -490,12 +491,24 @@ void KalmanNav::correctAtt()
     HAtt(5,0) = sinPhi*cosTheta;
     HAtt(5,1) = cosPhi*sinTheta;
 
-    // Kalman correction
+    // compute correction
     Vector y = zAtt - zAttHat; // residual
     Matrix S = HAtt*P*HAtt.transpose() + RAtt; // residual covariance
     Matrix K = P*HAtt.transpose()*S.inverse();
     P = P - K*HAtt*P; 
     Vector xCorrect = K*y;
+
+    // check correciton is sane
+    for (int i=0;i<xCorrect.getRows();i++) {
+        float val = xCorrect(i);
+        if (isnan(val) || isinf(val)) {
+            // abort correction and return
+            printf("[kalman_demo] numerical failure in att correction\n");
+            return;
+        }
+    }
+
+    // correct state
     phi += xCorrect(PHI);
     theta += xCorrect(THETA);
     psi += xCorrect(PSI);
@@ -523,11 +536,23 @@ void KalmanNav::correctGps()
     y(4) = (_gps.lon - lonE7)/1.0e7f;
     y(5) = (_gps.alt - altE3)/1.0e3f;
 
-    // Kalman correction
+    // compute correction
     Matrix S = HGps*P*HGps.transpose() + RGps; // residual covariance
     Matrix K = P*HGps.transpose()*S.inverse();
     P = P - K*HGps*P; 
     Vector xCorrect = K*y;
+
+    // check correction is sane
+    for (int i=0;i<xCorrect.getRows();i++) {
+        float val = xCorrect(i);
+        if (isnan(val) || isinf(val)) {
+            // abort correction and return
+            printf("[kalman_demo] numerical failure in gps correction\n");
+            return;
+        }
+    }
+
+    // correct values
     vN += xCorrect(VN);
     vE += xCorrect(VE);
     vD += xCorrect(VD);
