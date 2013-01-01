@@ -10,4 +10,132 @@ config EXAMPLES_NX
 		Enable the NX graphics example
 
 if EXAMPLES_NX
+
+config EXAMPLES_NX_BUILTIN
+	bool "NSH Built-IN"
+	depends on NSH_BUILTIN_APPS
+	---help---
+		Build the NX example as a "built-in" that can be executed from the
+		NSH command line    
+
+config EXAMPLES_NX_VPLANE
+	int "Video Plane"
+	default 0
+	---help---
+		The plane to select from the framebuffer driver for use in the test.
+		Default: 0
+
+config EXAMPLES_NX_DEVNO
+	int "Video Device Number"
+	default 0
+	---help---
+		The LCD device to select from the LCD driver for use in the test:
+		Default: 0
+
+config EXAMPLES_NX_DEFAULT_COLORS
+	bool "Use Default Colors"
+	default y
+
+if !EXAMPLES_NX_DEFAULT_COLORS
+
+config EXAMPLES_NX_BGCOLOR
+	hex "Background Color"
+	---help---
+		The color of the background.  Default depends on config EXAMPLES_NX_BPP.
+
+config EXAMPLES_NX_COLOR1
+	hex "Color of Window 1"
+	---help---
+		The color of window 1. Default depends on config EXAMPLES_NX_BPP.
+
+config EXAMPLES_NX_COLOR2
+	hex "Color of Window 2"
+	---help---
+		The color of window 2. Default depends on config EXAMPLES_NX_BPP.
+
+config EXAMPLES_NX_TBCOLOR
+	hex "Toolbar Color"
+	---help---
+		The color of the toolbar. Default depends on config EXAMPLES_NX_BPP.
+
+config EXAMPLES_NX_FONTCOLOR
+	hex "Font Color"
+	---help---
+		The color of the fonts. Default depends on config EXAMPLES_NX_BPP.
+
+endif
+
+config EXAMPLES_NX_DEFAULT_FONT
+	bool "Use Default Font"
+	default y
+
+config EXAMPLES_NX_FONTID
+	bool "Font ID"
+	depends on !EXAMPLES_NX_DEFAULT_FONT
+	---help---
+		Selects the font (see font ID numbers in include/nuttx/nx/nxfonts.h)
+
+config EXAMPLES_NX_BPP
+	int "Bits-Per-Pixel"
+	default 32
+	---help---
+		Pixels per pixel to use.  Valid options include 2, 4, 8, 16, 24,
+		and 32.  Default is 32.
+
+config EXAMPLES_NX_RAWWINDOWS
+	bool "Use Raw Windows"
+	default n
+	---help---
+		Use raw windows;  Default is to use pretty, framed NXTK windows with
+		toolbars.
+
+config EXAMPLES_NX_EXTERNINIT
+	bool "External Device Initialization"
+	default n
+	---help---
+		The driver for the graphics device on this platform requires some
+		unusual initialization.  This is the for, for example, SPI LCD/OLED
+		devices.  If this configuration is selected, then the platform code
+		must provide an LCD initialization function with a prototype like:
+
+		#ifdef CONFIG_NX_LCDDRIVER
+		FAR struct lcd_dev_s *up_nxdrvinit(unsigned int devno);
+		#else
+		FAR struct fb_vtable_s *up_nxdrvinit(unsigned int devno);
+		#endif
+
+if NX_MULTIUSER
+comment "Multi-User Configuration Options"
+
+config EXAMPLES_NX_STACKSIZE
+	int "NX Server Stack Size"
+	default 2048
+	---help---
+		The stacksize to use when creating the NX server.  Default 2048
+
+config EXAMPLES_NX_CLIENTPRIO
+	int "Client Priority"
+	default 100
+	---help---
+		The client priority.  Default: 100
+
+config EXAMPLES_NX_SERVERPRIO
+	int "Server Priority"
+	default 120
+	---help---
+		The server priority.  Default: 120
+
+config EXAMPLES_NX_LISTENERPRIO
+	int "Listener Priority"
+	default 80
+	---help---
+		The priority of the event listener thread. Default 80.
+
+config EXAMPLES_NX_NOTIFYSIGNO
+	int "Notify Signal Number"
+	default 4
+	---help---
+		The signal number to use with nx_eventnotify().  Default: 4
+
+endif
 endif
