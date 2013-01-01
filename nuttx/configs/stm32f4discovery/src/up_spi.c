@@ -96,11 +96,16 @@
 void weak_function stm32_spiinitialize(void)
 {
 #ifdef CONFIG_STM32_SPI1
-  (void)stm32_configgpio(GPIO_CS_MEMS);
+  (void)stm32_configgpio(GPIO_CS_MEMS);    /* MEMS chip select */
 #endif
-#ifdef CONFIG_LCD_UG2864AMBAG01
+#if defined(CONFIG_LCD_UG2864AMBAG01) || defined(CONFIG_LCD_UG2864HSWEG01)
   (void)stm32_configgpio(GPIO_OLED_CS);    /* OLED chip select */
+# if defined(CONFIG_LCD_UG2864AMBAG01)
   (void)stm32_configgpio(GPIO_OLED_A0);    /* OLED Command/Data */
+# endif
+# if defined(CONFIG_LCD_UG2864HSWEG01)
+  (void)stm32_configgpio(GPIO_OLED_DC);    /* OLED Command/Data */
+# endif
 #endif
 }
 
@@ -134,7 +139,7 @@ void stm32_spi1select(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool sele
 {
   spidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
 
-#ifdef CONFIG_LCD_UG2864AMBAG01
+#if defined(CONFIG_LCD_UG2864AMBAG01) || defined(CONFIG_LCD_UG2864HSWEG01)
   if (devid == SPIDEV_DISPLAY)
     {
       stm32_gpiowrite(GPIO_OLED_CS, !selected);
@@ -180,9 +185,9 @@ uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
  * Name: stm32_spi1cmddata
  *
  * Description:
- *   Set or clear the SD1329 D/Cn bit to select data (true) or command
- *   (false).  This function must be provided by platform-specific logic.
- *   This is an implementation of the cmddata method of the SPI
+ *   Set or clear the SH1101A A0 or SD1306 D/C n bit to select data (true)
+ *   or command (false). This function must be provided by platform-specific
+ *   logic. This is an implementation of the cmddata method of the SPI
  *   interface defined by struct spi_ops_s (see include/nuttx/spi.h).
  *
  * Input Parameters:
@@ -203,18 +208,23 @@ uint8_t stm32_spi3status(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 #ifdef CONFIG_STM32_SPI1
 int stm32_spi1cmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd)
 {
-#ifdef CONFIG_LCD_UG2864AMBAG01
+#if defined(CONFIG_LCD_UG2864AMBAG01) || defined(CONFIG_LCD_UG2864HSWEG01)
   if (devid == SPIDEV_DISPLAY)
     {
       /* "This is the Data/Command control pad which determines whether the
        *  data bits are data or a command.
        *
-       *  A0 = “H”: the inputs at D0 to D7 are treated as display data.
-       *  A0 = “L”: the inputs at D0 to D7 are transferred to the command
+       *  A0 = "H": the inputs at D0 to D7 are treated as display data.
+       *  A0 = "L": the inputs at D0 to D7 are transferred to the command
        *       registers."
        */
 
+# if defined(CONFIG_LCD_UG2864AMBAG01)
       (void)stm32_gpiowrite(GPIO_OLED_A0, !cmd);
+# endif
+# if defined(CONFIG_LCD_UG2864HSWEG01)
+      (void)stm32_gpiowrite(GPIO_OLED_DC, !cmd);
+# endif
       return OK;
     }
 #endif

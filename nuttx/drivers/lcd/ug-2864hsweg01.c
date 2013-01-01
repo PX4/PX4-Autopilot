@@ -434,7 +434,7 @@ static inline void ug2864hsweg01_configspi(FAR struct spi_dev_s *spi)
 
   SPI_SETMODE(spi, CONFIG_UG2864HSWEG01_SPIMODE);
   SPI_SETBITS(spi, 8);
-  SPI_SETFREQUENCY(spi, CONFIG_UG2864HSWEG01_FREQUENCY)
+  SPI_SETFREQUENCY(spi, CONFIG_UG2864HSWEG01_FREQUENCY);
 }
 #endif
 
@@ -1041,7 +1041,7 @@ FAR struct lcd_dev_s *ug2864hsweg01_initialize(FAR struct spi_dev_s *spi, unsign
 
   /* Configure the SPI */
 
-  ug2864hsweg01_configspi(spi)
+  ug2864hsweg01_configspi(spi);
 
   /* Lock and select device */
 
@@ -1052,40 +1052,81 @@ FAR struct lcd_dev_s *ug2864hsweg01_initialize(FAR struct spi_dev_s *spi, unsign
 
   SPI_CMDDATA(spi, SPIDEV_DISPLAY, true);
 
+  /* Configure OLED SPI or I/O, must be delayed 1-10ms */
+
+  up_mdelay(5);
+
   /* Configure the device */
+
+//#define OLED_WriteCmd(v)	SPI_SEND(spi,v)
+//
+// /* Module manufacturers to provide initialization code 模块厂家提供初始化代码 */
+//
+// OLED_WriteCmd(0xAE);  /* 关闭OLED面板显示(休眠) */
+// OLED_WriteCmd(0x00);  /* 设置列地址低4bit */
+// OLED_WriteCmd(0x10);  /* 设置列地址高4bit */
+// OLED_WriteCmd(0x40);  /* 设置起始行地址（低5bit 0-63）， 硬件相关*/
+//
+// OLED_WriteCmd(0x81);  /* 设置对比度命令(双字节命令），第1个字节是命令，第2个字节是对比度参数0-255 */
+// OLED_WriteCmd(0xCF);  /* 设置对比度参数 */
+//
+// OLED_WriteCmd(0xA1);  /* A0 ：列地址0映射到SEG0; A1 ：列地址127映射到SEG0 */
+// OLED_WriteCmd(0xA6);  /* A6 : 设置正常显示模式; A7 : 设置为反显模式 */
+//
+// OLED_WriteCmd(0xA8);  /* 设置COM路数 */
+// OLED_WriteCmd(0x3F);  /* 1 ->（63+1）路 */
+//
+// OLED_WriteCmd(0xD3);  /* 设置显示偏移（双字节命令）*/
+// OLED_WriteCmd(0x00);  /* 无偏移 */
+//
+// OLED_WriteCmd(0xD5);  /* 设置显示时钟分频系数/振荡频率 */
+// OLED_WriteCmd(0x80);  /* 设置分频系数,高4bit是分频系数，低4bit是振荡频率 */
+//
+// OLED_WriteCmd(0xD9);  /* 设置预充电周期 */
+// OLED_WriteCmd(0xF1);  /* [3:0],PHASE 1; [7:4],PHASE 2; */
+//
+// OLED_WriteCmd(0xDA);  /* 设置COM脚硬件接线方式 */
+// OLED_WriteCmd(0x12);
+//
+// OLED_WriteCmd(0xDB);  /* 设置 vcomh 电压倍率 */
+// OLED_WriteCmd(0x40);  /* [6:4] 000 = 0.65 x VCC; 0.77 x VCC (RESET); 0.83 x VCC  */
+//
+// OLED_WriteCmd(0x8D);  /* 设置充电泵（和下个命令结合使用） */
+// OLED_WriteCmd(0x14);  /* 0x14 使能充电泵， 0x10 是关闭 */
+// OLED_WriteCmd(0xAF);  /* 打开OLED面板 */
 
   SPI_SEND(spi, SSD1306_DISPOFF);         /* Display off 0xAE*/
   SPI_SEND(spi, SSD1306_SETCOLL(0));      /* Set lower column address 0x00 */
   SPI_SEND(spi, SSD1306_SETCOLH(0));      /* Set higher column address 0x10 */
   SPI_SEND(spi, SSD1306_STARTLINE(0));    /* Set display start line 0x40*/
-  SPI_SEND(spi, SSD1306_PAGEADDR(0));     /* Set page address [可忽略] */
+  /* SPI_SEND(spi, SSD1306_PAGEADDR(0));*//* Set page address  (Can ignore)*/
   SPI_SEND(spi, SSD1306_CONTRAST_MODE);   /* Contrast control 0x81*/
   SPI_SEND(spi ,SSD1306_CONTRAST(UG2864HSWEG01_CONTRAST));  /*   Default contrast 0xCF */
   SPI_SEND(spi, SSD1306_REMAPPLEFT);      /* Set segment remap left 95 to 0 | 0xA1*/
-  SPI_SEND(spi, SSD1306_EDISPOFF);        /* Normal display :off  0xA4 [多出的一行] */
+  /* SPI_SEND(spi, SSD1306_EDISPOFF); */  /* Normal display :off  0xA4 (Can ignore)*/
   SPI_SEND(spi, SSD1306_NORMAL);          /* Normal (un-reversed) display mode 0xA6 */
   SPI_SEND(spi, SSD1306_MRATIO_MODE);     /* Multiplex ratio 0xA8*/
   SPI_SEND(spi, SSD1306_MRATIO(0x3f));    /*   Duty = 1/64 */
-  SPI_SEND(spi, SSD1306_SCANTOCOM0);      /* Com scan direction: Scan from COM[n-1] to COM[0]  [可忽略] */
+  /* SPI_SEND(spi, SSD1306_SCANTOCOM0);*/ /* Com scan direction: Scan from COM[n-1] to COM[0] (Can ignore)*/
   SPI_SEND(spi, SSD1306_DISPOFFS_MODE);   /* Set display offset 0xD3 */
   SPI_SEND(spi, SSD1306_DISPOFFS(0));
   SPI_SEND(spi, SSD1306_CLKDIV_SET);      /* Set clock divider 0xD5*/
-  SPI_SEND(spi, SSD1306_CLKDIV(8,0));     /* 0x80 ? 检查 默认0,0*/ 
-  
+  SPI_SEND(spi, SSD1306_CLKDIV(8,0));     /* 0x80*/
+
   SPI_SEND(spi, SSD1306_CHRGPER_SET);     /* ++Set pre-charge period 0xD9*/
-  SPI_SEND(spi, SSD1306_CHRGPER(0x0f,1));    /* 0xf1 or 0x22（增强模式？） */
-  
+  SPI_SEND(spi, SSD1306_CHRGPER(0x0f,1)); /* 0xf1 or 0x22（Enhanced mode?） */
+
   SPI_SEND(spi, SSD1306_CMNPAD_CONFIG);   /* Set common pads / set com pins hardware configuration 0xDA*/
-  SPI_SEND(spi, SSD1306_CMNPAD(0x12));    /* 0x12 ? 检查 默认 0x10 */
-  
-  SPI_SEND(spi, SSD1306_VCOM_SET);		  /* set vcomh 0xDB*/
+  SPI_SEND(spi, SSD1306_CMNPAD(0x12));    /* 0x12 */
+
+  SPI_SEND(spi, SSD1306_VCOM_SET);        /* set vcomh 0xDB*/
   SPI_SEND(spi, SSD1306_VCOM(0x40));
 
-  SPI_SEND(spi, SSD1306_CHRPUMP_SET);     /* ++Set Charge Pump enable/disable 0x8D 增加的*/
-  SPI_SEND(spi, SSD1306_CHRPUMP_ON);      /* 0x14 */
+  SPI_SEND(spi, SSD1306_CHRPUMP_SET);     /* ++Set Charge Pump enable/disable 0x8D ssd1306*/
+  SPI_SEND(spi, SSD1306_CHRPUMP_ON);      /* 0x14 close 0x10 */
 
-  //SPI_SEND(spi, SSD1306_DCDC_MODE);       /* DC/DC control mode: on */
-  //SPI_SEND(spi, SSD1306_DCDC_ON);
+  /*SPI_SEND(spi, SSD1306_DCDC_MODE); */  /* DC/DC control mode: on (SSD1306 Not supported) */
+  /*SPI_SEND(spi, SSD1306_DCDC_ON); */
 
   SPI_SEND(spi, SSD1306_DISPON);          /* display ON 0xAF */
 

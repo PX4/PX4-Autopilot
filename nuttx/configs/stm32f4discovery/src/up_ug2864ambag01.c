@@ -66,7 +66,7 @@
 #endif
 
 /* Pin Configuration ********************************************************/
-/* UG-2864AMBAG01 OLED Display:
+/* UG-2864AMBAG01 OLED Display (SPI 4-wire):
  *
  * --------------------------+----------------------------------------------
  * Connector CON10 J1:      | STM32F4Discovery

@@ -3845,6 +3845,8 @@
 	* configs/zp214xpa/nxlines:  Add an nxlines configuration for the
 	  ZP213x/4xPA (with the LPC2148 and the UG_2864AMBAG01).  Working
 	  as of 2012-12-30.
-	* config/olimex-lpc1766stk/wlan:  Remove non-functional
+	* configs/olimex-lpc1766stk/wlan:  Remove non-functional
 	  configuration.
+	* configs/stm32f4discovery/src and nuttx/drivers/lcd/ug-2864hsweg01.c:
+	  Updates and correctinos for the UG-2864HSWEG01 from Darcy Gong.
 

@@ -113,7 +113,7 @@
 #  define GPIO_OTGFS_OVER  (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_PUSHPULL|GPIO_PORTD|GPIO_PIN5)
 #endif
 
-/* UG-2864AMBAG01 or UG-2864HSWEG01 OLED Display:
+/* UG-2864AMBAG01 or UG-2864HSWEG01 OLED Display (SPI 4-wire):
  *
  * --------------------------+----------------------------------------------
  * Connector CON10 J1:      | STM32F4Discovery
@@ -123,7 +123,7 @@
  * 1  3v3        | 3,4 3v3   | P2 3V
  * 3  /RESET     | 8 /RESET  | P2 PB6 (Arbitrary selection)
  * 5  /CS        | 7 /CS     | P2 PB7 (Arbitrary selection)
- * 7  A0         | 9 A0      | P2 PB8 (Arbitrary selection)
+ * 7  A0|D/C     | 9 A0|D/C  | P2 PB8 (Arbitrary selection)
  * 9  LED+ (N/C) | -----     | -----
  * 2  5V Vcc     | 1,2 Vcc   | P2 5V
  * 4  DI         | 18 D1/SI  | P1 PA7 (GPIO_SPI1_MOSI == GPIO_SPI1_MOSI_1 (1))
@@ -142,6 +142,7 @@
                            GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN7)
 #  define GPIO_OLED_A0    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
                            GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN8)
+#  define GPIO_OLED_DC    GPIO_OLED_A0
 #endif
 
 /****************************************************************************************************

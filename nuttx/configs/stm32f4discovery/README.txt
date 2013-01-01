@@ -20,7 +20,7 @@ Contents
   - FPU
   - FSMC SRAM
   - SSD1289
-  - UG-2864AMBAG01
+  - UG-2864AMBAG01 / UG-2964SWEG01
   - STM32F4Discovery-specific Configuration Options
   - Configurations
 
@@ -696,10 +696,10 @@ The following summarize the bit banging oprations:
     WriteData(data);
   }
 
-UG-2864AMBAG01
-==============
+UG-2864AMBAG01 / UG-2964SWEG01
+==============================
 
-I purchased an OLED display on eBay.  The OLDE is 128x64 monochrome and
+I purchased an OLED display on eBay.  The OLED is 128x64 monochrome and
 is based on an UG-2864AMBAG01 OLED controller.  The OLED can run in either
 parallel or SPI mode.  I am using SPI mode.  In SPI mode, the OLED is
 write only so the driver keeps a 128*64/8 = 1KB framebuffer to remember
@@ -728,6 +728,10 @@ that I am using:
   --------------+-----------+----------------------------------------------
   (1) Required because of on-board MEMS
   -------------------------------------------------------------------------
+
+Darcy Gong recently added support for the UG-2964SWEG01 OLED which is also
+an option with this configuratin.  I have little technical information about
+the UG-2964SWEG01 interface (see configs/stm32f4discovery/src/up_ug2864sweg01.c).
 
 STM32F4Discovery-specific Configuration Options
 ===============================================
@@ -1347,9 +1351,10 @@ Where <subdir> is one of the following:
      b. Execute 'make menuconfig' in nuttx/ in order to start the
         reconfiguration process.
 
-  3. This configured can be re-configured to use the UG-2864AMBAG01
-     0.96 inch OLED by adding or changing the following items int
-     the configuration (using 'make menuconfig'):
+  3. This configured can be re-configured to use either the
+     UG-2864AMBAG01 or UG-2864SWEG01 0.96 inch OLEDs by adding
+     or changing the following items in the configuration (using
+     'make menuconfig'):
 
      +CONFIG_SPI_CMDDATA=y
 
@@ -1360,7 +1365,7 @@ Where <subdir> is one of the following:
 
      -CONFIG_LCD_SSD1289=y
      -CONFIG_SSD1289_PROFILE1=y
-     +CONFIG_LCD_UG2864AMBAG01=y
+     +CONFIG_LCD_UG2864AMBAG01=y              : For the UG-2964AMBAG01
      +CONFIG_UG2864AMBAG01_SPIMODE=3
      +CONFIG_UG2864AMBAG01_FREQUENCY=3500000
      +CONFIG_UG2864AMBAG01_NINTERFACES=1
