@@ -326,7 +326,7 @@ PX4IO::task_main()
 	_to_input_rc = orb_advertise(ORB_ID(input_rc), &_input_rc);
 
 	/* do not advertise the battery status until its clear that a battery is connected */
-	memset(&_input_rc, 0, sizeof(_input_rc));
+	memset(&_battery_status, 0, sizeof(_battery_status));
 	_to_battery = -1;
 
 	/* poll descriptor */
