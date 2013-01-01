@@ -91,6 +91,10 @@
 #define rJDR4		REG(STM32_ADC_JDR4_OFFSET)
 #define rDR		REG(STM32_ADC_DR_OFFSET)
 
+#ifdef STM32_ADC_CCR
+# define rCCR		REG(STM32_ADC_CCR_OFFSET)
+#endif
+
 class ADC : public device::CDev
 {
 public:
@@ -140,6 +144,9 @@ ADC::ADC(uint32_t channels) :
 {
 	_debug_enabled = true;
 
+	/* always enable the temperature sensor */
+	channels |= 1 << 16;
+
 	/* allocate the sample array */
 	for (unsigned i = 0; i < 32; i++) {
 		if (channels & (1 << i)) {
@@ -188,9 +195,15 @@ ADC::init()
 	/* enable the temperature sensor / Vrefint channel if supported*/
 	rCR2 = 
 #ifdef ADC_CR2_TSVREFE
+		/* enable the temperature sensor in CR2 */
 		ADC_CR2_TSVREFE |
 #endif
 		0;
+
+#ifdef ADC_CCR_TSVREFE
+	/* enable temperature sensor in CCR */
+	rCCR = ADC_CCR_TSVREFE;
+#endif
 
 	/* configure for a single-channel sequence */
 	rSQR1 = 0;
