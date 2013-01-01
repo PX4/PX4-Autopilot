@@ -82,7 +82,7 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     fN(0), fE(0), fD(0),
     phi(0), theta(0), psi(0),
     vN(0), vE(0), vD(0),
-    latE7(0), lonE7(0), altE3(0),
+    latDegE7(0), lonDegE7(0), altE3(0),
     // parameters for ground station
     _vGyro(this,"V_GYRO"),
     _vAccel(this,"V_ACCEL"),
@@ -112,8 +112,8 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     vN = _gps.vel_n;
     vE = _gps.vel_e;
     vD = _gps.vel_d;
-    latE7 = _gps.lat;
-    lonE7 = _gps.lon;
+    latDegE7 = _gps.lat;
+    lonDegE7 = _gps.lon;
     altE3 = _gps.alt;
 
     // initialize quaternions
@@ -230,8 +230,8 @@ void KalmanNav::updatePublications()
     _pos.timestamp = _pubTimeStamp;
     _pos.time_gps_usec = _gps.timestamp;
     _pos.valid = true;
-    _pos.lat = latE7;
-    _pos.lon = lonE7;
+    _pos.lat = latDegE7;
+    _pos.lon = lonDegE7;
     _pos.alt = getAlt();
     _pos.relative_alt = getAlt(); // TODO, make relative
     _pos.vx = vN;
@@ -313,8 +313,8 @@ void KalmanNav::predictFast(float dt)
     vN += vNDot*dt;
     vE += vEDot*dt;
     vD += vDDot*dt;
-    latE7 += int32_t(1.0e7f*LDot*dt);
-    lonE7 += int32_t(1.0e7f*lDot*dt);
+    latDegE7 += int32_t(1.0e7f*M_RAD_TO_DEG_F*LDot*dt);
+    lonDegE7 += int32_t(1.0e7f*M_RAD_TO_DEG_F*lDot*dt);
     altE3 += int32_t(-1.0e3f*vD*dt);
 }
 
@@ -430,8 +430,8 @@ void KalmanNav::correctAtt()
     // mag predicted measurement
     // choosing some typical magnetic field properties,
     //  TODO dip/dec depend on lat/ lon/ time
-    static const float dip = 60.0f; // dip, inclination with level
-    static const float dec = 0.0f; // declination, clockwise rotation from north
+    static const float dip = 60.0f/M_RAD_TO_DEG_F; // dip, inclination with level
+    static const float dec = 0.0f/M_RAD_TO_DEG_F; // declination, clockwise rotation from north
     float bN = cosf(dip)*cosf(dec);
     float bE = cosf(dip)*sinf(dec);
     float bD = sinf(dip);
@@ -534,8 +534,8 @@ void KalmanNav::correctGps()
     y(0) = _gps.vel_n - vN;
     y(1) = _gps.vel_e - vE;
     y(2) = _gps.vel_d - vD;
-    y(3) = (_gps.lat - latE7)/1.0e7f;
-    y(4) = (_gps.lon - lonE7)/1.0e7f;
+    y(3) = (_gps.lat - latDegE7)/1.0e7f/M_RAD_TO_DEG_F;
+    y(4) = (_gps.lon - lonDegE7)/1.0e7f/M_RAD_TO_DEG_F;
     y(5) = (_gps.alt - altE3)/1.0e3f;
 
     // compute correction
@@ -553,8 +553,8 @@ void KalmanNav::correctGps()
             vN = _gps.vel_n;
             vE = _gps.vel_e;
             vD = _gps.vel_d;
-            latE7 = _gps.lat;
-            lonE7 = _gps.lon;
+            latDegE7 = _gps.lat;
+            lonDegE7 = _gps.lon;
             altE3 = _gps.alt;
             return;
         }
@@ -564,8 +564,8 @@ void KalmanNav::correctGps()
     vN += xCorrect(VN);
     vE += xCorrect(VE);
     vD += xCorrect(VD);
-    latE7 += int32_t(1.0e7f*xCorrect(LAT));
-    lonE7 += int32_t(1.0e7f*xCorrect(LON));
+    latDegE7 += int32_t(1.0e7f*xCorrect(LAT)*M_RAD_TO_DEG_F);
+    lonDegE7 += int32_t(1.0e7f*xCorrect(LON)*M_RAD_TO_DEG_F);
     altE3 += int32_t(1.0e3f*xCorrect(ALT));
 
     // fault detetcion

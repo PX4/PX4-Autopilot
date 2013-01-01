@@ -427,7 +427,7 @@ handle_message(mavlink_message_t *msg)
                     float magVectNed[3];
                     // choosing some typical magnetic field properties,
                     //  these depend on lat/ lon/ date
-                    float dip = 60.0f; // dip, inclination with level
+                    float dip = 60.0f/M_RAD_TO_DEG_F; // dip, inclination with level
                     float dec = 0.0f; // declination, clockwise rotation from north
                     float cosDip = cosf(dip);
                     float sinDip = sinf(dip);
