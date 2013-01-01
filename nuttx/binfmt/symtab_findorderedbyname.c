@@ -44,7 +44,7 @@
 #include <assert.h>
 #include <errno.h>
 
-#include <nuttx/symtab.h>
+#include <nuttx/binfmt/symtab.h>
 
 /****************************************************************************
  * Pre-processor Definitions

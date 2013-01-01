@@ -7,7 +7,7 @@ comment "Interpreters"
 
 source "$APPSDIR/interpreters/ficl/Kconfig"
 
-config PCODE
+config INTERPRETERS_PCODE
 	bool "Pascal p-code interpreter"
 	default n
 	---help---
@@ -16,6 +16,6 @@ config PCODE
 		configuration implies that you have performed the required installation of the
 		Pascal run-time code.
 
-if PCODE
+if INTERPRETERS_PCODE
 endif
 

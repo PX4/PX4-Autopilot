@@ -102,6 +102,9 @@ extern "C" {
 
 /* ANSI-like File System Interfaces */
 
+/* Operations on streams (FILE) */
+
+EXTERN void   clearerr(register FILE *stream);
 EXTERN int    fclose(FAR FILE *stream);
 EXTERN int    fflush(FAR FILE *stream);
 EXTERN int    feof(FAR FILE *stream);
@@ -120,6 +123,9 @@ EXTERN int    fsetpos(FAR FILE *stream, FAR fpos_t *pos);
 EXTERN long   ftell(FAR FILE *stream);
 EXTERN size_t fwrite(FAR const void *ptr, size_t size, size_t n_items, FAR FILE *stream);
 EXTERN FAR char *gets(FAR char *s);
+EXTERN int    ungetc(int c, FAR FILE *stream);
+
+/* Operations on the stdout stream, buffers, paths, and the whole printf-family */
 
 EXTERN int    printf(const char *format, ...);
 EXTERN int    puts(FAR const char *s);
@@ -130,7 +136,6 @@ EXTERN int    snprintf(FAR char *buf, size_t size, const char *format, ...);
 EXTERN int    sscanf(const char *buf, const char *fmt, ...);
 EXTERN void   perror(FAR const char *s);
 
-EXTERN int    ungetc(int c, FAR FILE *stream);
 EXTERN int    vprintf(FAR const char *format, va_list ap);
 EXTERN int    vfprintf(FAR FILE *stream, const char *format, va_list ap);
 EXTERN int    vsprintf(FAR char *buf, const char *format, va_list ap);

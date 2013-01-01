@@ -47,6 +47,10 @@ ifeq ($(CONFIG_LCD_NOKIA6100),y)
   CSRCS += nokia6100.c
 endif
 
+ifeq ($(CONFIG_LCD_UG2864AMBAG01),y)
+  CSRCS += ug-2864ambag01.c
+endif
+
 ifeq ($(CONFIG_LCD_UG9664HSWAG01),y)
   CSRCS += ug-9664hswag01.c
 endif
@@ -63,6 +67,6 @@ endif
 
 DEPPATH += --dep-path lcd
 VPATH += :lcd
-CFLAGS += ${shell $(TOPDIR)/tools/incdir.sh $(INCDIROPT) "$(CC)" $(TOPDIR)/drivers/lcd}
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)lcd}
 endif
 

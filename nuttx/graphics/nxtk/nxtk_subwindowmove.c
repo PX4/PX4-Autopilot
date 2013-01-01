@@ -112,21 +112,19 @@ void nxtk_subwindowmove(FAR struct nxtk_framedwindow_s *fwnd,
 
   nxgl_rectintersect(&abssrc, &abssrc, &fwnd->fwrect);
 
-  /* Clip the offset so that the source rectangle does not move out of the
-   * the client sub-window.
-   */
+  /* Clip the source rectangle so that destination area is within the window. */
 
   destoffset->x = srcoffset->x;
   if (destoffset->x < 0)
     {
       if (abssrc.pt1.x + destoffset->x < bounds->pt1.x)
         {
-           destoffset->x = bounds->pt1.x - abssrc.pt1.x;
+           abssrc.pt1.x = bounds->pt1.x - destoffset->x;
         }
     }
   else if (abssrc.pt2.x + destoffset->x > bounds->pt2.x)
     {
-       destoffset->x = bounds->pt2.x - abssrc.pt2.x;
+       abssrc.pt2.x = bounds->pt2.x - destoffset->x;
     }
 
   destoffset->y = srcoffset->y;
@@ -134,12 +132,12 @@ void nxtk_subwindowmove(FAR struct nxtk_framedwindow_s *fwnd,
     {
       if (abssrc.pt1.y + destoffset->y < bounds->pt1.y)
         {
-           destoffset->y = bounds->pt1.y - abssrc.pt1.y;
+           abssrc.pt1.y = bounds->pt1.y - destoffset->y;
         }
     }
   else if (abssrc.pt2.y + destoffset->y > bounds->pt2.y)
     {
-       destoffset->y = bounds->pt2.y - abssrc.pt2.y;
+       abssrc.pt2.y = bounds->pt2.y - destoffset->y;
     }
 
 

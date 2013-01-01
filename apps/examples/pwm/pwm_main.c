@@ -48,6 +48,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <debug.h>
+#include <string.h>
 
 #include <nuttx/pwm.h>
 

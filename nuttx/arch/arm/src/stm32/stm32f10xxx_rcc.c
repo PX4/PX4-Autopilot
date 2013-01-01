@@ -92,7 +92,11 @@ static inline void rcc_reset(void)
   putreg32(regval, STM32_RCC_CR);
 
   regval  = getreg32(STM32_RCC_CFGR);       /* Reset PLLSRC, PLLXTPRE, PLLMUL and USBPRE bits */
-  regval &= ~(RCC_CFGR_PLLSRC|RCC_CFGR_PLLXTPRE|RCC_CFGR_PLLMUL_MASK|RCC_CFGR_USBPRE);
+  regval &= ~(RCC_CFGR_PLLSRC|RCC_CFGR_PLLXTPRE|RCC_CFGR_PLLMUL_MASK
+#ifndef CONFIG_STM32_VALUELINE
+              |RCC_CFGR_USBPRE
+#endif
+              );
   putreg32(regval, STM32_RCC_CFGR);
 
   putreg32(0, STM32_RCC_CIR);               /* Disable all interrupts */
@@ -224,6 +228,27 @@ static inline void rcc_enableapb1(void)
 #endif
 #endif
 
+#ifdef CONFIG_STM32_TIM12
+  /* Timer 12 clock enable */
+#ifdef CONFIG_STM32_FORCEPOWER
+  regval |= RCC_APB1ENR_TIM12EN;
+#endif
+#endif
+
+#ifdef CONFIG_STM32_TIM13
+  /* Timer 13 clock enable */
+#ifdef CONFIG_STM32_FORCEPOWER
+  regval |= RCC_APB1ENR_TIM13EN;
+#endif
+#endif
+
+#ifdef CONFIG_STM32_TIM14
+  /* Timer 14 clock enable */
+#ifdef CONFIG_STM32_FORCEPOWER
+  regval |= RCC_APB1ENR_TIM14EN;
+#endif
+#endif
+
 #ifdef CONFIG_STM32_WWDG
   /* Window Watchdog clock enable */
 
@@ -315,6 +340,13 @@ static inline void rcc_enableapb1(void)
 
   regval |= RCC_APB1ENR_DACEN;
 #endif
+
+#ifdef CONFIG_STM32_CEC
+  /* CEC clock enable */
+
+  regval |= RCC_APB1ENR_CECEN;
+#endif
+
   putreg32(regval, STM32_RCC_APB1ENR);
 }
 
@@ -404,6 +436,28 @@ static inline void rcc_enableapb2(void)
 
   regval |= RCC_APB2ENR_ADC3EN;
 #endif
+
+#ifdef CONFIG_STM32_TIM15
+  /* TIM15 Timer clock enable */
+#ifdef CONFIG_STM32_FORCEPOWER
+  regval |= RCC_APB2ENR_TIM15EN;
+#endif
+#endif
+
+#ifdef CONFIG_STM32_TIM16
+  /* TIM16 Timer clock enable */
+#ifdef CONFIG_STM32_FORCEPOWER
+  regval |= RCC_APB2ENR_TIM16EN;
+#endif
+#endif
+
+#ifdef CONFIG_STM32_TIM17
+  /* TIM17 Timer clock enable */
+#ifdef CONFIG_STM32_FORCEPOWER
+  regval |= RCC_APB2ENR_TIM17EN;
+#endif
+#endif
+
   putreg32(regval, STM32_RCC_APB2ENR);
 }
 
