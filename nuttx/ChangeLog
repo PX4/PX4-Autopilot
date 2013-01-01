@@ -3849,4 +3849,6 @@
 	  configuration.
 	* configs/stm32f4discovery/src and nuttx/drivers/lcd/ug-2864hsweg01.c:
 	  Updates and correctinos for the UG-2864HSWEG01 from Darcy Gong.
+	* configs/lm326965-ek:  All configurations converted to use the
+	  kconfig-frontends configuration tool.
 

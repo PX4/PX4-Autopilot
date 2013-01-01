@@ -478,21 +478,68 @@ Where <subdir> is one of the following:
     Configures the NuttShell (nsh) located at examples/nsh.  The
     Configuration enables both the serial and telnetd NSH interfaces.
 
-    NOTE: As it is configured now, you MUST have a network connected.
-    Otherwise, the NSH prompt will not come up because the Ethernet
-    driver is waiting for the network to come up.  That is probably
-    a bug in the Ethernet driver behavior!
+    NOTES:
+    1. This configuration uses the mconf-based configuration tool.  To
+       change this configuration using that tool, you should:
 
-    Network File System (NFS) support can be added by setting the
-    following in your configuration file:
+       a. Build and install the mconf tool.  See nuttx/README.txt and
+          misc/tools/
+
+       b. Execute 'make menuconfig' in nuttx/ in order to start the
+          reconfiguration process.
+
+    2. Default platform/toolchain:
+
+       CONFIG_HOST_LINUX=y                 : Linux (Cygwin under Windows okay too).
+       CONFIG_ARMV7M_TOOLCHAIN_BUILDROOT=y : Buildroot (arm-nuttx-elf-gcc)
+       CONFIG_RAW_BINARY=y                 : Output formats: ELF and raw binary
+
+    3. As it is configured now, you MUST have a network connected.
+       Otherwise, the NSH prompt will not come up because the Ethernet
+       driver is waiting for the network to come up.  That is probably
+       a bug in the Ethernet driver behavior!
+
+    4. Network File System (NFS) support can be added by setting the
+      following in your configuration file:
 
       CONFIG_NFS=y
+
   nx:
     And example using the NuttX graphics system (NX).  This example
     uses the P14201 OLED driver.
+
+    NOTES:
+    1. This configuration uses the mconf-based configuration tool.  To
+       change this configuration using that tool, you should:
+
+       a. Build and install the mconf tool.  See nuttx/README.txt and
+          misc/tools/
+
+       b. Execute 'make menuconfig' in nuttx/ in order to start the
+          reconfiguration process.
+
+    2. Default platform/toolchain:
+
+       CONFIG_HOST_LINUX=y                 : Linux (Cygwin under Windows okay too).
+       CONFIG_ARMV7M_TOOLCHAIN_BUILDROOT=y : Buildroot (arm-nuttx-elf-gcc)
+       CONFIG_RAW_BINARY=y                 : Output formats: ELF and raw binary
 
   ostest:
     This configuration directory, performs a simple OS test using
     examples/ostest.
 
+    NOTES:
+    1. This configuration uses the mconf-based configuration tool.  To
+       change this configuration using that tool, you should:
 
+       a. Build and install the mconf tool.  See nuttx/README.txt and
+          misc/tools/
+
+       b. Execute 'make menuconfig' in nuttx/ in order to start the
+          reconfiguration process.
+
+    2. Default platform/toolchain:
+
+       CONFIG_HOST_LINUX=y                 : Linux (Cygwin under Windows okay too).
+       CONFIG_ARMV7M_TOOLCHAIN_BUILDROOT=y : Buildroot (arm-nuttx-elf-gcc)
+       CONFIG_RAW_BINARY=y                 : Output formats: ELF and raw binary
