@@ -554,7 +554,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 			.control = {buf.act_controls.control[0], buf.act_controls.control[1], buf.act_controls.control[2], buf.act_controls.control[3]},
 			.actuators = {buf.act_outputs.output[0], buf.act_outputs.output[1], buf.act_outputs.output[2], buf.act_outputs.output[3],
 					buf.act_outputs.output[4], buf.act_outputs.output[5], buf.act_outputs.output[6], buf.act_outputs.output[7]},
-			.vbat = buf.raw.battery_voltage_v,
+			.vbat = 0.0f, /* XXX use battery_status uORB topic */
 			.adc = {buf.raw.adc_voltage_v[0], buf.raw.adc_voltage_v[1], buf.raw.adc_voltage_v[2]},
 			.local_position = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z},
 			.gps_raw_position = {buf.gps_pos.lat, buf.gps_pos.lon, buf.gps_pos.alt},

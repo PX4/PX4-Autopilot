@@ -73,6 +73,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/battery_status.h>
 
 #include <px4io/protocol.h>
 #include "uploader.h"
@@ -108,6 +109,9 @@ private:
 
 	orb_advert_t 		_to_input_rc;	///< rc inputs from io
 	rc_input_values		_input_rc;	///< rc input values
+
+	orb_advert_t		_to_battery;	///< battery status / voltage
+	battery_status_s	_battery_status;///< battery status data
 
 	orb_advert_t		_t_outputs;	///< mixed outputs topic
 	actuator_outputs_s	_outputs;	///< mixed outputs
@@ -321,6 +325,10 @@ PX4IO::task_main()
 	memset(&_input_rc, 0, sizeof(_input_rc));
 	_to_input_rc = orb_advertise(ORB_ID(input_rc), &_input_rc);
 
+	/* do not advertise the battery status until its clear that a battery is connected */
+	memset(&_input_rc, 0, sizeof(_input_rc));
+	_to_battery = -1;
+
 	/* poll descriptor */
 	pollfd fds[3];
 	fds[0].fd = _serial_fd;
@@ -478,6 +486,23 @@ PX4IO::rx_callback(const uint8_t *buffer, size_t bytes_received)
 
 	/* remember the latched arming switch state */
 	_switch_armed = rep->armed;
+
+	/* publish battery information */
+
+	/* only publish if battery has a valid minimum voltage */
+	if (rep->battery_mv > 3300) {
+		_battery_status.timestamp = hrt_absolute_time();
+		_battery_status.voltage_v = rep->battery_mv / 1000.0f;
+		/* current and discharge are unknown */
+		_battery_status.current_a = -1.0f;
+		_battery_status.discharged_mah = -1.0f;
+		/* announce the battery voltage if needed, just publish else */
+		if (_to_battery > 0) {
+			orb_publish(ORB_ID(battery_status), _to_battery, &_battery_status);
+		} else {
+			_to_battery = orb_advertise(ORB_ID(battery_status), &_battery_status);
+		}
+	}
 
 	_send_needed = true;
 

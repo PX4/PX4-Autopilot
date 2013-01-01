@@ -71,6 +71,9 @@ ORB_DEFINE(vehicle_gps_position, struct vehicle_gps_position_s);
 #include "topics/vehicle_status.h"
 ORB_DEFINE(vehicle_status, struct vehicle_status_s);
 
+#include "topics/battery_status.h"
+ORB_DEFINE(battery_status, struct battery_status_s);
+
 #include "topics/vehicle_global_position.h"
 ORB_DEFINE(vehicle_global_position, struct vehicle_global_position_s);
 
