@@ -161,6 +161,12 @@ extern void	safety_init(void);
 extern void	comms_main(void) __attribute__((noreturn));
 
 /*
+ * Sensors/misc inputs
+ */
+extern int	adc_init(void);
+extern uint16_t	adc_measure(unsigned channel);
+
+/*
  * R/C receiver handling.
  */
 extern void	controls_main(void);
