@@ -55,6 +55,7 @@ CXXSRCS   =  test/test.cpp \
 			 control/block/UOrbPublication.cpp \
 			 control/block/UOrbSubscription.cpp \
 			 control/blocks.cpp \
+			 control/fixedwing.cpp \
 			 math/Vector.cpp \
 			 math/Vector3.cpp \
 			 math/EulerAngles.cpp \

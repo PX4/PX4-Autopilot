@@ -104,7 +104,7 @@ protected:
     enum {PHI=0,THETA,PSI,VN,VE,VD,LAT,LON,ALT};
     float phi, theta, psi;
     float vN, vE, vD;
-    int32_t latDegE7, lonDegE7, altE3;
+    double lat, lon, alt;
     control::BlockParam<float> _vGyro;
     control::BlockParam<float> _vAccel;
     control::BlockParam<float> _rMag;
@@ -112,7 +112,10 @@ protected:
     control::BlockParam<float> _rGpsGeo;
     control::BlockParam<float> _rGpsAlt;
     control::BlockParam<float> _rAccel;
-    float getLat() { return latDegE7/1.0e7f/M_RAD_TO_DEG_F; }
-    float getLon() { return lonDegE7/1.0e7f/M_RAD_TO_DEG_F; }
-    float getAlt() { return altE3/1.0e3f; }
+    int32_t getLatDegE7() { return int32_t(lat*1.0e7*M_RAD_TO_DEG); }
+    void setLatDegE7(int32_t val) { lat = val/1.0e7/M_RAD_TO_DEG; }
+    int32_t getLonDegE7() { return int32_t(lon*1.0e7*M_RAD_TO_DEG); }
+    void setLonDegE7(int32_t val) { lon = val/1.0e7/M_RAD_TO_DEG; }
+    int32_t getAltE3() { return int32_t(alt*1.0e3); }
+    void setAltE3(int32_t val) { alt = double(val)/1.0e3; }
 };

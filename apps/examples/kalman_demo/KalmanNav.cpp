@@ -65,7 +65,7 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     q(),
     // subscriptions
     _sensors(&getSubscriptions(), ORB_ID(sensor_combined),5), // limit to 200 Hz
-    _gps(&getSubscriptions(), ORB_ID(vehicle_gps_position),100), // limit to 10 Hz
+    _gps(&getSubscriptions(), ORB_ID(vehicle_gps_position),1000), // limit to 1 Hz
     _param_update(&getSubscriptions(), ORB_ID(parameter_update),1000), // limit to 1 Hz
     // publications
     _pos(&getPublications(), ORB_ID(vehicle_global_position)),
@@ -82,7 +82,7 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     fN(0), fE(0), fD(0),
     phi(0), theta(0), psi(0),
     vN(0), vE(0), vD(0),
-    latDegE7(0), lonDegE7(0), altE3(0),
+    lat(0), lon(0), alt(0),
     // parameters for ground station
     _vGyro(this,"V_GYRO"),
     _vAccel(this,"V_ACCEL"),
@@ -112,9 +112,9 @@ KalmanNav::KalmanNav(SuperBlock * parent, const char * name) :
     vN = _gps.vel_n;
     vE = _gps.vel_e;
     vD = _gps.vel_d;
-    latDegE7 = _gps.lat;
-    lonDegE7 = _gps.lon;
-    altE3 = _gps.alt;
+    setLatDegE7(_gps.lat);
+    setLonDegE7(_gps.lon);
+    setAltE3(_gps.alt);
 
     // initialize quaternions
     q = Quaternion(EulerAngles(phi,theta,psi)); 
@@ -230,10 +230,10 @@ void KalmanNav::updatePublications()
     _pos.timestamp = _pubTimeStamp;
     _pos.time_gps_usec = _gps.timestamp;
     _pos.valid = true;
-    _pos.lat = latDegE7;
-    _pos.lon = lonDegE7;
-    _pos.alt = getAlt();
-    _pos.relative_alt = getAlt(); // TODO, make relative
+    _pos.lat = getLatDegE7();
+    _pos.lon = getLonDegE7();
+    _pos.alt = float(alt);
+    _pos.relative_alt = float(alt); // TODO, make relative
     _pos.vx = vN;
     _pos.vy = vE;
     _pos.vz = vD;
@@ -293,14 +293,14 @@ void KalmanNav::predictFast(float dt)
     fD = accelN(2);
 
     // trig
-    float sinL = sinf(getLat());
-    float cosL = cosf(getLat());
+    float sinL = sinf(lat);
+    float cosL = cosf(lat);
 
     // position update
     // neglects angular deflections in local gravity
     // see Titerton pg. 70
-    float LDot = vN/(R+getAlt());
-    float lDot = vE/(cosL*(R+getAlt()));
+    float LDot = vN/(R+float(alt));
+    float lDot = vE/(cosL*(R+float(alt)));
     float vNDot = fN - vE*(2*omega +
         lDot)*sinL +
         vD*LDot;
@@ -313,9 +313,9 @@ void KalmanNav::predictFast(float dt)
     vN += vNDot*dt;
     vE += vEDot*dt;
     vD += vDDot*dt;
-    latDegE7 += int32_t(1.0e7f*M_RAD_TO_DEG_F*LDot*dt);
-    lonDegE7 += int32_t(1.0e7f*M_RAD_TO_DEG_F*lDot*dt);
-    altE3 += int32_t(-1.0e3f*vD*dt);
+    lat += double(LDot*dt);
+    lon += double(lDot*dt);
+    alt += double(-vD*dt);
 }
 
 void KalmanNav::predictSlow(float dt)
@@ -323,10 +323,10 @@ void KalmanNav::predictSlow(float dt)
     using namespace math;
 
     // trig
-    float sinL = sinf(getLat());
-    float cosL = cosf(getLat());
+    float sinL = sinf(lat);
+    float cosL = cosf(lat);
     float cosLSq = cosL*cosL;
-    float tanL = tanf(getLat());
+    float tanL = tanf(lat);
 
     // F Matrix
     // Titterton pg. 291
@@ -536,9 +536,9 @@ void KalmanNav::correctGps()
     y(0) = _gps.vel_n - vN;
     y(1) = _gps.vel_e - vE;
     y(2) = _gps.vel_d - vD;
-    y(3) = (_gps.lat - latDegE7)/1.0e7f/M_RAD_TO_DEG_F;
-    y(4) = (_gps.lon - lonDegE7)/1.0e7f/M_RAD_TO_DEG_F;
-    y(5) = (_gps.alt - altE3)/1.0e3f;
+    y(3) = double(_gps.lat)/1.0e7/M_RAD_TO_DEG - lat;
+    y(4) = double(_gps.lon)/1.0e7/M_RAD_TO_DEG - lon;
+    y(5) = double(_gps.alt)/1.0e3 - alt;
 
     // compute correction
     Matrix S = HGps*P*HGps.transpose() + RGps; // residual covariance
@@ -551,12 +551,13 @@ void KalmanNav::correctGps()
         if (isnan(val) || isinf(val)) {
             // abort correction and return
             printf("[kalman_demo] numerical failure in gps correction\n");
+            // fallback to GPS
             vN = _gps.vel_n;
             vE = _gps.vel_e;
             vD = _gps.vel_d;
-            latDegE7 = _gps.lat;
-            lonDegE7 = _gps.lon;
-            altE3 = _gps.alt;
+            setLatDegE7(_gps.lat);
+            setLonDegE7(_gps.lon);
+            setAltE3(_gps.alt);
             return;
         }
     }
@@ -565,9 +566,9 @@ void KalmanNav::correctGps()
     vN += xCorrect(VN);
     vE += xCorrect(VE);
     vD += xCorrect(VD);
-    latDegE7 += int32_t(1.0e7f*xCorrect(LAT)*M_RAD_TO_DEG_F);
-    lonDegE7 += int32_t(1.0e7f*xCorrect(LON)*M_RAD_TO_DEG_F);
-    altE3 += int32_t(1.0e3f*xCorrect(ALT));
+    lat += double(xCorrect(LAT));
+    lon += double(xCorrect(LON));
+    alt += double(xCorrect(ALT));
 
     // update state covariance
     P = P - K*HGps*P; 
