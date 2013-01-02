@@ -52,7 +52,7 @@ def setup_template(home):
     xml = open(template).read() % { 'LATITUDE'  : str(latitude),
                                     'LONGITUDE' : str(longitude),
                                     'HEADING'   : str(heading),
-                                    'ALTITUDE'  : str(1000+altitude)}
+                                    'ALTITUDE'  : str(300+altitude)}
     open(reset, mode='w').write(xml)
     print("Wrote %s" % reset)
 
@@ -357,7 +357,7 @@ def reset_sim():
 def main_loop():
     '''run main loop'''
     tnow = time.time()
-    tFinal = 1000000
+    tFinal = 80
     last_report = tnow
     last_sim_input = tnow
     last_wind_update = tnow
