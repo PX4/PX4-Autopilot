@@ -70,9 +70,9 @@ foreach table $tables {
 	upvar #0 $table angles
 	foreach {angle dir} $angles {
 		if {$dir == "CW"} {
-			set dd -1.0
-		} else {
 			set dd 1.0
+		} else {
+			set dd -1.0
 		}
 		factors $angle $dd
 	}
