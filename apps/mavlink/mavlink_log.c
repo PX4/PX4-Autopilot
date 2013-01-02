@@ -40,6 +40,7 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "mavlink_log.h"
  
@@ -51,7 +52,7 @@ void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size) {
 }
  
 int mavlink_logbuffer_is_full(struct mavlink_logbuffer *lb) {
-    return lb->count == lb->size;
+	return lb->count == (int)lb->size;
 }
  
 int mavlink_logbuffer_is_empty(struct mavlink_logbuffer *lb) {
