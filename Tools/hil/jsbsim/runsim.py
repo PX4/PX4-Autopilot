@@ -8,6 +8,8 @@ import plotting as plot
 import pickle
 from collections import defaultdict
 
+import attackDefinitions
+
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'pysim'))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', '..', '..', 'mavlink', 'pymavlink'))
 
@@ -109,8 +111,7 @@ def process_jsb_input(buf):
     px4Format = "{}\t"*16 + "{}\n"
 
     # position
-    lat = fdm.get('latitude', units='degrees') + \
-        0.1*sin(2*math.pi*latFreq*time.time())
+    lat = fdm.get('latitude', units='degrees')
     lon = fdm.get('longitude', units='degrees')
     alt = fdm.get('altitude', units='meters')
 
@@ -134,7 +135,7 @@ def process_jsb_input(buf):
     r = -sin(phi)*thetadot + cos(phi)*cos(theta)*psidot
 
     ran = random.gauss(0, rNoiseVar)
-    r = r + ran;
+    #r = r + ran;
 
     # acceleration
     ax = fdm.get('A_X_pilot', units='mpss')
@@ -365,28 +366,11 @@ def main_loop():
     input_count = 0
     paused = False
 
-
-    attack1 = Attack(
-            0,  # Nominal Value
-            'GPS Latitude Sine Frequency', # Attack Name
-            'Hz', # Attack Units
-            'GPS Latitude Sine Frequency (Hz)', # Axis Label
-            '', # Scicoslab script (blank here)
-            'digitalUpdateRate', # variable name (blank here)
-            'attack.digitalUpdateRate', # more scicoslab stuff, not important
-            [0, 2, 4, 6, 8], # attack values
-            '0') # attack comment
-
-    attack2 = Attack(
-            0,  # Nominal Value
-            'Yaw Rate Noise Variance', # Attack Name
-            'rad^2/s^2', # Attack Units
-            'Yaw Rate Noise Variance (rad^2/s^2)', # Axis Label
-            '', # Scicoslab script (blank here)
-            'digitalUpdateRate', # variable name (blank here)
-            'attack.digitalUpdateRate', # more scicoslab stuff, not important
-            [0, 2.5, 5, 7.5, 10], # attack values
-            '0') # attack comment
+    # Load attack definitions and set the desired attack
+    execfile('jsbsim/attackDefinitions.py', globals())
+    print L
+    attack1 = imuGyroNoise
+    attack2 = gainAccelX
 
     global latFreq
     global rNoiseVar
