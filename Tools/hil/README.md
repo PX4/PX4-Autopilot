@@ -8,8 +8,7 @@ Currently the HIL mode is set to HIL_MODE_SENSORS.
 
 During the boot process you must type this or put it in your startup script:
 ```
-attiute_estimator_ekf start
-position_estimator start &
+kalman_demo start
 control_demo start
 ```
 ## QGroundControl
@@ -20,13 +19,9 @@ Currently I have not modified qgroundcontrol to have a new JSBSim mode, but you 
 
 # TODO:
 
-* Magnetometer measurement model from attitude needs to be improved.
+* Magnetometer measurement model doesn't depend on lat/lot yet.
 * Add noise.
-
-# BUGS:
-
-* jsbsim/runsim.py not starting with JSBSim in air.
-* Controller not stable with ekf navigator.
+* Initialization routines for EKF.
 
 # Source
 
