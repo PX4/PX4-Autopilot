@@ -2,7 +2,7 @@
 <initialize name="Start up at Canberra Model Aircraft Club">
   <latitude unit="DEG"> 37.616611 </latitude>
   <longitude unit="DEG"> -122.4161053 </longitude>
-  <altitude unit="M"> 1025.0 </altitude>
+  <altitude unit="M"> 325.0 </altitude>
   <vt unit="FT/SEC">      0.0 </vt>
   <gamma unit="DEG">      0.0 </gamma>
   <phi unit="DEG">        0.0 </phi>
