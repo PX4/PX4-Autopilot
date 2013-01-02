@@ -109,6 +109,9 @@
 #define PARODD    (1 << 5)  /* Bit 5: Odd parity, else even */
 #define HUPCL     (1 << 6)  /* Bit 6: Hang up on last close */
 #define CLOCAL    (1 << 7)  /* Bit 7: Ignore modem status lines */
+#define CCTS_OFLOW (1 << 8) /* Bit 8: CTS flow control of output */
+#define CRTSCTS   CCTS_OFLOW
+#define CRTS_IFLOW (1 << 9) /* Bit 9: RTS flow control of input */
 
 /* Local Modes (c_lflag in the termios structure) */
 
