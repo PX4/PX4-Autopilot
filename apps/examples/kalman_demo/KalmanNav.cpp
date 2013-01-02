@@ -519,6 +519,7 @@ void KalmanNav::correctAtt()
 
     // fault in attitude
     float beta = y.dot(S.inverse()*y);
+    printf("attitude: beta = %8.4f\n", (double)beta);
     if (beta > 10.0f) {
         //printf("fault in attitude: beta = %8.4f\n", (double)beta);
         //printf("y:\n"); y.print();
@@ -575,6 +576,7 @@ void KalmanNav::correctGps()
 
     // fault detetcion
     float beta = y.dot(S.inverse()*y);
+    printf("gps: beta = %8.4f\n", (double)beta);
     if (beta > 100.0f) {
         //printf("fault in gps: beta = %8.4f\n", (double)beta);
         //printf("y:\n"); y.print();
