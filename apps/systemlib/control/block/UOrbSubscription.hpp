@@ -100,7 +100,7 @@ protected:
  * UOrb Subscription wrapper class
  */
 template<class T>
-class UOrbSubscription :
+class __EXPORT UOrbSubscription :
     public T, // this must be first!
     public UOrbSubscriptionBase
 {
