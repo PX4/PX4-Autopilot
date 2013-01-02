@@ -15,7 +15,7 @@ control_demo start
 
 The udp packets used by the python script called px4Start.sh are the same as the FlightGear xml descriptions in qgroundcontrol for the fixed wing.
 
-Currently I have not modified qgroundcontrol to have a new JSBSim mode, but you can disable the FlightGear process start and use this temporarily.
+Currently I have not modified qgroundcontrol to have a new JSBSim mode, but you can disable the FlightGear process start and use this temporarily. This is currently done on my jsbsim branch of github.com/jgoppert/qgroundcontrol.
 
 # TODO:
 
