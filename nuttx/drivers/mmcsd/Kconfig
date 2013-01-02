@@ -39,8 +39,9 @@ config MMCSD_HAVECARDDETECT
 		100% accurate
 
 config MMCSD_SPI
-	bool "MMC/SD spi transfer support"
+	bool "MMC/SD SPI transfer support"
 	default y
+	depends on SPI
 
 config MMCSD_SPICLOCK
 	int "MMC/SD maximum SPI clock"

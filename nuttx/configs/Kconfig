@@ -761,7 +761,7 @@ config NSH_MMCSDSLOTNO
 config NSH_MMCSDSPIPORTNO
 	int "MMC/SD SPI device number"
 	default 0
-	depends on NSH_LIBRARY && MMCSD && SPI
+	depends on NSH_LIBRARY && MMCSD && MMCSD_SPI
 	---help---
 		If board-specif NSH start-up logic will mount an SPI-based MMC/SD volume, then this setting may be needed to tell the board logic which SPI bus to use.  Default: 0 (meaning is board-specific).
 

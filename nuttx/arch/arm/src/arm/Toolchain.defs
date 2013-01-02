@@ -102,8 +102,13 @@ endif
 # NuttX buildroot under Linux or Cygwin
 
 ifeq ($(CONFIG_ARM_TOOLCHAIN),BUILDROOT)
+ifeq ($(CONFIG_ARMV_OABI_TOOLCHAIN),y)
   CROSSDEV = arm-nuttx-elf-
   ARCROSSDEV = arm-nuttx-elf-
+else
+  CROSSDEV = arm-nuttx-eabi-
+  ARCROSSDEV = arm-nuttx-eabi-
+endif
   MAXOPTIMIZATION = -Os
 endif
 

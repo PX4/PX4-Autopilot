@@ -3851,4 +3851,7 @@
 	  Updates and correctinos for the UG-2864HSWEG01 from Darcy Gong.
 	* configs/lm326965-ek:  All configurations converted to use the
 	  kconfig-frontends configuration tool.
-
+	* configs/Kconfig: NSH_MMCSDSPIPORTNO should depend on MMCSD_SPI,
+	  not just SPI (from Jose Pablo Carballo).
+	* arch/arm/src/arm/Kconfig and armv7m/Kconfig:  Add an option for
+	  buildroot toolchains:  They may be EABI or OABI.

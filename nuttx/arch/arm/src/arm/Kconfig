@@ -33,3 +33,10 @@ config ARM_TOOLCHAIN_GNU_EABI
 		configured for arm-none-eabi.
 
 endchoice
+
+config ARM_OABI_TOOLCHAIN
+	bool "OABI (vs EABI)"
+	default y
+	depends on ARM_TOOLCHAIN_BUILDROOT
+	---help---
+		Most of the older buildroot toolchains are OABI and are named arm-nuttx-elf- vs. arm-nuttx-eabi-
