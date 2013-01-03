@@ -660,9 +660,11 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   int ret = dev->ops->ioctl(filep, cmd, arg);
 
-  /* Append any higher level TTY flags */
-
-  if (ret == OK)
+  /*
+    the device ioctl() handler returns -ENOTTY when it doesn't know
+    how to handle the command. Check if we can handle it here.
+   */
+  if (ret == -ENOTTY)
     {
       switch (cmd)
         {
@@ -686,7 +688,9 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             irqrestore(state);
 
             *(int *)arg = count;
+	    ret = 0;
           }
+	  break;
 
           case FIONWRITE:
           {
@@ -695,7 +699,7 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
             /* determine the number of bytes free in the buffer */
 
-            if (dev->xmit.head <= dev->xmit.tail)
+            if (dev->xmit.head < dev->xmit.tail)
               { 
                 count = dev->xmit.tail - dev->xmit.head - 1;
               }
@@ -707,7 +711,9 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             irqrestore(state);
 
             *(int *)arg = count;
+	    ret = 0;
           }
+	  break;
 
 #ifdef CONFIG_SERIAL_TERMIOS
           case TCGETS:
@@ -725,6 +731,7 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             termiosp->c_iflag = dev->tc_iflag;
             termiosp->c_oflag = dev->tc_oflag;
             termiosp->c_lflag = dev->tc_lflag;
+	    ret = 0;
           }
 
           break;
@@ -744,6 +751,7 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             dev->tc_iflag = termiosp->c_iflag;
             dev->tc_oflag = termiosp->c_oflag;
             dev->tc_lflag = termiosp->c_lflag;
+	    ret = 0;
           }
 
           break;
