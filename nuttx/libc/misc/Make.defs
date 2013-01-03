@@ -65,7 +65,7 @@ CSRCS += lib_dbg.c lib_dumpbuffer.c
 
 # Keyboard driver encoder/decoder
 
-ifneq ($(CONFIG_LIB_KBDCODEC),0)
+ifeq ($(CONFIG_LIB_KBDCODEC),y)
 CSRCS += lib_kbdencode.c lib_kbddecode.c
 endif
 

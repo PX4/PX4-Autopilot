@@ -3858,3 +3858,5 @@
 	* include/nuttx/progmem and arch/arm/src/stm32/stm32_flash.c:
 	  Fix a counting bug plus change interface to use either relative
 	  or absolut FLASH addressing (from Freddie Chopin).
+	* libc/misc/Make.defs:  Fix error in conditional for KBD CODEC.
+
