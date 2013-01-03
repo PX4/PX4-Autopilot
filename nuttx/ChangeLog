@@ -3855,3 +3855,6 @@
 	  not just SPI (from Jose Pablo Carballo).
 	* arch/arm/src/arm/Kconfig and armv7m/Kconfig:  Add an option for
 	  buildroot toolchains:  They may be EABI or OABI.
+	* include/nuttx/progmem and arch/arm/src/stm32/stm32_flash.c:
+	  Fix a counting bug plus change interface to use either relative
+	  or absolut FLASH addressing (from Freddie Chopin).
