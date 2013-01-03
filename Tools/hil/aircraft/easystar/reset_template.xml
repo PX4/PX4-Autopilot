@@ -3,7 +3,7 @@
   <latitude unit="DEG"> %(LATITUDE)s </latitude>
   <longitude unit="DEG"> %(LONGITUDE)s </longitude>
   <altitude unit="M"> %(ALTITUDE)s </altitude>
-  <vt unit="FT/SEC">      0.0 </vt>
+  <vt unit="FT/SEC">      72.0 </vt>
   <gamma unit="DEG">      0.0 </gamma>
   <phi unit="DEG">        0.0 </phi>
   <theta unit="DEG">      0.0 </theta>
