@@ -106,8 +106,8 @@ int control_demo_main(int argc, char *argv[])
         thread_should_exit = false;
         deamon_task = task_spawn("control_demo",
                      SCHED_DEFAULT,
-                     SCHED_PRIORITY_DEFAULT,
-                     8192,
+                     SCHED_PRIORITY_MAX - 10,
+                     4096,
                      control_demo_thread_main,
                      (argv) ? (const char **)&argv[2] : (const char **)NULL);
         exit(0);

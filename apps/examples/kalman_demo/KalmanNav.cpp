@@ -517,7 +517,7 @@ void KalmanNav::correctAtt()
     // update state covariance
     P = P - K*HAtt*P; 
 
-    // fault in attitude
+    // fault detection
     float beta = y.dot(S.inverse()*y);
     printf("attitude: beta = %8.4f\n", (double)beta);
     if (beta > 10.0f) {
