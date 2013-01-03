@@ -688,6 +688,27 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             *(int *)arg = count;
           }
 
+          case FIONWRITE:
+          {
+            int count;
+            irqstate_t state = irqsave();
+
+            /* determine the number of bytes free in the buffer */
+
+            if (dev->xmit.head <= dev->xmit.tail)
+              { 
+                count = dev->xmit.tail - dev->xmit.head - 1;
+              }
+            else
+              {
+                count = dev->xmit.size - (dev->xmit.head - dev->xmit.tail) - 1;
+              }
+
+            irqrestore(state);
+
+            *(int *)arg = count;
+          }
+
 #ifdef CONFIG_SERIAL_TERMIOS
           case TCGETS:
           {
