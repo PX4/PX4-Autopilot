@@ -433,7 +433,7 @@ CONFIG_LIB_SENDFILE_BUFSIZE=512
 #
 # Non-standard Helper Functions
 #
-CONFIG_LIB_KBDCODEC=y
+# CONFIG_LIB_KBDCODEC is not set
 
 #
 # Basic CXX Support

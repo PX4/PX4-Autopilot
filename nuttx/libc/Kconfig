@@ -280,7 +280,7 @@ comment "Non-standard Helper Functions"
 
 config LIB_KBDCODEC
 	bool "Keyboard CODEC"
-	default y
+	default n
 	---help---
 		In NuttX, a keyboard/keypad driver is simply a character driver that
 		may have an (optional) encoding/decoding layer on the data returned

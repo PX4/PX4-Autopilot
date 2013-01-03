@@ -3859,4 +3859,6 @@
 	  Fix a counting bug plus change interface to use either relative
 	  or absolut FLASH addressing (from Freddie Chopin).
 	* libc/misc/Make.defs:  Fix error in conditional for KBD CODEC.
+	* libc/Kconfig and configs/*/defconfig (several):  The default
+	  setting should be CONFIG_LIB_KBDCODEC=n
 
