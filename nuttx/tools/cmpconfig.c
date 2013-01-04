@@ -43,6 +43,8 @@
 #include <ctype.h>
 #include <errno.h>
 
+#include "cfgparser.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -50,14 +52,6 @@
 /****************************************************************************
  * Private Types
  ****************************************************************************/
-
-struct variable_s
-{
-  struct variable_s *flink;
-  char *var;
-  char *val;
-  char storage[1];
-};
 
 /****************************************************************************
  * Private Functions
@@ -67,150 +61,6 @@ static void show_usage(const char *progname)
 {
   fprintf(stderr, "USAGE: %s <config1> <config2>\n", progname);
   exit(EXIT_FAILURE);
-}
-
-static char *skip_space(char *ptr)
-{
-  while (*ptr && isspace((int)*ptr)) ptr++;
-  return ptr;
-}
-
-static char *read_line(FILE *stream, char *line, int len)
-{
-  char *ptr;
-
-  for (;;)
-    {
-      line[len-1] = '\0';
-      if (!fgets(line, len, stream))
-        {
-          return NULL;
-        }
-      else
-        {
-          ptr = skip_space(line);
-          if (*ptr && *ptr != '#' && *ptr != '\n')
-            {
-              return ptr;
-            }
-        }
-    }
-}
-
-static char *find_name_end(char *ptr)
-{
-  while (*ptr && (isalnum((int)*ptr) || *ptr == '_')) ptr++;
-  return ptr;
-}
-
-static char *find_value_end(char *ptr)
-{
-  while (*ptr && !isspace((int)*ptr))
-    {
-      if (*ptr == '"')
-        {
-           do ptr++; while (*ptr && *ptr != '"');
-           if (*ptr) ptr++;
-        }
-      else
-        {
-           do ptr++; while (*ptr && !isspace((int)*ptr) && *ptr != '"');
-        }
-    }
-  return ptr;
-}
-
-static void parse_line(char *ptr, char **varname, char **varval)
-{
-  *varname = ptr;
-  *varval = NULL;
-
-   ptr = find_name_end(ptr);
-   if (*ptr && *ptr != '=')
-    {
-      *ptr = '\0';
-       ptr = skip_space(ptr + 1);
-    }
-
-  if (*ptr == '=')
-    {
-      *ptr = '\0';
-      ptr = skip_space(ptr + 1);
-      if (*ptr)
-        {
-          *varval = ptr;
-          ptr = find_value_end(ptr);
-          *ptr = '\0';
-        }
-    }
-}
-
-static void parse_file(FILE *stream, struct variable_s **list)
-{
-  char line[10242];
-  struct variable_s *curr;
-  struct variable_s *prev;
-  struct variable_s *next;
-  char *varname;
-  char *varval;
-  char *ptr;
-
-  do
-    {
-      ptr = read_line(stream, line, 1024);
-      if (ptr)
-        {
-          parse_line(ptr, &varname, &varval);
-          if (!varval || strcmp(varval, "n") == 0)
-            {
-              continue;
-            }
-
-          if (varname)
-            {
-              int varlen = strlen(varname) + 1;
-              int vallen = 0;
-
-              if (varval)
-                {
-                  vallen = strlen(varval) + 1;
-                }
-
-              curr = (struct variable_s *)malloc(sizeof(struct variable_s) + varlen + vallen - 1);
-              if (curr)
-                {
-                  curr->var = &curr->storage[0];
-                  strcpy(curr->var, varname);
-
-                  curr->val = NULL;
-                  if (varval)
-                    {
-                      curr->val = &curr->storage[varlen];
-                      strcpy(curr->val, varval);
-                    }
-                }
-
-              prev = 0;
-              next = *list;
-              while (next && strcmp(next->var, curr->var) <= 0)
-                {
-                  prev = next;
-                  next = next->flink;
-                }
-
-              if (prev)
-                {
-                  prev->flink = curr;
-                }
-              else
-                {
-                  *list = curr;
-                }
-              curr->flink = next;
-            }
-        }
-    }
-  while (ptr);
 }
 
 static void compare_variables(struct variable_s *list1, struct variable_s *list2)

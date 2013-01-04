@@ -59,6 +59,6 @@ extern char line[LINESIZE+1];
  * Public Functions
  ****************************************************************************/
 
-extern void generate_definitions(FILE *stream);
+void generate_definitions(FILE *stream);
 
 #endif /* __TOOLS_CFGDEFINE_H */

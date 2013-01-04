@@ -89,8 +89,8 @@ endif
 
 # cmpconfig - Compare the contents of two configuration files
 
-cmpconfig$(HOSTEXEEXT): cmpconfig.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o cmpconfig$(HOSTEXEEXT) cmpconfig.c
+cmpconfig$(HOSTEXEEXT): cmpconfig.c cfgparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o cmpconfig$(HOSTEXEEXT) cmpconfig.c cfgparser.c
 
 ifdef HOSTEXEEXT
 cmpconfig: cmpconfig$(HOSTEXEEXT)
