@@ -140,6 +140,7 @@ extern int lib_vsprintf(FAR struct lib_outstream_s *obj,
 /* Defined lib_rawprintf.c */
 
 extern int lib_rawvprintf(const char *src, va_list ap);
+extern int lib_rawvdprintf(int fd, const char *fmt, va_list ap);
 
 /* Defined lib_lowprintf.c */
 
