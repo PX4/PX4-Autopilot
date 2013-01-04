@@ -38,7 +38,7 @@ discover.py
   Example script for discovering devices in the local network.
   It is the counter part to apps/netutils/discover
 
-mkconfig.c, cfgparser.c, and cfgparser.h
+mkconfig.c, cfgdefine.c, and cfgdefine.h
 ----------------------------------------
 
   These are Cs file that are used to build mkconfig program.  The mkconfig
@@ -79,7 +79,7 @@ mkfsdata.pl
   NOTE:  This perl script comes from uIP and was (probably) written
   by Adam Dunkels.  uIP has a license that is compatible with NuttX.
 
-mkversion.c, cfgparser.c, and cfgparser.h
+mkversion.c, cfgdefine.c, and cfgdefine.h
 -----------------------------------------
 
   This is C file that is used to build mkversion program.  The mkversion

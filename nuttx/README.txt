@@ -41,6 +41,10 @@ Installing Cygwin
   tiny setup.exe program and it does the real, internet installation
   for you.
 
+     NOTE: NuttX can also be installed and built on a native Windows
+     system, but with some loss of tool functionality (see the
+     discussion "Native Windows Build" below).
+
   Some Cygwin installation tips:
   
   1. Install at C:\cygwin
@@ -61,8 +65,9 @@ Installing Cygwin
   After installing Cygwin, you will get lots of links for installed
   tools and shells.  I use the RXVT native shell.  It is fast and reliable
   and does not require you to run the Cygwin X server (which is neither
-  fast nor reliable).  The rest of these instructions assume that you
-  are at a bash command line prompt in either Linux or in Cygwin shell.
+  fast nor reliable).  Unless otherwise noted, the rest of these
+  instructions assume that you are at a bash command line prompt in
+  either Linux or in Cygwin shell.
 
 Download and Unpack
 -------------------

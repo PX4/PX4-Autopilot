@@ -41,7 +41,7 @@
 #include <stdlib.h>
 #include <errno.h>
 
-#include "cfgparser.h"
+#include "cfgdefine.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -99,7 +99,7 @@ int main(int argc, char **argv, char **envp)
   printf("#ifndef __INCLUDE_NUTTX_CONFIG_H\n");
   printf("#define __INCLUDE_NUTTX_CONFIG_H\n\n");
   printf("/* Architecture-specific options *************************/\n\n");
-  parse_file(stream);
+  generate_definitions(stream);
   printf("\n/* Sanity Checks *****************************************/\n\n");
   printf("/* If this is an NXFLAT, external build, then make sure that\n");
   printf(" * NXFLAT support is enabled in the base code.\n");

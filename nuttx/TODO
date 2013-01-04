@@ -6,8 +6,7 @@ standards, things that could be improved, and ideas for enhancements.
 
 nuttx/
 
-  (6)  Task/Scheduler (sched/)
-  (1)  On-demand paging (sched/)
+ (10)  Task/Scheduler (sched/)
   (1)  Memory Managment (mm/)
   (2)  Signals (sched/, arch/)
   (2)  pthreads (sched/)
@@ -56,13 +55,8 @@ o Task/Scheduler (sched/)
   Title:       CHILD PTHREAD TERMINATION
   Description: When a tasks exits, shouldn't all of its child pthreads also be
                terminated?
-  Status:      Open
+  Status:      Closed.  No, this behavior will not be implemented.
   Priority:    Medium, required for good emulation of process/pthread model.
-
-  Title:       MMAN.H
-  Description: Implement sys/mman.h and functions
-  Status:      Open
-  Priority:    Low
 
   Title:       WAIT.H
   Description: Implement sys/wait.h and functions.  Consider implementing wait,
@@ -72,14 +66,16 @@ o Task/Scheduler (sched/)
                Update: A simple but usable version of waitpid() has been included.
                This version is not compliant with all specifications and can be
                enabled with CONFIG_SCHED_WAITPID. 
-  Status:      Open
+  Status:      Open, however no further work is planned.
   Priority:    Low
 
   Title:       MISSING ERRNO SETTINGS
   Description: Several APIs do not set errno.  Need to review all APIs.
                Update:  These are being fixed as they are encountered.  There is
                no accounting of how many interfaces have this problem.
-  Status:      Open
+  Status:      Open?  There has been an effort over the past few years to assure
+               that all errno settings are in place.  What is the current state?
+               Unknown.
   Priority:    Medium, required for standard compliance (but makes the
                code bigger)
 
@@ -107,18 +103,29 @@ o Task/Scheduler (sched/)
 
                3) sched_process_timeslice(). Then there is round-robin time-slicing.
 
-  Status:      Open
+               The primary advantage of a tickless OS is that is would allow for
+               reduce power consumptions.  That is because timer interrupts will
+               usually awaken CPUs from reduced power consumption states.
+  Status:      Open.  There will probably be no tickless OS implementation unless
+               someone gets motivated and drives the change.
   Priority:    Low
 
   Title:       posix_spawn()
   Description: This would be a good interface to add to NuttX.  It is really
                just a re-packaging of the existing, non-standard NuttX exec()
                function.
-  Status:      Open
+  Status:      Open.  There are no plans to implement this capabilitiey now.
   Priority:    Medium low.
 
-o On-demand paging (sched/)
-  ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Title:       pause() NON-COMPLIANCE
+  Description: In the POSIX description of this function is the pause() function
+               will suspend the calling thread until delivery of a signal whose
+               action is either to execute a signal-catching function or to
+               terminate the process.  The current implementation only waits for
+               any non-blocked signal to be received.  It should only wake up if
+               the signal is delivered to a handler.
+  Status:      Open.
+  Priority:    Medium Low.
 
   Title:       ON-DEMAND PAGE INCOMPLETE
   Description: On-demand paging has recently been incorporated into the RTOS.
@@ -130,11 +137,8 @@ o On-demand paging (sched/)
                configs/ea3131/pgnsh and locked directories).  There are
                some limitations of this testing so I still cannot say that
                the feature is fully functional.
-  Status:      Open
+  Status:      Open.  This has been put on the shelf for some time.
   Priority:    Medium-Low
-
-o Other core OS logic
-  ^^^^^^^^^^^^^^^^^^^
 
   Title:       GET_ENVIRON_PTR()
   Description: get_environ_ptr() (sched/sched_getenvironptr.c) is not implemented.
@@ -142,13 +146,30 @@ o Other core OS logic
                NutX is not compatible with the operation.  Some significant
                re-design would be required to implement this funcion and that
                effort is thought to be not worth the result.
-  Status:      Open
+  Status:      Open.  No change is planned.
   Priority:    Low -- There is no plan to implement this.
 
   Title:       TIMER_GETOVERRUN()
   Description: timer_getoverrun() (sched/timer_getoverrun.c) is not implemented.
   Status:      Open
   Priority:    Low -- There is no plan to implement this.
+
+  Title:       USER-SPACE WORK QUEUES
+  Description: There has been some use of work queues that has crept into some
+               user code.  I am thinking of NxWidgets::CNxTimer.  That timer
+               logic was originally implemented (correctly) using POSIX timers,
+               but was re-implemented using timed work.
+
+               The issue is that NxWidgets::CNxTimer is a user-space application
+               but the work queues are an OS internal feature.  This will be a
+               problem for KERNEL builds.  Hooks and definitions have been added
+               in include/nuttx/wqueue.h to support a user-space work queue, but
+               the corresponding logic has not been implemented.
+
+               The work queue logic will need to be moved from sched/ to libc/wqueue/
+  Status:      Open.  No work will probably be done until a functional KERNEL build
+               that includes NxWisges::CNxTimer is needed.
+  Priority:    Medium Low for now
 
 o Memory Managment (mm/)
   ^^^^^^^^^^^^^^^^^^^^^^
@@ -212,7 +233,7 @@ o Memory Managment (mm/)
                  be required to keep this memory on the correct list (or on
                  no list at all).
 
-  Status:      Open
+  Status:      Open.  No changes are planned.
   Priority:    Medium/Low, a good feature to prevent memory leaks but would
                have negative impact on memory usage and code size.
 
@@ -222,7 +243,7 @@ o Signals (sched/, arch/)
   Title:       STANDARD SIGNALS
   Description: 'Standard' signals and signal actions are not supported.
                (e.g., SIGINT, SIGCHLD, SIGSEGV, etc).
-  Status:      Open
+  Status:      Open.  No changes are planned.
   Priority:    Low, required by standards but not so critical for an
                embedded system.
 
@@ -240,11 +261,11 @@ o pthreads (sched/)
   Title:       CANCELLATION POINTS
   Description: pthread_cancel():  Should implement cancellation points and
                pthread_testcancel()
-  Status:      Open
+  Status:      Open.  No changes are planned.
   Priority:    Low, probably not that useful
 
   Title:       PTHREAD_PRIO_PROTECT
-  Description:  Extended pthread_mutexattr_setprotocol() suport PTHREAD_PRIO_PROTECT:
+  Description: Extended pthread_mutexattr_setprotocol() suport PTHREAD_PRIO_PROTECT:
                "When a thread owns one or more mutexes initialized with the
                PTHREAD_PRIO_PROTECT protocol, it shall execute at the higher of its
                priority  or  the  highest  of the priority ceilings of all the mutexes
@@ -260,7 +281,7 @@ o pthreads (sched/)
                PTHREAD_PRIO_PROTECT protocol attributes, it shall not be subject to
                being moved to the tail of the scheduling queue at its priority in  the
                event that its original priority is changed."
-  Status:      Open
+  Status:      Open.  No changes planned.
   Priority:    Low -- about zero, probably not that useful. Priority inheritance is
                already supported and is a much better solution.  And it turns out
                that priority protection is just about as complex as priority inheritance.
@@ -442,21 +463,25 @@ o Network (net/, drivers/net)
 
   Title:       SOCK_RAW/SOCK_PACKET
   Description: Should implement SOCK_RAW, SOCK_PACKET
-  Status:      Open
+  Status:      Open.  No changes are planned.
   Priority:    Low
 
   Tile:        MULTIPLE NETWORK INTERFACE SUPPORT
   Description: uIP polling issues / Multiple network interface support:
+
                (1) Current logic will not support multiple ethernet drivers.
                   Each driver should poll on TCP connections connect on the
                   network supported by the driver; UDP polling should respond
                   with TX data only if the UDP packet is intended for the
                   the network supported by the driver.
+
                (2) If there were multiple drivers, polling would occur at
                   double the rate.  Fix by using bound IP address in TCP
                   connection (lipaddr) and verifying that it is in the subnet
                   served by the driver.
-  Status:      Open
+
+  Status:      Open.  Nothing will probably be done until I have a platform
+               with two network interfaces that I need to support.
   Priority:    Medium, The feature is not important, but it is important
                for NuttX to resolve the architectural issues.
 
@@ -464,7 +489,7 @@ o Network (net/, drivers/net)
   Description: sendto() and multiple network interface support:
                When polled, would have to assure that the destination IP
                is on the subnet served by the polling driver.
-  Status:      Open
+  Status:      Open.  This is really part of the above issue.
   Priority:    Medium, The feature is not important, but it is important
                for NuttX to resolve the architectural issues.
 
@@ -472,7 +497,8 @@ o Network (net/, drivers/net)
   Description: IPv6 support is incomplete.  Adam Dunkels has recently announced
                IPv6 support for uIP (currently only as part of Contiki).  Those
                changes need to be ported to NuttX.
-  Status:      Open
+  Status:      Open.  No work will probably be done until there is a specific
+               requirement for IPv6.
   Priority:    Medium
 
   Title:       LISTENING FOR UDP BROADCASTS
@@ -488,7 +514,7 @@ o Network (net/, drivers/net)
                driver should be throttled.  Perhaps the driver should disable
                RX interrupts when throttled and re-anable on each poll time.
                recvfrom would, of course, have to un-throttle.
-  Status:      Open
+  Status:      Open.  This is just a thought experiment.  No changes are planned.
   Priority:    Medium
 
   Title:       STANDARDIZE ETHERNET DRIVER STATISTICS

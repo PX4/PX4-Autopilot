@@ -45,13 +45,12 @@ ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 endif
 
 all: b16$(HOSTEXEEXT) bdf-converter$(HOSTEXEEXT) cmpconfig$(HOSTEXEEXT) \
-    mkconfig$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT) mksymtab$(HOSTEXEEXT) \
+    configure$(HOSTEXEEXT) mkconfig$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT) mksymtab$(HOSTEXEEXT) \
     mksyscall$(HOSTEXEEXT) mkversion$(HOSTEXEEXT) 
 default: mkconfig$(HOSTEXEEXT) mksyscall$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT)
 
 ifdef HOSTEXEEXT
-.PHONY: b16 bdf-converter cmpconfig clean mkconfig mkdeps mksymtab \
-    mksyscall mkversion
+.PHONY: b16 bdf-converter cmpconfig clean configure mkconfig mkdeps mksymtab mksyscall mkversion
 else
 .PHONY: clean
 endif
@@ -70,10 +69,19 @@ ifdef HOSTEXEEXT
 b16: b16$(HOSTEXEEXT)
 endif
 
+# configure - Instantiate a canned NuttX configuration
+
+configure$(HOSTEXEEXT): configure.c cfgparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o configure$(HOSTEXEEXT) configure.c cfgparser.c
+
+ifdef HOSTEXEEXT
+configure: configure$(HOSTEXEEXT)
+endif
+
 # mkconfig - Convert a .config file into a C config.h file
 
-mkconfig$(HOSTEXEEXT): mkconfig.c cfgparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkconfig$(HOSTEXEEXT) mkconfig.c cfgparser.c
+mkconfig$(HOSTEXEEXT): mkconfig.c cfgdefine.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkconfig$(HOSTEXEEXT) mkconfig.c cfgdefine.c
 
 ifdef HOSTEXEEXT
 mkconfig: mkconfig$(HOSTEXEEXT)
@@ -90,8 +98,8 @@ endif
 
 # mkversion - Convert a .version file into a C version.h file
 
-mkversion$(HOSTEXEEXT): mkconfig.c cfgparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkversion$(HOSTEXEEXT) mkversion.c cfgparser.c
+mkversion$(HOSTEXEEXT): mkconfig.c cfgdefine.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkversion$(HOSTEXEEXT) mkversion.c cfgdefine.c
 
 ifdef HOSTEXEEXT
 mkversion: mkversion$(HOSTEXEEXT)
