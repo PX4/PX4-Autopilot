@@ -191,6 +191,9 @@ class fgFDM(object):
                 varname, idx, self.mapping.vars[varname].arraylength))
         if units:
             value = self.convert(value, units, self.mapping.vars[varname].units)
+        # avoid range errors when packing into 4 byte floats
+        if math.isinf(value) or math.isnan(value) or math.fabs(value) > 3.4e38:
+            value = 0
         self.values[self.mapping.vars[varname].index + idx] = value
 
     def parse(self, buf):

@@ -22,12 +22,9 @@ parser.add_option("-f", "--follow",dest="follow", action='store_true', help="kee
 parser.add_option("--condition",dest="condition", default=None, help="select packets by condition")
 parser.add_option("-q", "--quiet", dest="quiet", action='store_true', help="don't display packets")
 parser.add_option("-o", "--output", default=None, help="output matching packets to give file")
-parser.add_option("--mav10", action='store_true', default=False, help="Use MAVLink protocol 1.0")
 parser.add_option("--types",  default=None, help="types of messages (comma separated)")
 (opts, args) = parser.parse_args()
 
-if opts.mav10:
-    os.environ['MAVLINK10'] = '1'
 import mavutil
 
 if len(args) < 1:
@@ -51,13 +48,17 @@ while True:
     m = mlog.recv_match(condition=opts.condition, blocking=opts.follow)
     if m is None:
         break
+
     if types is not None and m.get_type() not in types:
         continue
-    if output:
+    last_timestamp = 0
+    if output and m.get_type() != 'BAD_DATA':
         timestamp = getattr(m, '_timestamp', None)
-        if timestamp:
-            output.write(struct.pack('>Q', timestamp*1.0e6))
-        output.write(m.get_msgbuf().tostring())
+        if not timestamp:
+            timestamp = last_timestamp
+        last_timestamp = timestamp
+        output.write(struct.pack('>Q', timestamp*1.0e6))
+        output.write(m.get_msgbuf())
     if opts.quiet:
         continue
     print("%s.%02u: %s" % (

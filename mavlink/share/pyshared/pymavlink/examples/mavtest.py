@@ -5,7 +5,7 @@ import sys, os
 # allow import from the parent directory, where mavlink.py is
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
 
-import mavlink
+import mavlinkv10 as mavlink
 
 class fifo(object):
     def __init__(self):
@@ -16,17 +16,18 @@ class fifo(object):
     def read(self):
         return self.buf.pop(0)
 
+# we will use a fifo as an encode/decode buffer
 f = fifo()
 
 # create a mavlink instance, which will do IO on file object 'f'
 mav = mavlink.MAVLink(f)
 
 # set the WP_RADIUS parameter on the MAV at the end of the link
-mav.param_set_send(7, 1, "WP_RADIUS", 101)
+mav.param_set_send(7, 1, "WP_RADIUS", 101, mavlink.MAV_PARAM_TYPE_REAL32)
 
 # alternatively, produce a MAVLink_param_set object 
 # this can be sent via your own transport if you like
-m = mav.param_set_encode(7, 1, "WP_RADIUS", 101)
+m = mav.param_set_encode(7, 1, "WP_RADIUS", 101, mavlink.MAV_PARAM_TYPE_REAL32)
 
 # get the encoded message as a buffer
 b = m.get_msgbuf()

@@ -4,7 +4,9 @@
 
 typedef struct __mavlink_obs_wind_t
 {
- float wind[3]; ///< Wind
+ float wind[3]; ///< 
+                
+            
 } mavlink_obs_wind_t;
 
 #define MAVLINK_MSG_ID_OBS_WIND_LEN 12
@@ -26,7 +28,9 @@ typedef struct __mavlink_obs_wind_t
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param wind Wind
+ * @param wind 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_obs_wind_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -54,7 +58,9 @@ static inline uint16_t mavlink_msg_obs_wind_pack(uint8_t system_id, uint8_t comp
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message was sent over
  * @param msg The MAVLink message to compress the data into
- * @param wind Wind
+ * @param wind 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_obs_wind_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -94,7 +100,9 @@ static inline uint16_t mavlink_msg_obs_wind_encode(uint8_t system_id, uint8_t co
  * @brief Send a obs_wind message
  * @param chan MAVLink channel to send the message
  *
- * @param wind Wind
+ * @param wind 
+                
+            
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -121,7 +129,9 @@ static inline void mavlink_msg_obs_wind_send(mavlink_channel_t chan, const float
 /**
  * @brief Get field wind from obs_wind message
  *
- * @return Wind
+ * @return 
+                
+            
  */
 static inline uint16_t mavlink_msg_obs_wind_get_wind(const mavlink_message_t* msg, float *wind)
 {

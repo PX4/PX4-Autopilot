@@ -22,9 +22,24 @@ Generated from: ${FILELIST}
 Note: this file has been auto-generated. DO NOT EDIT
 '''
 
-import struct, array, mavutil, time
+import struct, array, mavutil, time, json
 
 WIRE_PROTOCOL_VERSION = "${WIRE_PROTOCOL_VERSION}"
+
+
+# some base types from mavlink_types.h
+MAVLINK_TYPE_CHAR     = 0
+MAVLINK_TYPE_UINT8_T  = 1
+MAVLINK_TYPE_INT8_T   = 2
+MAVLINK_TYPE_UINT16_T = 3
+MAVLINK_TYPE_INT16_T  = 4
+MAVLINK_TYPE_UINT32_T = 5
+MAVLINK_TYPE_INT32_T  = 6
+MAVLINK_TYPE_UINT64_T = 7
+MAVLINK_TYPE_INT64_T  = 8
+MAVLINK_TYPE_FLOAT    = 9
+MAVLINK_TYPE_DOUBLE   = 10
+
 
 class MAVLink_header(object):
     '''MAVLink message header'''
@@ -50,7 +65,9 @@ class MAVLink_message(object):
         self._type       = name
 
     def get_msgbuf(self):
-        return self._msgbuf
+        if isinstance(self._msgbuf, str):
+            return self._msgbuf
+        return self._msgbuf.tostring()
 
     def get_header(self):
         return self._header
@@ -86,6 +103,16 @@ class MAVLink_message(object):
             ret += '%s : %s, ' % (a, v)
         ret = ret[0:-2] + '}'
         return ret            
+
+    def to_dict(self):
+        d = dict({})
+        d['mavpackettype'] = self._type
+        for a in self._fieldnames:
+          d[a] = getattr(self, a)
+        return d
+
+    def to_json(self):
+        return json.dumps(self.to_dict())
 
     def pack(self, mav, crc_extra, payload):
         self._payload = payload
