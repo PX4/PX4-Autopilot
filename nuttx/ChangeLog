@@ -3861,4 +3861,13 @@
 	* libc/misc/Make.defs:  Fix error in conditional for KBD CODEC.
 	* libc/Kconfig and configs/*/defconfig (several):  The default
 	  setting should be CONFIG_LIB_KBDCODEC=n
-
+	* tools/configure.c:  configure.c can be used to build a work-alike
+	  program as a replacement for configure.sh.  This work-alike
+	  program would be used in environments that do not support Bash
+	  scripting (such as the Windows native environment).
+	* tools/configure.bat: configure.bat is a small Windows batch
+	  file that can be used as a replacement for configure.sh in a
+	  Windows native environment.  configure.bat is actually just a
+	  thin layer that execuates configure.exe if it is available. If
+	  configure.exe is not available, then configure.bat will attempt
+	  to build it first.

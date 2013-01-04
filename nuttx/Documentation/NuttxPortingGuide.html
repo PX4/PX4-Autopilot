@@ -1263,23 +1263,23 @@ tools/
 |-- Makefile.host
 |-- Makefile.export
 |-- README.txt
-|-- configure.sh
+|-- configure.sh / configure.bat
 |-- cfgparser.c
 |-- cfgparser.h
-|-- copydir.sh
-|-- define.sh
-|-- incdir.sh
+|-- copydir.sh / copydir.bat
+|-- define.sh / define.bat
+|-- incdir.sh / indir.bat
 |-- indent.sh
-|-- link.sh
+|-- link.sh / link.bat
 |-- mkconfig.c
-|-- mkdeps.sh
+|-- mkdeps.sh / mkdeps.bat
 |-- mkexport.sh
 |-- mkimage.sh
 |-- mknulldeps.sh
 |-- mkromfsimg.sh
 |-- mksyscall.c
 |-- mkversion.c
-|-- unlink.sh
+|-- unlink.sh / unlink.bat
 |-- version.sh
 `-- zipme.sh
 </pre></ul>
@@ -1416,17 +1416,28 @@ netutils/
 </p>
 <ul><pre>
   cd tools
-  ./configure.sh <i>&lt;board-name&gt;</i></i>[/<i>&lt;config-dir&gt;</i>]
+  ./configure.sh <i>&lt;board-name&gt;</i>[/<i>&lt;config-dir&gt;</i>]
 </pre></ul>
 
 <p>
-  And if <code>configs/</code><i>&lt;board-name&gt;</i><code>/[</code><i>&lt;config-dir&gt;</i><code>/appconfig</code>
+  There is an alternative Windows batch file, <code>configure.bat</code>,  that can be used insteach of <code>configure.sh</code> in the windows native enironment like:
+</p>
+<ul><pre>
+  cd tools
+  configure.bat <i>&lt;board-name&gt;</i>[\<i>&lt;config-dir&gt;</i>]
+</pre></ul>
+<p>
+  See <code>tools/README.txt</code> for more information about these scripts.
+</p>
+
+<p>
+  If <code>configs/</code><i>&lt;board-name&gt;</i><code>/[</code><i>&lt;config-dir&gt;</i>]<code>/appconfig</code>
   exists and your application directory is not in the standard loction (<config>../apps</config>),
   then you should also specify the location of the application directory on the command line like:
 </p>
 <ul><pre>
   cd tools
-  ./configure.sh -a &lt;app-dir&gt; <i>&lt;board-name&gt;</i></i>[/<i>&lt;config-dir&gt;</i>]
+  ./configure.sh -a &lt;app-dir&gt; <i>&lt;board-name&gt;</i>[/<i>&lt;config-dir&gt;</i>]
 </pre></ul>
 
 <p>

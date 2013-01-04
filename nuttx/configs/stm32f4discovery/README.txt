@@ -1011,6 +1011,11 @@ can be selected as follow:
     cd -
     . ./setenv.sh
 
+If this is a Windows native build, then configure.bat should be used
+instead of configure.sh:
+
+    configure.bat STM32F4Discovery\<subdir>
+
 Where <subdir> is one of the following:
 
   cxxtest:

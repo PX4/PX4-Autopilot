@@ -281,9 +281,6 @@ void parse_file(FILE *stream, struct variable_s **list)
 
 struct variable_s *find_variable(const char *varname, struct variable_s *list)
 {
-  char *varval1;
-  char *varval2;
-
   while (list)
     {
       if (strcmp(varname, list->var) == 0)

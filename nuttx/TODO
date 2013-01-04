@@ -19,7 +19,7 @@ nuttx/
   (5)  Graphics subystem (graphics/)
   (1)  Pascal add-on (pcode/)
   (1)  Documentation (Documentation/)
-  (8)  Build system / Toolchains
+  (7)  Build system / Toolchains
   (5)  Linux/Cywgin simulation (arch/sim)
   (6)  ARM (arch/arm/)
   (1)  ARM/C5471 (arch/arm/src/c5471/)
@@ -1035,20 +1035,6 @@ o Build system
                ..\apps) and CONFIG_WINDOWS_NATIVE=n for the 'make menuconfig'
                to run error free under windows.  Very awkward!
   Status:      Open, there are some workarounds, but none are good.
-  Priority:    High
-
-  Title:       configure.sh NOT AVAILABLE IN NATIVE WINDOWS BUILD
-  Description: configure.sh is a Bash script and cannot be used from a Windows
-               CMD.exe window.  I started a configure.bat script, but I do
-               not have the batch file programming skills to duplicate some
-               of the more complex operations.
-
-               I also considered adding a configure.c file that could be 
-               compiled and then executed by configure.bat (and configure.sh?).
-               But I have not gone down that path yet.
-
-               The current work-around is to configure under Cygwin.
-  Status:      Open
   Priority:    High
 
 o Linux/Cywgin simulation (arch/sim)

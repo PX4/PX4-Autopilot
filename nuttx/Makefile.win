@@ -452,7 +452,7 @@ clean_context:
 # check_context
 #
 # This target checks if NuttX has been configured.  NuttX is configured using
-# the script tools\configure.sh.  That script will install certain files in
+# the script tools\configure.bat.  That script will install certain files in
 # the top-level NuttX build directory.  This target verifies that those
 # configuration files have been installed and that NuttX is ready to be built.
 

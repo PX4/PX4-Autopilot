@@ -59,6 +59,11 @@ Configuring NuttX
        setenv.bat
        make
 
+    If this is a Windows native build, then configure.bat should be used
+    in step 1) instead of configure.sh:
+
+      configure.bat xtrs\ostest
+
     The setenv.bat will need to be updated to include the PATH to the XTRS
     hex2cmd program.
 
@@ -89,6 +94,11 @@ Configuring NuttX
     2) From a CMD.exe window
        setenv.bat
        make
+
+    If this is a Windows native build, then configure.bat should be used
+    in step 1) instead of configure.sh:
+
+      configure.bat xtrs\nsh
 
     The setenv.bat will need to be updated to include the PATH to the XTRS
     hex2cmd program.
@@ -127,6 +137,11 @@ Configuring NuttX
     2) From a CMD.exe window
        setenv.bat
        make
+
+    If this is a Windows native build, then configure.bat should be used
+    in step 1) instead of configure.sh:
+
+      configure.bat xtrs\pashello
 
     The setenv.bat will need to be updated to include the PATH to the XTRS
     hex2cmd program.

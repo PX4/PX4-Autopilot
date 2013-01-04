@@ -257,6 +257,14 @@ easier.  It is used as follows:
   cd ${TOPDIR}/tools
   ./configure.sh <board-name>/<config-dir>
 
+There is an alternative Windows batch file that can be used in the
+windows native enironment like:
+
+  cd ${TOPDIR}\tools
+  configure.bat <board-name>\<config-dir>
+
+See tools/README.txt for more information about these scripts.
+
 NuttX Configuration Tool
 ------------------------
 
@@ -400,6 +408,8 @@ Converting Older Configurations to use the Configuration Tool
 
           cd tools
           ./configure.sh <board>/<condfiguration>
+
+        (or configure.bat for the case of the Windows native build).
 
         NOTE: If CONFIG_APPS_DIR is not defined in the defconfig file,
         the configure.sh script will find and add the new, correct path to
@@ -682,10 +692,15 @@ Native Windows Build
   the you not install the optional MSYS components as there may be conflicts.
 
   This capability should still be considered a work in progress because:
+ 
   (1) It has not been verfied on all targets and tools, and
-  (2) itstill lacks some of the creature-comforts of the more mature environments
-  (like a functional configure.sh script and 'make menuconfig' support.
-  See the section "NuttX Configuration Tool under DOS" above).
+  (2) it still lacks some of the creature-comforts of the more mature environments
+      (like 'make menuconfig' support.  See the section "NuttX Configuration Tool
+      under DOS" above).
+
+   There is an alternative to the setenv.sh script available for the Windows
+   native environment: tools/configure.bat.  See tools/README.txt for additional
+   information.
 
 Installing GNUWin32
 -------------------

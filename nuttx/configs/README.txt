@@ -1960,16 +1960,24 @@ tools/configure.sh
   There is a script that automates these steps.  The following steps will
   accomplish the same configuration:
 
-  cd tools
-  ./configure.sh <board-name>/<config-dir>
+    cd tools
+   ./configure.sh <board-name>/<config-dir>
 
-And if configs/<board-name>/<config-dir>/appconfig exists and your
-application directory is not in the standard loction (../apps), then
-you should also specify the location of the application directory on the
-command line like:
+  There is an alternative Windows batch file that can be used in the
+  windows native enironment like:
 
-  cd tools
-  ./configure.sh -a <app-dir> <board-name>/<config-dir>
+    cd ${TOPDIR}\tools
+    configure.bat <board-name>\<config-dir>
+
+  See tools/README.txt for more information about these scripts.
+
+  And if configs/<board-name>/<config-dir>/appconfig exists and your
+  application directory is not in the standard loction (../apps), then
+  you should also specify the location of the application directory on the
+  command line like:
+
+    cd tools
+    ./configure.sh -a <app-dir> <board-name>/<config-dir>
 
 Building Symbol Tables
 ^^^^^^^^^^^^^^^^^^^^^^
