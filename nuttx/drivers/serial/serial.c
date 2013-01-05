@@ -660,9 +660,9 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   int ret = dev->ops->ioctl(filep, cmd, arg);
 
-  /* Append any higher level TTY flags */
+  /* If the low-level handler didn't handle the call, see if we can handle it here */
 
-  if (ret == OK)
+  if (ret == -ENOTTY)
     {
       switch (cmd)
         {
@@ -686,6 +686,9 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             irqrestore(state);
 
             *(int *)arg = count;
+            ret = 0;
+
+            break;
           }
 
           case FIONWRITE:
@@ -695,7 +698,7 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
             /* determine the number of bytes free in the buffer */
 
-            if (dev->xmit.head <= dev->xmit.tail)
+            if (dev->xmit.head < dev->xmit.tail)
               { 
                 count = dev->xmit.tail - dev->xmit.head - 1;
               }
@@ -707,8 +710,19 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             irqrestore(state);
 
             *(int *)arg = count;
-          }
+            ret = 0;
 
+            break;
+          }
+        }
+    }
+
+  /* Append any higher level TTY flags */
+
+  else if (ret == OK)
+    {
+      switch (cmd)
+        {
 #ifdef CONFIG_SERIAL_TERMIOS
           case TCGETS:
           {
