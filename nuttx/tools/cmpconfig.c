@@ -67,6 +67,7 @@ static void compare_variables(struct variable_s *list1, struct variable_s *list2
 {
   char *varval1;
   char *varval2;
+  int result;
 
   while (list1 || list2)
     {
@@ -102,7 +103,7 @@ static void compare_variables(struct variable_s *list1, struct variable_s *list2
         }
       else
         {
-          int result = strcmp(list1->var, list2->var);
+          result = strcmp(list1->var, list2->var);
           if (result < 0)
             {
               printf("file1: %s=%s\n", list1->var, varval1);
@@ -115,9 +116,9 @@ static void compare_variables(struct variable_s *list1, struct variable_s *list2
               printf("file2: %s=%s\n\n", list2->var, varval2);
               list2 = list2->flink;
             }
-          else
+          else /* if (result == 0) */
             {
-              int result = strcmp(varval1, varval2);
+              result = strcmp(varval1, varval2);
               if (result != 0)
                 {
                   printf("file1: %s=%s\n", list1->var, varval1);

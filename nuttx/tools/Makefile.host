@@ -37,12 +37,28 @@ TOPDIR ?= ${shell pwd}/..
 -include $(TOPDIR)/Make.defs
 include ${TOPDIR}/tools/Config.mk
 
+# Define HOSTCC on the make command line if it differs from these defaults
+# Define HOSTCFLAGS with -g on the make command line to build debug versions
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+
+# In the Windows native environment, the MinGW GCC compiler is assumed
+
+HOSTCC ?= mingw-gcc.exe
+HOSTCFLAGS ?= -O2 -Wall -Wstrict-prototypes -Wshadow -I. -DCONFIG_WINDOWS_NATIVE=y
+
+else
+
+# GCC is assumed in the POSIX environment.
 # strtok_r is used in some tools, but does not seem to be available in
 # the MinGW environment.
 
-ifneq ($(CONFIG_WINDOWS_NATIVE),y)
-  HOSTCFLAGS += -D HAVE_STRTOK_C
+HOSTCC ?= gcc
+HOSTCFLAGS ?= -O2 -Wall -Wstrict-prototypes -Wshadow -I. -DHAVE_STRTOK_C
+
 endif
+
+# Targets
 
 all: b16$(HOSTEXEEXT) bdf-converter$(HOSTEXEEXT) cmpconfig$(HOSTEXEEXT) \
     configure$(HOSTEXEEXT) mkconfig$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT) mksymtab$(HOSTEXEEXT) \
@@ -55,12 +71,7 @@ else
 .PHONY: clean
 endif
 
-# Add HOSTCFLAGS=-g on the make command line build debug versions
-
-HOSTCFLAGS ?= -O2 -Wall -I.
-HOSTCC ?= gcc
-
-# b16 - Fixed precision math converstion tool
+# b16 - Fixed precision math conversion tool
 
 b16$(HOSTEXEEXT): b16.c 
 	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o b16$(HOSTEXEEXT) b16.c 

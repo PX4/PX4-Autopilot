@@ -93,7 +93,6 @@ configure.exe %debug% %fmt% %appdir% %config%
 if errorlevel 1 echo configure.exe failed
 goto End
 
-
 :NoConfig
 echo Missing ^<board-name^>/^<config-name^> argument
 
