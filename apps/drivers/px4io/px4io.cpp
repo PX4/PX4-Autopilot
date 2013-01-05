@@ -554,6 +554,11 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		_send_needed = true;
 		break;
 
+	case PWM_SERVO_SET_UPDATE_RATE:
+		// not supported yet
+		ret = -EINVAL;
+		break;
+
 	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(_max_actuators - 1):
 
 		/* fake an update to the selected servo channel */
