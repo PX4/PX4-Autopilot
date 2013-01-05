@@ -47,11 +47,13 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sched.h>
 
 #include <debug.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/device/device.h>
 
 #include <systemlib/mixer/mixer.h>
 
@@ -72,6 +74,8 @@ bool mixer_servos_armed = false;
 static uint16_t *control_values;
 static int control_count;
 
+static uint16_t rc_channel_data[PX4IO_CONTROL_CHANNELS];
+
 static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_group,
 			       uint8_t control_index,
@@ -89,7 +93,7 @@ mixer_tick(void)
 		/* too many frames without FMU input, time to go to failsafe */
 		system_state.mixer_manual_override = true;
 		system_state.mixer_fmu_available = false;
-		lib_lowprintf("RX timeout\n");
+		//lib_lowprintf("RX timeout\n");
 	}
 
 	/*
@@ -107,13 +111,32 @@ mixer_tick(void)
 		} else if (system_state.rc_channels > 0) {
 			/* when override is on or the fmu is not available, but RC is present */
 			control_count = system_state.rc_channels;
-			control_values = &system_state.rc_channel_data[0];
+
+			// Remap the channels based on the radio type.
+			// FMU: Roll, Pitch, Yaw, Throttle
+			// Graupner: Throttle, Roll, Pitch, Yaw
+			sched_lock();
+			rc_channel_data[0] = system_state.rc_channel_data[1];
+			rc_channel_data[1] = system_state.rc_channel_data[2];
+			rc_channel_data[2] = system_state.rc_channel_data[3];
+			rc_channel_data[3] = system_state.rc_channel_data[0];
+			// AETR
+			//rc_channel_data[0] = system_state.rc_channel_data[0];
+			//rc_channel_data[1] = system_state.rc_channel_data[1];
+			//rc_channel_data[2] = system_state.rc_channel_data[3];
+			//rc_channel_data[3] = system_state.rc_channel_data[2];
+			for (unsigned i = 4; i < system_state.rc_channels; i++) {
+				rc_channel_data[i] = system_state.rc_channel_data[i];
+			}
+			control_values = &rc_channel_data[0];
+			sched_unlock();
 		} else {
 			/* we have no control input (no FMU, no RC) */
 
 			// XXX builtin failsafe would activate here
 			control_count = 0;
 		}
+		//lib_lowprintf("R: %d P: %d Y: %d T: %d \n", control_values[0], control_values[1], control_values[2], control_values[3]);
 
 	/* this is for multicopters, etc. where manual override does not make sense */
 	} else {
@@ -151,8 +174,9 @@ mixer_tick(void)
 			/*
 			 * If we are armed, update the servo output.
 			 */
-			if (system_state.armed && system_state.arm_ok)
+			if (system_state.armed && system_state.arm_ok) {
 				up_pwm_servo_set(i, system_state.servos[i]);
+			}
 		}
 	}
 
