@@ -72,6 +72,7 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/scheduling_priorities.h>
+#include <systemlib/param/param.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_effective.h>
@@ -608,6 +609,35 @@ PX4IO::io_send()
 	/* set desired PWM output rate */
 	cmd.servo_rate = _update_rate;
 
+	/* maintaing the standard order of Roll, Pitch, Yaw, Throttle */
+	cmd.rc_map[0] = param_find("RC_MAP_ROLL");
+	cmd.rc_map[1] = param_find("RC_MAP_PITCH");
+	cmd.rc_map[2] = param_find("RC_MAP_YAW");
+	cmd.rc_map[3] = param_find("RC_MAP_THROTTLE");
+
+	/* set the individual channel properties */
+	char nbuf[16];
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_MIN", i);	
+		cmd.rc_min[i] = (uint16_t)param_find(nbuf);
+	}
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_TRIM", i);	
+		cmd.rc_trim[i] = (uint16_t)param_find(nbuf);
+	}
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_MAX", i);	
+		cmd.rc_max[i] = (uint16_t)param_find(nbuf);
+	}
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_REV", i);	
+		cmd.rc_rev[i] = (uint16_t)param_find(nbuf);
+	}
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_DZ", i);	
+		cmd.rc_dz[i] = (uint16_t)param_find(nbuf);
+	}
+	
 	ret = hx_stream_send(_io_stream, &cmd, sizeof(cmd));
 
 	if (ret)

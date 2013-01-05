@@ -73,6 +73,20 @@ struct sys_state_s {
 	uint16_t	servo_rate;		/* output rate of servos in Hz */
 
 	/**
+	 * Remote control input(s) channel mappings
+	 */
+	uint16_t	rc_map[4];
+
+	/**
+	 * Remote control channel attributes 
+	 */
+	uint16_t	rc_min[4];
+	uint16_t	rc_trim[4];
+	uint16_t	rc_max[4];
+	uint16_t	rc_rev[4];
+	uint16_t	rc_dz[4];
+	
+	/**
 	 * Data from the remote control input(s)
 	 */
 	unsigned	rc_channels;

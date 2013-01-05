@@ -207,6 +207,19 @@ comms_handle_command(const void *buffer, size_t length)
 		system_state.servo_rate = new_servo_rate;
 	}
 
+	/* fetch the rc mappings */
+	for (unsigned i = 0; i < 4; i++)
+		system_state.rc_map[i] = cmd->rc_map[i];
+
+	/* fetch the rc channel attributes */
+	for (unsigned i = 0; i < 4; i++) {
+		system_state.rc_min[i] = cmd->rc_min[i];
+		system_state.rc_trim[i] = cmd->rc_trim[i];
+		system_state.rc_max[i] = cmd->rc_max[i];
+		system_state.rc_rev[i] = cmd->rc_rev[i];
+		system_state.rc_dz[i] = cmd->rc_dz[i];
+	}
+
 	/*
 	 * update servo values immediately.
 	 * the updates are done in addition also

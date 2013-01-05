@@ -67,6 +67,12 @@ extern "C" {
  */
 #define FMU_INPUT_DROP_LIMIT_US		200000
 
+/* XXX need to move the RC_CHANNEL_FUNCTION out of rc_channels.h and into systemlib */
+#define ROLL     0
+#define PITCH    1
+#define YAW      2
+#define THROTTLE 3
+
 /* current servo arm/disarm state */
 bool mixer_servos_armed = false;
 
@@ -112,22 +118,22 @@ mixer_tick(void)
 			/* when override is on or the fmu is not available, but RC is present */
 			control_count = system_state.rc_channels;
 
-			// Remap the channels based on the radio type.
-			// FMU: Roll, Pitch, Yaw, Throttle
-			// Graupner: Throttle, Roll, Pitch, Yaw
 			sched_lock();
-			rc_channel_data[0] = system_state.rc_channel_data[1];
-			rc_channel_data[1] = system_state.rc_channel_data[2];
-			rc_channel_data[2] = system_state.rc_channel_data[3];
-			rc_channel_data[3] = system_state.rc_channel_data[0];
-			// AETR
-			//rc_channel_data[0] = system_state.rc_channel_data[0];
-			//rc_channel_data[1] = system_state.rc_channel_data[1];
-			//rc_channel_data[2] = system_state.rc_channel_data[3];
-			//rc_channel_data[3] = system_state.rc_channel_data[2];
-			for (unsigned i = 4; i < system_state.rc_channels; i++) {
+
+			/* remap roll, pitch, yaw and throttle from RC specific to internal ordering */
+			rc_channel_data[ROLL]     = system_state.rc_channel_data[system_state.rc_map[ROLL]];
+			rc_channel_data[PITCH]    = system_state.rc_channel_data[system_state.rc_map[PITCH]];
+			rc_channel_data[YAW]      = system_state.rc_channel_data[system_state.rc_map[YAW]];
+			rc_channel_data[THROTTLE] = system_state.rc_channel_data[system_state.rc_map[THROTTLE]];
+
+			/* get the remaining channels, no remapping needed */
+			for (unsigned i = 4; i < system_state.rc_channels; i++)
 				rc_channel_data[i] = system_state.rc_channel_data[i];
-			}
+
+			/* scale the control inputs */
+			rc_channel_data[THROTTLE] = ((rc_channel_data[THROTTLE] - system_state.rc_min[THROTTLE]) / 
+				(system_state.rc_max[THROTTLE] - system_state.rc_min[THROTTLE])) * 1000 + 1000;
+
 			control_values = &rc_channel_data[0];
 			sched_unlock();
 		} else {
