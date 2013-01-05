@@ -549,7 +549,7 @@ static void check_configuration(void)
     }
 }
 
-static void copy_file(const char *srcpath, const char *destpath)
+static void copy_file(const char *srcpath, const char *destpath, mode_t mode)
 {
   int nbytesread;
   int nbyteswritten;
@@ -567,7 +567,7 @@ static void copy_file(const char *srcpath, const char *destpath)
 
   /* Now open the destination for writing*/
 
-  wrfd = open(destpath, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+  wrfd = open(destpath, O_WRONLY|O_CREAT|O_TRUNC, mode);
   if (wrfd < 0)
     {
       fprintf(stderr, "ERROR: Failed to open %s for writing: %s\n", destpath, strerror(errno));
@@ -638,13 +638,13 @@ static void configure(void)
   snprintf(g_buffer, BUFFER_SIZE, "%s%c.config", g_topdir, g_delim);
   destconfig = strdup(g_buffer);
   debug("configure: Copying from %s to %s\n", g_srcdefconfig, destconfig);
-  copy_file(g_srcdefconfig, destconfig);
+  copy_file(g_srcdefconfig, destconfig, 0644);
 
   /* Copy the Make.defs file as Make.defs */
 
   snprintf(g_buffer, BUFFER_SIZE, "%s%cMake.defs", g_topdir, g_delim);
   debug("configure: Copying from %s to %s\n", g_srcmakedefs, g_buffer);
-  copy_file(g_srcmakedefs, g_buffer);
+  copy_file(g_srcmakedefs, g_buffer, 0644);
 
   /* Copy the setenv.sh file if have one and need one */
 
@@ -652,15 +652,7 @@ static void configure(void)
     {
       snprintf(g_buffer, BUFFER_SIZE, "%s%csetenv.sh", g_topdir, g_delim);
       debug("configure: Copying from %s to %s\n", g_srcsetenvsh, g_buffer);
-      copy_file(g_srcsetenvsh, g_buffer);
-
-      /* Mark the file executable */
-
-      if (chmod(g_buffer, 0777) != 0)
-        {
-          fprintf(stderr, "ERROR: Failed to make setenv.sh executable: %s\n", strerror(errno));
-          exit(EXIT_FAILURE);
-        }
+      copy_file(g_srcsetenvsh, g_buffer, 0755);
     }
   
   /* Copy the setenv.bat file if have one and need one */
@@ -669,7 +661,7 @@ static void configure(void)
     {
       snprintf(g_buffer, BUFFER_SIZE, "%s%csetenv.bat", g_topdir, g_delim);
       debug("configure: Copying from %s to %s\n", g_srcsetenvbat, g_buffer);
-      copy_file(g_srcsetenvbat, g_buffer);
+      copy_file(g_srcsetenvbat, g_buffer, 0644);
     }
 
   /* Copy the appconfig file to ../apps/.config if have one and need one */
@@ -678,7 +670,7 @@ static void configure(void)
     {
       snprintf(g_buffer, BUFFER_SIZE, "%s%c.config", g_apppath, g_delim);
       debug("configure: Copying from %s to %s\n", g_srcappconfig, g_buffer);
-      copy_file(g_srcappconfig, g_buffer);
+      copy_file(g_srcappconfig, g_buffer, 0644);
     }
 
   /* If we did not use the CONFIG_APPS_DIR that was in the defconfig config file,

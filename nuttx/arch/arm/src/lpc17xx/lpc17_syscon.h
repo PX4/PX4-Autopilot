@@ -242,29 +242,29 @@
 
 #define SYSCON_PLL0STAT_MSEL_SHIFT    (0)         /* Bit 0-14: PLL0 Multiplier value readback */
 #define SYSCON_PLL0STAT_MSEL_MASK     (0x7fff << SYSCON_PLL0STAT_MSEL_SHIFT)
-                                                  /* Bit 15:  Reserved */
+                                                  /* Bit 15: Reserved */
 #define SYSCON_PLL0STAT_NSEL_SHIFT    (16)        /* Bit 16-23: PLL0 Pre-Divider value readback */
 #define SYSCON_PLL0STAT_NSEL_MASK     (0xff << SYSCON_PLL0STAT_NSEL_SHIFT)
 #define SYSCON_PLL0STAT_PLLE          (1 << 24)   /* Bit 24: PLL0 enable readback */
 #define SYSCON_PLL0STAT_PLLC          (1 << 25)   /* Bit 25: PLL0 connect readback */
 #define SYSCON_PLL0STAT_PLOCK         (1 << 26)   /* Bit 26: PLL0 lock status */
-                                                  /* Bits 27-31:  Reserved */
+                                                  /* Bits 27-31: Reserved */
 /* PLL1 Status register */
 
-#define SYSCON_PLL1STAT_MSEL_SHIFT    (0)         /* Bit 0-4: PLL01Multiplier value readback */
+#define SYSCON_PLL1STAT_MSEL_SHIFT    (0)         /* Bit 0-4: PLL1 Multiplier value readback */
 #define SYSCON_PLL1STAT_MSEL_MASK     (0x1f << SYSCON_PLL1STAT_MSEL_SHIFT)
 #define SYSCON_PLL1STAT_NSEL_SHIFT    (5)         /* Bit 5-6: PLL1 Pre-Divider value readback */
 #define SYSCON_PLL1STAT_NSEL_MASK     (3 << SYSCON_PLL1STAT_NSEL_SHIFT)
                                                   /* Bit 7:  Reserved */
-#define SYSCON_PLL1STAT_PLLE          (1 << 24)   /* Bit 8: PLL1 enable readback */
-#define SYSCON_PLL1STAT_PLLC          (1 << 25)   /* Bit 9: PLL1 connect readback */
-#define SYSCON_PLL1STAT_PLOCK         (1 << 26)   /* Bit 10: PLL1 lock status */
-                                                  /* Bits 11-31:  Reserved */
+#define SYSCON_PLL1STAT_PLLE          (1 << 8)    /* Bit 8:  PLL1 enable readback */
+#define SYSCON_PLL1STAT_PLLC          (1 << 9)    /* Bit 9:  PLL1 connect readback */
+#define SYSCON_PLL1STAT_PLOCK         (1 << 10)   /* Bit 10: PLL1 lock status */
+                                                  /* Bits 11-31: Reserved */
 /* PLL0/1 Feed register */
 
 #define SYSCON_PLLFEED_SHIFT          (0)         /* Bit 0-7: PLL0/1 feed sequence */
 #define SYSCON_PLLFEED_MASK           (0xff << SYSCON_PLLFEED_SHIFT)
-                                                  /* Bits 8-31:  Reserved */
+                                                  /* Bits 8-31: Reserved */
 /* Clocking and power control -- Clock dividers */
 /* CPU Clock Configuration register */
 

@@ -3871,3 +3871,5 @@
 	  thin layer that execuates configure.exe if it is available. If
 	  configure.exe is not available, then configure.bat will attempt
 	  to build it first.
+	* arch/arm/src/lpc17xx/lpc17_syscon.h:  Correct some typos in bit
+	  definitions (from Rommel Marcelo).

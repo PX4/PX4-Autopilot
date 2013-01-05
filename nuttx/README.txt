@@ -687,7 +687,7 @@ Native Windows Build
   Build Tools.  The build still relies on some Unix-like commands.  I use
   the GNUWin32 tools that can be downloaded from http://gnuwin32.sourceforge.net/.
 
-  Host Compiler:  I use the MingGW compiler which can be downloaded from
+  Host Compiler:  I use the MingGW GCC compiler which can be downloaded from
   http://www.mingw.org/.  If you are using GNUWin32, then it is recommended
   the you not install the optional MSYS components as there may be conflicts.
 
