@@ -3873,3 +3873,5 @@
 	  to build it first.
 	* arch/arm/src/lpc17xx/lpc17_syscon.h:  Correct some typos in bit
 	  definitions (from Rommel Marcelo).
+	* libc/string/lib_strndup.c: strndup() should use strnlen(), not
+	  strlen(), to determine the size of the string.

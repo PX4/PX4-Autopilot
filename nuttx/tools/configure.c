@@ -46,6 +46,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
+#include <dirent.h>
 #include <libgen.h>
 #include <errno.h>
 
@@ -76,7 +77,8 @@ static char       *g_configdir     = NULL;  /* Name of configuration subdirector
 
 static char       *g_topdir        = NULL;  /* Full path to top-level NuttX build directory */
 static char       *g_apppath       = NULL;  /* Full path to the applicatino directory */
-static char       *g_configpath    = NULL;  /* Full path to the configuration directory */
+static char       *g_configtop     = NULL;  /* Full path to the top-level configuration directory */
+static char       *g_configpath    = NULL;  /* Full path to the configuration sub-directory */
 static char       *g_verstring     = "0.0"; /* Version String */
 
 static char       *g_srcdefconfig  = NULL;  /* Source defconfig file */
@@ -100,13 +102,13 @@ static struct variable_s *g_versionvars = NULL;
 
 static void show_usage(const char *progname, int exitcode)
 {
-  fprintf(stderr, "\nUSAGE: %s  [-d] [-w] [-l] [-h] [-a <app-dir>] <board-name>%c<config-name>\n", progname, g_delim);
+  fprintf(stderr, "\nUSAGE: %s  [-d] [-w] [-l] [-h] [-a <app-dir>] <board-name>[%c<config-name>]\n", progname, g_delim);
   fprintf(stderr, "\nWhere:\n");
   fprintf(stderr, "  <board-name>:\n");
   fprintf(stderr, "    Identifies the board.  This must correspond to a board directory\n");
   fprintf(stderr, "    under nuttx%cconfigs%c.\n", g_delim, g_delim);
   fprintf(stderr, "  <config-name>:\n");
-  fprintf(stderr, "    Identifies the specific configuratin for the selected <board-name>.\n");
+  fprintf(stderr, "    Identifies the specific configuration for the selected <board-name>.\n");
   fprintf(stderr, "    This must correspond to a sub-directory under the board directory at\n");
   fprintf(stderr, "    under nuttx%cconfigs%c<board-name>%c.\n", g_delim, g_delim, g_delim);
   fprintf(stderr, "  <-d>:\n");
@@ -263,8 +265,19 @@ static bool verify_optiondir(const char *directory)
     {
       /* It may be okay if the dirctory does not exist */
 
-      debug("verify_optiondir: stat of %s failed: %s\n", directory, strerror(errno));
-      return false;
+      /* It may be okay if the file does not exist */
+
+      int errcode = errno;
+      if (errcode == ENOENT)
+        {
+          debug("verify_optiondir: stat of %s failed: %s\n", directory, strerror(errno));
+          return false;
+        }
+      else
+        {
+          fprintf(stderr, "ERROR: stat of %s failed: %s\n", directory, strerror(errno));
+          exit(EXIT_FAILURE);
+        }
     }
 
   if (!S_ISDIR(buf.st_mode))
@@ -276,24 +289,7 @@ static bool verify_optiondir(const char *directory)
   return true;
 }
 
-static void verify_file(const char *path)
-{
-  struct stat buf;
-
-  if (stat(path, &buf) < 0)
-    {
-      fprintf(stderr, "ERROR: stat of %s failed: %s\n", path, strerror(errno));
-      exit(EXIT_FAILURE);
-    }
-
-  if (!S_ISREG(buf.st_mode))
-    {
-      fprintf(stderr, "ERROR: %s exists but is not a regular file\n", path);
-      exit(EXIT_FAILURE);
-    }
-}
-
-static bool verify_optionfile(const char *path)
+static bool verify_file(const char *path)
 {
   struct stat buf;
 
@@ -301,8 +297,17 @@ static bool verify_optionfile(const char *path)
     {
       /* It may be okay if the file does not exist */
 
-      debug("verify_optionfile: stat of %s failed: %s\n", path, strerror(errno));
-      return false;
+      int errcode = errno;
+      if (errcode == ENOENT)
+        {
+          debug("verify_file: stat of %s failed: %s\n", path, strerror(errno));
+          return false;
+        }
+      else
+        {
+          fprintf(stderr, "ERROR: stat of %s failed: %s\n", path, strerror(errno));
+          exit(EXIT_FAILURE);
+        }
     }
 
   if (!S_ISREG(buf.st_mode))
@@ -329,15 +334,124 @@ static void get_topdir(void)
   verify_directory(g_topdir);
 }
 
+static void config_search(const char *boarddir)
+{
+  DIR *dir;
+  struct dirent *dp;
+  struct stat buf;
+  char *parent;
+  char *child;
+
+  /* Skip over any leading '/' or '\\'.  This happens on the first second
+   * call because the starting boarddir is ""
+   */
+
+  if (boarddir[0] == g_delim)
+    {
+      boarddir++;
+    }
+
+  /* Get the full directory path and open it */
+
+  snprintf(g_buffer, BUFFER_SIZE, "%s%c%s", g_configtop, g_delim, boarddir);
+  dir = opendir(g_buffer);
+  if (!dir)
+    {
+      fprintf(stderr, "ERROR: Could not open %s: %s\n",
+              g_buffer, strerror(errno));
+      return;
+    }
+
+  /* Make a copy of the path to the directory */
+
+  parent = strdup(g_buffer);
+
+  /* Vist each entry in the directory */
+
+  while ((dp = readdir (dir)) != NULL)
+    {
+      /* Ignore directory entries that start with '.' */
+
+      if (dp->d_name[0] == '.')
+        {
+          continue;
+        }
+
+      /* Get a properly terminated copy of d_name (if d_name is long it may
+       * not include a NUL terminator.\ */
+
+      child = strndup(dp->d_name, NAME_MAX);
+
+      /* Get the full path to d_name and stat the file/directory */
+
+      snprintf(g_buffer, BUFFER_SIZE, "%s%c%s", parent, g_delim, child);
+      if (stat(g_buffer, &buf) < 0)
+        {
+          fprintf(stderr, "ERROR: stat of %s failed: %s\n",
+                  g_buffer, strerror(errno));
+          free(child);
+          continue;
+        }
+
+      /* If it is a directory, the recurse */
+
+      if (S_ISDIR(buf.st_mode))
+        {
+          char *tmppath;
+          snprintf(g_buffer, BUFFER_SIZE, "%s%c%s", boarddir, g_delim, child);
+          tmppath = strdup(g_buffer);
+          config_search(tmppath);
+          free(tmppath);
+        }
+
+      /* If it is a regular file named 'defconfig' then we have found a
+       * configuration directory.  We could terminate the serach in this case
+       * because we do not expect sub-directories within configuration
+       * directories.
+       */
+
+      else if (S_ISREG(buf.st_mode) && strcmp("defconfig", child) == 0)
+        {
+          fprintf(stderr, "  %s\n", boarddir);
+        }
+
+      free(child);
+    }
+
+  free(parent);
+  closedir(dir);
+}
+
+static void enumerate_configs(void)
+{
+  fprintf(stderr, "Options for <board-name>[%c<config-name>] include:\n\n", g_delim);
+  config_search("");
+}
+
 static void check_configdir(void)
 {
+  /* Get the path to the top level configuration directory */
+
+  snprintf(g_buffer, BUFFER_SIZE, "%s%cconfigs", g_topdir, g_delim);
+  debug("check_configdir: Checking configtop=%s\n", g_buffer);
+
+  verify_directory(g_buffer);
+  g_configtop = strdup(g_buffer);
+
   /* Get and verify the path to the selected configuration */
 
   snprintf(g_buffer, BUFFER_SIZE, "%s%cconfigs%c%s%c%s",
            g_topdir, g_delim, g_delim, g_boarddir, g_delim, g_configdir);
+  debug("check_configdir: Checking configpath=%s\n", g_buffer);
+
+  if (!verify_optiondir(g_buffer))
+    {
+      fprintf(stderr, "ERROR: No configuration at %s\n", g_buffer);
+      enumerate_configs();
+      exit(EXIT_FAILURE);
+    }
+
   g_configpath = strdup(g_buffer);
-  debug("check_configdir: Checking configpath=%s\n", g_configpath);
-  verify_directory(g_configpath);
 }
 
 static void read_configfile(void)
@@ -507,12 +621,26 @@ static void check_configuration(void)
 
   snprintf(g_buffer, BUFFER_SIZE, "%s%cdefconfig", g_configpath, g_delim);
   debug("check_configuration: Checking %s\n", g_buffer);
-  verify_file(g_buffer);
+  if (!verify_file(g_buffer))
+    {
+      fprintf(stderr, "ERROR: No configuration in %s\n", g_configpath);
+      fprintf(stderr, "       No defconfig file found.\n");
+      enumerate_configs();
+      exit(EXIT_FAILURE);
+    }
+
   g_srcdefconfig = strdup(g_buffer);
   
   snprintf(g_buffer, BUFFER_SIZE, "%s%cMake.defs", g_configpath, g_delim);
   debug("check_configuration: Checking %s\n", g_buffer);
-  verify_file(g_buffer);
+  if (!verify_file(g_buffer))
+    {
+      fprintf(stderr, "ERROR: Configuration corrupted in %s\n", g_configpath);
+      fprintf(stderr, "       No Make.defs file found.\n");
+      enumerate_configs();
+      exit(EXIT_FAILURE);
+    }
+
   g_srcmakedefs = strdup(g_buffer);
 
   /* Windows native configurations may provide setenv.bat; POSIX
@@ -523,7 +651,7 @@ static void check_configuration(void)
     {
       snprintf(g_buffer, BUFFER_SIZE, "%s%csetenv.bat", g_configpath, g_delim);
       debug("check_configuration: Checking %s\n", g_buffer);
-      if (verify_optionfile(g_buffer))
+      if (verify_file(g_buffer))
         {
           g_srcsetenvbat = strdup(g_buffer);
         }
@@ -532,7 +660,7 @@ static void check_configuration(void)
     {
       snprintf(g_buffer, BUFFER_SIZE, "%s%csetenv.sh", g_configpath, g_delim);
       debug("check_configuration: Checking %s\n", g_buffer);
-      if (verify_optionfile(g_buffer))
+      if (verify_file(g_buffer))
         {
           g_srcsetenvsh = strdup(g_buffer);
         }
@@ -544,7 +672,14 @@ static void check_configuration(void)
     {
       snprintf(g_buffer, BUFFER_SIZE, "%s%cappconfig", g_configpath, g_delim);
       debug("check_configuration: Checking %s\n", g_buffer);
-      verify_file(g_buffer);
+      if (!verify_file(g_buffer))
+        {
+          fprintf(stderr, "ERROR: Configuration corrupted in %s\n", g_configpath);
+          fprintf(stderr, "       Required appconfig file not found.\n");
+          enumerate_configs();
+          exit(EXIT_FAILURE);
+        }
+
       g_srcappconfig = strdup(g_buffer);
     }
 }
