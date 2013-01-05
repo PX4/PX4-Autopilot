@@ -1,0 +1,119 @@
+############################################################################
+# configs/px4fmu_sim/nsh/appconfig
+#
+#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+# Path to example in apps/examples containing the user_start entry point
+
+CONFIGURED_APPS	+= examples/mqueue_test
+CONFIGURED_APPS	+= examples/nsh
+
+# The NSH application library
+CONFIGURED_APPS += nshlib
+CONFIGURED_APPS += system/readline
+
+# System library - utility functions
+CONFIGURED_APPS += systemlib
+CONFIGURED_APPS += systemlib/mixer
+
+# System utility commands
+CONFIGURED_APPS += systemcmds/reboot
+CONFIGURED_APPS += systemcmds/perf
+CONFIGURED_APPS += systemcmds/top
+#CONFIGURED_APPS += systemcmds/boardinfo
+CONFIGURED_APPS += systemcmds/mixer
+#CONFIGURED_APPS += systemcmds/eeprom
+CONFIGURED_APPS += systemcmds/param
+CONFIGURED_APPS += systemcmds/bl_update
+#CONFIGURED_APPS += systemcmds/calibration
+CONFIGURED_APPS += systemcmds/uname
+
+# Tutorial code from
+# https://pixhawk.ethz.ch/px4/dev/hello_sky
+CONFIGURED_APPS += examples/px4_simple_app
+
+# Tutorial code from
+# https://pixhawk.ethz.ch/px4/dev/deamon
+# CONFIGURED_APPS += examples/px4_deamon_app
+
+# Shared object broker; required by many parts of the system.
+CONFIGURED_APPS += uORB
+
+CONFIGURED_APPS += mavlink
+CONFIGURED_APPS += gps
+CONFIGURED_APPS += commander
+CONFIGURED_APPS += sdlog
+CONFIGURED_APPS += sensors
+CONFIGURED_APPS += ardrone_interface
+CONFIGURED_APPS += multirotor_att_control
+CONFIGURED_APPS += multirotor_pos_control
+CONFIGURED_APPS += fixedwing_control
+CONFIGURED_APPS += position_estimator
+CONFIGURED_APPS += attitude_estimator_ekf
+
+# Hacking tools
+#CONFIGURED_APPS += system/i2c
+#CONFIGURED_APPS += tools/i2c_dev
+
+# Communication and Drivers
+#CONFIGURED_APPS += drivers/boards/px4fmu
+CONFIGURED_APPS	+= drivers/device
+#CONFIGURED_APPS += drivers/ms5611
+#CONFIGURED_APPS += drivers/hmc5883
+#CONFIGURED_APPS += drivers/mpu6000
+#CONFIGURED_APPS += drivers/bma180
+#CONFIGURED_APPS += drivers/l3gd20
+#CONFIGURED_APPS	+= drivers/px4io
+#CONFIGURED_APPS += drivers/stm32
+#CONFIGURED_APPS += drivers/led
+#CONFIGURED_APPS += drivers/stm32/tone_alarm
+#CONFIGURED_APPS += drivers/px4fmu
+
+# Sim
+CONFIGURED_APPS += sim/sensors
+CONFIGURED_APPS += sim/drivers
+CONFIGURED_APPS += sim/drivers/tone_alarm
+
+# Testing stuff
+#CONFIGURED_APPS += px4/sensors_bringup
+#CONFIGURED_APPS += px4/tests
+
+ifeq ($(CONFIG_CAN),y)
+#CONFIGURED_APPS += examples/can
+endif
+
+#ifeq ($(CONFIG_USBDEV),y)
+#ifeq ($(CONFIG_CDCACM),y)
+#CONFIGURED_APPS += examples/cdcacm
+#endif
+#endif

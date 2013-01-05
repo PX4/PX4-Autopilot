@@ -13,6 +13,7 @@ Make.dep
 *~
 Images/*.bin
 Images/*.px4
+Images/*.exe
 nuttx/Make.defs
 nuttx/setenv.sh
 nuttx/arch/arm/include/board
@@ -40,3 +41,5 @@ nsh_romfsimg.h
 cscope.out
 .configX-e
 nuttx-export.zip
+nuttx/arch/sim/include/board
+nuttx/arch/sim/src/board

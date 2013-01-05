@@ -1,6 +1,8 @@
 ############################################################################
+# configs/px4fmu/src/Makefile
 #
-#   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -12,7 +14,7 @@
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
-# 3. Neither the name PX4 nor the names of its contributors may be
+# 3. Neither the name NuttX nor the names of its contributors may be
 #    used to endorse or promote products derived from this software
 #    without specific prior written permission.
 #
@@ -31,38 +33,63 @@
 #
 ############################################################################
 
-#
-# System utility library
-#
+-include $(TOPDIR)/Make.defs
 
-CSRCS		 = err.c \
-		   hx_stream.c \
-		   perf_counter.c \
-		   param/param.c \
-		   bson/tinybson.c \
-		   conversions.c \
-		   cpuload.c \
-		   getopt_long.c \
-		   up_cxxinitialize.c
+CFLAGS		+= -I$(TOPDIR)/sched
 
-#		   ppm_decode.c \
+ASRCS		= 
+AOBJS		= $(ASRCS:.S=$(OBJEXT))
 
+CSRCS		= up_sim.c up_serial.c
+COBJS		= $(CSRCS:.c=$(OBJEXT))
 
+HOSTSRCS    = up_hosttcp.c
+HOSTOBJS = $(HOSTSRCS:.c=$(OBJEXT))
 
-#
-# XXX this really should be a CONFIG_* test
-#
-ifeq ($(TARGET),px4fmu)
-CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
-endif
-ifeq ($(TARGET),px4fmu_sim)
-CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
+SRCS		= $(ASRCS) $(CSRCS) $(HOSTSRCS)
+OBJS		= $(AOBJS) $(COBJS) $(HOSTOBJS)
+
+ARCH_SRCDIR	= $(TOPDIR)/arch/$(CONFIG_ARCH)/src
+ifeq ($(WINTOOL),y)
+  CFLAGS	+= -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}" \
+  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/common}" \
+  		   -I "${shell cygpath -w $(ARCH_SRCDIR)/armv7-m}"
+else
+  CFLAGS	+= -I$(ARCH_SRCDIR)/chip -I$(ARCH_SRCDIR)/common -I$(ARCH_SRCDIR)/armv7-m
 endif
 
+HOSTCFLAGS=
 
+all: libboard$(LIBEXT)
 
-include $(APPDIR)/mk/app.mk
+$(AOBJS): %$(OBJEXT): %.S
+	$(call ASSEMBLE, $<, $@)
+
+$(COBJS) $(LINKOBJS): %$(OBJEXT): %.c
+	$(call COMPILE, $<, $@)
+
+$(HOSTOBJS): %$(OBJEXT): %.c
+	$(Q) echo "CC:  $<"
+	$(Q) $(CC) -c $(HOSTCFLAGS) $< -o $@
+
+libboard$(LIBEXT): $(OBJS)
+	@( for obj in $(OBJS) ; do \
+		$(call ARCHIVE, $@, $${obj}); \
+	done ; )
+	touch $@
+
+.depend: Makefile $(SRCS)
+	@$(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@touch $@
+
+depend: .depend
+
+clean:
+	@rm -f libboard$(LIBEXT) *~ .*.swp
+	$(call CLEAN)
+
+distclean: clean
+	@rm -f Make.dep .depend
+
+-include Make.dep
+

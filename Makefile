@@ -6,7 +6,6 @@
 # project to slim down and simply generate PX4 link kits via the NuttX
 # 'make export' mechanism.
 #
-#
 
 #
 # Some useful paths.
@@ -42,6 +41,7 @@ endif
 FIRMWARE_BUNDLE		 = $(IMAGE_DIR)/$(TARGET).px4
 FIRMWARE_BINARY		 = $(IMAGE_DIR)/$(TARGET).bin
 FIRMWARE_PROTOTYPE	 = $(IMAGE_DIR)/$(TARGET).prototype
+FIRMWARE_EXEC	     = $(IMAGE_DIR)/$(TARGET).exe
 
 #
 # Debugging
@@ -49,7 +49,11 @@ FIRMWARE_PROTOTYPE	 = $(IMAGE_DIR)/$(TARGET).prototype
 MQUIET			 = --no-print-directory
 #MQUIET			 = --print-directory
 
-all:			$(FIRMWARE_BUNDLE)
+ifeq ($(TARGET),px4fmu_sim)
+all: $(FIRMWARE_EXEC)
+else
+all: $(FIRMWARE_BUNDLE)
+endif
 
 #
 # Generate a wrapped .px4 file from the built binary
@@ -69,6 +73,15 @@ $(FIRMWARE_BINARY):	configure_$(TARGET) setup_$(TARGET)
 	@cp $(NUTTX_SRC)/nuttx.bin $@
 
 #
+# Build the firmware executable.
+#
+.PHONY:			$(FIRMWARE_EXEC)
+$(FIRMWARE_EXEC):	configure_$(TARGET) setup_$(TARGET)
+	@echo Building $@
+	@make -C $(NUTTX_SRC) -r $(MQUIET) all
+	@cp $(NUTTX_SRC)/nuttx $@
+
+#
 # The 'configure' targets select one particular firmware configuration
 # and makes it current.
 #
@@ -86,6 +99,13 @@ endif
 	@cd $(NUTTX_SRC)/tools && /bin/sh configure.sh px4io/io
 	@echo px4io > $(CONFIGURED)
 
+configure_px4fmu_sim:
+ifneq ($(TARGET),px4fmu_sim)
+	@make -C $(PX4BASE) distclean
+endif
+	@cd $(NUTTX_SRC)/tools && /bin/sh configure.sh px4fmu_sim/nsh
+	@echo px4fmu_sim > $(CONFIGURED)
+
 #
 # Per-configuration additional targets
 #
@@ -95,6 +115,10 @@ setup_px4fmu:
 	@make -C $(ROMFS_SRC) all
 
 setup_px4io:
+
+setup_px4fmu_sim:
+	@echo Generating ROMFS
+	@make -C $(ROMFS_SRC) all
 
 #
 # Firmware uploading.

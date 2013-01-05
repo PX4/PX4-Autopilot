@@ -126,6 +126,7 @@ static inline void task_atexit(FAR _TCB *tcb)
       tcb->atexitfunc = NULL;
     }
 #endif
+}
 #else
 #  define task_atexit(tcb)
 #endif

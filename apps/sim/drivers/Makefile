@@ -32,37 +32,11 @@
 ############################################################################
 
 #
-# System utility library
+# SIM driver support code
+#
+# Modules in this directory are compiled for all SIM targets.
 #
 
-CSRCS		 = err.c \
-		   hx_stream.c \
-		   perf_counter.c \
-		   param/param.c \
-		   bson/tinybson.c \
-		   conversions.c \
-		   cpuload.c \
-		   getopt_long.c \
-		   up_cxxinitialize.c
-
-#		   ppm_decode.c \
-
-
-
-#
-# XXX this really should be a CONFIG_* test
-#
-ifeq ($(TARGET),px4fmu)
-CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
-endif
-ifeq ($(TARGET),px4fmu_sim)
-CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
-endif
-
-
+INCLUDES	 = $(TOPDIR)/arch/sim/src $(TOPDIR)/arch/sim/include
 
 include $(APPDIR)/mk/app.mk

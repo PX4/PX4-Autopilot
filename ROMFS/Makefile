@@ -10,12 +10,14 @@
 #
 SRCROOT		?= $(dir $(lastword $(MAKEFILE_LIST)))
 BUILDROOT	?= $(SRCROOT)/img
-ROMFS_HEADER	?= $(SRCROOT)/../nuttx/configs/px4fmu/include/nsh_romfsimg.h
+ROMFS_HEADER	    ?= $(SRCROOT)/../nuttx/configs/px4fmu/include/nsh_romfsimg.h
+ROMFS_SIM_HEADER	?= $(SRCROOT)/../nuttx/configs/px4fmu_sim/include/nsh_romfsimg.h
 
 #
 # List of files to install in the ROMFS, specified as <source>~<destination>
 #
 ROMFS_FSSPEC	:= $(SRCROOT)/scripts/rcS~init.d/rcS \
+		   $(SRCROOT)/scripts/rc.sim~init.d/rc.sim \
 		   $(SRCROOT)/scripts/rc.sensors~init.d/rc.sensors \
 		   $(SRCROOT)/scripts/rc.logging~init.d/rc.logging \
 		   $(SRCROOT)/scripts/rc.standalone~init.d/rc.standalone \
@@ -72,11 +74,15 @@ ROMFS_WORKDIR	 = $(BUILDROOT)/romfs
 #
 # Convenience target for rebuilding the ROMFS header
 #
-all:		$(ROMFS_HEADER)
+all:		$(ROMFS_HEADER)  $(ROMFS_SIM_HEADER)
 
 $(ROMFS_HEADER): $(ROMFS_IMG) $(dir $(ROMFS_HEADER))
 	@echo Generating the ROMFS header...
 	@(cd $(dir $(ROMFS_IMG)) && xxd -i $(notdir $(ROMFS_IMG))) > $@
+
+$(ROMFS_SIM_HEADER): $(ROMFS_HEADER)
+	@echo Generating the ROMFS sim header...
+	@cp $^ $@
 
 $(ROMFS_IMG):	$(ROMFS_WORKDIR)
 	@echo Generating the ROMFS image...

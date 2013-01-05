@@ -1,0 +1,40 @@
+#!nsh
+#
+# Startup script for simulation configuration.
+#
+
+echo "[init] doing simulation startup..."
+
+echo "[init] uORB"
+uorb start
+
+echo "[init] sensors"
+#bma180 start
+#l3gd20 start
+#mpu6000 start
+#hmc5883 start
+#ms5611 start
+
+sensors start
+
+echo "[init] mavlink"
+mavlink start -d /dev/ttyS1 -b 57600
+usleep 5000
+
+echo "[init] commander"
+commander start
+
+echo "[init] attitude control"
+#attitude_estimator_ekf start
+#multirotor_att_control start
+
+#echo "[init] starting PWM output"
+#fmu mode_pwm
+#mixer load /dev/pwm_output /etc/mixers/FMU_quad_x.mix
+
+echo "[init] simulation startup done"
+
+echo "[init] uORB"
+uorb test
+
+

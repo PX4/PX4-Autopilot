@@ -331,8 +331,8 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, d
 		// TO DO - this is messed up and won't compile
 		float start_disp_x = radius * sin(arc_start_bearing);
 		float start_disp_y = radius * cos(arc_start_bearing);
-		float end_disp_x = radius * sin(_wrapPI(arc_start_bearing + arc_sweep));
-		float end_disp_y = radius * cos(_wrapPI(arc_start_bearing + arc_sweep));
+		float end_disp_x = radius * sin(_wrap_pi(arc_start_bearing + arc_sweep));
+		float end_disp_y = radius * cos(_wrap_pi(arc_start_bearing + arc_sweep));
 		float lon_start = lon_now + start_disp_x / 111111.0d;
 		float lat_start = lat_now + start_disp_y * cos(lat_now) / 111111.0d;
 		float lon_end = lon_now + end_disp_x / 111111.0d;
@@ -353,7 +353,7 @@ __EXPORT int get_distance_to_arc(struct crosstrack_error_s * crosstrack_error, d
 
 	}
 
-	crosstrack_error->bearing = _wrapPI(crosstrack_error->bearing);
+	crosstrack_error->bearing = _wrap_pi(crosstrack_error->bearing);
 	return_value = OK;
 	return return_value;
 }
