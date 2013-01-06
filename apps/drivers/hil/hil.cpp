@@ -503,6 +503,10 @@ HIL::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		// up_pwm_servo_arm(false);
 		break;
 
+	case PWM_SERVO_SET_UPDATE_RATE:
+		g_hil->set_pwm_rate(arg);
+		break;
+
 	case PWM_SERVO_SET(2):
 	case PWM_SERVO_SET(3):
 		if (_mode != MODE_4PWM) {
@@ -577,26 +581,19 @@ HIL::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOCADDMULTIROTOR:
-		/* XXX not yet supported */
-		ret = -ENOTTY;
-		break;
+	case MIXERIOCLOADBUF: {
+			const char *buf = (const char *)arg;
+			unsigned buflen = strnlen(buf, 1024);
 
-	case MIXERIOCLOADFILE: {
-			const char *path = (const char *)arg;
+			if (_mixers == nullptr)
+				_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
 
-			if (_mixers != nullptr) {
-				delete _mixers;
-				_mixers = nullptr;
-			}
-
-			_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
 			if (_mixers == nullptr) {
 				ret = -ENOMEM;
+
 			} else {
 
-				debug("loading mixers from %s", path);
-				ret = _mixers->load_from_file(path);
+				ret = _mixers->load_from_buf(buf, buflen);
 
 				if (ret != 0) {
 					debug("mixer load failed with %d", ret);
@@ -605,9 +602,9 @@ HIL::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 					ret = -EINVAL;
 				}
 			}
-
 			break;
 		}
+
 
 	default:
 		ret = -ENOTTY;

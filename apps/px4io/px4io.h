@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
- /**
-  * @file px4io.h
-  *
-  * General defines and structures for the PX4IO module firmware.
-  */
+/**
+ * @file px4io.h
+ *
+ * General defines and structures for the PX4IO module firmware.
+ */
 
 #include <nuttx/config.h>
 
@@ -66,8 +66,7 @@
 /*
  * System state structure.
  */
-struct sys_state_s 
-{
+struct sys_state_s {
 
 	bool		armed;			/* IO armed */
 	bool		arm_ok;			/* FMU says OK to arm */
@@ -82,7 +81,12 @@ struct sys_state_s
 	/*
 	 * Control signals from FMU.
 	 */
-	uint16_t	fmu_channel_data[PX4IO_OUTPUT_CHANNELS];
+	uint16_t	fmu_channel_data[PX4IO_CONTROL_CHANNELS];
+
+	/*
+	 * Mixed servo outputs
+	 */
+	uint16_t	servos[IO_SERVO_COUNT];
 
 	/*
 	 * Relay controls
@@ -145,8 +149,8 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
 #define LED_SAFETY(_s)		stm32_gpiowrite(GPIO_LED3, !(_s))
 
 #define POWER_SERVO(_s)		stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
-#define POWER_ACC1(_s)		stm32_gpiowrite(GPIO_SERVO_ACC1_EN, (_s))
-#define POWER_ACC2(_s)		stm32_gpiowrite(GPIO_SERVO_ACC2_EN, (_s))
+#define POWER_ACC1(_s)		stm32_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
+#define POWER_ACC2(_s)		stm32_gpiowrite(GPIO_ACC2_PWR_EN, (_s))
 #define POWER_RELAY1(_s)	stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
 #define POWER_RELAY2(_s)	stm32_gpiowrite(GPIO_RELAY2_EN, (_s))
 
@@ -161,6 +165,7 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
  * Mixer
  */
 extern void	mixer_tick(void);
+extern void	mixer_handle_text(const void *buffer, size_t length);
 
 /*
  * Safety switch/LED.

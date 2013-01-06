@@ -65,8 +65,8 @@ struct vehicle_gps_position_s
 	uint16_t counter_pos_valid;		/**< is only increased when new lat/lon/alt information was added   */
 	uint16_t eph;				/**< GPS HDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535 //LOGME   */
 	uint16_t epv;				/**< GPS VDOP horizontal dilution of position in cm (m*100). If unknown, set to: 65535   */
-	float s_variance;			// XXX testing
-	float p_variance;			// XXX testing
+	float s_variance;			/**< speed accuracy estimate cm/s */
+	float p_variance;			/**< position accuracy estimate cm */
 	uint16_t vel;				/**< GPS ground speed (m/s * 100). If unknown, set to: 65535   */
 	float vel_n;				/**< GPS ground speed in m/s */
 	float vel_e;				/**< GPS ground speed in m/s */
@@ -84,7 +84,6 @@ struct vehicle_gps_position_s
 
 	/* flags */
 	float vel_ned_valid;			/**< Flag to indicate if NED speed is valid */
-
 };
 
 /**

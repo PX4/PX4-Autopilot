@@ -11,6 +11,7 @@ Make.dep
 *.o
 *.a
 *~
+*.dSYM
 Images/*.bin
 Images/*.px4
 nuttx/Make.defs
@@ -40,3 +41,4 @@ nsh_romfsimg.h
 cscope.out
 .configX-e
 nuttx-export.zip
+dot.gdbinit
