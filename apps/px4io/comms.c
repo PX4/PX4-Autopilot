@@ -207,7 +207,19 @@ comms_handle_config(const void *buffer, size_t length)
 	if (length != sizeof(*cfg))
 		return;
 
-	/* XXX */
+	/* fetch the rc mappings */
+	for (unsigned i = 0; i < 4; i++) {
+		system_state.rc_map[i] = cfg->rc_map[i];
+	}
+
+	/* fetch the rc channel attributes */ 
+	for (unsigned i = 0; i < 4; i++) {
+		system_state.rc_min[i]  = cfg->rc_min[i];
+		system_state.rc_trim[i] = cfg->rc_trim[i];
+		system_state.rc_max[i]  = cfg->rc_max[i];
+		system_state.rc_rev[i]  = cfg->rc_rev[i];
+		system_state.rc_dz[i]   = cfg->rc_dz[i];
+	}
 }
 
 static void

@@ -47,11 +47,13 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sched.h>
 
 #include <debug.h>
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/device/device.h>
 
 #include <systemlib/mixer/mixer.h>
 
@@ -65,12 +67,20 @@ extern "C" {
  */
 #define FMU_INPUT_DROP_LIMIT_US		200000
 
+/* XXX need to move the RC_CHANNEL_FUNCTION out of rc_channels.h and into systemlib */
+#define ROLL     0
+#define PITCH    1
+#define YAW      2
+#define THROTTLE 3
+
 /* current servo arm/disarm state */
 bool mixer_servos_armed = false;
 
 /* selected control values and count for mixing */
 static uint16_t *control_values;
 static int control_count;
+
+static uint16_t rc_channel_data[PX4IO_CONTROL_CHANNELS];
 
 static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_group,
@@ -107,13 +117,34 @@ mixer_tick(void)
 		} else if (system_state.rc_channels > 0) {
 			/* when override is on or the fmu is not available, but RC is present */
 			control_count = system_state.rc_channels;
-			control_values = &system_state.rc_channel_data[0];
+
+			sched_lock();
+
+			/* remap roll, pitch, yaw and throttle from RC specific to internal ordering */
+			rc_channel_data[ROLL]     = system_state.rc_channel_data[system_state.rc_map[ROLL] - 1];
+			rc_channel_data[PITCH]    = system_state.rc_channel_data[system_state.rc_map[PITCH] - 1];
+			rc_channel_data[YAW]      = system_state.rc_channel_data[system_state.rc_map[YAW] - 1];
+			rc_channel_data[THROTTLE] = system_state.rc_channel_data[system_state.rc_map[THROTTLE] - 1];
+
+			/* get the remaining channels, no remapping needed */
+			for (unsigned i = 4; i < system_state.rc_channels; i++)
+				rc_channel_data[i] = system_state.rc_channel_data[i];
+
+			/* scale the control inputs */
+			rc_channel_data[THROTTLE] = ((rc_channel_data[THROTTLE] - system_state.rc_min[THROTTLE]) / 
+				(system_state.rc_max[THROTTLE] - system_state.rc_min[THROTTLE])) * 1000 + 1000;
+			//lib_lowprintf("Tmin: %d Ttrim: %d Tmax: %d T: %d \n",
+			//	system_state.rc_min[THROTTLE], system_state.rc_trim[THROTTLE], system_state.rc_max[THROTTLE], rc_channel_data[THROTTLE]);
+
+			control_values = &rc_channel_data[0];
+			sched_unlock();
 		} else {
 			/* we have no control input (no FMU, no RC) */
 
 			// XXX builtin failsafe would activate here
 			control_count = 0;
 		}
+		//lib_lowprintf("R: %d P: %d Y: %d T: %d \n", control_values[0], control_values[1], control_values[2], control_values[3]);
 
 	/* this is for multicopters, etc. where manual override does not make sense */
 	} else {
@@ -151,8 +182,9 @@ mixer_tick(void)
 			/*
 			 * If we are armed, update the servo output.
 			 */
-			if (system_state.armed && system_state.arm_ok)
+			if (system_state.armed && system_state.arm_ok) {
 				up_pwm_servo_set(i, system_state.servos[i]);
+			}
 		}
 	}
 

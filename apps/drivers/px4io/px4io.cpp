@@ -72,6 +72,7 @@
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/scheduling_priorities.h>
+#include <systemlib/param/param.h>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls_effective.h>
@@ -225,7 +226,7 @@ PX4IO::PX4IO() :
 	_relays(0),
 	_switch_armed(false),
 	_send_needed(false),
-	_config_needed(false)
+	_config_needed(true)
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
@@ -454,12 +455,6 @@ PX4IO::task_main()
 			}
 		}
 
-		/* send an update to IO if required */
-		if (_send_needed) {
-			_send_needed = false;
-			io_send();
-		}
-
 		/* send a config packet to IO if required */
 		if (_config_needed) {
 			_config_needed = false;
@@ -473,6 +468,12 @@ PX4IO::task_main()
 			/* clear the buffer record so the ioctl handler knows we're done */
 			_mix_buf = nullptr;
 			_mix_buf_len = 0;
+		}
+
+		/* send an update to IO if required */
+		if (_send_needed) {
+			_send_needed = false;
+			io_send();
 		}
 	}
 
@@ -632,7 +633,7 @@ PX4IO::io_send()
 	cmd.manual_override_ok = _vstatus.flag_external_manual_override_ok;
 	/* set desired PWM output rate */
 	cmd.servo_rate = _update_rate;
-
+	
 	ret = hx_stream_send(_io_stream, &cmd, sizeof(cmd));
 
 	if (ret)
@@ -646,6 +647,46 @@ PX4IO::config_send()
 	int		ret;
 
 	cfg.f2i_config_magic = F2I_CONFIG_MAGIC;
+
+	int val;
+
+	/* maintaing the standard order of Roll, Pitch, Yaw, Throttle */		
+	param_get(param_find("RC_MAP_ROLL"), &val);
+	cfg.rc_map[0] = (uint8_t)val;
+	param_get(param_find("RC_MAP_PITCH"), &val);
+	cfg.rc_map[1] = (uint8_t)val;
+	param_get(param_find("RC_MAP_YAW"), &val);
+	cfg.rc_map[2] = (uint8_t)val;
+	param_get(param_find("RC_MAP_THROTTLE"), &val);
+	cfg.rc_map[3] = (uint8_t)val;
+
+	/* set the individual channel properties */
+	char nbuf[16];
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_MIN", i);
+		param_get(param_find(nbuf), &val);	
+		cfg.rc_min[i] = (uint16_t)val;
+	}
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_TRIM", i);	
+		param_get(param_find(nbuf), &val);	
+		cfg.rc_trim[i] = (uint16_t)val;
+	}
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_MAX", i);	
+		param_get(param_find(nbuf), &val);	
+		cfg.rc_max[i] = (uint16_t)val;
+	}
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_REV", i);	
+		param_get(param_find(nbuf), &val);	
+		cfg.rc_rev[i] = (uint16_t)val;
+	}
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_DZ", i);	
+		param_get(param_find(nbuf), &val);	
+		cfg.rc_dz[i] = (uint16_t)val;
+	}
 
 	ret = hx_stream_send(_io_stream, &cfg, sizeof(cfg));
 
