@@ -500,7 +500,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		/* FALLTHROUGH */
 	case PWM_SERVO_GET(0):
 	case PWM_SERVO_GET(1): {
-			channel = cmd - PWM_SERVO_SET(0);
+			channel = cmd - PWM_SERVO_GET(0);
 			*(servo_position_t *)arg = up_pwm_servo_get(channel);
 			break;
 		}
@@ -544,28 +544,19 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case MIXERIOCADDMULTIROTOR:
-		/* XXX not yet supported */
-		ret = -ENOTTY;
-		break;
+	case MIXERIOCLOADBUF: {
+			const char *buf = (const char *)arg;
+			unsigned buflen = strnlen(buf, 1024);
 
-	case MIXERIOCLOADFILE: {
-			const char *path = (const char *)arg;
-
-			if (_mixers != nullptr) {
-				delete _mixers;
-				_mixers = nullptr;
-			}
-
-			_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
+			if (_mixers == nullptr)
+				_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
 
 			if (_mixers == nullptr) {
 				ret = -ENOMEM;
 
 			} else {
 
-				debug("loading mixers from %s", path);
-				ret = _mixers->load_from_file(path);
+				ret = _mixers->load_from_buf(buf, buflen);
 
 				if (ret != 0) {
 					debug("mixer load failed with %d", ret);
@@ -574,7 +565,6 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 					ret = -EINVAL;
 				}
 			}
-
 			break;
 		}
 
