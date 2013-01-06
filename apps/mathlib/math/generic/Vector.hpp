@@ -46,7 +46,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#include <systemlib/math/Vector.hpp>
+#include "../Vector.hpp"
 
 namespace math
 {

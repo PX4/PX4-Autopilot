@@ -37,7 +37,7 @@
  * math vector
  */
 
-#include <systemlib/test/test.hpp>
+#include "test/test.hpp"
 
 
 #include "Quaternion.hpp"

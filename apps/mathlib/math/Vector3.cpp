@@ -32,69 +32,68 @@
  ****************************************************************************/
 
 /**
- * @file Vector.cpp
+ * @file Vector3.cpp
  *
  * math vector
  */
 
-#include <systemlib/test/test.hpp>
+#include "test/test.hpp"
 
-#include "Vector.hpp"
+#include "Vector3.hpp"
 
 namespace math
 {
 
-static const float data_testA[] = {1, 3};
-static const float data_testB[] = {4, 1};
-
-static Vector testA(2, data_testA);
-static Vector testB(2, data_testB);
-
-int __EXPORT vectorTest()
+Vector3::Vector3() :
+	Vector(3)
 {
-	vectorAddTest();
-	vectorSubTest();
-	return 0;
 }
 
-int vectorAddTest()
+Vector3::Vector3(const Vector &right) :
+	Vector(right)
 {
-	printf("Test Vector Add\t\t: ");
-	Vector r = testA + testB;
-	float data_test[] = {5.0f, 4.0f};
-	ASSERT(vectorEqual(Vector(2, data_test), r));
+#ifdef VECTOR_ASSERT
+	ASSERT(right.getRows() == 3);
+#endif
+}
+
+Vector3::Vector3(float x, float y, float z) :
+	Vector(3)
+{
+	setX(x);
+	setY(y);
+	setZ(z);
+}
+
+Vector3::Vector3(const float *data) :
+	Vector(3, data)
+{
+}
+
+Vector3::~Vector3()
+{
+}
+
+Vector3 Vector3::cross(const Vector3 &b)
+{
+	Vector3 &a = *this;
+	Vector3 result;
+	result(0) = a(1) * b(2) - a(2) * b(1);
+	result(1) = a(2) * b(0) - a(0) * b(2);
+	result(2) = a(0) * b(1) - a(1) * b(0);
+	return result;
+}
+
+int __EXPORT vector3Test()
+{
+	printf("Test Vector3\t\t: ");
+	// test float ctor
+	Vector3 v(1, 2, 3);
+	ASSERT(equal(v(0), 1));
+	ASSERT(equal(v(1), 2));
+	ASSERT(equal(v(2), 3));
 	printf("PASS\n");
 	return 0;
-}
-
-int vectorSubTest()
-{
-	printf("Test Vector Sub\t\t: ");
-	Vector r(2);
-	r = testA - testB;
-	float data_test[] = { -3.0f, 2.0f};
-	ASSERT(vectorEqual(Vector(2, data_test), r));
-	printf("PASS\n");
-	return 0;
-}
-
-bool vectorEqual(const Vector &a, const Vector &b, float eps)
-{
-	if (a.getRows() != b.getRows()) {
-		printf("row number not equal a: %d, b:%d\n", a.getRows(), b.getRows());
-		return false;
-	}
-
-	bool ret = true;
-
-	for (size_t i = 0; i < a.getRows(); i++) {
-		if (!equal(a(i), b(i), eps)) {
-			printf("element mismatch (%d)\n", i);
-			ret = false;
-		}
-	}
-
-	return ret;
 }
 
 } // namespace math

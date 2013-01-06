@@ -46,6 +46,7 @@ CONFIGURED_APPS += systemlib
 CONFIGURED_APPS += systemlib/mixer
 
 # Math library
+CONFIGURED_APPS += mathlib
 CONFIGURED_APPS += mathlib/CMSIS
 
 # System utility commands

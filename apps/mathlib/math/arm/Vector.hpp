@@ -46,8 +46,8 @@
 #include <stdio.h>
 #include <math.h>
 
-#include <systemlib/math/Vector.hpp>
-#include <systemlib/test/test.hpp>
+#include "../Vector.hpp"
+#include "../test/test.hpp"
 
 // arm specific
 #include "arm_math.h"

@@ -32,66 +32,89 @@
  ****************************************************************************/
 
 /**
- * @file Vector3.cpp
+ * @file Vector.cpp
  *
  * math vector
  */
 
-#include <systemlib/test/test.hpp>
+#include "test/test.hpp"
 
+#include "EulerAngles.hpp"
+#include "Quaternion.hpp"
+#include "Dcm.hpp"
 #include "Vector3.hpp"
 
 namespace math
 {
 
-Vector3::Vector3() :
+EulerAngles::EulerAngles() :
 	Vector(3)
 {
+	setPhi(0.0f);
+	setTheta(0.0f);
+	setPsi(0.0f);
 }
 
-Vector3::Vector3(const Vector &right) :
-	Vector(right)
-{
-#ifdef VECTOR_ASSERT
-	ASSERT(right.getRows() == 3);
-#endif
-}
-
-Vector3::Vector3(float x, float y, float z) :
+EulerAngles::EulerAngles(float phi, float theta, float psi) :
 	Vector(3)
 {
-	setX(x);
-	setY(y);
-	setZ(z);
+	setPhi(phi);
+	setTheta(theta);
+	setPsi(psi);
 }
 
-Vector3::Vector3(const float *data) :
-	Vector(3, data)
+EulerAngles::EulerAngles(const Quaternion &q) :
+	Vector(3)
+{
+	(*this) = EulerAngles(Dcm(q));
+}
+
+EulerAngles::EulerAngles(const Dcm &dcm) :
+	Vector(3)
+{
+	setTheta(asinf(-dcm(2, 0)));
+
+	if (fabsf(getTheta() - M_PI_2_F) < 1.0e-3f) {
+		setPhi(0.0f);
+		setPsi(atan2f(dcm(1, 2) - dcm(0, 1),
+			      dcm(0, 2) + dcm(1, 1)) + getPhi());
+
+	} else if (fabsf(getTheta() + M_PI_2_F) < 1.0e-3f) {
+		setPhi(0.0f);
+		setPsi(atan2f(dcm(1, 2) - dcm(0, 1),
+			      dcm(0, 2) + dcm(1, 1)) - getPhi());
+
+	} else {
+		setPhi(atan2f(dcm(2, 1), dcm(2, 2)));
+		setPsi(atan2f(dcm(1, 0), dcm(0, 0)));
+	}
+}
+
+EulerAngles::~EulerAngles()
 {
 }
 
-Vector3::~Vector3()
+int __EXPORT eulerAnglesTest()
 {
-}
+	printf("Test EulerAngles\t: ");
+	EulerAngles euler(1, 2, 3);
 
-Vector3 Vector3::cross(const Vector3 &b)
-{
-	Vector3 &a = *this;
-	Vector3 result;
-	result(0) = a(1) * b(2) - a(2) * b(1);
-	result(1) = a(2) * b(0) - a(0) * b(2);
-	result(2) = a(0) * b(1) - a(1) * b(0);
-	return result;
-}
+	// test ctor
+	ASSERT(vectorEqual(Vector3(1, 2, 3), euler));
+	ASSERT(equal(euler.getPhi(), 1));
+	ASSERT(equal(euler.getTheta(), 2));
+	ASSERT(equal(euler.getPsi(), 3));
 
-int __EXPORT vector3Test()
-{
-	printf("Test Vector3\t\t: ");
-	// test float ctor
-	Vector3 v(1, 2, 3);
-	ASSERT(equal(v(0), 1));
-	ASSERT(equal(v(1), 2));
-	ASSERT(equal(v(2), 3));
+	// test dcm ctor
+
+	// test assignment
+	euler.setPhi(4);
+	ASSERT(equal(euler.getPhi(), 4));
+	euler.setTheta(5);
+	ASSERT(equal(euler.getTheta(), 5));
+	euler.setPsi(6);
+	ASSERT(equal(euler.getPsi(), 6));
+
 	printf("PASS\n");
 	return 0;
 }

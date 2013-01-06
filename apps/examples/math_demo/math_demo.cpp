@@ -43,12 +43,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/math/Vector.hpp>
-#include <systemlib/math/Matrix.hpp>
-#include <systemlib/math/Quaternion.hpp>
-#include <systemlib/math/Vector3.hpp>
-#include <systemlib/math/Dcm.hpp>
-#include <systemlib/math/EulerAngles.hpp>
+#include <mathlib/math/Vector.hpp>
+#include <mathlib/math/Matrix.hpp>
+#include <mathlib/math/Quaternion.hpp>
+#include <mathlib/math/Vector3.hpp>
+#include <mathlib/math/Dcm.hpp>
+#include <mathlib/math/EulerAngles.hpp>
 
 /**
  * Management function.

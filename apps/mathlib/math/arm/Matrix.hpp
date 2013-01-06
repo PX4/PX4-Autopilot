@@ -47,8 +47,11 @@
 #include <stdio.h>
 #include <math.h>
 
-#include <systemlib/math/Vector.hpp>
-#include <systemlib/math/Matrix.hpp>
+#include "../Vector.hpp"
+#include "../Matrix.hpp"
+
+// arm specific
+#include "arm_math.h"
 
 namespace math
 {
@@ -58,27 +61,31 @@ class __EXPORT Matrix
 public:
 	// constructor
 	Matrix(size_t rows, size_t cols) :
-		_rows(rows),
-		_cols(cols),
-		_data((float *)calloc(rows *cols, sizeof(float))) {
+		_matrix() {
+		arm_mat_init_f32(&_matrix,
+				 rows, cols,
+				 (float *)calloc(rows * cols, sizeof(float)));
 	}
 	Matrix(size_t rows, size_t cols, const float *data) :
-		_rows(rows),
-		_cols(cols),
-		_data((float *)malloc(getSize())) {
+		_matrix() {
+		arm_mat_init_f32(&_matrix,
+				 rows, cols,
+				 (float *)malloc(rows * cols * sizeof(float)));
 		memcpy(getData(), data, getSize());
 	}
 	// deconstructor
 	virtual ~Matrix() {
-		delete [] getData();
+		delete [] _matrix.pData;
 	}
 	// copy constructor (deep)
 	Matrix(const Matrix &right) :
-		_rows(right.getRows()),
-		_cols(right.getCols()),
-		_data((float *)malloc(getSize())) {
+		_matrix() {
+		arm_mat_init_f32(&_matrix,
+				 right.getRows(), right.getCols(),
+				 (float *)malloc(right.getRows()*
+						 right.getCols()*sizeof(float)));
 		memcpy(getData(), right.getData(),
-		       right.getSize());
+		       getSize());
 	}
 	// assignment
 	inline Matrix &operator=(const Matrix &right) {
@@ -135,48 +142,28 @@ public:
 		return true;
 	}
 	// scalar ops
-	inline Matrix operator+(const float &right) const {
+	inline Matrix operator+(float right) const {
 		Matrix result(getRows(), getCols());
-
-		for (size_t i = 0; i < getRows(); i++) {
-			for (size_t j = 0; j < getCols(); j++) {
-				result(i, j) = (*this)(i, j) + right;
-			}
-		}
-
+		arm_offset_f32((float *)getData(), right,
+			       (float *)result.getData(), getRows()*getCols());
 		return result;
 	}
-	inline Matrix operator-(const float &right) const {
+	inline Matrix operator-(float right) const {
 		Matrix result(getRows(), getCols());
-
-		for (size_t i = 0; i < getRows(); i++) {
-			for (size_t j = 0; j < getCols(); j++) {
-				result(i, j) = (*this)(i, j) - right;
-			}
-		}
-
+		arm_offset_f32((float *)getData(), -right,
+			       (float *)result.getData(), getRows()*getCols());
 		return result;
 	}
-	inline Matrix operator*(const float &right) const {
+	inline Matrix operator*(float right) const {
 		Matrix result(getRows(), getCols());
-
-		for (size_t i = 0; i < getRows(); i++) {
-			for (size_t j = 0; j < getCols(); j++) {
-				result(i, j) = (*this)(i, j) * right;
-			}
-		}
-
+		arm_mat_scale_f32(&_matrix, right,
+				  &(result._matrix));
 		return result;
 	}
-	inline Matrix operator/(const float &right) const {
+	inline Matrix operator/(float right) const {
 		Matrix result(getRows(), getCols());
-
-		for (size_t i = 0; i < getRows(); i++) {
-			for (size_t j = 0; j < getCols(); j++) {
-				result(i, j) = (*this)(i, j) / right;
-			}
-		}
-
+		arm_mat_scale_f32(&_matrix, 1.0f / right,
+				  &(result._matrix));
 		return result;
 	}
 	// vector ops
@@ -184,15 +171,9 @@ public:
 #ifdef MATRIX_ASSERT
 		ASSERT(getCols() == right.getRows());
 #endif
-		Vector result(getRows());
-
-		for (size_t i = 0; i < getRows(); i++) {
-			for (size_t j = 0; j < getCols(); j++) {
-				result(i) += (*this)(i, j) * right(j);
-			}
-		}
-
-		return result;
+		Matrix resultMat = (*this) *
+				   Matrix(right.getRows(), 1, right.getData());
+		return Vector(getRows(), resultMat.getData());
 	}
 	// matrix ops
 	inline Matrix operator+(const Matrix &right) const {
@@ -201,13 +182,8 @@ public:
 		ASSERT(getCols() == right.getCols());
 #endif
 		Matrix result(getRows(), getCols());
-
-		for (size_t i = 0; i < getRows(); i++) {
-			for (size_t j = 0; j < getCols(); j++) {
-				result(i, j) = (*this)(i, j) + right(i, j);
-			}
-		}
-
+		arm_mat_add_f32(&_matrix, &(right._matrix),
+				&(result._matrix));
 		return result;
 	}
 	inline Matrix operator-(const Matrix &right) const {
@@ -216,13 +192,8 @@ public:
 		ASSERT(getCols() == right.getCols());
 #endif
 		Matrix result(getRows(), getCols());
-
-		for (size_t i = 0; i < getRows(); i++) {
-			for (size_t j = 0; j < getCols(); j++) {
-				result(i, j) = (*this)(i, j) - right(i, j);
-			}
-		}
-
+		arm_mat_sub_f32(&_matrix, &(right._matrix),
+				&(result._matrix));
 		return result;
 	}
 	inline Matrix operator*(const Matrix &right) const {
@@ -230,15 +201,8 @@ public:
 		ASSERT(getCols() == right.getRows());
 #endif
 		Matrix result(getRows(), right.getCols());
-
-		for (size_t i = 0; i < getRows(); i++) {
-			for (size_t j = 0; j < right.getCols(); j++) {
-				for (size_t k = 0; k < right.getRows(); k++) {
-					result(i, j) += (*this)(i, k) * right(k, j);
-				}
-			}
-		}
-
+		arm_mat_mult_f32(&_matrix, &(right._matrix),
+				 &(result._matrix));
 		return result;
 	}
 	inline Matrix operator/(const Matrix &right) const {
@@ -251,13 +215,7 @@ public:
 	// other functions
 	inline Matrix transpose() const {
 		Matrix result(getCols(), getRows());
-
-		for (size_t i = 0; i < getRows(); i++) {
-			for (size_t j = 0; j < getCols(); j++) {
-				result(j, i) = (*this)(i, j);
-			}
-		}
-
+		arm_mat_trans_f32(&_matrix, &(result._matrix));
 		return result;
 	}
 	inline void swapRows(size_t a, size_t b) {
@@ -285,112 +243,11 @@ public:
 #ifdef MATRIX_ASSERT
 		ASSERT(getRows() == getCols());
 #endif
-		size_t N = getRows();
-		Matrix L = identity(N);
-		const Matrix &A = (*this);
-		Matrix U = A;
-		Matrix P = identity(N);
-
-		//printf("A:\n"); A.print();
-
-		// for all diagonal elements
-		for (size_t n = 0; n < N; n++) {
-
-			// if diagonal is zero, swap with row below
-			if (fabsf(U(n, n)) < 1e-8f) {
-				//printf("trying pivot for row %d\n",n);
-				for (size_t i = 0; i < N; i++) {
-					if (i == n) continue;
-
-					//printf("\ttrying row %d\n",i);
-					if (fabsf(U(i, n)) > 1e-8f) {
-						//printf("swapped %d\n",i);
-						U.swapRows(i, n);
-						P.swapRows(i, n);
-					}
-				}
-			}
-
-#ifdef MATRIX_ASSERT
-			//printf("A:\n"); A.print();
-			//printf("U:\n"); U.print();
-			//printf("P:\n"); P.print();
-			//fflush(stdout);
-			ASSERT(fabsf(U(n, n)) > 1e-8f);
-#endif
-
-			// failsafe, return zero matrix
-			if (fabsf(U(n, n)) < 1e-8f) {
-				return Matrix::zero(n);
-			}
-
-			// for all rows below diagonal
-			for (size_t i = (n + 1); i < N; i++) {
-				L(i, n) = U(i, n) / U(n, n);
-
-				// add i-th row and n-th row
-				// multiplied by: -a(i,n)/a(n,n)
-				for (size_t k = n; k < N; k++) {
-					U(i, k) -= L(i, n) * U(n, k);
-				}
-			}
-		}
-
-		//printf("L:\n"); L.print();
-		//printf("U:\n"); U.print();
-
-		// solve LY=P*I for Y by forward subst
-		Matrix Y = P;
-
-		// for all columns of Y
-		for (size_t c = 0; c < N; c++) {
-			// for all rows of L
-			for (size_t i = 0; i < N; i++) {
-				// for all columns of L
-				for (size_t j = 0; j < i; j++) {
-					// for all existing y
-					// subtract the component they
-					// contribute to the solution
-					Y(i, c) -= L(i, j) * Y(j, c);
-				}
-
-				// divide by the factor
-				// on current
-				// term to be solved
-				// Y(i,c) /= L(i,i);
-				// but L(i,i) = 1.0
-			}
-		}
-
-		//printf("Y:\n"); Y.print();
-
-		// solve Ux=y for x by back subst
-		Matrix X = Y;
-
-		// for all columns of X
-		for (size_t c = 0; c < N; c++) {
-			// for all rows of U
-			for (size_t k = 0; k < N; k++) {
-				// have to go in reverse order
-				size_t i = N - 1 - k;
-
-				// for all columns of U
-				for (size_t j = i + 1; j < N; j++) {
-					// for all existing x
-					// subtract the component they
-					// contribute to the solution
-					X(i, c) -= U(i, j) * X(j, c);
-				}
-
-				// divide by the factor
-				// on current
-				// term to be solved
-				X(i, c) /= U(i, i);
-			}
-		}
-
-		//printf("X:\n"); X.print();
-		return X;
+		Matrix result(getRows(), getCols());
+		Matrix work = (*this);
+		arm_mat_inverse_f32(&(work._matrix),
+				    &(result._matrix));
+		return result;
 	}
 	inline void setAll(const float &val) {
 		for (size_t i = 0; i < getRows(); i++) {
@@ -402,8 +259,8 @@ public:
 	inline void set(const float *data) {
 		memcpy(getData(), data, getSize());
 	}
-	inline size_t getRows() const { return _rows; }
-	inline size_t getCols() const { return _cols; }
+	inline size_t getRows() const { return _matrix.numRows; }
+	inline size_t getCols() const { return _matrix.numCols; }
 	inline static Matrix identity(size_t size) {
 		Matrix result(size, size);
 
@@ -425,13 +282,11 @@ public:
 	}
 protected:
 	inline size_t getSize() const { return sizeof(float) * getRows() * getCols(); }
-	inline float *getData() { return _data; }
-	inline const float *getData() const { return _data; }
-	inline void setData(float *data) { _data = data; }
+	inline float *getData() { return _matrix.pData; }
+	inline const float *getData() const { return _matrix.pData; }
+	inline void setData(float *data) { _matrix.pData = data; }
 private:
-	size_t _rows;
-	size_t _cols;
-	float *_data;
+	arm_matrix_instance_f32 _matrix;
 };
 
 } // namespace math

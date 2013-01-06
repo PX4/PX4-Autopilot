@@ -37,86 +37,64 @@
  * math vector
  */
 
-#include <systemlib/test/test.hpp>
+#include "test/test.hpp"
 
-#include "EulerAngles.hpp"
-#include "Quaternion.hpp"
-#include "Dcm.hpp"
-#include "Vector3.hpp"
+#include "Vector.hpp"
 
 namespace math
 {
 
-EulerAngles::EulerAngles() :
-	Vector(3)
+static const float data_testA[] = {1, 3};
+static const float data_testB[] = {4, 1};
+
+static Vector testA(2, data_testA);
+static Vector testB(2, data_testB);
+
+int __EXPORT vectorTest()
 {
-	setPhi(0.0f);
-	setTheta(0.0f);
-	setPsi(0.0f);
+	vectorAddTest();
+	vectorSubTest();
+	return 0;
 }
 
-EulerAngles::EulerAngles(float phi, float theta, float psi) :
-	Vector(3)
+int vectorAddTest()
 {
-	setPhi(phi);
-	setTheta(theta);
-	setPsi(psi);
-}
-
-EulerAngles::EulerAngles(const Quaternion &q) :
-	Vector(3)
-{
-	(*this) = EulerAngles(Dcm(q));
-}
-
-EulerAngles::EulerAngles(const Dcm &dcm) :
-	Vector(3)
-{
-	setTheta(asinf(-dcm(2, 0)));
-
-	if (fabsf(getTheta() - M_PI_2_F) < 1.0e-3f) {
-		setPhi(0.0f);
-		setPsi(atan2f(dcm(1, 2) - dcm(0, 1),
-			      dcm(0, 2) + dcm(1, 1)) + getPhi());
-
-	} else if (fabsf(getTheta() + M_PI_2_F) < 1.0e-3f) {
-		setPhi(0.0f);
-		setPsi(atan2f(dcm(1, 2) - dcm(0, 1),
-			      dcm(0, 2) + dcm(1, 1)) - getPhi());
-
-	} else {
-		setPhi(atan2f(dcm(2, 1), dcm(2, 2)));
-		setPsi(atan2f(dcm(1, 0), dcm(0, 0)));
-	}
-}
-
-EulerAngles::~EulerAngles()
-{
-}
-
-int __EXPORT eulerAnglesTest()
-{
-	printf("Test EulerAngles\t: ");
-	EulerAngles euler(1, 2, 3);
-
-	// test ctor
-	ASSERT(vectorEqual(Vector3(1, 2, 3), euler));
-	ASSERT(equal(euler.getPhi(), 1));
-	ASSERT(equal(euler.getTheta(), 2));
-	ASSERT(equal(euler.getPsi(), 3));
-
-	// test dcm ctor
-
-	// test assignment
-	euler.setPhi(4);
-	ASSERT(equal(euler.getPhi(), 4));
-	euler.setTheta(5);
-	ASSERT(equal(euler.getTheta(), 5));
-	euler.setPsi(6);
-	ASSERT(equal(euler.getPsi(), 6));
-
+	printf("Test Vector Add\t\t: ");
+	Vector r = testA + testB;
+	float data_test[] = {5.0f, 4.0f};
+	ASSERT(vectorEqual(Vector(2, data_test), r));
 	printf("PASS\n");
 	return 0;
+}
+
+int vectorSubTest()
+{
+	printf("Test Vector Sub\t\t: ");
+	Vector r(2);
+	r = testA - testB;
+	float data_test[] = { -3.0f, 2.0f};
+	ASSERT(vectorEqual(Vector(2, data_test), r));
+	printf("PASS\n");
+	return 0;
+}
+
+bool vectorEqual(const Vector &a, const Vector &b, float eps)
+{
+	if (a.getRows() != b.getRows()) {
+		printf("row number not equal a: %d, b:%d\n", a.getRows(), b.getRows());
+		return false;
+	}
+
+	bool ret = true;
+
+	for (size_t i = 0; i < a.getRows(); i++) {
+		if (!equal(a(i), b(i), eps)) {
+			printf("element mismatch (%d)\n", i);
+			ret = false;
+		}
+	}
+
+	return ret;
 }
 
 } // namespace math
