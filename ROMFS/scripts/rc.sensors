@@ -8,6 +8,7 @@
 #
 
 ms5611 start
+adc start
 
 if mpu6000 start
 then
