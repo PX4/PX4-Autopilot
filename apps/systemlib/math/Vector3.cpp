@@ -45,28 +45,28 @@ namespace math
 {
 
 Vector3::Vector3() :
-    Vector(3)
+	Vector(3)
 {
 }
 
-Vector3::Vector3(const Vector & right) :
-    Vector(right)
+Vector3::Vector3(const Vector &right) :
+	Vector(right)
 {
 #ifdef VECTOR_ASSERT
-    ASSERT(right.getRows()==3);
+	ASSERT(right.getRows() == 3);
 #endif
 }
 
 Vector3::Vector3(float x, float y, float z) :
-    Vector(3)
+	Vector(3)
 {
-    setX(x);
-    setY(y);
-    setZ(z);
+	setX(x);
+	setY(y);
+	setZ(z);
 }
 
-Vector3::Vector3(const float * data) :
-    Vector(3,data)
+Vector3::Vector3(const float *data) :
+	Vector(3, data)
 {
 }
 
@@ -74,26 +74,26 @@ Vector3::~Vector3()
 {
 }
 
-Vector3 Vector3::cross(const Vector3 & b)
+Vector3 Vector3::cross(const Vector3 &b)
 {
-    Vector3 & a = *this;
-    Vector3 result;
-    result(0) = a(1)*b(2) - a(2)*b(1);
-    result(1) = a(2)*b(0) - a(0)*b(2);
-    result(2) = a(0)*b(1) - a(1)*b(0);
-    return result;
+	Vector3 &a = *this;
+	Vector3 result;
+	result(0) = a(1) * b(2) - a(2) * b(1);
+	result(1) = a(2) * b(0) - a(0) * b(2);
+	result(2) = a(0) * b(1) - a(1) * b(0);
+	return result;
 }
 
 int __EXPORT vector3Test()
 {
-    printf("Test Vector3\t\t: ");
-    // test float ctor
-    Vector3 v(1,2,3);
-    ASSERT(equal(v(0),1)); 
-    ASSERT(equal(v(1),2)); 
-    ASSERT(equal(v(2),3)); 
-    printf("PASS\n");
-    return 0;
+	printf("Test Vector3\t\t: ");
+	// test float ctor
+	Vector3 v(1, 2, 3);
+	ASSERT(equal(v(0), 1));
+	ASSERT(equal(v(1), 2));
+	ASSERT(equal(v(2), 3));
+	printf("PASS\n");
+	return 0;
 }
 
 } // namespace math

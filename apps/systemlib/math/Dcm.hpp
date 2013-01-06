@@ -42,7 +42,8 @@
 #include "Vector.hpp"
 #include "Matrix.hpp"
 
-namespace math {
+namespace math
+{
 
 class Quaternion;
 class EulerAngles;
@@ -52,41 +53,41 @@ class EulerAngles;
  * (yaw)-(pitch)-(roll)
  * The Dcm transforms a vector in the body frame
  * to the navigation frame, typically represented
- * as C_nb. C_bn can be obtained through use 
+ * as C_nb. C_bn can be obtained through use
  * of the transpose() method.
  */
 class __EXPORT Dcm : public Matrix
 {
 public:
-    /**
-     * default ctor
-     */
-    Dcm();
+	/**
+	 * default ctor
+	 */
+	Dcm();
 
-    /**
-     * data ctor
-     */
-    Dcm(const float * data);
+	/**
+	 * data ctor
+	 */
+	Dcm(const float *data);
 
-    /**
-     * quaternion ctor
-     */
-    Dcm(const Quaternion & q);
+	/**
+	 * quaternion ctor
+	 */
+	Dcm(const Quaternion &q);
 
-    /**
-     * euler angles ctor
-     */
-    Dcm(const EulerAngles & euler);
+	/**
+	 * euler angles ctor
+	 */
+	Dcm(const EulerAngles &euler);
 
-    /**
-     * copy ctor (deep)
-     */
-    Dcm(const Dcm & right);
+	/**
+	 * copy ctor (deep)
+	 */
+	Dcm(const Dcm &right);
 
-    /**
-     * dtor
-     */
-    virtual ~Dcm();
+	/**
+	 * dtor
+	 */
+	virtual ~Dcm();
 };
 
 int __EXPORT dcmTest();

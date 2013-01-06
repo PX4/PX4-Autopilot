@@ -51,190 +51,177 @@
 namespace math
 {
 
-class __EXPORT Vector {
+class __EXPORT Vector
+{
 public:
-    // constructor
-    Vector(size_t rows) :
-        _rows(rows),
-        _data((float*)calloc(rows,sizeof(float)))
-    {
-    }
-    Vector(size_t rows, const float * data) :
-        _rows(rows),
-        _data((float*)malloc(getSize()))
-    {
-        memcpy(getData(),data,getSize());
-    }
-    // deconstructor
-    virtual ~Vector()
-    {
-        delete [] getData();
-    }
-    // copy constructor (deep)
-    Vector(const Vector & right) :
-        _rows(right.getRows()),
-        _data((float*)malloc(getSize()))
-    {
-        memcpy(getData(),right.getData(),
-                    right.getSize());
-    }
-    // assignment
-    inline Vector & operator=(const Vector & right)
-    {
+	// constructor
+	Vector(size_t rows) :
+		_rows(rows),
+		_data((float *)calloc(rows, sizeof(float))) {
+	}
+	Vector(size_t rows, const float *data) :
+		_rows(rows),
+		_data((float *)malloc(getSize())) {
+		memcpy(getData(), data, getSize());
+	}
+	// deconstructor
+	virtual ~Vector() {
+		delete [] getData();
+	}
+	// copy constructor (deep)
+	Vector(const Vector &right) :
+		_rows(right.getRows()),
+		_data((float *)malloc(getSize())) {
+		memcpy(getData(), right.getData(),
+		       right.getSize());
+	}
+	// assignment
+	inline Vector &operator=(const Vector &right) {
 #ifdef VECTOR_ASSERT
-        ASSERT(getRows()==right.getRows());
+		ASSERT(getRows() == right.getRows());
 #endif
-        if (this != &right)
-        {
-            memcpy(getData(),right.getData(),
-                        right.getSize());
-        }
-        return *this;
-    }
-    // element accessors
-    inline float& operator()(size_t i)
-    {
+
+		if (this != &right) {
+			memcpy(getData(), right.getData(),
+			       right.getSize());
+		}
+
+		return *this;
+	}
+	// element accessors
+	inline float &operator()(size_t i) {
 #ifdef VECTOR_ASSERT
-        ASSERT(i<getRows());
+		ASSERT(i < getRows());
 #endif
-        return getData()[i];
-    }
-    inline const float& operator()(size_t i) const
-    {
+		return getData()[i];
+	}
+	inline const float &operator()(size_t i) const {
 #ifdef VECTOR_ASSERT
-        ASSERT(i<getRows());
+		ASSERT(i < getRows());
 #endif
-        return getData()[i];
-    }
-    // output
-    inline void print() const
-    {
-        for (size_t i=0; i<getRows(); i++)
-        {
-            float sig;
-            int exp;
-            float num = (*this)(i);
-            float2SigExp(num,sig,exp);
-            printf ("%6.3fe%03.3d,", (double)sig, exp);
-        }
-        printf("\n");
-    }
-    // boolean ops
-    inline bool operator==(const Vector & right) const
-    {
-        for (size_t i=0; i<getRows(); i++)
-        {
-            if (fabsf(((*this)(i) - right(i))) > 1e-30f)
-                return false;
-        }
-        return true;
-    }
-    // scalar ops
-    inline Vector operator+(const float & right) const
-    {
-        Vector result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) + right;
-        }
-        return result;
-    }
-    inline Vector operator-(const float & right) const
-    {
-        Vector result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) - right;
-        }
-        return result;
-    }
-    inline Vector operator*(const float & right) const
-    {
-        Vector result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) * right;
-        }
-        return result;
-    }
-    inline Vector operator/(const float & right) const
-    {
-        Vector result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) / right;
-        }
-        return result;
-    }
-    // vector ops
-    inline Vector operator+(const Vector & right) const
-    {
+		return getData()[i];
+	}
+	// output
+	inline void print() const {
+		for (size_t i = 0; i < getRows(); i++) {
+			float sig;
+			int exp;
+			float num = (*this)(i);
+			float2SigExp(num, sig, exp);
+			printf("%6.3fe%03.3d,", (double)sig, exp);
+		}
+
+		printf("\n");
+	}
+	// boolean ops
+	inline bool operator==(const Vector &right) const {
+		for (size_t i = 0; i < getRows(); i++) {
+			if (fabsf(((*this)(i) - right(i))) > 1e-30f)
+				return false;
+		}
+
+		return true;
+	}
+	// scalar ops
+	inline Vector operator+(const float &right) const {
+		Vector result(getRows());
+
+		for (size_t i = 0; i < getRows(); i++) {
+			result(i) = (*this)(i) + right;
+		}
+
+		return result;
+	}
+	inline Vector operator-(const float &right) const {
+		Vector result(getRows());
+
+		for (size_t i = 0; i < getRows(); i++) {
+			result(i) = (*this)(i) - right;
+		}
+
+		return result;
+	}
+	inline Vector operator*(const float &right) const {
+		Vector result(getRows());
+
+		for (size_t i = 0; i < getRows(); i++) {
+			result(i) = (*this)(i) * right;
+		}
+
+		return result;
+	}
+	inline Vector operator/(const float &right) const {
+		Vector result(getRows());
+
+		for (size_t i = 0; i < getRows(); i++) {
+			result(i) = (*this)(i) / right;
+		}
+
+		return result;
+	}
+	// vector ops
+	inline Vector operator+(const Vector &right) const {
 #ifdef VECTOR_ASSERT
-        ASSERT(getRows()==right.getRows());
+		ASSERT(getRows() == right.getRows());
 #endif
-        Vector result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) + right(i);
-        }
-        return result;
-    }
-    inline Vector operator-(const Vector & right) const
-    {
+		Vector result(getRows());
+
+		for (size_t i = 0; i < getRows(); i++) {
+			result(i) = (*this)(i) + right(i);
+		}
+
+		return result;
+	}
+	inline Vector operator-(const Vector &right) const {
 #ifdef VECTOR_ASSERT
-        ASSERT(getRows()==right.getRows());
+		ASSERT(getRows() == right.getRows());
 #endif
-        Vector result(getRows());
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result(i) = (*this)(i) - right(i);
-        }
-        return result;
-    }
-    // other functions
-    inline float dot(const Vector & right)
-    {
-        float result = 0;
-        for (size_t i=0; i<getRows(); i++)
-        {
-            result += (*this)(i)*(*this)(i);
-        }
-        return result;
-    }
-    inline float norm()
-    {
-        return sqrtf(dot(*this));
-    }
-    inline Vector unit()
-    {
-        return (*this)/norm();
-    }
-    inline static Vector zero(size_t rows)
-    {
-        Vector result(rows);
-        // calloc returns zeroed memory
-        return result;
-    }
-    inline void setAll(const float & val)
-    {
-        for (size_t i=0;i<getRows();i++)
-        {
-            (*this)(i) = val;
-        }
-    }
-    inline void set(const float * data)
-    {
-        memcpy(getData(),data,getSize());
-    }
-    inline size_t getRows() const { return _rows; }
+		Vector result(getRows());
+
+		for (size_t i = 0; i < getRows(); i++) {
+			result(i) = (*this)(i) - right(i);
+		}
+
+		return result;
+	}
+	// other functions
+	inline float dot(const Vector &right) {
+		float result = 0;
+
+		for (size_t i = 0; i < getRows(); i++) {
+			result += (*this)(i) * (*this)(i);
+		}
+
+		return result;
+	}
+	inline float norm() {
+		return sqrtf(dot(*this));
+	}
+	inline Vector unit() {
+		return (*this) / norm();
+	}
+	inline static Vector zero(size_t rows) {
+		Vector result(rows);
+		// calloc returns zeroed memory
+		return result;
+	}
+	inline void setAll(const float &val) {
+		for (size_t i = 0; i < getRows(); i++) {
+			(*this)(i) = val;
+		}
+	}
+	inline void set(const float *data) {
+		memcpy(getData(), data, getSize());
+	}
+	inline size_t getRows() const { return _rows; }
 protected:
-    inline size_t getSize() const { return sizeof(float)*getRows(); }
-    inline float * getData() { return _data; }
-    inline const float * getData() const { return _data; }
-    inline void setData(float * data) { _data = data; }
+	inline size_t getSize() const { return sizeof(float) * getRows(); }
+	inline float *getData() { return _data; }
+	inline const float *getData() const { return _data; }
+	inline void setData(float *data) { _data = data; }
 private:
-    size_t _rows;
-    float * _data;
+	size_t _rows;
+	float *_data;
 };
 
 } // math

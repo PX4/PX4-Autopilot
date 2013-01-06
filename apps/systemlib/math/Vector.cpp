@@ -44,56 +44,57 @@
 namespace math
 {
 
-static const float data_testA[] = {1,3};
-static const float data_testB[] = {4,1};
+static const float data_testA[] = {1, 3};
+static const float data_testB[] = {4, 1};
 
-static Vector testA(2,data_testA);
-static Vector testB(2,data_testB);
+static Vector testA(2, data_testA);
+static Vector testB(2, data_testB);
 
 int __EXPORT vectorTest()
 {
-    vectorAddTest();
-    vectorSubTest();
-    return 0;
+	vectorAddTest();
+	vectorSubTest();
+	return 0;
 }
 
 int vectorAddTest()
 {
-    printf("Test Vector Add\t\t: ");
-    Vector r = testA + testB;
-    float data_test[] = {5.0f, 4.0f};
-    ASSERT(vectorEqual(Vector(2,data_test),r));
-    printf("PASS\n");
-    return 0;
+	printf("Test Vector Add\t\t: ");
+	Vector r = testA + testB;
+	float data_test[] = {5.0f, 4.0f};
+	ASSERT(vectorEqual(Vector(2, data_test), r));
+	printf("PASS\n");
+	return 0;
 }
 
 int vectorSubTest()
 {
-    printf("Test Vector Sub\t\t: ");
-    Vector r(2);
-    r = testA - testB;
-    float data_test[] = {-3.0f, 2.0f};
-    ASSERT(vectorEqual(Vector(2,data_test),r));
-    printf("PASS\n");
-    return 0;
+	printf("Test Vector Sub\t\t: ");
+	Vector r(2);
+	r = testA - testB;
+	float data_test[] = { -3.0f, 2.0f};
+	ASSERT(vectorEqual(Vector(2, data_test), r));
+	printf("PASS\n");
+	return 0;
 }
 
-bool vectorEqual(const Vector & a, const Vector & b, float eps)
+bool vectorEqual(const Vector &a, const Vector &b, float eps)
 {
-    if (a.getRows() != b.getRows()) {
-        printf("row number not equal a: %d, b:%d\n", a.getRows(), b.getRows());
-        return false;
-    }
-    bool ret = true;
-    for (size_t i=0;i<a.getRows();i++)
-    {
-        if (!equal(a(i),b(i),eps))
-        {
-            printf("element mismatch (%d)\n", i);
-            ret = false;
-        }
-    }
-    return ret;
+	if (a.getRows() != b.getRows()) {
+		printf("row number not equal a: %d, b:%d\n", a.getRows(), b.getRows());
+		return false;
+	}
+
+	bool ret = true;
+
+	for (size_t i = 0; i < a.getRows(); i++) {
+		if (!equal(a(i), b(i), eps)) {
+			printf("element mismatch (%d)\n", i);
+			ret = false;
+		}
+	}
+
+	return ret;
 }
 
 } // namespace math

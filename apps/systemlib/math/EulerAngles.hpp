@@ -41,7 +41,8 @@
 
 #include "Vector.hpp"
 
-namespace math {
+namespace math
+{
 
 class Quaternion;
 class Dcm;
@@ -49,21 +50,21 @@ class Dcm;
 class __EXPORT EulerAngles : public Vector
 {
 public:
-    EulerAngles();
-    EulerAngles(float phi, float theta, float psi);
-    EulerAngles(const Quaternion & q);
-    EulerAngles(const Dcm & dcm);
-    virtual ~EulerAngles();
+	EulerAngles();
+	EulerAngles(float phi, float theta, float psi);
+	EulerAngles(const Quaternion &q);
+	EulerAngles(const Dcm &dcm);
+	virtual ~EulerAngles();
 
-    // alias
-    void setPhi(float phi) { (*this)(0) = phi; }
-    void setTheta(float theta) { (*this)(1) = theta; }
-    void setPsi(float psi) { (*this)(2) = psi; }
+	// alias
+	void setPhi(float phi) { (*this)(0) = phi; }
+	void setTheta(float theta) { (*this)(1) = theta; }
+	void setPsi(float psi) { (*this)(2) = psi; }
 
-    // const accessors
-    const float & getPhi() const { return (*this)(0); }
-    const float & getTheta() const { return (*this)(1); }
-    const float & getPsi() const { return (*this)(2); }
+	// const accessors
+	const float &getPhi() const { return (*this)(0); }
+	const float &getTheta() const { return (*this)(1); }
+	const float &getPsi() const { return (*this)(2); }
 
 };
 
