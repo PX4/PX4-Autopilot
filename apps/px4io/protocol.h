@@ -89,7 +89,7 @@ struct px4io_config {
 	uint16_t	rc_min[4];	/**< min value for each channel */
 	uint16_t	rc_trim[4];	/**< trim value for each channel */
 	uint16_t	rc_max[4];	/**< max value for each channel */
-	uint16_t	rc_rev[4];	/**< rev value for each channel */
+	int8_t		rc_rev[4];	/**< rev value for each channel */
 	uint16_t	rc_dz[4];	/**< dz value for each channel */
 };
 

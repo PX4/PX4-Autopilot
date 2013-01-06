@@ -75,7 +75,7 @@ struct sys_state_s {
 	/**
 	 * Remote control input(s) channel mappings
 	 */
-	uint8_t	rc_map[4];
+	uint8_t		rc_map[4];
 
 	/**
 	 * Remote control channel attributes 
@@ -83,7 +83,7 @@ struct sys_state_s {
 	uint16_t	rc_min[4];
 	uint16_t	rc_trim[4];
 	uint16_t	rc_max[4];
-	uint16_t	rc_rev[4];
+	int16_t		rc_rev[4];
 	uint16_t	rc_dz[4];
 
 	/**

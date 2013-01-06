@@ -80,7 +80,7 @@ bool mixer_servos_armed = false;
 static uint16_t *control_values;
 static int control_count;
 
-static uint16_t rc_channel_data[PX4IO_CONTROL_CHANNELS];
+static uint16_t rc_channel_data[PX4IO_INPUT_CHANNELS];
 
 static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_group,
@@ -127,14 +127,25 @@ mixer_tick(void)
 			rc_channel_data[THROTTLE] = system_state.rc_channel_data[system_state.rc_map[THROTTLE] - 1];
 
 			/* get the remaining channels, no remapping needed */
-			for (unsigned i = 4; i < system_state.rc_channels; i++)
+			for (unsigned i = 4; i < system_state.rc_channels; i++) {
 				rc_channel_data[i] = system_state.rc_channel_data[i];
+			}
 
-			/* scale the control inputs */
-			rc_channel_data[THROTTLE] = ((rc_channel_data[THROTTLE] - system_state.rc_min[THROTTLE]) / 
-				(system_state.rc_max[THROTTLE] - system_state.rc_min[THROTTLE])) * 1000 + 1000;
-			//lib_lowprintf("Tmin: %d Ttrim: %d Tmax: %d T: %d \n",
-			//	system_state.rc_min[THROTTLE], system_state.rc_trim[THROTTLE], system_state.rc_max[THROTTLE], rc_channel_data[THROTTLE]);
+			/* scale the control inputs */ 
+			rc_channel_data[THROTTLE] = ((float)(rc_channel_data[THROTTLE] - system_state.rc_min[THROTTLE]) / 
+				(float)(system_state.rc_max[THROTTLE] - system_state.rc_min[THROTTLE])) * 1000.0f + 1000;
+
+			if (rc_channel_data[THROTTLE] > 2000) {
+				rc_channel_data[THROTTLE] = 2000;
+			}
+
+			if (rc_channel_data[THROTTLE] < 1000) {
+				rc_channel_data[THROTTLE] = 1000;
+			}
+			
+			// lib_lowprintf("Tmin: %d Ttrim: %d Tmax: %d T: %d \n",
+			// 	(int)(system_state.rc_min[THROTTLE]), (int)(system_state.rc_trim[THROTTLE]),
+			// 	(int)(system_state.rc_max[THROTTLE]), (int)(rc_channel_data[THROTTLE]));
 
 			control_values = &rc_channel_data[0];
 			sched_unlock();
@@ -218,7 +229,11 @@ mixer_callback(uintptr_t handle,
 		return -1;
 
 	/* scale from current PWM units (1000-2000) to mixer input values */
-	control = ((float)control_values[control_index] - 1500.0f) / 500.0f;
+	if (system_state.manual_override_ok && system_state.mixer_manual_override && control_index == 3) {
+		control = ((float)control_values[control_index] - 1000.0f) / 1000.0f;
+	} else {
+		control = ((float)control_values[control_index] - 1500.0f) / 500.0f;
+	}
 
 	return 0;
 }

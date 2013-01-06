@@ -652,40 +652,41 @@ PX4IO::config_send()
 
 	/* maintaing the standard order of Roll, Pitch, Yaw, Throttle */		
 	param_get(param_find("RC_MAP_ROLL"), &val);
-	cfg.rc_map[0] = (uint8_t)val;
+	cfg.rc_map[0] = val;
 	param_get(param_find("RC_MAP_PITCH"), &val);
-	cfg.rc_map[1] = (uint8_t)val;
+	cfg.rc_map[1] = val;
 	param_get(param_find("RC_MAP_YAW"), &val);
-	cfg.rc_map[2] = (uint8_t)val;
+	cfg.rc_map[2] = val;
 	param_get(param_find("RC_MAP_THROTTLE"), &val);
-	cfg.rc_map[3] = (uint8_t)val;
+	cfg.rc_map[3] = val;
 
 	/* set the individual channel properties */
 	char nbuf[16];
+	float float_val;
 	for (unsigned i = 0; i < 4; i++) {
-		sprintf(nbuf, "RC%d_MIN", i);
-		param_get(param_find(nbuf), &val);	
-		cfg.rc_min[i] = (uint16_t)val;
+		sprintf(nbuf, "RC%d_MIN", i + 1);
+		param_get(param_find(nbuf), &float_val);	
+		cfg.rc_min[i] = float_val;
 	}
 	for (unsigned i = 0; i < 4; i++) {
-		sprintf(nbuf, "RC%d_TRIM", i);	
-		param_get(param_find(nbuf), &val);	
-		cfg.rc_trim[i] = (uint16_t)val;
+		sprintf(nbuf, "RC%d_TRIM", i + 1);	
+		param_get(param_find(nbuf), &float_val);	
+		cfg.rc_trim[i] = float_val;
 	}
 	for (unsigned i = 0; i < 4; i++) {
-		sprintf(nbuf, "RC%d_MAX", i);	
-		param_get(param_find(nbuf), &val);	
-		cfg.rc_max[i] = (uint16_t)val;
+		sprintf(nbuf, "RC%d_MAX", i + 1);	
+		param_get(param_find(nbuf), &float_val);	
+		cfg.rc_max[i] = float_val;
 	}
 	for (unsigned i = 0; i < 4; i++) {
-		sprintf(nbuf, "RC%d_REV", i);	
-		param_get(param_find(nbuf), &val);	
-		cfg.rc_rev[i] = (uint16_t)val;
+		sprintf(nbuf, "RC%d_REV", i + 1);	
+		param_get(param_find(nbuf), &float_val);	
+		cfg.rc_rev[i] = float_val;
 	}
 	for (unsigned i = 0; i < 4; i++) {
-		sprintf(nbuf, "RC%d_DZ", i);	
-		param_get(param_find(nbuf), &val);	
-		cfg.rc_dz[i] = (uint16_t)val;
+		sprintf(nbuf, "RC%d_DZ", i + 1);	
+		param_get(param_find(nbuf), &float_val);	
+		cfg.rc_dz[i] = float_val;
 	}
 
 	ret = hx_stream_send(_io_stream, &cfg, sizeof(cfg));
