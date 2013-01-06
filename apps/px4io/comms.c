@@ -227,7 +227,7 @@ comms_handle_command(const void *buffer, size_t length)
 		system_state.armed = false;
 
 	system_state.arm_ok = cmd->arm_ok;
-	system_state.mixer_use_fmu = true;
+	system_state.mixer_fmu_available = true;
 	system_state.fmu_data_received = true;
 
 	/* handle changes signalled by FMU */

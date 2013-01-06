@@ -84,7 +84,7 @@ mixer_tick(void)
 	/*
 	 * Decide which set of inputs we're using.
 	 */
-	if (system_state.mixer_use_fmu) {
+	if (system_state.mixer_use_fmu && system_state.mixer_fmu_available) {
 		/* we have recent control data from the FMU */
 		control_count = PX4IO_CONTROL_CHANNELS;
 		control_values = &system_state.fmu_channel_data[0];
@@ -145,7 +145,9 @@ mixer_tick(void)
 
 	/*
 	 * Decide whether the servos should be armed right now.
+	 * A sufficient reason is armed state and either FMU or RC control inputs
 	 */
+
 	should_arm = system_state.armed && system_state.arm_ok && (control_count > 0);
 
 	if (should_arm && !mixer_servos_armed) {

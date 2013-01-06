@@ -1,5 +1,7 @@
 .built
+*.swp
 *.context
+*.pyc
 .depend
 .config
 .version

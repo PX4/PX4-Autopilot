@@ -4,9 +4,15 @@
 
 typedef struct __mavlink_obs_position_t
 {
- int32_t lon; ///< Longitude expressed in 1E7
- int32_t lat; ///< Latitude expressed in 1E7
- int32_t alt; ///< Altitude expressed in milimeters
+ int32_t lon; ///< 
+                
+            
+ int32_t lat; ///< 
+                
+            
+ int32_t alt; ///< 
+                
+            
 } mavlink_obs_position_t;
 
 #define MAVLINK_MSG_ID_OBS_POSITION_LEN 12
@@ -30,9 +36,15 @@ typedef struct __mavlink_obs_position_t
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param lon Longitude expressed in 1E7
- * @param lat Latitude expressed in 1E7
- * @param alt Altitude expressed in milimeters
+ * @param lon 
+                
+            
+ * @param lat 
+                
+            
+ * @param alt 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_obs_position_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -64,9 +76,15 @@ static inline uint16_t mavlink_msg_obs_position_pack(uint8_t system_id, uint8_t 
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message was sent over
  * @param msg The MAVLink message to compress the data into
- * @param lon Longitude expressed in 1E7
- * @param lat Latitude expressed in 1E7
- * @param alt Altitude expressed in milimeters
+ * @param lon 
+                
+            
+ * @param lat 
+                
+            
+ * @param alt 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_obs_position_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -110,9 +128,15 @@ static inline uint16_t mavlink_msg_obs_position_encode(uint8_t system_id, uint8_
  * @brief Send a obs_position message
  * @param chan MAVLink channel to send the message
  *
- * @param lon Longitude expressed in 1E7
- * @param lat Latitude expressed in 1E7
- * @param alt Altitude expressed in milimeters
+ * @param lon 
+                
+            
+ * @param lat 
+                
+            
+ * @param alt 
+                
+            
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -143,7 +167,9 @@ static inline void mavlink_msg_obs_position_send(mavlink_channel_t chan, int32_t
 /**
  * @brief Get field lon from obs_position message
  *
- * @return Longitude expressed in 1E7
+ * @return 
+                
+            
  */
 static inline int32_t mavlink_msg_obs_position_get_lon(const mavlink_message_t* msg)
 {
@@ -153,7 +179,9 @@ static inline int32_t mavlink_msg_obs_position_get_lon(const mavlink_message_t* 
 /**
  * @brief Get field lat from obs_position message
  *
- * @return Latitude expressed in 1E7
+ * @return 
+                
+            
  */
 static inline int32_t mavlink_msg_obs_position_get_lat(const mavlink_message_t* msg)
 {
@@ -163,7 +191,9 @@ static inline int32_t mavlink_msg_obs_position_get_lat(const mavlink_message_t* 
 /**
  * @brief Get field alt from obs_position message
  *
- * @return Altitude expressed in milimeters
+ * @return 
+                
+            
  */
 static inline int32_t mavlink_msg_obs_position_get_alt(const mavlink_message_t* msg)
 {

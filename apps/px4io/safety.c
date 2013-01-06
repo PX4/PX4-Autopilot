@@ -58,7 +58,7 @@ static struct hrt_call failsafe_call;
  * Count the number of times in a row that we see the arming button
  * held down.
  */
-static unsigned counter;
+static unsigned counter = 0;
 
 /*
  * Define the various LED flash sequences for each system state.

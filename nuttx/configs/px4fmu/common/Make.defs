@@ -55,7 +55,7 @@ NM			 = $(CROSSDEV)nm
 OBJCOPY			 = $(CROSSDEV)objcopy
 OBJDUMP			 = $(CROSSDEV)objdump
 
-MAXOPTIMIZATION		 = -O3
+MAXOPTIMIZATION		 = -O3 # disable for debugging
 ARCHCPUFLAGS		 = -mcpu=cortex-m4 \
 			   -mthumb \
 			   -march=armv7e-m \
@@ -66,6 +66,11 @@ ARCHCPUFLAGS		 = -mcpu=cortex-m4 \
 # enable precise stack overflow tracking
 INSTRUMENTATIONDEFINES	 = -finstrument-functions \
 			   -ffixed-r10
+
+#CMSIS
+CMSIS_INCLUDE = $(TOPDIR)/../CMSIS/Include
+CMSIS_LIB = $(TOPDIR)/../CMSIS/Lib/GCC/libarm_cortexM4lf_math.a
+EXTRA_LIBS		+= $(CMSIS_LIB)
 
 # pull in *just* libm from the toolchain ... this is grody
 LIBM			 = "${shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a}"
@@ -79,8 +84,8 @@ ifeq ($(WINTOOL),y)
   DIRLINK		 = $(TOPDIR)/tools/winlink.sh
   DIRUNLINK		 = $(TOPDIR)/tools/unlink.sh
   MKDEP			 = $(TOPDIR)/tools/mknulldeps.sh
-  ARCHINCLUDES		 = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}"
-  ARCHXXINCLUDES	 = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}" -isystem "${shell cygpath -w $(TOPDIR)/include/cxx}"
+  ARCHINCLUDES		 = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}" -isystem "${shell cygpath -w $(CMSIS_INCLUDE)}"
+  ARCHXXINCLUDES	 = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}" -isystem "${shell cygpath -w $(TOPDIR)/include/cxx}" -isystem "${shell cygpath -w $(CMSIS_INCLUDE)}"
   ARCHSCRIPT		 = -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/common/$(LDSCRIPT)}"
 else
   ifeq ($(PX4_WINTOOL),y)
@@ -88,14 +93,14 @@ else
     DIRLINK		 = $(TOPDIR)/tools/winlink.sh
     DIRUNLINK		 = $(TOPDIR)/tools/unlink.sh
     MKDEP		 = $(TOPDIR)/tools/mknulldeps.sh
-    ARCHINCLUDES	 = -I. -isystem $(TOPDIR)/include
-    ARCHXXINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
+    ARCHINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(CMSIS_INCLUDE)
+    ARCHXXINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx -isystem $(CMSIS_INCLUDE)
     ARCHSCRIPT		 = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/common/$(LDSCRIPT)
   else
     # Linux/Cygwin-native toolchain 
     MKDEP		 = $(TOPDIR)/tools/mkdeps.sh
-    ARCHINCLUDES	 = -I. -isystem $(TOPDIR)/include
-    ARCHXXINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
+    ARCHINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(CMSIS_INCLUDE)
+    ARCHXXINCLUDES	 = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx -isystem $(CMSIS_INCLUDE)
     ARCHSCRIPT		 = -T$(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/common/$(LDSCRIPT)
   endif
 endif
@@ -144,7 +149,7 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 			   -Wnested-externs \
 			   -Wunsuffixed-float-constants
 ARCHWARNINGSXX		 = $(ARCHWARNINGS)
-ARCHDEFINES		 = 
+ARCHDEFINES		 = -DARM_MATH_CM4 -D__FPU_PRESENT
 ARCHPICFLAGS		 = -fpic -msingle-pic-base -mpic-register=r10
 
 # this seems to be the only way to add linker flags

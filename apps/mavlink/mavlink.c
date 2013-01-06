@@ -77,7 +77,7 @@
 /* define MAVLink specific parameters */
 PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
-PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_QUADROTOR);
+PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_FIXED_WING);
 
 __EXPORT int mavlink_main(int argc, char *argv[]);
 
@@ -121,6 +121,8 @@ static int uart;
 static int baudrate;
 bool gcs_link = true;
 
+int hil_mode = HIL_MODE_SENSORS;
+
 /* interface mode */
 static enum {
 	MAVLINK_INTERFACE_MODE_OFFBOARD,
@@ -134,8 +136,6 @@ static int mavlink_open_uart(int baudrate, const char *uart_name, struct termios
 static void usage(void);
 int set_mavlink_interval_limit(struct mavlink_subscriptions *subs, int mavlink_msg_id, int min_interval);
 
-
-
 int
 set_hil_on_off(bool hil_enabled)
 {
@@ -145,8 +145,15 @@ set_hil_on_off(bool hil_enabled)
 	if (hil_enabled && !mavlink_hil_enabled) {
 
 		/* Advertise topics */
-		pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
-		pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
+        if (hil_mode == HIL_MODE_STATE) {
+            pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
+            pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
+        }
+        else if (hil_mode == HIL_MODE_SENSORS)
+        {
+		    pub_hil_sensors = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
+		    pub_hil_gps = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
+        }
 
 		mavlink_hil_enabled = true;
 
@@ -189,10 +196,6 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 	*mavlink_mode = 0;
 
 	/* set mode flags independent of system state */
-	if (v_status.flag_control_manual_enabled) {
-		*mavlink_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-	}
-
 	if (v_status.flag_hil_enabled) {
 		*mavlink_mode |= MAV_MODE_FLAG_HIL_ENABLED;
 	}
@@ -231,11 +234,14 @@ get_mavlink_mode_and_state(uint8_t *mavlink_state, uint8_t *mavlink_mode)
 	case SYSTEM_STATE_STABILIZED:
 		*mavlink_state = MAV_STATE_ACTIVE;
 		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
 		break;
 
 	case SYSTEM_STATE_AUTO:
 		*mavlink_state = MAV_STATE_ACTIVE;
 		*mavlink_mode |= MAV_MODE_FLAG_GUIDED_ENABLED;
+		*mavlink_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+		*mavlink_mode |= MAV_MODE_FLAG_AUTO_ENABLED;
 		break;
 
 	case SYSTEM_STATE_MISSION_ABORT:
@@ -745,6 +751,7 @@ int mavlink_main(int argc, char *argv[])
 		thread_should_exit = true;
 		while (thread_running) {
 			usleep(200000);
+			printf(".");
 		}
 		warnx("terminated.");
 		exit(0);

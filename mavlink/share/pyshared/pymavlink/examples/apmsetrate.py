@@ -20,14 +20,8 @@ parser.add_option("--source-system", dest='SOURCE_SYSTEM', type='int',
                   default=255, help='MAVLink source system for this GCS')
 parser.add_option("--showmessages", dest="showmessages", action='store_true',
                   help="show incoming messages", default=False)
-parser.add_option("--mav10", action='store_true', default=False, help="Use MAVLink protocol 1.0")
 (opts, args) = parser.parse_args()
 
-if opts.mav10:
-    os.environ['MAVLINK10'] = '1'
-    import mavlink10 as mavlink
-else:
-    import mavlink
 import mavutil
 
 if opts.device is None:
@@ -62,6 +56,6 @@ wait_heartbeat(master)
 print("Sending all stream request for rate %u" % opts.rate)
 for i in range(0, 3):
     master.mav.request_data_stream_send(master.target_system, master.target_component,
-                                        mavlink.MAV_DATA_STREAM_ALL, opts.rate, 1)
+                                        mavutil.mavlink.MAV_DATA_STREAM_ALL, opts.rate, 1)
 if opts.showmessages:
     show_messages(master)

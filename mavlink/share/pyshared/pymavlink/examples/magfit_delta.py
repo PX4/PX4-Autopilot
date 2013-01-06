@@ -15,7 +15,6 @@ from optparse import OptionParser
 parser = OptionParser("magfit_delta.py [options]")
 parser.add_option("--no-timestamps",dest="notimestamps", action='store_true', help="Log doesn't have timestamps")
 parser.add_option("--condition",dest="condition", default=None, help="select packets by condition")
-parser.add_option("--mav10", action='store_true', default=False, help="Use MAVLink protocol 1.0")
 parser.add_option("--verbose", action='store_true', default=False, help="verbose offset output")
 parser.add_option("--gain", type='float', default=0.01, help="algorithm gain")
 parser.add_option("--noise", type='float', default=0, help="noise to add")
@@ -26,8 +25,6 @@ parser.add_option("--repeat", type='int', default=1, help="number of repeats thr
 
 (opts, args) = parser.parse_args()
 
-if opts.mav10:
-    os.environ['MAVLINK10'] = '1'
 import mavutil
 from rotmat import Vector3, Matrix3
 

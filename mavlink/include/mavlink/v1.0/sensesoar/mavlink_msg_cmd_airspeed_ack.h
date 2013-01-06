@@ -4,8 +4,12 @@
 
 typedef struct __mavlink_cmd_airspeed_ack_t
 {
- float spCmd; ///< commanded airspeed
- uint8_t ack; ///< 0:ack, 1:nack
+ float spCmd; ///< 
+                
+            
+ uint8_t ack; ///< 
+                
+            
 } mavlink_cmd_airspeed_ack_t;
 
 #define MAVLINK_MSG_ID_CMD_AIRSPEED_ACK_LEN 5
@@ -28,8 +32,12 @@ typedef struct __mavlink_cmd_airspeed_ack_t
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param spCmd commanded airspeed
- * @param ack 0:ack, 1:nack
+ * @param spCmd 
+                
+            
+ * @param ack 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_cmd_airspeed_ack_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -59,8 +67,12 @@ static inline uint16_t mavlink_msg_cmd_airspeed_ack_pack(uint8_t system_id, uint
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message was sent over
  * @param msg The MAVLink message to compress the data into
- * @param spCmd commanded airspeed
- * @param ack 0:ack, 1:nack
+ * @param spCmd 
+                
+            
+ * @param ack 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_cmd_airspeed_ack_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -102,8 +114,12 @@ static inline uint16_t mavlink_msg_cmd_airspeed_ack_encode(uint8_t system_id, ui
  * @brief Send a cmd_airspeed_ack message
  * @param chan MAVLink channel to send the message
  *
- * @param spCmd commanded airspeed
- * @param ack 0:ack, 1:nack
+ * @param spCmd 
+                
+            
+ * @param ack 
+                
+            
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -132,7 +148,9 @@ static inline void mavlink_msg_cmd_airspeed_ack_send(mavlink_channel_t chan, flo
 /**
  * @brief Get field spCmd from cmd_airspeed_ack message
  *
- * @return commanded airspeed
+ * @return 
+                
+            
  */
 static inline float mavlink_msg_cmd_airspeed_ack_get_spCmd(const mavlink_message_t* msg)
 {
@@ -142,7 +160,9 @@ static inline float mavlink_msg_cmd_airspeed_ack_get_spCmd(const mavlink_message
 /**
  * @brief Get field ack from cmd_airspeed_ack message
  *
- * @return 0:ack, 1:nack
+ * @return 
+                
+            
  */
 static inline uint8_t mavlink_msg_cmd_airspeed_ack_get_ack(const mavlink_message_t* msg)
 {

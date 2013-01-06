@@ -60,6 +60,10 @@
 #define DEBUG
 #include "px4io.h"
 
+#define RC_FAILSAFE_TIMEOUT		2000000		/**< two seconds failsafe timeout */
+#define RC_CHANNEL_HIGH_THRESH		1600
+#define RC_CHANNEL_LOW_THRESH		1400
+
 static void	ppm_input(void);
 
 void
@@ -107,6 +111,14 @@ controls_main(void)
 		if (!locked)
 			ppm_input();
 
+		/* force manual input override */
+		if (system_state.rc_channel_data[4] > RC_CHANNEL_HIGH_THRESH) {
+			system_state.mixer_use_fmu = false;
+		} else {
+			/* override not engaged, use FMU */
+			system_state.mixer_use_fmu = true;
+		}
+
 		/*
 		 * If we haven't seen any new control data in 200ms, assume we
 		 * have lost input and tell FMU.
@@ -115,12 +127,11 @@ controls_main(void)
 
 			/* set the number of channels to zero - no inputs */
 			system_state.rc_channels = 0;
+			system_state.rc_lost = true;
 
 			/* trigger an immediate report to the FMU */
 			system_state.fmu_report_due = true;
 		}
-
-		/* XXX do bypass mode, etc. here */
 
 		/* do PWM output updates */
 		mixer_tick();

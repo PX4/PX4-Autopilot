@@ -1,0 +1,125 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="http://jsbsim.sourceforge.net/JSBSim.xsl"?>
+
+<flight_control name="FCS: easystar">
+    <channel name="Pitch">
+        <summer name="fcs/pitch-trim-sum">
+            <input>fcs/elevator-cmd-norm</input>
+            <input>fcs/pitch-trim-cmd-norm</input>
+            <clipto>
+                <min>-1</min>
+                <max>1</max>
+            </clipto>
+        </summer>
+
+        <aerosurface_scale name="fcs/elevator-control">
+            <input>fcs/pitch-trim-sum</input>
+            <range>
+                <min>-0.454</min>
+                <max>0.244</max>
+            </range>
+            <output>fcs/elevator-pos-rad</output>
+        </aerosurface_scale>
+    </channel>
+    <channel name="Roll">
+        <summer name="fcs/roll-trim-sum">
+            <input>fcs/aileron-cmd-norm</input>
+            <input>fcs/roll-trim-cmd-norm</input>
+            <clipto>
+                <min>-1</min>
+                <max>1</max>
+            </clipto>
+        </summer>
+
+        <aerosurface_scale name="fcs/left-aileron-control">
+            <input>fcs/roll-trim-sum</input>
+            <range>
+                <min>-0.28</min>
+                <max>0.33</max>
+            </range>
+            <output>fcs/left-aileron-pos-rad</output>
+        </aerosurface_scale>
+
+        <aerosurface_scale name="fcs/right-aileron-control">
+            <input>-fcs/roll-trim-sum</input>
+            <range>
+                <min>-0.28</min>
+                <max>0.33</max>
+            </range>
+            <output>fcs/right-aileron-pos-rad</output>
+        </aerosurface_scale>
+    </channel>
+    <channel name="Yaw">
+        <summer name="fcs/rudder-command-sum">
+            <input>fcs/rudder-cmd-norm</input>
+            <input>fcs/yaw-trim-cmd-norm</input>
+            <clipto>
+                <min>-1</min>
+                <max>1</max>
+            </clipto>
+        </summer>
+
+        <aerosurface_scale name="fcs/rudder-control">
+            <input>fcs/rudder-command-sum</input>
+            <range>
+                <min>-0.28</min>
+                <max>0.28</max>
+            </range>
+            <output>fcs/rudder-pos-rad</output>
+        </aerosurface_scale>
+    </channel>
+    <channel name="Flaps">
+        <kinematic name="fcs/flaps-control">
+            <input>fcs/flap-cmd-norm</input>
+            <traverse>
+                <setting>
+                    <position>0</position>
+                    <time>0</time>
+                </setting>
+                <setting>
+                    <position>15</position>
+                    <time>4</time>
+                </setting>
+                <setting>
+                    <position>25</position>
+                    <time>2</time>
+                </setting>
+                <setting>
+                    <position>40</position>
+                    <time>3</time>
+                </setting>
+            </traverse>
+            <output>fcs/flap-pos-deg</output>
+        </kinematic>
+
+        <aerosurface_scale name="fcs/flap-position-normalizer">
+          <input>fcs/flap-pos-deg</input>
+          <domain>
+            <min>0</min>  <!-- Flaps actual minimum position -->
+            <max>40</max>  <!-- Flaps actual maximum position -->
+          </domain>
+          <range>
+            <min>0</min>  <!-- Flaps normalized minimum position -->
+            <max>1</max>  <!-- Flaps normalized maximum position -->
+          </range>
+          <output>fcs/flap-pos-norm</output>
+        </aerosurface_scale>
+
+    </channel>
+    <channel name="Speedbrake">
+        <kinematic name="fcs/speedbrake-control">
+            <input>fcs/speedbrake-cmd-norm</input>
+            <traverse>
+                <setting>
+                    <position>0</position>
+                    <time>0</time>
+                </setting>
+                <setting>
+                    <position>1</position>
+                    <time>1</time>
+                </setting>
+            </traverse>
+            <output>fcs/speedbrake-pos-norm</output>
+        </kinematic>
+    </channel>
+</flight_control>

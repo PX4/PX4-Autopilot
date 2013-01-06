@@ -566,28 +566,28 @@ l_manual_control_setpoint(struct listener *l)
 void
 l_vehicle_attitude_controls(struct listener *l)
 {
-	struct actuator_controls_s actuators;
+	struct actuator_controls_effective_s actuators;
 
-	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, mavlink_subs.actuators_sub, &actuators);
+	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, mavlink_subs.actuators_sub, &actuators);
 
 	if (gcs_link) {
 		/* send, add spaces so that string buffer is at least 10 chars long */
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
-						   "ctrl0       ",
-						   actuators.control[0]);
+						   "eff ctrl0    ",
+						   actuators.control_effective[0]);
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
-						   "ctrl1       ",
-						   actuators.control[1]);
+						   "eff ctrl1    ",
+						   actuators.control_effective[1]);
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
-						   "ctrl2       ",
-						   actuators.control[2]);
+						   "eff ctrl2     ",
+						   actuators.control_effective[2]);
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
-						   "ctrl3       ",
-						   actuators.control[3]);
+						   "eff ctrl3     ",
+						   actuators.control_effective[3]);
 	}
 }
 
@@ -696,7 +696,7 @@ uorb_receive_start(void)
 
 	/* --- GLOBAL POS VALUE --- */
 	mavlink_subs.global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	orb_set_interval(mavlink_subs.global_pos_sub, 1000);	/* 1Hz active updates */
+	orb_set_interval(mavlink_subs.global_pos_sub, 100);	/* 10Hz active updates */
 
 	/* --- LOCAL POS VALUE --- */
 	mavlink_subs.local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
@@ -739,7 +739,7 @@ uorb_receive_start(void)
 	orb_set_interval(mavlink_subs.man_control_sp_sub, 100);	/* 10Hz updates */
 
 	/* --- ACTUATOR CONTROL VALUE --- */
-	mavlink_subs.actuators_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	mavlink_subs.actuators_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE);
 	orb_set_interval(mavlink_subs.actuators_sub, 100);	/* 10Hz updates */
 
 	/* --- DEBUG VALUE OUTPUT --- */

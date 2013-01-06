@@ -23,7 +23,7 @@
 '''rotation matrix class
 '''
 
-from math import sin, cos, sqrt, asin, atan2, pi, radians, acos
+from math import sin, cos, sqrt, asin, atan2, pi, radians, acos, degrees
 
 class Vector3:
     '''a vector'''
@@ -102,10 +102,10 @@ class Vector3:
 
     def angle(self, v):
         '''return the angle between this vector and another vector'''
-        return acos(self * v) / (self.length() * v.length())
+        return acos((self * v) / (self.length() * v.length()))
 
     def normalized(self):
-        return self / self.length()
+        return self.__div__(self.length())
     
     def normalize(self):
         v = self.normalized()
@@ -143,21 +143,21 @@ class Matrix3:
     def from_euler(self, roll, pitch, yaw):
         '''fill the matrix from Euler angles in radians'''
         cp = cos(pitch)
-	sp = sin(pitch)
-	sr = sin(roll)
-	cr = cos(roll)
-	sy = sin(yaw)
-	cy = cos(yaw)
+        sp = sin(pitch)
+        sr = sin(roll)
+        cr = cos(roll)
+        sy = sin(yaw)
+        cy = cos(yaw)
 
-	self.a.x = cp * cy
-	self.a.y = (sr * sp * cy) - (cr * sy)
-	self.a.z = (cr * sp * cy) + (sr * sy)
-	self.b.x = cp * sy
-	self.b.y = (sr * sp * sy) + (cr * cy)
-	self.b.z = (cr * sp * sy) - (sr * cy)
-	self.c.x = -sp
-	self.c.y = sr * cp
-	self.c.z = cr * cp
+        self.a.x = cp * cy
+        self.a.y = (sr * sp * cy) - (cr * sy)
+        self.a.z = (cr * sp * cy) + (sr * sy)
+        self.b.x = cp * sy
+        self.b.y = (sr * sp * sy) + (cr * cy)
+        self.b.z = (cr * sp * sy) - (sr * cy)
+        self.c.x = -sp
+        self.c.y = sr * cp
+        self.c.z = cr * cp
 
 
     def to_euler(self):
@@ -216,29 +216,29 @@ class Matrix3:
 
     def rotate(self, g):
         '''rotate the matrix by a given amount on 3 axes'''
-	temp_matrix = Matrix3()
+        temp_matrix = Matrix3()
         a = self.a
         b = self.b
         c = self.c
-	temp_matrix.a.x = a.y * g.z - a.z * g.y
-	temp_matrix.a.y = a.z * g.x - a.x * g.z
-	temp_matrix.a.z = a.x * g.y - a.y * g.x
-	temp_matrix.b.x = b.y * g.z - b.z * g.y
-	temp_matrix.b.y = b.z * g.x - b.x * g.z
-	temp_matrix.b.z = b.x * g.y - b.y * g.x
-	temp_matrix.c.x = c.y * g.z - c.z * g.y
-	temp_matrix.c.y = c.z * g.x - c.x * g.z
-	temp_matrix.c.z = c.x * g.y - c.y * g.x
+        temp_matrix.a.x = a.y * g.z - a.z * g.y
+        temp_matrix.a.y = a.z * g.x - a.x * g.z
+        temp_matrix.a.z = a.x * g.y - a.y * g.x
+        temp_matrix.b.x = b.y * g.z - b.z * g.y
+        temp_matrix.b.y = b.z * g.x - b.x * g.z
+        temp_matrix.b.z = b.x * g.y - b.y * g.x
+        temp_matrix.c.x = c.y * g.z - c.z * g.y
+        temp_matrix.c.y = c.z * g.x - c.x * g.z
+        temp_matrix.c.z = c.x * g.y - c.y * g.x
         self.a += temp_matrix.a
         self.b += temp_matrix.b
         self.c += temp_matrix.c
 
     def normalize(self):
         '''re-normalise a rotation matrix'''
-	error = self.a * self.b
-	t0 = self.a - (self.b * (0.5 * error))
-	t1 = self.b - (self.a * (0.5 * error))
-	t2 = t0 % t1
+        error = self.a * self.b
+        t0 = self.a - (self.b * (0.5 * error))
+        t1 = self.b - (self.a * (0.5 * error))
+        t2 = t0 % t1
         self.a = t0 * (1.0 / t0.length())
         self.b = t1 * (1.0 / t1.length())
         self.c = t2 * (1.0 / t2.length())
@@ -246,6 +246,70 @@ class Matrix3:
     def trace(self):
         '''the trace of the matrix'''
         return self.a.x + self.b.y + self.c.z
+
+    def from_axis_angle(self, axis, angle):
+        '''create a rotation matrix from axis and angle'''
+        ux = axis.x
+        uy = axis.y
+        uz = axis.z
+        ct = cos(angle)
+        st = sin(angle)
+        self.a.x = ct + (1-ct) * ux**2
+        self.a.y = ux*uy*(1-ct) - uz*st
+        self.a.z = ux*uz*(1-ct) + uy*st
+        self.b.x = uy*ux*(1-ct) + uz*st
+        self.b.y = ct + (1-ct) * uy**2
+        self.b.z = uy*uz*(1-ct) - ux*st
+        self.c.x = uz*ux*(1-ct) - uy*st
+        self.c.y = uz*uy*(1-ct) + ux*st
+        self.c.z = ct + (1-ct) * uz**2
+
+
+    def from_two_vectors(self, vec1, vec2):
+        '''get a rotation matrix from two vectors.
+           This returns a rotation matrix which when applied to vec1
+           will produce a vector pointing in the same direction as vec2'''
+        angle = vec1.angle(vec2)
+        cross = vec1 % vec2
+        if cross.length() == 0:
+            # the two vectors are colinear
+            return self.from_euler(0,0,angle)
+        cross.normalize()
+        return self.from_axis_angle(cross, angle)
+
+
+class Plane:
+    '''a plane in 3 space, defined by a point and a vector normal'''
+    def __init__(self, point=None, normal=None):
+        if point is None:
+            point = Vector3(0,0,0)
+        if normal is None:
+            normal = Vector3(0, 0, 1)
+        self.point = point
+        self.normal = normal
+
+class Line:
+    '''a line in 3 space, defined by a point and a vector'''
+    def __init__(self, point=None, vector=None):
+        if point is None:
+            point = Vector3(0,0,0)
+        if vector is None:
+            vector = Vector3(0, 0, 1)
+        self.point = point
+        self.vector = vector
+
+    def plane_intersection(self, plane, forward_only=False):
+        '''return point where line intersects with a plane'''
+        l_dot_n = self.vector * plane.normal
+        if l_dot_n == 0.0:
+            # line is parallel to the plane
+            return None
+        d = ((plane.point - self.point) * plane.normal) / l_dot_n
+        if forward_only and d < 0:
+            return None
+        return (self.vector * d) + self.point
+        
+
 
 def test_euler():
     '''check that from_euler() and to_euler() are consistent'''
@@ -261,9 +325,37 @@ def test_euler():
                 diff = v1 - v2
                 if diff.length() > 1.0e-12:
                     print('EULER ERROR:', v1, v2, diff.length())
-                    
+
+
+def test_two_vectors():
+    '''test the from_two_vectors() method'''
+    import random
+    for i in range(1000):
+        v1 = Vector3(1, 0.2, -3)
+        v2 = Vector3(random.uniform(-5,5), random.uniform(-5,5), random.uniform(-5,5))
+        m = Matrix3()
+        m.from_two_vectors(v1, v2)
+        v3 = m * v1
+        diff = v3.normalized() - v2.normalized()
+        (r, p, y) = m.to_euler()
+        if diff.length() > 0.001:
+            print('err=%f' % diff.length())
+            print("r/p/y = %.1f %.1f %.1f" % (
+                degrees(r), degrees(p), degrees(y)))
+            print(v1.normalized(), v2.normalized(), v3.normalized())
+
+def test_plane():
+    '''testing line/plane intersection'''
+    print("testing plane/line maths")
+    plane = Plane(Vector3(0,0,0), Vector3(0,0,1))
+    line = Line(Vector3(0,0,100), Vector3(10, 10, -90))
+    p = line.plane_intersection(plane)
+    print(p)
+    
 if __name__ == "__main__":
     import doctest
     doctest.testmod()
     test_euler()
+    test_two_vectors()
+    
     

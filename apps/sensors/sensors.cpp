@@ -96,6 +96,12 @@
 
 #define PPM_INPUT_TIMEOUT_INTERVAL	50000 /**< 50 ms timeout / 20 Hz */
 
+enum RC_DEMIX {
+	RC_DEMIX_NONE  = 0,
+	RC_DEMIX_AUTO  = 1,
+	RC_DEMIX_DELTA = 2
+};
+
 /**
  * Sensor app start / stop handling function
  *
@@ -181,11 +187,17 @@ private:
 
 		int rc_type;
 
+		int rc_demix;					/**< enabled de-mixing of RC mixers */
+
 		int rc_map_roll;
 		int rc_map_pitch;
 		int rc_map_yaw;
 		int rc_map_throttle;
 		int rc_map_mode_sw;
+
+		int rc_map_aux1;
+		int rc_map_aux2;
+		int rc_map_aux3;
 
 		float rc_scale_roll;
 		float rc_scale_pitch;
@@ -203,6 +215,8 @@ private:
 		param_t ex[_rc_max_chan_count];
 		param_t rc_type;
 
+		param_t rc_demix;
+
 		param_t gyro_offset[3];
 		param_t accel_offset[3];
 		param_t accel_scale[3];
@@ -214,6 +228,10 @@ private:
 		param_t rc_map_yaw;
 		param_t rc_map_throttle;
 		param_t rc_map_mode_sw;
+
+		param_t rc_map_aux1;
+		param_t rc_map_aux2;
+		param_t rc_map_aux3;
 
 		param_t rc_scale_roll;
 		param_t rc_scale_pitch;
@@ -388,11 +406,16 @@ Sensors::Sensors() :
 
 	_parameter_handles.rc_type = param_find("RC_TYPE");
 
+	_parameter_handles.rc_demix = param_find("RC_DEMIX");
+
 	_parameter_handles.rc_map_roll 	= param_find("RC_MAP_ROLL");
 	_parameter_handles.rc_map_pitch = param_find("RC_MAP_PITCH");
 	_parameter_handles.rc_map_yaw 	= param_find("RC_MAP_YAW");
 	_parameter_handles.rc_map_throttle = param_find("RC_MAP_THROTTLE");
 	_parameter_handles.rc_map_mode_sw = param_find("RC_MAP_MODE_SW");
+	_parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
+	_parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
+	_parameter_handles.rc_map_aux3 = param_find("RC_MAP_AUX3");
 
 	_parameter_handles.rc_scale_roll = param_find("RC_SCALE_ROLL");
 	_parameter_handles.rc_scale_pitch = param_find("RC_SCALE_PITCH");
@@ -484,18 +507,19 @@ Sensors::parameters_update()
 			_parameters.scaling_factor[i] = 0;
 		}
 
-	}
+		/* handle wrong values */
+		// XXX TODO
 
-	/* update RC function mappings */
-	_rc.function[0] = _parameters.rc_map_throttle - 1;
-	_rc.function[1] = _parameters.rc_map_roll - 1;
-	_rc.function[2] = _parameters.rc_map_pitch - 1;
-	_rc.function[3] = _parameters.rc_map_yaw - 1;
-	_rc.function[4] = _parameters.rc_map_mode_sw - 1;
+	}
 
 	/* remote control type */
 	if (param_get(_parameter_handles.rc_type, &(_parameters.rc_type)) != OK) {
 		warnx("Failed getting remote control type");
+	}
+
+	/* de-mixing */
+	if (param_get(_parameter_handles.rc_demix, &(_parameters.rc_demix)) != OK) {
+		warnx("Failed getting demix setting");
 	}
 
 	/* channel mapping */
@@ -514,6 +538,15 @@ Sensors::parameters_update()
 	if (param_get(_parameter_handles.rc_map_mode_sw, &(_parameters.rc_map_mode_sw)) != OK) {
 		warnx("Failed getting mode sw chan index");
 	}
+	if (param_get(_parameter_handles.rc_map_aux1, &(_parameters.rc_map_aux1)) != OK) {
+		warnx("Failed getting mode aux 1 index");
+	}
+	if (param_get(_parameter_handles.rc_map_aux2, &(_parameters.rc_map_aux2)) != OK) {
+		warnx("Failed getting mode aux 2 index");
+	}
+	if (param_get(_parameter_handles.rc_map_aux3, &(_parameters.rc_map_aux3)) != OK) {
+		warnx("Failed getting mode aux 3 index");
+	}
 
 	if (param_get(_parameter_handles.rc_scale_roll, &(_parameters.rc_scale_roll)) != OK) {
 		warnx("Failed getting rc scaling for roll");
@@ -524,6 +557,16 @@ Sensors::parameters_update()
 	if (param_get(_parameter_handles.rc_scale_yaw, &(_parameters.rc_scale_yaw)) != OK) {
 		warnx("Failed getting rc scaling for yaw");
 	}
+
+	/* update RC function mappings */
+	_rc.function[THROTTLE] = _parameters.rc_map_throttle - 1;
+	_rc.function[ROLL] = _parameters.rc_map_roll - 1;
+	_rc.function[PITCH] = _parameters.rc_map_pitch - 1;
+	_rc.function[YAW] = _parameters.rc_map_yaw - 1;
+	_rc.function[OVERRIDE] = _parameters.rc_map_mode_sw - 1;
+	_rc.function[FUNC_0] = _parameters.rc_map_aux1 - 1;
+	_rc.function[FUNC_1] = _parameters.rc_map_aux2 - 1;
+	_rc.function[FUNC_2] = _parameters.rc_map_aux3 - 1;
 
 	/* gyro offsets */
 	param_get(_parameter_handles.gyro_offset[0], &(_parameters.gyro_offset[0]));
@@ -965,35 +1008,54 @@ Sensors::ppm_poll()
 
 		manual_control.timestamp = rc_input.timestamp;
 
-		/* roll input - rolling right is stick-wise and rotation-wise positive */
-		manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled;
+		/* check if input needs to be de-mixed */
+		if (_parameters.rc_demix == (int)RC_DEMIX_DELTA) {
+			// XXX hardcoded for testing purposes, replace with inverted delta mixer from ROMFS
+
+			/* roll input - mixed roll and pitch channels */
+			manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled - _rc.chan[_rc.function[PITCH]].scaled;
+			/* pitch input - mixed roll and pitch channels */
+			manual_control.pitch = -0.5f * (_rc.chan[_rc.function[ROLL]].scaled + _rc.chan[_rc.function[PITCH]].scaled);
+			/* yaw input - stick right is positive and positive rotation */
+			manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled;
+			/* throttle input */
+			manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
+
+		/* direct pass-through of manual input */
+		} else {
+			/* roll input - rolling right is stick-wise and rotation-wise positive */
+			manual_control.roll = _rc.chan[_rc.function[ROLL]].scaled;
+			/*
+			 * pitch input - stick down is negative, but stick down is pitching up (pos) in NED,
+			 * so reverse sign.
+			 */
+			manual_control.pitch = -1.0f * _rc.chan[_rc.function[PITCH]].scaled;
+			/* yaw input - stick right is positive and positive rotation */
+			manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled;
+			/* throttle input */
+			manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
+		}
+
+		/* limit outputs */
 		if (manual_control.roll < -1.0f) manual_control.roll = -1.0f;
 		if (manual_control.roll >  1.0f) manual_control.roll =  1.0f;
-		if (!isnan(_parameters.rc_scale_roll) || !isinf(_parameters.rc_scale_roll)) {
+		if (isfinite(_parameters.rc_scale_roll) && _parameters.rc_scale_roll > 0.0f) {
 			manual_control.roll *= _parameters.rc_scale_roll;
 		}
 
-		/*
-		 * pitch input - stick down is negative, but stick down is pitching up (pos) in NED,
-		 * so reverse sign.
-		 */
-		manual_control.pitch = -1.0f * _rc.chan[_rc.function[PITCH]].scaled;
+		
 		if (manual_control.pitch < -1.0f) manual_control.pitch = -1.0f;
 		if (manual_control.pitch >  1.0f) manual_control.pitch =  1.0f;
-		if (!isnan(_parameters.rc_scale_pitch) || !isinf(_parameters.rc_scale_pitch)) {
+		if (isfinite(_parameters.rc_scale_pitch) && _parameters.rc_scale_pitch > 0.0f) {
 			manual_control.pitch *= _parameters.rc_scale_pitch;
 		}
 
-		/* yaw input - stick right is positive and positive rotation */
-		manual_control.yaw = _rc.chan[_rc.function[YAW]].scaled * _parameters.rc_scale_yaw;
 		if (manual_control.yaw < -1.0f) manual_control.yaw = -1.0f;
 		if (manual_control.yaw >  1.0f) manual_control.yaw =  1.0f;
-		if (!isnan(_parameters.rc_scale_yaw) || !isinf(_parameters.rc_scale_yaw)) {
+		if (isfinite(_parameters.rc_scale_yaw) && _parameters.rc_scale_yaw > 0.0f) {
 			manual_control.yaw *= _parameters.rc_scale_yaw;
 		}
 		
-		/* throttle input */
-		manual_control.throttle = _rc.chan[_rc.function[THROTTLE]].scaled;
 		if (manual_control.throttle < 0.0f) manual_control.throttle = 0.0f;
 		if (manual_control.throttle > 1.0f) manual_control.throttle = 1.0f;
 
@@ -1001,6 +1063,21 @@ Sensors::ppm_poll()
 		manual_control.override_mode_switch = _rc.chan[_rc.function[OVERRIDE]].scaled;
 		if (manual_control.override_mode_switch < -1.0f) manual_control.override_mode_switch = -1.0f;
 		if (manual_control.override_mode_switch >  1.0f) manual_control.override_mode_switch =  1.0f;
+
+		/* aux functions */
+		manual_control.aux1_cam_pan_flaps = _rc.chan[_rc.function[FUNC_0]].scaled;
+		if (manual_control.aux1_cam_pan_flaps < -1.0f) manual_control.aux1_cam_pan_flaps = -1.0f;
+		if (manual_control.aux1_cam_pan_flaps >  1.0f) manual_control.aux1_cam_pan_flaps =  1.0f;
+
+		/* aux inputs */
+		manual_control.aux2_cam_tilt = _rc.chan[_rc.function[FUNC_1]].scaled;
+		if (manual_control.aux2_cam_tilt < -1.0f) manual_control.aux2_cam_tilt = -1.0f;
+		if (manual_control.aux2_cam_tilt >  1.0f) manual_control.aux2_cam_tilt =  1.0f;
+
+		/* aux inputs */
+		manual_control.aux3_cam_zoom = _rc.chan[_rc.function[FUNC_2]].scaled;
+		if (manual_control.aux3_cam_zoom < -1.0f) manual_control.aux3_cam_zoom = -1.0f;
+		if (manual_control.aux3_cam_zoom >  1.0f) manual_control.aux3_cam_zoom =  1.0f;
 
 		orb_publish(ORB_ID(rc_channels), _rc_pub, &_rc);
 		orb_publish(ORB_ID(manual_control_setpoint), _manual_control_pub, &manual_control);

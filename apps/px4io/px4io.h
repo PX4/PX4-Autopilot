@@ -71,14 +71,14 @@ struct sys_state_s {
 	bool		armed;			/* IO armed */
 	bool		arm_ok;			/* FMU says OK to arm */
 
-	/*
+	/**
 	 * Data from the remote control input(s)
 	 */
 	unsigned	rc_channels;
 	uint16_t	rc_channel_data[PX4IO_INPUT_CHANNELS];
 	uint64_t	rc_channels_timestamp;
 
-	/*
+	/**
 	 * Control signals from FMU.
 	 */
 	uint16_t	fmu_channel_data[PX4IO_CONTROL_CHANNELS];
@@ -88,25 +88,46 @@ struct sys_state_s {
 	 */
 	uint16_t	servos[IO_SERVO_COUNT];
 
-	/*
+	/**
 	 * Relay controls
 	 */
 	bool		relays[PX4IO_RELAY_CHANNELS];
 
-	/*
-	 * If true, we are using the FMU controls.
+	/**
+	 * If true, we are using the FMU controls, else RC input if available.
 	 */
 	bool		mixer_use_fmu;
 
-	/*
+	/**
+	 * If true, FMU input is available.
+	 */
+	bool		mixer_fmu_available;
+
+	/**
 	 * If true, state that should be reported to FMU has been updated.
 	 */
 	bool		fmu_report_due;
 
-	/*
+	/**
 	 * If true, new control data from the FMU has been received.
 	 */
 	bool		fmu_data_received;
+
+	/**
+	 * Current serial interface mode, per the serial_rx_mode parameter
+	 * in the config packet.
+	 */
+	uint8_t		serial_rx_mode;
+
+	/**
+	 * If true, the RC signal has been lost for more than a timeout interval
+	 */
+	bool		rc_lost;
+
+	/**
+	 * If true, the connection to FMU has been lost for more than a timeout interval
+	 */
+	bool		fmu_lost;
 
 	/*
 	 * Measured battery voltage in mV

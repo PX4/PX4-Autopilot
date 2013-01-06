@@ -12,13 +12,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), '..
 from optparse import OptionParser
 parser = OptionParser("magfit.py [options]")
 parser.add_option("--no-timestamps",dest="notimestamps", action='store_true', help="Log doesn't have timestamps")
-parser.add_option("--mav10", action='store_true', default=False, help="Use MAVLink protocol 1.0")
 parser.add_option("--minspeed", type='float', default=5.0, help="minimum ground speed to use")
 
 (opts, args) = parser.parse_args()
 
-if opts.mav10:
-    os.environ['MAVLINK10'] = '1'
 import mavutil
 
 if len(args) < 1:
@@ -134,6 +131,10 @@ def magfit(logfile):
             # flying if groundspeed more than 5 m/s
             flying = (m.v > opts.minspeed and m.fix_type == 2)
             gps_heading = m.hdg
+        if m.get_type() == "GPS_RAW_INT":
+            # flying if groundspeed more than 5 m/s
+            flying = (m.vel/100 > opts.minspeed and m.fix_type == 3)
+            gps_heading = m.cog/100
         if m.get_type() == "ATTITUDE":
             attitude = m
         if m.get_type() == "SENSOR_OFFSETS":

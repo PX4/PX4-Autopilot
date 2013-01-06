@@ -43,19 +43,58 @@ CSRCS		 = err.c \
 		   conversions.c \
 		   cpuload.c \
 		   getopt_long.c \
-		   up_cxxinitialize.c
+		   up_cxxinitialize.c \
+		   control/test_params.c
 
 #		   ppm_decode.c \
 
 
+CXXSRCS   =  test/test.cpp \
+			 control/block/Block.cpp \
+			 control/block/BlockParam.cpp \
+			 control/block/UOrbPublication.cpp \
+			 control/block/UOrbSubscription.cpp \
+			 control/blocks.cpp \
+			 control/fixedwing.cpp \
+			 math/Vector.cpp \
+			 math/Vector3.cpp \
+			 math/EulerAngles.cpp \
+			 math/Quaternion.cpp \
+			 math/Dcm.cpp \
+			 math/Matrix.cpp
+
+CXXHDRS   =  test/test.hpp \
+			 control/block/Block.hpp \
+			 control/block/BlockParam.hpp \
+			 control/block/UOrbPublication.hpp \
+			 control/block/UOrbSubscription.hpp \
+			 control/blocks.hpp \
+			 control/fixedwing.hpp \
+			 math/Vector.hpp \
+			 math/Vector3.hpp \
+			 math/EulerAngles.hpp \
+			 math/Quaternion.hpp \
+			 math/Dcm.hpp \
+			 math/Matrix.hpp
 
 #
 # XXX this really should be a CONFIG_* test
 #
 ifeq ($(TARGET),px4fmu)
+INCLUDES += math/arm
 CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
+		pid/pid.c \
+		geo/geo.c
+CXXSRCS     += math/arm/Vector.cpp \
+		math/arm/Matrix.cpp
+CXXHDRS     += math/arm/Vector.hpp \
+	    math/arm/Matrix.hpp
+else
+INCLUDES += math/generic
+CXXSRCS     += math/generic/Vector.cpp \
+		math/generic/Matrix.cpp
+CXXHDRS     += math/generic/Vector.hpp \
+	    math/generic/Matrix.hpp
 endif
 
 include $(APPDIR)/mk/app.mk
