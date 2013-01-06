@@ -141,21 +141,6 @@ This will select the apps/examples/hello in the following way:
 
 Thus accomplishing the same thing with no apps/.config file.
 
-Built-In Start-Up main() function
-------------------------------
-A builtin application can even be used as the main, start-up entry point
-into your embedded software.  When the user defines this option in
-the NuttX configuration file:
-
-  CONFIG_BUILTIN_APP_START=<application name>
-  
-that application shall be invoked immediately after system starts
-*instead* of the default "user_start" entry point.
-Note that <application name> must be provided as: "hello", 
-will call:
-
-  int hello_main(int argc, char *argv[])
-
 Example Built-In Application
 ----------------------------
 An example application skeleton can be found under the examples/hello

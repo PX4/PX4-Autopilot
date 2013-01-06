@@ -3875,3 +3875,8 @@
 	  definitions (from Rommel Marcelo).
 	* libc/string/lib_strndup.c: strndup() should use strnlen(), not
 	  strlen(), to determine the size of the string.
+	* sched/os_bringup.c:  Remove support for CONFIG_BUILTIN_APP_START.
+	  This is not really a useful feature and creates a violation of the
+	  OS layered architecture.
+
+

@@ -3421,29 +3421,10 @@ context:
 <p>
   <b>Other Uses of Built-In Application.</b>
   The primary purpose of builtin applications is to support command line execution of applications from NSH.
-  However, there are two other uses of builtin applications that should be mentioned.
+  However, there is one other use of builtin applications that should be mentioned.
 </p>
 
 <ol>
-  <li>
-    <p>
-      <b>Built-In Application Start-Up <code>main()</code> function</b>.
-      A builtin application can even be used as the main, start-up entry point into your embedded software. 
-      When the user defines this option in the NuttX configuration file:
-    </p>
-<ul><pre>
-CONFIG_BUILTIN_APP_START=&lt;application name&gt;
-</pre></ul>
-    <p>
-      that application will be invoked immediately after system starts instead of the default <code>CONFIG_USER_ENTRYPOINT</code>() entry point.
-      Note that <code>&lt;application name&gt;</code> must be provided just as it would have been on the NSH command line.
-      For example, <code>hello</code> would result in <code>hello_main()</code> being started at power-up.
-    </p>
-    <p>
-      This option might be useful in some develop environments where you use NSH only during the debug phase, but want to eliminate NSH in the final product.
-      Setting <code>CONFIG_BUILTIN_APP_START</code> in this way will bypass NSH and execute your application just as if it were entered from the NSH command line.
-    </p>
-
   <li>
     <p><b><i>binfs</i></b>.
     <i>binfs</i> is a tiny file system located at <code>apps/builtin/binfs.c</code>.
@@ -3452,7 +3433,8 @@ CONFIG_BUILTIN_APP_START=&lt;application name&gt;
      <i>binfs</i> will create a tiny pseudo-file system mounted at <code>/bin</code>.
      Using <i>binfs</i>, you can see the available builtin applications by listing the contents of  <code>/bin</code> directory.
      This gives some superficial Unix compatibility, but does not really add any new functionality.
-   </p>
+    </p>
+  </li>
 </ol>
 
 <h3>4.3.2 Synchronous Built-In Applications</h3>
@@ -3770,7 +3752,6 @@ mount -t vfat /dev/ram1 /tmp
   <li><a href="#commands">Command summaries</a></li>
   <li><a href="#custoncmds">Command table</a></li>
   <li><a href="#conditional">Conditional command execution</a></li>
-  <li><a href="#custapps"><code>CONFIG_BUILTIN_APP_START</code></a></li>
   <li><a href="#custinit"><code>CONFIG_DISABLE_MOUNTPOINT</code></a></li>
   <li><a href="#custinit"><code>CONFIG_FS_ROMFS</code></a></li>
   <li><a href="#custinit"><code>CONFIG_NFILE_DESCRIPTORS</code></a></li>
