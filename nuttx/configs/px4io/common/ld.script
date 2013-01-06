@@ -74,6 +74,15 @@ SECTIONS
 		_etext = ABSOLUTE(.);
 	} > flash
 
+	/*
+	 * Init functions (static constructors and the like)
+	 */
+        .init_section : {
+                _sinit = ABSOLUTE(.);
+                KEEP(*(.init_array .init_array.*))
+                _einit = ABSOLUTE(.);
+        } > flash
+
 	.ARM.extab : {
 		*(.ARM.extab*)
 	} > flash
