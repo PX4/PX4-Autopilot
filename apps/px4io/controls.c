@@ -94,6 +94,7 @@ controls_main(void)
 
 		if (fds[0].revents & POLLIN)
 			locked |= dsm_input();
+
 		if (fds[1].revents & POLLIN)
 			locked |= sbus_input();
 
@@ -150,6 +151,7 @@ ppm_input(void)
 
 		/* PPM data exists, copy it */
 		system_state.rc_channels = ppm_decoded_channels;
+
 		for (unsigned i = 0; i < ppm_decoded_channels; i++)
 			system_state.rc_channel_data[i] = ppm_buffer[i];
 
@@ -161,5 +163,5 @@ ppm_input(void)
 
 		/* trigger an immediate report to the FMU */
 		system_state.fmu_report_due = true;
-	}	
+	}
 }

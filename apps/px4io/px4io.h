@@ -31,11 +31,11 @@
  *
  ****************************************************************************/
 
- /**
-  * @file px4io.h
-  *
-  * General defines and structures for the PX4IO module firmware.
-  */
+/**
+ * @file px4io.h
+ *
+ * General defines and structures for the PX4IO module firmware.
+ */
 
 #include <nuttx/config.h>
 
@@ -66,8 +66,7 @@
 /*
  * System state structure.
  */
-struct sys_state_s 
-{
+struct sys_state_s {
 
 	bool		armed;			/* IO armed */
 	bool		arm_ok;			/* FMU says OK to arm */
@@ -82,7 +81,12 @@ struct sys_state_s
 	/**
 	 * Control signals from FMU.
 	 */
-	uint16_t	fmu_channel_data[PX4IO_OUTPUT_CHANNELS];
+	uint16_t	fmu_channel_data[PX4IO_CONTROL_CHANNELS];
+
+	/*
+	 * Mixed servo outputs
+	 */
+	uint16_t	servos[IO_SERVO_COUNT];
 
 	/**
 	 * Relay controls
@@ -124,13 +128,27 @@ struct sys_state_s
 	 * If true, the connection to FMU has been lost for more than a timeout interval
 	 */
 	bool		fmu_lost;
+
+	/*
+	 * Measured battery voltage in mV
+	 */
+	uint16_t	battery_mv;
+
+	/*
+	 * ADC IN5 measurement
+	 */
+	uint16_t	adc_in5;
+
+	/*
+	 * Power supply overcurrent status bits.
+	 */
+	uint8_t		overcurrent;
+
 };
 
 extern struct sys_state_s system_state;
 
-extern int frame_rx;
-extern int frame_bad;
-
+#if 0
 /*
  * Software countdown timers.
  *
@@ -142,6 +160,7 @@ extern int frame_bad;
 #define TIMER_SANITY		7
 #define TIMER_NUM_TIMERS	8
 extern volatile int	timers[TIMER_NUM_TIMERS];
+#endif
 
 /*
  * GPIO handling.
@@ -151,19 +170,23 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
 #define LED_SAFETY(_s)		stm32_gpiowrite(GPIO_LED3, !(_s))
 
 #define POWER_SERVO(_s)		stm32_gpiowrite(GPIO_SERVO_PWR_EN, (_s))
-#define POWER_ACC1(_s)		stm32_gpiowrite(GPIO_SERVO_ACC1_EN, (_s))
-#define POWER_ACC2(_s)		stm32_gpiowrite(GPIO_SERVO_ACC2_EN, (_s))
+#define POWER_ACC1(_s)		stm32_gpiowrite(GPIO_ACC1_PWR_EN, (_s))
+#define POWER_ACC2(_s)		stm32_gpiowrite(GPIO_ACC2_PWR_EN, (_s))
 #define POWER_RELAY1(_s)	stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
 #define POWER_RELAY2(_s)	stm32_gpiowrite(GPIO_RELAY2_EN, (_s))
 
-#define OVERCURRENT_ACC		stm32_gpioread(GPIO_ACC_OC_DETECT)
-#define OVERCURRENT_SERVO	stm32_gpioread(GPIO_SERVO_OC_DETECT
+#define OVERCURRENT_ACC		(!stm32_gpioread(GPIO_ACC_OC_DETECT))
+#define OVERCURRENT_SERVO	(!stm32_gpioread(GPIO_SERVO_OC_DETECT))
 #define BUTTON_SAFETY		stm32_gpioread(GPIO_BTN_SAFETY)
+
+#define ADC_VBATT		4
+#define ADC_IN5			5
 
 /*
  * Mixer
  */
 extern void	mixer_tick(void);
+extern void	mixer_handle_text(const void *buffer, size_t length);
 
 /*
  * Safety switch/LED.
@@ -174,6 +197,12 @@ extern void	safety_init(void);
  * FMU communications
  */
 extern void	comms_main(void) __attribute__((noreturn));
+
+/*
+ * Sensors/misc inputs
+ */
+extern int	adc_init(void);
+extern uint16_t	adc_measure(unsigned channel);
 
 /*
  * R/C receiver handling.

@@ -41,31 +41,27 @@
 
 #pragma once
 
-#define PX4IO_OUTPUT_CHANNELS	8
+#define PX4IO_CONTROL_CHANNELS	8
 #define PX4IO_INPUT_CHANNELS	12
 #define PX4IO_RELAY_CHANNELS	4
 
 #pragma pack(push, 1)
 
-/* command from FMU to IO */
+/**
+ * Periodic command from FMU to IO.
+ */
 struct px4io_command {
 	uint16_t	f2i_magic;
-#define F2I_MAGIC	0x636d
+#define F2I_MAGIC		0x636d
 
-	uint16_t	servo_command[PX4IO_OUTPUT_CHANNELS];
+	uint16_t	output_control[PX4IO_CONTROL_CHANNELS];
 	bool		relay_state[PX4IO_RELAY_CHANNELS];
 	bool		arm_ok;
 };
 
-/* config message from FMU to IO */
-struct px4io_config {
-	uint16_t f2i_config_magic;
-#define F2I_CONFIG_MAGIC 0x6366
-
-	/* XXX currently nothing here */
-};
-
-/* report from IO to FMU */
+/**
+ * Periodic report from IO to FMU
+ */
 struct px4io_report {
 	uint16_t	i2f_magic;
 #define I2F_MAGIC		0x7570
@@ -73,6 +69,40 @@ struct px4io_report {
 	uint16_t	rc_channel[PX4IO_INPUT_CHANNELS];
 	bool		armed;
 	uint8_t		channel_count;
+
+	uint16_t	battery_mv;
+	uint16_t	adc_in;
+	uint8_t		overcurrent;
 };
+
+/**
+ * As-needed config message from FMU to IO
+ */
+struct px4io_config {
+	uint16_t	f2i_config_magic;
+#define F2I_CONFIG_MAGIC	 0x6366
+
+	/* XXX currently nothing here */
+};
+
+/**
+ * As-needed mixer data upload.
+ *
+ * This message adds text to the mixer text buffer; the text
+ * buffer is drained as the definitions are consumed.
+ */
+struct px4io_mixdata {
+	uint16_t	f2i_mixer_magic;
+#define F2I_MIXER_MAGIC		0x6d74
+
+	uint8_t		action;
+#define F2I_MIXER_ACTION_RESET		0
+#define F2I_MIXER_ACTION_APPEND		1
+
+	char		text[0];	/* actual text size may vary */
+};
+
+/* maximum size is limited by the HX frame size */
+#define F2I_MIXER_MAX_TEXT	(HX_STREAM_MAX_FRAME - sizeof(struct px4io_mixdata))
 
 #pragma pack(pop)

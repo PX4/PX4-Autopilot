@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,49 +32,21 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_log.c
- * MAVLink text logging.
+ * @file drv_adc.h
  *
- * @author Lorenz Meier <lm@inf.ethz.ch>
+ * ADC driver interface.
+ *
+ * This defines additional operations over and above the standard NuttX
+ * ADC API.
  */
 
-#include <string.h>
-#include <stdlib.h>
+#pragma once
 
-#include "mavlink_log.h"
- 
-void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size) {
-    lb->size  = size;
-    lb->start = 0;
-    lb->count = 0;
-    lb->elems = (struct mavlink_logmessage *)calloc(lb->size, sizeof(struct mavlink_logmessage));
-}
- 
-int mavlink_logbuffer_is_full(struct mavlink_logbuffer *lb) {
-	return lb->count == (int)lb->size;
-}
- 
-int mavlink_logbuffer_is_empty(struct mavlink_logbuffer *lb) {
-    return lb->count == 0;
-}
- 
-void mavlink_logbuffer_write(struct mavlink_logbuffer *lb, const struct mavlink_logmessage *elem) {
-    int end = (lb->start + lb->count) % lb->size;
-    memcpy(&(lb->elems[end]), elem, sizeof(struct mavlink_logmessage));
-    if (mavlink_logbuffer_is_full(lb)) {
-        lb->start = (lb->start + 1) % lb->size; /* full, overwrite */
-    } else {
-        ++lb->count;
-    }
-}
- 
-int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessage *elem) {
-    if (!mavlink_logbuffer_is_empty(lb)) {
-        memcpy(elem, &(lb->elems[lb->start]), sizeof(struct mavlink_logmessage));
-        lb->start = (lb->start + 1) % lb->size;
-        --lb->count;
-        return 0;
-    } else {
-        return 1;
-    }
-}
+#include <stdint.h>
+#include <sys/ioctl.h>
+
+#define ADC_DEVICE_PATH		"/dev/adc0"
+
+/*
+ * ioctl definitions
+ */

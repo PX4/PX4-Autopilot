@@ -70,6 +70,7 @@
 #include <poll.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/offboard_control_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -1262,6 +1263,11 @@ int commander_thread_main(int argc, char *argv[])
 	struct vehicle_command_s cmd;
 	memset(&cmd, 0, sizeof(cmd));
 
+	/* subscribe to battery topic */
+	int battery_sub = orb_subscribe(ORB_ID(battery_status));
+	struct battery_status_s battery;
+	memset(&battery, 0, sizeof(battery));
+
 	// uint8_t vehicle_state_previous = current_status.state_machine;
 	float voltage_previous = 0.0f;
 
@@ -1300,15 +1306,19 @@ int commander_thread_main(int argc, char *argv[])
 			handle_command(stat_pub, &current_status, &cmd);
 		}
 
-		battery_voltage = sensors.battery_voltage_v;
-		battery_voltage_valid = sensors.battery_voltage_valid;
+		orb_check(battery_sub, &new_data);
+		if (new_data) {
+			orb_copy(ORB_ID(battery_status), battery_sub, &battery);
+			battery_voltage = battery.voltage_v;
+			battery_voltage_valid = true;
 
-		/*
-		 * Only update battery voltage estimate if voltage is
-		 * valid and system has been running for two and a half seconds
-		 */
-		if (battery_voltage_valid && (hrt_absolute_time() - start_time > 2500000)) {
-			bat_remain = battery_remaining_estimate_voltage(battery_voltage);
+			/*
+			 * Only update battery voltage estimate if system has
+			 * been running for two and a half seconds.
+			 */
+			if (hrt_absolute_time() - start_time > 2500000) {
+				bat_remain = battery_remaining_estimate_voltage(battery_voltage);
+			}
 		}
 
 		/* Slow but important 8 Hz checks */
