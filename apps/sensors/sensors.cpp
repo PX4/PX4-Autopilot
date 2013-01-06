@@ -760,8 +760,8 @@ Sensors::adc_init()
 
 	_fd_adc = open("/dev/adc0", O_RDONLY | O_NONBLOCK);
 	if (_fd_adc < 0) {
-		warn("/dev/adc0");
-		errx(1, "FATAL: no ADC found");
+		warnx("/dev/adc0");
+		warnx(1, "FATAL: no ADC found");
 	}
 }
 
