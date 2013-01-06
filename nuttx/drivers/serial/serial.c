@@ -660,8 +660,10 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   int ret = dev->ops->ioctl(filep, cmd, arg);
 
-  /* If the low-level handler didn't handle the call, see if we can handle it here */
-
+  /*
+   * The device ioctl() handler returns -ENOTTY when it doesn't know
+   * how to handle the command. Check if we can handle it here.
+   */
   if (ret == -ENOTTY)
     {
       switch (cmd)
