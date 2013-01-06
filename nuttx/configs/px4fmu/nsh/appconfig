@@ -68,6 +68,9 @@ CONFIGURED_APPS += systemcmds/delay_test
 # https://pixhawk.ethz.ch/px4/dev/deamon
 # CONFIGURED_APPS += examples/px4_deamon_app
 
+# Math library
+CONFIGURED_APPS += examples/math_demo
+
 # Shared object broker; required by many parts of the system.
 CONFIGURED_APPS += uORB
 

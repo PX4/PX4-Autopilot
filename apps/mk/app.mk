@@ -101,7 +101,9 @@ INCLUDES	+= $(APPDIR)
 
 ASRCS		?= $(wildcard $(SRCDIR)/*.S)
 CSRCS		?= $(wildcard $(SRCDIR)/*.c)
+CHDRS		?= $(wildcard $(SRCDIR)/*.h)
 CXXSRCS		?= $(wildcard $(SRCDIR)/*.cpp)
+CXXHDRS		?= $(wildcard $(SRCDIR)/*.hpp)
 
 # if APPNAME is not set, this is a library
 ifeq ($(APPNAME),)
@@ -186,8 +188,8 @@ all:		.built
 #
 depend:		.depend
 .depend:	$(MAKEFILE_LIST) $(SRCS)
-	@$(MKDEP) --dep-path . $(CC) -- $(CFLAGS) -- $(CSRCS) >Make.dep
-	@$(MKDEP) --dep-path . $(CXX) -- $(CXXFLAGS) -- $(CXXSRCS) >>Make.dep
+	@$(MKDEP) --dep-path . $(CC) -- $(CFLAGS) -- $(CSRCS) $(CHDRS) >Make.dep
+	@$(MKDEP) --dep-path . $(CXX) -- $(CXXFLAGS) -- $(CXXSRCS) $(CXXHDRS) >>Make.dep
 	@touch $@
 
 ifneq ($(APPNAME),)
