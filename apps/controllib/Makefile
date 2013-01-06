@@ -32,37 +32,20 @@
 ############################################################################
 
 #
-# Math library
+# Control library
 #
-CXXSRCS		 = math/test/test.cpp \
-		   math/Vector.cpp \
-		   math/Vector3.cpp \
-		   math/EulerAngles.cpp \
-		   math/Quaternion.cpp \
-		   math/Dcm.cpp \
-		   math/Matrix.cpp
+CXXSRCS		+= block/Block.cpp \
+		   block/BlockParam.cpp \
+		   block/UOrbPublication.cpp \
+		   block/UOrbSubscription.cpp \
+		   blocks.cpp \
+		   fixedwing.cpp
 
-CXXHDRS		 = math/test/test.hpp \
-		   math/Vector.hpp \
-		   math/Vector3.hpp \
-		   math/EulerAngles.hpp \
-		   math/Quaternion.hpp \
-		   math/Dcm.hpp \
-		   math/Matrix.hpp
-
-# XXX this really should be a CONFIG_* test
-ifeq ($(TARGET),px4fmu)
-INCLUDES	+= math/arm
-CXXSRCS		+= math/arm/Vector.cpp \
-		   math/arm/Matrix.cpp
-CXXHDRS		+= math/arm/Vector.hpp \
-		   math/arm/Matrix.hpp
-else
-INCLUDES	+= math/generic
-CXXSRCS		+= math/generic/Vector.cpp \
-		   math/generic/Matrix.cpp
-CXXHDRS		+= math/generic/Vector.hpp \
-		   math/generic/Matrix.hpp
-endif
+CXXHDRS		+= block/Block.hpp \
+		   block/BlockParam.hpp \
+		   block/UOrbPublication.hpp \
+		   block/UOrbSubscription.hpp \
+		   blocks.hpp \
+		   fixedwing.hpp
 
 include $(APPDIR)/mk/app.mk

@@ -42,7 +42,7 @@
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
-#include <systemlib/test/test.hpp>
+#include <mathlib/math/test/test.hpp>
 
 #include "block/Block.hpp"
 #include "block/BlockParam.hpp"

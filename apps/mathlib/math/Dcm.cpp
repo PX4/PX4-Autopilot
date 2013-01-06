@@ -37,7 +37,7 @@
  * math direction cosine matrix
  */
 
-#include "test/test.hpp"
+#include "math/test/test.hpp"
 
 #include "Dcm.hpp"
 #include "Quaternion.hpp"

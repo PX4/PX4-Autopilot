@@ -37,7 +37,7 @@
  * matrix code
  */
 
-#include "test/test.hpp"
+#include "math/test/test.hpp"
 #include <math.h>
 
 #include "Matrix.hpp"

@@ -37,7 +37,7 @@
  * math vector
  */
 
-#include "test/test.hpp"
+#include "math/test/test.hpp"
 
 #include "Vector.hpp"
 
