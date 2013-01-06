@@ -86,8 +86,12 @@ static struct offboard_control_setpoint_s offboard_control_sp;
 
 struct vehicle_global_position_s hil_global_pos;
 struct vehicle_attitude_s hil_attitude;
+struct vehicle_gps_position_s hil_gps;
+struct sensor_combined_s hil_sensors;
 orb_advert_t pub_hil_global_pos = -1;
 orb_advert_t pub_hil_attitude = -1;
+orb_advert_t pub_hil_gps = -1;
+orb_advert_t pub_hil_sensors = -1;
 
 static orb_advert_t cmd_pub = -1;
 static orb_advert_t flow_pub = -1;
@@ -96,6 +100,7 @@ static orb_advert_t offboard_control_sp_pub = -1;
 static orb_advert_t vicon_position_pub = -1;
 
 extern bool gcs_link;
+extern int hil_mode;
 
 static void
 handle_message(mavlink_message_t *msg)
@@ -301,46 +306,189 @@ handle_message(mavlink_message_t *msg)
 			/* Calculate Rotation Matrix */
 			//TODO: better clarification which app does this, atm we have a ekf for quadrotors which does this, but there is no such thing if fly in fixed wing mode
 
-			if (mavlink_system.type == MAV_TYPE_FIXED_WING) {
-				//TODO: assuming low pitch and roll values for now
-				hil_attitude.R[0][0] = cosf(hil_state.yaw);
-				hil_attitude.R[0][1] = sinf(hil_state.yaw);
-				hil_attitude.R[0][2] = 0.0f;
+            if (hil_mode == HIL_MODE_STATE)
+            {
+                if(mavlink_system.type == MAV_TYPE_FIXED_WING) {
+                    //TODO: assuming low pitch and roll values for now
+                    hil_attitude.R[0][0] = cosf(hil_state.yaw);
+                    hil_attitude.R[0][1] = sinf(hil_state.yaw);
+                    hil_attitude.R[0][2] = 0.0f;
 
-				hil_attitude.R[1][0] = -sinf(hil_state.yaw);
-				hil_attitude.R[1][1] = cosf(hil_state.yaw);
-				hil_attitude.R[1][2] = 0.0f;
+                    hil_attitude.R[1][0] = -sinf(hil_state.yaw);
+                    hil_attitude.R[1][1] = cosf(hil_state.yaw);
+                    hil_attitude.R[1][2] = 0.0f;
 
-				hil_attitude.R[2][0] = 0.0f;
-				hil_attitude.R[2][1] = 0.0f;
-				hil_attitude.R[2][2] = 1.0f;
+                    hil_attitude.R[2][0] = 0.0f;
+                    hil_attitude.R[2][1] = 0.0f;
+                    hil_attitude.R[2][2] = 1.0f;
 
-				hil_attitude.R_valid = true;
-			}
+                    hil_attitude.R_valid = true;
+                } 
+                hil_global_pos.lat = hil_state.lat;
+                hil_global_pos.lon = hil_state.lon;
+                hil_global_pos.alt = hil_state.alt / 1000.0f;
+                hil_global_pos.vx = hil_state.vx / 100.0f;
+                hil_global_pos.vy = hil_state.vy / 100.0f;
+                hil_global_pos.vz = hil_state.vz / 100.0f;
 
-			hil_global_pos.lat = hil_state.lat;
-			hil_global_pos.lon = hil_state.lon;
-			hil_global_pos.alt = hil_state.alt / 1000.0f;
-			hil_global_pos.vx = hil_state.vx / 100.0f;
-			hil_global_pos.vy = hil_state.vy / 100.0f;
-			hil_global_pos.vz = hil_state.vz / 100.0f;
 
+                /* set timestamp and notify processes (broadcast) */
+                hil_global_pos.timestamp = hrt_absolute_time();
+                orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
 
-			/* set timestamp and notify processes (broadcast) */
-			hil_global_pos.timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(vehicle_global_position), pub_hil_global_pos, &hil_global_pos);
+                hil_attitude.roll = hil_state.roll;
+                hil_attitude.pitch = hil_state.pitch;
+                hil_attitude.yaw = hil_state.yaw;
+                hil_attitude.rollspeed = hil_state.rollspeed;
+                hil_attitude.pitchspeed = hil_state.pitchspeed;
+                hil_attitude.yawspeed = hil_state.yawspeed;
 
-			hil_attitude.roll = hil_state.roll;
-			hil_attitude.pitch = hil_state.pitch;
-			hil_attitude.yaw = hil_state.yaw;
-			hil_attitude.rollspeed = hil_state.rollspeed;
-			hil_attitude.pitchspeed = hil_state.pitchspeed;
-			hil_attitude.yawspeed = hil_state.yawspeed;
+                /* set timestamp and notify processes (broadcast) */
+                hil_attitude.counter++;
+                hil_attitude.timestamp = hrt_absolute_time();
+                orb_publish(ORB_ID(vehicle_attitude), pub_hil_attitude, &hil_attitude);
+            }
+            else if (hil_mode == HIL_MODE_SENSORS)
+            {
+                uint64_t timestamp = hrt_absolute_time();
 
-			/* set timestamp and notify processes (broadcast) */
-			hil_attitude.counter++;
-			hil_attitude.timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(vehicle_attitude), pub_hil_attitude, &hil_attitude);
+                /* hil timestamp, and packet counter */
+                hil_sensors.timestamp = timestamp;
+                static uint16_t hil_counter = 0;
+                static uint16_t hil_frames = 0;
+                static uint64_t old_timestamp = 0;
+
+                /* hil gyro */
+                hil_sensors.gyro_counter = hil_counter; 
+                hil_sensors.gyro_raw[0] = hil_state.rollspeed*1000;
+                hil_sensors.gyro_raw[1] = hil_state.pitchspeed*1000;
+                hil_sensors.gyro_raw[2] = hil_state.yawspeed*1000;
+                hil_sensors.gyro_rad_s[0] = hil_state.rollspeed;
+                hil_sensors.gyro_rad_s[1] = hil_state.pitchspeed;
+                hil_sensors.gyro_rad_s[2] = hil_state.yawspeed;
+
+                /* accelerometer */
+                hil_sensors.accelerometer_counter = hil_counter; 
+                static const float mg_ms2 = 9.8f/1000.0f;
+                hil_sensors.accelerometer_raw[0] = hil_state.xacc;
+                hil_sensors.accelerometer_raw[1] = hil_state.yacc;
+                hil_sensors.accelerometer_raw[2] = hil_state.zacc;
+                hil_sensors.accelerometer_m_s2[0] = mg_ms2*hil_sensors.accelerometer_raw[0];
+                hil_sensors.accelerometer_m_s2[1] = mg_ms2*hil_sensors.accelerometer_raw[1];
+                hil_sensors.accelerometer_m_s2[2] = mg_ms2*hil_sensors.accelerometer_raw[2];
+                hil_sensors.accelerometer_mode = 0; // TODO what is this?
+                hil_sensors.accelerometer_range_m_s2 = 100.0f;
+
+                /* slower sensors */
+                /*if (!(hil_counter % 50)) // must run first time to create valid packet*/
+                /*{*/
+                    static uint16_t hil_slow_counter = 0;
+
+                    /* baro */
+                    hil_sensors.baro_counter = hil_slow_counter; 
+                    hil_sensors.baro_pres_mbar = 1013.25f; // todo should vary with alt
+                    hil_sensors.baro_alt_meter = hil_state.alt/1000.0f;
+                    hil_sensors.baro_temp_celcius = 23.0f;
+
+                    /* adc */
+                    hil_sensors.adc_voltage_v[0] = 0;
+                    hil_sensors.adc_voltage_v[1] = 0;
+                    hil_sensors.adc_voltage_v[2] = 0;
+
+                    /* battery */
+                    hil_sensors.battery_voltage_counter = hil_slow_counter;
+                    hil_sensors.battery_voltage_v = 11.1f;
+                    hil_sensors.battery_voltage_valid = true;
+
+                    /* magnetometer */
+                    float cosPhi = cosf(hil_state.roll);
+                    float sinPhi = sinf(hil_state.roll);
+                    float cosThe = cosf(hil_state.pitch);
+                    float sinThe = sinf(hil_state.pitch);
+                    float cosPsi = cosf(hil_state.yaw);
+                    float sinPsi = sinf(hil_state.yaw);
+                    float C_nb[3][3]; // the true rotation matrix from body to 
+
+                    C_nb[0][0] = cosThe*cosPsi;
+                    C_nb[0][1] = -cosPhi*sinPsi + sinPhi*sinThe*cosPsi;
+                    C_nb[0][2] = sinPhi*sinPsi + cosPhi*sinThe*cosPsi;
+
+                    C_nb[1][0] = cosThe*sinPsi;
+                    C_nb[1][1] = cosPhi*cosPsi + sinPhi*sinThe*sinPsi;
+                    C_nb[1][2] = -sinPhi*cosPsi + cosPhi*sinThe*sinPsi;
+
+                    C_nb[2][0] = -sinThe;
+                    C_nb[2][1] = sinPhi*cosThe;
+                    C_nb[2][2] = cosPhi*cosThe;
+
+                    float magFieldStrength = 0.5f;
+                    uint16_t gauss2Adc = 1000;
+
+                    float magVectNed[3];
+                    // choosing some typical magnetic field properties,
+                    //  these depend on lat/ lon/ date
+                    float dip = 60.0f/M_RAD_TO_DEG_F; // dip, inclination with level
+                    float dec = 0.0f; // declination, clockwise rotation from north
+                    float cosDip = cosf(dip);
+                    float sinDip = sinf(dip);
+                    float cosDec = cosf(dec);
+                    float sinDec = sinf(dec);
+                    magVectNed[0] = magFieldStrength*cosDip*cosDec;
+                    magVectNed[1] = magFieldStrength*cosDip*sinDec;
+                    magVectNed[2] = magFieldStrength*sinDip;
+
+                    float magVectBody[3];
+                    // note magVectBody = C_nb^T*magVectNed
+                    magVectBody[0] = C_nb[0][0] * magVectNed[0] + C_nb[1][0] * magVectNed[1] + C_nb[2][0] * magVectNed[2];
+                    magVectBody[1] = C_nb[0][1] * magVectNed[0] + C_nb[1][1] * magVectNed[1] + C_nb[2][1] * magVectNed[2];
+                    magVectBody[2] = C_nb[0][2] * magVectNed[0] + C_nb[1][2] * magVectNed[1] + C_nb[2][2] * magVectNed[2];
+
+                    /* magnetometer */
+                    hil_sensors.magnetometer_counter = hil_counter; 
+                    // TODO, need better mag model
+                    hil_sensors.magnetometer_raw[0] = gauss2Adc*magVectBody[0];
+                    hil_sensors.magnetometer_raw[1] = gauss2Adc*magVectBody[1];
+                    hil_sensors.magnetometer_raw[2] = gauss2Adc*magVectBody[2];
+                    hil_sensors.magnetometer_ga[0] = hil_sensors.magnetometer_raw[0]/(float)gauss2Adc;
+                    hil_sensors.magnetometer_ga[1] = hil_sensors.magnetometer_raw[1]/(float)gauss2Adc;
+                    hil_sensors.magnetometer_ga[2] = hil_sensors.magnetometer_raw[2]/(float)gauss2Adc;
+                    hil_sensors.magnetometer_range_ga = 1.0f;
+                    hil_sensors.magnetometer_mode = 0; // TODO what is this
+                    hil_sensors.magnetometer_cuttoff_freq_hz = 50.0f;
+
+                    /* gps */
+                    hil_gps.timestamp = timestamp;
+                    hil_gps.counter = hil_counter;
+                    hil_gps.fix_type = 3;
+                    hil_gps.lat = hil_state.lat;
+                    hil_gps.lon = hil_state.lon;
+                    hil_gps.alt = hil_state.alt;
+                    hil_gps.vel_n = hil_state.vx/100.0f;
+                    hil_gps.vel_e = hil_state.vy/100.0f;
+                    hil_gps.vel_d = hil_state.vz/100.0f;
+                    /* can publish gps here */
+                    orb_publish(ORB_ID(vehicle_gps_position), pub_hil_gps, &hil_gps);
+
+                    // increment counter
+                    hil_slow_counter += 1;
+                /*}*/
+
+                /* publish hil sensors, this must occur outside of the slow loop since both
+                 * fast and slow sensors are published */
+                orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);
+
+                // increment counters
+                hil_counter +=1 ;
+                hil_frames +=1 ;
+
+                // output
+                if ((timestamp - old_timestamp) > 1000000)
+                {
+                    printf("receiving hil at %d hz\n", hil_frames);
+                    old_timestamp = timestamp;
+                    hil_frames = 0;
+                }
+            }
 		}
 
 		if (msg->msgid == MAVLINK_MSG_ID_MANUAL_CONTROL) {
@@ -401,7 +549,7 @@ receive_thread(void *arg)
 	int uart_fd = *((int*)arg);
 
 	const int timeout = 1000;
-	uint8_t ch;
+	uint8_t buf[512];
 
 	mavlink_message_t msg;
 
@@ -412,13 +560,10 @@ receive_thread(void *arg)
 		struct pollfd fds[] = { { .fd = uart_fd, .events = POLLIN } };
 
 		if (poll(fds, 1, timeout) > 0) {
-			/* non-blocking read until buffer is empty */
-			int nread = 0;
-
-			do {
-				nread = read(uart_fd, &ch, 1);
-
-				if (mavlink_parse_char(chan, ch, &msg, &status)) { //parse the char
+			/* non-blocking read */
+			int nread = read(uart_fd, buf, sizeof(buf));
+            for (size_t i=0;i<nread;i++) {
+				if (mavlink_parse_char(chan, buf[i], &msg, &status)) { //parse the char
 					/* handle generic messages and commands */
 					handle_message(&msg);
 
@@ -428,7 +573,7 @@ receive_thread(void *arg)
 					/* Handle packet with parameter component */
 					mavlink_pm_message_handler(MAVLINK_COMM_0, &msg);
 				}
-			} while (nread > 0);
+            }
 		}
 	}
 
@@ -441,11 +586,15 @@ receive_start(int uart)
 	pthread_attr_t receiveloop_attr;
 	pthread_attr_init(&receiveloop_attr);
 
+    // set to non-blocking read
+    int flags = fcntl(uart, F_GETFL, 0);
+    fcntl(uart, F_SETFL, flags | O_NONBLOCK);
+
 	struct sched_param param;
-  	param.sched_priority = SCHED_PRIORITY_MAX - 40;
+  	param.sched_priority = SCHED_PRIORITY_MAX;
   	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
-	pthread_attr_setstacksize(&receiveloop_attr, 2048);
+	pthread_attr_setstacksize(&receiveloop_attr, 4096);
 
 	pthread_t thread;
 	pthread_create(&thread, &receiveloop_attr, receive_thread, &uart);

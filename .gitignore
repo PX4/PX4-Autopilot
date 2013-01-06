@@ -8,6 +8,7 @@
 apps/namedapp/namedapp_list.h
 apps/namedapp/namedapp_proto.h
 Make.dep
+*.pyc
 *.o
 *.a
 *~

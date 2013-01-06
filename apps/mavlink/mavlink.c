@@ -77,7 +77,7 @@
 /* define MAVLink specific parameters */
 PARAM_DEFINE_INT32(MAV_SYS_ID, 1);
 PARAM_DEFINE_INT32(MAV_COMP_ID, 50);
-PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_QUADROTOR);
+PARAM_DEFINE_INT32(MAV_TYPE, MAV_TYPE_FIXED_WING);
 
 __EXPORT int mavlink_main(int argc, char *argv[]);
 
@@ -121,6 +121,8 @@ static int uart;
 static int baudrate;
 bool gcs_link = true;
 
+int hil_mode = HIL_MODE_SENSORS;
+
 /* interface mode */
 static enum {
 	MAVLINK_INTERFACE_MODE_OFFBOARD,
@@ -145,8 +147,15 @@ set_hil_on_off(bool hil_enabled)
 	if (hil_enabled && !mavlink_hil_enabled) {
 
 		/* Advertise topics */
-		pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
-		pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
+        if (hil_mode == HIL_MODE_STATE) {
+            pub_hil_attitude = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
+            pub_hil_global_pos = orb_advertise(ORB_ID(vehicle_global_position), &hil_global_pos);
+        }
+        else if (hil_mode == HIL_MODE_SENSORS)
+        {
+		    pub_hil_sensors = orb_advertise(ORB_ID(sensor_combined), &hil_sensors);
+		    pub_hil_gps = orb_advertise(ORB_ID(vehicle_gps_position), &hil_gps);
+        }
 
 		mavlink_hil_enabled = true;
 
