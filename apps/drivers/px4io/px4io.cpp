@@ -104,7 +104,7 @@ public:
 private:
 	// XXX
 	static const unsigned	_max_actuators = PX4IO_CONTROL_CHANNELS;
-	int 			_update_rate;	///< serial send rate in Hz
+	unsigned 		_update_rate;	///< serial send rate in Hz
 
 	int			_serial_fd;	///< serial interface to PX4IO
 	hx_stream_t		_io_stream;	///< HX protocol stream
@@ -316,7 +316,7 @@ void
 PX4IO::task_main()
 {
 	log("starting");
-	int update_rate_in_ms;
+	unsigned update_rate_in_ms;
 
 	/* open the serial port */
 	_serial_fd = ::open("/dev/ttyS2", O_RDWR);
@@ -356,7 +356,7 @@ PX4IO::task_main()
 	_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
 				     ORB_ID(actuator_controls_1));
 	/* convert the update rate in hz to milliseconds, rounding down if necessary */
-	update_rate_in_ms = int(1000 / _update_rate);
+	update_rate_in_ms = 1000 / _update_rate;
 	orb_set_interval(_t_actuators, update_rate_in_ms);
 
 	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
