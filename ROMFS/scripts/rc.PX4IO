@@ -1,12 +1,9 @@
 #!nsh
-#
-# Flight startup script for PX4FMU with PX4IO carrier board.
-#
 
-echo "[init] doing PX4IO startup..."
+set USB no
 
 #
-# Start the ORB
+# Start the object request broker
 #
 uorb start
 
@@ -21,14 +18,26 @@ then
 fi
 
 #
+# Enable / connect to PX4IO
+#
+px4io start
+
+#
+# Load an appropriate mixer. FMU_pass.mix is a passthru mixer
+# which is good for testing. See ROMFS/mixers for a full list of mixers.
+#
+mixer load /dev/pwm_output /etc/mixers/FMU_pass.mix
+
+#
 # Start the sensors.
 #
 sh /etc/init.d/rc.sensors
 
 #
-# Start MAVLink
+# Start MAVLink on UART1 (dev/ttyS0) at 57600 baud (CLI is now unusable)
 #
 mavlink start -d /dev/ttyS0 -b 57600
+usleep 5000
 
 #
 # Start the commander.
@@ -41,35 +50,24 @@ commander start
 attitude_estimator_ekf start
 
 #
-# Configure PX4FMU for operation with PX4IO
+# Start the attitude and position controller
 #
-# XXX arguments?
-#
-px4fmu start
+fixedwing_att_control start
+fixedwing_pos_control start
 
 #
-# Start the fixed-wing controller
-#
-fixedwing_control start
-
-#
-# Fire up the PX4IO interface.
-#
-px4io start
-
-#
-# Start looking for a GPS.
+# Start GPS capture. Comment this out if you do not have a GPS.
 #
 gps start
 
 #
 # Start logging to microSD if we can
-#
+#	  	
 sh /etc/init.d/rc.logging
 
 #
 # startup is done; we don't want the shell because we
-# use the same UART for telemetry (dumb).
+# use the same UART for telemetry
 #
-echo "[init] startup done, exiting."
+echo "[init] startup done"
 exit
