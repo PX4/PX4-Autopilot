@@ -44,17 +44,9 @@ CSRCS		 = err.c \
 		   cpuload.c \
 		   getopt_long.c \
 		   up_cxxinitialize.c \
-		   airspeed.c
-
-#		   ppm_decode.c \
-
-#
-# XXX this really should be a CONFIG_* test
-#
-ifeq ($(TARGET),px4fmu)
-CSRCS		+= systemlib.c \
 		   pid/pid.c \
-		   geo/geo.c
-endif
+		   geo/geo.c \
+		   systemlib.c \
+		   airspeed.c
 
 include $(APPDIR)/mk/app.mk
