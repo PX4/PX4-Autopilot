@@ -69,7 +69,7 @@
 #		  CONFIG_PTHREAD_STACK_DEFAULT)
 #
 # Symbols in the module are private to the module unless deliberately exported
-# using the __EXPORT tag.
+# using the __EXPORT tag, or DEFAULT_VISIBILITY is set
 #
 
 ############################################################################
@@ -125,8 +125,15 @@ endif
 ############################################################################
 # Adjust compilation flags to implement EXPORT
 #
-CFLAGS		+= -fvisibility=hidden -include $(APPDIR)/systemlib/visibility.h
-CXXFLAGS	+= -fvisibility=hidden -include $(APPDIR)/systemlib/visibility.h
+
+ifeq ($(DEFAULT_VISIBILITY),)
+DEFAULT_VISIBILITY = hidden
+else
+DEFAULT_VISIBILITY = default
+endif
+
+CFLAGS		+= -fvisibility=$(DEFAULT_VISIBILITY) -include $(APPDIR)/systemlib/visibility.h
+CXXFLAGS	+= -fvisibility=$(DEFAULT_VISIBILITY) -include $(APPDIR)/systemlib/visibility.h
 
 ############################################################################
 # Add extra include directories
