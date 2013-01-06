@@ -401,7 +401,7 @@ PX4IO::task_main()
 				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
 
 				/* scale controls to PWM (temporary measure) */
-				for (unsigned i = 0; i < _max_actuators; i++)
+				for (unsigned i = 0; i < _max_actuators; i++) {
 					_outputs.output[i] = 1500 + (600 * _controls.control[i]);
 
 					// XXX output actual limited values
