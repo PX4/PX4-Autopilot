@@ -172,8 +172,9 @@ ppm_input(void)
 		/* PPM data exists, copy it */
 		system_state.rc_channels = ppm_decoded_channels;
 
-		for (unsigned i = 0; i < ppm_decoded_channels; i++)
+		for (unsigned i = 0; i < ppm_decoded_channels; i++) {
 			system_state.rc_channel_data[i] = ppm_buffer[i];
+		}
 
 		/* copy the timestamp and clear it */
 		system_state.rc_channels_timestamp = ppm_last_valid_decode;

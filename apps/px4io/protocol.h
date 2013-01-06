@@ -60,12 +60,6 @@ struct px4io_command {
 	bool		arm_ok;					/**< FMU allows full arming */
 	bool		vector_flight_mode_ok;			/**< FMU aquired a valid position lock, ready for pos control */
 	bool		manual_override_ok;			/**< if true, IO performs a direct manual override */
-	uint16_t	rc_map[4];				/**< channel ordering of roll, pitch, yaw, throttle */
-	uint16_t	rc_min[4];	/**< min value for each channel */
-	uint16_t	rc_trim[4];	/**< trim value for each channel */
-	uint16_t	rc_max[4];	/**< max value for each channel */
-	uint16_t	rc_rev[4];	/**< rev value for each channel */
-	uint16_t	rc_dz[4];	/**< dz value for each channel */
 };
 
 /**
@@ -87,7 +81,12 @@ struct px4io_config {
 	uint16_t	f2i_config_magic;
 #define F2I_CONFIG_MAGIC	 0x6366
 
-	/* XXX currently nothing here */
+	uint8_t		rc_map[4];	/**< channel ordering of roll, pitch, yaw, throttle */
+	uint16_t	rc_min[4];	/**< min value for each channel */
+	uint16_t	rc_trim[4];	/**< trim value for each channel */
+	uint16_t	rc_max[4];	/**< max value for each channel */
+	uint16_t	rc_rev[4];	/**< rev value for each channel */
+	uint16_t	rc_dz[4];	/**< dz value for each channel */
 };
 
 /**

@@ -99,7 +99,7 @@ mixer_tick(void)
 		/* too many frames without FMU input, time to go to failsafe */
 		system_state.mixer_manual_override = true;
 		system_state.mixer_fmu_available = false;
-		//lib_lowprintf("RX timeout\n");
+		lib_lowprintf("RX timeout\n");
 	}
 
 	/*
@@ -121,10 +121,10 @@ mixer_tick(void)
 			sched_lock();
 
 			/* remap roll, pitch, yaw and throttle from RC specific to internal ordering */
-			rc_channel_data[ROLL]     = system_state.rc_channel_data[system_state.rc_map[ROLL]];
-			rc_channel_data[PITCH]    = system_state.rc_channel_data[system_state.rc_map[PITCH]];
-			rc_channel_data[YAW]      = system_state.rc_channel_data[system_state.rc_map[YAW]];
-			rc_channel_data[THROTTLE] = system_state.rc_channel_data[system_state.rc_map[THROTTLE]];
+			rc_channel_data[ROLL]     = system_state.rc_channel_data[system_state.rc_map[ROLL] - 1];
+			rc_channel_data[PITCH]    = system_state.rc_channel_data[system_state.rc_map[PITCH] - 1];
+			rc_channel_data[YAW]      = system_state.rc_channel_data[system_state.rc_map[YAW] - 1];
+			rc_channel_data[THROTTLE] = system_state.rc_channel_data[system_state.rc_map[THROTTLE] - 1];
 
 			/* get the remaining channels, no remapping needed */
 			for (unsigned i = 4; i < system_state.rc_channels; i++)
@@ -133,6 +133,8 @@ mixer_tick(void)
 			/* scale the control inputs */
 			rc_channel_data[THROTTLE] = ((rc_channel_data[THROTTLE] - system_state.rc_min[THROTTLE]) / 
 				(system_state.rc_max[THROTTLE] - system_state.rc_min[THROTTLE])) * 1000 + 1000;
+			//lib_lowprintf("Tmin: %d Ttrim: %d Tmax: %d T: %d \n",
+			//	system_state.rc_min[THROTTLE], system_state.rc_trim[THROTTLE], system_state.rc_max[THROTTLE], rc_channel_data[THROTTLE]);
 
 			control_values = &rc_channel_data[0];
 			sched_unlock();
