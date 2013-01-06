@@ -208,10 +208,10 @@ int work_hpthread(int argc, char *argv[])
        * that were queued because they could not be freed in that execution
        * context (for example, if the memory was freed from an interrupt handler).
        * NOTE: If the work thread is disabled, this clean-up is performed by
-       * the IDLE thread (at a very, very lower priority).
+       * the IDLE thread (at a very, very low priority).
        */
 
-#ifdef CONFIG_SCHED_LPWORK
+#ifndef CONFIG_SCHED_LPWORK
       sched_garbagecollection();
 #endif
 
@@ -236,7 +236,7 @@ int work_lpthread(int argc, char *argv[])
        * that were queued because they could not be freed in that execution
        * context (for example, if the memory was freed from an interrupt handler).
        * NOTE: If the work thread is disabled, this clean-up is performed by
-       * the IDLE thread (at a very, very lower priority).
+       * the IDLE thread (at a very, very low priority).
        */
 
       sched_garbagecollection();

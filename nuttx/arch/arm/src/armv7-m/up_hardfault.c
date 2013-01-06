@@ -57,9 +57,7 @@
 
 /* Debug output from this file may interfere with context switching! */
 
-#undef DEBUG_HARDFAULTS         /* Define to debug hard faults */
-
-#ifdef DEBUG_HARDFAULTS
+#ifdef CONFIG_DEBUG_HARDFAULT
 # define hfdbg(format, arg...) lldbg(format, ##arg)
 #else
 # define hfdbg(x...)

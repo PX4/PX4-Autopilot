@@ -233,7 +233,9 @@ static int uart_putxmitchar(FAR uart_dev_t *dev, int ch)
         }
     }
 
-  /* We won't get here */
+  /* We won't get here.  Some compilers may complain that this code is
+   * unreachable.
+   */
 
   return OK;
 }
@@ -252,7 +254,7 @@ static inline ssize_t uart_irqwrite(FAR uart_dev_t *dev, FAR const char *buffer,
     {
       int ch = *buffer++;
 
-      /* assume that this is console text output and always do \n -> \r\n conversion */
+     /* If this is the console, then we should replace LF with CR-LF */
 
       if (ch == '\n')
         {

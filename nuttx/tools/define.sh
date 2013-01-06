@@ -1,7 +1,7 @@
 #!/bin/bash
 # tools/define.sh
 #
-#   Copyright (C) 2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2011-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,7 @@
 
 progname=$0
 wintool=n
-usage="USAGE: $progname [-w] [-d] [-l] [-h] <compiler-path> <def1>[=val1] [<def2>[=val2] [<def3>[=val3] ...]]"
+usage="USAGE: $progname [-w] [-d] [-h] <compiler-path> <def1>[=val1] [<def2>[=val2] [<def3>[=val3] ...]]"
 advice="Try '$progname -h' for more information"
 
 while [ ! -z "$1" ]; do 
@@ -60,7 +60,7 @@ while [ ! -z "$1" ]; do
 		echo "	<compiler-path>"
 		echo "		The full path to your compiler"
 		echo "	<def1> <def2> [<def3> ..."
-		echo "		A list of pre-preprocesser variable names to be defind."
+		echo "		A list of pre-preprocesser variable names to be defined."
 		echo "	[=val1] [=val2] [=val3]"
 		echo "		optional values to be assigned to each pre-processor variable."
 		echo "		If not supplied, the variable will be defined with no explicit value."
@@ -164,7 +164,7 @@ else
 	fmt=std
 fi
 
-# Now process each directory in the directory list
+# Now process each definition in the definition list
 
 unset response
 for vardef in $varlist; do

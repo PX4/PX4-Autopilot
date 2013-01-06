@@ -607,6 +607,7 @@ static FAR struct stm32_lowerhalf_s *stm32_tim2lower(int tim)
 #endif
 #ifdef CONFIG_STM32_TIM3_QE
     case 3:
+      return &g_tim3lower;
 #endif
 #ifdef CONFIG_STM32_TIM4_QE
     case 4:

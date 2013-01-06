@@ -1,7 +1,7 @@
 ############################################################################
 # apps/examples/romfs/Makefile
 #
-#   Copyright (C) 2008, 2010-2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2008, 2010-2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -48,10 +48,14 @@ COBJS		= $(CSRCS:.c=$(OBJEXT))
 SRCS		= $(ASRCS) $(CSRCS)
 OBJS		= $(AOBJS) $(COBJS)
 
-ifeq ($(WINTOOL),y)
-  BIN		= "${shell cygpath -w  $(APPDIR)/libapps$(LIBEXT)}"
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  BIN		= ..\..\libapps$(LIBEXT)
 else
-  BIN		= "$(APPDIR)/libapps$(LIBEXT)"
+ifeq ($(WINTOOL),y)
+  BIN		= ..\\..\\libapps$(LIBEXT)
+else
+  BIN		= ../../libapps$(LIBEXT)
+endif
 endif
 
 ROOTDEPPATH	= --dep-path .
@@ -61,7 +65,7 @@ ROOTDEPPATH	= --dep-path .
 VPATH		= 
 
 all: .built
-.PHONY:	checkgenromfs clean depend disclean
+.PHONY:	checkgenromfs clean depend distclean
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -86,26 +90,26 @@ romfs_testdir.h : testdir.img
 	@xxd -i $< >$@ || { echo "xxd of $< failed" ; exit 1 ; }
 
 .built: romfs_testdir.h $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $(BIN), $${obj}); \
-	done ; )
+	$(call ARCHIVE, $(BIN), $(OBJS))
 	@touch .built
 
 context:
 
 .depend: Makefile $(SRCS)
-	@$(MKDEP) $(ROOTDEPPATH) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	@$(MKDEP) $(ROOTDEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 	@touch $@
 
 # Register application
 depend: .depend
 
 clean:
-	@rm -f *.o *~ .*.swp .built
+	$(call DELFILE, .built)
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend testdir.img
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
+	$(call DELFILE, testdir.img)
 
 -include Make.dep
 

@@ -48,7 +48,7 @@
 #include <errno.h>
 
 #include <arpa/inet.h>
-#include <nuttx/nxflat.h>
+#include <nuttx/binfmt/nxflat.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -112,8 +112,9 @@ int nxflat_init(const char *filename, struct nxflat_loadinfo_s *loadinfo)
   loadinfo->filfd = open(filename, O_RDONLY);
   if (loadinfo->filfd < 0)
     {
-      bdbg("Failed to open NXFLAT binary %s: %d\n", filename, ret);
-      return -errno;      
+      int errval = errno;
+      bdbg("Failed to open NXFLAT binary %s: %d\n", filename, errval);
+      return -errval;      
     }
 
   /* Read the NXFLAT header from offset 0 */

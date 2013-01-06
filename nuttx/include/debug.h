@@ -571,12 +571,9 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-#undef EXTERN
 #if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
+extern "C"
+{
 #endif
 
 /* These low-level debug APIs are provided by the NuttX library.  If the
@@ -585,21 +582,20 @@ extern "C" {
  * or the other of the following.
  */
 
-EXTERN int lib_rawprintf(FAR const char *format, ...);
+int lib_rawprintf(FAR const char *format, ...);
 
 #ifdef CONFIG_ARCH_LOWPUTC
-EXTERN int lib_lowprintf(FAR const char *format, ...);
+int lib_lowprintf(FAR const char *format, ...);
 #endif
 
 /* Dump a buffer of data */
 
-EXTERN void lib_dumpbuffer(FAR const char *msg, FAR const uint8_t *buffer,
-                           unsigned int buflen);
+void lib_dumpbuffer(FAR const char *msg, FAR const uint8_t *buffer, unsigned int buflen);
 
 /* Enable or disable debug output */
 
 #ifdef CONFIG_DEBUG_ENABLE
-EXTERN void dbg_enable(bool enable);
+void dbg_enable(bool enable);
 #endif
 
 /* If the cross-compiler's pre-processor does not support variable length
@@ -608,23 +604,22 @@ EXTERN void dbg_enable(bool enable);
 
 #ifndef CONFIG_CPP_HAVE_VARARGS
 #ifdef CONFIG_DEBUG
-EXTERN int dbg(const char *format, ...);
+int dbg(const char *format, ...);
 
 # ifdef CONFIG_ARCH_LOWPUTC
-EXTERN int lldbg(const char *format, ...);
+int lldbg(const char *format, ...);
 # endif
 
 # ifdef CONFIG_DEBUG_VERBOSE
-EXTERN int vdbg(const char *format, ...);
+int vdbg(const char *format, ...);
 
 # ifdef CONFIG_ARCH_LOWPUTC
-EXTERN int llvdbg(const char *format, ...);
+int llvdbg(const char *format, ...);
 # endif
 #endif
 #endif /* CONFIG_DEBUG */
 #endif /* CONFIG_CPP_HAVE_VARARGS */
 
-#undef EXTERN
 #if defined(__cplusplus)
 }
 #endif

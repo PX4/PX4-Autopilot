@@ -47,7 +47,8 @@ config CAN_EXTID
 	bool "CAN extended IDs"
 	default n
 	---help---
-		Enables support for the 29-bit extended ID.  Default Standard 11-bit IDs.
+		Enables support for the 29-bit extended ID.  Default Standard 11-bit
+		IDs.
 
 config CAN_FIFOSIZE
 	int "CAN driver I/O buffer size"
@@ -83,10 +84,10 @@ config PWM_PULSECOUNT
 	bool "PWM Pulse Count Support"
 	default n
 	---help---
-		Some hardware will support generation of a fixed number of pulses.  This
-		might be used, for example to support a stepper motor.  If the hardware
-		will support a fixed pulse count, then this configuration should be set to
-		enable the capability.
+		Some hardware will support generation of a fixed number of pulses.
+		This might be used, for example to support a stepper motor.  If the
+		hardware will support a fixed pulse count, then this configuration
+		should be set to enable the capability.
 
 endif
 
@@ -147,23 +148,25 @@ config SPI_OWNBUS
 	bool "SPI single device"
 	default n
 	---help---
-		Set if there is only one active device on the SPI bus.  No locking or SPI
-		configuration will be performed. It is not necessary for clients to lock,
-		re-configure, etc..
+		Set if there is only one active device on the SPI bus.  No locking or
+		SPI configuration will be performed. It is not necessary for clients to
+		lock, re-configure, etc..
 
 config SPI_EXCHANGE
 	bool "SPI exchange"
 	default y
 	---help---
-		Driver supports a single exchange method (vs a recvblock() and sndblock ()methods).
+		Driver supports a single exchange method (vs a recvblock() and
+		sndblock() methods).
 
 config SPI_CMDDATA
 	bool "SPI CMD/DATA"
 	default n
 	---help---
-		Devices on the SPI bus require out-of-band support to distinguish command
-		transfers from data transfers.  Such devices will often support either 9-bit
-		SPI (yech) or 8-bit SPI and a GPIO output that selects between command and data.
+		Devices on the SPI bus require out-of-band support to distinguish
+		command transfers from data transfers.  Such devices will often support
+		either 9-bit SPI (yech) or 8-bit SPI and a GPIO output that selects
+		between command and data.
 
 endif
 
@@ -173,35 +176,36 @@ menuconfig RTC
 	---help---
 		This selection enables configuration of a real time clock (RTCdriver.
 		See include/nuttx/rtc.h for further watchdog timer driver information.
-		Most RTC drivers are MCU specific and may require other specific settings.
+		Most RTC drivers are MCU specific and may require other specific
+		settings.
 
 config RTC_DATETIME
 	bool "Date/Time RTC Support"
 	default n
 	depends on RTC
 	---help---
-		There are two general types of RTC:  (1) A simple battery backed counter
-		that keeps the time when power is down, and (2) a full date / time RTC the
-		provides the date and time information, often in BCD format.  If
-		RTC_DATETIME is selected, it specifies this second kind of RTC. In this
-		case, the RTC is used to "seed" the normal NuttX timer and the NuttX system
-		timer provides for higher resolution time.
+		There are two general types of RTC:  (1) A simple battery backed
+		counter that keeps the time when power is down, and (2) a full
+		date / time RTC the provides the date and time information, often in
+		BCD format.  If RTC_DATETIME is selected, it specifies this second kind
+		of RTC. In this case, the RTC is used to "seed" the normal NuttX timer
+		and the NuttX system timer provides for higher resolution time.
 
 config RTC_HIRES
 	bool "Hi-Res RTC Support"
 	default n
 	depends on RTC && !RTC_DATETIME
 	---help---
-		If RTC_DATETIME not selected, then the simple, battery backed counter is
-		used.  There are two different implementations of such simple counters
-		based on the time resolution of the counter: The typical RTC keeps time
-		to resolution of 1 second, usually supporting a 32-bit time_t value.  In
-		this case, the RTC is used to "seed" the normal NuttX timer and the NuttX
-		timer provides for higherresoution time.
+		If RTC_DATETIME not selected, then the simple, battery backed counter
+		is used.  There are two different implementations of such simple
+		counters based on the time resolution of the counter: The typical RTC
+		keeps time to resolution of 1 second, usually supporting a 32-bit
+		time_t value.  In this case, the RTC is used to "seed" the normal NuttX
+		timer and the NuttX timer provides for higherresoution time.
 
-		If RTC_HIRES is enabled in the NuttX configuration, then the RTC provides
-		higher resolution time and completely replaces the system timer for purpose
-		of date and time.
+		If RTC_HIRES is enabled in the NuttX configuration, then the RTC
+		provides higher resolution time and completely replaces the system
+		timer for purpose of date and time.
 
 config RTC_FREQUENCY
 	int "Hi-Res RTC frequency"
@@ -209,8 +213,8 @@ config RTC_FREQUENCY
 	depends on RTC && !RTC_DATETIME && RTC_HIRES
 	---help---
 		If RTC_HIRES is defined, then the frequency of the high resolution RTC
-		must be provided.  If RTC_HIRES is not defined, RTC_FREQUENCY is assumed
-		to be one Hz.
+		must be provided.  If RTC_HIRES is not defined, RTC_FREQUENCY is
+		assumed to be one Hz.
 
 config RTC_ALARM 
 	bool "RTC Alarm Support"
@@ -224,8 +228,9 @@ menuconfig WATCHDOG
 	bool "Watchdog Timer Support"
 	default n
 	---help---
-		This selection enables building of the "upper-half" watchdog timer driver.
-		See include/nuttx/watchdog.h for further watchdog timer driver information.
+		This selection enables building of the "upper-half" watchdog timer
+		driver. See include/nuttx/watchdog.h for further watchdog timer driver
+		information.
 
 if WATCHDOG
 endif
@@ -348,7 +353,8 @@ menuconfig POWER
 	bool "Power Management Support"
 	default n
 	---help---
-		Enable building of power-related devices (battery monitors, chargers, etc).
+		Enable building of power-related devices (battery monitors, chargers,
+		etc).
 
 if POWER
 source drivers/power/Kconfig
@@ -386,8 +392,8 @@ menuconfig SERIAL
 	default y
 	---help---
 		Front-end character drivers for chip-specific UARTs.  This provide
-		some TTY-like functionality and are commonly used (but not required for)
-		the NuttX system console.  See also include/nuttx/serial/serial.h
+		some TTY-like functionality and are commonly used (but not required
+		for) the NuttX system console.  See also include/nuttx/serial/serial.h
 
 if SERIAL
 source drivers/serial/Kconfig

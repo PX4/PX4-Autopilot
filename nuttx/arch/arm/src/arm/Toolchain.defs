@@ -1,0 +1,146 @@
+############################################################################
+# arch/arm/src/armv/Toolchain.defs
+#
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+#   Author: Gregory Nutt <gnutt@nuttx.org>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+# Setup for the selected toolchain
+
+#
+# Handle old-style chip-specific toolchain names in the absence of
+# a new-style toolchain specification, force the selection of a single
+# toolchain and allow the selected toolchain to be overridden by a
+# command-line selection.
+#
+
+ifeq ($(filter y, \
+      $(CONFIG_DM320_BUILDROOT) \
+      $(CONFIG_LPC313X_BUILDROOT) \
+      $(CONFIG_LPC31_BUILDROOT) \
+      $(CONFIG_OLIMEX_LPC2378_BUILDROOT) \
+      $(CONFIG_ARM_TOOLCHAIN_BUILDROOT) \
+    ),y)
+  CONFIG_ARM_TOOLCHAIN ?= BUILDROOT
+endif
+ifeq ($(filter y, \
+      $(CONFIG_DM320_CODESOURCERYL) \
+      $(CONFIG_LPC31_CODESOURCERYL) \
+      $(CONFIG_OLIMEX_LPC2378_CODESOURCERYL) \
+      $(CONFIG_ARM_TOOLCHAIN_CODESOURCERYL) \
+    ),y)
+  CONFIG_ARM_TOOLCHAIN ?= CODESOURCERYL
+endif
+ifeq ($(filter y, \
+      $(CONFIG_DM320_CODESOURCERYW) \
+      $(CONFIG_LPC31_CODESOURCERYW) \
+      $(CONFIG_OLIMEX_LPC2378_CODESOURCERYW) \
+      $(CONFIG_ARM_TOOLCHAIN_CODESOURCERYW) \
+    ),y)
+  CONFIG_ARM_TOOLCHAIN ?= CODESOURCERYW
+endif
+ifeq ($(filter y, \
+      $(CONFIG_DM320_DEVKITARM) \
+      $(CONFIG_LPC31_DEVKITARM) \
+      $(CONFIG_OLIMEX_LPC2378_DEVKITARM) \
+      $(CONFIG_ARM_TOOLCHAIN_DEVKITARM) \
+    ),y)
+  CONFIG_ARM_TOOLCHAIN ?= DEVKITARM
+endif
+ifeq ($(filter y, \
+      $(CONFIG_ARM_TOOLCHAIN_GNU_EABI) \
+    ),y)
+  CONFIG_ARM_TOOLCHAIN ?= GNU_EABI
+endif
+
+#
+# Supported toolchains
+#
+# TODO - It's likely that all of these toolchains now support the
+#        CortexM4.  Since they are all GCC-based, we could almost
+#        certainly simplify this further.
+#
+# Each toolchain definition should set:
+#
+#  CROSSDEV         The GNU toolchain triple (command prefix)
+#  ARCROSSDEV       If required, an alternative prefix used when 
+#                   invoking ar and nm.
+#  ARCHCPUFLAGS     CPU-specific flags selecting the instruction set
+#                   FPU options, etc.
+#  MAXOPTIMIZATION  The maximum optimization level that results in
+#                   reliable code generation.
+#
+
+# NuttX buildroot under Linux or Cygwin
+
+ifeq ($(CONFIG_ARM_TOOLCHAIN),BUILDROOT)
+  CROSSDEV = arm-nuttx-elf-
+  ARCROSSDEV = arm-nuttx-elf-
+  MAXOPTIMIZATION = -Os
+endif
+
+# CodeSourcery under Linux
+
+ifeq ($(CONFIG_ARM_TOOLCHAIN),CODESOURCERYL)
+  CROSSDEV = arm-none-eabi-
+  ARCROSSDEV = arm-none-eabi-
+  MAXOPTIMIZATION = -O2
+endif
+
+# CodeSourcery under Windows
+
+ifeq ($(CONFIG_ARM_TOOLCHAIN),CODESOURCERYW)
+  CROSSDEV = arm-none-eabi-
+  ARCROSSDEV = arm-none-eabi-
+  MAXOPTIMIZATION = -O2
+  ifneq ($(CONFIG_WINDOWS_NATIVE),y)
+    WINTOOL = y
+  endif
+endif
+
+# devkitARM under Windows
+
+ifeq ($(CONFIG_ARM_TOOLCHAIN),DEVKITARM)
+  CROSSDEV = arm-eabi-
+  ARCROSSDEV = arm-eabi-
+  ifneq ($(CONFIG_WINDOWS_NATIVE),y)
+    WINTOOL = y
+  endif
+endif
+
+# Generic GNU EABI toolchain on OS X, Linux or any typical Posix system
+
+ifeq ($(CONFIG_ARM_TOOLCHAIN),GNU_EABI)
+  CROSSDEV = arm-none-eabi-
+  ARCROSSDEV = arm-none-eabi-
+  MAXOPTIMIZATION = -O3
+endif  
+

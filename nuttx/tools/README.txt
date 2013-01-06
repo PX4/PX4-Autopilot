@@ -1,5 +1,5 @@
 tools/README.txt
-^^^^^^^^^^^^^^^^
+================
 
 This README file addresses the contents of the NuttX tools/ directory.
 
@@ -8,22 +8,38 @@ that are necessary parts of the the NuttX build system.  These files
 include:
 
 README.txt
+----------
 
-  This file
+  This file!
+
+Config.mk
+---------
+
+  This file contains common definitions used by many configureation files.
+  This file (along with <nuttx>/.config) must be included at the top of
+  each configuration-specific Make.defs file like:
+
+    -include $(TOPDIR)/.config
+    include $(TOPDIR)/tools/Config.mk
+
+  Subsequent logic within the configuration-specific Make.defs file may then
+  override these default definitions as necessary.
 
 configure.sh
+------------
 
   This is a bash script that is used to configure NuttX for a given
   target board.  See configs/README.txt or Documentation/NuttxPortingGuide.html
   for a description of how to configure NuttX with this script.
 
 discover.py
+-----------
 
   Example script for discovering devices in the local network.
   It is the counter part to apps/netutils/discover
 
-
 mkconfig.c, cfgparser.c, and cfgparser.h
+----------------------------------------
 
   These are Cs file that are used to build mkconfig program.  The mkconfig
   program is used during the initial NuttX build.
@@ -38,11 +54,13 @@ mkconfig.c, cfgparser.c, and cfgparser.h
   NuttX configuration that can be included by C files.
 
 cmdconfig.c
+-----------
 
   This C file can be used to build a utility for comparing two NuttX
   configuration files.
 
 mkexport.sh and Makefile.export
+-------------------------------
 
   These implement part of the top-level Makefile's 'export' target.  That
   target will bundle up all of the NuttX libraries, header files, and the
@@ -51,6 +69,7 @@ mkexport.sh and Makefile.export
   options from the top-level Make.defs file.
 
 mkfsdata.pl
+-----------
 
   This perl script is used to build the "fake" file system and CGI support
   as needed for the apps/netutils/webserver.  It is currently used only
@@ -61,6 +80,7 @@ mkfsdata.pl
   by Adam Dunkels.  uIP has a license that is compatible with NuttX.
 
 mkversion.c, cfgparser.c, and cfgparser.h
+-----------------------------------------
 
   This is C file that is used to build mkversion program.  The mkversion
   program is used during the initial NuttX build.
@@ -74,6 +94,7 @@ mkversion.c, cfgparser.c, and cfgparser.h
   version.h provides version information that can be included by C files.
 
 mksyscall.c, cvsparser.c, and cvsparser.h
+-----------------------------------------
 
   This is a C file that is used to build mksyscall program.  The mksyscall
   program is used during the initial NuttX build by the logic in the top-
@@ -96,6 +117,7 @@ mksyscall.c, cvsparser.c, and cvsparser.h
   stub files as output.  See syscall/README.txt for additonal information.
 
 mksymtab.c, cvsparser.c, and cvsparser.h
+----------------------------------------
 
   This is a C file that is used to build symbol tables from common-separated
   value (CSV) files.  This tool is not used during the NuttX build, but
@@ -116,10 +138,12 @@ mksymtab.c, cvsparser.c, and cvsparser.h
     ./mksymtab.exe tmp.csv tmp.c
 
 pic32mx
+-------
 
   This directory contains build tools used only for PIC32MX platforms
 
 bdf-convert.c
+-------------
 
   This C file is used to build the bdf-converter program.  The bdf-converter
   program be used to convert fonts in Bitmap Distribution Format (BDF)
@@ -255,6 +279,7 @@ bdf-convert.c
        };
 
 Makefile.host
+-------------
 
   This is the makefile that is used to make the mkconfig program from
   the mkconfig.c C file, the cmpconfig program from cmpconfig.c C file
@@ -265,20 +290,25 @@ Makefile.host
   make -f Makefile.host <program>
 
 mkromfsimg.sh
+-------------
 
   This script may be used to automate the generate of a ROMFS file system
   image.  It accepts an rcS script "template" and generates and image that
   may be mounted under /etc in the NuttX pseudo file system.
 
 mkdeps.sh
+mkdeps.bat
+mkdeps.c
 mknulldeps.sh
+-------------
 
   NuttX uses the GCC compilers capabilities to create Makefile dependencies.
   The bash script mkdeps.sh is used to run GCC in order to create the
   dependencies.  If a NuttX configuration uses the GCC toolchain, its Make.defs
   file (see configs/README.txt) will include a line like:
 
-    MKDEP = $(TOPDIR)/tools/mkdeps.sh
+    MKDEP = $(TOPDIR)/tools/mkdeps.sh, or
+    MKDEP = $(TOPDIR)/tools/mkdeps[.exe] (See NOTE below)
 
   If the NuttX configuration does not use a GCC compatible toolchain, then
   it cannot use the dependencies and instead it uses mknulldeps.sh:
@@ -287,23 +317,64 @@ mknulldeps.sh
 
   The mknulldeps.sh is a stub script that does essentially nothing.
 
+  NOTE:  The mk*deps.* files are undergoing change.  mkdeps.sh is a bash
+  script that produces dependencies well for POSIX style hosts (e..g.,
+  Linux and Cygwin).  It does not work well for mixed environments with
+  a Windows toolchain running in a POSIX style environemnt (hence, the
+  mknulldeps.sh script).  And, of course, cannot be used in a Windows
+  nativ environment.
+
+  [mkdeps.sh does have an option, --winpath, that purports to convert
+  the dependencies generated by a Windows toolchain to POSIX format.
+  However, that is not being used and mostly likely does not cover
+  all of the conversion cases.]
+
+  mkdeps.bat is a simple port of the bash script to run in a Windows
+  command shell.  However, it does not work well either because some
+  of the common CFLAGS use characters like '=' which are transformed
+  by the CMD.exe shell.
+
+  mkdeps.c generates mkdeps (on Linux) or mkdeps.exe (on Windows).
+  However, this verison is still under-development.  It works well in
+  the all POSIX environment or in the all Windows environment but also
+  does not work well in mixed POSIX environment with a Windows toolchain.
+  In that case, there are still issues with the conversion of things like
+  'c:\Program Files' to 'c:program files' by bash.  Those issues may,
+  eventually be solvable but for now continue to use mknulldeps.sh in
+  that mixed environment.
+
 define.sh
+define.bat
+---------
 
   Different compilers have different conventions for specifying pre-
   processor definitions on the compiler command line.  This bash
   script allows the build system to create create command line definitions
   without concern for the particular compiler in use.
 
+  The define.bat script is a counterpart for use in the native Windows
+  build.
+
 incdir.sh
+incdir.bat
+---------
 
   Different compilers have different conventions for specifying lists
-  of include file paths on the the compiler command line.  This bash
-  script allows the build system to create include file paths without
+  of include file paths on the the compiler command line.  This incdir.sh
+  bash script allows the build system to create include file paths without
   concern for the particular compiler in use.
 
+  The incdir.bat script is a counterpart for use in the native Windows
+  build.  However, there is currently only one compiler supported in
+  that context:  MinGW-GCC.
+
 link.sh
-winlink.sh
+link.bat
+copydir.sh
+copydir.bat
 unlink.sh
+unlink.bat
+----------
 
   Different file system have different capabilities for symbolic links.
   Some windows file systems have no native support for symbolic links.
@@ -322,30 +393,40 @@ unlink.sh
   default.  link.sh is a bash script that performs a normal, Linux-style
   symbolic link;  unlink.sh is a do-it-all unlinking script.
 
-  But if you are building under cygwin using a Windows native toolchain,
-  then you will need something like the following in you Make.defs file:
+  But if you are building under cygwin using a Windows native toolchain
+  within a POSIX framework (such as Cygwin), then you will need something
+  like the following in you Make.defs file:
 
-    DIRLINK = $(TOPDIR)/tools/winlink.sh
+    DIRLINK = $(TOPDIR)/tools/copydir.sh
     DIRUNLINK = (TOPDIR)/tools/unlink.sh
 
-  winlink.sh will copy the whole directory instead of linking it.
+  copydir.sh will copy the whole directory instead of linking it.
 
-  NOTE:  I have been told that some NuttX users have been able to build
-  successfully using the GnuWin32 tools and modifying the link.sh
-  script so that it uses the NTFS mklink command.  But I have never
-  tried that
+  Finally, if you are running in a pure native Windows environment with
+  a CMD.exe shell, then you will need something like this:
+
+    DIRLINK = $(TOPDIR)/tools/copydir.bat
+    DIRUNLINK = (TOPDIR)/tools/unlink.bat
+
+  Note that this will copy directories.  ;ink.bat might also be used in
+  this case.  link.bat will attempt to create a symbolic link using the
+  NTFS mklink.exe command instead of copying files.  That logic, however,
+  has not been verified as of this writing.
 
 mkimage.sh
+----------
 
   The creates a downloadable image as needed with the rrload bootloader.
 
 indent.sh
+---------
 
   This script can be used to indent .c and .h files in a manner similar
   to my coding NuttX coding style.  It doesn't do a really good job,
   however (see the comments at the top of the indent.sh file).
 
 zipme.sh
+--------
 
   I use this script to create the nuttx-xx.yy.tar.gz tarballs for
   release on SourceForge.  It is handy because it also does the

@@ -100,24 +100,22 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 $(BIN): $(OBJS)
-	@( for obj in $(OBJS) ; do \
-		$(call ARCHIVE, $@, $${obj}); \
-	done ; )
+	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
 ifeq ($(CONFIG_NET),y)
-	@$(MKDEP) --dep-path . --dep-path uip $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) --dep-path . --dep-path uip "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 endif
-	@touch $@
+	$(Q) touch $@
 
 depend: .depend
 
 clean:
-	@rm -f $(BIN) *~ .*.swp
-	@rm -f uip/*~ uip/.*.swp
+	$(call DELFILE, $(BIN))
 	$(call CLEAN)
 
 distclean: clean
-	@rm -f Make.dep .depend
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, .depend)
 
 -include Make.dep

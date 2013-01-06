@@ -44,6 +44,7 @@
 #include <nuttx/config.h>
 
 #include <sched.h>
+#include <stdlib.h>
 #include <debug.h>
 
 #include <nuttx/init.h>
@@ -129,6 +130,17 @@ int os_bringup(void)
 #endif
   int init_taskid;
 
+  /* Setup up the initial environment for the idle task.  At present, this
+   * may consist of only the initial PATH variable.  The PATH variable is
+   * (probably) not used by the IDLE task.  However, the environment
+   * containing the PATH variable will be inherited by all of the threads
+   * created by the IDLE task.
+   */
+
+#if !defined(CONFIG_DISABLE_ENVIRON) && defined(CONFIG_PATH_INITIAL)
+  (void)setenv("PATH", CONFIG_PATH_INITIAL, 1);
+#endif
+
   /* Start the page fill worker kernel thread that will resolve page faults.
    * This should always be the first thread started because it may have to
    * resolve page faults in other threads
@@ -190,5 +202,12 @@ int os_bringup(void)
                             (main_t)CONFIG_USER_ENTRYPOINT, (const char **)NULL);
 #endif
   ASSERT(init_taskid != ERROR);
+
+  /* We an save a few bytes by discarding the IDLE thread's environment. */
+
+#if !defined(CONFIG_DISABLE_ENVIRON) && defined(CONFIG_PATH_INITIAL)
+  (void)clearenv();
+#endif
+
   return OK;
 }
