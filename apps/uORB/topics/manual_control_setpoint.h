@@ -52,8 +52,7 @@ enum MANUAL_CONTROL_MODE
 {
 	MANUAL_CONTROL_MODE_DIRECT = 0,
 	MANUAL_CONTROL_MODE_ATT_YAW_RATE = 1,
-	MANUAL_CONTROL_MODE_ATT_YAW_POS = 2,
-	MANUAL_CONTROL_MODE_MULTIROTOR_SIMPLE = 3 /**< roll / pitch rotated aligned to the takeoff orientation, throttle stabilized, yaw pos */
+	MANUAL_CONTROL_MODE_ATT_YAW_POS = 2
 };
 
 struct manual_control_setpoint_s {

@@ -131,6 +131,7 @@ struct vehicle_status_s
 	bool flag_control_attitude_enabled;		/**< true if attitude stabilization is mixed in */
 	bool flag_control_velocity_enabled;		/**< true if speed (implies direction) is controlled */
 	bool flag_control_position_enabled;		/**< true if position is controlled */
+	bool flag_control_simple_mode_enabled;		/**< true if simple mode is enabled */
 
 	bool flag_preflight_gyro_calibration;		/**< true if gyro calibration is requested */
 	bool flag_preflight_mag_calibration;			/**< true if mag calibration is requested */

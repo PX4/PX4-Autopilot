@@ -67,6 +67,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
 
+#include <systemlib/param/param.h>
 #include <systemlib/perf_counter.h>
 #include <systemlib/systemlib.h>
 #include <systemlib/param/param.h>
@@ -78,10 +79,13 @@ PARAM_DEFINE_FLOAT(MC_RCLOSS_THR, 0.0f); // This defines the throttle when the R
 
 __EXPORT int multirotor_att_control_main(int argc, char *argv[]);
 
+/**
+ * Print the correct usage.
+ */
+static void usage(const char *reason);
+
 static bool thread_should_exit;
 static int mc_task;
-static bool motor_test_mode = false;
-
 static orb_advert_t actuator_pub;
 
 static struct vehicle_status_s state;
@@ -89,6 +93,32 @@ static struct vehicle_status_s state;
 static int
 mc_thread_main(int argc, char *argv[])
 {
+	bool motor_test_mode = false;
+	bool simple_mode_enabled = false;
+
+	int ch;
+	while ((ch = getopt(argc, argv, "st:")) != EOF) {
+		switch (ch) {
+		case 't':
+			motor_test_mode = true;
+			break;
+		case 's':
+			printf("[multirotor att control] simple mode support enabled.\n");
+			simple_mode_enabled = true;
+			break;
+		case ':':
+			usage("missing parameter");
+			break;
+		default:
+			fprintf(stderr, "option: -%c\n", ch);
+			usage("unrecognized option");
+			exit(1);
+		}
+	}
+
+	/* welcome user */
+	printf("[multirotor_att_control] starting\n");
+
 	/* declare and safely initialize all structs */
 	memset(&state, 0, sizeof(state));
 	struct vehicle_attitude_s att;
@@ -144,12 +174,10 @@ mc_thread_main(int argc, char *argv[])
 	perf_counter_t mc_interval_perf = perf_alloc(PC_INTERVAL, "multirotor_att_control_interval");
 	perf_counter_t mc_err_perf = perf_alloc(PC_COUNT, "multirotor_att_control_err");
 
-	/* welcome user */
-	printf("[multirotor_att_control] starting\n");
-
 	/* store last control mode to detect mode switches */
 	bool flag_control_manual_enabled = false;
 	bool flag_control_attitude_enabled = false;
+	bool flag_control_simple_mode_enabled = false;
 	bool flag_system_armed = false;
 
 	/* store if yaw position or yaw speed has been changed */
@@ -162,6 +190,8 @@ mc_thread_main(int argc, char *argv[])
 	param_t failsafe_throttle_handle = param_find("MC_RCLOSS_THR");
 	float failsafe_throttle = 0.0f;
 
+	/* store the heading at the moment simple mode is activated */
+	float initial_heading = 0.0f;
 
 	while (!thread_should_exit) {
 
@@ -277,8 +307,31 @@ mc_thread_main(int argc, char *argv[])
 						} else {
 							rc_loss_first_time = true;
 
-							att_sp.roll_body = manual.roll;
-							att_sp.pitch_body = manual.pitch;
+							float roll = manual.roll;
+							float pitch = manual.pitch;
+
+							/* if simple mode is enabled then rotate roll/pitch controls with respect to the
+							 * changing in heading from its original position. 
+							 */
+							if (simple_mode_enabled && state.flag_control_simple_mode_enabled) {
+								if (state.flag_control_simple_mode_enabled != flag_control_simple_mode_enabled || 
+									state.flag_system_armed != flag_system_armed) {
+									/* if arming state or simple mode switch state changes store current heading */
+									initial_heading = att.yaw;
+								}
+
+								float theta = initial_heading - att.yaw;
+
+								float cos_theta = cosf(theta);						
+								float sin_theta = sinf(theta);
+
+								/* rotate the roll/pitch inputs */
+								roll  = manual.roll  * cos_theta - manual.pitch * sin_theta;
+								pitch = manual.roll  * sin_theta + manual.pitch * cos_theta;
+			    				}
+
+							att_sp.roll_body = roll;
+							att_sp.pitch_body = pitch;
 
 							/* set attitude if arming */
 							if (!flag_control_attitude_enabled && state.flag_system_armed) {
@@ -354,6 +407,7 @@ mc_thread_main(int argc, char *argv[])
 				/* update state */
 				flag_control_attitude_enabled = state.flag_control_attitude_enabled;
 				flag_control_manual_enabled = state.flag_control_manual_enabled;
+				flag_control_simple_mode_enabled = state.flag_control_simple_mode_enabled;
 				flag_system_armed = state.flag_system_armed;
 
 				perf_end(mc_loop_perf);
@@ -387,39 +441,18 @@ usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
-	fprintf(stderr, "usage: multirotor_att_control [-m <mode>] [-t] {start|status|stop}\n");
-	fprintf(stderr, "    <mode> is 'rates' or 'attitude'\n");
+	fprintf(stderr, "usage: multirotor_att_control {start|status|stop} [-t] [-s]\n");
 	fprintf(stderr, "    -t enables motor test mode with 10%% thrust\n");
+	fprintf(stderr, "    -s enables simple mode support\n");
 	exit(1);
 }
 
 int multirotor_att_control_main(int argc, char *argv[])
 {
-	int	ch;
-	unsigned int optioncount = 0;
-
-	while ((ch = getopt(argc, argv, "tm:")) != EOF) {
-		switch (ch) {
-		case 't':
-			motor_test_mode = true;
-			optioncount += 1;
-			break;
-		case ':':
-			usage("missing parameter");
-			break;
-		default:
-			fprintf(stderr, "option: -%c\n", ch);
-			usage("unrecognized option");
-			break;
-		}
-	}
-	argc -= optioncount;
-	//argv += optioncount;
-
 	if (argc < 1)
 		usage("missing command");
 
-	if (!strcmp(argv[1+optioncount], "start")) {
+	if (!strcmp(argv[1], "start")) {
 
 		thread_should_exit = false;
 		mc_task = task_spawn("multirotor_att_control",
@@ -427,11 +460,11 @@ int multirotor_att_control_main(int argc, char *argv[])
 				     SCHED_PRIORITY_MAX - 15,
 				     2048,
 				     mc_thread_main,
-				     NULL);
+				     (argv) ? (const char **)&argv[2] : (const char **)NULL);
 		exit(0);
 	}
 
-	if (!strcmp(argv[1+optioncount], "stop")) {
+	if (!strcmp(argv[1], "stop")) {
 		thread_should_exit = true;
 		exit(0);
 	}

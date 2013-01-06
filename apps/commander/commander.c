@@ -1516,6 +1516,15 @@ int commander_thread_main(int argc, char *argv[])
 					update_state_machine_mode_stabilized(stat_pub, &current_status, mavlink_fd);
 				}
 
+				/* for now this is hardwired to simple mode but ideally we would look up the functions mapped
+				 * to each position of this switch (ie: simple mode, come home, etc.) 
+				 */
+				if (sp_man.aux1_cam_pan_flaps > STICK_ON_OFF_LIMIT) {
+					current_status.flag_control_simple_mode_enabled = false;
+				} else if (sp_man.aux1_cam_pan_flaps < -STICK_ON_OFF_LIMIT) {
+					current_status.flag_control_simple_mode_enabled = true;
+				}
+
 				/* handle the case where RC signal was regained */
 				if (!current_status.rc_signal_found_once) {
 					current_status.rc_signal_found_once = true;
