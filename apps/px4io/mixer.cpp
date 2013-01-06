@@ -97,7 +97,7 @@ mixer_tick(void)
 	 */
 	 
 	/* this is for planes, where manual override makes sense */
-	if(system_state.manual_override_ok) {
+	if (system_state.manual_override_ok) {
 		/* if everything is ok */
 		if (!system_state.mixer_manual_override && system_state.mixer_fmu_available) {
 			/* we have recent control data from the FMU */
@@ -118,7 +118,7 @@ mixer_tick(void)
 	/* this is for multicopters, etc. where manual override does not make sense */
 	} else {
 		/* if the fmu is available whe are good */
-		if(system_state.mixer_fmu_available) {
+		if (system_state.mixer_fmu_available) {
 			control_count = PX4IO_CONTROL_CHANNELS;
 			control_values = &system_state.fmu_channel_data[0];
 		/* we better shut everything off */
