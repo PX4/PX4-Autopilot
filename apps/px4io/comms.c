@@ -233,6 +233,7 @@ comms_handle_command(const void *buffer, size_t length)
 				break;
 			}
 		}
+		system_state.relays[i] = cmd->relay_state[i];
 	}
 
 	irqrestore(flags);
