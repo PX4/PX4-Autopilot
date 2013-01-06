@@ -61,6 +61,7 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_pwm_output.h>
+#include <drivers/drv_gpio.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 
@@ -116,6 +117,8 @@ private:
 	volatile unsigned	_mix_buf_len;	///< size of the mixer text buffer
 
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
+
+	uint32_t		_relays;	///< state of the PX4IO relays, one bit per relay
 
 	volatile bool		_switch_armed;	///< PX4IO switch armed state
 	// XXX how should this work?
@@ -195,6 +198,7 @@ PX4IO::PX4IO() :
 	_mix_buf(nullptr),
 	_mix_buf_len(0),
 	_primary_pwm_device(false),
+	_relays(0),
 	_switch_armed(false),
 	_send_needed(false),
 	_config_needed(false)
@@ -542,7 +546,9 @@ PX4IO::io_send()
 	/* XXX needs to be based off post-mix values from the IO side */
 	orb_publish(ORB_ID_VEHICLE_CONTROLS, _t_outputs, &_outputs);
 
-	// XXX relays
+	/* update relays */
+	for (unsigned i = 0; i < PX4IO_RELAY_CHANNELS; i++)
+		cmd.relay_state[i] = (_relays & (1<< i)) ? true : false;
 
 	/* armed and not locked down */
 	cmd.arm_ok = (_armed.armed && !_armed.lockdown);
@@ -639,6 +645,30 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 	case PWM_SERVO_GET(0) ... PWM_SERVO_GET(_max_actuators - 1):
 		/* copy the current output value from the channel */
 		*(servo_position_t *)arg = _outputs.output[cmd - PWM_SERVO_GET(0)];
+		break;
+
+	case GPIO_RESET:
+		_relays = 0;
+		_send_needed = true;
+		break;
+
+	case GPIO_SET:
+	case GPIO_CLEAR:
+		/* make sure only valid bits are being set */
+		if ((arg & ((1UL << PX4IO_RELAY_CHANNELS) - 1)) != arg) {
+			ret = EINVAL;
+			break;
+		}
+		if (cmd == GPIO_SET) {
+			_relays |= arg;
+		} else {
+			_relays &= ~arg;
+		}
+		_send_needed = true;
+		break;
+
+	case GPIO_GET:
+		*(uint32_t *)arg = _relays;
 		break;
 
 	case MIXERIOCGETOUTPUTCOUNT:
