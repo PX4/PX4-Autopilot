@@ -43,12 +43,19 @@ CSRCS		 = err.c \
 		   conversions.c \
 		   cpuload.c \
 		   getopt_long.c \
-		   up_cxxinitialize.c
+		   up_cxxinitialize.c \
+		   control/test_params.c
 
 #		   ppm_decode.c \
 
 
 CXXSRCS   =  test/test.cpp \
+			 control/block/Block.cpp \
+			 control/block/BlockParam.cpp \
+			 control/block/UOrbPublication.cpp \
+			 control/block/UOrbSubscription.cpp \
+			 control/blocks.cpp \
+			 control/fixedwing.cpp \
 			 math/Vector.cpp \
 			 math/Vector3.cpp \
 			 math/EulerAngles.cpp \
@@ -57,6 +64,12 @@ CXXSRCS   =  test/test.cpp \
 			 math/Matrix.cpp
 
 CXXHDRS   =  test/test.hpp \
+			 control/block/Block.hpp \
+			 control/block/BlockParam.hpp \
+			 control/block/UOrbPublication.hpp \
+			 control/block/UOrbSubscription.hpp \
+			 control/blocks.hpp \
+			 control/fixedwing.hpp \
 			 math/Vector.hpp \
 			 math/Vector3.hpp \
 			 math/EulerAngles.hpp \
