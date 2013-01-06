@@ -539,7 +539,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		/* FALLTHROUGH */
 	case PWM_SERVO_GET(0):
 	case PWM_SERVO_GET(1): {
-			channel = cmd - PWM_SERVO_SET(0);
+			channel = cmd - PWM_SERVO_GET(0);
 			*(servo_position_t *)arg = up_pwm_servo_get(channel);
 			break;
 		}
