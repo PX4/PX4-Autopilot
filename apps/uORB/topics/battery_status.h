@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,77 +32,37 @@
  ****************************************************************************/
 
 /**
- * @file PX4FMU <-> PX4IO messaging protocol.
+ * @file battery_status.h
  *
- * This initial version of the protocol is very simple; each side transmits a
- * complete update with each frame.  This avoids the sending of many small
- * messages and the corresponding complexity involved.
+ * Definition of the battery status uORB topic.
  */
 
-#pragma once
+#ifndef BATTERY_STATUS_H_
+#define BATTERY_STATUS_H_
 
-#define PX4IO_CONTROL_CHANNELS	8
-#define PX4IO_INPUT_CHANNELS	12
-#define PX4IO_RELAY_CHANNELS	4
-
-#pragma pack(push, 1)
+#include "../uORB.h"
+#include <stdint.h>
 
 /**
- * Periodic command from FMU to IO.
+ * @addtogroup topics
+ * @{
  */
-struct px4io_command {
-	uint16_t	f2i_magic;
-#define F2I_MAGIC		0x636d
 
-	uint16_t	output_control[PX4IO_CONTROL_CHANNELS];
-	bool		relay_state[PX4IO_RELAY_CHANNELS];
-	bool		arm_ok;
+/**
+ * Battery voltages and status
+ */
+struct battery_status_s {
+	uint64_t	timestamp;		/**< microseconds since system boot, needed to integrate */
+	float   	voltage_v;		/**< Battery voltage in volts, filtered           	 */
+	float		current_a;		/**< Battery current in amperes, filtered, -1 if unknown */
+	float		discharged_mah;		/**< Discharged amount in mAh, filtered, -1 if unknown	 */
 };
 
 /**
- * Periodic report from IO to FMU
+ * @}
  */
-struct px4io_report {
-	uint16_t	i2f_magic;
-#define I2F_MAGIC		0x7570
 
-	uint16_t	rc_channel[PX4IO_INPUT_CHANNELS];
-	bool		armed;
-	uint8_t		channel_count;
+/* register this as object request broker structure */
+ORB_DECLARE(battery_status);
 
-	uint16_t	battery_mv;
-	uint16_t	adc_in;
-	uint8_t		overcurrent;
-};
-
-/**
- * As-needed config message from FMU to IO
- */
-struct px4io_config {
-	uint16_t	f2i_config_magic;
-#define F2I_CONFIG_MAGIC	 0x6366
-
-	/* XXX currently nothing here */
-};
-
-/**
- * As-needed mixer data upload.
- *
- * This message adds text to the mixer text buffer; the text
- * buffer is drained as the definitions are consumed.
- */
-struct px4io_mixdata {
-	uint16_t	f2i_mixer_magic;
-#define F2I_MIXER_MAGIC		0x6d74
-
-	uint8_t		action;
-#define F2I_MIXER_ACTION_RESET		0
-#define F2I_MIXER_ACTION_APPEND		1
-
-	char		text[0];	/* actual text size may vary */
-};
-
-/* maximum size is limited by the HX frame size */
-#define F2I_MIXER_MAX_TEXT	(HX_STREAM_MAX_FRAME - sizeof(struct px4io_mixdata))
-
-#pragma pack(pop)
+#endif
