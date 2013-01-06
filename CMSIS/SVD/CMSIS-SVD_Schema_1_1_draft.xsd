@@ -1,0 +1,509 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  @note    Copyright (C) 2011-2012 ARM Limited. All rights reserved.
+  @par
+   ARM Limited (ARM) is supplying this software for use with Cortex-M
+   processor based microcontroller, but can be equally used for other
+   suitable  processor architectures. This file can be freely distributed.
+   Modifications to this file shall be clearly marked.
+
+  @date: 12.03.2012
+
+  @par
+   THIS SOFTWARE IS PROVIDED "AS IS".  NO WARRANTIES, WHETHER EXPRESS, IMPLIED
+   OR STATUTORY, INCLUDING, BUT NOT LIMITED TO, IMPLIED WARRANTIES OF
+   MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE APPLY TO THIS SOFTWARE.
+   ARM SHALL NOT, IN ANY CIRCUMSTANCES, BE LIABLE FOR SPECIAL, INCIDENTAL, OR
+   CONSEQUENTIAL DAMAGES, FOR ANY REASON WHATSOEVER.
+
+  This is a draft for CMSIS-SVD version 1.1
+  For backward compatibility all additional tags have been made optional.
+  Extensions may be mandatory for successful device header file generation
+  Other changes are related to some restructuring of the schema.
+  
+  Note that the memory section has been removed since this would limit the
+  reuse of descriptions for a series of devices.
+ -->
+
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="qualified" version="1.1">
+  <!-- stringType requires a none empty string of a least one character length -->
+  <xs:simpleType name="stringType">
+    <xs:restriction base="xs:string">
+      <xs:minLength value="1"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- cpuType specifies a selection of Cortex-M and Secure-Cores. This list will get extended as new processors are released -->
+  <xs:simpleType name="cpuNameType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="CM0"/>
+      <xs:enumeration value="CM0PLUS"/>
+      <xs:enumeration value="CM0+"/>
+      <xs:enumeration value="SC000"/>
+      <xs:enumeration value="CM3"/>
+      <xs:enumeration value="SC300"/>
+      <xs:enumeration value="CM4"/>
+      <xs:enumeration value="other"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- revisionType specifies the CPU revision format as defined by ARM (rNpM) -->
+  <xs:simpleType name="revisionType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="r[0-9]p[0-9]"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- EndianType pre-defines the tokens for specifying the endianess of the device -->
+  <xs:simpleType name="endianType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="little"/>
+      <xs:enumeration value="big"/>
+      <xs:enumeration value="selectable"/>
+      <xs:enumeration value="other"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- dataType pre-defines the tokens in line with CMSIS data type definitions -->
+  <xs:simpleType name="dataTypeType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="uint8_t"/>
+      <xs:enumeration value="uint16_t"/>
+      <xs:enumeration value="uint32_t"/>
+      <xs:enumeration value="uint64_t"/>
+      <xs:enumeration value="int8_t"/>
+      <xs:enumeration value="int16_t"/>
+      <xs:enumeration value="int32_t"/>
+      <xs:enumeration value="int64_t"/>
+      <xs:enumeration value="uint8_t *"/>
+      <xs:enumeration value="uint16_t *"/>
+      <xs:enumeration value="uint32_t *"/>
+      <xs:enumeration value="uint64_t *"/>
+      <xs:enumeration value="int8_t *"/>
+      <xs:enumeration value="int16_t *"/>
+      <xs:enumeration value="int32_t *"/>
+      <xs:enumeration value="int64_t *"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- nvicPrioBitsType specifies the integer value range for the number of bits used in NVIC to encode priority levels -->
+  <xs:simpleType name="nvicPrioBitsType">
+    <xs:restriction base="xs:integer">
+      <xs:minInclusive value="2"/>
+      <xs:maxInclusive value="8"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- identifierType specifies the subset and sequence of characters used for specifying identifiers within the description. -->
+  <!-- this is particularly important as these are used in ANSI C Structures during the device header file generation -->
+  <xs:simpleType name="identifierType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="((%s)[_A-Za-z]{1}[_A-Za-z0-9]*)|([_A-Za-z]{1}[_A-Za-z0-9]*(\[%s\])?)|([_A-Za-z]{1}[_A-Za-z0-9]*(%s)?[_A-Za-z0-9]*)"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- enumerationNameType specifies the subset and sequence of characters used for specifying names of enumeratedValues. -->
+  <!-- this is particularly important as these are used in ANSI C Structures during the device header file generation -->
+  <xs:simpleType name="enumerationNameType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[_A-Za-z0-9]*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- dimIndexType specifies the subset and sequence of characters used for specifying the sequence of indices in register arrays -->
+  <xs:simpleType name="dimIndexType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[0-9]+\-[0-9]+|[A-Z]-[A-Z]|[_0-9a-zA-Z]+(,\s*[_0-9a-zA-Z]+)+"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- scaledNonNegativeInteger specifies the format in which numbers are represented in hexadecimal or decimar format -->
+  <xs:simpleType name="scaledNonNegativeInteger">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[+]?(0x|0X|#)?[0-9a-fA-F]+[kmgtKMGT]?"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- enumeratedValueDataType specifies the number formats for the values in enumeratedValues -->
+  <xs:simpleType name="enumeratedValueDataType">
+    <xs:restriction base="xs:string">
+      <xs:pattern value="[+]?(0x|0X|#)?[0-9a-fxA-FX]+"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- accessType specfies the pre-defined tokens for the available accesses -->
+  <xs:simpleType name="accessType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="read-only"/>
+      <xs:enumeration value="write-only"/>
+      <xs:enumeration value="read-write"/>
+      <xs:enumeration value="writeOnce"/>
+      <xs:enumeration value="read-writeOnce"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- modifiedWriteValuesType specifies the pre-defined tokens for the write side effects -->
+  <xs:simpleType name="modifiedWriteValuesType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="oneToClear"/>
+      <xs:enumeration value="oneToSet"/>
+      <xs:enumeration value="oneToToggle"/>
+      <xs:enumeration value="zeroToClear"/>
+      <xs:enumeration value="zeroToSet"/>
+      <xs:enumeration value="zeroToToggle"/>
+      <xs:enumeration value="clear"/>
+      <xs:enumeration value="set"/>
+      <xs:enumeration value="modify"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- readAction type specifies the pre-defined tokens for read side effects -->
+  <xs:simpleType name="readActionType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="clear"/>
+      <xs:enumeration value="set"/>
+      <xs:enumeration value="modify"/>
+      <xs:enumeration value="modifyExternal"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- enumUsageType specifies the pre-defined tokens for selecting what access types an enumeratedValues set is associated with -->
+  <xs:simpleType name="enumUsageType">
+    <xs:restriction base="xs:token">
+      <xs:enumeration value="read"/>
+      <xs:enumeration value="write"/>
+      <xs:enumeration value="read-write"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- bitRangeType specifies the bit numbers to be restricted values from 0 - 69 -->
+  <xs:simpleType name="bitRangeType">
+    <xs:restriction base="xs:token">
+      <xs:pattern value="\[([0-4])?[0-9]:([0-4])?[0-9]\]"/>
+    </xs:restriction>
+  </xs:simpleType>
+  <!-- writeContraintType specifies how to describe the restriction of the allowed values that can be written to a resource -->
+  <xs:complexType name="writeConstraintType">
+    <xs:choice>
+      <xs:element name="writeAsRead" type="xs:boolean"/>
+      <xs:element name="useEnumeratedValues" type="xs:boolean"/>
+      <xs:element name="range">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="minimum" type="scaledNonNegativeInteger"/>
+            <xs:element name="maximum" type="scaledNonNegativeInteger"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:choice>
+  </xs:complexType>
+  <!-- addressBlockType specifies the elements to describe an address block -->
+  <xs:complexType name="addressBlockType">
+    <xs:sequence>
+      <xs:element name="offset" type="scaledNonNegativeInteger"/>
+      <xs:element name="size" type="scaledNonNegativeInteger"/>
+      <xs:element name="usage">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="registers"/>
+            <xs:enumeration value="buffer"/>
+            <xs:enumeration value="reserved"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+  <!-- interruptType specifies how to describe an interrupt associated with a peripheral -->
+  <xs:complexType name="interruptType">
+    <xs:sequence>
+      <xs:element name="name" type="stringType"/>
+      <xs:element name="description" type="xs:string" minOccurs="0"/>
+      <xs:element name="value" type="xs:integer"/>
+    </xs:sequence>
+  </xs:complexType>
+  <!-- register properties group specifies register size, access permission and reset value 
+       this is used in multiple locations. Settings are inherited downstream. -->  
+  <xs:group name="registerPropertiesGroup">
+    <xs:sequence>
+      <xs:element name="size" type="scaledNonNegativeInteger" minOccurs="0"/>
+      <xs:element name="access" type="accessType" minOccurs="0"/>
+      <xs:element name="resetValue" type="scaledNonNegativeInteger" minOccurs="0"/>
+      <xs:element name="resetMask" type="scaledNonNegativeInteger" minOccurs="0"/>
+    </xs:sequence>
+  </xs:group>
+  <!-- bitRangeLsbMsbStyle specifies the bit position of a field within a register 
+       by specifying the least significant and the most significant bit position -->
+  <xs:group name="bitRangeLsbMsbStyle">
+    <xs:sequence>
+      <xs:element name="lsb"  type="scaledNonNegativeInteger"/>
+      <xs:element name="msb"  type="scaledNonNegativeInteger"/>
+    </xs:sequence>
+  </xs:group>
+  <!-- bitRangeOffsetWidthStyle specifies the bit position of a field within a register
+       by specifying the least significant bit position and the bitWidth of the field -->
+  <xs:group name="bitRangeOffsetWidthStyle">
+    <xs:sequence>
+      <xs:element name="bitOffset" type="scaledNonNegativeInteger"/>
+      <xs:element name="bitWidth" type="scaledNonNegativeInteger" minOccurs="0"/>   
+    </xs:sequence> 
+  </xs:group>
+  <!-- dimElementGroup specifies the number of array elements (dim), the address offset
+       between to consecutive array elements and an a comma seperated list of strings 
+       being used for identifying each element in the array -->
+  <xs:group name="dimElementGroup">
+    <xs:sequence>
+      <xs:element name="dim" type="scaledNonNegativeInteger"/>
+      <xs:element name="dimIncrement" type="scaledNonNegativeInteger"/>
+      <xs:element name="dimIndex" type="dimIndexType" minOccurs="0"/>
+    </xs:sequence>
+  </xs:group>
+
+  <xs:complexType name="cpuType">
+    <xs:sequence>
+      <!-- V1.1: ARM processor name: Cortex-Mx / SCxxx -->
+      <xs:element name="name" type="cpuNameType"/>
+      <!-- V1.1: ARM defined revision of the cpu -->
+      <xs:element name="revision" type="revisionType"/>
+      <!-- V1.1: Endian specifies the endianess of the processor/device -->
+      <xs:element name="endian" type="endianType"/>
+      <!-- V1.1: mpuPresent specifies whether or not a memory protection unit is physically present -->
+      <xs:element name="mpuPresent" type="xs:boolean"/>
+      <!-- V1.1: fpuPresent specifies whether or not a floating point hardware unit is physically present -->
+      <xs:element name="fpuPresent" type="xs:boolean"/>
+      <!-- V1.1: nvicPrioBits specifies the number of bits used by the Nested Vectored Interrupt Controller
+                   for defining the priority level = # priority levels -->
+      <xs:element name="nvicPrioBits" type="scaledNonNegativeInteger"/>
+      <!-- V1.1: vendorSystickConfig is set true if a custom system timer is implemented in the device 
+                   instead of the ARM specified SysTickTimer -->
+      <xs:element name="vendorSystickConfig" type="xs:boolean"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="enumeratedValuesType">
+    <xs:sequence>
+      <!-- name specfies a reference to this enumeratedValues section for reuse purposes
+           this name does not appear in the System Viewer nor the Header File. -->
+      <xs:element name="name" type="enumerationNameType" minOccurs="0"/>
+      <!-- usage specifies whether this enumeration is to be used for read or write or 
+                                                       (read and write) accesses -->
+      <xs:element name="usage" type="enumUsageType" minOccurs="0"/>
+      <!-- enumeratedValue derivedFrom=<identifierType> -->
+      <xs:element name="enumeratedValue" minOccurs="1" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:sequence>
+            <!-- name is a ANSI C indentifier representing the value (C Enumeration) -->
+            <xs:element name="name" type="enumerationNameType"/>
+            <!-- description contains the details about the semantics/behavior specified by this value -->
+            <xs:element name="description" type="stringType" minOccurs="0"/>
+            <xs:choice>
+              <xs:element name="value" type="enumeratedValueDataType"/>
+              <!-- isDefault specifies the name and description for all values that are not
+                   specifically described individually -->
+              <xs:element name="isDefault" type="xs:boolean"/>
+            </xs:choice>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="derivedFrom" type="identifierType" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="fieldType">
+    <xs:sequence>
+      <!-- name specifies a field's name. The System Viewer and the device header file will
+           use the name of the field as identifier -->
+      <xs:element name="name" type="identifierType"/>
+      <!-- description contains reference manual level information about the function and 
+           options of a field -->
+      <xs:element name="description" type="stringType" minOccurs="0"/>
+      <!-- alternative specifications of the bit position of the field within the register -->
+      <xs:choice minOccurs="1" maxOccurs="1">
+        <!-- bit field described by lsb followed by msb tag -->
+        <xs:group ref="bitRangeLsbMsbStyle"/>
+        <!-- bit field described by bit offset relative to Bit0 + bit width of field -->
+        <xs:group ref="bitRangeOffsetWidthStyle"/>
+        <!-- bit field described by [<msb>:<lsb>] -->
+        <xs:element name="bitRange" type="bitRangeType"/>
+      </xs:choice>
+      <!-- access describes the predefined permissions for the field. -->
+      <xs:element name="access" type="accessType" minOccurs="0"/>
+      <!-- predefined description of write side effects -->
+      <xs:element name="modifiedWriteValues" type="modifiedWriteValuesType" minOccurs="0"/>
+      <!-- writeContstraint specifies the subrange of allowed values -->
+      <xs:element name="writeConstraint" type="writeConstraintType" minOccurs="0"/>
+      <!-- readAction specifies the read side effects. -->
+      <xs:element name="readAction" type="readActionType" minOccurs="0"/>
+      <!-- enumeratedValues derivedFrom=<identifierType> -->
+      <xs:element name="enumeratedValues" type="enumeratedValuesType" minOccurs="0" maxOccurs="2">
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="derivedFrom" type="identifierType" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="fieldsType">
+    <xs:sequence>
+      <!-- field derivedFrom=<identifierType> -->
+      <xs:element name="field" type="fieldType" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="registerType">
+    <xs:sequence>
+      <xs:group    ref="dimElementGroup" minOccurs="0"/>
+      <!-- name specifies the name of the register. The register name is used by System Viewer and
+                                     device header file generator to represent a register -->
+      <xs:element name="name" type="identifierType"/>
+      <!-- display name specifies a register name without the restritions of an ANSIS C identifier.
+                                     The use of this tag is discouraged because it does not allow consistency between
+                                     the System View and the device header file. -->
+      <xs:element name="displayName" type="stringType" minOccurs="0"/>
+      <!-- description contains a reference manual level description about the register and it's purpose -->
+      <xs:element name="description" type="stringType" minOccurs="0"/>
+      <xs:choice>
+        <!-- alternateGroup specifies the identifier of the subgroup a register belongs to.
+                                       This is useful if a register has a different description per mode but a single name -->
+        <xs:element name="alternateGroup" type="identifierType" minOccurs="0"/>
+        <!-- V1.1: alternateRegister specifies an alternate register description for an address that is
+                                       already fully described. In this case the register name must be unique within the peripheral -->
+        <xs:element name="alternateRegister" type="identifierType" minOccurs="0"/>
+      </xs:choice>
+      <!-- addressOffset describes the address of the register relative to the baseOffset of the peripheral -->
+      <xs:element name="addressOffset" type="scaledNonNegativeInteger"/>
+      <!-- registerPropertiesGroup elements specify the default values for register size, access permission and
+                                     reset value. These default values are inherited to all fields contained in this register -->
+      <xs:group    ref="registerPropertiesGroup" minOccurs="0"/>
+      <!-- V1.1: dataType specifies a CMSIS compliant native dataType for a register (i.e. signed, unsigned, pointer) -->
+      <xs:element name="dataType" type="dataTypeType" minOccurs="0"/>
+      <!-- modifiedWriteValues specifies the write side effects -->
+      <xs:element name="modifiedWriteValues" type="modifiedWriteValuesType" minOccurs="0"/>
+      <!-- writeConstraint specifies the subset of allowed write values -->
+      <xs:element name="writeConstraint" type="writeConstraintType" minOccurs="0"/>
+      <!-- readAcction specifies the read side effects -->
+      <xs:element name="readAction" type="readActionType" minOccurs="0"/>
+      <!-- fields section contains all fields that belong to this register -->
+      <xs:element name="fields" type="fieldsType" minOccurs="0" maxOccurs="1"/>
+    </xs:sequence>
+    <xs:attribute name="derivedFrom" type="identifierType" use="optional"/>
+  </xs:complexType>
+
+  <!-- V1.1: A cluster is a set of registers that are composed into a C data structure in the device header file -->
+  <xs:complexType name="clusterType">
+    <xs:sequence>
+      <xs:group   ref="dimElementGroup" minOccurs="0"/>
+      <xs:element name="name" type="identifierType"/>
+      <xs:element name="description" type="xs:string"/>
+      <!-- V1.1: alternateCluster specifies an alternative description for a cluster address range that is
+                 already fully described. In this case the cluster name must be unique within the peripheral -->
+      <xs:element name="alternateCluster" type="identifierType" minOccurs="0"/>
+      <!-- V1.1: headerStructName specifies the name for the cluster structure typedef
+                 used in the device header generation instead of the cluster name -->
+      <xs:element name="headerStructName" type="identifierType" minOccurs="0"/>
+      <xs:element name="addressOffset" type="scaledNonNegativeInteger"/>
+      <xs:element name="register" type="registerType" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="derivedFrom" type="identifierType" use="optional"/>
+  </xs:complexType>
+
+  <!-- the registers section can have an arbitrary list of cluster and register sections -->
+  <xs:complexType name="registersType">
+    <xs:choice minOccurs="1" maxOccurs="unbounded">
+      <xs:element name="cluster" type="clusterType"/>
+      <xs:element name="register" type="registerType"/>
+    </xs:choice>
+  </xs:complexType>
+
+  <xs:complexType name="peripheralType">
+    <xs:sequence>
+      <!-- name specifies the name of a peripheral. This name is used for the System View and device header file -->
+      <xs:element name="name" type="xs:Name"/>
+      <!-- version specifies the version of the peripheral descriptions -->
+      <xs:element name="version" type="stringType" minOccurs="0"/>
+      <!-- description provides a high level functional description of the peripheral -->
+      <xs:element name="description" type="stringType" minOccurs="0"/>
+      <!-- V1.1: alternatePeripheral specifies an alternative description for an address range that is
+           already fully by a peripheral described. In this case the peripheral name must be unique within the device description -->
+      <xs:element name="alternatePeripheral" type="identifierType" minOccurs="0"/>
+      <!-- groupName assigns this peripheral to a group of peripherals. This is only used bye the System View -->
+      <xs:element name="groupName" type="xs:Name" minOccurs="0"/>
+      <!-- prependToName specifies a prefix that is placed in front of each register name of this peripheral. 
+                         The device header file will show the registers in a C-Struct of the peripheral without the prefix. -->
+      <xs:element name="prependToName" type="identifierType" minOccurs="0"/>
+      <!-- appendToName is a postfix that is appended to each register name of this peripheral. The device header 
+                         file will sho the registers in a C-Struct of the peripheral without the postfix -->
+      <xs:element name="appendToName" type="identifierType" minOccurs="0"/>
+      <!-- V1.1: headerStructName specifies the name for the peripheral structure typedef
+                         used in the device header generation instead of the peripheral name -->
+      <xs:element name="headerStructName" type="identifierType" minOccurs="0"/>
+      <!-- disableCondition contains a logical expression based on constants and register or bit-field values 
+                         if the condition is evaluated to true, the peripheral display will be disabled -->
+      <xs:element name="disableCondition" type="stringType" minOccurs="0"/>
+      <!-- baseAddress specifies the absolute base address of a peripheral. For derived peripherals it is mandatory
+                         to specify a baseAddress. -->
+      <xs:element name="baseAddress" type="scaledNonNegativeInteger"/>
+      <!-- registerPropertiesGroup elements specify the default values for register size, access permission and
+                         reset value. These default values are inherited to all registers contained in this peripheral -->
+      <xs:group ref="registerPropertiesGroup" minOccurs="0"/>
+      <!-- addressBlock specifies one or more address ranges that are assigned exclusively to this peripheral. 
+                         derived peripherals may have no addressBlock, however none-derived peripherals are required to specify
+                         at least one address block -->
+      <xs:element name="addressBlock" type="addressBlockType" minOccurs="0" maxOccurs="unbounded"/>
+      <!-- interrupt specifies can specify one or more interrtupts by name, description and value -->
+      <xs:element name="interrupt" type="interruptType" minOccurs="0" maxOccurs="unbounded"/>
+      <!-- registers section contains all registers owned by the peripheral. In case a peripheral gets derived it does
+                        not have its own registers section, hence this section is optional. A unique peripheral without a 
+                        registers section is not allowed -->
+      <xs:element name="registers" type="registersType" minOccurs="0" maxOccurs="1">
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="derivedFrom" type="identifierType" use="optional"/>
+  </xs:complexType>
+  
+  <!-- ==================================================== -->
+  <!-- The top level element of a description is the device -->
+  <!-- ==================================================== -->
+  <xs:element name="device" nillable="true">
+    <xs:complexType>
+      <xs:sequence>
+        <!-- V1.1: Vendor Name -->
+        <xs:element name="vendor" type="stringType" minOccurs="0"/>
+        <!-- V1.1: Vendor ID - a short name for referring to the vendor (e.g. Texas Instruments = TI) -->
+        <xs:element name="vendorID" type="identifierType" minOccurs="0"/>
+        <!-- name specifies the device name being described -->
+        <xs:element name="name" type="identifierType"/>
+        <!-- V1.1: series specifies the device series or family name -->
+        <xs:element name="series" type="stringType" minOccurs="0"/>
+        <!-- version specifies the version of the device description -->
+        <xs:element name="version" type="stringType"/>
+        <!-- description is a string describing the device features (e.g. memory size, peripherals, etc.) -->
+        <xs:element name="description" type="stringType"/>
+        <!-- V1.1: licenseText specifies the file header section to be included in any derived file -->
+        <xs:element name="licenseText" type="stringType" minOccurs="0"/>
+        <!-- V1.1: cpu specifies the details of the processor included in the device -->
+        <xs:element name="cpu" type="cpuType" minOccurs="0"/>
+        <!-- V1.1: the tag specifies the filename without extension of the CMSIS System Device include file.
+             This tag is used by the header file generator for customizing the include statement referencing the
+             CMSIS system file within the CMSIS device header file. By default the filename is "system_<device.name>"
+             In cases a device series shares a single system header file, the name of the series shall be used 
+             instead of the individual device name. -->
+        <xs:element name="headerSystemFilename" type="identifierType" minOccurs="0"/>
+        <!-- V1.1: headerDefinitionPrefix specifies the string being prepended to all names of types defined in
+             generated device header file -->
+        <xs:element name="headerDefinitionsPrefix" type="identifierType" minOccurs="0"/>
+        <!-- addressUnitBits specifies the size of the minimal addressable unit in bits -->
+        <xs:element name="addressUnitBits" type="scaledNonNegativeInteger"/>
+        <!-- width specifies the number of bits for the maximum single transfer size allowed by the bus interface.
+             This sets the maximum size of a single register that can be defined for an address space -->
+        <xs:element name="width" type="scaledNonNegativeInteger"/>
+        <!-- registerPropertiesGroup elements specify the default values for register size, access permission and
+             reset value -->
+        <xs:group ref="registerPropertiesGroup" minOccurs="0"/>
+
+        <!-- peripherals is containing all peripherals -->
+        <xs:element name="peripherals">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="peripheral" type="peripheralType" minOccurs="1" maxOccurs="unbounded"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+
+        <!-- Vendor Extensions: this section captures custom extensions. This section will be ignored by default -->
+        <xs:element name="vendorExtensions" minOccurs="0" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:any namespace="##any" processContents="lax" minOccurs="0" maxOccurs="unbounded">
+              </xs:any>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="schemaVersion" type="xs:decimal" use="required" fixed="1.1"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
