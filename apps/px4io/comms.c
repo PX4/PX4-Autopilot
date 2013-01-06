@@ -62,8 +62,7 @@
 #define FMU_MIN_REPORT_INTERVAL	  5000	/*  5ms */
 #define FMU_MAX_REPORT_INTERVAL	100000	/* 100ms */
 
-int frame_rx;
-int frame_bad;
+#define FMU_STATUS_INTERVAL	1000000	/* 100ms */
 
 static int			fmu_fd;
 static hx_stream_t		stream;
@@ -93,6 +92,9 @@ comms_init(void)
 	cfsetspeed(&t, 115200);
 	t.c_cflag &= ~(CSTOPB | PARENB);
 	tcsetattr(fmu_fd, TCSANOW, &t);
+
+	/* init the ADC */
+	adc_init();
 }
 
 void
@@ -145,8 +147,54 @@ comms_main(void)
 			report.channel_count = system_state.rc_channels;
 			report.armed = system_state.armed;
 
+			report.battery_mv = system_state.battery_mv;
+			report.adc_in = system_state.adc_in5;
+			report.overcurrent = system_state.overcurrent;
+
 			/* and send it */
 			hx_stream_send(stream, &report, sizeof(report));
+		}
+
+		/*
+		 * Fetch ADC values, check overcurrent flags, etc.
+		 */
+		static hrt_abstime last_status_time;
+
+		if ((now - last_status_time) > FMU_STATUS_INTERVAL) {
+
+			/*
+			 * Coefficients here derived by measurement of the 5-16V
+			 * range on one unit:
+			 *
+			 * V   counts
+			 *  5  1001
+			 *  6  1219
+			 *  7  1436
+			 *  8  1653
+			 *  9  1870
+			 * 10  2086
+			 * 11  2303
+			 * 12  2522
+			 * 13  2738
+			 * 14  2956
+			 * 15  3172
+			 * 16  3389
+			 *
+			 * slope = 0.0046067
+			 * intercept = 0.3863
+			 *
+			 * Intercept corrected for best results @ 12V.
+			 */
+			unsigned counts = adc_measure(ADC_VBATT);
+			system_state.battery_mv = (4150 + (counts * 46)) / 10;
+
+			system_state.adc_in5 = adc_measure(ADC_IN5);
+
+			system_state.overcurrent = 
+				(OVERCURRENT_SERVO ? (1 << 0) : 0) |
+				(OVERCURRENT_ACC   ? (1 << 1) : 0);
+
+			last_status_time = now;
 		}
 	}
 }
@@ -156,12 +204,10 @@ comms_handle_config(const void *buffer, size_t length)
 {
 	const struct px4io_config *cfg = (struct px4io_config *)buffer;
 
-	if (length != sizeof(*cfg)) {
-		frame_bad++;
+	if (length != sizeof(*cfg))
 		return;
-	}
 
-	frame_rx++;
+	/* XXX */
 }
 
 static void
@@ -169,12 +215,9 @@ comms_handle_command(const void *buffer, size_t length)
 {
 	const struct px4io_command *cmd = (struct px4io_command *)buffer;
 
-	if (length != sizeof(*cmd)) {
-		frame_bad++;
+	if (length != sizeof(*cmd))
 		return;
-	}
-
-	frame_rx++;
+	
 	irqstate_t flags = irqsave();
 
 	/* fetch new PWM output values */
@@ -261,7 +304,6 @@ comms_handle_frame(void *arg, const void *buffer, size_t length)
 			break;
 
 		default:
-			frame_bad++;
 			break;
 		}
 	}

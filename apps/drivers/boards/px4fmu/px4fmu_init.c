@@ -95,8 +95,6 @@
  * Protected Functions
  ****************************************************************************/
 
-extern int adc_devinit(void);
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -201,7 +199,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	message("[boot] Successfully initialized SPI port 1\r\n");
 
-	/* Get the SPI port for the microsd slot */
+	/* Get the SPI port for the microSD slot */
 
 	message("[boot] Initializing SPI port 3\n");
 	spi3 = up_spiinitialize(3);
@@ -225,21 +223,10 @@ __EXPORT int nsh_archinitialize(void)
 
 	message("[boot] Successfully bound SPI port 3 to the MMCSD driver\n");
 
-#ifdef CONFIG_ADC
-	int adc_state = adc_devinit();
-
-	if (adc_state != OK) {
-		/* Try again */
-		adc_state = adc_devinit();
-
-		if (adc_state != OK) {
-			/* Give up */
-			message("[boot] FAILED adc_devinit: %d\n", adc_state);
-			return -ENODEV;
-		}
-	}
-
-#endif
+	stm32_configgpio(GPIO_ADC1_IN10);
+	stm32_configgpio(GPIO_ADC1_IN11);
+	stm32_configgpio(GPIO_ADC1_IN12);
+	//stm32_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
 
 	return OK;
 }

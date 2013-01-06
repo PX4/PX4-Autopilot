@@ -139,13 +139,27 @@ struct sys_state_s {
 	 * If true, IO performs an on-board manual override with the RC channel values
 	 */
 	bool manual_override_ok;
+
+	/*
+	 * Measured battery voltage in mV
+	 */
+	uint16_t	battery_mv;
+
+	/*
+	 * ADC IN5 measurement
+	 */
+	uint16_t	adc_in5;
+
+	/*
+	 * Power supply overcurrent status bits.
+	 */
+	uint8_t		overcurrent;
+
 };
 
 extern struct sys_state_s system_state;
 
-extern int frame_rx;
-extern int frame_bad;
-
+#if 0
 /*
  * Software countdown timers.
  *
@@ -157,6 +171,7 @@ extern int frame_bad;
 #define TIMER_SANITY		7
 #define TIMER_NUM_TIMERS	8
 extern volatile int	timers[TIMER_NUM_TIMERS];
+#endif
 
 /*
  * GPIO handling.
@@ -171,9 +186,12 @@ extern volatile int	timers[TIMER_NUM_TIMERS];
 #define POWER_RELAY1(_s)	stm32_gpiowrite(GPIO_RELAY1_EN, (_s))
 #define POWER_RELAY2(_s)	stm32_gpiowrite(GPIO_RELAY2_EN, (_s))
 
-#define OVERCURRENT_ACC		stm32_gpioread(GPIO_ACC_OC_DETECT)
-#define OVERCURRENT_SERVO	stm32_gpioread(GPIO_SERVO_OC_DETECT
+#define OVERCURRENT_ACC		(!stm32_gpioread(GPIO_ACC_OC_DETECT))
+#define OVERCURRENT_SERVO	(!stm32_gpioread(GPIO_SERVO_OC_DETECT))
 #define BUTTON_SAFETY		stm32_gpioread(GPIO_BTN_SAFETY)
+
+#define ADC_VBATT		4
+#define ADC_IN5			5
 
 /*
  * Mixer
@@ -190,6 +208,12 @@ extern void	safety_init(void);
  * FMU communications
  */
 extern void	comms_main(void) __attribute__((noreturn));
+
+/*
+ * Sensors/misc inputs
+ */
+extern int	adc_init(void);
+extern uint16_t	adc_measure(unsigned channel);
 
 /*
  * R/C receiver handling.
