@@ -43,6 +43,7 @@ AC_SUBST([SILENT_MAKEFLAGS])
 
 #----------------------------------------
 # Prepare libtool
+m4_ifdef([AM_PROG_AR], [AM_PROG_AR]) dnl Automake, we have a problem...
 LT_PREREQ([2.2.6])
 LT_INIT([disable-static])
 

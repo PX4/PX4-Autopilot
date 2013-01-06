@@ -38,6 +38,6 @@ esac
 if [ "${plain}" -eq 1 ]; then
     echo "${k_ver_plain}"
 else
-    echo "${k_ver}${k_ver_extra}-${kf_ver}"
+    echo "${k_ver}${k_ver_extra}.${kf_ver}"
 fi
 

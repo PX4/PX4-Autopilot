@@ -21,6 +21,7 @@ scripts/kconfig/expr.c                            -->  libs/parser/expr.c
 scripts/kconfig/expr.h                            -->  libs/parser/expr.h
 scripts/kconfig/zconf.gperf                       -->  libs/parser/hconf.gperf
 scripts/kconfig/zconf.l                           -->  libs/parser/lconf.l
+scripts/kconfig/list.h                            -->  libs/parser/list.h
 scripts/kconfig/lkc.h                             -->  libs/parser/lkc.h
 scripts/kconfig/lkc_proto.h                       -->  libs/parser/lkc_proto.h
 scripts/kconfig/menu.c                            -->  libs/parser/menu.c

@@ -14,7 +14,7 @@ libkconfig_parser_la_LDFLAGS = -release $(KCONFIGPARSER_LIB_VERSION) -no-undefin
 libkconfig_parser_la_LIBADD = $(intl_LIBS)
 
 kconfig_includedir = $(includedir)/kconfig
-kconfig_include_HEADERS = lkc.h expr.h lkc_proto.h
+kconfig_include_HEADERS = list.h lkc.h expr.h lkc_proto.h
 
 BUILT_SOURCES = hconf.c lconf.c
 CLEANFILES = hconf.c lconf.c yconf.c
