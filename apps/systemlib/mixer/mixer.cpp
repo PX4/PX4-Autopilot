@@ -137,89 +137,15 @@ NullMixer::groups_required(uint32_t &groups)
 
 }
 
-/****************************************************************************/
-
-SimpleMixer::SimpleMixer(ControlCallback control_cb,
-			 uintptr_t cb_handle,
-			 mixer_simple_s *mixinfo) :
-	Mixer(control_cb, cb_handle),
-	_info(mixinfo)
+NullMixer *
+NullMixer::from_text(const char *buf, unsigned &buflen)
 {
-}
+	NullMixer *nm = nullptr;
 
-SimpleMixer::~SimpleMixer()
-{
-	if (_info != nullptr)
-		free(_info);
-}
-
-unsigned
-SimpleMixer::mix(float *outputs, unsigned space)
-{
-	float		sum = 0.0f;
-
-	if (_info == nullptr)
-		return 0;
-
-	if (space < 1)
-		return 0;
-
-	for (unsigned i = 0; i < _info->control_count; i++) {
-		float input;
-
-		_control_cb(_cb_handle,
-			    _info->controls[i].control_group,
-			    _info->controls[i].control_index,
-			    input);
-
-		sum += scale(_info->controls[i].scaler, input);
+	if ((buflen >= 2) && (buf[0] == 'Z') && (buf[1] == ':')) {
+		nm = new NullMixer;
+		buflen -= 2;
 	}
 
-	*outputs = scale(_info->output_scaler, sum);
-	return 1;
-}
-
-void
-SimpleMixer::groups_required(uint32_t &groups)
-{
-	for (unsigned i = 0; i < _info->control_count; i++)
-		groups |= 1 << _info->controls[i].control_group;
-}
-
-int
-SimpleMixer::check()
-{
-	int ret;
-	float junk;
-
-	/* sanity that presumes that a mixer includes a control no more than once */
-	/* max of 32 groups due to groups_required API */
-	if (_info->control_count > 32)
-		return -2;
-
-	/* validate the output scaler */
-	ret = scale_check(_info->output_scaler);
-
-	if (ret != 0)
-		return ret;
-
-	/* validate input scalers */
-	for (unsigned i = 0; i < _info->control_count; i++) {
-
-		/* verify that we can fetch the control */
-		if (_control_cb(_cb_handle,
-				_info->controls[i].control_group,
-				_info->controls[i].control_index,
-				junk) != 0) {
-			return -3;
-		}
-
-		/* validate the scaler */
-		ret = scale_check(_info->controls[i].scaler);
-
-		if (ret != 0)
-			return (10 * i + ret);
-	}
-
-	return 0;
+	return nm;
 }
