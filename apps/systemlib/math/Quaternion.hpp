@@ -42,7 +42,8 @@
 #include "Vector.hpp"
 #include "Matrix.hpp"
 
-namespace math {
+namespace math
+{
 
 class Dcm;
 class EulerAngles;
@@ -51,62 +52,62 @@ class __EXPORT Quaternion : public Vector
 {
 public:
 
-    /**
-     * default ctor
-     */
-    Quaternion();
+	/**
+	 * default ctor
+	 */
+	Quaternion();
 
-    /**
-     * ctor from floats
-     */
-    Quaternion(float a, float b, float c, float d);
+	/**
+	 * ctor from floats
+	 */
+	Quaternion(float a, float b, float c, float d);
 
-    /**
-     * ctor from data
-     */
-    Quaternion(const float * data);
+	/**
+	 * ctor from data
+	 */
+	Quaternion(const float *data);
 
-    /**
-     * ctor from Vector
-     */
-    Quaternion(const Vector & v);
+	/**
+	 * ctor from Vector
+	 */
+	Quaternion(const Vector &v);
 
-    /**
-     * ctor from EulerAngles
-     */
-    Quaternion(const EulerAngles & euler);
+	/**
+	 * ctor from EulerAngles
+	 */
+	Quaternion(const EulerAngles &euler);
 
-    /**
-     * ctor from Dcm
-     */
-    Quaternion(const Dcm & dcm);
+	/**
+	 * ctor from Dcm
+	 */
+	Quaternion(const Dcm &dcm);
 
-    /**
-     * deep copy ctor
-     */
-    Quaternion(const Quaternion & right);
+	/**
+	 * deep copy ctor
+	 */
+	Quaternion(const Quaternion &right);
 
-    /**
-     * dtor
-     */
-    virtual ~Quaternion();
-    
-    /**
-     * derivative
-     */
-    Vector derivative(const Vector & w);
+	/**
+	 * dtor
+	 */
+	virtual ~Quaternion();
 
-    /**
-     * accessors
-     */
-    void setA(float a) { (*this)(0) = a; }
-    void setB(float b) { (*this)(1) = b; }
-    void setC(float c) { (*this)(2) = c; }
-    void setD(float d) { (*this)(3) = d; }
-    const float & getA() const { return (*this)(0); }
-    const float & getB() const { return (*this)(1); }
-    const float & getC() const { return (*this)(2); }
-    const float & getD() const { return (*this)(3); }
+	/**
+	 * derivative
+	 */
+	Vector derivative(const Vector &w);
+
+	/**
+	 * accessors
+	 */
+	void setA(float a) { (*this)(0) = a; }
+	void setB(float b) { (*this)(1) = b; }
+	void setC(float c) { (*this)(2) = c; }
+	void setD(float d) { (*this)(3) = d; }
+	const float &getA() const { return (*this)(0); }
+	const float &getB() const { return (*this)(1); }
+	const float &getC() const { return (*this)(2); }
+	const float &getD() const { return (*this)(3); }
 };
 
 int __EXPORT quaternionTest();

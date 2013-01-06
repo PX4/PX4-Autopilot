@@ -45,10 +45,11 @@
 #include "generic/Vector.hpp"
 #endif
 
-namespace math {
+namespace math
+{
 class Vector;
 int __EXPORT vectorTest();
 int __EXPORT vectorAddTest();
 int __EXPORT vectorSubTest();
-bool vectorEqual(const Vector & a, const Vector & b, float eps=1.0e-5f);
+bool vectorEqual(const Vector &a, const Vector &b, float eps = 1.0e-5f);
 } // math
