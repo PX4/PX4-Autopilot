@@ -148,9 +148,7 @@ __EXPORT int nsh_archinitialize(void)
 	int result;
 
 	/* configure the high-resolution time/callout interface */
-#ifdef CONFIG_HRT_TIMER
 	hrt_init();
-#endif
 
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
@@ -158,27 +156,21 @@ __EXPORT int nsh_archinitialize(void)
 #endif
 
 	/* set up the serial DMA polling */
-#ifdef SERIAL_HAVE_DMA
-	{
-		static struct hrt_call serial_dma_call;
-		struct timespec ts;
+	static struct hrt_call serial_dma_call;
+	struct timespec ts;
 
-		/*
-		 * Poll at 1ms intervals for received bytes that have not triggered
-		 * a DMA event.
-		 */
-		ts.tv_sec = 0;
-		ts.tv_nsec = 1000000;
+	/*
+	 * Poll at 1ms intervals for received bytes that have not triggered
+	 * a DMA event.
+	 */
+	ts.tv_sec = 0;
+	ts.tv_nsec = 1000000;
 
-		hrt_call_every(&serial_dma_call,
-			       ts_to_abstime(&ts),
-			       ts_to_abstime(&ts),
-			       (hrt_callout)stm32_serial_dma_poll,
-			       NULL);
-	}
-#endif
-
-	message("\r\n");
+	hrt_call_every(&serial_dma_call,
+		       ts_to_abstime(&ts),
+		       ts_to_abstime(&ts),
+		       (hrt_callout)stm32_serial_dma_poll,
+		       NULL);
 
 	// initial LED state
 	drv_led_start();
@@ -233,7 +225,7 @@ __EXPORT int nsh_archinitialize(void)
 
 	stm32_configgpio(GPIO_ADC1_IN10);
 	stm32_configgpio(GPIO_ADC1_IN11);
-	//stm32_configgpio(GPIO_ADC1_IN12);	// XXX is this available?
+	stm32_configgpio(GPIO_ADC1_IN12);
 	//stm32_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
 
 	return OK;

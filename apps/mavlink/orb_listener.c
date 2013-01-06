@@ -455,7 +455,7 @@ l_actuator_outputs(struct listener *l)
 					  act_outputs.output[7]);
 
 		/* only send in HIL mode */
-		if (mavlink_hil_enabled) {
+		if (mavlink_hil_enabled && armed.armed) {
 
 			/* translate the current syste state to mavlink state and mode */
 			uint8_t mavlink_state = 0;
@@ -506,20 +506,19 @@ l_actuator_outputs(struct listener *l)
 					mavlink_mode,
 					0);
 			} else {
+
+				/*
+				 * Catch the case where no rudder is in use and throttle is not
+				 * on output four
+				 */
 				float rudder, throttle;
 
-				/* SCALING: PWM min: 900, PWM max: 2100, center: 1500 */
-
-				// XXX very ugly, needs rework
-				if (isfinite(act_outputs.output[3])
-					&& act_outputs.output[3] > 800 && act_outputs.output[3] < 2200) {
-					/* throttle is fourth output */
-					rudder = (act_outputs.output[2] - 1500.0f) / 600.0f;
-					throttle = (((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f);
+				if (act_outputs.noutputs < 4) {
+					rudder = 0.0f;
+					throttle = (act_outputs.output[2] - 900.0f) / 1200.0f;
 				} else {
-					/* only three outputs, put throttle on position 4 / index 3 */
-					rudder = 0;
-					throttle = (((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f);
+					rudder = (act_outputs.output[2] - 1500.0f) / 600.0f;
+					throttle = (act_outputs.output[3] - 900.0f) / 1200.0f;
 				}
 
 				mavlink_msg_hil_controls_send(chan,
@@ -566,28 +565,28 @@ l_manual_control_setpoint(struct listener *l)
 void
 l_vehicle_attitude_controls(struct listener *l)
 {
-	struct actuator_controls_s actuators;
+	struct actuator_controls_effective_s actuators;
 
-	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, mavlink_subs.actuators_sub, &actuators);
+	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, mavlink_subs.actuators_sub, &actuators);
 
 	if (gcs_link) {
 		/* send, add spaces so that string buffer is at least 10 chars long */
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
-						   "ctrl0       ",
-						   actuators.control[0]);
+						   "eff ctrl0    ",
+						   actuators.control_effective[0]);
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
-						   "ctrl1       ",
-						   actuators.control[1]);
+						   "eff ctrl1    ",
+						   actuators.control_effective[1]);
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
-						   "ctrl2       ",
-						   actuators.control[2]);
+						   "eff ctrl2     ",
+						   actuators.control_effective[2]);
 		mavlink_msg_named_value_float_send(MAVLINK_COMM_0,
 						   last_sensor_timestamp / 1000,
-						   "ctrl3       ",
-						   actuators.control[3]);
+						   "eff ctrl3     ",
+						   actuators.control_effective[3]);
 	}
 }
 
@@ -739,7 +738,7 @@ uorb_receive_start(void)
 	orb_set_interval(mavlink_subs.man_control_sp_sub, 100);	/* 10Hz updates */
 
 	/* --- ACTUATOR CONTROL VALUE --- */
-	mavlink_subs.actuators_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	mavlink_subs.actuators_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE);
 	orb_set_interval(mavlink_subs.actuators_sub, 100);	/* 10Hz updates */
 
 	/* --- DEBUG VALUE OUTPUT --- */

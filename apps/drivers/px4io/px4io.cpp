@@ -55,6 +55,7 @@
 #include <unistd.h>
 #include <termios.h>
 #include <fcntl.h>
+#include <math.h>
 
 #include <arch/board/board.h>
 
@@ -70,9 +71,13 @@
 #include <systemlib/hx_stream.h>
 #include <systemlib/err.h>
 #include <systemlib/systemlib.h>
+#include <systemlib/scheduling_priorities.h>
+#include <systemlib/param/param.h>
 
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_effective.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/battery_status.h>
 
@@ -90,10 +95,18 @@ public:
 
 	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
 
+	/**
+	 * Set the PWM via serial update rate
+	 * @warning this directly affects CPU load
+	 */
+	int 			set_pwm_rate(int hz);
+
 	bool			dump_one;
 
 private:
+	// XXX
 	static const unsigned	_max_actuators = PX4IO_CONTROL_CHANNELS;
+	unsigned 		_update_rate;	///< serial send rate in Hz
 
 	int			_serial_fd;	///< serial interface to PX4IO
 	hx_stream_t		_io_stream;	///< HX protocol stream
@@ -105,8 +118,13 @@ private:
 	int			_t_actuators;	///< actuator output topic
 	actuator_controls_s	_controls;	///< actuator outputs
 
+	orb_advert_t 		_t_actuators_effective;	///< effective actuator controls topic
+	actuator_controls_effective_s _controls_effective; ///< effective controls
+
 	int			_t_armed;	///< system armed control topic
 	actuator_armed_s	_armed;		///< system armed state
+	int 			_t_vstatus;	///< system / vehicle status
+	vehicle_status_s	_vstatus;	///< overall system state
 
 	orb_advert_t 		_to_input_rc;	///< rc inputs from io
 	rc_input_values		_input_rc;	///< rc input values
@@ -191,13 +209,16 @@ PX4IO	*g_dev;
 PX4IO::PX4IO() :
 	CDev("px4io", "/dev/px4io"),
 	dump_one(false),
+	_update_rate(50),
 	_serial_fd(-1),
 	_io_stream(nullptr),
 	_task(-1),
 	_task_should_exit(false),
 	_connected(false),
 	_t_actuators(-1),
+	_t_actuators_effective(-1),
 	_t_armed(-1),
+	_t_vstatus(-1),
 	_t_outputs(-1),
 	_mix_buf(nullptr),
 	_mix_buf_len(0),
@@ -205,7 +226,7 @@ PX4IO::PX4IO() :
 	_relays(0),
 	_switch_armed(false),
 	_send_needed(false),
-	_config_needed(false)
+	_config_needed(true)
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
@@ -253,7 +274,7 @@ PX4IO::init()
 	}
 
 	/* start the IO interface task */
-	_task = task_create("px4io", SCHED_PRIORITY_DEFAULT, 4096, (main_t)&PX4IO::task_main_trampoline, nullptr);
+	_task = task_create("px4io", SCHED_PRIORITY_ACTUATOR_OUTPUTS, 4096, (main_t)&PX4IO::task_main_trampoline, nullptr);
 
 	if (_task < 0) {
 		debug("task start failed: %d", errno);
@@ -279,6 +300,17 @@ PX4IO::init()
 	return OK;
 }
 
+int
+PX4IO::set_pwm_rate(int hz)
+{
+	if (hz > 0 && hz <= 400) {
+		_update_rate = hz;
+		return OK;
+	} else {
+		return -EINVAL;
+	}
+}
+
 void
 PX4IO::task_main_trampoline(int argc, char *argv[])
 {
@@ -288,7 +320,8 @@ PX4IO::task_main_trampoline(int argc, char *argv[])
 void
 PX4IO::task_main()
 {
-	debug("starting");
+	log("starting");
+	unsigned update_rate_in_ms;
 
 	/* open the serial port */
 	_serial_fd = ::open("/dev/ttyS2", O_RDWR);
@@ -328,11 +361,19 @@ PX4IO::task_main()
 	_t_actuators = orb_subscribe(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
 				     ORB_ID(actuator_controls_1));
 	/* convert the update rate in hz to milliseconds, rounding down if necessary */
-	//int update_rate_in_ms = int(1000 / _update_rate);
-	orb_set_interval(_t_actuators, 20);	/* XXX 50Hz hardcoded for now */
+	update_rate_in_ms = 1000 / _update_rate;
+	orb_set_interval(_t_actuators, update_rate_in_ms);
 
 	_t_armed = orb_subscribe(ORB_ID(actuator_armed));
 	orb_set_interval(_t_armed, 200);		/* 5Hz update rate */
+
+	_t_vstatus = orb_subscribe(ORB_ID(vehicle_status));
+	orb_set_interval(_t_vstatus, 200);		/* 5Hz update rate max. */
+
+	/* advertise the limited control inputs */
+	memset(&_controls_effective, 0, sizeof(_controls_effective));
+	_t_actuators_effective = orb_advertise(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE : ORB_ID(actuator_controls_1),
+				   &_controls_effective);
 
 	/* advertise the mixed control outputs */
 	memset(&_outputs, 0, sizeof(_outputs));
@@ -348,13 +389,15 @@ PX4IO::task_main()
 	_to_battery = -1;
 
 	/* poll descriptor */
-	pollfd fds[3];
+	pollfd fds[4];
 	fds[0].fd = _serial_fd;
 	fds[0].events = POLLIN;
 	fds[1].fd = _t_actuators;
 	fds[1].events = POLLIN;
 	fds[2].fd = _t_armed;
 	fds[2].events = POLLIN;
+	fds[3].fd = _t_vstatus;
+	fds[3].events = POLLIN;
 
 	debug("ready");
 
@@ -388,7 +431,8 @@ PX4IO::task_main()
 			if (fds[1].revents & POLLIN) {
 
 				/* get controls */
-				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
+				orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
+				     ORB_ID(actuator_controls_1), _t_actuators, &_controls);
 
 				/* scale controls to PWM (temporary measure) */
 				for (unsigned i = 0; i < _max_actuators; i++)
@@ -404,12 +448,11 @@ PX4IO::task_main()
 				orb_copy(ORB_ID(actuator_armed), _t_armed, &_armed);
 				_send_needed = true;
 			}
-		}
 
-		/* send an update to IO if required */
-		if (_send_needed) {
-			_send_needed = false;
-			io_send();
+			if (fds[3].revents & POLLIN) {
+				orb_copy(ORB_ID(vehicle_status), _t_vstatus, &_vstatus);
+				_send_needed = true;
+			}
 		}
 
 		/* send a config packet to IO if required */
@@ -425,6 +468,12 @@ PX4IO::task_main()
 			/* clear the buffer record so the ioctl handler knows we're done */
 			_mix_buf = nullptr;
 			_mix_buf_len = 0;
+		}
+
+		/* send an update to IO if required */
+		if (_send_needed) {
+			_send_needed = false;
+			io_send();
 		}
 	}
 
@@ -564,20 +613,27 @@ PX4IO::io_send()
 	cmd.f2i_magic = F2I_MAGIC;
 
 	/* set outputs */
-	for (unsigned i = 0; i < _max_actuators; i++)
+	for (unsigned i = 0; i < _max_actuators; i++) {
 		cmd.output_control[i] = _outputs.output[i];
-
+	}
 	/* publish as we send */
+	_outputs.timestamp = hrt_absolute_time();
 	/* XXX needs to be based off post-mix values from the IO side */
-	orb_publish(ORB_ID_VEHICLE_CONTROLS, _t_outputs, &_outputs);
+	orb_publish(_primary_pwm_device ? ORB_ID_VEHICLE_CONTROLS : ORB_ID(actuator_outputs_1), _t_outputs, &_outputs);
 
 	/* update relays */
 	for (unsigned i = 0; i < PX4IO_RELAY_CHANNELS; i++)
 		cmd.relay_state[i] = (_relays & (1<< i)) ? true : false;
 
-	/* armed and not locked down */
+	/* armed and not locked down -> arming ok */
 	cmd.arm_ok = (_armed.armed && !_armed.lockdown);
-
+	/* indicate that full autonomous position control / vector flight mode is available */
+	cmd.vector_flight_mode_ok = _vstatus.flag_vector_flight_mode_ok;
+	/* allow manual override on IO (not allowed for multirotors or other systems with SAS) */
+	cmd.manual_override_ok = _vstatus.flag_external_manual_override_ok;
+	/* set desired PWM output rate */
+	cmd.servo_rate = _update_rate;
+	
 	ret = hx_stream_send(_io_stream, &cmd, sizeof(cmd));
 
 	if (ret)
@@ -591,6 +647,47 @@ PX4IO::config_send()
 	int		ret;
 
 	cfg.f2i_config_magic = F2I_CONFIG_MAGIC;
+
+	int val;
+
+	/* maintaing the standard order of Roll, Pitch, Yaw, Throttle */		
+	param_get(param_find("RC_MAP_ROLL"), &val);
+	cfg.rc_map[0] = val;
+	param_get(param_find("RC_MAP_PITCH"), &val);
+	cfg.rc_map[1] = val;
+	param_get(param_find("RC_MAP_YAW"), &val);
+	cfg.rc_map[2] = val;
+	param_get(param_find("RC_MAP_THROTTLE"), &val);
+	cfg.rc_map[3] = val;
+
+	/* set the individual channel properties */
+	char nbuf[16];
+	float float_val;
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_MIN", i + 1);
+		param_get(param_find(nbuf), &float_val);	
+		cfg.rc_min[i] = float_val;
+	}
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_TRIM", i + 1);	
+		param_get(param_find(nbuf), &float_val);	
+		cfg.rc_trim[i] = float_val;
+	}
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_MAX", i + 1);	
+		param_get(param_find(nbuf), &float_val);	
+		cfg.rc_max[i] = float_val;
+	}
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_REV", i + 1);	
+		param_get(param_find(nbuf), &float_val);	
+		cfg.rc_rev[i] = float_val;
+	}
+	for (unsigned i = 0; i < 4; i++) {
+		sprintf(nbuf, "RC%d_DZ", i + 1);	
+		param_get(param_find(nbuf), &float_val);	
+		cfg.rc_dz[i] = float_val;
+	}
 
 	ret = hx_stream_send(_io_stream, &cfg, sizeof(cfg));
 
@@ -778,7 +875,7 @@ test(void)
 void
 monitor(void)
 {
-	unsigned cancels = 4;
+	unsigned cancels = 3;
 	printf("Hit <enter> three times to exit monitor mode\n");
 
 	for (;;) {
@@ -800,6 +897,7 @@ monitor(void)
 			g_dev->dump_one = true;
 	}
 }
+
 }
 
 int
@@ -819,6 +917,16 @@ px4io_main(int argc, char *argv[])
 		if (OK != g_dev->init()) {
 			delete g_dev;
 			errx(1, "driver init failed");
+		}
+
+		/* look for the optional pwm update rate for the supported modes */
+		if (strcmp(argv[2], "-u") == 0 || strcmp(argv[2], "--update-rate") == 0) {
+			if (argc > 2 + 1) {
+				g_dev->set_pwm_rate(atoi(argv[2 + 1]));
+			} else {
+				fprintf(stderr, "missing argument for pwm update rate (-u)\n");
+				return 1;
+			}
 		}
 
 		exit(0);
