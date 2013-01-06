@@ -510,6 +510,10 @@ HIL::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		// up_pwm_servo_arm(false);
 		break;
 
+	case PWM_SERVO_SET_UPDATE_RATE:
+		g_hil->set_pwm_rate(arg);
+		break;
+
 	case PWM_SERVO_SET(2):
 	case PWM_SERVO_SET(3):
 		if (_mode != MODE_4PWM) {

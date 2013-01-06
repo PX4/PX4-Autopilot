@@ -103,6 +103,9 @@ ORB_DECLARE(output_pwm);
 /** disarm all servo outputs (stop generating pulses) */
 #define PWM_SERVO_DISARM	_IOC(_PWM_SERVO_BASE, 1)
 
+/** set update rate in Hz */
+#define PWM_SERVO_SET_UPDATE_RATE	_IOC(_PWM_SERVO_BASE, 2)
+
 /** set a single servo to a specific value */
 #define PWM_SERVO_SET(_servo)	_IOC(_PWM_SERVO_BASE, 0x20 + _servo)
 
