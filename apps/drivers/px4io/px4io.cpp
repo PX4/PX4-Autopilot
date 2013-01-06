@@ -588,7 +588,7 @@ PX4IO::io_send()
 
 	/* set outputs */
 	for (unsigned i = 0; i < _max_actuators; i++) {
-		cmd.output_control[i] = (uint16_t)_outputs.output[i];
+		cmd.output_control[i] = _outputs.output[i];
 	}
 	/* publish as we send */
 	_outputs.timestamp = hrt_absolute_time();
