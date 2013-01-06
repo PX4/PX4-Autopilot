@@ -133,6 +133,7 @@ CONFIG_STM32_BKP=n
 CONFIG_STM32_PWR=n
 CONFIG_STM32_DAC=n
 # APB2:
+# We use our own ADC driver, but leave this on for clocking purposes.
 CONFIG_STM32_ADC1=y
 CONFIG_STM32_ADC2=n
 # TIM1 is owned by the HRT
