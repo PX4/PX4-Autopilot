@@ -549,7 +549,6 @@ void update_state_machine_mode_manual(int status_pub, struct vehicle_status_s *c
 void update_state_machine_mode_stabilized(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
 	if (current_status->state_machine == SYSTEM_STATE_GROUND_READY || current_status->state_machine == SYSTEM_STATE_STABILIZED || current_status->state_machine == SYSTEM_STATE_MANUAL || current_status->state_machine == SYSTEM_STATE_AUTO) {
-		printf("[cmd] att stabilized mode\n");
 		int old_mode = current_status->flight_mode;
 		int old_manual_control_mode = current_status->manual_control_mode;
 		current_status->flight_mode = VEHICLE_FLIGHT_MODE_MANUAL;
@@ -559,6 +558,7 @@ void update_state_machine_mode_stabilized(int status_pub, struct vehicle_status_
 		current_status->flag_control_manual_enabled = true;
 		if (old_mode != current_status->flight_mode ||
 			old_manual_control_mode != current_status->manual_control_mode) {
+			printf("[cmd] att stabilized mode\n");
 			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MANUAL);
 			state_machine_publish(status_pub, current_status, mavlink_fd);
 		}
