@@ -32,22 +32,11 @@
 ############################################################################
 
 #
-# Control library
+# Basic example application
 #
-CSRCS		 = test_params.c
 
-CXXSRCS		 = block/Block.cpp \
-		   block/BlockParam.cpp \
-		   block/UOrbPublication.cpp \
-		   block/UOrbSubscription.cpp \
-		   blocks.cpp \
-		   fixedwing.cpp
-
-CXXHDRS		 = block/Block.hpp \
-		   block/BlockParam.hpp \
-		   block/UOrbPublication.hpp \
-		   block/UOrbSubscription.hpp \
-		   blocks.hpp \
-		   fixedwing.hpp
+APPNAME		 = kalman_demo
+PRIORITY	 = SCHED_PRIORITY_MAX - 30
+STACKSIZE	 = 2048
 
 include $(APPDIR)/mk/app.mk

@@ -53,6 +53,7 @@ CONFIGURED_APPS += examples/math_demo
 # Control library
 CONFIGURED_APPS	+= controllib
 CONFIGURED_APPS += examples/control_demo
+CONFIGURED_APPS += examples/kalman_demo
 
 # System utility commands
 CONFIGURED_APPS += systemcmds/reboot
