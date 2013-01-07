@@ -54,6 +54,11 @@
 
 #include "mixer.h"
 
+#define debug(fmt, args...)	do { } while(0)
+//#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
+//#include <debug.h>
+//#define debug(fmt, args...)	lib_lowprintf(fmt "\n", ##args)
+
 /*
  * Clockwise: 1
  * Counter-clockwise: -1
