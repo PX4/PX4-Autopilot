@@ -39,9 +39,9 @@ class AircraftControls(object):
         jsb_console.send('set %s %s\r\n' % ('fcs/rudder-cmd-norm', self.rudder))
         jsb_console.send('set %s %s\r\n' % ('fcs/throttle-cmd-norm', self.throttle))
 
-    @staticmethod
-    def from_mavlink(msg):
-        return AircraftControls(
+    @classmethod
+    def from_mavlink(cls,msg):
+        return cls(
             aileron = msg.roll_ailerons,
             elevator = msg.pitch_elevator,
             rudder = msg.yaw_rudder,
@@ -86,8 +86,8 @@ class AircraftState(object):
             self.vN, self.vE, self.vD,
             self.xacc, self.yacc, self.zacc);
 
-    @staticmethod
-    def from_fdm(fdm):
+    @classmethod
+    def from_fdm(cls, fdm):
         # position
         lat = fdm.get('latitude', units='degrees')
         lon = fdm.get('longitude', units='degrees')
@@ -117,7 +117,7 @@ class AircraftState(object):
         vE = fdm.get('v_east', units='mps')
         vD = fdm.get('v_down', units='mps')
 
-        return AircraftState(time=time.time(),
+        return cls(time=time.time(),
                              phi=phi, theta=theta, psi=psi,
                              p=p, q=q, r=r,
                              lat=lat, lon=lon, alt=alt,
@@ -127,27 +127,26 @@ class AircraftState(object):
 class SensorHIL(object):
     ''' This class executes sensor level hil communication '''
 
-    @staticmethod
-    def command_line():
+    @classmethod
+    def command_line(cls):
         ''' command line parser '''
         parser = argparse.ArgumentParser()
-        parser.add_argument('--dev', help='device', default=None)
+        parser.add_argument('--master', help='device', default=None)
         parser.add_argument('--baud', help='master port baud rate', default=921600)
         parser.add_argument('--script', help='jsbsim script', default='jsbsim/easystar_test.xml')
         parser.add_argument('--options', help='jsbsim options', default=None)
+        parser.add_argument('--gcs', help='gcs host', default='localhost:14550')
         args = parser.parse_args()
-        if (args.dev == None):
+        if args.master is None:
             raise IOError('must specify device with --dev')
-        inst = SensorHIL(dev=args.dev, baud=args.baud, script=args.script, options=args.options)
+        inst = cls(master_dev=args.master, baudrate=args.baud, script=args.script, options=args.options, gcs_dev=args.gcs)
         inst.run()
 
-    def __init__(self, dev, baud, script, options):
+    def __init__(self, master_dev, baudrate, script, options, gcs_dev):
         ''' default ctor 
         @param dev device
         @param baud baudrate
         '''
-        self.dev = dev
-        self.baud = baud
         self.script = script
         self.options = options
         self.x = AircraftState(time=time.time(),
@@ -158,20 +157,44 @@ class SensorHIL(object):
                                xacc=0, yacc=0, zacc=0)
         self.u = AircraftControls(aileron=0, elevator=0, rudder=0, throttle=0,
                                   aux1=0, aux2=0, aux3=0, aux4=0, mode=0, nav_mode=0)
-        self.init_mavlink()
+        self.jsb = None
+        self.jsb_console = None
+        self.gcs = None
+        self.master = None
+
+        self.counts = {}
+        self.bytes_sent = 0
+        self.bytes_recv = 0
+        self.frame_count = 0
+        self.last_report = 0
+
         self.init_jsbsim()
+        self.init_mavlink(master_dev, gcs_dev, baudrate)
 
     def __del__(self):
         print 'SensorHil shutting down'
         # JSBSim really doesn't like to die ...
-        if getattr(self.jsb, 'pid', None) is not None:
+        if self.jsb_console is not None:
+            self.jsb_console.send('quit\n')
+        if self.jsb is not None and getattr(self.jsb, 'pid', None) is not None:
             os.kill(self.jsb.pid, signal.SIGKILL)
-        self.jsb_console.send('quit\n')
-        self.jsb.close(force=True)
+            self.jsb.close(force=True)
         util.pexpect_close_all()
 
-    def init_mavlink(self):
-        self.master = mavutil.mavlink_connection(self.dev, self.baud)
+    def init_mavlink(self, master_dev, gcs_dev, baudrate):
+
+        # master
+        master = mavutil.mavserial(master_dev, baud=baudrate, autoreconnect=True)
+        print 'master connected on device: ', master_dev
+
+        # gcs
+        if gcs_dev is not None:
+            gcs = mavutil.mavudp(gcs_dev, input=False)
+            print 'gcs connected on device: ', gcs_dev
+
+        # class data
+        self.master = master
+        self.gcs = gcs
 
     def init_jsbsim(self):
         cmd = "JSBSim --realtime --suspend --nice --simulation-rate=1000 --logdirectivefile=jsbsim/fgout.xml --script=%s" % self.script
@@ -212,10 +235,12 @@ class SensorHIL(object):
         self.jsb_console = jsb_console
         self.fdm = fgFDM.fgFDM()
 
+    def hil_enabled(self):
+        return self.master.base_mode | mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED
 
     def enable_hil(self):
         ''' enable hil mode '''
-        while not (self.master.base_mode & mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED):
+        while not self.hil_enabled():
             self.master.set_mode_flag(mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED,True)
             while self.master.port.inWaiting() > 0:
                 m = self.master.recv_msg()
@@ -235,14 +260,6 @@ class SensorHIL(object):
         self.fdm.parse(buf)
         self.x = AircraftState.from_fdm(self.fdm)
 
-    def send_hil(self):
-        self.master.mav.hil_state_send(
-            self.x.time, self.x.roll, self.x.pitch, self.x.yaw,
-            self.x.rollspeed, self.x.pitchspeed, self.x.yawspeed,
-            self.x.lat, self.x.lon, self.x.alt,
-            self.x.vx, self.x.vy, self.x.vz,
-            self.x.xacc, self.x.yacc, self.x.zacc);
-
     @staticmethod
     def interpret_address(addrstr):
         '''interpret a IP:port string'''
@@ -250,17 +267,49 @@ class SensorHIL(object):
         a[1] = int(a[1])
         return tuple(a)
 
+    def process_master(self):
+        m = self.master.recv_msg()
+        if m == None: return
+
+        self.gcs.write(m.get_msgbuf())
+
+        if m.get_type() not in self.counts:
+            self.counts[m.get_type()] = 0
+        self.counts[m.get_type()] += 1
+
+        # hil control message
+        if m.get_type() == 'HIL_CONTROL':
+            self.u = AircraftControls.from_mavlink(m)
+            self.u.send_to_jsbsim(self.jsb_console)
+
+    def process_gcs(self):
+        '''process packets from MAVLink slaves, forwarding to the master'''
+        try:
+            buf = self.gcs.recv()
+        except socket.error:
+            return
+        try:
+            if self.gcs.first_byte:
+                self.gcs.auto_mavlink_version(buf)
+            msgs = self.gcs.mav.parse_buffer(buf)
+        except mavutil.mavlink.MAVError as e:
+            print "Bad MAVLink gcs message from %s: %s" % (slave.address, e.message)
+            return
+        if msgs is None:
+            return
+        for m in msgs:
+            self.master.write(m.get_msgbuf())
+
+        if 'Slave' not in self.counts:
+            self.counts['Slave'] = 0
+        self.counts['Slave'] += 1
+
     def run(self):
         ''' main execution loop '''
-        counts = {}
-        bytes_sent = 0
-        bytes_recv = 0
-        frame_count = 0
-        last_report = 0
+
 
         # start simulation
         self.enable_hil()
-
         self.jsb_console.send('info\n')
         self.jsb_console.send('resume\n')
         self.jsb.expect("trim computation time")
@@ -270,8 +319,16 @@ class SensorHIL(object):
         # run main loop
         while True:
 
+            # make sure hil is enabled
+            #if not self.hil_enabled(): self.enable_hil()
+
             # watch files
-            rin = [self.jsb_in.fileno(), self.jsb_console.fileno(), self.jsb.fileno()]
+            rin = [self.jsb_in.fileno(), self.jsb_console.fileno(), self.jsb.fileno(), self.gcs.fd]
+
+            # receive messages on serial port
+            while self.master.port.inWaiting() > 0:
+                self.process_master()
+
             try:
                 (rin, win, xin) = select.select(rin, [], [], 1.0)
             except select.error:
@@ -280,11 +337,16 @@ class SensorHIL(object):
 
             tnow = time.time()
 
+            # if new gcs input, process it
+            if self.gcs.fd in rin:
+                self.process_gcs()
+
             # if new jsbsim input, process it
             if self.jsb_in.fileno() in rin:
                 self.process_jsb_input()
                 self.x.send_to_mav(self.master.mav)
-                frame_count += 1
+                self.x.send_to_mav(self.gcs.mav)
+                self.frame_count += 1
 
             # show any jsbsim console output
             if self.jsb_console.fileno() in rin:
@@ -292,35 +354,22 @@ class SensorHIL(object):
             if self.jsb.fileno() in rin:
                 util.pexpect_drain(self.jsb)
 
-            # receive messages on serial port
-            while self.master.port.inWaiting() > 0:
-                m = self.master.recv_msg()
-                if m == None: break
-                if m.get_type() not in counts:
-                    counts[m.get_type()] = 0
-                counts[m.get_type()] += 1
-
-                # hil control message
-                if m.get_type() == 'HIL_CONTROL':
-                    self.u = AircraftControls.from_mavlink(m)
-                    self.u.send_to_jsbsim(self.jsb_console)
-
             # periodic output
-            dt_report = tnow - last_report
+            dt_report = tnow - self.last_report
             if dt_report > 5:
                 print '\nmode: {0:X}, JSBSim {1:5.0f} Hz, {2:d} sent, {3:d} received, {4:d} errors, bwin={5:.1f} kB/s, bwout={6:.1f} kB/s'.format(
                     self.master.base_mode,
-                    frame_count/dt_report,
+                    self.frame_count/dt_report,
                     self.master.mav.total_packets_sent,
                     self.master.mav.total_packets_received,
                     self.master.mav.total_receive_errors,
-                    0.001*(self.master.mav.total_bytes_received-bytes_recv)/dt_report,
-                    0.001*(self.master.mav.total_bytes_sent-bytes_sent)/dt_report)
-                print counts
-                bytes_sent = self.master.mav.total_bytes_sent
-                bytes_recv = self.master.mav.total_bytes_received
-                frame_count = 0
-                last_report = time.time()
+                    0.001*(self.master.mav.total_bytes_received-self.bytes_recv)/dt_report,
+                    0.001*(self.master.mav.total_bytes_sent-self.bytes_sent)/dt_report)
+                print self.counts
+                self.bytes_sent = self.master.mav.total_bytes_sent
+                self.bytes_recv = self.master.mav.total_bytes_received
+                self.frame_count = 0
+                self.last_report = time.time()
 
 if __name__ == "__main__":
     SensorHIL.command_line()
