@@ -43,6 +43,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <debug.h>
 
 #include <nuttx/sched.h>
 #include <nuttx/arch.h>
@@ -129,16 +130,27 @@ pid_t up_vfork(struct vfork_s *context)
   _TCB *child;
   size_t stacksize;
   uint32_t newsp;
+  uint32_t newfp;
   uint32_t stackutil;
   int ret;
 
+  svdbg("r4:%08x r5:%08x r6:%08x r7:%08x\n",
+        context->r4, context->r5, context->r6, context->r7);
+  svdbg("r8:%08x r9:%08x r10:%08x\n",
+        context->r8, context->r9, context->r10);
+  svdbg("fp:%08x sp:%08x lr:%08x\n",
+        context->fp, context->sp, context->lr);
+
   /* Allocate and initialize a TCB for the child task. */
 
-  child = task_vforksetup((start_t)context->lr);
+  child = task_vforksetup((start_t)(context->lr & ~1));
   if (!child)
     {
+      sdbg("task_vforksetup failed\n");
       return (pid_t)ERROR;
     }
+
+  svdbg("Parent=%p Child=%p\n", parent, child);
 
   /* Get the size of the parent task's stack.  Due to alignment operations,
    * the adjusted stack size may be smaller than the stack size originally
@@ -152,14 +164,17 @@ pid_t up_vfork(struct vfork_s *context)
   ret = up_create_stack(child, stacksize);
   if (ret != OK)
     {
+      sdbg("up_create_stack failed: %d\n", ret);
       task_vforkabort(child, -ret);
       return (pid_t)ERROR;
     }
 
   /* How much of the parent's stack was utilized? */
 
-  DEBUGASSERT(parent->adj_stack_ptr > context->sp);
+  DEBUGASSERT((uint32_t)parent->adj_stack_ptr > context->sp);
   stackutil = (uint32_t)parent->adj_stack_ptr - context->sp;
+
+  svdbg("stacksize:%d stackutil:%d\n", stacksize, stackutil); 
 
   /* Make some feeble effort to perserve the stack contents.  This is
    * feeble because the stack surely contains invalid pointer and other
@@ -170,8 +185,26 @@ pid_t up_vfork(struct vfork_s *context)
 
   newsp = (uint32_t)child->adj_stack_ptr - stackutil;
   memcpy((void *)newsp, (const void *)context->sp, stackutil);
-  
- /* Update the stack pointer, frame pointer, and voltile registers.  When
+
+  /* Was there a frame pointer in place before? */
+
+  if (context->fp <= (uint32_t)parent->adj_stack_ptr &&
+      context->fp >= (uint32_t)parent->adj_stack_ptr - stacksize)
+    {
+      uint32_t frameutil = (uint32_t)parent->adj_stack_ptr - context->fp;
+      newfp = (uint32_t)child->adj_stack_ptr - frameutil;
+    }
+  else
+    {
+      newfp = context->fp;
+    }
+
+  svdbg("Old stack base:%08x SP:%08x FP:%08x\n",
+        parent->adj_stack_ptr, context->sp, context->fp);
+  svdbg("New stack base:%08x SP:%08x FP:%08x\n",
+        child->adj_stack_ptr, newsp, newfp);
+
+        /* Update the stack pointer, frame pointer, and voltile registers.  When
   * the child TCB was initialized, all of the values were set to zero.
   * up_initial_state() altered a few values, but the return value in R0
   * should be cleared to zero, providing the indication to the newly started
@@ -185,8 +218,8 @@ pid_t up_vfork(struct vfork_s *context)
   child->xcp.regs[REG_R8]  = context->r8;  /* Volatile register r8 */
   child->xcp.regs[REG_R9]  = context->r9;  /* Volatile register r9 */
   child->xcp.regs[REG_R10] = context->r10; /* Volatile register r10 */
-  child->xcp.regs[REG_FP]  = context->fp;  /* Frame pointer */
-  child->xcp.regs[REG_SP]  = context->sp;  /* Stack pointer */
+  child->xcp.regs[REG_FP]  = newfp;        /* Frame pointer */
+  child->xcp.regs[REG_SP]  = newsp;        /* Stack pointer */
 
   /* And, finally, start the child task.  On a failure, task_vforkstart()
    * will discard the TCB by calling task_vforkabort().

@@ -163,6 +163,12 @@ extern void barrier_test(void);
 
 extern void priority_inheritance(void);
 
+/* vfork.c ******************************************************************/
+
+#ifdef CONFIG_ARCH_HAVE_VFORK
+extern int vfork_test(void);
+#endif
+
 /* APIs exported (conditionally) by the OS specifically for testing of
  * priority inheritance
  */

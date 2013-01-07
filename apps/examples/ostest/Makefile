@@ -84,6 +84,10 @@ ifneq ($(CONFIG_DISABLE_POSIX_TIMERS),y)
 CSRCS		+= posixtimer.c
 endif
 
+ifeq ($(CONFIG_ARCH_HAVE_VFORK),y)
+CSRCS		+= vfork.c
+endif
+
 ifneq ($(CONFIG_DISABLE_SIGNALS),y)
 ifneq ($(CONFIG_DISABLE_PTHREAD),y)
 ifeq ($(CONFIG_PRIORITY_INHERITANCE),y)

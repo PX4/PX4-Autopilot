@@ -52,7 +52,7 @@
 	.syntax	unified
 	.thumb
 	.file	"vfork.S"
-	.globl	task_vfork
+	.globl	up_vfork
 
 /************************************************************************************
  * Public Functions
@@ -68,7 +68,7 @@
  *   from the function in which vfork() was called, or calls any other function before
  *   successfully calling _exit() or one of the exec family of functions. 
  *
- *   This thin layer implements vfork by simply calling task_vfork() with the vfork()
+ *   This thin layer implements vfork by simply calling up_vfork() with the vfork()
  *   context as an argument.  The overall sequence is:
  *
  *   1) User code calls vfork().  vfork() collects context information and
@@ -124,12 +124,12 @@ vfork:
 	str		r0, [sp, #VFORK_SP_OFFSET]
 	str		lr, [sp, #VFORK_LR_OFFSET]
 
-	/* Then, call task_vfork(), passing it a pointer to the stack structure */
+	/* Then, call up_vfork(), passing it a pointer to the stack structure */
 
 	mov		r0, sp
-	bl		task_vfork
+	bl		up_vfork
 
-	/* Release the stack data and return the value returned by task_vfork */
+	/* Release the stack data and return the value returned by up_vfork */
 
 	add		sp, sp, #VFORK_SIZEOF
 	bx		lr

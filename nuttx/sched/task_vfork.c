@@ -43,6 +43,7 @@
 #include <assert.h>
 #include <queue.h>
 #include <errno.h>
+#include <debug.h>
 
 #include <nuttx/sched.h>
 
@@ -151,12 +152,14 @@ FAR _TCB *task_vforksetup(start_t retaddr)
 
   /* Initialize the task control block.  This calls up_initial_state() */
 
+  svdbg("Child priority=%d start=%p\n", priority, retaddr);
   ret = task_schedsetup(child, priority, retaddr, parent->entry.main);
   if (ret != OK)
     {
       goto errout_with_tcb;
     }
 
+  svdbg("parent=%p, returning child=%p\n", parent, child);
   return child;
 
 errout_with_tcb:
@@ -210,10 +213,14 @@ errout_with_tcb:
 
 pid_t task_vforkstart(FAR _TCB *child)
 {
+#if CONFIG_TASK_NAME_SIZE > 0
+  _TCB *parent = (FAR _TCB *)g_readytorun.head;
+#endif
   FAR const char *name;
   pid_t pid;
   int ret;
 
+  svdbg("Starting Child TCB=%p, parent=%p\n", child, g_readytorun.head);
   DEBUGASSERT(child);
 
   /* Setup to pass parameters to the new task */
@@ -221,7 +228,7 @@ pid_t task_vforkstart(FAR _TCB *child)
 #if CONFIG_TASK_NAME_SIZE > 0
   name = parent->name;
 #else
-  name = "<noname>";
+  name = NULL;
 #endif
 
   (void)task_argsetup(child, name, (const char **)NULL);

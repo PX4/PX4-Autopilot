@@ -16,6 +16,7 @@ config ARCH_8051
 config ARCH_ARM
 	bool "ARM"
 	select ARCH_HAVE_INTERRUPTSTACK
+	select ARCH_HAVE_VFORK
 	---help---
 		The ARM architectures
 
@@ -121,6 +122,10 @@ config CUSTOM_STACK
 	default n
 
 config ADDRENV
+	bool
+	default n
+
+config ARCH_HAVE_VFORK
 	bool
 	default n
 
