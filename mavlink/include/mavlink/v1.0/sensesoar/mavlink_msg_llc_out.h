@@ -4,8 +4,12 @@
 
 typedef struct __mavlink_llc_out_t
 {
- int16_t servoOut[4]; ///< Servo signal
- int16_t MotorOut[2]; ///< motor signal
+ int16_t servoOut[4]; ///< 
+                
+            
+ int16_t MotorOut[2]; ///< 
+                
+            
 } mavlink_llc_out_t;
 
 #define MAVLINK_MSG_ID_LLC_OUT_LEN 12
@@ -29,8 +33,12 @@ typedef struct __mavlink_llc_out_t
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param servoOut Servo signal
- * @param MotorOut motor signal
+ * @param servoOut 
+                
+            
+ * @param MotorOut 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_llc_out_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -60,8 +68,12 @@ static inline uint16_t mavlink_msg_llc_out_pack(uint8_t system_id, uint8_t compo
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message was sent over
  * @param msg The MAVLink message to compress the data into
- * @param servoOut Servo signal
- * @param MotorOut motor signal
+ * @param servoOut 
+                
+            
+ * @param MotorOut 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_llc_out_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -103,8 +115,12 @@ static inline uint16_t mavlink_msg_llc_out_encode(uint8_t system_id, uint8_t com
  * @brief Send a llc_out message
  * @param chan MAVLink channel to send the message
  *
- * @param servoOut Servo signal
- * @param MotorOut motor signal
+ * @param servoOut 
+                
+            
+ * @param MotorOut 
+                
+            
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -133,7 +149,9 @@ static inline void mavlink_msg_llc_out_send(mavlink_channel_t chan, const int16_
 /**
  * @brief Get field servoOut from llc_out message
  *
- * @return Servo signal
+ * @return 
+                
+            
  */
 static inline uint16_t mavlink_msg_llc_out_get_servoOut(const mavlink_message_t* msg, int16_t *servoOut)
 {
@@ -143,7 +161,9 @@ static inline uint16_t mavlink_msg_llc_out_get_servoOut(const mavlink_message_t*
 /**
  * @brief Get field MotorOut from llc_out message
  *
- * @return motor signal
+ * @return 
+                
+            
  */
 static inline uint16_t mavlink_msg_llc_out_get_MotorOut(const mavlink_message_t* msg, int16_t *MotorOut)
 {
