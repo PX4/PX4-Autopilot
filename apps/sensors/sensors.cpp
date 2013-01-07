@@ -417,14 +417,9 @@ Sensors::Sensors() :
 		sprintf(nbuf, "RC%d_DZ", i + 1);
 		_parameter_handles.dz[i] = param_find(nbuf);
 
-		// /* channel exponential gain */
-		// sprintf(nbuf, "RC%d_EXP", i + 1);
-		// _parameter_handles.ex[i] = param_find(nbuf);
 	}
 
 	_parameter_handles.rc_type = param_find("RC_TYPE");
-
-	// _parameter_handles.rc_demix = param_find("RC_DEMIX");
 
 	/* mandatory input switched, mapped to channels 1-4 per default */
 	_parameter_handles.rc_map_roll 	= param_find("RC_MAP_ROLL");
@@ -530,9 +525,6 @@ Sensors::parameters_update()
 		if (param_get(_parameter_handles.dz[i], &(_parameters.dz[i])) != OK) {
 			warnx("Failed getting dead zone for chan %d", i);
 		}
-		// if (param_get(_parameter_handles.ex[i], &(_parameters.ex[i])) != OK) {
-		// 	warnx("Failed getting exponential gain for chan %d", i);
-		// }
 
 		_parameters.scaling_factor[i] = (1.0f / ((_parameters.max[i] - _parameters.min[i]) / 2.0f) * _parameters.rev[i]);
 
