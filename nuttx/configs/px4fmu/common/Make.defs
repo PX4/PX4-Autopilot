@@ -67,11 +67,6 @@ ARCHCPUFLAGS		 = -mcpu=cortex-m4 \
 INSTRUMENTATIONDEFINES	 = -finstrument-functions \
 			   -ffixed-r10
 
-#CMSIS
-CMSIS_INCLUDE = $(TOPDIR)/../CMSIS/Include
-CMSIS_LIB = $(TOPDIR)/../CMSIS/Lib/GCC/libarm_cortexM4lf_math.a
-EXTRA_LIBS		+= $(CMSIS_LIB)
-
 # pull in *just* libm from the toolchain ... this is grody
 LIBM			 = "${shell $(CC) $(ARCHCPUFLAGS) -print-file-name=libm.a}"
 EXTRA_LIBS		+= $(LIBM)

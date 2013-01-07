@@ -51,7 +51,7 @@
 #include "../Matrix.hpp"
 
 // arm specific
-#include "arm_math.h"
+#include "../../CMSIS/Include/arm_math.h"
 
 namespace math
 {

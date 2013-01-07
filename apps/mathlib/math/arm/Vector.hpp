@@ -50,7 +50,7 @@
 #include "../test/test.hpp"
 
 // arm specific
-#include "arm_math.h"
+#include "../../CMSIS/Include/arm_math.h"
 
 namespace math
 {
