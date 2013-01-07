@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/armv7-m/up_vfork.S
+ * arch/arm/src/arm/vfork.S
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,6 +39,8 @@
 
 #include <nuttx/config.h>
 
+#include "up_vfork.h"
+
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
@@ -47,10 +49,8 @@
  * Global Symbols
  ************************************************************************************/
 
-	.syntax	unified
-	.thumb
-	.file	"up_vfork.S"
-	.globl	__vfork
+	.file	"vfork.S"
+	.globl	task_vfork
 
 /************************************************************************************
  * Public Functions
@@ -66,8 +66,25 @@
  *   from the function in which vfork() was called, or calls any other function before
  *   successfully calling _exit() or one of the exec family of functions. 
  *
- *   This thin layer implements vfork by simply calling __vfork() with the vfork()
- *   return address as an argument.
+ *   This thin layer implements vfork by simply calling task_vfork() with the vfork()
+ *   context as an argument.  The overall sequence is:
+ *
+ *   1) User code calls vfork().  vfork() collects context information and
+ *      transfers control up up_vfork().
+ *   2) up_vfork()and calls task_vforksetup().
+ *   3) task_vforksetup() allocates and configures the child task's TCB.  This
+ *      consists of:
+ *      - Allocation of the child task's TCB.
+ *      - Initialization of file descriptors and streams
+ *      - Configuration of environment variables
+ *      - Setup the intput parameters for the task.
+ *      - Initialization of the TCB (including call to up_initial_state()
+ *   4) up_vfork() provides any additional operating context. up_vfork must:
+ *      - Allocate and initialize the stack
+ *      - Initialize special values in any CPU registers that were not
+ *        already configured by up_initial_state()
+ *   5) up_vfork() then calls task_vforkstart()
+ *   6) task_vforkstart() then executes the child thread.
  *
  * Input Paremeters:
  *   None
@@ -80,17 +97,38 @@
  *
  ************************************************************************************/
 
-	.thumb_func
 	.globl	vfork
 	.type	vfork, function
 vfork:
+	/* Create a stack frame */
 
-    /* I know, I could have used the GCC's return address builtin and done this all
-     * in C.  But this works even if there is no builtin.
-     */
+	mov		r0, sp					/* Save the value of the stack frame on entry */
+	sub		sp, sp, #VFORK_SIZEOF	/* Allocate the structure on the stack */
 
-	mov		r0, lr
-	b		__vfork
+	/* Save the volatile registers */
+
+	str		r4, [sp, #VFORK_R4_OFFSET]
+	str		r5, [sp, #VFORK_R5_OFFSET]
+	str		r6, [sp, #VFORK_R6_OFFSET]
+	str		r7, [sp, #VFORK_R7_OFFSET]
+	str		r8, [sp, #VFORK_R8_OFFSET]
+	str		r9, [sp, #VFORK_R9_OFFSET]
+	str		r10, [sp, #VFORK_R10_OFFSET]
+
+	/* Save the frame pointer, stack pointer, and return address */
+
+	str		fp, [sp, #VFORK_FP_OFFSET]
+	str		r0, [sp, #VFORK_SP_OFFSET]
+	str		lr, [sp, #VFORK_LR_OFFSET]
+
+	/* Then, call task_vfork(), passing it a pointer to the stack structure */
+
+	mov		r0, sp
+	bl		task_vfork
+
+	/* Release the stack data and return the value returned by task_vfork */
+
+	add		sp, sp, #VFORK_SIZEOF
+	mov		pc, lr
 	.size	vfork, .-vfork
 	.end
-

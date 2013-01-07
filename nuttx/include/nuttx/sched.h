@@ -382,6 +382,32 @@ EXTERN FAR struct streamlist *sched_getstreams(void);
 EXTERN FAR struct socketlist *sched_getsockets(void);
 #endif /* CONFIG_NSOCKET_DESCRIPTORS */
 
+/* Internal vfork support.The  overall sequence is:
+ *
+ * 1) User code calls vfork().  vfork() is provided in architecture-specific
+ *    code.
+ * 2) vfork()and calls task_vforksetup().
+ * 3) task_vforksetup() allocates and configures the child task's TCB.  This
+ *    consists of:
+ *    - Allocation of the child task's TCB.
+ *    - Initialization of file descriptors and streams
+ *    - Configuration of environment variables
+ *    - Setup the intput parameters for the task.
+ *    - Initialization of the TCB (including call to up_initial_state()
+ * 4) vfork() provides any additional operating context. vfork must:
+ *    - Allocate and initialize the stack
+ *    - Initialize special values in any CPU registers that were not
+ *      already configured by up_initial_state()
+ * 5) vfork() then calls task_vforkstart()
+ * 6) task_vforkstart() then executes the child thread.
+ *
+ * task_vforkabort() may be called if an error occurs between steps 3 and 6.
+ */
+
+FAR _TCB *task_vforksetup(start_t retaddr);
+pid_t task_vforkstart(FAR _TCB *child);
+void task_vforkabort(FAR _TCB *child, int errcode);
+
 /* sched_foreach will enumerate over each task and provide the
  * TCB of each task to a user callback functions.  Interrupts
  * will be disabled throughout this enumeration!

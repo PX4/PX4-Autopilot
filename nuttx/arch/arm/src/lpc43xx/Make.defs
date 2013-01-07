@@ -36,7 +36,7 @@
 HEAD_ASRC  =
 
 CMN_ASRCS  = up_saveusercontext.S up_fullcontextrestore.S up_switchcontext.S
-CMN_ASRCS += up_vfork.S
+CMN_ASRCS += vfork.S
 
 CMN_CSRCS  = up_assert.c up_blocktask.c up_copystate.c
 CMN_CSRCS += up_createstack.c up_mdelay.c up_udelay.c up_exit.c
@@ -44,7 +44,7 @@ CMN_CSRCS += up_initialize.c up_initialstate.c up_interruptcontext.c
 CMN_CSRCS += up_memfault.c up_modifyreg8.c up_modifyreg16.c up_modifyreg32.c
 CMN_CSRCS += up_releasepending.c up_releasestack.c up_reprioritizertr.c
 CMN_CSRCS += up_schedulesigaction.c up_sigdeliver.c up_unblocktask.c
-CMN_CSRCS += up_usestack.c up_doirq.c up_hardfault.c up_svcall.c up__vfork.c
+CMN_CSRCS += up_usestack.c up_doirq.c up_hardfault.c up_svcall.c up_vfork.c
 
 ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 CMN_ASRCS += up_exception.S

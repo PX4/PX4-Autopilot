@@ -169,6 +169,8 @@ static int thread_create(const char *name, uint8_t type, int priority,
   ret = task_activate(tcb);
   if (ret != OK)
     {
+      /* The TCB was added to the active task list by task_schedsetup() */
+
       dq_rem((FAR dq_entry_t*)tcb, (dq_queue_t*)&g_inactivetasks);
       goto errout_with_tcb;
     }

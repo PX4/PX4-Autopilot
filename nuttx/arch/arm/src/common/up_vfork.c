@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/common/up__vfork
+ * arch/arm/src/common/up_vfork.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,10 +39,16 @@
 
 #include <nuttx/config.h>
 
-#include <sched.h>
+#include <stdint.h>
+#include <string.h>
+#include <assert.h>
+#include <errno.h>
 
 #include <nuttx/sched.h>
+#include <nuttx/arch.h>
+#include <arch/irq.h>
 
+#include "up_vfork.h"
 #include "os_internal.h"
 
 /****************************************************************************
@@ -75,7 +81,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: __vfork
+ * Name: up_vfork
  *
  * Description:
  *   The vfork() function has the same effect as fork(), except that the
@@ -85,11 +91,29 @@
  *   called, or calls any other function before successfully calling _exit()
  *   or one of the exec family of functions. 
  *
- *   This thin layer starts the vfork child by simply spawning a new thread
- *   that begins at the return address of vfork().
+ *   The overall sequence is:
+ *
+ *   1) User code calls vfork().  vfork() collects context information and
+ *      transfers control up up_vfork().
+ *   2) up_vfork()and calls task_vforksetup().
+ *   3) task_vforksetup() allocates and configures the child task's TCB.  This
+ *      consists of:
+ *      - Allocation of the child task's TCB.
+ *      - Initialization of file descriptors and streams
+ *      - Configuration of environment variables
+ *      - Setup the intput parameters for the task.
+ *      - Initialization of the TCB (including call to up_initial_state()
+ *   4) up_vfork() provides any additional operating context. up_vfork must:
+ *      - Allocate and initialize the stack
+ *      - Initialize special values in any CPU registers that were not
+ *        already configured by up_initial_state()
+ *   5) up_vfork() then calls task_vforkstart()
+ *   6) task_vforkstart() then executes the child thread.
+ *
+ * task_vforkabort() may be called if an error occurs between steps 3 and 6.
  *
  * Input Paremeters:
- *   retaddr - The return address of vfork()
+ *   context - Caller context information saved by vfork()
  *
  * Return:
  *   Upon successful completion, vfork() returns 0 to the child process and
@@ -99,11 +123,22 @@
  *
  ****************************************************************************/
 
-pid_t __vfork(uint32_t retaddr)
+pid_t up_vfork(struct vfork_s *context)
 {
-  FAR _TCB *parent = (FAR _TCB *)g_readytorun.head;
+  _TCB *parent = (FAR _TCB *)g_readytorun.head;
+  _TCB *child;
   size_t stacksize;
-  int priority;
+  uint32_t newsp;
+  uint32_t stackutil;
+  int ret;
+
+  /* Allocate and initialize a TCB for the child task. */
+
+  child = task_vforksetup((start_t)context->lr);
+  if (!child)
+    {
+      return (pid_t)ERROR;
+    }
 
   /* Get the size of the parent task's stack.  Due to alignment operations,
    * the adjusted stack size may be smaller than the stack size originally
@@ -112,23 +147,50 @@ pid_t __vfork(uint32_t retaddr)
 
   stacksize = parent->adj_stack_size + CONFIG_STACK_ALIGNMENT - 1;
 
-  /* Get the current priority of the parent task */
+  /* Allocate the stack for the TCB */
 
-#ifdef CONFIG_PRIORITY_INHERITANCE
-  priority = parent->base_priority;  /* "Normal," unboosted priority */
-#else
-  priority = parent->sched_priority;  /* Current priority */
-#endif
+  ret = up_create_stack(child, stacksize);
+  if (ret != OK)
+    {
+      task_vforkabort(child, -ret);
+      return (pid_t)ERROR;
+    }
 
- /* Start the child thread at the vfork return address.  TASK_CREATE will
-  * return the PID of the new thread.  Otherwise a negative value will be
-  * returned and the errno will be set appropriately.
-  *
-  * When the registers are initialized, the return value in R0 should be
-  * cleared to zero, providing the indication to the newly started child
-  * thread.
+  /* How much of the parent's stack was utilized? */
+
+  DEBUGASSERT(parent->adj_stack_ptr > context->sp);
+  stackutil = (uint32_t)parent->adj_stack_ptr - context->sp;
+
+  /* Make some feeble effort to perserve the stack contents.  This is
+   * feeble because the stack surely contains invalid pointer and other
+   * content that will not work in the child context.  However, if the
+   * user follows all of the caveats of vfor() usage, even this feeble
+   * effort is overkill.
+   */
+
+  newsp = (uint32_t)child->adj_stack_ptr - stackutil;
+  memcpy((void *)newsp, (const void *)context->sp, stackutil);
+  
+ /* Update the stack pointer, frame pointer, and voltile registers.  When
+  * the child TCB was initialized, all of the values were set to zero.
+  * up_initial_state() altered a few values, but the return value in R0
+  * should be cleared to zero, providing the indication to the newly started
+  * child thread.
   */
 
-  return TASK_CREATE("init", priority, stacksize, (main_t)retaddr,
-                     (const char **)NULL);
+  child->xcp.regs[REG_R4]  = context->r4;  /* Volatile register r4 */
+  child->xcp.regs[REG_R5]  = context->r5;  /* Volatile register r5 */
+  child->xcp.regs[REG_R6]  = context->r6;  /* Volatile register r6 */
+  child->xcp.regs[REG_R7]  = context->r7;  /* Volatile register r7 */
+  child->xcp.regs[REG_R8]  = context->r8;  /* Volatile register r8 */
+  child->xcp.regs[REG_R9]  = context->r9;  /* Volatile register r9 */
+  child->xcp.regs[REG_R10] = context->r10; /* Volatile register r10 */
+  child->xcp.regs[REG_FP]  = context->fp;  /* Frame pointer */
+  child->xcp.regs[REG_SP]  = context->sp;  /* Stack pointer */
+
+  /* And, finally, start the child task.  On a failure, task_vforkstart()
+   * will discard the TCB by calling task_vforkabort().
+   */
+
+  return task_vforkstart(child);
 }
