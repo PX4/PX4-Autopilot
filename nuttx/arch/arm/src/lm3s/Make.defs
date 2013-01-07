@@ -1,7 +1,7 @@
 ############################################################################
 # arch/arm/src/lm3s/Make.defs
 #
-#   Copyright (C) 2009-2011 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2009-2011, 2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,14 +35,16 @@
 
 HEAD_ASRC	= lm3s_vectors.S
 
-CMN_ASRCS	= up_saveusercontext.S up_fullcontextrestore.S up_switchcontext.S
+CMN_ASRCS	= up_saveusercontext.S up_fullcontextrestore.S up_switchcontext.S \
+			  up_vfork.S
 CMN_CSRCS	= up_allocateheap.c up_assert.c up_blocktask.c up_copystate.c \
 			  up_createstack.c up_mdelay.c up_udelay.c up_exit.c \
 			  up_idle.c up_initialize.c up_initialstate.c up_interruptcontext.c \
 			  up_memfault.c up_modifyreg8.c up_modifyreg16.c up_modifyreg32.c \
 			  up_releasepending.c up_releasestack.c up_reprioritizertr.c \
 			  up_schedulesigaction.c up_sigdeliver.c up_unblocktask.c \
-			  up_usestack.c up_doirq.c up_hardfault.c up_svcall.c
+			  up_usestack.c up_doirq.c up_hardfault.c up_svcall.c \
+			  up__vfork.c
 
 ifeq ($(CONFIG_ARCH_MEMCPY),y)
 CMN_ASRCS	+= up_memcpy.S

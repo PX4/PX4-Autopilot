@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/unistd.h
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -129,6 +129,7 @@ EXTERN int       optopt; /* unrecognized option character */
 
 /* Task Control Interfaces */
 
+EXTERN pid_t   vfork(void);
 EXTERN pid_t   getpid(void);
 EXTERN void    _exit(int status) noreturn_function;
 EXTERN unsigned int sleep(unsigned int seconds);

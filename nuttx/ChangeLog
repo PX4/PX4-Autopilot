@@ -3878,5 +3878,6 @@
 	* sched/os_bringup.c:  Remove support for CONFIG_BUILTIN_APP_START.
 	  This is not really a useful feature and creates a violation of the
 	  OS layered architecture.
-
+	* include/unistd.h, arch/arch/src/*:  Implement a simple vfork().
+	  On initial checkin, this API is available only for ARM platforms.
 

@@ -1,7 +1,7 @@
 ##############################################################################
 # lpc214x/Make.defs
 #
-#   Copyright (C) 2007, 2008 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007, 2008, 2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,13 +35,14 @@
 
 HEAD_ASRC	= lpc214x_head.S
 
-CMN_ASRCS	= up_saveusercontext.S up_fullcontextrestore.S up_vectors.S
+CMN_ASRCS	= up_saveusercontext.S up_fullcontextrestore.S up_vectors.S \
+			  up_vfork.S
 CMN_CSRCS	= up_allocateheap.c up_assert.c up_blocktask.c up_copystate.c \
 		  up_createstack.c up_dataabort.c up_mdelay.c up_udelay.c \
 		  up_exit.c up_idle.c up_initialize.c up_initialstate.c \
 		  up_interruptcontext.c up_prefetchabort.c up_releasepending.c \
 		  up_releasestack.c up_reprioritizertr.c up_syscall.c up_unblocktask.c \
-		  up_undefinedinsn.c up_usestack.c up_lowputs.c
+		  up_undefinedinsn.c up_usestack.c up_lowputs.c up__vfork.c
 
 ifneq ($(CONFIG_DISABLE_SIGNALS),y)
 CMN_CSRCS	+= up_schedulesigaction.c up_sigdeliver.c
