@@ -124,7 +124,7 @@
  *
  ****************************************************************************/
 
-pid_t up_vfork(struct vfork_s *context)
+pid_t up_vfork(const struct vfork_s *context)
 {
   _TCB *parent = (FAR _TCB *)g_readytorun.head;
   _TCB *child;

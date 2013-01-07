@@ -51,12 +51,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Disabled this test for now.  There are some issues with the vfork
- * implementation.
-*/
-
-#undef CONFIG_ARCH_HAVE_VFORK
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
