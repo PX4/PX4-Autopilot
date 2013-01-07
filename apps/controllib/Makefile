@@ -32,28 +32,22 @@
 ############################################################################
 
 #
-# System utility library
+# Control library
 #
+CSRCS		 = test_params.c
 
-CSRCS		 = err.c \
-		   hx_stream.c \
-		   perf_counter.c \
-		   param/param.c \
-		   bson/tinybson.c \
-		   conversions.c \
-		   cpuload.c \
-		   getopt_long.c \
-		   up_cxxinitialize.c
+CXXSRCS		 = block/Block.cpp \
+		   block/BlockParam.cpp \
+		   block/UOrbPublication.cpp \
+		   block/UOrbSubscription.cpp \
+		   blocks.cpp \
+		   fixedwing.cpp
 
-#		   ppm_decode.c \
-
-#
-# XXX this really should be a CONFIG_* test
-#
-ifeq ($(TARGET),px4fmu)
-CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
-endif
+CXXHDRS		 = block/Block.hpp \
+		   block/BlockParam.hpp \
+		   block/UOrbPublication.hpp \
+		   block/UOrbSubscription.hpp \
+		   blocks.hpp \
+		   fixedwing.hpp
 
 include $(APPDIR)/mk/app.mk

@@ -44,16 +44,11 @@
 
 #include <nuttx/config.h>
 
-#include <systemlib/math/Vector.hpp>
-#include <systemlib/math/Vector3.hpp>
-#include <systemlib/math/Matrix.hpp>
-#include <systemlib/math/Quaternion.hpp>
-#include <systemlib/math/Dcm.hpp>
-#include <systemlib/math/EulerAngles.hpp>
-#include <systemlib/control/blocks.hpp>
-#include <systemlib/control/block/BlockParam.hpp>
-#include <systemlib/control/block/UOrbSubscription.hpp>
-#include <systemlib/control/block/UOrbPublication.hpp>
+#include <mathlib/mathlib.h>
+#include <controllib/blocks.hpp>
+#include <controllib/block/BlockParam.hpp>
+#include <controllib/block/UOrbSubscription.hpp>
+#include <controllib/block/UOrbPublication.hpp>
 
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>

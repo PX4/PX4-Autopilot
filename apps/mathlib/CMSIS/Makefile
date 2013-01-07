@@ -32,28 +32,23 @@
 ############################################################################
 
 #
-# System utility library
+# ARM CMSIS DSP library
 #
 
-CSRCS		 = err.c \
-		   hx_stream.c \
-		   perf_counter.c \
-		   param/param.c \
-		   bson/tinybson.c \
-		   conversions.c \
-		   cpuload.c \
-		   getopt_long.c \
-		   up_cxxinitialize.c
+#
+# Find sources
+#
+DSPLIB_SRCDIR		 = $(dir $(lastword $(MAKEFILE_LIST)))
+CSRCS			:= $(wildcard $(DSPLIB_SRCDIR)/DSP_Lib/Source/*/*.c)
 
-#		   ppm_decode.c \
+INCLUDES		+= $(DSPLIB_SRCDIR)/Include \
+			   $(DSPLIB_SRCDIR)/Device/ARM/ARMCM4/Include \
+			   $(DSPLIB_SRCDIR)/Device/ARM/ARMCM3/Include
 
 #
-# XXX this really should be a CONFIG_* test
+# Override the default visibility for symbols, since the CMSIS DSPLib doesn't
+# have anything we can use to mark exported symbols.
 #
-ifeq ($(TARGET),px4fmu)
-CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
-endif
+DEFAULT_VISIBILITY	 = YES
 
 include $(APPDIR)/mk/app.mk

@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Example User <mail@example.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,73 +32,24 @@
  ****************************************************************************/
 
 /**
- * @file math_demo.cpp
- * Demonstration of math library
+ * @file mathlib.h
+ *
+ * Common header for mathlib exports.
  */
 
-#include <nuttx/config.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <systemlib/systemlib.h>
-#include <mathlib/mathlib.h>
+#ifdef __cplusplus
 
-/**
- * Management function.
- */
-extern "C" __EXPORT int math_demo_main(int argc, char *argv[]);
+#include "math/Dcm.hpp"
+#include "math/EulerAngles.hpp"
+#include "math/Matrix.hpp"
+#include "math/Quaternion.hpp"
+#include "math/Vector.hpp"
+#include "math/Vector3.hpp"
 
-/**
- * Test function
- */
-void test();
+#endif
 
-/**
- * Print the correct usage.
- */
-static void usage(const char *reason);
+#ifdef CONFIG_ARCH_ARM
 
-static void
-usage(const char *reason)
-{
-    if (reason)
-        fprintf(stderr, "%s\n", reason);
-    fprintf(stderr, "usage: math_demo {test}\n\n");
-    exit(1);
-}
+#include "CMSIS/Include/arm_math.h"
 
-/**
- * The deamon app only briefly exists to start
- * the background job. The stack size assigned in the
- * Makefile does only apply to this management task.
- * 
- * The actual stack size should be set in the call
- * to task_create().
- */
-int math_demo_main(int argc, char *argv[])
-{
-
-    if (argc < 1)
-        usage("missing command");
-
-    if (!strcmp(argv[1], "test")) {
-        test();
-        exit(0);
-    }
-
-    usage("unrecognized command");
-    exit(1);
-}
-
-void test()
-{
-    printf("beginning math lib test\n");
-    using namespace math;
-    vectorTest();
-    matrixTest();
-    vector3Test();
-    eulerAnglesTest();
-    quaternionTest();
-    dcmTest();
-}
+#endif

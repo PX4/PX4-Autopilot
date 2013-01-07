@@ -43,7 +43,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <systemlib/systemlib.h>
-#include <systemlib/control/fixedwing.hpp>
+#include <controllib/fixedwing.hpp>
 #include <systemlib/param/param.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>

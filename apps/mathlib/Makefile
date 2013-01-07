@@ -32,28 +32,37 @@
 ############################################################################
 
 #
-# System utility library
+# Math library
 #
+CXXSRCS		 = math/test/test.cpp \
+		   math/Vector.cpp \
+		   math/Vector3.cpp \
+		   math/EulerAngles.cpp \
+		   math/Quaternion.cpp \
+		   math/Dcm.cpp \
+		   math/Matrix.cpp
 
-CSRCS		 = err.c \
-		   hx_stream.c \
-		   perf_counter.c \
-		   param/param.c \
-		   bson/tinybson.c \
-		   conversions.c \
-		   cpuload.c \
-		   getopt_long.c \
-		   up_cxxinitialize.c
+CXXHDRS		 = math/test/test.hpp \
+		   math/Vector.hpp \
+		   math/Vector3.hpp \
+		   math/EulerAngles.hpp \
+		   math/Quaternion.hpp \
+		   math/Dcm.hpp \
+		   math/Matrix.hpp
 
-#		   ppm_decode.c \
-
-#
 # XXX this really should be a CONFIG_* test
-#
 ifeq ($(TARGET),px4fmu)
-CSRCS		+= systemlib.c \
-		   pid/pid.c \
-		   geo/geo.c
+INCLUDES	+= math/arm
+CXXSRCS		+= math/arm/Vector.cpp \
+		   math/arm/Matrix.cpp
+CXXHDRS		+= math/arm/Vector.hpp \
+		   math/arm/Matrix.hpp
+else
+INCLUDES	+= math/generic
+CXXSRCS		+= math/generic/Vector.cpp \
+		   math/generic/Matrix.cpp
+CXXHDRS		+= math/generic/Vector.hpp \
+		   math/generic/Matrix.hpp
 endif
 
 include $(APPDIR)/mk/app.mk

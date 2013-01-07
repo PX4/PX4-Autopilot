@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Example User <mail@example.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,73 +32,91 @@
  ****************************************************************************/
 
 /**
- * @file math_demo.cpp
- * Demonstration of math library
+ * @file Vector.cpp
+ *
+ * math vector
  */
 
-#include <nuttx/config.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <systemlib/systemlib.h>
-#include <mathlib/mathlib.h>
+#include "math/test/test.hpp"
 
-/**
- * Management function.
- */
-extern "C" __EXPORT int math_demo_main(int argc, char *argv[]);
+#include "EulerAngles.hpp"
+#include "Quaternion.hpp"
+#include "Dcm.hpp"
+#include "Vector3.hpp"
 
-/**
- * Test function
- */
-void test();
-
-/**
- * Print the correct usage.
- */
-static void usage(const char *reason);
-
-static void
-usage(const char *reason)
-{
-    if (reason)
-        fprintf(stderr, "%s\n", reason);
-    fprintf(stderr, "usage: math_demo {test}\n\n");
-    exit(1);
-}
-
-/**
- * The deamon app only briefly exists to start
- * the background job. The stack size assigned in the
- * Makefile does only apply to this management task.
- * 
- * The actual stack size should be set in the call
- * to task_create().
- */
-int math_demo_main(int argc, char *argv[])
+namespace math
 {
 
-    if (argc < 1)
-        usage("missing command");
-
-    if (!strcmp(argv[1], "test")) {
-        test();
-        exit(0);
-    }
-
-    usage("unrecognized command");
-    exit(1);
-}
-
-void test()
+EulerAngles::EulerAngles() :
+	Vector(3)
 {
-    printf("beginning math lib test\n");
-    using namespace math;
-    vectorTest();
-    matrixTest();
-    vector3Test();
-    eulerAnglesTest();
-    quaternionTest();
-    dcmTest();
+	setPhi(0.0f);
+	setTheta(0.0f);
+	setPsi(0.0f);
 }
+
+EulerAngles::EulerAngles(float phi, float theta, float psi) :
+	Vector(3)
+{
+	setPhi(phi);
+	setTheta(theta);
+	setPsi(psi);
+}
+
+EulerAngles::EulerAngles(const Quaternion &q) :
+	Vector(3)
+{
+	(*this) = EulerAngles(Dcm(q));
+}
+
+EulerAngles::EulerAngles(const Dcm &dcm) :
+	Vector(3)
+{
+	setTheta(asinf(-dcm(2, 0)));
+
+	if (fabsf(getTheta() - M_PI_2_F) < 1.0e-3f) {
+		setPhi(0.0f);
+		setPsi(atan2f(dcm(1, 2) - dcm(0, 1),
+			      dcm(0, 2) + dcm(1, 1)) + getPhi());
+
+	} else if (fabsf(getTheta() + M_PI_2_F) < 1.0e-3f) {
+		setPhi(0.0f);
+		setPsi(atan2f(dcm(1, 2) - dcm(0, 1),
+			      dcm(0, 2) + dcm(1, 1)) - getPhi());
+
+	} else {
+		setPhi(atan2f(dcm(2, 1), dcm(2, 2)));
+		setPsi(atan2f(dcm(1, 0), dcm(0, 0)));
+	}
+}
+
+EulerAngles::~EulerAngles()
+{
+}
+
+int __EXPORT eulerAnglesTest()
+{
+	printf("Test EulerAngles\t: ");
+	EulerAngles euler(1, 2, 3);
+
+	// test ctor
+	ASSERT(vectorEqual(Vector3(1, 2, 3), euler));
+	ASSERT(equal(euler.getPhi(), 1));
+	ASSERT(equal(euler.getTheta(), 2));
+	ASSERT(equal(euler.getPsi(), 3));
+
+	// test dcm ctor
+
+	// test assignment
+	euler.setPhi(4);
+	ASSERT(equal(euler.getPhi(), 4));
+	euler.setTheta(5);
+	ASSERT(equal(euler.getTheta(), 5));
+	euler.setPsi(6);
+	ASSERT(equal(euler.getPsi(), 6));
+
+	printf("PASS\n");
+	return 0;
+}
+
+} // namespace math

@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Example User <mail@example.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,73 +32,69 @@
  ****************************************************************************/
 
 /**
- * @file math_demo.cpp
- * Demonstration of math library
+ * @file Vector.cpp
+ *
+ * math vector
  */
 
-#include <nuttx/config.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <systemlib/systemlib.h>
-#include <mathlib/mathlib.h>
+#include "math/test/test.hpp"
 
-/**
- * Management function.
- */
-extern "C" __EXPORT int math_demo_main(int argc, char *argv[]);
+#include "Vector.hpp"
 
-/**
- * Test function
- */
-void test();
-
-/**
- * Print the correct usage.
- */
-static void usage(const char *reason);
-
-static void
-usage(const char *reason)
-{
-    if (reason)
-        fprintf(stderr, "%s\n", reason);
-    fprintf(stderr, "usage: math_demo {test}\n\n");
-    exit(1);
-}
-
-/**
- * The deamon app only briefly exists to start
- * the background job. The stack size assigned in the
- * Makefile does only apply to this management task.
- * 
- * The actual stack size should be set in the call
- * to task_create().
- */
-int math_demo_main(int argc, char *argv[])
+namespace math
 {
 
-    if (argc < 1)
-        usage("missing command");
+static const float data_testA[] = {1, 3};
+static const float data_testB[] = {4, 1};
 
-    if (!strcmp(argv[1], "test")) {
-        test();
-        exit(0);
-    }
+static Vector testA(2, data_testA);
+static Vector testB(2, data_testB);
 
-    usage("unrecognized command");
-    exit(1);
-}
-
-void test()
+int __EXPORT vectorTest()
 {
-    printf("beginning math lib test\n");
-    using namespace math;
-    vectorTest();
-    matrixTest();
-    vector3Test();
-    eulerAnglesTest();
-    quaternionTest();
-    dcmTest();
+	vectorAddTest();
+	vectorSubTest();
+	return 0;
 }
+
+int vectorAddTest()
+{
+	printf("Test Vector Add\t\t: ");
+	Vector r = testA + testB;
+	float data_test[] = {5.0f, 4.0f};
+	ASSERT(vectorEqual(Vector(2, data_test), r));
+	printf("PASS\n");
+	return 0;
+}
+
+int vectorSubTest()
+{
+	printf("Test Vector Sub\t\t: ");
+	Vector r(2);
+	r = testA - testB;
+	float data_test[] = { -3.0f, 2.0f};
+	ASSERT(vectorEqual(Vector(2, data_test), r));
+	printf("PASS\n");
+	return 0;
+}
+
+bool vectorEqual(const Vector &a, const Vector &b, float eps)
+{
+	if (a.getRows() != b.getRows()) {
+		printf("row number not equal a: %d, b:%d\n", a.getRows(), b.getRows());
+		return false;
+	}
+
+	bool ret = true;
+
+	for (size_t i = 0; i < a.getRows(); i++) {
+		if (!equal(a(i), b(i), eps)) {
+			printf("element mismatch (%d)\n", i);
+			ret = false;
+		}
+	}
+
+	return ret;
+}
+
+} // namespace math

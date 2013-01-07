@@ -1,7 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Example User <mail@example.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,73 +32,68 @@
  ****************************************************************************/
 
 /**
- * @file math_demo.cpp
- * Demonstration of math library
+ * @file Vector3.cpp
+ *
+ * math vector
  */
 
-#include <nuttx/config.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <systemlib/systemlib.h>
-#include <mathlib/mathlib.h>
+#include "math/test/test.hpp"
 
-/**
- * Management function.
- */
-extern "C" __EXPORT int math_demo_main(int argc, char *argv[]);
+#include "Vector3.hpp"
 
-/**
- * Test function
- */
-void test();
-
-/**
- * Print the correct usage.
- */
-static void usage(const char *reason);
-
-static void
-usage(const char *reason)
-{
-    if (reason)
-        fprintf(stderr, "%s\n", reason);
-    fprintf(stderr, "usage: math_demo {test}\n\n");
-    exit(1);
-}
-
-/**
- * The deamon app only briefly exists to start
- * the background job. The stack size assigned in the
- * Makefile does only apply to this management task.
- * 
- * The actual stack size should be set in the call
- * to task_create().
- */
-int math_demo_main(int argc, char *argv[])
+namespace math
 {
 
-    if (argc < 1)
-        usage("missing command");
-
-    if (!strcmp(argv[1], "test")) {
-        test();
-        exit(0);
-    }
-
-    usage("unrecognized command");
-    exit(1);
-}
-
-void test()
+Vector3::Vector3() :
+	Vector(3)
 {
-    printf("beginning math lib test\n");
-    using namespace math;
-    vectorTest();
-    matrixTest();
-    vector3Test();
-    eulerAnglesTest();
-    quaternionTest();
-    dcmTest();
 }
+
+Vector3::Vector3(const Vector &right) :
+	Vector(right)
+{
+#ifdef VECTOR_ASSERT
+	ASSERT(right.getRows() == 3);
+#endif
+}
+
+Vector3::Vector3(float x, float y, float z) :
+	Vector(3)
+{
+	setX(x);
+	setY(y);
+	setZ(z);
+}
+
+Vector3::Vector3(const float *data) :
+	Vector(3, data)
+{
+}
+
+Vector3::~Vector3()
+{
+}
+
+Vector3 Vector3::cross(const Vector3 &b)
+{
+	Vector3 &a = *this;
+	Vector3 result;
+	result(0) = a(1) * b(2) - a(2) * b(1);
+	result(1) = a(2) * b(0) - a(0) * b(2);
+	result(2) = a(0) * b(1) - a(1) * b(0);
+	return result;
+}
+
+int __EXPORT vector3Test()
+{
+	printf("Test Vector3\t\t: ");
+	// test float ctor
+	Vector3 v(1, 2, 3);
+	ASSERT(equal(v(0), 1));
+	ASSERT(equal(v(1), 2));
+	ASSERT(equal(v(2), 3));
+	printf("PASS\n");
+	return 0;
+}
+
+} // namespace math
