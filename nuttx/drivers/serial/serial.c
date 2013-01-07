@@ -660,9 +660,11 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   int ret = dev->ops->ioctl(filep, cmd, arg);
 
-  /* Append any higher level TTY flags */
-
-  if (ret == OK)
+  /*
+   * The device ioctl() handler returns -ENOTTY when it doesn't know
+   * how to handle the command. Check if we can handle it here.
+   */
+  if (ret == -ENOTTY)
     {
       switch (cmd)
         {
@@ -686,8 +688,43 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             irqrestore(state);
 
             *(int *)arg = count;
+            ret = 0;
+
+            break;
           }
 
+          case FIONWRITE:
+          {
+            int count;
+            irqstate_t state = irqsave();
+
+            /* determine the number of bytes free in the buffer */
+
+            if (dev->xmit.head < dev->xmit.tail)
+              { 
+                count = dev->xmit.tail - dev->xmit.head - 1;
+              }
+            else
+              {
+                count = dev->xmit.size - (dev->xmit.head - dev->xmit.tail) - 1;
+              }
+
+            irqrestore(state);
+
+            *(int *)arg = count;
+            ret = 0;
+
+            break;
+          }
+        }
+    }
+
+  /* Append any higher level TTY flags */
+
+  else if (ret == OK)
+    {
+      switch (cmd)
+        {
 #ifdef CONFIG_SERIAL_TERMIOS
           case TCGETS:
           {

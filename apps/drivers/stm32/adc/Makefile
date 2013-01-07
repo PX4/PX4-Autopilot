@@ -31,10 +31,13 @@
 #
 ############################################################################
 
-CONFIGURED_APPS += drivers/boards/px4io
-CONFIGURED_APPS += drivers/stm32
+#
+# STM32 ADC driver
+#
 
-CONFIGURED_APPS += px4io
+APPNAME		 = adc
+PRIORITY	 = SCHED_PRIORITY_DEFAULT
+STACKSIZE	 = 2048
+INCLUDES	 = $(TOPDIR)/arch/arm/src/stm32 $(TOPDIR)/arch/arm/src/common
 
-# Mixer library from systemlib
-CONFIGURED_APPS += systemlib/mixer
+include $(APPDIR)/mk/app.mk

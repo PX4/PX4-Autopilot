@@ -86,8 +86,12 @@ dodep ()
       fi
     done
     if [ -z "$fullpath" ]; then
-      echo "# ERROR: No readable file for $1 found at any location"
-      show_usage
+	if [ -r $1 ]; then
+	    fullpath=$1
+	else
+	    echo "# ERROR: No readable file for $1 found at any location"
+	    show_usage
+	fi
     fi
   fi
 

@@ -73,6 +73,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/battery_status.h>
 
 #define GYRO_HEALTH_COUNTER_LIMIT_ERROR 20   /* 40 ms downtime at 500 Hz update rate   */
 #define ACC_HEALTH_COUNTER_LIMIT_ERROR  20   /* 40 ms downtime at 500 Hz update rate   */
@@ -156,10 +157,12 @@ private:
 	orb_advert_t	_sensor_pub;			/**< combined sensor data topic */
 	orb_advert_t	_manual_control_pub;		/**< manual control signal topic */
 	orb_advert_t	_rc_pub;			/**< raw r/c control topic */
+	orb_advert_t	_battery_pub;			/**< battery status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	struct rc_channels_s _rc;			/**< r/c channel data */
+	struct battery_status_s _battery_status;	/**< battery status */
 
 	struct {
 		float min[_rc_max_chan_count];
@@ -348,6 +351,7 @@ Sensors::Sensors() :
 	_sensor_pub(-1),
 	_manual_control_pub(-1),
 	_rc_pub(-1),
+	_battery_pub(-1),
 
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensor task update"))
@@ -636,8 +640,8 @@ Sensors::adc_init()
 
 	_fd_adc = open("/dev/adc0", O_RDONLY | O_NONBLOCK);
 	if (_fd_adc < 0) {
-		warn("/dev/adc0");
-		errx(1, "FATAL: no ADC found");
+		warnx("/dev/adc0");
+		warnx("FATAL: no ADC found");
 	}
 }
 
@@ -844,14 +848,22 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 		if (ADC_BATTERY_VOLATGE_CHANNEL == buf_adc.am_channel1) {
 			/* Voltage in volts */
-			raw.battery_voltage_v = (BAT_VOL_LOWPASS_1 * (raw.battery_voltage_v + BAT_VOL_LOWPASS_2 * (buf_adc.am_data1 * _parameters.battery_voltage_scaling)));
+			float voltage = (buf_adc.am_data1 * _parameters.battery_voltage_scaling);
 
-			if ((raw.battery_voltage_v) < VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
-				raw.battery_voltage_valid = false;
-				raw.battery_voltage_v = 0.f;
+			if (voltage > VOLTAGE_BATTERY_IGNORE_THRESHOLD_VOLTS) {
 
-			} else {
-				raw.battery_voltage_valid = true;
+				_battery_status.timestamp = hrt_absolute_time();
+				_battery_status.voltage_v = (BAT_VOL_LOWPASS_1 * (_battery_status.voltage_v + BAT_VOL_LOWPASS_2 * voltage));;
+				/* current and discharge are unknown */
+				_battery_status.current_a = -1.0f;
+				_battery_status.discharged_mah = -1.0f;
+
+				/* announce the battery voltage if needed, just publish else */
+				if (_battery_pub > 0) {
+					orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
+				} else {
+					_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
+				}
 			}
 
 			raw.battery_voltage_counter++;
@@ -879,7 +891,7 @@ Sensors::ppm_poll()
 	 */
 	if (ppm_decoded_channels > 4 && hrt_absolute_time() - _ppm_last_valid < PPM_INPUT_TIMEOUT_INTERVAL) {
 
-		for (int i = 0; i < ppm_decoded_channels; i++) {
+		for (unsigned i = 0; i < ppm_decoded_channels; i++) {
 			raw.values[i] = ppm_buffer[i];
 		}
 
@@ -1039,12 +1051,13 @@ Sensors::task_main()
 	struct sensor_combined_s raw;
 	memset(&raw, 0, sizeof(raw));
 	raw.timestamp = hrt_absolute_time();
-	raw.battery_voltage_v = BAT_VOL_INITIAL;
 	raw.adc_voltage_v[0] = 0.9f;
 	raw.adc_voltage_v[1] = 0.0f;
 	raw.adc_voltage_v[2] = 0.0f;
-	raw.battery_voltage_counter = 0;
-	raw.battery_voltage_valid = false;
+	raw.adc_voltage_v[3] = 0.0f;
+
+	memset(&_battery_status, 0, sizeof(_battery_status));
+	_battery_status.voltage_v = BAT_VOL_INITIAL;
 
 	/* get a set of initial values */
 	accel_poll(raw);

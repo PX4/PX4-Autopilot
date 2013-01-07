@@ -54,6 +54,11 @@
 
 #include "mixer.h"
 
+/*
+ * Clockwise: 1
+ * Counter-clockwise: -1
+ */
+
 namespace
 {
 
@@ -148,6 +153,61 @@ MultirotorMixer::~MultirotorMixer()
 {
 }
 
+MultirotorMixer *
+MultirotorMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf, unsigned &buflen)
+{
+	MultirotorMixer::Geometry geometry;
+	char geomname[8];
+	int s[4];
+	int used;
+
+	if (sscanf(buf, "R: %s %d %d %d %d%n", geomname, &s[0], &s[1], &s[2], &s[3], &used) != 5) {
+		debug("multirotor parse failed on '%s'", buf);
+		return nullptr;
+	}
+
+	if (used > (int)buflen) {
+		debug("multirotor spec used %d of %u", used, buflen);
+		return nullptr;
+	}
+
+	buflen -= used;
+
+	if (!strcmp(geomname, "4+")) {
+		geometry = MultirotorMixer::QUAD_PLUS;
+
+	} else if (!strcmp(geomname, "4x")) {
+		geometry = MultirotorMixer::QUAD_X;
+
+	} else if (!strcmp(geomname, "6+")) {
+		geometry = MultirotorMixer::HEX_PLUS;
+
+	} else if (!strcmp(geomname, "6x")) {
+		geometry = MultirotorMixer::HEX_X;
+
+	} else if (!strcmp(geomname, "8+")) {
+		geometry = MultirotorMixer::OCTA_PLUS;
+
+	} else if (!strcmp(geomname, "8x")) {
+		geometry = MultirotorMixer::OCTA_X;
+
+	} else {
+		debug("unrecognised geometry '%s'", geomname);
+		return nullptr;
+	}
+
+	debug("adding multirotor mixer '%s'", geomname);
+
+	return new MultirotorMixer(
+		       control_cb,
+		       cb_handle,
+		       geometry,
+		       s[0] / 10000.0f,
+		       s[1] / 10000.0f,
+		       s[2] / 10000.0f,
+		       s[3] / 10000.0f);
+}
+
 unsigned
 MultirotorMixer::mix(float *outputs, unsigned space)
 {
@@ -167,10 +227,12 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	/* keep roll, pitch and yaw control to 0 below min thrust */
 	if (thrust <= min_thrust) {
 		output_factor = 0.0f;
-	/* linearly increase the output factor from 0 to 1 between min_thrust and startpoint_full_control */
+		/* linearly increase the output factor from 0 to 1 between min_thrust and startpoint_full_control */
+
 	} else if (thrust < startpoint_full_control && thrust > min_thrust) {
-		output_factor = (thrust/max_thrust)/(startpoint_full_control-min_thrust);
-	/* and then stay at full control */
+		output_factor = (thrust / max_thrust) / (startpoint_full_control - min_thrust);
+		/* and then stay at full control */
+
 	} else {
 		output_factor = max_thrust;
 	}
