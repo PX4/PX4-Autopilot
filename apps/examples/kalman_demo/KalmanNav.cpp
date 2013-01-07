@@ -188,14 +188,13 @@ void KalmanNav::update()
 	// for packet lag
 	float dtFast = (_sensors.timestamp - _fastTimeStamp) / 1.0e6f;
 	_fastTimeStamp = _sensors.timestamp;
-	predictFast(dtFast);
+	if (dtFast < 1.0f) predictFast(dtFast);
 
 	// slow prediction step
 	float dtSlow = (_sensors.timestamp - _slowTimeStamp) / 1.0e6f;
-
 	if (dtSlow > 1.0f / 200) { // 200 Hz
 		_slowTimeStamp = _sensors.timestamp;
-		predictSlow(dtSlow);
+		if (dtSlow < 1.0) predictSlow(dtSlow);
 	}
 
 	// gps correction step
