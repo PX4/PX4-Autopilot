@@ -34,6 +34,8 @@ class SensorHIL(object):
             self.master.set_mode_flag(mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED,True)
             while self.master.port.inWaiting() > 0:
                 m = self.master.recv_msg()
+        self.master.set_mode_flag(mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED,True)
+        print 'mode: {0:x}'.format(self.master.base_mode)
 
     def run(self):
         ''' main execution loop '''
@@ -43,6 +45,7 @@ class SensorHIL(object):
         bytes_recv = 0
 
         self.enable_hil()
+        print 'mode: {0:x}'.format(self.master.base_mode)
 
         # run loop
         while True:
@@ -51,6 +54,26 @@ class SensorHIL(object):
             #self.master.mav.gps_raw_int_send(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
             #self.master.mav.attitude_send(1, 2, 3, 4, 5, 6, 7)
             #self.master.mav.vfr_hud_send(1, 2, 3, 4, 5, 6)
+            roll = 0
+            pitch = 0
+            yaw = 0
+            rollspeed = 0
+            pitchspeed = 0
+            yawspeed = 0
+            lat = 0
+            lon = 0
+            alt = 0
+            vx = 0
+            vy = 0
+            vz = 0
+            xacc = 0
+            yacc = 0
+            zacc = 0
+            self.master.mav.hil_state_send(t1, roll, pitch, yaw,
+                                           rollspeed, pitchspeed, yawspeed,
+                                           lat, lon, alt,
+                                           vx, vy, vz,
+                                           xacc, yacc, zacc);
             while self.master.port.inWaiting() > 0:
                 m = self.master.recv_msg()
                 if m == None: break
