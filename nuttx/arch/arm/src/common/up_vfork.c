@@ -169,7 +169,11 @@ pid_t up_vfork(struct vfork_s *context)
       return (pid_t)ERROR;
     }
 
-  /* How much of the parent's stack was utilized? */
+  /* How much of the parent's stack was utilized?  The ARM uses
+   * a push-down stack so that the current stack pointer should
+   * be lower than the initial, adjusted stack pointer.  The
+   * stack usage should be the difference between those two.
+   */
 
   DEBUGASSERT((uint32_t)parent->adj_stack_ptr > context->sp);
   stackutil = (uint32_t)parent->adj_stack_ptr - context->sp;
@@ -177,7 +181,7 @@ pid_t up_vfork(struct vfork_s *context)
   svdbg("stacksize:%d stackutil:%d\n", stacksize, stackutil); 
 
   /* Make some feeble effort to perserve the stack contents.  This is
-   * feeble because the stack surely contains invalid pointer and other
+   * feeble because the stack surely contains invalid pointers and other
    * content that will not work in the child context.  However, if the
    * user follows all of the caveats of vfor() usage, even this feeble
    * effort is overkill.
@@ -204,7 +208,7 @@ pid_t up_vfork(struct vfork_s *context)
   svdbg("New stack base:%08x SP:%08x FP:%08x\n",
         child->adj_stack_ptr, newsp, newfp);
 
-        /* Update the stack pointer, frame pointer, and voltile registers.  When
+ /* Update the stack pointer, frame pointer, and voltile registers.  When
   * the child TCB was initialized, all of the values were set to zero.
   * up_initial_state() altered a few values, but the return value in R0
   * should be cleared to zero, providing the indication to the newly started
