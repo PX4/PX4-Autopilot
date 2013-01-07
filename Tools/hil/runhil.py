@@ -219,7 +219,6 @@ class SensorHIL(object):
             self.master.set_mode_flag(mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED,True)
             while self.master.port.inWaiting() > 0:
                 m = self.master.recv_msg()
-        print 'mode: {0:x}'.format(self.master.base_mode)
 
     def jsb_set(self, variable, value):
         '''set a JSBSim variable'''
@@ -308,15 +307,16 @@ class SensorHIL(object):
 
             # periodic output
             dt_report = tnow - last_report
-            if dt_report > 1:
-                print counts
-                print "JSBSim {0:5.0f} Hz".format(frame_count/dt_report)
-                print("%u sent, %u received, %u errors bwin=%.1f kB/s bwout=%.1f kB/s" % (
+            if dt_report > 5:
+                print '\nmode: {0:X}, JSBSim {1:5.0f} Hz, {2:d} sent, {3:d} received, {4:d} errors, bwin={5:.1f} kB/s, bwout={6:.1f} kB/s'.format(
+                    self.master.base_mode,
+                    frame_count/dt_report,
                     self.master.mav.total_packets_sent,
                     self.master.mav.total_packets_received,
                     self.master.mav.total_receive_errors,
                     0.001*(self.master.mav.total_bytes_received-bytes_recv)/dt_report,
-                    0.001*(self.master.mav.total_bytes_sent-bytes_sent)/dt_report))
+                    0.001*(self.master.mav.total_bytes_sent-bytes_sent)/dt_report)
+                print counts
                 bytes_sent = self.master.mav.total_bytes_sent
                 bytes_recv = self.master.mav.total_bytes_received
                 frame_count = 0
