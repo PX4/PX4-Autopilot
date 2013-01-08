@@ -144,7 +144,7 @@ class SensorHIL(object):
         parser.add_argument('--gcs', help='gcs host', default='localhost:14550')
         args = parser.parse_args()
         if args.master is None:
-            raise IOError('must specify device with --dev')
+            raise IOError('must specify master device with --master')
         inst = cls(master_dev=args.master, baudrate=args.baud, script=args.script, options=args.options, gcs_dev=args.gcs)
         inst.run()
 
