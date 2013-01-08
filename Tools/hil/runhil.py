@@ -5,7 +5,7 @@ check bandwidth of link
 '''
 
 # system import
-import sys, struct, time, os, argparse, signal
+import sys, struct, time, os, argparse, signal, math
 import pexpect, socket, fdpexpect, select
 import pymavlink.mavutil as mavutil
 
@@ -79,18 +79,23 @@ class AircraftState(object):
         self.zacc = zacc
 
     def send_to_mav(self, mav):
+        g = 9.80665
+        mpss2mg = 1000.0/g
+        m2cm = 100.0
+        m2mm = 100.0
+        rad2degE7 = 1.0e7*180.0/math.pi
         mav.hil_state_send(
             self.time, self.phi, self.theta, self.psi,
             self.p, self.q, self.r,
-            self.lat, self.lon, self.alt,
-            self.vN, self.vE, self.vD,
-            self.xacc, self.yacc, self.zacc);
+            int(self.lat*rad2degE7), int(self.lon*rad2degE7), int(self.alt*m2mm),
+            int(self.vN*m2cm), int(self.vE*m2cm), int(self.vD*m2cm),
+            int(self.xacc*mpss2mg), int(self.yacc*mpss2mg), int(self.zacc*mpss2mg))
 
     @classmethod
     def from_fdm(cls, fdm):
         # position
-        lat = fdm.get('latitude', units='degrees')
-        lon = fdm.get('longitude', units='degrees')
+        lat = fdm.get('latitude', units='radians')
+        lon = fdm.get('longitude', units='radians')
         alt = fdm.get('altitude', units='meters')
 
         # attitude
@@ -236,7 +241,7 @@ class SensorHIL(object):
         self.fdm = fgFDM.fgFDM()
 
     def hil_enabled(self):
-        return self.master.base_mode | mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED
+        return self.master.base_mode & mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED
 
     def enable_hil(self):
         ''' enable hil mode '''
@@ -309,7 +314,6 @@ class SensorHIL(object):
 
 
         # start simulation
-        self.enable_hil()
         self.jsb_console.send('info\n')
         self.jsb_console.send('resume\n')
         self.jsb.expect("trim computation time")
@@ -320,7 +324,7 @@ class SensorHIL(object):
         while True:
 
             # make sure hil is enabled
-            #if not self.hil_enabled(): self.enable_hil()
+            if not self.hil_enabled(): self.enable_hil()
 
             # watch files
             rin = [self.jsb_in.fileno(), self.jsb_console.fileno(), self.jsb.fileno(), self.gcs.fd]
