@@ -95,7 +95,7 @@ CONFIGURED_APPS += attitude_estimator_ekf
 
 # Hacking tools
 #CONFIGURED_APPS += system/i2c
-#CONFIGURED_APPS += tools/i2c_dev
+CONFIGURED_APPS += systemcmds/i2c
 
 # Communication and Drivers
 CONFIGURED_APPS += drivers/boards/px4fmu

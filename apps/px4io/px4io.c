@@ -100,6 +100,9 @@ int user_start(int argc, char *argv[])
 	struct mallinfo minfo = mallinfo();
 	lib_lowprintf("free %u largest %u\n", minfo.mxordblk, minfo.fordblks);
 
+	/* start the i2c test code */
+	i2c_init();
+
 	/* we're done here, go run the communications loop */
 	comms_main();
 }

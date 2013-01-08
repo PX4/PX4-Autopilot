@@ -222,6 +222,7 @@ extern void	safety_init(void);
  * FMU communications
  */
 extern void	comms_main(void) __attribute__((noreturn));
+extern void	i2c_init(void);
 
 /*
  * Sensors/misc inputs
