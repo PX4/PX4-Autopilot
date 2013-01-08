@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<initialize name="Start up at Canberra Model Aircraft Club">
+<initialize name="Startup in San Fran">
   <latitude unit="DEG"> 37.616611 </latitude>
   <longitude unit="DEG"> -122.4161053 </longitude>
   <altitude unit="M"> 325.0 </altitude>

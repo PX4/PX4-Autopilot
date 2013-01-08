@@ -82,7 +82,7 @@ class AircraftState(object):
         g = 9.80665
         mpss2mg = 1000.0/g
         m2cm = 100.0
-        m2mm = 100.0
+        m2mm = 1000.0
         rad2degE7 = 1.0e7*180.0/math.pi
         mav.hil_state_send(
             self.time, self.phi, self.theta, self.psi,
@@ -283,7 +283,7 @@ class SensorHIL(object):
         self.counts[m.get_type()] += 1
 
         # hil control message
-        if m.get_type() == 'HIL_CONTROL':
+        if m.get_type() == 'HIL_CONTROLS':
             self.u = AircraftControls.from_mavlink(m)
             self.u.send_to_jsbsim(self.jsb_console)
 
@@ -349,7 +349,8 @@ class SensorHIL(object):
             if self.jsb_in.fileno() in rin:
                 self.process_jsb_input()
                 self.x.send_to_mav(self.master.mav)
-                self.x.send_to_mav(self.gcs.mav)
+                # gcs not currently getting HIL_STATE message
+                #self.x.send_to_mav(self.gcs.mav)
                 self.frame_count += 1
 
             # show any jsbsim console output
