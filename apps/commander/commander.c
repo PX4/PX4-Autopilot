@@ -1200,6 +1200,7 @@ int commander_thread_main(int argc, char *argv[])
 	/* mark all signals lost as long as they haven't been found */
 	current_status.rc_signal_lost = true;
 	current_status.offboard_control_signal_lost = true;
+	current_status.battery_warning = VEHICLE_BATTERY_WARNING_NONE;
 
 	/* advertise to ORB */
 	stat_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
@@ -1393,6 +1394,7 @@ int commander_thread_main(int argc, char *argv[])
 
 			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				low_battery_voltage_actions_done = true;
+				current_status.battery_warning = VEHICLE_BATTERY_WARNING_WARNING;
 				mavlink_log_critical(mavlink_fd, "[commander] WARNING! LOW BATTERY!");
 			}
 
@@ -1403,6 +1405,7 @@ int commander_thread_main(int argc, char *argv[])
 		else if (battery_voltage_valid && (bat_remain < 0.1f /* XXX MAGIC NUMBER */) && (false == critical_battery_voltage_actions_done && true == low_battery_voltage_actions_done)) {
 			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				critical_battery_voltage_actions_done = true;
+				current_status.battery_warning = VEHICLE_BATTERY_WARNING_ALERT;
 				mavlink_log_critical(mavlink_fd, "[commander] EMERGENCY! CRITICAL BATTERY!");
 				state_machine_emergency(stat_pub, &current_status, mavlink_fd);
 			}
