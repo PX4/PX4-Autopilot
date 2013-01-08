@@ -47,8 +47,6 @@ CSRCS		 = err.c \
 
 #		   ppm_decode.c \
 
-
-
 #
 # XXX this really should be a CONFIG_* test
 #

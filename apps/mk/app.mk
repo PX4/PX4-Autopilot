@@ -69,7 +69,7 @@
 #		  CONFIG_PTHREAD_STACK_DEFAULT)
 #
 # Symbols in the module are private to the module unless deliberately exported
-# using the __EXPORT tag.
+# using the __EXPORT tag, or DEFAULT_VISIBILITY is set
 #
 
 ############################################################################
@@ -101,7 +101,9 @@ INCLUDES	+= $(APPDIR)
 
 ASRCS		?= $(wildcard $(SRCDIR)/*.S)
 CSRCS		?= $(wildcard $(SRCDIR)/*.c)
+CHDRS		?= $(wildcard $(SRCDIR)/*.h)
 CXXSRCS		?= $(wildcard $(SRCDIR)/*.cpp)
+CXXHDRS		?= $(wildcard $(SRCDIR)/*.hpp)
 
 # if APPNAME is not set, this is a library
 ifeq ($(APPNAME),)
@@ -125,8 +127,15 @@ endif
 ############################################################################
 # Adjust compilation flags to implement EXPORT
 #
-CFLAGS		+= -fvisibility=hidden -include $(APPDIR)/systemlib/visibility.h
-CXXFLAGS	+= -fvisibility=hidden -include $(APPDIR)/systemlib/visibility.h
+
+ifeq ($(DEFAULT_VISIBILITY),)
+DEFAULT_VISIBILITY = hidden
+else
+DEFAULT_VISIBILITY = default
+endif
+
+CFLAGS		+= -fvisibility=$(DEFAULT_VISIBILITY) -include $(APPDIR)/systemlib/visibility.h
+CXXFLAGS	+= -fvisibility=$(DEFAULT_VISIBILITY) -include $(APPDIR)/systemlib/visibility.h
 
 ############################################################################
 # Add extra include directories
@@ -179,8 +188,8 @@ all:		.built
 #
 depend:		.depend
 .depend:	$(MAKEFILE_LIST) $(SRCS)
-	@$(MKDEP) --dep-path . $(CC) -- $(CFLAGS) -- $(CSRCS) >Make.dep
-	@$(MKDEP) --dep-path . $(CXX) -- $(CXXFLAGS) -- $(CXXSRCS) >>Make.dep
+	@$(MKDEP) --dep-path . $(CC) -- $(CFLAGS) -- $(CSRCS) $(CHDRS) >Make.dep
+	@$(MKDEP) --dep-path . $(CXX) -- $(CXXFLAGS) -- $(CXXSRCS) $(CXXHDRS) >>Make.dep
 	@touch $@
 
 ifneq ($(APPNAME),)
