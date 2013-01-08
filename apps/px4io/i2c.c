@@ -116,8 +116,8 @@ i2c_interrupt(int irq, FAR void *context)
 
 	// XXX not sure what else we need to do here...
 	if (sr1 & I2C_SR1_ERRORMASK) {
-		debug("errors 0x%04x", sr1 & I2C_SR1_ERRORMASK);
-		i2c_dump();
+		//debug("errors 0x%04x", sr1 & I2C_SR1_ERRORMASK);
+		//i2c_dump();
 		rSR1 = 0;
 	}
 
