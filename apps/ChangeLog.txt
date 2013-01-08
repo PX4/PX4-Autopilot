@@ -460,4 +460,5 @@
 	  updated to detect key release events.  That is kind of tricky in
 	  the USB HID keyboard report data.
 	* apps/examples/wlan: Remove non-functional example.
+	* apps/examples/ostest/vfork.c:  Added a test of vfork().
 

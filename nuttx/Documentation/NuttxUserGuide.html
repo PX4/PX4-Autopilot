@@ -13,7 +13,7 @@
       <h1><big><font color="#3c34ec"><i>NuttX Operating System<p>User's Manual</i></font></big></h1>
       <p><small>by</small></p>
       <p>Gregory Nutt<p>
-      <p>Last Updated: November 20, 2012</p>
+      <p>Last Updated: January 7, 2013</p>
     </td>
   </tr>
 </table>
@@ -201,6 +201,7 @@ paragraphs.
   <li><a href="#exit">2.1.5 exit</a></li>
   <li><a href="#taskrestart">2.1.6 task_restart</a></li>
   <li><a href="#getpid">2.1.7 getpid</a></li>
+  <li><a href="#vfork">2.1.8 vfork</a></li>
 </ul>
 
 <H3><a name="taskcreate">2.1.1 task_create</a></H3>
@@ -611,6 +612,40 @@ level.
 <p>
 <b>POSIX Compatibility:</b>
 Compatible with the POSIX interface of the same name.
+</p>
+
+<H3><a name="vfork">2.1.8 vfork</a></H3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;unistd.h&gt;
+pid_t vfork(void);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>vfork()</code> function has the same effect as <code>fork()</code>, except that the behavior is undefined if the process created by <code>vfork()</code> either modifies any data other than a variable of type <code>pid_t</code> used to store the return value from <code>vfork()</code>, or returns from the function in which <code>vfork()</code> was called, or calls any other function before successfully calling <code>_exit()</code> or one of the <code>exec</code> family of functions. 
+<p>
+<blockquote><small>
+  <b>NOTE:</b>
+  <code>vfork()</code> is not an independent NuttX feature, but is implemented in architecture-specific logic (using only helper functions from the NuttX core logic).
+  As a result, <code>vfork()</code> may not be available on all architectures.
+</small></blockquote>
+<p>
+  <b>Input Parameters:</b>
+  None.
+</p>
+<p>
+  <b>Returned Value:</b> 
+  Upon successful completion, <code>vfork()</code> returns 0 to the child process and returns
+  the process ID of the child process to the parent process.
+  Otherwise, -1 is returned to the parent, no child process is created, and <code>errno</code> is set to indicate the error. 
+<p>
+  <b>Assumptions/Limitations:</b> 
+</p>
+<p>
+  <b>POSIX Compatibility:</b>
+  Compatible with the Unix interface of the same name.
 </p>
 
 <table width ="100%">
@@ -6741,6 +6776,7 @@ int        telldir(FAR DIR *dirp);
 <ul><pre>
 #include &lt;unistd.h&gt;
 
+pid_t   vfork(void);
 pid_t   getpid(void);
 void    _exit(int status) noreturn_function;
 unsigned int sleep(unsigned int seconds);
@@ -8363,6 +8399,7 @@ notify a task when a message is available on a queue.
   <li><a href="#drvrunistdops">unistd.h</a>,
       <a href="#dirunistdops">unistd.h</a></li>
   <li><a href="#drvrunistdops">unlink</a></li>
+  <li><a href="#vfork">vfork</a></li>
   <li><a href="#standardio">vfprintf</a></li>
   <li><a href="#standardio">vprintf</a></li>
   <li><a href="#standardio">vsprintf</a></li>
