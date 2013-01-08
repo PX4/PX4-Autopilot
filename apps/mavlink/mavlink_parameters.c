@@ -143,7 +143,9 @@ int mavlink_pm_send_param(param_t param)
 	 */
 
 	int ret;
-	if ((ret = param_get(param, &val_buf)) != OK) return ret;
+	if ((ret = param_get(param, &val_buf)) != OK) {
+		return ret;
+	}
 
 	mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
 					  mavlink_system.compid,

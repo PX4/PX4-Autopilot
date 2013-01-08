@@ -1253,6 +1253,8 @@ int commander_thread_main(int argc, char *argv[])
 	current_status.flag_external_manual_override_ok = true;
 	/* flag position info as bad, do not allow auto mode */
 	current_status.flag_vector_flight_mode_ok = false;
+	/* set battery warning flag */
+	current_status.battery_warning = VEHICLE_BATTERY_WARNING_NONE;
 
 	/* advertise to ORB */
 	stat_pub = orb_advertise(ORB_ID(vehicle_status), &current_status);
@@ -1510,6 +1512,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (low_voltage_counter > LOW_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				low_battery_voltage_actions_done = true;
 				mavlink_log_critical(mavlink_fd, "[cmd] WARNING! LOW BATTERY!");
+				current_status.battery_warning = VEHICLE_BATTERY_WARNING_WARNING;
 			}
 
 			low_voltage_counter++;
@@ -1520,6 +1523,7 @@ int commander_thread_main(int argc, char *argv[])
 			if (critical_voltage_counter > CRITICAL_VOLTAGE_BATTERY_COUNTER_LIMIT) {
 				critical_battery_voltage_actions_done = true;
 				mavlink_log_critical(mavlink_fd, "[cmd] EMERGENCY! CRITICAL BATTERY!");
+				current_status.battery_warning = VEHICLE_BATTERY_WARNING_ALERT;
 				state_machine_emergency(stat_pub, &current_status, mavlink_fd);
 			}
 
