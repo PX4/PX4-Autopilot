@@ -1,10 +1,8 @@
 /************************************************************************************
- * configs/ekk-lm3s9b96/src/ekklm3s9b96_internal.h
- * arch/arm/src/board/lm3s6965ek_internal.h
+ * arch/arm/src/lm/chip.h
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
- *   Authors: Gregory Nutt <gnutt@nuttx.org>
- *            Jose Pablo Rojas V. <jrojas@nx-engineering.com>
+ *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,82 +33,51 @@
  *
  ************************************************************************************/
 
-#ifndef __CONFIGS_EKK_LM3S9B96_SRC_EKKLM3S9B96_INTERNAL_H
-#define __CONFIGS_EKK_LM3S9B96_SRC_EKKLM3S9B96_INTERNAL_H
+#ifndef __ARCH_ARM_SRC_LM_CHIP_H
+#define __ARCH_ARM_SRC_LM_CHIP_H
 
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/compiler.h>
-
-#include "chip.h"
-#include "lm_gpio.h"
+#include <arch/lm/chip.h>
 
 /************************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ************************************************************************************/
 
-/* How many SSI modules does this chip support? The LM3S9B96 supports 2 SSI
- * modules (others may support more than 2 -- in such case, the following must be
- * expanded).
+/* Then get all of the register definitions */
+
+#include "chip/lm_memorymap.h"    /* Memory map */
+#include "chip/lm3s_syscontrol.h" /* System control module */
+#include "chip/lm3s_gpio.h"       /* GPIO modules */
+#include "chip/lm3s_uart.h"       /* UART modules */
+#include "chip/lm3s_i2c.h"        /* I2C modules */
+#include "chip/lm3s_ssi.h"        /* SSI modules */
+#include "chip/lm3s_ethernet.h"   /* Ethernet MAC and PHY */
+#include "chip/lm3s_flash.h"      /* FLASH */
+
+/* The LM3S69xx only supports 8 priority levels.  The hardware priority mechanism
+ * will only look at the upper N bits of the 8-bit priority level (where N is 3 for
+ * the Stellaris family), so any prioritization must be performed in those bits.
+ * The default priority level is set to the middle value
  */
 
-#if LM3S_NSSI == 0
-#  undef CONFIG_SSI0_DISABLE
-#  define CONFIG_SSI0_DISABLE 1
-#  undef CONFIG_SSI1_DISABLE
-#  define CONFIG_SSI1_DISABLE 1
-#elif LM3S_NSSI == 1
-#  undef CONFIG_SSI1_DISABLE
-#  define CONFIG_SSI1_DISABLE 1
-#endif
-
-/* EKK-LM3S9B96 Eval Kit ************************************************************/
-
-/* GPIO Usage
- *
- * PIN SIGNAL      EVB Function
- * --- ----------- ---------------------------------------
- *  26 PA0/U0RX      Virtual COM port receive
- *  27 PA1/U0TX      Virtual COM port transmit
- *  66 PB0/USB0ID    USBID signal from the USB-On-the-Go
- *  67 PB1/USB0VBUS  USB VBUS input signal from USB-OTG
- *  92 PB4/GPIO      User pushbutton SW2.
- *  80 PC0/TCK/SWCLK JTAG or SWD clock input
- *  79 PC1/TMS/SWDIO JTAG TMS input or SWD bidirectional signal SWDIO
- *  78 PC2/TDI       JTAG TDI signal input
- *  77 PC3/TDO/SWO   JTAG TDO output or SWD trace signal SWO output.
- *  10 PD0/GPIO      User LED
- *  60 PF2/LED1      Ethernet LED1 (yellow)
- *  59 PF3/LED0      Ethernet LED0 (green)
- *  83 PH3/USB0EPEN  USB-OTG power switch
- *  76 PH4/USB0PFLT  Overcurrent input status from USB-OTG power switch
- */
-
-/* GPIO for LED's:
- * - PD0: User LED
- */
-
-#define LED_GPIO          (GPIO_FUNC_OUTPUT | GPIO_VALUE_ONE | GPIO_PORTD | 0)
+#define NVIC_SYSH_PRIORITY_MIN     0xe0 /* All bits set in minimum priority */
+#define NVIC_SYSH_PRIORITY_DEFAULT 0x80 /* Midpoint is the default */
+#define NVIC_SYSH_PRIORITY_MAX     0x00 /* Zero is maximum priority */
 
 /************************************************************************************
- * Public Functions
+ * Public Types
  ************************************************************************************/
-
-#ifndef __ASSEMBLY__
 
 /************************************************************************************
- * Name: lm3s_ssiinitialize
- *
- * Description:
- *   Called to configure SPI chip select GPIO pins for the LM3S6965 Eval Kit.
- *
+ * Public Data
  ************************************************************************************/
 
-extern void weak_function lm3s_ssiinitialize(void);
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
-#endif /* __ASSEMBLY__ */
-#endif /* __CONFIGS_EKK_LM3S9B96_SRC_EKKLM3S9B96_INTERNAL_H */
-
+#endif /* __ARCH_ARM_SRC_LM_CHIP_H */

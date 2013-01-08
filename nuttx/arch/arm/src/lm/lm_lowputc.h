@@ -1,10 +1,8 @@
 /************************************************************************************
- * configs/ekk-lm3s9b96/src/ekklm3s9b96_internal.h
- * arch/arm/src/board/lm3s6965ek_internal.h
+ * arch/arm/src/lm/lm3s_lowputc.h
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
- *   Authors: Gregory Nutt <gnutt@nuttx.org>
- *            Jose Pablo Rojas V. <jrojas@nx-engineering.com>
+ *   Copyright (C) 2009-2010, 2013 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,82 +33,55 @@
  *
  ************************************************************************************/
 
-#ifndef __CONFIGS_EKK_LM3S9B96_SRC_EKKLM3S9B96_INTERNAL_H
-#define __CONFIGS_EKK_LM3S9B96_SRC_EKKLM3S9B96_INTERNAL_H
+#ifndef __ARCH_ARM_SRC_LM_LM_LOWPUTC_H
+#define __ARCH_ARM_SRC_LM_LM_LOWPUTC_H
 
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/compiler.h>
-
-#include "chip.h"
-#include "lm_gpio.h"
 
 /************************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ************************************************************************************/
 
-/* How many SSI modules does this chip support? The LM3S9B96 supports 2 SSI
- * modules (others may support more than 2 -- in such case, the following must be
- * expanded).
- */
-
-#if LM3S_NSSI == 0
-#  undef CONFIG_SSI0_DISABLE
-#  define CONFIG_SSI0_DISABLE 1
-#  undef CONFIG_SSI1_DISABLE
-#  define CONFIG_SSI1_DISABLE 1
-#elif LM3S_NSSI == 1
-#  undef CONFIG_SSI1_DISABLE
-#  define CONFIG_SSI1_DISABLE 1
-#endif
-
-/* EKK-LM3S9B96 Eval Kit ************************************************************/
-
-/* GPIO Usage
- *
- * PIN SIGNAL      EVB Function
- * --- ----------- ---------------------------------------
- *  26 PA0/U0RX      Virtual COM port receive
- *  27 PA1/U0TX      Virtual COM port transmit
- *  66 PB0/USB0ID    USBID signal from the USB-On-the-Go
- *  67 PB1/USB0VBUS  USB VBUS input signal from USB-OTG
- *  92 PB4/GPIO      User pushbutton SW2.
- *  80 PC0/TCK/SWCLK JTAG or SWD clock input
- *  79 PC1/TMS/SWDIO JTAG TMS input or SWD bidirectional signal SWDIO
- *  78 PC2/TDI       JTAG TDI signal input
- *  77 PC3/TDO/SWO   JTAG TDO output or SWD trace signal SWO output.
- *  10 PD0/GPIO      User LED
- *  60 PF2/LED1      Ethernet LED1 (yellow)
- *  59 PF3/LED0      Ethernet LED0 (green)
- *  83 PH3/USB0EPEN  USB-OTG power switch
- *  76 PH4/USB0PFLT  Overcurrent input status from USB-OTG power switch
- */
-
-/* GPIO for LED's:
- * - PD0: User LED
- */
-
-#define LED_GPIO          (GPIO_FUNC_OUTPUT | GPIO_VALUE_ONE | GPIO_PORTD | 0)
+/************************************************************************************
+ * Public Types
+ ************************************************************************************/
 
 /************************************************************************************
- * Public Functions
+ * Inline Functions
  ************************************************************************************/
 
 #ifndef __ASSEMBLY__
 
 /************************************************************************************
- * Name: lm3s_ssiinitialize
- *
- * Description:
- *   Called to configure SPI chip select GPIO pins for the LM3S6965 Eval Kit.
- *
+ * Public Data
  ************************************************************************************/
 
-extern void weak_function lm3s_ssiinitialize(void);
+#if defined(__cplusplus)
+extern "C"
+{
+#endif
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: up_lowsetup
+ *
+ * Description:
+ *   Called at the very beginning of _start.  Performs low level initialization.
+ *
+ ****************************************************************************/
+
+void up_lowsetup(void);
+
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* __CONFIGS_EKK_LM3S9B96_SRC_EKKLM3S9B96_INTERNAL_H */
-
+#endif /* __ARCH_ARM_SRC_LM_LM_LOWPUTC_H */

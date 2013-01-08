@@ -3893,4 +3893,7 @@
 	  into a new chip/ sub-directory.
 	* arch/arm/src/lm3s/lm3s_internal.h:  Broke up into several
 	  smaller header files.
+	* arch/arm/src/lm:  Rename the arch/arm/src/lm3s directory to
+	  arch/arm/src/lm so that is can support other members of the
+	  Stellaris family.
 

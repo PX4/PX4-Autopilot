@@ -163,13 +163,13 @@ IDEs
   2) Start the NuttX build at least one time from the Cygwin command line
      before trying to create your project.  This is necessary to create
      certain auto-generated files and directories that will be needed.
-  3) Set up include pathes:  You will need include/, arch/arm/src/lm3s,
+  3) Set up include pathes:  You will need include/, arch/arm/src/lm,
      arch/arm/src/common, arch/arm/src/armv7-m, and sched/.
   4) All assembly files need to have the definition option -D __ASSEMBLY__
      on the command line.
 
   Startup files will probably cause you some headaches.  The NuttX startup file
-  is arch/arm/src/lm3s/lm3s_vectors.S.
+  is arch/arm/src/lm/lm_vectors.S.
 
 NuttX EABI "buildroot" Toolchain
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -288,7 +288,7 @@ Stellaris MDL-S2E Reference Design Configuration Options
 
     CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 
-       CONFIG_ARCH_CHIP=lm3s
+       CONFIG_ARCH_CHIP=lm
 
     CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
        chip:

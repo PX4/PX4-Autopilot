@@ -273,7 +273,7 @@ Eagle100-specific Configuration Options
 
     CONFIG_ARCH_CHIP - Identifies the arch/*/chip subdirectory
 
-       CONFIG_ARCH_CHIP=lm3s
+       CONFIG_ARCH_CHIP=lm
 
     CONFIG_ARCH_CHIP_name - For use in C code to identify the exact
        chip:
@@ -371,7 +371,7 @@ Eagle100-specific Configuration Options
       to build the LM3S Ethernet driver
     CONFIG_LM3S_ETHLEDS - Enable to use Ethernet LEDs on the board.
     CONFIG_LM3S_BOARDMAC - If the board-specific logic can provide
-      a MAC address (via lm3s_ethernetmac()), then this should be selected.
+      a MAC address (via lm_ethernetmac()), then this should be selected.
     CONFIG_LM3S_ETHHDUPLEX - Set to force half duplex operation
     CONFIG_LM3S_ETHNOAUTOCRC - Set to suppress auto-CRC generation
     CONFIG_LM3S_ETHNOPAD - Set to suppress Tx padding

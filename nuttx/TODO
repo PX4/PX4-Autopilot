@@ -30,7 +30,7 @@ nuttx/
   (2)  ARM/LPC313x (arch/arm/src/lpc313x/)
   (0)  ARM/LPC43x (arch/arm/src/lpc43xx/)
   (3)  ARM/STR71x (arch/arm/src/str71x/)
-  (3)  ARM/LM3S6918 (arch/arm/src/lm3s/)
+  (3)  ARM/LM3S6918 (arch/arm/src/lm/)
   (5)  ARM/STM32 (arch/arm/src/stm32/)
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
@@ -1409,7 +1409,7 @@ o ARM/STR71x (arch/arm/src/str71x/)
   Status:      Open
   Priority:    Medium -- Will be very high if you do SPI access from multiple threads.
 
-o ARM/LM3S6918 (arch/arm/src/lm3s/)
+o ARM/LM3S6918 (arch/arm/src/lm/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       I2C DRIVER

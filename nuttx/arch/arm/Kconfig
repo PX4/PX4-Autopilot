@@ -50,9 +50,8 @@ config ARCH_CHIP_KINETIS
 	---help---
 		Freescale Kinetis Architectures (ARM Cortex-M4)
 
-config ARCH_CHIP_LM3S
+config ARCH_CHIP_LM
 	bool "TI Stellaris"
-	select ARCH_CORTEXM3
 	select ARCH_HAVE_MPU
 	select ARCH_IRQPRIO
 	---help---
@@ -151,7 +150,7 @@ config ARCH_CHIP
 	default "dm320"		if ARCH_CHIP_DM320
 	default "imx"		if ARCH_CHIP_IMX
 	default "kinetis"	if ARCH_CHIP_KINETIS
-	default "lm3s"		if ARCH_CHIP_LM3S
+	default "lm"		if ARCH_CHIP_LM
 	default "lpc17xx"	if ARCH_CHIP_LPC17XX
 	default "lpc214x"	if ARCH_CHIP_LPC214X
 	default "lpc2378"	if ARCH_CHIP_LPC2378
@@ -274,8 +273,8 @@ endif
 if ARCH_CHIP_KINETIS
 source arch/arm/src/kinetis/Kconfig
 endif
-if ARCH_CHIP_LM3S
-source arch/arm/src/lm3s/Kconfig
+if ARCH_CHIP_LM
+source arch/arm/src/lm/Kconfig
 endif
 if ARCH_CHIP_LPC17XX
 source arch/arm/src/lpc17xx/Kconfig

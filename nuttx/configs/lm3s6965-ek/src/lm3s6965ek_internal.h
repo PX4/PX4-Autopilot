@@ -1,6 +1,6 @@
 /************************************************************************************
  * configs/lm3s6965-ek/src/lm3s6965ek_internal.h
- * arch/arm/src/board/lm3s6965ek_internal.n
+ * arch/arm/src/board/lm3s6965ek_internal.h
  *
  *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
