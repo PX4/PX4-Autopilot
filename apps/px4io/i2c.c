@@ -42,6 +42,7 @@
 #include <nuttx/arch.h>
 #include <arch/board/board.h>
 #include <stm32_i2c.h>
+#include <stm32_dma.h>
 
 #define DEBUG
 #include "px4io.h"
@@ -63,30 +64,54 @@
 #define rCCR		REG(STM32_I2C_CCR_OFFSET)
 #define rTRISE		REG(STM32_I2C_TRISE_OFFSET)
 
-static int	i2c_interrupt(int irq, void *context);
-static void	i2c_dump(void);
+static int		i2c_interrupt(int irq, void *context);
+static void		i2c_dump(void);
+
+static void		i2c_rx_setup(void);
+static void		i2c_tx_setup(void);
+static void		i2c_rx_complete(DMA_HANDLE handle, uint8_t status, void *arg);
+static void		i2c_tx_complete(DMA_HANDLE handle, uint8_t status, void *arg);
+
+static DMA_HANDLE	rx_dma;
+static DMA_HANDLE	tx_dma;
+
+uint8_t			rx_buf[64];
+unsigned		rx_len;
+uint8_t			tx_buf[64];
+unsigned		tx_len;
 
 void
 i2c_init(void)
 {
-	// enable the i2c block clock and reset it
+	debug("i2c init");
+
+	/* allocate DMA handles and initialise DMA */
+	rx_dma = stm32_dmachannel(DMACHAN_I2C1_RX);
+	i2c_rx_setup();
+	tx_dma = stm32_dmachannel(DMACHAN_I2C1_TX);
+	i2c_tx_setup();
+
+	/* enable the i2c block clock and reset it */
 	modifyreg32(STM32_RCC_APB1ENR, 0, RCC_APB1ENR_I2C1EN);
 	modifyreg32(STM32_RCC_APB1RSTR, 0, RCC_APB1RSTR_I2C1RST);
 	modifyreg32(STM32_RCC_APB1RSTR, RCC_APB1RSTR_I2C1RST, 0);
 
-	// configure the i2c GPIOs
+	/* configure the i2c GPIOs */
 	stm32_configgpio(GPIO_I2C1_SCL);
 	stm32_configgpio(GPIO_I2C1_SDA);
 
-	// soft-reset the block
+	/* soft-reset the block */
 	rCR1 |= I2C_CR1_SWRST;
 	rCR1 = 0;
 
-	// set the frequency value in CR2
+	/* set for DMA operation */
+	rCR2 |= I2C_CR2_ITEVFEN | I2C_CR2_DMAEN;
+
+	/* set the frequency value in CR2 */
 	rCR2 &= ~I2C_CR2_FREQ_MASK;
 	rCR2 |= STM32_PCLK1_FREQUENCY / 1000000;
 
-	// set divisor and risetime for fast mode
+	/* set divisor and risetime for fast mode */
 	uint16_t result = STM32_PCLK1_FREQUENCY / (400000 * 25);
 	if (result < 1)
 		result = 1;
@@ -95,15 +120,14 @@ i2c_init(void)
 	rCCR |= I2C_CCR_DUTY | I2C_CCR_FS | result;
 	rTRISE = (uint16_t)((((STM32_PCLK1_FREQUENCY / 1000000) * 300) / 1000) + 1);
 
-	// set our device address
+	/* set our device address */
 	rOAR1 = 0x1a << 1;
 
-	// enable event interrupts
+	/* enable event interrupts */
 	irq_attach(STM32_IRQ_I2C1EV, i2c_interrupt);
 	up_enable_irq(STM32_IRQ_I2C1EV);
-	rCR2 |= I2C_CR2_ITEVFEN;
 
-	// and enable the I2C port
+	/* and enable the I2C port */
 	rCR1 |= I2C_CR1_ACK | I2C_CR1_PE;
 
 	i2c_dump();
@@ -114,22 +138,46 @@ i2c_interrupt(int irq, FAR void *context)
 {
 	uint16_t sr1 = rSR1;
 
-	// XXX not sure what else we need to do here...
+	/* XXX not sure what else we need to do here... */
 	if (sr1 & I2C_SR1_ERRORMASK) {
 		//debug("errors 0x%04x", sr1 & I2C_SR1_ERRORMASK);
 		//i2c_dump();
 		rSR1 = 0;
 	}
 
+#if 1
 	if (sr1 & I2C_SR1_ADDR) {
 
-		/* XXX we have been addressed, set up to receive */
+		/* disable event interrupts since the DMA will be handling the transfer */
+		rCR2 &= ~I2C_CR2_ITEVFEN;
 
-		/* clear ADDR */
+		/* clear ADDR to ack our selection and get direction */
+		uint16_t sr2 = rSR2;
+
+		debug("addr");
+
+		if (sr2 & I2C_SR2_TRA) {
+			/* we are the transmitter */
+			debug("tx");
+
+			stm32_dmastart(tx_dma, i2c_tx_complete, NULL, false);
+		} else {
+			/* we are the receiver */
+			debug("rx");
+
+			stm32_dmastart(rx_dma, i2c_rx_complete, NULL, false);
+		}
+
+	}
+#else
+	if (sr1 & I2C_SR1_ADDR) {
+
+		/* clear ADDR to ack our selection and get direction */
 		(void)rSR2;
 
 		debug("addr");
 	}
+#endif
 
 	if (sr1 & I2C_SR1_RXNE) {
 
@@ -147,6 +195,62 @@ i2c_interrupt(int irq, FAR void *context)
 
 	return 0;
 }
+
+static void
+i2c_rx_setup(void)
+{
+	rx_len = 0;
+	stm32_dmasetup(rx_dma, (uintptr_t)&rDR, (uintptr_t)&rx_buf[0], sizeof(rx_buf),
+		DMA_CCR_MINC |
+		DMA_CCR_PSIZE_8BITS |
+		DMA_CCR_MSIZE_8BITS |
+		DMA_CCR_PRIMED);
+}
+
+static void
+i2c_rx_complete(DMA_HANDLE handle, uint8_t status, void *arg)
+{
+	debug("dma rx %u", status);
+
+	rx_len = sizeof(rx_buf) - stm32_dmaresidual(rx_dma);
+
+	debug("len %u", rx_len);
+
+	/* XXX handle reception */
+	i2c_rx_setup();
+
+	/* re-enable event interrupts */
+	rCR2 |= I2C_CR2_ITEVFEN;
+}
+
+static void
+i2c_tx_setup(void)
+{
+	tx_len = 0;
+	stm32_dmasetup(tx_dma, (uintptr_t)&rDR, (uintptr_t)&tx_buf[0], sizeof(tx_buf),
+		DMA_CCR_DIR |
+		DMA_CCR_MINC |
+		DMA_CCR_PSIZE_8BITS |
+		DMA_CCR_MSIZE_8BITS |
+		DMA_CCR_PRIMED);
+}
+
+static void
+i2c_tx_complete(DMA_HANDLE handle, uint8_t status, void *arg)
+{
+	debug("dma tx %u", status);
+
+	tx_len = sizeof(tx_buf) - stm32_dmaresidual(tx_dma);
+
+	debug("len %u", tx_len);
+
+	/* XXX handle reception */
+	i2c_rx_setup();
+
+	/* re-enable event interrupts */
+	rCR2 |= I2C_CR2_ITEVFEN;
+}
+
 
 static void
 i2c_dump(void)
