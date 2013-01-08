@@ -50,7 +50,7 @@
 
 #include "up_arch.h"
 #include "os_internal.h"
-#include "lm3s_internal.h"
+#include "lm_gpio.h"
 
 /****************************************************************************
  * Pre-processor Definitions

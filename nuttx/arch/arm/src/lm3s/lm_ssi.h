@@ -1,8 +1,7 @@
 /************************************************************************************
- * configs/lm3s6432-s2e/src/up_boot.c
- * arch/arm/src/board/up_boot.c
+ * arch/arm/src/lm3s/lm_ssi.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2010, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,70 +33,82 @@
  *
  ************************************************************************************/
 
+#ifndef __ARCH_ARM_SRC_LM3S_LM_SSI_H
+#define __ARCH_ARM_SRC_LM3S_LM_SSI_H
+
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <debug.h>
-
-#include <arch/board/board.h>
-
-#include "up_arch.h"
-#include "chip.h"
-#include "up_internal.h"
-#include "lm_gpio.h"
-#include "lm3s6432s2e_internal.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 /************************************************************************************
- * Definitions
- ************************************************************************************/
-
-#if defined(CONFIG_LM3S_UART1) && !defined(CONFIG_SSI0_DISABLE)
-#  error Only one of UART1 and SSI0 can be enabled on this board.
-#endif
-
-/************************************************************************************
- * Private Functions
+ * Pre-processor Definitions
  ************************************************************************************/
 
 /************************************************************************************
- * Public Functions
+ * Public Types
  ************************************************************************************/
 
 /************************************************************************************
- * Name: lm3s_boardinitialize
- *
- * Description:
- *   All LM3S architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
+ * Inline Functions
  ************************************************************************************/
 
-void lm3s_boardinitialize(void)
+#ifndef __ASSEMBLY__
+
+/************************************************************************************
+ * Public Data
+ ************************************************************************************/
+
+#if defined(__cplusplus)
+extern "C"
 {
-  /* Configure SPI chip selects if 1) SSI is not disabled, and 2) the weak function
-   * lm3s_ssiinitialize() has been brought into the link.
-   */
-
-#if !defined(CONFIG_SSI0_DISABLE)
-  if (lm3s_ssiinitialize)
-    {
-      lm3s_ssiinitialize();
-    }
 #endif
 
-  /* Configure on-board LEDs if LED support has been selected. */
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
-#ifdef CONFIG_ARCH_LEDS
-  up_ledinit();
+/****************************************************************************
+ * The external functions, lm3s_spiselect, lm3s_spistatus, and
+ * lm3s_spicmddata must be provided by board-specific logic.  These are
+ * implementations of the select, status, and cmddata methods of the SPI
+ * interface defined by struct spi_ops_s (see include/nuttx/spi.h).
+ * All other methods (including up_spiinitialize()) are provided by common
+ * logic.  To use this common SPI logic on your board:
+ *
+ *   1. Provide logic in lm3s_boardinitialize() to configure SPI chip select
+ *      pins.
+ *   2. Provide lm3s_spiselect() and lm3s_spistatus() functions in your
+ *      board-specific logic.  These functions will perform chip selection and
+ *      status operations using GPIOs in the way your board is configured.
+ *   3. If CONFIG_SPI_CMDDATA is defined in your NuttX configuration, provide
+ *      the lm3s_spicmddata() function in your board-specific logic.  This
+ *      functions will perform cmd/data selection operations using GPIOs in
+ *      the way your board is configured.
+ *   4. Add a call to up_spiinitialize() in your low level application
+ *      initialization logic
+ *   5. The handle returned by up_spiinitialize() may then be used to bind the
+ *      SPI driver to higher level logic (e.g., calling 
+ *      mmcsd_spislotinitialize(), for example, will bind the SPI driver to
+ *      the SPI MMC/SD driver).
+ *
+ ****************************************************************************/
+
+struct spi_dev_s;
+enum spi_dev_e;
+void lm3s_spiselect(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
+uint8_t lm3s_spistatus(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
+#ifdef CONFIG_SPI_CMDDATA
+int lm3s_spicmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
 #endif
 
-  /* Configure serial transciever */
-  
-  lm3s_configgpio(XCVR_INV_GPIO);
-  lm3s_configgpio(XCVR_ENA_GPIO);
-  lm3s_configgpio(XCVR_ON_GPIO);
-  lm3s_configgpio(XCVR_OFF_GPIO);
+#if defined(__cplusplus)
 }
+#endif
+
+#endif /* __ASSEMBLY__ */
+#endif /* __ARCH_ARM_SRC_LM3S_LM_SSI_H */

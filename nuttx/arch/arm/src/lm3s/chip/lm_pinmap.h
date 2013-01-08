@@ -1,8 +1,7 @@
 /************************************************************************************
- * configs/lm3s6432-s2e/src/up_boot.c
- * arch/arm/src/board/up_boot.c
+ * arch/arm/src/lm3s/chip/lm_pinmap.h
  *
- *   Copyright (C) 2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,70 +33,37 @@
  *
  ************************************************************************************/
 
+#ifndef __ARCH_ARM_SRC_LM3S_CHIP_LM_PINMAP_H
+#define __ARCH_ARM_SRC_LM3S_CHIP_LM_PINMAP_H
+
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <debug.h>
+/* Include the memory map file for the specific Stellaris chip */
 
-#include <arch/board/board.h>
-
-#include "up_arch.h"
-#include "chip.h"
-#include "up_internal.h"
-#include "lm_gpio.h"
-#include "lm3s6432s2e_internal.h"
-
-/************************************************************************************
- * Definitions
- ************************************************************************************/
-
-#if defined(CONFIG_LM3S_UART1) && !defined(CONFIG_SSI0_DISABLE)
-#  error Only one of UART1 and SSI0 can be enabled on this board.
+#ifdef CONFIG_ARCH_CHIP_LM3S
+#  include "chip/lm3s_pinmap.h"
+#else
+#  error "Unsupported Stellaris PIN mapping"
 #endif
 
 /************************************************************************************
- * Private Functions
+ * Pre-processor Definitions
  ************************************************************************************/
 
 /************************************************************************************
- * Public Functions
+ * Public Types
  ************************************************************************************/
 
 /************************************************************************************
- * Name: lm3s_boardinitialize
- *
- * Description:
- *   All LM3S architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
+ * Public Data
  ************************************************************************************/
 
-void lm3s_boardinitialize(void)
-{
-  /* Configure SPI chip selects if 1) SSI is not disabled, and 2) the weak function
-   * lm3s_ssiinitialize() has been brought into the link.
-   */
+/************************************************************************************
+ * Public Function Prototypes
+ ************************************************************************************/
 
-#if !defined(CONFIG_SSI0_DISABLE)
-  if (lm3s_ssiinitialize)
-    {
-      lm3s_ssiinitialize();
-    }
-#endif
-
-  /* Configure on-board LEDs if LED support has been selected. */
-
-#ifdef CONFIG_ARCH_LEDS
-  up_ledinit();
-#endif
-
-  /* Configure serial transciever */
-  
-  lm3s_configgpio(XCVR_INV_GPIO);
-  lm3s_configgpio(XCVR_ENA_GPIO);
-  lm3s_configgpio(XCVR_ON_GPIO);
-  lm3s_configgpio(XCVR_OFF_GPIO);
-}
+#endif /* __ARCH_ARM_SRC_LM3S_CHIP_LM_PINMAP_H */

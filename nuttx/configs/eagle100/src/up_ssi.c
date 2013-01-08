@@ -49,7 +49,7 @@
 
 #include "up_arch.h"
 #include "chip.h"
-#include "lm3s_internal.h"
+#include "lm_gpio.h"
 #include "eagle100_internal.h"
 
 /* The Eagle100 microSD CS is on SSI0 */

@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated January 4, 2013)
+NuttX TODO List (Last updated January 8, 2013)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with 
@@ -6,7 +6,7 @@ standards, things that could be improved, and ideas for enhancements.
 
 nuttx/
 
- (10)  Task/Scheduler (sched/)
+ (11)  Task/Scheduler (sched/)
   (1)  Memory Managment (mm/)
   (2)  Signals (sched/, arch/)
   (2)  pthreads (sched/)
@@ -31,7 +31,7 @@ nuttx/
   (0)  ARM/LPC43x (arch/arm/src/lpc43xx/)
   (3)  ARM/STR71x (arch/arm/src/str71x/)
   (3)  ARM/LM3S6918 (arch/arm/src/lm3s/)
-  (4)  ARM/STM32 (arch/arm/src/stm32/)
+  (5)  ARM/STM32 (arch/arm/src/stm32/)
   (3)  AVR (arch/avr)
   (0)  Intel x86 (arch/x86)
   (5)  8051 / MCS51 (arch/8051/)
@@ -169,6 +169,24 @@ o Task/Scheduler (sched/)
                The work queue logic will need to be moved from sched/ to libc/wqueue/
   Status:      Open.  No work will probably be done until a functional KERNEL build
                that includes NxWisges::CNxTimer is needed.
+  Priority:    Medium Low for now
+
+  Title:       INCOMPATIBILITES WITH execv() AND execl()
+  Description: Simplified 'execl()' and 'execv()' functions are provided by
+               NuttX.  NuttX does not support processes and hence the concept
+               of overlaying a tasks process image with a new process image
+               does not make any sense.  In NuttX, these functions are
+               wrapper functions that:
+
+               1. Call the non-standard binfmt function 'exec', and then
+               2. exit(0).
+
+               As a result, the current implementations of 'execl()' and
+               'execv()' suffer from some incompatibilities, the most
+               serious of these is that the exec'ed task will not have
+               the same task ID as the vfork'ed function.  So the parent
+               function cannot know the ID of the exec'ed task.
+  Status:      Open
   Priority:    Medium Low for now
 
 o Memory Managment (mm/)
@@ -1480,6 +1498,11 @@ o ARM/STM32 (arch/arm/src/stm32/)
                SRAM.
   Status:      Open
   Priority:    Low
+
+  Title:       STM32 F4 USB OTG FS DEVICE-SIDE DRIVER
+  Description: This driver is reported to be buggy and to need some TLC.
+  Status:      Open
+  Priority:    High
 
 o AVR (arch/avr)
   ^^^^^^^^^^^^^^

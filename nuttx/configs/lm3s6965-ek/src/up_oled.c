@@ -48,7 +48,7 @@
 #include <nuttx/lcd/lcd.h>
 #include <nuttx/lcd/p14201.h>
 
-#include "lm3s_internal.h"
+#include "lm_gpio.h"
 #include "lm3s6965ek_internal.h"
 
 /****************************************************************************

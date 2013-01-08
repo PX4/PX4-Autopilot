@@ -51,7 +51,6 @@
 #include "up_arch.h"
 
 #include "chip.h"
-#include "lm3s_internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions

@@ -49,7 +49,7 @@
 
 #include "up_arch.h"
 #include "chip.h"
-#include "lm3s_internal.h"
+#include "lm_gpio.h"
 #include "lm3s6965ek_internal.h"
 
 /* The LM3S6965 Eval Kit microSD CS is on SSI0 */

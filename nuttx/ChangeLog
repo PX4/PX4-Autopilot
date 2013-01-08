@@ -3891,5 +3891,6 @@
 	  public include area for compatibility with other architectures.
 	* arch/arm/src/lm3s/chip:  Move register definition header files
 	  into a new chip/ sub-directory.
-
+	* arch/arm/src/lm3s/lm3s_internal.h:  Broke up into several
+	  smaller header files.
 

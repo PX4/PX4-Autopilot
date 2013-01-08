@@ -46,7 +46,10 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "lm3s_internal.h"
+#include "lm_gpio.h"
+#include "chip/lm_pinmap.h"
+
+#include "lm_lowputc.h"
 
 /**************************************************************************
  * Pre-processor Definitions

@@ -50,7 +50,7 @@
 
 #include "up_arch.h"
 #include "chip.h"
-#include "lm3s_internal.h"
+#include "lm_gpio.h"
 #include "ekklm3s9b96_internal.h"
 
 #if !defined(CONFIG_SSI0_DISABLE)  || !defined(CONFIG_SSI1_DISABLE) 

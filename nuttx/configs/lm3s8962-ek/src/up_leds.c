@@ -48,7 +48,7 @@
 #include "chip.h"
 #include "up_arch.h"
 #include "up_internal.h"
-#include "lm3s_internal.h"
+#include "lm_gpio.h"
 #include "lm3s8962ek_internal.h"
 
 /****************************************************************************

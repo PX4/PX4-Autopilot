@@ -56,7 +56,9 @@
 #include "up_arch.h"
 
 #include "chip.h"
-#include "lm3s_internal.h"
+#include "lm_gpio.h"
+#include "lm_ssi.h"
+#include "chip/lm_pinmap.h"
 
 /****************************************************************************
  * Pre-processor Definitions

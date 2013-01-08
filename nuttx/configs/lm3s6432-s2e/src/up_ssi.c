@@ -49,7 +49,7 @@
 
 #include "up_arch.h"
 #include "chip.h"
-#include "lm3s_internal.h"
+#include "lm_gpio.h"
 #include "lm3s6432s2e_internal.h"
 
 #if !defined(CONFIG_SSI0_DISABLE)
