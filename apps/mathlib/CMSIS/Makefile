@@ -38,7 +38,7 @@
 #
 # Find sources
 #
-DSPLIB_SRCDIR		 = $(dir $(lastword $(MAKEFILE_LIST)))
+DSPLIB_SRCDIR		:= $(dir $(lastword $(MAKEFILE_LIST)))
 CSRCS			:= $(wildcard $(DSPLIB_SRCDIR)/DSP_Lib/Source/*/*.c)
 
 INCLUDES		+= $(DSPLIB_SRCDIR)/Include \
