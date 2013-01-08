@@ -559,6 +559,24 @@ void stm32_dmastop(DMA_HANDLE handle)
 }
 
 /****************************************************************************
+ * Name: stm32_dmaresidual
+ *
+ * Description:
+ *   Returns the number of bytes remaining to be transferred
+ *
+ * Assumptions:
+ *   - DMA handle allocated by stm32_dmachannel()
+ *
+ ****************************************************************************/
+
+size_t stm32_dmaresidual(DMA_HANDLE handle)
+{
+  struct stm32_dma_s *dmach = (struct stm32_dma_s *)handle;
+
+  return dmachan_getreg(dmach, STM32_DMACHAN_CNDTR_OFFSET);
+}
+
+/****************************************************************************
  * Name: stm32_dmasample
  *
  * Description:
