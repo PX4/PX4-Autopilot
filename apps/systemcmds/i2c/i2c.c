@@ -94,46 +94,41 @@ transfer(uint8_t address, uint8_t *send, unsigned send_len, uint8_t *recv, unsig
 	struct i2c_msg_s msgv[2];
 	unsigned msgs;
 	int ret;
-	unsigned tries = 0;
 
-	do {
-		//	debug("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
+	//	debug("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
 
-		msgs = 0;
+	msgs = 0;
 
-		if (send_len > 0) {
-			msgv[msgs].addr = address;
-			msgv[msgs].flags = 0;
-			msgv[msgs].buffer = send;
-			msgv[msgs].length = send_len;
-			msgs++;
-		}
+	if (send_len > 0) {
+		msgv[msgs].addr = address;
+		msgv[msgs].flags = 0;
+		msgv[msgs].buffer = send;
+		msgv[msgs].length = send_len;
+		msgs++;
+	}
 
-		if (recv_len > 0) {
-			msgv[msgs].addr = address;
-			msgv[msgs].flags = I2C_M_READ;
-			msgv[msgs].buffer = recv;
-			msgv[msgs].length = recv_len;
-			msgs++;
-		}
+	if (recv_len > 0) {
+		msgv[msgs].addr = address;
+		msgv[msgs].flags = I2C_M_READ;
+		msgv[msgs].buffer = recv;
+		msgv[msgs].length = recv_len;
+		msgs++;
+	}
 
-		if (msgs == 0)
-			return -1;
+	if (msgs == 0)
+		return -1;
 
-		/*
-		 * I2C architecture means there is an unavoidable race here
-		 * if there are any devices on the bus with a different frequency
-		 * preference.  Really, this is pointless.
-		 */
-		I2C_SETFREQUENCY(i2c, 320000);
-		ret = I2C_TRANSFER(i2c, &msgv[0], msgs);
+	/*
+	 * I2C architecture means there is an unavoidable race here
+	 * if there are any devices on the bus with a different frequency
+	 * preference.  Really, this is pointless.
+	 */
+	I2C_SETFREQUENCY(i2c, 320000);
+	ret = I2C_TRANSFER(i2c, &msgv[0], msgs);
 
-		if (ret == OK)
-			break;
-
-		// reset the I2C bus to unwedge on error
+	// reset the I2C bus to unwedge on error
+	if (ret != OK)
 		up_i2creset(i2c);
-	} while (tries++ < 5);
 
 	return ret;
 }
