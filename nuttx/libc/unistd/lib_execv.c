@@ -104,7 +104,7 @@ extern struct symtab_s CONFIG_EXECFUNCS_SYMTAB;
  *   step process:  (1) first call vfork() to create a new thread, then (2)
  *   call 'exec[l|v]()' to replace the new thread with a program from the
  *   file system.  Since the new thread will be terminated by the
- *   'exec[l|v]()' call, it really served no purpose other than to suport
+ *   'exec[l|v]()' call, it really served no purpose other than to support
  *   Unix compatility.
  *
  *   The non-standard binfmt function 'exec()' needs to have (1) a symbol
@@ -112,9 +112,9 @@ extern struct symtab_s CONFIG_EXECFUNCS_SYMTAB;
  *   (2) the number of symbols in that table.  This information is currently
  *   provided to 'exec()' from 'exec[l|v]()' via NuttX configuration settings:
  *
- *     CONFIG_LIBC_EXECFUNCS     : Enable exec[l|v] Support
+ *     CONFIG_LIBC_EXECFUNCS     : Enable exec[l|v] support
  *     CONFIG_EXECFUNCS_SYMTAB   : Symbol table used by exec[l|v]
- *     CONFIG_EXECFUNCS_NSYMBOLS : Number of Symbols in the Table
+ *     CONFIG_EXECFUNCS_NSYMBOLS : Number of symbols in the table
  *
  *   As a result of the above, the current implementations of 'execl()' and
  *   'execv()' suffer from some incompatibilities that may or may not be

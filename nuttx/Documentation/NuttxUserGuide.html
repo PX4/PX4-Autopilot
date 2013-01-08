@@ -13,7 +13,7 @@
       <h1><big><font color="#3c34ec"><i>NuttX Operating System<p>User's Manual</i></font></big></h1>
       <p><small>by</small></p>
       <p>Gregory Nutt<p>
-      <p>Last Updated: January 7, 2013</p>
+      <p>Last Updated: January 8, 2013</p>
     </td>
   </tr>
 </table>
@@ -651,7 +651,134 @@ pid_t vfork(void);
 </p>
 
 <H3><a name="execv">2.1.9 execv</a></H3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;unistd.h&gt;
+#ifdef CONFIG_LIBC_EXECFUNCS
+int execv(FAR const char *path, FAR char *const argv[]);
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+   The standard <code>exec</code> family of functions will replace the current process image with a new process image.
+   The new image will be constructed from a regular, executable file called the new process image file.
+   There will be no return from a successful <code>exec</code>, because the calling process image is overlaid by the new process image.
+</p>
+<p>
+   Simplified <code>execl()</code> and <code>execv()</code> functions are provided by NuttX for compatibility.
+   NuttX is a tiny embedded RTOS that does not support processes and hence the concept of overlaying a tasks process image with a new process image does not make any sense.
+   In NuttX, these functions are wrapper functions that:
+</p>
+<ol>
+  <li>
+    Call the non-standard <code>binfmt</code> function <code>exec()</code>, and then
+  </li>
+  <li>
+     <code>exit(0)</code>.
+   </li>
+</ol>
+<p>
+   Note the inefficiency when <code>execv()</code> or <code>execl()</code> is called in the normal, two-step process:
+   (1) first call <code>vfork()</code> to create a new thread, then (2) call <code>execv()</code> or <code>execl()</code> to replace the new thread with a program from the file system.
+   Since the new thread will be terminated by the <code>execv()</code> or <code>execl()</code> call, it really served no purpose other than to support Unix compatility.
+</p>
+<p>
+   The non-standard binfmt function <code>exec()</code> needs to have (1) a symbol table that provides the list of symbols exported by the base code, and (2) the number of symbols in that table.
+   This information is currently provided to <code>exec()</code> from <code>execv()</code> or <code>execl()</code> via NuttX configuration settings:
+</p>
+<ul>
+  <li>
+     <code>CONFIG_LIBC_EXECFUNCS</code>:
+     Enable <code>execv()</code> and <code>execl()</code> support
+  </li>
+  <li>
+     <code>CONFIG_EXECFUNCS_SYMTAB</code>:
+     Symbol table used by <code>execv()</code> or <code>execl()</code>.
+  </li>
+  <li>
+     <code>CONFIG_EXECFUNCS_NSYMBOLS</code>:
+     Number of symbols in the symbol table
+  </li>
+</ul>
+<p>
+   As a result of the above, the current implementations of <code>execl()</code> and <code>execv()</code> suffer from some incompatibilities that may or may not be addressed in a future version of NuttX.
+   Other than just being an inefficient use of MCU resource, the most serious of these is that
+   the <code>exec</code>'ed task will not have the same task ID as the <code>vfork</code>'ed function.
+   So the parent function cannot know the ID of the <code>exec</code>'ed task.<p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>path</code>:
+     The path to the program to be executed.
+     If <code>CONFIG_BINFMT_EXEPATH</code> is defined in the configuration, then this may be a relative path from the current working directory.
+     Otherwise, <code>path</code> must be the absolute path to the program.
+   <li>
+   </li>
+     <code>argv</code>:
+     A pointer to an array of string arguments.
+     The end of the array is indicated with a NULL entry.
+  </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  This function does not return on success.
+  On failure, it will return -1 (<code>ERROR</code>) and will set the <code>errno</code> value appropriately. 
+<p>
+  <b>Assumptions/Limitations:</b> 
+</p>
+<p>
+  <b>POSIX Compatibility:</b>
+  Similar with the Unix interface of the same name.
+  There are, however, several compatibility issues as detailed in the description above.
+</p>
+
 <H3><a name="execl">2.1.10 execl</a></H3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;unistd.h&gt;
+#ifdef CONFIG_LIBC_EXECFUNCS
+int execl(FAR const char *path, ...);
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+  <code>execl()</code> is functionally equivalent to <a href="#execv">execv()</a>, differing only in the form of its input parameters.
+  See the decription of <a href="#execv">execv()</a> for additional information.
+<p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>path</code>:
+     The path to the program to be executed.
+     If <code>CONFIG_BINFMT_EXEPATH</code> is defined in the configuration, then this may be a relative path from the current working directory.
+     Otherwise, <code>path</code> must be the absolute path to the program.
+   <li>
+   </li>
+     <code>...</code>:
+     A list of the string arguments to be recevied by the program. 
+     Zero indicates the end of the list.
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  This function does not return on success.
+  On failure, it will return -1 (<code>ERROR</code>) and will set the <code>errno</code> value appropriately. 
+<p>
+  <b>Assumptions/Limitations:</b> 
+</p>
+<p>
+  <b>POSIX Compatibility:</b>
+  Similar with the Unix interface of the same name.
+  There are, however, several compatibility issues as detailed in the description of <a href="#execv">execv()</a>.
+</p>
 
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
