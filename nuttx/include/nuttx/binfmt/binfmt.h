@@ -228,7 +228,8 @@ int exec_module(FAR const struct binary_s *bin, int priority);
  *
  * Description:
  *   This is a convenience function that wraps load_ and exec_module into
- *   one call.
+ *   one call.  The priority of the executed program is set to be the
+ *   same as the priority of the calling thread.
  *
  * Input Parameter:
  *   filename - Fulll path to the binary to be loaded

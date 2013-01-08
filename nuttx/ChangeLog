@@ -3880,4 +3880,16 @@
 	  OS layered architecture.
 	* include/unistd.h, arch/arch/src/*:  Implement a simple vfork().
 	  On initial checkin, this API is available only for ARM platforms.
+	* binfmt/binfmt_exec.c: exec() now sets the priority of the new task
+	  to the same priority as the current task (instead of the arbirtrary
+	  value of 50).
+	* libc/unisted/lib_execv.c and lib_execl.c:  New, somewhat flawed,
+	  implementations of execv() and execl().
+	* tools/cfgdefine.c:  Strips quotes from CONFIG_EXECFUNCS_SYMTAB
+	  value.
+	* arch/arm/include/lm3s/chip.h:  Move chip definitions into
+	  public include area for compatibility with other architectures.
+	* arch/arm/src/lm3s/chip:  Move register definition header files
+	  into a new chip/ sub-directory.
+
 

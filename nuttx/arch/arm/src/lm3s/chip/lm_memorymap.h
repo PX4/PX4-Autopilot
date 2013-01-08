@@ -1,7 +1,7 @@
 /************************************************************************************
- * arch/arm/src/lm3s/chip.h
+ * arch/arm/src/lm3s/chip/lm_memorymap.h
  *
- *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,30 +33,26 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LM3S_CHIP_H
-#define __ARCH_ARM_SRC_LM3S_CHIP_H
+#ifndef __ARCH_ARM_SRC_LM3S_CHIP_LM_MEMORYMAP_H
+#define __ARCH_ARM_SRC_LM3S_CHIP_LM_MEMORYMAP_H
 
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
 #include <nuttx/config.h>
-#include <arch/lm3s/chip.h>
+
+/* Include the memory map file for the specific Stellaris chip */
+
+#ifdef CONFIG_ARCH_CHIP_LM3S
+#  include "chip/lm3s_memorymap.h"
+#else
+#  error "Unsupported Stellaris memory map"
+#endif
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
-
-/* Then get all of the register definitions */
-
-#include "chip/lm_memorymap.h"    /* Memory map */
-#include "chip/lm3s_syscontrol.h" /* System control module */
-#include "chip/lm3s_gpio.h"       /* GPIO modules */
-#include "chip/lm3s_uart.h"       /* UART modules */
-#include "chip/lm3s_i2c.h"        /* I2C modules */
-#include "chip/lm3s_ssi.h"        /* SSI modules */
-#include "chip/lm3s_ethernet.h"   /* Ethernet MAC and PHY */
-#include "chip/lm3s_flash.h"      /* FLASH */
 
 /************************************************************************************
  * Public Types
@@ -66,8 +62,8 @@
  * Public Data
  ************************************************************************************/
 
-/****************************************************************************
+/************************************************************************************
  * Public Function Prototypes
- ****************************************************************************/
+ ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LM3S_CHIP_H */
+#endif /* __ARCH_ARM_SRC_LM3S_CHIP_LM_MEMORYMAP_H */

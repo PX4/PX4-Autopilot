@@ -71,6 +71,54 @@ config EOL_IS_EITHER_CRLF
 
 endchoice
 
+config LIBC_EXECFUNCS
+	bool "Enable exec[l|v] Support"
+	default n
+	depends on !BINFMT_DISABLE
+	---help---
+		Enable support for the exec[l|v] family of functions that can be
+		used to start other programs, terminating the current program.
+		Typical usage is (1) first call vfork() to create a new thread, then
+		(2) call exec[l|v] to replace the new thread with a program from the
+		file system.
+
+		NOTE 1: This two step process start is completely unnecessary in
+		NuttX and is provided only for compatibily with Unix systems.  These
+		functions are essentially just wrapper functions that (1) call the
+		non-standard binfmt function 'exec', and then (2) exit(0).  Since
+		the new thread will be terminated by the exec[l|v] call, it really
+		served no purpose other than to suport Unix compatility.
+
+		NOTE 2: Support for exec[l|v] is conditional because is requires
+		additional support for symbol tables that will not be available in
+		the typical system.
+
+if LIBC_EXECFUNCS
+
+config EXECFUNCS_SYMTAB
+	string "Symbol table used by exec[l|v]"
+	default "g_symtab"
+	---help---
+		The exec[l|v] functions are wrapper functions that (1) call the non-
+		standard binfmt function 'exec', and then (2) exit(0).  The binfmt
+		function 'exec' needs to have (1) a symbol table that provides the
+		list of symbols exported by the base code, and (2) the number of
+		symbols in that table.  This selection provides the name of that
+		symbol table.
+
+config EXECFUNCS_NSYMBOLS
+	int "Number of Symbols in the Table"
+	default 0
+	---help---
+		The exec[l|v] functions are wrapper functions that (1) call the non-
+		standard binfmt function 'exec', and then (2) exit(0).  The binfmt
+		function 'exec' needs to have (1) a symbol table that provides the
+		list of symbols exported by the base code, and (2) the number of
+		symbols in that table.  This selection provides the number of
+		symbols in the symbol table.
+
+endif
+
 config LIBC_STRERROR
 	bool "Enable strerror"
 	default n

@@ -160,6 +160,13 @@ EXTERN FAR char *getcwd(FAR char *buf, size_t size);
 EXTERN int     unlink(FAR const char *pathname);
 EXTERN int     rmdir(FAR const char *pathname);
 
+/* Execution of programs from files */
+
+#ifdef CONFIG_LIBC_EXECFUNCS
+EXTERN int     execl(FAR const char *path, ...);
+EXTERN int     execv(FAR const char *path, FAR char *const argv[]);
+#endif
+
 /* Other */
 
 EXTERN int     getopt(int argc, FAR char *const argv[], FAR const char *optstring);

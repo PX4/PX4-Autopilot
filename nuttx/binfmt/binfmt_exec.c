@@ -1,7 +1,7 @@
 /****************************************************************************
  * binfmt/binfmt_exec.c
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -75,7 +75,8 @@
  *
  * Description:
  *   This is a convenience function that wraps load_ and exec_module into
- *   one call.
+ *   one call.  The priority of the executed program is set to be the
+ *   same as the priority of the calling thread.
  *
  * Input Parameter:
  *   filename - Fulll path to the binary to be loaded
@@ -94,7 +95,19 @@ int exec(FAR const char *filename, FAR const char **argv,
          FAR const struct symtab_s *exports, int nexports)
 {
   struct binary_s bin;
+  struct sched_param param;
   int ret;
+
+  /* Get the priority of this thread */
+
+  ret = sched_getparam(0, &param);
+  if (ret < 0)
+    {
+      bdbg("ERROR: sched_getparam failed: %d\n", errno);
+      return ERROR;
+    }
+  
+  /* Load the module into memory */
 
   memset(&bin, 0, sizeof(struct binary_s));
   bin.filename = filename;
@@ -108,7 +121,9 @@ int exec(FAR const char *filename, FAR const char **argv,
       return ERROR;
     }
 
-  ret = exec_module(&bin, 50);
+  /* Then start the module at the priority of this thread */
+
+  ret = exec_module(&bin, param.sched_priority);
   if (ret < 0)
     {
       bdbg("ERROR: Failed to execute program '%s'\n", filename);

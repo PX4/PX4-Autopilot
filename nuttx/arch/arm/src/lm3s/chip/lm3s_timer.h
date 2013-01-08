@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lm3s/lm3s_timer.h
+ * arch/arm/src/lm3s/chip/lm3s_timer.h
  *
  *   Copyright (C) 2012 Max Nekludov. All rights reserved.
  *   Author: Max Nekludov <macscomp@gmail.com>
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LM3S_LM3S_TIMER_H
-#define __ARCH_ARM_SRC_LM3S_LM3S_TIMER_H
+#ifndef __ARCH_ARM_SRC_LM3S_CHIP_LM3S_TIMER_H
+#define __ARCH_ARM_SRC_LM3S_CHIP_LM3S_TIMER_H
 
 /************************************************************************************
  * Included Files
@@ -122,4 +122,4 @@
 #define TIMER_GPTMICR_TATOCINT_SHIFT     0    /* Bits 0:   GPTM Timer A Time-Out Raw Interrupt Clear*/
 #define TIMER_GPTMICR_TATOCINT_MASK      (0x01 << TIMER_GPTMICR_TATOCINT_SHIFT)
 
-#endif /* __ARCH_ARM_SRC_LM3S_LM3S_TIMER_H */
+#endif /* __ARCH_ARM_SRC_LM3S_CHIP_LM3S_TIMER_H */

@@ -1,7 +1,7 @@
 /************************************************************************************
- * arch/arm/src/lm3s/lm3s_epi.h
+ * arch/arm/src/lm3s/chip/lm3s_epi.h
  *
- *   Copyright (C) 2009-2012 Max Neklyudov. All rights reserved.
+ *   Copyright (C) 2009-2013 Max Neklyudov. All rights reserved.
  *   Author: Max Neklyudov <macscomp@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LM3S_LM3S_EPI_H
-#define __ARCH_ARM_SRC_LM3S_LM3S_EPI_H
+#ifndef __ARCH_ARM_SRC_LM3S_CHIP_LM3S_EPI_H
+#define __ARCH_ARM_SRC_LM3S_CHIP_LM3S_EPI_H
 
 /************************************************************************************
  * Included Files
@@ -110,4 +110,4 @@
 #define EPI_BAUD_COUNT0_MASK          (0xFFFF << EPI_BAUD_COUNT0_SHIFT)
 #  define EPI_BAUD_COUNT0(n)          ((n) << EPI_BAUD_COUNT0_SHIFT)
 
-#endif /* __ARCH_ARM_SRC_LM3S_LM3S_EPI_H */
+#endif /* __ARCH_ARM_SRC_LM3S_CHIP_LM3S_EPI_H */

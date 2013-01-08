@@ -1,7 +1,7 @@
 /************************************************************************************
- * arch/arm/src/lm3s/lm3s_flash.h
+ * arch/arm/src/lm3s/chip/lm3s_flash.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LM3S_LM3S_FLASH_H
-#define __ARCH_ARM_SRC_LM3S_LM3S_FLASH_H
+#ifndef __ARCH_ARM_SRC_LM3S_CHIP_LM3S_FLASH_H
+#define __ARCH_ARM_SRC_LM3S_CHIP_LM3S_FLASH_H
 
 /************************************************************************************
  * Included Files
@@ -125,4 +125,4 @@
  * Public Function Prototypes
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LM3S_LM3S_FLASH_H */
+#endif /* __ARCH_ARM_SRC_LM3S_CHIP_LM3S_FLASH_H */

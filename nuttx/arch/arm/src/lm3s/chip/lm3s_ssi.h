@@ -1,7 +1,7 @@
 /************************************************************************************
- * arch/arm/src/lm3s/lm3s_ssi.h
+ * arch/arm/src/lm3s/chip/lm3s_ssi.h
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LM3S_LM3S_SSI_H
-#define __ARCH_ARM_SRC_LM3S_LM3S_SSI_H
+#ifndef __ARCH_ARM_SRC_LM3S_CHIP_LM3S_SSI_H
+#define __ARCH_ARM_SRC_LM3S_CHIP_LM3S_SSI_H
 
 /************************************************************************************
  * Included Files
@@ -232,4 +232,4 @@
  ************************************************************************************/
 
 #endif /* LM3S_NSSI > 0 */
-#endif /* __ARCH_ARM_SRC_LM3S_LM3S_SSI_H */
+#endif /* __ARCH_ARM_SRC_LM3S_CHIP_LM3S_SSI_H */

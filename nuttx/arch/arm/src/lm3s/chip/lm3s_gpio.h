@@ -1,7 +1,7 @@
 /************************************************************************************
- * arch/arm/src/lm3s/lm3s_gpio.h
+ * arch/arm/src/lm3s/chip/lm3s_gpio.h
  *
- *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2010, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LM3S_LM3S_GPIO_H
-#define __ARCH_ARM_SRC_LM3S_LM3S_GPIO_H
+#ifndef __ARCH_ARM_SRC_LM3S_CHIP_LM3S_GPIO_H
+#define __ARCH_ARM_SRC_LM3S_CHIP_LM3S_GPIO_H
 
 /************************************************************************************
  * Included Files
@@ -392,4 +392,4 @@
  * Public Function Prototypes
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LM3S_LM3S_GPIO_H */
+#endif /* __ARCH_ARM_SRC_LM3S_CHIP_LM3S_GPIO_H */

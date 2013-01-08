@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lm3s/lm3s_memorymap.h
+ * arch/arm/src/lm3s/chip/lm3s_memorymap.h
  *
  *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LM3S_LM3S_MEMORYMAP_H
-#define __ARCH_ARM_SRC_LM3S_LM3S_MEMORYMAP_H
+#ifndef __ARCH_ARM_SRC_LM3S_CHIP_LM3S_MEMORYMAP_H
+#define __ARCH_ARM_SRC_LM3S_CHIP_LM3S_MEMORYMAP_H
 
 /************************************************************************************
  * Included Files
@@ -357,4 +357,4 @@
  * Public Function Prototypes
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LM3S_LM3S_MEMORYMAP_H */
+#endif /* __ARCH_ARM_SRC_LM3S_CHIP_LM3S_MEMORYMAP_H */

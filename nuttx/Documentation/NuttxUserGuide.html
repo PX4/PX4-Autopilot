@@ -202,6 +202,8 @@ paragraphs.
   <li><a href="#taskrestart">2.1.6 task_restart</a></li>
   <li><a href="#getpid">2.1.7 getpid</a></li>
   <li><a href="#vfork">2.1.8 vfork</a></li>
+  <li><a href="#execv">2.1.9 execv</a></li>
+  <li><a href="#execl">2.1.10 execl</a></li>
 </ul>
 
 <H3><a name="taskcreate">2.1.1 task_create</a></H3>
@@ -647,6 +649,9 @@ pid_t vfork(void);
   <b>POSIX Compatibility:</b>
   Compatible with the Unix interface of the same name.
 </p>
+
+<H3><a name="execv">2.1.9 execv</a></H3>
+<H3><a name="execl">2.1.10 execl</a></H3>
 
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
@@ -6798,6 +6803,12 @@ FAR char *getcwd(FAR char *buf, size_t size);
 
 int     unlink(FAR const char *pathname);
 int     rmdir(FAR const char *pathname);
+
+#ifdef CONFIG_LIBC_EXECFUNCS
+int     execl(FAR const char *path, ...);
+int     execv(FAR const char *path, FAR char *const argv[]);
+#endif
+
 int     getopt(int argc, FAR char *const argv[], FAR const char *optstring);
 </pre></ul>
 </a>
@@ -8198,7 +8209,9 @@ notify a task when a message is available on a queue.
   <li><a href="#driveroperations">Driver operations</a></li>
   <li><a href="#drvrunistdops">dup</a></li>
   <li><a href="#drvrunistdops">dup2</a></li>
+  <li><a href="#execl">execl</a></li>
   <li><a href="#mmapxip">eXecute In Place (XIP)</a></li>
+  <li><a href="#execv">execv</a></li>
   <li><a href="#exit">exit</a></li>
   <li><a href="#fatsupport">FAT File System Support</a></li>
   <li><a href="#standardio">fclose</a></li>
@@ -8333,9 +8346,9 @@ notify a task when a message is available on a queue.
   <li><a href="#mmapxip">ROMFS</a></li>
   <li><a href="#schedgetparam">sched_getparam</a></li>
   <li><a href="#schedgetprioritymax">sched_get_priority_max</a></li>
+  <li><a href="#schedgetprioritymin">sched_get_priority_min</a></li>
 </td>
 <td valign="top">
-  <li><a href="#schedgetprioritymin">sched_get_priority_min</a></li>
   <li><a href="#schedgetrrinterval">sched_get_rr_interval</a></li>
   <li><a href="#schedlockcount">sched_lockcount</a></li>
   <li><a href="#schedlock">sched_lock</a></li>
