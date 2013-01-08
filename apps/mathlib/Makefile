@@ -31,6 +31,8 @@
 #
 ############################################################################
 
+include $(TOPDIR)/.config
+
 #
 # Math library
 #
@@ -51,7 +53,7 @@ CXXHDRS		 = math/test/test.hpp \
 		   math/Matrix.hpp
 
 # XXX this really should be a CONFIG_* test
-ifeq ($(TARGET),px4fmu)
+ifeq ($(CONFIG_ARCH_CORTEXM4)$(CONFIG_ARCH_FPU),yy)
 INCLUDES	+= math/arm
 CXXSRCS		+= math/arm/Vector.cpp \
 		   math/arm/Matrix.cpp

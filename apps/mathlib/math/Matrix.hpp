@@ -39,7 +39,9 @@
 
 #pragma once
 
-#ifdef ARM_MATH_CM4
+#include <nuttx/config.h>
+
+#if defined(CONFIG_ARCH_CORTEXM4) && defined(CONFIG_ARCH_FPU)
 #include "arm/Matrix.hpp"
 #else
 #include "generic/Matrix.hpp"
