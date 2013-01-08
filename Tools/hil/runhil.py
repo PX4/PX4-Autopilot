@@ -14,7 +14,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'py
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'jsbsim'))
 
 # local imports
-import util, fgFDM, atexit
+import util, atexit
+import pymavlink.fgFDM as fgFDM
 
 from math import sin, cos
 
