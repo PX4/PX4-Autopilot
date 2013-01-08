@@ -137,14 +137,12 @@ class SensorHIL(object):
     def command_line(cls):
         ''' command line parser '''
         parser = argparse.ArgumentParser()
-        parser.add_argument('--master', help='device', default=None)
+        parser.add_argument('--master', help='device', required=True)
         parser.add_argument('--baud', help='master port baud rate', default=921600)
         parser.add_argument('--script', help='jsbsim script', default='jsbsim/easystar_test.xml')
         parser.add_argument('--options', help='jsbsim options', default=None)
         parser.add_argument('--gcs', help='gcs host', default='localhost:14550')
         args = parser.parse_args()
-        if args.master is None:
-            raise IOError('must specify master device with --master')
         inst = cls(master_dev=args.master, baudrate=args.baud, script=args.script, options=args.options, gcs_dev=args.gcs)
         inst.run()
 
