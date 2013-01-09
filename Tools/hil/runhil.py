@@ -244,10 +244,14 @@ class SensorHIL(object):
 
     def enable_hil(self):
         ''' enable hil mode '''
+        count = 0
         while not self.hil_enabled():
             self.master.set_mode_flag(mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED,True)
             while self.master.port.inWaiting() > 0:
                 m = self.master.recv_msg()
+            time.sleep(0.001)
+            count += 1
+            if count > 1000: raise IOError('Failed to enable HIL, check port')
 
     def jsb_set(self, variable, value):
         '''set a JSBSim variable'''
