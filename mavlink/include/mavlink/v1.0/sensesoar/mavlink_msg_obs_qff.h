@@ -4,7 +4,9 @@
 
 typedef struct __mavlink_obs_qff_t
 {
- float qff; ///< Wind
+ float qff; ///< 
+                
+            
 } mavlink_obs_qff_t;
 
 #define MAVLINK_MSG_ID_OBS_QFF_LEN 4
@@ -26,7 +28,9 @@ typedef struct __mavlink_obs_qff_t
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param qff Wind
+ * @param qff 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_obs_qff_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -54,7 +58,9 @@ static inline uint16_t mavlink_msg_obs_qff_pack(uint8_t system_id, uint8_t compo
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message was sent over
  * @param msg The MAVLink message to compress the data into
- * @param qff Wind
+ * @param qff 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_obs_qff_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -94,7 +100,9 @@ static inline uint16_t mavlink_msg_obs_qff_encode(uint8_t system_id, uint8_t com
  * @brief Send a obs_qff message
  * @param chan MAVLink channel to send the message
  *
- * @param qff Wind
+ * @param qff 
+                
+            
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -121,7 +129,9 @@ static inline void mavlink_msg_obs_qff_send(mavlink_channel_t chan, float qff)
 /**
  * @brief Get field qff from obs_qff message
  *
- * @return Wind
+ * @return 
+                
+            
  */
 static inline float mavlink_msg_obs_qff_get_qff(const mavlink_message_t* msg)
 {
