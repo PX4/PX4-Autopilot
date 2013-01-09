@@ -413,6 +413,8 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 					/* send out */
 					att.timestamp = raw.timestamp;
+
+					// XXX Apply the same transformation to the rotation matrix
 					att.roll = euler[0] - ekf_params.roll_off;
 					att.pitch = euler[1] - ekf_params.pitch_off;
 					att.yaw = euler[2] - ekf_params.yaw_off;
