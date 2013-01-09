@@ -150,6 +150,8 @@ void KalmanNav::update()
 	fds[0].events = POLLIN;
 	fds[1].fd = _param_update.getHandle();
 	fds[1].events = POLLIN;
+	fds[2].fd = _gps.getHandle();
+	fds[2].events = POLLIN;
 
 	// poll 20 milliseconds for new data
 	int ret = poll(fds, 2, 20);
@@ -161,27 +163,23 @@ void KalmanNav::update()
 
 	} else if (ret == 0) { // timeout
 		return;
-
-	} else if (ret > 0) {
-		// update params when requested
-		if (fds[1].revents & POLLIN) {
-			printf("updating params\n");
-			updateParams();
-		}
-
-		// if no new sensor data, return
-		if (!(fds[0].revents & POLLIN)) return;
 	}
 
 	// get new timestamp
 	uint64_t newTimeStamp = hrt_absolute_time();
 
 	// check updated subscriptions
+	if (_param_update.updated()) updateParams();
+
 	bool gpsUpdate = _gps.updated();
+	bool sensorsUpdate = _sensors.updated();
 
 	// get new information from subscriptions
 	// this clears update flag
 	updateSubscriptions();
+
+	// abort update if no new data
+	if (!(sensorsUpdate || gpsUpdate)) return;
 
 	// fast prediciton step
 	// note, using sensors timestamp so we can account

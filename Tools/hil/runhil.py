@@ -66,6 +66,9 @@ class Aircraft(object):
     def send_controls(self, jsb_console):
         self.u.send_to_jsbsim(jsb_console)
 
+    def send_state(self, mav):
+        self.x.send_to_mav(mav)
+
     def send_imu(self, mav):
         self.imu = sensors.Imu.from_state(self.x)
         self.imu.send_to_mav(mav)
@@ -119,13 +122,16 @@ class SensorHIL(object):
         parser.add_argument('--options', help='jsbsim options', default=None)
         parser.add_argument('--gcs', help='gcs host', default='localhost:14550')
         parser.add_argument('--waypoints', help='waypoints file', default=None)
+        parser.add_argument('--mode', help="hil mode (sensor or state)", default='sensor')
         args = parser.parse_args()
         if args.master is None:
             raise IOError('must specify device with --dev')
-        inst = cls(master_dev=args.master, baudrate=args.baud, script=args.script, options=args.options, gcs_dev=args.gcs, waypoints=args.waypoints)
+        if args.mode not in ['sensor','state']:
+            raise IOError('mode must be sensor or state')
+        inst = cls(master_dev=args.master, baudrate=args.baud, script=args.script, options=args.options, gcs_dev=args.gcs, waypoints=args.waypoints, mode = args.mode)
         inst.run()
 
-    def __init__(self, master_dev, baudrate, script, options, gcs_dev, waypoints):
+    def __init__(self, master_dev, baudrate, script, options, gcs_dev, waypoints, mode):
         ''' default ctor 
         @param dev device
         @param baud baudrate
@@ -133,6 +139,8 @@ class SensorHIL(object):
         self.script = script
         self.options = options
         self.waypoints = waypoints
+        self.mode = mode
+
         self.ac = Aircraft()
         self.jsb = None
         self.jsb_console = None
@@ -401,7 +409,10 @@ class SensorHIL(object):
 
             # if new jsbsim input, process it
             if self.jsb_in.fileno() in rin:
-                self.ac.send_sensors(self.master.mav)
+                if self.mode == 'state':
+                    self.ac.send_state(self.master.mav)
+                elif self.mode == 'sensor':
+                    self.ac.send_sensors(self.master.mav)
                 self.process_jsb_input()
                 # gcs not currently getting HIL_STATE message
                 #self.x.send_to_mav(self.gcs.mav)
