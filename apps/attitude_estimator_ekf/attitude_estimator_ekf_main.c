@@ -413,9 +413,9 @@ int attitude_estimator_ekf_thread_main(int argc, char *argv[])
 
 					/* send out */
 					att.timestamp = raw.timestamp;
-					att.roll = euler[0];
-					att.pitch = euler[1];
-					att.yaw = euler[2];
+					att.roll = euler[0] - ekf_params.roll_off;
+					att.pitch = euler[1] - ekf_params.pitch_off;
+					att.yaw = euler[2] - ekf_params.yaw_off;
 
 					att.rollspeed = x_aposteriori[0];
 					att.pitchspeed = x_aposteriori[1];
