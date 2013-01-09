@@ -167,6 +167,8 @@ void KalmanNav::update()
 		if (fds[1].revents & POLLIN) {
 			printf("updating params\n");
 			updateParams();
+            // must update subscriptions to clear param update
+	        updateSubscriptions();
 		}
 
 		// if no new sensor data, return
