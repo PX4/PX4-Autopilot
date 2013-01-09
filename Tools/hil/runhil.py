@@ -13,6 +13,11 @@ import aircraft
 import sensors
 from constants import *
 
+if os.getenv('MAVLINK09') or 'MAVLINK09' in os.environ:
+    import pymavlink.mavlinkv09_pixhawk as mavlink
+else:
+    import pymavlink.mavlinkv10_pixhawk as mavlink
+
 # set path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pysim'))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'jsbsim'))
@@ -22,6 +27,7 @@ import util, atexit
 import pymavlink.fgFDM as fgFDM
 
 from math import sin, cos
+
 
 class Aircraft(object):
 
@@ -210,6 +216,7 @@ class SensorHIL(object):
         self.wploading = False
         self.wpload = None
         self.wpload_time = 0
+        self.wpindex = 0
 
     def hil_enabled(self):
         return self.master.base_mode & mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED
@@ -226,12 +233,19 @@ class SensorHIL(object):
             if count > 1000: raise IOError('Failed to enable HIL, check port')
 
     def reboot_autopilot(self):
+        if not self.hil_enabled(): self.enable_hil()
         self.master.reboot_autopilot()
+        time.sleep(8)
+
+        # Reenable HIL and reset serial (clear buffer)
+        if not self.hil_enabled(): self.enable_hil()
+        self.master.reset()
 
     def set_waypoints(self, waypoints):
         if waypoints == None:
             return
-        self.wpload = mavwp.MAVWPLoader()
+        MAV_COMP_ID_MISSIONPLANNER = 190
+        self.wpload = mavwp.MAVWPLoader(target_system=self.master.target_system, target_component=mavlink.MAV_COMP_ID_MISSIONPLANNER)
 
         try:
             count = self.wpload.load(waypoints)
@@ -244,14 +258,36 @@ class SensorHIL(object):
         if count == 0:
             return
 
+        self.wpindex = 0
         self.wploading = True
         self.wpload_time = time.time()
         self.master.waypoint_count_send(count)
+        print "Sent waypoint count of %u to master" % count
 
     def process_waypoint_request(self, m):
-        pass
-        #print m.get_seq()
-        #raw_input()
+
+        if not self.wploading:
+            print "Received waypoint request/ack without sending load"
+            return
+
+        if m.get_type() == "MISSION_ACK":
+            if self.wpindex != self.wpload.count():
+                print "Received waypoint ack before sending all waypoints!"
+            self.wploading = False
+            self.wpindex = 0
+            print "Waypoint uploading complete"
+
+        elif m.get_type() == "MISSION_REQUEST": 
+            if m.get_seq() != self.wpindex:
+                print "Waypoint request sequence doesn't match current index! Cannot continue loading."
+                self.wploading = False
+                self.wpindex = 0
+                return
+
+            wp = self.wpload.wp(self.wpindex)
+            self.master.mav.send(wp)
+            print "Sent waypoint %u: %s" % (self.wpindex, wp)
+            self.wpindex += 1
 
     def jsb_set(self, variable, value):
         '''set a JSBSim variable'''
@@ -290,8 +326,12 @@ class SensorHIL(object):
         if mtype == 'HIL_CONTROLS':
             self.ac.update_controls(m)
             self.ac.send_controls(self.jsb_console)
-        elif mtype in ["WAYPOINT_REQUEST", "MISSION_REQUEST"]:
+        elif mtype in ["WAYPOINT_REQUEST", "MISSION_REQUEST", "MISSION_ACK"]:
             self.process_waypoint_request(m)
+        elif mtype == 'STATUSTEXT':
+            pass
+            #print 'STATUSTEXT: %s' % "".join(map(chr, m.get_payload()))
+            
 
     def process_gcs(self):
         '''process packets from MAVLink slaves, forwarding to the master'''
@@ -322,24 +362,21 @@ class SensorHIL(object):
         self.jsb_console.send('info\n')
         self.jsb_console.send('resume\n')
         self.jsb.expect("trim computation time")
+        self.jsb_console.send('hold\n')
         time.sleep(1.5)
         self.jsb_console.logfile = None
+
+        print 'Rebooting autopilot'
+        self.reboot_autopilot()
         
-        #i = 0
-        #while True:
-            #m = self.master.recv_msg()
-            #if m == None: continue
-
-            #i += 1
-            #print m.get_type()
-            #if i > 100:
-                #break
-        #time.sleep(10)
-
         print 'load waypoints'
         self.set_waypoints(self.waypoints)
+        
+        print 'set auto'
+        self.master.set_mode_auto()
 
         # run main loop
+        self.jsb_console.send('resume\n')
         while True:
 
             # make sure hil is enabled
