@@ -138,7 +138,7 @@ class SensorHIL(object):
     def command_line(cls):
         ''' command line parser '''
         parser = argparse.ArgumentParser()
-        parser.add_argument('--master', help='device', default=None)
+        parser.add_argument('--master', help='device', required=True)
         parser.add_argument('--baud', help='master port baud rate', default=921600)
         parser.add_argument('--script', help='jsbsim script', default='jsbsim/easystar_test.xml')
         parser.add_argument('--options', help='jsbsim options', default=None)
@@ -254,45 +254,14 @@ class SensorHIL(object):
 
     def enable_hil(self):
         ''' enable hil mode '''
+        count = 0
         while not self.hil_enabled():
             self.master.set_mode_flag(mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED,True)
             while self.master.port.inWaiting() > 0:
                 m = self.master.recv_msg()
-
-    def reboot_autopilot(self):
-        self.master.reboot_autopilot()
-
-    def set_waypoints(self, waypoints):
-        self.wpload_time = time.time()
-        self.wploading = True
-        self.wpload = mavwp.MAVWPLoader()
-
-        self.wpload.target_system = 1
-        self.wpload.taget_component = 1
-        wpcount = self.wpload.load(waypoints)
-        print 'Waypoint Count = %i' % wpcount
-
-        #self.master.waypoint_clear_all_send()
-        self.master.waypoint_count_send(wpcount)
-        #self.read_waypoint_request()
-        
-    def process_waypoint_request(self, m):
-        print 'read request'
-        if time.time()-self.wpload_time > 10:
-            self.wploading = False
-
-        if self.wploading:
-            num = m.get_seq()
-            print m.get_seq()
-            print m.get_payload()
-            wp = self.wpload.wp(num)
-            wp.target_system = self.wpload.target_system
-            wp.target_component = self.wpload.target_component
-            self.master.mav.send(wp)
-            self.wpload_time = time.time()
-            print 'Sent waypoint %u: %s' % (num, wp)
-            if num == self.wploader.count() - 1:
-                self.wploading = False
+            time.sleep(0.001)
+            count += 1
+            if count > 1000: raise IOError('Failed to enable HIL, check port')
 
     def jsb_set(self, variable, value):
         '''set a JSBSim variable'''
