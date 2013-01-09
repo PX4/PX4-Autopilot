@@ -58,9 +58,7 @@ class State(object):
                  vN, vE, vD,
                  xacc, yacc, zacc):
         self.time = time
-        self.phi = phi
-        self.theta = theta
-        self.psi = psi
+        self.set_attitude(phi, theta, psi)
         self.p = p
         self.q = q
         self.r = r
@@ -74,13 +72,16 @@ class State(object):
         self.yacc = yacc
         self.zacc = zacc
 
+    def set_attitude(self, phi, theta, psi):
+        self.phi = phi
+        self.theta = theta 
+        self.psi = psi
         cosPhi = cos(theta)
         sinPhi = sin(theta)
         cosThe = cos(phi)
         sinThe = sin(phi)
         cosPsi = cos(psi)
         sinPsi = sin(psi)
-
         self.C_nb = numpy.matrix([
             [cosThe*cosPsi, 
             -cosPhi*sinPsi + sinPhi*sinThe*cosPsi,

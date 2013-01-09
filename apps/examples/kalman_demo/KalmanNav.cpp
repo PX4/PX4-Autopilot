@@ -45,7 +45,7 @@
 static const float omega = 7.2921150e-5f; // earth rotation rate, rad/s
 static const float R = 6.371000e6f; // earth radius, m
 static const float RSq = 4.0589641e13f; // radius squared
-static const float g = 9.8f; // gravitational accel. m/s^2
+static const float g = 9.806f; // gravitational accel. m/s^2
 
 KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	SuperBlock(parent, name),
@@ -57,9 +57,9 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	// attitude measurement ekf matrices
 	HAtt(6, 9),
 	RAtt(6, 6),
-	// gps measurement ekf matrices
-	HGps(6, 9),
-	RGps(6, 6),
+	// position measurement ekf matrices
+	HPos(6, 9),
+	RPos(6, 6),
 	// attitude representations
 	C_nb(),
 	q(),
@@ -130,13 +130,13 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	// initialize F to identity
 	F = Matrix::identity(9);
 
-	// HGps is constant
-	HGps(0, 3) = 1.0f;
-	HGps(1, 4) = 1.0f;
-	HGps(2, 5) = 1.0f;
-	HGps(3, 6) = 1.0f;
-	HGps(4, 7) = 1.0f;
-	HGps(5, 8) = 1.0f;
+	// HPos is constant
+	HPos(0, 3) = 1.0f;
+	HPos(1, 4) = 1.0f;
+	HPos(2, 5) = 1.0f;
+	HPos(3, 6) = 1.0f;
+	HPos(4, 7) = 1.0f;
+	HPos(5, 8) = 1.0f;
 
 	// initialize all parameters
 	updateParams();
@@ -159,8 +159,10 @@ void KalmanNav::update()
 	if (ret < 0) {
 		// XXX this is seriously bad - should be an emergency
 		return;
+
 	} else if (ret == 0) { // timeout
 		return;
+
 	} else if (ret > 0) {
 		// update params when requested
 		if (fds[1].revents & POLLIN) {
@@ -182,28 +184,32 @@ void KalmanNav::update()
 	// this clears update flag
 	updateSubscriptions();
 
-	// count fast frames
-	_navFrames += 1;
-
 	// fast prediciton step
 	// note, using sensors timestamp so we can account
 	// for packet lag
 	float dtFast = (_sensors.timestamp - _fastTimeStamp) / 1.0e6f;
 	_fastTimeStamp = _sensors.timestamp;
-	if (dtFast < 1.0f / 100) predictFast(dtFast);
-    else _missFast++;
+
+	if (dtFast < 1.0f / 100) {
+		predictFast(dtFast);
+		// count fast frames
+		_navFrames += 1;
+
+	} else _missFast++;
 
 	// slow prediction step
 	float dtSlow = (_sensors.timestamp - _slowTimeStamp) / 1.0e6f;
+
 	if (dtSlow > 1.0f / 100) { // 100 Hz
 		_slowTimeStamp = _sensors.timestamp;
+
 		if (dtSlow < 1.0f / 50) predictSlow(dtSlow);
-    	else _missSlow ++;
+		else _missSlow ++;
 	}
 
 	// gps correction step
 	if (gpsUpdate) {
-		correctGps();
+		correctPos();
 	}
 
 	// attitude correction step
@@ -448,10 +454,24 @@ void KalmanNav::correctAtt()
 
 	// accel measurement
 	Vector3 zAccel(_sensors.accelerometer_m_s2);
+	float accelMag = zAccel.norm();
 	zAccel = zAccel.unit();
 
+	// ignore accel correction when accel mag not close to g
+	Matrix RAttAdjust = RAtt;
+
+	if (fabsf(accelMag - g) > 2.0f) {
+		RAtt(3, 3) = 1.0e10;
+		RAtt(4, 4) = 1.0e10;
+		RAtt(5, 5) = 1.0e10;
+	}
+
+	// account for banked turn
+	// this would only work for fixed wing, so try to avoid
+	//Vector3 zCentrip = Vector3(0, cosf(phi), -sinf(phi))*g*tanf(phi);
+
 	// accel predicted measurement
-	Vector3 zAccelHat = (C_nb.transpose() * Vector3(0, 0, -1)).unit();
+	Vector3 zAccelHat = (C_nb.transpose() * Vector3(0, 0, -g) /*+ zCentrip*/).unit();
 
 	// combined measurement
 	Vector zAtt(6);
@@ -504,7 +524,7 @@ void KalmanNav::correctAtt()
 
 	// compute correction
 	Vector y = zAtt - zAttHat; // residual
-	Matrix S = HAtt * P * HAtt.transpose() + RAtt; // residual covariance
+	Matrix S = HAtt * P * HAtt.transpose() + RAttAdjust; // residual covariance
 	Matrix K = P * HAtt.transpose() * S.inverse();
 	Vector xCorrect = K * y;
 
@@ -541,7 +561,7 @@ void KalmanNav::correctAtt()
 	q = Quaternion(EulerAngles(phi, theta, psi));
 }
 
-void KalmanNav::correctGps()
+void KalmanNav::correctPos()
 {
 	using namespace math;
 	Vector y(6);
@@ -553,8 +573,8 @@ void KalmanNav::correctGps()
 	y(5) = double(_gps.alt) / 1.0e3 - alt;
 
 	// compute correction
-	Matrix S = HGps * P * HGps.transpose() + RGps; // residual covariance
-	Matrix K = P * HGps.transpose() * S.inverse();
+	Matrix S = HPos * P * HPos.transpose() + RPos; // residual covariance
+	Matrix K = P * HPos.transpose() * S.inverse();
 	Vector xCorrect = K * y;
 
 	// check correction is sane
@@ -584,7 +604,7 @@ void KalmanNav::correctGps()
 	alt += double(xCorrect(ALT));
 
 	// update state covariance
-	P = P - K * HGps * P;
+	P = P - K * HPos * P;
 
 	// fault detetcion
 	float beta = y.dot(S.inverse() * y);
@@ -623,10 +643,10 @@ void KalmanNav::updateParams()
 	RAtt(5, 5) = _rAccel.get();
 
 	// gps noise
-	RGps(0, 0) = _rGpsV.get(); // vn, m/s
-	RGps(1, 1) = _rGpsV.get(); // ve
-	RGps(2, 2) = _rGpsV.get(); // vd
-	RGps(3, 3) = _rGpsGeo.get(); // L, rad
-	RGps(4, 4) = _rGpsGeo.get(); // l, rad
-	RGps(5, 5) = _rGpsAlt.get(); // h, m
+	RPos(0, 0) = _rGpsV.get(); // vn, m/s
+	RPos(1, 1) = _rGpsV.get(); // ve
+	RPos(2, 2) = _rGpsV.get(); // vd
+	RPos(3, 3) = _rGpsGeo.get(); // L, rad
+	RPos(4, 4) = _rGpsGeo.get(); // l, rad
+	RPos(5, 5) = _rGpsAlt.get(); // h, m
 }

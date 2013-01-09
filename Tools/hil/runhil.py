@@ -11,6 +11,7 @@ import pymavlink.mavutil as mavutil
 import pymavlink.mavwp as mavwp
 import aircraft
 import sensors
+from constants import *
 
 # set path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pysim'))
@@ -29,7 +30,7 @@ class Aircraft(object):
         self.x = aircraft.State.default()
         self.u = aircraft.Controls.default()
         self.imu = sensors.Imu.default()
-        self.imu_period = 1.0/500;
+        self.imu_period = 1.0/200;
         self.t_imu = t_now
         self.imu_count = 0
         self.gps = sensors.Gps.default()
@@ -40,6 +41,10 @@ class Aircraft(object):
 
     def update_state(self, fdm):
         self.x = aircraft.State.from_fdm(fdm)
+        #self.x.p = 0
+        #self.x.q = 0
+        #self.x.r = 0
+        #self.x.set_attitude(0,0,90*deg2rad)
 
     def update_controls(self, m):
         self.u = aircraft.Controls.from_mavlink(m)

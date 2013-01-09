@@ -70,7 +70,7 @@ public:
 	void predictFast(float dt);
 	void predictSlow(float dt);
 	void correctAtt();
-	void correctGps();
+	void correctPos();
 	virtual void updateParams();
 protected:
 	math::Matrix F;
@@ -79,8 +79,8 @@ protected:
 	math::Matrix V;
 	math::Matrix HAtt;
 	math::Matrix RAtt;
-	math::Matrix HGps;
-	math::Matrix RGps;
+	math::Matrix HPos;
+	math::Matrix RPos;
 	math::Dcm C_nb;
 	math::Quaternion q;
 	control::UOrbSubscription<sensor_combined_s> _sensors;
