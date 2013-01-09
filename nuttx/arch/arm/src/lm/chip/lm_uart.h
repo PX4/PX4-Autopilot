@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lm/chip/lm3s_uart.h
+ * arch/arm/src/lm/chip/lm_uart.h
  *
  *   Copyright (C) 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

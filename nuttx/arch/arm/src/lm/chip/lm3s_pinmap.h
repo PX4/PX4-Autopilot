@@ -46,7 +46,7 @@
  * Pre-processor Definitions
  ************************************************************************************/
 
-/* The following lists the input value to lm3s_configgpio to setup the alternate,
+/* The following lists the input value to lm_configgpio to setup the alternate,
  * hardware function for each pin.
  */
 

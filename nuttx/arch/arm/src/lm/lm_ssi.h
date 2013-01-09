@@ -73,20 +73,20 @@ extern "C"
  ****************************************************************************/
 
 /****************************************************************************
- * The external functions, lm3s_spiselect, lm3s_spistatus, and
- * lm3s_spicmddata must be provided by board-specific logic.  These are
+ * The external functions, lm_spiselect, lm_spistatus, and
+ * lm_spicmddata must be provided by board-specific logic.  These are
  * implementations of the select, status, and cmddata methods of the SPI
  * interface defined by struct spi_ops_s (see include/nuttx/spi.h).
  * All other methods (including up_spiinitialize()) are provided by common
  * logic.  To use this common SPI logic on your board:
  *
- *   1. Provide logic in lm3s_boardinitialize() to configure SPI chip select
+ *   1. Provide logic in lm_boardinitialize() to configure SPI chip select
  *      pins.
- *   2. Provide lm3s_spiselect() and lm3s_spistatus() functions in your
+ *   2. Provide lm_spiselect() and lm_spistatus() functions in your
  *      board-specific logic.  These functions will perform chip selection and
  *      status operations using GPIOs in the way your board is configured.
  *   3. If CONFIG_SPI_CMDDATA is defined in your NuttX configuration, provide
- *      the lm3s_spicmddata() function in your board-specific logic.  This
+ *      the lm_spicmddata() function in your board-specific logic.  This
  *      functions will perform cmd/data selection operations using GPIOs in
  *      the way your board is configured.
  *   4. Add a call to up_spiinitialize() in your low level application
@@ -100,10 +100,10 @@ extern "C"
 
 struct spi_dev_s;
 enum spi_dev_e;
-void lm3s_spiselect(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
-uint8_t lm3s_spistatus(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
+void lm_spiselect(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected);
+uint8_t lm_spistatus(FAR struct spi_dev_s *dev, enum spi_dev_e devid);
 #ifdef CONFIG_SPI_CMDDATA
-int lm3s_spicmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
+int lm_spicmddata(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool cmd);
 #endif
 
 #if defined(__cplusplus)

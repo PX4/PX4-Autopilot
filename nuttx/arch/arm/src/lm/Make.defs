@@ -33,7 +33,7 @@
 #
 ############################################################################
 
-HEAD_ASRC	= lm3s_vectors.S
+HEAD_ASRC	= lm_vectors.S
 
 CMN_ASRCS	= up_saveusercontext.S up_fullcontextrestore.S up_switchcontext.S \
 			  vfork.S
@@ -55,10 +55,9 @@ CMN_CSRCS += up_elf.c
 endif
 
 CHIP_ASRCS	= 
-CHIP_CSRCS	= lm3s_start.c lm3s_syscontrol.c lm3s_irq.c \
-			  lm3s_gpio.c lm3s_gpioirq.c lm3s_timerisr.c lm3s_lowputc.c \
-			  lm3s_serial.c lm3s_ssi.c lm3s_dumpgpio.c
+CHIP_CSRCS	= lm_start.c lm_syscontrol.c lm_irq.c lm_gpio.c lm_gpioirq.c \
+			  lm_timerisr.c lm_lowputc.c lm_serial.c lm_ssi.c lm_dumpgpio.c
 
 ifdef CONFIG_NET
-CHIP_CSRCS	+= lm3s_ethernet.c
+CHIP_CSRCS	+= lm_ethernet.c
 endif

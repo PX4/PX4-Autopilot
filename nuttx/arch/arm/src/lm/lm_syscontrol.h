@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lm/lm3s_syscontrol.h
+ * arch/arm/src/lm/lm_syscontrol.h
  *
  *   Copyright (C) 2009-2010, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -70,7 +70,7 @@ extern "C"
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lm3s_clockconfig
+ * Name: lm_clockconfig
  *
  * Description:
  *   Called to change to new clock based on desired rcc and rcc2 settings.
@@ -79,7 +79,7 @@ extern "C"
  *
  ****************************************************************************/
 
-void lm3s_clockconfig(uint32_t newrcc, uint32_t newrcc2);
+void lm_clockconfig(uint32_t newrcc, uint32_t newrcc2);
 
 /****************************************************************************
  * Name: up_clockconfig

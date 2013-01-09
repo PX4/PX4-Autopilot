@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lm/chip/lm3s_epi.h
+ * arch/arm/src/lm/chip/lm_epi.h
  *
  *   Copyright (C) 2009-2013 Max Neklyudov. All rights reserved.
  *   Author: Max Neklyudov <macscomp@gmail.com>

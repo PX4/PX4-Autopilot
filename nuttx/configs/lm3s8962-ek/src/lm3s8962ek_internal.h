@@ -123,14 +123,14 @@
 #ifndef __ASSEMBLY__
 
 /************************************************************************************
- * Name: lm3s_ssiinitialize
+ * Name: lm_ssiinitialize
  *
  * Description:
  *   Called to configure SPI chip select GPIO pins for the LM3S8962 Eval Kit.
  *
  ************************************************************************************/
 
-extern void weak_function lm3s_ssiinitialize(void);
+extern void weak_function lm_ssiinitialize(void);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_LM3S8962_EK_SRC_LM3S8962EK_INTERNAL_H */

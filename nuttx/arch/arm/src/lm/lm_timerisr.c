@@ -1,8 +1,7 @@
 /****************************************************************************
- * arch/arm/src/lm/lm3s_start.c
- * arch/arm/src/chip/lm3s_start.c
+ * arch/arm/src/lm/lm_timerisr.c
  *
- *   Copyright (C) 2009, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,114 +40,103 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
-#include <assert.h>
+#include <time.h>
 #include <debug.h>
-
-#include <nuttx/init.h>
+#include <nuttx/arch.h>
 #include <arch/board/board.h>
 
-#include "up_arch.h"
+#include "nvic.h"
+#include "clock_internal.h"
 #include "up_internal.h"
+#include "up_arch.h"
 
-#include "lm_lowputc.h"
-#include "lm_syscontrol.h"
+#include "chip.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-extern void lm3s_vectors(void);
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: showprogress
+/* The desired timer interrupt frequency is provided by the definition
+ * CLK_TCK (see include/time.h).  CLK_TCK defines the desired number of
+ * system clock ticks per second.  That value is a user configurable setting
+ * that defaults to 100 (100 ticks per second = 10 MS interval).
  *
- * Description:
- *   Print a character on the UART to show boot status.
- *
- ****************************************************************************/
+ * The timer counts at the rate SYSCLK_FREQUENCY as defined in the board.h
+ * header file.
+ */
 
-#ifdef CONFIG_DEBUG
-#  define showprogress(c) up_lowputc(c)
-#else
-#  define showprogress(c)
+#define SYSTICK_RELOAD ((SYSCLK_FREQUENCY / CLK_TCK) - 1)
+
+/* The size of the reload field is 24 bits.  Verify taht the reload value
+ * will fit in the reload register.
+ */
+
+#if SYSTICK_RELOAD > 0x00ffffff
+#  error SYSTICK_RELOAD exceeds the range of the RELOAD register
 #endif
 
 /****************************************************************************
- * Public Functions
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
- * Name: _start
+ * Private Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
+ * Global Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Function:  up_timerisr
  *
  * Description:
- *   This is the reset entry point.
+ *   The timer ISR will perform a variety of services for various portions
+ *   of the systems.
  *
  ****************************************************************************/
 
-void __start(void)
+int up_timerisr(int irq, uint32_t *regs)
 {
-  const uint32_t *src;
-  uint32_t *dest;
+   /* Process timer interrupt */
 
-  /* Configure the uart so that we can get debug output as soon as possible */
+   sched_process_timer();
+   return 0;
+}
 
-  up_clockconfig();
-  up_lowsetup();
-  showprogress('A');
+/****************************************************************************
+ * Function:  up_timerinit
+ *
+ * Description:
+ *   This function is called during start-up to initialize
+ *   the timer interrupt.
+ *
+ ****************************************************************************/
 
-  /* Clear .bss.  We'll do this inline (vs. calling memset) just to be
-   * certain that there are no issues with the state of global variables.
-   */
+void up_timerinit(void)
+{
+  uint32_t regval;
 
-  for (dest = &_sbss; dest < &_ebss; )
-    {
-      *dest++ = 0;
-    }
-  showprogress('B');
+  /* Set the SysTick interrupt to the default priority */
 
-  /* Move the intialized data section from his temporary holding spot in
-   * FLASH into the correct place in SRAM.  The correct place in SRAM is
-   * give by _sdata and _edata.  The temporary location is in FLASH at the
-   * end of all of the other read-only data (.text, .rodata) at _eronly.
-   */
+  regval = getreg32(NVIC_SYSH12_15_PRIORITY);
+  regval &= ~NVIC_SYSH_PRIORITY_PR15_MASK;
+  regval |= (NVIC_SYSH_PRIORITY_DEFAULT << NVIC_SYSH_PRIORITY_PR15_SHIFT);
+  putreg32(regval, NVIC_SYSH12_15_PRIORITY);
 
-  for (src = &_eronly, dest = &_sdata; dest < &_edata; )
-    {
-      *dest++ = *src++;
-    }
-  showprogress('C');
+  /* Configure SysTick to interrupt at the requested rate */
 
-  /* Perform early serial initialization */
+  putreg32(SYSTICK_RELOAD, NVIC_SYSTICK_RELOAD);
 
-#ifdef USE_EARLYSERIALINIT
-  up_earlyserialinit();
-#endif
-  showprogress('D');
+  /* Attach the timer interrupt vector */
 
-  /* Initialize onboard resources */
+  (void)irq_attach(LM3S_IRQ_SYSTICK, (xcpt_t)up_timerisr);
 
-  lm3s_boardinitialize();
-  showprogress('E');
+  /* Enable SysTick interrupts */
 
-  /* Then start NuttX */
+  putreg32((NVIC_SYSTICK_CTRL_CLKSOURCE|NVIC_SYSTICK_CTRL_TICKINT|NVIC_SYSTICK_CTRL_ENABLE), NVIC_SYSTICK_CTRL);
 
-  showprogress('\r');
-  showprogress('\n');
-  os_start();
+  /* And enable the timer interrupt */
 
-  /* Shoulnd't get here */
-
-  for(;;);
+  up_enable_irq(LM3S_IRQ_SYSTICK);
 }

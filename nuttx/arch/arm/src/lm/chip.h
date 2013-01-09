@@ -49,14 +49,14 @@
 
 /* Then get all of the register definitions */
 
-#include "chip/lm_memorymap.h"    /* Memory map */
-#include "chip/lm3s_syscontrol.h" /* System control module */
-#include "chip/lm3s_gpio.h"       /* GPIO modules */
-#include "chip/lm3s_uart.h"       /* UART modules */
-#include "chip/lm3s_i2c.h"        /* I2C modules */
-#include "chip/lm3s_ssi.h"        /* SSI modules */
-#include "chip/lm3s_ethernet.h"   /* Ethernet MAC and PHY */
-#include "chip/lm3s_flash.h"      /* FLASH */
+#include "chip/lm_memorymap.h"  /* Memory map */
+#include "chip/lm_syscontrol.h" /* System control module */
+#include "chip/lm_gpio.h"       /* GPIO modules */
+#include "chip/lm_uart.h"       /* UART modules */
+#include "chip/lm_i2c.h"        /* I2C modules */
+#include "chip/lm_ssi.h"        /* SSI modules */
+#include "chip/lm_ethernet.h"   /* Ethernet MAC and PHY */
+#include "chip/lm_flash.h"      /* FLASH */
 
 /* The LM3S69xx only supports 8 priority levels.  The hardware priority mechanism
  * will only look at the upper N bits of the 8-bit priority level (where N is 3 for

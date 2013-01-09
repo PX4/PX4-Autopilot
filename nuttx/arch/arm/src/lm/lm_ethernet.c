@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/lm/lm3s_ethernet.c
+ * arch/arm/src/lm/lm_ethernet.c
  *
  *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -38,7 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#if defined(CONFIG_NET) && defined(CONFIG_LM3S_ETHERNET)
+#if defined(CONFIG_NET) && defined(CONFIG_LM_ETHERNET)
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -66,9 +66,9 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Half duplex can be forced if CONFIG_LM3S_ETHHDUPLEX is defined. */
+/* Half duplex can be forced if CONFIG_LM_ETHHDUPLEX is defined. */
 
-#ifdef CONFIG_LM3S_ETHHDUPLEX
+#ifdef CONFIG_LM_ETHHDUPLEX
 #  define LM3S_DUPLEX_SETBITS 0
 #  define LM3S_DUPLEX_CLRBITS MAC_TCTL_DUPLEX
 #else 
@@ -76,9 +76,9 @@
 #  define LM3S_DUPLEX_CLRBITS 0
 #endif
 
-/* Auto CRC generation can be suppressed if CONFIG_LM3S_ETHNOAUTOCRC is definde */
+/* Auto CRC generation can be suppressed if CONFIG_LM_ETHNOAUTOCRC is definde */
 
-#ifdef CONFIG_LM3S_ETHNOAUTOCRC
+#ifdef CONFIG_LM_ETHNOAUTOCRC
 #  define LM3S_CRC_SETBITS 0
 #  define LM3S_CRC_CLRBITS MAC_TCTL_CRC
 #else 
@@ -86,9 +86,9 @@
 #  define LM3S_CRC_CLRBITS 0
 #endif
 
-/* Tx padding can be suppressed if CONFIG_LM3S_ETHNOPAD is defined */
+/* Tx padding can be suppressed if CONFIG_LM_ETHNOPAD is defined */
 
-#ifdef CONFIG_LM3S_ETHNOPAD
+#ifdef CONFIG_LM_ETHNOPAD
 #  define LM3S_PADEN_SETBITS 0
 #  define LM3S_PADEN_CLRBITS MAC_TCTL_PADEN
 #else 
@@ -99,9 +99,9 @@
 #define LM3S_TCTCL_SETBITS (LM3S_DUPLEX_SETBITS|LM3S_CRC_SETBITS|LM3S_PADEN_SETBITS)
 #define LM3S_TCTCL_CLRBITS (LM3S_DUPLEX_CLRBITS|LM3S_CRC_CLRBITS|LM3S_PADEN_CLRBITS)
 
-/* Multicast frames can be enabled by defining CONFIG_LM3S_MULTICAST */
+/* Multicast frames can be enabled by defining CONFIG_LM_MULTICAST */
 
-#ifdef CONFIG_LM3S_MULTICAST
+#ifdef CONFIG_LM_MULTICAST
 #  define LM3S_AMUL_SETBITS MAC_RCTL_AMUL
 #  define LM3S_AMUL_CLRBITS 0
 #else 
@@ -109,9 +109,9 @@
 #  define LM3S_AMUL_CLRBITS MAC_RCTL_AMUL
 #endif
 
-/* Promiscuous mode can be enabled by defining CONFIG_LM3S_PROMISCUOUS */
+/* Promiscuous mode can be enabled by defining CONFIG_LM_PROMISCUOUS */
 
-#ifdef CONFIG_LM3S_PROMISCUOUS
+#ifdef CONFIG_LM_PROMISCUOUS
 #  define LM3S_PRMS_SETBITS MAC_RCTL_PRMS
 #  define LM3S_PRMS_CLRBITS 0
 #else 
@@ -119,9 +119,9 @@
 #  define LM3S_PRMS_CLRBITS MAC_RCTL_PRMS
 #endif
 
-/* Bad CRC rejection can be enabled by define CONFIG_LM3S_BADCRC */
+/* Bad CRC rejection can be enabled by define CONFIG_LM_BADCRC */
 
-#ifdef CONFIG_LM3S_BADCRC
+#ifdef CONFIG_LM_BADCRC
 #  define LM3S_BADCRC_SETBITS MAC_RCTL_BADCRC
 #  define LM3S_BADCRC_CLRBITS 0
 #else 
@@ -132,12 +132,12 @@
 #define LM3S_RCTCL_SETBITS (LM3S_AMUL_SETBITS|LM3S_PRMS_SETBITS|LM3S_BADCRC_SETBITS)
 #define LM3S_RCTCL_CLRBITS (LM3S_AMUL_CLRBITS|LM3S_PRMS_CLRBITS|LM3S_BADCRC_CLRBITS)
 
-/* CONFIG_LM3S_DUMPPACKET will dump the contents of each packet to the console. */
+/* CONFIG_LM_DUMPPACKET will dump the contents of each packet to the console. */
 
-#ifdef CONFIG_LM3S_DUMPPACKET
-#  define lm3s_dumppacket(m,a,n) lib_dumpbuffer(m,a,n)
+#ifdef CONFIG_LM_DUMPPACKET
+#  define lm_dumppacket(m,a,n) lib_dumpbuffer(m,a,n)
 #else
-#  define lm3s_dumppacket(m,a,n)
+#  define lm_dumppacket(m,a,n)
 #endif
 
 /* TX poll deley = 1 seconds. CLK_TCK is the number of clock ticks per second */
@@ -162,7 +162,7 @@
 /* EMAC statistics (debug only) */
 
 #if defined(CONFIG_DEBUG) && defined(CONFIG_DEBUG_NET)
-struct lm3s_statistics_s
+struct lm_statistics_s
 {
   uint32_t rx_int;         /* Number of Rx interrupts received */
   uint32_t rx_packets;     /* Number of packets received (sum of the following): */
@@ -182,11 +182,11 @@ struct lm3s_statistics_s
 #  define EMAC_STAT(priv,name)
 #endif
 
-/* The lm3s_driver_s encapsulates all state information for a single hardware
+/* The lm_driver_s encapsulates all state information for a single hardware
  * interface
  */
 
-struct lm3s_driver_s
+struct lm_driver_s
 {
   /* The following fields would only be necessary on chips that support
    * multiple Ethernet controllers.
@@ -202,7 +202,7 @@ struct lm3s_driver_s
   WDOG_ID  ld_txtimeout;       /* TX timeout timer */
 
 #if defined(CONFIG_DEBUG) && defined(CONFIG_DEBUG_NET)
-  struct lm3s_statistics_s ld_stat;
+  struct lm_statistics_s ld_stat;
 #endif
 
   /* This holds the information visible to uIP/NuttX */
@@ -214,7 +214,7 @@ struct lm3s_driver_s
  * Private Data
  ****************************************************************************/
 
-static struct lm3s_driver_s g_lm3sdev[LM3S_NETHCONTROLLERS];
+static struct lm_driver_s g_lm3sdev[LM3S_NETHCONTROLLERS];
 
 /****************************************************************************
  * Private Function Prototypes
@@ -223,42 +223,42 @@ static struct lm3s_driver_s g_lm3sdev[LM3S_NETHCONTROLLERS];
 /* Miscellaneous low level helpers */
 
 #if LM3S_NETHCONTROLLERS > 1
-static uint32_t lm3s_ethin(struct lm3s_driver_s *priv, int offset);
-static void lm3s_ethout(struct lm3s_driver_s *priv, int offset, uint32_t value);
+static uint32_t lm_ethin(struct lm_driver_s *priv, int offset);
+static void lm_ethout(struct lm_driver_s *priv, int offset, uint32_t value);
 #else
-static inline uint32_t lm3s_ethin(struct lm3s_driver_s *priv, int offset);
-static inline void lm3s_ethout(struct lm3s_driver_s *priv, int offset, uint32_t value);
+static inline uint32_t lm_ethin(struct lm_driver_s *priv, int offset);
+static inline void lm_ethout(struct lm_driver_s *priv, int offset, uint32_t value);
 #endif
-static void lm3s_ethreset(struct lm3s_driver_s *priv);
+static void lm_ethreset(struct lm_driver_s *priv);
 #if 0 /* Not used */
-static void lm3s_phywrite(struct lm3s_driver_s *priv, int regaddr, uint16_t value);
+static void lm_phywrite(struct lm_driver_s *priv, int regaddr, uint16_t value);
 #endif
-static uint16_t lm3s_phyread(struct lm3s_driver_s *priv, int regaddr);
+static uint16_t lm_phyread(struct lm_driver_s *priv, int regaddr);
 
 /* Common TX logic */
 
-static int  lm3s_transmit(struct lm3s_driver_s *priv);
-static int  lm3s_uiptxpoll(struct uip_driver_s *dev);
+static int  lm_transmit(struct lm_driver_s *priv);
+static int  lm_uiptxpoll(struct uip_driver_s *dev);
 
 /* Interrupt handling */
 
-static void lm3s_receive(struct lm3s_driver_s *priv);
-static void lm3s_txdone(struct lm3s_driver_s *priv);
-static int  lm3s_interrupt(int irq, FAR void *context);
+static void lm_receive(struct lm_driver_s *priv);
+static void lm_txdone(struct lm_driver_s *priv);
+static int  lm_interrupt(int irq, FAR void *context);
 
 /* Watchdog timer expirations */
 
-static void lm3s_polltimer(int argc, uint32_t arg, ...);
-static void lm3s_txtimeout(int argc, uint32_t arg, ...);
+static void lm_polltimer(int argc, uint32_t arg, ...);
+static void lm_txtimeout(int argc, uint32_t arg, ...);
 
 /* NuttX callback functions */
 
-static int  lm3s_ifup(struct uip_driver_s *dev);
-static int  lm3s_ifdown(struct uip_driver_s *dev);
-static int  lm3s_txavail(struct uip_driver_s *dev);
+static int  lm_ifup(struct uip_driver_s *dev);
+static int  lm_ifdown(struct uip_driver_s *dev);
+static int  lm_txavail(struct uip_driver_s *dev);
 #ifdef CONFIG_NET_IGMP
-static int  lm3s_addmac(struct uip_driver_s *dev, FAR const uint8_t *mac);
-static int  lm3s_rmmac(struct uip_driver_s *dev, FAR const uint8_t *mac);
+static int  lm_addmac(struct uip_driver_s *dev, FAR const uint8_t *mac);
+static int  lm_rmmac(struct uip_driver_s *dev, FAR const uint8_t *mac);
 #endif
 
 /****************************************************************************
@@ -266,7 +266,7 @@ static int  lm3s_rmmac(struct uip_driver_s *dev, FAR const uint8_t *mac);
  ****************************************************************************/
 
 /****************************************************************************
- * Function: lm3s_ethin
+ * Function: lm_ethin
  *
  * Description:
  *   Read a register from the Ethernet module
@@ -281,19 +281,19 @@ static int  lm3s_rmmac(struct uip_driver_s *dev, FAR const uint8_t *mac);
  ****************************************************************************/
 
 #if LM3S_NETHCONTROLLERS > 1
-static uint32_t lm3s_ethin(struct lm3s_driver_s *priv, int offset)
+static uint32_t lm_ethin(struct lm_driver_s *priv, int offset)
 {
   return getreg32(priv->ld_base + offset);
 }
 #else
-static inline uint32_t lm3s_ethin(struct lm3s_driver_s *priv, int offset)
+static inline uint32_t lm_ethin(struct lm_driver_s *priv, int offset)
 {
   return getreg32(LM3S_ETHCON_BASE + offset);
 }
 #endif
 
 /****************************************************************************
- * Function: lm3s_ethout
+ * Function: lm_ethout
  *
  * Description:
  *   Write a register to the Ethernet module
@@ -309,19 +309,19 @@ static inline uint32_t lm3s_ethin(struct lm3s_driver_s *priv, int offset)
  ****************************************************************************/
 
 #if LM3S_NETHCONTROLLERS > 1
-static void lm3s_ethout(struct lm3s_driver_s *priv, int offset, uint32_t value)
+static void lm_ethout(struct lm_driver_s *priv, int offset, uint32_t value)
 {
   putreg32(value, priv->ld_base + offset);
 }
 #else
-static inline void lm3s_ethout(struct lm3s_driver_s *priv, int offset, uint32_t value)
+static inline void lm_ethout(struct lm_driver_s *priv, int offset, uint32_t value)
 {
   putreg32(value, LM3S_ETHCON_BASE + offset);
 }
 #endif
 
 /****************************************************************************
- * Function: lm3s_ethreset
+ * Function: lm_ethreset
  *
  * Description:
  *   Configure and reset the Ethernet module, leaving it in a disabled state.
@@ -336,7 +336,7 @@ static inline void lm3s_ethout(struct lm3s_driver_s *priv, int offset, uint32_t 
  *
  ****************************************************************************/
 
-static void lm3s_ethreset(struct lm3s_driver_s *priv)
+static void lm_ethreset(struct lm_driver_s *priv)
 {
   irqstate_t flags;
   uint32_t regval;
@@ -375,28 +375,28 @@ static void lm3s_ethreset(struct lm3s_driver_s *priv)
 
   /* Enable Port F for Ethernet LEDs: LED0=Bit 3; LED1=Bit 2 */
 
-#ifdef CONFIG_LM3S_ETHLEDS
+#ifdef CONFIG_LM_ETHLEDS
   /* Configure the pins for the peripheral function */
 
-  lm3s_configgpio(GPIO_ETHPHY_LED0 | GPIO_STRENGTH_2MA | GPIO_PADTYPE_STD);
-  lm3s_configgpio(GPIO_ETHPHY_LED1 | GPIO_STRENGTH_2MA | GPIO_PADTYPE_STD);
+  lm_configgpio(GPIO_ETHPHY_LED0 | GPIO_STRENGTH_2MA | GPIO_PADTYPE_STD);
+  lm_configgpio(GPIO_ETHPHY_LED1 | GPIO_STRENGTH_2MA | GPIO_PADTYPE_STD);
 #endif
 
   /* Disable all Ethernet controller interrupts */
 
-  regval = lm3s_ethin(priv, LM3S_MAC_IM_OFFSET);
+  regval = lm_ethin(priv, LM3S_MAC_IM_OFFSET);
   regval &= ~MAC_IM_ALLINTS;
-  lm3s_ethout(priv, LM3S_MAC_IM_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_IM_OFFSET, regval);
 
   /* Clear any pending interrupts (shouldn't be any) */
 
-  regval = lm3s_ethin(priv, LM3S_MAC_RIS_OFFSET);
-  lm3s_ethout(priv, LM3S_MAC_IACK_OFFSET, regval);
+  regval = lm_ethin(priv, LM3S_MAC_RIS_OFFSET);
+  lm_ethout(priv, LM3S_MAC_IACK_OFFSET, regval);
   irqrestore(flags);
 }
 
 /****************************************************************************
- * Function: lm3s_phywrite
+ * Function: lm_phywrite
  *
  * Description:
  *   Write a 16-bit word to a PHY register
@@ -412,31 +412,31 @@ static void lm3s_ethreset(struct lm3s_driver_s *priv)
  ****************************************************************************/
 
 #if 0 /* Not used */
-static void lm3s_phywrite(struct lm3s_driver_s *priv, int regaddr, uint16_t value)
+static void lm_phywrite(struct lm_driver_s *priv, int regaddr, uint16_t value)
 {
   /* Wait for any MII transactions in progress to complete */
 
-  while ((lm3s_ethin(priv, LM3S_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
+  while ((lm_ethin(priv, LM3S_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
 
   /* Set up the data to be written */
 
   DEBUGASSERT(value < MAC_MTXD_MASK);
-  lm3s_ethout(priv, LM3S_MAC_MTXD_OFFSET, value);
+  lm_ethout(priv, LM3S_MAC_MTXD_OFFSET, value);
 
   /* Set up the PHY register address and start the write operation */
 
   regaddr <<= MAC_MCTL_REGADR_SHIFT;
   DEBUGASSERT((regaddr & MAC_MTXD_MASK) == regaddr);
-  lm3s_ethout(priv, LM3S_MAC_MCTL_OFFSET, regaddr | MAC_MCTL_WRITE | MAC_MCTL_START);
+  lm_ethout(priv, LM3S_MAC_MCTL_OFFSET, regaddr | MAC_MCTL_WRITE | MAC_MCTL_START);
 
   /* Wait for the write transaction to complete */
 
-  while ((lm3s_ethin(priv, LM3S_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
+  while ((lm_ethin(priv, LM3S_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
 }
 #endif
 
 /****************************************************************************
- * Function: lm3s_phyread
+ * Function: lm_phyread
  *
  * Description:
  *   Write a 16-bit word to a PHY register
@@ -451,29 +451,29 @@ static void lm3s_phywrite(struct lm3s_driver_s *priv, int regaddr, uint16_t valu
  *
  ****************************************************************************/
 
-static uint16_t lm3s_phyread(struct lm3s_driver_s *priv, int regaddr)
+static uint16_t lm_phyread(struct lm_driver_s *priv, int regaddr)
 {
   /* Wait for any MII transactions in progress to complete */
 
-  while ((lm3s_ethin(priv, LM3S_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
+  while ((lm_ethin(priv, LM3S_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
 
   /* Set up the PHY register address and start the read operation */
 
   regaddr <<= MAC_MCTL_REGADR_SHIFT;
   DEBUGASSERT((regaddr & MAC_MTXD_MASK) == regaddr);
-  lm3s_ethout(priv, LM3S_MAC_MCTL_OFFSET, regaddr | MAC_MCTL_START);
+  lm_ethout(priv, LM3S_MAC_MCTL_OFFSET, regaddr | MAC_MCTL_START);
 
   /* Wait for the write transaction to complete */
 
-  while ((lm3s_ethin(priv, LM3S_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
+  while ((lm_ethin(priv, LM3S_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
 
   /* Read and return the PHY data */
 
-  return (uint16_t)(lm3s_ethin(priv, LM3S_MAC_MRXD_OFFSET) & MAC_MTRD_MASK);
+  return (uint16_t)(lm_ethin(priv, LM3S_MAC_MRXD_OFFSET) & MAC_MTRD_MASK);
 }
 
 /****************************************************************************
- * Function: lm3s_transmit
+ * Function: lm_transmit
  *
  * Description:
  *   Start hardware transmission.  Called either from the txdone interrupt
@@ -487,7 +487,7 @@ static uint16_t lm3s_phyread(struct lm3s_driver_s *priv, int regaddr)
  *
  ****************************************************************************/
 
-static int lm3s_transmit(struct lm3s_driver_s *priv)
+static int lm_transmit(struct lm_driver_s *priv)
 {
   irqstate_t flags;
   uint32_t   regval;
@@ -499,12 +499,12 @@ static int lm3s_transmit(struct lm3s_driver_s *priv)
   /* Verify that the hardware is ready to send another packet */
 
   flags = irqsave();
-  if ((lm3s_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
+  if ((lm_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
     {
       /* Increment statistics */
 
       EMAC_STAT(priv, tx_packets);
-      lm3s_dumppacket("Transmit packet", priv->ld_dev.d_buf, priv->ld_dev.d_len);
+      lm_dumppacket("Transmit packet", priv->ld_dev.d_buf, priv->ld_dev.d_len);
 
       /* Transfer the packet into the Tx FIFO.  The LS 16-bits of the first
        * 32-bit word written to the Tx FIFO contains the Ethernet payload
@@ -520,7 +520,7 @@ static int lm3s_transmit(struct lm3s_driver_s *priv)
       regval     = (uint32_t)(pktlen - 14);
       regval    |= ((uint32_t)(*dbuf++) << 16);
       regval    |= ((uint32_t)(*dbuf++) << 24);
-      lm3s_ethout(priv, LM3S_MAC_DATA_OFFSET, regval);
+      lm_ethout(priv, LM3S_MAC_DATA_OFFSET, regval);
 
       /* Write all of the whole, 32-bit values in the middle of the packet */
 
@@ -530,7 +530,7 @@ static int lm3s_transmit(struct lm3s_driver_s *priv)
            * buffer may be un-aligned.
            */
 
-          lm3s_ethout(priv, LM3S_MAC_DATA_OFFSET, *(uint32_t*)dbuf);
+          lm_ethout(priv, LM3S_MAC_DATA_OFFSET, *(uint32_t*)dbuf);
         }
 
       /* Write the last, partial word in the FIFO */
@@ -554,16 +554,16 @@ static int lm3s_transmit(struct lm3s_driver_s *priv)
                 regval |= (uint32_t)dbuf[0];
                 break;
             }
-          lm3s_ethout(priv, LM3S_MAC_DATA_OFFSET, regval);
+          lm_ethout(priv, LM3S_MAC_DATA_OFFSET, regval);
         }
 
       /* Activate the transmitter */
 
-      lm3s_ethout(priv, LM3S_MAC_TR_OFFSET, MAC_TR_NEWTX);
+      lm_ethout(priv, LM3S_MAC_TR_OFFSET, MAC_TR_NEWTX);
 
       /* Setup the TX timeout watchdog (perhaps restarting the timer) */
 
-      (void)wd_start(priv->ld_txtimeout, LM3S_TXTIMEOUT, lm3s_txtimeout, 1, (uint32_t)priv);
+      (void)wd_start(priv->ld_txtimeout, LM3S_TXTIMEOUT, lm_txtimeout, 1, (uint32_t)priv);
       ret = OK;
     }
 
@@ -572,7 +572,7 @@ static int lm3s_transmit(struct lm3s_driver_s *priv)
 }
 
 /****************************************************************************
- * Function: lm3s_uiptxpoll
+ * Function: lm_uiptxpoll
  *
  * Description:
  *   The transmitter is available, check if uIP has any outgoing packets ready
@@ -592,9 +592,9 @@ static int lm3s_transmit(struct lm3s_driver_s *priv)
  *
  ****************************************************************************/
 
-static int lm3s_uiptxpoll(struct uip_driver_s *dev)
+static int lm_uiptxpoll(struct uip_driver_s *dev)
 {
-  struct lm3s_driver_s *priv = (struct lm3s_driver_s *)dev->d_private;
+  struct lm_driver_s *priv = (struct lm_driver_s *)dev->d_private;
   int ret = OK;
 
   /* If the polling resulted in data that should be sent out on the network,
@@ -604,13 +604,13 @@ static int lm3s_uiptxpoll(struct uip_driver_s *dev)
   nllvdbg("Poll result: d_len=%d\n", priv->ld_dev.d_len);
   if (priv->ld_dev.d_len > 0)
     {
-      /* Send the packet.  lm3s_transmit() will return zero if the
+      /* Send the packet.  lm_transmit() will return zero if the
        * packet was successfully handled.
        */
 
-      DEBUGASSERT((lm3s_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
+      DEBUGASSERT((lm_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
       uip_arp_out(&priv->ld_dev);
-      ret = lm3s_transmit(priv);
+      ret = lm_transmit(priv);
     }
 
   /* If zero is returned, the polling will continue until all connections have
@@ -621,7 +621,7 @@ static int lm3s_uiptxpoll(struct uip_driver_s *dev)
 }
 
 /****************************************************************************
- * Function: lm3s_receive
+ * Function: lm_receive
  *
  * Description:
  *   An interrupt was received indicating the availability of a new RX packet
@@ -636,7 +636,7 @@ static int lm3s_uiptxpoll(struct uip_driver_s *dev)
  *
  ****************************************************************************/
 
-static void lm3s_receive(struct lm3s_driver_s *priv)
+static void lm_receive(struct lm_driver_s *priv)
 {
   uint32_t regval;
   uint8_t *dbuf;
@@ -645,7 +645,7 @@ static void lm3s_receive(struct lm3s_driver_s *priv)
 
   /* Loop while there are incoming packets to be processed */
 
-  while ((lm3s_ethin(priv, LM3S_MAC_NP_OFFSET) & MAC_NP_MASK) != 0)
+  while ((lm_ethin(priv, LM3S_MAC_NP_OFFSET) & MAC_NP_MASK) != 0)
     {
       /* Update statistics */
 
@@ -665,7 +665,7 @@ static void lm3s_receive(struct lm3s_driver_s *priv)
        * includes the len/type field (size 2) and the FCS (size 4).
        */
 
-      regval = lm3s_ethin(priv, LM3S_MAC_DATA_OFFSET);
+      regval = lm_ethin(priv, LM3S_MAC_DATA_OFFSET);
       pktlen = (int)(regval & 0x0000ffff);
       nllvdbg("Receiving packet, pktlen: %d\n", pktlen);
 
@@ -694,7 +694,7 @@ static void lm3s_receive(struct lm3s_driver_s *priv)
 
           while (wordlen--)
             {
-              (void)lm3s_ethin(priv, LM3S_MAC_DATA_OFFSET);
+              (void)lm_ethin(priv, LM3S_MAC_DATA_OFFSET);
             }
 
           /* Check for another packet */
@@ -718,7 +718,7 @@ static void lm3s_receive(struct lm3s_driver_s *priv)
            * buffer may be un-aligned.
            */
 
-          *(uint32_t*)dbuf = lm3s_ethin(priv, LM3S_MAC_DATA_OFFSET);
+          *(uint32_t*)dbuf = lm_ethin(priv, LM3S_MAC_DATA_OFFSET);
         }
 
       /* Handle the last, partial word in the FIFO (0-3 bytes) and discard
@@ -731,7 +731,7 @@ static void lm3s_receive(struct lm3s_driver_s *priv)
            * bytes of the FCS into the user buffer.
            */
 
-          regval = lm3s_ethin(priv, LM3S_MAC_DATA_OFFSET);
+          regval = lm_ethin(priv, LM3S_MAC_DATA_OFFSET);
           switch (bytesleft)
             {
               default:
@@ -752,7 +752,7 @@ static void lm3s_receive(struct lm3s_driver_s *priv)
        */
 
       priv->ld_dev.d_len = pktlen - 6;
-      lm3s_dumppacket("Received packet", priv->ld_dev.d_buf, priv->ld_dev.d_len);
+      lm_dumppacket("Received packet", priv->ld_dev.d_buf, priv->ld_dev.d_len);
 
       /* We only accept IP packets of the configured type and ARP packets */
 
@@ -775,7 +775,7 @@ static void lm3s_receive(struct lm3s_driver_s *priv)
           if (priv->ld_dev.d_len > 0)
             {
               uip_arp_out(&priv->ld_dev);
-              lm3s_transmit(priv);
+              lm_transmit(priv);
             }
         }
       else if (ETHBUF->type == htons(UIP_ETHTYPE_ARP))
@@ -791,7 +791,7 @@ static void lm3s_receive(struct lm3s_driver_s *priv)
 
            if (priv->ld_dev.d_len > 0)
              {
-               lm3s_transmit(priv);
+               lm_transmit(priv);
              }
         }
 #ifdef CONFIG_DEBUG
@@ -805,7 +805,7 @@ static void lm3s_receive(struct lm3s_driver_s *priv)
 }
 
 /****************************************************************************
- * Function: lm3s_txdone
+ * Function: lm_txdone
  *
  * Description:
  *   An interrupt was received indicating that the last TX packet(s) is done
@@ -820,7 +820,7 @@ static void lm3s_receive(struct lm3s_driver_s *priv)
  *
  ****************************************************************************/
 
-static void lm3s_txdone(struct lm3s_driver_s *priv)
+static void lm_txdone(struct lm_driver_s *priv)
 {
   /* Cancel the TX timeout */
 
@@ -834,15 +834,15 @@ static void lm3s_txdone(struct lm3s_driver_s *priv)
    * at this point.
    */
 
-  DEBUGASSERT((lm3s_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
+  DEBUGASSERT((lm_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
 
   /* Then poll uIP for new XMIT data */
 
-  (void)uip_poll(&priv->ld_dev, lm3s_uiptxpoll);
+  (void)uip_poll(&priv->ld_dev, lm_uiptxpoll);
 }
 
 /****************************************************************************
- * Function: lm3s_interrupt
+ * Function: lm_interrupt
  *
  * Description:
  *   Hardware interrupt handler
@@ -858,9 +858,9 @@ static void lm3s_txdone(struct lm3s_driver_s *priv)
  *
  ****************************************************************************/
 
-static int lm3s_interrupt(int irq, FAR void *context)
+static int lm_interrupt(int irq, FAR void *context)
 {
-  register struct lm3s_driver_s *priv;
+  register struct lm_driver_s *priv;
   uint32_t ris;
 
 #if LM3S_NETHCONTROLLERS > 1
@@ -871,11 +871,11 @@ static int lm3s_interrupt(int irq, FAR void *context)
 
   /* Read the raw interrupt status register */
 
-  ris = lm3s_ethin(priv, LM3S_MAC_RIS_OFFSET);
+  ris = lm_ethin(priv, LM3S_MAC_RIS_OFFSET);
 
   /* Clear all pending interrupts */
 
-  lm3s_ethout(priv, LM3S_MAC_IACK_OFFSET, ris);
+  lm_ethout(priv, LM3S_MAC_IACK_OFFSET, ris);
 
   /* Check for errors */
 
@@ -898,7 +898,7 @@ static int lm3s_interrupt(int irq, FAR void *context)
 
   /* Handle (unmasked) interrupts according to status bit settings */
 
-  ris &= lm3s_ethin(priv, LM3S_MAC_IM_OFFSET);
+  ris &= lm_ethin(priv, LM3S_MAC_IM_OFFSET);
 
   /* Is this an Rx interrupt (meaning that a packet has been received)? */
 
@@ -907,7 +907,7 @@ static int lm3s_interrupt(int irq, FAR void *context)
       /* Handle the incoming packet */
 
       EMAC_STAT(priv, rx_int);
-      lm3s_receive(priv);
+      lm_receive(priv);
     }
 
   /* Is this an Tx interrupt (meaning that the Tx FIFO is empty)? */
@@ -917,7 +917,7 @@ static int lm3s_interrupt(int irq, FAR void *context)
        /* Handle the complete of the transmission */
 
       EMAC_STAT(priv, tx_int);
-      lm3s_txdone(priv);
+      lm_txdone(priv);
     }
 
   /* Enable Ethernet interrupts (perhaps excluding the TX done interrupt if 
@@ -928,7 +928,7 @@ static int lm3s_interrupt(int irq, FAR void *context)
 }
 
 /****************************************************************************
- * Function: lm3s_txtimeout
+ * Function: lm_txtimeout
  *
  * Description:
  *   Our TX watchdog timed out.  Called from the timer interrupt handler.
@@ -945,9 +945,9 @@ static int lm3s_interrupt(int irq, FAR void *context)
  *
  ****************************************************************************/
 
-static void lm3s_txtimeout(int argc, uint32_t arg, ...)
+static void lm_txtimeout(int argc, uint32_t arg, ...)
 {
-  struct lm3s_driver_s *priv = (struct lm3s_driver_s *)arg;
+  struct lm_driver_s *priv = (struct lm_driver_s *)arg;
 
   /* Increment statistics */
 
@@ -957,16 +957,16 @@ static void lm3s_txtimeout(int argc, uint32_t arg, ...)
   /* Then reset the hardware */
 
   DEBUGASSERT(priv->ld_bifup);
-  lm3s_ifdown(&priv->ld_dev);
-  lm3s_ifup(&priv->ld_dev);
+  lm_ifdown(&priv->ld_dev);
+  lm_ifup(&priv->ld_dev);
 
   /* Then poll uIP for new XMIT data */
 
-  (void)uip_poll(&priv->ld_dev, lm3s_uiptxpoll);
+  (void)uip_poll(&priv->ld_dev, lm_uiptxpoll);
 }
 
 /****************************************************************************
- * Function: lm3s_polltimer
+ * Function: lm_polltimer
  *
  * Description:
  *   Periodic timer handler.  Called from the timer interrupt handler.
@@ -982,9 +982,9 @@ static void lm3s_txtimeout(int argc, uint32_t arg, ...)
  *
  ****************************************************************************/
 
-static void lm3s_polltimer(int argc, uint32_t arg, ...)
+static void lm_polltimer(int argc, uint32_t arg, ...)
 {
-  struct lm3s_driver_s *priv = (struct lm3s_driver_s *)arg;
+  struct lm_driver_s *priv = (struct lm_driver_s *)arg;
 
   /* Check if we can send another Tx packet now.  The NEWTX bit initiates an
    * Ethernet transmission once the packet has been placed in the TX FIFO.
@@ -994,20 +994,20 @@ static void lm3s_polltimer(int argc, uint32_t arg, ...)
    * inaccuracies.
    */
 
-  if ((lm3s_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
+  if ((lm_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
     {
       /* If so, update TCP timing states and poll uIP for new XMIT data */
 
-      (void)uip_timer(&priv->ld_dev, lm3s_uiptxpoll, LM3S_POLLHSEC);
+      (void)uip_timer(&priv->ld_dev, lm_uiptxpoll, LM3S_POLLHSEC);
 
       /* Setup the watchdog poll timer again */
 
-      (void)wd_start(priv->ld_txpoll, LM3S_WDDELAY, lm3s_polltimer, 1, arg);
+      (void)wd_start(priv->ld_txpoll, LM3S_WDDELAY, lm_polltimer, 1, arg);
     }
 }
 
 /****************************************************************************
- * Function: lm3s_ifup
+ * Function: lm_ifup
  *
  * Description:
  *   NuttX Callback: Bring up the Ethernet interface when an IP address is
@@ -1023,9 +1023,9 @@ static void lm3s_polltimer(int argc, uint32_t arg, ...)
  *
  ****************************************************************************/
 
-static int lm3s_ifup(struct uip_driver_s *dev)
+static int lm_ifup(struct uip_driver_s *dev)
 {
-  struct lm3s_driver_s *priv = (struct lm3s_driver_s *)dev->d_private;
+  struct lm_driver_s *priv = (struct lm_driver_s *)dev->d_private;
   irqstate_t flags;
   uint32_t regval;
   uint32_t div;
@@ -1038,7 +1038,7 @@ static int lm3s_ifup(struct uip_driver_s *dev)
   /* Enable and reset the Ethernet controller */
 
   flags = irqsave();
-  lm3s_ethreset(priv);
+  lm_ethreset(priv);
 
   /* Set the management clock divider register for access to the PHY
    * register set. The MDC clock is divided down from the system clock per:
@@ -1051,7 +1051,7 @@ static int lm3s_ifup(struct uip_driver_s *dev)
    */
 
   div = SYSCLK_FREQUENCY / 2 / LM32S_MAX_MDCCLK;
-  lm3s_ethout(priv, LM3S_MAC_MDV_OFFSET, div);
+  lm_ethout(priv, LM3S_MAC_MDV_OFFSET, div);
   nllvdbg("MDV:   %08x\n", div);
 
   /* Then configure the Ethernet Controller for normal operation 
@@ -1060,32 +1060,32 @@ static int lm3s_ifup(struct uip_driver_s *dev)
    * TX Padding Enabled).
    */
 
-  regval  = lm3s_ethin(priv, LM3S_MAC_TCTL_OFFSET);
+  regval  = lm_ethin(priv, LM3S_MAC_TCTL_OFFSET);
   regval &= ~LM3S_TCTCL_CLRBITS;
   regval |= LM3S_TCTCL_SETBITS;
-  lm3s_ethout(priv, LM3S_MAC_TCTL_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_TCTL_OFFSET, regval);
   nllvdbg("TCTL:  %08x\n", regval);
 
   /* Setup the receive control register (Disable multicast frames, disable
    * promiscuous mode, disable bad CRC rejection).
    */
 
-  regval  = lm3s_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
   regval &= ~LM3S_RCTCL_CLRBITS;
   regval |= LM3S_RCTCL_SETBITS;
-  lm3s_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
   nllvdbg("RCTL:  %08x\n", regval);
 
   /* Setup the time stamp configuration register */
 
 #ifdef LM3S_ETHTS
-  regval = lm3s_ethin(priv, LM3S_MAC_TS_OFFSET);
-#ifdef CONFIG_LM3S_TIMESTAMP
+  regval = lm_ethin(priv, LM3S_MAC_TS_OFFSET);
+#ifdef CONFIG_LM_TIMESTAMP
   regval |= MAC_TS_EN;
 #else
   regval &= ~(MAC_TS_EN);
 #endif
-  lm3s_ethout(priv, LM3S_MAC_TS_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_TS_OFFSET, regval);
   nllvdbg("TS:    %08x\n", regval);
 #endif
 
@@ -1098,34 +1098,34 @@ static int lm3s_ifup(struct uip_driver_s *dev)
   nlldbg("Waiting for link\n");
   do
     {
-      phyreg = lm3s_phyread(priv, MII_MSR);
+      phyreg = lm_phyread(priv, MII_MSR);
     }
   while ((phyreg & MII_MSR_LINKSTATUS) == 0);
   nlldbg("Link established\n");
 
   /* Reset the receive FIFO */
 
-  regval  = lm3s_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
   regval |= MAC_RCTL_RSTFIFO;
-  lm3s_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
 
   /* Enable the Ethernet receiver */
 
-  regval  = lm3s_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
   regval |= MAC_RCTL_RXEN;
-  lm3s_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
 
   /* Enable the Ethernet transmitter */
 
-  regval  = lm3s_ethin(priv, LM3S_MAC_TCTL_OFFSET);
+  regval  = lm_ethin(priv, LM3S_MAC_TCTL_OFFSET);
   regval |= MAC_TCTL_TXEN;
-  lm3s_ethout(priv, LM3S_MAC_TCTL_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_TCTL_OFFSET, regval);
 
   /* Reset the receive FIFO (again) */
 
-  regval  = lm3s_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
   regval |= MAC_RCTL_RSTFIFO;
-  lm3s_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
 
   /* Enable the Ethernet interrupt */
 
@@ -1137,9 +1137,9 @@ static int lm3s_ifup(struct uip_driver_s *dev)
 
   /* Enable the Ethernet RX packet receipt interrupt */
 
-  regval = lm3s_ethin(priv, LM3S_MAC_IM_OFFSET);
+  regval = lm_ethin(priv, LM3S_MAC_IM_OFFSET);
   regval |= MAC_IM_RXINTM;
-  lm3s_ethout(priv, LM3S_MAC_IM_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_IM_OFFSET, regval);
 
   /* Program the hardware with it's MAC address (for filtering) */
 
@@ -1147,15 +1147,15 @@ static int lm3s_ifup(struct uip_driver_s *dev)
            (uint32_t)priv->ld_dev.d_mac.ether_addr_octet[2] << 16 |
            (uint32_t)priv->ld_dev.d_mac.ether_addr_octet[1] << 8 |
            (uint32_t)priv->ld_dev.d_mac.ether_addr_octet[0];
-  lm3s_ethout(priv, LM3S_MAC_IA0_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_IA0_OFFSET, regval);
 
   regval = (uint32_t)priv->ld_dev.d_mac.ether_addr_octet[5] << 8 |
            (uint32_t)priv->ld_dev.d_mac.ether_addr_octet[4];
-  lm3s_ethout(priv, LM3S_MAC_IA1_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_IA1_OFFSET, regval);
 
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->ld_txpoll, LM3S_WDDELAY, lm3s_polltimer, 1, (uint32_t)priv);
+  (void)wd_start(priv->ld_txpoll, LM3S_WDDELAY, lm_polltimer, 1, (uint32_t)priv);
 
   priv->ld_bifup = true;
   irqrestore(flags);
@@ -1163,11 +1163,11 @@ static int lm3s_ifup(struct uip_driver_s *dev)
 }
 
 /****************************************************************************
- * Function: lm3s_ifdown
+ * Function: lm_ifdown
  *
  * Description:
  *   NuttX Callback: Stop the interface.  The only way to restore normal
- *   behavior is to call lm3s_ifup().
+ *   behavior is to call lm_ifup().
  *
  * Parameters:
  *   dev  - Reference to the NuttX driver state structure
@@ -1179,9 +1179,9 @@ static int lm3s_ifup(struct uip_driver_s *dev)
  *
  ****************************************************************************/
 
-static int lm3s_ifdown(struct uip_driver_s *dev)
+static int lm_ifdown(struct uip_driver_s *dev)
 {
-  struct lm3s_driver_s *priv = (struct lm3s_driver_s *)dev->d_private;
+  struct lm_driver_s *priv = (struct lm_driver_s *)dev->d_private;
   irqstate_t flags;
   uint32_t regval;
 
@@ -1205,38 +1205,38 @@ static int lm3s_ifdown(struct uip_driver_s *dev)
 
   /* Disable all Ethernet controller interrupt sources */
 
-  regval = lm3s_ethin(priv, LM3S_MAC_IM_OFFSET);
+  regval = lm_ethin(priv, LM3S_MAC_IM_OFFSET);
   regval &= ~MAC_IM_ALLINTS;
-  lm3s_ethout(priv, LM3S_MAC_IM_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_IM_OFFSET, regval);
 
   /* Reset the receive FIFO */
 
-  regval  = lm3s_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
   regval |= MAC_RCTL_RSTFIFO;
-  lm3s_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
 
   /* Disable the Ethernet receiver */
 
-  regval  = lm3s_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
   regval &= ~MAC_RCTL_RXEN;
-  lm3s_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
 
   /* Disable the Ethernet transmitter */
 
-  regval  = lm3s_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
   regval &= ~MAC_TCTL_TXEN;
-  lm3s_ethout(priv, LM3S_MAC_TCTL_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_TCTL_OFFSET, regval);
 
   /* Reset the receive FIFO (again) */
 
-  regval  = lm3s_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
   regval |= MAC_RCTL_RSTFIFO;
-  lm3s_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
 
   /* Clear any pending interrupts */
 
-  regval = lm3s_ethin(priv, LM3S_MAC_RIS_OFFSET);
-  lm3s_ethout(priv, LM3S_MAC_IACK_OFFSET, regval);
+  regval = lm_ethin(priv, LM3S_MAC_RIS_OFFSET);
+  lm_ethout(priv, LM3S_MAC_IACK_OFFSET, regval);
 
   /* The interface is now DOWN */
 
@@ -1246,7 +1246,7 @@ static int lm3s_ifdown(struct uip_driver_s *dev)
 }
 
 /****************************************************************************
- * Function: lm3s_txavail
+ * Function: lm_txavail
  *
  * Description:
  *   Driver callback invoked when new TX data is available.  This is a 
@@ -1264,27 +1264,27 @@ static int lm3s_ifdown(struct uip_driver_s *dev)
  *
  ****************************************************************************/
 
-static int lm3s_txavail(struct uip_driver_s *dev)
+static int lm_txavail(struct uip_driver_s *dev)
 {
-  struct lm3s_driver_s *priv = (struct lm3s_driver_s *)dev->d_private;
+  struct lm_driver_s *priv = (struct lm_driver_s *)dev->d_private;
   irqstate_t flags;
 
   /* Ignore the notification if the interface is not yet up or if the Tx FIFO
    * hardware is not available at this time.  The NEWTX bit initiates an
    * Ethernet transmission once the packet has been placed in the TX FIFO.
    * This bit is cleared once the transmission has been completed.  When the
-   * transmission completes, lm3s_txdone() will be called and the Tx polling
+   * transmission completes, lm_txdone() will be called and the Tx polling
    * will occur at that time.
    */
 
   flags = irqsave();
-  if (priv->ld_bifup && (lm3s_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
+  if (priv->ld_bifup && (lm_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
     {
       /* If the interface is up and we can use the Tx FIFO, then poll uIP
        * for new Tx data
        */
 
-      (void)uip_poll(&priv->ld_dev, lm3s_uiptxpoll);
+      (void)uip_poll(&priv->ld_dev, lm_uiptxpoll);
     }
 
   irqrestore(flags);
@@ -1292,7 +1292,7 @@ static int lm3s_txavail(struct uip_driver_s *dev)
 }
 
 /****************************************************************************
- * Function: lm3s_addmac
+ * Function: lm_addmac
  *
  * Description:
  *   NuttX Callback: Add the specified MAC address to the hardware multicast
@@ -1310,9 +1310,9 @@ static int lm3s_txavail(struct uip_driver_s *dev)
  ****************************************************************************/
 
 #ifdef CONFIG_NET_IGMP
-static int lm3s_addmac(struct uip_driver_s *dev, FAR const uint8_t *mac)
+static int lm_addmac(struct uip_driver_s *dev, FAR const uint8_t *mac)
 {
-  FAR struct lm3s_driver_s *priv = (FAR struct lm3s_driver_s *)dev->d_private;
+  FAR struct lm_driver_s *priv = (FAR struct lm_driver_s *)dev->d_private;
 
   /* Add the MAC address to the hardware multicast routing table */
 
@@ -1322,7 +1322,7 @@ static int lm3s_addmac(struct uip_driver_s *dev, FAR const uint8_t *mac)
 #endif
 
 /****************************************************************************
- * Function: lm3s_rmmac
+ * Function: lm_rmmac
  *
  * Description:
  *   NuttX Callback: Remove the specified MAC address from the hardware multicast
@@ -1340,9 +1340,9 @@ static int lm3s_addmac(struct uip_driver_s *dev, FAR const uint8_t *mac)
  ****************************************************************************/
 
 #ifdef CONFIG_NET_IGMP
-static int lm3s_rmmac(struct uip_driver_s *dev, FAR const uint8_t *mac)
+static int lm_rmmac(struct uip_driver_s *dev, FAR const uint8_t *mac)
 {
-  FAR struct lm3s_driver_s *priv = (FAR struct lm3s_driver_s *)dev->d_private;
+  FAR struct lm_driver_s *priv = (FAR struct lm_driver_s *)dev->d_private;
 
   /* Add the MAC address to the hardware multicast routing table */
 
@@ -1356,7 +1356,7 @@ static int lm3s_rmmac(struct uip_driver_s *dev, FAR const uint8_t *mac)
  ****************************************************************************/
 
 /****************************************************************************
- * Function: lm3s_ethinitialize
+ * Function: lm_ethinitialize
  *
  * Description:
  *   Initialize the Ethernet driver for one interface
@@ -1372,12 +1372,12 @@ static int lm3s_rmmac(struct uip_driver_s *dev, FAR const uint8_t *mac)
  ****************************************************************************/
 
 #if LM3S_NETHCONTROLLERS > 1
-int lm3s_ethinitialize(int intf)
+int lm_ethinitialize(int intf)
 #else
-static inline int lm3s_ethinitialize(int intf)
+static inline int lm_ethinitialize(int intf)
 #endif
 {
-  struct lm3s_driver_s *priv = &g_lm3sdev[intf];
+  struct lm_driver_s *priv = &g_lm3sdev[intf];
   int ret;
 
   /* Check if the Ethernet module is present */
@@ -1393,49 +1393,49 @@ static inline int lm3s_ethinitialize(int intf)
 
   /* Initialize the driver structure */
 
-  memset(priv, 0, sizeof(struct lm3s_driver_s));
-  priv->ld_dev.d_ifup    = lm3s_ifup;     /* I/F down callback */
-  priv->ld_dev.d_ifdown  = lm3s_ifdown;   /* I/F up (new IP address) callback */
-  priv->ld_dev.d_txavail = lm3s_txavail;  /* New TX data callback */
+  memset(priv, 0, sizeof(struct lm_driver_s));
+  priv->ld_dev.d_ifup    = lm_ifup;     /* I/F down callback */
+  priv->ld_dev.d_ifdown  = lm_ifdown;   /* I/F up (new IP address) callback */
+  priv->ld_dev.d_txavail = lm_txavail;  /* New TX data callback */
 #ifdef CONFIG_NET_IGMP
-  priv->ld_dev.d_addmac  = lm3s_addmac;   /* Add multicast MAC address */
-  priv->ld_dev.d_rmmac   = lm3s_rmmac;    /* Remove multicast MAC address */
+  priv->ld_dev.d_addmac  = lm_addmac;   /* Add multicast MAC address */
+  priv->ld_dev.d_rmmac   = lm_rmmac;    /* Remove multicast MAC address */
 #endif
-  priv->ld_dev.d_private = (void*)priv;   /* Used to recover private state from dev */
+  priv->ld_dev.d_private = (void*)priv; /* Used to recover private state from dev */
 
   /* Create a watchdog for timing polling for and timing of transmisstions */
 
 #if LM3S_NETHCONTROLLERS > 1
 # error "A mechanism to associate base address an IRQ with an interface is needed"
-  priv->ld_base          = ??;            /* Ethernet controller base address */
-  priv->ld_irq           = ??;            /* Ethernet controller IRQ number */
+  priv->ld_base          = ??;          /* Ethernet controller base address */
+  priv->ld_irq           = ??;          /* Ethernet controller IRQ number */
 #endif
-  priv->ld_txpoll        = wd_create();   /* Create periodic poll timer */
-  priv->ld_txtimeout     = wd_create();   /* Create TX timeout timer */
+  priv->ld_txpoll        = wd_create(); /* Create periodic poll timer */
+  priv->ld_txtimeout     = wd_create(); /* Create TX timeout timer */
 
   /* If the board can provide us with a MAC address, get the address
-   * from the board now.  The MAC will not be applied until lm3s_ifup()
+   * from the board now.  The MAC will not be applied until lm_ifup()
    * is caleld (and the MAC can be overwritten with a netdev ioctl call). 
    */
 
-#ifdef CONFIG_LM3S_BOARDMAC
-   lm3s_ethernetmac(&priv->ld_dev.d_mac);
+#ifdef CONFIG_LM_BOARDMAC
+   lm_ethernetmac(&priv->ld_dev.d_mac);
 #endif
 
   /* Perform minimal, one-time initialization -- just reset the controller and
    * leave it disabled.  The Ethernet controller will be reset and properly
-   * re-initialized each time lm3s_ifup() is called.
+   * re-initialized each time lm_ifup() is called.
    */
 
-  lm3s_ethreset(priv);
-  lm3s_ifdown(&priv->ld_dev);
+  lm_ethreset(priv);
+  lm_ifdown(&priv->ld_dev);
 
   /* Attach the IRQ to the driver */
 
 #if LM3S_NETHCONTROLLERS > 1
-  ret = irq_attach(priv->irq, lm3s_interrupt);
+  ret = irq_attach(priv->irq, lm_interrupt);
 #else
-  ret = irq_attach(LM3S_IRQ_ETHCON, lm3s_interrupt);
+  ret = irq_attach(LM3S_IRQ_ETHCON, lm_interrupt);
 #endif
   if (ret != 0)
     {
@@ -1464,9 +1464,9 @@ static inline int lm3s_ethinitialize(int intf)
 #if LM3S_NETHCONTROLLERS == 1
 void up_netinitialize(void)
 {
-  (void)lm3s_ethinitialize(0);
+  (void)lm_ethinitialize(0);
 }
 #endif
 
-#endif /* CONFIG_NET && CONFIG_LM3S_ETHERNET */
+#endif /* CONFIG_NET && CONFIG_LM_ETHERNET */
 

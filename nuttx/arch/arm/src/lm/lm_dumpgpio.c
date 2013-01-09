@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/lm/lm3s_dumpgpio.c
+ * arch/arm/src/lm/lm_dumpgpio.c
  *
  *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -58,7 +58,7 @@
  * Private Types
  ****************************************************************************/
 
-/* NOTE: this is duplicated in lm3s_gpio.c */
+/* NOTE: this is duplicated in lm_gpio.c */
 
 #ifdef LM3S_GPIOH_BASE
 static const uint32_t g_gpiobase[8] =
@@ -83,7 +83,7 @@ static const char g_portchar[8]   = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', '?' };
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lm3s_gpiobaseaddress
+ * Name: lm_gpiobaseaddress
  *
  * Description:
  *   Given a GPIO enumeration value, return the base address of the
@@ -91,13 +91,13 @@ static const char g_portchar[8]   = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', '?' };
  *
  ****************************************************************************/
 
-static inline uint32_t lm3s_gpiobaseaddress(int port)
+static inline uint32_t lm_gpiobaseaddress(int port)
 {
   return g_gpiobase[port & 7];
 }
 
 /****************************************************************************
- * Name: lm3s_gpioport
+ * Name: lm_gpioport
  *
  * Description:
  *   Given a GPIO enumeration value, return the base address of the
@@ -105,7 +105,7 @@ static inline uint32_t lm3s_gpiobaseaddress(int port)
  *
  ****************************************************************************/
 
-static inline uint8_t lm3s_gpioport(int port)
+static inline uint8_t lm_gpioport(int port)
 {
   return g_portchar[port & 7];
 }
@@ -115,14 +115,14 @@ static inline uint8_t lm3s_gpioport(int port)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  lm3s_dumpgpio
+ * Function:  lm_dumpgpio
  *
  * Description:
  *   Dump all GPIO registers associated with the provided base address
  *
  ****************************************************************************/
 
-int lm3s_dumpgpio(uint32_t pinset, const char *msg)
+int lm_dumpgpio(uint32_t pinset, const char *msg)
 {
   irqstate_t   flags;
   unsigned int port = (pinset & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT;
@@ -132,7 +132,7 @@ int lm3s_dumpgpio(uint32_t pinset, const char *msg)
 
   /* Get the base address associated with the GPIO port */
 
-  base = lm3s_gpiobaseaddress(port);
+  base = lm_gpiobaseaddress(port);
   DEBUGASSERT(base != 0);
 
   /* The following requires exclusive access to the GPIO registers */
@@ -142,7 +142,7 @@ int lm3s_dumpgpio(uint32_t pinset, const char *msg)
   enabled = ((rcgc2 & SYSCON_RCGC2_GPIO(port)) != 0);
 
   lldbg("GPIO%c pinset: %08x base: %08x -- %s\n",
-        lm3s_gpioport(port), pinset, base, msg);
+        lm_gpioport(port), pinset, base, msg);
   lldbg("  RCGC2: %08x (%s)\n",
         rcgc2, enabled ? "enabled" : "disabled" );
 

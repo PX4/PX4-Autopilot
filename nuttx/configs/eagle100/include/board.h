@@ -112,7 +112,7 @@
 #ifndef __ASSEMBLY__
 
 /************************************************************************************
- * Name: lm3s_boardinitialize
+ * Name: lm_boardinitialize
  *
  * Description:
  *   All LM3S architectures must provide the following entry point.  This entry point
@@ -121,21 +121,21 @@
  *
  ************************************************************************************/
 
-extern void lm3s_boardinitialize(void);
+extern void lm_boardinitialize(void);
 
 /************************************************************************************
- * Name: lm3s_ethernetmac
+ * Name: lm_ethernetmac
  *
  * Description:
  *   For the Ethernet Eval Kits, the MAC address will be stored in the non-volatile
- *   USER0 and USER1 registers.  If CONFIG_LM3S_BOARDMAC is defined, this function
+ *   USER0 and USER1 registers.  If CONFIG_LM_BOARDMAC is defined, this function
  *   will obtain the MAC address from these registers.
  *
  ************************************************************************************/
 
-#ifdef CONFIG_LM3S_BOARDMAC
+#ifdef CONFIG_LM_BOARDMAC
 struct ether_addr;
-extern void lm3s_ethernetmac(struct ether_addr *ethaddr);
+extern void lm_ethernetmac(struct ether_addr *ethaddr);
 #endif
 
 #endif /* __ASSEMBLY__ */

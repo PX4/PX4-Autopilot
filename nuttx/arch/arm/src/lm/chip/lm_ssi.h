@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lm/chip/lm3s_ssi.h
+ * arch/arm/src/lm/chip/lm_ssi.h
  *
  *   Copyright (C) 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

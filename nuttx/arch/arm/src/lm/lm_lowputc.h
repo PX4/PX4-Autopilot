@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lm/lm3s_lowputc.h
+ * arch/arm/src/lm/lm_lowputc.h
  *
  *   Copyright (C) 2009-2010, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

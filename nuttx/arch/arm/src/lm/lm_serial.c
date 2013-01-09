@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/lm/lm3s_serial.c
+ * arch/arm/src/lm/lm_serial.c
  *
  *   Copyright (C) 2009-2010, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -67,32 +67,32 @@
 /* Some sanity checks *******************************************************/
 
 #if LM3S_NUARTS < 2
-#  undef  CONFIG_LM3S_UART1
+#  undef  CONFIG_LM_UART1
 #  undef  CONFIG_UART1_SERIAL_CONSOLE
 #endif
 
 #if LM3S_NUARTS < 3
-#  undef  CONFIG_LM3S_UART2
+#  undef  CONFIG_LM_UART2
 #  undef  CONFIG_UART2_SERIAL_CONSOLE
 #endif
 
 /* Is there a UART enabled? */
 
-#if !defined(CONFIG_LM3S_UART0) && !defined(CONFIG_LM3S_UART1) && !defined(CONFIG_LM3S_UART2)
+#if !defined(CONFIG_LM_UART0) && !defined(CONFIG_LM_UART1) && !defined(CONFIG_LM_UART2)
 #  error "No UARTs enabled"
 #endif
 
 /* Is there a serial console? */
 
-#if defined(CONFIG_UART0_SERIAL_CONSOLE) && defined(CONFIG_LM3S_UART0)
+#if defined(CONFIG_UART0_SERIAL_CONSOLE) && defined(CONFIG_LM_UART0)
 #  undef CONFIG_UART1_SERIAL_CONSOLE
 #  undef CONFIG_UART2_SERIAL_CONSOLE
 #  define HAVE_CONSOLE 1
-#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && defined(CONFIG_LM3S_UART1)
+#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && defined(CONFIG_LM_UART1)
 #  undef CONFIG_UART0_SERIAL_CONSOLE
 #  undef CONFIG_UART2_SERIAL_CONSOLE
 #  define HAVE_CONSOLE 1
-#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && defined(CONFIG_LM3S_UART2)
+#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && defined(CONFIG_LM_UART2)
 #  undef CONFIG_UART0_SERIAL_CONSOLE
 #  undef CONFIG_UART1_SERIAL_CONSOLE
 #  define HAVE_CONSOLE 1
@@ -115,16 +115,16 @@
 #if defined(CONFIG_UART0_SERIAL_CONSOLE)
 #  define CONSOLE_DEV     g_uart0port     /* UART0 is console */
 #  define TTYS0_DEV       g_uart0port     /* UART0 is ttyS0 */
-#  ifdef CONFIG_LM3S_UART1
+#  ifdef CONFIG_LM_UART1
 #    define TTYS1_DEV     g_uart1port     /* UART1 is ttyS1 */
-#    ifdef CONFIG_LM3S_UART2
+#    ifdef CONFIG_LM_UART2
 #      define TTYS2_DEV   g_uart2port     /* UART2 is ttyS2 */
 #    else
 #      undef TTYS2_DEV                    /* No ttyS2 */
 #    endif
 #  else
 #    undef TTYS2_DEV                      /* No ttyS2 */
-#    ifdef CONFIG_LM3S_UART2
+#    ifdef CONFIG_LM_UART2
 #      define TTYS1_DEV   g_uart2port     /* UART2 is ttyS1 */
 #    else
 #      undef TTYS1_DEV                    /* No ttyS1 */
@@ -133,16 +133,16 @@
 #elif defined(CONFIG_UART1_SERIAL_CONSOLE)
 #  define CONSOLE_DEV     g_uart1port     /* UART1 is console */
 #  define TTYS0_DEV       g_uart1port     /* UART1 is ttyS0 */
-#  ifdef CONFIG_LM3S_UART0
+#  ifdef CONFIG_LM_UART0
 #    define TTYS1_DEV     g_uart0port     /* UART0 is ttyS1 */
-#    ifdef CONFIG_LM3S_UART2
+#    ifdef CONFIG_LM_UART2
 #      define TTYS2_DEV   g_uart2port     /* UART2 is ttyS2 */
 #    else
 #      undef TTYS2_DEV                    /* No ttyS2 */
 #    endif
 #  else
 #    undef TTYS2_DEV                      /* No ttyS2 */
-#    ifdef CONFIG_LM3S_UART2
+#    ifdef CONFIG_LM_UART2
 #      define TTYS1_DEV   g_uart2port     /* UART2 is ttyS1 */
 #    else
 #      undef TTYS1_DEV                    /* No ttyS1 */
@@ -151,49 +151,49 @@
 #elif defined(CONFIG_UART2_SERIAL_CONSOLE)
 #  define CONSOLE_DEV     g_uart2port     /* UART2 is console */
 #  define TTYS0_DEV       g_uart2port     /* UART2 is ttyS0 */
-#  ifdef CONFIG_LM3S_UART0
+#  ifdef CONFIG_LM_UART0
 #    define TTYS1_DEV     g_uart0port     /* UART0 is ttyS1 */
-#    ifdef CONFIG_LM3S_UART2
+#    ifdef CONFIG_LM_UART2
 #      define TTYS2_DEV   g_uart2port     /* UART2 is ttyS2 */
 #    else
 #      undef TTYS2_DEV                    /* No ttyS2 */
 #    endif
 #  else
 #    undef TTYS2_DEV                      /* No ttyS2 */
-#    ifdef CONFIG_LM3S_UART2
+#    ifdef CONFIG_LM_UART2
 #      define TTYS1_DEV   g_uart2port     /* UART2 is ttyS1 */
 #    else
 #      undef TTYS1_DEV                    /* No ttyS1 */
 #    endif
 #  endif
-#elifdefined(CONFIG_LM3S_UART0)
+#elifdefined(CONFIG_LM_UART0)
 #  undef  CONSOLE_DEV                     /* No console device */
 #  define TTYS0_DEV       g_uart1port     /* UART1 is ttyS0 */
-#  ifdef CONFIG_LM3S_UART1
+#  ifdef CONFIG_LM_UART1
 #    define TTYS1_DEV     g_uart1port     /* UART1 is ttyS1 */
-#    ifdef CONFIG_LM3S_UART2
+#    ifdef CONFIG_LM_UART2
 #      define TTYS2_DEV   g_uart2port     /* UART2 is ttyS2 */
 #    else
 #      undef TTYS2_DEV                    /* No ttyS2 */
 #    endif
 #  else
 #    undef TTYS2_DEV                      /* No ttyS2 */
-#    ifdef CONFIG_LM3S_UART2
+#    ifdef CONFIG_LM_UART2
 #      define TTYS1_DEV   g_uart2port     /* UART2 is ttyS1 */
 #    else
 #      undef TTYS1_DEV                    /* No ttyS1 */
 #    endif
 #  endif
-#elifdefined(CONFIG_LM3S_UART1)
+#elifdefined(CONFIG_LM_UART1)
 #  undef  CONSOLE_DEV                     /* No console device */
 #  define TTYS0_DEV       g_uart1port     /* UART1 is ttyS0 */
 #  undef TTYS2_DEV                        /* No ttyS2 */
-#  ifdef CONFIG_LM3S_UART2
+#  ifdef CONFIG_LM_UART2
 #    define TTYS1_DEV     g_uart2port     /* UART2 is ttyS1 */
 #  else
 #    undef TTYS1_DEV                      /* No ttyS1 */
 #  endif
-#elifdefined(CONFIG_LM3S_UART2)
+#elifdefined(CONFIG_LM_UART2)
 #  undef  CONSOLE_DEV                     /* No console device */
 #  define TTYS0_DEV       g_uart2port     /* UART2 is ttyS0 */
 #  undef  TTYS1_DEV                       /* No ttyS1 */
@@ -261,22 +261,22 @@ struct uart_ops_s g_uart_ops =
 
 /* I/O buffers */
 
-#ifdef CONFIG_LM3S_UART0
+#ifdef CONFIG_LM_UART0
 static char g_uart0rxbuffer[CONFIG_UART0_RXBUFSIZE];
 static char g_uart0txbuffer[CONFIG_UART0_TXBUFSIZE];
 #endif
-#ifdef CONFIG_LM3S_UART1
+#ifdef CONFIG_LM_UART1
 static char g_uart1rxbuffer[CONFIG_UART1_RXBUFSIZE];
 static char g_uart1txbuffer[CONFIG_UART1_TXBUFSIZE];
 #endif
-#ifdef CONFIG_LM3S_UART2
+#ifdef CONFIG_LM_UART2
 static char g_uart2rxbuffer[CONFIG_UART2_RXBUFSIZE];
 static char g_uart2txbuffer[CONFIG_UART2_TXBUFSIZE];
 #endif
 
 /* This describes the state of the LM3S uart0 port. */
 
-#ifdef CONFIG_LM3S_UART0
+#ifdef CONFIG_LM_UART0
 static struct up_dev_s g_uart0priv =
 {
   .uartbase       = LM3S_UART0_BASE,
@@ -306,7 +306,7 @@ static uart_dev_t g_uart0port =
 
 /* This describes the state of the LM3S uart1 port. */
 
-#ifdef CONFIG_LM3S_UART1
+#ifdef CONFIG_LM_UART1
 static struct up_dev_s g_uart1priv =
 {
   .uartbase       = LM3S_UART1_BASE,
@@ -336,7 +336,7 @@ static uart_dev_t g_uart1port =
 
 /* This describes the state of the LM3S uart1 port. */
 
-#ifdef CONFIG_LM3S_UART2
+#ifdef CONFIG_LM_UART2
 static struct up_dev_s g_uart2priv =
 {
   .uartbase       = LM3S_UART2_BASE,
@@ -686,14 +686,14 @@ static int up_interrupt(int irq, void *context)
   int                passes;
   bool               handled;
 
-#ifdef CONFIG_LM3S_UART0
+#ifdef CONFIG_LM_UART0
   if (g_uart0priv.irq == irq)
     {
       dev = &g_uart0port;
     }
   else
 #endif
-#ifdef CONFIG_LM3S_UART1
+#ifdef CONFIG_LM_UART1
   if (g_uart1priv.irq == irq)
     {
       dev = &g_uart1port;

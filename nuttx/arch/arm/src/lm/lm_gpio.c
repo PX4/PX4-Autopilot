@@ -1,6 +1,6 @@
 /****************************************************************************
- * arch/arm/src/lm/lm3s_gpio.c
- * arch/arm/src/chip/lm3s_gpio.c
+ * arch/arm/src/lm/lm_gpio.c
+ * arch/arm/src/chip/lm_gpio.c
  *
  *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -169,7 +169,7 @@ static const uint32_t g_gpiobase[LM3S_NPORTS] =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lm3s_gpiobaseaddress
+ * Name: lm_gpiobaseaddress
  *
  * Description:
  *   Given a GPIO enumeration value, return the base address of the
@@ -177,7 +177,7 @@ static const uint32_t g_gpiobase[LM3S_NPORTS] =
  *
  ****************************************************************************/
 
-static uint32_t lm3s_gpiobaseaddress(unsigned int port)
+static uint32_t lm_gpiobaseaddress(unsigned int port)
 {
   uint32_t gpiobase = 0;
   if (port < LM3S_NPORTS)
@@ -188,14 +188,14 @@ static uint32_t lm3s_gpiobaseaddress(unsigned int port)
 }
 
 /****************************************************************************
- * Name: lm3s_gpiofunc
+ * Name: lm_gpiofunc
  *
  * Description:
  *   Configure GPIO registers for a specific function
  *
  ****************************************************************************/
 
-static void lm3s_gpiofunc(uint32_t base, uint32_t pinno, const struct gpio_func_s *func)
+static void lm_gpiofunc(uint32_t base, uint32_t pinno, const struct gpio_func_s *func)
 {
   uint32_t setbit;
   uint32_t clrbit;
@@ -305,14 +305,14 @@ static void lm3s_gpiofunc(uint32_t base, uint32_t pinno, const struct gpio_func_
 }
 
 /****************************************************************************
- * Name: lm3s_gpiopadstrength
+ * Name: lm_gpiopadstrength
  *
  * Description:
  *   Set up pad strength and pull-ups
  *
  ****************************************************************************/
 
-static inline void lm3s_gpiopadstrength(uint32_t base, uint32_t pin, uint32_t cfgset)
+static inline void lm_gpiopadstrength(uint32_t base, uint32_t pin, uint32_t cfgset)
 {
   int strength = (cfgset & GPIO_STRENGTH_MASK) >> GPIO_STRENGTH_SHIFT;
   uint32_t regoffset;
@@ -392,19 +392,19 @@ static inline void lm3s_gpiopadstrength(uint32_t base, uint32_t pin, uint32_t cf
 }
 
 /****************************************************************************
- * Name: lm3s_gpiopadtype
+ * Name: lm_gpiopadtype
  *
  * Description:
  *   Set up pad strength and pull-ups.  Some of these values may be over-
- *   written by lm3s_gpiofunc, depending on the function selection.  Others
+ *   written by lm_gpiofunc, depending on the function selection.  Others
  *   are optional for different function selections.
  *
  ****************************************************************************/
 
-static inline void lm3s_gpiopadtype(uint32_t base, uint32_t pin, uint32_t cfgset)
+static inline void lm_gpiopadtype(uint32_t base, uint32_t pin, uint32_t cfgset)
 {
   int padtype  = (cfgset & GPIO_PADTYPE_MASK) >> GPIO_PADTYPE_SHIFT;
-#if 0 /* always overwritten by lm3s_gpiofunc */
+#if 0 /* always overwritten by lm_gpiofunc */
   uint32_t odrset;
   uint32_t odrclr;
 #endif
@@ -412,7 +412,7 @@ static inline void lm3s_gpiopadtype(uint32_t base, uint32_t pin, uint32_t cfgset
   uint32_t purclr;
   uint32_t pdrset;
   uint32_t pdrclr;
-#if 0 /* always overwritten by lm3s_gpiofunc */
+#if 0 /* always overwritten by lm_gpiofunc */
   uint32_t denset;
   uint32_t denclr;
 #endif
@@ -420,7 +420,7 @@ static inline void lm3s_gpiopadtype(uint32_t base, uint32_t pin, uint32_t cfgset
 
   /* Assume digital GPIO function, push-pull with no pull-up or pull-down */
 
-#if 0 /* always overwritten by lm3s_gpiofunc */
+#if 0 /* always overwritten by lm_gpiofunc */
   odrset = 0;
   odrclr = pin;
 #endif
@@ -428,7 +428,7 @@ static inline void lm3s_gpiopadtype(uint32_t base, uint32_t pin, uint32_t cfgset
   purclr = pin;
   pdrset = 0;
   pdrclr = pin;
-#if 0 /* always overwritten by lm3s_gpiofunc */
+#if 0 /* always overwritten by lm_gpiofunc */
   denset = pin;
   denclr = 0;
 #endif
@@ -455,7 +455,7 @@ static inline void lm3s_gpiopadtype(uint32_t base, uint32_t pin, uint32_t cfgset
         break;
       case 3: /* Open-drain */
         {
-#if 0 /* always overwritten by lm3s_gpiofunc */
+#if 0 /* always overwritten by lm_gpiofunc */
           odrset = pin;
           odrclr = 0;
 #endif
@@ -463,7 +463,7 @@ static inline void lm3s_gpiopadtype(uint32_t base, uint32_t pin, uint32_t cfgset
         break;
       case 4: /* Open-drain with weak pull-up */
         {
-#if 0 /* always overwritten by lm3s_gpiofunc */
+#if 0 /* always overwritten by lm_gpiofunc */
           odrset = pin;
           odrclr = 0;
 #endif
@@ -473,7 +473,7 @@ static inline void lm3s_gpiopadtype(uint32_t base, uint32_t pin, uint32_t cfgset
         break;
       case 5: /* Open-drain with weak pull-down */
         {
-#if 0 /* always overwritten by lm3s_gpiofunc */
+#if 0 /* always overwritten by lm_gpiofunc */
           odrset = pin;
           odrclr = 0;
 #endif
@@ -483,7 +483,7 @@ static inline void lm3s_gpiopadtype(uint32_t base, uint32_t pin, uint32_t cfgset
         break;
       case 6: /* Analog comparator */
         {
-#if 0 /* always overwritten by lm3s_gpiofunc */
+#if 0 /* always overwritten by lm_gpiofunc */
           denset = 0;
           denclr = pin;
 #endif
@@ -502,7 +502,7 @@ static inline void lm3s_gpiopadtype(uint32_t base, uint32_t pin, uint32_t cfgset
    * drain output when set to 1."
    */
 
-#if 0 /* always overwritten by lm3s_gpiofunc */
+#if 0 /* always overwritten by lm_gpiofunc */
   regval = getreg32(base + LM3S_GPIO_ODR_OFFSET);
   regval &= ~odrclr;
   regval |= odrset;
@@ -540,7 +540,7 @@ static inline void lm3s_gpiopadtype(uint32_t base, uint32_t pin, uint32_t cfgset
    * corresponding GPIODEN bit must be set."
    */
 
-#if 0 /* always overwritten by lm3s_gpiofunc */
+#if 0 /* always overwritten by lm_gpiofunc */
   regval = getreg32(base + LM3S_GPIO_DEN_OFFSET);
   regval &= ~denclr;
   regval |= denset;
@@ -549,28 +549,28 @@ static inline void lm3s_gpiopadtype(uint32_t base, uint32_t pin, uint32_t cfgset
 }
 
 /****************************************************************************
- * Name: lm3s_initoutput
+ * Name: lm_initoutput
  *
  * Description:
  *   Set the GPIO output value
  *
  ****************************************************************************/
 
-static inline void lm3s_initoutput(uint32_t cfgset)
+static inline void lm_initoutput(uint32_t cfgset)
 {
   bool value = ((cfgset & GPIO_VALUE_MASK) != GPIO_VALUE_ZERO);
-  lm3s_gpiowrite(cfgset, value);
+  lm_gpiowrite(cfgset, value);
 }
 
 /****************************************************************************
- * Name: lm3s_interrupt
+ * Name: lm_interrupt
  *
  * Description:
  *   Configure the interrupt pin.
  *
  ****************************************************************************/
 
-static inline void lm3s_interrupt(uint32_t base, uint32_t pin, uint32_t cfgset)
+static inline void lm_interrupt(uint32_t base, uint32_t pin, uint32_t cfgset)
 {
   int inttype = (cfgset & GPIO_INT_MASK) >> GPIO_INT_SHIFT;
   uint32_t regval;
@@ -694,14 +694,14 @@ static inline void lm3s_interrupt(uint32_t base, uint32_t pin, uint32_t cfgset)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lm3s_configgpio
+ * Name: lm_configgpio
  *
  * Description:
  *   Configure a GPIO pin based on bit-encoded description of the pin.
  *
  ****************************************************************************/
 
-int lm3s_configgpio(uint32_t cfgset)
+int lm_configgpio(uint32_t cfgset)
 {
   irqstate_t   flags;
   unsigned int func;
@@ -722,7 +722,7 @@ int lm3s_configgpio(uint32_t cfgset)
 
   /* Get the base address associated with the GPIO port */
 
-  base = lm3s_gpiobaseaddress(port);
+  base = lm_gpiobaseaddress(port);
   DEBUGASSERT(base != 0);
 
   /* The following requires exclusive access to the GPIO registers */
@@ -742,25 +742,25 @@ int lm3s_configgpio(uint32_t cfgset)
    * to perform reconfiguration.
    */
 
-  lm3s_gpiofunc(base, pinno, &g_funcbits[0]);
+  lm_gpiofunc(base, pinno, &g_funcbits[0]);
 
   /* Then set up pad strengths and pull-ups.  These setups should be done before
    * setting up the function because some function settings will over-ride these
    * user options.
    */
 
-  lm3s_gpiopadstrength(base, pin, cfgset);
-  lm3s_gpiopadtype(base, pin, cfgset);
+  lm_gpiopadstrength(base, pin, cfgset);
+  lm_gpiopadtype(base, pin, cfgset);
 
   /* Then set up the real pin function */
 
-  lm3s_gpiofunc(base, pinno, &g_funcbits[func]);
+  lm_gpiofunc(base, pinno, &g_funcbits[func]);
 
   /* Special GPIO digital output pins */
 
   if (func == 1 || func == 3)
     {
-      lm3s_initoutput(cfgset);
+      lm_initoutput(cfgset);
     }
 
 
@@ -768,7 +768,7 @@ int lm3s_configgpio(uint32_t cfgset)
 
   else if (func == 7)
     {
-      lm3s_interrupt(base, pin, cfgset);
+      lm_interrupt(base, pin, cfgset);
     }
 
   irqrestore(flags);
@@ -776,14 +776,14 @@ int lm3s_configgpio(uint32_t cfgset)
 }
 
 /****************************************************************************
- * Name: lm3s_gpiowrite
+ * Name: lm_gpiowrite
  *
  * Description:
  *   Write one or zero to the selected GPIO pin
  *
  ****************************************************************************/
 
-void lm3s_gpiowrite(uint32_t pinset, bool value)
+void lm_gpiowrite(uint32_t pinset, bool value)
 {
   unsigned int port;
   unsigned int pinno;
@@ -796,7 +796,7 @@ void lm3s_gpiowrite(uint32_t pinset, bool value)
 
   /* Get the base address associated with the GPIO port */
 
-  base  = lm3s_gpiobaseaddress(port);
+  base  = lm_gpiobaseaddress(port);
 
   /* "The GPIO DATA register is the data register. In software control mode,
    *  values written in the GPIO DATA register are transferred onto the GPIO
@@ -814,14 +814,14 @@ void lm3s_gpiowrite(uint32_t pinset, bool value)
 }
 
 /****************************************************************************
- * Name: lm3s_gpioread
+ * Name: lm_gpioread
  *
  * Description:
  *   Read one or zero from the selected GPIO pin
  *
  ****************************************************************************/
 
-bool lm3s_gpioread(uint32_t pinset, bool value)
+bool lm_gpioread(uint32_t pinset, bool value)
 {
   unsigned int port;
   unsigned int pinno;
@@ -834,7 +834,7 @@ bool lm3s_gpioread(uint32_t pinset, bool value)
 
   /* Get the base address associated with the GPIO port */
 
-  base = lm3s_gpiobaseaddress(port);
+  base = lm_gpiobaseaddress(port);
 
   /* "... the values read from this register are determined for each bit
    *  by the mask bit derived from the address used to access the data register,

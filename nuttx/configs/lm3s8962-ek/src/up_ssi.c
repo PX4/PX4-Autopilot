@@ -81,7 +81,7 @@
 /* Dump GPIO registers */
 
 #ifdef SSI_VERBOSE
-#  define ssi_dumpgpio(m) lm3s_dumpgpio(SDCCS_GPIO, m)
+#  define ssi_dumpgpio(m) lm_dumpgpio(SDCCS_GPIO, m)
 #else
 #  define ssi_dumpgpio(m)
 #endif
@@ -95,33 +95,33 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: lm3s_ssiinitialize
+ * Name: lm_ssiinitialize
  *
  * Description:
  *   Called to configure SPI chip select GPIO pins for the LM3S8962 Eval Kit.
  *
  ************************************************************************************/
 
-void weak_function lm3s_ssiinitialize(void)
+void weak_function lm_ssiinitialize(void)
 {
   /* Configure the SPI-based microSD CS GPIO */
 
-  ssi_dumpgpio("lm3s_ssiinitialize() Entry)");
-  lm3s_configgpio(SDCCS_GPIO);
+  ssi_dumpgpio("lm_ssiinitialize() Entry)");
+  lm_configgpio(SDCCS_GPIO);
 #ifdef CONFIG_NX_LCDDRIVER
-  lm3s_configgpio(OLEDCS_GPIO);
+  lm_configgpio(OLEDCS_GPIO);
 #endif
-  ssi_dumpgpio("lm3s_ssiinitialize() Exit");
+  ssi_dumpgpio("lm_ssiinitialize() Exit");
 }
 
 /****************************************************************************
- * The external functions, lm3s_spiselect and lm3s_spistatus must be provided
+ * The external functions, lm_spiselect and lm_spistatus must be provided
  * by board-specific logic.  The are implementations of the select and status
  * methods SPI interface defined by struct spi_ops_s (see include/nuttx/spi.h).
  * All othermethods (including up_spiinitialize()) are provided by common
  * logic.  To use this common SPI logic on your board:
  *
- *   1. Provide lm3s_spiselect() and lm3s_spistatus() functions in your
+ *   1. Provide lm_spiselect() and lm_spistatus() functions in your
  *      board-specific logic.  This function will perform chip selection and
  *      status operations using GPIOs in the way your board is configured.
  *   2. Add a call to up_spiinitialize() in your low level initialization
@@ -133,29 +133,29 @@ void weak_function lm3s_ssiinitialize(void)
  *
  ****************************************************************************/
 
-void lm3s_spiselect(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
+void lm_spiselect(FAR struct spi_dev_s *dev, enum spi_dev_e devid, bool selected)
 {
   ssidbg("devid: %d CS: %s\n", (int)devid, selected ? "assert" : "de-assert");
-  ssi_dumpgpio("lm3s_spiselect() Entry");
+  ssi_dumpgpio("lm_spiselect() Entry");
 
   if (devid == SPIDEV_MMCSD)
     {
       /* Assert the CS pin to the card */
 
-      lm3s_gpiowrite(SDCCS_GPIO, !selected);
+      lm_gpiowrite(SDCCS_GPIO, !selected);
     }
 #ifdef CONFIG_NX_LCDDRIVER
   else if (devid == SPIDEV_DISPLAY)
     {
       /* Assert the CS pin to the display */
 
-      lm3s_gpiowrite(OLEDCS_GPIO, !selected);
+      lm_gpiowrite(OLEDCS_GPIO, !selected);
     }
 #endif
-  ssi_dumpgpio("lm3s_spiselect() Exit");
+  ssi_dumpgpio("lm_spiselect() Exit");
 }
 
-uint8_t lm3s_spistatus(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
+uint8_t lm_spistatus(FAR struct spi_dev_s *dev, enum spi_dev_e devid)
 {
   ssidbg("Returning SPI_STATUS_PRESENT\n");
   return SPI_STATUS_PRESENT;

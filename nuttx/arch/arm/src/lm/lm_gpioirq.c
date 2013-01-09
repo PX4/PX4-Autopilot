@@ -1,6 +1,6 @@
 /****************************************************************************
- * arch/arm/src/lm/lm3s_gpioirq.c
- * arch/arm/src/chip/lm3s_gpioirq.c
+ * arch/arm/src/lm/lm_gpioirq.c
+ * arch/arm/src/chip/lm_gpioirq.c
  *
  *   Copyright (C) 2009-2010, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -72,25 +72,25 @@ static FAR xcpt_t g_gpioirqvector[NR_GPIO_IRQS];
 
 static const uint32_t g_gpiobase[] =
 {
-#ifndef CONFIG_LM3S_DISABLE_GPIOA_IRQS
+#ifndef CONFIG_LM_DISABLE_GPIOA_IRQS
    LM3S_GPIOA_BASE,
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOB_IRQS
+#ifndef CONFIG_LM_DISABLE_GPIOB_IRQS
   LM3S_GPIOB_BASE,
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOC_IRQS
+#ifndef CONFIG_LM_DISABLE_GPIOC_IRQS
   LM3S_GPIOC_BASE,
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOD_IRQS
+#ifndef CONFIG_LM_DISABLE_GPIOD_IRQS
   LM3S_GPIOD_BASE,
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOE_IRQS
+#ifndef CONFIG_LM_DISABLE_GPIOE_IRQS
   LM3S_GPIOE_BASE,
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOF_IRQS
+#ifndef CONFIG_LM_DISABLE_GPIOF_IRQS
   LM3S_GPIOF_BASE,
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOG_IRQS
+#ifndef CONFIG_LM_DISABLE_GPIOG_IRQS
   LM3S_GPIOG_BASE,
 #endif
 
@@ -100,10 +100,10 @@ static const uint32_t g_gpiobase[] =
    * errors!
    */
 
-#ifndef CONFIG_LM3S_DISABLE_GPIOH_IRQS
+#ifndef CONFIG_LM_DISABLE_GPIOH_IRQS
   LM3S_GPIOH_BASE,
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOJ_IRQS
+#ifndef CONFIG_LM_DISABLE_GPIOJ_IRQS
   LM3S_GPIOJ_BASE,
 #endif
 };
@@ -119,7 +119,7 @@ static const uint32_t g_gpiobase[] =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lm3s_gpiobaseaddress
+ * Name: lm_gpiobaseaddress
  *
  * Input:
  *   gpioirq - A pin number in the range of 0 to NR_GPIO_IRQS.
@@ -131,7 +131,7 @@ static const uint32_t g_gpiobase[] =
  *
  ****************************************************************************/
 
-static uint32_t lm3s_gpiobaseaddress(unsigned int gpioirq)
+static uint32_t lm_gpiobaseaddress(unsigned int gpioirq)
 {
   unsigned int ndx = gpioirq >> 3;
   if (ndx < GPIO_NADDRS)
@@ -142,14 +142,14 @@ static uint32_t lm3s_gpiobaseaddress(unsigned int gpioirq)
 }
 
 /****************************************************************************
- * Name: lm3s_gpio*handler
+ * Name: lm_gpio*handler
  *
  * Description:
  *   Handle interrupts on each enabled GPIO port
  *
  ****************************************************************************/
 
-static int lm3s_gpiohandler(uint32_t regbase, int irqbase, void *context)
+static int lm_gpiohandler(uint32_t regbase, int irqbase, void *context)
 {
   uint32_t mis;
   int irq;
@@ -184,66 +184,66 @@ static int lm3s_gpiohandler(uint32_t regbase, int irqbase, void *context)
   return OK;
 }
 
-#ifndef CONFIG_LM3S_DISABLE_GPIOA_IRQS
-static int lm3s_gpioahandler(int irq, FAR void *context)
+#ifndef CONFIG_LM_DISABLE_GPIOA_IRQS
+static int lm_gpioahandler(int irq, FAR void *context)
 {
-  return lm3s_gpiohandler(LM3S_GPIOA_BASE, LM3S_IRQ_GPIOA_0, context);
+  return lm_gpiohandler(LM3S_GPIOA_BASE, LM3S_IRQ_GPIOA_0, context);
 }
 #endif
 
-#ifndef CONFIG_LM3S_DISABLE_GPIOB_IRQS
-static int lm3s_gpiobhandler(int irq, FAR void *context)
+#ifndef CONFIG_LM_DISABLE_GPIOB_IRQS
+static int lm_gpiobhandler(int irq, FAR void *context)
 {
-  return lm3s_gpiohandler(LM3S_GPIOB_BASE, LM3S_IRQ_GPIOB_0, context);
+  return lm_gpiohandler(LM3S_GPIOB_BASE, LM3S_IRQ_GPIOB_0, context);
 }
 #endif
 
-#ifndef CONFIG_LM3S_DISABLE_GPIOC_IRQS
-static int lm3s_gpiochandler(int irq, FAR void *context)
+#ifndef CONFIG_LM_DISABLE_GPIOC_IRQS
+static int lm_gpiochandler(int irq, FAR void *context)
 {
-  return lm3s_gpiohandler(LM3S_GPIOC_BASE, LM3S_IRQ_GPIOC_0, context);
+  return lm_gpiohandler(LM3S_GPIOC_BASE, LM3S_IRQ_GPIOC_0, context);
 }
 #endif
 
-#ifndef CONFIG_LM3S_DISABLE_GPIOD_IRQS
-static int lm3s_gpiodhandler(int irq, FAR void *context)
+#ifndef CONFIG_LM_DISABLE_GPIOD_IRQS
+static int lm_gpiodhandler(int irq, FAR void *context)
 {
-  return lm3s_gpiohandler(LM3S_GPIOD_BASE, LM3S_IRQ_GPIOD_0, context);
+  return lm_gpiohandler(LM3S_GPIOD_BASE, LM3S_IRQ_GPIOD_0, context);
 }
 #endif
 
-#ifndef CONFIG_LM3S_DISABLE_GPIOE_IRQS
-static int lm3s_gpioehandler(int irq, FAR void *context)
+#ifndef CONFIG_LM_DISABLE_GPIOE_IRQS
+static int lm_gpioehandler(int irq, FAR void *context)
 {
-  return lm3s_gpiohandler(LM3S_GPIOE_BASE, LM3S_IRQ_GPIOE_0, context);
+  return lm_gpiohandler(LM3S_GPIOE_BASE, LM3S_IRQ_GPIOE_0, context);
 }
 #endif
 
-#ifndef CONFIG_LM3S_DISABLE_GPIOF_IRQS
-static int lm3s_gpiofhandler(int irq, FAR void *context)
+#ifndef CONFIG_LM_DISABLE_GPIOF_IRQS
+static int lm_gpiofhandler(int irq, FAR void *context)
 {
-  return lm3s_gpiohandler(LM3S_GPIOF_BASE, LM3S_IRQ_GPIOF_0, context);
+  return lm_gpiohandler(LM3S_GPIOF_BASE, LM3S_IRQ_GPIOF_0, context);
 }
 #endif
 
-#ifndef CONFIG_LM3S_DISABLE_GPIOG_IRQS
-static int lm3s_gpioghandler(int irq, FAR void *context)
+#ifndef CONFIG_LM_DISABLE_GPIOG_IRQS
+static int lm_gpioghandler(int irq, FAR void *context)
 {
-  return lm3s_gpiohandler(LM3S_GPIOG_BASE, LM3S_IRQ_GPIOG_0, context);
+  return lm_gpiohandler(LM3S_GPIOG_BASE, LM3S_IRQ_GPIOG_0, context);
 }
 #endif
 
-#ifndef CONFIG_LM3S_DISABLE_GPIOH_IRQS
-static int lm3s_gpiohhandler(int irq, FAR void *context)
+#ifndef CONFIG_LM_DISABLE_GPIOH_IRQS
+static int lm_gpiohhandler(int irq, FAR void *context)
 {
-  return lm3s_gpiohandler(LM3S_GPIOH_BASE, LM3S_IRQ_GPIOH_0, context);
+  return lm_gpiohandler(LM3S_GPIOH_BASE, LM3S_IRQ_GPIOH_0, context);
 }
 #endif
 
-#ifndef CONFIG_LM3S_DISABLE_GPIOJ_IRQS
-static int lm3s_gpiojhandler(int irq, FAR void *context)
+#ifndef CONFIG_LM_DISABLE_GPIOJ_IRQS
+static int lm_gpiojhandler(int irq, FAR void *context)
 {
-  return lm3s_gpiohandler(LM3S_GPIOJ_BASE, LM3S_IRQ_GPIOJ_0, context);
+  return lm_gpiohandler(LM3S_GPIOJ_BASE, LM3S_IRQ_GPIOJ_0, context);
 }
 #endif
 
@@ -274,40 +274,40 @@ int gpio_irqinitialize(void)
    * interrupts
    */
 
-#ifndef CONFIG_LM3S_DISABLE_GPIOA_IRQS
-  irq_attach(LM3S_IRQ_GPIOA, lm3s_gpioahandler);
+#ifndef CONFIG_LM_DISABLE_GPIOA_IRQS
+  irq_attach(LM3S_IRQ_GPIOA, lm_gpioahandler);
   up_enable_irq(LM3S_IRQ_GPIOA);
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOB_IRQS
-  irq_attach(LM3S_IRQ_GPIOB, lm3s_gpiobhandler);
+#ifndef CONFIG_LM_DISABLE_GPIOB_IRQS
+  irq_attach(LM3S_IRQ_GPIOB, lm_gpiobhandler);
   up_enable_irq(LM3S_IRQ_GPIOB);
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOC_IRQS
-  irq_attach(LM3S_IRQ_GPIOC, lm3s_gpiochandler);
+#ifndef CONFIG_LM_DISABLE_GPIOC_IRQS
+  irq_attach(LM3S_IRQ_GPIOC, lm_gpiochandler);
   up_enable_irq(LM3S_IRQ_GPIOC);
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOD_IRQS
-  irq_attach(LM3S_IRQ_GPIOD, lm3s_gpiodhandler);
+#ifndef CONFIG_LM_DISABLE_GPIOD_IRQS
+  irq_attach(LM3S_IRQ_GPIOD, lm_gpiodhandler);
   up_enable_irq(LM3S_IRQ_GPIOD);
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOE_IRQS
-  irq_attach(LM3S_IRQ_GPIOE, lm3s_gpioehandler);
+#ifndef CONFIG_LM_DISABLE_GPIOE_IRQS
+  irq_attach(LM3S_IRQ_GPIOE, lm_gpioehandler);
   up_enable_irq(LM3S_IRQ_GPIOE);
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOF_IRQS
-  irq_attach(LM3S_IRQ_GPIOF, lm3s_gpiofhandler);
+#ifndef CONFIG_LM_DISABLE_GPIOF_IRQS
+  irq_attach(LM3S_IRQ_GPIOF, lm_gpiofhandler);
   up_enable_irq(LM3S_IRQ_GPIOF);
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOG_IRQS
-  irq_attach(LM3S_IRQ_GPIOG, lm3s_gpioghandler);
+#ifndef CONFIG_LM_DISABLE_GPIOG_IRQS
+  irq_attach(LM3S_IRQ_GPIOG, lm_gpioghandler);
   up_enable_irq(LM3S_IRQ_GPIOG);
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOH_IRQS
-  irq_attach(LM3S_IRQ_GPIOH, lm3s_gpiohhandler);
+#ifndef CONFIG_LM_DISABLE_GPIOH_IRQS
+  irq_attach(LM3S_IRQ_GPIOH, lm_gpiohhandler);
   up_enable_irq(LM3S_IRQ_GPIOH);
 #endif
-#ifndef CONFIG_LM3S_DISABLE_GPIOJ_IRQS
-  irq_attach(LM3S_IRQ_GPIOJ, lm3s_gpiojhandler);
+#ifndef CONFIG_LM_DISABLE_GPIOJ_IRQS
+  irq_attach(LM3S_IRQ_GPIOJ, lm_gpiojhandler);
   up_enable_irq(LM3S_IRQ_GPIOJ);
 #endif
 
@@ -374,7 +374,7 @@ void gpio_irqenable(int irq)
     {
       /* Get the base address of the GPIO module associated with this IRQ */
 
-      base = lm3s_gpiobaseaddress(gpioirq);
+      base = lm_gpiobaseaddress(gpioirq);
       DEBUGASSERT(base != 0);
       pin  = (1 << (gpioirq & 7));
 
@@ -413,7 +413,7 @@ void gpio_irqdisable(int irq)
     {
       /* Get the base address of the GPIO module associated with this IRQ */
 
-      base = lm3s_gpiobaseaddress(gpioirq);
+      base = lm_gpiobaseaddress(gpioirq);
       DEBUGASSERT(base != 0);
       pin  = (1 << (gpioirq & 7));
 

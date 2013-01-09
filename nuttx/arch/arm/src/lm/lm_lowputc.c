@@ -1,5 +1,5 @@
 /**************************************************************************
- * arch/arm/src/lm/lm3s_lowputc.c
+ * arch/arm/src/lm/lm_lowputc.c
  *
  *   Copyright (C) 2009-2010 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -58,26 +58,26 @@
 /* Configuration **********************************************************/
 
 #if LM3S_NUARTS < 2
-#  undef  CONFIG_LM3S_UART1
+#  undef  CONFIG_LM_UART1
 #  undef  CONFIG_UART1_SERIAL_CONSOLE
 #endif
 
 #if LM3S_NUARTS < 3
-#  undef  CONFIG_LM3S_UART2
+#  undef  CONFIG_LM_UART2
 #  undef  CONFIG_UART2_SERIAL_CONSOLE
 #endif
 
 /* Is there a serial console? */
 
-#if defined(CONFIG_UART0_SERIAL_CONSOLE) && defined(CONFIG_LM3S_UART0)
+#if defined(CONFIG_UART0_SERIAL_CONSOLE) && defined(CONFIG_LM_UART0)
 #  undef CONFIG_UART1_SERIAL_CONSOLE
 #  undef CONFIG_UART2_SERIAL_CONSOLE
 #  define HAVE_CONSOLE 1
-#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && defined(CONFIG_LM3S_UART1)
+#elif defined(CONFIG_UART1_SERIAL_CONSOLE) && defined(CONFIG_LM_UART1)
 #  undef CONFIG_UART0_SERIAL_CONSOLE
 #  undef CONFIG_UART2_SERIAL_CONSOLE
 #  define HAVE_CONSOLE 1
-#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && defined(CONFIG_LM3S_UART2)
+#elif defined(CONFIG_UART2_SERIAL_CONSOLE) && defined(CONFIG_LM_UART2)
 #  undef CONFIG_UART0_SERIAL_CONSOLE
 #  undef CONFIG_UART1_SERIAL_CONSOLE
 #  define HAVE_CONSOLE 1
@@ -259,22 +259,22 @@ void up_lowsetup(void)
    * this pin configuration -- whether or not a serial console is selected.
    */
 
-#ifdef CONFIG_LM3S_UART0
+#ifdef CONFIG_LM_UART0
   regval  = getreg32(LM3S_SYSCON_RCGC1);
   regval |= SYSCON_RCGC1_UART0;
   putreg32(regval, LM3S_SYSCON_RCGC1);
 
-  lm3s_configgpio(GPIO_UART0_RX);
-  lm3s_configgpio(GPIO_UART0_TX);
+  lm_configgpio(GPIO_UART0_RX);
+  lm_configgpio(GPIO_UART0_TX);
 #endif
 
-#ifdef CONFIG_LM3S_UART1
+#ifdef CONFIG_LM_UART1
   regval  = getreg32(LM3S_SYSCON_RCGC1);
   regval |= SYSCON_RCGC1_UART1;
   putreg32(regval, LM3S_SYSCON_RCGC1);
 
-  lm3s_configgpio(GPIO_UART1_RX);
-  lm3s_configgpio(GPIO_UART1_TX);
+  lm_configgpio(GPIO_UART1_RX);
+  lm_configgpio(GPIO_UART1_TX);
 #endif
 
   /* Enable the selected console device */

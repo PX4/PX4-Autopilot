@@ -60,7 +60,7 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: lm3s_boardinitialize
+ * Name: lm_boardinitialize
  *
  * Description:
  *   All LM3S architectures must provide the following entry point.  This entry point
@@ -68,18 +68,18 @@
  *   and mapped but before any devices have been initialized.
  ************************************************************************************/
 
-void lm3s_boardinitialize(void)
+void lm_boardinitialize(void)
 {
   /* Configure SPI chip selects if 1) SSI is not disabled, and 2) the weak function
-   * lm3s_ssiinitialize() has been brought into the link.
+   * lm_ssiinitialize() has been brought into the link.
    */
 
 /* The Eagle100 microSD CS is on SSI0 */
 
 #if !defined(CONFIG_SSI0_DISABLE) /* || !defined(CONFIG_SSI1_DISABLE) */
-  if (lm3s_ssiinitialize)
+  if (lm_ssiinitialize)
     {
-      lm3s_ssiinitialize();
+      lm_ssiinitialize();
     }
 #endif
 

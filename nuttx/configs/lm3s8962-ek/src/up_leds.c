@@ -72,7 +72,7 @@
 /* Dump GPIO registers */
 
 #ifdef LED_DEBUG
-#  define led_dumpgpio(m) lm3s_dumpgpio(LED_GPIO, m)
+#  define led_dumpgpio(m) lm_dumpgpio(LED_GPIO, m)
 #else
 #  define led_dumpgpio(m)
 #endif
@@ -102,9 +102,9 @@ void up_ledinit(void)
 
   /* Configure Port E, Bit 1 as an output, initial value=OFF */
 
-  led_dumpgpio("up_ledinit before lm3s_configgpio()");
-  lm3s_configgpio(LED_GPIO);
-  led_dumpgpio("up_ledinit after lm3s_configgpio()");
+  led_dumpgpio("up_ledinit before lm_configgpio()");
+  lm_configgpio(LED_GPIO);
+  led_dumpgpio("up_ledinit after lm_configgpio()");
   g_nest = 0;
 }
 
@@ -128,9 +128,9 @@ void up_ledon(int led)
         g_nest++;
       case LED_IRQSENABLED:
       case LED_STACKCREATED:
-        led_dumpgpio("up_ledon: before lm3s_gpiowrite()");
-        lm3s_gpiowrite(LED_GPIO, false);
-        led_dumpgpio("up_ledon: after lm3s_gpiowrite()");
+        led_dumpgpio("up_ledon: before lm_gpiowrite()");
+        lm_gpiowrite(LED_GPIO, false);
+        led_dumpgpio("up_ledon: after lm_gpiowrite()");
         break;
     }
 }
@@ -156,9 +156,9 @@ void up_ledoff(int led)
       case LED_PANIC:
         if (--g_nest <= 0)
           {
-            led_dumpgpio("up_ledoff: before lm3s_gpiowrite()");
-            lm3s_gpiowrite(LED_GPIO, true);
-            led_dumpgpio("up_ledoff: after lm3s_gpiowrite()");
+            led_dumpgpio("up_ledoff: before lm_gpiowrite()");
+            lm_gpiowrite(LED_GPIO, true);
+            led_dumpgpio("up_ledoff: after lm_gpiowrite()");
           }
         break;
     }

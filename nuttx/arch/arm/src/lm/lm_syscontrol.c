@@ -1,6 +1,6 @@
 /****************************************************************************
- * arch/arm/src/lm/lm3s_syscontrol.c
- * arch/arm/src/chip/lm3s_syscontrol.c
+ * arch/arm/src/lm/lm_syscontrol.c
+ * arch/arm/src/chip/lm_syscontrol.c
  *
  *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -78,7 +78,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lm3s_delay
+ * Name: lm_delay
  *
  * Description:
  *   Wait for the newly selected oscillator(s) to settle.  This is tricky because
@@ -87,7 +87,7 @@
  *
  ****************************************************************************/
 
-static inline void lm3s_delay(uint32_t delay)
+static inline void lm_delay(uint32_t delay)
 {
   __asm__ __volatile__("1:\n"
                        "\tsubs  %0, #1\n"
@@ -96,7 +96,7 @@ static inline void lm3s_delay(uint32_t delay)
 }
 
 /****************************************************************************
- * Name: lm3s_oscdelay
+ * Name: lm_oscdelay
  *
  * Description:
  *   Wait for the newly selected oscillator(s) to settle.  This is tricky because
@@ -105,7 +105,7 @@ static inline void lm3s_delay(uint32_t delay)
  *
  ****************************************************************************/
 
-static inline void lm3s_oscdelay(uint32_t rcc, uint32_t rcc2)
+static inline void lm_oscdelay(uint32_t rcc, uint32_t rcc2)
 {
   /* Wait for the oscillator  to stabilize.  A smaller delay is used if the
    * current clock rate is very slow.
@@ -138,18 +138,18 @@ static inline void lm3s_oscdelay(uint32_t rcc, uint32_t rcc2)
 
   /* Then delay that number of loops */
 
-  lm3s_delay(delay);
+  lm_delay(delay);
 }
 
 /****************************************************************************
- * Name: lm3s_plllock
+ * Name: lm_plllock
  *
  * Description:
  *   The new RCC values have been selected... wait for the PLL to lock on
  *
  ****************************************************************************/
 
-static inline void lm3s_plllock(void)
+static inline void lm_plllock(void)
 {
   volatile uint32_t delay;
 
@@ -175,7 +175,7 @@ static inline void lm3s_plllock(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lm3s_clockconfig
+ * Name: lm_clockconfig
  *
  * Description:
  *   Called to change to new clock based on desired rcc and rcc2 settings.
@@ -184,7 +184,7 @@ static inline void lm3s_plllock(void)
  *
  ****************************************************************************/
 
-void lm3s_clockconfig(uint32_t newrcc, uint32_t newrcc2)
+void lm_clockconfig(uint32_t newrcc, uint32_t newrcc2)
 {
   uint32_t rcc;
   uint32_t rcc2;
@@ -221,7 +221,7 @@ void lm3s_clockconfig(uint32_t newrcc, uint32_t newrcc2)
        * clock setting, not the one that we are configuring.
        */
 
-      lm3s_oscdelay(rcc, rcc2);
+      lm_oscdelay(rcc, rcc2);
     }
 
   /* Set the new crystal value, oscillator source and PLL configuration */
@@ -253,7 +253,7 @@ void lm3s_clockconfig(uint32_t newrcc, uint32_t newrcc2)
 
   /* Wait for the new crystal value and oscillator source to take effect */
 
-  lm3s_delay(16);
+  lm_delay(16);
 
   /* Set the requested system divider and disable the non-selected osciallators */
 
@@ -269,7 +269,7 @@ void lm3s_clockconfig(uint32_t newrcc, uint32_t newrcc2)
     {
       /* Yes, wail untill the PLL is locked */
 
-      lm3s_plllock();
+      lm_plllock();
 
       /* Then enable the PLL */
 
@@ -284,7 +284,7 @@ void lm3s_clockconfig(uint32_t newrcc, uint32_t newrcc2)
 
   /* Wait for the system divider to be effective */
 
-  lm3s_delay(6);
+  lm_delay(6);
 }
 
 /****************************************************************************
@@ -298,7 +298,7 @@ void lm3s_clockconfig(uint32_t newrcc, uint32_t newrcc2)
 
 void up_clockconfig(void)
 {
-#ifdef CONFIG_LM3S_REVA2
+#ifdef CONFIG_LM_REVA2
   /* Some early silicon returned an increase LDO voltage or 2.75V to work
    * around a PLL bug
    */
@@ -310,6 +310,6 @@ void up_clockconfig(void)
    * header file
    */
 
-  lm3s_clockconfig(LM3S_RCC_VALUE, LM3S_RCC2_VALUE);
+  lm_clockconfig(LM3S_RCC_VALUE, LM3S_RCC2_VALUE);
 }
 

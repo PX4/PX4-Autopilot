@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lm/chip/lm3s_i2c.h
+ * arch/arm/src/lm/chip/lm_i2c.h
  *
  *   Copyright (C) 2009, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

@@ -74,7 +74,7 @@ extern "C"
  ****************************************************************************/
 
 /****************************************************************************
- * Function: lm3s_ethinitialize
+ * Function: lm_ethinitialize
  *
  * Description:
  *   Initialize the Ethernet driver for one interface.  If the LM3S chip
@@ -92,7 +92,7 @@ extern "C"
  *
  ****************************************************************************/
 
-int lm3s_ethinitialize(int intf);
+int lm_ethinitialize(int intf);
 
 #if defined(__cplusplus)
 }

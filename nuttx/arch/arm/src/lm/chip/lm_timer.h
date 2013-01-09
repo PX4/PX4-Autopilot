@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lm/chip/lm3s_timer.h
+ * arch/arm/src/lm/chip/lm_timer.h
  *
  *   Copyright (C) 2012 Max Nekludov. All rights reserved.
  *   Author: Max Nekludov <macscomp@gmail.com>

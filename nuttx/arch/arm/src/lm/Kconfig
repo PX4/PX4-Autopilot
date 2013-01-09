@@ -14,7 +14,7 @@ config ARCH_CHIP_LM3S6918
 	bool "LM3S6918"
 	select ARCH_CORTEXM3
 	select ARCH_CHIP_LM3S
-	select LM3S_HAVE_SSI1
+	select LM_HAVE_SSI1
 
 config ARCH_CHIP_LM3S9B96
 	bool "LM3S9B96"
@@ -46,28 +46,28 @@ config ARCH_CHIP_LM3S
 config ARCH_CHIP_LM4F
 	bool
 
-config LM3S_HAVE_SSI1
+config LM_HAVE_SSI1
 	bool
 
-config LM3S_REVA2
+config LM_REVA2
 	bool "Rev A2"
 	default n
 	---help---
 		Some early silicon returned an increase LDO voltage or 2.75V to work
 		around a PLL bug
 
-config LM3S_DFU
+config LM_DFU
 	bool "DFU"
 	default y
 
 menu "Stellaris Peripheral Support"
 
-config LM3S_UART0
+config LM_UART0
 	bool "UART0"
 	select ARCH_HAVE_UART0
 	default n
 
-config LM3S_UART1
+config LM_UART1
 	bool "UART1"
 	select ARCH_HAVE_UART1
 	default n
@@ -80,12 +80,12 @@ config SSI1_DISABLE
 	bool "Disable SSI1"
 	default y
 
-config LM3S_UART2
+config LM_UART2
 	bool "UART2"
 	select ARCH_HAVE_UART2
 	default n
 
-config LM3S_ETHERNET
+config LM_ETHERNET
 	bool "Stellaris Ethernet"
 	default n
 	---help---
@@ -95,95 +95,95 @@ endmenu
 
 menu "Disable GPIO Interrupts"
 
-config LM3S_DISABLE_GPIOA_IRQS
+config LM_DISABLE_GPIOA_IRQS
 	bool "Disable GPIOA IRQs"
 	default n
 
-config LM3S_DISABLE_GPIOB_IRQS
+config LM_DISABLE_GPIOB_IRQS
 	bool "Disable GPIOB IRQs"
 	default n
 
-config LM3S_DISABLE_GPIOC_IRQS
+config LM_DISABLE_GPIOC_IRQS
 	bool "Disable GPIOC IRQs"
 	default n
 
-config LM3S_DISABLE_GPIOD_IRQS
+config LM_DISABLE_GPIOD_IRQS
 	bool "Disable GPIOD IRQs"
 	default n
 
-config LM3S_DISABLE_GPIOE_IRQS
+config LM_DISABLE_GPIOE_IRQS
 	bool "Disable GPIOE IRQs"
 	default n
 
-config LM3S_DISABLE_GPIOF_IRQS
+config LM_DISABLE_GPIOF_IRQS
 	bool "Disable GPIOF IRQs"
 	default n
 
-config LM3S_DISABLE_GPIOG_IRQS
+config LM_DISABLE_GPIOG_IRQS
 	bool "Disable GPIOG IRQs"
 	default n
 
-config LM3S_DISABLE_GPIOH_IRQS
+config LM_DISABLE_GPIOH_IRQS
 	bool "Disable GPIOH IRQs"
 	default n
 
-config LM3S_DISABLE_GPIOJ_IRQS
+config LM_DISABLE_GPIOJ_IRQS
 	bool "Disable GPIOJ IRQs"
 	default n
 
 endmenu
 
-if LM3S_ETHERNET
+if LM_ETHERNET
 menu "Stellaris Ethernet Configuration"
 
-config LM3S_ETHLEDS
+config LM_ETHLEDS
 	bool "Ethernet LEDs"
 	default n
 	---help---
 	Enable to use Ethernet LEDs on the board.
 
-config LM3S_BOARDMAC
+config LM_BOARDMAC
 	bool "Board MAC"
 	default n
 	---help---
 		If the board-specific logic can provide a MAC address (via
-		lm3s_ethernetmac()), then this should be selected.
+		lm_ethernetmac()), then this should be selected.
 
-config LM3S_ETHHDUPLEX
+config LM_ETHHDUPLEX
 	bool "Force Half Duplex"
 	default n
 	---help---
 		Set to force half duplex operation
 
-config LM3S_ETHNOAUTOCRC
+config LM_ETHNOAUTOCRC
 	bool "Disable auto-CRC"
 	default n
 	---help---
 		Set to suppress auto-CRC generation
 
-config LM3S_ETHNOPAD
+config LM_ETHNOPAD
 	bool "Disable Tx Padding"
 	default n
 	---help---
 		Set to suppress Tx padding
 
-config LM3S_MULTICAST
+config LM_MULTICAST
 	bool "Enable Multicast"
 	default n
 	---help---
 		Set to enable multicast frames
 
-config LM3S_PROMISCUOUS
+config LM_PROMISCUOUS
 	bool "Enable Promiscuous Mode"
 	default n
 	---help---
 		Set to enable promiscuous mode
 
-config LM3S_TIMESTAMP
+config LM_TIMESTAMP
 	bool "Enable Timestamping"
 	default n
 
-config LM3S_BADCRC
+config LM_BADCRC
 	bool "Enable Bad CRC Rejection"
 	default n
 	---help---

@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lm/chip/lm3s_ethernet.h
+ * arch/arm/src/lm/chip/lm_ethernet.h
  *
  *   Copyright (C) 2009-2010, 2012-2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>

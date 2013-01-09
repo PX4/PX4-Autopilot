@@ -1,6 +1,6 @@
 /****************************************************************************
- * arch/arm/src/lm/lm3s_irq.c
- * arch/arm/src/chip/lm3s_irq.c
+ * arch/arm/src/lm/lm_irq.c
+ * arch/arm/src/chip/lm_irq.c
  *
  *   Copyright (C) 2009, 2011 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -88,7 +88,7 @@ volatile uint32_t *current_regs;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lm3s_dumpnvic
+ * Name: lm_dumpnvic
  *
  * Description:
  *   Dump some interesting NVIC registers
@@ -96,7 +96,7 @@ volatile uint32_t *current_regs;
  ****************************************************************************/
 
 #if defined(LM3S_IRQ_DEBUG) && defined (CONFIG_DEBUG)
-static void lm3s_dumpnvic(const char *msg, int irq)
+static void lm_dumpnvic(const char *msg, int irq)
 {
   irqstate_t flags;
 
@@ -126,12 +126,12 @@ static void lm3s_dumpnvic(const char *msg, int irq)
   irqrestore(flags);
 }
 #else
-#  define lm3s_dumpnvic(msg, irq)
+#  define lm_dumpnvic(msg, irq)
 #endif
 
 /****************************************************************************
- * Name: lm3s_nmi, lm3s_busfault, lm3s_usagefault, lm3s_pendsv,
- *       lm3s_dbgmonitor, lm3s_pendsv, lm3s_reserved
+ * Name: lm_nmi, lm_busfault, lm_usagefault, lm_pendsv,
+ *       lm_dbgmonitor, lm_pendsv, lm_reserved
  *
  * Description:
  *   Handlers for various execptions.  None are handled and all are fatal
@@ -141,7 +141,7 @@ static void lm3s_dumpnvic(const char *msg, int irq)
  ****************************************************************************/
 
 #ifdef CONFIG_DEBUG
-static int lm3s_nmi(int irq, FAR void *context)
+static int lm_nmi(int irq, FAR void *context)
 {
   (void)irqsave();
   dbg("PANIC!!! NMI received\n");
@@ -149,7 +149,7 @@ static int lm3s_nmi(int irq, FAR void *context)
   return 0;
 }
 
-static int lm3s_busfault(int irq, FAR void *context)
+static int lm_busfault(int irq, FAR void *context)
 {
   (void)irqsave();
   dbg("PANIC!!! Bus fault recived\n");
@@ -157,7 +157,7 @@ static int lm3s_busfault(int irq, FAR void *context)
   return 0;
 }
 
-static int lm3s_usagefault(int irq, FAR void *context)
+static int lm_usagefault(int irq, FAR void *context)
 {
   (void)irqsave();
   dbg("PANIC!!! Usage fault received\n");
@@ -165,7 +165,7 @@ static int lm3s_usagefault(int irq, FAR void *context)
   return 0;
 }
 
-static int lm3s_pendsv(int irq, FAR void *context)
+static int lm_pendsv(int irq, FAR void *context)
 {
   (void)irqsave();
   dbg("PANIC!!! PendSV received\n");
@@ -173,7 +173,7 @@ static int lm3s_pendsv(int irq, FAR void *context)
   return 0;
 }
 
-static int lm3s_dbgmonitor(int irq, FAR void *context)
+static int lm_dbgmonitor(int irq, FAR void *context)
 {
   (void)irqsave();
   dbg("PANIC!!! Debug Monitor receieved\n");
@@ -181,7 +181,7 @@ static int lm3s_dbgmonitor(int irq, FAR void *context)
   return 0;
 }
 
-static int lm3s_reserved(int irq, FAR void *context)
+static int lm_reserved(int irq, FAR void *context)
 {
   (void)irqsave();
   dbg("PANIC!!! Reserved interrupt\n");
@@ -191,7 +191,7 @@ static int lm3s_reserved(int irq, FAR void *context)
 #endif
 
 /****************************************************************************
- * Name: lm3s_irqinfo
+ * Name: lm_irqinfo
  *
  * Description:
  *   Given an IRQ number, provide the register and bit setting to enable or
@@ -199,7 +199,7 @@ static int lm3s_reserved(int irq, FAR void *context)
  *
  ****************************************************************************/
 
-static int lm3s_irqinfo(int irq, uint32_t *regaddr, uint32_t *bit)
+static int lm_irqinfo(int irq, uint32_t *regaddr, uint32_t *bit)
 {
   DEBUGASSERT(irq >= LM3S_IRQ_NMI && irq < NR_IRQS);
 
@@ -294,7 +294,7 @@ void up_irqinitialize(void)
 
   /* Initialize support for GPIO interrupts if included in this build */
 
-#ifndef CONFIG_LM3S_DISABLE_GPIO_IRQS
+#ifndef CONFIG_LM_DISABLE_GPIO_IRQS
 #ifdef CONFIG_HAVE_WEAKFUNCTIONS
   if (gpio_irqinitialize != NULL)
 #endif
@@ -330,18 +330,18 @@ void up_irqinitialize(void)
   /* Attach all other processor exceptions (except reset and sys tick) */
 
 #ifdef CONFIG_DEBUG
-  irq_attach(LM3S_IRQ_NMI, lm3s_nmi);
+  irq_attach(LM3S_IRQ_NMI, lm_nmi);
 #ifndef CONFIG_ARMV7M_MPU
   irq_attach(LM3S_IRQ_MEMFAULT, up_memfault);
 #endif
-  irq_attach(LM3S_IRQ_BUSFAULT, lm3s_busfault);
-  irq_attach(LM3S_IRQ_USAGEFAULT, lm3s_usagefault);
-  irq_attach(LM3S_IRQ_PENDSV, lm3s_pendsv);
-  irq_attach(LM3S_IRQ_DBGMONITOR, lm3s_dbgmonitor);
-  irq_attach(LM3S_IRQ_RESERVED, lm3s_reserved);
+  irq_attach(LM3S_IRQ_BUSFAULT, lm_busfault);
+  irq_attach(LM3S_IRQ_USAGEFAULT, lm_usagefault);
+  irq_attach(LM3S_IRQ_PENDSV, lm_pendsv);
+  irq_attach(LM3S_IRQ_DBGMONITOR, lm_dbgmonitor);
+  irq_attach(LM3S_IRQ_RESERVED, lm_reserved);
 #endif
 
-  lm3s_dumpnvic("initial", NR_IRQS);
+  lm_dumpnvic("initial", NR_IRQS);
 
 #ifndef CONFIG_SUPPRESS_INTERRUPTS
 
@@ -366,7 +366,7 @@ void up_disable_irq(int irq)
   uint32_t regval;
   uint32_t bit;
 
-  if (lm3s_irqinfo(irq, &regaddr, &bit) == 0)
+  if (lm_irqinfo(irq, &regaddr, &bit) == 0)
     {
       /* Clear the appropriate bit in the register to enable the interrupt */
 
@@ -374,7 +374,7 @@ void up_disable_irq(int irq)
       regval &= ~bit;
       putreg32(regval, regaddr);
     }
-  lm3s_dumpnvic("disable", irq);
+  lm_dumpnvic("disable", irq);
 }
 
 /****************************************************************************
@@ -391,7 +391,7 @@ void up_enable_irq(int irq)
   uint32_t regval;
   uint32_t bit;
 
-  if (lm3s_irqinfo(irq, &regaddr, &bit) == 0)
+  if (lm_irqinfo(irq, &regaddr, &bit) == 0)
     {
       /* Set the appropriate bit in the register to enable the interrupt */
 
@@ -399,7 +399,7 @@ void up_enable_irq(int irq)
       regval |= bit;
       putreg32(regval, regaddr);
     }
-  lm3s_dumpnvic("enable", irq);
+  lm_dumpnvic("enable", irq);
 }
 
 /****************************************************************************
@@ -452,7 +452,7 @@ int up_prioritize_irq(int irq, int priority)
   regval     |= (priority << shift);
   putreg32(regval, regaddr);
 
-  lm3s_dumpnvic("prioritize", irq);
+  lm_dumpnvic("prioritize", irq);
   return OK;
 }
 #endif
