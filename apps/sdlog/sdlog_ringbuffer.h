@@ -54,6 +54,8 @@ struct sdlog_sysvector {
 	float control[4];		/**< roll, pitch, yaw [-1..1], thrust [0..1] */
 	float actuators[8];		/**< motor 1-8, in motor units (PWM: 1000-2000,AR.Drone: 0-512) */
 	float vbat;			/**< battery voltage in [volt] */
+	float bat_current;		/**< battery discharge current */
+	float bat_discharged;		/**< discharged energy in mAh */
 	float adc[3];			/**< remaining auxiliary ADC ports [volt] */
 	float local_position[3];	/**< tangent plane mapping into x,y,z [m] */
 	int32_t gps_raw_position[3];	/**< latitude [degrees] north, longitude [degrees] east, altitude above MSL [millimeter] */
@@ -62,6 +64,9 @@ struct sdlog_sysvector {
 	float vicon[6];			/**< Vicon ground truth x, y, z and roll, pitch, yaw */
 	float control_effective[4]; 	/**< roll, pitch, yaw [-1..1], thrust [0..1] */
 	float flow[6];			/**< flow raw x, y, flow metric x, y, flow ground dist, flow quality */
+	float diff_pressure;		/**< differential pressure */
+	float ind_airspeed;		/**< indicated airspeed */
+	float true_airspeed;		/**< true airspeed */
 };
 #pragma pack(pop)
 

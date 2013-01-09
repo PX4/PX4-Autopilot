@@ -66,6 +66,8 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/optical_flow.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/differential_pressure.h>
 
 #include <systemlib/systemlib.h>
 
@@ -383,6 +385,8 @@ int sdlog_thread_main(int argc, char *argv[])
 		struct vehicle_gps_position_s gps_pos;
 		struct vehicle_vicon_position_s vicon_pos;
 		struct optical_flow_s flow;
+		struct battery_status_s batt;
+		struct differential_pressure_s diff_pressure;
 	} buf;
 	memset(&buf, 0, sizeof(buf));
 
@@ -399,6 +403,8 @@ int sdlog_thread_main(int argc, char *argv[])
 		int gps_pos_sub;
 		int vicon_pos_sub;
 		int flow_sub;
+		int batt_sub;
+		int diff_pressure_sub;
 	} subs;
 
 	/* --- MANAGEMENT - LOGGING COMMAND --- */
@@ -484,6 +490,20 @@ int sdlog_thread_main(int argc, char *argv[])
 	/* subscribe to ORB for flow measurements */
 	subs.flow_sub = orb_subscribe(ORB_ID(optical_flow));
 	fds[fdsc_count].fd = subs.flow_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- BATTERY STATUS --- */
+	/* subscribe to ORB for flow measurements */
+	subs.batt_sub = orb_subscribe(ORB_ID(battery_status));
+	fds[fdsc_count].fd = subs.batt_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- DIFFERENTIAL PRESSURE --- */
+	/* subscribe to ORB for flow measurements */
+	subs.diff_pressure_sub = orb_subscribe(ORB_ID(differential_pressure));
+	fds[fdsc_count].fd = subs.diff_pressure_sub;
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
@@ -597,6 +617,8 @@ int sdlog_thread_main(int argc, char *argv[])
 		orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
 		orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
 		orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
+		orb_copy(ORB_ID(differential_pressure), subs.diff_pressure_sub, &buf.diff_pressure);
+		orb_copy(ORB_ID(battery_status), subs.batt_sub, &buf.batt);
 
 		struct sdlog_sysvector sysvect = {
 			.timestamp = buf.raw.timestamp,
@@ -611,7 +633,9 @@ int sdlog_thread_main(int argc, char *argv[])
 				buf.act_outputs.output[0], buf.act_outputs.output[1], buf.act_outputs.output[2], buf.act_outputs.output[3],
 				buf.act_outputs.output[4], buf.act_outputs.output[5], buf.act_outputs.output[6], buf.act_outputs.output[7]
 			},
-			.vbat = 0.0f, /* XXX use battery_status uORB topic */
+			.vbat = buf.batt.voltage_v,
+			.bat_current = buf.batt.current_a,
+			.bat_discharged = buf.batt.discharged_mah,
 			.adc = {buf.raw.adc_voltage_v[0], buf.raw.adc_voltage_v[1], buf.raw.adc_voltage_v[2]},
 			.local_position = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z},
 			.gps_raw_position = {buf.gps_pos.lat, buf.gps_pos.lon, buf.gps_pos.alt},
@@ -619,8 +643,10 @@ int sdlog_thread_main(int argc, char *argv[])
 			.rotMatrix = {buf.att.R[0][0], buf.att.R[0][1], buf.att.R[0][2], buf.att.R[1][0], buf.att.R[1][1], buf.att.R[1][2], buf.att.R[2][0], buf.att.R[2][1], buf.att.R[2][2]},
 			.vicon = {buf.vicon_pos.x, buf.vicon_pos.y, buf.vicon_pos.z, buf.vicon_pos.roll, buf.vicon_pos.pitch, buf.vicon_pos.yaw},
 			.control_effective = {buf.act_controls_effective.control_effective[0], buf.act_controls_effective.control_effective[1], buf.act_controls_effective.control_effective[2], buf.act_controls_effective.control_effective[3]},
-			.flow = {buf.flow.flow_raw_x, buf.flow.flow_raw_y, buf.flow.flow_comp_x_m, buf.flow.flow_comp_y_m, buf.flow.ground_distance_m, buf.flow.quality}
-			/* XXX add calculated airspeed */
+			.flow = {buf.flow.flow_raw_x, buf.flow.flow_raw_y, buf.flow.flow_comp_x_m, buf.flow.flow_comp_y_m, buf.flow.ground_distance_m, buf.flow.quality},
+			.diff_pressure = buf.diff_pressure.differential_pressure_mbar,
+			.ind_airspeed = buf.diff_pressure.indicated_airspeed_m_s,
+			.true_airspeed = buf.diff_pressure.true_airspeed_m_s
 		};
 
 		/* put into buffer for later IO */

@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,34 +32,39 @@
  ****************************************************************************/
 
 /**
- * @file conversions.h
- * Definition of commonly used conversions.
+ * @file differential_pressure.h
  *
- * Includes bit / byte / geo representation and unit conversions.
+ * Definition of differential pressure topic
  */
 
-#ifndef CONVERSIONS_H_
-#define CONVERSIONS_H_
-#include <float.h>
+#ifndef TOPIC_DIFFERENTIAL_PRESSURE_H_
+#define TOPIC_DIFFERENTIAL_PRESSURE_H_
+
+#include "../uORB.h"
 #include <stdint.h>
 
-__BEGIN_DECLS
+/**
+ * @addtogroup topics
+ * @{
+ */
 
 /**
- * Converts a signed 16 bit integer from big endian to little endian.
- *
- * This function is for commonly used 16 bit big endian sensor data,
- * delivered by driver routines as two 8 bit numbers in big endian order.
- * Common vendors with big endian representation are Invense, Bosch and
- * Honeywell. ST micro devices tend to use a little endian representation.
+ * Battery voltages and status
  */
-__EXPORT int16_t int16_t_from_bytes(uint8_t bytes[]);
+struct differential_pressure_s {
+	uint64_t	timestamp;			/**< microseconds since system boot, needed to integrate */
+	float   	static_pressure_mbar;		/**< Static / environment pressure */
+	float		differential_pressure_mbar;	/**< Differential pressure reading */
+	float		temperature_celcius;		/**< ambient temperature in celcius, -1 if unknown */
+	float		indicated_airspeed_m_s;		/**< indicated airspeed in meters per second, -1 if unknown	 */
+	float		true_airspeed_m_s;		/**< true airspeed in meters per second, -1 if unknown */
+};
 
 /**
- * Calculates air density.
+ * @}
  */
-__EXPORT float get_air_density(float static_pressure, float temperature_celsius);
 
-__END_DECLS
+/* register this as object request broker structure */
+ORB_DECLARE(differential_pressure);
 
-#endif /* CONVERSIONS_H_ */
+#endif

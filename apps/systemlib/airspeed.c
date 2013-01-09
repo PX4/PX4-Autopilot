@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2013 PX4 Development Team. All rights reserved.
  *   Author: Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,34 +33,47 @@
  ****************************************************************************/
 
 /**
- * @file conversions.h
- * Definition of commonly used conversions.
+ * @file airspeed.c
+ * Airspeed estimation
  *
- * Includes bit / byte / geo representation and unit conversions.
- */
-
-#ifndef CONVERSIONS_H_
-#define CONVERSIONS_H_
-#include <float.h>
-#include <stdint.h>
-
-__BEGIN_DECLS
-
-/**
- * Converts a signed 16 bit integer from big endian to little endian.
+ * @author Lorenz Meier <lm@inf.ethz.ch>
  *
- * This function is for commonly used 16 bit big endian sensor data,
- * delivered by driver routines as two 8 bit numbers in big endian order.
- * Common vendors with big endian representation are Invense, Bosch and
- * Honeywell. ST micro devices tend to use a little endian representation.
  */
-__EXPORT int16_t int16_t_from_bytes(uint8_t bytes[]);
 
+#include "math.h"
+
+
+float calc_indicated_airspeed(float pressure_front, float pressure_ambient, float temperature)
+{
+	return sqrtf((2.0f*(pressure_front - pressure_ambient)) / air_density_sea_level);
+}
+ 
 /**
- * Calculates air density.
+ * Calculate true airspeed from indicated airspeed.
+ *
+ * Note that the true airspeed is NOT the groundspeed, because of the effects of wind
+ *
+ * @param speed current indicated airspeed
+ * @param pressure_ambient pressure at the side of the tube/airplane
+ * @param temperature air temperature in degrees celcius
+ * @return true airspeed in m/s
  */
-__EXPORT float get_air_density(float static_pressure, float temperature_celsius);
-
-__END_DECLS
-
-#endif /* CONVERSIONS_H_ */
+float calc_true_airspeed_from_indicated(float speed, float pressure_ambient, float temperature)
+{
+	return speed * sqrtf(air_density_sea_level / get_air_density(pressure_ambient, temperature));
+}
+ 
+/**
+ * Directly calculate true airspeed
+ *
+ * Note that the true airspeed is NOT the groundspeed, because of the effects of wind
+ *
+ * @param pressure_front pressure inside the pitot/prandl tube
+ * @param pressure_ambient pressure at the side of the tube/airplane
+ * @param temperature air temperature in degrees celcius
+ * @return true airspeed in m/s
+ */
+float calc_true_airspeed(float pressure_front, float pressure_ambient, float temperature)
+{
+	return sqrtf((2.0f*(pressure_front - pressure_ambient)) / get_air_density(pressure_ambient, temperature));
+}

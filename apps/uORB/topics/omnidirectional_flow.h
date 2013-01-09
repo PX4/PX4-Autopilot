@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: Lorenz Meier <lm@inf.ethz.ch>
+ *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,34 +33,43 @@
  ****************************************************************************/
 
 /**
- * @file conversions.h
- * Definition of commonly used conversions.
- *
- * Includes bit / byte / geo representation and unit conversions.
+ * @file optical_flow.h
+ * Definition of the optical flow uORB topic.
  */
 
-#ifndef CONVERSIONS_H_
-#define CONVERSIONS_H_
-#include <float.h>
+#ifndef TOPIC_OMNIDIRECTIONAL_FLOW_H_
+#define TOPIC_OMNIDIRECTIONAL_FLOW_H_
+
 #include <stdint.h>
-
-__BEGIN_DECLS
+#include <stdbool.h>
+#include "../uORB.h"
 
 /**
- * Converts a signed 16 bit integer from big endian to little endian.
+ * @addtogroup topics
+ */
+
+/**
+ * Omnidirectional optical flow in NED body frame in SI units.
  *
- * This function is for commonly used 16 bit big endian sensor data,
- * delivered by driver routines as two 8 bit numbers in big endian order.
- * Common vendors with big endian representation are Invense, Bosch and
- * Honeywell. ST micro devices tend to use a little endian representation.
+ * @see http://en.wikipedia.org/wiki/International_System_of_Units
  */
-__EXPORT int16_t int16_t_from_bytes(uint8_t bytes[]);
+struct omnidirectional_flow_s {
+
+	uint64_t timestamp;		/**< in microseconds since system start          */
+
+	uint16_t left[10];		/**< Left flow, in decipixels */
+	uint16_t right[10];		/**< Right flow, in decipixels */
+	float front_distance_m;		/**< Altitude / distance to object front in meters */
+	uint8_t	quality;		/**< Quality of the measurement, 0: bad quality, 255: maximum quality */
+	uint8_t sensor_id;		/**< id of the sensor emitting the flow value */
+
+};
 
 /**
- * Calculates air density.
+ * @}
  */
-__EXPORT float get_air_density(float static_pressure, float temperature_celsius);
 
-__END_DECLS
+/* register this as object request broker structure */
+ORB_DECLARE(omnidirectional_flow);
 
-#endif /* CONVERSIONS_H_ */
+#endif
