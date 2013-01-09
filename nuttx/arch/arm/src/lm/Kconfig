@@ -60,7 +60,7 @@ config LM3S_DFU
 	bool "DFU"
 	default y
 
-menu "Select LM3S Peripheral Support"
+menu "Stellaris Peripheral Support"
 
 config LM3S_UART0
 	bool "UART0"
@@ -86,10 +86,10 @@ config LM3S_UART2
 	default n
 
 config LM3S_ETHERNET
-	bool "LM3S Ethernet"
+	bool "Stellaris Ethernet"
 	default n
 	---help---
-		This must be set (along with NET) to build the LM3S Ethernet driver.
+		This must be set (along with NET) to build the Stellaris Ethernet driver.
 
 endmenu
 
@@ -134,7 +134,7 @@ config LM3S_DISABLE_GPIOJ_IRQS
 endmenu
 
 if LM3S_ETHERNET
-menu "LM3S Ethernet Configuration"
+menu "Stellaris Ethernet Configuration"
 
 config LM3S_ETHLEDS
 	bool "Ethernet LEDs"
@@ -199,7 +199,7 @@ endmenu
 endif
 
 if !SSI0_DISABLE || !SSI1_DISABLE
-menu "LM3S SSI Configuration"
+menu "Stellaris SSI Configuration"
 
 config SSI_POLLWAIT
 	bool "Poll Wait (No-Interrupt) Mode"

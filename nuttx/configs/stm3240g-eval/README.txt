@@ -951,9 +951,9 @@ Where <subdir> is one of the following:
       CONFIG_EXAMPLES_DISCOVER_IPADDR   - (not defined)
       CONFIG_EXAMPLES_DISCOVER_DRIPADDR - Router IP address
 
-    NOTE:  This configuration uses to the mconf configuration tool to control
-    the configuration.  See the section entitled "NuttX Configuration Tool"
-    in the top-level README.txt file.
+    NOTE:  This configuration uses to the kconfig-mconf configuration tool to
+    control the configuration.  See the section entitled "NuttX Configuration
+    Tool" in the top-level README.txt file.
 
   nettest:
   -------

@@ -826,9 +826,9 @@ Where <subdir> is one of the following:
     contains support for some built-in applications that can be enabled by making
     some additional minor change to the configuration file.
 
-    Reconfiguring:  This configuration uses to the mconf configuration tool to control
-    the configuration.  See the section entitled "NuttX Configuration Tool"
-    in the top-level README.txt file.
+    Reconfiguring:  This configuration uses to the kconfig-mconf configuration tool
+    to control the configuration.  See the section entitled "NuttX Configuration
+    Tool" in the top-level README.txt file.
 
     Start Delays:  If no SD card is present in the slot, or if the network is not
     connected, then there will be long start-up delays before you get the NSH
@@ -842,7 +842,7 @@ Where <subdir> is one of the following:
     verified.  The ENC28J60 network is not yet functional.  Networking is
     enabled by default in this configuration for testing purposes.  To use this
     configuration, the network must currently be disabled.  To do this using
-    the mconf configuration tool:
+    the kconfig-mconf configuration tool:
 
     > make menuconfig
 

@@ -200,7 +200,7 @@ There are several toolchain options.  However, testing has been performed
 using *only* the NuttX buildroot toolchain described below.  Therefore,
 the NuttX buildroot toolchain is the recommended choice.
 
-The toolchain may be selected using the mconf tool (via 'make menuconfig'),
+The toolchain may be selected using the kconfig-mconf tool (via 'make menuconfig'),
 by editing the existing configuration file (defconfig), or by overriding
 the toolchain on the make commandline with CONFIG_AVR_TOOLCHAIN=<toolchain>.
 

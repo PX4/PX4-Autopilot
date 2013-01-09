@@ -445,11 +445,11 @@ kconfig.bat
   only a few options for the Windows user (see the top-level README.txt
   file).
 
-  You can, with some effort, run the the Cygwin mconf tool directly
+  You can, with some effort, run the the Cygwin kconfig-mconf tool directly
   in the CMD.exe shell.  In this case, you do not have to modify the
   .config file, but there are other complexities:  You need to
   temporarily set the Cgywin directories in the PATH variable and
-  then run mconf outside of the Make system.
+  then run kconfig-mconf outside of the Make system.
 
   kconfig.bat is a Windows batch file at tools/kconfig.bat that automates
   these steps.  It is used from the top-level NuttX directory like:
@@ -457,8 +457,8 @@ kconfig.bat
     tools/kconfig menuconfig
 
   NOTE: There is an currently an issue with accessing DOS environment
-  variables from the Cygwin mconf running in the CMD.exe shell.  The
-  following change to the top-level Kconfig file seems to work around
+  variables from the Cygwin kconfig-mconf running in the CMD.exe shell.
+  The following change to the top-level Kconfig file seems to work around
   these problems:
   
      config APPSDIR

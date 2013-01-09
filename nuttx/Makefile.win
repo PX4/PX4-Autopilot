@@ -651,13 +651,13 @@ configenv:
 	$(Q) set APPSDIR=${CONFIG_APPS_DIR}
 
 config: configenv
-	$(Q) conf Kconfig
+	$(Q) kconfig-conf Kconfig
 
 oldconfig: configenv
-	$(Q) conf --oldconfig Kconfig
+	$(Q) kconfig-conf --oldconfig Kconfig
 
 menuconfig: configenv
-	$(Q) mconf Kconfig
+	$(Q) kconfig-mconf Kconfig
 
 # export
 #

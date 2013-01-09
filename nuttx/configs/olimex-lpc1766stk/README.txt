@@ -904,8 +904,8 @@ Where <subdir> is one of the following:
     1. This configuration uses the mconf-based configuration tool.  To
        change this configuration using that tool, you should:
 
-       a. Build and install the mconf tool.  See nuttx/README.txt and
-          misc/tools/
+       a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
+          and misc/tools/
 
        b. Execute 'make menuconfig' in nuttx/ in order to start the
           reconfiguration process.

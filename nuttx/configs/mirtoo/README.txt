@@ -324,7 +324,7 @@ Toolchains
 ==========
 
   Note that in addition to the configuration options listed below, the
-  toolchain can be configured using the mconf utility ('make menuconfig')
+  toolchain can be configured using the kconfig-mconf utility ('make menuconfig')
   or by passing CONFIG_MIPS32_TOOLCHAIN=<toolchain> to make, where
   <toolchain> is one of GNU_ELF, MICROCHIPL, MICROCHIPW, MICROCHIPL_LITE,
   MICROCHIPW_LITE, MICROCHIPOPENL or PINGUINOW as described below.

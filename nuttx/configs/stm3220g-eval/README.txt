@@ -65,8 +65,8 @@ GNU Toolchain Options
   If you change the default toolchain, then you may also have to modify the PATH in
   the setenv.h file if your make cannot find the tools.
 
-  The toolchain may also be set using the mconf utility (make menuconfig) or by
-  passing CONFIG_ARMV7M_TOOLCHAIN=<toolchain> to make, where <toolchain> is one
+  The toolchain may also be set using the kconfig-mconf utility (make menuconfig)
+  or by passing CONFIG_ARMV7M_TOOLCHAIN=<toolchain> to make, where <toolchain> is one
   of CODESOURCERYW, CODESOURCERYL, ATOLLOC, DEVKITARM, RAISONANCE, BUILDROOT or
   GNU_EABI as described above.
 
@@ -1082,8 +1082,8 @@ Where <subdir> is one of the following:
     1. This configuration uses the mconf-based configuration tool.  To
        change this configuration using that tool, you should:
 
-       a. Build and install the mconf tool.  See nuttx/README.txt and
-          misc/tools/
+       a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
+          and misc/tools/
 
        b. Execute 'make menuconfig' in nuttx/ in order to start the
           reconfiguration process.

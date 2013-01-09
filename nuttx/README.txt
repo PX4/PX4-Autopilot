@@ -243,8 +243,8 @@ additional file to the directory the NuttX application package (APPSDIR)):
     The appconfig file describes the applications that need to be
     built in the appliction directory (APPSDIR).  Not all configurations
     have an appconfig file.  This file is deprecated and will not be
-    used with new defconfig files produced with the mconf configuration
-    tool.
+    used with new defconfig files produced with the kconfig-mconf
+    configuration tool.
 
 General information about configuring NuttX can be found in:
 
@@ -439,14 +439,14 @@ NuttX Configuration Tool under DOS
      And of course, after you use the configuration tool you need to
      restore CONFIG_WINDOWS_NATIVE=y and the correct CONFIG_APPS_DIR.
 
-  2) You can, with some effort, run the the Cygwin mconf tool directly
-     in the CMD.exe shell.  In this case, you do not have to modify the
-     .config file, but there are other complexities:
+  2) You can, with some effort, run the the Cygwin kconfig-mconf tool
+     directly in the CMD.exe shell.  In this case, you do not have to
+     modify the .config file, but there are other complexities:
 
       a. You need to temporarily set the Cgywin directories in the PATH
-         variable then run mconf manually like:
+         variable then run kconfig-mconf manually like:
 
-          mconf Kconfig
+          kconfig-mconf Kconfig
 
          There is a Windows bacht file at tools/kconfig.bat that automates
          these steps:
@@ -454,9 +454,9 @@ NuttX Configuration Tool under DOS
          tools/kconfig menuconfig
 
        b. There is an issue with accessing DOS environment variables from
-          the Cygwin mconf running in the CMD.exe shell.  The following
-          change to the top-level Kconfig file seems to work around these
-          problems:
+          the Cygwin kconfig-mconf running in the CMD.exe shell.  The
+          following change to the top-level Kconfig file seems to work
+          around these problems:
   
           config APPSDIR
               string

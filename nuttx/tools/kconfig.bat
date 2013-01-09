@@ -100,15 +100,15 @@ echo ERROR: Unrecognized action: %action%
 goto :ShowUsage
 
 :DoConfig
-conf Kconfig
+kconfig-conf Kconfig
 goto End
 
 :DoOldConfig
-conf --oldconfig Kconfig
+kconfig-conf --oldconfig Kconfig
 goto End
 
 :DoMenuConfig
-mconf Kconfig
+kconfig-mconf Kconfig
 goto End
 
 :MissingArgument

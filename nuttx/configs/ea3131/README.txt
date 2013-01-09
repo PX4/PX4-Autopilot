@@ -53,7 +53,7 @@ GNU Toolchain Options
   If you are not using CONFIG_LPC31_BUILDROOT, then you may also have to modify
   the PATH in the setenv.h file if your make cannot find the tools.
 
-  The toolchain may also be set using the mconf utility (make menuconfig) or by
+  The toolchain may also be set using the kconfig-mconf utility (make menuconfig) or by
   passing CONFIG_ARM_TOOLCHAIN=<toolchain> to make, where <toolchain> is one
   of CODESOURCERYW, CODESOURCERYL, DEVKITARM, BUILDROOT or GNU_EABI as described
   above.

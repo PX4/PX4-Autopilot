@@ -187,7 +187,7 @@ Atmel AVRISP mkII Connection
 Toolchains
 ^^^^^^^^^^
 
-The toolchain may be selected using the mconf tool (via 'make menuconfig'),
+The toolchain may be selected using the kconfig-mconf tool (via 'make menuconfig'),
 by editing the existing configuration file (defconfig), or by overriding
 the toolchain on the make commandline with CONFIG_AVR_TOOLCHAIN=<toolchain>.
 
