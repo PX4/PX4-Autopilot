@@ -78,6 +78,9 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	_outTimeStamp(hrt_absolute_time()),
 	// frame count
 	_navFrames(0),
+	// miss counts
+	_missFast(0),
+	_missSlow(0),
 	// state
 	fN(0), fE(0), fD(0),
 	phi(0), theta(0), psi(0),
@@ -156,9 +159,8 @@ void KalmanNav::update()
 	if (ret < 0) {
 		// XXX this is seriously bad - should be an emergency
 		return;
-
 	} else if (ret == 0) { // timeout
-		// run anyway
+		return;
 	} else if (ret > 0) {
 		// update params when requested
 		if (fds[1].revents & POLLIN) {
@@ -188,15 +190,15 @@ void KalmanNav::update()
 	// for packet lag
 	float dtFast = (_sensors.timestamp - _fastTimeStamp) / 1.0e6f;
 	_fastTimeStamp = _sensors.timestamp;
-	if (dtFast < 0.1f) predictFast(dtFast);
-    else printf("warning fast prediction miss\n");
+	if (dtFast < 1.0f / 100) predictFast(dtFast);
+    else _missFast++;
 
 	// slow prediction step
 	float dtSlow = (_sensors.timestamp - _slowTimeStamp) / 1.0e6f;
-	if (dtSlow > 0.1f / 200) { // 200 Hz
+	if (dtSlow > 1.0f / 100) { // 100 Hz
 		_slowTimeStamp = _sensors.timestamp;
-		if (dtSlow < 1.0) predictSlow(dtSlow);
-        else printf("warning slow prediction miss\n");
+		if (dtSlow < 1.0f / 50) predictSlow(dtSlow);
+    	else _missSlow ++;
 	}
 
 	// gps correction step
@@ -219,8 +221,10 @@ void KalmanNav::update()
 	// output
 	if (newTimeStamp - _outTimeStamp > 1e6) { // 1 Hz
 		_outTimeStamp = newTimeStamp;
-		printf("nav: %4d Hz\n", _navFrames);
+		printf("nav: %4d Hz, misses fast: %4d slow: %4d\n", _navFrames, _missFast, _missSlow);
 		_navFrames = 0;
+		_missFast = 0;
+		_missSlow = 0;
 	}
 }
 

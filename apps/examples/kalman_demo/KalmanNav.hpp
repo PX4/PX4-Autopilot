@@ -94,6 +94,8 @@ protected:
 	uint64_t _attTimeStamp;
 	uint64_t _outTimeStamp;
 	uint16_t _navFrames;
+	uint16_t _missFast;
+	uint16_t _missSlow;
 	float fN, fE, fD;
 	// states
 	enum {PHI = 0, THETA, PSI, VN, VE, VD, LAT, LON, ALT};
