@@ -42,6 +42,8 @@ class Pressure(object):
         press_diff1 = 0 # TODO, for velocity
         press_diff2 = 0 # TODO, ?
 
+        # TODO INSERT NOISE HERE
+
         return cls(time=time.time(), press_abs = pressBar, press_diff1 = press_diff1,
                    press_diff2 = press_diff2, temperature = tempC)
 
@@ -103,6 +105,8 @@ class Imu(object):
         ymag = magVectB[1,0]
         zmag = magVectB[2,0]
 
+        # TODO INSERT NOISE HERE
+
         return cls(time.time(), xacc, yacc, zacc, xgyro, ygyro, zgyro, xmag, ymag, zmag)
 
 class Gps(object):
@@ -133,6 +137,9 @@ class Gps(object):
     def from_state(cls, state):
         vel = math.sqrt(state.vN*state.vN + state.vE*state.vE)
         cog = math.atan2(state.vE,state.vN) + math.pi
+
+        # TODO INSERT NOISE HERE
+
         return cls(time = time.time()*sec2msec, fix_type = 3,
                    lat = state.lat, lon = state.lon, alt = state.alt,
                    eph = 1.0, epv = 5.0, vel = vel, cog = cog,
@@ -141,5 +148,3 @@ class Gps(object):
     @classmethod
     def default(cls):
         return cls(time.time(),0,0,0,0,0,0,0,0,0)
-
-
