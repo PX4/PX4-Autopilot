@@ -8,6 +8,7 @@ check bandwidth of link
 import sys, struct, time, os, argparse, signal, math
 import pexpect, socket, fdpexpect, select
 import pymavlink.mavutil as mavutil
+import pymavlink.mavwp as mavwp
 
 # set path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pysim'))
@@ -142,19 +143,21 @@ class SensorHIL(object):
         parser.add_argument('--script', help='jsbsim script', default='jsbsim/easystar_test.xml')
         parser.add_argument('--options', help='jsbsim options', default=None)
         parser.add_argument('--gcs', help='gcs host', default='localhost:14550')
+        parser.add_argument('--waypoints', help='waypoints file', default=None)
         args = parser.parse_args()
         if args.master is None:
             raise IOError('must specify device with --dev')
-        inst = cls(master_dev=args.master, baudrate=args.baud, script=args.script, options=args.options, gcs_dev=args.gcs)
+        inst = cls(master_dev=args.master, baudrate=args.baud, script=args.script, options=args.options, gcs_dev=args.gcs, waypoints=args.waypoints)
         inst.run()
 
-    def __init__(self, master_dev, baudrate, script, options, gcs_dev):
+    def __init__(self, master_dev, baudrate, script, options, gcs_dev, waypoints):
         ''' default ctor 
         @param dev device
         @param baud baudrate
         '''
         self.script = script
         self.options = options
+        self.waypoints = waypoints
         self.x = AircraftState(time=time.time(),
                                phi=0, theta=0, psi=0,
                                lat=0, lon=0, alt=0,
@@ -241,6 +244,11 @@ class SensorHIL(object):
         self.jsb_console = jsb_console
         self.fdm = fgFDM.fgFDM()
 
+        # waypoint setting variables
+        self.wploading = False
+        self.wpload = None
+        self.wpload_time = 0
+
     def hil_enabled(self):
         return self.master.base_mode & mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED
 
@@ -250,6 +258,41 @@ class SensorHIL(object):
             self.master.set_mode_flag(mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED,True)
             while self.master.port.inWaiting() > 0:
                 m = self.master.recv_msg()
+
+    def reboot_autopilot(self):
+        self.master.reboot_autopilot()
+
+    def set_waypoints(self, waypoints):
+        self.wpload_time = time.time()
+        self.wploading = True
+        self.wpload = mavwp.MAVWPLoader()
+
+        self.wpload.target_system = 1
+        self.wpload.taget_component = 1
+        wpcount = self.wpload.load(waypoints)
+        print 'Waypoint Count = %i' % wpcount
+
+        #self.master.waypoint_clear_all_send()
+        self.master.waypoint_count_send(wpcount)
+        #self.read_waypoint_request()
+        
+    def process_waypoint_request(self, m):
+        print 'read request'
+        if time.time()-self.wpload_time > 10:
+            self.wploading = False
+
+        if self.wploading:
+            num = m.get_seq()
+            print m.get_seq()
+            print m.get_payload()
+            wp = self.wpload.wp(num)
+            wp.target_system = self.wpload.target_system
+            wp.target_component = self.wpload.target_component
+            self.master.mav.send(wp)
+            self.wpload_time = time.time()
+            print 'Sent waypoint %u: %s' % (num, wp)
+            if num == self.wploader.count() - 1:
+                self.wploading = False
 
     def jsb_set(self, variable, value):
         '''set a JSBSim variable'''
@@ -283,10 +326,13 @@ class SensorHIL(object):
             self.counts[m.get_type()] = 0
         self.counts[m.get_type()] += 1
 
+        mtype = m.get_type()
         # hil control message
-        if m.get_type() == 'HIL_CONTROLS':
+        if mtype == 'HIL_CONTROLS':
             self.u = AircraftControls.from_mavlink(m)
             self.u.send_to_jsbsim(self.jsb_console)
+        elif mtype in ["WAYPOINT_REQUEST", "MISSION_REQUEST"]:
+            self.process_waypoint_request(m)
 
     def process_gcs(self):
         '''process packets from MAVLink slaves, forwarding to the master'''
@@ -313,13 +359,28 @@ class SensorHIL(object):
     def run(self):
         ''' main execution loop '''
 
-
         # start simulation
         self.jsb_console.send('info\n')
         self.jsb_console.send('resume\n')
         self.jsb.expect("trim computation time")
         time.sleep(1.5)
         self.jsb_console.logfile = None
+
+        
+        #i = 0
+        #while True:
+        #    m = self.master.recv_msg()
+        #    if m == None: continue
+
+        #    i += 1
+        #    print m.get_type()
+        #    if i > 100:
+        #        break
+
+        #time.sleep(10)
+        #print 'load waypoints'
+        #self.set_waypoints(self.waypoints)
+        #self.process_waypoint_request()
 
         # run main loop
         while True:
