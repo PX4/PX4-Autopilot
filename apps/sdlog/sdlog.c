@@ -36,12 +36,14 @@
  * @file sdlog.c
  * @author Lorenz Meier <lm@inf.ethz.ch>
  *
- * Simple SD logger for flight data
+ * Simple SD logger for flight data. Buffers new sensor values and
+ * does the heavy SD I/O in a low-priority worker thread.
  */
 
 #include <nuttx/config.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/prctl.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
@@ -82,6 +84,10 @@ static const char *mountpoint = "/fs/microsd";
 static const char *mfile_in = "/etc/logging/logconv.m";
 int sysvector_file = -1;
 struct sdlog_logbuffer lb;
+
+/* mutex / condition to synchronize threads */
+pthread_mutex_t sysvector_mutex;
+pthread_cond_t sysvector_cond;
 
 /**
  * System state vector log buffer writing
@@ -248,6 +254,9 @@ int create_logfolder(char *folder_path)
 static void *
 sdlog_sysvector_write_thread(void *arg)
 {
+	/* set name */
+	prctl(PR_SET_NAME, "sdlog microSD I/O", 0);
+
 	struct sdlog_logbuffer *logbuf = (struct sdlog_logbuffer *)arg;
 
 	int poll_count = 0;
@@ -255,8 +264,22 @@ sdlog_sysvector_write_thread(void *arg)
 	memset(&sysvect, 0, sizeof(sysvect));
 
 	while (!thread_should_exit) {
-		//pthread_mutex..
-		if (sdlog_logbuffer_read(logbuf, &sysvect) == OK) {
+		
+		/* make sure threads are synchronized */
+		pthread_mutex_lock(&sysvector_mutex);
+
+		/* only wait if no data is available to process */
+		if (sdlog_logbuffer_is_empty(logbuf)) {
+			/* blocking wait for new data at this line */
+			pthread_cond_wait(&sysvector_cond, &sysvector_mutex);
+		}
+
+		/* only quickly load data, do heavy I/O a few lines down */
+		int ret = sdlog_logbuffer_read(logbuf, &sysvect);
+		/* continue */
+		pthread_mutex_unlock(&sysvector_mutex);
+
+		if (ret == OK) {
 			sysvector_bytes += write(sysvector_file, (const char *)&sysvect, sizeof(sysvect));
 		}
 
@@ -265,7 +288,6 @@ sdlog_sysvector_write_thread(void *arg)
 		}
 
 		poll_count++;
-		usleep(3000);
 	}
 
 	fsync(sysvector_file);
@@ -289,6 +311,8 @@ sysvector_write_start(struct sdlog_logbuffer *logbuf)
 	pthread_t thread;
 	pthread_create(&thread, &receiveloop_attr, sdlog_sysvector_write_thread, logbuf);
 	return thread;
+
+	// XXX we have to destroy the attr at some point
 }
 
 
@@ -524,23 +548,64 @@ int sdlog_thread_main(int argc, char *argv[])
 
 	thread_running = true;
 
-	/* Initialize log buffer with a size of 5 */
-	sdlog_logbuffer_init(&lb, 5);
+	/* initialize log buffer with a size of 10 */
+	sdlog_logbuffer_init(&lb, 10);
+
+	/* initialize thread synchronization */
+	pthread_mutex_init(&sysvector_mutex, NULL);
+  	pthread_cond_init(&sysvector_cond, NULL);
+
 	/* start logbuffer emptying thread */
 	pthread_t sysvector_pthread = sysvector_write_start(&lb);
 
 	starttime = hrt_absolute_time();
 
+	// XXX clock the log for now with the gyro output rate / 2
+	struct pollfd gyro_fd;
+	gyro_fd.fd = subs.sensor_sub;
+	gyro_fd.events = POLLIN;
+
+	/* log every 2nd value (skip one) */
+	int skip_value = 0;
+	/* track skipping */
+	int skip_count = 0;
+
 	while (!thread_should_exit) {
+
+		// XXX only use gyro for now
+		int poll_ret = poll(&gyro_fd, 1, 1000);
 
 		// int poll_ret = poll(fds, fdsc_count, timeout);
 
-		// /* handle the poll result */
-		// if (poll_ret == 0) {
-		// 	/* XXX this means none of our providers is giving us data - might be an error? */
-		// } else if (poll_ret < 0) {
-		// 	/* XXX this is seriously bad - should be an emergency */
-		// } else {
+		/* handle the poll result */
+		if (poll_ret == 0) {
+			/* XXX this means none of our providers is giving us data - might be an error? */
+		} else if (poll_ret < 0) {
+			/* XXX this is seriously bad - should be an emergency */
+		} else {
+
+			/* always copy sensors raw data into local buffer, since poll flags won't clear else */
+			orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.raw);
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.controls_0_sub, &buf.act_controls);
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, subs.controls_effective_0_sub, &buf.act_controls_effective);
+			/* copy actuator data into local buffer */
+			orb_copy(ORB_ID(actuator_outputs_0), subs.act_0_sub, &buf.act_outputs);
+			orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.spa_sub, &buf.att_sp);
+			orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+			orb_copy(ORB_ID(vehicle_local_position), subs.local_pos_sub, &buf.local_pos);
+			orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
+			orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
+			orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
+			orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
+
+			if (skip_count < skip_value) {
+				skip_count++;
+				/* do not log data */
+				continue;
+			} else {
+				/* log data, reset */
+				skip_count = 0;
+			}
 
 		// 	int ifds = 0;
 
@@ -601,65 +666,71 @@ int sdlog_thread_main(int argc, char *argv[])
 		// 		/* write out */
 		// 		actuator_controls_bytes += write(actuator_controls_file, (const char*)&buf.act_controls, sizeof(buf.act_controls));
 		// 	}
-		// }
 
 
-		/* copy sensors raw data into local buffer */
-		orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.raw);
-		orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.controls_0_sub, &buf.act_controls);
-		orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, subs.controls_effective_0_sub, &buf.act_controls_effective);
-		/* copy actuator data into local buffer */
-		orb_copy(ORB_ID(actuator_outputs_0), subs.act_0_sub, &buf.act_outputs);
-		orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.spa_sub, &buf.att_sp);
-		orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
-		orb_copy(ORB_ID(vehicle_local_position), subs.local_pos_sub, &buf.local_pos);
-		orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
-		orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
-		orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
-		orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
-		orb_copy(ORB_ID(differential_pressure), subs.diff_pressure_sub, &buf.diff_pressure);
-		orb_copy(ORB_ID(battery_status), subs.batt_sub, &buf.batt);
+			/* copy sensors raw data into local buffer */
+			orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.raw);
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.controls_0_sub, &buf.act_controls);
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, subs.controls_effective_0_sub, &buf.act_controls_effective);
+			/* copy actuator data into local buffer */
+			orb_copy(ORB_ID(actuator_outputs_0), subs.act_0_sub, &buf.act_outputs);
+			orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.spa_sub, &buf.att_sp);
+			orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+			orb_copy(ORB_ID(vehicle_local_position), subs.local_pos_sub, &buf.local_pos);
+			orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
+			orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
+			orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
+			orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
+			orb_copy(ORB_ID(differential_pressure), subs.diff_pressure_sub, &buf.diff_pressure);
+			orb_copy(ORB_ID(battery_status), subs.batt_sub, &buf.batt);
 
-		struct sdlog_sysvector sysvect = {
-			.timestamp = buf.raw.timestamp,
-			.gyro = {buf.raw.gyro_rad_s[0], buf.raw.gyro_rad_s[1], buf.raw.gyro_rad_s[2]},
-			.accel = {buf.raw.accelerometer_m_s2[0], buf.raw.accelerometer_m_s2[1], buf.raw.accelerometer_m_s2[2]},
-			.mag = {buf.raw.magnetometer_ga[0], buf.raw.magnetometer_ga[1], buf.raw.magnetometer_ga[2]},
-			.baro = buf.raw.baro_pres_mbar,
-			.baro_alt = buf.raw.baro_alt_meter,
-			.baro_temp = buf.raw.baro_temp_celcius,
-			.control = {buf.act_controls.control[0], buf.act_controls.control[1], buf.act_controls.control[2], buf.act_controls.control[3]},
-			.actuators = {
-				buf.act_outputs.output[0], buf.act_outputs.output[1], buf.act_outputs.output[2], buf.act_outputs.output[3],
-				buf.act_outputs.output[4], buf.act_outputs.output[5], buf.act_outputs.output[6], buf.act_outputs.output[7]
-			},
-			.vbat = buf.batt.voltage_v,
-			.bat_current = buf.batt.current_a,
-			.bat_discharged = buf.batt.discharged_mah,
-			.adc = {buf.raw.adc_voltage_v[0], buf.raw.adc_voltage_v[1], buf.raw.adc_voltage_v[2]},
-			.local_position = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z},
-			.gps_raw_position = {buf.gps_pos.lat, buf.gps_pos.lon, buf.gps_pos.alt},
-			.attitude = {buf.att.pitch, buf.att.roll, buf.att.yaw},
-			.rotMatrix = {buf.att.R[0][0], buf.att.R[0][1], buf.att.R[0][2], buf.att.R[1][0], buf.att.R[1][1], buf.att.R[1][2], buf.att.R[2][0], buf.att.R[2][1], buf.att.R[2][2]},
-			.vicon = {buf.vicon_pos.x, buf.vicon_pos.y, buf.vicon_pos.z, buf.vicon_pos.roll, buf.vicon_pos.pitch, buf.vicon_pos.yaw},
-			.control_effective = {buf.act_controls_effective.control_effective[0], buf.act_controls_effective.control_effective[1], buf.act_controls_effective.control_effective[2], buf.act_controls_effective.control_effective[3]},
-			.flow = {buf.flow.flow_raw_x, buf.flow.flow_raw_y, buf.flow.flow_comp_x_m, buf.flow.flow_comp_y_m, buf.flow.ground_distance_m, buf.flow.quality},
-			.diff_pressure = buf.diff_pressure.differential_pressure_mbar,
-			.ind_airspeed = buf.diff_pressure.indicated_airspeed_m_s,
-			.true_airspeed = buf.diff_pressure.true_airspeed_m_s
-		};
+			struct sdlog_sysvector sysvect = {
+				.timestamp = buf.raw.timestamp,
+				.gyro = {buf.raw.gyro_rad_s[0], buf.raw.gyro_rad_s[1], buf.raw.gyro_rad_s[2]},
+				.accel = {buf.raw.accelerometer_m_s2[0], buf.raw.accelerometer_m_s2[1], buf.raw.accelerometer_m_s2[2]},
+				.mag = {buf.raw.magnetometer_ga[0], buf.raw.magnetometer_ga[1], buf.raw.magnetometer_ga[2]},
+				.baro = buf.raw.baro_pres_mbar,
+				.baro_alt = buf.raw.baro_alt_meter,
+				.baro_temp = buf.raw.baro_temp_celcius,
+				.control = {buf.act_controls.control[0], buf.act_controls.control[1], buf.act_controls.control[2], buf.act_controls.control[3]},
+				.actuators = {
+					buf.act_outputs.output[0], buf.act_outputs.output[1], buf.act_outputs.output[2], buf.act_outputs.output[3],
+					buf.act_outputs.output[4], buf.act_outputs.output[5], buf.act_outputs.output[6], buf.act_outputs.output[7]
+				},
+				.vbat = buf.batt.voltage_v,
+				.bat_current = buf.batt.current_a,
+				.bat_discharged = buf.batt.discharged_mah,
+				.adc = {buf.raw.adc_voltage_v[0], buf.raw.adc_voltage_v[1], buf.raw.adc_voltage_v[2]},
+				.local_position = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z},
+				.gps_raw_position = {buf.gps_pos.lat, buf.gps_pos.lon, buf.gps_pos.alt},
+				.attitude = {buf.att.pitch, buf.att.roll, buf.att.yaw},
+				.rotMatrix = {buf.att.R[0][0], buf.att.R[0][1], buf.att.R[0][2], buf.att.R[1][0], buf.att.R[1][1], buf.att.R[1][2], buf.att.R[2][0], buf.att.R[2][1], buf.att.R[2][2]},
+				.vicon = {buf.vicon_pos.x, buf.vicon_pos.y, buf.vicon_pos.z, buf.vicon_pos.roll, buf.vicon_pos.pitch, buf.vicon_pos.yaw},
+				.control_effective = {buf.act_controls_effective.control_effective[0], buf.act_controls_effective.control_effective[1], buf.act_controls_effective.control_effective[2], buf.act_controls_effective.control_effective[3]},
+				.flow = {buf.flow.flow_raw_x, buf.flow.flow_raw_y, buf.flow.flow_comp_x_m, buf.flow.flow_comp_y_m, buf.flow.ground_distance_m, buf.flow.quality},
+				.diff_pressure = buf.diff_pressure.differential_pressure_mbar,
+				.ind_airspeed = buf.diff_pressure.indicated_airspeed_m_s,
+				.true_airspeed = buf.diff_pressure.true_airspeed_m_s
+			};
 
-		/* put into buffer for later IO */
-		sdlog_logbuffer_write(&lb, &sysvect);
-		// XXX notify writing thread through pthread mutex
+			/* put into buffer for later IO */
+			pthread_mutex_lock(&sysvector_mutex);
+			sdlog_logbuffer_write(&lb, &sysvect);
+			/* signal the other thread new data, but not yet unlock */
+			pthread_cond_signal(&sysvector_cond);
+			/* unlock, now the writer thread may run */
+			pthread_mutex_unlock(&sysvector_mutex);
+		}
 
-		usleep(3500);   // roughly 150 Hz
 	}
 
 	print_sdlog_status();
 
 	/* wait for write thread to return */
 	(void)pthread_join(sysvector_pthread, NULL);
+
+  	pthread_mutex_destroy(&sysvector_mutex);
+  	pthread_cond_destroy(&sysvector_cond);
 
 	warnx("exiting.\n");
 
