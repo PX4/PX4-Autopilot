@@ -388,7 +388,8 @@ PX4IO::task_main()
 			if (fds[1].revents & POLLIN) {
 
 				/* get controls */
-				orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, _t_actuators, &_controls);
+				orb_copy(_primary_pwm_device ? ORB_ID_VEHICLE_ATTITUDE_CONTROLS :
+				     ORB_ID(actuator_controls_1), _t_actuators, &_controls);
 
 				/* scale controls to PWM (temporary measure) */
 				for (unsigned i = 0; i < _max_actuators; i++)

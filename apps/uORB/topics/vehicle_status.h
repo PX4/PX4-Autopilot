@@ -99,6 +99,13 @@ enum VEHICLE_ATTITUDE_MODE {
 	VEHICLE_ATTITUDE_MODE_ATTITUDE	/**< tait-bryan attitude control mode */
 };
 
+enum VEHICLE_BATTERY_WARNING {
+    VEHICLE_BATTERY_WARNING_NONE = 0,    /**< no battery low voltage warning active */
+    VEHICLE_BATTERY_WARNING_WARNING,        /**< warning of low voltage 1. stage */
+    VEHICLE_BATTERY_WARNING_ALERT            /**< aleting of low voltage 2. stage */
+};
+
+
 /**
  * state machine / state of vehicle.
  *
@@ -157,6 +164,7 @@ struct vehicle_status_s
 	float voltage_battery;
 	float current_battery;
 	float battery_remaining;
+	enum VEHICLE_BATTERY_WARNING battery_warning;    /**< current battery warning mode, as defined by VEHICLE_BATTERY_WARNING enum */
 	uint16_t drop_rate_comm;
 	uint16_t errors_comm;
 	uint16_t errors_count1;
