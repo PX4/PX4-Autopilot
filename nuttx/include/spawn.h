@@ -33,14 +33,16 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_LIBGEN_H
-#define __INCLUDE_LIBGEN_H
+#ifndef __INCLUDE_SPAWN_H
+#define __INCLUDE_SPAWN_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#include <sys/types.h>
 #include <signal.h>
 
 /****************************************************************************
@@ -67,15 +69,23 @@
 
 struct posix_spawnattr_s
 {
-/* To be provided */
+  uint8_t  flags;
+  uint8_t  priority;
+  pid_t    group;
+  sigset_t sigset;
 };
+
 typedef struct posix_spawnattr_s posix_spawnattr_t;
 
-struct posix_spawn_file_actions_s
-{
-/* To be provided */
-};
-typedef struct posix_spawn_file_actions_s posix_spawn_file_actions_t;
+/* posix_spawn_file_actions_addclose(), posix_spawn_file_actions_adddup2(),
+ * and posix_spawn_file_actions_addopen() will allocate memory and append
+ * a new file action to an instance of posix_spawn_file_actions_t.  The
+ * internal representation of these structures is not exposed to the user.
+ * The user need only know that the size sizeof(posix_spawn_file_actions_t)
+ * will hold a pointer to data.
+ */
+
+typedef FAR void *posix_spawn_file_actions_t;
 
 /****************************************************************************
  * Public Function Prototypes
@@ -134,4 +144,4 @@ int posix_spawnattr_setsigmask(FAR posix_spawnattr_t *,
 }
 #endif
 
-#endif /* __INCLUDE_LIBGEN_H */
+#endif /* __INCLUDE_SPAWN_H */
