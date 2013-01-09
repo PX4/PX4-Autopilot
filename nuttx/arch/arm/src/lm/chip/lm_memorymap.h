@@ -44,8 +44,10 @@
 
 /* Include the memory map file for the specific Stellaris chip */
 
-#ifdef CONFIG_ARCH_CHIP_LM3S
+#if defined(CONFIG_ARCH_CHIP_LM3S)
 #  include "chip/lm3s_memorymap.h"
+#elif defined(CONFIG_ARCH_CHIP_LM4F)
+#  include "chip/lm4f_memorymap.h"
 #else
 #  error "Unsupported Stellaris memory map"
 #endif

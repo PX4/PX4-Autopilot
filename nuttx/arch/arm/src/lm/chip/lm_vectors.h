@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/lm/chip/lm_pinmap.h
+ * arch/arm/src/lm/chip/lm_vectors.h
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,23 +33,18 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LM_CHIP_LM_PINMAP_H
-#define __ARCH_ARM_SRC_LM_CHIP_LM_PINMAP_H
-
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
-#include <nuttx/config.h>
-
-/* Include the pin mapping file for the specific Stellaris chip */
+/* Include the vector file for the specific Stellaris chip */
 
 #if defined(CONFIG_ARCH_CHIP_LM3S)
-#  include "chip/lm3s_pinmap.h"
+#  include "chip/lm3s_vectors.h"
 #elif defined(CONFIG_ARCH_CHIP_LM4F)
-#  include "chip/lm4f_pinmap.h"
+#  include "chip/lm4f_vectors.h"
 #else
-#  error "Unsupported Stellaris PIN mapping"
+#  error "Unsupported Stellaris vector file"
 #endif
 
 /************************************************************************************
@@ -67,5 +62,3 @@
 /************************************************************************************
  * Public Function Prototypes
  ************************************************************************************/
-
-#endif /* __ARCH_ARM_SRC_LM_CHIP_LM_PINMAP_H */
