@@ -263,6 +263,34 @@ class SensorHIL(object):
             count += 1
             if count > 1000: raise IOError('Failed to enable HIL, check port')
 
+    def reboot_autopilot(self):
+        self.master.reboot_autopilot()
+
+    def set_waypoints(self, waypoints):
+        if waypoints == None:
+            return
+        self.wpload = mavwp.MAVWPLoader()
+
+        try:
+            count = self.wpload.load(waypoints)
+            print "Loaded %u waypoints from %s" % (count, waypoints)
+        except Exception, msg:
+            print 'Unable to load waypoints file %s' % waypoints
+            return
+
+        self.master.waypoint_clear_all_send()
+        if count == 0:
+            return
+
+        self.wploading = True
+        self.wpload_time = time.time()
+        self.master.waypoint_count_send(count)
+
+    def process_waypoint_request(m):
+        pass
+        #print m.get_seq()
+        #raw_input()
+
     def jsb_set(self, variable, value):
         '''set a JSBSim variable'''
         self.jsb_console.send('set %s %s\r\n' % (variable, value))
@@ -336,20 +364,19 @@ class SensorHIL(object):
         self.jsb_console.logfile = None
 
         
-        #i = 0
-        #while True:
-        #    m = self.master.recv_msg()
-        #    if m == None: continue
+        i = 0
+        while True:
+            m = self.master.recv_msg()
+            if m == None: continue
 
-        #    i += 1
-        #    print m.get_type()
-        #    if i > 100:
-        #        break
+            i += 1
+            print m.get_type()
+            if i > 100:
+                break
 
-        #time.sleep(10)
-        #print 'load waypoints'
-        #self.set_waypoints(self.waypoints)
-        #self.process_waypoint_request()
+        time.sleep(10)
+        print 'load waypoints'
+        self.set_waypoints(self.waypoints)
 
         # run main loop
         while True:
