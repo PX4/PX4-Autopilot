@@ -301,8 +301,6 @@ handle_message(mavlink_message_t *msg)
 		uint64_t timestamp = hrt_absolute_time();
 
 		if (msg->msgid == MAVLINK_MSG_ID_RAW_IMU) {
-			printf("receving raw imu\n");
-
 
 			mavlink_raw_imu_t imu;
 			mavlink_msg_raw_imu_decode(msg, &imu);
