@@ -25,10 +25,18 @@ from math import sin, cos
 class Aircraft(object):
 
     def __init__(self):
+        t_now = time.time()
         self.x = aircraft.State.default()
         self.u = aircraft.Controls.default()
         self.imu = sensors.Imu.default()
+        self.imu_period = 1.0/500;
+        self.t_imu = t_now
+        self.imu_count = 0
         self.gps = sensors.Gps.default()
+        self.gps_period = 1.0/10;
+        self.t_gps = t_now
+        self.gps_count = 0
+        self.t_out = t_now
 
     def update_state(self, fdm):
         self.x = aircraft.State.from_fdm(fdm)
@@ -46,6 +54,27 @@ class Aircraft(object):
     def send_gps(self, mav):
         self.gps = sensors.Gps.from_state(self.x)
         self.gps.send_to_mav(mav)
+
+    def send_sensors(self, mav):
+        t_now = time.time()
+        if t_now - self.t_gps > self.gps_period:
+            self.t_gps = t_now
+            self.send_gps(mav)
+            self.gps_count += 1
+
+        t_now = time.time()
+        if t_now - self.t_imu > self.imu_period:
+            self.t_imu = t_now
+            self.send_imu(mav)
+            self.imu_count += 1
+
+        t_now = time.time()
+        if t_now - self.t_out > 1:
+            self.t_out = t_now
+            print 'gps {0:4d} Hz, imu {1:4d} Hz\n'.format(
+                self.gps_count, self.imu_count)
+            self.gps_count = 0
+            self.imu_count = 0
 
 class SensorHIL(object):
     ''' This class executes sensor level hil communication '''
@@ -271,7 +300,6 @@ class SensorHIL(object):
         self.jsb.expect("trim computation time")
         time.sleep(1.5)
         self.jsb_console.logfile = None
-
         
         #i = 0
         #while True:
@@ -306,17 +334,14 @@ class SensorHIL(object):
                 util.check_parent()
                 continue
 
-            tnow = time.time()
-
             # if new gcs input, process it
             if self.gcs.fd in rin:
                 self.process_gcs()
 
             # if new jsbsim input, process it
             if self.jsb_in.fileno() in rin:
+                self.ac.send_sensors(self.master.mav)
                 self.process_jsb_input()
-                self.ac.send_gps(self.master.mav)
-                self.ac.send_imu(self.master.mav)
                 # gcs not currently getting HIL_STATE message
                 #self.x.send_to_mav(self.gcs.mav)
                 self.frame_count += 1
@@ -328,7 +353,7 @@ class SensorHIL(object):
                 util.pexpect_drain(self.jsb)
 
             # periodic output
-            dt_report = tnow - self.last_report
+            dt_report = time.time() - self.last_report
             if dt_report > 5:
                 print '\nmode: {0:X}, JSBSim {1:5.0f} Hz, {2:d} sent, {3:d} received, {4:d} errors, bwin={5:.1f} kB/s, bwout={6:.1f} kB/s'.format(
                     self.master.base_mode,
