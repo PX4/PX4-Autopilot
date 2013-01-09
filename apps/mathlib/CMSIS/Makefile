@@ -50,5 +50,6 @@ INCLUDES		+= $(DSPLIB_SRCDIR)/Include \
 # have anything we can use to mark exported symbols.
 #
 DEFAULT_VISIBILITY	 = YES
+DISABLE_WARNINGS     = y
 
 include $(APPDIR)/mk/app.mk

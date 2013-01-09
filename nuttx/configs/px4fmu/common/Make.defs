@@ -144,6 +144,13 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 			   -Wnested-externs \
 			   -Wunsuffixed-float-constants
 ARCHWARNINGSXX		 = $(ARCHWARNINGS)
+
+
+ifeq ("${DISABLE_WARNINGS}","y")
+ARCHCWARNINGS =
+ARCHWARNINGSXX =
+endif
+
 ARCHDEFINES		 =
 ARCHPICFLAGS		 = -fpic -msingle-pic-base -mpic-register=r10
 
