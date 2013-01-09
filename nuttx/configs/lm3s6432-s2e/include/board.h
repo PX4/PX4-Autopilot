@@ -63,7 +63,7 @@
  * of (400 / 2) / 4 = 50MHz
  */
 
-#define LM3S_SYSDIV          4
+#define LM_SYSDIV          4
 #define SYSCLK_FREQUENCY     50000000  /* 50MHz */
 
 /* Other RCC settings:
@@ -74,7 +74,7 @@
  * - No auto-clock gating reset
  */
 
-#define LM3S_RCC_VALUE (SYSCON_RCC_OSCSRC | SYSCON_RCC_XTAL | SYSCON_RCC_USESYSDIV | SYSCON_RCC_SYSDIV(LM3S_SYSDIV))
+#define LM_RCC_VALUE (SYSCON_RCC_OSCSRC | SYSCON_RCC_XTAL | SYSCON_RCC_USESYSDIV | SYSCON_RCC_SYSDIV(LM_SYSDIV))
 
 /* RCC2 settings -- RCC2 not used.  Other RCC2 settings
  *
@@ -83,7 +83,7 @@
  * - Not using RCC2
  */
 
-#define LM3S_RCC2_VALUE (SYSCON_RCC2_OSCSRC | SYSCON_RCC2_SYSDIV(LM3S_SYSDIV))
+#define LM_RCC2_VALUE (SYSCON_RCC2_OSCSRC | SYSCON_RCC2_SYSDIV(LM_SYSDIV))
 
 /* LED definitions ******************************************************************/
 
@@ -117,9 +117,9 @@
  * Name: lm_boardinitialize
  *
  * Description:
- *   All LM3S architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
+ *   All Stellaris architectures must provide the following entry point.  This entry
+ *   point is called early in the intitialization -- after all memory has been
+ *   configured and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
 

@@ -55,7 +55,7 @@
  * expanded).
  */
 
-#if LM3S_NSSI == 0
+#if LM_NSSI == 0
 #  undef CONFIG_SSI0_DISABLE
 #  define CONFIG_SSI0_DISABLE 1
 #endif

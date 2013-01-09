@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LM_CHIP_LM3S_I2C_H
-#define __ARCH_ARM_SRC_LM_CHIP_LM3S_I2C_H
+#ifndef __ARCH_ARM_SRC_LM_CHIP_LM_I2C_H
+#define __ARCH_ARM_SRC_LM_CHIP_LM_I2C_H
 
 /************************************************************************************
  * Included Files
@@ -50,99 +50,99 @@
 
 /* I2C Master */
 
-#define LM3S_I2CM_SA_OFFSET  0x000 /* I2C Master Slave Address */
-#define LM3S_I2CM_CS_OFFSET  0x004 /* I2C Master Control/Status */
-#define LM3S_I2CM_DR_OFFSET  0x008 /* I2C Master Data */
-#define LM3S_I2CM_TPR_OFFSET 0x00c /* I2C Master Timer Period */
-#define LM3S_I2CM_IMR_OFFSET 0x010 /* I2C Master Interrupt Mask */
-#define LM3S_I2CM_RIS_OFFSET 0x014 /* I2C Master Raw Interrupt Status */
-#define LM3S_I2CM_MIS_OFFSET 0x018 /* I2C Master Masked Interrupt Status */
-#define LM3S_I2CM_ICR_OFFSET 0x01c /* I2C Master Interrupt Clear */
-#define LM3S_I2CM_CR_OFFSET  0x020 /* I2C Master Configuration */
+#define LM_I2CM_SA_OFFSET    0x000 /* I2C Master Slave Address */
+#define LM_I2CM_CS_OFFSET    0x004 /* I2C Master Control/Status */
+#define LM_I2CM_DR_OFFSET    0x008 /* I2C Master Data */
+#define LM_I2CM_TPR_OFFSET   0x00c /* I2C Master Timer Period */
+#define LM_I2CM_IMR_OFFSET   0x010 /* I2C Master Interrupt Mask */
+#define LM_I2CM_RIS_OFFSET   0x014 /* I2C Master Raw Interrupt Status */
+#define LM_I2CM_MIS_OFFSET   0x018 /* I2C Master Masked Interrupt Status */
+#define LM_I2CM_ICR_OFFSET   0x01c /* I2C Master Interrupt Clear */
+#define LM_I2CM_CR_OFFSET    0x020 /* I2C Master Configuration */
 
 /* I2C Slave */
 
-#define LM3S_I2CS_OAR_OFFSET 0x000 /* I2C Slave Own Address */
-#define LM3S_I2CS_CSR_OFFSET 0x004 /* I2C Slave Control/Status */
-#define LM3S_I2CS_DR_OFFSET  0x008 /* I2C Slave Data */
-#define LM3S_I2CS_IMR_OFFSET 0x00c /* I2C Slave Interrupt Mask */
-#define LM3S_I2CS_RIS_OFFSET 0x010 /* I2C Slave Raw Interrupt Status */
-#define LM3S_I2CS_MIS_OFFSET 0x014 /* I2C Slave Masked Interrupt Status */
-#define LM3S_I2CS_ICR_OFFSET 0x018 /* I2C Slave Interrupt Clear */
+#define LM_I2CS_OAR_OFFSET   0x000 /* I2C Slave Own Address */
+#define LM_I2CS_CSR_OFFSET   0x004 /* I2C Slave Control/Status */
+#define LM_I2CS_DR_OFFSET    0x008 /* I2C Slave Data */
+#define LM_I2CS_IMR_OFFSET   0x00c /* I2C Slave Interrupt Mask */
+#define LM_I2CS_RIS_OFFSET   0x010 /* I2C Slave Raw Interrupt Status */
+#define LM_I2CS_MIS_OFFSET   0x014 /* I2C Slave Masked Interrupt Status */
+#define LM_I2CS_ICR_OFFSET   0x018 /* I2C Slave Interrupt Clear */
 
 /* I2C Register Addresses ***********************************************************/
 
-#if LM3S_NI2C > 0
+#if LM_NI2C > 0
 
 /* I2C Master */
 
-#define LM3S_I2CM_BASE(n)    (LM3S_I2CM0_BASE + (n)*0x1000)
-#define LM3S_I2CM_SA(n)      (LM3S_I2CM_BASE(n) + LM3S_I2CM_SA_OFFSET)
-#define LM3S_I2CM_CS(n)      (LM3S_I2CM_BASE(n) + LM3S_I2CM_CS_OFFSET)
-#define LM3S_I2CM_DR(n)      (LM3S_I2CM_BASE(n) + LM3S_I2CM_DR_OFFSET)
-#define LM3S_I2CM_TPR(n)     (LM3S_I2CM_BASE(n) + LM3S_I2CM_TPR_OFFSET)
-#define LM3S_I2CM_IMR(n)     (LM3S_I2CM_BASE(n) + LM3S_I2CM_IMR_OFFSET)
-#define LM3S_I2CM_RIS(n)     (LM3S_I2CM_BASE(n) + LM3S_I2CM_RIS_OFFSET)
-#define LM3S_I2CM_MIS(n)     (LM3S_I2CM_BASE(n) + LM3S_I2CM_MIS_OFFSET)
-#define LM3S_I2CM_ICR(n)     (LM3S_I2CM_BASE(n) + LM3S_I2CM_ICR_OFFSET)
-#define LM3S_I2CM_CR(n)      (LM3S_I2CM_BASE(n) + LM3S_I2CM_CR_OFFSET)
+#define LM_I2CM_BASE(n)      (LM_I2CM0_BASE + (n)*0x1000)
+#define LM_I2CM_SA(n)        (LM_I2CM_BASE(n) + LM_I2CM_SA_OFFSET)
+#define LM_I2CM_CS(n)        (LM_I2CM_BASE(n) + LM_I2CM_CS_OFFSET)
+#define LM_I2CM_DR(n)        (LM_I2CM_BASE(n) + LM_I2CM_DR_OFFSET)
+#define LM_I2CM_TPR(n)       (LM_I2CM_BASE(n) + LM_I2CM_TPR_OFFSET)
+#define LM_I2CM_IMR(n)       (LM_I2CM_BASE(n) + LM_I2CM_IMR_OFFSET)
+#define LM_I2CM_RIS(n)       (LM_I2CM_BASE(n) + LM_I2CM_RIS_OFFSET)
+#define LM_I2CM_MIS(n)       (LM_I2CM_BASE(n) + LM_I2CM_MIS_OFFSET)
+#define LM_I2CM_ICR(n)       (LM_I2CM_BASE(n) + LM_I2CM_ICR_OFFSET)
+#define LM_I2CM_CR(n)        (LM_I2CM_BASE(n) + LM_I2CM_CR_OFFSET)
 
 /* I2C Slave */
 
-#define LM3S_I2CS_BASE(n)    (LM3S_I2CS0_BASE + (n)*0x1000)
-#define LM3S_I2CS_OAR(n)     (LM3S_I2CS_BASE(n) + LM3S_I2CS_OAR_OFFSET)
-#define LM3S_I2CS_CSR(n)     (LM3S_I2CS_BASE(n) + LM3S_I2CS_CSR_OFFSET)
-#define LM3S_I2CS_DR(n)      (LM3S_I2CS_BASE(n) + LM3S_I2CS_DR_OFFSET)
-#define LM3S_I2CS_IMR(n)     (LM3S_I2CS_BASE(n) + LM3S_I2CS_IMR_OFFSET)
-#define LM3S_I2CS_RIS(n)     (LM3S_I2CS_BASE(n) + LM3S_I2CS_RIS_OFFSET)
-#define LM3S_I2CS_MIS(n)     (LM3S_I2CS_BASE(n) + LM3S_I2CS_MIS_OFFSET)
-#define LM3S_I2CS_ICR(n)     (LM3S_I2CS_BASE(n) + LM3S_I2CS_ICR_OFFSET)
+#define LM_I2CS_BASE(n)      (LM_I2CS0_BASE + (n)*0x1000)
+#define LM_I2CS_OAR(n)       (LM_I2CS_BASE(n) + LM_I2CS_OAR_OFFSET)
+#define LM_I2CS_CSR(n)       (LM_I2CS_BASE(n) + LM_I2CS_CSR_OFFSET)
+#define LM_I2CS_DR(n)        (LM_I2CS_BASE(n) + LM_I2CS_DR_OFFSET)
+#define LM_I2CS_IMR(n)       (LM_I2CS_BASE(n) + LM_I2CS_IMR_OFFSET)
+#define LM_I2CS_RIS(n)       (LM_I2CS_BASE(n) + LM_I2CS_RIS_OFFSET)
+#define LM_I2CS_MIS(n)       (LM_I2CS_BASE(n) + LM_I2CS_MIS_OFFSET)
+#define LM_I2CS_ICR(n)       (LM_I2CS_BASE(n) + LM_I2CS_ICR_OFFSET)
 
 /* I2C0 Master */
 
-#define LM3S_I2CM0_SA        (LM3S_I2CM0_BASE + LM3S_I2CM_SA_OFFSET)
-#define LM3S_I2CM0_CS        (LM3S_I2CM0_BASE + LM3S_I2CM_CS_OFFSET)
-#define LM3S_I2CM0_DR        (LM3S_I2CM0_BASE + LM3S_I2CM_DR_OFFSET)
-#define LM3S_I2CM0_TPR       (LM3S_I2CM0_BASE + LM3S_I2CM_TPR_OFFSET)
-#define LM3S_I2CM0_IMR       (LM3S_I2CM0_BASE + LM3S_I2CM_IMR_OFFSET)
-#define LM3S_I2CM0_RIS       (LM3S_I2CM0_BASE + LM3S_I2CM_RIS_OFFSET)
-#define LM3S_I2CM0_MIS       (LM3S_I2CM0_BASE + LM3S_I2CM_MIS_OFFSET)
-#define LM3S_I2CM0_ICR       (LM3S_I2CM0_BASE + LM3S_I2CM_ICR_OFFSET)
-#define LM3S_I2CM0_CR        (LM3S_I2CM0_BASE + LM3S_I2CM_CR_OFFSET)
+#define LM_I2CM0_SA          (LM_I2CM0_BASE + LM_I2CM_SA_OFFSET)
+#define LM_I2CM0_CS          (LM_I2CM0_BASE + LM_I2CM_CS_OFFSET)
+#define LM_I2CM0_DR          (LM_I2CM0_BASE + LM_I2CM_DR_OFFSET)
+#define LM_I2CM0_TPR         (LM_I2CM0_BASE + LM_I2CM_TPR_OFFSET)
+#define LM_I2CM0_IMR         (LM_I2CM0_BASE + LM_I2CM_IMR_OFFSET)
+#define LM_I2CM0_RIS         (LM_I2CM0_BASE + LM_I2CM_RIS_OFFSET)
+#define LM_I2CM0_MIS         (LM_I2CM0_BASE + LM_I2CM_MIS_OFFSET)
+#define LM_I2CM0_ICR         (LM_I2CM0_BASE + LM_I2CM_ICR_OFFSET)
+#define LM_I2CM0_CR          (LM_I2CM0_BASE + LM_I2CM_CR_OFFSET)
 
 /* I2C0 Slave */
 
-#define LM3S_I2CS0_OAR       (LM3S_I2CS0_BASE + LM3S_I2CS_OAR_OFFSET)
-#define LM3S_I2CS0_CSR       (LM3S_I2CS0_BASE + LM3S_I2CS_CSR_OFFSET)
-#define LM3S_I2CS0_DR        (LM3S_I2CS0_BASE + LM3S_I2CS_DR_OFFSET)
-#define LM3S_I2CS0_IMR       (LM3S_I2CS0_BASE + LM3S_I2CS_IMR_OFFSET)
-#define LM3S_I2CS0_RIS       (LM3S_I2CS0_BASE + LM3S_I2CS_RIS_OFFSET)
-#define LM3S_I2CS0_MIS       (LM3S_I2CS0_BASE + LM3S_I2CS_MIS_OFFSET)
-#define LM3S_I2CS0_ICR       (LM3S_I2CS0_BASE + LM3S_I2CS_ICR_OFFSET)
+#define LM_I2CS0_OAR         (LM_I2CS0_BASE + LM_I2CS_OAR_OFFSET)
+#define LM_I2CS0_CSR         (LM_I2CS0_BASE + LM_I2CS_CSR_OFFSET)
+#define LM_I2CS0_DR          (LM_I2CS0_BASE + LM_I2CS_DR_OFFSET)
+#define LM_I2CS0_IMR         (LM_I2CS0_BASE + LM_I2CS_IMR_OFFSET)
+#define LM_I2CS0_RIS         (LM_I2CS0_BASE + LM_I2CS_RIS_OFFSET)
+#define LM_I2CS0_MIS         (LM_I2CS0_BASE + LM_I2CS_MIS_OFFSET)
+#define LM_I2CS0_ICR         (LM_I2CS0_BASE + LM_I2CS_ICR_OFFSET)
 
-#if LM3S_NI2C > 1
+#if LM_NI2C > 1
 
 /* I2C1 Master */
 
-#define LM3S_I2CM1_SA        (LM3S_I2CM1_BASE + LM3S_I2CM_SA_OFFSET)
-#define LM3S_I2CM1_CS        (LM3S_I2CM1_BASE + LM3S_I2CM_CS_OFFSET)
-#define LM3S_I2CM1_DR        (LM3S_I2CM1_BASE + LM3S_I2CM_DR_OFFSET)
-#define LM3S_I2CM1_TPR       (LM3S_I2CM1_BASE + LM3S_I2CM_TPR_OFFSET)
-#define LM3S_I2CM1_IMR       (LM3S_I2CM1_BASE + LM3S_I2CM_IMR_OFFSET)
-#define LM3S_I2CM1_RIS       (LM3S_I2CM1_BASE + LM3S_I2CM_RIS_OFFSET)
-#define LM3S_I2CM1_MIS       (LM3S_I2CM1_BASE + LM3S_I2CM_MIS_OFFSET)
-#define LM3S_I2CM1_ICR       (LM3S_I2CM1_BASE + LM3S_I2CM_ICR_OFFSET)
-#define LM3S_I2CM1_CR        (LM3S_I2CM1_BASE + LM3S_I2CM_CR_OFFSET)
+#define LM_I2CM1_SA          (LM_I2CM1_BASE + LM_I2CM_SA_OFFSET)
+#define LM_I2CM1_CS          (LM_I2CM1_BASE + LM_I2CM_CS_OFFSET)
+#define LM_I2CM1_DR          (LM_I2CM1_BASE + LM_I2CM_DR_OFFSET)
+#define LM_I2CM1_TPR         (LM_I2CM1_BASE + LM_I2CM_TPR_OFFSET)
+#define LM_I2CM1_IMR         (LM_I2CM1_BASE + LM_I2CM_IMR_OFFSET)
+#define LM_I2CM1_RIS         (LM_I2CM1_BASE + LM_I2CM_RIS_OFFSET)
+#define LM_I2CM1_MIS         (LM_I2CM1_BASE + LM_I2CM_MIS_OFFSET)
+#define LM_I2CM1_ICR         (LM_I2CM1_BASE + LM_I2CM_ICR_OFFSET)
+#define LM_I2CM1_CR          (LM_I2CM1_BASE + LM_I2CM_CR_OFFSET)
 
 /* I2C1 Slave */
 
-#define LM3S_I2CS1_OAR       (LM3S_I2CS1_BASE + LM3S_I2CS_OAR_OFFSET)
-#define LM3S_I2CS1_CSR       (LM3S_I2CS1_BASE + LM3S_I2CS_CSR_OFFSET)
-#define LM3S_I2CS1_DR        (LM3S_I2CS1_BASE + LM3S_I2CS_DR_OFFSET)
-#define LM3S_I2CS1_IMR       (LM3S_I2CS1_BASE + LM3S_I2CS_IMR_OFFSET)
-#define LM3S_I2CS1_RIS       (LM3S_I2CS1_BASE + LM3S_I2CS_RIS_OFFSET)
-#define LM3S_I2CS1_MIS       (LM3S_I2CS1_BASE + LM3S_I2CS_MIS_OFFSET)
-#define LM3S_I2CS1_ICR       (LM3S_I2CS1_BASE + LM3S_I2CS_ICR_OFFSET)
+#define LM_I2CS1_OAR         (LM_I2CS1_BASE + LM_I2CS_OAR_OFFSET)
+#define LM_I2CS1_CSR         (LM_I2CS1_BASE + LM_I2CS_CSR_OFFSET)
+#define LM_I2CS1_DR          (LM_I2CS1_BASE + LM_I2CS_DR_OFFSET)
+#define LM_I2CS1_IMR         (LM_I2CS1_BASE + LM_I2CS_IMR_OFFSET)
+#define LM_I2CS1_RIS         (LM_I2CS1_BASE + LM_I2CS_RIS_OFFSET)
+#define LM_I2CS1_MIS         (LM_I2CS1_BASE + LM_I2CS_MIS_OFFSET)
+#define LM_I2CS1_ICR         (LM_I2CS1_BASE + LM_I2CS_ICR_OFFSET)
 
 #endif
 #endif
@@ -244,4 +244,4 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LM_CHIP_LM3S_I2C_H */
+#endif /* __ARCH_ARM_SRC_LM_CHIP_LM_I2C_H */

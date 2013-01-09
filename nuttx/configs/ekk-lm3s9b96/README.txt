@@ -324,7 +324,7 @@ Stellaris EKK-LM3S9B96 Evaluation Kit Configuration Options
 
        CONFIG_DRAM_START=0x20000000
 
-    CONFIG_ARCH_IRQPRIO - The LM3S6918 supports interrupt prioritization
+    CONFIG_ARCH_IRQPRIO - The LM3S9B96 supports interrupt prioritization
 
        CONFIG_ARCH_IRQPRIO=y
 
@@ -348,7 +348,7 @@ Stellaris EKK-LM3S9B96 Evaluation Kit Configuration Options
        the delay actually is 100 seconds.
 
   There are configurations for disabling support for interrupts GPIO ports.
-  GPIOJ must be disabled because it does not exist on the LM3S6918.
+  GPIOJ must be disabled because it does not exist on the LM3S9B96.
   Additional interrupt support can be disabled if desired to reduce memory
   footprint.
 
@@ -362,7 +362,7 @@ Stellaris EKK-LM3S9B96 Evaluation Kit Configuration Options
     CONFIG_LM_DISABLE_GPIOH_IRQS=n
     CONFIG_LM_DISABLE_GPIOJ_IRQS=y
  
-  LM3S6818 specific device driver settings
+  LM3S9B96 specific device driver settings
 
     CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn for the
        console and ttys0 (default is the UART0).
@@ -386,7 +386,7 @@ Stellaris EKK-LM3S9B96 Evaluation Kit Configuration Options
       Rx FIFO overrun errors.  Default: half of the Tx FIFO size (4).
 
     CONFIG_LM_ETHERNET - This must be set (along with CONFIG_NET)
-      to build the LM3S Ethernet driver
+      to build the Stellaris Ethernet driver
     CONFIG_LM_ETHLEDS - Enable to use Ethernet LEDs on the board.
     CONFIG_LM_BOARDMAC - If the board-specific logic can provide
       a MAC address (via lm_ethernetmac()), then this should be selected.

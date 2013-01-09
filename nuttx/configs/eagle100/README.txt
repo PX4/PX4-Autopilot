@@ -344,7 +344,7 @@ Eagle100-specific Configuration Options
     CONFIG_LM_DISABLE_GPIOH_IRQS=y
     CONFIG_LM_DISABLE_GPIOJ_IRQS=y
  
-  LM3S6818 specific device driver settings
+  LM3S6918 specific device driver settings
 
     CONFIG_UARTn_SERIAL_CONSOLE - selects the UARTn for the
        console and ttys0 (default is the UART0).
@@ -368,7 +368,7 @@ Eagle100-specific Configuration Options
       Rx FIFO overrun errors.  Default: half of the Tx FIFO size (4).
 
     CONFIG_LM_ETHERNET - This must be set (along with CONFIG_NET)
-      to build the LM3S Ethernet driver
+      to build the Stellaris Ethernet driver
     CONFIG_LM_ETHLEDS - Enable to use Ethernet LEDs on the board.
     CONFIG_LM_BOARDMAC - If the board-specific logic can provide
       a MAC address (via lm_ethernetmac()), then this should be selected.

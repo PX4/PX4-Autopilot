@@ -93,7 +93,7 @@ CONFIG_ARMV7M_TOOLCHAIN_BUILDROOT=y
 CONFIG_ARMV7M_OABI_TOOLCHAIN=y
 
 #
-# LM3S Configuration Options
+# Stellaris Configuration Options
 #
 # CONFIG_ARCH_CHIP_LM3S6918 is not set
 # CONFIG_ARCH_CHIP_LM3S9B96 is not set
@@ -104,7 +104,7 @@ CONFIG_ARCH_CHIP_LM3S6965=y
 CONFIG_LM_DFU=y
 
 #
-# Select LM3S Peripheral Support
+# Select Stellaris Peripheral Support
 #
 CONFIG_LM_UART0=y
 # CONFIG_LM_UART1 is not set
@@ -127,7 +127,7 @@ CONFIG_LM_DISABLE_GPIOH_IRQS=y
 CONFIG_LM_DISABLE_GPIOJ_IRQS=y
 
 #
-# LM3S SSI Configuration
+# Stellaris SSI Configuration
 #
 CONFIG_SSI_POLLWAIT=y
 CONFIG_SSI_TXLIMIT=4

@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LM_CHIP_LM3S_TIMER_H
-#define __ARCH_ARM_SRC_LM_CHIP_LM3S_TIMER_H
+#ifndef __ARCH_ARM_SRC_LM_CHIP_LM_TIMER_H
+#define __ARCH_ARM_SRC_LM_CHIP_LM_TIMER_H
 
 /************************************************************************************
  * Included Files
@@ -46,27 +46,27 @@
 
 /* Timer register offsets ***********************************************************/
 
-#define TIMER_GPTMCFG_OFFSET             0x000
-#define TIMER_GPTMTAMR_OFFSET            0x004
-#define TIMER_GPTMCTL_OFFSET             0x00C
-#define TIMER_GPTMIMR_OFFSET             0x018
-#define TIMER_GPTMRIS_OFFSET             0x01C
-#define TIMER_GPTMICR_OFFSET             0x024
-#define TIMER_GPTMTAILR_OFFSET           0x028
-#define TIMER_GPTMTAR_OFFSET             0x048
+#define LM_TIMER_GPTMCFG_OFFSET          0x000
+#define LM_TIMER_GPTMTAMR_OFFSET         0x004
+#define LM_TIMER_GPTMCTL_OFFSET          0x00c
+#define LM_TIMER_GPTMIMR_OFFSET          0x018
+#define LM_TIMER_GPTMRIS_OFFSET          0x01c
+#define LM_TIMER_GPTMICR_OFFSET          0x024
+#define LM_TIMER_GPTMTAILR_OFFSET        0x028
+#define LM_TIMER_GPTMTAR_OFFSET          0x048
 
 /* SSI register addresses ***********************************************************/
 
-#define LM3S_TIMER_BASE(n)               (LM3S_TIMER0_BASE + (n)*0x01000)
+#define LM_TIMER_BASE(n)                 (LM_TIMER0_BASE + (n)*0x01000)
 
-#define LM3S_TIMER_GPTMCFG(n)            (LM3S_TIMER_BASE(n) + TIMER_GPTMCFG_OFFSET)
-#define LM3S_TIMER_GPTMTAMR(n)           (LM3S_TIMER_BASE(n) + TIMER_GPTMTAMR_OFFSET)
-#define LM3S_TIMER_GPTMCTL(n)            (LM3S_TIMER_BASE(n) + TIMER_GPTMCTL_OFFSET)
-#define LM3S_TIMER_GPTMIMR(n)            (LM3S_TIMER_BASE(n) + TIMER_GPTMIMR_OFFSET)
-#define LM3S_TIMER_GPTMRIS(n)            (LM3S_TIMER_BASE(n) + TIMER_GPTMRIS_OFFSET)
-#define LM3S_TIMER_GPTMICR(n)            (LM3S_TIMER_BASE(n) + TIMER_GPTMICR_OFFSET)
-#define LM3S_TIMER_GPTMTAILR(n)          (LM3S_TIMER_BASE(n) + TIMER_GPTMTAILR_OFFSET)
-#define LM3S_TIMER_GPTMTAR(n)            (LM3S_TIMER_BASE(n) + TIMER_GPTMTAR_OFFSET)
+#define LM_TIMER_GPTMCFG(n)              (LM_TIMER_BASE(n) + LM_TIMER_GPTMCFG_OFFSET)
+#define LM_TIMER_GPTMTAMR(n)             (LM_TIMER_BASE(n) + LM_TIMER_GPTMTAMR_OFFSET)
+#define LM_TIMER_GPTMCTL(n)              (LM_TIMER_BASE(n) + LM_TIMER_GPTMCTL_OFFSET)
+#define LM_TIMER_GPTMIMR(n)              (LM_TIMER_BASE(n) + LM_TIMER_GPTMIMR_OFFSET)
+#define LM_TIMER_GPTMRIS(n)              (LM_TIMER_BASE(n) + LM_TIMER_GPTMRIS_OFFSET)
+#define LM_TIMER_GPTMICR(n)              (LM_TIMER_BASE(n) + LM_TIMER_GPTMICR_OFFSET)
+#define LM_TIMER_GPTMTAILR(n)            (LM_TIMER_BASE(n) + LM_TIMER_GPTMTAILR_OFFSET)
+#define LM_TIMER_GPTMTAR(n)              (LM_TIMER_BASE(n) + LM_TIMER_GPTMTAR_OFFSET)
 
 /* SSI register bit defitiions ******************************************************/
 
@@ -122,4 +122,4 @@
 #define TIMER_GPTMICR_TATOCINT_SHIFT     0    /* Bits 0:   GPTM Timer A Time-Out Raw Interrupt Clear*/
 #define TIMER_GPTMICR_TATOCINT_MASK      (0x01 << TIMER_GPTMICR_TATOCINT_SHIFT)
 
-#endif /* __ARCH_ARM_SRC_LM_CHIP_LM3S_TIMER_H */
+#endif /* __ARCH_ARM_SRC_LM_CHIP_LM_TIMER_H */

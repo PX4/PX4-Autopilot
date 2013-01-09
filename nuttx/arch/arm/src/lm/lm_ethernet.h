@@ -44,7 +44,7 @@
 
 #include "chip.h"
 
-#if LM3S_NETHCONTROLLERS > 1
+#if LM_NETHCONTROLLERS > 1
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -77,7 +77,7 @@ extern "C"
  * Function: lm_ethinitialize
  *
  * Description:
- *   Initialize the Ethernet driver for one interface.  If the LM3S chip
+ *   Initialize the Ethernet driver for one interface.  If the Stellaris chip
  *   supports multiple Ethernet controllers, then bould specific logic
  *   must implement up_netinitialize() and call this function to initialize
  *   the desiresed interfaces.
@@ -99,5 +99,5 @@ int lm_ethinitialize(int intf);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* LM3S_NETHCONTROLLERS > 1 */
+#endif /* LM_NETHCONTROLLERS > 1 */
 #endif /* __ARCH_ARM_SRC_LM_LM_ETHERNET_H */

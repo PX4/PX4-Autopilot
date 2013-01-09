@@ -70,9 +70,10 @@
  * Name: lm_boardinitialize
  *
  * Description:
- *   All LM3S architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
+ *   All Stellaris architectures must provide the following entry point.  This entry
+ *   point is called early in the intitialization -- after all memory has been
+ *   configured and mapped but before any devices have been initialized.
+ *
  ************************************************************************************/
 
 void lm_boardinitialize(void)

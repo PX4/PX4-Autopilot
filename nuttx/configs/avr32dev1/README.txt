@@ -431,13 +431,15 @@ AVR32DEV1 Configuration Options
 Configurations
 ^^^^^^^^^^^^^^
 
-Each Stellaris LM3S6965 Evaluation Kit configuration is maintained in a
-sudirectory and can be selected as follow:
+Each Atmel AVR32DEV configuration is maintained in a sudirectory and
+can be selected as follow:
 
     cd tools
     ./configure.sh avr32dev1/<subdir>
     cd -
     . ./setenv.sh
+
+(Or configure.bat in a native Windows environment).
 
 Where <subdir> is one of the following:
 

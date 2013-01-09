@@ -130,7 +130,7 @@ void up_timerinit(void)
 
   /* Attach the timer interrupt vector */
 
-  (void)irq_attach(LM3S_IRQ_SYSTICK, (xcpt_t)up_timerisr);
+  (void)irq_attach(LM_IRQ_SYSTICK, (xcpt_t)up_timerisr);
 
   /* Enable SysTick interrupts */
 
@@ -138,5 +138,5 @@ void up_timerinit(void)
 
   /* And enable the timer interrupt */
 
-  up_enable_irq(LM3S_IRQ_SYSTICK);
+  up_enable_irq(LM_IRQ_SYSTICK);
 }

@@ -57,12 +57,12 @@
 
 /* Configuration **********************************************************/
 
-#if LM3S_NUARTS < 2
+#if LM_NUARTS < 2
 #  undef  CONFIG_LM_UART1
 #  undef  CONFIG_UART1_SERIAL_CONSOLE
 #endif
 
-#if LM3S_NUARTS < 3
+#if LM_NUARTS < 3
 #  undef  CONFIG_LM_UART2
 #  undef  CONFIG_UART2_SERIAL_CONSOLE
 #endif
@@ -92,52 +92,52 @@
 /* Select UART parameters for the selected console */
 
 #if defined(CONFIG_UART0_SERIAL_CONSOLE)
-#  define LM3S_CONSOLE_BASE     LM3S_UART0_BASE
-#  define LM3S_CONSOLE_BAUD     CONFIG_UART0_BAUD
-#  define LM3S_CONSOLE_BITS     CONFIG_UART0_BITS
-#  define LM3S_CONSOLE_PARITY   CONFIG_UART0_PARITY
-#  define LM3S_CONSOLE_2STOP    CONFIG_UART0_2STOP
+#  define LM_CONSOLE_BASE     LM_UART0_BASE
+#  define LM_CONSOLE_BAUD     CONFIG_UART0_BAUD
+#  define LM_CONSOLE_BITS     CONFIG_UART0_BITS
+#  define LM_CONSOLE_PARITY   CONFIG_UART0_PARITY
+#  define LM_CONSOLE_2STOP    CONFIG_UART0_2STOP
 #elif defined(CONFIG_UART1_SERIAL_CONSOLE)
-#  define LM3S_CONSOLE_BASE     LM3S_UART1_BASE
-#  define LM3S_CONSOLE_BAUD     CONFIG_UART1_BAUD
-#  define LM3S_CONSOLE_BITS     CONFIG_UART1_BITS
-#  define LM3S_CONSOLE_PARITY   CONFIG_UART1_PARITY
-#  define LM3S_CONSOLE_2STOP    CONFIG_UART1_2STOP
+#  define LM_CONSOLE_BASE     LM_UART1_BASE
+#  define LM_CONSOLE_BAUD     CONFIG_UART1_BAUD
+#  define LM_CONSOLE_BITS     CONFIG_UART1_BITS
+#  define LM_CONSOLE_PARITY   CONFIG_UART1_PARITY
+#  define LM_CONSOLE_2STOP    CONFIG_UART1_2STOP
 #elif defined(CONFIG_UART2_SERIAL_CONSOLE)
-#  define LM3S_CONSOLE_BASE     LM3S_UART2_BASE
-#  define LM3S_CONSOLE_BAUD     CONFIG_UART2_BAUD
-#  define LM3S_CONSOLE_BITS     CONFIG_UART2_BITS
-#  define LM3S_CONSOLE_PARITY   CONFIG_UART2_PARITY
-#  define LM3S_CONSOLE_2STOP    CONFIG_UART2_2STOP
+#  define LM_CONSOLE_BASE     LM_UART2_BASE
+#  define LM_CONSOLE_BAUD     CONFIG_UART2_BAUD
+#  define LM_CONSOLE_BITS     CONFIG_UART2_BITS
+#  define LM_CONSOLE_PARITY   CONFIG_UART2_PARITY
+#  define LM_CONSOLE_2STOP    CONFIG_UART2_2STOP
 #else
 #  error "No CONFIG_UARTn_SERIAL_CONSOLE Setting"
 #endif
 
 /* Get LCRH settings */
 
-#if LM3S_CONSOLE_BITS == 5
+#if LM_CONSOLE_BITS == 5
 #  define UART_LCRH_NBITS UART_LCRH_WLEN_5BITS
-#elif LM3S_CONSOLE_BITS == 6
+#elif LM_CONSOLE_BITS == 6
 #  define UART_LCRH_NBITS UART_LCRH_WLEN_6BITS
-#elif LM3S_CONSOLE_BITS == 7
+#elif LM_CONSOLE_BITS == 7
 #  define UART_LCRH_NBITS UART_LCRH_WLEN_7BITS
-#elif LM3S_CONSOLE_BITS == 8
+#elif LM_CONSOLE_BITS == 8
 #  define UART_LCRH_NBITS UART_LCRH_WLEN_8BITS
 #else
 #  error "Number of bits not supported"
 #endif
 
-#if LM3S_CONSOLE_PARITY == 0
+#if LM_CONSOLE_PARITY == 0
 #  define UART_LCRH_PARITY (0)
-#elif LM3S_CONSOLE_PARITY == 1
+#elif LM_CONSOLE_PARITY == 1
 #  define UART_LCRH_PARITY UART_LCRH_PEN
-#elif LM3S_CONSOLE_PARITY == 2
+#elif LM_CONSOLE_PARITY == 2
 #  define UART_LCRH_PARITY (UART_LCRH_PEN|UART_LCRH_EPS)
 #else
 #  error "Invalid parity selection"
 #endif
 
-#if LM3S_CONSOLE_2STOP != 0
+#if LM_CONSOLE_2STOP != 0
 #  define UART_LCRH_NSTOP UART_LCRH_STP2
 #else
 #  define UART_LCRH_NSTOP (0)
@@ -177,17 +177,17 @@
  *  divisor must be followed by a write to the UARTLCRH register for the changes to take effect. ..."
  */
 
-#define LM3S_BRDDEN     (16 * LM3S_CONSOLE_BAUD)
-#define LM3S_BRDI       (SYSCLK_FREQUENCY / LM3S_BRDDEN)
-#define LM3S_REMAINDER  (SYSCLK_FREQUENCY - LM3S_BRDDEN * LM3S_BRDI)
-#define LM3S_DIVFRAC    ((LM3S_REMAINDER * 64 + (LM3S_BRDDEN/2)) / LM3S_BRDDEN)
+#define LM_BRDDEN     (16 * LM_CONSOLE_BAUD)
+#define LM_BRDI       (SYSCLK_FREQUENCY / LM_BRDDEN)
+#define LM_REMAINDER  (SYSCLK_FREQUENCY - LM_BRDDEN * LM_BRDI)
+#define LM_DIVFRAC    ((LM_REMAINDER * 64 + (LM_BRDDEN/2)) / LM_BRDDEN)
 
-/* For example: LM3S_CONSOLE_BAUD = 115,200, SYSCLK_FREQUENCY = 50,000,000:
+/* For example: LM_CONSOLE_BAUD = 115,200, SYSCLK_FREQUENCY = 50,000,000:
  *
- * LM3S_BRDDEN    = (16 * 115,200)                           = 1,843,200
- * LM3S_BRDI      = 50,000,000 / 1,843,200                   = 27
- * LM3S_REMAINDER = 50,000,000 - 1,843,200 * 27              = 233,600
- * LM3S_DIVFRAC   = (233,600 * 64 + 921,600) / 1,843,200     = 8
+ * LM_BRDDEN    = (16 * 115,200)                           = 1,843,200
+ * LM_BRDI      = 50,000,000 / 1,843,200                   = 27
+ * LM_REMAINDER = 50,000,000 - 1,843,200 * 27              = 233,600
+ * LM_DIVFRAC   = (233,600 * 64 + 921,600) / 1,843,200     = 8
  *
  * Which should yied BAUD = 50,000,000 / (16 * (27 + 8/64)) = 115207.37
  */
@@ -229,11 +229,11 @@ void up_lowputc(char ch)
 #ifdef HAVE_CONSOLE
   /* Wait until the TX FIFO is not full */
 
-  while ((getreg32(LM3S_CONSOLE_BASE+LM3S_UART_FR_OFFSET) & UART_FR_TXFF) != 0);
+  while ((getreg32(LM_CONSOLE_BASE+LM_UART_FR_OFFSET) & UART_FR_TXFF) != 0);
 
   /* Then send the character */
 
-  putreg32((uint32_t)ch, LM3S_CONSOLE_BASE+LM3S_UART_DR_OFFSET);
+  putreg32((uint32_t)ch, LM_CONSOLE_BASE+LM_UART_DR_OFFSET);
 #endif
 }
 
@@ -260,18 +260,18 @@ void up_lowsetup(void)
    */
 
 #ifdef CONFIG_LM_UART0
-  regval  = getreg32(LM3S_SYSCON_RCGC1);
+  regval  = getreg32(LM_SYSCON_RCGC1);
   regval |= SYSCON_RCGC1_UART0;
-  putreg32(regval, LM3S_SYSCON_RCGC1);
+  putreg32(regval, LM_SYSCON_RCGC1);
 
   lm_configgpio(GPIO_UART0_RX);
   lm_configgpio(GPIO_UART0_TX);
 #endif
 
 #ifdef CONFIG_LM_UART1
-  regval  = getreg32(LM3S_SYSCON_RCGC1);
+  regval  = getreg32(LM_SYSCON_RCGC1);
   regval |= SYSCON_RCGC1_UART1;
-  putreg32(regval, LM3S_SYSCON_RCGC1);
+  putreg32(regval, LM_SYSCON_RCGC1);
 
   lm_configgpio(GPIO_UART1_RX);
   lm_configgpio(GPIO_UART1_TX);
@@ -282,26 +282,26 @@ void up_lowsetup(void)
 #if defined(HAVE_CONSOLE) && !defined(CONFIG_SUPPRESS_UART_CONFIG)
   /* Disable the UART by clearing the UARTEN bit in the UART CTL register */
 
-  ctl = getreg32(LM3S_CONSOLE_BASE+LM3S_UART_CTL_OFFSET);
+  ctl = getreg32(LM_CONSOLE_BASE+LM_UART_CTL_OFFSET);
   ctl &= ~UART_CTL_UARTEN;
-  putreg32(ctl, LM3S_CONSOLE_BASE+LM3S_UART_CTL_OFFSET);
+  putreg32(ctl, LM_CONSOLE_BASE+LM_UART_CTL_OFFSET);
 
   /* Write the integer portion of the BRD to the UART IBRD register */
 
-  putreg32(LM3S_BRDI, LM3S_CONSOLE_BASE+LM3S_UART_IBRD_OFFSET);
+  putreg32(LM_BRDI, LM_CONSOLE_BASE+LM_UART_IBRD_OFFSET);
 
   /* Write the fractional portion of the BRD to the UART FBRD register */
 
-  putreg32(LM3S_DIVFRAC, LM3S_CONSOLE_BASE+LM3S_UART_FBRD_OFFSET);
+  putreg32(LM_DIVFRAC, LM_CONSOLE_BASE+LM_UART_FBRD_OFFSET);
 
   /* Write the desired serial parameters to the UART LCRH register */
 
-  putreg32(UART_LCRH_VALUE, LM3S_CONSOLE_BASE+LM3S_UART_LCRH_OFFSET);
+  putreg32(UART_LCRH_VALUE, LM_CONSOLE_BASE+LM_UART_LCRH_OFFSET);
 
   /* Enable the UART by setting the UARTEN bit in the UART CTL register */
 
   ctl |= (UART_CTL_UARTEN|UART_CTL_TXE|UART_CTL_RXE);
-  putreg32(ctl, LM3S_CONSOLE_BASE+LM3S_UART_CTL_OFFSET);
+  putreg32(ctl, LM_CONSOLE_BASE+LM_UART_CTL_OFFSET);
 #endif
 
 }

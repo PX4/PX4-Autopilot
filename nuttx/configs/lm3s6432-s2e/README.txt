@@ -318,7 +318,7 @@ Stellaris MDL-S2E Reference Design Configuration Options
 
        CONFIG_DRAM_START=0x20000000
 
-    CONFIG_ARCH_IRQPRIO - The LM3S6918 supports interrupt prioritization
+    CONFIG_ARCH_IRQPRIO - The LM3S6432 supports interrupt prioritization
 
        CONFIG_ARCH_IRQPRIO=y
 
@@ -389,7 +389,7 @@ Stellaris MDL-S2E Reference Design Configuration Options
       Rx FIFO overrun errors.  Default: half of the Tx FIFO size (4).
 
     CONFIG_LM_ETHERNET - This must be set (along with CONFIG_NET)
-      to build the LM3S Ethernet driver
+      to build the Stellaris Ethernet driver
     CONFIG_LM_ETHLEDS - Enable to use Ethernet LEDs on the board.
     CONFIG_LM_BOARDMAC - This should be set in order to use the
       MAC address configured in the flash USER registers.

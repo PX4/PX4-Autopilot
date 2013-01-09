@@ -60,19 +60,19 @@
 
 /* NOTE: this is duplicated in lm_gpio.c */
 
-#ifdef LM3S_GPIOH_BASE
+#ifdef LM_GPIOH_BASE
 static const uint32_t g_gpiobase[8] =
 {
-  LM3S_GPIOA_BASE, LM3S_GPIOB_BASE, LM3S_GPIOC_BASE, LM3S_GPIOD_BASE,
-  LM3S_GPIOE_BASE, LM3S_GPIOF_BASE, LM3S_GPIOG_BASE, LM3S_GPIOH_BASE,
+  LM_GPIOA_BASE, LM_GPIOB_BASE, LM_GPIOC_BASE, LM_GPIOD_BASE,
+  LM_GPIOE_BASE, LM_GPIOF_BASE, LM_GPIOG_BASE, LM_GPIOH_BASE,
 };
 
 static const char g_portchar[8]   = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H' };
 #else
 static const uint32_t g_gpiobase[8] =
 {
-  LM3S_GPIOA_BASE, LM3S_GPIOB_BASE, LM3S_GPIOC_BASE, LM3S_GPIOD_BASE,
-  LM3S_GPIOE_BASE, LM3S_GPIOF_BASE, LM3S_GPIOG_BASE, 0,
+  LM_GPIOA_BASE, LM_GPIOB_BASE, LM_GPIOC_BASE, LM_GPIOD_BASE,
+  LM_GPIOE_BASE, LM_GPIOF_BASE, LM_GPIOG_BASE, 0,
 };
 
 static const char g_portchar[8]   = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', '?' };
@@ -138,7 +138,7 @@ int lm_dumpgpio(uint32_t pinset, const char *msg)
   /* The following requires exclusive access to the GPIO registers */
 
   flags   = irqsave();
-  rcgc2   = getreg32(LM3S_SYSCON_RCGC2);
+  rcgc2   = getreg32(LM_SYSCON_RCGC2);
   enabled = ((rcgc2 & SYSCON_RCGC2_GPIO(port)) != 0);
 
   lldbg("GPIO%c pinset: %08x base: %08x -- %s\n",
@@ -151,16 +151,16 @@ int lm_dumpgpio(uint32_t pinset, const char *msg)
   if (enabled)
     {
       lldbg("  AFSEL: %02x DEN: %02x DIR: %02x DATA: %02x\n",
-            getreg32(base + LM3S_GPIO_AFSEL_OFFSET), getreg32(base + LM3S_GPIO_DEN_OFFSET),
-            getreg32(base + LM3S_GPIO_DIR_OFFSET), getreg32(base + LM3S_GPIO_DATA_OFFSET + 0x3fc));
+            getreg32(base + LM_GPIO_AFSEL_OFFSET), getreg32(base + LM_GPIO_DEN_OFFSET),
+            getreg32(base + LM_GPIO_DIR_OFFSET), getreg32(base + LM_GPIO_DATA_OFFSET + 0x3fc));
       lldbg("  IS:    %02x IBE: %02x IEV: %02x IM:  %02x RIS: %08x MIS: %08x\n",
-            getreg32(base + LM3S_GPIO_IEV_OFFSET), getreg32(base + LM3S_GPIO_IM_OFFSET),
-            getreg32(base + LM3S_GPIO_RIS_OFFSET), getreg32(base + LM3S_GPIO_MIS_OFFSET));
+            getreg32(base + LM_GPIO_IEV_OFFSET), getreg32(base + LM_GPIO_IM_OFFSET),
+            getreg32(base + LM_GPIO_RIS_OFFSET), getreg32(base + LM_GPIO_MIS_OFFSET));
       lldbg("  2MA:   %02x 4MA: %02x 8MA: %02x ODR: %02x PUR %02x PDR: %02x SLR: %02x\n",
-            getreg32(base + LM3S_GPIO_DR2R_OFFSET), getreg32(base + LM3S_GPIO_DR4R_OFFSET),
-            getreg32(base + LM3S_GPIO_DR8R_OFFSET), getreg32(base + LM3S_GPIO_ODR_OFFSET),
-            getreg32(base + LM3S_GPIO_PUR_OFFSET), getreg32(base + LM3S_GPIO_PDR_OFFSET),
-            getreg32(base + LM3S_GPIO_SLR_OFFSET));
+            getreg32(base + LM_GPIO_DR2R_OFFSET), getreg32(base + LM_GPIO_DR4R_OFFSET),
+            getreg32(base + LM_GPIO_DR8R_OFFSET), getreg32(base + LM_GPIO_ODR_OFFSET),
+            getreg32(base + LM_GPIO_PUR_OFFSET), getreg32(base + LM_GPIO_PDR_OFFSET),
+            getreg32(base + LM_GPIO_SLR_OFFSET));
     }
   irqrestore(flags);
   return OK;

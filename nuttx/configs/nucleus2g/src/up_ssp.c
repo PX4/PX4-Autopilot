@@ -52,8 +52,6 @@
 #include "lpc17_internal.h"
 #include "nucleus2g_internal.h"
 
-/* The LM3S6965 Eval Kit microSD CS is on SSI0 */
-
 #if defined(CONFIG_LPC17_SSP0) || defined(CONFIG_LPC17_SSP1)
 
 /************************************************************************************
@@ -98,7 +96,7 @@
  * Name: lpc17_sspinitialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the LM3S6965 Eval Kit.
+ *   Called to configure SPI chip select GPIO pins for the Nucleus 2G.
  *
  ************************************************************************************/
 

@@ -361,7 +361,7 @@ Code Red IDE
     crt_emu_cm3_nxp (for LPC17xx parts)
     crt_emu_a7_nxp (for LPC21/22/23/24 parts)
     crt_emu_a9_nxp (for LPC31/32 and LPC29xx parts)
-    crt_emu_cm3_lmi (for TI Stellaris LM3S parts
+    crt_emu_cm3_lmi (for TI Stellaris parts)
 
   wire is one of:
 

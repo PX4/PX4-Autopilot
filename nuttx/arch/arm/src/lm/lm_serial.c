@@ -66,12 +66,12 @@
 
 /* Some sanity checks *******************************************************/
 
-#if LM3S_NUARTS < 2
+#if LM_NUARTS < 2
 #  undef  CONFIG_LM_UART1
 #  undef  CONFIG_UART1_SERIAL_CONSOLE
 #endif
 
-#if LM3S_NUARTS < 3
+#if LM_NUARTS < 3
 #  undef  CONFIG_LM_UART2
 #  undef  CONFIG_UART2_SERIAL_CONSOLE
 #endif
@@ -274,14 +274,14 @@ static char g_uart2rxbuffer[CONFIG_UART2_RXBUFSIZE];
 static char g_uart2txbuffer[CONFIG_UART2_TXBUFSIZE];
 #endif
 
-/* This describes the state of the LM3S uart0 port. */
+/* This describes the state of the Stellaris uart0 port. */
 
 #ifdef CONFIG_LM_UART0
 static struct up_dev_s g_uart0priv =
 {
-  .uartbase       = LM3S_UART0_BASE,
+  .uartbase       = LM_UART0_BASE,
   .baud           = CONFIG_UART0_BAUD,
-  .irq            = LM3S_IRQ_UART0,
+  .irq            = LM_IRQ_UART0,
   .parity         = CONFIG_UART0_PARITY,
   .bits           = CONFIG_UART0_BITS,
   .stopbits2      = CONFIG_UART0_2STOP,
@@ -304,14 +304,14 @@ static uart_dev_t g_uart0port =
 };
 #endif
 
-/* This describes the state of the LM3S uart1 port. */
+/* This describes the state of the Stellaris uart1 port. */
 
 #ifdef CONFIG_LM_UART1
 static struct up_dev_s g_uart1priv =
 {
-  .uartbase       = LM3S_UART1_BASE,
+  .uartbase       = LM_UART1_BASE,
   .baud           = CONFIG_UART1_BAUD,
-  .irq            = LM3S_IRQ_UART1,
+  .irq            = LM_IRQ_UART1,
   .parity         = CONFIG_UART1_PARITY,
   .bits           = CONFIG_UART1_BITS,
   .stopbits2      = CONFIG_UART1_2STOP,
@@ -334,14 +334,14 @@ static uart_dev_t g_uart1port =
 };
 #endif
 
-/* This describes the state of the LM3S uart1 port. */
+/* This describes the state of the Stellaris uart1 port. */
 
 #ifdef CONFIG_LM_UART2
 static struct up_dev_s g_uart2priv =
 {
-  .uartbase       = LM3S_UART2_BASE,
+  .uartbase       = LM_UART2_BASE,
   .baud           = CONFIG_UART2_BAUD,
-  .irq            = LM3S_IRQ_UART2,
+  .irq            = LM_IRQ_UART2,
   .parity         = CONFIG_UART2_PARITY,
   .bits           = CONFIG_UART2_BITS,
   .stopbits2      = CONFIG_UART2_2STOP,
@@ -402,7 +402,7 @@ static inline void up_disableuartint(struct up_dev_s *priv, uint32_t *im)
   /* Disable all interrupts */
 
   priv->im = 0;
-  up_serialout(priv, LM3S_UART_IM_OFFSET, 0);
+  up_serialout(priv, LM_UART_IM_OFFSET, 0);
 }
 
 /****************************************************************************
@@ -412,7 +412,7 @@ static inline void up_disableuartint(struct up_dev_s *priv, uint32_t *im)
 static inline void up_restoreuartint(struct up_dev_s *priv, uint32_t im)
 {
   priv->im = im;
-  up_serialout(priv, LM3S_UART_IM_OFFSET, im);
+  up_serialout(priv, LM_UART_IM_OFFSET, im);
 }
 
 /****************************************************************************
@@ -430,7 +430,7 @@ static inline void up_waittxnotfull(struct up_dev_s *priv)
     {
       /* Check Tx FIFO is full */
 
-      if ((up_serialin(priv, LM3S_UART_FR_OFFSET) & UART_FR_TXFF) == 0)
+      if ((up_serialin(priv, LM_UART_FR_OFFSET) & UART_FR_TXFF) == 0)
         {
           /* The Tx FIFO is not full... return */
 
@@ -471,9 +471,9 @@ static int up_setup(struct uart_dev_s *dev)
 
   /* Disable the UART by clearing the UARTEN bit in the UART CTL register */
 
-  ctl = up_serialin(priv, LM3S_UART_CTL_OFFSET);
+  ctl = up_serialin(priv, LM_UART_CTL_OFFSET);
   ctl &= ~UART_CTL_UARTEN;
-  up_serialout(priv, LM3S_UART_CTL_OFFSET, ctl);
+  up_serialout(priv, LM_UART_CTL_OFFSET, ctl);
 
   /* Calculate BAUD rate from the SYS clock:
    *
@@ -517,8 +517,8 @@ static int up_setup(struct uart_dev_s *dev)
   remainder = SYSCLK_FREQUENCY - den * brdi;
   divfrac   = ((remainder << 6) + (den >> 1)) / den;
 
-  up_serialout(priv, LM3S_UART_IBRD_OFFSET, brdi);
-  up_serialout(priv, LM3S_UART_FBRD_OFFSET, divfrac);
+  up_serialout(priv, LM_UART_IBRD_OFFSET, brdi);
+  up_serialout(priv, LM_UART_FBRD_OFFSET, divfrac);
 
   /* Set up the LCRH register */
 
@@ -558,14 +558,14 @@ static int up_setup(struct uart_dev_s *dev)
       lcrh |= UART_LCRH_STP2;
     }
 
-  up_serialout(priv, LM3S_UART_LCRH_OFFSET, lcrh);
+  up_serialout(priv, LM_UART_LCRH_OFFSET, lcrh);
 #endif
 
   /* Set the UART to interrupt whenever the TX FIFO is almost empty or when
    * any character is received.
    */
 
-  up_serialout(priv, LM3S_UART_IFLS_OFFSET, UART_IFLS_TXIFLSEL_18th|UART_IFLS_RXIFLSEL_18th);
+  up_serialout(priv, LM_UART_IFLS_OFFSET, UART_IFLS_TXIFLSEL_18th|UART_IFLS_RXIFLSEL_18th);
 
   /* Flush the Rx and Tx FIFOs -- How do you do that?*/
 
@@ -575,27 +575,27 @@ static int up_setup(struct uart_dev_s *dev)
    * yet because the interrupt is still disabled at the interrupt controller.
    */
 
-  up_serialout(priv, LM3S_UART_IM_OFFSET, UART_IM_RXIM|UART_IM_RTIM);
+  up_serialout(priv, LM_UART_IM_OFFSET, UART_IM_RXIM|UART_IM_RTIM);
 
   /* Enable the FIFOs */
 
 #ifdef CONFIG_SUPPRESS_UART_CONFIG
-  lcrh = up_serialin(priv, LM3S_UART_LCRH_OFFSET);
+  lcrh = up_serialin(priv, LM_UART_LCRH_OFFSET);
 #endif
   lcrh |= UART_LCRH_FEN;
-  up_serialout(priv, LM3S_UART_LCRH_OFFSET, lcrh);
+  up_serialout(priv, LM_UART_LCRH_OFFSET, lcrh);
 
   /* Enable Rx, Tx, and the UART */
 
 #ifdef CONFIG_SUPPRESS_UART_CONFIG
-  ctl = up_serialin(priv, LM3S_UART_CTL_OFFSET);
+  ctl = up_serialin(priv, LM_UART_CTL_OFFSET);
 #endif
   ctl |= (UART_CTL_UARTEN|UART_CTL_TXE|UART_CTL_RXE);
-  up_serialout(priv, LM3S_UART_CTL_OFFSET, ctl);
+  up_serialout(priv, LM_UART_CTL_OFFSET, ctl);
 
   /* Set up the cache IM value */
 
-  priv->im = up_serialin(priv, LM3S_UART_IM_OFFSET);
+  priv->im = up_serialin(priv, LM_UART_IM_OFFSET);
   return OK;
 }
 
@@ -716,8 +716,8 @@ static int up_interrupt(int irq, void *context)
 
       /* Get the masked UART status and clear the pending interrupts. */
 
-       mis = up_serialin(priv, LM3S_UART_MIS_OFFSET);
-       up_serialout(priv, LM3S_UART_ICR_OFFSET, mis);
+       mis = up_serialin(priv, LM_UART_MIS_OFFSET);
+       up_serialout(priv, LM_UART_ICR_OFFSET, mis);
 
       /* Handle incoming, receive bytes (with or without timeout) */
 
@@ -797,7 +797,7 @@ static int up_receive(struct uart_dev_s *dev, uint32_t *status)
 
   /* Get the Rx byte + 4 bits of error information.  Return those in status */
 
-  rxd     = up_serialin(priv, LM3S_UART_DR_OFFSET);
+  rxd     = up_serialin(priv, LM_UART_DR_OFFSET);
   *status = rxd;
 
   /* The lower 8bits of the Rx data is the actual recevied byte */
@@ -830,7 +830,7 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
     {
       priv->im &= ~(UART_IM_RXIM|UART_IM_RTIM);
     }
-  up_serialout(priv, LM3S_UART_IM_OFFSET, priv->im);
+  up_serialout(priv, LM_UART_IM_OFFSET, priv->im);
 }
 
 /****************************************************************************
@@ -844,7 +844,7 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
 static bool up_rxavailable(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
-  return ((up_serialin(priv, LM3S_UART_FR_OFFSET) & UART_FR_RXFE) == 0);
+  return ((up_serialin(priv, LM_UART_FR_OFFSET) & UART_FR_RXFE) == 0);
 }
 
 /****************************************************************************
@@ -858,7 +858,7 @@ static bool up_rxavailable(struct uart_dev_s *dev)
 static void up_send(struct uart_dev_s *dev, int ch)
 {
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
-  up_serialout(priv, LM3S_UART_DR_OFFSET, (uint32_t)ch);
+  up_serialout(priv, LM_UART_DR_OFFSET, (uint32_t)ch);
 }
 
 /****************************************************************************
@@ -881,11 +881,11 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
 
 #ifndef CONFIG_SUPPRESS_SERIAL_INTS
       priv->im |= UART_IM_TXIM;
-      up_serialout(priv, LM3S_UART_IM_OFFSET, priv->im);
+      up_serialout(priv, LM_UART_IM_OFFSET, priv->im);
 
       /* The serial driver wants an interrupt here, but will not get get
        * one unless we "prime the pump."  I believe that this is because
-       * behave like a level interrupt and the LM3S interrupts behave
+       * behave like a level interrupt and the Stellaris interrupts behave
        * (at least by default) like edge interrupts.
        *
        * In any event, faking a TX interrupt here solves the problem;
@@ -901,7 +901,7 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
       /* Disable the TX interrupt */
 
       priv->im &= ~UART_IM_TXIM;
-      up_serialout(priv, LM3S_UART_IM_OFFSET, priv->im);
+      up_serialout(priv, LM_UART_IM_OFFSET, priv->im);
     }
   irqrestore(flags);
 }
@@ -917,7 +917,7 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
 static bool up_txready(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
-  return ((up_serialin(priv, LM3S_UART_FR_OFFSET) & UART_FR_TXFF) == 0);
+  return ((up_serialin(priv, LM_UART_FR_OFFSET) & UART_FR_TXFF) == 0);
 }
 
 /****************************************************************************
@@ -931,7 +931,7 @@ static bool up_txready(struct uart_dev_s *dev)
 static bool up_txempty(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
-  return ((up_serialin(priv, LM3S_UART_FR_OFFSET) & UART_FR_TXFE) != 0);
+  return ((up_serialin(priv, LM_UART_FR_OFFSET) & UART_FR_TXFE) != 0);
 }
 
 /****************************************************************************
@@ -1016,7 +1016,7 @@ int up_putc(int ch)
 
   up_disableuartint(priv, &im);
   up_waittxnotfull(priv);
-  up_serialout(priv, LM3S_UART_DR_OFFSET, (uint32_t)ch);
+  up_serialout(priv, LM_UART_DR_OFFSET, (uint32_t)ch);
 
   /* Check for LF */
 
@@ -1025,7 +1025,7 @@ int up_putc(int ch)
       /* Add CR */
 
       up_waittxnotfull(priv);
-      up_serialout(priv, LM3S_UART_DR_OFFSET, (uint32_t)'\r');
+      up_serialout(priv, LM_UART_DR_OFFSET, (uint32_t)'\r');
     }
 
   up_waittxnotfull(priv);

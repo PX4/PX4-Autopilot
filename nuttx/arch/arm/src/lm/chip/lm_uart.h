@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LM_CHIP_LM3S_UART_H
-#define __ARCH_ARM_SRC_LM_CHIP_LM3S_UART_H
+#ifndef __ARCH_ARM_SRC_LM_CHIP_LM_UART_H
+#define __ARCH_ARM_SRC_LM_CHIP_LM_UART_H
 
 /************************************************************************************
  * Included Files
@@ -48,117 +48,117 @@
 
 /* UART register offsets ************************************************************/
 
-#define LM3S_UART_DR_OFFSET        0x000 /* UART Data */
-#define LM3S_UART_RSR_OFFSET       0x004 /* UART Receive Status */
-#define LM3S_UART_ECR_OFFSET       0x004 /* UART Error Clear */
-#define LM3S_UART_FR_OFFSET        0x018 /* UART Flag */
-#define LM3S_UART_ILPR_OFFSET      0x020 /* UART IrDA Low-Power Register */
-#define LM3S_UART_IBRD_OFFSET      0x024 /* UART Integer Baud-Rate Divisor*/
-#define LM3S_UART_FBRD_OFFSET      0x028 /* UART Fractional Baud-Rate Divisor */
-#define LM3S_UART_LCRH_OFFSET      0x02c /* UART Line Control */
-#define LM3S_UART_CTL_OFFSET       0x030 /* UART Control */
-#define LM3S_UART_IFLS_OFFSET      0x034 /* UART Interrupt FIFO Level Select */
-#define LM3S_UART_IM_OFFSET        0x038 /* UART Interrupt Mask */
-#define LM3S_UART_RIS_OFFSET       0x03c /* UART Raw Interrupt Status */
-#define LM3S_UART_MIS_OFFSET       0x040 /* UART Masked Interrupt Status */
-#define LM3S_UART_ICR_OFFSET       0x044 /* UART Interrupt Clear */
-#define LM3S_UART_PERIPHID4_OFFSET 0xfd0 /* UART Peripheral Identification 4 */
-#define LM3S_UART_PERIPHID5_OFFSET 0xfd4 /* UART Peripheral Identification 5 */
-#define LM3S_UART_PERIPHID6_OFFSET 0xfd8 /* UART Peripheral Identification 6 */
-#define LM3S_UART_PERIPHID7_OFFSET 0xfdc /* UART Peripheral Identification 7 */
-#define LM3S_UART_PERIPHID0_OFFSET 0xfe0 /* UART Peripheral Identification 0 */
-#define LM3S_UART_PERIPHID1_OFFSET 0xfe4 /* UART Peripheral Identification 1 */
-#define LM3S_UART_PERIPHID2_OFFSET 0xfe8 /* UART Peripheral Identification 2 */
-#define LM3S_UART_PERIPHID3_OFFSET 0xfec /* UART Peripheral Identification 3 */
-#define LM3S_UART_PCELLID0_OFFSET  0xff0 /* UART PrimeCell Identification 0 */
-#define LM3S_UART_PCELLID1_OFFSET  0xff4 /* UART PrimeCell Identification 1 */
-#define LM3S_UART_PCELLID2_OFFSET  0xff8 /* UART PrimeCell Identification 2 */
-#define LM3S_UART_PCELLID3_OFFSET  0xffc /* UART PrimeCell Identification 3 */
+#define LM_UART_DR_OFFSET          0x000 /* UART Data */
+#define LM_UART_RSR_OFFSET         0x004 /* UART Receive Status */
+#define LM_UART_ECR_OFFSET         0x004 /* UART Error Clear */
+#define LM_UART_FR_OFFSET          0x018 /* UART Flag */
+#define LM_UART_ILPR_OFFSET        0x020 /* UART IrDA Low-Power Register */
+#define LM_UART_IBRD_OFFSET        0x024 /* UART Integer Baud-Rate Divisor*/
+#define LM_UART_FBRD_OFFSET        0x028 /* UART Fractional Baud-Rate Divisor */
+#define LM_UART_LCRH_OFFSET        0x02c /* UART Line Control */
+#define LM_UART_CTL_OFFSET         0x030 /* UART Control */
+#define LM_UART_IFLS_OFFSET        0x034 /* UART Interrupt FIFO Level Select */
+#define LM_UART_IM_OFFSET          0x038 /* UART Interrupt Mask */
+#define LM_UART_RIS_OFFSET         0x03c /* UART Raw Interrupt Status */
+#define LM_UART_MIS_OFFSET         0x040 /* UART Masked Interrupt Status */
+#define LM_UART_ICR_OFFSET         0x044 /* UART Interrupt Clear */
+#define LM_UART_PERIPHID4_OFFSET   0xfd0 /* UART Peripheral Identification 4 */
+#define LM_UART_PERIPHID5_OFFSET   0xfd4 /* UART Peripheral Identification 5 */
+#define LM_UART_PERIPHID6_OFFSET   0xfd8 /* UART Peripheral Identification 6 */
+#define LM_UART_PERIPHID7_OFFSET   0xfdc /* UART Peripheral Identification 7 */
+#define LM_UART_PERIPHID0_OFFSET   0xfe0 /* UART Peripheral Identification 0 */
+#define LM_UART_PERIPHID1_OFFSET   0xfe4 /* UART Peripheral Identification 1 */
+#define LM_UART_PERIPHID2_OFFSET   0xfe8 /* UART Peripheral Identification 2 */
+#define LM_UART_PERIPHID3_OFFSET   0xfec /* UART Peripheral Identification 3 */
+#define LM_UART_PCELLID0_OFFSET    0xff0 /* UART PrimeCell Identification 0 */
+#define LM_UART_PCELLID1_OFFSET    0xff4 /* UART PrimeCell Identification 1 */
+#define LM_UART_PCELLID2_OFFSET    0xff8 /* UART PrimeCell Identification 2 */
+#define LM_UART_PCELLID3_OFFSET    0xffc /* UART PrimeCell Identification 3 */
 
 /* UART register addresses **********************************************************/
 
-#define LM3S_UART_BASE(n)          (LM3S_UART0_BASE + (n)*0x01000)
+#define LM_UART_BASE(n)            (LM_UART0_BASE + (n)*0x01000)
 
-#define LM3S_UART_DR(n)            (LM3S_UART_BASE(n) + LM3S_UART_DR_OFFSET)
-#define LM3S_UART_RSR(n)           (LM3S_UART_BASE(n) + LM3S_UART_RSR_OFFSET)
-#define LM3S_UART_ECR(n)           (LM3S_UART_BASE(n) + LM3S_UART_ECR_OFFSET)
-#define LM3S_UART_FR(n)            (LM3S_UART_BASE(n) + LM3S_UART_FR_OFFSET)
-#define LM3S_UART_ILPR(n)          (LM3S_UART_BASE(n) + LM3S_UART_ILPR_OFFSET)
-#define LM3S_UART_IBRD(n)          (LM3S_UART_BASE(n) + LM3S_UART_IBRD_OFFSET)
-#define LM3S_UART_FBRD(n)          (LM3S_UART_BASE(n) + LM3S_UART_FBRD_OFFSET)
-#define LM3S_UART_LCRH(n)          (LM3S_UART_BASE(n) + LM3S_UART_LCRH_OFFSET)
-#define LM3S_UART_CTL(n)           (LM3S_UART_BASE(n) + LM3S_UART_CTL_OFFSET)
-#define LM3S_UART_IFLS(n)          (LM3S_UART_BASE(n) + LM3S_UART_IFLS_OFFSET)
-#define LM3S_UART_IM(n)            (LM3S_UART_BASE(n) + LM3S_UART_IM_OFFSET)
-#define LM3S_UART_RIS(n)           (LM3S_UART_BASE(n) + LM3S_UART_RIS_OFFSET)
-#define LM3S_UART_MIS(n)           (LM3S_UART_BASE(n) + LM3S_UART_MIS_OFFSET)
-#define LM3S_UART_ICR(n)           (LM3S_UART_BASE(n) + LM3S_UART_ICR_OFFSET)
-#define LM3S_UART_PERIPHID4(n)     (LM3S_UART_BASE(n) + LM3S_UART_PERIPHID4_OFFSET)
-#define LM3S_UART_PERIPHID5(n)     (LM3S_UART_BASE(n) + LM3S_UART_PERIPHID5_OFFSET)
-#define LM3S_UART_PERIPHID6(n)     (LM3S_UART_BASE(n) + LM3S_UART_PERIPHID6_OFFSET)
-#define LM3S_UART_PERIPHID7(n)     (LM3S_UART_BASE(n) + LM3S_UART_PERIPHID7_OFFSET)
-#define LM3S_UART_PERIPHID0(n)     (LM3S_UART_BASE(n) + LM3S_UART_PERIPHID0_OFFSET)
-#define LM3S_UART_PERIPHID1(n)     (LM3S_UART_BASE(n) + LM3S_UART_PERIPHID1_OFFSET)
-#define LM3S_UART_PERIPHID2(n)     (LM3S_UART_BASE(n) + LM3S_UART_PERIPHID2_OFFSET)
-#define LM3S_UART_PERIPHID3(n)     (LM3S_UART_BASE(n) + LM3S_UART_PERIPHID3_OFFSET)
-#define LM3S_UART_PCELLID0(n)      (LM3S_UART_BASE(n) + LM3S_UART_PCELLID0_OFFSET)
-#define LM3S_UART_PCELLID1(n)      (LM3S_UART_BASE(n) + LM3S_UART_PCELLID1_OFFSET)
-#define LM3S_UART_PCELLID2(n)      (LM3S_UART_BASE(n) + LM3S_UART_PCELLID2_OFFSET)
-#define LM3S_UART_PCELLID3(n)      (LM3S_UART_BASE(n) + LM3S_UART_PCELLID3_OFFSET)
+#define LM_UART_DR(n)              (LM_UART_BASE(n) + LM_UART_DR_OFFSET)
+#define LM_UART_RSR(n)             (LM_UART_BASE(n) + LM_UART_RSR_OFFSET)
+#define LM_UART_ECR(n)             (LM_UART_BASE(n) + LM_UART_ECR_OFFSET)
+#define LM_UART_FR(n)              (LM_UART_BASE(n) + LM_UART_FR_OFFSET)
+#define LM_UART_ILPR(n)            (LM_UART_BASE(n) + LM_UART_ILPR_OFFSET)
+#define LM_UART_IBRD(n)            (LM_UART_BASE(n) + LM_UART_IBRD_OFFSET)
+#define LM_UART_FBRD(n)            (LM_UART_BASE(n) + LM_UART_FBRD_OFFSET)
+#define LM_UART_LCRH(n)            (LM_UART_BASE(n) + LM_UART_LCRH_OFFSET)
+#define LM_UART_CTL(n)             (LM_UART_BASE(n) + LM_UART_CTL_OFFSET)
+#define LM_UART_IFLS(n)            (LM_UART_BASE(n) + LM_UART_IFLS_OFFSET)
+#define LM_UART_IM(n)              (LM_UART_BASE(n) + LM_UART_IM_OFFSET)
+#define LM_UART_RIS(n)             (LM_UART_BASE(n) + LM_UART_RIS_OFFSET)
+#define LM_UART_MIS(n)             (LM_UART_BASE(n) + LM_UART_MIS_OFFSET)
+#define LM_UART_ICR(n)             (LM_UART_BASE(n) + LM_UART_ICR_OFFSET)
+#define LM_UART_PERIPHID4(n)       (LM_UART_BASE(n) + LM_UART_PERIPHID4_OFFSET)
+#define LM_UART_PERIPHID5(n)       (LM_UART_BASE(n) + LM_UART_PERIPHID5_OFFSET)
+#define LM_UART_PERIPHID6(n)       (LM_UART_BASE(n) + LM_UART_PERIPHID6_OFFSET)
+#define LM_UART_PERIPHID7(n)       (LM_UART_BASE(n) + LM_UART_PERIPHID7_OFFSET)
+#define LM_UART_PERIPHID0(n)       (LM_UART_BASE(n) + LM_UART_PERIPHID0_OFFSET)
+#define LM_UART_PERIPHID1(n)       (LM_UART_BASE(n) + LM_UART_PERIPHID1_OFFSET)
+#define LM_UART_PERIPHID2(n)       (LM_UART_BASE(n) + LM_UART_PERIPHID2_OFFSET)
+#define LM_UART_PERIPHID3(n)       (LM_UART_BASE(n) + LM_UART_PERIPHID3_OFFSET)
+#define LM_UART_PCELLID0(n)        (LM_UART_BASE(n) + LM_UART_PCELLID0_OFFSET)
+#define LM_UART_PCELLID1(n)        (LM_UART_BASE(n) + LM_UART_PCELLID1_OFFSET)
+#define LM_UART_PCELLID2(n)        (LM_UART_BASE(n) + LM_UART_PCELLID2_OFFSET)
+#define LM_UART_PCELLID3(n)        (LM_UART_BASE(n) + LM_UART_PCELLID3_OFFSET)
 
-#define LM3S_UART0_DR              (LM3S_UART0_BASE + LM3S_UART_TDR_OFFSET)
-#define LM3S_UART0_RSR             (LM3S_UART0_BASE + LM3S_UART_RSR_OFFSET)
-#define LM3S_UART0_ECR             (LM3S_UART0_BASE + LM3S_UART_ECR_OFFSET)
-#define LM3S_UART0_FR              (LM3S_UART0_BASE + LM3S_UART_FR_OFFSET)
-#define LM3S_UART0_ILPR            (LM3S_UART0_BASE + LM3S_UART_ILPR_OFFSET)
-#define LM3S_UART0_IBRD            (LM3S_UART0_BASE + LM3S_UART_IBRD_OFFSET)
-#define LM3S_UART0_FBRD            (LM3S_UART0_BASE + LM3S_UART_FBRD_OFFSET)
-#define LM3S_UART0_LCRH            (LM3S_UART0_BASE + LM3S_UART_LCRH_OFFSET)
-#define LM3S_UART0_CTL             (LM3S_UART0_BASE + LM3S_UART_CTL_OFFSET)
-#define LM3S_UART0_IFLS            (LM3S_UART0_BASE + LM3S_UART_IFLS_OFFSET)
-#define LM3S_UART0_IM              (LM3S_UART0_BASE + LM3S_UART_IM_OFFSET)
-#define LM3S_UART0_RIS             (LM3S_UART0_BASE + LM3S_UART_RIS_OFFSET)
-#define LM3S_UART0_MIS             (LM3S_UART0_BASE + LM3S_UART_MIS_OFFSET)
-#define LM3S_UART0_ICR             (LM3S_UART0_BASE + LM3S_UART_ICR_OFFSET)
-#define LM3S_UART0_PERIPHID4       (LM3S_UART0_BASE + LM3S_UART_PERIPHID4_OFFSET)
-#define LM3S_UART0_PERIPHID5       (LM3S_UART0_BASE + LM3S_UART_PERIPHID5_OFFSET)
-#define LM3S_UART0_PERIPHID6       (LM3S_UART0_BASE + LM3S_UART_PERIPHID6_OFFSET)
-#define LM3S_UART0_PERIPHID7       (LM3S_UART0_BASE + LM3S_UART_PERIPHID7_OFFSET)
-#define LM3S_UART0_PERIPHID0       (LM3S_UART0_BASE + LM3S_UART_PERIPHID0_OFFSET)
-#define LM3S_UART0_PERIPHID1       (LM3S_UART0_BASE + LM3S_UART_PERIPHID1_OFFSET)
-#define LM3S_UART0_PERIPHID2       (LM3S_UART0_BASE + LM3S_UART_PERIPHID2_OFFSET)
-#define LM3S_UART0_PERIPHID3       (LM3S_UART0_BASE + LM3S_UART_PERIPHID3_OFFSET)
-#define LM3S_UART0_PCELLID0        (LM3S_UART0_BASE + LM3S_UART_PCELLID0_OFFSET)
-#define LM3S_UART0_PCELLID1        (LM3S_UART0_BASE + LM3S_UART_PCELLID1_OFFSET)
-#define LM3S_UART0_PCELLID2        (LM3S_UART0_BASE + LM3S_UART_PCELLID2_OFFSET)
-#define LM3S_UART0_PCELLID3        (LM3S_UART0_BASE + LM3S_UART_PCELLID3_OFFSET)
+#define LM_UART0_DR                (LM_UART0_BASE + LM_UART_TDR_OFFSET)
+#define LM_UART0_RSR               (LM_UART0_BASE + LM_UART_RSR_OFFSET)
+#define LM_UART0_ECR               (LM_UART0_BASE + LM_UART_ECR_OFFSET)
+#define LM_UART0_FR                (LM_UART0_BASE + LM_UART_FR_OFFSET)
+#define LM_UART0_ILPR              (LM_UART0_BASE + LM_UART_ILPR_OFFSET)
+#define LM_UART0_IBRD              (LM_UART0_BASE + LM_UART_IBRD_OFFSET)
+#define LM_UART0_FBRD              (LM_UART0_BASE + LM_UART_FBRD_OFFSET)
+#define LM_UART0_LCRH              (LM_UART0_BASE + LM_UART_LCRH_OFFSET)
+#define LM_UART0_CTL               (LM_UART0_BASE + LM_UART_CTL_OFFSET)
+#define LM_UART0_IFLS              (LM_UART0_BASE + LM_UART_IFLS_OFFSET)
+#define LM_UART0_IM                (LM_UART0_BASE + LM_UART_IM_OFFSET)
+#define LM_UART0_RIS               (LM_UART0_BASE + LM_UART_RIS_OFFSET)
+#define LM_UART0_MIS               (LM_UART0_BASE + LM_UART_MIS_OFFSET)
+#define LM_UART0_ICR               (LM_UART0_BASE + LM_UART_ICR_OFFSET)
+#define LM_UART0_PERIPHID4         (LM_UART0_BASE + LM_UART_PERIPHID4_OFFSET)
+#define LM_UART0_PERIPHID5         (LM_UART0_BASE + LM_UART_PERIPHID5_OFFSET)
+#define LM_UART0_PERIPHID6         (LM_UART0_BASE + LM_UART_PERIPHID6_OFFSET)
+#define LM_UART0_PERIPHID7         (LM_UART0_BASE + LM_UART_PERIPHID7_OFFSET)
+#define LM_UART0_PERIPHID0         (LM_UART0_BASE + LM_UART_PERIPHID0_OFFSET)
+#define LM_UART0_PERIPHID1         (LM_UART0_BASE + LM_UART_PERIPHID1_OFFSET)
+#define LM_UART0_PERIPHID2         (LM_UART0_BASE + LM_UART_PERIPHID2_OFFSET)
+#define LM_UART0_PERIPHID3         (LM_UART0_BASE + LM_UART_PERIPHID3_OFFSET)
+#define LM_UART0_PCELLID0          (LM_UART0_BASE + LM_UART_PCELLID0_OFFSET)
+#define LM_UART0_PCELLID1          (LM_UART0_BASE + LM_UART_PCELLID1_OFFSET)
+#define LM_UART0_PCELLID2          (LM_UART0_BASE + LM_UART_PCELLID2_OFFSET)
+#define LM_UART0_PCELLID3          (LM_UART0_BASE + LM_UART_PCELLID3_OFFSET)
 
-#define LM3S_UART1_DR              (LM3S_UART1_BASE + LM3S_UART_DR_OFFSET)
-#define LM3S_UART1_RSR             (LM3S_UART1_BASE + LM3S_UART_RSR_OFFSET)
-#define LM3S_UART1_ECR             (LM3S_UART1_BASE + LM3S_UART_ECR_OFFSET)
-#define LM3S_UART1_FR              (LM3S_UART1_BASE + LM3S_UART_FR_OFFSET)
-#define LM3S_UART1_ILPR            (LM3S_UART1_BASE + LM3S_UART_ILPR_OFFSET)
-#define LM3S_UART1_IBRD            (LM3S_UART1_BASE + LM3S_UART_IBRD_OFFSET)
-#define LM3S_UART1_FBRD            (LM3S_UART1_BASE + LM3S_UART_FBRD_OFFSET)
-#define LM3S_UART1_LCRH            (LM3S_UART1_BASE + LM3S_UART_LCRH_OFFSET)
-#define LM3S_UART1_CTL             (LM3S_UART1_BASE + LM3S_UART_CTL_OFFSET)
-#define LM3S_UART1_IFLS            (LM3S_UART1_BASE + LM3S_UART_IFLS_OFFSET)
-#define LM3S_UART1_IM              (LM3S_UART1_BASE + LM3S_UART_IM_OFFSET)
-#define LM3S_UART1_RIS             (LM3S_UART1_BASE + LM3S_UART_RIS_OFFSET)
-#define LM3S_UART1_MIS             (LM3S_UART1_BASE + LM3S_UART_MIS_OFFSET)
-#define LM3S_UART1_ICR             (LM3S_UART1_BASE + LM3S_UART_ICR_OFFSET)
-#define LM3S_UART1_PERIPHID4       (LM3S_UART1_BASE + LM3S_UART_PERIPHID4_OFFSET)
-#define LM3S_UART1_PERIPHID5       (LM3S_UART1_BASE + LM3S_UART_PERIPHID5_OFFSET)
-#define LM3S_UART1_PERIPHID6       (LM3S_UART1_BASE + LM3S_UART_PERIPHID6_OFFSET)
-#define LM3S_UART1_PERIPHID7       (LM3S_UART1_BASE + LM3S_UART_PERIPHID7_OFFSET)
-#define LM3S_UART1_PERIPHID0       (LM3S_UART1_BASE + LM3S_UART_PERIPHID0_OFFSET)
-#define LM3S_UART1_PERIPHID1       (LM3S_UART1_BASE + LM3S_UART_PERIPHID1_OFFSET)
-#define LM3S_UART1_PERIPHID2       (LM3S_UART1_BASE + LM3S_UART_PERIPHID2_OFFSET)
-#define LM3S_UART1_PERIPHID3       (LM3S_UART1_BASE + LM3S_UART_PERIPHID3_OFFSET)
-#define LM3S_UART1_PCELLID0        (LM3S_UART1_BASE + LM3S_UART_PCELLID0_OFFSET)
-#define LM3S_UART1_PCELLID1        (LM3S_UART1_BASE + LM3S_UART_PCELLID1_OFFSET)
-#define LM3S_UART1_PCELLID2        (LM3S_UART1_BASE + LM3S_UART_PCELLID2_OFFSET)
-#define LM3S_UART1_PCELLID3        (LM3S_UART1_BASE + LM3S_UART_PCELLID3_OFFSET)
+#define LM_UART1_DR                (LM_UART1_BASE + LM_UART_DR_OFFSET)
+#define LM_UART1_RSR               (LM_UART1_BASE + LM_UART_RSR_OFFSET)
+#define LM_UART1_ECR               (LM_UART1_BASE + LM_UART_ECR_OFFSET)
+#define LM_UART1_FR                (LM_UART1_BASE + LM_UART_FR_OFFSET)
+#define LM_UART1_ILPR              (LM_UART1_BASE + LM_UART_ILPR_OFFSET)
+#define LM_UART1_IBRD              (LM_UART1_BASE + LM_UART_IBRD_OFFSET)
+#define LM_UART1_FBRD              (LM_UART1_BASE + LM_UART_FBRD_OFFSET)
+#define LM_UART1_LCRH              (LM_UART1_BASE + LM_UART_LCRH_OFFSET)
+#define LM_UART1_CTL               (LM_UART1_BASE + LM_UART_CTL_OFFSET)
+#define LM_UART1_IFLS              (LM_UART1_BASE + LM_UART_IFLS_OFFSET)
+#define LM_UART1_IM                (LM_UART1_BASE + LM_UART_IM_OFFSET)
+#define LM_UART1_RIS               (LM_UART1_BASE + LM_UART_RIS_OFFSET)
+#define LM_UART1_MIS               (LM_UART1_BASE + LM_UART_MIS_OFFSET)
+#define LM_UART1_ICR               (LM_UART1_BASE + LM_UART_ICR_OFFSET)
+#define LM_UART1_PERIPHID4         (LM_UART1_BASE + LM_UART_PERIPHID4_OFFSET)
+#define LM_UART1_PERIPHID5         (LM_UART1_BASE + LM_UART_PERIPHID5_OFFSET)
+#define LM_UART1_PERIPHID6         (LM_UART1_BASE + LM_UART_PERIPHID6_OFFSET)
+#define LM_UART1_PERIPHID7         (LM_UART1_BASE + LM_UART_PERIPHID7_OFFSET)
+#define LM_UART1_PERIPHID0         (LM_UART1_BASE + LM_UART_PERIPHID0_OFFSET)
+#define LM_UART1_PERIPHID1         (LM_UART1_BASE + LM_UART_PERIPHID1_OFFSET)
+#define LM_UART1_PERIPHID2         (LM_UART1_BASE + LM_UART_PERIPHID2_OFFSET)
+#define LM_UART1_PERIPHID3         (LM_UART1_BASE + LM_UART_PERIPHID3_OFFSET)
+#define LM_UART1_PCELLID0          (LM_UART1_BASE + LM_UART_PCELLID0_OFFSET)
+#define LM_UART1_PCELLID1          (LM_UART1_BASE + LM_UART_PCELLID1_OFFSET)
+#define LM_UART1_PCELLID2          (LM_UART1_BASE + LM_UART_PCELLID2_OFFSET)
+#define LM_UART1_PCELLID3          (LM_UART1_BASE + LM_UART_PCELLID3_OFFSET)
 
 /* UART register bit settings *******************************************************/
 
@@ -275,62 +275,62 @@
 
 /* UART Interrupt Clear (ICR), offset 0x044 */
 
-#define UART_ICR_RXIC             (1 << 4)  /* Bit 4:  Receive Interrupt Clear */
-#define UART_ICR_TXIC             (1 << 5)  /* Bit 5:  Transmit Interrupt Clear */
-#define UART_ICR_RTIC             (1 << 6)  /* Bit 6:  Receive Time-Out Interrupt Clear */
-#define UART_ICR_FEIC             (1 << 7)  /* Bit 7:  Framing Error Interrupt Clear */
-#define UART_ICR_PEIC             (1 << 8)  /* Bit 8:  Parity Error Interrupt Clear */
-#define UART_ICR_BEIC             (1 << 9)  /* Bit 9:  Break Error Interrupt Clear */
-#define UART_ICR_OEIC             (1 << 10) /* Bit 10: Overrun Error Interrupt Clear
+#define UART_ICR_RXIC              (1 << 4)  /* Bit 4:  Receive Interrupt Clear */
+#define UART_ICR_TXIC              (1 << 5)  /* Bit 5:  Transmit Interrupt Clear */
+#define UART_ICR_RTIC              (1 << 6)  /* Bit 6:  Receive Time-Out Interrupt Clear */
+#define UART_ICR_FEIC              (1 << 7)  /* Bit 7:  Framing Error Interrupt Clear */
+#define UART_ICR_PEIC              (1 << 8)  /* Bit 8:  Parity Error Interrupt Clear */
+#define UART_ICR_BEIC              (1 << 9)  /* Bit 9:  Break Error Interrupt Clear */
+#define UART_ICR_OEIC              (1 << 10) /* Bit 10: Overrun Error Interrupt Clear
  */
 
 /* UART Peripheral Identification 4 (PERIPHID4), offset 0xfd0 */
 
-#define UART_PERIPHID4_MASK       (0xff)    /* UART Peripheral ID Register[7:0] */
+#define UART_PERIPHID4_MASK        (0xff)    /* UART Peripheral ID Register[7:0] */
 
 /* UART Peripheral Identification 5 (UARTPERIPHID5), offset 0xfd4 */
 
-#define UART_PERIPHID5_MASK       (0xff)    /* UART Peripheral ID Register[15:8] */
+#define UART_PERIPHID5_MASK        (0xff)    /* UART Peripheral ID Register[15:8] */
 
 /* UART Peripheral Identification 6 (UARTPERIPHID6), offset 0xfd8 */
 
-#define UART_PERIPHID6_MASK       (0xff)    /* UART Peripheral ID Register[23:16] */
+#define UART_PERIPHID6_MASK        (0xff)    /* UART Peripheral ID Register[23:16] */
 
 /* UART Peripheral Identification 7 (UARTPERIPHID7), offset 0xfdc */
 
-#define UART_PERIPHID7_MASK       (0xff)    /* UART Peripheral ID Register[31:24] */
+#define UART_PERIPHID7_MASK        (0xff)    /* UART Peripheral ID Register[31:24] */
 
 /* UART Peripheral Identification 0 (UARTPERIPHID0), offset 0xfe0 */
 
-#define UART_PERIPHID0_MASK       (0xff)    /* UART Peripheral ID Register[7:0] */
+#define UART_PERIPHID0_MASK        (0xff)    /* UART Peripheral ID Register[7:0] */
 
 /* UART Peripheral Identification 1 (UARTPERIPHID1), offset 0xfe4 */
 
-#define UART_PERIPHID1_MASK       (0xff)    /* UART Peripheral ID Register[15:8] */
+#define UART_PERIPHID1_MASK        (0xff)    /* UART Peripheral ID Register[15:8] */
 
 /* UART Peripheral Identification 2 (UARTPERIPHID2), offset 0xfe8 */
 
-#define UART_PERIPHID2_MASK       (0xff)    /* UART Peripheral ID Register[23:16] */
+#define UART_PERIPHID2_MASK        (0xff)    /* UART Peripheral ID Register[23:16] */
 
 /* UART Peripheral Identification 3 (UARTPERIPHID3), offset 0xfec */
 
-#define UART_PERIPHID3_MASK       (0xff)    /* UART Peripheral ID Register[31:24] */
+#define UART_PERIPHID3_MASK        (0xff)    /* UART Peripheral ID Register[31:24] */
 
 /* UART PrimeCell Identification 0 (CELLID0), offset 0xff0 */
 
-#define UART_CELLID0_MASK         (0xff)    /* UART PrimeCell ID Register[7:0] */
+#define UART_CELLID0_MASK          (0xff)    /* UART PrimeCell ID Register[7:0] */
 
 /* UART PrimeCell Identification 1 (UARTPCELLID1), offset 0xff4 */
 
-#define UART_CELLID1_MASK         (0xff)    /* UART PrimeCell ID Register[15:8] */
+#define UART_CELLID1_MASK          (0xff)    /* UART PrimeCell ID Register[15:8] */
 
 /* UART PrimeCell Identification 2 (UARTPCELLID2), offset 0xff8 */
 
-#define UART_CELLID02MASK         (0xff)    /* UART PrimeCell ID Register[23:16] */
+#define UART_CELLID02MASK          (0xff)    /* UART PrimeCell ID Register[23:16] */
 
 /* UART PrimeCell Identification 3 (UARTPCELLID3), offset 0xffc */
 
-#define UART_CELLID3_MASK         (0xff)    /* UART PrimeCell ID Register[31:24] */
+#define UART_CELLID3_MASK          (0xff)    /* UART PrimeCell ID Register[31:24] */
 
 /************************************************************************************
  * Public Types
@@ -344,4 +344,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LM_CHIP_LM3S_UART_H */
+#endif /* __ARCH_ARM_SRC_LM_CHIP_LM_UART_H */

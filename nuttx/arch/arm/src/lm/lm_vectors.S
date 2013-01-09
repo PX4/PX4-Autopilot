@@ -421,214 +421,214 @@ lm_vectors:
 	.type	handlers, function
 	.thumb_func
 handlers:
-	HANDLER	lm_reserved, LM3S_IRQ_RESERVED		/* Unexpected/reserved vector */
-	HANDLER	lm_nmi, LM3S_IRQ_NMI					/* Vector  2: Non-Maskable Interrupt (NMI) */
-	HANDLER	lm_hardfault, LM3S_IRQ_HARDFAULT		/* Vector  3: Hard fault */
-	HANDLER	lm_mpu, LM3S_IRQ_MEMFAULT				/* Vector  4: Memory management (MPU) */
-	HANDLER	lm_busfault, LM3S_IRQ_BUSFAULT		/* Vector  5: Bus fault */
-	HANDLER	lm_usagefault, LM3S_IRQ_USAGEFAULT	/* Vector  6: Usage fault */
-	HANDLER	lm_svcall, LM3S_IRQ_SVCALL			/* Vector 11: SVC call */
-	HANDLER	lm_dbgmonitor, LM3S_IRQ_DBGMONITOR	/* Vector 12: Debug Monitor */
-	HANDLER	lm_pendsv, LM3S_IRQ_PENDSV			/* Vector 14: Penable system service request */
-	HANDLER	lm_systick, LM3S_IRQ_SYSTICK			/* Vector 15: System tick */
+	HANDLER	lm_reserved, LM_IRQ_RESERVED		/* Unexpected/reserved vector */
+	HANDLER	lm_nmi, LM_IRQ_NMI					/* Vector  2: Non-Maskable Interrupt (NMI) */
+	HANDLER	lm_hardfault, LM_IRQ_HARDFAULT		/* Vector  3: Hard fault */
+	HANDLER	lm_mpu, LM_IRQ_MEMFAULT				/* Vector  4: Memory management (MPU) */
+	HANDLER	lm_busfault, LM_IRQ_BUSFAULT		/* Vector  5: Bus fault */
+	HANDLER	lm_usagefault, LM_IRQ_USAGEFAULT	/* Vector  6: Usage fault */
+	HANDLER	lm_svcall, LM_IRQ_SVCALL			/* Vector 11: SVC call */
+	HANDLER	lm_dbgmonitor, LM_IRQ_DBGMONITOR	/* Vector 12: Debug Monitor */
+	HANDLER	lm_pendsv, LM_IRQ_PENDSV			/* Vector 14: Penable system service request */
+	HANDLER	lm_systick, LM_IRQ_SYSTICK			/* Vector 15: System tick */
 
 #if defined(CONFIG_ARCH_CHIP_LM3S6918)
-	HANDLER	lm_gpioa, LM3S_IRQ_GPIOA			/* Vector 16: GPIO Port A */
-	HANDLER	lm_gpiob, LM3S_IRQ_GPIOB			/* Vector 17: GPIO Port B */
-	HANDLER	lm_gpioc, LM3S_IRQ_GPIOC			/* Vector 18: GPIO Port C */
-	HANDLER	lm_gpiod, LM3S_IRQ_GPIOD			/* Vector 19: GPIO Port D */
-	HANDLER	lm_gpioe, LM3S_IRQ_GPIOE			/* Vector 20: GPIO Port E */
-	HANDLER	lm_uart0, LM3S_IRQ_UART0			/* Vector 21: UART 0 */
-	HANDLER	lm_uart1, LM3S_IRQ_UART1			/* Vector 22: UART 1 */
-	HANDLER	lm_ssi0, LM3S_IRQ_SSI0				/* Vector 23: SSI 0 */
-	HANDLER	lm_i2c0, LM3S_IRQ_I2C0				/* Vector 24: I2C 0 */
-	HANDLER	lm_adc0, LM3S_IRQ_ADC0				/* Vector 30: ADC Sequence 0 */
-	HANDLER	lm_adc1, LM3S_IRQ_ADC1				/* Vector 31: ADC Sequence 1 */
-	HANDLER	lm_adc2, LM3S_IRQ_ADC2				/* Vector 32: ADC Sequence 2 */
-	HANDLER	lm_adc3, LM3S_IRQ_ADC3				/* Vector 33: ADC Sequence 3 */
-	HANDLER	lm_wdog, LM3S_IRQ_WDOG				/* Vector 34: Watchdog Timer */
-	HANDLER	lm_tmr0a, LM3S_IRQ_TIMER0A			/* Vector 35: Timer 0 A */
-	HANDLER	lm_tmr0b, LM3S_IRQ_TIMER0B			/* Vector 36: Timer 0 B */
-	HANDLER	lm_tmr1a, LM3S_IRQ_TIMER1A			/* Vector 37: Timer 1 A */
-	HANDLER	lm_tmr1b, LM3S_IRQ_TIMER1B			/* Vector 38: Timer 1 B */
-	HANDLER	lm_tmr2a, LM3S_IRQ_TIMER2A			/* Vector 39: Timer 2 A */
-	HANDLER	lm_tmr2b, LM3S_IRQ_TIMER2B			/* Vector 40: Timer 3 B */
-	HANDLER	lm_cmp0, LM3S_IRQ_COMPARE0			/* Vector 41: Analog Comparator 0 */
-	HANDLER	lm_cmp1, LM3S_IRQ_COMPARE1			/* Vector 42: Analog Comparator 1 */
-	HANDLER	lm_syscon, LM3S_IRQ_SYSCON			/* Vector 44: System Control */
-	HANDLER	lm_flashcon, LM3S_IRQ_FLASHCON		/* Vector 45: FLASH Control */
-	HANDLER	lm_gpiof, LM3S_IRQ_GPIOF			/* Vector 46: GPIO Port F */
-	HANDLER	lm_gpiog, LM3S_IRQ_GPIOG			/* Vector 47: GPIO Port G */
-	HANDLER	lm_gpioh, LM3S_IRQ_GPIOH			/* Vector 48: GPIO Port H */
-	HANDLER	lm_ssi1, LM3S_IRQ_SSI1				/* Vector 50: SSI 1 */
-	HANDLER	lm_tmr3a, LM3S_IRQ_TIMER3A			/* Vector 51: Timer 3 A */
-	HANDLER	lm_tmr3b, LM3S_IRQ_TIMER3B			/* Vector 52: Timer 3 B */
-	HANDLER	lm_i2c1, LM3S_IRQ_I2C1				/* Vector 53: I2C 1 */
- 	HANDLER	lm_eth, LM3S_IRQ_ETHCON				/* Vector 58: Ethernet Controller */
-	HANDLER	lm_hib, LM3S_IRQ_HIBERNATE			/* Vector 59: Hibernation Module */
+	HANDLER	lm_gpioa, LM_IRQ_GPIOA				/* Vector 16: GPIO Port A */
+	HANDLER	lm_gpiob, LM_IRQ_GPIOB				/* Vector 17: GPIO Port B */
+	HANDLER	lm_gpioc, LM_IRQ_GPIOC				/* Vector 18: GPIO Port C */
+	HANDLER	lm_gpiod, LM_IRQ_GPIOD				/* Vector 19: GPIO Port D */
+	HANDLER	lm_gpioe, LM_IRQ_GPIOE				/* Vector 20: GPIO Port E */
+	HANDLER	lm_uart0, LM_IRQ_UART0				/* Vector 21: UART 0 */
+	HANDLER	lm_uart1, LM_IRQ_UART1				/* Vector 22: UART 1 */
+	HANDLER	lm_ssi0, LM_IRQ_SSI0				/* Vector 23: SSI 0 */
+	HANDLER	lm_i2c0, LM_IRQ_I2C0				/* Vector 24: I2C 0 */
+	HANDLER	lm_adc0, LM_IRQ_ADC0				/* Vector 30: ADC Sequence 0 */
+	HANDLER	lm_adc1, LM_IRQ_ADC1				/* Vector 31: ADC Sequence 1 */
+	HANDLER	lm_adc2, LM_IRQ_ADC2				/* Vector 32: ADC Sequence 2 */
+	HANDLER	lm_adc3, LM_IRQ_ADC3				/* Vector 33: ADC Sequence 3 */
+	HANDLER	lm_wdog, LM_IRQ_WDOG				/* Vector 34: Watchdog Timer */
+	HANDLER	lm_tmr0a, LM_IRQ_TIMER0A			/* Vector 35: Timer 0 A */
+	HANDLER	lm_tmr0b, LM_IRQ_TIMER0B			/* Vector 36: Timer 0 B */
+	HANDLER	lm_tmr1a, LM_IRQ_TIMER1A			/* Vector 37: Timer 1 A */
+	HANDLER	lm_tmr1b, LM_IRQ_TIMER1B			/* Vector 38: Timer 1 B */
+	HANDLER	lm_tmr2a, LM_IRQ_TIMER2A			/* Vector 39: Timer 2 A */
+	HANDLER	lm_tmr2b, LM_IRQ_TIMER2B			/* Vector 40: Timer 3 B */
+	HANDLER	lm_cmp0, LM_IRQ_COMPARE0			/* Vector 41: Analog Comparator 0 */
+	HANDLER	lm_cmp1, LM_IRQ_COMPARE1			/* Vector 42: Analog Comparator 1 */
+	HANDLER	lm_syscon, LM_IRQ_SYSCON			/* Vector 44: System Control */
+	HANDLER	lm_flashcon, LM_IRQ_FLASHCON		/* Vector 45: FLASH Control */
+	HANDLER	lm_gpiof, LM_IRQ_GPIOF				/* Vector 46: GPIO Port F */
+	HANDLER	lm_gpiog, LM_IRQ_GPIOG				/* Vector 47: GPIO Port G */
+	HANDLER	lm_gpioh, LM_IRQ_GPIOH				/* Vector 48: GPIO Port H */
+	HANDLER	lm_ssi1, LM_IRQ_SSI1				/* Vector 50: SSI 1 */
+	HANDLER	lm_tmr3a, LM_IRQ_TIMER3A			/* Vector 51: Timer 3 A */
+	HANDLER	lm_tmr3b, LM_IRQ_TIMER3B			/* Vector 52: Timer 3 B */
+	HANDLER	lm_i2c1, LM_IRQ_I2C1				/* Vector 53: I2C 1 */
+ 	HANDLER	lm_eth, LM_IRQ_ETHCON				/* Vector 58: Ethernet Controller */
+	HANDLER	lm_hib, LM_IRQ_HIBERNATE			/* Vector 59: Hibernation Module */
 #elif defined(CONFIG_ARCH_CHIP_LM3S6432)
-	HANDLER	lm_gpioa, LM3S_IRQ_GPIOA			/* Vector 16: GPIO Port A */
-	HANDLER	lm_gpiob, LM3S_IRQ_GPIOB			/* Vector 17: GPIO Port B */
-	HANDLER	lm_gpioc, LM3S_IRQ_GPIOC			/* Vector 18: GPIO Port C */
-	HANDLER	lm_gpiod, LM3S_IRQ_GPIOD			/* Vector 19: GPIO Port D */
-	HANDLER	lm_gpioe, LM3S_IRQ_GPIOE			/* Vector 20: GPIO Port E */
-	HANDLER	lm_uart0, LM3S_IRQ_UART0			/* Vector 21: UART 0 */
-	HANDLER	lm_uart1, LM3S_IRQ_UART1			/* Vector 22: UART 1 */
-	HANDLER	lm_ssi0, LM3S_IRQ_SSI0				/* Vector 23: SSI 0 */
-	HANDLER	lm_i2c0, LM3S_IRQ_I2C0				/* Vector 24: I2C 0 */
-	HANDLER	lm_pwm0, LM3S_IRQ_PWM0				/* Vector 26: PWM Generator 0 */
-	HANDLER	lm_adc0, LM3S_IRQ_ADC0				/* Vector 30: ADC Sequence 0 */
-	HANDLER	lm_adc1, LM3S_IRQ_ADC1				/* Vector 31: ADC Sequence 1 */
-	HANDLER	lm_adc2, LM3S_IRQ_ADC2				/* Vector 32: ADC Sequence 2 */
-	HANDLER	lm_adc3, LM3S_IRQ_ADC3				/* Vector 33: ADC Sequence 3 */
-	HANDLER	lm_wdog, LM3S_IRQ_WDOG				/* Vector 34: Watchdog Timer */
-	HANDLER	lm_tmr0a, LM3S_IRQ_TIMER0A			/* Vector 35: Timer 0 A */
-	HANDLER	lm_tmr0b, LM3S_IRQ_TIMER0B			/* Vector 36: Timer 0 B */
-	HANDLER	lm_tmr1a, LM3S_IRQ_TIMER1A			/* Vector 37: Timer 1 A */
-	HANDLER	lm_tmr1b, LM3S_IRQ_TIMER1B			/* Vector 38: Timer 1 B */
-	HANDLER	lm_tmr2a, LM3S_IRQ_TIMER2A			/* Vector 39: Timer 2 A */
-	HANDLER	lm_tmr2b, LM3S_IRQ_TIMER2B			/* Vector 40: Timer 3 B */
-	HANDLER	lm_cmp0, LM3S_IRQ_COMPARE0			/* Vector 41: Analog Comparator 0 */
-	HANDLER	lm_cmp1, LM3S_IRQ_COMPARE1			/* Vector 42: Analog Comparator 1 */
-	HANDLER	lm_syscon, LM3S_IRQ_SYSCON			/* Vector 44: System Control */
-	HANDLER	lm_flashcon, LM3S_IRQ_FLASHCON		/* Vector 45: FLASH Control */
-	HANDLER	lm_gpiof, LM3S_IRQ_GPIOF			/* Vector 46: GPIO Port F */
-	HANDLER	lm_gpiog, LM3S_IRQ_GPIOG			/* Vector 47: GPIO Port G */
- 	HANDLER	lm_eth, LM3S_IRQ_ETHCON				/* Vector 58: Ethernet Controller */
+	HANDLER	lm_gpioa, LM_IRQ_GPIOA				/* Vector 16: GPIO Port A */
+	HANDLER	lm_gpiob, LM_IRQ_GPIOB				/* Vector 17: GPIO Port B */
+	HANDLER	lm_gpioc, LM_IRQ_GPIOC				/* Vector 18: GPIO Port C */
+	HANDLER	lm_gpiod, LM_IRQ_GPIOD				/* Vector 19: GPIO Port D */
+	HANDLER	lm_gpioe, LM_IRQ_GPIOE				/* Vector 20: GPIO Port E */
+	HANDLER	lm_uart0, LM_IRQ_UART0				/* Vector 21: UART 0 */
+	HANDLER	lm_uart1, LM_IRQ_UART1				/* Vector 22: UART 1 */
+	HANDLER	lm_ssi0, LM_IRQ_SSI0				/* Vector 23: SSI 0 */
+	HANDLER	lm_i2c0, LM_IRQ_I2C0				/* Vector 24: I2C 0 */
+	HANDLER	lm_pwm0, LM_IRQ_PWM0				/* Vector 26: PWM Generator 0 */
+	HANDLER	lm_adc0, LM_IRQ_ADC0				/* Vector 30: ADC Sequence 0 */
+	HANDLER	lm_adc1, LM_IRQ_ADC1				/* Vector 31: ADC Sequence 1 */
+	HANDLER	lm_adc2, LM_IRQ_ADC2				/* Vector 32: ADC Sequence 2 */
+	HANDLER	lm_adc3, LM_IRQ_ADC3				/* Vector 33: ADC Sequence 3 */
+	HANDLER	lm_wdog, LM_IRQ_WDOG				/* Vector 34: Watchdog Timer */
+	HANDLER	lm_tmr0a, LM_IRQ_TIMER0A			/* Vector 35: Timer 0 A */
+	HANDLER	lm_tmr0b, LM_IRQ_TIMER0B			/* Vector 36: Timer 0 B */
+	HANDLER	lm_tmr1a, LM_IRQ_TIMER1A			/* Vector 37: Timer 1 A */
+	HANDLER	lm_tmr1b, LM_IRQ_TIMER1B			/* Vector 38: Timer 1 B */
+	HANDLER	lm_tmr2a, LM_IRQ_TIMER2A			/* Vector 39: Timer 2 A */
+	HANDLER	lm_tmr2b, LM_IRQ_TIMER2B			/* Vector 40: Timer 3 B */
+	HANDLER	lm_cmp0, LM_IRQ_COMPARE0			/* Vector 41: Analog Comparator 0 */
+	HANDLER	lm_cmp1, LM_IRQ_COMPARE1			/* Vector 42: Analog Comparator 1 */
+	HANDLER	lm_syscon, LM_IRQ_SYSCON			/* Vector 44: System Control */
+	HANDLER	lm_flashcon, LM_IRQ_FLASHCON		/* Vector 45: FLASH Control */
+	HANDLER	lm_gpiof, LM_IRQ_GPIOF				/* Vector 46: GPIO Port F */
+	HANDLER	lm_gpiog, LM_IRQ_GPIOG				/* Vector 47: GPIO Port G */
+ 	HANDLER	lm_eth, LM_IRQ_ETHCON				/* Vector 58: Ethernet Controller */
 #elif defined(CONFIG_ARCH_CHIP_LM3S6965)
-	HANDLER	lm_gpioa, LM3S_IRQ_GPIOA			/* Vector 16: GPIO Port A */
-	HANDLER	lm_gpiob, LM3S_IRQ_GPIOB			/* Vector 17: GPIO Port B */
-	HANDLER	lm_gpioc, LM3S_IRQ_GPIOC			/* Vector 18: GPIO Port C */
-	HANDLER	lm_gpiod, LM3S_IRQ_GPIOD			/* Vector 19: GPIO Port D */
-	HANDLER	lm_gpioe, LM3S_IRQ_GPIOE			/* Vector 20: GPIO Port E */
-	HANDLER	lm_uart0, LM3S_IRQ_UART0			/* Vector 21: UART 0 */
-	HANDLER	lm_uart1, LM3S_IRQ_UART1			/* Vector 22: UART 1 */
-	HANDLER	lm_ssi0, LM3S_IRQ_SSI0				/* Vector 23: SSI 0 */
-	HANDLER	lm_i2c0, LM3S_IRQ_I2C0				/* Vector 24: I2C 0 */
-	HANDLER	lm_pwmfault, LM3S_IRQ_PWMFAULT		/* Vector 25: PWM Fault */
-	HANDLER	lm_pwm0, LM3S_IRQ_PWM0				/* Vector 26: PWM Generator 0 */
-	HANDLER	lm_pwm1, LM3S_IRQ_PWM1				/* Vector 27: PWM Generator 1 */
-	HANDLER	lm_pwm2, LM3S_IRQ_PWM2				/* Vector 28: PWM Generator 2 */
-	HANDLER	lm_qei0, LM3S_IRQ_QEI0				/* Vector 29: QEI 0 */
-	HANDLER	lm_adc0, LM3S_IRQ_ADC0				/* Vector 30: ADC Sequence 0 */
-	HANDLER	lm_adc1, LM3S_IRQ_ADC1				/* Vector 31: ADC Sequence 1 */
-	HANDLER	lm_adc2, LM3S_IRQ_ADC2				/* Vector 32: ADC Sequence 2 */
-	HANDLER	lm_adc3, LM3S_IRQ_ADC3				/* Vector 33: ADC Sequence 3 */
-	HANDLER	lm_wdog, LM3S_IRQ_WDOG				/* Vector 34: Watchdog Timer */
-	HANDLER	lm_tmr0a, LM3S_IRQ_TIMER0A			/* Vector 35: Timer 0 A */
-	HANDLER	lm_tmr0b, LM3S_IRQ_TIMER0B			/* Vector 36: Timer 0 B */
-	HANDLER	lm_tmr1a, LM3S_IRQ_TIMER1A			/* Vector 37: Timer 1 A */
-	HANDLER	lm_tmr1b, LM3S_IRQ_TIMER1B			/* Vector 38: Timer 1 B */
-	HANDLER	lm_tmr2a, LM3S_IRQ_TIMER2A			/* Vector 39: Timer 2 A */
-	HANDLER	lm_tmr2b, LM3S_IRQ_TIMER2B			/* Vector 40: Timer 3 B */
-	HANDLER	lm_cmp0, LM3S_IRQ_COMPARE0			/* Vector 41: Analog Comparator 0 */
-	HANDLER	lm_cmp1, LM3S_IRQ_COMPARE1			/* Vector 42: Analog Comparator 1 */
-	HANDLER	lm_syscon, LM3S_IRQ_SYSCON			/* Vector 44: System Control */
-	HANDLER	lm_flashcon, LM3S_IRQ_FLASHCON		/* Vector 45: FLASH Control */
-	HANDLER	lm_gpiof, LM3S_IRQ_GPIOF			/* Vector 46: GPIO Port F */
-	HANDLER	lm_gpiog, LM3S_IRQ_GPIOG			/* Vector 47: GPIO Port G */
-	HANDLER	lm_uart2, LM3S_IRQ_UART1			/* Vector 49: UART 1 */
-	HANDLER	lm_tmr3a, LM3S_IRQ_TIMER3A			/* Vector 51: Timer 3 A */
-	HANDLER	lm_tmr3b, LM3S_IRQ_TIMER3B			/* Vector 52: Timer 3 B */
-	HANDLER	lm_i2c1, LM3S_IRQ_I2C1				/* Vector 53: I2C 1 */
-	HANDLER lm_qei1, LM3S_IRQ_QEI1				/* Vector 54: QEI 1 */
- 	HANDLER	lm_eth, LM3S_IRQ_ETHCON				/* Vector 58: Ethernet Controller */
-	HANDLER	lm_hib, LM3S_IRQ_HIBERNATE			/* Vector 59: Hibernation Module */
+	HANDLER	lm_gpioa, LM_IRQ_GPIOA				/* Vector 16: GPIO Port A */
+	HANDLER	lm_gpiob, LM_IRQ_GPIOB				/* Vector 17: GPIO Port B */
+	HANDLER	lm_gpioc, LM_IRQ_GPIOC				/* Vector 18: GPIO Port C */
+	HANDLER	lm_gpiod, LM_IRQ_GPIOD				/* Vector 19: GPIO Port D */
+	HANDLER	lm_gpioe, LM_IRQ_GPIOE				/* Vector 20: GPIO Port E */
+	HANDLER	lm_uart0, LM_IRQ_UART0				/* Vector 21: UART 0 */
+	HANDLER	lm_uart1, LM_IRQ_UART1				/* Vector 22: UART 1 */
+	HANDLER	lm_ssi0, LM_IRQ_SSI0				/* Vector 23: SSI 0 */
+	HANDLER	lm_i2c0, LM_IRQ_I2C0				/* Vector 24: I2C 0 */
+	HANDLER	lm_pwmfault, LM_IRQ_PWMFAULT		/* Vector 25: PWM Fault */
+	HANDLER	lm_pwm0, LM_IRQ_PWM0				/* Vector 26: PWM Generator 0 */
+	HANDLER	lm_pwm1, LM_IRQ_PWM1				/* Vector 27: PWM Generator 1 */
+	HANDLER	lm_pwm2, LM_IRQ_PWM2				/* Vector 28: PWM Generator 2 */
+	HANDLER	lm_qei0, LM_IRQ_QEI0				/* Vector 29: QEI 0 */
+	HANDLER	lm_adc0, LM_IRQ_ADC0				/* Vector 30: ADC Sequence 0 */
+	HANDLER	lm_adc1, LM_IRQ_ADC1				/* Vector 31: ADC Sequence 1 */
+	HANDLER	lm_adc2, LM_IRQ_ADC2				/* Vector 32: ADC Sequence 2 */
+	HANDLER	lm_adc3, LM_IRQ_ADC3				/* Vector 33: ADC Sequence 3 */
+	HANDLER	lm_wdog, LM_IRQ_WDOG				/* Vector 34: Watchdog Timer */
+	HANDLER	lm_tmr0a, LM_IRQ_TIMER0A			/* Vector 35: Timer 0 A */
+	HANDLER	lm_tmr0b, LM_IRQ_TIMER0B			/* Vector 36: Timer 0 B */
+	HANDLER	lm_tmr1a, LM_IRQ_TIMER1A			/* Vector 37: Timer 1 A */
+	HANDLER	lm_tmr1b, LM_IRQ_TIMER1B			/* Vector 38: Timer 1 B */
+	HANDLER	lm_tmr2a, LM_IRQ_TIMER2A			/* Vector 39: Timer 2 A */
+	HANDLER	lm_tmr2b, LM_IRQ_TIMER2B			/* Vector 40: Timer 3 B */
+	HANDLER	lm_cmp0, LM_IRQ_COMPARE0			/* Vector 41: Analog Comparator 0 */
+	HANDLER	lm_cmp1, LM_IRQ_COMPARE1			/* Vector 42: Analog Comparator 1 */
+	HANDLER	lm_syscon, LM_IRQ_SYSCON			/* Vector 44: System Control */
+	HANDLER	lm_flashcon, LM_IRQ_FLASHCON		/* Vector 45: FLASH Control */
+	HANDLER	lm_gpiof, LM_IRQ_GPIOF				/* Vector 46: GPIO Port F */
+	HANDLER	lm_gpiog, LM_IRQ_GPIOG				/* Vector 47: GPIO Port G */
+	HANDLER	lm_uart2, LM_IRQ_UART1				/* Vector 49: UART 1 */
+	HANDLER	lm_tmr3a, LM_IRQ_TIMER3A			/* Vector 51: Timer 3 A */
+	HANDLER	lm_tmr3b, LM_IRQ_TIMER3B			/* Vector 52: Timer 3 B */
+	HANDLER	lm_i2c1, LM_IRQ_I2C1				/* Vector 53: I2C 1 */
+	HANDLER lm_qei1, LM_IRQ_QEI1				/* Vector 54: QEI 1 */
+ 	HANDLER	lm_eth, LM_IRQ_ETHCON				/* Vector 58: Ethernet Controller */
+	HANDLER	lm_hib, LM_IRQ_HIBERNATE			/* Vector 59: Hibernation Module */
 #elif defined(CONFIG_ARCH_CHIP_LM3S8962)
-	HANDLER	lm_gpioa, LM3S_IRQ_GPIOA			/* Vector 16: GPIO Port A */
-	HANDLER	lm_gpiob, LM3S_IRQ_GPIOB			/* Vector 17: GPIO Port B */
-	HANDLER	lm_gpioc, LM3S_IRQ_GPIOC			/* Vector 18: GPIO Port C */
-	HANDLER	lm_gpiod, LM3S_IRQ_GPIOD			/* Vector 19: GPIO Port D */
-	HANDLER	lm_gpioe, LM3S_IRQ_GPIOE			/* Vector 20: GPIO Port E */
-	HANDLER	lm_uart0, LM3S_IRQ_UART0			/* Vector 21: UART 0 */
-	HANDLER	lm_uart1, LM3S_IRQ_UART1			/* Vector 22: UART 1 */
-	HANDLER	lm_ssi0, LM3S_IRQ_SSI0				/* Vector 23: SSI 0 */
-	HANDLER	lm_i2c0, LM3S_IRQ_I2C0				/* Vector 24: I2C 0 */
-	HANDLER	lm_pwmfault, LM3S_IRQ_PWMFAULT		/* Vector 25: PWM Fault */
-	HANDLER	lm_pwm0, LM3S_IRQ_PWM0				/* Vector 26: PWM Generator 0 */
-	HANDLER	lm_pwm1, LM3S_IRQ_PWM1				/* Vector 27: PWM Generator 1 */
-	HANDLER	lm_pwm2, LM3S_IRQ_PWM2				/* Vector 28: PWM Generator 2 */
-	HANDLER	lm_qei0, LM3S_IRQ_QEI0				/* Vector 29: QEI 0 */
-	HANDLER	lm_adc0, LM3S_IRQ_ADC0				/* Vector 30: ADC Sequence 0 */
-	HANDLER	lm_adc1, LM3S_IRQ_ADC1				/* Vector 31: ADC Sequence 1 */
-	HANDLER	lm_adc2, LM3S_IRQ_ADC2				/* Vector 32: ADC Sequence 2 */
-	HANDLER	lm_adc3, LM3S_IRQ_ADC3				/* Vector 33: ADC Sequence 3 */
-	HANDLER	lm_wdog, LM3S_IRQ_WDOG				/* Vector 34: Watchdog Timer */
-	HANDLER	lm_tmr0a, LM3S_IRQ_TIMER0A			/* Vector 35: Timer 0 A */
-	HANDLER	lm_tmr0b, LM3S_IRQ_TIMER0B			/* Vector 36: Timer 0 B */
-	HANDLER	lm_tmr1a, LM3S_IRQ_TIMER1A			/* Vector 37: Timer 1 A */
-	HANDLER	lm_tmr1b, LM3S_IRQ_TIMER1B			/* Vector 38: Timer 1 B */
-	HANDLER	lm_tmr2a, LM3S_IRQ_TIMER2A			/* Vector 39: Timer 2 A */
-	HANDLER	lm_tmr2b, LM3S_IRQ_TIMER2B			/* Vector 40: Timer 3 B */
-	HANDLER	lm_cmp0, LM3S_IRQ_COMPARE0			/* Vector 41: Analog Comparator 0 */
-	HANDLER	lm_syscon, LM3S_IRQ_SYSCON			/* Vector 44: System Control */
-	HANDLER	lm_flashcon, LM3S_IRQ_FLASHCON		/* Vector 45: FLASH Control */
-	HANDLER	lm_gpiof, LM3S_IRQ_GPIOF			/* Vector 46: GPIO Port F */
-	HANDLER	lm_gpiog, LM3S_IRQ_GPIOG			/* Vector 47: GPIO Port G */
-	HANDLER	lm_uart2, LM3S_IRQ_UART1			/* Vector 49: UART 1 */
-	HANDLER	lm_tmr3a, LM3S_IRQ_TIMER3A			/* Vector 51: Timer 3 A */
-	HANDLER	lm_tmr3b, LM3S_IRQ_TIMER3B			/* Vector 52: Timer 3 B */
-	HANDLER	lm_i2c1, LM3S_IRQ_I2C1				/* Vector 53: I2C 1 */
-	HANDLER	lm_qei1, LM3S_IRQ_QEI1				/* Vector 54: QEI 1 */
-	HANDLER	lm_can0, LM3S_IRQ_CAN0				/* Vector 55: CAN 0 */
- 	HANDLER	lm_eth, LM3S_IRQ_ETHCON				/* Vector 58: Ethernet Controller */
-	HANDLER	lm_hib, LM3S_IRQ_HIBERNATE			/* Vector 59: Hibernation Module */
+	HANDLER	lm_gpioa, LM_IRQ_GPIOA				/* Vector 16: GPIO Port A */
+	HANDLER	lm_gpiob, LM_IRQ_GPIOB				/* Vector 17: GPIO Port B */
+	HANDLER	lm_gpioc, LM_IRQ_GPIOC				/* Vector 18: GPIO Port C */
+	HANDLER	lm_gpiod, LM_IRQ_GPIOD				/* Vector 19: GPIO Port D */
+	HANDLER	lm_gpioe, LM_IRQ_GPIOE				/* Vector 20: GPIO Port E */
+	HANDLER	lm_uart0, LM_IRQ_UART0				/* Vector 21: UART 0 */
+	HANDLER	lm_uart1, LM_IRQ_UART1				/* Vector 22: UART 1 */
+	HANDLER	lm_ssi0, LM_IRQ_SSI0				/* Vector 23: SSI 0 */
+	HANDLER	lm_i2c0, LM_IRQ_I2C0				/* Vector 24: I2C 0 */
+	HANDLER	lm_pwmfault, LM_IRQ_PWMFAULT		/* Vector 25: PWM Fault */
+	HANDLER	lm_pwm0, LM_IRQ_PWM0				/* Vector 26: PWM Generator 0 */
+	HANDLER	lm_pwm1, LM_IRQ_PWM1				/* Vector 27: PWM Generator 1 */
+	HANDLER	lm_pwm2, LM_IRQ_PWM2				/* Vector 28: PWM Generator 2 */
+	HANDLER	lm_qei0, LM_IRQ_QEI0				/* Vector 29: QEI 0 */
+	HANDLER	lm_adc0, LM_IRQ_ADC0				/* Vector 30: ADC Sequence 0 */
+	HANDLER	lm_adc1, LM_IRQ_ADC1				/* Vector 31: ADC Sequence 1 */
+	HANDLER	lm_adc2, LM_IRQ_ADC2				/* Vector 32: ADC Sequence 2 */
+	HANDLER	lm_adc3, LM_IRQ_ADC3				/* Vector 33: ADC Sequence 3 */
+	HANDLER	lm_wdog, LM_IRQ_WDOG				/* Vector 34: Watchdog Timer */
+	HANDLER	lm_tmr0a, LM_IRQ_TIMER0A			/* Vector 35: Timer 0 A */
+	HANDLER	lm_tmr0b, LM_IRQ_TIMER0B			/* Vector 36: Timer 0 B */
+	HANDLER	lm_tmr1a, LM_IRQ_TIMER1A			/* Vector 37: Timer 1 A */
+	HANDLER	lm_tmr1b, LM_IRQ_TIMER1B			/* Vector 38: Timer 1 B */
+	HANDLER	lm_tmr2a, LM_IRQ_TIMER2A			/* Vector 39: Timer 2 A */
+	HANDLER	lm_tmr2b, LM_IRQ_TIMER2B			/* Vector 40: Timer 3 B */
+	HANDLER	lm_cmp0, LM_IRQ_COMPARE0			/* Vector 41: Analog Comparator 0 */
+	HANDLER	lm_syscon, LM_IRQ_SYSCON			/* Vector 44: System Control */
+	HANDLER	lm_flashcon, LM_IRQ_FLASHCON		/* Vector 45: FLASH Control */
+	HANDLER	lm_gpiof, LM_IRQ_GPIOF				/* Vector 46: GPIO Port F */
+	HANDLER	lm_gpiog, LM_IRQ_GPIOG				/* Vector 47: GPIO Port G */
+	HANDLER	lm_uart2, LM_IRQ_UART1				/* Vector 49: UART 1 */
+	HANDLER	lm_tmr3a, LM_IRQ_TIMER3A			/* Vector 51: Timer 3 A */
+	HANDLER	lm_tmr3b, LM_IRQ_TIMER3B			/* Vector 52: Timer 3 B */
+	HANDLER	lm_i2c1, LM_IRQ_I2C1				/* Vector 53: I2C 1 */
+	HANDLER	lm_qei1, LM_IRQ_QEI1				/* Vector 54: QEI 1 */
+	HANDLER	lm_can0, LM_IRQ_CAN0				/* Vector 55: CAN 0 */
+ 	HANDLER	lm_eth, LM_IRQ_ETHCON				/* Vector 58: Ethernet Controller */
+	HANDLER	lm_hib, LM_IRQ_HIBERNATE			/* Vector 59: Hibernation Module */
 #elif defined(CONFIG_ARCH_CHIP_LM3S9B96)
-	HANDLER	lm_gpioa, LM3S_IRQ_GPIOA			/* Vector 16: GPIO Port A */
-	HANDLER	lm_gpiob, LM3S_IRQ_GPIOB			/* Vector 17: GPIO Port B */
-	HANDLER	lm_gpioc, LM3S_IRQ_GPIOC			/* Vector 18: GPIO Port C */
-	HANDLER	lm_gpiod, LM3S_IRQ_GPIOD			/* Vector 19: GPIO Port D */
-	HANDLER	lm_gpioe, LM3S_IRQ_GPIOE			/* Vector 20: GPIO Port E */
-	HANDLER	lm_uart0, LM3S_IRQ_UART0			/* Vector 21: UART 0 */
-	HANDLER	lm_uart1, LM3S_IRQ_UART1			/* Vector 22: UART 1 */
-	HANDLER	lm_ssi0, LM3S_IRQ_SSI0				/* Vector 23: SSI 0 */
-	HANDLER	lm_i2c0, LM3S_IRQ_I2C0				/* Vector 24: I2C 0 */
-	HANDLER	lm_pwmfault, LM3S_IRQ_PWMFAULT		/* Vector 25: PWM Fault */
-	HANDLER	lm_pwm0, LM3S_IRQ_PWM0				/* Vector 26: PWM Generator 0 */
-	HANDLER	lm_pwm1, LM3S_IRQ_PWM1				/* Vector 27: PWM Generator 1 */
-	HANDLER	lm_pwm2, LM3S_IRQ_PWM2				/* Vector 28: PWM Generator 2 */
-	HANDLER	lm_qei0, LM3S_IRQ_QEI0				/* Vector 29: QEI 0 */
-	HANDLER	lm_adc0, LM3S_IRQ_ADC0				/* Vector 30: ADC Sequence 0 */
-	HANDLER	lm_adc1, LM3S_IRQ_ADC1				/* Vector 31: ADC Sequence 1 */
-	HANDLER	lm_adc2, LM3S_IRQ_ADC2				/* Vector 32: ADC Sequence 2 */
-	HANDLER	lm_adc3, LM3S_IRQ_ADC3				/* Vector 33: ADC Sequence 3 */
-	HANDLER	lm_wdog, LM3S_IRQ_WDOG				/* Vector 34: Watchdog Timer */
-	HANDLER	lm_tmr0a, LM3S_IRQ_TIMER0A			/* Vector 35: Timer 0 A */
-	HANDLER	lm_tmr0b, LM3S_IRQ_TIMER0B			/* Vector 36: Timer 0 B */
-	HANDLER	lm_tmr1a, LM3S_IRQ_TIMER1A			/* Vector 37: Timer 1 A */
-	HANDLER	lm_tmr1b, LM3S_IRQ_TIMER1B			/* Vector 38: Timer 1 B */
-	HANDLER	lm_tmr2a, LM3S_IRQ_TIMER2A			/* Vector 39: Timer 2 A */
-	HANDLER	lm_tmr2b, LM3S_IRQ_TIMER2B			/* Vector 40: Timer 3 B */
-	HANDLER	lm_cmp0, LM3S_IRQ_COMPARE0			/* Vector 41: Analog Comparator 0 */
-	HANDLER	lm_cmp1, LM3S_IRQ_COMPARE1			/* Vector 42: Analog Comparator 1 */
-	HANDLER	lm_cmp2, LM3S_IRQ_COMPARE2			/* Vector 43: Analog Comparator 2 */
-	HANDLER	lm_syscon, LM3S_IRQ_SYSCON			/* Vector 44: System Control */
-	HANDLER	lm_flashcon, LM3S_IRQ_FLASHCON		/* Vector 45: FLASH Control */
-	HANDLER	lm_gpiof, LM3S_IRQ_GPIOF			/* Vector 46: GPIO Port F */
-	HANDLER	lm_gpiog, LM3S_IRQ_GPIOG			/* Vector 47: GPIO Port G */
-	HANDLER	lm_gpioh, LM3S_IRQ_GPIOH			/* Vector 48: GPIO Port H */
-	HANDLER	lm_uart2, LM3S_IRQ_UART2			/* Vector 49: UART 2 */
-	HANDLER	lm_ssi1, LM3S_IRQ_SSI1				/* Vector 50: GPIO Port H */
-	HANDLER	lm_tmr3a, LM3S_IRQ_TIMER3A			/* Vector 51: Timer 3 A */
-	HANDLER	lm_tmr3b, LM3S_IRQ_TIMER3B			/* Vector 52: Timer 3 B */
-	HANDLER	lm_i2c1, LM3S_IRQ_I2C1				/* Vector 53: I2C 1 */
-	HANDLER	lm_qei1, LM3S_IRQ_QEI1				/* Vector 54: QEI 1 */
- 	HANDLER	lm_can0, LM3S_IRQ_CAN0				/* Vector 55: CAN 0 */
-	HANDLER	lm_can1, LM3S_IRQ_CAN1				/* Vector 56: CAN 1 */
-	HANDLER	lm_eth, LM3S_IRQ_ETHCON				/* Vector 58: Ethernet Controller */
- 	HANDLER	lm_usb, LM3S_IRQ_USB				/* Vector 60: USB */
- 	HANDLER	lm_pwm3, LM3S_IRQ_PWM3				/* Vector 61: PWM 3  */
- 	HANDLER	lm_udmasoft, LM3S_IRQ_UDMASOFT		/* Vector 62: uDMA Software  */
- 	HANDLER	lm_udmaerror, LM3S_IRQ_UDMAERROR	/* Vector 63: uDMA Error */
- 	HANDLER	lm_adc1_0, LM3S_IRQ_ADC1_0			/* Vector 64: ADC1 Sequence 0 */
- 	HANDLER	lm_adc1_1, LM3S_IRQ_ADC1_1			/* Vector 65: ADC1 Sequence 1 */
- 	HANDLER	lm_adc1_2, LM3S_IRQ_ADC1_2			/* Vector 66: ADC1 Sequence 2 */
- 	HANDLER	lm_adc1_3, LM3S_IRQ_ADC1_3			/* Vector 67: ADC1 Sequence 3 */
- 	HANDLER	lm_i2s0, LM3S_IRQ_I2S0				/* Vector 68: I2S 0 */
- 	HANDLER	lm_epi, LM3S_IRQ_EPI				/* Vector 69: EPI  */
- 	HANDLER	lm_gpioj, LM3S_IRQ_GPIOJ			/* Vector 70: GPIO Port J */
+	HANDLER	lm_gpioa, LM_IRQ_GPIOA				/* Vector 16: GPIO Port A */
+	HANDLER	lm_gpiob, LM_IRQ_GPIOB				/* Vector 17: GPIO Port B */
+	HANDLER	lm_gpioc, LM_IRQ_GPIOC				/* Vector 18: GPIO Port C */
+	HANDLER	lm_gpiod, LM_IRQ_GPIOD				/* Vector 19: GPIO Port D */
+	HANDLER	lm_gpioe, LM_IRQ_GPIOE				/* Vector 20: GPIO Port E */
+	HANDLER	lm_uart0, LM_IRQ_UART0				/* Vector 21: UART 0 */
+	HANDLER	lm_uart1, LM_IRQ_UART1				/* Vector 22: UART 1 */
+	HANDLER	lm_ssi0, LM_IRQ_SSI0				/* Vector 23: SSI 0 */
+	HANDLER	lm_i2c0, LM_IRQ_I2C0				/* Vector 24: I2C 0 */
+	HANDLER	lm_pwmfault, LM_IRQ_PWMFAULT		/* Vector 25: PWM Fault */
+	HANDLER	lm_pwm0, LM_IRQ_PWM0				/* Vector 26: PWM Generator 0 */
+	HANDLER	lm_pwm1, LM_IRQ_PWM1				/* Vector 27: PWM Generator 1 */
+	HANDLER	lm_pwm2, LM_IRQ_PWM2				/* Vector 28: PWM Generator 2 */
+	HANDLER	lm_qei0, LM_IRQ_QEI0				/* Vector 29: QEI 0 */
+	HANDLER	lm_adc0, LM_IRQ_ADC0				/* Vector 30: ADC Sequence 0 */
+	HANDLER	lm_adc1, LM_IRQ_ADC1				/* Vector 31: ADC Sequence 1 */
+	HANDLER	lm_adc2, LM_IRQ_ADC2				/* Vector 32: ADC Sequence 2 */
+	HANDLER	lm_adc3, LM_IRQ_ADC3				/* Vector 33: ADC Sequence 3 */
+	HANDLER	lm_wdog, LM_IRQ_WDOG				/* Vector 34: Watchdog Timer */
+	HANDLER	lm_tmr0a, LM_IRQ_TIMER0A			/* Vector 35: Timer 0 A */
+	HANDLER	lm_tmr0b, LM_IRQ_TIMER0B			/* Vector 36: Timer 0 B */
+	HANDLER	lm_tmr1a, LM_IRQ_TIMER1A			/* Vector 37: Timer 1 A */
+	HANDLER	lm_tmr1b, LM_IRQ_TIMER1B			/* Vector 38: Timer 1 B */
+	HANDLER	lm_tmr2a, LM_IRQ_TIMER2A			/* Vector 39: Timer 2 A */
+	HANDLER	lm_tmr2b, LM_IRQ_TIMER2B			/* Vector 40: Timer 3 B */
+	HANDLER	lm_cmp0, LM_IRQ_COMPARE0			/* Vector 41: Analog Comparator 0 */
+	HANDLER	lm_cmp1, LM_IRQ_COMPARE1			/* Vector 42: Analog Comparator 1 */
+	HANDLER	lm_cmp2, LM_IRQ_COMPARE2			/* Vector 43: Analog Comparator 2 */
+	HANDLER	lm_syscon, LM_IRQ_SYSCON			/* Vector 44: System Control */
+	HANDLER	lm_flashcon, LM_IRQ_FLASHCON		/* Vector 45: FLASH Control */
+	HANDLER	lm_gpiof, LM_IRQ_GPIOF				/* Vector 46: GPIO Port F */
+	HANDLER	lm_gpiog, LM_IRQ_GPIOG				/* Vector 47: GPIO Port G */
+	HANDLER	lm_gpioh, LM_IRQ_GPIOH				/* Vector 48: GPIO Port H */
+	HANDLER	lm_uart2, LM_IRQ_UART2				/* Vector 49: UART 2 */
+	HANDLER	lm_ssi1, LM_IRQ_SSI1				/* Vector 50: GPIO Port H */
+	HANDLER	lm_tmr3a, LM_IRQ_TIMER3A			/* Vector 51: Timer 3 A */
+	HANDLER	lm_tmr3b, LM_IRQ_TIMER3B			/* Vector 52: Timer 3 B */
+	HANDLER	lm_i2c1, LM_IRQ_I2C1				/* Vector 53: I2C 1 */
+	HANDLER	lm_qei1, LM_IRQ_QEI1				/* Vector 54: QEI 1 */
+ 	HANDLER	lm_can0, LM_IRQ_CAN0				/* Vector 55: CAN 0 */
+	HANDLER	lm_can1, LM_IRQ_CAN1				/* Vector 56: CAN 1 */
+	HANDLER	lm_eth, LM_IRQ_ETHCON				/* Vector 58: Ethernet Controller */
+ 	HANDLER	lm_usb, LM_IRQ_USB					/* Vector 60: USB */
+ 	HANDLER	lm_pwm3, LM_IRQ_PWM3				/* Vector 61: PWM 3  */
+ 	HANDLER	lm_udmasoft, LM_IRQ_UDMASOFT		/* Vector 62: uDMA Software  */
+ 	HANDLER	lm_udmaerror, LM_IRQ_UDMAERROR		/* Vector 63: uDMA Error */
+ 	HANDLER	lm_adc1_0, LM_IRQ_ADC1_0			/* Vector 64: ADC1 Sequence 0 */
+ 	HANDLER	lm_adc1_1, LM_IRQ_ADC1_1			/* Vector 65: ADC1 Sequence 1 */
+ 	HANDLER	lm_adc1_2, LM_IRQ_ADC1_2			/* Vector 66: ADC1 Sequence 2 */
+ 	HANDLER	lm_adc1_3, LM_IRQ_ADC1_3			/* Vector 67: ADC1 Sequence 3 */
+ 	HANDLER	lm_i2s0, LM_IRQ_I2S0				/* Vector 68: I2S 0 */
+ 	HANDLER	lm_epi, LM_IRQ_EPI					/* Vector 69: EPI  */
+ 	HANDLER	lm_gpioj, LM_IRQ_GPIOJ				/* Vector 70: GPIO Port J */
 #else
-#  error "Vectors not specified for this LM3S chip"
+#  error "Vectors not specified for this Stellaris chip"
 #endif
 
 /* Common IRQ handling logic.  On entry here, the return stack is on either

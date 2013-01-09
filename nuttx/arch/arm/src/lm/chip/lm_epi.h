@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LM_CHIP_LM3S_EPI_H
-#define __ARCH_ARM_SRC_LM_CHIP_LM3S_EPI_H
+#ifndef __ARCH_ARM_SRC_LM_CHIP_LM_EPI_H
+#define __ARCH_ARM_SRC_LM_CHIP_LM_EPI_H
 
 /************************************************************************************
  * Included Files
@@ -46,19 +46,19 @@
 
 /* External Peripheral Interface Register Offsets ***********************************/
 
-#define LM3S_EPI_CFG_OFFSET           0x000
-#define LM3S_EPI_SDRAMCFG_OFFSET      0x010
-#define LM3S_EPI_ADDRMAP_OFFSET       0x01C
-#define LM3S_EPI_STAT_OFFSET          0x060
-#define LM3S_EPI_BAUD_OFFSET          0x004
+#define LM_EPI_CFG_OFFSET             0x000
+#define LM_EPI_SDRAMCFG_OFFSET        0x010
+#define LM_EPI_ADDRMAP_OFFSET         0x01C
+#define LM_EPI_STAT_OFFSET            0x060
+#define LM_EPI_BAUD_OFFSET            0x004
 
 /* External Peripheral Interface Register Addresses *********************************/
 
-#define LM3S_EPI0_CFG                 (LM3S_EPI0_BASE + LM3S_EPI_CFG_OFFSET)
-#define LM3S_EPI0_SDRAMCFG            (LM3S_EPI0_BASE + LM3S_EPI_SDRAMCFG_OFFSET)
-#define LM3S_EPI0_ADDRMAP             (LM3S_EPI0_BASE + LM3S_EPI_ADDRMAP_OFFSET)
-#define LM3S_EPI0_STAT                (LM3S_EPI0_BASE + LM3S_EPI_STAT_OFFSET)
-#define LM3S_EPI0_BAUD                (LM3S_EPI0_BASE + LM3S_EPI_BAUD_OFFSET)
+#define LM_EPI0_CFG                   (LM_EPI0_BASE + LM_EPI_CFG_OFFSET)
+#define LM_EPI0_SDRAMCFG              (LM_EPI0_BASE + LM_EPI_SDRAMCFG_OFFSET)
+#define LM_EPI0_ADDRMAP               (LM_EPI0_BASE + LM_EPI_ADDRMAP_OFFSET)
+#define LM_EPI0_STAT                  (LM_EPI0_BASE + LM_EPI_STAT_OFFSET)
+#define LM_EPI0_BAUD                  (LM_EPI0_BASE + LM_EPI_BAUD_OFFSET)
 
 /* External Peripheral Interface Register Bit Definitions ***************************/
 
@@ -110,4 +110,4 @@
 #define EPI_BAUD_COUNT0_MASK          (0xFFFF << EPI_BAUD_COUNT0_SHIFT)
 #  define EPI_BAUD_COUNT0(n)          ((n) << EPI_BAUD_COUNT0_SHIFT)
 
-#endif /* __ARCH_ARM_SRC_LM_CHIP_LM3S_EPI_H */
+#endif /* __ARCH_ARM_SRC_LM_CHIP_LM_EPI_H */

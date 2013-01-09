@@ -63,7 +63,7 @@
  * bringup
  */
 
-#undef LM3S_IRQ_DEBUG
+#undef LM_IRQ_DEBUG
 
 /* Get a 32-bit version of the default priority */
 
@@ -95,7 +95,7 @@ volatile uint32_t *current_regs;
  *
  ****************************************************************************/
 
-#if defined(LM3S_IRQ_DEBUG) && defined (CONFIG_DEBUG)
+#if defined(LM_IRQ_DEBUG) && defined (CONFIG_DEBUG)
 static void lm_dumpnvic(const char *msg, int irq)
 {
   irqstate_t flags;
@@ -201,21 +201,21 @@ static int lm_reserved(int irq, FAR void *context)
 
 static int lm_irqinfo(int irq, uint32_t *regaddr, uint32_t *bit)
 {
-  DEBUGASSERT(irq >= LM3S_IRQ_NMI && irq < NR_IRQS);
+  DEBUGASSERT(irq >= LM_IRQ_NMI && irq < NR_IRQS);
 
   /* Check for external interrupt */
 
-  if (irq >= LM3S_IRQ_INTERRUPTS)
+  if (irq >= LM_IRQ_INTERRUPTS)
     {
-      if (irq < LM3S_IRQ_INTERRUPTS + 32)
+      if (irq < LM_IRQ_INTERRUPTS + 32)
         {
            *regaddr = NVIC_IRQ0_31_ENABLE;
-           *bit     = 1 << (irq - LM3S_IRQ_INTERRUPTS);
+           *bit     = 1 << (irq - LM_IRQ_INTERRUPTS);
         }
       else if (irq < NR_IRQS)
         {
            *regaddr = NVIC_IRQ32_63_ENABLE;
-           *bit     = 1 << (irq - LM3S_IRQ_INTERRUPTS - 32);
+           *bit     = 1 << (irq - LM_IRQ_INTERRUPTS - 32);
         }
       else
         {
@@ -228,19 +228,19 @@ static int lm_irqinfo(int irq, uint32_t *regaddr, uint32_t *bit)
   else
     {
        *regaddr = NVIC_SYSHCON;
-       if (irq == LM3S_IRQ_MEMFAULT)
+       if (irq == LM_IRQ_MEMFAULT)
         {
           *bit = NVIC_SYSHCON_MEMFAULTENA;
         }
-      else if (irq == LM3S_IRQ_BUSFAULT)
+      else if (irq == LM_IRQ_BUSFAULT)
         {
           *bit = NVIC_SYSHCON_BUSFAULTENA;
         }
-      else if (irq == LM3S_IRQ_USAGEFAULT)
+      else if (irq == LM_IRQ_USAGEFAULT)
         {
           *bit = NVIC_SYSHCON_USGFAULTENA;
         }
-      else if (irq == LM3S_IRQ_SYSTICK)
+      else if (irq == LM_IRQ_SYSTICK)
         {
           *regaddr = NVIC_SYSTICK_CTRL;
           *bit = NVIC_SYSTICK_CTRL_ENABLE;
@@ -309,13 +309,13 @@ void up_irqinitialize(void)
    * under certain conditions.
    */
 
-  irq_attach(LM3S_IRQ_SVCALL, up_svcall);
-  irq_attach(LM3S_IRQ_HARDFAULT, up_hardfault);
+  irq_attach(LM_IRQ_SVCALL, up_svcall);
+  irq_attach(LM_IRQ_HARDFAULT, up_hardfault);
 
   /* Set the priority of the SVCall interrupt */
 
 #ifdef CONFIG_ARCH_IRQPRIO
-/* up_prioritize_irq(LM3S_IRQ_PENDSV, NVIC_SYSH_PRIORITY_MIN); */
+/* up_prioritize_irq(LM_IRQ_PENDSV, NVIC_SYSH_PRIORITY_MIN); */
 #endif
 
   /* If the MPU is enabled, then attach and enable the Memory Management
@@ -323,22 +323,22 @@ void up_irqinitialize(void)
    */
 
 #ifdef CONFIG_ARMV7M_MPU
-  irq_attach(LM3S_IRQ_MEMFAULT, up_memfault);
-  up_enable_irq(LM3S_IRQ_MEMFAULT);
+  irq_attach(LM_IRQ_MEMFAULT, up_memfault);
+  up_enable_irq(LM_IRQ_MEMFAULT);
 #endif
 
   /* Attach all other processor exceptions (except reset and sys tick) */
 
 #ifdef CONFIG_DEBUG
-  irq_attach(LM3S_IRQ_NMI, lm_nmi);
+  irq_attach(LM_IRQ_NMI, lm_nmi);
 #ifndef CONFIG_ARMV7M_MPU
-  irq_attach(LM3S_IRQ_MEMFAULT, up_memfault);
+  irq_attach(LM_IRQ_MEMFAULT, up_memfault);
 #endif
-  irq_attach(LM3S_IRQ_BUSFAULT, lm_busfault);
-  irq_attach(LM3S_IRQ_USAGEFAULT, lm_usagefault);
-  irq_attach(LM3S_IRQ_PENDSV, lm_pendsv);
-  irq_attach(LM3S_IRQ_DBGMONITOR, lm_dbgmonitor);
-  irq_attach(LM3S_IRQ_RESERVED, lm_reserved);
+  irq_attach(LM_IRQ_BUSFAULT, lm_busfault);
+  irq_attach(LM_IRQ_USAGEFAULT, lm_usagefault);
+  irq_attach(LM_IRQ_PENDSV, lm_pendsv);
+  irq_attach(LM_IRQ_DBGMONITOR, lm_dbgmonitor);
+  irq_attach(LM_IRQ_RESERVED, lm_reserved);
 #endif
 
   lm_dumpnvic("initial", NR_IRQS);
@@ -433,16 +433,16 @@ int up_prioritize_irq(int irq, int priority)
   uint32_t regval;
   int shift;
 
-  DEBUGASSERT(irq >= LM3S_IRQ_MEMFAULT && irq < NR_IRQS && (unsigned)priority <= NVIC_SYSH_PRIORITY_MIN);
+  DEBUGASSERT(irq >= LM_IRQ_MEMFAULT && irq < NR_IRQS && (unsigned)priority <= NVIC_SYSH_PRIORITY_MIN);
 
-  if (irq < LM3S_IRQ_INTERRUPTS)
+  if (irq < LM_IRQ_INTERRUPTS)
     {
       irq    -= 4;
       regaddr = NVIC_SYSH_PRIORITY(irq);
     }
   else
     {
-      irq    -= LM3S_IRQ_INTERRUPTS;
+      irq    -= LM_IRQ_INTERRUPTS;
       regaddr = NVIC_IRQ_PRIORITY(irq);
     }
 

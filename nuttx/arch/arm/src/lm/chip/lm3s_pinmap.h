@@ -263,7 +263,7 @@
 #  define GPIO_ETHPHY_LED0 (GPIO_FUNC_PFOUTPUT  | GPIO_PORTF | 3)       /* PF3: LED0 */
 #  define GPIO_PWM0_1     (GPIO_FUNC_PFOUTPUT  | GPIO_PORTG | 1)       /* PG1:PWM Generator 0, PWM1 */
 #else
-#  error "Unknown LM3S chip"
+#  error "Unknown Stellaris chip"
 #endif
 
 /************************************************************************************

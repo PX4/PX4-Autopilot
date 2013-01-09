@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_LM_CHIP_LM3S_SYSCONTROL_H
-#define __ARCH_ARM_SRC_LM_CHIP_LM3S_SYSCONTROL_H
+#ifndef __ARCH_ARM_SRC_LM_CHIP_LM_SYSCONTROL_H
+#define __ARCH_ARM_SRC_LM_CHIP_LM_SYSCONTROL_H
 
 /************************************************************************************
  * Included Files
@@ -48,67 +48,67 @@
 
 /* System Control Register Offsets **************************************************/
 
-#define LM3S_SYSCON_DID0_OFFSET       0x000 /* Device Identification 0 */
-#define LM3S_SYSCON_DID1_OFFSET       0x004 /* Device Identification 1 */
-#define LM3S_SYSCON_DC0_OFFSET        0x008 /* Device Capabilities 0 */
-#define LM3S_SYSCON_DC1_OFFSET        0x010 /* Device Capabilities 1 */
-#define LM3S_SYSCON_DC2_OFFSET        0x014 /* Device Capabilities 2 */
-#define LM3S_SYSCON_DC3_OFFSET        0x018 /* Device Capabilities 3 */
-#define LM3S_SYSCON_DC4_OFFSET        0x01c /* Device Capabilities 4 */
-#define LM3S_SYSCON_PBORCTL_OFFSET    0x030 /* Brown-Out Reset Control */
-#define LM3S_SYSCON_LDOPCTL_OFFSET    0x034 /* LDO Power Control */
-#define LM3S_SYSCON_SRCR0_OFFSET      0x040 /* Software Reset Control 0 */
-#define LM3S_SYSCON_SRCR1_OFFSET      0x044 /* Software Reset Control 1 */
-#define LM3S_SYSCON_SRCR2_OFFSET      0x048 /* Software Reset Control 2*/
-#define LM3S_SYSCON_RIS_OFFSET        0x050 /* Raw Interrupt Status */
-#define LM3S_SYSCON_IMC_OFFSET        0x054 /* Interrupt Mask Control */
-#define LM3S_SYSCON_MISC_OFFSET       0x058 /* Masked Interrupt Status and Clear */
-#define LM3S_SYSCON_RESC_OFFSET       0x05c /* Reset Cause */
-#define LM3S_SYSCON_RCC_OFFSET        0x060 /* Run-Mode Clock Configuration */
-#define LM3S_SYSCON_PLLCFG_OFFSET     0x064 /* XTAL to PLL Translation */
-#define LM3S_SYSCON_RCC2_OFFSET       0x070 /* Run-Mode Clock Configuration 2 */
-#define LM3S_SYSCON_RCGC0_OFFSET      0x100 /* Run Mode Clock Gating Control Register 0 */
-#define LM3S_SYSCON_RCGC1_OFFSET      0x104 /* Run Mode Clock Gating Control Register 1 */
-#define LM3S_SYSCON_RCGC2_OFFSET      0x108 /* Run Mode Clock Gating Control Register 2 */
-#define LM3S_SYSCON_SCGC0_OFFSET      0x110 /* Sleep Mode Clock Gating Control Register 0 */
-#define LM3S_SYSCON_SCGC1_OFFSET      0x114 /* Sleep Mode Clock Gating Control Register 1 */
-#define LM3S_SYSCON_SCGC2_OFFSET      0x118 /* Sleep Mode Clock Gating Control Register 2 */
-#define LM3S_SYSCON_DCGC0_OFFSET      0x120 /* Deep Sleep Mode Clock Gating Control Register 0 */
-#define LM3S_SYSCON_DCGC1_OFFSET      0x124 /* Deep Sleep Mode Clock Gating Control Register 1 */
-#define LM3S_SYSCON_DCGC2_OFFSET      0x128 /* Deep Sleep Mode Clock Gating Control Register 2 */
-#define LM3S_SYSCON_DSLPCLKCFG_OFFSET 0x144 /* Deep Sleep Clock Configuration*/
+#define LM_SYSCON_DID0_OFFSET         0x000 /* Device Identification 0 */
+#define LM_SYSCON_DID1_OFFSET         0x004 /* Device Identification 1 */
+#define LM_SYSCON_DC0_OFFSET          0x008 /* Device Capabilities 0 */
+#define LM_SYSCON_DC1_OFFSET          0x010 /* Device Capabilities 1 */
+#define LM_SYSCON_DC2_OFFSET          0x014 /* Device Capabilities 2 */
+#define LM_SYSCON_DC3_OFFSET          0x018 /* Device Capabilities 3 */
+#define LM_SYSCON_DC4_OFFSET          0x01c /* Device Capabilities 4 */
+#define LM_SYSCON_PBORCTL_OFFSET      0x030 /* Brown-Out Reset Control */
+#define LM_SYSCON_LDOPCTL_OFFSET      0x034 /* LDO Power Control */
+#define LM_SYSCON_SRCR0_OFFSET        0x040 /* Software Reset Control 0 */
+#define LM_SYSCON_SRCR1_OFFSET        0x044 /* Software Reset Control 1 */
+#define LM_SYSCON_SRCR2_OFFSET        0x048 /* Software Reset Control 2*/
+#define LM_SYSCON_RIS_OFFSET          0x050 /* Raw Interrupt Status */
+#define LM_SYSCON_IMC_OFFSET          0x054 /* Interrupt Mask Control */
+#define LM_SYSCON_MISC_OFFSET         0x058 /* Masked Interrupt Status and Clear */
+#define LM_SYSCON_RESC_OFFSET         0x05c /* Reset Cause */
+#define LM_SYSCON_RCC_OFFSET          0x060 /* Run-Mode Clock Configuration */
+#define LM_SYSCON_PLLCFG_OFFSET       0x064 /* XTAL to PLL Translation */
+#define LM_SYSCON_RCC2_OFFSET         0x070 /* Run-Mode Clock Configuration 2 */
+#define LM_SYSCON_RCGC0_OFFSET        0x100 /* Run Mode Clock Gating Control Register 0 */
+#define LM_SYSCON_RCGC1_OFFSET        0x104 /* Run Mode Clock Gating Control Register 1 */
+#define LM_SYSCON_RCGC2_OFFSET        0x108 /* Run Mode Clock Gating Control Register 2 */
+#define LM_SYSCON_SCGC0_OFFSET        0x110 /* Sleep Mode Clock Gating Control Register 0 */
+#define LM_SYSCON_SCGC1_OFFSET        0x114 /* Sleep Mode Clock Gating Control Register 1 */
+#define LM_SYSCON_SCGC2_OFFSET        0x118 /* Sleep Mode Clock Gating Control Register 2 */
+#define LM_SYSCON_DCGC0_OFFSET        0x120 /* Deep Sleep Mode Clock Gating Control Register 0 */
+#define LM_SYSCON_DCGC1_OFFSET        0x124 /* Deep Sleep Mode Clock Gating Control Register 1 */
+#define LM_SYSCON_DCGC2_OFFSET        0x128 /* Deep Sleep Mode Clock Gating Control Register 2 */
+#define LM_SYSCON_DSLPCLKCFG_OFFSET   0x144 /* Deep Sleep Clock Configuration*/
 
 /* System Control Register Addresses ************************************************/
 
-#define LM3S_SYSCON_DID0              (LM3S_SYSCON_BASE + LM3S_SYSCON_DID0_OFFSET)
-#define LM3S_SYSCON_DID1              (LM3S_SYSCON_BASE + LM3S_SYSCON_DID1_OFFSET)
-#define LM3S_SYSCON_DC0               (LM3S_SYSCON_BASE + LM3S_SYSCON_DC0_OFFSET)
-#define LM3S_SYSCON_DC1               (LM3S_SYSCON_BASE + LM3S_SYSCON_DC1_OFFSET)
-#define LM3S_SYSCON_DC2               (LM3S_SYSCON_BASE + LM3S_SYSCON_DC2_OFFSET)
-#define LM3S_SYSCON_DC3               (LM3S_SYSCON_BASE + LM3S_SYSCON_DC3_OFFSET)
-#define LM3S_SYSCON_DC4               (LM3S_SYSCON_BASE + LM3S_SYSCON_DC4_OFFSET)
-#define LM3S_SYSCON_PBORCTL           (LM3S_SYSCON_BASE + LM3S_SYSCON_PBORCTL_OFFSET)
-#define LM3S_SYSCON_LDOPCTL           (LM3S_SYSCON_BASE + LM3S_SYSCON_LDOPCTL_OFFSET)
-#define LM3S_SYSCON_SRCR0             (LM3S_SYSCON_BASE + LM3S_SYSCON_SRCR0_OFFSET)
-#define LM3S_SYSCON_SRCR1             (LM3S_SYSCON_BASE + LM3S_SYSCON_SRCR1_OFFSET)
-#define LM3S_SYSCON_SRCR2             (LM3S_SYSCON_BASE + LM3S_SYSCON_SRCR2_OFFSET)
-#define LM3S_SYSCON_RIS               (LM3S_SYSCON_BASE + LM3S_SYSCON_RIS_OFFSET)
-#define LM3S_SYSCON_IMC               (LM3S_SYSCON_BASE + LM3S_SYSCON_IMC_OFFSET)
-#define LM3S_SYSCON_MISC              (LM3S_SYSCON_BASE + LM3S_SYSCON_MISC_OFFSET)
-#define LM3S_SYSCON_RESC              (LM3S_SYSCON_BASE + LM3S_SYSCON_RESC_OFFSET)
-#define LM3S_SYSCON_RCC               (LM3S_SYSCON_BASE + LM3S_SYSCON_RCC_OFFSET)
-#define LM3S_SYSCON_PLLCFG            (LM3S_SYSCON_BASE + LM3S_SYSCON_PLLCFG_OFFSET)
-#define LM3S_SYSCON_RCC2              (LM3S_SYSCON_BASE + LM3S_SYSCON_RCC2_OFFSET)
-#define LM3S_SYSCON_RCGC0             (LM3S_SYSCON_BASE + LM3S_SYSCON_RCGC0_OFFSET)
-#define LM3S_SYSCON_RCGC1             (LM3S_SYSCON_BASE + LM3S_SYSCON_RCGC1_OFFSET)
-#define LM3S_SYSCON_RCGC2             (LM3S_SYSCON_BASE + LM3S_SYSCON_RCGC2_OFFSET)
-#define LM3S_SYSCON_SCGC0             (LM3S_SYSCON_BASE + LM3S_SYSCON_SCGC0_OFFSET)
-#define LM3S_SYSCON_SCGC1             (LM3S_SYSCON_BASE + LM3S_SYSCON_SCGC1_OFFSET)
-#define LM3S_SYSCON_SCGC2             (LM3S_SYSCON_BASE + LM3S_SYSCON_SCGC2_OFFSET)
-#define LM3S_SYSCON_DCGC0             (LM3S_SYSCON_BASE + LM3S_SYSCON_DCGC0_OFFSET)
-#define LM3S_SYSCON_DCGC1             (LM3S_SYSCON_BASE + LM3S_SYSCON_DCGC1_OFFSET)
-#define LM3S_SYSCON_DCGC2             (LM3S_SYSCON_BASE + LM3S_SYSCON_DCGC2_OFFSET)
-#define LM3S_SYSCON_DSLPCLKCFG        (LM3S_SYSCON_BASE + LM3S_SYSCON_DSLPCLKCFG_OFFSET)
+#define LM_SYSCON_DID0                (LM_SYSCON_BASE + LM_SYSCON_DID0_OFFSET)
+#define LM_SYSCON_DID1                (LM_SYSCON_BASE + LM_SYSCON_DID1_OFFSET)
+#define LM_SYSCON_DC0                 (LM_SYSCON_BASE + LM_SYSCON_DC0_OFFSET)
+#define LM_SYSCON_DC1                 (LM_SYSCON_BASE + LM_SYSCON_DC1_OFFSET)
+#define LM_SYSCON_DC2                 (LM_SYSCON_BASE + LM_SYSCON_DC2_OFFSET)
+#define LM_SYSCON_DC3                 (LM_SYSCON_BASE + LM_SYSCON_DC3_OFFSET)
+#define LM_SYSCON_DC4                 (LM_SYSCON_BASE + LM_SYSCON_DC4_OFFSET)
+#define LM_SYSCON_PBORCTL             (LM_SYSCON_BASE + LM_SYSCON_PBORCTL_OFFSET)
+#define LM_SYSCON_LDOPCTL             (LM_SYSCON_BASE + LM_SYSCON_LDOPCTL_OFFSET)
+#define LM_SYSCON_SRCR0               (LM_SYSCON_BASE + LM_SYSCON_SRCR0_OFFSET)
+#define LM_SYSCON_SRCR1               (LM_SYSCON_BASE + LM_SYSCON_SRCR1_OFFSET)
+#define LM_SYSCON_SRCR2               (LM_SYSCON_BASE + LM_SYSCON_SRCR2_OFFSET)
+#define LM_SYSCON_RIS                 (LM_SYSCON_BASE + LM_SYSCON_RIS_OFFSET)
+#define LM_SYSCON_IMC                 (LM_SYSCON_BASE + LM_SYSCON_IMC_OFFSET)
+#define LM_SYSCON_MISC                (LM_SYSCON_BASE + LM_SYSCON_MISC_OFFSET)
+#define LM_SYSCON_RESC                (LM_SYSCON_BASE + LM_SYSCON_RESC_OFFSET)
+#define LM_SYSCON_RCC                 (LM_SYSCON_BASE + LM_SYSCON_RCC_OFFSET)
+#define LM_SYSCON_PLLCFG              (LM_SYSCON_BASE + LM_SYSCON_PLLCFG_OFFSET)
+#define LM_SYSCON_RCC2                (LM_SYSCON_BASE + LM_SYSCON_RCC2_OFFSET)
+#define LM_SYSCON_RCGC0               (LM_SYSCON_BASE + LM_SYSCON_RCGC0_OFFSET)
+#define LM_SYSCON_RCGC1               (LM_SYSCON_BASE + LM_SYSCON_RCGC1_OFFSET)
+#define LM_SYSCON_RCGC2               (LM_SYSCON_BASE + LM_SYSCON_RCGC2_OFFSET)
+#define LM_SYSCON_SCGC0               (LM_SYSCON_BASE + LM_SYSCON_SCGC0_OFFSET)
+#define LM_SYSCON_SCGC1               (LM_SYSCON_BASE + LM_SYSCON_SCGC1_OFFSET)
+#define LM_SYSCON_SCGC2               (LM_SYSCON_BASE + LM_SYSCON_SCGC2_OFFSET)
+#define LM_SYSCON_DCGC0               (LM_SYSCON_BASE + LM_SYSCON_DCGC0_OFFSET)
+#define LM_SYSCON_DCGC1               (LM_SYSCON_BASE + LM_SYSCON_DCGC1_OFFSET)
+#define LM_SYSCON_DCGC2               (LM_SYSCON_BASE + LM_SYSCON_DCGC2_OFFSET)
+#define LM_SYSCON_DSLPCLKCFG          (LM_SYSCON_BASE + LM_SYSCON_DSLPCLKCFG_OFFSET)
 
 /* System Control Register Bit Definitions ******************************************/
 
@@ -492,4 +492,4 @@
  * Public Functions
  ************************************************************************************/
 
-#endif /* __ARCH_ARM_SRC_LM_CHIP_LM3S_SYSCONTROL_H */
+#endif /* __ARCH_ARM_SRC_LM_CHIP_LM_SYSCONTROL_H */

@@ -69,68 +69,68 @@
 /* Half duplex can be forced if CONFIG_LM_ETHHDUPLEX is defined. */
 
 #ifdef CONFIG_LM_ETHHDUPLEX
-#  define LM3S_DUPLEX_SETBITS 0
-#  define LM3S_DUPLEX_CLRBITS MAC_TCTL_DUPLEX
+#  define LM_DUPLEX_SETBITS 0
+#  define LM_DUPLEX_CLRBITS MAC_TCTL_DUPLEX
 #else 
-#  define LM3S_DUPLEX_SETBITS MAC_TCTL_DUPLEX
-#  define LM3S_DUPLEX_CLRBITS 0
+#  define LM_DUPLEX_SETBITS MAC_TCTL_DUPLEX
+#  define LM_DUPLEX_CLRBITS 0
 #endif
 
 /* Auto CRC generation can be suppressed if CONFIG_LM_ETHNOAUTOCRC is definde */
 
 #ifdef CONFIG_LM_ETHNOAUTOCRC
-#  define LM3S_CRC_SETBITS 0
-#  define LM3S_CRC_CLRBITS MAC_TCTL_CRC
+#  define LM_CRC_SETBITS 0
+#  define LM_CRC_CLRBITS MAC_TCTL_CRC
 #else 
-#  define LM3S_CRC_SETBITS MAC_TCTL_CRC
-#  define LM3S_CRC_CLRBITS 0
+#  define LM_CRC_SETBITS MAC_TCTL_CRC
+#  define LM_CRC_CLRBITS 0
 #endif
 
 /* Tx padding can be suppressed if CONFIG_LM_ETHNOPAD is defined */
 
 #ifdef CONFIG_LM_ETHNOPAD
-#  define LM3S_PADEN_SETBITS 0
-#  define LM3S_PADEN_CLRBITS MAC_TCTL_PADEN
+#  define LM_PADEN_SETBITS 0
+#  define LM_PADEN_CLRBITS MAC_TCTL_PADEN
 #else 
-#  define LM3S_PADEN_SETBITS MAC_TCTL_PADEN
-#  define LM3S_PADEN_CLRBITS 0
+#  define LM_PADEN_SETBITS MAC_TCTL_PADEN
+#  define LM_PADEN_CLRBITS 0
 #endif
 
-#define LM3S_TCTCL_SETBITS (LM3S_DUPLEX_SETBITS|LM3S_CRC_SETBITS|LM3S_PADEN_SETBITS)
-#define LM3S_TCTCL_CLRBITS (LM3S_DUPLEX_CLRBITS|LM3S_CRC_CLRBITS|LM3S_PADEN_CLRBITS)
+#define LM_TCTCL_SETBITS (LM_DUPLEX_SETBITS|LM_CRC_SETBITS|LM_PADEN_SETBITS)
+#define LM_TCTCL_CLRBITS (LM_DUPLEX_CLRBITS|LM_CRC_CLRBITS|LM_PADEN_CLRBITS)
 
 /* Multicast frames can be enabled by defining CONFIG_LM_MULTICAST */
 
 #ifdef CONFIG_LM_MULTICAST
-#  define LM3S_AMUL_SETBITS MAC_RCTL_AMUL
-#  define LM3S_AMUL_CLRBITS 0
+#  define LM_AMUL_SETBITS MAC_RCTL_AMUL
+#  define LM_AMUL_CLRBITS 0
 #else 
-#  define LM3S_AMUL_SETBITS 0
-#  define LM3S_AMUL_CLRBITS MAC_RCTL_AMUL
+#  define LM_AMUL_SETBITS 0
+#  define LM_AMUL_CLRBITS MAC_RCTL_AMUL
 #endif
 
 /* Promiscuous mode can be enabled by defining CONFIG_LM_PROMISCUOUS */
 
 #ifdef CONFIG_LM_PROMISCUOUS
-#  define LM3S_PRMS_SETBITS MAC_RCTL_PRMS
-#  define LM3S_PRMS_CLRBITS 0
+#  define LM_PRMS_SETBITS MAC_RCTL_PRMS
+#  define LM_PRMS_CLRBITS 0
 #else 
-#  define LM3S_PRMS_SETBITS 0
-#  define LM3S_PRMS_CLRBITS MAC_RCTL_PRMS
+#  define LM_PRMS_SETBITS 0
+#  define LM_PRMS_CLRBITS MAC_RCTL_PRMS
 #endif
 
 /* Bad CRC rejection can be enabled by define CONFIG_LM_BADCRC */
 
 #ifdef CONFIG_LM_BADCRC
-#  define LM3S_BADCRC_SETBITS MAC_RCTL_BADCRC
-#  define LM3S_BADCRC_CLRBITS 0
+#  define LM_BADCRC_SETBITS MAC_RCTL_BADCRC
+#  define LM_BADCRC_CLRBITS 0
 #else 
-#  define LM3S_BADCRC_SETBITS 0
-#  define LM3S_BADCRC_CLRBITS MAC_RCTL_BADCRC
+#  define LM_BADCRC_SETBITS 0
+#  define LM_BADCRC_CLRBITS MAC_RCTL_BADCRC
 #endif
 
-#define LM3S_RCTCL_SETBITS (LM3S_AMUL_SETBITS|LM3S_PRMS_SETBITS|LM3S_BADCRC_SETBITS)
-#define LM3S_RCTCL_CLRBITS (LM3S_AMUL_CLRBITS|LM3S_PRMS_CLRBITS|LM3S_BADCRC_CLRBITS)
+#define LM_RCTCL_SETBITS (LM_AMUL_SETBITS|LM_PRMS_SETBITS|LM_BADCRC_SETBITS)
+#define LM_RCTCL_CLRBITS (LM_AMUL_CLRBITS|LM_PRMS_CLRBITS|LM_BADCRC_CLRBITS)
 
 /* CONFIG_LM_DUMPPACKET will dump the contents of each packet to the console. */
 
@@ -142,12 +142,12 @@
 
 /* TX poll deley = 1 seconds. CLK_TCK is the number of clock ticks per second */
 
-#define LM3S_WDDELAY   (1*CLK_TCK)
-#define LM3S_POLLHSEC  (1*2)
+#define LM_WDDELAY   (1*CLK_TCK)
+#define LM_POLLHSEC  (1*2)
 
 /* TX timeout = 1 minute */
 
-#define LM3S_TXTIMEOUT (60*CLK_TCK)
+#define LM_TXTIMEOUT (60*CLK_TCK)
 
 /* This is a helper pointer for accessing the contents of the Ethernet header */
 
@@ -192,7 +192,7 @@ struct lm_driver_s
    * multiple Ethernet controllers.
    */
 
-#if LM3S_NETHCONTROLLERS > 1
+#if LM_NETHCONTROLLERS > 1
   uint32_t ld_base;             /* Ethernet controller base address */
   int      ld_irq;              /* Ethernet controller IRQ */
 #endif
@@ -214,7 +214,7 @@ struct lm_driver_s
  * Private Data
  ****************************************************************************/
 
-static struct lm_driver_s g_lm3sdev[LM3S_NETHCONTROLLERS];
+static struct lm_driver_s g_lm3sdev[LM_NETHCONTROLLERS];
 
 /****************************************************************************
  * Private Function Prototypes
@@ -222,7 +222,7 @@ static struct lm_driver_s g_lm3sdev[LM3S_NETHCONTROLLERS];
 
 /* Miscellaneous low level helpers */
 
-#if LM3S_NETHCONTROLLERS > 1
+#if LM_NETHCONTROLLERS > 1
 static uint32_t lm_ethin(struct lm_driver_s *priv, int offset);
 static void lm_ethout(struct lm_driver_s *priv, int offset, uint32_t value);
 #else
@@ -280,7 +280,7 @@ static int  lm_rmmac(struct uip_driver_s *dev, FAR const uint8_t *mac);
  *
  ****************************************************************************/
 
-#if LM3S_NETHCONTROLLERS > 1
+#if LM_NETHCONTROLLERS > 1
 static uint32_t lm_ethin(struct lm_driver_s *priv, int offset)
 {
   return getreg32(priv->ld_base + offset);
@@ -288,7 +288,7 @@ static uint32_t lm_ethin(struct lm_driver_s *priv, int offset)
 #else
 static inline uint32_t lm_ethin(struct lm_driver_s *priv, int offset)
 {
-  return getreg32(LM3S_ETHCON_BASE + offset);
+  return getreg32(LM_ETHCON_BASE + offset);
 }
 #endif
 
@@ -308,7 +308,7 @@ static inline uint32_t lm_ethin(struct lm_driver_s *priv, int offset)
  *
  ****************************************************************************/
 
-#if LM3S_NETHCONTROLLERS > 1
+#if LM_NETHCONTROLLERS > 1
 static void lm_ethout(struct lm_driver_s *priv, int offset, uint32_t value)
 {
   putreg32(value, priv->ld_base + offset);
@@ -316,7 +316,7 @@ static void lm_ethout(struct lm_driver_s *priv, int offset, uint32_t value)
 #else
 static inline void lm_ethout(struct lm_driver_s *priv, int offset, uint32_t value)
 {
-  putreg32(value, LM3S_ETHCON_BASE + offset);
+  putreg32(value, LM_ETHCON_BASE + offset);
 }
 #endif
 
@@ -341,23 +341,23 @@ static void lm_ethreset(struct lm_driver_s *priv)
   irqstate_t flags;
   uint32_t regval;
 
-#if LM3S_NETHCONTROLLERS > 1
+#if LM_NETHCONTROLLERS > 1
 #  error "If multiple interfaces are supported, this function would have to be redesigned"
 #endif
 
   /* Make sure that clocking is enabled for the Ethernet (and PHY) peripherals */
 
   flags   = irqsave();
-  regval  = getreg32(LM3S_SYSCON_RCGC2);
+  regval  = getreg32(LM_SYSCON_RCGC2);
   regval |= (SYSCON_RCGC2_EMAC0|SYSCON_RCGC2_EPHY0);
-  putreg32(regval, LM3S_SYSCON_RCGC2);
+  putreg32(regval, LM_SYSCON_RCGC2);
   nllvdbg("RCGC2: %08x\n", regval);
 
   /* Put the Ethernet controller into the reset state */
 
-  regval = getreg32(LM3S_SYSCON_SRCR2);
+  regval = getreg32(LM_SYSCON_SRCR2);
   regval |= (SYSCON_SRCR2_EMAC0|SYSCON_SRCR2_EPHY0);
-  putreg32(regval, LM3S_SYSCON_SRCR2);
+  putreg32(regval, LM_SYSCON_SRCR2);
 
   /* Wait just a bit.  This is a much longer delay than necessary */
 
@@ -366,7 +366,7 @@ static void lm_ethreset(struct lm_driver_s *priv)
   /* Then take the Ethernet controller out of the reset state */
 
   regval &= ~(SYSCON_SRCR2_EMAC0|SYSCON_SRCR2_EPHY0);
-  putreg32(regval, LM3S_SYSCON_SRCR2);
+  putreg32(regval, LM_SYSCON_SRCR2);
   nllvdbg("SRCR2: %08x\n", regval);
 
   /* Wait just a bit, again.  If we touch the ethernet too soon, we may busfault. */
@@ -384,14 +384,14 @@ static void lm_ethreset(struct lm_driver_s *priv)
 
   /* Disable all Ethernet controller interrupts */
 
-  regval = lm_ethin(priv, LM3S_MAC_IM_OFFSET);
+  regval = lm_ethin(priv, LM_MAC_IM_OFFSET);
   regval &= ~MAC_IM_ALLINTS;
-  lm_ethout(priv, LM3S_MAC_IM_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_IM_OFFSET, regval);
 
   /* Clear any pending interrupts (shouldn't be any) */
 
-  regval = lm_ethin(priv, LM3S_MAC_RIS_OFFSET);
-  lm_ethout(priv, LM3S_MAC_IACK_OFFSET, regval);
+  regval = lm_ethin(priv, LM_MAC_RIS_OFFSET);
+  lm_ethout(priv, LM_MAC_IACK_OFFSET, regval);
   irqrestore(flags);
 }
 
@@ -416,22 +416,22 @@ static void lm_phywrite(struct lm_driver_s *priv, int regaddr, uint16_t value)
 {
   /* Wait for any MII transactions in progress to complete */
 
-  while ((lm_ethin(priv, LM3S_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
+  while ((lm_ethin(priv, LM_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
 
   /* Set up the data to be written */
 
   DEBUGASSERT(value < MAC_MTXD_MASK);
-  lm_ethout(priv, LM3S_MAC_MTXD_OFFSET, value);
+  lm_ethout(priv, LM_MAC_MTXD_OFFSET, value);
 
   /* Set up the PHY register address and start the write operation */
 
   regaddr <<= MAC_MCTL_REGADR_SHIFT;
   DEBUGASSERT((regaddr & MAC_MTXD_MASK) == regaddr);
-  lm_ethout(priv, LM3S_MAC_MCTL_OFFSET, regaddr | MAC_MCTL_WRITE | MAC_MCTL_START);
+  lm_ethout(priv, LM_MAC_MCTL_OFFSET, regaddr | MAC_MCTL_WRITE | MAC_MCTL_START);
 
   /* Wait for the write transaction to complete */
 
-  while ((lm_ethin(priv, LM3S_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
+  while ((lm_ethin(priv, LM_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
 }
 #endif
 
@@ -455,21 +455,21 @@ static uint16_t lm_phyread(struct lm_driver_s *priv, int regaddr)
 {
   /* Wait for any MII transactions in progress to complete */
 
-  while ((lm_ethin(priv, LM3S_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
+  while ((lm_ethin(priv, LM_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
 
   /* Set up the PHY register address and start the read operation */
 
   regaddr <<= MAC_MCTL_REGADR_SHIFT;
   DEBUGASSERT((regaddr & MAC_MTXD_MASK) == regaddr);
-  lm_ethout(priv, LM3S_MAC_MCTL_OFFSET, regaddr | MAC_MCTL_START);
+  lm_ethout(priv, LM_MAC_MCTL_OFFSET, regaddr | MAC_MCTL_START);
 
   /* Wait for the write transaction to complete */
 
-  while ((lm_ethin(priv, LM3S_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
+  while ((lm_ethin(priv, LM_MAC_MCTL_OFFSET) & MAC_MCTL_START) != 0);
 
   /* Read and return the PHY data */
 
-  return (uint16_t)(lm_ethin(priv, LM3S_MAC_MRXD_OFFSET) & MAC_MTRD_MASK);
+  return (uint16_t)(lm_ethin(priv, LM_MAC_MRXD_OFFSET) & MAC_MTRD_MASK);
 }
 
 /****************************************************************************
@@ -499,7 +499,7 @@ static int lm_transmit(struct lm_driver_s *priv)
   /* Verify that the hardware is ready to send another packet */
 
   flags = irqsave();
-  if ((lm_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
+  if ((lm_ethin(priv, LM_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
     {
       /* Increment statistics */
 
@@ -520,7 +520,7 @@ static int lm_transmit(struct lm_driver_s *priv)
       regval     = (uint32_t)(pktlen - 14);
       regval    |= ((uint32_t)(*dbuf++) << 16);
       regval    |= ((uint32_t)(*dbuf++) << 24);
-      lm_ethout(priv, LM3S_MAC_DATA_OFFSET, regval);
+      lm_ethout(priv, LM_MAC_DATA_OFFSET, regval);
 
       /* Write all of the whole, 32-bit values in the middle of the packet */
 
@@ -530,7 +530,7 @@ static int lm_transmit(struct lm_driver_s *priv)
            * buffer may be un-aligned.
            */
 
-          lm_ethout(priv, LM3S_MAC_DATA_OFFSET, *(uint32_t*)dbuf);
+          lm_ethout(priv, LM_MAC_DATA_OFFSET, *(uint32_t*)dbuf);
         }
 
       /* Write the last, partial word in the FIFO */
@@ -554,16 +554,16 @@ static int lm_transmit(struct lm_driver_s *priv)
                 regval |= (uint32_t)dbuf[0];
                 break;
             }
-          lm_ethout(priv, LM3S_MAC_DATA_OFFSET, regval);
+          lm_ethout(priv, LM_MAC_DATA_OFFSET, regval);
         }
 
       /* Activate the transmitter */
 
-      lm_ethout(priv, LM3S_MAC_TR_OFFSET, MAC_TR_NEWTX);
+      lm_ethout(priv, LM_MAC_TR_OFFSET, MAC_TR_NEWTX);
 
       /* Setup the TX timeout watchdog (perhaps restarting the timer) */
 
-      (void)wd_start(priv->ld_txtimeout, LM3S_TXTIMEOUT, lm_txtimeout, 1, (uint32_t)priv);
+      (void)wd_start(priv->ld_txtimeout, LM_TXTIMEOUT, lm_txtimeout, 1, (uint32_t)priv);
       ret = OK;
     }
 
@@ -608,7 +608,7 @@ static int lm_uiptxpoll(struct uip_driver_s *dev)
        * packet was successfully handled.
        */
 
-      DEBUGASSERT((lm_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
+      DEBUGASSERT((lm_ethin(priv, LM_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
       uip_arp_out(&priv->ld_dev);
       ret = lm_transmit(priv);
     }
@@ -645,7 +645,7 @@ static void lm_receive(struct lm_driver_s *priv)
 
   /* Loop while there are incoming packets to be processed */
 
-  while ((lm_ethin(priv, LM3S_MAC_NP_OFFSET) & MAC_NP_MASK) != 0)
+  while ((lm_ethin(priv, LM_MAC_NP_OFFSET) & MAC_NP_MASK) != 0)
     {
       /* Update statistics */
 
@@ -665,7 +665,7 @@ static void lm_receive(struct lm_driver_s *priv)
        * includes the len/type field (size 2) and the FCS (size 4).
        */
 
-      regval = lm_ethin(priv, LM3S_MAC_DATA_OFFSET);
+      regval = lm_ethin(priv, LM_MAC_DATA_OFFSET);
       pktlen = (int)(regval & 0x0000ffff);
       nllvdbg("Receiving packet, pktlen: %d\n", pktlen);
 
@@ -694,7 +694,7 @@ static void lm_receive(struct lm_driver_s *priv)
 
           while (wordlen--)
             {
-              (void)lm_ethin(priv, LM3S_MAC_DATA_OFFSET);
+              (void)lm_ethin(priv, LM_MAC_DATA_OFFSET);
             }
 
           /* Check for another packet */
@@ -718,7 +718,7 @@ static void lm_receive(struct lm_driver_s *priv)
            * buffer may be un-aligned.
            */
 
-          *(uint32_t*)dbuf = lm_ethin(priv, LM3S_MAC_DATA_OFFSET);
+          *(uint32_t*)dbuf = lm_ethin(priv, LM_MAC_DATA_OFFSET);
         }
 
       /* Handle the last, partial word in the FIFO (0-3 bytes) and discard
@@ -731,7 +731,7 @@ static void lm_receive(struct lm_driver_s *priv)
            * bytes of the FCS into the user buffer.
            */
 
-          regval = lm_ethin(priv, LM3S_MAC_DATA_OFFSET);
+          regval = lm_ethin(priv, LM_MAC_DATA_OFFSET);
           switch (bytesleft)
             {
               default:
@@ -834,7 +834,7 @@ static void lm_txdone(struct lm_driver_s *priv)
    * at this point.
    */
 
-  DEBUGASSERT((lm_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
+  DEBUGASSERT((lm_ethin(priv, LM_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
 
   /* Then poll uIP for new XMIT data */
 
@@ -863,7 +863,7 @@ static int lm_interrupt(int irq, FAR void *context)
   register struct lm_driver_s *priv;
   uint32_t ris;
 
-#if LM3S_NETHCONTROLLERS > 1
+#if LM_NETHCONTROLLERS > 1
 # error "A mechanism to associate and interface with an IRQ is needed"
 #else
   priv = &g_lm3sdev[0];
@@ -871,11 +871,11 @@ static int lm_interrupt(int irq, FAR void *context)
 
   /* Read the raw interrupt status register */
 
-  ris = lm_ethin(priv, LM3S_MAC_RIS_OFFSET);
+  ris = lm_ethin(priv, LM_MAC_RIS_OFFSET);
 
   /* Clear all pending interrupts */
 
-  lm_ethout(priv, LM3S_MAC_IACK_OFFSET, ris);
+  lm_ethout(priv, LM_MAC_IACK_OFFSET, ris);
 
   /* Check for errors */
 
@@ -898,7 +898,7 @@ static int lm_interrupt(int irq, FAR void *context)
 
   /* Handle (unmasked) interrupts according to status bit settings */
 
-  ris &= lm_ethin(priv, LM3S_MAC_IM_OFFSET);
+  ris &= lm_ethin(priv, LM_MAC_IM_OFFSET);
 
   /* Is this an Rx interrupt (meaning that a packet has been received)? */
 
@@ -994,15 +994,15 @@ static void lm_polltimer(int argc, uint32_t arg, ...)
    * inaccuracies.
    */
 
-  if ((lm_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
+  if ((lm_ethin(priv, LM_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
     {
       /* If so, update TCP timing states and poll uIP for new XMIT data */
 
-      (void)uip_timer(&priv->ld_dev, lm_uiptxpoll, LM3S_POLLHSEC);
+      (void)uip_timer(&priv->ld_dev, lm_uiptxpoll, LM_POLLHSEC);
 
       /* Setup the watchdog poll timer again */
 
-      (void)wd_start(priv->ld_txpoll, LM3S_WDDELAY, lm_polltimer, 1, arg);
+      (void)wd_start(priv->ld_txpoll, LM_WDDELAY, lm_polltimer, 1, arg);
     }
 }
 
@@ -1051,7 +1051,7 @@ static int lm_ifup(struct uip_driver_s *dev)
    */
 
   div = SYSCLK_FREQUENCY / 2 / LM32S_MAX_MDCCLK;
-  lm_ethout(priv, LM3S_MAC_MDV_OFFSET, div);
+  lm_ethout(priv, LM_MAC_MDV_OFFSET, div);
   nllvdbg("MDV:   %08x\n", div);
 
   /* Then configure the Ethernet Controller for normal operation 
@@ -1060,32 +1060,32 @@ static int lm_ifup(struct uip_driver_s *dev)
    * TX Padding Enabled).
    */
 
-  regval  = lm_ethin(priv, LM3S_MAC_TCTL_OFFSET);
-  regval &= ~LM3S_TCTCL_CLRBITS;
-  regval |= LM3S_TCTCL_SETBITS;
-  lm_ethout(priv, LM3S_MAC_TCTL_OFFSET, regval);
+  regval  = lm_ethin(priv, LM_MAC_TCTL_OFFSET);
+  regval &= ~LM_TCTCL_CLRBITS;
+  regval |= LM_TCTCL_SETBITS;
+  lm_ethout(priv, LM_MAC_TCTL_OFFSET, regval);
   nllvdbg("TCTL:  %08x\n", regval);
 
   /* Setup the receive control register (Disable multicast frames, disable
    * promiscuous mode, disable bad CRC rejection).
    */
 
-  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
-  regval &= ~LM3S_RCTCL_CLRBITS;
-  regval |= LM3S_RCTCL_SETBITS;
-  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  regval  = lm_ethin(priv, LM_MAC_RCTL_OFFSET);
+  regval &= ~LM_RCTCL_CLRBITS;
+  regval |= LM_RCTCL_SETBITS;
+  lm_ethout(priv, LM_MAC_RCTL_OFFSET, regval);
   nllvdbg("RCTL:  %08x\n", regval);
 
   /* Setup the time stamp configuration register */
 
-#ifdef LM3S_ETHTS
-  regval = lm_ethin(priv, LM3S_MAC_TS_OFFSET);
+#ifdef LM_ETHTS
+  regval = lm_ethin(priv, LM_MAC_TS_OFFSET);
 #ifdef CONFIG_LM_TIMESTAMP
   regval |= MAC_TS_EN;
 #else
   regval &= ~(MAC_TS_EN);
 #endif
-  lm_ethout(priv, LM3S_MAC_TS_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_TS_OFFSET, regval);
   nllvdbg("TS:    %08x\n", regval);
 #endif
 
@@ -1105,41 +1105,41 @@ static int lm_ifup(struct uip_driver_s *dev)
 
   /* Reset the receive FIFO */
 
-  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM_MAC_RCTL_OFFSET);
   regval |= MAC_RCTL_RSTFIFO;
-  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_RCTL_OFFSET, regval);
 
   /* Enable the Ethernet receiver */
 
-  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM_MAC_RCTL_OFFSET);
   regval |= MAC_RCTL_RXEN;
-  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_RCTL_OFFSET, regval);
 
   /* Enable the Ethernet transmitter */
 
-  regval  = lm_ethin(priv, LM3S_MAC_TCTL_OFFSET);
+  regval  = lm_ethin(priv, LM_MAC_TCTL_OFFSET);
   regval |= MAC_TCTL_TXEN;
-  lm_ethout(priv, LM3S_MAC_TCTL_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_TCTL_OFFSET, regval);
 
   /* Reset the receive FIFO (again) */
 
-  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM_MAC_RCTL_OFFSET);
   regval |= MAC_RCTL_RSTFIFO;
-  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_RCTL_OFFSET, regval);
 
   /* Enable the Ethernet interrupt */
 
-#if LM3S_NETHCONTROLLERS > 1
+#if LM_NETHCONTROLLERS > 1
   up_enable_irq(priv->irq);
 #else
-  up_enable_irq(LM3S_IRQ_ETHCON);
+  up_enable_irq(LM_IRQ_ETHCON);
 #endif
 
   /* Enable the Ethernet RX packet receipt interrupt */
 
-  regval = lm_ethin(priv, LM3S_MAC_IM_OFFSET);
+  regval = lm_ethin(priv, LM_MAC_IM_OFFSET);
   regval |= MAC_IM_RXINTM;
-  lm_ethout(priv, LM3S_MAC_IM_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_IM_OFFSET, regval);
 
   /* Program the hardware with it's MAC address (for filtering) */
 
@@ -1147,15 +1147,15 @@ static int lm_ifup(struct uip_driver_s *dev)
            (uint32_t)priv->ld_dev.d_mac.ether_addr_octet[2] << 16 |
            (uint32_t)priv->ld_dev.d_mac.ether_addr_octet[1] << 8 |
            (uint32_t)priv->ld_dev.d_mac.ether_addr_octet[0];
-  lm_ethout(priv, LM3S_MAC_IA0_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_IA0_OFFSET, regval);
 
   regval = (uint32_t)priv->ld_dev.d_mac.ether_addr_octet[5] << 8 |
            (uint32_t)priv->ld_dev.d_mac.ether_addr_octet[4];
-  lm_ethout(priv, LM3S_MAC_IA1_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_IA1_OFFSET, regval);
 
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->ld_txpoll, LM3S_WDDELAY, lm_polltimer, 1, (uint32_t)priv);
+  (void)wd_start(priv->ld_txpoll, LM_WDDELAY, lm_polltimer, 1, (uint32_t)priv);
 
   priv->ld_bifup = true;
   irqrestore(flags);
@@ -1197,46 +1197,46 @@ static int lm_ifdown(struct uip_driver_s *dev)
 
   /* Disable the Ethernet interrupt */
 
-#if LM3S_NETHCONTROLLERS > 1
+#if LM_NETHCONTROLLERS > 1
   up_disable_irq(priv->irq);
 #else
-  up_disable_irq(LM3S_IRQ_ETHCON);
+  up_disable_irq(LM_IRQ_ETHCON);
 #endif
 
   /* Disable all Ethernet controller interrupt sources */
 
-  regval = lm_ethin(priv, LM3S_MAC_IM_OFFSET);
+  regval = lm_ethin(priv, LM_MAC_IM_OFFSET);
   regval &= ~MAC_IM_ALLINTS;
-  lm_ethout(priv, LM3S_MAC_IM_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_IM_OFFSET, regval);
 
   /* Reset the receive FIFO */
 
-  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM_MAC_RCTL_OFFSET);
   regval |= MAC_RCTL_RSTFIFO;
-  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_RCTL_OFFSET, regval);
 
   /* Disable the Ethernet receiver */
 
-  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM_MAC_RCTL_OFFSET);
   regval &= ~MAC_RCTL_RXEN;
-  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_RCTL_OFFSET, regval);
 
   /* Disable the Ethernet transmitter */
 
-  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM_MAC_RCTL_OFFSET);
   regval &= ~MAC_TCTL_TXEN;
-  lm_ethout(priv, LM3S_MAC_TCTL_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_TCTL_OFFSET, regval);
 
   /* Reset the receive FIFO (again) */
 
-  regval  = lm_ethin(priv, LM3S_MAC_RCTL_OFFSET);
+  regval  = lm_ethin(priv, LM_MAC_RCTL_OFFSET);
   regval |= MAC_RCTL_RSTFIFO;
-  lm_ethout(priv, LM3S_MAC_RCTL_OFFSET, regval);
+  lm_ethout(priv, LM_MAC_RCTL_OFFSET, regval);
 
   /* Clear any pending interrupts */
 
-  regval = lm_ethin(priv, LM3S_MAC_RIS_OFFSET);
-  lm_ethout(priv, LM3S_MAC_IACK_OFFSET, regval);
+  regval = lm_ethin(priv, LM_MAC_RIS_OFFSET);
+  lm_ethout(priv, LM_MAC_IACK_OFFSET, regval);
 
   /* The interface is now DOWN */
 
@@ -1278,7 +1278,7 @@ static int lm_txavail(struct uip_driver_s *dev)
    */
 
   flags = irqsave();
-  if (priv->ld_bifup && (lm_ethin(priv, LM3S_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
+  if (priv->ld_bifup && (lm_ethin(priv, LM_MAC_TR_OFFSET) & MAC_TR_NEWTX) == 0)
     {
       /* If the interface is up and we can use the Tx FIFO, then poll uIP
        * for new Tx data
@@ -1371,7 +1371,7 @@ static int lm_rmmac(struct uip_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#if LM3S_NETHCONTROLLERS > 1
+#if LM_NETHCONTROLLERS > 1
 int lm_ethinitialize(int intf)
 #else
 static inline int lm_ethinitialize(int intf)
@@ -1384,12 +1384,12 @@ static inline int lm_ethinitialize(int intf)
 
   ndbg("Setting up eth%d\n", intf);
 
-#if LM3S_NETHCONTROLLERS > 1
+#if LM_NETHCONTROLLERS > 1
 # error "This debug check only works with one interface"
 #else
-  DEBUGASSERT((getreg32(LM3S_SYSCON_DC4) & (SYSCON_DC4_EMAC0|SYSCON_DC4_EPHY0)) == (SYSCON_DC4_EMAC0|SYSCON_DC4_EPHY0));
+  DEBUGASSERT((getreg32(LM_SYSCON_DC4) & (SYSCON_DC4_EMAC0|SYSCON_DC4_EPHY0)) == (SYSCON_DC4_EMAC0|SYSCON_DC4_EPHY0));
 #endif
-  DEBUGASSERT((unsigned)intf < LM3S_NETHCONTROLLERS);
+  DEBUGASSERT((unsigned)intf < LM_NETHCONTROLLERS);
 
   /* Initialize the driver structure */
 
@@ -1405,7 +1405,7 @@ static inline int lm_ethinitialize(int intf)
 
   /* Create a watchdog for timing polling for and timing of transmisstions */
 
-#if LM3S_NETHCONTROLLERS > 1
+#if LM_NETHCONTROLLERS > 1
 # error "A mechanism to associate base address an IRQ with an interface is needed"
   priv->ld_base          = ??;          /* Ethernet controller base address */
   priv->ld_irq           = ??;          /* Ethernet controller IRQ number */
@@ -1432,10 +1432,10 @@ static inline int lm_ethinitialize(int intf)
 
   /* Attach the IRQ to the driver */
 
-#if LM3S_NETHCONTROLLERS > 1
+#if LM_NETHCONTROLLERS > 1
   ret = irq_attach(priv->irq, lm_interrupt);
 #else
-  ret = irq_attach(LM3S_IRQ_ETHCON, lm_interrupt);
+  ret = irq_attach(LM_IRQ_ETHCON, lm_interrupt);
 #endif
   if (ret != 0)
     {
@@ -1461,7 +1461,7 @@ static inline int lm_ethinitialize(int intf)
  *
  ************************************************************************************/
 
-#if LM3S_NETHCONTROLLERS == 1
+#if LM_NETHCONTROLLERS == 1
 void up_netinitialize(void)
 {
   (void)lm_ethinitialize(0);

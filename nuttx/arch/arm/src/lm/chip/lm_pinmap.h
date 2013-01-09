@@ -42,7 +42,7 @@
 
 #include <nuttx/config.h>
 
-/* Include the memory map file for the specific Stellaris chip */
+/* Include the pin mapping file for the specific Stellaris chip */
 
 #ifdef CONFIG_ARCH_CHIP_LM3S
 #  include "chip/lm3s_pinmap.h"
