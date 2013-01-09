@@ -424,16 +424,19 @@ handle_message(mavlink_message_t *msg)
 			/* baro */
 			/* TODO, set ground_press/ temp during calib */
 			static const float ground_press = 1013.25f; // mbar
-			static const float ground_temp = 298.15f;
+			static const float ground_tempC = 21.0f;
+			static const float ground_alt = 0.0f;
+			static const float T0 = 273.15;
 			static const float R = 287.05f;
 			static const float g = 9.806f;
 
-			float temp =  press.temperature / 100.0f;
-			float h =  R / g * (temp + ground_temp) / 2.0f * logf(ground_press / press.press_abs);
+			float tempC =  press.temperature / 100.0f;
+			float tempAvgK = T0 + (tempC + ground_tempC)/2.0f;
+			float h =  ground_alt + (R/g)*tempAvgK*logf(ground_press / press.press_abs);
 			hil_sensors.baro_counter = hil_counter;
 			hil_sensors.baro_pres_mbar = press.press_abs;
 			hil_sensors.baro_alt_meter = h;
-			hil_sensors.baro_temp_celcius = temp;
+			hil_sensors.baro_temp_celcius = tempC;
 
 			/* publish */
 			orb_publish(ORB_ID(sensor_combined), pub_hil_sensors, &hil_sensors);

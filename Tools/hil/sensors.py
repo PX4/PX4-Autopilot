@@ -18,15 +18,32 @@ class Pressure(object):
         self.press_diff1 = press_diff1
         self.press_diff2 = press_diff2
         self.temperature = temperature
-                #time_usec                 : Timestamp (microseconds since UNIX epoch or microseconds since system boot) (uint64_t)
-                #press_abs                 : Absolute pressure (raw) (int16_t)
-                #press_diff1               : Differential pressure 1 (raw) (int16_t)
-                #press_diff2               : Differential pressure 2 (raw) (int16_t)
-                #temperature               : Raw Temperature measurement (raw) (int16_t)    
+
+    def send_to_mav(self, mav):
+        bar2mbar = 1.0e3
+        try:
+            mav.raw_pressure_send(self.time*sec2msec,
+                             self.press_abs*bar2mbar, self.press_diff1*bar2mbar,
+                             self.press_diff2*bar2mbar, self.temperature*100)
+        except struct.error as e:
+            print 'mav raw pressure packet data exceeds int bounds'
 
     @classmethod
     def default(cls):
-        return cls(time.time(),0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+        return cls(time.time(),0,0,0,0)
+
+    @classmethod
+    def from_state(cls, state):
+        ground_press = 1.01325 #bar
+        ground_tempC = 21.0
+        tempC = 21.0  # TODO temp variation
+        tempAvgK = T0 + (tempC + ground_tempC)/2
+        pressBar = ground_press/math.exp(state.alt*(g/R)/tempAvgK)
+        press_diff1 = 0 # TODO, for velocity
+        press_diff2 = 0 # TODO, ?
+
+        return cls(time=time.time(), press_abs = pressBar, press_diff1 = press_diff1,
+                   press_diff2 = press_diff2, temperature = tempC)
 
 class Imu(object):
 

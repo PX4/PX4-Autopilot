@@ -58,8 +58,8 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	HAtt(6, 9),
 	RAtt(6, 6),
 	// position measurement ekf matrices
-	HPos(6, 9),
-	RPos(6, 6),
+	HPos(5, 9),
+	RPos(5, 5),
 	// attitude representations
 	C_nb(),
 	q(),
@@ -133,10 +133,9 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	// HPos is constant
 	HPos(0, 3) = 1.0f;
 	HPos(1, 4) = 1.0f;
-	HPos(2, 5) = 1.0f;
-	HPos(3, 6) = 1.0f;
-	HPos(4, 7) = 1.0f;
-	HPos(5, 8) = 1.0f;
+	HPos(2, 6) = 1.0f;
+	HPos(3, 7) = 1.0f;
+	HPos(4, 8) = 1.0f;
 
 	// initialize all parameters
 	updateParams();
@@ -567,10 +566,9 @@ void KalmanNav::correctPos()
 	Vector y(6);
 	y(0) = _gps.vel_n - vN;
 	y(1) = _gps.vel_e - vE;
-	y(2) = _gps.vel_d - vD;
-	y(3) = double(_gps.lat) / 1.0e7 / M_RAD_TO_DEG - lat;
-	y(4) = double(_gps.lon) / 1.0e7 / M_RAD_TO_DEG - lon;
-	y(5) = double(_gps.alt) / 1.0e3 - alt;
+	y(2) = double(_gps.lat) / 1.0e7 / M_RAD_TO_DEG - lat;
+	y(3) = double(_gps.lon) / 1.0e7 / M_RAD_TO_DEG - lon;
+	y(4) = double(_gps.alt) / 1.0e3 - alt;
 
 	// compute correction
 	Matrix S = HPos * P * HPos.transpose() + RPos; // residual covariance

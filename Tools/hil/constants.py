@@ -10,3 +10,5 @@ rad2mrad = 1.0e3
 ga2mga = 1.0e3
 rad2deg = 180.0/math.pi
 deg2rad = 1/rad2deg
+T0 = 273.15
+R = 287.05
