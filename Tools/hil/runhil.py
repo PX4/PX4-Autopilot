@@ -279,6 +279,7 @@ class SensorHIL(object):
         self.jsb_console.send('hold\n')
         time.sleep(1.5)
         self.jsb_console.logfile = None
+        t_hil_state = 0
 
         print 'Rebooting autopilot'
         self.reboot_autopilot()
@@ -317,7 +318,9 @@ class SensorHIL(object):
             # if new jsbsim input, process it
             if self.jsb_in.fileno() in rin:
                 if self.mode == 'state':
-                    self.ac.send_state(self.master.mav)
+                    if (time.time() - t_hil_state) > 1.0/50:
+                        t_hil_state = time.time()
+                        self.ac.send_state(self.master.mav)
                 elif self.mode == 'sensor':
                     self.ac.send_sensors(self.master.mav)
                 self.process_jsb_input()
