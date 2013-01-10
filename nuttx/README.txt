@@ -421,7 +421,7 @@ NuttX Configuration Tool under DOS
 ----------------------------------
 
   Recent versions of NuttX support building NuttX from a native Windows
-  CMD.exe shell (see "Native Windows Build" below).  But kconfig-frontends
+  console window (see "Native Windows Build" below).  But kconfig-frontends
   is a Linux tool.  There have been some successes building a Windows
   native version of the kconfig-frontends tool, but that is not ready
   for prime time.
@@ -440,8 +440,8 @@ NuttX Configuration Tool under DOS
      restore CONFIG_WINDOWS_NATIVE=y and the correct CONFIG_APPS_DIR.
 
   2) You can, with some effort, run the the Cygwin kconfig-mconf tool
-     directly in the CMD.exe shell.  In this case, you do not have to
-     modify the .config file, but there are other complexities:
+     directly in the Windows console window.  In this case, you do not
+     have to modify the .config file, but there are other complexities:
 
       a. You need to temporarily set the Cgywin directories in the PATH
          variable then run kconfig-mconf manually like:
@@ -454,7 +454,7 @@ NuttX Configuration Tool under DOS
          tools/kconfig menuconfig
 
        b. There is an issue with accessing DOS environment variables from
-          the Cygwin kconfig-mconf running in the CMD.exe shell.  The
+          the Cygwin kconfig-mconf running in the Windows console.  The
           following change to the top-level Kconfig file seems to work
           around these problems:
   
@@ -680,8 +680,8 @@ Native Windows Build
     - A few extensions from GNUWin32
 
   In this build, you cannot use a Cygwin or MSYS shell. Rather the build must
-  be performed in a Windows CMD shell. Here is a better shell than than the
-  standard issue, CMD shell:  ConEmu which can be downloaded from:
+  be performed in a Windows console window. Here is a better terminal than the
+  standard issue, CMD.exe terminal:  ConEmu which can be downloaded from:
   http://code.google.com/p/conemu-maximus5/
 
   Build Tools.  The build still relies on some Unix-like commands.  I use

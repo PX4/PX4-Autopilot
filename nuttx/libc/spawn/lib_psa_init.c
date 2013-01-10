@@ -1,5 +1,5 @@
 /****************************************************************************
- * libc/string/lib_psfa_addclose.c
+ * libc/string/lib_psa_init.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,31 +39,27 @@
 
 #include <nuttx/config.h>
 
-#include <stdlib.h>
+#include <sched.h>
+#include <signal.h>
 #include <spawn.h>
 #include <assert.h>
 #include <errno.h>
-
-#include "spawn/spawn.h"
+#include <errno.h>
 
 /****************************************************************************
  * Global Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: posix_spawn_file_actions_addclose
+ * Name: posix_spawnattr_init
  *
  * Description:
- *   The posix_spawn_file_actions_addclose() function adds a close operation
- *   to the list of operations associated with the object referenced by
- *   file_actions, for subsequent use in a call to posix_spawn() or
- *   posix_spawnp().  The descriptor referred to by fd is closed as if
- *   close() had been called on it prior to the new child process starting
- *   execution.
+ *   The posix_spawnattr_init() function initializes the object referenced
+ *   by attr, to an empty set of spawn attributes for subsequent use in a
+ *   call to posix_spawn() or posix_spawnp().
  *
  * Input Parameters:
- *   file_actions - The posix_spawn_file_actions_t to append the action.
- *   fd - The file descriptor to be closed.
+ *   attr - The address spawn attributes to be initialized.
  *
  * Returned Value:
  *   On success, these functions return 0; on failure they return an error
@@ -71,30 +67,36 @@
  *
  ****************************************************************************/
 
-int posix_spawn_file_actions_addclose(FAR posix_spawn_file_actions_t *file_actions,
-                                      int fd)
+int posix_spawnattr_init(posix_spawnattr_t *attr)
 {
-  FAR struct spawn_close_file_action_s *entry;
+  struct sched_param param;
+  int ret;
 
-  DEBUGASSERT(file_actions && fd >= 0 && fd < CONFIG_NFILE_DESCRIPTORS);
+  DEBUGASSERT(attr);
 
-  /* Allocate the action list entry */
+  /* Flags: None */
 
-  entry = (FAR struct spawn_close_file_action_s *)
-    zalloc(sizeof(struct spawn_close_file_action_s));
+  attr->flags = 0;
 
-  if (!entry)
+  /* Signal sets.  Don't really matter unless flags are set (then the settings
+   * are not really our responsibility).
+   */
+
+  sigemptyset(&attr->sigdefault);
+  sigemptyset(&attr->sigmask);
+
+  /* Set the default scheduler policy to the policy of this task */
+
+  attr->policy = sched_getscheduler(0);
+
+  /* Set the default priority to the same priority as this task */
+
+  ret = sched_getparam(0, &param);
+  if (ret < 0)
     {
-      return ENOMEM;
+      return errno;
     }
 
-  /* Initialize the file action entry */
-
-  entry->action = SPAWN_FILE_ACTION_CLOSE;
-  entry->fd     = fd;
-
-  /* And add it to the file action list */
-
-  add_file_action(file_actions, (FAR struct spawn_general_file_action_s *)entry);
+  attr->priority = param.sched_priority;
   return OK;
 }

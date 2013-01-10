@@ -1468,8 +1468,8 @@ Where <subdir> is one of the following:
         - A few extensions from GNUWin32 (or MSYS is you prefer)
 
       In this build, you cannot use a Cygwin or MSYS shell. Rather the build must
-      be performed in a Windows CMD shell. Here is a better shell than than the
-      standard issue, CMD shell:  ConEmu which can be downloaded from:
+      be performed in a Windows console. Here is a better shell than than the
+      standard issue, CMD.exe shell:  ConEmu which can be downloaded from:
       http://code.google.com/p/conemu-maximus5/
 
        CONFIG_HOST_WINDOWS=y         : Windows

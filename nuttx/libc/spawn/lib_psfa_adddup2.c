@@ -56,8 +56,8 @@
  * Description:
  *   The posix_spawn_file_actions_adddup2() function adds a dup2 operation to
  *   the list of operations associated with the object referenced by
- *   file_actions, for subsequent use in a call to posix_spawn(2) or
- *   posix_spawnp(2).  The descriptor referred to by fd2 is created as
+ *   file_actions, for subsequent use in a call to posix_spawn() or
+ *   posix_spawnp().  The descriptor referred to by fd2 is created as
  *   if dup2() had been called on fd1 prior to the new child process
  *   starting execution.
  *

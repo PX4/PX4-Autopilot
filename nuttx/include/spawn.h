@@ -43,7 +43,10 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+
+#include <sched.h>
 #include <signal.h>
+#include <errno.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -65,14 +68,18 @@
  ****************************************************************************/
 /* "The spawn.h header shall define the posix_spawnattr_t and
  * posix_spawn_file_actions_t types used in performing spawn operations.
+ *
+ * The internal structure underlying the posix_spawnattr_t is exposed here
+ * because the user will be required to allocate this memory.
  */
 
 struct posix_spawnattr_s
 {
   uint8_t  flags;
   uint8_t  priority;
-  pid_t    group;
-  sigset_t sigset;
+  uint8_t  policy;
+  sigset_t sigdefault;
+  sigset_t sigmask;
 };
 
 typedef struct posix_spawnattr_s posix_spawnattr_t;
@@ -99,6 +106,8 @@ extern "C"
 {
 #endif
 
+/* posix_spawn[p] interfaces ************************************************/
+
 int posix_spawn(FAR pid_t *, FAR const char *,
       FAR const posix_spawn_file_actions_t *, FAR const posix_spawnattr_t *,
       FAR char *const [], FAR char *const []);
@@ -106,8 +115,13 @@ int posix_spawnp(FAR pid_t *, FAR const char *,
       FAR const posix_spawn_file_actions_t *, FAR const posix_spawnattr_t *,
       FAR char *const [], FAR char *const []);
 
+/* File action interfaces ***************************************************/
+/* File action initialization and destruction */
+
 int posix_spawn_file_actions_init(FAR posix_spawn_file_actions_t *);
 int posix_spawn_file_actions_destroy(FAR posix_spawn_file_actions_t *);
+
+/* Add file action interfaces */
 
 int posix_spawn_file_actions_addclose(FAR posix_spawn_file_actions_t *,
       int);
@@ -116,11 +130,22 @@ int posix_spawn_file_actions_adddup2(FAR posix_spawn_file_actions_t *,
 int posix_spawn_file_actions_addopen(FAR posix_spawn_file_actions_t *,
       int, FAR const char *, int, mode_t);
 
+/* Spawn attributes interfaces **********************************************/
+/* Spawn attributes initialization and destruction */
+
 int posix_spawnattr_init(FAR posix_spawnattr_t *);
-int posix_spawnattr_destroy(FAR posix_spawnattr_t *);
+
+/* int posix_spawnattr_destroy(FAR posix_spawnattr_t *); */
+#ifdef CONFIG_DEBUG
+#  define posix_spawnattr_destroy(attr) (attr ? 0 : EINVAL)
+#else
+#  define posix_spawnattr_destroy(attr) (0)
+#endif
+
+/* Get spawn attributes interfaces */
 
 int posix_spawnattr_getflags(FAR const posix_spawnattr_t *, FAR short *);
-int posix_spawnattr_getpgroup(FAR const posix_spawnattr_t *, FAR pid_t *);
+#define posix_spawnattr_getpgroup(attr,group) (ENOSYS)
 int posix_spawnattr_getschedparam(FAR const posix_spawnattr_t *,
       FAR struct sched_param *);
 int posix_spawnattr_getschedpolicy(FAR const posix_spawnattr_t *,
@@ -130,8 +155,10 @@ int posix_spawnattr_getsigdefault(FAR const posix_spawnattr_t *,
 int posix_spawnattr_getsigmask(FAR const posix_spawnattr_t *,
       FAR sigset_t *);
 
+/* Set spawn attributes interfaces */
+
 int posix_spawnattr_setflags(FAR posix_spawnattr_t *, short);
-int posix_spawnattr_setpgroup(FAR posix_spawnattr_t *, pid_t);
+#define posix_spawnattr_setpgroup(attr,group) (ENOSYS)
 int posix_spawnattr_setschedparam(FAR posix_spawnattr_t *,
       FAR const struct sched_param *);
 int posix_spawnattr_setschedpolicy(FAR posix_spawnattr_t *, int);
