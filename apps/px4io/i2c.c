@@ -69,8 +69,8 @@ static void		i2c_dump(void);
 
 static void		i2c_rx_setup(void);
 static void		i2c_tx_setup(void);
-static void		i2c_rx_complete(DMA_HANDLE handle, uint8_t status, void *arg);
-static void		i2c_tx_complete(DMA_HANDLE handle, uint8_t status, void *arg);
+static void		i2c_rx_complete(void);
+static void		i2c_tx_complete(void);
 
 static DMA_HANDLE	rx_dma;
 static DMA_HANDLE	tx_dma;
@@ -111,7 +111,7 @@ i2c_init(void)
 	rCR1 = 0;
 
 	/* set for DMA operation */
-	rCR2 |= I2C_CR2_ITEVFEN | I2C_CR2_DMAEN;
+	rCR2 |= I2C_CR2_ITEVFEN |I2C_CR2_ITERREN | I2C_CR2_DMAEN;
 
 	/* set the frequency value in CR2 */
 	rCR2 &= ~I2C_CR2_FREQ_MASK;
@@ -131,7 +131,9 @@ i2c_init(void)
 
 	/* enable event interrupts */
 	irq_attach(STM32_IRQ_I2C1EV, i2c_interrupt);
+	irq_attach(STM32_IRQ_I2C1ER, i2c_interrupt);
 	up_enable_irq(STM32_IRQ_I2C1EV);
+	up_enable_irq(STM32_IRQ_I2C1ER);
 
 	/* and enable the I2C port */
 	rCR1 |= I2C_CR1_ACK | I2C_CR1_PE;
@@ -154,30 +156,31 @@ i2c_interrupt(int irq, FAR void *context)
 			/* we are the transmitter */
 
 			direction = DIR_TX;
-			stm32_dmastart(tx_dma, i2c_tx_complete, NULL, false);
+			stm32_dmastart(tx_dma, NULL, NULL, false);
 
 		} else {
 			/* we are the receiver */
 
 			direction = DIR_RX;
-			stm32_dmastart(rx_dma, i2c_rx_complete, NULL, false);			
+			stm32_dmastart(rx_dma, NULL, NULL, false);			
 		}
 	}
 
-	if (sr1 & I2C_SR1_STOPF) {
-		/* write to CR1 to clear STOPF */
-		(void)rSR1;		/* as recommended, re-read SR1 */
-		rCR1 |= I2C_CR1_PE;
+	if (sr1 & (I2C_SR1_STOPF | I2C_SR1_AF)) {
+
+		if (sr1 & I2C_SR1_STOPF) {
+			/* write to CR1 to clear STOPF */
+			(void)rSR1;		/* as recommended, re-read SR1 */
+			rCR1 |= I2C_CR1_PE;
+		}
 
 		/* it's likely that the DMA hasn't stopped, so we have to do it here */
 		switch (direction) {
 		case DIR_TX:
-			stm32_dmastop(tx_dma);
-			i2c_tx_complete(tx_dma, 0, NULL);
+			i2c_tx_complete();
 			break;
 		case DIR_RX:
-			stm32_dmastop(rx_dma);
-			i2c_rx_complete(rx_dma, 0, NULL);
+			i2c_rx_complete();
 			break;
 		default:
 			/* spurious stop, ignore */
@@ -186,7 +189,7 @@ i2c_interrupt(int irq, FAR void *context)
 		direction = DIR_NONE;
 	}
 
-	/* clear any errors that might need it */
+	/* clear any errors that might need it (this handles AF as well */
 	if (sr1 & I2C_SR1_ERRORMASK)
 		rSR1 = 0;
 
@@ -196,8 +199,14 @@ i2c_interrupt(int irq, FAR void *context)
 static void
 i2c_rx_setup(void)
 {
+	/*
+	 * Note that we configure DMA in circular mode; this means that a too-long
+	 * transfer will overwrite the buffer, but that avoids us having to deal with
+	 * bailing out of a transaction while the master is still babbling at us.
+	 */
 	rx_len = 0;
 	stm32_dmasetup(rx_dma, (uintptr_t)&rDR, (uintptr_t)&rx_buf[0], sizeof(rx_buf),
+		DMA_CCR_CIRC |
 		DMA_CCR_MINC |
 		DMA_CCR_PSIZE_32BITS |
 		DMA_CCR_MSIZE_8BITS |
@@ -205,22 +214,33 @@ i2c_rx_setup(void)
 }
 
 static void
-i2c_rx_complete(DMA_HANDLE handle, uint8_t status, void *arg)
+i2c_rx_complete(void)
 {
 	rx_len = sizeof(rx_buf) - stm32_dmaresidual(rx_dma);
-
-	for (unsigned i = 0; i < rx_len; i++)
-		tx_buf[i] = rx_buf[i] + 1;
+	stm32_dmastop(rx_dma);
 
 	/* XXX handle reception */
+	for (unsigned i = 0; i < rx_len; i++) {
+		tx_buf[i] = rx_buf[i] + 1;
+		rx_buf[i] = 0;
+	}
+
+	/* prepare for the next transaction */
 	i2c_rx_setup();
 }
 
 static void
 i2c_tx_setup(void)
 {
+	/*
+	 * Note that we configure DMA in circular mode; this means that a too-long
+	 * transfer will copy the buffer more than once, but that avoids us having
+	 * to deal with bailing out of a transaction while the master is still 
+	 * babbling at us.
+	 */
 	stm32_dmasetup(tx_dma, (uintptr_t)&rDR, (uintptr_t)&tx_buf[0], sizeof(tx_buf),
 		DMA_CCR_DIR |
+		DMA_CCR_CIRC |
 		DMA_CCR_MINC |
 		DMA_CCR_PSIZE_8BITS |
 		DMA_CCR_MSIZE_8BITS |
@@ -228,9 +248,14 @@ i2c_tx_setup(void)
 }
 
 static void
-i2c_tx_complete(DMA_HANDLE handle, uint8_t status, void *arg)
+i2c_tx_complete(void)
 {
+	stm32_dmastop(tx_dma);
+
 	/* XXX handle transmit-done */
+
+	/* prepare for the next transaction */
+	memset(tx_buf, 0, sizeof(tx_buf));
 	i2c_tx_setup();
 }
 
