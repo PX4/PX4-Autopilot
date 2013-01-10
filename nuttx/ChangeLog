@@ -3897,4 +3897,6 @@
 	  arch/arm/src/lm so that is can support other members of the
 	  Stellaris family.
 	* libc/spawn:  Add file action interfaces needed by posix_spawn().
+	* sched/clock_time2ticks.c:  Another case where time was being
+	  rounded down instead of up (from Mikek Smith).
 
