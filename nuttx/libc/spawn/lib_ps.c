@@ -157,10 +157,16 @@ static int ps_exec(FAR pid_t *pidp, FAR const char *path,
                    FAR char *const argv[])
 {
   struct sched_param param;
+  FAR struct symtab_s *symtab;
+  int nsymbols;
   int pid;
   int ret = OK;
 
   DEBUGASSERT(path);
+
+  /* Get the current symbol table selection */
+
+  exec_getsymtab(&symtab, &nsymbols);
 
   /* Disable pre-emption so that we can modify the task parameters after
    * we start the new task; the new task will not actually begin execution
@@ -171,13 +177,11 @@ static int ps_exec(FAR pid_t *pidp, FAR const char *path,
 
   /* Start the task */
 
-  pid = exec(path, (FAR const char **)argv, &CONFIG_EXECFUNCS_SYMTAB,
-             CONFIG_EXECFUNCS_NSYMBOLS);
-
+  pid = exec(path, (FAR const char **)argv, symtab, nsymbols);
   if (pid < 0)
     {
       ret = errno;
-      sdbg("exec failed: %d\n", ret);
+      sdbg("ERROR: exec failed: %d\n", ret);
       goto errout;
     }
 
@@ -211,6 +215,9 @@ static int ps_exec(FAR pid_t *pidp, FAR const char *path,
 
           if ((attr->flags & POSIX_SPAWN_SETSCHEDULER) == 0)
             {
+              svdbg("Setting priority=%d for pid=%d\n",
+                    param.sched_priority, pid);
+
               (void)sched_setparam(pid, &param);
             }
         }
@@ -231,6 +238,9 @@ static int ps_exec(FAR pid_t *pidp, FAR const char *path,
 
       if ((attr->flags & POSIX_SPAWN_SETSCHEDULER) != 0)
         {
+          svdbg("Setting policy=%d priority=%d for pid=%d\n",
+                attr->policy, param.sched_priority, pid);
+
           (void)sched_setscheduler(pid, attr->policy, &param);
         }
     }
@@ -262,18 +272,27 @@ static inline int spawn_close(FAR struct spawn_close_file_action_s *action)
 {
   /* The return value from close() is ignored */
 
+  svdbg("Closing fd=%d\n", action->fd);
+
   (void)close(action->fd);
   return OK;
 }
 
 static inline int spawn_dup2(FAR struct spawn_dup2_file_action_s *action)
 {
+  int ret;
+
   /* Perform the dup */
 
-  int ret = dup2(action->fd1, action->fd2);
+  svdbg("Dup'ing %d->%d\n", action->fd1, action->fd2);
+
+  ret = dup2(action->fd1, action->fd2);
   if (ret < 0)
     {
-      return errno;
+      int errcode = errno;
+
+      sdbg("ERROR: dup2 failed: %d\n", errcode);
+      return errcode;
     }
 
   return OK;
@@ -286,10 +305,14 @@ static inline int spawn_open(FAR struct spawn_open_file_action_s *action)
 
   /* Open the file */
 
+  svdbg("Open'ing path=%s oflags=%04x mode=%04x\n",
+        action->path, action->oflags, action->mode);
+
   fd = open(action->path, action->oflags, action->mode);
   if (fd < 0)
     {
       ret = errno;
+      sdbg("ERROR: open failed: %d\n", ret);
     }
 
   /* Does the return file descriptor happen to match the required file
@@ -300,12 +323,16 @@ static inline int spawn_open(FAR struct spawn_open_file_action_s *action)
     {
       /* No.. dup2 to get the correct file number */
 
+      svdbg("Dup'ing %d->%d\n", fd, action->fd);
+
       ret = dup2(fd, action->fd);
       if (ret < 0)
         {
           ret = errno;
+          sdbg("ERROR: dup2 failed: %d\n", ret);
         }
 
+      svdbg("Closing fd=%d\n", fd);
       close(fd);
     }
 
@@ -379,6 +406,7 @@ static int spawn_proxy(int argc, char *argv[])
 
             case SPAWN_FILE_ACTION_NONE:
             default:
+              sdbg("ERROR: Unknown action: %d\n", entry->action);
               ret = EINVAL;
               break;
             }
@@ -517,6 +545,9 @@ int posix_spawn(FAR pid_t *pid, FAR const char *path,
 
   DEBUGASSERT(path);
 
+  svdbg("pid=%p path=%s file_actions=%p attr=%p argv=%p\n",
+        pid, path, file_actions, attr, argv);
+
   /* If there are no file actions to be performed and there is no change to
    * the signal mask, then start the new child task directly from the parent task.
    */
@@ -559,8 +590,11 @@ int posix_spawn(FAR pid_t *pid, FAR const char *path,
   ret = sched_getparam(0, &param);
   if (ret < 0)
     {
+      int errcode = errno;
+
+      sdbg("ERROR: sched_getparam failed: %d\n", errcode);
       ps_semgive(&g_ps_parmsem);
-      return errno;
+      return errcode;
     }
 
   /* Start the intermediary/proxy task at the same priority as the parent task. */
@@ -570,8 +604,11 @@ int posix_spawn(FAR pid_t *pid, FAR const char *path,
                       (const char **)NULL);
   if (proxy < 0)
     {
+      int errcode = errno;
+
+      sdbg("ERROR: Failed to start spawn_proxy: %d\n", errcode);
       ps_semgive(&g_ps_parmsem);
-      return errno;
+      return errcode;
     }
 
    /* Wait for the proxy to complete its job */

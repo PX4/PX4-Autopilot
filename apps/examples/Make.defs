@@ -182,6 +182,10 @@ ifeq ($(CONFIG_EXAMPLES_PWM),y)
 CONFIGURED_APPS += examples/pwm
 endif
 
+ifeq ($(CONFIG_EXAMPLES_POSIXSPAWN),y)
+CONFIGURED_APPS += examples/posix_spawn
+endif
+
 ifeq ($(CONFIG_EXAMPLES_QENCODER),y)
 CONFIGURED_APPS += examples/qencoder
 endif

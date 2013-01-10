@@ -43,7 +43,7 @@ CSRCS +=  lib_chdir.c lib_getcwd.c
 endif
 
 ifeq ($(CONFIG_LIBC_EXECFUNCS),y)
-CSRCS +=  lib_execl.c lib_execv.c
+CSRCS +=  lib_execl.c lib_execv.c lib_execsymtab.c
 endif
 endif
 

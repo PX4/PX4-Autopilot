@@ -40,8 +40,8 @@
 SUBDIRS  = adc buttons can cdcacm composite cxxtest dhcpd discover elf ftpc
 SUBDIRS += ftpd hello helloxx hidkbd igmp json keypadtest lcdrw mm modbus mount
 SUBDIRS += nettest nsh null nx nxconsole nxffs nxflat nxhello nximage
-SUBDIRS += nxlines nxtext ostest  pashello pipe poll pwm qencoder relays
-SUBDIRS += rgmp romfs serloop telnetd thttpd tiff touchscreen udp uip
+SUBDIRS += nxlines nxtext ostest  pashello pipe poll pwm posix_spawn qencoder
+SUBDIRS += relays rgmp romfs serloop telnetd thttpd tiff touchscreen udp uip
 SUBDIRS += usbserial sendmail usbstorage usbterm watchdog wget wgetjson
 
 # Sub-directories that might need context setup.  Directories may need

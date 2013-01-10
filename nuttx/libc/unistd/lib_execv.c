@@ -51,27 +51,6 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-/* If CONFIG_LIBC_EXECFUNCS is defined in the configuration, then the
- * following must also be defined:
- */
-
-/* Symbol table used by exec[l|v] */
-
-#ifndef CONFIG_EXECFUNCS_SYMTAB
-#  error "CONFIG_EXECFUNCS_SYMTAB must be defined"
-#endif
-
-/* Number of Symbols in the Table */
-
-#ifndef CONFIG_EXECFUNCS_NSYMBOLS
-#  error "CONFIG_EXECFUNCS_NSYMBOLS must be defined"
-#endif
-
-/****************************************************************************
- * Public Variables
- ****************************************************************************/
-
-extern struct symtab_s CONFIG_EXECFUNCS_SYMTAB;
 
 /****************************************************************************
  * Private Variables
@@ -140,13 +119,17 @@ extern struct symtab_s CONFIG_EXECFUNCS_SYMTAB;
 
 int execv(FAR const char *path, FAR char *const argv[])
 {
+  FAR struct symtab_s *symtab;
+  int nsymbols;
   int ret;
+
+  /* Get the current symbol table selection */
+
+  exec_getsymtab(&symtab, &nsymbols);
 
   /* Start the task */
 
-  ret = exec(path, (FAR const char **)argv,
-             &CONFIG_EXECFUNCS_SYMTAB, CONFIG_EXECFUNCS_NSYMBOLS);
-
+  ret = exec(path, (FAR const char **)argv, symtab, nsymbols);
   if (ret < 0)
     {
       sdbg("exec failed: %d\n", errno);
