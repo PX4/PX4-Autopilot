@@ -95,25 +95,4 @@ __EXPORT void stm32_boardinitialize(void)
 
 	stm32_configgpio(GPIO_ADC_VBATT);
 	stm32_configgpio(GPIO_ADC_IN5);
-
-	/* set up the serial DMA polling */
-#ifdef SERIAL_HAVE_DMA
-	{
-		static struct hrt_call serial_dma_call;
-		struct timespec ts;
-
-		/*
-		 * Poll at 1ms intervals for received bytes that have not triggered
-		 * a DMA event.
-		 */
-		ts.tv_sec = 0;
-		ts.tv_nsec = 1000000;
-
-		hrt_call_every(&serial_dma_call,
-			       ts_to_abstime(&ts),
-			       ts_to_abstime(&ts),
-			       (hrt_callout)stm32_serial_dma_poll,
-			       NULL);
-	}
-#endif
 }
