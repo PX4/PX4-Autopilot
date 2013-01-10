@@ -232,41 +232,100 @@ class SensorHIL(object):
 
     def enable_hil(self):
         ''' enable hil mode '''
-        count = 0
+        t_start = time.time()
         while not self.hil_enabled():
             self.master.set_mode_flag(mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED,True)
             while self.master.port.inWaiting() > 0:
                 m = self.master.recv_msg()
             time.sleep(0.001)
-            count += 1
-            #if count > 1000: raise IOError('Failed to enable HIL, check port')
+            if time.time()  - t_start > 5: raise IOError('Failed to enable HIL, check port')
+
+    def wait_for_no_msg(self, msg, period, callback=None):
+        alive = True
+        t_last = time.time()
+        while alive:
+            if callback is not None: callback()
+            while self.master.port.inWaiting() > 0:
+                m = self.master.recv_msg()
+                if m is None: continue
+                if m.get_type() == msg:
+                    t_last = time.time()
+            if time.time() - t_last > period:
+                alive = False
+            time.sleep(0.001)
+ 
+    def wait_for_msg(self, msg, callback=None):
+        alive = False
+        while not alive:
+            if callback is not None: callback()
+            while self.master.port.inWaiting() > 0:
+                m = self.master.recv_msg()
+                if m is None: continue
+                if m.get_type() == msg:
+                    alive = True
+                    break
+            time.sleep(0.001)
 
     def reboot_autopilot(self):
+        # must be in hil mode to reboot from auto/ armed
         if not self.hil_enabled(): self.enable_hil()
-        self.master.reboot_autopilot()
-        time.sleep(8)
-
+        # send reboot command 4 times so it gets it
+        # consistently
+        print 'shutting down ...'
+        self.wait_for_no_msg('HEARTBEAT',3, self.master.reboot_autopilot)
+        print 'complete'
+        # clear master buffer
+        self.master.reset()
+        print 'waiting for startup ...'
+        self.wait_for_msg('HEARTBEAT')
+        time.sleep(10)
+        print 'complete'
         # Reenable HIL and reset serial (clear buffer)
         if not self.hil_enabled(): self.enable_hil()
-        self.master.reset()
 
     def set_waypoints(self, waypoints):
         if waypoints == None:
             return
         MAV_COMP_ID_MISSIONPLANNER = 190
         self.wpload = mavwp.MAVWPLoader(target_system=self.master.target_system, target_component=mavlink.MAV_COMP_ID_MISSIONPLANNER)
-
         self.wpcount = self.wpload.load(waypoints)
 
-    def send_waypoints(self):
+    def clear_waypoints(self):
         self.master.waypoint_clear_all_send()
+        self.master.waypoint_clear_all_send()
+        self.master.waypoint_clear_all_send()
+        #t_start = time.time()
+        #ack = False
+        #while not ack:
+            #self.master.waypoint_clear_all_send()
+            #while self.master.port.inWaiting() > 0:
+                #m = self.master.recv_msg()
+                #if m == None: continue
+                #print 'message: ', m.get_type()
+                #if m.get_type() == 'MISSION_ACK':
+                    #ack = True
+                    #break
+            #time.sleep(0.001)
+            #if time.time() - t_start > 5: raise IOError('Failed to ack waypoint clear')
+
+    def send_waypoints(self):
+        self.clear_waypoints()
         if self.wpcount == 0:
             return
         self.wpindex = 0
         self.wploading = True
         self.wpload_time = time.time()
-        self.master.waypoint_count_send(self.wpcount)
-        print "Sent waypoint count of %u to master" % self.wpcount
+        while not self.wpindex > 0: 
+            self.master.waypoint_count_send(self.wpcount)
+            print "Sent waypoint count of %u to master" % self.wpcount
+            time.sleep(1)
+            while self.master.port.inWaiting() > 0:
+                m = self.master.recv_msg()
+                if m == None: continue
+                self.process_waypoint_request(m)
+            time.sleep(0.0001)
+            if time.time() - self.wpload_time > 10:
+                raise IOError('Failed to send waypoints')
 
     def process_waypoint_request(self, m):
 
@@ -282,18 +341,33 @@ class SensorHIL(object):
             print "Waypoint uploading complete"
 
         elif m.get_type() == "MISSION_REQUEST": 
-            self.master.target_system = m.target_system
-            if m.get_seq() != self.wpindex:
-                print "Waypoint request sequence {0:d} doesn't match current index {1:d}! Cannot continue loading.".format(m.get_seq(),self.wpindex)
+            # should never happen
+            if m.get_seq() > self.wpcount -1:
+                print "Waypoint request sequence {0:d} \
+                        is greater than waypoint count {1:d}! \
+                        Cannot continue loading.".format(self.wpcount,self.wpindex)
+                self.wploading = False
+                self.wpindex = 0
+            # last transmission was missed, retransmit
+            elif m.get_seq() == self.wpindex - 1:
+                self.wpload_time = time.time()
+                wp = self.wpload.wp(self.wpindex - 1)
+                self.master.mav.send(wp)
+                print "Sent waypoint %u: %s" % (self.wpindex, wp)
+            # ready for new waypoint
+            elif m.get_seq() == self.wpindex:
+                self.wpload_time = time.time()
+                wp = self.wpload.wp(self.wpindex)
+                self.master.mav.send(wp)
+                print "Sent waypoint %u: %s" % (self.wpindex, wp)
+                self.wpindex += 1 # we know last waypoint was received, can move on
+            else:
+                print "Waypoint request sequence {0:d} \
+                        doesn't match current index {1:d}! \
+                        Cannot continue loading.".format(m.get_seq(),self.wpindex)
                 self.wploading = False
                 self.wpindex = 0
                 return
-
-            self.wpload_time = time.time()
-            wp = self.wpload.wp(self.wpindex)
-            self.master.mav.send(wp)
-            print "Sent waypoint %u: %s" % (self.wpindex, wp)
-            self.wpindex += 1
 
     def jsb_set(self, variable, value):
         '''set a JSBSim variable'''
