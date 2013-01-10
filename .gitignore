@@ -46,3 +46,4 @@ dot.gdbinit
 mavlink/include/mavlink/v0.9/
 .*.swp
 .swp
+core

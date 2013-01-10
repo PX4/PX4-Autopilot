@@ -225,6 +225,7 @@ class SensorHIL(object):
         self.wpload = None
         self.wpload_time = 0
         self.wpindex = 0
+        self.wpcount = 0
 
     def hil_enabled(self):
         return self.master.base_mode & mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED
@@ -238,7 +239,7 @@ class SensorHIL(object):
                 m = self.master.recv_msg()
             time.sleep(0.001)
             count += 1
-            if count > 1000: raise IOError('Failed to enable HIL, check port')
+            #if count > 1000: raise IOError('Failed to enable HIL, check port')
 
     def reboot_autopilot(self):
         if not self.hil_enabled(): self.enable_hil()
@@ -255,22 +256,17 @@ class SensorHIL(object):
         MAV_COMP_ID_MISSIONPLANNER = 190
         self.wpload = mavwp.MAVWPLoader(target_system=self.master.target_system, target_component=mavlink.MAV_COMP_ID_MISSIONPLANNER)
 
-        try:
-            count = self.wpload.load(waypoints)
-            print "Loaded %u waypoints from %s" % (count, waypoints)
-        except Exception, msg:
-            print 'Unable to load waypoints file %s' % waypoints
-            return
+        self.wpcount = self.wpload.load(waypoints)
 
+    def send_waypoints(self):
         self.master.waypoint_clear_all_send()
-        if count == 0:
+        if self.wpcount == 0:
             return
-
         self.wpindex = 0
         self.wploading = True
         self.wpload_time = time.time()
-        self.master.waypoint_count_send(count)
-        print "Sent waypoint count of %u to master" % count
+        self.master.waypoint_count_send(self.wpcount)
+        print "Sent waypoint count of %u to master" % self.wpcount
 
     def process_waypoint_request(self, m):
 
@@ -287,11 +283,12 @@ class SensorHIL(object):
 
         elif m.get_type() == "MISSION_REQUEST": 
             if m.get_seq() != self.wpindex:
-                print "Waypoint request sequence doesn't match current index! Cannot continue loading."
+                print "Waypoint request sequence {0:d} doesn't match current index {1:d}! Cannot continue loading.".format(m.get_seq(),self.wpindex)
                 self.wploading = False
                 self.wpindex = 0
                 return
 
+            self.wpload_time = time.time()
             wp = self.wpload.wp(self.wpindex)
             self.master.mav.send(wp)
             print "Sent waypoint %u: %s" % (self.wpindex, wp)
@@ -375,10 +372,11 @@ class SensorHIL(object):
         self.jsb_console.logfile = None
 
         print 'Rebooting autopilot'
-        self.reboot_autopilot()
-        
+        #self.reboot_autopilot()
+
         print 'load waypoints'
         self.set_waypoints(self.waypoints)
+        self.send_waypoints()
         
         print 'set auto'
         self.master.set_mode_auto()
@@ -425,6 +423,10 @@ class SensorHIL(object):
                 util.pexpect_drain(self.jsb)
 
             # periodic output
+            if time.time() - self.wpload_time > 1000000:
+                self.wp_load_time = time.time()
+                self.send_waypoints()
+
             dt_report = time.time() - self.last_report
             if dt_report > 5:
                 print '\nmode: {0:X}, JSBSim {1:5.0f} Hz, {2:d} sent, {3:d} received, {4:d} errors, bwin={5:.1f} kB/s, bwout={6:.1f} kB/s'.format(
