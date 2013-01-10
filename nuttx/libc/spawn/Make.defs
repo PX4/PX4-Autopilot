@@ -46,6 +46,10 @@ CSRCS += lib_psa_getflags.c lib_psa_getschedparam.c lib_psa_getschedpolicy.c
 CSRCS += lib_psa_init.c lib_psa_setflags.c lib_psa_setschedparam.c
 CSRCS += lib_psa_setschedpolicy.c
 
+ifneq ($(CONFIG_DISABLE_SIGNALS),y)
+CSRCS += lib_psa_getsigmask.c lib_psa_setsigmask.c
+endif
+
 # Add the spawn directory to the build
 
 DEPPATH += --dep-path spawn

@@ -231,8 +231,8 @@ int task_schedsetup(FAR _TCB *tcb, int priority, start_t start, main_t main)
       tcb->start          = start;
       tcb->entry.main     = main;
 
-      /* exec() and pthread_create() inherit the signal mask of the
-       * parent thread.  I suppose that task_create() should as well.
+      /* exec(), pthread_create(), task_create(), and vfork() all
+       * inherit the signal mask of the parent thread.
        */
 
 #ifndef CONFIG_DISABLE_SIGNALS

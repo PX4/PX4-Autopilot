@@ -45,6 +45,7 @@
 #include <sys/types.h>
 
 #include <sched.h>
+#include <signal.h>
 #include <errno.h>
 
 /****************************************************************************
@@ -77,6 +78,9 @@ struct posix_spawnattr_s
   uint8_t  flags;
   uint8_t  priority;
   uint8_t  policy;
+#ifndef CONFIG_DISABLE_SIGNALS
+  sigset_t sigmask;
+#endif
 };
 
 typedef struct posix_spawnattr_s posix_spawnattr_t;
@@ -155,7 +159,12 @@ int posix_spawnattr_getschedparam(FAR const posix_spawnattr_t *attr,
 int posix_spawnattr_getschedpolicy(FAR const posix_spawnattr_t *attr,
       FAR int *policy);
 #define posix_spawnattr_getsigdefault(attr,sigdefault) (ENOSYS)
-#define posix_spawnattr_getsigmask(attr,sigmask) (ENOSYS)
+#ifndef CONFIG_DISABLE_SIGNALS
+int posix_spawnattr_getsigmask(FAR const posix_spawnattr_t *attr,
+                               FAR sigset_t *sigmask);
+#else
+#  define posix_spawnattr_getsigmask(attr,sigmask) (ENOSYS)
+#endif
 
 /* Set spawn attributes interfaces */
 
@@ -165,7 +174,12 @@ int posix_spawnattr_setschedparam(FAR posix_spawnattr_t *attr,
       FAR const struct sched_param *param);
 int posix_spawnattr_setschedpolicy(FAR posix_spawnattr_t *attr, int policy);
 #define posix_spawnattr_setsigdefault(attr,sigdefault) (ENOSYS)
-#define posix_spawnattr_setsigmask(attr,sigmask) (ENOSYS)
+#ifndef CONFIG_DISABLE_SIGNALS
+int posix_spawnattr_setsigmask(FAR posix_spawnattr_t *attr,
+                               FAR const sigset_t *sigmask);
+#else
+#  define posix_spawnattr_setsigmask(attr,sigmask) (ENOSYS)
+#endif
 
 #ifdef __cplusplus
 }

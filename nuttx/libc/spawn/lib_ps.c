@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <semaphore.h>
+#include <signal.h>
 #include <sched.h>
 #include <fcntl.h>
 #include <spawn.h>
@@ -136,6 +137,8 @@ static void ps_semtake(FAR sem_t *sem)
  *       value.
  *     - POSIX_SPAWN_SETSCHEDULER: Set the new tasks scheduler priority to
  *       the sched_policy value.
+ *
+ *     NOTE: POSIX_SPAWN_SETSIGMASK is handled in ps_proxy().
  *
  *   argv - argv[] is the argument list for the new task.  argv[] is an
  *     array of pointers to null-terminated strings. The list is terminated
@@ -326,38 +329,59 @@ static inline int spawn_open(FAR struct spawn_open_file_action_s *action)
 static int spawn_proxy(int argc, char *argv[])
 {
   FAR struct spawn_general_file_action_s *entry;
+  FAR const posix_spawnattr_t *attr = g_ps_parms.attr;
   int ret;
 
-  /* Perform I/O redirection.  We get here only if the file_actions parameter
-   * to posix_spawn[p] was non-NULL.
+  /* Perform file actions and/or set a custom signal mask.  We get here only
+   * if the file_actions parameter to posix_spawn[p] was non-NULL and/or the
+   * option to change the signal mask was selected.
    */
 
+#ifndef CONFIG_DISABLE_SIGNALS
+  DEBUGASSERT(g_ps_parms.file_actions ||
+              (attr && (attr->flags & POSIX_SPAWN_SETSIGMASK) != 0));
+#else
   DEBUGASSERT(g_ps_parms.file_actions);
+#endif
 
-  /* Execute each file action */
+  /* Check if we need to change the signal mask */
 
-  for (entry = (FAR struct spawn_general_file_action_s *)*g_ps_parms.file_actions;
-       entry && ret == OK;
-       entry = entry->flink)
+#ifndef CONFIG_DISABLE_SIGNALS
+  if (attr && (attr->flags & POSIX_SPAWN_SETSIGMASK) != 0)
     {
-      switch (entry->action)
+      (void)sigprocmask(SIG_SETMASK, &attr->sigmask, NULL);
+    }
+
+  /* Were we also requested to perform file actions? */
+
+  if (g_ps_parms.file_actions)
+#endif
+    {
+      /* Execute each file action */
+
+      for (entry = (FAR struct spawn_general_file_action_s *)*g_ps_parms.file_actions;
+           entry && ret == OK;
+           entry = entry->flink)
         {
-        case SPAWN_FILE_ACTION_CLOSE:
-          ret = spawn_close((FAR struct spawn_close_file_action_s *)entry);
-          break;
+          switch (entry->action)
+            {
+            case SPAWN_FILE_ACTION_CLOSE:
+              ret = spawn_close((FAR struct spawn_close_file_action_s *)entry);
+              break;
 
-        case SPAWN_FILE_ACTION_DUP2:
-          ret = spawn_dup2((FAR struct spawn_dup2_file_action_s *)entry);
-          break;
+            case SPAWN_FILE_ACTION_DUP2:
+              ret = spawn_dup2((FAR struct spawn_dup2_file_action_s *)entry);
+              break;
 
-        case SPAWN_FILE_ACTION_OPEN:
-          ret = spawn_open((FAR struct spawn_open_file_action_s *)entry);
-          break;
+            case SPAWN_FILE_ACTION_OPEN:
+              ret = spawn_open((FAR struct spawn_open_file_action_s *)entry);
+              break;
 
-        case SPAWN_FILE_ACTION_NONE:
-        default:
-          ret = EINVAL;
-          break;
+            case SPAWN_FILE_ACTION_NONE:
+            default:
+              ret = EINVAL;
+              break;
+            }
         }
     }
 
@@ -367,8 +391,7 @@ static int spawn_proxy(int argc, char *argv[])
     {
       /* Start the task */
 
-      ret = ps_exec(g_ps_parms.pid, g_ps_parms.path, g_ps_parms.attr,
-                    g_ps_parms.argv);
+      ret = ps_exec(g_ps_parms.pid, g_ps_parms.path, attr, g_ps_parms.argv);
     }
 
   /* Post the semaphore to inform the parent task that we have completed
@@ -424,18 +447,16 @@ static int spawn_proxy(int argc, char *argv[])
  *     It will contains these attributes, not all of which are supported by
  *     NuttX:
  *
- *     - POSIX_SPAWN_SETPGROUP:  Setting of the new tasks process group is
+ *     - POSIX_SPAWN_SETPGROUP:  Setting of the new task's process group is
  *       not supported.  NuttX does not support process groups.
  *     - POSIX_SPAWN_SETSCHEDPARAM: Set new tasks priority to the sched_param
  *       value.
- *     - POSIX_SPAWN_SETSCHEDULER: Set the new tasks scheduler priority to
+ *     - POSIX_SPAWN_SETSCHEDULER: Set the new task's scheduler priority to
  *       the sched_policy value.
  *     - POSIX_SPAWN_RESETIDS: Resetting of effective user ID of the child
  *       process is not supported.  NuttX does not support effective user
  *       IDs.
- *     - POSIX_SPAWN_SETSIGMASK: Setting the initial signal mask of the new
- *       task is not supported.  NuttX does support signal masks, but there
- *       is no mechanism in place now to do this.
+ *     - POSIX_SPAWN_SETSIGMASK: Set the new task's signal mask.
  *     - POSIX_SPAWN_SETSIGDEF:  Resetting signal default actions is not
  *       supported.  NuttX does not support default signal actions.
  *
@@ -496,11 +517,15 @@ int posix_spawn(FAR pid_t *pid, FAR const char *path,
 
   DEBUGASSERT(path);
 
-  /* If there are no file actions to be performed, then start the new child
-   * task directory form the parent task.
+  /* If there are no file actions to be performed and there is no change to
+   * the signal mask, then start the new child task directly from the parent task.
    */
 
+#ifndef CONFIG_DISABLE_SIGNALS
+  if (!file_actions && (attr->flags & POSIX_SPAWN_SETSIGMASK) == 0)
+#else
   if (!file_actions)
+#endif
     {
       return ps_exec(pid, path, attr, argv);
     }
