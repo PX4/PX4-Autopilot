@@ -9,6 +9,13 @@ close all
 % Set the path to your sysvector.bin file here
 filePath = 'sysvector.bin';
 
+% Work around a Matlab bug (not related to PX4)
+% where timestamps from 1.1.1970 do not allow to
+% read the file's size
+if ismac
+    system('touch -t 201212121212.12 sysvector.bin');
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%
 % SYSTEM VECTOR
 %
@@ -105,5 +112,3 @@ if exist(filePath, 'file')
 else
     disp(['file: ' filePath ' does not exist' char(10)]);
 end
-
-
