@@ -3899,4 +3899,8 @@
 	* libc/spawn:  Add file action interfaces needed by posix_spawn().
 	* sched/clock_time2ticks.c:  Another case where time was being
 	  rounded down instead of up (from Mike Smith).
+	* libc/spawn:  Implementation of posix_spawn() is complete but
+	  untested and undocumented.
+	* drivers/usbdev/pl2303.c:  Fix typols in the PL2303 driver
+	  (from Max Holtzberg).
 

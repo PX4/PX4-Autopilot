@@ -6,7 +6,7 @@ standards, things that could be improved, and ideas for enhancements.
 
 nuttx/
 
- (11)  Task/Scheduler (sched/)
+ (12)  Task/Scheduler (sched/)
   (1)  Memory Managment (mm/)
   (2)  Signals (sched/, arch/)
   (2)  pthreads (sched/)
@@ -188,6 +188,17 @@ o Task/Scheduler (sched/)
                function cannot know the ID of the exec'ed task.
   Status:      Open
   Priority:    Medium Low for now
+
+  Title:       INHERITANCE of sigmask
+  Description: New tasks/threads do not inherit the parent's signal mask.
+               This behavior is required under POSIX.
+
+               Also, related: Setting of the initial sigmask was not
+               implemented in posix_spawn (libc/spawn) because of this.
+  Status:      Open
+  Priority:    Low, make medium-low.  These kinds of behaviors are not
+               common in tiny embedded RTOSs.  And it has always been
+               like this and no one has complained so far.
 
 o Memory Managment (mm/)
   ^^^^^^^^^^^^^^^^^^^^^^

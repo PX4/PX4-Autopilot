@@ -39,10 +39,349 @@
 
 #include <nuttx/config.h>
 
+#include <semaphore.h>
+#include <sched.h>
+#include <fcntl.h>
 #include <spawn.h>
+#include <errno.h>
+#include <assert.h>
+#include <debug.h>
+
+#include <nuttx/binfmt/binfmt.h>
+
+#include "spawn/spawn.h"
 
 /****************************************************************************
- * Global Functions
+ * Private Types
+ ****************************************************************************/
+
+struct spawn_parms_s
+{
+  int result;
+  FAR pid_t *pid;
+  FAR const char *path;
+  FAR const posix_spawn_file_actions_t *file_actions;
+  FAR const posix_spawnattr_t *attr;
+  FAR char *const *argv;
+};
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+extern struct symtab_s CONFIG_EXECFUNCS_SYMTAB;
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static sem_t g_ps_parmsem = SEM_INITIALIZER(1);
+static sem_t g_ps_execsem = SEM_INITIALIZER(0);
+static struct spawn_parms_s g_ps_parms;
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: ps_semtake and ps_semgive
+ *
+ * Description:
+ *   Give and take semaphores
+ *
+ * Input Parameters:
+ *
+ *   sem - The semaphore to act on.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static void ps_semtake(FAR sem_t *sem)
+{
+  int ret;
+
+  do
+    {
+      ret = sem_wait(sem);
+      ASSERT(ret == 0 || errno == EINTR);
+    }
+  while (ret != 0);
+}
+
+#define ps_semgive(sem) sem_post(sem)
+
+/****************************************************************************
+ * Name: ps_exec
+ *
+ * Description:
+ *   Execute the task from the file system.
+ *
+ * Input Parameters:
+ *
+ *   pidp - Upon successful completion, this will return the task ID of the
+ *     child task in the variable pointed to by a non-NULL 'pid' argument.|
+ *
+ *   path - The 'path' argument identifies the file to execute.  If
+ *     CONFIG_BINFMT_EXEPATH is defined, this may be either a relative or
+ *     or an absolute path.  Otherwise, it must be an absolute path.
+ *
+ *   attr - If the value of the 'attr' parameter is NULL, the all default
+ *     values for the POSIX spawn attributes will be used.  Otherwise, the
+ *     attributes will be set according to the spawn flags.  The
+ *     following spawn flags are supported:
+ *
+ *     - POSIX_SPAWN_SETSCHEDPARAM: Set new tasks priority to the sched_param
+ *       value.
+ *     - POSIX_SPAWN_SETSCHEDULER: Set the new tasks scheduler priority to
+ *       the sched_policy value.
+ *
+ *   argv - argv[] is the argument list for the new task.  argv[] is an
+ *     array of pointers to null-terminated strings. The list is terminated
+ *     with a null pointer.
+ *
+ * Returned Value:
+ *   This function will return zero on success. Otherwise, an error number
+ *   will be returned as the function return value to indicate the error.
+ *   This errno value may be that set by execv(), sched_setpolicy(), or
+ *   sched_setparam().
+ *
+ ****************************************************************************/
+
+static int ps_exec(FAR pid_t *pidp, FAR const char *path,
+                   FAR const posix_spawnattr_t *attr,
+                   FAR char *const argv[])
+{
+  struct sched_param param;
+  int pid;
+  int ret = OK;
+
+  DEBUGASSERT(path);
+
+  /* Disable pre-emption so that we can modify the task parameters after
+   * we start the new task; the new task will not actually begin execution
+   * until we re-enable pre-emption.
+   */
+
+  sched_lock();
+
+  /* Start the task */
+
+  pid = exec(path, (FAR const char **)argv, &CONFIG_EXECFUNCS_SYMTAB,
+             CONFIG_EXECFUNCS_NSYMBOLS);
+
+  if (pid < 0)
+    {
+      ret = errno;
+      sdbg("exec failed: %d\n", ret);
+      goto errout;
+    }
+
+  /* Return the task ID to the caller */
+
+  if (pid)
+    {
+      *pidp = pid;
+    }
+
+  /* Now set the attributes.  Note that we ignore all of the return values
+   * here because we have already successfully started the task.  If we
+   * return an error value, then we would also have to stop the task.
+   */
+
+  if (attr)
+    {
+      /* If we are only setting the priority, then call sched_setparm()
+       * to set the priority of the of the new task.
+       */
+
+      if ((attr->flags & POSIX_SPAWN_SETSCHEDPARAM) != 0)
+        {
+          /* Get the priority from the attrributes */
+
+          param.sched_priority = attr->priority;
+
+          /* If we are setting *both* the priority and the scheduler,
+           * then we will call sched_setscheduler() below.
+           */
+
+          if ((attr->flags & POSIX_SPAWN_SETSCHEDULER) == 0)
+            {
+              (void)sched_setparam(pid, &param);
+            }
+        }
+
+      /* If we are only changing the scheduling policy, then reset
+       * the priority to the default value (the same as this thread) in
+       * preparation for the sched_setscheduler() call below.
+       */
+
+      else if ((attr->flags & POSIX_SPAWN_SETSCHEDULER) != 0)
+        {
+          (void)sched_getparam(0, &param);
+        }
+
+      /* Are we setting the scheduling policy?  If so, use the priority
+       * setting determined above.
+       */
+
+      if ((attr->flags & POSIX_SPAWN_SETSCHEDULER) != 0)
+        {
+          (void)sched_setscheduler(pid, attr->policy, &param);
+        }
+    }
+
+  /* Re-enable pre-emption and return */
+
+errout:
+  sched_unlock();
+  return OK;
+}
+
+/****************************************************************************
+ * Name: spawn_close, spawn_dup2, and spawn_open
+ *
+ * Description:
+ *   Implement individual file actions
+ *
+ * Input Parameters:
+ *   action - describes the action to be performed
+ *
+ * Returned Value:
+ *   posix_spawn() and posix_spawnp() will return zero on success.
+ *   Otherwise, an error number will be returned as the function return
+ *   value to indicate the error.
+ *
+ ****************************************************************************/
+
+static inline int spawn_close(FAR struct spawn_close_file_action_s *action)
+{
+  /* The return value from close() is ignored */
+
+  (void)close(action->fd);
+  return OK;
+}
+
+static inline int spawn_dup2(FAR struct spawn_dup2_file_action_s *action)
+{
+  /* Perform the dup */
+
+  int ret = dup2(action->fd1, action->fd2);
+  if (ret < 0)
+    {
+      return errno;
+    }
+
+  return OK;
+}
+
+static inline int spawn_open(FAR struct spawn_open_file_action_s *action)
+{
+  int fd;
+  int ret = OK;
+
+  /* Open the file */
+
+  fd = open(action->path, action->oflags, action->mode);
+  if (fd < 0)
+    {
+      ret = errno;
+    }
+
+  /* Does the return file descriptor happen to match the required file
+   * desciptor number?
+   */
+
+  else if (fd != action->fd)
+    {
+      /* No.. dup2 to get the correct file number */
+
+      ret = dup2(fd, action->fd);
+      if (ret < 0)
+        {
+          ret = errno;
+        }
+
+      close(fd);
+    }
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: spawn_proxy
+ *
+ * Description:
+ *   Perform file_actions, then execute the task from the file system.
+ *
+ * Input Parameters:
+ *   Standard task start-up parameters
+ *
+ * Returned Value:
+ *   Standard task return value.
+ *
+ ****************************************************************************/
+
+static int spawn_proxy(int argc, char *argv[])
+{
+  FAR struct spawn_general_file_action_s *entry;
+  int ret;
+
+  /* Perform I/O redirection.  We get here only if the file_actions parameter
+   * to posix_spawn[p] was non-NULL.
+   */
+
+  DEBUGASSERT(g_ps_parms.file_actions);
+
+  /* Execute each file action */
+
+  for (entry = (FAR struct spawn_general_file_action_s *)*g_ps_parms.file_actions;
+       entry && ret == OK;
+       entry = entry->flink)
+    {
+      switch (entry->action)
+        {
+        case SPAWN_FILE_ACTION_CLOSE:
+          ret = spawn_close((FAR struct spawn_close_file_action_s *)entry);
+          break;
+
+        case SPAWN_FILE_ACTION_DUP2:
+          ret = spawn_dup2((FAR struct spawn_dup2_file_action_s *)entry);
+          break;
+
+        case SPAWN_FILE_ACTION_OPEN:
+          ret = spawn_open((FAR struct spawn_open_file_action_s *)entry);
+          break;
+
+        case SPAWN_FILE_ACTION_NONE:
+        default:
+          ret = EINVAL;
+          break;
+        }
+    }
+
+  /* Check for failures */
+
+  if (ret == OK)
+    {
+      /* Start the task */
+
+      ret = ps_exec(g_ps_parms.pid, g_ps_parms.path, g_ps_parms.attr,
+                    g_ps_parms.argv);
+    }
+
+  /* Post the semaphore to inform the parent task that we have completed
+   * what we need to do.
+   */
+
+  g_ps_parms.result = ret;
+  ps_semgive(&g_ps_execsem);
+  return 0;
+}
+
+/****************************************************************************
+ * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
@@ -102,9 +441,7 @@
  *
  *   argv - argv[] is the argument list for the new task.  argv[] is an
  *     array of pointers to null-terminated strings. The list is terminated
- *     with a null pointer. The value in argv[0] should point to a filename
- *     that is associated with the process image being started by the
- *     posix_spawn() or posix_spawnp() functions.
+ *     with a null pointer.
  *
  *   envp - The envp[] argument is not used by NuttX and may be NULL.  In
  *     standard implementations, envp[] is an array of character pointers to
@@ -153,6 +490,72 @@ int posix_spawn(FAR pid_t *pid, FAR const char *path,
                 FAR char *const argv[], FAR char *const envp[])
 #endif
 {
-#warning "Missing Logic"
-  return OK;
+  struct sched_param param;
+  pid_t proxy;
+  int ret;
+
+  DEBUGASSERT(path);
+
+  /* If there are no file actions to be performed, then start the new child
+   * task directory form the parent task.
+   */
+
+  if (!file_actions)
+    {
+      return ps_exec(pid, path, attr, argv);
+    }
+
+  /* Otherwise, we will have to go through an intermediary/proxy task in order
+   * to perform the I/O redirection.  This would be a natural place to fork().
+   * However, true fork() behavior requires an MMU and most implementations
+   * of vfork() are not capable of these operations.
+   *
+   * Even without fork(), we can still do the job, but parameter passing is
+   * messier.  Unfortunately, there is no (clean) way to pass binary values
+   * as a task parameter, so we will use a semaphore-protected global
+   * structure.
+   */
+
+  /* Get exclusive access to the global parameter structure */
+
+  ps_semtake(&g_ps_parmsem);
+
+  /* Populate the parameter structure */
+
+  g_ps_parms.result       = ENOSYS;
+  g_ps_parms.pid          = pid;
+  g_ps_parms.path         = path;
+  g_ps_parms.file_actions = file_actions;
+  g_ps_parms.attr         = attr;
+  g_ps_parms.argv         = argv;
+
+  /* Get the priority of this (parent) task */
+
+  ret = sched_getparam(0, &param);
+  if (ret < 0)
+    {
+      ps_semgive(&g_ps_parmsem);
+      return errno;
+    }
+
+  /* Start the intermediary/proxy task at the same priority as the parent task. */
+
+  proxy = TASK_CREATE("spawn_proxy", param.sched_priority,
+                      CONFIG_POSIX_SPAWN_STACKSIZE, (main_t)spawn_proxy,
+                      (const char **)NULL);
+  if (proxy < 0)
+    {
+      ps_semgive(&g_ps_parmsem);
+      return errno;
+    }
+
+   /* Wait for the proxy to complete its job */
+
+   ps_semtake(&g_ps_execsem);
+
+   /* Get the result and relinquish our access to the parameter structure */
+
+   ret = g_ps_parms.result;
+   ps_semgive(&g_ps_parmsem);
+   return ret;
 }
