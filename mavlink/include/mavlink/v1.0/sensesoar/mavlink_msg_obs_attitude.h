@@ -4,7 +4,9 @@
 
 typedef struct __mavlink_obs_attitude_t
 {
- double quat[4]; ///< Quaternion re;im
+ double quat[4]; ///< 
+                
+            
 } mavlink_obs_attitude_t;
 
 #define MAVLINK_MSG_ID_OBS_ATTITUDE_LEN 32
@@ -26,7 +28,9 @@ typedef struct __mavlink_obs_attitude_t
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param quat Quaternion re;im
+ * @param quat 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_obs_attitude_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -54,7 +58,9 @@ static inline uint16_t mavlink_msg_obs_attitude_pack(uint8_t system_id, uint8_t 
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message was sent over
  * @param msg The MAVLink message to compress the data into
- * @param quat Quaternion re;im
+ * @param quat 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_obs_attitude_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -94,7 +100,9 @@ static inline uint16_t mavlink_msg_obs_attitude_encode(uint8_t system_id, uint8_
  * @brief Send a obs_attitude message
  * @param chan MAVLink channel to send the message
  *
- * @param quat Quaternion re;im
+ * @param quat 
+                
+            
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -121,7 +129,9 @@ static inline void mavlink_msg_obs_attitude_send(mavlink_channel_t chan, const d
 /**
  * @brief Get field quat from obs_attitude message
  *
- * @return Quaternion re;im
+ * @return 
+                
+            
  */
 static inline uint16_t mavlink_msg_obs_attitude_get_quat(const mavlink_message_t* msg, double *quat)
 {

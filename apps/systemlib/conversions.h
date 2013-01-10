@@ -78,6 +78,14 @@ __EXPORT void rot2quat(const float R[9], float Q[4]);
  */
 __EXPORT void quat2rot(const float Q[4], float R[9]);
 
+/**
+ * Calculates air density.
+ *
+ * @param static_pressure ambient pressure in millibar
+ * @param temperature_celcius air / ambient temperature in celcius
+ */
+__EXPORT float get_air_density(float static_pressure, float temperature_celsius);
+
 __END_DECLS
 
 #endif /* CONVERSIONS_H_ */
