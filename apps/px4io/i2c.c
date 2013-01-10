@@ -78,7 +78,6 @@ static DMA_HANDLE	tx_dma;
 uint8_t			rx_buf[64];
 unsigned		rx_len;
 uint8_t			tx_buf[64];
-unsigned		tx_len;
 
 enum {
 	DIR_NONE = 0,
@@ -210,6 +209,9 @@ i2c_rx_complete(DMA_HANDLE handle, uint8_t status, void *arg)
 {
 	rx_len = sizeof(rx_buf) - stm32_dmaresidual(rx_dma);
 
+	for (unsigned i = 0; i < rx_len; i++)
+		tx_buf[i] = rx_buf[i] + 1;
+
 	/* XXX handle reception */
 	i2c_rx_setup();
 }
@@ -217,7 +219,6 @@ i2c_rx_complete(DMA_HANDLE handle, uint8_t status, void *arg)
 static void
 i2c_tx_setup(void)
 {
-	tx_len = 0;
 	stm32_dmasetup(tx_dma, (uintptr_t)&rDR, (uintptr_t)&tx_buf[0], sizeof(tx_buf),
 		DMA_CCR_DIR |
 		DMA_CCR_MINC |
@@ -229,9 +230,7 @@ i2c_tx_setup(void)
 static void
 i2c_tx_complete(DMA_HANDLE handle, uint8_t status, void *arg)
 {
-	tx_len = sizeof(tx_buf) - stm32_dmaresidual(tx_dma);
-
-	/* XXX handle reception */
+	/* XXX handle transmit-done */
 	i2c_tx_setup();
 }
 

@@ -84,8 +84,13 @@ int i2c_main(int argc, char *argv[])
 	int ret = transfer(PX4_I2C_OBDEV_PX4IO, (uint8_t *)&val, sizeof(val), NULL, 0);
 
 	if (ret)
-		errx(1, "transfer failed");
-	exit(0);
+		errx(1, "send failed - %d", ret);
+
+	ret = transfer(PX4_I2C_OBDEV_PX4IO, NULL, 0, (uint8_t *)&val, sizeof(val));
+	if (ret)
+		errx(1, "recive failed - %d", ret);
+
+	errx(0, "got 0x%08x", val);
 }
 
 static int
