@@ -140,10 +140,7 @@
 #  undef HAVE_CONSOLE
 #endif
 
-/* DMA support is only provided if CONFIG_ARCH_DMA is in the NuttX configuration.
- * Furthermore, DMA support is currently only implemented for the F4 (but could be
- * extended to the F1 and F2 with a little effort in the DMA code.
- */
+/* DMA support is only provided if CONFIG_ARCH_DMA is in the NuttX configuration */
 
 #if !defined(HAVE_UART) || !defined(CONFIG_ARCH_DMA)
 #  undef CONFIG_USART1_RXDMA

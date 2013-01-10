@@ -90,7 +90,6 @@ struct stm32_dma_s
 {
   uint8_t        chan;     /* DMA channel number (0-6) */
   uint8_t        irq;      /* DMA channel IRQ number */
-  bool           nonstop;  /* Stream is configured in non-stopping mode */
   sem_t          sem;      /* Used to wait for DMA channel to become available */
   uint32_t       base;     /* DMA register channel base address */
   dma_callback_t callback; /* Callback invoked when the DMA completes */
@@ -494,7 +493,6 @@ void stm32_dmasetup(DMA_HANDLE handle, uint32_t paddr, uint32_t maddr, size_t nt
   ccr    &=  (DMA_CCR_MEM2MEM|DMA_CCR_PL_MASK|DMA_CCR_MSIZE_MASK|DMA_CCR_PSIZE_MASK|
               DMA_CCR_MINC|DMA_CCR_PINC|DMA_CCR_CIRC|DMA_CCR_DIR);
   regval |= ccr;
-  dmach->nonstop = (ccr & DMA_CCR_CIRC) != 0;
   dmachan_putreg(dmach, STM32_DMACHAN_CCR_OFFSET, regval);
 }
 
@@ -530,7 +528,11 @@ void stm32_dmastart(DMA_HANDLE handle, dma_callback_t callback, void *arg, bool 
   ccr  = dmachan_getreg(dmach, STM32_DMACHAN_CCR_OFFSET);
   ccr |= DMA_CCR_EN;
 
-  if (!dmach->nonstop)
+  /* In normal mode, interrupt at either half or full completion. In circular mode,
+   * always interrupt on buffer wrap, and optionally interrupt at the halfway point.
+   */
+
+  if ((ccr & DMA_CCR_CIRC) == 0)
     {
       /* Once half of the bytes are transferred, the half-transfer flag (HTIF) is
        * set and an interrupt is generated if the Half-Transfer Interrupt Enable
