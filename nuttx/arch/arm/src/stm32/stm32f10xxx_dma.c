@@ -308,6 +308,10 @@ static int stm32_dmainterrupt(int irq, void *context)
 
   isr = dmabase_getreg(dmach, STM32_DMA_ISR_OFFSET) & DMA_ISR_CHAN_MASK(dmach->chan);
 
+  /* Clear the interrupts we are handling */
+
+  dmabase_putreg(dmach, STM32_DMA_IFCR_OFFSET, isr);
+
   /* Invoke the callback */
 
   if (dmach->callback)
