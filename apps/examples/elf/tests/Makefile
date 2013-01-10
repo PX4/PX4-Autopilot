@@ -66,7 +66,7 @@ SYMTAB_SRC = $(TESTS_DIR)/symtab.c
 
 define DIR_template
 $(1)_$(2):
-	@$(MAKE) -C $(1) $(3) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" ROMFS_DIR="$(ROMFS_DIR)" CROSSDEV=$(CROSSDEV)
+	$(Q) $(MAKE) -C $(1) $(3) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" ROMFS_DIR="$(ROMFS_DIR)" CROSSDEV=$(CROSSDEV)
 endef
 
 all: $(ROMFS_HDR) $(DIRLIST_HDR) $(SYMTAB_SRC)
@@ -87,7 +87,7 @@ install: $(foreach DIR, $(BUILD_SUBDIRS), $(DIR)_install)
 # Create the romfs directory
 
 $(ROMFS_DIR):
-	@mkdir $(ROMFS_DIR)
+	$(Q) mkdir $(ROMFS_DIR)
 
 # Populate the romfs directory
 
@@ -96,25 +96,25 @@ populate:  $(ROMFS_DIR) build install
 # Create the romfs.img file from the populated romfs directory
 
 $(ROMFS_IMG): populate
-	@genromfs -f $@ -d $(ROMFS_DIR) -V "ELFTEST"
+	$(Q) genromfs -f $@ -d $(ROMFS_DIR) -V "ELFTEST"
 
 # Create the romfs.h header file from the romfs.img file
 
 $(ROMFS_HDR) : $(ROMFS_IMG)
-	@(cd $(TESTS_DIR); xxd -i romfs.img | sed -e "s/^unsigned/static const unsigned/g" >$@)
+	$(Q) (cd $(TESTS_DIR); xxd -i romfs.img | sed -e "s/^unsigned/static const unsigned/g" >$@)
 
 # Create the dirlist.h header file from the romfs directory 
 
 $(DIRLIST_HDR) : populate
-	@$(TESTS_DIR)/mkdirlist.sh $(ROMFS_DIR) >$@
+	$(Q) $(TESTS_DIR)/mkdirlist.sh $(ROMFS_DIR) >$@
 
-# Create the exported symbol table list from the derived *-thunk.S files
+# Create the exported symbol table
 
 $(SYMTAB_SRC): build
-	@$(TESTS_DIR)/mksymtab.sh -t varlist.tmp $(ROMFS_DIR) >$@
+	$(Q) $(TESTS_DIR)/mksymtab.sh $(ROMFS_DIR) >$@
 
 # Clean each subdirectory
 
 clean: $(foreach DIR, $(ALL_SUBDIRS), $(DIR)_clean)
-	@rm -f $(ROMFS_HDR) $(ROMFS_IMG) $(SYMTAB_SRC) varlist.tmp
-	@rm -rf $(ROMFS_DIR) $(DIRLIST_HDR)
+	$(Q) rm -f $(ROMFS_HDR) $(DIRLIST_HDR) $(ROMFS_IMG) $(SYMTAB_SRC)
+	$(Q) rm -rf $(ROMFS_DIR)

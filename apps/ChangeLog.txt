@@ -461,4 +461,5 @@
 	  the USB HID keyboard report data.
 	* apps/examples/wlan: Remove non-functional example.
 	* apps/examples/ostest/vfork.c:  Added a test of vfork().
+	* apps/exampes/posix_spawn: Added a test of poxis_spawn().
 

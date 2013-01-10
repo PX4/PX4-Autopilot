@@ -107,7 +107,7 @@ void exec_getsymtab(FAR struct symtab_s **symtab, FAR int *nsymbols)
    * size are returned as a single atomic operation.
    */
 
-  flags = irqsave();
+  flags     = irqsave();
   *symtab   = g_exec_symtab;
   *nsymbols = g_exec_nsymbols;
   irqrestore(flags);
@@ -138,8 +138,8 @@ void exec_setsymtab(FAR const struct symtab_s *symtab, int nsymbols)
    * size are set as a single atomic operation.
    */
 
-  flags = irqsave();
-  g_exec_symtab = symtab;
+  flags           = irqsave();
+  g_exec_symtab   = symtab;
   g_exec_nsymbols = nsymbols;
   irqrestore(flags);
 }

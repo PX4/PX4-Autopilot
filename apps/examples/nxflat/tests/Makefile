@@ -97,7 +97,7 @@ $(SYMTAB): build
 # Clean each subdirectory
 
 clean: $(foreach DIR, $(SUBDIRS), $(DIR)_clean)
-	@rm -f $(ROMFS_HDR) $(ROMFS_IMG) $(SYMTAB)
-	@rm -rf $(ROMFS_DIR) $(ROMFS_DIRLIST)
+	@rm -f $(ROMFS_HDR) $(ROMFS_DIRLIST) $(ROMFS_IMG) $(SYMTAB)
+	@rm -rf $(ROMFS_DIR)
 
 

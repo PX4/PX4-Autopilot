@@ -3903,4 +3903,6 @@
 	  untested and undocumented.
 	* drivers/usbdev/pl2303.c:  Fix typols in the PL2303 driver
 	  (from Max Holtzberg).
+	* configs/stm32f4discovery/posix_spawn:  Added a configuration
+	  that can be used for testing posix_spawn().
 
