@@ -8,9 +8,9 @@ runs hil simulation
 import sys, struct, time, os, argparse, signal, math
 import pexpect, socket, fdpexpect, select
 import pymavlink.mavutil as mavutil
-import pymavlink.mavwp as mavwp
-import aircraft
-import sensors
+
+import hangar
+import gcs
 from constants import *
 
 if os.getenv('MAVLINK09') or 'MAVLINK09' in os.environ:
@@ -27,87 +27,6 @@ import util, atexit
 import pymavlink.fgFDM as fgFDM
 
 from math import sin, cos
-
-
-class Aircraft(object):
-
-    def __init__(self):
-        t_now = time.time()
-        self.x = aircraft.State.default()
-        self.u = aircraft.Controls.default()
-
-        self.imu = sensors.Imu.default()
-        self.imu_period = 1.0/200;
-        self.t_imu = t_now
-        self.imu_count = 0
-
-        self.gps = sensors.Gps.default()
-        self.gps_period = 1.0/10;
-        self.t_gps = t_now
-        self.gps_count = 0
-
-        self.pressure = sensors.Pressure.default()
-        self.pressure_period = 1.0/10;
-        self.t_pressure = t_now
-        self.pressure_count = 0
-
-        self.t_out = t_now
-
-    def update_state(self, fdm):
-        self.x = aircraft.State.from_fdm(fdm)
-        #self.x.p = 0
-        #self.x.q = 0
-        #self.x.r = 0
-        #self.x.set_attitude(0,0,90*deg2rad)
-
-    def update_controls(self, m):
-        self.u = aircraft.Controls.from_mavlink(m)
-
-    def send_controls(self, jsb_console):
-        self.u.send_to_jsbsim(jsb_console)
-
-    def send_state(self, mav):
-        self.x.send_to_mav(mav)
-
-    def send_imu(self, mav):
-        self.imu = sensors.Imu.from_state(self.x)
-        self.imu.send_to_mav(mav)
-
-    def send_gps(self, mav):
-        self.gps = sensors.Gps.from_state(self.x)
-        self.gps.send_to_mav(mav)
-
-    def send_pressure(self, mav):
-        self.pressure = sensors.Pressure.from_state(self.x)
-        self.pressure.send_to_mav(mav)
-
-    def send_sensors(self, mav):
-        t_now = time.time()
-        if t_now - self.t_gps > self.gps_period:
-            self.t_gps = t_now
-            self.send_gps(mav)
-            self.gps_count += 1
-
-        t_now = time.time()
-        if t_now - self.t_imu > self.imu_period:
-            self.t_imu = t_now
-            self.send_imu(mav)
-            self.imu_count += 1
-
-        t_now = time.time()
-        if t_now - self.t_pressure > self.pressure_period:
-            self.t_pressure = t_now
-            self.send_pressure(mav)
-            self.pressure_count += 1
-
-        t_now = time.time()
-        if t_now - self.t_out > 1:
-            self.t_out = t_now
-            print 'imu {0:4d} Hz, gps {1:4d} Hz, pressure {2:4d} Hz\n'.format(
-                self.imu_count, self.gps_count, self.pressure_count)
-            self.gps_count = 0
-            self.imu_count = 0
-            self.pressure_count = 0
 
 class SensorHIL(object):
     ''' This class executes sensor level hil communication '''
@@ -141,7 +60,7 @@ class SensorHIL(object):
         self.waypoints = waypoints
         self.mode = mode
 
-        self.ac = Aircraft()
+        self.ac = hangar.BasicAircraft()
         self.jsb = None
         self.jsb_console = None
         self.gcs = None
@@ -155,6 +74,7 @@ class SensorHIL(object):
 
         self.init_jsbsim()
         self.init_mavlink(master_dev, gcs_dev, baudrate)
+        self.wpm = gcs.WaypointManager(self.master)
 
     def __del__(self):
         print 'SensorHil shutting down'
@@ -220,13 +140,6 @@ class SensorHIL(object):
         self.jsb_console = jsb_console
         self.fdm = fgFDM.fgFDM()
 
-        # waypoint setting variables
-        self.wploading = False
-        self.wpload = None
-        self.wpload_time = 0
-        self.wpindex = 0
-        self.wpcount = 0
-
     def hil_enabled(self):
         return self.master.base_mode & mavutil.mavlink.MAV_MODE_FLAG_HIL_ENABLED
 
@@ -241,9 +154,9 @@ class SensorHIL(object):
             if time.time()  - t_start > 5: raise IOError('Failed to enable HIL, check port')
 
     def wait_for_no_msg(self, msg, period, callback=None):
-        alive = True
+        done = False
         t_last = time.time()
-        while alive:
+        while not done:
             if callback is not None: callback()
             while self.master.port.inWaiting() > 0:
                 m = self.master.recv_msg()
@@ -251,18 +164,18 @@ class SensorHIL(object):
                 if m.get_type() == msg:
                     t_last = time.time()
             if time.time() - t_last > period:
-                alive = False
+                done = True
             time.sleep(0.001)
  
     def wait_for_msg(self, msg, callback=None):
-        alive = False
-        while not alive:
+        done = False
+        while not done:
             if callback is not None: callback()
             while self.master.port.inWaiting() > 0:
                 m = self.master.recv_msg()
                 if m is None: continue
                 if m.get_type() == msg:
-                    alive = True
+                    done = True
                     break
             time.sleep(0.001)
 
@@ -279,41 +192,10 @@ class SensorHIL(object):
         print 'waiting for startup ...'
         self.wait_for_msg('HEARTBEAT')
         print 'complete'
+        time.sleep(1)
+        print 'received heartbeat from sys: ', self.master.target_system
         # Reenable HIL and reset serial (clear buffer)
         if not self.hil_enabled(): self.enable_hil()
-
-    def set_waypoints(self, waypoints):
-        if waypoints == None:
-            return
-        MAV_COMP_ID_MISSIONPLANNER = 190
-        self.wpload = mavwp.MAVWPLoader(target_system=self.master.target_system, target_component=mavlink.MAV_COMP_ID_MISSIONPLANNER)
-        self.wpcount = self.wpload.load(waypoints)
-
-    def clear_waypoints(self):
-        self.master.waypoint_clear_all_send()
-        self.master.waypoint_clear_all_send()
-        self.master.waypoint_clear_all_send()
-        #t_start = time.time()
-        #ack = False
-        #while not ack:
-            #self.master.waypoint_clear_all_send()
-            #while self.master.port.inWaiting() > 0:
-                #m = self.master.recv_msg()
-                #if m == None: continue
-                #print 'message: ', m.get_type()
-                #if m.get_type() == 'MISSION_ACK':
-                    #ack = True
-                    #break
-            #time.sleep(0.001)
-            #if time.time() - t_start > 5: raise IOError('Failed to ack waypoint clear')
-
-    def send_waypoints(self):
-        self.clear_waypoints()
-        if self.wpcount == 0:
-            return
-        self.wpindex = 0
-        self.wploading = True
-        self.wpload_time = time.time()
 
     def jsb_set(self, variable, value):
         '''set a JSBSim variable'''
@@ -349,15 +231,6 @@ class SensorHIL(object):
             self.counts[m.get_type()] = 0
         self.counts[m.get_type()] += 1
 
-        # sending waypoints
-        if self.wploading:
-            if self.wpindex == 0:
-                self.master.waypoint_count_send(self.wpcount)
-                print "Sent waypoint count of %u to master" % self.wpcount
-                time.sleep(3)
-            if (time.time() - self.wpload_time) > 10:
-                self.send_waypoints()
-
         # handle messages
         mtype = m.get_type()
 
@@ -368,40 +241,11 @@ class SensorHIL(object):
         elif mtype == 'STATUSTEXT':
             print 'sys %d: %s' % (self.master.target_system, m.text)
 
-        elif self.wploading and m.get_type() == "MISSION_ACK":
-            if self.wpindex != self.wpload.count():
-                print "Received waypoint ack before sending all waypoints!"
-            self.wploading = False
-            self.wpindex = 0
-            print "Waypoint uploading complete"
+        # handle waypoint messages
+        self.wpm.process_msg(m)
 
-        elif self.wploading and m.get_type() == "MISSION_REQUEST": 
-            # should never happen
-            if m.get_seq() > self.wpcount -1:
-                print "Waypoint request sequence {0:d} \
-                        is greater than waypoint count {1:d}! \
-                        Cannot continue loading.".format(self.wpcount,self.wpindex)
-                self.wploading = False
-                self.wpindex = 0
-            # last transmission was missed, retransmit
-            elif m.get_seq() == self.wpindex - 1:
-                self.wpload_time = time.time()
-                wp = self.wpload.wp(self.wpindex - 1)
-                self.master.mav.send(wp)
-                print "Sent waypoint %u: %s" % (self.wpindex, wp)
-            # ready for new waypoint
-            elif m.get_seq() == self.wpindex:
-                self.wpload_time = time.time()
-                wp = self.wpload.wp(self.wpindex)
-                self.master.mav.send(wp)
-                print "Sent waypoint %u: %s" % (self.wpindex, wp)
-                self.wpindex += 1 # we know last waypoint was received, can move on
-            else:
-                print "Waypoint request sequence {0:d} \
-                        doesn't match current index {1:d}! \
-                        Cannot continue loading.".format(m.get_seq(),self.wpindex)
-                self.wploading = False
-                self.wpindex = 0
+        # send waypoint messages to mav
+        self.wpm.send_messages()
 
     def process_gcs(self):
         '''process packets from MAVLink slaves, forwarding to the master'''
@@ -440,8 +284,8 @@ class SensorHIL(object):
         self.reboot_autopilot()
 
         print 'load waypoints'
-        self.set_waypoints(self.waypoints)
-        self.send_waypoints()
+        self.wpm.set_waypoints(self.waypoints)
+        self.wpm.send_waypoints()
         
         print 'set auto'
         self.master.set_mode_auto()
@@ -486,11 +330,6 @@ class SensorHIL(object):
                 util.pexpect_drain(self.jsb_console)
             if self.jsb.fileno() in rin:
                 util.pexpect_drain(self.jsb)
-
-            # periodic output
-            if time.time() - self.wpload_time > 1000000:
-                self.wp_load_time = time.time()
-                self.send_waypoints()
 
             dt_report = time.time() - self.last_report
             if dt_report > 5:
