@@ -348,7 +348,7 @@ CONFIG_CAN2_BAUD=700000
 # I2C configuration
 #
 CONFIG_I2C=y
-CONFIG_I2C_POLLED=y
+CONFIG_I2C_POLLED=n
 CONFIG_I2C_TRANSFER=y
 CONFIG_I2C_TRACE=n
 # Allow 180 us per byte, a wide margin for the 400 KHz clock we're using
