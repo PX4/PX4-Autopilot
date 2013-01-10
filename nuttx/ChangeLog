@@ -3898,5 +3898,5 @@
 	  Stellaris family.
 	* libc/spawn:  Add file action interfaces needed by posix_spawn().
 	* sched/clock_time2ticks.c:  Another case where time was being
-	  rounded down instead of up (from Mikek Smith).
+	  rounded down instead of up (from Mike Smith).
 

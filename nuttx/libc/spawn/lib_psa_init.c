@@ -40,7 +40,6 @@
 #include <nuttx/config.h>
 
 #include <sched.h>
-#include <signal.h>
 #include <spawn.h>
 #include <assert.h>
 #include <errno.h>
@@ -77,13 +76,6 @@ int posix_spawnattr_init(posix_spawnattr_t *attr)
   /* Flags: None */
 
   attr->flags = 0;
-
-  /* Signal sets.  Don't really matter unless flags are set (then the settings
-   * are not really our responsibility).
-   */
-
-  sigemptyset(&attr->sigdefault);
-  sigemptyset(&attr->sigmask);
 
   /* Set the default scheduler policy to the policy of this task */
 
