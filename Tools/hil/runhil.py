@@ -282,6 +282,7 @@ class SensorHIL(object):
             print "Waypoint uploading complete"
 
         elif m.get_type() == "MISSION_REQUEST": 
+            self.master.target_system = m.target_system
             if m.get_seq() != self.wpindex:
                 print "Waypoint request sequence {0:d} doesn't match current index {1:d}! Cannot continue loading.".format(m.get_seq(),self.wpindex)
                 self.wploading = False
@@ -327,16 +328,14 @@ class SensorHIL(object):
         self.counts[m.get_type()] += 1
 
         mtype = m.get_type()
-        # hil control message
+
         if mtype == 'HIL_CONTROLS':
             self.ac.update_controls(m)
             self.ac.send_controls(self.jsb_console)
-        elif mtype in ["WAYPOINT_REQUEST", "MISSION_REQUEST", "MISSION_ACK"]:
+        elif mtype in ['WAYPOINT_REQUEST', 'MISSION_REQUEST', 'MISSION_ACK']:
             self.process_waypoint_request(m)
         elif mtype == 'STATUSTEXT':
-            pass
-            #print 'STATUSTEXT: %s' % "".join(map(chr, m.get_payload()))
-            
+            print 'sys %d: %s' % (self.master.target_system, m.text)
 
     def process_gcs(self):
         '''process packets from MAVLink slaves, forwarding to the master'''
@@ -372,7 +371,7 @@ class SensorHIL(object):
         self.jsb_console.logfile = None
 
         print 'Rebooting autopilot'
-        #self.reboot_autopilot()
+        self.reboot_autopilot()
 
         print 'load waypoints'
         self.set_waypoints(self.waypoints)
