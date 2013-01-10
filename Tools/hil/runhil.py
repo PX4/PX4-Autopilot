@@ -278,7 +278,6 @@ class SensorHIL(object):
         self.master.reset()
         print 'waiting for startup ...'
         self.wait_for_msg('HEARTBEAT')
-        time.sleep(10)
         print 'complete'
         # Reenable HIL and reset serial (clear buffer)
         if not self.hil_enabled(): self.enable_hil()
@@ -318,13 +317,13 @@ class SensorHIL(object):
         while not self.wpindex > 0: 
             self.master.waypoint_count_send(self.wpcount)
             print "Sent waypoint count of %u to master" % self.wpcount
-            time.sleep(1)
+            time.sleep(3)
             while self.master.port.inWaiting() > 0:
                 m = self.master.recv_msg()
                 if m == None: continue
                 self.process_waypoint_request(m)
             time.sleep(0.0001)
-            if time.time() - self.wpload_time > 10:
+            if time.time() - self.wpload_time > 20:
                 raise IOError('Failed to send waypoints')
 
     def process_waypoint_request(self, m):
