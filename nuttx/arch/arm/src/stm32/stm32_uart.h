@@ -145,7 +145,7 @@
  * extended to the F1 and F2 with a little effort in the DMA code.
  */
 
-#if !defined(HAVE_UART) || !defined(CONFIG_ARCH_DMA) || !defined(CONFIG_STM32_STM32F40XX)
+#if !defined(HAVE_UART) || !defined(CONFIG_ARCH_DMA)
 #  undef CONFIG_USART1_RXDMA
 #  undef CONFIG_USART2_RXDMA
 #  undef CONFIG_USART3_RXDMA
