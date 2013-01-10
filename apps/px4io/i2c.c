@@ -65,7 +65,9 @@
 #define rTRISE		REG(STM32_I2C_TRISE_OFFSET)
 
 static int		i2c_interrupt(int irq, void *context);
+#ifdef DEBUG
 static void		i2c_dump(void);
+#endif
 
 static void		i2c_rx_setup(void);
 static void		i2c_tx_setup(void);
@@ -138,7 +140,9 @@ i2c_init(void)
 	/* and enable the I2C port */
 	rCR1 |= I2C_CR1_ACK | I2C_CR1_PE;
 
+#ifdef DEBUG
 	i2c_dump();
+#endif
 }
 
 static int
@@ -259,7 +263,7 @@ i2c_tx_complete(void)
 	i2c_tx_setup();
 }
 
-
+#ifdef DEBUG
 static void
 i2c_dump(void)
 {
@@ -268,4 +272,4 @@ i2c_dump(void)
 	debug("CCR   0x%08x  TRISE 0x%08x", rCCR,  rTRISE);
 	debug("SR1   0x%08x  SR2   0x%08x", rSR1,  rSR2);
 }
-
+#endif
