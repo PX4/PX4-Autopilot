@@ -304,6 +304,8 @@ int spawn_main(int argc, char *argv[])
       err("ERROR: posix_spawnattr_init failed: %d\n", ret);
     }
 
+  mm_update(&g_mmstep, "after file_action/attr init");
+
   /* Set up to close stdin (0) and open testdata.txt as the program input */
 
   ret = posix_spawn_file_actions_addclose(&file_actions, 0);
@@ -319,6 +321,8 @@ int spawn_main(int argc, char *argv[])
       err("ERROR: posix_spawn_file_actions_addopen failed: %d\n", ret);
     }
   
+  mm_update(&g_mmstep, "after adding file_actions");
+
   /* If the binary loader does not support the PATH variable, then
    * create the full path to the executable program.  Otherwise,
    * use the relative path so that the binary loader will have to
