@@ -44,7 +44,7 @@
 #include <stm32_i2c.h>
 #include <stm32_dma.h>
 
-#define DEBUG
+//#define DEBUG
 #include "px4io.h"
 
 /*
