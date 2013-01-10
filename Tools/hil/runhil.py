@@ -314,59 +314,6 @@ class SensorHIL(object):
         self.wpindex = 0
         self.wploading = True
         self.wpload_time = time.time()
-        while not self.wpindex > 0: 
-            self.master.waypoint_count_send(self.wpcount)
-            print "Sent waypoint count of %u to master" % self.wpcount
-            time.sleep(3)
-            while self.master.port.inWaiting() > 0:
-                m = self.master.recv_msg()
-                if m == None: continue
-                self.process_waypoint_request(m)
-            time.sleep(0.0001)
-            if time.time() - self.wpload_time > 20:
-                raise IOError('Failed to send waypoints')
-
-    def process_waypoint_request(self, m):
-
-        if not self.wploading:
-            print "Received waypoint request/ack without sending load"
-            return
-
-        if m.get_type() == "MISSION_ACK":
-            if self.wpindex != self.wpload.count():
-                print "Received waypoint ack before sending all waypoints!"
-            self.wploading = False
-            self.wpindex = 0
-            print "Waypoint uploading complete"
-
-        elif m.get_type() == "MISSION_REQUEST": 
-            # should never happen
-            if m.get_seq() > self.wpcount -1:
-                print "Waypoint request sequence {0:d} \
-                        is greater than waypoint count {1:d}! \
-                        Cannot continue loading.".format(self.wpcount,self.wpindex)
-                self.wploading = False
-                self.wpindex = 0
-            # last transmission was missed, retransmit
-            elif m.get_seq() == self.wpindex - 1:
-                self.wpload_time = time.time()
-                wp = self.wpload.wp(self.wpindex - 1)
-                self.master.mav.send(wp)
-                print "Sent waypoint %u: %s" % (self.wpindex, wp)
-            # ready for new waypoint
-            elif m.get_seq() == self.wpindex:
-                self.wpload_time = time.time()
-                wp = self.wpload.wp(self.wpindex)
-                self.master.mav.send(wp)
-                print "Sent waypoint %u: %s" % (self.wpindex, wp)
-                self.wpindex += 1 # we know last waypoint was received, can move on
-            else:
-                print "Waypoint request sequence {0:d} \
-                        doesn't match current index {1:d}! \
-                        Cannot continue loading.".format(m.get_seq(),self.wpindex)
-                self.wploading = False
-                self.wpindex = 0
-                return
 
     def jsb_set(self, variable, value):
         '''set a JSBSim variable'''
@@ -394,21 +341,67 @@ class SensorHIL(object):
         m = self.master.recv_msg()
         if m == None: return
 
+        # forward to gcs
         self.gcs.write(m.get_msgbuf())
 
+        # record counts
         if m.get_type() not in self.counts:
             self.counts[m.get_type()] = 0
         self.counts[m.get_type()] += 1
 
+        # sending waypoints
+        if self.wploading:
+            if self.wpindex == 0:
+                self.master.waypoint_count_send(self.wpcount)
+                print "Sent waypoint count of %u to master" % self.wpcount
+                time.sleep(3)
+            if (time.time() - self.wpload_time) > 10:
+                self.send_waypoints()
+
+        # handle messages
         mtype = m.get_type()
 
         if mtype == 'HIL_CONTROLS':
             self.ac.update_controls(m)
             self.ac.send_controls(self.jsb_console)
-        elif mtype in ['WAYPOINT_REQUEST', 'MISSION_REQUEST', 'MISSION_ACK']:
-            self.process_waypoint_request(m)
+
         elif mtype == 'STATUSTEXT':
             print 'sys %d: %s' % (self.master.target_system, m.text)
+
+        elif self.wploading and m.get_type() == "MISSION_ACK":
+            if self.wpindex != self.wpload.count():
+                print "Received waypoint ack before sending all waypoints!"
+            self.wploading = False
+            self.wpindex = 0
+            print "Waypoint uploading complete"
+
+        elif self.wploading and m.get_type() == "MISSION_REQUEST": 
+            # should never happen
+            if m.get_seq() > self.wpcount -1:
+                print "Waypoint request sequence {0:d} \
+                        is greater than waypoint count {1:d}! \
+                        Cannot continue loading.".format(self.wpcount,self.wpindex)
+                self.wploading = False
+                self.wpindex = 0
+            # last transmission was missed, retransmit
+            elif m.get_seq() == self.wpindex - 1:
+                self.wpload_time = time.time()
+                wp = self.wpload.wp(self.wpindex - 1)
+                self.master.mav.send(wp)
+                print "Sent waypoint %u: %s" % (self.wpindex, wp)
+            # ready for new waypoint
+            elif m.get_seq() == self.wpindex:
+                self.wpload_time = time.time()
+                wp = self.wpload.wp(self.wpindex)
+                self.master.mav.send(wp)
+                print "Sent waypoint %u: %s" % (self.wpindex, wp)
+                self.wpindex += 1 # we know last waypoint was received, can move on
+            else:
+                print "Waypoint request sequence {0:d} \
+                        doesn't match current index {1:d}! \
+                        Cannot continue loading.".format(m.get_seq(),self.wpindex)
+                self.wploading = False
+                self.wpindex = 0
 
     def process_gcs(self):
         '''process packets from MAVLink slaves, forwarding to the master'''
