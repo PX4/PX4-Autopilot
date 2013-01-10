@@ -51,6 +51,8 @@
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_hrt.h>
 
+#include <stm32_uart.h>
+
 #include "px4io.h"
 
 __EXPORT int user_start(int argc, char *argv[]);
@@ -58,6 +60,8 @@ __EXPORT int user_start(int argc, char *argv[]);
 extern void up_cxxinitialize(void);
 
 struct sys_state_s 	system_state;
+
+static struct hrt_call serial_dma_call;
 
 int user_start(int argc, char *argv[])
 {
@@ -71,6 +75,12 @@ int user_start(int argc, char *argv[])
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();
+
+	/*
+	 * Poll at 1ms intervals for received bytes that have not triggered
+	 * a DMA event.
+	 */
+	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
 
 	/* print some startup info */
 	lib_lowprintf("\nPX4IO: starting\n");
