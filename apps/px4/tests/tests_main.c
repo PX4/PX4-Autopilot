@@ -107,9 +107,9 @@ struct {
 	{"perf",		test_perf,	OPT_NOJIGTEST, 0},
 	{"all",			test_all,	OPT_NOALLTEST | OPT_NOJIGTEST, 0},
 	{"jig",			test_jig,	OPT_NOJIGTEST | OPT_NOALLTEST, 0},
-	{"param",		test_param,	0, 0},
-	{"bson",		test_bson,	0, 0},
-	{"file",		test_file,	0, 0},
+	{"param",		test_param,	OPT_NOJIGTEST, 0},
+	{"bson",		test_bson,	OPT_NOJIGTEST, 0},
+	{"file",		test_file,	OPT_NOJIGTEST, 0},
 	{"help",		test_help,	OPT_NOALLTEST | OPT_NOHELP | OPT_NOJIGTEST, 0},
 	{NULL,			NULL, 		0, 0}
 };
@@ -133,6 +133,7 @@ test_all(int argc, char *argv[])
 	unsigned	i;
 	char		*args[2] = {"all", NULL};
 	unsigned int failcount = 0;
+	unsigned int testscount = 0;
 
 	printf("\nRunning all tests...\n\n");
 
@@ -153,6 +154,8 @@ test_all(int argc, char *argv[])
 				printf("  [%s] \t\t\tPASS\n", tests[i].name);
 				fflush(stdout);
 			}
+
+			testscount++;
 		}
 	}
 
@@ -184,7 +187,7 @@ test_all(int argc, char *argv[])
 		printf("  \\ \\_\\    \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_____\\ \n");
 		printf("   \\/_/     \\/_/\\/_/   \\/_/   \\/_____/ \n");
 		printf("\n");
-		printf(" Some tests failed (%d of %d)\n", failcount, i);
+		printf(" Some tests failed (%d of %d)\n", failcount, testscount);
 	}
 
 	printf("\n");
@@ -242,6 +245,7 @@ int test_jig(int argc, char *argv[])
 	unsigned	i;
 	char		*args[2] = {"jig", NULL};
 	unsigned int failcount = 0;
+	unsigned int testscount = 0;
 
 	printf("\nRunning all tests...\n\n");
 	for (i = 0; tests[i].name; i++) {
@@ -259,6 +263,8 @@ int test_jig(int argc, char *argv[])
 				printf("  [%s] \t\t\tPASS\n", tests[i].name);
 				fflush(stdout);
 			}
+
+			testscount++;
 		}
 	}
 
@@ -287,7 +293,7 @@ int test_jig(int argc, char *argv[])
 		printf("  \\ \\_\\    \\ \\_\\ \\_\\  \\ \\_\\  \\ \\_____\\ \n");
 		printf("   \\/_/     \\/_/\\/_/   \\/_/   \\/_____/ \n");
 		printf("\n");
-		printf(" Some tests failed (%d of %d)\n", failcount, i);
+		printf(" Some tests failed (%d of %d)\n", failcount, testscount);
 	}
 	printf("\n");
 
