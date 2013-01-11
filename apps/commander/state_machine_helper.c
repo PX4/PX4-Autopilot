@@ -93,8 +93,8 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 		/* set system flags according to state */
 		current_status->flag_system_armed = true;
 
-		fprintf(stderr, "[cmd] EMERGENCY LANDING!\n");
-		mavlink_log_critical(mavlink_fd, "[cmd] EMERGENCY LANDING!");
+		warnx("EMERGENCY LANDING!\n");
+		mavlink_log_critical(mavlink_fd, "EMERGENCY LANDING!");
 		break;
 
 	case SYSTEM_STATE_EMCY_CUTOFF:
@@ -103,8 +103,8 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 		/* set system flags according to state */
 		current_status->flag_system_armed = false;
 
-		fprintf(stderr, "[cmd] EMERGENCY MOTOR CUTOFF!\n");
-		mavlink_log_critical(mavlink_fd, "[cmd] EMERGENCY MOTOR CUTOFF!");
+		warnx("EMERGENCY MOTOR CUTOFF!\n");
+		mavlink_log_critical(mavlink_fd, "EMERGENCY MOTOR CUTOFF!");
 		break;
 
 	case SYSTEM_STATE_GROUND_ERROR:
@@ -114,8 +114,8 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 		/* prevent actuators from arming */
 		current_status->flag_system_armed = false;
 
-		fprintf(stderr, "[cmd] GROUND ERROR, locking down propulsion system\n");
-		mavlink_log_critical(mavlink_fd, "[cmd] GROUND ERROR, locking down propulsion system");
+		warnx("GROUND ERROR, locking down propulsion system\n");
+		mavlink_log_critical(mavlink_fd, "GROUND ERROR, locking down system");
 		break;
 
 	case SYSTEM_STATE_PREFLIGHT:
@@ -123,11 +123,11 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 		    || current_status->state_machine == SYSTEM_STATE_PREFLIGHT) {
 			/* set system flags according to state */
 			current_status->flag_system_armed = false;
-			mavlink_log_critical(mavlink_fd, "[cmd] Switched to PREFLIGHT state");
+			mavlink_log_critical(mavlink_fd, "Switched to PREFLIGHT state");
 
 		} else {
 			invalid_state = true;
-			mavlink_log_critical(mavlink_fd, "[cmd] REFUSED to switch to PREFLIGHT state");
+			mavlink_log_critical(mavlink_fd, "REFUSED to switch to PREFLIGHT state");
 		}
 
 		break;
@@ -138,14 +138,14 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 			invalid_state = false;
 			/* set system flags according to state */
 			current_status->flag_system_armed = false;
-			mavlink_log_critical(mavlink_fd, "[cmd] REBOOTING SYSTEM");
+			mavlink_log_critical(mavlink_fd, "REBOOTING SYSTEM");
 			usleep(500000);
 			up_systemreset();
 			/* SPECIAL CASE: NEVER RETURNS FROM THIS FUNCTION CALL */
 
 		} else {
 			invalid_state = true;
-			mavlink_log_critical(mavlink_fd, "[cmd] REFUSED to REBOOT");
+			mavlink_log_critical(mavlink_fd, "REFUSED to REBOOT");
 		}
 
 		break;
@@ -156,7 +156,7 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 		/* standby enforces disarmed */
 		current_status->flag_system_armed = false;
 
-		mavlink_log_critical(mavlink_fd, "[cmd] Switched to STANDBY state");
+		mavlink_log_critical(mavlink_fd, "Switched to STANDBY state");
 		break;
 
 	case SYSTEM_STATE_GROUND_READY:
@@ -166,7 +166,7 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 		/* ground ready has motors / actuators armed */
 		current_status->flag_system_armed = true;
 
-		mavlink_log_critical(mavlink_fd, "[cmd] Switched to GROUND READY state");
+		mavlink_log_critical(mavlink_fd, "Switched to GROUND READY state");
 		break;
 
 	case SYSTEM_STATE_AUTO:
@@ -176,7 +176,7 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 		/* auto is airborne and in auto mode, motors armed */
 		current_status->flag_system_armed = true;
 
-		mavlink_log_critical(mavlink_fd, "[cmd] Switched to FLYING / AUTO mode");
+		mavlink_log_critical(mavlink_fd, "Switched to FLYING / AUTO mode");
 		break;
 
 	case SYSTEM_STATE_STABILIZED:
@@ -184,7 +184,7 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 		/* set system flags according to state */
 		current_status->flag_system_armed = true;
 
-		mavlink_log_critical(mavlink_fd, "[cmd] Switched to FLYING / STABILIZED mode");
+		mavlink_log_critical(mavlink_fd, "Switched to FLYING / STABILIZED mode");
 		break;
 
 	case SYSTEM_STATE_MANUAL:
@@ -192,7 +192,7 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 		/* set system flags according to state */
 		current_status->flag_system_armed = true;
 
-		mavlink_log_critical(mavlink_fd, "[cmd] Switched to FLYING / MANUAL mode");
+		mavlink_log_critical(mavlink_fd, "Switched to FLYING / MANUAL mode");
 		break;
 
 	default:
@@ -208,7 +208,7 @@ int do_state_update(int status_pub, struct vehicle_status_s *current_status, con
 	}
 
 	if (invalid_state) {
-		mavlink_log_critical(mavlink_fd, "[cmd] REJECTING invalid state transition");
+		mavlink_log_critical(mavlink_fd, "REJECTING invalid state transition");
 		ret = ERROR;
 	}
 
@@ -260,7 +260,7 @@ void publish_armed_status(const struct vehicle_status_s *current_status)
  */
 void state_machine_emergency_always_critical(int status_pub, struct vehicle_status_s *current_status, const int mavlink_fd)
 {
-	fprintf(stderr, "[cmd] EMERGENCY HANDLER\n");
+	warnx("EMERGENCY HANDLER\n");
 	/* Depending on the current state go to one of the error states */
 
 	if (current_status->state_machine == SYSTEM_STATE_PREFLIGHT || current_status->state_machine == SYSTEM_STATE_STANDBY || current_status->state_machine == SYSTEM_STATE_GROUND_READY) {
@@ -272,7 +272,7 @@ void state_machine_emergency_always_critical(int status_pub, struct vehicle_stat
 		//do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_MISSION_ABORT);
 
 	} else {
-		fprintf(stderr, "[cmd] Unknown system state: #%d\n", current_status->state_machine);
+		warnx("Unknown system state: #%d\n", current_status->state_machine);
 	}
 }
 
@@ -639,11 +639,11 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 		} else if (current_status->state_machine != SYSTEM_STATE_STANDBY &&
 			   current_status->flag_system_armed) {
 
-			mavlink_log_critical(mavlink_fd, "[cmd] REJECTING HIL, disarm first!")
+			mavlink_log_critical(mavlink_fd, "REJECTING HIL, disarm first!")
 
 		} else {
 
-			mavlink_log_critical(mavlink_fd, "[cmd] REJECTING HIL, not in standby.")
+			mavlink_log_critical(mavlink_fd, "REJECTING HIL, not in standby.")
 		}
 	}
 
@@ -684,8 +684,8 @@ uint8_t update_state_machine_mode_request(int status_pub, struct vehicle_status_
 
 	/* NEVER actually switch off HIL without reboot */
 	if (current_status->flag_hil_enabled && !(mode & VEHICLE_MODE_FLAG_HIL_ENABLED)) {
-		fprintf(stderr, "[cmd] DENYING request to switch off HIL. Please power cycle (safety reasons)\n");
-		mavlink_log_critical(mavlink_fd, "[cmd] Power-cycle to exit HIL");
+		warnx("DENYING request to switch off HIL. Please power cycle (safety reasons)\n");
+		mavlink_log_critical(mavlink_fd, "Power-cycle to exit HIL");
 		ret = ERROR;
 	}
 
@@ -710,7 +710,7 @@ uint8_t update_state_machine_custom_mode_request(int status_pub, struct vehicle_
 
 		if (current_system_state == SYSTEM_STATE_STANDBY || current_system_state == SYSTEM_STATE_PREFLIGHT) {
 			printf("system will reboot\n");
-			mavlink_log_critical(mavlink_fd, "[cmd] Rebooting..");
+			mavlink_log_critical(mavlink_fd, "Rebooting..");
 			usleep(200000);
 			do_state_update(status_pub, current_status, mavlink_fd, (commander_state_machine_t)SYSTEM_STATE_REBOOT);
 			ret = 0;
