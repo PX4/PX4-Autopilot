@@ -44,7 +44,7 @@ ROMFS_HDR = $(FILESYSTEM_DIR)$(DELIM)romfs.h
 SYMTAB_SRC = $(FILESYSTEM_DIR)$(DELIM)symtab.c
 
 all: $(ROMFS_HDR) $(SYMTAB_SRC)
-.PHONY: all hello redirect clean install populate
+.PHONY: all hello/hello redirect/redirect clean populate
 
 # Create the romfs directory
 
@@ -53,24 +53,20 @@ $(ROMFS_DIR):
 
 # Build the hello test program
 
-hello: $(ROMFS_DIR)
+hello/hello:
 	$(Q) $(MAKE) -C hello hello TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" ROMFS_DIR="$(ROMFS_DIR)"
 
 # Build the redirection test program
 
-redirect: $(ROMFS_DIR)
+redirect/redirect:
 	$(Q) $(MAKE) -C redirect redirect TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" ROMFS_DIR="$(ROMFS_DIR)"
-
-# Install the test programs in the romfs directory
-
-install: hello redirect testdata.txt
-	$(Q) $(MAKE) -C hello install TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" ROMFS_DIR="$(ROMFS_DIR)"
-	$(Q) $(MAKE) -C redirect install TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" ROMFS_DIR="$(ROMFS_DIR)"
-	$(Q) install --mode=0644 testdata.txt $(ROMFS_DIR)/testdata.txt
 
 # Create the romfs.img file from the romfs directory
 
-$(ROMFS_IMG): install
+$(ROMFS_IMG): hello/hello redirect/redirect testdata.txt $(ROMFS_DIR)
+	$(Q) $(MAKE) -C hello install TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" ROMFS_DIR="$(ROMFS_DIR)"
+	$(Q) $(MAKE) -C redirect install TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" ROMFS_DIR="$(ROMFS_DIR)"
+	$(Q) install --mode=0644 testdata.txt $(ROMFS_DIR)/testdata.txt
 	$(Q) genromfs -f $@ -d $(ROMFS_DIR) -V "POSIXSPAWN"
 
 # Create the romfs.h header file from the romfs.img file
@@ -80,7 +76,7 @@ $(ROMFS_HDR) : $(ROMFS_IMG)
 
 # Create the exported symbol table
 
-$(SYMTAB_SRC): hello/hello redirect/redirect testdata.txt
+$(SYMTAB_SRC): $(ROMFS_DIR)/hello $(ROMFS_DIR)/redirect $(ROMFS_DIR)/testdata.txt
 	$(Q) $(FILESYSTEM_DIR)$(DELIM)mksymtab.sh $(ROMFS_DIR) >$@
 
 # Clean each subdirectory

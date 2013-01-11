@@ -3907,4 +3907,7 @@
 	  that can be used for testing posix_spawn().
 	* arch/arm/src/stm32: Bring F1 support for general DMA and serial
 	  DMA in paricular up to parity with F2/F4 (from Mike Smith).
-
+	* libc/stdio/lib_libfread.c:  Correct some error handling when
+	  lib_fread() was passed a bad stream.  Needed to move the
+	  releasing of a semaphore inside of some conditional logic
+	  (cosmetic).

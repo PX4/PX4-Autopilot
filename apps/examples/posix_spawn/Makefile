@@ -105,7 +105,26 @@ distclean: clean
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
 
-# There are no dependencies in this directory.  We should are code some of
-# more important dependencies here:
+# There are no dependencies in this directory.  Some of more important
+# and more obvious dependencies are hard-coded here:
 
--include Make.dep
+spawn_main.o: spawn_main.c \
+	$(TOPDIR)/include/nuttx/config.h \
+	$(TOPDIR)/include/nuttx/compiler.h \
+	$(TOPDIR)/include/sys/mount.h \
+	$(TOPDIR)/include/stdio.h \
+	$(TOPDIR)/include/stdlib.h \
+	$(TOPDIR)/include/unistd.h \
+	$(TOPDIR)/include/string.h \
+	$(TOPDIR)/include/fcntl.h \
+	$(TOPDIR)/include/spawn.h \
+	$(TOPDIR)/include/debug.h \
+	$(TOPDIR)/include/errno.h \
+	$(TOPDIR)/include/nuttx/ramdisk.h \
+	$(TOPDIR)/include/nuttx/binfmt/elf.h \
+	$(TOPDIR)/include/nuttx/binfmt/symtab.h \
+	filesystem/romfs.h
+
+symtab.o: filesystem/symtab.c \
+	$(TOPDIR)/include/nuttx/compiler.h \
+	$(TOPDIR)/include/nuttx/binfmt/symtab.h
