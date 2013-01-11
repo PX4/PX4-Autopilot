@@ -76,10 +76,10 @@ class State(object):
         self.phi = phi
         self.theta = theta 
         self.psi = psi
-        cosPhi = cos(theta)
-        sinPhi = sin(theta)
-        cosThe = cos(phi)
-        sinThe = sin(phi)
+        cosPhi = cos(phi)
+        sinPhi = sin(phi)
+        cosThe = cos(theta)
+        sinThe = sin(theta)
         cosPsi = cos(psi)
         sinPsi = sin(psi)
         self.C_nb = numpy.matrix([

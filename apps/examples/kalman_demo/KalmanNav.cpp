@@ -457,10 +457,15 @@ void KalmanNav::correctAtt()
 	// ignore accel correction when accel mag not close to g
 	Matrix RAttAdjust = RAtt;
 
-	if (fabsf(accelMag - g) > 2.0f) {
-		RAtt(3, 3) = 1.0e10;
-		RAtt(4, 4) = 1.0e10;
-		RAtt(5, 5) = 1.0e10;
+	bool ignoreAccel = fabsf(accelMag - g) > 1.1f;
+
+	if (ignoreAccel) {
+		RAttAdjust(3, 3) = 1.0e10;
+		RAttAdjust(4, 4) = 1.0e10;
+		RAttAdjust(5, 5) = 1.0e10;
+
+	} else {
+		printf("correcting attitude with accel\n");
 	}
 
 	// account for banked turn
@@ -537,8 +542,11 @@ void KalmanNav::correctAtt()
 	}
 
 	// correct state
-	phi += xCorrect(PHI);
-	theta += xCorrect(THETA);
+	if (!ignoreAccel) {
+		phi += xCorrect(PHI);
+		theta += xCorrect(THETA);
+	}
+
 	psi += xCorrect(PSI);
 
 	// update state covariance
