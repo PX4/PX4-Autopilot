@@ -91,7 +91,7 @@ class Imu(object):
         # setting to constants, should
         # depend on position
         magFieldStrength = 0.5
-        dip = 60.0*deg2rad
+        dip = 0.0*deg2rad
         dec = 0.0*deg2rad
 
         magVectN = magFieldStrength*numpy.matrix([
