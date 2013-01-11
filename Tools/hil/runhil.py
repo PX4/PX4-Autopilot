@@ -9,18 +9,17 @@ import sys, struct, time, os, argparse, signal, math
 import pexpect, socket, fdpexpect, select
 import pymavlink.mavutil as mavutil
 
-import hangar
-import gcs
-from constants import *
-
 if os.getenv('MAVLINK09') or 'MAVLINK09' in os.environ:
     import pymavlink.mavlinkv09_pixhawk as mavlink
 else:
     import pymavlink.mavlinkv10_pixhawk as mavlink
 
 # set path
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'pysim'))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'jsbsim'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), 'modules'))
+
+import hangar
+import gcs
+from constants import *
 
 # local imports
 import util, atexit
@@ -37,7 +36,7 @@ class SensorHIL(object):
         parser = argparse.ArgumentParser()
         parser.add_argument('--master', help='device', required=True)
         parser.add_argument('--baud', help='master port baud rate', default=921600)
-        parser.add_argument('--script', help='jsbsim script', default='jsbsim/easystar_test.xml')
+        parser.add_argument('--script', help='jsbsim script', default='data/easystar_test.xml')
         parser.add_argument('--options', help='jsbsim options', default=None)
         parser.add_argument('--gcs', help='gcs host', default='localhost:14550')
         parser.add_argument('--waypoints', help='waypoints file', default=None)
@@ -102,7 +101,7 @@ class SensorHIL(object):
         self.gcs = gcs
 
     def init_jsbsim(self):
-        cmd = "JSBSim --realtime --suspend --nice --simulation-rate=1000 --logdirectivefile=jsbsim/fgout.xml --script=%s" % self.script
+        cmd = "JSBSim --realtime --suspend --nice --simulation-rate=1000 --logdirectivefile=data/fgout.xml --script=%s" % self.script
         if self.options:
             cmd += ' %s' % self.options
 

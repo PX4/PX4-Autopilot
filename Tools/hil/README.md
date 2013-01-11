@@ -1,28 +1,31 @@
-# Description
-
-This branch currently has a switch to go between 
-sensors HIL and state HIL. This is located in apps/mavlink/mavlink.c.
-Currently the HIL mode is set to HIL_MODE_SENSORS.
-
 # Usage
 
-During the boot process you must type this or put it in your startup script:
+## NSH Startup Script
+
+You must use the startup script found in data/rc. The two main lines added to normal startup are:
 ```
 kalman_demo start
 control_demo start
 ```
-## QGroundControl
 
-The udp packets used by the python script called px4Start.sh are the same as the FlightGear xml descriptions in qgroundcontrol for the fixed wing.
+## Python Script
 
-Currently I have not modified qgroundcontrol to have a new JSBSim mode, but you can disable the FlightGear process start and use this temporarily. This is currently done on my jsbsim branch of github.com/jgoppert/qgroundcontrol.
+This python script runhil.py is used for conducting HIL. Both sensor-level and state-level HIL are supported. You can view the runhil.py usage with:
+```
+runhil.py -h
+```
 
-# TODO:
+## GroundControl Interface
+Note that the script defaults to opening a mavlink slave port on udp:14550, this is the default udp port for QGroundControl. If you start QGC, it should start communicating with runhil.py automatically.
+
+# Notes
+
+## TODO:
 
 * Magnetometer measurement model doesn't depend on lat/lot yet.
 * Add noise.
 * Initialization routines for EKF.
 
-# Source
+## Source
 
-This is currently a modification of the code for ardupilotmega SITL written by Andrew Tridgell.
+This uses pymavlink and is based off of MAVProxy/ ardupilotemga SITL code.
