@@ -226,7 +226,7 @@ __EXPORT int nsh_archinitialize(void)
 	stm32_configgpio(GPIO_ADC1_IN10);
 	stm32_configgpio(GPIO_ADC1_IN11);
 	stm32_configgpio(GPIO_ADC1_IN12);
-	//stm32_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
+	stm32_configgpio(GPIO_ADC1_IN13);	// jumperable to MPU6000 DRDY on some boards
 
 	return OK;
 }
