@@ -22,7 +22,13 @@ config SCHED_INSTRUMENTATION
 	bool "Monitor system performance"
 	default n
 	---help---
-		enables instrumentation in scheduler to monitor system performance.
+		Enables instrumentation in scheduler to monitor system performance.
+		If enabled, then the board-specific logic must provide the following
+		functions (see include/sched.h):
+
+		void sched_note_start(FAR _TCB *tcb);
+		void sched_note_stop(FAR _TCB *tcb);
+		void sched_note_switch(FAR _TCB *pFromTcb, FAR _TCB *pToTcb);
 
 config TASK_NAME_SIZE
 	int "Maximum task name size"
@@ -40,7 +46,7 @@ config JULIAN_TIME
 
 config START_YEAR
 	int "start year"
-	default 2010
+	default 2013
 
 config START_MONTH
 	int "start month"
@@ -56,12 +62,6 @@ config DEV_CONSOLE
 	---help---
 		Set if architecture-specific logic provides /dev/console.  Enables
 		stdout, stderr, stdin.
-
-config DEV_LOWCONSOLE
-	bool "enable low-level serial console"
-	default n
-	---help---
-		Use the simple, low-level, write-only serial console driver (minimul support)
 
 config MUTEX_TYPES:
 	bool "Enable mutex types"
@@ -380,14 +380,6 @@ config PREALLOC_TIMERS
 		zero for all dynamic allocations.
 
 comment "Stack and heap information"
-
-config CUSTOM_STACK
-	bool "Enable custom stack"
-	default n
-	---help---
-		The up_ implementation will handle all stack operations outside of the
-		nuttx model.  This is necessary for certain architectures that have
-		have hardware stacks (such as the 8051 family).
 
 config IDLETHREAD_STACKSIZE
 	int "Idle thread stack size"

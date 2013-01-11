@@ -74,7 +74,6 @@ FAR struct gran_s *g_graninfo;
  *   Perfrom common GRAN initialization.
  *
  * Input Parameters:
- *   info      - Private granule data structure pointer
  *   heapstart - Start of the granule allocation heap
  *   heapsize  - Size of heap in bytes
  *   log2gran  - Log base 2 of the size of one granule.  0->1 byte,
@@ -207,7 +206,6 @@ gran_common_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gran,
 #ifdef CONFIG_GRAN_SINGLE
 int gran_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gran,
                     uint8_t log2align)
-int gran_initialize(FAR void *heapstart, size_t heapsize, uint8_t log2gran)
 {
   g_graninfo = gran_common_initialize(heapstart, heapsize, log2gran,
                                       log2align);

@@ -99,7 +99,7 @@ int mem_parse(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv,
       pcvalue++;
 
       lvalue = (unsigned long)strtol(pcvalue, NULL, 16);
-      if (lvalue > 0xffffffff)
+      if (lvalue > 0xffffffffL)
         {
           return -EINVAL;
         }
@@ -127,6 +127,7 @@ int mem_parse(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv,
     {
       mem->dm_count = 1;
     }
+
   return OK;
 }
 

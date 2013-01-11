@@ -33,45 +33,119 @@
 #
 ############################################################################
 
-all: mkconfig mkversion mksyscall bdf-converter
-default: mkconfig mksyscall
+TOPDIR ?= ${shell pwd}/..
+-include $(TOPDIR)/Make.defs
+include ${TOPDIR}/tools/Config.mk
+
+# strtok_r is used in some tools, but does not seem to be available in
+# the MinGW environment.
+
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
+  HOSTCFLAGS += -D HAVE_STRTOK_C
+endif
+
+all: b16$(HOSTEXEEXT) bdf-converter$(HOSTEXEEXT) cmpconfig$(HOSTEXEEXT) \
+    mkconfig$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT) mksymtab$(HOSTEXEEXT) \
+    mksyscall$(HOSTEXEEXT) mkversion$(HOSTEXEEXT) 
+default: mkconfig$(HOSTEXEEXT) mksyscall$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT)
+
+ifdef HOSTEXEEXT
+.PHONY: b16 bdf-converter cmpconfig clean mkconfig mkdeps mksymtab \
+    mksyscall mkversion
+else
 .PHONY: clean
+endif
 
-# Add CFLAGS=-g on the make command line build debug versions
+# Add HOSTCFLAGS=-g on the make command line build debug versions
 
-CFLAGS = -O2 -Wall -I.
+HOSTCFLAGS ?= -O2 -Wall -I.
+HOSTCC ?= gcc
+
+# b16 - Fixed precision math converstion tool
+
+b16$(HOSTEXEEXT): b16.c 
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o b16$(HOSTEXEEXT) b16.c 
+
+ifdef HOSTEXEEXT
+b16: b16$(HOSTEXEEXT)
+endif
 
 # mkconfig - Convert a .config file into a C config.h file
 
-mkconfig: mkconfig.c cfgparser.c
-	@gcc $(CFLAGS) -o mkconfig mkconfig.c cfgparser.c
+mkconfig$(HOSTEXEEXT): mkconfig.c cfgparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkconfig$(HOSTEXEEXT) mkconfig.c cfgparser.c
+
+ifdef HOSTEXEEXT
+mkconfig: mkconfig$(HOSTEXEEXT)
+endif
 
 # cmpconfig - Compare the contents of two configuration files
 
-cmpconfig: cmpconfig.c
-	@gcc $(CFLAGS) -o cmpconfig cmpconfig.c
+cmpconfig$(HOSTEXEEXT): cmpconfig.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o cmpconfig$(HOSTEXEEXT) cmpconfig.c
+
+ifdef HOSTEXEEXT
+cmpconfig: cmpconfig$(HOSTEXEEXT)
+endif
 
 # mkversion - Convert a .version file into a C version.h file
 
-mkversion: mkconfig.c cfgparser.c
-	@gcc $(CFLAGS) -o mkversion mkversion.c cfgparser.c
+mkversion$(HOSTEXEEXT): mkconfig.c cfgparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkversion$(HOSTEXEEXT) mkversion.c cfgparser.c
+
+ifdef HOSTEXEEXT
+mkversion: mkversion$(HOSTEXEEXT)
+endif
 
 # mksyscall - Convert a CSV file into syscall stubs and proxies
 
-mksyscall: mksyscall.c csvparser.c
-	@gcc $(CFLAGS) -o mksyscall mksyscall.c csvparser.c
+mksyscall$(HOSTEXEEXT): mksyscall.c csvparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mksyscall$(HOSTEXEEXT) mksyscall.c csvparser.c
+
+ifdef HOSTEXEEXT
+mksyscall: mksyscall$(HOSTEXEEXT)
+endif
 
 # mksymtab - Convert a CSV file into a symbol table
 
-mksymtab: mksymtab.c csvparser.c
-	@gcc $(CFLAGS) -o mksymtab mksymtab.c csvparser.c
+mksymtab$(HOSTEXEEXT): mksymtab.c csvparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mksymtab$(HOSTEXEEXT) mksymtab.c csvparser.c
+
+ifdef HOSTEXEEXT
+mksymtab: mksymtab$(HOSTEXEEXT)
+endif
 
 # bdf-converter - Converts a BDF font to the NuttX font format
 
-bdf-converter: bdf-converter.c
-	@gcc $(CFLAGS) -o bdf-converter bdf-converter.c
+bdf-converter$(HOSTEXEEXT): bdf-converter.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o bdf-converter$(HOSTEXEEXT) bdf-converter.c
+
+ifdef HOSTEXEEXT
+bdf-converter: bdf-converter$(HOSTEXEEXT)
+endif
+
+# Create dependencies for a list of files
+
+mkdeps$(HOSTEXEEXT): mkdeps.c csvparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkdeps$(HOSTEXEEXT) mkdeps.c
+
+ifdef HOSTEXEEXT
+mkdeps: mkdeps$(HOSTEXEEXT)
+endif
 
 clean:
-	@rm -f *.o *.a *~ .*.swp
-	@rm -f mkconfig mksyscall mkversion bdf-converter
-	@rm -f mkconfig.exe mksyscall.exe mkversion.exe bdf-converter.exe
+	$(call DELFILE, mkdeps)
+	$(call DELFILE, mkdeps.exe)
+	$(call DELFILE, mkconfig)
+	$(call DELFILE, mkconfig.exe)
+	$(call DELFILE, Make.dep)
+	$(call DELFILE, mksyscall)
+	$(call DELFILE, mksyscall.exe)
+	$(call DELFILE, mkversion)
+	$(call DELFILE, mkversion.exe)
+	$(call DELFILE, bdf-converter)
+	$(call DELFILE, bdf-converter.exe)
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
+	$(Q) rm -rf *.dSYM
+endif
+	$(call CLEAN)

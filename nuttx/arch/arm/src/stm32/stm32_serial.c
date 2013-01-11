@@ -96,6 +96,19 @@
 #    endif
 #  endif
 
+/* Currently RS-485 support cannot be enabled when RXDMA is in use due to lack
+ * of testing - RS-485 support was developed on STM32F1x
+ */
+
+#  if (defined(CONFIG_USART1_RXDMA) && defined(CONFIG_USART1_RS485)) || \
+      (defined(CONFIG_USART2_RXDMA) && defined(CONFIG_USART2_RS485)) || \
+      (defined(CONFIG_USART3_RXDMA) && defined(CONFIG_USART3_RS485)) || \
+      (defined(CONFIG_UART4_RXDMA) && defined(CONFIG_UART4_RS485)) || \
+      (defined(CONFIG_UART5_RXDMA) && defined(CONFIG_UART5_RS485)) || \
+      (defined(CONFIG_USART6_RXDMA) && defined(CONFIG_USART6_RS485))
+#    error "RXDMA and RS-485 cannot be enabled at the same time for the same U[S]ART"
+#  endif
+
 /* For the F4, there are alternate DMA channels for USART1 and 6.
  * Logic in the board.h file make the DMA channel selection by defining
  * the following in the board.h file.
@@ -185,15 +198,11 @@ struct up_dev_s
   uint8_t           parity;    /* 0=none, 1=odd, 2=even */
   uint8_t           bits;      /* Number of bits (7 or 8) */
   bool              stopbits2; /* True: Configure with 2 stop bits instead of 1 */
-  bool              iflow;     /* input flow control (RTS) enabled */
-  bool              oflow;     /* output flow control (CTS) enabled */
   uint32_t          baud;      /* Configured baud */
 #else
   const uint8_t     parity;    /* 0=none, 1=odd, 2=even */
   const uint8_t     bits;      /* Number of bits (7 or 8) */
   const bool        stopbits2; /* True: Configure with 2 stop bits instead of 1 */
-  const bool        iflow;     /* input flow control (RTS) enabled */
-  const bool        oflow;     /* output flow control (CTS) enabled */
   const uint32_t    baud;      /* Configured baud */
 #endif
 
@@ -219,13 +228,18 @@ struct up_dev_s
   uint32_t          rxdmanext; /* Next byte in the DMA buffer to be read */
   char       *const rxfifo;    /* Receive DMA buffer */
 #endif
+
+#ifdef HAVE_RS485
+  const uint32_t    rs485_dir_gpio; /* U[S]ART RS-485 DIR GPIO pin configuration */
+  const bool        rs485_dir_polarity; /* U[S]ART RS-485 DIR pin state for TX enabled */
+#endif
 };
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
-static void up_set_format(struct uart_dev_s *dev);
+static void up_setspeed(struct uart_dev_s *dev);
 static int  up_setup(struct uart_dev_s *dev);
 static void up_shutdown(struct uart_dev_s *dev);
 static int  up_attach(struct uart_dev_s *dev);
@@ -397,8 +411,6 @@ static struct up_dev_s g_usart1priv =
   .parity        = CONFIG_USART1_PARITY,
   .bits          = CONFIG_USART1_BITS,
   .stopbits2     = CONFIG_USART1_2STOP,
-  .iflow         = false,
-  .oflow         = false,
   .baud          = CONFIG_USART1_BAUD,
   .apbclock      = STM32_PCLK2_FREQUENCY,
   .usartbase     = STM32_USART1_BASE,
@@ -415,6 +427,15 @@ static struct up_dev_s g_usart1priv =
   .rxfifo        = g_usart1rxfifo,
 #endif
   .vector        = up_interrupt_usart1,
+
+#ifdef CONFIG_USART1_RS485
+  .rs485_dir_gpio = GPIO_USART1_RS485_DIR,
+#  if (CONFIG_USART1_RS485_DIR_POLARITY == 0)
+  .rs485_dir_polarity = false,
+#  else
+  .rs485_dir_polarity = true,
+#  endif
+#endif
 };
 #endif
 
@@ -450,8 +471,6 @@ static struct up_dev_s g_usart2priv =
   .parity        = CONFIG_USART2_PARITY,
   .bits          = CONFIG_USART2_BITS,
   .stopbits2     = CONFIG_USART2_2STOP,
-  .iflow         = false,
-  .oflow         = false,
   .baud          = CONFIG_USART2_BAUD,
   .apbclock      = STM32_PCLK1_FREQUENCY,
   .usartbase     = STM32_USART2_BASE,
@@ -468,6 +487,15 @@ static struct up_dev_s g_usart2priv =
   .rxfifo        = g_usart2rxfifo,
 #endif
   .vector        = up_interrupt_usart2,
+
+#ifdef CONFIG_USART2_RS485
+  .rs485_dir_gpio = GPIO_USART2_RS485_DIR,
+#  if (CONFIG_USART2_RS485_DIR_POLARITY == 0)
+  .rs485_dir_polarity = false,
+#  else
+  .rs485_dir_polarity = true,
+#  endif
+#endif
 };
 #endif
 
@@ -503,8 +531,6 @@ static struct up_dev_s g_usart3priv =
   .parity        = CONFIG_USART3_PARITY,
   .bits          = CONFIG_USART3_BITS,
   .stopbits2     = CONFIG_USART3_2STOP,
-  .iflow         = false,
-  .oflow         = false,
   .baud          = CONFIG_USART3_BAUD,
   .apbclock      = STM32_PCLK1_FREQUENCY,
   .usartbase     = STM32_USART3_BASE,
@@ -521,6 +547,15 @@ static struct up_dev_s g_usart3priv =
   .rxfifo        = g_usart3rxfifo,
 #endif
   .vector        = up_interrupt_usart3,
+
+#ifdef CONFIG_USART3_RS485
+  .rs485_dir_gpio = GPIO_USART3_RS485_DIR,
+#  if (CONFIG_USART3_RS485_DIR_POLARITY == 0)
+  .rs485_dir_polarity = false,
+#  else
+  .rs485_dir_polarity = true,
+#  endif
+#endif
 };
 #endif
 
@@ -556,20 +591,31 @@ static struct up_dev_s g_uart4priv =
   .parity        = CONFIG_UART4_PARITY,
   .bits          = CONFIG_UART4_BITS,
   .stopbits2     = CONFIG_UART4_2STOP,
-  .iflow         = false,
-  .oflow         = false,
   .baud          = CONFIG_UART4_BAUD,
   .apbclock      = STM32_PCLK1_FREQUENCY,
   .usartbase     = STM32_UART4_BASE,
   .tx_gpio       = GPIO_UART4_TX,
   .rx_gpio       = GPIO_UART4_RX,
-  .cts_gpio      = 0,  /* flow control not supported on this port */
-  .rts_gpio      = 0,  /* flow control not supported on this port */
+#ifdef GPIO_UART4_CTS
+  .cts_gpio      = GPIO_UART4_CTS,
+#endif
+#ifdef GPIO_UART4_RTS
+  .rts_gpio      = GPIO_UART4_RTS,
+#endif
 #ifdef CONFIG_UART4_RXDMA
   .rxdma_channel = DMAMAP_UART4_RX,
   .rxfifo        = g_uart4rxfifo,
 #endif
   .vector        = up_interrupt_uart4,
+
+#ifdef CONFIG_UART4_RS485
+  .rs485_dir_gpio = GPIO_UART4_RS485_DIR,
+#  if (CONFIG_UART4_RS485_DIR_POLARITY == 0)
+  .rs485_dir_polarity = false,
+#  else
+  .rs485_dir_polarity = true,
+#  endif
+#endif
 };
 #endif
 
@@ -605,20 +651,31 @@ static struct up_dev_s g_uart5priv =
   .parity         = CONFIG_UART5_PARITY,
   .bits           = CONFIG_UART5_BITS,
   .stopbits2      = CONFIG_UART5_2STOP,
-  .iflow         = false,
-  .oflow         = false,
   .baud           = CONFIG_UART5_BAUD,
   .apbclock       = STM32_PCLK1_FREQUENCY,
   .usartbase      = STM32_UART5_BASE,
   .tx_gpio        = GPIO_UART5_TX,
   .rx_gpio        = GPIO_UART5_RX,
-  .cts_gpio       = 0,  /* flow control not supported on this port */
-  .rts_gpio       = 0,  /* flow control not supported on this port */
+#ifdef GPIO_UART5_CTS
+  .cts_gpio       = GPIO_UART5_CTS,
+#endif
+#ifdef GPIO_UART5_RTS
+  .rts_gpio       = GPIO_UART5_RTS,
+#endif
 #ifdef CONFIG_UART5_RXDMA
   .rxdma_channel = DMAMAP_UART5_RX,
   .rxfifo        = g_uart5rxfifo,
 #endif
   .vector         = up_interrupt_uart5,
+
+#ifdef CONFIG_UART5_RS485
+  .rs485_dir_gpio = GPIO_UART5_RS485_DIR,
+#  if (CONFIG_UART5_RS485_DIR_POLARITY == 0)
+  .rs485_dir_polarity = false,
+#  else
+  .rs485_dir_polarity = true,
+#  endif
+#endif
 };
 #endif
 
@@ -654,8 +711,6 @@ static struct up_dev_s g_usart6priv =
   .parity         = CONFIG_USART6_PARITY,
   .bits           = CONFIG_USART6_BITS,
   .stopbits2      = CONFIG_USART6_2STOP,
-  .iflow         = false,
-  .oflow         = false,
   .baud           = CONFIG_USART6_BAUD,
   .apbclock       = STM32_PCLK2_FREQUENCY,
   .usartbase      = STM32_USART6_BASE,
@@ -672,6 +727,15 @@ static struct up_dev_s g_usart6priv =
   .rxfifo        = g_usart6rxfifo,
 #endif
   .vector         = up_interrupt_usart6,
+
+#ifdef CONFIG_USART6_RS485
+  .rs485_dir_gpio = GPIO_USART6_RS485_DIR,
+#  if (CONFIG_USART6_RS485_DIR_POLARITY == 0)
+  .rs485_dir_polarity = false,
+#  else
+  .rs485_dir_polarity = true,
+#  endif
+#endif
 };
 #endif
 
@@ -744,8 +808,8 @@ static void up_restoreusartint(struct up_dev_s *priv, uint16_t ie)
   /* And restore the interrupt state (see the interrupt enable/usage table above) */
 
   cr = up_serialin(priv, STM32_USART_CR1_OFFSET);
-  cr &= ~(USART_CR1_RXNEIE|USART_CR1_TXEIE|USART_CR1_PEIE);
-  cr |= (ie & (USART_CR1_RXNEIE|USART_CR1_TXEIE|USART_CR1_PEIE));
+  cr &= ~(USART_CR1_USED_INTS);
+  cr |= (ie & (USART_CR1_USED_INTS));
   up_serialout(priv, STM32_USART_CR1_OFFSET, cr);
 
   cr = up_serialin(priv, STM32_USART_CR3_OFFSET);
@@ -772,7 +836,7 @@ static inline void up_disableusartint(struct up_dev_s *priv, uint16_t *ie)
        * USART_CR1_IDLEIE    4  USART_SR_IDLE   Idle Line Detected             (not used)
        * USART_CR1_RXNEIE    5  USART_SR_RXNE   Received Data Ready to be Read
        * "              "       USART_SR_ORE    Overrun Error Detected
-       * USART_CR1_TCIE      6  USART_SR_TC     Transmission Complete          (not used)
+       * USART_CR1_TCIE      6  USART_SR_TC     Transmission Complete          (used only for RS-485)
        * USART_CR1_TXEIE     7  USART_SR_TXE    Transmit Data Register Empty
        * USART_CR1_PEIE      8  USART_SR_PE     Parity Error
        *
@@ -791,7 +855,7 @@ static inline void up_disableusartint(struct up_dev_s *priv, uint16_t *ie)
        * overlap.  This logic would fail if we needed the break interrupt!
        */
 
-      *ie = (cr1 & (USART_CR1_RXNEIE|USART_CR1_TXEIE|USART_CR1_PEIE)) | (cr3 & USART_CR3_EIE);
+      *ie = (cr1 & (USART_CR1_USED_INTS)) | (cr3 & USART_CR3_EIE);
     }
 
   /* Disable all interrupts */
@@ -820,22 +884,21 @@ static int up_dma_nextrx(struct up_dev_s *priv)
 #endif
 
 /****************************************************************************
- * Name: up_set_format
+ * Name: up_setspeed
  *
  * Description:
- *   Set the serial line format and speed.
+ *   Set the serial line speed.
  *
  ****************************************************************************/
 
 #ifndef CONFIG_SUPPRESS_UART_CONFIG
-static void up_set_format(struct uart_dev_s *dev)
+static void up_setspeed(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
   uint32_t usartdiv32;
   uint32_t mantissa;
   uint32_t fraction;
   uint32_t brr;
-  uint32_t regval;
 
   /* Configure the USART Baud Rate.  The baud rate for the receiver and
    * transmitter (Rx and Tx) are both set to the same value as programmed
@@ -853,64 +916,20 @@ static void up_set_format(struct uart_dev_s *dev)
    *   usartdiv32 = 32 * usartdiv = fCK / (baud/2)
    */
 
-  usartdiv32 = priv->apbclock / (priv->baud >> 1);
+   usartdiv32 = priv->apbclock / (priv->baud >> 1);
 
-  /* The mantissa part is then */
+   /* The mantissa part is then */
 
-  mantissa   = usartdiv32 >> 5;
-  brr        = mantissa << USART_BRR_MANT_SHIFT;
+   mantissa   = usartdiv32 >> 5;
+   brr        = mantissa << USART_BRR_MANT_SHIFT;
 
-  /* The fractional remainder (with rounding) */
+   /* The fractional remainder (with rounding) */
 
-  fraction   = (usartdiv32 - (mantissa << 5) + 1) >> 1;
-  brr       |= fraction << USART_BRR_FRAC_SHIFT;
-  up_serialout(priv, STM32_USART_BRR_OFFSET, brr);
-
-  /* Configure parity mode */
-
-  regval  = up_serialin(priv, STM32_USART_CR1_OFFSET);
-  regval &= ~(USART_CR1_PCE|USART_CR1_PS);
-
-  if (priv->parity == 1)       /* Odd parity */
-    {
-      regval |= (USART_CR1_PCE|USART_CR1_PS);
-    }
-  else if (priv->parity == 2)  /* Even parity */
-    {
-      regval |= USART_CR1_PCE;
-    }
-
-  up_serialout(priv, STM32_USART_CR1_OFFSET, regval);
-
-  /* Configure STOP bits */
-
-  regval = up_serialin(priv, STM32_USART_CR2_OFFSET);
-  regval &= ~(USART_CR2_STOP_MASK);
-
-  if (priv->stopbits2)
-    {
-      regval |= USART_CR2_STOP2;
-    }
-  up_serialout(priv, STM32_USART_CR2_OFFSET, regval);
-
-  /* Configure hardware flow control */
-
-  regval  = up_serialin(priv, STM32_USART_CR3_OFFSET);
-  regval &= ~(USART_CR3_CTSE|USART_CR3_RTSE);
-
-  if (priv->iflow && (priv->rts_gpio != 0))
-    { 
-      regval |= USART_CR3_RTSE;
-    }
-  if (priv->oflow && (priv->cts_gpio != 0))
-    { 
-      regval |= USART_CR3_CTSE;
-    }
-
-  up_serialout(priv, STM32_USART_CR3_OFFSET, regval);
-
+   fraction   = (usartdiv32 - (mantissa << 5) + 1) >> 1;
+   brr       |= fraction << USART_BRR_FRAC_SHIFT;
+   up_serialout(priv, STM32_USART_BRR_OFFSET, brr);
 }
-#endif /* CONFIG_SUPPRESS_UART_CONFIG */
+#endif
 
 /****************************************************************************
  * Name: up_setup
@@ -946,27 +965,50 @@ static int up_setup(struct uart_dev_s *dev)
       stm32_configgpio(priv->rts_gpio);
     }
 
+#if HAVE_RS485
+  if (priv->rs485_dir_gpio != 0)
+    {
+      stm32_configgpio(priv->rs485_dir_gpio);
+      stm32_gpiowrite(priv->rs485_dir_gpio, !priv->rs485_dir_polarity);
+    }
+#endif
+
   /* Configure CR2 */
-  /* Clear CLKEN, CPOL, CPHA, LBCL, and interrupt enable bits */
+  /* Clear STOP, CLKEN, CPOL, CPHA, LBCL, and interrupt enable bits */
 
   regval = up_serialin(priv, STM32_USART_CR2_OFFSET);
-  regval &= ~(USART_CR2_CLKEN|USART_CR2_CPOL|
+  regval &= ~(USART_CR2_STOP_MASK|USART_CR2_CLKEN|USART_CR2_CPOL|
               USART_CR2_CPHA|USART_CR2_LBCL|USART_CR2_LBDIE);
 
+  /* Configure STOP bits */
+
+  if (priv->stopbits2)
+    {
+      regval |= USART_CR2_STOP2;
+    }
   up_serialout(priv, STM32_USART_CR2_OFFSET, regval);
 
   /* Configure CR1 */
-  /* Clear M, TE, REm and all interrupt enable bits */
+  /* Clear M, PCE, PS, TE, REm and all interrupt enable bits */
 
   regval  = up_serialin(priv, STM32_USART_CR1_OFFSET);
-  regval &= ~(USART_CR1_M|USART_CR1_TE|
+  regval &= ~(USART_CR1_M|USART_CR1_PCE|USART_CR1_PS|USART_CR1_TE|
               USART_CR1_RE|USART_CR1_ALLINTS);
 
-  /* Configure word length */
+  /* Configure word length and parity mode */
 
   if (priv->bits == 9)         /* Default: 1 start, 8 data, n stop */
     {
       regval |= USART_CR1_M;   /* 1 start, 9 data, n stop */
+    }
+
+  if (priv->parity == 1)       /* Odd parity */
+    {
+      regval |= (USART_CR1_PCE|USART_CR1_PS);
+    }
+  else if (priv->parity == 2)  /* Even parity */
+    {
+      regval |= USART_CR1_PCE;
     }
 
   up_serialout(priv, STM32_USART_CR1_OFFSET, regval);
@@ -981,22 +1023,20 @@ static int up_setup(struct uart_dev_s *dev)
 
   up_serialout(priv, STM32_USART_CR3_OFFSET, regval);
 
-  /* Configure the USART line format and speed. */
+  /* Configure the USART Baud Rate. */
 
-  up_set_format(dev);
+  up_setspeed(dev);
 
   /* Enable Rx, Tx, and the USART */
 
   regval      = up_serialin(priv, STM32_USART_CR1_OFFSET);
   regval     |= (USART_CR1_UE|USART_CR1_TE|USART_CR1_RE);
   up_serialout(priv, STM32_USART_CR1_OFFSET, regval);
-
-#endif /* CONFIG_SUPPRESS_UART_CONFIG */
+#endif
 
   /* Set up the cached interrupt enables value */
 
-  up_restoreusartint(priv, 0);
-
+  priv->ie    = 0;
   return OK;
 }
 
@@ -1016,15 +1056,12 @@ static int up_dma_setup(struct uart_dev_s *dev)
   int result;
   uint32_t regval;
 
-  /* Do the basic UART setup first, unless we are the console */
+  /* Do the basic UART setup first */
 
-  if (!dev->isconsole)
-    {    
-      result = up_setup(dev);
-      if (result != OK)
-        {
-          return result;
-        }
+  result = up_setup(dev);
+  if (result != OK)
+    {
+      return result;
     }
 
   /* Acquire the DMA channel.  This should always succeed. */
@@ -1217,7 +1254,7 @@ static int up_interrupt_common(struct up_dev_s *priv)
        * USART_CR1_IDLEIE    4  USART_SR_IDLE   Idle Line Detected              (not used)
        * USART_CR1_RXNEIE    5  USART_SR_RXNE   Received Data Ready to be Read
        * "              "       USART_SR_ORE    Overrun Error Detected
-       * USART_CR1_TCIE      6  USART_SR_TC     Transmission Complete           (not used)
+       * USART_CR1_TCIE      6  USART_SR_TC     Transmission Complete           (used only for RS-485)
        * USART_CR1_TXEIE     7  USART_SR_TXE    Transmit Data Register Empty
        * USART_CR1_PEIE      8  USART_SR_PE     Parity Error
        *
@@ -1231,6 +1268,21 @@ static int up_interrupt_common(struct up_dev_s *priv)
        * to the SR register: USART_SR_CTS, USART_SR_LBD. Note of those are currently
        * being used.
        */
+
+#ifdef HAVE_RS485
+      /* Transmission of whole buffer is over - TC is set, TXEIE is cleared.
+       * Note - this should be first, to have the most recent TC bit value from
+       * SR register - sending data affects TC, but without refresh we will not
+       * know that...
+       */
+
+      if ((priv->sr & USART_SR_TC) != 0 && (priv->ie & USART_CR1_TCIE) != 0 &&
+          (priv->ie & USART_CR1_TXEIE) == 0)
+        {
+          stm32_gpiowrite(priv->rs485_dir_gpio, !priv->rs485_dir_polarity);
+          up_restoreusartint(priv, priv->ie & ~USART_CR1_TCIE);
+        }
+#endif
 
       /* Handle incoming, receive bytes. */
 
@@ -1265,13 +1317,14 @@ static int up_interrupt_common(struct up_dev_s *priv)
 
       if ((priv->sr & USART_SR_TXE) != 0 && (priv->ie & USART_CR1_TXEIE) != 0)
         {
-           /* Transmit data regiser empty ... process outgoing bytes */
+           /* Transmit data register empty ... process outgoing bytes */
 
            uart_xmitchars(&priv->dev);
            handled = true;
         }
     }
-    return OK;
+
+  return OK;
 }
 
 /****************************************************************************
@@ -1318,21 +1371,12 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
             break;
           }
 
-        cfsetispeed(termiosp, priv->baud);
-
-        /* Note that since we only support 8/9 bit modes and
-         * there is no way to report 9-bit mode, we always claim 8.
+        /* TODO:  Other termios fields are not yet returned.
+         * Note that only cfsetospeed is not necessary because we have
+         * knowledge that only one speed is supported.
          */
 
-        termiosp->c_cflag = 
-          ((priv->parity != 0) ? PARENB : 0) |
-          ((priv->parity == 1) ? PARODD : 0) |
-          ((priv->stopbits2) ? CSTOPB : 0) |
-          ((priv->oflow) ? CCTS_OFLOW : 0) |
-          ((priv->iflow) ? CRTS_IFLOW : 0) |
-          CS8;
-
-        /* TODO: CCTS_IFLOW, CCTS_OFLOW */
+        cfsetispeed(termiosp, priv->baud);
       }
       break;
 
@@ -1346,48 +1390,16 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
             break;
           }
 
-        /* Perform some sanity checks before accepting any changes */
-
-        if (((termiosp->c_cflag & CSIZE) != CS8) ||
-            ((termiosp->c_cflag & CCTS_OFLOW) && (priv->cts_gpio == 0)) ||
-            ((termiosp->c_cflag & CRTS_IFLOW) && (priv->rts_gpio == 0)))
-          { 
-            ret = -EINVAL;
-            break;
-          }
-
-        if (termiosp->c_cflag & PARENB)
-          { 
-            priv->parity = (termiosp->c_cflag & PARODD) ? 1 : 2;
-          }
-        else
-          { 
-            priv->parity = 0;
-          }
-
-        priv->stopbits2 = (termiosp->c_cflag & CSTOPB) != 0;
-        priv->oflow = (termiosp->c_cflag & CCTS_OFLOW) != 0;
-        priv->iflow = (termiosp->c_cflag & CRTS_IFLOW) != 0;
-
-        /* Note that since there is no way to request 9-bit mode
-         * and no way to support 5/6/7-bit modes, we ignore them
-         * all here.
-         */
-
-        /* Note that only cfgetispeed is used because we have knowledge
+        /* TODO:  Handle other termios settings.
+         * Note that only cfgetispeed is used besued we have knowledge
          * that only one speed is supported.
          */
 
         priv->baud = cfgetispeed(termiosp);
-
-        /* effect the changes immediately - note that we do not implement
-         * TCSADRAIN / TCSAFLUSH
-         */
-
-        up_set_format(dev);
+        up_setspeed(dev);
       }
       break;
-#endif /* CONFIG_SERIAL_TERMIOS */
+#endif
 
 #ifdef CONFIG_USART_BREAKS
     case TIOCSBRK:  /* BSD compatibility: Turn break on, unconditionally */
@@ -1611,6 +1623,10 @@ static bool up_dma_rxavailable(struct uart_dev_s *dev)
 static void up_send(struct uart_dev_s *dev, int ch)
 {
   struct up_dev_s *priv = (struct up_dev_s*)dev->priv;
+#ifdef HAVE_RS485
+  if (priv->rs485_dir_gpio != 0)
+    stm32_gpiowrite(priv->rs485_dir_gpio, priv->rs485_dir_polarity);
+#endif
   up_serialout(priv, STM32_USART_DR_OFFSET, (uint32_t)ch);
 }
 
@@ -1631,7 +1647,7 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
    *
    * Enable             Bit Status          Meaning                      Usage
    * ------------------ --- --------------- ---------------------------- ----------
-   * USART_CR1_TCIE      6  USART_SR_TC     Transmission Complete        (not used)
+   * USART_CR1_TCIE      6  USART_SR_TC     Transmission Complete        (used only for RS-485)
    * USART_CR1_TXEIE     7  USART_SR_TXE    Transmit Data Register Empty
    * USART_CR3_CTSIE    10  USART_SR_CTS    CTS flag                     (not used)
    */
@@ -1642,7 +1658,20 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
       /* Set to receive an interrupt when the TX data register is empty */
 
 #ifndef CONFIG_SUPPRESS_SERIAL_INTS
-      up_restoreusartint(priv, priv->ie | USART_CR1_TXEIE);
+      uint16_t ie = priv->ie | USART_CR1_TXEIE;
+
+      /* If RS-485 is supported on this U[S]ART, then also enable the
+       * transmission complete interrupt.
+       */
+
+#  ifdef HAVE_RS485
+      if (priv->rs485_dir_gpio != 0)
+        {
+          ie |= USART_CR1_TCIE;
+        }
+#  endif
+
+      up_restoreusartint(priv, ie);
 
       /* Fake a TX interrupt here by just calling uart_xmitchars() with
        * interrupts disabled (note this may recurse).
@@ -1657,6 +1686,7 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
 
       up_restoreusartint(priv, priv->ie & ~USART_CR1_TXEIE);
     }
+
   irqrestore(flags);
 }
 

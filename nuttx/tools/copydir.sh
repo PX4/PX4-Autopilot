@@ -1,6 +1,6 @@
 #!/bin/bash
 ############################################################################
-# tools/winlink.sh
+# tools/copydir.sh
 #
 #   Copyright (C) 2008 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>

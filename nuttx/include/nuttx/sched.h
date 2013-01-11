@@ -163,24 +163,40 @@ typedef struct environ_s environ_t;
 # define SIZEOF_ENVIRON_T(alloc) (sizeof(environ_t) + alloc - 1)
 #endif
 
-/* This structure describes a reference counted D-Space region */
+/* This structure describes a reference counted D-Space region.  This must be a
+ * separately allocated "break-away" structure that can be owned by a task and
+ * any pthreads created by the task.
+ */
 
+#ifdef CONFIG_PIC
 struct dspace_s
 {
-  uint32_t crefs;             /* This is the number of pthreads that shared the
-                               * the same D-Space */
-  uint8_t  region[1];         /* Beginning of the allocated region */
+  /* The life of the structure allocation is determined by this reference
+   * count.  This count is number of threads that shared the the same D-Space.
+   * This includes the parent task as well as any pthreads created by the
+   * parent task or any of its child threads.
+   */
+
+  uint16_t crefs;
+
+  /* This is the allocated D-Space memory region.  This may be a physical
+   * address allocated with kmalloc(), or it may be virtual address associated
+   * with an address environment (if CONFIG_ADDRENV=y).
+   */
+
+  FAR uint8_t *region;
 };
+#endif
 
-#define SIZEOF_DSPACE_S(n) (sizeof(struct dspace_s) - 1 + (n))
-
-/* This is the task control block (TCB) */
+/* This is the task control block (TCB).  Each task or thread is represented by
+ * a TCB.  The TCB is the heart of the NuttX task-control logic.
+ */
 
 struct _TCB
 {
   /* Fields used to support list management *************************************/
 
-  FAR struct _TCB *flink;                /* link in DQ of TCBs                  */
+  FAR struct _TCB *flink;                /* Doubly linked list                  */
   FAR struct _TCB *blink;
 
   /* Task Management Fields *****************************************************/

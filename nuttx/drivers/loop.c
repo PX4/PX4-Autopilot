@@ -215,7 +215,7 @@ static ssize_t loop_read(FAR struct inode *inode, unsigned char *buffer,
                        size_t start_sector, unsigned int nsectors)
 {
   FAR struct loop_struct_s *dev;
-  size_t nbytesread;
+  ssize_t nbytesread;
   off_t offset;
   int ret;
 

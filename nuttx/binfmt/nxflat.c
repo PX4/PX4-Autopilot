@@ -47,8 +47,8 @@
 #include <errno.h>
 
 #include <arpa/inet.h>
-#include <nuttx/binfmt.h>
-#include <nuttx/nxflat.h>
+#include <nuttx/binfmt/binfmt.h>
+#include <nuttx/binfmt/nxflat.h>
 
 #ifdef CONFIG_NXFLAT
 
@@ -158,7 +158,7 @@ static int nxflat_loadbinary(struct binary_s *binp)
   nxflat_dumploadinfo(&loadinfo);
   if (ret != 0)
     {
-      bdbg("Failed to initialize for load of NXFLT program: %d\n", ret);
+      bdbg("Failed to initialize for load of NXFLAT program: %d\n", ret);
       goto errout;
     }
 
@@ -168,7 +168,7 @@ static int nxflat_loadbinary(struct binary_s *binp)
   nxflat_dumploadinfo(&loadinfo);
   if (ret != 0)
     {
-      bdbg("Failed to load NXFLT program binary: %d\n", ret);
+      bdbg("Failed to load NXFLAT program binary: %d\n", ret);
       goto errout_with_init;
     }
 
@@ -181,16 +181,39 @@ static int nxflat_loadbinary(struct binary_s *binp)
       goto errout_with_load;
     }
 
-  /* Return the load information */
+  /* Return the load information.  By convention, D-space address
+   * space is stored as the first allocated memory.
+   */
 
   binp->entrypt   = (main_t)(loadinfo.ispace + loadinfo.entryoffs);
-  binp->ispace    = (void*)loadinfo.ispace;
-  binp->dspace    = (void*)loadinfo.dspace;
-  binp->isize     = loadinfo.isize;
+  binp->mapped    = (void*)loadinfo.ispace;
+  binp->mapsize   = loadinfo.isize;
   binp->stacksize = loadinfo.stacksize;
 
+  /* Add the ELF allocation to the alloc[] only if there is no address
+   * enironment.  If there is an address environment, it will automatically
+   * be freed when the function exits
+   *
+   * REVISIT:  If the module is loaded then unloaded, wouldn't this cause
+   * a memory leak?
+   */
+
+#ifdef CONFIG_ADDRENV
+#  warning "REVISIT"
+#else
+  binp->alloc[0]  = (void*)loadinfo.dspace;
+#endif
+
+#ifdef CONFIG_ADDRENV
+  /* Save the address environment.  This will be needed when the module is
+   * executed for the up_addrenv_assign() call.
+   */
+
+  binp->addrenv   = loadinfo.addrenv;
+#endif
+
   nxflat_dumpbuffer("Entry code", (FAR const uint8_t*)binp->entrypt,
-                    MIN(binp->isize - loadinfo.entryoffs,512));
+                    MIN(loadinfo.isize - loadinfo.entryoffs, 512));
 
   nxflat_uninit(&loadinfo);
   return OK;
