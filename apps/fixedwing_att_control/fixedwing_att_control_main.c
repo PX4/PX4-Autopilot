@@ -216,12 +216,16 @@ int fixedwing_att_control_thread_main(int argc, char *argv[])
 						att_sp.thrust = 0.6f * manual_sp.throttle;
 
 					} else {
-						att_sp.thrust = 0.0f;
+						
+						att_sp.roll_body = manual_sp.roll;
+						att_sp.pitch_body = manual_sp.pitch;
+						att_sp.yaw_body = 0;
+						att_sp.thrust = manual_sp.throttle;
+						att_sp.timestamp = hrt_absolute_time();
 					}
 
-					att_sp.yaw_body = 0;
-
-					// XXX disable yaw control, loiter
+					/* attitude control */
+					fixedwing_att_control_attitude(&att_sp, &att, speed_body, &rates_sp);
 
 				} else {
 
