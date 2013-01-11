@@ -55,11 +55,6 @@
  */
 struct optical_flow_s {
 
-	/*
-	 * Actual data, this is specific to the type of data which is stored in this struct
-	 * A line containing L0GME will be added by the Python logging code generator to the
-	 * logged dataset.
-	 */
 	uint64_t timestamp;		/**< in microseconds since system start          */
 
 	uint16_t flow_raw_x;		/**< flow in pixels in X direction, not rotation-compensated */
@@ -67,8 +62,8 @@ struct optical_flow_s {
 	float flow_comp_x_m;		/**< speed over ground in meters, rotation-compensated */
 	float flow_comp_y_m;		/**< speed over ground in meters, rotation-compensated */
 	float ground_distance_m;	/**< Altitude / distance to ground in meters */
-	uint8_t	quality;			/**< Quality of the measurement, 0: bad quality, 255: maximum quality */
-	uint8_t sensor_id;			/**< id of the sensor emitting the flow value */
+	uint8_t	quality;		/**< Quality of the measurement, 0: bad quality, 255: maximum quality */
+	uint8_t sensor_id;		/**< id of the sensor emitting the flow value */
 
 };
 

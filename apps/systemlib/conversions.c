@@ -42,6 +42,10 @@
 
 #include "conversions.h"
 
+#define air_gas_constant 8.31432f
+#define air_density_sea_level 1.225f
+#define absolute_null_kelvin 273.15f
+
 int16_t
 int16_t_from_bytes(uint8_t bytes[])
 {
@@ -54,4 +58,9 @@ int16_t_from_bytes(uint8_t bytes[])
 	u.b[0] = bytes[1];
 
 	return u.w;
+}
+ 
+float get_air_density(float static_pressure, float temperature_celsius)
+{
+	return static_pressure/(air_gas_constant * (temperature_celsius + absolute_null_kelvin));
 }
