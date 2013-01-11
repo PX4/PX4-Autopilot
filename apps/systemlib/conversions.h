@@ -56,6 +56,11 @@ __BEGIN_DECLS
  */
 __EXPORT int16_t int16_t_from_bytes(uint8_t bytes[]);
 
+/**
+ * Calculates air density.
+ */
+__EXPORT float get_air_density(float static_pressure, float temperature_celsius);
+
 __END_DECLS
 
 #endif /* CONVERSIONS_H_ */

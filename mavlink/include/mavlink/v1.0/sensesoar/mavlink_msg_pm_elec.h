@@ -4,9 +4,15 @@
 
 typedef struct __mavlink_pm_elec_t
 {
- float PwCons; ///< current power consumption
- float BatStat; ///< battery status
- float PwGen[3]; ///< Power generation from each module
+ float PwCons; ///< 
+                
+            
+ float BatStat; ///< 
+                
+            
+ float PwGen[3]; ///< 
+                
+            
 } mavlink_pm_elec_t;
 
 #define MAVLINK_MSG_ID_PM_ELEC_LEN 20
@@ -30,9 +36,15 @@ typedef struct __mavlink_pm_elec_t
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param msg The MAVLink message to compress the data into
  *
- * @param PwCons current power consumption
- * @param BatStat battery status
- * @param PwGen Power generation from each module
+ * @param PwCons 
+                
+            
+ * @param BatStat 
+                
+            
+ * @param PwGen 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_pm_elec_pack(uint8_t system_id, uint8_t component_id, mavlink_message_t* msg,
@@ -62,9 +74,15 @@ static inline uint16_t mavlink_msg_pm_elec_pack(uint8_t system_id, uint8_t compo
  * @param component_id ID of this component (e.g. 200 for IMU)
  * @param chan The MAVLink channel this message was sent over
  * @param msg The MAVLink message to compress the data into
- * @param PwCons current power consumption
- * @param BatStat battery status
- * @param PwGen Power generation from each module
+ * @param PwCons 
+                
+            
+ * @param BatStat 
+                
+            
+ * @param PwGen 
+                
+            
  * @return length of the message in bytes (excluding serial stream start sign)
  */
 static inline uint16_t mavlink_msg_pm_elec_pack_chan(uint8_t system_id, uint8_t component_id, uint8_t chan,
@@ -106,9 +124,15 @@ static inline uint16_t mavlink_msg_pm_elec_encode(uint8_t system_id, uint8_t com
  * @brief Send a pm_elec message
  * @param chan MAVLink channel to send the message
  *
- * @param PwCons current power consumption
- * @param BatStat battery status
- * @param PwGen Power generation from each module
+ * @param PwCons 
+                
+            
+ * @param BatStat 
+                
+            
+ * @param PwGen 
+                
+            
  */
 #ifdef MAVLINK_USE_CONVENIENCE_FUNCTIONS
 
@@ -137,7 +161,9 @@ static inline void mavlink_msg_pm_elec_send(mavlink_channel_t chan, float PwCons
 /**
  * @brief Get field PwCons from pm_elec message
  *
- * @return current power consumption
+ * @return 
+                
+            
  */
 static inline float mavlink_msg_pm_elec_get_PwCons(const mavlink_message_t* msg)
 {
@@ -147,7 +173,9 @@ static inline float mavlink_msg_pm_elec_get_PwCons(const mavlink_message_t* msg)
 /**
  * @brief Get field BatStat from pm_elec message
  *
- * @return battery status
+ * @return 
+                
+            
  */
 static inline float mavlink_msg_pm_elec_get_BatStat(const mavlink_message_t* msg)
 {
@@ -157,7 +185,9 @@ static inline float mavlink_msg_pm_elec_get_BatStat(const mavlink_message_t* msg
 /**
  * @brief Get field PwGen from pm_elec message
  *
- * @return Power generation from each module
+ * @return 
+                
+            
  */
 static inline uint16_t mavlink_msg_pm_elec_get_PwGen(const mavlink_message_t* msg, float *PwGen)
 {

@@ -36,12 +36,14 @@
  * @file sdlog.c
  * @author Lorenz Meier <lm@inf.ethz.ch>
  *
- * Simple SD logger for flight data
+ * Simple SD logger for flight data. Buffers new sensor values and
+ * does the heavy SD I/O in a low-priority worker thread.
  */
 
 #include <nuttx/config.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/prctl.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <unistd.h>
@@ -66,8 +68,12 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_vicon_position.h>
 #include <uORB/topics/optical_flow.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/differential_pressure.h>
 
 #include <systemlib/systemlib.h>
+
+#include "sdlog_ringbuffer.h"
 
 static bool thread_should_exit = false;		/**< Deamon exit flag */
 static bool thread_running = false;		/**< Deamon status flag */
@@ -76,6 +82,22 @@ static const int MAX_NO_LOGFOLDER = 999;	/**< Maximum number of log folders */
 
 static const char *mountpoint = "/fs/microsd";
 static const char *mfile_in = "/etc/logging/logconv.m";
+int sysvector_file = -1;
+struct sdlog_logbuffer lb;
+
+/* mutex / condition to synchronize threads */
+pthread_mutex_t sysvector_mutex;
+pthread_cond_t sysvector_cond;
+
+/**
+ * System state vector log buffer writing
+ */
+static void *sdlog_sysvector_write_thread(void *arg);
+
+/**
+ * Create the thread to write the system vector
+ */
+pthread_t sysvector_write_start(struct sdlog_logbuffer *logbuf);
 
 /**
  * SD log management function.
@@ -94,7 +116,7 @@ static void usage(const char *reason);
 
 static int file_exist(const char *filename);
 
-static int file_copy(const char* file_old, const char* file_new);
+static int file_copy(const char *file_old, const char *file_new);
 
 /**
  * Print the current status.
@@ -104,13 +126,14 @@ static void print_sdlog_status(void);
 /**
  * Create folder for current logging session.
  */
-static int create_logfolder(char* folder_path);
+static int create_logfolder(char *folder_path);
 
 static void
 usage(const char *reason)
 {
 	if (reason)
 		fprintf(stderr, "%s\n", reason);
+
 	errx(1, "usage: sdlog {start|stop|status} [-p <additional params>]\n\n");
 }
 
@@ -126,7 +149,7 @@ uint64_t starttime = 0;
  * The sd log deamon app only briefly exists to start
  * the background job. The stack size assigned in the
  * Makefile does only apply to this management task.
- * 
+ *
  * The actual stack size should be set in the call
  * to task_spawn().
  */
@@ -157,6 +180,7 @@ int sdlog_main(int argc, char *argv[])
 		if (!thread_running) {
 			printf("\tsdlog is not started\n");
 		}
+
 		thread_should_exit = true;
 		exit(0);
 	}
@@ -164,9 +188,11 @@ int sdlog_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "status")) {
 		if (thread_running) {
 			print_sdlog_status();
+
 		} else {
 			printf("\tsdlog not started\n");
 		}
+
 		exit(0);
 	}
 
@@ -174,7 +200,8 @@ int sdlog_main(int argc, char *argv[])
 	exit(1);
 }
 
-int create_logfolder(char* folder_path) {
+int create_logfolder(char *folder_path)
+{
 	/* make folder on sdcard */
 	uint16_t foldernumber = 1; // start with folder 0001
 	int mkdir_ret;
@@ -193,11 +220,14 @@ int create_logfolder(char* folder_path) {
 			char mfile_out[100];
 			sprintf(mfile_out, "%s/session%04u/run_to_plot_data.m", mountpoint, foldernumber);
 			int ret = file_copy(mfile_in, mfile_out);
+
 			if (!ret) {
 				warnx("copied m file to %s", mfile_out);
+
 			} else {
 				warnx("failed copying m file from %s to\n %s", mfile_in, mfile_out);
 			}
+
 			break;
 
 		} else if (mkdir_ret == -1) {
@@ -216,11 +246,78 @@ int create_logfolder(char* folder_path) {
 		warn("all %d possible folders exist already", MAX_NO_LOGFOLDER);
 		return -1;
 	}
+
 	return 0;
 }
 
 
-int sdlog_thread_main(int argc, char *argv[]) {
+static void *
+sdlog_sysvector_write_thread(void *arg)
+{
+	/* set name */
+	prctl(PR_SET_NAME, "sdlog microSD I/O", 0);
+
+	struct sdlog_logbuffer *logbuf = (struct sdlog_logbuffer *)arg;
+
+	int poll_count = 0;
+	struct sdlog_sysvector sysvect;
+	memset(&sysvect, 0, sizeof(sysvect));
+
+	while (!thread_should_exit) {
+		
+		/* make sure threads are synchronized */
+		pthread_mutex_lock(&sysvector_mutex);
+
+		/* only wait if no data is available to process */
+		if (sdlog_logbuffer_is_empty(logbuf)) {
+			/* blocking wait for new data at this line */
+			pthread_cond_wait(&sysvector_cond, &sysvector_mutex);
+		}
+
+		/* only quickly load data, do heavy I/O a few lines down */
+		int ret = sdlog_logbuffer_read(logbuf, &sysvect);
+		/* continue */
+		pthread_mutex_unlock(&sysvector_mutex);
+
+		if (ret == OK) {
+			sysvector_bytes += write(sysvector_file, (const char *)&sysvect, sizeof(sysvect));
+		}
+
+		if (poll_count % 100 == 0) {
+			fsync(sysvector_file);
+		}
+
+		poll_count++;
+	}
+
+	fsync(sysvector_file);
+
+	return OK;
+}
+
+pthread_t
+sysvector_write_start(struct sdlog_logbuffer *logbuf)
+{
+	pthread_attr_t receiveloop_attr;
+	pthread_attr_init(&receiveloop_attr);
+
+	struct sched_param param;
+	/* low priority, as this is expensive disk I/O */
+	param.sched_priority = SCHED_PRIORITY_DEFAULT - 40;
+	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
+
+	pthread_attr_setstacksize(&receiveloop_attr, 2048);
+
+	pthread_t thread;
+	pthread_create(&thread, &receiveloop_attr, sdlog_sysvector_write_thread, logbuf);
+	return thread;
+
+	// XXX we have to destroy the attr at some point
+}
+
+
+int sdlog_thread_main(int argc, char *argv[])
+{
 
 	warnx("starting\n");
 
@@ -229,6 +326,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	}
 
 	char folder_path[64];
+
 	if (create_logfolder(folder_path))
 		errx(1, "unable to create logging folder, exiting.");
 
@@ -236,7 +334,6 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	int sensorfile = -1;
 	int actuator_outputs_file = -1;
 	int actuator_controls_file = -1;
-	int sysvector_file = -1;
 	FILE *gpsfile;
 	FILE *blackbox_file;
 	// FILE *vehiclefile;
@@ -247,6 +344,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	/* set up file path: e.g. /mnt/sdcard/session0001/sensor_combined.bin */
 	sprintf(path_buf, "%s/%s.bin", folder_path, "sensor_combined");
+
 	if (0 == (sensorfile = open(path_buf, O_CREAT | O_WRONLY | O_DSYNC))) {
 		errx(1, "opening %s failed.\n", path_buf);
 	}
@@ -259,28 +357,34 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	/* set up file path: e.g. /mnt/sdcard/session0001/actuator_controls0.bin */
 	sprintf(path_buf, "%s/%s.bin", folder_path, "sysvector");
+
 	if (0 == (sysvector_file = open(path_buf, O_CREAT | O_WRONLY | O_DSYNC))) {
 		errx(1, "opening %s failed.\n", path_buf);
 	}
 
 	/* set up file path: e.g. /mnt/sdcard/session0001/actuator_controls0.bin */
 	sprintf(path_buf, "%s/%s.bin", folder_path, "actuator_controls0");
+
 	if (0 == (actuator_controls_file = open(path_buf, O_CREAT | O_WRONLY | O_DSYNC))) {
 		errx(1, "opening %s failed.\n", path_buf);
 	}
 
 	/* set up file path: e.g. /mnt/sdcard/session0001/gps.txt */
 	sprintf(path_buf, "%s/%s.txt", folder_path, "gps");
+
 	if (NULL == (gpsfile = fopen(path_buf, "w"))) {
 		errx(1, "opening %s failed.\n", path_buf);
 	}
+
 	int gpsfile_no = fileno(gpsfile);
 
 	/* set up file path: e.g. /mnt/sdcard/session0001/blackbox.txt */
 	sprintf(path_buf, "%s/%s.txt", folder_path, "blackbox");
+
 	if (NULL == (blackbox_file = fopen(path_buf, "w"))) {
 		errx(1, "opening %s failed.\n", path_buf);
 	}
+
 	int blackbox_file_no = fileno(blackbox_file);
 
 	/* --- IMPORTANT: DEFINE NUMBER OF ORB STRUCTS TO WAIT FOR HERE --- */
@@ -305,6 +409,8 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		struct vehicle_gps_position_s gps_pos;
 		struct vehicle_vicon_position_s vicon_pos;
 		struct optical_flow_s flow;
+		struct battery_status_s batt;
+		struct differential_pressure_s diff_pressure;
 	} buf;
 	memset(&buf, 0, sizeof(buf));
 
@@ -321,6 +427,8 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		int gps_pos_sub;
 		int vicon_pos_sub;
 		int flow_sub;
+		int batt_sub;
+		int diff_pressure_sub;
 	} subs;
 
 	/* --- MANAGEMENT - LOGGING COMMAND --- */
@@ -409,6 +517,20 @@ int sdlog_thread_main(int argc, char *argv[]) {
 	fds[fdsc_count].events = POLLIN;
 	fdsc_count++;
 
+	/* --- BATTERY STATUS --- */
+	/* subscribe to ORB for flow measurements */
+	subs.batt_sub = orb_subscribe(ORB_ID(battery_status));
+	fds[fdsc_count].fd = subs.batt_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
+	/* --- DIFFERENTIAL PRESSURE --- */
+	/* subscribe to ORB for flow measurements */
+	subs.diff_pressure_sub = orb_subscribe(ORB_ID(differential_pressure));
+	fds[fdsc_count].fd = subs.diff_pressure_sub;
+	fds[fdsc_count].events = POLLIN;
+	fdsc_count++;
+
 	/* WARNING: If you get the error message below,
 	 * then the number of registered messages (fdsc)
 	 * differs from the number of messages in the above list.
@@ -426,20 +548,64 @@ int sdlog_thread_main(int argc, char *argv[]) {
 
 	thread_running = true;
 
-	int poll_count = 0;
+	/* initialize log buffer with a size of 10 */
+	sdlog_logbuffer_init(&lb, 10);
+
+	/* initialize thread synchronization */
+	pthread_mutex_init(&sysvector_mutex, NULL);
+  	pthread_cond_init(&sysvector_cond, NULL);
+
+	/* start logbuffer emptying thread */
+	pthread_t sysvector_pthread = sysvector_write_start(&lb);
 
 	starttime = hrt_absolute_time();
 
+	// XXX clock the log for now with the gyro output rate / 2
+	struct pollfd gyro_fd;
+	gyro_fd.fd = subs.sensor_sub;
+	gyro_fd.events = POLLIN;
+
+	/* log every 2nd value (skip one) */
+	int skip_value = 0;
+	/* track skipping */
+	int skip_count = 0;
+
 	while (!thread_should_exit) {
+
+		// XXX only use gyro for now
+		int poll_ret = poll(&gyro_fd, 1, 1000);
 
 		// int poll_ret = poll(fds, fdsc_count, timeout);
 
-		// /* handle the poll result */
-		// if (poll_ret == 0) {
-		// 	/* XXX this means none of our providers is giving us data - might be an error? */
-		// } else if (poll_ret < 0) {
-		// 	/* XXX this is seriously bad - should be an emergency */
-		// } else {
+		/* handle the poll result */
+		if (poll_ret == 0) {
+			/* XXX this means none of our providers is giving us data - might be an error? */
+		} else if (poll_ret < 0) {
+			/* XXX this is seriously bad - should be an emergency */
+		} else {
+
+			/* always copy sensors raw data into local buffer, since poll flags won't clear else */
+			orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.raw);
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.controls_0_sub, &buf.act_controls);
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, subs.controls_effective_0_sub, &buf.act_controls_effective);
+			/* copy actuator data into local buffer */
+			orb_copy(ORB_ID(actuator_outputs_0), subs.act_0_sub, &buf.act_outputs);
+			orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.spa_sub, &buf.att_sp);
+			orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+			orb_copy(ORB_ID(vehicle_local_position), subs.local_pos_sub, &buf.local_pos);
+			orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
+			orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
+			orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
+			orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
+
+			if (skip_count < skip_value) {
+				skip_count++;
+				/* do not log data */
+				continue;
+			} else {
+				/* log data, reset */
+				skip_count = 0;
+			}
 
 		// 	int ifds = 0;
 
@@ -450,7 +616,7 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		// 		fsync(blackbox_file_no);
 		// 	}
 
-			
+
 
 		// 	/* --- VEHICLE COMMAND VALUE --- */
 		// 	if (fds[ifds++].revents & POLLIN) {
@@ -476,14 +642,14 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		// 		/* copy attitude data into local buffer */
 		// 		orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
 
-				
+
 		// 	}
 
 		// 	/* --- VEHICLE ATTITUDE SETPOINT --- */
 		// 	if (fds[ifds++].revents & POLLIN) {
 		// 		/* copy local position data into local buffer */
 		// 		orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.spa_sub, &buf.att_sp);
-				
+
 		// 	}
 
 		// 	/* --- ACTUATOR OUTPUTS 0 --- */
@@ -500,80 +666,71 @@ int sdlog_thread_main(int argc, char *argv[]) {
 		// 		/* write out */
 		// 		actuator_controls_bytes += write(actuator_controls_file, (const char*)&buf.act_controls, sizeof(buf.act_controls));
 		// 	}
-		// }
 
-		if (poll_count % 100 == 0) {
-			fsync(sysvector_file);
+
+			/* copy sensors raw data into local buffer */
+			orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.raw);
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.controls_0_sub, &buf.act_controls);
+			orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, subs.controls_effective_0_sub, &buf.act_controls_effective);
+			/* copy actuator data into local buffer */
+			orb_copy(ORB_ID(actuator_outputs_0), subs.act_0_sub, &buf.act_outputs);
+			orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.spa_sub, &buf.att_sp);
+			orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
+			orb_copy(ORB_ID(vehicle_local_position), subs.local_pos_sub, &buf.local_pos);
+			orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
+			orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
+			orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
+			orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
+			orb_copy(ORB_ID(differential_pressure), subs.diff_pressure_sub, &buf.diff_pressure);
+			orb_copy(ORB_ID(battery_status), subs.batt_sub, &buf.batt);
+
+			struct sdlog_sysvector sysvect = {
+				.timestamp = buf.raw.timestamp,
+				.gyro = {buf.raw.gyro_rad_s[0], buf.raw.gyro_rad_s[1], buf.raw.gyro_rad_s[2]},
+				.accel = {buf.raw.accelerometer_m_s2[0], buf.raw.accelerometer_m_s2[1], buf.raw.accelerometer_m_s2[2]},
+				.mag = {buf.raw.magnetometer_ga[0], buf.raw.magnetometer_ga[1], buf.raw.magnetometer_ga[2]},
+				.baro = buf.raw.baro_pres_mbar,
+				.baro_alt = buf.raw.baro_alt_meter,
+				.baro_temp = buf.raw.baro_temp_celcius,
+				.control = {buf.act_controls.control[0], buf.act_controls.control[1], buf.act_controls.control[2], buf.act_controls.control[3]},
+				.actuators = {
+					buf.act_outputs.output[0], buf.act_outputs.output[1], buf.act_outputs.output[2], buf.act_outputs.output[3],
+					buf.act_outputs.output[4], buf.act_outputs.output[5], buf.act_outputs.output[6], buf.act_outputs.output[7]
+				},
+				.vbat = buf.batt.voltage_v,
+				.bat_current = buf.batt.current_a,
+				.bat_discharged = buf.batt.discharged_mah,
+				.adc = {buf.raw.adc_voltage_v[0], buf.raw.adc_voltage_v[1], buf.raw.adc_voltage_v[2]},
+				.local_position = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z},
+				.gps_raw_position = {buf.gps_pos.lat, buf.gps_pos.lon, buf.gps_pos.alt},
+				.attitude = {buf.att.pitch, buf.att.roll, buf.att.yaw},
+				.rotMatrix = {buf.att.R[0][0], buf.att.R[0][1], buf.att.R[0][2], buf.att.R[1][0], buf.att.R[1][1], buf.att.R[1][2], buf.att.R[2][0], buf.att.R[2][1], buf.att.R[2][2]},
+				.vicon = {buf.vicon_pos.x, buf.vicon_pos.y, buf.vicon_pos.z, buf.vicon_pos.roll, buf.vicon_pos.pitch, buf.vicon_pos.yaw},
+				.control_effective = {buf.act_controls_effective.control_effective[0], buf.act_controls_effective.control_effective[1], buf.act_controls_effective.control_effective[2], buf.act_controls_effective.control_effective[3]},
+				.flow = {buf.flow.flow_raw_x, buf.flow.flow_raw_y, buf.flow.flow_comp_x_m, buf.flow.flow_comp_y_m, buf.flow.ground_distance_m, buf.flow.quality},
+				.diff_pressure = buf.diff_pressure.differential_pressure_mbar,
+				.ind_airspeed = buf.diff_pressure.indicated_airspeed_m_s,
+				.true_airspeed = buf.diff_pressure.true_airspeed_m_s
+			};
+
+			/* put into buffer for later IO */
+			pthread_mutex_lock(&sysvector_mutex);
+			sdlog_logbuffer_write(&lb, &sysvect);
+			/* signal the other thread new data, but not yet unlock */
+			pthread_cond_signal(&sysvector_cond);
+			/* unlock, now the writer thread may run */
+			pthread_mutex_unlock(&sysvector_mutex);
 		}
 
-		poll_count++;
-
-
-		/* copy sensors raw data into local buffer */
-		orb_copy(ORB_ID(sensor_combined), subs.sensor_sub, &buf.raw);
-		orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, subs.controls_0_sub, &buf.act_controls);
-		orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS_EFFECTIVE, subs.controls_effective_0_sub, &buf.act_controls_effective);
-		/* copy actuator data into local buffer */
-		orb_copy(ORB_ID(actuator_outputs_0), subs.act_0_sub, &buf.act_outputs);
-		orb_copy(ORB_ID(vehicle_attitude_setpoint), subs.spa_sub, &buf.att_sp);
-		orb_copy(ORB_ID(vehicle_gps_position), subs.gps_pos_sub, &buf.gps_pos);
-		orb_copy(ORB_ID(vehicle_local_position), subs.local_pos_sub, &buf.local_pos);
-		orb_copy(ORB_ID(vehicle_global_position), subs.global_pos_sub, &buf.global_pos);
-		orb_copy(ORB_ID(vehicle_attitude), subs.att_sub, &buf.att);
-		orb_copy(ORB_ID(vehicle_vicon_position), subs.vicon_pos_sub, &buf.vicon_pos);
-		orb_copy(ORB_ID(optical_flow), subs.flow_sub, &buf.flow);
-
-		#pragma pack(push, 1)
-		struct {
-			uint64_t timestamp; //[us]
-			float gyro[3]; //[rad/s]
-			float accel[3]; //[m/s^2]
-			float mag[3]; //[gauss]
-			float baro; //pressure [millibar]
-			float baro_alt; //altitude above MSL [meter]
-			float baro_temp; //[degree celcius]
-			float control[4]; //roll, pitch, yaw [-1..1], thrust [0..1]
-			float actuators[8]; //motor 1-8, in motor units (PWM: 1000-2000,AR.Drone: 0-512)
-			float vbat; //battery voltage in [volt]
-			float adc[3]; //remaining auxiliary ADC ports [volt]
-			float local_position[3]; //tangent plane mapping into x,y,z [m]
-			int32_t gps_raw_position[3]; //latitude [degrees] north, longitude [degrees] east, altitude above MSL [millimeter]
-			float attitude[3]; //pitch, roll, yaw [rad]
-			float rotMatrix[9]; //unitvectors
-			float vicon[6];
-			float control_effective[4]; //roll, pitch, yaw [-1..1], thrust [0..1]
-			float flow[6]; // flow raw x, y, flow metric x, y, flow ground dist, flow quality
-		} sysvector = {
-			.timestamp = buf.raw.timestamp,
-			.gyro = {buf.raw.gyro_rad_s[0], buf.raw.gyro_rad_s[1], buf.raw.gyro_rad_s[2]},
-			.accel = {buf.raw.accelerometer_m_s2[0], buf.raw.accelerometer_m_s2[1], buf.raw.accelerometer_m_s2[2]},
-			.mag = {buf.raw.magnetometer_ga[0], buf.raw.magnetometer_ga[1], buf.raw.magnetometer_ga[2]},
-			.baro = buf.raw.baro_pres_mbar,
-			.baro_alt = buf.raw.baro_alt_meter,
-			.baro_temp = buf.raw.baro_temp_celcius,
-			.control = {buf.act_controls.control[0], buf.act_controls.control[1], buf.act_controls.control[2], buf.act_controls.control[3]},
-			.actuators = {buf.act_outputs.output[0], buf.act_outputs.output[1], buf.act_outputs.output[2], buf.act_outputs.output[3],
-					buf.act_outputs.output[4], buf.act_outputs.output[5], buf.act_outputs.output[6], buf.act_outputs.output[7]},
-			.vbat = 0.0f, /* XXX use battery_status uORB topic */
-			.adc = {buf.raw.adc_voltage_v[0], buf.raw.adc_voltage_v[1], buf.raw.adc_voltage_v[2]},
-			.local_position = {buf.local_pos.x, buf.local_pos.y, buf.local_pos.z},
-			.gps_raw_position = {buf.gps_pos.lat, buf.gps_pos.lon, buf.gps_pos.alt},
-			.attitude = {buf.att.pitch, buf.att.roll, buf.att.yaw},
-			.rotMatrix = {buf.att.R[0][0], buf.att.R[0][1], buf.att.R[0][2], buf.att.R[1][0], buf.att.R[1][1], buf.att.R[1][2], buf.att.R[2][0], buf.att.R[2][1], buf.att.R[2][2]},
-			.vicon = {buf.vicon_pos.x, buf.vicon_pos.y, buf.vicon_pos.z, buf.vicon_pos.roll, buf.vicon_pos.pitch, buf.vicon_pos.yaw},
-			.control_effective = {buf.act_controls_effective.control_effective[0], buf.act_controls_effective.control_effective[1], buf.act_controls_effective.control_effective[2], buf.act_controls_effective.control_effective[3]},
-			.flow = {buf.flow.flow_raw_x, buf.flow.flow_raw_y, buf.flow.flow_comp_x_m, buf.flow.flow_comp_y_m, buf.flow.ground_distance_m, buf.flow.quality}
-		};
-		#pragma pack(pop)
-
-		sysvector_bytes += write(sysvector_file, (const char*)&sysvector, sizeof(sysvector));
-
-		usleep(3500);   // roughly 150 Hz
 	}
 
-	fsync(sysvector_file);
-
 	print_sdlog_status();
+
+	/* wait for write thread to return */
+	(void)pthread_join(sysvector_pthread, NULL);
+
+  	pthread_mutex_destroy(&sysvector_mutex);
+  	pthread_cond_destroy(&sysvector_cond);
 
 	warnx("exiting.\n");
 
@@ -606,43 +763,44 @@ int file_exist(const char *filename)
 	return stat(filename, &buffer);
 }
 
-int file_copy(const char* file_old, const char* file_new)
+int file_copy(const char *file_old, const char *file_new)
 {
 	FILE *source, *target;
 	source = fopen(file_old, "r");
 	int ret = 0;
- 
-	if( source == NULL )
-	{
+
+	if (source == NULL) {
 		warnx("failed opening input file to copy");
 		return 1;
 	}
 
 	target = fopen(file_new, "w");
- 
-	if( target == NULL )
-	{
+
+	if (target == NULL) {
 		fclose(source);
 		warnx("failed to open output file to copy");
 		return 1;
 	}
- 
+
 	char buf[128];
 	int nread;
+
 	while ((nread = fread(buf, 1, sizeof(buf), source)) > 0) {
 		int ret = fwrite(buf, 1, nread, target);
+
 		if (ret <= 0) {
 			warnx("error writing file");
 			ret = 1;
 			break;
 		}
 	}
+
 	fsync(fileno(target));
 
 	fclose(source);
 	fclose(target);
 
-   return ret;
+	return ret;
 }
 
 
