@@ -932,9 +932,38 @@ px4io_main(int argc, char *argv[])
 		exit(0);
 	}
 
+	if (!strcmp(argv[1], "stop")) {
+
+			if (g_dev != nullptr) {
+				/* stop the driver */
+				delete g_dev;
+			} else {
+				errx(1, "not loaded");
+			}
+			exit(0);
+		}
+
+
+	if (!strcmp(argv[1], "status")) {
+
+			if (g_dev != nullptr)
+				printf("[px4io] loaded\n");
+			else
+				printf("[px4io] not loaded\n");
+
+			exit(0);
+		}
+
 	/* note, stop not currently implemented */
 
 	if (!strcmp(argv[1], "update")) {
+
+		if (g_dev != nullptr) {
+			printf("[px4io] loaded, detaching first\n");
+			/* stop the driver */
+			delete g_dev;
+		}
+
 		PX4IO_Uploader *up;
 		const char *fn[3];
 
@@ -990,5 +1019,5 @@ px4io_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "monitor"))
 		monitor();
 
-	errx(1, "need a command, try 'start', 'test', 'monitor' or 'update'");
+	errx(1, "need a command, try 'start', 'stop', 'status', 'test', 'monitor' or 'update'");
 }
