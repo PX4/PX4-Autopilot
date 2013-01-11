@@ -42,3 +42,4 @@ cscope.out
 .configX-e
 nuttx-export.zip
 dot.gdbinit
+mkdeps
