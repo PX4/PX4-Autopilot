@@ -82,26 +82,26 @@
 #define mavlink_log_info(_fd, _text)		ioctl(_fd, MAVLINK_IOC_SEND_TEXT_INFO, (unsigned long)_text);
 
 struct mavlink_logmessage {
-    char text[51];
-    unsigned char severity;
+	char text[51];
+	unsigned char severity;
 };
 
 struct mavlink_logbuffer {
-    unsigned int start;
-    // unsigned int end;
-    unsigned int size;
-    int count;
-    struct mavlink_logmessage *elems;
+	unsigned int start;
+	// unsigned int end;
+	unsigned int size;
+	int count;
+	struct mavlink_logmessage *elems;
 };
- 
+
 void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size);
- 
+
 int mavlink_logbuffer_is_full(struct mavlink_logbuffer *lb);
 
 int mavlink_logbuffer_is_empty(struct mavlink_logbuffer *lb);
- 
+
 void mavlink_logbuffer_write(struct mavlink_logbuffer *lb, const struct mavlink_logmessage *elem);
- 
+
 int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessage *elem);
 
 #endif
