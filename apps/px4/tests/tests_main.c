@@ -78,7 +78,7 @@ static int test_jig(int argc, char *argv[]);
  * Private Data
  ****************************************************************************/
 
-struct {
+const struct {
 	const char 	*name;
 	int	(* fn)(int argc, char *argv[]);
 	unsigned	options;
