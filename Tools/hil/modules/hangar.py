@@ -12,17 +12,24 @@ class BasicAircraft(object):
         self.x = aircraft.State.default()
         self.u = aircraft.Controls.default()
 
-        self.imu = sensors.Imu.default()
+        if attack == None:
+            self.pressure = sensors.Pressure.default()
+            self.imu = sensors.Imu.default()
+            self.gps = sensors.Gps.default()
+        else:
+            import attack_sensors
+            self.pressure = attack_sensors.AttackPressure.default()
+            self.imu = attack_sensors.AttackImu.default()
+            self.gps = attack_sensors.AttackGps.default()
+
         self.imu_period = 1.0/200;
         self.t_imu = t_now
         self.imu_count = 0
 
-        self.gps = sensors.Gps.default()
         self.gps_period = 1.0/10;
         self.t_gps = t_now
         self.gps_count = 0
 
-        self.pressure = sensors.Pressure.default()
         self.pressure_period = 1.0/10;
         self.t_pressure = t_now
         self.pressure_count = 0
@@ -48,15 +55,15 @@ class BasicAircraft(object):
         self.x.send_to_mav(mav)
 
     def send_imu(self, mav):
-        self.imu = sensors.Imu.from_state(self.x, self.attack)
+        self.imu = self.imu.from_state(self.x, self.attack)
         self.imu.send_to_mav(mav)
 
     def send_gps(self, mav):
-        self.gps = sensors.Gps.from_state(self.x, self.attack)
+        self.gps = self.gps.from_state(self.x, self.attack)
         self.gps.send_to_mav(mav)
 
     def send_pressure(self, mav):
-        self.pressure = sensors.Pressure.from_state(self.x, self.attack)
+        self.pressure = self.pressure.from_state(self.x, self.attack)
         self.pressure.send_to_mav(mav)
 
     def send_sensors(self, mav):
