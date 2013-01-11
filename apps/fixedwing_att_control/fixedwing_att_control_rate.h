@@ -42,7 +42,7 @@
 #include <uORB/topics/actuator_controls.h>
 
 int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
-		const float rates[],
-		struct actuator_controls_s *actuators);
+				const float rates[],
+				struct actuator_controls_s *actuators);
 
 #endif /* FIXEDWING_ATT_CONTROL_RATE_H_ */

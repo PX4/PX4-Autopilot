@@ -50,6 +50,13 @@
  * @{
  */
 
+/**
+ * The number of RC channel inputs supported.
+ * Current (Q1/2013) radios support up to 18 channels,
+ * leaving at a sane value of 14.
+ */
+#define RC_CHANNELS_MAX   14
+
 /** 
  * This defines the mapping of the RC functions.
  * The value assigned to the specific function corresponds to the entry of
@@ -62,14 +69,18 @@ enum RC_CHANNELS_FUNCTION
   PITCH    = 2,
   YAW      = 3,
   OVERRIDE = 4,
-  FUNC_0   = 5,
-  FUNC_1   = 6,
-  FUNC_2   = 7,
-  FUNC_3   = 8,
-  FUNC_4   = 9,
-  FUNC_5   = 10,
-  FUNC_6   = 11,
-  RC_CHANNELS_FUNCTION_MAX = 12
+  AUTO_MODE = 5,
+  MANUAL_MODE = 6,
+  SAS_MODE = 7,
+  RTL = 8,
+  OFFBOARD_MODE = 9,
+  FLAPS   = 10,
+  AUX_1   = 11,
+  AUX_2   = 12,
+  AUX_3   = 13,
+  AUX_4   = 14,
+  AUX_5   = 15,
+  RC_CHANNELS_FUNCTION_MAX /**< indicates the number of functions. There can be more functions than RC channels. */
 };
 
 struct rc_channels_s {
@@ -78,14 +89,13 @@ struct rc_channels_s {
   uint64_t timestamp_last_valid;      /**< timestamp of last valid RC signal. */
   struct {
     float scaled;                     /**< Scaled to -1..1 (throttle: 0..1) */
-  } chan[RC_CHANNELS_FUNCTION_MAX];
-  uint8_t chan_count;                 /**< maximum number of valid channels */
+  } chan[RC_CHANNELS_MAX];
+  uint8_t chan_count;                 /**< number of valid channels */
 
   /*String array to store the names of the functions*/
   char function_name[RC_CHANNELS_FUNCTION_MAX][20];
-  uint8_t function[RC_CHANNELS_FUNCTION_MAX];
+  int8_t function[RC_CHANNELS_FUNCTION_MAX];
   uint8_t rssi;                       /**< Overall receive signal strength */
-  bool is_valid;                      /**< Inputs are valid, no timeout */
 }; /**< radio control channels. */
 
 /**

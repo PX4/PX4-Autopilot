@@ -106,6 +106,7 @@ mavlink_missionlib_send_gcs_string(const char *string)
 
 		mavlink_msg_statustext_encode(mavlink_system.sysid, mavlink_system.compid, &msg, &statustext);
 		return mavlink_missionlib_send_message(&msg);
+
 	} else {
 		return 1;
 	}
@@ -144,12 +145,15 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		sp.altitude = param7_alt_z;
 		sp.altitude_is_relative = false;
 		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+
 		/* Initialize publication if necessary */
 		if (global_position_setpoint_pub < 0) {
 			global_position_setpoint_pub = orb_advertise(ORB_ID(vehicle_global_position_setpoint), &sp);
+
 		} else {
 			orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
 		}
+
 		sprintf(buf, "[mp] WP#%i lat: % 3.6f/lon % 3.6f/alt % 4.6f/hdg %3.4f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 
 	} else if (frame == (int)MAV_FRAME_GLOBAL_RELATIVE_ALT) {
@@ -160,12 +164,15 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		sp.altitude = param7_alt_z;
 		sp.altitude_is_relative = true;
 		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+
 		/* Initialize publication if necessary */
 		if (global_position_setpoint_pub < 0) {
 			global_position_setpoint_pub = orb_advertise(ORB_ID(vehicle_global_position_setpoint), &sp);
+
 		} else {
 			orb_publish(ORB_ID(vehicle_global_position_setpoint), global_position_setpoint_pub, &sp);
 		}
+
 		sprintf(buf, "[mp] WP#%i (lat: %f/lon %f/rel alt %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 
 	} else if (frame == (int)MAV_FRAME_LOCAL_ENU || frame == (int)MAV_FRAME_LOCAL_NED) {
@@ -175,15 +182,18 @@ void mavlink_missionlib_current_waypoint_changed(uint16_t index, float param1,
 		sp.y = param6_lon_y;
 		sp.z = param7_alt_z;
 		sp.yaw = (param4 / 180.0f) * M_PI_F - M_PI_F;
+
 		/* Initialize publication if necessary */
 		if (local_position_setpoint_pub < 0) {
 			local_position_setpoint_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &sp);
+
 		} else {
 			orb_publish(ORB_ID(vehicle_local_position_setpoint), local_position_setpoint_pub, &sp);
 		}
+
 		sprintf(buf, "[mp] WP#%i (x: %f/y %f/z %f/hdg %f\n", (int)index, (double)param5_lat_x, (double)param6_lon_y, (double)param7_alt_z, (double)param4);
 	}
-	
+
 	mavlink_missionlib_send_gcs_string(buf);
 	printf("%s\n", buf);
 	//printf("[mavlink mp] new setpoint\n");//: frame: %d, lat: %d, lon: %d, alt: %d, yaw: %d\n", frame, param5_lat_x*1000, param6_lon_y*1000, param7_alt_z*1000, param4*1000);

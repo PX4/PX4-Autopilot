@@ -379,6 +379,7 @@ void check_waypoints_reached(uint64_t now, const struct vehicle_global_position_
 			if (counter % 100 == 0)
 				printf("Setpoint reached: %0.4f, orbit: %.4f\n", dist, orbit);
 		}
+
 //		else
 //		{
 //			if(counter % 100 == 0)

@@ -143,8 +143,9 @@ ARCHCWARNINGS		 = $(ARCHWARNINGS) \
 			   -Wmissing-prototypes \
 			   -Wnested-externs \
 			   -Wunsuffixed-float-constants
-ARCHWARNINGSXX		 = $(ARCHWARNINGS)
-ARCHDEFINES		 = 
+ARCHWARNINGSXX		 = $(ARCHWARNINGS) \
+			   -Wno-psabi
+ARCHDEFINES		 =
 ARCHPICFLAGS		 = -fpic -msingle-pic-base -mpic-register=r10
 
 # this seems to be the only way to add linker flags

@@ -112,6 +112,9 @@ endef
 
 $(foreach BUILTIN, $(CONFIGURED_APPS), $(eval $(call ADD_BUILTIN,$(BUILTIN))))
 
+# EXTERNAL_APPS is used to add out of tree apps to the build
+INSTALLED_APPS += $(EXTERNAL_APPS)
+
 # The external/ directory may also be added to the INSTALLED_APPS.  But there
 # is no external/ directory in the repository.  Rather, this directory may be
 # provided by the user (possibly as a symbolic link) to add libraries and
