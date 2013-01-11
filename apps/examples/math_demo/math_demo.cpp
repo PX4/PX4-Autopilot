@@ -99,7 +99,7 @@ void test()
     vectorTest();
     matrixTest();
     vector3Test();
-    eulerAnglesTest();
-    quaternionTest();
     dcmTest();
+    quaternionTest();
+    eulerAnglesTest();
 }

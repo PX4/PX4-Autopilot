@@ -61,14 +61,14 @@ Dcm::Dcm(const Quaternion &q) :
 	Matrix(3, 3)
 {
 	Dcm &dcm = *this;
-	float a = q.getA();
-	float b = q.getB();
-	float c = q.getC();
-	float d = q.getD();
-	float aSq = a * a;
-	float bSq = b * b;
-	float cSq = c * c;
-	float dSq = d * d;
+	double a = q.getA();
+	double b = q.getB();
+	double c = q.getC();
+	double d = q.getD();
+	double aSq = a * a;
+	double bSq = b * b;
+	double cSq = c * c;
+	double dSq = d * d;
 	dcm(0, 0) = aSq + bSq - cSq - dSq;
 	dcm(0, 1) = 2 * (b * c - a * d);
 	dcm(0, 2) = 2 * (a * c + b * d);
@@ -84,12 +84,12 @@ Dcm::Dcm(const EulerAngles &euler) :
 	Matrix(3, 3)
 {
 	Dcm &dcm = *this;
-	float cosPhi = cosf(euler.getPhi());
-	float sinPhi = sinf(euler.getPhi());
-	float cosThe = cosf(euler.getTheta());
-	float sinThe = sinf(euler.getTheta());
-	float cosPsi = cosf(euler.getPsi());
-	float sinPsi = sinf(euler.getPsi());
+	double cosPhi = cos(euler.getPhi());
+	double sinPhi = sin(euler.getPhi());
+	double cosThe = cos(euler.getTheta());
+	double sinThe = sin(euler.getTheta());
+	double cosPsi = cos(euler.getPsi());
+	double sinPsi = sin(euler.getPsi());
 
 	dcm(0, 0) = cosThe * cosPsi;
 	dcm(0, 1) = -cosPhi * sinPsi + sinPhi * sinThe * cosPsi;
