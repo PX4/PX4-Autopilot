@@ -75,16 +75,16 @@ $(FIRMWARE_BINARY):	configure_$(TARGET) setup_$(TARGET)
 configure_px4fmu:
 ifneq ($(TARGET),px4fmu)
 	@make -C $(PX4BASE) distclean
-endif
 	@cd $(NUTTX_SRC)/tools && /bin/sh configure.sh px4fmu/nsh
 	@echo px4fmu > $(CONFIGURED)
+endif
 
 configure_px4io:
 ifneq ($(TARGET),px4io)
 	@make -C $(PX4BASE) distclean
-endif
 	@cd $(NUTTX_SRC)/tools && /bin/sh configure.sh px4io/io
 	@echo px4io > $(CONFIGURED)
+endif
 
 #
 # Per-configuration additional targets
