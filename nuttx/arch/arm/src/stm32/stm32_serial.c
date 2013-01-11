@@ -79,22 +79,22 @@
 
 #if SERIAL_HAVE_DMA
 
-/* Verify that DMA has been enabled an the DMA channel has been defined.
- * NOTE:  These assignments may only be true for the F4.
+#  if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+/* Verify that DMA has been enabled and the DMA channel has been defined.
  */
 
-#  if defined(CONFIG_USART1_RXDMA) || defined(CONFIG_USART6_RXDMA)
-#    ifndef CONFIG_STM32_DMA2
-#      error STM32 USART1/6 receive DMA requires CONFIG_STM32_DMA2
+#    if defined(CONFIG_USART1_RXDMA) || defined(CONFIG_USART6_RXDMA)
+#      ifndef CONFIG_STM32_DMA2
+#        error STM32 USART1/6 receive DMA requires CONFIG_STM32_DMA2
+#      endif
 #    endif
-#  endif
 
-#  if defined(CONFIG_USART2_RXDMA) || defined(CONFIG_USART3_RXDMA) || \
+#    if defined(CONFIG_USART2_RXDMA) || defined(CONFIG_USART3_RXDMA) || \
       defined(CONFIG_UART4_RXDMA) || defined(CONFIG_UART5_RXDMA)
-#    ifndef CONFIG_STM32_DMA1
-#      error STM32 USART2/3/4/5 receive DMA requires CONFIG_STM32_DMA1
+#      ifndef CONFIG_STM32_DMA1
+#        error STM32 USART2/3/4/5 receive DMA requires CONFIG_STM32_DMA1
+#      endif
 #    endif
-#  endif
 
 /* Currently RS-485 support cannot be enabled when RXDMA is in use due to lack
  * of testing - RS-485 support was developed on STM32F1x
@@ -114,28 +114,52 @@
  * the following in the board.h file.
  */
 
-#  if defined(CONFIG_USART1_RXDMA) && !defined(DMAMAP_USART1_RX)
-#    error "USART1 DMA channel not defined (DMAMAP_USART1_RX)"
-#  endif
+#    if defined(CONFIG_USART1_RXDMA) && !defined(DMAMAP_USART1_RX)
+#      error "USART1 DMA channel not defined (DMAMAP_USART1_RX)"
+#    endif
 
-#  if defined(CONFIG_USART2_RXDMA) && !defined(DMAMAP_USART2_RX)
-#    error "USART2 DMA channel not defined (DMAMAP_USART2_RX)"
-#  endif
+#    if defined(CONFIG_USART2_RXDMA) && !defined(DMAMAP_USART2_RX)
+#      error "USART2 DMA channel not defined (DMAMAP_USART2_RX)"
+#    endif
 
-#  if defined(CONFIG_USART3_RXDMA) && !defined(DMAMAP_USART3_RX)
-#    error "USART3 DMA channel not defined (DMAMAP_USART3_RX)"
-#  endif
+#    if defined(CONFIG_USART3_RXDMA) && !defined(DMAMAP_USART3_RX)
+#      error "USART3 DMA channel not defined (DMAMAP_USART3_RX)"
+#    endif
 
-#  if defined(CONFIG_UART4_RXDMA) && !defined(DMAMAP_UART4_RX)
-#    error "UART4 DMA channel not defined (DMAMAP_UART4_RX)"
-#  endif
+#    if defined(CONFIG_UART4_RXDMA) && !defined(DMAMAP_UART4_RX)
+#      error "UART4 DMA channel not defined (DMAMAP_UART4_RX)"
+#    endif
 
-#  if defined(CONFIG_UART5_RXDMA) && !defined(DMAMAP_UART5_RX)
-#    error "UART5 DMA channel not defined (DMAMAP_UART5_RX)"
-#  endif
+#    if defined(CONFIG_UART5_RXDMA) && !defined(DMAMAP_UART5_RX)
+#      error "UART5 DMA channel not defined (DMAMAP_UART5_RX)"
+#    endif
 
-#  if defined(CONFIG_USART6_RXDMA) && !defined(DMAMAP_USART6_RX)
-#    error "USART6 DMA channel not defined (DMAMAP_USART6_RX)"
+#    if defined(CONFIG_USART6_RXDMA) && !defined(DMAMAP_USART6_RX)
+#      error "USART6 DMA channel not defined (DMAMAP_USART6_RX)"
+#    endif
+
+#  elif defined(CONFIG_STM32_STM32F10XX)
+
+#    if defined(CONFIG_USART1_RXDMA) || defined(CONFIG_USART2_RXDMA) || \
+      defined(CONFIG_USART3_RXDMA)
+#      ifndef CONFIG_STM32_DMA1
+#        error STM32 USART1/2/3 receive DMA requires CONFIG_STM32_DMA1
+#      endif
+#    endif
+
+#    if defined(CONFIG_UART4_RXDMA)
+#      ifndef CONFIG_STM32_DMA2
+#        error STM32 USART4 receive DMA requires CONFIG_STM32_DMA2
+#      endif
+#    endif
+
+/* There are no optional DMA channel assignments for the F1 */
+
+#    define DMAMAP_USART1_RX  DMACHAN_USART1_RX
+#    define DMAMAP_USART2_RX  DMACHAN_USART2_RX
+#    define DMAMAP_USART3_RX  DMACHAN_USART3_RX
+#    define DMAMAP_UART4_RX   DMACHAN_USART4_RX
+
 #  endif
 
 /* The DMA buffer size when using RX DMA to emulate a FIFO.
@@ -168,6 +192,27 @@
 #  else
 #    error "Unknown STM32 DMA"
 #  endif
+
+/* DMA control word */
+
+#  if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F40XX)
+#    define SERIAL_DMA_CONTROL_WORD      \
+                (DMA_SCR_DIR_P2M       | \
+                 DMA_SCR_CIRC          | \
+                 DMA_SCR_MINC          | \
+                 DMA_SCR_PSIZE_8BITS   | \
+                 DMA_SCR_MSIZE_8BITS   | \
+                 CONFIG_USART_DMAPRIO  | \
+                 DMA_SCR_PBURST_SINGLE | \
+                 DMA_SCR_MBURST_SINGLE)
+#  else
+#    define SERIAL_DMA_CONTROL_WORD      \
+                (DMA_CCR_CIRC          | \
+                 DMA_CCR_MINC          | \
+                 DMA_CCR_PSIZE_8BITS   | \
+                 DMA_CCR_MSIZE_8BITS   | \
+                 CONFIG_USART_DMAPRIO)
+# endif
 
 #endif
 
@@ -1056,12 +1101,15 @@ static int up_dma_setup(struct uart_dev_s *dev)
   int result;
   uint32_t regval;
 
-  /* Do the basic UART setup first */
+  /* Do the basic UART setup first, unless we are the console */
 
-  result = up_setup(dev);
-  if (result != OK)
-    {
-      return result;
+  if (!dev->isconsole)
+    {    
+      result = up_setup(dev);
+      if (result != OK)
+        {
+          return result;
+        }
     }
 
   /* Acquire the DMA channel.  This should always succeed. */
@@ -1074,14 +1122,7 @@ static int up_dma_setup(struct uart_dev_s *dev)
                  priv->usartbase + STM32_USART_DR_OFFSET,
                  (uint32_t)priv->rxfifo,
                  RXDMA_BUFFER_SIZE,
-                 DMA_SCR_DIR_P2M       |
-                 DMA_SCR_CIRC          |
-                 DMA_SCR_MINC          |
-                 DMA_SCR_PSIZE_8BITS   |
-                 DMA_SCR_MSIZE_8BITS   |
-                 CONFIG_USART_DMAPRIO  |
-                 DMA_SCR_PBURST_SINGLE |
-                 DMA_SCR_MBURST_SINGLE);
+                 SERIAL_DMA_CONTROL_WORD);
 
   /* Reset our DMA shadow pointer to match the address just
    * programmed above.
