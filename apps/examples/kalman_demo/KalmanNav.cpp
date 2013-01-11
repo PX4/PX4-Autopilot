@@ -64,8 +64,8 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	C_nb(),
 	q(),
 	// subscriptions
-	_sensors(&getSubscriptions(), ORB_ID(sensor_combined), 5), // limit to 200 Hz
-	_gps(&getSubscriptions(), ORB_ID(vehicle_gps_position), 1000), // limit to 1 Hz
+	_sensors(&getSubscriptions(), ORB_ID(sensor_combined), 1), // limit to 1000 Hz
+	_gps(&getSubscriptions(), ORB_ID(vehicle_gps_position), 100), // limit to 10 Hz
 	_param_update(&getSubscriptions(), ORB_ID(parameter_update), 1000), // limit to 1 Hz
 	// publications
 	_pos(&getPublications(), ORB_ID(vehicle_global_position)),
@@ -641,8 +641,7 @@ void KalmanNav::updateParams()
 	// gps noise
 	RPos(0, 0) = _rGpsV.get(); // vn, m/s
 	RPos(1, 1) = _rGpsV.get(); // ve
-	RPos(2, 2) = _rGpsV.get(); // vd
-	RPos(3, 3) = _rGpsGeo.get(); // L, rad
-	RPos(4, 4) = _rGpsGeo.get(); // l, rad
-	RPos(5, 5) = _rGpsAlt.get(); // h, m
+	RPos(2, 2) = _rGpsGeo.get(); // L, rad
+	RPos(3, 3) = _rGpsGeo.get(); // l, rad
+	RPos(4, 4) = _rGpsAlt.get(); // h, m
 }
