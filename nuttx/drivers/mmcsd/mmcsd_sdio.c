@@ -38,6 +38,9 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#if defined (CONFIG_MMCSD) && defined (CONFIG_MMCSD_SDIO)
+
 #include <nuttx/compiler.h>
 
 #include <sys/types.h>
@@ -3179,3 +3182,5 @@ errout_with_alloc:
   kfree(priv);
   return ret;
 }
+
+#endif /* defined (CONFIG_MMCSD) && defined (CONFIG_MMCSD_SDIO) */

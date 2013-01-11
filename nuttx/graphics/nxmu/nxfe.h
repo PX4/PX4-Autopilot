@@ -392,6 +392,7 @@ struct nxsvrmsg_getrectangle_s
   unsigned int plane;              /* The plane number to read */
   FAR uint8_t *dest;               /* Memory location in which to store the graphics data */
   unsigned int deststride;         /* Width of the destination memory in bytes */
+  sem_t *sem_done;                 /* Semaphore to report when command is done. */
 };
 
 /* Fill a trapezoidal region in the window with a color */
@@ -425,6 +426,7 @@ struct nxsvrmsg_bitmap_s
   FAR const void *src[CONFIG_NX_NPLANES]; /* The start of the source image. */
   struct nxgl_point_s origin;     /* Offset into the source image data */
   unsigned int stride;            /* The width of the full source image in pixels. */
+  sem_t *sem_done;                /* Semaphore to report when command is done. */
 };
 
 /* Set the color of the background */
@@ -585,6 +587,25 @@ EXTERN int nxmu_sendwindow(FAR struct nxbe_window_s *wnd, FAR const void *msg,
 
 EXTERN int nxmu_sendclient(FAR struct nxfe_conn_s *conn,
                            FAR const void *msg, size_t msglen);
+
+/****************************************************************************
+ * Name: nxmu_sendclientwindow
+ *
+ * Description:
+ *  Send a message to the client at NX_CLIMSG_PRIO priority
+ *
+ * Input Parameters:
+ *   wnd    - A pointer to the back-end window structure
+ *   msg    - A pointer to the message to send
+ *   msglen - The length of the message in bytes.
+ *
+ * Return:
+ *   OK on success; ERROR on failure with errno set appropriately
+ *
+ ****************************************************************************/
+
+int nxmu_sendclientwindow(FAR struct nxbe_window_s *wnd, FAR const void *msg,
+                    size_t msglen);
 
 /****************************************************************************
  * Name: nxmu_openwindow

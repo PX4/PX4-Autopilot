@@ -96,8 +96,13 @@
  *         CONFIG_SCHED_ATEXIT_MAX defines a larger number.
  *      2. atexit functions are not inherited when a new task is
  *         created.
+ *      3. If both SCHED_ONEXIT and SCHED_ATEXIT are selected, then atexit()
+ *         is built on top of the on_exit() implementation.  In that case,
+ *         CONFIG_SCHED_ONEXIT_MAX determines the size of the combined
+ *         number of atexit(0) and on_exit calls and SCHED_ATEXIT_MAX is
+ *         not used.
  *
- * Parameters:
+ * Input Parameters:
  *   func - A pointer to the function to be called when the task exits.
  *
  * Return Value:
@@ -107,7 +112,14 @@
 
 int atexit(void (*func)(void))
 {
-#if defined(CONFIG_SCHED_ATEXIT_MAX) && CONFIG_SCHED_ATEXIT_MAX > 1
+#if defined(CONFIG_SCHED_ONEXIT)
+  /* atexit is equivalent to on_exit() with no argument (Assuming that the ABI
+   * can handle a callback function that recieves more parameters than it expects).
+   */
+
+  return on_exit(onexitfunc_t func, NULL);
+
+#elif defined(CONFIG_SCHED_ATEXIT_MAX) && CONFIG_SCHED_ATEXIT_MAX > 1
   _TCB *tcb = (_TCB*)g_readytorun.head;
   int   index;
   int   ret = ERROR;

@@ -12,6 +12,10 @@ are recommended:
  - uClibc++   http://cxx.uclibc.org/
  - uSTL       http://ustl.sourceforge.net/
 
+There is a version of uClibc++ that is customized for NuttX that can
+be found here:  misc/uClibc++.  See misc/uClibc++ for installation
+instructions.
+
 At present, only the following are supported here:
 
  - void *operator new(std::size_t nbytes);
@@ -19,6 +23,7 @@ At present, only the following are supported here:
  - void operator delete[](void *ptr);
  - void __cxa_pure_virtual(void);
  - int __aeabi_atexit(void* object, void (*destroyer)(void*), void *dso_handle);
+ - int __cxa_atexit(__cxa_exitfunc_t func, FAR void *arg, FAR void *dso_handle);
  
 operator new
 ------------

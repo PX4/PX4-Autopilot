@@ -200,6 +200,10 @@ CONFIG_STM32_TIM9=y
 CONFIG_STM32_TIM10=y
 CONFIG_STM32_TIM11=y
 
+#
+# We want the flash prefetch on for max performance.
+#
+STM32_FLASH_PREFETCH=y
 
 #
 # Enable the MTD driver for the onboard I2C EEPROM
@@ -351,6 +355,7 @@ CONFIG_I2C=y
 CONFIG_I2C_POLLED=y
 CONFIG_I2C_TRANSFER=y
 CONFIG_I2C_TRACE=n
+CONFIG_I2C_RESET=y
 # Allow 180 us per byte, a wide margin for the 400 KHz clock we're using
 # e.g. 9.6 ms for an EEPROM page write, 0.9 ms for a MAG update
 CONFIG_STM32_I2CTIMEOUS_PER_BYTE=200

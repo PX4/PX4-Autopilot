@@ -70,6 +70,9 @@ while [ ! -z "$1" ]; do
 		echo "		header file paths."
 		echo "	-d"
 		echo "		Enable script debug"
+		echo "	-h"
+		echo "		Shows this help text and exits."
+		exit 0
 		;;
 	* )
 		break;

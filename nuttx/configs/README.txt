@@ -103,13 +103,22 @@ Make.defs -- This makefile fragment provides architecture and
 
     Tools: CC, LD, AR, NM, OBJCOPY, OBJDUMP
     Tool options: CFLAGS, LDFLAGS
-    COMPILE, ASSEMBLE, ARCHIVE, CLEAN, and MKDEP macros
 
   When this makefile fragment runs, it will be passed TOPDIR which
   is the path to the root directory of the build.  This makefile
-  fragment may include ${TOPDIR}/.config to perform configuration
-  specific settings.  For example, the CFLAGS will most likely be
+  fragment should include:
+
+    $(TOPDIR)/.config          : Nuttx configuration
+    $(TOPDIR)/tools/Config.mk  : Common definitions
+
+  Definitions in the Make.defs file probably depend on some of the
+  settings in the .config file.  For example, the CFLAGS will most likely be
   different if CONFIG_DEBUG=y.
+
+  The included tools/Config.mk file contains additional definitions that may
+  be overriden in the architecture-specific Make.defs file as necessary:
+
+    COMPILE, ASSEMBLE, ARCHIVE, CLEAN, and MKDEP macros
 
 defconfig -- This is a configuration file similar to the Linux
   configuration file.  In contains variable/value pairs like:
@@ -174,7 +183,6 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_RAW_BINARY - make a raw binary format file used with many
       different loaders using the GNU objcopy program.  This option
       should not be selected if you are not using the GNU toolchain.
-    CONFIG_HAVE_LIBM - toolchain supports libm.a
     CONFIG_HAVE_CXX - toolchain supports C++ and CXX, CXXFLAGS, and
       COMPILEXX have been defined in the configurations Make.defs
       file.
@@ -321,7 +329,7 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_RR_INTERVAL - The round robin timeslice will be set
       this number of milliseconds;  Round robin scheduling can
       be disabled by setting this value to zero.
-    CONFIG_SCHED_INSTRUMENTATION - enables instrumentation in 
+    CONFIG_SCHED_INSTRUMENTATION - enables instrumentation in
       scheduler to monitor system performance
     CONFIG_TASK_NAME_SIZE - Specifies that maximum size of a
       task name to save in the TCB.  Useful if scheduler
@@ -349,7 +357,7 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_SEM_PREALLOCHOLDERS: This setting is only used if priority
       inheritance is enabled.  It defines the maximum number of
       different threads (minus one) that can take counts on a
-      semaphore with priority inheritance support.  This may be 
+      semaphore with priority inheritance support.  This may be
       set to zero if priority inheritance is disabled OR if you
       are only using semaphores as mutexes (only one holder) OR
       if no more than two threads participate using a counting
@@ -375,9 +383,6 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_SDCLONE_DISABLE. Disable cloning of all socket
       desciptors by task_create() when a new task is started. If
       set, all sockets will appear to be closed in the new task.
-    CONFIG_NXFLAT. Enable support for the NXFLAT binary format.
-      This format will support execution of NuttX binaries located
-      in a ROMFS filesystem (see examples/nxflat).
     CONFIG_SCHED_WORKQUEUE.  Create a dedicated "worker" thread to
       handle delayed processing from interrupt handlers.  This feature
       is required for some drivers but, if there are not complaints,
@@ -420,6 +425,39 @@ defconfig -- This is a configuration file similar to the Linux
       applications.  For the example applications this is of the form 'app_main'
       where 'app' is the application name. If not defined, CONFIG_USER_ENTRYPOINT
       defaults to user_start.
+
+  Binary Loaders:
+    CONFIG_BINFMT_DISABLE - By default, support for loadable binary formats
+      is built.
+    This logic may be suppressed be defining this setting.
+    CONFIG_BINFMT_CONSTRUCTORS - Build in support for C++ constructors in
+      loaded modules.
+    CONFIG_SYMTAB_ORDEREDBYNAME - Symbol tables are order by name (rather
+      than value).
+    CONFIG_NXFLAT. Enable support for the NXFLAT binary format. This format
+      will support execution of NuttX binaries located in a ROMFS filesystem
+      (see apps/examples/nxflat).
+    CONFIG_ELF - Enable support for the ELF binary format. This format will
+      support execution of ELF binaries copied from a file system and
+      relocated into RAM (see apps/examples/elf).
+
+    If CONFIG_ELF is selected, then these additional options are available:
+
+    CONFIG_ELF_ALIGN_LOG2 - Align all sections to this Log2 value:  0->1,
+      1->2, 2->4, etc.
+    CONFIG_ELF_STACKSIZE - This is the default stack size that will will
+      be used when starting ELF binaries.
+    CONFIG_ELF_BUFFERSIZE - This is an I/O buffer that is used to access
+      the ELF file.  Variable length items will need to be read (such as
+      symbol names).  This is really just this initial size of the buffer;
+      it will be reallocated as necessary to hold large symbol names).
+      Default: 128
+    CONFIG_ELF_BUFFERINCR - This is an I/O buffer that is used to access
+      the ELF file.  Variable length items will need to be read (such as
+      symbol names). This value specifies the size increment to use each
+      time the buffer is reallocated. Default: 32
+    CONFIG_ELF_DUMPBUFFER - Dump various ELF buffers for debug purposes.
+      This option requires CONFIG_DEBUG and CONFIG_DEBUG_VERBOSE.
 
   System Logging:
     CONFIG_SYSLOG enables general system logging support.
@@ -506,7 +544,7 @@ defconfig -- This is a configuration file similar to the Linux
       from the end of RAM for page tables or other system usage.  The
       configuration settings and linker directives must be cognizant of that:
       CONFIG_PAGING_NDATA should be defined to prevent the data region from
-      extending all the way to the end of memory. 
+      extending all the way to the end of memory.
     CONFIG_PAGING_DEFPRIO - The default, minimum priority of the page fill
       worker thread.  The priority of the page fill work thread will be boosted
       boosted dynmically so that it matches the priority of the task on behalf
@@ -520,7 +558,7 @@ defconfig -- This is a configuration file similar to the Linux
       transfer is completed. Default:  Undefined (non-blocking).
     CONFIG_PAGING_WORKPERIOD - The page fill worker thread will wake periodically
       even if there is no mapping to do.  This selection controls that wake-up
-      period (in microseconds).  This wake-up a failsafe that will handle any 
+      period (in microseconds).  This wake-up a failsafe that will handle any
       cases where a single is lost (that would really be a bug and shouldn't
       happen!) and also supports timeouts for case of non-blocking, asynchronous
       fills (see CONFIG_PAGING_TIMEOUT_TICKS).
@@ -532,7 +570,7 @@ defconfig -- This is a configuration file similar to the Linux
     Some architecture-specific settings.  Defaults are architecture specific.
     If you don't know what you are doing, it is best to leave these undefined
     and try the system defaults:
- 
+
     CONFIG_PAGING_VECPPAGE - This the physical address of the page in
       memory to be mapped to the vector address.
     CONFIG_PAGING_VECL2PADDR - This is the physical address of the L2
@@ -555,7 +593,7 @@ defconfig -- This is a configuration file similar to the Linux
       devices. CONFIG_PAGING_SDSLOT identifies the slot number of the SD
       device to initialize. This must be undefined if SD is not being used.
       This should be defined to be zero for the typical device that has
-      only a single slot (See CONFIG_MMCSD_NSLOTS). If defined, 
+      only a single slot (See CONFIG_MMCSD_NSLOTS). If defined,
       CONFIG_PAGING_SDSLOT will instruct certain board-specific logic to
       initialize the media in this SD slot.
     CONFIG_PAGING_M25PX - Use the m25px.c FLASH driver.  If this is selected,
@@ -624,6 +662,37 @@ defconfig -- This is a configuration file similar to the Linux
       CONFIG_ARCH_STRNCPY, CONFIG_ARCH_STRLEN, CONFIG_ARCH_STRNLEN
       CONFIG_ARCH_BZERO
 
+  If CONFIG_ARCH_MEMCPY is not selected, then you make also select Daniel
+  Vik's optimized implementation of memcpy():
+
+    CONFIG_MEMCPY_VIK - Select this option to use the optimized memcpy()
+      function by Daniel Vik.  Select this option for improved performance
+      at the expense of increased size. See licensing information in the
+      top-level COPYING file.  Default: n
+
+  And if CONFIG_MEMCPY_VIK is selected, the following tuning options are available:
+
+    CONFIG_MEMCPY_PRE_INC_PTRS - Use pre-increment of pointers. Default is
+      post increment of pointers.
+
+    CONFIG_MEMCPY_INDEXED_COPY - Copying data using array indexing. Using
+      this option, disables the CONFIG_MEMCPY_PRE_INC_PTRS option.
+
+    CONFIG_MEMCPY_64BIT - Compiles memcpy for architectures that suppport
+      64-bit operations efficiently.
+
+  If CONFIG_ARCH_MEMSET is not selected, then the following option is
+  also available:
+
+    CONFIG_MEMSET_OPTSPEED - Select this option to use a version of memcpy()
+      optimized for speed. Default: memcpy() is optimized for size.
+
+  And if CONFIG_MEMSET_OPTSPEED is selected, the following tuning option is
+  available:
+
+    CONFIG_MEMSET_64BIT - Compiles memset() for architectures that suppport
+      64-bit operations efficiently.
+
   The architecture may provide custom versions of certain standard header
   files:
 
@@ -666,6 +735,15 @@ defconfig -- This is a configuration file similar to the Linux
       don't select CONFIG_ARCH_MATH_H, the redirecting math.h header file will
       stay out-of-the-way in include/nuttx/.
 
+    CONFIG_ARCH_FLOAT_H
+      If you enable the generic, built-in math library, then that math library
+      will expect your toolchain to provide the standard float.h header file.
+      The float.h header file defines the properties of your floating point
+      implementation.  It would always be best to use your toolchain's float.h
+      header file but if none is avaiable, a default float.h header file will
+      provided if this option is selected.  However, there is no assurance that
+      the settings in this float.h are actually correct for your platform!
+
     CONFIG_ARCH_STDARG_H - There is also a redirecting version of stdarg.h in
       the source tree as well. It also resides out-of-the-way at include/nuttx/stdarg.h.
       This is because you should normally use your toolchain's stdarg.h file. But
@@ -696,7 +774,7 @@ defconfig -- This is a configuration file similar to the Linux
       If CONFIG_ARCH_ROMGETC is defined, then the architecture logic
       must export the function up_romgetc().  up_romgetc() will simply
       read one byte of data from the instruction space.
- 
+
       If CONFIG_ARCH_ROMGETC, certain C stdio functions are effected:
       (1) All format strings in printf, fprintf, sprintf, etc. are
       assumed to lie in FLASH (string arguments for %s are still assumed
@@ -766,7 +844,7 @@ defconfig -- This is a configuration file similar to the Linux
       much sense in supporting FAT date and time unless you have a
       hardware RTC or other way to get the time and date.
     CONFIG_FS_NXFFS: Enable NuttX FLASH file system (NXFF) support.
-    CONFIG_NXFFS_ERASEDSTATE: The erased state of FLASH. 
+    CONFIG_NXFFS_ERASEDSTATE: The erased state of FLASH.
       This must have one of the values of 0xff or 0x00.
       Default: 0xff.
     CONFIG_NXFFS_PACKTHRESHOLD: When packing flash file data,
@@ -920,7 +998,7 @@ defconfig -- This is a configuration file similar to the Linux
 
     CONFIG_INPUT
       Enables general support for input devices
- 
+
     CONFIG_INPUT_TSC2007
       If CONFIG_INPUT is selected, then this setting will enable building
       of the TI TSC2007 touchscreen driver.
@@ -935,14 +1013,14 @@ defconfig -- This is a configuration file similar to the Linux
       Enables support for the SPI interface (not currenly supported)
     CONFIG_STMPE811_I2C
       Enables support for the I2C interface
-    CONFIG_STMPE811_MULTIPLE 
+    CONFIG_STMPE811_MULTIPLE
       Can be defined to support multiple STMPE811 devices on board.
     CONFIG_STMPE811_ACTIVELOW
       Interrupt is generated by an active low signal (or falling edge).
     CONFIG_STMPE811_EDGE
       Interrupt is generated on an edge (vs. on the active level)
     CONFIG_STMPE811_NPOLLWAITERS
-      Maximum number of threads that can be waiting on poll() (ignored if 
+      Maximum number of threads that can be waiting on poll() (ignored if
       CONFIG_DISABLE_POLL is set).
     CONFIG_STMPE811_TSC_DISABLE
       Disable driver touchscreen functionality.
@@ -1051,21 +1129,21 @@ defconfig -- This is a configuration file similar to the Linux
     port.  The default data link layer for uIP is Ethernet. If CONFIG_NET_SLIP
     is defined in the NuttX configuration file, then SLIP will be supported.
     The basic differences between the SLIP and Ethernet configurations is that
-    when SLIP is selected: 
+    when SLIP is selected:
 
-    * The link level header (that comes before the IP header) is omitted. 
-    * All MAC address processing is suppressed. 
+    * The link level header (that comes before the IP header) is omitted.
+    * All MAC address processing is suppressed.
     * ARP is disabled.
 
     If CONFIG_NET_SLIP is not selected, then Ethernet will be used (there is
     no need to define anything special in the configuration file to use
-    Ethernet -- it is the default). 
+    Ethernet -- it is the default).
 
     CONFIG_NET_SLIP -- Enables building of the SLIP driver. SLIP requires
       at least one IP protocols selected and the following additional
       network settings: CONFIG_NET_NOINTS and CONFIG_NET_MULTIBUFFER.
       CONFIG_NET_BUFSIZE *must* be set to 296.  Other optional configuration
-      settings that affect the SLIP driver: CONFIG_NET_STATISTICS. 
+      settings that affect the SLIP driver: CONFIG_NET_STATISTICS.
       Default: Ethernet
 
     If SLIP is selected, then the following SLIP options are available:
@@ -1081,6 +1159,10 @@ defconfig -- This is a configuration file similar to the Linux
 
     CONFIG_NET_DHCP_LIGHT - Reduces size of DHCP
     CONFIG_NET_RESOLV_ENTRIES - Number of resolver entries
+    CONFIG_NET_RESOLV_MAXRESPONSE - This setting determines the maximum
+      size of response message that can be received by the DNS resolver.
+      The default is 96 but may need to be larger on enterprise networks
+      (perhaps 176).
 
   THTTPD
 
@@ -1102,7 +1184,7 @@ defconfig -- This is a configuration file similar to the Linux
       to run before killing them.
     CONFIG_THTTPD_CHARSET- The default character set name to use with
       text MIME types.
-    CONFIG_THTTPD_IOBUFFERSIZE - 
+    CONFIG_THTTPD_IOBUFFERSIZE -
     CONFIG_THTTPD_INDEX_NAMES - A list of index filenames to check. The
       files are searched for in this order.
     CONFIG_AUTH_FILE - The file to use for authentication. If this is
@@ -1134,7 +1216,7 @@ defconfig -- This is a configuration file similar to the Linux
       You can also leave both options undefined, and thttpd will not do
       anything special about tildes. Enabling both options is an error.
       Typical values, if they're defined, are "users" for
-      CONFIG_THTTPD_TILDE_MAP1 and "public_html"forCONFIG_THTTPD_TILDE_MAP2. 
+      CONFIG_THTTPD_TILDE_MAP1 and "public_html"forCONFIG_THTTPD_TILDE_MAP2.
     CONFIG_THTTPD_GENERATE_INDICES
     CONFIG_THTTPD_URLPATTERN - If defined, then it will be used to match
       and verify referrers.
@@ -1192,7 +1274,7 @@ defconfig -- This is a configuration file similar to the Linux
   USB host HID class driver. Requires CONFIG_USBHOST=y,
     CONFIG_USBHOST_INT_DISABLE=n, CONFIG_NFILE_DESCRIPTORS > 0,
     CONFIG_SCHED_WORKQUEUE=y, and CONFIG_DISABLE_SIGNALS=n.
- 
+
     CONFIG_HIDKBD_POLLUSEC
       Device poll rate in microseconds. Default: 100 milliseconds.
     CONFIG_HIDKBD_DEFPRIO
@@ -1211,7 +1293,7 @@ defconfig -- This is a configuration file similar to the Linux
       If set to y all 231 possible scancodes will be converted to
       something.  Default:  104 key US keyboard.
     CONFIG_HIDKBD_NODEBOUNCE
-      If set to y normal debouncing is disabled.  Default: 
+      If set to y normal debouncing is disabled.  Default:
       Debounce enabled (No repeat keys).
 
   USB host mass storage class driver. Requires CONFIG_USBHOST=y,
@@ -1248,12 +1330,12 @@ defconfig -- This is a configuration file similar to the Linux
       Configure the CDC serial driver as part of a composite driver
       (only if CONFIG_USBDEV_COMPOSITE is also defined)
     CONFIG_CDCACM_IFNOBASE
-       If the CDC driver is part of a composite device, then this may need to 
+       If the CDC driver is part of a composite device, then this may need to
       be defined to offset the CDC/ACM interface numbers so that they are
       unique and contiguous.  When used with the Mass Storage driver, the
       correct value for this offset is zero.
     CONFIG_CDCACM_STRBASE
-      If the CDC driver is part of a composite device, then this may need to 
+      If the CDC driver is part of a composite device, then this may need to
       be defined to offset the CDC/ACM string numbers so that they are
       unique and contiguous.  When used with the Mass Storage driver, the
       correct value for this offset is four (this value actuallly only needs
@@ -1312,13 +1394,13 @@ defconfig -- This is a configuration file similar to the Linux
       Configure the mass storage driver as part of a composite driver
       (only if CONFIG_USBDEV_COMPOSITE is also defined)
     CONFIG_USBMSC_IFNOBASE
-      If the CDC driver is part of a composite device, then this may need to 
+      If the CDC driver is part of a composite device, then this may need to
       be defined to offset the mass storage interface number so that it is
       unique and contiguous.  When used with the CDC/ACM driver, the
       correct value for this offset is two (because of the two CDC/ACM
       interfaces that will precede it).
     CONFIG_USBMSC_STRBASE
-      If the CDC driver is part of a composite device, then this may need to 
+      If the CDC driver is part of a composite device, then this may need to
       be defined to offset the mass storage string numbers so that they are
       unique and contiguous.  When used with the CDC/ACM driver, the
       correct value for this offset is four (or perhaps 5 or 6, depending
@@ -1526,9 +1608,14 @@ configs/avr32dev1
 configs/c5471evm
   This is a port to the Spectrum Digital C5471 evaluation board.  The
   TMS320C5471 is a dual core processor from TI with an ARM7TDMI general
-  purpose processor and a c54 DSP.  It is also known as TMS320DA180 or just DA180. 
+  purpose processor and a c54 DSP.  It is also known as TMS320DA180 or just DA180.
   NuttX runs on the ARM core and is built with a GNU arm-nuttx-elf toolchain*.
   This port is complete and verified.
+
+configs/cloudctrl
+  Darcy's CloudController board.  This is a small network relay development
+  board. Based on the Shenzhou IV development board design.  It is based on
+  the STM32F107VC MCU.
 
 configs/compal_e88 and compal_e99
   These directories contain the board support for compal e88 and e99 phones.
@@ -1542,23 +1629,23 @@ configs/demo9s12ne64
   is code complete but has not yet been verified.
 
 configs/ea3131
-  Embedded Artists EA3131 Development board.  This board is based on the 
+  Embedded Artists EA3131 Development board.  This board is based on the
   an NXP LPC3131 MCU. This OS is built with the arm-nuttx-elf toolchain*.
   STATUS:  This port is complete and mature.
 
 configs/ea3152
-  Embedded Artists EA3152 Development board.  This board is based on the 
+  Embedded Artists EA3152 Development board.  This board is based on the
   an NXP LPC3152 MCU. This OS is built with the arm-nuttx-elf toolchain*.
   STATUS:  This port is has not be exercised well, but since it is
   a simple derivative of the ea3131, it should be fully functional.
 
 configs/eagle100
-  Micromint Eagle-100 Development board.  This board is based on the 
+  Micromint Eagle-100 Development board.  This board is based on the
   an ARM Cortex-M3 MCU, the Luminary LM3S6918. This OS is built with the
   arm-nuttx-elf toolchain*.  STATUS:  This port is complete and mature.
 
 configs/ekk-lm3s9b96
-  TI/Stellaris EKK-LM3S9B96 board.  This board is based on the 
+  TI/Stellaris EKK-LM3S9B96 board.  This board is based on the
   an EKK-LM3S9B96 which is a Cortex-M3.
 
 configs/ez80f0910200kitg
@@ -1586,13 +1673,13 @@ configs/kwikstik-k40.
 
 configs/lincoln60
    NuttX port to the Micromint Lincoln 60 board.
-  
+
 configs/lm3s6432-s2e
   Stellaris RDK-S2E Reference Design Kit and the MDL-S2E Ethernet to
   Serial module.
 
 configs/lm3s6965-ek
-  Stellaris LM3S6965 Evaluation Kit.  This board is based on the 
+  Stellaris LM3S6965 Evaluation Kit.  This board is based on the
   an ARM Cortex-M3 MCU, the Luminary/TI LM3S6965. This OS is built with the
   arm-nuttx-elf toolchain*.  STATUS:  This port is complete and mature.
 
@@ -1649,7 +1736,7 @@ configs/ntosd-dm320
   toolchain*: see
 
     http://wiki.neurostechnology.com/index.php/OSD_1.0_Developer_Home
- 
+
   There are some differences between the Dev Board and the currently
   available commercial v1.0 Boards.  See
 
@@ -1739,7 +1826,7 @@ configs/qemu-i486
   hardwared (Google the Bifferboard).
 
 configs/rgmp
-  RGMP stands for RTOS and GPOS on Multi-Processor.  RGMP is a project for 
+  RGMP stands for RTOS and GPOS on Multi-Processor.  RGMP is a project for
   running GPOS and RTOS simultaneously on multi-processor platforms. You can
   port your favorite RTOS to RGMP together with an unmodified Linux to form a
   hybrid operating system. This makes your application able to use both RTOS
@@ -1780,8 +1867,14 @@ configs/stm3240g-eval
   microcontroller (ARM Cortex-M4 with FPU).  This port uses a GNU Cortex-M4
   toolchain (such as CodeSourcery).
 
+configs/stm32f100rc_generic
+  STMicro STM32F100RC generic board based on STM32F100RC high-density value line
+  chip. This "generic" configuration is not very usable out-of-box, but can be
+  used as a starting point to creating new configs with similar STM32
+  high-density value line chips.
+  
 configs/stm32f4discovery
-  STMicro STM32F4-Discovery board boased on the STMIcro STM32F407VGT6 MCU.
+  STMicro STM32F4-Discovery board based on the STMIcro STM32F407VGT6 MCU.
 
 configs/sure-pic32mx
   The "Advanced USB Storage Demo Board," Model DB-DP11215, from Sure
@@ -1818,7 +1911,7 @@ configs/vsn
 
 configs/xtrs
   TRS80 Model 3.  This port uses a vintage computer based on the Z80.
-  An emulator for this computer is available to run TRS80 programs on a 
+  An emulator for this computer is available to run TRS80 programs on a
   linux platform (http://www.tim-mann.org/xtrs.html).
 
 configs/z16f2800100zcog
@@ -1869,7 +1962,7 @@ And if configs/<board-name>/<config-dir>/appconfig exists and your
 application directory is not in the standard loction (../apps), then
 you should also specify the location of the application directory on the
 command line like:
-  
+
   cd tools
   ./configure.sh -a <app-dir> <board-name>/<config-dir>
 

@@ -143,7 +143,7 @@ static int adc_open(FAR struct file *filep)
                   dev->ad_recv.af_head = 0;
                   dev->ad_recv.af_tail = 0;
 
-                  /* Finally, Enable the CAN RX interrupt */
+                  /* Finally, Enable the ADC RX interrupt */
 
                   dev->ad_ops->ao_rxint(dev, true);
 
@@ -151,9 +151,11 @@ static int adc_open(FAR struct file *filep)
 
                   dev->ad_ocount = tmp;
                 }
+
               irqrestore(flags);
             }
         }
+
       sem_post(&dev->ad_closesem);
     }
   return ret;
@@ -370,6 +372,10 @@ static int adc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  * Public Functions
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: adc_receive
+ ****************************************************************************/
+
 int adc_receive(FAR struct adc_dev_s *dev, uint8_t ch, int32_t data)
 {
   FAR struct adc_fifo_s *fifo = &dev->ad_recv;
@@ -390,7 +396,7 @@ int adc_receive(FAR struct adc_dev_s *dev, uint8_t ch, int32_t data)
 
   if (nexttail != fifo->af_head)
     {
-      /* Add the new, decoded CAN message at the tail of the FIFO */
+      /* Add the new, decoded ADC sample at the tail of the FIFO */
 
       fifo->af_buffer[fifo->af_tail].am_channel = ch;
       fifo->af_buffer[fifo->af_tail].am_data    = data;
@@ -403,10 +409,15 @@ int adc_receive(FAR struct adc_dev_s *dev, uint8_t ch, int32_t data)
         {
           sem_post(&fifo->af_sem);
         }
+
       err = OK;
     }
     return err;
 }
+
+/****************************************************************************
+ * Name: adc_register
+ ****************************************************************************/
 
 int adc_register(FAR const char *path, FAR struct adc_dev_s *dev)
 {

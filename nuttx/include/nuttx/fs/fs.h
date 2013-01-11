@@ -51,6 +51,10 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
+/* Stream flags for the fs_flags field of in struct file_struct */
+
+#define __FS_FLAG_EOF   (1 << 0) /* EOF detected by a read operation */
+#define __FS_FLAG_ERROR (1 << 1) /* Error detected by any operation */
 
 /****************************************************************************
  * Type Definitions
@@ -270,11 +274,6 @@ struct filelist
 struct file_struct
 {
   int                fs_filedes;   /* File descriptor associated with stream */
-  uint16_t           fs_oflags;    /* Open mode flags */
-#if CONFIG_NUNGET_CHARS > 0
-  uint8_t            fs_nungotten; /* The number of characters buffered for ungetc */
-  unsigned char      fs_ungotten[CONFIG_NUNGET_CHARS];
-#endif
 #if CONFIG_STDIO_BUFFER_SIZE > 0
   sem_t              fs_sem;       /* For thread safety */
   pid_t              fs_holder;    /* Holder of sem */
@@ -283,6 +282,12 @@ struct file_struct
   FAR unsigned char *fs_bufend;    /* Pointer to 1 past end of buffer */
   FAR unsigned char *fs_bufpos;    /* Current position in buffer */
   FAR unsigned char *fs_bufread;   /* Pointer to 1 past last buffered read char. */
+#endif
+  uint16_t           fs_oflags;    /* Open mode flags */
+  uint8_t            fs_flags;     /* Stream flags */
+#if CONFIG_NUNGET_CHARS > 0
+  uint8_t            fs_nungotten; /* The number of characters buffered for ungetc */
+  unsigned char      fs_ungotten[CONFIG_NUNGET_CHARS];
 #endif
 };
 

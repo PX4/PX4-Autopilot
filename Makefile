@@ -28,7 +28,9 @@ UPLOADER		 = $(PX4BASE)/Tools/px_uploader.py
 # What are we currently configured for?
 #
 CONFIGURED		 = $(PX4BASE)/.configured
+ifneq ($(wildcard $(CONFIGURED)),)
 export TARGET		:= $(shell cat $(CONFIGURED))
+endif
 
 #
 # What we will build
@@ -40,8 +42,8 @@ FIRMWARE_PROTOTYPE	 = $(IMAGE_DIR)/$(TARGET).prototype
 #
 # Debugging
 #
-MQUIET			 = --no-print-directory
-#MQUIET			 = --print-directory
+#MQUIET			 = --no-print-directory
+MQUIET			 = --print-directory
 
 all:			$(FIRMWARE_BUNDLE)
 

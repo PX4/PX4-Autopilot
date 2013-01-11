@@ -42,7 +42,7 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/binfmt.h>
+#include <nuttx/binfmt/binfmt.h>
 
 /****************************************************************************
  * Pre-processor Definitions

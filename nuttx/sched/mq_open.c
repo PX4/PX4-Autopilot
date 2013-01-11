@@ -113,7 +113,6 @@ mqd_t mq_open(const char *mq_name, int oflags, ...)
   FAR msgq_t     *msgq;
   mqd_t           mqdes = NULL;
   va_list         arg;          /* Points to each un-named argument */
-  mode_t          mode;         /* MQ creation mode parameter (ignored) */
   struct mq_attr *attr;         /* MQ creation attributes */
   int             namelen;      /* Length of MQ name */
 
@@ -170,7 +169,7 @@ mqd_t mq_open(const char *mq_name, int oflags, ...)
                        */
 
                       va_start(arg, oflags);
-                      mode = va_arg(arg, mode_t);
+                      (void)va_arg(arg, mode_t); /* MQ creation mode parameter (ignored) */
                       attr = va_arg(arg, struct mq_attr*);
 
                       /* Initialize the new named message queue */
