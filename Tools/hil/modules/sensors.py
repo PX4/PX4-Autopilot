@@ -33,7 +33,7 @@ class Pressure(object):
         return cls(time.time(),0,0,0,0)
 
     @classmethod
-    def from_state(cls, state):
+    def from_state(cls, state, attack=None):
         ground_press = 1.01325 #bar
         ground_tempC = 21.0
         tempC = 21.0  # TODO temp variation
@@ -75,7 +75,7 @@ class Imu(object):
         return cls(time.time(),0,0,0,0,0,0,0,0,0)
 
     @classmethod
-    def from_state(cls, state):
+    def from_state(cls, state, attack=None):
 
         # accelerometer
         xacc = state.xacc
@@ -134,7 +134,7 @@ class Gps(object):
             print 'mav gps raw int packet data exceeds int bounds'
 
     @classmethod
-    def from_state(cls, state):
+    def from_state(cls, state, attack=None):
         vel = math.sqrt(state.vN*state.vN + state.vE*state.vE)
         cog = math.atan2(state.vE,state.vN) + math.pi
 

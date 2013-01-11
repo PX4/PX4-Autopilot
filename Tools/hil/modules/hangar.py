@@ -7,7 +7,7 @@ import sensors
 
 class BasicAircraft(object):
 
-    def __init__(self):
+    def __init__(self, attack=None):
         t_now = time.time()
         self.x = aircraft.State.default()
         self.u = aircraft.Controls.default()
@@ -29,6 +29,8 @@ class BasicAircraft(object):
 
         self.t_out = t_now
 
+        self.attack = attack
+
     def update_state(self, fdm):
         self.x = aircraft.State.from_fdm(fdm)
         #self.x.p = 0
@@ -46,15 +48,15 @@ class BasicAircraft(object):
         self.x.send_to_mav(mav)
 
     def send_imu(self, mav):
-        self.imu = sensors.Imu.from_state(self.x)
+        self.imu = sensors.Imu.from_state(self.x, self.attack)
         self.imu.send_to_mav(mav)
 
     def send_gps(self, mav):
-        self.gps = sensors.Gps.from_state(self.x)
+        self.gps = sensors.Gps.from_state(self.x, self.attack)
         self.gps.send_to_mav(mav)
 
     def send_pressure(self, mav):
-        self.pressure = sensors.Pressure.from_state(self.x)
+        self.pressure = sensors.Pressure.from_state(self.x, self.attack)
         self.pressure.send_to_mav(mav)
 
     def send_sensors(self, mav):
