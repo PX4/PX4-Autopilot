@@ -31,15 +31,117 @@
  *
  ****************************************************************************/
 
+#pragma once
+
 /**
- * @file PX4FMU <-> PX4IO messaging protocol.
+ * @file protocol.h
+ *
+ * PX4IO I2C interface protocol.
+ *
+ * Communication is performed via writes to and reads from 16-bit virtual
+ * registers organised into pages of 255 registers each.
+ *
+ * The first two bytes of each write select a page and offset address
+ * respectively. Subsequent reads and writes increment the offset within
+ * the page. 
+ *
+ * Most pages are readable or writable but not both.
+ *
+ * Note that some pages may permit offset values greater than 255, which
+ * can only be achieved by long writes. The offset does not wrap.
+ *
+ * Writes to unimplemented registers are ignored. Reads from unimplemented
+ * registers return undefined values.
+ *
+ * As convention, values that would be floating point in other parts of 
+ * the PX4 system are expressed as signed integer values scaled by 10000,
+ * e.g. control values range from -10000..10000.
+ *
+ * Note that the implementation of readable pages prefers registers within
+ * readable pages to be densely packed. Page numbers do not need to be
+ * packed.
+ */
+
+/* static configuration page */
+#define PX4IO_PAGE_CONFIG		0
+#define PX4IO_P_CONFIG_PROTOCOL_VERSION		0	/* magic numbers TBD */
+#define PX4IO_P_CONFIG_SOFTWARE_VERSION		1	/* magic numbers TBD */
+#define PX4IO_P_CONFIG_BOOTLOADER_VERSION	2	/* get this how? */
+#define PX4IO_P_CONFIG_MAX_TRANSFER		3	/* maximum I2C transfer size */
+#define PX4IO_P_CONFIG_CONTROL_COUNT		4	/* hardcoded max control count supported */
+#define PX4IO_P_CONFIG_ACTUATOR_COUNT		5	/* hardcoded max actuator output count */
+#define PX4IO_P_CONFIG_RC_INPUT_COUNT		6	/* hardcoded max R/C input count supported */
+#define PX4IO_P_CONFIG_ADC_INPUT_COUNT		7	/* hardcoded max ADC inputs */
+#define PX4IO_P_CONFIG_RELAY_COUNT		8	/* harcoded # of relay outputs */
+#define PX4IO_P_CONFIG_POWERSW_COUNT		9	/* harcoded # of switched power outputs */
+
+/* dynamic status page */
+#define PX4IO_PAGE_STATUS		1
+#define PX4IO_P_STATUS_FREEMEM			0
+#define PX4IO_P_STATUS_CPULOAD			1
+
+#define PX4IO_P_STATUS_FLAGS			2	/* monitoring flags */
+#define PX4IO_P_STATUS_FLAGS_ARMED		(1 << 0) /* arm-ok and locally armed */
+#define PX4IO_P_STATUS_FLAGS_OVERRIDE		(1 << 1) /* in manual override */
+#define PX4IO_P_STATUS_FLAGS_RC_PPM		(1 << 2) /* PPM input is valid */
+#define PX4IO_P_STATUS_FLAGS_RC_DSM		(1 << 3) /* DSM input is valid */
+#define PX4IO_P_STATUS_FLAGS_RC_SBUS		(1 << 4) /* SBUS input is valid */
+
+#define PX4IO_P_STATUS_ALARMS			3	/* alarm flags - alarms latch, write 1 to a bit to clear it */
+#define PX4IO_P_STATUS_ALARMS_VBATT_LOW		(1 << 0) /* VBatt is very close to regulator dropout */
+#define PX4IO_P_STATUS_ALARMS_TEMPERATURE	(1 << 1) /* board temperature is high */
+#define PX4IO_P_STATUS_ALARMS_SERVO_CURRENT	(1 << 2) /* servo current limit was exceeded */
+#define PX4IO_P_STATUS_ALARMS_ACC_CURRENT	(1 << 3) /* accessory current limit was exceeded */
+#define PX4IO_P_STATUS_ALARMS_AP_LOST		(1 << 4)
+
+#define PX4IO_P_STATUS_VBATT			4	/* battery voltage in mV */
+#define PX4IO_P_STATUS_TEMPERATURE		5	/* temperature in (units tbd) */
+
+/* array of post-mix actuator outputs, -10000..10000 */
+#define PX4IO_PAGE_ACTUATORS		2		/* 0..CONFIG_ACTUATOR_COUNT-1 */
+
+/* array of PWM servo output values, microseconds */
+#define PX4IO_PAGE_SERVOS		3		/* 0..CONFIG_ACTUATOR_COUNT-1 */
+
+/* array of raw RC input values, microseconds */
+#define PX4IO_PAGE_RAW_RC_INPUT		4		/* 0..CONFIG_RC_INPUT_COUNT-1 */
+
+/* array of scaled RC input values, -10000..10000 */
+#define PX4IO_PAGE_RAW_RC_INPUT		5		/* 0..CONFIG_RC_INPUT_COUNT-1 */
+
+/* array of raw ADC values */
+#define PX4IO_PAGE_RAW_ADC_INPUT	6		/* 0..CONFIG_ADC_INPUT_COUNT-1 */
+
+/* setup page */
+#define PX4IO_PAGE_SETUP		100
+#define PX4IO_P_SETUP_ARMING			1	/* arming controls */
+#define PX4IO_P_SETUP_ARMING_ARM_OK		(1 << 0) /* OK to arm */
+#define PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE	(1 << 1) /* request local override */
+
+#define PX4IO_P_SETUP_PWM_RATES			2	/* bitmask, 0 = low rate, 1 = high rate */
+
+#define PX4IO_P_SETUP_PWM_LOWRATE		3	/* 'low' PWM frame output rate in Hz */
+#define PX4IO_P_SETUP_PWM_HIGHRATE		4	/* 'high' PWM frame output rate in Hz */
+
+#define PX4IO_P_SETUP_RELAYS			5	/* bitmask of relay outputs, 0 = off, 1 = on */
+#define PX4IO_P_SETUP_POWERSW			6	/* bitmask of switched power outputs, 0 = off, 1 = on */
+
+/* autopilot control values, -10000..10000 */
+#define PX4IO_PAGE_CONTROLS		101		/* 0..STATUS_CONTROL_COUNT */
+
+/* raw text load to the mixer parser - ignores offset */
+#define PX4IO_PAGE_MIXERLOAD		102
+
+
+
+/*
+ * Old serial PX4FMU <-> PX4IO messaging protocol.
  *
  * This initial version of the protocol is very simple; each side transmits a
  * complete update with each frame.  This avoids the sending of many small
  * messages and the corresponding complexity involved.
  */
 
-#pragma once
 
 #define PX4IO_CONTROL_CHANNELS	8
 #define PX4IO_INPUT_CHANNELS	12
