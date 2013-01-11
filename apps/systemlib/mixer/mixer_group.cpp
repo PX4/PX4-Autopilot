@@ -55,6 +55,8 @@
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
+//#include <debug.h>
+//#define debug(fmt, args...)	lib_lowprintf(fmt "\n", ##args)
 
 MixerGroup::MixerGroup(ControlCallback control_cb, uintptr_t cb_handle) :
 	Mixer(control_cb, cb_handle),

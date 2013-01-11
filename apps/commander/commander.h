@@ -52,4 +52,7 @@
 #define LOW_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS 1000.0f
 #define CRITICAL_VOLTAGE_BATTERY_HYSTERESIS_TIME_MS 100.0f
 
+void tune_confirm(void);
+void tune_error(void);
+
 #endif /* COMMANDER_H_ */

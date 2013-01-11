@@ -52,6 +52,7 @@
 #include <nuttx/clock.h>
 
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
 #include <systemlib/hx_stream.h>
 #include <systemlib/perf_counter.h>
 
@@ -139,8 +140,9 @@ comms_main(void)
 			last_report_time = now;
 
 			/* populate the report */
-			for (unsigned i = 0; i < system_state.rc_channels; i++)
+			for (unsigned i = 0; i < system_state.rc_channels; i++) {
 				report.rc_channel[i] = system_state.rc_channel_data[i];
+			}
 
 			report.channel_count = system_state.rc_channels;
 			report.armed = system_state.armed;
@@ -188,7 +190,7 @@ comms_main(void)
 
 			system_state.adc_in5 = adc_measure(ADC_IN5);
 
-			system_state.overcurrent = 
+			system_state.overcurrent =
 				(OVERCURRENT_SERVO ? (1 << 0) : 0) |
 				(OVERCURRENT_ACC   ? (1 << 1) : 0);
 
@@ -205,7 +207,19 @@ comms_handle_config(const void *buffer, size_t length)
 	if (length != sizeof(*cfg))
 		return;
 
-	/* XXX */
+	/* fetch the rc mappings */
+	for (unsigned i = 0; i < 4; i++) {
+		system_state.rc_map[i] = cfg->rc_map[i];
+	}
+
+	/* fetch the rc channel attributes */
+	for (unsigned i = 0; i < 4; i++) {
+		system_state.rc_min[i]  = cfg->rc_min[i];
+		system_state.rc_trim[i] = cfg->rc_trim[i];
+		system_state.rc_max[i]  = cfg->rc_max[i];
+		system_state.rc_rev[i]  = cfg->rc_rev[i];
+		system_state.rc_dz[i]   = cfg->rc_dz[i];
+	}
 }
 
 static void
@@ -215,7 +229,7 @@ comms_handle_command(const void *buffer, size_t length)
 
 	if (length != sizeof(*cmd))
 		return;
-	
+
 	irqstate_t flags = irqsave();
 
 	/* fetch new PWM output values */
@@ -227,31 +241,59 @@ comms_handle_command(const void *buffer, size_t length)
 		system_state.armed = false;
 
 	system_state.arm_ok = cmd->arm_ok;
-	system_state.mixer_use_fmu = true;
-	system_state.fmu_data_received = true;
+	system_state.vector_flight_mode_ok = cmd->vector_flight_mode_ok;
+	system_state.manual_override_ok = cmd->manual_override_ok;
+	system_state.mixer_fmu_available = true;
+	system_state.fmu_data_received_time = hrt_absolute_time();
 
-	/* handle changes signalled by FMU */
-//	if (!system_state.arm_ok && system_state.armed)
-//		system_state.armed = false;
+	/* set PWM update rate if changed (after limiting) */
+	uint16_t new_servo_rate = cmd->servo_rate;
 
-	/* handle relay state changes here */	
+	/* reject faster than 500 Hz updates */
+	if (new_servo_rate > 500) {
+		new_servo_rate = 500;
+	}
+
+	/* reject slower than 50 Hz updates */
+	if (new_servo_rate < 50) {
+		new_servo_rate = 50;
+	}
+
+	if (system_state.servo_rate != new_servo_rate) {
+		up_pwm_servo_set_rate(new_servo_rate);
+		system_state.servo_rate = new_servo_rate;
+	}
+
+	/*
+	 * update servo values immediately.
+	 * the updates are done in addition also
+	 * in the mainloop, since this function will only
+	 * update with a connected FMU.
+	 */
+	mixer_tick();
+
+	/* handle relay state changes here */
 	for (unsigned i = 0; i < PX4IO_RELAY_CHANNELS; i++) {
 		if (system_state.relays[i] != cmd->relay_state[i]) {
 			switch (i) {
 			case 0:
 				POWER_ACC1(cmd->relay_state[i]);
 				break;
+
 			case 1:
 				POWER_ACC2(cmd->relay_state[i]);
 				break;
+
 			case 2:
 				POWER_RELAY1(cmd->relay_state[i]);
 				break;
+
 			case 3:
 				POWER_RELAY2(cmd->relay_state[i]);
 				break;
 			}
 		}
+
 		system_state.relays[i] = cmd->relay_state[i];
 	}
 

@@ -70,43 +70,89 @@ struct sys_state_s {
 
 	bool		armed;			/* IO armed */
 	bool		arm_ok;			/* FMU says OK to arm */
+	uint16_t	servo_rate;		/* output rate of servos in Hz */
 
-	/*
+	/**
+	 * Remote control input(s) channel mappings
+	 */
+	uint8_t		rc_map[4];
+
+	/**
+	 * Remote control channel attributes
+	 */
+	uint16_t	rc_min[4];
+	uint16_t	rc_trim[4];
+	uint16_t	rc_max[4];
+	int16_t		rc_rev[4];
+	uint16_t	rc_dz[4];
+
+	/**
 	 * Data from the remote control input(s)
 	 */
 	unsigned	rc_channels;
 	uint16_t	rc_channel_data[PX4IO_INPUT_CHANNELS];
 	uint64_t	rc_channels_timestamp;
 
-	/*
+	/**
 	 * Control signals from FMU.
 	 */
 	uint16_t	fmu_channel_data[PX4IO_CONTROL_CHANNELS];
 
-	/*
+	/**
 	 * Mixed servo outputs
 	 */
 	uint16_t	servos[IO_SERVO_COUNT];
 
-	/*
+	/**
 	 * Relay controls
 	 */
 	bool		relays[PX4IO_RELAY_CHANNELS];
 
-	/*
-	 * If true, we are using the FMU controls.
+	/**
+	 * If true, we are using the FMU controls, else RC input if available.
 	 */
-	bool		mixer_use_fmu;
+	bool		mixer_manual_override;
 
-	/*
+	/**
+	 * If true, FMU input is available.
+	 */
+	bool		mixer_fmu_available;
+
+	/**
 	 * If true, state that should be reported to FMU has been updated.
 	 */
 	bool		fmu_report_due;
 
-	/*
-	 * If true, new control data from the FMU has been received.
+	/**
+	 * Last FMU receive time, in microseconds since system boot
 	 */
-	bool		fmu_data_received;
+	uint64_t	fmu_data_received_time;
+
+	/**
+	 * Current serial interface mode, per the serial_rx_mode parameter
+	 * in the config packet.
+	 */
+	uint8_t		serial_rx_mode;
+
+	/**
+	 * If true, the RC signal has been lost for more than a timeout interval
+	 */
+	bool		rc_lost;
+
+	/**
+	 * If true, the connection to FMU has been lost for more than a timeout interval
+	 */
+	bool		fmu_lost;
+
+	/**
+	 * If true, FMU is ready for autonomous position control. Only used for LED indication
+	 */
+	bool vector_flight_mode_ok;
+
+	/**
+	 * If true, IO performs an on-board manual override with the RC channel values
+	 */
+	bool manual_override_ok;
 
 	/*
 	 * Measured battery voltage in mV
