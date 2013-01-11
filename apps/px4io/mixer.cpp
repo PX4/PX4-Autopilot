@@ -47,8 +47,14 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sched.h>
+
+#include <debug.h>
 
 #include <drivers/drv_pwm_output.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/device/device.h>
+
 #include <systemlib/mixer/mixer.h>
 
 extern "C" {
@@ -57,10 +63,16 @@ extern "C" {
 }
 
 /*
- * Count of periodic calls in which we have no FMU input.
+ * Maximum interval in us before FMU signal is considered lost
  */
-static unsigned fmu_input_drops;
-#define FMU_INPUT_DROP_LIMIT	20
+#define FMU_INPUT_DROP_LIMIT_US		200000
+
+/* XXX need to move the RC_CHANNEL_FUNCTION out of rc_channels.h and into systemlib */
+#define ROLL     0
+#define PITCH    1
+#define YAW      2
+#define THROTTLE 3
+#define OVERRIDE 4
 
 /* current servo arm/disarm state */
 bool mixer_servos_armed = false;
@@ -68,6 +80,8 @@ bool mixer_servos_armed = false;
 /* selected control values and count for mixing */
 static uint16_t *control_values;
 static int control_count;
+
+static uint16_t rc_channel_data[PX4IO_INPUT_CHANNELS];
 
 static int	mixer_callback(uintptr_t handle,
 			       uint8_t control_group,
@@ -81,37 +95,80 @@ mixer_tick(void)
 {
 	bool should_arm;
 
+	/* check that we are receiving fresh data from the FMU */
+	if ((hrt_absolute_time() - system_state.fmu_data_received_time) > FMU_INPUT_DROP_LIMIT_US) {
+		/* too many frames without FMU input, time to go to failsafe */
+		system_state.mixer_manual_override = true;
+		system_state.mixer_fmu_available = false;
+		lib_lowprintf("RX timeout\n");
+	}
+
 	/*
 	 * Decide which set of inputs we're using.
 	 */
-	if (system_state.mixer_use_fmu) {
-		/* we have recent control data from the FMU */
-		control_count = PX4IO_CONTROL_CHANNELS;
-		control_values = &system_state.fmu_channel_data[0];
+	 
+	/* this is for planes, where manual override makes sense */
+	if (system_state.manual_override_ok) {
+		/* if everything is ok */
+		if (!system_state.mixer_manual_override && system_state.mixer_fmu_available) {
+			/* we have recent control data from the FMU */
+			control_count = PX4IO_CONTROL_CHANNELS;
+			control_values = &system_state.fmu_channel_data[0];
 
-		/* check that we are receiving fresh data from the FMU */
-		if (!system_state.fmu_data_received) {
-			fmu_input_drops++;
+		} else if (system_state.rc_channels > 0) {
+			/* when override is on or the fmu is not available, but RC is present */
+			control_count = system_state.rc_channels;
 
-			/* too many frames without FMU input, time to go to failsafe */
-			if (fmu_input_drops >= FMU_INPUT_DROP_LIMIT) {
-				system_state.mixer_use_fmu = false;
+			sched_lock();
+
+			/* remap roll, pitch, yaw and throttle from RC specific to internal ordering */
+			rc_channel_data[ROLL]     = system_state.rc_channel_data[system_state.rc_map[ROLL] - 1];
+			rc_channel_data[PITCH]    = system_state.rc_channel_data[system_state.rc_map[PITCH] - 1];
+			rc_channel_data[YAW]      = system_state.rc_channel_data[system_state.rc_map[YAW] - 1];
+			rc_channel_data[THROTTLE] = system_state.rc_channel_data[system_state.rc_map[THROTTLE] - 1];
+			//rc_channel_data[OVERRIDE] = system_state.rc_channel_data[system_state.rc_map[OVERRIDE] - 1];
+
+			/* get the remaining channels, no remapping needed */
+			for (unsigned i = 4; i < system_state.rc_channels; i++) {
+				rc_channel_data[i] = system_state.rc_channel_data[i];
 			}
 
+			/* scale the control inputs */ 
+			rc_channel_data[THROTTLE] = ((float)(rc_channel_data[THROTTLE] - system_state.rc_min[THROTTLE]) / 
+				(float)(system_state.rc_max[THROTTLE] - system_state.rc_min[THROTTLE])) * 1000.0f + 1000;
+
+			if (rc_channel_data[THROTTLE] > 2000) {
+				rc_channel_data[THROTTLE] = 2000;
+			}
+
+			if (rc_channel_data[THROTTLE] < 1000) {
+				rc_channel_data[THROTTLE] = 1000;
+			}
+			
+			// lib_lowprintf("Tmin: %d Ttrim: %d Tmax: %d T: %d \n",
+			// 	(int)(system_state.rc_min[THROTTLE]), (int)(system_state.rc_trim[THROTTLE]),
+			// 	(int)(system_state.rc_max[THROTTLE]), (int)(rc_channel_data[THROTTLE]));
+
+			control_values = &rc_channel_data[0];
+			sched_unlock();
 		} else {
-			fmu_input_drops = 0;
-			system_state.fmu_data_received = false;
+			/* we have no control input (no FMU, no RC) */
+
+			// XXX builtin failsafe would activate here
+			control_count = 0;
 		}
+		//lib_lowprintf("R: %d P: %d Y: %d T: %d \n", control_values[0], control_values[1], control_values[2], control_values[3]);
 
-	} else if (system_state.rc_channels > 0) {
-		/* we have control data from an R/C input */
-		control_count = system_state.rc_channels;
-		control_values = &system_state.rc_channel_data[0];
-
+	/* this is for multicopters, etc. where manual override does not make sense */
 	} else {
-		/* we have no control input */
-		/* XXX builtin failsafe would activate here */
-		control_count = 0;
+		/* if the fmu is available whe are good */
+		if (system_state.mixer_fmu_available) {
+			control_count = PX4IO_CONTROL_CHANNELS;
+			control_values = &system_state.fmu_channel_data[0];
+		/* we better shut everything off */
+		} else {
+			control_count = 0;
+		}
 	}
 
 	/*
@@ -138,14 +195,17 @@ mixer_tick(void)
 			/*
 			 * If we are armed, update the servo output.
 			 */
-			if (system_state.armed && system_state.arm_ok)
+			if (system_state.armed && system_state.arm_ok) {
 				up_pwm_servo_set(i, system_state.servos[i]);
+			}
 		}
 	}
 
 	/*
 	 * Decide whether the servos should be armed right now.
+	 * A sufficient reason is armed state and either FMU or RC control inputs
 	 */
+
 	should_arm = system_state.armed && system_state.arm_ok && (control_count > 0);
 
 	if (should_arm && !mixer_servos_armed) {
@@ -171,7 +231,11 @@ mixer_callback(uintptr_t handle,
 		return -1;
 
 	/* scale from current PWM units (1000-2000) to mixer input values */
-	control = ((float)control_values[control_index] - 1500.0f) / 500.0f;
+	if (system_state.manual_override_ok && system_state.mixer_manual_override && control_index == 3) {
+		control = ((float)control_values[control_index] - 1000.0f) / 1000.0f;
+	} else {
+		control = ((float)control_values[control_index] - 1500.0f) / 500.0f;
+	}
 
 	return 0;
 }

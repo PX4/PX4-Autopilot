@@ -60,6 +60,10 @@
 #define DEBUG
 #include "px4io.h"
 
+#define RC_FAILSAFE_TIMEOUT		2000000		/**< two seconds failsafe timeout */
+#define RC_CHANNEL_HIGH_THRESH		1700
+#define RC_CHANNEL_LOW_THRESH		1300
+
 static void	ppm_input(void);
 
 void
@@ -88,6 +92,12 @@ controls_main(void)
 		 */
 		bool locked = false;
 
+		/*
+		 * Store RC channel count to detect switch to RC loss sooner
+		 * than just by timeout
+		 */
+		unsigned rc_channels = system_state.rc_channels;
+
 		if (fds[0].revents & POLLIN)
 			locked |= dsm_input();
 
@@ -107,22 +117,39 @@ controls_main(void)
 		if (!locked)
 			ppm_input();
 
+		/* check for manual override status */
+		if (system_state.rc_channel_data[4] > RC_CHANNEL_HIGH_THRESH) {
+			/* force manual input override */
+			system_state.mixer_manual_override = true;
+
+		} else {
+			/* override not engaged, use FMU */
+			system_state.mixer_manual_override = false;
+		}
+
 		/*
 		 * If we haven't seen any new control data in 200ms, assume we
 		 * have lost input and tell FMU.
 		 */
 		if ((hrt_absolute_time() - system_state.rc_channels_timestamp) > 200000) {
 
+			if (system_state.rc_channels > 0) {
+				/*
+				 * If the RC signal status (lost / present) has
+				 * just changed, request an update immediately.
+				 */
+				system_state.fmu_report_due = true;
+			}
+
 			/* set the number of channels to zero - no inputs */
 			system_state.rc_channels = 0;
-
-			/* trigger an immediate report to the FMU */
-			system_state.fmu_report_due = true;
 		}
 
-		/* XXX do bypass mode, etc. here */
-
-		/* do PWM output updates */
+		/*
+		 * PWM output updates are performed in addition on each comm update.
+		 * the updates here are required to ensure operation if FMU is not started
+		 * or stopped responding.
+		 */
 		mixer_tick();
 	}
 }
@@ -141,8 +168,9 @@ ppm_input(void)
 		/* PPM data exists, copy it */
 		system_state.rc_channels = ppm_decoded_channels;
 
-		for (unsigned i = 0; i < ppm_decoded_channels; i++)
+		for (unsigned i = 0; i < ppm_decoded_channels; i++) {
 			system_state.rc_channel_data[i] = ppm_buffer[i];
+		}
 
 		/* copy the timestamp and clear it */
 		system_state.rc_channels_timestamp = ppm_last_valid_decode;

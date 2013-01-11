@@ -88,6 +88,7 @@ sbus_init(const char *device)
 		last_rx_time = hrt_absolute_time();
 
 		debug("S.Bus: ready");
+
 	} else {
 		debug("S.Bus: open failed");
 	}
@@ -209,7 +210,7 @@ sbus_decode(hrt_abstime frame_time)
 
 	/* if the failsafe or connection lost bit is set, we consider the frame invalid */
 	if ((frame[23] & (1 << 2)) && /* signal lost */
-		(frame[23] & (1 << 3))) { /* failsafe */
+	    (frame[23] & (1 << 3))) { /* failsafe */
 
 		/* actively announce signal loss */
 		system_state.rc_channels = 0;

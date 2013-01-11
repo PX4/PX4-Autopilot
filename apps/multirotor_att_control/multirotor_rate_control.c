@@ -148,7 +148,7 @@ static int parameters_update(const struct mc_rate_control_param_handles *h, stru
 }
 
 void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
-	const float rates[], struct actuator_controls_s *actuators)
+			      const float rates[], struct actuator_controls_s *actuators)
 {
 	static float roll_control_last  = 0;
 	static float pitch_control_last = 0;
@@ -157,6 +157,7 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	static uint64_t last_input = 0;
 
 	float dT_input = (hrt_absolute_time() - last_input) / 1000000.0f;
+
 	if (last_input != rate_sp->timestamp) {
 		last_input = rate_sp->timestamp;
 	}
@@ -186,12 +187,14 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	}
 
 	/* calculate current control outputs */
-	
+
 	/* control pitch (forward) output */
 	float pitch_control = p.attrate_p * (rate_sp->pitch - rates[1]) - (p.attrate_d * pitch_control_last);
+
 	/* increase resilience to faulty control inputs */
 	if (isfinite(pitch_control)) {
 		pitch_control_last = pitch_control;
+
 	} else {
 		pitch_control = 0.0f;
 		warnx("rej. NaN ctrl pitch");
@@ -199,9 +202,11 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	/* control roll (left/right) output */
 	float roll_control = p.attrate_p * (rate_sp->roll - rates[0]) - (p.attrate_d * roll_control_last);
+
 	/* increase resilience to faulty control inputs */
 	if (isfinite(roll_control)) {
 		roll_control_last = roll_control;
+
 	} else {
 		roll_control = 0.0f;
 		warnx("rej. NaN ctrl roll");
@@ -209,6 +214,7 @@ void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 
 	/* control yaw rate */
 	float yaw_rate_control = p.yawrate_p * (rate_sp->yaw - rates[2]);
+
 	/* increase resilience to faulty control inputs */
 	if (!isfinite(yaw_rate_control)) {
 		yaw_rate_control = 0.0f;

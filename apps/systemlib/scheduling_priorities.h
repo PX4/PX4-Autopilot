@@ -1,12 +1,6 @@
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Thomas Gubler <thomasgubler@student.ethz.ch>
- *           @author Julian Oes <joes@student.ethz.ch>
- *           @author Laurens Mackay <mackayl@student.ethz.ch>
- *           @author Tobias Naegeli <naegelit@student.ethz.ch>
- *           @author Martin Rutschmann <rutmarti@student.ethz.ch>
- *           @author Lorenz Meier <lm@inf.ethz.ch>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,20 +31,18 @@
  *
  ****************************************************************************/
 
-/*
- * @file multirotor_attitude_control.h
- * Attitude control for multi rotors.
- */
+#pragma once
 
-#ifndef MULTIROTOR_RATE_CONTROL_H_
-#define MULTIROTOR_RATE_CONTROL_H_
+#include <nuttx/sched.h>
 
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_rates_setpoint.h>
-#include <uORB/topics/actuator_controls.h>
-
-void multirotor_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
-			      const float rates[], struct actuator_controls_s *actuators);
-
-#endif /* MULTIROTOR_RATE_CONTROL_H_ */
+/*      SCHED_PRIORITY_MAX    */
+#define SCHED_PRIORITY_FAST_DRIVER           SCHED_PRIORITY_MAX
+#define SCHED_PRIORITY_WATCHDOG             (SCHED_PRIORITY_MAX - 5)
+#define SCHED_PRIORITY_ACTUATOR_OUTPUTS     (SCHED_PRIORITY_MAX - 15)
+#define SCHED_PRIORITY_ATTITUDE_CONTROL     (SCHED_PRIORITY_MAX - 25)
+#define SCHED_PRIORITY_SLOW_DRIVER          (SCHED_PRIORITY_MAX - 35)
+#define SCHED_PRIORITY_POSITION_CONTROL     (SCHED_PRIORITY_MAX - 40)
+/*      SCHED_PRIORITY_DEFAULT    */
+#define SCHED_PRIORITY_LOGGING              (SCHED_PRIORITY_DEFAULT - 10)
+#define SCHED_PRIORITY_PARAMS               (SCHED_PRIORITY_DEFAULT - 15)
+/*      SCHED_PRIORITY_IDLE    */

@@ -106,7 +106,7 @@ handle_message(mavlink_message_t *msg)
 		mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
 		if (cmd_mavlink.target_system == mavlink_system.sysid && ((cmd_mavlink.target_component == mavlink_system.compid)
-			|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
+				|| (cmd_mavlink.target_component == MAV_COMP_ID_ALL))) {
 			//check for MAVLINK terminate command
 			if (cmd_mavlink.command == MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN && ((int)cmd_mavlink.param1) == 3) {
 				/* This is the link shutdown command, terminate mavlink */
@@ -138,6 +138,7 @@ handle_message(mavlink_message_t *msg)
 				if (cmd_pub <= 0) {
 					cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
 				}
+
 				/* publish */
 				orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
 			}
@@ -162,6 +163,7 @@ handle_message(mavlink_message_t *msg)
 		/* check if topic is advertised */
 		if (flow_pub <= 0) {
 			flow_pub = orb_advertise(ORB_ID(optical_flow), &f);
+
 		} else {
 			/* publish */
 			orb_publish(ORB_ID(optical_flow), flow_pub, &f);
@@ -191,6 +193,7 @@ handle_message(mavlink_message_t *msg)
 		/* check if topic is advertised */
 		if (cmd_pub <= 0) {
 			cmd_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
+
 		} else {
 			/* create command */
 			orb_publish(ORB_ID(vehicle_command), cmd_pub, &vcmd);
@@ -214,6 +217,7 @@ handle_message(mavlink_message_t *msg)
 
 		if (vicon_position_pub <= 0) {
 			vicon_position_pub = orb_advertise(ORB_ID(vehicle_vicon_position), &vicon_position);
+
 		} else {
 			orb_publish(ORB_ID(vehicle_vicon_position), vicon_position_pub, &vicon_position);
 		}
@@ -230,7 +234,7 @@ handle_message(mavlink_message_t *msg)
 			/* switch to a receiving link mode */
 			gcs_link = false;
 
-			/* 
+			/*
 			 * rate control mode - defined by MAVLink
 			 */
 
@@ -238,33 +242,37 @@ handle_message(mavlink_message_t *msg)
 			bool ml_armed = false;
 
 			switch (quad_motors_setpoint.mode) {
-				case 0:
-					ml_armed = false;
-					break;
-				case 1:
-					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_RATES;
-					ml_armed = true;
+			case 0:
+				ml_armed = false;
+				break;
 
-					break;
-				case 2:
-					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE;
-					ml_armed = true;
+			case 1:
+				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_RATES;
+				ml_armed = true;
 
-					break;
-				case 3:
-					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY;
-					break;
-				case 4:
-					ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_POSITION;
-					break;
+				break;
+
+			case 2:
+				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_ATTITUDE;
+				ml_armed = true;
+
+				break;
+
+			case 3:
+				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_VELOCITY;
+				break;
+
+			case 4:
+				ml_mode = OFFBOARD_CONTROL_MODE_DIRECT_POSITION;
+				break;
 			}
 
-			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid-1]   / (float)INT16_MAX;
-			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid-1]  / (float)INT16_MAX;
-			offboard_control_sp.p3= (float)quad_motors_setpoint.yaw[mavlink_system.sysid-1]    / (float)INT16_MAX;
-			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid-1]/(float)UINT16_MAX;
+			offboard_control_sp.p1 = (float)quad_motors_setpoint.roll[mavlink_system.sysid - 1]   / (float)INT16_MAX;
+			offboard_control_sp.p2 = (float)quad_motors_setpoint.pitch[mavlink_system.sysid - 1]  / (float)INT16_MAX;
+			offboard_control_sp.p3 = (float)quad_motors_setpoint.yaw[mavlink_system.sysid - 1]    / (float)INT16_MAX;
+			offboard_control_sp.p4 = (float)quad_motors_setpoint.thrust[mavlink_system.sysid - 1] / (float)UINT16_MAX;
 
-			if (quad_motors_setpoint.thrust[mavlink_system.sysid-1] == 0) {
+			if (quad_motors_setpoint.thrust[mavlink_system.sysid - 1] == 0) {
 				ml_armed = false;
 			}
 
@@ -276,6 +284,7 @@ handle_message(mavlink_message_t *msg)
 			/* check if topic has to be advertised */
 			if (offboard_control_sp_pub <= 0) {
 				offboard_control_sp_pub = orb_advertise(ORB_ID(offboard_control_setpoint), &offboard_control_sp);
+
 			} else {
 				/* Publish */
 				orb_publish(ORB_ID(offboard_control_setpoint), offboard_control_sp_pub, &offboard_control_sp);
@@ -298,12 +307,33 @@ handle_message(mavlink_message_t *msg)
 			mavlink_hil_state_t hil_state;
 			mavlink_msg_hil_state_decode(msg, &hil_state);
 
+			/* Calculate Rotation Matrix */
+			//TODO: better clarification which app does this, atm we have a ekf for quadrotors which does this, but there is no such thing if fly in fixed wing mode
+
+			if (mavlink_system.type == MAV_TYPE_FIXED_WING) {
+				//TODO: assuming low pitch and roll values for now
+				hil_attitude.R[0][0] = cosf(hil_state.yaw);
+				hil_attitude.R[0][1] = sinf(hil_state.yaw);
+				hil_attitude.R[0][2] = 0.0f;
+
+				hil_attitude.R[1][0] = -sinf(hil_state.yaw);
+				hil_attitude.R[1][1] = cosf(hil_state.yaw);
+				hil_attitude.R[1][2] = 0.0f;
+
+				hil_attitude.R[2][0] = 0.0f;
+				hil_attitude.R[2][1] = 0.0f;
+				hil_attitude.R[2][2] = 1.0f;
+
+				hil_attitude.R_valid = true;
+			}
+
 			hil_global_pos.lat = hil_state.lat;
 			hil_global_pos.lon = hil_state.lon;
 			hil_global_pos.alt = hil_state.alt / 1000.0f;
 			hil_global_pos.vx = hil_state.vx / 100.0f;
 			hil_global_pos.vy = hil_state.vy / 100.0f;
 			hil_global_pos.vz = hil_state.vz / 100.0f;
+
 
 			/* set timestamp and notify processes (broadcast) */
 			hil_global_pos.timestamp = hrt_absolute_time();
@@ -357,12 +387,14 @@ handle_message(mavlink_message_t *msg)
 
 			if (rc_pub == 0) {
 				rc_pub = orb_advertise(ORB_ID(rc_channels), &rc_hil);
+
 			} else {
 				orb_publish(ORB_ID(rc_channels), rc_pub, &rc_hil);
 			}
 
 			if (mc_pub == 0) {
 				mc_pub = orb_advertise(ORB_ID(manual_control_setpoint), &mc);
+
 			} else {
 				orb_publish(ORB_ID(manual_control_setpoint), mc_pub, &mc);
 			}
@@ -377,7 +409,7 @@ handle_message(mavlink_message_t *msg)
 static void *
 receive_thread(void *arg)
 {
-	int uart_fd = *((int*)arg);
+	int uart_fd = *((int *)arg);
 
 	const int timeout = 1000;
 	uint8_t ch;
@@ -421,8 +453,8 @@ receive_start(int uart)
 	pthread_attr_init(&receiveloop_attr);
 
 	struct sched_param param;
-  	param.sched_priority = SCHED_PRIORITY_MAX - 40;
-  	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
+	param.sched_priority = SCHED_PRIORITY_MAX - 40;
+	(void)pthread_attr_setschedparam(&receiveloop_attr, &param);
 
 	pthread_attr_setstacksize(&receiveloop_attr, 2048);
 

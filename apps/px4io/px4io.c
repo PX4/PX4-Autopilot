@@ -66,6 +66,8 @@ int user_start(int argc, char *argv[])
 
 	/* reset all to zero */
 	memset(&system_state, 0, sizeof(system_state));
+	/* default to 50 Hz PWM outputs */
+	system_state.servo_rate = 50;
 
 	/* configure the high-resolution time/callout interface */
 	hrt_init();

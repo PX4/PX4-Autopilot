@@ -75,7 +75,7 @@ void mavlink_pm_callback(void *arg, param_t param);
 void mavlink_pm_callback(void *arg, param_t param)
 {
 	mavlink_pm_send_param(param);
-	usleep(*(unsigned int*)arg);
+	usleep(*(unsigned int *)arg);
 }
 
 void mavlink_pm_send_all_params(unsigned int delay)
@@ -90,6 +90,7 @@ int mavlink_pm_queued_send()
 		mavlink_pm_send_param(param_for_index(mavlink_param_queue_index));
 		mavlink_param_queue_index++;
 		return 0;
+
 	} else {
 		return 1;
 	}
@@ -105,7 +106,7 @@ int mavlink_pm_send_param_for_index(uint16_t index)
 	return mavlink_pm_send_param(param_for_index(index));
 }
 
-int mavlink_pm_send_param_for_name(const char* name)
+int mavlink_pm_send_param_for_name(const char *name)
 {
 	return mavlink_pm_send_param(param_find(name));
 }
@@ -123,16 +124,19 @@ int mavlink_pm_send_param(param_t param)
 	param_type_t type = param_type(param);
 	/* copy parameter name */
 	strncpy((char *)name_buf, param_name(param), MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
-	
+
 	/*
 	 * Map onboard parameter type to MAVLink type,
 	 * endianess matches (both little endian)
 	 */
 	uint8_t mavlink_type;
+
 	if (type == PARAM_TYPE_INT32) {
 		mavlink_type = MAVLINK_TYPE_INT32_T;
+
 	} else if (type == PARAM_TYPE_FLOAT) {
 		mavlink_type = MAVLINK_TYPE_FLOAT;
+
 	} else {
 		mavlink_type = MAVLINK_TYPE_FLOAT;
 	}
@@ -143,7 +147,10 @@ int mavlink_pm_send_param(param_t param)
 	 */
 
 	int ret;
-	if ((ret = param_get(param, &val_buf)) != OK) return ret;
+
+	if ((ret = param_get(param, &val_buf)) != OK) {
+		return ret;
+	}
 
 	mavlink_msg_param_value_pack_chan(mavlink_system.sysid,
 					  mavlink_system.compid,
@@ -161,13 +168,13 @@ int mavlink_pm_send_param(param_t param)
 void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_message_t *msg)
 {
 	switch (msg->msgid) {
-		case MAVLINK_MSG_ID_PARAM_REQUEST_LIST: {
+	case MAVLINK_MSG_ID_PARAM_REQUEST_LIST: {
 			/* Start sending parameters */
 			mavlink_pm_start_queued_send();
 			mavlink_missionlib_send_gcs_string("[mavlink pm] sending list");
 		} break;
 
-		case MAVLINK_MSG_ID_PARAM_SET: {
+	case MAVLINK_MSG_ID_PARAM_SET: {
 
 			/* Handle parameter setting */
 
@@ -177,7 +184,7 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 
 				if (mavlink_param_set.target_system == mavlink_system.sysid && ((mavlink_param_set.target_component == mavlink_system.compid) || (mavlink_param_set.target_component == MAV_COMP_ID_ALL))) {
 					/* local name buffer to enforce null-terminated string */
-					char name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN+1];
+					char name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN + 1];
 					strncpy(name, mavlink_param_set.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 					/* enforce null termination */
 					name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
@@ -188,6 +195,7 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 						char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
 						sprintf(buf, "[mavlink pm] unknown: %s", name);
 						mavlink_missionlib_send_gcs_string(buf);
+
 					} else {
 						/* set and send parameter */
 						param_set(param, &(mavlink_param_set.param_value));
@@ -197,25 +205,26 @@ void mavlink_pm_message_handler(const mavlink_channel_t chan, const mavlink_mess
 			}
 		} break;
 
-		case MAVLINK_MSG_ID_PARAM_REQUEST_READ: {
+	case MAVLINK_MSG_ID_PARAM_REQUEST_READ: {
 			mavlink_param_request_read_t mavlink_param_request_read;
 			mavlink_msg_param_request_read_decode(msg, &mavlink_param_request_read);
 
-				if (mavlink_param_request_read.target_system == mavlink_system.sysid && ((mavlink_param_request_read.target_component == mavlink_system.compid) || (mavlink_param_request_read.target_component == MAV_COMP_ID_ALL))) {
-					/* when no index is given, loop through string ids and compare them */
-					if (mavlink_param_request_read.param_index == -1) {
-						/* local name buffer to enforce null-terminated string */
-						char name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN+1];
-						strncpy(name, mavlink_param_request_read.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
-						/* enforce null termination */
-						name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
-						/* attempt to find parameter and send it */
-						mavlink_pm_send_param_for_name(name);
-					} else {
-						/* when index is >= 0, send this parameter again */
-						mavlink_pm_send_param_for_index(mavlink_param_request_read.param_index);
-					}
+			if (mavlink_param_request_read.target_system == mavlink_system.sysid && ((mavlink_param_request_read.target_component == mavlink_system.compid) || (mavlink_param_request_read.target_component == MAV_COMP_ID_ALL))) {
+				/* when no index is given, loop through string ids and compare them */
+				if (mavlink_param_request_read.param_index == -1) {
+					/* local name buffer to enforce null-terminated string */
+					char name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN + 1];
+					strncpy(name, mavlink_param_request_read.param_id, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
+					/* enforce null termination */
+					name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
+					/* attempt to find parameter and send it */
+					mavlink_pm_send_param_for_name(name);
+
+				} else {
+					/* when index is >= 0, send this parameter again */
+					mavlink_pm_send_param_for_index(mavlink_param_request_read.param_index);
 				}
+			}
 
 		} break;
 	}

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file actuator_controls.h
+ * @file actuator_controls_effective.h
  *
  * Actuator control topics - mixer inputs.
  *

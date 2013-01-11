@@ -43,39 +43,47 @@
 #include <stdlib.h>
 
 #include "mavlink_log.h"
- 
-void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size) {
-    lb->size  = size;
-    lb->start = 0;
-    lb->count = 0;
-    lb->elems = (struct mavlink_logmessage *)calloc(lb->size, sizeof(struct mavlink_logmessage));
+
+void mavlink_logbuffer_init(struct mavlink_logbuffer *lb, int size)
+{
+	lb->size  = size;
+	lb->start = 0;
+	lb->count = 0;
+	lb->elems = (struct mavlink_logmessage *)calloc(lb->size, sizeof(struct mavlink_logmessage));
 }
- 
-int mavlink_logbuffer_is_full(struct mavlink_logbuffer *lb) {
+
+int mavlink_logbuffer_is_full(struct mavlink_logbuffer *lb)
+{
 	return lb->count == (int)lb->size;
 }
- 
-int mavlink_logbuffer_is_empty(struct mavlink_logbuffer *lb) {
-    return lb->count == 0;
+
+int mavlink_logbuffer_is_empty(struct mavlink_logbuffer *lb)
+{
+	return lb->count == 0;
 }
- 
-void mavlink_logbuffer_write(struct mavlink_logbuffer *lb, const struct mavlink_logmessage *elem) {
-    int end = (lb->start + lb->count) % lb->size;
-    memcpy(&(lb->elems[end]), elem, sizeof(struct mavlink_logmessage));
-    if (mavlink_logbuffer_is_full(lb)) {
-        lb->start = (lb->start + 1) % lb->size; /* full, overwrite */
-    } else {
-        ++lb->count;
-    }
+
+void mavlink_logbuffer_write(struct mavlink_logbuffer *lb, const struct mavlink_logmessage *elem)
+{
+	int end = (lb->start + lb->count) % lb->size;
+	memcpy(&(lb->elems[end]), elem, sizeof(struct mavlink_logmessage));
+
+	if (mavlink_logbuffer_is_full(lb)) {
+		lb->start = (lb->start + 1) % lb->size; /* full, overwrite */
+
+	} else {
+		++lb->count;
+	}
 }
- 
-int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessage *elem) {
-    if (!mavlink_logbuffer_is_empty(lb)) {
-        memcpy(elem, &(lb->elems[lb->start]), sizeof(struct mavlink_logmessage));
-        lb->start = (lb->start + 1) % lb->size;
-        --lb->count;
-        return 0;
-    } else {
-        return 1;
-    }
+
+int mavlink_logbuffer_read(struct mavlink_logbuffer *lb, struct mavlink_logmessage *elem)
+{
+	if (!mavlink_logbuffer_is_empty(lb)) {
+		memcpy(elem, &(lb->elems[lb->start]), sizeof(struct mavlink_logmessage));
+		lb->start = (lb->start + 1) % lb->size;
+		--lb->count;
+		return 0;
+
+	} else {
+		return 1;
+	}
 }
