@@ -357,7 +357,7 @@ static int spawn_proxy(int argc, char *argv[])
 {
   FAR struct spawn_general_file_action_s *entry;
   FAR const posix_spawnattr_t *attr = g_ps_parms.attr;
-  int ret;
+  int ret = OK;
 
   /* Perform file actions and/or set a custom signal mask.  We get here only
    * if the file_actions parameter to posix_spawn[p] was non-NULL and/or the
@@ -365,10 +365,10 @@ static int spawn_proxy(int argc, char *argv[])
    */
 
 #ifndef CONFIG_DISABLE_SIGNALS
-  DEBUGASSERT(g_ps_parms.file_actions ||
+  DEBUGASSERT((g_ps_parms.file_actions && *g_ps_parms.file_actions) ||
               (attr && (attr->flags & POSIX_SPAWN_SETSIGMASK) != 0));
 #else
-  DEBUGASSERT(g_ps_parms.file_actions);
+  DEBUGASSERT(g_ps_parms.file_actions && *g_ps_parms.file_actions);
 #endif
 
   /* Check if we need to change the signal mask */
@@ -553,9 +553,10 @@ int posix_spawn(FAR pid_t *pid, FAR const char *path,
    */
 
 #ifndef CONFIG_DISABLE_SIGNALS
-  if (!file_actions && (attr->flags & POSIX_SPAWN_SETSIGMASK) == 0)
+  if ((file_actions == NULL || *file_actions == NULL) &&
+      (attr == NULL || (attr->flags & POSIX_SPAWN_SETSIGMASK) == 0))
 #else
-  if (!file_actions)
+  if (file_actions ==  NULL || *file_actions == NULL)
 #endif
     {
       return ps_exec(pid, path, attr, argv);
@@ -601,7 +602,7 @@ int posix_spawn(FAR pid_t *pid, FAR const char *path,
 
   proxy = TASK_CREATE("spawn_proxy", param.sched_priority,
                       CONFIG_POSIX_SPAWN_STACKSIZE, (main_t)spawn_proxy,
-                      (const char **)NULL);
+                      (FAR const char **)NULL);
   if (proxy < 0)
     {
       int errcode = errno;

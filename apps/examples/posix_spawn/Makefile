@@ -64,8 +64,8 @@ ROOTDEPPATH	= --dep-path . --dep-path filesystem
 
 VPATH = filesystem
 
-all: .built
-.PHONY: really_build clean_filesystem clean depend distclean
+all: build
+.PHONY: build clean_filesystem clean depend distclean
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -74,17 +74,16 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 # This is a little messy.  The build is broken into two pieces:  (1) the
-# filesystem/ subdir build that auto-generates several files, and (2) the real
+# filesystem/ subdir build that auto-generates several files, and (2) the library
 # build.  This is done because we need a fresh build context after auto-
 # generating the source files.
 
-really_build: $(OBJS)
+build_lib: $(OBJS)
 	$(call ARCHIVE, $(BIN), $(OBJS))
-	@touch .built
 
-.built:
+build:
 	@$(MAKE) -C filesystem TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" CROSSDEV=$(CROSSDEV)
-	@$(MAKE) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" really_build
+	@$(MAKE) TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" build_lib
 
 context:
 
@@ -100,11 +99,13 @@ clean_filesystem:
 	@$(MAKE) -C filesystem TOPDIR="$(TOPDIR)" APPDIR="$(APPDIR)" CROSSDEV=$(CROSSDEV) clean
 
 clean: clean_filesystem
-	$(call DELFILE, .built)
 	$(call CLEAN)
 
 distclean: clean
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
+
+# There are no dependencies in this directory.  We should are code some of
+# more important dependencies here:
 
 -include Make.dep

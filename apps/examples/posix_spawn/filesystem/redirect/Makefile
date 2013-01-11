@@ -1,5 +1,5 @@
 ############################################################################
-# examples/posix_spawn/filesystem/program/Makefile
+# examples/posix_spawn/filesystem/redirect/Makefile
 #
 #   Copyright (C) 2013 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -35,7 +35,7 @@
 
 -include $(TOPDIR)/Make.defs
 
-BIN = program
+BIN = redirect
 
 SRCS = $(BIN).c
 OBJS = $(SRCS:.c=.o)

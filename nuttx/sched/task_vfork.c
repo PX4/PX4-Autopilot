@@ -218,6 +218,9 @@ pid_t task_vforkstart(FAR _TCB *child)
 #endif
   FAR const char *name;
   pid_t pid;
+#ifdef CONFIG_SCHED_WAITPID
+  int rc;
+#endif
   int ret;
 
   svdbg("Starting Child TCB=%p, parent=%p\n", child, g_readytorun.head);
@@ -245,6 +248,64 @@ pid_t task_vforkstart(FAR _TCB *child)
       task_vforkabort(child, -ret);
       return ERROR;
     }
+
+  /* Since the child task has the same priority as the parent task, it is
+   * now ready to run, but has not yet ran.  It is a requirement that
+   * the parent enivornment be stable while vfork runs; the child thread
+   * is still dependent on things in the parent thread... like the pointers
+   * into parent thread's stack which will still appear in the child's
+   * registers and environment.
+   *
+   * We do not have SIG_CHILD, so we have to do some silly things here.
+   * The simplest way to make sure that the child thread runs to completion
+   * is simply to yield here.  Since the child can only do exit() or
+   * execv/l(), that should be all that is needed.
+   *
+   * Hmmm.. this is probably not sufficient.  What if we are running
+   * SCHED_RR?  What if the child thread is suspeneded and rescheduled
+   * after the parent thread again?
+   */
+
+#ifdef CONFIG_SCHED_WAITPID
+
+  /* We can also exploit a bug in the execv() implementation:  The PID
+   * of the task exec'ed by the child will not be the same as the PID of
+   * the child task.  Therefore, waitpid() on the child task's PID will
+   * accomplish what we need to do.
+   */
+
+  rc = 0;
+
+#ifdef CONFIG_DEBUG
+  ret = waitpid(pid, &rc, 0);
+  if (ret < 0)
+    {
+      sdbg("ERROR: waitpid failed: %d\n", errno);
+    }
+#else
+  (void)waitpid(pid, &rc, 0);
+#endif
+
+#else
+  /* Again exploiting that execv() bug: Check if the child thread is
+   * still running.
+   */
+
+  while ((ret = kill(pid, 0)) == OK)
+    {
+      /* Yes.. then we can yield to it -- assuming that it has not lowered
+       * its priority.  sleep(0) might be a safer thing to do since it does
+       * not depend on prioirities:  It will halt the parent thread for one
+       * system clock tick.  This will delay the return to the parent thread.
+       */
+
+#ifndef CONFIG_DISABLE_SIGNALS
+      sleep(0);
+#else
+      sched_yield();
+#endif
+    }
+#endif
 
   return pid;
 }

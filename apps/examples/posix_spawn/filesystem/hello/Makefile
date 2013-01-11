@@ -1,7 +1,7 @@
 ############################################################################
-# libc/spawn/Make.defs
+# examples/elf/tests/hello/Makefile
 #
-#   Copyright (C) 2013 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2012 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,33 +33,27 @@
 #
 ############################################################################
 
-# Add the spawn C files to the build
+-include $(TOPDIR)/Make.defs
 
-ifeq ($(CONFIG_LIBC_EXECFUNCS),y)
+BIN = hello
 
-CSRCS += lib_ps.c
+SRCS = $(BIN).c
+OBJS = $(SRCS:.c=.o)
 
-CSRCS += lib_psfa_addaction.c lib_psfa_addclose.c lib_psfa_adddup2.c
-CSRCS += lib_psfa_addopen.c lib_psfa_destroy.c lib_psfa_init.c
+all: $(BIN)
 
-ifeq ($(CONFIG_DEBUG),y)
-CSRCS += lib_psfa_dump.c
-endif
+$(OBJS): %.o: %.c
+	@echo "CC: $<"
+	$(Q) $(CC) -c $(CELFFLAGS) $< -o $@
 
-CSRCS += lib_psa_getflags.c lib_psa_getschedparam.c lib_psa_getschedpolicy.c
-CSRCS += lib_psa_init.c lib_psa_setflags.c lib_psa_setschedparam.c
-CSRCS += lib_psa_setschedpolicy.c
+$(BIN): $(OBJS)
+	@echo "LD: $<"
+	$(Q) $(LD) $(LDELFFLAGS) -o $@ $^
 
-ifneq ($(CONFIG_DISABLE_SIGNALS),y)
-CSRCS += lib_psa_getsigmask.c lib_psa_setsigmask.c
-endif
+clean: 
+	$(call DELFILE, $(BIN))
+	$(call CLEAN)
 
-ifeq ($(CONFIG_DEBUG),y)
-CSRCS += lib_psa_dump.c
-endif
-
-# Add the spawn directory to the build
-
-DEPPATH += --dep-path spawn
-VPATH += :spawn
-endif
+install:
+	$(Q) mkdir -p $(ROMFS_DIR)
+	$(Q) install $(BIN) $(ROMFS_DIR)/$(BIN)

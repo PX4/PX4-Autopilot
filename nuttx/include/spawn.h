@@ -61,7 +61,7 @@
 #define POSIX_SPAWN_SETSCHEDPARAM (1 << 2)  /* 1: Set task's priority */
 #define POSIX_SPAWN_SETSCHEDULER  (1 << 3)  /* 1: Set task's scheduler policy */
 #define POSIX_SPAWN_SETSIGDEF     (1 << 4)  /* 1: Set default signal actions */
-#define POSIX_SPAWN_SETSIGMASK    (1 << 5)  /* 1: Set sigmask *./
+#define POSIX_SPAWN_SETSIGMASK    (1 << 5)  /* 1: Set sigmask */
 
 /****************************************************************************
  * Type Definitions
@@ -179,6 +179,16 @@ int posix_spawnattr_setsigmask(FAR posix_spawnattr_t *attr,
                                FAR const sigset_t *sigmask);
 #else
 #  define posix_spawnattr_setsigmask(attr,sigmask) (ENOSYS)
+#endif
+
+/* Non standard debug functions */
+
+#ifdef CONFIG_DEBUG
+void posix_spawn_file_actions_dump(FAR posix_spawn_file_actions_t *file_actions);
+void posix_spawnattr_dump(FAR posix_spawnattr_t *attr);
+#else
+#  define posix_spawn_file_actions_dump(fa)
+#  define posix_spawnattr_dump(a)
 #endif
 
 #ifdef __cplusplus

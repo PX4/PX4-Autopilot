@@ -1,5 +1,5 @@
 /****************************************************************************
- * examples/posix_spawn/filesystem/program/program.c
+ * libc/string/lib_psa_dump.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -37,24 +37,91 @@
  * Included Files
  ****************************************************************************/
 
-#include <stdio.h>
+#include <nuttx/config.h>
+
+#include <spawn.h>
+#include <debug.h>
+
+#ifdef CONFIG_DEBUG
 
 /****************************************************************************
- * Public Functions
+ * Global Functions
  ****************************************************************************/
 
-int main(int argc, char **argv)
+/****************************************************************************
+ * Name: posix_spawnattr_dump
+ *
+ * Description:
+ *   Show the current attributes.
+ *
+ * Input Parameters:
+ *   attr - The address of the spawn attributes to be dumped.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void posix_spawnattr_dump(posix_spawnattr_t *attr)
 {
-  int ch;
-
-  /* stdin should have been redirected to testdata.txt.  Read and print until
-   * we hit the end of file.
-   */
-
-  while ((ch = getchar()) != EOF)
+  dbg("attr[%p]:\n", attr);
+  dbg("  flags:    %04x\n", attr->flags);
+  if (attr->flags == 0)
     {
-      putchar(ch);
+      dbg("            None\n");
+    }
+  else
+    {
+      if ((attr->flags & POSIX_SPAWN_RESETIDS) != 0)
+        {
+          dbg("            POSIX_SPAWN_RESETIDS\n");
+        }
+
+      if ((attr->flags & POSIX_SPAWN_SETPGROUP) != 0)
+        {
+          dbg("            POSIX_SPAWN_SETPGROUP\n");
+        }
+
+      if ((attr->flags & POSIX_SPAWN_SETSCHEDPARAM) != 0)
+        {
+          dbg("            POSIX_SPAWN_SETSCHEDPARAM\n");
+        }
+
+      if ((attr->flags & POSIX_SPAWN_SETSCHEDULER) != 0)
+        {
+          dbg("            POSIX_SPAWN_SETSCHEDULER\n");
+        }
+
+      if ((attr->flags & POSIX_SPAWN_SETSIGDEF) != 0)
+        {
+          dbg("            POSIX_SPAWN_SETSIGDEF\n");
+        }
+
+      if ((attr->flags & POSIX_SPAWN_SETSIGMASK) != 0)
+        {
+          dbg("            POSIX_SPAWN_SETSIGMASK\n");
+        }
     }
 
-  return 0;
-}
+  dbg("  priority: %d\n", attr->priority);
+
+  dbg("  policy:   %d\n", attr->policy);
+  if (attr->policy == SCHED_FIFO)
+    {
+      dbg("            SCHED_FIFO\n");
+    }
+  else if (attr->policy == SCHED_RR)
+    {
+      dbg("            SCHED_RR\n");
+    }
+  else
+    {
+      dbg("            Unrecognized\n");
+    }
+
+#ifndef CONFIG_DISABLE_SIGNALS
+  dbg("  sigmask:  %08x\n", attr->sigmask);
+#endif
+};
+
+#endif /* CONFIG_DEBUG */

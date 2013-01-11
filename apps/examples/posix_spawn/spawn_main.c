@@ -138,10 +138,14 @@ static unsigned int g_mmstep;     /* Memory Usage at beginning of test step */
 
 static const char delimiter[] =
   "****************************************************************************";
-static const char program[] = "program";
-static const char data[]    = "testdata.txt";
+static const char g_redirect[] = "redirect";
+static const char g_hello[]    = "hello";
+static const char g_data[]     = "testdata.txt";
 
 static char fullpath[128];
+
+static char * const g_argv[4] =
+  { "Argument 1", "Argument 2", "Argument 3", NULL };
 
 /****************************************************************************
  * Symbols from Auto-Generated Code
@@ -284,11 +288,15 @@ int spawn_main(int argc, char *argv[])
 
   exec_setsymtab(exports, nexports);
 
+  /*************************************************************************
+   * Case 1: Simple program with arguments
+   *************************************************************************/
+
   /* Output a seperated so that we can clearly discriminate the output of
    * this program from the others.
    */
 
-  testheader(program);
+  testheader(g_hello);
 
   /* Initialize the attributes file actions structure */
 
@@ -297,12 +305,86 @@ int spawn_main(int argc, char *argv[])
     {
       err("ERROR: posix_spawn_file_actions_init failed: %d\n", ret);
     }
+  posix_spawn_file_actions_dump(&file_actions);
 
   ret = posix_spawnattr_init(&attr);
   if (ret != 0)
     {
       err("ERROR: posix_spawnattr_init failed: %d\n", ret);
     }
+  posix_spawnattr_dump(&attr);
+
+  mm_update(&g_mmstep, "after file_action/attr init");
+
+  /* If the binary loader does not support the PATH variable, then
+   * create the full path to the executable program.  Otherwise,
+   * use the relative path so that the binary loader will have to
+   * search the PATH variable to find the executable.
+   */
+
+#ifdef CONFIG_BINFMT_EXEPATH
+  filepath = g_hello;
+#else
+  snprintf(fullpath, 128, "%s/%s", MOUNTPT, g_hello);
+  filepath = fullpath;
+#endif
+
+  /* Execute the program */
+
+  mm_update(&g_mmstep, "before posix_spawn");
+
+  ret = posix_spawn(&pid, filepath, &file_actions, &attr, NULL, (FAR char * const*)&g_argv);
+  if (ret != 0)
+    {
+      err("ERROR: posix_spawn failed: %d\n", ret);
+    }
+
+  sleep(4);
+  mm_update(&g_mmstep, "after posix_spawn");
+
+  /* Free attibutes and file actions */
+
+  ret = posix_spawn_file_actions_destroy(&file_actions);
+  if (ret != 0)
+    {
+      err("ERROR: posix_spawn_file_actions_destroy failed: %d\n", ret);
+    }
+  posix_spawn_file_actions_dump(&file_actions);
+
+  ret = posix_spawnattr_destroy(&attr);
+  if (ret != 0)
+    {
+      err("ERROR: posix_spawnattr_destroy failed: %d\n", ret);
+    }
+  posix_spawnattr_dump(&attr);
+
+  mm_update(&g_mmstep, "after file_action/attr destruction");
+
+  /*************************************************************************
+   * Case 2: Simple program with redirection of stdin
+   *************************************************************************/
+
+  /* Output a seperated so that we can clearly discriminate the output of
+   * this program from the others.
+   */
+
+  testheader(g_redirect);
+
+  /* Initialize the attributes file actions structure */
+
+  ret = posix_spawn_file_actions_init(&file_actions);
+  if (ret != 0)
+    {
+      err("ERROR: posix_spawn_file_actions_init failed: %d\n", ret);
+    }
+  posix_spawn_file_actions_dump(&file_actions);
+
+  ret = posix_spawnattr_init(&attr);
+  if (ret != 0)
+    {
+      err("ERROR: posix_spawnattr_init failed: %d\n", ret);
+    }
+  posix_spawnattr_dump(&attr);
 
   mm_update(&g_mmstep, "after file_action/attr init");
 
@@ -313,13 +395,15 @@ int spawn_main(int argc, char *argv[])
     {
       err("ERROR: posix_spawn_file_actions_addclose failed: %d\n", ret);
     }
+  posix_spawn_file_actions_dump(&file_actions);
 
-  snprintf(fullpath, 128, "%s/%s", MOUNTPT, data);
+  snprintf(fullpath, 128, "%s/%s", MOUNTPT, g_data);
   ret = posix_spawn_file_actions_addopen(&file_actions, 0, fullpath, O_RDONLY, 0644);
   if (ret != 0)
     {
       err("ERROR: posix_spawn_file_actions_addopen failed: %d\n", ret);
     }
+  posix_spawn_file_actions_dump(&file_actions);
   
   mm_update(&g_mmstep, "after adding file_actions");
 
@@ -330,9 +414,9 @@ int spawn_main(int argc, char *argv[])
    */
 
 #ifdef CONFIG_BINFMT_EXEPATH
-  filepath = program;
+  filepath = g_redirect;
 #else
-  snprintf(fullpath, 128, "%s/%s", MOUNTPT, program);
+  snprintf(fullpath, 128, "%s/%s", MOUNTPT, g_redirect);
   filepath = fullpath;
 #endif
 
@@ -346,13 +430,29 @@ int spawn_main(int argc, char *argv[])
       err("ERROR: posix_spawn failed: %d\n", ret);
     }
 
-  sleep(1);
+  sleep(2);
   mm_update(&g_mmstep, "after posix_spawn");
+
+  /* Free attibutes and file actions */
+
+  ret = posix_spawn_file_actions_destroy(&file_actions);
+  if (ret != 0)
+    {
+      err("ERROR: posix_spawn_file_actions_destroy failed: %d\n", ret);
+    }
+  posix_spawn_file_actions_dump(&file_actions);
+
+  ret = posix_spawnattr_destroy(&attr);
+  if (ret != 0)
+    {
+      err("ERROR: posix_spawnattr_destroy failed: %d\n", ret);
+    }
+  posix_spawnattr_dump(&attr);
+
+  mm_update(&g_mmstep, "after file_action/attr destruction");
 
   /* Clean-up */
 
-  (void)posix_spawn_file_actions_destroy(&file_actions);
-  (void)posix_spawnattr_destroy(&attr);
   elf_uninitialize();
 
   mm_update(&g_mmstep, "End-of-Test");

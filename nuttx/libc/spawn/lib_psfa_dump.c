@@ -1,5 +1,5 @@
 /****************************************************************************
- * libc/string/lib_psa_init.c
+ * libc/string/lib_psfa_dump.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,55 +39,91 @@
 
 #include <nuttx/config.h>
 
-#include <sched.h>
 #include <spawn.h>
 #include <assert.h>
-#include <errno.h>
+#include <debug.h>
+
+#include "spawn/spawn.h"
+
+#ifdef CONFIG_DEBUG
 
 /****************************************************************************
- * Global Functions
+ * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: posix_spawnattr_init
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: lib_psfa_dump
  *
  * Description:
- *   The posix_spawnattr_init() function initializes the object referenced
- *   by attr, to an empty set of spawn attributes for subsequent use in a
- *   call to posix_spawn() or posix_spawnp().
+ *   Show the entryent file actions.
  *
  * Input Parameters:
- *   attr - The address of the spawn attributes to be initialized.
+ *   file_actions - The address of the file_actions to be dumped.
  *
  * Returned Value:
- *   On success, these functions return 0; on failure they return an error
- *   number from <errno.h>.
+ *   None
  *
  ****************************************************************************/
 
-int posix_spawnattr_init(posix_spawnattr_t *attr)
+void posix_spawn_file_actions_dump(FAR posix_spawn_file_actions_t *file_actions)
 {
-  struct sched_param param;
-  int ret;
+  FAR struct spawn_general_file_action_s *entry;
 
-  DEBUGASSERT(attr);
+  DEBUGASSERT(file_actions);
 
-  /* Flags: None */
-
-  attr->flags = 0;
-
-  /* Set the default scheduler policy to the policy of this task */
-
-  attr->policy = sched_getscheduler(0);
-
-  /* Set the default priority to the same priority as this task */
-
-  ret = sched_getparam(0, &param);
-  if (ret < 0)
+  dbg("File Actions[%p->%p]:\n", file_actions, *file_actions);
+  if (!*file_actions)
     {
-      return errno;
+      dbg("  NONE\n");
+      return;
     }
+  
+  /* Destroy each file action, one at a time */
 
-  attr->priority = param.sched_priority;
-  return OK;
+  for (entry = (FAR struct spawn_general_file_action_s *)*file_actions;
+       entry;
+       entry = entry->flink)
+    {
+      switch (entry->action)
+        {
+        case SPAWN_FILE_ACTION_CLOSE:
+          {
+            FAR struct spawn_close_file_action_s *action =
+              (FAR struct spawn_close_file_action_s *)entry;
+
+            dbg("  CLOSE: fd=%d\n", action->fd);
+          }
+          break;
+
+        case SPAWN_FILE_ACTION_DUP2:
+          {
+            FAR struct spawn_dup2_file_action_s *action =
+              (FAR struct spawn_dup2_file_action_s *)entry;
+
+            dbg("  DUP2: %d->%d\n", action->fd1, action->fd2);
+          }
+          break;
+
+        case SPAWN_FILE_ACTION_OPEN:
+          {
+            FAR struct spawn_open_file_action_s *action =
+              (FAR struct spawn_open_file_action_s *)entry;
+
+            svdbg("  OPEN: path=%s oflags=%04x mode=%04x fd=%d\n",
+                  action->path, action->oflags, action->mode, action->fd);
+          }
+          break;
+
+        case SPAWN_FILE_ACTION_NONE:
+        default:
+          dbg("  ERROR: Unknown action: %d\n", entry->action);
+          break;
+        }
+    }
 }
+
+#endif /* CONFIG_DEBUG */
