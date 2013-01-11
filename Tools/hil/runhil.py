@@ -39,7 +39,7 @@ class SensorHIL(object):
         parser.add_argument('--script', help='jsbsim script', default='data/easystar_test.xml')
         parser.add_argument('--options', help='jsbsim options', default=None)
         parser.add_argument('--gcs', help='gcs host', default='localhost:14550')
-        parser.add_argument('--waypoints', help='waypoints file', default=None)
+        parser.add_argument('--waypoints', help='waypoints file', default='data/sf_waypoints.txt')
         parser.add_argument('--mode', help="hil mode (sensor or state)", default='sensor')
         args = parser.parse_args()
         if args.master is None:
@@ -284,8 +284,9 @@ class SensorHIL(object):
         self.reboot_autopilot()
 
         print 'load waypoints'
-        self.wpm.set_waypoints(self.waypoints)
-        self.wpm.send_waypoints()
+        if not self.waypoints is None:
+            self.wpm.set_waypoints(self.waypoints)
+            self.wpm.send_waypoints()
         
         print 'set auto'
         self.master.set_mode_auto()
