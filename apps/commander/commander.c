@@ -277,6 +277,11 @@ void tune_error(void) {
 
 void do_rc_calibration(int status_pub, struct vehicle_status_s *status)
 {
+	if (current_status.offboard_control_signal_lost) {
+		mavlink_log_critical(mavlink_fd, "TRIM CAL: ABORT. No RC signal.");
+		return;
+	}
+
 	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
 	struct manual_control_setpoint_s sp;
 	orb_copy(ORB_ID(manual_control_setpoint), sub_man, &sp);
