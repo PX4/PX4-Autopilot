@@ -1982,8 +1982,8 @@ int up_i2creset(FAR struct i2c_dev_s * dev)
   struct stm32_i2c_priv_s * priv;
   unsigned int clock_count;
   unsigned int stretch_count;
-  unit32_ scl_gpio;
-  unit32_ sda_gpio;
+  uint32_t scl_gpio;
+  uint32_t sda_gpio;
   int ret = ERROR;
   irqstate_t state;
 
