@@ -35,7 +35,7 @@
 
 /*
  * @file attitude_estimator_ekf_params.c
- * 
+ *
  * Parameters for EKF filter
  */
 
