@@ -78,7 +78,7 @@ struct sys_state_s {
 	uint8_t		rc_map[4];
 
 	/**
-	 * Remote control channel attributes 
+	 * Remote control channel attributes
 	 */
 	uint16_t	rc_min[4];
 	uint16_t	rc_trim[4];

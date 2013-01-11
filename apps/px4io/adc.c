@@ -87,12 +87,16 @@ adc_init(void)
 #ifdef ADC_CR2_CAL
 	rCR2 |= ADC_CR2_RSTCAL;
 	up_udelay(1);
+
 	if (rCR2 & ADC_CR2_RSTCAL)
 		return -1;
+
 	rCR2 |= ADC_CR2_CAL;
 	up_udelay(100);
+
 	if (rCR2 & ADC_CR2_CAL)
 		return -1;
+
 #endif
 
 	/* arbitrarily configure all channels for 55 cycle sample time */
@@ -103,7 +107,7 @@ adc_init(void)
 	rCR1 = 0;
 
 	/* enable the temperature sensor / Vrefint channel if supported*/
-	rCR2 = 
+	rCR2 =
 #ifdef ADC_CR2_TSVREFE
 		/* enable the temperature sensor in CR2 */
 		ADC_CR2_TSVREFE |
@@ -118,7 +122,7 @@ adc_init(void)
 	/* configure for a single-channel sequence */
 	rSQR1 = 0;
 	rSQR2 = 0;
-	rSQR3 = 0;	/* will be updated with the channel each tick */ 
+	rSQR3 = 0;	/* will be updated with the channel each tick */
 
 	/* power-cycle the ADC and turn it on */
 	rCR2 &= ~ADC_CR2_ADON;
@@ -146,6 +150,7 @@ adc_measure(unsigned channel)
 
 	/* wait for the conversion to complete */
 	hrt_abstime now = hrt_absolute_time();
+
 	while (!(rSR & ADC_SR_EOC)) {
 
 		/* never spin forever - this will give a bogus result though */
@@ -159,5 +164,5 @@ adc_measure(unsigned channel)
 	uint16_t result = rDR;
 
 	perf_end(adc_perf);
-	return result;	
-}	
+	return result;
+}

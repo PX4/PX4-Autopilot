@@ -190,7 +190,7 @@ comms_main(void)
 
 			system_state.adc_in5 = adc_measure(ADC_IN5);
 
-			system_state.overcurrent = 
+			system_state.overcurrent =
 				(OVERCURRENT_SERVO ? (1 << 0) : 0) |
 				(OVERCURRENT_ACC   ? (1 << 1) : 0);
 
@@ -212,7 +212,7 @@ comms_handle_config(const void *buffer, size_t length)
 		system_state.rc_map[i] = cfg->rc_map[i];
 	}
 
-	/* fetch the rc channel attributes */ 
+	/* fetch the rc channel attributes */
 	for (unsigned i = 0; i < 4; i++) {
 		system_state.rc_min[i]  = cfg->rc_min[i];
 		system_state.rc_trim[i] = cfg->rc_trim[i];
@@ -229,7 +229,7 @@ comms_handle_command(const void *buffer, size_t length)
 
 	if (length != sizeof(*cmd))
 		return;
-	
+
 	irqstate_t flags = irqsave();
 
 	/* fetch new PWM output values */
@@ -253,10 +253,12 @@ comms_handle_command(const void *buffer, size_t length)
 	if (new_servo_rate > 500) {
 		new_servo_rate = 500;
 	}
+
 	/* reject slower than 50 Hz updates */
 	if (new_servo_rate < 50) {
 		new_servo_rate = 50;
 	}
+
 	if (system_state.servo_rate != new_servo_rate) {
 		up_pwm_servo_set_rate(new_servo_rate);
 		system_state.servo_rate = new_servo_rate;
@@ -270,24 +272,28 @@ comms_handle_command(const void *buffer, size_t length)
 	 */
 	mixer_tick();
 
-	/* handle relay state changes here */	
+	/* handle relay state changes here */
 	for (unsigned i = 0; i < PX4IO_RELAY_CHANNELS; i++) {
 		if (system_state.relays[i] != cmd->relay_state[i]) {
 			switch (i) {
 			case 0:
 				POWER_ACC1(cmd->relay_state[i]);
 				break;
+
 			case 1:
 				POWER_ACC2(cmd->relay_state[i]);
 				break;
+
 			case 2:
 				POWER_RELAY1(cmd->relay_state[i]);
 				break;
+
 			case 3:
 				POWER_RELAY2(cmd->relay_state[i]);
 				break;
 			}
 		}
+
 		system_state.relays[i] = cmd->relay_state[i];
 	}
 
