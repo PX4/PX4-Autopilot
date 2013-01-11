@@ -35,9 +35,52 @@
  * @file blinkm_systemstate.cpp
  *
  * Driver for the BlinkM LED controller connected via I2C.
+ *
+ * Connect the BlinkM to I2C3 and put the following line to the rc startup-script:
+ * blinkm_systemstate start
+ *
+ * Description:
+ * After startup, the Application checked how many lipo cells are connected to the System.
+ * The recognized number off cells, will be blinked 5 times in purple color.
+ * 2 Cells = 2 blinks
+ * ...
+ * 5 Cells = 5 blinks
+ * Now the Application will show the actual selected Flightmode, GPS-Fix and Battery Warnings and Alerts.
+ *
+ * System disarmed:
+ * The BlinkM should lit solid red.
+ *
+ * System armed:
+ * One message is made of 4 Blinks and a pause in the same length as the 4 blinks.
+ *
+ * X-X-X-X-_-_-_-_-
+ * -------------------------
+ * G G G M
+ * P P P O
+ * S S S D
+ *       E
+ *
+ * (X = on, _=off)
+ *
+ * The first 3 Blinks indicates the status of the GPS-Signal:
+ * 0-4 satellites = X-X-X-X-_-_-_-_-
+ *   5 satellites = X-X-_-X-_-_-_-_-
+ *   6 satellites = X-_-_-X-_-_-_-_-
+ * >=7 satellites = _-_-_-X-_-_-_-_-
+ *
+ * The fourth Blink indicates the Flightmode:
+ * MANUAL     : off
+ * ATTITUDE   : yellow
+ * STABILIZED : blue
+ * AUTO       : green
+ *
+ * Battery Warning (low Battery Level):
+ * Continuously blinking in yellow X-X-X-X-X-X-X-X
+ *
+ * Battery Alert (critical Battery Level)
+ * Continuously blinking in red X-X-X-X-X-X-X-X
+ *
  */
-
-
 
 #include <nuttx/config.h>
 
@@ -116,7 +159,6 @@ private:
 	void 			setLEDColor(int ledcolor);
 	static void		led_trampoline(void *arg);
 	void			led();
-	void			setLEDPattern(int c1, int c2, int c3, int c4, int c5, int c6, int doBlink);
 
 	int			set_rgb(uint8_t r, uint8_t g, uint8_t b);
 
@@ -171,29 +213,19 @@ const char *BlinkMSystemstate::script_names[] = {
 	nullptr
 };
 
-
 #define MAX_CELL_VOLTAGE 	43	/* cell voltage if full charged */
-#define WARN_CELL_VOLTAGE 	33	/* warn, if cell voltage is below this */
-#define MIN_CELL_VOLTAGE 	31	/* minimum cell voltage - emergency*/
 
-#define LED_OFF  		0
-#define LED_RED  		1
+#define LED_OFF  			0
+#define LED_RED  			1
 #define LED_YELLOW  	2
 #define LED_PURPLE  	3
 #define LED_GREEN  		4
 #define LED_BLUE  		5
 #define LED_WHITE  		6
-#define LED_ONTIME  	150
-#define LED_OFFTIME  	150
+#define LED_ONTIME  	100
+#define LED_OFFTIME  	100
 #define LED_BLINK  		1
 #define LED_NOBLINK  	0
-
-/*
-#define VEHICLE_FLIGHT_MODE_MANUAL			0
-#define VEHICLE_FLIGHT_MODE_ATTITUDE		1
-#define VEHICLE_FLIGHT_MODE_STABILIZED		2
-#define VEHICLE_FLIGHT_MODE_AUTO			3
-*/
 
 int BlinkMSystemstate::led_color_1 = LED_OFF;
 int BlinkMSystemstate::led_color_2 = LED_OFF;
@@ -315,14 +347,12 @@ BlinkMSystemstate::led_trampoline(void *arg)
 void
 BlinkMSystemstate::led()
 {
-	static bool topic_initialized = false;
-	static bool detected_cells_blinked = false;
-	static int detected_cells_runcount = 0;
+
 	static int vehicle_status_sub_fd;
 	static int vehicle_gps_position_sub_fd;
-	int system_voltage = 0;
-	int num_of_used_sats = 0;
+
 	static int num_of_cells = 0;
+	static int detected_cells_runcount = 0;
 	static int t_led_color_1 = 0;
 	static int t_led_color_2 = 0;
 	static int t_led_color_3 = 0;
@@ -330,11 +360,16 @@ BlinkMSystemstate::led()
 	static int t_led_color_5 = 0;
 	static int t_led_color_6 = 0;
 	static int t_led_blink = 0;
-
-	int poll_ret;
 	static int led_thread_runcount=1;
-	static bool led_thread_ready = true;
 	static int led_interval = 1000;
+
+	static bool topic_initialized = false;
+	static bool detected_cells_blinked = false;
+	static bool led_thread_ready = true;
+
+	int system_voltage = 0;
+	int num_of_used_sats = 0;
+	int poll_ret;
 
 	if(!topic_initialized) {
 		vehicle_status_sub_fd = orb_subscribe(ORB_ID(vehicle_status));
@@ -470,13 +505,18 @@ BlinkMSystemstate::led()
 					struct vehicle_status_s vehicle_status_raw;
 					struct vehicle_gps_position_s vehicle_gps_position_raw;
 					/* copy sensors raw data into local buffer */
+
 					/* vehicle_status */
 					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub_fd, &vehicle_status_raw);
+
 					/* vehicle_gps_position */
 					orb_copy(ORB_ID(vehicle_gps_position), vehicle_status_sub_fd, &vehicle_gps_position_raw);
 
+					/* get actual battery voltage */
 					system_voltage = (int)vehicle_status_raw.voltage_battery*10;
 
+					/* get number of used satellites in navigation */
+					num_of_used_sats = 0;
 					for(int satloop=0; satloop<20; satloop++) {
 						if(vehicle_gps_position_raw.satellite_used[satloop] == 1) {
 							num_of_used_sats++;
@@ -484,99 +524,91 @@ BlinkMSystemstate::led()
 					}
 
 					if(num_of_cells == 0) {
-						/* checking for lipo cells */
+							/* looking for lipo cells that are connected */
 						printf("[blinkm_systemstate_sensor] checking cells\n");
 						for(num_of_cells = 2; num_of_cells < 7; num_of_cells++) {
 							if(system_voltage < num_of_cells * MAX_CELL_VOLTAGE) break;
 						}
 						printf("[blinkm_systemstate_sensor] cells found:%u\n", num_of_cells);
-
-					} else {
-						if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
-
-							/* battery low warning stage 1 - fist warning yellow blink*/
-							/*
-							BlinkMSystemstate::setLEDPattern(LED_YELLOW,
-															LED_YELLOW,
-															LED_YELLOW,
-															LED_YELLOW,
-															LED_YELLOW,
-															LED_YELLOW,
-															LED_BLINK);
-							*/
-							BlinkMSystemstate::led_color_1 = LED_YELLOW;
-							BlinkMSystemstate::led_color_2 = LED_YELLOW;
-							BlinkMSystemstate::led_color_3 = LED_YELLOW;
-							BlinkMSystemstate::led_color_4 = LED_YELLOW;
-							BlinkMSystemstate::led_color_5 = LED_YELLOW;
-							BlinkMSystemstate::led_color_6 = LED_YELLOW;
-							BlinkMSystemstate::led_blink = LED_BLINK;
-
-						} else if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
-							BlinkMSystemstate::led_color_1 = LED_RED;
-							BlinkMSystemstate::led_color_2 = LED_RED;
-							BlinkMSystemstate::led_color_3 = LED_RED;
-							BlinkMSystemstate::led_color_4 = LED_RED;
-							BlinkMSystemstate::led_color_5 = LED_RED;
-							BlinkMSystemstate::led_color_6 = LED_RED;
-							BlinkMSystemstate::led_blink = LED_BLINK;
-
 						} else {
-							/* no battery warnings here */
-							if(vehicle_status_raw.flag_system_armed == false) {
-								/* system not armed */
+							if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_WARNING) {
+								/* LED Pattern for battery low warning */
+								BlinkMSystemstate::led_color_1 = LED_YELLOW;
+								BlinkMSystemstate::led_color_2 = LED_YELLOW;
+								BlinkMSystemstate::led_color_3 = LED_YELLOW;
+								BlinkMSystemstate::led_color_4 = LED_YELLOW;
+								BlinkMSystemstate::led_color_5 = LED_YELLOW;
+								BlinkMSystemstate::led_color_6 = LED_YELLOW;
+								BlinkMSystemstate::led_blink = LED_BLINK;
+
+							} else if(vehicle_status_raw.battery_warning == VEHICLE_BATTERY_WARNING_ALERT) {
+								/* LED Pattern for battery critical alerting */
 								BlinkMSystemstate::led_color_1 = LED_RED;
 								BlinkMSystemstate::led_color_2 = LED_RED;
 								BlinkMSystemstate::led_color_3 = LED_RED;
 								BlinkMSystemstate::led_color_4 = LED_RED;
 								BlinkMSystemstate::led_color_5 = LED_RED;
 								BlinkMSystemstate::led_color_6 = LED_RED;
-								BlinkMSystemstate::led_blink = LED_NOBLINK;
-
-							} else {
-
-								BlinkMSystemstate::led_color_1 = LED_RED;
-								BlinkMSystemstate::led_color_2 = LED_RED;
-								BlinkMSystemstate::led_color_3 = LED_RED;
-								BlinkMSystemstate::led_color_4 = LED_OFF;
-								BlinkMSystemstate::led_color_5 = LED_OFF;
-								BlinkMSystemstate::led_color_6 = LED_OFF;
 								BlinkMSystemstate::led_blink = LED_BLINK;
 
-								switch((int)vehicle_status_raw.flight_mode) {
-									case VEHICLE_FLIGHT_MODE_MANUAL:
-											BlinkMSystemstate::led_color_4 = LED_OFF;
-										break;
+							} else {
+								/* no battery warnings here */
 
-									case VEHICLE_FLIGHT_MODE_ATTITUDE:
-											BlinkMSystemstate::led_color_4 = LED_YELLOW;
-										break;
+								if(vehicle_status_raw.flag_system_armed == false) {
+									/* system not armed */
+									BlinkMSystemstate::led_color_1 = LED_RED;
+									BlinkMSystemstate::led_color_2 = LED_RED;
+									BlinkMSystemstate::led_color_3 = LED_RED;
+									BlinkMSystemstate::led_color_4 = LED_RED;
+									BlinkMSystemstate::led_color_5 = LED_RED;
+									BlinkMSystemstate::led_color_6 = LED_RED;
+									BlinkMSystemstate::led_blink = LED_NOBLINK;
 
-									case VEHICLE_FLIGHT_MODE_STABILIZED:
-											BlinkMSystemstate::led_color_4 = LED_BLUE;
-										break;
+								} else {
+									/* armed system - initial led pattern */
+									BlinkMSystemstate::led_color_1 = LED_RED;
+									BlinkMSystemstate::led_color_2 = LED_RED;
+									BlinkMSystemstate::led_color_3 = LED_RED;
+									BlinkMSystemstate::led_color_4 = LED_OFF;
+									BlinkMSystemstate::led_color_5 = LED_OFF;
+									BlinkMSystemstate::led_color_6 = LED_OFF;
+									BlinkMSystemstate::led_blink = LED_BLINK;
 
-									case VEHICLE_FLIGHT_MODE_AUTO:
-											BlinkMSystemstate::led_color_4 = LED_GREEN;
-										break;
-								}
+									/* handle 4th led - flightmode indicator */
+									switch((int)vehicle_status_raw.flight_mode) {
+										case VEHICLE_FLIGHT_MODE_MANUAL:
+												BlinkMSystemstate::led_color_4 = LED_OFF;
+											break;
 
-								/* handling used sat´s */
-								if(num_of_used_sats >= 7) {
-									BlinkMSystemstate::led_color_1 = LED_OFF;
-									BlinkMSystemstate::led_color_2 = LED_OFF;
-									BlinkMSystemstate::led_color_3 = LED_OFF;
-								} else if(num_of_used_sats < 7 && num_of_used_sats >=6) {
-									BlinkMSystemstate::led_color_2 = LED_OFF;
-									BlinkMSystemstate::led_color_3 = LED_OFF;
-								} else if(num_of_used_sats < 6 && num_of_used_sats >=5) {
-									BlinkMSystemstate::led_color_3 = LED_OFF;
+										case VEHICLE_FLIGHT_MODE_ATTITUDE:
+												BlinkMSystemstate::led_color_4 = LED_YELLOW;
+											break;
+
+										case VEHICLE_FLIGHT_MODE_STABILIZED:
+												BlinkMSystemstate::led_color_4 = LED_BLUE;
+											break;
+
+										case VEHICLE_FLIGHT_MODE_AUTO:
+												BlinkMSystemstate::led_color_4 = LED_GREEN;
+											break;
+									}
+
+									/* handling used sat´s */
+									if(num_of_used_sats >= 7) {
+										BlinkMSystemstate::led_color_1 = LED_OFF;
+										BlinkMSystemstate::led_color_2 = LED_OFF;
+										BlinkMSystemstate::led_color_3 = LED_OFF;
+									} else if(num_of_used_sats = 6) {
+										BlinkMSystemstate::led_color_2 = LED_OFF;
+										BlinkMSystemstate::led_color_3 = LED_OFF;
+									} else if(num_of_used_sats = 5) {
+										BlinkMSystemstate::led_color_3 = LED_OFF;
+									}
 								}
 							}
 						}
-					}
 
-					/*
+/*
 					printf( "[blinkm_systemstate_sensor] Volt:%8.4f\tArmed:%4u\tMode:%4u\tCells:%4u\tBattWarn:%4u\tSats:%4u\tFix:%4u\n",
 					vehicle_status_raw.voltage_battery,
 					vehicle_status_raw.flag_system_armed,
@@ -585,7 +617,7 @@ BlinkMSystemstate::led()
 					vehicle_status_raw.battery_warning,
 					num_of_used_sats,
 					vehicle_gps_position_raw.fix_type);
-					*/
+*/
 				}
 			}
 
@@ -595,7 +627,6 @@ BlinkMSystemstate::led()
 
 			if(detected_cells_runcount < 5){
 				detected_cells_runcount++;
-
 			} else {
 				detected_cells_blinked = true;
 			}
@@ -612,37 +643,27 @@ BlinkMSystemstate::led()
 	work_queue(LPWORK, &_work, (worker_t)&BlinkMSystemstate::led_trampoline, this, led_interval);
 }
 
-void BlinkMSystemstate::setLEDPattern(int c1, int c2, int c3, int c4, int c5, int c6, int doBlink) {
-	BlinkMSystemstate::led_color_1 = c1;
-	BlinkMSystemstate::led_color_2 = c2;
-	BlinkMSystemstate::led_color_3 = c3;
-	BlinkMSystemstate::led_color_4 = c4;
-	BlinkMSystemstate::led_color_5 = c5;
-	BlinkMSystemstate::led_color_6 = c6;
-	BlinkMSystemstate::led_blink = doBlink;
-}
-
 void BlinkMSystemstate::setLEDColor(int ledcolor) {
 	switch (ledcolor) {
-		case 0:	// off
+		case LED_OFF:	// off
 			BlinkMSystemstate::set_rgb(0,0,0);
 			break;
-		case 1:	// red
+		case LED_RED:	// red
 			BlinkMSystemstate::set_rgb(255,0,0);
 			break;
-		case 2:	// yellow
+		case LED_YELLOW:	// yellow
 			BlinkMSystemstate::set_rgb(255,70,0);
 			break;
-		case 3:	// purple
+		case LED_PURPLE:	// purple
 			BlinkMSystemstate::set_rgb(255,0,255);
 			break;
-		case 4:	// green
+		case LED_GREEN:	// green
 			BlinkMSystemstate::set_rgb(0,255,0);
 			break;
-		case 5:	// blue
+		case LED_BLUE:	// blue
 			BlinkMSystemstate::set_rgb(0,0,255);
 			break;
-		case 6:	// white
+		case LED_WHITE:	// white
 			BlinkMSystemstate::set_rgb(255,255,255);
 			break;
 	}
@@ -827,20 +848,24 @@ blinkm_systemstate_main(int argc, char *argv[])
 	if (g_blinkm == nullptr)
 		errx(1, "not started");
 
+/*
 	if (!strcmp(argv[1], "list")) {
 		for (unsigned i = 0; BlinkMSystemstate::script_names[i] != nullptr; i++)
 			fprintf(stderr, "    %s\n", BlinkMSystemstate::script_names[i]);
 		fprintf(stderr, "    <html color number>\n");
 		exit(0);
 	}
+*/
 
 	/* things that require access to the device */
 	int fd = open(BLINKM_DEVICE_PATH, 0);
 	if (fd < 0)
 		err(1, "can't open BlinkM device");
 
+/*
 	if (ioctl(fd, BLINKM_PLAY_SCRIPT_NAMED, (unsigned long)argv[1]) == OK)
 		exit(0);
+*/
 
-	errx(1, "missing command, try 'start', 'list' or a script name");
+	errx(1, "missing command, try 'start'");
 }
