@@ -56,8 +56,8 @@
  *   by attr.
  *
  * Input Parameters:
- *   attr - The address spawn attributes to be used.
- *   parm - The new sched_priority to set.
+ *   attr  - The address spawn attributes to be used.
+ *   param - The new sched_priority to set.
  *
  * Returned Value:
  *   On success, these functions return 0; on failure they return an error

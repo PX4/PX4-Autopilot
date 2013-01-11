@@ -50,7 +50,7 @@
  *
  * Description:
  *   The posix_spawn_file_actions_init() function initializes the object
- *   referenced by file_actions, to an empty set of file actions for
+ *   referenced by file_actions to an empty set of file actions for
  *   subsequent use in a call to posix_spawn() or posix_spawnp().
  *
  * Input Parameters:

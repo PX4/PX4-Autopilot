@@ -57,7 +57,7 @@
  *
  * Input Parameters:
  *   attr - The address spawn attributes to be queried.
- *   flags - The location to return the sched_priority value.
+ *   flags - The location to return the spawn-schedparam value.
  *
  * Returned Value:
  *   On success, these functions return 0; on failure they return an error

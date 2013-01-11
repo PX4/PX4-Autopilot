@@ -57,8 +57,8 @@
  * Description:
  *   The posix_spawn_file_actions_addopen() function adds an open operation
  *   to the list of operations associated with the object referenced by
- *   file_actions, for subsequent use in a call to posix_spawn(2) or
- *   posix_spawnp(2).  The descriptor referred to by fd is opened using
+ *   file_actions, for subsequent use in a call to posix_spawn() or
+ *   posix_spawnp().  The descriptor referred to by fd is opened using
  *   the path, oflag, and mode arguments as if open() had been called on it
  *   prior to the new child process starting execution.  The string path is
  *   copied by the posix_spawn_file_actions_addopen() function during this
@@ -66,8 +66,8 @@
  *
  * Input Parameters:
  *   file_actions - The posix_spawn_file_actions_t to append the action.
- *   fd - The path to be opened.
- *   path - The first file descriptor to be argument to dup2.
+ *   fd - The file descriptor to be opened.
+ *   path - The path to be opened.
  *   oflags - Open flags
  *   mode - File creation mode
  *

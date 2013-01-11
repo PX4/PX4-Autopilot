@@ -59,7 +59,7 @@
  *
  * Input Parameters:
  *   attr - The address spawn attributes to be queried.
- *   sigmask  - The location to return the spawn flags
+ *   sigmask  - The location to return the signal mask
  *
  * Returned Value:
  *   On success, these functions return 0; on failure they return an error

@@ -112,7 +112,7 @@ extern "C"
 #ifdef CONFIG_BINFMT_EXEPATH
 int posix_spawnp(FAR pid_t *pid, FAR const char *path,
       FAR const posix_spawn_file_actions_t *file_actions,
-      FAR const posix_spawnattr_t * attr,
+      FAR const posix_spawnattr_t *attr,
       FAR char *const argv[], FAR char *const envp[]);
 #define posix_spawn(pid,path,file_actions,attr,argv,envp) \
       posix_spawnp(pid,path,file_actions,attr,argv,envp)

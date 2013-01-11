@@ -440,7 +440,7 @@ static int spawn_proxy(int argc, char *argv[])
  *
  * Description:
  *   The posix_spawn() and posix_spawnp() functions will create a new,
- *   child task, constructed a regular executable file.
+ *   child task, constructed from a regular executable file.
  *
  * Input Parameters:
  *
@@ -479,9 +479,9 @@ static int spawn_proxy(int argc, char *argv[])
  *       not supported.  NuttX does not support process groups.
  *     - POSIX_SPAWN_SETSCHEDPARAM: Set new tasks priority to the sched_param
  *       value.
- *     - POSIX_SPAWN_SETSCHEDULER: Set the new task's scheduler priority to
+ *     - POSIX_SPAWN_SETSCHEDULER: Set the new task's scheduler policy to
  *       the sched_policy value.
- *     - POSIX_SPAWN_RESETIDS: Resetting of effective user ID of the child
+ *     - POSIX_SPAWN_RESETIDS: Resetting of the effective user ID of the child
  *       process is not supported.  NuttX does not support effective user
  *       IDs.
  *     - POSIX_SPAWN_SETSIGMASK: Set the new task's signal mask.
@@ -514,11 +514,12 @@ static int spawn_proxy(int argc, char *argv[])
  *     CONFIG_BINFMT_EXEPATH is defined, then only posix_spawnp() behavior
  *     is supported; otherwise, only posix_spawn behavior is supported.
  *   - The 'envp' argument is not used and the 'environ' variable is not
- *     altered (NuttX does not support the 'environ' variable.
+ *     altered (NuttX does not support the 'environ' variable).
  *   - Process groups are not supported (POSIX_SPAWN_SETPGROUP).
  *   - Effective user IDs are not supported (POSIX_SPAWN_RESETIDS).
- *   - Signal masks and signal default actions cannot be modified in the
- *     newly executed task (POSIX_SPAWN_SETSIGDEF and POSIX_SPAWN_SETSIGMASK).
+ *   - Signal default actions cannot be modified in the newly task executed
+ *     because NuttX does not support default signal actions
+ *     (POSIX_SPAWN_SETSIGDEF).
  *
  * POSIX Compatibility
  *   - The value of the argv[0] received by the child task is assigned by

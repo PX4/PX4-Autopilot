@@ -866,7 +866,17 @@ o File system / Generic drivers (fs/, drivers/)
   Title:       dup AND dup2 WILL NOT WORK ON FILES IN A MOUNTED VOLUME
   Description: The current implementation of dup() and dup2() will only
                work with open device drivers and sockets.  It will not
-               work with open files in a file system.
+               work with open files in a file system.  Support for dup'ing
+               open files on a mounted volume has not been implemented yet.
+
+               There is a stubbed out, partial implemenation in fs/fs_files.c.
+               In would perform the dup2() operation by re-opening the file
+               and setting the file pointer.  The logic, however, would require
+               that we remember the (relative) path to the file in the mounted
+               volume for each open file.
+
+               An option might to add a dup() method to the file system
+               mountpoint interface.
 
                A limitation that results from this is that you cannot
                redirect I/O to an from and file.

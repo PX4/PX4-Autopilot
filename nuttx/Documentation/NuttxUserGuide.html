@@ -13,7 +13,7 @@
       <h1><big><font color="#3c34ec"><i>NuttX Operating System<p>User's Manual</i></font></big></h1>
       <p><small>by</small></p>
       <p>Gregory Nutt<p>
-      <p>Last Updated: January 8, 2013</p>
+      <p>Last Updated: January 11, 2013</p>
     </td>
   </tr>
 </table>
@@ -193,17 +193,51 @@ paragraphs.
 <p><b>Task Control Interfaces</b>.
   The following task control interfaces are provided by NuttX:
 </p>
+<p>
+  Non-standard task control interfaces inspired by VxWorks interfaces:
+</p>
 <ul>
   <li><a href="#taskcreate">2.1.1 task_create</a></li>
   <li><a href="#taskinit">2.1.2 task_init</a></li>
   <li><a href="#taskactivate">2.1.3 task_activate</a></li>
   <li><a href="#taskdelete">2.1.4 task_delete</a></li>
-  <li><a href="#exit">2.1.5 exit</a></li>
-  <li><a href="#taskrestart">2.1.6 task_restart</a></li>
+  <li><a href="#taskrestart">2.1.5 task_restart</a></li>
+</ul>
+<p>
+  Standard interfaces
+</p>
+<ul>
+  <li><a href="#exit">2.1.6 exit</a></li>
   <li><a href="#getpid">2.1.7 getpid</a></li>
+</ul>
+<p>
+  Standard <code>vfork</code> and <code>exec[v|l]</code> interfaces:
+</p>
+<ul>
   <li><a href="#vfork">2.1.8 vfork</a></li>
   <li><a href="#execv">2.1.9 execv</a></li>
   <li><a href="#execl">2.1.10 execl</a></li>
+</ul>
+<p>
+  Standard <code>posix_spawn</code> interfaces:
+</p>
+
+<ul>
+  <li><a href="#posix_spawn">2.1.11 posix_spawn and posix_spawnp</a></li>
+  <li><a href="#posix_spawn_file_actions_init">2.1.12 posix_spawn_file_actions_init</a></li>
+  <li><a href="#posix_spawn_file_actions_destroy">2.1.13 posix_spawn_file_actions_destroy</a></li>
+  <li><a href="#posix_spawn_file_actions_addclose">2.1.14 posix_spawn_file_actions_addclose</a></li>
+  <li><a href="#posix_spawn_file_actions_adddup2">2.1.15 posix_spawn_file_actions_adddup2</a></li>
+  <li><a href="#posix_spawn_file_actions_addopen">2.1.16 posix_spawn_file_actions_addopen</a></li>
+  <li><a href="#posix_spawnattr_init">2.1.17 posix_spawnattr_init</a></li>
+  <li><a href="#posix_spawnattr_getflags">2.1.18 posix_spawnattr_getflags</a></li>
+  <li><a href="#posix_spawnattr_getschedparam">2.1.19 posix_spawnattr_getschedparam</a></li>
+  <li><a href="#posix_spawnattr_getschedpolicy">2.1.20 posix_spawnattr_getschedpolicy</a></li>
+  <li><a href="#posix_spawnattr_getsigmask">2.1.21 posix_spawnattr_getsigmask</a></li>
+  <li><a href="#posix_spawnattr_setflags">2.1.22 posix_spawnattr_setflags</a></li>
+  <li><a href="#posix_spawnattr_setschedparam">2.1.23 posix_spawnattr_setschedparam</a></li>
+  <li><a href="#posix_spawnattr_setschedpolicy">2.1.24 posix_spawnattr_setschedpolicy</a></li>
+  <li><a href="#posix_spawnattr_setsigmask">2.1.25 posix_spawnattr_setsigmask</a></li>
 </ul>
 
 <H3><a name="taskcreate">2.1.1 task_create</a></H3>
@@ -472,53 +506,7 @@ STATUS taskDelete(int tid);
   <li>Deletion of self is supported, but only because <code>task_delete()</code> will re-direct processing to <code>exit()</code>.
 </ul>
 
-<H3><a name="exit">2.1.5 exit</a></H3>
-
-<p>
-<b>Function Prototype:</b> 
-<pre>
-    #include &lt;sched.h&gt;
-    void exit(int code);
-
-    #include &lt;nuttx/unistd.h&gt;
-    void _exit(int code);
-</pre>
-
-<p>
-<b>Description:</b> This function causes the calling task to cease
-to exist -- its stack and TCB will be deallocated.  exit differs from
-_exit in that it flushes streams, closes file descriptors and will
-execute any function registered with <code>atexit()</code> or <code>on_exit()</code>.
-<p>
-<b>Input Parameters:</b> 
-<ul>
-<li><code>code</code>. (ignored)
-</ul>
-
-<p>
-<b>Returned Value:</b>  None.
-
-<p>
-<b>Assumptions/Limitations:</b> 
-
-<p>
-<b>POSIX Compatibility:</b> This is equivalent to the ANSI interface:
-<pre>
-    void exit(int code);
-</pre>
-And the UNIX interface:
-<pre>
-    void _exit(int code);
-</pre>
-
-<p>
-  The NuttX exit() differs from ANSI exit() in the following ways:
-</p>
-<ul>
-<li>The <code>code</code> parameter is ignored.
-</ul>
-
-<H3><a name="taskrestart">2.1.6 task_restart</a></H3>
+<H3><a name="taskrestart">2.1.5 task_restart</a></H3>
 <p>
 <b>Function Prototype:</b>
 <ul><pre>
@@ -586,6 +574,52 @@ VxWorks provides the following similar interface:
     The VxWorks description says that the ID, priority, etc. take
     the value that they had when the task was <i>terminated</i>.
   </li>
+</ul>
+
+<H3><a name="exit">2.1.6 exit</a></H3>
+
+<p>
+<b>Function Prototype:</b> 
+<pre>
+    #include &lt;sched.h&gt;
+    void exit(int code);
+
+    #include &lt;nuttx/unistd.h&gt;
+    void _exit(int code);
+</pre>
+
+<p>
+<b>Description:</b> This function causes the calling task to cease
+to exist -- its stack and TCB will be deallocated.  exit differs from
+_exit in that it flushes streams, closes file descriptors and will
+execute any function registered with <code>atexit()</code> or <code>on_exit()</code>.
+<p>
+<b>Input Parameters:</b> 
+<ul>
+<li><code>code</code>. (ignored)
+</ul>
+
+<p>
+<b>Returned Value:</b>  None.
+
+<p>
+<b>Assumptions/Limitations:</b> 
+
+<p>
+<b>POSIX Compatibility:</b> This is equivalent to the ANSI interface:
+<pre>
+    void exit(int code);
+</pre>
+And the UNIX interface:
+<pre>
+    void _exit(int code);
+</pre>
+
+<p>
+  The NuttX exit() differs from ANSI exit() in the following ways:
+</p>
+<ul>
+<li>The <code>code</code> parameter is ignored.
 </ul>
 
 <H3><a name="getpid">2.1.7 getpid</a></H3>
@@ -778,6 +812,595 @@ int execl(FAR const char *path, ...);
   <b>POSIX Compatibility:</b>
   Similar with the Unix interface of the same name.
   There are, however, several compatibility issues as detailed in the description of <a href="#execv">execv()</a>.
+</p>
+
+<h3><a name="posix_spawn">2.1.11 posix_spawn and posix_spawnp</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+int posix_spawn(FAR pid_t *pid, FAR const char *path,
+      FAR const posix_spawn_file_actions_t *file_actions,
+      FAR const posix_spawnattr_t *attr,
+      FAR char *const argv[], FAR char *const envp[]);
+int posix_spawnp(FAR pid_t *pid, FAR const char *file,
+      FAR const posix_spawn_file_actions_t *file_actions,
+      FAR const posix_spawnattr_t *attr,
+      FAR char *const argv[], FAR char *const envp[]);
+</pre></ul>
+<p>
+  <b>Description:</b>
+   The <code>posix_spawn()</code> and <code>posix_spawnp()</code> functions will create a new, child task, constructed from a regular executable file.<p>
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <p>
+       <code>pid</code>:
+       Upon successful completion, <code>posix_spawn()</code> and <code>posix_spawnp()</code> will return the task ID of the child task to the parent task, in the variable pointed to by a non-NULL <code>pid</code> argument.
+       If the <code>pid</code> argument is a null pointer, the process ID of the child is not returned to the caller.
+     </p>
+   </li>
+   <li>
+     <p>
+       <code>path</code> or <code>file</code>:
+       The <code>path</code> argument to <code>posix_spawn()</code> is the absolute path that identifies the file to execute.
+       The <code>file</code> argument to <code>posix_spawnp()</code> may also be a relative path and will be used to construct a pathname that identifies the file to execute.
+       In the case of a relative path, the path prefix for the file will be obtained by a search of the directories passed as the environment variable PATH.
+     </p>
+     <p>
+       NOTE: NuttX provides only one implementation:
+       If <code>CONFIG_BINFMT_EXEPATH</code> is defined, then only <code>posix_spawnp()</code> behavior is supported; otherwise, only <code>posix_spawn</code> behavior is supported.
+   </li>
+   <li>
+     <p>
+       <code>file_actions</code>:
+       If <code>file_actions</code> is a null pointer, then file descriptors open in the calling process will remain open in the child process (unless <code>CONFIG_FDCLONE_STDIO</code> is defined).
+       If <code>file_actions</code> is not NULL, then the file descriptors open in the child process will be those open in the calling process as modified by the spawn file actions object pointed to by <code>file_actions</code>.
+     </p>
+   </li>
+   <li>
+     <p>
+       <code>attr</code>:
+       If the value of the <code>attr</code> parameter is <code>NULL</code>, the all default values for the POSIX spawn attributes will be used.
+       Otherwise, the attributes will be set according to the spawn flags.
+       The <code>posix_spawnattr_t</code> spawn attributes object type is defined in <code>spawn.h</code>.
+       It will contains these attributes, not all of which are supported by NuttX:
+     </p>
+     <ul>
+       <li>
+         <code>POSIX_SPAWN_SETPGROUP</code>:
+         Setting of the new task's process group is not supported.
+         NuttX does not support process groups.
+       </li>
+       <li>
+         <code>POSIX_SPAWN_SETSCHEDPARAM</code>:
+         Set new tasks priority to the <code>sched_param</code> value.
+       </li>
+       <li>
+         <code>POSIX_SPAWN_SETSCHEDULER</code>:
+         Set the new task's scheduler policy to the <code>sched_policy</code> value.
+       </li>
+       <li>
+         <code>POSIX_SPAWN_RESETIDS</code>
+         Resetting of the effective user ID of the child process is not supported.
+         NuttX does not support effective user IDs.
+       </li>
+       <li>
+         <code>POSIX_SPAWN_SETSIGMASK</code>:
+         Set the new task's signal mask.
+       </li>
+       <li>
+         <code>POSIX_SPAWN_SETSIGDEF</code>:
+         Resetting signal default actions is not supported.
+         NuttX does not support default signal actions.
+       </li>
+    </ul>
+  </li>
+   <li>
+     <p>
+       <code>argv</code>:
+       <code>argv[]</code> is the argument list for the new task.  <code>argv[]</code> is an array of pointers to null-terminated strings.
+       The list is terminated with a null pointer.
+     </p>
+   </li>
+   <li>
+     <p>
+       <code>envp</code>:
+       The <code>envp[]</code> argument is not used by NuttX and may be <code>NULL</code>.
+       In standard implementations, <code>envp[]</code> is an array of character pointers to null-terminated strings that provide the environment for the new process image.
+       The environment array is terminated by a null pointer.
+       In NuttX, the <code>envp[]</code> argument is ignored and the new task will inherit the environment of the parent task unconditionally.     </p>
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  <code>posix_spawn()</code> and <code>posix_spawnp()</code> will return zero on success.
+  Otherwise, an error number will be returned as the function return value to indicate the error:
+</p>
+<ul>
+  <li>
+    <code>EINVAL</code>:
+    The value specified by <code>file_actions</code> or <code>attr</code> is invalid.
+  </li>
+  <li>
+     Any errors that might have been return if <code>vfork()</code> and <code>excec[l|v]()</code> had been called.
+  </li>
+</ul>
+<p>
+  <b>Assumptions/Limitations:</b> 
+</p>
+<ul>
+  <li>
+    NuttX provides only <code>posix_spawn()</code> or <code>posix_spawnp()</code> behavior depending upon the setting of <code>CONFIG_BINFMT_EXEPATH</code>:
+    If <code>CONFIG_BINFMT_EXEPATH</code> is defined, then only <code>posix_spawnp()</code> behavior is supported; otherwise, only <code>posix_spawn()</code> behavior is supported.
+  </li>
+  <li>
+    The <code>envp</code> argument is not used and the <code>environ</code> variable is not altered (NuttX does not support the <code>environ</code> variable).
+  </li>
+  <li>
+    Process groups are not supported (See <code>POSIX_SPAWN_SETPGROUP</code> above).
+  </li>
+  <li>
+    Effective user IDs are not supported (See <code>POSIX_SPAWN_RESETIDS</code> above).
+  </li>
+  <li>
+    Signal default actions cannot be modified in the newly task executed  because NuttX does not support default signal actions (See <code>POSIX_SPAWN_SETSIGDEF</code>).
+  </li>
+</ul>
+<p>
+  <b>POSIX Compatibility:</b>
+  The value of the <code>argv[0]</code> received by the child task is assigned by NuttX.
+  For the caller of <code>posix_spawn()</code>, the provided argv[0] will correspond to <code>argv[1]</code> received by the new task.
+</p>
+
+<h3><a name="posix_spawn_file_actions_init">2.1.12 posix_spawn_file_actions_init</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+int posix_spawn_file_actions_init(FAR posix_spawn_file_actions_t *file_actions);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawn_file_actions_init()</code> function initializes the object referenced by <code>file_actions</code> to an empty set of file actions for subsequent use in a call to <code>posix_spawn()</code> or <code>posix_spawnp()</code>.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>file_actions</code>:
+     The address of the <code>posix_spawn_file_actions_t</code> to be initialized.
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b>
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>.
+<p>
+
+<h3><a name="posix_spawn_file_actions_destroy">2.1.13 posix_spawn_file_actions_destroy</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+int posix_spawn_file_actions_destroy(FAR posix_spawn_file_actions_t *file_actions);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawn_file_actions_destroy()</code> function destroys the object referenced by <code>file_actions</code> which was previously intialized by <code>posix_spawn_file_actions_init()</code>, returning any resources obtained at the time of initialization to the system for subsequent reuse.
+  A <code>posix_spawn_file_actions_t</code> may be reinitialized after having been destroyed, but must not be reused after destruction, unless it has been reinitialized.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>file_actions</code>:
+     The address of the <code>posix_spawn_file_actions_t</code> to be destroyed.
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>
+<p>
+
+<h3><a name="posix_spawn_file_actions_addclose">2.1.14 posix_spawn_file_actions_addclose</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+int posix_spawn_file_actions_addclose(FAR posix_spawn_file_actions_t *file_actions, int fd);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawn_file_actions_addclose()</code> function adds a <i>close</i> operation to the list of operations associated with the object referenced by <code>file_actions</code>, for subsequent use in a call to <code>posix_spawn()</code> or <code>posix_spawnp()</code>.
+  The descriptor referred to by <code>fd</code> is closed as if <code>close()</code> had been called on it prior to the new child process starting execution.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>file_actions</code>:
+     The address of the <code>posix_spawn_file_actions_t</code> object to which the <i>close</i> operation will be appended.
+   </li>
+   <li>
+     <code>fd</code>:
+     The file descriptor to be closed.
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>
+</p>
+
+<h3><a name="posix_spawn_file_actions_adddup2">2.1.15 posix_spawn_file_actions_adddup2</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+int posix_spawn_file_actions_adddup2(FAR posix_spawn_file_actions_t *file_actions, int fd1, int fd2);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawn_file_actions_adddup2()</code> function adds a <i>dup2</i> operation to the list of operations associated with the object referenced by <code>file_actions</code>, for subsequent use in a call to <code>posix_spawn()</code> or <code>posix_spawnp()</code>.
+  The descriptor referred to by <code>fd2</code> is created as if <code>dup2()</code> had been called on <code>fd1</code> prior to the new child process starting execution.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>file_actions</code>:
+     The address of the <code>posix_spawn_file_actions_t</code> object to which the <i>dup2</i> operation will be appended.
+   </li>
+   <li>
+     <code>fd1</code>:
+     The file descriptor to be be duplicated.
+     The first file descriptor to be argument to <code>dup2()</code>.
+   </li>
+   <li>
+     <code>fd2</code>:
+     The file descriptor to be be created.
+     The second file descriptor to be argument to <code>dup2()</code>.
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>
+</p>
+
+<h3><a name="posix_spawn_file_actions_addopen">2.1.16 posix_spawn_file_actions_addopen</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+int posix_spawn_file_actions_addopen(FAR posix_spawn_file_actions_t *file_actions,
+      int fd, FAR const char *path, int oflags, mode_t mode);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawn_file_actions_addopen()</code> function adds an <i>open</i> operation to the list of operations associated with the object referenced by <code>file_actions</code>, for subsequent use in a call to <code>posix_spawn()</code> or <code>posix_spawnp()</code>.
+  The descriptor referred to by <code>fd</code> is opened using the <code>path</code>, <code>oflag</code>, and <code>mode</code> arguments as if <code>open()</code> had been called on it prior to the new child process starting execution.
+  The string path is copied by the <code>posix_spawn_file_actions_addopen()</code> function during this process, so storage need not be persistent in the caller.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>file_actions</code>:
+     The address of the <code>posix_spawn_file_actions_t</code> object to which the <i>open</i> operation will be appended.
+   </li>
+   <li>
+     <code>fd</code>:
+     The file descriptor to be opened.
+   </li>
+   <li>
+     <code>path</code>:
+     The path to be opened.
+   </li>
+   <li>
+     <code>oflags</code>:
+     Open flags.
+   </li>
+   <li>
+     <code>mode</code>:
+     File creation mode/
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>
+</p>
+
+<h3><a name="posix_spawnattr_init">2.1.17 posix_spawnattr_init</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+int posix_spawnattr_init(FAR posix_spawnattr_t *attr);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawnattr_init()</code> function initializes the object referenced by <code>attr</code>, to an empty set of spawn attributes for subsequent use in a call to  <code>posix_spawn()</code> or  <code>posix_spawnp()</code>.
+<p>
+<p>
+  Then the spawn attributes are no longer needed, they should be destroyed by calling <code>posix_spawnattr_destroyed()</code>.
+  In NuttX, however, <code>posix_spawnattr_destroyed()</code> is just stub:
+</p>
+<ul><pre>
+#define posix_spawnattr_destroy(attr) (0)
+</pre></ul>
+<p>
+  For portability, the convention of calling <code>posix_spawnattr_destroyed()</code> when the attributes are not longer needed should still be followed.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>attr</code>:
+     The address of the spawn attributes to be initialized.
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>
+</p>
+
+<h3><a name="posix_spawnattr_getflags">2.1.18 posix_spawnattr_getflags</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+int posix_spawnattr_getflags(FAR const posix_spawnattr_t *attr, FAR short *flags);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawnattr_getflags()</code> function will obtain the value of the <i>spawn-flags</i> attribute from the attributes object referenced by <code>attr</code>.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>attr</code>:
+     The address spawn attributes to be queried.
+   </li>
+   <li>
+     <code>flags</code>:
+      The location to return the spawn flags
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>
+</p>
+
+<h3><a name="posix_spawnattr_getschedparam">2.1.19 posix_spawnattr_getschedparam</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+int posix_spawnattr_getschedparam(FAR const posix_spawnattr_t *attr, FAR struct sched_param *param);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawnattr_getschedparam()</code> function will obtain the value of the <i>spawn-schedparam</i> attribute from the attributes object referenced by <code>attr</code>.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>attr</code>:
+     The address spawn attributes to be queried.
+   </li>
+   <li>
+     <code>param</code>:
+      The location to return the <i>spawn-schedparam</i> value.
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>
+</p>
+
+<h3><a name="posix_spawnattr_getschedpolicy">2.1.20 posix_spawnattr_getschedpolicy</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+int posix_spawnattr_getschedpolicy(FAR const posix_spawnattr_t *attr, FAR int *policy);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawnattr_getschedpolicy()</code> function will obtain the value of the <i>spawn-schedpolicy</i> attribute from the attributes object referenced by <code>attr</code>.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>attr</code>:
+     The address spawn attributes to be queried.
+   </li>
+   <li>
+     <code>policy</code>:
+      The location to return the <i>spawn-schedpolicy</i> value.
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>
+</p>
+
+<h3><a name="posix_spawnattr_getsigmask">2.1.21 posix_spawnattr_getsigmask</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+#ifndef CONFIG_DISABLE_SIGNALS
+int posix_spawnattr_getsigmask(FAR const posix_spawnattr_t *attr, FAR sigset_t *sigmask);
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawnattr_getsigdefault()</code> function will obtain the value of the <i>spawn-sigmask</i> attribute from the attributes object referenced by <code>attr</code>.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>attr</code>:
+     The address spawn attributes to be queried.
+   </li>
+   <li>
+     <code>sigmask</code>:
+      The location to return the <i>spawn-sigmask</i> value.
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>
+</p>
+
+<h3><a name="posix_spawnattr_setflags">2.1.22 posix_spawnattr_setflags</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+int posix_spawnattr_setflags(FAR posix_spawnattr_t *attr, short flags);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawnattr_setflags()</code> function will set the <i>spawn-flags</i> attribute in an initialized attributes object referenced by <code>attr</code>.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>attr</code>:
+     The address spawn attributes to be used.
+   </li>
+   <li>
+     <code>flags</code>:
+      The new value of the <i>spawn-flags</i> attribute.
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>
+</p>
+
+<h3><a name="posix_spawnattr_setschedparam">2.1.23 posix_spawnattr_setschedparam</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+int posix_spawnattr_setschedparam(FAR posix_spawnattr_t *attr, FAR const struct sched_param *param);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawnattr_setschedparam()</code> function will set the <i>spawn-schedparam</i> attribute in an initialized attributes object referenced by <code>attr</code>.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>attr</code>:
+     The address spawn attributes to be used.
+   </li>
+   <li>
+     <code>param</code>:
+      The new value of the <i>spawn-schedparam</i> attribute.
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b>
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>
+</p>
+ 
+<h3><a name="posix_spawnattr_setschedpolicy">2.1.24 posix_spawnattr_setschedpolicy</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+int posix_spawnattr_setschedpolicy(FAR posix_spawnattr_t *attr, int policy);
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawnattr_setschedpolicy()</code> function will set the <i>spawn-schedpolicy</i> attribute in an initialized attributes object referenced by <code>attr</code>.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>attr</code>:
+     The address spawn attributes to be used.
+   </li>
+   <li>
+     <code>policy</code>:
+      The new value of the <i>spawn-schedpolicy</i> attribute.
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b>
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>
+</p>
+
+<h3><a name="posix_spawnattr_setsigmask">2.1.25 posix_spawnattr_setsigmask</a></h3>
+<p>
+  <b>Function Prototype:</b>
+</p>
+  <ul><pre>
+#include &lt;spawn.h&gt;
+#ifndef CONFIG_DISABLE_SIGNALS
+int posix_spawnattr_setsigmask(FAR posix_spawnattr_t *attr, FAR const sigset_t *sigmask);
+#endif
+</pre></ul>
+<p>
+  <b>Description:</b>
+  The <code>posix_spawnattr_setsigmask()</code> function will set the <i>spawn-sigmask</i> attribute in an initialized attributes object referenced by <code>attr</code>.
+</p>
+<p>
+  <b>Input Parameters:</b>
+</p>
+<ul>
+   <li>
+     <code>attr</code>:
+     The address spawn attributes to be used.
+   </li>
+   <li>
+     <code>sigmask</code>:
+      The new value of the <i>spawn-sigmask</i> attribute.
+   </li>
+</ul>
+<p>
+  <b>Returned Value:</b> 
+  On success, this function returns 0; on failure it will return an error number from <code>&lt;errno.h&gt;</code>
 </p>
 
 <table width ="100%">
@@ -8395,13 +9018,30 @@ notify a task when a message is available on a queue.
   <li><a href="#onexit">on_exit</a>
   <li><a href="#drvrfcntlops">open</a></li>
   <li><a href="#dirdirentops">opendir</a></li>
-</td>
-<td valign="top" width="33%">
   <li><a href="#OS_Interfaces">OS Interfaces</a></li>
   <li><a href="#pause">pause</a></li>
   <li><a href="#pipe">pipe</a></li>
   <li><a href="#poll">poll</a></li>
   <li><a href="#drvrpollops">poll.h</a></li>
+</td>
+<td valign="top" width="33%">
+  <li><a href="#posix_spawn">posix_spawn</a></li>
+  <li><a href="#posix_spawn_file_actions_addclose">posix_spawn_file_actions_addclose</a></li>
+  <li><a href="#posix_spawn_file_actions_adddup2">posix_spawn_file_actions_adddup2</a></li>
+  <li><a href="#posix_spawn_file_actions_addopen">posix_spawn_file_actions_addopen</a></li>
+  <li><a href="#posix_spawn_file_actions_destroy">posix_spawn_file_actions_destroy</a></li>
+  <li><a href="#posix_spawn_file_actions_init">posix_spawn_file_actions_init</a></li>
+  <li><a href="#posix_spawnattr_init">posix_spawnattr_init</a></li>
+  <li><a href="#posix_spawnattr_init">posix_spawnattr_destroy</a></li>
+  <li><a href="#posix_spawnattr_getflags">posix_spawnattr_getflags</a></li>
+  <li><a href="#posix_spawnattr_getschedparam">posix_spawnattr_getschedparam</a></li>
+  <li><a href="#posix_spawnattr_getschedpolicy">posix_spawnattr_getschedpolicy</a></li>
+  <li><a href="#posix_spawnattr_getsigmask">posix_spawnattr_getsigmask</a></li>
+  <li><a href="#posix_spawnattr_setflags">posix_spawnattr_setflags</a></li>
+  <li><a href="#posix_spawnattr_setschedparam">posix_spawnattr_setschedparam</a></li>
+  <li><a href="#posix_spawnattr_setschedpolicy">posix_spawnattr_setschedpolicy</a></li>
+  <li><a href="#posix_spawnattr_setsigmask">posix_spawnattr_setsigmask</a></li>
+  <li><a href="#posix_spawn">posix_spawnp</a></li>
   <li><a href="#standardio">printf</a></li>
   <li><a href="#Pthread">Pthread Interfaces</a>
   <li><a href="#pthreadattrdestroy">pthread_attr_destroy</a></li>
@@ -8467,6 +9107,8 @@ notify a task when a message is available on a queue.
   <li><a href="#recv">recv</a></li>
   <li><a href="#recvfrom">recvfrom</a></li>
   <li><a href="#standardio">rename</a></li>
+</td>
+<td valign="top">
   <li><a href="#standardio">rmdir</a></li>
   <li><a href="#dirdirentops">rewinddir</a></li>
   <li><a href="#mmapxip">ROM disk driver</a></li>
@@ -8474,8 +9116,6 @@ notify a task when a message is available on a queue.
   <li><a href="#schedgetparam">sched_getparam</a></li>
   <li><a href="#schedgetprioritymax">sched_get_priority_max</a></li>
   <li><a href="#schedgetprioritymin">sched_get_priority_min</a></li>
-</td>
-<td valign="top">
   <li><a href="#schedgetrrinterval">sched_get_rr_interval</a></li>
   <li><a href="#schedlockcount">sched_lockcount</a></li>
   <li><a href="#schedlock">sched_lock</a></li>
