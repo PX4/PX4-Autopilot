@@ -109,6 +109,7 @@ CONFIGURED_APPS	+= drivers/px4io
 CONFIGURED_APPS += drivers/stm32
 CONFIGURED_APPS += drivers/led
 CONFIGURED_APPS += drivers/blinkm
+CONFIGURED_APPS += drivers/blinkm_systemstate
 CONFIGURED_APPS += drivers/stm32/tone_alarm
 CONFIGURED_APPS += drivers/stm32/adc
 CONFIGURED_APPS += drivers/px4fmu
