@@ -39,4 +39,31 @@ config EXAMPLES_OSTEST_NBARRIER_THREADS
 		is 8 but a smaller number may be needed on systems without sufficient memory
 		to start so many threads.
 
+config EXAMPLES_OSTEST_RR_RANGE
+	int "Round-robin test - end of search range"
+	default 10000
+	range 1 32767
+	---help---
+		During round-robin scheduling test two threads are created. Each of the threads
+		searches for prime numbers in the configurable range, doing that configurable
+		number of times.
+
+		This value specifies the end of search range and together with number of runs
+		allows to configure the length of this test - it should last at least a few
+		tens of seconds. Allowed values [1; 32767], default 10000
+
+config EXAMPLES_OSTEST_RR_RUNS
+	int "Round-robin test - number of runs"
+	default 10
+	range 1 32767
+	---help---
+		During round-robin scheduling test two threads are created. Each of the threads
+		searches for prime numbers in the configurable range, doing that configurable
+		number of times.
+
+		This value specifies the number of times the thread searches the range for
+		prime numbers and together with end of search range allows to configure the
+		length of this test - it should last at least a few tens of seconds. Allowed
+		values [1; 32767], default 10
+
 endif
