@@ -42,8 +42,8 @@ FIRMWARE_PROTOTYPE	 = $(IMAGE_DIR)/$(TARGET).prototype
 #
 # Debugging
 #
-#MQUIET			 = --no-print-directory
-MQUIET			 = --print-directory
+MQUIET			 = --no-print-directory
+#MQUIET			 = --print-directory
 
 all:			$(FIRMWARE_BUNDLE)
 
