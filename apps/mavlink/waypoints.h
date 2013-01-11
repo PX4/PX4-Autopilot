@@ -98,8 +98,8 @@ struct mavlink_wpm_storage {
 	uint16_t max_size;
 	uint16_t rcv_size;
 	enum MAVLINK_WPM_STATES current_state;
-	uint16_t current_wp_id;							///< Waypoint in current transmission
-	uint16_t current_active_wp_id;					///< Waypoint the system is currently heading towards
+	int16_t current_wp_id;							///< Waypoint in current transmission
+	int16_t current_active_wp_id;					///< Waypoint the system is currently heading towards
 	uint16_t current_count;
 	uint8_t current_partner_sysid;
 	uint8_t current_partner_compid;
