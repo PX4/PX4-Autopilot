@@ -20,13 +20,13 @@ A call to runhil.py might look like this:
 ./runhil.py --waypoints data/sf_waypoints.txt --master /dev/ttyUSB1 --gcs localhost:14550 --mode sensor
 ```
 
-This says:
-* load the give waypoints
+Explanation:
+* load the given waypoints in data/sf_waypoints.txt, NOTE: QGC waypoints are not compatible with pymavlink currently, you simply need to change the version number in the file to 110 if it is 120
 * connect to the px4 autopilot on usb port 1
 * setup external ground station communication of localhost:14550 udp.
 * mode sensor says do sensor-level hardware-in-the-loop (HIL), this can be set to state as well
 
-HILmodes
+HIL modes:
 * State-level HIL tests the control and guidance systems.
 * Sensor-level HIL tests the navigation system in addition to the control, and guidance systems. This requires a lot of data to be sent to the vehicle and a high baudrate.
 * It is no longer necessary to change the firmware to change between state and sensor level HIL.
