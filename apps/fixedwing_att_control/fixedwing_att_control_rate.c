@@ -157,8 +157,8 @@ static int parameters_update(const struct fw_rate_control_param_handles *h, stru
 }
 
 int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
-		const float rates[],
-		struct actuator_controls_s *actuators)
+				const float rates[],
+				struct actuator_controls_s *actuators)
 {
 	static int counter = 0;
 	static bool initialized = false;
@@ -174,8 +174,7 @@ int fixedwing_att_control_rates(const struct vehicle_rates_setpoint_s *rate_sp,
 	const float deltaT = (hrt_absolute_time() - last_run) / 1000000.0f;
 	last_run = hrt_absolute_time();
 
-	if(!initialized)
-	{
+	if (!initialized) {
 		parameters_init(&h);
 		parameters_update(&h, &p);
 		pid_init(&roll_rate_controller, p.rollrate_p, p.rollrate_i, 0, p.rollrate_awu, 1, PID_MODE_DERIVATIV_NONE); // set D part to 0 because the controller layout is with a PI rate controller

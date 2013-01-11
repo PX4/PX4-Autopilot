@@ -121,6 +121,7 @@ controls_main(void)
 		if (system_state.rc_channel_data[4] > RC_CHANNEL_HIGH_THRESH) {
 			/* force manual input override */
 			system_state.mixer_manual_override = true;
+
 		} else {
 			/* override not engaged, use FMU */
 			system_state.mixer_manual_override = false;
@@ -139,7 +140,7 @@ controls_main(void)
 				 */
 				system_state.fmu_report_due = true;
 			}
-			
+
 			/* set the number of channels to zero - no inputs */
 			system_state.rc_channels = 0;
 		}

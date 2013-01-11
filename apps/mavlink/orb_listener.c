@@ -90,9 +90,8 @@ static uint64_t last_sensor_timestamp;
 
 static void	*uorb_receive_thread(void *arg);
 
-struct listener
-{
-	void		(*callback)(struct listener *l);
+struct listener {
+	void	(*callback)(struct listener *l);
 	int		*subp;
 	uintptr_t	arg;
 };
@@ -185,14 +184,14 @@ l_sensor_combined(struct listener *l)
 
 	if (gcs_link)
 		mavlink_msg_highres_imu_send(MAVLINK_COMM_0, last_sensor_timestamp,
-			raw.accelerometer_m_s2[0], raw.accelerometer_m_s2[1],
-			raw.accelerometer_m_s2[2], raw.gyro_rad_s[0],
-			raw.gyro_rad_s[1], raw.gyro_rad_s[2],
-			raw.magnetometer_ga[0],
-			raw.magnetometer_ga[1],raw.magnetometer_ga[2],
-			raw.baro_pres_mbar, 0 /* no diff pressure yet */,
-			raw.baro_alt_meter, raw.baro_temp_celcius,
-			fields_updated);
+					     raw.accelerometer_m_s2[0], raw.accelerometer_m_s2[1],
+					     raw.accelerometer_m_s2[2], raw.gyro_rad_s[0],
+					     raw.gyro_rad_s[1], raw.gyro_rad_s[2],
+					     raw.magnetometer_ga[0],
+					     raw.magnetometer_ga[1], raw.magnetometer_ga[2],
+					     raw.baro_pres_mbar, 0 /* no diff pressure yet */,
+					     raw.baro_alt_meter, raw.baro_temp_celcius,
+					     fields_updated);
 
 	sensors_raw_counter++;
 }
@@ -209,13 +208,13 @@ l_vehicle_attitude(struct listener *l)
 	if (gcs_link)
 		/* send sensor values */
 		mavlink_msg_attitude_send(MAVLINK_COMM_0,
-				  last_sensor_timestamp / 1000,
-				  att.roll,
-				  att.pitch,
-				  att.yaw,
-				  att.rollspeed,
-				  att.pitchspeed,
-				  att.yawspeed);
+					  last_sensor_timestamp / 1000,
+					  att.roll,
+					  att.pitch,
+					  att.yaw,
+					  att.rollspeed,
+					  att.pitchspeed,
+					  att.yawspeed);
 
 	attitude_counter++;
 }
@@ -291,21 +290,21 @@ l_input_rc(struct listener *l)
 {
 	/* copy rc channels into local buffer */
 	orb_copy(ORB_ID(input_rc), mavlink_subs.input_rc_sub, &rc_raw);
-	
+
 	if (gcs_link)
 		/* Channels are sent in MAVLink main loop at a fixed interval */
 		mavlink_msg_rc_channels_raw_send(chan,
-					 rc_raw.timestamp / 1000,
-					 0,
-					 (rc_raw.channel_count > 0) ? rc_raw.values[0] : UINT16_MAX,
-					 (rc_raw.channel_count > 1) ? rc_raw.values[1] : UINT16_MAX,
-					 (rc_raw.channel_count > 2) ? rc_raw.values[2] : UINT16_MAX,
-					 (rc_raw.channel_count > 3) ? rc_raw.values[3] : UINT16_MAX,
-					 (rc_raw.channel_count > 4) ? rc_raw.values[4] : UINT16_MAX,
-					 (rc_raw.channel_count > 5) ? rc_raw.values[5] : UINT16_MAX,
-					 (rc_raw.channel_count > 6) ? rc_raw.values[6] : UINT16_MAX,
-					 (rc_raw.channel_count > 7) ? rc_raw.values[7] : UINT16_MAX,
-					 255);
+						 rc_raw.timestamp / 1000,
+						 0,
+						 (rc_raw.channel_count > 0) ? rc_raw.values[0] : UINT16_MAX,
+						 (rc_raw.channel_count > 1) ? rc_raw.values[1] : UINT16_MAX,
+						 (rc_raw.channel_count > 2) ? rc_raw.values[2] : UINT16_MAX,
+						 (rc_raw.channel_count > 3) ? rc_raw.values[3] : UINT16_MAX,
+						 (rc_raw.channel_count > 4) ? rc_raw.values[4] : UINT16_MAX,
+						 (rc_raw.channel_count > 5) ? rc_raw.values[5] : UINT16_MAX,
+						 (rc_raw.channel_count > 6) ? rc_raw.values[6] : UINT16_MAX,
+						 (rc_raw.channel_count > 7) ? rc_raw.values[7] : UINT16_MAX,
+						 255);
 }
 
 void
@@ -317,7 +316,7 @@ l_global_position(struct listener *l)
 	uint64_t timestamp = global_pos.timestamp;
 	int32_t lat = global_pos.lat;
 	int32_t lon = global_pos.lon;
-	int32_t alt = (int32_t)(global_pos.alt*1000);
+	int32_t alt = (int32_t)(global_pos.alt * 1000);
 	int32_t relative_alt = (int32_t)(global_pos.relative_alt * 1000.0f);
 	int16_t vx = (int16_t)(global_pos.vx * 100.0f);
 	int16_t vy = (int16_t)(global_pos.vy * 100.0f);
@@ -343,16 +342,16 @@ l_local_position(struct listener *l)
 {
 	/* copy local position data into local buffer */
 	orb_copy(ORB_ID(vehicle_local_position), mavlink_subs.local_pos_sub, &local_pos);
-	
+
 	if (gcs_link)
 		mavlink_msg_local_position_ned_send(MAVLINK_COMM_0,
-					    local_pos.timestamp / 1000,
-					    local_pos.x,
-					    local_pos.y,
-					    local_pos.z,
-					    local_pos.vx,
-					    local_pos.vy,
-					    local_pos.vz);
+						    local_pos.timestamp / 1000,
+						    local_pos.x,
+						    local_pos.y,
+						    local_pos.z,
+						    local_pos.vx,
+						    local_pos.vy,
+						    local_pos.vz);
 }
 
 void
@@ -364,16 +363,17 @@ l_global_position_setpoint(struct listener *l)
 	orb_copy(ORB_ID(vehicle_global_position_setpoint), mavlink_subs.spg_sub, &global_sp);
 
 	uint8_t coordinate_frame = MAV_FRAME_GLOBAL;
+
 	if (global_sp.altitude_is_relative)
 		coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT;
 
 	if (gcs_link)
 		mavlink_msg_global_position_setpoint_int_send(MAVLINK_COMM_0,
-						      coordinate_frame,
-						      global_sp.lat,
-						      global_sp.lon,
-						      global_sp.altitude,
-						      global_sp.yaw);
+				coordinate_frame,
+				global_sp.lat,
+				global_sp.lon,
+				global_sp.altitude,
+				global_sp.yaw);
 }
 
 void
@@ -386,11 +386,11 @@ l_local_position_setpoint(struct listener *l)
 
 	if (gcs_link)
 		mavlink_msg_local_position_setpoint_send(MAVLINK_COMM_0,
-						 MAV_FRAME_LOCAL_NED,
-						 local_sp.x,
-						 local_sp.y,
-						 local_sp.z,
-						 local_sp.yaw);
+				MAV_FRAME_LOCAL_NED,
+				local_sp.x,
+				local_sp.y,
+				local_sp.z,
+				local_sp.yaw);
 }
 
 void
@@ -403,11 +403,11 @@ l_attitude_setpoint(struct listener *l)
 
 	if (gcs_link)
 		mavlink_msg_roll_pitch_yaw_thrust_setpoint_send(MAVLINK_COMM_0,
-							att_sp.timestamp/1000,
-							att_sp.roll_body,
-							att_sp.pitch_body,
-							att_sp.yaw_body,
-							att_sp.thrust);
+				att_sp.timestamp / 1000,
+				att_sp.roll_body,
+				att_sp.pitch_body,
+				att_sp.yaw_body,
+				att_sp.thrust);
 }
 
 void
@@ -420,11 +420,11 @@ l_vehicle_rates_setpoint(struct listener *l)
 
 	if (gcs_link)
 		mavlink_msg_roll_pitch_yaw_rates_thrust_setpoint_send(MAVLINK_COMM_0,
-							rates_sp.timestamp/1000,
-							rates_sp.roll,
-							rates_sp.pitch,
-							rates_sp.yaw,
-							rates_sp.thrust);
+				rates_sp.timestamp / 1000,
+				rates_sp.roll,
+				rates_sp.pitch,
+				rates_sp.yaw,
+				rates_sp.thrust);
 }
 
 void
@@ -444,15 +444,15 @@ l_actuator_outputs(struct listener *l)
 
 	if (gcs_link) {
 		mavlink_msg_servo_output_raw_send(MAVLINK_COMM_0, last_sensor_timestamp / 1000,
-					  l->arg /* port number */,
-					  act_outputs.output[0],
-					  act_outputs.output[1],
-					  act_outputs.output[2],
-					  act_outputs.output[3],
-					  act_outputs.output[4],
-					  act_outputs.output[5],
-					  act_outputs.output[6],
-					  act_outputs.output[7]);
+						  l->arg /* port number */,
+						  act_outputs.output[0],
+						  act_outputs.output[1],
+						  act_outputs.output[2],
+						  act_outputs.output[3],
+						  act_outputs.output[4],
+						  act_outputs.output[5],
+						  act_outputs.output[6],
+						  act_outputs.output[7]);
 
 		/* only send in HIL mode */
 		if (mavlink_hil_enabled && armed.armed) {
@@ -468,43 +468,46 @@ l_actuator_outputs(struct listener *l)
 
 			if (mavlink_system.type == MAV_TYPE_QUADROTOR) {
 				mavlink_msg_hil_controls_send(chan,
-					hrt_absolute_time(),
-					((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
-					-1,
-					-1,
-					-1,
-					-1,
-					mavlink_mode,
-					0);
+							      hrt_absolute_time(),
+							      ((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
+							      -1,
+							      -1,
+							      -1,
+							      -1,
+							      mavlink_mode,
+							      0);
+
 			} else if (mavlink_system.type == MAV_TYPE_HEXAROTOR) {
 				mavlink_msg_hil_controls_send(chan,
-					hrt_absolute_time(),
-					((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[4] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[5] - 900.0f) / 600.0f) / 2.0f,
-					-1,
-					-1,
-					mavlink_mode,
-					0);
+							      hrt_absolute_time(),
+							      ((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[4] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[5] - 900.0f) / 600.0f) / 2.0f,
+							      -1,
+							      -1,
+							      mavlink_mode,
+							      0);
+
 			} else if (mavlink_system.type == MAV_TYPE_OCTOROTOR) {
 				mavlink_msg_hil_controls_send(chan,
-					hrt_absolute_time(),
-					((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[4] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[5] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[6] - 900.0f) / 600.0f) / 2.0f,
-					((act_outputs.output[7] - 900.0f) / 600.0f) / 2.0f,
-					mavlink_mode,
-					0);
+							      hrt_absolute_time(),
+							      ((act_outputs.output[0] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[1] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[2] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[3] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[4] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[5] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[6] - 900.0f) / 600.0f) / 2.0f,
+							      ((act_outputs.output[7] - 900.0f) / 600.0f) / 2.0f,
+							      mavlink_mode,
+							      0);
+
 			} else {
 
 				/*
@@ -516,23 +519,24 @@ l_actuator_outputs(struct listener *l)
 				if (act_outputs.noutputs < 4) {
 					rudder = 0.0f;
 					throttle = (act_outputs.output[2] - 900.0f) / 1200.0f;
+
 				} else {
 					rudder = (act_outputs.output[2] - 1500.0f) / 600.0f;
 					throttle = (act_outputs.output[3] - 900.0f) / 1200.0f;
 				}
 
 				mavlink_msg_hil_controls_send(chan,
-					hrt_absolute_time(),
-					(act_outputs.output[0] - 1500.0f) / 600.0f,
-					(act_outputs.output[1] - 1500.0f) / 600.0f,
-					rudder,
-					throttle,
-					(act_outputs.output[4] - 1500.0f) / 600.0f,
-					(act_outputs.output[5] - 1500.0f) / 600.0f,
-					(act_outputs.output[6] - 1500.0f) / 600.0f,
-					(act_outputs.output[7] - 1500.0f) / 600.0f,
-					mavlink_mode,
-					0);
+							      hrt_absolute_time(),
+							      (act_outputs.output[0] - 1500.0f) / 600.0f,
+							      (act_outputs.output[1] - 1500.0f) / 600.0f,
+							      rudder,
+							      throttle,
+							      (act_outputs.output[4] - 1500.0f) / 600.0f,
+							      (act_outputs.output[5] - 1500.0f) / 600.0f,
+							      (act_outputs.output[6] - 1500.0f) / 600.0f,
+							      (act_outputs.output[7] - 1500.0f) / 600.0f,
+							      mavlink_mode,
+							      0);
 			}
 		}
 	}
@@ -554,12 +558,12 @@ l_manual_control_setpoint(struct listener *l)
 
 	if (gcs_link)
 		mavlink_msg_manual_control_send(MAVLINK_COMM_0,
-					mavlink_system.sysid,
-					man_control.roll * 1000,
-					man_control.pitch * 1000,
-					man_control.yaw * 1000,
-					man_control.throttle * 1000,
-					0);
+						mavlink_system.sysid,
+						man_control.roll * 1000,
+						man_control.pitch * 1000,
+						man_control.yaw * 1000,
+						man_control.throttle * 1000,
+						0);
 }
 
 void
@@ -614,7 +618,7 @@ l_optical_flow(struct listener *l)
 	orb_copy(ORB_ID(optical_flow), mavlink_subs.optical_flow, &flow);
 
 	mavlink_msg_optical_flow_send(MAVLINK_COMM_0, flow.timestamp, flow.sensor_id, flow.flow_raw_x, flow.flow_raw_y,
-		flow.flow_comp_x_m, flow.flow_comp_y_m, flow.quality, flow.ground_distance_m);
+				      flow.flow_comp_x_m, flow.flow_comp_y_m, flow.quality, flow.ground_distance_m);
 }
 
 static void *
@@ -635,6 +639,7 @@ uorb_receive_thread(void *arg)
 	 * Might want to invoke each listener once to set initial state.
 	 */
 	struct pollfd fds[n_listeners];
+
 	for (unsigned i = 0; i < n_listeners; i++) {
 		fds[i].fd = *listeners[i].subp;
 		fds[i].events = POLLIN;
@@ -650,8 +655,10 @@ uorb_receive_thread(void *arg)
 		/* handle the poll result */
 		if (poll_ret == 0) {
 			mavlink_missionlib_send_gcs_string("[mavlink] No telemetry data for 1 s");
+
 		} else if (poll_ret < 0) {
 			mavlink_missionlib_send_gcs_string("[mavlink] ERROR reading uORB data");
+
 		} else {
 
 			for (unsigned i = 0; i < n_listeners; i++) {
