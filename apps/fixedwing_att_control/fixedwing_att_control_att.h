@@ -44,8 +44,8 @@
 #include <uORB/topics/vehicle_global_position.h>
 
 int fixedwing_att_control_attitude(const struct vehicle_attitude_setpoint_s *att_sp,
-		const struct vehicle_attitude_s *att,
-		const float speed_body[],
-		struct vehicle_rates_setpoint_s *rates_sp);
+				   const struct vehicle_attitude_s *att,
+				   const float speed_body[],
+				   struct vehicle_rates_setpoint_s *rates_sp);
 
 #endif /* FIXEDWING_ATT_CONTROL_ATT_H_ */
