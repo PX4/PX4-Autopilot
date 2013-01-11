@@ -436,18 +436,27 @@ void KalmanNav::correctAtt()
 
 	// mag measurement
 	Vector3 zMag(_sensors.magnetometer_ga);
-	zMag = zMag.unit();
 
 	// mag predicted measurement
 	// choosing some typical magnetic field properties,
 	//  TODO dip/dec depend on lat/ lon/ time
-	static const float dip = 60.0f / M_RAD_TO_DEG_F; // dip, inclination with level
+	static const float dip = 0.0f / M_RAD_TO_DEG_F; // dip, inclination with level
 	static const float dec = 0.0f / M_RAD_TO_DEG_F; // declination, clockwise rotation from north
 	float bN = cosf(dip) * cosf(dec);
 	float bE = cosf(dip) * sinf(dec);
 	float bD = sinf(dip);
 	Vector3 bNav(bN, bE, bD);
 	Vector3 zMagHat = (C_nb.transpose() * bNav).unit();
+
+	printf("psi: %8.4f\n", psi*M_RAD_TO_DEG_F);
+
+	printf("zMag: \n");
+	zMag.print();
+	zMag = zMag.unit();
+
+	printf("zMagHat: \n");
+	zMagHat.print();
+	zMagHat = zMagHat.unit();
 
 	// accel measurement
 	Vector3 zAccel(_sensors.accelerometer_m_s2);

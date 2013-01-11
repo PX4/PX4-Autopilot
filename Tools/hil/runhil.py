@@ -231,6 +231,7 @@ class SensorHIL(object):
         buf = self.jsb_in.recv(self.fdm.packet_size())
         self.fdm.parse(buf)
         self.ac.update_state(self.fdm)
+        #self.ac.x.set_attitude(0,0,90*math.pi/180)
 
     @staticmethod
     def interpret_address(addrstr):
