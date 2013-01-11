@@ -201,8 +201,29 @@ class SensorHIL(object):
         self.jsb_console.send('set %s %s\r\n' % (variable, value))
 
     def reset_sim(self):
+        # reset jsbsim state and then pause simulation
         self.jsb_set('simulation/reset',1)
-        time.sleep(2)
+        self.jsb.expect("trim computation time")
+        self.jsb_console.send('hold\n')
+        time.sleep(1.5)
+
+        # reset autopilot state
+        print 'Rebooting autopilot'
+        self.reboot_autopilot()
+
+        print 'load waypoints'
+        if not self.waypoints is None:
+            self.wpm.set_waypoints(self.waypoints)
+            self.wpm.send_waypoints()
+
+        while self.wpm.state != 'IDLE':
+            self.process_master()
+        
+        print 'set auto'
+        self.master.set_mode_auto()
+
+        # resume simulation
+        self.jsb_console.send('resume\n')
         return time.time()
 
     def process_jsb_input(self):
@@ -280,19 +301,9 @@ class SensorHIL(object):
         self.jsb_console.logfile = None
         t_hil_state = 0
 
-        print 'Rebooting autopilot'
-        self.reboot_autopilot()
-
-        print 'load waypoints'
-        if not self.waypoints is None:
-            self.wpm.set_waypoints(self.waypoints)
-            self.wpm.send_waypoints()
-        
-        print 'set auto'
-        self.master.set_mode_auto()
+        self.reset_sim()
 
         # run main loop
-        self.jsb_console.send('resume\n')
         while True:
 
             # make sure hil is enabled
