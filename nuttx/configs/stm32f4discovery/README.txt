@@ -1447,6 +1447,32 @@ Where <subdir> is one of the following:
     STANDBY mode.  This used of the RTC alarm could conflict with other uses of
     the RTC alarm in your application.
 
+
+  posix_spawn:
+  ------------
+    This configuration directory, performs a simple test os the posix_spawn
+    interface using apps/examples/posix_spawn.
+
+    NOTES:
+ 
+    1. This configuration uses the mconf-based configuration tool.  To
+       change this configuration using that tool, you should:
+
+       a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
+          and misc/tools/
+
+       b. Execute 'make menuconfig' in nuttx/ in order to start the
+          reconfiguration process.
+
+    2. Default toolchain:
+
+       CONFIG_HOST_WINDOWS=y         : Builds under windows
+       CONFIG_WINDOWS_CYGWIN=y       : Using Cygwin and
+       CONFIG_STM32_CODESOURCERYW=y  : The native Windows CodeSourcery toolchain
+
+    3. By default, this project assumes that you are *NOT* using the DFU
+       bootloader.
+ 
   winbuild:
   --------
 

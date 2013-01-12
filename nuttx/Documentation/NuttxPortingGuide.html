@@ -12,7 +12,7 @@
       <h1><big><font color="#3c34ec">
         <i>NuttX RTOS Porting Guide</i>
       </font></big></h1>
-      <p>Last Updated: January 4, 2013</p>
+      <p>Last Updated: January 12, 2013</p>
     </td>
   </tr>
 </table>
@@ -4481,6 +4481,11 @@ build
     instrumentation is selected.  Set to zero to disable.
   </li>
   <li>
+    <code>CONFIG_SCHED_HAVE_PARENT</code>: Remember the ID of the parent thread when a new child thread is created.
+    This support enables a few minor features (such as <code>SIGCHLD</code>) and slightly increases the size of the Task Control Block (TCB) of every task to hold the ID of the parent thread.
+    Default: disabled.
+  </li>
+  <li>
   <code>CONFIG_SYSTEM_TIME16</code>:
     The range of system time is, by default, 32-bits.
     However, if the MCU supports type <code>long long</code> and <code>CONFIG_SYSTEM_TIME16</code> is selected,
@@ -4582,7 +4587,7 @@ build
   </li>
   <li>
     <code>CONFIG_SIG_SIGWORK</code>: The signal number that will be used to wake-up
-    the worker thread.  Default: 4
+    the worker thread.  Default: 17
   </li>
   <li>
     <code>CONFIG_SCHED_LPWORK</code>: If CONFIG_SCHED_WORKQUEUE</code> is defined, then a single work queue is created by default.
@@ -4624,9 +4629,41 @@ build
     <code>user_start</code>.
   </li>
 </ul>
+<p>
+  <b>Signal Numbers</b>:
+</p>
+<ul>
+  <li>
+    <code>CONFIG_SIG_SIGUSR1</code>:
+    Value of standard user signal 1 (<code>SIGUSR1</code>).  Default: 1
+  </li>
+  <li>
+    <code>CONFIG_SIG_SIGUSR2</code>:
+    Value of standard user signal 2 (<code>SIGUSR2</code>).  Default: 2
+  </li>
+  <li>
+    <code>CONFIG_SIG_SIGALARM</code>:
+    Default the standard signal used with POSIX timers (<code>SIGALRM</code>).  Default: 3
+  </li>
+  <li>
+    <code>CONFIG_SIG_SIGCHLD</code>:
+    The <code>SIGCHLD</code> signal is sent to the parent of a child process when it exits, is interrupted (stopped), or resumes after being interrupted.
+    Default: 4
+  </li>
+  <li>
+    <code>CONFIG_SIG_SIGCONDTIMEDOUT</code>:
+    This non-standard signal number is used in the implementation of <code>pthread_cond_timedwait()</code>.
+    Default 16.
+  </li>
+  <li>
+    <code>CONFIG_SIG_SIGWORK</code>:
+    <code>SIGWORK</code> is a non-standard signal used to wake up the internal NuttX worker thread.
+    Default: 17.
+  </li>
+</ul>
 
 <p>
-  Binary Loaders:
+  <b>Binary Loaders</b>:
 </p>
 <ul>
   <li>
@@ -4680,7 +4717,7 @@ build
 </ul>
 
 <p>
-  System Logging:
+  <b>System Logging</b>:
 </p>
 <ul>
   <li>
@@ -4737,7 +4774,7 @@ build
 </ul>
 
 <p>
- Kernel build options:
+ <b>Kernel build options</b>:
 </p>
 <ul>
   <li>
@@ -4748,7 +4785,7 @@ build
 </ul>
 
 <p>
- OS setup related to on-demand paging:
+ <b>OS setup related to on-demand paging</b>:
 </p>
 <ul>
   <li>
@@ -4906,6 +4943,7 @@ build
   </li>
 </ul>
 <p>
+  <b>Disabling OS Features</b>.
   The following can be used to disable categories of APIs supported
   by the OS.  If the compiler supports weak functions, then it
   should not be necessary to disable functions unless you want to

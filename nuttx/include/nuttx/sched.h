@@ -202,6 +202,9 @@ struct _TCB
   /* Task Management Fields *****************************************************/
 
   pid_t    pid;                          /* This is the ID of the thread        */
+#ifdef CONFIG_SCHED_HAVE_PARENT
+  pid_t    parent;                       /* This is the ID of the parent thread */
+#endif
   start_t  start;                        /* Thread start function               */
   entry_t  entry;                        /* Entry Point into the thread         */
 

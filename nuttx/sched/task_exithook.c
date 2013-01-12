@@ -41,6 +41,7 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 #include <debug.h>
 #include <errno.h>
 
@@ -188,6 +189,56 @@ static inline void task_onexit(FAR _TCB *tcb, int status)
 #endif
 
 /****************************************************************************
+ * Name: task_sigchild
+ *
+ * Description:
+ *   Send the SIGCHILD signal to the parent thread
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SCHED_HAVE_PARENT
+static inline void task_sigchild(FAR _TCB *tcb, int status)
+{
+  FAR _TCB *ptcb;
+  siginfo_t info;
+
+  /* Keep things stationary through the following */
+
+  sched_lock();
+
+  /* Get the TCB of the receiving task */
+
+  ptcb = sched_gettcb(tcb->parent);
+  if (!ptcb)
+    {
+      /* The parent no longer exists... bail */
+
+      sched_unlock();
+      return;
+    }
+
+  /* Create the siginfo structure.  We don't actually know the cause.  That
+   * is a bug. Let's just say that the child task just exit-ted for now.
+   */
+
+  info.si_signo           = SIGCHLD;
+  info.si_code            = CLD_EXITED;
+  info.si_value.sival_ptr = NULL;
+  info.si_pid             = tcb->pid;
+  info.si_status          = status;
+
+  /* Send the signal.  We need to use this internal interface so that we can
+   * provide the correct si_code value with the signal.
+   */
+
+  (void)sig_received(ptcb, &info);
+  sched_unlock();
+}
+#else
+#  define task_sigchild(tcb,status)
+#endif
+
+/****************************************************************************
  * Name: task_exitwakeup
  *
  * Description:
@@ -258,6 +309,10 @@ void task_exithook(FAR _TCB *tcb, int status)
    */
 
   task_atexit(tcb);
+
+  /* Send SIGCHLD to the parent of the exiting task */
+
+  task_sigchild(tcb, status);
 
   /* Call any registered on_exit function(s) */
 

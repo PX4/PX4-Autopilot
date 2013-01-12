@@ -123,11 +123,12 @@ config EXECFUNCS_NSYMBOLS
 
 config POSIX_SPAWN_STACKSIZE
 	int "posix_spawn Stack Size"
-	default 768
+	default 1024
 	---help---
 		If posix_spawn[p] uses I/O redirection options, then it will require
 		an intermediary/proxy task to muck with the file descriptors.  This
-		configuration item specifies the stack size used for the proxy.
+		configuration item specifies the stack size used for the proxy. Default:
+		1024 bytes.
 
 endif
 

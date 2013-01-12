@@ -334,6 +334,11 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_TASK_NAME_SIZE - Specifies that maximum size of a
       task name to save in the TCB.  Useful if scheduler
       instrumentation is selected.  Set to zero to disable.
+    CONFIG_SCHED_HAVE_PARENT - Remember the ID of the parent thread
+      when a new child thread is created.  This support enables a
+      few minor features (such as SIGCHLD) and slightly increases
+      the size of the Task Control Block (TCB) of every task to hold
+      the ID of the parent thread.  Default: disabled.
     CONFIG_START_YEAR, CONFIG_START_MONTH, CONFIG_START_DAY -
       Used to initialize the internal time logic.
     CONFIG_GREGORIAN_TIME - Enables Gregorian time conversions.
@@ -400,7 +405,7 @@ defconfig -- This is a configuration file similar to the Linux
     CONFIG_SCHED_WORKSTACKSIZE - The stack size allocated for the worker
       thread.  Default: CONFIG_IDLETHREAD_STACKSIZE.
     CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
-      the worker thread.  Default: 4
+      the worker thread.  Default: 17
     CONFIG_SCHED_LPWORK. If CONFIG_SCHED_WORKQUEUE is defined, then a single
       work queue is created by default.  If CONFIG_SCHED_LPWORK is also defined
       then an additional, lower-priority work queue will also be created.  This
@@ -425,6 +430,23 @@ defconfig -- This is a configuration file similar to the Linux
       applications.  For the example applications this is of the form 'app_main'
       where 'app' is the application name. If not defined, CONFIG_USER_ENTRYPOINT
       defaults to user_start.
+
+  Signal Numbers:
+
+    CONFIG_SIG_SIGUSR1 - Value of standard user signal 1 (SIGUSR1).
+      Default: 1
+    CONFIG_SIG_SIGUSR2 - Value of standard user signal 2 (SIGUSR2).
+      Default: 2
+    CONFIG_SIG_SIGALARM - Default the standard signal used with POSIX
+      timers (SIGALRM).  Default: 3
+    CONFIG_SIG_SIGCHLD - The SIGCHLD signal is sent to the parent of a child
+      process when it exits, is interrupted (stopped), or resumes after being
+      interrupted. Default: 4
+
+    CONFIG_SIG_SIGCONDTIMEDOUT - This non-standard signal number is used in
+      the implementation of pthread_cond_timedwait(). Default 16.
+    CONFIG_SIG_SIGWORK - SIGWORK is a non-standard signal used to wake up
+      the internal NuttX worker thread. Default: 17.
 
   Binary Loaders:
     CONFIG_BINFMT_DISABLE - By default, support for loadable binary formats

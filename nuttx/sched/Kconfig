@@ -38,6 +38,16 @@ config TASK_NAME_SIZE
 		Useful if scheduler instrumentation is selected.  Set to zero to
 		disable.
 
+config SCHED_HAVE_PARENT
+	bool "Remember Parent"
+	default n
+	---help---
+		Remember the ID of the parent thread when a new child thread is
+		created.  This support enables a few minor features (such as
+		SIGCHLD) and slightly increases the size of the Task Control Block
+		(TCB) of every task to hold the ID of the parent thread.  Default:
+		disabled.
+
 config JULIAN_TIME
 	bool "Enables Julian time conversions"
 	default n
@@ -127,6 +137,7 @@ config SDCLONE_DISABLE
 config SCHED_WORKQUEUE
 	bool "Enable worker thread"
 	default n
+	depends on !DISABLE_SIGNALS
 	---help---
 		Create a dedicated "worker" thread to handle delayed processing from interrupt
 		handlers.  This feature is required for some drivers but, if there are no
@@ -157,14 +168,6 @@ config SCHED_WORKSTACKSIZE
 	depends on SCHED_WORKQUEUE
 	---help---
 		The stack size allocated for the worker thread.  Default: 2K.
-
-config SIG_SIGWORK
-	int "Worker thread wakeup signal"
-	default 4
-	depends on SCHED_WORKQUEUE
-	---help---
-		The signal number that will be used to wake-up the worker thread.
-		Default: 4
 
 config SCHED_LPWORK
 	bool "Enable a lower priority worker thread"
@@ -309,6 +312,56 @@ config DISABLE_POLL
 	bool "Disable driver poll interfaces"
 	depends on DISABLE_OS_API
 	default n
+
+if !DISABLE_SIGNALS
+comment "Signal Numbers"
+
+config SIG_SIGUSR1
+	int "SIGUSR1"
+	default 1
+	---help---
+		Value of standard user signal 1 (SIGUSR1). Default: 1
+
+config SIG_SIGUSR2
+	int "SIGUSR2"
+	default 2
+	---help---
+		Value of standard user signal 2 (SIGUSR2). Default: 2
+
+config SIG_SIGALARM
+	int "SIGALRM"
+	default 3
+	---help---
+		Default the signal number used with POSIX timers (SIGALRM).
+		Default: 3
+
+config SIG_SIGCHLD
+	int "SIGCHLD"
+	default 4
+	depends on SCHED_HAVE_PARENT
+	---help---
+		The SIGCHLD signal is sent to the parent of a child process when it
+		exits, is interrupted (stopped), or resumes after being interrupted.
+		Default: 4
+
+config SIG_SIGCONDTIMEDOUT
+	int "SIGCONDTIMEDOUT"
+	default 16
+	depends on !DISABLE_PTHREAD
+	---help---
+		This non-standard signal number is used the implementation of
+		pthread_cond_timedwait(). Default 16.
+
+config SIG_SIGWORK
+	int "SIGWORK"
+	default 17
+	depends on SCHED_WORKQUEUE
+	---help---
+		SIGWORK is a non-standard signal used to wake up the internal NuttX
+		worker thread.  This setting specifies the signal number that will be
+		used for SIGWORK.  Default: 17
+
+endif
 
 comment "Sizes of configurable things (0 disables)"
 

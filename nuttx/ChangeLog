@@ -3911,3 +3911,14 @@
 	  lib_fread() was passed a bad stream.  Needed to move the
 	  releasing of a semaphore inside of some conditional logic
 	  (cosmetic).
+	* include/nuttx/sched.h, sched/task_setup.c, and sched/task_exithook.c:
+	  Add support for remembering the parent task and sending
+	  SIGCHLD to the parent when the task exists.
+	* sched/task_exithook.c:  Fixed a *critical* bug.  Here is
+	  the scenario: (1) sched_lock() is called increments the lockcount
+	  on the current TCB (i.e., the one at the head of the ready to run
+	  list), (2) sched_mergepending is called which may change the task
+	  at the head of the readytorun list, then (2) sched_lock() is called
+	  which decrements the lockcount on the wrong TCB.  The failure case
+	  that I saw was that pre-emption got disabled in the IDLE thread,
+	  locking up the whole system.

@@ -147,6 +147,34 @@ static int task_assignpid(FAR _TCB *tcb)
 }
 
 /****************************************************************************
+ * Name: task_saveparent
+ *
+ * Description:
+ *   Save the task ID of the parent task in the child task's TCB.
+ *
+ * Parameters:
+ *   tcb - The TCB of the new, child task.
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *   The parent of the new task is the task at the head of the ready-to-run
+ *   list.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SCHED_HAVE_PARENT
+static inline void task_saveparent(FAR _TCB *tcb)
+{
+  FAR _TCB *rtcb = (FAR _TCB*)g_readytorun.head;
+  tcb->parent = rtcb->pid;
+}
+#else
+#  define task_saveparent(tcb)
+#endif
+
+/****************************************************************************
  * Name: task_dupdspace
  *
  * Description:
@@ -161,6 +189,8 @@ static int task_assignpid(FAR _TCB *tcb)
  *   None
  *
  * Assumptions:
+ *   The parent of the new task is the task at the head of the ready-to-run
+ *   list.
  *
  ****************************************************************************/
 
@@ -231,6 +261,10 @@ int task_schedsetup(FAR _TCB *tcb, int priority, start_t start, main_t main)
       tcb->start          = start;
       tcb->entry.main     = main;
 
+      /* Save the task ID of the parent task in the TCB */
+
+      task_saveparent(tcb);
+
       /* exec(), pthread_create(), task_create(), and vfork() all
        * inherit the signal mask of the parent thread.
        */
@@ -243,7 +277,7 @@ int task_schedsetup(FAR _TCB *tcb, int priority, start_t start, main_t main)
        * until it is activated.
        */
 
-      tcb->task_state   = TSTATE_TASK_INVALID;
+      tcb->task_state = TSTATE_TASK_INVALID;
 
       /* Clone the parent tasks D-Space (if it was running PIC).  This
        * must be done before calling up_initial_state() so that the
