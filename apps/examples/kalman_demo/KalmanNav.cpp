@@ -107,7 +107,7 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 		if (_gps.fix_type > 2) break;
 
 		printf("[kalman_demo] waiting for gps lock\n");
-		usleep(1000000);
+		usleep(10000000);
 	}
 
 	// initial state
@@ -465,7 +465,7 @@ void KalmanNav::correctAtt()
 		RAttAdjust(5, 5) = 1.0e10;
 
 	} else {
-		printf("correcting attitude with accel\n");
+		//printf("correcting attitude with accel\n");
 	}
 
 	// account for banked turn
@@ -554,7 +554,6 @@ void KalmanNav::correctAtt()
 
 	// fault detection
 	float beta = y.dot(S.inverse() * y);
-	printf("attitude: beta = %8.4f\n", (double)beta);
 
 	if (beta > 10.0f) {
 		//printf("fault in attitude: beta = %8.4f\n", (double)beta);
@@ -619,7 +618,6 @@ void KalmanNav::correctPos()
 
 	// fault detetcion
 	float beta = y.dot(S.inverse() * y);
-	printf("gps: beta = %8.4f\n", (double)beta);
 
 	if (beta > 100.0f) {
 		//printf("fault in gps: beta = %8.4f\n", (double)beta);
