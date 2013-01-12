@@ -105,8 +105,8 @@ protected:
 	control::BlockParam<float> _vGyro;
 	control::BlockParam<float> _vAccel;
 	control::BlockParam<float> _rMag;
-	control::BlockParam<float> _rGpsV;
-	control::BlockParam<float> _rGpsGeo;
+	control::BlockParam<float> _rGpsVel;
+	control::BlockParam<float> _rGpsPos;
 	control::BlockParam<float> _rGpsAlt;
 	control::BlockParam<float> _rAccel;
 	int32_t getLatDegE7() { return int32_t(lat * 1.0e7 * M_RAD_TO_DEG); }

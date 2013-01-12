@@ -90,8 +90,8 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 	_vGyro(this, "V_GYRO"),
 	_vAccel(this, "V_ACCEL"),
 	_rMag(this, "R_MAG"),
-	_rGpsV(this, "R_GPS_V"),
-	_rGpsGeo(this, "R_GPS_GEO"),
+	_rGpsVel(this, "R_GPS_VEL"),
+	_rGpsPos(this, "R_GPS_POS"),
 	_rGpsAlt(this, "R_GPS_ALT"),
 	_rAccel(this, "R_ACCEL")
 {
@@ -585,6 +585,13 @@ void KalmanNav::correctPos()
 	y(3) = double(_gps.lon) / 1.0e7 / M_RAD_TO_DEG - lon;
 	y(4) = double(_gps.alt) / 1.0e3 - alt;
 
+	// update gps noise
+	float cosLatSing = cosf(lat);
+	// prevent singularity
+	if (fabsf(cosLatSing) < 0.01) cosLatSing = 0.01;
+	RPos(2, 2) = _rGpsPos.get()/R; // L, rad
+	RPos(3, 3) = _rGpsPos.get()/(R*cosLatSing); // l, rad
+
 	// compute correction
 	Matrix S = HPos * P * HPos.transpose() + RPos; // residual covariance
 	Matrix K = P * HPos.transpose() * S.inverse();
@@ -656,9 +663,12 @@ void KalmanNav::updateParams()
 	RAtt(5, 5) = _rAccel.get();
 
 	// gps noise
-	RPos(0, 0) = _rGpsV.get(); // vn, m/s
-	RPos(1, 1) = _rGpsV.get(); // ve
-	RPos(2, 2) = _rGpsGeo.get(); // L, rad
-	RPos(3, 3) = _rGpsGeo.get(); // l, rad
+	float cosLatSing = cosf(lat);
+	// prevent singularity
+	if (fabsf(cosLatSing) < 0.01) cosLatSing = 0.01;
+	RPos(0, 0) = _rGpsVel.get(); // vn, m/s
+	RPos(1, 1) = _rGpsVel.get(); // ve
+	RPos(2, 2) = _rGpsPos.get()/R; // L, rad
+	RPos(3, 3) = _rGpsPos.get()/(R*cosLatSing); // l, rad
 	RPos(4, 4) = _rGpsAlt.get(); // h, m
 }
