@@ -21,7 +21,7 @@ PARAM_DEFINE_FLOAT(FWB_R2RDR, 0.1f); // yaw rate 2 rudder
 //  psi -> phi -> p
 PARAM_DEFINE_FLOAT(FWB_PSI2PHI, 2.0f);      // heading 2 roll
 PARAM_DEFINE_FLOAT(FWB_PHI2P, 2.0f);        // roll to roll rate
-PARAM_DEFINE_FLOAT(FWB_PHI_LIM_MAX, 0.8f);  // roll limit, 45 deg
+PARAM_DEFINE_FLOAT(FWB_PHI_LIM_MAX, 0.5f);  // roll limit, 28 deg
 
 // velocity -> theta
 PARAM_DEFINE_FLOAT(FWB_V2THE_P, 0.5f);
