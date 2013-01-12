@@ -544,7 +544,7 @@ BlinkM::led()
 					orb_copy(ORB_ID(vehicle_status), vehicle_status_sub_fd, &vehicle_status_raw);
 
 					/* vehicle_gps_position */
-					orb_copy(ORB_ID(vehicle_gps_position), vehicle_status_sub_fd, &vehicle_gps_position_raw);
+					orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub_fd, &vehicle_gps_position_raw);
 
 					/* get actual battery voltage */
 					system_voltage = (int)vehicle_status_raw.voltage_battery*10;
@@ -642,7 +642,7 @@ BlinkM::led()
 							}
 						}
 
-
+/*
 					printf( "<blinkm> Volt:%8.4f\tArmed:%4u\tMode:%4u\tCells:%4u\tBattWarn:%4u\tSats:%4u\tFix:%4u\tVisible:%4u\n",
 					vehicle_status_raw.voltage_battery,
 					vehicle_status_raw.flag_system_armed,
@@ -652,7 +652,7 @@ BlinkM::led()
 					num_of_used_sats,
 					vehicle_gps_position_raw.fix_type,
 					vehicle_gps_position_raw.satellites_visible);
-
+*/
 				}
 			}
 
