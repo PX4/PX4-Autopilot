@@ -388,13 +388,22 @@ handle_message(mavlink_message_t *msg)
 			/* gps */
 			hil_gps.timestamp = gps.time_usec;
 			hil_gps.counter = hil_counter++;
-			hil_gps.fix_type = gps.fix_type;
+            hil_gps.time_gps_usec = gps.time_usec;
 			hil_gps.lat = gps.lat;
 			hil_gps.lon = gps.lon;
 			hil_gps.alt = gps.alt;
+            hil_gps.counter_pos_valid = hil_counter++;
+            hil_gps.eph = gps.eph;
+            hil_gps.epv = gps.epv;
+            hil_gps.s_variance = 100;
+            hil_gps.p_variance = 100;
+            hil_gps.vel = gps.vel;
 			hil_gps.vel_n = gps.vel / 100.0f * cosf(gps.cog / M_RAD_TO_DEG_F / 100.0f);
 			hil_gps.vel_e = gps.vel / 100.0f * sinf(gps.cog / M_RAD_TO_DEG_F / 100.0f);
 			hil_gps.vel_d = 0.0f;
+            hil_gps.cog = gps.cog;
+			hil_gps.fix_type = gps.fix_type;
+            hil_gps.satellites_visible = gps.satellites_visible;
 
 			/* publish */
 			orb_publish(ORB_ID(vehicle_gps_position), pub_hil_gps, &hil_gps);

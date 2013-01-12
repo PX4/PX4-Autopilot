@@ -255,6 +255,12 @@ class SensorHIL(object):
         print 'Set Auto'
         self.mode_flag_test_and_set(self.autoFlag)
 
+        # send initial data
+        print 'sending sensor data'
+        for i in range(1000):
+            self.ac.send_sensors(self.master.mav)
+            time.sleep(0.001)
+
         # resume simulation
         self.jsb_console.send('resume\n')
         return time.time()
@@ -318,7 +324,7 @@ class SensorHIL(object):
             return
         for m in msgs:
             if m.get_type() == 'SET_MODE':
-                print self.autoFlag2
+                print self.autoFlag
                 print m.get_payload()
                 #raw_input()
             self.master.write(m.get_msgbuf())

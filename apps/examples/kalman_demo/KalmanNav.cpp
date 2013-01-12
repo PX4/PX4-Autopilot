@@ -104,12 +104,18 @@ KalmanNav::KalmanNav(SuperBlock *parent, const char *name) :
 
 	// wait for gps lock
 	while (1) {
-		updateSubscriptions();
+        struct pollfd fds[1];
+        fds[0].fd = _gps.getHandle();
+        fds[0].events = POLLIN;
 
-		if (_gps.fix_type > 2) break;
-
-		printf("[kalman_demo] waiting for gps lock\n");
-		usleep(10000000);
+        // poll 10 seconds for new data
+        int ret = poll(fds, 1, 10000);
+        if (ret > 0)  {
+            updateSubscriptions();
+            if (_gps.fix_type > 2) break;
+        } else if (ret == 0) {
+		    printf("[kalman_demo] waiting for gps lock\n");
+        }
 	}
 
 	// initial state
@@ -323,9 +329,9 @@ void KalmanNav::predictFast(float dt)
 		      vDDot * rotRate * cosL;
 
 	// rectangular integration
-    printf("dt: %8.4f\n", double(dt));
-    printf("fN: %8.4f, fE: %8.4f, fD: %8.4f\n", double(fN), double(fE), double(fD));
-    printf("vN: %8.4f, vE: %8.4f, vD: %8.4f\n", double(vN), double(vE), double(vD));
+    //printf("dt: %8.4f\n", double(dt));
+    //printf("fN: %8.4f, fE: %8.4f, fD: %8.4f\n", double(fN), double(fE), double(fD));
+    //printf("vN: %8.4f, vE: %8.4f, vD: %8.4f\n", double(vN), double(vE), double(vD));
 	vN += vNDot * dt;
 	vE += vEDot * dt;
 	vD += vDDot * dt;
