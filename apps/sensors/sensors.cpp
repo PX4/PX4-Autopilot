@@ -1003,7 +1003,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					/* announce the battery voltage if needed, just publish else */
 					if (_battery_pub > 0) {
 						orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
-						printf("DBG: ADC PUB: %d, val: %d\n", ret, (int)(buf_adc[0].am_data));
+						//printf("DBG: ADC PUB: %d, val: %d\n", ret, (int)(buf_adc[0].am_data));
 
 					} else {
 						_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
