@@ -72,7 +72,6 @@ EulerAngles::EulerAngles(const Quaternion &q) :
 EulerAngles::EulerAngles(const Dcm &dcm) :
 	Vector(3)
 {
-	dcm.print();
 	setTheta(asinf(-dcm(2, 0)));
 
 	if (fabsf(getTheta() - M_PI_2_F) < 1.0e-3f) {

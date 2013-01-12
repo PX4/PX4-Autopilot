@@ -100,13 +100,13 @@ Quaternion::Quaternion(const EulerAngles &euler) :
 	double sinTheta_2 = sin(double(euler.getTheta()) / 2.0);
 	double cosPsi_2 = cos(double(euler.getPsi()) / 2.0);
 	double sinPsi_2 = sin(double(euler.getPsi()) / 2.0);
-	setA(cosPhi_2 * cosTheta_2 * cosPsi_2 -
+	setA(cosPhi_2 * cosTheta_2 * cosPsi_2 +
 	     sinPhi_2 * sinTheta_2 * sinPsi_2);
-	setB(sinPhi_2 * cosTheta_2 * cosPsi_2 +
+	setB(sinPhi_2 * cosTheta_2 * cosPsi_2 -
 	     cosPhi_2 * sinTheta_2 * sinPsi_2);
-	setC(cosPhi_2 * sinTheta_2 * cosPsi_2 -
+	setC(cosPhi_2 * sinTheta_2 * cosPsi_2 +
 	     sinPhi_2 * cosTheta_2 * sinPsi_2);
-	setD(cosPhi_2 * cosTheta_2 * sinPsi_2 +
+	setD(cosPhi_2 * cosTheta_2 * sinPsi_2 -
 	     sinPhi_2 * sinTheta_2 * cosPsi_2);
 }
 
@@ -149,33 +149,24 @@ int __EXPORT quaternionTest()
 	ASSERT(equal(q.getC(), 0));
 	ASSERT(equal(q.getD(), 0));
 	// test float ctor
-	q = Quaternion(0, 1, 0, 0);
-	ASSERT(equal(q.getA(), 0));
-	ASSERT(equal(q.getB(), 1));
-	ASSERT(equal(q.getC(), 0));
-	ASSERT(equal(q.getD(), 0));
+	q = Quaternion(0.1825742, 0.3651484, 0.5477226, 0.7302967);
+	ASSERT(equal(q.getA(), 0.1825742));
+	ASSERT(equal(q.getB(), 0.3651484));
+	ASSERT(equal(q.getC(), 0.5477226));
+	ASSERT(equal(q.getD(), 0.7302967));
 	// test euler ctor
 	q = Quaternion(EulerAngles(0.1, 0.2, 0.3));
-	ASSERT(equal(q.getA(), 0.981856));
-	ASSERT(equal(q.getB(), 0.064071));
-	ASSERT(equal(q.getC(), 0.091158));
-	ASSERT(equal(q.getD(), 0.153439));
+	ASSERT(vectorEqual(q, Quaternion(0.983347, 0.034271, 0.106021, 0.143572)));
 	// test dcm ctor
 	q = Quaternion(Dcm());
-	ASSERT(equal(q.getA(), 1));
-	ASSERT(equal(q.getB(), 0));
-	ASSERT(equal(q.getC(), 0));
-	ASSERT(equal(q.getD(), 0));
+	ASSERT(vectorEqual(q, Quaternion(1, 0, 0, 0)));
 	// TODO test derivative
 	// test accessors
 	q.setA(0.1);
 	q.setB(0.2);
 	q.setC(0.3);
 	q.setD(0.4);
-	ASSERT(equal(q.getA(), 0.1));
-	ASSERT(equal(q.getB(), 0.2));
-	ASSERT(equal(q.getC(), 0.3));
-	ASSERT(equal(q.getD(), 0.4));
+	ASSERT(vectorEqual(q, Quaternion(0.1, 0.2, 0.3, 0.4)));
 	printf("PASS\n");
 	return 0;
 }
