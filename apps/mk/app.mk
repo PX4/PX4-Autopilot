@@ -167,13 +167,9 @@ else
 PRELINKOBJ	 = $(LIBNAME).pre.o
 endif
 
-# The archive that the object file will be placed in
 # XXX does WINTOOL ever get set?
 ifeq ($(WINTOOL),y)
   INCDIROPT	= -w
-  BIN		 = "$(shell cygpath -w  $(APPDIR)/libapps$(LIBEXT))"
-else
-  BIN		 = "$(APPDIR)/libapps$(LIBEXT)"
 endif
 
 ############################################################################
@@ -206,6 +202,7 @@ context:	.context
 	@touch $@
 else
 context:
+	@exit 0
 endif
 
 #
@@ -214,13 +211,13 @@ endif
 $(PRELINKOBJ):	$(OBJS)
 	$(call PRELINK, $@, $(OBJS))
 
-$(AOBJS): %.o : %.S
+$(AOBJS): %.o : %.S $(MAKEFILE_LIST)
 	$(call ASSEMBLE, $<, $@)
 
-$(COBJS): %.o : %.c
+$(COBJS): %.o : %.c $(MAKEFILE_LIST)
 	$(call COMPILE, $<, $@)
 
-$(CXXOBJS): %.o : %.cpp
+$(CXXOBJS): %.o : %.cpp $(MAKEFILE_LIST)
 	$(call COMPILEXX, $<, $@)
 
 #
