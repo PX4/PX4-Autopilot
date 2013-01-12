@@ -167,9 +167,13 @@ else
 PRELINKOBJ	 = $(LIBNAME).pre.o
 endif
 
+# The archive the prelinked object will be linked into
 # XXX does WINTOOL ever get set?
 ifeq ($(WINTOOL),y)
   INCDIROPT	= -w
+  BIN		 = "$(shell cygpath -w  $(APPDIR)/libapps$(LIBEXT))"
+else
+  BIN		 = "$(APPDIR)/libapps$(LIBEXT)"
 endif
 
 ############################################################################
