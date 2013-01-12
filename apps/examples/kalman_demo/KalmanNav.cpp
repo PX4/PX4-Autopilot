@@ -145,7 +145,7 @@ void KalmanNav::update()
 {
 	using namespace math;
 
-	struct pollfd fds[2];
+	struct pollfd fds[3];
 	fds[0].fd = _sensors.getHandle();
 	fds[0].events = POLLIN;
 	fds[1].fd = _param_update.getHandle();
@@ -210,7 +210,7 @@ void KalmanNav::update()
 	}
 
 	// attitude correction step
-	if (_sensors.timestamp - _attTimeStamp > 1e6 / 1) { // 1 Hz
+	if (_sensors.timestamp - _attTimeStamp > 1e6 / 20) { // 20 Hz
 		_attTimeStamp = _sensors.timestamp;
 		correctAtt();
 	}
@@ -306,14 +306,15 @@ void KalmanNav::predictFast(float dt)
 	// trig
 	float sinL = sinf(lat);
 	float cosL = cosf(lat);
+	float cosLSing = cosf(lat);
+	if (fabsf(cosLSing) < 0.01f) cosLSing = 0.01f;
 
 	// position update
 	// neglects angular deflections in local gravity
 	// see Titerton pg. 70
 	float LDot = vN / (R + float(alt));
-	float lDot = vE / (cosL * (R + float(alt)));
-	float vNDot = fN - vE * (2 * omega +
-				 lDot) * sinL +
+	float lDot = vE / (cosLSing * (R + float(alt)));
+	float vNDot = fN - vE * (2 * omega + lDot) * sinL +
 		      vD * LDot;
 	float vDDot = fD - vE * (2 * omega + lDot) * cosL -
 		      vN * LDot + g;
@@ -448,16 +449,6 @@ void KalmanNav::correctAtt()
 	Vector3 bNav(bN, bE, bD);
 	Vector3 zMagHat = (C_nb.transpose() * bNav).unit();
 
-	printf("psi: %8.4f\n", psi*M_RAD_TO_DEG_F);
-
-	printf("zMag: \n");
-	zMag.print();
-	zMag = zMag.unit();
-
-	printf("zMagHat: \n");
-	zMagHat.print();
-	zMagHat = zMagHat.unit();
-
 	// accel measurement
 	Vector3 zAccel(_sensors.accelerometer_m_s2);
 	float accelMag = zAccel.norm();
@@ -586,11 +577,11 @@ void KalmanNav::correctPos()
 	y(4) = double(_gps.alt) / 1.0e3 - alt;
 
 	// update gps noise
-	float cosLatSing = cosf(lat);
+	float cosLSing = cosf(lat);
 	// prevent singularity
-	if (fabsf(cosLatSing) < 0.01) cosLatSing = 0.01;
+	if (fabsf(cosLSing) < 0.01f) cosLSing = 0.01f;
 	RPos(2, 2) = _rGpsPos.get()/R; // L, rad
-	RPos(3, 3) = _rGpsPos.get()/(R*cosLatSing); // l, rad
+	RPos(3, 3) = _rGpsPos.get()/(R*cosLSing); // l, rad
 
 	// compute correction
 	Matrix S = HPos * P * HPos.transpose() + RPos; // residual covariance
@@ -663,12 +654,12 @@ void KalmanNav::updateParams()
 	RAtt(5, 5) = _rAccel.get();
 
 	// gps noise
-	float cosLatSing = cosf(lat);
+	float cosLSing = cosf(lat);
 	// prevent singularity
-	if (fabsf(cosLatSing) < 0.01) cosLatSing = 0.01;
+	if (fabsf(cosLSing) < 0.01f) cosLSing = 0.01f;
 	RPos(0, 0) = _rGpsVel.get(); // vn, m/s
 	RPos(1, 1) = _rGpsVel.get(); // ve
 	RPos(2, 2) = _rGpsPos.get()/R; // L, rad
-	RPos(3, 3) = _rGpsPos.get()/(R*cosLatSing); // l, rad
+	RPos(3, 3) = _rGpsPos.get()/(R*cosLSing); // l, rad
 	RPos(4, 4) = _rGpsAlt.get(); // h, m
 }
