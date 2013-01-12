@@ -78,11 +78,10 @@ static int test_jig(int argc, char *argv[]);
  * Private Data
  ****************************************************************************/
 
-struct {
+const struct {
 	const char 	*name;
 	int	(* fn)(int argc, char *argv[]);
 	unsigned	options;
-	int			passed;
 #define OPT_NOHELP	(1<<0)
 #define OPT_NOALLTEST	(1<<1)
 #define OPT_NOJIGTEST	(1<<2)
@@ -135,6 +134,10 @@ test_all(int argc, char *argv[])
 	unsigned int failcount = 0;
 	unsigned int testscount = 0;
 
+	/* store test results */
+	bool passed[(sizeof(tests) / sizeof(tests[0]))];
+	memset(&passed, 0, sizeof(passed));
+
 	printf("\nRunning all tests...\n\n");
 
 	for (i = 0; tests[i].name; i++) {
@@ -150,7 +153,7 @@ test_all(int argc, char *argv[])
 				failcount++;
 
 			} else {
-				tests[i].passed = 1;
+				passed[i] = true;
 				printf("  [%s] \t\t\tPASS\n", tests[i].name);
 				fflush(stdout);
 			}
@@ -198,7 +201,7 @@ test_all(int argc, char *argv[])
 	unsigned int k;
 
 	for (k = 0; k < i; k++) {
-		if ((tests[k].passed == 0) && !(tests[k].options & OPT_NOALLTEST)) {
+		if (!passed[k] && !(tests[k].options & OPT_NOALLTEST)) {
 			printf(" [%s] to obtain details, please re-run with\n\t nsh> tests %s\n\n", tests[k].name, tests[k].name);
 		}
 	}
@@ -247,6 +250,10 @@ int test_jig(int argc, char *argv[])
 	unsigned int failcount = 0;
 	unsigned int testscount = 0;
 
+	/* store test results */
+	bool passed[(sizeof(tests) / sizeof(tests[0]))];
+	memset(&passed, 0, sizeof(passed));
+
 	printf("\nRunning all tests...\n\n");
 	for (i = 0; tests[i].name; i++) {
 		/* Only run tests that are not excluded */
@@ -259,7 +266,7 @@ int test_jig(int argc, char *argv[])
 				fflush(stderr);
 				failcount++;
 			} else {
-				tests[i].passed = 1;
+				passed[i] = true;
 				printf("  [%s] \t\t\tPASS\n", tests[i].name);
 				fflush(stdout);
 			}
@@ -302,7 +309,7 @@ int test_jig(int argc, char *argv[])
 	unsigned int k;
 	for (k = 0; k < i; k++)
 	{
-		if ((tests[k].passed == 0) && !(tests[k].options & OPT_NOJIGTEST))
+		if (!passed[k] && !(tests[k].options & OPT_NOJIGTEST))
 		{
 			printf(" [%s] to obtain details, please re-run with\n\t nsh> tests %s\n\n", tests[k].name, tests[k].name);
 		}

@@ -90,9 +90,8 @@ int test_sleep(int argc, char *argv[])
 	printf("\t %d 100ms sleeps\n", nsleeps);
 	fflush(stdout);
 
-	for (int i = 0; i < nsleeps; i++) {
+	for (unsigned int i = 0; i < nsleeps; i++) {
 		usleep(100000);
-		//printf("\ttick\n");
 	}
 
 	printf("\t Sleep test successful.\n");
